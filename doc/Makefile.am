@@ -1,0 +1,39 @@
+## Makefile.am
+##
+## Process this file with automake to produce Makefile.in
+
+modhtml = ocs.html \
+			ocs_app.html \
+			ocs_sup.html \
+			ocs_radius_sup.html \
+			ocs_server.html \
+			ocs_authentication_sup.html \
+			ocs_accounting_sup.html
+			
+
+doc_DATA = overview.edoc $(modhtml) \
+		modules-frame.html overview-summary.html \
+		index.html stylesheet.css \
+		sigscale-logo.png supervision.png
+
+overview.edoc: overview.edoc-in
+	sed -e 's!%VERSION%!$(VERSION)!' \
+			-e 's!%DESCRIPTION%!$(PACKAGE)!' < $< > $@
+
+%.html:$(top_srcdir)/src/%.erl	overview.edoc
+	$(ERL) -noshell -run edoc_run application \
+			"'$(PACKAGE_NAME)'" "'$(top_builddir)'" \
+			'[{sort_functions,false},{private,true},{todo,true},{source_path,["$(top_srcdir)/src"]},{subpackages,false},{def,{docsrc,"$(top_srcdir)/doc/{@?}"}},{stylesheet_file, "$(top_srcdir)/doc/stylesheet.css"}]'
+	for i in `ls *.html`; do \
+			sed -i -e 's!erlang logo!sigscale logo!' $$i; \
+			sed -i -e 's!href=\"http://www.erlang.org/\"!href=\"http://www.sigscale.org/\"!' $$i; \
+			sed -i -e 's!erlang.png!sigscale-logo.png!' $$i; \
+			cp $(top_srcdir)/doc/sigscale-logo.png .; \
+			cp $(top_srcdir)/doc/supervision.png .; done
+
+CLEANFILES = overview.edoc edoc-info index.html \
+		modules-frame.html overview-summary.html packages-frame.html \
+		stylesheet.css erlang.png $(modhtml)
+
+INSTALL += -o otpuser -g otp
+

@@ -1,0 +1,10 @@
+@doc This {@link //stdlib/supervisor. supervisor} behaviour callback
+	module implements a supervisor in the
+	{@link //ocs. ocs} application.
+
+The supervision heirachy is depicted in
+<a href="supervision.png">Figure 1-1</a>.
+
+<a href="https://docs.google.com/a/sigscale.com/drawings/d/1rkQ3-0XVBt2dv0Ijv9iJo26Us03s3RX_RAEzBtiMNTo/edit?usp=sharing"><img alt="supervision heirachy" src="supervision.png" /></a><br />
+<a href="supervision.png">Figure 1-1</a>
+

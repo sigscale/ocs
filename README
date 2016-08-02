@@ -1,0 +1,10 @@
+The template project in the repository may be used to generate a
+complete working application framework to begin a new project.
+
+To get started run the TEMPLATE.sh script once to build the new
+application and clean up all the TEMPLATE* files.
+
+	$ ./TEMPLATE.sh --name foo --author "John Smith <jsmith@sigscale.org>"
+
+The above command will create an application named "foo".
+

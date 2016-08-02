@@ -1,0 +1,36 @@
+@author %AUTHOR%
+@copyright 2016 SigScale Global Inc.
+@version %VERSION%
+@title %DESCRIPTION%
+@doc This application implements ...
+
+==Introduction==
+Describe what the application is about....
+
+==Operation==
+Decsribe how to use the application.  An example follows ...
+
+To create a new service access point:
+```
+	1> {ok, SAP} = ocs:open().
+	{ok,<0.51.0>}
+'''
+To close an open service access point:
+```
+	2> ocs:close(SAP).
+	ok
+'''
+==Database Schema==
+Describe the layout of any mnesia tables used in the application....
+
+==Configuration==
+Document all application environment variables which exist...
+
+The application is configured using the following environment variables:
+<dl>
+  <dt>foo</dt>
+    <dd>Describe the effect of the foo variable.</dd>
+  <dt>bar</dt>
+    <dd>Describe the effect of the bar variable.</dd>
+</dl>
+
