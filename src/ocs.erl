@@ -24,6 +24,7 @@
 -export([add_client/2, find_client/1]).
 -export([add_user/3, find_user/1]).
 -export([log_file/1]).
+-export([generate_password/0]).
 
 %% export the ocs private API
 -export([install/1]).
@@ -187,9 +188,41 @@ install(Nodes) when is_list(Nodes) ->
 			mnesia:error_description(Error)
 	end.
 	
+-type password() :: [50..57 | 97..107 | 109..110 | 112..122].
+-spec generate() -> password().
+%% @equiv generate(12)
+generate() ->
+	generate(12).
+
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+-spec generate(Length :: pos_integer()) -> password().
+%% Generate a random password.
+%% @private
+generate(Length) when Length > 0 ->
+	Charset = charset(),
+	NumChars = length(Charset),
+	Random = crypto:strong_rand_bytes(Length),
+	generate(Random, Charset, NumChars,[]).
+%% @hidden
+generate(<<N, Rest/binary>>, Charset, NumChars, Acc) ->
+	CharNum = (N rem NumChars) + 1,
+	NewAcc = [lists:nth(CharNum, Charset) | Acc],
+	generate(Rest, Charset, NumChars, NewAcc);
+generate(<<>>, _Charset, _NumChars, Acc) ->
+	Acc.
+
+-spec charset() -> Charset :: password().
+%% @doc Returns the table of valid characters for passwords.
+%% @private
+charset() ->
+	C1 = lists:seq($2, $9),
+	C2 = lists:seq($a, $k),
+	C3 = lists:seq($m, $n),
+	C4 = lists:seq($p, $z),
+	lists:append([C1, C2, C3, C4]).	
 
 %% @hidden
 file_chunk(Log, IODevice, Continuation) ->
