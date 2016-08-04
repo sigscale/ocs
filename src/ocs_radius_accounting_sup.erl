@@ -1,4 +1,4 @@
-%%% ocs_authentication_sup.erl
+%%% ocs_radius_accounting_sup.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 SigScale Global Inc.
 %%% @end
@@ -16,18 +16,19 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @docfile "{@docsrc supervision.edoc}"
 %%%
--module(ocs_authentication_sup).
+-module(ocs_radius_accounting_sup).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 -behaviour(supervisor_bridge).
 
-%% export thecallback needed for supervisor behaviour
+%% export the callback needed for supervisor behaviour
 -export([init/1, terminate/2]).
+
+-record(state, {sup}).
 
 %%----------------------------------------------------------------------
 %%  The supervisor_bridge callback
 %%----------------------------------------------------------------------
-
 
 -spec init(Args :: list()) ->
 	Result :: {ok, Pid :: pid(), State :: term()}
@@ -37,10 +38,13 @@
 %% @see //stdlib/supervisor_bridge:init/1
 %% @private
 %%
-init(_Args) ->
-	ignore.
+init([Port] = _Args) ->
+	StartMod = ocs_radius_accounting,
+	{ok, Pid} = radius:start_link(StartMod, Port),
+	{ok, Pid, #state{sup = Pid}}.
 
--spec terminate(Reason :: term(), State :: term()) -> any().
+-spec terminate(Reason :: shutdown | term(), State :: term()) -> any().
 %% @doc This function is called when it is about to terminate.
-terminate(_Reason, _State) ->
-	shutdown.
+terminate(_Reason, #state{sup = Sup} = _State) ->
+	radius:stop(Sup).
+

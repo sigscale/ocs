@@ -15,8 +15,7 @@
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @doc This {@link //stdlib/application. application} behaviour callback
-%%% 	module starts and stops the
-%%% 	{@link //ocs. ocs} application.
+%%% 	module starts and stops the {@link //ocs. ocs} application.
 %%%
 -module(ocs_app).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
@@ -43,8 +42,12 @@
 %% @see //kernel/application:start/2
 %%
 start(normal = _StartType, _Args) ->
-	{ok, Foo} = application:get_env(foo),
-	case supervisor:start_link(ocs_sup, [Foo]) of
+	{ok, AuthPort} = application:get_env(radius_auth_prt),
+	{ok, AcctPort} = application:get_env(radius_acct_port),
+	{ok, RestIp} = application:get_env(rest_ip),
+	{ok, RestPort} = application:get_env(rest_port),
+	case supervisor:start_link(ocs_sup,
+			[AuthPort, AcctPort, RestIp, RestPort]) of
 		{ok, Sup} ->
 			{ok, Sup};
 		{error, Reason} ->
