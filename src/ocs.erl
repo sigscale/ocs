@@ -21,40 +21,11 @@
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 %% export the ocs public API
--export([open/0, close/1]).
+-export([]).
 
 %%----------------------------------------------------------------------
 %%  The ocs API
 %%----------------------------------------------------------------------
-
--spec open() ->
-	{ok, SAP :: pid()} | {error, Reason :: term()}.
-%% @doc Open a new service access point (SAP).
-%%
-open() ->
-	case supervisor:start_child(ocs_fsm_sup, [[], []]) of
-		{ok, undefined} ->
-			{error, undefined};
-		{ok, Child} ->
-			{ok, Child};
-		{ok, Child, _Info} ->
-			{ok, Child};
-		{error, Reason} ->
-			{error, Reason}
-	end.
-
--spec close(SAP :: pid()) -> ok.
-%% @doc Close an existing service access point (SAP).
-%% 
-close(SAP) when is_pid(SAP) ->
-	case supervisor:terminate_child(ocs_fsm_sup, SAP) of
-		ok ->
-			ok;
-		{error, not_found} ->
-			exit(badarg);
-		{error, Reason} ->
-			exit(Reason)
-	end.
 
 %%----------------------------------------------------------------------
 %%  internal functions
