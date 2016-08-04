@@ -30,8 +30,12 @@ ports.
 	</thead>
 	<tbody>
 		<tr id="mt">
+			<td id="mt">radius_client</td>
+			<td id="mt">RADIUS clients</td>
+		</tr>
+		<tr id="mt">
 			<td id="mt">subscriber</td>
-			<td id="mt">The table of subscribers.</td>
+			<td id="mt">Subscriber data</td>
 		</tr>
 	</tbody>
 </table>
@@ -39,6 +43,8 @@ ports.
 ==Configuration==
 The application is configured using the following environment variables:
 <dl>
+	<dt>accounting_dir</dt>
+		<dd>Path of directory to store accounting logs.</dd>
 	<dt>radius_auth_port</dt>
 		<dd>UCP port for RADIUS authentication.</dd>
 	<dt>radius_acct_port</dt>
