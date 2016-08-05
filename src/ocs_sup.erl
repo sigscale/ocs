@@ -35,10 +35,10 @@
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init([Foo] = _Args) ->
-	ChildSpecs = [webmachine(),
-			server(ocs_server, [Foo]),
-			supervisor(ocs_radius_sup, [])],
+init([AuthPort, AcctPort, RestIp, RestPort] = _Args) ->
+	ChildSpecs = [webmachine(RestIp, RestPort),
+			server(ocs_server, []),
+			supervisor(ocs_radius_sup, [AuthPort, AcctPort])],
 	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
 
 %%----------------------------------------------------------------------
@@ -67,11 +67,16 @@ server(StartMod, Args) ->
 	StartFunc = {gen_server, start_link, StartArgs},
 	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
 
-webmachine() ->
-	{ok, Ip} = application:get_env(rest_ip),
-	{ok, Port} = application:get_env(rest_port),
+-spec webmavhine(StartMod :: atom(),
+		Address :: inet:ip_address, Port :: integer()]) ->
+	supervisor:child_spec().
+%% @doc Build a supervisor child specification for a
+%% 	{@link //webmachine/webmachine_mochiweb. webmachine} server.
+%% @private
+%%
+webmachine(Address, Port) ->
 	Dispatch = ocs_wm_config:dispatch(),
-	WebConfig = [{ip, Ip},
+	WebConfig = [{ip, Address},
 					{port, Port},
 					{dispatch, Dispatch}],
 	StartArgs = [WebConfig],

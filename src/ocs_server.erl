@@ -30,7 +30,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 			terminate/2, code_change/3]).
 
--record(state, {foo :: string()}).
+-record(state, {}).
 
 %%----------------------------------------------------------------------
 %%  The ocs_server API
@@ -48,9 +48,9 @@
 %% @see //stdlib/gen_server:init/1
 %% @private
 %%
-init([Foo] = _Args) ->
+init([] = _Args) ->
 	process_flag(trap_exit, true),
-	{ok, #state{foo = Foo}}.
+	{ok, #state{}}.
 
 -spec handle_call(Request :: term(), From :: {pid(), Tag :: any()},
 		State :: #state{}) ->

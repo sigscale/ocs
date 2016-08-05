@@ -2,35 +2,64 @@
 @copyright 2016 SigScale Global Inc.
 @version %VERSION%
 @title %DESCRIPTION%
-@doc This application implements ...
+@doc This application implements an Online Charging System (OCS).
 
 ==Introduction==
-Describe what the application is about....
+In a communications service provider (CSP) network an Online
+Charging System (OCS) is used for real-time charging of services.
+The OCS controls subscriber's sessions such that usage is decremented
+from the subscriber's account in real-time and once teh balance is
+zero all sessions are terminated.
+
+This OCS performs authentication, authorization and accounting (AAA)
+for subscribers of wireless local area network (WLAN) services (WiFi)..
 
 ==Operation==
-Decsribe how to use the application.  An example follows ...
+The OCS application will start RADIUS servers for authentication and
+accounting, as well as an HTTP server for the REST API, on the configured
+ports.
 
-To create a new service access point:
-```
-	1> {ok, SAP} = ocs:open().
-	{ok,<0.51.0>}
-'''
-To close an open service access point:
-```
-	2> ocs:close(SAP).
-	ok
-'''
 ==Database Schema==
-Describe the layout of any mnesia tables used in the application....
+<table id="mt">
+	<caption id="mt">There is one persistent {@link //mnesia. mnesia} table:</caption>
+	<thead>
+		<tr id="mt">
+			<th id="mt">Table Name</th>
+			<th id="mt">Description</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr id="mt">
+			<td id="mt">radius_client</td>
+			<td id="mt">RADIUS clients</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">subscriber</td>
+			<td id="mt">Subscriber data</td>
+		</tr>
+	</tbody>
+</table>
 
 ==Configuration==
-Document all application environment variables which exist...
-
 The application is configured using the following environment variables:
 <dl>
-  <dt>foo</dt>
-    <dd>Describe the effect of the foo variable.</dd>
-  <dt>bar</dt>
-    <dd>Describe the effect of the bar variable.</dd>
+	<dt>accounting_dir</dt>
+		<dd>Path of directory to store accounting logs.</dd>
+	<dt>radius_auth_port</dt>
+		<dd>UCP port for RADIUS authentication.</dd>
+	<dt>radius_acct_port</dt>
+		<dd>UCP port for RADIUS accounting.</dd>
+	<dt>rest_port</dt>
+		<dd>TCP port for REST API.</dd>
+	<dt>rest_username</dt>
+		<dd>Username for REST API authentication.</dd>
+	<dt>rest_password</dt>
+		<dd>Password for REST API authentication.</dd>
+	<dt>rest_crt</dt>
+		<dd>Public certificate for TLS security on REST API.</dd>
+	<dt>rest_key</dt>
+		<dd>Private key for TLS security on REST API.</dd>
+	<dt>rest_trace</dt>
+		<dd>Path to directory for REST tracing.</dd>
 </dl>
 

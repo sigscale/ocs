@@ -6,10 +6,11 @@ modhtml = ocs.html \
 			ocs_app.html \
 			ocs_sup.html \
 			ocs_radius_sup.html \
-			ocs_server.html \
-			ocs_authentication_sup.html \
-			ocs_accounting_sup.html
-			
+			ocs_radius_authentication_sup.html \
+			ocs_radius_authentication.html \
+			ocs_radius_accounting_sup.html \
+			ocs_radius_accounting.html \
+			ocs_server.html
 
 doc_DATA = overview.edoc $(modhtml) \
 		modules-frame.html overview-summary.html \

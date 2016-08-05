@@ -21,11 +21,11 @@
 
 -behaviour(supervisor).
 
-%% export thecallback needed for supervisor behaviour
+%% export the callback needed for supervisor behaviour
 -export([init/1]).
 
 %%----------------------------------------------------------------------
-%%  The supervisorcallback
+%%  The supervisor callback
 %%----------------------------------------------------------------------
 
 -spec init(Args :: [term()]) ->
@@ -35,19 +35,19 @@
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init(_Args) ->
-	ChildSpecs = [supervisor(ocs_authentication_sup, []),
-					supervisor(ocs_accounting_sup, [])],
+init([AuthPort, AcctPort) ->
+	ChildSpecs = [supervisor(ocs_radius_authentication_sup, [AuthPort]),
+					supervisor(ocs_radius_accounting_sup, [AcctPort])],
 	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
 
--spec supervisor(StartMod :: atom(), Args :: [term()]) ->
+-spec supervisor_bridge(StartMod :: atom(), Args :: [term()]) ->
 	supervisor:child_spec().
 %% @doc Build a supervisor child specification for a
-%% 	{@link //stdlib/supervisor. supervisor} behaviour.
+%% 	{@link //stdlib/supervisor_bridge. supervisor_bridge} behaviour.
 %% @private
 %%
-supervisor(StartMod, Args) ->
+supervisor_bridge(StartMod, Args) ->
 	StartArgs = [{local, StartMod}, StartMod, Args],
-	StartFunc = {supervisor, start_link, StartArgs},
+	StartFunc = {supervisor_bridge, start_link, StartArgs},
 	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
 
