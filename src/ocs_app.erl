@@ -42,7 +42,24 @@
 %% @see //kernel/application:start/2
 %%
 start(normal = _StartType, _Args) ->
-	{ok, AuthPort} = application:get_env(radius_auth_prt),
+	case mnesia:wait_for_tables([radius_client, subscriber], 60000) of
+		ok ->
+			start1();
+		{timeout, BadTabList} ->
+			case force(BadTabList) of
+				ok ->
+					start1();
+				{error, Reason} ->
+					error_logger:error_report(["ocs application failed to start",
+							{reason, Reason}, {module, ?MODULE}]),
+					{error, Reason}
+			end;
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+start1() ->
+	{ok, AuthPort} = application:get_env(radius_auth_port),
 	{ok, AcctPort} = application:get_env(radius_acct_port),
 	{ok, RestIp} = application:get_env(rest_ip),
 	{ok, RestPort} = application:get_env(rest_port),
@@ -91,4 +108,17 @@ config_change(_Changed, _New, _Removed) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+-spec force(Tables :: [TableName :: atom()]) ->
+	ok | {error, Reason :: term()}.
+%% @doc Try to force load bad tables.
+force([H | T]) ->
+	case mnesia:force_load_table(H) of
+		yes ->
+			force(T);
+		ErrorDescription ->
+			{error, ErrorDescription}
+	end;
+force([]) ->
+	ok.
 
