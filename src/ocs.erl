@@ -189,29 +189,29 @@ install(Nodes) when is_list(Nodes) ->
 	end.
 	
 -type password() :: [50..57 | 97..107 | 109..110 | 112..122].
--spec generate() -> password().
-%% @equiv generate(12)
-generate() ->
-	generate(12).
+-spec generate_password() -> password().
+%% @equiv generate_password(12)
+generate_password() ->
+	generate_password(12).
 
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec generate(Length :: pos_integer()) -> password().
+-spec generate_password(Length :: pos_integer()) -> password().
 %% Generate a random password.
 %% @private
-generate(Length) when Length > 0 ->
+generate_password(Length) when Length > 0 ->
 	Charset = charset(),
 	NumChars = length(Charset),
 	Random = crypto:strong_rand_bytes(Length),
-	generate(Random, Charset, NumChars,[]).
+	generate_password(Random, Charset, NumChars,[]).
 %% @hidden
-generate(<<N, Rest/binary>>, Charset, NumChars, Acc) ->
+generate_password(<<N, Rest/binary>>, Charset, NumChars, Acc) ->
 	CharNum = (N rem NumChars) + 1,
 	NewAcc = [lists:nth(CharNum, Charset) | Acc],
-	generate(Rest, Charset, NumChars, NewAcc);
-generate(<<>>, _Charset, _NumChars, Acc) ->
+	generate_password(Rest, Charset, NumChars, NewAcc);
+generate_password(<<>>, _Charset, _NumChars, Acc) ->
 	Acc.
 
 -spec charset() -> Charset :: password().
