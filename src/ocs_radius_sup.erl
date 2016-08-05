@@ -35,9 +35,9 @@
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init([AuthPort, AcctPort) ->
-	ChildSpecs = [supervisor(ocs_radius_authentication_sup, [AuthPort]),
-					supervisor(ocs_radius_accounting_sup, [AcctPort])],
+init([AuthPort, AcctPort]) ->
+	ChildSpecs = [supervisor_bridge(ocs_radius_authentication_sup, [AuthPort]),
+					supervisor_bridge(ocs_radius_accounting_sup, [AcctPort])],
 	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
 
 -spec supervisor_bridge(StartMod :: atom(), Args :: [term()]) ->
