@@ -24,7 +24,7 @@ overview.edoc: overview.edoc-in
 %.html:$(top_srcdir)/src/%.erl	overview.edoc
 	$(ERL) -noshell -run edoc_run application \
 			"'$(PACKAGE_NAME)'" "'$(top_builddir)'" \
-			'[{sort_functions,false},{private,true},{todo,true},{source_path,["$(top_srcdir)/src"]},{includes,["$ERLANG_LIB_VER_radius"]},{subpackages,false},{def,{docsrc,"$(top_srcdir)/doc/{@?}"}},{stylesheet_file, "$(top_srcdir)/doc/stylesheet.css"}]'
+			'[{sort_functions,false},{private,true},{todo,true},{source_path,["$(top_srcdir)/src"]},{includes,["$(ERLANG_LIB_VER_radius)"]},{subpackages,false},{def,{docsrc,"$(top_srcdir)/doc/{@?}"}},{stylesheet_file, "$(top_srcdir)/doc/stylesheet.css"}]'
 	for i in `ls *.html`; do \
 			sed -i -e 's!erlang logo!sigscale logo!' $$i; \
 			sed -i -e 's!href=\"http://www.erlang.org/\"!href=\"http://www.sigscale.org/\"!' $$i; \
