@@ -67,8 +67,7 @@ server(StartMod, Args) ->
 	StartFunc = {gen_server, start_link, StartArgs},
 	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
 
--spec webmavhine(StartMod :: atom(),
-		Address :: inet:ip_address, Port :: integer()]) ->
+-spec webmachine(Address :: inet:ip_address(), Port :: integer()) ->
 	supervisor:child_spec().
 %% @doc Build a supervisor child specification for a
 %% 	{@link //webmachine/webmachine_mochiweb. webmachine} server.
