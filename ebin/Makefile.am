@@ -14,7 +14,8 @@ beam_DATA = ocs.beam \
 			ocs_radius_authentication.beam \
 			ocs_radius_accounting_sup.beam \
 			ocs_radius_accounting.beam \
-			ocs_server.beam
+			ocs_server.beam \
+			ocs_wm_config.beam
 
 %.beam:$(top_srcdir)/src/%.erl
 	$(ERLC) $(ERLCFLAGS) -I $(top_srcdir)/include -I $(top_srcdir)/src $<
