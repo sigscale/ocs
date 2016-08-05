@@ -1,10 +1,19 @@
-The template project in the repository may be used to generate a
-complete working application framework to begin a new project.
+# ocs
 
-To get started run the TEMPLATE.sh script once to build the new
-application and clean up all the TEMPLATE* files.
+## Building
+	1. mkdir ../ocs.build     (create build directory)
+	2. cd ../ocs.build        (change working directory for build)
+	3. ../ocs/configure       (creates Makefiles)
+	4. make                      (builds entire package)
+	5. make check                (run dialyzer and common_test)
 
-	$ ./TEMPLATE.sh --name foo --author "John Smith <jsmith@sigscale.org>"
+## Installing
+	1. sudo make install         (installs embedded application in system)
 
-The above command will create an application named "foo".
+## Cleaning
+	1. make clean                (removes files created with make)
+	2. make distclean            (removes files created with configure also)
+
+## Options
+	../ocs/configure --enable-debug
 

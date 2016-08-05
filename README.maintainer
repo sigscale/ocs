@@ -1,0 +1,46 @@
+This package is built with the GNU Build System.
+A good reference for the whole process is at:
+	https://sourceware.org/autobook/
+
+## Autotools Manuals
+	http://www.gnu.org/software/automake/manual/
+	http://www.gnu.org/software/autoconf/manual/
+
+## Requirements
+You'll need the following GNU tools:
+	- autoconf
+	- automake
+	- make
+	- m4
+	- perl
+
+## Porting
+The only files which should (theoretically) be edited for portability are:
+	- configure.ac
+	- Makefile.am
+
+## Maintainer Build
+	1. aclocal                   (creates aclocal.m4)
+	2. autoheader                (creates config.h.in)
+	3. autoconf                  (creates configure & autom4te.cache)
+	4. automake --add-missing    (creates Makefile.in)
+Note:
+	5. autoreconf                (remakes above files after changes)
+
+## Building
+	1. mkdir ../ocs.build     (create build directory)
+	2. cd ../ocs.build        (change working directory for build)
+	3. ../ocs/configure       (creates Makefiles)
+	4. make                      (builds entire package)
+	5. make check                (run dialyzer and common_test)
+
+## Installing
+	1. sudo make install         (installs embedded application in system)
+
+## Cleaning
+	1. make clean                (removes files created with make)
+	2. make distclean            (removes files created with configure also)
+
+## Options
+	../ocs/configure --enable-debug
+
