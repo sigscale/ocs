@@ -26,7 +26,7 @@
 
 -compile(export_all).
 
--include("ct.hrl").
+-include_lib("common_test/include/ct.hrl").
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
