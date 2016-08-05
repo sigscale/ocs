@@ -22,7 +22,7 @@
 
 %% export the ocs public API
 -export([add_client/2, find_client/1]).
--export([add_user/3, find_user/1]).
+-export([add_subscriber/3, find_subscriber/1]).
 -export([log_file/1]).
 -export([generate_password/0]).
 
@@ -32,8 +32,8 @@
 %% define client table entries record
 -record(radius_client, {address, secret}).
 
-%% define user table entries record
--record(radius_user, {name, password, attributes}).
+%% define subscriber table entries record
+-record(subscriber, {name, password, attributes}).
 
 -define(WAITFORSCHEMA, 10000).
 -define(WAITFORTABLES, 10000).
@@ -83,14 +83,14 @@ find_client(Address) when is_tuple(Address) ->
 			exit(Reason)
 	end.
 
--spec add_user(UserName :: string(), Password :: string(),
+-spec add_subscriber(Subscriber :: string(), Password :: string(),
 		Attributes :: binary() | [byte()]) -> ok | {error, Reason :: term()}.
-%% @doc Store the password and static attributes for a user.
+%% @doc Store the password and static attributes for a subscriber.
 %%
-add_user(UserName, Password, Attributes) when is_list(UserName),
+add_subscriber(Subscriber, Password, Attributes) when is_list(Subscriber),
 		is_list(Password), (is_list(Attributes) orelse is_binary(Attributes)) -> 
 	F = fun() ->
-				R = #radius_user{name = UserName, password = Password,
+				R = #subscriber{name = Subscriber, password = Password,
 						attributes = Attributes},
 				mnesia:write(R)
 	end,
@@ -101,17 +101,17 @@ add_user(UserName, Password, Attributes) when is_list(UserName),
 			{error, Reason}
 	end.
 
--spec find_user(UserName :: string()) ->
+-spec find_subscriber(Subscriber :: string()) ->
 	Result :: {ok, Password :: string(),
 		Attributes :: binary() | [byte()]} | error.
-%% @doc Look up a user and return the password and attributes assigned.
+%% @doc Look up a subscriber and return the password and attributes assigned.
 %%
-find_user(UserName) when is_list(UserName) ->
+find_subscriber(Subscriber) when is_list(Subscriber) ->
 	F = fun() ->
-				mnesia:read(radius_user, UserName, read)
+				mnesia:read(subscriber, Subscriber, read)
 	end,
 	case mnesia:transaction(F) of
-		{atomic, [#radius_user{password = Password, attributes = Attributes}]} ->
+		{atomic, [#subscriber{password = Password, attributes = Attributes}]} ->
 			{ok, Password, Attributes};
 		{atomic, []} ->
 			error;
@@ -142,7 +142,7 @@ log_file(FileName) when is_list(FileName) ->
 %% 		2> mnesia:start().
 %% 		ok
 %% 		3> {@module}:install([node()]).
-%% 		{ok,[radius_client,radius_user]}
+%% 		{ok,[radius_client, subscriber]}
 %% 		ok
 %% 	'''
 %%
@@ -165,16 +165,16 @@ install(Nodes) when is_list(Nodes) ->
 			T1Result ->
 				throw(T1Result)
 		end,
-		case mnesia:create_table(radius_user, [{disc_copies, Nodes},
-				{attributes, record_info(fields, radius_user)}]) of
+		case mnesia:create_table(subscriber, [{disc_copies, Nodes},
+				{attributes, record_info(fields, subscriber)}]) of
 			{atomic, ok} ->
-				error_logger:info_msg("Created new radius_user table.~n");
-			{aborted, {already_exists, radius_user}} ->
-				error_logger:warning_msg("Found existing radius_user table.~n");
+				error_logger:info_msg("Created new subscriber table.~n");
+			{aborted, {already_exists, subscriber}} ->
+				error_logger:warning_msg("Found existing subscriber table.~n");
 			T2Result ->
 				throw(T2Result)
 		end,
-		Tables = [radius_client, radius_user],
+		Tables = [radius_client, subscriber],
 		case mnesia:wait_for_tables(Tables, ?WAITFORTABLES) of
 			ok ->
 				Tables;
@@ -199,7 +199,7 @@ generate_password() ->
 %%----------------------------------------------------------------------
 
 -spec generate_password(Length :: pos_integer()) -> password().
-%% Generate a random password.
+%% @doc Generate a random uniform password.
 %% @private
 generate_password(Length) when Length > 0 ->
 	Charset = charset(),
