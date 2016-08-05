@@ -22,7 +22,8 @@ beam_DATA = ocs.beam \
 
 %.app:   %.app-in
 	sed -e 's/%APP_NAME%/$(PACKAGE_NAME)/' \
-			-e 's/%APP_VERSION%/$(PACKAGE_VERSION)/' < $< > $@
+			-e 's/%APP_VERSION%/$(PACKAGE_VERSION)/' \
+			-e 's#%APP_PRIV%#$(ERLANG_INSTALL_LIB_DIR)/$(PACKAGE_NAME)-$(PACKAGE_VERSION)/priv/#' < $< > $@ 
 
 CLEANFILES = $(beam_DATA) $(app_DATA)
 
