@@ -74,29 +74,11 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[open, close].
+	[].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
-
-open() ->
-	[{userdata, [{doc, "Open a Service Access Point (SAP)."}]}].
-
-open(_Config) ->
-	{ok, SAP} = ocs:open(),
-	true = is_process_alive(SAP),
-	ocs:close(SAP).
-	
-close() ->
-	[{userdata, [{doc, "Close a Service Access Point (SAP)."}]}].
-
-close(_Config) ->
-	{ok, SAP} = ocs:open(),
-	true = is_process_alive(SAP),
-	ok = ocs:close(SAP),
-	false = is_process_alive(SAP).
-	
 
 %%---------------------------------------------------------------------
 %%  Internal functions
