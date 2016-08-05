@@ -14,7 +14,7 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @doc This {@link //radierl/radius. radius} behaviour callback
+%%% @doc This {@link //radius/radius. radius} behaviour callback
 %%% 	module performs authentication procedures in the
 %%% 	{@link //ocs. ocs} application.
 %%%

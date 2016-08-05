@@ -48,7 +48,7 @@ AC_SUBST(eincludedir)
 ##
 ## Libraries:  check for libraries
 ##
-AC_ERLANG_CHECK_LIB([radierl], [], [AC_MSG_ERROR([radierl was not found!])])
+AC_ERLANG_CHECK_LIB([radius], [], [AC_MSG_ERROR([radius was not found!])])
 
 
 ##

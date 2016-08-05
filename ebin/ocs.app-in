@@ -11,6 +11,6 @@
 				ocs_radius_accounting,
 				ocs_server]},
 		{registered, []},
-		{applications, [kernel, stdlib, radierl]},
+		{applications, [kernel, stdlib, radius]},
 		{env, []},
 		{mod, {ocs_app, []}}]}.
