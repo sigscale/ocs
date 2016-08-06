@@ -18,9 +18,11 @@ check_DATA = .dialyzer_ok .common_test_ok
 	@if [ ! -f sys.config ]; then cp $(top_srcdir)/test/sys.config .; fi
 	@if [ ! -f ct.cfg ]; then cp $(top_srcdir)/test/ct.cfg .; fi
 	@if [ ! -f test.spec ]; then cp $(top_srcdir)/test/test.spec .; fi
-	for i in $(addsuffix _data, $(testmods)); do \
-		if [ -d $(top_srcdir)/test/$$i -a ! -d $$i ]; then \
-			mkdir $$i; \
+	for i in $(addsuffix _data,$(testmods)); do \
+		if [ -d $(top_srcdir)/test/$$i ]; then \
+			if [ ! -d $$i ]; then \
+				mkdir $$i; \
+			fi; \
 			for j in `ls $(top_srcdir)/test/$$i`; do \
 				if [ $(top_srcdir)/test/$$i/$$j -nt $$i/$$j ]; then \
 					cp $(top_srcdir)/test/$$i/$$j $$i/$$j; \
@@ -28,7 +30,7 @@ check_DATA = .dialyzer_ok .common_test_ok
 			done; \
 		fi; \
 	done
-	ct_run -no_auto_compile -pa $(top_builddir)/ebin -logdir log -config ct.cfg -suite $(testmods)
+	ct_run -no_auto_compile -pa $(top_builddir)/ebin -logdir log -config ct.cfg -spec test.spec -dir . -erl_args -config sys -sname $(LOGNAME)-ct
 
 clean-local:
 	-rm -r *.beam log/*
