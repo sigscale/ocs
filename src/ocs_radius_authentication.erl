@@ -60,62 +60,28 @@ request(Packet, Secret) ->
 		#radius{code = ?AccessRequest, id = Id,
 				authenticator = Authenticator,
 				attributes = BinaryAttributes} = radius:codec(Packet),
-		RequestAttributes = radius_attributes:codec(BinaryAttributes),
-		UserNameV = radius_attributes:find(?UserName, RequestAttributes),
-		NasIpAddressV = radius_attributes:find(?NasIpAddress, RequestAttributes),
-		NasIdentifierV = radius_attributes:find(?NasIdentifier,
-				RequestAttributes),
-		Name = case {UserNameV, NasIpAddressV, NasIdentifierV} of
-			{_, error, error} ->
+		ReqAttrs = radius_attributes:codec(BinaryAttributes),
+		NasIdV = radius_attributes:find(?NasIdentifier, ReqAttrs),
+		NasIpV = radius_attributes:find(?NasIpAddress, ReqAttrs),
+		case {NasIpV, NasIdV} of
+			{error, error} ->
 				throw(reject);
-			{error, {ok, NasIpAddress}, error} ->
-				NasIpAddress;
-			{error, error, {ok, NasIdentifier}} ->
-				NasIdentifier;
-			{{ok, UserName}, _, _} ->
-				UserName
+			_Other ->
+				ok
 		end,
-		UserPasswordV = radius_attributes:find(?UserPassword, RequestAttributes),
-		ChapPasswordV = radius_attributes:find(?ChapPassword, RequestAttributes),
-		StateV = radius_attributes:find(?State, RequestAttributes),
-		case {UserPasswordV, ChapPasswordV, StateV} of
-			{error, error, error} ->
+		NasPortIdV = radius_attributes:find(?NasPortId, ReqAttrs),
+		SupplicantIdV = radius_attributes:find(?UserName, ReqAttrs),
+		CallingId = radius_attributes:find(?CallingStationId, ReqAttrs),
+		CalledId = radius_attributes:find(?CalledStationId, ReqAttrs),
+		AccSessId = radius_attributes:find(?AcctSessionId, ReqAttrs),
+		AccMultiSessId = radius_attributes:find(?AcctMultiSessionId, ReqAttrs),
+		StateV = radius_attributes:find(?State, ReqAttrs),
+		EAPMsg = radius_attributes:find(?EAPMessage, ReqAttrs),
+		case catch ocs_codec_eap:packet(EAPMsg) of
+			#eap_packet{} = EAP ->
+				% @todo implement EAP procedures
 				throw(reject);
-			{error, error, {ok, _State}} ->
-				% @todo Handle State?
-				throw(not_implemented);
-			{{ok, UserPassword}, error, _State} ->
-				Password = radius_attributes:unhide(Secret,
-						Authenticator, UserPassword),
-				case ocs:find_user(Name) of
-					{ok, Password, UserAttributes} ->
-						accept(Id, Authenticator, Secret, UserAttributes);
-					{ok, _Password, _UserAttributes} ->
-						throw(reject);
-					error ->
-						throw(reject)
-				end;
-			{error, {ok, {ChapId, ChapResponse}}, _State} ->
-				Challenge = case radius_attributes:find(?ChapChallenge,
-						RequestAttributes) of
-					{ok, ChapChallenge} ->
-						ChapChallenge;
-					error ->
-						Authenticator
-				end,
-				case ocs:find_user(Name) of
-					{ok, Password, UserAttributes} ->
-						case binary_to_list(erlang:md5([ChapId, Password,
-								Challenge])) of
-							ChapResponse ->
-								accept(Id, Authenticator, Secret, UserAttributes);
-							_ ->
-								reject(Packet, Secret)
-						end;
-					error ->
-						throw(reject)
-				end;
-			{{ok, _UserPassword}, {ok, _ChapPassword}, _State} ->
+			{'EXIT', Reason} ->
 				throw(reject)
 		end
 	catch
