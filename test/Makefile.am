@@ -33,6 +33,6 @@ check_DATA = .dialyzer_ok .common_test_ok
 clean-local:
 	-rm -r *.beam log/*
 
-sys.config:   sys.config-in                                                                                                                                                                                       
+sys.config:	sys.config-in
 	sed -e 's#%APP_PRIV%#$(abs_top_srcdir)/priv/#' < $< > $@ 
 
