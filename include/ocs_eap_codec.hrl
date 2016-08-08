@@ -15,3 +15,14 @@
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% 
+
+%% Macro definitions for EAP Codes
+-define(Request,				1).
+-define(Response,				2).
+-define(Success,				3).
+-define(Faliure,				4).
+
+-record(eap_packet,
+			{code :: byte(),
+			identifier :: byte(),
+			data :: binary()}).
