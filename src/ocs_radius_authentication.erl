@@ -28,6 +28,7 @@
 
 %% @headerfile "include/radius.hrl"
 -include_lib("radius/include/radius.hrl").
+-include("ocs_eap_codec.hrl").
 
 %%----------------------------------------------------------------------
 %%  The radius callbacks
@@ -69,7 +70,7 @@ request(Packet, Secret) ->
 			_Other ->
 				ok
 		end,
-		NasPortIdV = radius_attributes:find(?NasPortId, ReqAttrs),
+		NasPortIdV = radius_attributes:find(?NasPort, ReqAttrs),
 		SupplicantIdV = radius_attributes:find(?UserName, ReqAttrs),
 		CallingId = radius_attributes:find(?CallingStationId, ReqAttrs),
 		CalledId = radius_attributes:find(?CalledStationId, ReqAttrs),
