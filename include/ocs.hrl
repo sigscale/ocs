@@ -15,3 +15,8 @@
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% 
+
+-record(eap_packet,
+			{code :: byte(),
+			ddentifier :: byte(),
+			data :: binary()}).
