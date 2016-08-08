@@ -54,7 +54,7 @@
 -define(Experimental,    255).
 
 -record(eap_packet,
-		{code :: byte(),
-		identifier :: byte(),
-		data :: binary()}).
+			{code :: 1..255,
+			identifier :: 1..255,
+			data :: binary()}).
 
