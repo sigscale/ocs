@@ -58,3 +58,11 @@
 			identifier :: 1..255,
 			data :: binary()}).
 
+-record(eap_pwd,
+			{code :: 1..255,
+			identifier :: 1..255,
+			l_bit :: byte(),
+			m_bit :: byte(),
+			pwd_exch :: byte(),
+			data :: binary()}).
+
