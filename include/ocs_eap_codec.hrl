@@ -22,6 +22,15 @@
 -define(Success,				3).
 -define(Faliure,				4).
 
+
+%% Macro definitions for EAP data types
+-define(Identity,						1).
+-define(Notification,				2).
+-define(Nak,							3).
+-define(MD5Challenge,				4).
+-define(OneTimePassword,			5).
+-define(GenericTokenCard,			6).
+
 -record(eap_packet,
 			{code :: byte(),
 			identifier :: byte(),
