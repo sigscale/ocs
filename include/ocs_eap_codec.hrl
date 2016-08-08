@@ -20,7 +20,7 @@
 -define(Request,				1).
 -define(Response,				2).
 -define(Success,				3).
--define(Faliure,				4).
+-define(Failure,				4).
 
 
 %% Macro definitions for EAP data types
