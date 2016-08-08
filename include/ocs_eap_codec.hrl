@@ -21,7 +21,8 @@
 -define(Response,				2).
 -define(Success,				3).
 -define(Failure,				4).
-
+-define(Initiate,				5).
+-define(Finish,				6).
 
 %% Macro definitions for EAP data types
 -define(Identity,						1).
