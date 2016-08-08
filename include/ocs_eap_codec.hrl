@@ -17,22 +17,44 @@
 %%% 
 
 %% Macro definitions for EAP Codes
--define(Request,				1).
--define(Response,				2).
--define(Success,				3).
--define(Failure,				4).
--define(Initiate,				5).
--define(Finish,				6).
+-define(Request,           1).
+-define(Response,          2).
+-define(Success,           3).
+-define(Failure,           4).
+-define(Initiate,          5).
+-define(Finish,            6).
 
 %% Macro definitions for EAP data types
--define(Identity,						1).
--define(Notification,				2).
--define(Nak,							3).
--define(MD5Challenge,				4).
--define(OneTimePassword,			5).
--define(GenericTokenCard,			6).
+-define(Identity,          1).
+-define(Notification,      2).
+-define(LegacyNak,         3).
+-define(MD5Challenge,      4).
+-define(OneTimePassword,   5).
+-define(GenericTokenCard,  6).
+-define(TLS,              13).
+-define(Cisco,            17).
+-define(SIM,              18).
+-define(TTLS,             21).
+-define(AKA,              23).
+-define(PEAP,             25).
+-define(MSEAP,            26).
+-define(MSCHAPv2,         29).
+-define(ProtectedOTP,     32).
+-define(HTTPDigest,       38).
+-define(FAST,             43).
+-define(PSK,              47).
+-define(SAKE,             48).
+-define(IKEv2,            49).
+-define(AKAbis,           50).
+-define(GPSK,             51).
+-define(PWD,              52).
+-define(EKEv1,            53).
+-define(PTEAP,            54).
+-define(TEAP,             55).
+-define(Experimental,    255).
 
 -record(eap_packet,
-			{code :: byte(),
-			identifier :: byte(),
-			data :: binary()}).
+		{code :: byte(),
+		identifier :: byte(),
+		data :: binary()}).
+
