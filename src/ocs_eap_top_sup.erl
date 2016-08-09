@@ -38,12 +38,11 @@
 %% @private
 %%
 init(_Args) ->
-	ChildSpecs = [eap_sup()],
+	ChildSpecs = [supervisor(ocs_eap_sup)],
 	{ok, {{simple_one_for_one, 10, 3600}, ChildSpecs}}.
 
 %% @hidden
-eap_sup() ->
-	StartMod = ocs_eap_sup,
-	StartFunc = {supervisor, start_link, [StartMod, [{debug, [trace]}]]},
+supervisor(StartMod) ->
+	StartFunc = {supervisor, start_link, [StartMod, []]},
 	{StartMod, StartFunc, transient, infinity, supervisor, [StartMod]}.
 
