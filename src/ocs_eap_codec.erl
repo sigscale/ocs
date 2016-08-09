@@ -17,6 +17,12 @@
 %%% @doc This library module implements the public API for the
 %%% 	{@link //ocs. ocs} application.
 %%%
+%%% @reference <a href="http://tools.ietf.org/html/rfc3748">
+%%% 	RFC3748 - Extensible Authentication Protocol (EAP)</a>
+%%%
+%%% @reference <a href="http://tools.ietf.org/html/rfc5931">
+%%% 	RFC5931 - EAP Authentication Using Only a Password</a>
+%%%
 -module(ocs_eap_codec).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
