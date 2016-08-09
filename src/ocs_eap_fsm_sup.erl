@@ -16,7 +16,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @docfile "{@docsrc supervision.edoc}"
 %%%
--module(ocs_eap_top_sup).
+-module(ocs_eap_fsm_sup).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 -behaviour(supervisor).
