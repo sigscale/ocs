@@ -38,8 +38,13 @@
 %% @private
 %%
 init(_Args) ->
-	ChildSpecs = [supervisor(ocs_eap_server_sup)],
+	ChildSpecs = [fsm_sup(ocs_eap_fsm_sup), supervisor(ocs_eap_server_sup)],
 	{ok, {{one_for_one, 10, 3600}, ChildSpecs}}.
+
+%% @hidden
+fsm_sup(StartMod) ->
+	StartFunc = {supervisor, start_link, [StartMod, []]},
+	{StartMod, StartFunc, transient, infinity, supervisor, [StartMod]}.
 
 %% @hidden
 supervisor(StartMod) ->
