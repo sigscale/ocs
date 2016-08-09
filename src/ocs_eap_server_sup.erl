@@ -38,7 +38,7 @@
 %% @private
 %%
 init([Module, Port, Address]) ->
-	ChildSpecs = [fsm_sup(), server(Module, Port, Address)],
+	ChildSpecs = [server(Module, Port, Address)],
 	{ok, {{one_for_all, 10, 3600}, ChildSpecs}}.
 
 %% @hidden
