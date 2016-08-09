@@ -59,52 +59,8 @@
 %% @see //stdlib/gen_server:init/1
 %% @private
 %%
-init([Sup, Module, Port, Address] = _Args) ->
-	try
-		IP = case Address of
-			Address when is_tuple(Address) ->
-				Address;
-			Address when is_list(Address) ->
-				case inet_parse:address(Address) of
-					{ok, Tip} ->
-						Tip;
-					_ ->
-						throw(badarg)
-				end
-		end,
-		Type = case IP of
-			{_, _, _, _} ->
-				inet;
-			{_, _, _, _, _, _, _, _} ->
-				inet6;
-			_ ->
-				throw(badarg)
-		end,
-		{PortUsed, Socket} = case gen_udp:open(Port, [{active, once},
-				{ip, IP}, Type, binary]) of
-			{ok, S} when Port =:= 0 ->
-				{ok, PU} = inet:port(S),
-				{PU, S};
-			{ok, S} ->
-				{Port, S};
-			{error, Reason1} ->
-				throw(Reason1)
-		end,
-		case Module:init(Address, PortUsed) of
-			ok ->
-				#state{sup = Sup, socket = Socket, address = IP,
-						port = PortUsed, module = Module};
-			{error, Reason2} ->
-				throw(Reason2)
-		end
-	of
-		State ->
-			process_flag(trap_exit, true),
-			{ok, State, 0}
-	catch
-		_:Error->
-			{error, Error}
-	end.
+init(_Args) ->
+	{stop, not_implemented}.
 
 -spec handle_call(Request :: term(), From :: {Pid :: pid(), Tag :: any()},
 		State :: #state{}) ->
@@ -153,86 +109,8 @@ handle_cast(_Request, State) ->
 %% @see //stdlib/gen_server:handle_info/2
 %% @private
 %%
-handle_info(timeout, #state{sup = Sup, fsm_sup = undefined} = State) ->
-	Siblings = supervisor:which_children(Sup),
-	{_Id, FsmSup, _Type, _Modules} = lists:keyfind(radius_fsm_sup, 1, Siblings),
-	{noreply, State#state{fsm_sup = FsmSup}};
-handle_info({udp, Socket, _Address, _Port, <<0, _/binary>>},
-		#state{socket = Socket} = State) ->
-	case inet:setopts(Socket, [{active, once}]) of
-		ok ->
-			{noreply, State};
-		{error, Reason} ->
-			{stop, Reason, State}
-	end;
-handle_info({udp, Socket, _Address, _Port, <<Code, _/binary>>},
-		#state{socket = Socket} = State)
-		when Code > ?AccountingResponse, Code < ?AccessChallenge->
-	case inet:setopts(Socket, [{active, once}]) of
-		ok ->
-			{noreply, State};
-		{error, Reason} ->
-			{stop, Reason, State}
-	end;
-handle_info({udp, Socket, _Address, _Port, <<Code, _/binary>>},
-		#state{socket = Socket} = State)
-		when Code > ?AccessChallenge ->
-	case inet:setopts(Socket, [{active, once}]) of
-		ok ->
-			{noreply, State};
-		{error, Reason} ->
-			{stop, Reason, State}
-	end;
-handle_info({udp, Socket, _Address, _Port,
-		<<_Code, _Identifier, Length:16, _/binary>> = Packet},
-		#state{socket = Socket} = State)
-		when size(Packet) < Length ->
-	case inet:setopts(Socket, [{active, once}]) of
-		ok ->
-			{noreply, State};
-		{error, Reason} ->
-			{stop, Reason, State}
-	end;
-handle_info({udp, Socket, Address, Port,
-		<<_Code, Identifier, _/binary>> = Packet},
-		#state{socket = Socket, handlers = Handlers} = State) ->
-	Key = {Address, Port, Identifier},
-	NewState = case gb_trees:lookup(Key, Handlers) of
-		none ->
-			start_fsm(State, Address, Port, Identifier, Packet);
-		{value, Fsm} ->
-			gen_fsm:send_event(Fsm, Packet),
-			State
-	end,
-	case inet:setopts(Socket, [{active, once}]) of
-		ok ->
-			{noreply, NewState};
-		{error, Reason} ->
-			{stop, Reason, NewState}
-	end;
-handle_info({'EXIT', _Pid, {shutdown, Key}},
-		#state{handlers = Handlers} = State) ->
-	NewHandlers = gb_trees:delete(Key, Handlers),
-	NewState = State#state{handlers = NewHandlers},
-	{noreply, NewState};
-handle_info({'EXIT', Fsm, _Reason},
-		#state{handlers = Handlers} = State) ->
-	Fdel = fun(_F, {Key, Pid, _Iter}) when Pid == Fsm ->
-				Key;
-			(F, {_Key, _Val, Iter}) ->
-				F(F, gb_trees:next(Iter));
-			(_F, none) ->
-				none
-	end,
-	Iter = gb_trees:iterator(Handlers),
-	case Fdel(Fdel, gb_trees:next(Iter)) of
-		none ->
-			{noreply, State};
-		Key ->
-			NewHandlers = gb_trees:delete(Key, Handlers),
-			NewState = State#state{handlers = NewHandlers},
-			{noreply, NewState}
-	end.
+handle_info(timeout, State) ->
+	{stop, not_implemented, State}.
 
 -spec terminate(Reason :: normal | shutdown | term(),
 		State :: #state{}) -> any().
@@ -256,28 +134,4 @@ code_change(_OldVsn, State, _Extra) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
-
--spec start_fsm(State :: #state{}, Address :: inet:ip_address(),
-		Port :: pos_integer(), Identifier :: non_neg_integer(),
-		Packet :: binary()) ->
-	NewState :: #state{}.
-%% @doc Start a new {@link radius_fsm. radius_fsm} transaction state
-%%% 	handler and forward the request to it.
-%% @hidden
-start_fsm(#state{socket = Socket, module = Module, fsm_sup = Sup,
-		handlers = Handlers} = State, Address, Port, Identifier, Packet) ->
-	ChildSpec = [[Socket, Module, Address, Port, Identifier], [{debug, [trace]}]],
-	case supervisor:start_child(Sup, ChildSpec) of
-		{ok, Fsm} ->
-			link(Fsm),
-			gen_fsm:send_event(Fsm, Packet),
-			Key = {Address, Port, Identifier},
-			NewHandlers = gb_trees:insert(Key, Fsm, Handlers),
-			State#state{handlers = NewHandlers};
-		{error, Error} ->
-			error_logger:error_report(["Error starting transaction state handler",
-					{error, Error}, {supervisor, Sup}, {socket, Socket},
-					{address, Address}, {port, Port}, {identifier, Identifier}]),
-			State
-	end.
 
