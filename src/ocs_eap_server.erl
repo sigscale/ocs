@@ -16,6 +16,9 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @docfile "{@docsrc supervision.edoc}"
 %%%
+%%% @reference <a href="http://tools.ietf.org/rfc/rfc3579.txt">
+%%% 	RFC3579 - RADIUS Support For EAP</a>
+%%%
 -module(ocs_eap_server).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
