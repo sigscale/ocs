@@ -10,6 +10,7 @@ beam_DATA = ocs.beam \
 			ocs_app.beam \
 			ocs_sup.beam \
 			ocs_eap_top_sup.beam \
+			ocs_eap_sup.beam \
 			ocs_radius_sup.beam \
 			ocs_radius_authentication_sup.beam \
 			ocs_radius_authentication.beam \
