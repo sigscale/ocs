@@ -38,6 +38,7 @@
 init([AuthPort, AcctPort, RestIp, RestPort] = _Args) ->
 	ChildSpecs = [webmachine(RestIp, RestPort),
 			server(ocs_server, []),
+			supervisor(ocs_eap_top_sup, []),
 			supervisor(ocs_radius_sup, [AuthPort, AcctPort])],
 	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
 
