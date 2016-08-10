@@ -13,13 +13,11 @@ beam_DATA = ocs.beam \
 			ocs_radius_acct_sup.beam \
 			ocs_radius_acct_server_sup.beam \
 			ocs_radius_auth_server_sup.beam \
-			ocs_eap_top_sup.beam \
 			ocs_eap_sup.beam \
 			ocs_eap_fsm_sup.beam \
 			ocs_eap_fsm.beam \
 			ocs_eap_server_sup.beam \
 			ocs_eap_server.beam \
-			ocs_radius_sup.beam \
 			ocs_radius_authentication_sup.beam \
 			ocs_radius_authentication.beam \
 			ocs_radius_accounting_sup.beam \
