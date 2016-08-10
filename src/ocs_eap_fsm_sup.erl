@@ -38,7 +38,7 @@
 %% @private
 %%
 init(_Args) ->
-	StartMod = ocs_eap,
+	StartMod = ocs_eap_fsm,
 	StartFunc = {gen_fsm, start_link, [StartMod]},
 	ChildSpec = {StartMod, StartFunc, temporary, 4000, worker, [StartMod]},
 	{ok, {{simple_one_for_one, 10, 60}, [ChildSpec]}}.
