@@ -8,7 +8,7 @@
 In a communications service provider (CSP) network an Online
 Charging System (OCS) is used for real-time charging of services.
 The OCS controls subscriber's sessions such that usage is decremented
-from the subscriber's account in real-time and once teh balance is
+from the subscriber's account in real-time and once the` balance is
 zero all sessions are terminated.
 
 This OCS performs authentication, authorization and accounting (AAA)
