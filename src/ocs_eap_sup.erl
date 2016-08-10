@@ -38,7 +38,9 @@
 %% @private
 %%
 init(_Args) ->
-	ChildSpecs = [supervisor(ocs_eap_fsm_sup), supervisor(ocs_eap_server_sup)],
+	ChildSpecs = [supervisor(ocs_eap_fsm_sup),
+		supervisor(ocs_eap_server_sup),
+		supervisor(ocs_radius_auth_server_sup)],
 	{ok, {{one_for_one, 10, 3600}, ChildSpecs}}.
 
 %% @hidden
