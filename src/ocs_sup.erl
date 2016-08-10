@@ -40,7 +40,7 @@ init([RestIp, RestPort] = _Args) ->
 			supervisor(ocs_radius_auth_sup, []),
 			supervisor(ocs_radius_acct_sup, []),
 			server(ocs_server, [])],
-	{ok, {{simple_one_for_one, 10, 60}, ChildSpecs}}.
+	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
