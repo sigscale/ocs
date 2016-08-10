@@ -37,7 +37,7 @@
 %%
 init(_Args) ->
 	ChildSpecs = [supervisor(ocs_eap_sup)],
-	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
+	{ok, {{simple_one_for_one, 10, 60}, ChildSpecs}}.
 
 %% @hidden
 supervisor(StartMod) ->
