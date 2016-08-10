@@ -9,6 +9,7 @@ EXTRA_DIST = ocs.app
 beam_DATA = ocs.beam \
 			ocs_app.beam \
 			ocs_sup.beam \
+			ocs_radius_auth_sup.beam \
 			ocs_radius_acct_sup.beam \
 			ocs_radius_acct_server_sup.beam \
 			ocs_eap_top_sup.beam \

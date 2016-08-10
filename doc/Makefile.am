@@ -5,6 +5,7 @@
 modhtml = ocs.html \
 			ocs_app.html \
 			ocs_sup.html \
+			ocs_radius_auth_sup.html \
 			ocs_radius_acct_sup.html \
 			ocs_radius_acct_server_sup.html \
 			ocs_eap_top_sup.html \
