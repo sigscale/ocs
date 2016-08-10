@@ -14,9 +14,7 @@ modhtml = ocs.html \
 			ocs_eap_fsm.html \
 			ocs_eap_server_sup.html \
 			ocs_eap_server.html \
-			ocs_radius_authentication_sup.html \
 			ocs_radius_authentication.html \
-			ocs_radius_accounting_sup.html \
 			ocs_radius_accounting.html \
 			ocs_server.html \
 			ocs_wm_config.html
