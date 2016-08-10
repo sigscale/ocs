@@ -35,7 +35,7 @@
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init([RestIp, RestPort] = _Args) ->
+init([_AuthPort, _AcctPort, RestIp, RestPort] = _Args) ->
 	ChildSpecs = [webmachine(RestIp, RestPort),
 			supervisor(ocs_radius_auth_sup, []),
 			supervisor(ocs_radius_acct_sup, []),
