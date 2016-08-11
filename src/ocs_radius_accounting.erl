@@ -1,0 +1,135 @@
+%%% ocs_radius_accounting.erl
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% @copyright 2016 SigScale Global Inc.
+%%% @end
+%%% Licensed under the Apache License, Version 2.0 (the "License");
+%%% you may not use this file except in compliance with the License.
+%%% You may obtain a copy of the License at
+%%%
+%%%     http://www.apache.org/licenses/LICENSE-2.0
+%%%
+%%% Unless required by applicable law or agreed to in writing, software
+%%% distributed under the License is distributed on an "AS IS" BASIS,
+%%% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+%%% See the License for the specific language governing permissions and
+%%% limitations under the License.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% @doc This {@link //radius/radius. radius} behaviour callback
+%%% 	module performs authentication procedures in the
+%%% 	{@link //ocs. ocs} application.
+%%%
+-module(ocs_radius_accounting).
+-copyright('Copyright (c) 2016 SigScale Global Inc.').
+
+-behaviour(radius).
+
+%% export the radius behaviour callbacks
+-export([init/2, request/3, terminate/1]).
+
+%% @headerfile "include/radius.hrl"
+-include_lib("radius/include/radius.hrl").
+
+-define(LOGNAME, radius_acct).
+
+%%----------------------------------------------------------------------
+%%  The radius callbacks
+%%----------------------------------------------------------------------
+
+-spec init(Address :: inet:ip_address(), Port :: pos_integer()) ->
+	Result :: ok | {error, Reason :: term()}.
+%% @doc This callback function is called when a
+%% 	{@link //radius/radius_server. radius_server} behaviour process
+%% 	initializes.
+%%
+init(_Address, _Port) ->
+	{ok, Directory} = application:get_env(ocs, accounting_dir),
+	Log = ?LOGNAME,
+	FileName = Directory ++ "/" ++ atom_to_list(Log),
+	case disk_log:open([{name, Log}, {file, FileName},
+			{type, wrap}, {size, {1048575, 20}}]) of
+		{ok, Log} ->
+			ok;
+		{repaired, Log, {recovered, Rec}, {badbytes, Bad}} ->
+			error_logger:warning_report(["Disk log repaired",
+					{log, Log}, {path, FileName}, {recovered, Rec},
+					{badbytes, Bad}]),
+			ok;
+		{error, Reason} ->
+			{error, Reason}
+	end.
+
+-spec request(Address :: inet:ip_address(), Port :: pos_integer(),
+		Packet :: binary()) ->
+	Result :: binary() | {error, Reason :: term()}.
+%% @doc This callback function is called when a request is received
+%% 	on the port.
+%%
+request(Address, _Port, Packet) ->
+	case ocs:find_client(Address) of
+		{ok, Secret} ->
+			request(Packet, Secret);
+		error ->
+			{error, ignore}
+	end.
+%% @hidden
+request(<<_Code, Id, Length:16, _/binary>> = Packet, Secret) ->
+	try
+		#radius{code = ?AccountingRequest, id = Id,
+				authenticator = Authenticator,
+				attributes = BinaryAttributes} = radius:codec(Packet),
+		Attributes = radius_attributes:codec(BinaryAttributes),
+		NasIpAddressV = radius_attributes:find(?NasIpAddress, Attributes),
+		NasIdentifierV = radius_attributes:find(?NasIdentifier, Attributes),
+		case {NasIpAddressV, NasIdentifierV} of
+			{error, error} ->
+				throw(reject);
+			{_, _} ->
+				ok
+		end,
+		error = radius_attributes:find(?UserPassword, Attributes),
+		error = radius_attributes:find(?ChapPassword, Attributes),
+		error = radius_attributes:find(?ReplyMessage, Attributes),
+		error = radius_attributes:find(?State, Attributes),
+		{ok, _AcctSessionId} = radius_attributes:find(?AcctSessionId, Attributes),
+		Hash = erlang:md5([<<?AccountingRequest, Id, Length:16, 0:128>>,
+				BinaryAttributes, Secret]),
+		Authenticator = binary_to_list(Hash),
+		case disk_log:log(?LOGNAME, Attributes) of
+			ok ->
+				response(Id, Authenticator, Secret, []);
+			{error, _Reason} ->
+				{error, ignore}
+		end
+	catch
+		_:_ ->
+			{error, ignore}
+	end.
+
+-spec terminate(Reason :: term()) -> ok.
+%% @doc This callback function is called just before the server exits.
+%%
+terminate(_Reason) ->
+	disk_log:close(?LOGNAME).
+
+%%----------------------------------------------------------------------
+%%  internal functions
+%%----------------------------------------------------------------------
+
+-spec response(Id :: byte(), RequestAuthenticator :: [byte()],
+		Secret :: string(), Attributes :: binary() | [byte()]) ->
+	AccessAccept :: binary().
+%% @hidden
+response(Id, RequestAuthenticator, Secret, AttributeList)
+		when is_list(AttributeList) ->
+	Attributes = radius_attributes:codec(AttributeList),
+	response(Id, RequestAuthenticator, Secret, Attributes);
+response(Id, RequestAuthenticator, Secret, Attributes)
+		when is_binary(Attributes) ->
+	Length = size(Attributes) + 20,
+	ResponseAuthenticator = erlang:md5([<<?AccountingResponse, Id, Length:16>>,
+			RequestAuthenticator, Attributes, Secret]),
+	Response = #radius{code = ?AccountingResponse, id = Id,
+			authenticator = ResponseAuthenticator, attributes = Attributes},
+	radius:codec(Response).
+
+
