@@ -14,6 +14,22 @@ zero all sessions are terminated.
 This OCS performs authentication, authorization and accounting (AAA)
 for subscribers of wireless local area network (WLAN) services (WiFi)..
 
+==Installation==
+Before starting the application for the first time, an mnesia
+schema should be created and started on all nodes the application
+should run.Schema should be created on a list of nodes where the
+{@link //ocs. ocs} application will run.
+e.g &#058;
+ 	```
+	1> mnesia:create_schema([node()]).
+	ok
+	2> mnesia:start().
+	ok
+	3> ocs_app:install([node()]).
+	{ok,[radius_client, subscriber]}
+	ok
+	'''
+
 ==Operation==
 The OCS application will start RADIUS servers for authentication and
 accounting, as well as an HTTP server for the REST API, on the configured
