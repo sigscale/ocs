@@ -24,19 +24,23 @@
 -behaviour(radius).
 
 %% export the radius behaviour callbacks
--export([init/2, request/3, terminate/1]).
+-export([init/2, request/4, terminate/2]).
 
 %% @headerfile "include/radius.hrl"
 -include_lib("radius/include/radius.hrl").
 
 -define(LOGNAME, radius_acct).
 
+-record(state,
+		{dir :: string(),
+		log :: disk_log:log()}).
+
 %%----------------------------------------------------------------------
 %%  The radius callbacks
 %%----------------------------------------------------------------------
 
 -spec init(Address :: inet:ip_address(), Port :: pos_integer()) ->
-	Result :: ok | {error, Reason :: term()}.
+	Result :: {ok, State :: #state{}} | {error, Reason :: term()}.
 %% @doc This callback function is called when a
 %% 	{@link //radius/radius_server. radius_server} behaviour process
 %% 	initializes.
@@ -45,34 +49,37 @@ init(_Address, _Port) ->
 	{ok, Directory} = application:get_env(ocs, accounting_dir),
 	Log = ?LOGNAME,
 	FileName = Directory ++ "/" ++ atom_to_list(Log),
+	State = #state{dir = Directory},
 	case disk_log:open([{name, Log}, {file, FileName},
 			{type, wrap}, {size, {1048575, 20}}]) of
 		{ok, Log} ->
-			ok;
+			{ok, State#state{log = Log}};
 		{repaired, Log, {recovered, Rec}, {badbytes, Bad}} ->
 			error_logger:warning_report(["Disk log repaired",
 					{log, Log}, {path, FileName}, {recovered, Rec},
 					{badbytes, Bad}]),
-			ok;
+			{ok, State#state{log = Log}};
 		{error, Reason} ->
 			{error, Reason}
 	end.
 
 -spec request(Address :: inet:ip_address(), Port :: pos_integer(),
-		Packet :: binary()) ->
-	Result :: binary() | {error, Reason :: term()}.
+		Packet :: binary(), State :: #state{}) ->
+	{ok, Response :: binary()} | {error, Reason :: term()}.
 %% @doc This callback function is called when a request is received
 %% 	on the port.
 %%
-request(Address, _Port, Packet) ->
+request(Address, Port, Packet, #state{} = State)
+		when is_tuple(Address), is_integer(Port), is_binary(Packet) ->
 	case ocs:find_client(Address) of
 		{ok, Secret} ->
-			request(Packet, Secret);
+			request(Packet, Secret, State);
 		error ->
 			{error, ignore}
 	end.
 %% @hidden
-request(<<_Code, Id, Length:16, _/binary>> = Packet, Secret) ->
+request(<<_Code, Id, Length:16, _/binary>> = Packet, Secret,
+		#state{log = Log} = _State) ->
 	try
 		#radius{code = ?AccountingRequest, id = Id,
 				authenticator = Authenticator,
@@ -94,7 +101,7 @@ request(<<_Code, Id, Length:16, _/binary>> = Packet, Secret) ->
 		Hash = erlang:md5([<<?AccountingRequest, Id, Length:16, 0:128>>,
 				BinaryAttributes, Secret]),
 		Authenticator = binary_to_list(Hash),
-		case disk_log:log(?LOGNAME, Attributes) of
+		case disk_log:log(Log, Attributes) of
 			ok ->
 				response(Id, Authenticator, Secret, []);
 			{error, _Reason} ->
@@ -105,11 +112,11 @@ request(<<_Code, Id, Length:16, _/binary>> = Packet, Secret) ->
 			{error, ignore}
 	end.
 
--spec terminate(Reason :: term()) -> ok.
+-spec terminate(Reason :: term(), State :: #state{}) -> ok.
 %% @doc This callback function is called just before the server exits.
 %%
-terminate(_Reason) ->
-	disk_log:close(?LOGNAME).
+terminate(_Reason, #state{log = Log} = _State) ->
+	disk_log:close(Log).
 
 %%----------------------------------------------------------------------
 %%  internal functions
