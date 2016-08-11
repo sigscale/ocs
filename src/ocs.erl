@@ -26,15 +26,7 @@
 -export([log_file/1]).
 -export([generate_password/0]).
 
-%% define client table entries record
--record(radius_client, {address, secret}).
-
-%% define subscriber table entries record
--record(subscriber, {name, password, attributes}).
-
--define(WAITFORSCHEMA, 10000).
--define(WAITFORTABLES, 10000).
-
+-include("ocs.hrl").
 -define(LOGNAME, radius_acct).
 
 %%----------------------------------------------------------------------

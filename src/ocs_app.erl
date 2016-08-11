@@ -29,6 +29,7 @@
 %% export the ocs private API
 -export([install/1]).
 
+-include("ocs.hrl").
 
 -record(state, {}).
 
