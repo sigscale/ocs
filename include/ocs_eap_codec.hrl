@@ -66,3 +66,10 @@
 			pwd_exch :: byte(),
 			data :: binary()}).
 
+-record(eap_pwd_id,
+			{group_desc :: integer(),
+			random_fun :: integer(),
+			prf :: integer(),
+			token :: string(),
+			pwd_prep :: integer(),
+			identity :: string()}).
