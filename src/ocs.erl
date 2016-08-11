@@ -26,9 +26,6 @@
 -export([log_file/1]).
 -export([generate_password/0]).
 
-%% export the ocs private API
--export([install/1]).
-
 %% define client table entries record
 -record(radius_client, {address, secret}).
 
@@ -126,68 +123,6 @@ log_file(FileName) when is_list(FileName) ->
    {ok, IODevice} = file:open(FileName, [write]),
    file_chunk(?LOGNAME, IODevice, start).
 
-%%----------------------------------------------------------------------
-%%  The ocs private API
-%%----------------------------------------------------------------------
-
--spec install(Nodes :: [node()]) -> {ok, Tables :: [atom()]}.
-%% @doc Initialize a new installation.
-%% 	`Nodes' is a list of the nodes where the 
-%% 	{@link //ocs. ocs} application will run.
-%% 	An mnesia schema should be created and mnesia started on
-%% 	all nodes before running this function. e.g.&#058;
-%% 	```
-%% 		1> mnesia:create_schema([node()]).
-%% 		ok
-%% 		2> mnesia:start().
-%% 		ok
-%% 		3> {@module}:install([node()]).
-%% 		{ok,[radius_client, subscriber]}
-%% 		ok
-%% 	'''
-%%
-%% @private
-%%
-install(Nodes) when is_list(Nodes) ->
-	try
-		case mnesia:wait_for_tables([schema], ?WAITFORSCHEMA) of
-			ok ->
-				ok;
-			SchemaResult ->
-				throw(SchemaResult)
-		end,
-		case mnesia:create_table(radius_client, [{disc_copies, Nodes},
-				{attributes, record_info(fields, radius_client)}]) of
-			{atomic, ok} ->
-				error_logger:info_msg("Created new radius_client table.~n");
-			{aborted, {already_exists, radius_client}} ->
-				error_logger:warning_msg("Found existing radius_client table.~n");
-			T1Result ->
-				throw(T1Result)
-		end,
-		case mnesia:create_table(subscriber, [{disc_copies, Nodes},
-				{attributes, record_info(fields, subscriber)}]) of
-			{atomic, ok} ->
-				error_logger:info_msg("Created new subscriber table.~n");
-			{aborted, {already_exists, subscriber}} ->
-				error_logger:warning_msg("Found existing subscriber table.~n");
-			T2Result ->
-				throw(T2Result)
-		end,
-		Tables = [radius_client, subscriber],
-		case mnesia:wait_for_tables(Tables, ?WAITFORTABLES) of
-			ok ->
-				Tables;
-			TablesResult ->
-				throw(TablesResult)
-		end
-	of
-		Result -> {ok, Result}
-	catch
-		throw:Error ->
-			mnesia:error_description(Error)
-	end.
-	
 -type password() :: [50..57 | 97..107 | 109..110 | 112..122].
 -spec generate_password() -> password().
 %% @equiv generate_password(12)
