@@ -15,3 +15,10 @@
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% 
+
+%% define client table entries record
+-record(radius_client, {address, secret}).
+
+%% define subscriber table entries record
+-record(subscriber, {name, password, attributes}).
+
