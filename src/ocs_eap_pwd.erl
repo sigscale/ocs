@@ -26,7 +26,7 @@
 -module(ocs_eap_pwd).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
--export([h/1, prf/2]).
+-export([h/1, prf/2, kdf/3]).
 
 -include("ocs_eap_codec.hrl").
 
@@ -40,4 +40,23 @@ h(Data) when is_binary(Data) ->
 %% @doc Implements a Pseudo-random function (PRF).
 prf(Key, Data) when is_binary(Key), is_binary(Data) ->
 	crypto:hmac(sha256, Key, Data).
+
+ -spec kdf(Key :: binary(), Label :: string() | binary(), Length :: pos_integer())
+		-> binary().
+%% @doc Implements a Key derivation function (KDF) to stretch out a `Key' which is
+%% binded with a `Lable'to a desired `Length'.
+kdf(Key, Label, Length) when is_list(Label) ->
+	kdf(Key, list_to_binary(Label), Length);
+kdf(Key, Label, Length) when is_binary(Key), is_binary(Label),is_integer(Length) ->
+	Data = list_to_binary([<<1:16>>, Label, <<Length:16>>]),
+	K = prf(Key, Data),
+	kdf(Key, Label, Length, 1, K, K).
+%% @hidden
+kdf(Key, Label, Length, I, K, Res) when size(Res) < (Length * 8) ->
+	I1 = I + 1,
+	Data = list_to_binary([K, <<I1:16>>, Label, <<Length:16>>]),
+	K1 = prf(Key, Data),
+	kdf(Key, Label, Length, 11, K1, <<Res/binary, K1/binary>>);
+kdf(_, _, Length, _, _, Res) when size(Res) >= (Length * 8) ->
+	binary:part(Res, 0, Length).
 
