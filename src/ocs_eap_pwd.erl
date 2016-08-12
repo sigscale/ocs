@@ -23,7 +23,7 @@
 -module(ocs_eap_pwd).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
--export([h/1, prf/2, kdf/3]).
+-export([h/1, prf/2, kdf/3, sqrt/1]).
 
 -include("ocs_eap_codec.hrl").
 
@@ -60,4 +60,23 @@ kdf(Key, Label, Length, I, K, Res) when size(Res) < (Length div 8) ->
 	kdf(Key, Label, Length, 11, K1, <<Res/binary, K1/binary>>);
 kdf(_, _, Length, _, _, Res) when size(Res) >= (Length div 8) ->
 	binary:part(Res, 0, Length div 8).
+
+ -spec sqrt(X :: pos_integer()) -> pos_integer() | error.
+%% @doc Returns integer square root of a given square number .
+sqrt(X) when is_integer(X), X >= 0 ->
+	sqrt(X, X).
+%% @hidden
+sqrt(X, Xk) ->
+	Xk1 = (Xk + X div Xk) div 2,
+	if
+		Xk1 >= Xk ->
+			if
+				Xk * Xk == X ->
+					Xk;
+						true ->
+						error
+			end;
+		Xk1 < Xk ->
+			sqrt(X, Xk1)
+end.
 
