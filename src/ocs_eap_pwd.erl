@@ -46,7 +46,7 @@ prf(Key, Data) when is_binary(Key), is_binary(Data) ->
  -spec kdf(Key :: binary(), Label :: string() | binary(), Length :: pos_integer())
 		-> binary().
 %% @doc Implements a Key derivation function (KDF) to stretch out a `Key' which is
-%% binded with a `Lable' to a desired `Length'.
+%% bound with a `Label' to a desired `Length'.
 kdf(Key, Label, Length) when is_list(Label) ->
 	kdf(Key, list_to_binary(Label), Length);
 kdf(Key, Label, Length) when is_binary(Key), is_binary(Label),is_integer(Length),
@@ -71,8 +71,9 @@ fix_pwe(Token, ServerIdentity, PeerIdentity, Password) ->
 	fix_pwe(Token, ServerIdentity, PeerIdentity, Password, 1).
 %% @hidden
 fix_pwe(Token, ServerIdentity, PeerIdentity, Password, Counter) ->
-	PasswordSeed = h([Token, PeerIdentity, ServerIdentity,
-	Password, <<Counter:16>>]),
+	Data = list_to_binary([Token, PeerIdentity, ServerIdentity,
+		Password, <<Counter>>]),
+	PasswordSeed = h(Data),
 	case kdf(PasswordSeed, "EAP-pwd Hunting And Pecking", 256) of
 		<<PasswordValue:256>> when PasswordValue < ?P ->
 			<<_:255, LSB:1>> = PasswordSeed,
@@ -81,11 +82,11 @@ fix_pwe(Token, ServerIdentity, PeerIdentity, Password, Counter) ->
 					PasswordElement;
 				{error, _Reason} ->
 					fix_pwe(Token, ServerIdentity,
-					PeerIdentity, Password, Counter +1)
+							PeerIdentity, Password, Counter +1)
 			end;
-		_ ->
+		_PasswordValue ->
 			fix_pwe(Token, ServerIdentity, PeerIdentity,
-			Password, Counter +1)
+					Password, Counter +1)
 	end.
 
 -spec ecc_pwe(PasswordValue :: integer(), LSB :: 0..1) ->
@@ -94,7 +95,7 @@ fix_pwe(Token, ServerIdentity, PeerIdentity, Password, Counter) ->
 ecc_pwe(PasswordValue, LSB) when is_integer(PasswordValue),
 		((LSB =:= 0) or (LSB =:= 1)) ->
 	X = PasswordValue,
-	case isqrt((X * X * X) + (?A * X) + ?B) of
+	case isqrt(((X * X * X) + (?A * X) + ?B) rem 256) of
 		Y when (Y band 1) == LSB ->
 			{PasswordValue, Y};
 		Y when is_integer(Y) ->
