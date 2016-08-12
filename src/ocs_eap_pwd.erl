@@ -23,7 +23,7 @@
 -module(ocs_eap_pwd).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
--export([h/1, prf/2, kdf/3, sqrt/1, ecc_pwe/2]).
+-export([h/1, prf/2, kdf/3, isqrt/1, ecc_pwe/2]).
 
 -include("ocs_eap_codec.hrl").
 
@@ -71,19 +71,19 @@ ecc_pwe(PasswordValue, LSB) when is_integer(PasswordValue),
 	X = PasswordValue,
 	case isqrt((X * X * X) + (?A * X) + ?B) of
 		Y when (Y band 1) == LSB ->
-			{PasswordVaue, Y};
+			{PasswordValue, Y};
 		Y when is_integer(Y) ->
 			{PasswordValue, ?P- Y};
 		error ->
 			{error, not_found}
 	end.
 
- -spec sqrt(X :: pos_integer()) -> pos_integer() | error.
+ -spec isqrt(X :: pos_integer()) -> pos_integer() | error.
 %% @doc Returns integer square root of a given square number .
-sqrt(X) when is_integer(X), X >= 0 ->
-	sqrt(X, X).
+isqrt(X) when is_integer(X), X >= 0 ->
+	isqrt(X, X).
 %% @hidden
-sqrt(X, Xk) ->
+isqrt(X, Xk) ->
 	Xk1 = (Xk + X div Xk) div 2,
 	if
 		Xk1 >= Xk ->
@@ -94,6 +94,6 @@ sqrt(X, Xk) ->
 						error
 			end;
 		Xk1 < Xk ->
-			sqrt(X, Xk1)
+			isqrt(X, Xk1)
 end.
 
