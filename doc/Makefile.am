@@ -17,6 +17,7 @@ modhtml = ocs.html \
 			ocs_radius_accounting.html \
 			ocs_radius_authentication.html \
 			ocs_server.html \
+			ocs_eap_pwd.html \
 			ocs_wm_config.html
 
 doc_DATA = overview.edoc $(modhtml) \
