@@ -27,6 +27,8 @@
 
 -include("ocs_eap_codec.hrl").
 
+-define(Prime, 16#ffffffff00000001000000000000000000000000ffffffffffffffffffffffff).
+
 -spec h(Data :: binary()) -> binary().
 %% @doc Implements a Random function, h which  maps a binary string of indeterminate
 %% length onto a 32 bits fixed length binary.
