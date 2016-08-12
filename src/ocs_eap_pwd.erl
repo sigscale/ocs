@@ -26,7 +26,7 @@
 -module(ocs_eap_pwd).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
--export([h/1]).
+-export([h/1, prf/2]).
 
 -include("ocs_eap_codec.hrl").
 
@@ -35,4 +35,9 @@
 %% 32 bits fixed length binary.
 h(Data) when is_binary(Data) ->
 	crypto:hmac(sha256, <<0:256>>, Data).
+
+-spec prf(Key :: binary(), Data :: binary()) -> binary().
+%% @doc Implements a Pseudo-random function (PRF).
+prf(Key, Data) when is_binary(Key), is_binary(Data) ->
+	crypto:hmac(sha256, Key, Data).
 
