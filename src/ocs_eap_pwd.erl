@@ -69,8 +69,7 @@ kdf(_, _, Length, _, _, Res) when size(Res) >= (Length div 8) ->
 	binary:part(Res, 0, Length div 8).
 
 -spec fix_pwe(Token :: binary(), ServerIdentity :: binary(), PeerIdentity
-		:: binary(),Password :: binary()) -> PasswordElement :: {integer(),
-		integer()}.
+		:: binary(),Password :: binary()) -> PasswordElement :: binary().
 %% @doc Fix the Password Element (PWE).
 fix_pwe(Token, ServerIdentity, PeerIdentity, Password) ->
 	fix_pwe(Token, ServerIdentity, PeerIdentity, Password, 1).
@@ -89,7 +88,7 @@ fix_pwe(Token, ServerIdentity, PeerIdentity, Password, Counter) ->
 					fix_pwe(Token, ServerIdentity,
 							PeerIdentity, Password, Counter +1)
 			end;
-		_PasswordValue ->
+		_ ->
 			fix_pwe(Token, ServerIdentity, PeerIdentity,
 					Password, Counter +1)
 	end.
@@ -102,9 +101,10 @@ ecc_pwe(PasswordValue, LSB) when is_integer(PasswordValue),
 	X = PasswordValue,
 	case isqrt(((X * X * X) + (?A * X) + ?B) rem 256) of
 		Y when (Y band 1) == LSB ->
-			{PasswordValue, Y};
+			{ok, <<X:256, Y:256>>};
 		Y when is_integer(Y) ->
-			{PasswordValue, ?P- Y};
+			Y1 = ?P - 1,
+			{ok, <<X:256, Y1:256>>};
 		error ->
 			{error, not_found}
 	end.
