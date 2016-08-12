@@ -97,9 +97,9 @@ ecc_pwe(PasswordValue, LSB) when is_integer(PasswordValue),
 	X = PasswordValue,
 	case isqrt(((X * X * X) + (?A * X) + ?B) rem 256) of
 		Y when (Y band 1) == LSB ->
-			{PasswordValue, Y};
+			{ok, PasswordValue};
 		Y when is_integer(Y) ->
-			{PasswordValue, ?P- Y};
+			{ok, PasswordValue};
 		error ->
 			{error, not_found}
 	end.
