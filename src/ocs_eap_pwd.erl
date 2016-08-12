@@ -27,8 +27,6 @@
 
 -export([h/1, prf/2, kdf/3, isqrt/1, ecc_pwe/2, fix_pwe/4]).
 
--include("ocs_eap_codec.hrl").
-
 -define(P,  16#ffffffff00000001000000000000000000000000ffffffffffffffffffffffff).
 -define(A,  16#ffffffff00000001000000000000000000000000fffffffffffffffffffffffc).
 -define(B,  16#5ac635d8aa3a93e7b3ebbd55769886bc651d06b0cc53b0f63bce3c3e27d2604b).
