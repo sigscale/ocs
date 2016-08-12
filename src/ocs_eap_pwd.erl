@@ -23,11 +23,13 @@
 -module(ocs_eap_pwd).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
--export([h/1, prf/2, kdf/3, sqrt/1]).
+-export([h/1, prf/2, kdf/3, sqrt/1, ecc_pwe/2]).
 
 -include("ocs_eap_codec.hrl").
 
--define(Prime, 16#ffffffff00000001000000000000000000000000ffffffffffffffffffffffff).
+-define(P, 16#ffffffff00000001000000000000000000000000ffffffffffffffffffffffff).
+-define(A, 16#ffffffff00000001000000000000000000000000fffffffffffffffffffffffc).
+-define(B, 16#5ac635d8aa3a93e7b3ebbd55769886bc651d06b0cc53b0f63bce3c3e27d2604b).
 
 -spec h(Data :: binary()) -> binary().
 %% @doc Implements a Random function, h which  maps a binary string of indeterminate
@@ -60,6 +62,21 @@ kdf(Key, Label, Length, I, K, Res) when size(Res) < (Length div 8) ->
 	kdf(Key, Label, Length, 11, K1, <<Res/binary, K1/binary>>);
 kdf(_, _, Length, _, _, Res) when size(Res) >= (Length div 8) ->
 	binary:part(Res, 0, Length div 8).
+
+-spec ecc_pwe(PasswordValue :: integer(), LSB :: 0..1) ->
+		{ok, PasswordElement :: binary()} | {error, not_found}.
+%% @doc ECC Operation for password element (PWE).
+ecc_pwe(PasswordValue, LSB :: 0..1) when is_integer(PasswordValue),
+		((LSB =:= 0) or (LSB =:= 1)) ->
+	X = PasswordValue,
+	case isqrt((X * X * X) + (?A * X) + ?B) of
+		Y when (Y band 1) == LSB ->
+			{PasswordVaue, Y};
+		Y when is_integer(Y) ->
+			{PasswordValue, ?P- Y};
+		error ->
+			{error, not_found}
+	end.
 
  -spec sqrt(X :: pos_integer()) -> pos_integer() | error.
 %% @doc Returns integer square root of a given square number .
