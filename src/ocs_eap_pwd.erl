@@ -17,9 +17,6 @@
 %%% @doc This library module implements the public API for the
 %%% 	{@link //ocs. ocs} application.
 %%%
-%%% @reference <a href="http://tools.ietf.org/html/rfc3748">
-%%% 	RFC3748 - Extensible Authentication Protocol (EAP)</a>
-%%%
 %%% @reference <a href="http://tools.ietf.org/html/rfc5931">
 %%% 	RFC5931 - EAP Authentication Using Only a Password</a>
 %%%
@@ -31,13 +28,14 @@
 -include("ocs_eap_codec.hrl").
 
 -spec h(Data :: binary()) -> binary().
-%% @doc Random function, h maps a binary string of indeterminate length onto a
-%% 32 bits fixed length binary.
+%% @doc Implements a Random function, h which  maps a binary string of indeterminate
+%% length onto a 32 bits fixed length binary.
 h(Data) when is_binary(Data) ->
 	crypto:hmac(sha256, <<0:256>>, Data).
 
 -spec prf(Key :: binary(), Data :: binary()) -> binary().
-%% @doc Implements a Pseudo-random function (PRF).
+%% @doc Implements a Pseudo-random function (PRF) which generates a random binary
+%% string.
 prf(Key, Data) when is_binary(Key), is_binary(Data) ->
 	crypto:hmac(sha256, Key, Data).
 
