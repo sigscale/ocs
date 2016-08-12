@@ -66,7 +66,7 @@ kdf(_, _, Length, _, _, Res) when size(Res) >= (Length div 8) ->
 -spec ecc_pwe(PasswordValue :: integer(), LSB :: 0..1) ->
 		{ok, PasswordElement :: binary()} | {error, not_found}.
 %% @doc ECC Operation for password element (PWE).
-ecc_pwe(PasswordValue, LSB :: 0..1) when is_integer(PasswordValue),
+ecc_pwe(PasswordValue, LSB) when is_integer(PasswordValue),
 		((LSB =:= 0) or (LSB =:= 1)) ->
 	X = PasswordValue,
 	case isqrt((X * X * X) + (?A * X) + ?B) of
