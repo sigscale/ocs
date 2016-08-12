@@ -45,16 +45,17 @@ prf(Key, Data) when is_binary(Key), is_binary(Data) ->
 %% binded with a `Lable' to a desired `Length'.
 kdf(Key, Label, Length) when is_list(Label) ->
 	kdf(Key, list_to_binary(Label), Length);
-kdf(Key, Label, Length) when is_binary(Key), is_binary(Label),is_integer(Length) ->
+kdf(Key, Label, Length) when is_binary(Key), is_binary(Label),is_integer(Length),
+		(Length rem 8) =:= 0 ->
 	Data = list_to_binary([<<1:16>>, Label, <<Length:16>>]),
 	K = prf(Key, Data),
 	kdf(Key, Label, Length, 1, K, K).
 %% @hidden
-kdf(Key, Label, Length, I, K, Res) when size(Res) < (Length * 8) ->
+kdf(Key, Label, Length, I, K, Res) when size(Res) < (Length div 8) ->
 	I1 = I + 1,
 	Data = list_to_binary([K, <<I1:16>>, Label, <<Length:16>>]),
 	K1 = prf(Key, Data),
 	kdf(Key, Label, Length, 11, K1, <<Res/binary, K1/binary>>);
-kdf(_, _, Length, _, _, Res) when size(Res) >= (Length * 8) ->
-	binary:part(Res, 0, Length).
+kdf(_, _, Length, _, _, Res) when size(Res) >= (Length div 8) ->
+	binary:part(Res, 0, Length div 8).
 
