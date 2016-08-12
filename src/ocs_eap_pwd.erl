@@ -23,7 +23,7 @@
 -module(ocs_eap_pwd).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
--export([h/1, prf/2, kdf/3, isqrt/1, ecc_pwe/2]).
+-export([h/1, prf/2, kdf/3, isqrt/1, ecc_pwe/2, fix_pwe/4]).
 
 -include("ocs_eap_codec.hrl").
 
@@ -62,6 +62,31 @@ kdf(Key, Label, Length, I, K, Res) when size(Res) < (Length div 8) ->
 	kdf(Key, Label, Length, 11, K1, <<Res/binary, K1/binary>>);
 kdf(_, _, Length, _, _, Res) when size(Res) >= (Length div 8) ->
 	binary:part(Res, 0, Length div 8).
+
+-spec fix_pwe(Token :: binary(), ServerIdentity :: binary(), PeerIdentity
+		:: binary(),Password :: binary()) -> PasswordElement :: {integer(),
+		integer()}.
+%% @doc Fix the Password Element (PWE).
+fix_pwe(Token, ServerIdentity, PeerIdentity, Password) ->
+	fix_pwe(Token, ServerIdentity, PeerIdentity, Password, 1).
+%% @hidden
+fix_pwe(Token, ServerIdentity, PeerIdentity, Password, Counter) ->
+	PasswordSeed = h([Token, PeerIdentity, ServerIdentity,
+	Password, <<Counter:16>>]),
+	case kdf(PasswordSeed, "EAP-pwd Hunting And Pecking", 256) of
+		<<PasswordValue:256>> when PasswordValue < ?P ->
+			<<_:255, LSB:1>> = PasswordSeed,
+			case ecc_pwe(PasswordValue, LSB) of
+				{ok, PasswordElement} ->
+					PasswordElement;
+				{error, _Reason} ->
+					fix_pwe(Token, ServerIdentity,
+					PeerIdentity, Password, Counter +1)
+			end;
+		_ ->
+			fix_pwe(Token, ServerIdentity, PeerIdentity,
+			Password, Counter +1)
+	end.
 
 -spec ecc_pwe(PasswordValue :: integer(), LSB :: 0..1) ->
 		{ok, PasswordElement :: binary()} | {error, not_found}.
