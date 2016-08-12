@@ -42,7 +42,7 @@ prf(Key, Data) when is_binary(Key), is_binary(Data) ->
  -spec kdf(Key :: binary(), Label :: string() | binary(), Length :: pos_integer())
 		-> binary().
 %% @doc Implements a Key derivation function (KDF) to stretch out a `Key' which is
-%% binded with a `Lable'to a desired `Length'.
+%% binded with a `Lable' to a desired `Length'.
 kdf(Key, Label, Length) when is_list(Label) ->
 	kdf(Key, list_to_binary(Label), Length);
 kdf(Key, Label, Length) when is_binary(Key), is_binary(Label),is_integer(Length) ->
