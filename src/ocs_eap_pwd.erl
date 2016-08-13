@@ -67,8 +67,7 @@ kdf(Key, Label, Length) when is_binary(Key), is_binary(Label),
 	K = prf(Key, [<<1:16>>, Label, <<Length:16>>]),
 	kdf(Key, Label, Length, 1, K, K).
 %% @hidden
-kdf(Key, Label, Length, I, K, Res)
-		when I < 10, size(Res) < (Length div 8) ->
+kdf(Key, Label, Length, I, K, Res) when size(Res) < (Length div 8) ->
 	I1 = I + 1,
 	K1 = prf(Key, [K, <<I1:16>>, Label, <<Length:16>>]),
 	kdf(Key, Label, Length, I1, K1, <<Res/binary, K1/binary>>);
