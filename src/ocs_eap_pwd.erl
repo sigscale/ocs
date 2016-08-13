@@ -117,7 +117,7 @@ ecc_pwe(PasswordValue, LSB) when is_integer(PasswordValue),
 	end.
 
  -spec isqrt(X :: pos_integer()) -> pos_integer() | error.
-%% @doc Returns integer square root of a given square number .
+%% @doc Integer square root.
 isqrt(X) when is_integer(X), X >= 0 ->
 	isqrt(X, X).
 %% @hidden
