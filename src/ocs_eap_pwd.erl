@@ -26,6 +26,7 @@
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 -export([h/1, prf/2, kdf/3, isqrt/1, ecc_pwe/2, fix_pwe/4]).
+-on_load(init/0).
 
 -define(P,  16#ffffffff00000001000000000000000000000000ffffffffffffffffffffffff).
 -define(A,  16#ffffffff00000001000000000000000000000000fffffffffffffffffffffffc).
@@ -135,4 +136,16 @@ isqrt(X, Xk) ->
 		Xk1 < Xk ->
 			isqrt(X, Xk1)
 end.
+
+%%
+%% internal functions
+%% 
+
+-spec init() -> ok.
+%% @doc When this module is loaded this function is called to load NIF library.
+%% @hidden
+init() ->
+	{ok, Application} = application:get_application(?MODULE),
+	PrivDir = code:priv_dir(Application),
+	ok = erlang:load_nif(PrivDir ++ "/lib/ocs_eap_pwd", 0).
 
