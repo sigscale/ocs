@@ -49,7 +49,7 @@ h(Context, []) ->
 %% @doc Pseudo-random function (PRF).
 %% 	RFC5931 section 2.10
 prf(Key, Data) when is_binary(Key), is_list(Data) ->
-	prf(crypto:hmac_init(sha256, Key), data).
+	prf1(crypto:hmac_init(sha256, Key), data).
 %% @hidden
 prf1(Context, [H | T]) ->
 	prf1(crypto:hmac_update(Context, H), T);
