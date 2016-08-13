@@ -34,17 +34,27 @@
 -define(Gy, 16#4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5).
 -define(R,  16#ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551).
 
--spec h(Data :: binary()) -> binary().
-%% @doc Implements a Random function, h which  maps a binary string of indeterminate
-%% length onto a 32 bits fixed length binary.
-h(Data) when is_binary(Data) ->
-	crypto:hmac(sha256, <<0:256>>, Data).
-
--spec prf(Key :: binary(), Data :: binary()) -> binary().
-%% @doc Implements a Pseudo-random function (PRF) which generates a random binary
-%% string.
-prf(Key, Data) when is_binary(Key), is_binary(Data) ->
-	crypto:hmac(sha256, Key, Data).
+-spec h([Data :: binary()]) -> binary().
+%% @doc Random function H().
+%% 	RFC5931 section 2.4.
+h(Data) when is_list(Data) ->
+	h(crypto:hmac_init(sha256, <<0:256>>), Data).
+%% @hidden
+h(Context, [H | T]) ->
+	h(crypto:hmac_update(Context, H), T);
+h(Context, []) ->
+	crypto:hmac_final(Context).
+	
+-spec prf(Key :: binary(), Data :: [binary()]) -> binary().
+%% @doc Pseudo-random function PRF().
+%% 	RFC5931 section 2.10
+prf(Key, Data) when is_binary(Key), is_list(Data) ->
+	prf(crypto:hmac_init(sha256, Key), data).
+%% @hidden
+prf1(Context, [H | T]) ->
+	prf1(crypto:hmac_update(Context, H), T);
+prf1(Context, []) ->
+	crypto:hmac_final(Context).
 
  -spec kdf(Key :: binary(), Label :: string() | binary(), Length :: pos_integer())
 		-> binary().
@@ -54,14 +64,12 @@ kdf(Key, Label, Length) when is_list(Label) ->
 	kdf(Key, list_to_binary(Label), Length);
 kdf(Key, Label, Length) when is_binary(Key), is_binary(Label),is_integer(Length),
 		(Length rem 8) =:= 0 ->
-	Data = list_to_binary([<<1:16>>, Label, <<Length:16>>]),
-	K = prf(Key, Data),
+	K = prf(Key, [<<1:16>>, Label, <<Length:16>>]),
 	kdf(Key, Label, Length, 1, K, K).
 %% @hidden
 kdf(Key, Label, Length, I, K, Res) when size(Res) < (Length div 8) ->
 	I1 = I + 1,
-	Data = list_to_binary([K, <<I1:16>>, Label, <<Length:16>>]),
-	K1 = prf(Key, Data),
+	K1 = prf(Key, [K, <<I1:16>>, Label, <<Length:16>>]),
 	kdf(Key, Label, Length, 11, K1, <<Res/binary, K1/binary>>);
 kdf(_, _, Length, _, _, Res) when size(Res) >= (Length div 8) ->
 	binary:part(Res, 0, Length div 8).
@@ -73,9 +81,8 @@ fix_pwe(Token, ServerIdentity, PeerIdentity, Password) ->
 	fix_pwe(Token, ServerIdentity, PeerIdentity, Password, 1).
 %% @hidden
 fix_pwe(Token, ServerIdentity, PeerIdentity, Password, Counter) ->
-	Data = list_to_binary([Token, PeerIdentity, ServerIdentity,
-		Password, <<Counter>>]),
-	PasswordSeed = h(Data),
+	PasswordSeed = h([Token, PeerIdentity, ServerIdentity,
+			Password, <<Counter>>]),
 	case kdf(PasswordSeed, "EAP-pwd Hunting And Pecking", 256) of
 		<<PasswordValue:256>> when PasswordValue < ?P ->
 			<<_:255, LSB:1>> = PasswordSeed,
