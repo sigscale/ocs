@@ -77,10 +77,12 @@ kdf(_, _, Length, _, _, Res) when size(Res) >= (Length div 8) ->
 -spec fix_pwe(Token :: binary(), ServerIdentity :: binary(), PeerIdentity
 		:: binary(),Password :: binary()) -> PasswordElement :: binary().
 %% @doc Fix the Password Element (PWE).
+%% 	RFC5931 section 2.8.3
 fix_pwe(Token, ServerIdentity, PeerIdentity, Password) ->
 	fix_pwe(Token, ServerIdentity, PeerIdentity, Password, 1).
 %% @hidden
-fix_pwe(Token, ServerIdentity, PeerIdentity, Password, Counter) ->
+fix_pwe(Token, ServerIdentity, PeerIdentity, Password, Counter)
+		when Counter < 10 ->
 	PasswordSeed = h([Token, PeerIdentity, ServerIdentity,
 			Password, <<Counter>>]),
 	case kdf(PasswordSeed, "EAP-pwd Hunting And Pecking", 256) of
