@@ -103,6 +103,7 @@ fix_pwe(Token, ServerIdentity, PeerIdentity, Password, Counter)
 -spec ecc_pwe(PasswordValue :: integer(), LSB :: 0..1) ->
 		{ok, PasswordElement :: binary()} | {error, not_found}.
 %% @doc ECC Operation for password element (PWE).
+%% 	RFC5931 section 2.8.3.1
 ecc_pwe(PasswordValue, LSB) when is_integer(PasswordValue),
 		((LSB =:= 0) or (LSB =:= 1)) ->
 	X = PasswordValue,
