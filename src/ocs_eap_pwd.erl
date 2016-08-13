@@ -93,11 +93,11 @@ fix_pwe(Token, ServerIdentity, PeerIdentity, Password, Counter)
 					PasswordElement;
 				{error, _Reason} ->
 					fix_pwe(Token, ServerIdentity,
-							PeerIdentity, Password, Counter +1)
+							PeerIdentity, Password, Counter + 1)
 			end;
 		_ ->
 			fix_pwe(Token, ServerIdentity, PeerIdentity,
-					Password, Counter +1)
+					Password, Counter + 1)
 	end.
 
 -spec ecc_pwe(PasswordValue :: integer(), LSB :: 0..1) ->
