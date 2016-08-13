@@ -35,7 +35,7 @@
 -define(R,  16#ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551).
 
 -spec h([Data :: binary()]) -> binary().
-%% @doc Random function H().
+%% @doc Random function (H).
 %% 	RFC5931 section 2.4.
 h(Data) when is_list(Data) ->
 	h(crypto:hmac_init(sha256, <<0:256>>), Data).
@@ -46,7 +46,7 @@ h(Context, []) ->
 	crypto:hmac_final(Context).
 	
 -spec prf(Key :: binary(), Data :: [binary()]) -> binary().
-%% @doc Pseudo-random function PRF().
+%% @doc Pseudo-random function (PRF).
 %% 	RFC5931 section 2.10
 prf(Key, Data) when is_binary(Key), is_list(Data) ->
 	prf(crypto:hmac_init(sha256, Key), data).
@@ -56,21 +56,22 @@ prf1(Context, [H | T]) ->
 prf1(Context, []) ->
 	crypto:hmac_final(Context).
 
- -spec kdf(Key :: binary(), Label :: string() | binary(), Length :: pos_integer())
-		-> binary().
-%% @doc Implements a Key derivation function (KDF) to stretch out a `Key' which is
-%% bound with a `Label' to a desired `Length'.
+-spec kdf(Key :: binary(), Label :: string() | binary(),
+		Length :: pos_integer()) -> binary().
+%% @doc Key derivation function (KDF).
+%% 	RFC5931 section 2.5.
 kdf(Key, Label, Length) when is_list(Label) ->
 	kdf(Key, list_to_binary(Label), Length);
-kdf(Key, Label, Length) when is_binary(Key), is_binary(Label),is_integer(Length),
-		(Length rem 8) =:= 0 ->
+kdf(Key, Label, Length) when is_binary(Key), is_binary(Label),
+		is_integer(Length), (Length rem 8) =:= 0 ->
 	K = prf(Key, [<<1:16>>, Label, <<Length:16>>]),
 	kdf(Key, Label, Length, 1, K, K).
 %% @hidden
-kdf(Key, Label, Length, I, K, Res) when size(Res) < (Length div 8) ->
+kdf(Key, Label, Length, I, K, Res)
+		when I < 10, size(Res) < (Length div 8) ->
 	I1 = I + 1,
 	K1 = prf(Key, [K, <<I1:16>>, Label, <<Length:16>>]),
-	kdf(Key, Label, Length, 11, K1, <<Res/binary, K1/binary>>);
+	kdf(Key, Label, Length, I1, K1, <<Res/binary, K1/binary>>);
 kdf(_, _, Length, _, _, Res) when size(Res) >= (Length div 8) ->
 	binary:part(Res, 0, Length div 8).
 
