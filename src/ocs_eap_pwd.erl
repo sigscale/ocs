@@ -84,14 +84,14 @@ kdf(_, _, Length, _, _, Res) when size(Res) >= (Length div 8) ->
 compute_pwe(Token, ServerIdentity, PeerIdentity, Password) ->
 	exit(nif_library_not_loaded).
 
--spec compute_scalar(S_rand :: integer()) ->
+-spec compute_scalar(S_rand :: binary()) ->
 	{Scalar_S :: binary(), Element_S :: binary()}.
 %% @doc Compute the Scalar.
 %% 	RFC5931 section 2.8.4.1
 compute_scalar(S_rand) ->
 	exit(nif_library_not_loaded).
 
--spec compute_ks(PWE :: binary(), S_rand :: integer(),
+-spec compute_ks(PWE :: binary(), S_rand :: binary(),
 		Scalar_P :: binary(), Element_P :: binary()) ->
 	Ks :: binary().
 %% @doc Compute Ks.
