@@ -26,7 +26,7 @@
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 -export([h/1, prf/2, kdf/3]).
--export([compute_pwe/4]).
+-export([compute_pwe/4, compute_scalar/0, compute_ks/4]).
 -on_load(init/0).
 
 -define(P,  16#ffffffff00000001000000000000000000000000ffffffffffffffffffffffff).
@@ -78,12 +78,29 @@ kdf(_, _, Length, _, _, Res) when size(Res) >= (Length div 8) ->
 
 -spec compute_pwe(Token :: binary(), ServerIdentity :: binary(),
 		PeerIdentity :: binary(), Password :: binary()) ->
-	PasswordElement :: binary().
+	PWE :: binary().
 %% @doc Compute the Password Element (PWE).
 %% 	RFC5931 section 2.8.3
-compute_pwe(Token, ServerIdentity, PeerIdentity, Password) ->
+compute_pwe(Token, ServerIdentity, PeerIdentity, Password)
+		when is_binary(Token), is_binary(ServerIdentity),
+		is_binary(PeerIdentity), is_binary(Password) ->
 	exit(nif_library_not_loaded).
 
+-spec compute_scalar() ->
+	{S_rand :: integer(), Scalar_S :: binary(), Element_S :: binary()}.
+%% @doc Compute the Scalar.
+%% 	RFC5931 section 2.8.4.1
+compute_scalar() ->
+	exit(nif_library_not_loaded).
+
+-spec compute_ks(PWE :: binary(), S_rand :: integer(),
+		Scalar_P :: binary(), Element_P :: binary()) ->
+	Ks :: binary().
+%% @doc Compute Ks.
+%% 	RFC5931 section 2.8.4.1
+compute_ks(PWE, S_rand, Scalar_P, Element_P) when is_binary(PWE),
+		is_integer(S_rand), is_binary(Scalar_P), is_binary(Element_P) ->
+	exit(nif_library_not_loaded).
 
 %%
 %% internal functions
