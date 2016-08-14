@@ -25,7 +25,8 @@
 -module(ocs_eap_pwd).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
--export([h/1, prf/2, kdf/3, isqrt/1, ecc_pwe/2, fix_pwe/4]).
+-export([h/1, prf/2, kdf/3]).
+-export([compute_pwe/4]).
 -on_load(init/0).
 
 -define(P,  16#ffffffff00000001000000000000000000000000ffffffffffffffffffffffff).
@@ -75,67 +76,14 @@ kdf(Key, Label, Length, I, K, Res) when size(Res) < (Length div 8) ->
 kdf(_, _, Length, _, _, Res) when size(Res) >= (Length div 8) ->
 	binary:part(Res, 0, Length div 8).
 
--spec fix_pwe(Token :: binary(), ServerIdentity :: binary(), PeerIdentity
-		:: binary(),Password :: binary()) -> PasswordElement :: binary().
-%% @doc Fix the Password Element (PWE).
+-spec compute_pwe(Token :: binary(), ServerIdentity :: binary(),
+		PeerIdentity :: binary(), Password :: binary()) ->
+	PasswordElement :: binary().
+%% @doc Compute the Password Element (PWE).
 %% 	RFC5931 section 2.8.3
-fix_pwe(Token, ServerIdentity, PeerIdentity, Password) ->
-	fix_pwe(Token, ServerIdentity, PeerIdentity, Password, 1).
-%% @hidden
-fix_pwe(Token, ServerIdentity, PeerIdentity, Password, Counter)
-		when Counter < 10 ->
-	PasswordSeed = h([Token, PeerIdentity, ServerIdentity,
-			Password, <<Counter>>]),
-	case kdf(PasswordSeed, "EAP-pwd Hunting And Pecking", 256) of
-		<<PasswordValue:256>> when PasswordValue < ?P ->
-			<<_:255, LSB:1>> = PasswordSeed,
-			case ecc_pwe(PasswordValue, LSB) of
-				{ok, PasswordElement} ->
-					PasswordElement;
-				{error, _Reason} ->
-					fix_pwe(Token, ServerIdentity,
-							PeerIdentity, Password, Counter + 1)
-			end;
-		_ ->
-			fix_pwe(Token, ServerIdentity, PeerIdentity,
-					Password, Counter + 1)
-	end.
+compute_pwe(Token, ServerIdentity, PeerIdentity, Password) ->
+	exit(nif_library_not_loaded).
 
--spec ecc_pwe(PasswordValue :: integer(), LSB :: 0..1) ->
-		{ok, PasswordElement :: binary()} | {error, not_found}.
-%% @doc ECC Operation for password element (PWE).
-%% 	RFC5931 section 2.8.3.1
-ecc_pwe(PasswordValue, LSB) when is_integer(PasswordValue),
-		((LSB =:= 0) or (LSB =:= 1)) ->
-	X = PasswordValue,
-	case isqrt(((X * X * X) + (?A * X) + ?B) rem 256) of
-		Y when (Y band 1) == LSB ->
-			{ok, <<X:256, Y:256>>};
-		Y when is_integer(Y) ->
-			Y1 = ?P - 1,
-			{ok, <<X:256, Y1:256>>};
-		error ->
-			{error, not_found}
-	end.
-
- -spec isqrt(X :: pos_integer()) -> pos_integer() | error.
-%% @doc Integer square root.
-isqrt(X) when is_integer(X), X >= 0 ->
-	isqrt(X, X).
-%% @hidden
-isqrt(X, Xk) ->
-	Xk1 = (Xk + X div Xk) div 2,
-	if
-		Xk1 >= Xk ->
-			if
-				Xk * Xk == X ->
-					Xk;
-						true ->
-						error
-			end;
-		Xk1 < Xk ->
-			isqrt(X, Xk1)
-end.
 
 %%
 %% internal functions
