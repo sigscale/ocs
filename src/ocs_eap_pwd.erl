@@ -81,9 +81,7 @@ kdf(_, _, Length, _, _, Res) when size(Res) >= (Length div 8) ->
 	PWE :: binary().
 %% @doc Compute the Password Element (PWE).
 %% 	RFC5931 section 2.8.3
-compute_pwe(Token, ServerIdentity, PeerIdentity, Password)
-		when is_binary(Token), is_binary(ServerIdentity),
-		is_binary(PeerIdentity), is_binary(Password) ->
+compute_pwe(Token, ServerIdentity, PeerIdentity, Password) ->
 	exit(nif_library_not_loaded).
 
 -spec compute_scalar() ->
@@ -98,8 +96,7 @@ compute_scalar() ->
 	Ks :: binary().
 %% @doc Compute Ks.
 %% 	RFC5931 section 2.8.4.1
-compute_ks(PWE, S_rand, Scalar_P, Element_P) when is_binary(PWE),
-		is_integer(S_rand), is_binary(Scalar_P), is_binary(Element_P) ->
+compute_ks(PWE, S_rand, Scalar_P, Element_P) ->
 	exit(nif_library_not_loaded).
 
 %%
