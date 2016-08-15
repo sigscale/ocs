@@ -33,7 +33,7 @@
 
 %% @headerfile "include/radius.hrl"
 -include_lib("radius/include/radius.hrl").
-
+-include("ocs_eap_codec.hrl").
 -record(statedata,
 		{socket :: inet:socket(),
 		module :: atom(),
