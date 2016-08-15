@@ -38,7 +38,23 @@
 		port :: pos_integer(),
 		identifier :: non_neg_integer(),
 		authenticator :: binary(),
-		response :: ignore | undefined | term()}).
+		response :: ignore | undefined | term(),
+		group_desc :: binary(),
+		random_func :: binary(),
+		prf :: binary(),
+		token :: string(),
+		prep :: string(),
+		peer_id :: string(),
+		pwe :: binary(),
+		s_rand :: integer(),
+		s_mask :: integer(),
+		scalar_s :: binary(),
+		element_s :: binary(),
+		scalar_p :: binary(),
+		element_p :: binary(),
+		ks :: binary(),
+		confirm_s :: binary(),
+		confirm_p :: binary()}).
 
 %%----------------------------------------------------------------------
 %%  The radius_fsm API
