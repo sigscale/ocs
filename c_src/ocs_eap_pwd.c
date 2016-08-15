@@ -23,8 +23,8 @@
 #include <openssl/objects.h>
 #include <openssl/ec.h>
 
-static ERL_NIF_TERM compute_pwe_nif(ErlNifEnv* env, int argc,
-		const ERL_NIF_TERM argv[])
+static ERL_NIF_TERM
+compute_pwe_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
 	ErlNifBinary token, server_id, peer_id, password, pwe_ret;
 	ERL_NIF_TERM reason;
@@ -47,8 +47,8 @@ static ERL_NIF_TERM compute_pwe_nif(ErlNifEnv* env, int argc,
 	return enif_make_binary(env, &pwe_ret);
 }
 
-static ERL_NIF_TERM compute_scalar_nif(ErlNifEnv* env, int argc,
-		const ERL_NIF_TERM argv[])
+static ERL_NIF_TERM
+compute_scalar_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
 	ErlNifBinary random, scalar, element;
 	BIGNUM s_rand;
@@ -68,8 +68,8 @@ static ERL_NIF_TERM compute_scalar_nif(ErlNifEnv* env, int argc,
 	return enif_make_tuple2(env, scalar_ret, element_ret);
 }
 
-static ERL_NIF_TERM compute_ks_nif(ErlNifEnv* env, int argc,
-		const ERL_NIF_TERM argv[])
+static ERL_NIF_TERM
+compute_ks_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
 	ErlNifBinary pwe, random, scalar, element, ks;
 	ERL_NIF_TERM reason;
