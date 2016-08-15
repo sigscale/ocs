@@ -104,11 +104,26 @@ idle(_Event, StateData)->
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
 		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>wait_for_id</b> state.
+%%		gen_fsm:send_event/2} in the <b>wait_for_id</b> state. This state is responsible
+%%		for sending EAP-PWD-ID request to peer.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-wait_for_id(_Event, StateData)->
+%% @todo Bi directional codec functions has to be implmented
+%%
+wait_for_id(_Event, #statedata{identifier = Identifier, radius_fsm = RadiusFsm} = StateData)->
+	{ok, Token} = crypto:rand_bytes(4),
+	{ok, HostName} = inet:gethostname(),
+	Body = #eap_pwd_id{group_desc = 19, random_fun = 16#1, prf = 16#1, token = Token,
+		pwd_prep = 16#0, identity = HostName},
+	%% @todo Implement codec function
+	IDReqBody = ocs_eap_codec:eap_pwd_id(Body),
+	Header = #eap_pwd{code = ?Request, identifier = Identifier, type = ?PWD, l_bit = false,
+			m_bit = false, pwd_exch = 16#1, data = IDReqBody},
+	%% @todo Implement codec function
+	IDReqHeader = ocs_eap_codec:eap_pwd(Header),
+	IDRequest = <<IDReqHeader/binary, IDReqBody/binary>>,
+	gen_fsm:send_event(RadiusFsm, IDRequest),
 	{next_state, wait_for_commit, StateData}.
 
 -spec wait_for_commit(Event :: timeout | term(), StateData :: #statedata{}) ->
