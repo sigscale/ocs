@@ -77,8 +77,11 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init(_Args) ->
-	{stop, not_implemented}.
+init([Socket, Module, Address, Port, Identifier] = _Args) ->
+	process_flag(trap_exit, true),
+	StateData = #statedata{socket = Socket, module = Module,
+		address = Address, port = Port, identifier = Identifier},
+	{ok, idle, StateData, 0}.
 
 -spec idle(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
