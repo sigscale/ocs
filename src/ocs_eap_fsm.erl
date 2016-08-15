@@ -81,7 +81,7 @@ init([Socket, Module, Address, Port, Identifier] = _Args) ->
 	process_flag(trap_exit, true),
 	StateData = #statedata{socket = Socket, module = Module,
 		address = Address, port = Port, identifier = Identifier},
-	{ok, idle, StateData, 0}.
+	{ok, idle, StateData}.
 
 -spec idle(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
@@ -92,8 +92,8 @@ init([Socket, Module, Address, Port, Identifier] = _Args) ->
 %%		gen_fsm:send_event/2} in the <b>idle</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
-%%
-idle(_Event, StateData)->
+%% @todo send EAP-pwd-ID request to peer
+idle({request, _Address, _Port, #eap_packet{data = Data} = _Packet}, StateData) when is_binary(Packet) ->
 	{next_state, wait_for_id, StateData}.
 
 -spec wait_for_id(Event :: timeout | term(), StateData :: #statedata{}) ->

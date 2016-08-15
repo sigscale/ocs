@@ -80,14 +80,26 @@ init(_Args) ->
 %% 	gen_server:multi_call/2,3,4}.
 %% @see //stdlib/gen_server:handle_call/3
 %% @private
-%%
+%% @todo find ocs_eap_fsm_sup supervisor
+%% @todo find existing ocs_eap_fsm process
 handle_call(shutdown, _From, State) ->
 	{stop, normal, ok, State};
 handle_call(port, _From, #state{port = Port} = State) ->
 	{reply, Port, State};
-handle_call(_Request, {Pid, _Tag}, State) ->
-	exit(Pid, badarg),
-	{noreply, State}.
+handle_call({request, Address, Port, Packet}, {Pid, _Tag}, State) ->
+	case catch ocs_eap_codec:packet(Packet) of
+		#eap_packet{} = Request ->
+			case supervisor:start_child(ocs_eap_fsm_sup, [[], []]) of
+				{ok, EapFsm} ->
+					Event = {request, Address, Port, Request),
+					gen_fsm:send_event(EapFsm, Event),
+					{reply, {ok, wait}, State};
+				{error, Reason} ->
+					{reply, {error, Reason}, State}
+			end;
+		{'EXIT', _Reason} ->
+			{reply, {error, ignore}, State}
+	end.
 
 -spec handle_cast(Request :: term(), State :: #state{}) ->
 	Result :: {noreply, NewState :: #state{}}
