@@ -24,6 +24,9 @@
 %% export the radius_fsm API
 -export([]).
 
+%% export the radius_fsm state callbacks
+-export([idle/2, wait_for_id/2, wait_for_commit/2, wait_for_confirm/2]).
+
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
 			terminate/3, code_change/4]).
@@ -38,7 +41,23 @@
 		port :: pos_integer(),
 		identifier :: non_neg_integer(),
 		authenticator :: binary(),
-		response :: ignore | undefined | term()}).
+		response :: ignore | undefined | term(),
+		group_desc :: binary(),
+		random_func :: binary(),
+		prf :: binary(),
+		token :: string(),
+		prep :: string(),
+		peer_id :: string(),
+		pwe :: binary(),
+		s_rand :: integer(),
+		s_mask :: integer(),
+		scalar_s :: binary(),
+		element_s :: binary(),
+		scalar_p :: binary(),
+		element_p :: binary(),
+		ks :: binary(),
+		confirm_s :: binary(),
+		confirm_p :: binary()}).
 
 %%----------------------------------------------------------------------
 %%  The radius_fsm API
@@ -58,8 +77,63 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init(_Args) ->
-	{stop, not_implemented}.
+init([Socket, Module, Address, Port, Identifier] = _Args) ->
+	process_flag(trap_exit, true),
+	StateData = #statedata{socket = Socket, module = Module,
+		address = Address, port = Port, identifier = Identifier},
+	{ok, idle, StateData, 0}.
+
+-spec idle(Event :: timeout | term(), StateData :: #statedata{}) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, Timeout :: non_neg_integer() | infinity}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
+%%		gen_fsm:send_event/2} in the <b>idle</b> state.
+%% @@see //stdlib/gen_fsm:StateName/2
+%% @private
+%%
+idle(_Event, StateData)->
+	{next_state, wait_for_id, StateData}.
+
+-spec wait_for_id(Event :: timeout | term(), StateData :: #statedata{}) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, Timeout :: non_neg_integer() | infinity}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
+%%		gen_fsm:send_event/2} in the <b>wait_for_id</b> state.
+%% @@see //stdlib/gen_fsm:StateName/2
+%% @private
+%%
+wait_for_id(_Event, StateData)->
+	{next_state, wait_for_commit, StateData}.
+
+-spec wait_for_commit(Event :: timeout | term(), StateData :: #statedata{}) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, Timeout :: non_neg_integer() | infinity}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
+%%		gen_fsm:send_event/2} in the <b>wait_for_commit</b> state.
+%% @@see //stdlib/gen_fsm:StateName/2
+%% @private
+%%
+wait_for_commit(_Event, StateData)->
+	{next_state, wait_for_confirm, StateData}.
+
+-spec wait_for_confirm(Event :: timeout | term(), StateData :: #statedata{}) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, Timeout :: non_neg_integer() | infinity}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
+%%		gen_fsm:send_event/2} in the <b>wait_for_confirm</b> state.
+%% @@see //stdlib/gen_fsm:StateName/2
+%% @private
+%%
+wait_for_confirm(_Event, StateData)->
+	{next_state, idle, StateData}.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
 		StateData :: #statedata{}) ->
