@@ -42,6 +42,7 @@
 		identifier :: non_neg_integer(),
 		authenticator :: binary(),
 		response :: ignore | undefined | term(),
+		radius_fsm :: pid(),
 		group_desc :: binary(),
 		random_func :: binary(),
 		prf :: binary(),
