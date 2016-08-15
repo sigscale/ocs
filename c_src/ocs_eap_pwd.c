@@ -23,6 +23,14 @@
 #include <openssl/objects.h>
 #include <openssl/ec.h>
 
+#if ERL_NIF_MAJOR_VERSION == 2 && ERL_NIF_MINOR_VERSION < 8 \
+		|| ERL_NIF_MAJOR_VERSION < 2
+ERL_NIF_TERM
+enif_raise_exception(ErlNifEnv* env, ERL_NIF_TERM reason) {
+	return enif_make_badarg(env);
+}
+#endif /* NIF < v2.8 */
+
 static ERL_NIF_TERM
 compute_pwe_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
@@ -52,7 +60,7 @@ compute_scalar_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
 	ErlNifBinary random, scalar, element;
 	BIGNUM s_rand;
-	ERL_NIF_TERM reason, scalar_ret, element_ret;;
+	ERL_NIF_TERM reason, scalar_ret, element_ret;
 
 	if (!enif_inspect_binary(env, argv[0], &random)
 			|| !BN_bin2bn(random.data, random.size, &s_rand))
