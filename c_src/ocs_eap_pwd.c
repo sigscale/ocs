@@ -25,23 +25,25 @@
 static ERL_NIF_TERM compute_pwe_nif(ErlNifEnv* env, int argc,
 		const ERL_NIF_TERM argv[])
 {
-	ErlNifBinary token, server_id, peer_id, password, pwe;
+	ErlNifBinary token, server_id, peer_id, password, pwe_ret;
 	ERL_NIF_TERM reason;
+	EC_GROUP *group;
+	EC_POINT *pwe;
+	BIGNUM *prime, *order, *cofactor;
 
-	if (!enif_inspect_binary(env, argv[0], &token))
+	if (!enif_inspect_binary(env, argv[0], &token)
+			|| !enif_inspect_binary(env, argv[1], &server_id)
+			|| !enif_inspect_binary(env, argv[2], &peer_id)
+			|| !enif_inspect_binary(env, argv[3], &password))
 		return enif_make_badarg(env);
-	if (!enif_inspect_binary(env, argv[1], &server_id))
-		return enif_make_badarg(env);
-	if (!enif_inspect_binary(env, argv[2], &peer_id))
-		return enif_make_badarg(env);
-	if (!enif_inspect_binary(env, argv[3], &password))
-		return enif_make_badarg(env);
-	if (!enif_alloc_binary(256, &pwe)) {
+	if (!(group = EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1))
+			|| !(pwe = EC_POINT_new(group))
+			|| !enif_alloc_binary(256, &pwe_ret)) {
 		enif_make_existing_atom(env, "enomem", &reason, ERL_NIF_LATIN1);
 		return enif_raise_exception(env, reason);
 	}
 
-	return enif_make_binary(env, &pwe);
+	return enif_make_binary(env, &pwe_ret);
 }
 
 static ERL_NIF_TERM compute_scalar_nif(ErlNifEnv* env, int argc,
@@ -51,16 +53,11 @@ static ERL_NIF_TERM compute_scalar_nif(ErlNifEnv* env, int argc,
 	BIGNUM s_rand;
 	ERL_NIF_TERM reason, scalar_ret, element_ret;;
 
-	if (!enif_inspect_binary(env, argv[0], &random))
+	if (!enif_inspect_binary(env, argv[0], &random)
+			|| !BN_bin2bn(random.data, random.size, &s_rand))
 		return enif_make_badarg(env);
-	if (!BN_bin2bn(random.data, random.size, &s_rand)) {
-		return enif_make_badarg(env);
-	}
-	if (!enif_alloc_binary(256, &scalar)) {
-		enif_make_existing_atom(env, "enomem", &reason, ERL_NIF_LATIN1);
-		return enif_raise_exception(env, reason);
-	}
-	if (!enif_alloc_binary(256, &element)) {
+	if (!enif_alloc_binary(256, &scalar)
+			|| !enif_alloc_binary(256, &element)) {
 		enif_make_existing_atom(env, "enomem", &reason, ERL_NIF_LATIN1);
 		return enif_raise_exception(env, reason);
 	}
@@ -76,13 +73,10 @@ static ERL_NIF_TERM compute_ks_nif(ErlNifEnv* env, int argc,
 	ErlNifBinary pwe, random, scalar, element, ks;
 	ERL_NIF_TERM reason;
 
-	if (!enif_inspect_binary(env, argv[0], &pwe))
-		return enif_make_badarg(env);
-	if (!enif_inspect_binary(env, argv[1], &random))
-		return enif_make_badarg(env);
-	if (!enif_inspect_binary(env, argv[2], &scalar))
-		return enif_make_badarg(env);
-	if (!enif_inspect_binary(env, argv[3], &element))
+	if (!enif_inspect_binary(env, argv[0], &pwe)
+			|| !enif_inspect_binary(env, argv[1], &random)
+			|| !enif_inspect_binary(env, argv[2], &scalar)
+			|| !enif_inspect_binary(env, argv[3], &element))
 		return enif_make_badarg(env);
 	if (!enif_alloc_binary(256, &ks)) {
 		enif_make_existing_atom(env, "enomem", &reason, ERL_NIF_LATIN1);
