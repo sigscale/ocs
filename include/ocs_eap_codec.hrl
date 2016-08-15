@@ -61,6 +61,7 @@
 -record(eap_pwd,
 			{code :: 1..255,
 			identifier :: 1..255,
+			type :: integer(),
 			l_bit :: byte(),
 			m_bit :: byte(),
 			pwd_exch :: byte(),
