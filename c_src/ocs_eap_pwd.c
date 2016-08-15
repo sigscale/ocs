@@ -22,6 +22,11 @@
 #include <openssl/bn.h>
 #include <openssl/objects.h>
 #include <openssl/ec.h>
+#include <openssl/sha.h>
+#include <openssl/hmac.h>
+#include <openssl/evp.h>
+
+static unsigned char zerokey[SHA256_DIGEST_LENGTH] = { 0x00 };
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 static HMAC_CTX *
@@ -51,6 +56,9 @@ compute_pwe_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 	EC_GROUP *group;
 	EC_POINT *pwe;
 	BIGNUM *prime, *order, *cofactor;
+	unsigned char counter;
+	HMAC_CTX *context;
+	unsigned char seed[SHA256_DIGEST_LENGTH];
 
 	if (!enif_inspect_binary(env, argv[0], &token)
 			|| !enif_inspect_binary(env, argv[1], &server_id)
@@ -59,9 +67,28 @@ compute_pwe_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 		return enif_make_badarg(env);
 	if (!(group = EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1))
 			|| !(pwe = EC_POINT_new(group))
+			|| !(prime = BN_new())
+			|| !(order = BN_new())
+			|| !(cofactor = BN_new())
+			|| !(context = HMAC_CTX_new())
 			|| !enif_alloc_binary(256, &pwe_ret)) {
 		enif_make_existing_atom(env, "enomem", &reason, ERL_NIF_LATIN1);
 		return enif_raise_exception(env, reason);
+	}
+	if (!EC_GROUP_get_curve_GFp(group, prime, NULL, NULL, NULL)
+			|| !EC_GROUP_get_order(group, order, NULL)
+			|| !EC_GROUP_get_cofactor(group, cofactor, NULL)) {
+		reason = enif_make_string(env, "failed to get curve", ERL_NIF_LATIN1);
+		return enif_raise_exception(env, reason);
+	}
+	for (counter = 1; counter < 10; counter++) {
+		HMAC_Init_ex(context, zerokey, SHA256_DIGEST_LENGTH, EVP_sha256(), NULL);
+		HMAC_Update(context, token.data, token.size);
+		HMAC_Update(context, peer_id.data, peer_id.size);
+		HMAC_Update(context, server_id.data, server_id.size);
+		HMAC_Update(context, password.data, password.size);
+		HMAC_Update(context, &counter, sizeof(counter));
+		HMAC_Final(context, seed, NULL);
 	}
 
 	return enif_make_binary(env, &pwe_ret);
