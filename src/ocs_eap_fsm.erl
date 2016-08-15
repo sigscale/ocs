@@ -78,10 +78,11 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([Socket, Module, Address, Port, Identifier] = _Args) ->
+init([Socket, Module, Address, Port, Identifier, RadiusFsm] = _Args) ->
 	process_flag(trap_exit, true),
 	StateData = #statedata{socket = Socket, module = Module,
-		address = Address, port = Port, identifier = Identifier},
+		address = Address, port = Port, identifier = Identifier,
+		radius_fsm = RadiusFsm},
 	{ok, idle, StateData, 0}.
 
 -spec idle(Event :: timeout | term(), StateData :: #statedata{}) ->
