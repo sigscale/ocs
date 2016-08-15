@@ -20,6 +20,7 @@
 
 #include "erl_nif.h"
 #include <openssl/bn.h>
+#include <openssl/objects.h>
 #include <openssl/ec.h>
 
 static ERL_NIF_TERM compute_pwe_nif(ErlNifEnv* env, int argc,
