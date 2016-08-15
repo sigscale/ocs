@@ -30,7 +30,7 @@
 -include_lib("radius/include/radius.hrl").
 
 -record(state,
-		{eap_server :: pid()}).
+		{eap_server :: atom() | pid()}).
 
 %%----------------------------------------------------------------------
 %%  The radius callbacks
