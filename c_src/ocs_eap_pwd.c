@@ -23,6 +23,18 @@
 #include <openssl/objects.h>
 #include <openssl/ec.h>
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+static HMAC_CTX *
+HMAC_CTX_new(void)
+{
+	HMAC_CTX *context;
+
+	if ((context = calloc(sizeof(*context), 1)))
+		HMAC_CTX_init(context);
+	return context;
+}
+#endif /* OpenSSL < v1.1.0 */
+
 #if ERL_NIF_MAJOR_VERSION == 2 && ERL_NIF_MINOR_VERSION < 8 \
 		|| ERL_NIF_MAJOR_VERSION < 2
 ERL_NIF_TERM
