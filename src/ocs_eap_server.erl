@@ -33,6 +33,7 @@
 
 %% @headerfile "include/radius.hrl"
 -include_lib("radius/include/radius.hrl").
+-include("ocs_eap_codec.hrl").
 
 -record(state,
 		{sup :: pid(),
@@ -86,12 +87,12 @@ handle_call(shutdown, _From, State) ->
 	{stop, normal, ok, State};
 handle_call(port, _From, #state{port = Port} = State) ->
 	{reply, Port, State};
-handle_call({request, Address, Port, Packet}, {Pid, _Tag}, State) ->
+handle_call({request, Address, Port, Packet}, {_Pid, _Tag}, State) ->
 	case catch ocs_eap_codec:packet(Packet) of
 		#eap_packet{} = Request ->
 			case supervisor:start_child(ocs_eap_fsm_sup, [[], []]) of
 				{ok, EapFsm} ->
-					Event = {request, Address, Port, Request),
+					Event = {request, Address, Port, Request},
 					gen_fsm:send_event(EapFsm, Event),
 					{reply, {ok, wait}, State};
 				{error, Reason} ->
