@@ -18,8 +18,10 @@
 				{rest_crt, "%APP_PRIV%localhost.crt"},
 				{rest_username, "ocs"},
 				{rest_password, "apple123"},
-				{rest_ip, "127.0.0.1"},
+				{rest_addr, "127.0.0.1"},
 				{rest_port, 8090},
-				{radius_auth_port ,1812},
+				{radius_auth_addr, {127,0,0,1}},
+				{radius_auth_port, 1812},
+				{radius_acct_addr, {127,0,0,1}},
 				{radius_acct_port, 1813}]},
 		{mod, {ocs_app, []}}]}.
