@@ -36,15 +36,14 @@
 -include("ocs_eap_codec.hrl").
 
 -record(state,
-		{sup :: pid(),
+		{eap_sup :: pid(),
+		eap_fsm_sup :: pid(),
 		socket :: inet:socket(),
 		address :: inet:ip_address(),
 		port :: non_neg_integer(),
 		module :: atom(),
-		fsm_sup :: pid(),
 		handlers = gb_trees:empty() :: gb_trees:tree(Key ::
-				{Address :: inet:ip_address(), Port :: pos_integer(),
-				Identifier :: non_neg_integer()}, Value :: (Fsm :: pid()))}).
+				(Identifier :: non_neg_integer()), Value :: (Fsm :: pid()))}).
 
 %%----------------------------------------------------------------------
 %%  The ocs_eap_server API
@@ -63,8 +62,9 @@
 %% @see //stdlib/gen_server:init/1
 %% @private
 %%
-init(_Args) ->
-	{stop, not_implemented}.
+init([EapSup, Address, Port]) ->
+	process_flag(trap_exit, true),
+	{ok, #state{eap_sup = EapSup, address = Address, port = Port}, 0}.
 
 -spec handle_call(Request :: term(), From :: {Pid :: pid(), Tag :: any()},
 		State :: #state{}) ->
@@ -87,17 +87,18 @@ handle_call(shutdown, _From, State) ->
 	{stop, normal, ok, State};
 handle_call(port, _From, #state{port = Port} = State) ->
 	{reply, Port, State};
-handle_call({request, Address, Port, Packet}, {_Pid, _Tag}, State) ->
+handle_call({request, Address, Port, Packet}, _From,
+		#state{handlers = Handlers} = State) ->
 	case catch ocs_eap_codec:packet(Packet) of
-		#eap_packet{} = Request ->
-			case supervisor:start_child(ocs_eap_fsm_sup, [[], []]) of
-				{ok, EapFsm} ->
-					Event = {request, Address, Port, Request},
-					gen_fsm:send_event(EapFsm, Event),
-					{reply, {ok, wait}, State};
-				{error, Reason} ->
-					{reply, {error, Reason}, State}
-			end;
+		#eap_packet{identifier = Identifier} = Request ->
+			NewState = case gb_trees:lookup(Identifier, Handlers) of
+				none ->
+					start_fsm(State, Address, Port, Identifier, Request);
+				{value, Fsm} ->
+					gen_fsm:send_event(Fsm, Request),
+					State
+			end,
+			{reply, {ok, wait}, NewState};
 		{'EXIT', _Reason} ->
 			{reply, {error, ignore}, State}
 	end.
@@ -125,8 +126,33 @@ handle_cast(_Request, State) ->
 %% @see //stdlib/gen_server:handle_info/2
 %% @private
 %%
-handle_info(timeout, State) ->
-	{stop, not_implemented, State}.
+handle_info(timeout, #state{eap_sup = EapSup} = State) ->
+	Children = supervisor:which_childred(EapSup),
+	{_, EapFsmSup, _, _} = lists:keyfind(ocs_eap_fsm_sup, 1, Children),
+	{noreply, State#state{eap_fsm_sup = EapFsmSup}};
+handle_info({'EXIT', _Pid, {shutdown, Identifier}},
+		#state{handlers = Handlers} = State) ->
+	NewHandlers = gb_trees:delete(Identifier, Handlers),
+	NewState = State#state{handlers = NewHandlers},
+	{noreply, NewState};
+handle_info({'EXIT', Fsm, _Reason},
+		#state{handlers = Handlers} = State) ->
+	Fdel = fun(_F, {Key, Pid, _Iter}) when Pid == Fsm ->
+				Key;
+			(F, {_Key, _Val, Iter}) ->
+				F(F, gb_trees:next(Iter));
+			(_F, none) ->
+				none
+	end,
+	Iter = gb_trees:iterator(Handlers),
+	case Fdel(Fdel, gb_trees:next(Iter)) of
+		none ->
+			{noreply, State};
+		Key ->
+			NewHandlers = gb_trees:delete(Key, Handlers),
+			NewState = State#state{handlers = NewHandlers},
+			{noreply, NewState}
+	end.
 
 -spec terminate(Reason :: normal | shutdown | term(),
 		State :: #state{}) -> any().
@@ -134,8 +160,8 @@ handle_info(timeout, State) ->
 %% @see //stdlib/gen_server:terminate/3
 %% @private
 %%
-terminate(Reason, #state{module = Module} = _State) ->
-	Module:terminate(Reason).
+terminate(_Reason, _State) ->
+	ok.
 
 -spec code_change(OldVsn :: (Vsn :: term() | {down, Vsn :: term()}),
 		State :: #state{}, Extra :: term()) ->
@@ -150,4 +176,27 @@ code_change(_OldVsn, State, _Extra) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+-spec start_fsm(State :: #state{}, Address :: inet:ip_address(),
+		Port :: pos_integer(), Identifier :: non_neg_integer(),
+		Request :: #eap_packet{}) ->
+	NewState :: #state{}.
+%% @doc Start a new {@link //ocs/ocs_eap_fsm. ocs_eap_fsm} transaction
+%% 	state handler and forward the request to it.
+%% @hidden
+start_fsm(#state{eap_fsm_sup = Sup, handlers = Handlers} = State,
+		Address, Port, Identifier, Request) ->
+	ChildSpec = [[Address, Port, Identifier], []],
+	case supervisor:start_child(Sup, ChildSpec) of
+		{ok, Fsm} ->
+			link(Fsm),
+			gen_fsm:send_event(Fsm, Request),
+			NewHandlers = gb_trees:insert(Identifier, Fsm, Handlers),
+			State#state{handlers = NewHandlers};
+		{error, Reason} ->
+			error_logger:error_report(["Error starting transaction state handler",
+					{error, Reason}, {supervisor, Sup}, {address, Address},
+					{port, Port}, {identifier, Identifier}]),
+			State
+	end.
 

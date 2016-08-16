@@ -37,14 +37,16 @@
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init([Module, Port, Address]) ->
-	ChildSpecs = [server(Module, Port, Address)],
+init([EapSup, Address, Port]) ->
+	ChildSpecs = [server(EapSup, Address, Port)],
 	{ok, {{one_for_all, 10, 3600}, ChildSpecs}}.
 
 %% @hidden
-server(Module, Port, Address) ->
+server(EapSup, Address, Port) ->
 	StartMod = ocs_eap_server,
-	StartArgs = [StartMod, [self(), Module, Port, Address], []],
+	Register = {StartMod, Address, Port},
+	Args = [EapSup, Address, Port],
+	StartArgs = [{local, Register}, StartMod, Args, []],
 	StartFunc = {gen_server, start_link, StartArgs},
 	{StartMod, StartFunc, transient, 4000, worker, [StartMod]}.
 
