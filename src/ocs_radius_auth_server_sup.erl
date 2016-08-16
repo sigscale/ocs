@@ -35,17 +35,20 @@
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init(_Args) ->
-	ChildSpecs = [radius_server(radius_server, [])],
+init([Address, Port]) ->
+	ChildSpecs = [radius_server(ocs_radius_authentication, Address, Port)],
 	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
 
--spec radius_server(StartMod :: atom(), Args :: [term()]) ->
+-spec radius_server(CallbackModule :: atom(),
+		Address :: inet:ip_address(), Port :: pos_integer()) ->
 	supervisor:child_spec().
 %% @doc Build a supervisor child specification for a
 %% 	{@link //stdlib/gen_server. gen_server} behaviour.
 %% @private
 %%
-radius_server(StartMod, Args) ->
-	StartArgs = [StartMod, Args, []],
-	StartFunc = {gen_server, start_link, StartArgs},
-	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
+radius_server(CallbackModule, Address, Port) ->
+	StartMod = radius,
+	StartFunc = {StartMod, start_link, [CallbackModule, Port, Address]},
+	{CallbackModule, StartFunc, permanent, 4000,
+			worker, [StartMod, CallbackModule]}.
+

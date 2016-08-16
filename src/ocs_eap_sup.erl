@@ -37,14 +37,14 @@
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init(_Args) ->
-	ChildSpecs = [supervisor(ocs_eap_fsm_sup),
-		supervisor(ocs_eap_server_sup),
-		supervisor(ocs_radius_auth_server_sup)],
+init([Address, Port]) ->
+	ChildSpecs = [supervisor(ocs_eap_fsm_sup, []),
+		supervisor(ocs_eap_server_sup, []),
+		supervisor(ocs_radius_auth_server_sup, [Address, Port])],
 	{ok, {{one_for_one, 10, 3600}, ChildSpecs}}.
 
 %% @hidden
-supervisor(StartMod) ->
-	StartFunc = {supervisor, start_link, [StartMod, []]},
+supervisor(StartMod, StartArgs) ->
+	StartFunc = {supervisor, start_link, [StartMod, StartArgs]},
 	{StartMod, StartFunc, transient, infinity, supervisor, [StartMod]}.
 
