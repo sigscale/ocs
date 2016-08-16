@@ -14,3 +14,11 @@ autom4te.cache/
 install-sh
 missing
 
+# http://www.gnu.org/software/libtool
+compile
+config.guess
+config.h.in~
+config.sub
+depcomp
+ltmain.sh
+
