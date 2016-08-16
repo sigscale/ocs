@@ -60,6 +60,8 @@
 		confirm_s :: binary(),
 		confirm_p :: binary()}).
 
+-define(TIMEOUT, 30000).
+
 %%----------------------------------------------------------------------
 %%  The radius_fsm API
 %%----------------------------------------------------------------------
@@ -78,12 +80,11 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([Socket, Module, Address, Port, Identifier, RadiusFsm] = _Args) ->
+init([RadiusFsm, Address, Port, Identifier] = _Args) ->
 	process_flag(trap_exit, true),
-	StateData = #statedata{socket = Socket, module = Module,
-		address = Address, port = Port, identifier = Identifier,
-		radius_fsm = RadiusFsm},
-	{ok, idle, StateData}.
+	StateData = #statedata{radius_fsm = RadiusFsm, address = Address,
+			port = Port, identifier = Identifier},
+	{ok, idle, StateData, ?TIMEOUT}.
 
 -spec idle(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
@@ -95,8 +96,10 @@ init([Socket, Module, Address, Port, Identifier, RadiusFsm] = _Args) ->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %% @todo send EAP-pwd-ID request to peer
+idle(timeout, #statedata{identifier = Identifier} = StateData)->
+	{stop, {shutdown, Identifier}, StateData};
 idle({request, _Address, _Port, #eap_packet{data = Data} = Packet}, StateData) when is_binary(Packet) ->
-	{next_state, wait_for_id, StateData}.
+	{next_state, wait_for_id, StateData, ?TIMEOUT}.
 
 -spec wait_for_id(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
@@ -111,6 +114,8 @@ idle({request, _Address, _Port, #eap_packet{data = Data} = Packet}, StateData) w
 %%
 %% @todo Bi directional codec functions has to be implmented
 %%
+wait_for_id(timeout, #statedata{identifier = Identifier} = StateData)->
+	{stop, {shutdown, Identifier}, StateData};
 wait_for_id(_Event, #statedata{identifier = Identifier, radius_fsm = RadiusFsm} = StateData)->
 	{ok, Token} = crypto:rand_bytes(4),
 	{ok, HostName} = inet:gethostname(),
@@ -124,7 +129,7 @@ wait_for_id(_Event, #statedata{identifier = Identifier, radius_fsm = RadiusFsm} 
 	IDReqHeader = ocs_eap_codec:eap_pwd(Header),
 	IDRequest = <<IDReqHeader/binary, IDReqBody/binary>>,
 	gen_fsm:send_event(RadiusFsm, IDRequest),
-	{next_state, wait_for_commit, StateData}.
+	{next_state, wait_for_commit, StateData, ?TIMEOUT}.
 
 -spec wait_for_commit(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
@@ -136,8 +141,10 @@ wait_for_id(_Event, #statedata{identifier = Identifier, radius_fsm = RadiusFsm} 
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
+wait_for_commit(timeout, #statedata{identifier = Identifier} = StateData)->
+	{stop, {shutdown, Identifier}, StateData};
 wait_for_commit(_Event, StateData)->
-	{next_state, wait_for_confirm, StateData}.
+	{next_state, wait_for_confirm, StateData, ?TIMEOUT}.
 
 -spec wait_for_confirm(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
@@ -149,8 +156,10 @@ wait_for_commit(_Event, StateData)->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
+wait_for_confirm(timeout, #statedata{identifier = Identifier} = StateData)->
+	{stop, {shutdown, Identifier}, StateData};
 wait_for_confirm(_Event, StateData)->
-	{next_state, idle, StateData}.
+	{next_state, idle, StateData, ?TIMEOUT}.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
 		StateData :: #statedata{}) ->
