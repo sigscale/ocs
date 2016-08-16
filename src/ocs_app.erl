@@ -66,15 +66,38 @@ start(normal = _StartType, _Args) ->
 	end.
 %% @hidden
 start1() ->
-	{ok, AuthPort} = application:get_env(radius_auth_port),
-	{ok, AcctPort} = application:get_env(radius_acct_port),
-	{ok, RestIp} = application:get_env(rest_ip),
+	{ok, RestAddr} = application:get_env(rest_addr),
 	{ok, RestPort} = application:get_env(rest_port),
-	case supervisor:start_link(ocs_sup,
-			[AuthPort, AcctPort, RestIp, RestPort]) of
-		{ok, Sup} ->
-			{ok, Sup};
-		{error, Reason} ->
+	{ok, AcctAddr} = application:get_env(radius_acct_addr),
+	{ok, AcctPort} = application:get_env(radius_acct_port),
+	{ok, AuthAddr} = application:get_env(radius_auth_addr),
+	{ok, AuthPort} = application:get_env(radius_auth_port),
+	try
+		TopSup = case supervisor:start_link(ocs_sup,
+				[{RestAddr, RestPort}]) of
+			{ok, OcsSup} ->
+				OcsSup;
+			{error, Reason1} ->
+				throw(Reason1)
+		end,
+		case ocs:start(acct, AcctAddr, AcctPort) of
+			{ok, _AcctSup} ->
+				ok;
+			{error, Reason2} ->
+				throw(Reason2)
+		end,
+		case ocs:start(auth, AuthAddr, AuthPort) of
+			{ok, _EapSup} ->
+				ok;
+			{error, Reason3} ->
+				throw(Reason3)
+		end,
+		TopSup
+	of
+		Sup ->
+			{ok, Sup}
+	catch
+		Reason ->
 			error_logger:error_report(["ocs application failed to start",
 					{reason, Reason}, {module, ?MODULE}]),
 			{error, Reason}

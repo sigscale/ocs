@@ -24,17 +24,24 @@
 -behaviour(gen_server).
 
 %% export the ocs_server API
--export([]).
+-export([start/3]).
 
 %% export the callbacks needed for gen_server behaviour
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 			terminate/2, code_change/3]).
 
--record(state, {}).
+-record(state, {sup :: pid()}).
 
 %%----------------------------------------------------------------------
 %%  The ocs_server API
 %%----------------------------------------------------------------------
+
+-spec start(Type :: auth | acct, Address :: inet:ip_address(),
+		Port :: pos_integer()) ->
+	{ok, Pid :: pid()} | {error, Reason :: term()}.
+%% @doc Start a RADIUS request handler.
+start(Type, Address, Port) when is_tuple(Address), is_integer(Port) ->
+	gen_server:call(ocs, {start, Type, Address, Port}).
 
 %%----------------------------------------------------------------------
 %%  The ocs_server gen_server callbacks
@@ -48,9 +55,9 @@
 %% @see //stdlib/gen_server:init/1
 %% @private
 %%
-init([] = _Args) ->
+init([Sup] = _Args) ->
 	process_flag(trap_exit, true),
-	{ok, #state{}}.
+	{ok, #state{sup = Sup}}.
 
 -spec handle_call(Request :: term(), From :: {pid(), Tag :: any()},
 		State :: #state{}) ->
@@ -66,8 +73,16 @@ init([] = _Args) ->
 %% @see //stdlib/gen_server:handle_call/3
 %% @private
 %%
-handle_call(_Request, _From, State) ->
-	{stop, not_implemented, State}.
+handle_call({start, auth, Address, Port}, _From, #state{sup = Sup} = State) ->
+	Children = supervisor:which_children(Sup),
+	AuthSup = lists:keyfind(ocs_radius_auth_sup, 1, Children),
+	Result = supervisor:start_child(AuthSup, [[Address, Port], []]),
+	{reply, Result, State};
+handle_call({start, acct, Address, Port}, _From, #state{sup = Sup} = State) ->
+	Children = supervisor:which_children(Sup),
+	AcctSup = lists:keyfind(ocs_radius_acct_sup, 1, Children),
+	Result = supervisor:start_child(AcctSup, [[Address, Port], []]),
+	{reply, Result, State}.
 
 -spec handle_cast(Request :: term(), State :: #state{}) ->
 	{noreply, NewState :: #state{}}
