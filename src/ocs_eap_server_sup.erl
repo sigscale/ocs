@@ -44,9 +44,9 @@ init([EapSup, Address, Port]) ->
 %% @hidden
 server(EapSup, Address, Port) ->
 	StartMod = ocs_eap_server,
-	Register = {StartMod, Address, Port},
+	GlobalName = {ocs, Address, Port},
 	Args = [EapSup, Address, Port],
-	StartArgs = [{local, Register}, StartMod, Args, []],
+	StartArgs = [{global, GlobalName}, StartMod, Args, []],
 	StartFunc = {gen_server, start_link, StartArgs},
 	{StartMod, StartFunc, transient, 4000, worker, [StartMod]}.
 

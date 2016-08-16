@@ -43,7 +43,12 @@
 %% 	initializes.
 %% @todo ocs_eap_server pid().
 init(Address, Port) when is_tuple(Address), is_integer(Port) ->
-	{ok, #state{}}.
+	case global:whereis_name({ocs, Address, Port}) of
+		EapServer when is_pid(EapServer) ->
+			{ok, #state{eap_server = EapServer}};
+		undefined ->
+			{error, eap_server_not_found}
+	end.
 
 -spec request(Address :: inet:ip_address(), Port :: pos_integer(),
 		Packet :: binary(), State :: #state{}) ->
@@ -57,7 +62,7 @@ request(Address, Port, Packet, #state{eap_server = Server} = _State)
 -spec terminate(Reason :: term(), State :: #state{}) -> ok.
 %% @doc This callback function is called just before the server exits.
 %%
-terminate(_Reason, #state{} = _State) ->
+terminate(_Reason, _State) ->
 	ok.
 
 %%----------------------------------------------------------------------
