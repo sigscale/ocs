@@ -24,7 +24,7 @@
 -behaviour(gen_server).
 
 %% export the ocs_server API
--export([start/3]).
+-export([]).
 
 %% export the callbacks needed for gen_server behaviour
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -35,13 +35,6 @@
 %%----------------------------------------------------------------------
 %%  The ocs_server API
 %%----------------------------------------------------------------------
-
--spec start(Type :: auth | acct, Address :: inet:ip_address(),
-		Port :: pos_integer()) ->
-	{ok, Pid :: pid()} | {error, Reason :: term()}.
-%% @doc Start a RADIUS request handler.
-start(Type, Address, Port) when is_tuple(Address), is_integer(Port) ->
-	gen_server:call(ocs, {start, Type, Address, Port}).
 
 %%----------------------------------------------------------------------
 %%  The ocs_server gen_server callbacks

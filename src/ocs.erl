@@ -25,6 +25,7 @@
 -export([add_subscriber/3, find_subscriber/1]).
 -export([log_file/1]).
 -export([generate_password/0]).
+-export([start/3]).
 
 -include("ocs.hrl").
 -define(LOGNAME, radius_acct).
@@ -120,6 +121,13 @@ log_file(FileName) when is_list(FileName) ->
 %% @equiv generate_password(12)
 generate_password() ->
 	generate_password(12).
+
+-spec start(Type :: auth | acct, Address :: inet:ip_address(),
+		Port :: pos_integer()) ->
+	{ok, Pid :: pid()} | {error, Reason :: term()}.
+%% @doc Start a RADIUS request handler.
+start(Type, Address, Port) when is_tuple(Address), is_integer(Port) ->
+	gen_server:call(ocs, {start, Type, Address, Port}).
 
 %%----------------------------------------------------------------------
 %%  internal functions
