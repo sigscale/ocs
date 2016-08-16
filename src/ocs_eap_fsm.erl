@@ -95,7 +95,7 @@ init([Socket, Module, Address, Port, Identifier, RadiusFsm] = _Args) ->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %% @todo send EAP-pwd-ID request to peer
-idle({request, _Address, _Port, #eap_packet{data = Data} = _Packet}, StateData) when is_binary(Packet) ->
+idle({request, _Address, _Port, #eap_packet{data = Data} = Packet}, StateData) when is_binary(Packet) ->
 	{next_state, wait_for_id, StateData}.
 
 -spec wait_for_id(Event :: timeout | term(), StateData :: #statedata{}) ->
