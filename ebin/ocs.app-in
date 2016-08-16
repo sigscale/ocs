@@ -12,7 +12,7 @@
 				ocs_server,
 				ocs_wm_config]},
 		{registered, []},
-		{applications, [kernel, stdlib, mnesia, webmachine, radius]},
+		{applications, [kernel, stdlib, mnesia, crypto, webmachine, radius]},
 		{env, [%{rest_trace, "trace"},
 				{rest_key, "%APP_PRIV%localhost.key"},
 				{rest_crt, "%APP_PRIV%localhost.crt"},
