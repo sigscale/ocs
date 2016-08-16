@@ -64,7 +64,7 @@ supervisor(StartMod, Args) ->
 %% @private
 %%
 server(StartMod, Args) ->
-	StartArgs = [StartMod, Args, []],
+	StartArgs = [{local, ocs}, StartMod, Args, []],
 	StartFunc = {gen_server, start_link, StartArgs},
 	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
 
