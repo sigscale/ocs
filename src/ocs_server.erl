@@ -69,12 +69,12 @@ init([Sup] = _Args) ->
 handle_call({start, auth, Address, Port}, _From, #state{sup = Sup} = State) ->
 	Children = supervisor:which_children(Sup),
 	{_, AuthSup, _, _} = lists:keyfind(ocs_radius_auth_sup, 1, Children),
-	Result = supervisor:start_child(AuthSup, [[Address, Port], []]),
+	Result = supervisor:start_child(AuthSup, [[Address, Port]]),
 	{reply, Result, State};
 handle_call({start, acct, Address, Port}, _From, #state{sup = Sup} = State) ->
 	Children = supervisor:which_children(Sup),
 	{_, AcctSup, _, _} = lists:keyfind(ocs_radius_acct_sup, 1, Children),
-	Result = supervisor:start_child(AcctSup, [[Address, Port], []]),
+	Result = supervisor:start_child(AcctSup, [[Address, Port]]),
 	{reply, Result, State}.
 
 -spec handle_cast(Request :: term(), State :: #state{}) ->
