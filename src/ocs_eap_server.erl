@@ -24,7 +24,7 @@
 
 -behaviour(gen_server).
 
-%% export the radius_server API
+%% export the ocs_eap_server API
 -export([]).
 
 %% export the call backs needed for gen_server behaviour
@@ -47,11 +47,11 @@
 				Identifier :: non_neg_integer()}, Value :: (Fsm :: pid()))}).
 
 %%----------------------------------------------------------------------
-%%  The radius_server API
+%%  The ocs_eap_server API
 %%----------------------------------------------------------------------
 
 %%----------------------------------------------------------------------
-%%  The radius_server gen_server call backs
+%%  The ocs_eap_server gen_server call backs
 %%----------------------------------------------------------------------
 
 -spec init(Args :: list()) -> Result :: {ok, State :: #state{}}
