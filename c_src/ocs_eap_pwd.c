@@ -26,7 +26,7 @@
 #include <openssl/hmac.h>
 #include <openssl/evp.h>
 
-static unsigned char zerokey[SHA256_DIGEST_LENGTH] = { 0x00 };
+static uint8_t zerokey[SHA256_DIGEST_LENGTH] = { 0x00 };
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 static HMAC_CTX *
@@ -56,9 +56,9 @@ compute_pwe_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 	EC_GROUP *group;
 	EC_POINT *pwe;
 	BIGNUM *prime, *order, *cofactor;
-	unsigned char counter;
+	uint8_t counter;
 	HMAC_CTX *context;
-	unsigned char seed[SHA256_DIGEST_LENGTH];
+	uint8_t seed[SHA256_DIGEST_LENGTH];
 
 	if (!enif_inspect_binary(env, argv[0], &token)
 			|| !enif_inspect_binary(env, argv[1], &server_id)
