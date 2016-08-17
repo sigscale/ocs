@@ -79,7 +79,7 @@ kdf(uint8_t *key, int key_len, char const *label,
 		i = htons(counter);
 		HMAC_Init_ex(context, key, key_len, EVP_sha256(), NULL);
 		if (counter > 1)
-			HMAC_Update(context, (uint8_t *) &k, k_len);
+			HMAC_Update(context, &k, k_len);
 		HMAC_Update(context, (uint8_t *) &i, sizeof(uint16_t));
 		HMAC_Update(context, (uint8_t const *) label, label_len);
 		HMAC_Update(context, (uint8_t *) &L, sizeof(uint16_t));
