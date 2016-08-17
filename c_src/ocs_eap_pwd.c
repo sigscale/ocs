@@ -61,6 +61,9 @@ enif_raise_exception(ErlNifEnv* env, ERL_NIF_TERM reason) {
 }
 #endif /* NIF < v2.8 */
 
+/* Key Derivatin Function (KDF)
+ * RFC5931 section 2.5
+ */
 static void
 kdf(uint8_t *key, int key_len, char const *label,
 		int label_len, uint8_t *result, int result_len)
@@ -79,7 +82,7 @@ kdf(uint8_t *key, int key_len, char const *label,
 		i = htons(counter);
 		HMAC_Init_ex(context, key, key_len, EVP_sha256(), NULL);
 		if (counter > 1)
-			HMAC_Update(context, &k, k_len);
+			HMAC_Update(context, k, k_len);
 		HMAC_Update(context, (uint8_t *) &i, sizeof(uint16_t));
 		HMAC_Update(context, (uint8_t const *) label, label_len);
 		HMAC_Update(context, (uint8_t *) &L, sizeof(uint16_t));
@@ -95,6 +98,9 @@ kdf(uint8_t *key, int key_len, char const *label,
 	HMAC_CTX_free(context);
 }
 
+/*  Compute the Password Element (PWE)
+ *  RFC5931 section 2.8.3.1
+ */
 static ERL_NIF_TERM
 compute_pwe_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
@@ -102,10 +108,12 @@ compute_pwe_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 	ERL_NIF_TERM reason;
 	EC_GROUP *group;
 	EC_POINT *pwe;
-	BIGNUM *prime, *order, *cofactor;
-	uint8_t counter;
+	BIGNUM *prime, *x, *bn_seed;
 	HMAC_CTX *context;
-	uint8_t seed[SHA256_DIGEST_LENGTH];
+	uint8_t pwd_seed[SHA256_DIGEST_LENGTH], pwd_value[256], counter;
+	const char *label = "EAP-pwd Hunting And Pecking";
+	int label_len = 27;
+	uint8_t point_uncompressed[513];
 
 	if (!enif_inspect_binary(env, argv[0], &token)
 			|| !enif_inspect_binary(env, argv[1], &server_id)
@@ -115,16 +123,14 @@ compute_pwe_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 	if (!(group = EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1))
 			|| !(pwe = EC_POINT_new(group))
 			|| !(prime = BN_new())
-			|| !(order = BN_new())
-			|| !(cofactor = BN_new())
+			|| !(x = BN_new())
+			|| !(bn_seed = BN_new())
 			|| !(context = HMAC_CTX_new())
 			|| !enif_alloc_binary(256, &pwe_ret)) {
 		enif_make_existing_atom(env, "enomem", &reason, ERL_NIF_LATIN1);
 		return enif_raise_exception(env, reason);
 	}
-	if (!EC_GROUP_get_curve_GFp(group, prime, NULL, NULL, NULL)
-			|| !EC_GROUP_get_order(group, order, NULL)
-			|| !EC_GROUP_get_cofactor(group, cofactor, NULL)) {
+	if (!EC_GROUP_get_curve_GFp(group, prime, NULL, NULL, NULL)) {
 		reason = enif_make_string(env, "failed to get curve", ERL_NIF_LATIN1);
 		return enif_raise_exception(env, reason);
 	}
@@ -135,10 +141,31 @@ compute_pwe_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 		HMAC_Update(context, server_id.data, server_id.size);
 		HMAC_Update(context, password.data, password.size);
 		HMAC_Update(context, &counter, sizeof(counter));
-		HMAC_Final(context, seed, NULL);
+		HMAC_Final(context, pwd_seed, NULL);
+		BN_bin2bn(pwd_seed, 256, bn_seed);
+		kdf(pwd_seed, SHA256_DIGEST_LENGTH, label, label_len, pwd_value, 256);
+		BN_bin2bn(pwd_value, 256, x);
+		if (BN_ucmp(x, prime) >= 0)
+			continue;
+		if (!EC_POINT_set_compressed_coordinates_GFp(group, pwe, x,
+				BN_is_bit_set(bn_seed, 0), NULL))
+			continue;
+		break;
 	}
-
+	if (counter >= 10) {
+		reason = enif_make_string(env, "too many iterations", ERL_NIF_LATIN1);
+		return enif_raise_exception(env, reason);
+	}
+	EC_POINT_point2oct(group, pwe, POINT_CONVERSION_UNCOMPRESSED,
+			point_uncompressed, 513, NULL);
+	memcpy(pwe_ret.data, &point_uncompressed[1], 512);
+	pwe_ret.size = 512;
 	HMAC_CTX_free(context);
+	EC_GROUP_free(group);
+	EC_POINT_free(pwe);
+	BN_free(prime);
+	BN_free(x);
+	BN_free(bn_seed);
 	return enif_make_binary(env, &pwe_ret);
 }
 
