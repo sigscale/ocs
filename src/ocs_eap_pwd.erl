@@ -25,7 +25,7 @@
 -module(ocs_eap_pwd).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
--export([h/1, prf/2, kdf/3]).
+-export([h/1]).
 -export([compute_pwe/4, compute_scalar/1, compute_ks/4]).
 -on_load(init/0).
 
@@ -47,35 +47,6 @@ h(Context, [H | T]) ->
 h(Context, []) ->
 	crypto:hmac_final(Context).
 	
--spec prf(Key :: binary(), Data :: [binary()]) -> binary().
-%% @doc Pseudo-random function (PRF).
-%% 	RFC5931 section 2.10
-prf(Key, Data) when is_binary(Key), is_list(Data) ->
-	prf1(crypto:hmac_init(sha256, Key), data).
-%% @hidden
-prf1(Context, [H | T]) ->
-	prf1(crypto:hmac_update(Context, H), T);
-prf1(Context, []) ->
-	crypto:hmac_final(Context).
-
--spec kdf(Key :: binary(), Label :: string() | binary(),
-		Length :: pos_integer()) -> binary().
-%% @doc Key derivation function (KDF).
-%% 	RFC5931 section 2.5.
-kdf(Key, Label, Length) when is_list(Label) ->
-	kdf(Key, list_to_binary(Label), Length);
-kdf(Key, Label, Length) when is_binary(Key), is_binary(Label),
-		is_integer(Length), (Length rem 8) =:= 0 ->
-	K = prf(Key, [<<1:16>>, Label, <<Length:16>>]),
-	kdf(Key, Label, Length, 1, K, K).
-%% @hidden
-kdf(Key, Label, Length, I, K, Res) when size(Res) < (Length div 8) ->
-	I1 = I + 1,
-	K1 = prf(Key, [K, <<I1:16>>, Label, <<Length:16>>]),
-	kdf(Key, Label, Length, I1, K1, <<Res/binary, K1/binary>>);
-kdf(_, _, Length, _, _, Res) when size(Res) >= (Length div 8) ->
-	binary:part(Res, 0, Length div 8).
-
 -spec compute_pwe(Token :: binary(), ServerIdentity :: binary(),
 		PeerIdentity :: binary(), Password :: binary()) ->
 	PWE :: binary().

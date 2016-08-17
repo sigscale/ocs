@@ -18,13 +18,14 @@
 *** group(s) used by EAP-pwd (RFC5931).
 ***/
 
-#include "erl_nif.h"
+#include <string.h>
 #include <openssl/bn.h>
 #include <openssl/objects.h>
 #include <openssl/ec.h>
 #include <openssl/sha.h>
 #include <openssl/hmac.h>
 #include <openssl/evp.h>
+#include "erl_nif.h"
 
 static uint8_t zerokey[SHA256_DIGEST_LENGTH] = { 0x00 };
 
@@ -38,6 +39,18 @@ HMAC_CTX_new(void)
 		HMAC_CTX_init(context);
 	return context;
 }
+
+void
+HMAC_CTX_reset(HMAC_CTX *context)
+{
+	HMAC_CTX_cleanup(context);
+}
+
+void
+HMAC_CTX_free(HMAC_CTX *context)
+{
+	HMAC_CTX_cleanup(context);
+}
 #endif /* OpenSSL < v1.1.0 */
 
 #if ERL_NIF_MAJOR_VERSION == 2 && ERL_NIF_MINOR_VERSION < 8 \
@@ -47,6 +60,40 @@ enif_raise_exception(ErlNifEnv* env, ERL_NIF_TERM reason) {
 	return enif_make_badarg(env);
 }
 #endif /* NIF < v2.8 */
+
+static void
+kdf(uint8_t *key, int key_len, char const *label,
+		int label_len, uint8_t *result, int result_len)
+{
+	HMAC_CTX *context;
+	uint16_t i, counter, L;
+	uint8_t k[SHA256_DIGEST_LENGTH];
+	int len;
+	unsigned int k_len = SHA256_DIGEST_LENGTH;
+
+	context = HMAC_CTX_new();
+	len = 0;
+	counter = 1;
+	L = htons(result_len);
+	while (len < result_len) {
+		i = htons(counter);
+		HMAC_Init_ex(context, key, key_len, EVP_sha256(), NULL);
+		if (counter > 1)
+			HMAC_Update(context, (uint8_t *) &k, k_len);
+		HMAC_Update(context, (uint8_t *) &i, sizeof(uint16_t));
+		HMAC_Update(context, (uint8_t const *) label, label_len);
+		HMAC_Update(context, (uint8_t *) &L, sizeof(uint16_t));
+		HMAC_Final(context, k, &k_len);
+		if ((len + k_len) <= result_len)
+			memcpy(result + len, k, k_len);
+		else
+			memcpy(result + len, k, result_len - len);
+		len += k_len;
+		counter++;
+		HMAC_CTX_reset(context);
+	}
+	HMAC_CTX_free(context);
+}
 
 static ERL_NIF_TERM
 compute_pwe_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
@@ -91,6 +138,7 @@ compute_pwe_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 		HMAC_Final(context, seed, NULL);
 	}
 
+	HMAC_CTX_free(context);
 	return enif_make_binary(env, &pwe_ret);
 }
 
