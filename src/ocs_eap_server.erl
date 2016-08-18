@@ -95,8 +95,18 @@ handle_call({request, Address, Port, Packet}, _From,
 				none ->
 					start_fsm(State, Address, Port, Identifier, Request);
 				{value, Fsm} ->
-					gen_fsm:send_event(Fsm, Request),
-					State
+					case catch radius:codec(Packet) of
+						#radius{attributes = Attributes} ->
+							case radius_attributes:find(?EAPMessage, Attributes) of
+								{ok, EAPRequest} ->
+									gen_fsm:send_event(Fsm, EAPRequest),
+									State;
+								{error, Reason} ->
+									{reply, {error, Reason}, State}
+							end;
+						{'EIXT', _Reason} ->
+							{reply, {error, ignore}, State}
+					end
 			end,
 			{reply, {ok, wait}, NewState};
 		{'EXIT', _Reason} ->

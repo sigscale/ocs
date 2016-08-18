@@ -59,12 +59,9 @@
 			data :: binary()}).
 
 -record(eap_pwd,
-			{code :: 1..255,
-			identifier :: 1..255,
-			length :: integer(),
-			type :: integer(),
-			l_bit :: byte(),
-			m_bit :: byte(),
+			{type :: integer(),
+			length :: boolean(),
+			more :: boolean(),
 			pwd_exch :: byte(),
 			tot_length :: integer(),
 			data :: binary()}).
