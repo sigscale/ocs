@@ -96,7 +96,6 @@ init([RadiusFsm, Address, Port, Identifier] = _Args) ->
 %%		gen_fsm:send_event/2} in the <b>idle</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
-%% @todo send EAP-pwd-ID request to peer
 idle(timeout, #statedata{identifier = Identifier, radius_fsm = RadiusFsm } = StateData) ->
 	{ok, Token} = crypto:rand_bytes(4),
 	{ok, HostName} = inet:gethostname(),
