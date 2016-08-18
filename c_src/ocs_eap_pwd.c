@@ -55,8 +55,8 @@ HMAC_CTX_free(HMAC_CTX *context)
 }
 #endif /* OpenSSL < v1.1.0 */
 
-#if ERL_NIF_MAJOR_VERSION == 2 && ERL_NIF_MINOR_VERSION < 8 \
-		|| ERL_NIF_MAJOR_VERSION < 2
+#if ((ERL_NIF_MAJOR_VERSION == 2 && ERL_NIF_MINOR_VERSION < 8) \
+		|| ERL_NIF_MAJOR_VERSION < 2)
 ERL_NIF_TERM
 enif_raise_exception(ErlNifEnv* env, ERL_NIF_TERM reason) {
 	return enif_make_badarg(env);
@@ -112,7 +112,7 @@ compute_pwe_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 	EC_POINT *pwe;
 	BIGNUM *prime, *x, *bn_seed;
 	HMAC_CTX *context;
-	uint8_t pwd_seed[SHA256_DIGEST_LENGTH], pwd_value[256], counter;
+	uint8_t pwd_seed[SHA256_DIGEST_LENGTH], pwd_value[32], counter;
 	const char *label = "EAP-pwd Hunting And Pecking";
 	int label_len = 27;
 	uint8_t point_uncompressed[513];
@@ -128,7 +128,7 @@ compute_pwe_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 			|| !(x = BN_new())
 			|| !(bn_seed = BN_new())
 			|| !(context = HMAC_CTX_new())
-			|| !enif_alloc_binary(256, &pwe_ret)) {
+			|| !enif_alloc_binary(32, &pwe_ret)) {
 		enif_make_existing_atom(env, "enomem", &reason, ERL_NIF_LATIN1);
 		return enif_raise_exception(env, reason);
 	}
@@ -144,9 +144,9 @@ compute_pwe_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 		HMAC_Update(context, password.data, password.size);
 		HMAC_Update(context, &counter, sizeof(counter));
 		HMAC_Final(context, pwd_seed, NULL);
-		BN_bin2bn(pwd_seed, 256, bn_seed);
-		kdf(pwd_seed, SHA256_DIGEST_LENGTH, label, label_len, pwd_value, 256);
-		BN_bin2bn(pwd_value, 256, x);
+		BN_bin2bn(pwd_seed, 32, bn_seed);
+		kdf(pwd_seed, SHA256_DIGEST_LENGTH, label, label_len, pwd_value, 32);
+		BN_bin2bn(pwd_value, 32, x);
 		if (BN_ucmp(x, prime) >= 0)
 			continue;
 		if (!EC_POINT_set_compressed_coordinates_GFp(group, pwe, x,
@@ -181,8 +181,8 @@ compute_scalar_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 	if (!enif_inspect_binary(env, argv[0], &random)
 			|| !BN_bin2bn(random.data, random.size, &s_rand))
 		return enif_make_badarg(env);
-	if (!enif_alloc_binary(256, &scalar)
-			|| !enif_alloc_binary(256, &element)) {
+	if (!enif_alloc_binary(32, &scalar)
+			|| !enif_alloc_binary(32, &element)) {
 		enif_make_existing_atom(env, "enomem", &reason, ERL_NIF_LATIN1);
 		return enif_raise_exception(env, reason);
 	}
@@ -203,7 +203,7 @@ compute_ks_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 			|| !enif_inspect_binary(env, argv[2], &scalar)
 			|| !enif_inspect_binary(env, argv[3], &element))
 		return enif_make_badarg(env);
-	if (!enif_alloc_binary(256, &ks)) {
+	if (!enif_alloc_binary(32, &ks)) {
 		enif_make_existing_atom(env, "enomem", &reason, ERL_NIF_LATIN1);
 		return enif_raise_exception(env, reason);
 	}
