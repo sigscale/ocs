@@ -18,6 +18,7 @@
 *** group(s) used by EAP-pwd (RFC5931).
 ***/
 
+#include <stdint.h>
 #include <string.h>
 #include <openssl/bn.h>
 #include <openssl/objects.h>
