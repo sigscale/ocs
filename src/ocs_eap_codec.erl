@@ -44,15 +44,26 @@ packet(#eap_packet{code = Code, identifier = Identifier,
 	Length = size(Data) + 32,
 	<<Code, Identifier, Length:16, Data/binary>>.
 
--spec pwd(Packet :: binary()) -> #eap_pwd{}.
-%% @doc Decode an EAP-PWD-Header packet transported in the RADIUS `EAP-Message'
-%% attribute.
+-spec pwd(Packet :: binary() | #eap_pwd{}) -> #eap_pwd{} | binary().
+%% @doc Encode or Decode an EAP-PWD-Header packet transported in the
+%% RADIUS `EAP-Message' attribute.
 %%
 %% RFC-5931 3.1
+pwd(#eap_pwd{code = C, identifier = I, length = Len, type = Type,
+	 l_bit = L,
+	 m_bit = M, pwd_exch = P, data = D } = Packet) -> 
+	Length = byte_size(<<C/binary, I/binary, Type/binary, Len:16, D/binary>>),
+	case L of
+		true ->
+			TLen = Packet#eap_pwd.tot_length,
+			<<C, I, Length, ?PWD, L, M, P, TLen, D>>;
+		false ->
+			<<C, I, Length, ?PWD, L, M, P, D>>
+	end;
 pwd(Packet) ->
 	pwd(Packet, #eap_pwd{}).
 %% @hidden
-pwd(<<Code/binary, T>>, Acc) ->
+pwd(<<Code, T>>, Acc) ->
 	case Code of
 		?Request ->
 			pwd(T, Acc#eap_pwd{code = Code});
@@ -61,29 +72,29 @@ pwd(<<Code/binary, T>>, Acc) ->
 		_ ->
 			pwd(T, Acc)
 	end;
-pwd(<<Identifier/binary, T>>, Acc) ->
+pwd(<<Identifier, T>>, Acc) ->
 	pwd(T, Acc#eap_pwd{identifier = Identifier});
-pwd(<<Length/binary, T>>, Acc) ->
+pwd(<<Length, T>>, Acc) ->
 	case size(Length) of
 		S when S >= 32 ->
 			pwd(T, Acc#eap_pwd{length = Length});
 		_ ->
 			pwd(T, Acc)
 	end;
-pwd(<<Type/binary, T>>, Acc) ->
+pwd(<<Type, T>>, Acc) ->
 	case Type of
 		?PWD ->
 			pwd(T, Acc#eap_pwd{type = Type});
 		_ ->
 			pwd(T, Acc)
 	end;
-pwd(<<LB/binary, T>>, Acc) ->
+pwd(<<LB, T>>, Acc) ->
 	pwd(T, Acc#eap_pwd{l_bit = LB});
-pwd(<<MB/binary, T>>, Acc) ->
+pwd(<<MB, T>>, Acc) ->
 	pwd(T, Acc#eap_pwd{m_bit = MB});
-pwd(<<PWDExch/binary, T>>, Acc) ->
+pwd(<<PWDExch, T>>, Acc) ->
 	pwd(T, Acc#eap_pwd{pwd_exch = PWDExch});
-pwd(<<TotLength/binary, T>>, Acc) ->
+pwd(<<TotLength, T>>, Acc) ->
 	case Acc#eap_pwd.l_bit of
 		true ->
 			pwd(T, Acc#eap_pwd{tot_length = TotLength});
@@ -95,25 +106,8 @@ pwd(<<Payload, T>>, Acc) ->
 pwd(<<>>, Acc) ->
 	Acc.
 
--spec pwd(#eap_pwd{}) -> binary().
-%% @doc Encode an eap_pwd record into an EAP-PWD-Header packet transportedi
-%% in the RADIUS `EAP-Message' attribute.
-%%
-%% RFC-5931 3.1
-pwd(#eap_pwd{code = C, identifier = I, length = Len, type = Type,
-	 l_bit = L,
-	 m_bit = M, pwd_exch = P, data = D } = Packet) -> 
-	Length = byte_size(<<C/binary, I/binary, Type/binary, 0:16, D/binary>>),
-	case L of
-		true ->
-			#eap_pwd{tot_length = TLen},
-			<<C, I, Length, _, L, M, P, TLen, D>>;
-		false ->
-			<<C, I, Length, _, L, M, P, D>>
-	end.
-
 -spec payload_id(Packet :: binary()) -> #eap_pwd_id{}.
-%% @doc Decode `EAP-pwd-ID' 
+%% @doc Encode or Decode `EAP-pwd-ID' 
 %%
 %% RFC-5931 3.2.1
 %% Comprise the Ciphersuite included in the calculation of the
@@ -125,14 +119,7 @@ payload_id(<<GDesc, RanFun, PRF, Token, PWDPrep, Id>>) ->
 		prf = PRF,
 		token = Token,
 		pwd_prep = PWDPrep,
-		identity = Identity}.
-
--spec payload_id(#eap_pwd_id{}) -> binary().
-%% @doc Encode `EAP-pwd-ID' 
-%%
-%% RFC-5931 3.2.1
-%% Comprise the Ciphersuite included in the calculation of the
-%% peer's and server's confirm messages
-payload_id(#eap_pwd_id{groug_id = GID, random_fun = RanFun, prf = PRF,
+		identity = Id};
+payload_id(#eap_pwd_id{group_desc = GDesc, random_fun = RanFun, prf = PRF,
 		token = Token, pwd_prep = PWDPre, identity = ID}) ->
-	<<GID, RanFun, PRF, Token, PWDPre, ID>>.
+	<<GDesc, RanFun, PRF, Token, PWDPre, ID>>.
