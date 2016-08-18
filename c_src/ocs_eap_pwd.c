@@ -20,6 +20,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <arpa/inet.h>
 #include <openssl/bn.h>
 #include <openssl/objects.h>
 #include <openssl/ec.h>
