@@ -112,3 +112,27 @@ pwd(#eap_pwd{code = C, identifier = I, length = Len, type = Type,
 			<<C, I, Length, _, L, M, P, D>>
 	end.
 
+-spec payload_id(Packet :: binary()) -> #eap_pwd_id{}.
+%% @doc Decode `EAP-pwd-ID' 
+%%
+%% RFC-5931 3.2.1
+%% Comprise the Ciphersuite included in the calculation of the
+%% peer's and server's confirm messages
+payload_id(<<GDesc, RanFun, PRF, Token, PWDPrep, Id>>) ->
+	#eap_pwd_id{
+		group_desc = GDesc,
+		random_fun = RanFun,
+		prf = PRF,
+		token = Token,
+		pwd_prep = PWDPrep,
+		identity = Identity}.
+
+-spec payload_id(#eap_pwd_id{}) -> binary().
+%% @doc Encode `EAP-pwd-ID' 
+%%
+%% RFC-5931 3.2.1
+%% Comprise the Ciphersuite included in the calculation of the
+%% peer's and server's confirm messages
+payload_id(#eap_pwd_id{groug_id = GID, random_fun = RanFun, prf = PRF,
+		token = Token, pwd_prep = PWDPre, identity = ID}) ->
+	<<GID, RanFun, PRF, Token, PWDPre, ID>>.
