@@ -49,62 +49,17 @@ packet(#eap_packet{code = Code, identifier = Identifier,
 %% RADIUS `EAP-Message' attribute.
 %%
 %% RFC-5931 3.1
-pwd(#eap_pwd{code = C, identifier = I, length = Len, type = Type,
-	 l_bit = L,
-	 m_bit = M, pwd_exch = P, data = D } = Packet) -> 
-	Length = byte_size(<<C/binary, I/binary, Type/binary, Len:16, D/binary>>),
-	case L of
-		true ->
+pwd(#eap_pwd{type = ?PWD, length = true, more = M, pwd_exch = P, data = D } = Packet) -> 
 			TLen = Packet#eap_pwd.tot_length,
-			<<C, I, Length, ?PWD, L, M, P, TLen, D>>;
-		false ->
-			<<C, I, Length, ?PWD, L, M, P, D>>
-	end;
-pwd(Packet) ->
-	pwd(Packet, #eap_pwd{}).
-%% @hidden
-pwd(<<Code, T>>, Acc) ->
-	case Code of
-		?Request ->
-			pwd(T, Acc#eap_pwd{code = Code});
-		?Response ->
-			pwd(T, Acc#eap_pwd{code = Code});
-		_ ->
-			pwd(T, Acc)
-	end;
-pwd(<<Identifier, T>>, Acc) ->
-	pwd(T, Acc#eap_pwd{identifier = Identifier});
-pwd(<<Length, T>>, Acc) ->
-	case size(Length) of
-		S when S >= 32 ->
-			pwd(T, Acc#eap_pwd{length = Length});
-		_ ->
-			pwd(T, Acc)
-	end;
-pwd(<<Type, T>>, Acc) ->
-	case Type of
-		?PWD ->
-			pwd(T, Acc#eap_pwd{type = Type});
-		_ ->
-			pwd(T, Acc)
-	end;
-pwd(<<LB, T>>, Acc) ->
-	pwd(T, Acc#eap_pwd{l_bit = LB});
-pwd(<<MB, T>>, Acc) ->
-	pwd(T, Acc#eap_pwd{m_bit = MB});
-pwd(<<PWDExch, T>>, Acc) ->
-	pwd(T, Acc#eap_pwd{pwd_exch = PWDExch});
-pwd(<<TotLength, T>>, Acc) ->
-	case Acc#eap_pwd.l_bit of
-		true ->
-			pwd(T, Acc#eap_pwd{tot_length = TotLength});
-		false ->
-			pwd(T, Acc)
-	end;
-pwd(<<Payload, T>>, Acc) ->
-	pwd(T, Acc#eap_pwd{data = Payload});
-pwd(<<>>, Acc) ->
-	Acc.
+			<<?PWD, 1, M, P, TLen, D/binary>>;
+pwd(#eap_pwd{type = ?PWD, length = false, more = M, pwd_exch = P, data = D } = _Packet) -> 
+			<<?PWD, 0, M, P, D/binary>>;
+pwd(<<?PWD, 1, MB, PWDExch, TotLength, Payload>>) ->
+	#eap_pwd{type = ?PWD, length = true, more = MB, pwd_exch = PWDExch,
+					tot_length = TotLength, data = Payload};
+pwd(<<?PWD, 0, MB, PWDExch, Payload>>) ->
+	#eap_pwd{type = ?PWD, length = false, more = MB, pwd_exch = PWDExch,
+					data = Payload}.
 
 -spec eap_pwd_id(Packet :: binary()) -> #eap_pwd_id{}.
 %% @doc Encode or Decode `EAP-pwd-ID' 
