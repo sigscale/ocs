@@ -114,8 +114,6 @@ idle({request, _Address, _Port, #eap_packet{data = Data} = Packet}, StateData) w
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-%% @todo Bi directional codec functions has to be implmented
-%%
 wait_for_id(timeout, #statedata{identifier = Identifier} = StateData)->
 	{stop, {shutdown, Identifier}, StateData};
 wait_for_id({request, _Address, _Port, _Packet} , #statedata{identifier = Identifier,
@@ -124,11 +122,9 @@ wait_for_id({request, _Address, _Port, _Packet} , #statedata{identifier = Identi
 	{ok, HostName} = inet:gethostname(),
 	Body = #eap_pwd_id{group_desc = 19, random_fun = 16#1, prf = 16#1, token = Token,
 		pwd_prep = 16#0, identity = HostName},
-	%% @todo Implement codec function
 	IDReqBody = ocs_eap_codec:eap_pwd_id(Body),
 	Header = #eap_pwd{code = ?Request, identifier = Identifier, type = ?PWD, l_bit = false,
 			m_bit = false, pwd_exch = 16#1, data = IDReqBody},
-	%% @todo Implement codec function
 	IDReqHeader = ocs_eap_codec:eap_pwd(Header),
 	IDRequest = <<IDReqHeader/binary, IDReqBody/binary>>,
 	gen_fsm:send_event(RadiusFsm, IDRequest),
