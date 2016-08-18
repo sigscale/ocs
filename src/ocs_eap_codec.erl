@@ -27,7 +27,7 @@
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 %% export the ocs public API
--export([packet/1, pwd/1, payload_id/1]).
+-export([packet/1, pwd/1, eap_pwd_id/1]).
 
 -include("ocs_eap_codec.hrl").
 
@@ -106,13 +106,13 @@ pwd(<<Payload, T>>, Acc) ->
 pwd(<<>>, Acc) ->
 	Acc.
 
--spec payload_id(Packet :: binary()) -> #eap_pwd_id{}.
+-spec eap_pwd_id(Packet :: binary()) -> #eap_pwd_id{}.
 %% @doc Encode or Decode `EAP-pwd-ID' 
 %%
 %% RFC-5931 3.2.1
 %% Comprise the Ciphersuite included in the calculation of the
 %% peer's and server's confirm messages
-payload_id(<<GDesc, RanFun, PRF, Token, PWDPrep, Id>>) ->
+eap_pwd_id(<<GDesc, RanFun, PRF, Token, PWDPrep, Id>>) ->
 	#eap_pwd_id{
 		group_desc = GDesc,
 		random_fun = RanFun,
@@ -120,6 +120,6 @@ payload_id(<<GDesc, RanFun, PRF, Token, PWDPrep, Id>>) ->
 		token = Token,
 		pwd_prep = PWDPrep,
 		identity = Id};
-payload_id(#eap_pwd_id{group_desc = GDesc, random_fun = RanFun, prf = PRF,
+eap_pwd_id(#eap_pwd_id{group_desc = GDesc, random_fun = RanFun, prf = PRF,
 		token = Token, pwd_prep = PWDPre, identity = ID}) ->
 	<<GDesc, RanFun, PRF, Token, PWDPre, ID>>.
