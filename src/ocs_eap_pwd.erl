@@ -55,11 +55,11 @@ h(Context, []) ->
 compute_pwe(_Token, _PeerIdentity, _ServerIdentity, _Password) ->
 	exit(nif_library_not_loaded).
 
--spec compute_scalar(Random :: binary()) ->
+-spec compute_scalar(Random :: binary(), PWE :: binary()) ->
 	{Scalar :: binary(), Element :: binary()}.
 %% @doc Compute Scalar Element.
 %% 	RFC5931 section 2.8.4.1
-compute_scalar(_Random) ->
+compute_scalar(_Random, _PWE) ->
 	exit(nif_library_not_loaded).
 
 -spec compute_ks(PWE :: binary(), Random :: binary(),
