@@ -128,7 +128,7 @@ compute_pwe_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 			|| !(x = BN_new())
 			|| !(bn_seed = BN_new())
 			|| !(context = HMAC_CTX_new())
-			|| !enif_alloc_binary(32, &pwe_ret)) {
+			|| !enif_alloc_binary(64, &pwe_ret)) {
 		enif_make_existing_atom(env, "enomem", &reason, ERL_NIF_LATIN1);
 		return enif_raise_exception(env, reason);
 	}
@@ -144,7 +144,7 @@ compute_pwe_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 		HMAC_Update(context, password.data, password.size);
 		HMAC_Update(context, &counter, sizeof(counter));
 		HMAC_Final(context, pwd_seed, NULL);
-		BN_bin2bn(pwd_seed, 32, bn_seed);
+		BN_bin2bn(pwd_seed, SHA256_DIGEST_LENGTH, bn_seed);
 		kdf(pwd_seed, SHA256_DIGEST_LENGTH, label, label_len, pwd_value, 32);
 		BN_bin2bn(pwd_value, 32, x);
 		if (BN_ucmp(x, prime) >= 0)
