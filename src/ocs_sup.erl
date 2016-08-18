@@ -53,7 +53,7 @@ init([{RestAddr, RestPort}] = _Args) ->
 %% @private
 %%
 supervisor(StartMod, Args) ->
-	StartArgs = [{local, StartMod}, StartMod, Args],
+	StartArgs = [StartMod, Args],
 	StartFunc = {supervisor, start_link, StartArgs},
 	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
 
