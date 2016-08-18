@@ -159,9 +159,9 @@ compute_pwe_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 		return enif_raise_exception(env, reason);
 	}
 	EC_POINT_point2oct(group, pwe, POINT_CONVERSION_UNCOMPRESSED,
-			point_uncompressed, 513, NULL);
-	memcpy(pwe_ret.data, &point_uncompressed[1], 512);
-	pwe_ret.size = 512;
+			point_uncompressed, 65, NULL);
+	memcpy(pwe_ret.data, &point_uncompressed[1], 64);
+	pwe_ret.size = 64;
 	HMAC_CTX_free(context);
 	EC_GROUP_free(group);
 	EC_POINT_free(pwe);
