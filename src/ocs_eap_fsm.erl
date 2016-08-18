@@ -84,7 +84,7 @@ init([RadiusFsm, Address, Port, Identifier] = _Args) ->
 	process_flag(trap_exit, true),
 	StateData = #statedata{radius_fsm = RadiusFsm, address = Address,
 			port = Port, identifier = Identifier},
-	{ok, idle, StateData, ?TIMEOUT}.
+	{ok, idle, StateData, 0}.
 
 -spec idle(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
@@ -97,10 +97,21 @@ init([RadiusFsm, Address, Port, Identifier] = _Args) ->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %% @todo send EAP-pwd-ID request to peer
-idle(timeout, #statedata{identifier = Identifier} = StateData)->
-	{stop, {shutdown, Identifier}, StateData};
-idle({request, _Address, _Port, #eap_packet{data = Data} = Packet}, StateData) when is_binary(Packet) ->
-	{next_state, wait_for_id, StateData, ?TIMEOUT}.
+idle(timeout, #statedata{identifier = Identifier, radius_fsm = RadiusFsm } = StateData) ->
+	{ok, Token} = crypto:rand_bytes(4),
+	{ok, HostName} = inet:gethostname(),
+	Body = #eap_pwd_id{group_desc = 19, random_fun = 16#1, prf = 16#1, token = Token,
+		pwd_prep = 16#0, identity = HostName},
+	IDReqBody = ocs_eap_codec:eap_pwd_id(Body),
+	Length = 48 + size(IDReqBody),
+	Header = #eap_pwd{code = ?Request, identifier = Identifier, length = Length,
+		type = ?PWD, l_bit = false, m_bit = false, pwd_exch = 16#1, data = IDReqBody},
+	IDReqHeader = ocs_eap_codec:eap_pwd(Header),
+	IDRequest = <<IDReqHeader/binary, IDReqBody/binary>>,
+	radius:response(RadiusFsm, IDRequest),
+	NewStateData = StateData#statedata{group_desc = <<"19">>, random_func = <<"1">>,
+		prf = <<"1">>, token = Token, prep = <<"0">>},
+	{next_state, wait_for_id, NewStateData}.
 
 -spec wait_for_id(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
@@ -116,22 +127,8 @@ idle({request, _Address, _Port, #eap_packet{data = Data} = Packet}, StateData) w
 %%
 wait_for_id(timeout, #statedata{identifier = Identifier} = StateData)->
 	{stop, {shutdown, Identifier}, StateData};
-wait_for_id({request, _Address, _Port, _Packet} , #statedata{identifier = Identifier,
-		radius_fsm = RadiusFsm} = StateData)->
-	{ok, Token} = crypto:rand_bytes(4),
-	{ok, HostName} = inet:gethostname(),
-	Body = #eap_pwd_id{group_desc = 19, random_fun = 16#1, prf = 16#1, token = Token,
-		pwd_prep = 16#0, identity = HostName},
-	IDReqBody = ocs_eap_codec:eap_pwd_id(Body),
-	Length = 48 + size(IDReqBody),
-	Header = #eap_pwd{code = ?Request, identifier = Identifier, length = Length,
-		type = ?PWD, l_bit = false, m_bit = false, pwd_exch = 16#1, data = IDReqBody},
-	IDReqHeader = ocs_eap_codec:eap_pwd(Header),
-	IDRequest = <<IDReqHeader/binary, IDReqBody/binary>>,
-	radius:response(RadiusFsm, IDRequest),
-	NewStateData = StateData#statedata{group_desc = <<"19">>, random_func = <<"1">>, prf = <<"1">>,
-		token = Token, prep = <<"0">>},
-	{next_state, wait_for_commit, NewStateData, ?TIMEOUT}.
+wait_for_id({request, _Address, _Port, _Packet} , StateData)->
+	{next_state, wait_for_commit, StateData, ?TIMEOUT}.
 
 -spec wait_for_commit(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
