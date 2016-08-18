@@ -129,7 +129,9 @@ wait_for_id({request, _Address, _Port, _Packet} , #statedata{identifier = Identi
 	IDReqHeader = ocs_eap_codec:eap_pwd(Header),
 	IDRequest = <<IDReqHeader/binary, IDReqBody/binary>>,
 	gen_fsm:send_event(RadiusFsm, IDRequest),
-	{next_state, wait_for_commit, StateData, ?TIMEOUT}.
+	NewStateData = StateData#statedata{group_desc = <<"19">>, random_func =<<"1">>, prf = <<"1">>,
+		token = Token, prep = <<"0">},
+	{next_state, wait_for_commit, NewStateData, ?TIMEOUT}.
 
 -spec wait_for_commit(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
