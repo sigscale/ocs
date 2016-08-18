@@ -88,7 +88,8 @@ init([RadiusFsm, Address, Port, Identifier] = _Args) ->
 
 -spec idle(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, Timeout :: non_neg_integer() | infinity}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
 		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
@@ -103,7 +104,8 @@ idle({request, _Address, _Port, #eap_packet{data = Data} = Packet}, StateData) w
 
 -spec wait_for_id(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, Timeout :: non_neg_integer() | infinity}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
 		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
@@ -112,28 +114,29 @@ idle({request, _Address, _Port, #eap_packet{data = Data} = Packet}, StateData) w
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-%% @todo Bi directional codec functions has to be implmented
-%%
 wait_for_id(timeout, #statedata{identifier = Identifier} = StateData)->
 	{stop, {shutdown, Identifier}, StateData};
-wait_for_id(_Event, #statedata{identifier = Identifier, radius_fsm = RadiusFsm} = StateData)->
+wait_for_id({request, _Address, _Port, _Packet} , #statedata{identifier = Identifier,
+		radius_fsm = RadiusFsm} = StateData)->
 	{ok, Token} = crypto:rand_bytes(4),
 	{ok, HostName} = inet:gethostname(),
 	Body = #eap_pwd_id{group_desc = 19, random_fun = 16#1, prf = 16#1, token = Token,
 		pwd_prep = 16#0, identity = HostName},
-	%% @todo Implement codec function
 	IDReqBody = ocs_eap_codec:eap_pwd_id(Body),
-	Header = #eap_pwd{code = ?Request, identifier = Identifier, type = ?PWD, l_bit = false,
-			m_bit = false, pwd_exch = 16#1, data = IDReqBody},
-	%% @todo Implement codec function
+	Length = 48 + size(IDReqBody),
+	Header = #eap_pwd{code = ?Request, identifier = Identifier, length = Length,
+		type = ?PWD, l_bit = false, m_bit = false, pwd_exch = 16#1, data = IDReqBody},
 	IDReqHeader = ocs_eap_codec:eap_pwd(Header),
 	IDRequest = <<IDReqHeader/binary, IDReqBody/binary>>,
-	gen_fsm:send_event(RadiusFsm, IDRequest),
-	{next_state, wait_for_commit, StateData, ?TIMEOUT}.
+	gen_fsm:send_event(RadiusFsm, {eap_id_request, IDRequest}),
+	NewStateData = StateData#statedata{group_desc = <<"19">>, random_func = <<"1">>, prf = <<"1">>,
+		token = Token, prep = <<"0">>},
+	{next_state, wait_for_commit, NewStateData, ?TIMEOUT}.
 
 -spec wait_for_commit(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, Timeout :: non_neg_integer() | infinity}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
 		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
@@ -148,7 +151,8 @@ wait_for_commit(_Event, StateData)->
 
 -spec wait_for_confirm(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, Timeout :: non_neg_integer() | infinity}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
 		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
@@ -164,7 +168,8 @@ wait_for_confirm(_Event, StateData)->
 -spec handle_event(Event :: term(), StateName :: atom(),
 		StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, Timeout :: non_neg_integer() | infinity}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
 		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
 %% @doc Handle an event sent with
@@ -179,10 +184,12 @@ handle_event(_Event, StateName, StateData) ->
 -spec handle_sync_event(Event :: term(), From :: {Pid :: pid(), Tag :: term()},
 		StateName :: atom(), StateData :: #statedata{}) ->
 	Result :: {reply, Reply :: term(), NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {reply, Reply :: term(), NextStateName :: atom(), NewStateData :: #statedata{}, Timeout :: non_neg_integer() | infinity}
+		| {reply, Reply :: term(), NextStateName :: atom(), NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity}
 		| {reply, Reply :: term(), NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, Timeout :: non_neg_integer() | infinity}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
 		| {stop, Reason :: normal | term(), Reply :: term(), NewStateData :: #statedata{}}
 		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
@@ -197,7 +204,8 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 
 -spec handle_info(Info :: term(), StateName :: atom(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, Timeout :: non_neg_integer() | infinity}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
 		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
 %% @doc Handle a received message.

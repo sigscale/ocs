@@ -18,6 +18,7 @@ beam_DATA = ocs.beam \
 			ocs_eap_fsm.beam \
 			ocs_eap_server_sup.beam \
 			ocs_eap_server.beam \
+			ocs_eap_codec.beam \
 			ocs_radius_accounting.beam \
 			ocs_radius_authentication.beam \
 			ocs_server.beam \
