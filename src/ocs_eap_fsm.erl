@@ -116,7 +116,8 @@ idle({request, _Address, _Port, #eap_packet{data = Data} = Packet}, StateData) w
 %%
 wait_for_id(timeout, #statedata{identifier = Identifier} = StateData)->
 	{stop, {shutdown, Identifier}, StateData};
-wait_for_id(_Event, #statedata{identifier = Identifier, radius_fsm = RadiusFsm} = StateData)->
+wait_for_id({request, _Address, _Port, _Packet} , #statedata{identifier = Identifier,
+		radius_fsm = RadiusFsm} = StateData)->
 	{ok, Token} = crypto:rand_bytes(4),
 	{ok, HostName} = inet:gethostname(),
 	Body = #eap_pwd_id{group_desc = 19, random_fun = 16#1, prf = 16#1, token = Token,
