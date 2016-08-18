@@ -128,7 +128,7 @@ wait_for_id({request, _Address, _Port, _Packet} , #statedata{identifier = Identi
 		type = ?PWD, l_bit = false, m_bit = false, pwd_exch = 16#1, data = IDReqBody},
 	IDReqHeader = ocs_eap_codec:eap_pwd(Header),
 	IDRequest = <<IDReqHeader/binary, IDReqBody/binary>>,
-	gen_fsm:send_event(RadiusFsm, {eap_id_request, IDRequest}),
+	radius:response(RadiusFsm, IDRequest),
 	NewStateData = StateData#statedata{group_desc = <<"19">>, random_func = <<"1">>, prf = <<"1">>,
 		token = Token, prep = <<"0">>},
 	{next_state, wait_for_commit, NewStateData, ?TIMEOUT}.
