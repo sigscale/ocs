@@ -118,8 +118,8 @@ compute_pwe_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 	uint8_t point_uncompressed[65];
 
 	if (!enif_inspect_binary(env, argv[0], &token)
-			|| !enif_inspect_binary(env, argv[1], &server_id)
 			|| !enif_inspect_binary(env, argv[2], &peer_id)
+			|| !enif_inspect_binary(env, argv[1], &server_id)
 			|| !enif_inspect_binary(env, argv[3], &password))
 		return enif_make_badarg(env);
 	if (!(group = EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1))

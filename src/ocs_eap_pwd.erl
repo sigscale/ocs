@@ -47,12 +47,12 @@ h(Context, [H | T]) ->
 h(Context, []) ->
 	crypto:hmac_final(Context).
 	
--spec compute_pwe(Token :: binary(), ServerIdentity :: binary(),
-		PeerIdentity :: binary(), Password :: binary()) ->
+-spec compute_pwe(Token :: binary(), PeerIdentity :: binary(),
+		ServerIdentity :: binary(), Password :: binary()) ->
 	PWE :: binary().
 %% @doc Compute Password Element (PWE).
 %% 	RFC5931 section 2.8.3
-compute_pwe(_Token, _ServerIdentity, _PeerIdentity, _Password) ->
+compute_pwe(_Token, _PeerIdentity, _ServerIdentity, _Password) ->
 	exit(nif_library_not_loaded).
 
 -spec compute_scalar(Random :: binary()) ->
