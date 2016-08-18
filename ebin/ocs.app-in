@@ -19,7 +19,7 @@
 				ocs_eap_codec,
 				ocs_eap_pwd,
 				ocs_wm_config]},
-		{registered, []},
+		{registered, [ocs]},
 		{applications, [kernel, stdlib, mnesia, crypto, webmachine, radius]},
 		{env, [%{rest_trace, "trace"},
 				{rest_key, "%APP_PRIV%localhost.key"},
