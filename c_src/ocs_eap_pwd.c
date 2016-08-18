@@ -90,9 +90,9 @@ kdf(uint8_t *key, int key_len, char const *label,
 		HMAC_Update(context, (uint8_t *) &L, sizeof(uint16_t));
 		HMAC_Final(context, k, &k_len);
 		if ((len + k_len) <= result_len)
-			memcpy(result + len, k, k_len);
+			memcpy(&result[len], k, k_len);
 		else
-			memcpy(result + len, k, result_len - len);
+			memcpy(&result[len], k, result_len - len);
 		len += k_len;
 		counter++;
 		HMAC_CTX_reset(context);
