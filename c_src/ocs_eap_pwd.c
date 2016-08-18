@@ -115,7 +115,7 @@ compute_pwe_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 	uint8_t pwd_seed[SHA256_DIGEST_LENGTH], pwd_value[32], counter;
 	const char *label = "EAP-pwd Hunting And Pecking";
 	int label_len = 27;
-	uint8_t point_uncompressed[513];
+	uint8_t point_uncompressed[65];
 
 	if (!enif_inspect_binary(env, argv[0], &token)
 			|| !enif_inspect_binary(env, argv[1], &server_id)
