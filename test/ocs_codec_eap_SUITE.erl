@@ -38,7 +38,8 @@
 %% Require variables and set default values for the suite.
 %%
 suite() ->
-	[{timetrap, {minutes, 1}}].
+	[{timetrap, {minutes, 1}},
+	{require, ocs_auth_port}, {default_config, ocs_auth_port, 1813}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
 %% Initiation before the whole suite.
@@ -107,7 +108,8 @@ eap_id_request(_Config) ->
 		attributes = AttributeList1},
 	RequestPacket = radius:codec(Request),
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip,{127, 0, 0, 1}}, binary]),
-	ok = gen_udp:send(Socket, {127,0,0,1}, 7812, RequestPacket),
+	AuthPort = ct:get_config(ocs_auth_port),
+	ok = gen_udp:send(Socket, {127,0,0,1}, AuthPort, RequestPacket),
 	{ok, {_Address, _Port, Packet}} = gen_udp:recv(Socket, 0),
 	#eap_packet{code = ?Request, identifier = Id, data = Data} = ocs_eap_codec:eap_pwd(Packet),
 	#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = 16#1,
