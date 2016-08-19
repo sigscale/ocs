@@ -106,7 +106,7 @@ eap_id_request(_Config) ->
 	Request = #radius{code = 1, id = Id, authenticator =Authenticator,
 		attributes = AttributeList1},
 	RequestPacket = radius:codec(Request),
-	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip,{127, 0, 0, 1}}, binary], binary),
+	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip,{127, 0, 0, 1}}, binary]),
 	ok = gen_udp:send(Socket, {127,0,0,1}, 7812, RequestPacket),
 	{ok, {_Address, _Port, Packet}} = gen_udp:recv(Socket, 0),
 	#eap_pwd{code = ?Request, identifier = Id, length = Length, type = ?PWD, l_bit = false,
