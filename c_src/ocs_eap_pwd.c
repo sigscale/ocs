@@ -225,8 +225,8 @@ compute_ks_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 	ErlNifBinary pwe, random, scalar, element, ks;
 	ERL_NIF_TERM reason;
 
-	if (!enif_inspect_binary(env, argv[0], &pwe)
-			|| !enif_inspect_binary(env, argv[1], &random)
+	if (!enif_inspect_binary(env, argv[0], &random)
+			|| !enif_inspect_binary(env, argv[1], &pwe)
 			|| !enif_inspect_binary(env, argv[2], &scalar)
 			|| !enif_inspect_binary(env, argv[3], &element))
 		return enif_make_badarg(env);
