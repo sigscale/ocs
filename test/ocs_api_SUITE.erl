@@ -95,11 +95,11 @@ all() ->
 eap_id_request() ->
    [{userdata, [{doc, "Send an EAP-PWD-ID request to peer"}]}].
 
-eap_id_request(_Config) ->
+eap_id_request(Config) ->
 	Id = 0,
 	AuthAddress = ct:get_config(radius_auth_addr),
 	AuthPort = ct:get_config(radius_auth_port),
-	Socket = ct:get_config(socket),
+	Socket = ?config(socket, Config), 
 	UserName = ct:get_config(radius_username),
 	SharedSecret = ct:get_config(radius_shared_scret),
 	Authenticator = radius:authenticator(SharedSecret, Id),
