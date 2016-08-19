@@ -218,6 +218,14 @@ compute_scalar_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 	memcpy(element_bin.data, &point_uncompressed[1], 64);
 	scalar_ret = enif_make_binary(env, &scalar_bin);
 	element_ret = enif_make_binary(env, &element_bin);
+	EC_GROUP_free(group);
+	EC_POINT_free(pwe);
+	EC_POINT_free(element);
+	BN_CTX_free(context);
+	BN_free(rand);
+	BN_free(mask);
+	BN_free(scalar);
+	BN_free(order);
 	return enif_make_tuple2(env, scalar_ret, element_ret);
 }
 
