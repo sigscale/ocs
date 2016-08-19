@@ -116,7 +116,7 @@ idle(timeout, #statedata{identifier = Identifier, radius_fsm = RadiusFsm } = Sta
 	IDRequest = <<PacketData/binary, HeaderData/binary, BodyData/binary>>,
 	radius:response(RadiusFsm, IDRequest),
 	NewStateData = StateData#statedata{group_desc = <<GrpDesc>>, random_func = <<RandFunc>>,
-		prf = <<Prf>>, token = Token, prep = <<PwdPrep>>},
+		prf = <<Prf>>, token = binary_to_list(Token), prep = <<PwdPrep>>},
 	{next_state, wait_for_id, NewStateData}.
 
 -spec wait_for_id(Event :: timeout | term(), StateData :: #statedata{}) ->
