@@ -29,9 +29,16 @@ initialize_db() ->
 
 start() ->
 	webmachine_util:ensure_all_started(webmachine),
-	case application:start(ocs) of
+	case application:start(radius) of
 		ok ->
-			ok;
+			case application:start(ocs) of
+				ok ->
+					ok;
+				{error, {already_started, _}} ->
+					ok;
+				{error, Reason} ->
+					{error, Reason}
+			end;
 		{error, {already_started, _}} ->
 			ok;
 		{error, Reason} ->
