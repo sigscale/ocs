@@ -62,14 +62,15 @@
 			{type :: integer(),
 			length :: boolean(),
 			more :: boolean(),
-			pwd_exch :: byte(),
+			pwd_exch :: id | commit | confirm,
 			tot_length :: integer(),
 			data :: binary()}).
 
 -record(eap_pwd_id,
-			{group_desc :: integer(),
-			random_fun :: integer(),
-			prf :: integer(),
-			token :: string(),
-			pwd_prep :: integer(),
+			{group_desc = 19 :: integer(),
+			random_fun = 1 :: integer(),
+			prf = 1 :: integer(),
+			token :: binary(),
+			pwd_prep :: none | rfc2759 | saslprep
 			identity :: string()}).
+

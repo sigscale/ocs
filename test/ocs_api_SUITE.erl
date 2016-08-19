@@ -26,6 +26,9 @@
 
 -compile(export_all).
 
+%% @headerfile "include/radius.hrl"
+-include_lib("radius/include/radius.hrl").
+-include("ocs_eap_codec.hrl").
 -include_lib("common_test/include/ct.hrl").
 
 %%---------------------------------------------------------------------
@@ -49,7 +52,7 @@ suite() ->
 %%
 init_per_suite(Config) ->
 	ok = ocs_lib:initialize_db(),
-	ok = ocs:start(),
+	ok = ocs_lib:start(),
 	Config.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
@@ -57,6 +60,7 @@ init_per_suite(Config) ->
 %%
 end_per_suite(Config) ->
 	ok = application:stop(ocs),
+	ok = application:stop(radius),
 	Config.
 
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
@@ -92,25 +96,25 @@ all() ->
 eap_id_request() ->
    [{userdata, [{doc, "Send an EAP-PWD-ID request to peer"}]}].
 
-eap_id_request(_Config) ->
+eap_id_request(Config) ->
 	Id = 0,
 	AuthAddress = ct:get_config(radius_auth_addr),
 	AuthPort = ct:get_config(radius_auth_port),
-	Socket = ct:get_config(socket),
+	Socket = ?config(socket, Config), 
 	UserName = ct:get_config(radius_username),
 	SharedSecret = ct:get_config(radius_shared_scret),
 	Authenticator = radius:authenticator(SharedSecret, Id),
 	AttributeList0 = radius_attributes:new(),
-	AttributeList1 = radius_attributes:store(?Username, UserName, AttributeList0),
+	AttributeList1 = radius_attributes:store(?UserName, UserName, AttributeList0),
 	Request = radius:codec(#radius{code = ?Request, id = Id, authenticator = Authenticator,
 								attributes = AttributeList1}),
 	ok = gen_udp:send(Socket, AuthAddress, AuthPort, Request),
 	{ok, {_Address, _Port, Packet}} = gen_udp:recv(Socket, 0),
 	#eap_packet{code = ?Request, identifier = Id, data = Data} = ocs_eap_codec:eap_pwd(Packet),
-	#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = 16#1,
+	#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = id,
 		data = IDReqBody} = ocs_eap_codec:eap_pwd(Data),
-	#eap_pwd_id{group_desc = 19, random_fun = 16#1, prf = 16#1, token =_Token, pwd_prep = 16#0,
-		identity = _HostName}= ocs_eap_codec:eap_pwd_id(IDReqBody).
+	#eap_pwd_id{group_desc = 19, random_fun = 16#1, prf = 16#1, token =_Token, pwd_prep = none,
+		identity = _HostName} = ocs_eap_codec:eap_pwd_id(IDReqBody).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
