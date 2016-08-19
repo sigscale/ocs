@@ -97,7 +97,7 @@ init([RadiusFsm, Address, Port, Identifier] = _Args) ->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 idle(timeout, #statedata{identifier = Identifier, radius_fsm = RadiusFsm } = StateData) ->
-	{ok, Token} = crypto:rand_bytes(4),
+	Token = binary_to_list(crypto:rand_bytes(4)),
 	{ok, HostName} = inet:gethostname(),
 	GrpDesc = 19,
 	RandFunc = 16#1,
@@ -116,7 +116,7 @@ idle(timeout, #statedata{identifier = Identifier, radius_fsm = RadiusFsm } = Sta
 	IDRequest = <<PacketData/binary, HeaderData/binary, BodyData/binary>>,
 	radius:response(RadiusFsm, IDRequest),
 	NewStateData = StateData#statedata{group_desc = <<GrpDesc>>, random_func = <<RandFunc>>,
-		prf = <<Prf>>, token = binary_to_list(Token), prep = <<PwdPrep>>},
+		prf = <<Prf>>, token = Token, prep = <<PwdPrep>>},
 	{next_state, wait_for_id, NewStateData}.
 
 -spec wait_for_id(Event :: timeout | term(), StateData :: #statedata{}) ->
