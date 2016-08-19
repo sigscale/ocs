@@ -89,7 +89,7 @@ handle_call(port, _From, #state{port = Port} = State) ->
 	{reply, Port, State};
 handle_call({request, Address, Port, Packet}, _From,
 		#state{handlers = Handlers} = State) ->
-	case catch ocs_eap_codec:packet(Packet) of
+	case catch ocs_eap_codec:eap_packet(Packet) of
 		#eap_packet{identifier = Identifier} = Request ->
 			NewState = case gb_trees:lookup(Identifier, Handlers) of
 				none ->

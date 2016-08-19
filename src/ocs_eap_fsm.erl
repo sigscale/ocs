@@ -97,19 +97,26 @@ init([RadiusFsm, Address, Port, Identifier] = _Args) ->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 idle(timeout, #statedata{identifier = Identifier, radius_fsm = RadiusFsm } = StateData) ->
-	{ok, Token} = crypto:rand_bytes(4),
+	Token = binary_to_list(crypto:rand_bytes(4)),
 	{ok, HostName} = inet:gethostname(),
-	Body = #eap_pwd_id{group_desc = 19, random_fun = 16#1, prf = 16#1, token = Token,
-		pwd_prep = 16#0, identity = HostName},
-	IDReqBody = ocs_eap_codec:eap_pwd_id(Body),
-	Length = 48 + size(IDReqBody),
-	Header = #eap_pwd{code = ?Request, identifier = Identifier, length = Length,
-		type = ?PWD, l_bit = false, m_bit = false, pwd_exch = 16#1, data = IDReqBody},
-	IDReqHeader = ocs_eap_codec:eap_pwd(Header),
-	IDRequest = <<IDReqHeader/binary, IDReqBody/binary>>,
+	GrpDesc = 19,
+	RandFunc = 16#1,
+	Prf = 16#1,
+	PwdPrep = 16#0,
+	PwdExch = 16#1,
+	Body = #eap_pwd_id{group_desc = GrpDesc, random_fun = RandFunc, prf = Prf, token = Token,
+		pwd_prep = PwdPrep, identity = HostName},
+	BodyData = ocs_eap_codec:eap_pwd_id(Body),
+	Length = 48 + size(BodyData),
+	Packet = #eap_packet{code = ?Request, identifier = Identifier},
+	PacketData = ocs_eap_codec:eap_packet(Packet),
+	Header = #eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = PwdExch,
+		data = BodyData},
+	HeaderData = ocs_eap_codec:eap_pwd(Header),
+	IDRequest = <<PacketData/binary, HeaderData/binary, BodyData/binary>>,
 	radius:response(RadiusFsm, IDRequest),
-	NewStateData = StateData#statedata{group_desc = <<"19">>, random_func = <<"1">>,
-		prf = <<"1">>, token = Token, prep = <<"0">>},
+	NewStateData = StateData#statedata{group_desc = <<GrpDesc>>, random_func = <<RandFunc>>,
+		prf = <<Prf>>, token = Token, prep = <<PwdPrep>>},
 	{next_state, wait_for_id, NewStateData}.
 
 -spec wait_for_id(Event :: timeout | term(), StateData :: #statedata{}) ->
