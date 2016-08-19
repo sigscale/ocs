@@ -49,28 +49,66 @@ eap_packet(#eap_packet{code = Code, identifier = Identifier,
 %% RADIUS `EAP-Message' attribute.
 %%
 %% RFC-5931 3.1
-eap_pwd(#eap_pwd{type = ?PWD, length = true, more = true, pwd_exch = P, data = D } = Packet) -> 
+eap_pwd(#eap_pwd{type = ?PWD, length = true, more = true, pwd_exch = id, data = D } = Packet) ->
 	TLen = Packet#eap_pwd.tot_length,
-	<<?PWD, 1, 1, P, TLen, D/binary>>;
-eap_pwd(#eap_pwd{type = ?PWD, length = true, more = false, pwd_exch = P, data = D } = Packet) -> 
+	<<?PWD, 1, 1, 1, TLen, D/binary>>;
+eap_pwd(#eap_pwd{type = ?PWD, length = true, more = true, pwd_exch = commit, data = D } = Packet) ->
 	TLen = Packet#eap_pwd.tot_length,
-	<<?PWD, 1, 0, P, TLen, D/binary>>;
-eap_pwd(#eap_pwd{type = ?PWD, length = false, more = true, pwd_exch = P, data = D } = Packet) -> 
-	<<?PWD, 0, 1, P, D/binary>>;
-eap_pwd(#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = P, data = D } = _Packet) -> 
-	<<?PWD, 0, 0, P, D/binary>>;
-eap_pwd(<<?PWD, 1, 1, PWDExch, TotLength, Payload/binary>>) ->
-	#eap_pwd{type = ?PWD, length = true, more = true, pwd_exch = PWDExch,
-					tot_length = TotLength, data = Payload};
-eap_pwd(<<?PWD, 0, 1, PWDExch, Payload/binary>>) ->
-	#eap_pwd{type = ?PWD, length = false, more = true, pwd_exch = PWDExch,
-					data = Payload};
-eap_pwd(<<?PWD, 0, 0, PWDExch, Payload/binary>>) ->
-	#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = PWDExch,
-					data = Payload}.
+	<<?PWD, 1, 1, 2, TLen, D/binary>>;
+eap_pwd(#eap_pwd{type = ?PWD, length = true, more = true, pwd_exch = confirm, data = D } = Packet) ->
+	TLen = Packet#eap_pwd.tot_length,
+	<<?PWD, 1, 1, 3, TLen, D/binary>>;
+eap_pwd(#eap_pwd{type = ?PWD, length = true, more = false, pwd_exch = id, data = D } = Packet) ->
+	TLen = Packet#eap_pwd.tot_length,
+	<<?PWD, 1, 0, 1, TLen, D/binary>>;
+eap_pwd(#eap_pwd{type = ?PWD, length = true, more = false, pwd_exch = commit, data = D } = Packet) ->
+	TLen = Packet#eap_pwd.tot_length,
+	<<?PWD, 1, 0, 2, TLen, D/binary>>;
+eap_pwd(#eap_pwd{type = ?PWD, length = true, more = false, pwd_exch = confirm, data = D } = Packet) ->
+	TLen = Packet#eap_pwd.tot_length,
+	<<?PWD, 1, 0, 3, TLen, D/binary>>;
+eap_pwd(#eap_pwd{type = ?PWD, length = false, more = true, pwd_exch = id, data = D } = Packet) ->
+	<<?PWD, 0, 1, 1, D/binary>>;
+eap_pwd(#eap_pwd{type = ?PWD, length = false, more = true, pwd_exch = commit, data = D } = Packet) ->
+	<<?PWD, 0, 1, 2, D/binary>>;
+eap_pwd(#eap_pwd{type = ?PWD, length = false, more = true, pwd_exch = confirm, data = D } = Packet) ->
+	<<?PWD, 0, 1, 3, D/binary>>;
+eap_pwd(#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = id, data = D } = _Packet) ->
+	<<?PWD, 0, 0, 1, D/binary>>;
+eap_pwd(#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = commit, data = D } = _Packet) ->
+	<<?PWD, 0, 0, 2, D/binary>>;
+eap_pwd(#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = confirm, data = D } = _Packet) ->
+	<<?PWD, 0, 0, 3, D/binary>>;
+eap_pwd(<<?PWD, 1, 1, 1, TotLength, Payload/binary>>) ->
+	#eap_pwd{type = ?PWD, length = true, more = true, pwd_exch = id,
+			tot_length = TotLength, data = Payload};
+eap_pwd(<<?PWD, 1, 1, 2, TotLength, Payload/binary>>) ->
+	#eap_pwd{type = ?PWD, length = true, more = true, pwd_exch = commit,
+			tot_length = TotLength, data = Payload};
+eap_pwd(<<?PWD, 1, 1, 3, TotLength, Payload/binary>>) ->
+	#eap_pwd{type = ?PWD, length = true, more = true, pwd_exch = confirm,
+			tot_length = TotLength, data = Payload};
+eap_pwd(<<?PWD, 0, 1, 1, Payload/binary>>) ->
+	#eap_pwd{type = ?PWD, length = false, more = true, pwd_exch = id,
+			data = Payload};
+eap_pwd(<<?PWD, 0, 1, 2, Payload/binary>>) ->
+	#eap_pwd{type = ?PWD, length = false, more = true, pwd_exch = confirm,
+			data = Payload};
+eap_pwd(<<?PWD, 0, 1, 3, Payload/binary>>) ->
+	#eap_pwd{type = ?PWD, length = false, more = true, pwd_exch = confirm,
+			data = Payload};
+eap_pwd(<<?PWD, 0, 0, 1, Payload/binary>>) ->
+	#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = id,
+			data = Payload};
+eap_pwd(<<?PWD, 0, 0, 2, Payload/binary>>) ->
+	#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = confirm,
+			data = Payload};
+eap_pwd(<<?PWD, 0, 0, 3, Payload/binary>>) ->
+	#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = confirm,
+			data = Payload}.
 
 -spec eap_pwd_id(Packet :: binary() | #eap_pwd_id{}) -> #eap_pwd_id{} | binary().
-%% @doc Encode or Decode `EAP-pwd-ID' 
+%% @doc Encode or Decode `EAP-pwd-ID'
 %%
 %% RFC-5931 3.2.1
 %% Comprise the Ciphersuite included in the calculation of the

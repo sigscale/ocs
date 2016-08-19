@@ -96,7 +96,7 @@ idle(timeout, #statedata{identifier = Identifier, radius_fsm = RadiusFsm } = Sta
 	RandFunc = 16#1,
 	Prf = 16#1,
 	PwdPrep = 16#0,
-	PwdExch = 16#1,
+	PwdExch = id,
 	Body = #eap_pwd_id{group_desc = GrpDesc, random_fun = RandFunc, prf = Prf, token = Token,
 		pwd_prep = PwdPrep, identity = HostName},
 	BodyData = ocs_eap_codec:eap_pwd_id(Body),
