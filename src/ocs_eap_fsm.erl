@@ -47,7 +47,7 @@
 		random_func :: binary(),
 		prf :: binary(),
 		token :: string(),
-		prep :: string(),
+		prep :: binary(),
 		peer_id :: string(),
 		pwe :: binary(),
 		s_rand :: integer(),
