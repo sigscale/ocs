@@ -49,25 +49,33 @@ eap_packet(#eap_packet{code = Code, identifier = Identifier,
 %% RADIUS `EAP-Message' attribute.
 %%
 %% RFC-5931 3.1
-eap_pwd(#eap_pwd{type = ?PWD, length = true, more = M, pwd_exch = P, data = D } = Packet) -> 
+eap_pwd(#eap_pwd{type = ?PWD, length = true, more = true, pwd_exch = P, data = D } = Packet) -> 
 			TLen = Packet#eap_pwd.tot_length,
-			<<?PWD, 1, M, P, TLen, D/binary>>;
-eap_pwd(#eap_pwd{type = ?PWD, length = false, more = M, pwd_exch = P, data = D } = _Packet) -> 
-			<<?PWD, 0, M, P, D/binary>>;
-eap_pwd(<<?PWD, 1, MB, PWDExch, TotLength, Payload>>) ->
-	#eap_pwd{type = ?PWD, length = true, more = MB, pwd_exch = PWDExch,
+			<<?PWD, 1, 1, P, TLen, D/binary>>;
+eap_pwd(#eap_pwd{type = ?PWD, length = false, more = true, pwd_exch = P, data = D } = Packet) -> 
+			TLen = Packet#eap_pwd.tot_length,
+			<<?PWD, 0, 1, P, TLen, D/binary>>;
+eap_pwd(#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = P, data = D } = _Packet) -> 
+			<<?PWD, 0, 0, P, D/binary>>;
+eap_pwd(<<?PWD, 1, 1, PWDExch, TotLength, Payload/binary>>) ->
+	#eap_pwd{type = ?PWD, length = true, more = true, pwd_exch = PWDExch,
 					tot_length = TotLength, data = Payload};
-eap_pwd(<<?PWD, 0, MB, PWDExch, Payload>>) ->
-	#eap_pwd{type = ?PWD, length = false, more = MB, pwd_exch = PWDExch,
+eap_pwd(<<?PWD, 0, 1, PWDExch, TotLength, Payload/binary>>) ->
+	#eap_pwd{type = ?PWD, length = true, more = true, pwd_exch = PWDExch,
+					tot_length = TotLength, data = Payload};
+eap_pwd(<<?PWD, 0, 0, PWDExch, Payload/binary>>) ->
+	#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = PWDExch,
 					data = Payload}.
 
--spec eap_pwd_id(Packet :: binary()) -> #eap_pwd_id{}.
+-spec eap_pwd_id(Packet :: binary() | #eap_pwd_id{}) -> #eap_pwd_id{} | binary().
 %% @doc Encode or Decode `EAP-pwd-ID' 
 %%
 %% RFC-5931 3.2.1
 %% Comprise the Ciphersuite included in the calculation of the
 %% peer's and server's confirm messages
-eap_pwd_id(<<GDesc, RanFun, PRF, Token, PWDPrep, Id>>) ->
+eap_pwd_id(<<GDesc, RanFun, PRF, BinToken:32/binary, PWDPrep, BinId:16/binary>>) ->
+	Token = binary_to_list(BinToken),
+	Id = binary_to_list(BinId),
 	#eap_pwd_id{
 		group_desc = GDesc,
 		random_fun = RanFun,
@@ -76,5 +84,7 @@ eap_pwd_id(<<GDesc, RanFun, PRF, Token, PWDPrep, Id>>) ->
 		pwd_prep = PWDPrep,
 		identity = Id};
 eap_pwd_id(#eap_pwd_id{group_desc = GDesc, random_fun = RanFun, prf = PRF,
-		token = Token, pwd_prep = PWDPre, identity = ID}) ->
-	<<GDesc, RanFun, PRF, Token, PWDPre, ID>>.
+		token = ListToken, pwd_prep = PWDPre, identity = ListID}) ->
+	Token = list_to_binary(ListToken),
+	ID = list_to_binary(ListID),
+	<<GDesc, RanFun, PRF, Token:32/binary, PWDPre, ID:16/binary>>.
