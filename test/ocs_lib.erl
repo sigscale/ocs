@@ -15,7 +15,7 @@ initialize_db() ->
 					initialize_db()
 			end;
 		yes ->
-			case mnesia_wait_for_tables([radius_client, radius_user], 1000) of
+			case mnesia:wait_for_tables([radius_client, subscriber], 1000) of
 				{timeout, _} ->
 					ok = application:stop(mnesia),
 					ok = 	mnesia:create_schema([node()]),
