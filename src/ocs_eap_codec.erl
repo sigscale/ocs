@@ -27,37 +27,37 @@
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 %% export the ocs public API
--export([packet/1, pwd/1, eap_pwd_id/1]).
+-export([eap_packet/1, eap_pwd/1, eap_pwd_id/1]).
 
 -include("ocs_eap_codec.hrl").
 
--spec packet(Packet :: binary() | #eap_packet{}) -> #eap_packet{} | binary().
+-spec eap_packet(Packet :: binary() | #eap_packet{}) -> #eap_packet{} | binary().
 %% @doc Encode or decode an EAP packet transported in the RADIUS `EAP-Message'
 %% attribute.
-packet(<<Code, Identifier, Length:16, _/binary>> = Packet)
+eap_packet(<<Code, Identifier, Length:16, _/binary>> = Packet)
 		when size(Packet) >= Length ->
 	Data = binary:part(Packet, 4, Length - 4),
 	#eap_packet{code = Code, identifier = Identifier, data = Data};	
-packet(#eap_packet{code = Code, identifier = Identifier,
+eap_packet(#eap_packet{code = Code, identifier = Identifier,
 		data = Data} ) when is_integer(Code), is_integer(Identifier),
 		is_binary(Data) ->
 	Length = size(Data) + 32,
 	<<Code, Identifier, Length:16, Data/binary>>.
 
--spec pwd(Packet :: binary() | #eap_pwd{}) -> #eap_pwd{} | binary().
+-spec eap_pwd(Packet :: binary() | #eap_pwd{}) -> #eap_pwd{} | binary().
 %% @doc Encode or Decode an EAP-PWD-Header packet transported in the
 %% RADIUS `EAP-Message' attribute.
 %%
 %% RFC-5931 3.1
-pwd(#eap_pwd{type = ?PWD, length = true, more = M, pwd_exch = P, data = D } = Packet) -> 
+eap_pwd(#eap_pwd{type = ?PWD, length = true, more = M, pwd_exch = P, data = D } = Packet) -> 
 			TLen = Packet#eap_pwd.tot_length,
 			<<?PWD, 1, M, P, TLen, D/binary>>;
-pwd(#eap_pwd{type = ?PWD, length = false, more = M, pwd_exch = P, data = D } = _Packet) -> 
+eap_pwd(#eap_pwd{type = ?PWD, length = false, more = M, pwd_exch = P, data = D } = _Packet) -> 
 			<<?PWD, 0, M, P, D/binary>>;
-pwd(<<?PWD, 1, MB, PWDExch, TotLength, Payload>>) ->
+eap_pwd(<<?PWD, 1, MB, PWDExch, TotLength, Payload>>) ->
 	#eap_pwd{type = ?PWD, length = true, more = MB, pwd_exch = PWDExch,
 					tot_length = TotLength, data = Payload};
-pwd(<<?PWD, 0, MB, PWDExch, Payload>>) ->
+eap_pwd(<<?PWD, 0, MB, PWDExch, Payload>>) ->
 	#eap_pwd{type = ?PWD, length = false, more = MB, pwd_exch = PWDExch,
 					data = Payload}.
 
