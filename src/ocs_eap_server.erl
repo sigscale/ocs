@@ -80,7 +80,7 @@ init([EapSup, Address, Port]) ->
 %% @see //stdlib/gen_server:handle_call/3
 %% @private
 %% @todo find ocs_eap_fsm_sup supervisor
-%% @todo find existing ocs_eap_fsm process
+%% @todo find{ existing ocs_eap_fsm process
 handle_call(shutdown, _From, State) ->
 	{stop, normal, ok, State};
 handle_call(port, _From, #state{port = Port} = State) ->
@@ -88,7 +88,7 @@ handle_call(port, _From, #state{port = Port} = State) ->
 handle_call({request, Address, Port, Packet}, {RadFsm, _Tag}= _From,
 		#state{handlers = Handlers} = State) ->
 	case catch radius:codec(Packet) of
-		#radius{identifier = Identifier, authenticator = Auth, attributes = Attributes} = Request ->
+		#radius{id = Identifier, authenticator = Auth, attributes = Attributes} = Request ->
 			NewState = case gb_trees:lookup(Identifier, Handlers) of
 				none ->
 					start_fsm(State, RadFsm, Auth, Address, Port, Identifier, Request);
@@ -99,7 +99,7 @@ handle_call({request, Address, Port, Packet}, {RadFsm, _Tag}= _From,
 									State;
 								error ->
 									{reply, {error, no_such_attribute}, State}
-							end;
+							end
 			end,
 			{reply, {ok, wait}, NewState};
 		{'EXIT', _Reason} ->
@@ -180,7 +180,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec start_fsm(State :: #state{},RadFsm :: pid(), Auth :: binray(), Address :: inet:ip_address(),
+-spec start_fsm(State :: #state{},RadFsm :: pid(), Auth :: binary(), Address :: inet:ip_address(),
 		Port :: pos_integer(), Identifier :: non_neg_integer(),
 		Request :: #eap_packet{}) ->
 	NewState :: #state{}.
