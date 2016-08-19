@@ -50,17 +50,35 @@ init(_Address, _Port) ->
 	Log = ?LOGNAME,
 	FileName = Directory ++ "/" ++ atom_to_list(Log),
 	State = #state{dir = Directory},
-	case disk_log:open([{name, Log}, {file, FileName},
-			{type, wrap}, {size, {1048575, 20}}]) of
-		{ok, Log} ->
-			{ok, State#state{log = Log}};
-		{repaired, Log, {recovered, Rec}, {badbytes, Bad}} ->
-			error_logger:warning_report(["Disk log repaired",
-					{log, Log}, {path, FileName}, {recovered, Rec},
-					{badbytes, Bad}]),
-			{ok, State#state{log = Log}};
+	try case file:list_dir(Directory) of
+		{ok, _} ->
+			ok;
+		{error, enoent} ->
+			case file:make_dir(Directory) of
+				ok ->
+					ok;
+				{error, Reason} ->
+					throw(Reason)
+			end;
 		{error, Reason} ->
-			{error, Reason}
+			throw(Reason)
+	end of
+		ok ->
+			case disk_log:open([{name, Log}, {file, FileName},
+					{type, wrap}, {size, {1048575, 20}}]) of
+				{ok, Log} ->
+					{ok, State#state{log = Log}};
+				{repaired, Log, {recovered, Rec}, {badbytes, Bad}} ->
+					error_logger:warning_report(["Disk log repaired",
+							{log, Log}, {path, FileName}, {recovered, Rec},
+							{badbytes, Bad}]),
+					{ok, State#state{log = Log}};
+				{error, Reason1} ->
+					{error, Reason1}
+			end
+	catch
+		Reason2 ->
+			{error, Reason2}
 	end.
 
 -spec request(Address :: inet:ip_address(), Port :: pos_integer(),
