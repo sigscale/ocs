@@ -81,10 +81,10 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([RadiusFsm, Address, Port, Identifier] = _Args) ->
+init([RadiusFsm, Authenticator, Address, Port, Identifier] = _Args) ->
 	process_flag(trap_exit, true),
 	StateData = #statedata{radius_fsm = RadiusFsm, address = Address,
-			port = Port, identifier = Identifier},
+			port = Port, identifier = Identifier, authenticator = Authenticator},
 	{ok, idle, StateData, 0}.
 
 -spec idle(Event :: timeout | term(), StateData :: #statedata{}) ->
@@ -97,7 +97,8 @@ init([RadiusFsm, Address, Port, Identifier] = _Args) ->
 %%		gen_fsm:send_event/2} in the <b>idle</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
-idle(timeout, #statedata{identifier = Identifier, radius_fsm = RadiusFsm } = StateData) ->
+idle(timeout, #statedata{identifier = Identifier, radius_fsm = RadiusFsm,
+		authenticator = Authenticator} = StateData) ->
 	Token = binary_to_list(crypto:rand_bytes(4)),
 	{ok, HostName} = inet:gethostname(),
 	GrpDesc = 19,
@@ -113,7 +114,11 @@ idle(timeout, #statedata{identifier = Identifier, radius_fsm = RadiusFsm } = Sta
 	EAPData = ocs_eap_codec:eap_pwd(Header),
 	Packet = #eap_packet{code = ?Request, identifier = Identifier, data = EAPData},
 	EAPPacketData = ocs_eap_codec:eap_packet(Packet),
-	radius:response(RadiusFsm, EAPPacketData),
+	AttributeList0 = radius_attributes:new(),
+	AttributeList1 = radius_attributes:store(?EAPMessage, EAPPacketData, AttributeList0),
+	Response = #radius{code = ?AccessChallenge, id = Identifier, authenticator = Authenticator, attributes = AttributeList1},
+	ResponsePacket = radius:codec(Response),
+	radius:response(RadiusFsm, ResponsePacket),
 	NewStateData = StateData#statedata{group_desc = <<GrpDesc>>, random_func = <<RandFunc>>,
 		prf = <<Prf>>, token = Token, prep = <<PwdPrep>>},
 	{next_state, wait_for_id, NewStateData}.
