@@ -36,13 +36,18 @@
 %% Require variables and set default values for the suite.
 %%
 suite() ->
-	[{timetrap, {minutes, 1}}].
+	[{userdata, [{doc, "This suite tests the application's API."}]},
+	{timetrap, {minutes, 1}},
+	{require, radius_auth_port}, {default_config, radius_auth_port, 1813},
+	{require, radius_auth_addr}, {default_config, radius_auth_addr, {127,0,0,1}},
+	{require, radius_shared_scret},{default_config, radius_shared_scret, "aabbcc%dd"}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
 %% Initiation before the whole suite.
 %%
 init_per_suite(Config) ->
-	ok = application:start(ocs),
+	ok = ocs_lib:initialize_db(),
+	ok = ocs:start(),
 	Config.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
@@ -56,13 +61,16 @@ end_per_suite(Config) ->
 %% Initiation before each test case.
 %%
 init_per_testcase(_TestCase, Config) ->
-	Config.
+	IP = ct:get_config(radius_auth_addr),
+	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, IP}, binary]),
+	[{socket, Socket} | Config].
 
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
 %% Cleanup after each test case.
 %%
-end_per_testcase(_TestCase, _Config) ->
-	ok.
+end_per_testcase(_TestCase, Config) ->
+	Socket = ?config(socket, Config),
+	ok = 	gen_udp:close(Socket).
 
 -spec sequences() -> Sequences :: [{SeqName :: atom(), Testcases :: [atom()]}].
 %% Group test cases into a test sequence.
