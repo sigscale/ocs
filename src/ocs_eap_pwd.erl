@@ -62,7 +62,7 @@ compute_pwe(_Token, _PeerIdentity, _ServerIdentity, _Password) ->
 compute_scalar(_Random, _PWE) ->
 	exit(nif_library_not_loaded).
 
--spec compute_ks(Random :: binary(), PWE :: binary()
+-spec compute_ks(Random :: binary(), PWE :: binary(),
 		Scalar :: binary(), Element :: binary()) ->
 	Ks :: binary().
 %% @doc Compute Ks.
