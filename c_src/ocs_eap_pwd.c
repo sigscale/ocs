@@ -182,7 +182,7 @@ compute_scalar_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 			|| !enif_inspect_binary(env, argv[1], &pwe))
 		return enif_make_badarg(env);
 	if (!enif_alloc_binary(32, &scalar)
-			|| !BN_bin2bn(random.data, random.size, &s_rand))
+			|| !BN_bin2bn(random.data, random.size, &s_rand)
 			|| !enif_alloc_binary(32, &element)) {
 		enif_make_existing_atom(env, "enomem", &reason, ERL_NIF_LATIN1);
 		return enif_raise_exception(env, reason);
