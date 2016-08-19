@@ -89,14 +89,12 @@ handle_call(port, _From, #state{port = Port} = State) ->
 	{reply, Port, State};
 handle_call({request, Address, Port, Packet}, {RadFsm, _Tag}= _From,
 		#state{handlers = Handlers} = State) ->
-	case catch ocs_eap_codec:eap_packet(Packet) of
-		#eap_packet{identifier = Identifier} = Request ->
+	case catch radius:codec(Packet) of
+		#radius{identifier = Identifier, authenticator = Auth, attributes = Attributes} = Request ->
 			NewState = case gb_trees:lookup(Identifier, Handlers) of
 				none ->
-					start_fsm(State, RadFsm, Address, Port, Identifier, Request);
+					start_fsm(State, RadFsm, Auth, Address, Port, Identifier, Request);
 				{value, Fsm} ->
-					case catch radius:codec(Packet) of
-						#radius{attributes = Attributes} ->
 							case radius_attributes:find(?EAPMessage, Attributes) of
 								{ok, EAPRequest} ->
 									gen_fsm:send_event(Fsm, EAPRequest),
@@ -104,9 +102,6 @@ handle_call({request, Address, Port, Packet}, {RadFsm, _Tag}= _From,
 								error ->
 									{reply, {error, no_such_attribute}, State}
 							end;
-						{'EIXT', _Reason} ->
-							{reply, {error, ignore}, State}
-					end
 			end,
 			{reply, {ok, wait}, NewState};
 		{'EXIT', _Reason} ->
@@ -187,7 +182,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec start_fsm(State :: #state{},RadFsm :: pid(), Address :: inet:ip_address(),
+-spec start_fsm(State :: #state{},RadFsm :: pid(), Auth :: binray(), Address :: inet:ip_address(),
 		Port :: pos_integer(), Identifier :: non_neg_integer(),
 		Request :: #eap_packet{}) ->
 	NewState :: #state{}.
@@ -195,8 +190,8 @@ code_change(_OldVsn, State, _Extra) ->
 %% 	state handler and forward the request to it.
 %% @hidden
 start_fsm(#state{eap_fsm_sup = Sup, handlers = Handlers} = State,
-		RadFsm, Address, Port, Identifier, Request) ->
-	ChildSpec = [[RadFsm, Address, Port, Identifier], []],
+		RadFsm, Auth, Address, Port, Identifier, Request) ->
+	ChildSpec = [[RadFsm, Auth, Address, Port, Identifier], []],
 	case supervisor:start_child(Sup, ChildSpec) of
 		{ok, Fsm} ->
 			link(Fsm),
