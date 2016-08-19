@@ -67,9 +67,10 @@
 			data :: binary()}).
 
 -record(eap_pwd_id,
-			{group_desc :: integer(),
-			random_fun :: integer(),
-			prf :: integer(),
+			{group_desc = 19 :: integer(),
+			random_fun = 1 :: integer(),
+			prf = 1 :: integer(),
 			token :: string(),
 			pwd_prep :: integer(),
 			identity :: string()}).
+
