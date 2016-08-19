@@ -76,7 +76,7 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[decode_packet, encode_packet, eap_id_request].
+	[decode_packet, encode_packet].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -96,28 +96,6 @@ encode_packet(_Config) ->
 	
 eap_id_request() ->
 	[{userdata, [{doc, "Send an EAP-PWD-ID request to peer"}]}].
-
-eap_id_request(_Config) ->
-	SharedSecret = "aabbccc998877",
-	User = "john",
-	Authenticator = radius:authenticator(SharedSecret, 0),
-	AttributeList0 = radius_attributes:new(),
-	AttributeList1 = radius_attributes:store(1, User, AttributeList0),
-	Id = 0,
-	Request = #radius{code = 1, id = Id, authenticator =Authenticator,
-		attributes = AttributeList1},
-	RequestPacket = radius:codec(Request),
-	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip,{127, 0, 0, 1}}, binary]),
-	AuthPort = ct:get_config(ocs_auth_port),
-	ok = gen_udp:send(Socket, {127,0,0,1}, AuthPort, RequestPacket),
-	{ok, {_Address, _Port, Packet}} = gen_udp:recv(Socket, 0),
-	#eap_packet{code = ?Request, identifier = Id, data = Data} = ocs_eap_codec:eap_pwd(Packet),
-	#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = 16#1,
-		data = IDReqBody} = ocs_eap_codec:eap_pwd(Data),
-	#eap_pwd_id{group_desc = 19, random_fun = 16#1, prf = 16#1, token =_Token, pwd_prep = 16#0,
-		identity = _HostName}= ocs_eap_codec:eap_pwd_id(IDReqBody),
-	gen_udp:close(Socket).
-
 
 %%---------------------------------------------------------------------
 %%  Internal functions
