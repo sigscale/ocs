@@ -214,7 +214,7 @@ compute_ks_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
 static ErlNifFunc nif_funcs[] = {
 	{"compute_pwe", 4, compute_pwe_nif},
-	{"compute_scalar", 1, compute_scalar_nif},
+	{"compute_scalar", 2, compute_scalar_nif},
 	{"compute_ks", 4, compute_ks_nif}
 };
 
