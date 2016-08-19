@@ -62,7 +62,7 @@
 			{type :: integer(),
 			length :: boolean(),
 			more :: boolean(),
-			pwd_exch :: byte(),
+			pwd_exch :: id | commit | confirm,
 			tot_length :: integer(),
 			data :: binary()}).
 

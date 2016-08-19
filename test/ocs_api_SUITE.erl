@@ -111,7 +111,7 @@ eap_id_request(Config) ->
 	ok = gen_udp:send(Socket, AuthAddress, AuthPort, Request),
 	{ok, {_Address, _Port, Packet}} = gen_udp:recv(Socket, 0),
 	#eap_packet{code = ?Request, identifier = Id, data = Data} = ocs_eap_codec:eap_pwd(Packet),
-	#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = 16#1,
+	#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = id,
 		data = IDReqBody} = ocs_eap_codec:eap_pwd(Data),
 	#eap_pwd_id{group_desc = 19, random_fun = 16#1, prf = 16#1, token =_Token, pwd_prep = 16#0,
 		identity = _HostName}= ocs_eap_codec:eap_pwd_id(IDReqBody).

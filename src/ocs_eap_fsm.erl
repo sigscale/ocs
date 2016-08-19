@@ -36,30 +36,22 @@
 -include_lib("radius/include/radius.hrl").
 -include("ocs_eap_codec.hrl").
 -record(statedata,
-		{socket :: inet:socket(),
-		module :: atom(),
-		address :: inet:ip_address(),
+		{address :: inet:ip_address(),
 		port :: pos_integer(),
 		identifier :: non_neg_integer(),
 		authenticator :: binary(),
-		response :: ignore | undefined | term(),
 		radius_fsm :: pid(),
-		group_desc :: binary(),
-		random_func :: binary(),
-		prf :: binary(),
 		token :: string(),
 		prep :: binary(),
 		peer_id :: string(),
 		pwe :: binary(),
 		s_rand :: integer(),
-		s_mask :: integer(),
 		scalar_s :: binary(),
 		element_s :: binary(),
 		scalar_p :: binary(),
 		element_p :: binary(),
 		ks :: binary(),
-		confirm_s :: binary(),
-		confirm_p :: binary()}).
+		confirm_s :: binary()}).
 
 -define(TIMEOUT, 30000).
 
@@ -105,7 +97,7 @@ idle(timeout, #statedata{identifier = Identifier, radius_fsm = RadiusFsm,
 	RandFunc = 16#1,
 	Prf = 16#1,
 	PwdPrep = 16#0,
-	PwdExch = 16#1,
+	PwdExch = id,
 	Body = #eap_pwd_id{group_desc = GrpDesc, random_fun = RandFunc, prf = Prf, token = Token,
 		pwd_prep = PwdPrep, identity = HostName},
 	BodyData = ocs_eap_codec:eap_pwd_id(Body),
@@ -119,8 +111,7 @@ idle(timeout, #statedata{identifier = Identifier, radius_fsm = RadiusFsm,
 	Response = #radius{code = ?AccessChallenge, id = Identifier, authenticator = Authenticator, attributes = AttributeList1},
 	ResponsePacket = radius:codec(Response),
 	radius:response(RadiusFsm, ResponsePacket),
-	NewStateData = StateData#statedata{group_desc = <<GrpDesc>>, random_func = <<RandFunc>>,
-		prf = <<Prf>>, token = Token, prep = <<PwdPrep>>},
+	NewStateData = StateData#statedata{token = Token, prep = <<PwdPrep>>},
 	{next_state, wait_for_id, NewStateData}.
 
 -spec wait_for_id(Event :: timeout | term(), StateData :: #statedata{}) ->
