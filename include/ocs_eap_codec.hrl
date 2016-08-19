@@ -70,7 +70,7 @@
 			{group_desc = 19 :: integer(),
 			random_fun = 1 :: integer(),
 			prf = 1 :: integer(),
-			token :: string(),
-			pwd_prep :: integer(),
+			token :: binary(),
+			pwd_prep :: none | rfc2759 | saslprep
 			identity :: string()}).
 

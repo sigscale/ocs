@@ -112,8 +112,8 @@ eap_id_request(_Config) ->
 	#eap_packet{code = ?Request, identifier = Id, data = Data} = ocs_eap_codec:eap_pwd(Packet),
 	#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = id,
 		data = IDReqBody} = ocs_eap_codec:eap_pwd(Data),
-	#eap_pwd_id{group_desc = 19, random_fun = 16#1, prf = 16#1, token =_Token, pwd_prep = 16#0,
-		identity = _HostName}= ocs_eap_codec:eap_pwd_id(IDReqBody).
+	#eap_pwd_id{group_desc = 19, random_fun = 16#1, prf = 16#1, token =_Token, pwd_prep = none,
+		identity = _HostName} = ocs_eap_codec:eap_pwd_id(IDReqBody).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
