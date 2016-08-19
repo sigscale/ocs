@@ -50,13 +50,13 @@ eap_packet(#eap_packet{code = Code, identifier = Identifier,
 %%
 %% RFC-5931 3.1
 eap_pwd(#eap_pwd{type = ?PWD, length = true, more = true, pwd_exch = P, data = D } = Packet) -> 
-			TLen = Packet#eap_pwd.tot_length,
-			<<?PWD, 1, 1, P, TLen, D/binary>>;
+	TLen = Packet#eap_pwd.tot_length,
+	<<?PWD, 1, 1, P, TLen, D/binary>>;
 eap_pwd(#eap_pwd{type = ?PWD, length = false, more = true, pwd_exch = P, data = D } = Packet) -> 
-			TLen = Packet#eap_pwd.tot_length,
-			<<?PWD, 0, 1, P, TLen, D/binary>>;
+	TLen = Packet#eap_pwd.tot_length,
+	<<?PWD, 0, 1, P, TLen, D/binary>>;
 eap_pwd(#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = P, data = D } = _Packet) -> 
-			<<?PWD, 0, 0, P, D/binary>>;
+	<<?PWD, 0, 0, P, D/binary>>;
 eap_pwd(<<?PWD, 1, 1, PWDExch, TotLength, Payload/binary>>) ->
 	#eap_pwd{type = ?PWD, length = true, more = true, pwd_exch = PWDExch,
 					tot_length = TotLength, data = Payload};
