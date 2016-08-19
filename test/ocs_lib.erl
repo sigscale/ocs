@@ -15,12 +15,12 @@ initialize_db() ->
 					initialize_db()
 			end;
 		yes ->
-			case mnesia_wait_for_tables([radius_client, radius_user], 1000) of
+			case mnesia:wait_for_tables([radius_client, subscriber], 1000) of
 				{timeout, _} ->
 					ok = application:stop(mnesia),
 					ok = 	mnesia:create_schema([node()]),
 					ok = mnesia:start(),
-					{ok, [radius_client, radius_user]} = ocs_app:install([node()]),
+					{ok, [radius_client, subscriber]} = ocs_app:install([node()]),
 					initialize_db();
 				ok ->
 					ok
@@ -29,11 +29,18 @@ initialize_db() ->
 
 start() ->
 	webmachine_util:ensure_all_started(webmachine),
-	case application:start(ocs) of
+	case application:start(radius) of
 		ok ->
-			ok;
+			case application:start(ocs) of
+				ok ->
+					ok;
+				{error, {already_started, _}} ->
+					ok;
+				{error, Reason} ->
+					{error, Reason}
+			end;
 		{error, {already_started, _}} ->
 			ok;
 		{error, Reason} ->
-			{error, Reason]
+			{error, Reason}
 	end.

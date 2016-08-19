@@ -3,7 +3,8 @@
 ## Process this file with automake to produce Makefile.in
 
 testmods = ocs_api_SUITE \
-			ocs_codec_eap_SUITE
+			ocs_codec_eap_SUITE \
+			ocs_lib
 
 check_DATA = .dialyzer_ok .common_test_ok
 

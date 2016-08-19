@@ -26,6 +26,9 @@
 
 -compile(export_all).
 
+%% @headerfile "include/radius.hrl"
+-include_lib("radius/include/radius.hrl").
+-include("ocs_eap_codec.hrl").
 -include_lib("common_test/include/ct.hrl").
 
 %%---------------------------------------------------------------------
@@ -49,7 +52,7 @@ suite() ->
 %%
 init_per_suite(Config) ->
 	ok = ocs_lib:initialize_db(),
-	ok = ocs:start(),
+	ok = ocs_lib:start(),
 	Config.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
@@ -101,7 +104,7 @@ eap_id_request(_Config) ->
 	SharedSecret = ct:get_config(radius_shared_scret),
 	Authenticator = radius:authenticator(SharedSecret, Id),
 	AttributeList0 = radius_attributes:new(),
-	AttributeList1 = radius_attributes:store(?Username, UserName, AttributeList0),
+	AttributeList1 = radius_attributes:store(?UserName, UserName, AttributeList0),
 	Request = radius:codec(#radius{code = ?Request, id = Id, authenticator = Authenticator,
 								attributes = AttributeList1}),
 	ok = gen_udp:send(Socket, AuthAddress, AuthPort, Request),
