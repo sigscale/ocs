@@ -60,6 +60,7 @@ init_per_suite(Config) ->
 %%
 end_per_suite(Config) ->
 	ok = application:stop(ocs),
+	ok = application:stop(radius),
 	Config.
 
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
