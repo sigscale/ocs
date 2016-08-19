@@ -87,4 +87,4 @@ eap_pwd_id(#eap_pwd_id{group_desc = GDesc, random_fun = RanFun, prf = PRF,
 		token = ListToken, pwd_prep = PWDPre, identity = ListID}) ->
 	Token = list_to_binary(ListToken),
 	ID = list_to_binary(ListID),
-	<<GDesc, RanFun, PRF, Token:32/binary, PWDPre, ID:16/binary>>.
+	<<GDesc, RanFun, PRF, Token/binary, PWDPre, ID/binary>>.

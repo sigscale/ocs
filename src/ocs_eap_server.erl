@@ -85,13 +85,13 @@ handle_call(shutdown, _From, State) ->
 	{stop, normal, ok, State};
 handle_call(port, _From, #state{port = Port} = State) ->
 	{reply, Port, State};
-handle_call({request, Address, Port, Packet}, _From,
+handle_call({request, Address, Port, Packet}, {RadFsm, _Tag}= _From,
 		#state{handlers = Handlers} = State) ->
 	case catch ocs_eap_codec:eap_packet(Packet) of
 		#eap_packet{identifier = Identifier} = Request ->
 			NewState = case gb_trees:lookup(Identifier, Handlers) of
 				none ->
-					start_fsm(State, Address, Port, Identifier, Request);
+					start_fsm(State, RadFsm, Address, Port, Identifier, Request);
 				{value, Fsm} ->
 					case catch radius:codec(Packet) of
 						#radius{attributes = Attributes} ->
@@ -185,7 +185,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec start_fsm(State :: #state{}, Address :: inet:ip_address(),
+-spec start_fsm(State :: #state{},RadFsm :: pid(), Address :: inet:ip_address(),
 		Port :: pos_integer(), Identifier :: non_neg_integer(),
 		Request :: #eap_packet{}) ->
 	NewState :: #state{}.
@@ -193,8 +193,8 @@ code_change(_OldVsn, State, _Extra) ->
 %% 	state handler and forward the request to it.
 %% @hidden
 start_fsm(#state{eap_fsm_sup = Sup, handlers = Handlers} = State,
-		Address, Port, Identifier, Request) ->
-	ChildSpec = [[Address, Port, Identifier], []],
+		RadFsm, Address, Port, Identifier, Request) ->
+	ChildSpec = [[RadFsm, Address, Port, Identifier], []],
 	case supervisor:start_child(Sup, ChildSpec) of
 		{ok, Fsm} ->
 			link(Fsm),

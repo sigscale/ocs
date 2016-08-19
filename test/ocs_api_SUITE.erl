@@ -38,6 +38,8 @@
 suite() ->
 	[{userdata, [{doc, "This suite tests the application's API."}]},
 	{timetrap, {minutes, 1}},
+	{require, radius_username}, {default_config, radius_username, "ocs"},
+	{require, radius_password}, {default_config, radius_password, "ocs123"},
 	{require, radius_auth_port}, {default_config, radius_auth_port, 1813},
 	{require, radius_auth_addr}, {default_config, radius_auth_addr, {127,0,0,1}},
 	{require, radius_shared_scret},{default_config, radius_shared_scret, "aabbcc%dd"}].
@@ -82,11 +84,33 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[].
+	[eap_id_request].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
+eap_id_request() ->
+   [{userdata, [{doc, "Send an EAP-PWD-ID request to peer"}]}].
+
+eap_id_request(_Config) ->
+	Id = 0,
+	AuthAddress = ct:get_config(radius_auth_addr),
+	AuthPort = ct:get_config(radius_auth_port),
+	Socket = ct:get_config(socket),
+	UserName = ct:get_config(radius_username),
+	SharedSecret = ct:get_config(radius_shared_scret),
+	Authenticator = radius:authenticator(SharedSecret, Id),
+	AttributeList0 = radius_attributes:new(),
+	AttributeList1 = radius_attributes:store(?Username, UserName, AttributeList0),
+	Request = radius:codec(#radius{code = ?Request, id = Id, authenticator = Authenticator,
+								attributes = AttributeList1}),
+	ok = gen_udp:send(Socket, AuthAddress, AuthPort, Request),
+	{ok, {_Address, _Port, Packet}} = gen_udp:recv(Socket, 0),
+	#eap_packet{code = ?Request, identifier = Id, data = Data} = ocs_eap_codec:eap_pwd(Packet),
+	#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = 16#1,
+		data = IDReqBody} = ocs_eap_codec:eap_pwd(Data),
+	#eap_pwd_id{group_desc = 19, random_fun = 16#1, prf = 16#1, token =_Token, pwd_prep = 16#0,
+		identity = _HostName}= ocs_eap_codec:eap_pwd_id(IDReqBody).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
