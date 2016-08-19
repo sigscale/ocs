@@ -14,7 +14,8 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @docfile "{@docsrc supervision.edoc}"
+%%% @reference <a href="http://tools.ietf.org/rfc/rfc3579.txt">
+%%% 	RFC3579 - RADIUS Support For EAP</a>
 %%%
 -module(ocs_eap_fsm).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
