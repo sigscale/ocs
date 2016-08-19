@@ -161,7 +161,6 @@ compute_pwe_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 	EC_POINT_point2oct(group, pwe, POINT_CONVERSION_UNCOMPRESSED,
 			point_uncompressed, 65, NULL);
 	memcpy(pwe_ret.data, &point_uncompressed[1], 64);
-	pwe_ret.size = 64;
 	HMAC_CTX_free(context);
 	EC_GROUP_free(group);
 	EC_POINT_free(pwe);
@@ -174,22 +173,49 @@ compute_pwe_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 static ERL_NIF_TERM
 compute_scalar_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
-	ErlNifBinary random, pwe, scalar, element;
-	BIGNUM s_rand;
+	ErlNifBinary rand_bin, pwe_bin, scalar_bin, element_bin;
+	EC_GROUP *group;
+	EC_POINT *element, *pwe;
+	BN_CTX *context;
+	BIGNUM *rand, *mask, *scalar, *order;
 	ERL_NIF_TERM reason, scalar_ret, element_ret;
+	uint8_t point_uncompressed[65];
 
-	if (!enif_inspect_binary(env, argv[0], &random)
-			|| !enif_inspect_binary(env, argv[1], &pwe))
+	if (!enif_inspect_binary(env, argv[0], &rand_bin)
+			|| !enif_inspect_binary(env, argv[1], &pwe_bin))
 		return enif_make_badarg(env);
-	if (!enif_alloc_binary(32, &scalar)
-			|| !BN_bin2bn(random.data, random.size, &s_rand)
-			|| !enif_alloc_binary(32, &element)) {
+	if (!(group = EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1))
+			|| !(pwe = EC_POINT_new(group))
+			|| !(element = EC_POINT_new(group))
+			|| !(context = BN_CTX_new())
+			|| !(rand = BN_new())
+			|| !(mask = BN_new())
+			|| !(scalar = BN_new())
+			|| !(order = BN_new())
+			|| !BN_bin2bn(rand_bin.data, rand_bin.size, rand)
+			|| !enif_alloc_binary(32, &scalar_bin)
+			|| !enif_alloc_binary(64, &element_bin)) {
 		enif_make_existing_atom(env, "enomem", &reason, ERL_NIF_LATIN1);
 		return enif_raise_exception(env, reason);
 	}
-
-	scalar_ret = enif_make_binary(env, &scalar);
-	element_ret = enif_make_binary(env, &element);
+	if (!EC_GROUP_get_order(group, order, NULL)
+			|| !BN_bin2bn((uint8_t *)rand_bin.data, rand_bin.size, rand)
+			|| !BN_rand_range(mask, order)
+			|| !BN_mod_add(scalar, rand, mask, order, context)
+			|| !BN_bn2bin(scalar, scalar_bin.data)) {
+		reason = enif_make_string(env, "failed to compute scalar", ERL_NIF_LATIN1);
+		return enif_raise_exception(env, reason);
+	}
+	if (!EC_POINT_mul(group, element, NULL, pwe, mask, context)
+			|| !EC_POINT_invert(group, element, context)
+			|| !EC_POINT_point2oct(group, element,
+					POINT_CONVERSION_UNCOMPRESSED, point_uncompressed, 65, NULL)) {
+		reason = enif_make_string(env, "failed to compute element", ERL_NIF_LATIN1);
+		return enif_raise_exception(env, reason);
+	}
+	memcpy(element_bin.data, &point_uncompressed[1], 64);
+	scalar_ret = enif_make_binary(env, &scalar_bin);
+	element_ret = enif_make_binary(env, &element_bin);
 	return enif_make_tuple2(env, scalar_ret, element_ret);
 }
 
@@ -199,8 +225,8 @@ compute_ks_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 	ErlNifBinary pwe, random, scalar, element, ks;
 	ERL_NIF_TERM reason;
 
-	if (!enif_inspect_binary(env, argv[0], &pwe)
-			|| !enif_inspect_binary(env, argv[1], &random)
+	if (!enif_inspect_binary(env, argv[0], &random)
+			|| !enif_inspect_binary(env, argv[1], &pwe)
 			|| !enif_inspect_binary(env, argv[2], &scalar)
 			|| !enif_inspect_binary(env, argv[3], &element))
 		return enif_make_badarg(env);
@@ -214,7 +240,7 @@ compute_ks_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
 static ErlNifFunc nif_funcs[] = {
 	{"compute_pwe", 4, compute_pwe_nif},
-	{"compute_scalar", 1, compute_scalar_nif},
+	{"compute_scalar", 2, compute_scalar_nif},
 	{"compute_ks", 4, compute_ks_nif}
 };
 
