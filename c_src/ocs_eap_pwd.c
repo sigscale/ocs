@@ -175,7 +175,7 @@ compute_scalar_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
 	ErlNifBinary rand_bin, pwe_bin, scalar_bin, element_bin;
 	EC_GROUP *group;
-	EC_POINT *element, *pwe;
+	EC_POINT *pwe, *element;
 	BN_CTX *context;
 	BIGNUM *rand, *mask, *scalar, *order;
 	ERL_NIF_TERM reason, scalar_ret, element_ret;
@@ -184,6 +184,8 @@ compute_scalar_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 	if (!enif_inspect_binary(env, argv[0], &rand_bin)
 			|| !enif_inspect_binary(env, argv[1], &pwe_bin))
 		return enif_make_badarg(env);
+	point_uncompressed[0] = 4;
+	memcpy(&point_uncompressed[1], pwe_bin.data, pwe_bin.size);
 	if (!(group = EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1))
 			|| !(pwe = EC_POINT_new(group))
 			|| !(element = EC_POINT_new(group))
@@ -194,7 +196,7 @@ compute_scalar_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 			|| !(order = BN_new())
 			|| !BN_bin2bn(rand_bin.data, rand_bin.size, rand)
 			|| !EC_POINT_oct2point(group, pwe,
-						(uint8_t *) pwe_bin.data, pwe_bin.size, context)
+						(uint8_t *) point_uncompressed, 65, context)
 			|| !enif_alloc_binary(32, &scalar_bin)
 			|| !enif_alloc_binary(64, &element_bin)) {
 		enif_make_existing_atom(env, "enomem", &reason, ERL_NIF_LATIN1);
