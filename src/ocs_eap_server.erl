@@ -101,8 +101,8 @@ handle_call({request, Address, Port, Packet}, _From,
 								{ok, EAPRequest} ->
 									gen_fsm:send_event(Fsm, EAPRequest),
 									State;
-								{error, Reason} ->
-									{reply, {error, Reason}, State}
+								error ->
+									{reply, {error, no_such_attribute}, State}
 							end;
 						{'EIXT', _Reason} ->
 							{reply, {error, ignore}, State}
