@@ -26,7 +26,7 @@
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 -export([h/1]).
--export([compute_pwe/4, compute_scalar/1, compute_ks/4]).
+-export([compute_pwe/4, compute_scalar/2, compute_ks/4]).
 -on_load(init/0).
 
 -define(P,  16#ffffffff00000001000000000000000000000000ffffffffffffffffffffffff).
