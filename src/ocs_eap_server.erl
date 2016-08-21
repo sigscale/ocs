@@ -185,7 +185,7 @@ access_request(Address, Port, Secret, #radius{authenticator = Authenticator,
 			{error, {ok, Address}} ->
 				Address
 		end,
-		Port = radius_attributes:fetch(?NasPort, Attributes),
+		Port = radius_attributes:fetch(?NasPortId, Attributes),
 		Peer = radius_attributes:fetch(?CallingStationId, Attributes),
 		SessionID = {NAS, Port, Peer},
 		case radius_attributes:find(?EAPMessage, Attributes) of
