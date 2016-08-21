@@ -41,7 +41,8 @@
 		port :: non_neg_integer(),
 		module :: atom(),
 		handlers = gb_trees:empty() :: gb_trees:tree(Key ::
-				(Identifier :: non_neg_integer()), Value :: (Fsm :: pid()))}).
+				({NAS :: string() | inet:ip_address(), Port :: string(),
+				Peer :: string()}), Value :: (Fsm :: pid()))}).
 
 %%----------------------------------------------------------------------
 %%  The ocs_eap_server API
@@ -83,25 +84,13 @@ handle_call(shutdown, _From, State) ->
 	{stop, normal, ok, State};
 handle_call(port, _From, #state{port = Port} = State) ->
 	{reply, Port, State};
-handle_call({request, Address, Port, Packet}, {RadFsm, _Tag}= _From,
-		#state{handlers = Handlers} = State) ->
-	case catch radius:codec(Packet) of
-		#radius{id = Identifier, authenticator = Auth, attributes = Attributes} = Request ->
-			NewState = case gb_trees:lookup(Identifier, Handlers) of
-				none ->
-					start_fsm(State, RadFsm, Auth, Address, Port, Identifier, Request);
-				{value, Fsm} ->
-							case radius_attributes:find(?EAPMessage, Attributes) of
-								{ok, EAPRequest} ->
-									gen_fsm:send_event(Fsm, EAPRequest),
-									State;
-								error ->
-									{reply, {error, no_such_attribute}, State}
-							end
-			end,
-			{reply, {ok, wait}, NewState};
-		{'EXIT', _Reason} ->
-			{reply, {error, ignore}, State}
+handle_call({request, Address, Port,
+			#radius{code = ?AccessRequest} = Radius}, From, State) ->
+	case ocs:find_client(Address) of
+		{ok, Secret} ->
+			access_request(Address, Port, Secret, Radius, From, State);
+		error ->
+			{error, ignore}
 	end.
 
 -spec handle_cast(Request :: term(), State :: #state{}) ->
@@ -131,9 +120,9 @@ handle_info(timeout, #state{eap_sup = EapSup} = State) ->
 	Children = supervisor:which_children(EapSup),
 	{_, EapFsmSup, _, _} = lists:keyfind(ocs_eap_fsm_sup, 1, Children),
 	{noreply, State#state{eap_fsm_sup = EapFsmSup}};
-handle_info({'EXIT', _Pid, {shutdown, Identifier}},
+handle_info({'EXIT', _Pid, {shutdown, SessionID}},
 		#state{handlers = Handlers} = State) ->
-	NewHandlers = gb_trees:delete(Identifier, Handlers),
+	NewHandlers = gb_trees:delete(SessionID, Handlers),
 	NewState = State#state{handlers = NewHandlers},
 	{noreply, NewState};
 handle_info({'EXIT', Fsm, _Reason},
@@ -178,26 +167,61 @@ code_change(_OldVsn, State, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec start_fsm(State :: #state{},RadFsm :: pid(), Auth :: binary(), Address :: inet:ip_address(),
-		Port :: pos_integer(), Identifier :: non_neg_integer(),
-		Request :: #eap_packet{}) ->
+-spec access_request(Address :: inet:ip_address(), Port :: pos_integer(),
+		Secret :: string(), Radius :: #radius{},
+		From :: {Pid :: pid(), Tag :: term()}, State :: #state{}) ->
+	{reply, {ok, wait}, NewState :: #state{}}
+			| {reply, {error, ignore}, NewState :: #state{}}.
+%% @doc Handle a received RADIUS Access Request packet.
+%% @private
+access_request(Address, Port, Secret, #radius{authenticator = Authenticator,
+		attributes = Attributes}, {RadiusFsm, _Tag} = _From,
+		#state{handlers = Handlers} = State) ->
+	try
+		NAS = case {radius_attributes:find(?NasIdentifier, Attributes),
+				radius_attributes:find(?NasIpAddress, Attributes)} of
+			{{ok, Identifier}, _} ->
+				Identifier;
+			{error, {ok, Address}} ->
+				Address
+		end,
+		Port = radius_attributes:fetch(?NasPort, Attributes),
+		Peer = radius_attributes:fetch(?CallingStationId, Attributes),
+		SessionID = {NAS, Port, Peer},
+		case radius_attributes:find(?EAPMessage, Attributes) of
+			{ok, EAPPacket} when size(EAPPacket) > 0 ->
+				EapFsm = gb_trees:get(SessionID, Handlers),
+				gen_fsm:send_event(EapFsm, EAPPacket),
+				{reply, {ok, wait}, State};
+			_ ->
+				NewState = start_fsm(RadiusFsm, Address, Port, Authenticator,
+						Secret, SessionID, State),
+				{reply, {ok, wait}, NewState}
+		end
+	catch
+		_:_ ->
+			{reply, {error, ignore}, State}
+	end.
+
+-spec start_fsm(RadiusFsm :: pid(), Address :: inet:ip_address(),
+		Port :: integer(), Authenticator :: binary(), Secret :: string(),
+		SessionID :: tuple(), State :: #state{}) ->
 	NewState :: #state{}.
-%% @doc Start a new {@link //ocs/ocs_eap_fsm. ocs_eap_fsm} transaction
-%% 	state handler and forward the request to it.
+%% @doc Start a new {@link //ocs/ocs_eap_fsm. ocs_eap_fsm} session handler.
 %% @hidden
-start_fsm(#state{eap_fsm_sup = Sup, handlers = Handlers} = State,
-		RadFsm, Auth, Address, Port, Identifier, Request) ->
-	ChildSpec = [[RadFsm, Auth, Address, Port, Identifier], []],
+start_fsm(RadiusFsm, Address, Port, Authenticator, Secret, SessionID,
+		#state{eap_fsm_sup = Sup, handlers = Handlers} = State) ->
+	StartArgs = [RadiusFsm, Address, Port, Authenticator, Secret, SessionID],
+	ChildSpec = [StartArgs, []],
 	case supervisor:start_child(Sup, ChildSpec) of
 		{ok, Fsm} ->
 			link(Fsm),
-			gen_fsm:send_event(Fsm, Request),
-			NewHandlers = gb_trees:insert(Identifier, Fsm, Handlers),
+			NewHandlers = gb_trees:insert(SessionID, Fsm, Handlers),
 			State#state{handlers = NewHandlers};
 		{error, Reason} ->
-			error_logger:error_report(["Error starting transaction state handler",
+			error_logger:error_report(["Error starting EAP session handler",
 					{error, Reason}, {supervisor, Sup}, {address, Address},
-					{port, Port}, {identifier, Identifier}]),
+					{port, Port}, {session, SessionID}]),
 			State
 	end.
 

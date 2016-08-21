@@ -57,7 +57,12 @@ init(Address, Port) when is_tuple(Address), is_integer(Port) ->
 %%
 request(Address, Port, Packet, #state{eap_server = Server} = _State)
 		when is_tuple(Address) ->
-	gen_server:call(Server, {request, Address, Port, Packet}).
+	case catch radius:codec(Packet) of
+		#radius{} = Radius ->
+			gen_server:call(Server, {request, Address, Port, Radius});
+		{'EXIT', _Reason} ->
+			{error, ignore}
+	end.
 
 -spec terminate(Reason :: term(), State :: #state{}) -> ok.
 %% @doc This callback function is called just before the server exits.

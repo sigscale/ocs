@@ -38,8 +38,11 @@
 -record(statedata,
 		{address :: inet:ip_address(),
 		port :: pos_integer(),
-		identifier :: non_neg_integer(),
+		identifier :: integer(),
+		session_id:: {NAS :: inet:ip_address() | string(),
+				Port :: string(), Peer :: string()},
 		authenticator :: binary(),
+		secret :: string(),
 		radius_fsm :: pid(),
 		token :: binary(),
 		prep :: none | rfc2759 | saslprep,
@@ -73,10 +76,11 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([RadiusFsm, Authenticator, Address, Port, Identifier] = _Args) ->
+init([RadiusFsm, Address, Port, Authenticator, Secret, SessionID] = _Args) ->
 	process_flag(trap_exit, true),
 	StateData = #statedata{radius_fsm = RadiusFsm, address = Address,
-			port = Port, identifier = Identifier, authenticator = Authenticator},
+			port = Port, authenticator = Authenticator, secret = Secret,
+			identifier = 1, session_id = SessionID},
 	{ok, idle, StateData, 0}.
 
 -spec idle(Event :: timeout | term(), StateData :: #statedata{}) ->
@@ -131,8 +135,8 @@ idle(timeout, #statedata{identifier = Identifier, radius_fsm = RadiusFsm,
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-wait_for_id(timeout, #statedata{identifier = Identifier} = StateData)->
-	{stop, {shutdown, Identifier}, StateData};
+wait_for_id(timeout, #statedata{session_id = SessionID} = StateData)->
+	{stop, {shutdown, SessionID}, StateData};
 wait_for_id({request, _Address, _Port, _Packet} , StateData)->
 	{next_state, wait_for_commit, StateData, ?TIMEOUT}.
 
@@ -147,8 +151,8 @@ wait_for_id({request, _Address, _Port, _Packet} , StateData)->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-wait_for_commit(timeout, #statedata{identifier = Identifier} = StateData)->
-	{stop, {shutdown, Identifier}, StateData};
+wait_for_commit(timeout, #statedata{session_id = SessionID} = StateData)->
+	{stop, {shutdown, SessionID}, StateData};
 wait_for_commit(_Event, StateData)->
 	{next_state, wait_for_confirm, StateData, ?TIMEOUT}.
 
@@ -163,8 +167,8 @@ wait_for_commit(_Event, StateData)->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-wait_for_confirm(timeout, #statedata{identifier = Identifier} = StateData)->
-	{stop, {shutdown, Identifier}, StateData};
+wait_for_confirm(timeout, #statedata{session_id = SessionID} = StateData)->
+	{stop, {shutdown, SessionID}, StateData};
 wait_for_confirm(_Event, StateData)->
 	{next_state, idle, StateData, ?TIMEOUT}.
 
