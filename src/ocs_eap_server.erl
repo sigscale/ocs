@@ -79,8 +79,6 @@ init([EapSup, Address, Port]) ->
 %% 	gen_server:multi_call/2,3,4}.
 %% @see //stdlib/gen_server:handle_call/3
 %% @private
-%% @todo find ocs_eap_fsm_sup supervisor
-%% @todo find{ existing ocs_eap_fsm process
 handle_call(shutdown, _From, State) ->
 	{stop, normal, ok, State};
 handle_call(port, _From, #state{port = Port} = State) ->
