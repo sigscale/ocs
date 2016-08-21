@@ -41,7 +41,7 @@ eap_packet(<<Code, Identifier, Length:16, _/binary>> = Packet)
 eap_packet(#eap_packet{code = Code, identifier = Identifier,
 		data = Data} ) when is_integer(Code), is_integer(Identifier),
 		is_binary(Data) ->
-	Length = size(Data) + 32,
+	Length = size(Data) + 4,
 	<<Code, Identifier, Length:16, Data/binary>>.
 
 -spec eap_pwd(Packet :: binary() | #eap_pwd{}) -> #eap_pwd{} | binary().
