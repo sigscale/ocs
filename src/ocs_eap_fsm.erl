@@ -38,11 +38,12 @@
 -record(statedata,
 		{address :: inet:ip_address(),
 		port :: pos_integer(),
-		identifier :: integer(),
 		session_id:: {NAS :: inet:ip_address() | string(),
 				Port :: string(), Peer :: string()},
+		radius_id :: byte(),
+		eap_id :: byte(),
 		authenticator :: binary(),
-		secret :: string(),
+		secret :: binary(),
 		radius_fsm :: pid(),
 		token :: binary(),
 		prep :: none | rfc2759 | saslprep,
@@ -76,11 +77,12 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([RadiusFsm, Address, Port, Authenticator, Secret, SessionID] = _Args) ->
+init([RadiusFsm, Address, Port, Identifier,
+		Authenticator, Secret, SessionID] = _Args) ->
 	process_flag(trap_exit, true),
 	StateData = #statedata{radius_fsm = RadiusFsm, address = Address,
 			port = Port, authenticator = Authenticator, secret = Secret,
-			identifier = 1, session_id = SessionID},
+			radius_id = Identifier, session_id = SessionID},
 	{ok, idle, StateData, 0}.
 
 -spec idle(Event :: timeout | term(), StateData :: #statedata{}) ->
@@ -93,34 +95,33 @@ init([RadiusFsm, Address, Port, Authenticator, Secret, SessionID] = _Args) ->
 %%		gen_fsm:send_event/2} in the <b>idle</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
-idle(timeout, #statedata{identifier = Identifier, radius_fsm = RadiusFsm,
-		authenticator = Authenticator} = StateData) ->
+idle(timeout, #statedata{radius_fsm = RadiusFsm, radius_id = RadiusID,
+		authenticator = RequestAuthenticator, secret = Secret} = StateData) ->
+	EapID = 1,
 	Token = binary_to_list(crypto:rand_bytes(4)),
 	{ok, HostName} = inet:gethostname(),
-	GrpDesc = 19,
-	RandFunc = 16#1,
-	Prf = 16#1,
-	PwdPrep = none,
-	PwdExch = id,
-	Body = #eap_pwd_id{group_desc = GrpDesc, random_fun = RandFunc, prf = Prf, token = Token,
-		pwd_prep = PwdPrep, identity = HostName},
+	Body = #eap_pwd_id{group_desc = 19, token = Token,
+			pwd_prep = none, identity = HostName},
 	BodyData = ocs_eap_codec:eap_pwd_id(Body),
-	Header = #eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = PwdExch,
-		data = BodyData},
+	Header = #eap_pwd{type = ?PWD, length = false,
+			more = false, pwd_exch = id, data = BodyData},
 	EAPData = ocs_eap_codec:eap_pwd(Header),
-	Packet = #eap_packet{code = ?Request, identifier = Identifier, data = EAPData},
+	Packet = #eap_packet{code = ?Request,
+			identifier = EapID, data = EAPData},
 	EAPPacketData = ocs_eap_codec:eap_packet(Packet),
 	AttributeList0 = radius_attributes:new(),
-	AttributeList1 = radius_attributes:store(?EAPMessage, EAPPacketData, AttributeList0),
-	%Response = #radius{code = ?AccessChallenge, id = Identifier, authenticator = Authenticator, attributes = AttributeList1},
-	%ResponsePacket = radius:codec(Response),
-	Abin = <<?AccessChallenge>>,
-	IDbin = <<Identifier>>,
-	Attrbin = EAPPacketData, 
-	Auth = list_to_binary(Authenticator),
-	ResponsePacket = << Abin/binary, IDbin/binary, Auth/binary, Attrbin/binary>>,
+	AttributeList1 = radius_attributes:store(?EAPMessage,
+			EAPPacketData, AttributeList0),
+	AttributeData = radius_attributes:codec(AttributeList1),
+	Length = size(AttributeData) + 20,
+	ResponseAuthenticator = erlang:md5([<<?AccessChallenge, RadiusID,
+			Length:16>>, RequestAuthenticator, Secret]),
+	Response = #radius{code = ?AccessChallenge, id = RadiusID,
+			authenticator = ResponseAuthenticator, attributes = AttributeData},
+	ResponsePacket = radius:codec(Response),
 	radius:response(RadiusFsm, ResponsePacket),
-	NewStateData = StateData#statedata{token = Token, prep = PwdPrep},
+	NewStateData = StateData#statedata{eap_id = EapID,
+			token = Token, prep = none},
 	{next_state, wait_for_id, NewStateData}.
 
 -spec wait_for_id(Event :: timeout | term(), StateData :: #statedata{}) ->

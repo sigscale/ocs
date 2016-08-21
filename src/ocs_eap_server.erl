@@ -174,9 +174,9 @@ code_change(_OldVsn, State, _Extra) ->
 			| {reply, {error, ignore}, NewState :: #state{}}.
 %% @doc Handle a received RADIUS Access Request packet.
 %% @private
-access_request(Address, Port, Secret, #radius{authenticator = Authenticator,
-		attributes = Attributes}, {RadiusFsm, _Tag} = _From,
-		#state{handlers = Handlers} = State) ->
+access_request(Address, Port, Secret, #radius{id = Identifier,
+		authenticator = Authenticator, attributes = Attributes},
+		{RadiusFsm, _Tag} = _From, #state{handlers = Handlers} = State) ->
 	try
 		NAS = case {radius_attributes:find(?NasIdentifier, Attributes),
 				radius_attributes:find(?NasIpAddress, Attributes)} of
@@ -194,8 +194,8 @@ access_request(Address, Port, Secret, #radius{authenticator = Authenticator,
 				gen_fsm:send_event(EapFsm, EAPPacket),
 				{reply, {ok, wait}, State};
 			_ ->
-				NewState = start_fsm(RadiusFsm, Address, Port, Authenticator,
-						Secret, SessionID, State),
+				NewState = start_fsm(RadiusFsm, Address, Port,
+						Identifier, Authenticator, Secret, SessionID, State),
 				{reply, {ok, wait}, NewState}
 		end
 	catch
@@ -204,14 +204,15 @@ access_request(Address, Port, Secret, #radius{authenticator = Authenticator,
 	end.
 
 -spec start_fsm(RadiusFsm :: pid(), Address :: inet:ip_address(),
-		Port :: integer(), Authenticator :: binary(), Secret :: string(),
-		SessionID :: tuple(), State :: #state{}) ->
+		Port :: integer(), Identifier :: 0..255, Authenticator :: binary(),
+		Secret :: binary(), SessionID :: tuple(), State :: #state{}) ->
 	NewState :: #state{}.
 %% @doc Start a new {@link //ocs/ocs_eap_fsm. ocs_eap_fsm} session handler.
 %% @hidden
-start_fsm(RadiusFsm, Address, Port, Authenticator, Secret, SessionID,
-		#state{eap_fsm_sup = Sup, handlers = Handlers} = State) ->
-	StartArgs = [RadiusFsm, Address, Port, Authenticator, Secret, SessionID],
+start_fsm(RadiusFsm, Address, Port, Identifier, Authenticator, Secret,
+		SessionID, #state{eap_fsm_sup = Sup, handlers = Handlers} = State) ->
+	StartArgs = [RadiusFsm, Address, Port,
+			Identifier, Authenticator, Secret, SessionID],
 	ChildSpec = [StartArgs, []],
 	case supervisor:start_child(Sup, ChildSpec) of
 		{ok, Fsm} ->
