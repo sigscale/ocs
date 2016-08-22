@@ -176,10 +176,10 @@ access_request(Address, Port, Secret, #radius{id = Identifier,
 		Attributes = radius_attributes:codec(AttributeData),
 		NAS = case {radius_attributes:find(?NasIdentifier, Attributes),
 				radius_attributes:find(?NasIpAddress, Attributes)} of
-			{{ok, Identifier}, _} ->
-				Identifier;
-			{error, {ok, Address}} ->
-				Address
+			{{ok, NasId}, _} ->
+				NasId;
+			{error, {ok, NasAddr}} ->
+				NasAddr
 		end,
 		Port = radius_attributes:fetch(?NasPortId, Attributes),
 		Peer = radius_attributes:fetch(?CallingStationId, Attributes),
