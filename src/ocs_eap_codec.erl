@@ -125,7 +125,7 @@ eap_pwd_id(<<GDesc, RanFun, PRF, Token:32/binary, PWDPrep, BinId:16/binary>>) ->
 		random_fun = RanFun,
 		prf = PRF,
 		token = Token,
-		pwd_prep = prep,
+		pwd_prep = Prep,
 		identity = Id};
 eap_pwd_id(#eap_pwd_id{group_desc = GDesc, random_fun = RanFun, prf = PRF,
 		token = Token, pwd_prep = PWDPrep, identity = ListID}) ->
