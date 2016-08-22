@@ -84,14 +84,9 @@ handle_call(shutdown, _From, State) ->
 	{stop, normal, ok, State};
 handle_call(port, _From, #state{port = Port} = State) ->
 	{reply, Port, State};
-handle_call({request, Address, Port,
+handle_call({request, Address, Port, Secret,
 			#radius{code = ?AccessRequest} = Radius}, From, State) ->
-	case ocs:find_client(Address) of
-		{ok, Secret} ->
-			access_request(Address, Port, Secret, Radius, From, State);
-		error ->
-			{error, ignore}
-	end.
+	access_request(Address, Port, Secret, Radius, From, State).
 
 -spec handle_cast(Request :: term(), State :: #state{}) ->
 	Result :: {noreply, NewState :: #state{}}
