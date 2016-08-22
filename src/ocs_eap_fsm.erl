@@ -155,7 +155,9 @@ wait_for_id({eap_response, EAPPacket} , #statedata{token = Token,
 	EAPHeader = ocs_eap_codec:eap_pwd(Data),
 	#eap_pwd{type = ?PWD, pwd_exch = id, data = BodyData} = EAPHeader,
 	Body = ocs_eap_codec:eap_pwd_id(BodyData),
-	#eap_pwd_id{token = PeerToken, pwd_prep = none, identity = PeerId} = Body,
+	#eap_pwd_id{token = PeerToken, pwd_prep = none, identity = PeerID} = Body,
+	Password = <<"What is password ?">>,
+	PWE = ocs_eap_pwd:compute_pwe(Token, PeerID, HostName, Password),
 	{next_state, wait_for_commit, StateData, ?TIMEOUT}.
 
 -spec wait_for_commit(Event :: timeout | term(), StateData :: #statedata{}) ->
