@@ -60,7 +60,7 @@ request(Address, Port, Packet, #state{eap_server = Server} = _State)
 		RadiusARQ = radius:codec(Packet),
 		#radius{code = ?AccessRequest, attributes = Attributes} = RadiusARQ,
 		MessageAuthenticator = radius_attributes:fetch(?MessageAuthenticator,
-				Attributes),	
+				radius_attributes:codec(Attributes)),
 		{ok, SharedSecret} = ocs:find_client(Address),
 		MessageAuthenticator = crypto:hmac(md5, SharedSecret, Packet),
 		{SharedSecret, RadiusARQ}
