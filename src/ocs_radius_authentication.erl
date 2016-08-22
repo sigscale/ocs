@@ -64,7 +64,7 @@ request(Address, Port, Packet, #state{eap_server = Server} = _State)
 				Attributes),
 		Attributes1 = radius_attributes:store(?MessageAuthenticator,
 				lists:duplicate(16, 0), Attributes),
-		Packet1 = radius:codec(Radius#radius{attributes = Attributes1}),
+		Packet1 = radius_attributes:codec(Attributes1),
 		{ok, SharedSecret} = ocs:find_client(Address),
 		MessageAuthenticator = crypto:hmac(md5, SharedSecret, Packet1),
 		{SharedSecret, Radius}
