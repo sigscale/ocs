@@ -41,7 +41,6 @@
 %% @doc This callback function is called when a
 %% 	{@link //radius/radius_server. radius_server} behaviour process
 %% 	initializes.
-%% @todo ocs_eap_server pid().
 init(Address, Port) when is_tuple(Address), is_integer(Port) ->
 	case global:whereis_name({ocs, Address, Port}) of
 		EapServer when is_pid(EapServer) ->
