@@ -43,16 +43,19 @@ suite() ->
 	{timetrap, {minutes, 1}},
 	{require, radius_username}, {default_config, radius_username, "ocs"},
 	{require, radius_password}, {default_config, radius_password, "ocs123"},
-	{require, radius_auth_port}, {default_config, radius_auth_port, 1813},
+	{require, radius_auth_port}, {default_config, radius_auth_port, 8613},
 	{require, radius_auth_addr}, {default_config, radius_auth_addr, {127,0,0,1}},
-	{require, radius_shared_scret},{default_config, radius_shared_scret, "aabbcc%dd"}].
+	{require, radius_shared_scret},{default_config, radius_shared_scret, "xyzzy5461"}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
 %% Initiation before the whole suite.
 %%
 init_per_suite(Config) ->
+	AuthAddress = ct:get_config(radius_auth_addr),
+	SharedSecret = ct:get_config(radius_shared_scret),
 	ok = ocs_lib:initialize_db(),
 	ok = ocs_lib:start(),
+	ok = ocs:add_client(AuthAddress, SharedSecret),
 	Config.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
@@ -106,9 +109,20 @@ eap_id_request(Config) ->
 	Authenticator = radius:authenticator(SharedSecret, Id),
 	AttributeList0 = radius_attributes:new(),
 	AttributeList1 = radius_attributes:store(?UserName, UserName, AttributeList0),
-	Request = radius:codec(#radius{code = ?Request, id = Id, authenticator = Authenticator,
-								attributes = AttributeList1}),
-	ok = gen_udp:send(Socket, AuthAddress, AuthPort, Request),
+	AttributeList2 = radius_attributes:store(?NasIdentifier, "tomba", AttributeList1),
+	AttributeList3 = radius_attributes:store(?NasPortId,"wlan0", AttributeList2),
+	AttributeList4 = radius_attributes:store(?CallingStationId,"de:ad:be:ef:ca:fe", AttributeList3),
+	AttributeList5 = radius_attributes:store(?MessageAuthenticator,
+		list_to_binary(lists:duplicate(16,0)), AttributeList4),
+	Request1 = #radius{code = ?AccessRequest, id = Id, authenticator = Authenticator,
+		attributes = AttributeList5},
+	RequestPacket1 = radius:codec(Request1),
+	MsgAuth = crypto:hmac(md5, SharedSecret, RequestPacket1),
+	AttributeList6 = radius_attributes:store(?MessageAuthenticator, MsgAuth, AttributeList5),
+	Request2 = #radius{code = ?AccessRequest, id = Id, authenticator = Authenticator,
+		attributes = AttributeList6},
+	RequestPacket2 = radius:codec(Request2),
+	ok = gen_udp:send(Socket, AuthAddress, AuthPort, RequestPacket2),
 	{ok, {_Address, _Port, Packet}} = gen_udp:recv(Socket, 0),
 	#eap_packet{code = ?Request, identifier = Id, data = Data} = ocs_eap_codec:eap_pwd(Packet),
 	#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = id,
