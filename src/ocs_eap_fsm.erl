@@ -98,7 +98,7 @@ init([RadiusFsm, Address, Port, Identifier,
 idle(timeout, #statedata{radius_fsm = RadiusFsm, radius_id = RadiusID,
 		authenticator = RequestAuthenticator, secret = Secret} = StateData) ->
 	EapID = 1,
-	Token = binary_to_list(crypto:rand_bytes(4)),
+	Token = crypto:rand_bytes(4),
 	{ok, HostName} = inet:gethostname(),
 	Body = #eap_pwd_id{group_desc = 19, token = Token,
 			pwd_prep = none, identity = HostName},
