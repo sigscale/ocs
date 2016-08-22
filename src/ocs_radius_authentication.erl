@@ -57,16 +57,21 @@ init(Address, Port) when is_tuple(Address), is_integer(Port) ->
 request(Address, Port, Packet, #state{eap_server = Server} = _State)
 		when is_tuple(Address) ->
 	try
-		RadiusARQ = radius:codec(Packet),
-		#radius{code = ?AccessRequest, attributes = Attributes} = RadiusARQ,
+		Radius = radius:codec(Packet),
+		#radius{code = ?AccessRequest, attributes = AttributeData} = Radius,
+		Attributes - radius_attributes:codec(Attributes),
 		MessageAuthenticator = radius_attributes:fetch(?MessageAuthenticator,
-				Attributes),	
+				Attributes),
+		Attributes1 = radius_attributes:store(?MessageAuthenticator,
+				lists:duplicate(16, 0)),
+		Packet1 = radius:codec(Radius#radius{attributes = Attributes1}),
 		{ok, SharedSecret} = ocs:find_client(Address),
-		MessageAuthenticator = crypto:hmac(md5, SharedSecret, Packet),
-		{SharedSecret, RadiusARQ}
+		MessageAuthenticator = crypto:hmac(md5, SharedSecret, Packet1),
+		{SharedSecret, Radius}
 	of
-		{Secret, Radius} ->
-			gen_server:call(Server, {request, Address, Port, Secret, Radius})
+		{Secret, AccessRequest} ->
+			gen_server:call(Server,
+					{request, Address, Port, Secret, AccessRequest})
 	catch
 		_:_ ->
 			{error, ignore}
