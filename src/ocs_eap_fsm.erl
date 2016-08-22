@@ -148,7 +148,7 @@ idle(timeout, #statedata{radius_fsm = RadiusFsm, radius_id = RadiusID,
 wait_for_id(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
 wait_for_id({eap_response, EAPPacket} , #statedata{token = Token,
-		eap_id = EapID} = StateData)->
+		eap_id = EapID, secret = Secret} = StateData)->
 	{ok, HostName} = inet:gethostname(),
 	EAPData = ocs_eap_codec:eap_packet(EAPPacket),
 	#eap_packet{code = ?Response, identifier = EapID, data = Data} = EAPData,
@@ -156,9 +156,10 @@ wait_for_id({eap_response, EAPPacket} , #statedata{token = Token,
 	#eap_pwd{type = ?PWD, pwd_exch = id, data = BodyData} = EAPHeader,
 	Body = ocs_eap_codec:eap_pwd_id(BodyData),
 	#eap_pwd_id{token = PeerToken, pwd_prep = none, identity = PeerID} = Body,
-	Password = <<"What is password ?">>,
-	PWE = ocs_eap_pwd:compute_pwe(Token, PeerID, HostName, Password),
-	NewStateData = StateData#statedata{pwe = PWE, peer_id = PeerID },
+	PWE = ocs_eap_pwd:compute_pwe(Token, PeerID, HostName, Secret),
+	NewEAPID = EapID + 1,
+	NewStateData = StateData#statedata{pwe = PWE, peer_id = PeerID,
+		eap_id = NewEAPID},
 	{next_state, wait_for_commit, NewStateData, ?TIMEOUT}.
 
 -spec wait_for_commit(Event :: timeout | term(), StateData :: #statedata{}) ->
