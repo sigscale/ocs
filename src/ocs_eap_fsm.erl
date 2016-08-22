@@ -147,7 +147,15 @@ idle(timeout, #statedata{radius_fsm = RadiusFsm, radius_id = RadiusID,
 %%
 wait_for_id(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
-wait_for_id({request, _Address, _Port, _Packet} , StateData)->
+wait_for_id({eap_response, EAPPacket} , #statedata{token = Token,
+		eap_id = EapID} = StateData)->
+	{ok, HostName} = inet:gethostname(),
+	EAPData = ocs_eap_codec:eap_packet(EAPPacket),
+	#eap_packet{code = ?Response, identifier = EapID, data = Data} = EAPData,
+	EAPHeader = ocs_eap_codec:eap_pwd(Data),
+	#eap_pwd{type = ?PWD, pwd_exch = id, data = BodyData} = EAPHeader,
+	Body = ocs_eap_codec:eap_pwd_id(BodyData),
+	#eap_pwd_id{token = PeerToken, pwd_prep = none, identity = PeerId} = Body,
 	{next_state, wait_for_commit, StateData, ?TIMEOUT}.
 
 -spec wait_for_commit(Event :: timeout | term(), StateData :: #statedata{}) ->
