@@ -181,9 +181,9 @@ access_request(Address, Port, Secret, #radius{id = Identifier,
 			{error, {ok, NasAddr}} ->
 				NasAddr
 		end,
-		Port = radius_attributes:fetch(?NasPortId, Attributes),
+		NasPort = radius_attributes:fetch(?NasPortId, Attributes),
 		Peer = radius_attributes:fetch(?CallingStationId, Attributes),
-		SessionID = {NAS, Port, Peer},
+		SessionID = {NAS, NasPort, Peer},
 		case radius_attributes:find(?EAPMessage, Attributes) of
 			{ok, EAPPacket} when size(EAPPacket) > 0 ->
 				EapFsm = gb_trees:get(SessionID, Handlers),
