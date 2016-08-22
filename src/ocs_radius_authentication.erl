@@ -59,7 +59,7 @@ request(Address, Port, Packet, #state{eap_server = Server} = _State)
 	try
 		Radius = radius:codec(Packet),
 		#radius{code = ?AccessRequest, attributes = AttributeData} = Radius,
-		Attributes = radius_attributes:codec(Attributes),
+		Attributes = radius_attributes:codec(AttributeData),
 		MessageAuthenticator = radius_attributes:fetch(?MessageAuthenticator,
 				Attributes),
 		Attributes1 = radius_attributes:store(?MessageAuthenticator,
