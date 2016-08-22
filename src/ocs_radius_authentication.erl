@@ -57,16 +57,21 @@ init(Address, Port) when is_tuple(Address), is_integer(Port) ->
 request(Address, Port, Packet, #state{eap_server = Server} = _State)
 		when is_tuple(Address) ->
 	try
+		{ok, SharedSecret} = ocs:find_client(Address),
 		Radius = radius:codec(Packet),
 		#radius{code = ?AccessRequest, attributes = AttributeData} = Radius,
 		Attributes = radius_attributes:codec(AttributeData),
-		MessageAuthenticator = radius_attributes:fetch(?MessageAuthenticator,
-				Attributes),
-		Attributes1 = radius_attributes:store(?MessageAuthenticator,
-				lists:duplicate(16, 0), Attributes),
-		Packet1 = radius_attributes:codec(Attributes1),
-		{ok, SharedSecret} = ocs:find_client(Address),
-		MessageAuthenticator = crypto:hmac(md5, SharedSecret, Packet1),
+		case radius_attributes:find(?EAPMessage, Attributes) of
+			{ok, _} ->
+				MsgAuth = radius_attributes:fetch(?MessageAuthenticator,
+						Attributes),
+				Attr1 = radius_attributes:store(?MessageAuthenticator,
+						lists:duplicate(16, 0), Attributes),
+				Packet1 = radius:codec(Radius#radius{attributes = Attr1}),
+				MsgAuth = crypto:hmac(md5, SharedSecret, Packet1);
+			error ->
+				ok
+		end,
 		{SharedSecret, Radius}
 	of
 		{Secret, AccessRequest} ->
