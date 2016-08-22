@@ -157,9 +157,11 @@ wait_for_id({eap_response, EAPPacket} , #statedata{token = Token,
 	Body = ocs_eap_codec:eap_pwd_id(BodyData),
 	#eap_pwd_id{token = PeerToken, pwd_prep = none, identity = PeerID} = Body,
 	PWE = ocs_eap_pwd:compute_pwe(Token, PeerID, HostName, Secret),
+%% WHat is random
+	{ScalarS, ElementS} = ocs_eap_pwd:compute_scalar(Token, PWE),
 	NewEAPID = EapID + 1,
 	NewStateData = StateData#statedata{pwe = PWE, peer_id = PeerID,
-		eap_id = NewEAPID},
+		eap_id = NewEAPID, scalar_s = ScalarS, element_s = ElementS},
 	{next_state, wait_for_commit, NewStateData, ?TIMEOUT}.
 
 -spec wait_for_commit(Event :: timeout | term(), StateData :: #statedata{}) ->
