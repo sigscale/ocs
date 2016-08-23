@@ -54,7 +54,6 @@
 -define(Experimental,    255).
 
 %% Macro definitions for Elliptic Curve Cryptography(ECC) calculations
-
 -define(P,  16#ffffffff00000001000000000000000000000000ffffffffffffffffffffffff).
 -define(A,  16#ffffffff00000001000000000000000000000000fffffffffffffffffffffffc).
 -define(B,  16#5ac635d8aa3a93e7b3ebbd55769886bc651d06b0cc53b0f63bce3c3e27d2604b).
