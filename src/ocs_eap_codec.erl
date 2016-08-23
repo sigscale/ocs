@@ -27,7 +27,7 @@
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 %% export the ocs public API
--export([eap_packet/1, eap_pwd/1, eap_pwd_id/1]).
+-export([eap_packet/1, eap_pwd/1, eap_pwd_id/1, eap_pwd_commit/1]).
 
 -include("ocs_eap_codec.hrl").
 
@@ -137,3 +137,14 @@ eap_pwd_id(#eap_pwd_id{group_desc = GDesc, random_fun = RanFun, prf = PRF,
 	ID = list_to_binary(ListID),
 	<<GDesc, RanFun, PRF, Token/binary, Prep, ID/binary>>.
 
+-spec eap_pwd_commit(Packet :: binary() | #eap_pwd_commit{}) -> #eap_pwd_commit{} | binary().
+%% @doc Encode or Decode `EAP-pwd-commit'
+%%
+%%RFC-5931 3.2.2
+%% Element - 	length is inferred by the finite cyclic group from the agreed-upon
+%% Ciphersuite.
+%% Scalar - Lenth can then be computed from the Length in the EAP heade
+eap_pwd_commit(<<Element:80/binary, Scalar:80/binary>>) ->
+	#eap_pwd_commit{element = Element, scalar = Scalar}.
+eap_pwd_commit(#epa_pwd_commit{element = Element, scalar = Scalar}) ->
+	<<Element, Scalar>>.

@@ -74,3 +74,6 @@
 			pwd_prep :: none | rfc2759 | saslprep,
 			identity :: string()}).
 
+-record(eap_pwd_commit,
+			{element :: binary(),
+			scalar :: binary()}).
