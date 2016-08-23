@@ -251,21 +251,7 @@ wait_for_commit({eap_response, EAPPacket}, #statedata{eap_id = EapID, element_s 
 						eap_id = NewEAPID},
 				{next_state, wait_for_confirm, StateData, ?TIMEOUT};
 			_ ->
-				AttributeList0 = radius_attributes:new(),
-				AttributeList1 = radius_attributes:store(?MessageAuthenticator,
-					<<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, AttributeList0),
-				AttrListbin = radius_attributes:codec(AttributeList1),
-				Response1 = #radius{code = ?AccessReject, id = RadiusID,
-						authenticator = RequestAuthenticator, attributes = AttrListbin},
-				ResponsePacket1 = radius:codec(Response1),
-				MessageAuthenticator = crypto:hmac(md5, Secret, ResponsePacket1),
-				Length = size(AttrListbin) + 20,
-				ResponseAuthenticator = crypto:hash(md5,[<<?AccessReject, RadiusID,
-				Length:16>>, RequestAuthenticator, AttrListbin, Secret]),
-				Response = #radius{code = ?AccessReject, id = RadiusID,
-					authenticator = ResponseAuthenticator, attributes = AttrListbin},
-				ResponsePacket = radius:codec(Response),
-				radius:response(RadiusFsm, ResponsePacket),
+				send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm),
 				{next_state, wait_for_commit, StateData, 0}
 		end
 	catch
@@ -362,3 +348,21 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
+%% @doc Sends an RADIUS-Access/Reject packet to peer
+%% @hidden
+send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm) ->
+	AttributeList0 = radius_attributes:new(),
+	AttributeList1 = radius_attributes:store(?MessageAuthenticator,
+	<<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, AttributeList0),
+	AttrListbin = radius_attributes:codec(AttributeList1),
+	Response1 = #radius{code = ?AccessReject, id = RadiusID,
+		authenticator = RequestAuthenticator, attributes = AttrListbin},
+	ResponsePacket1 = radius:codec(Response1),
+	MessageAuthenticator = crypto:hmac(md5, Secret, ResponsePacket1),
+	Length = size(AttrListbin) + 20,
+	ResponseAuthenticator = crypto:hash(md5,[<<?AccessReject, RadiusID,
+	Length:16>>, RequestAuthenticator, AttrListbin, Secret]),
+	Response = #radius{code = ?AccessReject, id = RadiusID,
+		authenticator = ResponseAuthenticator, attributes = AttrListbin},
+		ResponsePacket = radius:codec(Response),
+	radius:response(RadiusFsm, ResponsePacket).
