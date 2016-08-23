@@ -145,6 +145,6 @@ eap_pwd_id(#eap_pwd_id{group_desc = GDesc, random_fun = RanFun, prf = PRF,
 %% Ciphersuite.
 %% Scalar - Lenth can then be computed from the Length in the EAP heade
 eap_pwd_commit(<<Element:80/binary, Scalar:80/binary>>) ->
-	#eap_pwd_commit{element = Element, scalar = Scalar}.
-eap_pwd_commit(#epa_pwd_commit{element = Element, scalar = Scalar}) ->
-	<<Element, Scalar>>.
+	#eap_pwd_commit{element = Element, scalar = Scalar};
+eap_pwd_commit(#eap_pwd_commit{element = Element, scalar = Scalar}) ->
+	<<Element/binary, Scalar/binary>>.
