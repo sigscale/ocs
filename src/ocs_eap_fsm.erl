@@ -270,7 +270,7 @@ wait_for_commit({eap_response, EAPPacket}, #statedata{eap_id = EapID, element_s 
 		end
 	catch
 		_:_ ->
-			{next_state, wait_for_confirm, StateData,0}
+			{next_state, wait_for_commit, StateData,0}
 	end.
 
 -spec wait_for_confirm(Event :: timeout | term(), StateData :: #statedata{}) ->
