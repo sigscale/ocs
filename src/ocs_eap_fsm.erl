@@ -156,7 +156,7 @@ wait_for_id({eap_response, EAPPacket} , #statedata{token = Token,
 	EAPHeader = ocs_eap_codec:eap_pwd(Data),
 	#eap_pwd{type = ?PWD, pwd_exch = id, data = BodyData} = EAPHeader,
 	Body = ocs_eap_codec:eap_pwd_id(BodyData),
-	#eap_pwd_id{token = PeerToken, pwd_prep = none, identity = PeerID} = Body,
+	#eap_pwd_id{token = Token, pwd_prep = none, identity = PeerID} = Body,
 	PWE = ocs_eap_pwd:compute_pwe(Token, PeerID, HostName, Secret),
 %% WHat is random
 	{ScalarS, ElementS} = ocs_eap_pwd:compute_scalar(Token, PWE),
