@@ -91,7 +91,7 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[eap_id_request].
+	[eap_id_request, eap_commit_request_response].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -130,6 +130,114 @@ eap_id_request(Config) ->
 	#eap_pwd_id{group_desc = 19, random_fun = 16#1, prf = 16#1, token =_Token, pwd_prep = none,
 		identity = _HostName} = ocs_eap_codec:eap_pwd_id(IDReqBody).
 
+eap_commit_request_response() ->
+	[{userdata, [{doc, "Send an EAP-PWD-COMMIT request to peer"}]}].
+
+eap_commit_request_response(Config) ->
+	Id = 1,
+	PeerID = "peer@sigscale",
+	AuthAddress = ct:get_config(radius_auth_addr),
+	AuthPort = ct:get_config(radius_auth_port),
+	Socket = ?config(socket, Config), 
+	UserName = ct:get_config(radius_username),
+	SharedSecret = ct:get_config(radius_shared_scret),
+	Authenticator = radius:authenticator(SharedSecret, Id),
+	ReqAttributeList0 = radius_attributes:new(),
+	ReqAttributeList1 = radius_attributes:store(?UserName, UserName, ReqAttributeList0),
+	ReqAttributeList2 = radius_attributes:store(?NasIdentifier, "tomba", ReqAttributeList1),
+	ReqAttributeList3 = radius_attributes:store(?NasPortId,"wlan0", ReqAttributeList2),
+	ReqAttributeList4 = radius_attributes:store(?CallingStationId,"de:ad:be:ef:ca:fe", ReqAttributeList3),
+	ReqAttributeList5 = radius_attributes:store(?MessageAuthenticator,
+		list_to_binary(lists:duplicate(16,0)), ReqAttributeList4),
+	IDRequest1 = #radius{code = ?AccessRequest, id = Id, authenticator = Authenticator,
+		attributes = ReqAttributeList5},
+	IDRequestPacket1 = radius:codec(IDRequest1),
+	IDMsgAuth = crypto:hmac(md5, SharedSecret, IDRequestPacket1),
+	ReqAttributeList6 = radius_attributes:store(?MessageAuthenticator, IDMsgAuth, ReqAttributeList5),
+	IDRequest2 = #radius{code = ?AccessRequest, id = Id, authenticator = Authenticator,
+		attributes = ReqAttributeList6},
+	RequestPacket2 = radius:codec(IDRequest2),
+	ok = gen_udp:send(Socket, AuthAddress, AuthPort, RequestPacket2),
+	{ok, {AuthAddress, AuthPort, IdReqPacket}} = gen_udp:recv(Socket, 0),
+	#radius{code = ?AccessChallenge, id = Id, authenticator = IdReqAuthenticator,
+		attributes = IDReqAttributes} = radius:codec(IdReqPacket),
+	IDEAPPacket = radius_attributes:find(?EAPMessage, IDReqAttributes),
+	#eap_packet{code = ?Request, identifier = EAPId, data = Data} =
+		ocs_eap_codec:eap_pwd(IDEAPPacket),
+	#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = id,
+		data = IDReqData} = ocs_eap_codec:eap_pwd(Data),
+	#eap_pwd_id{group_desc = 19, random_fun = 16#1, prf = 16#1, token = Token,
+		 pwd_prep = none, identity = ServerID} = ocs_eap_codec:eap_pwd_id(IDReqData),
+	IDRespBody = #eap_pwd_id{group_desc = 19, random_fun = 16#1, prf = 16#1,
+		token = Token, pwd_prep = none, identity = PeerID},
+	IDRespBodyData = ocs_eap_codec:eap_pwd_id(IDRespBody),
+	RespHeader = #eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = id,
+		data = IDRespBodyData},
+	EAPData = ocs_eap_codec:eap_pwd(RespHeader),
+	RespPacket = #eap_packet{code = ?Response, identifier = EAPId, data = EAPData},
+	EAPPacketData = ocs_eap_codec:eap_packet(RespPacket),
+	RespAttributeList0 = radius_attributes:new(),
+	RespAttributeList1 = radius_attributes:store(?EAPMessage, EAPPacketData, RespAttributeList0),
+	RespAttributeList2 = radius_attributes:store(?MessageAuthenticator,
+		list_to_binary(lists:duplicate(16,0)), RespAttributeList1),
+	IDResponse1 = #radius{code = ?AccessRequest, id = Id,	authenticator = IdReqAuthenticator,
+		attributes = RespAttributeList2},
+	RequestPacket1 = radius:codec(IDResponse1),
+	RespMsgAuth = crypto:hmac(md5, SharedSecret, RequestPacket1),
+	RspAttributeList3 = radius_attributes:store(?MessageAuthenticator,
+		 RespMsgAuth, RespAttributeList1),
+	BinRspAttributeList3 = radius_attributes:codec(RspAttributeList3),
+	Length = size(BinRspAttributeList3) + 20,
+	ResponseAuthenticator = crypto:hash(md5,[<<?AccessRequest, Id, Length:16>>,
+		Authenticator, BinRspAttributeList3, SharedSecret]),
+	IDResponse2 = #radius{code = ?AccessRequest, id = Id, authenticator = ResponseAuthenticator,
+		attributes = RspAttributeList3},
+	RequestPacket1 = radius:codec(IDResponse2),
+	ok = gen_udp:send(Socket, AuthAddress, AuthPort, RequestPacket1),
+	{ok, {_Address, _Port, CommitPacket}} = gen_udp:recv(Socket, 0),
+	#radius{code = ?AccessChallenge, id = Id, authenticator = CommitReqAuthenticator,
+		attributes = CommitReqAttributes} = radius:codec(CommitPacket),
+	CommitEAPPacket = radius_attributes:find(?EAPMessage, CommitReqAttributes),
+	#eap_packet{code = ?Request, identifier = EAPId2, data = CommitData} =
+		ocs_eap_codec:eap_pwd(CommitEAPPacket),
+	#eap_pwd{type = ?PWD, length = _L, more = _M, pwd_exch = commit,
+		data = CommitReqData} = ocs_eap_codec:eap_pwd(CommitData),
+	#eap_pwd_commit{element = Element_S, scalar = Scalar_S} = ocs_eap_codec:eap_pwd_commit(CommitReqData),
+%%check size scalar element
+	Password = crypto:rand_bytes(4),
+	PWE = ocs_eap_pwd:compute_pwe(Token, PeerID, ServerID, Password),
+	{Scalar_P, Element_P} = ocs_eap_pwd:compute_scalar(Password, PWE),
+	RequestBodySize = size(<<Element_S/binary, Scalar_S/binary>>),
+	ResponseBodySize = size(<<Element_P/binary, Scalar_P/binary>>),
+	RequestBodySize = ResponseBodySize,
+	CommitRespBody = #eap_pwd_commit{scalar = Scalar_P, element = Element_P},
+	CommitRespBodyData = ocs_eap_codec:eap_pwd_commit(CommitRespBody),
+	CommitRespHeader = #eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = id,
+		data = CommitRespBodyData},
+	CommitEAPData = ocs_eap_codec:eap_pwd(CommitRespHeader),
+	CommitRespPacket = #eap_packet{code = ?Response, identifier = EAPId2, data = CommitEAPData},
+	CommitRespPacketData = ocs_eap_codec:eap_packet(CommitRespPacket),
+	CommitAttributeList0 = radius_attributes:new(),
+	CommitAttributeList1 = radius_attributes:store(?EAPMessage,
+		CommitRespPacketData, CommitAttributeList0),
+	CommitAttributeList2 = radius_attributes:store(?MessageAuthenticator,
+		list_to_binary(lists:duplicate(16,0)), CommitAttributeList1),
+	CommitResponse1 = #radius{code = ?AccessRequest, id = Id,	authenticator = CommitReqAuthenticator,
+		attributes = CommitAttributeList2},
+	CommitReqPacket1 = radius:codec(CommitResponse1),
+	CommitRespMsgAuth = crypto:hmac(md5, SharedSecret, CommitReqPacket1),
+	CommitAttributeList3 = radius_attributes:store(?MessageAuthenticator,
+		 CommitRespMsgAuth, CommitAttributeList1),
+	BinCommitAttributeList3 = radius_attributes:codec(CommitAttributeList3),
+	Length = size(BinCommitAttributeList3) + 20,
+	CommitRespAuthenticator = crypto:hash(md5,[<<?AccessRequest, Id, Length:16>>,
+		Authenticator, BinCommitAttributeList3, SharedSecret]),
+	CommitResponse2= #radius{code = ?AccessRequest, id = Id, authenticator = CommitRespAuthenticator,
+		attributes = RspAttributeList3},
+	CommitReqPacket1 = radius:codec(CommitResponse2),
+	ok = gen_udp:send(Socket, AuthAddress, AuthPort, CommitReqPacket1).
+	
+	
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
