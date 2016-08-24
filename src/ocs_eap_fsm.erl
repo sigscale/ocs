@@ -221,7 +221,7 @@ wait_for_commit({eap_response, EAPPacket}, #statedata{radius_id = RadiusID, pass
 		#eap_pwd{type = ?PWD, pwd_exch = commit, data = BodyData} = EAPHeader,
 		Body = ocs_eap_codec:eap_pwd_commit(BodyData),
 		#eap_pwd_commit{element = ElementP, scalar = ScalarP} = Body,
-		NewStateData = Statedata#statedata{scalar_p = ScalarP, element_p = ElementP},
+		NewStateData = StateData#statedata{scalar_p = ScalarP, element_p = ElementP},
 		case 	wait_for_commit1(BodyData, NewStateData) of
 			ok ->
 				Ks = ocs_eap_pwd:compute_ks(Password, PWE, ScalarP, ElementP),
@@ -269,7 +269,7 @@ wait_for_commit1(BodyData, #statedata{scalar_s = ScalarS,
 		ExpectedSize = size(<<ElementS/binary, ScalarS/binary>>),
 		case size(BodyData) of 
 			ExpectedSize ->
-				wait_for_commit2(NewStateData);
+				wait_for_commit2(StateData);
 			_ ->
 				send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm),
 				{error, exit}
