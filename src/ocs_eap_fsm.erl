@@ -224,9 +224,8 @@ wait_for_commit({eap_response, EAPPacket}, #statedata{radius_id = RadiusID, pass
 		case 	wait_for_commit1(BodyData, StateData) of
 			ok ->
 				Ks = ocs_eap_pwd:compute_ks(Password, PWE, ScalarP, ElementP),
-				%% @todo implement eap_pwd_confirm record and corresponding codec function
-				%%Body = #eap_pwd_confirm{confirm = Ks},
-				%%BodyData = ocs_eap_codec:eap_pwd_confirm(Body),
+				Body = #eap_pwd_confirm{confirm = Ks},
+				BodyData = ocs_eap_codec:eap_pwd_confirm(Body),
 				BodyData = <<"EAP Confirm Request payload data">>,
 				Header = #eap_pwd{type = ?PWD, length = false,
 						more = false, pwd_exch = confirm, data = BodyData},
@@ -289,7 +288,7 @@ wait_for_commit2(#statedata{element_p = ElementP, scalar_p = ScalarP, scalar_s =
 	end.
 %% @hidden
 wait_for_commit3(#statedata{scalar_p = ScalarP, radius_fsm = RadiusFsm, radius_id = RadiusID,
-		secret = Secret, authenticator = RequestAuthenticator} = StateData)->
+		secret = Secret, authenticator = RequestAuthenticator} = _StateData)->
 	case ScalarP of
 		_ValidScalarP when  1 =< ScalarP, ScalarP >= $R ->
 			ok;
@@ -311,8 +310,65 @@ wait_for_commit3(#statedata{scalar_p = ScalarP, radius_fsm = RadiusFsm, radius_i
 %%
 wait_for_confirm(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
-wait_for_confirm(_Event, StateData)->
-	{next_state, idle, StateData, ?TIMEOUT}.
+wait_for_confirm({eap_response, EAPPacket}, #statedata{radius_id = RadiusID,
+		authenticator = RequestAuthenticator, secret = Secret, radius_fsm = RadiusFsm} = StateData)->
+	try 
+		EAPData = ocs_eap_codec:eap_packet(EAPPacket),
+		#eap_packet{code = ?Response, identifier = EapID, data = Data} = EAPData,
+		EAPHeader = ocs_eap_codec:eap_pwd(Data),
+		#eap_pwd{type = ?PWD, pwd_exch = confirm, data = BodyData} = EAPHeader,
+		Body = ocs_eap_codec:eap_pwd_confirm(BodyData),
+		#eap_pwd_confirm{confirm = Kp} = Body,
+		case 	wait_for_confirm1(BodyData, StateData) of
+			ok ->
+				AttributeList0 = radius_attributes:new(),
+				AttributeList1 = radius_attributes:store(?MessageAuthenticator,
+						<<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, AttributeList0),
+				AttrList2bin = radius_attributes:codec(AttributeList1),
+				Response1 = #radius{code = ?AccessAccept, id = RadiusID,
+						authenticator = RequestAuthenticator, attributes = AttrList2bin},
+				ResponsePacket1 = radius:codec(Response1),
+				MessageAuthenticator = crypto:hmac(md5, Secret, ResponsePacket1),
+				AttributeList3 = radius_attributes:store(?MessageAuthenticator,
+						MessageAuthenticator, AttributeList1),
+				AttributeData = radius_attributes:codec(AttributeList3),
+				Length = size(AttributeData) + 20,
+				ResponseAuthenticator = crypto:hash(md5,[<<?AccessChallenge, RadiusID,
+				Length:16>>, RequestAuthenticator, AttributeData, Secret]),
+				Response = #radius{code = ?AccessAccept, id = RadiusID,
+						authenticator = ResponseAuthenticator, attributes = AttributeData},
+				ResponsePacket = radius:codec(Response),
+				radius:response(RadiusFsm, ResponsePacket),
+				{next_state, wait_for_confirm, StateData, 0};
+			{error,exit} ->
+				{next_state, wait_for_confirm, StateData,0}
+		end
+	catch
+		_:_ ->
+			{next_state, wait_for_confirm, StateData,0}
+	end.
+wait_for_confirm1(BodyData, #statedata{radius_fsm = RadiusFsm, radius_id = RadiusID,
+		secret = Secret, authenticator = RequestAuthenticator, ks = Ks} = StateData) ->
+		Body = ocs_eap_codec:eap_pwd_confirm(BodyData),
+		#eap_pwd_confirm{confirm = Kp} = Body,
+		ExpectedSize = size(<<Ks/binary>>),
+		case size(BodyData) of 
+			ExpectedSize ->
+				wait_for_commit2(Kp, StateData);
+			_ ->
+				send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm),
+				{error, exit}
+		end.
+%% @hidden
+wait_for_commit2(Kp, #statedata{radius_fsm = RadiusFsm, radius_id = RadiusID,
+		secret = Secret, authenticator = RequestAuthenticator, ks = Ks} = _StateData) ->
+	case Kp of
+		Ks ->
+			ok;
+		_ ->
+			send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm),
+			{error, exit}
+	end.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
 		StateData :: #statedata{}) ->
