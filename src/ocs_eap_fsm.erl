@@ -211,9 +211,7 @@ wait_for_id({eap_response, EAPPacket} , #statedata{token = Token,
 %%
 wait_for_commit(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
-wait_for_commit({eap_response, EAPPacket}, #statedata{element_s = ElementS, scalar_s = ScalarS,
-		radius_fsm = RadiusFsm, radius_id = RadiusID,
-		secret = Secret, authenticator = RequestAuthenticator} = StateData)->
+wait_for_commit({eap_response, EAPPacket}, StateData)->
 	try 
 		EAPData = ocs_eap_codec:eap_packet(EAPPacket),
 		#eap_packet{code = ?Response, identifier = EapID, data = Data} = EAPData,
@@ -221,20 +219,24 @@ wait_for_commit({eap_response, EAPPacket}, #statedata{element_s = ElementS, scal
 		#eap_pwd{type = ?PWD, pwd_exch = commit, data = BodyData} = EAPHeader,
 		Body = ocs_eap_codec:eap_pwd_commit(BodyData),
 		#eap_pwd_commit{element = ElementP, scalar = ScalarP} = Body,
-		ExpectedSize = size(<<ElementS/binary, ScalarS/binary>>),
-		case size(BodyData) of 
-			ExpectedSize ->
-				NewStateData = StateData#statedata{scalar_p = ScalarP, element_p = ElementP},
-				wait_for_commit2(NewStateData),
-				{next_state, wait_for_confirm, StateData, 0};
-			_ ->
-				send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm),
-				{next_state, wait_for_commit, StateData, 0}
-		end
+		wait_for_commit1(BodyData, StateData),
+		{next_state, wait_for_confirm, StateData, 0}
 	catch
 		_:_ ->
 			{next_state, wait_for_commit, StateData,0}
 	end.
+%% @hidden
+wait_for_commit1(BodyData, #statedata{element_p = ElementP, scalar_p = ScalarP, scalar_s = ScalarS,
+		element_s = ElementS,  radius_fsm = RadiusFsm, radius_id = RadiusID,
+		secret = Secret, authenticator = RequestAuthenticator} = StateData) ->
+		ExpectedSize = size(<<ElementS/binary, ScalarS/binary>>),
+		case size(BodyData) of 
+			ExpectedSize ->
+				NewStateData = StateData#statedata{scalar_p = ScalarP, element_p = ElementP},
+				wait_for_commit2(NewStateData);
+			_ ->
+				send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm)
+		end.
 %% @hidden
 wait_for_commit2(#statedata{element_p = ElementP, scalar_p = ScalarP, scalar_s = ScalarS,
 		element_s = ElementS,  radius_fsm = RadiusFsm, radius_id = RadiusID,
