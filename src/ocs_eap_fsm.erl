@@ -261,7 +261,8 @@ wait_for_commit({eap_response, EAPPacket}, #statedata{radius_id = RadiusID, pass
 						authenticator = ResponseAuthenticator, attributes = AttributeData},
 				ResponsePacket = radius:codec(Response),
 				radius:response(RadiusFsm, ResponsePacket),
-				NewStateData = StateData#statedata{eap_id = NewEAPID, ks = Ks},
+				NewStateData = StateData#statedata{eap_id = NewEAPID, ks = Ks
+						confirm_s = ConfirmS},
 				{next_state, wait_for_confirm, StateData, 0};
 			{error,exit} ->
 				{next_state, wait_for_commit, StateData,0}
