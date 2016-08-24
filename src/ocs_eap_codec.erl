@@ -68,11 +68,11 @@ eap_pwd(#eap_pwd{type = ?PWD, length = true, more = false, pwd_exch = commit, da
 eap_pwd(#eap_pwd{type = ?PWD, length = true, more = false, pwd_exch = confirm, data = D } = Packet) ->
 	TLen = Packet#eap_pwd.tot_length,
 	<<?PWD, 1, 0, 3, TLen, D/binary>>;
-eap_pwd(#eap_pwd{type = ?PWD, length = false, more = true, pwd_exch = id, data = D } = Packet) ->
+eap_pwd(#eap_pwd{type = ?PWD, length = false, more = true, pwd_exch = id, data = D } = _Packet) ->
 	<<?PWD, 0, 1, 1, D/binary>>;
-eap_pwd(#eap_pwd{type = ?PWD, length = false, more = true, pwd_exch = commit, data = D } = Packet) ->
+eap_pwd(#eap_pwd{type = ?PWD, length = false, more = true, pwd_exch = commit, data = D } = _Packet) ->
 	<<?PWD, 0, 1, 2, D/binary>>;
-eap_pwd(#eap_pwd{type = ?PWD, length = false, more = true, pwd_exch = confirm, data = D } = Packet) ->
+eap_pwd(#eap_pwd{type = ?PWD, length = false, more = true, pwd_exch = confirm, data = D } = _Packet) ->
 	<<?PWD, 0, 1, 3, D/binary>>;
 eap_pwd(#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = id, data = D } = _Packet) ->
 	<<?PWD, 0, 0, 1, D/binary>>;
@@ -114,7 +114,7 @@ eap_pwd(<<?PWD, 0, 0, 3, Payload/binary>>) ->
 %% RFC-5931 3.2.1
 %% Comprise the Ciphersuite included in the calculation of the
 %% peer's and server's confirm messages
-eap_pwd_id(<<GDesc, RanFun, PRF, Token:32/binary, PWDPrep, BinId:16/binary>>) ->
+eap_pwd_id(<<GDesc:16, RanFun, PRF, Token:32/binary, PWDPrep, BinId:16/binary>>) ->
 	Prep = case PWDPrep of
 		0 -> none;
 		1 -> rfc2759;
