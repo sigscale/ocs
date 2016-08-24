@@ -263,8 +263,8 @@ wait_for_commit({eap_response, EAPPacket}, #statedata{radius_id = RadiusID, pass
 			{next_state, wait_for_commit, StateData,0}
 	end.
 %% @hidden
-wait_for_commit1(BodyData, #statedata{scalar_s = ScalarS,
-		element_s = ElementS,  radius_fsm = RadiusFsm, radius_id = RadiusID,
+wait_for_commit1(BodyData, #statedata{scalar_s = ScalarS, element_s = ElementS,
+		radius_fsm = RadiusFsm, radius_id = RadiusID,
 		secret = Secret, authenticator = RequestAuthenticator} = StateData) ->
 		ExpectedSize = size(<<ElementS/binary, ScalarS/binary>>),
 		case size(BodyData) of 
@@ -289,7 +289,7 @@ wait_for_commit2(#statedata{element_p = ElementP, scalar_p = ScalarP, scalar_s =
 wait_for_commit3(#statedata{scalar_p = ScalarP, radius_fsm = RadiusFsm, radius_id = RadiusID,
 		secret = Secret, authenticator = RequestAuthenticator} = _StateData)->
 	case ScalarP of
-		_ValidScalarP when  1 =< ScalarP, ScalarP >= $R ->
+		_ScalarP_Valid when  1 =< ScalarP, ScalarP >= $R ->
 			ok;
 		_ScalarP_Out_of_Range ->
 			send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm),
