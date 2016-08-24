@@ -235,7 +235,8 @@ wait_for_commit1(BodyData, #statedata{element_p = ElementP, scalar_p = ScalarP, 
 				NewStateData = StateData#statedata{scalar_p = ScalarP, element_p = ElementP},
 				wait_for_commit2(NewStateData);
 			_ ->
-				send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm)
+				send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm),
+				{error, exit}
 		end.
 %% @hidden
 wait_for_commit2(#statedata{element_p = ElementP, scalar_p = ScalarP, scalar_s = ScalarS,
@@ -243,7 +244,8 @@ wait_for_commit2(#statedata{element_p = ElementP, scalar_p = ScalarP, scalar_s =
 		secret = Secret, authenticator = RequestAuthenticator} = StateData) ->
 	case {ElementP, ScalarP} of
 		{ElementS, ScalarS} ->
-			send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm);
+			send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm),
+			{error, exit};
 		_ ->
 			wait_for_commit3(StateData)
 	end.
@@ -254,11 +256,12 @@ wait_for_commit3(#statedata{scalar_p = ScalarP, radius_fsm = RadiusFsm, radius_i
 		_ValidScalarP when  1 =< ScalarP, ScalarP >= $R ->
 			wait_for_commit4(StateData);
 		_ScalarP_Out_of_Range ->
-			send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm)
+			send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm),
+			{error, exit}
 	end.
 %% @hidden
-wait_for_commit4(StateData)->
-				{next_state, wait_for_confirm, StateData, ?TIMEOUT}.
+wait_for_commit4(_StateData)->
+	ok.
 
 -spec wait_for_confirm(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
