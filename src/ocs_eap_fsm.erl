@@ -292,15 +292,11 @@ wait_for_commit3(#statedata{scalar_p = ScalarP, radius_fsm = RadiusFsm, radius_i
 		secret = Secret, authenticator = RequestAuthenticator} = StateData)->
 	case ScalarP of
 		_ValidScalarP when  1 =< ScalarP, ScalarP >= $R ->
-			wait_for_commit4(StateData);
+			ok;
 		_ScalarP_Out_of_Range ->
 			send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm),
 			{error, exit}
 	end.
-%% @hidden
-wait_for_commit4(#statedata{password = Password, pwe = PWE, scalar_p = ScalarP,
-		element_p = ElementP} = _StateData)->
-		ok.
 
 -spec wait_for_confirm(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
