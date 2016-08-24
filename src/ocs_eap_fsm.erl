@@ -240,8 +240,7 @@ wait_for_commit1(#statedata{element_p = ElementP, scalar_p = ScalarP, scalar_s =
 		secret = Secret, authenticator = RequestAuthenticator} = StateData) ->
 	case {ElementP, ScalarP} of
 		{ElementS, ScalarS} ->
-			send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm),
-			{next_state, wait_for_commit, StateData, 0};
+			send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm);
 		_ ->
 			wait_for_commit2(StateData)
 	end.
@@ -252,8 +251,7 @@ wait_for_commit2(#statedata{scalar_p = ScalarP, radius_fsm = RadiusFsm, radius_i
 		_ValidScalarP when  1 =< ScalarP, ScalarP >= $R ->
 			wait_for_commit3(StateData);
 		_ScalarP_Out_of_Range ->
-			send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm),
-			{next_state, wait_for_commit, StateData, 0}
+			send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm)
 	end.
 %% @hidden
 wait_for_commit3(StateData)->
