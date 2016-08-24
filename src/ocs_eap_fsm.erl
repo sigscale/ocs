@@ -225,6 +225,9 @@ wait_for_commit({eap_response, EAPPacket}, #statedata{radius_id = RadiusID, pass
 		case 	wait_for_commit1(BodyData, NewStateData) of
 			ok ->
 				Ks = ocs_eap_pwd:compute_ks(Password, PWE, ScalarP, ElementP),
+				Input = [<<Ks/binary, ElementS/binary, ScalarS/binary, ElementP/binary,
+						ScalarP/binary, GrpDec/binary, RandomFunc/binary, PRF/binary>>],
+				ConfirmS = ocs_eap_pwd:h(Input),
 				Body = #eap_pwd_confirm{confirm = Ks},
 				BodyData = ocs_eap_codec:eap_pwd_confirm(Body),
 				Header = #eap_pwd{type = ?PWD, length = false,
