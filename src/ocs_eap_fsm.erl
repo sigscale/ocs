@@ -225,7 +225,7 @@ wait_for_commit({eap_response, EAPPacket}, #statedata{element_s = ElementS, scal
 		case size(BodyData) of 
 			ExpectedSize ->
 				NewStateData = StateData#statedata{scalar_p = ScalarP, element_p = ElementP},
-				wait_for_commit1(NewStateData),
+				wait_for_commit2(NewStateData),
 				{next_state, wait_for_confirm, StateData, 0};
 			_ ->
 				send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm),
@@ -236,26 +236,26 @@ wait_for_commit({eap_response, EAPPacket}, #statedata{element_s = ElementS, scal
 			{next_state, wait_for_commit, StateData,0}
 	end.
 %% @hidden
-wait_for_commit1(#statedata{element_p = ElementP, scalar_p = ScalarP, scalar_s = ScalarS,
+wait_for_commit2(#statedata{element_p = ElementP, scalar_p = ScalarP, scalar_s = ScalarS,
 		element_s = ElementS,  radius_fsm = RadiusFsm, radius_id = RadiusID,
 		secret = Secret, authenticator = RequestAuthenticator} = StateData) ->
 	case {ElementP, ScalarP} of
 		{ElementS, ScalarS} ->
 			send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm);
 		_ ->
-			wait_for_commit2(StateData)
+			wait_for_commit3(StateData)
 	end.
 %% @hidden
-wait_for_commit2(#statedata{scalar_p = ScalarP, radius_fsm = RadiusFsm, radius_id = RadiusID,
+wait_for_commit3(#statedata{scalar_p = ScalarP, radius_fsm = RadiusFsm, radius_id = RadiusID,
 		secret = Secret, authenticator = RequestAuthenticator} = StateData)->
 	case ScalarP of
 		_ValidScalarP when  1 =< ScalarP, ScalarP >= $R ->
-			wait_for_commit3(StateData);
+			wait_for_commit4(StateData);
 		_ScalarP_Out_of_Range ->
 			send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm)
 	end.
 %% @hidden
-wait_for_commit3(StateData)->
+wait_for_commit4(StateData)->
 				{next_state, wait_for_confirm, StateData, ?TIMEOUT}.
 
 -spec wait_for_confirm(Event :: timeout | term(), StateData :: #statedata{}) ->
