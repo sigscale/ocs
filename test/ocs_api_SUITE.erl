@@ -99,7 +99,7 @@ all() ->
 eap_id_request() ->
    [{userdata, [{doc, "Send an EAP-PWD-ID request to peer"}]}].
 
-eap_id_request(Config) ->
+eap_id_request_response(Config) ->
 	Id = 0,
 	AuthAddress = ct:get_config(radius_auth_addr),
 	AuthPort = ct:get_config(radius_auth_port),
@@ -112,7 +112,7 @@ eap_id_request(Config) ->
 	AttributeList2 = radius_attributes:store(?NasIdentifier, "tomba", AttributeList1),
 	AttributeList3 = radius_attributes:store(?NasPortId,"wlan0", AttributeList2),
 	AttributeList4 = radius_attributes:store(?CallingStationId,"de:ad:be:ef:ca:fe", AttributeList3),
-	AttributeList7 = radius_attributes:store(?MessageAuthenticator,
+	AttributeList5 = radius_attributes:store(?MessageAuthenticator,
 		list_to_binary(lists:duplicate(16,0)), AttributeList4),
 	Request1 = #radius{code = ?AccessRequest, id = Id, authenticator = Authenticator,
 		attributes = AttributeList5},
@@ -124,11 +124,12 @@ eap_id_request(Config) ->
 	RequestPacket2 = radius:codec(Request2),
 	ok = gen_udp:send(Socket, AuthAddress, AuthPort, RequestPacket2),
 	{ok, {_Address, _Port, Packet}} = gen_udp:recv(Socket, 0),
-	#radius{code = ?AccessChallenge, id = Id, authenticator = Authenticator,
-		attributes = IDReqAttributes} = radius:codec(Packet),
-	EAPPacket = radius_attributes:find(?EAPMessage, IDReqAttributes),
-	#eap_packet{code = ?Request, identifier = Id, data = Data} = ocs_eap_codec:eap_pwd(EAPPacket),
-	#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = id,
+	#radius{code = ?AccessChallenge, id = Id, authenticator = _Authenticator,
+		attributes = BinIDReqAttributes} = radius:codec(Packet),
+	IDReqAttributes = radius_attributes:codec(BinIDReqAttributes),
+	{ok, EAPPacket} = radius_attributes:find(?EAPMessage, IDReqAttributes),
+	#eap_packet{code = ?Request, identifier = _ID, data = Data} = ocs_eap_codec:eap_packet(EAPPacket),
+	#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = id, tot_length = _L,
 		data = IDReqBody} = ocs_eap_codec:eap_pwd(Data),
 	#eap_pwd_id{group_desc = 19, random_fun = 16#1, prf = 16#1, token =_Token, pwd_prep = none,
 		identity = _HostName} = ocs_eap_codec:eap_pwd_id(IDReqBody).
