@@ -42,6 +42,9 @@
 				Port :: string(), Peer :: string()},
 		radius_id :: byte(),
 		eap_id :: byte(),
+		grp_dec :: byte(),
+		rand_func :: byte(),
+		prf :: byte(),
 		authenticator :: binary(),
 		secret :: binary(),
 		password :: binary(),
@@ -213,7 +216,8 @@ wait_for_commit(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
 wait_for_commit({eap_response, EAPPacket}, #statedata{radius_id = RadiusID, password = Password,
 		pwe = PWE, scalar_p = ScalarP, element_p = ElementP, authenticator = RequestAuthenticator,
-		secret = Secret, radius_fsm = RadiusFsm} = StateData)->
+		secret = Secret, radius_fsm = RadiusFsm, grp_dec = GrpDec, rand_func = RandomFunc,
+		prf = PRF } = StateData)->
 	try 
 		EAPData = ocs_eap_codec:eap_packet(EAPPacket),
 		#eap_packet{code = ?Response, identifier = EapID, data = Data} = EAPData,
