@@ -76,7 +76,7 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[decode_packet, encode_packet].
+	[decode_packet, encode_packet, ecc_computations].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -94,6 +94,30 @@ encode_packet() ->
 encode_packet(_Config) ->
 	ct:fail(not_implemented).
 	
+ecc_computations() ->
+	[{userdata, [{doc, "Check ECC computations"}]}].
+
+ecc_computations(_Config) ->
+R = 16#ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551,
+Password = <<"Secret">>,
+U_rs = crypto:rand_uniform(1, R),
+U_rp = crypto:rand_uniform(1, R),
+RandomP = <<U_rp:256>>,
+RandomS = <<U_rs:256>>,
+TokenS = crypto:rand_bytes(4),
+TokenP = crypto:rand_bytes(4),
+PWE_S = ocs_eap_pwd:compute_pwe(TokenS, <<"Peer">>, <<"Server">>, Password),
+PWE_P = ocs_eap_pwd:compute_pwe(TokenP, <<"Peer">>, <<"Server">>, Password),
+{Scalar_S, Element_S }= ocs_eap_pwd:compute_scalar(RandomS, PWE_S),
+{Scalar_P, Element_P }= ocs_eap_pwd:compute_scalar(RandomP, PWE_P),
+KS = ocs_eap_pwd:compute_ks(RandomS, PWE_S, Scalar_P, Element_P),
+KP = ocs_eap_pwd:compute_ks(RandomP, PWE_P, Scalar_S, Element_S),  
+Confirm_S = ocs_eap_pwd:h([KS, Element_S, Scalar_S, Element_P, Scalar_P, <<19>>,<<1>>,<<1>>]),
+Confirm_P = ocs_eap_pwd:h([KP, Element_P, Scalar_P, Element_S, Scalar_S, <<19>>,<<1>>,<<1>>]),
+MK_S = ocs_eap_pwd:h([KS, Confirm_P, Confirm_S]),
+MK_P = ocs_eap_pwd:h([KP, Confirm_P, Confirm_S]),
+MK_P = MK_S.
+
 eap_id_request() ->
 	[{userdata, [{doc, "Send an EAP-PWD-ID request to peer"}]}].
 
