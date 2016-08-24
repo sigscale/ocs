@@ -219,8 +219,12 @@ wait_for_commit({eap_response, EAPPacket}, StateData)->
 		#eap_pwd{type = ?PWD, pwd_exch = commit, data = BodyData} = EAPHeader,
 		Body = ocs_eap_codec:eap_pwd_commit(BodyData),
 		#eap_pwd_commit{element = ElementP, scalar = ScalarP} = Body,
-		wait_for_commit1(BodyData, StateData),
-		{next_state, wait_for_confirm, StateData, 0}
+		case 	wait_for_commit1(BodyData, StateData) of
+			ok ->
+				{next_state, wait_for_confirm, StateData, 0};
+			{error,exit} ->
+				{next_state, wait_for_commit, StateData,0}
+		end
 	catch
 		_:_ ->
 			{next_state, wait_for_commit, StateData,0}
