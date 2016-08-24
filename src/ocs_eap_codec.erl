@@ -68,11 +68,11 @@ eap_pwd(#eap_pwd{type = ?PWD, length = true, more = false, pwd_exch = commit, da
 eap_pwd(#eap_pwd{type = ?PWD, length = true, more = false, pwd_exch = confirm, data = D } = Packet) ->
 	TLen = Packet#eap_pwd.tot_length,
 	<<?PWD, 1, 0, 3, TLen, D/binary>>;
-eap_pwd(#eap_pwd{type = ?PWD, length = false, more = true, pwd_exch = id, data = D } = Packet) ->
+eap_pwd(#eap_pwd{type = ?PWD, length = false, more = true, pwd_exch = id, data = D } = _Packet) ->
 	<<?PWD, 0, 1, 1, D/binary>>;
-eap_pwd(#eap_pwd{type = ?PWD, length = false, more = true, pwd_exch = commit, data = D } = Packet) ->
+eap_pwd(#eap_pwd{type = ?PWD, length = false, more = true, pwd_exch = commit, data = D } = _Packet) ->
 	<<?PWD, 0, 1, 2, D/binary>>;
-eap_pwd(#eap_pwd{type = ?PWD, length = false, more = true, pwd_exch = confirm, data = D } = Packet) ->
+eap_pwd(#eap_pwd{type = ?PWD, length = false, more = true, pwd_exch = confirm, data = D } = _Packet) ->
 	<<?PWD, 0, 1, 3, D/binary>>;
 eap_pwd(#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = id, data = D } = _Packet) ->
 	<<?PWD, 0, 0, 1, D/binary>>;
