@@ -211,7 +211,9 @@ wait_for_id({eap_response, EAPPacket} , #statedata{token = Token,
 %%
 wait_for_commit(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
-wait_for_commit({eap_response, EAPPacket}, StateData)->
+wait_for_commit({eap_response, EAPPacket}, #statedata{radius_id = RadiusID, password = Password,
+		pwe = PWE, scalar_p = ScalarP, element_p = ElementP, authenticator = RequestAuthenticator,
+		secret = Secret, radius_fsm = RadiusFsm} = StateData)->
 	try 
 		EAPData = ocs_eap_codec:eap_packet(EAPPacket),
 		#eap_packet{code = ?Response, identifier = EapID, data = Data} = EAPData,
@@ -221,6 +223,38 @@ wait_for_commit({eap_response, EAPPacket}, StateData)->
 		#eap_pwd_commit{element = ElementP, scalar = ScalarP} = Body,
 		case 	wait_for_commit1(BodyData, StateData) of
 			ok ->
+				Ks = ocs_eap_pwd:compute_ks(Password, PWE, ScalarP, ElementP),
+				%% @todo implement eap_pwd_confirm record and corresponding codec function
+				%%Body = #eap_pwd_confirm{confirm = Ks},
+				%%BodyData = ocs_eap_codec:eap_pwd_confirm(Body),
+				BodyData = <<"EAP Confirm Request payload data">>,
+				Header = #eap_pwd{type = ?PWD, length = false,
+						more = false, pwd_exch = confirm, data = BodyData},
+				EAPData = ocs_eap_codec:eap_pwd(Header),
+				NewEAPID = EapID + 1,
+				Packet = #eap_packet{code = ?Request, identifier = NewEAPID, data = EAPData},
+				EAPPacketData = ocs_eap_codec:eap_packet(Packet),
+				AttributeList0 = radius_attributes:new(),
+				AttributeList1 = radius_attributes:store(?EAPMessage,
+						EAPPacketData, AttributeList0),
+				AttributeList2 = radius_attributes:store(?MessageAuthenticator,
+						<<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, AttributeList1),
+				AttrList2bin = radius_attributes:codec(AttributeList2),
+				Response1 = #radius{code = ?AccessChallenge, id = RadiusID,
+						authenticator = RequestAuthenticator, attributes = AttrList2bin},
+				ResponsePacket1 = radius:codec(Response1),
+				MessageAuthenticator = crypto:hmac(md5, Secret, ResponsePacket1),
+				AttributeList3 = radius_attributes:store(?MessageAuthenticator,
+						MessageAuthenticator, AttributeList1),
+				AttributeData = radius_attributes:codec(AttributeList3),
+				Length = size(AttributeData) + 20,
+				ResponseAuthenticator = crypto:hash(md5,[<<?AccessChallenge, RadiusID,
+				Length:16>>, RequestAuthenticator, AttributeData, Secret]),
+				Response = #radius{code = ?AccessChallenge, id = RadiusID,
+						authenticator = ResponseAuthenticator, attributes = AttributeData},
+				ResponsePacket = radius:codec(Response),
+				radius:response(RadiusFsm, ResponsePacket),
+				NewStateData = StateData#statedata{eap_id = NewEAPID, ks = Ks},
 				{next_state, wait_for_confirm, StateData, 0};
 			{error,exit} ->
 				{next_state, wait_for_commit, StateData,0}
@@ -264,8 +298,9 @@ wait_for_commit3(#statedata{scalar_p = ScalarP, radius_fsm = RadiusFsm, radius_i
 			{error, exit}
 	end.
 %% @hidden
-wait_for_commit4(_StateData)->
-	ok.
+wait_for_commit4(#statedata{password = Password, pwe = PWE, scalar_p = ScalarP,
+		element_p = ElementP} = _StateData)->
+		ok.
 
 -spec wait_for_confirm(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
