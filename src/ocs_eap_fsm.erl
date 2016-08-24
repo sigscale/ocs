@@ -225,7 +225,8 @@ wait_for_commit({eap_response, EAPPacket}, #statedata{element_s = ElementS, scal
 		case size(BodyData) of 
 			ExpectedSize ->
 				NewStateData = StateData#statedata{scalar_p = ScalarP, element_p = ElementP},
-				wait_for_commit1(NewStateData);
+				wait_for_commit1(NewStateData),
+				{next_state, wait_for_confirm, StateData, 0};
 			_ ->
 				send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm),
 				{next_state, wait_for_commit, StateData, 0}
