@@ -226,7 +226,6 @@ wait_for_commit({eap_response, EAPPacket}, #statedata{radius_id = RadiusID, pass
 				Ks = ocs_eap_pwd:compute_ks(Password, PWE, ScalarP, ElementP),
 				Body = #eap_pwd_confirm{confirm = Ks},
 				BodyData = ocs_eap_codec:eap_pwd_confirm(Body),
-				BodyData = <<"EAP Confirm Request payload data">>,
 				Header = #eap_pwd{type = ?PWD, length = false,
 						more = false, pwd_exch = confirm, data = BodyData},
 				EAPData = ocs_eap_codec:eap_pwd(Header),
