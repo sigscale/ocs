@@ -85,3 +85,6 @@
 -record(eap_pwd_commit,
 			{element :: binary(),
 			scalar :: binary()}).
+
+-record(eap_pwd_confirm,
+			{confirm :: binary()}).

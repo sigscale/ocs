@@ -27,7 +27,8 @@
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 %% export the ocs public API
--export([eap_packet/1, eap_pwd/1, eap_pwd_id/1, eap_pwd_commit/1]).
+-export([eap_packet/1, eap_pwd/1, eap_pwd_id/1, eap_pwd_commit/1,
+			eap_pwd_confirm/1]).
 
 -include("ocs_eap_codec.hrl").
 
@@ -147,3 +148,13 @@ eap_pwd_commit(<<Element:80/binary, Scalar:80/binary>>) ->
 	#eap_pwd_commit{element = Element, scalar = Scalar};
 eap_pwd_commit(#eap_pwd_commit{element = Element, scalar = Scalar}) ->
 	<<Element/binary, Scalar/binary>>.
+
+-spec eap_pwd_confirm(Packet :: binary() | #eap_pwd_confirm{}) -> 
+			#eap_pwd_confirm{} | binary().
+%% @doc Encode or Decode `EAP-pwd-confirm'
+%%
+%% RFC-5931 3.2.3
+eap_pwd_confirm(<<Confirm/binary>>) ->
+	#eap_pwd_confirm{confirm = Confirm};
+eap_pwd_confirm(#eap_pwd_confirm{confirm = Confirm}) ->
+	<<Confirm/binary>>.
