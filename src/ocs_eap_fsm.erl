@@ -193,8 +193,8 @@ wait_for_id({eap_response, EAPPacket} , #statedata{token = Token,
 				authenticator = ResponseAuthenticator, attributes = AttributeData},
 		ResponsePacket = radius:codec(Response),
 		radius:response(RadiusFsm, ResponsePacket),
-		NewStateData = StateData#statedata{pwe = PWE,
-			peer_id = PeerID, eap_id = NewEAPID, scalar_s = ScalarS, element_s = ElementS},
+		NewStateData = StateData#statedata{pwe = PWE, s_rand = S_rand, peer_id = PeerID,
+			eap_id = NewEAPID, scalar_s = ScalarS, element_s = ElementS},
 		{next_state, wait_for_commit, NewStateData, ?TIMEOUT}
 	catch
 		_:_ ->
