@@ -91,12 +91,12 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[eap_id_request, eap_commit_request_response].
+	[eap_id_request_response, eap_commit_request_response].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
-eap_id_request() ->
+eap_id_request_response() ->
    [{userdata, [{doc, "Send an EAP-PWD-ID request to peer"}]}].
 
 eap_id_request_response(Config) ->
@@ -146,33 +146,34 @@ eap_commit_request_response(Config) ->
 	UserName = ct:get_config(radius_username),
 	SharedSecret = ct:get_config(radius_shared_scret),
 	Authenticator = radius:authenticator(SharedSecret, Id),
-	ReqAttributeList0 = radius_attributes:new(),
-	ReqAttributeList1 = radius_attributes:store(?UserName, UserName, ReqAttributeList0),
-	ReqAttributeList2 = radius_attributes:store(?NasIdentifier, "tomba", ReqAttributeList1),
-	ReqAttributeList3 = radius_attributes:store(?NasPortId,"wlan0", ReqAttributeList2),
-	ReqAttributeList4 = radius_attributes:store(?CallingStationId,"de:ad:be:ef:ca:fe", ReqAttributeList3),
-	ReqAttributeList5 = radius_attributes:store(?MessageAuthenticator,
-		list_to_binary(lists:duplicate(16,0)), ReqAttributeList4),
+	IDReqAttributeList0 = radius_attributes:new(),
+	IDReqAttributeList1 = radius_attributes:store(?UserName, UserName, IDReqAttributeList0),
+	IDReqAttributeList2 = radius_attributes:store(?NasIdentifier, "tomba", IDReqAttributeList1),
+	IDReqAttributeList3 = radius_attributes:store(?NasPortId,"wlan0", IDReqAttributeList2),
+	IDReqAttributeList4 = radius_attributes:store(?CallingStationId,"de:ad:be:ef:ca:fe", IDReqAttributeList3),
+	IDReqAttributeList5 = radius_attributes:store(?MessageAuthenticator,
+		list_to_binary(lists:duplicate(16,0)), IDReqAttributeList4),
 	IDRequest1 = #radius{code = ?AccessRequest, id = Id, authenticator = Authenticator,
-		attributes = ReqAttributeList5},
+		attributes = IDReqAttributeList5},
 	IDRequestPacket1 = radius:codec(IDRequest1),
 	IDMsgAuth = crypto:hmac(md5, SharedSecret, IDRequestPacket1),
-	ReqAttributeList6 = radius_attributes:store(?MessageAuthenticator, IDMsgAuth, ReqAttributeList5),
+	IDReqAttributeList6 = radius_attributes:store(?MessageAuthenticator, IDMsgAuth, IDReqAttributeList5),
 	IDRequest2 = #radius{code = ?AccessRequest, id = Id, authenticator = Authenticator,
-		attributes = ReqAttributeList6},
+		attributes = IDReqAttributeList6},
 	RequestPacket2 = radius:codec(IDRequest2),
 	ok = gen_udp:send(Socket, AuthAddress, AuthPort, RequestPacket2),
 	{ok, {AuthAddress, AuthPort, IdReqPacket}} = gen_udp:recv(Socket, 0),
 	#radius{code = ?AccessChallenge, id = Id, authenticator = IdReqAuthenticator,
-		attributes = IDReqAttributes} = radius:codec(IdReqPacket),
-	IDEAPPacket = radius_attributes:find(?EAPMessage, IDReqAttributes),
+		attributes = BinIDReqAttributes} = radius:codec(IdReqPacket),
+	IDReqAttributes = radius_attributes:codec(BinIDReqAttributes),
+	{ok, IDEAPPacket} = radius_attributes:find(?EAPMessage, IDReqAttributes),
 	#eap_packet{code = ?Request, identifier = EAPId, data = Data} =
-		ocs_eap_codec:eap_pwd(IDEAPPacket),
+		ocs_eap_codec:eap_packet(IDEAPPacket),
 	#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = id,
 		data = IDReqData} = ocs_eap_codec:eap_pwd(Data),
-	#eap_pwd_id{group_desc = 19, random_fun = 16#1, prf = 16#1, token = Token,
+	#eap_pwd_id{group_desc = 19, random_fun = RanFun, prf = PRF, token = Token,
 		 pwd_prep = none, identity = ServerID} = ocs_eap_codec:eap_pwd_id(IDReqData),
-	IDRespBody = #eap_pwd_id{group_desc = 19, random_fun = 16#1, prf = 16#1,
+	IDRespBody = #eap_pwd_id{group_desc = 19, random_fun = RanFun, prf = PRF,
 		token = Token, pwd_prep = none, identity = PeerID},
 	IDRespBodyData = ocs_eap_codec:eap_pwd_id(IDRespBody),
 	RespHeader = #eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = id,
