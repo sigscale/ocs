@@ -215,8 +215,8 @@ wait_for_id({eap_response, EAPPacket} , #statedata{token = Token,
 %%
 wait_for_commit(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
-wait_for_commit({eap_response, EAPPacket}, #statedata{radius_id = RadiusID, password = Password,
-		pwe = PWE, element_s = ElementS, scalar_s = ScalarS, scalar_p = ScalarP,
+wait_for_commit({eap_response, EAPPacket}, #statedata{radius_id = RadiusID, pwe = PWE,
+		element_s = ElementS, scalar_s = ScalarS, scalar_p = ScalarP,
 		element_p = ElementP, authenticator = RequestAuthenticator, secret = Secret,
 		radius_fsm = RadiusFsm, grp_dec = GrpDec, rand_func = RandomFunc,
 		prf = PRF, s_rand = S_rand} = StateData)->
@@ -401,9 +401,7 @@ wait_for_confirm({eap_response, EAPPacket}, #statedata{radius_id = RadiusID,
 			{next_state, wait_for_confirm, StateData,0}
 	end.
 wait_for_confirm1(BodyData, #statedata{radius_fsm = RadiusFsm, radius_id = RadiusID,
-		secret = Secret, authenticator = RequestAuthenticator, confirm_s = ConfirmS} = StateData) ->
-		Body = ocs_eap_codec:eap_pwd_confirm(BodyData),
-		#eap_pwd_confirm{confirm = ConfirmP} = Body,
+		secret = Secret, authenticator = RequestAuthenticator, confirm_s = ConfirmS} = _StateData) ->
 		ExpectedSize = size(<<ConfirmS/binary>>),
 		case size(BodyData) of 
 			ExpectedSize ->
