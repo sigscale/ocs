@@ -229,7 +229,7 @@ wait_for_commit({eap_response, EAPPacket}, #statedata{radius_id = RadiusID, pass
 		NewStateData = StateData#statedata{scalar_p = ScalarP, element_p = ElementP},
 		case 	wait_for_commit1(BodyData, NewStateData) of
 			ok ->
-				Ks = ocs_eap_pwd:compute_ks(Password, PWE, ScalarP, ElementP),
+				Ks = ocs_eap_pwd:compute_ks(<<S_rand:256>>, PWE, ScalarP, ElementP),
 				Input = [<<Ks/binary, ElementS/binary, ScalarS/binary, ElementP/binary,
 						ScalarP/binary, 0, GrpDec/binary, RandomFunc/binary, PRF/binary>>],
 				ConfirmS = ocs_eap_pwd:h(Input),
