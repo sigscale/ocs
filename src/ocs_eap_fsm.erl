@@ -266,6 +266,7 @@ wait_for_commit({eap_response, EAPPacket}, #statedata{radius_id = RadiusID, pwe 
 						confirm_s = ConfirmS},
 				{next_state, wait_for_confirm, StateData, ?TIMEOUT};
 			{error,exit} ->
+				radius:response(RadiusFsm, {error, ignore}),
 				{next_state, wait_for_commit, StateData,0}
 		end
 	catch
@@ -393,6 +394,7 @@ wait_for_confirm({eap_response, EAPPacket}, #statedata{radius_id = RadiusID,
 							{next_state, wait_for_confirm, StateData, 0}
 				end;
 			{error,exit} ->
+				radius:response(RadiusFsm, {error, ignore}),
 				{next_state, wait_for_confirm, StateData,0}
 		end
 	catch
