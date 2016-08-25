@@ -22,10 +22,10 @@
 
 -behaviour(gen_fsm).
 
-%% export the radius_fsm API
+%% export the ocs_eap_fsm API
 -export([]).
 
-%% export the radius_fsm state callbacks
+%% export the ocs_eap_fsm state callbacks
 -export([idle/2, wait_for_id/2, wait_for_commit/2, wait_for_confirm/2]).
 
 %% export the call backs needed for gen_fsm behaviour
@@ -64,11 +64,11 @@
 -define(TIMEOUT, 30000).
 
 %%----------------------------------------------------------------------
-%%  The radius_fsm API
+%%  The ocs_eap_fsm API
 %%----------------------------------------------------------------------
 
 %%----------------------------------------------------------------------
-%%  The radius_fsm gen_fsm call backs
+%%  The ocs_eap_fsm gen_fsm call backs
 %%----------------------------------------------------------------------
 
 -spec init(Args :: list()) ->
