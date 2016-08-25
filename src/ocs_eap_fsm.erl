@@ -390,7 +390,7 @@ wait_for_confirm({eap_response, EAPPacket}, #statedata{radius_id = RadiusID,
 								authenticator = ResponseAuthenticator, attributes = AttributeData},
 							ResponsePacket = radius:codec(Response),
 							radius:response(RadiusFsm, {response, ResponsePacket}),
-							{next_state, wait_for_confirm, StateData, 0};
+							{next_state, wait_for_confirm, StateData, 0}
 				end;
 			{error,exit} ->
 				{next_state, wait_for_confirm, StateData,0}
