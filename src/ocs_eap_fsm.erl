@@ -198,6 +198,7 @@ wait_for_id({eap_response, EAPPacket} , #statedata{token = Token,
 		{next_state, wait_for_commit, NewStateData, ?TIMEOUT}
 	catch
 		_:_ ->
+			radius:response(RadiusFsm, {error, ignore}),
 			{next_state, wait_for_id, StateData, ?TIMEOUT}
 	end.
 
@@ -269,6 +270,7 @@ wait_for_commit({eap_response, EAPPacket}, #statedata{radius_id = RadiusID, pass
 		end
 	catch
 		_:_ ->
+			radius:response(RadiusFsm, {error, ignore}),
 			{next_state, wait_for_commit, StateData,0}
 	end.
 %% @hidden
@@ -322,7 +324,7 @@ wait_for_confirm({eap_response, EAPPacket}, #statedata{radius_id = RadiusID,
 		authenticator = RequestAuthenticator, secret = Secret, radius_fsm = RadiusFsm,
 		peer_id = PeerID, token = Token, confirm_s = ConfirmS, element_s = ElementS,
 		scalar_s = ScalarS, ks = Ks} = StateData)->
-	try 
+	try
 		EAPData = ocs_eap_codec:eap_packet(EAPPacket),
 		#eap_packet{code = ?Response, identifier = EapID, data = Data} = EAPData,
 		EAPHeader = ocs_eap_codec:eap_pwd(Data),
@@ -368,6 +370,7 @@ wait_for_confirm({eap_response, EAPPacket}, #statedata{radius_id = RadiusID,
 		end
 	catch
 		_:_ ->
+			radius:response(RadiusFsm, {error, ignore}),
 			{next_state, wait_for_confirm, StateData,0}
 	end.
 wait_for_confirm1(BodyData, #statedata{radius_fsm = RadiusFsm, radius_id = RadiusID,
