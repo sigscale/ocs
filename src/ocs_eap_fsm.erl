@@ -218,7 +218,7 @@ wait_for_commit({eap_response, EAPPacket}, #statedata{radius_id = RadiusID, pass
 		pwe = PWE, element_s = ElementS, scalar_s = ScalarS, scalar_p = ScalarP,
 		element_p = ElementP, authenticator = RequestAuthenticator, secret = Secret,
 		radius_fsm = RadiusFsm, grp_dec = GrpDec, rand_func = RandomFunc,
-		prf = PRF } = StateData)->
+		prf = PRF, s_rand = S_rand} = StateData)->
 	try 
 		EAPData = ocs_eap_codec:eap_packet(EAPPacket),
 		#eap_packet{code = ?Response, identifier = EapID, data = Data} = EAPData,
