@@ -22,10 +22,10 @@
 
 -behaviour(gen_fsm).
 
-%% export the eap_fsm API
+%% export the radius_fsm API
 -export([]).
 
-%% export the eap_fsm state callbacks
+%% export the radius_fsm state callbacks
 -export([idle/2, wait_for_id/2, wait_for_commit/2, wait_for_confirm/2]).
 
 %% export the call backs needed for gen_fsm behaviour
@@ -48,7 +48,7 @@
 		authenticator :: binary(),
 		secret :: binary(),
 		password :: binary(),
-		eap_fsm :: pid(),
+		radius_fsm :: pid(),
 		token :: binary(),
 		prep :: none | rfc2759 | saslprep,
 		peer_id :: string(),
@@ -64,11 +64,11 @@
 -define(TIMEOUT, 30000).
 
 %%----------------------------------------------------------------------
-%%  The eap_fsm API
+%%  The radius_fsm API
 %%----------------------------------------------------------------------
 
 %%----------------------------------------------------------------------
-%%  The eap_fsm gen_fsm call backs
+%%  The radius_fsm gen_fsm call backs
 %%----------------------------------------------------------------------
 
 -spec init(Args :: list()) ->
@@ -84,7 +84,7 @@
 init([RadiusFsm, Address, Port, Identifier,
 		Authenticator, Secret, SessionID] = _Args) ->
 	process_flag(trap_exit, true),
-	StateData = #statedata{eap_fsm = RadiusFsm, address = Address,
+	StateData = #statedata{radius_fsm = RadiusFsm, address = Address,
 			port = Port, authenticator = Authenticator, secret = Secret,
 			radius_id = Identifier, session_id = SessionID},
 	{ok, idle, StateData, 0}.
@@ -99,7 +99,7 @@ init([RadiusFsm, Address, Port, Identifier,
 %%		gen_fsm:send_event/2} in the <b>idle</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
-idle(timeout, #statedata{eap_fsm = RadiusFsm, radius_id = RadiusID,
+idle(timeout, #statedata{radius_fsm = RadiusFsm, radius_id = RadiusID,
 		authenticator = RequestAuthenticator, secret = Secret} = StateData) ->
 	EapID = 1,
 	Token = crypto:rand_bytes(4),
@@ -153,7 +153,7 @@ wait_for_id(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
 wait_for_id({eap_response, EAPPacket} , #statedata{token = Token,
 		eap_id = EapID, radius_id = RadiusID, secret = Secret,
-		eap_fsm = RadiusFsm, authenticator = RequestAuthenticator} = StateData)->
+		radius_fsm = RadiusFsm, authenticator = RequestAuthenticator} = StateData)->
 	{ok, HostName} = inet:gethostname(),
 	S_rand = crypto:rand_bytes(4),
 	try 
@@ -218,8 +218,8 @@ wait_for_commit(timeout, #statedata{session_id = SessionID} = StateData)->
 wait_for_commit({eap_response, EAPPacket}, #statedata{radius_id = RadiusID, pwe = PWE,
 		element_s = ElementS, scalar_s = ScalarS, scalar_p = ScalarP,
 		element_p = ElementP, authenticator = RequestAuthenticator, secret = Secret,
-		eap_fsm = RadiusFsm, grp_dec = GrpDec, rand_func = RandomFunc,
-		prf = PRF } = StateData)->
+		radius_fsm = RadiusFsm, grp_dec = GrpDec, rand_func = RandomFunc,
+		prf = PRF, s_rand = S_rand} = StateData)->
 	try 
 		EAPData = ocs_eap_codec:eap_packet(EAPPacket),
 		#eap_packet{code = ?Response, identifier = EapID, data = Data} = EAPData,
@@ -276,7 +276,7 @@ wait_for_commit({eap_response, EAPPacket}, #statedata{radius_id = RadiusID, pwe 
 	end.
 %% @hidden
 wait_for_commit1(BodyData, #statedata{scalar_s = ScalarS, element_s = ElementS,
-		eap_fsm = RadiusFsm, radius_id = RadiusID,
+		radius_fsm = RadiusFsm, radius_id = RadiusID,
 		secret = Secret, authenticator = RequestAuthenticator} = StateData) ->
 		ExpectedSize = size(<<ElementS/binary, ScalarS/binary>>),
 		case size(BodyData) of 
@@ -288,7 +288,7 @@ wait_for_commit1(BodyData, #statedata{scalar_s = ScalarS, element_s = ElementS,
 		end.
 %% @hidden
 wait_for_commit2(#statedata{element_p = ElementP, scalar_p = ScalarP, scalar_s = ScalarS,
-		element_s = ElementS,  eap_fsm = RadiusFsm, radius_id = RadiusID,
+		element_s = ElementS,  radius_fsm = RadiusFsm, radius_id = RadiusID,
 		secret = Secret, authenticator = RequestAuthenticator} = StateData) ->
 	case {ElementP, ScalarP} of
 		{ElementS, ScalarS} ->
@@ -298,7 +298,7 @@ wait_for_commit2(#statedata{element_p = ElementP, scalar_p = ScalarP, scalar_s =
 			wait_for_commit3(StateData)
 	end.
 %% @hidden
-wait_for_commit3(#statedata{scalar_p = ScalarP, eap_fsm = RadiusFsm, radius_id = RadiusID,
+wait_for_commit3(#statedata{scalar_p = ScalarP, radius_fsm = RadiusFsm, radius_id = RadiusID,
 		secret = Secret, authenticator = RequestAuthenticator} = _StateData)->
 	case ScalarP of
 		_ScalarP_Valid when  1 =< ScalarP, ScalarP >= $R ->
@@ -322,8 +322,10 @@ wait_for_commit3(#statedata{scalar_p = ScalarP, eap_fsm = RadiusFsm, radius_id =
 wait_for_confirm(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
 wait_for_confirm({eap_response, EAPPacket}, #statedata{radius_id = RadiusID,
-		authenticator = RequestAuthenticator, secret = Secret, eap_fsm = RadiusFsm} = StateData)->
-	try 
+		authenticator = RequestAuthenticator, secret = Secret, radius_fsm = RadiusFsm,
+		peer_id = PeerID, token = Token, confirm_s = ConfirmS, element_s = ElementS,
+		scalar_s = ScalarS, ks = Ks, eap_id = EapID} = StateData)->
+	try
 		EAPData = ocs_eap_codec:eap_packet(EAPPacket),
 		#eap_packet{code = ?Response, identifier = EapID, data = Data} = EAPData,
 		EAPHeader = ocs_eap_codec:eap_pwd(Data),
@@ -400,11 +402,9 @@ wait_for_confirm({eap_response, EAPPacket}, #statedata{radius_id = RadiusID,
 			radius:response(RadiusFsm, {error, ignore}),
 			{next_state, wait_for_confirm, StateData,0}
 	end.
-wait_for_confirm1(BodyData, #statedata{eap_fsm = RadiusFsm, radius_id = RadiusID,
-		secret = Secret, authenticator = RequestAuthenticator, ks = Ks} = StateData) ->
-		Body = ocs_eap_codec:eap_pwd_confirm(BodyData),
-		#eap_pwd_confirm{confirm = Kp} = Body,
-		ExpectedSize = size(<<Ks/binary>>),
+wait_for_confirm1(BodyData, #statedata{radius_fsm = RadiusFsm, radius_id = RadiusID,
+		secret = Secret, authenticator = RequestAuthenticator, confirm_s = ConfirmS} = _StateData) ->
+		ExpectedSize = size(<<ConfirmS/binary>>),
 		case size(BodyData) of 
 			ExpectedSize ->
 				ok;
@@ -412,16 +412,6 @@ wait_for_confirm1(BodyData, #statedata{eap_fsm = RadiusFsm, radius_id = RadiusID
 				send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm),
 				{error, exit}
 		end.
-%% @hidden
-wait_for_commit2(Kp, #statedata{eap_fsm = RadiusFsm, radius_id = RadiusID,
-		secret = Secret, authenticator = RequestAuthenticator, ks = Ks} = _StateData) ->
-	case Kp of
-		Ks ->
-			ok;
-		_ ->
-			send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm),
-			{error, exit}
-	end.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
 		StateData :: #statedata{}) ->
