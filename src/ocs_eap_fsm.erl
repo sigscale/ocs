@@ -135,7 +135,7 @@ idle(timeout, #statedata{radius_fsm = RadiusFsm, radius_id = RadiusID,
 	radius:response(RadiusFsm, ResponsePacket),
 	NewStateData = StateData#statedata{eap_id = EapID,
 			token = Token, prep = none},
-	{next_state, wait_for_id, NewStateData}.
+	{next_state, wait_for_id, NewStateData, ?TIMEOUT}.
 
 -spec wait_for_id(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
@@ -198,7 +198,7 @@ wait_for_id({eap_response, EAPPacket} , #statedata{token = Token,
 		{next_state, wait_for_commit, NewStateData, ?TIMEOUT}
 	catch
 		_:_ ->
-			{next_state, wait_for_id, StateData,0}
+			{next_state, wait_for_id, StateData, ?TIMEOUT}
 	end.
 
 -spec wait_for_commit(Event :: timeout | term(), StateData :: #statedata{}) ->
@@ -263,7 +263,7 @@ wait_for_commit({eap_response, EAPPacket}, #statedata{radius_id = RadiusID, pass
 				radius:response(RadiusFsm, ResponsePacket),
 				NewStateData = StateData#statedata{eap_id = NewEAPID, ks = Ks,
 						confirm_s = ConfirmS},
-				{next_state, wait_for_confirm, StateData, 0};
+				{next_state, wait_for_confirm, StateData, ?TIMEOUT};
 			{error,exit} ->
 				{next_state, wait_for_commit, StateData,0}
 		end
@@ -347,7 +347,7 @@ wait_for_confirm({eap_response, EAPPacket}, #statedata{radius_id = RadiusID,
 						authenticator = ResponseAuthenticator, attributes = AttributeData},
 				ResponsePacket = radius:codec(Response),
 				radius:response(RadiusFsm, ResponsePacket),
-				{next_state, wait_for_confirm, StateData, 0};
+				{next_state, wait_for_confirm, StateData, ?TIMEOUT};
 			{error,exit} ->
 				{next_state, wait_for_confirm, StateData,0}
 		end
