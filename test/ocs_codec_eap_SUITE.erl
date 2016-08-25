@@ -98,10 +98,9 @@ ecc_computations() ->
 	[{userdata, [{doc, "Check ECC computations"}]}].
 
 ecc_computations(_Config) ->
-R = 16#ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551,
 Password = <<"Secret">>,
-U_rs = crypto:rand_uniform(1, R),
-U_rp = crypto:rand_uniform(1, R),
+U_rs = crypto:rand_uniform(1, ?R),
+U_rp = crypto:rand_uniform(1, ?R),
 RandomP = <<U_rp:256>>,
 RandomS = <<U_rs:256>>,
 TokenS = crypto:rand_bytes(4),
