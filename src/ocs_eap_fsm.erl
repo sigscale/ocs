@@ -323,7 +323,7 @@ wait_for_confirm(timeout, #statedata{session_id = SessionID} = StateData)->
 wait_for_confirm({eap_response, EAPPacket}, #statedata{radius_id = RadiusID,
 		authenticator = RequestAuthenticator, secret = Secret, radius_fsm = RadiusFsm,
 		peer_id = PeerID, token = Token, confirm_s = ConfirmS, element_s = ElementS,
-		scalar_s = ScalarS, ks = Ks} = StateData)->
+		scalar_s = ScalarS, ks = Ks, eap_id = EapID} = StateData)->
 	try
 		EAPData = ocs_eap_codec:eap_packet(EAPPacket),
 		#eap_packet{code = ?Response, identifier = EapID, data = Data} = EAPData,
@@ -342,7 +342,8 @@ wait_for_confirm({eap_response, EAPPacket}, #statedata{radius_id = RadiusID,
 				MK_P = ocs_eap_pwd:h([Kp, ConfirmP, ConfirmS]),
 					case MK_S of
 						MK_P ->
-							Packet = #eap_packet{code = ?Success, identifier = EapID},
+							NewEapID = EapID + 1,
+							Packet = #eap_packet{code = ?Success, identifier = NewEapID},
 							EAPPacketData = ocs_eap_codec:eap_packet(Packet),
 							AttributeList0 = radius_attributes:new(),
 							AttributeList1 = radius_attributes:store(?MessageAuthenticator,
