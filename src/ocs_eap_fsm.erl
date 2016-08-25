@@ -132,7 +132,7 @@ idle(timeout, #statedata{radius_fsm = RadiusFsm, radius_id = RadiusID,
 	Response = #radius{code = ?AccessChallenge, id = RadiusID,
 			authenticator = ResponseAuthenticator, attributes = AttributeData},
 	ResponsePacket = radius:codec(Response),
-	radius:response(RadiusFsm, ResponsePacket),
+	radius:response(RadiusFsm, {response, ResponsePacket}),
 	NewStateData = StateData#statedata{eap_id = EapID,
 			token = Token, prep = none},
 	{next_state, wait_for_id, NewStateData, ?TIMEOUT}.
@@ -192,7 +192,7 @@ wait_for_id({eap_response, EAPPacket} , #statedata{token = Token,
 		Response = #radius{code = ?AccessChallenge, id = RadiusID,
 				authenticator = ResponseAuthenticator, attributes = AttributeData},
 		ResponsePacket = radius:codec(Response),
-		radius:response(RadiusFsm, ResponsePacket),
+		radius:response(RadiusFsm, {response, ResponsePacket}),
 		NewStateData = StateData#statedata{pwe = PWE, s_rand = S_rand, peer_id = PeerID,
 			eap_id = NewEAPID, scalar_s = ScalarS, element_s = ElementS},
 		{next_state, wait_for_commit, NewStateData, ?TIMEOUT}
@@ -261,7 +261,7 @@ wait_for_commit({eap_response, EAPPacket}, #statedata{radius_id = RadiusID, pass
 				Response = #radius{code = ?AccessChallenge, id = RadiusID,
 						authenticator = ResponseAuthenticator, attributes = AttributeData},
 				ResponsePacket = radius:codec(Response),
-				radius:response(RadiusFsm, ResponsePacket),
+				radius:response(RadiusFsm, {response, ResponsePacket}),
 				NewStateData = StateData#statedata{eap_id = NewEAPID, ks = Ks,
 						confirm_s = ConfirmS},
 				{next_state, wait_for_confirm, StateData, ?TIMEOUT};
@@ -359,7 +359,7 @@ wait_for_confirm({eap_response, EAPPacket}, #statedata{radius_id = RadiusID,
 							Response = #radius{code = ?AccessAccept, id = RadiusID,
 								authenticator = ResponseAuthenticator, attributes = AttributeData},
 							ResponsePacket = radius:codec(Response),
-							radius:response(RadiusFsm, ResponsePacket),
+							radius:response(RadiusFsm, {response, ResponsePacket}),
 							{next_state, wait_for_confirm, StateData, ?TIMEOUT};
 						_ ->
 							send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm),
@@ -479,4 +479,4 @@ send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm) ->
 	Response = #radius{code = ?AccessReject, id = RadiusID,
 		authenticator = ResponseAuthenticator, attributes = AttributeData},
 			ResponsePacket = radius:codec(Response),
-	radius:response(RadiusFsm, ResponsePacket).
+	radius:response(RadiusFsm, {response, ResponsePacket}).
