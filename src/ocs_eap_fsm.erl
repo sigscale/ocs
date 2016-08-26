@@ -283,7 +283,7 @@ wait_for_commit1(BodyData, #statedata{scalar_s = ScalarS, element_s = ElementS,
 			ExpectedSize ->
 				wait_for_commit2(StateData);
 			_ ->
-				send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm),
+				send_radius_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm),
 				{error, exit}
 		end.
 %% @hidden
@@ -292,7 +292,7 @@ wait_for_commit2(#statedata{element_p = ElementP, scalar_p = ScalarP, scalar_s =
 		secret = Secret, authenticator = RequestAuthenticator} = StateData) ->
 	case {ElementP, ScalarP} of
 		{ElementS, ScalarS} ->
-			send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm),
+			send_radius_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm),
 			{error, exit};
 		_ ->
 			wait_for_commit3(StateData)
@@ -304,7 +304,7 @@ wait_for_commit3(#statedata{scalar_p = ScalarP, radius_fsm = RadiusFsm, radius_i
 		_ScalarP_Valid when  1 =< ScalarP, ScalarP >= $R ->
 			ok;
 		_ScalarP_Out_of_Range ->
-			send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm),
+			send_radius_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm),
 			{error, exit}
 	end.
 
@@ -409,7 +409,7 @@ wait_for_confirm1(BodyData, #statedata{radius_fsm = RadiusFsm, radius_id = Radiu
 			ExpectedSize ->
 				ok;
 			_ ->
-				send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm),
+				send_radius_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm),
 				{error, exit}
 		end.
 
@@ -488,7 +488,7 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 
 %% @doc Sends an RADIUS-Access/Reject packet to peer
 %% @hidden
-send_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm) ->
+send_radius_reject(RadiusID, RequestAuthenticator, Secret, RadiusFsm) ->
 	AttributeList0 = radius_attributes:new(),
 	AttributeList1 = radius_attributes:store(?MessageAuthenticator,
 			<<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, AttributeList0),
