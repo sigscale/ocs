@@ -114,19 +114,18 @@ eap_pwd(<<?PWD, 0, 0, 3, Payload/binary>>) ->
 %% RFC-5931 3.2.1
 %% Comprise the Ciphersuite included in the calculation of the
 %% peer's and server's confirm messages
-eap_pwd_id(<<GDesc:16, RanFun, PRF, Token:32, PWDPrep, BinId/binary>>) ->
+eap_pwd_id(<<GDesc:16, RanFun, PRF, Token:4/binary, PWDPrep, BinId/binary>>) ->
 	Prep = case PWDPrep of
 		0 -> none;
 		1 -> rfc2759;
 		3 -> saslprep
 	end,
-	BinToken = binary:encode_unsigned(Token),
 	Id = binary_to_list(BinId),
 	#eap_pwd_id{
 		group_desc = GDesc,
 		random_fun = RanFun,
 		prf = PRF,
-		token = BinToken,
+		token = Token,
 		pwd_prep = Prep,
 		identity = Id};
 eap_pwd_id(#eap_pwd_id{group_desc = GDesc, random_fun = RanFun, prf = PRF,

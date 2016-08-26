@@ -34,14 +34,24 @@
 %%  The ocs public API
 %%----------------------------------------------------------------------
 
--spec add_client(Address :: inet:ip_address(), Secret :: string()) ->
+-spec add_client(Address :: inet:ip_address(), Secret :: string() | binary()) ->
 	Result :: ok | {error, Reason :: term()}.
 %% @doc Store the shared secret for a RADIUS client.
 %%
 add_client(Address, Secret) when is_list(Address), is_list(Secret) ->
 	{ok, AddressTuple} = inet_parse:address(Address),
 	add_client(AddressTuple, Secret);
-add_client(Address, Secret) when is_tuple(Address), is_list(Secret) ->
+add_client(Address, Secret) when is_list(Secret) ->
+	F = fun(C)->
+		lists:member(C, "abcdefghijkmnpqrstuvyz23456789")
+	end,
+	case lists:all(F, Secret) of
+		true ->
+			add_client(Address, list_to_binary(Secret));
+		false ->
+			{error, badarg}
+	end;
+add_client(Address, Secret) when is_tuple(Address), is_binary(Secret) ->
 	F = fun() ->
 				R = #radius_client{address = Address, secret = Secret},
 				mnesia:write(R)
