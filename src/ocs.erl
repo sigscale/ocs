@@ -34,24 +34,14 @@
 %%  The ocs public API
 %%----------------------------------------------------------------------
 
--spec add_client(Address :: inet:ip_address(), Secret :: string() | binary()) ->
+-spec add_client(Address :: inet:ip_address(), Secret :: string()) ->
 	Result :: ok | {error, Reason :: term()}.
 %% @doc Store the shared secret for a RADIUS client.
 %%
 add_client(Address, Secret) when is_list(Address), is_list(Secret) ->
 	{ok, AddressTuple} = inet_parse:address(Address),
 	add_client(AddressTuple, Secret);
-add_client(Address, Secret) when is_list(Secret) ->
-	F = fun(C)->
-		lists:member(C, "abcdefghijkmnpqrstuvyz23456789")
-	end,
-	case lists:all(F, Secret) of
-		true ->
-			add_client(Address, list_to_binary(Secret));
-		false ->
-			{error, badarg}
-	end;
-add_client(Address, Secret) when is_tuple(Address), is_binary(Secret) ->
+add_client(Address, Secret) when is_tuple(Address), is_list(Secret) ->
 	F = fun() ->
 				R = #radius_client{address = Address, secret = Secret},
 				mnesia:write(R)
@@ -87,8 +77,18 @@ find_client(Address) when is_tuple(Address) ->
 		Attributes :: binary() | [byte()]) -> ok | {error, Reason :: term()}.
 %% @doc Store the password and static attributes for a subscriber.
 %%
+add_subscriber(Subscriber, Password, Attributes) when is_list(Password) ->
+	F = fun(C)->
+		lists:member(C, "abcdefghijkmnpqrstuvyz23456789")
+	end,
+	case lists:all(F, Password) of
+		true ->
+			add_subscriber(Subscriber, list_to_binary(Password), Attributes);
+		false ->
+			{error, badarg}
+	end;
 add_subscriber(Subscriber, Password, Attributes) when is_list(Subscriber),
-		is_list(Password), (is_list(Attributes) orelse is_binary(Attributes)) -> 
+		is_binary(Password), (is_list(Attributes) orelse is_binary(Attributes)) -> 
 	F = fun() ->
 				R = #subscriber{name = Subscriber, password = Password,
 						attributes = Attributes},
