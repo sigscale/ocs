@@ -155,7 +155,7 @@ wait_for_id({eap_response, EAPPacket} , #statedata{token = Token,
 		eap_id = EapID, radius_id = RadiusID, secret = Secret,
 		radius_fsm = RadiusFsm, authenticator = RequestAuthenticator} = StateData)->
 	{ok, HostName} = inet:gethostname(),
-	S_rand = crypto:rand_bytes(4),
+	S_rand = crypto:rand_uniform(1, ?R),
 	try 
 		EAPData = ocs_eap_codec:eap_packet(EAPPacket),
 		#eap_packet{code = ?Response, identifier = EapID, data = Data} = EAPData,
