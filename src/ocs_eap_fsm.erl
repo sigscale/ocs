@@ -244,7 +244,8 @@ wait_for_commit1(BodyData, #statedata{scalar_s = ScalarS, element_s = ElementS,
 			ExpectedSize ->
 				wait_for_commit2(BodyData, StateData);
 			_ ->
-				send_radius_response(?Failure, NewEAPID, BodyData, ?AccessReject, RadiusID, RequestAuthenticator, Secret, RadiusFsm),
+				send_radius_response(?Failure, NewEAPID, BodyData, ?AccessReject,
+						RadiusID, RequestAuthenticator, Secret, RadiusFsm),
 				{error, exit}
 		end.
 %% @hidden
@@ -253,7 +254,8 @@ wait_for_commit2(BodyData, #statedata{element_p = ElementP, scalar_p = ScalarP, 
 		secret = Secret, authenticator = RequestAuthenticator, eap_id = NewEAPID} = StateData) ->
 	case {ElementP, ScalarP} of
 		{ElementS, ScalarS} ->
-			send_radius_response(?Failure, NewEAPID, BodyData, ?AccessReject, RadiusID, RequestAuthenticator, Secret, RadiusFsm),
+			send_radius_response(?Failure, NewEAPID, BodyData, ?AccessReject,
+					RadiusID, RequestAuthenticator, Secret, RadiusFsm),
 			{error, exit};
 		_ ->
 			wait_for_commit3(BodyData, StateData)
@@ -265,7 +267,8 @@ wait_for_commit3(BodyData, #statedata{scalar_p = ScalarP, radius_fsm = RadiusFsm
 		_ScalarP_Valid when  1 =< ScalarP, ScalarP >= $R ->
 			ok;
 		_ScalarP_Out_of_Range ->
-			send_radius_response(?Failure, NewEAPID, BodyData, ?AccessReject, RadiusID, RequestAuthenticator, Secret, RadiusFsm),
+			send_radius_response(?Failure, NewEAPID, BodyData, ?AccessReject, RadiusID,
+					RequestAuthenticator, Secret, RadiusFsm),
 			{error, exit}
 	end.
 
