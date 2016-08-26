@@ -48,14 +48,14 @@ h(Context, []) ->
 %% @doc Compute Password Element (PWE).
 %% 	RFC5931 section 2.8.3
 compute_pwe(_Token, _PeerIdentity, _ServerIdentity, _Password) ->
-	exit(nif_library_not_loaded).
+	erlang:nif_error(nif_library_not_loaded).
 
 -spec compute_scalar(Random :: binary(), PWE :: binary()) ->
 	{Scalar :: binary(), Element :: binary()}.
 %% @doc Compute Scalar Element.
 %% 	RFC5931 section 2.8.4.1
 compute_scalar(_Random, _PWE) ->
-	exit(nif_library_not_loaded).
+	erlang:nif_error(nif_library_not_loaded).
 
 -spec compute_ks(Random :: binary(), PWE :: binary(),
 		Scalar :: binary(), Element :: binary()) ->
@@ -63,7 +63,7 @@ compute_scalar(_Random, _PWE) ->
 %% @doc Compute Ks.
 %% 	RFC5931 section 2.8.4.1
 compute_ks(_Random, _PWE, _Scalar, _Element) ->
-	exit(nif_library_not_loaded).
+	erlang:nif_error(nif_library_not_loaded).
 
 %%
 %% internal functions
