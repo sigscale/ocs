@@ -326,7 +326,7 @@ wait_for_confirm({eap_response, EAPPacket}, #statedata{radius_id = RadiusID,
 					case MK_S of
 						MK_P ->
 							NewEapID = EapID + 1,
-							Packet = #eap_packet{code = ?Success, identifier = NewEapID},
+							Packet = #eap_packet{code = ?Success, identifier = NewEapID, data = <<>>},
 							EAPPacketData = ocs_eap_codec:eap_packet(Packet),
 							AttributeList0 = radius_attributes:new(),
 							AttributeList1 = radius_attributes:store(?MessageAuthenticator,
@@ -351,7 +351,7 @@ wait_for_confirm({eap_response, EAPPacket}, #statedata{radius_id = RadiusID,
 							{next_state, wait_for_confirm, StateData, ?TIMEOUT};
 						_ ->
 							NewEapID = EapID + 1,
-							Packet = #eap_packet{code = ?Failure, identifier = NewEapID},
+							Packet = #eap_packet{code = ?Failure, identifier = NewEapID, data = <<>>},
 							EAPPacketData = ocs_eap_codec:eap_packet(Packet),
 							AttributeList0 = radius_attributes:new(),
 							AttributeList1 = radius_attributes:store(?MessageAuthenticator,
