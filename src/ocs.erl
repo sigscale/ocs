@@ -73,7 +73,7 @@ find_client(Address) when is_tuple(Address) ->
 			exit(Reason)
 	end.
 
--spec add_subscriber(Subscriber :: string(), Password :: string(),
+-spec add_subscriber(Subscriber :: string(), Password :: string() | binary(),
 		Attributes :: binary() | [byte()]) -> ok | {error, Reason :: term()}.
 %% @doc Store the password and static attributes for a subscriber.
 %%
