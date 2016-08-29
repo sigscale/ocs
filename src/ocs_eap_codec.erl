@@ -102,7 +102,7 @@ eap_pwd(<<?PWD, 0, 0, 1, Payload/binary>>) ->
 	#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = id,
 			data = Payload};
 eap_pwd(<<?PWD, 0, 0, 2, Payload/binary>>) ->
-	#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = confirm,
+	#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = commit,
 			data = Payload};
 eap_pwd(<<?PWD, 0, 0, 3, Payload/binary>>) ->
 	#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = confirm,
