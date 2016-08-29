@@ -432,6 +432,9 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
+-spec send_radius_response(EAPCode :: integer(), NewEAPID :: byte(), EAPData :: binary(),
+		RadiusCode :: integer(), RadiusID :: byte(), RequestAuthenticator :: binary(),
+		Secret :: binary(), RadiusFsm :: pid()) -> ok.
 %% @doc Sends an RADIUS-Access/Challenge packet to peer
 %% @hidden
 send_radius_response(EAPCode, NewEAPID, EAPData, RadiusCode, RadiusID, RequestAuthenticator, Secret, RadiusFsm) ->
