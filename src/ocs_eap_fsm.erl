@@ -153,7 +153,8 @@ wait_for_id(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
 wait_for_id({eap_response, RadiusFsm, EAPPacket} , #statedata{token = Token,
 		eap_id = EapID, radius_id = RadiusID, secret = Secret,
-		authenticator = RequestAuthenticator} = StateData)->
+		authenticator = RequestAuthenticator, grp_dec = GroupDesc, rand_func = RandFun,
+		prf = PRF} = StateData)->
 	{ok, HostName_s} = inet:gethostname(),
 	HostName = list_to_binary(HostName_s),
 	S_rand = crypto:rand_uniform(1, ?R),
@@ -163,7 +164,8 @@ wait_for_id({eap_response, RadiusFsm, EAPPacket} , #statedata{token = Token,
 		EAPHeader = ocs_eap_codec:eap_pwd(Data),
 		#eap_pwd{type = ?PWD, pwd_exch = id, data = BodyData} = EAPHeader,
 		Body = ocs_eap_codec:eap_pwd_id(BodyData),
-		#eap_pwd_id{token = Token, pwd_prep = none, identity = PeerID_s} = Body,
+		#eap_pwd_id{group_desc = GroupDesc, random_fun = RandFun, prf = PRF,
+				 token = Token, pwd_prep = none, identity = PeerID_s} = Body,
 		PeerID = list_to_binary(PeerID_s),
 		PWE = ocs_eap_pwd:compute_pwe(Token, PeerID, HostName, Secret),
 		{ScalarS, ElementS} = ocs_eap_pwd:compute_scalar(<<S_rand:256>>, PWE),
