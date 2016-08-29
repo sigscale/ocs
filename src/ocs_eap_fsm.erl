@@ -315,28 +315,8 @@ wait_for_confirm({eap_response, RadiusFsm, EAPPacket}, #statedata{radius_id = Ra
 							{next_state, wait_for_confirm, StateData, ?TIMEOUT};
 						_ ->
 							NewEapID = EapID + 1,
-							Packet = #eap_packet{code = ?Failure, identifier = NewEapID, data = <<>>},
-							EAPPacketData = ocs_eap_codec:eap_packet(Packet),
-							AttributeList0 = radius_attributes:new(),
-							AttributeList1 = radius_attributes:store(?MessageAuthenticator,
-									<<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, AttributeList0),
-							AttributeList2 = radius_attributes:store(?EAPMessage,
-									EAPPacketData, AttributeList1),
-							AttrList2bin = radius_attributes:codec(AttributeList2),
-							Response1 = #radius{code = ?AccessReject, id = RadiusID,
-								authenticator = RequestAuthenticator, attributes = AttrList2bin},
-							ResponsePacket1 = radius:codec(Response1),
-							MessageAuthenticator = crypto:hmac(md5, Secret, ResponsePacket1),
-							AttributeList3 = radius_attributes:store(?MessageAuthenticator,
-								MessageAuthenticator, AttributeList2),
-							AttributeData = radius_attributes:codec(AttributeList3),
-							Length = size(AttributeData) + 20,
-							ResponseAuthenticator = crypto:hash(md5,[<<?AccessChallenge, RadiusID,
-								Length:16>>, RequestAuthenticator, AttributeData, Secret]),
-							Response = #radius{code = ?AccessAccept, id = RadiusID,
-								authenticator = ResponseAuthenticator, attributes = AttributeData},
-							ResponsePacket = radius:codec(Response),
-							radius:response(RadiusFsm, {response, ResponsePacket}),
+							send_radius_response(?Failure, NewEapID, <<>>, ?AccessReject, RadiusID,
+									RequestAuthenticator, Secret, RadiusFsm),
 							{next_state, wait_for_confirm, StateData, 0}
 				end;
 			{error,exit} ->
