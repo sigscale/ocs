@@ -213,7 +213,7 @@ wait_for_commit({eap_response, RadiusFsm, EAPPacket}, #statedata{radius_id = Rad
 			ok ->
 				Ks = ocs_eap_pwd:compute_ks(<<S_rand:256>>, PWE, ScalarP, ElementP),
 				Input = [<<Ks/binary, ElementS/binary, ScalarS/binary, ElementP/binary,
-						ScalarP/binary, 0, <<GrpDec>>, <<RandomFunc>>, <<PRF>> >>],
+						ScalarP/binary, GrpDec:16, RandomFunc, PRF >>],
 				ConfirmS = ocs_eap_pwd:h(Input),
 				ConfirmBody = #eap_pwd_confirm{confirm = ConfirmS},
 				ConfirmBodyData = ocs_eap_codec:eap_pwd_confirm(ConfirmBody),
