@@ -183,7 +183,7 @@ wait_for_id({eap_response, RadiusFsm, EAPPacket} , #statedata{token = Token,
 	catch
 		_:_ ->
 			radius:response(RadiusFsm, {error, ignore}),
-			{next_state, wait_for_id, StateData, ?TIMEOUT}
+			{next_state, wait_for_id, StateData, 0}
 	end.
 
 -spec wait_for_commit(Event :: timeout | term(), StateData :: #statedata{}) ->
