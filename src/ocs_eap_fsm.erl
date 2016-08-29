@@ -200,8 +200,7 @@ wait_for_id({eap_response, RadiusFsm, EAPPacket} , #statedata{token = Token,
 wait_for_commit(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
 wait_for_commit({eap_response, RadiusFsm, EAPPacket}, #statedata{radius_id = RadiusID, pwe = PWE,
-		element_s = ElementS, scalar_s = ScalarS, scalar_p = ScalarP,
-		element_p = ElementP, authenticator = RequestAuthenticator, secret = Secret,
+		element_s = ElementS, scalar_s = ScalarS, authenticator = RequestAuthenticator, secret = Secret,
 		grp_dec = GrpDec, rand_func = RandomFunc, prf = PRF, s_rand = S_rand} = StateData)->
 	try 
 		#eap_packet{code = ?Response, identifier = EapID, data = Data} = ocs_eap_codec:eap_packet(EAPPacket),
