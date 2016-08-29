@@ -320,7 +320,6 @@ wait_for_confirm({eap_response, RadiusFsm, EAPPacket}, #statedata{radius_id = Ra
 							{next_state, wait_for_confirm, StateData, 0}
 				end;
 			{error,exit} ->
-				radius:response(RadiusFsm, {error, ignore}),
 				{next_state, wait_for_confirm, StateData,0}
 		end
 	catch
