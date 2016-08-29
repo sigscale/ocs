@@ -141,7 +141,7 @@ terminate(_Reason, #state{log = Log} = _State) ->
 %%----------------------------------------------------------------------
 
 -spec response(Id :: byte(), RequestAuthenticator :: [byte()],
-		Secret :: string(), Attributes :: binary() | [byte()]) ->
+		Secret :: string() | binary(), Attributes :: binary() | [byte()]) ->
 	AccessAccept :: binary().
 %% @hidden
 response(Id, RequestAuthenticator, Secret, AttributeList)

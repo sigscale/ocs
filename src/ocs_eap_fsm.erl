@@ -104,7 +104,7 @@ idle(timeout, #statedata{radius_fsm = RadiusFsm, radius_id = RadiusID,
 	EapID = 1,
 	Token = crypto:rand_bytes(4),
 	{ok, HostName} = inet:gethostname(),
-	Body = #eap_pwd_id{group_desc = 19, token = Token,
+	Body = #eap_pwd_id{group_desc = 19, random_fun = 1, prf = 1, token = Token,
 			pwd_prep = none, identity = HostName},
 	BodyData = ocs_eap_codec:eap_pwd_id(Body),
 	Header = #eap_pwd{type = ?PWD, length = false,
@@ -133,8 +133,8 @@ idle(timeout, #statedata{radius_fsm = RadiusFsm, radius_id = RadiusID,
 			authenticator = ResponseAuthenticator, attributes = AttributeData},
 	ResponsePacket = radius:codec(Response),
 	radius:response(RadiusFsm, {response, ResponsePacket}),
-	NewStateData = StateData#statedata{eap_id = EapID,
-			token = Token, prep = none},
+	NewStateData = StateData#statedata{eap_id = EapID, grp_dec = 19,
+			rand_func = 1, prf = 1, token = Token, prep = none},
 	{next_state, wait_for_id, NewStateData, ?TIMEOUT}.
 
 -spec wait_for_id(Event :: timeout | term(), StateData :: #statedata{}) ->
@@ -153,7 +153,8 @@ wait_for_id(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
 wait_for_id({eap_response, RadiusFsm, EAPPacket} , #statedata{token = Token,
 		eap_id = EapID, radius_id = RadiusID, secret = Secret,
-		authenticator = RequestAuthenticator} = StateData)->
+		authenticator = RequestAuthenticator, grp_dec = GroupDesc, rand_func = RandFun,
+		prf = PRF} = StateData)->
 	{ok, HostName_s} = inet:gethostname(),
 	HostName = list_to_binary(HostName_s),
 	S_rand = crypto:rand_uniform(1, ?R),
@@ -163,7 +164,8 @@ wait_for_id({eap_response, RadiusFsm, EAPPacket} , #statedata{token = Token,
 		EAPHeader = ocs_eap_codec:eap_pwd(Data),
 		#eap_pwd{type = ?PWD, pwd_exch = id, data = BodyData} = EAPHeader,
 		Body = ocs_eap_codec:eap_pwd_id(BodyData),
-		#eap_pwd_id{token = Token, pwd_prep = none, identity = PeerID_s} = Body,
+		#eap_pwd_id{group_desc = GroupDesc, random_fun = RandFun, prf = PRF,
+				 token = Token, pwd_prep = none, identity = PeerID_s} = Body,
 		PeerID = list_to_binary(PeerID_s),
 		PWE = ocs_eap_pwd:compute_pwe(Token, PeerID, HostName, Secret),
 		{ScalarS, ElementS} = ocs_eap_pwd:compute_scalar(<<S_rand:256>>, PWE),
@@ -181,7 +183,7 @@ wait_for_id({eap_response, RadiusFsm, EAPPacket} , #statedata{token = Token,
 	catch
 		_:_ ->
 			radius:response(RadiusFsm, {error, ignore}),
-			{next_state, wait_for_id, StateData, ?TIMEOUT}
+			{next_state, wait_for_id, StateData, 0}
 	end.
 
 -spec wait_for_commit(Event :: timeout | term(), StateData :: #statedata{}) ->
@@ -226,7 +228,6 @@ wait_for_commit({eap_response, RadiusFsm, EAPPacket}, #statedata{radius_id = Rad
 						confirm_s = ConfirmS, radius_fsm = RadiusFsm},
 				{next_state, wait_for_confirm, StateData, ?TIMEOUT};
 			{error,exit} ->
-				radius:response(RadiusFsm, {error, ignore}),
 				{next_state, wait_for_commit, StateData,0}
 		end
 	catch
@@ -314,32 +315,11 @@ wait_for_confirm({eap_response, RadiusFsm, EAPPacket}, #statedata{radius_id = Ra
 							{next_state, wait_for_confirm, StateData, ?TIMEOUT};
 						_ ->
 							NewEapID = EapID + 1,
-							Packet = #eap_packet{code = ?Failure, identifier = NewEapID, data = <<>>},
-							EAPPacketData = ocs_eap_codec:eap_packet(Packet),
-							AttributeList0 = radius_attributes:new(),
-							AttributeList1 = radius_attributes:store(?MessageAuthenticator,
-									<<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, AttributeList0),
-							AttributeList2 = radius_attributes:store(?EAPMessage,
-									EAPPacketData, AttributeList1),
-							AttrList2bin = radius_attributes:codec(AttributeList2),
-							Response1 = #radius{code = ?AccessReject, id = RadiusID,
-								authenticator = RequestAuthenticator, attributes = AttrList2bin},
-							ResponsePacket1 = radius:codec(Response1),
-							MessageAuthenticator = crypto:hmac(md5, Secret, ResponsePacket1),
-							AttributeList3 = radius_attributes:store(?MessageAuthenticator,
-								MessageAuthenticator, AttributeList2),
-							AttributeData = radius_attributes:codec(AttributeList3),
-							Length = size(AttributeData) + 20,
-							ResponseAuthenticator = crypto:hash(md5,[<<?AccessChallenge, RadiusID,
-								Length:16>>, RequestAuthenticator, AttributeData, Secret]),
-							Response = #radius{code = ?AccessAccept, id = RadiusID,
-								authenticator = ResponseAuthenticator, attributes = AttributeData},
-							ResponsePacket = radius:codec(Response),
-							radius:response(RadiusFsm, {response, ResponsePacket}),
+							send_radius_response(?Failure, NewEapID, <<>>, ?AccessReject, RadiusID,
+									RequestAuthenticator, Secret, RadiusFsm),
 							{next_state, wait_for_confirm, StateData, 0}
 				end;
 			{error,exit} ->
-				radius:response(RadiusFsm, {error, ignore}),
 				{next_state, wait_for_confirm, StateData,0}
 		end
 	catch
@@ -355,7 +335,8 @@ wait_for_confirm1(BodyData, #statedata{radius_fsm = RadiusFsm, radius_id = Radiu
 			ExpectedSize ->
 				ok;
 			_ ->
-				send_radius_response(?Failure, NewEAPID, BodyData, ?AccessReject, RadiusID, RequestAuthenticator, Secret, RadiusFsm),
+				send_radius_response(?Failure, NewEAPID, BodyData, ?AccessReject, RadiusID,
+						RequestAuthenticator, Secret, RadiusFsm),
 				{error, exit}
 		end.
 
