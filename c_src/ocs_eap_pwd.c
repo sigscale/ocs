@@ -269,6 +269,10 @@ compute_ks_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 		enif_make_existing_atom(env, "enomem", &reason, ERL_NIF_LATIN1);
 		return enif_raise_exception(env, reason);
 	}
+	if (!EC_POINT_is_on_curve(group, element, NULL)) {
+		reason = enif_make_string(env, "point not on curve", ERL_NIF_LATIN1);
+		return enif_raise_exception(env, reason);
+	}
 	if (!EC_POINT_mul(group, k, NULL, pwe, scalar, context)
 			|| !EC_POINT_add(group, k, k, element, context)
 			|| !EC_POINT_mul(group, k, NULL, k, rand, context)
