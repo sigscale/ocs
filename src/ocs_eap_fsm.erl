@@ -356,7 +356,8 @@ wait_for_confirm1(BodyData, #statedata{radius_fsm = RadiusFsm, radius_id = Radiu
 			ExpectedSize ->
 				ok;
 			_ ->
-				send_radius_response(?Failure, NewEAPID, BodyData, ?AccessReject, RadiusID, RequestAuthenticator, Secret, RadiusFsm),
+				send_radius_response(?Failure, NewEAPID, BodyData, ?AccessReject, RadiusID,
+						RequestAuthenticator, Secret, RadiusFsm),
 				{error, exit}
 		end.
 
