@@ -27,8 +27,8 @@
 -compile(export_all).
 
 -include_lib("common_test/include/ct.hrl").
+-include_lib("radius/include/radius.hrl").
 -include("ocs_eap_codec.hrl").
--include("/usr/lib/erlang/lib/radius-1.2/include/radius.hrl").
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
