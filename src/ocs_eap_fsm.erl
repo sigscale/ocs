@@ -223,9 +223,9 @@ wait_for_commit({eap_response, RadiusFsm, EAPPacket}, #statedata{radius_id = Rad
 				NewEAPID = EapID + 1,
 				send_radius_response(?Response, NewEAPID, ConfirmEAPData, ?AccessChallenge,
 						RadiusID, RequestAuthenticator, Secret, RadiusFsm),
-				NewStateData = StateData#statedata{eap_id = NewEAPID, ks = Ks,
+				NewStateData1 = NewStateData#statedata{eap_id = NewEAPID, ks = Ks,
 						confirm_s = ConfirmS, radius_fsm = RadiusFsm},
-				{next_state, wait_for_confirm, NewStateData, ?TIMEOUT};
+				{next_state, wait_for_confirm, NewStateData1, ?TIMEOUT};
 			{error,exit} ->
 				{next_state, wait_for_commit, StateData,0}
 		end
