@@ -177,7 +177,7 @@ wait_for_id({eap_response, RadiusFsm, EAPPacket} , #statedata{token = Token,
 		NewEAPID = EapID + 1,
 		send_radius_response(?Request, NewEAPID, CommitEAPData, ?AccessChallenge, RadiusID,
 				RequestAuthenticator, Secret, RadiusFsm),
-		NewStateData = StateData#statedata{pwe = PWE, s_rand = S_rand, peer_id = PeerID,
+		NewStateData = StateData#statedata{pwe = PWE, s_rand = S_rand, peer_id = PeerID_s,
 			eap_id = NewEAPID, scalar_s = ScalarS, element_s = ElementS, radius_fsm = RadiusFsm},
 		{next_state, wait_for_commit, NewStateData, ?TIMEOUT}
 	catch
