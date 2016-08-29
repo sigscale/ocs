@@ -34,14 +34,16 @@
 %%  The ocs public API
 %%----------------------------------------------------------------------
 
--spec add_client(Address :: inet:ip_address(), Secret :: string()) ->
+-spec add_client(Address :: inet:ip_address(), Secret :: string() | binary()) ->
 	Result :: ok | {error, Reason :: term()}.
 %% @doc Store the shared secret for a RADIUS client.
 %%
-add_client(Address, Secret) when is_list(Address), is_list(Secret) ->
+add_client(Address, Secret) when is_list(Secret) ->
+	add_client(Address, list_to_binary(Secret));
+add_client(Address, Secret) when is_list(Address) ->
 	{ok, AddressTuple} = inet_parse:address(Address),
 	add_client(AddressTuple, Secret);
-add_client(Address, Secret) when is_tuple(Address), is_list(Secret) ->
+add_client(Address, Secret) when is_tuple(Address), is_binary(Secret) ->
 	F = fun() ->
 				R = #radius_client{address = Address, secret = Secret},
 				mnesia:write(R)
@@ -54,7 +56,7 @@ add_client(Address, Secret) when is_tuple(Address), is_list(Secret) ->
 	end.
 
 -spec find_client(Address :: inet:ip_address()) ->
-	Result :: {ok, Secret :: string()} | error.
+	Result :: {ok, Secret :: binary()} | error.
 %% @doc Look up the shared secret for a RADIUS client.
 %%
 find_client(Address) when is_list(Address) ->
