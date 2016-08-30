@@ -91,7 +91,8 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[eap_id_request_response, eap_commit_request_response, eap_confirm_request_response].
+	[eap_id_request_response, eap_commit_request_response, eap_confirm_request_response,
+	unknown_authenticator].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -374,6 +375,37 @@ eap_confirm_request_response(Config) ->
 	{ok, SucEAPPacket} = radius_attributes:find(?EAPMessage, SucReqAtt),
 	#eap_packet{code = ?Success, identifier = _EAPId, data = <<>>} =
 		ocs_eap_codec:eap_packet(SucEAPPacket).
+
+unknown_authenticator() ->
+	[{userdata, [{doc, "Unauthorised access request"}]}].
+
+unknown_authenticator(Config) ->
+	Id = 4,
+	PeerID = "peer4@sigscale",
+	AuthAddress = ct:get_config(radius_auth_addr),
+	AuthPort = ct:get_config(radius_auth_port),
+	Socket = ?config(socket, Config),
+	UserName = ct:get_config(radius_username),
+	SharedSecret = "bogus",
+	Authenticator = radius:authenticator(SharedSecret, Id),
+	IDReqAttributeList0 = radius_attributes:new(),
+	IDReqAttributeList1 = radius_attributes:store(?UserName, UserName, IDReqAttributeList0),
+	IDReqAttributeList2 = radius_attributes:store(?NasIdentifier, "tomba3", IDReqAttributeList1),
+	IDReqAttributeList3 = radius_attributes:store(?NasPortId,"wlan3", IDReqAttributeList2),
+	IDReqAttributeList4 = radius_attributes:store(?CallingStationId,"de:ad:be:ef:ca:fe", IDReqAttributeList3),
+	IDReqAttributeList5 = radius_attributes:store(?MessageAuthenticator,
+		list_to_binary(lists:duplicate(16,0)), IDReqAttributeList4),
+	IDRequest1 = #radius{code = ?AccessRequest, id = Id, authenticator = Authenticator,
+		attributes = IDReqAttributeList5},
+	IDRequestPacket1 = radius:codec(IDRequest1),
+	IDMsgAuth = crypto:hmac(md5, SharedSecret, IDRequestPacket1),
+	IDReqAttributeList6 = radius_attributes:store(?MessageAuthenticator, IDMsgAuth, IDReqAttributeList5),
+	IDRequest2 = #radius{code = ?AccessRequest, id = Id, authenticator = Authenticator,
+		attributes = IDReqAttributeList6},
+	IDRequestPacket2 = radius:codec(IDRequest2),
+	ok = gen_udp:send(Socket, AuthAddress, AuthPort, IDRequestPacket2),
+	{error, ignore} = gen_udp:recv(Socket, 0).
+
 
 %%---------------------------------------------------------------------
 %%  Internal functions
