@@ -297,27 +297,24 @@ wait_for_confirm({eap_response, RadiusFsm, EAPPacket}, #statedata{radius_id = Ra
 		#eap_pwd_confirm{confirm = ConfirmP} = Body,
 		case 	wait_for_confirm1(BodyData, StateData) of
 			ok ->
+				NewEapID = EapID + 1,
 				{ok, HostName_s} = inet:gethostname(),
 				HostName = list_to_binary(HostName_s),
 				P_rand = crypto:rand_uniform(1, ?R),
 				P_rand_bin = <<P_rand:256>>,
 				PeerID_bin = list_to_binary(PeerID),
 				P_pwe = ocs_eap_pwd:compute_pwe(Token, PeerID_bin, HostName, Secret),
-				Kp = ocs_eap_pwd:compute_ks(P_rand_bin, P_pwe, ScalarS, ElementS),  
-				MK_S = ocs_eap_pwd:h([Ks, ConfirmP, ConfirmS]),
-				MK_P = ocs_eap_pwd:h([Kp, ConfirmP, ConfirmS]),
-					case MK_S of
-						MK_P ->
-							NewEapID = EapID + 1,
-							send_radius_response(?Success, NewEapID, <<>>, ?AccessAccept, RadiusID,
-									RequestAuthenticator, Secret, RadiusFsm),
-							{next_state, wait_for_confirm, StateData, ?TIMEOUT};
-						_ ->
-							NewEapID = EapID + 1,
-							send_radius_response(?Failure, NewEapID, <<>>, ?AccessReject, RadiusID,
-									RequestAuthenticator, Secret, RadiusFsm),
-							{next_state, wait_for_confirm, StateData, 0}
-				end;
+				try
+					_Kp = ocs_eap_pwd:compute_ks(P_rand_bin, P_pwe, ScalarS, ElementS)
+				catch
+					_:_ ->
+						send_radius_response(?Failure, NewEapID, <<>>, ?AccessReject, RadiusID,
+								RequestAuthenticator, Secret, RadiusFsm),
+						{next_state, wait_for_confirm, StateData, 0}
+				end,
+				send_radius_response(?Success, NewEapID, <<>>, ?AccessAccept, RadiusID,
+						RequestAuthenticator, Secret, RadiusFsm),
+				{next_state, wait_for_confirm, StateData, ?TIMEOUT};
 			{error,exit} ->
 				{next_state, wait_for_confirm, StateData,0}
 		end
