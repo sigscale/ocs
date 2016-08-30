@@ -1,5 +1,6 @@
 [{ocs,
-		[{rest_port, 8080}, {rest_trace, "webmachine/trace"},
+		[{radius_auth_port, 9912}, {radius_acct_port, 9913},
+		{rest_port, 8080}, {rest_trace, "webmachine/trace"},
 		{rest_username, "ct"}, {rest_password, "ct123" },
 		{rest_key, "%APP_PRIV%localhost.key"},
 		{rest_crt, "%APP_PRIV%localhost.crt"}]},
