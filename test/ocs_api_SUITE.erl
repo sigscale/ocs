@@ -86,11 +86,21 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[].
+	[client].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
+
+client() ->
+	[{userdata, [{doc, "Add radius_client to database"}]}].
+
+client(Config) ->
+	Address = ct:get_config(radius_auth_addr),
+	SharedSecret = ct:get_config(radius_shared_scret, Config),
+	ok = ocs:add_client(Address, SharedSecret),
+	{ok, BinSharedSecret} = ocs:find_client(Address),
+	SharedSecret = binary_to_list(BinSharedSecret).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
