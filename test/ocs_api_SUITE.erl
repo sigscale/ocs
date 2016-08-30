@@ -86,7 +86,7 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[client].
+	[client, subscriber].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -101,6 +101,20 @@ client(Config) ->
 	ok = ocs:add_client(Address, SharedSecret),
 	{ok, BinSharedSecret} = ocs:find_client(Address),
 	SharedSecret = binary_to_list(BinSharedSecret).
+
+subscriber() ->
+	[{userdata, [{doc, "Add subscriber to database"}]}].
+
+subscriber(_Config) ->
+	Attribute0 = radius_attributes:new(),
+	Attribute1 = radius_attributes:store(?NasPortId,"wlan0", Attribute0),
+	Attribute2 = radius_attributes:store(?NasPortId,"wlan2", Attribute0),
+	BinAttribute1 = radius_attributes:codec(Attribute1),
+	BinAttribute2 = radius_attributes:codec(Attribute2),
+	ok = ocs:add_subscriber("tomba", "abcd234", BinAttribute1),
+	ok = ocs:add_subscriber("android", "vyz789", BinAttribute2),
+	{ok, <<"abcd234">>, BinAttribute1} = ocs:find_subscriber("tomba"),
+	{ok, <<"vyz789">>, BinAttribute2} = ocs:find_subscriber("android").
 
 %%---------------------------------------------------------------------
 %%  Internal functions
