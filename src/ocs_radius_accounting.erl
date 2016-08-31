@@ -121,7 +121,7 @@ request(<<_Code, Id, Length:16, _/binary>> = Packet, Secret,
 		Authenticator = binary_to_list(Hash),
 		case disk_log:log(Log, Attributes) of
 			ok ->
-				response(Id, Authenticator, Secret, []);
+				{ok, response(Id, Authenticator, Secret, [])};
 			{error, _Reason} ->
 				{error, ignore}
 		end
