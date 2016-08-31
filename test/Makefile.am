@@ -5,6 +5,7 @@
 testmods = ocs_api_SUITE \
 			ocs_codec_eap_SUITE \
 			ocs_eap_SUITE \
+			ocs_accounting_SUITE \
 			ocs_lib
 
 check_DATA = .dialyzer_ok .common_test_ok
