@@ -47,7 +47,6 @@
 		prf = 1 :: byte(),
 		authenticator :: binary(),
 		secret :: binary(),
-		password :: binary(),
 		radius_fsm :: pid(),
 		token :: binary(),
 		prep :: none | rfc2759 | saslprep,
