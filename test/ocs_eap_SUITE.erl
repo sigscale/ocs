@@ -92,7 +92,7 @@ sequences() ->
 %%
 all() -> 
 	[eap_id_request_response, eap_commit_request_response, eap_confirm_request_response,
-	unknown_authenticator, invalid_id_response_eap_packet].
+	unknown_authenticator, invalid_id_response_eap_packet, invalid_id_response_eap_pwd].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -472,6 +472,69 @@ invalid_id_response_eap_packet(Config) ->
 	ok = gen_udp:send(Socket, AuthAddress, AuthPort, IDResPacket2),
 	{error, ignore} = gen_udp:recv(Socket, 0).
 
+invalid_id_response_eap_pwd() ->
+	[{userdata, [{doc, "Send invalid eap packet data"}]}].
+
+invalid_id_response_eap_pwd(Config) ->
+	Id = 6,
+	PeerID = "peer6@sigscale",
+	AuthAddress = ct:get_config(radius_auth_addr),
+	AuthPort = ct:get_config(radius_auth_port),
+	Socket = ?config(socket, Config),
+	UserName = ct:get_config(radius_username),
+	SharedSecret = ct:get_config(radius_shared_scret),
+	Authenticator = radius:authenticator(SharedSecret, Id),
+	IDReqAttributeList0 = radius_attributes:new(),
+	IDReqAttributeList1 = radius_attributes:store(?UserName, UserName, IDReqAttributeList0),
+	IDReqAttributeList2 = radius_attributes:store(?NasIdentifier, "tomba6", IDReqAttributeList1),
+	IDReqAttributeList3 = radius_attributes:store(?NasPortId,"wlan6", IDReqAttributeList2),
+	IDReqAttributeList4 = radius_attributes:store(?CallingStationId,"de:ad:be:ef:ca:fe", IDReqAttributeList3),
+	IDReqAttributeList5 = radius_attributes:store(?MessageAuthenticator,
+		list_to_binary(lists:duplicate(16,0)), IDReqAttributeList4),
+	IDRequest1 = #radius{code = ?AccessRequest, id = Id, authenticator = Authenticator,
+		attributes = IDReqAttributeList5},
+	IDRequestPacket1 = radius:codec(IDRequest1),
+	IDMsgAuth = crypto:hmac(md5, SharedSecret, IDRequestPacket1),
+	IDReqAttributeList6 = radius_attributes:store(?MessageAuthenticator, IDMsgAuth, IDReqAttributeList5),
+	IDRequest2 = #radius{code = ?AccessRequest, id = Id, authenticator = Authenticator,
+		attributes = IDReqAttributeList6},
+	IDRequestPacket2 = radius:codec(IDRequest2),
+	ok = gen_udp:send(Socket, AuthAddress, AuthPort, IDRequestPacket2),
+	{ok, {AuthAddress, AuthPort, IdReqPacket}} = gen_udp:recv(Socket, 0),
+	#radius{code = ?AccessChallenge, id = Id, authenticator = _IDReqAuthenticator,
+		attributes = BinIDReqAttributes} = radius:codec(IdReqPacket),
+	IDReqAttributes = radius_attributes:codec(BinIDReqAttributes),
+	{ok, IDEAPPacket} = radius_attributes:find(?EAPMessage, IDReqAttributes),
+	#eap_packet{code = ?Request, identifier = IDEAPId, data = IDData} =
+		ocs_eap_codec:eap_packet(IDEAPPacket),
+	#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = id,
+		data = IDReqData} = ocs_eap_codec:eap_pwd(IDData),
+	#eap_pwd_id{group_desc = 19, random_fun = 16#1, prf = 16#1, token = Token,
+		pwd_prep = none, identity = _ServerID} = ocs_eap_codec:eap_pwd_id(IDReqData),
+	IDRespBody = #eap_pwd_id{token = Token, pwd_prep = none, identity = PeerID},
+	IDRespBodyData = ocs_eap_codec:eap_pwd_id(IDRespBody),
+	InvalidPWD = #eap_pwd{type = 4545, length = false, more = false, pwd_exch = id,
+		data = IDRespBodyData},
+	IDEAPData = ocs_eap_codec:eap_pwd(InvalidPWD),
+	IDResEAPPacket = #eap_packet{code = ?Response, identifier = IDEAPId, data = IDEAPData},
+	IDEAPPacketData = ocs_eap_codec:eap_packet(IDResEAPPacket),
+	IDRespAttributeList1 = radius_attributes:store(?EAPMessage, IDEAPPacketData, IDReqAttributeList5),
+	Authenticator2 = radius:authenticator(SharedSecret, 2),
+	IDResponse1 = #radius{code = ?AccessRequest, id = 2,  authenticator = Authenticator2,
+		attributes = IDRespAttributeList1},
+	IDResPacket1 = radius:codec(IDResponse1),
+	IDRespMsgAuth = crypto:hmac(md5, SharedSecret, IDResPacket1),
+	IDRspAttributeList3 = radius_attributes:store(?MessageAuthenticator,
+		IDRespMsgAuth, IDRespAttributeList1),
+	IDResPacket1 = radius:codec(IDResponse1),
+	IDRespMsgAuth = crypto:hmac(md5, SharedSecret, IDResPacket1),
+	IDRspAttributeList3 = radius_attributes:store(?MessageAuthenticator,
+		IDRespMsgAuth, IDRespAttributeList1),
+	IDResponse2 = #radius{code = ?AccessRequest, id = 2, authenticator = Authenticator2,
+		attributes = IDRspAttributeList3},
+	IDResPacket2 = radius:codec(IDResponse2),
+	ok = gen_udp:send(Socket, AuthAddress, AuthPort, IDResPacket2),
+	{error, ignore} = gen_udp:recv(Socket, 0).
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
