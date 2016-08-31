@@ -120,23 +120,25 @@ ecc_computations() ->
 	[{userdata, [{doc, "Check ECC computations"}]}].
 
 ecc_computations(_Config) ->
-Password = <<"Secret">>,
-S_rand = crypto:rand_uniform(1, ?R),
-P_rand = crypto:rand_uniform(1, ?R),
-P_rand_bin = <<P_rand:256>>,
-S_rand_bin = <<S_rand:256>>,
-Token = crypto:rand_bytes(4),
-S_pwe = ocs_eap_pwd:compute_pwe(Token, <<"Peer">>, <<"Server">>, Password),
-P_pwe = ocs_eap_pwd:compute_pwe(Token, <<"Peer">>, <<"Server">>, Password),
-{S_scalar, S_element} = ocs_eap_pwd:compute_scalar(S_rand_bin, S_pwe),
-{P_scalar, P_element} = ocs_eap_pwd:compute_scalar(P_rand_bin, P_pwe),
-Ks = ocs_eap_pwd:compute_ks(S_rand_bin, S_pwe, P_scalar, P_element),
-Kp = ocs_eap_pwd:compute_ks(P_rand_bin, P_pwe, S_scalar, S_element),  
-S_confirm = ocs_eap_pwd:h([Ks, S_element, S_scalar, P_element, P_scalar, <<19:16>>, <<16#1>>, <<16#1>>]),
-P_confirm = ocs_eap_pwd:h([Kp, P_element, P_scalar, S_element, S_scalar, <<19:16>>, <<16#1>>, <<16#1>>]),
-MK_S = ocs_eap_pwd:h([Ks, P_confirm, S_confirm]),
-MK_P = ocs_eap_pwd:h([Kp, P_confirm, S_confirm]),
-MK_P = MK_S.
+	Password = <<"Secret">>,
+	S_rand = crypto:rand_uniform(1, ?R),
+	P_rand = crypto:rand_uniform(1, ?R),
+	P_rand_bin = <<P_rand:256>>,
+	S_rand_bin = <<S_rand:256>>,
+	Token = crypto:rand_bytes(4),
+	S_pwe = ocs_eap_pwd:compute_pwe(Token, <<"Peer">>, <<"Server">>, Password),
+	P_pwe = ocs_eap_pwd:compute_pwe(Token, <<"Peer">>, <<"Server">>, Password),
+	{S_scalar, S_element} = ocs_eap_pwd:compute_scalar(S_rand_bin, S_pwe),
+	{P_scalar, P_element} = ocs_eap_pwd:compute_scalar(P_rand_bin, P_pwe),
+	Ks = ocs_eap_pwd:compute_ks(S_rand_bin, S_pwe, P_scalar, P_element),
+	Kp = ocs_eap_pwd:compute_ks(P_rand_bin, P_pwe, S_scalar, S_element),  
+	S_confirm = ocs_eap_pwd:h([Ks, S_element, S_scalar, P_element, P_scalar,
+		<<19:16>>, <<16#1>>, <<16#1>>]),
+	P_confirm = ocs_eap_pwd:h([Kp, P_element, P_scalar, S_element, S_scalar,
+		<<19:16>>, <<16#1>>, <<16#1>>]),
+	MK_S = ocs_eap_pwd:h([Ks, P_confirm, S_confirm]),
+	MK_P = ocs_eap_pwd:h([Kp, P_confirm, S_confirm]),
+	MK_P = MK_S.
 
 eap_id_request() ->
 	[{userdata, [{doc, "Send an EAP-PWD-ID request to peer"}]}].
