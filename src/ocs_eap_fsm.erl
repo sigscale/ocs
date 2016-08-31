@@ -286,8 +286,7 @@ wait_for_confirm(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
 wait_for_confirm({eap_response, RadiusFsm, EAPPacket}, #statedata{radius_id = RadiusID,
 		authenticator = RequestAuthenticator, secret = Secret, peer_id = PeerID, token = Token,
-		confirm_s = ConfirmS, element_s = ElementS, scalar_s = ScalarS, ks = Ks,
-		eap_id = EapID} = StateData)->
+		element_s = ElementS, scalar_s = ScalarS, eap_id = EapID} = StateData)->
 	try
 		EAPData = ocs_eap_codec:eap_packet(EAPPacket),
 		#eap_packet{code = ?Response, identifier = EapID, data = Data} = EAPData,
