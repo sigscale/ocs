@@ -61,8 +61,7 @@ init_per_suite(Config) ->
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
-	ok = application:stop(ocs),
-	ok = application:stop(radius),
+	ok = ocs_lib:stop(),
 	Config.
 
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].

@@ -2,7 +2,7 @@
 %%%
 -module(ocs_lib).
 
--export([initialize_db/0, start/0]).
+-export([initialize_db/0, start/0, stop/0]).
 
 initialize_db() ->
 	case mnesia:system_info(is_running) of
@@ -39,8 +39,20 @@ start() ->
 				{error, Reason} ->
 					{error, Reason}
 			end;
-		{error, {already_started, _}} ->
-			ok;
 		{error, Reason} ->
 			{error, Reason}
 	end.
+
+stop() ->
+	case application:stop(ocs) of
+		ok ->
+			case application:stop(radius) of
+				ok ->
+					ok;
+				{error, Reason} ->
+					{error, Reason}
+			end;
+		{error, Reason} ->
+			{error, Reason}
+	end.
+
