@@ -513,7 +513,7 @@ invalid_id_response_eap_pwd(Config) ->
 		pwd_prep = none, identity = _ServerID} = ocs_eap_codec:eap_pwd_id(IDReqData),
 	IDRespBody = #eap_pwd_id{token = Token, pwd_prep = none, identity = PeerID},
 	IDRespBodyData = ocs_eap_codec:eap_pwd_id(IDRespBody),
-	InvalidPWD = #eap_pwd{type = 4545, length = false, more = false, pwd_exch = id,
+	InvalidPWD = #eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = commit,
 		data = IDRespBodyData},
 	IDEAPData = ocs_eap_codec:eap_pwd(InvalidPWD),
 	IDResEAPPacket = #eap_packet{code = ?Response, identifier = IDEAPId, data = IDEAPData},
