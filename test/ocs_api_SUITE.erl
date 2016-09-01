@@ -74,7 +74,7 @@ init_per_testcase(_TestCase, Config) ->
 %%
 end_per_testcase(_TestCase, Config) ->
 	Socket = ?config(socket, Config),
-	Config.
+	ok =  gen_udp:close(Socket).
 
 -spec sequences() -> Sequences :: [{SeqName :: atom(), Testcases :: [atom()]}].
 %% Group test cases into a test sequence.
