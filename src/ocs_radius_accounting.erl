@@ -118,7 +118,7 @@ request(<<_Code, Id, Length:16, _/binary>> = Packet, Secret,
 		{ok, _AcctSessionId} = radius_attributes:find(?AcctSessionId, Attributes),
 		Hash = erlang:md5([<<?AccountingRequest, Id, Length:16, 0:128>>,
 				BinaryAttributes, Secret]),
-		Authenticator1 = list_to_binary(Hash),
+		Authenticator1 = binary_to_list(Hash),
 		case disk_log:log(Log, Attributes) of
 			ok ->
 				{ok, response(Id, Authenticator1, Secret, [])};
