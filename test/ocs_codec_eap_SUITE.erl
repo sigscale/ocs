@@ -27,7 +27,6 @@
 -compile(export_all).
 
 -include_lib("common_test/include/ct.hrl").
--include_lib("radius/include/radius.hrl").
 -include("ocs_eap_codec.hrl").
 
 %%---------------------------------------------------------------------
@@ -44,14 +43,12 @@ suite() ->
 %% Initiation before the whole suite.
 %%
 init_per_suite(Config) ->
-	ok = application:start(radius),
 	Config.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
-	ok = application:stop(radius),
 	Config.
 
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
