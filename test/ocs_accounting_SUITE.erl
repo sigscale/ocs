@@ -41,16 +41,16 @@
 suite() ->
 	[{userdata, [{doc, ""}]},
 	{require, radius_shared_scret},{default_config, radius_shared_scret, "abc345"},
-	{require, radius_acct_addr}, {default_config, radius_acct_addr, {127,0,0,1}},
-	{require, radius_acct_port}, {default_config, radius_acct_port, 9913},
-	{require, radius_auth_port}, {default_config, radius_auth_port, 8613},
+	{require, ocs_acct_addr}, {default_config, ocs_acct_addr, {127,0,0,1}},
+	{require, ocs_acct_port}, {default_config, ocs_acct_port, 1813},
+	{require, ocs_auth_port}, {default_config, ocs_auth_port, 1812},
 	{timetrap, {minutes, 1}}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
 %% Initiation before the whole suite.
 %%
 init_per_suite(Config) ->
-	AuthAddress = ct:get_config(radius_acct_addr),
+	AuthAddress = ct:get_config(ocs_acct_addr),
 	SharedSecret = ct:get_config(radius_shared_scret),
 	ok = ocs_lib:initialize_db(),
 	ok = ocs_lib:start(),
@@ -98,8 +98,8 @@ radius_accouting() ->
 radius_accouting(Config) ->
 	Id = 1,
 	PeerID = "simon@sigscale",
-	AuthAddress = ct:get_config(radius_acct_addr),
-	AuthPort = ct:get_config(radius_auth_port),
+	AuthAddress = ct:get_config(ocs_acct_addr),
+	AuthPort = ct:get_config(ocs_auth_port),
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, AuthAddress}, binary]), 
 	UserName = "simoon",
 	SharedSecret = ct:get_config(radius_shared_scret),

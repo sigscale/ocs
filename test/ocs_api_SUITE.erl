@@ -41,8 +41,8 @@
 suite() ->
 	[{userdata, [{doc, "This suite tests the application's API."}]},
 	{require, radius_shared_scret},{default_config, radius_shared_scret, "abc345"},
-	{require, radius_auth_addr}, {default_config, radius_auth_addr, {127,0,0,1}},
-	{require, radius_auth_port}, {default_config, radius_auth_port, 9912},
+	{require, ocs_auth_addr}, {default_config, ocs_auth_addr, {127,0,0,1}},
+	{require, ocs_auth_port}, {default_config, ocs_auth_port, 1812},
 	{timetrap, {minutes, 1}}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
@@ -64,7 +64,7 @@ end_per_suite(Config) ->
 %% Initiation before each test case.
 %%
 init_per_testcase(_TestCase, Config) ->
-	IP = ct:get_config(radius_auth_addr),
+	IP = ct:get_config(ocs_auth_addr),
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, IP}, binary]),
 	[{socket, Socket} | Config].
 
@@ -95,7 +95,7 @@ client() ->
 	[{userdata, [{doc, "Add radius_client to database"}]}].
 
 client(Config) ->
-	Address = ct:get_config(radius_auth_addr),
+	Address = ct:get_config(ocs_auth_addr),
 	SharedSecret = ct:get_config(radius_shared_scret, Config),
 	ok = ocs:add_client(Address, SharedSecret),
 	{ok, BinSharedSecret} = ocs:find_client(Address),

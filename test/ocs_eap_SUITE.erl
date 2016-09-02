@@ -43,15 +43,15 @@ suite() ->
 	{timetrap, {minutes, 1}},
 	{require, radius_username}, {default_config, radius_username, "ocs"},
 	{require, radius_password}, {default_config, radius_password, "ocs123"},
-	{require, radius_auth_port}, {default_config, radius_auth_port, 8613},
-	{require, radius_auth_addr}, {default_config, radius_auth_addr, {127,0,0,1}},
+	{require, ocs_auth_port}, {default_config, ocs_auth_port, 1812},
+	{require, ocs_auth_addr}, {default_config, ocs_auth_addr, {127,0,0,1}},
 	{require, radius_shared_scret},{default_config, radius_shared_scret, "xyzzy5461"}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
 %% Initiation before the whole suite.
 %%
 init_per_suite(Config) ->
-	AuthAddress = ct:get_config(radius_auth_addr),
+	AuthAddress = ct:get_config(ocs_auth_addr),
 	SharedSecret = ct:get_config(radius_shared_scret),
 	ok = ocs_lib:initialize_db(),
 	ok = ocs_lib:start(),
@@ -69,7 +69,7 @@ end_per_suite(Config) ->
 %% Initiation before each test case.
 %%
 init_per_testcase(_TestCase, Config) ->
-	IP = ct:get_config(radius_auth_addr),
+	IP = ct:get_config(ocs_auth_addr),
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, IP}, binary]),
 	[{socket, Socket} | Config].
 
@@ -101,8 +101,8 @@ eap_id_request_response() ->
 
 eap_id_request_response(Config) ->
 	Id = 0,
-	AuthAddress = ct:get_config(radius_auth_addr),
-	AuthPort = ct:get_config(radius_auth_port),
+	AuthAddress = ct:get_config(ocs_auth_addr),
+	AuthPort = ct:get_config(ocs_auth_port),
 	Socket = ?config(socket, Config), 
 	UserName = ct:get_config(radius_username),
 	SharedSecret = ct:get_config(radius_shared_scret),
@@ -140,8 +140,8 @@ eap_commit_request_response() ->
 eap_commit_request_response(Config) ->
 	Id = 1,
 	PeerID = "peer1@sigscale",
-	AuthAddress = ct:get_config(radius_auth_addr),
-	AuthPort = ct:get_config(radius_auth_port),
+	AuthAddress = ct:get_config(ocs_auth_addr),
+	AuthPort = ct:get_config(ocs_auth_port),
 	Socket = ?config(socket, Config), 
 	UserName = ct:get_config(radius_username),
 	SharedSecret = ct:get_config(radius_shared_scret),
@@ -241,8 +241,8 @@ eap_confirm_request_response() ->
 eap_confirm_request_response(Config) ->
 	Id = 1,
 	PeerID = "peer2@sigscale",
-	AuthAddress = ct:get_config(radius_auth_addr),
-	AuthPort = ct:get_config(radius_auth_port),
+	AuthAddress = ct:get_config(ocs_auth_addr),
+	AuthPort = ct:get_config(ocs_auth_port),
 	Socket = ?config(socket, Config),
 	UserName = ct:get_config(radius_username),
 	SharedSecret = ct:get_config(radius_shared_scret),
@@ -381,8 +381,8 @@ unknown_authenticator() ->
 unknown_authenticator(Config) ->
 	Id = 4,
 	PeerID = "peer4@sigscale",
-	AuthAddress = ct:get_config(radius_auth_addr),
-	AuthPort = ct:get_config(radius_auth_port),
+	AuthAddress = ct:get_config(ocs_auth_addr),
+	AuthPort = ct:get_config(ocs_auth_port),
 	Socket = ?config(socket, Config),
 	UserName = ct:get_config(radius_username),
 	SharedSecret = "bogus",
@@ -411,8 +411,8 @@ invalid_id_response_eap_packet() ->
 invalid_id_response_eap_packet(Config) ->
 	Id = 5,
 	PeerID = "peer5@sigscale",
-	AuthAddress = ct:get_config(radius_auth_addr),
-	AuthPort = ct:get_config(radius_auth_port),
+	AuthAddress = ct:get_config(ocs_auth_addr),
+	AuthPort = ct:get_config(ocs_auth_port),
 	Socket = ?config(socket, Config),
 	UserName = ct:get_config(radius_username),
 	SharedSecret = ct:get_config(radius_shared_scret),
@@ -477,8 +477,8 @@ invalid_id_response_eap_pwd() ->
 invalid_id_response_eap_pwd(Config) ->
 	Id = 6,
 	PeerID = "peer6@sigscale",
-	AuthAddress = ct:get_config(radius_auth_addr),
-	AuthPort = ct:get_config(radius_auth_port),
+	AuthAddress = ct:get_config(ocs_auth_addr),
+	AuthPort = ct:get_config(ocs_auth_port),
 	Socket = ?config(socket, Config),
 	UserName = ct:get_config(radius_username),
 	SharedSecret = ct:get_config(radius_shared_scret),
