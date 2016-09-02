@@ -401,7 +401,7 @@ unknown_authenticator(Config) ->
 		attributes = IDReqAttributeList6},
 	IDRequestPacket2 = radius:codec(IDRequest2),
 	ok = gen_udp:send(Socket, AuthAddress, AuthPort, IDRequestPacket2),
-	{error, ignore} = gen_udp:recv(Socket, 0).
+	{error, timeout} = gen_udp:recv(Socket, 0, 2000).
 
 invalid_id_response_eap_packet() ->
 	[{userdata, [{doc, "Send invalid eap packet"}]}].
@@ -467,7 +467,7 @@ invalid_id_response_eap_packet(Config) ->
 		attributes = IDRspAttributeList3},
 	IDResPacket2 = radius:codec(IDResponse2),
 	ok = gen_udp:send(Socket, AuthAddress, AuthPort, IDResPacket2),
-	{error, ignore} = gen_udp:recv(Socket, 0).
+	{error, timeout} = gen_udp:recv(Socket, 0, 2000).
 
 invalid_id_response_eap_pwd() ->
 	[{userdata, [{doc, "Send invalid eap packet data"}]}].
@@ -531,7 +531,7 @@ invalid_id_response_eap_pwd(Config) ->
 		attributes = IDRspAttributeList3},
 	IDResPacket2 = radius:codec(IDResponse2),
 	ok = gen_udp:send(Socket, AuthAddress, AuthPort, IDResPacket2),
-	{error, ignore} = gen_udp:recv(Socket, 0).
+	{error, timeout} = gen_udp:recv(Socket, 0, 2000).
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
