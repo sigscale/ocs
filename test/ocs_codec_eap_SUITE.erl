@@ -73,25 +73,13 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[decode_packet, encode_packet, encode_eap_id, ecc_computations,
+	[encode_eap_id, ecc_computations,
 	ecc_computations_diff_shared_key, ecc_computations_invalid_curve_point].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
 
-decode_packet() ->
-	[{userdata, [{doc, "Decode an EAP packet"}]}].
-
-decode_packet(_Config) ->
-	ct:fail(not_implemented).
-
-encode_packet() ->
-	[{userdata, [{doc, "Encode an EAP packet"}]}].
-
-encode_packet(_Config) ->
-	ct:fail(not_implemented).
-	
 encode_eap_id() ->
 	[{userdata, [{doc, "Encode an EAP-ID/request packet"}]}].
 
@@ -186,9 +174,6 @@ ecc_computations_invalid_curve_point(_Config) ->
 	MK_S = ocs_eap_pwd:h([Ks, P_confirm, S_confirm]),
 	MK_P = ocs_eap_pwd:h([Kp, P_confirm, S_confirm]),
 	MK_P /= MK_S.
-
-eap_id_request() ->
-	[{userdata, [{doc, "Send an EAP-PWD-ID request to peer"}]}].
 
 %%---------------------------------------------------------------------
 %%  Internal functions
