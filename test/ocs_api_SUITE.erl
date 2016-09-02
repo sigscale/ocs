@@ -94,7 +94,7 @@ client() ->
 
 client(Config) ->
 	{ok, Address} = application:get_env(ocs, radius_auth_addr),
-	SharedSecret = ct:get_config(radius_shared_scret, Config),
+	SharedSecret = ct:get_config(radius_shared_secret, Config),
 	ok = ocs:add_client(Address, SharedSecret),
 	{ok, BinSharedSecret} = ocs:find_client(Address),
 	SharedSecret = binary_to_list(BinSharedSecret).

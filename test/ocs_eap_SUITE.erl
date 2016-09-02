@@ -43,7 +43,7 @@ suite() ->
 	{timetrap, {minutes, 1}},
 	{require, radius_username}, {default_config, radius_username, "ocs"},
 	{require, radius_password}, {default_config, radius_password, "ocs123"},
-	{require, radius_shared_scret},{default_config, radius_shared_scret, "xyzzy5461"}].
+	{require, radius_shared_secret},{default_config, radius_shared_secret, "xyzzy5461"}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
 %% Initiation before the whole suite.
@@ -52,7 +52,7 @@ init_per_suite(Config) ->
 	ok = ocs_lib:initialize_db(),
 	ok = ocs_lib:start(),
 	{ok, AuthAddress} = application:get_env(ocs, radius_auth_addr),
-	SharedSecret = ct:get_config(radius_shared_scret),
+	SharedSecret = ct:get_config(radius_shared_secret),
 	ok = ocs:add_client(AuthAddress, SharedSecret),
 	Config.
 
@@ -103,7 +103,7 @@ eap_id_request_response(Config) ->
 	{ok, AuthPort} = application:get_env(ocs, radius_auth_port),
 	Socket = ?config(socket, Config), 
 	UserName = ct:get_config(radius_username),
-	SharedSecret = ct:get_config(radius_shared_scret),
+	SharedSecret = ct:get_config(radius_shared_secret),
 	Authenticator = radius:authenticator(SharedSecret, Id),
 	AttributeList0 = radius_attributes:new(),
 	AttributeList1 = radius_attributes:store(?UserName, UserName, AttributeList0),
@@ -142,7 +142,7 @@ eap_commit_request_response(Config) ->
 	{ok, AuthPort} = application:get_env(ocs, radius_auth_port),
 	Socket = ?config(socket, Config), 
 	UserName = ct:get_config(radius_username),
-	SharedSecret = ct:get_config(radius_shared_scret),
+	SharedSecret = ct:get_config(radius_shared_secret),
 	Authenticator = radius:authenticator(SharedSecret, Id),
 	IDReqAttributeList0 = radius_attributes:new(),
 	IDReqAttributeList1 = radius_attributes:store(?UserName, UserName, IDReqAttributeList0),
@@ -243,7 +243,7 @@ eap_confirm_request_response(Config) ->
 	{ok, AuthPort} = application:get_env(ocs, radius_auth_port),
 	Socket = ?config(socket, Config),
 	UserName = ct:get_config(radius_username),
-	SharedSecret = ct:get_config(radius_shared_scret),
+	SharedSecret = ct:get_config(radius_shared_secret),
 	Authenticator = radius:authenticator(SharedSecret, Id),
 	IDReqAttributeList0 = radius_attributes:new(),
 	IDReqAttributeList1 = radius_attributes:store(?UserName, UserName, IDReqAttributeList0),
@@ -413,7 +413,7 @@ invalid_id_response_eap_packet(Config) ->
 	{ok, AuthPort} = application:get_env(ocs, radius_auth_port),
 	Socket = ?config(socket, Config),
 	UserName = ct:get_config(radius_username),
-	SharedSecret = ct:get_config(radius_shared_scret),
+	SharedSecret = ct:get_config(radius_shared_secret),
 	Authenticator = radius:authenticator(SharedSecret, Id),
 	IDReqAttributeList0 = radius_attributes:new(),
 	IDReqAttributeList1 = radius_attributes:store(?UserName, UserName, IDReqAttributeList0),
@@ -479,7 +479,7 @@ invalid_id_response_eap_pwd(Config) ->
 	{ok, AuthPort} = application:get_env(ocs, radius_auth_port),
 	Socket = ?config(socket, Config),
 	UserName = ct:get_config(radius_username),
-	SharedSecret = ct:get_config(radius_shared_scret),
+	SharedSecret = ct:get_config(radius_shared_secret),
 	Authenticator = radius:authenticator(SharedSecret, Id),
 	IDReqAttributeList0 = radius_attributes:new(),
 	IDReqAttributeList1 = radius_attributes:store(?UserName, UserName, IDReqAttributeList0),

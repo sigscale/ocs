@@ -50,7 +50,7 @@ init_per_suite(Config) ->
 	ok = ocs_lib:initialize_db(),
 	ok = ocs_lib:start(),
 	{ok, AuthAddress} = application:get_env(ocs, radius_auth_addr),
-	SharedSecret = ct:get_config(radius_shared_scret),
+	SharedSecret = ct:get_config(radius_shared_secret),
 	ok = ocs:add_client(AuthAddress, SharedSecret),
 	Config.
 
