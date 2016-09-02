@@ -74,6 +74,13 @@ compute_ks(_Random, _PWE, _Scalar, _Element) ->
 %% @hidden
 init() ->
 	{ok, Application} = application:get_application(?MODULE),
-	PrivDir = code:priv_dir(Application),
+	PrivDir = case code:priv_dir(Application) of
+		{error, bad_name} ->
+			BEAM = atom_to_list(?MODULE) ++ ".beam",
+			Ebin = filename:dirname(code:where_is_file(BEAM)),
+			filename:dirname(Ebin) ++ "/priv";
+		Path ->
+			Path
+	end,
 	ok = erlang:load_nif(PrivDir ++ "/lib/ocs_eap_pwd", 0).
 
