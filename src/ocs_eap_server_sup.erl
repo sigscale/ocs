@@ -48,5 +48,5 @@ server(EapSup, Address, Port) ->
 	Args = [EapSup, Address, Port],
 	StartArgs = [{global, GlobalName}, StartMod, Args, []],
 	StartFunc = {gen_server, start_link, StartArgs},
-	{StartMod, StartFunc, transient, 4000, worker, [StartMod]}.
+	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
 
