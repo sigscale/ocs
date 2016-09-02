@@ -88,5 +88,5 @@ AC_CHECK_FUNC([BN_new], [], [AC_MSG_ERROR([BN_new function not found!])])
 ## Output:  create output files
 ## 
 AC_OUTPUT([Makefile include/Makefile ebin/Makefile doc/Makefile
-		c_src/Makefile test/Makefile])
+		c_src/Makefile priv/Makefile priv/lib/Makefile test/Makefile])
 
