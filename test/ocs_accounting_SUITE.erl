@@ -40,17 +40,14 @@
 %%
 suite() ->
 	[{userdata, [{doc, ""}]},
-	{require, radius_shared_scret},{default_config, radius_shared_scret, "abc345"},
-	{require, ocs_acct_addr}, {default_config, ocs_acct_addr, {127,0,0,1}},
-	{require, ocs_acct_port}, {default_config, ocs_acct_port, 1813},
-	{require, ocs_auth_port}, {default_config, ocs_auth_port, 1812},
+	{require, radius_shared_secret}, {default_config, radius_shared_secret, "abc345"},
 	{timetrap, {minutes, 1}}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
 %% Initiation before the whole suite.
 %%
 init_per_suite(Config) ->
-	AuthAddress = ct:get_config(ocs_acct_addr),
+	{ok, AuthAddress} = application:get_env(ocs, radius_auth_addr),
 	SharedSecret = ct:get_config(radius_shared_scret),
 	ok = ocs_lib:initialize_db(),
 	ok = ocs_lib:start(),
@@ -98,11 +95,11 @@ radius_accouting() ->
 radius_accouting(Config) ->
 	Id = 1,
 	PeerID = "simon@sigscale",
-	AuthAddress = ct:get_config(ocs_acct_addr),
-	AuthPort = ct:get_config(ocs_auth_port),
+	{ok, AuthAddress} = application:get_env(ocs, radius_auth_addr),
+	{ok, AuthPort} = application:get_env(ocs, radius_auth_port),
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, AuthAddress}, binary]), 
 	UserName = "simoon",
-	SharedSecret = ct:get_config(radius_shared_scret),
+	SharedSecret = ct:get_config(radius_shared_secret),
 	Authenticator = radius:authenticator(SharedSecret, Id),
 	IDReqAttributeList0 = radius_attributes:new(),
 	IDReqAttributeList1 = radius_attributes:store(?UserName, UserName, IDReqAttributeList0),

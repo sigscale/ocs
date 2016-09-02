@@ -38,8 +38,7 @@
 %% Require variables and set default values for the suite.
 %%
 suite() ->
-	[{timetrap, {minutes, 1}},
-	{require, ocs_auth_port}, {default_config, ocs_auth_port, 1813}].
+	[{timetrap, {minutes, 1}}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
 %% Initiation before the whole suite.
