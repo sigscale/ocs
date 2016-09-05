@@ -181,7 +181,12 @@ access_request(Address, Port, Secret, #radius{id = Identifier,
 			{error, {ok, NasAddr}} ->
 				NasAddr
 		end,
-		NasPort = radius_attributes:fetch(?NasPortId, Attributes),
+		NasPort = case radius_attributes:find(?NasPort, Attributes) of
+			{ok, NP} ->
+				NP;
+			{error, not_found} ->
+				radius_attributes:fetch(?NasPortType, Attributes)
+		end,
 		Peer = radius_attributes:fetch(?CallingStationId, Attributes),
 		SessionID = {NAS, NasPort, Peer},
 		case gb_trees:lookup(SessionID, Handlers) of
