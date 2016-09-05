@@ -59,6 +59,7 @@ AC_CHECK_LIB([crypto], [EC_GROUP_new], [],
 AC_LANG_PUSH([Erlang])
 AC_ERLANG_CHECK_LIB([crypto], [], [AC_MSG_ERROR([crypto was not found!])])
 AC_ERLANG_CHECK_LIB([radius], [], [AC_MSG_ERROR([radius was not found!])])
+AC_ERLANG_CHECK_LIB([webmachine], [], [AC_MSG_ERROR([mochiweb was not found!])])
 AC_LANG_POP([Erlang])
 
 
