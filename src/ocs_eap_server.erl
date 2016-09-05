@@ -190,7 +190,7 @@ access_request(Address, Port, Secret, #radius{id = Identifier,
 						Identifier, Authenticator, Secret, SessionID, State),
 				{reply, {ok, wait}, NewState};
 			{value, EapFsm} ->
-				EAPPacket = radius_attributes:fetch(?EAPMessage),
+				EAPPacket = radius_attributes:fetch(?EAPMessage, Attributes),
 				gen_fsm:send_event(EapFsm, {eap_response, RadiusFsm, EAPPacket}),
 				{reply, {ok, wait}, State}
 		end

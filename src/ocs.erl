@@ -81,7 +81,7 @@ find_client(Address) when is_tuple(Address) ->
 %%
 add_subscriber(Subscriber, Password, Attributes) when is_list(Password) ->
 	F = fun(C)->
-		lists:member(C, "abcdefghijkmnpqrstuvyz23456789")
+		lists:member(C, "abcdefghijkmnpqrstuvwyz23456789")
 	end,
 	case lists:all(F, Password) of
 		true ->
