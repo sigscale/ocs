@@ -16,7 +16,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% 
 
-%% Macro definitions for EAP Codes
+%% Macro definitions for EAP packet codes
 -define(Request,           1).
 -define(Response,          2).
 -define(Success,           3).
@@ -24,7 +24,7 @@
 -define(Initiate,          5).
 -define(Finish,            6).
 
-%% Macro definitions for EAP data types
+%% Macro definitions for EAP packet types
 -define(Identity,          1).
 -define(Notification,      2).
 -define(LegacyNak,         3).
@@ -63,12 +63,12 @@
 
 -record(eap_packet,
 			{code :: 1..255,
+			type :: byte(),
 			identifier :: 1..255,
 			data :: binary()}).
 
 -record(eap_pwd,
-			{type :: integer(),
-			length :: boolean(),
+			{length :: boolean(),
 			more :: boolean(),
 			pwd_exch :: id | commit | confirm,
 			tot_length :: integer(),
