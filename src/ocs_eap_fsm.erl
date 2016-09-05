@@ -40,6 +40,7 @@
 		port :: pos_integer(),
 		session_id:: {NAS :: inet:ip_address() | string(),
 				Port :: string(), Peer :: string()},
+		eap_start :: binary(),
 		radius_id :: byte(),
 		eap_id :: byte(),
 		grp_dec  = 19 :: byte(),
@@ -81,11 +82,12 @@
 %% @private
 %%
 init([RadiusFsm, Address, Port, Identifier,
-		Authenticator, Secret, SessionID] = _Args) ->
+		Authenticator, Secret, SessionID, EAPStart] = _Args) ->
 	process_flag(trap_exit, true),
 	StateData = #statedata{radius_fsm = RadiusFsm, address = Address,
 			port = Port, authenticator = Authenticator, secret = Secret,
-			radius_id = Identifier, session_id = SessionID},
+			radius_id = Identifier, session_id = SessionID,
+			eap_start = EAPStart},
 	{ok, idle, StateData, 0}.
 
 -spec idle(Event :: timeout | term(), StateData :: #statedata{}) ->
