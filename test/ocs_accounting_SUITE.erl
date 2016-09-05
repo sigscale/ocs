@@ -92,7 +92,7 @@ all() ->
 radius_accouting() ->
 	[{userdata, [{doc, "Initiate and terminate a RADIUS accouting session"}]}].
 
-radius_accouting(Config) ->
+radius_accouting(_Config) ->
 	Id = 1,
 	PeerID = "simon@sigscale",
 	{ok, AuthAddress} = application:get_env(ocs, radius_auth_addr),
@@ -100,7 +100,7 @@ radius_accouting(Config) ->
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, AuthAddress}, binary]), 
 	UserName = "simoon",
 	SharedSecret = ct:get_config(radius_shared_secret),
-	Authenticator = radius:authenticator(SharedSecret, Id),
+	Authenticator = radius:authenticator(),
 	IDReqAttributeList0 = radius_attributes:new(),
 	IDReqAttributeList1 = radius_attributes:store(?UserName, UserName, IDReqAttributeList0),
 	IDReqAttributeList2 = radius_attributes:store(?NasIdentifier, "tomba1", IDReqAttributeList1),
@@ -136,7 +136,7 @@ radius_accouting(Config) ->
 	IDRespPacket = #eap_packet{code = ?Response, identifier = IDEAPId, data = IDEAPData},
 	IDEAPPacketData = ocs_eap_codec:eap_packet(IDRespPacket),
 	IDRespAttributeList1 = radius_attributes:store(?EAPMessage, IDEAPPacketData, IDReqAttributeList5),
-	Authenticator2 = radius:authenticator(SharedSecret, 2),
+	Authenticator2 = radius:authenticator(),
 	IDResponse1 = #radius{code = ?AccessRequest, id = 2,  authenticator = Authenticator2,
 		attributes = IDRespAttributeList1},
 	IDResPacket1 = radius:codec(IDResponse1),
@@ -176,7 +176,7 @@ radius_accouting(Config) ->
 	CommitRespPacketData = ocs_eap_codec:eap_packet(CommitRespPacket),
 	CommitAttributeList1 = radius_attributes:store(?EAPMessage,
 	   CommitRespPacketData, IDReqAttributeList5),
-	Authenticator3 = radius:authenticator(SharedSecret, 3),
+	Authenticator3 = radius:authenticator(),
 	CommitResponse1 = #radius{code = ?AccessRequest, id = 3, authenticator = Authenticator3,
 		attributes = CommitAttributeList1},
 	CommitReqPacket1 = radius:codec(CommitResponse1),
@@ -210,7 +210,7 @@ radius_accouting(Config) ->
 	ConfirmRespPacketData = ocs_eap_codec:eap_packet(ConfirmRespPacket),
 	ConfirmAttributeList1 = radius_attributes:store(?EAPMessage,
 	   ConfirmRespPacketData, IDReqAttributeList5),
-	Authenticator4 = radius:authenticator(SharedSecret, 4),
+	Authenticator4 = radius:authenticator(),
 	ConfirmResponse1 = #radius{code = ?AccessRequest, id = 4, authenticator = Authenticator4,
 		attributes = ConfirmAttributeList1},
 	ConfirmReqPacket1 = radius:codec(ConfirmResponse1),
@@ -231,7 +231,7 @@ radius_accouting(Config) ->
 	AcctAddress = {127,0,0,1},
 	AcctPort = 9913,
 	RADAcct_ReqId = 1,
-	RADAcct_ReqAuth = radius:authenticator(SharedSecret, RADAcct_ReqId),
+	RADAcct_ReqAuth = radius:authenticator(),
 	RADAcctAttributes0 = radius_attributes:new(),
 	RADAcctAttributes1 = radius_attributes:store(?AcctSessionId, "xray12", RADAcctAttributes0),
 	RADAcctAttributes2 = radius_attributes:store(?AcctStatusType, ?AccountingStart, RADAcctAttributes1),
