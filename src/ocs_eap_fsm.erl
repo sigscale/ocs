@@ -108,10 +108,10 @@ idle(timeout, #statedata{radius_fsm = RadiusFsm, radius_id = RadiusID,
 	Body = #eap_pwd_id{group_desc = 19, random_fun = 1, prf = 1, token = Token,
 			pwd_prep = none, identity = HostName},
 	BodyData = ocs_eap_codec:eap_pwd_id(Body),
-	Header = #eap_pwd{type = ?PWD, length = false,
+	Header = #eap_pwd{length = false,
 			more = false, pwd_exch = id, data = BodyData},
 	EAPData = ocs_eap_codec:eap_pwd(Header),
-	Packet = #eap_packet{code = ?Request,
+	Packet = #eap_packet{code = ?Request, type = ?PWD,
 			identifier = EapID, data = EAPData},
 	EAPPacketData = ocs_eap_codec:eap_packet(Packet),
 	AttributeList0 = radius_attributes:new(),
@@ -160,10 +160,10 @@ wait_for_id({eap_response, RadiusFsm, EAPPacket} , #statedata{token = Token,
 	HostName = list_to_binary(HostName_s),
 	S_rand = crypto:rand_uniform(1, ?R),
 	try
-		#eap_packet{code = ?Response, identifier = EapID, data = Data} =
+		#eap_packet{code = ?Response, type = ?PWD, identifier = EapID, data = Data} =
 				ocs_eap_codec:eap_packet(EAPPacket),
 		EAPHeader = ocs_eap_codec:eap_pwd(Data),
-		#eap_pwd{type = ?PWD, pwd_exch = id, data = BodyData} = EAPHeader,
+		#eap_pwd{pwd_exch = id, data = BodyData} = EAPHeader,
 		Body = ocs_eap_codec:eap_pwd_id(BodyData),
 		#eap_pwd_id{group_desc = GroupDesc, random_fun = RandFun, prf = PRF,
 				 token = Token, pwd_prep = none, identity = PeerID_s} = Body,
@@ -172,7 +172,7 @@ wait_for_id({eap_response, RadiusFsm, EAPPacket} , #statedata{token = Token,
 		{ScalarS, ElementS} = ocs_eap_pwd:compute_scalar(<<S_rand:256>>, PWE),
 		CommitReq = #eap_pwd_commit{scalar = ScalarS, element = ElementS},
 		CommitReqBody = ocs_eap_codec:eap_pwd_commit(CommitReq),
-		CommitReqHeader = #eap_pwd{type = ?PWD, length = false,
+		CommitReqHeader = #eap_pwd{length = false,
 				more = false, pwd_exch = commit, data = CommitReqBody},
 		CommitEAPData = ocs_eap_codec:eap_pwd(CommitReqHeader),
 		NewEAPID = EapID + 1,
@@ -204,13 +204,14 @@ wait_for_commit({eap_response, RadiusFsm, EAPPacket}, #statedata{radius_id = Rad
 		element_s = ElementS, scalar_s = ScalarS, authenticator = RequestAuthenticator, secret = Secret,
 		grp_dec = GrpDec, rand_func = RandomFunc, prf = PRF, s_rand = S_rand} = StateData)->
 	try 
-		#eap_packet{code = ?Response, identifier = EapID, data = Data} = ocs_eap_codec:eap_packet(EAPPacket),
+		#eap_packet{code = ?Response, type = ?PWD, identifier = EapID, data = Data}
+			= ocs_eap_codec:eap_packet(EAPPacket),
 		EAPHeader = ocs_eap_codec:eap_pwd(Data),
-		#eap_pwd{type = ?PWD, pwd_exch = commit, data = BodyData} = EAPHeader,
+		#eap_pwd{pwd_exch = commit, data = BodyData} = EAPHeader,
 		Body = ocs_eap_codec:eap_pwd_commit(BodyData),
 		#eap_pwd_commit{element = ElementP, scalar = ScalarP} = Body,
 		NewStateData = StateData#statedata{scalar_p = ScalarP, element_p = ElementP},
-		case 	wait_for_commit1(BodyData, NewStateData) of
+		case wait_for_commit1(BodyData, NewStateData) of
 			ok ->
 				Ks = ocs_eap_pwd:compute_ks(<<S_rand:256>>, PWE, ScalarP, ElementP),
 				Input = [<<Ks/binary, ElementS/binary, ScalarS/binary, ElementP/binary,
@@ -218,7 +219,7 @@ wait_for_commit({eap_response, RadiusFsm, EAPPacket}, #statedata{radius_id = Rad
 				ConfirmS = ocs_eap_pwd:h(Input),
 				ConfirmBody = #eap_pwd_confirm{confirm = ConfirmS},
 				ConfirmBodyData = ocs_eap_codec:eap_pwd_confirm(ConfirmBody),
-				ConfirmHeader = #eap_pwd{type = ?PWD, length = false,
+				ConfirmHeader = #eap_pwd{length = false,
 						more = false, pwd_exch = confirm, data = ConfirmBodyData},
 				ConfirmEAPData = ocs_eap_codec:eap_pwd(ConfirmHeader),
 				NewEAPID = EapID + 1,
@@ -290,9 +291,9 @@ wait_for_confirm({eap_response, RadiusFsm, EAPPacket}, #statedata{radius_id = Ra
 		element_s = ElementS, scalar_s = ScalarS, eap_id = EapID} = StateData)->
 	try
 		EAPData = ocs_eap_codec:eap_packet(EAPPacket),
-		#eap_packet{code = ?Response, identifier = EapID, data = Data} = EAPData,
+		#eap_packet{code = ?Response, type = ?PWD, identifier = EapID, data = Data} = EAPData,
 		EAPHeader = ocs_eap_codec:eap_pwd(Data),
-		#eap_pwd{type = ?PWD, pwd_exch = confirm, data = BodyData} = EAPHeader,
+		#eap_pwd{pwd_exch = confirm, data = BodyData} = EAPHeader,
 		Body = ocs_eap_codec:eap_pwd_confirm(BodyData),
 		#eap_pwd_confirm{confirm = ConfirmP} = Body,
 		case 	wait_for_confirm1(BodyData, StateData) of
@@ -415,7 +416,8 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %% @doc Sends an RADIUS-Access/Challenge or Reject or Accept  packet to peer
 %% @hidden
 send_radius_response(EAPCode, NewEAPID, EAPData, RadiusCode, RadiusID, RequestAuthenticator, Secret, RadiusFsm) ->
-	Packet = #eap_packet{code = EAPCode, identifier = NewEAPID, data = EAPData},
+	Packet = #eap_packet{code = EAPCode, type = ?PWD, identifier = NewEAPID,
+		data = EAPData},
 	EAPPacketData = ocs_eap_codec:eap_packet(Packet),
 	AttributeList0 = radius_attributes:new(),
 	AttributeList1 = radius_attributes:store(?EAPMessage,

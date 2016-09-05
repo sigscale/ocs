@@ -91,13 +91,14 @@ encode_eap_id(_Config) ->
 	RecBody = #eap_pwd_id{group_desc = 19, random_fun = 2, prf = 2, token = Token,
 		pwd_prep = none, identity = Identity},
 	Body_bin = ocs_eap_codec:eap_pwd_id(RecBody),
-	RecHeader = #eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = id,
+	RecHeader = #eap_pwd{length = false, more = false, pwd_exch = id,
 		data = Body_bin},
 	Header_bin =  ocs_eap_codec:eap_pwd(RecHeader),
-	RecPacket = #eap_packet{code = Code, identifier = Id, data = Header_bin},
+	RecPacket = #eap_packet{code = Code, type = ?PWD, identifier = Id, data = Header_bin},
 	Packet_bin = ocs_eap_codec:eap_packet(RecPacket),
-	#eap_packet{code = Code, identifier = Id, data = Res_Header_bin} = ocs_eap_codec:eap_packet(Packet_bin),
-	#eap_pwd{type = ?PWD, length = false, more = false, pwd_exch = id,
+	#eap_packet{code = Code, type = ?PWD, identifier = Id, data = Res_Header_bin}
+		= ocs_eap_codec:eap_packet(Packet_bin),
+	#eap_pwd{length = false, more = false, pwd_exch = id,
 		data = Res_Body_bin} = ocs_eap_codec:eap_pwd(Res_Header_bin),
 	#eap_pwd_id{group_desc = 19, random_fun = 2, prf = 2, token = Token,
 		pwd_prep = none, identity = Identity} = ocs_eap_codec:eap_pwd_id(Res_Body_bin).
