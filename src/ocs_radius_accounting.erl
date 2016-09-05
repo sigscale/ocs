@@ -106,15 +106,15 @@ request(<<_Code, Id, Length:16, _/binary>> = Packet, Secret,
 		NasIpAddressV = radius_attributes:find(?NasIpAddress, Attributes),
 		NasIdentifierV = radius_attributes:find(?NasIdentifier, Attributes),
 		case {NasIpAddressV, NasIdentifierV} of
-			{error, error} ->
+			{{error, not_found}, {error, not_found}} ->
 				throw(reject);
 			{_, _} ->
 				ok
 		end,
-		error = radius_attributes:find(?UserPassword, Attributes),
-		error = radius_attributes:find(?ChapPassword, Attributes),
-		error = radius_attributes:find(?ReplyMessage, Attributes),
-		error = radius_attributes:find(?State, Attributes),
+		{error, not_found} = radius_attributes:find(?UserPassword, Attributes),
+		{error, not_found} = radius_attributes:find(?ChapPassword, Attributes),
+		{error, not_found} = radius_attributes:find(?ReplyMessage, Attributes),
+		{error, not_found} = radius_attributes:find(?State, Attributes),
 		{ok, _AcctSessionId} = radius_attributes:find(?AcctSessionId, Attributes),
 		Hash = erlang:md5([<<?AccountingRequest, Id, Length:16, 0:128>>,
 				BinaryAttributes, Secret]),

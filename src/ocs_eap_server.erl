@@ -178,7 +178,7 @@ access_request(Address, Port, Secret, #radius{id = Identifier,
 				radius_attributes:find(?NasIpAddress, Attributes)} of
 			{{ok, NasId}, _} ->
 				NasId;
-			{error, {ok, NasAddr}} ->
+			{{error, not_found}, {ok, NasAddr}} ->
 				NasAddr
 		end,
 		NasPort = radius_attributes:fetch(?NasPortId, Attributes),
