@@ -41,6 +41,6 @@ init(_Args) ->
 
 %% @hidden
 supervisor(StartMod) ->
-	StartFunc = {supervisor, start_link, [StartMod]},
-	{StartMod, StartFunc, transient, infinity, supervisor, [StartMod]}.
+	StartFunc = {supervisor_bridge, start_link, [StartMod]},
+	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
 

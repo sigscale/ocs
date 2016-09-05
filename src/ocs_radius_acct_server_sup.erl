@@ -19,36 +19,29 @@
 -module(ocs_radius_acct_server_sup).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
--behaviour(supervisor).
+-behaviour(supervisor_bridge).
 
-%% export the callback needed for supervisor behaviour
--export([init/1]).
+%% export the call back needed for supervisor behaviour
+-export([init/1, terminate/2]).
 
 %%----------------------------------------------------------------------
-%%  The supervisor callback
+%%  The supervisor_bridge callbacks
 %%----------------------------------------------------------------------
 
--spec init(Args :: [term()]) ->
-	{ok, {{supervisor:strategy(), non_neg_integer(), pos_integer()},
-			[supervisor:child_spec()]}} | ignore.
-%% @doc Initialize the {@module} supervisor.
-%% @see //stdlib/supervisor:init/1
+-spec init(Args :: list()) ->
+	Result :: {ok, Pid :: pid(), State :: pid()}
+		| ignore | {error, Error :: term()}.
+%% @doc Initialize the {@module} supervisor_bridge.
+%% @see //stdlib/supervisor_bridge:init/1
 %% @private
 %%
-init([Address, Port]) ->
-	ChildSpecs = [radius_server(ocs_radius_accounting, Address, Port)],
-	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
+init([Address, Port] = _Args) ->
+	StartMod = ocs_radius_accounting,
+	{ok, Pid} = radius:start_link(StartMod, Port, Address),
+	{ok, Pid, Pid}.
 
--spec radius_server(CallbackModule :: atom(),
-		Address :: inet:ip_address(), Port :: pos_integer()) ->
-	supervisor:child_spec().
-%% @doc Build a supervisor child specification for a
-%% 	{@link //stdlib/gen_server. gen_server} behaviour.
-%% @private
-%%
-radius_server(CallbackModule, Address, Port) ->
-	StartMod = radius,
-	StartFunc = {StartMod, start_link, [CallbackModule, Port, Address]},
-	{CallbackModule, StartFunc, permanent, 4000,
-			worker, [StartMod, CallbackModule]}.
+-spec terminate(Reason :: shutdown | term(), State :: pid()) -> any().
+%% @doc This function is called when it is about to terminate.
+terminate(_Reason, State) ->
+	radius:stop(State).
 

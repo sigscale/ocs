@@ -184,15 +184,15 @@ access_request(Address, Port, Secret, #radius{id = Identifier,
 		NasPort = radius_attributes:fetch(?NasPortId, Attributes),
 		Peer = radius_attributes:fetch(?CallingStationId, Attributes),
 		SessionID = {NAS, NasPort, Peer},
-		case radius_attributes:find(?EAPMessage, Attributes) of
-			{ok, EAPPacket} when size(EAPPacket) > 0 ->
-				EapFsm = gb_trees:get(SessionID, Handlers),
-				gen_fsm:send_event(EapFsm, {eap_response, RadiusFsm, EAPPacket}),
-				{reply, {ok, wait}, State};
-			_ ->
+		case gb_trees:lookup(SessionID, Handlers) of
+			none ->	
 				NewState = start_fsm(RadiusFsm, Address, Port,
 						Identifier, Authenticator, Secret, SessionID, State),
-				{reply, {ok, wait}, NewState}
+				{reply, {ok, wait}, NewState};
+			{value, EapFsm} ->
+				EAPPacket = radius_attributes:fetch(?EAPMessage, Attributes),
+				gen_fsm:send_event(EapFsm, {eap_response, RadiusFsm, EAPPacket}),
+				{reply, {ok, wait}, State}
 		end
 	catch
 		_:_ ->

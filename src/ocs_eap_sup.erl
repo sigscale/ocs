@@ -44,7 +44,10 @@ init([Address, Port]) ->
 	{ok, {{one_for_one, 10, 3600}, ChildSpecs}}.
 
 %% @hidden
+supervisor(ocs_radius_auth_server_sup = StartMod, StartArgs) ->
+	StartFunc = {supervisor_bridge, start_link, [StartMod, StartArgs]},
+	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]};
 supervisor(StartMod, StartArgs) ->
 	StartFunc = {supervisor, start_link, [StartMod, StartArgs]},
-	{StartMod, StartFunc, transient, infinity, supervisor, [StartMod]}.
+	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
 
