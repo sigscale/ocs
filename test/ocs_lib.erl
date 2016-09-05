@@ -28,31 +28,20 @@ initialize_db() ->
 	end.
 
 start() ->
-	case application:load(webmachine) of
-		ok ->
-			{ok, DepApps} = webmachine_util:ensure_all_started(webmachine),
-			true = lists:member(crypto, DepApps),
-			true = lists:member(ssl, DepApps),
-			true = lists:member(inets, DepApps),
-			true = lists:member(public_key, DepApps),
-			true = lists:member(webmachine, DepApps),
-			true = lists:member(webmachine, DepApps),
-			case application:start(radius) of
-				ok ->
-					case application:start(ocs) of
-						ok ->
-							ok;
-						{error, {already_started, _}} ->
-							ok;
-						{error, Reason} ->
-							{error, Reason}
-					end;
-				{error, Reason} ->
-					{error, Reason}
-			end;
+	start([crypto, asn1, public_key, ssl, inets, compiler,
+			syntax_tools, xmerl, mochiweb, webmachine, radius, ocs]).
+
+start([H | T]) ->
+	case application:start(H) of
+		ok  ->
+			start(T);
+		{error, {already_started, H}} ->
+			start(T);
 		{error, Reason} ->
 			{error, Reason}
-	end.
+	end;
+start([]) ->
+	ok.
 
 stop() ->
 	case application:stop(ocs) of
