@@ -28,14 +28,25 @@ initialize_db() ->
 	end.
 
 start() ->
-	webmachine_util:ensure_all_started(webmachine),
-	case application:start(radius) of
+	case application:load(webmachine) of
 		ok ->
-			case application:start(ocs) of
+			{ok, DepApps} = webmachine_util:ensure_all_started(webmachine),
+			true = lists:member(crypto, DepApps),
+			true = lists:member(ssl, DepApps),
+			true = lists:member(inets, DepApps),
+			true = lists:member(public_key, DepApps),
+			true = lists:member(webmachine, DepApps),
+			true = lists:member(webmachine, DepApps),
+			case application:start(radius) of
 				ok ->
-					ok;
-				{error, {already_started, _}} ->
-					ok;
+					case application:start(ocs) of
+						ok ->
+							ok;
+						{error, {already_started, _}} ->
+							ok;
+						{error, Reason} ->
+							{error, Reason}
+					end;
 				{error, Reason} ->
 					{error, Reason}
 			end;
