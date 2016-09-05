@@ -40,9 +40,8 @@
 		port :: pos_integer(),
 		session_id:: {NAS :: inet:ip_address() | string(),
 				Port :: string(), Peer :: string()},
-		eap_start :: binary(),
 		radius_id :: byte(),
-		eap_id :: byte(),
+		eap_id = 1 ::  byte(),
 		grp_dec  = 19 :: byte(),
 		rand_func = 1 :: byte(),
 		prf = 1 :: byte(),
@@ -82,13 +81,27 @@
 %% @private
 %%
 init([RadiusFsm, Address, Port, Identifier,
-		Authenticator, Secret, SessionID, EAPStart] = _Args) ->
+		Authenticator, Secret, SessionID, <<>>] = _Args) ->
+	StateData = #statedata{radius_fsm = RadiusFsm, address = Address,
+		port = Port, authenticator = Authenticator, secret = Secret,
+		radius_id = Identifier, session_id = SessionID},
 	process_flag(trap_exit, true),
+	{ok, idle, StateData, 0};
+init([RadiusFsm, Address, Port, Identifier,
+		Authenticator, Secret, SessionID, EAPStart] = _Args) ->
 	StateData = #statedata{radius_fsm = RadiusFsm, address = Address,
 			port = Port, authenticator = Authenticator, secret = Secret,
-			radius_id = Identifier, session_id = SessionID,
-			eap_start = EAPStart},
-	{ok, idle, StateData, 0}.
+			radius_id = Identifier, session_id = SessionID},
+	case catch ocs_eap_codec:eap_packet(EAPStart) of
+		#eap_packet{code = ?Response, type = ?Identity, identifier = EAPId} ->
+			NewState = StateData#statedata{eap_id = EAPId},
+			process_flag(trap_exit, true),
+			{ok, idle, NewState, 0};
+		#eap_packet{} ->
+			{stop, unsupported};
+		{'EXIT', Reason} ->
+			{stop, Reason}
+	end.
 
 -spec idle(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
@@ -100,9 +113,8 @@ init([RadiusFsm, Address, Port, Identifier,
 %%		gen_fsm:send_event/2} in the <b>idle</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
-idle(timeout, #statedata{radius_fsm = RadiusFsm, radius_id = RadiusID,
+idle(timeout, #statedata{radius_fsm = RadiusFsm, eap_id = EapID, radius_id = RadiusID,
 		authenticator = RequestAuthenticator, secret = Secret} = StateData) ->
-	EapID = 1,
 	Token = crypto:rand_bytes(4),
 	{ok, HostName} = inet:gethostname(),
 	Body = #eap_pwd_id{group_desc = 19, random_fun = 1, prf = 1, token = Token,
