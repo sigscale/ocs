@@ -169,8 +169,8 @@ code_change(_OldVsn, State, _Extra) ->
 			| {reply, {error, ignore}, NewState :: #state{}}.
 %% @doc Handle a received RADIUS Access Request packet.
 %% @private
-access_request(Address, Port, Secret, #radius{id = Identifier,
-		authenticator = Authenticator, attributes = Attributes},
+access_request(Address, Port, Secret,
+		#radius{attributes = Attributes} = AccessRequest,
 		{RadiusFsm, _Tag} = _From, #state{handlers = Handlers} = State) ->
 	try
 		NAS = case {radius_attributes:find(?NasIdentifier, Attributes),
@@ -191,24 +191,15 @@ access_request(Address, Port, Secret, #radius{id = Identifier,
 		case gb_trees:lookup(SessionID, Handlers) of
 			none ->	
 				try
-					EAPMessage = case radius_attributes:find(?EAPMessage,
-						Attributes) of
-						{ok, Value} ->
-							Value;
-						{error, not_found} ->
-							<<>>
-					end,
-					NewState = start_fsm(RadiusFsm, Address, Port,
-						Identifier, Authenticator, Secret, SessionID,
-							EAPMessage, State),
+					NewState = start_fsm(AccessRequest, RadiusFsm,
+							Address, Port, Secret, SessionID, State),
 					{reply, {ok, wait}, NewState}
 				catch
 					_:_ ->
 						{reply, {error, ignore}, State}
 				end;
 			{value, EapFsm} ->
-				EAPPacket = radius_attributes:fetch(?EAPMessage, Attributes),
-				gen_fsm:send_event(EapFsm, {eap_response, RadiusFsm, EAPPacket}),
+				gen_fsm:send_event(EapFsm, AccessRequest),
 				{reply, {ok, wait}, State}
 		end
 	catch
@@ -216,21 +207,21 @@ access_request(Address, Port, Secret, #radius{id = Identifier,
 			{reply, {error, ignore}, State}
 	end.
 
--spec start_fsm(RadiusFsm :: pid(), Address :: inet:ip_address(),
-		Port :: integer(), Identifier :: 0..255, Authenticator :: binary(),
-		Secret :: binary(), SessionID :: tuple(), EAPMessage :: binary(),
+-spec start_fsm(AccessRequest :: #radius{}, RadiusFsm :: pid(),
+		Address :: inet:ip_address(), Port :: integer(),
+		Secret :: binary(), SessionID :: tuple(),
 		State :: #state{}) -> NewState :: #state{}.
 %% @doc Start a new {@link //ocs/ocs_eap_fsm. ocs_eap_fsm} session handler.
 %% @hidden
-start_fsm(RadiusFsm, Address, Port, Identifier, Authenticator, Secret,
-		SessionID, EAPMessage, #state{eap_fsm_sup = Sup, handlers = Handlers} = State) ->
-	StartArgs = [RadiusFsm, Address, Port,
-			Identifier, Authenticator, Secret, SessionID, EAPMessage],
+start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret, SessionID,
+		#state{eap_fsm_sup = Sup, handlers = Handlers} = State) ->
+	StartArgs = [RadiusFsm, Address, Port, Secret, SessionID],
 	ChildSpec = [StartArgs, []],
 	case supervisor:start_child(Sup, ChildSpec) of
-		{ok, Fsm} ->
-			link(Fsm),
-			NewHandlers = gb_trees:insert(SessionID, Fsm, Handlers),
+		{ok, EapFsm} ->
+			link(EapFsm),
+			NewHandlers = gb_trees:insert(SessionID, EapFsm, Handlers),
+			gen_fsm:send_event(EapFsm, AccessRequest),
 			State#state{handlers = NewHandlers};
 		{error, Reason} ->
 			error_logger:error_report(["Error starting EAP session handler",
