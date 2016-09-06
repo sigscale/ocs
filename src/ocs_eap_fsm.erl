@@ -55,7 +55,8 @@
 		scalar_p :: binary(),
 		element_p :: binary(),
 		ks :: binary(),
-		confirm_s :: binary()}).
+		confirm_s :: binary(),
+		mk :: binary()}).
 
 -define(TIMEOUT, 30000).
 
@@ -281,8 +282,8 @@ wait_for_confirm(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
 wait_for_confirm({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		attributes = Attributes} = AccessRequest, RadiusFsm},
-		#statedata{secret = Secret, peer_id = PeerID, token = Token,
-		element_s = ElementS, scalar_s = ScalarS, eap_id = EapID} = StateData)->
+		#statedata{session_id = SessionID, secret = Secret,
+		eap_id = EapID, ks = Ks, confirm_s = ConfirmS} = StateData)->
 	try
 		EAPMessage = radius_attributes:fetch(?EAPMessage, Attributes),
 		EAPPacket = ocs_eap_codec:eap_packet(EAPMessage),
@@ -295,25 +296,13 @@ wait_for_confirm({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		case 	wait_for_confirm1(RadiusFsm, AccessRequest, BodyData, StateData) of
 			ok ->
 				NewEapID = EapID + 1,
-				{ok, HostName_s} = inet:gethostname(),
-				HostName = list_to_binary(HostName_s),
-				P_rand = crypto:rand_uniform(1, ?R),
-				P_rand_bin = <<P_rand:256>>,
-				PeerID_bin = list_to_binary(PeerID),
-				P_pwe = ocs_eap_pwd:compute_pwe(Token, PeerID_bin, HostName, Secret),
-				try
-					_Kp = ocs_eap_pwd:compute_ks(P_rand_bin, P_pwe, ScalarS, ElementS)
-				catch
-					_:_ ->
-						send_radius_response(?Failure, NewEapID, <<>>, ?AccessReject, RadiusID,
-								RequestAuthenticator, Secret, RadiusFsm),
-						{next_state, wait_for_confirm, StateData, 0}
-				end,
-				send_radius_response(?Success, NewEapID, <<>>, ?AccessAccept, RadiusID,
-						RequestAuthenticator, Secret, RadiusFsm),
-				{next_state, wait_for_confirm, StateData, ?TIMEOUT};
-			{error,exit} ->
-				{next_state, wait_for_confirm, StateData,0}
+				MK = ocs_eap_pwd:h([Ks, ConfirmP, ConfirmS]),
+				NewStateData = StateData#statedata{mk = MK},
+				send_radius_response(?Success, NewEapID, <<>>, ?AccessAccept,
+						RadiusID, RequestAuthenticator, Secret, RadiusFsm),
+				{stop, {shutdown, SessionID}, NewStateData};
+			{error, exit} ->
+				{stop, {shutdown, SessionID}, StateData}
 		end
 	catch
 		_:_ ->
