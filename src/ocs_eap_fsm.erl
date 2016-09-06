@@ -468,7 +468,7 @@ send_radius_response(EAPCode, NewEAPID, EAPData, RadiusCode, RadiusID, RequestAu
 	MessageAuthenticator = crypto:hmac(md5, Secret, [<<?AccessChallenge, RadiusID,
 			Length:16>>, RequestAuthenticator, Response1]),
 	AttributeList3 = radius_attributes:store(?MessageAuthenticator,
-			MessageAuthenticator, AttributeList1),
+			MessageAuthenticator, AttributeList2),
 	AttributeData = radius_attributes:codec(AttributeList3),
 	ResponseAuthenticator = crypto:hash(md5,[<<?AccessChallenge, RadiusID,
 			Length:16>>, RequestAuthenticator, AttributeData, Secret]),
