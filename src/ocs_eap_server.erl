@@ -199,7 +199,7 @@ access_request(Address, Port, Secret,
 						{reply, {error, ignore}, State}
 				end;
 			{value, EapFsm} ->
-				gen_fsm:send_event(EapFsm, AccessRequest),
+				gen_fsm:send_event(EapFsm, {AccessRequest, RadiusFsm}),
 				{reply, {ok, wait}, State}
 		end
 	catch
@@ -215,13 +215,13 @@ access_request(Address, Port, Secret,
 %% @hidden
 start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret, SessionID,
 		#state{eap_fsm_sup = Sup, handlers = Handlers} = State) ->
-	StartArgs = [RadiusFsm, Address, Port, Secret, SessionID],
+	StartArgs = [Address, Port, Secret, SessionID],
 	ChildSpec = [StartArgs, []],
 	case supervisor:start_child(Sup, ChildSpec) of
 		{ok, EapFsm} ->
 			link(EapFsm),
 			NewHandlers = gb_trees:insert(SessionID, EapFsm, Handlers),
-			gen_fsm:send_event(EapFsm, AccessRequest),
+			gen_fsm:send_event(EapFsm, {AccessRequest, RadiusFsm}),
 			State#state{handlers = NewHandlers};
 		{error, Reason} ->
 			error_logger:error_report(["Error starting EAP session handler",
