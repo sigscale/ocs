@@ -41,7 +41,7 @@
 		session_id:: {NAS :: inet:ip_address() | string(),
 				Port :: string(), Peer :: string()},
 		eap_id = 0 :: byte(),
-		grp_dec  = 19 :: byte(),
+		group_desc  = 19 :: byte(),
 		rand_func = 1 :: byte(),
 		prf = 1 :: byte(),
 		secret :: binary(),
@@ -98,25 +98,26 @@ idle({#radius{code = ?AccessRequest, id = RadiusID,
 		authenticator = RequestAuthenticator,
 		attributes = Attributes}, RadiusFsm},
 		#statedata{eap_id = EapID, session_id = SessionID,
-		secret = Secret} = StateData) ->
+		secret = Secret, group_desc = GroupDesc,
+		rand_func = RandFunc, prf = PRF} = StateData) ->
 	Token = crypto:rand_bytes(4),
 	{ok, HostName} = inet:gethostname(),
-	EapPwdId = #eap_pwd_id{group_desc = 19, random_fun = 1, prf = 1,
-			token = Token, pwd_prep = none, identity = HostName},
+	EapPwdId = #eap_pwd_id{group_desc = GroupDesc, random_fun = RandFunc,
+			prf = PRF, token = Token, pwd_prep = none, identity = HostName},
 	EapPwdData = ocs_eap_codec:eap_pwd_id(EapPwdId),
 	EapPwd = #eap_pwd{length = false,
 			more = false, pwd_exch = id, data = EapPwdData},
 	EapData = ocs_eap_codec:eap_pwd(EapPwd),
-	NewStateData = StateData#statedata{eap_id = EapID + 1, token = Token},
+	NewStateData = StateData#statedata{token = Token},
 	case radius_attributes:find(?EAPMessage, Attributes) of
 		{ok, <<>>} ->
-			send_response(?Identity, EapID, EapData, ?AccessChallenge,
+			send_response(?Request, EapID, EapData, ?AccessChallenge,
 					RadiusID, RequestAuthenticator, Secret, RadiusFsm),
 			{next_state, wait_for_id, NewStateData, ?TIMEOUT};
 		{ok, EAPMessage} ->
 			case catch ocs_eap_codec:eap_packet(EAPMessage) of
 				#eap_packet{code = ?Response, type = ?Identity} ->
-					send_response(?Identity, EapID, EapData, ?AccessChallenge,
+					send_response(?Request, EapID, EapData, ?AccessChallenge,
 							RadiusID, RequestAuthenticator, Secret, RadiusFsm),
 					{next_state, wait_for_id, NewStateData, ?TIMEOUT};
 				#eap_packet{code = Code, type = EapType, data = Data} ->
@@ -130,7 +131,7 @@ idle({#radius{code = ?AccessRequest, id = RadiusID,
 					{ok, idle, StateData, ?TIMEOUT}
 			end;
 		{error, not_found} ->
-			send_response(?Identity, EapID, EapData, ?AccessChallenge,
+			send_response(?Request, EapID, EapData, ?AccessChallenge,
 					RadiusID, RequestAuthenticator, Secret, RadiusFsm),
 			{next_state, wait_for_id, NewStateData, ?TIMEOUT}
 	end;
@@ -155,7 +156,7 @@ wait_for_id(timeout, #statedata{session_id = SessionID} = StateData)->
 wait_for_id({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		attributes = Attributes} = _AccessRequest, RadiusFsm},
 		#statedata{token = Token, eap_id = EapID, secret = Secret,
-		grp_dec = GroupDesc, rand_func = RandFun, prf = PRF} = StateData)->
+		group_desc = GroupDesc, rand_func = RandFun, prf = PRF} = StateData)->
 	{ok, HostName_s} = inet:gethostname(),
 	HostName = list_to_binary(HostName_s),
 	S_rand = crypto:rand_uniform(1, ?R),
@@ -204,7 +205,7 @@ wait_for_commit(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
 wait_for_commit({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		attributes = Attributes} = AccessRequest, RadiusFsm},
-		#statedata{eap_id = EapID, secret = Secret, grp_dec = GroupDesc,
+		#statedata{eap_id = EapID, secret = Secret, group_desc = GroupDesc,
 		rand_func = RandFunc, prf = PRF, pwe = PWE, element_s = ElementS,
 		scalar_s = ScalarS, s_rand = S_rand} = StateData)->
 	try 
