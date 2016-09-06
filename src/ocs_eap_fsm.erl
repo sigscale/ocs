@@ -94,16 +94,31 @@ init([Address, Port, Secret, SessionID] = _Args) ->
 %%		gen_fsm:send_event/2} in the <b>idle</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
-idle({#radius{code = ?AccessRequest,
-		attributes = Attributes} = AccessRequest, RadiusFsm},
-		#statedata{session_id = SessionID} = StateData) ->
+idle({#radius{code = ?AccessRequest, id = RadiusID,
+		authenticator = RequestAuthenticator,
+		attributes = Attributes}, RadiusFsm},
+		#statedata{eap_id = EapID, session_id = SessionID,
+		secret = Secret} = StateData) ->
+	Token = crypto:rand_bytes(4),
+	{ok, HostName} = inet:gethostname(),
+	EapPwdId = #eap_pwd_id{group_desc = 19, random_fun = 1, prf = 1,
+			token = Token, pwd_prep = none, identity = HostName},
+	EapPwdData = ocs_eap_codec:eap_pwd_id(EapPwdId),
+	EapPwd = #eap_pwd{length = false,
+			more = false, pwd_exch = id, data = EapPwdData},
+	EapData = ocs_eap_codec:eap_pwd(EapPwd),
+	NewStateData = StateData#statedata{eap_id = EapID + 1, token = Token},
 	case radius_attributes:find(?EAPMessage, Attributes) of
 		{ok, <<>>} ->
-			send_id_request(AccessRequest, RadiusFsm, StateData);
+			send_response(?Identity, EapID, EapData, ?AccessChallenge,
+					RadiusID, RequestAuthenticator, Secret, RadiusFsm),
+			{next_state, wait_for_id, NewStateData, ?TIMEOUT};
 		{ok, EAPMessage} ->
 			case catch ocs_eap_codec:eap_packet(EAPMessage) of
 				#eap_packet{code = ?Response, type = ?Identity} ->
-					send_id_request(AccessRequest, RadiusFsm, StateData);
+					send_response(?Identity, EapID, EapData, ?AccessChallenge,
+							RadiusID, RequestAuthenticator, Secret, RadiusFsm),
+					{next_state, wait_for_id, NewStateData, ?TIMEOUT};
 				#eap_packet{code = Code, type = EapType, data = Data} ->
 					error_logger:warning_report(["Unknown EAP received",
 							{pid, self()}, {session_id, SessionID},
@@ -115,7 +130,9 @@ idle({#radius{code = ?AccessRequest,
 					{ok, idle, StateData, ?TIMEOUT}
 			end;
 		{error, not_found} ->
-			send_id_request(AccessRequest, RadiusFsm, StateData)
+			send_response(?Identity, EapID, EapData, ?AccessChallenge,
+					RadiusID, RequestAuthenticator, Secret, RadiusFsm),
+			{next_state, wait_for_id, NewStateData, ?TIMEOUT}
 	end;
 idle({#radius{}, RadiusFsm}, StateData) ->
 	radius:response(RadiusFsm, {error, ignore}),
@@ -161,7 +178,7 @@ wait_for_id({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 				more = false, pwd_exch = commit, data = CommitReqBody},
 		CommitEapData = ocs_eap_codec:eap_pwd(CommitReqHeader),
 		NewEapID = EapID + 1,
-		send_radius_response(?Request, NewEapID, CommitEapData, ?AccessChallenge, RadiusID,
+		send_response(?Request, NewEapID, CommitEapData, ?AccessChallenge, RadiusID,
 				RequestAuthenticator, Secret, RadiusFsm),
 		NewStateData = StateData#statedata{pwe = PWE, s_rand = S_rand, peer_id = PeerID_s,
 			eap_id = NewEapID, scalar_s = ScalarS, element_s = ElementS},
@@ -209,7 +226,7 @@ wait_for_commit({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 						more = false, pwd_exch = confirm, data = ConfirmS},
 				ConfirmEapData = ocs_eap_codec:eap_pwd(ConfirmHeader),
 				NewEapID = EapID + 1,
-				send_radius_response(?Request, NewEapID, ConfirmEapData, ?AccessChallenge,
+				send_response(?Request, NewEapID, ConfirmEapData, ?AccessChallenge,
 						RadiusID, RequestAuthenticator, Secret, RadiusFsm),
 				NewStateData1 = NewStateData#statedata{eap_id = NewEapID, ks = Ks,
 						confirm_s = ConfirmS},
@@ -232,7 +249,7 @@ wait_for_commit1(RadiusFsm, #radius{id = RadiusID,
 		ExpectedSize ->
 			wait_for_commit2(RadiusFsm, AccessRequest, BodyData, StateData);
 		_ ->
-			send_radius_response(?Failure, NewEapID, BodyData, ?AccessReject,
+			send_response(?Failure, NewEapID, BodyData, ?AccessReject,
 					RadiusID, RequestAuthenticator, Secret, RadiusFsm),
 			{error, exit}
 	end.
@@ -244,7 +261,7 @@ wait_for_commit2(RadiusFsm, #radius{id = RadiusID,
 		eap_id = NewEapID} = StateData) ->
 	case {ElementP, ScalarP} of
 		{ElementS, ScalarS} ->
-			send_radius_response(?Failure, NewEapID, BodyData, ?AccessReject,
+			send_response(?Failure, NewEapID, BodyData, ?AccessReject,
 					RadiusID, RequestAuthenticator, Secret, RadiusFsm),
 			{error, exit};
 		_ ->
@@ -259,7 +276,7 @@ wait_for_commit3(RadiusFsm, #radius{id = RadiusID,
 		_ScalarP_Valid when  1 =< ScalarP, ScalarP >= $R ->
 			ok;
 		_ScalarP_Out_of_Range ->
-			send_radius_response(?Failure, NewEapID, BodyData, ?AccessReject, RadiusID,
+			send_response(?Failure, NewEapID, BodyData, ?AccessReject, RadiusID,
 					RequestAuthenticator, Secret, RadiusFsm),
 			{error, exit}
 	end.
@@ -293,7 +310,7 @@ wait_for_confirm({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 				NewEapID = EapID + 1,
 				MK = ocs_eap_pwd:h([Ks, ConfirmP, ConfirmS]),
 				NewStateData = StateData#statedata{mk = MK},
-				send_radius_response(?Success, NewEapID, <<>>, ?AccessAccept,
+				send_response(?Success, NewEapID, <<>>, ?AccessAccept,
 						RadiusID, RequestAuthenticator, Secret, RadiusFsm),
 				{stop, {shutdown, SessionID}, NewStateData};
 			{error, exit} ->
@@ -313,7 +330,7 @@ wait_for_confirm1(RadiusFsm, #radius{id = RadiusID,
 		ExpectedSize ->
 			ok;
 		_ ->
-			send_radius_response(?Failure, NewEapID, BodyData, ?AccessReject, RadiusID,
+			send_response(?Failure, NewEapID, BodyData, ?AccessReject, RadiusID,
 					RequestAuthenticator, Secret, RadiusFsm),
 			{error, exit}
 	end.
@@ -391,74 +408,31 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec send_id_request(AccessRequest :: #radius{},
-		RadiusFsm :: pid(), StateData :: #statedata{}) ->
-	{next_state, wait_for_id, NewStateData :: #statedata{}, timeout()}.
-%% @doc Send an EAP-PWD ID request in a RADIUS Access-Challenge.
-%% @hidden
-send_id_request(#radius{id = RadiusID,
-		authenticator = RequestAuthenticator} = _AccessRequest,
-		RadiusFsm, #statedata{eap_id = EapID, secret = Secret} = StateData) ->
-	Token = crypto:rand_bytes(4),
-	{ok, HostName} = inet:gethostname(),
-	EapBody = #eap_pwd_id{group_desc = 19, random_fun = 1, prf = 1, token = Token,
-			pwd_prep = none, identity = HostName},
-	EapBodyData = ocs_eap_codec:eap_pwd_id(EapBody),
-	EapHeader = #eap_pwd{length = false,
-			more = false, pwd_exch = id, data = EapBodyData},
-	EapData = ocs_eap_codec:eap_pwd(EapHeader),
-	EapPacket = #eap_packet{code = ?Request, type = ?PWD,
-			identifier = EapID, data = EapData},
-	EapPacketData = ocs_eap_codec:eap_packet(EapPacket),
-	AttrList0 = radius_attributes:new(),
-	AttrList1 = radius_attributes:store(?EAPMessage, EapPacketData, AttrList0),
-	AttrList2 = radius_attributes:store(?MessageAuthenticator,
-			<<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, AttrList1),
-	Attributes1 = radius_attributes:codec(AttrList2),
-	Length = size(Attributes1) + 20,
-	MessageAuthenticator = crypto:hmac(md5, Secret,
-			[<<?AccessChallenge, RadiusID, Length:16>>,
-			RequestAuthenticator, Attributes1]),
-	AttrList3 = radius_attributes:store(?MessageAuthenticator,
-			MessageAuthenticator, AttrList2),
-	Attributes2 = radius_attributes:codec(AttrList3),
-	ResponseAuthenticator = crypto:hash(md5,
-			[<<?AccessChallenge, RadiusID, Length:16>>,
-			RequestAuthenticator, Attributes2, Secret]),
-	Response = #radius{code = ?AccessChallenge, id = RadiusID,
-			authenticator = ResponseAuthenticator, attributes = Attributes2},
-	ResponsePacket = radius:codec(Response),
-	radius:response(RadiusFsm, {response, ResponsePacket}),
-	NewStateData = StateData#statedata{eap_id = EapID, grp_dec = 19,
-			rand_func = 1, prf = 1, token = Token, prep = none},
-	{next_state, wait_for_id, NewStateData, ?TIMEOUT}.
-
--spec send_radius_response(EapCode :: integer(), EapID :: byte(), EapData :: binary(),
+-spec send_response(EapCode :: integer(), EapID :: byte(), EapData :: binary(),
 		RadiusCode :: integer(), RadiusID :: byte(), RequestAuthenticator :: binary(),
 		Secret :: binary(), RadiusFsm :: pid()) -> ok.
 %% @doc Sends an RADIUS-Access/Challenge or Reject or Accept  packet to peer
 %% @hidden
-send_radius_response(EapCode, EapID, EapData, RadiusCode, RadiusID,
+send_response(EapCode, EapID, EapData, RadiusCode, RadiusID,
 		RequestAuthenticator, Secret, RadiusFsm) ->
 	Packet = #eap_packet{code = EapCode, type = ?PWD,
 			identifier = EapID, data = EapData},
 	EapPacketData = ocs_eap_codec:eap_packet(Packet),
-	AttributeList0 = radius_attributes:new(),
-	AttributeList1 = radius_attributes:store(?EAPMessage,
-			EapPacketData, AttributeList0),
-	AttributeList2 = radius_attributes:store(?MessageAuthenticator,
-		<<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, AttributeList1),
-	Response1 = radius_attributes:codec(AttributeList2),
-	Length = size(Response1) + 20,
-	MessageAuthenticator = crypto:hmac(md5, Secret, [<<?AccessChallenge, RadiusID,
-			Length:16>>, RequestAuthenticator, Response1]),
-	AttributeList3 = radius_attributes:store(?MessageAuthenticator,
-			MessageAuthenticator, AttributeList2),
-	AttributeData = radius_attributes:codec(AttributeList3),
-	ResponseAuthenticator = crypto:hash(md5,[<<?AccessChallenge, RadiusID,
-			Length:16>>, RequestAuthenticator, AttributeData, Secret]),
+	AttrList0 = radius_attributes:new(),
+	AttrList1 = radius_attributes:store(?EAPMessage, EapPacketData, AttrList0),
+	AttrList2 = radius_attributes:store(?MessageAuthenticator,
+		<<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, AttrList1),
+	Attributes1 = radius_attributes:codec(AttrList2),
+	Length = size(Attributes1) + 20,
+	MessageAuthenticator = crypto:hmac(md5, Secret, [<<RadiusCode, RadiusID,
+			Length:16>>, RequestAuthenticator, Attributes1]),
+	AttrList3 = radius_attributes:store(?MessageAuthenticator,
+			MessageAuthenticator, AttrList2),
+	Attributes2 = radius_attributes:codec(AttrList3),
+	ResponseAuthenticator = crypto:hash(md5, [<<RadiusCode, RadiusID,
+			Length:16>>, RequestAuthenticator, Attributes2, Secret]),
 	Response = #radius{code = RadiusCode, id = RadiusID,
-			authenticator = ResponseAuthenticator, attributes = AttributeData},
+			authenticator = ResponseAuthenticator, attributes = Attributes2},
 	ResponsePacket = radius:codec(Response),
 	radius:response(RadiusFsm, {response, ResponsePacket}),
 	ok.
