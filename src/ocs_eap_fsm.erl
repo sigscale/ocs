@@ -223,7 +223,7 @@ wait_for_commit(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 	catch
 		_:_ ->
 			radius:response(RadiusFsm, {error, ignore}),
-			{next_state, wait_for_commit, StateData,0}
+			{next_state, wait_for_commit, StateData, ?TIMEOUT}
 	end.
 %% @hidden
 wait_for_commit1(#radius{id = RadiusID,
@@ -320,7 +320,7 @@ wait_for_confirm(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 	catch
 		_:_ ->
 			radius:response(RadiusFsm, {error, ignore}),
-			{next_state, wait_for_confirm, StateData,0}
+			{next_state, wait_for_confirm, StateData, ?TIMEOUT}
 	end.
 wait_for_confirm1(#radius{id = RadiusID,
 		authenticator = RequestAuthenticator} = _AccessRequest, BodyData,
