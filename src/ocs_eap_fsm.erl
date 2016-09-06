@@ -193,8 +193,7 @@ wait_for_commit({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 	try 
 		EAPMessage = radius_attributes:fetch(?EAPMessage, Attributes),
 		EAPPacket = ocs_eap_codec:eap_packet(EAPMessage),
-		#eap_packet{code = ?Response, type = ?PWD, identifier = EapID, data = Data}
-			= ocs_eap_codec:eap_packet(EAPPacket),
+		#eap_packet{code = ?Response, type = ?PWD, identifier = EapID, data = Data} = EAPPacket,
 		EAPHeader = ocs_eap_codec:eap_pwd(Data),
 		#eap_pwd{pwd_exch = commit, data = BodyData} = EAPHeader,
 		Body = ocs_eap_codec:eap_pwd_commit(BodyData),
