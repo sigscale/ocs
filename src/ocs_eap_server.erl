@@ -170,10 +170,9 @@ code_change(_OldVsn, State, _Extra) ->
 %% @doc Handle a received RADIUS Access Request packet.
 %% @private
 access_request(Address, Port, Secret, #radius{id = Identifier,
-		authenticator = Authenticator, attributes = AttributeData},
+		authenticator = Authenticator, attributes = Attributes},
 		{RadiusFsm, _Tag} = _From, #state{handlers = Handlers} = State) ->
 	try
-		Attributes = radius_attributes:codec(AttributeData),
 		NAS = case {radius_attributes:find(?NasIdentifier, Attributes),
 				radius_attributes:find(?NasIpAddress, Attributes)} of
 			{{ok, NasId}, _} ->

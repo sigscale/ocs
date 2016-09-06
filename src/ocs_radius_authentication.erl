@@ -73,7 +73,7 @@ request(Address, Port, Packet, #state{eap_server = Server} = _State)
 			{error, not_found} ->
 				ok
 		end,
-		{SharedSecret, Radius}
+		{SharedSecret, Radius#radius{attributes = Attributes}}
 	of
 		{Secret, AccessRequest} ->
 			gen_server:call(Server,
