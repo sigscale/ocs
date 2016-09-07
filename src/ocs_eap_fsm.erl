@@ -308,8 +308,7 @@ wait_for_confirm({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		eap_id = EapID, ks = Ks, confirm_s = ConfirmS} = StateData)->
 	try
 		EAPMessage = radius_attributes:fetch(?EAPMessage, Attributes),
-		EapPacket = ocs_eap_codec:eap_packet(EAPMessage),
-		EapData = ocs_eap_codec:eap_packet(EapPacket),
+		EapData = ocs_eap_codec:eap_packet(EAPMessage),
 		#eap_packet{code = ?Response, type = ?PWD, identifier = EapID, data = Data} = EapData,
 		EapHeader = ocs_eap_codec:eap_pwd(Data),
 		#eap_pwd{pwd_exch = confirm, data = ConfirmP} = EapHeader,
