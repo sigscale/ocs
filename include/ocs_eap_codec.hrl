@@ -17,12 +17,12 @@
 %%% 
 
 %% Macro definitions for EAP packet codes
--define(Request,           1).
--define(Response,          2).
--define(Success,           3).
--define(Failure,           4).
--define(Initiate,          5).
--define(Finish,            6).
+-define(EapRequest,           1).
+-define(EapResponse,          2).
+-define(EapSuccess,           3).
+-define(EapFailure,           4).
+-define(EapInitiate,          5).
+-define(EapFinish,            6).
 
 %% Macro definitions for EAP packet types
 -define(Identity,          1).
