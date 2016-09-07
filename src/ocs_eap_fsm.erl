@@ -171,19 +171,25 @@ wait_for_id({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		#eap_pwd_id{group_desc = GroupDesc, random_fun = RandFun, prf = PRF,
 				 token = Token, pwd_prep = none, identity = PeerID_s} = Body,
 		PeerID = list_to_binary(PeerID_s),
-		PWE = ocs_eap_pwd:compute_pwe(Token, PeerID, HostName, Secret),
-		{ScalarS, ElementS} = ocs_eap_pwd:compute_scalar(<<S_rand:256>>, PWE),
-		CommitReq = #eap_pwd_commit{scalar = ScalarS, element = ElementS},
-		CommitReqBody = ocs_eap_codec:eap_pwd_commit(CommitReq),
-		CommitReqHeader = #eap_pwd{length = false,
-				more = false, pwd_exch = commit, data = CommitReqBody},
-		CommitEapData = ocs_eap_codec:eap_pwd(CommitReqHeader),
 		NewEapID = EapID + 1,
-		send_response(?Request, NewEapID, CommitEapData, ?AccessChallenge, RadiusID,
-				RequestAuthenticator, Secret, RadiusFsm),
-		NewStateData = StateData#statedata{pwe = PWE, s_rand = S_rand, peer_id = PeerID_s,
-			eap_id = NewEapID, scalar_s = ScalarS, element_s = ElementS},
-		{next_state, wait_for_commit, NewStateData, ?TIMEOUT}
+		case catch ocs:find_subscriber(PeerID_s) of
+			{ok, Password, _} ->
+				PWE = ocs_eap_pwd:compute_pwe(Token, PeerID, HostName, Password),
+				{ScalarS, ElementS} = ocs_eap_pwd:compute_scalar(<<S_rand:256>>, PWE),
+				CommitReq = #eap_pwd_commit{scalar = ScalarS, element = ElementS},
+				CommitReqBody = ocs_eap_codec:eap_pwd_commit(CommitReq),
+				CommitReqHeader = #eap_pwd{length = false,
+					more = false, pwd_exch = commit, data = CommitReqBody},
+				CommitEapData = ocs_eap_codec:eap_pwd(CommitReqHeader),
+				send_response(?Request, NewEapID, CommitEapData, ?AccessChallenge, RadiusID,
+					RequestAuthenticator, Secret, RadiusFsm),
+				NewStateData = StateData#statedata{pwe = PWE, s_rand = S_rand, peer_id = PeerID_s,
+					eap_id = NewEapID, scalar_s = ScalarS, element_s = ElementS},
+				{next_state, wait_for_commit, NewStateData, ?TIMEOUT};
+			error ->
+				send_response(?Failure, NewEapID, EapPacket, ?AccessReject,
+					RadiusID, RequestAuthenticator, Secret, RadiusFsm)
+		end
 	catch
 		_:_ ->
 			radius:response(RadiusFsm, {error, ignore}),
