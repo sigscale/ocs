@@ -188,7 +188,7 @@ wait_for_id({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 					element_s = ElementS},
 				{next_state, wait_for_commit, NewStateData, ?TIMEOUT};
 			error ->
-				send_response(?EapFailure, NewEapID, EAPMessage, ?AccessReject,
+				send_response(?EapFailure, NewEapID, <<>>, ?AccessReject,
 					RadiusID, RequestAuthenticator, Secret, RadiusFsm),
 				{next_state, wait_for_id, StateData, 0}
 		end
@@ -258,7 +258,7 @@ wait_for_commit1(RadiusFsm, #radius{id = RadiusID,
 		ExpectedSize ->
 			wait_for_commit2(RadiusFsm, AccessRequest, BodyData, StateData);
 		_ ->
-			send_response(?EapFailure, NewEapID, BodyData, ?AccessReject,
+			send_response(?EapFailure, NewEapID, <<>>, ?AccessReject,
 					RadiusID, RequestAuthenticator, Secret, RadiusFsm),
 			{error, exit}
 	end.
@@ -270,7 +270,7 @@ wait_for_commit2(RadiusFsm, #radius{id = RadiusID,
 		eap_id = NewEapID} = StateData) ->
 	case {ElementP, ScalarP} of
 		{ElementS, ScalarS} ->
-			send_response(?EapFailure, NewEapID, BodyData, ?AccessReject,
+			send_response(?EapFailure, NewEapID, <<>>, ?AccessReject,
 					RadiusID, RequestAuthenticator, Secret, RadiusFsm),
 			{error, exit};
 		_ ->
@@ -285,7 +285,7 @@ wait_for_commit3(RadiusFsm, #radius{id = RadiusID,
 		_ScalarP_Valid when  1 =< ScalarP, ScalarP >= $R ->
 			ok;
 		_ScalarP_Out_of_Range ->
-			send_response(?EapFailure, NewEapID, BodyData, ?AccessReject, RadiusID,
+			send_response(?EapFailure, NewEapID, <<>>, ?AccessReject, RadiusID,
 					RequestAuthenticator, Secret, RadiusFsm),
 			{error, exit}
 	end.
@@ -338,7 +338,7 @@ wait_for_confirm1(RadiusFsm, #radius{id = RadiusID,
 		ExpectedSize ->
 			ok;
 		_ ->
-			send_response(?EapFailure, NewEapID, BodyData, ?AccessReject, RadiusID,
+			send_response(?EapFailure, NewEapID, <<>>, ?AccessReject, RadiusID,
 					RequestAuthenticator, Secret, RadiusFsm),
 			{error, exit}
 	end.
