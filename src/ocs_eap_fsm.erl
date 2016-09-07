@@ -187,7 +187,7 @@ wait_for_id({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 					eap_id = NewEapID, scalar_s = ScalarS, element_s = ElementS},
 				{next_state, wait_for_commit, NewStateData, ?TIMEOUT};
 			error ->
-				send_response(?Failure, NewEapID, EapPacket, ?AccessReject,
+				send_response(?Failure, NewEapID, EAPMessage, ?AccessReject,
 					RadiusID, RequestAuthenticator, Secret, RadiusFsm)
 		end
 	catch
