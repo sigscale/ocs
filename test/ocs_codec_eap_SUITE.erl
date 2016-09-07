@@ -153,7 +153,7 @@ ecc_computations_diff_shared_key(_Config) ->
 	MK_P /= MK_S.
 
 ecc_computations_invalid_curve_point() ->
-	[{userdata, [{doc, "Check ECC computations with an invalid shared key"}]}].
+	[{userdata, [{doc, "Check ECC computations with an invalid points on elliptic curve"}]}].
 
 ecc_computations_invalid_curve_point(_Config) ->
 	Password = <<"Secret S">>,
