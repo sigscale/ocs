@@ -113,29 +113,27 @@ eap_pwd(<<0:1, 0:1, 3:6, Payload/binary>>) ->
 %% RFC-5931 3.2.1
 %% Comprise the Ciphersuite included in the calculation of the
 %% peer's and server's confirm messages
-eap_pwd_id(<<GDesc:16, RanFun, PRF, Token:4/binary, PWDPrep, BinId/binary>>) ->
-	Prep = case PWDPrep of
-		0 -> none;
-		1 -> rfc2759;
-		3 -> saslprep
-	end,
-	Id = binary_to_list(BinId),
-	#eap_pwd_id{
-		group_desc = GDesc,
-		random_fun = RanFun,
-		prf = PRF,
-		token = Token,
-		pwd_prep = Prep,
-		identity = Id};
+eap_pwd_id(<<GDesc:16, RanFun, PRF, Token:4/binary, 0, Identity/binary>>) ->
+	#eap_pwd_id{group_desc = GDesc, random_fun = RanFun, prf = PRF,
+		token = Token, pwd_prep = none, identity = Identity};
+eap_pwd_id(<<GDesc:16, RanFun, PRF, Token:4/binary, 1, Identity/binary>>) ->
+	#eap_pwd_id{group_desc = GDesc, random_fun = RanFun, prf = PRF,
+		token = Token, pwd_prep = rfc2759, identity = Identity};
+eap_pwd_id(<<GDesc:16, RanFun, PRF, Token:4/binary, 2, Identity/binary>>) ->
+	#eap_pwd_id{group_desc = GDesc, random_fun = RanFun, prf = PRF,
+		token = Token, pwd_prep = saslprep, identity = Identity};
 eap_pwd_id(#eap_pwd_id{group_desc = GDesc, random_fun = RanFun, prf = PRF,
-		token = Token, pwd_prep = PWDPrep, identity = ListID}) ->
-	Prep = case PWDPrep of
-		none -> 0;
-		rfc2759 -> 1;
-		saslprep -> 3
-	end,
-	ID = list_to_binary(ListID),
-	<<GDesc:16, RanFun, PRF, Token/binary, Prep, ID/binary>>.
+		token = Token, pwd_prep = none, identity = Identity})
+		when size(Token) == 4, is_binary(Identity) ->
+	<<GDesc:16, RanFun, PRF, Token/binary, 0, Identity/binary>>;
+eap_pwd_id(#eap_pwd_id{group_desc = GDesc, random_fun = RanFun, prf = PRF,
+		token = Token, pwd_prep = rfc2759, identity = Identity})
+		when size(Token) == 4, is_binary(Identity) ->
+	<<GDesc:16, RanFun, PRF, Token/binary, 1, Identity/binary>>;
+eap_pwd_id(#eap_pwd_id{group_desc = GDesc, random_fun = RanFun, prf = PRF,
+		token = Token, pwd_prep = saslprep, identity = Identity})
+		when size(Token) == 4, is_binary(Identity) ->
+	<<GDesc:16, RanFun, PRF, Token/binary, 2, Identity/binary>>.
 
 -spec eap_pwd_commit(Packet :: binary() | #eap_pwd_commit{}) -> #eap_pwd_commit{} | binary().
 %% @doc Encode or Decode `EAP-pwd-commit'

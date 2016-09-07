@@ -103,11 +103,13 @@ add_subscriber(Subscriber, Password, Attributes) when is_list(Subscriber),
 			{error, Reason}
 	end.
 
--spec find_subscriber(Subscriber :: string()) ->
-	Result :: {ok, Password :: string(),
+-spec find_subscriber(Subscriber :: string() | binary()) ->
+	Result :: {ok, Password :: binary(),
 		Attributes :: binary() | [byte()]} | error.
 %% @doc Look up a subscriber and return the password and attributes assigned.
 %%
+find_subscriber(Subscriber) when is_binary(Subscriber) ->
+	find_subscriber(binary_to_list(Subscriber));
 find_subscriber(Subscriber) when is_list(Subscriber) ->
 	F = fun() ->
 				mnesia:read(subscriber, Subscriber, read)

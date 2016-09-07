@@ -62,25 +62,25 @@
 -define(R,  16#ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551).
 
 -record(eap_packet,
-			{code :: 1..255,
+			{code :: byte(),
 			type :: byte(),
-			identifier :: 1..255,
+			identifier :: byte(),
 			data :: binary()}).
 
 -record(eap_pwd,
 			{length :: boolean(),
 			more :: boolean(),
 			pwd_exch :: id | commit | confirm,
-			tot_length :: integer(),
+			tot_length :: 0..65535,
 			data :: binary()}).
 
 -record(eap_pwd_id,
-			{group_desc = 19 :: integer(),
-			random_fun = 1 :: integer(),
-			prf = 1 :: integer(),
+			{group_desc = 19 :: byte(),
+			random_fun = 1 :: byte(),
+			prf = 1 :: byte(),
 			token :: binary(),
 			pwd_prep :: none | rfc2759 | saslprep,
-			identity :: string()}).
+			identity :: binary()}).
 
 -record(eap_pwd_commit,
 			{element :: binary(),
