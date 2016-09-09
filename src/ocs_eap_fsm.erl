@@ -330,14 +330,31 @@ wait_for_confirm({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 			{next_state, wait_for_confirm, StateData, ?TIMEOUT}
 	end.
 wait_for_confirm1(RadiusFsm, #radius{id = RadiusID,
-		authenticator = RequestAuthenticator} = _AccessRequest, BodyData,
+		authenticator = RequestAuthenticator} = AccessRequest, ConfirmP,
 		#statedata{secret = Secret, confirm_s = ConfirmS,
-		eap_id = NewEapID} = _StateData) ->
-	ExpectedSize = size(<<ConfirmS/binary>>),
-	case size(BodyData) of 
+		eap_id = NewEapID} = StateData) ->
+	ExpectedSize = size(ConfirmS),
+	case size(ConfirmP) of 
 		ExpectedSize ->
+			wait_for_confirm2(RadiusFsm, AccessRequest, ConfirmP, StateData);
+		_ ->
+			send_response(?EapFailure, NewEapID, <<>>, ?AccessReject, RadiusID,
+					RequestAuthenticator, Secret, RadiusFsm),
+			{error, exit}
+	end.
+wait_for_confirm2(RadiusFsm, #radius{id = RadiusID,
+		authenticator = RequestAuthenticator} = _AccessRequest, ConfirmP,
+		#statedata{secret = Secret, eap_id = EapID, ks = Ks,
+		scalar_s = ScalarS, element_s = ElementS,
+		scalar_p = ScalarP, element_p = ElementP,
+		group_desc = GroupDesc, rand_func = RandFunc, prf = PRF} = _StateData)->
+	Ciphersuite = <<GroupDesc:16, RandFunc, PRF>>,
+	case ocs_eap_pwd:hH([Ks, ElementP, ScalarP,
+			ElementS, ScalarS, Ciphersuite]) of
+		ConfirmP ->
 			ok;
 		_ ->
+			NewEapID = EapID + 1,
 			send_response(?EapFailure, NewEapID, <<>>, ?AccessReject, RadiusID,
 					RequestAuthenticator, Secret, RadiusFsm),
 			{error, exit}
