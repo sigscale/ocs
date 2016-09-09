@@ -233,7 +233,7 @@ wait_for_commit({#radius{attributes = Attributes} = AccessRequest, RadiusFsm},
 %% @hidden
 wait_for_commit1(RadiusFsm, #radius{id = RadiusID,
 		authenticator = RequestAuthenticator} = AccessRequest,
-		BodyData, #statedata{eap_id = NewEapID, secret = Secret,
+		BodyData, #statedata{eap_id = EapID, secret = Secret,
 		scalar_s = ScalarS, element_s = ElementS,
 		session_id = SessionID} = StateData) ->
 	ExpectedSize = size(<<ElementS/binary, ScalarS/binary>>),
@@ -241,6 +241,7 @@ wait_for_commit1(RadiusFsm, #radius{id = RadiusID,
 		ExpectedSize ->
 			wait_for_commit2(RadiusFsm, AccessRequest, StateData);
 		_ ->
+			NewEapID = EapID + 1,
 			send_response(?EapFailure, NewEapID, <<>>, ?AccessReject,
 					RadiusID, RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, StateData}
@@ -250,9 +251,10 @@ wait_for_commit2(RadiusFsm, #radius{id = RadiusID,
 		authenticator = RequestAuthenticator} = AccessRequest,
 		#statedata{element_p = ElementP, scalar_p = ScalarP,
 		scalar_s = ScalarS, element_s = ElementS, secret = Secret,
-		eap_id = NewEapID, session_id = SessionID} = StateData) ->
+		eap_id = EapID, session_id = SessionID} = StateData) ->
 	case {ElementP, ScalarP} of
 		{ElementS, ScalarS} ->
+			NewEapID = EapID + 1,
 			send_response(?EapFailure, NewEapID, <<>>, ?AccessReject,
 					RadiusID, RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, StateData};
@@ -263,11 +265,12 @@ wait_for_commit2(RadiusFsm, #radius{id = RadiusID,
 wait_for_commit3(RadiusFsm, #radius{id = RadiusID,
 		authenticator = RequestAuthenticator} = AccessRequest,
 		#statedata{scalar_p = ScalarP, secret = Secret,
-		eap_id = NewEapID, session_id = SessionID} = StateData)->
+		eap_id = EapID, session_id = SessionID} = StateData)->
 	case ScalarP of
 		_ScalarP_Valid when  1 =< ScalarP, ScalarP >= $R ->
 			wait_for_commit4(RadiusFsm, AccessRequest, StateData);
 		_ScalarP_Out_of_Range ->
+			NewEapID = EapID + 1,
 			send_response(?EapFailure, NewEapID, <<>>, ?AccessReject, RadiusID,
 					RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, StateData}
@@ -332,12 +335,13 @@ wait_for_confirm({#radius{attributes = Attributes} = AccessRequest, RadiusFsm},
 wait_for_confirm1(RadiusFsm, #radius{id = RadiusID,
 		authenticator = RequestAuthenticator} = AccessRequest,
 		#statedata{secret = Secret, confirm_s = ConfirmS,
-		eap_id = NewEapID, confirm_p = ConfirmP} = StateData) ->
+		eap_id = EapID, confirm_p = ConfirmP} = StateData) ->
 	ExpectedSize = size(ConfirmS),
 	case size(ConfirmP) of 
 		ExpectedSize ->
 			wait_for_confirm2(RadiusFsm, AccessRequest, StateData);
 		_ ->
+			NewEapID = EapID + 1,
 			send_response(?EapFailure, NewEapID, <<>>, ?AccessReject, RadiusID,
 					RequestAuthenticator, Secret, RadiusFsm),
 			{error, exit}
