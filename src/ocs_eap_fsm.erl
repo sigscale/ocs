@@ -157,7 +157,8 @@ wait_for_id(timeout, #statedata{session_id = SessionID} = StateData)->
 wait_for_id({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		attributes = Attributes} = _AccessRequest, RadiusFsm},
 		#statedata{token = Token, eap_id = EapID, secret = Secret,
-		group_desc = GroupDesc, rand_func = RandFun, prf = PRF} = StateData)->
+		group_desc = GroupDesc, rand_func = RandFun, prf = PRF,
+		session_id = SessionID} = StateData)->
 	{ok, HostName_s} = inet:gethostname(),
 	HostName = list_to_binary(HostName_s),
 	S_rand = crypto:rand_uniform(1, ?R),
@@ -190,7 +191,7 @@ wait_for_id({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 			error ->
 				send_response(?EapFailure, NewEapID, <<>>, ?AccessReject,
 					RadiusID, RequestAuthenticator, Secret, RadiusFsm),
-				{next_state, wait_for_id, StateData, 0}
+				{stop, {shutdown, SessionID}, StateData}
 		end
 	catch
 		_:_ ->
@@ -213,9 +214,10 @@ wait_for_commit(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
 wait_for_commit({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		attributes = Attributes} = AccessRequest, RadiusFsm},
-		#statedata{eap_id = EapID, secret = Secret, group_desc = GroupDesc,
-		rand_func = RandFunc, prf = PRF, pwe = PWE, element_s = ElementS,
-		scalar_s = ScalarS, s_rand = S_rand} = StateData)->
+		#statedata{eap_id = EapID, secret = Secret,
+		group_desc = GroupDesc, rand_func = RandFunc, prf = PRF,
+		pwe = PWE, element_s = ElementS, scalar_s = ScalarS, s_rand = S_rand,
+		session_id = SessionID} = StateData) ->
 	try 
 		EAPMessage = radius_attributes:fetch(?EAPMessage, Attributes),
 		EapPacket = ocs_eap_codec:eap_packet(EAPMessage),
@@ -241,7 +243,7 @@ wait_for_commit({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 						confirm_s = ConfirmS},
 				{next_state, wait_for_confirm, NewStateData1, ?TIMEOUT};
 			{error,exit} ->
-				{next_state, wait_for_commit, NewStateData,0}
+				{stop, {shutdown, SessionID}, NewStateData}
 		end
 	catch
 		_:_ ->
@@ -327,7 +329,7 @@ wait_for_confirm({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 	catch
 		_:_ ->
 			radius:response(RadiusFsm, {error, ignore}),
-			{next_state, wait_for_confirm, StateData, ?TIMEOUT}
+			{stop, {shutdown, SessionID}, StateData}
 	end.
 %% @hidden
 wait_for_confirm1(RadiusFsm, #radius{id = RadiusID,
