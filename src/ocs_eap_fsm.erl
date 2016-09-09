@@ -289,8 +289,8 @@ wait_for_commit4(RadiusFsm, #radius{id = RadiusID,
 			radius:response(RadiusFsm, {error, ignore}),
 			{next_state, wait_for_commit, StateData, ?TIMEOUT};
 		Ks ->
-			Input = [<<Ks/binary, ElementS/binary, ScalarS/binary, ElementP/binary,
-					ScalarP/binary, GroupDesc:16, RandFunc, PRF>>],
+			Ciphersuite = <<GroupDesc:16, RandFunc, PRF>>],
+			Input = [Ks, ElementS, ScalarS, ElementP, ScalarP, Ciphersuite],
 			ConfirmS = ocs_eap_pwd:h(Input),
 			ConfirmHeader = #eap_pwd{length = false,
 					more = false, pwd_exch = confirm, data = ConfirmS},
