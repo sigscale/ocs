@@ -81,7 +81,7 @@ all() ->
 %%---------------------------------------------------------------------
 
 encode_eap_id() ->
-	[{userdata, [{doc, "Encode an EAP-ID/request packet"}]}].
+	[{userdata, [{doc, "Encode/decode an EAP-ID/request packet"}]}].
 
 encode_eap_id(_Config) ->
 	Code = ?Request,
@@ -144,16 +144,14 @@ ecc_computations_diff_shared_key(_Config) ->
 	{P_scalar, P_element} = ocs_eap_pwd:compute_scalar(P_rand_bin, P_pwe),
 	Ks = ocs_eap_pwd:compute_ks(S_rand_bin, S_pwe, P_scalar, P_element),
 	Kp = ocs_eap_pwd:compute_ks(P_rand_bin, P_pwe, S_scalar, S_element),
-	S_confirm = ocs_eap_pwd:h([Ks, S_element, S_scalar, P_element, P_scalar,
-		<<19:16>>, <<16#1>>, <<16#1>>]),
-	P_confirm = ocs_eap_pwd:h([Kp, P_element, P_scalar, S_element, S_scalar,
-		<<19:16>>, <<16#1>>, <<16#1>>]),
-	MK_S = ocs_eap_pwd:h([Ks, P_confirm, S_confirm]),
-	MK_P = ocs_eap_pwd:h([Kp, P_confirm, S_confirm]),
-	MK_P /= MK_S.
+	Ks /= Kp.
 
 ecc_computations_invalid_curve_point() ->
+<<<<<<< Updated upstream
 	[{userdata, [{doc, "Check ECC computations with an invalid points on elliptic curve"}]}].
+=======
+	[{userdata, [{doc, "Check ECC computations with an invalid random number"}]}].
+>>>>>>> Stashed changes
 
 ecc_computations_invalid_curve_point(_Config) ->
 	Password = <<"Secret S">>,
