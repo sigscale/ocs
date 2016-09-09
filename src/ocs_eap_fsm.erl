@@ -256,7 +256,7 @@ wait_for_commit1(RadiusFsm, #radius{id = RadiusID,
 	ExpectedSize = size(<<ElementS/binary, ScalarS/binary>>),
 	case size(BodyData) of 
 		ExpectedSize ->
-			wait_for_commit2(RadiusFsm, AccessRequest, BodyData, StateData);
+			wait_for_commit2(RadiusFsm, AccessRequest, StateData);
 		_ ->
 			send_response(?EapFailure, NewEapID, <<>>, ?AccessReject,
 					RadiusID, RequestAuthenticator, Secret, RadiusFsm),
@@ -265,7 +265,7 @@ wait_for_commit1(RadiusFsm, #radius{id = RadiusID,
 %% @hidden
 wait_for_commit2(RadiusFsm, #radius{id = RadiusID,
 		authenticator = RequestAuthenticator} = AccessRequest,
-		BodyData, #statedata{element_p = ElementP, scalar_p = ScalarP,
+		#statedata{element_p = ElementP, scalar_p = ScalarP,
 		scalar_s = ScalarS, element_s = ElementS, secret = Secret,
 		eap_id = NewEapID} = StateData) ->
 	case {ElementP, ScalarP} of
@@ -274,11 +274,11 @@ wait_for_commit2(RadiusFsm, #radius{id = RadiusID,
 					RadiusID, RequestAuthenticator, Secret, RadiusFsm),
 			{error, exit};
 		_ ->
-			wait_for_commit3(RadiusFsm, AccessRequest, BodyData, StateData)
+			wait_for_commit3(RadiusFsm, AccessRequest, StateData)
 	end.
 %% @hidden
 wait_for_commit3(RadiusFsm, #radius{id = RadiusID,
-		authenticator = RequestAuthenticator} = _AccessRequest, BodyData,
+		authenticator = RequestAuthenticator} = _AccessRequest,
 		#statedata{scalar_p = ScalarP, secret = Secret,
 		eap_id = NewEapID} = _StateData)->
 	case ScalarP of
