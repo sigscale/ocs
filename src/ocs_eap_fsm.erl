@@ -267,7 +267,7 @@ wait_for_commit3(RadiusFsm, #radius{id = RadiusID,
 		#statedata{scalar_p = ScalarP, secret = Secret,
 		eap_id = EapID, session_id = SessionID} = StateData)->
 	case ScalarP of
-		_ScalarP_Valid when  1 =< ScalarP, ScalarP >= $R ->
+		_ScalarP_Valid when 1 < ScalarP, ScalarP < ?R ->
 			wait_for_commit4(RadiusFsm, AccessRequest, StateData);
 		_ScalarP_Out_of_Range ->
 			NewEapID = EapID + 1,
