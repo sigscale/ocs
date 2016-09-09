@@ -47,6 +47,7 @@
 		secret :: binary(),
 		token :: binary(),
 		prep :: none | rfc2759 | saslprep,
+		server_id = binary(),
 		peer_id :: binary(),
 		pwe :: binary(),
 		s_rand :: integer(),
@@ -103,14 +104,15 @@ idle({#radius{code = ?AccessRequest, id = RadiusID,
 		rand_func = RandFunc, prf = PRF} = StateData) ->
 	Token = crypto:rand_bytes(4),
 	{ok, HostName} = inet:gethostname(),
+	ServerID = list_to_binary(HostName),
 	EapPwdId = #eap_pwd_id{group_desc = GroupDesc,
 			random_fun = RandFunc, prf = PRF, token = Token,
-			pwd_prep = none, identity = list_to_binary(HostName)},
+			pwd_prep = none, identity = ServerID},
 	EapPwdData = ocs_eap_codec:eap_pwd_id(EapPwdId),
 	EapPwd = #eap_pwd{length = false,
 			more = false, pwd_exch = id, data = EapPwdData},
 	EapData = ocs_eap_codec:eap_pwd(EapPwd),
-	NewStateData = StateData#statedata{token = Token},
+	NewStateData = StateData#statedata{token = Token, server_id = ServerID},
 	case radius_attributes:find(?EAPMessage, Attributes) of
 		{ok, <<>>} ->
 			send_response(?EapRequest, EapID, EapData, ?AccessChallenge,
@@ -159,9 +161,7 @@ wait_for_id({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		attributes = Attributes} = _AccessRequest, RadiusFsm},
 		#statedata{token = Token, eap_id = EapID, secret = Secret,
 		group_desc = GroupDesc, rand_func = RandFun, prf = PRF,
-		session_id = SessionID} = StateData)->
-	{ok, HostName_s} = inet:gethostname(),
-	HostName = list_to_binary(HostName_s),
+		server_id = ServerID, session_id = SessionID} = StateData)->
 	S_rand = crypto:rand_uniform(1, ?R),
 	try
 		EAPMessage = radius_attributes:fetch(?EAPMessage, Attributes),
@@ -176,7 +176,7 @@ wait_for_id({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		NewEapID = EapID + 1,
 		case catch ocs:find_subscriber(PeerID) of
 			{ok, Password, _Attributes} ->
-				PWE = ocs_eap_pwd:compute_pwe(Token, PeerID, HostName, Password),
+				PWE = ocs_eap_pwd:compute_pwe(Token, PeerID, ServerID, Password),
 				{ScalarS, ElementS} = ocs_eap_pwd:compute_scalar(<<S_rand:256>>, PWE),
 				CommitReq = #eap_pwd_commit{scalar = ScalarS, element = ElementS},
 				CommitReqBody = ocs_eap_codec:eap_pwd_commit(CommitReq),
