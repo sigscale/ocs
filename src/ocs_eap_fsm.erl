@@ -329,6 +329,7 @@ wait_for_confirm({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 			radius:response(RadiusFsm, {error, ignore}),
 			{next_state, wait_for_confirm, StateData, ?TIMEOUT}
 	end.
+%% @hidden
 wait_for_confirm1(RadiusFsm, #radius{id = RadiusID,
 		authenticator = RequestAuthenticator} = AccessRequest, ConfirmP,
 		#statedata{secret = Secret, confirm_s = ConfirmS,
@@ -342,6 +343,7 @@ wait_for_confirm1(RadiusFsm, #radius{id = RadiusID,
 					RequestAuthenticator, Secret, RadiusFsm),
 			{error, exit}
 	end.
+%% @hidden
 wait_for_confirm2(RadiusFsm, #radius{id = RadiusID,
 		authenticator = RequestAuthenticator} = _AccessRequest, ConfirmP,
 		#statedata{secret = Secret, eap_id = EapID, ks = Ks,
