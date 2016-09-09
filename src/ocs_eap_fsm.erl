@@ -354,7 +354,7 @@ wait_for_confirm2(RadiusFsm, #radius{id = RadiusID,
 		scalar_p = ScalarP, element_p = ElementP, group_desc = GroupDesc,
 		rand_func = RandFunc, prf = PRF} = StateData) ->
 	Ciphersuite = <<GroupDesc:16, RandFunc, PRF>>,
-	case ocs_eap_pwd:hH([Ks, ElementP, ScalarP,
+	case ocs_eap_pwd:h([Ks, ElementP, ScalarP,
 			ElementS, ScalarS, Ciphersuite]) of
 		ConfirmP ->
 			wait_for_confirm3(RadiusFsm, AccessRequest, StateData);
