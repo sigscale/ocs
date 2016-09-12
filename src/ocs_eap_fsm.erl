@@ -47,7 +47,7 @@
 		secret :: binary(),
 		token :: binary(),
 		prep :: none | rfc2759 | saslprep,
-		server_id = binary(),
+		server_id  :: binary(),
 		peer_id :: binary(),
 		pwe :: binary(),
 		s_rand :: integer(),
@@ -289,7 +289,7 @@ wait_for_commit4(RadiusFsm, #radius{id = RadiusID,
 			radius:response(RadiusFsm, {error, ignore}),
 			{next_state, wait_for_commit, StateData, ?TIMEOUT};
 		Ks ->
-			Ciphersuite = <<GroupDesc:16, RandFunc, PRF>>],
+			Ciphersuite = <<GroupDesc:16, RandFunc, PRF>>,
 			Input = [Ks, ElementS, ScalarS, ElementP, ScalarP, Ciphersuite],
 			ConfirmS = ocs_eap_pwd:h(Input),
 			ConfirmHeader = #eap_pwd{length = false,
