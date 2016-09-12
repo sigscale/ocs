@@ -147,11 +147,7 @@ ecc_computations_diff_shared_key(_Config) ->
 	Ks /= Kp.
 
 ecc_computations_invalid_curve_point() ->
-<<<<<<< Updated upstream
-	[{userdata, [{doc, "Check ECC computations with an invalid points on elliptic curve"}]}].
-=======
 	[{userdata, [{doc, "Check ECC computations with an invalid random number"}]}].
->>>>>>> Stashed changes
 
 ecc_computations_invalid_curve_point(_Config) ->
 	Password = <<"Secret S">>,
