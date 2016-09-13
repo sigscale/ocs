@@ -79,7 +79,7 @@ kdf(uint8_t *key, int key_len, char const *label,
 	context = HMAC_CTX_new();
 	len = 0;
 	counter = 1;
-	L = htons(result_len);
+	L = htons(result_len * 8);
 	while (len < result_len) {
 		i = htons(counter);
 		HMAC_Init_ex(context, key, key_len, EVP_sha256(), NULL);
