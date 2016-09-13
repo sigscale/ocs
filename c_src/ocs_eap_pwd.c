@@ -154,7 +154,7 @@ compute_pwe_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 			continue;
 		break;
 	}
-	if (counter >= 10) {
+	if (counter > 30) {
 		reason = enif_make_string(env, "too many iterations", ERL_NIF_LATIN1);
 		return enif_raise_exception(env, reason);
 	}
