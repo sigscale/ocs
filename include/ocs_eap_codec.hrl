@@ -62,7 +62,7 @@
 -define(R,  16#ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551).
 
 -record(eap_packet,
-			{code :: byte(),
+			{code :: request | response | success | failure,
 			type :: byte(),
 			identifier :: byte(),
 			data :: binary()}).

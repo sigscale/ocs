@@ -126,7 +126,7 @@ eap_id_request_response(Config) ->
 		attributes = BinIDReqAttributes} = radius:codec(Packet),
 	IDReqAttributes = radius_attributes:codec(BinIDReqAttributes),
 	{ok, EAPPacket} = radius_attributes:find(?EAPMessage, IDReqAttributes),
-	#eap_packet{code = ?Request, type = ?PWD, identifier = _ID, data = Data} = ocs_eap_codec:eap_packet(EAPPacket),
+	#eap_packet{code = request, type = ?PWD, identifier = _ID, data = Data} = ocs_eap_codec:eap_packet(EAPPacket),
 	#eap_pwd{length = false, more = false, pwd_exch = id, tot_length = _L,
 		data = IDReqBody} = ocs_eap_codec:eap_pwd(Data),
 	#eap_pwd_id{group_desc = 19, random_fun = 16#1, prf = 16#1, token =_Token, pwd_prep = none,
@@ -165,7 +165,7 @@ eap_commit_request_response(Config) ->
 		attributes = BinIDReqAttributes} = radius:codec(IdReqPacket),
 	IDReqAttributes = radius_attributes:codec(BinIDReqAttributes),
 	{ok, IDEAPPacket} = radius_attributes:find(?EAPMessage, IDReqAttributes),
-	#eap_packet{code = ?Request, type = ?PWD, identifier = IDEAPId, data = IDData} =
+	#eap_packet{code = request, type = ?PWD, identifier = IDEAPId, data = IDData} =
 		ocs_eap_codec:eap_packet(IDEAPPacket),
 	#eap_pwd{length = false, more = false, pwd_exch = id,
 		data = IDReqData} = ocs_eap_codec:eap_pwd(IDData),
@@ -176,7 +176,7 @@ eap_commit_request_response(Config) ->
 	IDRespHeader = #eap_pwd{length = false, more = false, pwd_exch = id,
 		data = IDRespBodyData},
 	IDEAPData = ocs_eap_codec:eap_pwd(IDRespHeader),
-	IDRespPacket = #eap_packet{code = ?Response, type = ?PWD, identifier = IDEAPId, data = IDEAPData},
+	IDRespPacket = #eap_packet{code = response, type = ?PWD, identifier = IDEAPId, data = IDEAPData},
 	IDEAPPacketData = ocs_eap_codec:eap_packet(IDRespPacket),
 	IDRespAttributeList1 = radius_attributes:store(?EAPMessage, IDEAPPacketData, IDReqAttributeList5),
 	Authenticator2 = radius:authenticator(),
@@ -199,7 +199,7 @@ eap_commit_request_response(Config) ->
 		attributes = CommitReqAttributes} = radius:codec(CommitPacket),
 	CommitReqAtt = radius_attributes:codec(CommitReqAttributes),
 	{ok, CommitEAPPacket} = radius_attributes:find(?EAPMessage, CommitReqAtt),
-	#eap_packet{code = ?Request, type = ?PWD, identifier = EAPId2, data = CommitData} =
+	#eap_packet{code = request, type = ?PWD, identifier = EAPId2, data = CommitData} =
 		ocs_eap_codec:eap_packet(CommitEAPPacket),
 	#eap_pwd{length = false, more = false, pwd_exch = commit,
 		data = CommitReqData} = ocs_eap_codec:eap_pwd(CommitData),
@@ -215,7 +215,7 @@ eap_commit_request_response(Config) ->
 	CommitRespHeader = #eap_pwd{length = false, more = false, pwd_exch = commit,
 		data = CommitRespBodyData},
 	CommitEAPData = ocs_eap_codec:eap_pwd(CommitRespHeader),
-	CommitRespPacket = #eap_packet{code = ?Response, type = ?PWD, identifier = EAPId2, data = CommitEAPData},
+	CommitRespPacket = #eap_packet{code = response, type = ?PWD, identifier = EAPId2, data = CommitEAPData},
 	CommitRespPacketData = ocs_eap_codec:eap_packet(CommitRespPacket),
 	CommitAttributeList1 = radius_attributes:store(?EAPMessage,
 	   CommitRespPacketData, IDReqAttributeList5),
@@ -266,7 +266,7 @@ eap_confirm_request_response(Config) ->
 		attributes = BinIDReqAttributes} = radius:codec(IdReqPacket),
 	IDReqAttributes = radius_attributes:codec(BinIDReqAttributes),
 	{ok, IDEAPPacket} = radius_attributes:find(?EAPMessage, IDReqAttributes),
-	#eap_packet{code = ?Request, type = ?PWD, identifier = IDEAPId, data = IDData} =
+	#eap_packet{code = request, type = ?PWD, identifier = IDEAPId, data = IDData} =
 		ocs_eap_codec:eap_packet(IDEAPPacket),
 	#eap_pwd{length = false, more = false, pwd_exch = id,
 		data = IDReqData} = ocs_eap_codec:eap_pwd(IDData),
@@ -277,7 +277,7 @@ eap_confirm_request_response(Config) ->
 	IDRespHeader = #eap_pwd{length = false, more = false, pwd_exch = id,
 		data = IDRespBodyData},
 	IDEAPData = ocs_eap_codec:eap_pwd(IDRespHeader),
-	IDRespPacket = #eap_packet{code = ?Response, type = ?PWD, identifier = IDEAPId, data = IDEAPData},
+	IDRespPacket = #eap_packet{code = response, type = ?PWD, identifier = IDEAPId, data = IDEAPData},
 	IDEAPPacketData = ocs_eap_codec:eap_packet(IDRespPacket),
 	IDRespAttributeList1 = radius_attributes:store(?EAPMessage, IDEAPPacketData, IDReqAttributeList5),
 	Authenticator2 = radius:authenticator(),
@@ -300,7 +300,7 @@ eap_confirm_request_response(Config) ->
 		attributes = CommitReqAttributes} = radius:codec(CommitPacket),
 	CommitReqAtt = radius_attributes:codec(CommitReqAttributes),
 	{ok, CommitEAPPacket} = radius_attributes:find(?EAPMessage, CommitReqAtt),
-	#eap_packet{code = ?Request, type = ?PWD, identifier = EAPId2, data = CommitData} =
+	#eap_packet{code = request, type = ?PWD, identifier = EAPId2, data = CommitData} =
 		ocs_eap_codec:eap_packet(CommitEAPPacket),
 	#eap_pwd{length = false, more = false, pwd_exch = commit,
 		data = CommitReqData} = ocs_eap_codec:eap_pwd(CommitData),
@@ -316,7 +316,7 @@ eap_confirm_request_response(Config) ->
 	CommitRespHeader = #eap_pwd{length = false, more = false, pwd_exch = commit,
 		data = CommitRespBodyData},
 	CommitEAPData = ocs_eap_codec:eap_pwd(CommitRespHeader),
-	CommitRespPacket = #eap_packet{code = ?Response, type = ?PWD, identifier = EAPId2, data = CommitEAPData},
+	CommitRespPacket = #eap_packet{code = response, type = ?PWD, identifier = EAPId2, data = CommitEAPData},
 	CommitRespPacketData = ocs_eap_codec:eap_packet(CommitRespPacket),
 	CommitAttributeList1 = radius_attributes:store(?EAPMessage,
 	   CommitRespPacketData, IDReqAttributeList5),
@@ -336,7 +336,7 @@ eap_confirm_request_response(Config) ->
 		attributes = ConfirmReqAttributes} = radius:codec(ConfirmPacket),
 	ConfirmReqAtt = radius_attributes:codec(ConfirmReqAttributes),
 	{ok, ConfirmEAPPacket} = radius_attributes:find(?EAPMessage, ConfirmReqAtt),
-	#eap_packet{code = ?Request, type = ?PWD, identifier = EAPId3, data = ConfirmData} =
+	#eap_packet{code = request, type = ?PWD, identifier = EAPId3, data = ConfirmData} =
 		ocs_eap_codec:eap_packet(ConfirmEAPPacket),
 	#eap_pwd{length = false, more = false, pwd_exch = confirm,
 		data = Confirm_S} = ocs_eap_codec:eap_pwd(ConfirmData),
@@ -347,7 +347,7 @@ eap_confirm_request_response(Config) ->
 	ConfirmRespHeader = #eap_pwd{length = false, more = false, pwd_exch = confirm,
 		data = Confirm_P},
 	ConfirmEAPData = ocs_eap_codec:eap_pwd(ConfirmRespHeader),
-	ConfirmRespPacket = #eap_packet{code = ?Response, type = ?PWD, identifier = EAPId3, data = ConfirmEAPData},
+	ConfirmRespPacket = #eap_packet{code = response, type = ?PWD, identifier = EAPId3, data = ConfirmEAPData},
 	ConfirmRespPacketData = ocs_eap_codec:eap_packet(ConfirmRespPacket),
 	ConfirmAttributeList1 = radius_attributes:store(?EAPMessage,
 	   ConfirmRespPacketData, IDReqAttributeList5),
@@ -367,7 +367,7 @@ eap_confirm_request_response(Config) ->
 		attributes = SucReqAttributes} = radius:codec(SuccessPacket),
 	SucReqAtt = radius_attributes:codec(SucReqAttributes),
 	{ok, SucEAPPacket} = radius_attributes:find(?EAPMessage, SucReqAtt),
-	#eap_packet{code = ?Success, identifier = _EAPId, data = <<>>} =
+	#eap_packet{code = success, identifier = _EAPId, data = <<>>} =
 		ocs_eap_codec:eap_packet(SucEAPPacket).
 
 unknown_authenticator() ->
@@ -433,7 +433,7 @@ invalid_id_response_eap_packet(Config) ->
 		attributes = BinIDReqAttributes} = radius:codec(IdReqPacket),
 	IDReqAttributes = radius_attributes:codec(BinIDReqAttributes),
 	{ok, IDEAPPacket} = radius_attributes:find(?EAPMessage, IDReqAttributes),
-	#eap_packet{code = ?Request, type = ?PWD, identifier = IDEAPId, data = IDData} =
+	#eap_packet{code = request, type = ?PWD, identifier = IDEAPId, data = IDData} =
 		ocs_eap_codec:eap_packet(IDEAPPacket),
 	#eap_pwd{length = false, more = false, pwd_exch = id,
 		data = IDReqData} = ocs_eap_codec:eap_pwd(IDData),
@@ -445,7 +445,7 @@ invalid_id_response_eap_packet(Config) ->
 		data = IDRespBodyData},
 	IDEAPData = ocs_eap_codec:eap_pwd(IDRespHeader),
 
-	InvalidEAPPacket = #eap_packet{code = ?Request, type = ?PWD, identifier = IDEAPId, data = IDEAPData},
+	InvalidEAPPacket = #eap_packet{code = request, type = ?PWD, identifier = IDEAPId, data = IDEAPData},
 	IDEAPPacketData = ocs_eap_codec:eap_packet(InvalidEAPPacket),
 
 	IDRespAttributeList1 = radius_attributes:store(?EAPMessage, IDEAPPacketData, IDReqAttributeList5),
@@ -499,7 +499,7 @@ invalid_id_response_eap_pwd(Config) ->
 		attributes = BinIDReqAttributes} = radius:codec(IdReqPacket),
 	IDReqAttributes = radius_attributes:codec(BinIDReqAttributes),
 	{ok, IDEAPPacket} = radius_attributes:find(?EAPMessage, IDReqAttributes),
-	#eap_packet{code = ?Request, type = ?PWD, identifier = IDEAPId, data = IDData} =
+	#eap_packet{code = request, type = ?PWD, identifier = IDEAPId, data = IDData} =
 		ocs_eap_codec:eap_packet(IDEAPPacket),
 	#eap_pwd{length = false, more = false, pwd_exch = id,
 		data = IDReqData} = ocs_eap_codec:eap_pwd(IDData),
@@ -510,7 +510,7 @@ invalid_id_response_eap_pwd(Config) ->
 	InvalidPWD = #eap_pwd{length = false, more = false, pwd_exch = commit,
 		data = IDRespBodyData},
 	IDEAPData = ocs_eap_codec:eap_pwd(InvalidPWD),
-	IDResEAPPacket = #eap_packet{code = ?Response, type = ?PWD, identifier = IDEAPId, data = IDEAPData},
+	IDResEAPPacket = #eap_packet{code = response, type = ?PWD, identifier = IDEAPId, data = IDEAPData},
 	IDEAPPacketData = ocs_eap_codec:eap_packet(IDResEAPPacket),
 	IDRespAttributeList1 = radius_attributes:store(?EAPMessage, IDEAPPacketData, IDReqAttributeList5),
 	Authenticator2 = radius:authenticator(),

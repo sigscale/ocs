@@ -84,7 +84,6 @@ encode_eap_id() ->
 	[{userdata, [{doc, "Encode/decode an EAP-ID/request packet"}]}].
 
 encode_eap_id(_Config) ->
-	Code = ?EapRequest,
 	Id = 3,
 	Token = crypto:rand_bytes(4),
 	Identity = "Server-M",
@@ -94,9 +93,9 @@ encode_eap_id(_Config) ->
 	RecHeader = #eap_pwd{length = false, more = false, pwd_exch = id,
 		data = Body_bin},
 	Header_bin =  ocs_eap_codec:eap_pwd(RecHeader),
-	RecPacket = #eap_packet{code = Code, type = ?PWD, identifier = Id, data = Header_bin},
+	RecPacket = #eap_packet{code = request, type = ?PWD, identifier = Id, data = Header_bin},
 	Packet_bin = ocs_eap_codec:eap_packet(RecPacket),
-	#eap_packet{code = Code, type = ?PWD, identifier = Id, data = Res_Header_bin}
+	#eap_packet{code = request, type = ?PWD, identifier = Id, data = Res_Header_bin}
 		= ocs_eap_codec:eap_packet(Packet_bin),
 	#eap_pwd{length = false, more = false, pwd_exch = id,
 		data = Res_Body_bin} = ocs_eap_codec:eap_pwd(Res_Header_bin),

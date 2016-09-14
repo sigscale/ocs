@@ -122,7 +122,7 @@ radius_accouting(_Config) ->
 		attributes = BinIDReqAttributes} = radius:codec(IdReqPacket),
 	IDReqAttributes = radius_attributes:codec(BinIDReqAttributes),
 	{ok, IDEAPPacket} = radius_attributes:find(?EAPMessage, IDReqAttributes),
-	#eap_packet{code = ?Request, type = ?PWD, identifier = IDEAPId, data = IDData} =
+	#eap_packet{code = request, type = ?PWD, identifier = IDEAPId, data = IDData} =
 		ocs_eap_codec:eap_packet(IDEAPPacket),
 	#eap_pwd{length = false, more = false, pwd_exch = id,
 		data = IDReqData} = ocs_eap_codec:eap_pwd(IDData),
@@ -133,7 +133,7 @@ radius_accouting(_Config) ->
 	IDRespHeader = #eap_pwd{length = false, more = false, pwd_exch = id,
 		data = IDRespBodyData},
 	IDEAPData = ocs_eap_codec:eap_pwd(IDRespHeader),
-	IDRespPacket = #eap_packet{code = ?Response, type = ?PWD, identifier = IDEAPId, data = IDEAPData},
+	IDRespPacket = #eap_packet{code = response, type = ?PWD, identifier = IDEAPId, data = IDEAPData},
 	IDEAPPacketData = ocs_eap_codec:eap_packet(IDRespPacket),
 	IDRespAttributeList1 = radius_attributes:store(?EAPMessage, IDEAPPacketData, IDReqAttributeList5),
 	Authenticator2 = radius:authenticator(),
@@ -156,7 +156,7 @@ radius_accouting(_Config) ->
 		attributes = CommitReqAttributes} = radius:codec(CommitPacket),
 	CommitReqAtt = radius_attributes:codec(CommitReqAttributes),
 	{ok, CommitEAPPacket} = radius_attributes:find(?EAPMessage, CommitReqAtt),
-	#eap_packet{code = ?Request, type = ?PWD, identifier = EAPId2, data = CommitData} =
+	#eap_packet{code = request, type = ?PWD, identifier = EAPId2, data = CommitData} =
 		ocs_eap_codec:eap_packet(CommitEAPPacket),
 	#eap_pwd{length = false, more = false, pwd_exch = commit,
 		data = CommitReqData} = ocs_eap_codec:eap_pwd(CommitData),
@@ -172,7 +172,7 @@ radius_accouting(_Config) ->
 	CommitRespHeader = #eap_pwd{length = false, more = false, pwd_exch = commit,
 		data = CommitRespBodyData},
 	CommitEAPData = ocs_eap_codec:eap_pwd(CommitRespHeader),
-	CommitRespPacket = #eap_packet{code = ?Response, type = ?PWD, identifier = EAPId2, data = CommitEAPData},
+	CommitRespPacket = #eap_packet{code = response, type = ?PWD, identifier = EAPId2, data = CommitEAPData},
 	CommitRespPacketData = ocs_eap_codec:eap_packet(CommitRespPacket),
 	CommitAttributeList1 = radius_attributes:store(?EAPMessage,
 	   CommitRespPacketData, IDReqAttributeList5),
@@ -192,7 +192,7 @@ radius_accouting(_Config) ->
 		attributes = ConfirmReqAttributes} = radius:codec(ConfirmPacket),
 	ConfirmReqAtt = radius_attributes:codec(ConfirmReqAttributes),
 	{ok, ConfirmEAPPacket} = radius_attributes:find(?EAPMessage, ConfirmReqAtt),
-	#eap_packet{code = ?Request, type = ?PWD, identifier = EAPId3, data = ConfirmData} =
+	#eap_packet{code = request, type = ?PWD, identifier = EAPId3, data = ConfirmData} =
 		ocs_eap_codec:eap_packet(ConfirmEAPPacket),
 	#eap_pwd{length = false, more = false, pwd_exch = confirm,
 		data = Confirm_S} = ocs_eap_codec:eap_pwd(ConfirmData),
@@ -203,7 +203,7 @@ radius_accouting(_Config) ->
 	ConfirmRespHeader = #eap_pwd{length = false,
 			more = false, pwd_exch = confirm, data = Confirm_P},
 	ConfirmEAPData = ocs_eap_codec:eap_pwd(ConfirmRespHeader),
-	ConfirmRespPacket = #eap_packet{code = ?Response, type = ?PWD, identifier = EAPId3, data = ConfirmEAPData},
+	ConfirmRespPacket = #eap_packet{code = response, type = ?PWD, identifier = EAPId3, data = ConfirmEAPData},
 	ConfirmRespPacketData = ocs_eap_codec:eap_packet(ConfirmRespPacket),
 	ConfirmAttributeList1 = radius_attributes:store(?EAPMessage,
 	   ConfirmRespPacketData, IDReqAttributeList5),
@@ -223,7 +223,7 @@ radius_accouting(_Config) ->
 		attributes = SucReqAttributes} = radius:codec(SuccessPacket),
 	SucReqAtt = radius_attributes:codec(SucReqAttributes),
 	{ok, SucEAPPacket} = radius_attributes:find(?EAPMessage, SucReqAtt),
-	#eap_packet{code = ?Success, type = ?PWD, identifier = _EAPId, data = <<>>} =
+	#eap_packet{code = success, type = ?PWD, identifier = _EAPId, data = <<>>} =
 		ocs_eap_codec:eap_packet(SucEAPPacket),
 	AcctAddress = {127,0,0,1},
 	AcctPort = 9913,
