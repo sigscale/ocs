@@ -34,10 +34,18 @@
 -spec eap_packet(Packet :: binary() | #eap_packet{}) -> #eap_packet{} | binary().
 %% @doc Encode or decode an EAP packet transported in the RADIUS `EAP-Message'
 %% attribute.
+eap_packet(<<?EapSuccess, Identifier, 4:16>> = _Packet) ->
+	#eap_packet{code = ?EapSuccess, identifier = Identifier};
+eap_packet(<<?EapFailure, Identifier, 4:16>>) ->
+	#eap_packet{code = ?EapFailure, identifier = Identifier};
 eap_packet(<<Code, Identifier, Length:16, Type, _/binary>> = Packet)
 		when size(Packet) >= Length ->
 	Data = binary:part(Packet, 5, Length - 5),
 	#eap_packet{code = Code, type = Type, identifier = Identifier, data = Data};	
+eap_packet(#eap_packet{code = ?EapSuccess, identifier = Identifier}) ->
+	<<?EapSuccess, Identifier, 4:16>>;
+eap_packet(#eap_packet{code = ?EapFailure, identifier = Identifier}) ->
+	<<?EapFailure, Identifier, 4:16>>;
 eap_packet(#eap_packet{code = Code, type = Type, identifier = Identifier,
 		data = Data} ) when is_integer(Code), is_integer(Type),
 			is_integer(Identifier), is_binary(Data) ->
