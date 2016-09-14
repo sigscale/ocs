@@ -86,9 +86,8 @@ encode_eap_id() ->
 encode_eap_id(_Config) ->
 	Id = 3,
 	Token = crypto:rand_bytes(4),
-	Identity = "Server-M",
-	RecBody = #eap_pwd_id{group_desc = 19, random_fun = 2, prf = 2, token = Token,
-		pwd_prep = none, identity = Identity},
+	Identity = <<"Server-M">>,
+	RecBody = #eap_pwd_id{group_desc = 19, token = Token, identity = Identity},
 	Body_bin = ocs_eap_codec:eap_pwd_id(RecBody),
 	RecHeader = #eap_pwd{length = false, more = false, pwd_exch = id,
 		data = Body_bin},
@@ -99,7 +98,7 @@ encode_eap_id(_Config) ->
 		= ocs_eap_codec:eap_packet(Packet_bin),
 	#eap_pwd{length = false, more = false, pwd_exch = id,
 		data = Res_Body_bin} = ocs_eap_codec:eap_pwd(Res_Header_bin),
-	#eap_pwd_id{group_desc = 19, random_fun = 2, prf = 2, token = Token,
+	#eap_pwd_id{group_desc = 19, random_fun = 1, prf = 1, token = Token,
 		pwd_prep = none, identity = Identity} = ocs_eap_codec:eap_pwd_id(Res_Body_bin).
 
 ecc_computations() ->

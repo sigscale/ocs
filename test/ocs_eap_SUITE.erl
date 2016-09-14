@@ -137,7 +137,7 @@ eap_commit_request_response() ->
 
 eap_commit_request_response(Config) ->
 	Id = 1,
-	PeerID = "peer1@sigscale",
+	PeerID = <<"peer1@sigscale">>,
 	{ok, AuthAddress} = application:get_env(ocs, radius_auth_addr),
 	{ok, AuthPort} = application:get_env(ocs, radius_auth_port),
 	Socket = ?config(socket, Config), 
@@ -238,7 +238,7 @@ eap_confirm_request_response() ->
 
 eap_confirm_request_response(Config) ->
 	Id = 1,
-	PeerID = "peer2@sigscale",
+	PeerID = <<"peer2@sigscale">>,
 	{ok, AuthAddress} = application:get_env(ocs, radius_auth_addr),
 	{ok, AuthPort} = application:get_env(ocs, radius_auth_port),
 	Socket = ?config(socket, Config),
@@ -375,7 +375,7 @@ unknown_authenticator() ->
 
 unknown_authenticator(Config) ->
 	Id = 4,
-	PeerID = "peer4@sigscale",
+	PeerID = <<"peer4@sigscale">>,
 	{ok, AuthAddress} = application:get_env(ocs, radius_auth_addr),
 	{ok, AuthPort} = application:get_env(ocs, radius_auth_port),
 	Socket = ?config(socket, Config),
@@ -405,7 +405,7 @@ invalid_id_response_eap_packet() ->
 
 invalid_id_response_eap_packet(Config) ->
 	Id = 5,
-	PeerID = "peer5@sigscale",
+	PeerID = <<"peer5@sigscale">>,
 	{ok, AuthAddress} = application:get_env(ocs, radius_auth_addr),
 	{ok, AuthPort} = application:get_env(ocs, radius_auth_port),
 	Socket = ?config(socket, Config),
@@ -471,7 +471,7 @@ invalid_id_response_eap_pwd() ->
 
 invalid_id_response_eap_pwd(Config) ->
 	Id = 6,
-	PeerID = "peer6@sigscale",
+	PeerID = <<"peer6@sigscale">>,
 	{ok, AuthAddress} = application:get_env(ocs, radius_auth_addr),
 	{ok, AuthPort} = application:get_env(ocs, radius_auth_port),
 	Socket = ?config(socket, Config),
@@ -529,6 +529,7 @@ invalid_id_response_eap_pwd(Config) ->
 	IDResPacket2 = radius:codec(IDResponse2),
 	ok = gen_udp:send(Socket, AuthAddress, AuthPort, IDResPacket2),
 	{error, timeout} = gen_udp:recv(Socket, 0, 2000).
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
