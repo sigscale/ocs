@@ -84,7 +84,7 @@ encode_eap_id() ->
 	[{userdata, [{doc, "Encode/decode an EAP-ID/request packet"}]}].
 
 encode_eap_id(_Config) ->
-	Code = ?Request,
+	Code = ?EapRequest,
 	Id = 3,
 	Token = crypto:rand_bytes(4),
 	Identity = "Server-M",
