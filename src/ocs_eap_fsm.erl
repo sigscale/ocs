@@ -190,7 +190,7 @@ wait_for_id({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 					element_s = ElementS},
 				{next_state, wait_for_commit, NewStateData, ?TIMEOUT};
 			error ->
-				send_response(?EapFailure, NewEapID, <<>>, ?AccessReject,
+				send_response(?EapFailure, EapID, <<>>, ?AccessReject,
 					RadiusID, RequestAuthenticator, Secret, RadiusFsm),
 				{stop, {shutdown, SessionID}, StateData}
 		end
@@ -241,8 +241,7 @@ wait_for_commit1(RadiusFsm, #radius{id = RadiusID,
 		ExpectedSize ->
 			wait_for_commit2(RadiusFsm, AccessRequest, StateData);
 		_ ->
-			NewEapID = EapID + 1,
-			send_response(?EapFailure, NewEapID, <<>>, ?AccessReject,
+			send_response(?EapFailure, EapID, <<>>, ?AccessReject,
 					RadiusID, RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, StateData}
 	end.
@@ -254,8 +253,7 @@ wait_for_commit2(RadiusFsm, #radius{id = RadiusID,
 		eap_id = EapID, session_id = SessionID} = StateData) ->
 	case {ElementP, ScalarP} of
 		{ElementS, ScalarS} ->
-			NewEapID = EapID + 1,
-			send_response(?EapFailure, NewEapID, <<>>, ?AccessReject,
+			send_response(?EapFailure, EapID, <<>>, ?AccessReject,
 					RadiusID, RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, StateData};
 		_ ->
@@ -270,8 +268,7 @@ wait_for_commit3(RadiusFsm, #radius{id = RadiusID,
 		<<ScalarP_Valid:256>> when 1 < ScalarP_Valid, ScalarP_Valid < ?R ->
 			wait_for_commit4(RadiusFsm, AccessRequest, StateData);
 		_ScalarP_Out_of_Range ->
-			NewEapID = EapID + 1,
-			send_response(?EapFailure, NewEapID, <<>>, ?AccessReject, RadiusID,
+			send_response(?EapFailure, EapID, <<>>, ?AccessReject, RadiusID,
 					RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, StateData}
 	end.
@@ -341,8 +338,7 @@ wait_for_confirm1(RadiusFsm, #radius{id = RadiusID,
 		ExpectedSize ->
 			wait_for_confirm2(RadiusFsm, AccessRequest, StateData);
 		_ ->
-			NewEapID = EapID + 1,
-			send_response(?EapFailure, NewEapID, <<>>, ?AccessReject, RadiusID,
+			send_response(?EapFailure, EapID, <<>>, ?AccessReject, RadiusID,
 					RequestAuthenticator, Secret, RadiusFsm),
 			{error, exit}
 	end.
@@ -359,8 +355,7 @@ wait_for_confirm2(RadiusFsm, #radius{id = RadiusID,
 		ConfirmP ->
 			wait_for_confirm3(RadiusFsm, AccessRequest, StateData);
 		_ ->
-			NewEapID = EapID + 1,
-			send_response(?EapFailure, NewEapID, <<>>, ?AccessReject, RadiusID,
+			send_response(?EapFailure, EapID, <<>>, ?AccessReject, RadiusID,
 					RequestAuthenticator, Secret, RadiusFsm),
 			{error, exit}
 	end.
@@ -370,10 +365,9 @@ wait_for_confirm3(RadiusFsm, #radius{id = RadiusID,
 		#statedata{secret = Secret, eap_id = EapID, ks = Ks,
 		confirm_p = ConfirmP, confirm_s = ConfirmS,
 		session_id = SessionID} = StateData) ->
-	NewEapID = EapID + 1,
 	MK = ocs_eap_pwd:h([Ks, ConfirmP, ConfirmS]),
 	NewStateData = StateData#statedata{mk = MK},
-	send_response(?EapSuccess, NewEapID, <<>>, ?AccessAccept,
+	send_response(?EapSuccess, EapID, <<>>, ?AccessAccept,
 			RadiusID, RequestAuthenticator, Secret, RadiusFsm),
 	{stop, {shutdown, SessionID}, NewStateData}.
 
