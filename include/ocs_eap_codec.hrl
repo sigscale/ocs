@@ -79,7 +79,7 @@
 			random_fun = 1 :: byte(),
 			prf = 1 :: byte(),
 			token :: binary(),
-			pwd_prep :: none | rfc2759 | saslprep,
+			pwd_prep = none :: none | rfc2759 | saslprep,
 			identity :: binary()}).
 
 -record(eap_pwd_commit,
