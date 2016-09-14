@@ -136,7 +136,7 @@ compute_pwe_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 		reason = enif_make_string(env, "failed to get curve", ERL_NIF_LATIN1);
 		return enif_raise_exception(env, reason);
 	}
-	for (counter = 1; counter < 10; counter++) {
+	for (counter = 1; counter < 30; counter++) {
 		HMAC_Init_ex(context, zerokey, SHA256_DIGEST_LENGTH, EVP_sha256(), NULL);
 		HMAC_Update(context, token.data, token.size);
 		HMAC_Update(context, peer_id.data, peer_id.size);
@@ -154,7 +154,7 @@ compute_pwe_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 			continue;
 		break;
 	}
-	if (counter > 30) {
+	if (counter >= 30) {
 		reason = enif_make_string(env, "too many iterations", ERL_NIF_LATIN1);
 		return enif_raise_exception(env, reason);
 	}
