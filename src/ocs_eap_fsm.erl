@@ -321,7 +321,8 @@ wait_for_confirm({#radius{attributes = Attributes} = AccessRequest, RadiusFsm},
 		#eap_packet{code = response, type = ?PWD, identifier = EapID, data = Data} = EapData,
 		EapHeader = ocs_eap_codec:eap_pwd(Data),
 		#eap_pwd{pwd_exch = confirm, data = ConfirmP} = EapHeader,
-		NewStateData = StateData#statedata{confirm_p = ConfirmP},
+		NewEapID = EapID + 1,
+		NewStateData = StateData#statedata{confirm_p = ConfirmP, eap_id = NewEapID},
 		wait_for_confirm1(RadiusFsm, AccessRequest, NewStateData)
 	catch
 		_:_ ->
