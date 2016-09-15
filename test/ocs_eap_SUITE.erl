@@ -54,6 +54,8 @@ init_per_suite(Config) ->
 	{ok, AuthAddress} = application:get_env(ocs, radius_auth_addr),
 	SharedSecret = ct:get_config(radius_shared_secret),
 	ok = ocs:add_client(AuthAddress, SharedSecret),
+	PeerPassword = ocs:generate_password(),
+	ok = ocs:add_subscriber("25252525", PeerPassword, <<>>),
 	Config.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
