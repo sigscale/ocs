@@ -341,14 +341,11 @@ eap_confirm_request_response(Config) ->
 	#eap_packet{code = request, type = ?PWD, identifier = EAPId3, data = ConfirmData} =
 		ocs_eap_codec:eap_packet(ConfirmEAPPacket),
 	#eap_pwd{length = false, more = false, pwd_exch = confirm,
-		data = Confirm_S} = ocs_eap_codec:eap_pwd(ConfirmData),
-	Ciphersuite = <<19:16, 16#1, 16#1>>,
-	Ks = ocs_eap_pwd:compute_ks(<<P_Rand:256>>, PWE, Scalar_P, Element_S),
-	Input1 = [Ks, Scalar_S, Element_P, Scalar_P, Ciphersuite],
-	Confirm_S = ocs_eap_pwd:h(Input1),
+		data = _Confirm_S} = ocs_eap_codec:eap_pwd(ConfirmData),
+	Ciphersuite = <<19:16, 1, 1>>,
 	Kp = ocs_eap_pwd:compute_ks(<<P_Rand:256>>, PWE, Scalar_S, Element_S),
-	Input2 = [Kp, Element_S, Scalar_S, Element_P, Scalar_P, Ciphersuite],
-	Confirm_P = ocs_eap_pwd:h(Input2),
+	Input = [Kp, Element_P, Scalar_P, Element_S, Scalar_S, Ciphersuite],
+	Confirm_P = ocs_eap_pwd:h(Input),
 	ConfirmRespHeader = #eap_pwd{length = false, more = false, pwd_exch = confirm,
 		data = Confirm_P},
 	ConfirmEAPData = ocs_eap_codec:eap_pwd(ConfirmRespHeader),
@@ -373,7 +370,7 @@ eap_confirm_request_response(Config) ->
 		attributes = SucReqAttributes} = radius:codec(SuccessPacket),
 	SucReqAtt = radius_attributes:codec(SucReqAttributes),
 	{ok, SucEAPPacket} = radius_attributes:find(?EAPMessage, SucReqAtt),
-	#eap_packet{code = success, identifier = _EAPId, data = <<>>} =
+	#eap_packet{code = success, identifier = _EAPId} =
 		ocs_eap_codec:eap_packet(SucEAPPacket).
 
 unknown_authenticator() ->
@@ -381,7 +378,6 @@ unknown_authenticator() ->
 
 unknown_authenticator(Config) ->
 	Id = 4,
-	PeerID = list_to_binary(?config(peer_id, Config)),
 	{ok, AuthAddress} = application:get_env(ocs, radius_auth_addr),
 	{ok, AuthPort} = application:get_env(ocs, radius_auth_port),
 	Socket = ?config(socket, Config),
