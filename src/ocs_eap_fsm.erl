@@ -58,7 +58,8 @@
 		ks :: binary(),
 		confirm_s :: binary(),
 		confirm_p :: binary(),
-		mk :: binary()}).
+		mk :: binary(),
+		msk :: binary()}).
 
 -define(TIMEOUT, 30000).
 
@@ -364,14 +365,23 @@ wait_for_confirm2(RadiusFsm, #radius{id = RadiusID,
 wait_for_confirm3(RadiusFsm, #radius{id = RadiusID,
 		authenticator = RequestAuthenticator} = _AccessRequest,
 		#statedata{secret = Secret, eap_id = EapID, ks = Ks,
-		confirm_p = ConfirmP, confirm_s = ConfirmS,
-		session_id = SessionID, peer_id = PeerID} = StateData) ->
+		confirm_p = ConfirmP, confirm_s = ConfirmS, scalar_s = ScalarS,
+		scalar_p = ScalarP, group_desc = GroupDesc, rand_func = RandFunc,
+		prf = PRF, session_id = SessionID, peer_id = PeerID} = StateData) ->
+	Ciphersuite = <<GroupDesc:16, RandFunc, PRF>>,
 	MK = ocs_eap_pwd:h([Ks, ConfirmP, ConfirmS]),
-	NewStateData = StateData#statedata{mk = MK},
+	MethodID = ocs_eap_pwd:h([Ciphersuite, ScalarP, ScalarS]),
+	MSK = ocs_eap_pwd:kdf(MK, <<?PWD, MethodID/binary>>, 1024),
+	Salt = crypto:rand_bytes(2),
+	MsMppeSendKey = encrypt_key(Secret, RequestAuthenticator, Salt, MSK),
+	Attr0 = radius_attributes:new(),
+	UserName = binary_to_list(PeerID),
+	Attr1 = radius_attributes:store(?UserName, UserName, Attr0),
+	VendorSpecific = {?Microsoft, {?MsMppeSendKey, {Salt, MsMppeSendKey}}},
+	Attr2 = radius_attributes:store(?VendorSpecific, VendorSpecific, Attr1),
 	send_response(success, EapID, <<>>, ?AccessAccept,
-			RadiusID, [{?UserName, binary_to_list(PeerID)}],
-			RequestAuthenticator, Secret, RadiusFsm),
-	{stop, {shutdown, SessionID}, NewStateData}.
+			RadiusID, Attr2, RequestAuthenticator, Secret, RadiusFsm),
+	{stop, {shutdown, SessionID}, StateData#statedata{mk = MK, msk = MSK}}.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
 		StateData :: #statedata{}) ->
@@ -477,4 +487,28 @@ send_response(EapCode, EapID, EapData, RadiusCode, RadiusID, RadiusAttributes,
 	ResponsePacket = radius:codec(Response),
 	radius:response(RadiusFsm, {response, ResponsePacket}),
 	ok.
+
+-spec encrypt_key(Secret :: binary(), RequestAuthenticator :: binary(),
+		Salt :: binary(), Key :: binary()) ->
+	Ciphertext :: binary().
+%% @doc Encrypt the Pairwise Master Key (PMK) according to RFC2548
+%% 	section 2.4.2 for use as String in a MS-MPPE-Send-Key attribute.
+%% @private
+encrypt_key(Secret, RequestAuthenticator, Salt, Key) ->
+	KeyLength = size(Key),
+	Plaintext = case (KeyLength + 1) rem 16 of
+		0 ->
+			<<KeyLength, Key/binary>>;
+		N ->
+			PadLength = N * 8,
+			<<KeyLength, Key/binary, 0:PadLength>>
+	end,
+	F = fun(P, [H | _] = Acc) ->
+				B = crypto:hash(md5, [Secret, H]),
+				C = crypto:exor(P, B),
+				[C | Acc]
+	end,
+	AccIn = [RequestAuthenticator, Salt],
+	AccOut = lists:foldl(F, AccIn, [P || <<P:16/binary>> <= Plaintext]),
+	iolist_to_binary(tl(lists:reverse(AccOut))).
 
