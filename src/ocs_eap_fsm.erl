@@ -178,14 +178,16 @@ wait_for_id({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		case catch ocs:find_subscriber(PeerID) of
 			{ok, Password, _Attributes} ->
 				PWE = ocs_eap_pwd:compute_pwe(Token, PeerID, ServerID, Password),
-				{ScalarS, ElementS} = ocs_eap_pwd:compute_scalar(<<S_rand:256>>, PWE),
+				{ScalarS, ElementS} = ocs_eap_pwd:compute_scalar(<<S_rand:256>>,
+						PWE),
 				CommitReq = #eap_pwd_commit{scalar = ScalarS, element = ElementS},
 				CommitReqBody = ocs_eap_codec:eap_pwd_commit(CommitReq),
 				CommitReqHeader = #eap_pwd{length = false,
 					more = false, pwd_exch = commit, data = CommitReqBody},
 				CommitEapData = ocs_eap_codec:eap_pwd(CommitReqHeader),
-				send_response(request, NewEapID, CommitEapData, ?AccessChallenge, RadiusID,
-					[], RequestAuthenticator, Secret, RadiusFsm),
+				send_response(request, NewEapID, CommitEapData,
+						?AccessChallenge, RadiusID, [], RequestAuthenticator,
+						Secret, RadiusFsm),
 				NewStateData = StateData#statedata{pwe = PWE, s_rand = S_rand,
 					peer_id = PeerID, eap_id = NewEapID, scalar_s = ScalarS,
 					element_s = ElementS},
@@ -219,12 +221,14 @@ wait_for_commit({#radius{attributes = Attributes} = AccessRequest, RadiusFsm},
 	try 
 		EAPMessage = radius_attributes:fetch(?EAPMessage, Attributes),
 		EapPacket = ocs_eap_codec:eap_packet(EAPMessage),
-		#eap_packet{code = response, type = ?PWD, identifier = EapID, data = Data} = EapPacket,
+		#eap_packet{code = response, type = ?PWD,
+				identifier = EapID, data = Data} = EapPacket,
 		EapHeader = ocs_eap_codec:eap_pwd(Data),
 		#eap_pwd{pwd_exch = commit, data = BodyData} = EapHeader,
 		Body = ocs_eap_codec:eap_pwd_commit(BodyData),
 		#eap_pwd_commit{element = ElementP, scalar = ScalarP} = Body,
-		NewStateData = StateData#statedata{scalar_p = ScalarP, element_p = ElementP},
+		NewStateData = StateData#statedata{scalar_p = ScalarP,
+				element_p = ElementP},
 		wait_for_commit1(RadiusFsm, AccessRequest, BodyData, NewStateData)
 	catch
 		_:_ ->
@@ -319,11 +323,13 @@ wait_for_confirm({#radius{attributes = Attributes} = AccessRequest, RadiusFsm},
 	try
 		EAPMessage = radius_attributes:fetch(?EAPMessage, Attributes),
 		EapData = ocs_eap_codec:eap_packet(EAPMessage),
-		#eap_packet{code = response, type = ?PWD, identifier = EapID, data = Data} = EapData,
+		#eap_packet{code = response, type = ?PWD,
+				identifier = EapID, data = Data} = EapData,
 		EapHeader = ocs_eap_codec:eap_pwd(Data),
 		#eap_pwd{pwd_exch = confirm, data = ConfirmP} = EapHeader,
 		NewEapID = EapID + 1,
-		NewStateData = StateData#statedata{confirm_p = ConfirmP, eap_id = NewEapID},
+		NewStateData = StateData#statedata{confirm_p = ConfirmP,
+				eap_id = NewEapID},
 		wait_for_confirm1(RadiusFsm, AccessRequest, NewStateData)
 	catch
 		_:_ ->
