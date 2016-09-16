@@ -496,13 +496,13 @@ send_response(EapCode, EapID, EapData, RadiusCode, RadiusID, RadiusAttributes,
 	radius:response(RadiusFsm, {response, ResponsePacket}),
 	ok.
 
--spec encrypt_key(Secret :: binary(), RequestAuthenticator :: binary(),
-		Salt :: binary(), Key :: binary()) ->
+-spec encrypt_key(Secret :: binary(), RequestAuthenticator :: [byte()],
+		Salt :: integer(), Key :: binary()) ->
 	Ciphertext :: binary().
 %% @doc Encrypt the Pairwise Master Key (PMK) according to RFC2548
 %% 	section 2.4.2 for use as String in a MS-MPPE-Send-Key attribute.
 %% @private
-encrypt_key(Secret, RequestAuthenticator, Salt, Key) ->
+encrypt_key(Secret, RequestAuthenticator, Salt, Key) when (Salt bsr 15) == 1 ->
 	KeyLength = size(Key),
 	Plaintext = case (KeyLength + 1) rem 16 of
 		0 ->
@@ -516,7 +516,7 @@ encrypt_key(Secret, RequestAuthenticator, Salt, Key) ->
 				C = crypto:exor(P, B),
 				[C | Acc]
 	end,
-	AccIn = [RequestAuthenticator, Salt],
+	AccIn = [[RequestAuthenticator, <<Salt:16>>]],
 	AccOut = lists:foldl(F, AccIn, [P || <<P:16/binary>> <= Plaintext]),
 	iolist_to_binary(tl(lists:reverse(AccOut))).
 
