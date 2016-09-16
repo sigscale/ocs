@@ -342,7 +342,7 @@ wait_for_confirm1(RadiusFsm, #radius{id = RadiusID,
 		_ ->
 			send_response(failure, EapID, <<>>, ?AccessReject, RadiusID,
 					[], RequestAuthenticator, Secret, RadiusFsm),
-			{error, exit}
+			{stop, {shutdown, SessionID}, StateData}
 	end.
 %% @hidden
 wait_for_confirm2(RadiusFsm, #radius{id = RadiusID,
@@ -359,7 +359,7 @@ wait_for_confirm2(RadiusFsm, #radius{id = RadiusID,
 		_ ->
 			send_response(failure, EapID, <<>>, ?AccessReject, RadiusID,
 					[], RequestAuthenticator, Secret, RadiusFsm),
-			{error, exit}
+			{stop, {shutdown, SessionID}, StateData}
 	end.
 %% @hidden
 wait_for_confirm3(RadiusFsm, #radius{id = RadiusID,
