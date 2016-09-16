@@ -339,8 +339,8 @@ wait_for_confirm({#radius{attributes = Attributes} = AccessRequest, RadiusFsm},
 %% @hidden
 wait_for_confirm1(RadiusFsm, #radius{id = RadiusID,
 		authenticator = RequestAuthenticator} = AccessRequest,
-		#statedata{secret = Secret, confirm_s = ConfirmS,
-		eap_id = EapID, confirm_p = ConfirmP} = StateData) ->
+		#statedata{secret = Secret, confirm_s = ConfirmS, eap_id = EapID,
+		confirm_p = ConfirmP, session_id = SessionID} = StateData) ->
 	ExpectedSize = size(ConfirmS),
 	case size(ConfirmP) of 
 		ExpectedSize ->
@@ -356,7 +356,7 @@ wait_for_confirm2(RadiusFsm, #radius{id = RadiusID,
 		#statedata{secret = Secret, eap_id = EapID, ks = Ks,
 		confirm_p = ConfirmP, scalar_s = ScalarS, element_s = ElementS,
 		scalar_p = ScalarP, element_p = ElementP, group_desc = GroupDesc,
-		rand_func = RandFunc, prf = PRF} = StateData) ->
+		rand_func = RandFunc, prf = PRF, session_id = SessionID} = StateData) ->
 	Ciphersuite = <<GroupDesc:16, RandFunc, PRF>>,
 	case ocs_eap_pwd:h([Ks, ElementP, ScalarP,
 			ElementS, ScalarS, Ciphersuite]) of
