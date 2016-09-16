@@ -387,8 +387,10 @@ wait_for_confirm3(RadiusFsm, #radius{id = RadiusID,
 	Attr2 = radius_attributes:add(?VendorSpecific, VendorSpecific1, Attr1),
 	VendorSpecific2 = {?Microsoft, {?MsMppeRecvKey, {Salt, MsMppeKey}}},
 	Attr3 = radius_attributes:add(?VendorSpecific, VendorSpecific2, Attr2),
+	Attr4 = radius_attributes:store(?SessionTimeout, 86400, Attr3),
+	Attr5 = radius_attributes:store(?AcctInterimInterval, 3600, Attr4),
 	send_response(success, EapID, <<>>, ?AccessAccept,
-			RadiusID, Attr3, RequestAuthenticator, Secret, RadiusFsm),
+			RadiusID, Attr5, RequestAuthenticator, Secret, RadiusFsm),
 	{stop, {shutdown, SessionID}, StateData#statedata{mk = MK, msk = MSK}}.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
