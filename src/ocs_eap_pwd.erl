@@ -25,7 +25,7 @@
 -module(ocs_eap_pwd).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
--export([h/1]).
+-export([h/1, kdf/3]).
 -export([compute_pwe/4, compute_scalar/2, compute_ks/4]).
 -on_load(init/0).
 
@@ -33,7 +33,7 @@
 
 -spec h([Data :: binary()]) -> binary().
 %% @doc Random function (H).
-%% 	RFC5931 section 2.4.
+%% 	RFC5931 section 2.4
 h(Data) when is_list(Data) ->
 	h(crypto:hmac_init(sha256, <<0:256>>), Data).
 %% @hidden
@@ -42,6 +42,13 @@ h(Context, [H | T]) ->
 h(Context, []) ->
 	crypto:hmac_final(Context).
 	
+-spec kdf(Key :: binary(), Label :: binary(), Length :: integer()) ->
+	Result :: binary().
+%% @doc Key Derivation Function (KDF).
+%% 	RFC5931 section 2.5
+kdf(_Key, _Label, _Length) ->
+	erlang:nif_error(nif_library_not_loaded).
+
 -spec compute_pwe(Token :: binary(), PeerIdentity :: binary(),
 		ServerIdentity :: binary(), Password :: binary()) ->
 	PWE :: binary().

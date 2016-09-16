@@ -67,7 +67,7 @@ enif_raise_exception(ErlNifEnv* env, ERL_NIF_TERM reason) {
  * RFC5931 section 2.5
  */
 static void
-kdf(uint8_t *key, int key_len, char const *label,
+kdf(uint8_t *key, int key_len, uint8_t *label,
 		int label_len, uint8_t *result, int result_len)
 {
 	HMAC_CTX *context;
@@ -100,6 +100,21 @@ kdf(uint8_t *key, int key_len, char const *label,
 	HMAC_CTX_free(context);
 }
 
+static ERL_NIF_TERM
+kdf_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+{
+	ErlNifBinary key, label, res;
+	int length;
+
+	if (!enif_inspect_binary(env, argv[0], &key)
+			|| !enif_inspect_binary(env, argv[1], &label)
+			|| !enif_get_int(env, argv[2], &length)
+			|| !enif_alloc_binary(length, &res))
+		return enif_make_badarg(env);
+	kdf(key.data, key.size, label.data, label.size, res.data, res.size);
+	return enif_make_binary(env, &res);
+}
+
 /*  Compute the Password Element (PWE)
  *  RFC5931 section 2.8.3.1
  */
@@ -113,7 +128,7 @@ compute_pwe_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 	BIGNUM *prime, *x, *bn_seed;
 	HMAC_CTX *context;
 	uint8_t pwd_seed[SHA256_DIGEST_LENGTH], pwd_value[32], counter;
-	const char *label = "EAP-pwd Hunting And Pecking";
+	char *label = "EAP-pwd Hunting And Pecking";
 	int label_len = 27;
 	uint8_t point_uncompressed[65];
 
@@ -145,7 +160,8 @@ compute_pwe_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 		HMAC_Update(context, &counter, sizeof(counter));
 		HMAC_Final(context, pwd_seed, NULL);
 		BN_bin2bn(pwd_seed, SHA256_DIGEST_LENGTH, bn_seed);
-		kdf(pwd_seed, SHA256_DIGEST_LENGTH, label, label_len, pwd_value, 32);
+		kdf(pwd_seed, SHA256_DIGEST_LENGTH, (uint8_t *) label,
+				label_len, pwd_value, 32);
 		BN_bin2bn(pwd_value, 32, x);
 		if (BN_ucmp(x, prime) >= 0)
 			continue;
@@ -293,6 +309,7 @@ compute_ks_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 }
 
 static ErlNifFunc nif_funcs[] = {
+	{"kdf", 3, kdf_nif},
 	{"compute_pwe", 4, compute_pwe_nif},
 	{"compute_scalar", 2, compute_scalar_nif},
 	{"compute_ks", 4, compute_ks_nif}
