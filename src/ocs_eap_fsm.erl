@@ -500,7 +500,7 @@ encrypt_key(Secret, RequestAuthenticator, Salt, Key) ->
 		0 ->
 			<<KeyLength, Key/binary>>;
 		N ->
-			PadLength = N * 8,
+			PadLength = (16 - N) * 8,
 			<<KeyLength, Key/binary, 0:PadLength>>
 	end,
 	F = fun(P, [H | _] = Acc) ->
