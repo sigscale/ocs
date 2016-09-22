@@ -16,6 +16,7 @@ beam_DATA = ocs.beam \
 			ocs_eap_sup.beam \
 			ocs_eap_pwd_fsm_sup.beam \
 			ocs_eap_pwd_fsm.beam \
+			ocs_eap_ttls_fsm.beam \
 			ocs_eap_server_sup.beam \
 			ocs_eap_server.beam \
 			ocs_eap_codec.beam \
