@@ -471,7 +471,7 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 		EapID :: byte(), EapData :: binary(),
 		RadiusCode :: integer(), RadiusID :: byte(),
 		RadiusAttributes :: radius_attributes:attributes(),
-		RequestAuthenticator :: binary(), Secret :: binary(),
+		RequestAuthenticator :: binary() | [byte()], Secret :: binary(),
 		RadiusFsm :: pid()) -> ok.
 %% @doc Sends an RADIUS-Access/Challenge or Reject or Accept  packet to peer
 %% @hidden
