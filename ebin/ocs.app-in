@@ -15,7 +15,7 @@
 				ocs_eap_server_sup,
 				ocs_eap_server,
 				ocs_eap_pwd_fsm_sup,
-				ocs_eap_fsm,
+				ocs_eap_pwd_fsm,
 				ocs_eap_codec,
 				ocs_eap_pwd,
 				ocs_wm_config]},

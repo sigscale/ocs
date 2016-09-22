@@ -211,7 +211,7 @@ access_request(Address, Port, Secret,
 		Address :: inet:ip_address(), Port :: integer(),
 		Secret :: binary(), SessionID :: tuple(),
 		State :: #state{}) -> NewState :: #state{}.
-%% @doc Start a new {@link //ocs/ocs_eap_fsm. ocs_eap_fsm} session handler.
+%% @doc Start a new {@link //ocs/ocs_eap_pwd_fsm. ocs_eap_pwd_fsm} session handler.
 %% @hidden
 start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret, SessionID,
 		#state{eap_fsm_sup = Sup, handlers = Handlers} = State) ->

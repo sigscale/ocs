@@ -1,4 +1,4 @@
-%%% ocs_eap_fsm.erl
+%%% ocs_eap_pwd_fsm.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 SigScale Global Inc.
 %%% @end
@@ -17,15 +17,15 @@
 %%% @reference <a href="http://tools.ietf.org/rfc/rfc3579.txt">
 %%% 	RFC3579 - RADIUS Support For EAP</a>
 %%%
--module(ocs_eap_fsm).
+-module(ocs_eap_pwd_fsm).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 -behaviour(gen_fsm).
 
-%% export the ocs_eap_fsm API
+%% export the ocs_eap_pwd_fsm API
 -export([]).
 
-%% export the ocs_eap_fsm state callbacks
+%% export the ocs_eap_pwd_fsm state callbacks
 -export([idle/2, wait_for_id/2, wait_for_commit/2, wait_for_confirm/2]).
 
 %% export the call backs needed for gen_fsm behaviour
@@ -64,11 +64,11 @@
 -define(TIMEOUT, 30000).
 
 %%----------------------------------------------------------------------
-%%  The ocs_eap_fsm API
+%%  The ocs_eap_pwd_fsm API
 %%----------------------------------------------------------------------
 
 %%----------------------------------------------------------------------
-%%  The ocs_eap_fsm gen_fsm call backs
+%%  The ocs_eap_pwd_fsm gen_fsm call backs
 %%----------------------------------------------------------------------
 
 -spec init(Args :: list()) ->
