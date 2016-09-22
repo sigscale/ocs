@@ -14,7 +14,7 @@
 				ocs_radius_authentication,
 				ocs_eap_server_sup,
 				ocs_eap_server,
-				ocs_eap_fsm_sup,
+				ocs_eap_pwd_fsm_sup,
 				ocs_eap_fsm,
 				ocs_eap_codec,
 				ocs_eap_pwd,

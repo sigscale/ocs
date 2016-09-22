@@ -15,7 +15,7 @@ modhtml = ocs.html \
 		ocs_radius_authentication.html \
 		ocs_eap_server_sup.html \
 		ocs_eap_server.html \
-		ocs_eap_fsm_sup.html \
+		ocs_eap_pwd_fsm_sup.html \
 		ocs_eap_fsm.html \
 		ocs_eap_codec.html \
 		ocs_eap_pwd.html \

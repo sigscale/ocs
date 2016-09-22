@@ -113,7 +113,7 @@ handle_cast(_Request, State) ->
 %%
 handle_info(timeout, #state{eap_sup = EapSup} = State) ->
 	Children = supervisor:which_children(EapSup),
-	{_, EapFsmSup, _, _} = lists:keyfind(ocs_eap_fsm_sup, 1, Children),
+	{_, EapFsmSup, _, _} = lists:keyfind(ocs_eap_pwd_fsm_sup, 1, Children),
 	{noreply, State#state{eap_fsm_sup = EapFsmSup}};
 handle_info({'EXIT', _Pid, {shutdown, SessionID}},
 		#state{handlers = Handlers} = State) ->
