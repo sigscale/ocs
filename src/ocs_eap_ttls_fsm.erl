@@ -26,7 +26,7 @@
 -export([]).
 
 %% export the ocs_eap_ttls_fsm state callbacks
--export([]).
+-export([idle/2, phase_1/2, phase_2/2]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
@@ -59,6 +59,48 @@
 %%
 init(_Args) ->
 	{stop, not_impleneted_yet}.
+
+-spec idle(Event :: timeout | term(), StateData :: #statedata{}) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
+%%		gen_fsm:send_event/2} in the <b>idle</b> state.
+%% @@see //stdlib/gen_fsm:StateName/2
+%% @private
+%%
+idle(_Event, StateData)->
+	{stop, not_implemented, StateData}.
+
+-spec phase_1(Event :: timeout | term(), StateData :: #statedata{}) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
+%%		gen_fsm:send_event/2} in the <b>phase_1</b> state.
+%% @@see //stdlib/gen_fsm:StateName/2
+%% @private
+%%
+phase_1(_Event, StateData)->
+	{stop, not_implemented, StateData}.
+
+-spec phase_2(Event :: timeout | term(), StateData :: #statedata{}) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
+%%		gen_fsm:send_event/2} in the <b>phase_2</b> state.
+%% @@see //stdlib/gen_fsm:StateName/2
+%% @private
+%%
+phase_2(_Event, StateData)->
+	{stop, not_implemented, StateData}.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
 		StateData :: #statedata{}) ->
