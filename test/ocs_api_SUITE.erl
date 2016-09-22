@@ -83,7 +83,7 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[client, subscriber].
+	[client, subscriber, update_subscriber_password].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -112,6 +112,24 @@ subscriber(_Config) ->
 	ok = ocs:add_subscriber("android", "vyz789", BinAttribute2),
 	{ok, <<"abcd234">>, BinAttribute1} = ocs:find_subscriber("tomba"),
 	{ok, <<"vyz789">>, BinAttribute2} = ocs:find_subscriber("android").
+
+update_subscriber_password() ->
+	[{userdata, [{doc, "Update subscriber password to database"}]}].
+
+update_subscriber_password(_Config) ->
+	Attribute0 = radius_attributes:new(),
+	Attribute = radius_attributes:store(?NasPortId,"wlan0", Attribute0),
+	BinAttribute = radius_attributes:codec(Attribute),
+	Subscriber = "android",
+	OldPassword = ocs:generate_password(),
+	ok = ocs:add_subscriber(Subscriber, OldPassword, BinAttribute),
+	{ok, BinOldPassword, BinAttribute} = ocs:find_subscriber(Subscriber),
+	OldPassword = binary_to_list(BinOldPassword),
+	NewPassword = ocs:generate_password(),
+	ok = ocs:update_subscriber_password(Subscriber, OldPassword, NewPassword),
+	{ok, BinNewPassword, BinAttribute} = ocs:find_subscriber(Subscriber),
+	NewPassword = binary_to_list(BinNewPassword).
+
 
 %%---------------------------------------------------------------------
 %%  Internal functions
