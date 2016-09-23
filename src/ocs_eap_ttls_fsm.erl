@@ -40,7 +40,8 @@
 		port :: pos_integer(),
 		session_id :: {NAS :: inet:ip_address() | string(),
 			Port :: string(), Peer :: string()},
-			secret :: binary()}).
+			secret :: binary(),
+		eap_id = 0 :: byte()}).
 
 -define(TIMEOUT, 30000).
 
@@ -81,8 +82,37 @@ init([Address, Port, Secret, SessionID] = _Args) ->
 %%
 idle(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
-idle(_Event, StateData)->
-	{next_state, phase_1, StateData, ?TIMEOUT}.
+idle({#radius{code = ?AccessRequest, id = RadiusID,
+		authenticator = RequestAuthenticator,
+		attributes = Attributes}, RadiusFsm},
+		#statedata{eap_id = EapID, session_id = SessionID,
+		secret = Secret} = StateData) ->
+		EapData = <<>>,
+	case radius_attributes:find(?EAPMessage, Attributes) of
+		{ok, EAPMessage} ->
+			case catch ocs_eap_codec:eap_packet(EAPMessage) of
+				#eap_packet{code = response, type = ?Identity} ->
+					send_response(request, EapID, EapData, ?AccessChallenge,
+							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+					{next_state, phase_1, StateData, ?TIMEOUT};
+				#eap_packet{code = Code, type = EapType, data = Data} ->
+					error_logger:warning_report(["Unknown EAP received",
+							{pid, self()}, {session_id, SessionID},
+							{code, Code}, {type, EapType}, {data, Data}]),
+					radius:response(RadiusFsm, {error, ignore}),
+					{ok, idle, StateData, ?TIMEOUT};
+				{'EXIT', _Reason} ->
+					radius:response(RadiusFsm, {error, ignore}),
+					{ok, idle, StateData, ?TIMEOUT}
+			end;
+		{error, not_found} ->
+			send_response(request, EapID, EapData, ?AccessChallenge,
+					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+			{next_state, phase_1, StateData, ?TIMEOUT}
+	end;
+idle({#radius{}, RadiusFsm}, StateData) ->
+	radius:response(RadiusFsm, {error, ignore}),
+	{ok, idle, StateData, ?TIMEOUT}.
 
 -spec phase_1(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
@@ -189,3 +219,34 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
+-spec send_response(EapCode :: request | response | success | failure,
+		EapID :: byte(), EapData :: binary(),
+		RadiusCode :: integer(), RadiusID :: byte(),
+		RadiusAttributes :: radius_attributes:attributes(),
+		RequestAuthenticator :: binary() | [byte()], Secret :: binary(),
+		RadiusFsm :: pid()) -> ok.
+%% @doc Sends an RADIUS-Access/Challenge or Reject or Accept  packet to peer
+%% @hidden
+send_response(EapCode, EapID, EapData, RadiusCode, RadiusID, RadiusAttributes,
+		RequestAuthenticator, Secret, RadiusFsm) ->
+	Packet = #eap_packet{code = EapCode, type = ?PWD,
+			identifier = EapID, data = EapData},
+	EapPacketData = ocs_eap_codec:eap_packet(Packet),
+	AttrList1 = radius_attributes:store(?EAPMessage, EapPacketData,
+			RadiusAttributes),
+	AttrList2 = radius_attributes:store(?MessageAuthenticator,
+		<<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, AttrList1),
+	Attributes1 = radius_attributes:codec(AttrList2),
+	Length = size(Attributes1) + 20,
+	MessageAuthenticator = crypto:hmac(md5, Secret, [<<RadiusCode, RadiusID,
+			Length:16>>, RequestAuthenticator, Attributes1]),
+	AttrList3 = radius_attributes:store(?MessageAuthenticator,
+			MessageAuthenticator, AttrList2),
+	Attributes2 = radius_attributes:codec(AttrList3),
+	ResponseAuthenticator = crypto:hash(md5, [<<RadiusCode, RadiusID,
+			Length:16>>, RequestAuthenticator, Attributes2, Secret]),
+	Response = #radius{code = RadiusCode, id = RadiusID,
+			authenticator = ResponseAuthenticator, attributes = Attributes2},
+	ResponsePacket = radius:codec(Response),
+	radius:response(RadiusFsm, {response, ResponsePacket}),
+	ok.
