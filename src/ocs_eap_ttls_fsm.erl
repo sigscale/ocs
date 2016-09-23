@@ -35,7 +35,12 @@
 %% @headerfile "include/radius.hrl"
 -include_lib("radius/include/radius.hrl").
 -include("ocs_eap_codec.hrl").
--record(statedata, {}).
+-record(statedata,
+		{address :: inet:ip_address(),
+		port :: pos_integer(),
+		session_id :: {NAS :: inet:ip_address() | string(),
+			Port :: string(), Peer :: string()},
+			secret :: binary()}).
 
 -define(TIMEOUT, 30000).
 
@@ -57,8 +62,11 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init(_Args) ->
-	{stop, not_impleneted_yet}.
+init([Address, Port, Secret, SessionID] = _Args) ->
+	StateData = #statedata{address = Address, port = Port,
+		secret = Secret, session_id = SessionID},
+	process_flag(trap_exit, true),
+	{ok, idle, StateData, 0}.
 
 -spec idle(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
