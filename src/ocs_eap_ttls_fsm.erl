@@ -79,6 +79,8 @@ init([Address, Port, Secret, SessionID] = _Args) ->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
+idle(timeout, #statedata{session_id = SessionID} = StateData)->
+	{stop, {shutdown, SessionID}, StateData};
 idle(_Event, StateData)->
 	{stop, not_implemented, StateData}.
 
