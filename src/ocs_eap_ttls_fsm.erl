@@ -66,7 +66,7 @@ init([Address, Port, Secret, SessionID] = _Args) ->
 	StateData = #statedata{address = Address, port = Port,
 		secret = Secret, session_id = SessionID},
 	process_flag(trap_exit, true),
-	{ok, idle, StateData, 0}.
+	{ok, idle, StateData, ?TIMEOUT}.
 
 -spec idle(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
