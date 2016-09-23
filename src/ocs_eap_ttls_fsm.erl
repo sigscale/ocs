@@ -82,7 +82,7 @@ init([Address, Port, Secret, SessionID] = _Args) ->
 idle(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
 idle(_Event, StateData)->
-	{stop, not_implemented, StateData}.
+	{next_state, phase_1, StateData, ?TIMEOUT}.
 
 -spec phase_1(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
@@ -95,6 +95,8 @@ idle(_Event, StateData)->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
+phase_1(timeout, #statedata{session_id = SessionID} = StateData)->
+	{stop, {shutdown, SessionID}, StateData};
 phase_1(_Event, StateData)->
 	{stop, not_implemented, StateData}.
 
@@ -109,6 +111,8 @@ phase_1(_Event, StateData)->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
+phase_2(timeout, #statedata{session_id = SessionID} = StateData)->
+	{stop, {shutdown, SessionID}, StateData};
 phase_2(_Event, StateData)->
 	{stop, not_implemented, StateData}.
 
