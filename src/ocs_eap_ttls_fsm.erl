@@ -229,7 +229,7 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %% @hidden
 send_response(EapCode, EapID, EapData, RadiusCode, RadiusID, RadiusAttributes,
 		RequestAuthenticator, Secret, RadiusFsm) ->
-	Packet = #eap_packet{code = EapCode, type = ?PWD,
+	Packet = #eap_packet{code = EapCode, type = ?TTLS,
 			identifier = EapID, data = EapData},
 	EapPacketData = ocs_eap_codec:eap_packet(Packet),
 	AttrList1 = radius_attributes:store(?EAPMessage, EapPacketData,
