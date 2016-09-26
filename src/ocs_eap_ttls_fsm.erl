@@ -95,8 +95,10 @@ idle({#radius{code = ?AccessRequest, id = RadiusID,
 				#eap_packet{code = response, type = ?Identity} ->
 					send_response(request, EapID, EapData, ?AccessChallenge,
 							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-					{ok, ListenSocket} = ssl:listen(9999, [{certfile, "cert.pem"},
-							{keyfile, "key.pem"},{reuseaddr, true}]),
+					{ok, TLSkey} = application:get_env(ocs, tls_key)
+					{ok, TLScert} = application:get_env(ocs, tls_crt)
+					{ok, ListenSocket} = ssl:listen(9999, [{certfile, TLScert},
+							{keyfile, TLSkey},{reuseaddr, true}]),
 					{ok, Socket} = ssl:transport_accept(ListenSocket),
 					NewStateData = StateData#statedata{socket = Socket},
 					{next_state, phase_1, NewStateData, ?TIMEOUT};
