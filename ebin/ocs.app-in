@@ -24,6 +24,7 @@
 		{env, [%{rest_trace, "trace"},
 				{tls_key, "priv/key.pem"},
 				{tls_crt, "priv/certificate.pem"},
+				{tls_port, 9999},
 				{rest_key, "%APP_PRIV%localhost.key"},
 				{rest_crt, "%APP_PRIV%localhost.crt"},
 				{rest_username, "ocs"},
