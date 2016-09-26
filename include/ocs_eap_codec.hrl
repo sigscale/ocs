@@ -86,3 +86,12 @@
 			{element :: binary(),
 			scalar :: binary()}).
 
+-record(eap_ttls,{
+			length_inc :: boolean(),
+			more :: boolean(),
+			start :: boolean(),
+			reserved :: boolean(),
+			version  = v0 :: v1 | v1 | v2,
+			message_len :: integer(),
+			data  = <<>> :: binary()}).
+
