@@ -94,7 +94,11 @@ idle({#radius{code = ?AccessRequest, id = RadiusID,
 				#eap_packet{code = response, type = ?Identity} ->
 					send_response(request, EapID, EapData, ?AccessChallenge,
 							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-					{next_state, phase_1, StateData, ?TIMEOUT};
+					{ok, ListenSocket} = ssl:listen(9999, [{certfile, "cert.pem"},
+							{keyfile, "key.pem"},{reuseaddr, true}]),
+					{ok, Socket} = ssl:transport_accept(ListenSocket),
+					NewStateData = StateData#statedata{socket = Socket},
+					{next_state, phase_1, NewStateData, ?TIMEOUT};
 				#eap_packet{code = Code, type = EapType, data = Data} ->
 					error_logger:warning_report(["Unknown EAP received",
 							{pid, self()}, {session_id, SessionID},
