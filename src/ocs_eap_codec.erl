@@ -27,7 +27,8 @@
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 %% export the ocs public API
--export([eap_packet/1, eap_pwd/1, eap_pwd_id/1, eap_pwd_commit/1]).
+-export([eap_packet/1, eap_pwd/1, eap_pwd_id/1, eap_pwd_commit/1,
+			eap_ttls/1]).
 
 -include("ocs_eap_codec.hrl").
 
@@ -162,4 +163,29 @@ eap_pwd_commit(<<Element:64/binary, Scalar:32/binary>>) ->
 	#eap_pwd_commit{element = Element, scalar = Scalar};
 eap_pwd_commit(#eap_pwd_commit{element = Element, scalar = Scalar}) ->
 	<<Element:64/binary, Scalar:32/binary>>.
+
+-spec eap_ttls(Packet :: binary() | #eap_ttls{}) -> #eap_ttls{} | binary().
+%% @doc Encode or Decode `EAP-TTLS' packet
+%%
+%% RFC-5281 9.1
+eap_ttls(#eap_ttls{length_inc = false, more = false, start = true, reserved = false,
+		version = v0, data = Data}) ->
+	<<0:1, 0:1, 1:1, 0:1, 0:1, 0:1, 0:1, 0:1, Data/binary>>;
+eap_ttls(#eap_ttls{length_inc = false, more = false, start = true, reserved = false,
+		version = v1, data = Data}) ->
+	<<0:1, 0:1, 1:1, 0:1, 0:1, 0:1, 0:1, 1:1, Data/binary>>;
+eap_ttls(#eap_ttls{length_inc = false, more = false, start = true, reserved = false,
+		version = v2, data = Data}) ->
+	<<0:1, 0:1, 1:1, 0:1, 0:1, 0:1, 0:1, 2:1, Data/binary>>;
+eap_ttls(<<0:1, 0:1, 1:1, 0:1, 0:1, 0:1,0:1, 0:1, Data/binary>>) ->
+	#eap_ttls{length_inc = false, more = false, start = true, reserved = false,
+		version = v0, data = Data};
+eap_ttls(<<0:1, 0:1, 1:1, 0:1, 0:1, 0:1,0:1, 1:1, Data/binary>>) ->
+	#eap_ttls{length_inc = false, more = false, start = true, reserved = false,
+		version = v1, data = Data};
+eap_ttls(<<0:1, 0:1, 1:1, 0:1, 0:1, 0:1,0:1, 2:1, Data/binary>>) ->
+	#eap_ttls{length_inc = false, more = false, start = true, reserved = false,
+		version = v2, data = Data}.
+
+
 
