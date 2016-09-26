@@ -98,11 +98,19 @@ idle({#radius{code = ?AccessRequest, id = RadiusID,
 					{ok, TLSkey} = application:get_env(ocs, tls_key),
 					{ok, TLScert} = application:get_env(ocs, tls_crt),
 					{ok, TLSport} = application:get_env(ocs, tls_port),
-					{ok, ListenSocket} = ssl:listen(TLSport, [{certfile, TLScert},
-							{keyfile, TLSkey},{reuseaddr, true}]),
-					{ok, Socket} = ssl:transport_accept(ListenSocket),
-					NewStateData = StateData#statedata{socket = Socket},
-					{next_state, phase_1, NewStateData, ?TIMEOUT};
+					case ssl:listen(TLSport, [{certfile, TLScert}, {keyfile, TLSkey},
+							{reuseaddr, true}]) of
+						{ok, ListenSocket} ->
+							case ssl:transport_accept(ListenSocket) of
+								{ok, Socket} ->
+									NewStateData = StateData#statedata{socket = Socket},
+									{next_state, phase_1, NewStateData, ?TIMEOUT};
+								{error, Reason} ->
+									{error, Reason}
+							end;
+						{error, Reason} ->
+							{error, Reason}
+					end;
 				#eap_packet{code = Code, type = EapType, data = Data} ->
 					error_logger:warning_report(["Unknown EAP received",
 							{pid, self()}, {session_id, SessionID},
