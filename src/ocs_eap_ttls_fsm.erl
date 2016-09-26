@@ -134,7 +134,10 @@ idle({#radius{}, RadiusFsm}, StateData) ->
 %%
 phase_1(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
-phase_1(_Event, StateData)->
+phase_1({#radius{id = RadiusID, authenticator = RequestAuthenticator,
+		attributes = Attributes} = _AccessRequest, RadiusFsm}, #statedata
+		{socket = Socket} = StateData)->
+		ok = ssl:ssl_accept(Socket),
 	{stop, not_implemented, StateData}.
 
 -spec phase_2(Event :: timeout | term(), StateData :: #statedata{}) ->
