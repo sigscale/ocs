@@ -41,7 +41,8 @@
 		session_id :: {NAS :: inet:ip_address() | string(),
 			Port :: string(), Peer :: string()},
 			secret :: binary(),
-		eap_id = 0 :: byte()}).
+		eap_id = 0 :: byte(),
+		socket :: term()}).
 
 -define(TIMEOUT, 30000).
 
