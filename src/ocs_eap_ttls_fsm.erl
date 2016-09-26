@@ -146,7 +146,7 @@ phase_1(timeout, #statedata{session_id = SessionID} = StateData)->
 phase_1({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		attributes = Attributes} = _AccessRequest, RadiusFsm}, #statedata
 		{socket = Socket, eap_id = EapID} = StateData)->
-		NewEapID = EapID + 1;
+		NewEapID = EapID + 1,
 		ok = ssl:ssl_accept(Socket),
 	{stop, not_implemented, StateData}.
 
