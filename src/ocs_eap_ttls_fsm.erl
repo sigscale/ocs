@@ -90,6 +90,10 @@ idle({#radius{code = ?AccessRequest, id = RadiusID,
 		secret = Secret} = StateData) ->
 		EapData = <<>>,
 	case radius_attributes:find(?EAPMessage, Attributes) of
+		{ok, <<>>} ->
+			send_response(request, EapID, EapData, ?AccessChallenge,
+					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+			{next_state, wait_for_id, NewStateData, ?TIMEOUT};
 		{ok, EAPMessage} ->
 			case catch ocs_eap_codec:eap_packet(EAPMessage) of
 				#eap_packet{code = response, type = ?Identity} ->
