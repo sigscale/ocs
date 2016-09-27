@@ -153,7 +153,7 @@ phase_1({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		{socket = Socket, eap_id = EapID} = StateData)->
 	case ssl:ssl_accept(Socket) of
 		ok ->
-			{next_state, phase_2, NewStateData, ?TIMEOUT};
+			{next_state, phase_2, StateData, ?TIMEOUT};
 		{error, Reason}->
 			{error, Reason}
 	end.
