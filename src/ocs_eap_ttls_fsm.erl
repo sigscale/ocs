@@ -99,6 +99,25 @@ idle({#radius{code = ?AccessRequest, id = RadiusID,
 				#eap_packet{code = response, type = ?Identity} ->
 					send_response(request, EapID, EapData, ?AccessChallenge,
 							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+					{ok, TLSkey} = application:get_env(ocs, tls_key),
+					{ok, TLScert} = application:get_env(ocs, tls_crt),
+					{ok, TLSport} = application:get_env(ocs, tls_port),
+					case ssl:listen(TLSport, [{certfile, TLScert}, {keyfile, TLSkey},
+							{reuseaddr, true}]) of
+						{ok, ListenSocket} ->
+							case ssl:transport_accept(ListenSocket) of
+								{ok, Socket} ->
+									NewEapID = EapID + 1,
+									ok = ssl:ssl_accept(Socket),
+									NewStateData = StateData#statedata{eap_id = NewEapID,
+										socket = Socket},
+									{next_state, phase_2, NewStateData, ?TIMEOUT};
+								{error, Reason} ->
+									{error, Reason}
+							end;
+						{error, Reason} ->
+							{error, Reason}
+					end,
 					{next_state, phase_1, StateData, ?TIMEOUT};
 				#eap_packet{code = Code, type = EapType, data = Data} ->
 					error_logger:warning_report(["Unknown EAP received",
@@ -135,25 +154,6 @@ phase_1(timeout, #statedata{session_id = SessionID} = StateData)->
 phase_1({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		attributes = Attributes} = _AccessRequest, RadiusFsm}, #statedata
 		{socket = Socket, eap_id = EapID} = StateData)->
-		{ok, TLSkey} = application:get_env(ocs, tls_key),
-		{ok, TLScert} = application:get_env(ocs, tls_crt),
-		{ok, TLSport} = application:get_env(ocs, tls_port),
-		case ssl:listen(TLSport, [{certfile, TLScert}, {keyfile, TLSkey},
-				{reuseaddr, true}]) of
-			{ok, ListenSocket} ->
-				case ssl:transport_accept(ListenSocket) of
-					{ok, Socket} ->
-						NewEapID = EapID + 1,
-						ok = ssl:ssl_accept(Socket),
-						NewStateData = StateData#statedata{eap_id = NewEapID,
-							socket = Socket},
-						{next_state, phase_2, NewStateData, ?TIMEOUT};
-					{error, Reason} ->
-						{error, Reason}
-				end;
-			{error, Reason} ->
-				{error, Reason}
-		end.
 
 -spec phase_2(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
