@@ -108,7 +108,6 @@ idle({#radius{code = ?AccessRequest, id = RadiusID,
 							case ssl:transport_accept(ListenSocket) of
 								{ok, Socket} ->
 									NewEapID = EapID + 1,
-									ok = ssl:ssl_accept(Socket),
 									NewStateData = StateData#statedata{eap_id = NewEapID,
 										socket = Socket},
 									{next_state, phase_2, NewStateData, ?TIMEOUT};
@@ -154,6 +153,12 @@ phase_1(timeout, #statedata{session_id = SessionID} = StateData)->
 phase_1({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		attributes = Attributes} = _AccessRequest, RadiusFsm}, #statedata
 		{socket = Socket, eap_id = EapID} = StateData)->
+	case ssl:ssl_accept(Socket) of
+		ok ->
+			{next_state, phase_2, NewStateData, ?TIMEOUT};
+		{error, Reason}->
+			{error, Reason}
+	end.
 
 -spec phase_2(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
