@@ -22,8 +22,8 @@
 
 %% export the ocs public API
 -export([add_client/2, find_client/1]).
--export([add_subscriber/3, find_subscriber/1, update_subscriber_password/3,
-			update_subscriber_attributes/3]).
+-export([add_subscriber/3, find_subscriber/1, delete_subscriber/2,
+			update_subscriber_password/3, update_subscriber_attributes/3]).
 -export([log_file/1]).
 -export([generate_password/0]).
 -export([start/3]).
@@ -122,6 +122,36 @@ find_subscriber(Subscriber) when is_list(Subscriber) ->
 			error;
 		{aborted, Reason} ->
 			exit(Reason)
+	end.
+
+-spec delete_subscriber(Subscriber :: string() | binary(),
+		Password :: binary() | string()) -> ok| {error, Reason ::term()}.
+%% @doc Delete a subscriber from the database.
+%%
+delete_subscriber(Subscriber, Password) when is_binary(Subscriber) ->
+	delete_subscriber(binary_to_list(Subscriber), Password);
+delete_subscriber(Subscriber, Password) when is_list(Password) ->
+	delete_subscriber(Subscriber, list_to_binary(Password));
+delete_subscriber(Subscriber, Password) when is_list(Subscriber),
+		is_binary(Password) ->
+	case find_subscriber(Subscriber) of
+		{ok, Password, _Attributes} ->
+			F = fun() ->
+				Old = mnesia:match_object(subscriber, #subscriber{name = Subscriber,
+					password = Password, attributes = '_'}, write),
+				Del = fun(O) -> mnesia:delete_object(subscriber, O, write) end,
+				lists:foreach(Del, Old)
+			end,
+			case mnesia:transaction(F) of
+				{atomic, _} ->
+					ok;
+				{aborted, Reason} ->
+					exit(Reason)
+			end;
+		{ok, _, _} ->
+			{error, password_not_matched};
+		error ->
+			{error, not_found}
 	end.
 
 -spec update_subscriber_password(Subscriber :: string(), OldPassword :: string() | binary(),
