@@ -93,7 +93,7 @@ idle({#radius{code = ?AccessRequest, id = RadiusID,
 		{ok, <<>>} ->
 			send_response(request, EapID, EapData, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-			{next_state, wait_for_id, NewStateData, ?TIMEOUT};
+			{next_state, wait_for_id, StateData, ?TIMEOUT};
 		{ok, EAPMessage} ->
 			case catch ocs_eap_codec:eap_packet(EAPMessage) of
 				#eap_packet{code = response, type = ?Identity} ->
@@ -107,10 +107,8 @@ idle({#radius{code = ?AccessRequest, id = RadiusID,
 						{ok, ListenSocket} ->
 							case ssl:transport_accept(ListenSocket) of
 								{ok, Socket} ->
-									NewEapID = EapID + 1,
-									NewStateData = StateData#statedata{eap_id = NewEapID,
-										socket = Socket},
-									{next_state, phase_2, NewStateData, ?TIMEOUT};
+									NewStateData = StateData#statedata{socket = Socket},
+									{next_state, phase_1, NewStateData, ?TIMEOUT};
 								{error, Reason} ->
 									{error, Reason}
 							end;
