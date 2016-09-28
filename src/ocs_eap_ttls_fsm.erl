@@ -103,7 +103,8 @@ idle({#radius{code = ?AccessRequest, id = RadiusID,
 					{ok, TLScert} = application:get_env(ocs, tls_crt),
 					{ok, TLSport} = application:get_env(ocs, tls_port),
 					case ssl:listen(TLSport, [{certfile, TLScert}, {keyfile, TLSkey},
-							{reuseaddr, true}]) of
+							{reuseaddr, true}, {cb_info, {ocs_eap_ttls_transport,
+							eap_ttls, ttls_closed, ttls_error}}]) of
 						{ok, ListenSocket} ->
 							case ssl:transport_accept(ListenSocket) of
 								{ok, Socket} ->
