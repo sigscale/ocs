@@ -75,6 +75,8 @@ server(StartMod, Args) ->
 %% @private
 %%
 webmachine(Address, Port) ->
+	{ok, Address} = application:get_env(rest_addr),
+	{ok, Port} = application:get_env(rest_port),
 	Dispatch = ocs_wm_config:dispatch(),
 	WebConfig = [{ip, Address},
 					{port, Port},

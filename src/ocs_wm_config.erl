@@ -26,7 +26,7 @@
 -spec dispatch() -> [tuple()].
 %% @doc Returns the dispatch map tuples for {@link //webmachine. webmachine}.
 dispatch() ->
-	{TraceResource, _Args} = case application:get_env(rest_trace) of
+	{TraceResource, Args} = case application:get_env(rest_trace) of
 		{ok, Dir}  ->
 			Res = [{["wmtrace", '*'], wmtrace_resource, [{trace_dir, Dir}]}],
 			case file:make_dir(Dir) of
@@ -42,5 +42,5 @@ dispatch() ->
 		undefined ->
 			{[], []}
 	end,
-	[] ++ TraceResource.
+	[{["subscriber"]}, ocs_wm_res_subscriber, Args] ++ TraceResource.
 

@@ -25,7 +25,9 @@ beam_DATA = ocs.beam \
 			ocs_radius_authentication.beam \
 			ocs_server.beam \
 			ocs_eap_pwd.beam \
-			ocs_wm_config.beam
+			ocs_wm_config.beam \
+			ocs_wm_res_subscriber.beam
+
 
 %.beam:$(top_srcdir)/src/%.erl	$(top_srcdir)/include/ocs.hrl $(top_srcdir)/include/ocs_eap_codec.hrl
 	$(ERLC) $(ERLCFLAGS) -I $(top_srcdir)/include -I $(top_srcdir)/src $<
