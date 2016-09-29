@@ -24,6 +24,11 @@
 -define(EapInitiate,          5).
 -define(EapFinish,            6).
 
+%% Macro definitions for PAP packet codes
+-define(PapAuthenticateRequest,			1).
+-define(PapAuthenticateAck,				2).
+-define(PapAuthenticateNak,				3).
+
 %% Macro definitions for EAP packet types
 -define(Identity,          1).
 -define(Notification,      2).
