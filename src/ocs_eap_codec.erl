@@ -182,10 +182,7 @@ eap_ttls(<<0:1, 0:1, 1:1, 0:1, 0:1, 0:1,0:1, 0:1, Data/binary>>) ->
 		version = v0, data = Data};
 eap_ttls(<<0:1, 0:1, 1:1, 0:1, 0:1, 0:1,0:1, 1:1, Data/binary>>) ->
 	#eap_ttls{length_inc = false, more = false, start = true, reserved = false,
-		version = v1, data = Data};
-eap_ttls(<<0:1, 0:1, 1:1, 0:1, 0:1, 0:1,0:1, 2:1, Data/binary>>) ->
-	#eap_ttls{length_inc = false, more = false, start = true, reserved = false,
-		version = v2, data = Data}.
+		version = v1, data = Data}.
 
 
 
