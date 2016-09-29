@@ -85,9 +85,9 @@ content_types_accepted(ReqData, Context) ->
 content_types_provided(ReqData, Context) ->
 	case wrq:method(ReqData) of
 		'POST' ->
-			{[{"application/hal+json", add_router}], ReqData, Context};
+			{[{"application/hal+json", add_subscriber}], ReqData, Context};
 		Method when Method == 'GET'; Method == 'HEAD' ->
-			case {wrq:path_info(router, ReqData), wrq:req_qs(ReqData)} of
+			case {wrq:path_info(subscriber, ReqData), wrq:req_qs(ReqData)} of
 				{_, [_|_]} ->
 					{[], ReqData, Context}
 			end

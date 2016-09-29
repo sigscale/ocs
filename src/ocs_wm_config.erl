@@ -42,5 +42,5 @@ dispatch() ->
 		undefined ->
 			{[], []}
 	end,
-	[{["subscriber"]}, ocs_wm_res_subscriber, Args] ++ TraceResource.
+	[{["subscriber"], ocs_wm_res_subscriber, Args}] ++ TraceResource.
 
