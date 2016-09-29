@@ -30,11 +30,17 @@
 		content_types_accepted/2,
 		content_types_provided/2,
 		post_is_create/2,
-		create_path/2 ]).
+		create_path/2,
+		add_subscriber/2]).
 
 -include("ocs_wm.hrl").
 
--record(state,{}).
+-type attribute() :: {Name :: string(), Value :: string()}.
+-record(state,{
+			subscriber :: string(),
+			current_password :: string(),
+			new_password :: string(),
+			attributes :: [attribute()] | binary()}).
 
 %%----------------------------------------------------------------------
 %%  webmachine callbacks
@@ -104,10 +110,32 @@ post_is_create(ReqData, Context) ->
 %% @doc Called on a `POST' request if {@link post_is_create/2} returns true.
 create_path(ReqData, Context) ->
 	Body = wrq:req_body(ReqData),
-	try
+	try 
 		{struct, Object} = mochijson:decode(Body),
-		{true, ReqData, Context}
+		{_, Subscriber} = lists:keyfind("subscriber", 1, Object),
+		{_, Password} = lists:keyfind("password", 1, Object),
+		{_, {array, ArrayAttributes}} = lists:keyfind("attributes", 1, Object),
+		NewContext = Context#state{subscriber = Subscriber, current_password = Password,
+			attributes = ArrayAttributes},
+		{"adrian", ReqData, NewContext}
 	catch
 		_Error ->
 			{{halt, 400}, ReqData, Context}
+	end.
+
+-spec add_subscriber(ReqData :: rd(), Context :: state()) ->
+	{true | halt(), ReqData :: rd(), Context :: state()}.
+%% @doc POST processing function.
+add_subscriber(ReqData, #state{subscriber = Subscriber,
+		current_password = Password, attributes = ArrayAttributes} = Context) ->
+	try
+	case catch ocs:add_subscriber(Subscriber, Password, <<>>) of
+		ok ->
+			{true, ReqData, Context};
+		{error, Reason} ->
+			{{error, Reason}, ReqData, Context}
+	end catch
+		throw:_ ->
+			{{halt, 400}, ReqData, Context}
+
 	end.
