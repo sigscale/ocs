@@ -18,8 +18,6 @@
 -module(ocs_eap_ttls_transport).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
--behaviour(radius).
-
 %% export inet behaviour callbacks
 -export([]).
 
