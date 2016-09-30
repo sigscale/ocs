@@ -179,7 +179,8 @@ phase_2({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		case radius_attributes:find(?EAPMessage, AttributeData) of
 			{ok, EapPacket} ->
 				#eap_packet{code = response, identifier = EapID, type = ?TTLS,
-					data = Data} = ocs_eap_codec:eap_packet(EapPacket);
+					data = EapTTLS} = ocs_eap_codec:eap_packet(EapPacket),
+				#eap_ttls{start = false, data = Data} = ocs_eap_codec:eap_ttls(EapTTLS);
 			{error, not_found} ->
 				ok
 		end,
