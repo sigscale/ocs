@@ -174,6 +174,14 @@ phase_2(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
 phase_2({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		attributes = Attributes} = _AccessRequest, RadiusFsm}, StateData)->
+	AttributeData = radius_attributes:codec(Attributes
+		case radius_attributes:find(?EAPMessage, AttributeData) of
+			{ok, EapPacket} ->
+				#eap_packet{code = response, identifier = EapID, type = ?TTLS,
+					data = Data} = ocs_eap_codec:eap_packet(EapPacket);
+			{error, not_found} ->
+				ok
+		end,
 	{stop, not_implemented, StateData}.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
