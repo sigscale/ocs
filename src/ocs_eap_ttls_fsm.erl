@@ -172,7 +172,8 @@ phase_1({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 %%
 phase_2(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
-phase_2(_Event, StateData)->
+phase_2({#radius{id = RadiusID, authenticator = RequestAuthenticator,
+		attributes = Attributes} = _AccessRequest, RadiusFsm}, StateData)->
 	{stop, not_implemented, StateData}.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
