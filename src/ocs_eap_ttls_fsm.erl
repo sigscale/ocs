@@ -173,7 +173,8 @@ phase_1({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 phase_2(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
 phase_2({#radius{id = RadiusID, authenticator = RequestAuthenticator,
-		attributes = Attributes} = _AccessRequest, RadiusFsm}, StateData)->
+		attributes = Attributes} = _AccessRequest, RadiusFsm}, #statedata
+		{eap_id = EapID}StateData)->
 	AttributeData = radius_attributes:codec(Attributes
 		case radius_attributes:find(?EAPMessage, AttributeData) of
 			{ok, EapPacket} ->
