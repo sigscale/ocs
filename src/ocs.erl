@@ -269,10 +269,11 @@ generate_password(<<>>, _Charset, _NumChars, Acc) ->
 %% @private
 charset() ->
 	C1 = lists:seq($2, $9),
-	C2 = lists:seq($a, $k),
-	C3 = lists:seq($m, $n),
-	C4 = lists:seq($p, $z),
-	lists:append([C1, C2, C3, C4]).	
+	C2 = lists:seq($a, $h),
+	C3 = lists:seq($j, $k),
+	C4 = lists:seq($m, $n),
+	C5 = lists:seq($p, $z),
+	lists:append([C1, C2, C3, C4, C5]).
 
 %% @hidden
 file_chunk(Log, IODevice, Continuation) ->
