@@ -83,7 +83,8 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[client, subscriber, update_subscriber_password, update_subscriber_attributes].
+	[client, subscriber, update_subscriber_password, update_subscriber_attributes,
+	delete_subscriber].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -112,6 +113,20 @@ subscriber(_Config) ->
 	ok = ocs:add_subscriber("android", "vyz789", BinAttribute2),
 	{ok, <<"abcd234">>, BinAttribute1} = ocs:find_subscriber("tomba"),
 	{ok, <<"vyz789">>, BinAttribute2} = ocs:find_subscriber("android").
+
+delete_subscriber() ->
+	[{userdata, [{doc, "Delete subscriber from the database"}]}].
+
+delete_subscriber(_Config) ->
+	Attribute0 = radius_attributes:new(),
+	Attribute = radius_attributes:store(?NasPortId,"wlan0", Attribute0),
+	BinAttribute = radius_attributes:codec(Attribute),
+	Subscriber = "deleteandroid",
+	Password = ocs:generate_password(),
+	ok = ocs:add_subscriber(Subscriber, Password,BinAttribute),
+	{ok, _BinPassword, _BinAttribute} = ocs:find_subscriber(Subscriber),
+	ok = ocs:delete_subscriber(Subscriber, Password),
+	error = ocs:find_subscriber(Subscriber).
 
 update_subscriber_password() ->
 	[{userdata, [{doc, "Update subscriber password to database"}]}].
@@ -145,7 +160,6 @@ update_subscriber_attributes(_Config) ->
 	NewBinAttribute = radius_attributes:codec(NewAttribute),
 	ok = ocs:update_subscriber_attributes(Subscriber, Password, NewBinAttribute),
 	{ok, BinPassword, NewBinAttribute} = ocs:find_subscriber(Subscriber).
-
 
 %%---------------------------------------------------------------------
 %%  Internal functions
