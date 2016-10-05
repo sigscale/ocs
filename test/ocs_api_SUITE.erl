@@ -111,8 +111,8 @@ subscriber(_Config) ->
 	BinAttribute2 = radius_attributes:codec(Attribute2),
 	ok = ocs:add_subscriber("tomba", "abcd234", BinAttribute1),
 	ok = ocs:add_subscriber("android", "vyz789", BinAttribute2),
-	{ok, <<"abcd234">>, BinAttribute1} = ocs:find_subscriber("tomba"),
-	{ok, <<"vyz789">>, BinAttribute2} = ocs:find_subscriber("android").
+	{ok, <<"abcd234">>, BinAttribute1, _Balance} = ocs:find_subscriber("tomba"),
+	{ok, <<"vyz789">>, BinAttribute2, _Balance} = ocs:find_subscriber("android").
 
 delete_subscriber() ->
 	[{userdata, [{doc, "Delete subscriber from the database"}]}].
@@ -124,7 +124,7 @@ delete_subscriber(_Config) ->
 	Subscriber = "deleteandroid",
 	Password = ocs:generate_password(),
 	ok = ocs:add_subscriber(Subscriber, Password,BinAttribute),
-	{ok, _BinPassword, _BinAttribute} = ocs:find_subscriber(Subscriber),
+	{ok, _BinPassword, _BinAttribute, _Balance} = ocs:find_subscriber(Subscriber),
 	ok = ocs:delete_subscriber(Subscriber, Password),
 	error = ocs:find_subscriber(Subscriber).
 
@@ -138,11 +138,11 @@ update_subscriber_password(_Config) ->
 	Subscriber = "android",
 	OldPassword = ocs:generate_password(),
 	ok = ocs:add_subscriber(Subscriber, OldPassword, BinAttribute),
-	{ok, BinOldPassword, BinAttribute} = ocs:find_subscriber(Subscriber),
+	{ok, BinOldPassword, BinAttribute, _Balance} = ocs:find_subscriber(Subscriber),
 	OldPassword = binary_to_list(BinOldPassword),
 	NewPassword = ocs:generate_password(),
 	ok = ocs:update_subscriber_password(Subscriber, OldPassword, NewPassword),
-	{ok, BinNewPassword, BinAttribute} = ocs:find_subscriber(Subscriber),
+	{ok, BinNewPassword, BinAttribute, _Balance} = ocs:find_subscriber(Subscriber),
 	NewPassword = binary_to_list(BinNewPassword).
 
 update_subscriber_attribues() ->
@@ -155,11 +155,11 @@ update_subscriber_attributes(_Config) ->
 	Subscriber = "android",
 	Password = ocs:generate_password(),
 	ok = ocs:add_subscriber(Subscriber, Password, OldBinAttribute),
-	{ok, BinPassword, BinAttribute} = ocs:find_subscriber(Subscriber),
+	{ok, BinPassword, BinAttribute, _Balance} = ocs:find_subscriber(Subscriber),
 	NewAttribute = radius_attributes:store(?NasPortId,"wlan1", Attribute0),
 	NewBinAttribute = radius_attributes:codec(NewAttribute),
 	ok = ocs:update_subscriber_attributes(Subscriber, Password, NewBinAttribute),
-	{ok, BinPassword, NewBinAttribute} = ocs:find_subscriber(Subscriber).
+	{ok, BinPassword, NewBinAttribute, _Balance} = ocs:find_subscriber(Subscriber).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
