@@ -124,14 +124,14 @@ request(<<_Code, Id, Length:16, _/binary>> = Packet, Secret,
 		case disk_log:log(Log, Attributes) of
 			ok ->
 				case ocs:find_subscriber(Subscriber) of
-					{ok, _, _, Balace} when Balance > 0 ->
+					{ok, _, _, Balance} when Balance > 0 ->
 						{ok, response(Id, Authenticator1, Secret, [])};
 					{ok, _, _, 0} ->
-						io:fwrite(["implement disconnect radius accouting"]);
+						io:fwrite("implement disconnect RADIUS accouting");
 						%% implement disconnect radius accouting
 					error ->
 						{error, subscriber_not_found}
-				end
+				end;
 			{error, _Reason} ->
 				{error, ignore}
 		end
