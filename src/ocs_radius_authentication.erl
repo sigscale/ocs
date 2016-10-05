@@ -67,7 +67,8 @@ request(Address, Port, Packet, #state{eap_server = Server} = _State)
 						Attributes),
 				Attr1 = radius_attributes:store(?MessageAuthenticator,
 						<<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, Attributes),
-				Packet1 = radius:codec(Radius#radius{attributes = Attr1}),
+				AttrBin = radius_attributes:codec(Attr1),
+				Packet1 = radius:codec(Radius#radius{attributes = AttrBin}),
 				MsgAuth = crypto:hmac(md5, SharedSecret, Packet1);
 			{error, not_found} ->
 				ok
