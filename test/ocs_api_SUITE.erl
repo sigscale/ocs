@@ -154,12 +154,15 @@ update_subscriber_attributes(_Config) ->
 	OldBinAttribute = radius_attributes:codec(OldAttribute),
 	Subscriber = "android",
 	Password = ocs:generate_password(),
-	ok = ocs:add_subscriber(Subscriber, Password, OldBinAttribute),
+	Balance = 100,
+	ok = ocs:add_subscriber(Subscriber, Password, OldBinAttribute, Balance),
 	{ok, BinPassword, BinAttribute, _Balance} = ocs:find_subscriber(Subscriber),
 	NewAttribute = radius_attributes:store(?NasPortId,"wlan1", Attribute0),
 	NewBinAttribute = radius_attributes:codec(NewAttribute),
-	ok = ocs:update_subscriber_attributes(Subscriber, Password, NewBinAttribute),
-	{ok, BinPassword, NewBinAttribute, _Balance} = ocs:find_subscriber(Subscriber).
+	CurrentUsage = 34,
+	NewBalance = Balance - CurrentUsage,
+	ok = ocs:update_subscriber_attributes(Subscriber, Password, NewBinAttribute, NewBalance),
+	{ok, BinPassword, NewBinAttribute, NewBalance} = ocs:find_subscriber(Subscriber).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
