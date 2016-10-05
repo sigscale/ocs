@@ -20,5 +20,5 @@
 -record(radius_client, {address, secret}).
 
 %% define subscriber table entries record
--record(subscriber, {name, password, attributes}).
+-record(subscriber, {name, password, attributes, balance}).
 
