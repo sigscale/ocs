@@ -87,6 +87,7 @@ init(_Address, _Port) ->
 %% @doc This callback function is called when a request is received
 %% 	on the port.
 %%
+%% @todo implement disconnect radius accouting if balnce in 0
 request(Address, Port, Packet, #state{} = State)
 		when is_tuple(Address), is_integer(Port), is_binary(Packet) ->
 	case ocs:find_client(Address) of
@@ -105,6 +106,7 @@ request(<<_Code, Id, Length:16, _/binary>> = Packet, Secret,
 		Attributes = radius_attributes:codec(BinaryAttributes),
 		NasIpAddressV = radius_attributes:find(?NasIpAddress, Attributes),
 		NasIdentifierV = radius_attributes:find(?NasIdentifier, Attributes),
+		{ok, Subscriber} = radius_attributes:find(?UserName, Attributes),
 		case {NasIpAddressV, NasIdentifierV} of
 			{{error, not_found}, {error, not_found}} ->
 				throw(reject);
@@ -121,7 +123,15 @@ request(<<_Code, Id, Length:16, _/binary>> = Packet, Secret,
 		Authenticator1 = binary_to_list(Hash),
 		case disk_log:log(Log, Attributes) of
 			ok ->
-				{ok, response(Id, Authenticator1, Secret, [])};
+				case ocs:find_subscriber(Subscriber) of
+					{ok, _, _, Balace} when Balance > 0 ->
+						{ok, response(Id, Authenticator1, Secret, [])};
+					{ok, _, _, 0} ->
+						io:fwrite(["implement disconnect radius accouting"]);
+						%% implement disconnect radius accouting
+					error ->
+						{error, subscriber_not_found}
+				end
 			{error, _Reason} ->
 				{error, ignore}
 		end
