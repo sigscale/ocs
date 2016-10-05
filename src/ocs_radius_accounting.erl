@@ -88,6 +88,7 @@ init(_Address, _Port) ->
 %% 	on the port.
 %%
 %% @todo implement disconnect radius accouting if balnce in 0
+%% @todo Chnage update_subscriber_attributes to update subscriber's balance
 request(Address, Port, Packet, #state{} = State)
 		when is_tuple(Address), is_integer(Port), is_binary(Packet) ->
 	case ocs:find_client(Address) of
@@ -106,12 +107,20 @@ request(<<_Code, Id, Length:16, _/binary>> = Packet, Secret,
 		Attributes = radius_attributes:codec(BinaryAttributes),
 		NasIpAddressV = radius_attributes:find(?NasIpAddress, Attributes),
 		NasIdentifierV = radius_attributes:find(?NasIdentifier, Attributes),
+		InOctets = radius_attributes:find(?AcctInputOctets, Attributes),
+		OutOctets = radius_attributes:find(?AcctOutputOctets, Attributes),
 		{ok, Subscriber} = radius_attributes:find(?UserName, Attributes),
 		case {NasIpAddressV, NasIdentifierV} of
 			{{error, not_found}, {error, not_found}} ->
 				throw(reject);
 			{_, _} ->
 				ok
+		end,
+		case {InOctets, OutOctets} of
+			{{error, not_found}, {error, not_found}} ->
+				CurrentUsage = 0;
+			{{ok,In}, {ok,Out}} ->
+				CurrentUsage = (In + Out) / 1048576
 		end,
 		{error, not_found} = radius_attributes:find(?UserPassword, Attributes),
 		{error, not_found} = radius_attributes:find(?ChapPassword, Attributes),
@@ -124,8 +133,19 @@ request(<<_Code, Id, Length:16, _/binary>> = Packet, Secret,
 		case disk_log:log(Log, Attributes) of
 			ok ->
 				case ocs:find_subscriber(Subscriber) of
-					{ok, _, _, Balance} when Balance > 0 ->
+					{ok, _, _, Balance} when Balance > 0, CurrentUsage == 0->
 						{ok, response(Id, Authenticator1, Secret, [])};
+					{ok, Password, Attributes, Balance} when Balance > 0 ->
+% Change update_subscriber_attributes to update balance
+%						NewBalance = Balance - CurrentUsage,
+%						case ocs:update_subscriber_attributes(Subscriber, Password, Attributes,
+%							NewBalance) of
+%								ok ->
+%									{ok, response(Id, Authenticator1, Secret, [])};
+%								{error, _} ->
+%									error
+%						end;
+						io:fwrite("Decrement subscribers balannce");
 					{ok, _, _, 0} ->
 						io:fwrite("implement disconnect RADIUS accouting");
 						%% implement disconnect radius accouting
