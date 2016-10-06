@@ -210,8 +210,6 @@ decrement_subscriber_balance(Subscriber, Usage) when is_list(Subscriber),
 				{aborted, Reason} ->
 					exit(Reason)
 			end;
-		{ok, _, _, _} ->
-			exit(could_not_decrement_usage);
 		{error, Reason} ->
 			exit(Reason)
 	end.
