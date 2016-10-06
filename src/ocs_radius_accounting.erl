@@ -136,9 +136,7 @@ request(<<_Code, Id, Length:16, _/binary>> = Packet, Secret,
 					{ok, 0} ->
 						io:fwrite("Send Disconnect/Request to NAS");
 					{ok, _Balance} ->
-						{ok, response(Id, Authenticator1, Secret, [])};
-					{error, Reason} ->
-						{error, Reason}
+						{ok, response(Id, Authenticator1, Secret, [])}
 				end;
 			{error, _Reason} ->
 				{error, ignore}
