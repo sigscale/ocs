@@ -135,7 +135,7 @@ find_subscriber(Subscriber) when is_list(Subscriber) ->
 	end.
 
 -spec delete_subscriber(Subscriber :: string() | binary(),
-		Password :: binary() | string()) -> ok| {error, Reason ::term()}.
+		Password :: binary() | string()) -> ok.
 %% @doc Delete a subscriber from the database.
 %%
 delete_subscriber(Subscriber, Password) when is_binary(Subscriber) ->
