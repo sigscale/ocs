@@ -22,7 +22,7 @@
 
 %% export the ocs public API
 -export([add_client/2, find_client/1]).
--export([add_subscriber/3, find_subscriber/1, delete_subscriber/2,
+-export([add_subscriber/3, add_subscriber/4 find_subscriber/1, delete_subscriber/2,
 			update_subscriber_password/3, update_subscriber_attributes/3]).
 -export([log_file/1]).
 -export([generate_password/0]).
