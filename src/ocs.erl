@@ -187,7 +187,7 @@ update_subscriber_password(Subscriber, OldPassword, NewPassword) ->
 	end.
 
 -spec decrement_subscriber_balance(Subscriber :: string(), Usage :: integer()) ->
-		ok .
+	{ok, NewBalance :: integer()} .
 %% @doc Decrements subscriber's current balance
 decrement_subscriber_balance(Subscriber, Usage) when is_list(Subscriber),
 		is_number(Usage) ->
@@ -203,7 +203,7 @@ decrement_subscriber_balance(Subscriber, Usage) when is_list(Subscriber),
 					NewBalance = Balance - Usage,
 					case add_subscriber(Subscriber, Password, Attributes, NewBalance) of
 						ok ->
-							ok;
+							{ok, NewBalance};
 						{error, Reason} ->
 							exit(Reason)
 					end;
