@@ -129,7 +129,7 @@ request(<<_Code, Id, _Length:16, _/binary>> = Packet, Secret,
 		case disk_log:log(Log, Attributes) of
 			ok ->
 				case ocs:decrement_subscriber_balance(Subscriber, Usage) of
-					{ok, 0} ->
+					{ok, OverUsed} when OverUsed =< 0 ->
 						{ok, response(Id, Authenticator, Secret, BinaryAttributes)};
 						%io:fwrite("Send Disconnect/Request to NAS");
 					{ok, Balance} ->
