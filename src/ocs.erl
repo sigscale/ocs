@@ -22,7 +22,7 @@
 
 %% export the ocs public API
 -export([add_client/2, find_client/1]).
--export([add_subscriber/3, find_subscriber/1, delete_subscriber/2,
+-export([add_subscriber/3, add_subscriber/4 find_subscriber/1, delete_subscriber/2,
 			update_subscriber_password/3, update_subscriber_attributes/3]).
 -export([log_file/1]).
 -export([generate_password/0]).
@@ -113,8 +113,8 @@ add_subscriber(Subscriber, Password, Attributes, Balance) when is_list(Subscribe
 	end.
 
 -spec find_subscriber(Subscriber :: string() | binary()) ->
-	Result :: {ok, Password :: binary(),
-		Attributes :: binary() | [byte()]} | error.
+	Result :: {ok, Password :: binary(), Attributes :: binary() | [byte()],
+	Balance :: integer()} | {error, Reason :: term()}.
 %% @doc Look up a subscriber and return the password and attributes assigned.
 %%
 find_subscriber(Subscriber) when is_binary(Subscriber) ->
@@ -128,9 +128,9 @@ find_subscriber(Subscriber) when is_list(Subscriber) ->
 				balance = Balance}]} ->
 			{ok, Password, Attributes, Balance};
 		{atomic, []} ->
-			error;
+			{error, not_found};
 		{aborted, Reason} ->
-			exit(Reason)
+			{error, Reason}
 	end.
 
 -spec delete_subscriber(Subscriber :: string() | binary(),
@@ -143,28 +143,18 @@ delete_subscriber(Subscriber, Password) when is_list(Password) ->
 	delete_subscriber(Subscriber, list_to_binary(Password));
 delete_subscriber(Subscriber, Password) when is_list(Subscriber),
 		is_binary(Password) ->
-	case find_subscriber(Subscriber) of
-		{ok, Password, _, _} ->
-			F = fun() ->
-				Old = mnesia:match_object(subscriber, #subscriber{name = Subscriber,
-					password = Password, attributes = '_', balance = '_'}, write),
-				Del = fun(O) -> mnesia:delete_object(subscriber, O, write) end,
-				lists:foreach(Del, Old)
-			end,
-			case mnesia:transaction(F) of
-				{atomic, _} ->
-					ok;
-				{aborted, Reason} ->
-					exit(Reason)
-			end;
-		{ok, _, _,_} ->
-			{error, password_not_matched};
-		error ->
-			{error, not_found}
+	F = fun() ->
+		mnesia:delete(subscriber, Subscriber, write)
+	end,
+	case mnesia:transaction(F) of
+		{atomic, _} ->
+			ok;
+		{aborted, Reason} ->
+			exit(Reason)
 	end.
 
 -spec update_subscriber_password(Subscriber :: string(), OldPassword :: string() | binary(),
-	NewPassword :: string() | binary())-> ok | {error, Reason :: term()}.
+	NewPassword :: string() | binary())-> ok.
 %% @doc Update a new subscriber password
 %%
 %% Generate a new password using ocs:generate_password/0.
@@ -174,32 +164,29 @@ update_subscriber_password(Subscriber, OldPassword, NewPassword) ->
 	case find_subscriber(Subscriber) of
 		{ok, OldPassword, Attribtes, Balance} ->
 			F = fun() ->
-				Old = mnesia:match_object(subscriber, #subscriber{name = Subscriber,
-					password = OldPassword, attributes = '_', balance = '_'}, write),
-				Del = fun(O) -> mnesia:delete_object(subscriber, O, write) end,
-				lists:foreach(Del, Old)
+				mnesia:delete(subscriber, Subscriber, write)
 			end,
 			case mnesia:transaction(F) of
 				{atomic, []} ->
-					{error, not_found};
+					exit(not_found);
 				{atomic, _} ->
 					case add_subscriber(Subscriber, NewPassword, Attribtes, Balance) of
 						ok ->
 							ok;
 						{error, Reason} ->
-							{error, Reason}
+							exit(Reason)
 					end;
 				{aborted, Reason} ->
 					exit(Reason)
 			end;
 		{ok, _, _, _} ->
-			{error, current_password_not_matched};
-		error ->
-			{error, not_found}
+			exit(current_password_not_matched);
+		{error, Reason} ->
+			exit(Reason)
 	end.
 
 -spec update_subscriber_attributes(Subscriber :: string(), Password :: string() | binary(),
-		Attributes :: binary() | [byte()]) -> ok | {error, Reason :: term()}.
+		Attributes :: binary() | [byte()]) -> ok.
 %% @doc Update subscriber attributes.
 %%
 update_subscriber_attributes(Subscriber, Password, Attributes) when is_list(Password) ->
@@ -209,28 +196,25 @@ update_subscriber_attributes(Subscriber, Password, Attributes) when is_list(Subs
 	case find_subscriber(Subscriber) of
 		{ok, Password, _, Balance} ->
 			F = fun() ->
-				Old = mnesia:match_object(subscriber, #subscriber{name = Subscriber,
-					password = Password, attributes = '_', balance = '_'}, write),
-				Del = fun(O) -> mnesia:delete_object(subscriber, O, write) end,
-				lists:foreach(Del, Old)
+				mnesia:delete(subscriber, Subscriber, write)
 			end,
 			case mnesia:transaction(F) of
 				{atomic, []} ->
-					{error, not_found};
+					exit(not_found);
 				{atomic, _} ->
 					case add_subscriber(Subscriber, Password, Attributes, Balance) of
 						ok ->
 							ok;
 						{error, Reason} ->
-							{error, Reason}
+							exit(Reason)
 					end;
 				{aborted, Reason} ->
 					exit(Reason)
 			end;
 		{ok, _, _, _} ->
-			{error, current_password_not_matched};
-		error ->
-			{error, not_found}
+			exit(current_password_not_matched);
+		{error, Reason} ->
+			exit(Reason)
 	end.
 
 -spec log_file(FileName :: string()) -> ok.

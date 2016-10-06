@@ -192,7 +192,7 @@ wait_for_id({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 					peer_id = PeerID, eap_id = NewEapID, scalar_s = ScalarS,
 					element_s = ElementS},
 				{next_state, wait_for_commit, NewStateData, ?TIMEOUT};
-			error ->
+			{error, _Reason} ->
 				send_response(failure, EapID, <<>>, ?AccessReject,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 				{stop, {shutdown, SessionID}, StateData}
