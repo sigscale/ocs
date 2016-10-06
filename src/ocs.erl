@@ -23,7 +23,8 @@
 %% export the ocs public API
 -export([add_client/2, find_client/1]).
 -export([add_subscriber/3, add_subscriber/4 find_subscriber/1, delete_subscriber/2,
-			update_subscriber_password/3, update_subscriber_attributes/3]).
+				update_subscriber_password/3, update_subscriber_attributes/3,
+				decrement_subscriber_balance/2]).
 -export([log_file/1]).
 -export([generate_password/0]).
 -export([start/3]).
@@ -184,6 +185,37 @@ update_subscriber_password(Subscriber, OldPassword, NewPassword) ->
 		{error, Reason} ->
 			exit(Reason)
 	end.
+
+-spec decrement_subscriber_balance(Subscriber :: string(), Usage :: integer()) ->
+		ok .
+%% @doc Decrements subscriber's current balance
+decrement_subscriber_balance(Subscriber, Usage) when is_list(Subscriber),
+		is_number(Usage) ->
+	case find_subscriber(Subscriber) of
+		{ok, Password, Attributes, Balance} ->
+			F = fun() ->
+				mnesia:delete(subscriber, Subscriber, write)
+			end,
+			case mnesia:transaction(F) of
+				{atomic, []} ->
+					exit(not_found);
+				{atomic, _} ->
+					NewBalance = Balance - Usage,
+					case add_subscriber(Subscriber, Password, Attributes, NewBalance) of
+						ok ->
+							ok;
+						{error, Reason} ->
+							exit(Reason)
+					end;
+				{aborted, Reason} ->
+					exit(Reason)
+			end;
+		{ok, _, _, _} ->
+			exit(could_not_decrement_usage);
+		{error, Reason} ->
+			exit(Reason)
+	end.
+
 
 -spec update_subscriber_attributes(Subscriber :: string(), Password :: string() | binary(),
 		Attributes :: binary() | [byte()]) -> ok.
