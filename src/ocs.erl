@@ -84,7 +84,7 @@ add_subscriber(Subscriber, Password, Attributes) ->
 	add_subscriber(Subscriber, Password, Attributes, 0).
 
 -spec add_subscriber(Subscriber :: string(), Password :: string() | binary(),
-		Attributes :: binary() | [byte()], Balance :: integer()) ->
+		Attributes :: binary() | [byte()], Balance :: non_neg_integer()) ->
 		ok | {error, Reason :: term()}.
 %% @doc Store the password and static attributes for a subscriber.
 %%
