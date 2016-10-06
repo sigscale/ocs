@@ -143,24 +143,14 @@ delete_subscriber(Subscriber, Password) when is_list(Password) ->
 	delete_subscriber(Subscriber, list_to_binary(Password));
 delete_subscriber(Subscriber, Password) when is_list(Subscriber),
 		is_binary(Password) ->
-	case find_subscriber(Subscriber) of
-		{ok, Password, _, _} ->
-			F = fun() ->
-				Old = mnesia:match_object(subscriber, #subscriber{name = Subscriber,
-					password = Password, attributes = '_', balance = '_'}, write),
-				Del = fun(O) -> mnesia:delete_object(subscriber, O, write) end,
-				lists:foreach(Del, Old)
-			end,
-			case mnesia:transaction(F) of
-				{atomic, _} ->
-					ok;
-				{aborted, Reason} ->
-					exit(Reason)
-			end;
-		{ok, _, _,_} ->
-			{error, password_not_matched};
-		error ->
-			{error, not_found}
+	F = fun() ->
+		mnesia:delete(subscriber, Subscriber, write)
+	end,
+	case mnesia:transaction(F) of
+		{atomic, _} ->
+			ok;
+		{aborted, Reason} ->
+			exit(Reason)
 	end.
 
 -spec update_subscriber_password(Subscriber :: string(), OldPassword :: string() | binary(),
