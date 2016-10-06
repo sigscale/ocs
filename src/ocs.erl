@@ -135,7 +135,7 @@ find_subscriber(Subscriber) when is_list(Subscriber) ->
 	end.
 
 -spec delete_subscriber(Subscriber :: string() | binary(),
-		Password :: binary() | string()) -> ok| {error, Reason ::term()}.
+		Password :: binary() | string()) -> ok.
 %% @doc Delete a subscriber from the database.
 %%
 delete_subscriber(Subscriber, Password) when is_binary(Subscriber) ->
@@ -254,7 +254,7 @@ log_file(FileName) when is_list(FileName) ->
    {ok, IODevice} = file:open(FileName, [write]),
    file_chunk(?LOGNAME, IODevice, start).
 
--type password() :: [50..57 | 97..107 | 109..110 | 112..122].
+-type password() :: [50..57 | 97..104 | 106..107 | 109..110 | 112..116 | 119..122].
 -spec generate_password() -> password().
 %% @equiv generate_password(12)
 generate_password() ->
@@ -295,8 +295,9 @@ charset() ->
 	C2 = lists:seq($a, $h),
 	C3 = lists:seq($j, $k),
 	C4 = lists:seq($m, $n),
-	C5 = lists:seq($p, $z),
-	lists:append([C1, C2, C3, C4, C5]).
+	C5 = lists:seq($p, $t),
+	C6 = lists:seq($w, $z),
+	lists:append([C1, C2, C3, C4, C5, C6]).
 
 %% @hidden
 file_chunk(Log, IODevice, Continuation) ->
