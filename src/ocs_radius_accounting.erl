@@ -88,7 +88,6 @@ init(_Address, _Port) ->
 %% 	on the port.
 %%
 %% @todo implement disconnect radius accouting if balnce in 0
-%% @todo Implement decrement subscriber_balance
 request(Address, Port, Packet, #state{} = State)
 		when is_tuple(Address), is_integer(Port), is_binary(Packet) ->
 	case ocs:find_client(Address) of
