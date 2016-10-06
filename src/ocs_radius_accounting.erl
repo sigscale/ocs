@@ -98,7 +98,7 @@ request(Address, Port, Packet, #state{} = State)
 			{error, ignore}
 	end.
 %% @hidden
-request(<<_Code, Id, Length:16, _/binary>> = Packet, Secret,
+request(<<_Code, Id, _Length:16, _/binary>> = Packet, Secret,
 		#state{log = Log} = _State) ->
 	try
 		#radius{code = ?AccountingRequest, id = Id,
@@ -127,16 +127,14 @@ request(<<_Code, Id, Length:16, _/binary>> = Packet, Secret,
 		{error, not_found} = radius_attributes:find(?ReplyMessage, Attributes),
 		{error, not_found} = radius_attributes:find(?State, Attributes),
 		{ok, _AcctSessionId} = radius_attributes:find(?AcctSessionId, Attributes),
-		Hash = erlang:md5([<<?AccountingRequest, Id, Length:16, 0:128>>,
-				BinaryAttributes, Secret]),
-		Authenticator1 = binary_to_list(Hash),
 		case disk_log:log(Log, Attributes) of
 			ok ->
 				case ocs:decrement_subscriber_balance(Subscriber, Usage) of
 					{ok, 0} ->
-						io:fwrite("Send Disconnect/Request to NAS");
-					{ok, _Balance} ->
-						{ok, response(Id, Authenticator1, Secret, [])}
+						{ok, response(Id, Authenticator, Secret, BinaryAttributes)};
+						%io:fwrite("Send Disconnect/Request to NAS");
+					{ok, Balance} ->
+						{ok, response(Id, Authenticator, Secret, BinaryAttributes)}
 				end;
 			{error, _Reason} ->
 				{error, ignore}
@@ -160,17 +158,25 @@ terminate(_Reason, #state{log = Log} = _State) ->
 		Secret :: string() | binary(), Attributes :: binary() | [byte()]) ->
 	AccessAccept :: binary().
 %% @hidden
-response(Id, RequestAuthenticator, Secret, AttributeList)
-		when is_list(AttributeList) ->
-	Attributes = radius_attributes:codec(AttributeList),
-	response(Id, RequestAuthenticator, Secret, Attributes);
 response(Id, RequestAuthenticator, Secret, Attributes)
 		when is_binary(Attributes) ->
-	Length = size(Attributes) + 20,
-	ResponseAuthenticator = erlang:md5([<<?AccountingResponse, Id, Length:16>>,
-			RequestAuthenticator, Attributes, Secret]),
+	AttributeList = radius_attributes:codec(Attributes),
+	response(Id, RequestAuthenticator, Secret, AttributeList);
+response(Id, RequestAuthenticator, Secret, AttributeList)
+		when is_list(AttributeList) ->
+	AttributeList1 = radius_attributes:store(?MessageAuthenticator,
+		<<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, AttributeList),
+	Attributes1 = radius_attributes:codec(AttributeList1),
+	Length = size(Attributes1) + 20,
+	MessageAuthenticator = crypto:hmac(md5, Secret, [<<?AccountingRequest, Id,
+			Length:16>>, RequestAuthenticator, Attributes1]),
+	AttributeList2 = radius_attributes:store(?MessageAuthenticator,
+			MessageAuthenticator, AttributeList1),
+	Attributes2 = radius_attributes:codec(AttributeList2),
+	ResponseAuthenticator = crypto:hash(md5, [<<?AccountingRequest, Id,
+			Length:16>>, RequestAuthenticator, Attributes2, Secret]),
 	Response = #radius{code = ?AccountingResponse, id = Id,
-			authenticator = ResponseAuthenticator, attributes = Attributes},
+			authenticator = ResponseAuthenticator, attributes = Attributes2},
 	radius:codec(Response).
 
 
