@@ -113,8 +113,8 @@ add_subscriber(Subscriber, Password, Attributes, Balance) when is_list(Subscribe
 	end.
 
 -spec find_subscriber(Subscriber :: string() | binary()) ->
-	Result :: {ok, Password :: binary(),
-		Attributes :: binary() | [byte()]} | error.
+	Result :: {ok, Password :: binary(), Attributes :: binary() | [byte()],
+	Balance :: interger()} | {error, Reason}.
 %% @doc Look up a subscriber and return the password and attributes assigned.
 %%
 find_subscriber(Subscriber) when is_binary(Subscriber) ->
@@ -128,9 +128,9 @@ find_subscriber(Subscriber) when is_list(Subscriber) ->
 				balance = Balance}]} ->
 			{ok, Password, Attributes, Balance};
 		{atomic, []} ->
-			error;
+			{error, not_found};
 		{aborted, Reason} ->
-			exit(Reason)
+			{error, Reason}
 	end.
 
 -spec delete_subscriber(Subscriber :: string() | binary(),
