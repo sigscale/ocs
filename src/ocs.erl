@@ -24,7 +24,7 @@
 -export([add_client/2, find_client/1]).
 -export([add_subscriber/3, add_subscriber/4, find_subscriber/1, delete_subscriber/1,
 				update_password/3, update_subscriber_attributes/3,
-				decrement_subscriber_balance/2]).
+				decrement_balance/2]).
 -export([log_file/1]).
 -export([generate_password/0]).
 -export([start/3]).
@@ -207,34 +207,33 @@ update_password(Subscriber, OldPassword, NewPassword) ->
 			{error, Reason}
 	end.
 
--spec decrement_subscriber_balance(Subscriber :: string(), Usage :: non_neg_integer()) ->
-	{ok, NewBalance :: integer()} .
+-spec decrement_balance(Subscriber :: string() | binary(),
+		Usage :: non_neg_integer()) ->
+	{ok, NewBalance :: integer()}| {error, Reason :: not_found | term()}.
 %% @doc Decrements subscriber's current balance
-decrement_subscriber_balance(Subscriber, Usage) when is_list(Subscriber),
-		is_number(Usage) ->
-	case find_subscriber(Subscriber) of
-		{ok, Password, Attributes, Balance} ->
-			F = fun() ->
-				mnesia:delete(subscriber, Subscriber, write)
-			end,
-			case mnesia:transaction(F) of
-				{atomic, []} ->
-					exit(not_found);
-				{atomic, _} ->
-					NewBalance = Balance - Usage,
-					case add_subscriber(Subscriber, Password, Attributes, NewBalance) of
-						ok ->
-							{ok, NewBalance};
-						{error, Reason} ->
-							exit(Reason)
-					end;
-				{aborted, Reason} ->
-					exit(Reason)
-			end;
-		{error, Reason} ->
-			exit(Reason)
+decrement_balance(Subscriber, Usage) when is_list(Subscriber) ->
+	decrement_balance(list_to_binary(Subscriber), Usage);
+decrement_balance(Subscriber, Usage) when is_binary(Subscriber),
+		Usage > 0 ->
+	F = fun() ->
+				case mnesia:read(subscriber, Subscriber, write) of
+					[#subscriber{balance = Balance} = Entry] ->
+						NewBalance = Balance - Usage,
+						NewEntry = Entry#subscriber{balance = NewBalance},
+						mnesia:write(subscriber, NewEntry, write),
+						NewBalance;
+					[] ->
+						throw(not_found)
+				end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, NewBalance} ->
+			{ok, NewBalance};
+		{aborted, {throw, Reason}} ->
+			{error, Reason};
+		{aborted, Reason} ->
+			{error, Reason}
 	end.
-
 
 -spec update_subscriber_attributes(Subscriber :: string(), Password :: string() | binary(),
 		Attributes :: binary() | [byte()]) -> ok.
