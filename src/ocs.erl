@@ -22,7 +22,7 @@
 
 %% export the ocs public API
 -export([add_client/2, find_client/1]).
--export([add_subscriber/3, add_subscriber/4, find_subscriber/1, delete_subscriber/2,
+-export([add_subscriber/3, add_subscriber/4, find_subscriber/1, delete_subscriber/1,
 				update_subscriber_password/3, update_subscriber_attributes/3,
 				decrement_subscriber_balance/2]).
 -export([log_file/1]).
@@ -156,16 +156,11 @@ find_subscriber(Subscriber) when is_binary(Subscriber) ->
 			{error, Reason}
 	end.
 
--spec delete_subscriber(Subscriber :: string() | binary(),
-		Password :: binary() | string()) -> ok.
-%% @doc Delete a subscriber from the database.
-%%
-delete_subscriber(Subscriber, Password) when is_list(Subscriber) ->
-	delete_subscriber(list_to_binary(Subscriber), Password);
-delete_subscriber(Subscriber, Password) when is_list(Password) ->
-	delete_subscriber(Subscriber, list_to_binary(Password));
-delete_subscriber(Subscriber, Password) when is_binary(Subscriber),
-		is_binary(Password) ->
+-spec delete_subscriber(Subscriber :: string() | binary()) -> ok.
+%% @doc Delete an entry in the subscriber table.
+delete_subscriber(Subscriber) when is_list(Subscriber) ->
+	delete_subscriber(list_to_binary(Subscriber));
+delete_subscriber(Subscriber) when is_binary(Subscriber) ->
 	F = fun() ->
 		mnesia:delete(subscriber, Subscriber, write)
 	end,
