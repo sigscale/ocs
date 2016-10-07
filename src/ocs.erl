@@ -84,33 +84,51 @@ add_subscriber(Subscriber, Password, Attributes) ->
 	add_subscriber(Subscriber, Password, Attributes, 0).
 
 -spec add_subscriber(Subscriber :: string(), Password :: string() | binary(),
-		Attributes :: binary() | [byte()], Balance :: non_neg_integer()) ->
+		Attributes :: radius:attributes() | binary() | [byte()],
+		Balance :: non_neg_integer()) ->
 		ok | {error, Reason :: term()}.
-%% @doc Store the password and static attributes for a subscriber.
+%% @doc Create an entry in the subscriber table.
 %%
-add_subscriber(Subscriber, Password, Attributes, Balance) when is_list(Password) ->
-	F = fun(C)->
-		lists:member(C, "abcdefghjkmnpqrstwxyz23456789")
+%% 	Authentication will be done using `Password'. An optional list of
+%% 	RADIUS `Attributes', to be returned in an `AccessRequest' response,
+%% 	may be provided.  These attributes will overide any default values.
+%%
+%% 	An initial account `Balance' value may be provided.
+%%
+add_subscriber(Subscriber, Password, Attributes, Balance)
+		when is_list(Password) ->
+	add_subscriber(Subscriber, list_to_binary(Password), Attributes, Balance);
+add_subscriber(Subscriber, Password, Attributes, Balance)
+		when is_list(Attributes) ->
+	Bin = radius_attributes:codec(Attributes),
+	add_subscriber(Subscriber, Password, Bin, Balance);
+add_subscriber(Subscriber, Password, Attributes, Balance)
+		when is_list(Subscriber), is_binary(Password),
+		is_binary(Attributes), is_integer(Balance) ->
+	F1 = fun(F, <<C, Rest/binary>>)
+					when (((C >= $a) and (C =< $z)) or ((C >= $2) and (C =< $9))),
+					C /= $i, C /= $l, C /= $o, C /= $u, C /= $v, C /= $0, C /= $1 ->
+				F(F, Rest);
+			(_, <<_, _/binary>>) ->
+				false;
+			(_, <<>>) ->
+				true
 	end,
-	case lists:all(F, Password) of
+	case F1(F1, Password) of
 		true ->
-			add_subscriber(Subscriber, list_to_binary(Password), Attributes, Balance);
+			F2 = fun() ->
+						R = #subscriber{name = Subscriber, password = Password,
+								attributes = Attributes, balance = Balance},
+						mnesia:write(R)
+			end,
+			case mnesia:transaction(F2) of
+				{atomic, ok} ->
+					ok;
+				{aborted, Reason} ->
+					{error, Reason}
+			end;
 		false ->
 			{error, badarg}
-	end;
-add_subscriber(Subscriber, Password, Attributes, Balance) when is_list(Subscriber),
-		is_binary(Password), (is_list(Attributes) orelse is_binary(Attributes)),
-		is_integer(Balance) ->
-	F = fun() ->
-				R = #subscriber{name = Subscriber, password = Password,
-						attributes = Attributes, balance = Balance},
-				mnesia:write(R)
-	end,
-	case mnesia:transaction(F) of
-		{atomic, ok} ->
-			ok;
-		{aborted, Reason} ->
-			{error, Reason}
 	end.
 
 -spec find_subscriber(Subscriber :: string() | binary()) ->
