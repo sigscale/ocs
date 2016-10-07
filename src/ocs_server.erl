@@ -73,7 +73,7 @@ handle_call({start, auth, Address, Port}, _From, #state{sup = Sup} = State) ->
 	{reply, Result, State};
 handle_call({start, acct, Address, Port}, _From, #state{sup = Sup} = State) ->
 	Children = supervisor:which_children(Sup),
-	{_, AcctSup, _, _} = lists:keyfind(ocs_radius_acct_sup, 1, Children),
+	{_, AcctSup, _, _} = lists:keyfind(ocs_radius_acct_top_sup, 1, Children),
 	Result = supervisor:start_child(AcctSup, [[Address, Port]]),
 	{reply, Result, State}.
 
