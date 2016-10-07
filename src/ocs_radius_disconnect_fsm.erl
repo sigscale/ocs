@@ -58,7 +58,9 @@
 %% @private
 %%
 init( _Args) ->
-	{stop, not_implemented}.
+	process_flag(trap_exit, true),
+	StateData = #statedata{},
+	{ok, idle, StateData, ?TIMEOUT}.
 
 -spec idle(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
@@ -71,7 +73,7 @@ init( _Args) ->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 idle(_Event, StateData) ->
-	{next_state, send_request, StateData}.
+	{next_state, send_request, StateData ?TIMEOUT}.
 
 -spec send_request(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
