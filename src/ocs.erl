@@ -135,7 +135,7 @@ find_subscriber(Subscriber) when is_list(Subscriber) ->
 	end.
 
 -spec delete_subscriber(Subscriber :: string() | binary(),
-		Password :: binary() | string()) -> ok| {error, Reason ::term()}.
+		Password :: binary() | string()) -> ok.
 %% @doc Delete a subscriber from the database.
 %%
 delete_subscriber(Subscriber, Password) when is_binary(Subscriber) ->
@@ -186,7 +186,7 @@ update_subscriber_password(Subscriber, OldPassword, NewPassword) ->
 	end.
 
 -spec decrement_subscriber_balance(Subscriber :: string(), Usage :: non_neg_integer()) ->
-	{ok, NewBalance :: non_neg_integer()} .
+	{ok, NewBalance :: integer()} .
 %% @doc Decrements subscriber's current balance
 decrement_subscriber_balance(Subscriber, Usage) when is_list(Subscriber),
 		is_number(Usage) ->

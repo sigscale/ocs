@@ -1,4 +1,4 @@
-%%% ocs_radius_acct_sup.erl
+%%% ocs_radius_disconnect_fsm_sup.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 SigScale Global Inc.
 %%% @end
@@ -16,47 +16,30 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @docfile "{@docsrc supervision.edoc}"
 %%%
--module(ocs_radius_acct_sup).
+-module(ocs_radius_disconnect_fsm_sup).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 -behaviour(supervisor).
 
-%% export the callback needed for supervisor behaviour
+%% export the call back needed for supervisor behaviour
 -export([init/1]).
 
 %%----------------------------------------------------------------------
-%%  The supervisor callback
+%%  The supervisor call back
 %%----------------------------------------------------------------------
 
--spec init(Args :: [term()]) ->
-	{ok, {{supervisor:strategy(), non_neg_integer(), pos_integer()},
-			[supervisor:child_spec()]}} | ignore.
+-spec init(Args :: []) ->
+	Result :: {ok,{{RestartStrategy :: one_for_all | one_for_one
+		| rest_for_one | simple_one_for_one,
+		MaxR :: non_neg_integer(), MaxT :: pos_integer()},
+		[ChildSpec :: supervisor:child_spec()]}} | ignore.
 %% @doc Initialize the {@module} supervisor.
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
 init(_Args) ->
-	ChildSpecs = [supervisor(ocs_radius_disconnect_fsm_sup, []),
-			supervisor_bridge(ocs_radius_acct_server_sup)],
-	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
-
-%%----------------------------------------------------------------------
-%%  internal functions
-%%----------------------------------------------------------------------
-
--spec supervisor(StartMod :: atom(), Args :: [term()]) ->
-	supervisor:child_spec().
-%% @doc Build a supervisor child specification for a
-%% 	{@link //stdlib/supervisor. supervisor} behaviour.
-%% @private
-%%
-supervisor(StartMod, Args) ->
-	StartArgs = [StartMod, Args],
-	StartFunc = {supervisor, start_link, StartArgs},
-	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
-
-%% @hidden
-supervisor_bridge(StartMod) ->
-	StartFunc = {supervisor_bridge, start_link, [StartMod]},
-	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
+	StartMod = ocs_radius_disconnect_fsm,
+	StartFunc = {gen_fsm, start_link, [StartMod]},
+	ChildSpec = {StartMod, StartFunc, transient, 4000, worker, [StartMod]},
+	{ok, {{simple_one_for_one, 10, 60}, [ChildSpec]}}.
 
