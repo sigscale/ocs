@@ -93,7 +93,7 @@ request(Address, Port, Packet, #state{} = State)
 	case ocs:find_client(Address) of
 		{ok, Secret} ->
 			request(Packet, Secret, State);
-		error ->
+		{error, _Reason} ->
 			{error, ignore}
 	end.
 %% @hidden

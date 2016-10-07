@@ -37,8 +37,8 @@
 %%----------------------------------------------------------------------
 
 -spec add_client(Address :: inet:ip_address(), Secret :: string() | binary()) ->
-	Result :: ok | {error, Reason :: term()}.
-%% @doc Store the shared secret for a RADIUS client.
+	Result :: ok.
+%% @doc Create an entry in the RADIUS client table.
 %%
 add_client(Address, Secret) when is_list(Secret) ->
 	add_client(Address, list_to_binary(Secret));
@@ -54,11 +54,11 @@ add_client(Address, Secret) when is_tuple(Address), is_binary(Secret) ->
 		{atomic, ok} ->
 			ok;
 		{aborted, Reason} ->
-			{error, Reason}
+			exit(Reason)
 	end.
 
 -spec find_client(Address :: inet:ip_address()) ->
-	Result :: {ok, Secret :: binary()} | error.
+	Result :: {ok, Secret :: binary()} | {error, Reason :: not_found | term()}.
 %% @doc Look up the shared secret for a RADIUS client.
 %%
 find_client(Address) when is_list(Address) ->
@@ -72,9 +72,9 @@ find_client(Address) when is_tuple(Address) ->
 		{atomic, [#radius_client{secret = Secret}]} ->
 			{ok, Secret};
 		{atomic, []} ->
-			error;
+			{error, not_found};
 		{aborted, Reason} ->
-			exit(Reason)
+			{error, Reason}
 	end.
 
 -spec add_subscriber(Subscriber :: string(), Password :: string() | binary(),
