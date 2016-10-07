@@ -26,7 +26,7 @@
 -export([]).
 
 %% export the ocs_radius_disconnect_fsm state callbacks
--export([]).
+-export([idle/2, send_request/2, recieve_response/2]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
@@ -59,6 +59,53 @@
 %%
 init( _Args) ->
 	{stop, not_implemented}.
+
+-spec idle(Event :: timeout | term(), StateData :: #statedata{}) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
+%%		gen_fsm:send_event/2} in the <b>idle</b> state.
+%% @@see //stdlib/gen_fsm:StateName/2
+%% @private
+idle(_Event, StateData) ->
+	{next_state, send_request, StateData}.
+
+-spec send_request(Event :: timeout | term(), StateData :: #statedata{}) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
+%%		gen_fsm:send_event/2} in the <b>send_request</b> state. This state is responsible
+%%		for sending a RADIUS-Disconnect/Request to an access point.
+%% @@see //stdlib/gen_fsm:StateName/2
+%% @private
+%%
+send_request(timeout, StateData)->
+	{stop, shutdown, StateData};
+send_request(_Event, StateData) ->
+	{stop, not_implemented_yet, StateData}.
+
+-spec recieve_response(Event :: timeout | term(), StateData :: #statedata{}) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
+%%		gen_fsm:send_event/2} in the <b>recieve_response</b> state. This state is responsible
+%%		for recieving a RADIUS-Disconnect/ACK or RADIUS-Disconnect/NAK from an  access point.
+%% @@see //stdlib/gen_fsm:StateName/2
+%% @private
+%%
+recieve_response(timeout, StateData)->
+	{stop, shutdown, StateData};
+recieve_response(_Event, StateData) ->
+	{stop, not_implemented_yet, StateData}.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
 		StateData :: #statedata{}) ->
