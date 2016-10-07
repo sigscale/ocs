@@ -26,7 +26,7 @@
 -export([]).
 
 %% export the ocs_radius_disconnect_fsm state callbacks
--export([idle/2, send_request/2, recieve_response/2]).
+-export([send_request/2, recieve_response/2]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
