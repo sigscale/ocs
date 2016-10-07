@@ -83,8 +83,9 @@ find_client(Address) when is_tuple(Address) ->
 add_subscriber(Subscriber, Password, Attributes) ->
 	add_subscriber(Subscriber, Password, Attributes, 0).
 
--spec add_subscriber(Subscriber :: string(), Password :: string() | binary(),
-		Attributes :: radius:attributes() | binary() | [byte()],
+-spec add_subscriber(Subscriber :: string() | binary(),
+		Password :: string() | binary(),
+		Attributes :: radius:attributes() | binary(),
 		Balance :: non_neg_integer()) ->
 		ok | {error, Reason :: term()}.
 %% @doc Create an entry in the subscriber table.
@@ -96,6 +97,9 @@ add_subscriber(Subscriber, Password, Attributes) ->
 %% 	An initial account `Balance' value may be provided.
 %%
 add_subscriber(Subscriber, Password, Attributes, Balance)
+		when is_list(Subscriber) ->
+	add_subscriber(list_to_binary(Subscriber), Password, Attributes, Balance);
+add_subscriber(Subscriber, Password, Attributes, Balance)
 		when is_list(Password) ->
 	add_subscriber(Subscriber, list_to_binary(Password), Attributes, Balance);
 add_subscriber(Subscriber, Password, Attributes, Balance)
@@ -103,7 +107,7 @@ add_subscriber(Subscriber, Password, Attributes, Balance)
 	Bin = radius_attributes:codec(Attributes),
 	add_subscriber(Subscriber, Password, Bin, Balance);
 add_subscriber(Subscriber, Password, Attributes, Balance)
-		when is_list(Subscriber), is_binary(Password),
+		when is_binary(Subscriber), is_binary(Password),
 		is_binary(Attributes), is_integer(Balance) ->
 	F1 = fun(F, <<C, Rest/binary>>)
 					when (((C >= $a) and (C =< $z)) or ((C >= $2) and (C =< $9))),
@@ -132,13 +136,13 @@ add_subscriber(Subscriber, Password, Attributes, Balance)
 	end.
 
 -spec find_subscriber(Subscriber :: string() | binary()) ->
-	Result :: {ok, Password :: binary(), Attributes :: binary() | [byte()],
-	Balance :: integer()} | {error, Reason :: term()}.
-%% @doc Look up a subscriber and return the password and attributes assigned.
+	Result :: {ok, Password :: binary(), Attributes :: binary(),
+	Balance :: integer()} | {error, Reason :: not_found | term()}.
+%% @doc Look up an entry in the subscriber tabe.
 %%
-find_subscriber(Subscriber) when is_binary(Subscriber) ->
-	find_subscriber(binary_to_list(Subscriber));
 find_subscriber(Subscriber) when is_list(Subscriber) ->
+	find_subscriber(list_to_binary(Subscriber));
+find_subscriber(Subscriber) when is_binary(Subscriber) ->
 	F = fun() ->
 				mnesia:read(subscriber, Subscriber, read)
 	end,
@@ -156,11 +160,11 @@ find_subscriber(Subscriber) when is_list(Subscriber) ->
 		Password :: binary() | string()) -> ok.
 %% @doc Delete a subscriber from the database.
 %%
-delete_subscriber(Subscriber, Password) when is_binary(Subscriber) ->
-	delete_subscriber(binary_to_list(Subscriber), Password);
+delete_subscriber(Subscriber, Password) when is_list(Subscriber) ->
+	delete_subscriber(list_to_binary(Subscriber), Password);
 delete_subscriber(Subscriber, Password) when is_list(Password) ->
 	delete_subscriber(Subscriber, list_to_binary(Password));
-delete_subscriber(Subscriber, Password) when is_list(Subscriber),
+delete_subscriber(Subscriber, Password) when is_binary(Subscriber),
 		is_binary(Password) ->
 	F = fun() ->
 		mnesia:delete(subscriber, Subscriber, write)
