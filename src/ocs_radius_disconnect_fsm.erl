@@ -60,20 +60,7 @@
 init( _Args) ->
 	process_flag(trap_exit, true),
 	StateData = #statedata{},
-	{ok, idle, StateData, ?TIMEOUT}.
-
--spec idle(Event :: timeout | term(), StateData :: #statedata{}) ->
-	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
-		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>idle</b> state.
-%% @@see //stdlib/gen_fsm:StateName/2
-%% @private
-idle(_Event, StateData) ->
-	{next_state, send_request, StateData ?TIMEOUT}.
+	{ok, send_request, StateData, ?TIMEOUT}.
 
 -spec send_request(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
