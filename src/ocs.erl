@@ -157,8 +157,7 @@ delete_subscriber(Subscriber, Password) when is_list(Subscriber),
 -spec update_subscriber_password(Subscriber :: string(), OldPassword :: string() | binary(),
 	NewPassword :: string() | binary())-> ok.
 %% @doc Update a new subscriber password
-%%
-%% Generate a new password using ocs:generate_password/0.
+%% @see ocs:generate_password/0
 update_subscriber_password(Subscriber, OldPassword, NewPassword) when is_list(OldPassword) ->
 	update_subscriber_password(Subscriber, list_to_binary(OldPassword), NewPassword);
 update_subscriber_password(Subscriber, OldPassword, NewPassword) ->
