@@ -201,6 +201,8 @@ update_password(Subscriber, OldPassword, NewPassword) ->
 	case mnesia:transaction(F) of
 		{atomic, ok} ->
 			ok;
+		{aborted, {throw, Reason}} ->
+			{error, Reason};
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
