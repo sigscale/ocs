@@ -36,11 +36,27 @@
 %% @private
 %%
 init(_Args) ->
-	ChildSpecs = [supervisor(ocs_radius_acct_server_sup)],
-	{ok, {{simple_one_for_one, 10, 60}, ChildSpecs}}.
+	ChildSpecs = [supervisor(ocs_radius_disconnect_fsm_sup, []),
+			supervisor_bridge(ocs_radius_acct_server_sup)],
+	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
+
+%%----------------------------------------------------------------------
+%%  internal functions
+%%----------------------------------------------------------------------
+
+-spec supervisor(StartMod :: atom(), Args :: [term()]) ->
+	supervisor:child_spec().
+%% @doc Build a supervisor child specification for a
+%% 	{@link //stdlib/supervisor. supervisor} behaviour.
+%% @private
+%%
+supervisor(StartMod, Args) ->
+	StartArgs = [StartMod, Args],
+	StartFunc = {supervisor, start_link, StartArgs},
+	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
 
 %% @hidden
-supervisor(StartMod) ->
+supervisor_bridge(StartMod) ->
 	StartFunc = {supervisor_bridge, start_link, [StartMod]},
 	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
 

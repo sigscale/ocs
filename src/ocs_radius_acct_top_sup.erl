@@ -1,4 +1,4 @@
-%%% ocs_sup.erl
+%%% ocs_radius_acct_top_sup.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 SigScale Global Inc.
 %%% @end
@@ -16,7 +16,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @docfile "{@docsrc supervision.edoc}"
 %%%
--module(ocs_sup).
+-module(ocs_radius_acct_top_sup).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 -behaviour(supervisor).
@@ -35,12 +35,9 @@
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init([{RestAddr, RestPort}] = _Args) ->
-	ChildSpecs = [webmachine(RestAddr, RestPort),
-			supervisor(ocs_radius_auth_sup, []),
-			supervisor(ocs_radius_acct_top_sup, []),
-			server(ocs_server, [self()])],
-	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
+init(_Args) ->
+	ChildSpecs = [supervisor(ocs_radius_acct_sup, [])],
+	{ok, {{simple_one_for_one, 10, 60}, ChildSpecs}}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
@@ -56,32 +53,3 @@ supervisor(StartMod, Args) ->
 	StartArgs = [StartMod, Args],
 	StartFunc = {supervisor, start_link, StartArgs},
 	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
-
--spec server(StartMod :: atom(), Args :: [term()]) ->
-	supervisor:child_spec().
-%% @doc Build a supervisor child specification for a
-%% 	{@link //stdlib/gen_server. gen_server} behaviour.
-%% @private
-%%
-server(StartMod, Args) ->
-	StartArgs = [{local, ocs}, StartMod, Args, []],
-	StartFunc = {gen_server, start_link, StartArgs},
-	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
-
--spec webmachine(Address :: inet:ip_address(), Port :: integer()) ->
-	supervisor:child_spec().
-%% @doc Build a supervisor child specification for a
-%% 	{@link //webmachine/webmachine_mochiweb. webmachine} server.
-%% @private
-%%
-webmachine(Address, Port) ->
-	{ok, Address} = application:get_env(rest_addr),
-	{ok, Port} = application:get_env(rest_port),
-	Dispatch = ocs_wm_config:dispatch(),
-	WebConfig = [{ip, Address},
-					{port, Port},
-					{dispatch, Dispatch}],
-	StartArgs = [WebConfig],
-	StartMod = webmachine_mochiweb,
-	StartFunc ={StartMod, start, StartArgs},
-	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
