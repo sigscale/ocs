@@ -90,7 +90,7 @@ add_subscriber(Subscriber, Password, Attributes) ->
 %%
 add_subscriber(Subscriber, Password, Attributes, Balance) when is_list(Password) ->
 	F = fun(C)->
-		lists:member(C, "abcdefghjkmnpqrstuvwxyz23456789")
+		lists:member(C, "abcdefghjkmnpqrstwxyz23456789")
 	end,
 	case lists:all(F, Password) of
 		true ->
