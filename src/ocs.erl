@@ -22,8 +22,8 @@
 
 %% export the ocs public API
 -export([add_client/2, find_client/1]).
--export([add_subscriber/3, add_subscriber/4, find_subscriber/1, delete_subscriber/2,
-				update_subscriber_password/3, update_subscriber_attributes/3,
+-export([add_subscriber/3, add_subscriber/4, find_subscriber/1, delete_subscriber/1,
+				update_password/3, update_subscriber_attributes/3,
 				decrement_subscriber_balance/2]).
 -export([log_file/1]).
 -export([generate_password/0]).
@@ -156,16 +156,11 @@ find_subscriber(Subscriber) when is_binary(Subscriber) ->
 			{error, Reason}
 	end.
 
--spec delete_subscriber(Subscriber :: string() | binary(),
-		Password :: binary() | string()) -> ok.
-%% @doc Delete a subscriber from the database.
-%%
-delete_subscriber(Subscriber, Password) when is_list(Subscriber) ->
-	delete_subscriber(list_to_binary(Subscriber), Password);
-delete_subscriber(Subscriber, Password) when is_list(Password) ->
-	delete_subscriber(Subscriber, list_to_binary(Password));
-delete_subscriber(Subscriber, Password) when is_binary(Subscriber),
-		is_binary(Password) ->
+-spec delete_subscriber(Subscriber :: string() | binary()) -> ok.
+%% @doc Delete an entry in the subscriber table.
+delete_subscriber(Subscriber) when is_list(Subscriber) ->
+	delete_subscriber(list_to_binary(Subscriber));
+delete_subscriber(Subscriber) when is_binary(Subscriber) ->
 	F = fun() ->
 		mnesia:delete(subscriber, Subscriber, write)
 	end,
@@ -176,35 +171,40 @@ delete_subscriber(Subscriber, Password) when is_binary(Subscriber),
 			exit(Reason)
 	end.
 
--spec update_subscriber_password(Subscriber :: string(), OldPassword :: string() | binary(),
-	NewPassword :: string() | binary())-> ok.
+-spec update_password(Subscriber :: string() | binary(),
+		OldPassword :: string() | binary(),
+		NewPassword :: string() | binary())->
+	ok | {error, Reason :: not_found | bad_password | term()}.
 %% @doc Update a new subscriber password
 %% @see ocs:generate_password/0
-update_subscriber_password(Subscriber, OldPassword, NewPassword) when is_list(OldPassword) ->
-	update_subscriber_password(Subscriber, list_to_binary(OldPassword), NewPassword);
-update_subscriber_password(Subscriber, OldPassword, NewPassword) ->
-	case find_subscriber(Subscriber) of
-		{ok, OldPassword, Attribtes, Balance} ->
-			F = fun() ->
-				mnesia:delete(subscriber, Subscriber, write)
-			end,
-			case mnesia:transaction(F) of
-				{atomic, []} ->
-					exit(not_found);
-				{atomic, _} ->
-					case add_subscriber(Subscriber, NewPassword, Attribtes, Balance) of
-						ok ->
-							ok;
-						{error, Reason} ->
-							exit(Reason)
-					end;
-				{aborted, Reason} ->
-					exit(Reason)
-			end;
-		{ok, _, _, _} ->
-			exit(current_password_not_matched);
-		{error, Reason} ->
-			exit(Reason)
+update_password(Subscriber, OldPassword, NewPassword)
+		when is_list(Subscriber) ->
+	update_password(list_to_binary(Subscriber), OldPassword, NewPassword);
+update_password(Subscriber, OldPassword, NewPassword)
+		when is_list(OldPassword) ->
+	update_password(Subscriber, list_to_binary(OldPassword), NewPassword);
+update_password(Subscriber, OldPassword, NewPassword)
+		when is_list(NewPassword) ->
+	update_password(Subscriber, OldPassword, list_to_binary(NewPassword));
+update_password(Subscriber, OldPassword, NewPassword) ->
+	F = fun() ->
+				case mnesia:read(subscriber, Subscriber, write) of
+					[#subscriber{password = OldPassword} = Entry] ->
+						NewEntry = Entry#subscriber{password = NewPassword},
+						mnesia:write(subscriber, NewEntry, write);
+					[#subscriber{}] ->
+						throw(bad_password);
+					[] ->
+						throw(not_found)
+				end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, ok} ->
+			ok;
+		{aborted, {throw, Reason}} ->
+			{error, Reason};
+		{aborted, Reason} ->
+			{error, Reason}
 	end.
 
 -spec decrement_subscriber_balance(Subscriber :: string(), Usage :: non_neg_integer()) ->
