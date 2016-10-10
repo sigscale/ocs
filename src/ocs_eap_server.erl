@@ -35,7 +35,8 @@
 
 -record(state,
 		{eap_sup :: pid(),
-		eap_fsm_sup :: pid(),
+		pwd_sup :: pid(),
+		ttls_sup :: pid(),
 		socket :: inet:socket(),
 		address :: inet:ip_address(),
 		port :: non_neg_integer(),
@@ -113,8 +114,9 @@ handle_cast(_Request, State) ->
 %%
 handle_info(timeout, #state{eap_sup = EapSup} = State) ->
 	Children = supervisor:which_children(EapSup),
-	{_, EapFsmSup, _, _} = lists:keyfind(ocs_eap_pwd_fsm_sup, 1, Children),
-	{noreply, State#state{eap_fsm_sup = EapFsmSup}};
+	{_, PwdSup, _, _} = lists:keyfind(ocs_eap_pwd_fsm_sup, 1, Children),
+	{_, TtlsSup, _, _} = lists:keyfind(ocs_eap_ttls_fsm_sup, 1, Children),
+	{noreply, State#state{pwd_sup = PwdSup, ttls_sup = TtlsSup}};
 handle_info({'EXIT', _Pid, {shutdown, SessionID}},
 		#state{handlers = Handlers} = State) ->
 	NewHandlers = gb_trees:delete(SessionID, Handlers),
@@ -214,7 +216,7 @@ access_request(Address, Port, Secret,
 %% @doc Start a new {@link //ocs/ocs_eap_pwd_fsm. ocs_eap_pwd_fsm} session handler.
 %% @hidden
 start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret, SessionID,
-		#state{eap_fsm_sup = Sup, handlers = Handlers} = State) ->
+		#state{pwd_sup = Sup, handlers = Handlers} = State) ->
 	StartArgs = [Address, Port, Secret, SessionID],
 	ChildSpec = [StartArgs, []],
 	case supervisor:start_child(Sup, ChildSpec) of
