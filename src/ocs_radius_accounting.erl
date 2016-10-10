@@ -33,7 +33,8 @@
 
 -record(state,
 		{dir :: string(),
-		log :: disk_log:log()}).
+		log :: disk_log:log(),
+		acct_server :: atom() | pid()}).
 
 %%----------------------------------------------------------------------
 %%  The radius callbacks
@@ -45,7 +46,13 @@
 %% 	{@link //radius/radius_server. radius_server} behaviour process
 %% 	initializes.
 %%
-init(_Address, _Port) ->
+init(Address, Port) ->
+	case global:whereis_name({ocs_disconnect, Address, Port}) of
+		AcctServer when is_pid(AcctServer) ->
+			{ok, #state{acct_server = AcctServer}};
+		undefined ->
+			{error, acct_server_not_found}
+	end,
 	{ok, Directory} = application:get_env(ocs, accounting_dir),
 	Log = ?LOGNAME,
 	FileName = Directory ++ "/" ++ atom_to_list(Log),
@@ -83,27 +90,17 @@ init(_Address, _Port) ->
 
 -spec request(Address :: inet:ip_address(), Port :: pos_integer(),
 		Packet :: binary(), State :: #state{}) ->
-	{ok, Response :: binary()} | {error, Reason :: term()}.
-%% @doc This callback function is called when a request is received
-%% 	on the port.
+	{ok, Response :: binary()} | {error, Reason :: ignore | term()}.
+%% @doc This function is called when a request is received on the port.
 %%
-%% @todo implement disconnect radius accouting if balnce in 0
-request(Address, Port, Packet, #state{} = State)
-		when is_tuple(Address), is_integer(Port), is_binary(Packet) ->
-	case ocs:find_client(Address) of
-		{ok, Secret} ->
-			request(Packet, Secret, State);
-		{error, _Reason} ->
-			{error, ignore}
-	end.
-%% @hidden
-request(<<_Code, Id, _Length:16, _/binary>> = Packet, Secret,
-		#state{log = Log} = _State) ->
+request(Address, Port, Packet, #state{acct_server = Server,
+		log = Log} = _State) when is_tuple(Address) ->
 	try
-		#radius{code = ?AccountingRequest, id = Id,
-				authenticator = Authenticator,
-				attributes = BinaryAttributes} = radius:codec(Packet),
-		Attributes = radius_attributes:codec(BinaryAttributes),
+		{ok, SharedSecret} = ocs:find_client(Address),
+		Radius = radius:codec(Packet),
+		#radius{code = ?AccountingRequest, id = Id, attributes = AttributeData,
+				authenticator = Authenticator} = Radius,
+		Attributes = radius_attributes:codec(AttributeData),
 		NasIpAddressV = radius_attributes:find(?NasIpAddress, Attributes),
 		NasIdentifierV = radius_attributes:find(?NasIdentifier, Attributes),
 		InOctets = radius_attributes:find(?AcctInputOctets, Attributes),
@@ -125,15 +122,15 @@ request(<<_Code, Id, _Length:16, _/binary>> = Packet, Secret,
 		{error, not_found} = radius_attributes:find(?ChapPassword, Attributes),
 		{error, not_found} = radius_attributes:find(?ReplyMessage, Attributes),
 		{error, not_found} = radius_attributes:find(?State, Attributes),
-		{ok, _AcctSessionId} = radius_attributes:find(?AcctSessionId, Attributes),
+		{ok, AcctSessionId} = radius_attributes:find(?AcctSessionId, Attributes),
 		case disk_log:log(Log, Attributes) of
 			ok ->
 				case ocs:decrement_balance(Subscriber, Usage) of
 					{ok, OverUsed} when OverUsed =< 0 ->
-						{ok, response(Id, Authenticator, Secret, BinaryAttributes)};
-						%io:fwrite("Send Disconnect/Request to NAS");
+						gen_server:call(Server,
+							{disconnect_request, Address, Port, SharedSecret, Radius});
 					{ok, Balance} ->
-						{ok, response(Id, Authenticator, Secret, BinaryAttributes)}
+						{ok, response(Id, Authenticator, SharedSecret, Attributes)}
 				end;
 			{error, _Reason} ->
 				{error, ignore}
