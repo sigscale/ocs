@@ -215,7 +215,7 @@ update_password(Subscriber, OldPassword, NewPassword) ->
 decrement_balance(Subscriber, Usage) when is_list(Subscriber) ->
 	decrement_balance(list_to_binary(Subscriber), Usage);
 decrement_balance(Subscriber, Usage) when is_binary(Subscriber),
-		Usage > 0 ->
+		Usage >= 0 ->
 	F = fun() ->
 				case mnesia:read(subscriber, Subscriber, write) of
 					[#subscriber{balance = Balance} = Entry] ->
