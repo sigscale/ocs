@@ -53,7 +53,7 @@ init_per_suite(Config) ->
 	SharedSecret = ct:get_config(radius_shared_secret),
 	ok = ocs:add_client(AuthAddress, SharedSecret),
 	PeerId = "25252525",
-	PeerPassword = "ndtcj9fbcwut", %ocs:generate_password(),
+	PeerPassword = ocs:generate_password(),
 	ok = ocs:add_subscriber(PeerId, PeerPassword, <<>>),
 	[{peer_id, PeerId} | Config].
 

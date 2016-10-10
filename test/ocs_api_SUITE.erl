@@ -109,10 +109,14 @@ subscriber(_Config) ->
 	Attribute2 = radius_attributes:store(?NasPortId,"wlan2", Attribute0),
 	BinAttribute1 = radius_attributes:codec(Attribute1),
 	BinAttribute2 = radius_attributes:codec(Attribute2),
-	ok = ocs:add_subscriber("tomba", "abcd234", BinAttribute1),
-	ok = ocs:add_subscriber("android", "vyz789", BinAttribute2),
-	{ok, <<"abcd234">>, BinAttribute1, _Balance} = ocs:find_subscriber("tomba"),
-	{ok, <<"vyz789">>, BinAttribute2, _Balance} = ocs:find_subscriber("android").
+	Password1 = ocs:generate_password(),
+	Password2 = ocs:generate_password(),
+	ok = ocs:add_subscriber("tomba", Password1, BinAttribute1),
+	ok = ocs:add_subscriber("android", Password2, BinAttribute2),
+	{ok, BinPassword1, BinAttribute1, _Balance} = ocs:find_subscriber("tomba"),
+	Password1 = binary_to_list(BinPassword1),
+	{ok, BinPassword2, BinAttribute2, _Balance} = ocs:find_subscriber("android"),
+	Password2 = binary_to_list(BinPassword2).
 
 delete_subscriber() ->
 	[{userdata, [{doc, "Delete subscriber from the database"}]}].
