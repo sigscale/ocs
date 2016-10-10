@@ -83,8 +83,8 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[client, subscriber, update_subscriber_password, update_subscriber_attributes,
-	delete_subscriber, decrement_subscriber_balance].
+	[client, subscriber, update_password, update_subscriber_attributes,
+	delete_subscriber, decrement_balance].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -128,10 +128,10 @@ delete_subscriber(_Config) ->
 	ok = ocs:delete_subscriber(Subscriber, Password),
 	{error, _} = ocs:find_subscriber(Subscriber).
 
-update_subscriber_password() ->
+update_password() ->
 	[{userdata, [{doc, "Update subscriber password to database"}]}].
 
-update_subscriber_password(_Config) ->
+update_password(_Config) ->
 	Attribute0 = radius_attributes:new(),
 	Attribute = radius_attributes:store(?NasPortId,"wlan0", Attribute0),
 	BinAttribute = radius_attributes:codec(Attribute),
@@ -141,14 +141,14 @@ update_subscriber_password(_Config) ->
 	{ok, BinOldPassword, BinAttribute, _Balance} = ocs:find_subscriber(Subscriber),
 	OldPassword = binary_to_list(BinOldPassword),
 	NewPassword = ocs:generate_password(),
-	ok = ocs:update_subscriber_password(Subscriber, OldPassword, NewPassword),
+	ok = ocs:update_password(Subscriber, OldPassword, NewPassword),
 	{ok, BinNewPassword, BinAttribute, _Balance} = ocs:find_subscriber(Subscriber),
 	NewPassword = binary_to_list(BinNewPassword).
 
-decrement_subscriber_balance() ->
+decrement_balance() ->
 	[{userdata, [{doc, "Decrement subscriber's balance based on usage"}]}].
 
-decrement_subscriber_balance(_Config) ->
+decrement_balance(_Config) ->
 	BinAttribute = <<>>,
 	Subscriber = "android",
 	InitialBalance= 10000,
