@@ -128,7 +128,7 @@ request(<<_Code, Id, _Length:16, _/binary>> = Packet, Secret,
 		{ok, _AcctSessionId} = radius_attributes:find(?AcctSessionId, Attributes),
 		case disk_log:log(Log, Attributes) of
 			ok ->
-				case ocs:decrement_subscriber_balance(Subscriber, Usage) of
+				case ocs:decrement_balance(Subscriber, Usage) of
 					{ok, OverUsed} when OverUsed =< 0 ->
 						{ok, response(Id, Authenticator, Secret, BinaryAttributes)};
 						%io:fwrite("Send Disconnect/Request to NAS");
