@@ -23,7 +23,7 @@
 %% export the ocs public API
 -export([add_client/2, find_client/1]).
 -export([add_subscriber/3, add_subscriber/4, find_subscriber/1, delete_subscriber/1,
-				update_password/3, update_subscriber_attributes/3,
+				update_password/3, update_attributes/3,
 				decrement_balance/2]).
 -export([log_file/1]).
 -export([generate_password/0]).
@@ -235,36 +235,39 @@ decrement_balance(Subscriber, Usage) when is_binary(Subscriber),
 			{error, Reason}
 	end.
 
--spec update_subscriber_attributes(Subscriber :: string(), Password :: string() | binary(),
-		Attributes :: binary() | [byte()]) -> ok.
+-spec update_attributes(Subscriber :: string() | binary(),
+		Password :: string() | binary(),
+		Attributes :: radius:attributes() | binary()) ->
+	ok | {error, Reason :: not_found | bad_password | term()}.
 %% @doc Update subscriber attributes.
 %%
-update_subscriber_attributes(Subscriber, Password, Attributes) when is_list(Password) ->
-	update_subscriber_attributes(Subscriber, list_to_binary(Password), Attributes);
-update_subscriber_attributes(Subscriber, Password, Attributes) when is_list(Subscriber),
-		is_binary(Password), (is_list(Attributes) orelse is_binary(Attributes)) ->
-	case find_subscriber(Subscriber) of
-		{ok, Password, _, Balance} ->
-			F = fun() ->
-				mnesia:delete(subscriber, Subscriber, write)
-			end,
-			case mnesia:transaction(F) of
-				{atomic, []} ->
-					exit(not_found);
-				{atomic, _} ->
-					case add_subscriber(Subscriber, Password, Attributes, Balance) of
-						ok ->
-							ok;
-						{error, Reason} ->
-							exit(Reason)
-					end;
-				{aborted, Reason} ->
-					exit(Reason)
-			end;
-		{ok, _, _, _} ->
-			exit(current_password_not_matched);
-		{error, Reason} ->
-			exit(Reason)
+update_attributes(Subscriber, Password, Attributes) when is_list(Subscriber) ->
+	update_attributes(list_to_binary(Subscriber), Password, Attributes);
+update_attributes(Subscriber, Password, Attributes) when is_list(Password) ->
+	update_attributes(Subscriber, list_to_binary(Password), Attributes);
+update_attributes(Subscriber, Password, Attributes) when is_list(Attributes) ->
+	Bin = radius_attributes:codec(Attributes),
+	update_attributes(Subscriber, Password, Bin);
+update_attributes(Subscriber, Password, Attributes) when is_binary(Subscriber),
+		is_binary(Password), is_binary(Attributes) ->
+	F = fun() ->
+				case mnesia:read(subscriber, Subscriber, write) of
+					[#subscriber{password = Password} = Entry] ->
+						NewEntry = Entry#subscriber{attributes = Attributes},
+						mnesia:write(subscriber, NewEntry, write);
+					[#subscriber{}] ->
+						throw(bad_password);
+					[] ->
+						throw(not_found)
+				end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, ok} ->
+			ok;
+		{aborted, {throw, Reason}} ->
+			{error, Reason};
+		{aborted, Reason} ->
+			{error, Reason}
 	end.
 
 -spec log_file(FileName :: string()) -> ok.
