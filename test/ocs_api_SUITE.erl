@@ -155,10 +155,10 @@ decrement_balance(_Config) ->
 	Password = ocs:generate_password(),
 	ok = ocs:add_subscriber(Subscriber, Password, BinAttribute, InitialBalance),
 	Usage1 = 7645,
-	{ok , NewBalance1} = ocs:decrement_subscriber_balance(Subscriber, Usage1),
+	{ok , NewBalance1} = ocs:decrement_balance(Subscriber, Usage1),
 	NewBalance1 = InitialBalance - Usage1,
 	Usage2 = 84,
-	{ok , NewBalance2} = ocs:decrement_subscriber_balance(Subscriber, Usage2),
+	{ok , NewBalance2} = ocs:decrement_balance(Subscriber, Usage2),
 	NewBalance2 = NewBalance1 - Usage2.
 
 update_subscriber_attributes() ->
