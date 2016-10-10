@@ -42,7 +42,7 @@
 %% 	{@link //radius/radius_server. radius_server} behaviour process
 %% 	initializes.
 init(Address, Port) when is_tuple(Address), is_integer(Port) ->
-	case global:whereis_name({ocs, Address, Port}) of
+	case global:whereis_name({ocs_eap, Address, Port}) of
 		EapServer when is_pid(EapServer) ->
 			{ok, #state{eap_server = EapServer}};
 		undefined ->
