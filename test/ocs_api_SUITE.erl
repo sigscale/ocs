@@ -83,7 +83,7 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[client, subscriber, update_password, update_subscriber_attributes,
+	[client, subscriber, update_password, update_attributes,
 	delete_subscriber, decrement_balance].
 
 %%---------------------------------------------------------------------
@@ -161,10 +161,10 @@ decrement_balance(_Config) ->
 	{ok , NewBalance2} = ocs:decrement_balance(Subscriber, Usage2),
 	NewBalance2 = NewBalance1 - Usage2.
 
-update_subscriber_attributes() ->
+update_attributes() ->
 	[{userdata, [{doc, "Update subscriber attributes to database"}]}].
 
-update_subscriber_attributes(_Config) ->
+update_attributes(_Config) ->
 	Password = ocs:generate_password(),
 	Username = "tomba1",
 	Attribute0 = radius_attributes:new(),
@@ -174,7 +174,7 @@ update_subscriber_attributes(_Config) ->
 	{ok, _BinPassword, BinAttribute1, _Balance} = ocs:find_subscriber(Username),
 	Attribute2 = radius_attributes:store(?NasPortId,"wlan1", Attribute0),
 	BinAttribute2 = radius_attributes:codec(Attribute2),
-	ok = ocs:update_subscriber_attributes(Username, Password, BinAttribute2),
+	ok = ocs:update_attributes(Username, Password, BinAttribute2),
 	{ok, _BinPassword, BinAttribute2, _Balance} = ocs:find_subscriber(Username).
 
 
