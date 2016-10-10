@@ -47,45 +47,11 @@
 %% 	initializes.
 %%
 init(Address, Port) ->
-	case global:whereis_name({ocs_disconnect, Address, Port}) of
+	case global:whereis_name({ocs_acct, Address, Port}) of
 		AcctServer when is_pid(AcctServer) ->
 			{ok, #state{acct_server = AcctServer}};
 		undefined ->
 			{error, acct_server_not_found}
-	end,
-	{ok, Directory} = application:get_env(ocs, accounting_dir),
-	Log = ?LOGNAME,
-	FileName = Directory ++ "/" ++ atom_to_list(Log),
-	State = #state{dir = Directory},
-	try case file:list_dir(Directory) of
-		{ok, _} ->
-			ok;
-		{error, enoent} ->
-			case file:make_dir(Directory) of
-				ok ->
-					ok;
-				{error, Reason} ->
-					throw(Reason)
-			end;
-		{error, Reason} ->
-			throw(Reason)
-	end of
-		ok ->
-			case disk_log:open([{name, Log}, {file, FileName},
-					{type, wrap}, {size, {1048575, 20}}]) of
-				{ok, Log} ->
-					{ok, State#state{log = Log}};
-				{repaired, Log, {recovered, Rec}, {badbytes, Bad}} ->
-					error_logger:warning_report(["Disk log repaired",
-							{log, Log}, {path, FileName}, {recovered, Rec},
-							{badbytes, Bad}]),
-					{ok, State#state{log = Log}};
-				{error, Reason1} ->
-					{error, Reason1}
-			end
-	catch
-		Reason2 ->
-			{error, Reason2}
 	end.
 
 -spec request(Address :: inet:ip_address(), Port :: pos_integer(),
@@ -93,48 +59,18 @@ init(Address, Port) ->
 	{ok, Response :: binary()} | {error, Reason :: ignore | term()}.
 %% @doc This function is called when a request is received on the port.
 %%
-request(Address, Port, Packet, #state{acct_server = Server,
-		log = Log} = _State) when is_tuple(Address) ->
+request(Address, Port, Packet, #state{acct_server = Server} = _State)
+		when is_tuple(Address) ->
 	try
 		{ok, SharedSecret} = ocs:find_client(Address),
 		Radius = radius:codec(Packet),
-		#radius{code = ?AccountingRequest, id = Id, attributes = AttributeData,
-				authenticator = Authenticator} = Radius,
+		#radius{code = ?AccessRequest, attributes = AttributeData} = Radius,
 		Attributes = radius_attributes:codec(AttributeData),
-		NasIpAddressV = radius_attributes:find(?NasIpAddress, Attributes),
-		NasIdentifierV = radius_attributes:find(?NasIdentifier, Attributes),
-		InOctets = radius_attributes:find(?AcctInputOctets, Attributes),
-		OutOctets = radius_attributes:find(?AcctOutputOctets, Attributes),
-		{ok, Subscriber} = radius_attributes:find(?UserName, Attributes),
-		case {NasIpAddressV, NasIdentifierV} of
-			{{error, not_found}, {error, not_found}} ->
-				throw(reject);
-			{_, _} ->
-				ok
-		end,
-		case {InOctets, OutOctets} of
-			{{error, not_found}, {error, not_found}} ->
-				Usage = 0;
-			{{ok,In}, {ok,Out}} ->
-				Usage = In + Out
-		end,
-		{error, not_found} = radius_attributes:find(?UserPassword, Attributes),
-		{error, not_found} = radius_attributes:find(?ChapPassword, Attributes),
-		{error, not_found} = radius_attributes:find(?ReplyMessage, Attributes),
-		{error, not_found} = radius_attributes:find(?State, Attributes),
-		{ok, AcctSessionId} = radius_attributes:find(?AcctSessionId, Attributes),
-		case disk_log:log(Log, Attributes) of
-			ok ->
-				case ocs:decrement_balance(Subscriber, Usage) of
-					{ok, OverUsed} when OverUsed =< 0 ->
-						gen_server:call(Server,
-							{disconnect_request, Address, Port, SharedSecret, Radius});
-					{ok, Balance} ->
-						{ok, response(Id, Authenticator, SharedSecret, Attributes)}
-				end;
-			{error, _Reason} ->
-				{error, ignore}
-		end
+		{SharedSecret, Radius#radius{attributes = Attributes}}
+	of
+		{Secret, AccessRequest} ->
+			gen_server:call(Server,
+					{request, Address, Port, Secret, AccessRequest})
 	catch
 		_:_ ->
 			{error, ignore}
@@ -145,34 +81,4 @@ request(Address, Port, Packet, #state{acct_server = Server,
 %%
 terminate(_Reason, #state{log = Log} = _State) ->
 	disk_log:close(Log).
-
-%%----------------------------------------------------------------------
-%%  internal functions
-%%----------------------------------------------------------------------
-
--spec response(Id :: byte(), RequestAuthenticator :: [byte()],
-		Secret :: string() | binary(), Attributes :: binary() | [byte()]) ->
-	AccessAccept :: binary().
-%% @hidden
-response(Id, RequestAuthenticator, Secret, Attributes)
-		when is_binary(Attributes) ->
-	AttributeList = radius_attributes:codec(Attributes),
-	response(Id, RequestAuthenticator, Secret, AttributeList);
-response(Id, RequestAuthenticator, Secret, AttributeList)
-		when is_list(AttributeList) ->
-	AttributeList1 = radius_attributes:store(?MessageAuthenticator,
-		<<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, AttributeList),
-	Attributes1 = radius_attributes:codec(AttributeList1),
-	Length = size(Attributes1) + 20,
-	MessageAuthenticator = crypto:hmac(md5, Secret, [<<?AccountingRequest, Id,
-			Length:16>>, RequestAuthenticator, Attributes1]),
-	AttributeList2 = radius_attributes:store(?MessageAuthenticator,
-			MessageAuthenticator, AttributeList1),
-	Attributes2 = radius_attributes:codec(AttributeList2),
-	ResponseAuthenticator = crypto:hash(md5, [<<?AccountingRequest, Id,
-			Length:16>>, RequestAuthenticator, Attributes2, Secret]),
-	Response = #radius{code = ?AccountingResponse, id = Id,
-			authenticator = ResponseAuthenticator, attributes = Attributes2},
-	radius:codec(Response).
-
 
