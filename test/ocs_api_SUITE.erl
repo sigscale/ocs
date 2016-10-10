@@ -129,7 +129,7 @@ delete_subscriber(_Config) ->
 	Password = ocs:generate_password(),
 	ok = ocs:add_subscriber(Subscriber, Password,BinAttribute),
 	{ok, _BinPassword, _BinAttribute, _Balance} = ocs:find_subscriber(Subscriber),
-	ok = ocs:delete_subscriber(Subscriber, Password),
+	ok = ocs:delete_subscriber(Subscriber),
 	{error, _} = ocs:find_subscriber(Subscriber).
 
 update_password() ->
