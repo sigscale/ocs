@@ -238,8 +238,8 @@ accounting_request(Address, Port, Secret, Radius,
 			ok ->
 				case ocs:decrement_balance(Subscriber, Usage) of
 					{ok, OverUsed} when OverUsed =< 0 ->
-						case supervisor:start_child(DiscSup, [AcctSessionId,
-								NasIpAddressV, NasIdentifierV]) of
+						case supervisor:start_child(DiscSup, [[AcctSessionId,
+								NasIpAddressV, NasIdentifierV], []]) of
 							{ok, _Child} ->
 								{reply, {ok, wait}, State};
 							{error, Reason} ->
@@ -249,7 +249,8 @@ accounting_request(Address, Port, Secret, Radius,
 					{ok, Balance} ->
 						ok
 				end,
-				{ok, response(Id, Authenticator, Secret, Attributes)};
+				{reply, {ok, response(Id, Authenticator, Secret, Attributes)},
+						State};
 			{error, _Reason} ->
 				{reply, {error, ignore}, State}
 		end
