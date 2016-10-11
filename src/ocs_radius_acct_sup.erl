@@ -37,7 +37,7 @@
 %%
 init([Address, Port]) ->
 	ChildSpecs = [supervisor(ocs_radius_disconnect_fsm_sup, []),
-			server(ocs_radius_acct_server, Address, Port),
+			server(ocs_acct_server, Address, Port),
 			supervisor_bridge(ocs_radius_acct_server_sup, [Address, Port])],
 	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
 
