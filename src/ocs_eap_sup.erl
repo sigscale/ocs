@@ -38,10 +38,11 @@
 %% @private
 %%
 init([Address, Port]) ->
-	ChildSpecs = [supervisor(ocs_eap_ttls_fsm_sup, []),
+	ChildSpecs = [
+		supervisor(ocs_eap_ttls_fsm_sup, []),
 		supervisor(ocs_eap_pwd_fsm_sup, []),
-		supervisor(ocs_radius_auth_server_sup, [Address, Port]),
-		server(ocs_eap_server, Address, Port)],
+		server(ocs_eap_server, Address, Port),
+		supervisor(ocs_radius_auth_server_sup, [Address, Port])],
 	{ok, {{one_for_one, 10, 3600}, ChildSpecs}}.
 
 %% @hidden
@@ -59,3 +60,4 @@ server(StartMod, Address, Port) ->
 	StartArgs = [{global, GlobalName}, StartMod, Args, []],
 	StartFunc = {gen_server, start_link, StartArgs},
 	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
+
