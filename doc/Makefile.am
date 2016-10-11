@@ -6,6 +6,7 @@ modhtml = ocs.html \
 		ocs_app.html \
 		ocs_sup.html \
 		ocs_server.html \
+		ocs_acct_server.html \
 		ocs_radius_acct_sup.html \
 		ocs_radius_acct_top_sup.html \
 		ocs_radius_acct_server_sup.html \
@@ -14,7 +15,6 @@ modhtml = ocs.html \
 		ocs_eap_sup.html \
 		ocs_radius_auth_server_sup.html \
 		ocs_radius_authentication.html \
-		ocs_eap_server_sup.html \
 		ocs_eap_server.html \
 		ocs_radius_disconnect_fsm_sup.html\
 		ocs_radius_disconnect_fsm.html\
