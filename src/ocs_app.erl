@@ -74,7 +74,7 @@ start1() ->
 	{ok, AuthPort} = application:get_env(radius_auth_port),
 	try
 		TopSup = case supervisor:start_link(ocs_sup,
-				[{RestAddr, RestPort}]) of
+				[RestAddr, RestPort]) of
 			{ok, OcsSup} ->
 				OcsSup;
 			{error, Reason1} ->
