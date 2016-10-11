@@ -64,13 +64,13 @@ request(Address, Port, Packet, #state{acct_server = Server} = _State)
 	try
 		{ok, SharedSecret} = ocs:find_client(Address),
 		Radius = radius:codec(Packet),
-		#radius{code = ?AccessRequest, attributes = AttributeData} = Radius,
+		#radius{code = ?AccountingRequest, attributes = AttributeData} = Radius,
 		Attributes = radius_attributes:codec(AttributeData),
 		{SharedSecret, Radius#radius{attributes = Attributes}}
 	of
-		{Secret, AccessRequest} ->
+		{Secret, AccountingRequest} ->
 			gen_server:call(Server,
-					{request, Address, Port, Secret, AccessRequest})
+					{request, Address, Port, Secret, AccountingRequest})
 	catch
 		_:_ ->
 			{error, ignore}
