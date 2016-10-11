@@ -3,28 +3,30 @@
 ## Process this file with automake to produce Makefile.in
 
 modhtml = ocs.html \
-		ocs_app.html \
-		ocs_sup.html \
-		ocs_server.html \
-		ocs_acct_server.html \
-		ocs_radius_acct_sup.html \
-		ocs_radius_acct_top_sup.html \
-		ocs_radius_acct_server_sup.html \
-		ocs_radius_accounting.html \
-		ocs_radius_auth_sup.html \
-		ocs_eap_sup.html \
-		ocs_radius_auth_server_sup.html \
-		ocs_radius_authentication.html \
-		ocs_eap_server.html \
-		ocs_radius_disconnect_fsm_sup.html\
-		ocs_radius_disconnect_fsm.html\
-		ocs_eap_pwd_fsm_sup.html \
-		ocs_eap_pwd_fsm.html \
-		ocs_eap_ttls_fsm.html \
-		ocs_eap_ttls_fsm_sup.html \
-		ocs_eap_codec.html \
-		ocs_eap_pwd.html \
-		ocs_wm_config.html
+			ocs_app.html \
+			ocs_sup.html \
+			ocs_acct_server.html \
+			ocs_radius_acct_sup.html \
+			ocs_radius_acct_top_sup.html \
+			ocs_radius_acct_server_sup.html \
+			ocs_radius_auth_server_sup.html \
+			ocs_radius_auth_sup.html \
+			ocs_eap_pwd_fsm_sup.html \
+			ocs_eap_ttls_fsm_sup.html \
+			ocs_eap_sup.html \
+			ocs_radius_disconnect_fsm_sup.html\
+			ocs_radius_disconnect_fsm.html\
+			ocs_eap_pwd_fsm.html \
+			ocs_eap_ttls_fsm.html \
+			ocs_eap_server.html \
+			ocs_eap_codec.html \
+			ocs_radius_accounting.html \
+			ocs_radius_authentication.html \
+			ocs_server.html \
+			ocs_eap_pwd.html \
+			ocs_eap_ttls_transport.html \
+			ocs_wm_config.html \
+			ocs_wm_res_subscriber.html
 
 doc_DATA = overview.edoc $(modhtml) \
 		modules-frame.html overview-summary.html \
