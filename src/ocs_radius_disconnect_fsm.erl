@@ -57,7 +57,7 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init( _Args) ->
+init([AcctSessionId, NasIpAddress, NasIdentifier]) ->
 	process_flag(trap_exit, true),
 	StateData = #statedata{},
 	{ok, send_request, StateData, ?TIMEOUT}.
