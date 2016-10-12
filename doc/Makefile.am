@@ -10,6 +10,7 @@ modhtml = ocs.html \
 			ocs_radius_acct_top_sup.html \
 			ocs_radius_acct_server_sup.html \
 			ocs_radius_auth_server_sup.html \
+			ocs_simple_auth_fsm_sup.html \
 			ocs_radius_auth_sup.html \
 			ocs_eap_pwd_fsm_sup.html \
 			ocs_eap_ttls_fsm_sup.html \
@@ -18,6 +19,7 @@ modhtml = ocs.html \
 			ocs_radius_disconnect_fsm.html\
 			ocs_eap_pwd_fsm.html \
 			ocs_eap_ttls_fsm.html \
+			ocs_simple_auth_fsm.html \
 			ocs_radius_auth_port_server.html \
 			ocs_eap_codec.html \
 			ocs_radius_accounting.html \
