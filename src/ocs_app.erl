@@ -49,7 +49,7 @@
 %% @see //kernel/application:start/2
 %%
 start(normal = _StartType, _Args) ->
-	case mnesia:wait_for_tables([radius_client, subscriber], 60000) of
+	case mnesia:wait_for_tables([radius_client, subscriber, guest], 60000) of
 		ok ->
 			start1();
 		{timeout, BadTabList} ->
@@ -119,7 +119,7 @@ start1() ->
 %% 		2> mnesia:start().
 %% 		ok
 %% 		3> {@module}:install([node()]).
-%% 		{ok,[radius_client, subscriber]}
+%% 		{ok,[radius_client, subscriber, guest]}
 %% 		ok
 %% 	'''
 %%
@@ -151,7 +151,16 @@ install(Nodes) when is_list(Nodes) ->
 			T2Result ->
 				throw(T2Result)
 		end,
-		Tables = [radius_client, subscriber],
+		case mnesia:create_table(guest, [{disc_copies, Nodes},
+				{attributes, record_info(fields, guest)}]) of
+			{atomic, ok} ->
+				error_logger:info_msg("Created new guest table.~n");
+			{aborted, {already_exists, guest}} ->
+				error_logger:warning_msg("Found existing guest table.~n");
+			T3Result ->
+				throw(T3Result)
+		end,
+		Tables = [radius_client, subscriber, guest],
 		case mnesia:wait_for_tables(Tables, ?WAITFORTABLES) of
 			ok ->
 				Tables;
