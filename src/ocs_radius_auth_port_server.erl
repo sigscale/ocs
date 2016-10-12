@@ -34,7 +34,7 @@
 -include("ocs_eap_codec.hrl").
 
 -record(state,
-		{eap_sup :: pid(),
+		{auth_port_sup :: pid(),
 		pwd_sup :: pid(),
 		ttls_sup :: pid(),
 		socket :: inet:socket(),
@@ -62,9 +62,9 @@
 %% @see //stdlib/gen_server:init/1
 %% @private
 %%
-init([EapSup, Address, Port]) ->
+init([AuthPortSup, Address, Port]) ->
 	process_flag(trap_exit, true),
-	{ok, #state{eap_sup = EapSup, address = Address, port = Port}, 0}.
+	{ok, #state{auth_port_sup = AuthPortSup, address = Address, port = Port}, 0}.
 
 -spec handle_call(Request :: term(), From :: {Pid :: pid(), Tag :: any()},
 		State :: #state{}) ->
@@ -112,8 +112,8 @@ handle_cast(_Request, State) ->
 %% @see //stdlib/gen_server:handle_info/2
 %% @private
 %%
-handle_info(timeout, #state{eap_sup = EapSup} = State) ->
-	Children = supervisor:which_children(EapSup),
+handle_info(timeout, #state{auth_port_sup = AuthPortSup} = State) ->
+	Children = supervisor:which_children(AuthPortSup),
 	{_, PwdSup, _, _} = lists:keyfind(ocs_eap_pwd_fsm_sup, 1, Children),
 	{_, TtlsSup, _, _} = lists:keyfind(ocs_eap_ttls_fsm_sup, 1, Children),
 	{noreply, State#state{pwd_sup = PwdSup, ttls_sup = TtlsSup}};

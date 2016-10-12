@@ -55,7 +55,7 @@ supervisor(StartMod, StartArgs) ->
 
 %% @hidden
 server(StartMod, Address, Port) ->
-	GlobalName = {ocs_eap, Address, Port},
+	GlobalName = {auth_port, Address, Port},
 	Args = [self(), Address, Port],
 	StartArgs = [{global, GlobalName}, StartMod, Args, []],
 	StartFunc = {gen_server, start_link, StartArgs},

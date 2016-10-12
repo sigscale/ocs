@@ -30,7 +30,7 @@
 -include_lib("radius/include/radius.hrl").
 
 -record(state,
-		{eap_server :: atom() | pid()}).
+		{port_server :: atom() | pid()}).
 
 %%----------------------------------------------------------------------
 %%  The radius callbacks
@@ -42,11 +42,11 @@
 %% 	{@link //radius/radius_server. radius_server} behaviour process
 %% 	initializes.
 init(Address, Port) when is_tuple(Address), is_integer(Port) ->
-	case global:whereis_name({ocs_eap, Address, Port}) of
-		EapServer when is_pid(EapServer) ->
-			{ok, #state{eap_server = EapServer}};
+	case global:whereis_name({auth_port, Address, Port}) of
+		PortServer when is_pid(PortServer) ->
+			{ok, #state{port_server = PortServer}};
 		undefined ->
-			{error, eap_server_not_found}
+			{error, radius_auth_port_server_not_found}
 	end.
 
 -spec request(Address :: inet:ip_address(), Port :: pos_integer(),
@@ -54,7 +54,7 @@ init(Address, Port) when is_tuple(Address), is_integer(Port) ->
 	{ok, Response :: binary()} | {error, Reason :: ignore | term()}.
 %% @doc This function is called when a request is received on the port.
 %%
-request(Address, Port, Packet, #state{eap_server = Server} = _State)
+request(Address, Port, Packet, #state{port_server = Server} = _State)
 		when is_tuple(Address) ->
 	try
 		{ok, SharedSecret} = ocs:find_client(Address),
