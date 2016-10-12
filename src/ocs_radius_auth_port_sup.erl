@@ -1,4 +1,4 @@
-%%% ocs_eap_sup.erl
+%%% ocs_radius_auth_port_sup.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 SigScale Global Inc.
 %%% @end
@@ -16,7 +16,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @docfile "{@docsrc supervision.edoc}"
 %%%
--module(ocs_eap_sup).
+-module(ocs_radius_auth_port_sup).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 -behaviour(supervisor).
@@ -41,7 +41,7 @@ init([Address, Port]) ->
 	ChildSpecs = [
 		supervisor(ocs_eap_ttls_fsm_sup, []),
 		supervisor(ocs_eap_pwd_fsm_sup, []),
-		server(ocs_eap_server, Address, Port),
+		server(ocs_radius_auth_port_server, Address, Port),
 		supervisor(ocs_radius_auth_server_sup, [Address, Port])],
 	{ok, {{one_for_one, 10, 3600}, ChildSpecs}}.
 

@@ -17,12 +17,12 @@ beam_DATA = ocs.beam \
 			ocs_radius_auth_sup.beam \
 			ocs_eap_pwd_fsm_sup.beam \
 			ocs_eap_ttls_fsm_sup.beam \
-			ocs_eap_sup.beam \
+			ocs_radius_auth_port_sup.beam \
 			ocs_radius_disconnect_fsm_sup.beam\
 			ocs_radius_disconnect_fsm.beam\
 			ocs_eap_pwd_fsm.beam \
 			ocs_eap_ttls_fsm.beam \
-			ocs_eap_server.beam \
+			ocs_radius_auth_port_server.beam \
 			ocs_eap_codec.beam \
 			ocs_radius_accounting.beam \
 			ocs_radius_authentication.beam \

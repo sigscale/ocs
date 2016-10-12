@@ -1,4 +1,4 @@
-%%% ocs_eap_server.erl
+%%% ocs_radius_auth_port_server.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 SigScale Global Inc.
 %%% @end
@@ -17,12 +17,12 @@
 %%% @reference <a href="http://tools.ietf.org/rfc/rfc3579.txt">
 %%% 	RFC3579 - RADIUS Support For EAP</a>
 %%%
--module(ocs_eap_server).
+-module(ocs_radius_auth_port_server).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 -behaviour(gen_server).
 
-%% export the ocs_eap_server API
+%% export the ocs_radius_auth_port_server API
 -export([]).
 
 %% export the call backs needed for gen_server behaviour
@@ -46,11 +46,11 @@
 				Peer :: string()}), Value :: (Fsm :: pid()))}).
 
 %%----------------------------------------------------------------------
-%%  The ocs_eap_server API
+%%  The ocs_radius_auth_port_server API
 %%----------------------------------------------------------------------
 
 %%----------------------------------------------------------------------
-%%  The ocs_eap_server gen_server call backs
+%%  The ocs_radius_auth_port_server gen_server call backs
 %%----------------------------------------------------------------------
 
 -spec init(Args :: list()) -> Result :: {ok, State :: #state{}}
