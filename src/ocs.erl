@@ -23,7 +23,8 @@
 %% export the ocs public API
 -export([add_client/2, find_client/1]).
 -export([add_subscriber/3, add_subscriber/4, find_subscriber/1, delete_subscriber/1,
-			update_password/3, update_attributes/3, decrement_balance/2, add_psk/2]).
+			update_password/3, update_attributes/3, decrement_balance/2, add_psk/2,
+			add_guest_subscriber/4]).
 -export([log_file/1]).
 -export([generate_password/0]).
 -export([start/3]).
@@ -283,6 +284,49 @@ add_psk(Psk, Value) when is_integer(Value) ->
 			ok;
 		{aborted, Reason} ->
 			exit(Reason)
+	end.
+
+-spec add_guest_subscriber(Subscriber :: string() | binary(),
+		Password :: string() | binary(),
+		Attributes :: radius:attributes() | binary(),
+		Balance :: non_neg_integer()) ->
+		ok | {error, Reason :: bad_psk | term()}.
+%% @doc Create an guest entry in the guest table if subscriber not exists
+%%		in the subscriber table.
+%%
+%% 	`Password' and `Balance' lookup from the guest table. An optional list of
+%% 	RADIUS `Attributes', to be returned in an `AccessRequest' response,
+%% 	may be provided.
+%%
+add_guest_subscriber(Subscriber, Password, Attributes, Balance)
+		when is_list(Subscriber) ->
+	add_subscriber(list_to_binary(Subscriber), Password, Attributes, Balance);
+add_guest_subscriber(Subscriber, Password, Attributes, Balance)
+		when is_list(Password) ->
+	add_subscriber(Subscriber, list_to_binary(Password), Attributes, Balance);
+add_guest_subscriber(Subscriber, Password, Attributes, Balance)
+		when is_list(Attributes) ->
+	Bin = radius_attributes:codec(Attributes),
+	add_subscriber(Subscriber, Password, Bin, Balance);
+add_guest_subscriber(Subscriber, Password, Attributes, Balance)
+		when is_binary(Subscriber), is_binary(Password),
+		is_binary(Attributes), is_integer(Balance) ->
+	F2 = fun() ->
+		case mnesia:read(guest,#guest{psk = Password, value = Balance}, write) of
+			[#guest{}] ->
+				mnesia:delete(guest, Password, write),
+				NewSubscriber = #subscriber{name =  Subscriber, password = Password,
+						attributes = Attributes, balance = Balance},
+				mnesia:write(NewSubscriber);
+			[] ->
+				throw(bad_psk)
+		end
+	end,
+	case mnesia:transaction(F2) of
+		{atomic, _} ->
+			ok;
+		{aborted, Reason} ->
+			{error, Reason}
 	end.
 
 -spec log_file(FileName :: string()) -> ok.
