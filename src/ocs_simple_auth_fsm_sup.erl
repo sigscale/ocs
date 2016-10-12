@@ -1,4 +1,4 @@
-%%% ocs_radius_auth_port_sup.erl
+%%% ocs_simple_auth_fsm_sup.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 SigScale Global Inc.
 %%% @end
@@ -16,19 +16,19 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @docfile "{@docsrc supervision.edoc}"
 %%%
--module(ocs_radius_auth_port_sup).
+-module(ocs_simple_auth_fsm_sup).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 -behaviour(supervisor).
 
-%% export the callback needed for supervisor behaviour
+%% export the call back needed for supervisor behaviour
 -export([init/1]).
 
 %%----------------------------------------------------------------------
-%%  The supervisor callback
+%%  The supervisor call back
 %%----------------------------------------------------------------------
 
--spec init(Args :: list()) ->
+-spec init(Args :: []) ->
 	Result :: {ok,{{RestartStrategy :: one_for_all | one_for_one
 		| rest_for_one | simple_one_for_one,
 		MaxR :: non_neg_integer(), MaxT :: pos_integer()},
@@ -37,27 +37,9 @@
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init([Address, Port]) ->
-	ChildSpecs = [supervisor(ocs_simple_auth_fsm_sup, []),
-		supervisor(ocs_eap_ttls_fsm_sup, []),
-		supervisor(ocs_eap_pwd_fsm_sup, []),
-		server(ocs_radius_auth_port_server, Address, Port),
-		supervisor(ocs_radius_auth_server_sup, [Address, Port])],
-	{ok, {{one_for_one, 10, 3600}, ChildSpecs}}.
-
-%% @hidden
-supervisor(ocs_radius_auth_server_sup = StartMod, StartArgs) ->
-	StartFunc = {supervisor_bridge, start_link, [StartMod, StartArgs]},
-	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]};
-supervisor(StartMod, StartArgs) ->
-	StartFunc = {supervisor, start_link, [StartMod, StartArgs]},
-	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
-
-%% @hidden
-server(StartMod, Address, Port) ->
-	GlobalName = {ocs_eap, Address, Port},
-	Args = [self(), Address, Port],
-	StartArgs = [{global, GlobalName}, StartMod, Args, []],
-	StartFunc = {gen_server, start_link, StartArgs},
-	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
+init(_Args) ->
+	StartMod = ocs_simple_auth_fsm,
+	StartFunc = {gen_fsm, start_link, [StartMod]},
+	ChildSpec = {StartMod, StartFunc, transient, 4000, worker, [StartMod]},
+	{ok, {{simple_one_for_one, 10, 60}, [ChildSpec]}}.
 
