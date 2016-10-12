@@ -23,8 +23,7 @@
 %% export the ocs public API
 -export([add_client/2, find_client/1]).
 -export([add_subscriber/3, add_subscriber/4, find_subscriber/1, delete_subscriber/1,
-				update_password/3, update_attributes/3,
-				decrement_balance/2]).
+			update_password/3, update_attributes/3, decrement_balance/2, add_psk/2]).
 -export([log_file/1]).
 -export([generate_password/0]).
 -export([start/3]).
@@ -269,6 +268,21 @@ update_attributes(Subscriber, Password, Attributes) when is_binary(Subscriber),
 			{error, Reason};
 		{aborted, Reason} ->
 			{error, Reason}
+	end.
+
+-spec add_psk(Psk :: string() | binary(), Value :: non_neg_integer()) -> ok.
+%% @doc Create preshared key for guest subscriber
+add_psk(Psk, Value) when is_list(Psk) ->
+	add_psk(list_to_binary(Psk), Value);
+add_psk(Psk, Value) when is_integer(Value) ->
+	F = fun() ->
+		mnesia:write(guest, #guest{psk = Psk, value = Value}, write)
+	end,
+	case mnesia:transaction(F) of
+		{atomic, ok} ->
+			ok;
+		{aborted, Reason} ->
+			exit(Reason)
 	end.
 
 -spec log_file(FileName :: string()) -> ok.
