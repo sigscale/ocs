@@ -64,7 +64,8 @@
 %%
 init([NasIpAddress, NasIdentifier, Subscriber, AcctSessionId]) ->
 	process_flag(trap_exit, true),
-	StateData = #statedata{},
+	StateData = #statedata{nas_ip = NasIpAddress, nas_port = NasIdentifier,
+		subscriber = Subscriber, acct_session_id = AcctSessionId},
 	{ok, send_request, StateData, ?TIMEOUT}.
 
 -spec send_request(Event :: timeout | term(), StateData :: #statedata{}) ->
