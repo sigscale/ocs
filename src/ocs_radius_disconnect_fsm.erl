@@ -35,7 +35,13 @@
 %% @headerfile "include/radius.hrl"
 -include_lib("radius/include/radius.hrl").
 -include("ocs_eap_codec.hrl").
--record(statedata, {}).
+-record(statedata,
+		{id = 0 :: byte(),
+		 nas_ip :: inet:ip_address(),
+		 nas_id :: string(),
+		 subscriber :: string(),
+		 acct_session_id :: string(),
+		 secret :: string()}).
 
 -define(TIMEOUT, 30000).
 
@@ -57,9 +63,10 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([AcctSessionId, NasIpAddress, NasIdentifier]) ->
+init([NasIpAddress, NasIdentifier, Subscriber, AcctSessionId, Secret]) ->
 	process_flag(trap_exit, true),
-	StateData = #statedata{},
+	StateData = #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
+		subscriber = Subscriber, acct_session_id = AcctSessionId, secret = Secret},
 	{ok, send_request, StateData, ?TIMEOUT}.
 
 -spec send_request(Event :: timeout | term(), StateData :: #statedata{}) ->
@@ -76,8 +83,26 @@ init([AcctSessionId, NasIpAddress, NasIdentifier]) ->
 %%
 send_request(timeout, StateData)->
 	{stop, shutdown, StateData};
-send_request(_Event, StateData) ->
-	{stop, not_implemented_yet, StateData}.
+send_request(disconnect, #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
+		subscriber = Subscriber, acct_session_id = AcctSessionId, id = Id,
+		secret = SharedSecret} = StateData) ->
+	Attr0 = radius_attributes:new(),
+	Attr1 = radius_attributes:add(?NasIpAddress, NasIpAddress, Attr0),
+	Attr2 = radius_attributes:add(?NasIdentifier, NasIdentifier, Attr1),
+	Attr3 = radius_attributes:add(?UserName, Subscriber, Attr2),
+	Attr4 = radius_attributes:add(?NasPort, 3799, Attr3),
+	Attr5 = radius_attributes:add(?AcctSessionId, AcctSessionId , Attr4),
+	Attr6 = radius_attributes:add(?ReplyMessage, "You are being disconnected!Please recharge", Attr5),
+	Attributes = radius_attributes:codec(Attr6),
+	Length = size(Attributes) + 20,
+	RequestAuthenticator = crypto:hmac(md5, SharedSecret, [<<?DisconnectRequest, Id,
+			Length:16>>, <<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, Attributes]),
+	DisconRec = #radius{code = ?DisconnectRequest, id = Id,
+			authenticator = RequestAuthenticator, attributes = Attributes},
+	DisconnectRequest = radius:codec(DisconRec),
+	% Send DisconnectRequest to NAS
+	NewStateData = StateData#statedata{id = Id},
+	{next_state, receive_response, NewStateData, ?TIMEOUT}.
 
 -spec receive_response(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}

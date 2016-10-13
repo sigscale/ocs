@@ -29,8 +29,6 @@
 %% @headerfile "include/radius.hrl"
 -include_lib("radius/include/radius.hrl").
 
--define(LOGNAME, radius_acct).
-
 -record(state,
 		{dir :: string(),
 		log :: disk_log:log(),

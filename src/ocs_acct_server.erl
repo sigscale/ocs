@@ -238,15 +238,16 @@ accounting_request(Address, Port, Secret, Radius,
 			ok ->
 				case ocs:decrement_balance(Subscriber, Usage) of
 					{ok, OverUsed} when OverUsed =< 0 ->
-						case supervisor:start_child(DiscSup, [[AcctSessionId,
-								NasIpAddressV, NasIdentifierV], []]) of
-							{ok, _Child} ->
+						case supervisor:start_child(DiscSup, [[NasIpAddressV, NasIdentifierV,
+								Subscriber, AcctSessionId, Secret], []]) of
+							{ok, Child} ->
+								gen_fsm:send_event(Child, disconnect),
 								{reply, {ok, wait}, State};
 							{error, Reason} ->
-								error_logger:error_report(["Faild to start disconnect",
+								error_logger:error_report(["Failed to initiate session disconnect function",
 									{error, Reason}])
 						end;
-					{ok, Balance} ->
+					{ok, _SufficientBalance} ->
 						ok
 				end,
 				{reply, {ok, response(Id, Authenticator, Secret, Attributes)},
