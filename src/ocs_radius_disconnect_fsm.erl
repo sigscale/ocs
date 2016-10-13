@@ -38,7 +38,7 @@
 -record(statedata,
 		{id :: byte(),
 		 nas_ip :: inet:ip_address(),
-		 nas_port :: pos_integer(),
+		 nas_id :: string(),
 		 subscriber :: string(),
 		 acct_session_id :: string()}).
 
@@ -64,7 +64,7 @@
 %%
 init([NasIpAddress, NasIdentifier, Subscriber, AcctSessionId]) ->
 	process_flag(trap_exit, true),
-	StateData = #statedata{nas_ip = NasIpAddress, nas_port = NasIdentifier,
+	StateData = #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
 		subscriber = Subscriber, acct_session_id = AcctSessionId},
 	{ok, send_request, StateData, ?TIMEOUT}.
 
