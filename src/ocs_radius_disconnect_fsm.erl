@@ -103,6 +103,7 @@ send_request(disconnect, #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifie
 	DisconnectRequest = radius:codec(DisconRec),
 	case gen_udp:open(0) of
 		{ok, Socket} ->
+			{ok, Port} = application:get_env(ocs, radius_disconnect_port),
 			case gen_udp:send(Socket, NasIpAddress, 3799, DisconnectRequest)of
 				ok ->
 					NewStateData = StateData#statedata{id = Id, socket = Socket},
