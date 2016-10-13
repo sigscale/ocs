@@ -26,7 +26,7 @@ e.g &#058;
 	2> mnesia:start().
 	ok
 	3> ocs_app:install([node()]).
-	{ok,[radius_client, subscriber]}
+	{ok,[radius_client, subscriber, guest]}
 	ok
 	'''
 
@@ -52,6 +52,10 @@ ports.
 		<tr id="mt">
 			<td id="mt">subscriber</td>
 			<td id="mt">Subscriber data</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">guest</td>
+			<td id="mt">PSK data</td>
 		</tr>
 	</tbody>
 </table>
