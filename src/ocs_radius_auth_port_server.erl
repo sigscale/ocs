@@ -37,6 +37,7 @@
 		{auth_port_sup :: pid(),
 		pwd_sup :: pid(),
 		ttls_sup :: pid(),
+		auth_type :: psk | eap_pwd | eap_ttls,
 		simple_auth_sup :: pid(),
 		socket :: inet:socket(),
 		address :: inet:ip_address(),
@@ -195,19 +196,28 @@ access_request(Address, Port, Secret,
 		case gb_trees:lookup(SessionID, Handlers) of
 			none ->	
 				try
-					NewState = start_fsm(AccessRequest, RadiusFsm,
-							Address, Port, Secret, SessionID, State),
-					{reply, {ok, wait}, NewState}
+					case {radius_attributes:find(?UserName, Attributes),
+							radius_attributes:find(?UserPassword, Attributes)} of
+						{{ok, _}, {ok, _}} ->
+							NewState = start_fsm(AccessRequest, RadiusFsm,
+										Address, Port, Secret, SessionID, State#state{auth_type = psk}),
+									{reply, {ok, wait}, NewState};
+						{_, {error, not_found}} ->
+							NewState = start_fsm(AccessRequest, RadiusFsm,
+										Address, Port, Secret, SessionID, State#state{auth_type = eap_pwd}),
+							{reply, {ok, wait}, NewState}
+					end
 				catch
 					_:_ ->
 						{reply, {error, ignore}, State}
 				end;
-			{value, EapFsm} ->
-				gen_fsm:send_event(EapFsm, {AccessRequest, RadiusFsm}),
+			{value, Fsm} ->
+				gen_fsm:send_event(Fsm, {AccessRequest, RadiusFsm}),
 				{reply, {ok, wait}, State}
 		end
 	catch
 		_:_ ->
+
 			{reply, {error, ignore}, State}
 	end.
 
@@ -218,19 +228,26 @@ access_request(Address, Port, Secret,
 %% @doc Start a new {@link //ocs/ocs_eap_pwd_fsm. ocs_eap_pwd_fsm} session handler.
 %% @hidden
 start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret, SessionID,
-		#state{pwd_sup = Sup, handlers = Handlers} = State) ->
+		#state{auth_type = eap_pwd, pwd_sup = Sup} = State) ->
+		start_fsm1(AccessRequest, RadiusFsm, Address, Port, Secret, SessionID, Sup, State);
+start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret, SessionID,
+		#state{auth_type = psk, simple_auth_sup = Sup} = State) ->
+		start_fsm1(AccessRequest, RadiusFsm, Address, Port, Secret, SessionID, Sup, State).
+%% @hidden
+start_fsm1(AccessRequest, RadiusFsm, Address, Port, Secret, SessionID, Sup,
+		#state{handlers = Handlers} = State) ->
 	StartArgs = [Address, Port, Secret, SessionID],
-	ChildSpec = [StartArgs, []],
+	ChildSpec = [StartArgs, [{debug, [trace]}]],
 	case supervisor:start_child(Sup, ChildSpec) of
-		{ok, EapFsm} ->
-			link(EapFsm),
-			NewHandlers = gb_trees:insert(SessionID, EapFsm, Handlers),
-			gen_fsm:send_event(EapFsm, {AccessRequest, RadiusFsm}),
+		{ok, Fsm} ->
+			link(Fsm),
+			NewHandlers = gb_trees:insert(SessionID, Fsm, Handlers),
+			gen_fsm:send_event(Fsm, {AccessRequest, RadiusFsm}),
 			State#state{handlers = NewHandlers};
 		{error, Reason} ->
 			error_logger:error_report(["Error starting EAP session handler",
 					{error, Reason}, {supervisor, Sup}, {address, Address},
 					{port, Port}, {session, SessionID}]),
 			State
-	end.
 
+	end.
