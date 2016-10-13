@@ -68,7 +68,7 @@ init([NasIpAddress, NasIdentifier, Subscriber, AcctSessionId, Secret]) ->
 	process_flag(trap_exit, true),
 	StateData = #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
 		subscriber = Subscriber, acct_session_id = AcctSessionId, secret = Secret},
-	{ok, send_request, StateData, ?TIMEOUT}.
+	{ok, send_request, StateData, 0}.
 
 -spec send_request(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
@@ -82,9 +82,7 @@ init([NasIpAddress, NasIdentifier, Subscriber, AcctSessionId, Secret]) ->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-send_request(timeout, StateData)->
-	{stop, shutdown, StateData};
-send_request(disconnect, #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
+send_request(timeout, #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
 		subscriber = Subscriber, acct_session_id = AcctSessionId, id = Id,
 		secret = SharedSecret} = StateData) ->
 	Attr0 = radius_attributes:new(),
