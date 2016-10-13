@@ -77,7 +77,7 @@ find_client(Address) when is_tuple(Address) ->
 			{error, Reason}
 	end.
 
--spec add_subscriber(Subscriber :: string(), Password :: string() | binary(),
+-spec add_subscriber(Subscriber :: string() | binary(), Password :: string() | binary(),
 		Attributes :: radius:attributes() | binary()) ->
 	ok | {error, Reason :: term()}.
 %% @equiv add_subscriber(Subscriber, Password, Attributes, 0)
