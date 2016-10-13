@@ -239,7 +239,7 @@ accounting_request(Address, Port, Secret, Radius,
 				case ocs:decrement_balance(Subscriber, Usage) of
 					{ok, OverUsed} when OverUsed =< 0 ->
 						case supervisor:start_child(DiscSup, [[NasIpAddressV, NasIdentifierV,
-								Subscriber, AcctSessionId], []]) of
+								Subscriber, AcctSessionId, Secret], []]) of
 							{ok, Child} ->
 								gen_fsm:send_event(Child, disconnect),
 								{reply, {ok, wait}, State};
