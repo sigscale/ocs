@@ -37,6 +37,7 @@
 		{auth_port_sup :: pid(),
 		pwd_sup :: pid(),
 		ttls_sup :: pid(),
+		simple_auth_sup :: pid(),
 		socket :: inet:socket(),
 		address :: inet:ip_address(),
 		port :: non_neg_integer(),
@@ -116,7 +117,8 @@ handle_info(timeout, #state{auth_port_sup = AuthPortSup} = State) ->
 	Children = supervisor:which_children(AuthPortSup),
 	{_, PwdSup, _, _} = lists:keyfind(ocs_eap_pwd_fsm_sup, 1, Children),
 	{_, TtlsSup, _, _} = lists:keyfind(ocs_eap_ttls_fsm_sup, 1, Children),
-	{noreply, State#state{pwd_sup = PwdSup, ttls_sup = TtlsSup}};
+	{_, SimpleAuthSup, _, _} = lists:keyfind(ocs_simple_auth_fsm_sup, 1, Children),
+	{noreply, State#state{pwd_sup = PwdSup, ttls_sup = TtlsSup, simple_auth_sup = SimpleAuthSup}};
 handle_info({'EXIT', _Pid, {shutdown, SessionID}},
 		#state{handlers = Handlers} = State) ->
 	NewHandlers = gb_trees:delete(SessionID, Handlers),
