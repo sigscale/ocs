@@ -100,9 +100,18 @@ send_request(disconnect, #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifie
 	DisconRec = #radius{code = ?DisconnectRequest, id = Id,
 			authenticator = RequestAuthenticator, attributes = Attributes},
 	DisconnectRequest = radius:codec(DisconRec),
-	% Send DisconnectRequest to NAS
-	NewStateData = StateData#statedata{id = Id},
-	{next_state, receive_response, NewStateData, ?TIMEOUT}.
+	case gen_udp:open(0) of
+		{ok, Socket} ->
+			case gen_udp:send(Socket, NasIpAddress, 3799, DisconnectRequest)of
+				ok ->
+					NewStateData = StateData#statedata{id = Id},
+					{next_state, receive_response, NewStateData, ?TIMEOUT};
+				{error, _Reason} ->
+					{next_state, send_response, StateData, ?TIMEOUT}
+			end;
+		{error, Reason} ->
+				{next_state, send_response, StateData, ?TIMEOUT}
+	end.
 
 -spec receive_response(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
