@@ -110,7 +110,7 @@ send_request(disconnect, #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifie
 				{error, _Reason} ->
 					{next_state, send_response, StateData, ?TIMEOUT}
 			end;
-		{error, Reason} ->
+		{error, _Reason} ->
 				{next_state, send_response, StateData, ?TIMEOUT}
 	end.
 
@@ -187,8 +187,10 @@ handle_info(_Info, StateName, StateData) ->
 %% @see //stdlib/gen_fsm:terminate/3
 %% @private
 %%
-terminate(_Reason, _StateName, _StateData) ->
-	ok.
+terminate(_Reason, _StateName, #statedata{socket = undefined} = _StateData) ->
+	ok;
+terminate(_Reason, _StateName, #statedata{socket = Socket} = _StateData) ->
+	gen_udp:close(Socket).
 
 -spec code_change(OldVsn :: (Vsn :: term() | {down, Vsn :: term()}),
 		StateName :: atom(), StateData :: #statedata{}, Extra :: term()) ->
