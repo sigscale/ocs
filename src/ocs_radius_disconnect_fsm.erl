@@ -104,7 +104,7 @@ send_request(disconnect, #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifie
 	case gen_udp:open(0) of
 		{ok, Socket} ->
 			{ok, Port} = application:get_env(ocs, radius_disconnect_port),
-			case gen_udp:send(Socket, NasIpAddress, 3799, DisconnectRequest)of
+			case gen_udp:send(Socket, NasIpAddress, Port, DisconnectRequest)of
 				ok ->
 					NewStateData = StateData#statedata{id = Id, socket = Socket},
 					{next_state, receive_response, NewStateData, ?TIMEOUT};
