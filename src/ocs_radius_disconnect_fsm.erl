@@ -41,7 +41,8 @@
 		 nas_id :: string(),
 		 subscriber :: string(),
 		 acct_session_id :: string(),
-		 secret :: string()}).
+		 secret :: string(),
+		 socket :: inet:socket()}).
 
 -define(TIMEOUT, 30000).
 
@@ -104,7 +105,7 @@ send_request(disconnect, #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifie
 		{ok, Socket} ->
 			case gen_udp:send(Socket, NasIpAddress, 3799, DisconnectRequest)of
 				ok ->
-					NewStateData = StateData#statedata{id = Id},
+					NewStateData = StateData#statedata{id = Id, socket = Socket},
 					{next_state, receive_response, NewStateData, ?TIMEOUT};
 				{error, _Reason} ->
 					{next_state, send_response, StateData, ?TIMEOUT}
