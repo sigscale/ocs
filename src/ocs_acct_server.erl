@@ -243,7 +243,7 @@ accounting_request(Address, Port, Secret, Radius,
 							{ok, _Child} ->
 								{reply, {ok, wait}, State};
 							{error, Reason} ->
-								error_logger:error_report(["Faild to start disconnect",
+								error_logger:error_report(["Failed to initiate session disconnect function",
 									{error, Reason}])
 						end;
 					{ok, _SufficientBalance} ->
