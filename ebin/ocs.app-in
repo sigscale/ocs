@@ -38,5 +38,6 @@
 				{radius_auth_port, 1812},
 				{radius_acct_addr, {127,0,0,1}},
 				{radius_acct_port, 1813},
+				{radius_disconnect_port, 3799},
 				{accounting_dir, "log"}]},
 		{mod, {ocs_app, []}}]}.

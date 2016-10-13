@@ -41,7 +41,8 @@
 		 nas_id :: string(),
 		 subscriber :: string(),
 		 acct_session_id :: string(),
-		 secret :: string()}).
+		 secret :: string(),
+		 socket :: inet:socket()}).
 
 -define(TIMEOUT, 30000).
 
@@ -100,9 +101,19 @@ send_request(disconnect, #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifie
 	DisconRec = #radius{code = ?DisconnectRequest, id = Id,
 			authenticator = RequestAuthenticator, attributes = Attributes},
 	DisconnectRequest = radius:codec(DisconRec),
-	% Send DisconnectRequest to NAS
-	NewStateData = StateData#statedata{id = Id},
-	{next_state, receive_response, NewStateData, ?TIMEOUT}.
+	case gen_udp:open(0) of
+		{ok, Socket} ->
+			{ok, Port} = application:get_env(ocs, radius_disconnect_port),
+			case gen_udp:send(Socket, NasIpAddress, Port, DisconnectRequest)of
+				ok ->
+					NewStateData = StateData#statedata{id = Id, socket = Socket},
+					{next_state, receive_response, NewStateData, ?TIMEOUT};
+				{error, _Reason} ->
+					{next_state, send_response, StateData, ?TIMEOUT}
+			end;
+		{error, _Reason} ->
+				{next_state, send_response, StateData, ?TIMEOUT}
+	end.
 
 -spec receive_response(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
@@ -177,8 +188,10 @@ handle_info(_Info, StateName, StateData) ->
 %% @see //stdlib/gen_fsm:terminate/3
 %% @private
 %%
-terminate(_Reason, _StateName, _StateData) ->
-	ok.
+terminate(_Reason, _StateName, #statedata{socket = undefined} = _StateData) ->
+	ok;
+terminate(_Reason, _StateName, #statedata{socket = Socket} = _StateData) ->
+	gen_udp:close(Socket).
 
 -spec code_change(OldVsn :: (Vsn :: term() | {down, Vsn :: term()}),
 		StateName :: atom(), StateData :: #statedata{}, Extra :: term()) ->
