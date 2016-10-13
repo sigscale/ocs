@@ -35,7 +35,7 @@
 %% @headerfile "include/radius.hrl"
 -include_lib("radius/include/radius.hrl").
 -include("ocs_eap_codec.hrl").
--record(statedata, {}).
+-record(statedata, {id :: byte()}).
 
 -define(TIMEOUT, 30000).
 
