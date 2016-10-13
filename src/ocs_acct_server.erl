@@ -246,7 +246,7 @@ accounting_request(Address, Port, Secret, Radius,
 								error_logger:error_report(["Faild to start disconnect",
 									{error, Reason}])
 						end;
-					{ok, Balance} ->
+					{ok, _SufficientBalance} ->
 						ok
 				end,
 				{reply, {ok, response(Id, Authenticator, Secret, Attributes)},
