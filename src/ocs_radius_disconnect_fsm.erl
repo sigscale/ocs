@@ -114,7 +114,7 @@ send_request(timeout, #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
 	DisconRec = #radius{code = ?DisconnectRequest, id = Id,
 			authenticator = RequestAuthenticator, attributes = AttributesList2},
 	DisconnectRequest = radius:codec(DisconRec),
-	case gen_udp:open(0) of
+	case gen_udp:open(0, [{active, once}, binary]) of
 		{ok, Socket} ->
 			case gen_udp:send(Socket, NasIpAddress, Port, DisconnectRequest)of
 				ok ->
@@ -146,7 +146,9 @@ receive_response({udp, _, _, _, Packet}, #statedata{id = Id} = StateData) ->
 		#radius{code = ?DisconnectAck , id = Id} ->
 			{next_state, receive_response, StateData, 0};
 		#radius{code = ?DisconnectNak , id = Id} ->
-			{next_state, send_request, StateData, 0}
+			NewId = Id + 1,
+			NewStateData = StateData#statedata{id = NewId},
+			{next_state, send_request, NewStateData, 0}
 	end.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
