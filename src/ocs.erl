@@ -27,8 +27,6 @@
 -export([log_file/1]).
 -export([generate_password/0]).
 -export([start/3]).
-%% export the ocs private API
--export([add_guest_subscriber/3]).
 
 -include("ocs.hrl").
 -define(LOGNAME, radius_acct).
@@ -354,46 +352,3 @@ file_chunk(Log, IODevice, Continuation) ->
 			file_chunk(Log, IODevice, Continuation2)
 	end.
 
--spec add_guest_subscriber(Subscriber :: string() | binary(),
-		Password :: string() | binary(),
-		Attributes :: radius:attributes() | binary()) ->
-		ok | {error, Reason :: bad_psk | term()}.
-%% @doc Create an entry in the subscriber table.
-%%
-%% 	`Password' and `Balance' lookup from the guest table. An optional list of
-%% 	RADIUS `Attributes', to be returned in an `AccessRequest' response,
-%% 	may be provided.
-%%
-%% @private
-add_guest_subscriber(Subscriber, Password, Attributes)
-		when is_list(Subscriber) ->
-	add_guest_subscriber(list_to_binary(Subscriber), Password, Attributes);
-add_guest_subscriber(Subscriber, Password, Attributes)
-		when is_list(Password) ->
-	add_guest_subscriber(Subscriber, list_to_binary(Password), Attributes);
-add_guest_subscriber(Subscriber, Password, Attributes)
-		when is_list(Attributes) ->
-	Bin = radius_attributes:codec(Attributes),
-	add_guest_subscriber(Subscriber, Password, Bin);
-add_guest_subscriber(Subscriber, Password, Attributes)
-		when is_binary(Subscriber), is_binary(Password),
-		is_binary(Attributes) ->
-	F2 = fun() ->
-		case mnesia:read(guest,#guest{psk = Password}, write) of
-			[#guest{value = Balance}] ->
-				mnesia:delete(guest, Password, write),
-				NewSubscriber = #subscriber{name =  Subscriber, password = Password,
-						attributes = Attributes, balance = Balance},
-				mnesia:write(NewSubscriber);
-			[] ->
-				throw(bad_psk)
-		end
-	end,
-	case mnesia:transaction(F2) of
-		{atomic, _} ->
-			ok;
-		{aborted, {throw, Reason}} ->
-			{error, Reason};
-		{aborted, Reason} ->
-			{error, Reason}
-	end.
