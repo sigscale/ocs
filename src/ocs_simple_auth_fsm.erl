@@ -91,9 +91,10 @@ send_response({#radius{code = ?AccessRequest, id = RadiusID,
 	EncryptedPassword = radius_attributes:fetch(?UserPassword, Attributes),
 	SecretS = binary_to_list(Secret),
 	Password = radius_attributes:unhide(SecretS, RequestAuthenticator, EncryptedPassword),
+	BinPassword = list_to_binary(Password),
 	NewStateData = StateData#statedata{subscriber = Subscriber},
 	case ocs:find_subscriber(Subscriber) of
-		{ok, Password, _, _} ->
+		{ok, BinPassword, _, _} ->
 			send_response(?AccessAccept, RadiusID, Attributes, RequestAuthenticator,
 						Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, NewStateData };
