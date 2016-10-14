@@ -367,14 +367,14 @@ file_chunk(Log, IODevice, Continuation) ->
 %% @private
 add_guest_subscriber(Subscriber, Password, Attributes)
 		when is_list(Subscriber) ->
-	add_subscriber(list_to_binary(Subscriber), Password, Attributes);
+	add_guest_subscriber(list_to_binary(Subscriber), Password, Attributes);
 add_guest_subscriber(Subscriber, Password, Attributes)
 		when is_list(Password) ->
-	add_subscriber(Subscriber, list_to_binary(Password), Attributes);
+	add_guest_subscriber(Subscriber, list_to_binary(Password), Attributes);
 add_guest_subscriber(Subscriber, Password, Attributes)
 		when is_list(Attributes) ->
 	Bin = radius_attributes:codec(Attributes),
-	add_subscriber(Subscriber, Password, Bin);
+	add_guest_subscriber(Subscriber, Password, Bin);
 add_guest_subscriber(Subscriber, Password, Attributes)
 		when is_binary(Subscriber), is_binary(Password),
 		is_binary(Attributes) ->
@@ -392,6 +392,8 @@ add_guest_subscriber(Subscriber, Password, Attributes)
 	case mnesia:transaction(F2) of
 		{atomic, _} ->
 			ok;
+		{aborted, {throw, Reason}} ->
+			{error, Reason};
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
