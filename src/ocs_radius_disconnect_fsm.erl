@@ -141,7 +141,8 @@ send_request(timeout, #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
 %%
 receive_response(timeout, StateData)->
 	{stop, shutdown, StateData};
-receive_response({udp, _, _, _, Packet}, #statedata{id = Id} = StateData) ->
+receive_response({udp, Socket, _, _, Packet}, #statedata{id = Id,
+		socket = Socket} = StateData) ->
 	case radius:codec(Packet) of
 		#radius{code = ?DisconnectAck , id = Id} ->
 			{next_state, receive_response, StateData, 0};
