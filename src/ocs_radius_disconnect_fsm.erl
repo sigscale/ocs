@@ -45,6 +45,7 @@
 		 socket :: inet:socket()}).
 
 -define(TIMEOUT, 30000).
+-define(RETRY, 5000).
 
 %%----------------------------------------------------------------------
 %%  The ocs_radius_disconnect_fsm API
@@ -119,7 +120,7 @@ send_request(timeout, #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
 			case gen_udp:send(Socket, NasIpAddress, Port, DisconnectRequest)of
 				ok ->
 					NewStateData = StateData#statedata{id = Id, socket = Socket},
-					{next_state, receive_response, NewStateData, ?TIMEOUT};
+					{next_state, receive_response, NewStateData, ?RETRY};
 				{error, _Reason} ->
 					{next_state, send_request, StateData, ?TIMEOUT}
 			end;
