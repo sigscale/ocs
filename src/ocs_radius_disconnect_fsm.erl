@@ -141,8 +141,13 @@ send_request(timeout, #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
 %%
 receive_response(timeout, StateData)->
 	{stop, shutdown, StateData};
-receive_response(_Event, StateData) ->
-	{stop, not_implemented_yet, StateData}.
+receive_response({udp, _, _, _, Packet}, #statedata{id = Id} = StateData) ->
+	case radius:codec(Packet) of
+		#radius{code = ?DisconnectAck , id = Id} ->
+			{next_state, receive_response, StateData, 0};
+		#radius{code = ?DisconnectNak , id = Id} ->
+			{next_state, send_request, StateData, 0}
+	end.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
 		StateData :: #statedata{}) ->
