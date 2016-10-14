@@ -88,7 +88,9 @@ send_response({#radius{code = ?AccessRequest, id = RadiusID,
 		attributes = Attributes}, RadiusFsm},
 		#statedata{session_id = SessionID, secret = Secret} = StateData) ->
 	Subscriber = radius_attributes:fetch(?UserName, Attributes),
-	Password = radius_attributes:fetch(?UserPassword, Attributes),
+	EncryptedPassword = radius_attributes:fetch(?UserPassword, Attributes),
+	SecretS = binary_to_list(Secret),
+	Password = radius_attributes:unhide(SecretS, RequestAuthenticator, EncryptedPassword),
 	NewStateData = StateData#statedata{subscriber = Subscriber},
 	case ocs:find_subscriber(Subscriber) of
 		{ok, Password, _, _} ->
@@ -189,7 +191,6 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %% @hidden
 send_response(RadiusCode, RadiusID, RadiusAttributes,
 		RequestAuthenticator, Secret, RadiusFsm) ->
-erlang:display({radiuscode, RadiusCode}),
 	AttributeList1 = radius_attributes:store(?MessageAuthenticator,
 		<<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, RadiusAttributes),
 	Attributes1 = radius_attributes:codec(AttributeList1),
