@@ -88,27 +88,16 @@ send_response({#radius{code = ?AccessRequest, id = RadiusID,
 		attributes = Attributes}, RadiusFsm},
 		#statedata{session_id = SessionID, secret = Secret} = StateData) ->
 	Subscriber = radius_attributes:fetch(?UserName, Attributes),
-	EncryptedPassword = radius_attributes:fetch(?UserPassword, Attributes),
-	SecretS = binary_to_list(Secret),
-	Password = radius_attributes:unhide(SecretS, RequestAuthenticator, EncryptedPassword),
-	BinPassword = list_to_binary(Password),
 	NewStateData = StateData#statedata{subscriber = Subscriber},
 	case ocs:find_subscriber(Subscriber) of
-		{ok, BinPassword, _, _} ->
-			send_response(?AccessAccept, RadiusID, Attributes, RequestAuthenticator,
+		{ok, [], Attr, _} ->
+			send_response(?AccessAccept, RadiusID, Attr, RequestAuthenticator,
 						Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, NewStateData };
 		{error, not_found} ->
-			case ocs:add_guest_subscriber(Subscriber, Password, Attributes) of
-				ok ->
-					send_response(?AccessAccept, RadiusID, Attributes, RequestAuthenticator,
-							Secret, RadiusFsm),
-					{stop, {shutdown, SessionID}, NewStateData };
-				{error, _} ->
-					send_response(?AccessReject, RadiusID, Attributes, RequestAuthenticator,
-							Secret, RadiusFsm),
-					{stop, {shutdown, SessionID}, NewStateData }
-			end
+			send_response(?AccessReject, RadiusID, Attributes, RequestAuthenticator,
+					Secret, RadiusFsm),
+			{stop, {shutdown, SessionID}, NewStateData }
 	end.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
@@ -208,3 +197,4 @@ send_response(RadiusCode, RadiusID, RadiusAttributes,
 	ResponsePacket = radius:codec(Response),
 	radius:response(RadiusFsm, {response, ResponsePacket}),
 	ok.
+
