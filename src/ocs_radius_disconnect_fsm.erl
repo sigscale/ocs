@@ -121,10 +121,10 @@ send_request(timeout, #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
 					NewStateData = StateData#statedata{id = Id, socket = Socket},
 					{next_state, receive_response, NewStateData, ?TIMEOUT};
 				{error, _Reason} ->
-					{next_state, send_response, StateData, ?TIMEOUT}
+					{next_state, send_request, StateData, ?TIMEOUT}
 			end;
 		{error, _Reason} ->
-				{next_state, send_response, StateData, ?TIMEOUT}
+				{next_state, send_request, StateData, ?TIMEOUT}
 	end.
 
 -spec receive_response(Event :: timeout | term(), StateData :: #statedata{}) ->
