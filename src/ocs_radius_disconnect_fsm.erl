@@ -141,7 +141,7 @@ send_request(timeout, #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
 %% @private
 %%
 receive_response(timeout, StateData)->
-	{stop, shutdown, StateData};
+	{next_state, send_request, StateData, 0};
 receive_response({udp, Socket, _, _, Packet}, #statedata{id = Id,
 		socket = Socket} = StateData) ->
 	case radius:codec(Packet) of
