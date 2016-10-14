@@ -42,7 +42,8 @@
 		 subscriber :: string(),
 		 acct_session_id :: string(),
 		 secret :: string(),
-		 socket :: inet:socket()}).
+		 socket :: inet:socket(),
+		 retry_count = 0 :: integer()}).
 
 -define(TIMEOUT, 30000).
 -define(RETRY, 5000).
@@ -140,16 +141,24 @@ send_request(timeout, #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-receive_response(timeout, StateData)->
-	{next_state, send_request, StateData, 0};
+receive_response(timeout, #statedata{retry_count = Count}= StateData)
+		when Count > 5->
+	{stop, shutdown, StateData};
+receive_response(timeout, #statedata{retry_count = Count}= StateData)->
+	NewCount = Count + 1,
+	NewStateData = StateData#statedata{retry_count = NewCount},
+	{next_state, send_request, NewStateData, 0};
 receive_response({udp, Socket, _, _, Packet}, #statedata{id = Id,
-		socket = Socket} = StateData) ->
+		socket = Socket, retry_count = Count} = StateData) ->
 	case radius:codec(Packet) of
 		#radius{code = ?DisconnectAck , id = Id} ->
-			{next_state, receive_response, StateData, 0};
+			{stop, shutdown, StateData};
+		#radius{code = ?DisconnectNak , id = Id} when Count > 5 ->
+			{stop, shutdown, StateData};
 		#radius{code = ?DisconnectNak , id = Id} ->
+			NewCount = Count + 1,
 			NewId = Id + 1,
-			NewStateData = StateData#statedata{id = NewId},
+			NewStateData = StateData#statedata{id = NewId, retry_count = NewCount},
 			{next_state, send_request, NewStateData, 0}
 	end.
 
