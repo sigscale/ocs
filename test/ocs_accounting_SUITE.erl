@@ -62,6 +62,7 @@ init_per_suite(Config) ->
 %%
 end_per_suite(Config) ->
 	ok = ocs_lib:stop(),
+	ok = ocs:delete_subscriber("25252525"),
 	Config.
 
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
