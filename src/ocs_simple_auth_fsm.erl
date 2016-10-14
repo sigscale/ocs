@@ -26,7 +26,7 @@
 -export([]).
 
 %% export the ocs_simple_auth_fsm state callbacks
--export([idle/2]).
+-export([send_response/2]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
@@ -41,7 +41,8 @@
 		secret :: binary(),
 		session_id:: {NAS :: inet:ip_address() | string(),
 				Port :: string(), Peer :: string()},
-		socket :: term()}).
+		socket :: term(),
+		subscriber :: binary()}).
 
 -define(TIMEOUT, 30000).
 
@@ -80,10 +81,32 @@ init([Address, Port, Secret, SessionID] = _Args) ->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-idle(timeout, StateData)->
+send_response(timeout, StateData)->
 	{stop, shutdown, StateData};
-idle(_Event, StateData) ->
-	{stop, not_implemented_yet, StateData}.
+send_response({#radius{code = ?AccessRequest, id = RadiusID,
+		authenticator =  RequestAuthenticator,
+		attributes = Attributes}, RadiusFsm},
+		#statedata{session_id = SessionID, secret = Secret} = StateData) ->
+	Subscriber = radius_attributes:fetch(?UserName, Attributes),
+	Password = radius_attributes:fetch(?UserPassword, Attributes),
+	NewStateData = StateData#statedata{subscriber = Subscriber},
+	case ocs:find_subscriber(Subscriber) of
+		{ok, Password, _, _} ->
+			send_response(?AccessAccept, RadiusID, Attributes, RequestAuthenticator,
+						Secret, RadiusFsm),
+			{stop, {shutdown, SessionID}, NewStateData };
+		{error, not_found} ->
+			case ocs:add_guest_subscriber(Subscriber, Password, Attributes) of
+				ok ->
+					send_response(?AccessAccept, RadiusID, Attributes, RequestAuthenticator,
+							Secret, RadiusFsm),
+					{stop, {shutdown, SessionID}, NewStateData };
+				{error, _} ->
+					send_response(?AccessReject, RadiusID, Attributes, RequestAuthenticator,
+							Secret, RadiusFsm),
+					{stop, {shutdown, SessionID}, NewStateData }
+			end
+	end.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
 		StateData :: #statedata{}) ->
@@ -158,3 +181,28 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
+-spec send_response( RadiusCode :: integer(), RadiusID :: byte(),
+		RadiusAttributes :: radius_attributes:attributes(),
+		RequestAuthenticator :: binary() | [byte()], Secret :: binary(),
+		RadiusFsm :: pid()) -> ok.
+%% @doc Sends an RADIUS-Access/Challenge or Reject or Accept  packet to peer
+%% @hidden
+send_response(RadiusCode, RadiusID, RadiusAttributes,
+		RequestAuthenticator, Secret, RadiusFsm) ->
+erlang:display({radiuscode, RadiusCode}),
+	AttributeList1 = radius_attributes:store(?MessageAuthenticator,
+		<<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, RadiusAttributes),
+	Attributes1 = radius_attributes:codec(AttributeList1),
+	Length = size(Attributes1) + 20,
+	MessageAuthenticator = crypto:hmac(md5, Secret, [<<RadiusCode, RadiusID,
+			Length:16>>, RequestAuthenticator, Attributes1]),
+	AttrbuteList2 = radius_attributes:store(?MessageAuthenticator,
+			MessageAuthenticator, AttributeList1),
+	Attributes2 = radius_attributes:codec(AttrbuteList2),
+	ResponseAuthenticator = crypto:hash(md5, [<<RadiusCode, RadiusID,
+			Length:16>>, RequestAuthenticator, Attributes2, Secret]),
+	Response = #radius{code = RadiusCode, id = RadiusID,
+			authenticator = ResponseAuthenticator, attributes = Attributes2},
+	ResponsePacket = radius:codec(Response),
+	radius:response(RadiusFsm, {response, ResponsePacket}),
+	ok.
