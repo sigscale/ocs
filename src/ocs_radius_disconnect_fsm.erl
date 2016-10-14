@@ -158,11 +158,11 @@ receive_response(timeout, #statedata{socket = Socket, nas_ip = NasIp ,
 receive_response({udp, Socket, _, _, Packet}, #statedata{id = Id,
 		socket = Socket, retry_count = Count} = StateData) ->
 	case radius:codec(Packet) of
-		#radius{code = ?DisconnectAck , id = Id} ->
+		#radius{code = ?DisconnectAck, id = Id} ->
 			{stop, shutdown, StateData};
-		#radius{code = ?DisconnectNak , id = Id} when Count > 5 ->
+		#radius{code = ?DisconnectNak, id = Id} when Count > 5 ->
 			{stop, shutdown, StateData};
-		#radius{code = ?DisconnectNak , id = Id} ->
+		#radius{code = ?DisconnectNak, id = Id} ->
 			NewCount = Count + 1,
 			NewId = Id + 1,
 			NewStateData = StateData#statedata{id = NewId, retry_count = NewCount},
