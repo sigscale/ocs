@@ -68,16 +68,16 @@ init([Address, Port, Secret, SessionID] = _Args) ->
 	StateData = #statedata{address = Address, port = Port,
 		secret = Secret, session_id = SessionID},
 	process_flag(trap_exit, true),
-	{ok, idle, StateData, ?TIMEOUT}.
+	{ok, send_response, StateData, ?TIMEOUT}.
 
--spec idle(Event :: timeout | term(), StateData :: #statedata{}) ->
+-spec send_response(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
 		Timeout :: non_neg_integer() | infinity}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
 		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>idle</b> state.
+%%		gen_fsm:send_event/2} in the <b>send_response</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
