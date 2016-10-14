@@ -88,12 +88,17 @@ send_request(timeout, #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
 	{ok, Port} = application:get_env(ocs, radius_disconnect_port),
 	Attr0 = radius_attributes:new(),
 	Attr1 = radius_attributes:add(?NasIpAddress, NasIpAddress, Attr0),
-	Attr2 = radius_attributes:add(?NasIdentifier, NasIdentifier, Attr1),
-	Attr3 = radius_attributes:add(?UserName, Subscriber, Attr2),
-	Attr4 = radius_attributes:add(?NasPort, Port, Attr3),
-	Attr5 = radius_attributes:add(?AcctSessionId, AcctSessionId , Attr4),
-	Attr6 = radius_attributes:add(?ReplyMessage,
-		"You are being disconnected! Please recharge.", Attr5),
+	Attr2 = radius_attributes:add(?UserName, Subscriber, Attr1),
+	Attr3 = radius_attributes:add(?NasPort, Port, Attr2),
+	Attr4 = radius_attributes:add(?AcctSessionId, AcctSessionId , Attr3),
+	Attr5 = radius_attributes:add(?ReplyMessage,
+		"You are being disconnected! Please recharge.", Attr4),
+	Attr6 = case NasIdentifier of
+		undefined ->
+			Attr5;
+		_ ->
+			radius_attributes:add(?NasIdentifier, NasIdentifier, Attr5)
+	end,
 	AttributesList0 = radius_attributes:codec(Attr6),
 	Length = size(AttributesList0) + 20,
 	RequestAuthenticator = crypto:hmac(md5, SharedSecret, [<<?DisconnectRequest, Id,
