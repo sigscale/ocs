@@ -43,7 +43,8 @@
 		 acct_session_id :: string(),
 		 secret :: string(),
 		 socket :: inet:socket(),
-		 retry_count = 0 :: integer()}).
+		 retry_count = 0 :: integer(),
+		 request :: binary()}).
 
 -define(TIMEOUT, 30000).
 -define(RETRY, 5000).
@@ -120,7 +121,8 @@ send_request(timeout, #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
 		{ok, Socket} ->
 			case gen_udp:send(Socket, NasIpAddress, Port, DisconnectRequest)of
 				ok ->
-					NewStateData = StateData#statedata{id = Id, socket = Socket},
+					NewStateData = StateData#statedata{id = Id, socket = Socket,
+						request = DisconnectRequest},
 					{next_state, receive_response, NewStateData, ?RETRY};
 				{error, _Reason} ->
 					{next_state, send_request, StateData, ?TIMEOUT}
@@ -144,10 +146,15 @@ send_request(timeout, #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
 receive_response(timeout, #statedata{retry_count = Count}= StateData)
 		when Count > 5->
 	{stop, shutdown, StateData};
-receive_response(timeout, #statedata{retry_count = Count}= StateData)->
-	NewCount = Count + 1,
-	NewStateData = StateData#statedata{retry_count = NewCount},
-	{next_state, send_request, NewStateData, 0};
+receive_response(timeout, #statedata{socket = Socket, nas_ip = NasIp ,
+		request =  DisconnectRequest} = StateData)->
+	{ok, Port} = application:get_env(ocs, radius_disconnect_port),
+		case gen_udp:send(Socket, NasIp, Port, DisconnectRequest)of
+			ok ->
+				{next_state, receive_response, StateData, ?RETRY};
+			{error, _Reason} ->
+				{next_state, send_request, StateData, ?TIMEOUT}
+		end;
 receive_response({udp, Socket, _, _, Packet}, #statedata{id = Id,
 		socket = Socket, retry_count = Count} = StateData) ->
 	case radius:codec(Packet) of
