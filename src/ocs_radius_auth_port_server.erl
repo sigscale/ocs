@@ -237,7 +237,7 @@ start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret, SessionID,
 start_fsm1(AccessRequest, RadiusFsm, Address, Port, Secret, SessionID, Sup,
 		#state{handlers = Handlers} = State) ->
 	StartArgs = [Address, Port, Secret, SessionID],
-	ChildSpec = [StartArgs, [{debug, [trace]}]],
+	ChildSpec = [StartArgs, []],
 	case supervisor:start_child(Sup, ChildSpec) of
 		{ok, Fsm} ->
 			link(Fsm),
