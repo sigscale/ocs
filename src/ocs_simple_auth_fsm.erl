@@ -26,7 +26,7 @@
 -export([]).
 
 %% export the ocs_simple_auth_fsm state callbacks
--export([send_response/2]).
+-export([request/2]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
@@ -38,10 +38,12 @@
 -record(statedata,
 		{address :: inet:ip_address(),
 		port :: pos_integer(),
+		radius_fsm :: pid(),
 		secret :: binary(),
 		session_id:: {NAS :: inet:ip_address() | string(),
 				Port :: string(), Peer :: string()},
-		socket :: term(),
+		req_auth :: binary(),
+		req_attr :: radius_attributes:attributes(),
 		subscriber :: binary()}).
 
 -define(TIMEOUT, 30000).
@@ -64,13 +66,16 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([Address, Port, Secret, SessionID] = _Args) ->
+init([Address, Port, RadiusFsm, Secret, SessionID,
+		#radius{code = ?AccessRequest, id = ID,
+		authenticator = Authenticator, attributes = Attributes] = _Args) ->
 	StateData = #statedata{address = Address, port = Port,
-		secret = Secret, session_id = SessionID},
+		radius_fsm = RadiusFsm, secret = Secret, session_id = SessionID,
+		req_auth = Authenticator, req_attr = Attributes},
 	process_flag(trap_exit, true),
-	{ok, send_response, StateData, ?TIMEOUT}.
+	{ok, request, StateData, 0}.
 
--spec send_response(Event :: timeout | term(), StateData :: #statedata{}) ->
+-spec request(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
 		Timeout :: non_neg_integer() | infinity}
@@ -81,23 +86,45 @@ init([Address, Port, Secret, SessionID] = _Args) ->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-send_response(timeout, StateData)->
-	{stop, shutdown, StateData};
-send_response({#radius{code = ?AccessRequest, id = RadiusID,
-		authenticator =  RequestAuthenticator,
-		attributes = Attributes}, RadiusFsm},
-		#statedata{session_id = SessionID, secret = Secret} = StateData) ->
-	Subscriber = radius_attributes:fetch(?UserName, Attributes),
-	NewStateData = StateData#statedata{subscriber = Subscriber},
-	case ocs:find_subscriber(Subscriber) of
-		{ok, [], Attr, _} ->
-			send_response(?AccessAccept, RadiusID, Attr, RequestAuthenticator,
-						Secret, RadiusFsm),
-			{stop, {shutdown, SessionID}, NewStateData };
+request(timeout, #statedata{req_attr = Attributes,
+		session_id = SessionID} = StateData) ->
+	case radius_attributes:find(?UserName, Attributes) of
+		{ok, Subscriber} ->
+			request1(StateData#statedata{subscriber = Subscriber});
 		{error, not_found} ->
-			send_response(?AccessReject, RadiusID, Attributes, RequestAuthenticator,
-					Secret, RadiusFsm),
-			{stop, {shutdown, SessionID}, NewStateData }
+			response(?AccessReject, [], StateData),
+			{stop, {shutdown, SessionID}, StateData}
+	end.
+%% @hidden
+request1(#statedata{req_attr = Attributes,
+		req_auth = Authenticator, session_id = SessionID} = StateData) ->
+	case radius_attributes:find(?UserPassword, Attributes) of
+		{ok, Hidden} ->
+			Password = radius_attributes:unhide(Secret, Authenticator, Hidden),
+			request2(list_to_binary(Password), StateData);
+		{error, not_found} ->
+			response(?AccessReject, [], StateData),
+			{stop, {shutdown, SessionID}, StateData}
+	end.
+%% @hidden
+request2(Password, #statedata{subscriber = Subscriber,
+		session_id = SessionID} = StateData) ->
+	case ocs:find_subscriber(Subscriber) of
+		{ok, Password, ResponseAttributes, Balance} when Balance > 0 ->
+			response(?AccessAccept, ResponseAttributes, StateData),
+			{stop, {shutdown, SessionID}, StateData};
+		{ok, Password, _, _} ->
+			RejectAttributes = [{?RelyMessage, "Out of Credit"}],
+			response(?AccessReject, RejectAttributes, StateData),
+			{stop, {shutdown, SessionID}, StateData};
+		{ok, _, _, _} ->
+			RejectAttributes = [{?RelyMessage, "Bad Password"}],
+			response(?AccessReject, RejectAttributes, StateData),
+			{stop, {shutdown, SessionID}, StateData};
+		{error, not_found} ->
+			RejectAttributes = [{?RelyMessage, "Unknown Username"}],
+			response(?AccessReject, RejectAttributes, StateData),
+			{stop, {shutdown, SessionID}, StateData}
 	end.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
@@ -173,16 +200,17 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec send_response( RadiusCode :: integer(), RadiusID :: byte(),
-		RadiusAttributes :: radius_attributes:attributes(),
-		RequestAuthenticator :: binary() | [byte()], Secret :: binary(),
-		RadiusFsm :: pid()) -> ok.
-%% @doc Sends an RADIUS-Access/Challenge or Reject or Accept  packet to peer
+-spec response(RadiusCode :: integer(),
+		ResponseAttributes :: radius_attributes:attributes(),
+		StateData :: #statedata{}) -> ok.
+%% @doc Send a RADIUS Access-Reject or Access-Accept reply
 %% @hidden
-send_response(RadiusCode, RadiusID, RadiusAttributes,
-		RequestAuthenticator, Secret, RadiusFsm) ->
+response(RadiusCode, ResponseAttributes,
+		#statedata{id = RadiusID, req_attr = RequestAttributes,
+		req_auth = RequestAuthenticator, secret = Secret,
+		radius_fsm = RadiusFsm} = _StateData) ->
 	AttributeList1 = radius_attributes:store(?MessageAuthenticator,
-		<<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, RadiusAttributes),
+		<<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, ResponseAttributes),
 	Attributes1 = radius_attributes:codec(AttributeList1),
 	Length = size(Attributes1) + 20,
 	MessageAuthenticator = crypto:hmac(md5, Secret, [<<RadiusCode, RadiusID,
@@ -195,6 +223,5 @@ send_response(RadiusCode, RadiusID, RadiusAttributes,
 	Response = #radius{code = RadiusCode, id = RadiusID,
 			authenticator = ResponseAuthenticator, attributes = Attributes2},
 	ResponsePacket = radius:codec(Response),
-	radius:response(RadiusFsm, {response, ResponsePacket}),
-	ok.
+	radius:response(RadiusFsm, {response, ResponsePacket}).
 
