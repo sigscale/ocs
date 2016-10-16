@@ -44,11 +44,13 @@ overview.edoc: overview.edoc-in
 			"'$(PACKAGE_NAME)'" "'$(top_builddir)'" \
 			'[{sort_functions,false},{private,true},{todo,true},{source_path,["$(top_srcdir)/src"]},{includes,["$(ERLANG_LIB_DIR_radius)"]},{subpackages,false},{def,{docsrc,"$(top_srcdir)/doc/{@?}"}},{stylesheet_file, "$(top_srcdir)/doc/stylesheet.css"}]'
 	for i in `ls *.html`; do \
-			sed -i -e 's!erlang logo!sigscale logo!' $$i; \
-			sed -i -e 's!href=\"http://www.erlang.org/\"!href=\"http://www.sigscale.org/\"!' $$i; \
-			sed -i -e 's!erlang.png!sigscale-logo.png!' $$i; \
+			sed -e 's!erlang logo!sigscale logo!' \
+					-e 's!href=\"http://www.erlang.org/\"!href=\"http://www.sigscale.org/\"!' \
+					-e 's!erlang.png!sigscale-logo.png!' $$i > $$i.tmp; \
+			mv $$i.tmp $$i; \
 			cp $(top_srcdir)/doc/sigscale-logo.png .; \
-			cp $(top_srcdir)/doc/supervision.png .; done
+			cp $(top_srcdir)/doc/supervision.png .;
+	done
 
 CLEANFILES = overview.edoc edoc-info index.html \
 		modules-frame.html overview-summary.html packages-frame.html \
