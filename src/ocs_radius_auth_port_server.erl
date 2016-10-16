@@ -172,7 +172,7 @@ code_change(_OldVsn, State, _Extra) ->
 		From :: {Pid :: pid(), Tag :: term()}, State :: #state{}) ->
 	{reply, {ok, wait}, NewState :: #state{}}
 			| {reply, {error, ignore}, NewState :: #state{}}.
-%% @doc Handle a received RADIUS Access Request packet.
+%% @doc Handle a received RADIUS Access-Request packet.
 %% @private
 access_request(Address, Port, Secret,
 		#radius{attributes = Attributes} = AccessRequest,
@@ -189,7 +189,12 @@ access_request(Address, Port, Secret,
 			{ok, NP} ->
 				NP;
 			{error, not_found} ->
-				radius_attributes:fetch(?NasPortType, Attributes)
+				case radius_attributes:find(?NasPortType, Attributes) of
+					{ok NasPortType} ->
+						NasPortType;
+					{error, not_found} ->
+						undefined
+				end
 		end,
 		Peer = radius_attributes:fetch(?CallingStationId, Attributes),
 		SessionID = {NAS, NasPort, Peer},
