@@ -22,6 +22,3 @@
 %% define subscriber table entries record
 -record(subscriber, {name, password, attributes, balance}).
 
-%% define guest table entries record
--record(guest, {psk, value}).
-
