@@ -89,7 +89,8 @@ init([Address, Port, RadiusFsm, Secret, SessionID,
 		#radius{code = ?AccessRequest, id = ID,
 		authenticator = Authenticator, attributes = Attributes}] = _Args) ->
 	StateData = #statedata{address = Address, port = Port,
-			radius_id = ID, secret = Secret, session_id = SessionID,
+			radius_fsm = RadiusFsm, radius_id = ID,
+			secret = Secret, session_id = SessionID,
 			req_auth = Authenticator, req_attr = Attributes},
 	process_flag(trap_exit, true),
 	{ok, request, StateData, 0}.
@@ -104,7 +105,7 @@ init([Address, Port, RadiusFsm, Secret, SessionID,
 %%		gen_fsm:send_event/2} in the <b>eap_start</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
-eap_start(timeout, #statedata{radius_fsm = RadiusFsm, id = RadiusID,
+eap_start(timeout, #statedata{radius_fsm = RadiusFsm, radius_id = RadiusID,
 		req_auth = RequestAuthenticator, req_attr = Attributes,
 		eap_id = EapID, session_id = SessionID, secret = Secret,
 		group_desc = GroupDesc, rand_func = RandFunc, prf = PRF} = StateData) ->

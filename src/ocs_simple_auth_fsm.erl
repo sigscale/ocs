@@ -42,6 +42,7 @@
 		secret :: binary(),
 		session_id:: {NAS :: inet:ip_address() | string(),
 				Port :: string(), Peer :: string()},
+		radius_id :: byte(),
 		req_auth :: binary(),
 		req_attr :: radius_attributes:attributes(),
 		subscriber :: binary()}).
@@ -68,10 +69,10 @@
 %%
 init([Address, Port, RadiusFsm, Secret, SessionID,
 		#radius{code = ?AccessRequest, id = ID,
-		authenticator = Authenticator, attributes = Attributes] = _Args) ->
+		authenticator = Authenticator, attributes = Attributes}] = _Args) ->
 	StateData = #statedata{address = Address, port = Port,
 		radius_fsm = RadiusFsm, secret = Secret, session_id = SessionID,
-		req_auth = Authenticator, req_attr = Attributes},
+		radius_id = ID, req_auth = Authenticator, req_attr = Attributes},
 	process_flag(trap_exit, true),
 	{ok, request, StateData, 0}.
 
@@ -96,8 +97,8 @@ request(timeout, #statedata{req_attr = Attributes,
 			{stop, {shutdown, SessionID}, StateData}
 	end.
 %% @hidden
-request1(#statedata{req_attr = Attributes,
-		req_auth = Authenticator, session_id = SessionID} = StateData) ->
+request1(#statedata{req_attr = Attributes, req_auth = Authenticator,
+		secret = Secret, session_id = SessionID} = StateData) ->
 	case radius_attributes:find(?UserPassword, Attributes) of
 		{ok, Hidden} ->
 			Password = radius_attributes:unhide(Secret, Authenticator, Hidden),
@@ -114,15 +115,15 @@ request2(Password, #statedata{subscriber = Subscriber,
 			response(?AccessAccept, ResponseAttributes, StateData),
 			{stop, {shutdown, SessionID}, StateData};
 		{ok, Password, _, _} ->
-			RejectAttributes = [{?RelyMessage, "Out of Credit"}],
+			RejectAttributes = [{?ReplyMessage, "Out of Credit"}],
 			response(?AccessReject, RejectAttributes, StateData),
 			{stop, {shutdown, SessionID}, StateData};
 		{ok, _, _, _} ->
-			RejectAttributes = [{?RelyMessage, "Bad Password"}],
+			RejectAttributes = [{?ReplyMessage, "Bad Password"}],
 			response(?AccessReject, RejectAttributes, StateData),
 			{stop, {shutdown, SessionID}, StateData};
 		{error, not_found} ->
-			RejectAttributes = [{?RelyMessage, "Unknown Username"}],
+			RejectAttributes = [{?ReplyMessage, "Unknown Username"}],
 			response(?AccessReject, RejectAttributes, StateData),
 			{stop, {shutdown, SessionID}, StateData}
 	end.
@@ -206,9 +207,8 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %% @doc Send a RADIUS Access-Reject or Access-Accept reply
 %% @hidden
 response(RadiusCode, ResponseAttributes,
-		#statedata{id = RadiusID, req_attr = RequestAttributes,
-		req_auth = RequestAuthenticator, secret = Secret,
-		radius_fsm = RadiusFsm} = _StateData) ->
+		#statedata{radius_id = RadiusID, req_auth = RequestAuthenticator,
+		secret = Secret, radius_fsm = RadiusFsm} = _StateData) ->
 	AttributeList1 = radius_attributes:store(?MessageAuthenticator,
 		<<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, ResponseAttributes),
 	Attributes1 = radius_attributes:codec(AttributeList1),

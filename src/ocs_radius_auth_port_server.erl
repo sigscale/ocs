@@ -187,7 +187,7 @@ access_request(Address, Port, Secret,
 				NP;
 			{error, not_found} ->
 				case radius_attributes:find(?NasPortType, Attributes) of
-					{ok NasPortType} ->
+					{ok, NasPortType} ->
 						NasPortType;
 					{error, not_found} ->
 						undefined
@@ -209,7 +209,7 @@ access_request(Address, Port, Secret,
 						Sup = State#state.simple_auth_sup,
 						NewState = start_fsm(AccessRequest, RadiusFsm,
 								Address, Port, Secret, SessionID, Sup, State),
-						{reply, {ok, wait}, NewState}
+						{reply, {ok, wait}, NewState};
 					{_, _, _} ->
 						{reply, {error, ignore}, State}
 				end;
@@ -228,7 +228,7 @@ access_request(Address, Port, Secret,
 		State :: #state{}) -> NewState :: #state{}.
 %% @doc Start a new session handler.
 %% @hidden
-start_fsm1(AccessRequest, RadiusFsm, Address, Port, Secret,
+start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret,
 		SessionID, Sup, #state{handlers = Handlers} = State) ->
 	StartArgs = [Address, Port, RadiusFsm, Secret, SessionID, AccessRequest],
 	ChildSpec = [StartArgs, []],
