@@ -73,8 +73,8 @@
 			data :: binary()}).
 
 -record(eap_pwd,
-			{length :: boolean(),
-			more :: boolean(),
+			{length = false :: boolean(),
+			more = false :: boolean(),
 			pwd_exch :: id | commit | confirm,
 			tot_length :: 0..65535,
 			data :: binary()}).
