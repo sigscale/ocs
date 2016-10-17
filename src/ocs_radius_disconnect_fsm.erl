@@ -143,11 +143,11 @@ send_request(timeout, #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-receive_response(timeout, #statedata{retry_count = Count}= StateData)
-		when Count > 5->
+receive_response(timeout, #statedata{retry_count = Count} = StateData)
+		when Count > 5 ->
 	{stop, shutdown, StateData};
 receive_response(timeout, #statedata{socket = Socket, nas_ip = NasIp ,
-		request =  DisconnectRequest, retry_count = Count} = StateData)->
+		request =  DisconnectRequest, retry_count = Count} = StateData) ->
 	{ok, Port} = application:get_env(ocs, radius_disconnect_port),
 		case gen_udp:send(Socket, NasIp, Port, DisconnectRequest)of
 			ok ->
