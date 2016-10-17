@@ -41,7 +41,7 @@
 		address :: inet:ip_address(),
 		port :: non_neg_integer(),
 		module :: atom(),
-		log :: disk_log:log(), 
+		log :: term(), 
 		handlers = gb_trees:empty() :: gb_trees:tree(Key ::
 				({NAS :: string() | inet:ip_address(), Port :: string(),
 				Peer :: string()}), Value :: (Fsm :: pid()))}).

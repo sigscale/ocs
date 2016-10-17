@@ -31,7 +31,7 @@
 
 -record(state,
 		{dir :: string(),
-		log :: disk_log:log(),
+		log :: term(),
 		acct_server :: atom() | pid()}).
 
 %%----------------------------------------------------------------------
