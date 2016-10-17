@@ -26,7 +26,7 @@
 -export([]).
 
 %% export the ocs_eap_pwd_fsm state callbacks
--export([idle/2, wait_for_id/2, wait_for_commit/2, wait_for_confirm/2]).
+-export([eap_start/2, wait_for_id/2, wait_for_commit/2, wait_for_confirm/2]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
@@ -38,8 +38,12 @@
 -record(statedata,
 		{address :: inet:ip_address(),
 		port :: pos_integer(),
+		radius_fsm :: pid(),
 		session_id:: {NAS :: inet:ip_address() | string(),
 				Port :: string(), Peer :: string()},
+		radius_id :: byte(),
+		req_auth :: binary(),
+		req_attr :: radius_attributes:attributes(),
 		eap_id = 0 :: byte(),
 		group_desc  = 19 :: byte(),
 		rand_func = 1 :: byte(),
@@ -81,28 +85,29 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([Address, Port, Secret, SessionID] = _Args) ->
+init([Address, Port, RadiusFsm, Secret, SessionID,
+		#radius{code = ?AccessRequest, id = ID,
+		authenticator = Authenticator, attributes = Attributes}] = _Args) ->
 	StateData = #statedata{address = Address, port = Port,
-	secret = Secret, session_id = SessionID},
+			radius_id = ID, secret = Secret, session_id = SessionID,
+			req_auth = Authenticator, req_attr = Attributes},
 	process_flag(trap_exit, true),
-	{ok, idle, StateData, ?TIMEOUT}.
+	{ok, request, StateData, 0}.
 
--spec idle(Event :: timeout | term(), StateData :: #statedata{}) ->
+-spec eap_start(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
 		Timeout :: non_neg_integer() | infinity}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
 		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>idle</b> state.
+%%		gen_fsm:send_event/2} in the <b>eap_start</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
-idle({#radius{code = ?AccessRequest, id = RadiusID,
-		authenticator = RequestAuthenticator,
-		attributes = Attributes}, RadiusFsm},
-		#statedata{eap_id = EapID, session_id = SessionID,
-		secret = Secret, group_desc = GroupDesc,
-		rand_func = RandFunc, prf = PRF} = StateData) ->
+eap_start(timeout, #statedata{radius_fsm = RadiusFsm, id = RadiusID,
+		req_auth = RequestAuthenticator, req_attr = Attributes,
+		eap_id = EapID, session_id = SessionID, secret = Secret,
+		group_desc = GroupDesc, rand_func = RandFunc, prf = PRF} = StateData) ->
 	Token = crypto:rand_bytes(4),
 	{ok, HostName} = inet:gethostname(),
 	ServerID = list_to_binary(HostName),
@@ -130,19 +135,16 @@ idle({#radius{code = ?AccessRequest, id = RadiusID,
 							{pid, self()}, {session_id, SessionID},
 							{code, Code}, {type, EapType}, {data, Data}]),
 					radius:response(RadiusFsm, {error, ignore}),
-					{ok, idle, StateData, ?TIMEOUT};
+					{ok, eap_start, StateData, ?TIMEOUT};
 				{'EXIT', _Reason} ->
 					radius:response(RadiusFsm, {error, ignore}),
-					{ok, idle, StateData, ?TIMEOUT}
+					{ok, eap_start, StateData, ?TIMEOUT}
 			end;
 		{error, not_found} ->
 			send_response(request, EapID, EapData, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			{next_state, wait_for_id, NewStateData, ?TIMEOUT}
-	end;
-idle({#radius{}, RadiusFsm}, StateData) ->
-	radius:response(RadiusFsm, {error, ignore}),
-	{ok, idle, StateData, ?TIMEOUT}.
+	end.
 
 -spec wait_for_id(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
