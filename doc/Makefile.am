@@ -49,7 +49,7 @@ overview.edoc: overview.edoc-in
 					-e 's!erlang.png!sigscale-logo.png!' $$i > $$i.tmp; \
 			mv $$i.tmp $$i; \
 			cp $(top_srcdir)/doc/sigscale-logo.png .; \
-			cp $(top_srcdir)/doc/supervision.png .;
+			cp $(top_srcdir)/doc/supervision.png .; \
 	done
 
 CLEANFILES = overview.edoc edoc-info index.html \
