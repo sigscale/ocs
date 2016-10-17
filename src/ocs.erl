@@ -102,12 +102,8 @@ add_subscriber(Subscriber, Password, Attributes, Balance)
 		when is_list(Password) ->
 	add_subscriber(Subscriber, list_to_binary(Password), Attributes, Balance);
 add_subscriber(Subscriber, Password, Attributes, Balance)
-		when is_list(Attributes) ->
-	Bin = radius_attributes:codec(Attributes),
-	add_subscriber(Subscriber, Password, Bin, Balance);
-add_subscriber(Subscriber, Password, Attributes, Balance)
 		when is_binary(Subscriber), is_binary(Password),
-		is_binary(Attributes), is_integer(Balance) ->
+		is_list(Attributes), is_integer(Balance) ->
 	F1 = fun(F, <<C, Rest/binary>>)
 					when (((C >= $a) and (C =< $z)) or ((C >= $2) and (C =< $9))),
 					C /= $i, C /= $l, C /= $o, C /= $u, C /= $v, C /= $0, C /= $1 ->
@@ -135,10 +131,10 @@ add_subscriber(Subscriber, Password, Attributes, Balance)
 	end.
 
 -spec find_subscriber(Subscriber :: string() | binary()) ->
-	Result :: {ok, Password :: binary(), Attributes :: binary(),
-	Balance :: integer()} | {error, Reason :: not_found | term()}.
+	Result :: {ok, Password :: binary(),
+			Attributes :: radius_attributes:attributes(),
+			Balance :: integer()} | {error, Reason :: not_found | term()}.
 %% @doc Look up an entry in the subscriber tabe.
-%%
 find_subscriber(Subscriber) when is_list(Subscriber) ->
 	find_subscriber(list_to_binary(Subscriber));
 find_subscriber(Subscriber) when is_binary(Subscriber) ->
@@ -236,7 +232,7 @@ decrement_balance(Subscriber, Usage) when is_binary(Subscriber),
 
 -spec update_attributes(Subscriber :: string() | binary(),
 		Password :: string() | binary(),
-		Attributes :: radius_attributes:attributes() | binary()) ->
+		Attributes :: radius_attributes:attributes()) ->
 	ok | {error, Reason :: not_found | bad_password | term()}.
 %% @doc Update subscriber attributes.
 %%
@@ -244,11 +240,8 @@ update_attributes(Subscriber, Password, Attributes) when is_list(Subscriber) ->
 	update_attributes(list_to_binary(Subscriber), Password, Attributes);
 update_attributes(Subscriber, Password, Attributes) when is_list(Password) ->
 	update_attributes(Subscriber, list_to_binary(Password), Attributes);
-update_attributes(Subscriber, Password, Attributes) when is_list(Attributes) ->
-	Bin = radius_attributes:codec(Attributes),
-	update_attributes(Subscriber, Password, Bin);
 update_attributes(Subscriber, Password, Attributes) when is_binary(Subscriber),
-		is_binary(Password), is_binary(Attributes) ->
+		is_binary(Password), is_list(Attributes) ->
 	F = fun() ->
 				case mnesia:read(subscriber, Subscriber, write) of
 					[#subscriber{password = Password} = Entry] ->

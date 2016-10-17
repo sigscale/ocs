@@ -35,12 +35,11 @@
 
 -include("ocs_wm.hrl").
 
--type attribute() :: {Name :: string(), Value :: string()}.
--record(state,{
-			subscriber :: string(),
-			current_password :: string(),
-			new_password :: string(),
-			attributes :: [attribute()] | binary()}).
+-record(state,
+		{subscriber :: string(),
+		current_password :: string(),
+		new_password :: string(),
+		attributes :: radius_attributes:attributes()}).
 
 %%----------------------------------------------------------------------
 %%  webmachine callbacks
@@ -129,7 +128,7 @@ create_path(ReqData, Context) ->
 add_subscriber(ReqData, #state{subscriber = Subscriber,
 		current_password = Password, attributes = ArrayAttributes} = Context) ->
 	try
-	case catch ocs:add_subscriber(Subscriber, Password, <<>>) of
+	case catch ocs:add_subscriber(Subscriber, Password, []) of
 		ok ->
 			{true, ReqData, Context};
 		{error, Reason} ->
@@ -139,3 +138,4 @@ add_subscriber(ReqData, #state{subscriber = Subscriber,
 			{{halt, 400}, ReqData, Context}
 
 	end.
+

@@ -17,8 +17,14 @@
 %%% 
 
 %% define client table entries record
--record(radius_client, {address, secret}).
+-record(radius_client,
+		{address :: inet:ip_address(),
+		secret :: binary()}).
 
 %% define subscriber table entries record
--record(subscriber, {name, password, attributes, balance}).
+-record(subscriber,
+		{name :: binary(),
+		password :: binary(),
+		attributes :: radius_attributes:attributes(),
+		balance :: integer()}).
 
