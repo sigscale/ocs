@@ -149,13 +149,13 @@ receive_response(timeout, #statedata{retry_count = Count} = StateData)
 receive_response(timeout, #statedata{socket = Socket, nas_ip = NasIp ,
 		request =  DisconnectRequest, retry_count = Count} = StateData) ->
 	{ok, Port} = application:get_env(ocs, radius_disconnect_port),
+	NewCount = Count + 1,
+	NewStateData = StateData#statedata{retry_count = NewCount},
 		case gen_udp:send(Socket, NasIp, Port, DisconnectRequest)of
 			ok ->
-				NewCount = Count + 1,
-				NewStateData = StateData#statedata{retry_count = NewCount},
 				{next_state, receive_response, NewStateData, ?RETRY};
 			{error, _Reason} ->
-				{next_state, receive_response, StateData, 0}
+				{next_state, receive_response, NewStateData, 0}
 		end;
 receive_response({udp, Socket, _, _, Packet}, #statedata{id = Id,
 		socket = Socket, retry_count = Count} = StateData) ->
