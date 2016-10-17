@@ -249,10 +249,8 @@ accounting_request(Address, Port, Secret, Radius,
 									{error, Reason}])
 						end;
 					{ok, _SufficientBalance} ->
-						ok
-				end,
-				{reply, {ok, response(Id, Authenticator, Secret, Attributes)},
-						State};
+						{reply, {ok, response(Id, Authenticator, Secret, Attributes)}, State}
+				end;
 			{error, _Reason} ->
 				{reply, {error, ignore}, State}
 		end
