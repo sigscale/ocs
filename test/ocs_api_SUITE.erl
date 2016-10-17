@@ -105,17 +105,15 @@ subscriber() ->
 
 subscriber(_Config) ->
 	Attribute0 = radius_attributes:new(),
-	Attribute1 = radius_attributes:store(?NasPortId,"wlan0", Attribute0),
-	Attribute2 = radius_attributes:store(?NasPortId,"wlan2", Attribute0),
-	BinAttribute1 = radius_attributes:codec(Attribute1),
-	BinAttribute2 = radius_attributes:codec(Attribute2),
+	Attribute1 = radius_attributes:store(?NasPortId, "wlan0", Attribute0),
+	Attribute2 = radius_attributes:store(?NasPortId, "wlan2", Attribute0),
 	Password1 = ocs:generate_password(),
 	Password2 = ocs:generate_password(),
-	ok = ocs:add_subscriber("tomba", Password1, BinAttribute1),
-	ok = ocs:add_subscriber("android", Password2, BinAttribute2),
-	{ok, BinPassword1, BinAttribute1, _Balance} = ocs:find_subscriber("tomba"),
+	ok = ocs:add_subscriber("tomba", Password1, Attribute1),
+	ok = ocs:add_subscriber("android", Password2, Attribute2),
+	{ok, BinPassword1, Attribute1, _Balance} = ocs:find_subscriber("tomba"),
 	Password1 = binary_to_list(BinPassword1),
-	{ok, BinPassword2, BinAttribute2, _Balance} = ocs:find_subscriber("android"),
+	{ok, BinPassword2, Attribute2, _Balance} = ocs:find_subscriber("android"),
 	Password2 = binary_to_list(BinPassword2).
 
 delete_subscriber() ->
@@ -124,11 +122,10 @@ delete_subscriber() ->
 delete_subscriber(_Config) ->
 	Attribute0 = radius_attributes:new(),
 	Attribute = radius_attributes:store(?NasPortId,"wlan0", Attribute0),
-	BinAttribute = radius_attributes:codec(Attribute),
 	Subscriber = "deleteandroid",
 	Password = ocs:generate_password(),
-	ok = ocs:add_subscriber(Subscriber, Password,BinAttribute),
-	{ok, _BinPassword, _BinAttribute, _Balance} = ocs:find_subscriber(Subscriber),
+	ok = ocs:add_subscriber(Subscriber, Password, Attribute),
+	{ok, _BinPassword, _Attribute, _Balance} = ocs:find_subscriber(Subscriber),
 	ok = ocs:delete_subscriber(Subscriber),
 	{error, _} = ocs:find_subscriber(Subscriber).
 
@@ -138,11 +135,10 @@ update_password() ->
 update_password(_Config) ->
 	Attribute0 = radius_attributes:new(),
 	Attribute = radius_attributes:store(?NasPortId,"wlan0", Attribute0),
-	BinAttribute = radius_attributes:codec(Attribute),
 	Subscriber = "android",
 	OldPassword = ocs:generate_password(),
-	ok = ocs:add_subscriber(Subscriber, OldPassword, BinAttribute),
-	{ok, BinOldPassword, BinAttribute, _Balance} = ocs:find_subscriber(Subscriber),
+	ok = ocs:add_subscriber(Subscriber, OldPassword, Attribute),
+	{ok, BinOldPassword, Attribute, _Balance} = ocs:find_subscriber(Subscriber),
 	OldPassword = binary_to_list(BinOldPassword),
 	NewPassword = ocs:generate_password(),
 	ok = ocs:update_password(Subscriber, OldPassword, NewPassword),
@@ -153,11 +149,10 @@ decrement_balance() ->
 	[{userdata, [{doc, "Decrement subscriber's balance based on usage"}]}].
 
 decrement_balance(_Config) ->
-	BinAttribute = <<>>,
 	Subscriber = "android",
 	InitialBalance= 10000,
 	Password = ocs:generate_password(),
-	ok = ocs:add_subscriber(Subscriber, Password, BinAttribute, InitialBalance),
+	ok = ocs:add_subscriber(Subscriber, Password, [], InitialBalance),
 	Usage1 = 7645,
 	{ok , NewBalance1} = ocs:decrement_balance(Subscriber, Usage1),
 	NewBalance1 = InitialBalance - Usage1,
@@ -173,13 +168,11 @@ update_attributes(_Config) ->
 	Username = "tomba1",
 	Attribute0 = radius_attributes:new(),
 	Attribute1 = radius_attributes:store(?NasPortId,"wlan0", Attribute0),
-	BinAttribute1 = radius_attributes:codec(Attribute1),
-	ok = ocs:add_subscriber(Username, Password, BinAttribute1),
-	{ok, _BinPassword, BinAttribute1, _Balance} = ocs:find_subscriber(Username),
+	ok = ocs:add_subscriber(Username, Password, Attribute1),
+	{ok, _BinPassword, Attribute1, _Balance} = ocs:find_subscriber(Username),
 	Attribute2 = radius_attributes:store(?NasPortId,"wlan1", Attribute0),
-	BinAttribute2 = radius_attributes:codec(Attribute2),
-	ok = ocs:update_attributes(Username, Password, BinAttribute2),
-	{ok, _BinPassword, BinAttribute2, _Balance} = ocs:find_subscriber(Username).
+	ok = ocs:update_attributes(Username, Password, Attribute2),
+	{ok, _BinPassword, Attribute2, _Balance} = ocs:find_subscriber(Username).
 
 
 %%---------------------------------------------------------------------

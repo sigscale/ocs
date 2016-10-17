@@ -56,7 +56,7 @@ init_per_suite(Config) ->
 	ok = ocs:add_client(AuthAddress, SharedSecret),
 	PeerId = "25252525",
 	PeerPassword = ocs:generate_password(),
-	ok = ocs:add_subscriber(PeerId, PeerPassword, <<>>),
+	ok = ocs:add_subscriber(PeerId, PeerPassword, []),
 	[{peer_id, PeerId} | Config].
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
