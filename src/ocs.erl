@@ -76,7 +76,7 @@ find_client(Address) when is_tuple(Address) ->
 	end.
 
 -spec add_subscriber(Subscriber :: string() | binary(), Password :: string() | binary(),
-		Attributes :: radius:attributes() | binary()) ->
+		Attributes :: radius_attributes:attributes() | binary()) ->
 	ok | {error, Reason :: term()}.
 %% @equiv add_subscriber(Subscriber, Password, Attributes, 0)
 add_subscriber(Subscriber, Password, Attributes) ->
@@ -84,7 +84,7 @@ add_subscriber(Subscriber, Password, Attributes) ->
 
 -spec add_subscriber(Subscriber :: string() | binary(),
 		Password :: string() | binary(),
-		Attributes :: radius:attributes() | binary(),
+		Attributes :: radius_attributes:attributes() | binary(),
 		Balance :: non_neg_integer()) ->
 		ok | {error, Reason :: term()}.
 %% @doc Create an entry in the subscriber table.
@@ -236,7 +236,7 @@ decrement_balance(Subscriber, Usage) when is_binary(Subscriber),
 
 -spec update_attributes(Subscriber :: string() | binary(),
 		Password :: string() | binary(),
-		Attributes :: radius:attributes() | binary()) ->
+		Attributes :: radius_attributes:attributes() | binary()) ->
 	ok | {error, Reason :: not_found | bad_password | term()}.
 %% @doc Update subscriber attributes.
 %%
