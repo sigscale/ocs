@@ -101,8 +101,7 @@ request1(#statedata{req_attr = Attributes, req_auth = Authenticator,
 		secret = Secret, session_id = SessionID} = StateData) ->
 	case radius_attributes:find(?UserPassword, Attributes) of
 		{ok, Hidden} ->
-			SecStr = binary_to_list(Secret),
-			Password = radius_attributes:unhide(SecStr, Authenticator, Hidden),
+			Password = radius_attributes:unhide(Secret, Authenticator, Hidden),
 			request2(list_to_binary(Password), StateData);
 		{error, not_found} ->
 			response(?AccessReject, [], StateData),
