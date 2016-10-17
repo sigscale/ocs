@@ -155,7 +155,7 @@ receive_response(timeout, #statedata{socket = Socket, nas_ip = NasIp ,
 				NewStateData = StateData#statedata{retry_count = NewCount},
 				{next_state, receive_response, NewStateData, ?RETRY};
 			{error, _Reason} ->
-				{next_state, send_request, StateData, ?TIMEOUT}
+				{next_state, receive_response, StateData, 0}
 		end;
 receive_response({udp, Socket, _, _, Packet}, #statedata{id = Id,
 		socket = Socket, retry_count = Count} = StateData) ->
