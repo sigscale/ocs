@@ -262,8 +262,9 @@ accounting_request(Address, Port, Secret, Radius,
 	end.
 
 -spec response(Id :: byte(), RequestAuthenticator :: [byte()],
-		Secret :: string() | binary(), Attributes :: radius:attributes()) ->
-		AccessAccept :: binary().
+		Secret :: string() | binary(),
+		Attributes :: radius_attributes:attributes()) ->
+	AccessAccept :: binary().
 %% @hidden
 response(Id, RequestAuthenticator, Secret, AttributeList)
 		when is_list(AttributeList) ->
