@@ -43,11 +43,11 @@
 		 acct_session_id :: string(),
 		 secret :: string(),
 		 socket :: inet:socket(),
+		 retry_time = 500 :: integer(),
 		 retry_count = 0 :: integer(),
 		 request :: binary()}).
 
 -define(TIMEOUT, 30000).
--define(RETRY, 5000).
 -define(ERRORLOG, radius_disconnect_error).
 
 %%----------------------------------------------------------------------
@@ -88,7 +88,7 @@ init([NasIpAddress, NasIdentifier, Subscriber, AcctSessionId, Secret]) ->
 %%
 send_request(timeout, #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
 		subscriber = Subscriber, acct_session_id = AcctSessionId, id = Id,
-		secret = SharedSecret} = StateData) ->
+		secret = SharedSecret, retry_time = Retry} = StateData) ->
 	{ok, Port} = application:get_env(ocs, radius_disconnect_port),
 	Attr0 = radius_attributes:new(),
 	Attr1 = radius_attributes:add(?NasIpAddress, NasIpAddress, Attr0),
@@ -124,7 +124,7 @@ send_request(timeout, #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
 				ok ->
 					NewStateData = StateData#statedata{id = Id, socket = Socket,
 						request = DisconnectRequest},
-					{next_state, receive_response, NewStateData, ?RETRY};
+					{next_state, receive_response, NewStateData, Retry};
 				{error, _Reason} ->
 					{next_state, send_request, StateData, ?TIMEOUT}
 			end;
@@ -148,13 +148,14 @@ receive_response(timeout, #statedata{retry_count = Count} = StateData)
 		when Count > 5 ->
 	{stop, shutdown, StateData};
 receive_response(timeout, #statedata{socket = Socket, nas_ip = NasIp ,
-		request =  DisconnectRequest, retry_count = Count} = StateData) ->
+		request =  DisconnectRequest, retry_count = Count, retry_time = Retry} = StateData) ->
 	{ok, Port} = application:get_env(ocs, radius_disconnect_port),
+	NewRetry = Retry * 2,
 	NewCount = Count + 1,
-	NewStateData = StateData#statedata{retry_count = NewCount},
+	NewStateData = StateData#statedata{retry_count = NewCount, retry_time = NewRetry},
 	case gen_udp:send(Socket, NasIp, Port, DisconnectRequest)of
 		ok ->
-			{next_state, receive_response, NewStateData, ?RETRY};
+			{next_state, receive_response, NewStateData, NewRetry};
 		{error, _Reason} ->
 			{next_state, receive_response, NewStateData, 0}
 	end;
