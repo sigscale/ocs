@@ -114,8 +114,7 @@ eap_start(timeout, #statedata{radius_fsm = RadiusFsm, eap_id = EapID,
 	EapPwdData = ocs_eap_codec:eap_pwd_id(EapPwdId),
 	EapPwd = #eap_pwd{pwd_exch = id, data = EapPwdData},
 	EapData = ocs_eap_codec:eap_pwd(EapPwd),
-	NewStateData = StateData#statedata{token = Token,
-			server_id = ServerID, start = undefined},
+	NewStateData = StateData#statedata{token = Token, start = undefined},
 	case radius_attributes:find(?EAPMessage, RequestAttributes) of
 		{ok, <<>>} ->
 			send_response(request, EapID, EapData, ?AccessChallenge,
@@ -123,19 +122,23 @@ eap_start(timeout, #statedata{radius_fsm = RadiusFsm, eap_id = EapID,
 			{next_state, id, NewStateData, ?TIMEOUT};
 		{ok, EAPMessage} ->
 			case catch ocs_eap_codec:eap_packet(EAPMessage) of
-				#eap_packet{code = response, type = ?Identity} ->
-					send_response(request, EapID, EapData, ?AccessChallenge,
+				#eap_packet{code = response, type = ?Identity,
+						identifier = NewEapID} ->
+					NextEapID = NewEapID + 1,
+					send_response(request, NextEapID, EapData, ?AccessChallenge,
 							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-					{next_state, id, NewStateData, ?TIMEOUT};
-				#eap_packet{code = Code, type = EapType, data = Data} ->
+					NextStateData = NewStateData#statedata{eap_id = NextEapID},
+					{next_state, id, NextStateData, ?TIMEOUT};
+				#eap_packet{code = Code, type = EapType,
+						identifier = NewEapID, data = Data} ->
 					error_logger:warning_report(["Unknown EAP received",
-							{pid, self()}, {session_id, SessionID},
-							{code, Code}, {type, EapType}, {data, Data}]),
+							{pid, self()}, {session_id, SessionID}, {code, Code},
+							{type, EapType}, {identifier, NewEapID}, {data, Data}]),
 					radius:response(RadiusFsm, {error, ignore}),
-					{ok, eap_start, StateData, ?TIMEOUT};
+					{stop, {shutdown, SessionID}, StateData};
 				{'EXIT', _Reason} ->
 					radius:response(RadiusFsm, {error, ignore}),
-					{ok, eap_start, StateData, ?TIMEOUT}
+					{stop, {shutdown, SessionID}, StateData}
 			end;
 		{error, not_found} ->
 			send_response(request, EapID, EapData, ?AccessChallenge,
