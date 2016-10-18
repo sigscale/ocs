@@ -255,7 +255,6 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %% @doc	Log error cause (as defined in
 %% <a href="https://tools.ietf.org/html/rfc3576">rfc3576</a>) when
 %% a Disconnect/Nak is received 
-%%
 %% @private
 %%
 log(NasIp, NasPort, ErrorCause, StateData) ->
