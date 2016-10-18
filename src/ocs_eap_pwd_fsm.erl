@@ -26,7 +26,7 @@
 -export([]).
 
 %% export the ocs_eap_pwd_fsm state callbacks
--export([identity/2, commit/2, confirm/2]).
+-export([eap_start/2, id/2, commit/2, confirm/2]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
@@ -41,9 +41,7 @@
 		radius_fsm :: pid(),
 		session_id:: {NAS :: inet:ip_address() | string(),
 				Port :: string(), Peer :: string()},
-		radius_id :: byte(),
-		req_auth :: binary(),
-		req_attr :: radius_attributes:attributes(),
+		start :: #radius{},
 		eap_id = 0 :: byte(),
 		group_desc  = 19 :: byte(),
 		rand_func = 1 :: byte(),
@@ -85,18 +83,15 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([Address, Port, RadiusFsm, Secret, SessionID,
-		#radius{code = ?AccessRequest, id = ID,
-		authenticator = Authenticator, attributes = Attributes}] = _Args) ->
+init([Address, Port, RadiusFsm, Secret, SessionID, AccessRequest] = _Args) ->
 	{ok, Hostname} = inet:gethostname(),
 	StateData = #statedata{address = Address, port = Port,
 			radius_fsm = RadiusFsm, secret = Secret, session_id = SessionID,
-			server_id = list_to_binary(Hostname), radius_id = ID,
-			req_auth = Authenticator, req_attr = Attributes},
+			server_id = list_to_binary(Hostname), start = AccessRequest},
 	process_flag(trap_exit, true),
-	{ok, identity, StateData, 0}.
+	{ok, eap_start, StateData, 0}.
 
--spec identity(Event :: timeout | term(), StateData :: #statedata{}) ->
+-spec eap_start(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
 		Timeout :: non_neg_integer() | infinity}
@@ -106,10 +101,65 @@ init([Address, Port, RadiusFsm, Secret, SessionID,
 %%		gen_fsm:send_event/2} in the <b>eap_start</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
-identity(timeout, #statedata{radius_fsm = RadiusFsm, radius_id = RadiusID,
-		req_auth = RequestAuthenticator, req_attr = Attributes,
+eap_start(timeout, #statedata{radius_fsm = RadiusFsm, eap_id = EapID,
+		start = #radius{code = ?AccessRequest, id = RadiusID,
+				authenticator = RequestAuthenticator,
+				attributes = RequestAttributes},
 		session_id = SessionID, server_id = ServerID, secret = Secret,
 		group_desc = GroupDesc, rand_func = RandFunc, prf = PRF} = StateData) ->
+	Token = crypto:rand_bytes(4),
+	EapPwdId = #eap_pwd_id{group_desc = GroupDesc,
+			random_fun = RandFunc, prf = PRF, token = Token,
+			pwd_prep = none, identity = ServerID},
+	EapPwdData = ocs_eap_codec:eap_pwd_id(EapPwdId),
+	EapPwd = #eap_pwd{pwd_exch = id, data = EapPwdData},
+	EapData = ocs_eap_codec:eap_pwd(EapPwd),
+	NewStateData = StateData#statedata{token = Token,
+			server_id = ServerID, start = undefined},
+	case radius_attributes:find(?EAPMessage, RequestAttributes) of
+		{ok, <<>>} ->
+			send_response(request, EapID, EapData, ?AccessChallenge,
+					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+			{next_state, id, NewStateData, ?TIMEOUT};
+		{ok, EAPMessage} ->
+			case catch ocs_eap_codec:eap_packet(EAPMessage) of
+				#eap_packet{code = response, type = ?Identity} ->
+					send_response(request, EapID, EapData, ?AccessChallenge,
+							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+					{next_state, id, NewStateData, ?TIMEOUT};
+				#eap_packet{code = Code, type = EapType, data = Data} ->
+					error_logger:warning_report(["Unknown EAP received",
+							{pid, self()}, {session_id, SessionID},
+							{code, Code}, {type, EapType}, {data, Data}]),
+					radius:response(RadiusFsm, {error, ignore}),
+					{ok, eap_start, StateData, ?TIMEOUT};
+				{'EXIT', _Reason} ->
+					radius:response(RadiusFsm, {error, ignore}),
+					{ok, eap_start, StateData, ?TIMEOUT}
+			end;
+		{error, not_found} ->
+			send_response(request, EapID, EapData, ?AccessChallenge,
+					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+			{next_state, id, NewStateData, ?TIMEOUT}
+	end.
+
+-spec id(Event :: timeout | term(), StateData :: #statedata{}) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
+%%		gen_fsm:send_event/2} in the <b>id</b> state.
+%% @@see //stdlib/gen_fsm:StateName/2
+%% @private
+id(timeout, #statedata{session_id = SessionID} = StateData)->
+	{stop, {shutdown, SessionID}, StateData};
+id({#radius{id = RadiusID, authenticator = RequestAuthenticator,
+		attributes = Attributes}, RadiusFsm},
+		#statedata{eap_id = EapID, group_desc = GroupDesc,
+		rand_func = RandFunc, prf = PRF, session_id = SessionID,
+		secret = Secret, server_id = ServerID} = StateData) ->
 	S_rand = crypto:rand_uniform(1, ?R),
 	try
 		EapMessage = radius_attributes:fetch(?EAPMessage, Attributes),
