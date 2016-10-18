@@ -149,9 +149,8 @@ idle({#radius{}, RadiusFsm}, StateData) ->
 %%
 phase_1(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
-phase_1({#radius{id = RadiusID, authenticator = RequestAuthenticator,
-		attributes = Attributes} = _AccessRequest, RadiusFsm}, #statedata
-		{socket = Socket, eap_id = EapID} = StateData)->
+phase_1({_AccessRequest, _RadiusFsm}, #statedata{socket = Socket} =
+				StateData)->
 	case ssl:ssl_accept(Socket) of
 		ok ->
 			{next_state, phase_2, StateData, ?TIMEOUT};
@@ -173,14 +172,13 @@ phase_1({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 %% @todo Implement the codec functionality
 phase_2(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
-phase_2({#radius{id = RadiusID, authenticator = RequestAuthenticator,
-		attributes = Attributes} = _AccessRequest, RadiusFsm}, #statedata
+phase_2({#radius{attributes = Attributes}= 	_AccessRequest, _RadiusFsm}, #statedata
 		{eap_id = EapID} = StateData)->
 	AttributeData = radius_attributes:codec(Attributes),
 		case radius_attributes:find(?EAPMessage, AttributeData) of
 			{ok, EapPacket} ->
 				#eap_packet{code = response, identifier = EapID, type = ?TTLS,
-					data = EapTTLS} = ocs_eap_codec:eap_packet(EapPacket);
+					data = _EapTTLS} = ocs_eap_codec:eap_packet(EapPacket);
 				%Implement the functionality
 				%#eap_ttls{start = false, data = Data} = ocs_eap_codec:eap_ttls(EapTTLS);
 			{error, not_found} ->

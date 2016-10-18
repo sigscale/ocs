@@ -65,7 +65,7 @@
 %% @see //stdlib/gen_server:init/1
 %% @private
 %%
-init([AcctSup, Address, Port]) ->
+init([AcctSup, _Address, _Port]) ->
 	{ok, Directory} = application:get_env(ocs, accounting_dir),
 	Log = ?LOGNAME,
 	FileName = Directory ++ "/" ++ atom_to_list(Log),
@@ -206,8 +206,8 @@ code_change(_OldVsn, State, _Extra) ->
 			| {reply, {error, ignore}, NewState :: #state{}}.
 %% @doc Handle a received RADIUS Accounting Request packet.
 %% @private
-accounting_request(Address, Port, Secret, Radius,
-		{RadiusFsm, _Tag} = _From, #state{handlers = Handlers,
+accounting_request(Address, _Port, Secret, Radius,
+		{_RadiusFsm, _Tag} = _From, #state{handlers = _Handlers,
 		log = Log, disc_sup = DiscSup} = State) ->
 	try 
 		#radius{code = ?AccountingRequest, id = Id, attributes = Attributes,
@@ -242,7 +242,7 @@ accounting_request(Address, Port, Secret, Radius,
 					{ok, OverUsed} when OverUsed =< 0 ->
 						case supervisor:start_child(DiscSup, [[Address, NasID,
 								Subscriber, AcctSessionId, Secret], []]) of
-							{ok, Child} ->
+							{ok, _Child} ->
 								{reply, {ok, wait}, State};
 							{error, Reason} ->
 								error_logger:error_report(["Failed to initiate session disconnect function",

@@ -255,7 +255,6 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %% @doc	Log error cause (as defined in
 %% <a href="https://tools.ietf.org/html/rfc3576">rfc3576</a>) when
 %% a Disconnect/Nak is received 
-%%
 %% @private
 %%
 log(NasIp, NasPort, ErrorCause, StateData) ->
@@ -290,7 +289,7 @@ log(NasIp, NasPort, ErrorCause, StateData) ->
 					error_logger:warning_report(["Disk log repaired",
 							{log, Log}, {path, FileName}, {recovered, Rec},
 							{badbytes, Bad}]),
-					{stop, {shutdown, "Disk log repaired"}, StateData};
+					{stop, {shutdown, "Could not log attributes"}, StateData};
 				{error, Reason1} ->
 					{stop, {shutdown, Reason1}, StateData}
 			end
