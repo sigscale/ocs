@@ -54,10 +54,11 @@ init_per_suite(Config) ->
 	{ok, AuthAddress} = application:get_env(ocs, radius_auth_addr),
 	SharedSecret = ct:get_config(radius_shared_secret),
 	ok = ocs:add_client(AuthAddress, SharedSecret),
+	NasId = atom_to_list(node()),
 	PeerId = "25252525",
 	PeerPassword = ocs:generate_password(),
 	ok = ocs:add_subscriber(PeerId, PeerPassword, []),
-	[{peer_id, PeerId} | Config].
+	[{nas_id, NasId}, {peer_id, PeerId}] ++ Config.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
