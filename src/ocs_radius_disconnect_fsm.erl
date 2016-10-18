@@ -48,6 +48,7 @@
 
 -define(TIMEOUT, 30000).
 -define(RETRY, 5000).
+-define(ERRORLOG, radius_disconnect_error).
 
 %%----------------------------------------------------------------------
 %%  The ocs_radius_disconnect_fsm API
@@ -157,18 +158,19 @@ receive_response(timeout, #statedata{socket = Socket, nas_ip = NasIp ,
 		{error, _Reason} ->
 			{next_state, receive_response, NewStateData, 0}
 	end;
-receive_response({udp, Socket, _, _, Packet}, #statedata{id = Id,
-		socket = Socket, retry_count = Count} = StateData) ->
+receive_response({udp, Socket, NasIp, NasPort, Packet}, #statedata{id = Id,
+		socket = Socket} = StateData) ->
 	case radius:codec(Packet) of
 		#radius{code = ?DisconnectAck, id = Id} ->
 			{stop, shutdown, StateData};
-		#radius{code = ?DisconnectNak, id = Id} when Count > 5 ->
-			{stop, shutdown, StateData};
-		#radius{code = ?DisconnectNak, id = Id} ->
-			NewCount = Count + 1,
-			NewId = Id + 1,
-			NewStateData = StateData#statedata{id = NewId, retry_count = NewCount},
-			{next_state, send_request, NewStateData, 0}
+		#radius{code = ?DisconnectNak, id = Id, attributes = Attrbin} ->
+			Attr = radius_attributes:codec(Attrbin),
+			case radius_attributes:find(?ErrorCause, Attr) of
+				{ok, ErrorCause} ->
+					log(NasIp, NasPort,ErrorCause, StateData);
+				{error, not_found} ->
+					{stop, shutdown, StateData}
+			end
 	end.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
@@ -246,3 +248,52 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
+-spec log(NasIp :: inet:ip_address(), NasPort :: integer(),
+		ErrorCause :: string(), StateData :: #statedata{}) ->
+		{stop, Shutdown :: term(), StateData :: #statedata{}}.
+%% @doc	Log error cause (as defined in
+%% <a href="https://tools.ietf.org/html/rfc3576">rfc3576</a>) when
+%% a Disconnect/Nak is received 
+%%
+%% @private
+%%
+log(NasIp, NasPort, ErrorCause, StateData) ->
+	{ok, Directory} = application:get_env(ocs, radius_disconnect_dir),
+	Log = ?ERRORLOG,
+	FileName = Directory ++ "/" ++ atom_to_list(Log),
+	try case file:list_dir(Directory) of
+		{ok, _} ->
+			ok;
+		{error, enoent} ->
+			case file:make_dir(Directory) of
+				ok ->
+					ok;
+				{error, Reason} ->
+					throw(Reason)
+			end;
+		{error, Reason} ->
+			throw(Reason)
+	end of
+		ok ->
+			case disk_log:open([{name, Log}, {file, FileName},
+					{type, wrap}, {size, {1048575, 20}}]) of
+				{ok, Log} ->
+					Attr0 = radius_attributes:new(),
+					Attr1 = radius_attributes:add(?NasIpAddress, NasIp, Attr0),
+					Attr2 = radius_attributes:add(?NasPort, NasPort, Attr1),
+					Attr3 = radius_attributes:add(?ErrorCause, ErrorCause, Attr2),
+					AttrBin = radius_attributes:codec(Attr3),
+					disk_log:log(log, AttrBin),
+					{stop, shutdown, StateData};
+				{repaired, Log, {recovered, Rec}, {badbytes, Bad}} ->
+					error_logger:warning_report(["Disk log repaired",
+							{log, Log}, {path, FileName}, {recovered, Rec},
+							{badbytes, Bad}]),
+					{stop, {shutdown, "Disk log repaired"}, StateData};
+				{error, Reason1} ->
+					{stop, {shutdown, Reason1}, StateData}
+			end
+	catch
+		Reason2 ->
+			{stop, {shutdown, Reason2}, StateData}
+	end.
