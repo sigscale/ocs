@@ -289,7 +289,7 @@ log(NasIp, NasPort, ErrorCause, StateData) ->
 					error_logger:warning_report(["Disk log repaired",
 							{log, Log}, {path, FileName}, {recovered, Rec},
 							{badbytes, Bad}]),
-					{stop, {shutdown, "Disk log repaired"}, StateData};
+					{stop, {shutdown, "Could not log attributes"}, StateData};
 				{error, Reason1} ->
 					{stop, {shutdown, Reason1}, StateData}
 			end
