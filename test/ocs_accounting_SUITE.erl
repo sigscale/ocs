@@ -41,7 +41,7 @@
 suite() ->
 	[{userdata, [{doc, ""}]},
 	{require, radius_shared_secret}, {default_config, radius_shared_secret, "abc345"},
-	{timetrap, {minutes, 1}}].
+	{timetrap, {seconds, 8}}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
 %% Initiation before the whole suite.

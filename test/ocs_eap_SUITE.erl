@@ -40,7 +40,7 @@
 %%
 suite() ->
 	[{userdata, [{doc, "This suite tests the application's API."}]},
-	{timetrap, {minutes, 1}},
+	{timetrap, {seconds, 8}},
 	{require, radius_username}, {default_config, radius_username, "ocs"},
 	{require, radius_password}, {default_config, radius_password, "ocs123"},
 	{require, radius_shared_secret},{default_config, radius_shared_secret, "xyzzy5461"}].
