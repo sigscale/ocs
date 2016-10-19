@@ -46,7 +46,7 @@ suite() ->
 	{require, radius_shared_secret},{default_config, radius_shared_secret, "xyzzy5461"}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
-%% Initiation before the whole suite.
+%% Initialization before the whole suite.
 %%
 init_per_suite(Config) ->
 	ok = ocs_lib:initialize_db(),
@@ -68,7 +68,7 @@ end_per_suite(Config) ->
 	Config.
 
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
-%% Initiation before each test case.
+%% Initialization before each test case.
 %%
 init_per_testcase(_TestCase, Config) ->
 	{ok, IP} = application:get_env(ocs, radius_auth_addr),
