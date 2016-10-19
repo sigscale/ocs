@@ -89,7 +89,7 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[simple_authentication, out_of_credit].
+	[simple_authentication, out_of_credit, bad_password].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -161,3 +161,37 @@ out_of_credit(Config) ->
 	AccessReject = radius_attributes:codec(AccessRejectData),
 	{ok, "Out of Credit"} = radius_attributes:find(?ReplyMessage, AccessReject).
 
+bad_password() ->
+	[{userdata, [{doc, "Send AccessReject response to the peer when password 
+			not matched"}]}].
+
+bad_password(Config) ->
+	Id = 2,
+	PeerID = "789EDOB8B823",
+	PeerPassword = "333def44gh",
+	ok = ocs:add_subscriber(PeerID, PeerPassword, []),
+	Authenticator = radius:authenticator(),
+	SharedSecret = ct:get_config(radius_shared_secret),
+	BoguesPassowrd = radius_attributes:hide(SharedSecret, Authenticator, "bogus"),	
+	{ok, AuthAddress} = application:get_env(ocs, radius_auth_addr),
+	{ok, AuthPort} = application:get_env(ocs, radius_auth_port),
+	Socket = ?config(socket, Config), 
+	A0 = radius_attributes:new(),
+	A1 = radius_attributes:store(?ServiceType, 2, A0),
+	A2 = radius_attributes:store(?NasPortId, "wlan3", A1),
+	A3 = radius_attributes:store(?NasPortType, 19, A2),
+	A4 = radius_attributes:store(?UserName, PeerID, A3),
+	A5 = radius_attributes:store(?AcctSessionId, "826005e4", A4),
+	A6 = radius_attributes:store(?CallingStationId, "78-9E-DO-B8-B8-23", A5),
+	A7 = radius_attributes:store(?CalledStationId, "WPA-PSK", A6),
+	A8 = radius_attributes:store(?UserPassword, BoguesPassowrd, A7),
+	A9 = radius_attributes:store(?NasIdentifier, "{14988,{9,\"sigscale.lk\"}}", A8),
+	AccessReqest = #radius{code = ?AccessRequest, id = Id, authenticator = Authenticator,
+			attributes = A9},
+	AccessReqestPacket= radius:codec(AccessReqest),
+	ok = gen_udp:send(Socket, AuthAddress, AuthPort, AccessReqestPacket),
+	{ok, {AuthAddress, AuthPort, AccessRejectPacket}} = gen_udp:recv(Socket, 0),
+	#radius{code = ?AccessReject, id = Id, attributes = AccessRejectData} =
+			radius:codec(AccessRejectPacket),
+	AccessReject = radius_attributes:codec(AccessRejectData),
+	{ok, "Bad Password"} = radius_attributes:find(?ReplyMessage, AccessReject).
