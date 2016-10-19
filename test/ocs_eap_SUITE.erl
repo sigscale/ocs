@@ -55,10 +55,7 @@ init_per_suite(Config) ->
 	SharedSecret = ct:get_config(radius_shared_secret),
 	ok = ocs:add_client(AuthAddress, SharedSecret),
 	NasId = atom_to_list(node()),
-	PeerId = <<"25252525">>,
-	PeerPassword = ocs:generate_password(),
-	ok = ocs:add_subscriber(PeerId, PeerPassword, []),
-	[{nas_id, NasId}, {peer_id, PeerId}] ++ Config.
+	[{nas_id, NasId}] ++ Config.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
@@ -102,17 +99,18 @@ eap_identity() ->
    [{userdata, [{doc, "Send an EAP-Identity/Response to peer"}]}].
 
 eap_identity(Config) ->
+	MAC = "aa:bb:cc:dd:ee:ff",
+	PeerId = <<"12345678">>,
 	Socket = ?config(socket, Config), 
 	{ok, Address} = application:get_env(ocs, radius_auth_addr),
 	{ok, Port} = application:get_env(ocs, radius_auth_port),
 	NasId = ?config(nas_id, Config),
-	PeerId = ?config(peer_id, Config),
 	UserName = ct:get_config(radius_username),
 	Secret = ct:get_config(radius_shared_secret),
 	ReqAuth = radius:authenticator(),
 	RadId = 1, EapId = 1,
 	ok = send_identity(Socket, Address, Port, NasId, UserName,
-			Secret, PeerId, ReqAuth, EapId, RadId),
+			Secret, PeerId, MAC, ReqAuth, EapId, RadId),
 	NextEapId = EapId + 1,
 	{NextEapId, _ServerID} = receive_id(Socket, Address,
 			Port, Secret, ReqAuth, RadId).
@@ -121,23 +119,26 @@ pwd_id() ->
    [{userdata, [{doc, "Send an EAP-pwd-ID/Response to peer"}]}].
 
 pwd_id(Config) ->
+	PeerId = <<"23456789">>,
+	MAC = "bb:cc:dd:ee:ff:aa",
+	PeerAuth = ocs:generate_password(),
+	ok = ocs:add_subscriber(PeerId, PeerAuth, []),
 	Socket = ?config(socket, Config), 
 	{ok, Address} = application:get_env(ocs, radius_auth_addr),
 	{ok, Port} = application:get_env(ocs, radius_auth_port),
 	NasId = ?config(nas_id, Config),
-	PeerId = ?config(peer_id, Config),
 	UserName = ct:get_config(radius_username),
 	Secret = ct:get_config(radius_shared_secret),
 	ReqAuth1 = radius:authenticator(),
-	RadId = 1, EapId = 1,
+	RadId = 2, EapId = 1,
 	ok = send_identity(Socket, Address, Port, NasId, UserName,
-			Secret, PeerId, ReqAuth1, EapId, RadId),
+			Secret, PeerId, MAC, ReqAuth1, EapId, RadId),
 	NextEapId = EapId + 1,
 	{NextEapId, _ServerID} = receive_id(Socket, Address,
 			Port, Secret, ReqAuth1, RadId),
 	ReqAuth2 = radius:authenticator(),
 	send_id(Socket, Address, Port, Secret,
-			ReqAuth2, UserName, NasId, PeerId),
+			ReqAuth2, UserName, NasId, PeerId, MAC, NextEapId, RadId + 1),
 	{ok, {_Address, _Port, RespPacket1}} = gen_udp:recv(Socket, 0),
 	Response1 = radius:codec(RespPacket1),
 	#radius{code = ?AccessChallenge, attributes = Attributes} = Response1,
@@ -556,12 +557,12 @@ invalid_id_response_eap_pwd(Config) ->
 %%---------------------------------------------------------------------
 
 send_identity(Socket, Address, Port, NasId,
-		UserName, Secret, PeerId, Auth, EapId, RadId) ->
+		UserName, Secret, PeerId, MAC, Auth, EapId, RadId) ->
 	A0 = radius_attributes:new(),
 	A1 = radius_attributes:add(?UserName, UserName, A0),
 	A2 = radius_attributes:add(?NasPort, 0, A1),
 	A3 = radius_attributes:add(?NasIdentifier, NasId, A2),
-	A4 = radius_attributes:add(?CallingStationId, "de:ad:be:ef:ca:fe", A3),
+	A4 = radius_attributes:add(?CallingStationId, MAC, A3),
 	EapPacket  = #eap_packet{code = response, type = ?Identity,
 			identifier = EapId, data = PeerId},
 	EapMessage = ocs_eap_codec:eap_packet(EapPacket),
@@ -602,23 +603,24 @@ receive_id(Socket, Address, Port, Secret, ReqAuth, RadId) ->
 			identity = ServerID} = ocs_eap_codec:eap_pwd_id(EapPwdData),
 	{EapId, ServerID}.
 
-send_id(Socket, Address, Port, Secret, ReqAuth, UserName, NasId, PeerId) ->
+send_id(Socket, Address, Port, Secret, ReqAuth, UserName,
+		NasId, PeerId, MAC, EapId, RadId) ->
 	A0 = radius_attributes:new(),
 	A1 = radius_attributes:add(?UserName, UserName, A0),
 	A2 = radius_attributes:add(?NasPort, 0, A1),
 	A3 = radius_attributes:add(?NasIdentifier, NasId, A2),
-	A4 = radius_attributes:add(?CallingStationId, "de:ad:be:ef:ca:fe", A3),
+	A4 = radius_attributes:add(?CallingStationId, MAC, A3),
 	Token = crypto:rand_bytes(4),
 	EapPwdId = #eap_pwd_id{group_desc = 19, random_fun = 16#1, prf = 16#1,
 			token = Token, pwd_prep = none, identity = PeerId},
 	EapPwd = #eap_pwd{pwd_exch = id, data = ocs_eap_codec:eap_pwd_id(EapPwdId)},
-	EapPacket  = #eap_packet{code = response, type = ?PWD, identifier = 1,
+	EapPacket  = #eap_packet{code = response, type = ?PWD, identifier = EapId,
 			data = ocs_eap_codec:eap_pwd(EapPwd)},
 	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
 	A5 = radius_attributes:add(?EAPMessage, EapMsg, A4),
 	A6 = radius_attributes:add(?MessageAuthenticator,
 			list_to_binary(lists:duplicate(16,0)), A5),
-	Request1 = #radius{code = ?AccessRequest, id = 1,
+	Request1 = #radius{code = ?AccessRequest, id = RadId,
 			authenticator = ReqAuth, attributes = A6},
 	RequestPacket1 = radius:codec(Request1),
 	MsgAuth1 = crypto:hmac(md5, Secret, RequestPacket1),
