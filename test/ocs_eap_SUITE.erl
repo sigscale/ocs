@@ -416,7 +416,7 @@ access_request(Socket, Address, Port, NasId,
 	ReqPacket2 = radius:codec(Request2),
 	gen_udp:send(Socket, Address, Port, ReqPacket2).
 
-access_request(Socket, Address, Port, Secret, RadId, ReqAuth) ->
+access_challenge(Socket, Address, Port, Secret, RadId, ReqAuth) ->
 	{ok, {Address, Port, RespPacket1}} = gen_udp:recv(Socket, 0),
 	Resp1 = radius:codec(RespPacket1),
 	#radius{code = ?AccessChallenge, id = RadId, authenticator = RespAuth,
@@ -461,7 +461,7 @@ send_identity(Socket, Address, Port, NasId,
 			UserName, Secret, MAC, Auth, RadId, EapMsg).
 
 receive_id(Socket, Address, Port, Secret, ReqAuth, RadId) ->
-	EapMsg = access_request(Socket, Address, Port,
+	EapMsg = access_challenge(Socket, Address, Port,
 			Secret, RadId, ReqAuth),
 	#eap_packet{code = request, type = ?PWD, identifier = EapId,
 			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
@@ -484,7 +484,7 @@ send_id(Socket, Address, Port, Secret, Auth, UserName,
 			UserName, Secret, MAC, Auth, RadId, EapMsg).
 
 receive_commit(Socket, Address, Port, Secret, ReqAuth, RadId) ->
-	EapMsg = access_request(Socket, Address, Port,
+	EapMsg = access_challenge(Socket, Address, Port,
 			Secret, RadId, ReqAuth),
 	#eap_packet{code = request, type = ?PWD, identifier = EapId,
 			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
@@ -506,7 +506,7 @@ send_commit(Socket, Address, Port, Secret, Auth, UserName,
 			UserName, Secret, MAC, Auth, RadId, EapMsg).
 
 receive_confirm(Socket, Address, Port, Secret, ReqAuth, RadId) ->
-	EapMsg = access_request(Socket, Address, Port,
+	EapMsg = access_challenge(Socket, Address, Port,
 			Secret, RadId, ReqAuth),
 	#eap_packet{code = request, type = ?PWD, identifier = EapId,
 			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
