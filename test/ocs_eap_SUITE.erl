@@ -90,7 +90,7 @@ sequences() ->
 %%
 all() ->
 	[eap_identity, pwd_id, pwd_commit, pwd_confirm,
-	unknown_authenticator, invalid_id_response_eap_packet, invalid_id_response_eap_pwd].
+	message_authentication, invalid_id_response_eap_packet, invalid_id_response_eap_pwd].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -234,33 +234,24 @@ pwd_confirm(Config) ->
 			NasId, MAC, ConfirmP, EapId4, RadId4),
 	EapId4 = receive_success(Socket, Address, Port, Secret, ReqAuth4, RadId4).
 
-unknown_authenticator() ->
-	[{userdata, [{doc, "Unauthorised access request"}]}].
+message_authentication() ->
+	[{userdata, [{doc, "Send corrupt Message-Authenticator"}]}].
 
-unknown_authenticator(Config) ->
-	Id = 4,
-	{ok, AuthAddress} = application:get_env(ocs, radius_auth_addr),
-	{ok, AuthPort} = application:get_env(ocs, radius_auth_port),
+message_authentication(Config) ->
+	PeerId = <<"56789012">>,
+	MAC = "ee:ff:aa:bb:cc:dd",
+	PeerAuth = list_to_binary(ocs:generate_password()),
+	ok = ocs:add_subscriber(PeerId, PeerAuth, []),
 	Socket = ?config(socket, Config),
+	{ok, Address} = application:get_env(ocs, radius_auth_addr),
+	{ok, Port} = application:get_env(ocs, radius_auth_port),
+	NasId = ?config(nas_id, Config),
 	UserName = ct:get_config(radius_username),
-	SharedSecret = "bogus",
-	Authenticator = radius:authenticator(),
-	IDReqAttributeList0 = radius_attributes:new(),
-	IDReqAttributeList1 = radius_attributes:store(?UserName, UserName, IDReqAttributeList0),
-	IDReqAttributeList2 = radius_attributes:store(?NasPort, 3, IDReqAttributeList1),
-	IDReqAttributeList3 = radius_attributes:store(?NasIdentifier, "tomba3", IDReqAttributeList2),
-	IDReqAttributeList4 = radius_attributes:store(?CallingStationId,"de:ad:be:ef:ca:fe", IDReqAttributeList3),
-	IDReqAttributeList5 = radius_attributes:store(?MessageAuthenticator,
-		list_to_binary(lists:duplicate(16,0)), IDReqAttributeList4),
-	IDRequest1 = #radius{code = ?AccessRequest, id = Id, authenticator = Authenticator,
-		attributes = IDReqAttributeList5},
-	IDRequestPacket1 = radius:codec(IDRequest1),
-	IDMsgAuth = crypto:hmac(md5, SharedSecret, IDRequestPacket1),
-	IDReqAttributeList6 = radius_attributes:store(?MessageAuthenticator, IDMsgAuth, IDReqAttributeList5),
-	IDRequest2 = #radius{code = ?AccessRequest, id = Id, authenticator = Authenticator,
-		attributes = IDReqAttributeList6},
-	IDRequestPacket2 = radius:codec(IDRequest2),
-	ok = gen_udp:send(Socket, AuthAddress, AuthPort, IDRequestPacket2),
+	Secret = "bogus",
+	ReqAuth = radius:authenticator(),
+	RadId = 13, EapId = 1,
+	ok = send_identity(Socket, Address, Port, NasId, UserName,
+			Secret, PeerId, MAC, ReqAuth, EapId, RadId),
 	{error, timeout} = gen_udp:recv(Socket, 0, 2000).
 
 invalid_id_response_eap_packet() ->
