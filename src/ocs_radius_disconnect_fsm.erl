@@ -68,10 +68,11 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([NasIpAddress, NasIdentifier, Subscriber, AcctSessionId, Secret]) ->
+init([NasIpAddress, NasIdentifier, Subscriber, AcctSessionId, Secret, Id]) ->
 	process_flag(trap_exit, true),
 	StateData = #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
-		subscriber = Subscriber, acct_session_id = AcctSessionId, secret = Secret},
+		subscriber = Subscriber, acct_session_id = AcctSessionId,
+		secret = Secret, id = Id},
 	{ok, send_request, StateData, 0}.
 
 -spec send_request(Event :: timeout | term(), StateData :: #statedata{}) ->
