@@ -325,9 +325,7 @@ confirm({#radius{attributes = Attributes} = AccessRequest, RadiusFsm},
 				identifier = EapID, data = Data} = EapData,
 		EapHeader = ocs_eap_codec:eap_pwd(Data),
 		#eap_pwd{pwd_exch = confirm, data = ConfirmP} = EapHeader,
-		NewEapID = EapID + 1,
-		NewStateData = StateData#statedata{confirm_p = ConfirmP,
-				eap_id = NewEapID},
+		NewStateData = StateData#statedata{confirm_p = ConfirmP},
 		confirm1(RadiusFsm, AccessRequest, NewStateData)
 	catch
 		_:_ ->
