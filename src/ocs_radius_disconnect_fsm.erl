@@ -104,37 +104,9 @@ send_request(timeout, #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
 		_ ->
 			radius_attributes:add(?NasIdentifier, NasIdentifier, Attr4)
 	end,
-	Attr6 = case radius_attributes:find(?NasPortType, Attributes) of
-		{error, not_found} ->
-			Attr5;
-		{ok, Value1}->
-			radius_attributes:add(?NasPortType, Value1, Attr5)
-	end,
-	Attr7 = case radius_attributes:find(?NasPortId, Attributes) of
-		{error, not_found} ->
-			Attr6;
-		 {ok, Value2}->
-			radius_attributes:add(?NasPortId, Value2, Attr6)
-	end,
-	Attr8 = case radius_attributes:find(?CallingStationId, Attributes) of
-		{error, not_found} ->
-			Attr7;
-		 {ok, Value3}->
-			radius_attributes:add(?CallingStationId, Value3, Attr7)
-	end,
-	Attr9 = case radius_attributes:find(?CalledStationId, Attributes) of
-		{error, not_found} ->
-			Attr8;
-		 {ok, Value4}->
-			radius_attributes:add(?CalledStationId, Value4, Attr8)
-	end,
-	Attr10 = case radius_attributes:find(?FramedIpAddress, Attributes) of
-		{error, not_found} ->
-			Attr9;
-		 {ok, Value5}->
-			radius_attributes:add(?FramedIpAddress, Value5, Attr9)
-	end,
-	Attributes1 = radius_attributes:codec(Attr10),
+	Attrs = [?NasPortType, ?NasPortId, ?CallingStationId, ?CalledStationId, ?FramedIpAddress],
+	Attr6 = extract_attributes(Attrs, Attributes, Attr5),
+	Attributes1 = radius_attributes:codec(Attr6),
 	Length = size(Attributes1) + 20,
 	RequestAuthenticator = crypto:hash(md5,
 			[<<?DisconnectRequest, Id, Length:16>>,
@@ -321,3 +293,21 @@ log(NasIp, NasPort, ErrorCause, StateData) ->
 		Reason2 ->
 			{stop, {shutdown, Reason2}, StateData}
 	end.
+
+-spec extract_attributes(Attributes :: [integer()], 
+		AttrList :: radius_attributes:attributes(), CurrentAttrList :: radius_attributes:attributes())->
+		NewAttrList :: radius_attributes:attributes().
+%% @doc Appends radius attributes needed for a Disconnect/Request
+%% @private
+%%
+extract_attributes([ H | T ] = _Attributes, AttrList, CurrentAttrList) ->
+	NewAttrList = case radius_attributes:find(H, AttrList) of
+		{error, not_found} ->
+			CurrentAttrList;
+		{ok, Value}->
+			radius_attributes:add(H, Value, CurrentAttrList)
+	end,
+	extract_attributes(T, AttrList, NewAttrList);
+extract_attributes([], _AttrList, CurrentAttrList) ->
+	CurrentAttrList.
+
