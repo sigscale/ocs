@@ -138,9 +138,9 @@ send_request(timeout, #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
 	Length = size(Attributes1) + 20,
 	RequestAuthenticator = crypto:hash(md5,
 			[<<?DisconnectRequest, Id, Length:16>>,
-			<<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, Attributes, SharedSecret]),
+			<<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, Attributes1, SharedSecret]),
 	DisconRec = #radius{code = ?DisconnectRequest, id = Id,
-			authenticator = RequestAuthenticator, attributes = Attributes},
+			authenticator = RequestAuthenticator, attributes = Attributes1},
 	DisconnectRequest = radius:codec(DisconRec),
 	case gen_udp:open(0, [{active, once}, binary]) of
 		{ok, Socket} ->
