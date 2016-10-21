@@ -45,7 +45,12 @@
 		 socket :: inet:socket(),
 		 retry_time = 500 :: integer(),
 		 retry_count = 0 :: integer(),
-		 request :: binary()}).
+		 request :: binary(),
+		 nas_port_type :: integer(),
+		 nas_port_id :: string(),
+		 calling_station :: string(),
+		 called_station :: string(), 
+		 framed_ip :: inet:ip_address()}).
 
 -define(TIMEOUT, 30000).
 -define(ERRORLOG, radius_disconnect_error).
@@ -68,11 +73,14 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([NasIpAddress, NasIdentifier, Subscriber, AcctSessionId, Secret, Id]) ->
+init([NasIpAddress, NasIdentifier, Subscriber, AcctSessionId, Secret, Id,
+		 NasPortType, NasPortId, CallingStation, CalledStation, FramedIp]) ->
 	process_flag(trap_exit, true),
 	StateData = #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
 		subscriber = Subscriber, acct_session_id = AcctSessionId,
-		secret = Secret, id = Id},
+		secret = Secret, id = Id, nas_port_type = NasPortType, nas_port_id = NasPortId,
+		calling_station = CallingStation, called_station = CalledStation,
+		framed_ip = FramedIp},
 	{ok, send_request, StateData, 0}.
 
 -spec send_request(Event :: timeout | term(), StateData :: #statedata{}) ->
@@ -89,22 +97,52 @@ init([NasIpAddress, NasIdentifier, Subscriber, AcctSessionId, Secret, Id]) ->
 %%
 send_request(timeout, #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
 		subscriber = Subscriber, acct_session_id = AcctSessionId, id = Id,
-		secret = SharedSecret, retry_time = Retry} = StateData) ->
+		secret = SharedSecret, nas_port_type = NasPortType, nas_port_id = NasPortId,
+		calling_station = CallingStation, called_station = CalledStation, framed_ip = FramedIp,
+		retry_time = Retry} = StateData) ->
 	{ok, Port} = application:get_env(ocs, radius_disconnect_port),
 	Attr0 = radius_attributes:new(),
 	Attr1 = radius_attributes:add(?NasIpAddress, NasIpAddress, Attr0),
 	Attr2 = radius_attributes:add(?UserName, Subscriber, Attr1),
 	Attr3 = radius_attributes:add(?NasPort, Port, Attr2),
 	Attr4 = radius_attributes:add(?AcctSessionId, AcctSessionId , Attr3),
-	Attr5 = radius_attributes:add(?ReplyMessage,
-		"You are being disconnected! Please recharge.", Attr4),
-	Attr6 = case NasIdentifier of
+	Attr5 = case NasIdentifier of
 		undefined ->
+			Attr4;
+		_ ->
+			radius_attributes:add(?NasIdentifier, NasIdentifier, Attr4)
+	end,
+	Attr6 = case NasPortType of
+		{error, not_found} ->
 			Attr5;
 		_ ->
-			radius_attributes:add(?NasIdentifier, NasIdentifier, Attr5)
+			radius_attributes:add(?NasPortType, NasPortType, Attr5)
 	end,
-	AttributesList0 = radius_attributes:codec(Attr6),
+	Attr7 = NasPortId case of
+		{error, not_found} ->
+			Attr6;
+		_ ->
+			radius_attributes:add(?NasPortId, NasPortId, Attr6)
+	end,
+	Attr8 = case CallingStation of
+		{error, not_found} ->
+			Attr7;
+		_ ->
+			radius_attributes:add(?CallingStationId, CallingStation, Attr7)
+	end,
+	Attr9 = case CalledStation of
+		{error, not_found} ->
+			Attr8;
+		_ ->
+			radius_attributes:add(?CalledStationId, CalledStation, Attr8)
+	end,
+	Attr10 = case FramedIp of
+		{error, not_found} ->
+			Attr9;
+		_ ->
+			radius_attributes:add(?FramedIpAddress, FramedIp, Attr9)
+	end,
+	AttributesList0 = radius_attributes:codec(Attr10),
 	Length = size(AttributesList0) + 20,
 	RequestAuthenticator = crypto:hmac(md5, SharedSecret, [<<?DisconnectRequest, Id,
 			Length:16>>, <<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, AttributesList0]),
