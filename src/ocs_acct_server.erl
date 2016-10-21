@@ -217,11 +217,6 @@ accounting_request(Address, _Port, Secret, Radius,
 		InOctets = radius_attributes:find(?AcctInputOctets, Attributes),
 		OutOctets = radius_attributes:find(?AcctOutputOctets, Attributes),
 		{ok, Subscriber} = radius_attributes:find(?UserName, Attributes),
-		NasPortType = radius_attributes:find(?NasPortType, Attributes),
-		NasPortId = radius_attributes:find(?NasPortId, Attributes),
-		CallingStation = radius_attributes:find(?CallingStationId, Attributes),
-		CalledStation = radius_attributes:find(?CalledStationId, Attributes),
-		FramedIp = radius_attributes:find(?FramedIpAddress, Attributes),
 		NasID = case {NasIpAddressV, NasIdentifierV} of
 			{{error, not_found}, {error, not_found}} ->
 				throw(reject);
@@ -246,8 +241,7 @@ accounting_request(Address, _Port, Secret, Radius,
 				case ocs:decrement_balance(Subscriber, Usage) of
 					{ok, OverUsed} when OverUsed =< 0 ->
 						case supervisor:start_child(DiscSup, [[Address, NasID,
-								Subscriber, AcctSessionId, Secret, Id, NasPortType,
-								NasPortId, CallingStation, CalledStation, FramedIp], []]) of
+								Subscriber, AcctSessionId, Secret, Id, Attributes], []]) of
 							{ok, _Child} ->
 								{reply, {ok, wait}, State};
 							{error, Reason} ->
