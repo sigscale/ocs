@@ -243,14 +243,15 @@ accounting_request(Address, _Port, Secret, Radius,
 						case supervisor:start_child(DiscSup, [[Address, NasID,
 								Subscriber, AcctSessionId, Secret, Id, Attributes], []]) of
 							{ok, _Child} ->
-								{reply, {ok, wait}, State};
+								ok;
 							{error, Reason} ->
 								error_logger:error_report(["Failed to initiate session disconnect function",
 									{error, Reason}])
 						end;
 					{ok, _SufficientBalance} ->
-						{reply, {ok, response(Id, Authenticator, Secret, Attributes)}, State}
-				end;
+						ok
+				end,
+				{reply, {ok, response(Id, Authenticator, Secret, Attributes)}, State};
 			{error, _Reason} ->
 				{reply, {error, ignore}, State}
 		end
