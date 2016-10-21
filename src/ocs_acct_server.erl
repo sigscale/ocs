@@ -251,7 +251,7 @@ accounting_request(Address, _Port, Secret, Radius,
 					{ok, _SufficientBalance} ->
 						ok
 				end,
-				{reply, {ok, response(Id, Authenticator, Secret, Attributes)}, State};
+				{reply, {ok, response(Id, Authenticator, Secret)}, State};
 			{error, _Reason} ->
 				{reply, {error, ignore}, State}
 		end
@@ -261,23 +261,14 @@ accounting_request(Address, _Port, Secret, Radius,
 	end.
 
 -spec response(Id :: byte(), RequestAuthenticator :: [byte()],
-		Secret :: string() | binary(),
-		Attributes :: radius_attributes:attributes()) ->
+		Secret :: string() | binary()) ->
 	AccessAccept :: binary().
 %% @hidden
-response(Id, RequestAuthenticator, Secret, AttributeList)
-		when is_list(AttributeList) ->
-	AttributeList1 = radius_attributes:store(?MessageAuthenticator,
-		<<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, AttributeList),
-	Attributes1 = radius_attributes:codec(AttributeList1),
-	Length = size(Attributes1) + 20,
-	MessageAuthenticator = crypto:hmac(md5, Secret, [<<?AccountingResponse, Id,
-			Length:16>>, RequestAuthenticator, Attributes1]),
-	AttributeList2 = radius_attributes:store(?MessageAuthenticator,
-			MessageAuthenticator, AttributeList1),
-	Attributes2 = radius_attributes:codec(AttributeList2),
+response(Id, RequestAuthenticator, Secret) ->
+	Length = 20,
 	ResponseAuthenticator = crypto:hash(md5, [<<?AccountingResponse, Id,
-			Length:16>>, RequestAuthenticator, Attributes2, Secret]),
+			Length:16>>, RequestAuthenticator, Secret]),
 	Response = #radius{code = ?AccountingResponse, id = Id,
-			authenticator = ResponseAuthenticator, attributes = Attributes2},
+			authenticator = ResponseAuthenticator, attributes = []},
 	radius:codec(Response).
+
