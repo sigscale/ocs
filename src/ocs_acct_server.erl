@@ -241,7 +241,7 @@ accounting_request(Address, _Port, Secret, Radius,
 				case ocs:decrement_balance(Subscriber, Usage) of
 					{ok, OverUsed} when OverUsed =< 0 ->
 						case supervisor:start_child(DiscSup, [[Address, NasID,
-								Subscriber, AcctSessionId, Secret, Id, Attributes], []]) of
+								Subscriber, AcctSessionId, Secret, Attributes], []]) of
 							{ok, _Child} ->
 								ok;
 							{error, Reason} ->

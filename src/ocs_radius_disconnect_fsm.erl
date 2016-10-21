@@ -36,7 +36,7 @@
 -include_lib("radius/include/radius.hrl").
 -include("ocs_eap_codec.hrl").
 -record(statedata,
-		{id :: byte(),
+		{id = 1 :: byte(),
 		 nas_ip :: inet:ip_address(),
 		 nas_id :: string(),
 		 subscriber :: string(),
@@ -70,11 +70,11 @@
 %% @private
 %%
 init([NasIpAddress, NasIdentifier, Subscriber, AcctSessionId, Secret,
-			Id, Attributes]) ->
+			Attributes]) ->
 	process_flag(trap_exit, true),
 	StateData = #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
 		subscriber = Subscriber, acct_session_id = AcctSessionId,
-		secret = Secret, id = Id, attributes = Attributes},
+		secret = Secret, attributes = Attributes},
 	{ok, send_request, StateData, 0}.
 
 -spec send_request(Event :: timeout | term(), StateData :: #statedata{}) ->
@@ -164,7 +164,8 @@ receive_response({udp, Socket, NasIp, NasPort, Packet}, #statedata{id = Id,
 			Attr = radius_attributes:codec(Attrbin),
 			case radius_attributes:find(?ErrorCause, Attr) of
 				{ok, ErrorCause} ->
-					log(NasIp, NasPort,ErrorCause, StateData);
+					error_logger:error_report(["Failed to initiate session disconnect function",
+							{error, radius_attributes:error_cause(ErrorCause)}]);
 				{error, not_found} ->
 					{stop, shutdown, StateData}
 			end
@@ -244,55 +245,6 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
-
--spec log(NasIp :: inet:ip_address(), NasPort :: integer(),
-		ErrorCause :: string(), StateData :: #statedata{}) ->
-		{stop, Shutdown :: term(), StateData :: #statedata{}}.
-%% @doc	Log error cause (as defined in
-%% <a href="https://tools.ietf.org/html/rfc3576">rfc3576</a>) when
-%% a Disconnect/Nak is received 
-%% @private
-%%
-log(NasIp, NasPort, ErrorCause, StateData) ->
-	{ok, Directory} = application:get_env(ocs, radius_disconnect_dir),
-	Log = ?ERRORLOG,
-	FileName = Directory ++ "/" ++ atom_to_list(Log),
-	try case file:list_dir(Directory) of
-		{ok, _} ->
-			ok;
-		{error, enoent} ->
-			case file:make_dir(Directory) of
-				ok ->
-					ok;
-				{error, Reason} ->
-					throw(Reason)
-			end;
-		{error, Reason} ->
-			throw(Reason)
-	end of
-		ok ->
-			case disk_log:open([{name, Log}, {file, FileName},
-					{type, wrap}, {size, {1048575, 20}}]) of
-				{ok, Log} ->
-					Attr0 = radius_attributes:new(),
-					Attr1 = radius_attributes:add(?NasIpAddress, NasIp, Attr0),
-					Attr2 = radius_attributes:add(?NasPort, NasPort, Attr1),
-					Attr3 = radius_attributes:add(?ErrorCause, ErrorCause, Attr2),
-					AttrBin = radius_attributes:codec(Attr3),
-					disk_log:log(log, AttrBin),
-					{stop, shutdown, StateData};
-				{repaired, Log, {recovered, Rec}, {badbytes, Bad}} ->
-					error_logger:warning_report(["Disk log repaired",
-							{log, Log}, {path, FileName}, {recovered, Rec},
-							{badbytes, Bad}]),
-					{stop, {shutdown, "Could not log attributes"}, StateData};
-				{error, Reason1} ->
-					{stop, {shutdown, Reason1}, StateData}
-			end
-	catch
-		Reason2 ->
-			{stop, {shutdown, Reason2}, StateData}
-	end.
 
 -spec extract_attributes(Attributes :: [integer()], 
 		AttrList :: radius_attributes:attributes(), CurrentAttrList :: radius_attributes:attributes())->
