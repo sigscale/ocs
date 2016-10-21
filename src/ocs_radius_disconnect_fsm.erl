@@ -46,11 +46,7 @@
 		 retry_time = 500 :: integer(),
 		 retry_count = 0 :: integer(),
 		 request :: binary(),
-		 nas_port_type :: integer(),
-		 nas_port_id :: string(),
-		 calling_station :: string(),
-		 called_station :: string(), 
-		 framed_ip :: inet:ip_address()}).
+		 attributes :: radius_attributes:attributes()}).
 
 -define(TIMEOUT, 30000).
 -define(ERRORLOG, radius_disconnect_error).
@@ -73,14 +69,12 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([NasIpAddress, NasIdentifier, Subscriber, AcctSessionId, Secret, Id,
-		 NasPortType, NasPortId, CallingStation, CalledStation, FramedIp]) ->
+init([NasIpAddress, NasIdentifier, Subscriber, AcctSessionId, Secret,
+			Id, Attributes]) ->
 	process_flag(trap_exit, true),
 	StateData = #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
 		subscriber = Subscriber, acct_session_id = AcctSessionId,
-		secret = Secret, id = Id, nas_port_type = NasPortType, nas_port_id = NasPortId,
-		calling_station = CallingStation, called_station = CalledStation,
-		framed_ip = FramedIp},
+		secret = Secret, id = Id, attributes = Attributes},
 	{ok, send_request, StateData, 0}.
 
 -spec send_request(Event :: timeout | term(), StateData :: #statedata{}) ->
@@ -97,9 +91,7 @@ init([NasIpAddress, NasIdentifier, Subscriber, AcctSessionId, Secret, Id,
 %%
 send_request(timeout, #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
 		subscriber = Subscriber, acct_session_id = AcctSessionId, id = Id,
-		secret = SharedSecret, nas_port_type = NasPortType, nas_port_id = NasPortId,
-		calling_station = CallingStation, called_station = CalledStation, framed_ip = FramedIp,
-		retry_time = Retry} = StateData) ->
+		secret = SharedSecret, attributes = Attributes, retry_time = Retry} = StateData) ->
 	{ok, Port} = application:get_env(ocs, radius_disconnect_port),
 	Attr0 = radius_attributes:new(),
 	Attr1 = radius_attributes:add(?NasIpAddress, NasIpAddress, Attr0),
@@ -112,41 +104,41 @@ send_request(timeout, #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
 		_ ->
 			radius_attributes:add(?NasIdentifier, NasIdentifier, Attr4)
 	end,
-	Attr6 = case NasPortType of
+	Attr6 = case radius_attributes:find(?NasPortType, Attributes) of
 		{error, not_found} ->
 			Attr5;
-		_ ->
-			radius_attributes:add(?NasPortType, NasPortType, Attr5)
+		{ok, Value1}->
+			radius_attributes:add(?NasPortType, Value1, Attr5)
 	end,
-	Attr7 = NasPortId case of
+	Attr7 = case radius_attributes:find(?NasPortId, Attributes) of
 		{error, not_found} ->
 			Attr6;
-		_ ->
-			radius_attributes:add(?NasPortId, NasPortId, Attr6)
+		 {ok, Value2}->
+			radius_attributes:add(?NasPortId, Value2, Attr6)
 	end,
-	Attr8 = case CallingStation of
+	Attr8 = case radius_attributes:find(?CallingStationId, Attributes) of
 		{error, not_found} ->
 			Attr7;
-		_ ->
-			radius_attributes:add(?CallingStationId, CallingStation, Attr7)
+		 {ok, Value3}->
+			radius_attributes:add(?CallingStationId, Value3, Attr7)
 	end,
-	Attr9 = case CalledStation of
+	Attr9 = case radius_attributes:find(?CalledStationId, Attributes) of
 		{error, not_found} ->
 			Attr8;
-		_ ->
-			radius_attributes:add(?CalledStationId, CalledStation, Attr8)
+		 {ok, Value4}->
+			radius_attributes:add(?CalledStationId, Value4, Attr8)
 	end,
-	Attr10 = case FramedIp of
+	Attr10 = case radius_attributes:find(?FramedIpAddress, Attributes) of
 		{error, not_found} ->
 			Attr9;
-		_ ->
-			radius_attributes:add(?FramedIpAddress, FramedIp, Attr9)
+		 {ok, Value5}->
+			radius_attributes:add(?FramedIpAddress, Value5, Attr9)
 	end,
-	Attributes = radius_attributes:codec(Attr10),
-	Length = size(Attributes) + 20,
+	Attributes1 = radius_attributes:codec(Attr10),
+	Length = size(Attributes1) + 20,
 	RequestAuthenticator = crypto:hash(md5,
 			[<<?DisconnectRequest, Id, Length:16>>,
-			<<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, Attributes, Secret]),
+			<<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, Attributes, SharedSecret]),
 	DisconRec = #radius{code = ?DisconnectRequest, id = Id,
 			authenticator = RequestAuthenticator, attributes = Attributes},
 	DisconnectRequest = radius:codec(DisconRec),
