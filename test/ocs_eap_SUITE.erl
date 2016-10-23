@@ -90,7 +90,7 @@ sequences() ->
 %%
 all() ->
 	[eap_identity, pwd_id, pwd_commit, pwd_confirm, message_authentication,
-			validate_eap_code, validate_pwd_id_cipher, validate_pwd_id_prep,
+			role_reversal, validate_pwd_id_cipher, validate_pwd_id_prep,
 			validate_pwd_id_token].
 
 %%---------------------------------------------------------------------
@@ -252,39 +252,30 @@ message_authentication(Config) ->
 			Secret, PeerId, MAC, ReqAuth, EapId, RadId),
 	{error, timeout} = gen_udp:recv(Socket, 0, 2000).
 
-validate_eap_code() ->
-	[{userdata, [{doc, "Send invalid EAP (bad code)"}]}].
+role_reversal() ->
+	[{userdata, [{doc, "Send EAP-Request (unsupported role reversal)"}]}].
 
-validate_eap_code(Config) ->
+role_reversal(Config) ->
 	PeerId = <<"67890123">>,
 	MAC = "ff:aa:bb:cc:dd:ee",
-	PeerAuth = list_to_binary(ocs:generate_password()),
-	ok = ocs:add_subscriber(PeerId, PeerAuth, []),
 	Socket = ?config(socket, Config),
 	{ok, Address} = application:get_env(ocs, radius_auth_addr),
 	{ok, Port} = application:get_env(ocs, radius_auth_port),
 	NasId = ?config(nas_id, Config),
 	UserName = ct:get_config(radius_username),
 	Secret = ct:get_config(radius_shared_secret),
-	ReqAuth1 = radius:authenticator(),
-	RadId1 = 14, EapId1 = 1,
-	ok = send_identity(Socket, Address, Port, NasId, UserName,
-			Secret, PeerId, MAC, ReqAuth1, EapId1, RadId1),
-	EapId2 = EapId1 + 1,
-	{EapId2, Token, _ServerID} = receive_id(Socket, Address,
-			Port, Secret, ReqAuth1, RadId1),
-	RadId2 = RadId1 + 1,
-	ReqAuth2 = radius:authenticator(),
+	ReqAuth = radius:authenticator(),
+	RadId = 14, EapId = 1,
+	Token = crypto:rand_bytes(4),
 	EapPwdId = #eap_pwd_id{group_desc = 19, random_fun = 16#1, prf = 16#1,
 			token = Token, pwd_prep = none, identity = PeerId},
 	EapPwd = #eap_pwd{pwd_exch = id, data = ocs_eap_codec:eap_pwd_id(EapPwdId)},
-	InvalidCode = request,
-	EapPacket  = #eap_packet{code = InvalidCode, type = ?PWD,
-			identifier = EapId2, data = ocs_eap_codec:eap_pwd(EapPwd)},
+	EapPacket  = #eap_packet{code = request, type = ?PWD,
+			identifier = EapId, data = ocs_eap_codec:eap_pwd(EapPwd)},
 	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
 	ok = access_request(Socket, Address, Port, NasId,
-			UserName, Secret, MAC, ReqAuth2, RadId2, EapMsg),
-	{error, timeout} = gen_udp:recv(Socket, 0, 2000).
+			UserName, Secret, MAC, ReqAuth, RadId, EapMsg),
+	{EapId, <<0>>} = receive_nak(Socket, Address, Port, Secret, ReqAuth, RadId).
 
 validate_pwd_id_cipher() ->
 	[{userdata, [{doc, "Send invalid EAP-pwd-ID (bad cipher)"}]}].
@@ -523,4 +514,11 @@ receive_failure(Socket, Address, Port, Secret, ReqAuth, RadId) ->
 	#eap_packet{code = failure,
 			identifier = EapId} = ocs_eap_codec:eap_packet(EapMsg),
 	EapId.
+
+receive_nak(Socket, Address, Port, Secret, ReqAuth, RadId) ->
+	EapMsg = access_reject(Socket, Address, Port,
+			Secret, RadId, ReqAuth),
+	#eap_packet{code = response, type = ?LegacyNak, identifier = EapId,
+			data = AuthTypes} = ocs_eap_codec:eap_packet(EapMsg),
+	{EapId, AuthTypes}.
 
