@@ -56,6 +56,7 @@
 -define(EKEv1,            53).
 -define(PTEAP,            54).
 -define(TEAP,             55).
+-define(ExpandedNak,     254).
 -define(Experimental,    255).
 
 %% Macro definitions for Elliptic Curve Cryptography(ECC) calculations
