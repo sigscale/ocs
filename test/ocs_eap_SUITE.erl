@@ -91,7 +91,7 @@ sequences() ->
 all() ->
 	[eap_identity, pwd_id, pwd_commit, pwd_confirm, message_authentication,
 			role_reversal, validate_pwd_id_cipher, validate_pwd_id_prep,
-			validate_pwd_id_token].
+			validate_pwd_id_token, negotiate_method].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -378,6 +378,47 @@ validate_pwd_id_token(Config) ->
 	ok = access_request(Socket, Address, Port, NasId,
 			UserName, Secret, MAC, ReqAuth2, RadId2, EapMsg),
 	EapId2 = receive_failure(Socket, Address, Port, Secret, ReqAuth2, RadId2).
+
+negotiate_method() ->
+	[{userdata, [{doc, "Send EAP-Nak with alternate methods"}]}].
+
+negotiate_method(Config) ->
+	PeerId = <<"01234567">>,
+	MAC = "fe:dc:ba:ab:cd:ef",
+	PeerAuth = list_to_binary(ocs:generate_password()),
+	ok = ocs:add_subscriber(PeerId, PeerAuth, []),
+	Socket = ?config(socket, Config),
+	{ok, Address} = application:get_env(ocs, radius_auth_addr),
+	{ok, Port} = application:get_env(ocs, radius_auth_port),
+	NasId = ?config(nas_id, Config),
+	UserName = ct:get_config(radius_username),
+	Secret = ct:get_config(radius_shared_secret),
+	ReqAuth1 = radius:authenticator(),
+	RadId1 = 16, EapId1 = 1,
+	ok = send_identity(Socket, Address, Port, NasId, UserName,
+			Secret, PeerId, MAC, ReqAuth1, EapId1, RadId1),
+	EapId2 = EapId1 + 1,
+	EapMsg1 = access_challenge(Socket, Address, Port,
+			Secret, RadId1, ReqAuth1),
+	#eap_packet{code = request, type = Method,
+			identifier = EapId2} = ocs_eap_codec:eap_packet(EapMsg1),
+	true = (((Method > 4) and (Method < 254)) or (Method == 255)),
+	RadId2 = RadId1 + 1,
+	ReqAuth2 = radius:authenticator(),
+	Methods = [?PEAP, ?TLS, ?TTLS, ?SIM, ?AKA, ?AKAbis, ?PWD],
+	AlternateMethods = lists:delete(Method, Methods),
+	EapPacket  = #eap_packet{code = response,
+			type = ?LegacyNak, identifier = EapId2,
+			data = list_to_binary(AlternateMethods)},
+	EapMsg2 = ocs_eap_codec:eap_packet(EapPacket),
+	ok = access_request(Socket, Address, Port, NasId,
+			UserName, Secret, MAC, ReqAuth2, RadId2, EapMsg2),
+	EapMsg = access_challenge(Socket, Address, Port,
+			Secret, RadId2, ReqAuth2),
+	EapId3 = EapId2 + 1,
+	#eap_packet{code = request, type = Type,
+			identifier = EapId3} = ocs_eap_codec:eap_packet(EapMsg),
+	true = lists:member(Type, AlternateMethods).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
