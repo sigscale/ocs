@@ -90,7 +90,8 @@ sequences() ->
 %%
 all() ->
 	[eap_identity, pwd_id, pwd_commit, pwd_confirm, message_authentication,
-			validate_eap_code, validate_pwd_id_cipher, validate_pwd_id_token].
+			validate_eap_code, validate_pwd_id_cipher, validate_pwd_id_prep,
+			validate_pwd_id_token].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -310,6 +311,40 @@ validate_pwd_id_cipher(Config) ->
 	InvalidGroup = 20, % 384-bit random ECP group
 	EapPwdId = #eap_pwd_id{group_desc = InvalidGroup, random_fun = 16#1, prf = 16#1,
 			token = Token, pwd_prep = none, identity = PeerId},
+	EapPwd = #eap_pwd{pwd_exch = id, data = ocs_eap_codec:eap_pwd_id(EapPwdId)},
+	EapPacket  = #eap_packet{code = request, type = ?PWD,
+			identifier = EapId2, data = ocs_eap_codec:eap_pwd(EapPwd)},
+	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
+	ok = access_request(Socket, Address, Port, NasId,
+			UserName, Secret, MAC, ReqAuth2, RadId2, EapMsg),
+	EapId2 = receive_failure(Socket, Address, Port, Secret, ReqAuth2, RadId2).
+
+validate_pwd_id_prep() ->
+	[{userdata, [{doc, "Send invalid EAP-pwd-ID (bad prep)"}]}].
+
+validate_pwd_id_prep(Config) ->
+	PeerId = <<"89012345">>,
+	MAC = "cd:ef:fe:dc:ba:ab",
+	PeerAuth = list_to_binary(ocs:generate_password()),
+	ok = ocs:add_subscriber(PeerId, PeerAuth, []),
+	Socket = ?config(socket, Config),
+	{ok, Address} = application:get_env(ocs, radius_auth_addr),
+	{ok, Port} = application:get_env(ocs, radius_auth_port),
+	NasId = ?config(nas_id, Config),
+	UserName = ct:get_config(radius_username),
+	Secret = ct:get_config(radius_shared_secret),
+	ReqAuth1 = radius:authenticator(),
+	RadId1 = 16, EapId1 = 1,
+	ok = send_identity(Socket, Address, Port, NasId, UserName,
+			Secret, PeerId, MAC, ReqAuth1, EapId1, RadId1),
+	EapId2 = EapId1 + 1,
+	{EapId2, Token, _ServerID} = receive_id(Socket, Address,
+			Port, Secret, ReqAuth1, RadId1),
+	RadId2 = RadId1 + 1,
+	ReqAuth2 = radius:authenticator(),
+	UnimplementedPrep = saslprep,
+	EapPwdId = #eap_pwd_id{group_desc = 20, random_fun = 16#1, prf = 16#1,
+			token = Token, pwd_prep = UnimplementedPrep, identity = PeerId},
 	EapPwd = #eap_pwd{pwd_exch = id, data = ocs_eap_codec:eap_pwd_id(EapPwdId)},
 	EapPacket  = #eap_packet{code = request, type = ?PWD,
 			identifier = EapId2, data = ocs_eap_codec:eap_pwd(EapPwd)},
