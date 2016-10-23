@@ -89,8 +89,8 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[eap_identity, pwd_id, pwd_commit, pwd_confirm,
-			message_authentication, validate_eap_code, validate_pwd_id_token].
+	[eap_identity, pwd_id, pwd_commit, pwd_confirm, message_authentication,
+			validate_eap_code, validate_pwd_id_cipher, validate_pwd_id_token].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -284,12 +284,46 @@ validate_eap_code(Config) ->
 			UserName, Secret, MAC, ReqAuth2, RadId2, EapMsg),
 	{error, timeout} = gen_udp:recv(Socket, 0, 2000).
 
+validate_pwd_id_cipher() ->
+	[{userdata, [{doc, "Send invalid EAP-pwd-ID (bad cipher)"}]}].
+
+validate_pwd_id_cipher(Config) ->
+	PeerId = <<"78901234">>,
+	MAC = "ab:cd:ef:fe:dc:ba",
+	PeerAuth = list_to_binary(ocs:generate_password()),
+	ok = ocs:add_subscriber(PeerId, PeerAuth, []),
+	Socket = ?config(socket, Config),
+	{ok, Address} = application:get_env(ocs, radius_auth_addr),
+	{ok, Port} = application:get_env(ocs, radius_auth_port),
+	NasId = ?config(nas_id, Config),
+	UserName = ct:get_config(radius_username),
+	Secret = ct:get_config(radius_shared_secret),
+	ReqAuth1 = radius:authenticator(),
+	RadId1 = 16, EapId1 = 1,
+	ok = send_identity(Socket, Address, Port, NasId, UserName,
+			Secret, PeerId, MAC, ReqAuth1, EapId1, RadId1),
+	EapId2 = EapId1 + 1,
+	{EapId2, Token, _ServerID} = receive_id(Socket, Address,
+			Port, Secret, ReqAuth1, RadId1),
+	RadId2 = RadId1 + 1,
+	ReqAuth2 = radius:authenticator(),
+	InvalidGroup = 20, % 384-bit random ECP group
+	EapPwdId = #eap_pwd_id{group_desc = InvalidGroup, random_fun = 16#1, prf = 16#1,
+			token = Token, pwd_prep = none, identity = PeerId},
+	EapPwd = #eap_pwd{pwd_exch = id, data = ocs_eap_codec:eap_pwd_id(EapPwdId)},
+	EapPacket  = #eap_packet{code = request, type = ?PWD,
+			identifier = EapId2, data = ocs_eap_codec:eap_pwd(EapPwd)},
+	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
+	ok = access_request(Socket, Address, Port, NasId,
+			UserName, Secret, MAC, ReqAuth2, RadId2, EapMsg),
+	EapId2 = receive_failure(Socket, Address, Port, Secret, ReqAuth2, RadId2).
+
 validate_pwd_id_token() ->
 	[{userdata, [{doc, "Send invalid EAP-pwd-ID (bad token)"}]}].
 
 validate_pwd_id_token(Config) ->
-	PeerId = <<"78901234">>,
-	MAC = "ab:cd:ef:fe:dc:ba",
+	PeerId = <<"90123456">>,
+	MAC = "ef:fe:dc:ba:ab:cd",
 	PeerAuth = list_to_binary(ocs:generate_password()),
 	ok = ocs:add_subscriber(PeerId, PeerAuth, []),
 	Socket = ?config(socket, Config),
@@ -308,7 +342,7 @@ validate_pwd_id_token(Config) ->
 	RadId2 = RadId1 + 1,
 	ReqAuth2 = radius:authenticator(),
 	InvalidToken = crypto:rand_bytes(4),
-	EapPwdId = #eap_pwd_id{group_desc = 19, random_fun = 16#1, prf = 16#1,
+	EapPwdId = #eap_pwd_id{group_desc = 20, random_fun = 16#1, prf = 16#1,
 			token = InvalidToken, pwd_prep = none, identity = PeerId},
 	EapPwd = #eap_pwd{pwd_exch = id, data = ocs_eap_codec:eap_pwd_id(EapPwdId)},
 	EapPacket  = #eap_packet{code = request, type = ?PWD,
