@@ -243,8 +243,9 @@ accounting_request(Address, _Port, Secret, Radius,
 		{error, not_found} = radius_attributes:find(?State, Attributes),
 		{ok, AcctSessionId} = radius_attributes:find(?AcctSessionId, Attributes),
 		ok = disk_log:log(Log, Attributes),
-		NewState = case ocs:decrement_balance(Subscriber, Usage) of
-			{ok, OverUsed} when OverUsed =< 0 ->
+		NewState = case {ocs:is_disconnected(Subscriber),
+								ocs:decrement_balance(Subscriber, Usage)} of
+			{false, {ok, OverUsed}} when OverUsed =< 0 ->
 				case supervisor:start_child(DiscSup, [[Address, NasID,
 						Subscriber, AcctSessionId, Secret, Attributes, DiskId], []]) of
 					{ok, _Child} ->
@@ -255,7 +256,7 @@ accounting_request(Address, _Port, Secret, Radius,
 							{error, Reason}]),
 						State
 				end;
-			{ok, _SufficientBalance} ->
+			{false, {ok, _SufficientBalance}} ->
 				State	
 		end,
 		{reply, {ok, response(Id, Authenticator, Secret)}, NewState}
