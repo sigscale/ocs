@@ -386,14 +386,15 @@ confirm3(RadiusFsm, #radius{id = RadiusID,
 	Attr3 = radius_attributes:add(?VendorSpecific, VendorSpecific2, Attr2),
 	Attr4 = radius_attributes:store(?SessionTimeout, 86400, Attr3),
 	Attr5 = radius_attributes:store(?AcctInterimInterval, 300, Attr4),
-	case ocs:subscriber_status(PeerID, false) of
-		ok ->
+	{ok, Password, _, _, _} = ocs:find_subscriber(PeerID),
+	case ocs:authorize(PeerID, Password) of
+		{ok, _} ->
 			send_response(success, EapID, <<>>, ?AccessAccept,
 					RadiusID, Attr5, RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, StateData#statedata{mk = MK, msk = MSK}};
 		{error, Reason} ->
-			error_logger:warning_report(["Faild to set subscriber status",
-				{session_id, SessionID}, {peer, PeerID}, {error, Reason}]),
+			send_response(failure, EapID, <<>>, ?AccessReject, RadiusID,
+					[], RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, StateData}
 	end.			
 

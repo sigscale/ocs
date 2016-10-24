@@ -110,22 +110,19 @@ request1(#statedata{req_attr = Attributes, req_auth = Authenticator,
 %% @hidden
 request2(Password, #statedata{subscriber = Subscriber,
 		session_id = SessionID} = StateData) ->
-	case ocs:find_subscriber(Subscriber) of
-		{ok, Password, ResponseAttributes, Balance, _Enabled} when Balance > 0 ->
-			case ocs:subscriber_status(Subscriber, false) of
-				ok ->
-					response(?AccessAccept, ResponseAttributes, StateData),
-					{stop, {shutdown, SessionID}, StateData};
-				{error, Reason} ->
-					error_logger:warning_report(["Faild to set subscriber status",
-						{session_id, SessionID}, {peer, Subscriber}, {error, Reason}]),
-					{stop, {shutdown, SessionID}, StateData}
-			end;
-		{ok, Password, _, _, _} ->
+	case ocs:authorize(Subscriber, Password) of
+		{ok, ResponseAttributes} ->
+			response(?AccessAccept, ResponseAttributes, StateData),
+			{stop, {shutdown, SessionID}, StateData};
+		{error, out_of_credit} ->
 			RejectAttributes = [{?ReplyMessage, "Out of Credit"}],
 			response(?AccessReject, RejectAttributes, StateData),
 			{stop, {shutdown, SessionID}, StateData};
-		{ok, _, _, _, _} ->
+		{error, disabled} ->
+			RejectAttributes = [{?ReplyMessage, "Subscriber Disabled"}],
+			response(?AccessReject, RejectAttributes, StateData),
+			{stop, {shutdown, SessionID}, StateData};
+		{error, bad_password} ->
 			RejectAttributes = [{?ReplyMessage, "Bad Password"}],
 			response(?AccessReject, RejectAttributes, StateData),
 			{stop, {shutdown, SessionID}, StateData};
