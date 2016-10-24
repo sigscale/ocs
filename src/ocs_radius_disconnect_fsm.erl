@@ -36,7 +36,7 @@
 -include_lib("radius/include/radius.hrl").
 -include("ocs_eap_codec.hrl").
 -record(statedata,
-		{id = 1 :: byte(),
+		{id :: byte(),
 		 nas_ip :: inet:ip_address(),
 		 nas_id :: string(),
 		 subscriber :: string(),
@@ -70,11 +70,11 @@
 %% @private
 %%
 init([NasIpAddress, NasIdentifier, Subscriber, AcctSessionId, Secret,
-			Attributes]) ->
+			Attributes, Id]) ->
 	process_flag(trap_exit, true),
 	StateData = #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
 		subscriber = Subscriber, acct_session_id = AcctSessionId,
-		secret = Secret, attributes = Attributes},
+		secret = Secret, attributes = Attributes, id = Id},
 	{ok, send_request, StateData, 0}.
 
 -spec send_request(Event :: timeout | term(), StateData :: #statedata{}) ->
