@@ -44,7 +44,8 @@
 		log :: term(), 
 		handlers = gb_trees:empty() :: gb_trees:tree(Key ::
 				({NAS :: string() | inet:ip_address(), Port :: string(),
-				Peer :: string()}), Value :: (Fsm :: pid()))}).
+				Peer :: string()}), Value :: (Fsm :: pid())),
+		disc_id = 1 :: byte()}).
 
 -define(LOGNAME, radius_acct).
 
@@ -207,7 +208,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% @doc Handle a received RADIUS Accounting Request packet.
 %% @private
 accounting_request(Address, _Port, Secret, Radius,
-		{_RadiusFsm, _Tag} = _From, #state{handlers = _Handlers,
+		{_RadiusFsm, _Tag} = _From, #state{handlers = _Handlers, disc_id = Id,
 		log = Log, disc_sup = DiscSup} = State) ->
 	try 
 		#radius{code = ?AccountingRequest, id = Id, attributes = Attributes,
@@ -237,20 +238,22 @@ accounting_request(Address, _Port, Secret, Radius,
 		{error, not_found} = radius_attributes:find(?State, Attributes),
 		{ok, AcctSessionId} = radius_attributes:find(?AcctSessionId, Attributes),
 		ok = disk_log:log(Log, Attributes),
-		case ocs:decrement_balance(Subscriber, Usage) of
+		NewState = case ocs:decrement_balance(Subscriber, Usage) of
 			{ok, OverUsed} when OverUsed =< 0 ->
 				case supervisor:start_child(DiscSup, [[Address, NasID,
-						Subscriber, AcctSessionId, Secret, Attributes], []]) of
+						Subscriber, AcctSessionId, Secret, Attributes, Id], []]) of
 					{ok, _Child} ->
-						ok;
+						NewId = Id + 1,
+						State#state{disc_id = NewId};
 					{error, Reason} ->
 						error_logger:error_report(["Failed to initiate session disconnect function",
-							{error, Reason}])
+							{error, Reason}]),
+						State
 				end;
 			{ok, _SufficientBalance} ->
-				ok
+				State	
 		end,
-		{reply, {ok, response(Id, Authenticator, Secret)}, State}
+		{reply, {ok, response(Id, Authenticator, Secret)}, NewState}
 	catch
 		_:_ ->
 			{reply, {error, ignore}, State}
