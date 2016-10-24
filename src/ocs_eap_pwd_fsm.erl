@@ -174,7 +174,7 @@ id({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 				identity = PeerID} = ocs_eap_codec:eap_pwd_id(EapPwdId),
 		NewEapID = EapID + 1,
 		case catch ocs:find_subscriber(PeerID) of
-			{ok, Password, _Attributes, _Balance, _Disconnect} ->
+			{ok, Password, _Attributes, _Balance, _Enabled} ->
 				PWE = ocs_eap_pwd:compute_pwe(Token, PeerID, ServerID, Password),
 				{ScalarS, ElementS} = ocs_eap_pwd:compute_scalar(<<S_rand:256>>,
 						PWE),
@@ -386,14 +386,15 @@ confirm3(RadiusFsm, #radius{id = RadiusID,
 	Attr3 = radius_attributes:add(?VendorSpecific, VendorSpecific2, Attr2),
 	Attr4 = radius_attributes:store(?SessionTimeout, 86400, Attr3),
 	Attr5 = radius_attributes:store(?AcctInterimInterval, 300, Attr4),
-	case ocs:subscriber_status(PeerID, false) of
-		ok ->
+	{ok, Password, _, _, _} = ocs:find_subscriber(PeerID),
+	case ocs:authorize(PeerID, Password) of
+		{ok, _} ->
 			send_response(success, EapID, <<>>, ?AccessAccept,
 					RadiusID, Attr5, RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, StateData#statedata{mk = MK, msk = MSK}};
 		{error, Reason} ->
-			error_logger:warning_report(["Faild to set subscriber status",
-				{session_id, SessionID}, {peer, PeerID}, {error, Reason}]),
+			send_response(failure, EapID, <<>>, ?AccessReject, RadiusID,
+					[], RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, StateData}
 	end.			
 

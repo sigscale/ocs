@@ -22,14 +22,14 @@
 
 %% export the ocs public API
 -export([add_client/2, find_client/1]).
--export([add_subscriber/3, add_subscriber/4, add_subscriber/5, find_subscriber/1,
+-export([add_subscriber/3, add_subscriber/4, find_subscriber/1,
 			delete_subscriber/1, update_password/3, update_attributes/3,
 			decrement_balance/2]).
 -export([log_file/1]).
 -export([generate_password/0]).
 -export([start/3]).
 %% export the ocs private API
--export([subscriber_status/2]).
+-export([authorize/2, is_disconnected/1]).
 
 -include("ocs.hrl").
 -define(LOGNAME, radius_acct).
@@ -81,24 +81,14 @@ find_client(Address) when is_tuple(Address) ->
 -spec add_subscriber(Subscriber :: string() | binary(), Password :: string() | binary(),
 		Attributes :: radius_attributes:attributes() | binary()) ->
 	ok | {error, Reason :: term()}.
-%% @equiv add_subscriber(Subscriber, Password, Attributes, 0, true)
+%% @equiv add_subscriber(Subscriber, Password, Attributes, 0)
 add_subscriber(Subscriber, Password, Attributes) ->
-	add_subscriber(Subscriber, Password, Attributes, 0, true).
+	add_subscriber(Subscriber, Password, Attributes, 0).
 
 -spec add_subscriber(Subscriber :: string() | binary(),
 		Password :: string() | binary(),
 		Attributes :: radius_attributes:attributes() | binary(),
 		Balance :: non_neg_integer()) ->
-	ok | {error, Reason :: term()}.
-%% @equiv add_subscriber(Subscriber, Password, Attributes, Balance, false)
-add_subscriber(Subscriber, Password, Attributes, Balance) ->
-	add_subscriber(Subscriber, Password, Attributes, Balance, false).
-
--spec add_subscriber(Subscriber :: string() | binary(),
-		Password :: string() | binary(),
-		Attributes :: radius_attributes:attributes() | binary(),
-		Balance :: non_neg_integer(),
-		Disconnect :: boolean()) ->
 		ok | {error, Reason :: term()}.
 %% @doc Create an entry in the subscriber table.
 %%
@@ -107,20 +97,16 @@ add_subscriber(Subscriber, Password, Attributes, Balance) ->
 %% 	may be provided.  These attributes will overide any default values.
 %%
 %% 	An initial account `Balance' value may be provided.
-%%		`Disconnect' use for define current state of the subscriber.
 %%
-add_subscriber(Subscriber, Password, Attributes, Balance, Disconnect)
+add_subscriber(Subscriber, Password, Attributes, Balance)
 		when is_list(Subscriber) ->
-	add_subscriber(list_to_binary(Subscriber), Password, Attributes, Balance,
-			Disconnect);
-add_subscriber(Subscriber, Password, Attributes, Balance, Disconnect)
+	add_subscriber(list_to_binary(Subscriber), Password, Attributes, Balance);
+add_subscriber(Subscriber, Password, Attributes, Balance)
 		when is_list(Password) ->
-	add_subscriber(Subscriber, list_to_binary(Password), Attributes, Balance,
-			Disconnect);
-add_subscriber(Subscriber, Password, Attributes, Balance, Disconnect)
+	add_subscriber(Subscriber, list_to_binary(Password), Attributes, Balance);
+add_subscriber(Subscriber, Password, Attributes, Balance)
 		when is_binary(Subscriber), is_binary(Password),
-		is_list(Attributes), is_integer(Balance),
-		is_boolean(Disconnect) ->
+		is_list(Attributes), is_integer(Balance) ->
 	F1 = fun(F, <<C, Rest/binary>>)
 					when (((C >= $a) and (C =< $z)) or ((C >= $2) and (C =< $9))),
 					C /= $i, C /= $l, C /= $o, C /= $u, C /= $v, C /= $0, C /= $1 ->
@@ -134,8 +120,7 @@ add_subscriber(Subscriber, Password, Attributes, Balance, Disconnect)
 		true ->
 			F2 = fun() ->
 						R = #subscriber{name = Subscriber, password = Password,
-								attributes = Attributes, balance = Balance,
-								disconnect = Disconnect},
+								attributes = Attributes, balance = Balance},
 						mnesia:write(R)
 			end,
 			case mnesia:transaction(F2) of
@@ -151,8 +136,7 @@ add_subscriber(Subscriber, Password, Attributes, Balance, Disconnect)
 -spec find_subscriber(Subscriber :: string() | binary()) ->
 	Result :: {ok, Password :: binary(),
 			Attributes :: radius_attributes:attributes(),
-			Balance :: integer(), Disconnect :: boolean()} |
-			{error, Reason :: not_found | term()}.
+			Balance :: integer()} | {error, Reason :: not_found | term()}.
 %% @doc Look up an entry in the subscriber tabe.
 find_subscriber(Subscriber) when is_list(Subscriber) ->
 	find_subscriber(list_to_binary(Subscriber));
@@ -162,8 +146,8 @@ find_subscriber(Subscriber) when is_binary(Subscriber) ->
 	end,
 	case mnesia:transaction(F) of
 		{atomic, [#subscriber{password = Password, attributes = Attributes,
-				balance = Balance, disconnect = Disconnect}]} ->
-			{ok, Password, Attributes, Balance, Disconnect};
+				balance = Balance, enabled = Enabled}]} ->
+			{ok, Password, Attributes, Balance, Enabled};
 		{atomic, []} ->
 			{error, not_found};
 		{aborted, Reason} ->
@@ -349,29 +333,71 @@ file_chunk(Log, IODevice, Continuation) ->
 			file_chunk(Log, IODevice, Continuation2)
 	end.
 
--spec subscriber_status(Subscriber :: string() | binary(),
-			Disconnect :: boolean()) ->
-		ok | {error, Reason :: not_found | term()}.
-%% @doc Set subscriber status to `Disconnect' true or false.
+-spec authorize(Subscriber :: string() | binary(),
+		Password :: string() | binary()) ->
+	{ok, Attributes :: radius_attributes:attributes()} |
+	{error, Reason :: out_of_credit | disabled | bad_password |
+					not_found | term()}.
+%% @doc Authorize a subscriber based on `enabled' and `balance' fields.
+%%
+%% 	If the subscriber `enabled' field true and have sufficient `balance'
+%%		set disconnect field to false and return `attributes' or return the
+%% 	error reason.
 %% @private
-subscriber_status(Subscriber, Disconnect) when is_list(Subscriber) ->
-	subscriber_status(list_to_binary(Subscriber), Disconnect);
-subscriber_status(Subscriber, Disconnect) when is_binary(Subscriber),
-		is_boolean(Disconnect) ->
-	F = fun() ->
+authorize(Subscriber, Password) when is_list(Subscriber) ->
+	authorize(list_to_binary(Subscriber), Password);
+authorize(Subscriber, Password) when is_list(Password) ->
+	authorize(Subscriber, list_to_binary(Password));
+authorize(Subscriber, Password) when is_binary(Subscriber),
+		is_binary(Password) ->
+	F= fun() ->
 				case mnesia:read(subscriber, Subscriber, write) of
-					[#subscriber{} = Entry] ->
-						NewEntry = Entry#subscriber{disconnect = Disconnect},
-						mnesia:write(subscriber, NewEntry, write);
+					[#subscriber{password = Password, attributes = Attributes,
+							enabled = true, disconnect = false} =
+							Entry ] when Entry#subscriber.balance > 0 ->
+						Attributes;
+					[#subscriber{password = Password, attributes = Attributes,
+							enabled = true, disconnect = true} =
+							Entry] when Entry#subscriber.balance > 0 ->
+						NewEntry = Entry#subscriber{disconnect = false},
+						mnesia:write(subscriber, NewEntry, write),
+						Attributes;
+					[#subscriber{password = Password} = Entry] when
+							Entry#subscriber.balance < 0 ->
+						throw(out_of_credit);
+					[#subscriber{password = Password, enabled = false}] ->
+						throw(disabled);
+					[#subscriber{}] ->
+						throw(bad_password);
 					[] ->
 						throw(not_found)
 				end
 	end,
 	case mnesia:transaction(F) of
-		{atomic, ok} ->
-			ok;
+		{atomic, Attributes} ->
+			{ok, Attributes};
 		{aborted, {throw, Reason}} ->
 			{error, Reason};
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
+
+-spec is_disconnected(Subscriber :: string() | binary()) ->
+		Disconected :: boolean().
+%% @doc Look up subscriber disconnect status in susbcriber table.
+%% @private
+is_disconnected(Subscriber) when is_list(Subscriber) ->
+	is_disconnected(list_to_binary(Subscriber));
+is_disconnected(Subscriber) when is_binary(Subscriber) ->
+	F = fun() ->
+				mnesia:read(subscriber, Subscriber, read)
+	end,
+	case mnesia:transaction(F) of
+		{atomic, [#subscriber{disconnect = false}]} ->
+			false;
+		{atomic, [#subscriber{disconnect = true}]} ->
+			true;
+		{aborted, Reason} ->
+			exit(Reason)
+	end.
+
