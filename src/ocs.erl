@@ -28,6 +28,8 @@
 -export([log_file/1]).
 -export([generate_password/0]).
 -export([start/3]).
+%% export the ocs private API
+-export([subscriber_status/2]).
 
 -include("ocs.hrl").
 -define(LOGNAME, radius_acct).
@@ -347,3 +349,29 @@ file_chunk(Log, IODevice, Continuation) ->
 			file_chunk(Log, IODevice, Continuation2)
 	end.
 
+-spec subscriber_status(Subscriber :: string() | binary(),
+			Disconnect :: boolean()) ->
+		ok | {error, Reason :: not_found | term()}.
+%% @doc Set subscriber status to `Disconnect' true or false.
+%% @private
+subscriber_status(Subscriber, Disconnect) when is_list(Subscriber) ->
+	subscriber_status(list_to_binary(Subscriber), Disconnect);
+subscriber_status(Subscriber, Disconnect) when is_binary(Subscriber),
+		is_boolean(Disconnect) ->
+	F = fun() ->
+				case mnesia:read(subscriber, Subscriber, write) of
+					[#subscriber{} = Entry] ->
+						NewEntry = Entry#subscriber{disconnect = Disconnect},
+						mnesia:write(subscriber, NewEntry, write);
+					[] ->
+						throw(not_found)
+				end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, ok} ->
+			ok;
+		{aborted, {throw, Reason}} ->
+			{error, Reason};
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
