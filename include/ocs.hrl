@@ -27,6 +27,6 @@
 		password :: binary(),
 		attributes :: radius_attributes:attributes(),
 		balance :: integer(),
-		enabled = true :: boolean(),
+		enabled = false :: boolean(),
 		disconnect  = false :: boolean()}).
 

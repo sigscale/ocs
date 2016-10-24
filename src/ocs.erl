@@ -29,7 +29,7 @@
 -export([generate_password/0]).
 -export([start/3]).
 %% export the ocs private API
--export([]).
+-export([authorize/2]).
 
 -include("ocs.hrl").
 -define(LOGNAME, radius_acct).
@@ -331,5 +331,54 @@ file_chunk(Log, IODevice, Continuation) ->
 			end,
 			lists:foreach(Fun, Terms),
 			file_chunk(Log, IODevice, Continuation2)
+	end.
+
+-spec authorize(Subscriber :: string() | binary(),
+		Password :: string() | binary()) ->
+	{ok, Attributes :: radius_attributes:attributes()} |
+	{error, Reason :: out_of_credit | disabled | bad_password |
+					not_found | term()}.
+%% @doc Authorize a subscriber based on `enabled' and `balance' fields.
+%%
+%% 	If the subscriber `enabled' field true and have sufficient `balance'
+%%		set disconnect field to false and return `attributes' or return the
+%% 	error reason.
+%% @private
+authorize(Subscriber, Password) when is_list(Subscriber) ->
+	authorize(list_to_binary(Subscriber), Password);
+authorize(Subscriber, Password) when is_list(Password) ->
+	authorize(Subscriber, list_to_binary(Password));
+authorize(Subscriber, Password) when is_binary(Subscriber),
+		is_binary(Password) ->
+	F= fun() ->
+				case mnesia:read(subscriber, Subscriber, write) of
+					[#subscriber{password = Password, attributes = Attributes,
+							enabled = true, disconnect = false} =
+							Entry ] when Entry#subscriber.balance > 0 ->
+						Attributes;
+					[#subscriber{password = Password, attributes = Attributes,
+							enabled = true, disconnect = true} =
+							Entry] when Entry#subscriber.balance > 0 ->
+						NewEntry = Entry#subscriber{disconnect = false},
+						mnesia:write(subscriber, NewEntry, write),
+						Attributes;
+					[#subscriber{password = Password} = Entry] when
+							Entry#subscriber.balance < 0 ->
+						throw(out_of_credit);
+					[#subscriber{password = Password, enabled = false}] ->
+						throw(disabled);
+					[#subscriber{}] ->
+						throw(bad_password);
+					[] ->
+						throw(not_found)
+				end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, Attributes} ->
+			{ok, Attributes};
+		{aborted, {throw, Reason}} ->
+			{error, Reason};
+		{aborted, Reason} ->
+			{error, Reason}
 	end.
 
