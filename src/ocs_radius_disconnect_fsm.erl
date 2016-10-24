@@ -164,7 +164,8 @@ receive_response({udp, Socket, NasIp, NasPort, Packet}, #statedata{id = Id,
 			Attr = radius_attributes:codec(Attrbin),
 			case radius_attributes:find(?ErrorCause, Attr) of
 				{ok, ErrorCause} ->
-					error_logger:error_report(["Failed to initiate session disconnect function",
+					error_logger:error_report(["Failed to disconnect subscriber session on",
+							{server, NasIp}, {port, NasPort},
 							{error, radius_attributes:error_cause(ErrorCause)}]);
 				{error, not_found} ->
 					{stop, shutdown, StateData}
