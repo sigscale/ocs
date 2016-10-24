@@ -111,14 +111,14 @@ request1(#statedata{req_attr = Attributes, req_auth = Authenticator,
 request2(Password, #statedata{subscriber = Subscriber,
 		session_id = SessionID} = StateData) ->
 	case ocs:find_subscriber(Subscriber) of
-		{ok, Password, ResponseAttributes, Balance} when Balance > 0 ->
+		{ok, Password, ResponseAttributes, Balance, _Disconnect} when Balance > 0 ->
 			response(?AccessAccept, ResponseAttributes, StateData),
 			{stop, {shutdown, SessionID}, StateData};
-		{ok, Password, _, _} ->
+		{ok, Password, _, _, _} ->
 			RejectAttributes = [{?ReplyMessage, "Out of Credit"}],
 			response(?AccessReject, RejectAttributes, StateData),
 			{stop, {shutdown, SessionID}, StateData};
-		{ok, _, _, _} ->
+		{ok, _, _, _, _} ->
 			RejectAttributes = [{?ReplyMessage, "Bad Password"}],
 			response(?AccessReject, RejectAttributes, StateData),
 			{stop, {shutdown, SessionID}, StateData};

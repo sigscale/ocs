@@ -174,7 +174,7 @@ id({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 				identity = PeerID} = ocs_eap_codec:eap_pwd_id(EapPwdId),
 		NewEapID = EapID + 1,
 		case catch ocs:find_subscriber(PeerID) of
-			{ok, Password, _Attributes, _Balance} ->
+			{ok, Password, _Attributes, _Balance, _Disconnect} ->
 				PWE = ocs_eap_pwd:compute_pwe(Token, PeerID, ServerID, Password),
 				{ScalarS, ElementS} = ocs_eap_pwd:compute_scalar(<<S_rand:256>>,
 						PWE),
