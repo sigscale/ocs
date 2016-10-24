@@ -35,6 +35,7 @@
 %% @headerfile "include/radius.hrl"
 -include_lib("radius/include/radius.hrl").
 -include("ocs_eap_codec.hrl").
+-include("ocs.hrl").
 -record(statedata,
 		{id :: integer(),
 		 nas_ip :: inet:ip_address(),
@@ -156,10 +157,22 @@ receive_response(timeout, #statedata{socket = Socket, nas_ip = NasIp ,
 			{next_state, receive_response, NewStateData, 0}
 	end;
 receive_response({udp, Socket, NasIp, NasPort, Packet}, #statedata{id = Id,
-		socket = Socket} = StateData) ->
+		socket = Socket, subscriber = Subscriber} = StateData) ->
 	case radius:codec(Packet) of
 		#radius{code = ?DisconnectAck, id = Id} ->
-			{stop, shutdown, StateData};
+			F = fun() ->
+				case mnesia:read(subscriber, Subscriber, write) of
+					[#subscriber{} = Entry] ->
+						NewEntry = Entry#subscriber{disconnect = true},
+						mnesia:write(subscriber, NewEntry, write)
+				end
+			end,
+			case mnesia:transaction(F) of
+				{atomic, ok} ->
+					{stop, shutdown, StateData};
+				{abort, _Reason} ->
+					{stop, shutdown, StateData}
+			end;
 		#radius{code = ?DisconnectNak, id = Id, attributes = Attrbin} ->
 			Attr = radius_attributes:codec(Attrbin),
 			case radius_attributes:find(?ErrorCause, Attr) of
