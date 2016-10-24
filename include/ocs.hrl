@@ -26,5 +26,6 @@
 		{name :: binary(),
 		password :: binary(),
 		attributes :: radius_attributes:attributes(),
-		balance :: integer()}).
+		balance :: integer(),
+		disconnect :: boolean()}).
 
