@@ -45,7 +45,7 @@
 		handlers = gb_trees:empty() :: gb_trees:tree(Key ::
 				({NAS :: string() | inet:ip_address(), Port :: string(),
 				Peer :: string()}), Value :: (Fsm :: pid())),
-		disc_id = 1 :: byte()}).
+		disc_id = 1 :: integer()}).
 
 -define(LOGNAME, radius_acct).
 
