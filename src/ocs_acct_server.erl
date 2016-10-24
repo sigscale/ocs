@@ -208,7 +208,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% @doc Handle a received RADIUS Accounting Request packet.
 %% @private
 accounting_request(Address, _Port, Secret, Radius,
-		{_RadiusFsm, _Tag} = _From, #state{handlers = _Handlers, disc_id = Id,
+		{_RadiusFsm, _Tag} = _From, #state{handlers = _Handlers, disc_id = DiskId,
 		log = Log, disc_sup = DiscSup} = State) ->
 	try 
 		#radius{code = ?AccountingRequest, id = Id, attributes = Attributes,
@@ -244,10 +244,10 @@ accounting_request(Address, _Port, Secret, Radius,
 		NewState = case ocs:decrement_balance(Subscriber, Usage) of
 			{ok, OverUsed} when OverUsed =< 0 ->
 				case supervisor:start_child(DiscSup, [[Address, NasID,
-						Subscriber, AcctSessionId, Secret, Attributes, Id], []]) of
+						Subscriber, AcctSessionId, Secret, Attributes, DiskId], []]) of
 					{ok, _Child} ->
-						NewId = Id + 1,
-						State#state{disc_id = NewId};
+						NewDiskId = DiskId + 1,
+						State#state{disc_id = NewDiskId};
 					{error, Reason} ->
 						error_logger:error_report(["Failed to initiate session disconnect function",
 							{error, Reason}]),
