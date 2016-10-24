@@ -112,8 +112,15 @@ request2(Password, #statedata{subscriber = Subscriber,
 		session_id = SessionID} = StateData) ->
 	case ocs:find_subscriber(Subscriber) of
 		{ok, Password, ResponseAttributes, Balance, _Disconnect} when Balance > 0 ->
-			response(?AccessAccept, ResponseAttributes, StateData),
-			{stop, {shutdown, SessionID}, StateData};
+			case ocs:subscriber_status(Subscriber, false) of
+				ok ->
+					response(?AccessAccept, ResponseAttributes, StateData),
+					{stop, {shutdown, SessionID}, StateData};
+				{error, Reason} ->
+					error_logger:warning_report(["Faild to set subscriber status",
+						{session_id, SessionID}, {peer, Subscriber}, {error, Reason}]),
+					{stop, {shutdown, SessionID}, StateData}
+			end;
 		{ok, Password, _, _, _} ->
 			RejectAttributes = [{?ReplyMessage, "Out of Credit"}],
 			response(?AccessReject, RejectAttributes, StateData),

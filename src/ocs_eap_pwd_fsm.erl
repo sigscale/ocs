@@ -386,9 +386,16 @@ confirm3(RadiusFsm, #radius{id = RadiusID,
 	Attr3 = radius_attributes:add(?VendorSpecific, VendorSpecific2, Attr2),
 	Attr4 = radius_attributes:store(?SessionTimeout, 86400, Attr3),
 	Attr5 = radius_attributes:store(?AcctInterimInterval, 300, Attr4),
-	send_response(success, EapID, <<>>, ?AccessAccept,
-			RadiusID, Attr5, RequestAuthenticator, Secret, RadiusFsm),
-	{stop, {shutdown, SessionID}, StateData#statedata{mk = MK, msk = MSK}}.
+	case ocs:subscriber_status(PeerID, false) of
+		ok ->
+			send_response(success, EapID, <<>>, ?AccessAccept,
+					RadiusID, Attr5, RequestAuthenticator, Secret, RadiusFsm),
+			{stop, {shutdown, SessionID}, StateData#statedata{mk = MK, msk = MSK}};
+		{error, Reason} ->
+			error_logger:warning_report(["Faild to set subscriber status",
+				{session_id, SessionID}, {peer, PeerID}, {error, Reason}]),
+			{stop, {shutdown, SessionID}, StateData}
+	end.			
 
 -spec handle_event(Event :: term(), StateName :: atom(),
 		StateData :: #statedata{}) ->
