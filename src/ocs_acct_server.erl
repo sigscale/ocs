@@ -262,7 +262,7 @@ accounting_request(Address, _Port, Secret, Radius,
 			{reply, {error, ignore}, State}
 	end.
 
--spec response(Id :: byte(), RequestAuthenticator :: [byte()],
+-spec response(Id :: byte(), RequestAuthenticator :: binary(),
 		Secret :: string() | binary()) ->
 	AccessAccept :: binary().
 %% @hidden
