@@ -22,7 +22,7 @@
 
 %% export the ocs public API
 -export([add_client/2, find_client/1]).
--export([add_subscriber/3, add_subscriber/4, add_subscriber/5, find_subscriber/1,
+-export([add_subscriber/3, add_subscriber/4, find_subscriber/1,
 			delete_subscriber/1, update_password/3, update_attributes/3,
 			decrement_balance/2]).
 -export([log_file/1]).
@@ -146,8 +146,8 @@ find_subscriber(Subscriber) when is_binary(Subscriber) ->
 	end,
 	case mnesia:transaction(F) of
 		{atomic, [#subscriber{password = Password, attributes = Attributes,
-				balance = Balance}]} ->
-			{ok, Password, Attributes, Balance};
+				balance = Balance, enabled = Enabled}]} ->
+			{ok, Password, Attributes, Balance, Enabled};
 		{atomic, []} ->
 			{error, not_found};
 		{aborted, Reason} ->
