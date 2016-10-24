@@ -45,7 +45,7 @@
 		handlers = gb_trees:empty() :: gb_trees:tree(Key ::
 				({NAS :: string() | inet:ip_address(), Port :: string(),
 				Peer :: string()}), Value :: (Fsm :: pid())),
-		disc_id = 1 :: byte()}).
+		disc_id = 1 :: integer()}).
 
 -define(LOGNAME, radius_acct).
 
@@ -213,6 +213,9 @@ accounting_request(Address, _Port, Secret, Radius,
 	try 
 		#radius{code = ?AccountingRequest, id = Id, attributes = Attributes,
 				authenticator = Authenticator} = Radius,
+		Length = size(list_to_binary(Attributes)) + 20,
+		Authenticator = crypto:hash(md5, [<<?AccountingRequest, Id,
+				Length:16>>, <<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, Attributes, Secret]),
 		NasIpAddressV = radius_attributes:find(?NasIpAddress, Attributes),
 		NasIdentifierV = radius_attributes:find(?NasIdentifier, Attributes),
 		InOctets = radius_attributes:find(?AcctInputOctets, Attributes),
@@ -259,7 +262,7 @@ accounting_request(Address, _Port, Secret, Radius,
 			{reply, {error, ignore}, State}
 	end.
 
--spec response(Id :: byte(), RequestAuthenticator :: [byte()],
+-spec response(Id :: integer(), RequestAuthenticator :: binary(),
 		Secret :: string() | binary()) ->
 	AccessAccept :: binary().
 %% @hidden

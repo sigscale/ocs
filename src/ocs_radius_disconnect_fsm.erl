@@ -36,7 +36,7 @@
 -include_lib("radius/include/radius.hrl").
 -include("ocs_eap_codec.hrl").
 -record(statedata,
-		{id :: byte(),
+		{id :: integer(),
 		 nas_ip :: inet:ip_address(),
 		 nas_id :: string(),
 		 subscriber :: string(),
