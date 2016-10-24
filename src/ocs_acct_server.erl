@@ -236,25 +236,21 @@ accounting_request(Address, _Port, Secret, Radius,
 		{error, not_found} = radius_attributes:find(?ReplyMessage, Attributes),
 		{error, not_found} = radius_attributes:find(?State, Attributes),
 		{ok, AcctSessionId} = radius_attributes:find(?AcctSessionId, Attributes),
-		case disk_log:log(Log, Attributes) of
-			ok ->
-				case ocs:decrement_balance(Subscriber, Usage) of
-					{ok, OverUsed} when OverUsed =< 0 ->
-						case supervisor:start_child(DiscSup, [[Address, NasID,
-								Subscriber, AcctSessionId, Secret, Attributes], []]) of
-							{ok, _Child} ->
-								ok;
-							{error, Reason} ->
-								error_logger:error_report(["Failed to initiate session disconnect function",
-									{error, Reason}])
-						end;
-					{ok, _SufficientBalance} ->
-						ok
-				end,
-				{reply, {ok, response(Id, Authenticator, Secret)}, State};
-			{error, _Reason} ->
-				{reply, {error, ignore}, State}
-		end
+		ok = disk_log:log(Log, Attributes),
+		case ocs:decrement_balance(Subscriber, Usage) of
+			{ok, OverUsed} when OverUsed =< 0 ->
+				case supervisor:start_child(DiscSup, [[Address, NasID,
+						Subscriber, AcctSessionId, Secret, Attributes], []]) of
+					{ok, _Child} ->
+						ok;
+					{error, Reason} ->
+						error_logger:error_report(["Failed to initiate session disconnect function",
+							{error, Reason}])
+				end;
+			{ok, _SufficientBalance} ->
+				ok
+		end,
+		{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	catch
 		_:_ ->
 			{reply, {error, ignore}, State}
