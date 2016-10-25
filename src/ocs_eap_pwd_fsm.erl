@@ -162,8 +162,7 @@ id({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		attributes = Attributes}, RadiusFsm},
 		#statedata{eap_id = EapID, group_desc = GroupDesc,
 		rand_func = RandFunc, prf = PRF, session_id = SessionID,
-		secret = Secret, server_id = ServerID} = StateData) ->
-	S_rand = crypto:rand_uniform(1, ?R),
+		secret = Secret} = StateData) ->
 	try
 		EapMessage = radius_attributes:fetch(?EAPMessage, Attributes),
 		#eap_packet{code = response, type = ?PWD, identifier = EapID,
@@ -172,6 +171,19 @@ id({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		#eap_pwd_id{group_desc = GroupDesc, random_fun = RandFunc,
 				prf = PRF, token = Token, pwd_prep = none,
 				identity = PeerID} = ocs_eap_codec:eap_pwd_id(EapPwdId),
+		id1(PeerID, Token, RadiusID, RadiusFsm, RequestAuthenticator, StateData)
+	catch
+		_:_ ->
+			send_response(failure, EapID, <<>>, ?AccessReject,
+				RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+			{stop, {shutdown, SessionID}, StateData}
+	end.
+%% @hidden
+id1(PeerID, Token, RadiusID, RadiusFsm, RequestAuthenticator,
+			#statedata{eap_id = EapID, server_id = ServerID, secret = Secret,
+			session_id = SessionID} = StateData) ->
+	try
+		S_rand = crypto:rand_uniform(1, ?R),
 		NewEapID = EapID + 1,
 		case catch ocs:find_subscriber(PeerID) of
 			{ok, Password, _Attributes, _Balance, _Enabled} ->
