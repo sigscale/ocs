@@ -400,7 +400,7 @@ negotiate_method(Config) ->
 	EapId2 = EapId1 + 1,
 	EapMsg1 = access_challenge(Socket, Address, Port,
 			Secret, RadId1, ReqAuth1),
-	#eap_packet{code = request, type = Method,
+	#eap_packet{code = response, type = Method,
 			identifier = EapId2} = ocs_eap_codec:eap_packet(EapMsg1),
 	true = (((Method > 4) and (Method < 254)) or (Method == 255)),
 	RadId2 = RadId1 + 1,
