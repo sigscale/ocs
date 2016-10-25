@@ -170,7 +170,7 @@ receive_response({udp, Socket, NasIp, NasPort, Packet}, #statedata{id = Id,
 			case mnesia:transaction(F) of
 				{atomic, ok} ->
 					{stop, shutdown, StateData};
-				{abort, _Reason} ->
+				{aborted, _Reason} ->
 					{stop, shutdown, StateData}
 			end;
 		#radius{code = ?DisconnectNak, id = Id, attributes = Attrbin} ->
