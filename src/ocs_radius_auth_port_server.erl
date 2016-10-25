@@ -251,7 +251,7 @@ access_request(Address, Port, Secret,
 						case get_alternate(MethodOrder, AlternateMethods, State) of
 							{ok , Sup} ->
 								gen_fsm:send_event(Fsm, {AccessRequest, RadiusFsm}),
-								NewEapPacket = #eap_packet{code = request, 
+								NewEapPacket = #eap_packet{code = response, 
 										type = ?Identity, identifier = EapId, data = Identity1},
 								NewEapMessage = ocs_eap_codec:eap_packet(NewEapPacket),
 								NewAttributes = radius_attributes:store(?EAPMessage, NewEapMessage,

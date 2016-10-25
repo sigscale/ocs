@@ -287,5 +287,5 @@ send_response(EapCode, EapID, EapData, RadiusCode, RadiusID, RadiusAttributes,
 	Response = #radius{code = RadiusCode, id = RadiusID,
 			authenticator = ResponseAuthenticator, attributes = Attributes2},
 	ResponsePacket = radius:codec(Response),
-	radius:response(RadiusFsm, {response, ResponsePacket}),
-	ok.
+	radius:response(RadiusFsm, {response, ResponsePacket}).
+
