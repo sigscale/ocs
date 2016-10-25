@@ -42,7 +42,7 @@
 		address :: inet:ip_address(),
 		port :: non_neg_integer(),
 		module :: atom(),
-		log :: term(), 
+		log :: term(),
 		handlers = gb_trees:empty() :: gb_trees:tree(Key ::
 				({NAS :: string() | inet:ip_address(), Port :: string(),
 				Peer :: string()}), Value :: (Fsm :: pid())),
@@ -67,7 +67,7 @@
 %% @see //stdlib/gen_server:init/1
 %% @private
 %%
-init([AcctSup, _Address, _Port]) ->
+init([AcctSup, _Address, _Port, _Options]) ->
 	{ok, Directory} = application:get_env(ocs, accounting_dir),
 	Log = ?LOGNAME,
 	FileName = Directory ++ "/" ++ atom_to_list(Log),
@@ -211,7 +211,7 @@ code_change(_OldVsn, State, _Extra) ->
 accounting_request(Address, _Port, Secret, Radius,
 		{_RadiusFsm, _Tag} = _From, #state{handlers = _Handlers, disc_id = DiskId,
 		log = Log, disc_sup = DiscSup} = State) ->
-	try 
+	try
 		#radius{code = ?AccountingRequest, id = Id, attributes = Attributes,
 				authenticator = Authenticator} = Radius,
 		AttrBin = radius_attributes:codec(Attributes),
@@ -257,7 +257,7 @@ accounting_request(Address, _Port, Secret, Radius,
 						State
 				end;
 			{ok, _SufficientBalance} ->
-				State	
+				State
 		end,
 		{reply, {ok, response(Id, Authenticator, Secret)}, NewState}
 	catch

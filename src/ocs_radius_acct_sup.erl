@@ -35,9 +35,9 @@
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init([Address, Port]) ->
+init([Address, Port, Options]) ->
 	ChildSpecs = [supervisor(ocs_radius_disconnect_fsm_sup, []),
-			server(ocs_acct_server, Address, Port),
+			server(ocs_acct_server, Address, Port, Options),
 			supervisor_bridge(ocs_radius_acct_server_sup, [Address, Port])],
 	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
 
@@ -63,9 +63,9 @@ supervisor_bridge(StartMod, Args) ->
 	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
 
 %% @hidden
-server(StartMod, Address, Port) ->
+server(StartMod, Address, Port, Options) ->
 	GlobalName = {ocs_acct, Address, Port},
-	Args = [self(), Address, Port],
+	Args = [self(), Address, Port, Options],
 	StartArgs = [{global, GlobalName}, StartMod, Args, []],
 	StartFunc = {gen_server, start_link, StartArgs},
 	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.

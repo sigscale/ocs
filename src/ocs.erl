@@ -30,6 +30,8 @@
 %% export the ocs private API
 -export([authorize/2]).
 
+-export_type([eap_method/0]).
+
 -include("ocs.hrl").
 -define(LOGNAME, radius_acct).
 %%----------------------------------------------------------------------
@@ -252,9 +254,20 @@ generate_password() ->
 -spec start(Type :: auth | acct, Address :: inet:ip_address(),
 		Port :: pos_integer()) ->
 	{ok, Pid :: pid()} | {error, Reason :: term()}.
-%% @doc Start a RADIUS request handler.
+%% @equiv start(Type, Address, Port, [])
 start(Type, Address, Port) when is_tuple(Address), is_integer(Port) ->
-	gen_server:call(ocs, {start, Type, Address, Port}).
+	start(Type, Address, Port, []).
+
+-type eap_method() :: pwd | ttls.
+-spec start(Type :: auth | acct, Address :: inet:ip_address(),
+		Port :: pos_integer(),
+		Options :: [{eap_method_prefer, EapType :: eap_method()} |
+		{eap_method_order, EapTypes :: [eap_method()]}]) ->
+	{ok, Pid :: pid()} | {error, Reason :: term()}.
+%% @doc Start a RADIUS request handler.
+start(Type, Address, Port, Options) when is_tuple(Address),
+		is_integer(Port), is_list(Options) ->
+	gen_server:call(ocs, {start, Type, Address, Port, Options}).
 
 %%----------------------------------------------------------------------
 %%  internal functions

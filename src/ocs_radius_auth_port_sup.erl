@@ -37,11 +37,11 @@
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init([Address, Port]) ->
+init([Address, Port, Options]) ->
 	ChildSpecs = [supervisor(ocs_simple_auth_fsm_sup, []),
 		supervisor(ocs_eap_ttls_fsm_sup, []),
 		supervisor(ocs_eap_pwd_fsm_sup, []),
-		server(ocs_radius_auth_port_server, Address, Port),
+		server(ocs_radius_auth_port_server, Address, Port, Options),
 		supervisor(ocs_radius_auth_server_sup, [Address, Port])],
 	{ok, {{one_for_one, 10, 3600}, ChildSpecs}}.
 
@@ -54,9 +54,9 @@ supervisor(StartMod, StartArgs) ->
 	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
 
 %% @hidden
-server(StartMod, Address, Port) ->
+server(StartMod, Address, Port, Options) ->
 	GlobalName = {auth_port, Address, Port},
-	Args = [self(), Address, Port],
+	Args = [self(), Address, Port, Options],
 	StartArgs = [{global, GlobalName}, StartMod, Args, []],
 	StartFunc = {gen_server, start_link, StartArgs},
 	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.

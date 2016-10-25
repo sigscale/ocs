@@ -26,7 +26,7 @@
 -export([]).
 
 %% export the ocs_eap_ttls_fsm state callbacks
--export([idle/2, phase_1/2, phase_2/2]).
+-export([eap_start/2, phase_1/2, phase_2/2]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
@@ -40,8 +40,11 @@
 		port :: pos_integer(),
 		session_id :: {NAS :: inet:ip_address() | string(),
 			Port :: string(), Peer :: string()},
-			secret :: binary(),
+		secret :: binary(),
 		eap_id = 0 :: byte(),
+		start :: #radius{},
+		server_id :: binary(),
+		radius_fsm :: pid(),
 		socket :: term()}).
 
 -define(TIMEOUT, 30000).
@@ -64,40 +67,39 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([Address, Port, Secret, SessionID] = _Args) ->
+init([Address, Port, RadiusFsm, Secret, SessionID, AccessRequest] = _Args) ->
+	{ok, Hostname} = inet:gethostname(),
 	StateData = #statedata{address = Address, port = Port,
-		secret = Secret, session_id = SessionID},
+			radius_fsm = RadiusFsm, secret = Secret, session_id = SessionID,
+			server_id = list_to_binary(Hostname), start = AccessRequest},
 	process_flag(trap_exit, true),
-	{ok, idle, StateData, ?TIMEOUT}.
+	{ok, eap_start, StateData, 0}.
 
--spec idle(Event :: timeout | term(), StateData :: #statedata{}) ->
+-spec eap_start(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
 		Timeout :: non_neg_integer() | infinity}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
 		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>idle</b> state.
+%%		gen_fsm:send_event/2} in the <b>eap_start</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-idle(timeout, #statedata{session_id = SessionID} = StateData)->
-	{stop, {shutdown, SessionID}, StateData};
-idle({#radius{code = ?AccessRequest, id = RadiusID,
-		authenticator = RequestAuthenticator,
-		attributes = Attributes}, RadiusFsm},
-		#statedata{eap_id = EapID, session_id = SessionID,
+eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,id = RadiusID,
+		authenticator = RequestAuthenticator, attributes = BinAttributes},
+		radius_fsm = RadiusFsm, eap_id = EapID, session_id = SessionID,
 		secret = Secret} = StateData) ->
-		EapData = <<>>,
+	Attributes = radius_attributes:codec(BinAttributes),
 	case radius_attributes:find(?EAPMessage, Attributes) of
 		{ok, <<>>} ->
-			send_response(request, EapID, EapData, ?AccessChallenge,
+			send_response(request, EapID, <<>>, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			{next_state, phase_1, StateData, ?TIMEOUT};
 		{ok, EAPMessage} ->
 			case catch ocs_eap_codec:eap_packet(EAPMessage) of
 				#eap_packet{code = response, type = ?Identity} ->
-					send_response(request, EapID, EapData, ?AccessChallenge,
+					send_response(request, EapID, <<>>, ?AccessChallenge,
 							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 					{ok, TLSkey} = application:get_env(ocs, tls_key),
 					{ok, TLScert} = application:get_env(ocs, tls_crt),
@@ -122,19 +124,16 @@ idle({#radius{code = ?AccessRequest, id = RadiusID,
 							{pid, self()}, {session_id, SessionID},
 							{code, Code}, {type, EapType}, {data, Data}]),
 					radius:response(RadiusFsm, {error, ignore}),
-					{ok, idle, StateData, ?TIMEOUT};
+					{next_state, eap_start, StateData, ?TIMEOUT};
 				{'EXIT', _Reason} ->
 					radius:response(RadiusFsm, {error, ignore}),
-					{ok, idle, StateData, ?TIMEOUT}
+					{next_state, eap_start, StateData, ?TIMEOUT}
 			end;
 		{error, not_found} ->
-			send_response(request, EapID, EapData, ?AccessChallenge,
+			send_response(request, EapID, <<>>, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			{next_state, phase_1, StateData, ?TIMEOUT}
-	end;
-idle({#radius{}, RadiusFsm}, StateData) ->
-	radius:response(RadiusFsm, {error, ignore}),
-	{ok, idle, StateData, ?TIMEOUT}.
+	end.
 
 -spec phase_1(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}

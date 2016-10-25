@@ -40,6 +40,8 @@
 		ttls_sup :: pid(),
 		address :: inet:ip_address(),
 		port :: non_neg_integer(),
+		method_prefer :: ocs:eap_method(),
+		method_order :: [ocs:eap_method()],
 		handlers = gb_trees:empty() :: gb_trees:tree(Key ::
 				({NAS :: string() | inet:ip_address(), Port :: string(),
 				Peer :: string()}), Value :: (Fsm :: pid()))}).
@@ -61,9 +63,12 @@
 %% @see //stdlib/gen_server:init/1
 %% @private
 %%
-init([AuthPortSup, Address, Port]) ->
+init([AuthPortSup, Address, Port, Options]) ->
+	MethodPrefer = proplists:get_value(eap_method_prefer, Options, pwd),
+	MethodOrder = proplists:get_value(eap_method_order, Options, [pwd, ttls]),
 	process_flag(trap_exit, true),
-	{ok, #state{auth_port_sup = AuthPortSup, address = Address, port = Port}, 0}.
+	{ok, #state{auth_port_sup = AuthPortSup, address = Address, port = Port,
+		method_prefer = MethodPrefer, method_order = MethodOrder}, 0}.
 
 -spec handle_call(Request :: term(), From :: {Pid :: pid(), Tag :: any()},
 		State :: #state{}) ->
@@ -117,14 +122,20 @@ handle_info(timeout, #state{auth_port_sup = AuthPortSup} = State) ->
 	{_, TtlsSup, _, _} = lists:keyfind(ocs_eap_ttls_fsm_sup, 1, Children),
 	{_, SimpleAuthSup, _, _} = lists:keyfind(ocs_simple_auth_fsm_sup, 1, Children),
 	{noreply, State#state{pwd_sup = PwdSup, ttls_sup = TtlsSup, simple_auth_sup = SimpleAuthSup}};
-handle_info({'EXIT', _Pid, {shutdown, SessionID}},
+handle_info({'EXIT', Pid, {shutdown, SessionID}},
 		#state{handlers = Handlers} = State) ->
-	NewHandlers = gb_trees:delete(SessionID, Handlers),
-	NewState = State#state{handlers = NewHandlers},
-	{noreply, NewState};
+	 case gb_trees:lookup(SessionID, Handlers) of
+		{value, {Pid, _Identity}} ->
+			NewHandlers = gb_trees:delete(SessionID, Handlers),
+			{noreply, State#state{handlers = NewHandlers}};
+		{value, {_, _Identity}} ->
+			{noreply, State};
+		none ->
+			{noreply, State}
+	end;
 handle_info({'EXIT', Fsm, _Reason},
 		#state{handlers = Handlers} = State) ->
-	Fdel = fun(_F, {Key, Pid, _Iter}) when Pid == Fsm ->
+	Fdel = fun(_F, {Key, {Pid, _Identity}, _Iter}) when Pid == Fsm ->
 				Key;
 			(F, {_Key, _Val, Iter}) ->
 				F(F, gb_trees:next(Iter));
@@ -172,8 +183,10 @@ code_change(_OldVsn, State, _Extra) ->
 %% @doc Handle a received RADIUS Access-Request packet.
 %% @private
 access_request(Address, Port, Secret,
-		#radius{attributes = Attributes} = AccessRequest,
-		{RadiusFsm, _Tag} = _From, #state{handlers = Handlers} = State) ->
+		#radius{id = RadiusId, authenticator = RequestAuthenticator,
+		attributes = Attributes} = AccessRequest, {RadiusFsm, _Tag} = _From,
+		#state{handlers = Handlers, method_prefer = MethodPrefer,
+		method_order = MethodOrder} = State) ->
 	try
 		NAS = case {radius_attributes:find(?NasIdentifier, Attributes),
 				radius_attributes:find(?NasIpAddress, Attributes)} of
@@ -193,29 +206,83 @@ access_request(Address, Port, Secret,
 						undefined
 				end
 		end,
+		EapMessageV = case radius_attributes:find(?EAPMessage, Attributes) of
+			{ok, EapMessage} ->
+				{ok, ocs_eap_codec:eap_packet(EapMessage)};
+			{error, Reason} ->
+				{error, Reason}
+		end,
+		Identity = case EapMessageV of
+			{ok, #eap_packet{code = response, type = ?Identity,
+					data = Data}} ->
+				Data;
+			_ ->
+				<<>>
+		end,
 		Peer = radius_attributes:fetch(?CallingStationId, Attributes),
 		SessionID = {NAS, NasPort, Peer},
 		case gb_trees:lookup(SessionID, Handlers) of
 			none ->
-				case {radius_attributes:find(?EAPMessage, Attributes),
+				case {EapMessageV,
 						radius_attributes:find(?UserName, Attributes),
 						radius_attributes:find(?UserPassword, Attributes)} of
-					{{ok, _}, _, _} ->
+					{{ok, _}, _, _} when MethodPrefer == pwd ->
 						Sup = State#state.pwd_sup,
 						NewState = start_fsm(AccessRequest, RadiusFsm,
-								Address, Port, Secret, SessionID, Sup, State),
+								Address, Port, Secret, SessionID, Identity, Sup, State),
+						{reply, {ok, wait}, NewState};
+					{{ok, _}, _, _} when MethodPrefer == ttls ->
+						Sup = State#state.ttls_sup,
+						NewState = start_fsm(AccessRequest, RadiusFsm,
+								Address, Port, Secret, SessionID, Identity, Sup, State),
 						{reply, {ok, wait}, NewState};
 					{_, {ok, _}, {ok, _}} ->
 						Sup = State#state.simple_auth_sup,
 						NewState = start_fsm(AccessRequest, RadiusFsm,
-								Address, Port, Secret, SessionID, Sup, State),
+								Address, Port, Secret, SessionID, Identity, Sup, State),
 						{reply, {ok, wait}, NewState};
 					{_, _, _} ->
 						{reply, {error, ignore}, State}
 				end;
-			{value, Fsm} ->
-				gen_fsm:send_event(Fsm, {AccessRequest, RadiusFsm}),
-				{reply, {ok, wait}, State}
+			{value, {Fsm, Identity1}} ->
+				case EapMessageV of
+					{ok, #eap_packet{code = response, type = ?LegacyNak, identifier = EapId,
+									data = AlternateMethods}} ->
+						case get_alternate(MethodOrder, AlternateMethods, State) of
+							{ok , Sup} ->
+								gen_fsm:send_event(Fsm, {AccessRequest, RadiusFsm}),
+								NewEapPacket = #eap_packet{code = request, 
+										type = ?Identity, identifier = EapId, data = Identity1},
+								NewEapMessage = ocs_eap_codec:eap_packet(NewEapPacket),
+								NewAttributes = radius_attributes:store(?EAPMessage, NewEapMessage,
+										Attributes),
+								RequestAttributes = radius_attributes:codec(NewAttributes),
+								NewAccessRequest = AccessRequest#radius{attributes = RequestAttributes},
+								NewState = start_fsm(NewAccessRequest, RadiusFsm,
+										Address, Port, Secret, SessionID, Identity1, Sup, State),
+								{reply, {ok, wait}, NewState};
+							{error, none} ->
+								Length = 20,
+								NewEapPacket = #eap_packet{code = failure, identifier = EapId},
+								NewEapMessage = ocs_eap_codec:eap_packet(NewEapPacket),
+								NewAttributes = radius_attributes:add(?EAPMessage, NewEapMessage, []),
+								RejectAttributes = radius_attributes:codec(NewAttributes),
+								BinRequestAuth = list_to_binary(RequestAuthenticator),
+								ResponseAuthenticator = crypto:hash(md5, [<<?AccessReject,
+									RadiusId, Length:16>>, BinRequestAuth, RejectAttributes, Secret]),
+								AccessRejectPacket = #radius{code = ?AccessReject, id = RadiusId,
+										authenticator = ResponseAuthenticator, 
+										attributes = RejectAttributes},
+								AccessReject = radius:codec(AccessRejectPacket),
+								{reply, {ok, AccessReject}, State}	
+						end;
+					{ok, #eap_packet{}} ->
+						gen_fsm:send_event(Fsm, {AccessRequest, RadiusFsm}),
+						{reply, {ok, wait}, State};
+					{error, not_found} ->
+						gen_fsm:send_event(Fsm, {AccessRequest, RadiusFsm}),
+						{reply, {ok, wait}, State}
+				end
 		end
 	catch
 		_:_ ->
@@ -224,18 +291,18 @@ access_request(Address, Port, Secret,
 
 -spec start_fsm(AccessRequest :: #radius{}, RadiusFsm :: pid(),
 		Address :: inet:ip_address(), Port :: integer(),
-		Secret :: binary(), SessionID :: tuple(), Sup :: pid(),
-		State :: #state{}) -> NewState :: #state{}.
+		Secret :: binary(), SessionID :: tuple(), Identity :: binary(),
+		Sup :: pid(), State :: #state{}) -> NewState :: #state{}.
 %% @doc Start a new session handler.
 %% @hidden
 start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret,
-		SessionID, Sup, #state{handlers = Handlers} = State) ->
+		SessionID, Identity, Sup, #state{handlers = Handlers} = State) ->
 	StartArgs = [Address, Port, RadiusFsm, Secret, SessionID, AccessRequest],
 	ChildSpec = [StartArgs, []],
 	case supervisor:start_child(Sup, ChildSpec) of
 		{ok, Fsm} ->
 			link(Fsm),
-			NewHandlers = gb_trees:insert(SessionID, Fsm, Handlers),
+			NewHandlers = gb_trees:enter(SessionID, {Fsm, Identity}, Handlers),
 			State#state{handlers = NewHandlers};
 		{error, Reason} ->
 			error_logger:error_report(["Error starting session handler",
@@ -243,4 +310,30 @@ start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret,
 					{port, Port}, {radius_fsm, RadiusFsm}, {session, SessionID}]),
 			State
 	end.
+
+-spec get_alternate(PreferenceOrder :: [ocs:eap_method()],
+		AlternateMethods :: binary() | [byte()], State :: #state{}) ->
+	{ok, SupervisorModule :: pid()} | {error, none}.
+get_alternate(PreferenceOrder, AlternateMethods, State) 
+		when is_binary(AlternateMethods) ->
+	get_alternate(PreferenceOrder,
+			binary_to_list(AlternateMethods), State);
+get_alternate([pwd | T], AlternateMethods, 
+		#state{pwd_sup = Sup} = State) -> 
+	case lists:member(?PWD, AlternateMethods) of
+		true ->
+			{ok, Sup};
+		false ->
+			get_alternate(T, AlternateMethods, State)
+	end;
+get_alternate([ttls | T], AlternateMethods, 
+		#state{ttls_sup = Sup} = State) -> 
+	case lists:member(?TTLS, AlternateMethods) of
+		true ->
+			{ok, Sup};
+		false ->
+			get_alternate(T, AlternateMethods, State)
+	end;
+get_alternate([], _AlternateMethods, _State) -> 
+	{error, none}.
 

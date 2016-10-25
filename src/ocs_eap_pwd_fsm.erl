@@ -165,13 +165,17 @@ id({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		secret = Secret} = StateData) ->
 	try
 		EapMessage = radius_attributes:fetch(?EAPMessage, Attributes),
-		#eap_packet{code = response, type = ?PWD, identifier = EapID,
-				data = Data} = ocs_eap_codec:eap_packet(EapMessage),
-		#eap_pwd{pwd_exch = id, data = EapPwdId} = ocs_eap_codec:eap_pwd(Data),
-		#eap_pwd_id{group_desc = GroupDesc, random_fun = RandFunc,
-				prf = PRF, token = Token, pwd_prep = none,
-				identity = PeerID} = ocs_eap_codec:eap_pwd_id(EapPwdId),
-		id1(PeerID, Token, RadiusID, RadiusFsm, RequestAuthenticator, StateData)
+		case ocs_eap_codec:eap_packet(EapMessage) of
+			#eap_packet{code = response, type = ?PWD, identifier = EapID,
+					data = Data} -> 
+				#eap_pwd{pwd_exch = id, data = EapPwdId} = ocs_eap_codec:eap_pwd(Data),
+				#eap_pwd_id{group_desc = GroupDesc, random_fun = RandFunc,
+						prf = PRF, token = Token, pwd_prep = none,
+						identity = PeerID} = ocs_eap_codec:eap_pwd_id(EapPwdId),
+				id1(PeerID, Token, RadiusID, RadiusFsm, RequestAuthenticator, StateData);
+			#eap_packet{code = response, type = ?LegacyNak} ->
+				{stop, {shutdown, SessionID}, StateData}
+		end
 	catch
 		_:_ ->
 			send_response(failure, EapID, <<>>, ?AccessReject,
@@ -404,7 +408,7 @@ confirm3(RadiusFsm, #radius{id = RadiusID,
 			send_response(success, EapID, <<>>, ?AccessAccept,
 					RadiusID, Attr5, RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, StateData#statedata{mk = MK, msk = MSK}};
-		{error, Reason} ->
+		{error, _Reason} ->
 			send_response(failure, EapID, <<>>, ?AccessReject, RadiusID,
 					[], RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, StateData}
