@@ -99,13 +99,15 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,id = RadiusI
 		{ok, EAPMessage} ->
 			case catch ocs_eap_codec:eap_packet(EAPMessage) of
 				#eap_packet{code = response,
-						type = ?Identity, identifier = EapID} ->
-					send_response(request, EapID, <<>>, ?AccessChallenge,
+						type = ?Identity, identifier = StartEapID} ->
+					NewEapID = StartEapID + 1,
+					send_response(request, NewEapID, <<>>, ?AccessChallenge,
 							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 					{ok, _TLSkey} = application:get_env(ocs, tls_key),
 					{ok, _TLScert} = application:get_env(ocs, tls_crt),
 					{ok, _TLSport} = application:get_env(ocs, tls_port),
-					{next_state, eap_start, StateData, ?TIMEOUT};
+					NewStateData = StateData#statedata{eap_id = NewEapID},
+					{next_state, eap_start, NewStateData, ?TIMEOUT};
 				#eap_packet{code = Code, type = EapType, data = Data} ->
 					error_logger:warning_report(["Unknown EAP received",
 							{pid, self()}, {session_id, SessionID},
