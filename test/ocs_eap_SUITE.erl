@@ -304,7 +304,7 @@ validate_pwd_id_cipher(Config) ->
 	EapPwdId = #eap_pwd_id{group_desc = InvalidGroup, random_fun = 16#1, prf = 16#1,
 			token = Token, pwd_prep = none, identity = PeerId},
 	EapPwd = #eap_pwd{pwd_exch = id, data = ocs_eap_codec:eap_pwd_id(EapPwdId)},
-	EapPacket  = #eap_packet{code = request, type = ?PWD,
+	EapPacket  = #eap_packet{code = response, type = ?PWD,
 			identifier = EapId2, data = ocs_eap_codec:eap_pwd(EapPwd)},
 	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
 	ok = access_request(Socket, Address, Port, NasId,
