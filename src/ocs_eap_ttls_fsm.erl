@@ -26,7 +26,7 @@
 -export([]).
 
 %% export the ocs_eap_ttls_fsm state callbacks
--export([eap_start/2, phase_1/2, phase_2/2]).
+-export([eap_start/2]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
@@ -95,30 +95,17 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,id = RadiusI
 		{ok, <<>>} ->
 			send_response(request, EapID, EapData, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-			{next_state, phase_1, StateData, ?TIMEOUT};
+			{next_state, eap_start, StateData, ?TIMEOUT};
 		{ok, EAPMessage} ->
 			case catch ocs_eap_codec:eap_packet(EAPMessage) of
-				#eap_packet{code = response, type = ?Identity} ->
+				#eap_packet{code = response,
+						type = ?Identity, identifier = EapID} ->
 					send_response(request, EapID, <<>>, ?AccessChallenge,
 							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-					{ok, TLSkey} = application:get_env(ocs, tls_key),
-					{ok, TLScert} = application:get_env(ocs, tls_crt),
-					{ok, TLSport} = application:get_env(ocs, tls_port),
-					case ssl:listen(TLSport, [{certfile, TLScert}, {keyfile, TLSkey},
-							{reuseaddr, true}, {cb_info, {ocs_eap_ttls_transport,
-							eap_ttls, ttls_closed, ttls_error}}]) of
-						{ok, ListenSocket} ->
-							case ssl:transport_accept(ListenSocket) of
-								{ok, Socket} ->
-									NewStateData = StateData#statedata{socket = Socket},
-									{next_state, phase_1, NewStateData, ?TIMEOUT};
-								{error, Reason} ->
-									{error, Reason}
-							end;
-						{error, Reason} ->
-							{error, Reason}
-					end,
-					{next_state, phase_1, StateData, ?TIMEOUT};
+					{ok, _TLSkey} = application:get_env(ocs, tls_key),
+					{ok, _TLScert} = application:get_env(ocs, tls_crt),
+					{ok, _TLSport} = application:get_env(ocs, tls_port),
+					{next_state, eap_start, StateData, ?TIMEOUT};
 				#eap_packet{code = Code, type = EapType, data = Data} ->
 					error_logger:warning_report(["Unknown EAP received",
 							{pid, self()}, {session_id, SessionID},
@@ -134,55 +121,6 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,id = RadiusI
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			{next_state, phase_1, StateData, ?TIMEOUT}
 	end.
-
--spec phase_1(Event :: timeout | term(), StateData :: #statedata{}) ->
-	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
-		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>phase_1</b> state.
-%% @@see //stdlib/gen_fsm:StateName/2
-%% @private
-%%
-phase_1(timeout, #statedata{session_id = SessionID} = StateData)->
-	{stop, {shutdown, SessionID}, StateData};
-phase_1({_AccessRequest, _RadiusFsm}, #statedata{socket = Socket} =
-				StateData)->
-	case ssl:ssl_accept(Socket) of
-		ok ->
-			{next_state, phase_2, StateData, ?TIMEOUT};
-		{error, Reason}->
-			{error, Reason}
-	end.
-
--spec phase_2(Event :: timeout | term(), StateData :: #statedata{}) ->
-	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
-		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>phase_2</b> state.
-%% @@see //stdlib/gen_fsm:StateName/2
-%% @private
-%%
-%% @todo Implement the codec functionality
-phase_2(timeout, #statedata{session_id = SessionID} = StateData)->
-	{stop, {shutdown, SessionID}, StateData};
-phase_2({#radius{attributes = Attributes} = _AccessRequest, _RadiusFsm},
-		#statedata{eap_id = EapID} = StateData)->
-	case radius_attributes:find(?EAPMessage, Attributes) of
-		{ok, EapPacket} ->
-			#eap_packet{code = response, identifier = EapID, type = ?TTLS,
-					data = _EapTTLS} = ocs_eap_codec:eap_packet(EapPacket);
-			%Implement the functionality
-			%#eap_ttls{start = false, data = Data} = ocs_eap_codec:eap_ttls(EapTTLS);
-		{error, not_found} ->
-			ok
-	end,
-	{stop, not_implemented, StateData}.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
 		StateData :: #statedata{}) ->
