@@ -334,7 +334,7 @@ authorize(Subscriber, Password) when is_binary(Subscriber),
 						mnesia:write(subscriber, NewEntry, write),
 						Attributes;
 					[#subscriber{password = Password} = Entry] when
-							Entry#subscriber.balance < 0 ->
+							Entry#subscriber.balance =< 0 ->
 						throw(out_of_credit);
 					[#subscriber{password = Password, enabled = false}] ->
 						throw(disabled);
