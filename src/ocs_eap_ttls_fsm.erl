@@ -87,13 +87,13 @@ init([Address, Port, RadiusFsm, Secret, SessionID, AccessRequest] = _Args) ->
 %% @private
 %%
 eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,id = RadiusID,
-		authenticator = RequestAuthenticator, attributes = BinAttributes},
+		authenticator = RequestAuthenticator, attributes = Attributes},
 		radius_fsm = RadiusFsm, eap_id = EapID, session_id = SessionID,
 		secret = Secret} = StateData) ->
-	Attributes = radius_attributes:codec(BinAttributes),
+	EapData = <<>>,
 	case radius_attributes:find(?EAPMessage, Attributes) of
 		{ok, <<>>} ->
-			send_response(request, EapID, <<>>, ?AccessChallenge,
+			send_response(request, EapID, EapData, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			{next_state, phase_1, StateData, ?TIMEOUT};
 		{ok, EAPMessage} ->
@@ -171,18 +171,17 @@ phase_1({_AccessRequest, _RadiusFsm}, #statedata{socket = Socket} =
 %% @todo Implement the codec functionality
 phase_2(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
-phase_2({#radius{attributes = Attributes}= 	_AccessRequest, _RadiusFsm}, #statedata
-		{eap_id = EapID} = StateData)->
-	AttributeData = radius_attributes:codec(Attributes),
-		case radius_attributes:find(?EAPMessage, AttributeData) of
-			{ok, EapPacket} ->
-				#eap_packet{code = response, identifier = EapID, type = ?TTLS,
+phase_2({#radius{attributes = Attributes} = _AccessRequest, _RadiusFsm},
+		#statedata{eap_id = EapID} = StateData)->
+	case radius_attributes:find(?EAPMessage, Attributes) of
+		{ok, EapPacket} ->
+			#eap_packet{code = response, identifier = EapID, type = ?TTLS,
 					data = _EapTTLS} = ocs_eap_codec:eap_packet(EapPacket);
-				%Implement the functionality
-				%#eap_ttls{start = false, data = Data} = ocs_eap_codec:eap_ttls(EapTTLS);
-			{error, not_found} ->
-				ok
-		end,
+			%Implement the functionality
+			%#eap_ttls{start = false, data = Data} = ocs_eap_codec:eap_ttls(EapTTLS);
+		{error, not_found} ->
+			ok
+	end,
 	{stop, not_implemented, StateData}.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
