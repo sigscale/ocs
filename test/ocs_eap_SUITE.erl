@@ -413,11 +413,11 @@ negotiate_method(Config) ->
 	EapMsg2 = ocs_eap_codec:eap_packet(EapPacket),
 	ok = access_request(Socket, Address, Port, NasId,
 			UserName, Secret, MAC, ReqAuth2, RadId2, EapMsg2),
-	EapMsg = access_challenge(Socket, Address, Port,
+	EapMsg3 = access_challenge(Socket, Address, Port,
 			Secret, RadId2, ReqAuth2),
 	EapId3 = EapId2 + 1,
 	#eap_packet{code = request, type = Type,
-			identifier = EapId3} = ocs_eap_codec:eap_packet(EapMsg),
+			identifier = EapId3} = ocs_eap_codec:eap_packet(EapMsg3),
 	true = lists:member(Type, AlternateMethods).
 
 %%---------------------------------------------------------------------
