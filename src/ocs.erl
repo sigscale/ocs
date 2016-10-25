@@ -23,13 +23,12 @@
 %% export the ocs public API
 -export([add_client/2, find_client/1]).
 -export([add_subscriber/3, add_subscriber/4, find_subscriber/1,
-			delete_subscriber/1, update_password/3, update_attributes/3,
-			decrement_balance/2]).
+			delete_subscriber/1, update_password/3, update_attributes/3]).
 -export([log_file/1]).
 -export([generate_password/0]).
 -export([start/3]).
 %% export the ocs private API
--export([authorize/2, is_disconnected/1]).
+-export([authorize/2]).
 
 -include("ocs.hrl").
 -define(LOGNAME, radius_acct).
@@ -205,34 +204,6 @@ update_password(Subscriber, OldPassword, NewPassword) ->
 			{error, Reason}
 	end.
 
--spec decrement_balance(Subscriber :: string() | binary(),
-		Usage :: non_neg_integer()) ->
-	{ok, NewBalance :: integer()}| {error, Reason :: not_found | term()}.
-%% @doc Decrements subscriber's current balance
-decrement_balance(Subscriber, Usage) when is_list(Subscriber) ->
-	decrement_balance(list_to_binary(Subscriber), Usage);
-decrement_balance(Subscriber, Usage) when is_binary(Subscriber),
-		Usage >= 0 ->
-	F = fun() ->
-				case mnesia:read(subscriber, Subscriber, write) of
-					[#subscriber{balance = Balance} = Entry] ->
-						NewBalance = Balance - Usage,
-						NewEntry = Entry#subscriber{balance = NewBalance},
-						mnesia:write(subscriber, NewEntry, write),
-						NewBalance;
-					[] ->
-						throw(not_found)
-				end
-	end,
-	case mnesia:transaction(F) of
-		{atomic, NewBalance} ->
-			{ok, NewBalance};
-		{aborted, {throw, Reason}} ->
-			{error, Reason};
-		{aborted, Reason} ->
-			{error, Reason}
-	end.
-
 -spec update_attributes(Subscriber :: string() | binary(),
 		Password :: string() | binary(),
 		Attributes :: radius_attributes:attributes()) ->
@@ -363,7 +334,7 @@ authorize(Subscriber, Password) when is_binary(Subscriber),
 						mnesia:write(subscriber, NewEntry, write),
 						Attributes;
 					[#subscriber{password = Password} = Entry] when
-							Entry#subscriber.balance < 0 ->
+							Entry#subscriber.balance =< 0 ->
 						throw(out_of_credit);
 					[#subscriber{password = Password, enabled = false}] ->
 						throw(disabled);
@@ -380,24 +351,5 @@ authorize(Subscriber, Password) when is_binary(Subscriber),
 			{error, Reason};
 		{aborted, Reason} ->
 			{error, Reason}
-	end.
-
--spec is_disconnected(Subscriber :: string() | binary()) ->
-		Disconected :: boolean().
-%% @doc Look up subscriber disconnect status in susbcriber table.
-%% @private
-is_disconnected(Subscriber) when is_list(Subscriber) ->
-	is_disconnected(list_to_binary(Subscriber));
-is_disconnected(Subscriber) when is_binary(Subscriber) ->
-	F = fun() ->
-				mnesia:read(subscriber, Subscriber, read)
-	end,
-	case mnesia:transaction(F) of
-		{atomic, [#subscriber{disconnect = false}]} ->
-			false;
-		{atomic, [#subscriber{disconnect = true}]} ->
-			true;
-		{aborted, Reason} ->
-			exit(Reason)
 	end.
 

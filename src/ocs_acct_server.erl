@@ -32,6 +32,7 @@
 %% @headerfile "include/radius.hrl"
 -include_lib("radius/include/radius.hrl").
 -include("ocs_eap_codec.hrl").
+-include("ocs.hrl").
 
 -record(state,
 		{acct_sup :: pid(),
@@ -243,11 +244,10 @@ accounting_request(Address, _Port, Secret, Radius,
 		{error, not_found} = radius_attributes:find(?State, Attributes),
 		{ok, AcctSessionId} = radius_attributes:find(?AcctSessionId, Attributes),
 		ok = disk_log:log(Log, Attributes),
-		NewState = case {ocs:is_disconnected(Subscriber),
-								ocs:decrement_balance(Subscriber, Usage)} of
-			{false, {ok, OverUsed}} when OverUsed =< 0 ->
+		NewState = case decrement_balance(Subscriber, Usage) of
+			{ok, OverUsed} when OverUsed =< 0 ->
 				case supervisor:start_child(DiscSup, [[Address, NasID,
-						Subscriber, AcctSessionId, Secret, Attributes, DiskId], []]) of
+						Subscriber, AcctSessionId, Secret, Attributes, DiskId], [{debug, [trace]}]]) of
 					{ok, _Child} ->
 						NewDiskId = DiskId + 1,
 						State#state{disc_id = NewDiskId};
@@ -256,7 +256,7 @@ accounting_request(Address, _Port, Secret, Radius,
 							{error, Reason}]),
 						State
 				end;
-			{false, {ok, _SufficientBalance}} ->
+			{ok, _SufficientBalance} ->
 				State	
 		end,
 		{reply, {ok, response(Id, Authenticator, Secret)}, NewState}
@@ -276,4 +276,32 @@ response(Id, RequestAuthenticator, Secret) ->
 	Response = #radius{code = ?AccountingResponse, id = Id,
 			authenticator = ResponseAuthenticator, attributes = []},
 	radius:codec(Response).
+
+-spec decrement_balance(Subscriber :: string() | binary(),
+		Usage :: non_neg_integer()) ->
+	{ok, NewBalance :: integer()}| {error, Reason :: not_found | term()}.
+%% @doc Decrements subscriber's current balance
+decrement_balance(Subscriber, Usage) when is_list(Subscriber) ->
+	decrement_balance(list_to_binary(Subscriber), Usage);
+decrement_balance(Subscriber, Usage) when is_binary(Subscriber),
+		Usage >= 0 ->
+	F = fun() ->
+				case mnesia:read(subscriber, Subscriber, write) of
+					[#subscriber{balance = Balance, disconnect = false} = Entry] ->
+						NewBalance = Balance - Usage,
+						NewEntry = Entry#subscriber{balance = NewBalance},
+						mnesia:write(subscriber, NewEntry, write),
+						NewBalance;
+					[] ->
+						throw(not_found)
+				end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, NewBalance} ->
+			{ok, NewBalance};
+		{aborted, {throw, Reason}} ->
+			{error, Reason};
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
 

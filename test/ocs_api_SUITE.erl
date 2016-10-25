@@ -84,7 +84,7 @@ sequences() ->
 %%
 all() -> 
 	[client, subscriber, update_password, update_attributes,
-	delete_subscriber, decrement_balance].
+	delete_subscriber].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -144,21 +144,6 @@ update_password(_Config) ->
 	ok = ocs:update_password(Subscriber, OldPassword, NewPassword),
 	{ok, BinNewPassword, BinAttribute, _Balance} = ocs:find_subscriber(Subscriber),
 	NewPassword = binary_to_list(BinNewPassword).
-
-decrement_balance() ->
-	[{userdata, [{doc, "Decrement subscriber's balance based on usage"}]}].
-
-decrement_balance(_Config) ->
-	Subscriber = "android",
-	InitialBalance= 10000,
-	Password = ocs:generate_password(),
-	ok = ocs:add_subscriber(Subscriber, Password, [], InitialBalance),
-	Usage1 = 7645,
-	{ok , NewBalance1} = ocs:decrement_balance(Subscriber, Usage1),
-	NewBalance1 = InitialBalance - Usage1,
-	Usage2 = 84,
-	{ok , NewBalance2} = ocs:decrement_balance(Subscriber, Usage2),
-	NewBalance2 = NewBalance1 - Usage2.
 
 update_attributes() ->
 	[{userdata, [{doc, "Update subscriber attributes to database"}]}].
