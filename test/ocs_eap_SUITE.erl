@@ -191,7 +191,7 @@ pwd_confirm(Config) ->
 	PeerId = <<"45678901">>,
 	MAC = "dd:ee:ff:aa:bb:cc",
 	PeerAuth = list_to_binary(ocs:generate_password()),
-	ok = ocs:add_subscriber(PeerId, PeerAuth, []),
+	ok = ocs:add_subscriber(PeerId, PeerAuth, [], 10000),
 	Socket = ?config(socket, Config),
 	{ok, Address} = application:get_env(ocs, radius_auth_addr),
 	{ok, Port} = application:get_env(ocs, radius_auth_port),
