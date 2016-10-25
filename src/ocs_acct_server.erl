@@ -244,11 +244,10 @@ accounting_request(Address, _Port, Secret, Radius,
 		{error, not_found} = radius_attributes:find(?State, Attributes),
 		{ok, AcctSessionId} = radius_attributes:find(?AcctSessionId, Attributes),
 		ok = disk_log:log(Log, Attributes),
-		NewState = case {is_disconnected(Subscriber),
-								ocs:decrement_balance(Subscriber, Usage)} of
-			{false, {ok, OverUsed}} when OverUsed =< 0 ->
+		NewState = case decrement_balance(Subscriber, Usage) of
+			{ok, OverUsed} when OverUsed =< 0 ->
 				case supervisor:start_child(DiscSup, [[Address, NasID,
-						Subscriber, AcctSessionId, Secret, Attributes, DiskId], []]) of
+						Subscriber, AcctSessionId, Secret, Attributes, DiskId], [{debug, [trace]}]]) of
 					{ok, _Child} ->
 						NewDiskId = DiskId + 1,
 						State#state{disc_id = NewDiskId};
@@ -257,7 +256,7 @@ accounting_request(Address, _Port, Secret, Radius,
 							{error, Reason}]),
 						State
 				end;
-			{false, {ok, _SufficientBalance}} ->
+			{ok, _SufficientBalance} ->
 				State	
 		end,
 		{reply, {ok, response(Id, Authenticator, Secret)}, NewState}
@@ -278,18 +277,31 @@ response(Id, RequestAuthenticator, Secret) ->
 			authenticator = ResponseAuthenticator, attributes = []},
 	radius:codec(Response).
 
--spec is_disconnected(Subscriber :: string() | binary()) ->
-		Disconected :: boolean().
-%% @doc Look up subscriber disconnect status in susbcriber table.
-is_disconnected(Subscriber) when is_list(Subscriber) ->
-	is_disconnected(list_to_binary(Subscriber));
-is_disconnected(Subscriber) when is_binary(Subscriber) ->
+-spec decrement_balance(Subscriber :: string() | binary(),
+		Usage :: non_neg_integer()) ->
+	{ok, NewBalance :: integer()}| {error, Reason :: not_found | term()}.
+%% @doc Decrements subscriber's current balance
+decrement_balance(Subscriber, Usage) when is_list(Subscriber) ->
+	decrement_balance(list_to_binary(Subscriber), Usage);
+decrement_balance(Subscriber, Usage) when is_binary(Subscriber),
+		Usage >= 0 ->
 	F = fun() ->
-				mnesia:read(subscriber, Subscriber, read)
+				case mnesia:read(subscriber, Subscriber, write) of
+					[#subscriber{balance = Balance, disconnect = false} = Entry] ->
+						NewBalance = Balance - Usage,
+						NewEntry = Entry#subscriber{balance = NewBalance},
+						mnesia:write(subscriber, NewEntry, write),
+						NewBalance;
+					[] ->
+						throw(not_found)
+				end
 	end,
 	case mnesia:transaction(F) of
-		{atomic, [#subscriber{disconnect = Disconnect}]} ->
-			Disconnect;
+		{atomic, NewBalance} ->
+			{ok, NewBalance};
+		{aborted, {throw, Reason}} ->
+			{error, Reason};
 		{aborted, Reason} ->
-			exit(Reason)
+			{error, Reason}
 	end.
+
