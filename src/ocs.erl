@@ -29,7 +29,7 @@
 -export([generate_password/0]).
 -export([start/3]).
 %% export the ocs private API
--export([authorize/2, is_disconnected/1]).
+-export([authorize/2]).
 
 -include("ocs.hrl").
 -define(LOGNAME, radius_acct).
@@ -380,24 +380,5 @@ authorize(Subscriber, Password) when is_binary(Subscriber),
 			{error, Reason};
 		{aborted, Reason} ->
 			{error, Reason}
-	end.
-
--spec is_disconnected(Subscriber :: string() | binary()) ->
-		Disconected :: boolean().
-%% @doc Look up subscriber disconnect status in susbcriber table.
-%% @private
-is_disconnected(Subscriber) when is_list(Subscriber) ->
-	is_disconnected(list_to_binary(Subscriber));
-is_disconnected(Subscriber) when is_binary(Subscriber) ->
-	F = fun() ->
-				mnesia:read(subscriber, Subscriber, read)
-	end,
-	case mnesia:transaction(F) of
-		{atomic, [#subscriber{disconnect = false}]} ->
-			false;
-		{atomic, [#subscriber{disconnect = true}]} ->
-			true;
-		{aborted, Reason} ->
-			exit(Reason)
 	end.
 

@@ -32,6 +32,7 @@
 %% @headerfile "include/radius.hrl"
 -include_lib("radius/include/radius.hrl").
 -include("ocs_eap_codec.hrl").
+-include("ocs.hrl").
 
 -record(state,
 		{acct_sup :: pid(),
@@ -243,7 +244,7 @@ accounting_request(Address, _Port, Secret, Radius,
 		{error, not_found} = radius_attributes:find(?State, Attributes),
 		{ok, AcctSessionId} = radius_attributes:find(?AcctSessionId, Attributes),
 		ok = disk_log:log(Log, Attributes),
-		NewState = case {ocs:is_disconnected(Subscriber),
+		NewState = case {is_disconnected(Subscriber),
 								ocs:decrement_balance(Subscriber, Usage)} of
 			{false, {ok, OverUsed}} when OverUsed =< 0 ->
 				case supervisor:start_child(DiscSup, [[Address, NasID,
@@ -277,3 +278,18 @@ response(Id, RequestAuthenticator, Secret) ->
 			authenticator = ResponseAuthenticator, attributes = []},
 	radius:codec(Response).
 
+-spec is_disconnected(Subscriber :: string() | binary()) ->
+		Disconected :: boolean().
+%% @doc Look up subscriber disconnect status in susbcriber table.
+is_disconnected(Subscriber) when is_list(Subscriber) ->
+	is_disconnected(list_to_binary(Subscriber));
+is_disconnected(Subscriber) when is_binary(Subscriber) ->
+	F = fun() ->
+				mnesia:read(subscriber, Subscriber, read)
+	end,
+	case mnesia:transaction(F) of
+		{atomic, [#subscriber{disconnect = Disconnect}]} ->
+			Disconnect;
+		{aborted, Reason} ->
+			exit(Reason)
+	end.
