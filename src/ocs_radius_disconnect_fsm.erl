@@ -155,34 +155,6 @@ receive_response(timeout, #statedata{socket = Socket, nas_ip = NasIp ,
 			{next_state, receive_response, NewStateData, NewRetry};
 		{error, _Reason} ->
 			{next_state, receive_response, NewStateData, 0}
-	end;
-receive_response({udp, Socket, NasIp, NasPort, Packet}, #statedata{id = Id,
-		socket = Socket, subscriber = Subscriber} = StateData) ->
-	case radius:codec(Packet) of
-		#radius{code = ?DisconnectAck, id = Id} ->
-			F = fun() ->
-				case mnesia:read(subscriber, Subscriber, write) of
-					[#subscriber{} = Entry] ->
-						NewEntry = Entry#subscriber{disconnect = true},
-						mnesia:write(subscriber, NewEntry, write)
-				end
-			end,
-			case mnesia:transaction(F) of
-				{atomic, ok} ->
-					{stop, shutdown, StateData};
-				{aborted, _Reason} ->
-					{stop, shutdown, StateData}
-			end;
-		#radius{code = ?DisconnectNak, id = Id, attributes = Attrbin} ->
-			Attr = radius_attributes:codec(Attrbin),
-			case radius_attributes:find(?ErrorCause, Attr) of
-				{ok, ErrorCause} ->
-					error_logger:error_report(["Failed to disconnect subscriber session on",
-							{server, NasIp}, {port, NasPort},
-							{error, radius_attributes:error_cause(ErrorCause)}]);
-				{error, not_found} ->
-					{stop, shutdown, StateData}
-			end
 	end.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
@@ -232,8 +204,35 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 %% @see //stdlib/gen_fsm:handle_info/3
 %% @private
 %%
-handle_info(_Info, StateName, StateData) ->
-	{next_state, StateName, StateData}.
+handle_info({udp, _, NasIp, NasPort, Packet}, _StateName, #statedata{id = Id,
+		subscriber = Subscriber} = StateData) ->
+	case radius:codec(Packet) of
+		#radius{code = ?DisconnectAck, id = Id} ->
+			F = fun() ->
+				case mnesia:read(subscriber, Subscriber, write) of
+					[#subscriber{} = Entry] ->
+						NewEntry = Entry#subscriber{disconnect = true},
+						mnesia:write(subscriber, NewEntry, write)
+				end
+			end,
+			case mnesia:transaction(F) of
+				{atomic, ok} ->
+					{stop, shutdown, StateData};
+				{aborted, _Reason} ->
+					{stop, shutdown, StateData}
+			end;
+		#radius{code = ?DisconnectNak, id = Id, attributes = Attrbin} ->
+			Attr = radius_attributes:codec(Attrbin),
+			case radius_attributes:find(?ErrorCause, Attr) of
+				{ok, ErrorCause} ->
+					error_logger:error_report(["Failed to disconnect subscriber session on",
+							{server, NasIp}, {port, NasPort},
+							{error, radius_attributes:error_cause(ErrorCause)}]);
+				{error, not_found} ->
+					{stop, shutdown, StateData}
+			end
+	end,
+	{stop, shutdown, StateData}.
 
 -spec terminate(Reason :: normal | shutdown | term(), StateName :: atom(),
 		StateData :: #statedata{}) -> any().
