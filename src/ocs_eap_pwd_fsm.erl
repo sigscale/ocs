@@ -195,8 +195,7 @@ id({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		end
 	catch
 		_:_ ->
-			EapPacket = #eap_packet{code = failure,
-					type = ?PWD, identifier = EapID},
+			EapPacket = #eap_packet{code = failure, identifier = EapID},
 			send_response(EapPacket, ?AccessReject,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, StateData}
@@ -227,8 +226,7 @@ id1(PeerID, Token, RadiusID, RadiusFsm, RequestAuthenticator,
 					element_s = ElementS, password = Password},
 				{next_state, commit, NewStateData, ?TIMEOUT};
 			{error, _Reason} ->
-				EapPacket1 = #eap_packet{code = failure,
-						type = ?PWD, identifier = EapID},
+				EapPacket1 = #eap_packet{code = failure, identifier = EapID},
 				send_response(EapPacket1, ?AccessReject,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 				{stop, {shutdown, SessionID}, StateData}
@@ -288,8 +286,7 @@ commit1(RadiusFsm, #radius{id = RadiusID,
 		ExpectedSize ->
 			commit2(RadiusFsm, AccessRequest, StateData);
 		_ ->
-			EapPacket = #eap_packet{code = failure,
-					type = ?PWD, identifier = EapID},
+			EapPacket = #eap_packet{code = failure, identifier = EapID},
 			send_response(EapPacket, ?AccessReject,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, StateData}
@@ -302,8 +299,7 @@ commit2(RadiusFsm, #radius{id = RadiusID,
 		eap_id = EapID, session_id = SessionID} = StateData) ->
 	case {ElementP, ScalarP} of
 		{ElementS, ScalarS} ->
-			EapPacket = #eap_packet{code = failure,
-					type = ?PWD, identifier = EapID},
+			EapPacket = #eap_packet{code = failure, identifier = EapID},
 			send_response(EapPacket, ?AccessReject,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, StateData};
@@ -319,8 +315,7 @@ commit3(RadiusFsm, #radius{id = RadiusID,
 		<<ScalarP_Valid:256>> when 1 < ScalarP_Valid, ScalarP_Valid < ?R ->
 			commit4(RadiusFsm, AccessRequest, StateData);
 		_ScalarP_Out_of_Range ->
-			EapPacket = #eap_packet{code = failure,
-					type = ?PWD, identifier = EapID},
+			EapPacket = #eap_packet{code = failure, identifier = EapID},
 			send_response(EapPacket, ?AccessReject,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, StateData}
@@ -400,8 +395,7 @@ confirm1(RadiusFsm, #radius{id = RadiusID,
 		ExpectedSize ->
 			confirm2(RadiusFsm, AccessRequest, StateData);
 		_ ->
-			EapPacket = #eap_packet{code = failure,
-					type = ?PWD, identifier = EapID},
+			EapPacket = #eap_packet{code = failure, identifier = EapID},
 			send_response(EapPacket, ?AccessReject, RadiusID,
 					[], RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, StateData}
@@ -419,8 +413,7 @@ confirm2(RadiusFsm, #radius{id = RadiusID,
 		ConfirmP ->
 			confirm3(RadiusFsm, AccessRequest, StateData);
 		_ ->
-			EapPacket = #eap_packet{code = failure,
-					type = ?PWD, identifier = EapID},
+			EapPacket = #eap_packet{code = failure, identifier = EapID},
 			send_response(EapPacket, ?AccessReject, RadiusID,
 					[], RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, StateData}
@@ -451,14 +444,12 @@ confirm3(RadiusFsm, #radius{id = RadiusID,
 	Attr5 = radius_attributes:store(?AcctInterimInterval, 300, Attr4),
 	case ocs:authorize(PeerID, Password) of
 		{ok, _} ->
-			EapPacket = #eap_packet{code = success,
-					type = ?PWD, identifier = EapID},
+			EapPacket = #eap_packet{code = success, identifier = EapID},
 			send_response(EapPacket, ?AccessAccept,
 					RadiusID, Attr5, RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, StateData#statedata{mk = MK, msk = MSK}};
 		{error, _Reason} ->
-			EapPacket = #eap_packet{code = failure,
-					type = ?PWD, identifier = EapID},
+			EapPacket = #eap_packet{code = failure, identifier = EapID},
 			send_response(EapPacket, ?AccessReject, RadiusID,
 					[], RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, StateData}
