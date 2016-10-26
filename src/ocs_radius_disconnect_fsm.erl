@@ -210,9 +210,11 @@ handle_info({udp, _, NasIp, NasPort, Packet}, _StateName, #statedata{id = Id,
 		#radius{code = ?DisconnectAck, id = Id} ->
 			F = fun() ->
 				case mnesia:read(subscriber, Subscriber, write) of
-					[#subscriber{} = Entry] ->
+					[#subscriber{disconnect = false} = Entry] ->
 						NewEntry = Entry#subscriber{disconnect = true},
-						mnesia:write(subscriber, NewEntry, write)
+						mnesia:write(subscriber, NewEntry, write);
+					[#subscriber{disconnect = true}] ->
+						ok
 				end
 			end,
 			case mnesia:transaction(F) of
