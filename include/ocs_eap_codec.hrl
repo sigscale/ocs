@@ -96,7 +96,7 @@
 			{length_inc = false :: boolean(),
 			more = false :: boolean(),
 			start = false :: boolean(),
-			version = 0 :: 0..2,
+			version = 0 :: 0..7,
 			message_len :: integer(),
 			data = <<>> :: binary()}).
 
