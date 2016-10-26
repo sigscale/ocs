@@ -69,16 +69,16 @@
 
 -record(eap_packet,
 			{code :: request | response | success | failure,
-			type :: byte(),
+			type = 0 :: byte(),
 			identifier :: byte(),
-			data :: binary()}).
+			data = <<>> :: binary()}).
 
 -record(eap_pwd,
 			{length = false :: boolean(),
 			more = false :: boolean(),
 			pwd_exch :: id | commit | confirm,
 			tot_length :: 0..65535,
-			data :: binary()}).
+			data = <<>> :: binary()}).
 
 -record(eap_pwd_id,
 			{group_desc = 19 :: byte(),
@@ -96,7 +96,7 @@
 			{length_inc = false :: boolean(),
 			more = false :: boolean(),
 			start = false :: boolean(),
-			version  = 0 :: 0..2,
+			version = 0 :: 0..2,
 			message_len :: integer(),
 			data = <<>> :: binary()}).
 

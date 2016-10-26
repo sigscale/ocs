@@ -76,26 +76,26 @@ eap_pwd(#eap_pwd{length = true, more = true, pwd_exch = commit, data = D } = Pac
 eap_pwd(#eap_pwd{length = true, more = true, pwd_exch = confirm, data = D } = Packet) ->
 	TLen = Packet#eap_pwd.tot_length,
 	<<1:1, 1:1, 3:6, TLen:16, D/binary>>;
-eap_pwd(#eap_pwd{length = true, more = false, pwd_exch = id, data = D } = Packet) ->
+eap_pwd(#eap_pwd{length = true, pwd_exch = id, data = D } = Packet) ->
 	TLen = Packet#eap_pwd.tot_length,
 	<<1:1, 0:1, 1:6, TLen:16, D/binary>>;
-eap_pwd(#eap_pwd{length = true, more = false, pwd_exch = commit, data = D } = Packet) ->
+eap_pwd(#eap_pwd{length = true, pwd_exch = commit, data = D } = Packet) ->
 	TLen = Packet#eap_pwd.tot_length,
 	<<1:1, 0:1, 2:6, TLen:16, D/binary>>;
-eap_pwd(#eap_pwd{length = true, more = false, pwd_exch = confirm, data = D } = Packet) ->
+eap_pwd(#eap_pwd{length = true, pwd_exch = confirm, data = D } = Packet) ->
 	TLen = Packet#eap_pwd.tot_length,
 	<<1:1, 0:1, 3:6, TLen:16, D/binary>>;
-eap_pwd(#eap_pwd{length = false, more = true, pwd_exch = id, data = D } = _Packet) ->
+eap_pwd(#eap_pwd{more = true, pwd_exch = id, data = D } = _Packet) ->
 	<<0:1, 1:1, 1:6, D/binary>>;
-eap_pwd(#eap_pwd{length = false, more = true, pwd_exch = commit, data = D } = _Packet) ->
+eap_pwd(#eap_pwd{more = true, pwd_exch = commit, data = D } = _Packet) ->
 	<<0:1, 1:1, 2:6, D/binary>>;
-eap_pwd(#eap_pwd{length = false, more = true, pwd_exch = confirm, data = D } = _Packet) ->
+eap_pwd(#eap_pwd{more = true, pwd_exch = confirm, data = D } = _Packet) ->
 	<<0:1, 1:1, 3:6, D/binary>>;
-eap_pwd(#eap_pwd{length = false, more = false, pwd_exch = id, data = D } = _Packet) ->
+eap_pwd(#eap_pwd{pwd_exch = id, data = D } = _Packet) ->
 	<<0:1, 0:1, 1:6, D/binary>>;
-eap_pwd(#eap_pwd{length = false, more = false, pwd_exch = commit, data = D } = _Packet) ->
+eap_pwd(#eap_pwd{pwd_exch = commit, data = D } = _Packet) ->
 	<<0:1, 0:1, 2:6, D/binary>>;
-eap_pwd(#eap_pwd{length = false, more = false, pwd_exch = confirm, data = D } = _Packet) ->
+eap_pwd(#eap_pwd{pwd_exch = confirm, data = D } = _Packet) ->
 	<<0:1, 0:1, 3:6, D/binary>>;
 eap_pwd(<<1:1, 1:1, 1:6, TotLength:16, Payload/binary>>) ->
 	#eap_pwd{length = true, more = true, pwd_exch = id,
@@ -107,23 +107,17 @@ eap_pwd(<<1:1, 1:1, 3:6, TotLength:16, Payload/binary>>) ->
 	#eap_pwd{length = true, more = true, pwd_exch = confirm,
 			tot_length = TotLength, data = Payload};
 eap_pwd(<<0:1, 1:1, 1:6, Payload/binary>>) ->
-	#eap_pwd{length = false, more = true, pwd_exch = id,
-			data = Payload};
+	#eap_pwd{more = true, pwd_exch = id, data = Payload};
 eap_pwd(<<0:1, 1:1, 2:6, Payload/binary>>) ->
-	#eap_pwd{length = false, more = true, pwd_exch = confirm,
-			data = Payload};
+	#eap_pwd{more = true, pwd_exch = confirm, data = Payload};
 eap_pwd(<<0:1, 1:1, 3:6, Payload/binary>>) ->
-	#eap_pwd{length = false, more = true, pwd_exch = confirm,
-			data = Payload};
+	#eap_pwd{more = true, pwd_exch = confirm, data = Payload};
 eap_pwd(<<0:1, 0:1, 1:6, Payload/binary>>) ->
-	#eap_pwd{length = false, more = false, pwd_exch = id,
-			data = Payload};
+	#eap_pwd{pwd_exch = id, data = Payload};
 eap_pwd(<<0:1, 0:1, 2:6, Payload/binary>>) ->
-	#eap_pwd{length = false, more = false, pwd_exch = commit,
-			data = Payload};
+	#eap_pwd{pwd_exch = commit, data = Payload};
 eap_pwd(<<0:1, 0:1, 3:6, Payload/binary>>) ->
-	#eap_pwd{length = false, more = false, pwd_exch = confirm,
-			data = Payload}.
+	#eap_pwd{pwd_exch = confirm, data = Payload}.
 
 -spec eap_pwd_id(Packet :: binary() | #eap_pwd_id{}) -> #eap_pwd_id{} | binary().
 %% @doc Encode or Decode `EAP-pwd-ID'
