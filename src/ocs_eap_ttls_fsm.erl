@@ -69,6 +69,9 @@
 %% @private
 %%
 init([Address, Port, RadiusFsm, Secret, SessionID, AccessRequest] = _Args) ->
+	{ok, _TLSkey} = application:get_env(ocs, tls_key),
+	{ok, _TLScert} = application:get_env(ocs, tls_crt),
+	{ok, _TLSport} = application:get_env(ocs, tls_port),
 	{ok, Hostname} = inet:gethostname(),
 	StateData = #statedata{address = Address, port = Port,
 			radius_fsm = RadiusFsm, secret = Secret, session_id = SessionID,
@@ -109,9 +112,6 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,id = RadiusI
 							identifier = NewEapID, data = EapData},
 					send_response(NewEapPacket, ?AccessChallenge,
 							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-					{ok, _TLSkey} = application:get_env(ocs, tls_key),
-					{ok, _TLScert} = application:get_env(ocs, tls_crt),
-					{ok, _TLSport} = application:get_env(ocs, tls_port),
 					NewStateData = StateData#statedata{eap_id = NewEapID},
 					{next_state, eap_start, NewStateData, ?TIMEOUT};
 				#eap_packet{code = request, identifier = NewEapID} ->
