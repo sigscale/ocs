@@ -93,11 +93,10 @@
 			scalar :: binary()}).
 
 -record(eap_ttls,{
-			length_inc :: boolean(),
-			more :: boolean(),
-			start :: boolean(),
-			reserved :: boolean(),
+			length_inc = false :: boolean(),
+			more = false :: boolean(),
+			start = false :: boolean(),
 			version  = 0 :: 0..2,
 			message_len :: integer(),
-			data  = <<>> :: binary()}).
+			data = <<>> :: binary()}).
 
