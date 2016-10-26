@@ -26,7 +26,7 @@
 -export([]).
 
 %% export the ocs_eap_ttls_fsm state callbacks
--export([eap_start/2]).
+-export([eap_start/2, handshake/2]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
@@ -90,9 +90,10 @@ init([Address, Port, RadiusFsm, Secret, SessionID, AccessRequest] = _Args) ->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,id = RadiusID,
-		authenticator = RequestAuthenticator, attributes = Attributes},
-		radius_fsm = RadiusFsm, eap_id = EapID, session_id = SessionID,
+eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
+		id = RadiusID, authenticator = RequestAuthenticator,
+		attributes = Attributes}, radius_fsm = RadiusFsm,
+		eap_id = EapID, session_id = SessionID,
 		secret = Secret} = StateData) ->
 	EapTtls = #eap_ttls{start = true},
 	EapData = ocs_eap_codec:eap_ttls(EapTtls),
@@ -102,7 +103,7 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,id = RadiusI
 					identifier = EapID, data = EapData},
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-			{next_state, eap_start, StateData, ?TIMEOUT};
+			{next_state, handshake, StateData, ?TIMEOUT};
 		{ok, EAPMessage} ->
 			case catch ocs_eap_codec:eap_packet(EAPMessage) of
 				#eap_packet{code = response,
@@ -113,7 +114,7 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,id = RadiusI
 					send_response(NewEapPacket, ?AccessChallenge,
 							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 					NewStateData = StateData#statedata{eap_id = NewEapID},
-					{next_state, eap_start, NewStateData, ?TIMEOUT};
+					{next_state, handshake, NewStateData, ?TIMEOUT};
 				#eap_packet{code = request, identifier = NewEapID} ->
 					NewEapPacket = #eap_packet{code = response, type = ?LegacyNak,
 							identifier = NewEapID, data = <<0>>},
@@ -141,7 +142,43 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,id = RadiusI
 					identifier = EapID, data = EapData},
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-			{next_state, eap_start, StateData, ?TIMEOUT}
+			{next_state, handshake, StateData, ?TIMEOUT}
+	end.
+
+-spec handshake(Event :: timeout | term(), StateData :: #statedata{}) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
+%%		gen_fsm:send_event/2} in the <b>handshake</b> state.
+%% @@see //stdlib/gen_fsm:StateName/2
+%% @private
+%%
+handshake(timeout, #statedata{session_id = SessionID} = StateData) ->
+	{stop, {shutdown, SessionID}, StateData};
+handshake({#radius{code = ?AccessRequest, id = RadiusID,
+		authenticator = RequestAuthenticator, attributes = Attributes},
+		RadiusFsm}, #statedata{secret = Secret, eap_id = EapID,
+		session_id = SessionID} = StateData) ->
+	try
+		EapMessage = radius_attributes:fetch(?EAPMessage, Attributes),
+		case ocs_eap_codec:eap_packet(EapMessage) of
+			#eap_packet{code = response, type = ?TTLS, identifier = EapID,
+               data = TtlsData} ->
+				#eap_ttls{data = Data} = ocs_eap_codec:eap_ttls(TtlsData),
+				% send Data to ssl
+				{next_state, handshake, StateData, ?TIMEOUT};
+			#eap_packet{code = response, type = ?LegacyNak, identifier = EapID} ->
+				{stop, {shutdown, SessionID}, StateData}
+		end
+	catch
+		_:_ ->
+		EapPacket = #eap_packet{code = failure, identifier = EapID},
+		send_response(EapPacket, ?AccessReject,
+				RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+		{next_state, handshake, StateData, ?TIMEOUT}
 	end.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
