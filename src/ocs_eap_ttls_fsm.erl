@@ -35,6 +35,7 @@
 %% @headerfile "include/radius.hrl"
 -include_lib("radius/include/radius.hrl").
 -include("ocs_eap_codec.hrl").
+
 -record(statedata,
 		{address :: inet:ip_address(),
 		port :: pos_integer(),
@@ -90,10 +91,13 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,id = RadiusI
 		authenticator = RequestAuthenticator, attributes = Attributes},
 		radius_fsm = RadiusFsm, eap_id = EapID, session_id = SessionID,
 		secret = Secret} = StateData) ->
-	EapData = <<>>,
+	EapTtls = #eap_ttls{start = true},
+	EapData = ocs_eap_codec:eap_ttls(EapTtls),
 	case radius_attributes:find(?EAPMessage, Attributes) of
 		{ok, <<>>} ->
-			send_response(request, EapID, EapData, ?AccessChallenge,
+			EapPacket = #eap_packet{code = request, type = ?TTLS,
+					identifier = EapID, data = EapData},
+			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			{next_state, eap_start, StateData, ?TIMEOUT};
 		{ok, EAPMessage} ->
@@ -101,27 +105,43 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,id = RadiusI
 				#eap_packet{code = response,
 						type = ?Identity, identifier = StartEapID} ->
 					NewEapID = StartEapID + 1,
-					send_response(request, NewEapID, <<>>, ?AccessChallenge,
+					NewEapPacket = #eap_packet{code = request, type = ?TTLS,
+							identifier = NewEapID, data = EapData},
+					send_response(NewEapPacket, ?AccessChallenge,
 							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 					{ok, _TLSkey} = application:get_env(ocs, tls_key),
 					{ok, _TLScert} = application:get_env(ocs, tls_crt),
 					{ok, _TLSport} = application:get_env(ocs, tls_port),
 					NewStateData = StateData#statedata{eap_id = NewEapID},
 					{next_state, eap_start, NewStateData, ?TIMEOUT};
-				#eap_packet{code = Code, type = EapType, data = Data} ->
+				#eap_packet{code = request, identifier = NewEapID} ->
+					NewEapPacket = #eap_packet{code = response, type = ?LegacyNak,
+							identifier = NewEapID, data = <<0>>},
+					send_response(NewEapPacket, ?AccessReject,
+							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+					{stop, {shutdown, SessionID}, StateData};
+				#eap_packet{code = Code,
+							type = EapType, identifier = NewEapID, data = Data} ->
 					error_logger:warning_report(["Unknown EAP received",
 							{pid, self()}, {session_id, SessionID},
-							{code, Code}, {type, EapType}, {data, Data}]),
-					radius:response(RadiusFsm, {error, ignore}),
-					{next_state, eap_start, StateData, ?TIMEOUT};
+							{eap_id, NewEapID}, {code, Code},
+							{type, EapType}, {data, Data}]),
+					NewEapPacket = #eap_packet{code = failure, identifier = NewEapID},
+					send_response(NewEapPacket, ?AccessReject,
+							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+					{stop, {shutdown, SessionID}, StateData};
 				{'EXIT', _Reason} ->
-					radius:response(RadiusFsm, {error, ignore}),
-					{next_state, eap_start, StateData, ?TIMEOUT}
+					NewEapPacket = #eap_packet{code = failure, identifier = EapID},
+					send_response(NewEapPacket, ?AccessReject,
+							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+					{stop, {shutdown, SessionID}, StateData}
 			end;
 		{error, not_found} ->
-			send_response(request, EapID, <<>>, ?AccessChallenge,
+			EapPacket = #eap_packet{code = request, type = ?TTLS,
+					identifier = EapID, data = EapData},
+			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-			{next_state, phase_1, StateData, ?TIMEOUT}
+			{next_state, eap_start, StateData, ?TIMEOUT}
 	end.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
@@ -197,19 +217,16 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec send_response(EapCode :: request | response | success | failure,
-		EapID :: byte(), EapData :: binary(),
+-spec send_response(EapPacket :: #eap_packet{},
 		RadiusCode :: integer(), RadiusID :: byte(),
 		RadiusAttributes :: radius_attributes:attributes(),
 		RequestAuthenticator :: binary() | [byte()], Secret :: binary(),
 		RadiusFsm :: pid()) -> ok.
 %% @doc Sends an RADIUS-Access/Challenge or Reject or Accept  packet to peer
 %% @hidden
-send_response(EapCode, EapID, EapData, RadiusCode, RadiusID, RadiusAttributes,
+send_response(EapPacket, RadiusCode, RadiusID, RadiusAttributes,
 		RequestAuthenticator, Secret, RadiusFsm) ->
-	Packet = #eap_packet{code = EapCode, type = ?TTLS,
-			identifier = EapID, data = EapData},
-	EapPacketData = ocs_eap_codec:eap_packet(Packet),
+	EapPacketData = ocs_eap_codec:eap_packet(EapPacket),
 	AttrList1 = radius_attributes:store(?EAPMessage, EapPacketData,
 			RadiusAttributes),
 	AttrList2 = radius_attributes:store(?MessageAuthenticator,
