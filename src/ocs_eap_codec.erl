@@ -168,19 +168,42 @@ eap_pwd_commit(#eap_pwd_commit{element = Element, scalar = Scalar}) ->
 %% @doc Encode or Decode `EAP-TTLS' packet
 %%
 %% RFC-5281 9.1
-eap_ttls(#eap_ttls{length_inc = false, more = false, start = true, reserved = false,
-		version = 0, data = Data}) ->
-	<<0:1, 0:1, 1:1, 0:1, 0:1, 0:3, Data/binary>>;
-eap_ttls(#eap_ttls{length_inc = false, more = false, start = true, reserved = false,
-		version = 1, data = Data}) ->
-	<<0:1, 0:1, 1:1, 0:1, 0:1, 1:3, Data/binary>>;
-eap_ttls(#eap_ttls{length_inc = false, more = false, start = true, reserved = false,
-		version = 2, data = Data}) ->
-	<<0:1, 0:1, 1:1, 0:1, 0:1, 2:3, Data/binary>>;
-eap_ttls(<<0:1, 0:1, 1:1, 0:1, 0:1, 0:3, Data/binary>>) ->
-	#eap_ttls{length_inc = false, more = false, start = true, reserved = false,
-		version = 0, data = Data};
-eap_ttls(<<0:1, 0:1, 1:1, 0:1, 0:1, 1:3, Data/binary>>) ->
-	#eap_ttls{length_inc = false, more = false, start = true, reserved = false,
-		version = 1, data = Data}.
+eap_ttls(#eap_ttls{length_inc = false, more = false, start = false,
+		version = Version, data = Data}) when is_integer(Version) ->
+	<<0:1, 0:1, 0:1, 0:2, Version:3, Data/binary>>;
+eap_ttls(#eap_ttls{length_inc = false, more = false, start = true,
+		version = Version, data = Data}) when is_integer(Version) ->
+	<<0:1, 0:1, 1:1, 0:2, Version:3, Data/binary>>;
+eap_ttls(#eap_ttls{length_inc = false, more = true, start = false,
+		version = Version, data = Data}) when is_integer(Version) ->
+	<<0:1, 1:1, 0:1, 0:2, Version:3, Data/binary>>;
+eap_ttls(#eap_ttls{length_inc = false, more = true, start = true,
+		version = Version, data = Data}) when is_integer(Version) ->
+	<<0:1, 1:1, 1:1, 0:2, Version:3, Data/binary>>;
+eap_ttls(#eap_ttls{length_inc = true, more = false, start = false,
+		version = Version, data = Data}) when is_integer(Version) ->
+	<<1:1, 0:1, 0:1, 0:2, Version:3, Data/binary>>;
+eap_ttls(#eap_ttls{length_inc = true, start = true, start = false,
+		version = Version, data = Data}) when is_integer(Version) ->
+	<<1:1, 0:1, 1:1, 0:2, Version:3, Data/binary>>;
+eap_ttls(#eap_ttls{length_inc = true, more = true, start = true,
+		version = Version, data = Data}) when is_integer(Version) ->
+	<<1:1, 1:1, 1:1, 0:2, Version:3, Data/binary>>;
+eap_ttls(<<0:1, 0:1, 0:1, _:2, Version:3, Data/binary>>) ->
+	#eap_ttls{version = Version, data = Data};
+eap_ttls(<<0:1, 0:1, 1:1, _:2, Version:3, Data/binary>>) ->
+	#eap_ttls{start = true, version = Version, data = Data};
+eap_ttls(<<0:1, 1:1, 0:1, _:2, Version:3, Data/binary>>) ->
+	#eap_ttls{more = true, version = Version, data = Data};
+eap_ttls(<<0:1, 1:1, 1:1, _:2, Version:3, Data/binary>>) ->
+	#eap_ttls{more = true, start = true, version = Version, data = Data};
+eap_ttls(<<1:1, 0:1, 0:1, _:2, Version:3, Data/binary>>) ->
+	#eap_ttls{length_inc = true, version = Version, data = Data};
+eap_ttls(<<1:1, 0:1, 1:1, _:2, Version:3, Data/binary>>) ->
+	#eap_ttls{length_inc = true, start = true, version = Version, data = Data};
+eap_ttls(<<1:1, 1:1, 0:1, _:2, Version:3, Data/binary>>) ->
+	#eap_ttls{length_inc = true, more = true, version = Version, data = Data};
+eap_ttls(<<1:1, 1:1, 1:1, _:2, Version:3, Data/binary>>) ->
+	#eap_ttls{length_inc = true, more = true, start = true,
+			version = Version, data = Data}.
 
