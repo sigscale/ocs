@@ -48,6 +48,7 @@
 		prf = 1 :: byte(),
 		secret :: binary(),
 		token :: binary(),
+		password :: binary(),
 		prep :: none | rfc2759 | saslprep,
 		server_id  :: binary(),
 		peer_id :: binary(),
@@ -204,7 +205,7 @@ id1(PeerID, Token, RadiusID, RadiusFsm, RequestAuthenticator,
 						Secret, RadiusFsm),
 				NewStateData = StateData#statedata{pwe = PWE, s_rand = S_rand,
 					peer_id = PeerID, eap_id = NewEapID, scalar_s = ScalarS,
-					element_s = ElementS},
+					element_s = ElementS, password = Password},
 				{next_state, commit, NewStateData, ?TIMEOUT};
 			{error, _Reason} ->
 				send_response(failure, EapID, <<>>, ?AccessReject,
@@ -385,7 +386,8 @@ confirm3(RadiusFsm, #radius{id = RadiusID,
 		#statedata{secret = Secret, eap_id = EapID, ks = Ks,
 		confirm_p = ConfirmP, confirm_s = ConfirmS, scalar_s = ScalarS,
 		scalar_p = ScalarP, group_desc = GroupDesc, rand_func = RandFunc,
-		prf = PRF, session_id = SessionID, peer_id = PeerID} = StateData) ->
+		prf = PRF, session_id = SessionID, peer_id = PeerID,
+		password = Password} = StateData) ->
 	Ciphersuite = <<GroupDesc:16, RandFunc, PRF>>,
 	MK = ocs_eap_pwd:h([Ks, ConfirmP, ConfirmS]),
 	MethodID = ocs_eap_pwd:h([Ciphersuite, ScalarP, ScalarS]),
@@ -402,7 +404,6 @@ confirm3(RadiusFsm, #radius{id = RadiusID,
 	Attr3 = radius_attributes:add(?VendorSpecific, VendorSpecific2, Attr2),
 	Attr4 = radius_attributes:store(?SessionTimeout, 86400, Attr3),
 	Attr5 = radius_attributes:store(?AcctInterimInterval, 300, Attr4),
-	{ok, Password, _, _, _} = ocs:find_subscriber(PeerID),
 	case ocs:authorize(PeerID, Password) of
 		{ok, _} ->
 			send_response(success, EapID, <<>>, ?AccessAccept,
