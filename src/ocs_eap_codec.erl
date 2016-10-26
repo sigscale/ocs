@@ -183,7 +183,7 @@ eap_ttls(#eap_ttls{length_inc = false, more = true, start = true,
 eap_ttls(#eap_ttls{length_inc = true, more = false, start = false,
 		version = Version, data = Data}) when is_integer(Version) ->
 	<<1:1, 0:1, 0:1, 0:2, Version:3, Data/binary>>;
-eap_ttls(#eap_ttls{length_inc = true, start = true, start = false,
+eap_ttls(#eap_ttls{length_inc = true, more = false, start = true,
 		version = Version, data = Data}) when is_integer(Version) ->
 	<<1:1, 0:1, 1:1, 0:2, Version:3, Data/binary>>;
 eap_ttls(#eap_ttls{length_inc = true, more = true, start = true,
