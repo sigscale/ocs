@@ -245,7 +245,7 @@ accounting_request(Address, _Port, Secret, Radius,
 		{ok, AcctSessionId} = radius_attributes:find(?AcctSessionId, Attributes),
 		ok = disk_log:log(Log, Attributes),
 		NewState = case decrement_balance(Subscriber, Usage) of
-			{ok, OverUsed} when OverUsed =< 0 ->
+			{ok, OverUsed, false} when OverUsed =< 0 ->
 				case supervisor:start_child(DiscSup, [[Address, NasID,
 						Subscriber, AcctSessionId, Secret, Attributes, DiskId], [{debug, [trace]}]]) of
 					{ok, _Child} ->
@@ -256,7 +256,9 @@ accounting_request(Address, _Port, Secret, Radius,
 							{error, Reason}]),
 						State
 				end;
-			{ok, _SufficientBalance} ->
+			{ok, _SufficientBalance, _Flag} ->
+				State;
+			{error, not_found} ->
 				State
 		end,
 		{reply, {ok, response(Id, Authenticator, Secret)}, NewState}
@@ -279,7 +281,8 @@ response(Id, RequestAuthenticator, Secret) ->
 
 -spec decrement_balance(Subscriber :: string() | binary(),
 		Usage :: non_neg_integer()) ->
-	{ok, NewBalance :: integer()}| {error, Reason :: not_found | term()}.
+	{ok, NewBalance :: integer(), DiscFlag :: boolean()}|
+			{error, Reason :: not_found | term()}.
 %% @doc Decrements subscriber's current balance
 decrement_balance(Subscriber, Usage) when is_list(Subscriber) ->
 	decrement_balance(list_to_binary(Subscriber), Usage);
@@ -287,21 +290,23 @@ decrement_balance(Subscriber, Usage) when is_binary(Subscriber),
 		Usage >= 0 ->
 	F = fun() ->
 				case mnesia:read(subscriber, Subscriber, write) of
-					[#subscriber{balance = Balance, disconnect = false} = Entry] ->
+					[#subscriber{balance = Balance, disconnect = Flag} = Entry] ->
 						NewBalance = Balance - Usage,
 						NewEntry = Entry#subscriber{balance = NewBalance},
 						mnesia:write(subscriber, NewEntry, write),
-						NewBalance;
+						{NewBalance, Flag};
 					[] ->
 						throw(not_found)
 				end
 	end,
 	case mnesia:transaction(F) of
-		{atomic, NewBalance} ->
-			{ok, NewBalance};
+		{atomic, {NewBalance, Flag}} ->
+			{ok, NewBalance, Flag};
 		{aborted, {throw, Reason}} ->
 			{error, Reason};
 		{aborted, Reason} ->
+			error_logger:error_report(["Failed to decrement balance",
+					{error, Reason}, {subscriber, Subscriber}]),
 			{error, Reason}
 	end.
 
