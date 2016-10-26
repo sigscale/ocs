@@ -185,12 +185,14 @@ id({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		case ocs_eap_codec:eap_packet(EapMessage) of
 			#eap_packet{code = response, type = ?PWD, identifier = EapID,
 					data = Data} -> 
-				#eap_pwd{pwd_exch = id, data = EapPwdId} = ocs_eap_codec:eap_pwd(Data),
+				#eap_pwd{pwd_exch = id,
+						data = EapPwdId} = ocs_eap_codec:eap_pwd(Data),
 				#eap_pwd_id{group_desc = GroupDesc, random_fun = RandFunc,
 						prf = PRF, token = Token, pwd_prep = none,
 						identity = PeerID} = ocs_eap_codec:eap_pwd_id(EapPwdId),
-				id1(PeerID, Token, RadiusID, RadiusFsm, RequestAuthenticator, StateData);
-			#eap_packet{code = response, type = ?LegacyNak} ->
+				id1(PeerID, Token, RadiusID,
+						RadiusFsm, RequestAuthenticator, StateData);
+			#eap_packet{code = response, type = ?LegacyNak, identifier = EapId} ->
 				{stop, {shutdown, SessionID}, StateData}
 		end
 	catch
