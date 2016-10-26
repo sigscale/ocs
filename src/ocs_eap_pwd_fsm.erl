@@ -149,7 +149,9 @@ eap_start(timeout, #statedata{radius_fsm = RadiusFsm, eap_id = EapID,
 							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 					{stop, {shutdown, SessionID}, StateData};
 				{'EXIT', _Reason} ->
-					radius:response(RadiusFsm, {error, ignore}),
+					EapPacket = #eap_packet{code = failure, identifier = EapID},
+					send_response(EapPacket, ?AccessReject,
+							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 					{stop, {shutdown, SessionID}, StateData}
 			end;
 		{error, not_found} ->
@@ -224,15 +226,17 @@ id1(PeerID, Token, RadiusID, RadiusFsm, RequestAuthenticator,
 					element_s = ElementS},
 				{next_state, commit, NewStateData, ?TIMEOUT};
 			{error, _Reason} ->
-				EapPacket = #eap_packet{code = failure,
-						type = ?PWD, identifier = NewEapID},
-				send_response(EapPacket, ?AccessReject,
+				EapPacket1 = #eap_packet{code = failure,
+						type = ?PWD, identifier = EapID},
+				send_response(EapPacket1, ?AccessReject,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 				{stop, {shutdown, SessionID}, StateData}
 		end
 	catch
 		_:_ ->
-			radius:response(RadiusFsm, {error, ignore}),
+			EapPacket2 = #eap_packet{code = failure, identifier = EapID},
+			send_response(EapPacket2, ?AccessReject,
+					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, StateData}
 	end.
 
@@ -249,13 +253,15 @@ id1(PeerID, Token, RadiusID, RadiusFsm, RequestAuthenticator,
 %%
 commit(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
-commit({#radius{attributes = Attributes} = AccessRequest, RadiusFsm},
-		#statedata{eap_id = EapID, session_id = SessionID} = StateData) ->
+commit({#radius{id = RadiusID, authenticator = RequestAuthenticator,
+		attributes = Attributes} = AccessRequest, RadiusFsm},
+		#statedata{eap_id = EapID, session_id = SessionID,
+		secret = Secret} = StateData) ->
 	try 
 		EapMessage = radius_attributes:fetch(?EAPMessage, Attributes),
-		EapPacket = ocs_eap_codec:eap_packet(EapMessage),
+		EapPacket1 = ocs_eap_codec:eap_packet(EapMessage),
 		#eap_packet{code = response, type = ?PWD,
-				identifier = EapID, data = Data} = EapPacket,
+				identifier = EapID, data = Data} = EapPacket1,
 		EapHeader = ocs_eap_codec:eap_pwd(Data),
 		#eap_pwd{pwd_exch = commit, data = BodyData} = EapHeader,
 		Body = ocs_eap_codec:eap_pwd_commit(BodyData),
@@ -265,7 +271,9 @@ commit({#radius{attributes = Attributes} = AccessRequest, RadiusFsm},
 		commit1(RadiusFsm, AccessRequest, BodyData, NewStateData)
 	catch
 		_:_ ->
-			radius:response(RadiusFsm, {error, ignore}),
+			EapPacket2 = #eap_packet{code = failure, identifier = EapID},
+			send_response(EapPacket2, ?AccessReject,
+					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, StateData}
 	end.
 %% @hidden
@@ -319,7 +327,7 @@ commit3(RadiusFsm, #radius{id = RadiusID,
 %% @hidden
 commit4(RadiusFsm, #radius{id = RadiusID,
 		authenticator = RequestAuthenticator} = _AccessRequest,
-		#statedata{eap_id = EapID, secret = Secret,
+		#statedata{eap_id = EapID, secret = Secret, session_id = SessionID,
 		scalar_p = ScalarP, element_p = ElementP,
 		scalar_s = ScalarS, element_s = ElementS,
 		s_rand = Srand, pwe = PWE, group_desc = GroupDesc,
@@ -327,8 +335,10 @@ commit4(RadiusFsm, #radius{id = RadiusID,
 	case catch ocs_eap_pwd:compute_ks(<<Srand:256>>,
 			PWE, ScalarP, ElementP) of
 		{'EXIT', _Reason} ->
-			radius:response(RadiusFsm, {error, ignore}),
-			{next_state, commit, StateData, ?TIMEOUT};
+			EapPacket = #eap_packet{code = failure, identifier = EapID},
+			send_response(EapPacket, ?AccessReject,
+					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+			{stop, {shutdown, SessionID}, StateData};
 		Ks ->
 			Ciphersuite = <<GroupDesc:16, RandFunc, PRF>>,
 			Input = [Ks, ElementS, ScalarS, ElementP, ScalarP, Ciphersuite],
@@ -359,8 +369,10 @@ commit4(RadiusFsm, #radius{id = RadiusID,
 %%
 confirm(timeout, #statedata{session_id = SessionID} = StateData)->
 	{stop, {shutdown, SessionID}, StateData};
-confirm({#radius{attributes = Attributes} = AccessRequest, RadiusFsm},
-		#statedata{session_id = SessionID, eap_id = EapID} = StateData)->
+confirm({#radius{id = RadiusID, authenticator = RequestAuthenticator,
+		attributes = Attributes} = AccessRequest, RadiusFsm},
+		#statedata{secret = Secret, session_id = SessionID,
+		eap_id = EapID} = StateData)->
 	try
 		EapMessage = radius_attributes:fetch(?EAPMessage, Attributes),
 		EapData = ocs_eap_codec:eap_packet(EapMessage),
@@ -372,7 +384,9 @@ confirm({#radius{attributes = Attributes} = AccessRequest, RadiusFsm},
 		confirm1(RadiusFsm, AccessRequest, NewStateData)
 	catch
 		_:_ ->
-			radius:response(RadiusFsm, {error, ignore}),
+			EapPacket = #eap_packet{code = failure, identifier = EapID},
+			send_response(EapPacket, ?AccessReject,
+					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, StateData}
 	end.
 %% @hidden
