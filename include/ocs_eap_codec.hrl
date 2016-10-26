@@ -97,7 +97,7 @@
 			more :: boolean(),
 			start :: boolean(),
 			reserved :: boolean(),
-			version  = v0 :: v0 | v1 | v2,
+			version  = 0 :: 0..2,
 			message_len :: integer(),
 			data  = <<>> :: binary()}).
 

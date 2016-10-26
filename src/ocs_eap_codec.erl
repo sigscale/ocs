@@ -169,18 +169,18 @@ eap_pwd_commit(#eap_pwd_commit{element = Element, scalar = Scalar}) ->
 %%
 %% RFC-5281 9.1
 eap_ttls(#eap_ttls{length_inc = false, more = false, start = true, reserved = false,
-		version = v0, data = Data}) ->
+		version = 0, data = Data}) ->
 	<<0:1, 0:1, 1:1, 0:1, 0:1, 0:3, Data/binary>>;
 eap_ttls(#eap_ttls{length_inc = false, more = false, start = true, reserved = false,
-		version = v1, data = Data}) ->
+		version = 1, data = Data}) ->
 	<<0:1, 0:1, 1:1, 0:1, 0:1, 1:3, Data/binary>>;
 eap_ttls(#eap_ttls{length_inc = false, more = false, start = true, reserved = false,
-		version = v2, data = Data}) ->
+		version = 2, data = Data}) ->
 	<<0:1, 0:1, 1:1, 0:1, 0:1, 2:3, Data/binary>>;
 eap_ttls(<<0:1, 0:1, 1:1, 0:1, 0:1, 0:3, Data/binary>>) ->
 	#eap_ttls{length_inc = false, more = false, start = true, reserved = false,
-		version = v0, data = Data};
+		version = 0, data = Data};
 eap_ttls(<<0:1, 0:1, 1:1, 0:1, 0:1, 1:3, Data/binary>>) ->
 	#eap_ttls{length_inc = false, more = false, start = true, reserved = false,
-		version = v1, data = Data}.
+		version = 1, data = Data}.
 
