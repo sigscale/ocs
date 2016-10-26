@@ -192,7 +192,7 @@ id({#radius{id = RadiusID, authenticator = RequestAuthenticator,
 						identity = PeerID} = ocs_eap_codec:eap_pwd_id(EapPwdId),
 				id1(PeerID, Token, RadiusID,
 						RadiusFsm, RequestAuthenticator, StateData);
-			#eap_packet{code = response, type = ?LegacyNak, identifier = EapId} ->
+			#eap_packet{code = response, type = ?LegacyNak, identifier = EapID} ->
 				{stop, {shutdown, SessionID}, StateData}
 		end
 	catch
