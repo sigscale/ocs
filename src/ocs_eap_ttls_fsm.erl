@@ -26,7 +26,7 @@
 -export([]).
 
 %% export the ocs_eap_ttls_fsm state callbacks
--export([eap_start/2, handshake/2]).
+-export([eap_start/2, ttls/2, aaa/2]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
@@ -46,6 +46,8 @@
 		start :: #radius{},
 		server_id :: binary(),
 		radius_fsm :: pid(),
+		radius_id :: byte(),
+		req_auth :: [byte()],
 		ssl_pid :: pid()}).
 
 -define(TIMEOUT, 30000).
@@ -106,7 +108,7 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			ssl:ssl_accept(SslSocket2),
-			{next_state, handshake, StateData, ?TIMEOUT};
+			{next_state, ttls, StateData, ?TIMEOUT};
 		{ok, EAPMessage} ->
 			case catch ocs_eap_codec:eap_packet(EAPMessage) of
 				#eap_packet{code = response,
@@ -118,7 +120,7 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 					ssl:ssl_accept(SslSocket2),
 					NewStateData = StateData#statedata{eap_id = NewEapID},
-					{next_state, handshake, NewStateData, ?TIMEOUT};
+					{next_state, ttls, NewStateData, ?TIMEOUT};
 				#eap_packet{code = request, identifier = NewEapID} ->
 					NewEapPacket = #eap_packet{code = response, type = ?LegacyNak,
 							identifier = NewEapID, data = <<0>>},
@@ -147,57 +149,107 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			ssl:ssl_accept(SslSocket2),
-			{next_state, handshake, StateData, ?TIMEOUT}
+			{next_state, ttls, StateData, ?TIMEOUT}
 	end.
 
--spec handshake(Event :: timeout | term(), StateData :: #statedata{}) ->
+-spec ttls(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
 		Timeout :: non_neg_integer() | infinity}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
 		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>handshake</b> state.
+%%		gen_fsm:send_event/2} in the <b>ttls</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-handshake(timeout, #statedata{session_id = SessionID} = StateData) ->
+ttls(timeout, #statedata{session_id = SessionID} = StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
-handshake({ssl_pid, SslPid}, StateData) ->
-	{next_state, handshake, StateData#stateData{ssl_pid = SslPid}};
-handshake({#radius{code = ?AccessRequest, id = RadiusID,
+ttls({ssl_pid, SslPid}, StateData) ->
+	{next_state, ttls, StateData#statedata{ssl_pid = SslPid}, ?TIMEOUT};
+ttls({#radius{code = ?AccessRequest, id = RadiusID,
 		authenticator = RequestAuthenticator, attributes = Attributes},
 		RadiusFsm}, #statedata{secret = Secret, eap_id = EapID,
 		session_id = SessionID, ssl_pid = SslPid} = StateData) ->
+	EapMessages = radius_attributes:get_all(?EAPMessage, Attributes),
+	NewStateData = StateData#statedata{radius_fsm = RadiusFsm,
+			radius_id = RadiusID, req_auth = RequestAuthenticator},
+	ttls1(EapMessages, undefined, [], NewStateData).
+%% @hidden
+ttls1([H | T], Length, Acc, #statedata{radius_fsm = RadiusFsm,
+		radius_id = RadiusID, req_auth = RequestAuthenticator,
+		session_id = SessionID, secret = Secret, eap_id = EapID,
+		ssl_pid = SslPid} = StateData) ->
 	try
-		EapMessage = radius_attributes:fetch(?EAPMessage, Attributes),
-		case ocs_eap_codec:eap_packet(EapMessage) of
-			#eap_packet{code = response, type = ?TTLS, identifier = EapID,
-               data = TtlsData} ->
-				#eap_ttls{data = Data} = ocs_eap_codec:eap_ttls(TtlsData),
-				ocs_eap_ttls_transport:deliver(SslPid, self(), Data),
-				{next_state, handshake, StateData, ?TIMEOUT};
-			#eap_packet{code = response, type = ?LegacyNak, identifier = EapID} ->
-				{stop, {shutdown, SessionID}, StateData}
+		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
+				data = TtlsData} = ocs_eap_codec:eap_packet(H),
+		case ocs_eap_codec:eap_ttls(TtlsData) of
+			#eap_ttls{message_len = NewLength, more = true,
+					data = Data} when is_integer(Length) ->
+				ttls1(T, NewLength, [Data | Acc], StateData);
+			#eap_ttls{more = true, data = Data} ->
+				ttls1(T, Length, [Data | Acc], StateData);
+			#eap_ttls{more = false, data = Data} ->
+				NewData = iolist_to_binary(lists:reverse([Data | Acc])),
+				case Length of
+					undefined ->
+						ok;
+					Length when size(NewData) /= Length ->
+						throw(bad_message_length)
+				end,
+				ocs_eap_ttls_transport:deliver(SslPid, self(), NewData),
+				case T of
+					[] ->
+						ok;
+					T ->
+						error_logger:error_report(["Extra EAP-Message attributes",
+								{session_id, SessionID}, {attributes, T}])
+				end,
+				{next_state, aaa, StateData, ?TIMEOUT}
 		end
 	catch
 		_:_ ->
-		EapPacket = #eap_packet{code = failure, identifier = EapID},
-		send_response(EapPacket, ?AccessReject,
-				RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-		{next_state, handshake, StateData, ?TIMEOUT}
+			EapPacket = #eap_packet{code = failure, identifier = EapID},
+			send_response(EapPacket, ?AccessReject,
+					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+			{stop, {shutdown, SessionID}, StateData}
 	end;
-handshake({eap_ttls, SslPid, Data},
-		#statedata{ssl_pid = SslPid, eap_id = EapId} = StateData) ->
+ttls1([], Length, Acc, #statedata{radius_fsm = RadiusFsm,
+		radius_id = RadiusID, req_auth = RequestAuthenticator,
+		session_id = SessionID, secret = Secret, eap_id = EapID} = StateData) ->
+	EapPacket = #eap_packet{code = failure, identifier = EapID},
+	send_response(EapPacket, ?AccessReject,
+			RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+	{stop, {shutdown, SessionID}, StateData}.
+
+-spec aaa(Event :: timeout | term(), StateData :: #statedata{}) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
+%%		gen_fsm:send_event/2} in the <b>aaa</b> state.
+%% @@see //stdlib/gen_fsm:StateName/2
+%% @todo EAP-TTLS fragmentation
+%% @private
+aaa(timeout, #statedata{session_id = SessionID} = StateData) ->
+	{stop, {shutdown, SessionID}, StateData};
+aaa({ssl_pid, SslPid}, StateData) ->
+	{next_state, aaa, StateData#statedata{ssl_pid = SslPid}, ?TIMEOUT};
+aaa({eap_ttls, SslPid, Data}, #statedata{ssl_pid = SslPid,
+		radius_fsm = RadiusFsm, radius_id = RadiusID,
+		req_auth = RequestAuthenticator, secret = Secret,
+		eap_id = EapID} = StateData) when size(Data) =< 65529 ->
 	EapTtls = #eap_ttls{data = Data},
 	EapData = ocs_eap_codec:eap_ttls(EapTtls),
-	NewEapId = EapId + 1,
 	EapPacket = #eap_packet{code = request, type = ?TTLS,
-			identifier = NewEapID, data = EapData},
+			identifier = EapID, data = EapData},
 	send_response(EapPacket, ?AccessChallenge,
 			RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-	NewStateData = StateData#statedata{eap_id = NewEapId},
-	{next_state, handshake, StateData}.
+	{next_state, ttls, StateData, ?TIMEOUT}.
+%aaa({eap_ttls, SslPid,
+%		<<Chunk:65529/binary, Rest/binary>> = Data, StateData) ->
 
 -spec handle_event(Event :: term(), StateName :: atom(),
 		StateData :: #statedata{}) ->
@@ -213,7 +265,7 @@ handshake({eap_ttls, SslPid, Data},
 %% @private
 %%
 handle_event(_Event, StateName, StateData) ->
-	{next_state, StateName, StateData}.
+	{next_state, StateName, StateData, ?TIMEOUT}.
 
 -spec handle_sync_event(Event :: term(), From :: {Pid :: pid(), Tag :: term()},
 		StateName :: atom(), StateData :: #statedata{}) ->
@@ -247,7 +299,7 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 %% @private
 %%
 handle_info(_Info, StateName, StateData) ->
-	{next_state, StateName, StateData}.
+	{next_state, StateName, StateData, ?TIMEOUT}.
 
 -spec terminate(Reason :: normal | shutdown | term(), StateName :: atom(),
 		StateData :: #statedata{}) -> any().
@@ -280,7 +332,7 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %% @doc Sends an RADIUS-Access/Challenge or Reject or Accept  packet to peer
 %% @hidden
 send_response(EapPacket, RadiusCode, RadiusID, RadiusAttributes,
-		RequestAuthenticator, Secret, RadiusFsm) ->
+		RequestAuthenticator, Secret, RadiusFsm) when size(EapPacket) =< 247 ->
 	EapPacketData = ocs_eap_codec:eap_packet(EapPacket),
 	AttrList1 = radius_attributes:store(?EAPMessage, EapPacketData,
 			RadiusAttributes),

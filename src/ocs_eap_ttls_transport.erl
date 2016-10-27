@@ -102,7 +102,7 @@ getopts(TtlsFsm, Options) when is_pid(TtlsFsm) ->
 	{ok, []}.
 
 -spec listen(TtlsFsm, Options) ->
-	{ok, TtlFsm} | {error, Reason} when
+	{ok, TtlsFsm} | {error, Reason} when
 		TtlsFsm :: pid(),
 		Options :: [listen_option()],
 		Reason :: term().
@@ -121,6 +121,7 @@ accept(TtlsFsm, Timeout) when is_pid(TtlsFsm) ->
 
 -spec shutdown(TtlsFsm, How) ->
 	ok | {error, Reason} when
+		TtlsFsm :: pid(),
 		How :: read | write | read_write,
 		Reason :: term().
 %% @doc Close an EAP session in one or two directions.
@@ -141,7 +142,7 @@ close(TtlsFsm) when is_pid(TtlsFsm) ->
 		Reason :: closed | term().
 %% @doc Sends a packet on an EAP session.
 send(TtlsFsm, Data) when is_pid(TtlsFsm) ->
-	gen_fsm:send_event(TtlFsm, {eap_ttls, self(), Data}).
+	gen_fsm:send_event(TtlsFsm, {eap_ttls, self(), Data}).
 
 -spec controlling_process(TtlsFsm, Pid) ->
 	ok | {error, Reason} when
@@ -150,7 +151,7 @@ send(TtlsFsm, Data) when is_pid(TtlsFsm) ->
 		Reason :: closed | not_owner | term().
 %% @doc Assigns a new controlling process Pid to EAP session.
 controlling_process(TtlsFsm, Pid) when is_pid(TtlsFsm) ->
-	gen_fsm:send_event(TtlFsm, {ssl_pid, Pid}).
+	gen_fsm:send_event(TtlsFsm, {ssl_pid, Pid}).
 
 %%----------------------------------------------------------------------
 %%  internal functions
