@@ -30,17 +30,33 @@
 %% export gen_tcp compatible API
 -export([listen/2, accept/2, send/2, controlling_process/2,
 		shutdown/2, close/1]).
-%% export private API
--export([deliver/3]).
+%% export public API
+-export([ssl_listen/2, deliver/3]).
 
 -export_type([listen_option/0, eap_option/0]).
 
 -type listen_option() :: any().
 -type eap_option() :: any().
 
+-define(cb_info,
+		{cb_info, {?MODULE, eap_ttls, eap_ttls_closed, eap_ttls_error}}).
+
 %%----------------------------------------------------------------------
-%%  private api
+%%  ocs_eap_ttls_transport public api
 %%----------------------------------------------------------------------
+
+-dialyzer({nowarn_function, ssl_listen/2}).
+%% The type spec for ssl:listen/2 decalres Port as inet:portnumber()
+%% however the implementation of that function has no such guard.
+-spec ssl_listen(TtlsFsm, Options) ->
+		{ok, Socket} | {error, Reason} when
+	TtlsFsm :: pid(),
+	Options :: ssl:options(),
+	Socket :: ssl:sslsocket(),
+	Reason :: term().
+%% @doc Start an {@link //ssl/ssl. ssl} listener process.
+ssl_listen(TtlsFsm, Options) when is_pid(TtlsFsm), is_list(Options) ->
+	ssl:listen(self(), [?cb_info | Options]).
 
 -spec deliver(SslPid, TtlsFsm, Data) ->
 	ok when

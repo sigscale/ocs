@@ -50,9 +50,10 @@
 		req_auth :: [byte()],
 		ssl_pid :: pid()}).
 
--define(cb_info,
-		{cb_info, {?MODULE, eap_ttls, eap_ttls_closed, eap_ttls_error}}).
 -define(TIMEOUT, 30000).
+
+% suppress warning from ssl:listen/2
+-dialyzer({no_return, eap_start/2}).
 
 %%----------------------------------------------------------------------
 %%  The ocs_eap_ttls_fsm API
@@ -99,7 +100,7 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 		attributes = Attributes}, radius_fsm = RadiusFsm,
 		eap_id = EapID, session_id = SessionID,
 		secret = Secret} = StateData) ->
-	{ok, SslSocket1} = ssl_listen(),
+	{ok, SslSocket1} = ocs_eap_ttls_transport:ssl_listen(self(), []),
 	{ok, SslSocket2} = ssl:transport_accept(SslSocket1),
 	EapTtls = #eap_ttls{start = true},
 	EapData = ocs_eap_codec:eap_ttls(EapTtls),
@@ -353,11 +354,4 @@ send_response(EapPacket, RadiusCode, RadiusID, RadiusAttributes,
 			authenticator = ResponseAuthenticator, attributes = Attributes2},
 	ResponsePacket = radius:codec(Response),
 	radius:response(RadiusFsm, {response, ResponsePacket}).
-
--dialyzer({nowarn_function, ssl_listen/0}).
-%% The type spec for ssl:listen/2 decalres Port as inet:portnumber()
-%% however the implementation of that function has no such guard.
-%% @hidden
-ssl_listen() ->
-	ssl:listen(self(), [?cb_info]).
 
