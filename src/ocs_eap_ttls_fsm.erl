@@ -186,7 +186,18 @@ handshake({#radius{code = ?AccessRequest, id = RadiusID,
 		send_response(EapPacket, ?AccessReject,
 				RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 		{next_state, handshake, StateData, ?TIMEOUT}
-	end.
+	end;
+handshake({eap_ttls, SslPid, Data},
+		#statedata{ssl_pid = SslPid, eap_id = EapId} = StateData) ->
+	EapTtls = #eap_ttls{data = Data},
+	EapData = ocs_eap_codec:eap_ttls(EapTtls),
+	NewEapId = EapId + 1,
+	EapPacket = #eap_packet{code = request, type = ?TTLS,
+			identifier = NewEapID, data = EapData},
+	send_response(EapPacket, ?AccessChallenge,
+			RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+	NewStateData = StateData#statedata{eap_id = NewEapId},
+	{next_state, handshake, StateData}.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
 		StateData :: #statedata{}) ->

@@ -134,14 +134,14 @@ shutdown(TtlsFsm, How) when is_pid(TtlsFsm) ->
 close(TtlsFsm) when is_pid(TtlsFsm) ->
 	ok.
 
--spec send(TtlsFsm, Packet) ->
+-spec send(TtlsFsm, Data) ->
 	ok | {error, Reason} when
 		TtlsFsm :: pid(),
-		Packet :: iodata(),
+		Data :: iodata(),
 		Reason :: closed | term().
 %% @doc Sends a packet on an EAP session.
-send(TtlsFsm, Packet) when is_pid(TtlsFsm) ->
-	gen_fsm:send_event(TtlFsm, Packet).
+send(TtlsFsm, Data) when is_pid(TtlsFsm) ->
+	gen_fsm:send_event(TtlFsm, {eap_ttls, self(), Data}).
 
 -spec controlling_process(TtlsFsm, Pid) ->
 	ok | {error, Reason} when
