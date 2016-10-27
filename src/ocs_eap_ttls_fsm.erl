@@ -50,6 +50,8 @@
 		req_auth :: [byte()],
 		ssl_pid :: pid()}).
 
+-define(cb_info,
+		{cb_info, {?MODULE, eap_ttls, eap_ttls_closed, eap_ttls_error}}).
 -define(TIMEOUT, 30000).
 
 %%----------------------------------------------------------------------
@@ -97,7 +99,7 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 		attributes = Attributes}, radius_fsm = RadiusFsm,
 		eap_id = EapID, session_id = SessionID,
 		secret = Secret} = StateData) ->
-	{ok, SslSocket1} = ssl:listen(self(), []),
+	{ok, SslSocket1} = ssl:listen(self(), [?cb_info]),
 	{ok, SslSocket2} = ssl:transport_accept(SslSocket1),
 	EapTtls = #eap_ttls{start = true},
 	EapData = ocs_eap_codec:eap_ttls(EapTtls),

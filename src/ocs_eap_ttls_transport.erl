@@ -17,8 +17,11 @@
 %%% @doc This callback module provides a {@link //kernel/gen_tcp. gen_tcp}
 %%% 	compatible transport layer interface to EAP sessions for the
 %%% 	{@link //ssl. ssl} application.
-%%% @todo Implement all the functions!
 %%% 
+%%% 	Use the {@link //ssl/ssl:transportoption(). ssl:transportoption()}
+%%%	`{cb_info, {ocs_eap_ttls_transport, eap_ttls, eap_ttls_closed, eap_ttls_error}}'
+%%% 	with {@link //ssl/ssl:listen/2. ssl:listen/2}.
+%%%
 -module(ocs_eap_ttls_transport).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
