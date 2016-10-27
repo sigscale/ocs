@@ -187,7 +187,7 @@ ttls1([H | T], Length, Acc, #statedata{radius_fsm = RadiusFsm,
 				data = TtlsData} = ocs_eap_codec:eap_packet(H),
 		case ocs_eap_codec:eap_ttls(TtlsData) of
 			#eap_ttls{message_len = NewLength, more = true,
-					data = Data} when is_integer(Length) ->
+					data = Data} when is_integer(NewLength) ->
 				ttls1(T, NewLength, [Data | Acc], StateData);
 			#eap_ttls{more = true, data = Data} ->
 				ttls1(T, Length, [Data | Acc], StateData);
