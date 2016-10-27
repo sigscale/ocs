@@ -105,6 +105,7 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 					identifier = EapID, data = EapData},
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+			ssl:ssl_accept(SslSocket2),
 			{next_state, handshake, StateData, ?TIMEOUT};
 		{ok, EAPMessage} ->
 			case catch ocs_eap_codec:eap_packet(EAPMessage) of
@@ -115,6 +116,7 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 							identifier = NewEapID, data = EapData},
 					send_response(NewEapPacket, ?AccessChallenge,
 							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+					ssl:ssl_accept(SslSocket2),
 					NewStateData = StateData#statedata{eap_id = NewEapID},
 					{next_state, handshake, NewStateData, ?TIMEOUT};
 				#eap_packet{code = request, identifier = NewEapID} ->
@@ -144,6 +146,7 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 					identifier = EapID, data = EapData},
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+			ssl:ssl_accept(SslSocket2),
 			{next_state, handshake, StateData, ?TIMEOUT}
 	end.
 
@@ -165,14 +168,14 @@ handshake({ssl_pid, SslPid}, StateData) ->
 handshake({#radius{code = ?AccessRequest, id = RadiusID,
 		authenticator = RequestAuthenticator, attributes = Attributes},
 		RadiusFsm}, #statedata{secret = Secret, eap_id = EapID,
-		session_id = SessionID} = StateData) ->
+		session_id = SessionID, ssl_pid = SslPid} = StateData) ->
 	try
 		EapMessage = radius_attributes:fetch(?EAPMessage, Attributes),
 		case ocs_eap_codec:eap_packet(EapMessage) of
 			#eap_packet{code = response, type = ?TTLS, identifier = EapID,
                data = TtlsData} ->
 				#eap_ttls{data = Data} = ocs_eap_codec:eap_ttls(TtlsData),
-				% send Data to ssl
+				ocs_eap_ttls_transport:deliver(SslPid, self(), Data),
 				{next_state, handshake, StateData, ?TIMEOUT};
 			#eap_packet{code = response, type = ?LegacyNak, identifier = EapID} ->
 				{stop, {shutdown, SessionID}, StateData}

@@ -27,11 +27,27 @@
 %% export gen_tcp compatible API
 -export([listen/2, accept/2, send/2, controlling_process/2,
 		shutdown/2, close/1]).
+%% export private API
+-export([deliver/3]).
 
 -export_type([listen_option/0, eap_option/0]).
 
 -type listen_option() :: any().
 -type eap_option() :: any().
+
+%%----------------------------------------------------------------------
+%%  private api
+%%----------------------------------------------------------------------
+
+-spec deliver(SslPid, TtlsFsm, Data) ->
+	ok when
+		SslPid :: pid(),
+		TtlsFsm :: pid(),
+		Data :: binary().
+%% @doc Deliver received EAP-TTLS payload to SSL.
+deliver(SslPid, TtlsFsm, Data) when is_pid(SslPid),
+		is_pid(TtlsFsm), is_binary(Data) ->
+	SslPid ! {eap_ttls, TtlsFsm, Data}.
 
 %%----------------------------------------------------------------------
 %%  ocs_eap_ttls_transport callbacks
