@@ -50,7 +50,8 @@
 %% @doc Deliver received EAP-TTLS payload to SSL.
 deliver(SslPid, TtlsFsm, Data) when is_pid(SslPid),
 		is_pid(TtlsFsm), is_binary(Data) ->
-	SslPid ! {eap_ttls, TtlsFsm, Data}.
+	SslPid ! {eap_ttls, TtlsFsm, Data},
+	ok.
 
 %%----------------------------------------------------------------------
 %%  ocs_eap_ttls_transport callbacks
