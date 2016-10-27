@@ -28,121 +28,113 @@
 -export([listen/2, accept/2, send/2, controlling_process/2,
 		shutdown/2, close/1]).
 
--export_type([listen_option/0, eap_session/0]).
-
--record(eap_session, {}).
--record(sslsocket, {fd = nil, pid = nil}).
+-export_type([listen_option/0, eap_option/0]).
 
 -type listen_option() :: any().
--type eap_session() :: #eap_session{}.
 -type eap_option() :: any().
 
 %%----------------------------------------------------------------------
 %%  ocs_eap_ttls_transport callbacks
 %%----------------------------------------------------------------------
 
--spec peername(EapSession) ->
+-spec peername(TtlsFsm) ->
 	{ok, {Address, Port}} | {error, Reason} when
-		EapSession :: eap_session(),
+		TtlsFsm :: pid(),
       Address :: inet:ip_address(),
       Port :: inet:port_number(),
 		Reason :: term().
 %% @doc Returns the address and port for the other end of a connection.
-peername(EapSession) -> 
+peername(TtlsFsm) when is_pid(TtlsFsm) -> 
 	{ok, {{127,0,0,1}, 0}}.
 
--spec sockname(EapSession) ->
+-spec sockname(TtlsFsm) ->
 	{ok, {Address, Port}} | {error, Reason} when
-		EapSession :: eap_session(),
+		TtlsFsm :: pid(),
       Address :: inet:ip_address(),
       Port :: inet:port_number(),
 		Reason :: term().
 %% @doc Returns the local address and port number for an EAP session.
-sockname(EapSession) -> 
+sockname(TtlsFsm) when is_pid(TtlsFsm) -> 
 	{ok, {{127,0,0,1}, 0}}.
 
--spec port(EapSession) ->
+-spec port(TtlsFsm) ->
 	{ok, Port} | {error, Reason} when
-		EapSession :: eap_session(),
+		TtlsFsm :: pid(),
       Port :: inet:port_number(),
 		Reason :: term().
 %% @doc Returns the local port number for an EAP session.
-port(EapSession) ->
+port(TtlsFsm) when is_pid(TtlsFsm) ->
 	{ok, 0}.
 
--spec setopts(EapSession, Options) ->
+-spec setopts(TtlsFsm, Options) ->
 	ok | {error, Reason} when
-		EapSession :: eap_session(),
+		TtlsFsm :: pid(),
       Options :: [eap_option()],
 		Reason :: term().
 %% @doc Sets one or more options for an EAP session.
-setopts(EapSession, Options) -> 
+setopts(TtlsFsm, Options) when is_pid(TtlsFsm) -> 
 	ok.
 
--spec getopts(EapSession, Options) ->
+-spec getopts(TtlsFsm, Options) ->
 	{ok, OptionValues} | {error, Reason} when
-		EapSession :: eap_session(),
+		TtlsFsm :: pid(),
       Options :: [eap_option()],
       OptionValues :: [eap_option()],
 		Reason :: term().
 %% @doc Gets one or more options for an EAP session.
-getopts(EapSession, Options) ->
+getopts(TtlsFsm, Options) when is_pid(TtlsFsm) ->
 	{ok, []}.
 
--spec listen(Port, Options) ->
-	{ok, ListenSocket} | {error, Reason} when
-		Port :: term(),
+-spec listen(TtlsFsm, Options) ->
+	{ok, TtlFsm} | {error, Reason} when
+		TtlsFsm :: pid(),
 		Options :: [listen_option()],
-		ListenSocket :: ssl:sslsocket(),
 		Reason :: term().
 %% @doc Listen on an EAP session.
-%% @todo What value shall Port take?
-listen(Port, Options) ->
-	{ok, #sslsocket{}}.
+listen(TtlsFsm, Options) when is_pid(TtlsFsm) ->
+	{ok, TtlsFsm}.
 
--spec accept(ListenSocket, Timeout) ->
-	{ok, EapSession} | {error, Reason} when
-		ListenSocket :: ssl:sslsocket(),
+-spec accept(TtlsFsm, Timeout) ->
+	{ok, TtlsFsm} | {error, Reason} when
+		TtlsFsm :: pid(),
 		Timeout :: timeout(),
-		EapSession :: eap_session(),
 		Reason :: term().
 %% @doc Accepts an incoming connection request on a listen socket. 
-accept(ListenSocket, Timeout) ->
-	{ok, #eap_session{}}.
+accept(TtlsFsm, Timeout) when is_pid(TtlsFsm) ->
+	{ok, TtlsFsm}.
 
--spec shutdown(EapSession, How) ->
+-spec shutdown(TtlsFsm, How) ->
 	ok | {error, Reason} when
-		EapSession :: eap_session(),
 		How :: read | write | read_write,
 		Reason :: term().
-%% @doc Close an eap_session in one or two directions.
-shutdown(EapSession, How) ->
+%% @doc Close an EAP session in one or two directions.
+shutdown(TtlsFsm, How) when is_pid(TtlsFsm) ->
 	ok.
 
--spec close(EapSession) ->
+-spec close(TtlsFsm) ->
 	ok when
-		EapSession :: eap_session().
+		TtlsFsm :: pid().
 %% @doc Close an EAP session.
-close(EapSession) ->
+close(TtlsFsm) when is_pid(TtlsFsm) ->
 	ok.
 
--spec send(EapSession, Packet) ->
+-spec send(TtlsFsm, Packet) ->
 	ok | {error, Reason} when
-		EapSession :: eap_session(),
+		TtlsFsm :: pid(),
 		Packet :: iodata(),
 		Reason :: closed | term().
 %% @doc Sends a packet on an EAP session.
-send(EapSession, Packet) ->
-	ok.
+send(TtlsFsm, Packet) when is_pid(TtlsFsm) ->
+	gen_fsm:send_event(TtlFsm, Packet).
 
--spec controlling_process(EapSession, Pid) ->
+-spec controlling_process(TtlsFsm, Pid) ->
 	ok | {error, Reason} when
-		EapSession :: eap_session(),
+		TtlsFsm :: pid(),
 		Pid :: pid(),
 		Reason :: closed | not_owner | term().
 %% @doc Assigns a new controlling process Pid to EAP session.
-controlling_process(EapSession, Pid) ->
-	ok.
+controlling_process(TtlsFsm, Pid) when is_pid(TtlsFsm) ->
+	gen_fsm:send_event(TtlFsm, {ssl_pid, Pid}).
 
 %%----------------------------------------------------------------------
 %%  internal functions

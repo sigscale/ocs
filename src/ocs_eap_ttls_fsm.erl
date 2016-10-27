@@ -46,7 +46,7 @@
 		start :: #radius{},
 		server_id :: binary(),
 		radius_fsm :: pid(),
-		socket :: term()}).
+		ssl_pid :: pid()}).
 
 -define(TIMEOUT, 30000).
 
@@ -95,6 +95,8 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 		attributes = Attributes}, radius_fsm = RadiusFsm,
 		eap_id = EapID, session_id = SessionID,
 		secret = Secret} = StateData) ->
+	{ok, SslSocket1} = ssl:listen(self(), []),
+	{ok, SslSocket2} = ssl:transport_accept(SslSocket1),
 	EapTtls = #eap_ttls{start = true},
 	EapData = ocs_eap_codec:eap_ttls(EapTtls),
 	case radius_attributes:find(?EAPMessage, Attributes) of
@@ -158,6 +160,8 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 %%
 handshake(timeout, #statedata{session_id = SessionID} = StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
+handshake({ssl_pid, SslPid}, StateData) ->
+	{next_state, handshake, StateData#stateData{ssl_pid = SslPid}};
 handshake({#radius{code = ?AccessRequest, id = RadiusID,
 		authenticator = RequestAuthenticator, attributes = Attributes},
 		RadiusFsm}, #statedata{secret = Secret, eap_id = EapID,
