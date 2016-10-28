@@ -109,7 +109,7 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 					identifier = EapID, data = EapData},
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-			ssl:ssl_accept(SslSocket2),
+			ssl:ssl_accept(SslSocket),
 			{next_state, ttls, StateData, ?TIMEOUT};
 		{ok, EAPMessage} ->
 			case catch ocs_eap_codec:eap_packet(EAPMessage) of
@@ -120,7 +120,7 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 							identifier = NewEapID, data = EapData},
 					send_response(NewEapPacket, ?AccessChallenge,
 							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-					ssl:ssl_accept(SslSocket2),
+					ssl:ssl_accept(SslSocket),
 					NewStateData = StateData#statedata{eap_id = NewEapID},
 					{next_state, ttls, NewStateData, ?TIMEOUT};
 				#eap_packet{code = request, identifier = NewEapID} ->
@@ -150,7 +150,7 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 					identifier = EapID, data = EapData},
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-			ssl:ssl_accept(SslSocket2),
+			ssl:ssl_accept(SslSocket),
 			{next_state, ttls, StateData, ?TIMEOUT}
 	end.
 
