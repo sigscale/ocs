@@ -100,8 +100,7 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 		attributes = Attributes}, radius_fsm = RadiusFsm,
 		eap_id = EapID, session_id = SessionID,
 		secret = Secret} = StateData) ->
-	{ok, SslSocket1} = ocs_eap_ttls_transport:ssl_listen(self(), []),
-	{ok, SslSocket2} = ssl:transport_accept(SslSocket1),
+	{ok, SslSocket} = ocs_eap_ttls_transport:ssl_accept(self(), []),
 	EapTtls = #eap_ttls{start = true},
 	EapData = ocs_eap_codec:eap_ttls(EapTtls),
 	case radius_attributes:find(?EAPMessage, Attributes) of
