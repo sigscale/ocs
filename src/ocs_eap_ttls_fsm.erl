@@ -48,6 +48,7 @@
 		radius_fsm :: pid(),
 		radius_id :: byte(),
 		req_auth :: [byte()],
+		ssl_socket :: ssl:sslsocket(),
 		ssl_pid :: pid()}).
 
 -define(TIMEOUT, 30000).
@@ -101,6 +102,7 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 		eap_id = EapID, session_id = SessionID,
 		secret = Secret} = StateData) ->
 	{ok, SslSocket} = ocs_eap_ttls_transport:ssl_accept(self(), []),
+	NewStateData = StateData#statedata{ssl_socket = SslSocket},
 	EapTtls = #eap_ttls{start = true},
 	EapData = ocs_eap_codec:eap_ttls(EapTtls),
 	case radius_attributes:find(?EAPMessage, Attributes) of
@@ -110,7 +112,7 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			ssl:ssl_accept(SslSocket),
-			{next_state, ttls, StateData, ?TIMEOUT};
+			{next_state, ttls, NewStateData, ?TIMEOUT};
 		{ok, EAPMessage} ->
 			case catch ocs_eap_codec:eap_packet(EAPMessage) of
 				#eap_packet{code = response,
@@ -121,14 +123,14 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 					send_response(NewEapPacket, ?AccessChallenge,
 							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 					ssl:ssl_accept(SslSocket),
-					NewStateData = StateData#statedata{eap_id = NewEapID},
-					{next_state, ttls, NewStateData, ?TIMEOUT};
+					NextStateData = NewStateData#statedata{eap_id = NewEapID},
+					{next_state, ttls, NextStateData, ?TIMEOUT};
 				#eap_packet{code = request, identifier = NewEapID} ->
 					NewEapPacket = #eap_packet{code = response, type = ?LegacyNak,
 							identifier = NewEapID, data = <<0>>},
 					send_response(NewEapPacket, ?AccessReject,
 							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-					{stop, {shutdown, SessionID}, StateData};
+					{stop, {shutdown, SessionID}, NewStateData};
 				#eap_packet{code = Code,
 							type = EapType, identifier = NewEapID, data = Data} ->
 					error_logger:warning_report(["Unknown EAP received",
@@ -138,12 +140,12 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 					NewEapPacket = #eap_packet{code = failure, identifier = NewEapID},
 					send_response(NewEapPacket, ?AccessReject,
 							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-					{stop, {shutdown, SessionID}, StateData};
+					{stop, {shutdown, SessionID}, NewStateData};
 				{'EXIT', _Reason} ->
 					NewEapPacket = #eap_packet{code = failure, identifier = EapID},
 					send_response(NewEapPacket, ?AccessReject,
 							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-					{stop, {shutdown, SessionID}, StateData}
+					{stop, {shutdown, SessionID}, NewStateData}
 			end;
 		{error, not_found} ->
 			EapPacket = #eap_packet{code = request, type = ?TTLS,
@@ -151,7 +153,7 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			ssl:ssl_accept(SslSocket),
-			{next_state, ttls, StateData, ?TIMEOUT}
+			{next_state, ttls, NewStateData, ?TIMEOUT}
 	end.
 
 -spec ttls(Event :: timeout | term(), StateData :: #statedata{}) ->
