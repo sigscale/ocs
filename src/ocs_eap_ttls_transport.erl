@@ -49,7 +49,7 @@
 %% The type spec for ssl:listen/2 decalres Port as inet:portnumber()
 %% however the implementation of that function has no such guard.
 -spec ssl_accept(TtlsFsm, Options) ->
-		{ok, Socket} | {error, Reason} when
+		{ok, SslSocket} | {error, Reason} when
 	TtlsFsm :: pid(),
 	Options :: ssl:options(),
 	SslSocket :: ssl:sslsocket(),
@@ -57,7 +57,7 @@
 %% @doc Start an {@link //ssl/ssl. ssl} listener process.
 ssl_accept(TtlsFsm, Options) when is_pid(TtlsFsm), is_list(Options) ->
 	{ok, TlsRecordLayerSocket} = ssl:listen(self(), [?cb_info | Options]),
-	ssl:transport_accept(TlsRecordLayerSocket), 
+	ssl:transport_accept(TlsRecordLayerSocket).
 
 -spec deliver(SslPid, TtlsFsm, Data) ->
 	ok when
