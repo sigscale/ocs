@@ -16,6 +16,7 @@ beam_DATA = ocs.beam \
 			ocs_radius_auth_server_sup.beam \
 			ocs_radius_auth_sup.beam \
 			ocs_eap_pwd_fsm_sup.beam \
+			ocs_eap_ttls_fsm_sup_sup.beam \
 			ocs_eap_ttls_fsm_sup.beam \
 			ocs_radius_auth_port_sup.beam \
 			ocs_simple_auth_fsm_sup.beam \
@@ -23,6 +24,7 @@ beam_DATA = ocs.beam \
 			ocs_radius_disconnect_fsm.beam\
 			ocs_eap_pwd_fsm.beam \
 			ocs_eap_ttls_fsm.beam \
+			ocs_eap_ttls_aaah_fsm.beam \
 			ocs_simple_auth_fsm.beam \
 			ocs_radius_auth_port_server.beam \
 			ocs_eap_codec.beam \

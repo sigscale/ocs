@@ -119,7 +119,7 @@ handle_cast(_Request, State) ->
 handle_info(timeout, #state{auth_port_sup = AuthPortSup} = State) ->
 	Children = supervisor:which_children(AuthPortSup),
 	{_, PwdSup, _, _} = lists:keyfind(ocs_eap_pwd_fsm_sup, 1, Children),
-	{_, TtlsSup, _, _} = lists:keyfind(ocs_eap_ttls_fsm_sup, 1, Children),
+	{_, TtlsSup, _, _} = lists:keyfind(ocs_eap_ttls_fsm_sup_sup, 1, Children),
 	{_, SimpleAuthSup, _, _} = lists:keyfind(ocs_simple_auth_fsm_sup, 1, Children),
 	{noreply, State#state{pwd_sup = PwdSup, ttls_sup = TtlsSup, simple_auth_sup = SimpleAuthSup}};
 handle_info({'EXIT', Pid, {shutdown, SessionID}},
@@ -295,9 +295,20 @@ access_request(Address, Port, Secret,
 %% @doc Start a new session handler.
 %% @hidden
 start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret,
-		SessionID, Identity, Sup, #state{handlers = Handlers} = State) ->
+		SessionID, Identity, Sup, #state{ttls_sup = Sup} = State) ->
+	StartArgs = [Address, Port, RadiusFsm, Secret, SessionID, AccessRequest],
+	ChildSpec = [StartArgs],
+	start_fsm1(Address, Port, RadiusFsm, SessionID,
+			Identity, Sup, ChildSpec, State);
+start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret,
+		SessionID, Identity, Sup,  State) ->
 	StartArgs = [Address, Port, RadiusFsm, Secret, SessionID, AccessRequest],
 	ChildSpec = [StartArgs, []],
+	start_fsm1(Address, Port, RadiusFsm, SessionID,
+			Identity, Sup, ChildSpec, State).
+%% @hidden
+start_fsm1(Address, Port, RadiusFsm, SessionID, Identity,
+		Sup, ChildSpec, #state{handlers = Handlers} = State) ->
 	case supervisor:start_child(Sup, ChildSpec) of
 		{ok, Fsm} ->
 			link(Fsm),

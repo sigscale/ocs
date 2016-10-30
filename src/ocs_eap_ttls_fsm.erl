@@ -14,8 +14,8 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @reference <a href="http://tools.ietf.org/rfc/rfc3579.txt">
-%%% 	RFC3579 - RADIUS Support For EAP</a>
+%%% @reference <a href="http://tools.ietf.org/rfc/rfc5281.txt">
+%%% 	RFC5281 - EAP Tunneled Transport Layer Security (EAP-TTLS)</a>
 %%%
 -module(ocs_eap_ttls_fsm).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
@@ -173,8 +173,7 @@ ttls({ssl_pid, SslPid}, StateData) ->
 	{next_state, ttls, StateData#statedata{ssl_pid = SslPid}, ?TIMEOUT};
 ttls({#radius{code = ?AccessRequest, id = RadiusID,
 		authenticator = RequestAuthenticator, attributes = Attributes},
-		RadiusFsm}, #statedata{secret = Secret, eap_id = EapID,
-		session_id = SessionID, ssl_pid = SslPid} = StateData) ->
+		RadiusFsm}, StateData) ->
 	EapMessages = radius_attributes:get_all(?EAPMessage, Attributes),
 	NewStateData = StateData#statedata{radius_fsm = RadiusFsm,
 			radius_id = RadiusID, req_auth = RequestAuthenticator},

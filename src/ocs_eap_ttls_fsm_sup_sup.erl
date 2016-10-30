@@ -1,4 +1,4 @@
-%%% ocs_eap_ttls_fsm_sup.erl
+%%% ocs_eap_ttls_fsm_sup_sup.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 SigScale Global Inc.
 %%% @end
@@ -16,7 +16,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @docfile "{@docsrc supervision.edoc}"
 %%%
--module(ocs_eap_ttls_fsm_sup).
+-module(ocs_eap_ttls_fsm_sup_sup).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 -behaviour(supervisor).
@@ -37,17 +37,10 @@
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init(Args) ->
-	ChildSpecs = [],
-	{ok, {{one_for_one, 0, 1}, [fsm(ocs_eap_ttls_fsm, Args),
-			fsm(ocs_eap_ttls_aaah_fsm, [])]}}.
-
-%% @doc Build a supervisor child specification for a
-%% 	{@link //stdlib/gen_fsm. gen_fsm} behaviour.
-%% @private
-%%
-fsm(StartMod, Args) ->
-	StartArgs = [StartMod, Args, []],
-	StartFunc = {gen_fsm, start_link, StartArgs},
-	{StartMod, StartFunc, transient, 4000, worker, [StartMod]}.
+init(_Args) ->
+	StartMod = ocs_eap_ttls_fsm_sup,
+	StartFunc = {supervisor, start_link, [StartMod]},
+	ChildSpec = {StartMod, StartFunc,
+			transient, infinity, supervisor, [StartMod]},
+	{ok, {{simple_one_for_one, 10, 60}, [ChildSpec]}}.
 
