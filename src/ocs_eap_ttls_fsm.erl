@@ -37,7 +37,9 @@
 -include("ocs_eap_codec.hrl").
 
 -record(statedata,
-		{address :: inet:ip_address(),
+		{sup :: pid(),
+		aaah_fsm :: pid(),
+		address :: inet:ip_address(),
 		port :: pos_integer(),
 		session_id :: {NAS :: inet:ip_address() | string(),
 			Port :: string(), Peer :: string()},
@@ -74,12 +76,12 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([Address, Port, RadiusFsm, Secret, SessionID, AccessRequest] = _Args) ->
+init([Sup, Address, Port, RadiusFsm, Secret, SessionID, AccessRequest] = _Args) ->
 	{ok, _TLSkey} = application:get_env(ocs, tls_key),
 	{ok, _TLScert} = application:get_env(ocs, tls_crt),
 	{ok, _TLSport} = application:get_env(ocs, tls_port),
 	{ok, Hostname} = inet:gethostname(),
-	StateData = #statedata{address = Address, port = Port,
+	StateData = #statedata{sup = Sup, address = Address, port = Port,
 			radius_fsm = RadiusFsm, secret = Secret, session_id = SessionID,
 			server_id = list_to_binary(Hostname), start = AccessRequest},
 	process_flag(trap_exit, true),
@@ -100,18 +102,21 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 		id = RadiusID, authenticator = RequestAuthenticator,
 		attributes = Attributes}, radius_fsm = RadiusFsm,
 		eap_id = EapID, session_id = SessionID,
-		secret = Secret} = StateData) ->
-	{ok, SslSocket} = ocs_eap_ttls_transport:ssl_accept(self(), []),
-	NewStateData = StateData#statedata{ssl_socket = SslSocket},
+		secret = Secret, sup = Sup} = StateData) ->
+	Children = supervisor:which_children(Sup),
+	{_, AaahFsm, _, _} = lists:keyfind(ocs_eap_ttls_aaah_fsm, 1, Children),
+	{ok, SslSocket} = ocs_eap_ttls_transport:ssl_listen(self(), []),
+	NewStateData = StateData#statedata{aaah_fsm = AaahFsm,
+			ssl_socket = SslSocket},
 	EapTtls = #eap_ttls{start = true},
 	EapData = ocs_eap_codec:eap_ttls(EapTtls),
 	case radius_attributes:find(?EAPMessage, Attributes) of
 		{ok, <<>>} ->
 			EapPacket = #eap_packet{code = request, type = ?TTLS,
 					identifier = EapID, data = EapData},
+			gen_fsm:send_event(AaahFsm, {ttls_socket, self(), SslSocket}),
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-			ssl:ssl_accept(SslSocket),
 			{next_state, ttls, NewStateData, ?TIMEOUT};
 		{ok, EAPMessage} ->
 			case catch ocs_eap_codec:eap_packet(EAPMessage) of
@@ -120,9 +125,9 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 					NewEapID = StartEapID + 1,
 					NewEapPacket = #eap_packet{code = request, type = ?TTLS,
 							identifier = NewEapID, data = EapData},
+					gen_fsm:send_event(AaahFsm, {ttls_socket, self(), SslSocket}),
 					send_response(NewEapPacket, ?AccessChallenge,
 							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-					ssl:ssl_accept(SslSocket),
 					NextStateData = NewStateData#statedata{eap_id = NewEapID},
 					{next_state, ttls, NextStateData, ?TIMEOUT};
 				#eap_packet{code = request, identifier = NewEapID} ->
@@ -150,9 +155,9 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 		{error, not_found} ->
 			EapPacket = #eap_packet{code = request, type = ?TTLS,
 					identifier = EapID, data = EapData},
+			gen_fsm:send_event(AaahFsm, {ttls_socket, self(), SslSocket}),
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-			ssl:ssl_accept(SslSocket),
 			{next_state, ttls, NewStateData, ?TIMEOUT}
 	end.
 

@@ -31,7 +31,7 @@
 -export([listen/2, accept/2, send/2, controlling_process/2,
 		shutdown/2, close/1]).
 %% export public API
--export([ssl_accept/2, deliver/3]).
+-export([ssl_listen/2, deliver/3]).
 
 -export_type([listen_option/0, eap_option/0]).
 
@@ -48,16 +48,15 @@
 -dialyzer({nowarn_function, ssl_accept/2}).
 %% The type spec for ssl:listen/2 decalres Port as inet:portnumber()
 %% however the implementation of that function has no such guard.
--spec ssl_accept(TtlsFsm, Options) ->
-		{ok, SslSocket} | {error, Reason} when
+-spec ssl_listen(TtlsFsm, Options) ->
+		{ok, TlsRecordLayerSocket} | {error, Reason} when
 	TtlsFsm :: pid(),
 	Options :: ssl:options(),
-	SslSocket :: ssl:sslsocket(),
+	TlsRecordLayerSocket :: ssl:sslsocket(),
 	Reason :: term().
-%% @doc Start an {@link //ssl/ssl. ssl} listener process.
-ssl_accept(TtlsFsm, Options) when is_pid(TtlsFsm), is_list(Options) ->
-	{ok, TlsRecordLayerSocket} = ssl:listen(self(), [?cb_info | Options]),
-	ssl:transport_accept(TlsRecordLayerSocket).
+%% @doc Creates an {@link //ssl/ssl. ssl} listen socket.
+ssl_listen(TtlsFsm, Options) when is_pid(TtlsFsm), is_list(Options) ->
+	ssl:listen(self(), [?cb_info | Options]).
 
 -spec deliver(SslPid, TtlsFsm, Data) ->
 	ok when

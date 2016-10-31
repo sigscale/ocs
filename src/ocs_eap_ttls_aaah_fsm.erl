@@ -36,7 +36,8 @@
 -include_lib("radius/include/radius.hrl").
 
 -record(statedata,
-		{}).
+		{ttls_fsm :: pid(),
+		ssl_socket :: ssl:sslsocket()}).
 
 -define(TIMEOUT, 30000).
 
@@ -60,7 +61,7 @@
 %%
 init(_Args) ->
 	process_flag(trap_exit, true),
-	{ok, idle, #statedata{}, 0}.
+	{ok, idle, #statedata{}, ?TIMEOUT}.
 
 -spec idle(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
@@ -74,7 +75,20 @@ init(_Args) ->
 %% @private
 %%
 idle(timeout, #statedata{} = StateData) ->
-	{next_state, idle, StateData}.
+	{shutdown, normal, StateData};
+idle({ttls_socket, TtlsFsm, TlsRecordLayerSocket}, StateData) ->
+	case ssl:transport_accept(TlsRecordLayerSocket) of
+		{ok, SslSocket} ->
+			case ssl:ssl_accept(SslSocket, ?TIMEOUT) of
+				ok ->
+					NewStateData = StateData#statedata{ssl_socket = SslSocket},
+					{next_state, idle, NewStateData};
+				{error, Reason} ->
+					{shutdown, Reason, StateData}
+			end;
+		{error, Reason} ->
+			{shutdown, Reason, StateData}
+	end.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
 		StateData :: #statedata{}) ->
