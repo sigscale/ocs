@@ -26,7 +26,7 @@
 -export([]).
 
 %% export the ocs_eap_ttls_aaah_fsm state callbacks
--export([idle/2]).
+-export([idle/2, request/2]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
@@ -75,20 +75,47 @@ init(_Args) ->
 %% @private
 %%
 idle(timeout, #statedata{} = StateData) ->
-	{shutdown, normal, StateData};
+	{stop, shutdown, StateData};
 idle({ttls_socket, TtlsFsm, TlsRecordLayerSocket}, StateData) ->
 	case ssl:transport_accept(TlsRecordLayerSocket) of
 		{ok, SslSocket} ->
 			case ssl:ssl_accept(SslSocket, ?TIMEOUT) of
 				ok ->
-					NewStateData = StateData#statedata{ssl_socket = SslSocket},
-					{next_state, idle, NewStateData};
+					NewStateData = StateData#statedata{ssl_socket = SslSocket,
+							ttls_fsm = TtlsFsm},
+					{next_state, request, NewStateData};
 				{error, Reason} ->
-					{shutdown, Reason, StateData}
+					{stop, Reason, StateData}
 			end;
 		{error, Reason} ->
-			{shutdown, Reason, StateData}
+			{stop, Reason, StateData}
 	end.
+
+-spec request(Event :: timeout | term(), StateData :: #statedata{}) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
+%%		gen_fsm:send_event/2} in the <b>request</b> state.
+%% @@see //stdlib/gen_fsm:StateName/2
+%% @private
+%%
+request(timeout, #statedata{} = StateData) ->
+	{stop, shutdown, StateData};
+request({ssl, SslSocket, Data}, #statedata{ssl_socket = SslSocket,
+		ttls_fsm = TtlsFsm} = StateData) ->
+	%gen_fsm:send_event(RadiusFsm, {accept, Data}),
+	{stop, shutdown, StateData};
+request({ssl_closed, SslSocket}, #statedata{ssl_socket = SslSocket,
+		ttls_fsm = TtlsFsm} = StateData) ->
+	%gen_fsm:send_event(RadiusFsm, {reject, SslSocket, socket_closed}),
+	{stop, shutdown, StateData};
+request({ssl_error, SslSocket, Reason}, #statedata{ssl_socket = SslSocket,
+		ttls_fsm = TtlsFsm} = StateData) ->
+	%gen_fsm:send_event(RadiusFsm, {reject, SslSocket, Reason}),
+	{stop, Reason, StateData}.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
 		StateData :: #statedata{}) ->
@@ -103,6 +130,7 @@ idle({ttls_socket, TtlsFsm, TlsRecordLayerSocket}, StateData) ->
 %% @see //stdlib/gen_fsm:handle_event/3
 %% @private
 %%
+
 handle_event(_Event, StateName, StateData) ->
 	{next_state, StateName, StateData, ?TIMEOUT}.
 
