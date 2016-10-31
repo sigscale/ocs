@@ -1,35 +1,35 @@
 {application, %APP_NAME%,
 	[{description, "SigScale Online Charging System (OCS)"},
 		{vsn, "%APP_VERSION%"},
-		{modules, [ocs \
-				ocs_app \
-				ocs_sup \
-				ocs_acct_server \
-				ocs_radius_acct_sup \
-				ocs_radius_acct_top_sup \
-				ocs_radius_acct_server_sup \
-				ocs_radius_auth_server_sup \
-				ocs_radius_auth_sup \
-				ocs_eap_pwd_fsm_sup \
-				ocs_eap_ttls_fsm_sup_sup \
-				ocs_eap_ttls_fsm_sup \
-				ocs_radius_auth_port_sup \
-				ocs_simple_auth_fsm_sup \
-				ocs_radius_disconnect_fsm_sup\
-				ocs_radius_disconnect_fsm\
-				ocs_eap_pwd_fsm \
-				ocs_eap_ttls_fsm \
-				ocs_eap_ttls_aaah_fsm \
-				ocs_simple_auth_fsm \
-				ocs_radius_auth_port_server \
-				ocs_eap_codec \
-				ocs_radius_accounting \
-				ocs_radius_authentication \
-				ocs_server \
-				ocs_eap_pwd \
-				ocs_eap_ttls_transport \
-				ocs_wm_config \
-				ocs_wm_res_subscriber \
+		{modules, [ocs, 
+				ocs_app,
+				ocs_sup,
+				ocs_acct_server,
+				ocs_radius_acct_sup,
+				ocs_radius_acct_top_sup,
+				ocs_radius_acct_server_sup,
+				ocs_radius_auth_server_sup,
+				ocs_radius_auth_sup,
+				ocs_eap_pwd_fsm_sup,
+				ocs_eap_ttls_fsm_sup_sup,
+				ocs_eap_ttls_fsm_sup,
+				ocs_radius_auth_port_sup,
+				ocs_simple_auth_fsm_sup,
+				ocs_radius_disconnect_fsm_sup,
+				ocs_radius_disconnect_fsm,
+				ocs_eap_pwd_fsm,
+				ocs_eap_ttls_fsm,
+				ocs_eap_ttls_aaah_fsm,
+				ocs_simple_auth_fsm,
+				ocs_radius_auth_port_server,
+				ocs_eap_codec,
+				ocs_radius_accounting,
+				ocs_radius_authentication,
+				ocs_server,
+				ocs_eap_pwd,
+				ocs_eap_ttls_transport,
+				ocs_wm_config,
+				ocs_wm_res_subscriber,
 				ocs_wm_config]},
 		{registered, [ocs]},
 		{applications, [kernel, stdlib, mnesia, crypto, webmachine, radius]},
