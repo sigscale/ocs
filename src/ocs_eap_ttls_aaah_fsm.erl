@@ -26,7 +26,7 @@
 -export([]).
 
 %% export the ocs_eap_ttls_aaah_fsm state callbacks
--export([start/2]).
+-export([idle/2]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
@@ -60,21 +60,21 @@
 %%
 init(_Args) ->
 	process_flag(trap_exit, true),
-	{ok, start, #statedata{}, 0}.
+	{ok, idle, #statedata{}, 0}.
 
--spec start(Event :: timeout | term(), StateData :: #statedata{}) ->
+-spec idle(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
 		Timeout :: non_neg_integer() | infinity}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
 		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>start</b> state.
+%%		gen_fsm:send_event/2} in the <b>idle</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-start(timeout, #statedata{} = StateData) ->
-	{next_state, start, StateData}.
+idle(timeout, #statedata{} = StateData) ->
+	{next_state, idle, StateData}.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
 		StateData :: #statedata{}) ->
