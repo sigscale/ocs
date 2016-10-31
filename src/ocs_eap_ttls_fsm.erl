@@ -51,6 +51,7 @@
 		radius_id :: byte(),
 		req_auth :: [byte()],
 		ssl_socket :: ssl:sslsocket(),
+		socket_options :: ssl:options(),
 		ssl_pid :: pid()}).
 
 -define(TIMEOUT, 30000).
@@ -175,7 +176,11 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 ttls(timeout, #statedata{session_id = SessionID} = StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
 ttls({ssl_pid, SslPid}, StateData) ->
-	{next_state, ttls, StateData#statedata{ssl_pid = SslPid}, ?TIMEOUT};
+	NewStateData = StateData#statedata{ssl_pid = SslPid},
+	{next_state, ttls, NewStateData, ?TIMEOUT};
+ttls({ssl_setopts, Options}, StateData) ->
+	NewStateData = StateData#statedata{socket_options = Options},
+	{next_state, ttls, NewStateData, ?TIMEOUT};
 ttls({#radius{code = ?AccessRequest, id = RadiusID,
 		authenticator = RequestAuthenticator, attributes = Attributes},
 		RadiusFsm}, StateData) ->

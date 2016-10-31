@@ -109,7 +109,13 @@ port(TtlsFsm) when is_pid(TtlsFsm) ->
 		Reason :: term().
 %% @doc Sets one or more options for an EAP session.
 setopts(TtlsFsm, Options) when is_pid(TtlsFsm) -> 
-	ok.
+	case proplists:get_value(active, Options) of
+		undefined ->
+			ok;
+		Active ->
+			% TtlsFsm ! {ssl_setopts, Options},
+			ok
+	end.
 
 -spec getopts(TtlsFsm, Options) ->
 	{ok, OptionValues} | {error, Reason} when
