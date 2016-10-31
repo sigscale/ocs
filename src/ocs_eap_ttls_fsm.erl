@@ -51,7 +51,9 @@
 		radius_id :: byte(),
 		req_auth :: [byte()],
 		ssl_socket :: ssl:sslsocket(),
-		ssl_pid :: pid()}).
+		ssl_pid :: pid(),
+		tls_key :: string(),
+		tls_crt :: string()}).
 
 -define(TIMEOUT, 30000).
 
@@ -77,13 +79,13 @@
 %% @private
 %%
 init([Sup, Address, Port, RadiusFsm, Secret, SessionID, AccessRequest] = _Args) ->
-	{ok, _TLSkey} = application:get_env(ocs, tls_key),
-	{ok, _TLScert} = application:get_env(ocs, tls_crt),
-	{ok, _TLSport} = application:get_env(ocs, tls_port),
+	{ok, TLSkey} = application:get_env(ocs, tls_key),
+	{ok, TLScert} = application:get_env(ocs, tls_crt),
 	{ok, Hostname} = inet:gethostname(),
 	StateData = #statedata{sup = Sup, address = Address, port = Port,
 			radius_fsm = RadiusFsm, secret = Secret, session_id = SessionID,
-			server_id = list_to_binary(Hostname), start = AccessRequest},
+			server_id = list_to_binary(Hostname), start = AccessRequest,
+			tls_key = TLSkey, tls_crt = TLScert},
 	process_flag(trap_exit, true),
 	{ok, eap_start, StateData, 0}.
 
@@ -102,10 +104,12 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 		id = RadiusID, authenticator = RequestAuthenticator,
 		attributes = Attributes}, radius_fsm = RadiusFsm,
 		eap_id = EapID, session_id = SessionID,
-		secret = Secret, sup = Sup} = StateData) ->
+		secret = Secret, sup = Sup, tls_key = TLSkey, tls_crt = TLScert}
+		= StateData) ->
 	Children = supervisor:which_children(Sup),
 	{_, AaahFsm, _, _} = lists:keyfind(ocs_eap_ttls_aaah_fsm, 1, Children),
-	{ok, SslSocket} = ocs_eap_ttls_transport:ssl_listen(self(), []),
+	Options = [{certfile, TLScert}, {keyfile, TLSkey}],
+	{ok, SslSocket} = ocs_eap_ttls_transport:ssl_listen(self(), Options),
 	NewStateData = StateData#statedata{aaah_fsm = AaahFsm,
 			ssl_socket = SslSocket},
 	EapTtls = #eap_ttls{start = true},
@@ -183,6 +187,7 @@ ttls({#radius{code = ?AccessRequest, id = RadiusID,
 	NewStateData = StateData#statedata{radius_fsm = RadiusFsm,
 			radius_id = RadiusID, req_auth = RequestAuthenticator},
 	ttls1(EapMessages, undefined, [], NewStateData).
+
 %% @hidden
 ttls1([H | T], Length, Acc, #statedata{radius_fsm = RadiusFsm,
 		radius_id = RadiusID, req_auth = RequestAuthenticator,
