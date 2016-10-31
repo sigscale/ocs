@@ -38,9 +38,9 @@
 %% @private
 %%
 init(Args) ->
-	ChildSpecs = [],
-	{ok, {{one_for_one, 0, 1}, [fsm(ocs_eap_ttls_fsm, Args),
-			fsm(ocs_eap_ttls_aaah_fsm, [])]}}.
+	ChildSpecs = [fsm(ocs_eap_ttls_fsm, Args),
+			fsm(ocs_eap_ttls_aaah_fsm, [])],
+	{ok, {{one_for_one, 0, 1},	ChildSpecs}}.
 
 %% @doc Build a supervisor child specification for a
 %% 	{@link //stdlib/gen_fsm. gen_fsm} behaviour.
