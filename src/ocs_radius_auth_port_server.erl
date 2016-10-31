@@ -284,7 +284,7 @@ access_request(Address, Port, Secret,
 				end
 		end
 	catch
-		_:_ ->
+		_:R ->
 			{reply, {error, ignore}, State}
 	end.
 
@@ -303,13 +303,19 @@ start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret,
 start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret,
 		SessionID, Identity, Sup,  State) ->
 	StartArgs = [Address, Port, RadiusFsm, Secret, SessionID, AccessRequest],
-	ChildSpec = [StartArgs, []],
+	ChildSpec = [StartArgs, [{debug, [trace]}]],
 	start_fsm1(Address, Port, RadiusFsm, SessionID,
 			Identity, Sup, ChildSpec, State).
 %% @hidden
 start_fsm1(Address, Port, RadiusFsm, SessionID, Identity,
-		Sup, ChildSpec, #state{handlers = Handlers} = State) ->
+		Sup, ChildSpec, #state{ttls_sup = TtlsSup, handlers = Handlers} = State) ->
 	case supervisor:start_child(Sup, ChildSpec) of
+		{ok, FsmSup} when Sup == TtlsSup ->
+			Children = supervisor:which_children(FsmSup),
+			{_, Fsm, _, _} = lists:keyfind(ocs_eap_ttls_fsm, 1, Children),
+			link(Fsm),
+			NewHandlers = gb_trees:enter(SessionID, {Fsm, Identity}, Handlers),
+			State#state{handlers = NewHandlers};
 		{ok, Fsm} ->
 			link(Fsm),
 			NewHandlers = gb_trees:enter(SessionID, {Fsm, Identity}, Handlers),
