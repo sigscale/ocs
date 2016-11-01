@@ -26,7 +26,7 @@
 -export([]).
 
 %% export the ocs_eap_ttls_fsm state callbacks
--export([eap_start/2, ttls/2, aaa/2]).
+-export([ssl_start/2, eap_start/2, ttls/2, aaa/2]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
@@ -90,7 +90,35 @@ init([Sup, Address, Port, RadiusFsm, Secret, SessionID, AccessRequest] = _Args) 
 			server_id = list_to_binary(Hostname), start = AccessRequest,
 			tls_key = TLSkey, tls_crt = TLScert},
 	process_flag(trap_exit, true),
-	{ok, eap_start, StateData, 0}.
+	{ok, ssl_start, StateData, 0}.
+
+-spec ssl_start(Event :: timeout | term(), StateData :: #statedata{}) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
+%%		gen_fsm:send_event/2} in the <b>ssl_start</b> state.
+%% @@see //stdlib/gen_fsm:StateName/2
+%% @private
+%%
+ssl_start(timeout, #statedata{start = #radius{code = ?AccessRequest},
+		ssl_socket = undefined, sup = Sup,
+		tls_key = TLSkey, tls_crt = TLScert} = StateData) ->
+	Children = supervisor:which_children(Sup),
+	{_, AaahFsm, _, _} = lists:keyfind(ocs_eap_ttls_aaah_fsm, 1, Children),
+	Options = [{certfile, TLScert}, {keyfile, TLSkey}],
+	{ok, SslSocket} = ocs_eap_ttls_transport:ssl_listen(self(), Options),
+	gen_fsm:send_event(AaahFsm, {ttls_socket, self(), SslSocket}),
+	NewStateData = StateData#statedata{aaah_fsm = AaahFsm,
+			ssl_socket = SslSocket},
+	{next_state, ssl_start, NewStateData, ?TIMEOUT};
+ssl_start(timeout, #statedata{session_id = SessionID} = StateData) ->
+	{stop, {shutdown, SessionID}, StateData};
+ssl_start({ssl_pid, SslPid}, StateData) ->
+	NewStateData = StateData#statedata{ssl_pid = SslPid},
+	{next_state, eap_start, NewStateData, 0}.
 
 -spec eap_start(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
@@ -104,27 +132,19 @@ init([Sup, Address, Port, RadiusFsm, Secret, SessionID, AccessRequest] = _Args) 
 %% @private
 %%
 eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
-		id = RadiusID, authenticator = RequestAuthenticator,
-		attributes = Attributes}, radius_fsm = RadiusFsm,
-		eap_id = EapID, session_id = SessionID,
-		secret = Secret, sup = Sup, tls_key = TLSkey, tls_crt = TLScert}
-		= StateData) ->
-	Children = supervisor:which_children(Sup),
-	{_, AaahFsm, _, _} = lists:keyfind(ocs_eap_ttls_aaah_fsm, 1, Children),
-	Options = [{certfile, TLScert}, {keyfile, TLSkey}],
-	{ok, SslSocket} = ocs_eap_ttls_transport:ssl_listen(self(), Options),
-	NewStateData = StateData#statedata{aaah_fsm = AaahFsm,
-			ssl_socket = SslSocket},
+		id = RadiusID, authenticator = RequestAuthenticator, 
+		attributes = Attributes}, radius_fsm = RadiusFsm, eap_id = EapID,
+		session_id = SessionID, secret = Secret, aaah_fsm = AaahFsm,
+		ssl_socket = SslSocket} = StateData) ->
 	EapTtls = #eap_ttls{start = true},
 	EapData = ocs_eap_codec:eap_ttls(EapTtls),
 	case radius_attributes:find(?EAPMessage, Attributes) of
 		{ok, <<>>} ->
 			EapPacket = #eap_packet{code = request, type = ?TTLS,
 					identifier = EapID, data = EapData},
-			gen_fsm:send_event(AaahFsm, {ttls_socket, self(), SslSocket}),
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-			{next_state, ttls, NewStateData, ?TIMEOUT};
+			{next_state, ttls, StateData, ?TIMEOUT};
 		{ok, EAPMessage} ->
 			case catch ocs_eap_codec:eap_packet(EAPMessage) of
 				#eap_packet{code = response,
@@ -132,17 +152,16 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 					NewEapID = StartEapID + 1,
 					NewEapPacket = #eap_packet{code = request, type = ?TTLS,
 							identifier = NewEapID, data = EapData},
-					gen_fsm:send_event(AaahFsm, {ttls_socket, self(), SslSocket}),
 					send_response(NewEapPacket, ?AccessChallenge,
 							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-					NextStateData = NewStateData#statedata{eap_id = NewEapID},
+					NextStateData = StateData#statedata{eap_id = NewEapID},
 					{next_state, ttls, NextStateData, ?TIMEOUT};
 				#eap_packet{code = request, identifier = NewEapID} ->
 					NewEapPacket = #eap_packet{code = response, type = ?LegacyNak,
 							identifier = NewEapID, data = <<0>>},
 					send_response(NewEapPacket, ?AccessReject,
 							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-					{stop, {shutdown, SessionID}, NewStateData};
+					{stop, {shutdown, SessionID}, StateData};
 				#eap_packet{code = Code,
 							type = EapType, identifier = NewEapID, data = Data} ->
 					error_logger:warning_report(["Unknown EAP received",
@@ -152,20 +171,19 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 					NewEapPacket = #eap_packet{code = failure, identifier = NewEapID},
 					send_response(NewEapPacket, ?AccessReject,
 							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-					{stop, {shutdown, SessionID}, NewStateData};
+					{stop, {shutdown, SessionID}, StateData};
 				{'EXIT', _Reason} ->
 					NewEapPacket = #eap_packet{code = failure, identifier = EapID},
 					send_response(NewEapPacket, ?AccessReject,
 							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-					{stop, {shutdown, SessionID}, NewStateData}
+					{stop, {shutdown, SessionID}, StateData}
 			end;
 		{error, not_found} ->
 			EapPacket = #eap_packet{code = request, type = ?TTLS,
 					identifier = EapID, data = EapData},
-			gen_fsm:send_event(AaahFsm, {ttls_socket, self(), SslSocket}),
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-			{next_state, ttls, NewStateData, ?TIMEOUT}
+			{next_state, ttls, StateData, ?TIMEOUT}
 	end.
 
 -spec ttls(Event :: timeout | term(), StateData :: #statedata{}) ->
@@ -181,9 +199,6 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 %%
 ttls(timeout, #statedata{session_id = SessionID} = StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
-ttls({ssl_pid, SslPid}, StateData) ->
-	NewStateData = StateData#statedata{ssl_pid = SslPid},
-	{next_state, ttls, NewStateData, ?TIMEOUT};
 ttls({ssl_setopts, Options}, StateData) ->
 	NewStateData = StateData#statedata{socket_options = Options},
 	{next_state, ttls, NewStateData, ?TIMEOUT};
@@ -272,8 +287,6 @@ aaa(timeout, #statedata{buf = Buf, radius_fsm = RadiusFsm,
 		_ ->
 			{stop, fragmentation_unimplemented, StateData}
 	end;
-aaa({ssl_pid, SslPid}, StateData) ->
-	{next_state, aaa, StateData#statedata{ssl_pid = SslPid}, ?TIMEOUT};
 aaa({eap_ttls, _SslPid, Data}, #statedata{buf = Buf} = StateData) ->
 	NewStateData = StateData#statedata{buf = [Data | Buf]},
 	{next_state, aaa, NewStateData, ?BufTIMEOUT}.
