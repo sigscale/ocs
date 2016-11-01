@@ -204,58 +204,24 @@ ttls({ssl_setopts, Options}, StateData) ->
 	{next_state, ttls, NewStateData, ?TIMEOUT};
 ttls({#radius{code = ?AccessRequest, id = RadiusID,
 		authenticator = RequestAuthenticator, attributes = Attributes},
-		RadiusFsm}, StateData) ->
+		RadiusFsm}, #statedata{eap_id = EapID, ssl_pid = SslPid,
+		session_id = SessionID, secret = Secret} = StateData) ->
 	EapMessages = radius_attributes:get_all(?EAPMessage, Attributes),
-	NewStateData = StateData#statedata{radius_fsm = RadiusFsm,
-			radius_id = RadiusID, req_auth = RequestAuthenticator},
-	ttls1(EapMessages, undefined, [], NewStateData).
-
-%% @hidden
-ttls1([H | T], Length, Acc, #statedata{radius_fsm = RadiusFsm,
-		radius_id = RadiusID, req_auth = RequestAuthenticator,
-		session_id = SessionID, secret = Secret, eap_id = EapID,
-		ssl_pid = SslPid} = StateData) ->
+	EapMessage = iolist_to_binary(EapMessages),
 	try
 		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
-				data = TtlsData} = ocs_eap_codec:eap_packet(H),
-		case ocs_eap_codec:eap_ttls(TtlsData) of
-			#eap_ttls{message_len = NewLength, more = true,
-					data = Data} when is_integer(NewLength) ->
-				ttls1(T, NewLength, [Data | Acc], StateData);
-			#eap_ttls{more = true, data = Data} ->
-				ttls1(T, Length, [Data | Acc], StateData);
-			#eap_ttls{more = false, data = Data} ->
-				NewData = iolist_to_binary(lists:reverse([Data | Acc])),
-				case Length of
-					undefined ->
-						ok;
-					Length when size(NewData) /= Length ->
-						throw(bad_message_length)
-				end,
-				ocs_eap_ttls_transport:deliver(SslPid, self(), NewData),
-				case T of
-					[] ->
-						ok;
-					T ->
-						error_logger:error_report(["Extra EAP-Message attributes",
-								{session_id, SessionID}, {attributes, T}])
-				end,
-				{next_state, aaa, StateData, ?TIMEOUT}
-		end
+				data = TtlsData} = ocs_eap_codec:eap_packet(EapMessage),
+		#eap_ttls{more = false, message_len = undefined, start = false,
+				data = Data} =  ocs_eap_codec:eap_ttls(TtlsData),
+		ocs_eap_ttls_transport:deliver(SslPid, self(), Data),
+		{next_state, aaa, StateData, ?TIMEOUT}
 	catch
 		_:_ ->
 			EapPacket = #eap_packet{code = failure, identifier = EapID},
 			send_response(EapPacket, ?AccessReject,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, StateData}
-	end;
-ttls1([], Length, Acc, #statedata{radius_fsm = RadiusFsm,
-		radius_id = RadiusID, req_auth = RequestAuthenticator,
-		session_id = SessionID, secret = Secret, eap_id = EapID} = StateData) ->
-	EapPacket = #eap_packet{code = failure, identifier = EapID},
-	send_response(EapPacket, ?AccessReject,
-			RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-	{stop, {shutdown, SessionID}, StateData}.
+	end.
 
 -spec aaa(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
