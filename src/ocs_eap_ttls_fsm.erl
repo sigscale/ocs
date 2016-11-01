@@ -134,8 +134,7 @@ ssl_start({ssl_pid, SslPid}, StateData) ->
 eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 		id = RadiusID, authenticator = RequestAuthenticator, 
 		attributes = Attributes}, radius_fsm = RadiusFsm, eap_id = EapID,
-		session_id = SessionID, secret = Secret, aaah_fsm = AaahFsm,
-		ssl_socket = SslSocket} = StateData) ->
+		session_id = SessionID, secret = Secret} = StateData) ->
 	EapTtls = #eap_ttls{start = true},
 	EapData = ocs_eap_codec:eap_ttls(EapTtls),
 	case radius_attributes:find(?EAPMessage, Attributes) of
