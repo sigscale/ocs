@@ -45,7 +45,7 @@
 %%  ocs_eap_ttls_transport public api
 %%----------------------------------------------------------------------
 
--dialyzer({nowarn_function, ssl_accept/2}).
+-dialyzer({nowarn_function, ssl_listen/2}).
 %% The type spec for ssl:listen/2 decalres Port as inet:portnumber()
 %% however the implementation of that function has no such guard.
 -spec ssl_listen(TtlsFsm, Options) ->
