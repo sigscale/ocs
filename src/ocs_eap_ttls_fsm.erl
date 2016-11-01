@@ -51,11 +51,13 @@
 		radius_id :: byte(),
 		req_auth :: [byte()],
 		ssl_socket :: ssl:sslsocket(),
+		buf = [] :: [binary()],
 		ssl_pid :: pid(),
 		tls_key :: string(),
 		tls_crt :: string()}).
 
 -define(TIMEOUT, 30000).
+-define(BufTIMEOUT, 100).
 
 % suppress warning from ssl:listen/2
 -dialyzer({no_return, eap_start/2}).
@@ -246,23 +248,30 @@ ttls1([], Length, Acc, #statedata{radius_fsm = RadiusFsm,
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @todo EAP-TTLS fragmentation
 %% @private
-aaa(timeout, #statedata{session_id = SessionID} = StateData) ->
+aaa(timeout, #statedata{session_id = SessionID, buf = []} = StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
+aaa(timeout, #statedata{buf = Buf, radius_fsm = RadiusFsm,
+		radius_id = RadiusID, req_auth = RequestAuthenticator,
+		secret = Secret, eap_id = EapID} = StateData)  ->
+	Data = iolist_to_binary(lists:reverse(Buf)),
+	case size(Data) of
+		Size when Size =< 65529 ->
+			EapTtls = #eap_ttls{data = Data},
+			EapData = ocs_eap_codec:eap_ttls(EapTtls),
+			EapPacket = #eap_packet{code = request, type = ?TTLS,
+					identifier = EapID, data = EapData},
+			send_response(EapPacket, ?AccessChallenge,
+					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+			NewStateData = StateData#statedata{buf = []},
+			{next_state, ttls, NewStateData, ?TIMEOUT};
+		_ ->
+			{stop, fragmentation_unimplemented, StateData}
+	end;
 aaa({ssl_pid, SslPid}, StateData) ->
 	{next_state, aaa, StateData#statedata{ssl_pid = SslPid}, ?TIMEOUT};
-aaa({eap_ttls, SslPid, Data}, #statedata{ssl_pid = SslPid,
-		radius_fsm = RadiusFsm, radius_id = RadiusID,
-		req_auth = RequestAuthenticator, secret = Secret,
-		eap_id = EapID} = StateData) when size(Data) =< 65529 ->
-	EapTtls = #eap_ttls{data = Data},
-	EapData = ocs_eap_codec:eap_ttls(EapTtls),
-	EapPacket = #eap_packet{code = request, type = ?TTLS,
-			identifier = EapID, data = EapData},
-	send_response(EapPacket, ?AccessChallenge,
-			RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-	{next_state, ttls, StateData, ?TIMEOUT}.
-%aaa({eap_ttls, SslPid,
-%		<<Chunk:65529/binary, Rest/binary>> = Data, StateData) ->
+aaa({eap_ttls, _SslPid, Data}, #statedata{buf = Buf} = StateData) ->
+	NewStateData = StateData#statedata{buf = [Data | Buf]},
+	{next_state, aaa, NewStateData, ?BufTIMEOUT}.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
 		StateData :: #statedata{}) ->
@@ -344,13 +353,33 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 		RadiusFsm :: pid()) -> ok.
 %% @doc Sends an RADIUS-Access/Challenge or Reject or Accept  packet to peer
 %% @hidden
-send_response(EapPacket, RadiusCode, RadiusID, RadiusAttributes,
-		RequestAuthenticator, Secret, RadiusFsm) when size(EapPacket) =< 247 ->
-	EapPacketData = ocs_eap_codec:eap_packet(EapPacket),
-	AttrList1 = radius_attributes:store(?EAPMessage, EapPacketData,
+send_response(#eap_packet{} = EapPacket, RadiusCode, RadiusID, RadiusAttributes,
+		RequestAuthenticator, Secret, RadiusFsm) ->
+	BinEapPacket = ocs_eap_codec:eap_packet(EapPacket),
+	send_response1(BinEapPacket, RadiusCode, RadiusID, RadiusAttributes,
+			RequestAuthenticator, Secret, RadiusFsm).
+%% @hidden
+send_response1(<<Chunk:247/binary, Rest/binary>>, RadiusCode, RadiusID,
+		RadiusAttributes, RequestAuthenticator, Secret, RadiusFsm) ->
+	AttrList1 = radius_attributes:add(?EAPMessage, Chunk,
 			RadiusAttributes),
+	send_response1(Rest, RadiusCode, RadiusID, AttrList1,
+		RequestAuthenticator, Secret, RadiusFsm);
+send_response1(<<>>, RadiusCode, RadiusID, RadiusAttributes,
+		RequestAuthenticator, Secret, RadiusFsm) ->
+	send_response2(RadiusCode, RadiusID, RadiusAttributes,
+		RequestAuthenticator, Secret, RadiusFsm);
+send_response1(Chunk, RadiusCode, RadiusID, RadiusAttributes,
+		RequestAuthenticator, Secret, RadiusFsm) when is_binary(Chunk) ->
+	AttrList1 = radius_attributes:add(?EAPMessage, Chunk,
+			RadiusAttributes),
+	send_response2(RadiusCode, RadiusID, AttrList1, RequestAuthenticator,
+			Secret, RadiusFsm).
+%% @hidden
+send_response2(RadiusCode, RadiusID, RadiusAttributes,
+		RequestAuthenticator, Secret, RadiusFsm) ->
 	AttrList2 = radius_attributes:store(?MessageAuthenticator,
-		<<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, AttrList1),
+		<<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, RadiusAttributes),
 	Attributes1 = radius_attributes:codec(AttrList2),
 	Length = size(Attributes1) + 20,
 	MessageAuthenticator = crypto:hmac(md5, Secret, [<<RadiusCode, RadiusID,
