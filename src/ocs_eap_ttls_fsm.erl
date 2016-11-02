@@ -207,19 +207,21 @@ ttls({#radius{code = ?AccessRequest, id = RadiusID,
 		session_id = SessionID, secret = Secret} = StateData) ->
 	EapMessages = radius_attributes:get_all(?EAPMessage, Attributes),
 	EapMessage = iolist_to_binary(EapMessages),
+	NewStateData = StateData#statedata{radius_fsm = RadiusFsm,
+			radius_id = RadiusID},
 	try
 		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
 				data = TtlsData} = ocs_eap_codec:eap_packet(EapMessage),
 		#eap_ttls{more = false, message_len = undefined, start = false,
 				data = Data} =  ocs_eap_codec:eap_ttls(TtlsData),
 		ocs_eap_ttls_transport:deliver(SslPid, self(), Data),
-		{next_state, aaa, StateData, ?TIMEOUT}
+		{next_state, aaa, NewStateData, ?TIMEOUT}
 	catch
 		_:_ ->
 			EapPacket = #eap_packet{code = failure, identifier = EapID},
 			send_response(EapPacket, ?AccessReject,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-			{stop, {shutdown, SessionID}, StateData}
+			{stop, {shutdown, SessionID}, NewStateData}
 	end.
 
 -spec aaa(Event :: timeout | term(), StateData :: #statedata{}) ->
