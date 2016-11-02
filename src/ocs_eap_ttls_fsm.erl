@@ -52,7 +52,7 @@
 		req_auth :: [byte()],
 		ssl_socket :: ssl:sslsocket(),
 		socket_options :: ssl:options(),
-		buf = [] :: [binary()],
+		buf = [] :: iolist(),
 		ssl_pid :: pid(),
 		tls_key :: string(),
 		tls_crt :: string()}).
@@ -240,7 +240,7 @@ aaa(timeout, #statedata{session_id = SessionID, buf = []} = StateData) ->
 aaa(timeout, #statedata{buf = Buf, radius_fsm = RadiusFsm,
 		radius_id = RadiusID, req_auth = RequestAuthenticator,
 		secret = Secret, eap_id = EapID} = StateData)  ->
-	Data = iolist_to_binary(lists:reverse(Buf)),
+	Data = iolist_to_binary(Buf),
 	case size(Data) of
 		Size when Size =< 65529 ->
 			EapTtls = #eap_ttls{data = Data},
@@ -255,7 +255,7 @@ aaa(timeout, #statedata{buf = Buf, radius_fsm = RadiusFsm,
 			{stop, fragmentation_unimplemented, StateData}
 	end;
 aaa({eap_ttls, _SslPid, Data}, #statedata{buf = Buf} = StateData) ->
-	NewStateData = StateData#statedata{buf = [Data | Buf]},
+	NewStateData = StateData#statedata{buf = [Buf, Data]},
 	{next_state, aaa, NewStateData, ?BufTIMEOUT}.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
