@@ -50,9 +50,9 @@
 		radius_fsm :: pid(),
 		radius_id :: byte(),
 		req_auth :: [byte()],
-		mtu :: pos_integer(),
 		ssl_socket :: ssl:sslsocket(),
 		socket_options :: ssl:options(),
+		max_size :: pos_integer(),
 		rx_length :: pos_integer(),
 		rx_buf = [] :: iolist(),
 		tx_buf = [] :: iolist(),
@@ -211,12 +211,17 @@ ttls({#radius{code = ?AccessRequest, id = RadiusID,
 		rx_length = RxLength, rx_buf = RxBuf} = StateData) ->
 	EapMessages = radius_attributes:get_all(?EAPMessage, Attributes),
 	EapMessage = iolist_to_binary(EapMessages),
-	NewStateData = case radius_attributes:find(?FramedMtu,  Attributes) of
-		{ok, MTU} ->
-			StateData#statedata{radius_fsm = RadiusFsm,
-					radius_id = RadiusID, mtu = MTU};
-		{error, not_found} ->
-			StateData#statedata{radius_fsm = RadiusFsm, radius_id = RadiusID}
+	NewStateData = case {radius_attributes:find(?FramedMtu, Attributes),
+			radius_attributes:find(?NasPortType, Attributes)} of
+		{{ok, _MTU}, {ok, 19}} -> % 802.11
+			StateData#statedata{max_size = 1496,
+					radius_fsm = RadiusFsm, radius_id = RadiusID};
+		{{ok, MTU}, _} -> % Ethernet
+			StateData#statedata{max_size = MTU - 4,
+					radius_fsm = RadiusFsm, radius_id = RadiusID};
+		{_, _} ->
+			StateData#statedata{max_size = 16#ffff,
+					radius_fsm = RadiusFsm, radius_id = RadiusID}
 	end,
 	try
 		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
@@ -291,18 +296,13 @@ aaa(timeout, #statedata{tx_buf = TxBuf,
 aaa({eap_ttls, _SslPid, Data}, #statedata{tx_buf = TxBuf,
 		radius_fsm = RadiusFsm, radius_id = RadiusID,
 		req_auth = RequestAuthenticator, secret = Secret,
-		eap_id = EapID, mtu = MTU} = StateData) ->
-	MaxSize = case MTU of
-		undefined ->
-			65529 - 4;
-		MTU ->
-			MTU - 4
-	end,
+		eap_id = EapID, max_size = MaxSize} = StateData) ->
+	MaxData = MaxSize - 10,
 	NewTxBuf = [TxBuf, Data],
 	case iolist_size(NewTxBuf) of
-		Size when Size >= MaxSize ->
-			<<Chunk:MaxSize/binary, Rest/binary>> = iolist_to_binary(NewTxBuf),
-			EapTtls = #eap_ttls{data = Chunk},
+		Size when Size >= MaxData ->
+			<<Chunk:MaxData/binary, Rest/binary>> = iolist_to_binary(NewTxBuf),
+			EapTtls = #eap_ttls{more = true, data = Chunk},
 			EapData = ocs_eap_codec:eap_ttls(EapTtls),
 			EapPacket = #eap_packet{code = request, type = ?TTLS,
 					identifier = EapID, data = EapData},
