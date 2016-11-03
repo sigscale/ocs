@@ -278,42 +278,62 @@ handle_peer({#radius{code = ?AccessRequest, id = RadiusID,
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
 %%		gen_fsm:send_event/2} in the <b>handle_ssl</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
-%% @todo EAP-TTLS fragmentation
 %% @private
-handle_ssl(timeout, #statedata{session_id = SessionID, tx_buf = []} = StateData) ->
+handle_ssl(timeout, #statedata{session_id = SessionID,
+		tx_buf = []} = StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
-handle_ssl(timeout, #statedata{tx_buf = TxBuf,
-		radius_fsm = RadiusFsm, radius_id = RadiusID,
-		req_auth = RequestAuthenticator, secret = Secret,
-		eap_id = EapID} = StateData) ->
-	EapTtls = #eap_ttls{data = iolist_to_binary(TxBuf)},
-	EapData = ocs_eap_codec:eap_ttls(EapTtls),
-	EapPacket = #eap_packet{code = request, type = ?TTLS,
-			identifier = EapID, data = EapData},
-	send_response(EapPacket, ?AccessChallenge,
-			RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-	NewStateData = StateData#statedata{tx_buf = []},
-	{next_state, handle_peer, NewStateData, ?TIMEOUT};
-handle_ssl({eap_ttls, _SslPid, Data}, #statedata{tx_buf = TxBuf,
-		radius_fsm = RadiusFsm, radius_id = RadiusID,
-		req_auth = RequestAuthenticator, secret = Secret,
-		eap_id = EapID, max_size = MaxSize} = StateData) ->
+handle_ssl(timeout, StateData) ->
+	handle_ssl1(StateData);
+handle_ssl({eap_ttls, _SslPid, Data}, #statedata{tx_buf = TxBuf} = StateData) ->
+		NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
+	{next_state, handle_ssl, NewStateData, ?BufTIMEOUT};
+handle_ssl({#radius{code = ?AccessRequest, id = RadiusID,
+		authenticator = RequestAuthenticator, attributes = Attributes},
+		RadiusFsm}, #statedata{eap_id = EapID, session_id = SessionID,
+		secret = Secret} = StateData) ->
+	NewStateData = StateData#statedata{radius_fsm = RadiusFsm, 
+      radius_id = RadiusID, req_auth = RequestAuthenticator},
+	EapMessages = radius_attributes:get_all(?EAPMessage, Attributes),
+	EapMessage = iolist_to_binary(EapMessages),
+	try
+		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
+				data = TtlsData} = ocs_eap_codec:eap_packet(EapMessage),
+		#eap_ttls{more = false, message_len = undefined,
+				start = false, data = <<>>} = ocs_eap_codec:eap_ttls(TtlsData),
+		handle_ssl1(StateData)
+	catch
+		_:_ ->
+			EapPacket = #eap_packet{code = failure, identifier = EapID},
+			send_response(EapPacket, ?AccessReject,
+					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+			{stop, {shutdown, SessionID}, NewStateData}
+	end.
+%% @hidden
+handle_ssl1(#statedata{tx_buf = TxBuf, radius_fsm = RadiusFsm,
+		radius_id = RadiusID, req_auth = RequestAuthenticator,
+		secret = Secret, eap_id = EapID, max_size = MaxSize} = StateData) ->
 	MaxData = MaxSize - 10,
-	NewTxBuf = [TxBuf, Data],
-	case iolist_size(NewTxBuf) of
-		Size when Size >= MaxData ->
-			<<Chunk:MaxData/binary, Rest/binary>> = iolist_to_binary(NewTxBuf),
-			EapTtls = #eap_ttls{more = true, data = Chunk},
+	NewEapID = EapID + 1,
+	case iolist_size(TxBuf) of
+		Size when Size > MaxData ->
+			<<Chunk:MaxData/binary, Rest/binary>> = iolist_to_binary(TxBuf),
+			EapTtls = #eap_ttls{more = true, message_len = Size, data = Chunk},
 			EapData = ocs_eap_codec:eap_ttls(EapTtls),
 			EapPacket = #eap_packet{code = request, type = ?TTLS,
-					identifier = EapID, data = EapData},
+					identifier = NewEapID, data = EapData},
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-			NewStateData = StateData#statedata{tx_buf = Rest},
+			NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = Rest},
 			{next_state, handle_ssl, NewStateData, ?TIMEOUT};
 		_Size ->
-			NewStateData = StateData#statedata{tx_buf = NewTxBuf},
-			{next_state, handle_ssl, NewStateData, ?TIMEOUT}
+			EapTtls = #eap_ttls{data = iolist_to_binary(TxBuf)},
+			EapData = ocs_eap_codec:eap_ttls(EapTtls),
+			EapPacket = #eap_packet{code = request, type = ?TTLS,
+					identifier = NewEapID, data = EapData},
+			send_response(EapPacket, ?AccessChallenge,
+					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+			NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = []},
+			{next_state, handle_peer, NewStateData, ?TIMEOUT}
 	end.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
