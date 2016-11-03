@@ -26,7 +26,7 @@
 -export([]).
 
 %% export the ocs_eap_ttls_fsm state callbacks
--export([ssl_start/2, eap_start/2, ttls/2, aaa/2]).
+-export([ssl_start/2, eap_start/2, handle_peer/2, handle_ssl/2]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
@@ -146,7 +146,7 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 					identifier = EapID, data = EapData},
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-			{next_state, ttls, StateData, ?TIMEOUT};
+			{next_state, handle_peer, StateData, ?TIMEOUT};
 		{ok, EAPMessage} ->
 			case catch ocs_eap_codec:eap_packet(EAPMessage) of
 				#eap_packet{code = response,
@@ -157,7 +157,7 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 					send_response(NewEapPacket, ?AccessChallenge,
 							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 					NextStateData = StateData#statedata{eap_id = NewEapID},
-					{next_state, ttls, NextStateData, ?TIMEOUT};
+					{next_state, handle_peer, NextStateData, ?TIMEOUT};
 				#eap_packet{code = request, identifier = NewEapID} ->
 					NewEapPacket = #eap_packet{code = response, type = ?LegacyNak,
 							identifier = NewEapID, data = <<0>>},
@@ -185,26 +185,26 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 					identifier = EapID, data = EapData},
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-			{next_state, ttls, StateData, ?TIMEOUT}
+			{next_state, handle_peer, StateData, ?TIMEOUT}
 	end.
 
--spec ttls(Event :: timeout | term(), StateData :: #statedata{}) ->
+-spec handle_peer(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
 		Timeout :: non_neg_integer() | infinity}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
 		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>ttls</b> state.
+%%		gen_fsm:send_event/2} in the <b>handle_peer</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-ttls(timeout, #statedata{session_id = SessionID} = StateData) ->
+handle_peer(timeout, #statedata{session_id = SessionID} = StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
-ttls({ssl_setopts, Options}, StateData) ->
+handle_peer({ssl_setopts, Options}, StateData) ->
 	NewStateData = StateData#statedata{socket_options = Options},
-	{next_state, ttls, NewStateData, ?TIMEOUT};
-ttls({#radius{code = ?AccessRequest, id = RadiusID,
+	{next_state, handle_peer, NewStateData, ?TIMEOUT};
+handle_peer({#radius{code = ?AccessRequest, id = RadiusID,
 		authenticator = RequestAuthenticator, attributes = Attributes},
 		RadiusFsm}, #statedata{eap_id = EapID, ssl_pid = SslPid,
 		session_id = SessionID, secret = Secret,
@@ -227,7 +227,7 @@ ttls({#radius{code = ?AccessRequest, id = RadiusID,
 				ocs_eap_ttls_transport:deliver(SslPid, self(), [RxBuf, Data]),
 				NextStateData = NewStateData#statedata{rx_buf = [],
 						rx_length = undefined},
-				{next_state, aaa, NextStateData, ?TIMEOUT};
+				{next_state, handle_ssl, NextStateData, ?TIMEOUT};
 			#eap_ttls{more = false, message_len = undefined,
 					start = false, data = Data} ->
 				case iolist_size([RxBuf, Data]) of
@@ -235,7 +235,7 @@ ttls({#radius{code = ?AccessRequest, id = RadiusID,
 						ocs_eap_ttls_transport:deliver(SslPid, self(), [RxBuf, Data]),
 						NextStateData = NewStateData#statedata{rx_buf = [],
 								rx_length = undefined},
-						{next_state, aaa, NextStateData, ?TIMEOUT};
+						{next_state, handle_ssl, NextStateData, ?TIMEOUT};
 					Size when Size > RxLength ->
 						PadSize = Size - RxLength,
 						<<NewData:RxLength/binary, 0:PadSize/integer-unit:8>> =
@@ -243,17 +243,17 @@ ttls({#radius{code = ?AccessRequest, id = RadiusID,
 						ocs_eap_ttls_transport:deliver(SslPid, self(), NewData),
 						NextStateData = NewStateData#statedata{rx_buf = [],
 								rx_length = undefined},
-						{next_state, aaa, NextStateData, ?TIMEOUT}
+						{next_state, handle_ssl, NextStateData, ?TIMEOUT}
 				end;
 			#eap_ttls{more = true, message_len = undefined,
 					start = false, data = Data} when RxBuf /= [] ->
 				NextStateData = NewStateData#statedata{rx_buf = [RxBuf, Data]},
-				{next_state, ttls, NextStateData, ?TIMEOUT};
+				{next_state, handle_peer, NextStateData, ?TIMEOUT};
 			#eap_ttls{more = true, message_len = MessageLength,
 					start = false, data = Data} ->
 				NextStateData = NewStateData#statedata{rx_buf = [RxBuf, Data],
 						rx_length = MessageLength},
-				{next_state, ttls, NextStateData, ?TIMEOUT}
+				{next_state, handle_peer, NextStateData, ?TIMEOUT}
 		end
 	catch
 		_:_ ->
@@ -263,20 +263,20 @@ ttls({#radius{code = ?AccessRequest, id = RadiusID,
 			{stop, {shutdown, SessionID}, NewStateData}
 	end.
 
--spec aaa(Event :: timeout | term(), StateData :: #statedata{}) ->
+-spec handle_ssl(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
 		Timeout :: non_neg_integer() | infinity}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
 		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>aaa</b> state.
+%%		gen_fsm:send_event/2} in the <b>handle_ssl</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @todo EAP-TTLS fragmentation
 %% @private
-aaa(timeout, #statedata{session_id = SessionID, tx_buf = []} = StateData) ->
+handle_ssl(timeout, #statedata{session_id = SessionID, tx_buf = []} = StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
-aaa(timeout, #statedata{tx_buf = TxBuf,
+handle_ssl(timeout, #statedata{tx_buf = TxBuf,
 		radius_fsm = RadiusFsm, radius_id = RadiusID,
 		req_auth = RequestAuthenticator, secret = Secret,
 		eap_id = EapID} = StateData) ->
@@ -287,8 +287,8 @@ aaa(timeout, #statedata{tx_buf = TxBuf,
 	send_response(EapPacket, ?AccessChallenge,
 			RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 	NewStateData = StateData#statedata{tx_buf = []},
-	{next_state, ttls, NewStateData, ?TIMEOUT};
-aaa({eap_ttls, _SslPid, Data}, #statedata{tx_buf = TxBuf,
+	{next_state, handle_peer, NewStateData, ?TIMEOUT};
+handle_ssl({eap_ttls, _SslPid, Data}, #statedata{tx_buf = TxBuf,
 		radius_fsm = RadiusFsm, radius_id = RadiusID,
 		req_auth = RequestAuthenticator, secret = Secret,
 		eap_id = EapID, mtu = MTU} = StateData) ->
@@ -309,10 +309,10 @@ aaa({eap_ttls, _SslPid, Data}, #statedata{tx_buf = TxBuf,
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			NewStateData = StateData#statedata{tx_buf = Rest},
-			{next_state, ttls, NewStateData, ?TIMEOUT};
+			{next_state, handle_peer, NewStateData, ?TIMEOUT};
 		_Size ->
 			NewStateData = StateData#statedata{tx_buf = NewTxBuf},
-			{next_state, ttls, NewStateData, ?TIMEOUT}
+			{next_state, handle_peer, NewStateData, ?TIMEOUT}
 	end.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
