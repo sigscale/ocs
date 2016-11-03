@@ -234,7 +234,8 @@ ttls({#radius{code = ?AccessRequest, id = RadiusID,
 					start = false, data = Data} ->
 				NextStateData = NewStateData#statedata{rx_buf = [RxBuf, Data],
 						rx_length = MessageLength},
-				{next_state, ttls, NextStateData, ?TIMEOUT};
+				{next_state, ttls, NextStateData, ?TIMEOUT}
+		end
 	catch
 		_:_ ->
 			EapPacket = #eap_packet{code = failure, identifier = EapID},
