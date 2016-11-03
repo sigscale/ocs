@@ -207,7 +207,8 @@ ttls({ssl_setopts, Options}, StateData) ->
 ttls({#radius{code = ?AccessRequest, id = RadiusID,
 		authenticator = RequestAuthenticator, attributes = Attributes},
 		RadiusFsm}, #statedata{eap_id = EapID, ssl_pid = SslPid,
-		session_id = SessionID, secret = Secret, rx_buf = RxBuf} = StateData) ->
+		session_id = SessionID, secret = Secret,
+		rx_length = RxLength, rx_buf = RxBuf} = StateData) ->
 	EapMessages = radius_attributes:get_all(?EAPMessage, Attributes),
 	EapMessage = iolist_to_binary(EapMessages),
 	NewStateData = case radius_attributes:find(?FramedMtu,  Attributes) of
@@ -222,9 +223,17 @@ ttls({#radius{code = ?AccessRequest, id = RadiusID,
 				data = TtlsData} = ocs_eap_codec:eap_packet(EapMessage),
 		case ocs_eap_codec:eap_ttls(TtlsData) of
 			#eap_ttls{more = false, message_len = undefined,
-					start = false, data = Data} ->
+					start = false, data = Data} RxLength == undefined ->
 				ocs_eap_ttls_transport:deliver(SslPid, self(), [RxBuf, Data]),
-				NextStateData = NewStateData#statedata{rx_buf = []},
+				NextStateData = NewStateData#statedata{rx_buf = [],
+						rx_length = undefined},
+				{next_state, aaa, NextStateData, ?TIMEOUT};
+			#eap_ttls{more = false, message_len = undefined,
+					start = false, data = Data} ->
+				RxLength = iolist_size([RxBuf, Data]),
+				ocs_eap_ttls_transport:deliver(SslPid, self(), [RxBuf, Data]),
+				NextStateData = NewStateData#statedata{rx_buf = [],
+						rx_length = undefined},
 				{next_state, aaa, NextStateData, ?TIMEOUT};
 			#eap_ttls{more = true, message_len = undefined,
 					start = false, data = Data} when RxBuf /= [] ->
