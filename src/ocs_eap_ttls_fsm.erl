@@ -310,10 +310,10 @@ handle_ssl({eap_ttls, _SslPid, Data}, #statedata{tx_buf = TxBuf,
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			NewStateData = StateData#statedata{tx_buf = Rest},
-			{next_state, handle_peer, NewStateData, ?TIMEOUT};
+			{next_state, handle_ssl, NewStateData, ?TIMEOUT};
 		_Size ->
 			NewStateData = StateData#statedata{tx_buf = NewTxBuf},
-			{next_state, handle_peer, NewStateData, ?TIMEOUT}
+			{next_state, handle_ssl, NewStateData, ?TIMEOUT}
 	end.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
