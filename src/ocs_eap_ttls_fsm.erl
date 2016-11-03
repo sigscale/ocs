@@ -50,9 +50,12 @@
 		radius_fsm :: pid(),
 		radius_id :: byte(),
 		req_auth :: [byte()],
+		mtu :: pos_integer(),
 		ssl_socket :: ssl:sslsocket(),
 		socket_options :: ssl:options(),
-		buf = [] :: iolist(),
+		rx_length :: pos_integer(),
+		rx_buf = [] :: iolist(),
+		tx_buf = [] :: iolist(),
 		ssl_pid :: pid(),
 		tls_key :: string(),
 		tls_crt :: string()}).
@@ -204,18 +207,34 @@ ttls({ssl_setopts, Options}, StateData) ->
 ttls({#radius{code = ?AccessRequest, id = RadiusID,
 		authenticator = RequestAuthenticator, attributes = Attributes},
 		RadiusFsm}, #statedata{eap_id = EapID, ssl_pid = SslPid,
-		session_id = SessionID, secret = Secret} = StateData) ->
+		session_id = SessionID, secret = Secret, rx_buf = RxBuf} = StateData) ->
 	EapMessages = radius_attributes:get_all(?EAPMessage, Attributes),
 	EapMessage = iolist_to_binary(EapMessages),
-	NewStateData = StateData#statedata{radius_fsm = RadiusFsm,
-			radius_id = RadiusID},
+	NewStateData = case radius_attributes:find(?FramedMtu,  Attributes) of
+		{ok, MTU} ->
+			StateData#statedata{radius_fsm = RadiusFsm,
+					radius_id = RadiusID, mtu = MTU};
+		{error, not_found} ->
+			StateData#statedata{radius_fsm = RadiusFsm, radius_id = RadiusID}
+	end,
 	try
 		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
 				data = TtlsData} = ocs_eap_codec:eap_packet(EapMessage),
-		#eap_ttls{more = false, message_len = undefined, start = false,
-				data = Data} =  ocs_eap_codec:eap_ttls(TtlsData),
-		ocs_eap_ttls_transport:deliver(SslPid, self(), Data),
-		{next_state, aaa, NewStateData, ?TIMEOUT}
+		case ocs_eap_codec:eap_ttls(TtlsData) of
+			#eap_ttls{more = false, message_len = undefined,
+					start = false, data = Data} ->
+				ocs_eap_ttls_transport:deliver(SslPid, self(), [RxBuf, Data]),
+				NextStateData = NewStateData#statedata{rx_buf = []},
+				{next_state, aaa, NextStateData, ?TIMEOUT};
+			#eap_ttls{more = true, message_len = undefined,
+					start = false, data = Data} when RxBuf /= [] ->
+				NextStateData = NewStateData#statedata{rx_buf = [RxBuf, Data]},
+				{next_state, ttls, NextStateData, ?TIMEOUT};
+			#eap_ttls{more = true, message_len = MessageLength,
+					start = false, data = Data} ->
+				NextStateData = NewStateData#statedata{rx_buf = [RxBuf, Data],
+						rx_length = MessageLength},
+				{next_state, ttls, NextStateData, ?TIMEOUT};
 	catch
 		_:_ ->
 			EapPacket = #eap_packet{code = failure, identifier = EapID},
@@ -235,12 +254,12 @@ ttls({#radius{code = ?AccessRequest, id = RadiusID,
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @todo EAP-TTLS fragmentation
 %% @private
-aaa(timeout, #statedata{session_id = SessionID, buf = []} = StateData) ->
+aaa(timeout, #statedata{session_id = SessionID, tx_buf = []} = StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
-aaa(timeout, #statedata{buf = Buf, radius_fsm = RadiusFsm,
+aaa(timeout, #statedata{tx_buf = TxBuf, radius_fsm = RadiusFsm,
 		radius_id = RadiusID, req_auth = RequestAuthenticator,
 		secret = Secret, eap_id = EapID} = StateData)  ->
-	Data = iolist_to_binary(Buf),
+	Data = iolist_to_binary(TxBuf),
 	case size(Data) of
 		Size when Size =< 65529 ->
 			EapTtls = #eap_ttls{data = Data},
@@ -249,13 +268,13 @@ aaa(timeout, #statedata{buf = Buf, radius_fsm = RadiusFsm,
 					identifier = EapID, data = EapData},
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-			NewStateData = StateData#statedata{buf = []},
+			NewStateData = StateData#statedata{tx_buf = []},
 			{next_state, ttls, NewStateData, ?TIMEOUT};
 		_ ->
 			{stop, fragmentation_unimplemented, StateData}
 	end;
-aaa({eap_ttls, _SslPid, Data}, #statedata{buf = Buf} = StateData) ->
-	NewStateData = StateData#statedata{buf = [Buf, Data]},
+aaa({eap_ttls, _SslPid, Data}, #statedata{tx_buf = TxBuf} = StateData) ->
+	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
 	{next_state, aaa, NewStateData, ?BufTIMEOUT}.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
