@@ -257,8 +257,7 @@ handle_peer({#radius{code = ?AccessRequest, id = RadiusID,
 				{next_state, handle_peer, NextStateData, ?TIMEOUT}
 		end
 	catch
-		_:R ->
-erlang:display({errrrr, R}),
+		_:_ ->
 			EapPacket = #eap_packet{code = failure, identifier = EapID},
 			send_response(EapPacket, ?AccessReject,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
