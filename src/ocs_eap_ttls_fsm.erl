@@ -266,26 +266,41 @@ ttls({#radius{code = ?AccessRequest, id = RadiusID,
 %% @private
 aaa(timeout, #statedata{session_id = SessionID, tx_buf = []} = StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
-aaa(timeout, #statedata{tx_buf = TxBuf, radius_fsm = RadiusFsm,
-		radius_id = RadiusID, req_auth = RequestAuthenticator,
-		secret = Secret, eap_id = EapID, mtu = MTU} = StateData)  ->
-	case iolist_size(TxBuf) of
-		Size when ((MTU == undefined) and Size =< 65525)); Size < (MTU - 4) ->
-			Data = iolist_to_binary(TxBuf),
-			EapTtls = #eap_ttls{data = Data},
+aaa(timeout, #statedata{tx_buf = TxBuf} = StateData)  ->
+	EapTtls = #eap_ttls{data = iolist_to_binary(TxBuf)},
+	EapData = ocs_eap_codec:eap_ttls(EapTtls),
+	EapPacket = #eap_packet{code = request, type = ?TTLS,
+			identifier = EapID, data = EapData},
+	send_response(EapPacket, ?AccessChallenge,
+			RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+	NewStateData = StateData#statedata{tx_buf = []},
+	{next_state, ttls, NewStateData, ?TIMEOUT};
+aaa({eap_ttls, _SslPid, Data}, #statedata{tx_buf = TxBuf,
+		radius_fsm = RadiusFsm, radius_id = RadiusID,
+		req_auth = RequestAuthenticator, secret = Secret,
+		eap_id = EapID, mtu = MTU} = StateData) ->
+	MaxSize = case MTU of
+		undefined ->
+			65529 - 4;
+		MTU ->
+			MTU - 4
+	end,
+	NewTxBuf = [TxBuf, Data],
+	case iolist_size(NewxBuf) of
+		Size when Size >= MaxSize ->
+			<<Chunk:MaxSize/binary, Rest/binary>> = iolist_to_binary(NewTxBuf),
+			EapTtls = #eap_ttls{data = Chunk},
 			EapData = ocs_eap_codec:eap_ttls(EapTtls),
 			EapPacket = #eap_packet{code = request, type = ?TTLS,
 					identifier = EapID, data = EapData},
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-			NewStateData = StateData#statedata{tx_buf = []},
+			NewStateData = StateData#statedata{tx_buf = Rest},
 			{next_state, ttls, NewStateData, ?TIMEOUT};
-		_ ->
-			{stop, fragmentation_unimplemented, StateData}
-	end;
-aaa({eap_ttls, _SslPid, Data}, #statedata{tx_buf = TxBuf} = StateData) ->
-	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
-	{next_state, aaa, NewStateData, ?BufTIMEOUT}.
+		Size ->
+			NewStateData = StateData#statedata{tx_buf = NewTxBuf},
+			{next_state, ttls, NewStateData, ?TIMEOUT}
+	end.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
 		StateData :: #statedata{}) ->
