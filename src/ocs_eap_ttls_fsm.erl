@@ -236,35 +236,37 @@ handle_peer({#radius{code = ?AccessRequest, id = RadiusID,
 				{next_state, handle_ssl, NextStateData, ?TIMEOUT};
 			#eap_ttls{more = false, message_len = undefined,
 					start = false, data = Data} ->
-				case iolist_size([RxBuf, Data]) of
-					RxLength ->
-						ocs_eap_ttls_transport:deliver(SslPid, self(), [RxBuf, Data]),
-						NextStateData = NewStateData#statedata{rx_buf = [],
+				RxLength = iolist_size([RxBuf, Data]),
+				ocs_eap_ttls_transport:deliver(SslPid, self(), [RxBuf, Data]),
+				NextStateData = NewStateData#statedata{rx_buf = [],
 								rx_length = undefined},
-						{next_state, handle_ssl, NextStateData, ?TIMEOUT};
-					Size when Size > RxLength ->
-						PadSize = Size - RxLength,
-						<<NewData:RxLength/binary, 0:PadSize/integer-unit:8>> =
-						NewData = iolist_to_binary([RxBuf, Data]),
-						ocs_eap_ttls_transport:deliver(SslPid, self(), NewData),
-						NextStateData = NewStateData#statedata{rx_buf = [],
-								rx_length = undefined},
-						{next_state, handle_ssl, NextStateData, ?TIMEOUT}
-				end;
+				{next_state, handle_ssl, NextStateData, ?TIMEOUT};
 			#eap_ttls{more = true, message_len = undefined,
 					start = false, data = Data} when RxBuf /= [] ->
+				NewEapID = EapID + 1,
+				TtlsData = ocs_eap_codec:eap_ttls(#eap_ttls{}),
+				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
+						identifier = NewEapID, data = TtlsData},
+				send_response(EapPacket1, ?AccessChallenge,
+					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 				NextStateData = NewStateData#statedata{rx_buf = [RxBuf, Data]},
 				{next_state, handle_peer, NextStateData, ?TIMEOUT};
 			#eap_ttls{more = true, message_len = MessageLength,
 					start = false, data = Data} ->
-				NextStateData = NewStateData#statedata{rx_buf = [RxBuf, Data],
+				NewEapID = EapID + 1,
+				TtlsData = ocs_eap_codec:eap_ttls(#eap_ttls{}),
+				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
+						identifier = NewEapID, data = TtlsData},
+				send_response(EapPacket1, ?AccessChallenge,
+					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+				NextStateData = NewStateData#statedata{rx_buf = [Data],
 						rx_length = MessageLength},
 				{next_state, handle_peer, NextStateData, ?TIMEOUT}
 		end
 	catch
 		_:_ ->
-			EapPacket = #eap_packet{code = failure, identifier = EapID},
-			send_response(EapPacket, ?AccessReject,
+			EapPacket2 = #eap_packet{code = failure, identifier = EapID},
+			send_response(EapPacket2, ?AccessReject,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, NewStateData}
 	end.
@@ -323,7 +325,7 @@ handle_ssl1(#statedata{tx_buf = TxBuf, radius_fsm = RadiusFsm,
 					identifier = NewEapID, data = EapData},
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-			NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = Rest},
+			NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = [Rest]},
 			{next_state, handle_ssl, NewStateData, ?TIMEOUT};
 		_Size ->
 			EapTtls = #eap_ttls{data = iolist_to_binary(TxBuf)},
