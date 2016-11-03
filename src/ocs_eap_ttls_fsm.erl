@@ -268,10 +268,10 @@ aaa(timeout, #statedata{session_id = SessionID, tx_buf = []} = StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
 aaa(timeout, #statedata{tx_buf = TxBuf, radius_fsm = RadiusFsm,
 		radius_id = RadiusID, req_auth = RequestAuthenticator,
-		secret = Secret, eap_id = EapID} = StateData)  ->
-	Data = iolist_to_binary(TxBuf),
-	case size(Data) of
-		Size when Size =< 65529 ->
+		secret = Secret, eap_id = EapID, mtu = MTU} = StateData)  ->
+	case iolist_size(TxBuf) of
+		Size when ((MTU == undefined) and Size =< 65525)); Size < (MTU - 4) ->
+			Data = iolist_to_binary(TxBuf),
 			EapTtls = #eap_ttls{data = Data},
 			EapData = ocs_eap_codec:eap_ttls(EapTtls),
 			EapPacket = #eap_packet{code = request, type = ?TTLS,
