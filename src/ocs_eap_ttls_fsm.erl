@@ -140,13 +140,14 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 		session_id = SessionID, secret = Secret} = StateData) ->
 	EapTtls = #eap_ttls{start = true},
 	EapData = ocs_eap_codec:eap_ttls(EapTtls),
+	NewStateData = StateData#statedata{req_auth = RequestAuthenticator},
 	case radius_attributes:find(?EAPMessage, Attributes) of
 		{ok, <<>>} ->
 			EapPacket = #eap_packet{code = request, type = ?TTLS,
 					identifier = EapID, data = EapData},
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-			{next_state, handle_peer, StateData, ?TIMEOUT};
+			{next_state, handle_peer, NewStateData, ?TIMEOUT};
 		{ok, EAPMessage} ->
 			case catch ocs_eap_codec:eap_packet(EAPMessage) of
 				#eap_packet{code = response,
@@ -156,14 +157,14 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 							identifier = NewEapID, data = EapData},
 					send_response(NewEapPacket, ?AccessChallenge,
 							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-					NextStateData = StateData#statedata{eap_id = NewEapID},
+					NextStateData = NewStateData#statedata{eap_id = NewEapID},
 					{next_state, handle_peer, NextStateData, ?TIMEOUT};
 				#eap_packet{code = request, identifier = NewEapID} ->
 					NewEapPacket = #eap_packet{code = response, type = ?LegacyNak,
 							identifier = NewEapID, data = <<0>>},
 					send_response(NewEapPacket, ?AccessReject,
 							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-					{stop, {shutdown, SessionID}, StateData};
+					{stop, {shutdown, SessionID}, NewStateData};
 				#eap_packet{code = Code,
 							type = EapType, identifier = NewEapID, data = Data} ->
 					error_logger:warning_report(["Unknown EAP received",
@@ -185,7 +186,7 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 					identifier = EapID, data = EapData},
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-			{next_state, handle_peer, StateData, ?TIMEOUT}
+			{next_state, handle_peer, NewStateData, ?TIMEOUT}
 	end.
 
 -spec handle_peer(Event :: timeout | term(), StateData :: #statedata{}) ->
@@ -239,7 +240,7 @@ handle_peer({#radius{code = ?AccessRequest, id = RadiusID,
 					Size when Size > RxLength ->
 						PadSize = Size - RxLength,
 						<<NewData:RxLength/binary, 0:PadSize/integer-unit:8>> =
-						iolist_to_binary([RxBuf, Data]),
+						NewData = iolist_to_binary([RxBuf, Data]),
 						ocs_eap_ttls_transport:deliver(SslPid, self(), NewData),
 						NextStateData = NewStateData#statedata{rx_buf = [],
 								rx_length = undefined},
@@ -256,7 +257,8 @@ handle_peer({#radius{code = ?AccessRequest, id = RadiusID,
 				{next_state, handle_peer, NextStateData, ?TIMEOUT}
 		end
 	catch
-		_:_ ->
+		_:R ->
+erlang:display({errrrr, R}),
 			EapPacket = #eap_packet{code = failure, identifier = EapID},
 			send_response(EapPacket, ?AccessReject,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
