@@ -64,8 +64,7 @@ ssl_listen(TtlsFsm, Options) when is_pid(TtlsFsm), is_list(Options) ->
 		TtlsFsm :: pid(),
 		Data :: iodata().
 %% @doc Deliver received EAP-TTLS payload to SSL.
-deliver(SslPid, TtlsFsm, Data) when is_pid(SslPid),
-		is_pid(TtlsFsm), is_binary(Data) ->
+deliver(SslPid, TtlsFsm, Data) when is_pid(SslPid), is_pid(TtlsFsm) ->
 	SslPid ! {eap_ttls, TtlsFsm, Data},
 	ok.
 
