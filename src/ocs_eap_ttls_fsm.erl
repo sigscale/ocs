@@ -230,11 +230,21 @@ ttls({#radius{code = ?AccessRequest, id = RadiusID,
 				{next_state, aaa, NextStateData, ?TIMEOUT};
 			#eap_ttls{more = false, message_len = undefined,
 					start = false, data = Data} ->
-				RxLength = iolist_size([RxBuf, Data]),
-				ocs_eap_ttls_transport:deliver(SslPid, self(), [RxBuf, Data]),
-				NextStateData = NewStateData#statedata{rx_buf = [],
-						rx_length = undefined},
-				{next_state, aaa, NextStateData, ?TIMEOUT};
+				case iolist_size([RxBuf, Data]) of
+					RxLength ->
+						ocs_eap_ttls_transport:deliver(SslPid, self(), [RxBuf, Data]),
+						NextStateData = NewStateData#statedata{rx_buf = [],
+								rx_length = undefined},
+						{next_state, aaa, NextStateData, ?TIMEOUT};
+					Size when Size > RxLength ->
+						PadSize = Size - RxLength,
+						<<NewData:RxLength/binary, 0:PadSize/integer-unit:8>> =
+						iolist_to_binary([RxBuf, Data]),
+						ocs_eap_ttls_transport:deliver(SslPid, self(), NewData),
+						NextStateData = NewStateData#statedata{rx_buf = [],
+								rx_length = undefined},
+						{next_state, aaa, NextStateData, ?TIMEOUT}
+				end;
 			#eap_ttls{more = true, message_len = undefined,
 					start = false, data = Data} when RxBuf /= [] ->
 				NextStateData = NewStateData#statedata{rx_buf = [RxBuf, Data]},
