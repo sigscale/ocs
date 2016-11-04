@@ -222,13 +222,16 @@ handle_peer({#radius{code = ?AccessRequest, id = RadiusID,
 					1496
 			end,
 			StateData#statedata{max_size = NewMTU,
-					radius_fsm = RadiusFsm, radius_id = RadiusID};
+					radius_fsm = RadiusFsm, radius_id = RadiusID,
+					req_auth = RequestAuthenticator};
 		{{ok, MTU}, _} -> % Ethernet
 			StateData#statedata{max_size = MTU - 4,
-					radius_fsm = RadiusFsm, radius_id = RadiusID};
+					radius_fsm = RadiusFsm, radius_id = RadiusID,
+							req_auth = RequestAuthenticator};
 		{_, _} ->
 			StateData#statedata{max_size = 16#ffff,
-					radius_fsm = RadiusFsm, radius_id = RadiusID}
+					radius_fsm = RadiusFsm, radius_id = RadiusID,
+							req_auth = RequestAuthenticator}
 	end,
 	try
 		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
