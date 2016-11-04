@@ -214,8 +214,14 @@ handle_peer({#radius{code = ?AccessRequest, id = RadiusID,
 	EapMessage = iolist_to_binary(EapMessages),
 	NewStateData = case {radius_attributes:find(?FramedMtu, Attributes),
 			radius_attributes:find(?NasPortType, Attributes)} of
-		{{ok, _MTU}, {ok, 19}} -> % 802.11
-			StateData#statedata{max_size = 1496,
+		{{ok, MTU}, {ok, 19}} -> % 802.11
+			NewMTU = case MTU of
+				MTU when MTU < 1496 ->
+					MTU - 4;
+				MTU ->
+					1496
+			end,
+			StateData#statedata{max_size = NewMTU,
 					radius_fsm = RadiusFsm, radius_id = RadiusID};
 		{{ok, MTU}, _} -> % Ethernet
 			StateData#statedata{max_size = MTU - 4,
