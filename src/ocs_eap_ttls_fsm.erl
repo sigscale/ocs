@@ -311,7 +311,7 @@ handle_ssl({#radius{code = ?AccessRequest, id = RadiusID,
 				data = TtlsData} = ocs_eap_codec:eap_packet(EapMessage),
 		#eap_ttls{more = false, message_len = undefined,
 				start = false, data = <<>>} = ocs_eap_codec:eap_ttls(TtlsData),
-		handle_ssl1(StateData)
+		handle_ssl1(NewStateData)
 	catch
 		_:_ ->
 			EapPacket = #eap_packet{code = failure, identifier = EapID},
