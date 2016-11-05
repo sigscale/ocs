@@ -214,24 +214,26 @@ handle_peer({#radius{code = ?AccessRequest, id = RadiusID,
 	EapMessage = iolist_to_binary(EapMessages),
 	NewStateData = case {radius_attributes:find(?FramedMtu, Attributes),
 			radius_attributes:find(?NasPortType, Attributes)} of
-		{{ok, MTU}, {ok, 19}} -> % 802.11
-			NewMTU = case MTU of
-				MTU when MTU < 1496 ->
-					MTU - 4;
-				MTU ->
-					1496
-			end,
-			StateData#statedata{max_size = NewMTU,
+		{{ok, MTU}, {ok, 19}} when MTU < 1496 -> % 802.11
+			StateData#statedata{max_size = MTU - 4,
+					radius_fsm = RadiusFsm, radius_id = RadiusID,
+					req_auth = RequestAuthenticator};
+		{{ok, MTU}, {ok, 19}} when MTU < 1496 -> % 802.11
+			StateData#statedata{max_size = 1496,
+					radius_fsm = RadiusFsm, radius_id = RadiusID,
+					req_auth = RequestAuthenticator};
+		{{ok, MTU}, 15} -> % Ethernet
+			StateData#statedata{max_size = MTU - 4,
 					radius_fsm = RadiusFsm, radius_id = RadiusID,
 					req_auth = RequestAuthenticator};
 		{{ok, MTU}, _} -> % Ethernet
-			StateData#statedata{max_size = MTU - 4,
+			StateData#statedata{max_size = MTU,
 					radius_fsm = RadiusFsm, radius_id = RadiusID,
-							req_auth = RequestAuthenticator};
+					req_auth = RequestAuthenticator};
 		{_, _} ->
 			StateData#statedata{max_size = 16#ffff,
 					radius_fsm = RadiusFsm, radius_id = RadiusID,
-							req_auth = RequestAuthenticator}
+					req_auth = RequestAuthenticator}
 	end,
 	try
 		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
