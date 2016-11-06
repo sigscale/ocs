@@ -111,7 +111,7 @@ ssl_start(timeout, #statedata{start = #radius{code = ?AccessRequest},
 		tls_key = TLSkey, tls_crt = TLScert} = StateData) ->
 	Children = supervisor:which_children(Sup),
 	{_, AaahFsm, _, _} = lists:keyfind(ocs_eap_ttls_aaah_fsm, 1, Children),
-	Options = [{certfile, TLScert}, {keyfile, TLSkey}],
+	Options = [{mode, binary}, {certfile, TLScert}, {keyfile, TLSkey}],
 	{ok, SslSocket} = ocs_eap_ttls_transport:ssl_listen(self(), Options),
 	gen_fsm:send_event(AaahFsm, {ttls_socket, self(), SslSocket}),
 	NewStateData = StateData#statedata{aaah_fsm = AaahFsm,
