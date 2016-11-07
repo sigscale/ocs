@@ -387,7 +387,7 @@ server_hello1(#statedata{tx_buf = TxBuf, radius_fsm = RadiusFsm,
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = []},
-			{next_state, client_hello, NewStateData, ?TIMEOUT}
+			{next_state, client_key_exchange, NewStateData, ?TIMEOUT}
 	end.
 
 -spec client_key_exchange(Event :: timeout | term(), StateData :: #statedata{}) ->
