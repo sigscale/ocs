@@ -306,7 +306,7 @@ client_hello({#radius{code = ?AccessRequest, id = RadiusID,
 			{stop, {shutdown, SessionID}, NewStateData}
 	end.
 %% @hidden
-client_hello1(<<?ClientHello, _/binary>> = TtlsRecord,
+client_hello1(<<?Handshake,_:32, ?ClientHello, _/binary>> = TtlsRecord,
 		#statedata{ssl_pid = SslPid} = _StateData) ->
 	ocs_eap_ttls_transport:deliver(SslPid, self(), TtlsRecord).
 
@@ -485,7 +485,7 @@ server_change_cipher_spec(timeout,
 server_change_cipher_spec({eap_ttls, _SslPid, <<?ChangeCipherSpec,_/binary>>
 		= Data}, #statedata{tx_buf = TxBuf} = StateData) ->
 	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
-	{next_state, server_change_cipher_spec, NewStateData, ?TIMEOUT};
+	{next_state, server_change_cipher_spec, NewStateData};
 server_change_cipher_spec({eap_ttls, _SslPid,
 		<<?Handshake, _:32, ?Finished, _/binary>> = Data},
 		#statedata{tx_buf = TxBuf, radius_id = RadiusID, radius_fsm = RadiusFsm,
