@@ -27,7 +27,7 @@
 
 %% export the ocs_eap_ttls_fsm state callbacks
 -export([ssl_start/2, eap_start/2, client_hello/2, server_hello/2,
-			client_key_exchange/2, passthrough/2]).
+			client_key_exchange/2, passthrough/2, server_change_cipher_spec/2]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
@@ -325,7 +325,7 @@ server_hello(timeout, #statedata{session_id = SessionID,
 	{stop, {shutdown, SessionID}, StateData};
 server_hello(timeout, StateData) ->
 	server_hello1(StateData);
-server_hello({eap_ttls, _SslPid, <<?Handshake, _:32, ?ServerHello, _/binary>> 
+server_hello({eap_ttls, _SslPid, <<?Handshake, _:32, ?ServerHello, _/binary>>
 		= Data}, #statedata{tx_buf = TxBuf} = StateData) ->
 	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
 	{next_state, server_hello, NewStateData};
@@ -410,7 +410,7 @@ client_key_exchange({#radius{code = ?AccessRequest, id = RadiusID,
 	EapMessages = radius_attributes:get_all(?EAPMessage, Attributes),
 	EapMessage = iolist_to_binary(EapMessages),
 	NewStateData = StateData#statedata{radius_fsm = RadiusFsm,
-		req_auth = RequestAuthenticator},
+		radius_id = RadiusID, req_auth = RequestAuthenticator},
 	try
 		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
 				data = TtlsData} = ocs_eap_codec:eap_packet(EapMessage),
@@ -461,12 +461,46 @@ client_key_exchange({#radius{code = ?AccessRequest, id = RadiusID,
 client_key_exchange1(<<?Handshake, _:32, ?ClientKeyExchange, _/binary>>,
 		StateData) ->
 	{next_state, client_key_exchange, StateData, ?TIMEOUT};
-client_key_exchange1(<<?ChangeCipherSpec, _:32, _/binary>>,
-		StateData) ->
+client_key_exchange1(<<?ChangeCipherSpec, _:32, _/binary>> = TtlsRecord,
+		#statedata{ssl_pid = SslPid} = StateData) ->
+	ocs_eap_ttls_transport:deliver(SslPid, self(), TtlsRecord),
 	{next_state, client_key_exchange, StateData, ?TIMEOUT};
 client_key_exchange1(<<?Handshake, _:32, ?Finished, _/binary>>,
 		StateData) ->
-	{next_state, passthrough, StateData, ?TIMEOUT}.
+	{next_state, server_change_cipher_spec, StateData, ?TIMEOUT}.
+
+-spec server_change_cipher_spec(Event :: timeout | term(), StateData :: #statedata{}) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
+%%		gen_fsm:send_event/2} in the <b>server_change_cipher_spec</b> state.
+%% @@see //stdlib/gen_fsm:StateName/2
+%% @private
+server_change_cipher_spec(timeout,
+		#statedata{session_id = SessionID} = StateData) ->
+	{stop, {shutdown, SessionID}, StateData};
+server_change_cipher_spec({eap_ttls, _SslPid, <<?ChangeCipherSpec,_/binary>>
+		= Data}, #statedata{tx_buf = TxBuf} = StateData) ->
+	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
+	{next_state, server_change_cipher_spec, NewStateData, ?TIMEOUT};
+server_change_cipher_spec({eap_ttls, _SslPid,
+		<<?Handshake, _:32, ?Finished, _/binary>> = Data},
+		#statedata{tx_buf = TxBuf, radius_id = RadiusID, radius_fsm = RadiusFsm,
+		req_auth = RequestAuthenticator,secret = Secret,
+		eap_id = EapID} = StateData) ->
+	NewEapID = EapID + 1,
+	BinData = iolist_to_binary([TxBuf, Data]),
+	EapTtls = #eap_ttls{data = BinData},
+	EapData = ocs_eap_codec:eap_ttls(EapTtls),
+	EapPacket = #eap_packet{code = request, type = ?TTLS,
+			identifier = NewEapID, data = EapData},
+	send_response(EapPacket, ?AccessChallenge,
+			RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+	NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = []},
+	{next_state, passthrough, NewStateData}.
 
 -spec passthrough(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
