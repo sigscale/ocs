@@ -26,11 +26,31 @@
 -export([]).
 
 %% export the ocs_eap_ttls_fsm state callbacks
--export([ssl_start/2, eap_start/2, handle_peer/2, handle_ssl/2]).
+-export([ssl_start/2, eap_start/2, client_hello/2, server_hello/2]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
 			terminate/3, code_change/4]).
+
+%%Macro definitions for TLS record Content Type
+-define(ChangeCipherSpec,	20).
+-define(Alert,					21).
+-define(Handshake,			22).
+-define(Application,			23).
+-define(Heartbeat,			24).
+
+%%Macro definitions for TLS handshake protocal message type
+-define(HelloRequest,			0).
+-define(ClientHello,				1).
+-define(ServerHello,				2).
+-define(NewSessionTicket,		4).
+-define(Certificate,				11).
+-define(ServerKeyExchange,		12).
+-define(CertificateRequest,	13).
+-define(ServerHelloDone,		14).
+-define(CertificateVerify,		15).
+-define(ClientKeyExchange,		16).
+-define(Finished,					20).
 
 %% @headerfile "include/radius.hrl"
 -include_lib("radius/include/radius.hrl").
@@ -111,7 +131,8 @@ ssl_start(timeout, #statedata{start = #radius{code = ?AccessRequest},
 		tls_key = TLSkey, tls_crt = TLScert} = StateData) ->
 	Children = supervisor:which_children(Sup),
 	{_, AaahFsm, _, _} = lists:keyfind(ocs_eap_ttls_aaah_fsm, 1, Children),
-	Options = [{mode, binary}, {certfile, TLScert}, {keyfile, TLSkey}],
+	Options = [{mode, binary}, {certfile, TLScert}, {keyfile, TLSkey},
+			{cacertfile,"/home/prahveen/ocs/ocs.build/priv/CAcert.crt"}],
 	{ok, SslSocket} = ocs_eap_ttls_transport:ssl_listen(self(), Options),
 	gen_fsm:send_event(AaahFsm, {ttls_socket, self(), SslSocket}),
 	NewStateData = StateData#statedata{aaah_fsm = AaahFsm,
@@ -135,7 +156,7 @@ ssl_start({ssl_pid, SslPid}, StateData) ->
 %% @private
 %%
 eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
-		id = RadiusID, authenticator = RequestAuthenticator, 
+		id = RadiusID, authenticator = RequestAuthenticator,
 		attributes = Attributes}, radius_fsm = RadiusFsm, eap_id = EapID,
 		session_id = SessionID, secret = Secret} = StateData) ->
 	EapTtls = #eap_ttls{start = true},
@@ -147,7 +168,7 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 					identifier = EapID, data = EapData},
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-			{next_state, handle_peer, NewStateData, ?TIMEOUT};
+			{next_state, client_hello, NewStateData, ?TIMEOUT};
 		{ok, EAPMessage} ->
 			case catch ocs_eap_codec:eap_packet(EAPMessage) of
 				#eap_packet{code = response,
@@ -158,7 +179,7 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 					send_response(NewEapPacket, ?AccessChallenge,
 							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 					NextStateData = NewStateData#statedata{eap_id = NewEapID},
-					{next_state, handle_peer, NextStateData, ?TIMEOUT};
+					{next_state, client_hello, NextStateData, ?TIMEOUT};
 				#eap_packet{code = request, identifier = NewEapID} ->
 					NewEapPacket = #eap_packet{code = response, type = ?LegacyNak,
 							identifier = NewEapID, data = <<0>>},
@@ -186,35 +207,35 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 					identifier = EapID, data = EapData},
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-			{next_state, handle_peer, NewStateData, ?TIMEOUT}
+			{next_state, client_hello, NewStateData, ?TIMEOUT}
 	end.
 
--spec handle_peer(Event :: timeout | term(), StateData :: #statedata{}) ->
+-spec client_hello(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
 		Timeout :: non_neg_integer() | infinity}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
 		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>handle_peer</b> state.
+%%		gen_fsm:send_event/2} in the <b>client_hello</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-handle_peer(timeout, #statedata{session_id = SessionID} = StateData) ->
+client_hello(timeout, #statedata{session_id = SessionID} = StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
-handle_peer({ssl_setopts, Options}, StateData) ->
+client_hello({ssl_setopts, Options}, StateData) ->
 	NewStateData = StateData#statedata{socket_options = Options},
-	{next_state, handle_peer, NewStateData, ?TIMEOUT};
-handle_peer({#radius{code = ?AccessRequest, id = RadiusID,
+	{next_state, client_hello, NewStateData, ?TIMEOUT};
+client_hello({#radius{code = ?AccessRequest, id = RadiusID,
 		authenticator = RequestAuthenticator, attributes = Attributes},
-		RadiusFsm}, #statedata{eap_id = EapID, ssl_pid = SslPid,
+		RadiusFsm}, #statedata{eap_id = EapID,
 		session_id = SessionID, secret = Secret,
 		rx_length = RxLength, rx_buf = RxBuf} = StateData) ->
 	EapMessages = radius_attributes:get_all(?EAPMessage, Attributes),
 	EapMessage = iolist_to_binary(EapMessages),
 	NewStateData = case {radius_attributes:find(?FramedMtu, Attributes),
 			radius_attributes:find(?NasPortType, Attributes)} of
-		{{ok, MTU}, {ok, 19}} when MTU < 1496 -> % 802.11
+		{{ok, MTU}, {ok, 19}} when MTU > 1496 -> % 802.11
 			StateData#statedata{max_size = MTU - 4,
 					radius_fsm = RadiusFsm, radius_id = RadiusID,
 					req_auth = RequestAuthenticator};
@@ -222,7 +243,7 @@ handle_peer({#radius{code = ?AccessRequest, id = RadiusID,
 			StateData#statedata{max_size = 1496,
 					radius_fsm = RadiusFsm, radius_id = RadiusID,
 					req_auth = RequestAuthenticator};
-		{{ok, MTU}, 15} -> % Ethernet
+		{{ok, MTU}, {ok, 15}} -> % Ethernet
 			StateData#statedata{max_size = MTU - 4,
 					radius_fsm = RadiusFsm, radius_id = RadiusID,
 					req_auth = RequestAuthenticator};
@@ -241,17 +262,19 @@ handle_peer({#radius{code = ?AccessRequest, id = RadiusID,
 		case ocs_eap_codec:eap_ttls(TtlsData) of
 			#eap_ttls{more = false, message_len = undefined,
 					start = false, data = Data} when RxLength == undefined ->
-				ocs_eap_ttls_transport:deliver(SslPid, self(), [RxBuf, Data]),
+				TtlsRecord = iolist_to_binary([RxBuf, Data]),
+				client_hello1(TtlsRecord, StateData),
 				NextStateData = NewStateData#statedata{rx_buf = [],
 						rx_length = undefined},
-				{next_state, handle_ssl, NextStateData, ?TIMEOUT};
+				{next_state, server_hello, NextStateData, ?TIMEOUT};
 			#eap_ttls{more = false, message_len = undefined,
 					start = false, data = Data} ->
 				RxLength = iolist_size([RxBuf, Data]),
-				ocs_eap_ttls_transport:deliver(SslPid, self(), [RxBuf, Data]),
+				TtlsRecord = iolist_to_binary([RxBuf, Data]),
+				client_hello1(TtlsRecord, StateData),
 				NextStateData = NewStateData#statedata{rx_buf = [],
 								rx_length = undefined},
-				{next_state, handle_ssl, NextStateData, ?TIMEOUT};
+				{next_state, server_hello, NextStateData, ?TIMEOUT};
 			#eap_ttls{more = true, message_len = undefined,
 					start = false, data = Data} when RxBuf /= [] ->
 				NewEapID = EapID + 1,
@@ -261,7 +284,7 @@ handle_peer({#radius{code = ?AccessRequest, id = RadiusID,
 				send_response(EapPacket1, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 				NextStateData = NewStateData#statedata{rx_buf = [RxBuf, Data]},
-				{next_state, handle_peer, NextStateData, ?TIMEOUT};
+				{next_state, client_hello, NextStateData, ?TIMEOUT};
 			#eap_ttls{more = true, message_len = MessageLength,
 					start = false, data = Data} ->
 				NewEapID = EapID + 1,
@@ -272,7 +295,7 @@ handle_peer({#radius{code = ?AccessRequest, id = RadiusID,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 				NextStateData = NewStateData#statedata{rx_buf = [Data],
 						rx_length = MessageLength},
-				{next_state, handle_peer, NextStateData, ?TIMEOUT}
+				{next_state, client_hello, NextStateData, ?TIMEOUT}
 		end
 	catch
 		_:_ ->
@@ -281,30 +304,47 @@ handle_peer({#radius{code = ?AccessRequest, id = RadiusID,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, NewStateData}
 	end.
+%% @hidden
+client_hello1(<<?ClientHello, _/binary>> = TtlsRecord,
+		#statedata{ssl_pid = SslPid} = _StateData) ->
+	ocs_eap_ttls_transport:deliver(SslPid, self(), TtlsRecord).
 
--spec handle_ssl(Event :: timeout | term(), StateData :: #statedata{}) ->
+-spec server_hello(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
 		Timeout :: non_neg_integer() | infinity}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
 		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>handle_ssl</b> state.
+%%		gen_fsm:send_event/2} in the <b>server_hello</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
-handle_ssl(timeout, #statedata{session_id = SessionID,
+server_hello(timeout, #statedata{session_id = SessionID,
 		tx_buf = []} = StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
-handle_ssl(timeout, StateData) ->
-	handle_ssl1(StateData);
-handle_ssl({eap_ttls, _SslPid, Data}, #statedata{tx_buf = TxBuf} = StateData) ->
-		NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
-	{next_state, handle_ssl, NewStateData, ?BufTIMEOUT};
-handle_ssl({#radius{code = ?AccessRequest, id = RadiusID,
+server_hello(timeout, StateData) ->
+	server_hello1(StateData);
+server_hello({eap_ttls, _SslPid, <<?Handshake, _:32, ?ServerHello, _/binary >>},
+		#statedata{tx_buf = TxBuf} = StateData) ->
+	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
+	{next_state, server_hello, NewStateData};
+server_hello({eap_ttls, _SslPid, <<?Handshake, _:32, ?Certificate, _/binary >>},
+		#statedata{tx_buf = TxBuf} = StateData) ->
+	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
+	{next_state, server_hello, NewStateData};
+server_hello({eap_ttls, _SslPid, <<?Handshake, _:32, ?ServerKeyExchange, _/binary >>},
+		#statedata{tx_buf = TxBuf} = StateData) ->
+	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
+	{next_state, server_hello, NewStateData};
+server_hello({eap_ttls, _SslPid, <<?Handshake, _:32, ?ServerHelloDone, _/binary >>},
+		#statedata{tx_buf = TxBuf} = StateData) ->
+	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
+	{next_state, server_hello, NewStateData};
+server_hello({#radius{code = ?AccessRequest, id = RadiusID,
 		authenticator = RequestAuthenticator, attributes = Attributes},
 		RadiusFsm}, #statedata{eap_id = EapID, session_id = SessionID,
 		secret = Secret} = StateData) ->
-	NewStateData = StateData#statedata{radius_fsm = RadiusFsm, 
+	NewStateData = StateData#statedata{radius_fsm = RadiusFsm,
       radius_id = RadiusID, req_auth = RequestAuthenticator},
 	EapMessages = radius_attributes:get_all(?EAPMessage, Attributes),
 	EapMessage = iolist_to_binary(EapMessages),
@@ -313,7 +353,7 @@ handle_ssl({#radius{code = ?AccessRequest, id = RadiusID,
 				data = TtlsData} = ocs_eap_codec:eap_packet(EapMessage),
 		#eap_ttls{more = false, message_len = undefined,
 				start = false, data = <<>>} = ocs_eap_codec:eap_ttls(TtlsData),
-		handle_ssl1(NewStateData)
+		server_hello1(NewStateData)
 	catch
 		_:_ ->
 			EapPacket = #eap_packet{code = failure, identifier = EapID},
@@ -322,7 +362,7 @@ handle_ssl({#radius{code = ?AccessRequest, id = RadiusID,
 			{stop, {shutdown, SessionID}, NewStateData}
 	end.
 %% @hidden
-handle_ssl1(#statedata{tx_buf = TxBuf, radius_fsm = RadiusFsm,
+server_hello1(#statedata{tx_buf = TxBuf, radius_fsm = RadiusFsm,
 		radius_id = RadiusID, req_auth = RequestAuthenticator,
 		secret = Secret, eap_id = EapID, max_size = MaxSize} = StateData) ->
 	MaxData = MaxSize - 10,
@@ -337,7 +377,7 @@ handle_ssl1(#statedata{tx_buf = TxBuf, radius_fsm = RadiusFsm,
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = [Rest]},
-			{next_state, handle_ssl, NewStateData, ?TIMEOUT};
+			{next_state, server_hello, NewStateData, ?TIMEOUT};
 		_Size ->
 			EapTtls = #eap_ttls{data = iolist_to_binary(TxBuf)},
 			EapData = ocs_eap_codec:eap_ttls(EapTtls),
@@ -346,7 +386,7 @@ handle_ssl1(#statedata{tx_buf = TxBuf, radius_fsm = RadiusFsm,
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = []},
-			{next_state, handle_peer, NewStateData, ?TIMEOUT}
+			{next_state, client_hello, NewStateData, ?TIMEOUT}
 	end.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
