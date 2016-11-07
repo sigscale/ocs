@@ -340,7 +340,7 @@ server_hello({eap_ttls, _SslPid, <<?Handshake, _:32, ?ServerKeyExchange, _/binar
 server_hello({eap_ttls, _SslPid, <<?Handshake, _:32, ?ServerHelloDone, _/binary >>
 		= Data}, #statedata{tx_buf = TxBuf} = StateData) ->
 	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
-	{next_state, server_hello, NewStateData};
+	server_hello1(NewStateData);
 server_hello({#radius{code = ?AccessRequest, id = RadiusID,
 		authenticator = RequestAuthenticator, attributes = Attributes},
 		RadiusFsm}, #statedata{eap_id = EapID, session_id = SessionID,
