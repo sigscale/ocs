@@ -325,20 +325,20 @@ server_hello(timeout, #statedata{session_id = SessionID,
 	{stop, {shutdown, SessionID}, StateData};
 server_hello(timeout, StateData) ->
 	server_hello1(StateData);
-server_hello({eap_ttls, _SslPid, <<?Handshake, _:32, ?ServerHello, _/binary >>},
-		#statedata{tx_buf = TxBuf} = StateData) ->
+server_hello({eap_ttls, _SslPid, <<?Handshake, _:32, ?ServerHello, _/binary>> 
+		= Data}, #statedata{tx_buf = TxBuf} = StateData) ->
 	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
 	{next_state, server_hello, NewStateData};
-server_hello({eap_ttls, _SslPid, <<?Handshake, _:32, ?Certificate, _/binary >>},
-		#statedata{tx_buf = TxBuf} = StateData) ->
+server_hello({eap_ttls, _SslPid, <<?Handshake, _:32, ?Certificate, _/binary>>
+		= Data}, #statedata{tx_buf = TxBuf} = StateData) ->
 	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
 	{next_state, server_hello, NewStateData};
-server_hello({eap_ttls, _SslPid, <<?Handshake, _:32, ?ServerKeyExchange, _/binary >>},
-		#statedata{tx_buf = TxBuf} = StateData) ->
+server_hello({eap_ttls, _SslPid, <<?Handshake, _:32, ?ServerKeyExchange, _/binary >>
+		= Data}, #statedata{tx_buf = TxBuf} = StateData) ->
 	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
 	{next_state, server_hello, NewStateData};
-server_hello({eap_ttls, _SslPid, <<?Handshake, _:32, ?ServerHelloDone, _/binary >>},
-		#statedata{tx_buf = TxBuf} = StateData) ->
+server_hello({eap_ttls, _SslPid, <<?Handshake, _:32, ?ServerHelloDone, _/binary >>
+		= Data}, #statedata{tx_buf = TxBuf} = StateData) ->
 	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
 	{next_state, server_hello, NewStateData};
 server_hello({#radius{code = ?AccessRequest, id = RadiusID,
