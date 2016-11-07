@@ -400,9 +400,73 @@ server_hello1(#statedata{tx_buf = TxBuf, radius_fsm = RadiusFsm,
 %%		gen_fsm:send_event/2} in the <b>client_key_exchange</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
-client_key_exchange(timeout, #statedata{session_id = SessionID} =
+client_key_exchange(timeout,
+		#statedata{session_id = SessionID} = StateData) ->
+	{stop, {shutdown, SessionID}, StateData};
+client_key_exchange({#radius{code = ?AccessRequest, id = RadiusID,
+		authenticator = RequestAuthenticator, attributes = Attributes},
+		RadiusFsm}, #statedata{eap_id = EapID, session_id = SessionID,
+		secret = Secret, rx_length = RxLength, rx_buf = RxBuf} = StateData) ->
+	EapMessages = radius_attributes:get_all(?EAPMessage, Attributes),
+	EapMessage = iolist_to_binary(EapMessages),
+	NewStateData = StateData#statedata{radius_fsm = RadiusFsm,
+		req_auth = RequestAuthenticator},
+	try
+		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
+				data = TtlsData} = ocs_eap_codec:eap_packet(EapMessage),
+		case ocs_eap_codec:eap_ttls(TtlsData) of
+			#eap_ttls{more = false, message_len = undefined,
+					start = false, data = Data} when RxLength == undefined ->
+				BinTtlsData = iolist_to_binary([RxBuf, Data]),
+				NextStateData = NewStateData#statedata{rx_buf = [],
+						rx_length = undefined},
+				client_key_exchange1(BinTtlsData, NextStateData);
+			#eap_ttls{more = false, message_len = undefined,
+					start = false, data = Data} ->
+				RxLength = iolist_size([RxBuf, Data]),
+				BinTtlsData = iolist_to_binary([RxBuf, Data]),
+				NextStateData = NewStateData#statedata{rx_buf = [],
+								rx_length = undefined},
+				client_key_exchange1(BinTtlsData, NextStateData);
+			#eap_ttls{more = true, message_len = undefined,
+					start = false, data = Data} when RxBuf /= [] ->
+				NewEapID = EapID + 1,
+				TtlsData = ocs_eap_codec:eap_ttls(#eap_ttls{}),
+				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
+						identifier = NewEapID, data = TtlsData},
+				send_response(EapPacket1, ?AccessChallenge,
+					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+				NextStateData = NewStateData#statedata{rx_buf = [RxBuf, Data]},
+				{next_state, client_key_exchange, NextStateData, ?TIMEOUT};
+			#eap_ttls{more = true, message_len = MessageLength,
+					start = false, data = Data} ->
+				NewEapID = EapID + 1,
+				TtlsData = ocs_eap_codec:eap_ttls(#eap_ttls{}),
+				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
+						identifier = NewEapID, data = TtlsData},
+				send_response(EapPacket1, ?AccessChallenge,
+					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+				NextStateData = NewStateData#statedata{rx_buf = [Data],
+						rx_length = MessageLength},
+				{next_state, client_key_exchange, NextStateData, ?TIMEOUT}
+		end
+	catch
+		_:_ ->
+			EapPacket2 = #eap_packet{code = failure, identifier = EapID},
+			send_response(EapPacket2, ?AccessReject,
+					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+			{stop, {shutdown, SessionID}, NewStateData}
+	end.
+%% @hidden
+client_key_exchange1(<<?Handshake, _:32, ?ClientKeyExchange, _/binary>>,
 		StateData) ->
-	{stop, {shutdown, SessionID}, StateData}.
+	{next_state, client_key_exchange, StateData, ?TIMEOUT};
+client_key_exchange1(<<?ChangeCipherSpec, _:32, _/binary>>,
+		StateData) ->
+	{next_state, client_key_exchange, StateData, ?TIMEOUT};
+client_key_exchange1(<<?Handshake, _:32, ?Finished, _/binary>>,
+		StateData) ->
+	{next_state, passthrough, StateData, ?TIMEOUT}.
 
 -spec passthrough(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
