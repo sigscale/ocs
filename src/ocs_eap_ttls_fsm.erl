@@ -325,20 +325,20 @@ server_hello(timeout, #statedata{session_id = SessionID,
 	{stop, {shutdown, SessionID}, StateData};
 server_hello(timeout, StateData) ->
 	server_hello1(StateData);
-server_hello({eap_ttls, _SslPid, <<?Handshake, _:32, ?ServerHello, _/binary>>
-		= Data}, #statedata{tx_buf = TxBuf} = StateData) ->
+server_hello({eap_ttls, _SslPid, [<<?Handshake, _:32>>, [[?ServerHello,
+		_], _]] = Data}, #statedata{tx_buf = TxBuf} = StateData) ->
 	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
 	{next_state, server_hello, NewStateData};
-server_hello({eap_ttls, _SslPid, <<?Handshake, _:32, ?Certificate, _/binary>>
-		= Data}, #statedata{tx_buf = TxBuf} = StateData) ->
+server_hello({eap_ttls, _SslPid, [<<?Handshake, _:32>>, [[?Certificate, 
+		_], _]] = Data}, #statedata{tx_buf = TxBuf} = StateData) ->
 	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
 	{next_state, server_hello, NewStateData};
-server_hello({eap_ttls, _SslPid, <<?Handshake, _:32, ?ServerKeyExchange, _/binary >>
-		= Data}, #statedata{tx_buf = TxBuf} = StateData) ->
+server_hello({eap_ttls, _SslPid, [<<?Handshake, _:32>>, [[?ServerKeyExchange,
+		_], _]] = Data}, #statedata{tx_buf = TxBuf} = StateData) ->
 	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
 	{next_state, server_hello, NewStateData};
-server_hello({eap_ttls, _SslPid, <<?Handshake, _:32, ?ServerHelloDone, _/binary >>
-		= Data}, #statedata{tx_buf = TxBuf} = StateData) ->
+server_hello({eap_ttls, _SslPid, [<<?Handshake, _:32>>, [[?ServerHelloDone,
+		_], _]] = Data}, #statedata{tx_buf = TxBuf} = StateData) ->
 	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
 	server_hello1(NewStateData);
 server_hello({#radius{code = ?AccessRequest, id = RadiusID,
@@ -487,12 +487,12 @@ client_key_exchange1(<<?Handshake, _:16, 1:16, ?Finished, 1>>,
 server_change_cipher_spec(timeout,
 		#statedata{session_id = SessionID} = StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
-server_change_cipher_spec({eap_ttls, _SslPid, <<?ChangeCipherSpec,_/binary>>
-		= Data}, #statedata{tx_buf = TxBuf} = StateData) ->
+server_change_cipher_spec({eap_ttls, _SslPid, [<<?ChangeCipherSpec, _:32>>, [[_,
+	_], _]]	= Data}, #statedata{tx_buf = TxBuf} = StateData) ->
 	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
 	{next_state, server_change_cipher_spec, NewStateData};
-server_change_cipher_spec({eap_ttls, _SslPid,
-		<<?Handshake, _:32, ?Finished, _/binary>> = Data},
+server_change_cipher_spec({eap_ttls, _SslPid, [<<?Handshake, _:32>>, [[?Finished,
+		_], _]] = Data},
 		#statedata{tx_buf = TxBuf, radius_id = RadiusID, radius_fsm = RadiusFsm,
 		req_auth = RequestAuthenticator,secret = Secret,
 		eap_id = EapID} = StateData) ->
