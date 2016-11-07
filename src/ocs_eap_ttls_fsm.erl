@@ -26,7 +26,8 @@
 -export([]).
 
 %% export the ocs_eap_ttls_fsm state callbacks
--export([ssl_start/2, eap_start/2, client_hello/2, server_hello/2]).
+-export([ssl_start/2, eap_start/2, client_hello/2, server_hello/2,
+			client_key_exchange/2, passthrough/2]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
@@ -388,6 +389,34 @@ server_hello1(#statedata{tx_buf = TxBuf, radius_fsm = RadiusFsm,
 			NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = []},
 			{next_state, client_hello, NewStateData, ?TIMEOUT}
 	end.
+
+-spec client_key_exchange(Event :: timeout | term(), StateData :: #statedata{}) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
+%%		gen_fsm:send_event/2} in the <b>client_key_exchange</b> state.
+%% @@see //stdlib/gen_fsm:StateName/2
+%% @private
+client_key_exchange(timeout, #statedata{session_id = SessionID} =
+		StateData) ->
+	{stop, {shutdown, SessionID}, StateData}.
+
+-spec passthrough(Event :: timeout | term(), StateData :: #statedata{}) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
+%%		gen_fsm:send_event/2} in the <b>passthrough</b> state.
+%% @@see //stdlib/gen_fsm:StateName/2
+%% @private
+passthrough(timeout, #statedata{session_id = SessionID} =
+		StateData) ->
+	{stop, {shutdown, SessionID}, StateData}.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
 		StateData :: #statedata{}) ->
