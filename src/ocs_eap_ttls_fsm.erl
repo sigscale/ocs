@@ -461,18 +461,17 @@ client_key_exchange({#radius{code = ?AccessRequest, id = RadiusID,
 client_key_exchange1(<<?Handshake, _:16, Length:16,
 		?ClientKeyExchange, TtlsRecords/binary>>, StateData) ->
 	Size = Length + 5,
-	<<Chunk:Size/binary, Rest/binary>> = TtlsRecords,
+	<<_Chunk:Size/binary, Rest/binary>> = TtlsRecords,
 	client_key_exchange1(Rest, StateData);
-client_key_exchange1(<<?ChangeCipherSpec, _:16, Length:16, CCS>>,
-		#statedata{ssl_pid = SslPid} = StateData) ->
+client_key_exchange1(<<?ChangeCipherSpec, _:16, Length:16, TtlsRecords>>,
+		StateData) ->
 	Size = Length + 5,
-	<<Chunk:Size/binary, Rest/binary>> = TtlsRecords,
+	<<_Chunk:Size/binary, Rest/binary>> = TtlsRecords,
 	client_key_exchange1(Rest, StateData);
 client_key_exchange1(<<?Handshake, _:16, 1:16, ?Finished, 1>>,
-		#statedata{rx_buf = RxBuf} = StateData) ->
+		#statedata{rx_buf = RxBuf, ssl_pid = SslPid} = StateData) ->
 	ocs_eap_ttls_transport:deliver(SslPid, self(), RxBuf),
-	client_key_exchange1(Rest, StateData),
-	{next_state, server_change_cipher_spec, NextStateData, ?TIMEOUT}.
+	{next_state, server_change_cipher_spec, StateData, ?TIMEOUT}.
 
 -spec server_change_cipher_spec(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
