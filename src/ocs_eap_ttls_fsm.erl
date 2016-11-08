@@ -27,7 +27,7 @@
 
 %% export the ocs_eap_ttls_fsm state callbacks
 -export([ssl_start/2, eap_start/2, client_hello/2, server_hello/2,
-			client_key_exchange/2, passthrough/2, server_change_cipher_spec/2]).
+			client_cipher/2, passthrough/2, server_cipher/2]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
@@ -391,23 +391,23 @@ server_hello1(#statedata{tx_buf = TxBuf, radius_fsm = RadiusFsm,
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = []},
-			{next_state, client_key_exchange, NewStateData, ?TIMEOUT}
+			{next_state, client_cipher, NewStateData, ?TIMEOUT}
 	end.
 
--spec client_key_exchange(Event :: timeout | term(), StateData :: #statedata{}) ->
+-spec client_cipher(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
 		Timeout :: non_neg_integer() | infinity}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
 		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>client_key_exchange</b> state.
+%%		gen_fsm:send_event/2} in the <b>client_cipher</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
-client_key_exchange(timeout,
+client_cipher(timeout,
 		#statedata{session_id = SessionID} = StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
-client_key_exchange({#radius{code = ?AccessRequest, id = RadiusID,
+client_cipher({#radius{code = ?AccessRequest, id = RadiusID,
 		authenticator = RequestAuthenticator, attributes = Attributes},
 		RadiusFsm}, #statedata{eap_id = EapID, session_id = SessionID,
 		secret = Secret, rx_length = RxLength, rx_buf = RxBuf} = StateData) ->
@@ -424,14 +424,14 @@ client_key_exchange({#radius{code = ?AccessRequest, id = RadiusID,
 				BinTtlsData = iolist_to_binary([RxBuf, Data]),
 				NextStateData = NewStateData#statedata{rx_buf = [],
 						rx_length = undefined},
-				client_key_exchange1(BinTtlsData, NextStateData);
+				client_cipher1(BinTtlsData, NextStateData);
 			#eap_ttls{more = false, message_len = undefined,
 					start = false, data = Data} ->
 				RxLength = iolist_size([RxBuf, Data]),
 				BinTtlsData = iolist_to_binary([RxBuf, Data]),
 				NextStateData = NewStateData#statedata{rx_buf = [],
 								rx_length = undefined},
-				client_key_exchange1(BinTtlsData, NextStateData);
+				client_cipher1(BinTtlsData, NextStateData);
 			#eap_ttls{more = true, message_len = undefined,
 					start = false, data = Data} when RxBuf /= [] ->
 				NewEapID = EapID + 1,
@@ -441,7 +441,7 @@ client_key_exchange({#radius{code = ?AccessRequest, id = RadiusID,
 				send_response(EapPacket1, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 				NextStateData = NewStateData#statedata{rx_buf = [RxBuf, Data]},
-				{next_state, client_key_exchange, NextStateData, ?TIMEOUT};
+				{next_state, client_cipher, NextStateData, ?TIMEOUT};
 			#eap_ttls{more = true, message_len = MessageLength,
 					start = false, data = Data} ->
 				NewEapID = EapID + 1,
@@ -452,7 +452,7 @@ client_key_exchange({#radius{code = ?AccessRequest, id = RadiusID,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 				NextStateData = NewStateData#statedata{rx_buf = [Data],
 						rx_length = MessageLength},
-				{next_state, client_key_exchange, NextStateData, ?TIMEOUT}
+				{next_state, client_cipher, NextStateData, ?TIMEOUT}
 		end
 	catch
 		_:_ ->
@@ -462,40 +462,40 @@ client_key_exchange({#radius{code = ?AccessRequest, id = RadiusID,
 			{stop, {shutdown, SessionID}, NewStateData}
 	end.
 %% @hidden
-client_key_exchange1(<<?Handshake, _:16, Length:16,
+client_cipher1(<<?Handshake, _:16, Length:16,
 		?ClientKeyExchange, TtlsRecords/binary>>, StateData) ->
 	Size = Length + 5,
 	<<_Chunk:Size/binary, Rest/binary>> = TtlsRecords,
-	client_key_exchange1(Rest, StateData);
-client_key_exchange1(<<?ChangeCipherSpec, _:16, Length:16, TtlsRecords>>,
+	client_cipher1(Rest, StateData);
+client_cipher1(<<?ChangeCipherSpec, _:16, Length:16, TtlsRecords>>,
 		StateData) ->
 	Size = Length + 5,
 	<<_Chunk:Size/binary, Rest/binary>> = TtlsRecords,
-	client_key_exchange1(Rest, StateData);
-client_key_exchange1(<<?Handshake, _:16, 1:16, ?Finished, 1>>,
+	client_cipher1(Rest, StateData);
+client_cipher1(<<?Handshake, _:16, 1:16, ?Finished, 1>>,
 		#statedata{rx_buf = RxBuf, ssl_pid = SslPid} = StateData) ->
 	ocs_eap_ttls_transport:deliver(SslPid, self(), RxBuf),
-	{next_state, server_change_cipher_spec, StateData, ?TIMEOUT}.
+	{next_state, server_cipher, StateData, ?TIMEOUT}.
 
--spec server_change_cipher_spec(Event :: timeout | term(), StateData :: #statedata{}) ->
+-spec server_cipher(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
 		Timeout :: non_neg_integer() | infinity}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
 		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>server_change_cipher_spec</b> state.
+%%		gen_fsm:send_event/2} in the <b>server_cipher</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
-server_change_cipher_spec(timeout,
+server_cipher(timeout,
 		#statedata{session_id = SessionID} = StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
-server_change_cipher_spec({eap_ttls, _SslPid,
+server_cipher({eap_ttls, _SslPid,
 	[<<?ChangeCipherSpec, _:32>> | _]	= Data},
 	#statedata{tx_buf = TxBuf} = StateData) ->
 	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
-	{next_state, server_change_cipher_spec, NewStateData};
-server_change_cipher_spec({eap_ttls, _SslPid,
+	{next_state, server_cipher, NewStateData};
+server_cipher({eap_ttls, _SslPid,
 		[<<?Handshake, _:32>>, [[?Finished | _] | _]] = Data},
 		#statedata{tx_buf = TxBuf, radius_id = RadiusID, radius_fsm = RadiusFsm,
 		req_auth = RequestAuthenticator,secret = Secret,
