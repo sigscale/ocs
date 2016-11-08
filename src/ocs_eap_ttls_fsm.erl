@@ -27,7 +27,7 @@
 
 %% export the ocs_eap_ttls_fsm state callbacks
 -export([ssl_start/2, eap_start/2, client_hello/2, server_hello/2,
-			client_cipher/2, passthrough/2, server_cipher/2]).
+			client_cipher/2, passthrough/2, server_cipher/2, finish/2]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
@@ -494,9 +494,22 @@ server_cipher({eap_ttls, _SslPid,
 	[<<?ChangeCipherSpec, _:32>> | _]	= Data},
 	#statedata{tx_buf = TxBuf} = StateData) ->
 	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
-	{next_state, server_cipher, NewStateData};
-server_cipher({eap_ttls, _SslPid,
-		[<<?Handshake, _:32>>, [[?Finished | _] | _]] = Data},
+	{next_state, finish, NewStateData}.
+
+-spec finish(Event :: timeout | term(), StateData :: #statedata{}) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
+%%		gen_fsm:send_event/2} in the <b>finish</b> state.
+%% @@see //stdlib/gen_fsm:StateName/2
+%% @private
+finish(timeout,
+		#statedata{session_id = SessionID} = StateData) ->
+	{stop, {shutdown, SessionID}, StateData};
+finish({eap_ttls, _SslPid, [<<?Handshake, _:32>> | _] = Data},
 		#statedata{tx_buf = TxBuf, radius_id = RadiusID, radius_fsm = RadiusFsm,
 		req_auth = RequestAuthenticator,secret = Secret,
 		eap_id = EapID} = StateData) ->
