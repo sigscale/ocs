@@ -410,7 +410,8 @@ client_cipher(timeout,
 client_cipher({#radius{code = ?AccessRequest, id = RadiusID,
 		authenticator = RequestAuthenticator, attributes = Attributes},
 		RadiusFsm}, #statedata{eap_id = EapID, session_id = SessionID,
-		secret = Secret, rx_length = RxLength, rx_buf = RxBuf} = StateData) ->
+		secret = Secret, rx_length = RxLength, rx_buf = RxBuf,
+		ssl_pid = SslPid} = StateData) ->
 	EapMessages = radius_attributes:get_all(?EAPMessage, Attributes),
 	EapMessage = iolist_to_binary(EapMessages),
 	NewStateData = StateData#statedata{radius_fsm = RadiusFsm,
@@ -422,16 +423,20 @@ client_cipher({#radius{code = ?AccessRequest, id = RadiusID,
 			#eap_ttls{more = false, message_len = undefined,
 					start = false, data = Data} when RxLength == undefined ->
 				BinTtlsData = iolist_to_binary([RxBuf, Data]),
+				client_cipher1(BinTtlsData, NewStateData),
+				ocs_eap_ttls_transport:deliver(SslPid, self(), [RxBuf, Data]),
 				NextStateData = NewStateData#statedata{rx_buf = [],
 						rx_length = undefined},
-				client_cipher1(BinTtlsData, NextStateData);
+				{next_state, server_cipher, NextStateData};
 			#eap_ttls{more = false, message_len = undefined,
 					start = false, data = Data} ->
 				RxLength = iolist_size([RxBuf, Data]),
 				BinTtlsData = iolist_to_binary([RxBuf, Data]),
+				client_cipher1(BinTtlsData, NewStateData),
+				ocs_eap_ttls_transport:deliver(SslPid, self(), [RxBuf, Data]),
 				NextStateData = NewStateData#statedata{rx_buf = [],
-								rx_length = undefined},
-				client_cipher1(BinTtlsData, NextStateData);
+						rx_length = undefined},
+				{next_state, server_cipher, NextStateData};
 			#eap_ttls{more = true, message_len = undefined,
 					start = false, data = Data} when RxBuf /= [] ->
 				NewEapID = EapID + 1,
@@ -464,18 +469,19 @@ client_cipher({#radius{code = ?AccessRequest, id = RadiusID,
 %% @hidden
 client_cipher1(<<?Handshake, _:16, Length:16,
 		?ClientKeyExchange, TtlsRecords/binary>>, StateData) ->
-	Size = Length + 5,
-	<<_Chunk:Size/binary, Rest/binary>> = TtlsRecords,
+	Size = Length - 1,
+	<<Chunk:Size/binary, Rest/binary>> = TtlsRecords,
 	client_cipher1(Rest, StateData);
-client_cipher1(<<?ChangeCipherSpec, _:16, Length:16, TtlsRecords>>,
+client_cipher1(<<?ChangeCipherSpec, _:16, Length:16, TtlsRecords/binary>>,
 		StateData) ->
-	Size = Length + 5,
+	<<_Chunk:Length/binary, Rest/binary>> = TtlsRecords,
+	client_cipher1(Rest, StateData);
+client_cipher1(<<?Handshake, _:16, Length:16, ?Finished, TtlsRecords/binary>>, StateData) ->
+	Size = Length - 1,
 	<<_Chunk:Size/binary, Rest/binary>> = TtlsRecords,
 	client_cipher1(Rest, StateData);
-client_cipher1(<<?Handshake, _:16, 1:16, ?Finished, 1>>,
-		#statedata{rx_buf = RxBuf, ssl_pid = SslPid} = StateData) ->
-	ocs_eap_ttls_transport:deliver(SslPid, self(), RxBuf),
-	{next_state, server_cipher, StateData, ?TIMEOUT}.
+client_cipher1(<<>>, _StateData) ->
+	ok.
 
 -spec server_cipher(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
