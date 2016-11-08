@@ -231,7 +231,7 @@ client_hello({#radius{code = ?AccessRequest, id = RadiusID,
 		authenticator = RequestAuthenticator, attributes = Attributes},
 		RadiusFsm}, #statedata{eap_id = EapID,
 		session_id = SessionID, secret = Secret,
-		rx_length = RxLength, rx_buf = RxBuf} = StateData) ->
+		rx_length = RxLength, rx_buf = RxBuf, ssl_pid = SslPid} = StateData) ->
 	EapMessages = radius_attributes:get_all(?EAPMessage, Attributes),
 	EapMessage = iolist_to_binary(EapMessages),
 	NewStateData = case {radius_attributes:find(?FramedMtu, Attributes),
@@ -263,16 +263,14 @@ client_hello({#radius{code = ?AccessRequest, id = RadiusID,
 		case ocs_eap_codec:eap_ttls(TtlsData) of
 			#eap_ttls{more = false, message_len = undefined,
 					start = false, data = Data} when RxLength == undefined ->
-				TtlsRecord = iolist_to_binary([RxBuf, Data]),
-				client_hello1(TtlsRecord, StateData),
+				ocs_eap_ttls_transport:deliver(SslPid, self(), [RxBuf, Data]),
 				NextStateData = NewStateData#statedata{rx_buf = [],
 						rx_length = undefined},
 				{next_state, server_hello, NextStateData, ?TIMEOUT};
 			#eap_ttls{more = false, message_len = undefined,
 					start = false, data = Data} ->
 				RxLength = iolist_size([RxBuf, Data]),
-				TtlsRecord = iolist_to_binary([RxBuf, Data]),
-				client_hello1(TtlsRecord, StateData),
+				ocs_eap_ttls_transport:deliver(SslPid, self(), [RxBuf, Data]),
 				NextStateData = NewStateData#statedata{rx_buf = [],
 								rx_length = undefined},
 				{next_state, server_hello, NextStateData, ?TIMEOUT};
@@ -305,10 +303,6 @@ client_hello({#radius{code = ?AccessRequest, id = RadiusID,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, NewStateData}
 	end.
-%% @hidden
-client_hello1(<<?Handshake,_:32, ?ClientHello, _/binary>> = TtlsRecord,
-		#statedata{ssl_pid = SslPid} = _StateData) ->
-	ocs_eap_ttls_transport:deliver(SslPid, self(), TtlsRecord).
 
 -spec server_hello(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
