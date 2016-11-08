@@ -417,7 +417,7 @@ client_cipher({#radius{code = ?AccessRequest, id = RadiusID,
 			#eap_ttls{more = false, message_len = undefined,
 					start = false, data = Data} when RxLength == undefined ->
 				BinTtlsData = iolist_to_binary([RxBuf, Data]),
-				client_cipher1(BinTtlsData, NewStateData),
+				%client_cipher1(BinTtlsData, NewStateData),
 				ocs_eap_ttls_transport:deliver(SslPid, self(), [RxBuf, Data]),
 				NextStateData = NewStateData#statedata{rx_buf = [],
 						rx_length = undefined},
@@ -426,7 +426,7 @@ client_cipher({#radius{code = ?AccessRequest, id = RadiusID,
 					start = false, data = Data} ->
 				RxLength = iolist_size([RxBuf, Data]),
 				BinTtlsData = iolist_to_binary([RxBuf, Data]),
-				client_cipher1(BinTtlsData, NewStateData),
+				%client_cipher1(BinTtlsData, NewStateData),
 				ocs_eap_ttls_transport:deliver(SslPid, self(), [RxBuf, Data]),
 				NextStateData = NewStateData#statedata{rx_buf = [],
 						rx_length = undefined},
@@ -523,7 +523,49 @@ server_cipher({eap_ttls, _SslPid,
 %% @private
 passthrough(timeout, #statedata{session_id = SessionID} =
 		StateData) ->
-	{stop, {shutdown, SessionID}, StateData}.
+	{stop, {shutdown, SessionID}, StateData};
+passthrough({#radius{code = ?AccessRequest, id = RadiusID,
+		authenticator = RequestAuthenticator, attributes = Attributes},
+		RadiusFsm}, #statedata{eap_id = EapID,session_id = SessionID,
+		secret = Secret, ssl_pid = SslPid} = StateData) ->
+	NewStateData = StateData#statedata{req_auth = RequestAuthenticator,
+			radius_fsm = RadiusFsm, radius_id = RadiusID},
+	try
+		EapMessage = radius_attributes:fetch(?EAPMessage, Attributes),
+		case ocs_eap_codec:eap_packet(EapMessage) of
+			#eap_packet{code = response, identifier = EapID, data = TtlsPacket} ->
+				#eap_ttls{data = TtlsData} = ocs_eap_codec:eap_ttls(TtlsPacket),
+				ocs_eap_ttls_transport:deliver(SslPid, self(), [TtlsData]),
+				{next_state, passthrough, NewStateData};
+			#eap_packet{code = request, identifier = NewEapID} ->
+					NewEapPacket = #eap_packet{code = response, type = ?LegacyNak,
+							identifier = NewEapID, data = <<0>>},
+					send_response(NewEapPacket, ?AccessReject,
+							RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+					{stop, {shutdown, SessionID}, NewStateData};
+			#eap_packet{code = Code,
+					type = EapType, identifier = NewEapID, data = Data} ->
+				error_logger:warning_report(["Unknown EAP received",
+						{pid, self()}, {session_id, SessionID},
+						{eap_id, NewEapID}, {code, Code},
+						{type, EapType}, {data, Data}]),
+				NewEapPacket = #eap_packet{code = failure, identifier = NewEapID},
+				send_response(NewEapPacket, ?AccessReject,
+						RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+				{stop, {shutdown, SessionID}, StateData};
+			{'EXIT', _Reason} ->
+				NewEapPacket = #eap_packet{code = failure, identifier = EapID},
+				send_response(NewEapPacket, ?AccessReject,
+						RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+				{stop, {shutdown, SessionID}, StateData}
+		end
+	catch
+		_:_ ->
+			EapPacket1 = #eap_packet{code = failure, identifier = EapID},
+			send_response(EapPacket1, ?AccessReject,
+					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+				{stop, {shutdown, SessionID}, StateData}
+	end.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
 		StateData :: #statedata{}) ->
