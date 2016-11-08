@@ -34,6 +34,7 @@
 
 %% @headerfile "include/radius.hrl"
 -include_lib("radius/include/radius.hrl").
+-include_lib("diameter/include/diameter.hrl").
 
 -record(statedata,
 		{ttls_fsm :: pid(),
@@ -103,11 +104,21 @@ idle({ttls_socket, TtlsFsm, TlsRecordLayerSocket}, StateData) ->
 %% @private
 %%
 request(timeout, #statedata{} = StateData) ->
+erlang:display(fdsafdsdgsgggsgag),
 	{stop, shutdown, StateData};
-request({ssl, SslSocket, Data}, #statedata{ssl_socket = SslSocket,
+request({ssl, SslSocket, AVPs}, #statedata{ssl_socket = SslSocket,
 		ttls_fsm = TtlsFsm} = StateData) ->
-	%gen_fsm:send_event(RadiusFsm, {accept, Data}),
-	{stop, shutdown, StateData};
+	[#diameter_avp{code = ?UserPassword, data = Password},
+			#diameter_avp{code = ?UserName, data = Identity}] 
+			= diameter_codec:collect_avps(AVPs),
+		case request1(Identity, Password) of
+			ok ->
+				gen_fsm:send_event(TtlsFsm, accept),
+				{stop, shutdown, StateData};
+			{error, not_found} ->
+				gen_fsm:send_event(TtlsFsm, accept),
+				{stop, shutdown, StateData}
+		end;
 request({ssl_closed, SslSocket}, #statedata{ssl_socket = SslSocket,
 		ttls_fsm = TtlsFsm} = StateData) ->
 	%gen_fsm:send_event(RadiusFsm, {reject, SslSocket, socket_closed}),
@@ -116,6 +127,16 @@ request({ssl_error, SslSocket, Reason}, #statedata{ssl_socket = SslSocket,
 		ttls_fsm = TtlsFsm} = StateData) ->
 	%gen_fsm:send_event(RadiusFsm, {reject, SslSocket, Reason}),
 	{stop, Reason, StateData}.
+%% @hidden
+request1(Subscriber, Password) ->
+	case ocs:find_subscriber(Subscriber) of
+		{ok, UserPassWord, _, _} ->
+			Size = size(UserPassWord),
+			<<UserPassWord:Size, _/binary>> = Password,
+			ok;
+		{error, not_found} ->
+			{error, not_found}
+	end.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
 		StateData :: #statedata{}) ->
@@ -190,4 +211,3 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
-
