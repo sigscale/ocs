@@ -621,8 +621,8 @@ server_passthrough({accept, UserName}, #statedata{eap_id = EapID,
 		client_rand = ClientRandom, server_rand = ServerRandom}
 		= StateData) ->
 	{ok, <<MSK:64/binary, EMSK:64/binary>>} = ssl:prf(SslSocket,
-			master_secret , "ttls keying material", <<ClientRandom/binary,
-			ServerRandom/binary>>, 64),
+			master_secret , <<"ttls keying material">>, [ClientRandom,
+			ServerRandom], 128),
 	Salt = crypto:rand_uniform(16#8000, 16#ffff),
 	MsMppeKey = encrypt_key(Secret, RequestAuthenticator, Salt, MSK),
 	Attr0 = radius_attributes:new(),
