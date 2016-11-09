@@ -27,7 +27,8 @@
 
 %% export the ocs_eap_ttls_fsm state callbacks
 -export([ssl_start/2, eap_start/2, client_hello/2, server_hello/2,
-			client_cipher/2, passthrough/2, server_cipher/2, finish/2]).
+			client_cipher/2, server_cipher/2, finish/2, client_passthrough/2,
+			server_passthrough/2]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
@@ -522,22 +523,22 @@ finish({eap_ttls, _SslPid, [<<?Handshake, _:32>> | _] = Data},
 	send_response(EapPacket, ?AccessChallenge,
 			RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 	NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = []},
-	{next_state, passthrough, NewStateData}.
+	{next_state, client_passthrough, NewStateData}.
 
--spec passthrough(Event :: timeout | term(), StateData :: #statedata{}) ->
+-spec client_passthrough(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
 		Timeout :: non_neg_integer() | infinity}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
 		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>passthrough</b> state.
+%%		gen_fsm:send_event/2} in the <b>client_passthrough</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
-passthrough(timeout, #statedata{session_id = SessionID} =
+client_passthrough(timeout, #statedata{session_id = SessionID} =
 		StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
-passthrough({#radius{code = ?AccessRequest, id = RadiusID,
+client_passthrough({#radius{code = ?AccessRequest, id = RadiusID,
 		authenticator = RequestAuthenticator, attributes = Attributes},
 		RadiusFsm}, #statedata{eap_id = EapID,session_id = SessionID,
 		secret = Secret, ssl_pid = SslPid} = StateData) ->
@@ -549,7 +550,7 @@ passthrough({#radius{code = ?AccessRequest, id = RadiusID,
 			#eap_packet{code = response, identifier = EapID, data = TtlsPacket} ->
 				#eap_ttls{data = TtlsData} = ocs_eap_codec:eap_ttls(TtlsPacket),
 				ocs_eap_ttls_transport:deliver(SslPid, self(), [TtlsData]),
-				{next_state, passthrough, NewStateData};
+				{next_state, server_passthrough, NewStateData};
 			#eap_packet{code = request, identifier = NewEapID} ->
 					NewEapPacket = #eap_packet{code = response, type = ?LegacyNak,
 							identifier = NewEapID, data = <<0>>},
@@ -579,6 +580,36 @@ passthrough({#radius{code = ?AccessRequest, id = RadiusID,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 				{stop, {shutdown, SessionID}, StateData}
 	end.
+
+-spec server_passthrough(Event :: timeout | term(), StateData :: #statedata{}) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity}
+		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
+%%		gen_fsm:send_event/2} in the <b>server_passthrough</b> state.
+%% @@see //stdlib/gen_fsm:StateName/2
+%% @private
+server_passthrough(timeout, #statedata{session_id = SessionID} =
+		StateData) ->
+	{stop, {shutdown, SessionID}, StateData};
+server_passthrough(accept, #statedata{eap_id = EapID, 
+		session_id = SessionID, secret = Secret,
+		req_auth = RequestAuthenticator, radius_fsm = RadiusFsm,
+		radius_id = RadiusID} = StateData) ->
+	EapPacket = #eap_packet{code = success, identifier = EapID},
+	send_response(EapPacket, ?AccessAccept,
+		RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+	{stop, {shutdown, SessionID}, StateData};
+server_passthrough(reject, #statedata{eap_id = EapID, 
+		session_id = SessionID, secret = Secret,
+		req_auth = RequestAuthenticator, radius_fsm = RadiusFsm,
+		radius_id = RadiusID} = StateData) ->
+	EapPacket = #eap_packet{code = failure, identifier = EapID},
+	send_response(EapPacket, ?AccessReject, RadiusID,
+			[], RequestAuthenticator, Secret, RadiusFsm),
+	{stop, {shutdown, SessionID}, StateData}.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
 		StateData :: #statedata{}) ->
