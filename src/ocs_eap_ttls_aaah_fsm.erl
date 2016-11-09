@@ -148,10 +148,10 @@ handle_info({ssl, SslSocket, AVPs}, request,
 			= diameter_codec:collect_avps(AVPs),
 		case handle_info1(Identity, Password) of
 			ok ->
-				gen_fsm:send_event(TtlsFsm, accept),
+				gen_fsm:send_event(TtlsFsm, {accept, Identity}),
 				{stop, shutdown, StateData};
 			{error, Reason} ->
-				gen_fsm:send_event(TtlsFsm, accept),
+				gen_fsm:send_event(TtlsFsm, reject),
 				{stop, Reason, StateData}
 		end;
 handle_info({ssl_closed, SslSocket}, request, #statedata{ssl_socket = SslSocket,
