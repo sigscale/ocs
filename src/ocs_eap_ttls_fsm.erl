@@ -313,7 +313,7 @@ client_hello({#radius{code = ?AccessRequest, id = RadiusID,
 %% RFC 5246 Section 7.4.1.2
 %% ClientHelloMessage - <<ProtocolVersion:16, Gmt_unix_time:32, ClientRand:28,
 %%		SessionID, CipherSuite, CompressionMethod, ..>>
-client_hello1(<<?Handshake, _:32, ?ClientHello, _:72
+client_hello1(<<?Handshake, _:32, ?ClientHello, _:72,
 		ClientRand:28/binary, _/binary>>, StateData) ->
 	StateData#statedata{client_rand = ClientRand}.
 
@@ -614,13 +614,28 @@ client_passthrough({#radius{code = ?AccessRequest, id = RadiusID,
 server_passthrough(timeout, #statedata{session_id = SessionID} =
 		StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
-server_passthrough(accept, #statedata{eap_id = EapID, 
+server_passthrough({accept, UserName}, #statedata{eap_id = EapID,
 		session_id = SessionID, secret = Secret,
 		req_auth = RequestAuthenticator, radius_fsm = RadiusFsm,
-		radius_id = RadiusID} = StateData) ->
+		radius_id = RadiusID, ssl_socket = SslSocket,
+		client_rand = ClientRandom, server_rand = ServerRandom}
+		= StateData) ->
+	{ok, <<MSK:64/binary, EMSK:64/binary>>} = ssl:prf(SslSocket,
+			master_secret , "ttls keying material", <<ClientRandom/binary,
+			ServerRandom/binary>>, 64),
+	Salt = crypto:rand_uniform(16#8000, 16#ffff),
+	MsMppeKey = encrypt_key(Secret, RequestAuthenticator, Salt, MSK),
+	Attr0 = radius_attributes:new(),
+	Attr1 = radius_attributes:store(?UserName, UserName, Attr0),
+	VendorSpecific1 = {?Microsoft, {?MsMppeSendKey, {Salt, MsMppeKey}}},
+	Attr2 = radius_attributes:add(?VendorSpecific, VendorSpecific1, Attr1),
+	VendorSpecific2 = {?Microsoft, {?MsMppeRecvKey, {Salt, MsMppeKey}}},
+	Attr3 = radius_attributes:add(?VendorSpecific, VendorSpecific2, Attr2),
+	Attr4 = radius_attributes:store(?SessionTimeout, 86400, Attr3),
+	Attr5 = radius_attributes:store(?AcctInterimInterval, 300, Attr4),
 	EapPacket = #eap_packet{code = success, identifier = EapID},
 	send_response(EapPacket, ?AccessAccept,
-		RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+		RadiusID, Attr5, RequestAuthenticator, Secret, RadiusFsm),
 	{stop, {shutdown, SessionID}, StateData};
 server_passthrough(reject, #statedata{eap_id = EapID, 
 		session_id = SessionID, secret = Secret,
@@ -751,4 +766,28 @@ send_response2(RadiusCode, RadiusID, RadiusAttributes,
 			authenticator = ResponseAuthenticator, attributes = Attributes2},
 	ResponsePacket = radius:codec(Response),
 	radius:response(RadiusFsm, {response, ResponsePacket}).
+
+-spec encrypt_key(Secret :: binary(), RequestAuthenticator :: [byte()],
+		Salt :: integer(), Key :: binary()) ->
+	Ciphertext :: binary().
+%% @doc Encrypt the Pairwise Master Key (PMK) according to RFC2548
+%% 	section 2.4.2 for use as String in a MS-MPPE-Send-Key attribute.
+%% @private
+encrypt_key(Secret, RequestAuthenticator, Salt, Key) when (Salt bsr 15) == 1 ->
+	KeyLength = size(Key),
+	Plaintext = case (KeyLength + 1) rem 16 of
+		0 ->
+			<<KeyLength, Key/binary>>;
+		N ->
+			PadLength = (16 - N) * 8,
+			<<KeyLength, Key/binary, 0:PadLength>>
+	end,
+	F = fun(P, [H | _] = Acc) ->
+				B = crypto:hash(md5, [Secret, H]),
+				C = crypto:exor(P, B),
+				[C | Acc]
+	end,
+	AccIn = [[RequestAuthenticator, <<Salt:16>>]],
+	AccOut = lists:foldl(F, AccIn, [P || <<P:16/binary>> <= Plaintext]),
+	iolist_to_binary(tl(lists:reverse(AccOut))).
 
