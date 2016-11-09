@@ -79,6 +79,8 @@
 		rx_buf = [] :: iolist(),
 		tx_buf = [] :: iolist(),
 		ssl_pid :: pid(),
+		client_rand :: binary(),
+		server_rand :: binary(),
 		tls_key :: string(),
 		tls_crt :: string()}).
 
@@ -264,10 +266,11 @@ client_hello({#radius{code = ?AccessRequest, id = RadiusID,
 		case ocs_eap_codec:eap_ttls(TtlsData) of
 			#eap_ttls{more = false, message_len = undefined,
 					start = false, data = Data} when RxLength == undefined ->
+				NextStateData = client_hello1(iolist_to_binary([RxBuf, Data]), NewStateData),
 				ocs_eap_ttls_transport:deliver(SslPid, self(), [RxBuf, Data]),
-				NextStateData = NewStateData#statedata{rx_buf = [],
+				NextNewStateData = NextStateData#statedata{rx_buf = [],
 						rx_length = undefined},
-				{next_state, server_hello, NextStateData, ?TIMEOUT};
+				{next_state, server_hello, NextNewStateData, ?TIMEOUT};
 			#eap_ttls{more = false, message_len = undefined,
 					start = false, data = Data} ->
 				RxLength = iolist_size([RxBuf, Data]),
@@ -304,6 +307,16 @@ client_hello({#radius{code = ?AccessRequest, id = RadiusID,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, NewStateData}
 	end.
+%% @hidden
+%% TLS Record - <<ContentType, Version:16, Length:16, ProtocolMessage>>
+%% ProtocolMessage - <<MessageType, Length:24, ClientHelloMessage>>
+%% RFC 5246 Section 7.4.1.2
+%% ClientHelloMessage - <<ProtocolVersion:16, Gmt_unix_time:32, ClientRand:28,
+%%		SessionID, CipherSuite, CompressionMethod, ..>>
+client_hello1(<<?Handshake, _:32, ?ClientHello, _:72
+		ClientRand:28/binary, _/binary>>, StateData) ->
+	StateData#statedata{client_rand = ClientRand}.
+
 
 -spec server_hello(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
@@ -320,10 +333,17 @@ server_hello(timeout, #statedata{session_id = SessionID,
 	{stop, {shutdown, SessionID}, StateData};
 server_hello(timeout, StateData) ->
 	server_hello1(StateData);
+%% TLS Record - <<ContentType, Version:16, Length:16, ProtocolMessage>>
+%% ProtocolMessage - <<MessageType, Length:24, ServeHelloMessage>>
+%% RFC 5246 Section 7.4.1.3
+%% ServerHelloMessage - <<ProtocolVersion:16, Gmt_unix_time:32, ServerRand:28,
+%%		SessionID, CipherSuite, CompressionMethod, ..>>
 server_hello({eap_ttls, _SslPid,
-		[<<?Handshake, _:32>>, [[?ServerHello | _] | _]] = Data},
+		[<<?Handshake, _:32>>, [[?ServerHello, _,
+		<<_:48, ServerRand:28/binary, _/binary>>] | _]] = Data},
 		#statedata{tx_buf = TxBuf} = StateData) ->
-	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
+	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data],
+			server_rand = ServerRand},
 	{next_state, server_hello, NewStateData};
 server_hello({eap_ttls, _SslPid,
 		[<<?Handshake, _:32>>, [[?Certificate | _] | _]] = Data},
