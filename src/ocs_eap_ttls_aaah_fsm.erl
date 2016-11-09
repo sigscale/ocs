@@ -26,7 +26,7 @@
 -export([]).
 
 %% export the ocs_eap_ttls_aaah_fsm state callbacks
--export([idle/2, request/2]).
+-export([idle/2]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
@@ -92,52 +92,6 @@ idle({ttls_socket, TtlsFsm, TlsRecordLayerSocket}, StateData) ->
 			{stop, Reason, StateData}
 	end.
 
--spec request(Event :: timeout | term(), StateData :: #statedata{}) ->
-	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
-		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>request</b> state.
-%% @@see //stdlib/gen_fsm:StateName/2
-%% @private
-%%
-request(timeout, #statedata{} = StateData) ->
-erlang:display(fdsafdsdgsgggsgag),
-	{stop, shutdown, StateData};
-request({ssl, SslSocket, AVPs}, #statedata{ssl_socket = SslSocket,
-		ttls_fsm = TtlsFsm} = StateData) ->
-	[#diameter_avp{code = ?UserPassword, data = Password},
-			#diameter_avp{code = ?UserName, data = Identity}] 
-			= diameter_codec:collect_avps(AVPs),
-		case request1(Identity, Password) of
-			ok ->
-				gen_fsm:send_event(TtlsFsm, accept),
-				{stop, shutdown, StateData};
-			{error, not_found} ->
-				gen_fsm:send_event(TtlsFsm, accept),
-				{stop, shutdown, StateData}
-		end;
-request({ssl_closed, SslSocket}, #statedata{ssl_socket = SslSocket,
-		ttls_fsm = TtlsFsm} = StateData) ->
-	%gen_fsm:send_event(RadiusFsm, {reject, SslSocket, socket_closed}),
-	{stop, shutdown, StateData};
-request({ssl_error, SslSocket, Reason}, #statedata{ssl_socket = SslSocket,
-		ttls_fsm = TtlsFsm} = StateData) ->
-	%gen_fsm:send_event(RadiusFsm, {reject, SslSocket, Reason}),
-	{stop, Reason, StateData}.
-%% @hidden
-request1(Subscriber, Password) ->
-	case ocs:find_subscriber(Subscriber) of
-		{ok, UserPassWord, _, _} ->
-			Size = size(UserPassWord),
-			<<UserPassWord:Size, _/binary>> = Password,
-			ok;
-		{error, not_found} ->
-			{error, not_found}
-	end.
-
 -spec handle_event(Event :: term(), StateName :: atom(),
 		StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
@@ -186,8 +140,43 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 %% @see //stdlib/gen_fsm:handle_info/3
 %% @private
 %%
-handle_info(_Info, StateName, StateData) ->
-	{next_state, StateName, StateData, ?TIMEOUT}.
+handle_info({ssl, SslSocket, AVPs}, request, 
+		#statedata{ssl_socket = SslSocket,
+		ttls_fsm = TtlsFsm} = StateData) ->
+	[#diameter_avp{code = ?UserPassword, data = Password},
+			#diameter_avp{code = ?UserName, data = Identity}] 
+			= diameter_codec:collect_avps(AVPs),
+		case handle_info1(Identity, Password) of
+			ok ->
+				gen_fsm:send_event(TtlsFsm, accept),
+				{stop, shutdown, StateData};
+			{error, Reason} ->
+				gen_fsm:send_event(TtlsFsm, accept),
+				{stop, Reason, StateData}
+		end;
+handle_info({ssl_closed, SslSocket}, request, #statedata{ssl_socket = SslSocket,
+		ttls_fsm = TtlsFsm} = StateData) ->
+	%gen_fsm:send_event(RadiusFsm, {reject, SslSocket, socket_closed}),
+	{stop, shutdown, StateData};
+handle_info({ssl_error, SslSocket, Reason}, request, #statedata{ssl_socket = SslSocket,
+		ttls_fsm = TtlsFsm} = StateData) ->
+	%gen_fsm:send_event(RadiusFsm, {reject, SslSocket, Reason}),
+	{stop, Reason, StateData}.
+%% @hidden
+handle_info1(Subscriber, Password) ->
+	try
+		case ocs:find_subscriber(Subscriber) of
+			{ok, UserPassWord, _, _, _} ->
+				Size = size(UserPassWord),
+				<<UserPassWord:Size, _/binary>> = Password,
+				ok;
+			{error, not_found} ->
+				{error, not_found}
+		end
+	catch
+		_:_ ->
+			{error, bad_password}
+	end.
 
 -spec terminate(Reason :: normal | shutdown | term(), StateName :: atom(),
 		StateData :: #statedata{}) -> any().
