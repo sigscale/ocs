@@ -614,19 +614,20 @@ client_passthrough({#radius{code = ?AccessRequest, id = RadiusID,
 server_passthrough(timeout, #statedata{session_id = SessionID} =
 		StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
-server_passthrough({accept, UserName}, #statedata{eap_id = EapID,
+server_passthrough({accept, UserName, SslSocket}, #statedata{eap_id = EapID,
 		session_id = SessionID, secret = Secret,
 		req_auth = RequestAuthenticator, radius_fsm = RadiusFsm,
-		radius_id = RadiusID, ssl_socket = SslSocket,
+		radius_id = RadiusID, %ssl_socket = SslSocket,
 		client_rand = ClientRandom, server_rand = ServerRandom}
 		= StateData) ->
 	{ok, <<MSK:64/binary, EMSK:64/binary>>} = ssl:prf(SslSocket,
 			master_secret , <<"ttls keying material">>, [ClientRandom,
 			ServerRandom], 128),
+	Subscriber = binary_to_list(UserName),
 	Salt = crypto:rand_uniform(16#8000, 16#ffff),
 	MsMppeKey = encrypt_key(Secret, RequestAuthenticator, Salt, MSK),
 	Attr0 = radius_attributes:new(),
-	Attr1 = radius_attributes:store(?UserName, UserName, Attr0),
+	Attr1 = radius_attributes:store(?UserName, Subscriber, Attr0),
 	VendorSpecific1 = {?Microsoft, {?MsMppeSendKey, {Salt, MsMppeKey}}},
 	Attr2 = radius_attributes:add(?VendorSpecific, VendorSpecific1, Attr1),
 	VendorSpecific2 = {?Microsoft, {?MsMppeRecvKey, {Salt, MsMppeKey}}},
