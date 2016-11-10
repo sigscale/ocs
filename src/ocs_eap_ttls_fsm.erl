@@ -313,8 +313,8 @@ client_hello({#radius{code = ?AccessRequest, id = RadiusID,
 %% RFC 5246 Section 7.4.1.2
 %% ClientHelloMessage - <<ProtocolVersion:16, Gmt_unix_time:32, ClientRand:28,
 %%		SessionID, CipherSuite, CompressionMethod, ..>>
-client_hello1(<<?Handshake, _:32, ?ClientHello, _:72,
-		ClientRand:28/binary, _/binary>>, StateData) ->
+client_hello1(<<?Handshake, _:32, ?ClientHello, _:40,
+		ClientRand:32/binary, _/binary>>, StateData) ->
 	StateData#statedata{client_rand = ClientRand}.
 
 
@@ -340,7 +340,7 @@ server_hello(timeout, StateData) ->
 %%		SessionID, CipherSuite, CompressionMethod, ..>>
 server_hello({eap_ttls, _SslPid,
 		[<<?Handshake, _:32>>, [[?ServerHello, _,
-		<<_:48, ServerRand:28/binary, _/binary>>] | _]] = Data},
+		<<_:16, ServerRand:32/binary, _/binary>>] | _]] = Data},
 		#statedata{tx_buf = TxBuf} = StateData) ->
 	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data],
 			server_rand = ServerRand},
