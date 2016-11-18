@@ -82,12 +82,12 @@
 ssl_connect(Address, Port, Options) ->
 	ssl:connect(Address, Port, [?cb_info | Options]).
 
--spec deliver(SslPid,Data) ->
+-spec deliver(Data) ->
 	ok when
-		Data :: iodata().
+		Data :: binary().
 %% @doc Deliver received EAP-TTLS payload to SSL.
 deliver(Data) ->
-	self ! {eap_ttls, self(), Data}.
+	self() ! {eap_ttls, self(), Data},
 	ok.
 
 %%----------------------------------------------------------------------
