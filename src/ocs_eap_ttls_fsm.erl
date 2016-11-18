@@ -733,7 +733,7 @@ send_response(#eap_packet{} = EapPacket, RadiusCode, RadiusID, RadiusAttributes,
 	send_response1(BinEapPacket, RadiusCode, RadiusID, RadiusAttributes,
 			RequestAuthenticator, Secret, RadiusFsm).
 %% @hidden
-send_response1(<<Chunk:247/binary, Rest/binary>>, RadiusCode, RadiusID,
+send_response1(<<Chunk:253/binary, Rest/binary>>, RadiusCode, RadiusID,
 		RadiusAttributes, RequestAuthenticator, Secret, RadiusFsm) ->
 	AttrList1 = radius_attributes:add(?EAPMessage, Chunk,
 			RadiusAttributes),

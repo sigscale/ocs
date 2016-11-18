@@ -188,7 +188,7 @@ client_hello(Socket, Address, Port, RadId, EapId, Secret, NasId,
 	access_request(Socket, Address, Port,
 			NasId, AnonymousName, Secret, MAC, RadId, EapMessages).
 
-eap_fragment(<<Chunk:247/binary, Rest/binary>>, RadiusAttributes) ->
+eap_fragment(<<Chunk:253/binary, Rest/binary>>, RadiusAttributes) ->
 	AttributList = radius_attributes:add(?EAPMessage, Chunk,
 			RadiusAttributes),
 	eap_fragment(Rest, AttributList);
