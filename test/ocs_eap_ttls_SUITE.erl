@@ -47,8 +47,8 @@ suite() ->
 %% Initialization before the whole suite.
 %%
 init_per_suite(Config) ->
-	ok = ocs_lib:initialize_db(),
-	ok = ocs_lib:start(),
+	ok = ocs_test_lib:initialize_db(),
+	ok = ocs_test_lib:start(),
 	{ok, AuthAddress} = application:get_env(ocs, radius_auth_addr),
 	SharedSecret = ct:get_config(radius_shared_secret),
 	ok = ocs:add_client(AuthAddress, SharedSecret),
@@ -59,7 +59,7 @@ init_per_suite(Config) ->
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
-	ok = ocs_lib:stop(),
+	ok = ocs_test_lib:stop(),
 	Config.
 
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].

@@ -47,15 +47,15 @@ suite() ->
 %% Initialization before the whole suite.
 %%
 init_per_suite(Config) ->
-	ok = ocs_lib:initialize_db(),
-	ok = ocs_lib:start(),
+	ok = ocs_test_lib:initialize_db(),
+	ok = ocs_test_lib:start(),
 	Config.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
-	ok = ocs_lib:stop(),
+	ok = ocs_test_lib:stop(),
 	Config.
 
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].

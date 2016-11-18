@@ -1,6 +1,6 @@
-%%% ocs_lib.erl
+%%% ocs_test_lib.erl
 %%%
--module(ocs_lib).
+-module(ocs_test_lib).
 
 -export([initialize_db/0, start/0, stop/0]).
 
