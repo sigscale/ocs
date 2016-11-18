@@ -159,7 +159,23 @@ send1(ClientPid, Socket, Address, Port, Secret, NasId, MAC, UserName,
 	Auth = radius:authenticator(),
 	client_hello(Socket, Address, Port, Auth,
 			RadId, EapId, Secret, NasId, MAC, UserName, Data),
-	server_hello(ClientPid, Socket, Address, Port, Auth, RadId, Secret).
+	server_hello(ClientPid, Socket, Address, Port, Auth, RadId, Secret);
+send1(_, _, _, _, _, _, _, _, [<<?Handshake, _:32>>,
+		[[?ClientKeyExchange | _] | _]] = Data) ->
+	ets:new(client_cipher, [named_table]),
+	ets:insert(client_cipher, {key_ex, Data});
+send1(_, _, _, _, _, _, _, _, [<<?ChangeCipherSpec, _:32>> | _] = Data) ->
+	ets:insert(client_cipher, {change_cipher, Data});
+send1(ClientPid, Socket, Address, Port, Secret, NasId, MAC, UserName,
+			[<<?Handshake, _:32>> | _] = Data) ->
+	RadId = 11, EapId = 4,
+	Auth = radius:authenticator(),
+	[{_, KeyEx}] = ets:lookup(client_cipher, key_ex), 
+	[{_, ChangeCipher}] = ets:lookup(client_cipher, change_cipher), 
+	ClientCipher = [KeyEx, ChangeCipher, Data],
+	client_cipher(Socket, Address, Port, Auth,
+			RadId, EapId, Secret, NasId, MAC, UserName, ClientCipher),
+	server_cipher(ClientPid, Socket, Address, Port, Auth, RadId, Secret).
 
 -spec controlling_process(ClientPid, Pid) ->
 	ok | {error, Reason} when
@@ -189,6 +205,25 @@ server_hello(ClientPid, Socket, Address, Port, ReqAuth, RadId, Secret) ->
 			Secret, RadId, ReqAuth),
 	#eap_packet{code = request, type = ?TTLS,
 			identifier = 4, data = TtlsMsg} = ocs_eap_codec:eap_packet(EapMsg),
+	#eap_ttls{data = TtlsData} = ocs_eap_codec:eap_ttls(TtlsMsg),
+	deliver(TtlsData).
+
+client_cipher(Socket, Address, Port, ReqAuth,
+		RadId, EapId, Secret, NasId, MAC, UserName, Data) ->
+	TtlsData = iolist_to_binary(Data),
+	Ttls = ocs_eap_codec:eap_ttls(#eap_ttls{version = 1,data = TtlsData}),
+	EapRecord = #eap_packet{code = response, type = ?TTLS,
+			identifier = EapId, data = Ttls},
+	EapMsg = ocs_eap_codec:eap_packet(EapRecord),
+	EapMessages = eap_fragment(EapMsg, []),
+	access_request(Socket, Address, Port, NasId,
+			UserName, Secret, MAC, ReqAuth,RadId, EapMessages).
+
+server_cipher(ClientPid, Socket, Address, Port, ReqAuth, RadId, Secret) ->
+	EapMsg = access_challenge(Socket, Address, Port,
+			Secret, RadId, ReqAuth),
+	#eap_packet{code = request, type = ?TTLS,
+			identifier = 5, data = TtlsMsg} = ocs_eap_codec:eap_packet(EapMsg),
 	#eap_ttls{data = TtlsData} = ocs_eap_codec:eap_ttls(TtlsMsg),
 	deliver(TtlsData).
 
