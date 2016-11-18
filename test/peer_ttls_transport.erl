@@ -31,7 +31,7 @@
 -export([send/2, controlling_process/2,
 		shutdown/2, close/1, connect/4]).
 %% export public API
--export([ssl_connect/3, deliver/3]).
+-export([ssl_connect/3, deliver/1]).
 
 -export_type([listen_option/0, eap_option/0]).
 
@@ -78,18 +78,16 @@
 	Options :: [term()],
 	SslSocket :: pid(),
 	Reason :: term().
-%% @doc Opens an SSL connection to Host, Port.
+%% @doc Open an SSL connection to Host, Port.
 ssl_connect(Address, Port, Options) ->
 	ssl:connect(Address, Port, [?cb_info | Options]).
 
--spec deliver(SslPid, ClientPid, Data) ->
+-spec deliver(SslPid,Data) ->
 	ok when
-		SslPid :: pid(),
-		ClientPid :: pid(),
 		Data :: iodata().
 %% @doc Deliver received EAP-TTLS payload to SSL.
-deliver(SslPid, ClientPid, Data) ->
-	SslPid ! {eap_ttls, ClientPid, iolist_to_binary(Data)},
+deliver(Data) ->
+	self ! {eap_ttls, self(), Data}.
 	ok.
 
 %%----------------------------------------------------------------------
@@ -105,7 +103,6 @@ connect(Address, Port, SocketOpts, Timeout) ->
 		Reason :: term().
 %% @doc Sets one or more options for an EAP session.
 setopts(ClientPid, Options) when is_pid(ClientPid) -> 
-erlang:display({client_transport, setopts}),
 	case proplists:get_value(active, Options) of
 		undefined ->
 			ok;
@@ -122,7 +119,6 @@ erlang:display({client_transport, setopts}),
 		Reason :: term().
 %% @doc Gets one or more options for an EAP session.
 getopts(ClientPid, Options) when is_pid(ClientPid) ->
-erlang:display({client_transport, getopts}),
 	{ok, []}.
 
 -spec shutdown(ClientPid, How) ->
@@ -155,15 +151,15 @@ send(ClientPid, Data) when is_pid(ClientPid) ->
 	NasId = atom_to_list(node()),
 	AnonymousName = "DonaldTrump",
 	MAC = "dd:ee:ff:aa:bb:cc",
-	send1(Socket, Address, Port, Secret, NasId, MAC, AnonymousName, Data).
+	send1(ClientPid, Socket, Address, Port, Secret, NasId, MAC, AnonymousName, Data).
 %% @hidden
-send1(Socket, Address, Port, Secret, NasId, MAC, UserName,
+send1(ClientPid, Socket, Address, Port, Secret, NasId, MAC, UserName,
 			[<<?Handshake, _:32>>, [[?ClientHello | _] | _]] = Data) ->
 	RadId = 10, EapId = 3,
 	Auth = radius:authenticator(),
 	client_hello(Socket, Address, Port, Auth,
 			RadId, EapId, Secret, NasId, MAC, UserName, Data),
-	server_hello(Socket, Address, Port, Auth, RadId, Secret).
+	server_hello(ClientPid, Socket, Address, Port, Auth, RadId, Secret).
 
 -spec controlling_process(ClientPid, Pid) ->
 	ok | {error, Reason} when
@@ -188,12 +184,13 @@ client_hello(Socket, Address, Port, ReqAuth, RadId, EapId, Secret, NasId,
 	access_request(Socket, Address, Port, NasId,
 			AnonymousName, Secret, MAC, ReqAuth,RadId, EapMessages).
 
-server_hello(Socket, Address, Port, ReqAuth, RadId, Secret) ->
+server_hello(ClientPid, Socket, Address, Port, ReqAuth, RadId, Secret) ->
 	EapMsg = access_challenge(Socket, Address, Port,
 			Secret, RadId, ReqAuth),
 	#eap_packet{code = request, type = ?TTLS,
 			identifier = 4, data = TtlsMsg} = ocs_eap_codec:eap_packet(EapMsg),
-	#eap_ttls{data = TtlsData} = ocs_eap_codec:eap_ttls(TtlsMsg).
+	#eap_ttls{data = TtlsData} = ocs_eap_codec:eap_ttls(TtlsMsg),
+	deliver(TtlsData).
 
 eap_fragment(<<Chunk:253/binary, Rest/binary>>, RadiusAttributes) ->
 	AttributList = radius_attributes:add(?EAPMessage, Chunk,
