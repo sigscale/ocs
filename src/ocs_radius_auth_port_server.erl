@@ -206,11 +206,11 @@ access_request(Address, Port, Secret,
 						undefined
 				end
 		end,
-		EapMessageV = case radius_attributes:find(?EAPMessage, Attributes) of
-			{ok, EapMessage} ->
-				{ok, ocs_eap_codec:eap_packet(EapMessage)};
-			{error, Reason} ->
-				{error, Reason}
+		EapMessageV = case radius_attributes:get_all(?EAPMessage, Attributes) of
+			[] ->
+				{error, not_found};
+			EapMessages ->
+				{ok, ocs_eap_codec:eap_packet(iolist_to_binary(EapMessages))}
 		end,
 		Identity = case EapMessageV of
 			{ok, #eap_packet{code = response, type = ?Identity,
