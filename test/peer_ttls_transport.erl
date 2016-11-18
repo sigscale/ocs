@@ -155,15 +155,15 @@ send(ClientPid, Data) when is_pid(ClientPid) ->
 	NasId = atom_to_list(node()),
 	AnonymousName = "DonaldTrump",
 	MAC = "dd:ee:ff:aa:bb:cc",
-	RadId = 10, EapId = 3,
-	send1(Socket, Address, Port, RadId, EapId, Secret, NasId,
-			MAC, AnonymousName, Data).
+	send1(Socket, Address, Port, Secret, NasId, MAC, AnonymousName, Data).
 %% @hidden
-send1(Socket, Address, Port, RadId, EapId,
-			Secret, NasId, MAC, UserName,
+send1(Socket, Address, Port, Secret, NasId, MAC, UserName,
 			[<<?Handshake, _:32>>, [[?ClientHello | _] | _]] = Data) ->
-	client_hello(Socket, Address, Port, RadId, EapId, Secret, NasId,
-			MAC, UserName, Data).
+	RadId = 10, EapId = 3,
+	Auth = radius:authenticator(),
+	client_hello(Socket, Address, Port, Auth,
+			RadId, EapId, Secret, NasId, MAC, UserName, Data),
+	server_hello(Socket, Address, Port, Auth, RadId, Secret).
 
 -spec controlling_process(ClientPid, Pid) ->
 	ok | {error, Reason} when
@@ -177,7 +177,7 @@ controlling_process(ClientPid, Pid) when is_pid(ClientPid) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
-client_hello(Socket, Address, Port, RadId, EapId, Secret, NasId,
+client_hello(Socket, Address, Port, ReqAuth, RadId, EapId, Secret, NasId,
 			MAC, AnonymousName, Data) ->
 	TtlsData = iolist_to_binary(Data),
 	Ttls = ocs_eap_codec:eap_ttls(#eap_ttls{version = 1,data = TtlsData}),
@@ -185,8 +185,15 @@ client_hello(Socket, Address, Port, RadId, EapId, Secret, NasId,
 			identifier = EapId, data = Ttls},
 	EapMsg = ocs_eap_codec:eap_packet(EapRecord),
 	EapMessages = eap_fragment(EapMsg, []),
-	access_request(Socket, Address, Port,
-			NasId, AnonymousName, Secret, MAC, RadId, EapMessages).
+	access_request(Socket, Address, Port, NasId,
+			AnonymousName, Secret, MAC, ReqAuth,RadId, EapMessages).
+
+server_hello(Socket, Address, Port, ReqAuth, RadId, Secret) ->
+	EapMsg = access_challenge(Socket, Address, Port,
+			Secret, RadId, ReqAuth),
+	#eap_packet{code = request, type = ?TTLS,
+			identifier = 4, data = TtlsMsg} = ocs_eap_codec:eap_packet(EapMsg),
+	#eap_ttls{data = TtlsData} = ocs_eap_codec:eap_ttls(TtlsMsg).
 
 eap_fragment(<<Chunk:253/binary, Rest/binary>>, RadiusAttributes) ->
 	AttributList = radius_attributes:add(?EAPMessage, Chunk,
@@ -198,9 +205,8 @@ eap_fragment(Chunk, RadiusAttributes) ->
 	radius_attributes:add(?EAPMessage, Chunk,
 			RadiusAttributes).
 
-access_request(Socket, Address, Port,
-		NasId, UserName, Secret, MAC, RadId, RadiusAttributes) ->
-	ReqAuth = radius:authenticator(),
+access_request(Socket, Address, Port, NasId,
+		UserName, Secret, MAC, ReqAuth,  RadId, RadiusAttributes) ->
 	A1 = radius_attributes:add(?FramedMtu, 65536, RadiusAttributes),
 	A2 = radius_attributes:add(?UserName, UserName, A1),
 	A3 = radius_attributes:add(?NasPort, 0, A2),
@@ -216,3 +222,25 @@ access_request(Socket, Address, Port,
 	Request2 = Request1#radius{attributes = A7},
 	ReqPacket2 = radius:codec(Request2),
 	ok = gen_udp:send(Socket, Address, Port, ReqPacket2).
+
+access_challenge(Socket, Address, Port, Secret, RadId, ReqAuth) ->
+	receive_radius(?AccessChallenge, Socket, Address, Port, Secret, RadId, ReqAuth).
+
+receive_radius(Code, Socket, Address, Port, Secret, RadId, ReqAuth) ->
+	{ok, {Address, Port, RespPacket1}} = gen_udp:recv(Socket, 0),
+	Resp1 = radius:codec(RespPacket1),
+	#radius{code = Code, id = RadId, authenticator = RespAuth,
+		attributes = BinRespAttr1} = Resp1,
+	Resp2 = Resp1#radius{authenticator = ReqAuth},
+	RespPacket2 = radius:codec(Resp2),
+	RespAuth = binary_to_list(crypto:hash(md5, [RespPacket2, Secret])),
+	RespAttr1 = radius_attributes:codec(BinRespAttr1),
+	{ok, MsgAuth} = radius_attributes:find(?MessageAuthenticator, RespAttr1),
+	RespAttr2 = radius_attributes:store(?MessageAuthenticator,
+			list_to_binary(lists:duplicate(16, 0)), RespAttr1),
+	Resp3 = Resp2#radius{attributes = RespAttr2},
+	RespPacket3 = radius:codec(Resp3),
+	MsgAuth = crypto:hmac(md5, Secret, RespPacket3),
+	EapMsg = radius_attributes:get_all(?EAPMessage, RespAttr1),
+	iolist_to_binary(EapMsg).
+
