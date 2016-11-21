@@ -31,6 +31,7 @@
 		content_types_provided/2,
 		post_is_create/2,
 		create_path/2,
+		find_subscriber/2,
 		add_subscriber/2]).
 
 -include("ocs_wm.hrl").
@@ -88,13 +89,16 @@ content_types_accepted(ReqData, Context) ->
 	ReqData :: rd(), Context :: state()}.
 %% @doc Content negotiation for response body.
 content_types_provided(ReqData, Context) ->
-	case wrq:method(ReqData) of
+	NewReqData = wrq:set_resp_header("Access-Control-Allow-Origin", "*", ReqData),
+	case wrq:method(NewReqData) of
 		'POST' ->
 			{[{"application/hal+json", add_subscriber}], ReqData, Context};
 		Method when Method == 'GET'; Method == 'HEAD' ->
-			case {wrq:path_info(subscriber, ReqData), wrq:req_qs(ReqData)} of
-				{_, [_|_]} ->
-					{[], ReqData, Context}
+			case {wrq:path_info(name, NewReqData), wrq:req_qs(NewReqData)} of
+				{undefined, _} ->
+					{[], NewReqData, Context};
+				{_, []} ->
+					{[{"application/json", find_subscriber}], NewReqData, Context}
 			end
 	end.
 
@@ -137,5 +141,21 @@ add_subscriber(ReqData, #state{subscriber = Subscriber,
 		throw:_ ->
 			{{halt, 400}, ReqData, Context}
 
+	end.
+
+-spec find_subscriber(ReqData :: rd(), Context :: state()) ->
+	{Result :: iodata() | {stream, streambody()} | halt(),
+	 ReqData :: rd(), Context :: state()}.
+%% @doc Body producing function
+find_subscriber(ReqData, Context) ->
+	Name = wrq:path_info(name, ReqData),
+	case ocs:find_subscriber(Name) of
+		{ok, _, Attributes, Balance, _} ->
+			Obj = [{name, Name}, {attributes, Attributes}, {balance, Balance}],
+			JsonObj  = {struct, Obj},
+			Body  = mochijson:encode(JsonObj),
+			{Body, ReqData, Context};
+		{error, _Reason} ->
+			{halt, ReqData, Context}
 	end.
 
