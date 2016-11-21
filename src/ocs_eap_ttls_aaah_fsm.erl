@@ -168,7 +168,7 @@ handle_info1(Subscriber, Password) ->
 		case ocs:find_subscriber(Subscriber) of
 			{ok, UserPassWord, _, _, _} ->
 				Size = size(UserPassWord),
-				<<UserPassWord:Size, _/binary>> = Password,
+				<<UserPassWord:Size/binary, _/binary>> = Password,
 				ok;
 			{error, not_found} ->
 				{error, not_found}
