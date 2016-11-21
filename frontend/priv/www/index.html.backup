@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+		  <head>
+					 <script src="bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+					 <link rel="import" href="bower_components/polymer/polymer.html">
+					 <link rel="import" href="bower_components/paper-header-panel/paper-header-panel.html">
+					 <link rel="import" href="bower_components/iron-flex-layout/iron-flex-layout.html">
+					 <link rel="import" href="bower_components/paper-toolbar/paper-toolbar.html">
+					 <link rel="import" href="bower_components/paper-tabs/paper-tabs.html">
+					 <link rel="import" href="bower_components/iron-pages/iron-pages.html">
+					 <link rel="import" href="sig-add.html">
+					 <link rel="import" href="sig-search.html">
+					 <link rel="import" href="sig-list.html">
+					 <style is="custom-style">
+:root {
+		  --my-custom-color: red;
+		  --paper-tab-ink: var(--my-custom-color);
+
+		  /* custom CSS property */
+		  --paper-tabs-selection-bar-color: blue;
+
+		  /* custom CSS mixin */
+		  --paper-tabs: {
+					 color: var(--default-primary-color); /* variable defined in default-theme.html */
+					 font-size: 25px;
+		  }
+}
+					 </style>
+
+		  </head>
+		  <body  class="fullbleed layout vertical" >
+
+					 <paper-toolbar>
+								<span class="title"><h1>FaciNet Subscribers</h1></span>
+					 </paper-toolbar>
+
+					 <template is="dom-bind">
+					 <paper-tabs selected="{{selected}}">
+								<paper-tab>Add</paper-tab>
+								<paper-tab>Search</paper-tab>
+								<paper-tab>List</paper-tab>
+					 </paper-tabs>
+
+					 <iron-pages selected="{{selected}}">
+								<div><sig-add></sig-add></div>
+								<div><sig-search></sig-search></div>
+								<div><sig-list></sig-list></div>
+					 </iron-pages>
+					 </template>
+		  </body>
+</html>
