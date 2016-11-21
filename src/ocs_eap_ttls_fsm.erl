@@ -586,11 +586,6 @@ client_passthrough({#radius{code = ?AccessRequest, id = RadiusID,
 				NewEapPacket = #eap_packet{code = failure, identifier = NewEapID},
 				send_response(NewEapPacket, ?AccessReject,
 						RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-				{stop, {shutdown, SessionID}, StateData};
-			{'EXIT', _Reason} ->
-				NewEapPacket = #eap_packet{code = failure, identifier = EapID},
-				send_response(NewEapPacket, ?AccessReject,
-						RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 				{stop, {shutdown, SessionID}, StateData}
 		end
 	catch
