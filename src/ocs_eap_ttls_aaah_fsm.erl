@@ -146,7 +146,7 @@ handle_info({ssl, SslSocket, AVPs}, request,
 	[#diameter_avp{code = ?UserPassword, data = Password},
 			#diameter_avp{code = ?UserName, data = Identity}] 
 			= diameter_codec:collect_avps(AVPs),
-		case handle_info1(Identity, Password) of
+		case handle_info1(Identity, iolist_to_binary(Password)) of
 			ok ->
 				gen_fsm:send_event(TtlsFsm, {accept, Identity, SslSocket}),
 				{next_state, request, StateData};
