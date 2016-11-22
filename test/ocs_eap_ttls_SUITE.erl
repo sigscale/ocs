@@ -47,7 +47,14 @@ suite() ->
 %% Initialization before the whole suite.
 %%
 init_per_suite(Config) ->
+	DataDir = ?config(data_dir, Config),
 	ok = ocs_test_lib:initialize_db(),
+	ok = application:set_env(ocs, tls_key,
+			DataDir ++ "ct-key.pem", [{persistent, true}]), 
+	ok = application:set_env(ocs, tls_cert,
+			DataDir ++ "ct-cert.pem", [{persistent, true}]), 
+	ok = application:set_env(ocs, tls_cacert,
+			DataDir ++ "CAcert.pem", [{persistent, true}]), 
 	ok = ocs_test_lib:start(),
 	{ok, AuthAddress} = application:get_env(ocs, radius_auth_addr),
 	SharedSecret = ct:get_config(radius_shared_secret),
@@ -97,6 +104,7 @@ eap_ttls_authentication() ->
 
 eap_ttls_authentication(Config) ->
 erlang:display({config, Config}),
+	DataDir = ?config(data_dir, Config),
 	AnonymousName = "DonaldTrump",
 	Subscriber = <<"45678901">>,
 	MAC = "dd:ee:ff:aa:bb:cc",
@@ -122,8 +130,7 @@ erlang:display({config, Config}),
 	EapId3 = EapId2 + 1,
 	EapId3 = receive_ttls_start(Socket, Address,Port, Secret, ReqAuth2,
 					RadId2),
-	ok = ssl:start(),
-	Options  = [{cacertfile, "/home/prahveen/ocs/ocs.build/priv/CAcert.crt"}],
+	Options  = [{cacertfile, DataDir ++ "CAcert.pem"}],
 	{ok, SslSocket} = peer_ttls_transport:ssl_connect(Address, 0, Options).
 
 send_identity(Socket, Address, Port, NasId,

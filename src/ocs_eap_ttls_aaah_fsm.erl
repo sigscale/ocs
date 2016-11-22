@@ -143,17 +143,24 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 handle_info({ssl, SslSocket, AVPs}, request, 
 		#statedata{ssl_socket = SslSocket,
 		ttls_fsm = TtlsFsm} = StateData) ->
-	[#diameter_avp{code = ?UserPassword, data = Password},
-			#diameter_avp{code = ?UserName, data = Identity}] 
-			= diameter_codec:collect_avps(AVPs),
-		case handle_info1(Identity, Password) of
-			ok ->
-				gen_fsm:send_event(TtlsFsm, {accept, Identity, SslSocket}),
-				{next_state, request, StateData};
-			{error, Reason} ->
-				gen_fsm:send_event(TtlsFsm, reject),
-				{stop, Reason, StateData}
-		end;
+	try
+		AvpList = diameter_codec:collect_avps(AVPs),
+		#diameter_avp{data = Password} = lists:keyfind(?UserPassword, #diameter_avp.code, AvpList),
+		#diameter_avp{data = Identity1} = lists:keyfind(?UserName, #diameter_avp.code, AvpList),
+		handle_info1(Identity1, iolist_to_binary(Password))
+	of
+		{ok, Identity2} ->
+			gen_fsm:send_event(TtlsFsm, {accept, Identity2, SslSocket}),
+			{next_state, request, StateData};
+		{error, Reason} ->
+			gen_fsm:send_event(TtlsFsm, reject),
+			{stop, Reason, StateData}
+	catch
+		_:Reason ->
+			gen_fsm:send_event(TtlsFsm, reject),
+			{stop, Reason, StateData}
+			
+	end;
 handle_info({ssl_closed, SslSocket}, request, #statedata{ssl_socket = SslSocket,
 		ttls_fsm = TtlsFsm} = StateData) ->
 	%gen_fsm:send_event(RadiusFsm, {reject, SslSocket, socket_closed}),
@@ -168,8 +175,8 @@ handle_info1(Subscriber, Password) ->
 		case ocs:find_subscriber(Subscriber) of
 			{ok, UserPassWord, _, _, _} ->
 				Size = size(UserPassWord),
-				<<UserPassWord:Size, _/binary>> = Password,
-				ok;
+				<<UserPassWord:Size/binary, _/binary>> = Password,
+				{ok, Subscriber};
 			{error, not_found} ->
 				{error, not_found}
 		end
