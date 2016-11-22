@@ -69,19 +69,11 @@ The application is configured using the following environment variables:
 		<dd>IP address for RADIUS accounting.</dd>
 	<dt>radius_acct_port</dt>
 		<dd>UCP port for RADIUS accounting.</dd>
-	<dt>rest_addr</dt>
-		<dd>IP address for REST API.</dd>
-	<dt>rest_port</dt>
-		<dd>TCP port for REST API.</dd>
-	<dt>rest_username</dt>
-		<dd>Username for REST API authentication.</dd>
-	<dt>rest_password</dt>
-		<dd>Password for REST API authentication.</dd>
-	<dt>rest_crt</dt>
-		<dd>Public certificate for TLS security on REST API.</dd>
-	<dt>rest_key</dt>
-		<dd>Private key for TLS security on REST API.</dd>
-	<dt>rest_trace</dt>
-		<dd>Path to directory for REST tracing.</dd>
+	<dt>tls_cert</dt>
+		<dd>Public certificate for TLS over EAP.</dd>
+	<dt>tlst_key</dt>
+		<dd>Private key for TLS over EAP.</dd>
+	<dt>tls_cacert</dt>
+		<dd>Certificate Authority certificate for TLS over EAP.</dd>
 </dl>
 

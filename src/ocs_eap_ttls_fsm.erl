@@ -82,7 +82,8 @@
 		client_rand :: binary(),
 		server_rand :: binary(),
 		tls_key :: string(),
-		tls_crt :: string()}).
+		tls_cert :: string(),
+		tls_cacert :: string()}).
 
 -define(TIMEOUT, 30000).
 -define(BufTIMEOUT, 100).
@@ -110,12 +111,13 @@
 %%
 init([Sup, Address, Port, RadiusFsm, Secret, SessionID, AccessRequest] = _Args) ->
 	{ok, TLSkey} = application:get_env(ocs, tls_key),
-	{ok, TLScert} = application:get_env(ocs, tls_crt),
+	{ok, TLScert} = application:get_env(ocs, tls_cert),
+	{ok, TLScacert} = application:get_env(ocs, tls_cacert),
 	{ok, Hostname} = inet:gethostname(),
 	StateData = #statedata{sup = Sup, address = Address, port = Port,
 			radius_fsm = RadiusFsm, secret = Secret, session_id = SessionID,
 			server_id = list_to_binary(Hostname), start = AccessRequest,
-			tls_key = TLSkey, tls_crt = TLScert},
+			tls_key = TLSkey, tls_cert = TLScert, tls_cacert = TLScacert},
 	process_flag(trap_exit, true),
 	{ok, ssl_start, StateData, 0}.
 
@@ -132,11 +134,11 @@ init([Sup, Address, Port, RadiusFsm, Secret, SessionID, AccessRequest] = _Args) 
 %%
 ssl_start(timeout, #statedata{start = #radius{code = ?AccessRequest},
 		ssl_socket = undefined, sup = Sup,
-		tls_key = TLSkey, tls_crt = TLScert} = StateData) ->
+		tls_key = TLSkey, tls_cert = TLScert, tls_cacert = TLScacert} = StateData) ->
 	Children = supervisor:which_children(Sup),
 	{_, AaahFsm, _, _} = lists:keyfind(ocs_eap_ttls_aaah_fsm, 1, Children),
 	Options = [{mode, binary}, {certfile, TLScert}, {keyfile, TLSkey},
-			{cacertfile,"/home/prahveen/ocs/ocs.build/priv/CAcert.crt"}],
+			{cacertfile, TLScacert}],
 	{ok, SslSocket} = ocs_eap_ttls_transport:ssl_listen(self(), Options),
 	gen_fsm:send_event(AaahFsm, {ttls_socket, self(), SslSocket}),
 	NewStateData = StateData#statedata{aaah_fsm = AaahFsm,
@@ -482,21 +484,21 @@ client_cipher({#radius{code = ?AccessRequest, id = RadiusID,
 			{stop, {shutdown, SessionID}, NewStateData}
 	end.
 %% @hidden
-client_cipher1(<<?Handshake, _:16, Length:16,
-		?ClientKeyExchange, TtlsRecords/binary>>, StateData) ->
-	Size = Length - 1,
-	<<Chunk:Size/binary, Rest/binary>> = TtlsRecords,
-	client_cipher1(Rest, StateData);
-client_cipher1(<<?ChangeCipherSpec, _:16, Length:16, TtlsRecords/binary>>,
-		StateData) ->
-	<<_Chunk:Length/binary, Rest/binary>> = TtlsRecords,
-	client_cipher1(Rest, StateData);
-client_cipher1(<<?Handshake, _:16, Length:16, ?Finished, TtlsRecords/binary>>, StateData) ->
-	Size = Length - 1,
-	<<_Chunk:Size/binary, Rest/binary>> = TtlsRecords,
-	client_cipher1(Rest, StateData);
-client_cipher1(<<>>, _StateData) ->
-	ok.
+% client_cipher1(<<?Handshake, _:16, Length:16,
+% 		?ClientKeyExchange, TtlsRecords/binary>>, StateData) ->
+% 	Size = Length - 1,
+% 	<<Chunk:Size/binary, Rest/binary>> = TtlsRecords,
+% 	client_cipher1(Rest, StateData);
+% client_cipher1(<<?ChangeCipherSpec, _:16, Length:16, TtlsRecords/binary>>,
+% 		StateData) ->
+% 	<<_Chunk:Length/binary, Rest/binary>> = TtlsRecords,
+% 	client_cipher1(Rest, StateData);
+% client_cipher1(<<?Handshake, _:16, Length:16, ?Finished, TtlsRecords/binary>>, StateData) ->
+% 	Size = Length - 1,
+% 	<<_Chunk:Size/binary, Rest/binary>> = TtlsRecords,
+% 	client_cipher1(Rest, StateData);
+% client_cipher1(<<>>, _StateData) ->
+% 	ok.
 
 -spec server_cipher(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
