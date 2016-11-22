@@ -33,7 +33,8 @@
 		create_path/2,
 		delete_resource/2,
 		find_subscriber/2,
-		add_subscriber/2]).
+		add_subscriber/2,
+		update_subscriber/2]).
 
 -include("ocs_wm.hrl").
 
@@ -67,7 +68,7 @@ init(Config) ->
 %% @doc If a Method not in this list is requested, then a
 %% 	`405 Method Not Allowed' will be sent.
 allowed_methods(ReqData, Context) ->
-	{['POST', 'GET', 'HEAD', 'DELETE'], ReqData, Context}.
+	{['POST', 'GET', 'HEAD', 'DELETE', 'PUT'], ReqData, Context}.
 
 -spec content_types_accepted(ReqData :: rd(), Context :: state()) ->
 	{[{MediaType :: string(), Handler :: atom()}],
@@ -77,6 +78,8 @@ content_types_accepted(ReqData, Context) ->
 	case wrq:method(ReqData) of
 		'POST' ->
 			{[{"application/json", add_subscriber}], ReqData, Context};
+		'PUT' ->
+			{[{"application/json", update_subscriber}], ReqData, Context};
 		'GET' ->
 			{[], ReqData, Context};
 		'HEAD' ->
@@ -94,6 +97,8 @@ content_types_provided(ReqData, Context) ->
 	case wrq:method(NewReqData) of
 		'POST' ->
 			{[{"application/hal+json", add_subscriber}], ReqData, Context};
+		'PUT' ->
+			{[{"application/json", update_subscriber}], ReqData, Context};
 		Method when Method == 'GET'; Method == 'HEAD' ->
 			case {wrq:path_info(name, NewReqData), wrq:req_qs(NewReqData)} of
 				{undefined, _} ->
@@ -135,7 +140,6 @@ create_path(ReqData, Context) ->
 %% @doc Called when a DELETE request should be enacted, and returns true
 %% if the deletion succeeded.
 delete_resource(ReqData, Context) ->
-erlang:display(delete_resource),
 	Name = wrq:path_info(name, ReqData),
 	ok = ocs:delete_subscriber(Name),
 	{true, ReqData, Context}.
@@ -158,6 +162,35 @@ add_subscriber(ReqData, #state{subscriber = Subscriber,
 			{{halt, 400}, ReqData, Context}
 
 	end.
+
+-spec update_subscriber(ReqData :: rd(), Context :: state()) ->
+	{true | halt(), ReqData :: rd(), Context :: state()}.
+%% @doc	Updates a existing `subscriber' 
+update_subscriber(ReqData, #state{subscriber = Subscriber,
+		current_password = Password, attributes = ArrayAttributes,
+		balance = Balance} = Context) ->
+	Name = wrq:path_info(name, ReqData),
+	case ocs:find_subscriber(Name) of
+		{ok, Password, _, _, _} ->
+			try 
+				Body = wrq:req_body(ReqData),
+				{struct, Object} = mochijson:decode(Body),
+				{_, Password} = lists:keyfind("password", 1, Object),
+				{_, Attributes} = lists:keyfind("attributes", 1, Object),
+				case ocs:update_attribute(Subscriber, Password, Attributes) of
+					ok ->
+						{true, ReqData, Context};
+					{error, _Reason} ->
+						{{halt, 400}, ReqData, Context}
+				end 
+			catch
+				throw:_ ->
+					{{halt, 400}, ReqData, Context}
+			end;
+		{error, _Reason} ->
+			{{halt, 400}, ReqData, Context}
+	end.
+
 
 -spec find_subscriber(ReqData :: rd(), Context :: state()) ->
 	{Result :: iodata() | {stream, streambody()} | halt(),
