@@ -40,7 +40,8 @@
 		{subscriber :: string(),
 		current_password :: string(),
 		new_password :: string(),
-		attributes :: radius_attributes:attributes()}).
+		attributes :: radius_attributes:attributes(),
+		balance :: integer()}).
 
 %%----------------------------------------------------------------------
 %%  webmachine callbacks
@@ -74,8 +75,7 @@ allowed_methods(ReqData, Context) ->
 content_types_accepted(ReqData, Context) ->
 	case wrq:method(ReqData) of
 		'POST' ->
-			{[{"application/json",
-					add_subscriber}], ReqData, Context};
+			{[{"application/json", add_subscriber}], ReqData, Context};
 		'GET' ->
 			{[], ReqData, Context};
 		'HEAD' ->
@@ -118,9 +118,10 @@ create_path(ReqData, Context) ->
 		{_, Subscriber} = lists:keyfind("subscriber", 1, Object),
 		{_, Password} = lists:keyfind("password", 1, Object),
 		{_, {array, ArrayAttributes}} = lists:keyfind("attributes", 1, Object),
+		{_, Balance} = lists:keyfind("balance", 1, Object),
 		NewContext = Context#state{subscriber = Subscriber, current_password = Password,
-			attributes = ArrayAttributes},
-		{"adrian", ReqData, NewContext}
+			attributes = ArrayAttributes, balance = Balance},
+		{Subscriber, ReqData, NewContext}
 	catch
 		_Error ->
 			{{halt, 400}, ReqData, Context}
@@ -130,9 +131,11 @@ create_path(ReqData, Context) ->
 	{true | halt(), ReqData :: rd(), Context :: state()}.
 %% @doc POST processing function.
 add_subscriber(ReqData, #state{subscriber = Subscriber,
-		current_password = Password, attributes = ArrayAttributes} = Context) ->
+		current_password = Password, attributes = ArrayAttributes,
+		balance = Balance} = Context) ->
 	try
-	case catch ocs:add_subscriber(Subscriber, Password, []) of
+	case catch ocs:add_subscriber(Subscriber, Password,
+			ArrayAttributes, Balance) of
 		ok ->
 			{true, ReqData, Context};
 		{error, Reason} ->
