@@ -31,6 +31,7 @@
 		content_types_provided/2,
 		post_is_create/2,
 		create_path/2,
+		delete_resource/2,
 		find_subscriber/2,
 		add_subscriber/2]).
 
@@ -99,7 +100,9 @@ content_types_provided(ReqData, Context) ->
 					{[], NewReqData, Context};
 				{_, []} ->
 					{[{"application/json", find_subscriber}], NewReqData, Context}
-			end
+			end;
+		'DELETE' ->
+			{[{"application/json", delete_subscriber}], NewReqData, Context}
 	end.
 
 -spec post_is_create(ReqData :: rd(), Context :: state()) ->
@@ -126,6 +129,16 @@ create_path(ReqData, Context) ->
 		_Error ->
 			{{halt, 400}, ReqData, Context}
 	end.
+
+-spec delete_resource(ReqData :: rd(), Context :: state()) ->
+	{Result :: boolean() | halt(), ReqData :: rd(), Context :: state()}.
+%% @doc Called when a DELETE request should be enacted, and returns true
+%% if the deletion succeeded.
+delete_resource(ReqData, Context) ->
+erlang:display(delete_resource),
+	Name = wrq:path_info(name, ReqData),
+	ok = ocs:delete_subscriber(Name),
+	{true, ReqData, Context}.
 
 -spec add_subscriber(ReqData :: rd(), Context :: state()) ->
 	{true | halt(), ReqData :: rd(), Context :: state()}.
