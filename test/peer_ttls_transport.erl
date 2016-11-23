@@ -97,10 +97,10 @@ deliver(SslPid, ClientPid, Data) when is_pid(SslPid), is_pid(ClientPid) ->
 %%  peer_ttls_transport callbacks
 %%----------------------------------------------------------------------
 -spec connect(Address, ClientPid, SocketOpts, Timeout) ->
-		{ok, ClinetPid} when
+		{ok, ClientPid} when
 	Address :: inet:socket_address() | inet:hostname(),
 	ClientPid :: pid(),
-	SocketOpts :: [trems()],
+	SocketOpts :: [term()],
 	Timeout :: timeout().
 %% @doc Connects to the EAP session
 connect(Address, ClientPid, SocketOpts, Timeout) ->
