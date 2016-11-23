@@ -146,7 +146,8 @@ delete_resource(ReqData, Context) ->
 
 -spec add_subscriber(ReqData :: rd(), Context :: state()) ->
 	{true | halt(), ReqData :: rd(), Context :: state()}.
-%% @doc POST processing function.
+%% @doc Respond to `POST /ocs/subscriber' and add a new `subscriber'
+%% resource.
 add_subscriber(ReqData, #state{subscriber = Subscriber,
 		current_password = Password, attributes = ArrayAttributes,
 		balance = Balance} = Context) ->
