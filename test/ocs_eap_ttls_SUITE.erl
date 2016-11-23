@@ -164,6 +164,7 @@ eap_ttls_authentication(Config) ->
 			NasId, AnonymousName, Secret, MAC, ReqAuth5, EapId4, RadId5),
 	{RadId7, EapId5, ServerCipher} = server_cipher(Socket, Address, Port, NasId,
 			AnonymousName, Secret, MAC, CCAuth, RadId6),
+	peer_ttls_transport:deliver(SslPid2, self(), ServerCipher),
 	SslSocket = ssl_handshake(),
 	ok = ssl:send(SslSocket, "testing123").
 	
