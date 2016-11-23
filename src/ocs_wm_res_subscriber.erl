@@ -100,7 +100,7 @@ content_types_provided(ReqData, Context) ->
 		'PUT' ->
 			{[{"application/json", update_subscriber}], ReqData, Context};
 		Method when Method == 'GET'; Method == 'HEAD' ->
-			case {wrq:path_info(name, NewReqData), wrq:req_qs(NewReqData)} of
+			case {wrq:path_info(identity, NewReqData), wrq:req_qs(NewReqData)} of
 				{undefined, _} ->
 					{[], NewReqData, Context};
 				{_, []} ->
@@ -140,7 +140,7 @@ create_path(ReqData, Context) ->
 %% @doc Called when a DELETE request should be enacted, and returns true
 %% if the deletion succeeded.
 delete_resource(ReqData, Context) ->
-	Name = wrq:path_info(name, ReqData),
+	Name = wrq:path_info(identity, ReqData),
 	ok = ocs:delete_subscriber(Name),
 	{true, ReqData, Context}.
 
@@ -169,7 +169,7 @@ add_subscriber(ReqData, #state{subscriber = Subscriber,
 update_subscriber(ReqData, #state{subscriber = Subscriber,
 		current_password = Password, attributes = ArrayAttributes,
 		balance = Balance} = Context) ->
-	Name = wrq:path_info(name, ReqData),
+	Name = wrq:path_info(identity, ReqData),
 	case ocs:find_subscriber(Name) of
 		{ok, Password, _, _, _} ->
 			try 
@@ -197,10 +197,10 @@ update_subscriber(ReqData, #state{subscriber = Subscriber,
 	 ReqData :: rd(), Context :: state()}.
 %% @doc Body producing function
 find_subscriber(ReqData, Context) ->
-	Name = wrq:path_info(name, ReqData),
+	Name = wrq:path_info(identity, ReqData),
 	case ocs:find_subscriber(Name) of
 		{ok, _, Attributes, Balance, _} ->
-			Obj = [{name, Name}, {attributes, Attributes}, {balance, Balance}],
+			Obj = [{identity, Name}, {attributes, Attributes}, {balance, Balance}],
 			JsonObj  = {struct, Obj},
 			Body  = mochijson:encode(JsonObj),
 			{Body, ReqData, Context};
