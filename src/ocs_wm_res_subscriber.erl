@@ -195,7 +195,8 @@ update_subscriber(ReqData, #state{subscriber = Subscriber,
 -spec find_subscriber(ReqData :: rd(), Context :: state()) ->
 	{Result :: iodata() | {stream, streambody()} | halt(),
 	 ReqData :: rd(), Context :: state()}.
-%% @doc Body producing function
+%% @doc Body producing function for `GET /ocs/subscriber/{identity}' 
+%% requests
 find_subscriber(ReqData, Context) ->
 	Name = wrq:path_info(identity, ReqData),
 	case ocs:find_subscriber(Name) of
