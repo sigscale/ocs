@@ -181,7 +181,7 @@ update_subscriber(ReqData, Context) ->
 				ok = case Type of
 					"attributes" ->
 						{_, Attributes} = lists:keyfind("attributes", 1, Object),
-						ocs:update_attribute(Identity, Password, Attributes);
+						ocs:update_attributes(Identity, Password, Attributes);
 					"password" ->
 						{_, NewPassword } = lists:keyfind("newpassword", 1, Object),
 						ocs:update_password(Identity, Password, NewPassword)
