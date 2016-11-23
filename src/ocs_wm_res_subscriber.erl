@@ -165,26 +165,29 @@ add_subscriber(ReqData, #state{subscriber = Subscriber,
 
 -spec update_subscriber(ReqData :: rd(), Context :: state()) ->
 	{true | halt(), ReqData :: rd(), Context :: state()}.
-%% @doc	Updates a existing `subscriber' 
-update_subscriber(ReqData, #state{subscriber = Subscriber,
-		current_password = Password, attributes = ArrayAttributes,
-		balance = Balance} = Context) ->
-	Name = wrq:path_info(identity, ReqData),
-	case ocs:find_subscriber(Name) of
+%% @doc	Respond to `PUT /ocs/subscriber/{identity}' request and
+%% Updates a existing `subscriber''s password or attributes. 
+update_subscriber(ReqData, Context) ->
+	Identity = wrq:path_info(identity, ReqData),
+	case ocs:find_subscriber(Identity) of
 		{ok, Password, _, _, _} ->
 			try 
 				Body = wrq:req_body(ReqData),
 				{struct, Object} = mochijson:decode(Body),
-				{_, Password} = lists:keyfind("password", 1, Object),
-				{_, Attributes} = lists:keyfind("attributes", 1, Object),
-				case ocs:update_attribute(Subscriber, Password, Attributes) of
-					ok ->
-						{true, ReqData, Context};
-					{error, _Reason} ->
-						{{halt, 400}, ReqData, Context}
-				end 
+				{_, RecvPwd} = lists:keyfind("password", 1, Object),
+				Password = list_to_binary(RecvPwd),
+				{_, Type} = lists:keyfind("update", 1, Object),
+				ok = case Type of
+					"attributes" ->
+						{_, Attributes} = lists:keyfind("attributes", 1, Object),
+						ocs:update_attribute(Identity, Password, Attributes);
+					"password" ->
+						{_, NewPassword } = lists:keyfind("newpassword", 1, Object),
+						ocs:update_password(Identity, Password, NewPassword)
+				end,
+				{true, ReqData, Context}
 			catch
-				throw:_ ->
+				throw : _ ->
 					{{halt, 400}, ReqData, Context}
 			end;
 		{error, _Reason} ->
