@@ -25,7 +25,7 @@
 -export([add_subscriber/3, add_subscriber/4, find_subscriber/1,
 			delete_subscriber/1, update_password/3, update_attributes/3]).
 -export([log_file/1]).
--export([generate_password/0]).
+-export([generate_password/0, term_to_uri/1, uri_to_term/1]).
 -export([start/3]).
 %% export the ocs private API
 -export([authorize/2]).
@@ -365,4 +365,18 @@ authorize(Subscriber, Password) when is_binary(Subscriber),
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
+
+-spec term_to_uri(Term :: term()) -> URI :: string().
+%% @doc Encode a term for use in a URI.
+%% 	Convert a `term()' to external term format and encode for use in a URI.
+term_to_uri(Term) ->
+	External = binary_to_list(term_to_binary(Term)),
+	lists:flatten([io_lib:fwrite("%~2.16.0b", [X]) || X <- External]).
+
+-spec uri_to_term(URI :: string()) -> Term :: term().
+%% @doc Decode a URI into a term.
+%% 	Convert a URI encoded with external term format into a `term()'.
+uri_to_term(URI) ->
+	External = [list_to_integer(X, 16) || X <- string:tokens(URI, [$%])],
+	binary_to_term(list_to_binary(External), [safe]).
 
