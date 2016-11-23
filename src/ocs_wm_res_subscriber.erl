@@ -137,8 +137,8 @@ create_path(ReqData, Context) ->
 
 -spec delete_resource(ReqData :: rd(), Context :: state()) ->
 	{Result :: boolean() | halt(), ReqData :: rd(), Context :: state()}.
-%% @doc Called when a DELETE request should be enacted, and returns true
-%% if the deletion succeeded.
+%% @doc Respond to `DELETE /ocs/subscriber/{identity}' request and deletes
+%% a `subscriber' resource. If the deletion is succeeded return true.
 delete_resource(ReqData, Context) ->
 	Name = wrq:path_info(identity, ReqData),
 	ok = ocs:delete_subscriber(Name),
