@@ -164,9 +164,18 @@ eap_ttls_authentication(Config) ->
 			NasId, AnonymousName, Secret, MAC, ReqAuth5, EapId4, RadId5),
 	{RadId7, EapId5, ServerCipher} = server_cipher(Socket, Address, Port, NasId,
 			AnonymousName, Secret, MAC, CCAuth, RadId6),
-	peer_ttls_transport:deliver(SslPid2, self(), ServerCipher),
+	peer_ttls_transport:deliver(SslPid1, self(), 
+			iolist_to_binary(ServerCipher)),
+	[<<?Handshake, _:32>>, [[?ClientHello, _,
+			<<_:16, CR:32/binary, _/binary>>]| _ ]] = ClientHelloMsg,
+	<<?Handshake, _:32, ?ServerHello, _:24,
+			_:16, SR:32/binary,  _/binary>> = list_to_binary(ServerHello),  
 	SslSocket = ssl_handshake(),
-	ok = ssl:send(SslSocket, "testing123").
+	Alert = ssl_handshake(), %% Resaon ?
+	Seed = <<CR/binary, SR/binary>>,
+	{ok, <<MSK:64/binary, EMSK:64/binary>>} = ssl:prf(SslSocket,
+			master_secret , <<"ttls keying material">>, Seed, 128),
+	ok = ssl:send(SslSocket, <<"testing123">>).
 	
 send_identity(Socket, Address, Port, NasId, AnonymousName, Secret, MAC,
 		Auth, EapId, RadId) ->
