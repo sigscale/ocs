@@ -129,7 +129,7 @@ create_path(ReqData, Context) ->
 		{_, Balance} = lists:keyfind("balance", 1, Object),
 		NewContext = Context#state{subscriber = Subscriber, current_password = Password,
 			attributes = ArrayAttributes, balance = Balance},
-		{Subscriber, ReqData, NewContext}
+		{ocs:term_to_uri(Subscriber), ReqData, NewContext}
 	catch
 		_Error ->
 			{{halt, 400}, ReqData, Context}
@@ -202,7 +202,8 @@ update_subscriber(ReqData, Context) ->
 %% @doc Body producing function for `GET /ocs/subscriber/{identity}' 
 %% requests
 find_subscriber(ReqData, Context) ->
-	Name = wrq:path_info(identity, ReqData),
+	UriIdentity = wrq:path_info(identity, ReqData),
+	Name = ocs:uri_to_term(UriIdentity),
 	case ocs:find_subscriber(Name) of
 		{ok, _, Attributes, Balance, _} ->
 			Obj = [{identity, Name}, {attributes, Attributes}, {balance, Balance}],
