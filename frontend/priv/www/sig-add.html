@@ -1,0 +1,112 @@
+<link rel="import" href="bower_components/polymer/polymer.html">
+<link rel="import" href="bower_components/iron-form/iron-form.html">
+<link rel="import" href="bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="bower_components/paper-button/paper-button.html">
+<link rel="import" href="bower_components/paper-input/paper-input.html">
+<link rel="import" href="bower_components/paper-styles/paper-styles.html">
+<link rel="import" href="bower_components/paper-styles/typography.html">
+
+<dom-module id="sig-add">
+
+		  <template>
+					 <style> /* local DOM styles go here */ :host { display: inline-block; width:100%;} iron-icon { fill: rgba(0,0,0,0); stroke: currentcolor; } :host([pressed]) iron-icon { fill: currentcolor; }
+					 </style>
+
+					 <style is="custom-style"> 
+.flex-horizontal { @apply(--layout-horizontal); } 
+.flexchild { @apply(--layout-flex); padding-left: 2%;padding-top: 1%;
+    padding-right: 20%;} 
+
+paper-button.custom {
+		  --paper-button-ink-color: var(--paper-pink-a200);
+		  /* These could also be individually defined for each of the
+			  specific css classes, but we'll just do it once as an example */
+		  --paper-button-flat-keyboard-focus: {
+					 background-color: var(--paper-pink-a200);
+					 color: white !important;
+		  };
+--paper-button-raised-keyboard-focus: {
+		  background-color: var(--paper-pink-a200) !important;
+		  color: white !important;
+};
+}
+							  paper-button.custom:hover {
+										 background-color: var(--paper-indigo-100);
+							  }
+							  paper-button.pink {
+										 color: var(--paper-pink-a200);
+
+							  }
+							  paper-button.indigo {
+										 background-color: var(--paper-indigo-500);
+										 color: white;
+										 --paper-button-raised-keyboard-focus: {
+													background-color: var(--paper-pink-a200) !important;
+													color: white !important;
+										 };
+							  }
+							  paper-button.green {
+										 background-color: var(--paper-green-500);
+										 color: white;
+							  }
+							  paper-button.green[active] {
+										 background-color: var(--paper-red-500);
+							  }
+							  paper-button.disabled {
+										 color: white;
+							  }
+					 </style>
+
+					 <div class="container flex-horizontal"  >
+								<div class="flexchild">
+
+										  <form  is="iron-form"  id="presubmit" method="post" action="_ah/spi/" >
+													 <paper-input name="name" label="Subscriber" required></paper-input>
+													 <paper-input name="password" type="password" label="Password"required ></paper-input>
+													 <paper-input name="attributes" label="Attributes" disabled></paper-input>
+								<paper-input name="balance" type="number" label="Balance (MB)" required> </paper-input>
+								<paper-button raised class="custom indigo" onclick="_submit()">Submit</paper-button>
+										  </form>
+								</div>
+
+
+								<div><img src="subscriber.png"></div>
+
+					 </div>
+
+
+
+					 <script>
+
+function _submit() {
+		  Polymer.dom(event).localTarget.parentElement.submit();
+		  console.log("Submitted");
+}
+presubmit.addEventListener('iron-form-presubmit', function(event) {
+		  //       this.request.contentType = "application/json";
+});
+presubmit.addEventListener('iron-form-response', function(event) {
+		  location.reload();
+		  console.log("Inside pre-submit");
+});
+					 </script>
+		  </template>
+
+		  <script>
+Polymer({
+		  is: 'sig-add',
+
+		  properties:{},
+		  listeners: {
+					 'presubmit.iron-form-submit': '_handleFormSubmit'
+		  },
+
+		  responseHandler: function(data) {
+					 console.log(data);
+		  },
+		  _handleFormSubmit: function() {
+					 console.log('Form submitted successfully');
+		  }   
+});
+		  </script>
+</dom-module>

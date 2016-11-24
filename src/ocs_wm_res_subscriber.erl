@@ -31,7 +31,10 @@
 		content_types_provided/2,
 		post_is_create/2,
 		create_path/2,
-		add_subscriber/2]).
+		delete_resource/2,
+		find_subscriber/2,
+		add_subscriber/2,
+		update_subscriber/2]).
 
 -include("ocs_wm.hrl").
 
@@ -39,7 +42,8 @@
 		{subscriber :: string(),
 		current_password :: string(),
 		new_password :: string(),
-		attributes :: radius_attributes:attributes()}).
+		attributes :: radius_attributes:attributes(),
+		balance :: integer()}).
 
 %%----------------------------------------------------------------------
 %%  webmachine callbacks
@@ -64,7 +68,7 @@ init(Config) ->
 %% @doc If a Method not in this list is requested, then a
 %% 	`405 Method Not Allowed' will be sent.
 allowed_methods(ReqData, Context) ->
-	{['POST', 'GET', 'HEAD', 'DELETE'], ReqData, Context}.
+	{['POST', 'GET', 'HEAD', 'DELETE', 'PUT'], ReqData, Context}.
 
 -spec content_types_accepted(ReqData :: rd(), Context :: state()) ->
 	{[{MediaType :: string(), Handler :: atom()}],
@@ -73,8 +77,9 @@ allowed_methods(ReqData, Context) ->
 content_types_accepted(ReqData, Context) ->
 	case wrq:method(ReqData) of
 		'POST' ->
-			{[{"application/json",
-					add_subscriber}], ReqData, Context};
+			{[{"application/json", add_subscriber}], ReqData, Context};
+		'PUT' ->
+			{[{"application/json", update_subscriber}], ReqData, Context};
 		'GET' ->
 			{[], ReqData, Context};
 		'HEAD' ->
@@ -88,14 +93,21 @@ content_types_accepted(ReqData, Context) ->
 	ReqData :: rd(), Context :: state()}.
 %% @doc Content negotiation for response body.
 content_types_provided(ReqData, Context) ->
-	case wrq:method(ReqData) of
+	NewReqData = wrq:set_resp_header("Access-Control-Allow-Origin", "*", ReqData),
+	case wrq:method(NewReqData) of
 		'POST' ->
 			{[{"application/hal+json", add_subscriber}], ReqData, Context};
+		'PUT' ->
+			{[{"application/json", update_subscriber}], ReqData, Context};
 		Method when Method == 'GET'; Method == 'HEAD' ->
-			case {wrq:path_info(subscriber, ReqData), wrq:req_qs(ReqData)} of
-				{_, [_|_]} ->
-					{[], ReqData, Context}
-			end
+			case {wrq:path_info(identity, NewReqData), wrq:req_qs(NewReqData)} of
+				{undefined, _} ->
+					{[], NewReqData, Context};
+				{_, []} ->
+					{[{"application/json", find_subscriber}], NewReqData, Context}
+			end;
+		'DELETE' ->
+			{[{"application/json", delete_subscriber}], NewReqData, Context}
 	end.
 
 -spec post_is_create(ReqData :: rd(), Context :: state()) ->
@@ -114,21 +126,34 @@ create_path(ReqData, Context) ->
 		{_, Subscriber} = lists:keyfind("subscriber", 1, Object),
 		{_, Password} = lists:keyfind("password", 1, Object),
 		{_, {array, ArrayAttributes}} = lists:keyfind("attributes", 1, Object),
+		{_, Balance} = lists:keyfind("balance", 1, Object),
 		NewContext = Context#state{subscriber = Subscriber, current_password = Password,
-			attributes = ArrayAttributes},
-		{"adrian", ReqData, NewContext}
+			attributes = ArrayAttributes, balance = Balance},
+		{ocs:term_to_uri(Subscriber), ReqData, NewContext}
 	catch
 		_Error ->
 			{{halt, 400}, ReqData, Context}
 	end.
 
+-spec delete_resource(ReqData :: rd(), Context :: state()) ->
+	{Result :: boolean() | halt(), ReqData :: rd(), Context :: state()}.
+%% @doc Respond to `DELETE /ocs/subscriber/{identity}' request and deletes
+%% a `subscriber' resource. If the deletion is succeeded return true.
+delete_resource(ReqData, Context) ->
+	Name = wrq:path_info(identity, ReqData),
+	ok = ocs:delete_subscriber(Name),
+	{true, ReqData, Context}.
+
 -spec add_subscriber(ReqData :: rd(), Context :: state()) ->
 	{true | halt(), ReqData :: rd(), Context :: state()}.
-%% @doc POST processing function.
+%% @doc Respond to `POST /ocs/subscriber' and add a new `subscriber'
+%% resource.
 add_subscriber(ReqData, #state{subscriber = Subscriber,
-		current_password = Password, attributes = ArrayAttributes} = Context) ->
+		current_password = Password, attributes = ArrayAttributes,
+		balance = Balance} = Context) ->
 	try
-	case catch ocs:add_subscriber(Subscriber, Password, []) of
+	case catch ocs:add_subscriber(Subscriber, Password,
+			ArrayAttributes, Balance) of
 		ok ->
 			{true, ReqData, Context};
 		{error, Reason} ->
@@ -137,5 +162,55 @@ add_subscriber(ReqData, #state{subscriber = Subscriber,
 		throw:_ ->
 			{{halt, 400}, ReqData, Context}
 
+	end.
+
+-spec update_subscriber(ReqData :: rd(), Context :: state()) ->
+	{true | halt(), ReqData :: rd(), Context :: state()}.
+%% @doc	Respond to `PUT /ocs/subscriber/{identity}' request and
+%% Updates a existing `subscriber''s password or attributes. 
+update_subscriber(ReqData, Context) ->
+	Identity = wrq:path_info(identity, ReqData),
+	case ocs:find_subscriber(Identity) of
+		{ok, Password, _, _, _} ->
+			try 
+				Body = wrq:req_body(ReqData),
+				{struct, Object} = mochijson:decode(Body),
+				{_, RecvPwd} = lists:keyfind("password", 1, Object),
+				Password = list_to_binary(RecvPwd),
+				{_, Type} = lists:keyfind("update", 1, Object),
+				ok = case Type of
+					"attributes" ->
+						{_, Attributes} = lists:keyfind("attributes", 1, Object),
+						ocs:update_attributes(Identity, Password, Attributes);
+					"password" ->
+						{_, NewPassword } = lists:keyfind("newpassword", 1, Object),
+						ocs:update_password(Identity, Password, NewPassword)
+				end,
+				{true, ReqData, Context}
+			catch
+				throw : _ ->
+					{{halt, 400}, ReqData, Context}
+			end;
+		{error, _Reason} ->
+			{{halt, 400}, ReqData, Context}
+	end.
+
+
+-spec find_subscriber(ReqData :: rd(), Context :: state()) ->
+	{Result :: iodata() | {stream, streambody()} | halt(),
+	 ReqData :: rd(), Context :: state()}.
+%% @doc Body producing function for `GET /ocs/subscriber/{identity}' 
+%% requests
+find_subscriber(ReqData, Context) ->
+	UriIdentity = wrq:path_info(identity, ReqData),
+	Name = ocs:uri_to_term(UriIdentity),
+	case ocs:find_subscriber(Name) of
+		{ok, _, Attributes, Balance, _} ->
+			Obj = [{identity, Name}, {attributes, Attributes}, {balance, Balance}],
+			JsonObj  = {struct, Obj},
+			Body  = mochijson:encode(JsonObj),
+			{Body, ReqData, Context};
+		{error, _Reason} ->
+			{halt, ReqData, Context}
 	end.
 
