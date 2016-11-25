@@ -203,14 +203,18 @@ update_subscriber(ReqData, Context) ->
 %% requests
 find_subscriber(ReqData, Context) ->
 	UriIdentity = wrq:path_info(identity, ReqData),
-	Name = ocs:uri_to_term(UriIdentity),
-	case ocs:find_subscriber(Name) of
-		{ok, _, Attributes, Balance, _} ->
-			Obj = [{identity, Name}, {attributes, Attributes}, {balance, Balance}],
-			JsonObj  = {struct, Obj},
-			Body  = mochijson:encode(JsonObj),
-			{Body, ReqData, Context};
-		{error, _Reason} ->
-			{halt, ReqData, Context}
+	case catch ocs:uri_to_term(UriIdentity) of
+		{'EXIT', _Reason} ->
+					{{halt, 400}, ReqData, Context};
+		Name ->
+			case ocs:find_subscriber(Name) of
+				{ok, _, Attributes, Balance, _} ->
+					Obj = [{identity, Name}, {attributes, Attributes}, {balance, Balance}],
+						JsonObj  = {struct, Obj},
+					Body  = mochijson:encode(JsonObj),
+					{Body, ReqData, Context};
+				{error, _Reason} ->
+					{halt, ReqData, Context}
+			end
 	end.
 
