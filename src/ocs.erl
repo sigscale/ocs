@@ -23,7 +23,8 @@
 %% export the ocs public API
 -export([add_client/2, find_client/1]).
 -export([add_subscriber/3, add_subscriber/4, find_subscriber/1,
-			delete_subscriber/1, update_password/3, update_attributes/3]).
+				delete_subscriber/1, update_password/3, update_attributes/3,
+				get_subscribers/0]).
 -export([log_file/1]).
 -export([generate_password/0, term_to_uri/1, uri_to_term/1]).
 -export([start/3]).
@@ -153,6 +154,18 @@ find_subscriber(Subscriber) when is_binary(Subscriber) ->
 			{error, not_found};
 		{aborted, Reason} ->
 			{error, Reason}
+	end.
+
+-spec get_subscribers() -> Result :: [#subscriber{}] |
+	{error, Reason :: term()}.
+get_subscribers()->
+	F1 = fun(Sub, Acc)->  [Sub | Acc] end,
+	F2 = fun()-> mnesia:foldl(F1, [], subscriber) end,
+	case mnesia:transaction(F2) of
+		{aborted, Reason} -> 
+			{error, Reason};
+		{atomic, Subscribers} ->
+			Subscribers
 	end.
 
 -spec delete_subscriber(Subscriber :: string() | binary()) -> ok.
