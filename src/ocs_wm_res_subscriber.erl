@@ -34,7 +34,8 @@
 		delete_resource/2,
 		find_subscriber/2,
 		add_subscriber/2,
-		update_subscriber/2]).
+		update_subscriber/2,
+		options/2]).
 
 -include("ocs_wm.hrl").
 
@@ -68,7 +69,7 @@ init(Config) ->
 %% @doc If a Method not in this list is requested, then a
 %% 	`405 Method Not Allowed' will be sent.
 allowed_methods(ReqData, Context) ->
-	{['POST', 'GET', 'HEAD', 'DELETE', 'PUT'], ReqData, Context}.
+	{['POST', 'GET', 'HEAD', 'DELETE', 'PUT', 'OPTIONS'], ReqData, Context}.
 
 -spec content_types_accepted(ReqData :: rd(), Context :: state()) ->
 	{[{MediaType :: string(), Handler :: atom()}],
@@ -81,6 +82,8 @@ content_types_accepted(ReqData, Context) ->
 		'PUT' ->
 			{[{"application/json", update_subscriber}], ReqData, Context};
 		'GET' ->
+			{[], ReqData, Context};
+		'OPTIONS' ->
 			{[], ReqData, Context};
 		'HEAD' ->
 			{[], ReqData, Context};
@@ -109,6 +112,12 @@ content_types_provided(ReqData, Context) ->
 		'DELETE' ->
 			{[{"application/json", delete_subscriber}], NewReqData, Context}
 	end.
+
+%% @doc Return HTTP headers for a OPTIONS request
+options(ReqData, Context) ->
+		{[{"Access-Control-Allow-Methods", "GET, HEAD, POST, DELETE, PUT, OPTIONS"},
+			{"Access-Control-Allow-Origin", "*"},
+			{"Access-Control-Allow-Headers", "Authorization, Accept"}], ReqData, Context}.
 
 -spec post_is_create(ReqData :: rd(), Context :: state()) ->
 	{Result :: boolean(), ReqData :: rd(), Context :: state()}.
