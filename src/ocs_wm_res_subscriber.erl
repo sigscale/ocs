@@ -102,7 +102,7 @@ content_types_provided(ReqData, Context) ->
 		Method when Method == 'GET'; Method == 'HEAD' ->
 			case {wrq:path_info(identity, NewReqData), wrq:req_qs(NewReqData)} of
 				{undefined, _} ->
-					{[], NewReqData, Context};
+					{[{"application/json", find_subscriber}], NewReqData, Context};
 				{_, []} ->
 					{[{"application/json", find_subscriber}], NewReqData, Context}
 			end;
@@ -199,22 +199,37 @@ update_subscriber(ReqData, Context) ->
 -spec find_subscriber(ReqData :: rd(), Context :: state()) ->
 	{Result :: iodata() | {stream, streambody()} | halt(),
 	 ReqData :: rd(), Context :: state()}.
-%% @doc Body producing function for `GET /ocs/subscriber/{identity}' 
-%% requests
+%% @doc Body producing function for `GET /ocs/subscriber' and
+%% `GET /ocs/subscriber/{identity}' requests
 find_subscriber(ReqData, Context) ->
 	UriIdentity = wrq:path_info(identity, ReqData),
 	case catch ocs:uri_to_term(UriIdentity) of
 		{'EXIT', _Reason} ->
 					{{halt, 400}, ReqData, Context};
+		undefined ->
+			find1(ReqData, Context);
 		Name ->
-			case ocs:find_subscriber(Name) of
-				{ok, _, Attributes, Balance, _} ->
-					Obj = [{identity, Name}, {attributes, Attributes}, {balance, Balance}],
-						JsonObj  = {struct, Obj},
-					Body  = mochijson:encode(JsonObj),
-					{Body, ReqData, Context};
-				{error, _Reason} ->
-					{halt, ReqData, Context}
-			end
+			find2(Name, ReqData, Context)
+	end.
+%% @hidden
+find1(ReqData, Context)->
+	case ocs:get_subscribers() of
+		{error, _} ->
+			{{halt, 400}, ReqData, Context};
+		Subscribers ->
+			JsonArray = {array, Subscribers},
+			Body  = mochijson:encode(JsonArray),
+			{Body, ReqData, Context}
+	end.
+%% @hidden
+find2(Name, ReqData, Context) ->
+	case ocs:find_subscriber(Name) of
+		{ok, _, Attributes, Balance, _} ->
+			Obj = [{identity, Name}, {attributes, Attributes}, {balance, Balance}],
+			JsonObj  = {struct, Obj},
+			Body  = mochijson:encode(JsonObj),
+			{Body, ReqData, Context};
+		{error, _Reason} ->
+			{{halt, 400}, ReqData, Context}
 	end.
 
