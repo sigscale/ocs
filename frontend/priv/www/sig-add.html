@@ -71,7 +71,7 @@ paper-button.custom {
 										  <paper-toolbar>
 													 <img id="subscriber" src="sub.png">
 										  </paper-toolbar>
-										  <form  is="iron-form"  id="presubmit" method="post" action="_ah/spi/" >
+										  <form  is="iron-form"  id="presubmit" method="post" action="http://localhost:8888/ocs/subscriber" >
 													 <paper-input name="name" label="Subscriber" required></paper-input>
 													 <paper-input name="password" type="password" label="Password"required ></paper-input>
 													 <paper-input name="attributes" label="Attributes" disabled></paper-input>
@@ -94,7 +94,7 @@ function _submit() {
 		  console.log("Submitted");
 }
 presubmit.addEventListener('iron-form-presubmit', function(event) {
-		  //       this.request.contentType = "application/json";
+		         this.request.contentType = "application/json";
 });
 presubmit.addEventListener('iron-form-response', function(event) {
 		  location.reload();
