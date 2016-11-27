@@ -81,7 +81,8 @@
 %% @doc Open an SSL connection to Host, Port.
 ssl_connect(Address, ClientPid, Options) ->
 	{ok , SslSocket} = ssl:connect(Address, ClientPid, [?cb_info | Options]),
-	ClientPid ! {ssl_socket, SslSocket}.
+	ClientPid ! {ssl_socket, SslSocket},
+	keep_alive().
 
 -spec deliver(SslPid, ClientPid, Data) ->
 	ok when
@@ -92,6 +93,7 @@ ssl_connect(Address, ClientPid, Options) ->
 deliver(SslPid, ClientPid, Data) when is_pid(SslPid), is_pid(ClientPid) ->
 	SslPid ! {eap_ttls, ClientPid, iolist_to_binary(Data)},
 	ok.
+
 
 %%----------------------------------------------------------------------
 %%  peer_ttls_transport callbacks
@@ -169,3 +171,9 @@ controlling_process(ClientPid, Pid) when is_pid(ClientPid) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+%% @doc Keep the spawned process alive
+keep_alive() ->
+	receive
+		_Msg -> keep_alive()
+	end.
