@@ -330,7 +330,12 @@ server_cipher1(#eap_ttls{data = SH}, Socket, Address, Port, NasId,
 %% @todo enoded AVPs
 client_passthrough(SslSocket, UserName, Password, Socket, Address, Port,
 		NasId, Secret, MAC, Auth, EapId, RadId) ->
-	AVPs = %%AVP - UserName + Password,
+	UN = #diameter_avp{code = ?UserName, is_mandatory = true,
+			data = UserName},
+	PW = #diameter_avp{code = ?UserPassword, is_mandatory = true,
+			data = Password},
+	AVPs = list_to_binary(lists:map(fun diameter_codec:pack_avp/1,
+			[UN, PW])),
 	ok = ssl:send(SslSocket, AVPs),
 	{SslPid, UserCredential} = ssl_handshake(),
 	TtlsPacket = #eap_ttls{data = iolist_to_binary(UserCredential)},
