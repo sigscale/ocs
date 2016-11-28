@@ -177,7 +177,9 @@ eap_ttls_authentication(Config) ->
 			master_secret , <<"ttls keying material">>, Seed, 128),
 	ReqAuth6 = radius:authenticator(),
 	{RadId7, CPAuth} = client_passthrough(SslSocket, Subscriber, PeerAuth,
-			Socket, Address, Port, NasId, Secret, MAC, ReqAuth6, EapId5, RadId7).
+			Socket, Address, Port, NasId, Secret, MAC, ReqAuth6, EapId5, RadId7),
+	ok = server_passthrough(Socket, Address, Port, NasId, UserName, Secret,
+			MAC, CPAuth, RadId7).
 	
 send_identity(Socket, Address, Port, NasId, AnonymousName, Secret, MAC,
 		Auth, EapId, RadId) ->
@@ -330,7 +332,12 @@ server_cipher1(#eap_ttls{data = SH}, Socket, Address, Port, NasId,
 %% @todo enoded AVPs
 client_passthrough(SslSocket, UserName, Password, Socket, Address, Port,
 		NasId, Secret, MAC, Auth, EapId, RadId) ->
-	AVPs = %%AVP - UserName + Password,
+	UN = #diameter_avp{code = ?UserName, is_mandatory = true,
+			data = UserName},
+	PW = #diameter_avp{code = ?UserPassword, is_mandatory = true,
+			data = Password},
+	AVPs = list_to_binary(lists:map(fun diameter_codec:pack_avp/1,
+			[UN, PW])),
 	ok = ssl:send(SslSocket, AVPs),
 	{SslPid, UserCredential} = ssl_handshake(),
 	TtlsPacket = #eap_ttls{data = iolist_to_binary(UserCredential)},
@@ -340,6 +347,14 @@ client_passthrough(SslSocket, UserName, Password, Socket, Address, Port,
 	access_request(EapPacket, Socket, Address, Port, NasId,
 		binary_to_list(UserName), Secret, MAC, Auth, RadId),
 	{RadId, Auth}.
+
+server_passthrough(Socket, Address, Port, NasId, UserName, Secret,
+			MAC, Auth, RadId) ->
+	EapMsg = access_accept(Socket, Address, Port,
+			Secret, RadId, Auth),
+	#eap_packet{code = success, identifier = EapId,
+			type = ?TTLS} = ocs_eap_codec:eap_packet(EapMsg),
+	ok.
 
 %% EapPacket :: #eap_packet{}.
 access_request(EapPacket, Socket, Address, Port, NasId, UserName,
@@ -385,6 +400,9 @@ access_request2(Socket, Address, Port, NasId, UserName, Secret, MAC,
 
 access_challenge(Socket, Address, Port, Secret, RadId, ReqAuth) ->
 	receive_radius(?AccessChallenge, Socket, Address, Port, Secret, RadId, ReqAuth).
+
+access_accept(Socket, Address, Port, Secret, RadId, ReqAuth) ->
+	receive_radius(?AccessAccept, Socket, Address, Port, Secret, RadId, ReqAuth).
 
 receive_radius(Code, Socket, Address, Port, Secret, RadId, ReqAuth) ->
 	{ok, {Address, Port, RespPacket1}} = gen_udp:recv(Socket, 0),
