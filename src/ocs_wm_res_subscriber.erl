@@ -34,7 +34,8 @@
 		delete_resource/2,
 		find_subscriber/2,
 		add_subscriber/2,
-		update_subscriber/2]).
+		update_subscriber/2,
+		options/2]).
 
 -include("ocs_wm.hrl").
 
@@ -68,7 +69,7 @@ init(Config) ->
 %% @doc If a Method not in this list is requested, then a
 %% 	`405 Method Not Allowed' will be sent.
 allowed_methods(ReqData, Context) ->
-	{['POST', 'GET', 'HEAD', 'DELETE', 'PUT'], ReqData, Context}.
+	{['POST', 'GET', 'HEAD', 'DELETE', 'PUT', 'OPTIONS'], ReqData, Context}.
 
 -spec content_types_accepted(ReqData :: rd(), Context :: state()) ->
 	{[{MediaType :: string(), Handler :: atom()}],
@@ -81,6 +82,8 @@ content_types_accepted(ReqData, Context) ->
 		'PUT' ->
 			{[{"application/json", update_subscriber}], ReqData, Context};
 		'GET' ->
+			{[], ReqData, Context};
+		'OPTIONS' ->
 			{[], ReqData, Context};
 		'HEAD' ->
 			{[], ReqData, Context};
@@ -96,9 +99,9 @@ content_types_provided(ReqData, Context) ->
 	NewReqData = wrq:set_resp_header("Access-Control-Allow-Origin", "*", ReqData),
 	case wrq:method(NewReqData) of
 		'POST' ->
-			{[{"application/hal+json", add_subscriber}], ReqData, Context};
+			{[{"application/json", add_subscriber}], NewReqData, Context};
 		'PUT' ->
-			{[{"application/json", update_subscriber}], ReqData, Context};
+			{[{"application/json", update_subscriber}], NewReqData, Context};
 		Method when Method == 'GET'; Method == 'HEAD' ->
 			case {wrq:path_info(identity, NewReqData), wrq:req_qs(NewReqData)} of
 				{undefined, _} ->
@@ -109,6 +112,12 @@ content_types_provided(ReqData, Context) ->
 		'DELETE' ->
 			{[{"application/json", delete_subscriber}], NewReqData, Context}
 	end.
+
+%% @doc Return HTTP headers for a OPTIONS request
+options(ReqData, Context) ->
+		{[{"Access-Control-Allow-Methods", "GET, HEAD, POST, DELETE, PUT, OPTIONS"},
+			{"Access-Control-Allow-Origin", "*"},
+			{"Access-Control-Allow-Headers", "Content-Type"}], ReqData, Context}.
 
 -spec post_is_create(ReqData :: rd(), Context :: state()) ->
 	{Result :: boolean(), ReqData :: rd(), Context :: state()}.
@@ -125,10 +134,11 @@ create_path(ReqData, Context) ->
 		{struct, Object} = mochijson:decode(Body),
 		{_, Subscriber} = lists:keyfind("subscriber", 1, Object),
 		{_, Password} = lists:keyfind("password", 1, Object),
-		{_, {array, ArrayAttributes}} = lists:keyfind("attributes", 1, Object),
+%% @todo Ignore attributes values temporarily
+%%		{_, {array, ArrayAttributes}} = lists:keyfind("attributes", 1, Object),
 		{_, Balance} = lists:keyfind("balance", 1, Object),
-		NewContext = Context#state{subscriber = Subscriber, current_password = Password,
-			attributes = ArrayAttributes, balance = Balance},
+		NewContext = Context#state{subscriber = Subscriber,
+			current_password = Password, balance = Balance},
 		{ocs:term_to_uri(Subscriber), ReqData, NewContext}
 	catch
 		_Error ->

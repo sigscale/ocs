@@ -6,27 +6,39 @@
 <link rel="import" href="bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="bower_components/vaadin-grid/vaadin-grid.html">
 <link rel="import" href="bower_components/paper-button/paper-button.html">
+<link rel="import" href="bower_components/paper-toolbar/paper-toolbar.html">
 <link rel="import" href="shared-styles.html">
 
 
 <dom-module id="sig-list">
 
 		  <template>
-					 <style> /* local DOM styles go here */ :host { display: inline-block; } iron-icon { fill: rgba(0,0,0,0); stroke: currentcolor; } :host([pressed]) iron-icon { fill: currentcolor; }
+					 <style> /* local DOM styles go here */ 
+								:host { display: inline-block; }
+								iron-icon { fill: rgba(0,0,0,0); stroke: currentcolor; } 
+								:host([pressed]) iron-icon { fill: currentcolor; }
+								paper-button{   
+										 background-color: #7d8ff5;
+										 color: white;
+										 font-weight: bold;}
+
+								#subscriber{width:3%;}
 					 </style>
-
-					 <h1>Subscriber List</h1>
-
+					<div>	
+					 <paper-toolbar>
+								<img id="subscriber" src="list.png">
+								<paper-button toggles raised on-click = "gotoEnd" style="float: right; width: 200px;}"  >
+										  Scroll to bottom
+								</paper-button>
+					 </paper-toolbar>
+					</div>
 					 <style include="shared-styles">
-:host {
-		  display: block;
-
-		  padding: 10px;
-}
+						:host {
+						  display: block;
+		  				padding: 10px;
+								}
+						vaadin-grid{font-size: 16px;}
 					 </style>
-					 <paper-button toggles raised noink on-click = "gotoEnd">
-								Scroll to bottom
-					 </paper-button>
 
 					 <iron-ajax id="my-ajax-id"
 					  auto=true
@@ -56,79 +68,79 @@
 								</thead>
 								<tbody>
 										  <tr>
-													 <td>Subscriber #651</td>
+													 <td>A4-2B-D1-20-3D-BA</td>
 													 <td>[hidden]</td>
-													 <td>100.00 MB</td>
+													 <td>150.10 MB</td>
 													 <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
 													 <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
 										  </tr>
 										  <tr>
-													 <td>Subscriber #651</td>
+													 <td>4D-98-7F-E2-FC-5C</td>
 													 <td>[hidden]</td>
-													 <td>100.00 MB</td>
+													 <td>68.8 MB</td>
 													 <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
 													 <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
 										  </tr>
 										  <tr>
-													 <td>Subscriber #651</td>
+													 <td>2A-D6-BB-52-6F-47</td>
 													 <td>[hidden]</td>
-													 <td>100.00 MB</td>
+													 <td> 174.09 MB</td>
 													 <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
 													 <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
 										  </tr>
 										  <tr>
-													 <td>Subscriber #651</td>
+													 <td>D1-B9-08-72-35-85</td>
 													 <td>[hidden]</td>
-													 <td>100.00 MB</td>
+													 <td>53.3 MB </td>
 													 <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
 													 <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
 										  </tr>
 										  <tr>
-													 <td>Subscriber #651</td>
+													 <td>8B-A0-61-9B-1E-94</td>
 													 <td>[hidden]</td>
-													 <td>100.00 MB</td>
+													 <td>85.13 MB</td>
 													 <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
 													 <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
 										  </tr>
 										  <tr>
-													 <td>Subscriber #651</td>
+													 <td>4F-28-F7-5B-97-D0</td>
 													 <td>[hidden]</td>
-													 <td>100.00 MB</td>
+													 <td> 98.73 MB</td>
 													 <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
 													 <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
 										  </tr>
 										  <tr>
-													 <td>Subscriber #651</td>
+													 <td>92-9D-38-94-73-54</td>
 													 <td>[hidden]</td>
-													 <td>100.00 MB</td>
+													 <td> 49.37 MB</td>
 													 <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
 													 <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
 										  </tr>
 										  <tr>
-													 <td>Subscriber #651</td>
+													 <td>2F-F7-66-78-A4-85</td>
 													 <td>[hidden]</td>
-													 <td>100.00 MB</td>
+													 <td>98.81 MB</td>
 													 <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
 													 <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
 										  </tr>
 										  <tr>
-													 <td>Subscriber #651</td>
+													 <td>51-B2-40-7B-CC-58</td>
 													 <td>[hidden]</td>
-													 <td>100.00 MB</td>
+													 <td>12.79 MB</td>
 													 <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
 													 <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
 										  </tr>
 										  <tr>
-													 <td>Subscriber #651</td>
+													 <td>A9-90-E5-46-14-D4</td>
 													 <td>[hidden]</td>
-													 <td>100.00 MB</td>
+													 <td> 55.3 MB</td>
 													 <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
 													 <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
 										  </tr>
 										  <tr>
-													 <td>Subscriber #651</td>
+													 <td>39-8C-CD-AE-6E-4A</td>
 													 <td>[hidden]</td>
-													 <td>100.00 MB</td>
+													 <td> 140.75 MB</td>
 													 <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
 													 <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
 										  </tr>

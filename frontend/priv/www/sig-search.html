@@ -1,14 +1,182 @@
 <link rel="import" href="bower_components/polymer/polymer.html">
+<link rel="import" href="bower_components/iron-form/iron-form.html">
+<link rel="import" href="bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="bower_components/paper-button/paper-button.html">
+<link rel="import" href="bower_components/paper-toolbar/paper-toolbar.html">
+<link rel="import" href="bower_components/paper-input/paper-input.html">
+<link rel="import" href="bower_components/paper-input/paper-input-container.html">
+<link rel="import" href="bower_components/paper-styles/paper-styles.html">
+<link rel="import" href="bower_components/paper-styles/typography.html">
+<link rel="import" href="bower_components/vaadin-grid/vaadin-grid.html">
+
+
 <dom-module id="sig-search">
+
 		  <template>
-					 <style> /* local DOM styles go here */ :host { display: inline-block; } iron-icon { fill: rgba(0,0,0,0); stroke: currentcolor; } :host([pressed]) iron-icon { fill: currentcolor; }
+					 <style> /* local DOM styles go here */ :host { display: inline-block; width:100%;} iron-icon { fill: rgba(0,0,0,0); stroke: currentcolor; } :host([pressed]) iron-icon { fill: currentcolor; }
 					 </style>
 
-					 <h1>Search</h1>
+					 <style is="custom-style"> 
+.flex-horizontal { @apply(--layout-horizontal); } 
+.flexchild { @apply(--layout-flex); padding-left: 1%;padding-top: 1%;
+		  padding-right: 20%;} 
+
+paper-button.custom {
+		  --paper-button-ink-color: var(--paper-pink-a200);
+		  /* These could also be individually defined for each of the
+			  specific css classes, but we'll just do it once as an example */
+		  --paper-button-flat-keyboard-focus: {
+					 background-color: var(--paper-pink-a200);
+					 color: white !important;
+		  };
+--paper-button-raised-keyboard-focus: {
+		  background-color: var(--paper-pink-a200) !important;
+		  color: white !important;
+};
+}
+							  paper-button.custom:hover {
+										 background-color: var(--paper-indigo-100);
+							  }
+							  paper-button.pink {
+										 color: var(--paper-pink-a200);
+
+							  }
+							  paper-button.indigo {
+										 background-color: #7d8ff5;
+										 color: white;
+										font-weight: bold;
+										 --paper-button-raised-keyboard-focus: {
+													background-color: var(--paper-pink-a200) !important;
+													color: white !important;
+										 };
+							  }
+							  paper-button.green {
+										 background-color: var(--paper-green-500);
+										 color: white;
+							  }
+							  paper-button.green[active] {
+										 background-color: var(--paper-red-500);
+							  }
+							  paper-button.disabled {
+										 color: white;
+							  }
+							  #subscriber{padding-top: 5px; width: 58px;}
+
+							  vaadin-grid{font-size:16px;}
+							  thead {font-size:16px;}
+					 </style>
+
+					 <div class="container flex-horizontal"  >
+								<div class="flexchild">
+										  <paper-toolbar>
+													 <img id="subscriber" src="search.png">
+										  </paper-toolbar>
+								<form  is="iron-form"  id="presubmit" method="post" action="_ah/spi/" >
+										  <paper-input name="Search keywords" label="Subscriber" required></paper-input>
+										  <paper-button raised class="custom indigo" onclick="_submit()" style="float: right; width: 200px;"  >Search</paper-button>
+								</form>
+								<h1></h1>
+								<br><br>
+
+								<paper-toolbar>
+										  <img id="subscriber" src="search.png">
+										  <h2>Advanced Search</h2>
+								</paper-toolbar>
+								<form  is="iron-form"  id="presubmit" method="post" action="_ah/spi/" >
+										  <paper-input name="name" label="Subscriber" required></paper-input>
+										  <paper-input name="attributes" label="Enter Attributes" ></paper-input>
+										  <label><h3>Balance Range</h3></label>
+										  <paper-input name="balance"  label="To (MB)" required style="float: right; width: 600px;}"> </paper-input>
+										  <div style="overflow: hidden; padding-right: 1.5em;">
+													 <paper-input name="balance"  label="From (MB)" required> </paper-input>
+										  </div>
+										  <paper-button raised class="custom indigo" onclick="_submit()" style="float: right; width: 200px;}" >Search</paper-button>
+								</form>
+
+								<h1></h1>
+								<br><br>
+
+								<div><h1>Results</h1>
+
+
+										  <vaadin-grid id="frozen" frozen-columns="2" >
+													 <table>
+																<colgroup> 
+																		  <col name="subscriber"/> 
+																		  <col name="attributes"/> 
+																		  <col name="balance"/> 
+																		  <col name="edit"/> 
+																		  <col name="delete"/> 
+																</colgroup>
+													 <thead>
+																<tr>
+																		  <th>Subscriber</th>
+																		  <th>Attributes</th>
+																		  <th>Availabale Balance</th>
+																		  <th>Edit</th>
+																		  <th>Delete</th>
+																</tr>
+													 </thead>
+													 <tbody>
+																<tr>
+																		  <td>CA-AC-BE-72-15-08</td>
+																		  <td>[NAS-IP=205.23.423.17, Service=wireless]</td>
+																		  <td>100.00 MB</td>
+																		  <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
+																		  <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
+																</tr>
+																<tr>
+																		  <td>E7-7D-64-CE-26-FA</td>
+																		  <td>[NAS-IP=205.23.423.17, Service=wireless]</td>
+																		  <td>88.4 MB</td>
+																		  <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
+																		  <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
+																</tr>
+													 </tbody>
+													 </table>
+										  </vaadin-grid>
+
+
+								</div>
+								</div>
+
+					 </div>
+
+
+
+					 <script>
+
+function _submit() {
+		  Polymer.dom(event).localTarget.parentElement.submit();
+		  console.log("Submitted");
+}
+presubmit.addEventListener('iron-form-presubmit', function(event) {
+		  //       this.request.contentType = "application/json";
+});
+presubmit.addEventListener('iron-form-response', function(event) {
+		  location.reload();
+		  console.log("Inside pre-submit");
+});
+					 </script>
 		  </template>
 		  <script>
 Polymer({
 		  is: 'sig-search',
+
+		  properties:{},
+
+		  listeners: {
+					 'presubmit.iron-form-submit': '_handleFormSubmit'
+		  },
+
+		  responseHandler: function(data) {
+					 console.log(data);
+		  },
+		  _handleFormSubmit: function() {
+					 console.log('Form submitted successfully');
+		  }   
 });
 		  </script>
 </dom-module>
