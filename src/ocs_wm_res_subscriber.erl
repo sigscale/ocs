@@ -117,7 +117,7 @@ content_types_provided(ReqData, Context) ->
 options(ReqData, Context) ->
 		{[{"Access-Control-Allow-Methods", "GET, HEAD, POST, DELETE, PUT, OPTIONS"},
 			{"Access-Control-Allow-Origin", "*"},
-			{"Access-Control-Allow-Headers", "Authorization, Accept"}], ReqData, Context}.
+			{"Access-Control-Allow-Headers", "Content-Type"}], ReqData, Context}.
 
 -spec post_is_create(ReqData :: rd(), Context :: state()) ->
 	{Result :: boolean(), ReqData :: rd(), Context :: state()}.
