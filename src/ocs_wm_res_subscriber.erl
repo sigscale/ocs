@@ -43,7 +43,7 @@
 		{subscriber :: string(),
 		current_password :: string(),
 		new_password :: string(),
-		attributes :: radius_attributes:attributes(),
+		attributes = [] :: radius_attributes:attributes(),
 		balance :: integer()}).
 
 %%----------------------------------------------------------------------
