@@ -1,5 +1,7 @@
 <link rel="import" href="bower_components/polymer/polymer.html">
 <link rel="import" href="bower_components/iron-form/iron-form.html">
+<link rel="import" href="bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="bower_components/iron-ajax/iron-request.html">
 <link rel="import" href="bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="bower_components/iron-icons/iron-icons.html">
 <link rel="import" href="bower_components/iron-icon/iron-icon.html">
@@ -71,10 +73,10 @@ paper-button.custom {
 										  <paper-toolbar>
 													 <img id="subscriber" src="sub.png">
 										  </paper-toolbar>
-										  <form  is="iron-form"  id="presubmit" method="post" action="http://localhost:8888/ocs/subscriber" >
-													 <paper-input name="name" label="Subscriber" required></paper-input>
+										  <form  is="iron-form"  id="presubmit" method="post" action="http://localhost:8888/ocs/subscriber"  content-type="application/json" >
+													 <paper-input name="subscriber" label="Subscriber" required></paper-input>
 													 <paper-input name="password" type="password" label="Password"required ></paper-input>
-													 <paper-input name="attributes" label="Attributes" disabled></paper-input>
+													 <paper-input name="attributes" value = "[]"label="Attributes" disabled></paper-input>
 													 <paper-input name="balance" type="number" label="Balance (MB)" required> </paper-input>
 													 <paper-button raised class="custom indigo" onclick="_submit()" style="float: right; width: 200px;"  >Submit</paper-button>
 										  </form>
@@ -93,13 +95,6 @@ function _submit() {
 		  Polymer.dom(event).localTarget.parentElement.submit();
 		  console.log("Submitted");
 }
-presubmit.addEventListener('iron-form-presubmit', function(event) {
-		         this.request.contentType = "application/json";
-});
-presubmit.addEventListener('iron-form-response', function(event) {
-		  location.reload();
-		  console.log("Inside pre-submit");
-});
 					 </script>
 		  </template>
 
@@ -112,10 +107,10 @@ Polymer({
 					 'presubmit.iron-form-submit': '_handleFormSubmit'
 		  },
 
-		  responseHandler: function(data) {
-					 console.log(data);
-		  },
 		  _handleFormSubmit: function() {
+					 var form = document.getElementById('presubmit');
+					 form.request.headers='{"Content-Type": "application/json"}';
+					 form.request.contentType = "application/json";
 					 console.log('Form submitted successfully');
 		  }   
 });
