@@ -134,10 +134,11 @@ create_path(ReqData, Context) ->
 		{struct, Object} = mochijson:decode(Body),
 		{_, Subscriber} = lists:keyfind("subscriber", 1, Object),
 		{_, Password} = lists:keyfind("password", 1, Object),
-		{_, {array, ArrayAttributes}} = lists:keyfind("attributes", 1, Object),
+%% @todo Ignore attributes values temporarily
+%%		{_, {array, ArrayAttributes}} = lists:keyfind("attributes", 1, Object),
 		{_, Balance} = lists:keyfind("balance", 1, Object),
-		NewContext = Context#state{subscriber = Subscriber, current_password = Password,
-			attributes = ArrayAttributes, balance = Balance},
+		NewContext = Context#state{subscriber = Subscriber,
+			current_password = Password, balance = Balance},
 		{ocs:term_to_uri(Subscriber), ReqData, NewContext}
 	catch
 		_Error ->
