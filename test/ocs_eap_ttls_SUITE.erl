@@ -48,6 +48,7 @@
 
 %% @headerfile "include/radius.hrl"
 -include_lib("radius/include/radius.hrl").
+-include_lib("diameter/include/diameter.hrl").
 -include("ocs_eap_codec.hrl").
 -include_lib("common_test/include/ct.hrl").
 
@@ -171,11 +172,12 @@ eap_ttls_authentication(Config) ->
 	<<?Handshake, _:32, ?ServerHello, _:24,
 			_:16, SR:32/binary,  _/binary>> = list_to_binary(ServerHello),  
 	SslSocket = ssl_handshake(),
-	Alert = ssl_handshake(), %% Resaon ?
 	Seed = <<CR/binary, SR/binary>>,
 	{ok, <<MSK:64/binary, EMSK:64/binary>>} = ssl:prf(SslSocket,
 			master_secret , <<"ttls keying material">>, Seed, 128),
-	ok = ssl:send(SslSocket, <<"testing123">>).
+	ReqAuth6 = radius:authenticator(),
+	{RadId7, CPAuth} = client_passthrough(SslSocket, Subscriber, PeerAuth,
+			Socket, Address, Port, NasId, Secret, MAC, ReqAuth6, EapId5, RadId7).
 	
 send_identity(Socket, Address, Port, NasId, AnonymousName, Secret, MAC,
 		Auth, EapId, RadId) ->
@@ -325,6 +327,20 @@ server_cipher1(#eap_ttls{data = SH}, Socket, Address, Port, NasId,
 	NewRadId = RadId + 1,
 	{NewRadId, EapId, [SH | Buf]}.
 	
+%% @todo enoded AVPs
+client_passthrough(SslSocket, UserName, Password, Socket, Address, Port,
+		NasId, Secret, MAC, Auth, EapId, RadId) ->
+	AVPs = %%AVP - UserName + Password,
+	ok = ssl:send(SslSocket, AVPs),
+	{SslPid, UserCredential} = ssl_handshake(),
+	TtlsPacket = #eap_ttls{data = iolist_to_binary(UserCredential)},
+	TtlsData = ocs_eap_codec:eap_ttls(TtlsPacket),
+	EapPacket = #eap_packet{code = response, identifier = EapId, type = ?TTLS,
+		data = TtlsData},
+	access_request(EapPacket, Socket, Address, Port, NasId,
+		binary_to_list(UserName), Secret, MAC, Auth, RadId),
+	{RadId, Auth}.
+
 %% EapPacket :: #eap_packet{}.
 access_request(EapPacket, Socket, Address, Port, NasId, UserName,
 		Secret, MAC, Auth, RadId) ->
