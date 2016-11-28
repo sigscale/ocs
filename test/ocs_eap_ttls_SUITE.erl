@@ -179,7 +179,8 @@ eap_ttls_authentication(Config) ->
 	{RadId7, CPAuth} = client_passthrough(SslSocket, Subscriber, PeerAuth,
 			Socket, Address, Port, NasId, Secret, MAC, ReqAuth6, EapId5, RadId7),
 	ok = server_passthrough(Socket, Address, Port, NasId, UserName, Secret,
-			MAC, CPAuth, RadId7).
+			MAC, CPAuth, RadId7),
+	ok = ssl:close(SslSocket).
 	
 send_identity(Socket, Address, Port, NasId, AnonymousName, Secret, MAC,
 		Auth, EapId, RadId) ->
