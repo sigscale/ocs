@@ -352,8 +352,7 @@ server_passthrough(Socket, Address, Port, NasId, UserName, Secret,
 			MAC, Auth, RadId) ->
 	EapMsg = access_accept(Socket, Address, Port,
 			Secret, RadId, Auth),
-	#eap_packet{code = success, identifier = EapId,
-			type = ?TTLS} = ocs_eap_codec:eap_packet(EapMsg),
+	#eap_packet{code = success, identifier = EapId} = ocs_eap_codec:eap_packet(EapMsg),
 	ok.
 
 %% EapPacket :: #eap_packet{}.
