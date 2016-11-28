@@ -99,9 +99,9 @@ content_types_provided(ReqData, Context) ->
 	NewReqData = wrq:set_resp_header("Access-Control-Allow-Origin", "*", ReqData),
 	case wrq:method(NewReqData) of
 		'POST' ->
-			{[{"application/json", add_subscriber}], ReqData, Context};
+			{[{"application/json", add_subscriber}], NewReqData, Context};
 		'PUT' ->
-			{[{"application/json", update_subscriber}], ReqData, Context};
+			{[{"application/json", update_subscriber}], NewReqData, Context};
 		Method when Method == 'GET'; Method == 'HEAD' ->
 			case {wrq:path_info(identity, NewReqData), wrq:req_qs(NewReqData)} of
 				{undefined, _} ->
