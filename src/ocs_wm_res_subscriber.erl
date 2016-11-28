@@ -136,7 +136,8 @@ create_path(ReqData, Context) ->
 		{_, Password} = lists:keyfind("password", 1, Object),
 %% @todo Ignore attributes values temporarily
 %%		{_, {array, ArrayAttributes}} = lists:keyfind("attributes", 1, Object),
-		{_, Balance} = lists:keyfind("balance", 1, Object),
+		{_, BalStr} = lists:keyfind("balance", 1, Object),
+		{Balance , _}= string:to_integer(BalStr),
 		NewContext = Context#state{subscriber = Subscriber,
 			current_password = Password, balance = Balance},
 		{ocs:term_to_uri(Subscriber), ReqData, NewContext}
