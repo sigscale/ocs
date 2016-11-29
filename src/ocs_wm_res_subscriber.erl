@@ -33,6 +33,7 @@
 		create_path/2,
 		delete_resource/2,
 		find_subscriber/2,
+		find_subscribers/2,
 		add_subscriber/2,
 		update_subscriber/2,
 		options/2]).
@@ -248,3 +249,31 @@ find_subscriber(Subscriber, ReqData, Context) ->
 		{error, _Reason} ->
 			{{halt, 400}, ReqData, Context}
 	end.
+
+-spec find_subscribers(ReqData :: rd(), Context :: state()) ->
+	{Result :: iodata() | {stream, streambody()} | halt(),
+	 ReqData :: rd(), Context :: state()}.
+%% @doc Body producing function for `GET /ocs/subscriber'
+%% requests.
+find_subscribers(ReqData, #state{partial_content = false} = Context) ->
+	case ocs:get_subscribers() of
+		Subscribers ->
+			ObjList = [{struct,
+			[{identity, S#subscriber.name},{password, S#subscriber.password},
+				{attributes, S#subscriber.attributes}, {enabled, S#subscriber.enabled}]}
+				|| S <- Subscribers],
+			JsonArray = {array, ObjList},
+			Body  = mochijson:encode(JsonArray),
+			{Body, ReqData, Context};
+		{error, _} ->
+			{{halt, 400}, ReqData, Context}
+	end.
+
+
+
+
+
+
+
+
+
