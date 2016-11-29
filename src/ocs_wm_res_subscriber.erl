@@ -252,28 +252,28 @@ find_subscriber(Subscriber, ReqData, Context) ->
 
 -spec find_subscribers(ReqData :: rd(), Context :: state()) ->
 	{Result :: iodata() | {stream, streambody()} | halt(),
-	 ReqData :: rd(), Context :: state()}.
+	ReqData :: rd(), Context :: state()}.
 %% @doc Body producing function for `GET /ocs/subscriber'
 %% requests.
 find_subscribers(ReqData, #state{partial_content = false} = Context) ->
-	case ocs:get_subscribers() of
-		Subscribers ->
-			ObjList = [{struct,
+	ObjList = [{struct,
+	case find_subscribers1() ->
+		{error, _} ->
+			{{halt, 400}, ReqData, Context};
+		Susbcribers ->
 			[{identity, S#subscriber.name},{password, S#subscriber.password},
 				{attributes, S#subscriber.attributes}, {enabled, S#subscriber.enabled}]}
 				|| S <- Subscribers],
 			JsonArray = {array, ObjList},
 			Body  = mochijson:encode(JsonArray),
-			{Body, ReqData, Context};
-		{error, _} ->
-			{{halt, 400}, ReqData, Context}
+			{Body, ReqData, Context}
 	end.
-
-
-
-
-
-
-
-
-
+%% @hidden
+find_subscribers1() ->
+	case ocs:get_subscribers() of
+		{error, Reason} ->
+			{error, Reason};
+		SubscriberList ->
+			SubscriberList
+	end.
+	
