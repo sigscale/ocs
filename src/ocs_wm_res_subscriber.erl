@@ -237,7 +237,8 @@ find1(ReqData, Context)->
 			{{halt, 400}, ReqData, Context};
 		Subscribers ->
 			ObjList = [{struct,
-					[{name, S#subscriber.name},{password, S#subscriber.password}]}
+					[{identity, S#subscriber.name},{password, S#subscriber.password},
+					 {attributes, S#subscriber.attributes}, {enabled, S#subscriber.enabled}]}
 					|| S <- Subscribers],
 			JsonArray = {array, ObjList},
 			Body  = mochijson:encode(JsonArray),
@@ -246,8 +247,9 @@ find1(ReqData, Context)->
 %% @hidden
 find2(Name, ReqData, Context) ->
 	case ocs:find_subscriber(Name) of
-		{ok, _, Attributes, Balance, _} ->
-			Obj = [{identity, Name}, {attributes, Attributes}, {balance, Balance}],
+		{ok, _, Attributes, Balance, Enabled} ->
+			Obj = [{identity, Name}, {attributes, Attributes}, {balance, Balance},
+						 {enabled, Enabled}],
 			JsonObj  = {struct, Obj},
 			Body  = mochijson:encode(JsonObj),
 			{Body, ReqData, Context};
