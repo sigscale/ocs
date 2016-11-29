@@ -178,6 +178,9 @@ eap_ttls_authentication(Config) ->
 			MAC, CPAuth, RadId7),
 	ok = ssl:close(SslSocket).
 	
+%%---------------------------------------------------------------------
+%%  Internal functions
+%%---------------------------------------------------------------------
 send_identity(Socket, Address, Port, NasId, AnonymousName, Secret, MAC,
 		Auth, EapId, RadId) ->
 	BinAnonymousName = list_to_binary(AnonymousName),
