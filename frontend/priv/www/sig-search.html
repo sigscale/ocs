@@ -1,5 +1,7 @@
 <link rel="import" href="bower_components/polymer/polymer.html">
 <link rel="import" href="bower_components/iron-form/iron-form.html">
+<link rel="import" href="bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="bower_components/iron-ajax/iron-request.html">
 <link rel="import" href="bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="bower_components/iron-icons/iron-icons.html">
 <link rel="import" href="bower_components/iron-icon/iron-icon.html">
@@ -73,8 +75,8 @@ paper-button.custom {
 										  <paper-toolbar>
 													 <img id="subscriber" src="search.png">
 										  </paper-toolbar>
-								<form  is="iron-form"  id="presubmit" method="post" action="_ah/spi/" >
-										  <paper-input name="Search keywords" label="Subscriber" required></paper-input>
+								<form  is="iron-form"  id="presubmit1" method="get" action="http://localhost:8888/ocs/subscriber"  content-type="application/json" >
+										  <paper-input label="Search by Name" required></paper-input>
 										  <paper-button raised class="custom indigo" onclick="_submit()" style="float: right; width: 200px;"  >Search</paper-button>
 								</form>
 								<h1></h1>
@@ -104,37 +106,10 @@ paper-button.custom {
 										  <vaadin-grid id="frozen" frozen-columns="2" >
 													 <table>
 																<colgroup> 
-																		  <col name="subscriber"/> 
-																		  <col name="attributes"/> 
+																		  <col name="identity"/> 
 																		  <col name="balance"/> 
-																		  <col name="edit"/> 
-																		  <col name="delete"/> 
+																		  <col name="attributes"/> 
 																</colgroup>
-													 <thead>
-																<tr>
-																		  <th>Subscriber</th>
-																		  <th>Attributes</th>
-																		  <th>Availabale Balance</th>
-																		  <th>Edit</th>
-																		  <th>Delete</th>
-																</tr>
-													 </thead>
-													 <tbody>
-																<tr>
-																		  <td>CA-AC-BE-72-15-08</td>
-																		  <td>[NAS-IP=205.23.423.17, Service=wireless]</td>
-																		  <td>100.00 MB</td>
-																		  <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
-																		  <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
-																</tr>
-																<tr>
-																		  <td>E7-7D-64-CE-26-FA</td>
-																		  <td>[NAS-IP=205.23.423.17, Service=wireless]</td>
-																		  <td>88.4 MB</td>
-																		  <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
-																		  <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
-																</tr>
-													 </tbody>
 													 </table>
 										  </vaadin-grid>
 
@@ -150,7 +125,6 @@ paper-button.custom {
 
 function _submit() {
 		  Polymer.dom(event).localTarget.parentElement.submit();
-		  console.log("Submitted");
 }
 					 </script>
 		  </template>
@@ -161,14 +135,26 @@ Polymer({
 		  properties:{},
 
 		  listeners: {
-					 'presubmit.iron-form-submit': '_handleFormSubmit'
+					 'presubmit1.iron-form-presubmit': '_handleFormSubmit',
+					 'presubmit1.iron-form-response': '_handleFormResponse'
 		  },
 
 		  responseHandler: function(data) {
 					 console.log(data);
 		  },
+
 		  _handleFormSubmit: function() {
-					 console.log('Form submitted successfully');
+					 var form = document.getElementById('presubmit1');
+					 form.request.headers='{"Content-Type": "application/json"}';
+					 form.request.contentType = "application/json";
+					 form.request.url = form.request.url + "/" + form[0].value;
+		  } ,
+
+		  _handleFormResponse: function() {
+					var data = new Array();
+					data[0] = event.detail.response;
+					var grid = this.$.frozen; 
+					grid.items = data;
 		  }   
 });
 		  </script>
