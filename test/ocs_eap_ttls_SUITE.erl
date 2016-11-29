@@ -167,14 +167,10 @@ eap_ttls_authentication(Config) ->
 			AnonymousName, Secret, MAC, CCAuth, RadId6),
 	peer_ttls_transport:deliver(SslPid1, self(), 
 			iolist_to_binary(ServerCipher)),
-	[<<?Handshake, _:32>>, [[?ClientHello, _,
-			<<_:16, CR:32/binary, _/binary>>]| _ ]] = ClientHelloMsg,
-	<<?Handshake, _:32, ?ServerHello, _:24,
-			_:16, SR:32/binary,  _/binary>> = list_to_binary(ServerHello),  
 	SslSocket = ssl_handshake(),
-	Seed = <<CR/binary, SR/binary>>,
-	{ok, <<MSK:64/binary, EMSK:64/binary>>} = ssl:prf(SslSocket,
-			master_secret , <<"ttls keying material">>, Seed, 128),
+	Seed = prf_seed(ClientHelloMsg, ServerHello),
+	{MSK, _} = prf(SslSocket, master_secret ,
+			<<"ttls keying material">>, Seed, 128),
 	ReqAuth6 = radius:authenticator(),
 	{RadId7, CPAuth} = client_passthrough(SslSocket, Subscriber, PeerAuth,
 			Socket, Address, Port, NasId, Secret, MAC, ReqAuth6, EapId5, RadId7),
@@ -182,6 +178,9 @@ eap_ttls_authentication(Config) ->
 			MAC, CPAuth, RadId7),
 	ok = ssl:close(SslSocket).
 	
+%%---------------------------------------------------------------------
+%%  Internal functions
+%%---------------------------------------------------------------------
 send_identity(Socket, Address, Port, NasId, AnonymousName, Secret, MAC,
 		Auth, EapId, RadId) ->
 	BinAnonymousName = list_to_binary(AnonymousName),
@@ -270,8 +269,8 @@ server_hello1(#eap_ttls{more = true, data = SH}, Socket, Address, Port,
 	NewAuth = radius:authenticator(),
 	server_hello1(TtlsPacket, Socket, Address, Port, NasId,
 		UserName, Secret, MAC, NewAuth, NewRadId, NewEapId, [SH | Buf]);
-server_hello1(#eap_ttls{data = SH}, Socket, Address, Port, NasId,
-		UserName, Secret, MAC, Auth, RadId, EapId, Buf) ->
+server_hello1(#eap_ttls{data = SH}, Socket, _, _, _, _, _, _, _,
+		RadId, EapId, Buf) ->
 	%send_ack(Socket, Address, Port, NasId, UserName, Secret,
 	%		MAC, Auth, RadId, EapId),
 	NewRadId = RadId + 1,
@@ -330,7 +329,6 @@ server_cipher1(#eap_ttls{data = SH}, Socket, Address, Port, NasId,
 	NewRadId = RadId + 1,
 	{NewRadId, EapId, [SH | Buf]}.
 	
-%% @todo enoded AVPs
 client_passthrough(SslSocket, UserName, Password, Socket, Address, Port,
 		NasId, Secret, MAC, Auth, EapId, RadId) ->
 	UN = #diameter_avp{code = ?UserName, is_mandatory = true,
@@ -446,3 +444,27 @@ ssl_handshake() ->
 		{ssl_socket, SslSocket} ->
 			SslSocket
 	end.
+
+-dialyzer({nowarn_function, prf/5}).
+prf(SslSocket, Secret, Lable, Seed, WantedLength) ->
+	{ok, <<MSK:64/binary, EMSK:64/binary>>} =
+			ssl:prf(SslSocket, Secret , Lable, Seed, WantedLength),
+	{MSK, EMSK}.
+
+prf_seed(ClientHello, ServerHello) when is_list(ClientHello) ->
+	CH = iolist_to_binary(ClientHello),
+	prf_seed(CH, ServerHello);
+prf_seed(ClientHello, ServerHello) when is_list(ServerHello) ->
+	SH = iolist_to_binary(ServerHello),
+	prf_seed(ClientHello, SH);
+prf_seed(ClientHello, ServerHello) when
+		is_binary(ClientHello), is_binary(ServerHello) ->
+	CR = cs_random(ClientHello, ?ClientHello),
+	SR = cs_random(ServerHello, ?ServerHello),
+	[<<CR/binary, SR/binary>>].
+
+cs_random(TlsRecordLayer, MsgType) ->
+	<<?Handshake, _:32, MsgType, _:24, _:16,
+		Rand:32/binary, _/binary>> = TlsRecordLayer,
+	Rand.
+

@@ -617,9 +617,9 @@ server_passthrough({accept, UserName, SslSocket}, #statedata{eap_id = EapID,
 		radius_id = RadiusID, %ssl_socket = SslSocket,
 		client_rand = ClientRandom, server_rand = ServerRandom}
 		= StateData) ->
-	Seed = <<ClientRandom/binary, ServerRandom/binary>>,
-	{ok, <<MSK:64/binary, EMSK:64/binary>>} = ssl:prf(SslSocket,
-			master_secret , <<"ttls keying material">>, Seed, 128),
+	Seed = [<<ClientRandom/binary, ServerRandom/binary>>],
+	{MSK, _} = prf(SslSocket, master_secret ,
+			<<"ttls keying material">>, Seed, 128),
 	Subscriber = binary_to_list(UserName),
 	Salt = crypto:rand_uniform(16#8000, 16#ffff),
 	MsMppeKey = encrypt_key(Secret, RequestAuthenticator, Salt, MSK),
@@ -788,4 +788,22 @@ encrypt_key(Secret, RequestAuthenticator, Salt, Key) when (Salt bsr 15) == 1 ->
 	AccIn = [[RequestAuthenticator, <<Salt:16>>]],
 	AccOut = lists:foldl(F, AccIn, [P || <<P:16/binary>> <= Plaintext]),
 	iolist_to_binary(tl(lists:reverse(AccOut))).
+
+-dialyzer({nowarn_function, prf/5}).
+-spec prf(SslSocket, Secret, Lable, Seed, WantedLength) ->
+	{ok, MSK, EMSK} | {error, Reason} when
+		SslSocket :: ssl:ssl_socket(),
+		Secret :: binary() | master_secret,
+		Lable :: binary(),
+		Seed :: [binary() | ssl:prf_random()],
+		WantedLength :: non_neg_integer(),
+		MSK :: binary(),
+		EMSK :: binary(),
+		Reason :: term().
+%% @doc ses the Pseudo-Random Function (PRF) of a TLS session
+%%	to generate extra key material.
+prf(SslSocket, Secret, Lable, Seed, WantedLength) ->
+	{ok, <<MSK:64/binary, EMSK:64/binary>>} =
+			ssl:prf(SslSocket, Secret , Lable, Seed, WantedLength),
+	{MSK, EMSK}.
 
