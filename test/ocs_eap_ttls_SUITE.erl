@@ -266,8 +266,8 @@ server_hello1(#eap_ttls{more = true, data = SH}, Socket, Address, Port,
 	NewAuth = radius:authenticator(),
 	server_hello1(TtlsPacket, Socket, Address, Port, NasId,
 		UserName, Secret, MAC, NewAuth, NewRadId, NewEapId, [SH | Buf]);
-server_hello1(#eap_ttls{data = SH}, Socket, Address, Port, NasId,
-		UserName, Secret, MAC, Auth, RadId, EapId, Buf) ->
+server_hello1(#eap_ttls{data = SH}, Socket, _, _, _, _, _, _, _,
+		RadId, EapId, Buf) ->
 	%send_ack(Socket, Address, Port, NasId, UserName, Secret,
 	%		MAC, Auth, RadId, EapId),
 	NewRadId = RadId + 1,
