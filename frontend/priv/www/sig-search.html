@@ -100,19 +100,23 @@ paper-button.custom {
 								<h1></h1>
 								<br><br>
 
-								<div><h1>Results</h1>
-
+								<div>
+										  <div hidden$="{{hide}}">
+										  <h1>Results</h1>
 
 										  <vaadin-grid id="frozen" frozen-columns="2" >
 													 <table>
 																<colgroup> 
-																		  <col name="identity"/> 
+																		  <col name="name"/> 
 																		  <col name="balance"/> 
 																		  <col name="attributes"/> 
+																		  <col name="enabled"/> 
+																		  <col name="edit"/> 
+																		  <col name="delete"/> 
 																</colgroup>
 													 </table>
 										  </vaadin-grid>
-
+											</div>
 
 								</div>
 								</div>
@@ -132,7 +136,10 @@ function _submit() {
 Polymer({
 		  is: 'sig-search',
 
-		  properties:{},
+		  properties:{hide: {
+		                      type: Boolean,
+		                      value: true // init the value to true so it will be hidden on page load
+		                  }},
 
 		  listeners: {
 					 'presubmit1.iron-form-presubmit': '_handleFormSubmit',
@@ -155,6 +162,7 @@ Polymer({
 					data[0] = event.detail.response;
 					var grid = this.$.frozen; 
 					grid.items = data;
+					this.hide = !this.hide;
 		  }   
 });
 		  </script>
