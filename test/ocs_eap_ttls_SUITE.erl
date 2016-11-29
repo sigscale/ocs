@@ -446,3 +446,9 @@ ssl_handshake() ->
 		{ssl_socket, SslSocket} ->
 			SslSocket
 	end.
+
+-dialyzer({nowarn_function, prf/5}).
+prf(SslSocket, Secret, Lable, Seed, WantedLength) ->
+	{ok, <<MSK:64/binary, EMSK:64/binary>>} =
+			ssl:prf(SslSocket, Secret , Lable, Seed, WantedLength),
+	{MSK, EMSK}.
