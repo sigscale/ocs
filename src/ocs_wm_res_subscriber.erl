@@ -217,13 +217,18 @@ find_subscriber(ReqData, Context) ->
 	case wrq:path_info(identity, ReqData) of
 		undefined ->
 			find1(ReqData, Context);
-		UriIdentity ->
-			case catch ocs:uri_to_term(UriIdentity) of
-				{'EXIT', _Reason} ->
-					{{halt, 400}, ReqData, Context};
-				Name ->
-					find2(Name, ReqData, Context)
-			end
+		UriIdentity  ->
+			case lists:member($%, UriIdentity) of
+				true ->
+					case catch ocs:uri_to_term(UriIdentity) of
+						{'EXIT', _Reason} ->
+							{{halt, 400}, ReqData, Context};
+						Name ->
+							find2(Name, ReqData, Context)
+					end;
+				false ->
+					find2(UriIdentity, ReqData, Context)
+				end
 	end.
 %% @hidden
 find1(ReqData, Context)->
