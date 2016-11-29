@@ -268,6 +268,10 @@ find_subscribers(ReqData, #state{partial_content = false} = Context) ->
 			Body  = mochijson:encode(JsonArray),
 			{Body, ReqData, Context}
 	end.
+%% @todo partion_content
+%find_subscribers(ReqData, #state{partial_content = true,
+%		frange = FR, lrange = LR} = Context) ->
+
 %% @hidden
 find_subscribers1() ->
 	case ocs:get_subscribers() of
