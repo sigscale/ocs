@@ -38,6 +38,7 @@
 		options/2]).
 
 -include("ocs_wm.hrl").
+-include("ocs.hrl").
 
 -record(state,
 		{subscriber :: string(),
@@ -230,7 +231,10 @@ find1(ReqData, Context)->
 		{error, _} ->
 			{{halt, 400}, ReqData, Context};
 		Subscribers ->
-			JsonArray = {array, Subscribers},
+			ObjList = [{struct,
+					[{name, S#subscriber.name},{password, S#subscriber.password}]}
+					|| S <- Subscribers],
+			JsonArray = {array, ObjList},
 			Body  = mochijson:encode(JsonArray),
 			{Body, ReqData, Context}
 	end.
