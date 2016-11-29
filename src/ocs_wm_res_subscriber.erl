@@ -222,42 +222,23 @@ update_subscriber(ReqData, Context) ->
 -spec find_subscriber(ReqData :: rd(), Context :: state()) ->
 	{Result :: iodata() | {stream, streambody()} | halt(),
 	 ReqData :: rd(), Context :: state()}.
-%% @doc Body producing function for `GET /ocs/subscriber' and
-%% `GET /ocs/subscriber/{identity}' requests
-find_subscriber(ReqData, Context) ->
-	case wrq:path_info(identity, ReqData) of
-		undefined ->
-			find1(ReqData, Context);
-		UriIdentity  ->
-			case lists:member($%, UriIdentity) of
-				true ->
-					case catch ocs:uri_to_term(UriIdentity) of
-						{'EXIT', _Reason} ->
-							{{halt, 400}, ReqData, Context};
-						Name ->
-							find2(Name, ReqData, Context)
-					end;
-				false ->
-					find2(UriIdentity, ReqData, Context)
-				end
+%% @doc Body producing function for `GET /ocs/subscriber/{identity}'
+%% requests.
+find_subscriber(ReqData, #state{subscriber = Idetity} = Context) ->
+	case lists:member($%, Identity) of
+		true ->
+			case catch ocs:uri_to_term(Identity) of
+				{'EXIT', _Reason} ->
+					{{halt, 400}, ReqData, Context};
+				Name ->
+					find_subscriber1(Name, ReqData, Context)
+			end;
+		false ->
+			find_subscriber(Identity, ReqData, Context)
 	end.
 %% @hidden
-find1(ReqData, Context)->
-	case ocs:get_subscribers() of
-		{error, _} ->
-			{{halt, 400}, ReqData, Context};
-		Subscribers ->
-			ObjList = [{struct,
-					[{identity, S#subscriber.name},{password, S#subscriber.password},
-					 {attributes, S#subscriber.attributes}, {enabled, S#subscriber.enabled}]}
-					|| S <- Subscribers],
-			JsonArray = {array, ObjList},
-			Body  = mochijson:encode(JsonArray),
-			{Body, ReqData, Context}
-	end.
-%% @hidden
-find2(Name, ReqData, Context) ->
-	case ocs:find_subscriber(Name) of
+find_subscriber(Subscriber, ReqData, Context) ->
+	case ocs:find_subscriber(Subscriber) of
 		{ok, _, Attributes, Balance, Enabled} ->
 			Obj = [{identity, Name}, {attributes, Attributes}, {balance, Balance},
 						 {enabled, Enabled}],
@@ -267,4 +248,3 @@ find2(Name, ReqData, Context) ->
 		{error, _Reason} ->
 			{{halt, 400}, ReqData, Context}
 	end.
-
