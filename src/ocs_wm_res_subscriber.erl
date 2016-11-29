@@ -109,7 +109,7 @@ content_types_provided(ReqData, Context) ->
 			{[{"application/json", update_subscriber}], NewReqData, Context};
 		Method when Method == 'GET'; Method == 'HEAD' ->
 			case {wrq:path_info(identity, NewReqData), wrq:req_qs(NewReqData),
-					 wrq:get_req_header("range", NewReqData),} of
+					 wrq:get_req_header("range", NewReqData)} of
 				{undefined, _, undefined} ->
 					{[{"application/json", find_subscribers}], NewReqData, Context};
 				{undefined, _, Range} ->
@@ -117,10 +117,10 @@ content_types_provided(ReqData, Context) ->
 					{FR, LR} = {list_to_integer(SFR), list_to_integer(SLR)},
 					NextContext = Context#state{frange = FR, lrange = LR,
 							partial_content = true},
-					{[{"application/json", find_subscribers}], NewReqData, NextContext}
+					{[{"application/json", find_subscribers}], NewReqData, NextContext};
 				{Identity, _, undefined} ->
 					NextContext = Context#state{subscriber = Identity},
-					{[{"application/json", find_subscriber}], NewReqData, NextContext};
+					{[{"application/json", find_subscriber}], NewReqData, NextContext}
 			end;
 		'DELETE' ->
 			{[{"application/json", delete_subscriber}], NewReqData, Context}
@@ -256,7 +256,6 @@ find_subscriber(Subscriber, ReqData, Context) ->
 %% @doc Body producing function for `GET /ocs/subscriber'
 %% requests.
 find_subscribers(ReqData, #state{partial_content = false} = Context) ->
-	ObjList = [{struct,
 	case find_subscribers1() ->
 		{error, _} ->
 			{{halt, 400}, ReqData, Context};
@@ -270,7 +269,8 @@ find_subscribers(ReqData, #state{partial_content = false} = Context) ->
 	end.
 %% @todo partion_content
 %find_subscribers(ReqData, #state{partial_content = true,
-%		frange = FR, lrange = LR} = Context) ->
+%		frange = FR, lrange = LR, buf = []} = Context) ->
+		
 
 %% @hidden
 find_subscribers1() ->
