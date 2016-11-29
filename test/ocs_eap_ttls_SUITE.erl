@@ -167,12 +167,8 @@ eap_ttls_authentication(Config) ->
 			AnonymousName, Secret, MAC, CCAuth, RadId6),
 	peer_ttls_transport:deliver(SslPid1, self(), 
 			iolist_to_binary(ServerCipher)),
-	[<<?Handshake, _:32>>, [[?ClientHello, _,
-			<<_:16, CR:32/binary, _/binary>>]| _ ]] = ClientHelloMsg,
-	<<?Handshake, _:32, ?ServerHello, _:24,
-			_:16, SR:32/binary,  _/binary>> = list_to_binary(ServerHello),  
 	SslSocket = ssl_handshake(),
-	Seed = [<<CR/binary, SR/binary>>],
+	Seed = prf_seed(ClientHelloMsg, ServerHello),
 	{MSK, _} = prf(SslSocket, master_secret ,
 			<<"ttls keying material">>, Seed, 128),
 	ReqAuth6 = radius:authenticator(),
@@ -452,3 +448,21 @@ prf(SslSocket, Secret, Lable, Seed, WantedLength) ->
 	{ok, <<MSK:64/binary, EMSK:64/binary>>} =
 			ssl:prf(SslSocket, Secret , Lable, Seed, WantedLength),
 	{MSK, EMSK}.
+
+prf_seed(ClientHello, ServerHello) when is_list(ClientHello) ->
+	CH = iolist_to_binary(ClientHello),
+	prf_seed(CH, ServerHello);
+prf_seed(ClientHello, ServerHello) when is_list(ServerHello) ->
+	SH = iolist_to_binary(ServerHello),
+	prf_seed(ClientHello, SH);
+prf_seed(ClientHello, ServerHello) when
+		is_binary(ClientHello), is_binary(ServerHello) ->
+	CR = cs_random(ClientHello, ?ClientHello),
+	SR = cs_random(ServerHello, ?ServerHello),
+	[<<CR/binary, SR/binary>>].
+
+cs_random(TlsRecordLayer, MsgType) ->
+	<<?Handshake, _:32, MsgType, _:24, _:16,
+		Rand:32/binary, _/binary>> = TlsRecordLayer,
+	Rand.
+
