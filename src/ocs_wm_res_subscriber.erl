@@ -45,7 +45,10 @@
 		current_password :: string(),
 		new_password :: string(),
 		attributes = [] :: radius_attributes:attributes(),
-		balance :: integer()}).
+		balance :: integer(),
+		frange :: integer(),
+		lrange :: integer(),
+		partial_content = false :: boolean()}).
 
 %%----------------------------------------------------------------------
 %%  webmachine callbacks
@@ -104,11 +107,19 @@ content_types_provided(ReqData, Context) ->
 		'PUT' ->
 			{[{"application/json", update_subscriber}], NewReqData, Context};
 		Method when Method == 'GET'; Method == 'HEAD' ->
-			case {wrq:path_info(identity, NewReqData), wrq:req_qs(NewReqData)} of
-				{undefined, _} ->
-					{[{"application/json", find_subscriber}], NewReqData, Context};
-				{_, []} ->
-					{[{"application/json", find_subscriber}], NewReqData, Context}
+			case {wrq:path_info(identity, NewReqData), wrq:req_qs(NewReqData),
+					 wrq:get_req_header("range", NewReqData),} of
+				{undefined, _, undefined} ->
+					{[{"application/json", find_subscribers}], NewReqData, Context};
+				{undefined, _, Range} ->
+					[SFR, SLR] = string:tokens(Range, "-"),
+					{FR, LR} = {list_to_integer(SFR), list_to_integer(SLR)},
+					NextContext = Context#state{frange = FR, lrange = LR,
+							partial_content = true},
+					{[{"application/json", find_subscribers}], NewReqData, NextContext}
+				{Identity, _, undefined} ->
+					NextContext = Context#state{subscriber = Identity},
+					{[{"application/json", find_subscriber}], NewReqData, NextContext};
 			end;
 		'DELETE' ->
 			{[{"application/json", delete_subscriber}], NewReqData, Context}
