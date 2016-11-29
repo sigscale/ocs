@@ -326,7 +326,6 @@ server_cipher1(#eap_ttls{data = SH}, Socket, Address, Port, NasId,
 	NewRadId = RadId + 1,
 	{NewRadId, EapId, [SH | Buf]}.
 	
-%% @todo enoded AVPs
 client_passthrough(SslSocket, UserName, Password, Socket, Address, Port,
 		NasId, Secret, MAC, Auth, EapId, RadId) ->
 	UN = #diameter_avp{code = ?UserName, is_mandatory = true,
