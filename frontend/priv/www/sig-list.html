@@ -14,29 +14,33 @@
 
 		  <template>
 					 <style> /* local DOM styles go here */ 
-								:host { display: inline-block; }
-								iron-icon { fill: rgba(0,0,0,0); stroke: currentcolor; } 
-								:host([pressed]) iron-icon { fill: currentcolor; }
-								paper-button{   
-										 background-color: #7d8ff5;
-										 color: white;
-										 font-weight: bold;}
+:host { display: inline-block; }
+iron-icon { fill: rgba(0,0,0,0); stroke: currentcolor; } 
+:host([pressed]) iron-icon { fill: currentcolor; }
+paper-button{   
+		  background-color: #7d8ff5;
+		  color: white;
+		  font-weight: bold;}
 
 								#subscriber{width:3%;}
 					 </style>
-					<div>	
-					 <paper-toolbar>
-								<img id="subscriber" src="list.png">
-								<paper-button toggles raised on-click = "gotoEnd" style="float: right; width: 200px;}"  >
-										  Scroll to bottom
-								</paper-button>
-					 </paper-toolbar>
-					</div>
+					 <div>	
+								<paper-toolbar>
+										  <img id="subscriber" src="list.png">
+										  <div hidden$="{{hide}}">
+													 <paper-button toggles  style="float: right; width: 200px;}" > Edit </paper-button>
+													 <paper-button toggles raised on-click = "deleteSeletedItems" style="float: right; width: 200px;}" > Delete </paper-button>
+										  </div>
+										  <paper-button toggles raised on-click = "gotoEnd" style="float: right; width: 200px;}"  >
+													 Scroll to bottom
+										  </paper-button>
+								</paper-toolbar>
+					 </div>
 					 <style include="shared-styles">
-						:host {
-						  display: block;
-		  				padding: 10px;
-								}
+:host {
+		  display: block;
+		  padding: 10px;
+}
 						vaadin-grid{font-size: 16px;}
 					 </style>
 
@@ -48,7 +52,7 @@
 	debounce-duration="50">
 					 </iron-ajax>
 
-					 <vaadin-grid id="frozen" frozen-columns="2" >
+					 <vaadin-grid selection-mode="multi" id="frozen" frozen-columns="2" on-selected-items-changed="onSelect">
 								<table>
 										  <colgroup> 
 													 <col name="identity"/> 
@@ -56,35 +60,66 @@
 													 <col name="attributes"/> 
 													 <col name="enabled"/> 
 										  </colgroup>
-								</tbody>
+										  <thead>
+													 <tr>
+																<th>Subscriber</th>
+																<th>Password</th>
+																<th>Attributes</th>
+																<th>Enabled</th>
+													 </tr>
+										  </thead>
 								</table>
-					 </vaadin-grid>
 
+					 </vaadin-grid>
+					 <iron-ajax	 id="deleteSubs"
+									 auto
+									 handle-as="json"
+			 						 method = "delete"
+									 on-response="deletionResponse"
+									 debounce-duration="300"></iron-ajax>
 
 		  </template>
 		  <script>
 Polymer({
 		  is: 'sig-list',
 
-		  properties:{},
+		  properties:{
+					 hide:{type: Boolean, value: true}
+		  },
 
 		  created: function() {
-					 console.log("created");
 		  },
 
 		  ready: function() {
-					 console.log("ready");
 		  },
 
-		  responseHandler: function(data) {
+		  responseHandler: function(event) {
 					 var grid = this.$.frozen; 
-					 //grid.items = data.detail.xhr.response._links.item;
-					 grid.items = data.detail.xhr.response;
+					 grid.items = event.detail.xhr.response;
 		  },
 
 		  gotoEnd: function(event){
 					 var grid = this.$.frozen; 
 					 grid.scrollToEnd();
+		  },
+
+		  deleteSeletedItems: function(event){
+					 var grid = this.$.frozen; 
+					 grid.selection.selected(function(index)
+										  { var selection = grid.items[index];
+											 var deleteAjax = document.getElementById("deleteSubs");
+											 deleteAjax.url = "http://localhost:8888/ocs/subscriber/"+ selection.identity;
+											 deleteAjax.generateRequest();
+										  });
+		  },
+
+		  deletionResponse: function(event){
+					 var grid = this.$.frozen; 
+					 grid.refreshItems();
+		  },
+
+		  onSelect: function(event) {
+					 this.hide = !this.hide;
 		  }
 });
 		  </script>
