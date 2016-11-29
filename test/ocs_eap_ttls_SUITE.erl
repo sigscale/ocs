@@ -179,7 +179,8 @@ eap_ttls_authentication(Config) ->
 	{RadId7, CPAuth} = client_passthrough(SslSocket, Subscriber, PeerAuth,
 			Socket, Address, Port, NasId, Secret, MAC, ReqAuth6, EapId5, RadId7),
 	ok = server_passthrough(Socket, Address, Port, NasId, UserName, Secret,
-			MAC, CPAuth, RadId7).
+			MAC, CPAuth, RadId7),
+	ok = ssl:close(SslSocket).
 	
 send_identity(Socket, Address, Port, NasId, AnonymousName, Secret, MAC,
 		Auth, EapId, RadId) ->
@@ -352,8 +353,7 @@ server_passthrough(Socket, Address, Port, NasId, UserName, Secret,
 			MAC, Auth, RadId) ->
 	EapMsg = access_accept(Socket, Address, Port,
 			Secret, RadId, Auth),
-	#eap_packet{code = success, identifier = EapId,
-			type = ?TTLS} = ocs_eap_codec:eap_packet(EapMsg),
+	#eap_packet{code = success, identifier = EapId} = ocs_eap_codec:eap_packet(EapMsg),
 	ok.
 
 %% EapPacket :: #eap_packet{}.
