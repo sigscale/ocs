@@ -152,13 +152,6 @@ function _submit() {
 		  Polymer.dom(event).localTarget.parentElement.submit();
 		  console.log("Submitted");
 }
-presubmit.addEventListener('iron-form-presubmit', function(event) {
-		  //       this.request.contentType = "application/json";
-});
-presubmit.addEventListener('iron-form-response', function(event) {
-		  location.reload();
-		  console.log("Inside pre-submit");
-});
 					 </script>
 		  </template>
 		  <script>

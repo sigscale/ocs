@@ -38,6 +38,7 @@
 		options/2]).
 
 -include("ocs_wm.hrl").
+-include("ocs.hrl").
 
 -record(state,
 		{subscriber :: string(),
@@ -213,14 +214,16 @@ update_subscriber(ReqData, Context) ->
 %% @doc Body producing function for `GET /ocs/subscriber' and
 %% `GET /ocs/subscriber/{identity}' requests
 find_subscriber(ReqData, Context) ->
-	UriIdentity = wrq:path_info(identity, ReqData),
-	case catch ocs:uri_to_term(UriIdentity) of
-		{'EXIT', _Reason} ->
-					{{halt, 400}, ReqData, Context};
+	case wrq:path_info(identity, ReqData) of
 		undefined ->
 			find1(ReqData, Context);
-		Name ->
-			find2(Name, ReqData, Context)
+		UriIdentity ->
+			case catch ocs:uri_to_term(UriIdentity) of
+				{'EXIT', _Reason} ->
+					{{halt, 400}, ReqData, Context};
+				Name ->
+					find2(Name, ReqData, Context)
+			end
 	end.
 %% @hidden
 find1(ReqData, Context)->
@@ -228,7 +231,10 @@ find1(ReqData, Context)->
 		{error, _} ->
 			{{halt, 400}, ReqData, Context};
 		Subscribers ->
-			JsonArray = {array, Subscribers},
+			ObjList = [{struct,
+					[{name, S#subscriber.name},{password, S#subscriber.password}]}
+					|| S <- Subscribers],
+			JsonArray = {array, ObjList},
 			Body  = mochijson:encode(JsonArray),
 			{Body, ReqData, Context}
 	end.

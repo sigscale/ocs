@@ -43,7 +43,7 @@
 					 <iron-ajax id="my-ajax-id"
 					  auto=true
 					  url="http://localhost:8888/ocs/subscriber"
-		 headers='{"Accept": "application/hal+json", "Authorization" : "Basic b3NzOmFwcGxlMTIz"}'
+		 headers='{"Accept": "application/json"}'
 		 on-response="responseHandler"
 	debounce-duration="50">
 					 </iron-ajax>
@@ -51,134 +51,9 @@
 					 <vaadin-grid id="frozen" frozen-columns="2" >
 								<table>
 										  <colgroup> 
-													 <col name="subscriber"/> 
-													 <col name="attributes"/> 
-													 <col name="balance"/> 
-													 <col name="edit"/> 
-													 <col name="delete"/> 
+													 <col name="name"/> 
+													 <col name="password"/> 
 										  </colgroup>
-								<thead>
-										  <tr>
-													 <th>Subscriber</th>
-													 <th>Attributes</th>
-													 <th>Availabale Balance</th>
-													 <th>Edit</th>
-													 <th>Delete</th>
-										  </tr>
-								</thead>
-								<tbody>
-										  <tr>
-													 <td>A4-2B-D1-20-3D-BA</td>
-													 <td>[hidden]</td>
-													 <td>150.10 MB</td>
-													 <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
-													 <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
-										  </tr>
-										  <tr>
-													 <td>4D-98-7F-E2-FC-5C</td>
-													 <td>[hidden]</td>
-													 <td>68.8 MB</td>
-													 <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
-													 <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
-										  </tr>
-										  <tr>
-													 <td>2A-D6-BB-52-6F-47</td>
-													 <td>[hidden]</td>
-													 <td> 174.09 MB</td>
-													 <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
-													 <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
-										  </tr>
-										  <tr>
-													 <td>D1-B9-08-72-35-85</td>
-													 <td>[hidden]</td>
-													 <td>53.3 MB </td>
-													 <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
-													 <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
-										  </tr>
-										  <tr>
-													 <td>8B-A0-61-9B-1E-94</td>
-													 <td>[hidden]</td>
-													 <td>85.13 MB</td>
-													 <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
-													 <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
-										  </tr>
-										  <tr>
-													 <td>4F-28-F7-5B-97-D0</td>
-													 <td>[hidden]</td>
-													 <td> 98.73 MB</td>
-													 <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
-													 <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
-										  </tr>
-										  <tr>
-													 <td>92-9D-38-94-73-54</td>
-													 <td>[hidden]</td>
-													 <td> 49.37 MB</td>
-													 <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
-													 <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
-										  </tr>
-										  <tr>
-													 <td>2F-F7-66-78-A4-85</td>
-													 <td>[hidden]</td>
-													 <td>98.81 MB</td>
-													 <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
-													 <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
-										  </tr>
-										  <tr>
-													 <td>51-B2-40-7B-CC-58</td>
-													 <td>[hidden]</td>
-													 <td>12.79 MB</td>
-													 <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
-													 <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
-										  </tr>
-										  <tr>
-													 <td>A9-90-E5-46-14-D4</td>
-													 <td>[hidden]</td>
-													 <td> 55.3 MB</td>
-													 <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
-													 <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
-										  </tr>
-										  <tr>
-													 <td>39-8C-CD-AE-6E-4A</td>
-													 <td>[hidden]</td>
-													 <td> 140.75 MB</td>
-													 <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
-													 <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
-										  </tr>
-										  <tr>
-													 <td>Subscriber #651</td>
-													 <td>[hidden]</td>
-													 <td>100.00 MB</td>
-													 <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
-													 <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
-										  </tr>
-										  <tr>
-													 <td>Subscriber #651</td>
-													 <td>[hidden]</td>
-													 <td>100.00 MB</td>
-													 <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
-													 <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
-										  </tr>
-										  <tr>
-													 <td>Subscriber #651</td>
-													 <td>[hidden]</td>
-													 <td>100.00 MB</td>
-													 <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
-													 <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
-										  </tr>
-										  <tr>
-													 <td>Subscriber #651</td>
-													 <td>[hidden]</td>
-													 <td>100.00 MB</td>
-													 <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
-													 <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
-										  </tr>
-										  <tr>
-													 <td>Subscriber #651</td>
-													 <td>[hidden]</td>
-													 <td>100.00 MB</td>
-													 <td><a href="#"><iron-icon icon="editor:mode-edit"></iron-icon></a></td>
-													 <td><a href="#"><iron-icon icon="icons:delete"></iron-icon></a></td>
-										  </tr>
 								</tbody>
 								</table>
 					 </vaadin-grid>
@@ -201,7 +76,8 @@ Polymer({
 
 		  responseHandler: function(data) {
 					 var grid = this.$.frozen; 
-					 grid.items = data.detail.xhr.response._links.item;
+					 //grid.items = data.detail.xhr.response._links.item;
+					 grid.items = data.detail.xhr.response;
 		  },
 
 		  gotoEnd: function(event){
