@@ -168,8 +168,9 @@ add_subscriber(ReqData, #state{subscriber = Subscriber,
 			ArrayAttributes, Balance) of
 		ok ->
 			{true, ReqData, Context};
-		{error, Reason} ->
-			{{error, Reason}, ReqData, Context}
+		{error, _Reason} ->
+erlang:display(aaaaa),
+			{{halt, 400}, ReqData, Context}
 	end catch
 		throw:_ ->
 			{{halt, 400}, ReqData, Context}
