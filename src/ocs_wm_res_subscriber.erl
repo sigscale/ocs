@@ -33,6 +33,7 @@
 		create_path/2,
 		delete_resource/2,
 		find_subscriber/2,
+		find_subscribers/2,
 		add_subscriber/2,
 		update_subscriber/2,
 		options/2]).
@@ -45,7 +46,10 @@
 		current_password :: string(),
 		new_password :: string(),
 		attributes = [] :: radius_attributes:attributes(),
-		balance :: integer()}).
+		balance :: integer(),
+		frange :: integer(),
+		lrange :: integer(),
+		partial_content = false :: boolean()}).
 
 %%----------------------------------------------------------------------
 %%  webmachine callbacks
@@ -104,11 +108,19 @@ content_types_provided(ReqData, Context) ->
 		'PUT' ->
 			{[{"application/json", update_subscriber}], NewReqData, Context};
 		Method when Method == 'GET'; Method == 'HEAD' ->
-			case {wrq:path_info(identity, NewReqData), wrq:req_qs(NewReqData)} of
-				{undefined, _} ->
-					{[{"application/json", find_subscriber}], NewReqData, Context};
-				{_, []} ->
-					{[{"application/json", find_subscriber}], NewReqData, Context}
+			case {wrq:path_info(identity, NewReqData), wrq:req_qs(NewReqData),
+					 wrq:get_req_header("range", NewReqData)} of
+				{undefined, _, undefined} ->
+					{[{"application/json", find_subscribers}], NewReqData, Context};
+				{undefined, _, Range} ->
+					[SFR, SLR] = string:tokens(Range, "-"),
+					{FR, LR} = {list_to_integer(SFR), list_to_integer(SLR)},
+					NextContext = Context#state{frange = FR, lrange = LR,
+							partial_content = true},
+					{[{"application/json", find_subscribers}], NewReqData, NextContext};
+				{Identity, _, undefined} ->
+					NextContext = Context#state{subscriber = Identity},
+					{[{"application/json", find_subscriber}], NewReqData, NextContext}
 			end;
 		'DELETE' ->
 			{[{"application/json", delete_subscriber}], NewReqData, Context}
@@ -212,44 +224,25 @@ update_subscriber(ReqData, Context) ->
 -spec find_subscriber(ReqData :: rd(), Context :: state()) ->
 	{Result :: iodata() | {stream, streambody()} | halt(),
 	 ReqData :: rd(), Context :: state()}.
-%% @doc Body producing function for `GET /ocs/subscriber' and
-%% `GET /ocs/subscriber/{identity}' requests
-find_subscriber(ReqData, Context) ->
-	case wrq:path_info(identity, ReqData) of
-		undefined ->
-			find1(ReqData, Context);
-		UriIdentity  ->
-			case lists:member($%, UriIdentity) of
-				true ->
-					case catch ocs:uri_to_term(UriIdentity) of
-						{'EXIT', _Reason} ->
-							{{halt, 400}, ReqData, Context};
-						Name ->
-							find2(Name, ReqData, Context)
-					end;
-				false ->
-					find2(UriIdentity, ReqData, Context)
-				end
+%% @doc Body producing function for `GET /ocs/subscriber/{identity}'
+%% requests.
+find_subscriber(ReqData, #state{subscriber = Identity} = Context) ->
+	case lists:member($%, Identity) of
+		true ->
+			case catch ocs:uri_to_term(Identity) of
+				{'EXIT', _Reason} ->
+					{{halt, 400}, ReqData, Context};
+				Name ->
+					find_subscriber(Name, ReqData, Context)
+			end;
+		false ->
+			find_subscriber(Identity, ReqData, Context)
 	end.
 %% @hidden
-find1(ReqData, Context)->
-	case ocs:get_subscribers() of
-		{error, _} ->
-			{{halt, 400}, ReqData, Context};
-		Subscribers ->
-			ObjList = [{struct,
-					[{identity, S#subscriber.name},{password, S#subscriber.password},
-					 {attributes, S#subscriber.attributes}, {enabled, S#subscriber.enabled}]}
-					|| S <- Subscribers],
-			JsonArray = {array, ObjList},
-			Body  = mochijson:encode(JsonArray),
-			{Body, ReqData, Context}
-	end.
-%% @hidden
-find2(Name, ReqData, Context) ->
-	case ocs:find_subscriber(Name) of
+find_subscriber(Subscriber, ReqData, Context) ->
+	case ocs:find_subscriber(Subscriber) of
 		{ok, _, Attributes, Balance, Enabled} ->
-			Obj = [{identity, Name}, {attributes, Attributes}, {balance, Balance},
+			Obj = [{identity, Subscriber}, {attributes, Attributes}, {balance, Balance},
 						 {enabled, Enabled}],
 			JsonObj  = {struct, Obj},
 			Body  = mochijson:encode(JsonObj),
@@ -258,3 +251,35 @@ find2(Name, ReqData, Context) ->
 			{{halt, 400}, ReqData, Context}
 	end.
 
+-spec find_subscribers(ReqData :: rd(), Context :: state()) ->
+	{Result :: iodata() | {stream, streambody()} | halt(),
+	ReqData :: rd(), Context :: state()}.
+%% @doc Body producing function for `GET /ocs/subscriber'
+%% requests.
+find_subscribers(ReqData, #state{partial_content = false} = Context) ->
+	case find_subscribers1() of
+		{error, _} ->
+			{{halt, 400}, ReqData, Context};
+		Subscribers ->
+			ObjList = [{strcut,
+			[{identity, S#subscriber.name},{password, S#subscriber.password},
+				{attributes, S#subscriber.attributes}, {enabled, S#subscriber.enabled}]}
+				|| S <- Subscribers],
+			JsonArray = {array, ObjList},
+			Body  = mochijson:encode(JsonArray),
+			{Body, ReqData, Context}
+	end.
+%% @todo partion_content
+%find_subscribers(ReqData, #state{partial_content = true,
+%		frange = FR, lrange = LR, buf = []} = Context) ->
+		
+
+%% @hidden
+find_subscribers1() ->
+	case ocs:get_subscribers() of
+		{error, Reason} ->
+			{error, Reason};
+		SubscriberList ->
+			SubscriberList
+	end.
+	
