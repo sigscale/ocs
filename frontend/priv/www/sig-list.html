@@ -44,12 +44,12 @@ paper-button{
 						vaadin-grid{font-size: 16px;}
 					 </style>
 
-					 <iron-ajax id="my-ajax-id"
-					  auto=true
-					  url="http://localhost:8888/ocs/subscriber"
-		 headers='{"Accept": "application/json"}'
-		 on-response="responseHandler"
-	debounce-duration="50">
+					 <iron-ajax id="getSubs"
+					 				auto=true
+									url="http://localhost:8888/ocs/subscriber"
+									headers='{"Accept": "application/json"}'
+									on-response="responseHandler"
+									debounce-duration="10">
 					 </iron-ajax>
 
 					 <vaadin-grid selection-mode="multi" id="frozen" frozen-columns="2" on-selected-items-changed="onSelect">
@@ -86,7 +86,7 @@ Polymer({
 		  properties:{
 					 hide:{type: Boolean, value: true}
 		  },
-
+			
 		  created: function() {
 		  },
 
@@ -114,8 +114,8 @@ Polymer({
 		  },
 
 		  deletionResponse: function(event){
-					 var grid = this.$.frozen; 
-					 grid.refreshItems();
+					 var getSubsAjax = document.getElementById("getSubs");
+					 getSubsAjax.generateRequest();
 		  },
 
 		  onSelect: function(event) {

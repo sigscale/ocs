@@ -53,12 +53,19 @@
 													 <iron-pages id="menu" selected="{{selected}}">
 																<div><sig-add></sig-add></div>
 																<div><sig-search></sig-search></div>
-																<div><sig-list></sig-list></div>
+																<div><sig-list on-click="getSubsList"></sig-list></div>
 													 </iron-pages>
 										  </div>
 								</div>
 					 </template>
 					 <script>
+						document.addEventListener('click', function(e) {
+								      var pages = document.querySelector('iron-pages');
+										if (pages.selected == 2)
+										{
+											document.getElementById("getSubs").generateRequest();
+										}
+											   });
 					 </script>
 		  </body>
 </html>
