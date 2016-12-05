@@ -6,7 +6,9 @@
 <link rel="import" href="bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="bower_components/vaadin-grid/vaadin-grid.html">
 <link rel="import" href="bower_components/paper-button/paper-button.html">
+<link rel="import" href="bower_components/paper-dialog/paper-dialog.html">
 <link rel="import" href="bower_components/paper-toolbar/paper-toolbar.html">
+<link rel="import" href="bower_components/paper-toast/paper-toast.html">
 <link rel="import" href="shared-styles.html">
 
 
@@ -28,7 +30,7 @@ paper-button{
 								<paper-toolbar>
 										  <img id="subscriber" src="list.png">
 										  <div hidden$="{{hide}}">
-													 <paper-button toggles  style="float: right; width: 200px;}" > Edit </paper-button>
+													 <paper-button toggles raised on-click = "showModal"  style="float: right; width: 200px;}" > Edit </paper-button>
 													 <paper-button toggles raised on-click = "deleteSeletedItems" style="float: right; width: 200px;}" > Delete </paper-button>
 										  </div>
 										  <paper-button toggles raised on-click = "gotoEnd" style="float: right; width: 200px;}"  >
@@ -44,13 +46,17 @@ paper-button{
 						vaadin-grid{font-size: 16px;}
 					 </style>
 
-					 <iron-ajax id="getSubs"
-					 				auto=true
-									url="http://localhost:8888/ocs/subscriber"
-									headers='{"Accept": "application/json"}'
-									on-response="responseHandler"
-									debounce-duration="10">
-					 </iron-ajax>
+					 <paper-dialog id="modal" modal style="width:60%;">
+								<h1>Edit Subscriber</h1>
+								  <div id="form" >
+										 <paper-input id="edit-id" name="subscriber" label="Subscriber" required></paper-input>
+										 <paper-input id="edit-pwd" name="password" type="password" label="Password"required ></paper-input>
+										 <paper-input id="edit-new-pwd" name="newpassword" label="New Password" required></paper-input>
+										  </div>
+								    <div class="buttons">
+									    <paper-button dialog-confirm autofocus on-click="editSelectedItems">Edit</paper-button>
+									 </div>
+					 </paper-dialog>
 
 					 <vaadin-grid selection-mode="multi" id="frozen" frozen-columns="2" on-selected-items-changed="onSelect">
 								<table>
@@ -70,15 +76,35 @@ paper-button{
 										  </thead>
 								</table>
 
+
 					 </vaadin-grid>
+
+					 <paper-toast id="edit-toast">
+								<h2>Subscriber sucessfully updated !</h2>
+					 </paper-toast>
+
+					 <iron-ajax id="getSubs"
+					 				auto=true
+									url="http://localhost:8888/ocs/subscriber"
+									headers='{"Accept": "application/json"}'
+									on-response="responseHandler"
+									debounce-duration="10"> </iron-ajax>
+
+					 <iron-ajax id="editSub"
+					 				auto=true
+									headers='{"Accept": "application/json"}'
+									on-response="editResponseHandler"
+									debounce-duration="300"> </iron-ajax>
+					 
 					 <iron-ajax	 id="deleteSubs"
 									 auto
 									 handle-as="json"
 			 						 method = "delete"
 									 on-response="deletionResponse"
-									 debounce-duration="300"></iron-ajax>
+									 debounce-duration="300"> </iron-ajax>
 
 		  </template>
+
 		  <script>
 Polymer({
 		  is: 'sig-list',
@@ -87,6 +113,9 @@ Polymer({
 					 hide:{type: Boolean, value: true}
 		  },
 			
+		  listners: {
+		  },
+
 		  created: function() {
 		  },
 
@@ -101,6 +130,43 @@ Polymer({
 		  gotoEnd: function(event){
 					 var grid = this.$.frozen; 
 					 grid.scrollToEnd();
+		  },
+
+		  showModal: function(event){
+					 var grid = this.$.frozen; 
+					 var modal = this.$.modal; 
+					 modal.open(); 
+					 grid.selection.selected(function(index)
+										  { var selection = grid.items[index];
+											 document.getElementById("edit-id").value = selection.identity;
+											 document.getElementById("edit-pwd").value = selection.password;
+										  });
+		  },
+
+		  editSelectedItems: function(event){
+					 var editAjax =  document.getElementById("editSub");
+					 editAjax.method = "PUT";
+					 editAjax.contentType = "application/json";
+					 var id = document.getElementById("edit-id").value;
+					 editAjax.url = "http://localhost:8888/ocs/subscriber/" + id;
+					 var sub = new Object();
+					 sub.update = "password";
+					 sub.password = document.getElementById("edit-pwd").value;
+					 sub.newpassword = document.getElementById("edit-new-pwd").value;
+					 editAjax.body = sub;
+					 console.log(editAjax);
+		  },
+
+		  editResponseHandler: function (){
+					 if(event.detail.succeeded){
+						document.getElementById("edit-toast").open();
+					 	document.getElementById("edit-new-pwd").value = "";
+					 	var getSubsAjax = document.getElementById("getSubs");
+						getSubsAjax.generateRequest();
+					 }
+					 else{
+								console.log("Not Success");
+					 }
 		  },
 
 		  deleteSeletedItems: function(event){
