@@ -248,7 +248,7 @@ find_subscribers(ReqData, #state{partial_content = false} = Context) ->
 		{error, _} ->
 			{{halt, 400}, ReqData, Context};
 		Subscribers ->
-			ObjList = [{strcut,
+			ObjList = [{struct,
 			[{identity, S#subscriber.name},{password, S#subscriber.password},
 				{attributes, S#subscriber.attributes}, {enabled, S#subscriber.enabled}]}
 				|| S <- Subscribers],
