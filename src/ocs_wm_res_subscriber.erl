@@ -227,10 +227,11 @@ update_subscriber(ReqData, Context) ->
 %% requests.
 find_subscriber(ReqData, #state{subscriber = Identity} = Context) ->
 	case ocs:find_subscriber(Identity) of
-		{ok, SubBin, Attributes, Balance, Enabled} ->
-			Subscriber = binary_to_list(SubBin),
-			Obj = [{identity, Subscriber}, {attributes, Attributes}, {balance, Balance},
-						 {enabled, Enabled}],
+		{ok, PWBin, Attributes, Balance, Enabled} ->
+			Password = binary_to_list(PWBin),
+			Obj = [{identity, Identity}, {password, Password},
+					{attributes, Attributes}, {balance, Balance},
+					{enabled, Enabled}],
 			JsonObj  = {struct, Obj},
 			Body  = mochijson:encode(JsonObj),
 			{Body, ReqData, Context};
@@ -250,7 +251,8 @@ find_subscribers(ReqData, #state{partial_content = false} = Context) ->
 		Subscribers ->
 			ObjList = [{struct,
 			[{identity, S#subscriber.name},{password, S#subscriber.password},
-				{attributes, S#subscriber.attributes}, {enabled, S#subscriber.enabled}]}
+				{attributes, S#subscriber.attributes}, {balance, S#subscriber.balance},
+				{enabled, S#subscriber.enabled}]}
 				|| S <- Subscribers],
 			JsonArray = {array, ObjList},
 			Body  = mochijson:encode(JsonArray),
