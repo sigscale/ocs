@@ -79,26 +79,6 @@ paper-button.custom {
 										  <paper-input label="Search by Name" required></paper-input>
 										  <paper-button raised class="custom indigo" onclick="_submit()" style="float: right; width: 200px;"  >Search</paper-button>
 								</form>
-								<h1></h1>
-								<br><br>
-
-								<paper-toolbar>
-										  <img id="subscriber" src="search.png">
-										  <h2>Advanced Search</h2>
-								</paper-toolbar>
-								<form  is="iron-form"  id="presubmit" method="post" action="_ah/spi/" >
-										  <paper-input name="name" label="Subscriber" required></paper-input>
-										  <paper-input name="attributes" label="Enter Attributes" ></paper-input>
-										  <label><h3>Balance Range</h3></label>
-										  <paper-input name="balance"  label="To (MB)" required style="float: right; width: 600px;}"> </paper-input>
-										  <div style="overflow: hidden; padding-right: 1.5em;">
-													 <paper-input name="balance"  label="From (MB)" required> </paper-input>
-										  </div>
-										  <paper-button raised class="custom indigo" onclick="_submit()" style="float: right; width: 200px;}" >Search</paper-button>
-								</form>
-
-								<h1></h1>
-								<br><br>
 
 								<div>
 										  <div hidden$="{{hide}}">
