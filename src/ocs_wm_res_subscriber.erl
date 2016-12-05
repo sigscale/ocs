@@ -153,7 +153,7 @@ create_path(ReqData, Context) ->
 		{Balance , _}= string:to_integer(BalStr),
 		NewContext = Context#state{subscriber = Subscriber,
 			current_password = Password, balance = Balance},
-		{ocs:term_to_uri(Subscriber), ReqData, NewContext}
+		{Subscriber, ReqData, NewContext}
 	catch
 		_Error ->
 			{{halt, 400}, ReqData, Context}
@@ -181,7 +181,6 @@ add_subscriber(ReqData, #state{subscriber = Subscriber,
 		ok ->
 			{true, ReqData, Context};
 		{error, _Reason} ->
-erlang:display(aaaaa),
 			{{halt, 400}, ReqData, Context}
 	end catch
 		throw:_ ->
@@ -227,21 +226,9 @@ update_subscriber(ReqData, Context) ->
 %% @doc Body producing function for `GET /ocs/subscriber/{identity}'
 %% requests.
 find_subscriber(ReqData, #state{subscriber = Identity} = Context) ->
-	case lists:member($%, Identity) of
-		true ->
-			case catch ocs:uri_to_term(Identity) of
-				{'EXIT', _Reason} ->
-					{{halt, 400}, ReqData, Context};
-				Name ->
-					find_subscriber(Name, ReqData, Context)
-			end;
-		false ->
-			find_subscriber(Identity, ReqData, Context)
-	end.
-%% @hidden
-find_subscriber(Subscriber, ReqData, Context) ->
-	case ocs:find_subscriber(Subscriber) of
-		{ok, _, Attributes, Balance, Enabled} ->
+	case ocs:find_subscriber(Identity) of
+		{ok, SubBin, Attributes, Balance, Enabled} ->
+			Subscriber = binary_to_list(SubBin),
 			Obj = [{identity, Subscriber}, {attributes, Attributes}, {balance, Balance},
 						 {enabled, Enabled}],
 			JsonObj  = {struct, Obj},
@@ -257,7 +244,7 @@ find_subscriber(Subscriber, ReqData, Context) ->
 %% @doc Body producing function for `GET /ocs/subscriber'
 %% requests.
 find_subscribers(ReqData, #state{partial_content = false} = Context) ->
-	case find_subscribers1() of
+	case ocs:get_subscribers() of
 		{error, _} ->
 			{{halt, 400}, ReqData, Context};
 		Subscribers ->
@@ -273,13 +260,3 @@ find_subscribers(ReqData, #state{partial_content = false} = Context) ->
 %find_subscribers(ReqData, #state{partial_content = true,
 %		frange = FR, lrange = LR, buf = []} = Context) ->
 		
-
-%% @hidden
-find_subscribers1() ->
-	case ocs:get_subscribers() of
-		{error, Reason} ->
-			{error, Reason};
-		SubscriberList ->
-			SubscriberList
-	end.
-	
