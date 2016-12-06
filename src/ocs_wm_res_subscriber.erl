@@ -195,20 +195,18 @@ add_subscriber(ReqData, #state{subscriber = Subscriber,
 update_subscriber(ReqData, Context) ->
 	Identity = wrq:path_info(identity, ReqData),
 	case ocs:find_subscriber(Identity) of
-		{ok, Password, _, _, _} ->
+		{ok, _, _, _, _} ->
 			try 
 				Body = wrq:req_body(ReqData),
 				{struct, Object} = mochijson:decode(Body),
-				{_, RecvPwd} = lists:keyfind("password", 1, Object),
-				Password = list_to_binary(RecvPwd),
 				{_, Type} = lists:keyfind("update", 1, Object),
 				ok = case Type of
 					"attributes" ->
 						{_, Attributes} = lists:keyfind("attributes", 1, Object),
-						ocs:update_attributes(Identity, Password, Attributes);
+						ocs:update_attributes(Identity, Attributes);
 					"password" ->
 						{_, NewPassword } = lists:keyfind("newpassword", 1, Object),
-						ocs:update_password(Identity, Password, NewPassword)
+						ocs:update_password(Identity, NewPassword)
 				end,
 				{true, ReqData, Context}
 			catch

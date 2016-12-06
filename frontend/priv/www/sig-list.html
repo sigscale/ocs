@@ -50,7 +50,7 @@ paper-button{
 								<h1>Edit Subscriber</h1>
 								  <div id="form" >
 										 <paper-input id="edit-id" name="subscriber" label="Subscriber" required></paper-input>
-										 <paper-input id="edit-pwd" name="password" type="password" label="Password"required ></paper-input>
+										 <paper-input id="edit-pwd" name="password"  label="Password" disabled ></paper-input>
 										 <paper-input id="edit-new-pwd" name="newpassword" label="New Password" required></paper-input>
 										  </div>
 								    <div class="buttons">
@@ -151,7 +151,6 @@ Polymer({
 					 editAjax.url = "http://localhost:8888/ocs/subscriber/" + id;
 					 var sub = new Object();
 					 sub.update = "password";
-					 sub.password = document.getElementById("edit-pwd").value;
 					 sub.newpassword = document.getElementById("edit-new-pwd").value;
 					 editAjax.body = sub;
 					 console.log(editAjax);
