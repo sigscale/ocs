@@ -23,7 +23,7 @@
 %% export the ocs public API
 -export([add_client/2, find_client/1]).
 -export([add_subscriber/3, add_subscriber/4, find_subscriber/1,
-				delete_subscriber/1, update_password/3, update_attributes/3,
+				delete_subscriber/1, update_password/2, update_attributes/2,
 				get_subscribers/0]).
 -export([log_file/1]).
 -export([generate_password/0]).
@@ -184,28 +184,22 @@ delete_subscriber(Subscriber) when is_binary(Subscriber) ->
 	end.
 
 -spec update_password(Subscriber :: string() | binary(),
-		OldPassword :: string() | binary(),
-		NewPassword :: string() | binary())->
-	ok | {error, Reason :: not_found | bad_password | term()}.
+		Password :: string() | binary())->
+	ok | {error, Reason :: not_found | term()}.
 %% @doc Update a new subscriber password
 %% @see ocs:generate_password/0
-update_password(Subscriber, OldPassword, NewPassword)
+update_password(Subscriber, Password)
 		when is_list(Subscriber) ->
-	update_password(list_to_binary(Subscriber), OldPassword, NewPassword);
-update_password(Subscriber, OldPassword, NewPassword)
-		when is_list(OldPassword) ->
-	update_password(Subscriber, list_to_binary(OldPassword), NewPassword);
-update_password(Subscriber, OldPassword, NewPassword)
-		when is_list(NewPassword) ->
-	update_password(Subscriber, OldPassword, list_to_binary(NewPassword));
-update_password(Subscriber, OldPassword, NewPassword) ->
+	update_password(list_to_binary(Subscriber), Password);
+update_password(Subscriber, Password)
+		when is_list(Password) ->
+	update_password(Subscriber, list_to_binary(Password));
+update_password(Subscriber, Password) ->
 	F = fun() ->
 				case mnesia:read(subscriber, Subscriber, write) of
-					[#subscriber{password = OldPassword} = Entry] ->
-						NewEntry = Entry#subscriber{password = NewPassword},
+					[Entry] ->
+						NewEntry = Entry#subscriber{password = Password},
 						mnesia:write(subscriber, NewEntry, write);
-					[#subscriber{}] ->
-						throw(bad_password);
 					[] ->
 						throw(not_found)
 				end
@@ -220,24 +214,19 @@ update_password(Subscriber, OldPassword, NewPassword) ->
 	end.
 
 -spec update_attributes(Subscriber :: string() | binary(),
-		Password :: string() | binary(),
 		Attributes :: radius_attributes:attributes()) ->
-	ok | {error, Reason :: not_found | bad_password | term()}.
+	ok | {error, Reason :: not_found | term()}.
 %% @doc Update subscriber attributes.
 %%
-update_attributes(Subscriber, Password, Attributes) when is_list(Subscriber) ->
-	update_attributes(list_to_binary(Subscriber), Password, Attributes);
-update_attributes(Subscriber, Password, Attributes) when is_list(Password) ->
-	update_attributes(Subscriber, list_to_binary(Password), Attributes);
-update_attributes(Subscriber, Password, Attributes) when is_binary(Subscriber),
-		is_binary(Password), is_list(Attributes) ->
+update_attributes(Subscriber, Attributes) when is_list(Subscriber) ->
+	update_attributes(list_to_binary(Subscriber), Attributes);
+update_attributes(Subscriber, Attributes) when is_binary(Subscriber),
+		is_list(Attributes) ->
 	F = fun() ->
 				case mnesia:read(subscriber, Subscriber, write) of
-					[#subscriber{password = Password} = Entry] ->
+					[Entry] ->
 						NewEntry = Entry#subscriber{attributes = Attributes},
 						mnesia:write(subscriber, NewEntry, write);
-					[#subscriber{}] ->
-						throw(bad_password);
 					[] ->
 						throw(not_found)
 				end
