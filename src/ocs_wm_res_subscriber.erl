@@ -214,7 +214,7 @@ update_subscriber(ReqData, Context) ->
 					{{halt, 400}, ReqData, Context}
 			end;
 		{error, _Reason} ->
-			{{halt, 400}, ReqData, Context}
+			{{halt, 404}, ReqData, Context}
 	end.
 
 
