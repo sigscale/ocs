@@ -76,7 +76,7 @@ paper-button.custom {
 													 <img id="subscriber" src="search.png">
 										  </paper-toolbar>
 								<form  is="iron-form"  id="presubmit1" method="get" action="http://localhost:8888/ocs/subscriber"  content-type="application/json" >
-										  <paper-input label="Search by Name" required></paper-input>
+										  <paper-input label="Search by Identity" required></paper-input>
 										  <paper-button raised class="custom indigo" onclick="_submit()" style="float: right; width: 200px;"  >Search</paper-button>
 								</form>
 
@@ -88,12 +88,20 @@ paper-button.custom {
 													 <table>
 																<colgroup> 
 																		  <col name="identity"/> 
+																		  <col name="password"/> 
 																		  <col name="balance"/> 
 																		  <col name="attributes"/> 
 																		  <col name="enabled"/> 
-																		  <col name="edit"/> 
-																		  <col name="delete"/> 
 																</colgroup>
+													 			<thead>
+																		<tr>
+																				  <th>Identity</th>	  
+																				  <th>Secret</th>	  
+																				  <th>Balance</th>	  
+																				  <th>Attributes</th>	  
+																				  <th>Enabled</th>	  
+																		</tr>
+																</thead>
 													 </table>
 										  </vaadin-grid>
 											</div>

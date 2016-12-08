@@ -9,6 +9,7 @@
 <link rel="import" href="bower_components/paper-dialog/paper-dialog.html">
 <link rel="import" href="bower_components/paper-toolbar/paper-toolbar.html">
 <link rel="import" href="bower_components/paper-toast/paper-toast.html">
+<link rel="import" href="bower_components/paper-input/paper-input.html">
 <link rel="import" href="shared-styles.html">
 
 
@@ -49,12 +50,13 @@ paper-button{
 					 <paper-dialog id="modal" modal style="width:60%;">
 								<h1>Edit Subscriber</h1>
 								  <div id="form" >
-										 <paper-input id="edit-id" name="subscriber" label="Subscriber" required></paper-input>
-										 <paper-input id="edit-pwd" name="password"  label="Password" disabled ></paper-input>
-										 <paper-input id="edit-new-pwd" name="newpassword" label="New Password" required></paper-input>
+										 <paper-input id="edit-id" name="subscriber" label="Identity" disabled></paper-input>
+										 <paper-input id="edit-pwd" name="password"  label="Secret" disabled ></paper-input>
+										 <paper-input id="edit-new-pwd" name="newpassword" label="New Secret" required auto-validate error-message="New secret can't be empty!" ></paper-input>
 										  </div>
 								    <div class="buttons">
 									    <paper-button dialog-confirm autofocus on-click="editSelectedItems">Edit</paper-button>
+									    <paper-button dialog-confirm autofocus >Cancel</paper-button>
 									 </div>
 					 </paper-dialog>
 
@@ -63,13 +65,15 @@ paper-button{
 										  <colgroup> 
 													 <col name="identity"/> 
 													 <col name="password"/> 
+													 <col name="balance"/> 
 													 <col name="attributes"/> 
 													 <col name="enabled"/> 
 										  </colgroup>
 										  <thead>
 													 <tr>
-																<th>Subscriber</th>
-																<th>Password</th>
+																<th>Identity</th>
+																<th>Secret</th>
+																<th>Balance</th>
 																<th>Attributes</th>
 																<th>Enabled</th>
 													 </tr>
