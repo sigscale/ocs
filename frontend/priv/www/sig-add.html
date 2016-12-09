@@ -54,7 +54,11 @@
 										  <form  is="iron-form"  id="presubmit" method="post" action="http://localhost:8888/ocs/subscriber"  content-type="application/json" >
 													 <paper-input name="subscriber" label="Identity" required></paper-input>
 													 <paper-input name="password"  label="Secret"required ></paper-input>
-													 <paper-input name="attributes" value = "[]"label="Attributes" disabled></paper-input>
+													 <paper-input name="ascend-data-rate" label="Receive Data Rate" ></paper-input>
+													 <paper-input name="ascend-xmit-rate" label="Transmit Data Rate" ></paper-input>
+													 <paper-input name="session-timout" label="Session Timeout" ></paper-input>
+													 <paper-input name="acct-interim-interval" label="Update Interval" ></paper-input>
+													 <paper-input name="class" label="Class" ></paper-input>
 													 <paper-input name="balance" type="number" label="Balance (MB)" required> </paper-input>
 								    <div class="buttons">
 										 <paper-button raised class="custom indigo" onclick="_submit()" style="float: right; width: 200px;"  >Submit</paper-button>
