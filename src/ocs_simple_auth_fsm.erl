@@ -108,6 +108,32 @@ request1(#statedata{req_attr = Attributes, req_auth = Authenticator,
 			{stop, {shutdown, SessionID}, StateData}
 	end.
 %% @hidden
+request2([], #statedata{subscriber = Subscriber,
+		session_id = SessionID} = StateData) ->
+	case ocs:authorize(Subscriber, []) of
+		{ok, Password, Attributes} ->
+			VendorSpecific = {?Mikrotik, ?MikrotikWirelessPsk, Password},
+			ResponseAttributes = radius_attributes:store(?VendorSpecific,
+					VendorSpecific, Attributes),
+			response(?AccessAccept, ResponseAttributes, StateData),
+			{stop, {shutdown, SessionID}, StateData};
+		{error, out_of_credit} ->
+			RejectAttributes = [{?ReplyMessage, "Out of Credit"}],
+			response(?AccessReject, RejectAttributes, StateData),
+			{stop, {shutdown, SessionID}, StateData};
+		{error, disabled} ->
+			RejectAttributes = [{?ReplyMessage, "Subscriber Disabled"}],
+			response(?AccessReject, RejectAttributes, StateData),
+			{stop, {shutdown, SessionID}, StateData};
+		{error, bad_password} ->
+			RejectAttributes = [{?ReplyMessage, "Bad Password"}],
+			response(?AccessReject, RejectAttributes, StateData),
+			{stop, {shutdown, SessionID}, StateData};
+		{error, not_found} ->
+			RejectAttributes = [{?ReplyMessage, "Unknown Username"}],
+			response(?AccessReject, RejectAttributes, StateData),
+			{stop, {shutdown, SessionID}, StateData}
+	end;
 request2(Password, #statedata{subscriber = Subscriber,
 		session_id = SessionID} = StateData) ->
 	case ocs:authorize(Subscriber, Password) of
