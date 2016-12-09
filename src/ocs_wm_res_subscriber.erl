@@ -38,6 +38,8 @@
 		update_subscriber/2,
 		options/2]).
 
+%% @headerfile "include/radius.hrl"
+-include_lib("radius/include/radius.hrl").
 -include("ocs_wm.hrl").
 -include("ocs.hrl").
 
@@ -147,12 +149,13 @@ create_path(ReqData, Context) ->
 		{struct, Object} = mochijson:decode(Body),
 		{_, Subscriber} = lists:keyfind("subscriber", 1, Object),
 		{_, Password} = lists:keyfind("password", 1, Object),
-%% @todo Ignore attributes values temporarily
-%%		{_, {array, ArrayAttributes}} = lists:keyfind("attributes", 1, Object),
+		{_, {struct, AttrJs}} = lists:keyfind("attributes", 1, Object),
+		Attributes = sub_attributes(AttrJs),
 		{_, BalStr} = lists:keyfind("balance", 1, Object),
 		{Balance , _}= string:to_integer(BalStr),
 		NewContext = Context#state{subscriber = Subscriber,
-			current_password = Password, balance = Balance},
+			current_password = Password, balance = Balance,
+			attributes = Attributes},
 		{Subscriber, ReqData, NewContext}
 	catch
 		_Error ->
@@ -260,3 +263,35 @@ find_subscribers(ReqData, #state{partial_content = false} = Context) ->
 %find_subscribers(ReqData, #state{partial_content = true,
 %		frange = FR, lrange = LR, buf = []} = Context) ->
 		
+%%----------------------------------------------------------------------
+%%  internal functions
+%%----------------------------------------------------------------------
+
+sub_attributes(JsonAttributes) ->
+	sub_attributes(JsonAttributes, []).
+%% @hidden
+sub_attributes([{"ascendDataRate", struct, VendorSpecific} | T], Acc) ->
+	Attribute = vendor_specific(VendorSpecific),
+	sub_attributes(T, [Attribute | Acc]);
+sub_attributes([{"ascendXmitRate", struct, VendorSpecific} | T], Acc) ->
+	Attribute = vendor_specific(VendorSpecific),
+	sub_attributes(T, [Attribute | Acc]);
+sub_attributes([{"sessionTimeout", Value} | T], Acc) ->
+	Attribute = {?SessionTimeout, Value},
+	sub_attributes(T, [Attribute | Acc]);
+sub_attributes([{"acctInterimInterval", Value} | T], Acc) ->
+	Attribute = {?AcctInterimInterval, Value},
+	sub_attributes(T, [Attribute | Acc]);
+sub_attributes([{"class", Value} | T], Acc) ->
+	Attribute = {?Class, Value},
+	sub_attributes(T, [Attribute | Acc]);
+sub_attributes([], Acc) ->
+	Acc.
+
+vendor_specific(AttrJson) ->
+	{_, Type} = lists:keyfind("type", 1, AttrJson),
+	{_, VendorID} = lists:keyfind("vendorId", 1, AttrJson),
+	{_, Key} = lists:keyfind("vendorType", 1, AttrJson),
+	{_, Value} = lists:keyfind("value", 1, AttrJson),
+	{Type, {VendorID, {Key, Value}}}.
+
