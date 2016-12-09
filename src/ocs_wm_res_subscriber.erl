@@ -258,12 +258,18 @@ find_subscribers(ReqData, #state{partial_content = false} = Context) ->
 		{error, _} ->
 			{{halt, 400}, ReqData, Context};
 		Subscribers ->
-			ObjList = [{struct,
-			[{identity, S#subscriber.name},{password, S#subscriber.password},
-				{attributes, S#subscriber.attributes}, {balance, S#subscriber.balance},
-				{enabled, S#subscriber.enabled}]}
-				|| S <- Subscribers],
-			JsonArray = {array, ObjList},
+			F = fun(#subscriber{name = Identity, password = Password,
+						attributes = Attributes, balance = Balance,
+						enabled = Enabled}, Acc) ->
+				JSAttributes = json_attributes(Attributes),
+				AttrObj = {struct, JSAttributes}, 
+				RespObj = [{struct, [{identity, Identity}, {password, Password},
+					{attributes, AttrObj}, {balance, Balance},
+					{enabled, Enabled}]}],
+				RespObj ++ Acc
+			end,
+			JsonObj = lists:foldl(F, [], Subscribers),
+			JsonArray = {array, JsonObj},
 			Body  = mochijson:encode(JsonArray),
 			{Body, ReqData, Context}
 	end.
