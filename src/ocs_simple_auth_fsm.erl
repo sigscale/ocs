@@ -137,7 +137,7 @@ request2([], #statedata{subscriber = Subscriber,
 request2(Password, #statedata{subscriber = Subscriber,
 		session_id = SessionID} = StateData) ->
 	case ocs:authorize(Subscriber, Password) of
-		{ok, ResponseAttributes} ->
+		{ok, _, ResponseAttributes} ->
 			response(?AccessAccept, ResponseAttributes, StateData),
 			{stop, {shutdown, SessionID}, StateData};
 		{error, out_of_credit} ->
