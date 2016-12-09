@@ -15,13 +15,11 @@
 <dom-module id="sig-add">
 
 		  <template>
-					 <style> /* local DOM styles go here */ :host { display: inline-block; width:100%;} iron-icon { fill: rgba(0,0,0,0); stroke: currentcolor; } :host([pressed]) iron-icon { fill: currentcolor; }
+					 <style> /* local DOM styles go here */ :host { display: inline-block; width:96%;} iron-icon { fill: rgba(0,0,0,0); stroke: currentcolor; } :host([pressed]) iron-icon { fill: currentcolor; }
 					 </style>
 
 					 <style is="custom-style"> 
 
-						.flex-horizontal { @apply(--layout-horizontal); } 
-						.flexchild { @apply(--layout-flex); padding-left: 1%;padding-top: 1%; padding-right: 20%;} 
 
 						paper-button.custom {
 										  background-color: #7d8ff5;
@@ -50,17 +48,18 @@
 
 					 </style>
 
-					 <div class="container flex-horizontal"  >
-								<div class="flexchild">
 										  <paper-toolbar>
-													 <img id="subscriber" src="sub.png">
+													 <h2>Add subscriber</h2>
 										  </paper-toolbar>
 										  <form  is="iron-form"  id="presubmit" method="post" action="http://localhost:8888/ocs/subscriber"  content-type="application/json" >
 													 <paper-input name="subscriber" label="Identity" required></paper-input>
 													 <paper-input name="password"  label="Secret"required ></paper-input>
 													 <paper-input name="attributes" value = "[]"label="Attributes" disabled></paper-input>
 													 <paper-input name="balance" type="number" label="Balance (MB)" required> </paper-input>
-													 <paper-button raised class="custom indigo" onclick="_submit()" style="float: right; width: 200px;"  >Submit</paper-button>
+								    <div class="buttons">
+										 <paper-button raised class="custom indigo" onclick="_submit()" style="float: right; width: 200px;"  >Submit</paper-button>
+									    <paper-button dialog-confirm autofocus >Cancel</paper-button>
+									 </div>
 										  </form>
 										  <div id="response-display-container" style="padding-top: 14%;margin-top:16%;">
 										  			<paper-toast id="toast-error" class="fit-bottom" >
@@ -76,20 +75,12 @@
 														<h2> Subscriber added !</h2>
 													</paper-toast>
 										  </div>
-								</div>
-
-
-								<div></div>
-
-					 </div>
-
 
 
 					 <script>
 
 function _submit() {
-		  Polymer.dom(event).localTarget.parentElement.submit();
-		  console.log("Submitted");
+		  document.getElementById('presubmit').submit();
 }
 					 </script>
 		  </template>
@@ -125,6 +116,8 @@ Polymer({
 					 toast.duration = 4;
 					 toast.fitInto = document.getElementById("response-display-container");
 					 document.getElementById("presubmit").reset();
+					 document.getElementById("modal2").close();
+					 document.getElementById("getSubs").generateRequest();
 		  }   
 });
 		  </script>

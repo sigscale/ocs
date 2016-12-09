@@ -22,17 +22,9 @@
 
 					 <paper-toolbar>
 								<span class="title"><h1>OCS Subscribers</h1></span>
-								<paper-input label="search anything" style="padding-bottom: 8%i;"></paper-input>	
-								<iron-icon icon="icons:search"></iron-icon>
 					 </paper-toolbar>
 
 					 <template is="dom-bind">
-								<!--					 <paper-tabs selected="{{selected}}">
-					 <paper-tab>Add</paper-tab>
-					 <paper-tab>Search</paper-tab>
-					 <paper-tab>List</paper-tab>
-					 </paper-tabs>
-								-->
 
 								<style is="custom-style"> 
 .flex-horizontal { @apply(--layout-horizontal); height:100%;  } 
@@ -41,31 +33,15 @@
 								</style> 
 								<div class="container flex-horizontal">
 
-										  <div>
-													 <paper-menu id="menu" selected="{{selected}}">
-																<paper-item>Add Subscriber</paper-item>
-																<paper-item>Search Subscriber</paper-item>
-																<paper-item> List All Subscribers </paper-item>
-													 </paper-menu>
+										  <div style="width:20%;">
+																<sig-search></sig-search>
 										  </div>
 
 										  <div class="flexchild">
-													 <iron-pages id="menu" selected="{{selected}}">
-																<div><sig-add></sig-add></div>
-																<div><sig-search></sig-search></div>
+													 <!--	<div><sig-add></sig-add></div> -->
 																<div><sig-list ></sig-list></div>
-													 </iron-pages>
 										  </div>
 								</div>
 					 </template>
-					 <script>
-						document.addEventListener('click', function(e) {
-								      var pages = document.querySelector('iron-pages');
-										if (pages.selected == 2)
-										{
-											document.getElementById("getSubs").generateRequest();
-										}
-											   });
-					 </script>
 		  </body>
 </html>

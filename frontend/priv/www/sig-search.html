@@ -48,7 +48,7 @@ paper-button.custom {
 							  paper-button.indigo {
 										 background-color: #7d8ff5;
 										 color: white;
-										font-weight: bold;
+										 font-weight: bold;
 										 --paper-button-raised-keyboard-focus: {
 													background-color: var(--paper-pink-a200) !important;
 													color: white !important;
@@ -70,73 +70,43 @@ paper-button.custom {
 							  thead {font-size:16px;}
 					 </style>
 
-					 <div class="container flex-horizontal"  >
-								<div class="flexchild">
-										  <paper-toolbar>
-													 <img id="subscriber" src="search.png">
-										  </paper-toolbar>
-								<form  is="iron-form"  id="presubmit1" method="get" action="http://localhost:8888/ocs/subscriber"  content-type="application/json" >
+								<form  is="iron-form"  name = "presubmit1" id="presubmit1" method="get" action="http://localhost:8888/ocs/subscriber"  content-type="application/json" >
 										  <paper-input label="Search by Identity" required></paper-input>
-										  <paper-button raised class="custom indigo" onclick="_submit()" style="float: right; width: 200px;"  >Search</paper-button>
+										  <paper-button raised class="custom indigo" on-click="submitForm" style="float: right; "  >Search</paper-button>
+										  <paper-button dialog-confirm autofocus on-click="resetForm" >Reset</paper-button> 
 								</form>
 
-								<div>
-										  <div hidden$="{{hide}}">
-										  <h1>Results</h1>
-
-										  <vaadin-grid id="frozen" frozen-columns="2" >
-													 <table>
-																<colgroup> 
-																		  <col name="identity"/> 
-																		  <col name="password"/> 
-																		  <col name="balance"/> 
-																		  <col name="attributes"/> 
-																		  <col name="enabled"/> 
-																</colgroup>
-													 			<thead>
-																		<tr>
-																				  <th>Identity</th>	  
-																				  <th>Secret</th>	  
-																				  <th>Balance</th>	  
-																				  <th>Attributes</th>	  
-																				  <th>Enabled</th>	  
-																		</tr>
-																</thead>
-													 </table>
-										  </vaadin-grid>
-											</div>
-
-								</div>
-								</div>
-
-					 </div>
 
 
 
-					 <script>
 
-function _submit() {
-		  Polymer.dom(event).localTarget.parentElement.submit();
-}
-					 </script>
 		  </template>
 		  <script>
 Polymer({
 		  is: 'sig-search',
 
-		  properties:{hide: {
-		                      type: Boolean,
-		                      value: true // init the value to true so it will be hidden on page load
-		                  }},
+		  properties:{
+		  },
 
 		  listeners: {
 					 'presubmit1.iron-form-presubmit': '_handleFormSubmit',
 					 'presubmit1.iron-form-response': '_handleFormResponse'
 		  },
 
-		  responseHandler: function(data) {
-					 console.log(data);
+		  submitForm: function(){
+					 var form = document.getElementById('presubmit1');
+					 form.submit();
+					 document.getElementById('modal1').close();
+		  
 		  },
+
+		  resetForm: function() {
+					 var form = document.getElementById('presubmit1');
+					 form.reset();
+					 var getSubsAjax = document.getElementById('getSubs');
+					 getSubs.generateRequest();
+					 document.getElementById('modal1').close();
+		  } ,
 
 		  _handleFormSubmit: function() {
 					 var form = document.getElementById('presubmit1');
@@ -146,11 +116,11 @@ Polymer({
 		  } ,
 
 		  _handleFormResponse: function() {
-					var data = new Array();
-					data[0] = event.detail.response;
-					var grid = this.$.frozen; 
-					grid.items = data;
-					this.hide = !this.hide;
+					 var data = new Array();
+					 data[0] = event.detail.response;
+					 var grid = document.getElementById("frozen");; 
+					 grid.items = data;
+					 document.getElementById('modal1').close();
 		  }   
 });
 		  </script>

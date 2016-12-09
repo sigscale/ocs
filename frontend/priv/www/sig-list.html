@@ -10,6 +10,8 @@
 <link rel="import" href="bower_components/paper-toolbar/paper-toolbar.html">
 <link rel="import" href="bower_components/paper-toast/paper-toast.html">
 <link rel="import" href="bower_components/paper-input/paper-input.html">
+<link rel="import" href="bower_components/paper-fab/paper-fab.html" >
+<link rel="import" href="sig-add.html">
 <link rel="import" href="shared-styles.html">
 
 
@@ -29,14 +31,7 @@ paper-button{
 					 </style>
 					 <div>	
 								<paper-toolbar>
-										  <img id="subscriber" src="list.png">
-										  <div hidden$="{{hide}}">
-													 <paper-button toggles raised on-click = "showModal"  style="float: right; width: 200px;}" > Edit </paper-button>
-													 <paper-button toggles raised on-click = "deleteSeletedItems" style="float: right; width: 200px;}" > Delete </paper-button>
-										  </div>
-										  <paper-button toggles raised on-click = "gotoEnd" style="float: right; width: 200px;}"  >
-													 Scroll to bottom
-										  </paper-button>
+													<paper-fab icon="add" on-click = "showAddModal"></paper-fab>
 								</paper-toolbar>
 					 </div>
 					 <style include="shared-styles">
@@ -44,23 +39,31 @@ paper-button{
 		  display: block;
 		  padding: 10px;
 }
+						paper-fab { 
+								  --paper-fab-background: #7d8ff5;
+								  --paper-fab-keyboard-focus-background: var(--paper-light-blue-900); }
 						vaadin-grid{font-size: 16px;}
 					 </style>
 
-					 <paper-dialog id="modal" modal style="width:60%;">
+					 <paper-dialog id="modal1" modal style="width:60%;">
 								<h1>Edit Subscriber</h1>
 								  <div id="form" >
 										 <paper-input id="edit-id" name="subscriber" label="Identity" disabled></paper-input>
 										 <paper-input id="edit-pwd" name="password"  label="Secret" disabled ></paper-input>
 										 <paper-input id="edit-new-pwd" name="newpassword" label="New Secret" required auto-validate error-message="New secret can't be empty!" ></paper-input>
-										  </div>
-								    <div class="buttons">
+										 <div class="buttons">
 									    <paper-button dialog-confirm autofocus on-click="editSelectedItems">Edit</paper-button>
-									    <paper-button dialog-confirm autofocus >Cancel</paper-button>
-									 </div>
+									    <paper-button on-click="cancel" >Cancel</paper-button>
+										<paper-button toggles raised on-click = "deleteSeletedItems"  > Delete </paper-button>
+										 </div>
+									</div>
 					 </paper-dialog>
 
-					 <vaadin-grid selection-mode="multi" id="frozen" frozen-columns="2" on-selected-items-changed="onSelect">
+					 <paper-dialog id="modal2" modal style="width:60%; height:50%;">
+								<sig-add></sig-add>
+					 </paper-dialog>
+
+					 <vaadin-grid selection-mode="single" id="frozen" frozen-columns="2" on-selected-items-changed="onSelect">
 								<table>
 										  <colgroup> 
 													 <col name="identity"/> 
@@ -87,8 +90,12 @@ paper-button{
 								<h2>Subscriber sucessfully updated !</h2>
 					 </paper-toast>
 
+					 <paper-toast id="delete-toast">
+								<h2>Subscriber sucessfully deleted !</h2>
+					 </paper-toast>
+
 					 <iron-ajax id="getSubs"
-					 				auto=true
+					 				auto=false
 									url="http://localhost:8888/ocs/subscriber"
 									headers='{"Accept": "application/json"}'
 									on-response="responseHandler"
@@ -114,7 +121,7 @@ Polymer({
 		  is: 'sig-list',
 
 		  properties:{
-					 hide:{type: Boolean, value: true}
+					 onLoadItemsChnaged:{type: Boolean, value: true}
 		  },
 			
 		  listners: {
@@ -129,6 +136,9 @@ Polymer({
 		  responseHandler: function(event) {
 					 var grid = this.$.frozen; 
 					 grid.items = event.detail.xhr.response;
+					 this.onLoadItemsChnaged = false;
+					 console.log(this.onLoadItemsChnaged);
+					 console.log("gets to here");
 		  },
 
 		  gotoEnd: function(event){
@@ -136,15 +146,10 @@ Polymer({
 					 grid.scrollToEnd();
 		  },
 
-		  showModal: function(event){
-					 var grid = this.$.frozen; 
-					 var modal = this.$.modal; 
+		  showAddModal: function(event){
+					 var modal = this.$.modal2; 
 					 modal.open(); 
-					 grid.selection.selected(function(index)
-										  { var selection = grid.items[index];
-											 document.getElementById("edit-id").value = selection.identity;
-											 document.getElementById("edit-pwd").value = selection.password;
-										  });
+					 this.onLoadItemsChnaged = true;
 		  },
 
 		  editSelectedItems: function(event){
@@ -157,7 +162,7 @@ Polymer({
 					 sub.update = "password";
 					 sub.newpassword = document.getElementById("edit-new-pwd").value;
 					 editAjax.body = sub;
-					 console.log(editAjax);
+					 this.onLoadItemsChnaged = true;
 		  },
 
 		  editResponseHandler: function (){
@@ -171,6 +176,10 @@ Polymer({
 								console.log("Not Success");
 					 }
 		  },
+		  
+		  cancel: function(){
+					 this.$.modal1.close();
+		  },
 
 		  deleteSeletedItems: function(event){
 					 var grid = this.$.frozen; 
@@ -183,12 +192,25 @@ Polymer({
 		  },
 
 		  deletionResponse: function(event){
+					 this.onLoadItemsChnaged = true;
+					 this.$.modal1.close(); 
+					 document.getElementById("delete-toast").open();
 					 var getSubsAjax = document.getElementById("getSubs");
 					 getSubsAjax.generateRequest();
 		  },
 
 		  onSelect: function(event) {
-					 this.hide = false;
+					 if(!this.onLoadItemsChnaged){
+					 		var grid = this.$.frozen; 
+					 		var modal = this.$.modal1; 
+							modal.open();
+					 		grid.selection.selected(function(index)
+										  { var selection = grid.items[index];
+											 document.getElementById("edit-id").value = selection.identity;
+											 document.getElementById("edit-pwd").value = selection.password;
+										  });
+					 }
+					 
 		  }
 });
 		  </script>
