@@ -151,12 +151,10 @@ create_path(ReqData, Context) ->
 	Body = wrq:req_body(ReqData),
 	try 
 		{struct, Object} = mochijson:decode(Body),
-erlang:display({obj, Object}),
 		{_, Subscriber} = lists:keyfind("subscriber", 1, Object),
 		{_, Password} = lists:keyfind("password", 1, Object),
 		{_, {struct, AttrJs}} = lists:keyfind("attributes", 1, Object),
 		Attributes = sub_attributes(AttrJs),
-erlang:display({att, Attributes}),
 		{_, BalStr} = lists:keyfind("balance", 1, Object),
 		{Balance , _}= string:to_integer(BalStr),
 		NewContext = Context#state{subscriber = Subscriber,
