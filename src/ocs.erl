@@ -321,14 +321,14 @@ file_chunk(Log, IODevice, Continuation) ->
 
 -spec authorize(Subscriber :: string() | binary(),
 		Password :: string() | binary()) ->
-	{ok, Attributes :: radius_attributes:attributes()} |
+	{ok, Password :: binary(), Attributes :: radius_attributes:attributes()} |
 	{error, Reason :: out_of_credit | disabled | bad_password |
 					not_found | term()}.
 %% @doc Authorize a subscriber based on `enabled' and `balance' fields.
 %%
 %% 	If the subscriber `enabled' field true and have sufficient `balance'
-%%		set disconnect field to false and return `attributes' or return the
-%% 	error reason.
+%%		set disconnect field to false and return `password' and `attributes'
+%%		or return the error reason.
 %% @private
 authorize(Subscriber, Password) when is_list(Subscriber) ->
 	authorize(list_to_binary(Subscriber), Password);
@@ -341,13 +341,27 @@ authorize(Subscriber, Password) when is_binary(Subscriber),
 					[#subscriber{password = Password, attributes = Attributes,
 							enabled = true, disconnect = false} =
 							Entry ] when Entry#subscriber.balance > 0 ->
-						Attributes;
+						{Password, Attributes};
 					[#subscriber{password = Password, attributes = Attributes,
 							enabled = true, disconnect = true} =
 							Entry] when Entry#subscriber.balance > 0 ->
 						NewEntry = Entry#subscriber{disconnect = false},
 						mnesia:write(subscriber, NewEntry, write),
-						Attributes;
+						{Password, Attributes};
+					[#subscriber{password = MTPassword, attributes = Attributes,
+							enabled = true, disconnect = false} = Entry ] when
+								Entry#subscriber.balance > 0,
+								Password == <<>>,
+								MTPassword =/= Password ->
+						{MTPassword, Attributes};
+					[#subscriber{password = MTPassword, attributes = Attributes,
+							enabled = true, disconnect = true} = Entry] when
+								Entry#subscriber.balance > 0,
+								Password == <<>>,
+								MTPassword =/= Password ->
+						NewEntry = Entry#subscriber{disconnect = false},
+						mnesia:write(subscriber, NewEntry, write),
+						{MTPassword, Attributes};
 					[#subscriber{password = Password, enabled = false}] ->
 						throw(disabled);
 					[#subscriber{password = Password} = Entry] when
@@ -360,8 +374,8 @@ authorize(Subscriber, Password) when is_binary(Subscriber),
 				end
 	end,
 	case mnesia:transaction(F) of
-		{atomic, Attributes} ->
-			{ok, Attributes};
+		{atomic, {SubPassword, Attributes}} ->
+			{ok, SubPassword, Attributes};
 		{aborted, {throw, Reason}} ->
 			{error, Reason};
 		{aborted, Reason} ->
