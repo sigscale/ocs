@@ -43,6 +43,10 @@
 -include("ocs_wm.hrl").
 -include("ocs.hrl").
 
+-define(VendorID, 529).
+-define(AscendDataRate, 197).
+-define(AscendXmitRate, 255).
+
 -record(state,
 		{subscriber :: string(),
 		current_password :: string(),
@@ -232,10 +236,12 @@ find_subscriber(ReqData, #state{subscriber = Identity} = Context) ->
 	case ocs:find_subscriber(Identity) of
 		{ok, PWBin, Attributes, Balance, Enabled} ->
 			Password = binary_to_list(PWBin),
-			Obj = [{identity, Identity}, {password, Password},
-					{attributes, Attributes}, {balance, Balance},
+			JSAttributes = json_attributes(Attributes),
+			AttrObj = {struct, JSAttributes}, 
+			RespObj = [{identity, Identity}, {password, Password},
+					{attributes, AttrObj}, {balance, Balance},
 					{enabled, Enabled}],
-			JsonObj  = {struct, Obj},
+			JsonObj  = {struct, RespObj},
 			Body  = mochijson:encode(JsonObj),
 			{Body, ReqData, Context};
 		{error, _Reason} ->
@@ -290,10 +296,39 @@ sub_attributes([{"class", Value} | T], Acc) ->
 sub_attributes([], Acc) ->
 	Acc.
 
-vendor_specific(AttrJson) ->
+json_attributes(RadiusAttributes) ->
+	json_attributes(RadiusAttributes, []).
+%% @hidden
+json_attributes([{?VendorSpecific, {?VendorID, {?AscendDataRate, _}}}
+		= H | T], Acc) ->
+	Attribute = {"ascendDataRate", vendor_specific(H)},
+	json_attributes(T, [Attribute | Acc]);
+json_attributes([{?VendorSpecific, {?VendorID, {?AscendXmitRate, _}}} 
+		= H | T], Acc) ->
+	Attribute = {"ascendXmitRate", vendor_specific(H)},
+	json_attributes(T, [Attribute | Acc]);
+json_attributes([{?SessionTimeout, V} | T], Acc) ->
+	Attribute = {"sessionTimeout", V},
+	json_attributes(T, [Attribute | Acc]);
+json_attributes([{?AcctInterimInterval, V} | T], Acc) ->
+	Attribute = {"acctInterimInterval", V},
+	json_attributes(T, [Attribute | Acc]);
+json_attributes([{?Class, V} | T], Acc) ->
+	Attribute = {"class", V},
+	json_attributes(T, [Attribute | Acc]);
+json_attributes([], Acc) ->
+	Acc.
+
+vendor_specific(AttrJson) when is_list(AttrJson) ->
 	{_, Type} = lists:keyfind("type", 1, AttrJson),
 	{_, VendorID} = lists:keyfind("vendorId", 1, AttrJson),
 	{_, Key} = lists:keyfind("vendorType", 1, AttrJson),
 	{_, Value} = lists:keyfind("value", 1, AttrJson),
-	{Type, {VendorID, {Key, Value}}}.
+	{Type, {VendorID, {Key, Value}}};
+vendor_specific({Type, {VendorID, {VendorType, Value}}}) ->
+	AttrObj = [{"type", Type},
+				{"vendorId", VendorID},
+				{"vendorType", VendorType},
+				{"value", Value}],
+	{struct, AttrObj}.
 
