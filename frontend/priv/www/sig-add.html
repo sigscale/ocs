@@ -52,14 +52,14 @@
 													 <h2>Add subscriber</h2>
 										  </paper-toolbar>
 										  <form  is="iron-form"  id="presubmit" method="post" action="http://localhost:8888/ocs/subscriber"  content-type="application/json" >
-													 <paper-input name="subscriber" label="Identity" required></paper-input>
-													 <paper-input name="password"  label="Secret"required ></paper-input>
-													 <paper-input name="ascend-data-rate" label="Receive Data Rate" ></paper-input>
-													 <paper-input name="ascend-xmit-rate" label="Transmit Data Rate" ></paper-input>
-													 <paper-input name="session-timout" label="Session Timeout" ></paper-input>
-													 <paper-input name="acct-interim-interval" label="Update Interval" ></paper-input>
-													 <paper-input name="class" label="Class" ></paper-input>
-													 <paper-input name="balance" type="number" label="Balance (MB)" required> </paper-input>
+													 <paper-input id="add1" name="subscriber" label="Identity" required></paper-input>
+													 <paper-input id="add2" name="password"  label="Secret"required ></paper-input>
+													 <paper-input id="add3" name="ascend-data-rate" label="Receive Data Rate" ></paper-input>
+													 <paper-input id="add4" name="ascend-xmit-rate" label="Transmit Data Rate" ></paper-input>
+													 <paper-input id="add5" name="session-timout" label="Session Timeout" ></paper-input>
+													 <paper-input id="add6" name="acct-interim-interval" label="Update Interval" ></paper-input>
+													 <paper-input id="add7" name="class" label="Class" ></paper-input>
+													 <paper-input id="add8" name="balance" type="number" label="Balance (MB)" required> </paper-input>
 								    <div class="buttons">
 										 <paper-button raised class="custom indigo" onclick="_submit()" style="float: right; width: 200px;"  >Submit</paper-button>
 									    <paper-button dialog-confirm autofocus >Cancel</paper-button>
@@ -96,9 +96,39 @@ Polymer({
 		  properties:{},
 
 		  listeners: {
+					 'presubmit.iron-form-presubmit': '_handleFormPreSubmit',
 					 'presubmit.iron-form-submit': '_handleFormSubmit',
 					 'presubmit.iron-form-error': '_handleFormError',
 					 'presubmit.iron-form-response': '_handleFormResponse'
+		  },
+
+		  _handleFormPreSubmit: function() {
+					 var form = document.getElementById('presubmit');
+					 console.log("within presubmit");
+					 var formData = new Object();
+					 formData.subscriber = document.getElementById("add1").value;
+					 formData.password = document.getElementById("add2").value;
+
+					 var ascendDataRate = new Object(); 
+					 ascendDataRate.type = 26;
+					 ascendDataRate.vendorId = 14988;
+					 ascendDataRate.vendorType = 16;
+					 ascendDataRate.value = document.getElementById("add3").value;
+					 formData.ascendDataRate = ascendDataRate;
+
+					 var ascendXmitRate = new Object(); 
+					 ascendXmitRate.type = 26;
+					 ascendXmitRate.vendorId = 14988;
+					 ascendXmitRate.vendorType = 16;
+					 ascendXmitRate.value = document.getElementById("add4").value;
+					 formData.ascendXmitRate = ascendXmitRate;
+
+					 formData.sessionTimeout = document.getElementById("add5").value;
+					 formData.acctInterimInterval = document.getElementById("add6").value;
+					 formData.class = document.getElementById("add7").value;
+					 formData.balance = document.getElementById("add8").value;
+
+					 form.request.body = formData;
 		  },
 
 		  _handleFormSubmit: function() {
