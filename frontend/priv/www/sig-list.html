@@ -43,10 +43,11 @@ paper-button{
 								  --paper-fab-background: #7d8ff5;
 								  --paper-fab-keyboard-focus-background: var(--paper-light-blue-900); }
 						vaadin-grid{font-size: 16px;}
+						vaadin-grid col {font-size: 46px;}
 					 </style>
 
 					 <paper-dialog id="modal1" modal style="width:60%;">
-								<h1>Edit Subscriber</h1>
+								<paper-toolbar>	<h1>Edit Subscriber</h1> </paper-toolbar>
 								  <div id="form" >
 										 <paper-input id="edit-id" name="subscriber" label="Identity" disabled></paper-input>
 										 <paper-input id="edit-pwd" name="password"  label="Secret" disabled ></paper-input>
@@ -63,7 +64,7 @@ paper-button{
 								<sig-add></sig-add>
 					 </paper-dialog>
 
-					 <vaadin-grid selection-mode="single" id="frozen" frozen-columns="2" on-selected-items-changed="onSelect">
+					 <vaadin-grid selection-mode="single" id="frozen" frozen-columns="2" >
 								<table>
 										  <colgroup> 
 													 <col name="identity"/> 
@@ -121,10 +122,10 @@ Polymer({
 		  is: 'sig-list',
 
 		  properties:{
-					 onLoadItemsChnaged:{type: Boolean, value: true}
 		  },
 			
-		  listners: {
+		  listeners: {
+				'frozen.click': 'onSelect'
 		  },
 
 		  created: function() {
@@ -136,9 +137,6 @@ Polymer({
 		  responseHandler: function(event) {
 					 var grid = this.$.frozen; 
 					 grid.items = event.detail.xhr.response;
-					 this.onLoadItemsChnaged = false;
-					 console.log(this.onLoadItemsChnaged);
-					 console.log("gets to here");
 		  },
 
 		  gotoEnd: function(event){
@@ -149,7 +147,6 @@ Polymer({
 		  showAddModal: function(event){
 					 var modal = this.$.modal2; 
 					 modal.open(); 
-					 this.onLoadItemsChnaged = true;
 		  },
 
 		  editSelectedItems: function(event){
@@ -162,7 +159,6 @@ Polymer({
 					 sub.update = "password";
 					 sub.newpassword = document.getElementById("edit-new-pwd").value;
 					 editAjax.body = sub;
-					 this.onLoadItemsChnaged = true;
 		  },
 
 		  editResponseHandler: function (){
@@ -192,7 +188,6 @@ Polymer({
 		  },
 
 		  deletionResponse: function(event){
-					 this.onLoadItemsChnaged = true;
 					 this.$.modal1.close(); 
 					 document.getElementById("delete-toast").open();
 					 var getSubsAjax = document.getElementById("getSubs");
@@ -200,7 +195,7 @@ Polymer({
 		  },
 
 		  onSelect: function(event) {
-					 if(!this.onLoadItemsChnaged){
+					// if(!this.onLoadItemsChnaged){
 					 		var grid = this.$.frozen; 
 					 		var modal = this.$.modal1; 
 							modal.open();
@@ -209,7 +204,7 @@ Polymer({
 											 document.getElementById("edit-id").value = selection.identity;
 											 document.getElementById("edit-pwd").value = selection.password;
 										  });
-					 }
+					// }
 					 
 		  }
 });

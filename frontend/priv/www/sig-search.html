@@ -66,8 +66,6 @@ paper-button.custom {
 							  }
 							  #subscriber{padding-top: 5px; width: 58px;}
 
-							  vaadin-grid{font-size:16px;}
-							  thead {font-size:16px;}
 					 </style>
 
 								<form  is="iron-form"  name = "presubmit1" id="presubmit1" method="get" action="http://localhost:8888/ocs/subscriber"  content-type="application/json" >
@@ -98,6 +96,9 @@ Polymer({
 					 form.submit();
 					 document.getElementById('modal1').close();
 		  
+		  },
+		  
+		  detached: function (){
 		  },
 
 		  resetForm: function() {
