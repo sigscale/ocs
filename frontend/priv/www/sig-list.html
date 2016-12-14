@@ -1,11 +1,13 @@
 <link rel="import" href="bower_components/polymer/polymer.html">
 <link rel="import" href="bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="bower_components/iron-pages/iron-pages.html">
 <link rel="import" href="bower_components/iron-icons/notification-icons.html">
 <link rel="import" href="bower_components/iron-icons/editor-icons.html">
 <link rel="import" href="bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="bower_components/vaadin-grid/vaadin-grid.html">
 <link rel="import" href="bower_components/paper-button/paper-button.html">
+<link rel="import" href="bower_components/paper-tabs/paper-tabs.html">
 <link rel="import" href="bower_components/paper-dialog/paper-dialog.html">
 <link rel="import" href="bower_components/paper-toolbar/paper-toolbar.html">
 <link rel="import" href="bower_components/paper-toast/paper-toast.html">
@@ -47,17 +49,37 @@ paper-button{
 					 </style>
 
 					 <paper-dialog id="modal1" modal style="width:60%;">
-								<paper-toolbar>	<h1>Edit Subscriber</h1> </paper-toolbar>
-								  <div id="form" >
-										 <paper-input id="edit-id" name="subscriber" label="Identity" disabled></paper-input>
+								<paper-tabs selected="{{selected}}">
+							    <paper-tab> Edit password </paper-tab>
+							    <paper-tab> Edit attributes </paper-tab>
+								</paper-tabs>
+
+								<iron-pages selected="{{selected}}">
+								  <div id="edit-password" >
+										 <paper-input id="edit-id1" name="subscriber" label="Identity" disabled></paper-input>
 										 <paper-input id="edit-pwd" name="password"  label="Secret" disabled ></paper-input>
 										 <paper-input id="edit-new-pwd" name="newpassword" label="New Secret" required auto-validate error-message="New secret can't be empty!" ></paper-input>
 										 <div class="buttons">
-									    <paper-button dialog-confirm autofocus on-click="editSelectedItems">Edit</paper-button>
-									    <paper-button on-click="cancel" >Cancel</paper-button>
-										<paper-button toggles raised on-click = "deleteSeletedItems"  > Delete </paper-button>
+									    	<paper-button dialog-confirm autofocus on-click="updatePassword">Edit</paper-button>
+									   	 <paper-button on-click="cancel" >Cancel</paper-button>
+											 <paper-button toggles raised on-click = "deleteSeletedItems"  > Delete </paper-button>
 										</div>
 									</div>
+								  <div id="edit-attributes" >
+										 <paper-input id="edit-id2" name="subscriber" label="Identity" disabled></paper-input>
+										 <paper-input id="edit-balance" name="balance" label="Balance" required auto-validate error-message="New value can't be empty!" ></paper-input>
+										 <paper-input id="edit-recv-data-rate" name="ascendDataRate" label="Receive Data Rate" required auto-validate error-message="New value can't be empty!" ></paper-input>
+										 <paper-input id="edit-trans-data-rate" name="ascendXmitRate" label="Transmit Data Rate" required auto-validate error-message="New value can't be empty!" ></paper-input>
+										 <paper-input id="edit-sess-timeout" name="sessionTimeout" label="Session Timeout" required auto-validate error-message="New value can't be empty!" ></paper-input>
+										 <paper-input id="edit-update-interval" name="acctInterimInterval" label="Update interval" required auto-validate error-message="New value can't be empty!" ></paper-input>
+										 <paper-input id="edit-class" name="class" label="Class" required auto-validate error-message="New value can't be empty!" ></paper-input>
+										 <div class="buttons">
+									    	<paper-button dialog-confirm autofocus on-click="updateAttributes">Edit</paper-button>
+									   	 <paper-button on-click="cancel" >Cancel</paper-button>
+											 <paper-button toggles raised on-click = "deleteSeletedItems"  > Delete </paper-button>
+										</div>
+								</div>
+								</iron-pages>
 					 </paper-dialog>
 
 					 <paper-dialog id="modal2" modal style="width:60%; height: 67%; top:10%;">
@@ -110,10 +132,16 @@ paper-button{
 									on-response="responseHandler"
 									debounce-duration="10"> </iron-ajax>
 
-					 <iron-ajax id="editSub"
+					 <iron-ajax id="updatePassword"
 					 				auto=true
 									headers='{"Accept": "application/json"}'
-									on-response="editResponseHandler"
+									on-response="updatePwdResponseHandler"
+									debounce-duration="300"> </iron-ajax>
+
+					 <iron-ajax id="updateAttributes"
+					 				auto=true
+									headers='{"Accept": "application/json"}'
+									on-response="updateAttrResponseHandler"
 									debounce-duration="300"> </iron-ajax>
 					 
 					 <iron-ajax	 id="deleteSubs"
@@ -157,8 +185,8 @@ Polymer({
 					 modal.open(); 
 		  },
 
-		  editSelectedItems: function(event){
-					 var editAjax =  document.getElementById("editSub");
+		  updatePassword: function(event){
+					 var editAjax =  document.getElementById("updatePassword");
 					 editAjax.method = "PUT";
 					 editAjax.contentType = "application/json";
 					 var id = document.getElementById("edit-id").value;
@@ -169,7 +197,38 @@ Polymer({
 					 editAjax.body = sub;
 		  },
 
-		  editResponseHandler: function (){
+		  updateAttributes: function(event){
+					 var editAjax =  document.getElementById("updateAttributes");
+					 editAjax.method = "PUT";
+					 editAjax.contentType = "application/json";
+					 var id = document.getElementById("edit-id2").value;
+					 editAjax.url = "http://localhost:8888/ocs/subscriber/" + id;
+					 var sub = new Object();
+					 sub.update = "attributes";
+					 var attr = new Object();
+
+					 var ascendDataRate = new Object();
+					 ascendDataRate.type = 26;
+					 ascendDataRate.vendorId = 529;
+					 ascendDataRate.vendorType = 197;
+					 ascendDataRate.value = document.getElementById("edit-recv-data-rate").value;
+					 attr.ascendDataRate = ascendDataRate;
+
+					 var ascendXmitRate = new Object(); 
+					 ascendXmitRate.type = 26;
+					 ascendXmitRate.vendorId = 529;
+					 ascendXmitRate.vendorType = 255;
+					 ascendXmitRate.value = document.getElementById("edit-trans-data-rate").value;
+					 attr.ascendXmitRate = ascendXmitRate;
+
+					 attr.sessionTimeout = document.getElementById("edit-sess-timeout").value;
+					 attr.acctInterimInterval = document.getElementById("edit-update-interval").value;
+					 attr.class = document.getElementById("edit-class").value;
+					 sub.attributes = attr;
+					 editAjax.body = sub;
+		  },
+
+		  updatePwdResponseHandler: function (){
 					 if(event.detail.succeeded){
 						document.getElementById("edit-toast").open();
 					 	document.getElementById("edit-new-pwd").value = "";
@@ -203,16 +262,22 @@ Polymer({
 		  },
 
 		  onSelect: function(event) {
-					// if(!this.onLoadItemsChnaged){
 					 		var grid = this.$.frozen; 
 					 		var modal = this.$.modal1; 
 							modal.open();
 					 		grid.selection.selected(function(index)
 										  { var selection = grid.items[index];
-											 document.getElementById("edit-id").value = selection.identity;
+											 document.getElementById("edit-id1").value = selection.identity;
+											 document.getElementById("edit-id2").value = selection.identity;
 											 document.getElementById("edit-pwd").value = selection.password;
+											 document.getElementById("edit-balance").value = selection.balance;
+										    document.getElementById("edit-recv-data-rate").value = selection.attributes.ascendDataRate.value;
+									   	 document.getElementById("edit-trans-data-rate").value = selection.attributes.ascendXmitRate.value;
+											 document.getElementById("edit-sess-timeout").value = selection.attributes.sessionTimeout;
+											 document.getElementById("edit-update-interval").value = selection.attributes.acctInterimInterval;
+											 document.getElementById("edit-class").value =  selection.attributes.class;
+
 										  });
-					// }
 					 
 		  }
 });
