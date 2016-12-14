@@ -61,6 +61,13 @@
 				--paper-fab-keyboard-focus-background: var(--paper-light-blue-900); }
 				vaadin-grid{font-size: 16px;}
 				vaadin-grid col {font-size: 46px;}
+			.edit{
+				background: #81C784;
+			}
+			paper-button[raised] {
+			  background: #FF8A80;
+			}
+
 		</style>
 
 		<paper-dialog id="modal1" modal style="width:60%;">
@@ -75,7 +82,7 @@
 					<paper-input id="edit-pwd" name="password"  label="Secret" disabled ></paper-input>
 					<paper-input id="edit-new-pwd" name="newpassword" label="New Secret" required auto-validate error-message="New secret can't be empty!" ></paper-input>
 					<div class="buttons">
-						<paper-button dialog-confirm autofocus on-click="updatePassword">Edit</paper-button>
+						<paper-button dialog-confirm autofocus on-click="updatePassword" class="edit">Edit</paper-button>
 						<paper-button on-click="cancel" >Cancel</paper-button>
 						<paper-button toggles raised on-click = "deleteSeletedItems"  > Delete </paper-button>
 					</div>
@@ -89,7 +96,7 @@
 					<paper-input id="edit-update-interval" name="acctInterimInterval" label="Update interval" required auto-validate error-message="New value can't be empty!" ></paper-input>
 					<paper-input id="edit-class" name="class" label="Class" required auto-validate error-message="New value can't be empty!" ></paper-input>
 					<div class="buttons">
-						<paper-button dialog-confirm autofocus on-click="updateAttributes">Edit</paper-button>
+						<paper-button dialog-confirm autofocus on-click="updateAttributes" class="edit">Edit</paper-button>
 						<paper-button on-click="cancel" >Cancel</paper-button>
 						<paper-button toggles raised on-click = "deleteSeletedItems"  > Delete </paper-button>
 					</div>
