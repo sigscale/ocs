@@ -31,7 +31,6 @@
 				fill: currentcolor;
 			}
 			paper-button{   
-				background-color: #7d8ff5;
 				color: white;
 				font-weight: bold;
 			}
@@ -69,8 +68,11 @@
 			}
 
 			paper-tab.iron-selected {
-			    background: #303F9F;
+			    background-color: var(--paper-indigo-500);
 				 color:#E8EAF6;
+			}
+			paper-button.cancle-btn {
+				color: black;
 			}
 		</style>
 
@@ -86,7 +88,7 @@
 					<paper-input id="edit-pwd" name="password"  label="Secret" disabled ></paper-input>
 					<paper-input id="edit-new-pwd" name="newpassword" label="New Secret" required auto-validate error-message="New secret can't be empty!" ></paper-input>
 					<div class="buttons">
-						<paper-button on-click="cancel" >Cancel</paper-button>
+						<paper-button on-click="cancel" class="cancle-btn">Cancel</paper-button>
 						<paper-button dialog-confirm autofocus on-click="updatePassword" class="edit">Edit</paper-button>
 						<paper-button toggles raised on-click = "deleteSeletedItems"  > Delete </paper-button>
 					</div>
@@ -100,7 +102,7 @@
 					<paper-input id="edit-update-interval" name="acctInterimInterval" label="Update interval" required auto-validate error-message="New value can't be empty!" ></paper-input>
 					<paper-input id="edit-class" name="class" label="Class" required auto-validate error-message="New value can't be empty!" ></paper-input>
 					<div class="buttons">
-						<paper-button on-click="cancel" >Cancel</paper-button>
+						<paper-button on-click="cancel" class="cancle-btn">Cancel</paper-button>
 						<paper-button dialog-confirm autofocus on-click="updateAttributes" class="edit">Edit</paper-button>
 						<paper-button toggles raised on-click = "deleteSeletedItems"  > Delete </paper-button>
 					</div>
