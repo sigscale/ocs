@@ -39,12 +39,18 @@
 			#subscriber{
 				width:3%;
 			}
+			.addItems{
+				right: 2%;
+				position: fixed;
+				bottom: 5%;
+				z-index: 100;
+			}
 		</style>
-		<div>
-			<paper-toolbar>
-				<paper-fab icon="add" on-click = "showAddModal"></paper-fab>
-			</paper-toolbar>
+
+		<div class="addItems">
+			<paper-fab icon="add" on-click = "showAddModal"></paper-fab>
 		</div>
+
 		<style include="shared-styles">
 			:host {
 				display: block;
