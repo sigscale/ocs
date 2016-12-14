@@ -13,116 +13,119 @@
 <link rel="import" href="bower_components/paper-styles/typography.html">
 <link rel="import" href="bower_components/vaadin-grid/vaadin-grid.html">
 
-
 <dom-module id="sig-search">
+	<template>
+		<style> /* local DOM styles go here */
+			:host {
+				display: inline-block;
+				width:100%;
+			}
+			iron-icon {
+				fill: rgba(0,0,0,0);
+				stroke: currentcolor;
+			}
+			:host([pressed]) iron-icon {
+				fill: currentcolor;
+			}
+		</style>
 
-		  <template>
-					 <style> /* local DOM styles go here */ :host { display: inline-block; width:100%;} iron-icon { fill: rgba(0,0,0,0); stroke: currentcolor; } :host([pressed]) iron-icon { fill: currentcolor; }
-					 </style>
-
-					 <style is="custom-style"> 
-.flex-horizontal { @apply(--layout-horizontal); } 
-.flexchild { @apply(--layout-flex); padding-left: 1%;padding-top: 1%;
-		  padding-right: 20%;} 
-
-paper-button.custom {
-		  --paper-button-ink-color: var(--paper-pink-a200);
-		  /* These could also be individually defined for each of the
-			  specific css classes, but we'll just do it once as an example */
-		  --paper-button-flat-keyboard-focus: {
+		<style is="custom-style"> 
+			.flex-horizontal {
+				@apply(--layout-horizontal);
+			} 
+			.flexchild {
+				@apply(--layout-flex);
+				padding-left: 1%;
+				padding-top: 1%;
+				padding-right: 20%;
+			} 
+			paper-button.custom {
+				--paper-button-ink-color: var(--paper-pink-a200);
+				/* These could also be individually defined for each of the
+					specific css classes, but we'll just do it once as an example */
+				--paper-button-flat-keyboard-focus: {
 					 background-color: var(--paper-pink-a200);
 					 color: white !important;
-		  };
---paper-button-raised-keyboard-focus: {
-		  background-color: var(--paper-pink-a200) !important;
-		  color: white !important;
-};
-}
-							  paper-button.custom:hover {
-										 background-color: var(--paper-indigo-100);
-							  }
-							  paper-button.pink {
-										 color: var(--paper-pink-a200);
+				};
+				--paper-button-raised-keyboard-focus: {
+					background-color: var(--paper-pink-a200) !important;
+					color: white !important;
+				};
+			}
+			paper-button.custom:hover {
+				background-color: var(--paper-indigo-100);
+			}
+			paper-button.pink {
+				color: var(--paper-pink-a200);
+			}
+			paper-button.indigo {
+				background-color: #7d8ff5;
+				color: white;
+				font-weight: bold;
+				--paper-button-raised-keyboard-focus: {
+					background-color: var(--paper-pink-a200) !important;
+					color: white !important;
+				};
+			}
+			paper-button.green {
+				background-color: var(--paper-green-500);
+				color: white;
+			}
+			paper-button.green[active] {
+				background-color: var(--paper-red-500);
+			}
+			paper-button.disabled {
+				color: white;
+			}
+			#subscriber{
+				padding-top: 5px;
+				width: 58px;
+			}
+		</style>
+		<form  is="iron-form"  name = "presubmit1" id="presubmit1" method="get" action="http://localhost:8888/ocs/subscriber"  content-type="application/json" >
+			<paper-input label="Search by Identity" required></paper-input>
+			<paper-button raised class="custom indigo" on-click="submitForm" style="float: right; "  >Search</paper-button>
+			<paper-button dialog-confirm autofocus on-click="resetForm" >Reset</paper-button> 
+		</form>
+	</template>
+	<script>
+		Polymer({
+			is: 'sig-search',
+			properties:{ },
+			listeners: {
+				'presubmit1.iron-form-presubmit': '_handleFormSubmit',
+				'presubmit1.iron-form-response': '_handleFormResponse'
+			},
 
-							  }
-							  paper-button.indigo {
-										 background-color: #7d8ff5;
-										 color: white;
-										 font-weight: bold;
-										 --paper-button-raised-keyboard-focus: {
-													background-color: var(--paper-pink-a200) !important;
-													color: white !important;
-										 };
-							  }
-							  paper-button.green {
-										 background-color: var(--paper-green-500);
-										 color: white;
-							  }
-							  paper-button.green[active] {
-										 background-color: var(--paper-red-500);
-							  }
-							  paper-button.disabled {
-										 color: white;
-							  }
-							  #subscriber{padding-top: 5px; width: 58px;}
+			submitForm: function(){
+				var form = document.getElementById('presubmit1');
+				form.submit();
+				document.getElementById('modal1').close();
+				detached: function (){
+				},
 
-					 </style>
+			resetForm: function() {
+				var form = document.getElementById('presubmit1');
+				form.reset();
+				var getSubsAjax = document.getElementById('getSubs');
+				getSubs.generateRequest();
+				document.getElementById('modal1').close();
+			} ,
 
-								<form  is="iron-form"  name = "presubmit1" id="presubmit1" method="get" action="http://localhost:8888/ocs/subscriber"  content-type="application/json" >
-										  <paper-input label="Search by Identity" required></paper-input>
-										  <paper-button raised class="custom indigo" on-click="submitForm" style="float: right; "  >Search</paper-button>
-										  <paper-button dialog-confirm autofocus on-click="resetForm" >Reset</paper-button> 
-								</form>
+			_handleFormSubmit: function() {
+				var form = document.getElementById('presubmit1');
+				form.request.headers='{"Content-Type": "application/json"}';
+				form.request.contentType = "application/json";
+				form.request.url = form.request.url + "/" + form[0].value;
+			} ,
 
-
-
-
-
-		  </template>
-		  <script>
-Polymer({
-		  is: 'sig-search',
-
-		  properties:{
-		  },
-
-		  listeners: {
-					 'presubmit1.iron-form-presubmit': '_handleFormSubmit',
-					 'presubmit1.iron-form-response': '_handleFormResponse'
-		  },
-
-		  submitForm: function(){
-					 var form = document.getElementById('presubmit1');
-					 form.submit();
-					 document.getElementById('modal1').close();
-		  
-		  },
-		  
-		  detached: function (){
-		  },
-
-		  resetForm: function() {
-					 var form = document.getElementById('presubmit1');
-					 form.reset();
-					 var getSubsAjax = document.getElementById('getSubs');
-					 getSubs.generateRequest();
-					 document.getElementById('modal1').close();
-		  } ,
-
-		  _handleFormSubmit: function() {
-					 var form = document.getElementById('presubmit1');
-					 form.request.headers='{"Content-Type": "application/json"}';
-					 form.request.contentType = "application/json";
-					 form.request.url = form.request.url + "/" + form[0].value;
-		  } ,
-
-		  _handleFormResponse: function() {
-					 var data = new Array();
-					 data[0] = event.detail.response;
-					 var grid = document.getElementById("frozen");; 
-					 grid.items = data;
-					 document.getElementById('modal1').close();
-		  }   
-});
-		  </script>
+			_handleFormResponse: function() {
+				var data = new Array();
+				data[0] = event.detail.response;
+				var grid = document.getElementById("frozen");; 
+				grid.items = data;
+				document.getElementById('modal1').close();
+			}   
+		});
+	</script>
 </dom-module>

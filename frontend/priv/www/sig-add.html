@@ -13,149 +13,181 @@
 <link rel="import" href="bower_components/paper-styles/typography.html">
 
 <dom-module id="sig-add">
+	<template>
+		<style> /* local DOM styles go here */
+			:host {
+				display: inline-block;
+				width:96%;
+			} 
+			:host([pressed]) iron-icon {
+				fill: currentcolor
+			}
+			iron-icon {
+				fill: rgba(0,0,0,0);
+				stroke: currentcolor;
+			}
+		</style>
 
-		  <template>
-					 <style> /* local DOM styles go here */ :host { display: inline-block; width:96%;} iron-icon { fill: rgba(0,0,0,0); stroke: currentcolor; } :host([pressed]) iron-icon { fill: currentcolor; }
-					 </style>
+		<style is="custom-style"> 
+			paper-button.custom {
+				background-color: #7d8ff5;
+				color: white;
+				font-weight: bold;
+				--paper-button-ink-color: var(--paper-pink-a200);
+				--paper-button-flat-keyboard-focus: {
+					background-color: var(--paper-pink-a200);
+					color: white !important;
+				};
+				--paper-button-raised-keyboard-focus: {
+					background-color: var(--paper-pink-a200) !important;
+					color: white !important;
+				};
+			}
 
-					 <style is="custom-style"> 
+			paper-button.custom:hover {
+				background-color: var(--paper-indigo-100);
+			}
 
+			paper-button.pink {
+				color: var(--paper-pink-a200);
+			}
 
-						paper-button.custom {
-										  background-color: #7d8ff5;
-										  color: white;
-										  font-weight: bold;
-										  --paper-button-ink-color: var(--paper-pink-a200);
-		  								  --paper-button-flat-keyboard-focus: { background-color: var(--paper-pink-a200); color: white !important; };
-					  					  --paper-button-raised-keyboard-focus: { background-color: var(--paper-pink-a200) !important; color: white !important; };
-											}
+			paper-button.indigo {
+				background-color: #7d8ff5;
+				color: white;
+				--paper-button-raised-keyboard-focus: {
+						background-color: var(--paper-pink-a200) !important;
+						color: white !important; };
+			}
 
-						paper-button.custom:hover { background-color: var(--paper-indigo-100); }
+			paper-button.green {
+				background-color: var(--paper-green-500);
+				color: white;
+			}
 
-						paper-button.pink { color: var(--paper-pink-a200); }
+			paper-button.green[active] {
+				background-color: var(--paper-red-500);
+			}
 
-						paper-button.indigo { background-color: #7d8ff5;     color: white; --paper-button-raised-keyboard-focus: { background-color: var(--paper-pink-a200) !important; color: white !important; }; }
+			paper-button.disabled {
+				color: white;
+			}
 
-						paper-button.green { background-color: var(--paper-green-500); color: white; }
+			#subscriber{
+				padding-top:
+				5px;
+				width: 58px;
+			}
 
-						paper-button.green[active] { background-color: var(--paper-red-500); }
+			#toast-error {
+				--paper-toast-background-color:red;
+				--paper-toast-color: white;
+			}
+		</style>
 
-						paper-button.disabled { color: white; }
+		<paper-toolbar>
+			<h2>Add subscriber</h2>
+			</paper-toolbar>
+				<form  is="iron-form"  id="presubmit" method="post" action="http://localhost:8888/ocs/subscriber"  content-type="application/json" >
+					<paper-input id="add1" name="subscriber" label="Identity" required></paper-input>
+					<paper-input id="add2" name="password"  label="Secret"required ></paper-input>
+					<paper-input id="add3" name="ascendDataRate" type="number" label="Receive Data Rate" ></paper-input>
+					<paper-input id="add4" name="ascendXmitRate" type="number" label="Transmit Data Rate" ></paper-input>
+					<paper-input id="add5" name="sessionTimeout" type="number" label="Session Timeout" ></paper-input>
+					<paper-input id="add6" name="acctInterimInterval" type="number" label="Update Interval" ></paper-input>
+					<paper-input id="add7" name="class" label="Class" ></paper-input>
+					<paper-input id="add8" name="balance" type="number" label="Balance (MB)" required> </paper-input>
+					<div class="buttons">
+						<paper-button raised class="custom indigo" onclick="_submit()" style="float: right; width: 200px;"  >Submit</paper-button>
+						<paper-button dialog-confirm autofocus >Cancel</paper-button>
+					</div>
+				</form>
+				<div id="response-display-container" style="padding-top: 14%;margin-top:16%;">
+					<paper-toast id="toast-error" class="fit-bottom" >
+						<h2> Couldn't add subscriber !</h2>
+						<h5> Please recheck the following.</h5>
+						<ul>
+							<li>Subscriber name only contains characters from 1-9 and A-F</li>
+							<li>Password does not include 0, 1, i, l, o characters</li>
+							<li>Balance should be a postive number </li>
+						</ul>
+					</paper-toast>
+					<paper-toast id="toast-success" class="fit-bottom" >
+						<h2> Subscriber added !</h2>
+					</paper-toast>
+				</div>
 
-						#subscriber{padding-top: 5px; width: 58px;}
-
-						#toast-error { --paper-toast-background-color: red; --paper-toast-color: white; }
-
-					 </style>
-
-										  <paper-toolbar>
-													 <h2>Add subscriber</h2>
-										  </paper-toolbar>
-										  <form  is="iron-form"  id="presubmit" method="post" action="http://localhost:8888/ocs/subscriber"  content-type="application/json" >
-													 <paper-input id="add1" name="subscriber" label="Identity" required></paper-input>
-													 <paper-input id="add2" name="password"  label="Secret"required ></paper-input>
-													 <paper-input id="add3" name="ascendDataRate" type="number" label="Receive Data Rate" ></paper-input>
-													 <paper-input id="add4" name="ascendXmitRate" type="number" label="Transmit Data Rate" ></paper-input>
-													 <paper-input id="add5" name="sessionTimeout" type="number" label="Session Timeout" ></paper-input>
-													 <paper-input id="add6" name="acctInterimInterval" type="number" label="Update Interval" ></paper-input>
-													 <paper-input id="add7" name="class" label="Class" ></paper-input>
-													 <paper-input id="add8" name="balance" type="number" label="Balance (MB)" required> </paper-input>
-								    <div class="buttons">
-										 <paper-button raised class="custom indigo" onclick="_submit()" style="float: right; width: 200px;"  >Submit</paper-button>
-									    <paper-button dialog-confirm autofocus >Cancel</paper-button>
-									 </div>
-										  </form>
-										  <div id="response-display-container" style="padding-top: 14%;margin-top:16%;">
-										  			<paper-toast id="toast-error" class="fit-bottom" >
-														<h2> Couldn't add subscriber !</h2>
-														<h5> Please recheck the following.</h5>
-														<ul>
-														<li>Subscriber name only contains characters from 1-9 and A-F</li>
-														<li>Password does not include 0, 1, i, l, o characters</li>
-														<li>Balance should be a postive number </li>
-														</ul>
-													</paper-toast>
-										  			<paper-toast id="toast-success" class="fit-bottom" >
-														<h2> Subscriber added !</h2>
-													</paper-toast>
-										  </div>
-
-
-					 <script>
-
-function _submit() {
+	<script>
+		function _submit() {
 		  document.getElementById('presubmit').submit();
-}
-					 </script>
-		  </template>
+		}
+	</script>
+	</template>
+		<script>
+			Polymer({
+				is: 'sig-add',
+			properties:{},
+			listeners: {
+				'presubmit.iron-form-presubmit': '_handleFormPreSubmit',
+				'presubmit.iron-form-submit': '_handleFormSubmit',
+				'presubmit.iron-form-error': '_handleFormError',
+				'presubmit.iron-form-response': '_handleFormResponse'
+			},
 
-		  <script>
-Polymer({
-		  is: 'sig-add',
+			_handleFormPreSubmit: function() {
+				var form = document.getElementById('presubmit');
+				console.log("within presubmit");
+				var formData = new Object();
+				formData.subscriber = document.getElementById("add1").value;
+				formData.password = document.getElementById("add2").value;
 
-		  properties:{},
+				var ascendDataRate = new Object(); 
+				ascendDataRate.type = 26;
+				ascendDataRate.vendorId = 529;
+				ascendDataRate.vendorType = 197;
+				ascendDataRate.value = document.getElementById("add3").value;
 
-		  listeners: {
-					 'presubmit.iron-form-presubmit': '_handleFormPreSubmit',
-					 'presubmit.iron-form-submit': '_handleFormSubmit',
-					 'presubmit.iron-form-error': '_handleFormError',
-					 'presubmit.iron-form-response': '_handleFormResponse'
+				var ascendXmitRate = new Object(); 
+				ascendXmitRate.type = 26;
+				ascendXmitRate.vendorId = 529;
+				ascendXmitRate.vendorType = 255;
+				ascendXmitRate.value = document.getElementById("add4").value;
+
+				var attributes = new Object();
+				attributes.ascendDataRate = ascendDataRate;
+				attributes.ascendXmitRate = ascendXmitRate;
+				attributes.sessionTimeout = document.getElementById("add5").value;
+				attributes.acctInterimInterval = document.getElementById("add6").value;
+				attributes.class = document.getElementById("add7").value;
+
+				formData.attributes = attributes; 
+				formData.balance = document.getElementById("add8").value;
+
+				form.request.body = formData;
+			},
+
+			_handleFormSubmit: function() {
+				var form = document.getElementById('presubmit');
+				form.request.headers='{"Content-Type": "application/json"}';
+				form.request.contentType = "application/json";
 		  },
 
-		  _handleFormPreSubmit: function() {
-					 var form = document.getElementById('presubmit');
-					 console.log("within presubmit");
-					 var formData = new Object();
-					 formData.subscriber = document.getElementById("add1").value;
-					 formData.password = document.getElementById("add2").value;
+			_handleFormError: function() {
+				var toast = document.getElementById("toast-error");
+				toast.open();
+				toast.duration = 0;
+				toast.fitInto = document.getElementById("response-display-container");
+			},
 
-					 var ascendDataRate = new Object(); 
-					 ascendDataRate.type = 26;
-					 ascendDataRate.vendorId = 529;
-					 ascendDataRate.vendorType = 197;
-					 ascendDataRate.value = document.getElementById("add3").value;
-
-					 var ascendXmitRate = new Object(); 
-					 ascendXmitRate.type = 26;
-					 ascendXmitRate.vendorId = 529;
-					 ascendXmitRate.vendorType = 255;
-					 ascendXmitRate.value = document.getElementById("add4").value;
-
-					 var attributes = new Object();
-					 attributes.ascendDataRate = ascendDataRate;
-					 attributes.ascendXmitRate = ascendXmitRate;
-					 attributes.sessionTimeout = document.getElementById("add5").value;
-					 attributes.acctInterimInterval = document.getElementById("add6").value;
-					 attributes.class = document.getElementById("add7").value;
-
-					 formData.attributes = attributes; 
-					 formData.balance = document.getElementById("add8").value;
-
-					 form.request.body = formData;
-		  },
-
-		  _handleFormSubmit: function() {
-					 var form = document.getElementById('presubmit');
-					 form.request.headers='{"Content-Type": "application/json"}';
-					 form.request.contentType = "application/json";
-		  },
-
-		  _handleFormError: function() {
-					 var toast = document.getElementById("toast-error");
-					 toast.open();
-					 toast.duration = 0;
-					 toast.fitInto = document.getElementById("response-display-container");
-		  },
-
-		  _handleFormResponse: function() {
-					 var toast = document.getElementById("toast-success");
-					 toast.open();
-					 toast.duration = 4;
-					 toast.fitInto = document.getElementById("response-display-container");
-					 document.getElementById("presubmit").reset();
-					 document.getElementById("modal2").close();
-					 document.getElementById("getSubs").generateRequest();
-		  }   
-});
-		  </script>
+			_handleFormResponse: function() {
+				var toast = document.getElementById("toast-success");
+				toast.open();
+				toast.duration = 4;
+				toast.fitInto = document.getElementById("response-display-container");
+				document.getElementById("presubmit").reset();
+				document.getElementById("modal2").close();
+				document.getElementById("getSubs").generateRequest();
+			}   
+		});
+	</script>
 </dom-module>
