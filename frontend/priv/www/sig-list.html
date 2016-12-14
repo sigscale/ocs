@@ -18,268 +18,272 @@
 
 
 <dom-module id="sig-list">
+	<template>
+		<style>
+			:host {
+				display: inline-block;
+			}
+			iron-icon {
+				fill: rgba(0,0,0,0);
+				stroke: currentcolor;
+			} 
+			:host([pressed]) iron-icon {
+				fill: currentcolor;
+			}
+			paper-button{   
+				background-color: #7d8ff5;
+				color: white;
+				font-weight: bold;
+			}
 
-		  <template>
-					 <style> /* local DOM styles go here */ 
-:host { display: inline-block; }
-iron-icon { fill: rgba(0,0,0,0); stroke: currentcolor; } 
-:host([pressed]) iron-icon { fill: currentcolor; }
-paper-button{   
-		  background-color: #7d8ff5;
-		  color: white;
-		  font-weight: bold;}
+			#subscriber{
+				width:3%;
+			}
+		</style>
+		<div>
+			<paper-toolbar>
+				<paper-fab icon="add" on-click = "showAddModal"></paper-fab>
+			</paper-toolbar>
+		</div>
+		<style include="shared-styles">
+			:host {
+				display: block;
+				padding: 10px;
+			}
+			paper-fab { 
+				--paper-fab-background: #7d8ff5;
+				--paper-fab-keyboard-focus-background: var(--paper-light-blue-900); }
+				vaadin-grid{font-size: 16px;}
+				vaadin-grid col {font-size: 46px;}
+		</style>
 
-								#subscriber{width:3%;}
-					 </style>
-					 <div>	
-								<paper-toolbar>
-													<paper-fab icon="add" on-click = "showAddModal"></paper-fab>
-								</paper-toolbar>
-					 </div>
-					 <style include="shared-styles">
-:host {
-		  display: block;
-		  padding: 10px;
-}
-						paper-fab { 
-								  --paper-fab-background: #7d8ff5;
-								  --paper-fab-keyboard-focus-background: var(--paper-light-blue-900); }
-						vaadin-grid{font-size: 16px;}
-						vaadin-grid col {font-size: 46px;}
-					 </style>
+		<paper-dialog id="modal1" modal style="width:60%;">
+			<paper-tabs selected="{{selected}}">
+				<paper-tab> Edit password </paper-tab>
+				<paper-tab> Edit attributes </paper-tab>
+			</paper-tabs>
 
-					 <paper-dialog id="modal1" modal style="width:60%;">
-								<paper-tabs selected="{{selected}}">
-							    <paper-tab> Edit password </paper-tab>
-							    <paper-tab> Edit attributes </paper-tab>
-								</paper-tabs>
+			<iron-pages selected="{{selected}}">
+				<div id="edit-password" >
+					<paper-input id="edit-id1" name="subscriber" label="Identity" disabled></paper-input>
+					<paper-input id="edit-pwd" name="password"  label="Secret" disabled ></paper-input>
+					<paper-input id="edit-new-pwd" name="newpassword" label="New Secret" required auto-validate error-message="New secret can't be empty!" ></paper-input>
+					<div class="buttons">
+						<paper-button dialog-confirm autofocus on-click="updatePassword">Edit</paper-button>
+						<paper-button on-click="cancel" >Cancel</paper-button>
+						<paper-button toggles raised on-click = "deleteSeletedItems"  > Delete </paper-button>
+					</div>
+				</div>
+				<div id="edit-attributes" >
+					<paper-input id="edit-id2" name="subscriber" label="Identity" disabled></paper-input>
+					<paper-input id="edit-balance" name="balance" label="Balance" required auto-validate error-message="New value can't be empty!" ></paper-input>
+					<paper-input id="edit-recv-data-rate" name="ascendDataRate" label="Receive Data Rate" required auto-validate error-message="New value can't be empty!" ></paper-input>
+					<paper-input id="edit-trans-data-rate" name="ascendXmitRate" label="Transmit Data Rate" required auto-validate error-message="New value can't be empty!" ></paper-input>
+					<paper-input id="edit-sess-timeout" name="sessionTimeout" label="Session Timeout" required auto-validate error-message="New value can't be empty!" ></paper-input>
+					<paper-input id="edit-update-interval" name="acctInterimInterval" label="Update interval" required auto-validate error-message="New value can't be empty!" ></paper-input>
+					<paper-input id="edit-class" name="class" label="Class" required auto-validate error-message="New value can't be empty!" ></paper-input>
+					<div class="buttons">
+						<paper-button dialog-confirm autofocus on-click="updateAttributes">Edit</paper-button>
+						<paper-button on-click="cancel" >Cancel</paper-button>
+						<paper-button toggles raised on-click = "deleteSeletedItems"  > Delete </paper-button>
+					</div>
+					</div>
+			</iron-pages>
+		</paper-dialog>
 
-								<iron-pages selected="{{selected}}">
-								  <div id="edit-password" >
-										 <paper-input id="edit-id1" name="subscriber" label="Identity" disabled></paper-input>
-										 <paper-input id="edit-pwd" name="password"  label="Secret" disabled ></paper-input>
-										 <paper-input id="edit-new-pwd" name="newpassword" label="New Secret" required auto-validate error-message="New secret can't be empty!" ></paper-input>
-										 <div class="buttons">
-									    	<paper-button dialog-confirm autofocus on-click="updatePassword">Edit</paper-button>
-									   	 <paper-button on-click="cancel" >Cancel</paper-button>
-											 <paper-button toggles raised on-click = "deleteSeletedItems"  > Delete </paper-button>
-										</div>
-									</div>
-								  <div id="edit-attributes" >
-										 <paper-input id="edit-id2" name="subscriber" label="Identity" disabled></paper-input>
-										 <paper-input id="edit-balance" name="balance" label="Balance" required auto-validate error-message="New value can't be empty!" ></paper-input>
-										 <paper-input id="edit-recv-data-rate" name="ascendDataRate" label="Receive Data Rate" required auto-validate error-message="New value can't be empty!" ></paper-input>
-										 <paper-input id="edit-trans-data-rate" name="ascendXmitRate" label="Transmit Data Rate" required auto-validate error-message="New value can't be empty!" ></paper-input>
-										 <paper-input id="edit-sess-timeout" name="sessionTimeout" label="Session Timeout" required auto-validate error-message="New value can't be empty!" ></paper-input>
-										 <paper-input id="edit-update-interval" name="acctInterimInterval" label="Update interval" required auto-validate error-message="New value can't be empty!" ></paper-input>
-										 <paper-input id="edit-class" name="class" label="Class" required auto-validate error-message="New value can't be empty!" ></paper-input>
-										 <div class="buttons">
-									    	<paper-button dialog-confirm autofocus on-click="updateAttributes">Edit</paper-button>
-									   	 <paper-button on-click="cancel" >Cancel</paper-button>
-											 <paper-button toggles raised on-click = "deleteSeletedItems"  > Delete </paper-button>
-										</div>
-								</div>
-								</iron-pages>
-					 </paper-dialog>
+		<paper-dialog id="modal2" modal style="width:60%; height: 67%; top:10%;">
+			<sig-add></sig-add>
+		</paper-dialog>
 
-					 <paper-dialog id="modal2" modal style="width:60%; height: 67%; top:10%;">
-								<sig-add></sig-add>
-					 </paper-dialog>
+		<vaadin-grid selection-mode="single" id="frozen" frozen-columns="2" >
+			<table>
+				<colgroup> 
+					<col name="identity"/> 
+					<col name="password"/> 
+					<col name="balance"/> 
+					<col name="attributes.ascendDataRate.value"/>
+					<col name="attributes.ascendXmitRate.value"/>
+					<col name="attributes.sessionTimeout"/>
+					<col name="attributes.acctInterimInterval"/>
+					<col name="attributes.class"/>
+					<col name="enabled"/> 
+				</colgroup>
+				<thead>
+					<tr>
+						<th>Identity</th>
+						<th>Secret</th>
+						<th>Balance</th>
+						<th>Receive Data Rate</th>
+						<th>Transmit Data Rate</th>
+						<th>Session Timeout</th>
+						<th>Update Interval</th>
+						<th>Class</th>
+						<th>Enabled</th>
+					</tr>
+				</thead>
+			</table>
+		</vaadin-grid>
 
-					 <vaadin-grid selection-mode="single" id="frozen" frozen-columns="2" >
-								<table>
-										  <colgroup> 
-													 <col name="identity"/> 
-													 <col name="password"/> 
-													 <col name="balance"/> 
-													 <col name="attributes.ascendDataRate.value"/>
-													 <col name="attributes.ascendXmitRate.value"/>
-													 <col name="attributes.sessionTimeout"/>
-													 <col name="attributes.acctInterimInterval"/>
-													 <col name="attributes.class"/>
-													 <col name="enabled"/> 
-										  </colgroup>
-										  <thead>
-													 <tr>
-																<th>Identity</th>
-																<th>Secret</th>
-																<th>Balance</th>
-																<th>Receive Data Rate</th>
-																<th>Transmit Data Rate</th>
-																<th>Session Timeout</th>
-																<th>Update Interval</th>
-																<th>Class</th>
-																<th>Enabled</th>
-													 </tr>
-										  </thead>
-								</table>
+		<paper-toast id="edit-toast">
+			<h2>Subscriber sucessfully updated !</h2>
+		</paper-toast>
 
+		<paper-toast id="delete-toast">
+			<h2>Subscriber sucessfully deleted !</h2>
+		</paper-toast>
 
-					 </vaadin-grid>
+		<iron-ajax id="getSubs"
+			auto=false
+			url="http://localhost:8888/ocs/subscriber"
+			headers='{"Accept": "application/json"}'
+			on-response="responseHandler"
+			debounce-duration="10"> </iron-ajax>
 
-					 <paper-toast id="edit-toast">
-								<h2>Subscriber sucessfully updated !</h2>
-					 </paper-toast>
+		<iron-ajax id="updatePassword"
+			auto=true
+			headers='{"Accept": "application/json"}'
+			on-response="updatePwdResponseHandler"
+			debounce-duration="300"> </iron-ajax>
 
-					 <paper-toast id="delete-toast">
-								<h2>Subscriber sucessfully deleted !</h2>
-					 </paper-toast>
-
-					 <iron-ajax id="getSubs"
-					 				auto=false
-									url="http://localhost:8888/ocs/subscriber"
-									headers='{"Accept": "application/json"}'
-									on-response="responseHandler"
-									debounce-duration="10"> </iron-ajax>
-
-					 <iron-ajax id="updatePassword"
-					 				auto=true
-									headers='{"Accept": "application/json"}'
-									on-response="updatePwdResponseHandler"
-									debounce-duration="300"> </iron-ajax>
-
-					 <iron-ajax id="updateAttributes"
-					 				auto=true
-									headers='{"Accept": "application/json"}'
-									on-response="updateAttrResponseHandler"
-									debounce-duration="300"> </iron-ajax>
+		<iron-ajax id="updateAttributes"
+			auto=true
+			headers='{"Accept": "application/json"}'
+			on-response="updateAttrResponseHandler"
+			debounce-duration="300"> </iron-ajax>
 					 
-					 <iron-ajax	 id="deleteSubs"
-									 auto
-									 handle-as="json"
-			 						 method = "delete"
-									 on-response="deletionResponse"
-									 debounce-duration="300"> </iron-ajax>
+		<iron-ajax	 id="deleteSubs"
+			auto
+			handle-as="json"
+			method = "delete"
+			on-response="deletionResponse"
+			debounce-duration="300"> </iron-ajax>
+	</template>
 
-		  </template>
-
-		  <script>
-Polymer({
+	<script>
+		Polymer({
 		  is: 'sig-list',
 
-		  properties:{
-		  },
+		properties:{
+		},
 			
-		  listeners: {
+		listeners: {
 				'frozen.click': 'onSelect'
-		  },
+		},
 
-		  created: function() {
-		  },
+		created: function() {
+		},
 
-		  ready: function() {
-		  },
+		ready: function() {
+		},
 
-		  responseHandler: function(event) {
-					 var grid = this.$.frozen; 
-					 grid.items = event.detail.xhr.response;
-		  },
+		responseHandler: function(event) {
+			var grid = this.$.frozen; 
+			grid.items = event.detail.xhr.response;
+		},
 
-		  gotoEnd: function(event){
-					 var grid = this.$.frozen; 
-					 grid.scrollToEnd();
-		  },
+		gotoEnd: function(event){
+			var grid = this.$.frozen; 
+			grid.scrollToEnd();
+		},
 
-		  showAddModal: function(event){
-					 var modal = this.$.modal2; 
-					 modal.open(); 
-		  },
+		showAddModal: function(event){
+			var modal = this.$.modal2; 
+			modal.open(); 
+		},
 
-		  updatePassword: function(event){
-					 var editAjax =  document.getElementById("updatePassword");
-					 editAjax.method = "PUT";
-					 editAjax.contentType = "application/json";
-					 var id = document.getElementById("edit-id").value;
-					 editAjax.url = "http://localhost:8888/ocs/subscriber/" + id;
-					 var sub = new Object();
-					 sub.update = "password";
-					 sub.newpassword = document.getElementById("edit-new-pwd").value;
-					 editAjax.body = sub;
-		  },
+		updatePassword: function(event){
+			var editAjax =  document.getElementById("updatePassword");
+			editAjax.method = "PUT";
+			editAjax.contentType = "application/json";
+			var id = document.getElementById("edit-id").value;
+			editAjax.url = "http://localhost:8888/ocs/subscriber/" + id;
+			var sub = new Object();
+			sub.update = "password";
+			sub.newpassword = document.getElementById("edit-new-pwd").value;
+			editAjax.body = sub;
+		},
 
-		  updateAttributes: function(event){
-					 var editAjax =  document.getElementById("updateAttributes");
-					 editAjax.method = "PUT";
-					 editAjax.contentType = "application/json";
-					 var id = document.getElementById("edit-id2").value;
-					 editAjax.url = "http://localhost:8888/ocs/subscriber/" + id;
-					 var sub = new Object();
-					 sub.update = "attributes";
-					 var attr = new Object();
+		updateAttributes: function(event){
+			var editAjax =  document.getElementById("updateAttributes");
+			editAjax.method = "PUT";
+			editAjax.contentType = "application/json";
+			var id = document.getElementById("edit-id2").value;
+			editAjax.url = "http://localhost:8888/ocs/subscriber/" + id;
+			var sub = new Object();
+			sub.update = "attributes";
+			var attr = new Object();
 
-					 var ascendDataRate = new Object();
-					 ascendDataRate.type = 26;
-					 ascendDataRate.vendorId = 529;
-					 ascendDataRate.vendorType = 197;
-					 ascendDataRate.value = document.getElementById("edit-recv-data-rate").value;
-					 attr.ascendDataRate = ascendDataRate;
+			var ascendDataRate = new Object();
+			ascendDataRate.type = 26;
+			ascendDataRate.vendorId = 529;
+			ascendDataRate.vendorType = 197;
+			ascendDataRate.value = document.getElementById("edit-recv-data-rate").value;
+			attr.ascendDataRate = ascendDataRate;
 
-					 var ascendXmitRate = new Object(); 
-					 ascendXmitRate.type = 26;
-					 ascendXmitRate.vendorId = 529;
-					 ascendXmitRate.vendorType = 255;
-					 ascendXmitRate.value = document.getElementById("edit-trans-data-rate").value;
-					 attr.ascendXmitRate = ascendXmitRate;
+			var ascendXmitRate = new Object(); 
+			ascendXmitRate.type = 26;
+			ascendXmitRate.vendorId = 529;
+			ascendXmitRate.vendorType = 255;
+			ascendXmitRate.value = document.getElementById("edit-trans-data-rate").value;
+			attr.ascendXmitRate = ascendXmitRate;
 
-					 attr.sessionTimeout = document.getElementById("edit-sess-timeout").value;
-					 attr.acctInterimInterval = document.getElementById("edit-update-interval").value;
-					 attr.class = document.getElementById("edit-class").value;
-					 sub.attributes = attr;
-					 editAjax.body = sub;
-		  },
+			attr.sessionTimeout = document.getElementById("edit-sess-timeout").value;
+			attr.acctInterimInterval = document.getElementById("edit-update-interval").value;
+			attr.class = document.getElementById("edit-class").value;
+			sub.attributes = attr;
+			editAjax.body = sub;
+		},
 
-		  updatePwdResponseHandler: function (){
-					 if(event.detail.succeeded){
-						document.getElementById("edit-toast").open();
-					 	document.getElementById("edit-new-pwd").value = "";
-					 	var getSubsAjax = document.getElementById("getSubs");
-						getSubsAjax.generateRequest();
-					 }
-					 else{
-								console.log("Not Success");
-					 }
-		  },
+		updatePwdResponseHandler: function (){
+			if(event.detail.succeeded){
+				document.getElementById("edit-toast").open();
+				document.getElementById("edit-new-pwd").value = "";
+				var getSubsAjax = document.getElementById("getSubs");
+				getSubsAjax.generateRequest();
+			}
+			else{
+				console.log("Not Success");
+			}
+		},
 		  
-		  cancel: function(){
-					 this.$.modal1.close();
-		  },
+		cancel: function(){
+			this.$.modal1.close();
+		},
 
-		  deleteSeletedItems: function(event){
-					 var grid = this.$.frozen; 
-					 grid.selection.selected(function(index)
-										  { var selection = grid.items[index];
-											 var deleteAjax = document.getElementById("deleteSubs");
-											 deleteAjax.url = "http://localhost:8888/ocs/subscriber/"+ selection.identity;
-											 deleteAjax.generateRequest();
-										  });
-		  },
+		deleteSeletedItems: function(event){
+			var grid = this.$.frozen; 
+			grid.selection.selected(function(index){
+				var selection = grid.items[index];
+				var deleteAjax = document.getElementById("deleteSubs");
+				deleteAjax.url = "http://localhost:8888/ocs/subscriber/"+ selection.identity;
+				deleteAjax.generateRequest();
+			});
+		},
 
-		  deletionResponse: function(event){
-					 this.$.modal1.close(); 
-					 document.getElementById("delete-toast").open();
-					 var getSubsAjax = document.getElementById("getSubs");
-					 getSubsAjax.generateRequest();
-		  },
+		deletionResponse: function(event){
+			this.$.modal1.close(); 
+			document.getElementById("delete-toast").open();
+			var getSubsAjax = document.getElementById("getSubs");
+			getSubsAjax.generateRequest();
+		},
 
-		  onSelect: function(event) {
-					 		var grid = this.$.frozen; 
-					 		var modal = this.$.modal1; 
-							modal.open();
-					 		grid.selection.selected(function(index)
-										  { var selection = grid.items[index];
-											 document.getElementById("edit-id1").value = selection.identity;
-											 document.getElementById("edit-id2").value = selection.identity;
-											 document.getElementById("edit-pwd").value = selection.password;
-											 document.getElementById("edit-balance").value = selection.balance;
-										    document.getElementById("edit-recv-data-rate").value = selection.attributes.ascendDataRate.value;
-									   	 document.getElementById("edit-trans-data-rate").value = selection.attributes.ascendXmitRate.value;
-											 document.getElementById("edit-sess-timeout").value = selection.attributes.sessionTimeout;
-											 document.getElementById("edit-update-interval").value = selection.attributes.acctInterimInterval;
-											 document.getElementById("edit-class").value =  selection.attributes.class;
-
-										  });
-					 
-		  }
-});
-		  </script>
+		onSelect: function(event) {
+			var grid = this.$.frozen; 
+			var modal = this.$.modal1; 
+			modal.open();
+			grid.selection.selected(function(index) {
+				var selection = grid.items[index];
+				document.getElementById("edit-id1").value = selection.identity;
+				document.getElementById("edit-id2").value = selection.identity;
+				document.getElementById("edit-pwd").value = selection.password;
+				document.getElementById("edit-balance").value = selection.balance;
+				document.getElementById("edit-recv-data-rate").value = selection.attributes.ascendDataRate.value;
+				document.getElementById("edit-trans-data-rate").value = selection.attributes.ascendXmitRate.value;
+				document.getElementById("edit-sess-timeout").value = selection.attributes.sessionTimeout;
+				document.getElementById("edit-update-interval").value = selection.attributes.acctInterimInterval;
+				document.getElementById("edit-class").value =  selection.attributes.class;
+			});
+		}
+	});
+	</script>
 </dom-module>
