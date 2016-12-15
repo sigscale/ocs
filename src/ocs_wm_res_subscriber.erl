@@ -244,7 +244,7 @@ find_subscriber(ReqData, #state{subscriber = Identity} = Context) ->
 			Body  = mochijson:encode(JsonObj),
 			{Body, ReqData, Context};
 		{error, _Reason} ->
-			{{halt, 400}, ReqData, Context}
+			{{halt, 404}, ReqData, Context}
 	end.
 
 -spec find_subscribers(ReqData :: rd(), Context :: state()) ->
@@ -255,7 +255,7 @@ find_subscriber(ReqData, #state{subscriber = Identity} = Context) ->
 find_subscribers(ReqData, #state{partial_content = false} = Context) ->
 	case ocs:get_subscribers() of
 		{error, _} ->
-			{{halt, 400}, ReqData, Context};
+			{{halt, 404}, ReqData, Context};
 		Subscribers ->
 			F = fun(#subscriber{name = Identity, password = Password,
 						attributes = Attributes, balance = Balance,
