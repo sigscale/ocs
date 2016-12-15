@@ -215,7 +215,7 @@
 			var editAjax =  document.getElementById("updatePassword");
 			editAjax.method = "PUT";
 			editAjax.contentType = "application/json";
-			var id = document.getElementById("edit-id").value;
+			var id = document.getElementById("edit-id1").value;
 			editAjax.url = "http://localhost:8888/ocs/subscriber/" + id;
 			var sub = new Object();
 			sub.update = "password";
