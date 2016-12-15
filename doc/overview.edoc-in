@@ -35,6 +35,515 @@ The OCS application will start RADIUS servers for authentication and
 accounting, as well as an HTTP server for the REST API, on the configured
 ports.
 
+==REST API==
+The {@link //ocs. ocs} application provides a
+<a href="http://www.ics.uci.edu/~fielding/pubs/dissertation/top.htm">RESTful</a>
+API built on the <a href="http://tools.ietf.org/html/rfc2616">HTTP</a> protocol
+and using <a href="http://tools.ietf.org/html/rfc4627">JSON</a> data encoding.
+
+===Uniform Resource Identifiers (URI)===
+In this document we will use the
+<a href="http://tools.ietf.org/html/rfc6570">URI Template</a> syntax to
+specify the format of
+<a href="http://tools.ietf.org/html/rfc3986">URI</a>s used with the API.
+The actual <a href="http://tools.ietf.org/html/rfc3986">URI</a>, as shown
+in the examples, is expanded using the values of the variables in use.  For
+example a URI specified using the template `/ocs/subscriber/{identity}' might be
+formed as `/ocs/subscriber/eacfd73ae10a'.
+
+===HTTP Methods===
+The <a href="http://tools.ietf.org/html/rfc2616">HTTP</a> methods used in
+this API include
+<a href="http://tools.ietf.org/html/rfc2616#section-9.5">`POST'</a>,
+<a href="http://tools.ietf.org/html/rfc2616#section-9.3">`GET'</a>,
+<a href="http://tools.ietf.org/html/rfc2616#section-9.6">`PUT'</a> and
+<a href="http://tools.ietf.org/html/rfc2616#section-9.7">`DELETE'</a>.
+
+===Media Types===
+Each of the media types used in this application are described below.
+
+<p><table id="mt">
+	<thead>
+		<tr id="mt">
+			<th id="mt">Type Name</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr id="mt">
+			<td id="mt"><a href="http://tools.ietf.org/html/rfc4627">application/json</a></td>
+		</tr>
+	</tbody>
+</table></p>
+
+===JSON Types===
+<p><div id="status"><table id="mt">
+	<caption id="mt"><b>Status</b> legend:</caption>
+	<thead>
+		<tr id="mt">
+			<th id="mt">Status</th>
+			<th id="mt">Description</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr id="mt">
+			<td id="mt">M</td>
+			<td id="mt">Mandatory</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">O</td>
+			<td id="mt">Optional</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">R</td>
+			<td id="mt">Read only</td>
+		</tr>
+	</tbody>
+</table></div></p>
+
+<p><div id="subscriber"><table id="mt">
+	<caption id="mt">The <b>Subscriber</b> object relates a record in `subscriber' table:</caption>
+	<thead>
+		<tr id="mt">
+			<th id="mt">Field Name</th>
+			<th id="mt">Type</th>
+			<th id="mt">Status</th>
+			<th id="mt">Description</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr id="mt">
+			<td id="mt">subscriber</td>
+			<td id="mt">string</td>
+			<td id="mt">M</td>
+			<td id="mt">MAC address of the subscriber</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">password</td>
+			<td id="mt">string</td>
+			<td id="mt">M</td>
+			<td id="mt">Password given to the subscriber</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">attributes</td>
+			<td id="mt">array</td>
+			<td id="mt">O</td>
+			<td id="mt">RADIUS attributes of the subscriber </td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">ascendDataRate</td>
+			<td id="mt">integer</td>
+			<td id="mt">O</td>
+			<td id="mt"></td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">ascendXmitRate</td>
+			<td id="mt">integer</td>
+			<td id="mt">O</td>
+			<td id="mt"></td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">sessionTimeout</td>
+			<td id="mt">integer</td>
+			<td id="mt">O</td>
+			<td id="mt"></td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">acctInterimInterval</td>
+			<td id="mt">string</td>
+			<td id="mt">O</td>
+			<td id="mt"></td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">class</td>
+			<td id="mt">string</td>
+			<td id="mt">O</td>
+			<td id="mt"></td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">balance</td>
+			<td id="mt">integer</td>
+			<td id="mt">O</td>
+			<td id="mt">Avaiable data balance of the subscriber</td>
+		</tr>
+	</tbody>
+</table></div></p>
+
+
+===Resources &amp; Operations===
+The resources, their URIs, the methods available on them and expected
+responses, are described in this section.  Only the headers, and responses,
+relevant to the function being described are included.  Any valid HTTP
+headers may be included in requests and responses and responses.
+
+<table id="op">
+	<caption id="op"><b>Add Subscriber</b></caption>
+	<tr id="op">
+		<td id="opl">Resource URI</td>
+		<td id="opr">/ocs/subscriber</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Methods</td>
+		<td id="opr">POST</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Headers</td>
+		<td id="opr">Accept, Content-Type, Content-Length</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Message Body</td>
+		<td id="opr">Representation of a subscriber</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Headers</td>
+		<td id="opr">Location, Content-Type, Content-Length</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Body</td>
+		<td id="opr">None</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Status</td>
+		<td id="opr">201 Created</td>
+	</tr>
+</table>
+<p>Example Request:<pre>
+POST /ocs/subscriber HTTP/1.1
+accept: application/json
+content-type: application/json
+content-length: 308
+
+{
+ "subscriber":"eacfd73ae10a",
+ "password":"ksc8c244npqc",
+ "attributes":{
+               "ascendDataRate":{
+                                 "type":26,
+                                 "vendorId":529,
+                                 "vendorType":197,
+                                 "value":"1024"
+                                },
+               "ascendXmitRate":{
+                                 "type":26,
+                                 "vendorId":529,
+                                 "vendorType":255,
+                                 "value":"512"
+                                },
+               "sessionTimeout":"10864",
+               "acctInterimInterval":"300",
+               "class":"skiorgs"
+					},
+ "balance":"100"
+}
+</pre></p>
+<p>Example Response:<pre>
+HTTP/1.1 201 Created
+Location: /ocs/subscriber/eacfd73ae10a
+Content-Type: application/json
+Content-Length: 0
+</pre></p>
+
+<table id="op">
+	<caption id="op"><b>Retrieve a Subscriber</b></caption>
+	<tr id="op">
+		<td id="opl">Resource URI</td>
+		<td id="opr">/ocs/subscriber/{identity}</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Methods</td>
+		<td id="opr">GET</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Headers</td>
+		<td id="opr">Accept, Content-Type</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Message Body</td>
+		<td id="opr">none</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Headers</td>
+		<td id="opr">Content-Type, Content-Length</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Body</td>
+		<td id="opr">Link to matching router</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Status</td>
+		<td id="opr">200 OK, 404 Not Found</td>
+	</tr>
+</table>
+<p>Example Request:<pre>
+GET /ocs/subscriber/eacfd73ae10a HTTP/1.1
+content-type: application/json
+accept: application/json
+</pre></p>
+<p>Example Response:<pre>
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 319
+{
+ "identity": "eacfd73ae10a",
+ "password": "ksc8c244npqc",
+ "attributes": {
+                "ascendDataRate": {
+                                   "type": 26,
+                                   "vendorId": 529,
+                                   "vendorType": 197,
+                                   "value": "1024"
+                                  },
+                "ascendXmitRate": {
+                                   "type": 26,
+                                   "vendorId": 529,
+                                   "vendorType": 255,
+                                   "value": "512"
+                                  },
+                "sessionTimeout": "10864",
+                "acctInterimInterval": "300",
+                "class": "skiorgs"
+               },
+ "balance": 100,
+ "enabled": true
+}
+</pre></p>
+
+<table id="op">
+	<caption id="op"><b>Retrieve All Subscribers</b></caption>
+	<tr id="op">
+		<td id="opl">Resource URI</td>
+		<td id="opr">/ocs/subscriber</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Methods</td>
+		<td id="opr">GET, HEAD</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Headers</td>
+		<td id="opr">Accept, Content-Type</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Message Body</td>
+		<td id="opr">none</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Headers</td>
+		<td id="opr">Content-Type, Content-Length</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Body</td>
+		<td id="opr">Array of subscriber representations</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Status</td>
+		<td id="opr">200 OK, 404 Not Found</td>
+	</tr>
+</table>
+<p>Example Request:<pre>
+GET /ocs/subscriber HTTP/1.1
+content-type: application/json
+accept: application/json
+</pre></p>
+<p>Example Response:<pre>
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: nn
+[
+ {
+   "identity": "5557615036FD",
+   "password": "2h7csggw35aa",
+   "attributes": {
+                   "ascendDataRate": {
+                                       "type": 26,
+                                       "vendorId": 529,
+                                       "vendorType": 197,
+                                       "value": "65"
+                                     },
+                   "ascendXmitRate": {
+                                       "type": 26,
+                                       "vendorId": 529,
+                                       "vendorType": 255,
+                                       "value": "87"
+                                     },
+                   "sessionTimeout": "98",
+                   "acctInterimInterval": "65",
+                   "class": "mvf"
+                 },
+  "balance": 65,
+  "enabled": true
+ },
+ {
+  "identity": "E5B9265C8C0D",
+  "password": "rzambns7knr4",
+  "attributes": {
+                  "ascendDataRate": {
+                                      "type": 26,
+                                      "vendorId": 529,
+                                      "vendorType": 197,
+                                      "value": "98"
+                                    },
+                  "ascendXmitRate": {
+                                      "type": 26,
+                                      "vendorId": 529,
+                                      "vendorType": 255,
+                                      "value": "45"
+                                    },
+                  "sessionTimeout": "98",
+                  "acctInterimInterval": "56",
+                  "class": "hgt"
+                },
+  "balance": 76,
+  "enabled": true
+ }
+]
+</pre></p>
+
+<table id="op">
+	<caption id="op"><b>Update Subscriber Password</b></caption>
+	<tr id="op">
+		<td id="opl">Resource URI</td>
+		<td id="opr">/ocs/subscriber/{identity}</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Methods</td>
+		<td id="opr">PUT</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Headers</td>
+		<td id="opr">Accept, Content-Type</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Message Body</td>
+		<td id="opr">Representation of update rule</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Headers</td>
+		<td id="opr">Content-Type, Content-Length</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Body</td>
+		<td id="opr">None</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Status</td>
+		<td id="opr">204 No Content</td>
+	</tr>
+</table>
+<p>Example Request:<pre>
+PUT /ocs/subscriber/eacfd73ae10a HTTP/1.1
+content-type: application/json
+accept: application/json
+{
+  "update":"password",
+  "newpassword":"7fy8qhs7hh7n"
+}
+</pre></p>
+<p>Example Response:<pre>
+HTTP/1.1 204 No Content
+Content-Type: application/json
+Content-Length: 0
+</pre></p>
+
+<table id="op">
+	<caption id="op"><b>Update Subscriber Attributes</b></caption>
+	<tr id="op">
+		<td id="opl">Resource URI</td>
+		<td id="opr">/ocs/subscriber/{identity}</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Methods</td>
+		<td id="opr">PUT</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Headers</td>
+		<td id="opr">Accept, Content-Type</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Message Body</td>
+		<td id="opr">Representation of update rule</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Headers</td>
+		<td id="opr">Content-Type, Content-Length</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Body</td>
+		<td id="opr">None</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Status</td>
+		<td id="opr">204 No Content</td>
+	</tr>
+</table>
+<p>Example Request:<pre>
+PUT /ocs/subscriber/eacfd73ae10a HTTP/1.1
+content-type: application/json
+accept: application/json
+{
+ "update":"attributes",
+ "attributes":{
+               "ascendDataRate":{
+                                 "type":26,
+                                 "vendorId":529,
+                                 "vendorType":197,
+                                 "value":"76"
+                                },
+               "ascendXmitRate":{
+                                 "type":26,
+                                 "vendorId":529,
+                                 "vendorType":255,
+                                 "value":"45"
+                                },
+               "sessionTimeout":"54",
+               "acctInterimInterval":"1087",
+               "class":"gtf"
+              }
+}
+</pre></p>
+<p>Example Response:<pre>
+HTTP/1.1 204 No Content
+Content-Type: application/json
+Content-Length: 0
+</pre></p>
+
+<table id="op">
+	<caption id="op"><b>Delete a Subscriber</b></caption>
+	<tr id="op">
+		<td id="opl">Resource URI</td>
+		<td id="opr">/ocs/subscriber/{identity}</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Methods</td>
+		<td id="opr">DELETE</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Headers</td>
+		<td id="opr">Accept, Content-Type</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Message Body</td>
+		<td id="opr">None</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Headers</td>
+		<td id="opr">Content-Type, Content-Length</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Body</td>
+		<td id="opr">None</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Status</td>
+		<td id="opr">204 No Content</td>
+	</tr>
+</table>
+<p>Example Request:<pre>
+DELETE /ocs/subscriber/eacfd73ae10a HTTP/1.1
+</pre></p>
+<p>Example Response:<pre>
+HTTP/1.1 204 Content
+Content-Length: 0
+</pre></p>
+
 ==Database Schema==
 <table id="mt">
 	<caption id="mt">There is one persistent {@link //mnesia. mnesia} table:</caption>
