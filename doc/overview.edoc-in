@@ -133,31 +133,31 @@ Each of the media types used in this application are described below.
 			<td id="mt">ascendDataRate</td>
 			<td id="mt">integer</td>
 			<td id="mt">O</td>
-			<td id="mt"></td>
+			<td id="mt">Download speed in bits per second</td>
 		</tr>
 		<tr id="mt">
 			<td id="mt">ascendXmitRate</td>
 			<td id="mt">integer</td>
 			<td id="mt">O</td>
-			<td id="mt"></td>
+			<td id="mt">Upload speed in bits per second</td>
 		</tr>
 		<tr id="mt">
 			<td id="mt">sessionTimeout</td>
 			<td id="mt">integer</td>
 			<td id="mt">O</td>
-			<td id="mt"></td>
+			<td id="mt">Session timeout after which session is cleared </td>
 		</tr>
 		<tr id="mt">
 			<td id="mt">acctInterimInterval</td>
 			<td id="mt">string</td>
 			<td id="mt">O</td>
-			<td id="mt"></td>
+			<td id="mt">Seconds between each interim update</td>
 		</tr>
 		<tr id="mt">
 			<td id="mt">class</td>
 			<td id="mt">string</td>
 			<td id="mt">O</td>
-			<td id="mt"></td>
+			<td id="mt">Map different user groups </td>
 		</tr>
 		<tr id="mt">
 			<td id="mt">balance</td>
