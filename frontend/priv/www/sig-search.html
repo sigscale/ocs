@@ -91,7 +91,6 @@
 			<paper-button raised class="custom indigo" on-click="submitForm" style="float: right; "  >Search</paper-button>
 			<paper-button dialog-confirm autofocus on-click="resetForm" >Reset</paper-button> 
 		</form>
-
 		<paper-toast id="toast-no-subscriber" class="fit-bottom" >
 			<h2> No Subscriber found !</h2>
 		</paper-toast>
@@ -132,8 +131,6 @@
 			} ,
 
 			_handleFormResponse: function() {
-				console.log("Inside handle response");
-				console.log(event.detail.status);
 				var data = new Array();
 				data[0] = event.detail.response;
 				var grid = document.getElementById("frozen");; 
@@ -142,10 +139,9 @@
 			},
 
 			_handleFormError: function() {
-				console.log("Inside handle error");
-				console.log(event.detail);
 				var toast  = document.getElementById("toast-no-subscriber");
 				toast.open();
+				toast.fitInto = document.getElementById("subcriber-not-found");
 			}   
 		});
 	</script>
