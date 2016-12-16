@@ -265,6 +265,17 @@
 				console.log("Not Success");
 			}
 		},
+
+		updateAttrResponseHandler: function (){
+			if(event.detail.succeeded){
+				document.getElementById("edit-toast").open();
+				var getSubsAjax = document.getElementById("getSubs");
+				getSubsAjax.generateRequest();
+			}
+			else{
+				console.log("Not Success");
+			}
+		},
 		  
 		cancel: function(){
 			this.$.modal1.close();
