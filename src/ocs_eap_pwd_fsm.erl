@@ -445,7 +445,7 @@ confirm3(RadiusFsm, #radius{id = RadiusID,
 	Attr4 = radius_attributes:store(?SessionTimeout, 86400, Attr3),
 	Attr5 = radius_attributes:store(?AcctInterimInterval, 300, Attr4),
 	case ocs:authorize(PeerID, Password) of
-		{ok, _} ->
+		{ok, _, _} ->
 			EapPacket = #eap_packet{code = success, identifier = EapID},
 			send_response(EapPacket, ?AccessAccept,
 					RadiusID, Attr5, RequestAuthenticator, Secret, RadiusFsm),

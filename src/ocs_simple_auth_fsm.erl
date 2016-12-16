@@ -108,7 +108,7 @@ request1(#statedata{req_attr = Attributes, req_auth = Authenticator,
 			{stop, {shutdown, SessionID}, StateData}
 	end.
 %% @hidden
-request2([], #statedata{subscriber = Subscriber,
+request2(<<>>, #statedata{subscriber = Subscriber,
 		session_id = SessionID} = StateData) ->
 	case ocs:authorize(Subscriber, []) of
 		{ok, Password, Attributes} ->
