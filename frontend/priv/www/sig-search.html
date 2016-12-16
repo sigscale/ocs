@@ -8,6 +8,7 @@
 <link rel="import" href="bower_components/paper-button/paper-button.html">
 <link rel="import" href="bower_components/paper-toolbar/paper-toolbar.html">
 <link rel="import" href="bower_components/paper-input/paper-input.html">
+<link rel="import" href="bower_components/paper-toast/paper-toast.html">
 <link rel="import" href="bower_components/paper-input/paper-input-container.html">
 <link rel="import" href="bower_components/paper-styles/paper-styles.html">
 <link rel="import" href="bower_components/paper-styles/typography.html">
@@ -90,6 +91,11 @@
 			<paper-button raised class="custom indigo" on-click="submitForm" style="float: right; "  >Search</paper-button>
 			<paper-button dialog-confirm autofocus on-click="resetForm" >Reset</paper-button> 
 		</form>
+
+		<paper-toast id="toast-no-subscriber" class="fit-bottom" >
+			<h2> No Subscriber found !</h2>
+		</paper-toast>
+
 	</template>
 	<script>
 		Polymer({
@@ -97,6 +103,7 @@
 			properties:{ },
 			listeners: {
 				'presubmit1.iron-form-presubmit': '_handleFormSubmit',
+				'presubmit1.iron-form-error': '_handleFormError',
 				'presubmit1.iron-form-response': '_handleFormResponse'
 			},
 
@@ -125,11 +132,20 @@
 			} ,
 
 			_handleFormResponse: function() {
+				console.log("Inside handle response");
+				console.log(event.detail.status);
 				var data = new Array();
 				data[0] = event.detail.response;
 				var grid = document.getElementById("frozen");; 
 				grid.items = data;
 				document.getElementById('modal1').close();
+			},
+
+			_handleFormError: function() {
+				console.log("Inside handle error");
+				console.log(event.detail);
+				var toast  = document.getElementById("toast-no-subscriber");
+				toast.open();
 			}   
 		});
 	</script>
