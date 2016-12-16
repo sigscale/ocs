@@ -356,15 +356,15 @@ Content-Length: nn
                                        "type": 26,
                                        "vendorId": 529,
                                        "vendorType": 197,
-                                       "value": "65"
+                                       "value": "1024"
                                      },
                    "ascendXmitRate": {
                                        "type": 26,
                                        "vendorId": 529,
                                        "vendorType": 255,
-                                       "value": "87"
+                                       "value": "512"
                                      },
-                   "sessionTimeout": "98",
+                   "sessionTimeout": "300",
                    "acctInterimInterval": "65",
                    "class": "mvf"
                  },
@@ -379,16 +379,16 @@ Content-Length: nn
                                       "type": 26,
                                       "vendorId": 529,
                                       "vendorType": 197,
-                                      "value": "98"
+                                      "value": "1024"
                                     },
                   "ascendXmitRate": {
                                       "type": 26,
                                       "vendorId": 529,
                                       "vendorType": 255,
-                                      "value": "45"
+                                      "value": "512"
                                     },
-                  "sessionTimeout": "98",
-                  "acctInterimInterval": "56",
+                  "sessionTimeout": "10864",
+                  "acctInterimInterval": "150",
                   "class": "hgt"
                 },
   "balance": 76,
@@ -485,16 +485,16 @@ accept: application/json
                                  "type":26,
                                  "vendorId":529,
                                  "vendorType":197,
-                                 "value":"76"
+                                 "value":"1024"
                                 },
                "ascendXmitRate":{
                                  "type":26,
                                  "vendorId":529,
                                  "vendorType":255,
-                                 "value":"45"
+                                 "value":"512"
                                 },
-               "sessionTimeout":"54",
-               "acctInterimInterval":"1087",
+               "sessionTimeout":"10864",
+               "acctInterimInterval":"300",
                "class":"gtf"
               }
 }
