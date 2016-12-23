@@ -126,7 +126,8 @@ content_types_provided(ReqData, Context) ->
 					{[{"application/json", find_subscribers}], NewReqData, NextContext};
 				{Identity, _, undefined} ->
 					NextContext = Context#state{subscriber = Identity},
-					{[{"application/json", find_subscriber}], NewReqData, NextContext}
+					{[{"application/json", find_subscriber},
+						{"application/hal+json", find_subscriber}], NewReqData, NextContext}
 			end;
 		'DELETE' ->
 			{[{"application/json", delete_subscriber}], NewReqData, Context}
@@ -232,16 +233,25 @@ update_subscriber(ReqData, Context) ->
 %% @doc Body producing function for `GET /ocs/subscriber/{identity}'
 %% requests.
 find_subscriber(ReqData, #state{subscriber = Identity} = Context) ->
+	MediaType = wrq:get_req_header("accept", ReqData),
 	case ocs:find_subscriber(Identity) of
 		{ok, PWBin, Attributes, Balance, Enabled} ->
 			Password = binary_to_list(PWBin),
 			JSAttributes = json_attributes(Attributes),
 			AttrObj = {struct, JSAttributes}, 
-			RespObj = [{identity, Identity}, {password, Password},
-					{attributes, AttrObj}, {balance, Balance},
-					{enabled, Enabled}],
+			RespObj = case MediaType of
+				"application/json" ->
+					[{identity, Identity}, {password, Password}, {attributes, AttrObj},
+					 {balance, Balance}, {enabled, Enabled}];
+				"application/hal+json" ->
+					Uri = "/ocs/subscriber/" ++ Identity,
+					Self = {struct, [{"href", Uri}]},
+					Links = {struct, [{"self", Self}]},
+					[{"_links", Links}, {identity, Identity}, {password, Password},
+					 {attributes, AttrObj}, {balance, Balance}, {enabled, Enabled}]
+			end,
 			JsonObj  = {struct, RespObj},
-			Body  = mochijson:encode(JsonObj),
+			Body = mochijson:encode(JsonObj),
 			{Body, ReqData, Context};
 		{error, _Reason} ->
 			{{halt, 404}, ReqData, Context}
