@@ -117,13 +117,15 @@ content_types_provided(ReqData, Context) ->
 			case {wrq:path_info(identity, NewReqData), wrq:req_qs(NewReqData),
 					 wrq:get_req_header("range", NewReqData)} of
 				{undefined, _, undefined} ->
-					{[{"application/json", find_subscribers}], NewReqData, Context};
+					{[{"application/json", find_subscribers},
+						{"application/hal+json", find_subscribers}], NewReqData, Context};
 				{undefined, _, Range} ->
 					[SFR, SLR] = string:tokens(Range, "-"),
 					{FR, LR} = {list_to_integer(SFR), list_to_integer(SLR)},
 					NextContext = Context#state{frange = FR, lrange = LR,
 							partial_content = true},
-					{[{"application/json", find_subscribers}], NewReqData, NextContext};
+					{[{"application/json", find_subscribers},
+						{"application/hal+json", find_subscribers}], NewReqData, NextContext};
 				{Identity, _, undefined} ->
 					NextContext = Context#state{subscriber = Identity},
 					{[{"application/json", find_subscriber},
@@ -263,13 +265,18 @@ find_subscriber(ReqData, #state{subscriber = Identity} = Context) ->
 %% @doc Body producing function for `GET /ocs/subscriber'
 %% requests.
 find_subscribers(ReqData, #state{partial_content = false} = Context) ->
+	MediaType = wrq:get_req_header("accept", ReqData),
 	case ocs:get_subscribers() of
 		{error, _} ->
 			{{halt, 404}, ReqData, Context};
 		Subscribers ->
+			Response = find_subscribers1(MediaType, Subscribers),
+			Body  = mochijson:encode(Response),
+			{Body, ReqData, Context}
+	end.
+find_subscribers1("application/json", Subscribers) ->
 			F = fun(#subscriber{name = Identity, password = Password,
-						attributes = Attributes, balance = Balance,
-						enabled = Enabled}, Acc) ->
+					attributes = Attributes, balance = Balance, enabled = Enabled}, Acc) ->
 				JSAttributes = json_attributes(Attributes),
 				AttrObj = {struct, JSAttributes}, 
 				RespObj = [{struct, [{identity, Identity}, {password, Password},
@@ -278,10 +285,26 @@ find_subscribers(ReqData, #state{partial_content = false} = Context) ->
 				RespObj ++ Acc
 			end,
 			JsonObj = lists:foldl(F, [], Subscribers),
-			JsonArray = {array, JsonObj},
-			Body  = mochijson:encode(JsonArray),
-			{Body, ReqData, Context}
-	end.
+			{array, JsonObj};
+find_subscribers1("application/hal+json", Subscribers) ->
+			F = fun(#subscriber{name = Identity, password = Password,
+					attributes = Attributes, balance = Balance, enabled = Enabled}, Acc) ->
+				JSAttributes = json_attributes(Attributes),
+				AttrObj = {struct, JSAttributes}, 
+				Uri = "/ocs/subscriber/" ++ binary_to_list(Identity),
+				Self = {struct, [{"href", Uri}]},
+				Links = {struct, [{"self", Self}]},
+				RespObj = [{struct, [{"_links", Links}, {identity, Identity},
+					{password, Password}, {attributes, AttrObj}, {balance, Balance},
+					{enabled, Enabled}]}],
+				RespObj ++ Acc
+			end,
+			JsonObj = lists:foldl(F, [], Subscribers),
+			Link = {struct, [{"self", "/ocs/subscriber"}]},
+			Subs = {array, JsonObj},
+			Embedded = {struct, [{"subcribers" ,Subs}]},
+			{struct, [{"_links", Link}, {"_embedded", Embedded}]}.
+
 %% @todo partion_content
 %find_subscribers(ReqData, #state{partial_content = true,
 %		frange = FR, lrange = LR, buf = []} = Context) ->
