@@ -141,7 +141,7 @@ update_password(_Config) ->
 	{ok, BinOldPassword, Attribute, _Balance, _Enabled} = ocs:find_subscriber(Subscriber),
 	OldPassword = binary_to_list(BinOldPassword),
 	NewPassword = ocs:generate_password(),
-	ok = ocs:update_password(Subscriber, OldPassword, NewPassword),
+	ok = ocs:update_password(Subscriber, NewPassword),
 	{ok, BinNewPassword, _BinAttribute, _Balance, _Enabled} = ocs:find_subscriber(Subscriber),
 	NewPassword = binary_to_list(BinNewPassword).
 
@@ -156,7 +156,7 @@ update_attributes(_Config) ->
 	ok = ocs:add_subscriber(Username, Password, Attribute1),
 	{ok, _BinPassword, Attribute1, _Balance, _Enabled} = ocs:find_subscriber(Username),
 	Attribute2 = radius_attributes:store(?NasPortId,"wlan1", Attribute0),
-	ok = ocs:update_attributes(Username, Password, Attribute2),
+	ok = ocs:update_attributes(Username, Attribute2),
 	{ok, _BinPassword, Attribute2, _Balance, _Enabled} = ocs:find_subscriber(Username).
 
 
