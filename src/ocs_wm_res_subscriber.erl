@@ -158,12 +158,12 @@ create_path(ReqData, Context) ->
 		{_, Subscriber} = lists:keyfind("subscriber", 1, Object),
 		{_, Password} = lists:keyfind("password", 1, Object),
 		{_, {struct, AttrJs}} = lists:keyfind("attributes", 1, Object),
-		Attributes = json_to_radius(AttrJs),
+		RadAttributes = json_to_radius(AttrJs),
 		{_, BalStr} = lists:keyfind("balance", 1, Object),
 		{Balance , _}= string:to_integer(BalStr),
 		NewContext = Context#state{subscriber = Subscriber,
 			current_password = Password, balance = Balance,
-			attributes = Attributes},
+			attributes = RadAttributes},
 		{Subscriber, ReqData, NewContext}
 	catch
 		_Error ->
@@ -183,31 +183,32 @@ delete_resource(ReqData, Context) ->
 	{true | halt(), ReqData :: rd(), Context :: state()}.
 %% @doc Respond to `POST /ocs/subscriber' and add a new `subscriber'
 %% resource.
-add_subscriber(ReqData, #state{subscriber = Identity, current_password = Password, attributes = Attributes, balance = Balance} = Context) ->
+add_subscriber(ReqData, #state{subscriber = Identity, current_password = Password,
+		attributes = RadAttributes, balance = Balance} = Context) ->
 	try
-	case catch ocs:add_subscriber(Identity, Password, Attributes, Balance) of
+	case catch ocs:add_subscriber(Identity, Password, RadAttributes, Balance) of
 		ok ->
 			MediaType = wrq:get_req_header("accept", ReqData),
+			Attributes = {struct, radius_to_json(RadAttributes)},
 			RespObj = case MediaType of
 				"application/json" ->
-					[{identity, Identity}, {password, Password}, {attributes, Attributes}, {balance, Balance}];
+					[{identity, Identity}, {password, Password}, {attributes, Attributes},
+						{balance, Balance}];
 				"application/hal+json" ->
 					Uri = "/ocs/subscriber/" ++ Identity,
 					Self = {struct, [{"href", Uri}]},
 					Links = {struct, [{"self", Self}]},
-					[{"_links", Links}, {identity, Identity}, {password, Password},  {balance, Balance}]
+					[{"_links", Links}, {identity, Identity}, {password, Password},
+						{attributes, Attributes}, {balance, Balance}]
 			end,
-erlang:display(Attributes),
 			JsonObj  = {struct, RespObj},
 			Body = mochijson:encode(JsonObj),
-			%wrq:set_resp_body(Body, ReqData),
 			{true, wrq:append_to_response_body(Body, ReqData), Context};
 		{error, _Reason} ->
 			{{halt, 400}, ReqData, Context}
 	end catch
 		throw:_ ->
 			{{halt, 400}, ReqData, Context}
-
 	end.
 
 -spec update_subscriber(ReqData :: rd(), Context :: state()) ->
