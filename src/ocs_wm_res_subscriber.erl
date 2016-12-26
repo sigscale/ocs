@@ -110,7 +110,8 @@ content_types_provided(ReqData, Context) ->
 	NewReqData = wrq:set_resp_header("Access-Control-Allow-Origin", "*", ReqData),
 	case wrq:method(NewReqData) of
 		'POST' ->
-			{[{"application/json", add_subscriber}], NewReqData, Context};
+			{[{"application/json", add_subscriber},
+				{"application/hal+json", add_subscriber}], NewReqData, Context};
 		'PUT' ->
 			{[{"application/json", update_subscriber}], NewReqData, Context};
 		Method when Method == 'GET'; Method == 'HEAD' ->
@@ -157,7 +158,7 @@ create_path(ReqData, Context) ->
 		{_, Subscriber} = lists:keyfind("subscriber", 1, Object),
 		{_, Password} = lists:keyfind("password", 1, Object),
 		{_, {struct, AttrJs}} = lists:keyfind("attributes", 1, Object),
-		Attributes = sub_attributes(AttrJs),
+		Attributes = json_to_radius(AttrJs),
 		{_, BalStr} = lists:keyfind("balance", 1, Object),
 		{Balance , _}= string:to_integer(BalStr),
 		NewContext = Context#state{subscriber = Subscriber,
@@ -182,14 +183,25 @@ delete_resource(ReqData, Context) ->
 	{true | halt(), ReqData :: rd(), Context :: state()}.
 %% @doc Respond to `POST /ocs/subscriber' and add a new `subscriber'
 %% resource.
-add_subscriber(ReqData, #state{subscriber = Subscriber,
-		current_password = Password, attributes = ArrayAttributes,
-		balance = Balance} = Context) ->
+add_subscriber(ReqData, #state{subscriber = Identity, current_password = Password, attributes = Attributes, balance = Balance} = Context) ->
 	try
-	case catch ocs:add_subscriber(Subscriber, Password,
-			ArrayAttributes, Balance) of
+	case catch ocs:add_subscriber(Identity, Password, Attributes, Balance) of
 		ok ->
-			{true, ReqData, Context};
+			MediaType = wrq:get_req_header("accept", ReqData),
+			RespObj = case MediaType of
+				"application/json" ->
+					[{identity, Identity}, {password, Password}, {attributes, Attributes}, {balance, Balance}];
+				"application/hal+json" ->
+					Uri = "/ocs/subscriber/" ++ Identity,
+					Self = {struct, [{"href", Uri}]},
+					Links = {struct, [{"self", Self}]},
+					[{"_links", Links}, {identity, Identity}, {password, Password},  {balance, Balance}]
+			end,
+erlang:display(Attributes),
+			JsonObj  = {struct, RespObj},
+			Body = mochijson:encode(JsonObj),
+			%wrq:set_resp_body(Body, ReqData),
+			{true, wrq:append_to_response_body(Body, ReqData), Context};
 		{error, _Reason} ->
 			{{halt, 400}, ReqData, Context}
 	end catch
@@ -213,7 +225,7 @@ update_subscriber(ReqData, Context) ->
 				ok = case Type of
 					"attributes" ->
 						{_, {struct, AttrJs}} = lists:keyfind("attributes", 1, Object),
-						Attributes = sub_attributes(AttrJs),
+						Attributes = json_to_radius(AttrJs),
 						ocs:update_attributes(Identity, Attributes);
 					"password" ->
 						{_, NewPassword } = lists:keyfind("newpassword", 1, Object),
@@ -239,7 +251,7 @@ find_subscriber(ReqData, #state{subscriber = Identity} = Context) ->
 	case ocs:find_subscriber(Identity) of
 		{ok, PWBin, Attributes, Balance, Enabled} ->
 			Password = binary_to_list(PWBin),
-			JSAttributes = json_attributes(Attributes),
+			JSAttributes = radius_to_json(Attributes),
 			AttrObj = {struct, JSAttributes}, 
 			RespObj = case MediaType of
 				"application/json" ->
@@ -277,7 +289,7 @@ find_subscribers(ReqData, #state{partial_content = false} = Context) ->
 find_subscribers1("application/json", Subscribers) ->
 			F = fun(#subscriber{name = Identity, password = Password,
 					attributes = Attributes, balance = Balance, enabled = Enabled}, Acc) ->
-				JSAttributes = json_attributes(Attributes),
+				JSAttributes = radius_to_json(Attributes),
 				AttrObj = {struct, JSAttributes}, 
 				RespObj = [{struct, [{identity, Identity}, {password, Password},
 					{attributes, AttrObj}, {balance, Balance},
@@ -289,7 +301,7 @@ find_subscribers1("application/json", Subscribers) ->
 find_subscribers1("application/hal+json", Subscribers) ->
 			F = fun(#subscriber{name = Identity, password = Password,
 					attributes = Attributes, balance = Balance, enabled = Enabled}, Acc) ->
-				JSAttributes = json_attributes(Attributes),
+				JSAttributes = radius_to_json(Attributes),
 				AttrObj = {struct, JSAttributes}, 
 				Uri = "/ocs/subscriber/" ++ binary_to_list(Identity),
 				Self = {struct, [{"href", Uri}]},
@@ -313,48 +325,48 @@ find_subscribers1("application/hal+json", Subscribers) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
-sub_attributes(JsonAttributes) ->
-	sub_attributes(JsonAttributes, []).
+json_to_radius(JsonAttributes) ->
+	json_to_radius(JsonAttributes, []).
 %% @hidden
-sub_attributes([{"ascendDataRate", {struct, VendorSpecific}} | T], Acc) ->
+json_to_radius([{"ascendDataRate", {struct, VendorSpecific}} | T], Acc) ->
 	Attribute = vendor_specific(VendorSpecific),
-	sub_attributes(T, [Attribute | Acc]);
-sub_attributes([{"ascendXmitRate", {struct, VendorSpecific}} | T], Acc) ->
+	json_to_radius(T, [Attribute | Acc]);
+json_to_radius([{"ascendXmitRate", {struct, VendorSpecific}} | T], Acc) ->
 	Attribute = vendor_specific(VendorSpecific),
-	sub_attributes(T, [Attribute | Acc]);
-sub_attributes([{"sessionTimeout", Value} | T], Acc) ->
+	json_to_radius(T, [Attribute | Acc]);
+json_to_radius([{"sessionTimeout", Value} | T], Acc) ->
 	Attribute = {?SessionTimeout, Value},
-	sub_attributes(T, [Attribute | Acc]);
-sub_attributes([{"acctInterimInterval", Value} | T], Acc) ->
+	json_to_radius(T, [Attribute | Acc]);
+json_to_radius([{"acctInterimInterval", Value} | T], Acc) ->
 	Attribute = {?AcctInterimInterval, Value},
-	sub_attributes(T, [Attribute | Acc]);
-sub_attributes([{"class", Value} | T], Acc) ->
+	json_to_radius(T, [Attribute | Acc]);
+json_to_radius([{"class", Value} | T], Acc) ->
 	Attribute = {?Class, Value},
-	sub_attributes(T, [Attribute | Acc]);
-sub_attributes([], Acc) ->
+	json_to_radius(T, [Attribute | Acc]);
+json_to_radius([], Acc) ->
 	Acc.
 
-json_attributes(RadiusAttributes) ->
-	json_attributes(RadiusAttributes, []).
+radius_to_json(RadiusAttributes) ->
+	radius_to_json(RadiusAttributes, []).
 %% @hidden
-json_attributes([{?VendorSpecific, {?VendorID, {?AscendDataRate, _}}}
+radius_to_json([{?VendorSpecific, {?VendorID, {?AscendDataRate, _}}}
 		= H | T], Acc) ->
 	Attribute = {"ascendDataRate", vendor_specific(H)},
-	json_attributes(T, [Attribute | Acc]);
-json_attributes([{?VendorSpecific, {?VendorID, {?AscendXmitRate, _}}} 
+	radius_to_json(T, [Attribute | Acc]);
+radius_to_json([{?VendorSpecific, {?VendorID, {?AscendXmitRate, _}}} 
 		= H | T], Acc) ->
 	Attribute = {"ascendXmitRate", vendor_specific(H)},
-	json_attributes(T, [Attribute | Acc]);
-json_attributes([{?SessionTimeout, V} | T], Acc) ->
+	radius_to_json(T, [Attribute | Acc]);
+radius_to_json([{?SessionTimeout, V} | T], Acc) ->
 	Attribute = {"sessionTimeout", V},
-	json_attributes(T, [Attribute | Acc]);
-json_attributes([{?AcctInterimInterval, V} | T], Acc) ->
+	radius_to_json(T, [Attribute | Acc]);
+radius_to_json([{?AcctInterimInterval, V} | T], Acc) ->
 	Attribute = {"acctInterimInterval", V},
-	json_attributes(T, [Attribute | Acc]);
-json_attributes([{?Class, V} | T], Acc) ->
+	radius_to_json(T, [Attribute | Acc]);
+radius_to_json([{?Class, V} | T], Acc) ->
 	Attribute = {"class", V},
-	json_attributes(T, [Attribute | Acc]);
-json_attributes([], Acc) ->
+	radius_to_json(T, [Attribute | Acc]);
+radius_to_json([], Acc) ->
 	Acc.
 
 vendor_specific(AttrJson) when is_list(AttrJson) ->
