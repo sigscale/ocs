@@ -3,6 +3,7 @@
 ## Process this file with automake to produce Makefile.in
 
 testmods = ocs_api_SUITE \
+			ocs_rest_api_SUITE \
 			ocs_codec_eap_SUITE \
 			ocs_eap_SUITE \
 			ocs_eap_ttls_SUITE \
