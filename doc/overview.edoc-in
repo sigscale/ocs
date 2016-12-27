@@ -72,8 +72,20 @@ Each of the media types used in this application are described below.
 		<tr id="mt">
 			<td id="mt"><a href="http://tools.ietf.org/html/rfc4627">application/json</a></td>
 		</tr>
+		<tr id="mt">
+			<td id="mt"><a href="https://tools.ietf.org/html/draft-kelly-json-hal-08#section-3">application/hal+json</a></td>
+		</tr>
 	</tbody>
 </table></p>
+
+===HAL===
+The JSON Hypertext Application Language
+(<a href="http://tools.ietf.org/html/draft-kelly-json-hal-08">HAL</a>)
+is a standard which establishes conventions for expressing hypermedia
+controls, such as links, with <a href="http://tools.ietf.org/html/rfc4627">JSON</a>.
+HAL assists clients in navigating a REST application by providing links
+organized by relation type.  For example a HAL document describing a collection
+member resource may include a link for the enclosing collection resource.
 
 ===JSON Types===
 <p><div id="status"><table id="mt">
@@ -206,7 +218,7 @@ headers may be included in requests and responses and responses.
 		<td id="opr">201 Created</td>
 	</tr>
 </table>
-<p>Example Request:<pre>
+<p>Example request for accept : "application/json" request header :<pre>
 POST /ocs/subscriber HTTP/1.1
 accept: application/json
 content-type: application/json
@@ -235,11 +247,98 @@ content-length: 308
  "balance":"100"
 }
 </pre></p>
-<p>Example Response:<pre>
+<p>Example response for accept : "application/json" request header :<pre>
 HTTP/1.1 201 Created
 Location: /ocs/subscriber/eacfd73ae10a
 Content-Type: application/json
-Content-Length: 0
+Content-Length: 304
+
+{
+ "identity": "eacfd73ae10a",
+ "password": "ksc8c244npqc",
+ "attributes": {
+                "ascendDataRate": {
+                                   "type": 26,
+                                   "vendorId": 529,
+                                   "vendorType": 197,
+                                   "value": "1024"
+                                  },
+                "ascendXmitRate": {
+                                   "type": 26,
+                                   "vendorId": 529,
+                                   "vendorType": 255,
+                                   "value": "512"
+                                  },
+                "sessionTimeout": "10864",
+                "acctInterimInterval": "300",
+                "class": "skiorgs"
+               },
+ "balance": 100
+}
+</pre></p>
+
+<p>Example request for accept : "application/hal+json" request header :<pre>
+POST /ocs/subscriber HTTP/1.1
+accept: application/hal+json
+content-type: application/json
+content-length: 308
+
+{
+ "subscriber":"eacfd73ae10a",
+ "password":"ksc8c244npqc",
+ "attributes":{
+               "ascendDataRate":{
+                                 "type":26,
+                                 "vendorId":529,
+                                 "vendorType":197,
+                                 "value":"1024"
+                                },
+               "ascendXmitRate":{
+                                 "type":26,
+                                 "vendorId":529,
+                                 "vendorType":255,
+                                 "value":"512"
+                                },
+               "sessionTimeout":"10864",
+               "acctInterimInterval":"300",
+               "class":"skiorgs"
+					},
+ "balance":"100"
+}
+</pre></p>
+<p>Example response for accept : "application/hal+json" request header :<pre>
+HTTP/1.1 201 Created
+Location: /ocs/subscriber/eacfd73ae10a
+Content-Type: application/hal+json
+Content-Length: 362
+
+{
+ "_links": {
+            "self": {
+                     "href": "/ocs/subscriber/eacfd73ae10a"
+                    }
+           },
+ "identity": "eacfd73ae10a",
+ "password": "ksc8c244npqc",
+ "attributes": {
+                "ascendDataRate": {
+                                   "type": 26,
+                                   "vendorId": 529,
+                                   "vendorType": 197,
+                                   "value": "1024"
+                                  },
+                "ascendXmitRate": {
+                                   "type": 26,
+                                   "vendorId": 529,
+                                   "vendorType": 255,
+                                   "value": "512"
+                                  },
+					 "sessionTimeout": "10864",
+                "acctInterimInterval": "300",
+                "class": "skiorgs"
+              },
+ "balance": 100
+}
 </pre></p>
 
 <table id="op">
@@ -273,12 +372,12 @@ Content-Length: 0
 		<td id="opr">200 OK, 404 Not Found</td>
 	</tr>
 </table>
-<p>Example Request:<pre>
+<p>Example request for accept : "application/json" request header :<pre>
 GET /ocs/subscriber/eacfd73ae10a HTTP/1.1
 content-type: application/json
 accept: application/json
 </pre></p>
-<p>Example Response:<pre>
+<p>Example response for accept : "application/json" request header :<pre>
 HTTP/1.1 200 OK
 Content-Type: application/json
 Content-Length: 319
@@ -307,10 +406,50 @@ Content-Length: 319
 }
 </pre></p>
 
+<p>Example request for accept : "application/hal+json" request header :<pre>
+GET /ocs/subscriber/eacfd73ae10a HTTP/1.1
+content-type: application/json
+accept: application/hal+json
+</pre></p>
+<p>Example response for accept : "application/hal+json" request header :<pre>
+HTTP/1.1 200 OK
+Content-Type: application/hal+json
+Content-Length: 319
+
+{
+ "_links": {
+            "self": {
+                     "href": "/ocs/subscriber/eacfd73ae10a"
+                    }
+           },
+ "identity": "eacfd73ae10a",
+ "password": "ksc8c244npqc",
+ "attributes": {
+                "ascendDataRate": {
+                                   "type": 26,
+                                   "vendorId": 529,
+                                   "vendorType": 197,
+                                   "value": "1024"
+                                  },
+                "ascendXmitRate": {
+                                   "type": 26,
+                                   "vendorId": 529,
+                                   "vendorType": 255,
+                                   "value": "512"
+                                  },
+                "sessionTimeout": "10864",
+                "acctInterimInterval": "300",
+                "class": "skiorgs"
+               },
+ "balance": 100,
+ "enabled": true
+}
+</pre></p>
+
 <table id="op">
-	<caption id="op"><b>Retrieve All Subscribers</b></caption>
-	<tr id="op">
-		<td id="opl">Resource URI</td>
+<caption id="op"><b>Retrieve All Subscribers</b></caption>
+<tr id="op">
+<td id="opl">Resource URI</td>
 		<td id="opr">/ocs/subscriber</td>
 	</tr>
 	<tr id="op">
@@ -338,12 +477,12 @@ Content-Length: 319
 		<td id="opr">200 OK, 404 Not Found</td>
 	</tr>
 </table>
-<p>Example Request:<pre>
+<p>Example request for accept : "application/json" request header :<pre>
 GET /ocs/subscriber HTTP/1.1
 content-type: application/json
 accept: application/json
 </pre></p>
-<p>Example Response:<pre>
+<p>Example response for accept : "application/json" request header :<pre>
 HTTP/1.1 200 OK
 Content-Type: application/json
 Content-Length: nn
@@ -397,8 +536,85 @@ Content-Length: nn
 ]
 </pre></p>
 
+<p>Example request for accept : "application/hal+json" request header :<pre>
+GET /ocs/subscriber HTTP/1.1
+content-type: application/json
+accept: application/hal+json
+</pre></p>
+<p>Example response for accept : "application/hal+json" request header :<pre>
+HTTP/1.1 200 OK
+Content-Type: application/hal+json
+Content-Length: nn
+
+{
+ "_links": {
+             "self": "/ocs/subscriber"
+           },
+ "_embedded": {
+               "subcribers": [
+                              {
+                               "_links": {
+                                          "self": {
+                                                   "href": "/ocs/subscriber/5557615036FD"
+                                                  }
+                                         },
+                               "identity": "5557615036FD",
+                               "password": "2h7csggw35aa",
+                               "attributes": {
+                                              "ascendDataRate": {
+                                                                 "type": 26,
+                                                                 "vendorId": 529,
+                                                                 "vendorType": 197,
+                                                                 "value": "65"
+                                                                },
+                                              "ascendXmitRate": {
+                                                                 "type": 26,
+                                                                 "vendorId": 529,
+                                                                 "vendorType": 255,
+                                                                 "value": "87"
+                                                                },
+                                              "sessionTimeout": "98",
+                                              "acctInterimInterval": "65",
+                                              "class": "abc"
+                                             },
+                                "balance": 65,
+                                "enabled": true
+                              },
+                              {
+                               "_links": {
+                                          "self": {
+                                                   "href": "/ocs/subscriber/E5B9265C8C0D"
+                                                  }
+                                         },
+                               "identity": "E5B9265C8C0D",
+                               "password": "rzambns7knr4",
+                               "attributes": {
+                                              "ascendDataRate": {
+                                                                 "type": 26,
+                                                                 "vendorId": 529,
+                                                                 "vendorType": 197,
+                                                                 "value": "98"
+                                                                },
+                                              "ascendXmitRate": {
+                                                                 "type": 26,
+                                                                 "vendorId": 529,
+                                                                 "vendorType": 255,
+                                                                 "value": "45"
+                                                                },
+                                              "sessionTimeout": "98",
+                                              "acctInterimInterval": "56",
+                                              "class": "hgt"
+                                             },
+                               "balance": 76,
+                               "enabled": true
+                              }
+                             ]
+              }
+}
+</pre></p>
+
 <table id="op">
-	<caption id="op"><b>Update Subscriber Password</b></caption>
+<caption id="op"><b>Update Subscriber Password</b></caption>
 	<tr id="op">
 		<td id="opl">Resource URI</td>
 		<td id="opr">/ocs/subscriber/{identity}</td>
@@ -425,10 +641,10 @@ Content-Length: nn
 	</tr>
 	<tr id="op">
 		<td id="opl">Response Status</td>
-		<td id="opr">204 No Content</td>
+		<td id="opr">200 Ok</td>
 	</tr>
 </table>
-<p>Example Request:<pre>
+<p>Example request for accept : "application/json" request header :<pre>
 PUT /ocs/subscriber/eacfd73ae10a HTTP/1.1
 content-type: application/json
 accept: application/json
@@ -437,10 +653,79 @@ accept: application/json
   "newpassword":"7fy8qhs7hh7n"
 }
 </pre></p>
-<p>Example Response:<pre>
-HTTP/1.1 204 No Content
+<p>Example response for accept : "application/json" request header :<pre>
+HTTP/1.1 200 Ok
 Content-Type: application/json
-Content-Length: 0
+Content-Length: 315
+
+
+{
+ "identity": "eacfd73ae10a",
+ "password": "7fy8qhs7hh7n",
+ "attributes": {
+                "ascendDataRate": {
+                                   "type": 26,
+                                   "vendorId": 529,
+                                   "vendorType": 197,
+                                   "value": "1024"
+                                  },
+                "ascendXmitRate": {
+                                   "type": 26,
+                                   "vendorId": 529,
+                                   "vendorType": 255,
+                                   "value": "512"
+                                  },
+                "sessionTimeout": "10864",
+                "acctInterimInterval": "300",
+                "class": "gtf"
+               },
+ "balance": 100,
+ "enabled": true
+}
+</pre></p>
+
+<p>Example request for accept : "application/hal+json" request header :<pre>
+PUT /ocs/subscriber/eacfd73ae10a HTTP/1.1
+content-type: application/json
+accept: application/hal+json
+{
+  "update":"password",
+  "newpassword":"7fy8qhs7hh7n"
+}
+</pre></p>
+<p>Example response for accept : "application/hal+json" request header :<pre>
+HTTP/1.1 200 Ok
+Content-Type: application/json
+Content-Length: 373
+
+{
+ "_links": {
+            "self": {
+                     "href": "/ocs/subscriber/eacfd73ae10a"
+                    }
+           },
+ "identity": "eacfd73ae10a",
+ "password": "7fy8qhs7hh7n",
+ "attributes": {
+                "ascendDataRate": {
+                                   "type": 26,
+                                   "vendorId": 529,
+                                   "vendorType": 197,
+                                   "value": "1024"
+                                  },
+                "ascendXmitRate": {
+                                   "type": 26,
+                                   "vendorId": 529,
+                                   "vendorType": 255,
+                                   "value": "512"
+                                  },
+                "sessionTimeout": "10864",
+                "acctInterimInterval": "300",
+                "class": "gtf"
+               },
+ "balance": 100,
+ "enabled": true
+}
 </pre></p>
 
 <table id="op">
@@ -471,13 +756,14 @@ Content-Length: 0
 	</tr>
 	<tr id="op">
 		<td id="opl">Response Status</td>
-		<td id="opr">204 No Content</td>
+		<td id="opr">200 Ok</td>
 	</tr>
 </table>
-<p>Example Request:<pre>
+<p>Example request for accept : "application/json" request header :<pre>
 PUT /ocs/subscriber/eacfd73ae10a HTTP/1.1
 content-type: application/json
 accept: application/json
+
 {
  "update":"attributes",
  "attributes":{
@@ -499,10 +785,94 @@ accept: application/json
               }
 }
 </pre></p>
-<p>Example Response:<pre>
-HTTP/1.1 204 No Content
+<p>Example response for accept : "application/json" request header :<pre>
+HTTP/1.1 200 Ok
 Content-Type: application/json
-Content-Length: 0
+Content-Length: 315
+
+{
+ "identity": "eacfd73ae10a",
+ "password": "ksc8c244npqc",
+ "attributes": {
+                "ascendDataRate": {
+                                   "type": 26,
+                                   "vendorId": 529,
+                                   "vendorType": 197,
+                                   "value": "1024"
+                                  },
+                "ascendXmitRate": {
+                                   "type": 26,
+                                   "vendorId": 529,
+                                   "vendorType": 255,
+                                   "value": "512"
+                                  },
+                "sessionTimeout": "10864",
+                "acctInterimInterval": "300",
+                "class": "gtf"
+               },
+ "balance": 100,
+ "enabled": true
+}
+</pre></p>
+
+<p>Example request for accept : "application/hal+json" request header :<pre>
+PUT /ocs/subscriber/eacfd73ae10a HTTP/1.1
+content-type: application/json
+accept: application/hal+json
+{
+ "update":"attributes",
+ "attributes":{
+               "ascendDataRate":{
+                                 "type":26,
+                                 "vendorId":529,
+                                 "vendorType":197,
+                                 "value":"1024"
+                                },
+               "ascendXmitRate":{
+                                 "type":26,
+                                 "vendorId":529,
+                                 "vendorType":255,
+                                 "value":"512"
+                                },
+               "sessionTimeout":"10864",
+               "acctInterimInterval":"300",
+               "class":"gtf"
+              }
+}
+</pre></p>
+<p>Example response for accept : "application/hal+json" request header :<pre>
+HTTP/1.1 200 Ok 
+Content-Type: application/hal+json
+Content-Length: 
+
+{
+ "_links": {
+            "self": {
+                     "href": "/ocs/subscriber/eacfd73ae10a"
+                    }
+           },
+ "identity": "eacfd73ae10a",
+ "password": "ksc8c244npqc",
+ "attributes": {
+                "ascendDataRate": {
+                                   "type": 26,
+                                   "vendorId": 529,
+                                   "vendorType": 197,
+                                   "value": "1024"
+                                  },
+                "ascendXmitRate": {
+                                   "type": 26,
+                                   "vendorId": 529,
+                                   "vendorType": 255,
+                                   "value": "512"
+                                  },
+                "sessionTimeout": "10864",
+                "acctInterimInterval": "300",
+                "class": "gtf"
+               },
+ "balance": 100,
+ "enabled": true
+}
 </pre></p>
 
 <table id="op">
@@ -536,10 +906,10 @@ Content-Length: 0
 		<td id="opr">204 No Content</td>
 	</tr>
 </table>
-<p>Example Request:<pre>
+<p>Example request:<pre>
 DELETE /ocs/subscriber/eacfd73ae10a HTTP/1.1
 </pre></p>
-<p>Example Response:<pre>
+<p>Example response:<pre>
 HTTP/1.1 204 Content
 Content-Length: 0
 </pre></p>
