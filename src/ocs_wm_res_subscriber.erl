@@ -113,7 +113,8 @@ content_types_provided(ReqData, Context) ->
 			{[{"application/json", add_subscriber},
 				{"application/hal+json", add_subscriber}], NewReqData, Context};
 		'PUT' ->
-			{[{"application/json", update_subscriber}], NewReqData, Context};
+			{[{"application/json", update_subscriber},
+				{"application/hal+json", update_subscriber}], NewReqData, Context};
 		Method when Method == 'GET'; Method == 'HEAD' ->
 			case {wrq:path_info(identity, NewReqData), wrq:req_qs(NewReqData),
 					 wrq:get_req_header("range", NewReqData)} of
@@ -218,21 +219,29 @@ add_subscriber(ReqData, #state{subscriber = Identity, current_password = Passwor
 update_subscriber(ReqData, Context) ->
 	Identity = wrq:path_info(identity, ReqData),
 	case ocs:find_subscriber(Identity) of
-		{ok, _, _, _, _} ->
+		{ok, CurrentPwd, CurrentAttr, Bal, Enabled} ->
 			try 
-				Body = wrq:req_body(ReqData),
-				{struct, Object} = mochijson:decode(Body),
+				ReqBody = wrq:req_body(ReqData),
+				{struct, Object} = mochijson:decode(ReqBody),
 				{_, Type} = lists:keyfind("update", 1, Object),
-				ok = case Type of
+				{Password, RadAttr} = case Type of
 					"attributes" ->
 						{_, {struct, AttrJs}} = lists:keyfind("attributes", 1, Object),
-						Attributes = json_to_radius(AttrJs),
-						ocs:update_attributes(Identity, Attributes);
+						NewAttributes = json_to_radius(AttrJs),
+						ocs:update_attributes(Identity, NewAttributes),
+						{CurrentPwd, NewAttributes};
 					"password" ->
 						{_, NewPassword } = lists:keyfind("newpassword", 1, Object),
-						ocs:update_password(Identity, NewPassword)
+						ocs:update_password(Identity, NewPassword),
+						{NewPassword, CurrentAttr}
 				end,
-				{true, ReqData, Context}
+				MediaType = wrq:get_req_header("accept", ReqData),
+				Attributes = {struct, radius_to_json(RadAttr)},
+				RespObj = update_subscriber1(MediaType, Identity, Password,
+					Attributes, Bal, Enabled),
+				JsonObj  = {struct, RespObj},
+				RespBody = mochijson:encode(JsonObj),
+				{true, wrq:append_to_response_body(RespBody, ReqData), Context}
 			catch
 				throw : _ ->
 					{{halt, 400}, ReqData, Context}
@@ -240,6 +249,17 @@ update_subscriber(ReqData, Context) ->
 		{error, _Reason} ->
 			{{halt, 404}, ReqData, Context}
 	end.
+update_subscriber1("application/json", Identity, Password, Attr,
+		Balance, Enabled) ->
+	[{identity, Identity}, {password, Password}, {attributes, Attr},
+		{balance, Balance}, {enabled, Enabled}];
+update_subscriber1("application/hal+json", Identity, Password, Attr,
+			Balance, Enabled) ->
+		Uri = "/ocs/subscriber/" ++ Identity,
+		Self = {struct, [{"href", Uri}]},
+		Links = {struct, [{"self", Self}]},
+		[{"_links", Links}, {identity, Identity}, {password, Password},
+			{attributes, Attr}, {balance, Balance}, {enabled, Enabled}].
 
 
 -spec find_subscriber(ReqData :: rd(), Context :: state()) ->
