@@ -1,9 +1,0 @@
-%% -*- erlang -*-
-{application, frontend,
- [{description, "frontend"},
-  {vsn, "0.1"},
-  {modules, []},
-  {registered, []},
-  {mod, {'frontend_app', []}},
-  {env, []},
-  {applications, [kernel, stdlib, crypto]}]}.
