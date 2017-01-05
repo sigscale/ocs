@@ -249,9 +249,9 @@ content-length: 308
 </pre></p>
 <p>Example response for accept : "application/json" request header :<pre>
 HTTP/1.1 201 Created
-Location: /ocs/v1/subscriber/eacfd73ae10a
-Content-Type: application/json
-Content-Length: 304
+location: /ocs/v1/subscriber/eacfd73ae10a
+content-Type: application/json
+content-Length: 304
 
 {
  "identity": "eacfd73ae10a",
@@ -308,9 +308,9 @@ content-length: 308
 </pre></p>
 <p>Example response for accept : "application/hal+json" request header :<pre>
 HTTP/1.1 201 Created
-Location: /ocs/v1/subscriber/eacfd73ae10a
-Content-Type: application/hal+json
-Content-Length: 362
+location: /ocs/v1/subscriber/eacfd73ae10a
+content-Type: application/hal+json
+content-Length: 362
 
 {
  "_links": {
@@ -379,8 +379,8 @@ accept: application/json
 </pre></p>
 <p>Example response for accept : "application/json" request header :<pre>
 HTTP/1.1 200 OK
-Content-Type: application/json
-Content-Length: 319
+content-Type: application/json
+content-Length: 319
 {
  "identity": "eacfd73ae10a",
  "password": "ksc8c244npqc",
@@ -413,8 +413,8 @@ accept: application/hal+json
 </pre></p>
 <p>Example response for accept : "application/hal+json" request header :<pre>
 HTTP/1.1 200 OK
-Content-Type: application/hal+json
-Content-Length: 319
+content-Type: application/hal+json
+content-Length: 319
 
 {
  "_links": {
@@ -484,8 +484,8 @@ accept: application/json
 </pre></p>
 <p>Example response for accept : "application/json" request header :<pre>
 HTTP/1.1 200 OK
-Content-Type: application/json
-Content-Length: nn
+content-Type: application/json
+content-Length: nn
 [
  {
    "identity": "5557615036FD",
@@ -543,8 +543,8 @@ accept: application/hal+json
 </pre></p>
 <p>Example response for accept : "application/hal+json" request header :<pre>
 HTTP/1.1 200 OK
-Content-Type: application/hal+json
-Content-Length: nn
+content-Type: application/hal+json
+content-Length: nn
 
 {
  "_links": {
@@ -695,8 +695,8 @@ accept: application/hal+json
 </pre></p>
 <p>Example response for accept : "application/hal+json" request header :<pre>
 HTTP/1.1 200 Ok
-Content-Type: application/json
-Content-Length: 373
+content-Type: application/json
+content-Length: 373
 
 {
  "_links": {
@@ -787,8 +787,8 @@ accept: application/json
 </pre></p>
 <p>Example response for accept : "application/json" request header :<pre>
 HTTP/1.1 200 Ok
-Content-Type: application/json
-Content-Length: 315
+content-Type: application/json
+content-Length: 315
 
 {
  "identity": "eacfd73ae10a",
@@ -842,8 +842,8 @@ accept: application/hal+json
 </pre></p>
 <p>Example response for accept : "application/hal+json" request header :<pre>
 HTTP/1.1 200 Ok 
-Content-Type: application/hal+json
-Content-Length: 
+content-Type: application/hal+json
+content-Length: 
 
 {
  "_links": {
@@ -911,7 +911,7 @@ DELETE /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
 </pre></p>
 <p>Example response:<pre>
 HTTP/1.1 204 Content
-Content-Length: 0
+content-Length: 0
 </pre></p>
 
 ==Database Schema==
