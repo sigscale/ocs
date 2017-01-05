@@ -48,8 +48,8 @@ specify the format of
 <a href="http://tools.ietf.org/html/rfc3986">URI</a>s used with the API.
 The actual <a href="http://tools.ietf.org/html/rfc3986">URI</a>, as shown
 in the examples, is expanded using the values of the variables in use.  For
-example a URI specified using the template `/ocs/subscriber/{identity}' might be
-formed as `/ocs/subscriber/eacfd73ae10a'.
+example a URI specified using the template `/ocs/v1/subscriber/{identity}' might be
+formed as `/ocs/v1/subscriber/eacfd73ae10a'.
 
 ===HTTP Methods===
 The <a href="http://tools.ietf.org/html/rfc2616">HTTP</a> methods used in
@@ -191,7 +191,7 @@ headers may be included in requests and responses and responses.
 	<caption id="op"><b>Add Subscriber</b></caption>
 	<tr id="op">
 		<td id="opl">Resource URI</td>
-		<td id="opr">/ocs/subscriber</td>
+		<td id="opr">/ocs/v1/subscriber</td>
 	</tr>
 	<tr id="op">
 		<td id="opl">Request Methods</td>
@@ -219,7 +219,7 @@ headers may be included in requests and responses and responses.
 	</tr>
 </table>
 <p>Example request for accept : "application/json" request header :<pre>
-POST /ocs/subscriber HTTP/1.1
+POST /ocs/v1/subscriber HTTP/1.1
 accept: application/json
 content-type: application/json
 content-length: 308
@@ -249,7 +249,7 @@ content-length: 308
 </pre></p>
 <p>Example response for accept : "application/json" request header :<pre>
 HTTP/1.1 201 Created
-Location: /ocs/subscriber/eacfd73ae10a
+Location: /ocs/v1/subscriber/eacfd73ae10a
 Content-Type: application/json
 Content-Length: 304
 
@@ -278,7 +278,7 @@ Content-Length: 304
 </pre></p>
 
 <p>Example request for accept : "application/hal+json" request header :<pre>
-POST /ocs/subscriber HTTP/1.1
+POST /ocs/v1/subscriber HTTP/1.1
 accept: application/hal+json
 content-type: application/json
 content-length: 308
@@ -308,14 +308,14 @@ content-length: 308
 </pre></p>
 <p>Example response for accept : "application/hal+json" request header :<pre>
 HTTP/1.1 201 Created
-Location: /ocs/subscriber/eacfd73ae10a
+Location: /ocs/v1/subscriber/eacfd73ae10a
 Content-Type: application/hal+json
 Content-Length: 362
 
 {
  "_links": {
             "self": {
-                     "href": "/ocs/subscriber/eacfd73ae10a"
+                     "href": "/ocs/v1/subscriber/eacfd73ae10a"
                     }
            },
  "identity": "eacfd73ae10a",
@@ -345,7 +345,7 @@ Content-Length: 362
 	<caption id="op"><b>Retrieve a Subscriber</b></caption>
 	<tr id="op">
 		<td id="opl">Resource URI</td>
-		<td id="opr">/ocs/subscriber/{identity}</td>
+		<td id="opr">/ocs/v1/subscriber/{identity}</td>
 	</tr>
 	<tr id="op">
 		<td id="opl">Request Methods</td>
@@ -373,7 +373,7 @@ Content-Length: 362
 	</tr>
 </table>
 <p>Example request for accept : "application/json" request header :<pre>
-GET /ocs/subscriber/eacfd73ae10a HTTP/1.1
+GET /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
 content-type: application/json
 accept: application/json
 </pre></p>
@@ -407,7 +407,7 @@ Content-Length: 319
 </pre></p>
 
 <p>Example request for accept : "application/hal+json" request header :<pre>
-GET /ocs/subscriber/eacfd73ae10a HTTP/1.1
+GET /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
 content-type: application/json
 accept: application/hal+json
 </pre></p>
@@ -419,7 +419,7 @@ Content-Length: 319
 {
  "_links": {
             "self": {
-                     "href": "/ocs/subscriber/eacfd73ae10a"
+                     "href": "/ocs/v1/subscriber/eacfd73ae10a"
                     }
            },
  "identity": "eacfd73ae10a",
@@ -450,7 +450,7 @@ Content-Length: 319
 <caption id="op"><b>Retrieve All Subscribers</b></caption>
 <tr id="op">
 <td id="opl">Resource URI</td>
-		<td id="opr">/ocs/subscriber</td>
+		<td id="opr">/ocs/v1/subscriber</td>
 	</tr>
 	<tr id="op">
 		<td id="opl">Request Methods</td>
@@ -478,7 +478,7 @@ Content-Length: 319
 	</tr>
 </table>
 <p>Example request for accept : "application/json" request header :<pre>
-GET /ocs/subscriber HTTP/1.1
+GET /ocs/v1/subscriber HTTP/1.1
 content-type: application/json
 accept: application/json
 </pre></p>
@@ -537,7 +537,7 @@ Content-Length: nn
 </pre></p>
 
 <p>Example request for accept : "application/hal+json" request header :<pre>
-GET /ocs/subscriber HTTP/1.1
+GET /ocs/v1/subscriber HTTP/1.1
 content-type: application/json
 accept: application/hal+json
 </pre></p>
@@ -548,14 +548,14 @@ Content-Length: nn
 
 {
  "_links": {
-             "self": "/ocs/subscriber"
+             "self": "/ocs/v1/subscriber"
            },
  "_embedded": {
                "subcribers": [
                               {
                                "_links": {
                                           "self": {
-                                                   "href": "/ocs/subscriber/5557615036FD"
+                                                   "href": "/ocs/v1/subscriber/5557615036FD"
                                                   }
                                          },
                                "identity": "5557615036FD",
@@ -583,7 +583,7 @@ Content-Length: nn
                               {
                                "_links": {
                                           "self": {
-                                                   "href": "/ocs/subscriber/E5B9265C8C0D"
+                                                   "href": "/ocs/v1/subscriber/E5B9265C8C0D"
                                                   }
                                          },
                                "identity": "E5B9265C8C0D",
@@ -617,7 +617,7 @@ Content-Length: nn
 <caption id="op"><b>Update Subscriber Password</b></caption>
 	<tr id="op">
 		<td id="opl">Resource URI</td>
-		<td id="opr">/ocs/subscriber/{identity}</td>
+		<td id="opr">/ocs/v1/subscriber/{identity}</td>
 	</tr>
 	<tr id="op">
 		<td id="opl">Request Methods</td>
@@ -645,7 +645,7 @@ Content-Length: nn
 	</tr>
 </table>
 <p>Example request for accept : "application/json" request header :<pre>
-PUT /ocs/subscriber/eacfd73ae10a HTTP/1.1
+PUT /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
 content-type: application/json
 accept: application/json
 {
@@ -685,7 +685,7 @@ Content-Length: 315
 </pre></p>
 
 <p>Example request for accept : "application/hal+json" request header :<pre>
-PUT /ocs/subscriber/eacfd73ae10a HTTP/1.1
+PUT /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
 content-type: application/json
 accept: application/hal+json
 {
@@ -701,7 +701,7 @@ Content-Length: 373
 {
  "_links": {
             "self": {
-                     "href": "/ocs/subscriber/eacfd73ae10a"
+                     "href": "/ocs/v1/subscriber/eacfd73ae10a"
                     }
            },
  "identity": "eacfd73ae10a",
@@ -732,7 +732,7 @@ Content-Length: 373
 	<caption id="op"><b>Update Subscriber Attributes</b></caption>
 	<tr id="op">
 		<td id="opl">Resource URI</td>
-		<td id="opr">/ocs/subscriber/{identity}</td>
+		<td id="opr">/ocs/v1/subscriber/{identity}</td>
 	</tr>
 	<tr id="op">
 		<td id="opl">Request Methods</td>
@@ -760,7 +760,7 @@ Content-Length: 373
 	</tr>
 </table>
 <p>Example request for accept : "application/json" request header :<pre>
-PUT /ocs/subscriber/eacfd73ae10a HTTP/1.1
+PUT /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
 content-type: application/json
 accept: application/json
 
@@ -816,7 +816,7 @@ Content-Length: 315
 </pre></p>
 
 <p>Example request for accept : "application/hal+json" request header :<pre>
-PUT /ocs/subscriber/eacfd73ae10a HTTP/1.1
+PUT /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
 content-type: application/json
 accept: application/hal+json
 {
@@ -848,7 +848,7 @@ Content-Length:
 {
  "_links": {
             "self": {
-                     "href": "/ocs/subscriber/eacfd73ae10a"
+                     "href": "/ocs/v1/subscriber/eacfd73ae10a"
                     }
            },
  "identity": "eacfd73ae10a",
@@ -879,7 +879,7 @@ Content-Length:
 	<caption id="op"><b>Delete a Subscriber</b></caption>
 	<tr id="op">
 		<td id="opl">Resource URI</td>
-		<td id="opr">/ocs/subscriber/{identity}</td>
+		<td id="opr">/ocs/v1/subscriber/{identity}</td>
 	</tr>
 	<tr id="op">
 		<td id="opl">Request Methods</td>
@@ -907,7 +907,7 @@ Content-Length:
 	</tr>
 </table>
 <p>Example request:<pre>
-DELETE /ocs/subscriber/eacfd73ae10a HTTP/1.1
+DELETE /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
 </pre></p>
 <p>Example response:<pre>
 HTTP/1.1 204 Content
