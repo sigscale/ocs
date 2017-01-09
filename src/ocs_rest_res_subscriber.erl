@@ -19,7 +19,8 @@
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 -export([find_subscriber/1,
-				find_subscribers/0]).
+				find_subscribers/0,
+				add_subscriber/1]).
 
 %% @headerfile "include/radius.hrl"
 -include_lib("radius/include/radius.hrl").
@@ -74,6 +75,42 @@ find_subscribers1(Subscribers) ->
 			end,
 			JsonObj = lists:foldl(F, [], Subscribers),
 			{array, JsonObj}.
+
+-spec add_subscriber(RequestBody :: list()) ->
+	{Location :: string(), Body :: list()}
+	| {error, ErrorCode :: integer()}.
+%% @doc Respond to `POST /ocs/subscriber' and add a new `subscriber'
+%% resource.
+add_subscriber(RequestBody) ->
+	try 
+		{struct, Object} = mochijson:decode(RequestBody),
+		{_, Identity} = lists:keyfind("subscriber", 1, Object),
+		{_, Password} = lists:keyfind("password", 1, Object),
+		{_, {struct, AttrJs}} = lists:keyfind("attributes", 1, Object),
+		RadAttributes = json_to_radius(AttrJs),
+		{_, BalStr} = lists:keyfind("balance", 1, Object),
+		{Balance , _}= string:to_integer(BalStr),
+		add_subscriber1(Identity, Password, RadAttributes, Balance)
+	catch
+		_Error ->
+			{error, 400}
+	end.
+add_subscriber1(Identity, Password, RadAttributes, Balance) ->
+	try
+	case catch ocs:add_subscriber(Identity, Password, RadAttributes, Balance) of
+		ok ->
+			Attributes = {struct, radius_to_json(RadAttributes)},
+			RespObj = [{identity, Identity}, {password, Password}, {attributes, Attributes},
+						{balance, Balance}],
+			JsonObj  = {struct, RespObj},
+			Body = mochijson:encode(JsonObj),
+			{Identity,Body};
+		{error, _Reason} ->
+			{error, 400}
+	end catch
+		throw:_ ->
+			{error, 400}
+	end.
 
 %%----------------------------------------------------------------------
 %%  internal functions
