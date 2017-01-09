@@ -20,7 +20,8 @@
 
 -export([find_subscriber/1,
 				find_subscribers/0,
-				add_subscriber/1]).
+				add_subscriber/1,
+				update_subscriber/2]).
 
 %% @headerfile "include/radius.hrl"
 -include_lib("radius/include/radius.hrl").
@@ -32,7 +33,7 @@
 -define(AscendXmitRate, 255).
 
 -spec find_subscriber(Identity :: string()) ->
-	{body, Body :: iodata()} | {halt, ErrorCode :: integer()}.
+	{body, Body :: iodata()} | {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/subscriber/{identity}'
 %% requests.
 find_subscriber(Identity) ->
@@ -47,7 +48,7 @@ find_subscriber(Identity) ->
 			Body = mochijson:encode(JsonObj),
 			{body, Body};
 		{error, _Reason} ->
-			{halt, 404}
+			{error, 404}
 	end.
 
 -spec find_subscribers() ->
@@ -110,6 +111,41 @@ add_subscriber1(Identity, Password, RadAttributes, Balance) ->
 	end catch
 		throw:_ ->
 			{error, 400}
+	end.
+
+-spec update_subscriber(Identity :: list(), ReqBody :: list()) ->
+	{body, Body :: list()} | {error, ErrorCode :: integer()} .
+%% @doc	Respond to `PUT /ocs/subscriber/{identity}' request and
+%% Updates a existing `subscriber''s password or attributes. 
+update_subscriber(Identity, ReqBody) ->
+	case ocs:find_subscriber(Identity) of
+		{ok, CurrentPwd, CurrentAttr, Bal, Enabled} ->
+			try 
+				{struct, Object} = mochijson:decode(ReqBody),
+				{_, Type} = lists:keyfind("update", 1, Object),
+				{Password, RadAttr} = case Type of
+					"attributes" ->
+						{_, {struct, AttrJs}} = lists:keyfind("attributes", 1, Object),
+						NewAttributes = json_to_radius(AttrJs),
+						ocs:update_attributes(Identity, NewAttributes),
+						{CurrentPwd, NewAttributes};
+					"password" ->
+						{_, NewPassword } = lists:keyfind("newpassword", 1, Object),
+						ocs:update_password(Identity, NewPassword),
+						{NewPassword, CurrentAttr}
+				end,
+				Attributes = {struct, radius_to_json(RadAttr)},
+				RespObj =[{identity, Identity}, {password, Password},
+					{attributes, Attributes}, {balance, Bal}, {enabled, Enabled}],
+				JsonObj  = {struct, RespObj},
+				RespBody = mochijson:encode(JsonObj),
+				{body, RespBody}
+			catch
+				throw : _ ->
+					{error, 400}
+			end;
+		{error, _Reason} ->
+			{error, 404}
 	end.
 
 %%----------------------------------------------------------------------

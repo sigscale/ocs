@@ -36,6 +36,7 @@ beam_DATA = ocs.beam \
 			ocs_rest_server.beam \
 			mod_ocs_rest_get.beam \
 			mod_ocs_rest_post.beam \
+			mod_ocs_rest_patch.beam \
 			ocs_rest_res_subscriber.beam
 
 
