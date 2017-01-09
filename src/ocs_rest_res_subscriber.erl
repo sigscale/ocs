@@ -18,7 +18,8 @@
 -module(ocs_rest_res_subscriber).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
--export([find_subscriber/1]).
+-export([find_subscriber/1,
+				find_subscribers/0]).
 
 %% @headerfile "include/radius.hrl"
 -include_lib("radius/include/radius.hrl").
@@ -47,6 +48,32 @@ find_subscriber(Identity) ->
 		{error, _Reason} ->
 			{halt, 404}
 	end.
+
+-spec find_subscribers() ->
+	{body, Body :: iodata()} | {error, ErrorCode :: integer()}.
+%% @doc Body producing function for `GET /ocs/subscriber'
+%% requests.
+find_subscribers() ->
+	case ocs:get_subscribers() of
+		{error, _} ->
+			{error, 404};
+		Subscribers ->
+			Response = find_subscribers1(Subscribers),
+			Body  = mochijson:encode(Response),
+			{body, Body}
+	end.
+find_subscribers1(Subscribers) ->
+			F = fun(#subscriber{name = Identity, password = Password,
+					attributes = Attributes, balance = Balance, enabled = Enabled}, Acc) ->
+				JSAttributes = radius_to_json(Attributes),
+				AttrObj = {struct, JSAttributes}, 
+				RespObj = [{struct, [{identity, Identity}, {password, Password},
+					{attributes, AttrObj}, {balance, Balance},
+					{enabled, Enabled}]}],
+				RespObj ++ Acc
+			end,
+			JsonObj = lists:foldl(F, [], Subscribers),
+			{array, JsonObj}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
