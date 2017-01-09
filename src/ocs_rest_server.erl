@@ -24,8 +24,7 @@
 	{ok, Pid :: pid()} | ignore.
 %% @doc Starts ocs_rest_server to enable REST API
 start([{port, Port}] = _Args) ->
-	erlang:display(inside_ocs_rest_server),
-	case inets:start(httpd,[{modules, []}, {port, Port},
+	case inets:start(httpd,[{modules, [mod_ocs_rest_get]}, {port, Port},
 			{server_name,"ocs_rest_server"}, {server_root,"."},
 			{document_root,"."}]) of
 		{ok, Pid} ->
