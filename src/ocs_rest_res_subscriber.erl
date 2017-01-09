@@ -21,7 +21,8 @@
 -export([find_subscriber/1,
 				find_subscribers/0,
 				add_subscriber/1,
-				update_subscriber/2]).
+				update_subscriber/2,
+				delete_subscriber/1]).
 
 %% @headerfile "include/radius.hrl"
 -include_lib("radius/include/radius.hrl").
@@ -147,6 +148,14 @@ update_subscriber(Identity, ReqBody) ->
 		{error, _Reason} ->
 			{error, 404}
 	end.
+
+-spec delete_subscriber(Identity :: list()) ->
+	ok .
+%% @doc Respond to `DELETE /ocs/subscriber/{identity}' request and deletes
+%% a `subscriber' resource. If the deletion is succeeded return true.
+delete_subscriber(Identity) ->
+	ok = ocs:delete_subscriber(Identity),
+	ok.
 
 %%----------------------------------------------------------------------
 %%  internal functions
