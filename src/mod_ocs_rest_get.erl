@@ -46,7 +46,6 @@
 	Arg :: [term()].
 %% @doc Erlang web server API callback function.
 do(#mod{method = Method, request_uri = Uri, data = Data} = ModData) ->
-	erlang:display(ModData),
 	case Method of
 		"GET" ->
 			case string:tokens(Uri, "/") of
