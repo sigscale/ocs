@@ -35,8 +35,8 @@
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init([RestAddr, RestPort] = _Args) ->
-	ChildSpecs = [webmachine(RestAddr, RestPort),
+init(_Args) ->
+	ChildSpecs = [rest_server(),
 			supervisor(ocs_radius_acct_top_sup, []),
 			supervisor(ocs_radius_auth_sup, []),
 			server(ocs_server, [self()])],
@@ -68,21 +68,16 @@ server(StartMod, Args) ->
 	StartFunc = {gen_server, start_link, StartArgs},
 	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
 
--spec webmachine(Address :: inet:ip_address(), Port :: integer()) ->
+-spec rest_server() ->
 	supervisor:child_spec().
-%% @doc Build a supervisor child specification for a
-%% 	{@link //webmachine/webmachine_mochiweb. webmachine} server.
+%% @doc Build a supervisor child specification for a rest server
 %% @private
 %%
-webmachine(Address, Port) ->
-	{ok, Address} = application:get_env(rest_addr),
+rest_server() ->
 	{ok, Port} = application:get_env(rest_port),
-	Dispatch = ocs_wm_config:dispatch(),
-	WebConfig = [{ip, Address},
-					{port, Port},
-					{dispatch, Dispatch}],
-	StartArgs = [WebConfig],
-	StartMod = webmachine_mochiweb,
+	Config = [{port, Port}],
+	StartArgs = [Config],
+	StartMod = ocs_rest_server,
 	StartFunc ={StartMod, start, StartArgs},
 	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
 
