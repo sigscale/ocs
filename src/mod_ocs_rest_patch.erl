@@ -29,7 +29,7 @@
 	NewData :: [{response,{StatusCode,Body}}] | [{response,{response,Head,Body}}]
 			| [{response,{already_sent,StatusCode,Size}}],
 	StatusCode :: integer(),
-	Body :: list() | nobody | {Fun, Arg},
+	Body :: iolist() | nobody | {Fun, Arg},
 	Head :: [HeaderOption],
 	HeaderOption :: {Option, Value} | {code, StatusCode},
 	Option :: accept_ranges | allow
