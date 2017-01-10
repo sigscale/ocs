@@ -46,16 +46,16 @@
 	Arg :: [term()].
 %% @doc Erlang web server API callback function.
 do(#mod{method = Method, request_uri = Uri, entity_body = Body, 
-				data = Data} = _ModData) ->
+				data = Data} = ModData) ->
 	case Method of
 		"PATCH" ->
 			case string:tokens(Uri, "/") of
 				["ocs", "v1", "subscriber", Identity] ->
 					case ocs_rest_res_subscriber:update_subscriber(Identity, Body) of
-						{body, Body} ->
-							{break, [{response,	{200, Body}}]};
 						{error, ErrorCode} ->
-							{break, [{response,	{ErrorCode, "<h1>Not Found</h1>"}}]}
+							{break, [{response,	{ErrorCode, "<h1>Not Found</h1>"}}]};
+						{body, RespBody} ->
+							send_response(ModData, RespBody)
 					end;
 				_ ->	
 					{break, [{response,	{404, "<h1>NOT FOUND</h1>"}}]}
@@ -63,4 +63,17 @@ do(#mod{method = Method, request_uri = Uri, entity_body = Body,
 		_ ->
 			{proceed, Data}
 	end.
+
+%% @hidden
+send_response(Info, ResponseBody)->
+	    Size = integer_to_list(iolist_size(ResponseBody)),
+	    Headers = [{content_length, Size}],
+	    send(Info, 200, Headers, ResponseBody),
+	    {proceed,[{response,{already_sent,200, Size}}]}.
+
+%% @hidden
+send(#mod{socket = Socket, socket_type = SocketType} = Info,
+     StatusCode, Headers, ResponseBody) ->
+    httpd_response:send_header(Info, StatusCode, Headers),
+    httpd_socket:deliver(SocketType, Socket, ResponseBody).
 
