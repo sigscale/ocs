@@ -52,8 +52,8 @@ do(#mod{method = Method, entity_body = Body, data = Data} = _ModData) ->
 				{error, ErrorCode} ->
 					{break, [{response,	{ErrorCode, "</h2>Erronous Request</h2>"}}]};
 				{Location, Response} ->
-					Head = [{location, Location}],
-					{break, [{response,{response, Head, lists:flatten(Response)}}]}
+					Head = [{code, 201}],
+					{break, [{response,{response, Head, Response}}]}
 
 			end;
 		_ ->
