@@ -45,17 +45,35 @@
 	Fun :: fun((Arg) -> sent| close | Body),
 	Arg :: [term()].
 %% @doc Erlang web server API callback function.
-do(#mod{method = Method, entity_body = Body, data = Data} = ModData) ->
+do(#mod{method = Method, parsed_header = Headers, entity_body = Body,
+				data = Data} = ModData) ->
 	case Method of
 		"POST" ->
-			case ocs_rest_res_subscriber:add_subscriber(Body) of
-				{error, ErrorCode} ->
-					{break, [{response,	{ErrorCode, "</h2>Erroneous Request</h2>"}}]};
-				{Location, ResponseBody} ->
-			    send_response(ModData, Location, ResponseBody)
-			end;
+			content_type_available(Headers, Body, ModData);
 		_ ->
 			{proceed, Data}
+	end.
+
+%% @hidden
+content_type_available(Headers, Body, ModData) ->
+	case lists:keyfind("accept", 1, Headers) of
+		{_, RequestingType} ->
+			AvailableTypes = ocs_rest_res_subscriber:content_types_provided(),
+			case lists:member(RequestingType, AvailableTypes) of
+				true ->
+					case ocs_rest_res_subscriber:add_subscriber(Body) of
+						{error, ErrorCode} ->
+							{break, [{response,	{ErrorCode, "</h2>Erroneous Request</h2>"}}]};
+						{Location, ResponseBody} ->
+							send_response(ModData, Location, ResponseBody)
+					end;
+				false ->
+					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
+					{break, [{response, {415, Response}}]}
+			end;
+		_ ->
+			Response = "<h2>HTTP Error 400 - Bad Request</h2>",
+			{break, [{response, {400, Response}}]}
 	end.
 
 %% @hidden
