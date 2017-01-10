@@ -69,15 +69,5 @@ send_response(Info, Location, ResponseBody)->
 send(#mod{socket = Socket, socket_type = SocketType} = Info,
      StatusCode, Headers, ResponseBody) ->
     httpd_response:send_header(Info, StatusCode, Headers),
-    send_body(SocketType, Socket, ResponseBody).
-
-%% @hidden
-send_body(SocketType, Socket, ResponseBody) ->
-	    case httpd_socket:deliver(SocketType, Socket, ResponseBody) of
-				socket_closed ->
-					erlang:display("Socket closed whilse sending"),	
-					socket_close;
-			_ ->
-		    send_body(SocketType, Socket, ResponseBody)
-	    end.
+    httpd_socket:deliver(SocketType, Socket, ResponseBody).
 
