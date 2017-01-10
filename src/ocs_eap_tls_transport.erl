@@ -1,4 +1,4 @@
-%%% ocs_eap_ttls_transport.erl
+%%% ocs_eap_tls_transport.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 SigScale Global Inc.
 %%% @end
@@ -19,10 +19,10 @@
 %%% 	{@link //ssl. ssl} application.
 %%% 
 %%% 	Use the {@link //ssl/ssl:transportoption(). ssl:transportoption()}
-%%%	`{cb_info, {ocs_eap_ttls_transport, eap_ttls, eap_ttls_closed, eap_ttls_error}}'
+%%%	`{cb_info, {ocs_eap_tls_transport, eap_tls, eap_tls_closed, eap_tls_error}}'
 %%% 	with {@link //ssl/ssl:listen/2. ssl:listen/2}.
 %%%
--module(ocs_eap_ttls_transport).
+-module(ocs_eap_tls_transport).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 %% export inet compatible API
@@ -39,144 +39,144 @@
 -type eap_option() :: any().
 
 -define(cb_info,
-		{cb_info, {?MODULE, eap_ttls, eap_ttls_closed, eap_ttls_error}}).
+		{cb_info, {?MODULE, eap_tls, eap_tls_closed, eap_tls_error}}).
 
 %%----------------------------------------------------------------------
-%%  ocs_eap_ttls_transport public api
+%%  ocs_eap_tls_transport public api
 %%----------------------------------------------------------------------
 
 -dialyzer({nowarn_function, ssl_listen/2}).
 %% The type spec for ssl:listen/2 decalres Port as inet:portnumber()
 %% however the implementation of that function has no such guard.
--spec ssl_listen(TtlsFsm, Options) ->
+-spec ssl_listen(TlsFsm, Options) ->
 		{ok, TlsRecordLayerSocket} | {error, Reason} when
-	TtlsFsm :: pid(),
+	TlsFsm :: pid(),
 	Options :: ssl:options(),
 	TlsRecordLayerSocket :: ssl:sslsocket(),
 	Reason :: term().
 %% @doc Creates an {@link //ssl/ssl. ssl} listen socket.
-ssl_listen(TtlsFsm, Options) when is_pid(TtlsFsm), is_list(Options) ->
+ssl_listen(TlsFsm, Options) when is_pid(TlsFsm), is_list(Options) ->
 	ssl:listen(self(), [?cb_info | Options]).
 
--spec deliver(SslPid, TtlsFsm, Data) ->
+-spec deliver(SslPid, TlsFsm, Data) ->
 	ok when
 		SslPid :: pid(),
-		TtlsFsm :: pid(),
+		TlsFsm :: pid(),
 		Data :: iodata().
-%% @doc Deliver received EAP-TTLS payload to SSL.
-deliver(SslPid, TtlsFsm, Data) when is_pid(SslPid), is_pid(TtlsFsm) ->
-	SslPid ! {eap_ttls, TtlsFsm, iolist_to_binary(Data)},
+%% @doc Deliver received EAP-TLS payload to SSL.
+deliver(SslPid, TlsFsm, Data) when is_pid(SslPid), is_pid(TlsFsm) ->
+	SslPid ! {eap_tls, TlsFsm, iolist_to_binary(Data)},
 	ok.
 
 %%----------------------------------------------------------------------
-%%  ocs_eap_ttls_transport callbacks
+%%  ocs_eap_tls_transport callbacks
 %%----------------------------------------------------------------------
 
--spec peername(TtlsFsm) ->
+-spec peername(TlsFsm) ->
 	{ok, {Address, Port}} | {error, Reason} when
-		TtlsFsm :: pid(),
+		TlsFsm :: pid(),
       Address :: inet:ip_address(),
       Port :: inet:port_number(),
 		Reason :: term().
 %% @doc Returns the address and port for the other end of a connection.
-peername(TtlsFsm) when is_pid(TtlsFsm) -> 
+peername(TlsFsm) when is_pid(TlsFsm) -> 
 	{ok, {{127,0,0,1}, 0}}.
 
--spec sockname(TtlsFsm) ->
+-spec sockname(TlsFsm) ->
 	{ok, {Address, Port}} | {error, Reason} when
-		TtlsFsm :: pid(),
+		TlsFsm :: pid(),
       Address :: inet:ip_address(),
       Port :: inet:port_number(),
 		Reason :: term().
 %% @doc Returns the local address and port number for an EAP session.
-sockname(TtlsFsm) when is_pid(TtlsFsm) -> 
+sockname(TlsFsm) when is_pid(TlsFsm) -> 
 	{ok, {{127,0,0,1}, 0}}.
 
--spec port(TtlsFsm) ->
+-spec port(TlsFsm) ->
 	{ok, Port} | {error, Reason} when
-		TtlsFsm :: pid(),
+		TlsFsm :: pid(),
       Port :: inet:port_number(),
 		Reason :: term().
 %% @doc Returns the local port number for an EAP session.
-port(TtlsFsm) when is_pid(TtlsFsm) ->
+port(TlsFsm) when is_pid(TlsFsm) ->
 	{ok, 0}.
 
--spec setopts(TtlsFsm, Options) ->
+-spec setopts(TlsFsm, Options) ->
 	ok | {error, Reason} when
-		TtlsFsm :: pid(),
+		TlsFsm :: pid(),
       Options :: [eap_option()],
 		Reason :: term().
 %% @doc Sets one or more options for an EAP session.
-setopts(TtlsFsm, Options) when is_pid(TtlsFsm) -> 
+setopts(TlsFsm, Options) when is_pid(TlsFsm) -> 
 	case proplists:get_value(active, Options) of
 		undefined ->
 			ok;
 		Active ->
-			% TtlsFsm ! {ssl_setopts, Options},
+			% TlsFsm ! {ssl_setopts, Options},
 			ok
 	end.
 
--spec getopts(TtlsFsm, Options) ->
+-spec getopts(TlsFsm, Options) ->
 	{ok, OptionValues} | {error, Reason} when
-		TtlsFsm :: pid(),
+		TlsFsm :: pid(),
       Options :: [eap_option()],
       OptionValues :: [eap_option()],
 		Reason :: term().
 %% @doc Gets one or more options for an EAP session.
-getopts(TtlsFsm, Options) when is_pid(TtlsFsm) ->
+getopts(TlsFsm, Options) when is_pid(TlsFsm) ->
 	{ok, []}.
 
--spec listen(TtlsFsm, Options) ->
-	{ok, TtlsFsm} | {error, Reason} when
-		TtlsFsm :: pid(),
+-spec listen(TlsFsm, Options) ->
+	{ok, TlsFsm} | {error, Reason} when
+		TlsFsm :: pid(),
 		Options :: [listen_option()],
 		Reason :: term().
 %% @doc Listen on an EAP session.
-listen(TtlsFsm, Options) when is_pid(TtlsFsm) ->
-	{ok, TtlsFsm}.
+listen(TlsFsm, Options) when is_pid(TlsFsm) ->
+	{ok, TlsFsm}.
 
--spec accept(TtlsFsm, Timeout) ->
-	{ok, TtlsFsm} | {error, Reason} when
-		TtlsFsm :: pid(),
+-spec accept(TlsFsm, Timeout) ->
+	{ok, TlsFsm} | {error, Reason} when
+		TlsFsm :: pid(),
 		Timeout :: timeout(),
 		Reason :: term().
 %% @doc Accepts an incoming connection request on a listen socket. 
-accept(TtlsFsm, Timeout) when is_pid(TtlsFsm) ->
-	{ok, TtlsFsm}.
+accept(TlsFsm, Timeout) when is_pid(TlsFsm) ->
+	{ok, TlsFsm}.
 
--spec shutdown(TtlsFsm, How) ->
+-spec shutdown(TlsFsm, How) ->
 	ok | {error, Reason} when
-		TtlsFsm :: pid(),
+		TlsFsm :: pid(),
 		How :: read | write | read_write,
 		Reason :: term().
 %% @doc Close an EAP session in one or two directions.
-shutdown(TtlsFsm, How) when is_pid(TtlsFsm) ->
+shutdown(TlsFsm, How) when is_pid(TlsFsm) ->
 	ok.
 
--spec close(TtlsFsm) ->
+-spec close(TlsFsm) ->
 	ok when
-		TtlsFsm :: pid().
+		TlsFsm :: pid().
 %% @doc Close an EAP session.
-close(TtlsFsm) when is_pid(TtlsFsm) ->
+close(TlsFsm) when is_pid(TlsFsm) ->
 	ok.
 
--spec send(TtlsFsm, Data) ->
+-spec send(TlsFsm, Data) ->
 	ok | {error, Reason} when
-		TtlsFsm :: pid(),
+		TlsFsm :: pid(),
 		Data :: iodata(),
 		Reason :: closed | term().
 %% @doc Sends a packet on an EAP session.
-send(TtlsFsm, Data) when is_pid(TtlsFsm) ->
-	gen_fsm:send_event(TtlsFsm, {eap_ttls, self(), Data}).
+send(TlsFsm, Data) when is_pid(TlsFsm) ->
+	gen_fsm:send_event(TlsFsm, {eap_tls, self(), Data}).
 
--spec controlling_process(TtlsFsm, Pid) ->
+-spec controlling_process(TlsFsm, Pid) ->
 	ok | {error, Reason} when
-		TtlsFsm :: pid(),
+		TlsFsm :: pid(),
 		Pid :: pid(),
 		Reason :: closed | not_owner | term().
 %% @doc Assigns a new controlling process Pid to EAP session.
-controlling_process(TtlsFsm, Pid) when is_pid(TtlsFsm) ->
-	gen_fsm:send_event(TtlsFsm, {ssl_pid, Pid}).
+controlling_process(TlsFsm, Pid) when is_pid(TlsFsm) ->
+	gen_fsm:send_event(TlsFsm, {ssl_pid, Pid}).
 
 %%----------------------------------------------------------------------
 %%  internal functions

@@ -1,4 +1,4 @@
-%%% peer_ttls_transport.erl
+%%% peer_tls_transport.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 SigScale Global Inc.
 %%% @end
@@ -19,10 +19,10 @@
 %%% 	{@link //ssl. ssl} application.
 %%% 
 %%% 	Use the {@link //ssl/ssl:transportoption(). ssl:transportoption()}
-%%%	`{cb_info, {ocs_eap_ttls_transport, eap_ttls, eap_ttls_closed, eap_ttls_error}}'
+%%%	`{cb_info, {peer_tls_transport, eap_tls, eap_tls_closed, eap_tls_error}}'
 %%% 	with {@link //ssl/ssl:listen/2. ssl:listen/2}.
 %%%
--module(peer_ttls_transport).
+-module(peer_tls_transport).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 %% export inet compatible API
@@ -44,7 +44,7 @@
 -type eap_option() :: any().
 
 -define(cb_info,
-		{cb_info, {?MODULE, eap_ttls, eap_ttls_closed, eap_ttls_error}}).
+		{cb_info, {?MODULE, eap_tls, eap_tls_closed, eap_tls_error}}).
 
 %%Macro definitions for TLS record Content Type
 -define(ChangeCipherSpec,	20).
@@ -67,7 +67,7 @@
 -define(Finished,					20).
 
 %%----------------------------------------------------------------------
-%%  ocs_eap_ttls_transport public api
+%%  peer_tls_transport public api
 %%----------------------------------------------------------------------
 
 -dialyzer({nowarn_function, ssl_connect/3}).
@@ -89,14 +89,14 @@ ssl_connect(Address, ClientPid, Options) ->
 		SslPid :: pid(),
 		ClientPid :: pid(),
 		Data :: iodata().
-%% @doc Deliver received EAP-TTLS payload to SSL.
+%% @doc Deliver received EAP-TLS payload to SSL.
 deliver(SslPid, ClientPid, Data) when is_pid(SslPid), is_pid(ClientPid) ->
-	SslPid ! {eap_ttls, ClientPid, iolist_to_binary(Data)},
+	SslPid ! {eap_tls, ClientPid, iolist_to_binary(Data)},
 	ok.
 
 
 %%----------------------------------------------------------------------
-%%  peer_ttls_transport callbacks
+%%  peer_tls_transport callbacks
 %%----------------------------------------------------------------------
 -spec connect(Address, ClientPid, SocketOpts, Timeout) ->
 		{ok, ClientPid} when
@@ -156,7 +156,7 @@ close(ClientPid) when is_pid(ClientPid) ->
 		Reason :: closed | term().
 %% @doc Sends a packet on an EAP session.
 send(ClientPid, Data) when is_pid(ClientPid) ->
-	ClientPid ! {eap_ttls, self(), Data},
+	ClientPid ! {eap_tls, self(), Data},
 	ok.
 
 -spec controlling_process(ClientPid, Pid) ->
@@ -177,3 +177,4 @@ keep_alive() ->
 	receive
 		_Msg -> keep_alive()
 	end.
+
