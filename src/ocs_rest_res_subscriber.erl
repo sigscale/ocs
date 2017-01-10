@@ -106,7 +106,8 @@ add_subscriber1(Identity, Password, RadAttributes, Balance) ->
 						{balance, Balance}],
 			JsonObj  = {struct, RespObj},
 			Body = mochijson:encode(JsonObj),
-			{Identity,Body};
+			Location = "/ocs/v1/subscriber" ++ Identity,
+			{Location, Body};
 		{error, _Reason} ->
 			{error, 400}
 	end catch
