@@ -79,7 +79,7 @@ find_subscribers1(Subscribers) ->
 			{array, JsonObj}.
 
 -spec add_subscriber(RequestBody :: list()) ->
-	{Location :: string(), Body :: list()}
+	{Location :: string(), Body :: iolist()}
 	| {error, ErrorCode :: integer()}.
 %% @doc Respond to `POST /ocs/subscriber' and add a new `subscriber'
 %% resource.
