@@ -34,7 +34,7 @@
 -define(AscendXmitRate, 255).
 
 -spec find_subscriber(Identity :: string()) ->
-	{body, Body :: iodata()} | {error, ErrorCode :: integer()}.
+	{body, Body :: iolist()} | {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/subscriber/{identity}'
 %% requests.
 find_subscriber(Identity) ->
@@ -53,7 +53,7 @@ find_subscriber(Identity) ->
 	end.
 
 -spec find_subscribers() ->
-	{body, Body :: iodata()} | {error, ErrorCode :: integer()}.
+	{body, Body :: iolist()} | {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/subscriber'
 %% requests.
 find_subscribers() ->
