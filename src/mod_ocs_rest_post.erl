@@ -20,7 +20,7 @@
 
 -export([do/1]).
 
--include_lib("inets/include/httpd.hrl"). 
+-include_lib("inets/include/httpd.hrl").
 
 -spec do(ModData) -> Result when
 	ModData :: #mod{},
@@ -29,7 +29,7 @@
 	NewData :: [{response,{StatusCode,Body}}] | [{response,{response,Head,Body}}]
 			| [{response,{already_sent,StatusCode,Size}}],
 	StatusCode :: integer(),
-	Body :: list() | nobody | {Fun, Arg},
+	Body :: iolist() | nobody | {Fun, Arg},
 	Head :: [HeaderOption],
 	HeaderOption :: {Option, Value} | {code, StatusCode},
 	Option :: accept_ranges | allow
@@ -45,18 +45,39 @@
 	Fun :: fun((Arg) -> sent| close | Body),
 	Arg :: [term()].
 %% @doc Erlang web server API callback function.
-do(#mod{method = Method, entity_body = Body, data = Data} = _ModData) ->
+do(#mod{method = Method, entity_body = Body, data = Data} = ModData) ->
 	case Method of
 		"POST" ->
 			case ocs_rest_res_subscriber:add_subscriber(Body) of
 				{error, ErrorCode} ->
-					{break, [{response,	{ErrorCode, "</h2>Erronous Request</h2>"}}]};
-				{Location, Response} ->
-					Head = [{code, 201}],
-					{break, [{response,{response, Head, Response}}]}
-
+					{break, [{response,	{ErrorCode, "</h2>Erroneous Request</h2>"}}]};
+				{Location, ResponseBody} ->
+			    send_response(ModData, Location, ResponseBody)
 			end;
 		_ ->
 			{proceed, Data}
 	end.
+
+%% @hidden
+send_response(Info, Location, ResponseBody)->
+	    Size = integer_to_list(iolist_size(ResponseBody)),
+	    Headers = [{location, Location}, {content_length, Size}],
+	    send(Info, 201, Headers, ResponseBody),
+	    {proceed,[{response,{already_sent,201, Size}}]}.
+
+%% @hidden
+send(#mod{socket = Socket, socket_type = SocketType} = Info,
+     StatusCode, Headers, ResponseBody) ->
+    httpd_response:send_header(Info, StatusCode, Headers),
+    send_body(SocketType, Socket, ResponseBody).
+
+%% @hidden
+send_body(SocketType, Socket, ResponseBody) ->
+	    case httpd_socket:deliver(SocketType, Socket, ResponseBody) of
+				socket_closed ->
+					erlang:display("Socket closed whilse sending"),	
+					socket_close;
+			_ ->
+		    send_body(SocketType, Socket, ResponseBody)
+	    end.
 
