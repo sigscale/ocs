@@ -247,7 +247,7 @@ accounting_request(Address, _Port, Secret, Radius,
 		NewState = case decrement_balance(Subscriber, Usage) of
 			{ok, OverUsed, false} when OverUsed =< 0 ->
 				case supervisor:start_child(DiscSup, [[Address, NasID,
-						Subscriber, AcctSessionId, Secret, Attributes, DiskId], [{debug, [trace]}]]) of
+						Subscriber, AcctSessionId, Secret, Attributes, DiskId], []]) of
 					{ok, _Child} ->
 						NewDiskId = DiskId + 1,
 						State#state{disc_id = NewDiskId};

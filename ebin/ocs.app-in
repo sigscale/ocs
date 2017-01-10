@@ -27,7 +27,7 @@
 				ocs_radius_authentication,
 				ocs_server,
 				ocs_eap_pwd,
-				ocs_eap_ttls_transport,
+				ocs_eap_tls_transport,
 				ocs_wm_config,
 				ocs_wm_res_subscriber,
 				ocs_wm_config]},

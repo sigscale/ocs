@@ -32,7 +32,7 @@ beam_DATA = ocs.beam \
 			ocs_radius_authentication.beam \
 			ocs_server.beam \
 			ocs_eap_pwd.beam \
-			ocs_eap_ttls_transport.beam \
+			ocs_eap_tls_transport.beam \
 			ocs_rest_server.beam \
 			mod_ocs_rest_get.beam \
 			mod_ocs_rest_post.beam \

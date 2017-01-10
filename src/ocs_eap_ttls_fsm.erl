@@ -139,7 +139,7 @@ ssl_start(timeout, #statedata{start = #radius{code = ?AccessRequest},
 	{_, AaahFsm, _, _} = lists:keyfind(ocs_eap_ttls_aaah_fsm, 1, Children),
 	Options = [{mode, binary}, {certfile, TLScert}, {keyfile, TLSkey},
 			{cacertfile, TLScacert}],
-	{ok, SslSocket} = ocs_eap_ttls_transport:ssl_listen(self(), Options),
+	{ok, SslSocket} = ocs_eap_tls_transport:ssl_listen(self(), Options),
 	gen_fsm:send_event(AaahFsm, {ttls_socket, self(), SslSocket}),
 	NewStateData = StateData#statedata{aaah_fsm = AaahFsm,
 			ssl_socket = SslSocket},
@@ -269,14 +269,14 @@ client_hello({#radius{code = ?AccessRequest, id = RadiusID,
 			#eap_ttls{more = false, message_len = undefined,
 					start = false, data = Data} when RxLength == undefined ->
 				NextStateData = client_hello1(iolist_to_binary([RxBuf, Data]), NewStateData),
-				ocs_eap_ttls_transport:deliver(SslPid, self(), [RxBuf, Data]),
+				ocs_eap_tls_transport:deliver(SslPid, self(), [RxBuf, Data]),
 				NextNewStateData = NextStateData#statedata{rx_buf = [],
 						rx_length = undefined},
 				{next_state, server_hello, NextNewStateData, ?TIMEOUT};
 			#eap_ttls{more = false, message_len = undefined,
 					start = false, data = Data} ->
 				RxLength = iolist_size([RxBuf, Data]),
-				ocs_eap_ttls_transport:deliver(SslPid, self(), [RxBuf, Data]),
+				ocs_eap_tls_transport:deliver(SslPid, self(), [RxBuf, Data]),
 				NextStateData = NewStateData#statedata{rx_buf = [],
 								rx_length = undefined},
 				{next_state, server_hello, NextStateData, ?TIMEOUT};
@@ -441,7 +441,7 @@ client_cipher({#radius{code = ?AccessRequest, id = RadiusID,
 					start = false, data = Data} when RxLength == undefined ->
 				BinTtlsData = iolist_to_binary([RxBuf, Data]),
 				%client_cipher1(BinTtlsData, NewStateData),
-				ocs_eap_ttls_transport:deliver(SslPid, self(), [RxBuf, Data]),
+				ocs_eap_tls_transport:deliver(SslPid, self(), [RxBuf, Data]),
 				NextStateData = NewStateData#statedata{rx_buf = [],
 						rx_length = undefined},
 				{next_state, server_cipher, NextStateData};
@@ -450,7 +450,7 @@ client_cipher({#radius{code = ?AccessRequest, id = RadiusID,
 				RxLength = iolist_size([RxBuf, Data]),
 				BinTtlsData = iolist_to_binary([RxBuf, Data]),
 				%client_cipher1(BinTtlsData, NewStateData),
-				ocs_eap_ttls_transport:deliver(SslPid, self(), [RxBuf, Data]),
+				ocs_eap_tls_transport:deliver(SslPid, self(), [RxBuf, Data]),
 				NextStateData = NewStateData#statedata{rx_buf = [],
 						rx_length = undefined},
 				{next_state, server_cipher, NextStateData};
@@ -571,7 +571,7 @@ client_passthrough({#radius{code = ?AccessRequest, id = RadiusID,
 		case ocs_eap_codec:eap_packet(EapMessage) of
 			#eap_packet{code = response, identifier = EapID, data = TtlsPacket} ->
 				#eap_ttls{data = TtlsData} = ocs_eap_codec:eap_ttls(TtlsPacket),
-				ocs_eap_ttls_transport:deliver(SslPid, self(), [TtlsData]),
+				ocs_eap_tls_transport:deliver(SslPid, self(), [TtlsData]),
 				{next_state, server_passthrough, NewStateData};
 			#eap_packet{code = request, identifier = NewEapID} ->
 					NewEapPacket = #eap_packet{code = response, type = ?LegacyNak,

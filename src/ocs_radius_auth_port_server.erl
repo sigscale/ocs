@@ -303,7 +303,7 @@ start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret,
 start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret,
 		SessionID, Identity, Sup,  State) ->
 	StartArgs = [Address, Port, RadiusFsm, Secret, SessionID, AccessRequest],
-	ChildSpec = [StartArgs, [{debug, [trace]}]],
+	ChildSpec = [StartArgs, []],
 	start_fsm1(Address, Port, RadiusFsm, SessionID,
 			Identity, Sup, ChildSpec, State).
 %% @hidden

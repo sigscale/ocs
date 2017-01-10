@@ -28,7 +28,7 @@ modhtml = ocs.html \
 			ocs_radius_authentication.html \
 			ocs_server.html \
 			ocs_eap_pwd.html \
-			ocs_eap_ttls_transport.html \
+			ocs_eap_tls_transport.html \
 			ocs_wm_config.html \
 			ocs_wm_res_subscriber.html
 

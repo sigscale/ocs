@@ -1,4 +1,4 @@
-%%% peer_ttls_transport.erl
+%%% peer_tls_transport.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 SigScale Global Inc.
 %%% @end
@@ -19,55 +19,23 @@
 %%% 	{@link //ssl. ssl} application.
 %%% 
 %%% 	Use the {@link //ssl/ssl:transportoption(). ssl:transportoption()}
-%%%	`{cb_info, {ocs_eap_ttls_transport, eap_ttls, eap_ttls_closed, eap_ttls_error}}'
+%%%	`{cb_info, {peer_tls_transport, eap_tls, eap_tls_closed, eap_tls_error}}'
 %%% 	with {@link //ssl/ssl:listen/2. ssl:listen/2}.
 %%%
--module(peer_ttls_transport).
+-module(peer_tls_transport).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
-%% export inet compatible API
--export([setopts/2, getopts/2]).
-%% export gen_tcp compatible API
--export([send/2, controlling_process/2,
-		shutdown/2, close/1, connect/4]).
 %% export public API
 -export([ssl_connect/3, deliver/3]).
 
--export_type([listen_option/0, eap_option/0]).
-
-%% @headerfile "include/radius.hrl"
--include_lib("radius/include/radius.hrl").
--include("ocs_eap_codec.hrl").
--include_lib("common_test/include/ct.hrl").
-
--type listen_option() :: any().
--type eap_option() :: any().
+%% export gen_tcp compatible API
+-export([connect/4, send/2, controlling_process/2, close/1, shutdown/2]).
 
 -define(cb_info,
-		{cb_info, {?MODULE, eap_ttls, eap_ttls_closed, eap_ttls_error}}).
-
-%%Macro definitions for TLS record Content Type
--define(ChangeCipherSpec,	20).
--define(Alert,					21).
--define(Handshake,			22).
--define(Application,			23).
--define(Heartbeat,			24).
-
-%%Macro definitions for TLS handshake protocal message type
--define(HelloRequest,			0).
--define(ClientHello,				1).
--define(ServerHello,				2).
--define(NewSessionTicket,		4).
--define(Certificate,				11).
--define(ServerKeyExchange,		12).
--define(CertificateRequest,	13).
--define(ServerHelloDone,		14).
--define(CertificateVerify,		15).
--define(ClientKeyExchange,		16).
--define(Finished,					20).
+		{cb_info, {?MODULE, eap_tls, eap_tls_closed, eap_tls_error}}).
 
 %%----------------------------------------------------------------------
-%%  ocs_eap_ttls_transport public api
+%%  peer_tls_transport public api
 %%----------------------------------------------------------------------
 
 -dialyzer({nowarn_function, ssl_connect/3}).
@@ -89,15 +57,15 @@ ssl_connect(Address, ClientPid, Options) ->
 		SslPid :: pid(),
 		ClientPid :: pid(),
 		Data :: iodata().
-%% @doc Deliver received EAP-TTLS payload to SSL.
+%% @doc Deliver received EAP-TLS payload to SSL.
 deliver(SslPid, ClientPid, Data) when is_pid(SslPid), is_pid(ClientPid) ->
-	SslPid ! {eap_ttls, ClientPid, iolist_to_binary(Data)},
+	SslPid ! {eap_tls, ClientPid, iolist_to_binary(Data)},
 	ok.
 
+%%----------------------------------------------------------------------
+%%  peer_tls_transport callbacks
+%%----------------------------------------------------------------------
 
-%%----------------------------------------------------------------------
-%%  peer_ttls_transport callbacks
-%%----------------------------------------------------------------------
 -spec connect(Address, ClientPid, SocketOpts, Timeout) ->
 		{ok, ClientPid} when
 	Address :: inet:socket_address() | inet:hostname(),
@@ -105,41 +73,26 @@ deliver(SslPid, ClientPid, Data) when is_pid(SslPid), is_pid(ClientPid) ->
 	SocketOpts :: [term()],
 	Timeout :: timeout().
 %% @doc Connects to the EAP session
-connect(Address, ClientPid, SocketOpts, Timeout) ->
+connect(_Address, ClientPid, _SocketOpts, _Timeout) ->
 	{ok, ClientPid}.
 
--spec setopts(ClientPid, Options) ->
+-spec send(ClientPid, Data) ->
 	ok | {error, Reason} when
 		ClientPid :: pid(),
-      Options :: [eap_option()],
-		Reason :: term().
-%% @doc Sets one or more options for an EAP session.
-setopts(ClientPid, Options) when is_pid(ClientPid) -> 
-	case proplists:get_value(active, Options) of
-		undefined ->
-			ok;
-		Active ->
-			% ClientPid ! {ssl_setopts, Options},
-			ok
-	end.
+		Data :: iodata(),
+		Reason :: closed | term().
+%% @doc Sends a packet on an EAP session.
+send(ClientPid, Data) when is_pid(ClientPid) ->
+	ClientPid ! {eap_tls, self(), Data},
+	ok.
 
--spec getopts(ClientPid, Options) ->
-	{ok, OptionValues} | {error, Reason} when
-		ClientPid :: pid(),
-      Options :: [eap_option()],
-      OptionValues :: [eap_option()],
-		Reason :: term().
-%% @doc Gets one or more options for an EAP session.
-getopts(ClientPid, Options) when is_pid(ClientPid) ->
-	{ok, []}.
-
--spec shutdown(ClientPid, How) ->
+-spec controlling_process(ClientPid, Pid) ->
 	ok | {error, Reason} when
 		ClientPid :: pid(),
-		How :: read | write | read_write,
-		Reason :: term().
-%% @doc Close an EAP session in one or two directions.
-shutdown(ClientPid, How) when is_pid(ClientPid) ->
+		Pid :: pid(),
+		Reason :: closed | not_owner | term().
+%% @doc Assigns a new controlling process Pid to EAP session.
+controlling_process(ClientPid, _Pid) when is_pid(ClientPid) ->
 	ok.
 
 -spec close(ClientPid) ->
@@ -149,23 +102,13 @@ shutdown(ClientPid, How) when is_pid(ClientPid) ->
 close(ClientPid) when is_pid(ClientPid) ->
 	ok.
 
--spec send(ClientPid, Data) ->
+-spec shutdown(ClientPid, How) ->
 	ok | {error, Reason} when
 		ClientPid :: pid(),
-		Data :: iodata(),
-		Reason :: closed | term().
-%% @doc Sends a packet on an EAP session.
-send(ClientPid, Data) when is_pid(ClientPid) ->
-	ClientPid ! {eap_ttls, self(), Data},
-	ok.
-
--spec controlling_process(ClientPid, Pid) ->
-	ok | {error, Reason} when
-		ClientPid :: pid(),
-		Pid :: pid(),
-		Reason :: closed | not_owner | term().
-%% @doc Assigns a new controlling process Pid to EAP session.
-controlling_process(ClientPid, Pid) when is_pid(ClientPid) ->
+		How :: read | write | read_write,
+		Reason :: term().
+%% @doc Close an EAP session in one or two directions.
+shutdown(ClientPid, _How) when is_pid(ClientPid) ->
 	ok.
 
 %%----------------------------------------------------------------------
@@ -177,3 +120,4 @@ keep_alive() ->
 	receive
 		_Msg -> keep_alive()
 	end.
+
