@@ -115,8 +115,8 @@ add_subscriber1(Identity, Password, RadAttributes, Balance) ->
 	end.
 
 -spec update_subscriber(Identity :: list(), ReqBody :: list()) ->
-	{body, Body :: list()} | {error, ErrorCode :: integer()} .
-%% @doc	Respond to `PUT /ocs/subscriber/{identity}' request and
+	{body, Body :: iolist()} | {error, ErrorCode :: integer()} .
+%% @doc	Respond to `PATCH /ocs/subscriber/{identity}' request and
 %% Updates a existing `subscriber''s password or attributes. 
 update_subscriber(Identity, ReqBody) ->
 	case ocs:find_subscriber(Identity) of
