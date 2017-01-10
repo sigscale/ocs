@@ -18,7 +18,8 @@
 -module(ocs_rest_res_subscriber).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
--export([find_subscriber/1,
+-export([content_types_provided/0,
+				find_subscriber/1,
 				find_subscribers/0,
 				add_subscriber/1,
 				update_subscriber/2,
@@ -32,6 +33,11 @@
 -define(VendorID, 529).
 -define(AscendDataRate, 197).
 -define(AscendXmitRate, 255).
+
+-spec content_types_provided() -> ContentTypes :: list().
+%% @doc Provides list of resource representations available.
+content_types_provided() ->
+	["application/json", "application/hal+json"].
 
 -spec find_subscriber(Identity :: string()) ->
 	{body, Body :: iolist()} | {error, ErrorCode :: integer()}.
