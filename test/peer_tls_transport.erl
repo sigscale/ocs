@@ -25,46 +25,14 @@
 -module(peer_tls_transport).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
-%% export inet compatible API
--export([setopts/2, getopts/2]).
-%% export gen_tcp compatible API
--export([send/2, controlling_process/2,
-		shutdown/2, close/1, connect/4]).
 %% export public API
 -export([ssl_connect/3, deliver/3]).
 
--export_type([listen_option/0, eap_option/0]).
-
-%% @headerfile "include/radius.hrl"
--include_lib("radius/include/radius.hrl").
--include("ocs_eap_codec.hrl").
--include_lib("common_test/include/ct.hrl").
-
--type listen_option() :: any().
--type eap_option() :: any().
+%% export gen_tcp compatible API
+-export([connect/4, send/2, controlling_process/2, close/1, shutdown/2]).
 
 -define(cb_info,
 		{cb_info, {?MODULE, eap_tls, eap_tls_closed, eap_tls_error}}).
-
-%%Macro definitions for TLS record Content Type
--define(ChangeCipherSpec,	20).
--define(Alert,					21).
--define(Handshake,			22).
--define(Application,			23).
--define(Heartbeat,			24).
-
-%%Macro definitions for TLS handshake protocal message type
--define(HelloRequest,			0).
--define(ClientHello,				1).
--define(ServerHello,				2).
--define(NewSessionTicket,		4).
--define(Certificate,				11).
--define(ServerKeyExchange,		12).
--define(CertificateRequest,	13).
--define(ServerHelloDone,		14).
--define(CertificateVerify,		15).
--define(ClientKeyExchange,		16).
--define(Finished,					20).
 
 %%----------------------------------------------------------------------
 %%  peer_tls_transport public api
@@ -94,10 +62,10 @@ deliver(SslPid, ClientPid, Data) when is_pid(SslPid), is_pid(ClientPid) ->
 	SslPid ! {eap_tls, ClientPid, iolist_to_binary(Data)},
 	ok.
 
-
 %%----------------------------------------------------------------------
 %%  peer_tls_transport callbacks
 %%----------------------------------------------------------------------
+
 -spec connect(Address, ClientPid, SocketOpts, Timeout) ->
 		{ok, ClientPid} when
 	Address :: inet:socket_address() | inet:hostname(),
@@ -105,49 +73,8 @@ deliver(SslPid, ClientPid, Data) when is_pid(SslPid), is_pid(ClientPid) ->
 	SocketOpts :: [term()],
 	Timeout :: timeout().
 %% @doc Connects to the EAP session
-connect(Address, ClientPid, SocketOpts, Timeout) ->
+connect(_Address, ClientPid, _SocketOpts, _Timeout) ->
 	{ok, ClientPid}.
-
--spec setopts(ClientPid, Options) ->
-	ok | {error, Reason} when
-		ClientPid :: pid(),
-      Options :: [eap_option()],
-		Reason :: term().
-%% @doc Sets one or more options for an EAP session.
-setopts(ClientPid, Options) when is_pid(ClientPid) -> 
-	case proplists:get_value(active, Options) of
-		undefined ->
-			ok;
-		Active ->
-			% ClientPid ! {ssl_setopts, Options},
-			ok
-	end.
-
--spec getopts(ClientPid, Options) ->
-	{ok, OptionValues} | {error, Reason} when
-		ClientPid :: pid(),
-      Options :: [eap_option()],
-      OptionValues :: [eap_option()],
-		Reason :: term().
-%% @doc Gets one or more options for an EAP session.
-getopts(ClientPid, Options) when is_pid(ClientPid) ->
-	{ok, []}.
-
--spec shutdown(ClientPid, How) ->
-	ok | {error, Reason} when
-		ClientPid :: pid(),
-		How :: read | write | read_write,
-		Reason :: term().
-%% @doc Close an EAP session in one or two directions.
-shutdown(ClientPid, How) when is_pid(ClientPid) ->
-	ok.
-
--spec close(ClientPid) ->
-	ok when
-		ClientPid :: pid().
-%% @doc Close an EAP session.
-close(ClientPid) when is_pid(ClientPid) ->
-	ok.
 
 -spec send(ClientPid, Data) ->
 	ok | {error, Reason} when
@@ -165,7 +92,23 @@ send(ClientPid, Data) when is_pid(ClientPid) ->
 		Pid :: pid(),
 		Reason :: closed | not_owner | term().
 %% @doc Assigns a new controlling process Pid to EAP session.
-controlling_process(ClientPid, Pid) when is_pid(ClientPid) ->
+controlling_process(ClientPid, _Pid) when is_pid(ClientPid) ->
+	ok.
+
+-spec close(ClientPid) ->
+	ok when
+		ClientPid :: pid().
+%% @doc Close an EAP session.
+close(ClientPid) when is_pid(ClientPid) ->
+	ok.
+
+-spec shutdown(ClientPid, How) ->
+	ok | {error, Reason} when
+		ClientPid :: pid(),
+		How :: read | write | read_write,
+		Reason :: term().
+%% @doc Close an EAP session in one or two directions.
+shutdown(ClientPid, _How) when is_pid(ClientPid) ->
 	ok.
 
 %%----------------------------------------------------------------------
