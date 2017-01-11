@@ -12,7 +12,7 @@ from the subscriber's account in real-time and once the balance is
 zero all sessions are terminated.
 
 This OCS performs authentication, authorization and accounting (AAA)
-for subscribers of wireless local area network (WLAN) services (WiFi)..
+for subscribers of wireless local area network (WLAN) services (WiFi).
 
 ==Installation==
 Before starting the application for the first time, an mnesia
