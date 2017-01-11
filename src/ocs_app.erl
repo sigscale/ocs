@@ -66,15 +66,12 @@ start(normal = _StartType, _Args) ->
 	end.
 %% @hidden
 start1() ->
-	{ok, RestAddr} = application:get_env(rest_addr),
-	{ok, RestPort} = application:get_env(rest_port),
 	{ok, AcctAddr} = application:get_env(radius_acct_addr),
 	{ok, AcctPort} = application:get_env(radius_acct_port),
 	{ok, AuthAddr} = application:get_env(radius_auth_addr),
 	{ok, AuthPort} = application:get_env(radius_auth_port),
 	try
-		TopSup = case supervisor:start_link(ocs_sup,
-				[RestAddr, RestPort]) of
+		TopSup = case supervisor:start_link(ocs_sup, []) of
 			{ok, OcsSup} ->
 				OcsSup;
 			{error, Reason1} ->

@@ -23,7 +23,6 @@ check_DATA = .dialyzer_ok .common_test_ok
 .common_test_ok:	$(addsuffix .beam, $(testmods)) sys.config
 	@if [ ! -d ocs_eap_ttls_SUITE_data ]; then mkdir ocs_eap_ttls_SUITE_data; fi
 	@if [ ! -d log ]; then mkdir log; fi
-	@if [ ! -f sys.config ]; then cp $(top_srcdir)/test/sys.config .; fi
 	@if [ ! -f ct.cfg ]; then cp $(top_srcdir)/test/ct.cfg .; fi
 	@if [ ! -f test.spec ]; then cp $(top_srcdir)/test/test.spec .; fi
 	for i in $(addsuffix _data,$(testmods)); do \
@@ -50,6 +49,9 @@ check_DATA = .dialyzer_ok .common_test_ok
 		openssl x509 -req -CA CAcert.pem -CAkey CAkey.pem -CAcreateserial \
 				-extfile extensions -in ct-cert.csr -out ct-cert.pem)
 	ct_run -no_auto_compile -pa $(top_builddir)/ebin -logdir log -config ct.cfg -spec test.spec -dir . -erl_args -config sys -sname $(LOGNAME)-ct
+
+sys.config:	$(top_srcdir)/test/sys.config-in
+	sed -e 's#%APP_PRIV%#$(abs_top_srcdir)/priv#' < $< > $@
 
 clean-local:
 	-rm -r *.beam ocs_eap_ttls_SUITE_data/* log/*

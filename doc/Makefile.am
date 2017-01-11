@@ -28,9 +28,13 @@ modhtml = ocs.html \
 			ocs_radius_authentication.html \
 			ocs_server.html \
 			ocs_eap_pwd.html \
-			ocs_eap_tls_transport.html \
-			ocs_wm_config.html \
-			ocs_wm_res_subscriber.html
+			ocs_eap_tls_transport.html
+			ocs_rest_res_subscriber.html \
+			mod_ocs_rest_accepted_content.html \
+			mod_ocs_rest_delete.html \
+			mod_ocs_rest_get.html \
+			mod_ocs_rest_patch.html \
+			mod_ocs_rest_post.html
 
 doc_DATA = overview.edoc $(modhtml) \
 		modules-frame.html overview-summary.html \

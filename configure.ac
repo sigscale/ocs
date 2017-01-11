@@ -59,7 +59,7 @@ AC_CHECK_LIB([crypto], [EC_GROUP_new], [],
 AC_LANG_PUSH([Erlang])
 AC_ERLANG_CHECK_LIB([crypto], [], [AC_MSG_ERROR([crypto was not found!])])
 AC_ERLANG_CHECK_LIB([radius], [], [AC_MSG_ERROR([radius was not found!])])
-AC_ERLANG_CHECK_LIB([webmachine], [], [AC_MSG_ERROR([mochiweb was not found!])])
+AC_ERLANG_CHECK_LIB([inets], [], [AC_MSG_ERROR([inets was not found!])])
 AC_LANG_POP([Erlang])
 
 
@@ -89,5 +89,6 @@ AC_CHECK_FUNC([BN_new], [], [AC_MSG_ERROR([BN_new function not found!])])
 ## Output:  create output files
 ## 
 AC_OUTPUT([Makefile include/Makefile ebin/Makefile doc/Makefile
-		c_src/Makefile priv/Makefile priv/lib/Makefile test/Makefile])
+		c_src/Makefile priv/Makefile priv/lib/Makefile
+		priv/www/Makefile test/Makefile])
 

@@ -28,7 +28,6 @@
 
 %% @headerfile "include/radius.hrl"
 -include_lib("radius/include/radius.hrl").
--include("ocs_wm.hrl").
 -include("ocs.hrl").
 
 -define(VendorID, 529).

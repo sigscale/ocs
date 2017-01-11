@@ -23,5 +23,5 @@ depcomp
 ltmain.sh
 
 #Downloaded polymer dependencies via bower
-frontend/bower_components/
+priv/www/bower_components/
 

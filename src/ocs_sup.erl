@@ -36,8 +36,7 @@
 %% @private
 %%
 init(_Args) ->
-	ChildSpecs = [rest_server(),
-			supervisor(ocs_radius_acct_top_sup, []),
+	ChildSpecs = [supervisor(ocs_radius_acct_top_sup, []),
 			supervisor(ocs_radius_auth_sup, []),
 			server(ocs_server, [self()])],
 	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
@@ -66,18 +65,5 @@ supervisor(StartMod, Args) ->
 server(StartMod, Args) ->
 	StartArgs = [{local, ocs}, StartMod, Args, []],
 	StartFunc = {gen_server, start_link, StartArgs},
-	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
-
--spec rest_server() ->
-	supervisor:child_spec().
-%% @doc Build a supervisor child specification for a rest server
-%% @private
-%%
-rest_server() ->
-	{ok, Port} = application:get_env(rest_port),
-	Config = [{port, Port}],
-	StartArgs = [Config],
-	StartMod = ocs_rest_server,
-	StartFunc ={StartMod, start, StartArgs},
 	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
 
