@@ -76,6 +76,7 @@ find_subscribers() ->
 			Body  = mochijson:encode(Response),
 			{body, Body}
 	end.
+%% @hidden
 find_subscribers1(Subscribers) ->
 			F = fun(#subscriber{name = Identity, password = Password,
 					attributes = Attributes, balance = Balance, enabled = Enabled}, Acc) ->
@@ -108,6 +109,7 @@ add_subscriber(RequestBody) ->
 		_Error ->
 			{error, 400}
 	end.
+%% @hidden
 add_subscriber1(Identity, Password, RadAttributes, Balance) ->
 	try
 	case catch ocs:add_subscriber(Identity, Password, RadAttributes, Balance) of
@@ -173,6 +175,7 @@ delete_subscriber(Identity) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
+%% @hidden
 json_to_radius(JsonAttributes) ->
 	json_to_radius(JsonAttributes, []).
 %% @hidden
@@ -194,6 +197,7 @@ json_to_radius([{"class", Value} | T], Acc) ->
 json_to_radius([], Acc) ->
 	Acc.
 
+%% @hidden
 radius_to_json(RadiusAttributes) ->
 	radius_to_json(RadiusAttributes, []).
 %% @hidden
@@ -217,6 +221,7 @@ radius_to_json([{?Class, V} | T], Acc) ->
 radius_to_json([], Acc) ->
 	Acc.
 
+%% @hidden
 vendor_specific(AttrJson) when is_list(AttrJson) ->
 	{_, Type} = lists:keyfind("type", 1, AttrJson),
 	{_, VendorID} = lists:keyfind("vendorId", 1, AttrJson),
