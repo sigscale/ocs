@@ -621,7 +621,7 @@ content-Length: nn
 	</tr>
 	<tr id="op">
 		<td id="opl">Request Methods</td>
-		<td id="opr">PUT</td>
+		<td id="opr">PATCH</td>
 	</tr>
 	<tr id="op">
 		<td id="opl">Request Headers</td>
@@ -645,7 +645,7 @@ content-Length: nn
 	</tr>
 </table>
 <p>Example request for accept : "application/json" request header :<pre>
-PUT /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
+PATCH /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
 content-type: application/json
 accept: application/json
 {
@@ -685,7 +685,7 @@ Content-Length: 315
 </pre></p>
 
 <p>Example request for accept : "application/hal+json" request header :<pre>
-PUT /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
+PATCH /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
 content-type: application/json
 accept: application/hal+json
 {
@@ -736,7 +736,7 @@ content-Length: 373
 	</tr>
 	<tr id="op">
 		<td id="opl">Request Methods</td>
-		<td id="opr">PUT</td>
+		<td id="opr">PATCH</td>
 	</tr>
 	<tr id="op">
 		<td id="opl">Request Headers</td>
@@ -760,7 +760,7 @@ content-Length: 373
 	</tr>
 </table>
 <p>Example request for accept : "application/json" request header :<pre>
-PUT /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
+PATCH /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
 content-type: application/json
 accept: application/json
 
@@ -816,7 +816,7 @@ content-Length: 315
 </pre></p>
 
 <p>Example request for accept : "application/hal+json" request header :<pre>
-PUT /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
+PATCH /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
 content-type: application/json
 accept: application/hal+json
 {
