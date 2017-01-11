@@ -24,8 +24,8 @@
 	{ok, Pid :: pid()} | ignore.
 %% @doc Starts ocs_rest_server to enable REST API
 start([{port, Port}] = _Args) ->
-	case inets:start(httpd,[{modules, [mod_ocs_rest_get, mod_ocs_rest_post,
-			mod_ocs_rest_patch, mod_ocs_rest_delete]}, {port, Port},
+	case inets:start(httpd,[{modules, [mod_ocs_rest_accepted_content,mod_ocs_rest_get,
+			mod_ocs_rest_post, mod_ocs_rest_patch, mod_ocs_rest_delete]}, {port, Port},
 			{server_name,"ocs_rest_server"}, {server_root,"."},
 			{document_root,"."}]) of
 		{ok, Pid} ->
