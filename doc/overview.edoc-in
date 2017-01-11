@@ -56,7 +56,7 @@ The <a href="http://tools.ietf.org/html/rfc2616">HTTP</a> methods used in
 this API include
 <a href="http://tools.ietf.org/html/rfc2616#section-9.5">`POST'</a>,
 <a href="http://tools.ietf.org/html/rfc2616#section-9.3">`GET'</a>,
-<a href="http://tools.ietf.org/html/rfc2616#section-9.6">`PUT'</a> and
+<a href="https://tools.ietf.org/html/rfc2068#section-19.6.1">`PATCH'</a> and
 <a href="http://tools.ietf.org/html/rfc2616#section-9.7">`DELETE'</a>.
 
 ===Media Types===
