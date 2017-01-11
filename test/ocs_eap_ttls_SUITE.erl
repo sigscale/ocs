@@ -439,7 +439,7 @@ send_ack(Socket, Address, Port, NasId, UsreName, Secret,
 
 ssl_handshake() ->
 	receive
-		{eap_ttls, SslPid, Data} ->
+		{eap_tls, SslPid, Data} ->
 			{SslPid, Data};
 		{ssl_socket, SslSocket} ->
 			SslSocket

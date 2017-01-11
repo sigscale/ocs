@@ -28,6 +28,9 @@
 %% export public API
 -export([ssl_connect/3, deliver/3]).
 
+%% export inet compatible API
+-export([setopts/2]).
+
 %% export gen_tcp compatible API
 -export([connect/4, send/2, controlling_process/2, close/1, shutdown/2]).
 
@@ -66,6 +69,15 @@ deliver(SslPid, ClientPid, Data) when is_pid(SslPid), is_pid(ClientPid) ->
 %%  peer_tls_transport callbacks
 %%----------------------------------------------------------------------
 
+-spec setopts(ClientPid, Options) ->
+	ok | {error, Reason} when
+	ClientPid :: pid(),
+	Options :: list(),
+	Reason :: term().
+%% @doc Sets one or more options for an EAP session.
+setopts(_ClientPid, _Options) when is_pid(_ClientPid) -> 
+	ok.
+
 -spec connect(Address, ClientPid, SocketOpts, Timeout) ->
 		{ok, ClientPid} when
 	Address :: inet:socket_address() | inet:hostname(),
@@ -92,7 +104,7 @@ send(ClientPid, Data) when is_pid(ClientPid) ->
 		Pid :: pid(),
 		Reason :: closed | not_owner | term().
 %% @doc Assigns a new controlling process Pid to EAP session.
-controlling_process(ClientPid, _Pid) when is_pid(ClientPid) ->
+controlling_process(ClientPid, Pid) when is_pid(ClientPid) ->
 	ok.
 
 -spec close(ClientPid) ->

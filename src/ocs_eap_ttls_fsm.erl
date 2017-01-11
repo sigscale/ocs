@@ -340,24 +340,24 @@ server_hello(timeout, StateData) ->
 %% RFC 5246 Section 7.4.1.3
 %% ServerHelloMessage - <<ProtocolVersion:16, Gmt_unix_time:32, ServerRand:28,
 %%		SessionID, CipherSuite, CompressionMethod, ..>>
-server_hello({eap_ttls, _SslPid,
+server_hello({eap_tls, _SslPid,
 		[<<?Handshake, _:32>>, [[?ServerHello, _,
 		<<_:16, ServerRand:32/binary, _/binary>>] | _]] = Data},
 		#statedata{tx_buf = TxBuf} = StateData) ->
 	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data],
 			server_rand = ServerRand},
 	{next_state, server_hello, NewStateData};
-server_hello({eap_ttls, _SslPid,
+server_hello({eap_tls, _SslPid,
 		[<<?Handshake, _:32>>, [[?Certificate | _] | _]] = Data},
 		#statedata{tx_buf = TxBuf} = StateData) ->
 	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
 	{next_state, server_hello, NewStateData};
-server_hello({eap_ttls, _SslPid,
+server_hello({eap_tls, _SslPid,
 		[<<?Handshake, _:32>>, [[?ServerKeyExchange | _] | _]] = Data},
 		#statedata{tx_buf = TxBuf} = StateData) ->
 	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
 	{next_state, server_hello, NewStateData};
-server_hello({eap_ttls, _SslPid,
+server_hello({eap_tls, _SslPid,
 		[<<?Handshake, _:32>>, [[?ServerHelloDone | _] | _]] = Data},
 		#statedata{tx_buf = TxBuf} = StateData) ->
 	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
@@ -513,7 +513,7 @@ client_cipher({#radius{code = ?AccessRequest, id = RadiusID,
 server_cipher(timeout,
 		#statedata{session_id = SessionID} = StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
-server_cipher({eap_ttls, _SslPid,
+server_cipher({eap_tls, _SslPid,
 	[<<?ChangeCipherSpec, _:32>> | _]	= Data},
 	#statedata{tx_buf = TxBuf} = StateData) ->
 	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
@@ -532,7 +532,7 @@ server_cipher({eap_ttls, _SslPid,
 finish(timeout,
 		#statedata{session_id = SessionID} = StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
-finish({eap_ttls, _SslPid, [<<?Handshake, _:32>> | _] = Data},
+finish({eap_tls, _SslPid, [<<?Handshake, _:32>> | _] = Data},
 		#statedata{tx_buf = TxBuf, radius_id = RadiusID, radius_fsm = RadiusFsm,
 		req_auth = RequestAuthenticator,secret = Secret,
 		eap_id = EapID} = StateData) ->
