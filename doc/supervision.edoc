@@ -3,7 +3,18 @@
 	{@link //ocs. ocs} application.
 
 The supervision heirachy is depicted in
-<a href="supervision.png">Figure 1-1</a>.
+<a href="supervision.png">Figure 1-1</a> as a directed graph starting
+from the top. The {@link //stdlib/supervisor. supervisor} behaviour
+nodes are depicted as blue boxes while
+{@link //stdlib/gen_server. gen_server} and {@link //stdlib/gen_fsm. gen_fsm}
+behaviours are depicted as yellow and green ovals respectively.  The edge
+(line) between nodes is labeled with the number of identical nodes which may
+exist (<tt>N</tt> indicates any number).  The node label for child workers
+indicates when they will be restarted (<tt>permanent</tt>, <tt>temporary</tt>
+or <tt>transient</tt>).  Node labels provide the name of the callback module
+implementing the behaviour.  For supervisors the <tt>sup_flags()</tt> are
+also provided as
+<tt>{RestartStrategy::strategy(), Intensity::integer(), Period::integer()}</tt>.
 
 <a href="https://docs.google.com/a/sigscale.com/drawings/d/1neQqfvP3VJRgrlUHhDYZWJGAqs7dI2OsjCqzETKHIxk/edit?usp=sharing"><img alt="supervision heirachy" src="supervision.png" /></a><br />
 <a href="supervision.png">Figure 1-1</a>
