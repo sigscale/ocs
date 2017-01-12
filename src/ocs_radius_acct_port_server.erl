@@ -34,7 +34,6 @@
 -record(state,
 		{acct_sup :: pid(),
 		disc_sup :: pid(),
-		socket :: inet:socket(),
 		dir :: string(),
 		address :: inet:ip_address(),
 		port :: non_neg_integer(),
@@ -64,11 +63,12 @@
 %% @see //stdlib/gen_server:init/1
 %% @private
 %%
-init([AcctSup, _Address, _Port, _Options]) ->
+init([AcctSup, Address, Port, _Options]) ->
 	{ok, Directory} = application:get_env(ocs, accounting_dir),
 	Log = ?LOGNAME,
 	FileName = Directory ++ "/" ++ atom_to_list(Log),
-	State = #state{dir = Directory, acct_sup = AcctSup},
+	State = #state{address = Address, port = Port,
+			dir = Directory, acct_sup = AcctSup},
 	try case file:list_dir(Directory) of
 		{ok, _} ->
 			ok;
