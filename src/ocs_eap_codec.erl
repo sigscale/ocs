@@ -14,7 +14,8 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @doc This library module implements the public API for the
+%%% @doc This library module implements encoding and decoding (CODEC)
+%%% 	functions for the Extensible Authentication Protocol (EAP) in the
 %%% 	{@link //ocs. ocs} application.
 %%%
 %%% @reference <a href="http://tools.ietf.org/html/rfc3748">

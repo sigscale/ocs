@@ -15,7 +15,7 @@
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @doc This {@link //stdlib/gen_server. gen_server} behaviour callback
-%%% 	module implements a ... server in the
+%%% 	module implements a service access point (SAP) for the public API of the
 %%% 	{@link //ocs. ocs} application.
 %%%
 -module(ocs_server).

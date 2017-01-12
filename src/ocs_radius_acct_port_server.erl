@@ -14,6 +14,10 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% @doc This {@link //stdlib/gen_server. gen_server} behaviour callback
+%%% 	module receives {@link //radius. radius} messages on a port assigned
+%%% 	for accounting in the {@link //ocs. ocs} application.
+%%%
 %%% @reference <a href="http://tools.ietf.org/rfc/rfc3579.txt">
 %%% 	RFC3579 - RADIUS Support For EAP</a>
 %%%

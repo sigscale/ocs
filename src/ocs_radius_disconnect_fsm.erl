@@ -14,6 +14,10 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% @doc This {@link //stdlib/gen_fsm. gen_fsm} behaviour callback module
+%%% 	implements sending Messages (DM) to Network Access Servers (NAS)
+%%% 	in the {@link //ocs. ocs} application.
+%%%
 %%% @reference <a href="http://tools.ietf.org/rfc/rfc3576.txt">
 %%% 	RFC3576 - Dynamic Authorization Extensions for RADIUS</a>
 %%%

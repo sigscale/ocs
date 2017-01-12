@@ -14,7 +14,8 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @doc This library module implements the public API for the
+%%% @doc This library module implements functions for EAP authentication
+%%% 	using only a password in the
 %%% 	{@link //ocs. ocs} application.
 %%%
 %%% @reference <a href="http://tools.ietf.org/html/rfc5931">

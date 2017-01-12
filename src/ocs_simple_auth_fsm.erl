@@ -14,8 +14,11 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @reference <a href="http://tools.ietf.org/rfc/rfc3579.txt">
-%%% 	RFC3579 - RADIUS Support For EAP</a>
+%%% @doc This library module implements functions for simple authentication
+%%% 	in the {@link //ocs. ocs} application.
+%%%
+%%% @reference <a href="http://tools.ietf.org/html/rfc2865">
+%%% 	RFC2865 - Remote Authentication Dial In User Service (RADIUS)</a>
 %%%
 -module(ocs_simple_auth_fsm).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').

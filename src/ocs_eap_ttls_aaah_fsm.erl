@@ -14,6 +14,11 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% @doc This {@link //stdlib/gen_fsm. gen_fsm} behaviour callback module
+%%% 	implements the functions associated with a AAA server in the user's
+%%% 	home domain (AAA/H) within EAP Tunneled Transport Layer Security
+%%% 	(EAP-TTLS) in the {@link //ocs. ocs} application.
+%%%
 %%% @reference <a href="http://tools.ietf.org/rfc/rfc5281.txt">
 %%% 	RFC5281 - EAP Tunneled Transport Layer Security (EAP-TTLS)</a>
 %%%

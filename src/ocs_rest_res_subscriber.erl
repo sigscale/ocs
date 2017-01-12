@@ -14,6 +14,8 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% @doc This library module implements resource handling functions
+%%% 	for a REST server in the {@link //ocs. ocs} application.
 %%%
 -module(ocs_rest_res_subscriber).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
