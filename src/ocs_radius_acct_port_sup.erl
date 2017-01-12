@@ -1,4 +1,4 @@
-%%% ocs_radius_acct_sup.erl
+%%% ocs_radius_acct_port_sup.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 SigScale Global Inc.
 %%% @end
@@ -16,7 +16,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @docfile "{@docsrc supervision.edoc}"
 %%%
--module(ocs_radius_acct_sup).
+-module(ocs_radius_acct_port_sup).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 -behaviour(supervisor).
@@ -37,7 +37,7 @@
 %%
 init([Address, Port, Options]) ->
 	ChildSpecs = [supervisor(ocs_radius_disconnect_fsm_sup, []),
-			server(ocs_acct_server, Address, Port, Options),
+			server(ocs_radius_acct_port_server, Address, Port, Options),
 			supervisor_bridge(ocs_radius_acct_server_sup, [Address, Port])],
 	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
 

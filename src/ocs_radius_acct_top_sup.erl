@@ -36,7 +36,7 @@
 %% @private
 %%
 init(_Args) ->
-	ChildSpecs = [supervisor(ocs_radius_acct_sup)],
+	ChildSpecs = [supervisor(ocs_radius_acct_port_sup)],
 	{ok, {{simple_one_for_one, 10, 60}, ChildSpecs}}.
 
 %% @hidden

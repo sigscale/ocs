@@ -5,8 +5,8 @@
 modhtml = ocs.html \
 			ocs_app.html \
 			ocs_sup.html \
-			ocs_acct_server.html \
-			ocs_radius_acct_sup.html \
+			ocs_radius_acct_port_server.html \
+			ocs_radius_acct_port_sup.html \
 			ocs_radius_acct_top_sup.html \
 			ocs_radius_acct_server_sup.html \
 			ocs_radius_auth_server_sup.html \

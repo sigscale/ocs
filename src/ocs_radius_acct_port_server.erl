@@ -1,4 +1,4 @@
-%%% ocs_acct_server.erl
+%%% ocs_radius_acct_port_server.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 SigScale Global Inc.
 %%% @end
@@ -17,13 +17,10 @@
 %%% @reference <a href="http://tools.ietf.org/rfc/rfc3579.txt">
 %%% 	RFC3579 - RADIUS Support For EAP</a>
 %%%
--module(ocs_acct_server).
+-module(ocs_radius_acct_port_server).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 -behaviour(gen_server).
-
-%% export the ocs_acct_server API
--export([]).
 
 %% export the call backs needed for gen_server behaviour
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -51,11 +48,11 @@
 -define(LOGNAME, radius_acct).
 
 %%----------------------------------------------------------------------
-%%  The ocs_acct_server API
+%%  The ocs_radius_acct_port_server API
 %%----------------------------------------------------------------------
 
 %%----------------------------------------------------------------------
-%%  The ocs_acct_server gen_server call backs
+%%  The ocs_radius_acct_port_server gen_server call backs
 %%----------------------------------------------------------------------
 
 -spec init(Args :: list()) -> Result :: {ok, State :: #state{}}
