@@ -15,7 +15,7 @@
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @doc This {@link //radius/radius. radius} behaviour callback
-%%% 	module performs authentication procedures in the
+%%% 	module performs accounting procedures in the
 %%% 	{@link //ocs. ocs} application.
 %%%
 -module(ocs_radius_accounting).
