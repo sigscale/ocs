@@ -179,8 +179,8 @@ handle_info({'EXIT', Fsm, _Reason},
 %% @see //stdlib/gen_server:terminate/3
 %% @private
 %%
-terminate(_Reason, _State) ->
-	ok.
+terminate(_Reason, #state{log = Log} = _State) ->
+	disk_log:close(Log).
 
 -spec code_change(OldVsn :: (Vsn :: term() | {down, Vsn :: term()}),
 		State :: #state{}, Extra :: term()) ->

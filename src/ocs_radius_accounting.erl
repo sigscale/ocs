@@ -30,9 +30,7 @@
 -include_lib("radius/include/radius.hrl").
 
 -record(state,
-		{dir :: string(),
-		log :: term(),
-		acct_server :: atom() | pid()}).
+		{acct_server :: atom() | pid()}).
 
 %%----------------------------------------------------------------------
 %%  The radius callbacks
@@ -77,6 +75,6 @@ request(Address, Port, Packet, #state{acct_server = Server} = _State)
 -spec terminate(Reason :: term(), State :: #state{}) -> ok.
 %% @doc This callback function is called just before the server exits.
 %%
-terminate(_Reason, #state{log = Log} = _State) ->
-	disk_log:close(Log).
+terminate(_Reason, _State) ->
+	ok.
 
