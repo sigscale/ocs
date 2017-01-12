@@ -35,9 +35,9 @@
 
 -record(state,
 		{auth_port_sup :: pid(),
-		simple_auth_sup :: pid(),
-		pwd_sup :: pid(),
-		ttls_sup :: pid(),
+		simple_auth_sup :: undefined | pid(),
+		pwd_sup :: undefined | pid(),
+		ttls_sup :: undefined | pid(),
 		address :: inet:ip_address(),
 		port :: non_neg_integer(),
 		method_prefer :: ocs:eap_method(),

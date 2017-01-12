@@ -45,7 +45,7 @@
 		radius_id :: byte(),
 		req_auth :: binary(),
 		req_attr :: radius_attributes:attributes(),
-		subscriber :: binary()}).
+		subscriber :: undefined | binary()}).
 
 -define(TIMEOUT, 30000).
 

@@ -37,8 +37,8 @@
 -include_lib("diameter/include/diameter.hrl").
 
 -record(statedata,
-		{ttls_fsm :: pid(),
-		ssl_socket :: ssl:sslsocket()}).
+		{ttls_fsm :: undefined | pid(),
+		ssl_socket :: undefined | ssl:sslsocket()}).
 
 -define(TIMEOUT, 30000).
 

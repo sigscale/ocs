@@ -33,7 +33,7 @@
 
 -record(state,
 		{acct_sup :: pid(),
-		disc_sup :: pid(),
+		disc_sup :: undefined | pid(),
 		dir :: string(),
 		address :: inet:ip_address(),
 		port :: non_neg_integer(),

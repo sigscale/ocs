@@ -39,14 +39,14 @@
 -record(statedata,
 		{id :: integer(),
 		 nas_ip :: inet:ip_address(),
-		 nas_id :: string(),
+		 nas_id :: undefined | string(),
 		 subscriber :: string(),
 		 acct_session_id :: string(),
 		 secret :: string(),
-		 socket :: inet:socket(),
+		 socket :: undefined | inet:socket(),
 		 retry_time = 500 :: integer(),
 		 retry_count = 0 :: integer(),
-		 request :: binary(),
+		 request :: undefined | binary(),
 		 attributes :: radius_attributes:attributes()}).
 
 -define(TIMEOUT, 30000).
