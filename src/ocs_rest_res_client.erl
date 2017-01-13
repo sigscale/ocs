@@ -69,28 +69,6 @@ find_client1(Address) ->
 			{error, 404}
 	end.
 
-%-spec find_clients() ->
-%	{body, Body :: iolist()} | {error, ErrorCode :: integer()}.
-%%% @doc Body producing function for `GET /ocs/v1/client'
-%%% requests.
-%find_clients() ->
-%	case ocs:get_clients() of
-%		{error, _} ->
-%			{error, 404};
-%		Clients ->
-%			Response = find_clients1(Clients),
-%			Body  = mochijson:encode(Response),
-%			{body, Body}
-%	end.
-%%% @hidden
-%find_clients1(Clients) ->
-%			F = fun(#radius_client{address= Address, secret = Secret}, Acc) ->
-%				RespObj = [{struct, [{address, inet:ntoa(Address)}, {secret, Secret}]}],
-%				RespObj ++ Acc
-%			end,
-%			JsonObj = lists:foldl(F, [], Clients),
-%			{array, JsonObj}.
-
 -spec add_client(RequestBody :: list()) ->
 	{Location :: string(), Body :: iolist()}
 	| {error, ErrorCode :: integer()}.
