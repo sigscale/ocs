@@ -37,8 +37,12 @@
 %%
 init([Address, Port] = _Args) ->
 	StartMod = ocs_radius_authentication,
-	{ok, Pid} = radius:start_link(StartMod, Port, Address),
-	{ok, Pid, Pid}.
+	case radius:start_link(StartMod, Port, Address) of
+		{ok, Pid} ->
+			{ok, Pid, Pid};
+		{error, Reason} ->
+			{error, Reason}
+	end.
 
 -spec terminate(Reason :: shutdown | term(), State :: pid()) -> any().
 %% @doc This function is called when it is about to terminate.
