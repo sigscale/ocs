@@ -98,11 +98,11 @@ init([AcctSup, Address, Port, _Options]) ->
 					process_flag(trap_exit, true),
 					{ok, State#state{log = Log}, 0};
 				{error, Reason1} ->
-					{error, Reason1}
+					{stop, Reason1}
 			end
 	catch
 		Reason2 ->
-			{error, Reason2}
+			{stop, Reason2}
 	end.
 
 -spec handle_call(Request :: term(), From :: {Pid :: pid(), Tag :: any()},
