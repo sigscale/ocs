@@ -21,7 +21,7 @@
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 %% export the ocs public API
--export([add_client/2, find_client/1]).
+-export([add_client/2, find_client/1, delete_client/1]).
 -export([add_subscriber/3, add_subscriber/4, find_subscriber/1,
 				delete_subscriber/1, update_password/2, update_attributes/2,
 				get_subscribers/0]).
@@ -78,6 +78,22 @@ find_client(Address) when is_tuple(Address) ->
 			{error, not_found};
 		{aborted, Reason} ->
 			{error, Reason}
+	end.
+
+-spec delete_client(Client :: string() | inet:ip_address()) -> ok.
+%% @doc Delete an entry from the  client table.
+delete_client(Client) when is_list(Client) ->
+	{ok, ClientT} = inet:parse_address(Client),
+	delete_client(ClientT);
+delete_client(Client) when is_tuple(Client) ->
+	F = fun() ->
+		mnesia:delete(radius_client, Client, write)
+	end,
+	case mnesia:transaction(F) of
+		{atomic, _} ->
+			ok;
+		{aborted, Reason} ->
+			exit(Reason)
 	end.
 
 -spec add_subscriber(Subscriber :: string() | binary(), Password :: string() | binary(),
