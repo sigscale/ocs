@@ -93,9 +93,6 @@
 -define(TIMEOUT, 30000).
 -define(BufTIMEOUT, 100).
 
-% suppress warning from ssl:listen/2
--dialyzer({no_return, eap_start/2}).
-
 %%----------------------------------------------------------------------
 %%  The ocs_eap_ttls_fsm API
 %%----------------------------------------------------------------------
