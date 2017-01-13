@@ -21,7 +21,7 @@
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 %% export the ocs public API
--export([add_client/2, find_client/1, delete_client/1]).
+-export([add_client/2, find_client/1, get_clients/0, delete_client/1]).
 -export([add_subscriber/3, add_subscriber/4, find_subscriber/1,
 				delete_subscriber/1, update_password/2, update_attributes/2,
 				get_subscribers/0]).
@@ -78,6 +78,19 @@ find_client(Address) when is_tuple(Address) ->
 			{error, not_found};
 		{aborted, Reason} ->
 			{error, Reason}
+	end.
+
+-spec get_clients() -> Result :: [#radius_client{}] |
+	{error, Reason :: term()}.
+%% @doc Get all RADIUS clients
+get_clients()->
+	F1 = fun(Sub, Acc)->  [Sub | Acc] end,
+	F2 = fun()-> mnesia:foldl(F1, [], radius_client) end,
+	case mnesia:transaction(F2) of
+		{aborted, Reason} ->
+			{error, Reason};
+		{atomic, Clients} ->
+			Clients
 	end.
 
 -spec delete_client(Client :: string() | inet:ip_address()) -> ok.

@@ -23,7 +23,7 @@
 -export([content_types_accepted/0,
 				content_types_provided/0,
 				perform_get/1,
-				%find_clients/0,
+				perform_get_all/0,
 				perform_post/1,
 				perform_delete/1]).
 
@@ -68,6 +68,28 @@ perform_get1(Address) ->
 		{error, not_found} ->
 			{error, 404}
 	end.
+
+-spec perform_get_all() -> {body, Body :: iolist()}
+		| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for `GET /ocs/v1/client'
+%% requests.
+perform_get_all() ->
+	case ocs:get_clients() of
+		{error, _} ->
+			{error, 404};
+				Clients ->
+				Response = perform_get_all1(Clients),
+				Body  = mochijson:encode(Response),
+			{body, Body}
+	end.
+%% @hidden
+perform_get_all1(Clients) ->
+	F = fun(#radius_client{address= Address, secret = Secret}, Acc) ->
+		RespObj = [{struct, [{address, inet:ntoa(Address)}, {secret, Secret}]}],
+		RespObj ++ Acc
+	end,
+	JsonObj = lists:foldl(F, [], Clients),
+	{array, JsonObj}.
 
 -spec perform_post(RequestBody :: list()) ->
 	{Location :: string(), Body :: iolist()}
