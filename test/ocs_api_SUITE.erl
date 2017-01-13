@@ -29,6 +29,7 @@
 %% @headerfile "include/radius.hrl"
 -include_lib("radius/include/radius.hrl").
 -include("ocs_eap_codec.hrl").
+-include("ocs.hrl").
 -include_lib("common_test/include/ct.hrl").
 
 %%---------------------------------------------------------------------
@@ -83,8 +84,8 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[client, delete_client, subscriber, update_password, update_attributes,
-	delete_subscriber].
+	[client, get_all_clients, delete_client, subscriber, update_password,
+	update_attributes, delete_subscriber].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -99,6 +100,25 @@ client(Config) ->
 	ok = ocs:add_client(Address, SharedSecret),
 	{ok, BinSharedSecret} = ocs:find_client(Address),
 	SharedSecret = binary_to_list(BinSharedSecret).
+
+get_all_clients() ->
+	[{userdata, [{doc, "Retrieve  all radius_clients from  database"}]}].
+
+get_all_clients(Config) ->
+	A1 = {10,2,45,67},
+	A2 = {10,2,45,68},
+	A3 = {10,2,45,69},
+	Secret1 = "Enid blyton 1",
+	Secret2 = "Enid blyton 2",
+	Secret3 = "Enid blyton 3",
+	ok = ocs:add_client(A1, Secret1),
+	ok = ocs:add_client(A2, Secret2),
+	ok = ocs:add_client(A3, Secret3),
+	Clients = ocs:get_clients(),
+	F = fun(#radius_client{address = Addr, secret = Sec} = _R) ->
+		{ok, Sec} = ocs:find_client(Addr)
+	end,
+	lists:foreach(F, Clients).
 
 delete_client() ->
 	[{userdata, [{doc, "Delete  a radius_client from database"}]}].
