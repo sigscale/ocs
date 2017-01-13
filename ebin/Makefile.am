@@ -38,7 +38,8 @@ beam_DATA = ocs.beam \
 			mod_ocs_rest_post.beam \
 			mod_ocs_rest_patch.beam \
 			mod_ocs_rest_delete.beam \
-			ocs_rest_res_subscriber.beam
+			ocs_rest_res_subscriber.beam \
+			ocs_rest_res_client.beam
 
 
 %.beam:$(top_srcdir)/src/%.erl	$(top_srcdir)/include/ocs.hrl $(top_srcdir)/include/ocs_eap_codec.hrl
