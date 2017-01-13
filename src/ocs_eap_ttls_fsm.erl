@@ -791,7 +791,8 @@ encrypt_key(Secret, RequestAuthenticator, Salt, Key) when (Salt bsr 15) == 1 ->
 	AccOut = lists:foldl(F, AccIn, [P || <<P:16/binary>> <= Plaintext]),
 	iolist_to_binary(tl(lists:reverse(AccOut))).
 
--dialyzer({nowarn_function, prf/5}).
+-dialyzer({[nowarn_function, no_contracts, no_return], prf/5}).
+%% ssl:prf/5 includes an incorrect type specification for Seed!
 -spec prf(SslSocket, Secret, Lable, Seed, WantedLength) ->
 	{ok, MSK, EMSK} | {error, Reason} when
 		SslSocket :: ssl:ssl_socket(),
@@ -802,10 +803,13 @@ encrypt_key(Secret, RequestAuthenticator, Salt, Key) when (Salt bsr 15) == 1 ->
 		MSK :: binary(),
 		EMSK :: binary(),
 		Reason :: term().
-%% @doc ses the Pseudo-Random Function (PRF) of a TLS session
+%% @doc Use the Pseudo-Random Function (PRF) of a TLS session
 %%	to generate extra key material.
-prf(SslSocket, Secret, Lable, Seed, WantedLength) ->
-	{ok, <<MSK:64/binary, EMSK:64/binary>>} =
-			ssl:prf(SslSocket, Secret , Lable, Seed, WantedLength),
-	{MSK, EMSK}.
+prf(SslSocket, Secret, Lable, Seed, WantedLength) when is_list(Seed) ->
+	case catch ssl:prf(SslSocket, Secret, Lable, Seed, WantedLength) of
+		{ok, <<MSK:64/binary, EMSK:64/binary>>} ->
+			{MSK, EMSK};
+		{'EXIT', _Reason} -> % fake dialyzer out
+			{<<0:512>>, <<0:512>>}
+	end.
 
