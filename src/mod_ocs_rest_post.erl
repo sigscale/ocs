@@ -49,19 +49,20 @@ do(#mod{method = Method, parsed_header = Headers, entity_body = Body,
 				data = Data} = ModData) ->
 	case Method of
 		"POST" ->
-			content_type_available(Headers, Body, ModData);
+			{_, Resource} = lists:keyfind(resource, 1, Data),
+			content_type_available(Headers, Body, Resource, ModData);
 		_ ->
 			{proceed, Data}
 	end.
 
 %% @hidden
-content_type_available(Headers, Body, ModData) ->
+content_type_available(Headers, Body, Resource, ModData) ->
 	case lists:keyfind("accept", 1, Headers) of
 		{_, RequestingType} ->
-			AvailableTypes = ocs_rest_res_subscriber:content_types_provided(),
+			AvailableTypes = Resource:content_types_provided(),
 			case lists:member(RequestingType, AvailableTypes) of
 				true ->
-					case ocs_rest_res_subscriber:add_subscriber(Body) of
+					case Resource:add_subscriber(Body) of
 						{error, ErrorCode} ->
 							{break, [{response,	{ErrorCode, "</h2>Erroneous Request</h2>"}}]};
 						{Location, ResponseBody} ->

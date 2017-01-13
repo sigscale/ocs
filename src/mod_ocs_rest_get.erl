@@ -49,19 +49,20 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 				data = Data} = _ModData) ->
 	case Method of
 		"GET" ->
-			content_type_available(Headers, Uri);
+			{_, Resource} = lists:keyfind(resource, 1, Data),
+			content_type_available(Headers, Uri, Resource);
 		_ ->
 			{proceed, Data}
 	end.
 
 %% @hidden
-content_type_available(Headers, Uri) ->
+content_type_available(Headers, Uri, Resource) ->
 	case lists:keyfind("accept", 1, Headers) of
 		{_, RequestingType} ->
-			AvailableTypes = ocs_rest_res_subscriber:content_types_provided(),
+			AvailableTypes = Resource:content_types_provided(),
 			case lists:member(RequestingType, AvailableTypes) of
 				true ->
-					do_get(Uri);
+					do_get(Uri, Resource);
 				false ->
 					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
 					{break, [{response, {415, Response}}]}
@@ -72,17 +73,17 @@ content_type_available(Headers, Uri) ->
 	end.
 
 %% @hidden
-do_get(Uri) ->
+do_get(Uri, Resource) ->
 	case string:tokens(Uri, "/") of
-		["ocs", "v1", "subscriber"] ->
-			case ocs_rest_res_subscriber:find_subscribers() of
+		["ocs", "v1", _] ->
+			case Resource:find_subscribers() of
 				{body, Body} ->
 					{break, [{response, {200, Body}}]};
 				{error, ErrorCode} ->
 					{break, [{response, {ErrorCode, "<h1>Not Found</h1>"}}]}
 			end;
-		["ocs", "v1", "subscriber", Identity] ->
-			case ocs_rest_res_subscriber:find_subscriber(Identity) of
+		["ocs", "v1", _, Identity] ->
+			case Resource:find_subscriber(Identity) of
 				{body, Body} ->
 					{break, [{response, {200, Body}}]};
 				{error, ErrorCode} ->
@@ -91,3 +92,4 @@ do_get(Uri) ->
 		_ ->
 			{break, [{response, {404, "<h1>NOT FOUND</h1>"}}]}
 end.
+

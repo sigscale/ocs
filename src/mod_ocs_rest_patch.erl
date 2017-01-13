@@ -49,19 +49,20 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 				entity_body = Body, data = Data} = ModData) ->
 	case Method of
 		"PATCH" ->
-			content_type_available(Headers, Body, Uri, ModData);
+			{_, Resource} = lists:keyfind(resource, 1, Data),
+			content_type_available(Headers, Body, Uri, Resource, ModData);
 		_ ->
 			{proceed, Data}
 	end.
 
 %% @hidden
-content_type_available(Headers, Body, Uri, ModData) ->
+content_type_available(Headers, Body, Uri, Resource, ModData) ->
 	case lists:keyfind("accept", 1, Headers) of
 		{_, RequestingType} ->
-			AvailableTypes = ocs_rest_res_subscriber:content_types_provided(),
+			AvailableTypes = Resource:content_types_provided(),
 			case lists:member(RequestingType, AvailableTypes) of
 				true ->
-					do_patch(Uri, Body, ModData);
+					do_patch(Uri, Body, Resource, ModData);
 				false ->
 					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
 					{break, [{response, {415, Response}}]}
@@ -72,10 +73,10 @@ content_type_available(Headers, Body, Uri, ModData) ->
 	end.
 
 %% @hidden
-do_patch(Uri, Body, ModData) ->
+do_patch(Uri, Body, Resource, ModData) ->
 	case string:tokens(Uri, "/") of
-		["ocs", "v1", "subscriber", Identity] ->
-			case ocs_rest_res_subscriber:update_subscriber(Identity, Body) of
+		["ocs", "v1", _, Identity] ->
+			case Resource:update_subscriber(Identity, Body) of
 				{error, ErrorCode} ->
 					{break, [{response,	{ErrorCode, "<h1>Not Found</h1>"}}]};
 				{body, RespBody} ->

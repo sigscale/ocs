@@ -48,9 +48,10 @@
 do(#mod{method = Method, request_uri = Uri, data = Data} = _ModData) ->
 	case Method of
 		"DELETE" ->
+			{_, Resource} = lists:keyfind(resource, 1, Data),
 			case string:tokens(Uri, "/") of
-				["ocs", "v1", "subscriber", Identity] ->
-					ocs_rest_res_subscriber:delete_subscriber(Identity),
+				["ocs", "v1", _, Identity] ->
+					Resource:delete_subscriber(Identity),
 					{break, [{response,	{204, "<h2>No Content</h2>"}}]};
 				_ ->	
 					{break, [{response,	{404, "<h1>NOT FOUND</h1>"}}]}
