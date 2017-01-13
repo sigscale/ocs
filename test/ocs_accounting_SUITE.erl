@@ -99,6 +99,8 @@ radius_accouting() ->
 radius_accouting(Config) ->
 	Id = 1,
 	PeerID = list_to_binary(?config(peer_id, Config)),
+	{ok, AcctAddress} = application:get_env(ocs, radius_acct_addr),
+	{ok, AcctPort} = application:get_env(ocs, radius_acct_port),
 	{ok, AuthAddress} = application:get_env(ocs, radius_auth_addr),
 	{ok, AuthPort} = application:get_env(ocs, radius_auth_port),
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, AuthAddress}, binary]), 
@@ -229,8 +231,6 @@ radius_accouting(Config) ->
 	{ok, SucEAPPacket} = radius_attributes:find(?EAPMessage, SucReqAtt),
 	#eap_packet{code = success, identifier = _EAPId} =
 		ocs_eap_codec:eap_packet(SucEAPPacket),
-	AcctAddress = {127,0,0,1},
-	AcctPort = 9913,
 	RADAcct_ReqId = 1,
 	RADAcct_ReqAuth = radius:authenticator(),
 	RADAcctAttributes0 = radius_attributes:new(),
@@ -272,6 +272,8 @@ disconnect_session() ->
 disconnect_session(Config) ->
 	Id = 1,
 	PeerID = list_to_binary(?config(peer_id, Config)),
+	{ok, AcctAddress} = application:get_env(ocs, radius_acct_addr),
+	{ok, AcctPort} = application:get_env(ocs, radius_acct_port),
 	{ok, AuthAddress} = application:get_env(ocs, radius_auth_addr),
 	{ok, AuthPort} = application:get_env(ocs, radius_auth_port),
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, AuthAddress}, binary]), 
@@ -402,8 +404,6 @@ disconnect_session(Config) ->
 	{ok, SucEAPPacket} = radius_attributes:find(?EAPMessage, SucReqAtt),
 	#eap_packet{code = success, identifier = _EAPId} =
 		ocs_eap_codec:eap_packet(SucEAPPacket),
-	AcctAddress = {127,0,0,1},
-	AcctPort = 9913,
 	RADAcct_ReqId = 1,
 	RADAcct_ReqAuth = radius:authenticator(),
 	RADAcctAttributes0 = radius_attributes:new(),
