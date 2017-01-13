@@ -443,8 +443,6 @@ client_cipher({#radius{code = ?AccessRequest, id = RadiusID,
 		case ocs_eap_codec:eap_ttls(TtlsData) of
 			#eap_ttls{more = false, message_len = undefined,
 					start = false, data = Data} when RxLength == undefined ->
-				BinTtlsData = iolist_to_binary([RxBuf, Data]),
-				%client_cipher1(BinTtlsData, NewStateData),
 				ocs_eap_tls_transport:deliver(SslPid, self(), [RxBuf, Data]),
 				NextStateData = NewStateData#statedata{rx_buf = [],
 						rx_length = undefined},
@@ -452,8 +450,6 @@ client_cipher({#radius{code = ?AccessRequest, id = RadiusID,
 			#eap_ttls{more = false, message_len = undefined,
 					start = false, data = Data} ->
 				RxLength = iolist_size([RxBuf, Data]),
-				BinTtlsData = iolist_to_binary([RxBuf, Data]),
-				%client_cipher1(BinTtlsData, NewStateData),
 				ocs_eap_tls_transport:deliver(SslPid, self(), [RxBuf, Data]),
 				NextStateData = NewStateData#statedata{rx_buf = [],
 						rx_length = undefined},
@@ -487,22 +483,6 @@ client_cipher({#radius{code = ?AccessRequest, id = RadiusID,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, NewStateData}
 	end.
-%% @hidden
-% client_cipher1(<<?Handshake, _:16, Length:16,
-% 		?ClientKeyExchange, TtlsRecords/binary>>, StateData) ->
-% 	Size = Length - 1,
-% 	<<Chunk:Size/binary, Rest/binary>> = TtlsRecords,
-% 	client_cipher1(Rest, StateData);
-% client_cipher1(<<?ChangeCipherSpec, _:16, Length:16, TtlsRecords/binary>>,
-% 		StateData) ->
-% 	<<_Chunk:Length/binary, Rest/binary>> = TtlsRecords,
-% 	client_cipher1(Rest, StateData);
-% client_cipher1(<<?Handshake, _:16, Length:16, ?Finished, TtlsRecords/binary>>, StateData) ->
-% 	Size = Length - 1,
-% 	<<_Chunk:Size/binary, Rest/binary>> = TtlsRecords,
-% 	client_cipher1(Rest, StateData);
-% client_cipher1(<<>>, _StateData) ->
-% 	ok.
 
 -spec server_cipher(Event :: timeout | term(), StateData :: #statedata{}) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
