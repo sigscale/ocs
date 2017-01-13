@@ -795,11 +795,11 @@ encrypt_key(Secret, RequestAuthenticator, Salt, Key) when (Salt bsr 15) == 1 ->
 
 -dialyzer({[nowarn_function, no_contracts, no_return], prf/5}).
 %% ssl:prf/5 includes an incorrect type specification for Seed!
--spec prf(SslSocket, Secret, Lable, Seed, WantedLength) ->
+-spec prf(SslSocket, Secret, Label, Seed, WantedLength) ->
 	{ok, MSK, EMSK} | {error, Reason} when
 		SslSocket :: ssl:ssl_socket(),
 		Secret :: binary() | master_secret,
-		Lable :: binary(),
+		Label :: binary(),
 		Seed :: [binary() | ssl:prf_random()],
 		WantedLength :: non_neg_integer(),
 		MSK :: binary(),
@@ -807,8 +807,8 @@ encrypt_key(Secret, RequestAuthenticator, Salt, Key) when (Salt bsr 15) == 1 ->
 		Reason :: term().
 %% @doc Use the Pseudo-Random Function (PRF) of a TLS session
 %%	to generate extra key material.
-prf(SslSocket, Secret, Lable, Seed, WantedLength) when is_list(Seed) ->
-	case catch ssl:prf(SslSocket, Secret, Lable, Seed, WantedLength) of
+prf(SslSocket, Secret, Label, Seed, WantedLength) when is_list(Seed) ->
+	case catch ssl:prf(SslSocket, Secret, Label, Seed, WantedLength) of
 		{ok, <<MSK:64/binary, EMSK:64/binary>>} ->
 			{MSK, EMSK};
 		{'EXIT', _Reason} -> % fake dialyzer out
