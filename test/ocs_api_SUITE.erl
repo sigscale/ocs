@@ -83,7 +83,7 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[client, subscriber, update_password, update_attributes,
+	[client, delete_client, subscriber, update_password, update_attributes,
 	delete_subscriber].
 
 %%---------------------------------------------------------------------
@@ -99,6 +99,16 @@ client(Config) ->
 	ok = ocs:add_client(Address, SharedSecret),
 	{ok, BinSharedSecret} = ocs:find_client(Address),
 	SharedSecret = binary_to_list(BinSharedSecret).
+
+delete_client() ->
+	[{userdata, [{doc, "Delete  a radius_client from database"}]}].
+
+delete_client(Config) ->
+	{ok, Address} = application:get_env(ocs, radius_auth_addr),
+	SharedSecret = ct:get_config(radius_shared_secret, Config),
+	ok = ocs:add_client(Address, SharedSecret),
+	ok = ocs:delete_client(Address),
+	{error, not_found} = ocs:find_client(Address).
 
 subscriber() ->
 	[{userdata, [{doc, "Add subscriber to database"}]}].
