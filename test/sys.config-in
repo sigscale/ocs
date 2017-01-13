@@ -1,5 +1,6 @@
 [{ocs,
-      [{radius_auth_port, 9912}, {radius_acct_port, 9913}]},
+      [{radius_auth_port, 9912}, {radius_acct_port, 9913},
+		{rest_port, 8888}]},
 {inets,
       [{services,
          [{httpd,
