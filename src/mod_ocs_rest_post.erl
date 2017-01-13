@@ -62,7 +62,7 @@ content_type_available(Headers, Body, Resource, ModData) ->
 			AvailableTypes = Resource:content_types_provided(),
 			case lists:member(RequestingType, AvailableTypes) of
 				true ->
-					case Resource:add_subscriber(Body) of
+					case Resource:perform_post(Body) of
 						{error, ErrorCode} ->
 							{break, [{response,	{ErrorCode, "</h2>Erroneous Request</h2>"}}]};
 						{Location, ResponseBody} ->

@@ -22,11 +22,11 @@
 
 -export([content_types_accepted/0,
 				content_types_provided/0,
-				find_subscriber/1,
-				find_subscribers/0,
-				add_subscriber/1,
-				update_subscriber/2,
-				delete_subscriber/1]).
+				perform_get/1,
+				perform_get_all/0,
+				perform_post/1,
+				perform_patch/2,
+				perform_delete/1]).
 
 %% @headerfile "include/radius.hrl"
 -include_lib("radius/include/radius.hrl").
@@ -46,11 +46,11 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json", "application/hal+json"].
 
--spec find_subscriber(Identity :: string()) ->
+-spec perform_get(Identity :: string()) ->
 	{body, Body :: iolist()} | {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/subscriber/{identity}'
 %% requests.
-find_subscriber(Identity) ->
+perform_get(Identity) ->
 	case ocs:find_subscriber(Identity) of
 		{ok, PWBin, Attributes, Balance, Enabled} ->
 			Password = binary_to_list(PWBin),
@@ -65,21 +65,21 @@ find_subscriber(Identity) ->
 			{error, 404}
 	end.
 
--spec find_subscribers() ->
+-spec perform_get_all() ->
 	{body, Body :: iolist()} | {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/subscriber'
 %% requests.
-find_subscribers() ->
+perform_get_all() ->
 	case ocs:get_subscribers() of
 		{error, _} ->
 			{error, 404};
 		Subscribers ->
-			Response = find_subscribers1(Subscribers),
+			Response = perform_get_all1(Subscribers),
 			Body  = mochijson:encode(Response),
 			{body, Body}
 	end.
 %% @hidden
-find_subscribers1(Subscribers) ->
+perform_get_all1(Subscribers) ->
 			F = fun(#subscriber{name = Identity, password = Password,
 					attributes = Attributes, balance = Balance, enabled = Enabled}, Acc) ->
 				JSAttributes = radius_to_json(Attributes),
@@ -92,12 +92,12 @@ find_subscribers1(Subscribers) ->
 			JsonObj = lists:foldl(F, [], Subscribers),
 			{array, JsonObj}.
 
--spec add_subscriber(RequestBody :: list()) ->
+-spec perform_post(RequestBody :: list()) ->
 	{Location :: string(), Body :: iolist()}
 	| {error, ErrorCode :: integer()}.
 %% @doc Respond to `POST /ocs/v1/subscriber' and add a new `subscriber'
 %% resource.
-add_subscriber(RequestBody) ->
+perform_post(RequestBody) ->
 	try 
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, Identity} = lists:keyfind("subscriber", 1, Object),
@@ -106,13 +106,13 @@ add_subscriber(RequestBody) ->
 		RadAttributes = json_to_radius(AttrJs),
 		{_, BalStr} = lists:keyfind("balance", 1, Object),
 		{Balance , _}= string:to_integer(BalStr),
-		add_subscriber1(Identity, Password, RadAttributes, Balance)
+		perform_post1(Identity, Password, RadAttributes, Balance)
 	catch
 		_Error ->
 			{error, 400}
 	end.
 %% @hidden
-add_subscriber1(Identity, Password, RadAttributes, Balance) ->
+perform_post1(Identity, Password, RadAttributes, Balance) ->
 	try
 	case catch ocs:add_subscriber(Identity, Password, RadAttributes, Balance) of
 		ok ->
@@ -130,11 +130,11 @@ add_subscriber1(Identity, Password, RadAttributes, Balance) ->
 			{error, 400}
 	end.
 
--spec update_subscriber(Identity :: list(), ReqBody :: list()) ->
+-spec perform_patch(Identity :: list(), ReqBody :: list()) ->
 	{body, Body :: iolist()} | {error, ErrorCode :: integer()} .
 %% @doc	Respond to `PATCH /ocs/v1/subscriber/{identity}' request and
 %% Updates a existing `subscriber''s password or attributes. 
-update_subscriber(Identity, ReqBody) ->
+perform_patch(Identity, ReqBody) ->
 	case ocs:find_subscriber(Identity) of
 		{ok, CurrentPwd, CurrentAttr, Bal, Enabled} ->
 			try 
@@ -165,11 +165,11 @@ update_subscriber(Identity, ReqBody) ->
 			{error, 404}
 	end.
 
--spec delete_subscriber(Identity :: list()) ->
+-spec perform_delete(Identity :: list()) ->
 	ok .
 %% @doc Respond to `DELETE /ocs/v1/subscriber/{identity}' request and deletes
 %% a `subscriber' resource. If the deletion is succeeded return true.
-delete_subscriber(Identity) ->
+perform_delete(Identity) ->
 	ok = ocs:delete_subscriber(Identity),
 	ok.
 

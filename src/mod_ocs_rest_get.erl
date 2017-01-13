@@ -76,14 +76,14 @@ content_type_available(Headers, Uri, Resource) ->
 do_get(Uri, Resource) ->
 	case string:tokens(Uri, "/") of
 		["ocs", "v1", _] ->
-			case Resource:find_subscribers() of
+			case Resource:perform_get_all() of
 				{body, Body} ->
 					{break, [{response, {200, Body}}]};
 				{error, ErrorCode} ->
 					{break, [{response, {ErrorCode, "<h1>Not Found</h1>"}}]}
 			end;
 		["ocs", "v1", _, Identity] ->
-			case Resource:find_subscriber(Identity) of
+			case Resource:perform_get(Identity) of
 				{body, Body} ->
 					{break, [{response, {200, Body}}]};
 				{error, ErrorCode} ->

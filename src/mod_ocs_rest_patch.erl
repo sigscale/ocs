@@ -76,7 +76,7 @@ content_type_available(Headers, Body, Uri, Resource, ModData) ->
 do_patch(Uri, Body, Resource, ModData) ->
 	case string:tokens(Uri, "/") of
 		["ocs", "v1", _, Identity] ->
-			case Resource:update_subscriber(Identity, Body) of
+			case Resource:perform_patch(Identity, Body) of
 				{error, ErrorCode} ->
 					{break, [{response,	{ErrorCode, "<h1>Not Found</h1>"}}]};
 				{body, RespBody} ->

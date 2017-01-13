@@ -22,10 +22,10 @@
 
 -export([content_types_accepted/0,
 				content_types_provided/0,
-				find_client/1,
+				perform_get/1,
 				%find_clients/0,
-				add_client/1,
-				delete_client/1]).
+				perform_post/1,
+				perform_delete/1]).
 
 %% @headerfile "include/radius.hrl"
 -include_lib("radius/include/radius.hrl").
@@ -45,19 +45,19 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json", "application/hal+json"].
 
--spec find_client(Ip :: string()) ->
+-spec perform_get(Ip :: string()) ->
 	{body, Body :: iolist()} | {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/client/{address}'
 %% requests.
-find_client(Ip) ->
+perform_get(Ip) ->
 	case inet:parse_address(Ip) of
 		{ok, Address} ->
-			find_client1(Address);
+			perform_get1(Address);
 		{error, einval} ->
 			{error, 400}
 	end.
 %% @hidden
-find_client1(Address) ->
+perform_get1(Address) ->
 	case ocs:find_client(Address) of
 		{ok, Secret} ->
 			Id = inet:ntoa(Address),
@@ -69,23 +69,23 @@ find_client1(Address) ->
 			{error, 404}
 	end.
 
--spec add_client(RequestBody :: list()) ->
+-spec perform_post(RequestBody :: list()) ->
 	{Location :: string(), Body :: iolist()}
 	| {error, ErrorCode :: integer()}.
 %% @doc Respond to `POST /ocs/v1/client' and add a new `client'
 %% resource.
-add_client(RequestBody) ->
+perform_post(RequestBody) ->
 	try 
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, Id} = lists:keyfind("id", 1, Object),
 		{_, Secret} = lists:keyfind("secret", 1, Object),
-		add_client1(Id, Secret)
+		perform_post1(Id, Secret)
 	catch
 		_Error ->
 			{error, 400}
 	end.
 %% @hidden
-add_client1(Id, Secret) ->
+perform_post1(Id, Secret) ->
 	try
 	case catch ocs:add_client(Id, Secret) of
 		ok ->
@@ -101,11 +101,11 @@ add_client1(Id, Secret) ->
 			{error, 400}
 	end.
 
--spec delete_client(Ip :: list()) ->
+-spec perform_delete(Ip :: list()) ->
 	ok .
 %% @doc Respond to `DELETE /ocs/v1/client/{address}' request and deletes
 %% a `client' resource. If the deletion is succeeded return true.
-delete_client(Ip) ->
+perform_delete(Ip) ->
 	{ok, Address} = inet:parse_address(Ip), 
 	ok = ocs:delete_client(Address),
 	ok.
