@@ -315,8 +315,9 @@ client_hello({#radius{code = ?AccessRequest, id = RadiusID,
 %% TLS Record - <<ContentType, Version:16, Length:16, ProtocolMessage>>
 %% ProtocolMessage - <<MessageType, Length:24, ClientHelloMessage>>
 %% RFC 5246 Section 7.4.1.2
-%% ClientHelloMessage - <<ProtocolVersion:16, Gmt_unix_time:32, ClientRand:28,
-%%		SessionID, CipherSuite, CompressionMethod, ..>>
+%% ClientHelloMessage -
+%% <<ProtocolVersion:16, Gmt_unix_time:32, ClientRand:28/binary,
+%%	SessionID, CipherSuite, CompressionMethod, ..>>
 client_hello1(<<?Handshake, _:32, ?ClientHello, _:40,
 		ClientRand:32/binary, _/binary>>, StateData) ->
 	StateData#statedata{client_rand = ClientRand}.
@@ -340,9 +341,10 @@ server_hello(timeout, StateData) ->
 %% TLS Record - <<ContentType, Version:16, Length:16, ProtocolMessage>>
 %% ProtocolMessage - <<MessageType, Length:24, ServeHelloMessage>>
 %% RFC 5246 Section 7.4.1.3
-%% ServerHelloMessage - <<ProtocolVersion:16, Gmt_unix_time:32, ServerRand:28,
-%%		SessionID, CipherSuite, CompressionMethod, ..>>
-server_hello({eap_tls, _SslPid,
+%% ServerHelloMessage -
+%% <<ProtocolVersion:16, Gmt_unix_time:32, ServerRand:28/binary,
+%% SessionID, CipherSuite, CompressionMethod, ..>>
+server_hello({eap_ttls, _SslPid,
 		[<<?Handshake, _:32>>, [[?ServerHello, _,
 		<<_:16, ServerRand:32/binary, _/binary>>] | _]] = Data},
 		#statedata{tx_buf = TxBuf} = StateData) ->
