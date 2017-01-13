@@ -344,7 +344,7 @@ server_hello(timeout, StateData) ->
 %% ServerHelloMessage -
 %% <<ProtocolVersion:16, Gmt_unix_time:32, ServerRand:28/binary,
 %% SessionID, CipherSuite, CompressionMethod, ..>>
-server_hello({eap_ttls, _SslPid,
+server_hello({eap_tls, _SslPid,
 		[<<?Handshake, _:32>>, [[?ServerHello, _,
 		<<_:16, ServerRand:32/binary, _/binary>>] | _]] = Data},
 		#statedata{tx_buf = TxBuf} = StateData) ->
