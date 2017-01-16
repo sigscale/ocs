@@ -45,18 +45,31 @@
 	Fun :: fun((Arg) -> sent| close | Body),
 	Arg :: [term()].
 %% @doc Erlang web server API callback function.
-do(#mod{method = Method, request_uri = Uri, data = Data} = _ModData) ->
+do(#mod{method = Method, request_uri = Uri, data = Data} = ModData) ->
 	case Method of
 		"DELETE" ->
 			{_, Resource} = lists:keyfind(resource, 1, Data),
 			case string:tokens(Uri, "/") of
 				["ocs", "v1", _, Identity] ->
 					Resource:perform_delete(Identity),
-					{break, [{response,	{204, "<h2>No Content</h2>"}}]};
-				_ ->	
+					send_response(ModData, []);
+				_ ->
 					{break, [{response,	{404, "<h1>NOT FOUND</h1>"}}]}
 			end;
 		_ ->
 			{proceed, Data}
 	end.
+
+%% @hidden
+send_response(ModData, ResponseBody)->
+	    Size = integer_to_list(iolist_size(ResponseBody)),
+	    Headers = [{content_length, Size}],
+	    send(ModData, 204, Headers, ResponseBody),
+	    {proceed,[{response,{already_sent,201, Size}}]}.
+
+%% @hidden
+send(#mod{socket = Socket, socket_type = SocketType} = ModData,
+     StatusCode, Headers, ResponseBody) ->
+    httpd_response:send_header(ModData, StatusCode, Headers),
+    httpd_socket:deliver(SocketType, Socket, ResponseBody).
 
