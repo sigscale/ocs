@@ -16,10 +16,10 @@
 ## Building
 
 	1. Once bower is installed, go to directory where bower.json is located.
-	$ cd $OCS_ROOT_DIRECTORY/frontend
+	$ cd $OCS_ROOT_DIRECTORY/priv/www/
 
 	2. Install all the required polymer dependencies with following command. This will save
-	all the dependencies in $OCS_ROOT_DIRECTORY/frontend/bower_components directory.
+	all the dependencies in $OCS_ROOT_DIRECTORY/priv/www/bower_components directory.
 	$ bower install
 
 
