@@ -46,23 +46,23 @@
 	Arg :: [term()].
 %% @doc Erlang web server API callback function.
 do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
-				data = Data} = _ModData) ->
+				data = Data} = ModData) ->
 	case Method of
 		"GET" ->
 			{_, Resource} = lists:keyfind(resource, 1, Data),
-			content_type_available(Headers, Uri, Resource);
+			content_type_available(Headers, Uri, Resource, ModData);
 		_ ->
 			{proceed, Data}
 	end.
 
 %% @hidden
-content_type_available(Headers, Uri, Resource) ->
+content_type_available(Headers, Uri, Resource, ModData) ->
 	case lists:keyfind("accept", 1, Headers) of
 		{_, RequestingType} ->
 			AvailableTypes = Resource:content_types_provided(),
 			case lists:member(RequestingType, AvailableTypes) of
 				true ->
-					do_get(Uri, Resource);
+					do_get(Uri, Resource, ModData);
 				false ->
 					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
 					{break, [{response, {415, Response}}]}
@@ -73,23 +73,36 @@ content_type_available(Headers, Uri, Resource) ->
 	end.
 
 %% @hidden
-do_get(Uri, Resource) ->
+do_get(Uri, Resource, ModData) ->
 	case string:tokens(Uri, "/") of
 		["ocs", "v1", _] ->
 			case Resource:perform_get_all() of
 				{body, Body} ->
-					{break, [{response, {200, Body}}]};
+					send_response(Body, ModData);
 				{error, ErrorCode} ->
 					{break, [{response, {ErrorCode, "<h1>Not Found</h1>"}}]}
 			end;
 		["ocs", "v1", _, Identity] ->
 			case Resource:perform_get(Identity) of
 				{body, Body} ->
-					{break, [{response, {200, Body}}]};
+					send_response(Body, ModData);
 				{error, ErrorCode} ->
 					{break, [{response, {ErrorCode, "<h1>Not Found</h1>"}}]}
 			end;
 		_ ->
 			{break, [{response, {404, "<h1>NOT FOUND</h1>"}}]}
 end.
+
+%% @hidden
+send_response(ResponseBody, ModData) ->
+	Size = integer_to_list(iolist_size(ResponseBody)),
+	Headers = [{content_length, Size}],
+	send(ModData, 201, Headers, ResponseBody),
+	{proceed,[{response,{already_sent,201, Size}}]}.
+
+%% @hidden
+send(#mod{socket = Socket, socket_type = SocketType} = ModData,
+     StatusCode, Headers, ResponseBody) ->
+    httpd_response:send_header(ModData, StatusCode, Headers),
+    httpd_socket:deliver(SocketType, Socket, ResponseBody).
 
