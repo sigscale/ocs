@@ -13,7 +13,6 @@
                {document_root, "%APP_PRIV%/www"}]},
          {httpd,
             [{server_name, "frontend"},
-               {modules, []},
                {port, 8080},
                {server_root, "."},
                {document_root, "%APP_PRIV%/www"}]}]}]}].
