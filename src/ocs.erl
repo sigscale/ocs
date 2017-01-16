@@ -168,7 +168,7 @@ add_subscriber(Subscriber, Password, Attributes, Balance)
 	Result :: {ok, Password :: binary(),
 			Attributes :: radius_attributes:attributes(),
 			Balance :: integer()} | {error, Reason :: not_found | term()}.
-%% @doc Look up an entry in the subscriber tabe.
+%% @doc Look up an entry in the subscriber table.
 find_subscriber(Subscriber) when is_list(Subscriber) ->
 	find_subscriber(list_to_binary(Subscriber));
 find_subscriber(Subscriber) when is_binary(Subscriber) ->
@@ -187,6 +187,7 @@ find_subscriber(Subscriber) when is_binary(Subscriber) ->
 
 -spec get_subscribers() -> Result :: [#subscriber{}] |
 	{error, Reason :: term()}.
+%% @doc Get all entires in the subscriber table.
 get_subscribers()->
 	F1 = fun(Sub, Acc)->  [Sub | Acc] end,
 	F2 = fun()-> mnesia:foldl(F1, [], subscriber) end,
