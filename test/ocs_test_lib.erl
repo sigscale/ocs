@@ -28,8 +28,7 @@ initialize_db() ->
 	end.
 
 start() ->
-	start([crypto, asn1, public_key, ssl, inets, compiler,
-			syntax_tools, xmerl, mochiweb, webmachine, radius, ocs]).
+	start([crypto, asn1, public_key, ssl, inets, radius, ocs]).
 
 start([H | T]) ->
 	case application:start(H) of
