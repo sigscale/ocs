@@ -8,7 +8,7 @@
                {modules, [mod_ocs_rest_accepted_content,
                      mod_ocs_rest_get, mod_ocs_rest_post,
                      mod_ocs_rest_patch, mod_ocs_rest_delete]},
-               {port, 8090},
+               {port, 8888},
                {server_root, "."},
                {document_root, "%APP_PRIV%/www"}]},
          {httpd,
