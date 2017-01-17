@@ -31,6 +31,7 @@ modhtml = ocs.html \
 			ocs_eap_tls_transport.html
 			ocs_rest_res_subscriber.html \
 			ocs_rest_res_client.html \
+			mod_ocs_rest_dispatcher.html \
 			mod_ocs_rest_accepted_content.html \
 			mod_ocs_rest_delete.html \
 			mod_ocs_rest_get.html \
