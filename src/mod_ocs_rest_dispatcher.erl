@@ -48,11 +48,11 @@
 do(#mod{request_uri = Uri, data = Data} = ModData) ->
 	case string:tokens(Uri, "/") of
 		["ocs", "v1", _Resource] ->
-			dispatch(ModData);
+			{proceed, Data};
 		["ocs", "v1", _Resource, _Identity] ->
-			dispatch(ModData);
+			{proceed, Data};
 		_ ->
-			{proceed, Data}
+			dispatch(ModData)
 end.
 
 %% @hidden
@@ -66,6 +66,7 @@ send_response(_Socket, _SockType, Path, #mod{config_db = ConfigDb,
 		data = Data} = ModData) ->
 	case file:open(Path,[raw,binary]) of
 		{ok, FileDescriptor} ->
+			{ok, FileContent} = file:read_file(Path),
 			{FileInfo, LastModified} = get_modification_date(Path),
 			Suffix = httpd_util:suffix(Path),
 			MimeType = httpd_util:lookup_mime_default(ConfigDb, Suffix, "text/plain"),
@@ -73,10 +74,9 @@ send_response(_Socket, _SockType, Path, #mod{config_db = ConfigDb,
 			Headers = [{content_type, MimeType},
 					{etag, httpd_util:create_etag(FileInfo)},
 					{content_length, Size}|LastModified],
-			send(ModData, 200, Headers, FileDescriptor),
+			send(ModData, 200, Headers, FileContent),
 			file:close(FileDescriptor),
-			{proceed,[{response,{already_sent,200,
-			FileInfo#file_info.size}},
+			{proceed,[{response, {already_sent,200, FileInfo#file_info.size}},
 			{mime_type,MimeType} | Data]};
 		{error, Reason} ->
 			Status = httpd_file:handle_error(Reason, "open", ModData, Path),
