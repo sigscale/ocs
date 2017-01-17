@@ -286,7 +286,7 @@ access_request(Address, Port, Secret,
 				end
 		end
 	catch
-		_:R ->
+		_:_ ->
 			{reply, {error, ignore}, State}
 	end.
 

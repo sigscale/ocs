@@ -167,11 +167,11 @@ handle_info({ssl, SslSocket, AVPs}, request,
 			
 	end;
 handle_info({ssl_closed, SslSocket}, request, #statedata{ssl_socket = SslSocket,
-		ttls_fsm = TtlsFsm} = StateData) ->
+		ttls_fsm = _TtlsFsm} = StateData) ->
 	%gen_fsm:send_event(RadiusFsm, {reject, SslSocket, socket_closed}),
 	{stop, shutdown, StateData};
 handle_info({ssl_error, SslSocket, Reason}, request, #statedata{ssl_socket = SslSocket,
-		ttls_fsm = TtlsFsm} = StateData) ->
+		ttls_fsm = _TtlsFsm} = StateData) ->
 	%gen_fsm:send_event(RadiusFsm, {reject, SslSocket, Reason}),
 	{stop, Reason, StateData}.
 %% @hidden

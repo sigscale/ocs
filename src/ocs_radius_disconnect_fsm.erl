@@ -221,12 +221,7 @@ handle_info({udp, _, NasIp, NasPort, Packet}, _StateName, #statedata{id = Id,
 						ok
 				end
 			end,
-			case mnesia:transaction(F) of
-				{atomic, ok} ->
-					{stop, shutdown, StateData};
-				{aborted, _Reason} ->
-					{stop, shutdown, StateData}
-			end;
+			mnesia:transaction(F);
 		#radius{code = ?DisconnectNak, id = Id, attributes = Attrbin} ->
 			Attr = radius_attributes:codec(Attrbin),
 			case radius_attributes:find(?ErrorCause, Attr) of
@@ -235,7 +230,8 @@ handle_info({udp, _, NasIp, NasPort, Packet}, _StateName, #statedata{id = Id,
 							{server, NasIp}, {port, NasPort},
 							{error, radius_attributes:error_cause(ErrorCause)}]);
 				{error, not_found} ->
-					{stop, shutdown, StateData}
+					error_logger:error_report(["Failed to disconnect subscriber session on",
+							{server, NasIp}, {port, NasPort}])
 			end
 	end,
 	{stop, shutdown, StateData}.

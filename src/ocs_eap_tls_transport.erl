@@ -111,7 +111,7 @@ setopts(TlsFsm, Options) when is_pid(TlsFsm) ->
 	case proplists:get_value(active, Options) of
 		undefined ->
 			ok;
-		Active ->
+		_Active ->
 			% TlsFsm ! {ssl_setopts, Options},
 			ok
 	end.
@@ -123,7 +123,7 @@ setopts(TlsFsm, Options) when is_pid(TlsFsm) ->
       OptionValues :: [eap_option()],
 		Reason :: term().
 %% @doc Gets one or more options for an EAP session.
-getopts(TlsFsm, Options) when is_pid(TlsFsm) ->
+getopts(TlsFsm, _Options) when is_pid(TlsFsm) ->
 	{ok, []}.
 
 -spec listen(TlsFsm, Options) ->
@@ -132,7 +132,7 @@ getopts(TlsFsm, Options) when is_pid(TlsFsm) ->
 		Options :: [listen_option()],
 		Reason :: term().
 %% @doc Listen on an EAP session.
-listen(TlsFsm, Options) when is_pid(TlsFsm) ->
+listen(TlsFsm, _Options) when is_pid(TlsFsm) ->
 	{ok, TlsFsm}.
 
 -spec accept(TlsFsm, Timeout) ->
@@ -141,7 +141,7 @@ listen(TlsFsm, Options) when is_pid(TlsFsm) ->
 		Timeout :: timeout(),
 		Reason :: term().
 %% @doc Accepts an incoming connection request on a listen socket. 
-accept(TlsFsm, Timeout) when is_pid(TlsFsm) ->
+accept(TlsFsm, _Timeout) when is_pid(TlsFsm) ->
 	{ok, TlsFsm}.
 
 -spec shutdown(TlsFsm, How) ->
@@ -150,7 +150,7 @@ accept(TlsFsm, Timeout) when is_pid(TlsFsm) ->
 		How :: read | write | read_write,
 		Reason :: term().
 %% @doc Close an EAP session in one or two directions.
-shutdown(TlsFsm, How) when is_pid(TlsFsm) ->
+shutdown(TlsFsm, _How) when is_pid(TlsFsm) ->
 	ok.
 
 -spec close(TlsFsm) ->
