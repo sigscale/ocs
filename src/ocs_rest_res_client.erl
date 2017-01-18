@@ -85,7 +85,7 @@ perform_get_all() ->
 %% @hidden
 perform_get_all1(Clients) ->
 	F = fun(#radius_client{address= Address, secret = Secret}, Acc) ->
-		RespObj = [{struct, [{address, inet:ntoa(Address)}, {secret, Secret}]}],
+		RespObj = [{struct, [{id, inet:ntoa(Address)}, {secret, Secret}]}],
 		RespObj ++ Acc
 	end,
 	JsonObj = lists:foldl(F, [], Clients),
