@@ -43,11 +43,11 @@ check_DATA = .dialyzer_ok .common_test_ok
 				-keyout CAkey.pem -out CAcert.pem; \
 		openssl req -newkey rsa:2048 -nodes \
 				-subj /C=CA/ST=Ontario/L=Toronto/O=Example/CN=$$(hostname)\/emailAddress=support@$$(hostname) \
-				-keyout ct-key.pem -out ct-cert.csr; \
+				-keyout key.pem -out cert.csr; \
 		echo "extendedKeyUsage = serverAuth" > extensions; \
 		echo "subjectAltName = DNS:$$(hostname)" >> extensions; \
 		openssl x509 -req -CA CAcert.pem -CAkey CAkey.pem -CAcreateserial \
-				-extfile extensions -in ct-cert.csr -out ct-cert.pem)
+				-extfile extensions -in cert.csr -out cert.pem)
 	ct_run -no_auto_compile -pa $(top_builddir)/ebin -logdir log -config ct.cfg -spec test.spec -dir . -erl_args -config sys -sname $(LOGNAME)-ct
 
 sys.config:	$(top_srcdir)/test/sys.config-in
