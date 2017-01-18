@@ -14,7 +14,8 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%  Test suite for the ocs API.
+%%%  @doc Test suite for EAP encoding/decoding (CODEC) functions
+%%% 	of the {@link //ocs. ocs} application.
 %%%
 -module(ocs_codec_eap_SUITE).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
@@ -37,7 +38,8 @@
 %% Require variables and set default values for the suite.
 %%
 suite() ->
-	[{timetrap, {minutes, 1}}].
+	[{userdata, [{doc, "Test suite for EAP CODEC functions in OCS"}]},
+	{timetrap, {minutes, 1}}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before the whole suite.

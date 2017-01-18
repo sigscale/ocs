@@ -14,7 +14,7 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%  Test suite for the ocs API.
+%%%  @doc Test suite for accounting of the {@link //ocs. ocs} application.
 %%%
 -module(ocs_accounting_SUITE).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
@@ -39,7 +39,7 @@
 %% Require variables and set default values for the suite.
 %%
 suite() ->
-	[{userdata, [{doc, ""}]},
+	[{userdata, [{doc, "Test suite for accounting in OCS"}]},
 	{require, radius_shared_secret}, {default_config, radius_shared_secret, "abc345"},
 	{timetrap, {seconds, 8}}].
 

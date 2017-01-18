@@ -14,7 +14,8 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%  Test suite for the ocs API.
+%%%  @doc Test suite for REST API 
+%%% 	of the {@link //ocs. ocs} application.
 %%%
 -module(ocs_rest_api_SUITE).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
@@ -39,7 +40,7 @@
 %% Require variables and set default values for the suite.
 %%
 suite() ->
-	[{userdata, [{doc, "This suite tests the application's REST API."}]}, 
+	[{userdata, [{doc, "Test suite for REST API in OCS"}]}, 
 	{timetrap, {minutes, 1}},
 	{require, rest_port}, {default_config, rest_port, 8888},
 	{require, host}, {default_config, host, "localhost"}].

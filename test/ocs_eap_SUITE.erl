@@ -14,7 +14,9 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%  Test suite for the ocs API.
+%%%  @doc Test suite for authentication using Extensible Authentication
+%%% 	Protocol (EAP) using only a password (EAP-PWD)
+%%% 	of the {@link //ocs. ocs} application.
 %%%
 -module(ocs_eap_SUITE).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
@@ -39,7 +41,7 @@
 %% Require variables and set default values for the suite.
 %%
 suite() ->
-	[{userdata, [{doc, "This suite tests the application's API."}]},
+	[{userdata, [{doc, "Test suite for authentication with EAP-PWD in OCS"}]},
 	{timetrap, {seconds, 8}},
 	{require, radius_username}, {default_config, radius_username, "ocs"},
 	{require, radius_password}, {default_config, radius_password, "ocs123"},
