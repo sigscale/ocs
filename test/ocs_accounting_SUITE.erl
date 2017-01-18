@@ -52,11 +52,12 @@ init_per_suite(Config) ->
 	SharedSecret = ct:get_config(radius_shared_secret),
 	ok = ocs:add_client({127, 0, 0, 1}, SharedSecret),
 	PeerId = "25252525",
-	PeerPassword = ocs:generate_password(),
-	ok = ocs:add_subscriber(PeerId, PeerPassword, [], 1000),
 	Config1 = [{peer_id, PeerId} | Config],
+	Password = ocs:generate_password(),
+	Config2 = [{password, Password} | Config1],
+	ok = ocs:add_subscriber(PeerId, Password, [], 1000),
 	NasId = atom_to_list(node()),
-	[{nas_id, NasId} | Config1].
+	[{nas_id, NasId} | Config2].
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
@@ -101,6 +102,7 @@ radius_accouting(Config) ->
 	Id = 1,
 	NasId = ?config(nas_id, Config),
 	PeerID = list_to_binary(?config(peer_id, Config)),
+	Password = ?config(password, Config),
 	AcctAddress = {127, 0, 0, 1},
 	AuthAddress = {127, 0, 0, 1},
 	{ok, AcctPort} = application:get_env(ocs, radius_acct_port),
@@ -172,7 +174,6 @@ radius_accouting(Config) ->
 		data = CommitReqData} = ocs_eap_codec:eap_pwd(CommitData),
 	#eap_pwd_commit{element = Element_S, scalar = Scalar_S} = ocs_eap_codec:eap_pwd_commit(CommitReqData),
 	P_Rand = crypto:rand_uniform(1, ?R),
-	{ok, Password, _Attr, _Balance, _} = ocs:find_subscriber(PeerID),
 	PWE = ocs_eap_pwd:compute_pwe(Token, PeerID, ServerID, Password),
 	{Scalar_P, Element_P} = ocs_eap_pwd:compute_scalar(<<P_Rand:256>>, PWE),
 	CommitRespBody = #eap_pwd_commit{scalar = Scalar_P, element = Element_P},
@@ -275,6 +276,7 @@ disconnect_session() ->
 disconnect_session(Config) ->
 	Id = 1,
 	PeerID = list_to_binary(?config(peer_id, Config)),
+	Password = ?config(password, Config),
 	NasId = ?config(nas_id, Config),
 	AcctAddress = {127, 0, 0, 1},
 	AuthAddress = {127, 0, 0, 1},
@@ -347,7 +349,6 @@ disconnect_session(Config) ->
 		data = CommitReqData} = ocs_eap_codec:eap_pwd(CommitData),
 	#eap_pwd_commit{element = Element_S, scalar = Scalar_S} = ocs_eap_codec:eap_pwd_commit(CommitReqData),
 	P_Rand = crypto:rand_uniform(1, ?R),
-	{ok, Password, _Attr, _Balance, _} = ocs:find_subscriber(PeerID),
 	PWE = ocs_eap_pwd:compute_pwe(Token, PeerID, ServerID, Password),
 	{Scalar_P, Element_P} = ocs_eap_pwd:compute_scalar(<<P_Rand:256>>, PWE),
 	CommitRespBody = #eap_pwd_commit{scalar = Scalar_P, element = Element_P},
