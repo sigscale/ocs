@@ -118,8 +118,12 @@
 			resetForm: function() {
 				var form = document.getElementById('presubmit1');
 				form.reset();
-				var getSubsAjax = document.getElementById('getSubs');
-				getSubs.generateRequest();
+				if(window.selection == "selectionSubscribers"){
+					document.getElementById('getSubs').generateRequest();
+				}
+				if(window.selection == "selectionRadiusClients"){
+					document.getElementById('getClients').generateRequest();
+				}
 				document.getElementById('modal1').close();
 			} ,
 
