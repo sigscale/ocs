@@ -27,14 +27,14 @@
 				.flex-horizontal { @apply(--layout-horizontal); height:100%;  } 
 				.flexchild { @apply(--layout-flex); height:100%;background-color: #f7f7f7;} 
 				paper-item.fancy {
-						--paper-item-focused: { background: #e0e3f3; font-weight: bold; };
+						--paper-item-focused: { background: #e0e3f3; font-weight: bold; font-size: x-large;};
 						--paper-item-focused-before: { opacity: 0; };
 										}
 			</style> 
 
 			<div class="container flex-horizontal">
 				<div  style="width:20%;">
-					<div role="listbox">
+					<div role="menuitemcheckbox">
 						 <paper-item class="fancy" onclick="setSelection(event)" id="selectionSubscribers">Subscribers</paper-item>
 						 <paper-item class="fancy" onclick="setSelection(event)" id="selectionRadiusClients" >Radius Clients</paper-item>
 					</div>
@@ -54,6 +54,7 @@
 				window.selection = "selectionSubscribers";
 				function setSelection(event){
 					window.selection = event.target.id;
+					document.getElementById(window.selection).style.backgroundColor = "#f7f7f7";
 
 					if(selection == "selectionSubscribers"){
 						document.getElementById("getSubs").generateRequest();
