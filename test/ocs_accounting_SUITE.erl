@@ -14,7 +14,7 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%  Test suite for the ocs API.
+%%%  @doc Test suite for accounting of the {@link //ocs. ocs} application.
 %%%
 -module(ocs_accounting_SUITE).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
@@ -39,7 +39,7 @@
 %% Require variables and set default values for the suite.
 %%
 suite() ->
-	[{userdata, [{doc, ""}]},
+	[{userdata, [{doc, "Test suite for accounting in OCS"}]},
 	{require, radius_shared_secret}, {default_config, radius_shared_secret, "abc345"},
 	{timetrap, {seconds, 8}}].
 
@@ -52,11 +52,12 @@ init_per_suite(Config) ->
 	SharedSecret = ct:get_config(radius_shared_secret),
 	ok = ocs:add_client({127, 0, 0, 1}, SharedSecret),
 	PeerId = "25252525",
-	PeerPassword = ocs:generate_password(),
-	ok = ocs:add_subscriber(PeerId, PeerPassword, [], 1000),
 	Config1 = [{peer_id, PeerId} | Config],
+	Password = ocs:generate_password(),
+	Config2 = [{password, Password} | Config1],
+	ok = ocs:add_subscriber(PeerId, Password, [], 1000),
 	NasId = atom_to_list(node()),
-	[{nas_id, NasId} | Config1].
+	[{nas_id, NasId} | Config2].
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
@@ -101,18 +102,20 @@ radius_accouting(Config) ->
 	Id = 1,
 	NasId = ?config(nas_id, Config),
 	PeerID = list_to_binary(?config(peer_id, Config)),
+	Password = ?config(password, Config),
 	AcctAddress = {127, 0, 0, 1},
 	AuthAddress = {127, 0, 0, 1},
 	{ok, AcctPort} = application:get_env(ocs, radius_acct_port),
 	{ok, AuthPort} = application:get_env(ocs, radius_auth_port),
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, binary]), 
+	{ok, NasPort} = inet:port(Socket),
 	UserName = "simoon",
 	SharedSecret = ct:get_config(radius_shared_secret),
 	Authenticator = radius:authenticator(),
 	IDReqAttributeList0 = radius_attributes:new(),
 	IDReqAttributeList1 = radius_attributes:store(?UserName, UserName, IDReqAttributeList0),
 	IDReqAttributeList2 = radius_attributes:store(?NasIdentifier, NasId, IDReqAttributeList1),
-	IDReqAttributeList3 = radius_attributes:store(?NasPort,0, IDReqAttributeList2),
+	IDReqAttributeList3 = radius_attributes:store(?NasPort, NasPort, IDReqAttributeList2),
 	IDReqAttributeList4 = radius_attributes:store(?CallingStationId,"de:ad:be:ef:ca:fe",
 		IDReqAttributeList3),
 	IDReqAttributeList5 = radius_attributes:store(?MessageAuthenticator,
@@ -171,7 +174,6 @@ radius_accouting(Config) ->
 		data = CommitReqData} = ocs_eap_codec:eap_pwd(CommitData),
 	#eap_pwd_commit{element = Element_S, scalar = Scalar_S} = ocs_eap_codec:eap_pwd_commit(CommitReqData),
 	P_Rand = crypto:rand_uniform(1, ?R),
-	{ok, Password, _Attr, _Balance, _} = ocs:find_subscriber(PeerID),
 	PWE = ocs_eap_pwd:compute_pwe(Token, PeerID, ServerID, Password),
 	{Scalar_P, Element_P} = ocs_eap_pwd:compute_scalar(<<P_Rand:256>>, PWE),
 	CommitRespBody = #eap_pwd_commit{scalar = Scalar_P, element = Element_P},
@@ -274,19 +276,21 @@ disconnect_session() ->
 disconnect_session(Config) ->
 	Id = 1,
 	PeerID = list_to_binary(?config(peer_id, Config)),
+	Password = ?config(password, Config),
 	NasId = ?config(nas_id, Config),
 	AcctAddress = {127, 0, 0, 1},
 	AuthAddress = {127, 0, 0, 1},
 	{ok, AcctPort} = application:get_env(ocs, radius_acct_port),
 	{ok, AuthPort} = application:get_env(ocs, radius_auth_port),
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, binary]), 
+	{ok, NasPort} = inet:port(Socket),
 	UserName = "simoon",
 	SharedSecret = ct:get_config(radius_shared_secret),
 	Authenticator = radius:authenticator(),
 	IDReqAttributeList0 = radius_attributes:new(),
 	IDReqAttributeList1 = radius_attributes:store(?UserName, UserName, IDReqAttributeList0),
 	IDReqAttributeList2 = radius_attributes:store(?NasIdentifier, NasId, IDReqAttributeList1),
-	IDReqAttributeList3 = radius_attributes:store(?NasPort,0, IDReqAttributeList2),
+	IDReqAttributeList3 = radius_attributes:store(?NasPort, NasPort, IDReqAttributeList2),
 	IDReqAttributeList4 = radius_attributes:store(?CallingStationId,"de:ad:be:ef:ca:fe",
 		IDReqAttributeList3),
 	IDReqAttributeList5 = radius_attributes:store(?MessageAuthenticator,
@@ -345,7 +349,6 @@ disconnect_session(Config) ->
 		data = CommitReqData} = ocs_eap_codec:eap_pwd(CommitData),
 	#eap_pwd_commit{element = Element_S, scalar = Scalar_S} = ocs_eap_codec:eap_pwd_commit(CommitReqData),
 	P_Rand = crypto:rand_uniform(1, ?R),
-	{ok, Password, _Attr, _Balance, _} = ocs:find_subscriber(PeerID),
 	PWE = ocs_eap_pwd:compute_pwe(Token, PeerID, ServerID, Password),
 	{Scalar_P, Element_P} = ocs_eap_pwd:compute_scalar(<<P_Rand:256>>, PWE),
 	CommitRespBody = #eap_pwd_commit{scalar = Scalar_P, element = Element_P},

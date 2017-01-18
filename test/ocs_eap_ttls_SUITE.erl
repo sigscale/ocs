@@ -14,7 +14,9 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%  Test suite for the EAP-TTLS Authentication.
+%%%  @doc Test suite for authentication using Extensible Authentication
+%%% 	Protocol (EAP) Tunneled Transport Layer Security (EAP-TTLS)
+%%% 	of the {@link //ocs. ocs} application.
 %%%
 -module(ocs_eap_ttls_SUITE).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
@@ -60,7 +62,7 @@
 %% Require variables and set default values for the suite.
 %%
 suite() ->
-	[{userdata, [{doc, "This suite tests the EAP-TTLS Authentication."}]},
+	[{userdata, [{doc, "Test suite for authentication with EAP-TTLS in OCS."}]},
 	{timetrap, {seconds, 8}},
 	{require, radius_shared_secret},{default_config, radius_shared_secret, "xyzzy5461"}].
 
@@ -70,12 +72,6 @@ suite() ->
 init_per_suite(Config) ->
 	DataDir = ?config(data_dir, Config),
 	ok = ocs_test_lib:initialize_db(),
-	ok = application:set_env(ocs, tls_key,
-			DataDir ++ "ct-key.pem", [{persistent, true}]), 
-	ok = application:set_env(ocs, tls_cert,
-			DataDir ++ "ct-cert.pem", [{persistent, true}]), 
-	ok = application:set_env(ocs, tls_cacert,
-			DataDir ++ "CAcert.pem", [{persistent, true}]), 
 	ok = ocs_test_lib:start(),
 	{ok, AuthAddress} = application:get_env(ocs, radius_auth_addr),
 	SharedSecret = ct:get_config(radius_shared_secret),
