@@ -118,28 +118,8 @@
 		<vaadin-grid selection-mode="single" id="frozen" frozen-columns="2" >
 			<table>
 				<colgroup> 
-					<col name="identity"/> 
-					<col name="password"/> 
-					<col name="balance"/> 
-					<col name="attributes.ascendDataRate.value"/>
-					<col name="attributes.ascendXmitRate.value"/>
-					<col name="attributes.sessionTimeout"/>
-					<col name="attributes.acctInterimInterval"/>
-					<col name="attributes.class"/>
-					<col name="enabled"/> 
 				</colgroup>
 				<thead>
-					<tr>
-						<th>Identity</th>
-						<th>Secret</th>
-						<th>Balance</th>
-						<th>Receive Data Rate</th>
-						<th>Transmit Data Rate</th>
-						<th>Session Timeout</th>
-						<th>Update Interval</th>
-						<th>Class</th>
-						<th>Enabled</th>
-					</tr>
 				</thead>
 			</table>
 		</vaadin-grid>
@@ -198,7 +178,27 @@
 
 		responseHandler: function(event) {
 			var grid = this.$.frozen; 
+			grid.columns = [
+									{ name: "identity"},
+									{ name: "password" },
+									{ name: "balance"},
+									{ name: "attributes.ascendDataRate.value" },
+									{ name: "attributes.ascendXmitRate.value"},
+									{ name: "attributes.sessionTimeout"},
+									{ name: "attributes.acctInterimInterval"},
+									{ name: "attributes.class"},
+									{ name: "enabled"}
+								];
 			grid.items = event.detail.xhr.response;
+			grid.header.getCell(0,0).content = 'Identity';
+			grid.header.getCell(0,1).content = 'Secret';
+			grid.header.getCell(0,2).content = 'Balance';
+			grid.header.getCell(0,3).content = 'Ascend Data Rate' ;
+			grid.header.getCell(0,4).content = 'Ascend Xmit Rate' ;
+			grid.header.getCell(0,5).content = 'Session Timeout';
+			grid.header.getCell(0,6).content = 'Acct Interim Interval';
+			grid.header.getCell(0,7).content = 'Class';
+			grid.header.getCell(0,8).content = 'Enabled';
 		},
 
 		gotoEnd: function(event){
