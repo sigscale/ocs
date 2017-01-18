@@ -6,6 +6,7 @@
 		<link rel="import" href="bower_components/paper-header-panel/paper-header-panel.html">
 		<link rel="import" href="bower_components/iron-flex-layout/iron-flex-layout.html">
 		<link rel="import" href="bower_components/paper-toolbar/paper-toolbar.html">
+		<link rel="import" href="bower_components/paper-item/paper-item.html">
 		<link rel="import" href="bower_components/paper-tabs/paper-tabs.html">
 		<link rel="import" href="bower_components/paper-menu/paper-menu.html">
 		<link rel="import" href="bower_components/paper-item/paper-item.html">
@@ -25,10 +26,18 @@
 			<style is="custom-style"> 
 				.flex-horizontal { @apply(--layout-horizontal); height:100%;  } 
 				.flexchild { @apply(--layout-flex); height:100%;background-color: #f7f7f7;} 
+				paper-item.fancy {
+						--paper-item-focused: { background: #e0e3f3; font-weight: bold; };
+						--paper-item-focused-before: { opacity: 0; };
+										}
 			</style> 
 
 			<div class="container flex-horizontal">
 				<div  style="width:20%;">
+					<div role="listbox">
+						 <paper-item class="fancy">Subscribers</paper-item>
+						 <paper-item class="fancy">Radius Clients</paper-item>
+					</div>
 					<sig-search></sig-search>
 					<div id="subcriber-not-found" style="height: 10%;"></div>
 				</div>
