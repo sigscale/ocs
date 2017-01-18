@@ -2,6 +2,8 @@
 ##
 ## Process this file with automake to produce Makefile.in
 
+CERT_DIR = certificates
+
 testmods = ocs_api_SUITE \
 			ocs_rest_api_SUITE \
 			ocs_codec_eap_SUITE \
@@ -21,7 +23,7 @@ check_DATA = .dialyzer_ok .common_test_ok
 	$(ERLC) $(ERLCFLAGS) -I $(top_srcdir)/include $<
 
 .common_test_ok:	$(addsuffix .beam, $(testmods)) sys.config
-	@if [ ! -d ocs_eap_ttls_SUITE_data ]; then mkdir ocs_eap_ttls_SUITE_data; fi
+	@if [ ! -d $(CERT_DIR) ]; then mkdir $(CERT_DIR); fi
 	@if [ ! -d log ]; then mkdir log; fi
 	@if [ ! -f ct.cfg ]; then cp $(top_srcdir)/test/ct.cfg .; fi
 	@if [ ! -f test.spec ]; then cp $(top_srcdir)/test/test.spec .; fi
@@ -37,7 +39,7 @@ check_DATA = .dialyzer_ok .common_test_ok
 			done; \
 		fi; \
 	done
-	(cd ocs_eap_ttls_SUITE_data && \
+	(cd $(CERT_DIR) && \
 		openssl req -newkey rsa:2048 -nodes -x509 -days 30 \
 				-subj /C=CA/ST=Ontario/L=Toronto/O=Example/CN=$$(hostname)\/emailAddress=support@$$(hostname) \
 				-keyout CAkey.pem -out CAcert.pem; \
@@ -51,7 +53,7 @@ check_DATA = .dialyzer_ok .common_test_ok
 	ct_run -no_auto_compile -pa $(top_builddir)/ebin -logdir log -config ct.cfg -spec test.spec -dir . -erl_args -config sys -sname $(LOGNAME)-ct
 
 sys.config:	$(top_srcdir)/test/sys.config-in
-	sed -e 's#%DATA_DIR%#$(abs_top_builddir)/test/ocs_eap_ttls_SUITE_data#' \
+	sed -e 's#%CERT_DIR%#$(abs_top_builddir)/test/$(CERT_DIR)#' \
 			-e 's#%APP_PRIV%#$(abs_top_srcdir)/priv#' < $< > $@
 
 clean-local:
