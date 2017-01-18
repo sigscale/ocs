@@ -35,8 +35,8 @@
 			<div class="container flex-horizontal">
 				<div  style="width:20%;">
 					<div role="listbox">
-						 <paper-item class="fancy">Subscribers</paper-item>
-						 <paper-item class="fancy">Radius Clients</paper-item>
+						 <paper-item class="fancy" onclick="setSelection(event)" id="selectionSubscribers">Subscribers</paper-item>
+						 <paper-item class="fancy" onclick="setSelection(event)" id="selectionRadiusClients" >Radius Clients</paper-item>
 					</div>
 					<sig-search></sig-search>
 					<div id="subcriber-not-found" style="height: 10%;"></div>
@@ -46,6 +46,20 @@
 					<div><sig-list ></sig-list></div>
 				</div>
 			</div>
+
+			<script>
+				var selection = "";
+				function setSelection(event){
+					selection = event.target.id;
+
+					if(selection == "selectionSubscribers"){
+						document.getElementById("getSubs").generateRequest();
+					}
+					if(selection == "selectionRadiusClients"){
+						document.getElementById("getClients").generateRequest();
+					}
+				}
+			</script>
 		</template>
 	</body>
 </html>

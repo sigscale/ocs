@@ -132,6 +132,13 @@
 			<h2>Subscriber sucessfully deleted !</h2>
 		</paper-toast>
 
+		<iron-ajax id="getClients"
+			auto=false
+			url="http://localhost:8888/ocs/v1/client"
+			headers='{"Accept": "application/json", "Content-type": "application/json"}'
+			on-response="clientResponseHandler"
+			debounce-duration="10"> </iron-ajax>
+
 		<iron-ajax id="getSubs"
 			auto=false
 			url="http://localhost:8888/ocs/v1/subscriber"
@@ -174,6 +181,17 @@
 		},
 
 		ready: function() {
+		},
+
+		clientResponseHandler: function(event) {
+			var grid = this.$.frozen; 
+			grid.columns = [
+									{ name: "address"},
+									{ name: "secret" }
+								];
+			grid.items = event.detail.xhr.response;
+			grid.header.getCell(0,0).content = 'Address';
+			grid.header.getCell(0,1).content = 'Secret';
 		},
 
 		responseHandler: function(event) {
