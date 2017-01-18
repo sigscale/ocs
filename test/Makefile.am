@@ -51,7 +51,8 @@ check_DATA = .dialyzer_ok .common_test_ok
 	ct_run -no_auto_compile -pa $(top_builddir)/ebin -logdir log -config ct.cfg -spec test.spec -dir . -erl_args -config sys -sname $(LOGNAME)-ct
 
 sys.config:	$(top_srcdir)/test/sys.config-in
-	sed -e 's#%APP_PRIV%#$(abs_top_srcdir)/priv#' < $< > $@
+	sed -e 's#%DATA_DIR%#$(abs_top_builddir)/test/ocs_eap_ttls_SUITE_data#' \
+			-e 's#%APP_PRIV%#$(abs_top_srcdir)/priv#' < $< > $@
 
 clean-local:
 	-rm -r *.beam ocs_eap_ttls_SUITE_data/* log/*

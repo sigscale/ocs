@@ -70,12 +70,6 @@ suite() ->
 init_per_suite(Config) ->
 	DataDir = ?config(data_dir, Config),
 	ok = ocs_test_lib:initialize_db(),
-	ok = application:set_env(ocs, tls_key,
-			DataDir ++ "ct-key.pem", [{persistent, true}]), 
-	ok = application:set_env(ocs, tls_cert,
-			DataDir ++ "ct-cert.pem", [{persistent, true}]), 
-	ok = application:set_env(ocs, tls_cacert,
-			DataDir ++ "CAcert.pem", [{persistent, true}]), 
 	ok = ocs_test_lib:start(),
 	{ok, AuthAddress} = application:get_env(ocs, radius_auth_addr),
 	SharedSecret = ct:get_config(radius_shared_secret),
