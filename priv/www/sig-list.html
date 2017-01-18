@@ -213,7 +213,7 @@
 
 		updatePassword: function(event){
 			var editAjax =  document.getElementById("updatePassword");
-			editAjax.method = "PUT";
+			editAjax.method = "PATCH";
 			editAjax.contentType = "application/json";
 			var id = document.getElementById("edit-id1").value;
 			editAjax.url = "http://localhost:8888/ocs/v1/subscriber/" + id;
@@ -225,7 +225,7 @@
 
 		updateAttributes: function(event){
 			var editAjax =  document.getElementById("updateAttributes");
-			editAjax.method = "PUT";
+			editAjax.method = "PATCH";
 			editAjax.contentType = "application/json";
 			var id = document.getElementById("edit-id2").value;
 			editAjax.url = "http://localhost:8888/ocs/v1/subscriber/" + id;
