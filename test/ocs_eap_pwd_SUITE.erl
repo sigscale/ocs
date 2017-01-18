@@ -1,4 +1,4 @@
-%%% ocs_eap_SUITE.erl
+%%% ocs_eap_pwd_SUITE.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 SigScale Global Inc.
 %%% @end
@@ -18,7 +18,7 @@
 %%% 	Protocol (EAP) using only a password (EAP-PWD)
 %%% 	of the {@link //ocs. ocs} application.
 %%%
--module(ocs_eap_SUITE).
+-module(ocs_eap_pwd_SUITE).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 %% common_test required callbacks
