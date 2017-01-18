@@ -14,6 +14,7 @@
 <link rel="import" href="bower_components/paper-input/paper-input.html">
 <link rel="import" href="bower_components/paper-fab/paper-fab.html" >
 <link rel="import" href="sig-add.html">
+<link rel="import" href="sig-add-client.html">
 <link rel="import" href="shared-styles.html">
 
 
@@ -112,7 +113,11 @@
 		</paper-dialog>
 
 		<paper-dialog id="modal2" modal style="width:60%; height: 67%; top:10%;">
-			<sig-add></sig-add>
+			<sig-add ></sig-add>
+		</paper-dialog>
+
+		<paper-dialog id="modal3" modal style="width:60%; height: 67%; top:10%;">
+			<sig-add-client></sig-add-client>
 		</paper-dialog>
 
 		<vaadin-grid selection-mode="single" id="frozen" frozen-columns="2" >
@@ -131,6 +136,13 @@
 		<paper-toast id="delete-toast">
 			<h2>Subscriber sucessfully deleted !</h2>
 		</paper-toast>
+
+		<iron-ajax id="getClients"
+			auto=false
+			url="http://localhost:8888/ocs/v1/client"
+			headers='{"Accept": "application/json", "Content-type": "application/json"}'
+			on-response="clientResponseHandler"
+			debounce-duration="10"> </iron-ajax>
 
 		<iron-ajax id="getSubs"
 			auto=false
@@ -176,6 +188,17 @@
 		ready: function() {
 		},
 
+		clientResponseHandler: function(event) {
+			var grid = this.$.frozen; 
+			grid.columns = [
+									{ name: "address"},
+									{ name: "secret" }
+								];
+			grid.items = event.detail.xhr.response;
+			grid.header.getCell(0,0).content = 'Address';
+			grid.header.getCell(0,1).content = 'Secret';
+		},
+
 		responseHandler: function(event) {
 			var grid = this.$.frozen; 
 			grid.columns = [
@@ -207,8 +230,15 @@
 		},
 
 		showAddModal: function(event){
-			var modal = this.$.modal2; 
-			modal.open(); 
+			if(window.selection == "selectionSubscribers"){
+				var modal = this.$.modal2;
+				modal.open();
+			}
+			if(window.selection == "selectionRadiusClients"){
+				var modal = this.$.modal3;
+				modal.open();
+			}
+
 		},
 
 		updatePassword: function(event){
