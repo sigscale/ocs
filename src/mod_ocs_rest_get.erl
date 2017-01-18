@@ -97,7 +97,7 @@ end.
 send_response(ResponseBody, ModData) ->
 	Size = integer_to_list(iolist_size(ResponseBody)),
 	Headers = [{content_length, Size}],
-	send(ModData, 201, Headers, ResponseBody),
+	send(ModData, 200, Headers, ResponseBody),
 	{proceed,[{response,{already_sent,201, Size}}]}.
 
 %% @hidden
