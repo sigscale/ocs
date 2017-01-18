@@ -47,10 +47,13 @@
 				</div>
 			</div>
 
+		</template>
+
 			<script>
-				var selection = "";
+				// Deafult user selection before user selects
+				window.selection = "selectionSubscribers";
 				function setSelection(event){
-					selection = event.target.id;
+					window.selection = event.target.id;
 
 					if(selection == "selectionSubscribers"){
 						document.getElementById("getSubs").generateRequest();
@@ -60,6 +63,5 @@
 					}
 				}
 			</script>
-		</template>
 	</body>
 </html>

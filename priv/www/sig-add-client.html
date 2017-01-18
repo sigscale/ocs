@@ -1,0 +1,172 @@
+<link rel="import" href="bower_components/polymer/polymer.html">
+<link rel="import" href="bower_components/iron-form/iron-form.html">
+<link rel="import" href="bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="bower_components/iron-ajax/iron-request.html">
+<link rel="import" href="bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="bower_components/paper-button/paper-button.html">
+<link rel="import" href="bower_components/paper-toolbar/paper-toolbar.html">
+<link rel="import" href="bower_components/paper-toast/paper-toast.html">
+<link rel="import" href="bower_components/paper-input/paper-input.html">
+<link rel="import" href="bower_components/paper-styles/paper-styles.html">
+<link rel="import" href="bower_components/paper-styles/typography.html">
+
+<dom-module id="sig-add-client">
+	<template>
+		<style> /* local DOM styles go here */
+			:host {
+				display: inline-block;
+				width:96%;
+			} 
+			:host([pressed]) iron-icon {
+				fill: currentcolor
+			}
+			iron-icon {
+				fill: rgba(0,0,0,0);
+				stroke: currentcolor;
+			}
+		</style>
+
+		<style is="custom-style"> 
+			paper-button.custom {
+				background-color: #7d8ff5;
+				color: white;
+				font-weight: bold;
+				--paper-button-ink-color: var(--paper-pink-a200);
+				--paper-button-flat-keyboard-focus: {
+					background-color: var(--paper-pink-a200);
+					color: white !important;
+				};
+				--paper-button-raised-keyboard-focus: {
+					background-color: var(--paper-pink-a200) !important;
+					color: white !important;
+				};
+			}
+
+			paper-button.custom:hover {
+				background-color: var(--paper-indigo-100);
+			}
+
+			paper-button.pink {
+				color: var(--paper-pink-a200);
+			}
+
+			paper-button.indigo {
+				background-color: #7d8ff5;
+				color: white;
+				--paper-button-raised-keyboard-focus: {
+						background-color: var(--paper-pink-a200) !important;
+						color: white !important; };
+			}
+
+			paper-button.green {
+				background-color: var(--paper-green-500);
+				color: white;
+			}
+
+			paper-button.green[active] {
+				background-color: var(--paper-red-500);
+			}
+
+			paper-button.disabled {
+				color: white;
+			}
+
+			#subscriber{
+				padding-top:
+				5px;
+				width: 58px;
+			}
+
+			#toast-error {
+				--paper-toast-background-color:red;
+				--paper-toast-color: white;
+			}
+		</style>
+
+		<paper-toolbar>
+			<h2>Add subscriber</h2>
+			</paper-toolbar>
+				<form  is="iron-form"  id="presubmit3" method="post" content-type="application/json" >
+					<paper-input id="add-client1" name="address" label="Ip Address" required></paper-input>
+					<paper-input id="add-client2" name="secret" label="Secret" required></paper-input>
+					<div class="buttons">
+						<paper-button raised class="custom indigo" onclick="_submit()" style="float: right; width: 200px;"  >Submit</paper-button>
+						<paper-button dialog-confirm autofocus >Cancel</paper-button>
+					</div>
+				</form>
+				<div id="response-display-container" style="padding-top: 14%;margin-top:16%;">
+					<paper-toast id="toast-error" class="fit-bottom" >
+						<h2> Couldn't add Client!</h2>
+						<h5> Please recheck the following.</h5>
+						<ul>
+							<li>Subscriber name should be a valid ipv4 address</li>
+							<li>Password does not include 0, 1, i, l, o characters</li>
+						</ul>
+					</paper-toast>
+					<paper-toast id="toast-success" class="fit-bottom" >
+						<h2> Client added !</h2>
+					</paper-toast>
+				</div>
+
+				<iron-ajax id="ajaxClientAdd"
+					 auto
+				    url="http://localhost:8888/ocs/v1/client"
+		  			 method = "post"
+					 headers='{"Accept": "application/json", "Content-type": "application/json"}'
+					 handle-as="json"
+					 debounce-duration="300"></iron-ajax>
+
+				<script>
+					function _submit() {
+						document.getElementById('presubmit3').submit();
+					}
+				</script>
+	</template>
+		<script>
+			Polymer({
+				is: 'sig-add-client',
+
+			properties:{},
+
+			listeners: {
+				'presubmit3.iron-form-presubmit': '_handleFormPreSubmit',
+				'presubmit3.iron-form-submit': '_handleFormSubmit',
+				'ajaxClientAdd.error': '_handleFormError',
+				'ajaxClientAdd.response': '_handleFormResponse'
+			},
+
+			_handleFormPreSubmit: function() {
+				var form = document.getElementById('presubmit3');
+				var formData = new Object();
+				formData.id = document.getElementById("add-client1").value;	
+				formData.secret = document.getElementById("add-client2").value;	
+				var ajax = document.getElementById("ajaxClientAdd");
+				ajax.body = formData;
+				ajax.generateRequest();
+
+			},
+
+			_handleFormSubmit: function() {
+		  },
+
+			_handleFormError: function() {
+				var toast = document.getElementById("toast-error");
+				toast.open();
+				toast.duration = 0;
+				toast.fitInto = document.getElementById("response-display-container");
+			},
+
+			_handleFormResponse: function() {
+				var toast = document.getElementById("toast-success");
+				toast.open();
+				toast.duration = 4;
+				toast.fitInto = document.getElementById("response-display-container");
+				document.getElementById("presubmit3").reset();
+				document.getElementById("modal3").close();
+				document.getElementById("getClients").generateRequest();
+			}   
+		});
+	</script>
+</dom-module>
