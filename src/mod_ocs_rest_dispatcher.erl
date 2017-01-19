@@ -64,38 +64,35 @@ dispatch(#mod{socket = Socket, socket_type = SockType, data = Data,
 %% @hidden
 send_response(_Socket, _SockType, Path, #mod{config_db = ConfigDb,
 		data = Data} = ModData) ->
-	case file:open(Path,[raw,binary]) of
-		{ok, FileDescriptor} ->
-			{ok, FileContent} = file:read_file(Path),
+	case file:read_file(Path) of
+		{ok, FileContent} ->
 			{FileInfo, LastModified} = get_modification_date(Path),
 			Suffix = httpd_util:suffix(Path),
 			MimeType = httpd_util:lookup_mime_default(ConfigDb, Suffix, "text/plain"),
 			Size = integer_to_list(FileInfo#file_info.size),
 			Headers = [{content_type, MimeType},
-					{etag, httpd_util:create_etag(FileInfo)},
 					{content_length, Size}|LastModified],
 			send(ModData, 200, Headers, FileContent),
-			file:close(FileDescriptor),
 			{proceed,[{response, {already_sent,200, FileInfo#file_info.size}},
-			{mime_type,MimeType} | Data]};
+				{mime_type,MimeType} | Data]};
 		{error, Reason} ->
-			Status = httpd_file:handle_error(Reason, "open", ModData, Path),
-			{proceed, [{status, Status} | Data]}
+			Body = "<h2>404 Error not found</h2>",
+			{break, [{response,{404,Body}}]}
 	end.
 
 %% @hidden
 send(#mod{socket = Socket, socket_type = SocketType} = ModData,
-     StatusCode, Headers, ResponseBody) ->
-    httpd_response:send_header(ModData, StatusCode, Headers),
-    httpd_socket:deliver(SocketType, Socket, ResponseBody).
+		StatusCode, Headers, ResponseBody) ->
+	httpd_response:send_header(ModData, StatusCode, Headers),
+	httpd_socket:deliver(SocketType, Socket, ResponseBody).
 
 %% @hidden
 get_modification_date(Path)->
-    {ok, FileInfo0} = file:read_file_info(Path), 
-    LastModified = 
-	case catch httpd_util:rfc1123_date(FileInfo0#file_info.mtime) of
-	    Date when is_list(Date) -> [{last_modified, Date}];
-	    _ -> []
+	{ok, FileInfo0} = file:read_file_info(Path), 
+	LastModified = case catch
+			httpd_util:rfc1123_date(FileInfo0#file_info.mtime) of
+		Date when is_list(Date) -> [{last_modified, Date}];
+		_ -> []
 	end,
-    {FileInfo0, LastModified}.
+	{FileInfo0, LastModified}.
 
