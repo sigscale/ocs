@@ -152,13 +152,13 @@
 
 		<iron-ajax id="updatePassword"
 			auto=true
-			headers='{"Accept": "application/json"}'
+			headers='{"Accept": "application/json", "Content-type": "application/json"}'
 			on-response="updatePwdResponseHandler"
 			debounce-duration="300"> </iron-ajax>
 
 		<iron-ajax id="updateAttributes"
 			auto=true
-			headers='{"Accept": "application/json"}'
+			headers='{"Accept": "application/json", "Content-type": "application/json"}'
 			on-response="updateAttrResponseHandler"
 			debounce-duration="300"> </iron-ajax>
 					 
