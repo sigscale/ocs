@@ -111,6 +111,20 @@
 			</iron-pages>
 		</paper-dialog>
 
+		<paper-dialog id="modal4" modal style="width:60%;">
+				<div id="edit-client" >
+					<paper-input id="edit-client-id" name="id" label="Address" disabled></paper-input>
+					<paper-input id="edit-client-pwd" name="password"  label="Secret" disabled ></paper-input>
+					<paper-input id="edit-client-new-pwd" name="secret" label="New Secret" required auto-validate error-message="New secret can't be empty!" ></paper-input>
+					<div class="buttons">
+						<paper-button on-click="cancel" class="cancle-btn">Cancel</paper-button>
+						<paper-button dialog-confirm autofocus on-click="updateClientPassword" class="edit">Edit</paper-button>
+						<paper-button toggles raised on-click = "deleteClient"  > Delete </paper-button>
+					</div>
+				</div>
+					</div>
+		</paper-dialog>
+
 		<paper-dialog id="modal2" modal style="width:60%; height: 67%; top:10%;">
 			<sig-add ></sig-add>
 		</paper-dialog>
@@ -129,11 +143,11 @@
 		</vaadin-grid>
 
 		<paper-toast id="edit-toast">
-			<h2>Subscriber sucessfully updated !</h2>
+			<h2>Record sucessfully updated !</h2>
 		</paper-toast>
 
 		<paper-toast id="delete-toast">
-			<h2>Subscriber sucessfully deleted !</h2>
+			<h2>Record sucessfully deleted !</h2>
 		</paper-toast>
 
 		<iron-ajax id="getClients"
@@ -149,6 +163,12 @@
 			headers='{"Accept": "application/json", "Content-type": "application/json"}'
 			on-response="responseHandler"
 			debounce-duration="10"> </iron-ajax>
+
+		<iron-ajax id="updateClientPassword"
+			auto=true
+			headers='{"Accept": "application/json", "Content-type": "application/json"}'
+			on-response="updateClientPwdResponseHandler"
+			debounce-duration="300"> </iron-ajax>
 
 		<iron-ajax id="updatePassword"
 			auto=true
@@ -176,7 +196,7 @@
 
 		properties:{
 		},
-			
+
 		listeners: {
 				'frozen.click': 'onSelect'
 		},
@@ -240,6 +260,17 @@
 
 		},
 
+		updateClientPassword: function(event){
+			var editAjax =  document.getElementById("updateClientPassword");
+			editAjax.method = "PATCH";
+			editAjax.contentType = "application/json";
+			var id = document.getElementById("edit-client-id").value;
+			editAjax.url = "http://localhost:8888/ocs/v1/client/" + id;
+			var client = new Object();
+			client.password = document.getElementById("edit-client-new-pwd").value;
+			editAjax.body = client;
+		},
+
 		updatePassword: function(event){
 			var editAjax =  document.getElementById("updatePassword");
 			editAjax.method = "PATCH";
@@ -281,6 +312,18 @@
 			attr.class = document.getElementById("edit-class").value;
 			sub.attributes = attr;
 			editAjax.body = sub;
+		},
+
+		updateClientPwdResponseHandler: function (){
+			if(event.detail.succeeded){
+				document.getElementById("edit-toast").open();
+				document.getElementById("edit-client-new-pwd").value = "";
+				var getClientsAjax = document.getElementById("getClients");
+				getClientsAjax.generateRequest();
+			}
+			else{
+				console.log("Not Success");
+			}
 		},
 
 		updatePwdResponseHandler: function (){
@@ -329,20 +372,31 @@
 
 		onSelect: function(event) {
 			var grid = this.$.frozen; 
-			var modal = this.$.modal1; 
-			modal.open();
-			grid.selection.selected(function(index) {
-				var selection = grid.items[index];
-				document.getElementById("edit-id1").value = selection.identity;
-				document.getElementById("edit-id2").value = selection.identity;
-				document.getElementById("edit-pwd").value = selection.password;
-				document.getElementById("edit-balance").value = selection.balance;
-				document.getElementById("edit-recv-data-rate").value = selection.attributes.ascendDataRate.value;
-				document.getElementById("edit-trans-data-rate").value = selection.attributes.ascendXmitRate.value;
-				document.getElementById("edit-sess-timeout").value = selection.attributes.sessionTimeout;
-				document.getElementById("edit-update-interval").value = selection.attributes.acctInterimInterval;
-				document.getElementById("edit-class").value =  selection.attributes.class;
-			});
+
+			if(window.selection == "selectionSubscribers"){
+				var modal = this.$.modal1; 
+				modal.open();
+				grid.selection.selected(function(index) {
+					var selection = grid.items[index];
+					document.getElementById("edit-id1").value = selection.identity;
+					document.getElementById("edit-id2").value = selection.identity;
+					document.getElementById("edit-pwd").value = selection.password;
+					document.getElementById("edit-balance").value = selection.balance;
+					document.getElementById("edit-recv-data-rate").value = selection.attributes.ascendDataRate.value;
+					document.getElementById("edit-trans-data-rate").value = selection.attributes.ascendXmitRate.value;
+					document.getElementById("edit-sess-timeout").value = selection.attributes.sessionTimeout;
+					document.getElementById("edit-update-interval").value = selection.attributes.acctInterimInterval;
+					document.getElementById("edit-class").value =  selection.attributes.class;
+				});}
+				if(window.selection == "selectionRadiusClients"){
+					var modal = this.$.modal4; 
+					modal.open();
+					grid.selection.selected(function(index) {
+					var selection = grid.items[index];
+					document.getElementById("edit-client-id").value = selection.id;
+					document.getElementById("edit-client-pwd").value = selection.secret;
+				});}
+
 		}
 	});
 	</script>
