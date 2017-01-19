@@ -183,14 +183,14 @@
 			debounce-duration="300"> </iron-ajax>
 					 
 		<iron-ajax	 id="deleteClient"
-			auto
+			auto=false
 			handle-as="json"
 			method = "delete"
 			on-response="deletionClientResponse"
 			debounce-duration="300"> </iron-ajax>
 
 		<iron-ajax	 id="deleteSubs"
-			auto
+			auto=false
 			handle-as="json"
 			method = "delete"
 			on-response="deletionResponse"
