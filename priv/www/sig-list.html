@@ -182,6 +182,13 @@
 			on-response="updateAttrResponseHandler"
 			debounce-duration="300"> </iron-ajax>
 					 
+		<iron-ajax	 id="deleteClient"
+			auto
+			handle-as="json"
+			method = "delete"
+			on-response="deletionClientResponse"
+			debounce-duration="300"> </iron-ajax>
+
 		<iron-ajax	 id="deleteSubs"
 			auto
 			handle-as="json"
@@ -351,6 +358,23 @@
 		  
 		cancel: function(){
 			this.$.modal1.close();
+		},
+
+		deleteClient: function(event){
+			var grid = this.$.frozen; 
+			grid.selection.selected(function(index){
+				var selection = grid.items[index];
+				var deleteAjax = document.getElementById("deleteClient");
+				deleteAjax.url = "http://localhost:8888/ocs/v1/client/"+ selection.id;
+				deleteAjax.generateRequest();
+			});
+		},
+
+		deletionClientResponse: function(event){
+			this.$.modal4.close(); 
+			document.getElementById("delete-toast").open();
+			var getClientsAjax = document.getElementById("getClients");
+			getClientsAjax.generateRequest();
 		},
 
 		deleteSeletedItems: function(event){
