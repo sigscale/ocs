@@ -84,7 +84,7 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[client, get_all_clients, delete_client, subscriber, update_password,
+	[client, get_all_clients, update_client, delete_client, subscriber, update_password,
 	update_attributes, delete_subscriber].
 
 %%---------------------------------------------------------------------
@@ -119,6 +119,21 @@ get_all_clients(Config) ->
 		{ok, Sec} = ocs:find_client(Addr)
 	end,
 	lists:foreach(F, Clients).
+
+update_client() ->
+	[{userdata, [{doc, "Update password in radius_client record in database"}]}].
+
+update_client(_Config) ->
+	Address = "192.168.90.23",
+	Password = "gentoo",
+	ok = ocs:add_client(Address, Password),
+	PasswordBin = list_to_binary(Password),
+	{ok, PasswordBin} = ocs:find_client(Address),
+	NewPassword = "GentooNewxD",
+	ok = ocs:update_client(Address, NewPassword),
+	NewPasswordBin = list_to_binary(NewPassword),
+	{ok, NewPasswordBin} = ocs:find_client(Address).
+
 
 delete_client() ->
 	[{userdata, [{doc, "Delete  a radius_client from database"}]}].
