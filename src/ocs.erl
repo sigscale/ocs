@@ -88,8 +88,8 @@ find_client(Address) when is_tuple(Address) ->
 update_client(Address, Password) when is_list(Address) ->
 	{ok, AddressTuple} = inet_parse:address(Address),
 	update_client(AddressTuple, Password);
-update_client(Address, Password) when is_binary(Password) ->
-	update_client(Address, binary_to_list(Password));
+update_client(Address, Password) when is_list(Password) ->
+	update_client(Address, list_to_binary(Password));
 update_client(Address, Password) ->
 	F = fun() ->
 				case mnesia:read(radius_client, Address, write) of
