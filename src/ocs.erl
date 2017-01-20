@@ -21,7 +21,8 @@
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 %% export the ocs public API
--export([add_client/2, find_client/1, get_clients/0, delete_client/1]).
+-export([add_client/2, find_client/1, update_client/2, get_clients/0,
+				 delete_client/1]).
 -export([add_subscriber/3, add_subscriber/4, find_subscriber/1,
 				delete_subscriber/1, update_password/2, update_attributes/2,
 				get_subscribers/0]).
@@ -76,6 +77,34 @@ find_client(Address) when is_tuple(Address) ->
 			{ok, Secret};
 		{atomic, []} ->
 			{error, not_found};
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+
+-spec update_client(Address :: string() | inet:ip_address(),
+		Password :: string() | binary())->
+	ok | {error, Reason :: not_found | term()}.
+%% @doc Update client password
+update_client(Address, Password) when is_list(Address) ->
+	{ok, AddressTuple} = inet_parse:address(Address),
+	update_client(AddressTuple, Password);
+update_client(Address, Password) when is_binary(Password) ->
+	update_client(Address, binary_to_list(Password));
+update_client(Address, Password) ->
+	F = fun() ->
+				case mnesia:read(radius_client, Address, write) of
+					[Entry] ->
+						NewEntry = Entry#radius_client{secret = Password},
+						mnesia:write(radius_client, NewEntry, write);
+					[] ->
+						throw(not_found)
+				end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, ok} ->
+			ok;
+		{aborted, {throw, Reason}} ->
+			{error, Reason};
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
