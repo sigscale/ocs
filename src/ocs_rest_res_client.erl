@@ -25,6 +25,7 @@
 				perform_get/1,
 				perform_get_all/0,
 				perform_post/1,
+				perform_patch/2,
 				perform_delete/1]).
 
 %% @headerfile "include/radius.hrl"
@@ -121,6 +122,30 @@ perform_post1(Id, Secret) ->
 	end catch
 		throw:_ ->
 			{error, 400}
+	end.
+
+-spec perform_patch(Identity :: list(), ReqBody :: list()) ->
+	{body, Body :: iolist()} | {error, ErrorCode :: integer()} .
+%% @doc	Respond to `PATCH /ocs/v1/client/{identity}' request and
+%% Updates a existing `radius_client''s password or attributes.
+perform_patch(Identity, ReqBody) ->
+	{ok, Address} = inet:parse_address(Identity),
+	case ocs:find_client(Address) of
+		{ok, _SecretBin} ->
+			try
+				{struct, Object} = mochijson:decode(ReqBody),
+				{_, NewPassword} = lists:keyfind("password", 1, Object),
+				ok = ocs:update_client(Address, NewPassword),
+				RespObj =[{id, Identity}, {password, NewPassword}],
+				JsonObj  = {struct, RespObj},
+				RespBody = mochijson:encode(JsonObj),
+				{body, RespBody}
+			catch
+				throw : _ ->
+					{error, 400}
+			end;
+		{error, _Reason} ->
+			{error, 404}
 	end.
 
 -spec perform_delete(Ip :: list()) ->
