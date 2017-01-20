@@ -40,16 +40,24 @@ check_DATA = .dialyzer_ok .common_test_ok
 		fi; \
 	done
 	(cd $(CERT_DIR) && \
-		openssl req -newkey rsa:2048 -nodes -x509 -days 30 \
-				-subj /C=CA/ST=Ontario/L=Toronto/O=Example/CN=$$(hostname)\/emailAddress=support@$$(hostname) \
-				-keyout CAkey.pem -out CAcert.pem; \
+		if [ ! -f CAkey.pem -o ! -f CAcert.pem ]; then \
+			openssl req -newkey rsa:2048 -nodes -x509 -days 30 \
+					-subj /C=CA/ST=Ontario/L=Toronto/O=Example/CN=$$(hostname)\/emailAddress=support@$$(hostname) \
+					-keyout CAkey.pem -out CAcert.pem; \
+		fi; \
+		if [ ! -f key.pem -o ! -f cert.csr ]; then \
 		openssl req -newkey rsa:2048 -nodes \
 				-subj /C=CA/ST=Ontario/L=Toronto/O=Example/CN=$$(hostname)\/emailAddress=support@$$(hostname) \
 				-keyout key.pem -out cert.csr; \
-		echo "extendedKeyUsage = serverAuth" > extensions; \
-		echo "subjectAltName = DNS:$$(hostname)" >> extensions; \
-		openssl x509 -req -CA CAcert.pem -CAkey CAkey.pem -CAcreateserial \
-				-extfile extensions -in cert.csr -out cert.pem)
+		fi; \
+		if [ ! -f extensions ]; then \
+			echo "extendedKeyUsage = serverAuth" > extensions; \
+			echo "subjectAltName = DNS:$$(hostname)" >> extensions; \
+		fi; \
+		if [ ! -f cert.pem ]; then \
+			openssl x509 -req -CA CAcert.pem -CAkey CAkey.pem -CAcreateserial \
+					-extfile extensions -in cert.csr -out cert.pem; \
+		fi)
 	ct_run -no_auto_compile -pa $(top_builddir)/ebin -logdir log -config ct.cfg -spec test.spec -dir . -erl_args -config sys -sname $(LOGNAME)-ct
 
 sys.config:	$(top_srcdir)/test/sys.config-in
@@ -57,5 +65,5 @@ sys.config:	$(top_srcdir)/test/sys.config-in
 			-e 's#%APP_PRIV%#$(abs_top_srcdir)/priv#' < $< > $@
 
 clean-local:
-	-rm -r *.beam ocs_eap_ttls_SUITE_data/* log/*
+	-rm -r *.beam certificates/* log/*
 
