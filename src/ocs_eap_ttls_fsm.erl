@@ -39,6 +39,8 @@
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
 			terminate/3, code_change/4]).
 
+-dialyzer({[nowarn_function, no_contracts, no_return], prf/5}).
+
 %%Macro definitions for TLS record Content Type
 -define(ChangeCipherSpec,	20).
 -define(Alert,					21).
@@ -773,7 +775,6 @@ encrypt_key(Secret, RequestAuthenticator, Salt, Key) when (Salt bsr 15) == 1 ->
 	AccOut = lists:foldl(F, AccIn, [P || <<P:16/binary>> <= Plaintext]),
 	iolist_to_binary(tl(lists:reverse(AccOut))).
 
--dialyzer({[nowarn_function, no_contracts, no_return], prf/5}).
 %% ssl:prf/5 includes an incorrect type specification for Seed!
 -spec prf(SslSocket, Secret, Label, Seed, WantedLength) ->
 	{ok, MSK, EMSK} | {error, Reason} when
