@@ -86,11 +86,11 @@
 		</style>
 
 		<paper-toolbar>
-			<h2>Add subscriber</h2>
+			<h2>Add Client</h2>
 			</paper-toolbar>
 				<form  is="iron-form"  id="presubmit3" method="post" content-type="application/json" >
-					<paper-input id="add-client1" name="address" label="Ip Address" required></paper-input>
-					<paper-input id="add-client2" name="secret" label="Secret" required></paper-input>
+					<paper-input id="add-client1" name="address" label="Ip Address" ></paper-input>
+					<paper-input id="add-client2" name="secret" label="Secret" ></paper-input>
 					<div class="buttons">
 						<paper-button raised class="custom indigo" onclick="_submit()" style="float: right; width: 200px;"  >Submit</paper-button>
 						<paper-button dialog-confirm autofocus >Cancel</paper-button>
@@ -115,7 +115,7 @@
 				    url="http://localhost:8888/ocs/v1/client"
 		  			 method = "post"
 					 headers='{"Accept": "application/json", "Content-type": "application/json"}'
-					 handle-as="json"
+					 client-as="json"
 					 debounce-duration="300"></iron-ajax>
 
 				<script>
@@ -131,13 +131,13 @@
 			properties:{},
 
 			listeners: {
-				'presubmit3.iron-form-presubmit': '_handleFormPreSubmit',
-				'presubmit3.iron-form-submit': '_handleFormSubmit',
-				'ajaxClientAdd.error': '_handleFormError',
-				'ajaxClientAdd.response': '_handleFormResponse'
+				'presubmit3.iron-form-presubmit': '_clientFormPreSubmit',
+				'presubmit3.iron-form-submit': '_clientFormSubmit',
+				'ajaxClientAdd.error': '_clientFormError',
+				'ajaxClientAdd.response': '_clientFormResponse'
 			},
 
-			_handleFormPreSubmit: function() {
+			_clientFormPreSubmit: function() {
 				var form = document.getElementById('presubmit3');
 				var formData = new Object();
 				formData.id = document.getElementById("add-client1").value;	
@@ -148,17 +148,17 @@
 
 			},
 
-			_handleFormSubmit: function() {
+			_clientFormSubmit: function() {
 		  },
 
-			_handleFormError: function() {
+			_clientFormError: function() {
 				var toast = document.getElementById("toast-error");
 				toast.open();
 				toast.duration = 0;
 				toast.fitInto = document.getElementById("response-display-container");
 			},
 
-			_handleFormResponse: function() {
+			_clientFormResponse: function() {
 				var toast = document.getElementById("toast-success");
 				toast.open();
 				toast.duration = 4;

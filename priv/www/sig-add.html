@@ -89,16 +89,16 @@
 			<h2>Add subscriber</h2>
 			</paper-toolbar>
 				<form  is="iron-form"  id="presubmit" method="post" action="http://localhost:8888/ocs/v1/subscriber"  content-type="application/json" >
-					<paper-input id="add1" name="subscriber" label="Identity" required></paper-input>
-					<paper-input id="add2" name="password"  label="Secret"required ></paper-input>
+					<paper-input id="add1" name="subscriber" label="Identity" ></paper-input>
+					<paper-input id="add2" name="password"  label="Secret"></paper-input>
 					<paper-input id="add3" name="ascendDataRate" type="number" label="Receive Data Rate" ></paper-input>
 					<paper-input id="add4" name="ascendXmitRate" type="number" label="Transmit Data Rate" ></paper-input>
 					<paper-input id="add5" name="sessionTimeout" type="number" label="Session Timeout" ></paper-input>
 					<paper-input id="add6" name="acctInterimInterval" type="number" label="Update Interval" ></paper-input>
 					<paper-input id="add7" name="class" label="Class" ></paper-input>
-					<paper-input id="add8" name="balance" type="number" label="Balance (MB)" required> </paper-input>
+					<paper-input id="add8" name="balance" type="number" label="Balance (MB)" > </paper-input>
 					<div class="buttons">
-						<paper-button raised class="custom indigo" onclick="_submit()" style="float: right; width: 200px;"  >Submit</paper-button>
+						<paper-button raised class="custom indigo" onclick="_submitSubForm()" style="float: right; width: 200px;"  >Submit</paper-button>
 						<paper-button dialog-confirm autofocus >Cancel</paper-button>
 					</div>
 				</form>
@@ -118,7 +118,7 @@
 				</div>
 
 	<script>
-		function _submit() {
+		function _submitSubForm() {
 		  document.getElementById('presubmit').submit();
 		}
 	</script>
@@ -136,7 +136,6 @@
 
 			_handleFormPreSubmit: function() {
 				var form = document.getElementById('presubmit');
-				console.log("within presubmit");
 				var formData = new Object();
 				formData.subscriber = document.getElementById("add1").value;
 				formData.password = document.getElementById("add2").value;
