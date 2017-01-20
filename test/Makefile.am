@@ -24,6 +24,7 @@ check_DATA = .dialyzer_ok .common_test_ok
 
 .common_test_ok:	$(addsuffix .beam, $(testmods)) sys.config
 	@if [ ! -d $(CERT_DIR) ]; then mkdir $(CERT_DIR); fi
+	@if [ ! -d ocs_eap_ttls_SUITE_data ]; then mkdir ocs_eap_ttls_SUITE_data; fi
 	@if [ ! -d log ]; then mkdir log; fi
 	@if [ ! -f ct.cfg ]; then cp $(top_srcdir)/test/ct.cfg .; fi
 	@if [ ! -f test.spec ]; then cp $(top_srcdir)/test/test.spec .; fi
@@ -58,6 +59,9 @@ check_DATA = .dialyzer_ok .common_test_ok
 			openssl x509 -req -CA CAcert.pem -CAkey CAkey.pem -CAcreateserial \
 					-extfile extensions -in cert.csr -out cert.pem; \
 		fi)
+	if [ ! -f ocs_eap_ttls_SUITE_data/CAcert.pem ]; then \
+		cp $(CERT_DIR)/CAcert.pem ocs_eap_ttls_SUITE_data; \
+	fi
 	ct_run -no_auto_compile -pa $(top_builddir)/ebin -logdir log -config ct.cfg -spec test.spec -dir . -erl_args -config sys -sname $(LOGNAME)-ct
 
 sys.config:	$(top_srcdir)/test/sys.config-in
