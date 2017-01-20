@@ -115,7 +115,7 @@
 				    url="http://localhost:8888/ocs/v1/client"
 		  			 method = "post"
 					 headers='{"Accept": "application/json", "Content-type": "application/json"}'
-					 handle-as="json"
+					 client-as="json"
 					 debounce-duration="300"></iron-ajax>
 
 				<script>
@@ -131,13 +131,13 @@
 			properties:{},
 
 			listeners: {
-				'presubmit3.iron-form-presubmit': '_handleFormPreSubmit',
-				'presubmit3.iron-form-submit': '_handleFormSubmit',
-				'ajaxClientAdd.error': '_handleFormError',
-				'ajaxClientAdd.response': '_handleFormResponse'
+				'presubmit3.iron-form-presubmit': '_clientFormPreSubmit',
+				'presubmit3.iron-form-submit': '_clientFormSubmit',
+				'ajaxClientAdd.error': '_clientFormError',
+				'ajaxClientAdd.response': '_clientFormResponse'
 			},
 
-			_handleFormPreSubmit: function() {
+			_clientFormPreSubmit: function() {
 				var form = document.getElementById('presubmit3');
 				var formData = new Object();
 				formData.id = document.getElementById("add-client1").value;	
@@ -148,17 +148,17 @@
 
 			},
 
-			_handleFormSubmit: function() {
+			_clientFormSubmit: function() {
 		  },
 
-			_handleFormError: function() {
+			_clientFormError: function() {
 				var toast = document.getElementById("toast-error");
 				toast.open();
 				toast.duration = 0;
 				toast.fitInto = document.getElementById("response-display-container");
 			},
 
-			_handleFormResponse: function() {
+			_clientFormResponse: function() {
 				var toast = document.getElementById("toast-success");
 				toast.open();
 				toast.duration = 4;
