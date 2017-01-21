@@ -33,7 +33,6 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 			terminate/2, code_change/3]).
 
-%% @headerfile "include/radius.hrl"
 -include_lib("radius/include/radius.hrl").
 -include("ocs_eap_codec.hrl").
 
@@ -49,6 +48,7 @@
 		handlers = gb_trees:empty() :: gb_trees:tree(Key ::
 				({NAS :: string() | inet:ip_address(), Port :: string(),
 				Peer :: string()}), Value :: (Fsm :: pid()))}).
+-type state() :: #state{}.
 
 %%----------------------------------------------------------------------
 %%  The ocs_radius_auth_port_server API
@@ -58,8 +58,8 @@
 %%  The ocs_radius_auth_port_server gen_server call backs
 %%----------------------------------------------------------------------
 
--spec init(Args :: list()) -> Result :: {ok, State :: #state{}}
-		| {ok, State :: #state{}, Timeout :: non_neg_integer() | infinity}
+-spec init(Args :: list()) -> Result :: {ok, State :: state()}
+		| {ok, State :: state(), Timeout :: non_neg_integer() | infinity}
 		| {stop, Reason :: term()} | ignore.
 %% @doc Initialize the {@module} server.
 %% 	Args :: [Sup :: pid(), Module :: atom(), Port :: non_neg_integer(),
@@ -75,15 +75,15 @@ init([AuthPortSup, Address, Port, Options]) ->
 		method_prefer = MethodPrefer, method_order = MethodOrder}, 0}.
 
 -spec handle_call(Request :: term(), From :: {Pid :: pid(), Tag :: any()},
-		State :: #state{}) ->
-	Result :: {reply, Reply :: term(), NewState :: #state{}}
-		| {reply, Reply :: term(), NewState :: #state{}, Timeout :: non_neg_integer() | infinity}
-		| {reply, Reply :: term(), NewState :: #state{}, hibernate}
-		| {noreply, NewState :: #state{}}
-		| {noreply, NewState :: #state{}, Timeout :: non_neg_integer() | infinity}
-		| {noreply, NewState :: #state{}, hibernate}
-		| {stop, Reason :: term(), Reply :: term(), NewState :: #state{}}
-		| {stop, Reason :: term(), NewState :: #state{}}.
+		State :: state()) ->
+	Result :: {reply, Reply :: term(), NewState :: state()}
+		| {reply, Reply :: term(), NewState :: state(), Timeout :: non_neg_integer() | infinity}
+		| {reply, Reply :: term(), NewState :: state(), hibernate}
+		| {noreply, NewState :: state()}
+		| {noreply, NewState :: state(), Timeout :: non_neg_integer() | infinity}
+		| {noreply, NewState :: state(), hibernate}
+		| {stop, Reason :: term(), Reply :: term(), NewState :: state()}
+		| {stop, Reason :: term(), NewState :: state()}.
 %% @doc Handle a request sent using {@link //stdlib/gen_server:call/2.
 %% 	gen_server:call/2,3} or {@link //stdlib/gen_server:multi_call/2.
 %% 	gen_server:multi_call/2,3,4}.
@@ -95,11 +95,11 @@ handle_call({request, Address, Port, Secret,
 			#radius{code = ?AccessRequest} = Radius}, From, State) ->
 	access_request(Address, Port, Secret, Radius, From, State).
 
--spec handle_cast(Request :: term(), State :: #state{}) ->
-	Result :: {noreply, NewState :: #state{}}
-		| {noreply, NewState :: #state{}, Timeout :: non_neg_integer() | infinity}
-		| {noreply, NewState :: #state{}, hibernate}
-		| {stop, Reason :: term(), NewState :: #state{}}.
+-spec handle_cast(Request :: term(), State :: state()) ->
+	Result :: {noreply, NewState :: state()}
+		| {noreply, NewState :: state(), Timeout :: non_neg_integer() | infinity}
+		| {noreply, NewState :: state(), hibernate}
+		| {stop, Reason :: term(), NewState :: state()}.
 %% @doc Handle a request sent using {@link //stdlib/gen_server:cast/2.
 %% 	gen_server:cast/2} or {@link //stdlib/gen_server:abcast/2.
 %% 	gen_server:abcast/2,3}.
@@ -109,11 +109,11 @@ handle_call({request, Address, Port, Secret,
 handle_cast(_Request, State) ->
 	{noreply, State}.
 
--spec handle_info(Info :: timeout | term(), State :: #state{}) ->
-	Result :: {noreply, NewState :: #state{}}
-		| {noreply, NewState :: #state{}, Timeout :: non_neg_integer() | infinity}
-		| {noreply, NewState :: #state{}, hibernate}
-		| {stop, Reason :: term(), NewState :: #state{}}.
+-spec handle_info(Info :: timeout | term(), State :: state()) ->
+	Result :: {noreply, NewState :: state()}
+		| {noreply, NewState :: state(), Timeout :: non_neg_integer() | infinity}
+		| {noreply, NewState :: state(), hibernate}
+		| {stop, Reason :: term(), NewState :: state()}.
 %% @doc Handle a received message.
 %% @see //stdlib/gen_server:handle_info/2
 %% @private
@@ -155,7 +155,7 @@ handle_info({'EXIT', Fsm, _Reason},
 	end.
 
 -spec terminate(Reason :: normal | shutdown | term(),
-		State :: #state{}) -> any().
+		State :: state()) -> any().
 %% @doc Cleanup and exit.
 %% @see //stdlib/gen_server:terminate/3
 %% @private
@@ -164,8 +164,8 @@ terminate(_Reason, _State) ->
 	ok.
 
 -spec code_change(OldVsn :: (Vsn :: term() | {down, Vsn :: term()}),
-		State :: #state{}, Extra :: term()) ->
-	Result :: {ok, NewState :: #state{}}.
+		State :: state(), Extra :: term()) ->
+	Result :: {ok, NewState :: state()}.
 %% @doc Update internal state data during a release upgrade&#047;downgrade.
 %% @see //stdlib/gen_server:code_change/3
 %% @private
@@ -179,9 +179,9 @@ code_change(_OldVsn, State, _Extra) ->
 
 -spec access_request(Address :: inet:ip_address(), Port :: pos_integer(),
 		Secret :: string(), Radius :: #radius{},
-		From :: {Pid :: pid(), Tag :: term()}, State :: #state{}) ->
-	{reply, {ok, wait}, NewState :: #state{}}
-			| {reply, {error, ignore}, NewState :: #state{}}.
+		From :: {Pid :: pid(), Tag :: term()}, State :: state()) ->
+	{reply, {ok, wait}, NewState :: state()}
+			| {reply, {error, ignore}, NewState :: state()}.
 %% @doc Handle a received RADIUS Access-Request packet.
 %% @private
 access_request(Address, Port, Secret,
@@ -293,7 +293,7 @@ access_request(Address, Port, Secret,
 -spec start_fsm(AccessRequest :: #radius{}, RadiusFsm :: pid(),
 		Address :: inet:ip_address(), Port :: integer(),
 		Secret :: binary(), SessionID :: tuple(), Identity :: binary(),
-		Sup :: pid(), State :: #state{}) -> NewState :: #state{}.
+		Sup :: pid(), State :: state()) -> NewState :: state().
 %% @doc Start a new session handler.
 %% @hidden
 start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret,
@@ -330,7 +330,7 @@ start_fsm1(Address, Port, RadiusFsm, SessionID, Identity,
 	end.
 
 -spec get_alternate(PreferenceOrder :: [ocs:eap_method()],
-		AlternateMethods :: binary() | [byte()], State :: #state{}) ->
+		AlternateMethods :: binary() | [byte()], State :: state()) ->
 	{ok, SupervisorModule :: pid()} | {error, none}.
 get_alternate(PreferenceOrder, AlternateMethods, State) 
 		when is_binary(AlternateMethods) ->

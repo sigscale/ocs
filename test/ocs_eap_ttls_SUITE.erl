@@ -48,7 +48,6 @@
 -define(ClientKeyExchange,		16).
 -define(Finished,					20).
 
-%% @headerfile "include/radius.hrl"
 -include_lib("radius/include/radius.hrl").
 -include_lib("diameter/include/diameter.hrl").
 -include("ocs_eap_codec.hrl").

@@ -28,7 +28,6 @@
 				perform_patch/2,
 				perform_delete/1]).
 
-%% @headerfile "include/radius.hrl"
 -include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
 
