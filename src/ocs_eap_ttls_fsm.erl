@@ -90,6 +90,7 @@
 		tls_key :: string(),
 		tls_cert :: string(),
 		tls_cacert :: string()}).
+-type statedata() :: #statedata{}.
 
 -define(TIMEOUT, 30000).
 -define(BufTIMEOUT, 100).
@@ -103,10 +104,10 @@
 %%----------------------------------------------------------------------
 
 -spec init(Args :: list()) ->
-	Result :: {ok, StateName :: atom(), StateData :: #statedata{}}
-		| {ok, StateName :: atom(), StateData :: #statedata{},
+	Result :: {ok, StateName :: atom(), StateData :: statedata()}
+		| {ok, StateName :: atom(), StateData :: statedata(),
 			Timeout :: non_neg_integer() | infinity}
-		| {ok, StateName :: atom(), StateData :: #statedata{}, hibernate}
+		| {ok, StateName :: atom(), StateData :: statedata(), hibernate}
 		| {stop, Reason :: term()} | ignore.
 %% @doc Initialize the {@module} finite state machine.
 %% @see //stdlib/gen_fsm:init/1
@@ -124,12 +125,12 @@ init([Sup, Address, Port, RadiusFsm, Secret, SessionID, AccessRequest] = _Args) 
 	process_flag(trap_exit, true),
 	{ok, ssl_start, StateData, 0}.
 
--spec ssl_start(Event :: timeout | term(), StateData :: #statedata{}) ->
-	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+-spec ssl_start(Event :: timeout | term(), StateData :: statedata()) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: statedata()}
+		| {next_state, NextStateName :: atom(), NewStateData :: statedata(),
 		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
-		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+		| {next_state, NextStateName :: atom(), NewStateData :: statedata(), hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: statedata()}.
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
 %%		gen_fsm:send_event/2} in the <b>ssl_start</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
@@ -153,12 +154,12 @@ ssl_start({ssl_pid, SslPid}, StateData) ->
 	NewStateData = StateData#statedata{ssl_pid = SslPid},
 	{next_state, eap_start, NewStateData, 0}.
 
--spec eap_start(Event :: timeout | term(), StateData :: #statedata{}) ->
-	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+-spec eap_start(Event :: timeout | term(), StateData :: statedata()) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: statedata()}
+		| {next_state, NextStateName :: atom(), NewStateData :: statedata(),
 		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
-		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+		| {next_state, NextStateName :: atom(), NewStateData :: statedata(), hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: statedata()}.
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
 %%		gen_fsm:send_event/2} in the <b>eap_start</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
@@ -219,12 +220,12 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 			{next_state, client_hello, NewStateData, ?TIMEOUT}
 	end.
 
--spec client_hello(Event :: timeout | term(), StateData :: #statedata{}) ->
-	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+-spec client_hello(Event :: timeout | term(), StateData :: statedata()) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: statedata()}
+		| {next_state, NextStateName :: atom(), NewStateData :: statedata(),
 		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
-		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+		| {next_state, NextStateName :: atom(), NewStateData :: statedata(), hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: statedata()}.
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
 %%		gen_fsm:send_event/2} in the <b>client_hello</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
@@ -324,12 +325,12 @@ client_hello1(<<?Handshake, _:32, ?ClientHello, _:40,
 	StateData#statedata{client_rand = ClientRand}.
 
 
--spec server_hello(Event :: timeout | term(), StateData :: #statedata{}) ->
-	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+-spec server_hello(Event :: timeout | term(), StateData :: statedata()) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: statedata()}
+		| {next_state, NextStateName :: atom(), NewStateData :: statedata(),
 		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
-		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+		| {next_state, NextStateName :: atom(), NewStateData :: statedata(), hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: statedata()}.
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
 %%		gen_fsm:send_event/2} in the <b>server_hello</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
@@ -416,12 +417,12 @@ server_hello1(#statedata{tx_buf = TxBuf, radius_fsm = RadiusFsm,
 			{next_state, client_cipher, NewStateData, ?TIMEOUT}
 	end.
 
--spec client_cipher(Event :: timeout | term(), StateData :: #statedata{}) ->
-	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+-spec client_cipher(Event :: timeout | term(), StateData :: statedata()) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: statedata()}
+		| {next_state, NextStateName :: atom(), NewStateData :: statedata(),
 		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
-		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+		| {next_state, NextStateName :: atom(), NewStateData :: statedata(), hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: statedata()}.
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
 %%		gen_fsm:send_event/2} in the <b>client_cipher</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
@@ -485,12 +486,12 @@ client_cipher({#radius{code = ?AccessRequest, id = RadiusID,
 			{stop, {shutdown, SessionID}, NewStateData}
 	end.
 
--spec server_cipher(Event :: timeout | term(), StateData :: #statedata{}) ->
-	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+-spec server_cipher(Event :: timeout | term(), StateData :: statedata()) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: statedata()}
+		| {next_state, NextStateName :: atom(), NewStateData :: statedata(),
 		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
-		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+		| {next_state, NextStateName :: atom(), NewStateData :: statedata(), hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: statedata()}.
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
 %%		gen_fsm:send_event/2} in the <b>server_cipher</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
@@ -504,12 +505,12 @@ server_cipher({eap_tls, _SslPid,
 	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
 	{next_state, finish, NewStateData}.
 
--spec finish(Event :: timeout | term(), StateData :: #statedata{}) ->
-	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+-spec finish(Event :: timeout | term(), StateData :: statedata()) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: statedata()}
+		| {next_state, NextStateName :: atom(), NewStateData :: statedata(),
 		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
-		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+		| {next_state, NextStateName :: atom(), NewStateData :: statedata(), hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: statedata()}.
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
 %%		gen_fsm:send_event/2} in the <b>finish</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
@@ -532,12 +533,12 @@ finish({eap_tls, _SslPid, [<<?Handshake, _:32>> | _] = Data},
 	NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = []},
 	{next_state, client_passthrough, NewStateData}.
 
--spec client_passthrough(Event :: timeout | term(), StateData :: #statedata{}) ->
-	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+-spec client_passthrough(Event :: timeout | term(), StateData :: statedata()) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: statedata()}
+		| {next_state, NextStateName :: atom(), NewStateData :: statedata(),
 		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
-		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+		| {next_state, NextStateName :: atom(), NewStateData :: statedata(), hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: statedata()}.
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
 %%		gen_fsm:send_event/2} in the <b>client_passthrough</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
@@ -583,12 +584,12 @@ client_passthrough({#radius{code = ?AccessRequest, id = RadiusID,
 				{stop, {shutdown, SessionID}, StateData}
 	end.
 
--spec server_passthrough(Event :: timeout | term(), StateData :: #statedata{}) ->
-	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+-spec server_passthrough(Event :: timeout | term(), StateData :: statedata()) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: statedata()}
+		| {next_state, NextStateName :: atom(), NewStateData :: statedata(),
 		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
-		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+		| {next_state, NextStateName :: atom(), NewStateData :: statedata(), hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: statedata()}.
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
 %%		gen_fsm:send_event/2} in the <b>server_passthrough</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
@@ -630,12 +631,12 @@ server_passthrough(reject, #statedata{eap_id = EapID,
 	{stop, {shutdown, SessionID}, StateData}.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
-		StateData :: #statedata{}) ->
-	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+		StateData :: statedata()) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: statedata()}
+		| {next_state, NextStateName :: atom(), NewStateData :: statedata(),
 		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
-		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+		| {next_state, NextStateName :: atom(), NewStateData :: statedata(), hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: statedata()}.
 %% @doc Handle an event sent with
 %% 	{@link //stdlib/gen_fsm:send_all_state_event/2.
 %% 	gen_fsm:send_all_state_event/2}.
@@ -646,17 +647,17 @@ handle_event(_Event, StateName, StateData) ->
 	{next_state, StateName, StateData, ?TIMEOUT}.
 
 -spec handle_sync_event(Event :: term(), From :: {Pid :: pid(), Tag :: term()},
-		StateName :: atom(), StateData :: #statedata{}) ->
-	Result :: {reply, Reply :: term(), NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {reply, Reply :: term(), NextStateName :: atom(), NewStateData :: #statedata{},
+		StateName :: atom(), StateData :: statedata()) ->
+	Result :: {reply, Reply :: term(), NextStateName :: atom(), NewStateData :: statedata()}
+		| {reply, Reply :: term(), NextStateName :: atom(), NewStateData :: statedata(),
 		Timeout :: non_neg_integer() | infinity}
-		| {reply, Reply :: term(), NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+		| {reply, Reply :: term(), NextStateName :: atom(), NewStateData :: statedata(), hibernate}
+		| {next_state, NextStateName :: atom(), NewStateData :: statedata()}
+		| {next_state, NextStateName :: atom(), NewStateData :: statedata(),
 		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
-		| {stop, Reason :: normal | term(), Reply :: term(), NewStateData :: #statedata{}}
-		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+		| {next_state, NextStateName :: atom(), NewStateData :: statedata(), hibernate}
+		| {stop, Reason :: normal | term(), Reply :: term(), NewStateData :: statedata()}
+		| {stop, Reason :: normal | term(), NewStateData :: statedata()}.
 %% @doc Handle an event sent with
 %% 	{@link //stdlib/gen_fsm:sync_send_all_state_event/2.
 %% 	gen_fsm:sync_send_all_state_event/2,3}.
@@ -666,12 +667,12 @@ handle_event(_Event, StateName, StateData) ->
 handle_sync_event(_Event, _From, StateName, StateData) ->
 	{reply, ok, StateName, StateData}.
 
--spec handle_info(Info :: term(), StateName :: atom(), StateData :: #statedata{}) ->
-	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
+-spec handle_info(Info :: term(), StateName :: atom(), StateData :: statedata()) ->
+	Result :: {next_state, NextStateName :: atom(), NewStateData :: statedata()}
+		| {next_state, NextStateName :: atom(), NewStateData :: statedata(),
 		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
-		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+		| {next_state, NextStateName :: atom(), NewStateData :: statedata(), hibernate}
+		| {stop, Reason :: normal | term(), NewStateData :: statedata()}.
 %% @doc Handle a received message.
 %% @see //stdlib/gen_fsm:handle_info/3
 %% @private
@@ -680,7 +681,7 @@ handle_info(_Info, StateName, StateData) ->
 	{next_state, StateName, StateData, ?TIMEOUT}.
 
 -spec terminate(Reason :: normal | shutdown | term(), StateName :: atom(),
-		StateData :: #statedata{}) -> any().
+		StateData :: statedata()) -> any().
 %% @doc Cleanup and exit.
 %% @see //stdlib/gen_fsm:terminate/3
 %% @private
@@ -689,8 +690,8 @@ terminate(_Reason, _StateName, _StateData) ->
 	ok.
 
 -spec code_change(OldVsn :: (Vsn :: term() | {down, Vsn :: term()}),
-		StateName :: atom(), StateData :: #statedata{}, Extra :: term()) ->
-	Result :: {ok, NextStateName :: atom(), NewStateData :: #statedata{}}.
+		StateName :: atom(), StateData :: statedata(), Extra :: term()) ->
+	Result :: {ok, NextStateName :: atom(), NewStateData :: statedata()}.
 %% @doc Update internal state data during a release upgrade&#047;downgrade.
 %% @see //stdlib/gen_fsm:code_change/4
 %% @private
