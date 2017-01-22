@@ -736,7 +736,7 @@ send_response1(Chunk, RadiusCode, RadiusID, RadiusAttributes,
 send_response2(RadiusCode, RadiusID, RadiusAttributes,
 		RequestAuthenticator, Secret, RadiusFsm) ->
 	AttrList2 = radius_attributes:add(?MessageAuthenticator,
-		<<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, RadiusAttributes),
+			<<0:128>>, RadiusAttributes),
 	Attributes1 = radius_attributes:codec(AttrList2),
 	Length = size(Attributes1) + 20,
 	MessageAuthenticator = crypto:hmac(md5, Secret, [<<RadiusCode, RadiusID,
