@@ -242,7 +242,7 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 response(RadiusCode, ResponseAttributes,
 		#statedata{radius_id = RadiusID, req_auth = RequestAuthenticator,
 		secret = Secret, radius_fsm = RadiusFsm} = _StateData) ->
-	AttributeList1 = radius_attributes:store(?MessageAuthenticator,
+	AttributeList1 = radius_attributes:add(?MessageAuthenticator,
 		<<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>, ResponseAttributes),
 	Attributes1 = radius_attributes:codec(AttributeList1),
 	Length = size(Attributes1) + 20,
