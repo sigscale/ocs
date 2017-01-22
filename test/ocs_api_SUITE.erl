@@ -149,8 +149,8 @@ subscriber() ->
 
 subscriber(_Config) ->
 	Attribute0 = radius_attributes:new(),
-	Attribute1 = radius_attributes:store(?NasPortId, "wlan0", Attribute0),
-	Attribute2 = radius_attributes:store(?NasPortId, "wlan2", Attribute0),
+	Attribute1 = radius_attributes:add(?NasPortId, "wlan0", Attribute0),
+	Attribute2 = radius_attributes:add(?NasPortId, "wlan2", Attribute0),
 	Password1 = ocs:generate_password(),
 	Password2 = ocs:generate_password(),
 	ok = ocs:add_subscriber("tomba", Password1, Attribute1),
@@ -165,7 +165,7 @@ delete_subscriber() ->
 
 delete_subscriber(_Config) ->
 	Attribute0 = radius_attributes:new(),
-	Attribute = radius_attributes:store(?NasPortId,"wlan0", Attribute0),
+	Attribute = radius_attributes:add(?NasPortId,"wlan0", Attribute0),
 	Subscriber = "deleteandroid",
 	Password = ocs:generate_password(),
 	ok = ocs:add_subscriber(Subscriber, Password, Attribute),
@@ -178,7 +178,7 @@ update_password() ->
 
 update_password(_Config) ->
 	Attribute0 = radius_attributes:new(),
-	Attribute = radius_attributes:store(?NasPortId,"wlan0", Attribute0),
+	Attribute = radius_attributes:add(?NasPortId,"wlan0", Attribute0),
 	Subscriber = "android",
 	OldPassword = ocs:generate_password(),
 	ok = ocs:add_subscriber(Subscriber, OldPassword, Attribute),
@@ -196,10 +196,10 @@ update_attributes(_Config) ->
 	Password = ocs:generate_password(),
 	Username = "tomba1",
 	Attribute0 = radius_attributes:new(),
-	Attribute1 = radius_attributes:store(?NasPortId,"wlan0", Attribute0),
+	Attribute1 = radius_attributes:add(?NasPortId,"wlan0", Attribute0),
 	ok = ocs:add_subscriber(Username, Password, Attribute1),
 	{ok, _BinPassword, Attribute1, _Balance, _Enabled} = ocs:find_subscriber(Username),
-	Attribute2 = radius_attributes:store(?NasPortId,"wlan1", Attribute0),
+	Attribute2 = radius_attributes:add(?NasPortId,"wlan1", Attribute0),
 	ok = ocs:update_attributes(Username, Attribute2),
 	{ok, _BinPassword, Attribute2, _Balance, _Enabled} = ocs:find_subscriber(Username).
 
