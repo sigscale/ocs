@@ -93,7 +93,7 @@ handle_call(shutdown, _From, State) ->
 	{stop, normal, ok, State};
 handle_call({request, Address, Port, Secret,
 			#radius{code = ?AccessRequest} = Radius}, From, State) ->
-	access_request(Address, Port, Secret, Radius, From, State).
+	request(Address, Port, Secret, Radius, From, State).
 
 -spec handle_cast(Request :: term(), State :: state()) ->
 	Result :: {noreply, NewState :: state()}
@@ -177,14 +177,14 @@ code_change(_OldVsn, State, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec access_request(Address :: inet:ip_address(), Port :: pos_integer(),
+-spec request(Address :: inet:ip_address(), Port :: pos_integer(),
 		Secret :: string(), Radius :: #radius{},
 		From :: {Pid :: pid(), Tag :: term()}, State :: state()) ->
 	{reply, {ok, wait}, NewState :: state()}
 			| {reply, {error, ignore}, NewState :: state()}.
 %% @doc Handle a received RADIUS Access-Request packet.
 %% @private
-access_request(Address, Port, Secret,
+request(Address, Port, Secret,
 		#radius{id = RadiusId, authenticator = RequestAuthenticator,
 		attributes = Attributes} = AccessRequest, {RadiusFsm, _Tag} = _From,
 		#state{handlers = Handlers, method_prefer = MethodPrefer,

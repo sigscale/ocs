@@ -124,7 +124,7 @@ handle_call(shutdown, _From, State) ->
 	{stop, normal, ok, State};
 handle_call({request, Address, Port, Secret,
 			#radius{code = ?AccountingRequest} = Radius}, From, State) ->
-	accounting_request(Address, Port, Secret, Radius, From, State).
+	request(Address, Port, Secret, Radius, From, State).
 
 -spec handle_cast(Request :: term(), State :: state()) ->
 	Result :: {noreply, NewState :: state()}
@@ -200,14 +200,14 @@ code_change(_OldVsn, State, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec accounting_request(Address :: inet:ip_address(), Port :: pos_integer(),
+-spec request(Address :: inet:ip_address(), Port :: pos_integer(),
 		Secret :: string(), Radius :: #radius{},
 		From :: {Pid :: pid(), Tag :: term()}, State :: state()) ->
 	{reply, {ok, wait}, NewState :: state()}
 			| {reply, {error, ignore}, NewState :: state()}.
 %% @doc Handle a received RADIUS Accounting Request packet.
 %% @private
-accounting_request(Address, _Port, Secret, Radius,
+request(Address, _Port, Secret, Radius,
 		{_RadiusFsm, _Tag} = _From, #state{handlers = _Handlers, disc_id = DiskId,
 		log = Log, disc_sup = DiscSup} = State) ->
 	try
