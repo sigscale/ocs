@@ -101,7 +101,7 @@ eap_identity() ->
    [{userdata, [{doc, "Send an EAP-Identity/Response to peer"}]}].
 
 eap_identity(Config) ->
-	MAC = "aa:bb:cc:dd:ee:ff",
+	MAC = "AA-BB-CC-DD-EE-FF",
 	PeerId = <<"12345678">>,
 	Socket = ?config(socket, Config),
 	{ok, Address} = application:get_env(ocs, radius_auth_addr),
@@ -122,7 +122,7 @@ pwd_id() ->
 
 pwd_id(Config) ->
 	PeerId = <<"23456789">>,
-	MAC = "bb:cc:dd:ee:ff:aa",
+	MAC = "BB-CC-DD-EE-FF-AA",
 	PeerAuth = list_to_binary(ocs:generate_password()),
 	ok = ocs:add_subscriber(PeerId, PeerAuth, []),
 	Socket = ?config(socket, Config),
@@ -151,7 +151,7 @@ pwd_commit() ->
 
 pwd_commit(Config) ->
 	PeerId = <<"34567890">>,
-	MAC = "cc:dd:ee:ff:aa:bb",
+	MAC = "CC-DD-EE-FF-AA-BB",
 	PeerAuth = list_to_binary(ocs:generate_password()),
 	ok = ocs:add_subscriber(PeerId, PeerAuth, []),
 	Socket = ?config(socket, Config),
@@ -190,7 +190,7 @@ pwd_confirm() ->
 
 pwd_confirm(Config) ->
 	PeerId = <<"45678901">>,
-	MAC = "dd:ee:ff:aa:bb:cc",
+	MAC = "DD-EE-FF-AA-BB-CC",
 	PeerAuth = list_to_binary(ocs:generate_password()),
 	ok = ocs:add_subscriber(PeerId, PeerAuth, [], 10000),
 	Socket = ?config(socket, Config),
@@ -238,7 +238,7 @@ message_authentication() ->
 
 message_authentication(Config) ->
 	PeerId = <<"56789012">>,
-	MAC = "ee:ff:aa:bb:cc:dd",
+	MAC = "EE-FF-AA-BB-CC-DD",
 	PeerAuth = list_to_binary(ocs:generate_password()),
 	ok = ocs:add_subscriber(PeerId, PeerAuth, []),
 	Socket = ?config(socket, Config),
@@ -258,7 +258,7 @@ role_reversal() ->
 
 role_reversal(Config) ->
 	PeerId = <<"67890123">>,
-	MAC = "ff:aa:bb:cc:dd:ee",
+	MAC = "FF-AA-BB-CC-DD-FF",
 	Socket = ?config(socket, Config),
 	{ok, Address} = application:get_env(ocs, radius_auth_addr),
 	{ok, Port} = application:get_env(ocs, radius_auth_port),
@@ -283,7 +283,7 @@ validate_pwd_id_cipher() ->
 
 validate_pwd_id_cipher(Config) ->
 	PeerId = <<"78901234">>,
-	MAC = "ab:cd:ef:fe:dc:ba",
+	MAC = "AB-CD-EF-FE-DC-BA",
 	PeerAuth = list_to_binary(ocs:generate_password()),
 	ok = ocs:add_subscriber(PeerId, PeerAuth, []),
 	Socket = ?config(socket, Config),
@@ -317,7 +317,7 @@ validate_pwd_id_prep() ->
 
 validate_pwd_id_prep(Config) ->
 	PeerId = <<"89012345">>,
-	MAC = "cd:ef:fe:dc:ba:ab",
+	MAC = "CD-EF-FE-DC-BA-AB",
 	PeerAuth = list_to_binary(ocs:generate_password()),
 	ok = ocs:add_subscriber(PeerId, PeerAuth, []),
 	Socket = ?config(socket, Config),
@@ -351,7 +351,7 @@ validate_pwd_id_token() ->
 
 validate_pwd_id_token(Config) ->
 	PeerId = <<"90123456">>,
-	MAC = "ef:fe:dc:ba:ab:cd",
+	MAC = "EF-FE-DC-BA-AB-CD",
 	PeerAuth = list_to_binary(ocs:generate_password()),
 	ok = ocs:add_subscriber(PeerId, PeerAuth, []),
 	Socket = ?config(socket, Config),
@@ -385,7 +385,7 @@ negotiate_method() ->
 
 negotiate_method(Config) ->
 	PeerId = <<"01234567">>,
-	MAC = "fe:dc:ba:ab:cd:ef",
+	MAC = "FE-DC-BA-AB-CD-EF",
 	PeerAuth = list_to_binary(ocs:generate_password()),
 	ok = ocs:add_subscriber(PeerId, PeerAuth, []),
 	Socket = ?config(socket, Config),
@@ -432,14 +432,16 @@ access_request(Socket, Address, Port, NasId,
 	A2 = radius_attributes:add(?NasPort, 0, A1),
 	A3 = radius_attributes:add(?NasIdentifier, NasId, A2),
 	A4 = radius_attributes:add(?CallingStationId, MAC, A3),
-	A5 = radius_attributes:add(?EAPMessage, EapMsg, A4),
-	A6 = radius_attributes:add(?MessageAuthenticator, <<0:128>>, A5),
+	A5 = radius_attributes:add(?CalledStationId,
+			"FE-EF-DE-ED-CE-ED:TestSSID", A4),
+	A6 = radius_attributes:add(?EAPMessage, EapMsg, A5),
+	A7 = radius_attributes:add(?MessageAuthenticator, <<0:128>>, A6),
 	Request1 = #radius{code = ?AccessRequest, id = RadId,
-		authenticator = Auth, attributes = A6},
+		authenticator = Auth, attributes = A7},
 	ReqPacket1 = radius:codec(Request1),
 	MsgAuth1 = crypto:hmac(md5, Secret, ReqPacket1),
-	A7 = radius_attributes:store(?MessageAuthenticator, MsgAuth1, A6),
-	Request2 = Request1#radius{attributes = A7},
+	A8 = radius_attributes:store(?MessageAuthenticator, MsgAuth1, A7),
+	Request2 = Request1#radius{attributes = A8},
 	ReqPacket2 = radius:codec(Request2),
 	gen_udp:send(Socket, Address, Port, ReqPacket2).
 
