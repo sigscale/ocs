@@ -45,17 +45,17 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json", "application/hal+json"].
 
--spec perform_get(Identity :: string()) ->
+-spec perform_get(Id :: string()) ->
 	{body, Body :: iolist()} | {error, ErrorCode :: integer()}.
-%% @doc Body producing function for `GET /ocs/v1/subscriber/{identity}'
+%% @doc Body producing function for `GET /ocs/v1/subscriber/{id}'
 %% requests.
-perform_get(Identity) ->
-	case ocs:find_subscriber(Identity) of
+perform_get(Id) ->
+	case ocs:find_subscriber(Id) of
 		{ok, PWBin, Attributes, Balance, Enabled} ->
 			Password = binary_to_list(PWBin),
 			JSAttributes = radius_to_json(Attributes),
 			AttrObj = {struct, JSAttributes}, 
-			RespObj = [{identity, Identity}, {password, Password}, {attributes, AttrObj},
+			RespObj = [{id, Id}, {password, Password}, {attributes, AttrObj},
 					 {balance, Balance}, {enabled, Enabled}],
 			JsonObj  = {struct, RespObj},
 			Body = mochijson:encode(JsonObj),
@@ -79,11 +79,11 @@ perform_get_all() ->
 	end.
 %% @hidden
 perform_get_all1(Subscribers) ->
-			F = fun(#subscriber{name = Identity, password = Password,
+			F = fun(#subscriber{name = Id, password = Password,
 					attributes = Attributes, balance = Balance, enabled = Enabled}, Acc) ->
 				JSAttributes = radius_to_json(Attributes),
 				AttrObj = {struct, JSAttributes}, 
-				RespObj = [{struct, [{identity, Identity}, {password, Password},
+				RespObj = [{struct, [{id, Id}, {password, Password},
 					{attributes, AttrObj}, {balance, Balance},
 					{enabled, Enabled}]}],
 				RespObj ++ Acc
@@ -99,28 +99,28 @@ perform_get_all1(Subscribers) ->
 perform_post(RequestBody) ->
 	try 
 		{struct, Object} = mochijson:decode(RequestBody),
-		{_, Identity} = lists:keyfind("subscriber", 1, Object),
+		{_, Id} = lists:keyfind("id", 1, Object),
 		{_, Password} = lists:keyfind("password", 1, Object),
 		{_, {struct, AttrJs}} = lists:keyfind("attributes", 1, Object),
 		RadAttributes = json_to_radius(AttrJs),
 		{_, BalStr} = lists:keyfind("balance", 1, Object),
 		{Balance , _}= string:to_integer(BalStr),
-		perform_post1(Identity, Password, RadAttributes, Balance)
+		perform_post1(Id, Password, RadAttributes, Balance)
 	catch
 		_Error ->
 			{error, 400}
 	end.
 %% @hidden
-perform_post1(Identity, Password, RadAttributes, Balance) ->
+perform_post1(Id, Password, RadAttributes, Balance) ->
 	try
-	case catch ocs:add_subscriber(Identity, Password, RadAttributes, Balance) of
+	case catch ocs:add_subscriber(Id, Password, RadAttributes, Balance) of
 		ok ->
 			Attributes = {struct, radius_to_json(RadAttributes)},
-			RespObj = [{identity, Identity}, {password, Password}, {attributes, Attributes},
+			RespObj = [{id, Id}, {password, Password}, {attributes, Attributes},
 						{balance, Balance}],
 			JsonObj  = {struct, RespObj},
 			Body = mochijson:encode(JsonObj),
-			Location = "/ocs/v1/subscriber" ++ Identity,
+			Location = "/ocs/v1/subscriber" ++ Id,
 			{Location, Body};
 		{error, _Reason} ->
 			{error, 400}
@@ -129,12 +129,12 @@ perform_post1(Identity, Password, RadAttributes, Balance) ->
 			{error, 400}
 	end.
 
--spec perform_patch(Identity :: list(), ReqBody :: list()) ->
+-spec perform_patch(Id :: list(), ReqBody :: list()) ->
 	{body, Body :: iolist()} | {error, ErrorCode :: integer()} .
-%% @doc	Respond to `PATCH /ocs/v1/subscriber/{identity}' request and
+%% @doc	Respond to `PATCH /ocs/v1/subscriber/{id}' request and
 %% Updates a existing `subscriber''s password or attributes. 
-perform_patch(Identity, ReqBody) ->
-	case ocs:find_subscriber(Identity) of
+perform_patch(Id, ReqBody) ->
+	case ocs:find_subscriber(Id) of
 		{ok, CurrentPwd, CurrentAttr, Bal, Enabled} ->
 			try 
 				{struct, Object} = mochijson:decode(ReqBody),
@@ -143,15 +143,15 @@ perform_patch(Identity, ReqBody) ->
 					"attributes" ->
 						{_, {struct, AttrJs}} = lists:keyfind("attributes", 1, Object),
 						NewAttributes = json_to_radius(AttrJs),
-						ocs:update_attributes(Identity, NewAttributes),
+						ocs:update_attributes(Id, NewAttributes),
 						{CurrentPwd, NewAttributes};
 					"password" ->
 						{_, NewPassword } = lists:keyfind("newpassword", 1, Object),
-						ocs:update_password(Identity, NewPassword),
+						ocs:update_password(Id, NewPassword),
 						{NewPassword, CurrentAttr}
 				end,
 				Attributes = {struct, radius_to_json(RadAttr)},
-				RespObj =[{identity, Identity}, {password, Password},
+				RespObj =[{id, Id}, {password, Password},
 					{attributes, Attributes}, {balance, Bal}, {enabled, Enabled}],
 				JsonObj  = {struct, RespObj},
 				RespBody = mochijson:encode(JsonObj),
@@ -164,12 +164,12 @@ perform_patch(Identity, ReqBody) ->
 			{error, 404}
 	end.
 
--spec perform_delete(Identity :: list()) ->
+-spec perform_delete(Id :: list()) ->
 	ok .
-%% @doc Respond to `DELETE /ocs/v1/subscriber/{identity}' request and deletes
+%% @doc Respond to `DELETE /ocs/v1/subscriber/{id}' request and deletes
 %% a `subscriber' resource. If the deletion is succeeded return true.
-perform_delete(Identity) ->
-	ok = ocs:delete_subscriber(Identity),
+perform_delete(Id) ->
+	ok = ocs:delete_subscriber(Id),
 	ok.
 
 %%----------------------------------------------------------------------

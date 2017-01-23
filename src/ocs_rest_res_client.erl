@@ -47,7 +47,7 @@ content_types_provided() ->
 
 -spec perform_get(Ip :: string()) ->
 	{body, Body :: iolist()} | {error, ErrorCode :: integer()}.
-%% @doc Body producing function for `GET /ocs/v1/client/{address}'
+%% @doc Body producing function for `GET /ocs/v1/client/{id}'
 %% requests.
 perform_get(Ip) ->
 	case inet:parse_address(Ip) of
@@ -123,19 +123,19 @@ perform_post1(Id, Secret) ->
 			{error, 400}
 	end.
 
--spec perform_patch(Identity :: list(), ReqBody :: list()) ->
+-spec perform_patch(Id :: list(), ReqBody :: list()) ->
 	{body, Body :: iolist()} | {error, ErrorCode :: integer()} .
-%% @doc	Respond to `PATCH /ocs/v1/client/{identity}' request and
+%% @doc	Respond to `PATCH /ocs/v1/client/{id}' request and
 %% Updates a existing `radius_client''s password or attributes.
-perform_patch(Identity, ReqBody) ->
-	{ok, Address} = inet:parse_address(Identity),
+perform_patch(Id, ReqBody) ->
+	{ok, Address} = inet:parse_address(Id),
 	case ocs:find_client(Address) of
 		{ok, _SecretBin} ->
 			try
 				{struct, Object} = mochijson:decode(ReqBody),
 				{_, NewPassword} = lists:keyfind("password", 1, Object),
 				ok = ocs:update_client(Address, NewPassword),
-				RespObj =[{id, Identity}, {password, NewPassword}],
+				RespObj =[{id, Id}, {password, NewPassword}],
 				JsonObj  = {struct, RespObj},
 				RespBody = mochijson:encode(JsonObj),
 				{body, RespBody}
