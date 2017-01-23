@@ -360,7 +360,7 @@ content-Length: 362
 	</tr>
 	<tr id="op">
 		<td id="opl">Request Headers</td>
-		<td id="opr">Accept, Content-Type</td>
+		<td id="opr">Accept</td>
 	</tr>
 	<tr id="op">
 		<td id="opl">Request Message Body</td>
@@ -464,7 +464,7 @@ content-Length: 319
 	</tr>
 	<tr id="op">
 		<td id="opl">Request Headers</td>
-		<td id="opr">Accept, Content-Type</td>
+		<td id="opr">Accept</td>
 	</tr>
 	<tr id="op">
 		<td id="opl">Request Message Body</td>
