@@ -217,7 +217,7 @@ headers may be included in requests and responses and responses.
 	</tr>
 	<tr id="op">
 		<td id="opl">Response Body</td>
-		<td id="opr">None</td>
+		<td id="opr">Representation of the added subscriber</td>
 	</tr>
 	<tr id="op">
 		<td id="opl">Response Status</td>
