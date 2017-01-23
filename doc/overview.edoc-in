@@ -186,6 +186,38 @@ member resource may include a link for the enclosing collection resource.
 	</tbody>
 </table></div></p>
 
+<p><div id="radius_client"><table id="mt">
+	<caption id="mt">The <b>Client</b> object relates a record in `radius_client' table:</caption>
+	<thead>
+		<tr id="mt">
+			<th id="mt">Field Name</th>
+			<th id="mt">Type</th>
+			<th id="mt">Status</th>
+			<th id="mt">Description</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr id="mt">
+			<td id="mt">id</td>
+			<td id="mt">string</td>
+			<td id="mt">M</td>
+			<td id="mt">NAS IP address</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">href</td>
+			<td id="mt">string</td>
+			<td id="mt">M</td>
+			<td id="mt">URI of the client resource</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">secret</td>
+			<td id="mt">string</td>
+			<td id="mt">M</td>
+			<td id="mt">Password given to the NAS</td>
+		</tr>
+	</tbody>
+</table></div></p>
+
 
 ===Resources &amp; Operations===
 The resources, their URIs, the methods available on them and expected
@@ -916,6 +948,251 @@ content-Length:
 </table>
 <p>Example request:<pre>
 DELETE /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
+</pre></p>
+<p>Example response:<pre>
+HTTP/1.1 204 Content
+content-Length: 0
+</pre></p>
+
+<table id="op">
+	<caption id="op"><b>Add Client</b></caption>
+	<tr id="op">
+		<td id="opl">Resource URI</td>
+		<td id="opr">/ocs/v1/client</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Methods</td>
+		<td id="opr">POST</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Headers</td>
+		<td id="opr">Accept, Content-Type, Content-Length</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Message Body</td>
+		<td id="opr">Representation of a client</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Headers</td>
+		<td id="opr">Location, Content-Type, Content-Length</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Body</td>
+		<td id="opr">Representation of the added client</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Status</td>
+		<td id="opr">201 Created</td>
+	</tr>
+</table>
+<p>Example request for accept : "application/json" request header :<pre>
+POST /ocs/v1/client HTTP/1.1
+accept: application/json
+content-type: application/json
+content-length: nn
+
+{
+ "id":"10.2.53.9",
+ "secret":"ksc8c244npqc",
+}
+</pre></p>
+<p>Example response for accept : "application/json" request header :<pre>
+HTTP/1.1 201 Created
+location: /ocs/v1/client/10.2.53.9
+content-Type: application/json
+content-Length: nn
+
+{
+ "id": "10.2.53.9",
+ "href": "/ocs/v1/client/10.2.53.9"
+ "secret": "ksc8c244npqc",
+}
+</pre></p>
+
+<table id="op">
+	<caption id="op"><b>Retrieve a Client</b></caption>
+	<tr id="op">
+		<td id="opl">Resource URI</td>
+		<td id="opr">/ocs/v1/client/{id}</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Methods</td>
+		<td id="opr">GET</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Headers</td>
+		<td id="opr">Accept</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Message Body</td>
+		<td id="opr">none</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Headers</td>
+		<td id="opr">Content-Type, Content-Length</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Body</td>
+		<td id="opr">Representation of a client</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Status</td>
+		<td id="opr">200 OK, 404 Not Found</td>
+	</tr>
+</table>
+<p>Example request for accept : "application/json" request header :<pre>
+GET /ocs/v1/client/10.2.53.9 HTTP/1.1
+accept: application/json
+</pre></p>
+<p>Example response for accept : "application/json" request header :<pre>
+HTTP/1.1 200 OK
+content-Type: application/json
+content-Length: nn
+{
+ "id": "10.2.53.9",
+ "href": "/ocs/v1/client/10.2.53.9"
+ "secret": "ksc8c244npqc",
+}
+</pre></p>
+
+<table id="op">
+<caption id="op"><b>Retrieve All Clients</b></caption>
+<tr id="op">
+<td id="opl">Resource URI</td>
+		<td id="opr">/ocs/v1/client</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Methods</td>
+		<td id="opr">GET, HEAD</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Headers</td>
+		<td id="opr">Accept</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Message Body</td>
+		<td id="opr">none</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Headers</td>
+		<td id="opr">Content-Type, Content-Length</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Body</td>
+		<td id="opr">Array of client representations</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Status</td>
+		<td id="opr">200 OK, 404 Not Found</td>
+	</tr>
+</table>
+<p>Example request for accept : "application/json" request header :<pre>
+GET /ocs/v1/client HTTP/1.1
+accept: application/json
+</pre></p>
+<p>Example response for accept : "application/json" request header :<pre>
+HTTP/1.1 200 OK
+content-Type: application/json
+content-Length: nn
+[
+ {
+   "id": "10.2.53.9",
+   "href": "/ocs/v1/client/10.2.53.9"
+   "secret": "2h7csggw35aa",
+ },
+ {
+  "id": "10.2.53.10",
+  "href": "/ocs/v1/client/10.2.53.10"
+  "secret": "rzambns7knr4",
+ }
+]
+</pre></p>
+
+<table id="op">
+<caption id="op"><b>Update Client Password</b></caption>
+	<tr id="op">
+		<td id="opl">Resource URI</td>
+		<td id="opr">/ocs/v1/client/{id}</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Methods</td>
+		<td id="opr">PATCH</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Headers</td>
+		<td id="opr">Accept, Content-Type</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Message Body</td>
+		<td id="opr">Partial representation of a client</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Headers</td>
+		<td id="opr">Content-Type, Content-Length</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Body</td>
+		<td id="opr">Representation of the updated client</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Status</td>
+		<td id="opr">200 Ok</td>
+	</tr>
+</table>
+<p>Example request for accept : "application/json" request header :<pre>
+PATCH /ocs/v1/client/10.2.53.9 HTTP/1.1
+content-type: application/json
+accept: application/json
+{
+  "secret":"7fy8qhs7hh7n"
+}
+</pre></p>
+<p>Example response for accept : "application/json" request header :<pre>
+HTTP/1.1 200 Ok
+Content-Type: application/json
+Content-Length: 315
+
+
+{
+ "id": "10.2.53.9",
+ "href": "/ocs/v1/client/10.2.53.9",
+ "secret": "7fy8qhs7hh7n",
+}
+</pre></p>
+
+<table id="op">
+	<caption id="op"><b>Delete a Client</b></caption>
+	<tr id="op">
+		<td id="opl">Resource URI</td>
+		<td id="opr">/ocs/v1/client/{id}</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Methods</td>
+		<td id="opr">DELETE</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Headers</td>
+		<td id="opr">None</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Message Body</td>
+		<td id="opr">None</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Headers</td>
+		<td id="opr">Content-Length</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Body</td>
+		<td id="opr">None</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Status</td>
+		<td id="opr">204 No Content</td>
+	</tr>
+</table>
+<p>Example request:<pre>
+DELETE /ocs/v1/client/10.2.53.9 HTTP/1.1
 </pre></p>
 <p>Example response:<pre>
 HTTP/1.1 204 Content
