@@ -104,8 +104,7 @@ perform_post(RequestBody) ->
 		{_, Password} = lists:keyfind("password", 1, Object),
 		{_, {struct, AttrJs}} = lists:keyfind("attributes", 1, Object),
 		RadAttributes = json_to_radius(AttrJs),
-		{_, BalStr} = lists:keyfind("balance", 1, Object),
-		{Balance , _}= string:to_integer(BalStr),
+		{_, Balance} = lists:keyfind("balance", 1, Object),
 		perform_post1(Id, Password, RadAttributes, Balance)
 	catch
 		_Error ->
