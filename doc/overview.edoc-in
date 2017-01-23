@@ -124,10 +124,16 @@ member resource may include a link for the enclosing collection resource.
 	</thead>
 	<tbody>
 		<tr id="mt">
-			<td id="mt">subscriber</td>
+			<td id="mt">id</td>
 			<td id="mt">string</td>
 			<td id="mt">M</td>
 			<td id="mt">MAC address of the subscriber</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">href</td>
+			<td id="mt">string</td>
+			<td id="mt">M</td>
+			<td id="mt">URI of the subscriber resource</td>
 		</tr>
 		<tr id="mt">
 			<td id="mt">password</td>
@@ -225,7 +231,7 @@ content-type: application/json
 content-length: 308
 
 {
- "subscriber":"eacfd73ae10a",
+ "id":"eacfd73ae10a",
  "password":"ksc8c244npqc",
  "attributes":{
                "ascendDataRate":{
@@ -254,7 +260,8 @@ content-Type: application/json
 content-Length: 304
 
 {
- "identity": "eacfd73ae10a",
+ "id": "eacfd73ae10a",
+ "href": "/ocs/v1/subscriber/eacfd73ae10a"
  "password": "ksc8c244npqc",
  "attributes": {
                 "ascendDataRate": {
@@ -284,7 +291,7 @@ content-type: application/json
 content-length: 308
 
 {
- "subscriber":"eacfd73ae10a",
+ "id":"eacfd73ae10a",
  "password":"ksc8c244npqc",
  "attributes":{
                "ascendDataRate":{
@@ -318,7 +325,7 @@ content-Length: 362
                      "href": "/ocs/v1/subscriber/eacfd73ae10a"
                     }
            },
- "identity": "eacfd73ae10a",
+ "id": "eacfd73ae10a",
  "password": "ksc8c244npqc",
  "attributes": {
                 "ascendDataRate": {
@@ -382,7 +389,8 @@ HTTP/1.1 200 OK
 content-Type: application/json
 content-Length: 319
 {
- "identity": "eacfd73ae10a",
+ "id": "eacfd73ae10a",
+ "href": "/ocs/v1/subscriber/eacfd73ae10a"
  "password": "ksc8c244npqc",
  "attributes": {
                 "ascendDataRate": {
@@ -422,7 +430,7 @@ content-Length: 319
                      "href": "/ocs/v1/subscriber/eacfd73ae10a"
                     }
            },
- "identity": "eacfd73ae10a",
+ "id": "eacfd73ae10a",
  "password": "ksc8c244npqc",
  "attributes": {
                 "ascendDataRate": {
@@ -488,7 +496,8 @@ content-Type: application/json
 content-Length: nn
 [
  {
-   "identity": "5557615036FD",
+   "id": "5557615036fd",
+   "href": "/ocs/v1/subscriber/5557615036fd"
    "password": "2h7csggw35aa",
    "attributes": {
                    "ascendDataRate": {
@@ -511,7 +520,8 @@ content-Length: nn
   "enabled": true
  },
  {
-  "identity": "E5B9265C8C0D",
+  "id": "e5b9265c8c0d",
+  "href": "/ocs/v1/subscriber/e5b9265c8c0d"
   "password": "rzambns7knr4",
   "attributes": {
                   "ascendDataRate": {
@@ -555,10 +565,10 @@ content-Length: nn
                               {
                                "_links": {
                                           "self": {
-                                                   "href": "/ocs/v1/subscriber/5557615036FD"
+                                                   "href": "/ocs/v1/subscriber/5557615036fd"
                                                   }
                                          },
-                               "identity": "5557615036FD",
+                               "id": "5557615036fd",
                                "password": "2h7csggw35aa",
                                "attributes": {
                                               "ascendDataRate": {
@@ -583,10 +593,10 @@ content-Length: nn
                               {
                                "_links": {
                                           "self": {
-                                                   "href": "/ocs/v1/subscriber/E5B9265C8C0D"
+                                                   "href": "/ocs/v1/subscriber/e5b9265c8c0d"
                                                   }
                                          },
-                               "identity": "E5B9265C8C0D",
+                               "id": "e5b9265c8c0d",
                                "password": "rzambns7knr4",
                                "attributes": {
                                               "ascendDataRate": {
@@ -660,7 +670,8 @@ Content-Length: 315
 
 
 {
- "identity": "eacfd73ae10a",
+ "id": "eacfd73ae10a",
+ "href": "/ocs/v1/subscriber/eacfd73ae10a",
  "password": "7fy8qhs7hh7n",
  "attributes": {
                 "ascendDataRate": {
@@ -704,7 +715,7 @@ content-Length: 373
                      "href": "/ocs/v1/subscriber/eacfd73ae10a"
                     }
            },
- "identity": "eacfd73ae10a",
+ "id": "eacfd73ae10a",
  "password": "7fy8qhs7hh7n",
  "attributes": {
                 "ascendDataRate": {
@@ -791,7 +802,8 @@ content-Type: application/json
 content-Length: 315
 
 {
- "identity": "eacfd73ae10a",
+ "id": "eacfd73ae10a",
+ "href": "/ocs/v1/subscriber/eacfd73ae10a",
  "password": "ksc8c244npqc",
  "attributes": {
                 "ascendDataRate": {
@@ -851,7 +863,7 @@ content-Length:
                      "href": "/ocs/v1/subscriber/eacfd73ae10a"
                     }
            },
- "identity": "eacfd73ae10a",
+ "id": "eacfd73ae10a",
  "password": "ksc8c244npqc",
  "attributes": {
                 "ascendDataRate": {
