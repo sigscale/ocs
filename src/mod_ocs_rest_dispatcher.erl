@@ -75,7 +75,7 @@ send_response(_Socket, _SockType, Path, #mod{config_db = ConfigDb,
 			send(ModData, 200, Headers, FileContent),
 			{proceed,[{response, {already_sent,200, FileInfo#file_info.size}},
 				{mime_type,MimeType} | Data]};
-		{error, Reason} ->
+		{error, _Reason} ->
 			Body = "<h2>404 Error not found</h2>",
 			{break, [{response,{404,Body}}]}
 	end.
