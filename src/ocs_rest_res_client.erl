@@ -85,7 +85,9 @@ perform_get_all() ->
 %% @hidden
 perform_get_all1(Clients) ->
 	F = fun(#radius_client{address= Address, secret = Secret}, Acc) ->
-		RespObj = [{struct, [{id, inet:ntoa(Address)}, {secret, Secret}]}],
+		Id = inet:ntoa(Address),
+		RespObj = [{struct, [{id, Id}, {href, "/ocs/v1/client/" ++ Id},
+			{secret, Secret}]}],
 		RespObj ++ Acc
 	end,
 	JsonObj = lists:foldl(F, [], Clients),
@@ -135,7 +137,8 @@ perform_patch(Id, ReqBody) ->
 				{struct, Object} = mochijson:decode(ReqBody),
 				{_, NewPassword} = lists:keyfind("password", 1, Object),
 				ok = ocs:update_client(Address, NewPassword),
-				RespObj =[{id, Id}, {password, NewPassword}],
+				RespObj =[{id, Id}, {href, "/ocs/v1/client/" ++ Id},
+					{password, NewPassword}],
 				JsonObj  = {struct, RespObj},
 				RespBody = mochijson:encode(JsonObj),
 				{body, RespBody}

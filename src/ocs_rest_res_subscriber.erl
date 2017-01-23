@@ -55,8 +55,9 @@ perform_get(Id) ->
 			Password = binary_to_list(PWBin),
 			JSAttributes = radius_to_json(Attributes),
 			AttrObj = {struct, JSAttributes}, 
-			RespObj = [{id, Id}, {password, Password}, {attributes, AttrObj},
-					 {balance, Balance}, {enabled, Enabled}],
+			RespObj = [{id, Id}, {href, "/ocs/v1/subscriber/" ++ Id},
+				{password, Password}, {attributes, AttrObj}, {balance, Balance},
+				{enabled, Enabled}],
 			JsonObj  = {struct, RespObj},
 			Body = mochijson:encode(JsonObj),
 			{body, Body};
@@ -83,8 +84,8 @@ perform_get_all1(Subscribers) ->
 					attributes = Attributes, balance = Balance, enabled = Enabled}, Acc) ->
 				JSAttributes = radius_to_json(Attributes),
 				AttrObj = {struct, JSAttributes}, 
-				RespObj = [{struct, [{id, Id}, {password, Password},
-					{attributes, AttrObj}, {balance, Balance},
+				RespObj = [{struct, [{id, Id}, {href, "/ocs/v1/subscriber/" ++ id},
+					{password, Password}, {attributes, AttrObj}, {balance, Balance},
 					{enabled, Enabled}]}],
 				RespObj ++ Acc
 			end,
@@ -116,8 +117,8 @@ perform_post1(Id, Password, RadAttributes, Balance) ->
 	case catch ocs:add_subscriber(Id, Password, RadAttributes, Balance) of
 		ok ->
 			Attributes = {struct, radius_to_json(RadAttributes)},
-			RespObj = [{id, Id}, {password, Password}, {attributes, Attributes},
-						{balance, Balance}],
+			RespObj = [{id, Id}, {href, "/ocs/v1/subscriber/" ++ Id},
+				{password, Password}, {attributes, Attributes}, {balance, Balance}],
 			JsonObj  = {struct, RespObj},
 			Body = mochijson:encode(JsonObj),
 			Location = "/ocs/v1/subscriber" ++ Id,
@@ -151,8 +152,9 @@ perform_patch(Id, ReqBody) ->
 						{NewPassword, CurrentAttr}
 				end,
 				Attributes = {struct, radius_to_json(RadAttr)},
-				RespObj =[{id, Id}, {password, Password},
-					{attributes, Attributes}, {balance, Bal}, {enabled, Enabled}],
+				RespObj =[{id, Id}, {href, "/ocs/v1/subscriber/" ++ Id},
+					{password, Password}, {attributes, Attributes}, {balance, Bal},
+					{enabled, Enabled}],
 				JsonObj  = {struct, RespObj},
 				RespBody = mochijson:encode(JsonObj),
 				{body, RespBody}
