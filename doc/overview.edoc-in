@@ -266,21 +266,11 @@ content-length: nn
  "id":"eacfd73ae10a",
  "password":"ksc8c244npqc",
  "attributes":[
-               "ascendDataRate":{
-                                 "type":26,
-                                 "vendorId":529,
-                                 "vendorType":197,
-                                 "value":1024
-                                },
-               "ascendXmitRate":{
-                                 "type":26,
-                                 "vendorId":529,
-                                 "vendorType":255,
-                                 "value":512
-                                },
-               "sessionTimeout":10864,
-               "acctInterimInterval":300,
-               "class":"skiorgs"
+               { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
+               { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
+               { "name" : "sessionTimeout", "value" : 10864 },
+               { "name" : "acctInterimInterval", "value", 300},
+               { "name" : "class", "value", "skiorgs"}
               ],
  "balance":100
 }
@@ -295,23 +285,13 @@ content-Length: nn
  "id": "eacfd73ae10a",
  "href": "/ocs/v1/subscriber/eacfd73ae10a"
  "password": "ksc8c244npqc",
- "attributes": [
-                "ascendDataRate": {
-                                   "type": 26,
-                                   "vendorId": 529,
-                                   "vendorType": 197,
-                                   "value": 1024
-                                  },
-                "ascendXmitRate": {
-                                   "type": 26,
-                                   "vendorId": 529,
-                                   "vendorType": 255,
-                                   "value": 512
-                                  },
-                "sessionTimeout": 10864,
-                "acctInterimInterval": 300,
-                "class": "skiorgs"
-               ],
+ "attributes":[
+               { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
+               { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
+               { "name" : "sessionTimeout", "value" : 10864 },
+               { "name" : "acctInterimInterval", "value", 300},
+               { "name" : "class", "value", "skiorgs"}
+              ],
  "balance": 100
 }
 </pre></p>
@@ -326,21 +306,11 @@ content-length: nn
  "id":"eacfd73ae10a",
  "password":"ksc8c244npqc",
  "attributes":[
-               "ascendDataRate":{
-                                 "type":26,
-                                 "vendorId":529,
-                                 "vendorType":197,
-                                 "value":1024
-                                },
-               "ascendXmitRate":{
-                                 "type":26,
-                                 "vendorId":529,
-                                 "vendorType":255,
-                                 "value":512
-                                },
-               "sessionTimeout":10864,
-               "acctInterimInterval":300,
-               "class":"skiorgs"
+               { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
+               { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
+               { "name" : "sessionTimeout", "value" : 10864 },
+               { "name" : "acctInterimInterval", "value", 300},
+               { "name" : "class", "value", "skiorgs"}
               ],
  "balance":100
 }
@@ -359,22 +329,12 @@ content-Length: nn
            },
  "id": "eacfd73ae10a",
  "password": "ksc8c244npqc",
- "attributes": [
-                "ascendDataRate": {
-                                   "type": 26,
-                                   "vendorId": 529,
-                                   "vendorType": 197,
-                                   "value": 1024
-                                  },
-                "ascendXmitRate": {
-                                   "type": 26,
-                                   "vendorId": 529,
-                                   "vendorType": 255,
-                                   "value": 512
-                                  },
-                "sessionTimeout": 10864,
-                "acctInterimInterval": 300,
-                "class": "skiorgs"
+ "attributes":[
+               { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
+               { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
+               { "name" : "sessionTimeout", "value" : 10864 },
+               { "name" : "acctInterimInterval", "value", 300},
+               { "name" : "class", "value", "skiorgs"}
               ],
  "balance": 100
 }
@@ -423,23 +383,13 @@ content-Length: nn
  "id": "eacfd73ae10a",
  "href": "/ocs/v1/subscriber/eacfd73ae10a"
  "password": "ksc8c244npqc",
- "attributes": [
-                "ascendDataRate": {
-                                   "type": 26,
-                                   "vendorId": 529,
-                                   "vendorType": 197,
-                                   "value": 1024
-                                  },
-                "ascendXmitRate": {
-                                   "type": 26,
-                                   "vendorId": 529,
-                                   "vendorType": 255,
-                                   "value": 512
-                                  },
-                "sessionTimeout": 10864,
-                "acctInterimInterval": 300,
-                "class": "skiorgs"
-               ],
+ "attributes":[
+               { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
+               { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
+               { "name" : "sessionTimeout", "value" : 10864 },
+               { "name" : "acctInterimInterval", "value", 300},
+               { "name" : "class", "value", "skiorgs"}
+              ],
  "balance": 100,
  "enabled": true
 }
@@ -462,23 +412,13 @@ content-Length: 319
            },
  "id": "eacfd73ae10a",
  "password": "ksc8c244npqc",
- "attributes": [
-                "ascendDataRate": {
-                                   "type": 26,
-                                   "vendorId": 529,
-                                   "vendorType": 197,
-                                   "value": 1024
-                                  },
-                "ascendXmitRate": {
-                                   "type": 26,
-                                   "vendorId": 529,
-                                   "vendorType": 255,
-                                   "value": 512
-                                  },
-                "sessionTimeout": 10864,
-                "acctInterimInterval": 300,
-                "class": "skiorgs"
-               ],
+ "attributes":[
+               { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
+               { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
+               { "name" : "sessionTimeout", "value" : 10864 },
+               { "name" : "acctInterimInterval", "value", 300},
+               { "name" : "class", "value", "skiorgs"}
+              ],
  "balance": 100,
  "enabled": true
 }
@@ -528,23 +468,13 @@ content-Length: nn
    "id": "5557615036fd",
    "href": "/ocs/v1/subscriber/5557615036fd"
    "password": "2h7csggw35aa",
-   "attributes": [
-                   "ascendDataRate": {
-                                       "type": 26,
-                                       "vendorId": 529,
-                                       "vendorType": 197,
-                                       "value": 1024
-                                     },
-                   "ascendXmitRate": {
-                                       "type": 26,
-                                       "vendorId": 529,
-                                       "vendorType": 255,
-                                       "value": 512
-                                     },
-                   "sessionTimeout": 300,
-                   "acctInterimInterval": 65,
-                   "class": "mvf"
-                 ],
+   "attributes":[
+                 { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
+                 { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
+                 { "name" : "sessionTimeout", "value" : 10864 },
+                 { "name" : "acctInterimInterval", "value", 300},
+                 { "name" : "class", "value", "skiorgs"}
+                ],
   "balance": 65,
   "enabled": true
  },
@@ -552,22 +482,12 @@ content-Length: nn
   "id": "e5b9265c8c0d",
   "href": "/ocs/v1/subscriber/e5b9265c8c0d"
   "password": "rzambns7knr4",
-  "attributes": [
-                  "ascendDataRate": {
-                                      "type": 26,
-                                      "vendorId": 529,
-                                      "vendorType": 197,
-                                      "value": 1024
-                                    },
-                  "ascendXmitRate": {
-                                      "type": 26,
-                                      "vendorId": 529,
-                                      "vendorType": 255,
-                                      "value": 512
-                                    },
-                  "sessionTimeout": 10864,
-                  "acctInterimInterval": 150,
-                  "class": "hgt"
+   "attributes":[
+                 { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
+                 { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
+                 { "name" : "sessionTimeout", "value" : 10864 },
+                 { "name" : "acctInterimInterval", "value", 300},
+                 { "name" : "class", "value", "skiorgs"}
                 ],
   "balance": 76,
   "enabled": true
@@ -598,23 +518,13 @@ content-Length: nn
                                          },
                                "id": "5557615036fd",
                                "password": "2h7csggw35aa",
-                               "attributes": [
-                                              "ascendDataRate": {
-                                                                 "type": 26,
-                                                                 "vendorId": 529,
-                                                                 "vendorType": 197,
-                                                                 "value": 65
-                                                                },
-                                              "ascendXmitRate": {
-                                                                 "type": 26,
-                                                                 "vendorId": 529,
-                                                                 "vendorType": 255,
-                                                                 "value": 87
-                                                                },
-                                              "sessionTimeout": 98,
-                                              "acctInterimInterval": 65,
-                                              "class": "abc"
-                                             ],
+                               "attributes":[
+                                             { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
+                                             { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
+                                             { "name" : "sessionTimeout", "value" : 10864 },
+                                             { "name" : "acctInterimInterval", "value", 300},
+                                             { "name" : "class", "value", "skiorgs"}
+                                            ],
                                 "balance": 65,
                                 "enabled": true
                               },
@@ -626,23 +536,13 @@ content-Length: nn
                                          },
                                "id": "e5b9265c8c0d",
                                "password": "rzambns7knr4",
-                               "attributes": [
-                                              "ascendDataRate": {
-                                                                 "type": 26,
-                                                                 "vendorId": 529,
-                                                                 "vendorType": 197,
-                                                                 "value": 98
-                                                                },
-                                              "ascendXmitRate": {
-                                                                 "type": 26,
-                                                                 "vendorId": 529,
-                                                                 "vendorType": 255,
-                                                                 "value": 45
-                                                                },
-                                              "sessionTimeout": 98,
-                                              "acctInterimInterval": 56,
-                                              "class": "hgt"
-                                             ],
+                               "attributes":[
+                                             { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
+                                             { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
+                                             { "name" : "sessionTimeout", "value" : 10864 },
+                                             { "name" : "acctInterimInterval", "value", 300},
+                                             { "name" : "class", "value", "xbnfdk"}
+                                            ],
                                "balance": 76,
                                "enabled": true
                               }
@@ -701,23 +601,13 @@ Content-Length: 315
  "id": "eacfd73ae10a",
  "href": "/ocs/v1/subscriber/eacfd73ae10a",
  "password": "7fy8qhs7hh7n",
- "attributes": [
-                "ascendDataRate": {
-                                   "type": 26,
-                                   "vendorId": 529,
-                                   "vendorType": 197,
-                                   "value": 1024
-                                  },
-                "ascendXmitRate": {
-                                   "type": 26,
-                                   "vendorId": 529,
-                                   "vendorType": 255,
-                                   "value": 512
-                                  },
-                "sessionTimeout": 10864,
-                "acctInterimInterval": 300,
-                "class": "gtf"
-               ],
+ "attributes":[
+               { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
+               { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
+               { "name" : "sessionTimeout", "value" : 10864 },
+               { "name" : "acctInterimInterval", "value", 300},
+               { "name" : "class", "value", "skiorgs"}
+              ],
  "balance": 100,
  "enabled": true
 }
@@ -745,23 +635,13 @@ content-Length: 373
            },
  "id": "eacfd73ae10a",
  "password": "7fy8qhs7hh7n",
- "attributes": [
-                "ascendDataRate": {
-                                   "type": 26,
-                                   "vendorId": 529,
-                                   "vendorType": 197,
-                                   "value": 1024
-                                  },
-                "ascendXmitRate": {
-                                   "type": 26,
-                                   "vendorId": 529,
-                                   "vendorType": 255,
-                                   "value": 512
-                                  },
-                "sessionTimeout": 10864,
-                "acctInterimInterval": 300,
-                "class": "gtf"
-               ],
+ "attributes":[
+               { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
+               { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
+               { "name" : "sessionTimeout", "value" : 10864 },
+               { "name" : "acctInterimInterval", "value", 300},
+               { "name" : "class", "value", "skiorgs"}
+              ],
  "balance": 100,
  "enabled": true
 }
@@ -806,21 +686,11 @@ accept: application/json
 {
  "update":"attributes",
  "attributes":[
-               "ascendDataRate":{
-                                 "type":26,
-                                 "vendorId":529,
-                                 "vendorType":197,
-                                 "value":1024
-                                },
-               "ascendXmitRate":{
-                                 "type":26,
-                                 "vendorId":529,
-                                 "vendorType":255,
-                                 "value":512
-                                },
-               "sessionTimeout":10864,
-               "acctInterimInterval":300,
-               "class":"gtf"
+               { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
+               { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
+               { "name" : "sessionTimeout", "value" : 10864 },
+               { "name" : "acctInterimInterval", "value", 300},
+               { "name" : "class", "value", "skiorgs"}
               ]
 }
 </pre></p>
@@ -833,23 +703,13 @@ content-Length: 315
  "id": "eacfd73ae10a",
  "href": "/ocs/v1/subscriber/eacfd73ae10a",
  "password": "ksc8c244npqc",
- "attributes": [
-                "ascendDataRate": {
-                                   "type": 26,
-                                   "vendorId": 529,
-                                   "vendorType": 197,
-                                   "value": 1024
-                                  },
-                "ascendXmitRate": {
-                                   "type": 26,
-                                   "vendorId": 529,
-                                   "vendorType": 255,
-                                   "value": 512
-                                  },
-                "sessionTimeout": 10864,
-                "acctInterimInterval": 300,
-                "class": "gtf"
-               ],
+ "attributes":[
+               { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
+               { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
+               { "name" : "sessionTimeout", "value" : 10864 },
+               { "name" : "acctInterimInterval", "value", 300},
+               { "name" : "class", "value", "skiorgs"}
+              ],
  "balance": 100,
  "enabled": true
 }
@@ -862,21 +722,11 @@ accept: application/hal+json
 {
  "update":"attributes",
  "attributes":[
-               "ascendDataRate":{
-                                 "type":26,
-                                 "vendorId":529,
-                                 "vendorType":197,
-                                 "value":1024
-                                },
-               "ascendXmitRate":{
-                                 "type":26,
-                                 "vendorId":529,
-                                 "vendorType":255,
-                                 "value":512
-                                },
-               "sessionTimeout":10864,
-               "acctInterimInterval":300,
-               "class":"gtf"
+               { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
+               { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
+               { "name" : "sessionTimeout", "value" : 10864 },
+               { "name" : "acctInterimInterval", "value", 300},
+               { "name" : "class", "value", "skiorgs"}
               ]
 }
 </pre></p>
@@ -893,23 +743,13 @@ content-Length:
            },
  "id": "eacfd73ae10a",
  "password": "ksc8c244npqc",
- "attributes": [
-                "ascendDataRate": {
-                                   "type": 26,
-                                   "vendorId": 529,
-                                   "vendorType": 197,
-                                   "value": 1024
-                                  },
-                "ascendXmitRate": {
-                                   "type": 26,
-                                   "vendorId": 529,
-                                   "vendorType": 255,
-                                   "value": 512
-                                  },
-                "sessionTimeout": 10864,
-                "acctInterimInterval": 300,
-                "class": "gtf"
-               ],
+ "attributes":[
+               { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
+               { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
+               { "name" : "sessionTimeout", "value" : 10864 },
+               { "name" : "acctInterimInterval", "value", 300},
+               { "name" : "class", "value", "skiorgs"}
+              ],
  "balance": 100,
  "enabled": true
 }
