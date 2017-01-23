@@ -84,7 +84,7 @@ perform_get_all1(Subscribers) ->
 					attributes = Attributes, balance = Balance, enabled = Enabled}, Acc) ->
 				JSAttributes = radius_to_json(Attributes),
 				AttrObj = {struct, JSAttributes}, 
-				RespObj = [{struct, [{id, Id}, {href, "/ocs/v1/subscriber/" ++ id},
+				RespObj = [{struct, [{id, Id}, {href, "/ocs/v1/subscriber/" ++ binary_to_list(Id)},
 					{password, Password}, {attributes, AttrObj}, {balance, Balance},
 					{enabled, Enabled}]}],
 				RespObj ++ Acc
