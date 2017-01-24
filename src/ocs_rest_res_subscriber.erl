@@ -54,7 +54,7 @@ perform_get(Id) ->
 		{ok, PWBin, Attributes, Balance, Enabled} ->
 			Password = binary_to_list(PWBin),
 			JSAttributes = radius_to_json(Attributes),
-			AttrObj = {struct, JSAttributes}, 
+			AttrObj = {array, JSAttributes},
 			RespObj = [{id, Id}, {href, "/ocs/v1/subscriber/" ++ Id},
 				{password, Password}, {attributes, AttrObj}, {balance, Balance},
 				{enabled, Enabled}],
@@ -83,7 +83,7 @@ perform_get_all1(Subscribers) ->
 			F = fun(#subscriber{name = Id, password = Password,
 					attributes = Attributes, balance = Balance, enabled = Enabled}, Acc) ->
 				JSAttributes = radius_to_json(Attributes),
-				AttrObj = {struct, JSAttributes}, 
+				AttrObj = {array, JSAttributes},
 				RespObj = [{struct, [{id, Id}, {href, "/ocs/v1/subscriber/" ++ binary_to_list(Id)},
 					{password, Password}, {attributes, AttrObj}, {balance, Balance},
 					{enabled, Enabled}]}],
@@ -142,7 +142,7 @@ perform_patch(Id, ReqBody) ->
 				{_, Type} = lists:keyfind("update", 1, Object),
 				{Password, RadAttr} = case Type of
 					"attributes" ->
-						{_, {struct, AttrJs}} = lists:keyfind("attributes", 1, Object),
+						{_, {array, AttrJs}} = lists:keyfind("attributes", 1, Object),
 						NewAttributes = json_to_radius(AttrJs),
 						ocs:update_attributes(Id, NewAttributes),
 						{CurrentPwd, NewAttributes};
@@ -151,7 +151,7 @@ perform_patch(Id, ReqBody) ->
 						ocs:update_password(Id, NewPassword),
 						{NewPassword, CurrentAttr}
 				end,
-				Attributes = {struct, radius_to_json(RadAttr)},
+				Attributes = {array, radius_to_json(RadAttr)},
 				RespObj =[{id, Id}, {href, "/ocs/v1/subscriber/" ++ Id},
 					{password, Password}, {attributes, Attributes}, {balance, Bal},
 					{enabled, Enabled}],
