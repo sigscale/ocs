@@ -364,7 +364,7 @@ content-Length: nn
 	</tr>
 	<tr id="op">
 		<td id="opl">Response Body</td>
-		<td id="opr">Link to matching router</td>
+		<td id="opr">Reprsentation of a subscriber</td>
 	</tr>
 	<tr id="op">
 		<td id="opl">Response Status</td>
