@@ -269,8 +269,8 @@ content-length: nn
                { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
                { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
                { "name" : "sessionTimeout", "value" : 10864 },
-               { "name" : "acctInterimInterval", "value", 300},
-               { "name" : "class", "value", "skiorgs"}
+               { "name" : "acctInterimInterval", "value" : 300},
+               { "name" : "class", "value":  "skiorgs"}
               ],
  "balance":100
 }
@@ -289,8 +289,8 @@ content-Length: nn
                { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
                { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
                { "name" : "sessionTimeout", "value" : 10864 },
-               { "name" : "acctInterimInterval", "value", 300},
-               { "name" : "class", "value", "skiorgs"}
+               { "name" : "acctInterimInterval", "value": 300},
+               { "name" : "class", "value": "skiorgs"}
               ],
  "balance": 100
 }
@@ -309,8 +309,8 @@ content-length: nn
                { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
                { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
                { "name" : "sessionTimeout", "value" : 10864 },
-               { "name" : "acctInterimInterval", "value", 300},
-               { "name" : "class", "value", "skiorgs"}
+               { "name" : "acctInterimInterval", "value": 300},
+               { "name" : "class", "value": "skiorgs"}
               ],
  "balance":100
 }
@@ -333,8 +333,8 @@ content-Length: nn
                { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
                { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
                { "name" : "sessionTimeout", "value" : 10864 },
-               { "name" : "acctInterimInterval", "value", 300},
-               { "name" : "class", "value", "skiorgs"}
+               { "name" : "acctInterimInterval", "value": 300},
+               { "name" : "class", "value": "skiorgs"}
               ],
  "balance": 100
 }
@@ -387,8 +387,8 @@ content-Length: nn
                { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
                { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
                { "name" : "sessionTimeout", "value" : 10864 },
-               { "name" : "acctInterimInterval", "value", 300},
-               { "name" : "class", "value", "skiorgs"}
+               { "name" : "acctInterimInterval", "value": 300},
+               { "name" : "class", "value": "skiorgs"}
               ],
  "balance": 100,
  "enabled": true
@@ -416,8 +416,8 @@ content-Length: 319
                { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
                { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
                { "name" : "sessionTimeout", "value" : 10864 },
-               { "name" : "acctInterimInterval", "value", 300},
-               { "name" : "class", "value", "skiorgs"}
+               { "name" : "acctInterimInterval", "value": 300},
+               { "name" : "class", "value": "skiorgs"}
               ],
  "balance": 100,
  "enabled": true
@@ -472,8 +472,8 @@ content-Length: nn
                  { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
                  { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
                  { "name" : "sessionTimeout", "value" : 10864 },
-                 { "name" : "acctInterimInterval", "value", 300},
-                 { "name" : "class", "value", "skiorgs"}
+                 { "name" : "acctInterimInterval", "value": 300},
+                 { "name" : "class", "value": "skiorgs"}
                 ],
   "balance": 65,
   "enabled": true
@@ -486,8 +486,8 @@ content-Length: nn
                  { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
                  { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
                  { "name" : "sessionTimeout", "value" : 10864 },
-                 { "name" : "acctInterimInterval", "value", 300},
-                 { "name" : "class", "value", "skiorgs"}
+                 { "name" : "acctInterimInterval", "value": 300},
+                 { "name" : "class", "value": "skiorgs"}
                 ],
   "balance": 76,
   "enabled": true
@@ -522,8 +522,8 @@ content-Length: nn
                                              { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
                                              { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
                                              { "name" : "sessionTimeout", "value" : 10864 },
-                                             { "name" : "acctInterimInterval", "value", 300},
-                                             { "name" : "class", "value", "skiorgs"}
+                                             { "name" : "acctInterimInterval", "value": 300},
+                                             { "name" : "class", "value": "skiorgs"}
                                             ],
                                 "balance": 65,
                                 "enabled": true
@@ -540,8 +540,8 @@ content-Length: nn
                                              { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
                                              { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
                                              { "name" : "sessionTimeout", "value" : 10864 },
-                                             { "name" : "acctInterimInterval", "value", 300},
-                                             { "name" : "class", "value", "xbnfdk"}
+                                             { "name" : "acctInterimInterval", "value": 300},
+                                             { "name" : "class", "value": "xbnfdk"}
                                             ],
                                "balance": 76,
                                "enabled": true
@@ -605,8 +605,8 @@ Content-Length: 315
                { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
                { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
                { "name" : "sessionTimeout", "value" : 10864 },
-               { "name" : "acctInterimInterval", "value", 300},
-               { "name" : "class", "value", "skiorgs"}
+               { "name" : "acctInterimInterval", "value": 300},
+               { "name" : "class", "value": "skiorgs"}
               ],
  "balance": 100,
  "enabled": true
@@ -639,8 +639,8 @@ content-Length: 373
                { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
                { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
                { "name" : "sessionTimeout", "value" : 10864 },
-               { "name" : "acctInterimInterval", "value", 300},
-               { "name" : "class", "value", "skiorgs"}
+               { "name" : "acctInterimInterval", "value": 300},
+               { "name" : "class", "value": "skiorgs"}
               ],
  "balance": 100,
  "enabled": true
@@ -689,8 +689,8 @@ accept: application/json
                { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
                { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
                { "name" : "sessionTimeout", "value" : 10864 },
-               { "name" : "acctInterimInterval", "value", 300},
-               { "name" : "class", "value", "skiorgs"}
+               { "name" : "acctInterimInterval", "value": 300},
+               { "name" : "class", "value": "skiorgs"}
               ]
 }
 </pre></p>
@@ -707,8 +707,8 @@ content-Length: 315
                { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
                { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
                { "name" : "sessionTimeout", "value" : 10864 },
-               { "name" : "acctInterimInterval", "value", 300},
-               { "name" : "class", "value", "skiorgs"}
+               { "name" : "acctInterimInterval", "value": 300},
+               { "name" : "class", "value": "skiorgs"}
               ],
  "balance": 100,
  "enabled": true
@@ -725,8 +725,8 @@ accept: application/hal+json
                { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
                { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
                { "name" : "sessionTimeout", "value" : 10864 },
-               { "name" : "acctInterimInterval", "value", 300},
-               { "name" : "class", "value", "skiorgs"}
+               { "name" : "acctInterimInterval", "value": 300},
+               { "name" : "class", "value": "skiorgs"}
               ]
 }
 </pre></p>
@@ -747,8 +747,8 @@ content-Length:
                { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
                { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
                { "name" : "sessionTimeout", "value" : 10864 },
-               { "name" : "acctInterimInterval", "value", 300},
-               { "name" : "class", "value", "skiorgs"}
+               { "name" : "acctInterimInterval", "value": 300},
+               { "name" : "class", "value": "skiorgs"}
               ],
  "balance": 100,
  "enabled": true
