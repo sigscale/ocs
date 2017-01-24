@@ -70,9 +70,9 @@ do_accept(Headers, Method, Resource, Data) ->
 					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
 					{break, [{response, {415, Response}}]}
 			end;
-		_ when Method == "DELETE" ->
+		false when Method == "DELETE"; Method == "GET" ->
 			{proceed, [{resource, ResourceName} | Data]};
-		_ ->
+		false ->
 			Response = "<h2>HTTP Error 400 - Bad Request</h2>",
 			{break, [{response, {400, Response}}]}
 	end.
