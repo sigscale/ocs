@@ -137,30 +137,44 @@
 			_handleFormPreSubmit: function() {
 				var form = document.getElementById('presubmit');
 				var formData = new Object();
-				formData.subscriber = document.getElementById("add1").value;
+				formData.id = document.getElementById("add1").value;
 				formData.password = document.getElementById("add2").value;
 
 				var ascendDataRate = new Object(); 
+				ascendDataRate.name = "ascendDataRate";
 				ascendDataRate.type = 26;
 				ascendDataRate.vendorId = 529;
 				ascendDataRate.vendorType = 197;
-				ascendDataRate.value = document.getElementById("add3").value;
+				ascendDataRate.value = parseInt(document.getElementById("add3").value);
 
 				var ascendXmitRate = new Object(); 
+				ascendXmitRate.name = "ascendXmitRate";
 				ascendXmitRate.type = 26;
 				ascendXmitRate.vendorId = 529;
 				ascendXmitRate.vendorType = 255;
-				ascendXmitRate.value = document.getElementById("add4").value;
+				ascendXmitRate.value = parseInt(document.getElementById("add4").value);
 
-				var attributes = new Object();
-				attributes.ascendDataRate = ascendDataRate;
-				attributes.ascendXmitRate = ascendXmitRate;
-				attributes.sessionTimeout = document.getElementById("add5").value;
-				attributes.acctInterimInterval = document.getElementById("add6").value;
-				attributes.class = document.getElementById("add7").value;
+				var sessionTimeout = new Object();
+				sessionTimeout.name = "sessionTimeout";
+				sessionTimeout.value = parseInt(document.getElementById("add5").value);
+
+				var acctInterimInterval = new Object();
+				acctInterimInterval.name = "acctInterimInterval";
+				acctInterimInterval.value = parseInt(document.getElementById("add5").value);
+
+				var classx = new Object();
+				classx.name = "class";
+				classx.value = parseInt(document.getElementById("add5").value);
+
+				var attributes = new Array();
+				attributes[0] = ascendDataRate;
+				attributes[1] = ascendXmitRate;
+				attributes[2] = sessionTimeout;
+				attributes[3] = acctInterimInterval;
+				attributes[4] = classx;
 
 				formData.attributes = attributes; 
-				formData.balance = document.getElementById("add8").value;
+				formData.balance = parseInt(document.getElementById("add8").value);
 
 				form.request.body = formData;
 			},

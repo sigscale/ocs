@@ -140,10 +140,22 @@
 			} ,
 
 			_handleFormResponse: function() {
-				var data = new Array();
-				data[0] = event.detail.response;
 				var grid = document.getElementById("frozen");; 
-				grid.items = data;
+				var result = event.detail.response;
+				var vaadinItems = new Array();
+				var newRecord = new Object();
+				newRecord.id = result.id;
+				newRecord.password = result.password;
+				newRecord.balance = result.balance;
+				newRecord.ascendXmitRate = result.attributes[0].value;
+				newRecord.ascendDataRate = result.attributes[1].value;
+				newRecord.sessionTimeout = result.attributes[2].value;
+				newRecord.acctInterimInterval = result.attributes[3].value;
+				newRecord.class = result.attributes[4].value;
+				newRecord.enabled = result.enabled;
+
+				vaadinItems[0] = newRecord;
+				grid.items = vaadinItems;
 				document.getElementById('modal1').close();
 			},
 

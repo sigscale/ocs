@@ -85,7 +85,7 @@
 
 			<iron-pages selected="{{selected}}">
 				<div id="edit-password" >
-					<paper-input id="edit-id1" name="subscriber" label="Identity" disabled></paper-input>
+					<paper-input id="edit-id1" name="id" label="Identity" disabled></paper-input>
 					<paper-input id="edit-pwd" name="password"  label="Secret" disabled ></paper-input>
 					<paper-input id="edit-new-pwd" name="newpassword" label="New Secret" required auto-validate error-message="New secret can't be empty!" ></paper-input>
 					<div class="buttons">
@@ -95,7 +95,7 @@
 					</div>
 				</div>
 				<div id="edit-attributes" >
-					<paper-input id="edit-id2" name="subscriber" label="Identity" disabled></paper-input>
+					<paper-input id="edit-id2" name="id" label="Identity" disabled></paper-input>
 					<paper-input id="edit-balance" name="balance" label="Balance" disabled ></paper-input>
 					<paper-input id="edit-recv-data-rate" name="ascendDataRate" label="Receive Data Rate" required auto-validate error-message="New value can't be empty!" ></paper-input>
 					<paper-input id="edit-trans-data-rate" name="ascendXmitRate" label="Transmit Data Rate" required auto-validate error-message="New value can't be empty!" ></paper-input>
@@ -227,18 +227,36 @@
 
 		responseHandler: function(event) {
 			var grid = this.$.frozen; 
+			var results = event.detail.xhr.response;
+			var vaadinItems = new Array();
+
+			for(var index in results){
+					  var newRecord = new Object();
+					  newRecord.id = results[index].id;
+					  newRecord.password = results[index].password;
+					  newRecord.balance = results[index].balance;
+					  newRecord.ascendXmitRate = results[index].attributes[0].value;
+					  newRecord.ascendDataRate = results[index].attributes[1].value;
+					  newRecord.sessionTimeout = results[index].attributes[2].value;
+					  newRecord.acctInterimInterval = results[index].attributes[3].value;
+					  newRecord.class = results[index].attributes[4].value;
+					  newRecord.enabled = results[index].enabled;
+
+					  vaadinItems[index] = newRecord;;
+			}
+
+			grid.items = vaadinItems;
 			grid.columns = [
-									{ name: "identity"},
+									{ name: "id"},
 									{ name: "password" },
 									{ name: "balance"},
-									{ name: "attributes.ascendDataRate.value" },
-									{ name: "attributes.ascendXmitRate.value"},
-									{ name: "attributes.sessionTimeout"},
-									{ name: "attributes.acctInterimInterval"},
-									{ name: "attributes.class"},
+									{ name: "ascendXmitRate" },
+									{ name: "ascendDataRate"},
+									{ name: "sessionTimeout"},
+									{ name: "acctInterimInterval"},
+									{ name: "class"},
 									{ name: "enabled"}
 								];
-			grid.items = event.detail.xhr.response;
 			grid.header.getCell(0,0).content = 'Identity';
 			grid.header.getCell(0,1).content = 'Secret';
 			grid.header.getCell(0,2).content = 'Balance';
@@ -298,25 +316,39 @@
 			editAjax.url = "http://localhost:8888/ocs/v1/subscriber/" + id;
 			var sub = new Object();
 			sub.update = "attributes";
-			var attr = new Object();
+			var attr = new Array();
 
 			var ascendDataRate = new Object();
+			ascendDataRate.name = "ascendDataRate";
 			ascendDataRate.type = 26;
 			ascendDataRate.vendorId = 529;
 			ascendDataRate.vendorType = 197;
-			ascendDataRate.value = document.getElementById("edit-recv-data-rate").value;
-			attr.ascendDataRate = ascendDataRate;
+			ascendDataRate.value = parseInt(document.getElementById("edit-recv-data-rate").value);
+			attr[0] = ascendDataRate;
 
 			var ascendXmitRate = new Object(); 
+			ascendXmitRate.name = "ascendXmitRate";
 			ascendXmitRate.type = 26;
 			ascendXmitRate.vendorId = 529;
 			ascendXmitRate.vendorType = 255;
-			ascendXmitRate.value = document.getElementById("edit-trans-data-rate").value;
-			attr.ascendXmitRate = ascendXmitRate;
+			ascendXmitRate.value = parseInt(document.getElementById("edit-trans-data-rate").value);
+			attr[1] = ascendXmitRate;
 
-			attr.sessionTimeout = document.getElementById("edit-sess-timeout").value;
-			attr.acctInterimInterval = document.getElementById("edit-update-interval").value;
-			attr.class = document.getElementById("edit-class").value;
+			var sessionTimeout = new Object(); 
+			sessionTimeout.name = "sessionTimeout"; 
+			sessionTimeout.value = parseInt(document.getElementById("edit-sess-timeout").value);
+			attr[2] = sessionTimeout;
+
+			var acctInterimInterval = new Object(); 
+			acctInterimInterval.name = "acctInterimInterval"; 
+			acctInterimInterval.value = parseInt(document.getElementById("edit-update-interval").value);
+			attr[3] = acctInterimInterval;
+
+			var classx = new Object(); 
+			classx.name = "class"; 
+			classx.value = parseInt(document.getElementById("edit-class").value);
+			attr[4] = classx;
+
 			sub.attributes = attr;
 			editAjax.body = sub;
 		},
@@ -382,7 +414,7 @@
 			grid.selection.selected(function(index){
 				var selection = grid.items[index];
 				var deleteAjax = document.getElementById("deleteSubs");
-				deleteAjax.url = "http://localhost:8888/ocs/v1/subscriber/"+ selection.identity;
+				deleteAjax.url = "http://localhost:8888/ocs/v1/subscriber/"+ selection.id;
 				deleteAjax.generateRequest();
 			});
 		},
@@ -402,15 +434,15 @@
 				modal.open();
 				grid.selection.selected(function(index) {
 					var selection = grid.items[index];
-					document.getElementById("edit-id1").value = selection.identity;
-					document.getElementById("edit-id2").value = selection.identity;
+					document.getElementById("edit-id1").value = selection.id;
+					document.getElementById("edit-id2").value = selection.id;
 					document.getElementById("edit-pwd").value = selection.password;
 					document.getElementById("edit-balance").value = selection.balance;
-					document.getElementById("edit-recv-data-rate").value = selection.attributes.ascendDataRate.value;
-					document.getElementById("edit-trans-data-rate").value = selection.attributes.ascendXmitRate.value;
-					document.getElementById("edit-sess-timeout").value = selection.attributes.sessionTimeout;
-					document.getElementById("edit-update-interval").value = selection.attributes.acctInterimInterval;
-					document.getElementById("edit-class").value =  selection.attributes.class;
+					document.getElementById("edit-recv-data-rate").value = selection.ascendDataRate;
+					document.getElementById("edit-trans-data-rate").value = selection.ascendXmitRate;
+					document.getElementById("edit-sess-timeout").value = selection.sessionTimeout;
+					document.getElementById("edit-update-interval").value = selection.acctInterimInterval;
+					document.getElementById("edit-class").value =  selection.class;
 				});}
 				if(window.selection == "selectionRadiusClients"){
 					var modal = this.$.modal4; 
