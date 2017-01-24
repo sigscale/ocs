@@ -115,7 +115,6 @@ perform_post1(Id, Password, RadAttributes, Balance) ->
 	try
 	case catch ocs:add_subscriber(Id, Password, RadAttributes, Balance) of
 		ok ->
-
 			Attributes = {array, radius_to_json(RadAttributes)},
 			RespObj = [{id, Id}, {href, "/ocs/v1/subscriber/" ++ Id},
 				{password, Password}, {attributes, Attributes}, {balance, Balance}],
