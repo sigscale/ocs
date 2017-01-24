@@ -120,46 +120,35 @@ request2(<<>>, #statedata{subscriber = Subscriber,
 					VendorSpecific, Attributes),
 			response(?AccessAccept, ResponseAttributes, StateData),
 			{stop, {shutdown, SessionID}, StateData};
-		{error, out_of_credit} ->
-			RejectAttributes = [{?ReplyMessage, "Out of Credit"}],
-			response(?AccessReject, RejectAttributes, StateData),
-			{stop, {shutdown, SessionID}, StateData};
-		{error, disabled} ->
-			RejectAttributes = [{?ReplyMessage, "Subscriber Disabled"}],
-			response(?AccessReject, RejectAttributes, StateData),
-			{stop, {shutdown, SessionID}, StateData};
-		{error, bad_password} ->
-			RejectAttributes = [{?ReplyMessage, "Bad Password"}],
-			response(?AccessReject, RejectAttributes, StateData),
-			{stop, {shutdown, SessionID}, StateData};
-		{error, not_found} ->
-			RejectAttributes = [{?ReplyMessage, "Unknown Username"}],
-			response(?AccessReject, RejectAttributes, StateData),
-			{stop, {shutdown, SessionID}, StateData}
+		{error, Reason} ->
+			request3(Reason, StateData)
 	end;
 request2(Password, #statedata{subscriber = Subscriber,
 		session_id = SessionID} = StateData) ->
 	case ocs:authorize(Subscriber, Password) of
-		{ok, _, ResponseAttributes} ->
+		{ok, Password, ResponseAttributes} ->
 			response(?AccessAccept, ResponseAttributes, StateData),
 			{stop, {shutdown, SessionID}, StateData};
-		{error, out_of_credit} ->
-			RejectAttributes = [{?ReplyMessage, "Out of Credit"}],
-			response(?AccessReject, RejectAttributes, StateData),
-			{stop, {shutdown, SessionID}, StateData};
-		{error, disabled} ->
-			RejectAttributes = [{?ReplyMessage, "Subscriber Disabled"}],
-			response(?AccessReject, RejectAttributes, StateData),
-			{stop, {shutdown, SessionID}, StateData};
-		{error, bad_password} ->
-			RejectAttributes = [{?ReplyMessage, "Bad Password"}],
-			response(?AccessReject, RejectAttributes, StateData),
-			{stop, {shutdown, SessionID}, StateData};
-		{error, not_found} ->
-			RejectAttributes = [{?ReplyMessage, "Unknown Username"}],
-			response(?AccessReject, RejectAttributes, StateData),
-			{stop, {shutdown, SessionID}, StateData}
+		{error, Reason} ->
+			request3(Reason, StateData)
 	end.
+%% @hidden
+request3(out_of_credit, #statedata{session_id = SessionID} = StateData) ->
+	RejectAttributes = [{?ReplyMessage, "Out of Credit"}],
+	response(?AccessReject, RejectAttributes, StateData),
+	{stop, {shutdown, SessionID}, StateData};
+request3(disabled, #statedata{session_id = SessionID} = StateData) ->
+	RejectAttributes = [{?ReplyMessage, "Subscriber Disabled"}],
+	response(?AccessReject, RejectAttributes, StateData),
+	{stop, {shutdown, SessionID}, StateData};
+request3(bad_password, #statedata{session_id = SessionID} = StateData) ->
+	RejectAttributes = [{?ReplyMessage, "Bad Password"}],
+	response(?AccessReject, RejectAttributes, StateData),
+	{stop, {shutdown, SessionID}, StateData};
+request3(not_found, #statedata{session_id = SessionID} = StateData) ->
+	RejectAttributes = [{?ReplyMessage, "Unknown Username"}],
+	response(?AccessReject, RejectAttributes, StateData),
+	{stop, {shutdown, SessionID}, StateData}.
 
 -spec handle_event(Event :: term(), StateName :: atom(),
 		StateData :: statedata()) ->
