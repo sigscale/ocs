@@ -102,8 +102,8 @@ perform_post(RequestBody) ->
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, Id} = lists:keyfind("id", 1, Object),
 		{_, Password} = lists:keyfind("password", 1, Object),
-		{_, {struct, AttrJs}} = lists:keyfind("attributes", 1, Object),
-		RadAttributes = json_to_radius(AttrJs),
+		{_, {array, JsonObjList}} = lists:keyfind("attributes", 1, Object),
+		RadAttributes = json_to_radius(JsonObjList),
 		{_, Balance} = lists:keyfind("balance", 1, Object),
 		perform_post1(Id, Password, RadAttributes, Balance)
 	catch
@@ -178,23 +178,23 @@ perform_delete(Id) ->
 %%----------------------------------------------------------------------
 
 %% @hidden
-json_to_radius(JsonAttributes) ->
-	json_to_radius(JsonAttributes, []).
+json_to_radius(JsonObjList) ->
+	json_to_radius(JsonObjList, []).
 %% @hidden
-json_to_radius([{"ascendDataRate", {struct, VendorSpecific}} | T], Acc) ->
+json_to_radius([{struct, [{"name", "ascendDataRate"} | VendorSpecific]} | T], Acc) ->
 	Attribute = vendor_specific(VendorSpecific),
 	json_to_radius(T, [Attribute | Acc]);
-json_to_radius([{"ascendXmitRate", {struct, VendorSpecific}} | T], Acc) ->
+json_to_radius([{struct, [{"name", "ascendXmitRate"} | VendorSpecific]} | T], Acc) ->
 	Attribute = vendor_specific(VendorSpecific),
 	json_to_radius(T, [Attribute | Acc]);
-json_to_radius([{"sessionTimeout", Value} | T], Acc) ->
-	Attribute = {?SessionTimeout, Value},
+json_to_radius([{struct,[{"name","sessionTimeout"}, {"value", V}]} | T], Acc) ->
+	Attribute = {?SessionTimeout, V},
 	json_to_radius(T, [Attribute | Acc]);
-json_to_radius([{"acctInterimInterval", Value} | T], Acc) ->
-	Attribute = {?AcctInterimInterval, Value},
+json_to_radius([{struct,[{"name","acctInterimInterval"}, {"value", V}]} | T], Acc) ->
+	Attribute = {?AcctInterimInterval, V},
 	json_to_radius(T, [Attribute | Acc]);
-json_to_radius([{"class", Value} | T], Acc) ->
-	Attribute = {?Class, Value},
+json_to_radius([{struct,[{"name","class"}, {"value", V}]} | T], Acc) ->
+	Attribute = {?Class, V},
 	json_to_radius(T, [Attribute | Acc]);
 json_to_radius([], Acc) ->
 	Acc.
