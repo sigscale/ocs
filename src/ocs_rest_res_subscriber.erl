@@ -115,7 +115,8 @@ perform_post1(Id, Password, RadAttributes, Balance) ->
 	try
 	case catch ocs:add_subscriber(Id, Password, RadAttributes, Balance) of
 		ok ->
-			Attributes = {struct, radius_to_json(RadAttributes)},
+
+			Attributes = {array, radius_to_json(RadAttributes)},
 			RespObj = [{id, Id}, {href, "/ocs/v1/subscriber/" ++ Id},
 				{password, Password}, {attributes, Attributes}, {balance, Balance}],
 			JsonObj  = {struct, RespObj},
@@ -203,22 +204,22 @@ json_to_radius([], Acc) ->
 radius_to_json(RadiusAttributes) ->
 	radius_to_json(RadiusAttributes, []).
 %% @hidden
-radius_to_json([{?VendorSpecific, {?VendorID, {?AscendDataRate, _}}}
-		= H | T], Acc) ->
-	Attribute = {"ascendDataRate", vendor_specific(H)},
+radius_to_json([{?VendorSpecific, {?VendorID, {?AscendDataRate, _}}} = H | T], Acc) ->
+	{struct, Values} = vendor_specific(H),
+	Attribute = {struct, [{"name", "ascendDataRate"} | Values]},
 	radius_to_json(T, [Attribute | Acc]);
-radius_to_json([{?VendorSpecific, {?VendorID, {?AscendXmitRate, _}}} 
-		= H | T], Acc) ->
-	Attribute = {"ascendXmitRate", vendor_specific(H)},
+radius_to_json([{?VendorSpecific, {?VendorID, {?AscendXmitRate, _}}} = H | T], Acc) ->
+	{struct, Values} = vendor_specific(H),
+	Attribute = {struct, [{"name", "ascendXmitRate"} | Values]},
 	radius_to_json(T, [Attribute | Acc]);
 radius_to_json([{?SessionTimeout, V} | T], Acc) ->
-	Attribute = {"sessionTimeout", V},
+	Attribute = {struct, [{"name", "sessionTimeout"}, {"value",  V}]},
 	radius_to_json(T, [Attribute | Acc]);
 radius_to_json([{?AcctInterimInterval, V} | T], Acc) ->
-	Attribute = {"acctInterimInterval", V},
+	Attribute = {struct, [{"name", "acctInterimInterval"}, {"value", V}]},
 	radius_to_json(T, [Attribute | Acc]);
 radius_to_json([{?Class, V} | T], Acc) ->
-	Attribute = {"class", V},
+	Attribute = {struct, [{"name", "class"}, {"value", V}]},
 	radius_to_json(T, [Attribute | Acc]);
 radius_to_json([], Acc) ->
 	Acc.
