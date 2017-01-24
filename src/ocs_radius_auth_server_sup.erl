@@ -37,7 +37,7 @@
 %%
 init([Address, Port] = _Args) ->
 	StartMod = ocs_radius_authentication,
-	case radius:start_link(StartMod, Port, Address) of
+	case radius:start_link(StartMod, Port, [{ip, Address}]) of
 		{ok, Pid} ->
 			{ok, Pid, Pid};
 		{error, Reason} ->
