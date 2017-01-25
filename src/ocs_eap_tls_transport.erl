@@ -167,7 +167,7 @@ close(TlsFsm) when is_pid(TlsFsm) ->
 		Reason :: closed | term().
 %% @doc Sends a packet on an EAP session.
 send(TlsFsm, Data) when is_pid(TlsFsm) ->
-	gen_fsm:send_event(TlsFsm, {eap_tls, self(), Data}).
+	gen_fsm:send_event(TlsFsm, {eap_tls, self(), iolist_to_binary(Data)}).
 
 -spec controlling_process(TlsFsm, Pid) ->
 	ok | {error, Reason} when

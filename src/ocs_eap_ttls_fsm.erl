@@ -320,8 +320,8 @@ client_hello({#radius{code = ?AccessRequest, id = RadiusID,
 %% ClientHelloMessage -
 %% <<ProtocolVersion:16, Gmt_unix_time:32, ClientRand:28/binary,
 %%	SessionID, CipherSuite, CompressionMethod, ..>>
-client_hello1(<<?Handshake, _:32, ?ClientHello, _:40,
-		ClientRand:32/binary, _/binary>>, StateData) ->
+client_hello1(<<?Handshake, _Version:16, _L1:16, ?ClientHello, _L2:24,
+		_ClientVersion:16, ClientRand:32/binary, _/binary>>, StateData) ->
 	StateData#statedata{client_rand = ClientRand}.
 
 
@@ -346,25 +346,25 @@ server_hello(timeout, StateData) ->
 %% ServerHelloMessage -
 %% <<ProtocolVersion:16, Gmt_unix_time:32, ServerRand:28/binary,
 %% SessionID, CipherSuite, CompressionMethod, ..>>
-server_hello({eap_tls, _SslPid,
-		[<<?Handshake, _:32>>, [[?ServerHello, _,
-		<<_:16, ServerRand:32/binary, _/binary>>] | _]] = Data},
+server_hello({eap_tls, _SslPid, <<?Handshake, _Version:16, _L1:16,
+		?ServerHello, _ServerVersion:16,
+		ServerRand:32/binary, _/binary>> = Data},
 		#statedata{tx_buf = TxBuf} = StateData) ->
 	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data],
 			server_rand = ServerRand},
 	{next_state, server_hello, NewStateData};
-server_hello({eap_tls, _SslPid,
-		[<<?Handshake, _:32>>, [[?Certificate | _] | _]] = Data},
+server_hello({eap_tls, _SslPid, <<?Handshake, _Version:16, _L1:16,
+		?Certificate, _/binary>> = Data},
 		#statedata{tx_buf = TxBuf} = StateData) ->
 	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
 	{next_state, server_hello, NewStateData};
-server_hello({eap_tls, _SslPid,
-		[<<?Handshake, _:32>>, [[?ServerKeyExchange | _] | _]] = Data},
+server_hello({eap_tls, _SslPid, <<?Handshake, _Version:16, _L1:16,
+		?ServerKeyExchange, _/binary>> = Data},
 		#statedata{tx_buf = TxBuf} = StateData) ->
 	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
 	{next_state, server_hello, NewStateData};
-server_hello({eap_tls, _SslPid,
-		[<<?Handshake, _:32>>, [[?ServerHelloDone | _] | _]] = Data},
+server_hello({eap_tls, _SslPid, <<?Handshake, _Version:16, _L1:16,
+		?ServerHelloDone, _/binary>> = Data},
 		#statedata{tx_buf = TxBuf} = StateData) ->
 	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
 	server_hello1(NewStateData);
@@ -499,9 +499,8 @@ client_cipher({#radius{code = ?AccessRequest, id = RadiusID,
 server_cipher(timeout,
 		#statedata{session_id = SessionID} = StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
-server_cipher({eap_tls, _SslPid,
-	[<<?ChangeCipherSpec, _:32>> | _]	= Data},
-	#statedata{tx_buf = TxBuf} = StateData) ->
+server_cipher({eap_tls, _SslPid, <<?ChangeCipherSpec, _/binary>> = Data},
+		#statedata{tx_buf = TxBuf} = StateData) ->
 	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
 	{next_state, finish, NewStateData}.
 
@@ -518,7 +517,7 @@ server_cipher({eap_tls, _SslPid,
 finish(timeout,
 		#statedata{session_id = SessionID} = StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
-finish({eap_tls, _SslPid, [<<?Handshake, _:32>> | _] = Data},
+finish({eap_tls, _SslPid, <<?Handshake, _/binary>> = Data},
 		#statedata{tx_buf = TxBuf, radius_id = RadiusID, radius_fsm = RadiusFsm,
 		req_auth = RequestAuthenticator,secret = Secret,
 		eap_id = EapID} = StateData) ->
