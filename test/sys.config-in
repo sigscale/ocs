@@ -6,7 +6,7 @@
       {tls_cert, "%CERT_DIR%/cert.pem"},
       {tls_cacert, "%CERT_DIR%/CAcert.pem"}]},
 {radius,
-		[{sock_opts, [{recbuf, {recbuf, 16384}]}]},
+		[{sock_opts, [{recbuf, 16384}]}]},
 {inets,
       [{services,
          [{httpd,
