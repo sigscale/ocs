@@ -182,17 +182,31 @@ json_to_radius(JsonObjList) ->
 	json_to_radius(JsonObjList, []).
 %% @hidden
 json_to_radius([{struct, [{"name", "ascendDataRate"} | VendorSpecific]} | T], Acc) ->
-	Attribute = vendor_specific(VendorSpecific),
-	json_to_radius(T, [Attribute | Acc]);
+	case vendor_specific(VendorSpecific) of
+		[] ->
+			json_to_radius(T, Acc) ;
+		Attribute ->
+			json_to_radius(T, [Attribute | Acc])
+	end;
 json_to_radius([{struct, [{"name", "ascendXmitRate"} | VendorSpecific]} | T], Acc) ->
-	Attribute = vendor_specific(VendorSpecific),
-	json_to_radius(T, [Attribute | Acc]);
+	case vendor_specific(VendorSpecific) of
+		[] ->
+			json_to_radius(T, Acc);
+		Attribute ->
+			json_to_radius(T, [Attribute | Acc])
+	end;
+json_to_radius([{struct,[{"name","sessionTimeout"}, {"value", null}]} | T], Acc) ->
+	json_to_radius(T, Acc);
 json_to_radius([{struct,[{"name","sessionTimeout"}, {"value", V}]} | T], Acc) ->
 	Attribute = {?SessionTimeout, V},
 	json_to_radius(T, [Attribute | Acc]);
+json_to_radius([{struct,[{"name","acctInterimInterval"}, {"value", null}]} | T], Acc) ->
+	json_to_radius(T,Acc);
 json_to_radius([{struct,[{"name","acctInterimInterval"}, {"value", V}]} | T], Acc) ->
 	Attribute = {?AcctInterimInterval, V},
 	json_to_radius(T, [Attribute | Acc]);
+json_to_radius([{struct,[{"name","class"}, {"value", null}]} | T], Acc) ->
+	json_to_radius(T, Acc);
 json_to_radius([{struct,[{"name","class"}, {"value", V}]} | T], Acc) ->
 	Attribute = {?Class, V},
 	json_to_radius(T, [Attribute | Acc]);
@@ -228,8 +242,12 @@ vendor_specific(AttrJson) when is_list(AttrJson) ->
 	{_, Type} = lists:keyfind("type", 1, AttrJson),
 	{_, VendorID} = lists:keyfind("vendorId", 1, AttrJson),
 	{_, Key} = lists:keyfind("vendorType", 1, AttrJson),
-	{_, Value} = lists:keyfind("value", 1, AttrJson),
-	{Type, {VendorID, {Key, Value}}};
+	case lists:keyfind("value", 1, AttrJson) of
+		{_, null} ->
+			[];
+		{_, Value} ->
+			{Type, {VendorID, {Key, Value}}}
+	end;
 vendor_specific({Type, {VendorID, {VendorType, Value}}}) ->
 	AttrObj = [{"type", Type},
 				{"vendorId", VendorID},
