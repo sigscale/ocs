@@ -49,8 +49,13 @@ do(#mod{method = Method, parsed_header = Headers, entity_body = Body,
 				data = Data} = ModData) ->
 	case Method of
 		"POST" ->
-			{_, Resource} = lists:keyfind(resource, 1, Data),
-			content_type_available(Headers, Body, Resource, ModData);
+			case proplists:get_value(response, Data) of
+				{already_sent, _StatusCode, _} ->
+					{proceed,  Data};
+				undefined ->
+					{_, Resource} = lists:keyfind(resource, 1, Data),
+					content_type_available(Headers, Body, Resource, ModData)
+			end;
 		_ ->
 			{proceed, Data}
 	end.
