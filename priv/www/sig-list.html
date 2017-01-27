@@ -223,6 +223,7 @@
 			grid.items = event.detail.xhr.response;
 			grid.header.getCell(0,0).content = 'Address';
 			grid.header.getCell(0,1).content = 'Secret';
+			grid.visibleRows =17;
 		},
 
 		responseHandler: function(event) {
@@ -267,6 +268,7 @@
 			}
 
 			grid.items = vaadinItems;
+			grid.visibleRows =17;
 			grid.columns = [
 									{ name: "id"},
 									{ name: "password" },
