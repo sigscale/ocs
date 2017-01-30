@@ -97,11 +97,11 @@
 				<div id="edit-attributes" >
 					<paper-input id="edit-id2" name="id" label="Identity" disabled></paper-input>
 					<paper-input id="edit-balance" name="balance" label="Balance" disabled ></paper-input>
-					<paper-input id="edit-recv-data-rate" name="ascendDataRate" label="Receive Data Rate" required auto-validate error-message="New value can't be empty!" ></paper-input>
-					<paper-input id="edit-trans-data-rate" name="ascendXmitRate" label="Transmit Data Rate" required auto-validate error-message="New value can't be empty!" ></paper-input>
-					<paper-input id="edit-sess-timeout" name="sessionTimeout" label="Session Timeout" required auto-validate error-message="New value can't be empty!" ></paper-input>
-					<paper-input id="edit-update-interval" name="acctInterimInterval" label="Update interval" required auto-validate error-message="New value can't be empty!" ></paper-input>
-					<paper-input id="edit-class" name="class" label="Class" required auto-validate error-message="New value can't be empty!" ></paper-input>
+					<paper-input id="edit-recv-data-rate" name="ascendDataRate" label="Receive Data Rate"  ></paper-input>
+					<paper-input id="edit-trans-data-rate" name="ascendXmitRate" label="Transmit Data Rate"  ></paper-input>
+					<paper-input id="edit-sess-timeout" name="sessionTimeout" label="Session Timeout"  ></paper-input>
+					<paper-input id="edit-update-interval" name="acctInterimInterval" label="Update interval"  ></paper-input>
+					<paper-input id="edit-class" name="class" label="Class"  ></paper-input>
 					<div class="buttons">
 						<paper-button on-click="cancel" class="cancle-btn">Cancel</paper-button>
 						<paper-button dialog-confirm autofocus on-click="updateAttributes" class="edit">Edit</paper-button>
@@ -115,7 +115,7 @@
 				<div id="edit-client" >
 					<paper-input id="edit-client-id" name="id" label="Address" disabled></paper-input>
 					<paper-input id="edit-client-pwd" name="password"  label="Secret" disabled ></paper-input>
-					<paper-input id="edit-client-new-pwd" name="secret" label="New Secret" required auto-validate error-message="New secret can't be empty!" ></paper-input>
+					<paper-input id="edit-client-new-pwd" name="secret" label="New Secret"  ></paper-input>
 					<div class="buttons">
 						<paper-button on-click="cancel" class="cancle-btn">Cancel</paper-button>
 						<paper-button dialog-confirm autofocus on-click="updateClientPassword" class="edit">Edit</paper-button>
