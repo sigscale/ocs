@@ -148,30 +148,9 @@
 				newRecord.password = result.password;
 				newRecord.balance = result.balance;
 
-				if(result.attributes[0] != undefined){
-					newRecord.ascendXmitRate = result.attributes[0].value;
-				}
-				else{newRecord.ascendXmitRate = "";}
-
-				if(result.attributes[1] != undefined){
-					newRecord.ascendDataRate = result.attributes[1].value;
-				}
-				else{newRecord.ascendDataRate = "";} 
-
-				if(result.attributes[2] != undefined){
-					newRecord.sessionTimeout = result.attributes[2].value;
-				}
-				else{newRecord.sessionTimeout = "";} 
-
-				if(result.attributes[3] != undefined){
-					newRecord.acctInterimInterval = result.attributes[3].value;
-				}
-				else{newRecord.acctInterimInterval = "";} 
-
-				if( result.attributes[4] != undefined){
-					newRecord.class = result.attributes[4].value;
-				}
-				else{newRecord.class = "";}
+				result.attributes.forEach(function(attrObj){
+					newRecord[attrObj.name] = attrObj.value;
+				});
 
 				newRecord.enabled = result.enabled;
 
