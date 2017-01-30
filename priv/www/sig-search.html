@@ -149,7 +149,7 @@
 				newRecord.balance = result.balance;
 
 				result.attributes.forEach(function(attrObj){
-					newRecord[attrObj.name] = attrObjvalue;
+					newRecord[attrObj.name] = attrObj.value;
 				});
 
 				newRecord.enabled = result.enabled;
