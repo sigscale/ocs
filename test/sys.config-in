@@ -11,6 +11,7 @@
       [{services,
          [{httpd,
             [{server_name, "rest"},
+               {bind_address, "localhost"},
                {modules, [mod_ocs_rest_dispatcher, mod_ocs_rest_accepted_content,
                      mod_ocs_rest_get, mod_ocs_rest_post,
                      mod_ocs_rest_patch, mod_ocs_rest_delete]},
