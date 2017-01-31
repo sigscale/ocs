@@ -1041,7 +1041,7 @@ content-Length: 0
 
 ==Database Schema==
 <table id="mt">
-	<caption id="mt">There is one persistent {@link //mnesia. mnesia} table:</caption>
+	<caption id="mt">There are two persistent {@link //mnesia. mnesia} tables:</caption>
 	<thead>
 		<tr id="mt">
 			<th id="mt">Table Name</th>
