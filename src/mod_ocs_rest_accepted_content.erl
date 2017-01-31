@@ -47,18 +47,23 @@
 %% @doc Erlang web server API callback function.
 do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 				data = Data} = _ModData) ->
-	case proplists:get_value(response, Data) of
-		{already_sent, _StatusCode, _} ->
-			{proceed,  Data};
+	case proplists:get_value(status, Data) of
+		{_StatusCode, _PhraseArgs, _Reason} ->
+			{proceed, Data};
 		undefined ->
-			case string:tokens(Uri, "/") of
-				["ocs", "v1", Resource] ->
-					do_accept(Headers, Method, Resource, Data);
-				["ocs", "v1", Resource, _Id] ->
-					do_accept(Headers, Method, Resource, Data);
-					_ ->
-						Response = "<h2>HTTP Error 400 - Bad Request</h2>",
-						{break, [{response, {400, Response}}]}
+			case proplists:get_value(response, Data) of
+				undefined ->
+					case string:tokens(Uri, "/") of
+						["ocs", "v1", Resource] ->
+							do_accept(Headers, Method, Resource, Data);
+						["ocs", "v1", Resource, _Id] ->
+							do_accept(Headers, Method, Resource, Data);
+							_ ->
+								Response = "<h2>HTTP Error 400 - Bad Request</h2>",
+								{break, [{response, {400, Response}}]}
+					end;
+				_Response ->
+					{proceed,  Data}
 			end
 	end.
 

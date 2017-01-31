@@ -46,14 +46,22 @@
 	Arg :: [term()].
 %% @doc Erlang web server API callback function.
 do(#mod{request_uri = Uri, data = Data} = ModData) ->
-	case string:tokens(Uri, "/") of
-		["ocs", "v1", _Resource] ->
+	case proplists:get_value(status, Data) of
+		{_StatusCode, _PhraseArgs, _Reason} ->
 			{proceed, Data};
-		["ocs", "v1", _Resource, _Identity] ->
-			{proceed, Data};
-		_ ->
-			dispatch(ModData)
-end.
+		undefined ->
+			case proplists:get_value(response, Data) of
+				undefined ->
+					case string:tokens(Uri, "/") of
+						["ocs", "v1" | _] ->
+							{proceed, Data};
+						_ ->
+							dispatch(ModData)
+					end;
+				_Response ->
+					{proceed,  Data}
+			end
+	end.
 
 %% @hidden
 dispatch(#mod{socket = Socket, socket_type = SockType, data = Data,

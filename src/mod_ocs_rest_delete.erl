@@ -48,17 +48,22 @@
 do(#mod{method = Method, request_uri = Uri, data = Data} = ModData) ->
 	case Method of
 		"DELETE" ->
-			case proplists:get_value(response, Data) of
-				{already_sent, _StatusCode, _} ->
-					{proceed,  Data};
+			case proplists:get_value(status, Data) of
+				{_StatusCode, _PhraseArgs, _Reason} ->
+					{proceed, Data};
 				undefined ->
-					{_, Resource} = lists:keyfind(resource, 1, Data),
-					case string:tokens(Uri, "/") of
-						["ocs", "v1", _, Identity] ->
-							Resource:perform_delete(Identity),
-							send_response(ModData, []);
-						_ ->
-							{break, [{response,	{404, "<h1>NOT FOUND</h1>"}}]}
+					case proplists:get_value(response, Data) of
+						undefined ->
+							{_, Resource} = lists:keyfind(resource, 1, Data),
+							case string:tokens(Uri, "/") of
+								["ocs", "v1", _, Identity] ->
+									Resource:perform_delete(Identity),
+									send_response(ModData, []);
+								_ ->
+									{break, [{response,	{404, "<h1>NOT FOUND</h1>"}}]}
+							end;
+						_Response ->
+							{proceed,  Data}
 					end
 			end;
 		_ ->
