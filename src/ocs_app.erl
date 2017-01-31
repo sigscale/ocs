@@ -29,6 +29,7 @@
 %% export the ocs private API
 -export([install/1]).
 
+-include_lib("inets/include/mod_auth.hrl").
 -include("ocs.hrl").
 
 -record(state, {}).
@@ -116,7 +117,7 @@ start1() ->
 %% 		2> mnesia:start().
 %% 		ok
 %% 		3> {@module}:install([node()]).
-%% 		{ok,[radius_client, subscriber]}
+%% 		{ok,[radius_client, subscriber, httpd_user, httpd_group]}
 %% 		ok
 %% 	'''
 %%
@@ -148,7 +149,25 @@ install(Nodes) when is_list(Nodes) ->
 			T2Result ->
 				throw(T2Result)
 		end,
-		Tables = [radius_client, subscriber],
+		case mnesia:create_table(httpd_user, [{type, bag},{disc_copies, Nodes},
+				{attributes, record_info(fields, httpd_user)}]) of
+			{atomic, ok} ->
+				error_logger:info_msg("Created new httpd_user table.~n");
+			{aborted, {already_exists, httpd_user}} ->
+				error_logger:warning_msg("Found existing httpd_user table.~n");
+			T3Result ->
+				throw(T3Result)
+		end,
+		case mnesia:create_table(httpd_group, [{type, bag},{disc_copies, Nodes},
+				{attributes, record_info(fields, httpd_group)}]) of
+			{atomic, ok} ->
+				error_logger:info_msg("Created new httpd_group table.~n");
+			{aborted, {already_exists, httpd_group}} ->
+				error_logger:warning_msg("Found existing httpd_group table.~n");
+			T4Result ->
+				throw(T4Result)
+		end,
+		Tables = [radius_client, subscriber, httpd_user, httpd_group],
 		case mnesia:wait_for_tables(Tables, ?WAITFORTABLES) of
 			ok ->
 				Tables;
