@@ -41,7 +41,6 @@
 suite() ->
 	[{userdata, [{doc, "Test suite for REST API in OCS"}]}, 
 	{timetrap, {minutes, 1}},
-	{require, rest_port}, {default_config, rest_port, 8888},
 	{require, host}, {default_config, host, "localhost"}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
@@ -50,7 +49,10 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
-	Config.
+	{_, Httpd} = lists:keyfind(httpd, 1, inets:services()).
+	[{port, Port}] = httpd:info(Httpd, [port]),
+	HostUrl = "https://localhost:" ++ integer_to_list(Port),
+	[{host_url, HostUrl} | Config].
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
@@ -66,9 +68,6 @@ init_per_testcase(_TestCase, Config) ->
 	{ok, IP} = application:get_env(ocs, radius_auth_addr),
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, IP}, binary]),
 	{ok, Port} = application:get_env(ocs, rest_port),
-	Host = ct:get_config(host),
-	HostUrl = "https://" ++ Host ++ ":" ++ integer_to_list(Port),
-	Config1 = [{host_url, HostUrl} | Config],
 	[{socket, Socket} | Config1].
 
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().

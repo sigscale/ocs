@@ -95,7 +95,7 @@ connect(_Address, ClientPid, _SocketOpts, _Timeout) ->
 		Reason :: closed | term().
 %% @doc Sends a packet on an EAP session.
 send(ClientPid, Data) when is_pid(ClientPid) ->
-	ClientPid ! {eap_tls, self(), Data},
+	ClientPid ! {eap_tls, self(), iolist_to_binary(Data)},
 	ok.
 
 -spec controlling_process(ClientPid, Pid) ->

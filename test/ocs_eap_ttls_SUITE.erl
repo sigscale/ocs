@@ -211,11 +211,10 @@ receive_ttls_start(Socket, Address, Port, Secret, Auth, RadId) ->
 	NewRadId = RadId + 1,
 	{NewRadId, EapId}.
  
-client_hello([<<?Handshake, _/binary>>, [[?ClientHello | _] | _]] = Data,
+client_hello(<<?Handshake, _:32, ?ClientHello, _/binary>> = Data,
 		Socket, Address, Port, NasId, UserName, Secret, MAC,
 		Auth, EapId, RadId) ->
-	ClientHelloMsg = iolist_to_binary(Data),
-	client_hello1(ClientHelloMsg, Socket, Address, Port, NasId, UserName,
+	client_hello1(Data, Socket, Address, Port, NasId, UserName,
 			Secret, MAC, Auth, EapId, RadId).
 %% @hidden
 client_hello1(<<Chunk:1386/binary, Rest/binary>> = Data, Socket, Address,

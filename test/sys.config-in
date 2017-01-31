@@ -1,7 +1,6 @@
 [{ocs,
       [{radius_auth_port, 9912},
       {radius_acct_port, 9913},
-      {rest_port, 8888},
       {tls_key, "%CERT_DIR%/key.pem"},
       {tls_cert, "%CERT_DIR%/cert.pem"},
       {tls_cacert, "%CERT_DIR%/CAcert.pem"}]},
