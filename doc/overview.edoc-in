@@ -1079,9 +1079,9 @@ The {@link //ocs. ocs} application is configured using the following environment
 	<dt>accounting_dir</dt>
 		<dd>Path of directory to store accounting logs.</dd>
 	<dt>radius_auth_addr</dt>
-		<dd>IP address for RADIUS authentication.</dd>
+		<dd>IP address for RADIUS authentication (default: {0,0,0,0}).</dd>
 	<dt>radius_auth_port</dt>
-		<dd>UCP port for RADIUS authentication.</dd>
+		<dd>UCP port for RADIUS authenticationi (default: {0,0,0,0}).</dd>
 	<dt>radius_acct_addr</dt>
 		<dd>IP address for RADIUS accounting.</dd>
 	<dt>radius_acct_port</dt>
