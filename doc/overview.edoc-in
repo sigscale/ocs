@@ -29,13 +29,17 @@ e.g &#058;
 	{ok,[radius_client, subscriber, httpd_user, httpd_group]}
 	ok
 	'''
-After creating mnesia schema, using `mod_auth' module provided in
-`inets', `httpd_server', users and user groups which are to be authenticated
-should be added to `httpd_user' and `httpd_group' tables respectivley.
+
+===HTTP Authentication===
+To use the {@link //inets/mod_auth. mod_auth} module for authentication
+you should create users and groups in the {@link //mnesia/mnesia. mnesia}
+tables it uses:
  	```
-	4> mod_auth:add_user("john", "sEcReT", [], {127,0,0,1}, 8080, "/").
+	4> mod_auth:add_user("bss", "nfc9xgp32xha", [], 8080, "/").
 	true
-	5> mod_auth:add_group_member("group-x", "john", {127,0,0,1}, 8080, "/").
+	5> mod_auth:add_user("john", "sEcReT", [], 8080, "/").
+	true
+	6> mod_auth:add_group_member("staff", "john", 8080, "/").
 	true
 	'''
 
@@ -740,9 +744,9 @@ accept: application/hal+json
 }
 </pre></p>
 <p>Example response for accept : "application/hal+json" request header :<pre>
-HTTP/1.1 200 Ok 
+HTTP/1.1 200 Ok
 content-Type: application/hal+json
-content-Length: 
+content-Length:
 
 {
  "_links": {
@@ -1070,7 +1074,7 @@ content-Length: 0
 </table>
 
 ==Configuration==
-The application is configured using the following environment variables:
+The {@link //ocs. ocs} application is configured using the following environment variables:
 <dl>
 	<dt>accounting_dir</dt>
 		<dd>Path of directory to store accounting logs.</dd>
@@ -1089,4 +1093,61 @@ The application is configured using the following environment variables:
 	<dt>tls_cacert</dt>
 		<dd>Certificate Authority certificate for TLS over EAP.</dd>
 </dl>
+RADIUS servers may be configured with the following environment variables of the {@link //radius. radius} application:
+<dl>
+	<dt>sock_opts</dt>
+		<dd>UDP socket options. ({@link //kernel/gen_udp:option(). gen_udp:option()})</dd>
+</dl>
+The {@link //inets. inets} application's {@link //inets/httpd. httpd} server configuration includes these environment variables:
+<dl>
+	<dt>{port, integer()}</dt>
+		<dd>The port that the HTTP server listen to.</dd>
+	<dt>{server_root, path()}</dt>
+		<dd>Defines the home directory of the server.</dd>
+	<dt>{document_root, path()}</dt>
+		<dd>Defines the top directory of the frontend HTML files.</dd>
+	<dt>{directory, {path(), [{property(), term()}]}}</dt>
+		<dd>The properties for directories include:
+			<dl>
+				<dt>{auth_type, plain | dets | mnesia}</dt>
+					<dd>Authentication table storage. (use {@link //mnesia. mnesia})</dd>
+				<dt>{auth_name, string()}</dt>
+					<dd>Sets the authorization realm for path().</dd>
+				<dt>{require_user, [string()]}</dt>
+					<dd>Defines list of users to grant access to path().</dd>
+				<dt>{require_group, [string()]}</dt>
+					<dd>Defines list of groups to grant access to path().</dd>
+			</dl>
+		</dd>
+</dl>
 
+===Example sys.config===
+```
+[{ocs,
+      [{radius_auth_port, 1812},
+      {radius_acct_port, 1813},
+      {tls_key, "/etc/ssl/private/ocs.pem"},
+      {tls_cert, "/etc/ssl/certs/ocs.pem"},
+      {tls_cacert, "/etc/ssl/certs/ocsCA.pem"}]},
+{radius,
+      [{sock_opts, [{recbuf, 131072}, {sndbuf, 131072}]}]},
+{inets,
+      [{services,
+         [{httpd,
+            [{server_name, "ocs"},
+            {directory, {"/",
+                  [{auth_type, mnesia},
+                  {auth_name, "ocs.example.com"},
+                  {require_user, ["bss"]},
+                  {require_group, ["staff"]}]}},
+            {modules, [mod_alias, mod_auth,
+                  mod_ocs_rest_dispatcher, mod_ocs_rest_accepted_content,
+                  mod_ocs_rest_get, mod_ocs_rest_post, mod_ocs_rest_patch,
+                  mod_ocs_rest_delete]},
+            {port, 8080},
+            {socket_type, {essl,
+                  [{certfile, "/etc/ssl/certs/ocs.pem"},
+                  {keyfile, "/etc/ssl/private/ocs.pem"}]}},
+            {server_root, "/home/ocs"},
+            {document_root, "/usr/lib/erlang/lib/ocs-%VERSION%/priv/www"}]}]}]}].
+'''
