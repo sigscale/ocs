@@ -11,13 +11,14 @@ www_DATA = favicon.ico \
 
 noinst_DATA = bower_components
 
-$(abs_builddir)/bower.json:	$(srcdir)/bower.json
-	cp $(srcdir)/bower.json $@
-
-bower_components: $(abs_builddir)/bower.json
+bower_components: $(srcdir)/bower.json
+	if [ ! -e $(builddir)/$< ]; then \
+		$(LN_S) $<; \
+	fi
 	bower install
 
 install-data-local:
+	$(MKDIR_P) $(DESTDIR)$(wwwdir)/bower_components
 	cp -r $(abs_builddir)/bower_components $(DESTDIR)$(wwwdir)
 
 clean-local:
