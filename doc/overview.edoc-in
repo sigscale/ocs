@@ -29,6 +29,15 @@ e.g &#058;
 	{ok,[radius_client, subscriber, httpd_user, httpd_group]}
 	ok
 	'''
+After creating mnesia schema, using `mod_auth' module provided in
+`inets', `httpd_server', users and user groups which are to be authenticated
+should be added to `httpd_user' and `httpd_group' tables respectivley.
+ 	```
+	4> mod_auth:add_user("john", "sEcReT", [], {127,0,0,1}, 8080, "/").
+	true
+	5> mod_auth:add_group_member("group-x", "john", {127,0,0,1}, 8080, "/").
+	true
+	'''
 
 ==Operation==
 The OCS application will start RADIUS servers for authentication and

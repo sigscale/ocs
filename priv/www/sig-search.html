@@ -145,14 +145,18 @@
 				var vaadinItems = new Array();
 				var newRecord = new Object();
 				newRecord.id = result.id;
-				newRecord.password = result.password;
-				newRecord.balance = result.balance;
 
-				result.attributes.forEach(function(attrObj){
+				if(window.selection == "selectionSubscribers"){
+					newRecord.password = result.password;
+					newRecord.balance = result.balance;
+					result.attributes.forEach(function(attrObj){
 					newRecord[attrObj.name] = attrObj.value;
-				});
-
-				newRecord.enabled = result.enabled;
+						});
+					newRecord.enabled = result.enabled;
+				}
+				if(window.selection == "selectionRadiusClients"){
+					newRecord.secret = result.secret;
+				}
 
 				vaadinItems[0] = newRecord;
 				grid.items = vaadinItems;

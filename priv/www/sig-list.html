@@ -237,30 +237,9 @@
 					  newRecord.password = results[index].password;
 					  newRecord.balance = results[index].balance;
 
-					  if(results[index].attributes[0] != undefined){
-					  		newRecord.ascendXmitRate = results[index].attributes[0].value;
-					  }
-					  else{newRecord.ascendXmitRate = "";}
-
-					  if(results[index].attributes[1] != undefined){
-					  		newRecord.ascendDataRate = results[index].attributes[1].value;
-					  }
-					  else{newRecord.ascendDataRate = "";}
-
-					  if(results[index].attributes[2] != undefined){
-					  		newRecord.sessionTimeout = results[index].attributes[2].value;
-					  }
-					  else{newRecord.sessionTimeout = "";}
-
-					  if(results[index].attributes[3] != undefined){
-					  		newRecord.acctInterimInterval = results[index].attributes[3].value;
-					  }
-					  else{newRecord.acctInterimInterval = "";}
-
-					  if(results[index].attributes[4] != undefined){
-					  		newRecord.class = results[index].attributes[4].value;
-					  }
-					  else{newRecord.class = "";}
+					 results[index].attributes.forEach(function(attrObj){
+							newRecord[attrObj.name] = attrObj.value;
+						});
 
 					  newRecord.enabled = results[index].enabled;
 
@@ -273,8 +252,8 @@
 									{ name: "id"},
 									{ name: "password" },
 									{ name: "balance"},
-									{ name: "ascendXmitRate" },
 									{ name: "ascendDataRate"},
+									{ name: "ascendXmitRate" },
 									{ name: "sessionTimeout"},
 									{ name: "acctInterimInterval"},
 									{ name: "class"},
@@ -413,6 +392,7 @@
 		  
 		cancel: function(){
 			this.$.modal1.close();
+			this.$.modal4.close();
 		},
 
 		deleteClient: function(event){
