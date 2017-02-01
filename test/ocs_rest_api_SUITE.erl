@@ -49,7 +49,7 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
-	{_, Httpd} = lists:keyfind(httpd, 1, inets:services()).
+	{_, Httpd} = lists:keyfind(httpd, 1, inets:services()),
 	[{port, Port}] = httpd:info(Httpd, [port]),
 	HostUrl = "https://localhost:" ++ integer_to_list(Port),
 	[{host_url, HostUrl} | Config].
@@ -68,7 +68,7 @@ init_per_testcase(_TestCase, Config) ->
 	{ok, IP} = application:get_env(ocs, radius_auth_addr),
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, IP}, binary]),
 	{ok, Port} = application:get_env(ocs, rest_port),
-	[{socket, Socket} | Config1].
+	[{socket, Socket} | Config].
 
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
 %% Cleanup after each test case.
