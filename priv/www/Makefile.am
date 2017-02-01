@@ -12,8 +12,8 @@ www_DATA = favicon.ico \
 noinst_DATA = bower_components
 
 bower_components: $(srcdir)/bower.json
-	if [ ! -e $(builddir)/$< ]; then \
-		$(LN_S) $<; \
+	if [ ! -e $(builddir)/bower.json ]; then \
+		$(LN_S) $(srcdir)/bower.json; \
 	fi
 	bower install
 
