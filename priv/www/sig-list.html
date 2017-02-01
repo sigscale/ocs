@@ -152,14 +152,14 @@
 
 		<iron-ajax id="getClients"
 			auto=false
-			url="http://localhost:8888/ocs/v1/client"
+			url="/ocs/v1/client"
 			headers='{"Accept": "application/json", "Content-type": "application/json"}'
 			on-response="clientResponseHandler"
 			debounce-duration="10"> </iron-ajax>
 
 		<iron-ajax id="getSubs"
 			auto=false
-			url="http://localhost:8888/ocs/v1/subscriber"
+			url="/ocs/v1/subscriber"
 			headers='{"Accept": "application/json", "Content-type": "application/json"}'
 			on-response="responseHandler"
 			debounce-duration="10"> </iron-ajax>
@@ -292,7 +292,7 @@
 			editAjax.method = "PATCH";
 			editAjax.contentType = "application/json";
 			var id = document.getElementById("edit-client-id").value;
-			editAjax.url = "http://localhost:8888/ocs/v1/client/" + id;
+			editAjax.url = "/ocs/v1/client/" + id;
 			var client = new Object();
 			client.password = document.getElementById("edit-client-new-pwd").value;
 			editAjax.body = client;
@@ -303,7 +303,7 @@
 			editAjax.method = "PATCH";
 			editAjax.contentType = "application/json";
 			var id = document.getElementById("edit-id1").value;
-			editAjax.url = "http://localhost:8888/ocs/v1/subscriber/" + id;
+			editAjax.url = "/ocs/v1/subscriber/" + id;
 			var sub = new Object();
 			sub.update = "password";
 			sub.newpassword = document.getElementById("edit-new-pwd").value;
@@ -315,7 +315,7 @@
 			editAjax.method = "PATCH";
 			editAjax.contentType = "application/json";
 			var id = document.getElementById("edit-id2").value;
-			editAjax.url = "http://localhost:8888/ocs/v1/subscriber/" + id;
+			editAjax.url = "/ocs/v1/subscriber/" + id;
 			var sub = new Object();
 			sub.update = "attributes";
 			var attr = new Array();
@@ -400,7 +400,7 @@
 			grid.selection.selected(function(index){
 				var selection = grid.items[index];
 				var deleteAjax = document.getElementById("deleteClient");
-				deleteAjax.url = "http://localhost:8888/ocs/v1/client/"+ selection.id;
+				deleteAjax.url = "/ocs/v1/client/"+ selection.id;
 				deleteAjax.generateRequest();
 			});
 		},
@@ -417,7 +417,7 @@
 			grid.selection.selected(function(index){
 				var selection = grid.items[index];
 				var deleteAjax = document.getElementById("deleteSubs");
-				deleteAjax.url = "http://localhost:8888/ocs/v1/subscriber/"+ selection.id;
+				deleteAjax.url = "/ocs/v1/subscriber/"+ selection.id;
 				deleteAjax.generateRequest();
 			});
 		},
