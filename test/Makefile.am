@@ -66,7 +66,8 @@ check_DATA = .dialyzer_ok .common_test_ok
 
 sys.config:	$(top_srcdir)/test/sys.config-in
 	sed -e 's#%CERT_DIR%#$(abs_top_builddir)/test/$(CERT_DIR)#' \
-			-e 's#%APP_PRIV%#$(abs_top_srcdir)/priv#' < $< > $@
+			-e 's#%APP_PRIV%#$(abs_top_srcdir)/priv#' \
+			-e 's#%SERVER_ROOT%#$(abs_top_builddir)/test#' < $< > $@
 
 clean-local:
 	-rm -r *.beam certificates/* log/*
