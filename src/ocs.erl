@@ -196,7 +196,9 @@ add_subscriber(Subscriber, Password, Attributes, Balance)
 -spec find_subscriber(Subscriber :: string() | binary()) ->
 	Result :: {ok, Password :: binary(),
 			Attributes :: radius_attributes:attributes(),
-			Balance :: integer()} | {error, Reason :: not_found | term()}.
+			Balance :: integer(),
+			Enabled :: boolean()}
+			| {error, Reason :: not_found | term()}.
 %% @doc Look up an entry in the subscriber table.
 find_subscriber(Subscriber) when is_list(Subscriber) ->
 	find_subscriber(list_to_binary(Subscriber));
