@@ -218,7 +218,7 @@ find_subscriber(Subscriber) when is_binary(Subscriber) ->
 
 -spec get_subscribers() -> Result :: [#subscriber{}] |
 	{error, Reason :: term()}.
-%% @doc Get all entires in the subscriber table.
+%% @doc Get all entries in the subscriber table.
 get_subscribers()->
 	F1 = fun(Sub, Acc)->  [Sub | Acc] end,
 	F2 = fun()-> mnesia:foldl(F1, [], subscriber) end,
