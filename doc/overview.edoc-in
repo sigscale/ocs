@@ -193,8 +193,14 @@ member resource may include a link for the enclosing collection resource.
 		<tr id="mt">
 			<td id="mt">balance</td>
 			<td id="mt">integer</td>
-			<td id="mt">O</td>
+			<td id="mt">M</td>
 			<td id="mt">Avaiable data balance of the subscriber</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">enabled</td>
+			<td id="mt">boolean</td>
+			<td id="mt">O</td>
+			<td id="mt">Subscriber's status of accessing the services</td>
 		</tr>
 	</tbody>
 </table></div></p>
@@ -698,13 +704,15 @@ accept: application/json
 
 {
  "update":"attributes",
+ "balance":153,
  "attributes":[
                { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
                { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
                { "name" : "sessionTimeout", "value" : 10864 },
                { "name" : "acctInterimInterval", "value": 300},
                { "name" : "class", "value": "skiorgs"}
-              ]
+              ],
+ "enabled":false
 }
 </pre></p>
 <p>Example response for accept : "application/json" request header :<pre>
@@ -723,8 +731,8 @@ content-Length: 315
                { "name" : "acctInterimInterval", "value": 300},
                { "name" : "class", "value": "skiorgs"}
               ],
- "balance": 100,
- "enabled": true
+ "balance": 153,
+ "enabled": false
 }
 </pre></p>
 
@@ -734,13 +742,15 @@ content-type: application/json
 accept: application/hal+json
 {
  "update":"attributes",
+ "balance":153,
  "attributes":[
                { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
                { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
                { "name" : "sessionTimeout", "value" : 10864 },
                { "name" : "acctInterimInterval", "value": 300},
                { "name" : "class", "value": "skiorgs"}
-              ]
+              ],
+ "enabled":false
 }
 </pre></p>
 <p>Example response for accept : "application/hal+json" request header :<pre>
@@ -763,8 +773,8 @@ content-Length:
                { "name" : "acctInterimInterval", "value": 300},
                { "name" : "class", "value": "skiorgs"}
               ],
- "balance": 100,
- "enabled": true
+ "balance": 153,
+ "enabled": false
 }
 </pre></p>
 
