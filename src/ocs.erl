@@ -24,7 +24,7 @@
 -export([add_client/2, find_client/1, update_client/2, get_clients/0,
 				 delete_client/1]).
 -export([add_subscriber/3, add_subscriber/4, find_subscriber/1,
-				delete_subscriber/1, update_password/2, update_attributes/2,
+				delete_subscriber/1, update_password/2, update_attributes/4,
 				get_subscribers/0]).
 -export([log_file/1]).
 -export([generate_password/0]).
@@ -275,18 +275,22 @@ update_password(Subscriber, Password) ->
 	end.
 
 -spec update_attributes(Subscriber :: string() | binary(),
-		Attributes :: radius_attributes:attributes()) ->
+		Balance :: pos_integer(), Attributes :: radius_attributes:attributes(),
+		EnabledStatus :: boolean()) ->
 	ok | {error, Reason :: not_found | term()}.
 %% @doc Update subscriber attributes.
 %%
-update_attributes(Subscriber, Attributes) when is_list(Subscriber) ->
-	update_attributes(list_to_binary(Subscriber), Attributes);
-update_attributes(Subscriber, Attributes) when is_binary(Subscriber),
-		is_list(Attributes) ->
+update_attributes(Subscriber, Balance, Attributes, EnabledStatus)
+		when is_list(Subscriber), is_number(Balance), is_boolean(EnabledStatus) ->
+	update_attributes(list_to_binary(Subscriber), Balance, Attributes,
+		EnabledStatus);
+update_attributes(Subscriber, Balance, Attributes, EnabledStatus)
+		when is_binary(Subscriber), is_list(Attributes) ->
 	F = fun() ->
 				case mnesia:read(subscriber, Subscriber, write) of
 					[Entry] ->
-						NewEntry = Entry#subscriber{attributes = Attributes},
+						NewEntry = Entry#subscriber{attributes = Attributes,
+							balance = Balance, enabled = EnabledStatus},
 						mnesia:write(subscriber, NewEntry, write);
 					[] ->
 						throw(not_found)

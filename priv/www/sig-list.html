@@ -13,6 +13,7 @@
 <link rel="import" href="bower_components/paper-toast/paper-toast.html">
 <link rel="import" href="bower_components/paper-input/paper-input.html">
 <link rel="import" href="bower_components/paper-fab/paper-fab.html" >
+<link rel="import" href="bower_components/paper-toggle-button/paper-toggle-button.html" >
 <link rel="import" href="sig-add.html">
 <link rel="import" href="sig-add-client.html">
 
@@ -79,8 +80,8 @@
 
 		<paper-dialog id="modal1" modal style="width:60%;">
 			<paper-tabs selected="{{selected}}">
-				<paper-tab> Edit password </paper-tab>
-				<paper-tab> Edit attributes </paper-tab>
+				<paper-tab> Authentication </paper-tab>
+				<paper-tab> Authorizarion </paper-tab>
 			</paper-tabs>
 
 			<iron-pages selected="{{selected}}">
@@ -90,22 +91,23 @@
 					<paper-input id="edit-new-pwd" name="newpassword" label="New Secret" required auto-validate error-message="New secret can't be empty!" ></paper-input>
 					<div class="buttons">
 						<paper-button on-click="cancel" class="cancle-btn">Cancel</paper-button>
-						<paper-button dialog-confirm autofocus on-click="updatePassword" class="edit">Edit</paper-button>
-						<paper-button toggles raised on-click = "deleteSeletedItems"  > Delete </paper-button>
+						<paper-button dialog-confirm autofocus on-click="updatePassword" class="edit">Update Authentication</paper-button>
+						<paper-button toggles raised on-click = "deleteSeletedItems"  > Delete Subscriber</paper-button>
 					</div>
 				</div>
 				<div id="edit-attributes" >
 					<paper-input id="edit-id2" name="id" label="Identity" disabled></paper-input>
-					<paper-input id="edit-balance" name="balance" label="Balance" disabled ></paper-input>
-					<paper-input id="edit-recv-data-rate" name="ascendDataRate" label="Receive Data Rate"  ></paper-input>
-					<paper-input id="edit-trans-data-rate" name="ascendXmitRate" label="Transmit Data Rate"  ></paper-input>
-					<paper-input id="edit-sess-timeout" name="sessionTimeout" label="Session Timeout"  ></paper-input>
-					<paper-input id="edit-update-interval" name="acctInterimInterval" label="Update interval"  ></paper-input>
+					<paper-input id="edit-balance" name="balance" type="number" label="Balance (MB)" ></paper-input>
+					<paper-input id="edit-recv-data-rate" name="ascendDataRate" type="number" label="Receive Data Rate"  ></paper-input>
+					<paper-input id="edit-trans-data-rate" name="ascendXmitRate" type="number" label="Transmit Data Rate"  ></paper-input>
+					<paper-input id="edit-sess-timeout" name="sessionTimeout" type="number" label="Session Timeout"  ></paper-input>
+					<paper-input id="edit-update-interval" name="acctInterimInterval" type="number" label="Update interval"  ></paper-input>
 					<paper-input id="edit-class" name="class" label="Class"  ></paper-input>
+					<paper-toggle-button id="edit-enabled">Enable</paper-toggle-button>
 					<div class="buttons">
 						<paper-button on-click="cancel" class="cancle-btn">Cancel</paper-button>
-						<paper-button dialog-confirm autofocus on-click="updateAttributes" class="edit">Edit</paper-button>
-						<paper-button toggles raised on-click = "deleteSeletedItems"  > Delete </paper-button>
+						<paper-button dialog-confirm autofocus on-click="updateAttributes" class="edit">Update Authorizarion</paper-button>
+						<paper-button toggles raised on-click = "deleteSeletedItems"  > Delete Subcriber</paper-button>
 					</div>
 					</div>
 			</iron-pages>
@@ -152,14 +154,14 @@
 
 		<iron-ajax id="getClients"
 			auto=false
-			url="http://localhost:8888/ocs/v1/client"
+			url="/ocs/v1/client"
 			headers='{"Accept": "application/json", "Content-type": "application/json"}'
 			on-response="clientResponseHandler"
 			debounce-duration="10"> </iron-ajax>
 
 		<iron-ajax id="getSubs"
 			auto=false
-			url="http://localhost:8888/ocs/v1/subscriber"
+			url="/ocs/v1/subscriber"
 			headers='{"Accept": "application/json", "Content-type": "application/json"}'
 			on-response="responseHandler"
 			debounce-duration="10"> </iron-ajax>
@@ -224,6 +226,7 @@
 			grid.header.getCell(0,0).content = 'Address';
 			grid.header.getCell(0,1).content = 'Secret';
 			grid.visibleRows =17;
+			document.getElementById("progressbar").indeterminate = false;
 		},
 
 		responseHandler: function(event) {
@@ -262,12 +265,13 @@
 			grid.header.getCell(0,0).content = 'Identity';
 			grid.header.getCell(0,1).content = 'Secret';
 			grid.header.getCell(0,2).content = 'Balance';
-			grid.header.getCell(0,3).content = 'Ascend Data Rate' ;
-			grid.header.getCell(0,4).content = 'Ascend Xmit Rate' ;
+			grid.header.getCell(0,3).content = 'Data Rate' ;
+			grid.header.getCell(0,4).content = 'Xmit Rate' ;
 			grid.header.getCell(0,5).content = 'Session Timeout';
-			grid.header.getCell(0,6).content = 'Acct Interim Interval';
+			grid.header.getCell(0,6).content = 'Accounting Interval';
 			grid.header.getCell(0,7).content = 'Class';
 			grid.header.getCell(0,8).content = 'Enabled';
+			document.getElementById("progressbar").indeterminate = false;
 		},
 
 		gotoEnd: function(event){
@@ -288,22 +292,24 @@
 		},
 
 		updateClientPassword: function(event){
+			document.getElementById("progressbar").indeterminate = true;
 			var editAjax =  document.getElementById("updateClientPassword");
 			editAjax.method = "PATCH";
 			editAjax.contentType = "application/json";
 			var id = document.getElementById("edit-client-id").value;
-			editAjax.url = "http://localhost:8888/ocs/v1/client/" + id;
+			editAjax.url = "/ocs/v1/client/" + id;
 			var client = new Object();
 			client.password = document.getElementById("edit-client-new-pwd").value;
 			editAjax.body = client;
 		},
 
 		updatePassword: function(event){
+			document.getElementById("progressbar").indeterminate = true;
 			var editAjax =  document.getElementById("updatePassword");
 			editAjax.method = "PATCH";
 			editAjax.contentType = "application/json";
 			var id = document.getElementById("edit-id1").value;
-			editAjax.url = "http://localhost:8888/ocs/v1/subscriber/" + id;
+			editAjax.url = "/ocs/v1/subscriber/" + id;
 			var sub = new Object();
 			sub.update = "password";
 			sub.newpassword = document.getElementById("edit-new-pwd").value;
@@ -311,13 +317,15 @@
 		},
 
 		updateAttributes: function(event){
+			document.getElementById("progressbar").indeterminate = true;
 			var editAjax =  document.getElementById("updateAttributes");
 			editAjax.method = "PATCH";
 			editAjax.contentType = "application/json";
 			var id = document.getElementById("edit-id2").value;
-			editAjax.url = "http://localhost:8888/ocs/v1/subscriber/" + id;
+			editAjax.url = "/ocs/v1/subscriber/" + id;
 			var sub = new Object();
 			sub.update = "attributes";
+			sub.balance= parseInt(document.getElementById("edit-balance").value);
 			var attr = new Array();
 
 			var ascendDataRate = new Object();
@@ -352,38 +360,42 @@
 			attr[4] = classx;
 
 			sub.attributes = attr;
+			sub.enabled= document.getElementById("edit-enabled").checked;
 			editAjax.body = sub;
 		},
 
-		updateClientPwdResponseHandler: function (){
+		updateClientPwdResponseHandler: function (event){
 			if(event.detail.succeeded){
 				document.getElementById("edit-toast").open();
 				document.getElementById("edit-client-new-pwd").value = "";
 				var getClientsAjax = document.getElementById("getClients");
 				getClientsAjax.generateRequest();
+				document.getElementById("progressbar").indeterminate = false;
 			}
 			else{
 				console.log("Not Success");
 			}
 		},
 
-		updatePwdResponseHandler: function (){
+		updatePwdResponseHandler: function (event){
 			if(event.detail.succeeded){
 				document.getElementById("edit-toast").open();
 				document.getElementById("edit-new-pwd").value = "";
 				var getSubsAjax = document.getElementById("getSubs");
 				getSubsAjax.generateRequest();
+				document.getElementById("progressbar").indeterminate = false;
 			}
 			else{
 				console.log("Not Success");
 			}
 		},
 
-		updateAttrResponseHandler: function (){
+		updateAttrResponseHandler: function (event){
 			if(event.detail.succeeded){
 				document.getElementById("edit-toast").open();
 				var getSubsAjax = document.getElementById("getSubs");
 				getSubsAjax.generateRequest();
+				document.getElementById("progressbar").indeterminate = false;
 			}
 			else{
 				console.log("Not Success");
@@ -396,11 +408,12 @@
 		},
 
 		deleteClient: function(event){
+			document.getElementById("progressbar").indeterminate = true;
 			var grid = this.$.frozen; 
 			grid.selection.selected(function(index){
 				var selection = grid.items[index];
 				var deleteAjax = document.getElementById("deleteClient");
-				deleteAjax.url = "http://localhost:8888/ocs/v1/client/"+ selection.id;
+				deleteAjax.url = "/ocs/v1/client/"+ selection.id;
 				deleteAjax.generateRequest();
 			});
 		},
@@ -410,14 +423,16 @@
 			document.getElementById("delete-toast").open();
 			var getClientsAjax = document.getElementById("getClients");
 			getClientsAjax.generateRequest();
+			document.getElementById("progressbar").indeterminate = false;
 		},
 
 		deleteSeletedItems: function(event){
+			document.getElementById("progressbar").indeterminate = true;
 			var grid = this.$.frozen; 
 			grid.selection.selected(function(index){
 				var selection = grid.items[index];
 				var deleteAjax = document.getElementById("deleteSubs");
-				deleteAjax.url = "http://localhost:8888/ocs/v1/subscriber/"+ selection.id;
+				deleteAjax.url = "/ocs/v1/subscriber/"+ selection.id;
 				deleteAjax.generateRequest();
 			});
 		},
@@ -427,6 +442,7 @@
 			document.getElementById("delete-toast").open();
 			var getSubsAjax = document.getElementById("getSubs");
 			getSubsAjax.generateRequest();
+			document.getElementById("progressbar").indeterminate = false;
 		},
 
 		onSelect: function(event) {
@@ -446,6 +462,7 @@
 					document.getElementById("edit-sess-timeout").value = selection.sessionTimeout;
 					document.getElementById("edit-update-interval").value = selection.acctInterimInterval;
 					document.getElementById("edit-class").value =  selection.class;
+					document.getElementById("edit-enabled").checked =  selection.enabled;
 				});}
 				if(window.selection == "selectionRadiusClients"){
 					var modal = this.$.modal4; 

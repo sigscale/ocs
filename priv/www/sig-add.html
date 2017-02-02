@@ -88,7 +88,7 @@
 		<paper-toolbar>
 			<h2>Add subscriber</h2>
 			</paper-toolbar>
-				<form  is="iron-form"  id="presubmit" method="post" action="http://localhost:8888/ocs/v1/subscriber"  content-type="application/json" >
+				<form  is="iron-form"  id="presubmit" method="post" action="/ocs/v1/subscriber"  content-type="application/json" >
 					<paper-input id="add1" name="subscriber" label="Identity" ></paper-input>
 					<paper-input id="add2" name="password"  label="Secret"></paper-input>
 					<paper-input id="add3" name="ascendDataRate" type="number" label="Receive Data Rate" ></paper-input>
@@ -135,6 +135,7 @@
 			},
 
 			_handleFormPreSubmit: function() {
+				document.getElementById("progressbar").indeterminate = true;
 				var form = document.getElementById('presubmit');
 				var formData = new Object();
 				formData.id = document.getElementById("add1").value;
@@ -185,14 +186,14 @@
 				form.request.contentType = "application/json";
 		  },
 
-			_handleFormError: function() {
+			_handleFormError: function(event) {
 				var toast = document.getElementById("toast-error");
 				toast.open();
 				toast.duration = 0;
 				toast.fitInto = document.getElementById("response-display-container");
 			},
 
-			_handleFormResponse: function() {
+			_handleFormResponse: function(event) {
 				var toast = document.getElementById("toast-success");
 				toast.open();
 				toast.duration = 4;
@@ -200,6 +201,7 @@
 				document.getElementById("presubmit").reset();
 				document.getElementById("modal2").close();
 				document.getElementById("getSubs").generateRequest();
+			 	document.getElementById("progressbar").indeterminate = false;
 			}   
 		});
 	</script>

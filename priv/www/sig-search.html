@@ -107,6 +107,7 @@
 			},
 
 			submitForm: function(){
+				document.getElementById("progressbar").indeterminate = true;
 				var form = document.getElementById('presubmit1');
 				form.submit();
 				document.getElementById('modal1').close();
@@ -132,14 +133,14 @@
 				form.request.headers='{"Content-Type": "application/json", "Accept": "application/json"}';
 				form.request.contentType = "application/json";
 				if(window.selection == "selectionSubscribers"){
-						  form.request.url = "http://localhost:8888/ocs/v1/subscriber/" + form[0].value;
+						  form.request.url = "/ocs/v1/subscriber/" + form[0].value;
 				}
 				if(window.selection == "selectionRadiusClients"){
-						  form.request.url = "http://localhost:8888/ocs/v1/client/" + form[0].value;
+						  form.request.url = "/ocs/v1/client/" + form[0].value;
 				}
 			} ,
 
-			_handleFormResponse: function() {
+			_handleFormResponse: function(event) {
 				var grid = document.getElementById("frozen");; 
 				var result = event.detail.response;
 				var vaadinItems = new Array();
@@ -161,12 +162,14 @@
 				vaadinItems[0] = newRecord;
 				grid.items = vaadinItems;
 				document.getElementById('modal1').close();
+				document.getElementById("progressbar").indeterminate = false;
 			},
 
-			_handleFormError: function() {
+			_handleFormError: function(event) {
 				var toast  = document.getElementById("toast-no-subscriber");
 				toast.open();
 				toast.fitInto = document.getElementById("subcriber-not-found");
+				document.getElementById("progressbar").indeterminate = false;
 			}   
 		});
 	</script>

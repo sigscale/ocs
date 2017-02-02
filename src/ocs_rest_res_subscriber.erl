@@ -143,7 +143,9 @@ perform_patch(Id, ReqBody) ->
 					"attributes" ->
 						{_, {array, AttrJs}} = lists:keyfind("attributes", 1, Object),
 						NewAttributes = json_to_radius(AttrJs),
-						ocs:update_attributes(Id, NewAttributes),
+						{_, Balance} = lists:keyfind("balance", 1, Object),
+						{_, EnabledStatus} = lists:keyfind("enabled", 1, Object),
+						ocs:update_attributes(Id, Balance, NewAttributes, EnabledStatus),
 						{CurrentPwd, NewAttributes};
 					"password" ->
 						{_, NewPassword } = lists:keyfind("newpassword", 1, Object),

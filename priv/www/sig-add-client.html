@@ -112,7 +112,7 @@
 
 				<iron-ajax id="ajaxClientAdd"
 					 auto
-				    url="http://localhost:8888/ocs/v1/client"
+				    url="/ocs/v1/client"
 		  			 method = "post"
 					 headers='{"Accept": "application/json", "Content-type": "application/json"}'
 					 client-as="json"
@@ -138,6 +138,7 @@
 			},
 
 			_clientFormPreSubmit: function() {
+				document.getElementById("progressbar").indeterminate = true;
 				var form = document.getElementById('presubmit3');
 				var formData = new Object();
 				formData.id = document.getElementById("add-client1").value;	
@@ -158,7 +159,7 @@
 				toast.fitInto = document.getElementById("response-display-container");
 			},
 
-			_clientFormResponse: function() {
+			_clientFormResponse: function(event) {
 				var toast = document.getElementById("toast-success");
 				toast.open();
 				toast.duration = 4;
@@ -166,6 +167,7 @@
 				document.getElementById("presubmit3").reset();
 				document.getElementById("modal3").close();
 				document.getElementById("getClients").generateRequest();
+				document.getElementById("progressbar").indeterminate = false;
 			}   
 		});
 	</script>
