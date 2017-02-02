@@ -132,10 +132,10 @@
 				form.request.headers='{"Content-Type": "application/json", "Accept": "application/json"}';
 				form.request.contentType = "application/json";
 				if(window.selection == "selectionSubscribers"){
-						  form.request.url = "http://localhost:8888/ocs/v1/subscriber/" + form[0].value;
+						  form.request.url = "/ocs/v1/subscriber/" + form[0].value;
 				}
 				if(window.selection == "selectionRadiusClients"){
-						  form.request.url = "http://localhost:8888/ocs/v1/client/" + form[0].value;
+						  form.request.url = "/ocs/v1/client/" + form[0].value;
 				}
 			} ,
 
