@@ -30,7 +30,7 @@
 -export([generate_password/0]).
 -export([start/3]).
 %% export the ocs private API
--export([authorize/2]).
+-export([authorize/2, normalize/1]).
 
 -export_type([eap_method/0]).
 
@@ -446,4 +446,31 @@ authorize(Subscriber, Password) when is_binary(Subscriber),
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
+
+-spec normalize(String :: string()) -> string().
+%% @doc Strip non hex digits and convert to lower case.
+%% @private
+normalize(String) ->
+	normalize(String, []).
+%% @hide
+normalize([Char | T], Acc) when Char >= 48, Char =< 57 ->
+	normalize(T, [Char | Acc]);
+normalize([Char | T], Acc) when Char >= 97, Char =< 102 ->
+	normalize(T, [Char | Acc]);
+normalize([$A | T], Acc) ->
+	normalize(T, [$a | Acc]);
+normalize([$B | T], Acc) ->
+	normalize(T, [$b | Acc]);
+normalize([$C | T], Acc) ->
+	normalize(T, [$c | Acc]);
+normalize([$D | T], Acc) ->
+	normalize(T, [$d | Acc]);
+normalize([$E | T], Acc) ->
+	normalize(T, [$e | Acc]);
+normalize([$F | T], Acc) ->
+	normalize(T, [$f | Acc]);
+normalize([_ | T], Acc) ->
+	normalize(T, Acc);
+normalize([], Acc) ->
+	lists:reverse(Acc).
 
