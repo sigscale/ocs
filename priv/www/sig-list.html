@@ -355,7 +355,7 @@
 			editAjax.body = sub;
 		},
 
-		updateClientPwdResponseHandler: function (){
+		updateClientPwdResponseHandler: function (event){
 			if(event.detail.succeeded){
 				document.getElementById("edit-toast").open();
 				document.getElementById("edit-client-new-pwd").value = "";
@@ -367,7 +367,7 @@
 			}
 		},
 
-		updatePwdResponseHandler: function (){
+		updatePwdResponseHandler: function (event){
 			if(event.detail.succeeded){
 				document.getElementById("edit-toast").open();
 				document.getElementById("edit-new-pwd").value = "";
@@ -379,7 +379,7 @@
 			}
 		},
 
-		updateAttrResponseHandler: function (){
+		updateAttrResponseHandler: function (event){
 			if(event.detail.succeeded){
 				document.getElementById("edit-toast").open();
 				var getSubsAjax = document.getElementById("getSubs");

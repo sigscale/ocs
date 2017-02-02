@@ -139,7 +139,7 @@
 				}
 			} ,
 
-			_handleFormResponse: function() {
+			_handleFormResponse: function(event) {
 				var grid = document.getElementById("frozen");; 
 				var result = event.detail.response;
 				var vaadinItems = new Array();
@@ -163,7 +163,7 @@
 				document.getElementById('modal1').close();
 			},
 
-			_handleFormError: function() {
+			_handleFormError: function(event) {
 				var toast  = document.getElementById("toast-no-subscriber");
 				toast.open();
 				toast.fitInto = document.getElementById("subcriber-not-found");
