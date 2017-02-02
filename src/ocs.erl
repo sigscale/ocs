@@ -452,7 +452,7 @@ authorize(Subscriber, Password) when is_binary(Subscriber),
 %% @private
 normalize(String) ->
 	normalize(String, []).
-%% @hide
+%% @hidden
 normalize([Char | T], Acc) when Char >= 48, Char =< 57 ->
 	normalize(T, [Char | Acc]);
 normalize([Char | T], Acc) when Char >= 97, Char =< 102 ->
