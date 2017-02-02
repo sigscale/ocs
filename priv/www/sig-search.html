@@ -107,6 +107,7 @@
 			},
 
 			submitForm: function(){
+				document.getElementById("progressbar").indeterminate = true;
 				var form = document.getElementById('presubmit1');
 				form.submit();
 				document.getElementById('modal1').close();
@@ -161,12 +162,14 @@
 				vaadinItems[0] = newRecord;
 				grid.items = vaadinItems;
 				document.getElementById('modal1').close();
+				document.getElementById("progressbar").indeterminate = false;
 			},
 
 			_handleFormError: function(event) {
 				var toast  = document.getElementById("toast-no-subscriber");
 				toast.open();
 				toast.fitInto = document.getElementById("subcriber-not-found");
+				document.getElementById("progressbar").indeterminate = false;
 			}   
 		});
 	</script>

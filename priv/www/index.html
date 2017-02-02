@@ -11,6 +11,7 @@
 		<link rel="import" href="bower_components/paper-menu/paper-menu.html">
 		<link rel="import" href="bower_components/paper-item/paper-item.html">
 		<link rel="import" href="bower_components/paper-input/paper-input.html">
+		<link rel="import" href="bower_components/paper-progress/paper-progress.html">
 		<link rel="import" href="bower_components/iron-icons/iron-icons.html">
 		<link rel="import" href="bower_components/iron-icon/iron-icon.html">
 		<link rel="import" href="sig-add.html">
@@ -41,7 +42,7 @@
 					<div id="subcriber-not-found" style="height: 10%;"></div>
 				</div>
 				<div class="flexchild">
-					<!--	<div><sig-add></sig-add></div> -->
+					<paper-progress id="progressbar" style="width:100%"></paper-progress>
 					<div><sig-list ></sig-list></div>
 				</div>
 			</div>
@@ -57,9 +58,11 @@
 
 					if(selection == "selectionSubscribers"){
 						document.getElementById("getSubs").generateRequest();
+						document.getElementById("progressbar").indeterminate = true;
 					}
 					if(selection == "selectionRadiusClients"){
 						document.getElementById("getClients").generateRequest();
+						document.getElementById("progressbar").indeterminate = true;
 					}
 				}
 			</script>

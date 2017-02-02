@@ -226,6 +226,7 @@
 			grid.header.getCell(0,0).content = 'Address';
 			grid.header.getCell(0,1).content = 'Secret';
 			grid.visibleRows =17;
+			document.getElementById("progressbar").indeterminate = false;
 		},
 
 		responseHandler: function(event) {
@@ -270,6 +271,7 @@
 			grid.header.getCell(0,6).content = 'Accounting Interval';
 			grid.header.getCell(0,7).content = 'Class';
 			grid.header.getCell(0,8).content = 'Enabled';
+			document.getElementById("progressbar").indeterminate = false;
 		},
 
 		gotoEnd: function(event){
@@ -290,6 +292,7 @@
 		},
 
 		updateClientPassword: function(event){
+			document.getElementById("progressbar").indeterminate = true;
 			var editAjax =  document.getElementById("updateClientPassword");
 			editAjax.method = "PATCH";
 			editAjax.contentType = "application/json";
@@ -301,6 +304,7 @@
 		},
 
 		updatePassword: function(event){
+			document.getElementById("progressbar").indeterminate = true;
 			var editAjax =  document.getElementById("updatePassword");
 			editAjax.method = "PATCH";
 			editAjax.contentType = "application/json";
@@ -313,6 +317,7 @@
 		},
 
 		updateAttributes: function(event){
+			document.getElementById("progressbar").indeterminate = true;
 			var editAjax =  document.getElementById("updateAttributes");
 			editAjax.method = "PATCH";
 			editAjax.contentType = "application/json";
@@ -365,6 +370,7 @@
 				document.getElementById("edit-client-new-pwd").value = "";
 				var getClientsAjax = document.getElementById("getClients");
 				getClientsAjax.generateRequest();
+				document.getElementById("progressbar").indeterminate = false;
 			}
 			else{
 				console.log("Not Success");
@@ -377,6 +383,7 @@
 				document.getElementById("edit-new-pwd").value = "";
 				var getSubsAjax = document.getElementById("getSubs");
 				getSubsAjax.generateRequest();
+				document.getElementById("progressbar").indeterminate = false;
 			}
 			else{
 				console.log("Not Success");
@@ -388,6 +395,7 @@
 				document.getElementById("edit-toast").open();
 				var getSubsAjax = document.getElementById("getSubs");
 				getSubsAjax.generateRequest();
+				document.getElementById("progressbar").indeterminate = false;
 			}
 			else{
 				console.log("Not Success");
@@ -400,6 +408,7 @@
 		},
 
 		deleteClient: function(event){
+			document.getElementById("progressbar").indeterminate = true;
 			var grid = this.$.frozen; 
 			grid.selection.selected(function(index){
 				var selection = grid.items[index];
@@ -414,9 +423,11 @@
 			document.getElementById("delete-toast").open();
 			var getClientsAjax = document.getElementById("getClients");
 			getClientsAjax.generateRequest();
+			document.getElementById("progressbar").indeterminate = false;
 		},
 
 		deleteSeletedItems: function(event){
+			document.getElementById("progressbar").indeterminate = true;
 			var grid = this.$.frozen; 
 			grid.selection.selected(function(index){
 				var selection = grid.items[index];
@@ -431,6 +442,7 @@
 			document.getElementById("delete-toast").open();
 			var getSubsAjax = document.getElementById("getSubs");
 			getSubsAjax.generateRequest();
+			document.getElementById("progressbar").indeterminate = false;
 		},
 
 		onSelect: function(event) {

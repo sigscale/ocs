@@ -135,6 +135,7 @@
 			},
 
 			_handleFormPreSubmit: function() {
+				document.getElementById("progressbar").indeterminate = true;
 				var form = document.getElementById('presubmit');
 				var formData = new Object();
 				formData.id = document.getElementById("add1").value;
@@ -200,6 +201,7 @@
 				document.getElementById("presubmit").reset();
 				document.getElementById("modal2").close();
 				document.getElementById("getSubs").generateRequest();
+			 	document.getElementById("progressbar").indeterminate = false;
 			}   
 		});
 	</script>

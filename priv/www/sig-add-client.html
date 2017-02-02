@@ -138,6 +138,7 @@
 			},
 
 			_clientFormPreSubmit: function() {
+				document.getElementById("progressbar").indeterminate = true;
 				var form = document.getElementById('presubmit3');
 				var formData = new Object();
 				formData.id = document.getElementById("add-client1").value;	
@@ -166,6 +167,7 @@
 				document.getElementById("presubmit3").reset();
 				document.getElementById("modal3").close();
 				document.getElementById("getClients").generateRequest();
+				document.getElementById("progressbar").indeterminate = false;
 			}   
 		});
 	</script>
