@@ -258,6 +258,10 @@ request(Address, _Port, Secret, Radius,
 			{ok, _SufficientBalance, _Flag} ->
 				State;
 			{error, not_found} ->
+				error_logger:warning_report(["Accounting subscriber not found",
+						{module, ?MODULE}, {username, Subscriber},
+						{nas, NasID}, {address, Address},
+						{session, AcctSessionId}]),
 				State
 		end,
 		{reply, {ok, response(Id, Authenticator, Secret)}, NewState}
