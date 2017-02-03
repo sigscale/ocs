@@ -101,7 +101,7 @@
 					Enable <div style="display:inline-block;"> <paper-toggle-button id="add9" name="enabled"></paper-toggle-button> </div>
 					<div class="buttons">
 						<paper-button raised class="custom indigo" onclick="_submitSubForm()" style="float: right; width: 200px;"  >Submit</paper-button>
-						<paper-button dialog-confirm autofocus onclick="cancel()">Cancel</paper-button>
+						<paper-button dialog-confirm autofocus onclick="cancelModal2()"  >Cancel</paper-button>
 					</div>
 				</form>
 				<div id="response-display-container" style="padding-top: 14%;margin-top:16%;">
@@ -113,7 +113,7 @@
 							<li>Password must not include 0, 1, i, l, o characters</li>
 							<li>Balance must be a postive number </li>
 						</ul>
-						<paper-button onclick="toastError.toggle()" style="background-color: #fffcfc;color: #170101;">Close</paper-button>
+						<paper-button id="toastErrorClose" onclick="toastErrorClose()" style="background-color: #fffcfc;color: #170101;">Close</paper-button>
 					</paper-toast>
 					<paper-toast id="toast-success" class="fit-bottom" >
 						<h2> Subscriber added !</h2>
@@ -124,6 +124,16 @@
 		function _submitSubForm() {
 		  document.getElementById('presubmit').submit();
 		}
+
+		function toastErrorClose(event) {
+		  document.getElementById('toastError').close();
+		}
+
+		function cancelModal2(event) {
+		  document.getElementById('modal2').close();
+		  document.getElementById("progressbar").indeterminate = false;
+		}
+
 	</script>
 	</template>
 		<script>
@@ -131,6 +141,7 @@
 				is: 'sig-add',
 			properties:{},
 			listeners: {
+				'toastErrorClose.on-click': 'closeToast',
 				'presubmit.iron-form-presubmit': '_handleFormPreSubmit',
 				'presubmit.iron-form-submit': '_handleFormSubmit',
 				'presubmit.iron-form-error': '_handleFormError',
@@ -207,6 +218,11 @@
 				document.getElementById("modal2").close();
 				document.getElementById("getSubs").generateRequest();
 			 	document.getElementById("progressbar").indeterminate = false;
+			},
+
+			toastErrorClose: function(event) {
+				var toast = document.getElementById("toastError");
+				toast.close();
 			}   
 		});
 	</script>
