@@ -76,6 +76,7 @@
 				color: #7d8ff5;
 				font-weight:normal;
 			}
+
 		</style>
 
 		<paper-dialog id="modal1" modal style="width:60%;">
@@ -262,15 +263,15 @@
 									{ name: "class"},
 									{ name: "enabled"}
 								];
-			grid.header.getCell(0,0).content = 'Identity';
-			grid.header.getCell(0,1).content = 'Secret';
-			grid.header.getCell(0,2).content = 'Balance';
-			grid.header.getCell(0,3).content = 'Data Rate' ;
-			grid.header.getCell(0,4).content = 'Xmit Rate' ;
-			grid.header.getCell(0,5).content = 'Session Timeout';
-			grid.header.getCell(0,6).content = 'Accounting Interval';
-			grid.header.getCell(0,7).content = 'Class';
-			grid.header.getCell(0,8).content = 'Enabled';
+			grid.header.getCell(0,0).content = '<div style="font-size:16px;">Identity</div>';
+			grid.header.getCell(0,1).content = '<div style="font-size:16px">Secret</div>';
+			grid.header.getCell(0,2).content = '<div style="font-size:16px">Balance</div>';
+			grid.header.getCell(0,3).content = '<div style="font-size:16px">Data Rate</div>' ;
+			grid.header.getCell(0,4).content = '<div style="font-size:16px">Xmit Rate</div>' ;
+			grid.header.getCell(0,5).content = '<div style="font-size:16px">Session Timeout</div>';
+			grid.header.getCell(0,6).content = '<div style="font-size:16px">Accounting Interval</div>';
+			grid.header.getCell(0,7).content = '<div style="font-size:16px">Class</div>';
+			grid.header.getCell(0,8).content = '<div style="font-size:16px">Enabled</div>';
 			document.getElementById("progressbar").indeterminate = false;
 		},
 
