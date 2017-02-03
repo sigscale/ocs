@@ -404,7 +404,10 @@
 		  
 		cancel: function(){
 			this.$.modal1.close();
+			this.$.modal2.close();
+			this.$.modal3.close();
 			this.$.modal4.close();
+			document.getElementById("progressbar").indeterminate = false;
 		},
 
 		deleteClient: function(event){

@@ -80,7 +80,7 @@
 				width: 58px;
 			}
 
-			#toast-error {
+			#toastError {
 				--paper-toast-background-color:red;
 				--paper-toast-color: white;
 			}
@@ -90,29 +90,30 @@
 			<h2>Add subscriber</h2>
 			</paper-toolbar>
 				<form  is="iron-form"  id="presubmit" method="post" action="/ocs/v1/subscriber"  content-type="application/json" >
-					<paper-input id="add1" name="subscriber" label="Identity" ></paper-input>
-					<paper-input id="add2" name="password"  label="Secret"></paper-input>
+					<paper-input id="add1" name="subscriber" label="Identity*" required></paper-input>
+					<paper-input id="add2" name="password"  label="Secret*" required></paper-input>
 					<paper-input id="add3" name="ascendDataRate" type="number" label="Receive Data Rate" ></paper-input>
 					<paper-input id="add4" name="ascendXmitRate" type="number" label="Transmit Data Rate" ></paper-input>
 					<paper-input id="add5" name="sessionTimeout" type="number" label="Session Timeout" ></paper-input>
 					<paper-input id="add6" name="acctInterimInterval" type="number" label="Update Interval" ></paper-input>
 					<paper-input id="add7" name="class" label="Class" ></paper-input>
-					<paper-input id="add8" name="balance" type="number" label="Balance (Bytes)" > </paper-input></br>
+					<paper-input id="add8" name="balance" type="number" label="Balance(Bytes)*" required> </paper-input></br>
 					Enable <div style="display:inline-block;"> <paper-toggle-button id="add9" name="enabled"></paper-toggle-button> </div>
 					<div class="buttons">
 						<paper-button raised class="custom indigo" onclick="_submitSubForm()" style="float: right; width: 200px;"  >Submit</paper-button>
-						<paper-button dialog-confirm autofocus >Cancel</paper-button>
+						<paper-button dialog-confirm autofocus onclick="cancel()">Cancel</paper-button>
 					</div>
 				</form>
 				<div id="response-display-container" style="padding-top: 14%;margin-top:16%;">
-					<paper-toast id="toast-error" class="fit-bottom" >
+					<paper-toast id="toastError" class="fit-bottom" >
 						<h2> Couldn't add subscriber !</h2>
 						<h5> Please recheck the following.</h5>
 						<ul>
-							<li>Subscriber name only contains characters from 1-9 and A-F</li>
-							<li>Password does not include 0, 1, i, l, o characters</li>
-							<li>Balance should be a postive number </li>
+							<li>Subscriber identity must contain characters from 1-9 and A-F</li>
+							<li>Password must not include 0, 1, i, l, o characters</li>
+							<li>Balance must be a postive number </li>
 						</ul>
+						<paper-button onclick="toastError.toggle()" style="background-color: #fffcfc;color: #170101;">Close</paper-button>
 					</paper-toast>
 					<paper-toast id="toast-success" class="fit-bottom" >
 						<h2> Subscriber added !</h2>
@@ -190,10 +191,11 @@
 		  },
 
 			_handleFormError: function(event) {
-				var toast = document.getElementById("toast-error");
+				var toast = document.getElementById("toastError");
 				toast.open();
 				toast.duration = 0;
-				toast.fitInto = document.getElementById("response-display-container");
+				toast.fitInto = document.getElementById("modal2");
+				toast.class="fit-bottom";
 			},
 
 			_handleFormResponse: function(event) {

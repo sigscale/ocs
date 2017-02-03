@@ -79,7 +79,7 @@
 				width: 58px;
 			}
 
-			#toast-error {
+			#toastError {
 				--paper-toast-background-color:red;
 				--paper-toast-color: white;
 			}
@@ -97,7 +97,7 @@
 					</div>
 				</form>
 				<div id="response-display-container" style="padding-top: 14%;margin-top:16%;">
-					<paper-toast id="toast-error" class="fit-bottom" >
+					<paper-toast id="toastError" class="fit-bottom" >
 						<h2> Couldn't add Client!</h2>
 						<h5> Please recheck the following.</h5>
 						<ul>
@@ -153,7 +153,7 @@
 		  },
 
 			_clientFormError: function() {
-				var toast = document.getElementById("toast-error");
+				var toast = document.getElementById("toastError");
 				toast.open();
 				toast.duration = 0;
 				toast.fitInto = document.getElementById("response-display-container");
