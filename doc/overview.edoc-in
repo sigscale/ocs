@@ -291,7 +291,8 @@ content-length: nn
                { "name" : "acctInterimInterval", "value" : 300},
                { "name" : "class", "value":  "skiorgs"}
               ],
- "balance":100
+ "balance":100,
+ "enabled": true
 }
 </pre></p>
 <p>Example response for accept : "application/json" request header :<pre>
@@ -311,7 +312,8 @@ content-Length: nn
                { "name" : "acctInterimInterval", "value": 300},
                { "name" : "class", "value": "skiorgs"}
               ],
- "balance": 100
+ "balance": 100,
+ "enabled": true
 }
 </pre></p>
 
@@ -331,7 +333,8 @@ content-length: nn
                { "name" : "acctInterimInterval", "value": 300},
                { "name" : "class", "value": "skiorgs"}
               ],
- "balance":100
+ "balance":100,
+ "enabled": true
 }
 </pre></p>
 <p>Example response for accept : "application/hal+json" request header :<pre>
@@ -355,7 +358,8 @@ content-Length: nn
                { "name" : "acctInterimInterval", "value": 300},
                { "name" : "class", "value": "skiorgs"}
               ],
- "balance": 100
+ "balance": 100,
+ "enabled": true
 }
 </pre></p>
 
