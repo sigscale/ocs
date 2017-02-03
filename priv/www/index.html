@@ -43,6 +43,9 @@
 				</div>
 				<div class="flexchild">
 					<paper-progress id="progressbar" style="width:100%"></paper-progress>
+				  <paper-button toggles class="download-btn" onclick="downloadCSV()">
+							 <iron-icon icon="file-download"></iron-icon>csv
+				  </paper-button>
 					<div><sig-list ></sig-list></div>
 				</div>
 			</div>
@@ -64,6 +67,29 @@
 						document.getElementById("getClients").generateRequest();
 						document.getElementById("progressbar").indeterminate = true;
 					}
+				}
+
+				function downloadCSV(event){
+					var data = document.getElementById("frozen").items;
+					var csvData = "data:text/csv;charset=utf-8,";
+					data.forEach(function(item, index){
+						dataLine = item.id + ","
+										+ item.password + ","
+										+ item.balance + ","
+										+ item.ascendDataRate + ","
+										+ item.ascendXmitRate + ","
+										+ item.sessionTimeout + ","
+										+ item.acctInterimInterval + ","
+										+ item.class + ","
+										+ item.enabled + "\n";
+						csvData += dataLine;
+						});
+					var encodedUri = encodeURI(csvData);
+					var link = document.createElement("a");
+					link.setAttribute("href", encodedUri);
+					link.setAttribute("download", "subscriber_data.csv");
+					document.body.appendChild(link);
+					link.click();
 				}
 			</script>
 	</body>
