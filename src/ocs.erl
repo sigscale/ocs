@@ -30,7 +30,7 @@
 -export([generate_password/0]).
 -export([start/3]).
 %% export the ocs private API
--export([authorize/2]).
+-export([authorize/2, normalize/1]).
 
 -export_type([eap_method/0]).
 
@@ -196,7 +196,9 @@ add_subscriber(Subscriber, Password, Attributes, Balance)
 -spec find_subscriber(Subscriber :: string() | binary()) ->
 	Result :: {ok, Password :: binary(),
 			Attributes :: radius_attributes:attributes(),
-			Balance :: integer()} | {error, Reason :: not_found | term()}.
+			Balance :: integer(),
+			Enabled :: boolean()}
+			| {error, Reason :: not_found | term()}.
 %% @doc Look up an entry in the subscriber table.
 find_subscriber(Subscriber) when is_list(Subscriber) ->
 	find_subscriber(list_to_binary(Subscriber));
@@ -216,7 +218,7 @@ find_subscriber(Subscriber) when is_binary(Subscriber) ->
 
 -spec get_subscribers() -> Result :: [#subscriber{}] |
 	{error, Reason :: term()}.
-%% @doc Get all entires in the subscriber table.
+%% @doc Get all entries in the subscriber table.
 get_subscribers()->
 	F1 = fun(Sub, Acc)->  [Sub | Acc] end,
 	F2 = fun()-> mnesia:foldl(F1, [], subscriber) end,
@@ -444,4 +446,31 @@ authorize(Subscriber, Password) when is_binary(Subscriber),
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
+
+-spec normalize(String :: string()) -> string().
+%% @doc Strip non hex digits and convert to lower case.
+%% @private
+normalize(String) ->
+	normalize(String, []).
+%% @hidden
+normalize([Char | T], Acc) when Char >= 48, Char =< 57 ->
+	normalize(T, [Char | Acc]);
+normalize([Char | T], Acc) when Char >= 97, Char =< 102 ->
+	normalize(T, [Char | Acc]);
+normalize([$A | T], Acc) ->
+	normalize(T, [$a | Acc]);
+normalize([$B | T], Acc) ->
+	normalize(T, [$b | Acc]);
+normalize([$C | T], Acc) ->
+	normalize(T, [$c | Acc]);
+normalize([$D | T], Acc) ->
+	normalize(T, [$d | Acc]);
+normalize([$E | T], Acc) ->
+	normalize(T, [$e | Acc]);
+normalize([$F | T], Acc) ->
+	normalize(T, [$f | Acc]);
+normalize([_ | T], Acc) ->
+	normalize(T, Acc);
+normalize([], Acc) ->
+	lists:reverse(Acc).
 

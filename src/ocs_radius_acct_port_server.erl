@@ -222,7 +222,7 @@ request(Address, _Port, Secret, Radius,
 		NasIdentifierV = radius_attributes:find(?NasIdentifier, Attributes),
 		InOctets = radius_attributes:find(?AcctInputOctets, Attributes),
 		OutOctets = radius_attributes:find(?AcctOutputOctets, Attributes),
-		{ok, Subscriber} = radius_attributes:find(?UserName, Attributes),
+		{ok, UserName} = radius_attributes:find(?UserName, Attributes),
 		NasID = case {NasIpAddressV, NasIdentifierV} of
 			{{error, not_found}, {error, not_found}} ->
 				throw(reject);
@@ -242,6 +242,7 @@ request(Address, _Port, Secret, Radius,
 		{error, not_found} = radius_attributes:find(?ReplyMessage, Attributes),
 		{error, not_found} = radius_attributes:find(?State, Attributes),
 		{ok, AcctSessionId} = radius_attributes:find(?AcctSessionId, Attributes),
+		Subscriber = ocs:normalize(UserName),
 		ok = disk_log:log(Log, Attributes),
 		NewState = case decrement_balance(Subscriber, Usage) of
 			{ok, OverUsed, false} when OverUsed =< 0 ->
@@ -252,12 +253,19 @@ request(Address, _Port, Secret, Radius,
 						State#state{disc_id = NewDiskId};
 					{error, Reason} ->
 						error_logger:error_report(["Failed to initiate session disconnect function",
-							{error, Reason}]),
+								{module, ?MODULE}, {subscriber, Subscriber},
+								{username, UserName}, {nas, NasID}, {address, Address},
+								{session, AcctSessionId}, {error, Reason}]),
 						State
 				end;
 			{ok, _SufficientBalance, _Flag} ->
 				State;
 			{error, not_found} ->
+				error_logger:warning_report(["Accounting subscriber not found",
+						{module, ?MODULE}, {subscriber, Subscriber},
+						{module, ?MODULE}, {username, UserName},
+						{nas, NasID}, {address, Address},
+						{session, AcctSessionId}]),
 				State
 		end,
 		{reply, {ok, response(Id, Authenticator, Secret)}, NewState}
