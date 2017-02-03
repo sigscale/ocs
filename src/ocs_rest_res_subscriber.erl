@@ -105,19 +105,21 @@ perform_post(RequestBody) ->
 		{_, {array, JsonObjList}} = lists:keyfind("attributes", 1, Object),
 		RadAttributes = json_to_radius(JsonObjList),
 		{_, Balance} = lists:keyfind("balance", 1, Object),
-		perform_post1(Id, Password, RadAttributes, Balance)
+		{_, EnabledStatus} = lists:keyfind("enabled", 1, Object),
+		perform_post1(Id, Password, RadAttributes, Balance, EnabledStatus)
 	catch
 		_Error ->
 			{error, 400}
 	end.
 %% @hidden
-perform_post1(Id, Password, RadAttributes, Balance) ->
+perform_post1(Id, Password, RadAttributes, Balance, EnabledStatus) ->
 	try
-	case catch ocs:add_subscriber(Id, Password, RadAttributes, Balance) of
+	case catch ocs:add_subscriber(Id, Password, RadAttributes, Balance, EnabledStatus) of
 		ok ->
 			Attributes = {array, radius_to_json(RadAttributes)},
 			RespObj = [{id, Id}, {href, "/ocs/v1/subscriber/" ++ Id},
-				{password, Password}, {attributes, Attributes}, {balance, Balance}],
+				{password, Password}, {attributes, Attributes}, {balance, Balance},
+				{enabled, EnabledStatus}],
 			JsonObj  = {struct, RespObj},
 			Body = mochijson:encode(JsonObj),
 			Location = "/ocs/v1/subscriber" ++ Id,

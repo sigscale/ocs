@@ -23,7 +23,7 @@
 %% export the ocs public API
 -export([add_client/2, find_client/1, update_client/2, get_clients/0,
 				 delete_client/1]).
--export([add_subscriber/3, add_subscriber/4, find_subscriber/1,
+-export([add_subscriber/3, add_subscriber/5, find_subscriber/1,
 				delete_subscriber/1, update_password/2, update_attributes/4,
 				get_subscribers/0]).
 -export([log_file/1]).
@@ -141,14 +141,15 @@ delete_client(Client) when is_tuple(Client) ->
 -spec add_subscriber(Subscriber :: string() | binary(), Password :: string() | binary(),
 		Attributes :: radius_attributes:attributes() | binary()) ->
 	ok | {error, Reason :: term()}.
-%% @equiv add_subscriber(Subscriber, Password, Attributes, 0)
+%% @equiv add_subscriber(Subscriber, Password, Attributes, 0, true)
 add_subscriber(Subscriber, Password, Attributes) ->
-	add_subscriber(Subscriber, Password, Attributes, 0).
+	add_subscriber(Subscriber, Password, Attributes, 0, true).
 
 -spec add_subscriber(Subscriber :: string() | binary(),
 		Password :: string() | binary(),
 		Attributes :: radius_attributes:attributes() | binary(),
-		Balance :: non_neg_integer()) ->
+		Balance :: non_neg_integer(),
+		EnabledStatus :: boolean()) ->
 		ok | {error, Reason :: term()}.
 %% @doc Create an entry in the subscriber table.
 %%
@@ -156,15 +157,17 @@ add_subscriber(Subscriber, Password, Attributes) ->
 %% 	RADIUS `Attributes', to be returned in an `AccessRequest' response,
 %% 	may be provided.  These attributes will overide any default values.
 %%
-%% 	An initial account `Balance' value may be provided.
+%% 	An initial account `Balance' value and `Enabled' status may be provided.
 %%
-add_subscriber(Subscriber, Password, Attributes, Balance)
-		when is_list(Subscriber) ->
-	add_subscriber(list_to_binary(Subscriber), Password, Attributes, Balance);
-add_subscriber(Subscriber, Password, Attributes, Balance)
+add_subscriber(Subscriber, Password, Attributes, Balance, EnabledStatus)
+		when is_list(Subscriber), is_boolean(EnabledStatus) ->
+	add_subscriber(list_to_binary(Subscriber), Password, Attributes, Balance,
+			EnabledStatus);
+add_subscriber(Subscriber, Password, Attributes, Balance, EnabledStatus)
 		when is_list(Password) ->
-	add_subscriber(Subscriber, list_to_binary(Password), Attributes, Balance);
-add_subscriber(Subscriber, Password, Attributes, Balance)
+	add_subscriber(Subscriber, list_to_binary(Password), Attributes, Balance,
+			EnabledStatus);
+add_subscriber(Subscriber, Password, Attributes, Balance, EnabledStatus)
 		when is_binary(Subscriber), is_binary(Password),
 		is_list(Attributes), is_integer(Balance) ->
 	F1 = fun(F, <<C, Rest/binary>>)
@@ -180,7 +183,8 @@ add_subscriber(Subscriber, Password, Attributes, Balance)
 		true ->
 			F2 = fun() ->
 						R = #subscriber{name = Subscriber, password = Password,
-								attributes = Attributes, balance = Balance},
+								attributes = Attributes, balance = Balance,
+								enabled = EnabledStatus},
 						mnesia:write(R)
 			end,
 			case mnesia:transaction(F2) of
