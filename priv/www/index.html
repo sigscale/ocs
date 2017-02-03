@@ -72,6 +72,8 @@
 				function downloadCSV(event){
 					var data = document.getElementById("frozen").items;
 					var csvData = "data:text/csv;charset=utf-8,";
+					csvData += "identity, password, balance, data rate, xmit rate, session timeout," +
+									"accounting interval, class, enabled \n"
 					data.forEach(function(item, index){
 						dataLine = item.id + ","
 										+ item.password + ","
