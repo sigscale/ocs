@@ -207,9 +207,8 @@ code_change(_OldVsn, State, _Extra) ->
 			| {reply, {error, ignore}, NewState :: state()}.
 %% @doc Handle a received RADIUS Accounting Request packet.
 %% @private
-request(Address, _Port, Secret, Radius,
-		{_RadiusFsm, _Tag} = _From, #state{handlers = _Handlers, disc_id = DiskId,
-		log = Log, disc_sup = DiscSup} = State) ->
+request(Address, _Port, Secret, Radius, {_RadiusFsm, _Tag} = _From,
+		#state{handlers = _Handlers, log = Log} = State) ->
 	try
 		#radius{code = ?AccountingRequest, id = Id, attributes = Attributes,
 				authenticator = Authenticator} = Radius,
@@ -218,11 +217,9 @@ request(Address, _Port, Secret, Radius,
 		CalcAuth = crypto:hash(md5, [<<?AccountingRequest, Id, Length:16>>,
 				<<0:128>>, AttrBin, Secret]),
 		CalcAuth = list_to_binary(Authenticator),
+		{ok, AcctStatusType}  = radius_attributes:find(?AcctStatusType, Attributes),
 		NasIpAddressV = radius_attributes:find(?NasIpAddress, Attributes),
 		NasIdentifierV = radius_attributes:find(?NasIdentifier, Attributes),
-		InOctets = radius_attributes:find(?AcctInputOctets, Attributes),
-		OutOctets = radius_attributes:find(?AcctOutputOctets, Attributes),
-		{ok, UserName} = radius_attributes:find(?UserName, Attributes),
 		NasID = case {NasIpAddressV, NasIdentifierV} of
 			{{error, not_found}, {error, not_found}} ->
 				throw(reject);
@@ -231,48 +228,72 @@ request(Address, _Port, Secret, Radius,
 			{_, {ok, Value}} ->
 				Value
 		end,
-		case {InOctets, OutOctets} of
-			{{error, not_found}, {error, not_found}} ->
-				Usage = 0;
-			{{ok,In}, {ok,Out}} ->
-				Usage = In + Out
-		end,
 		{error, not_found} = radius_attributes:find(?UserPassword, Attributes),
 		{error, not_found} = radius_attributes:find(?ChapPassword, Attributes),
 		{error, not_found} = radius_attributes:find(?ReplyMessage, Attributes),
 		{error, not_found} = radius_attributes:find(?State, Attributes),
 		{ok, AcctSessionId} = radius_attributes:find(?AcctSessionId, Attributes),
-		Subscriber = ocs:normalize(UserName),
 		ok = disk_log:log(Log, Attributes),
-		NewState = case decrement_balance(Subscriber, Usage) of
-			{ok, OverUsed, false} when OverUsed =< 0 ->
-				case supervisor:start_child(DiscSup, [[Address, NasID,
-						Subscriber, AcctSessionId, Secret, Attributes, DiskId], []]) of
-					{ok, _Child} ->
-						NewDiskId = DiskId + 1,
-						State#state{disc_id = NewDiskId};
-					{error, Reason} ->
-						error_logger:error_report(["Failed to initiate session disconnect function",
-								{module, ?MODULE}, {subscriber, Subscriber},
-								{username, UserName}, {nas, NasID}, {address, Address},
-								{session, AcctSessionId}, {error, Reason}]),
-						State
-				end;
-			{ok, _SufficientBalance, _Flag} ->
-				State;
-			{error, not_found} ->
-				error_logger:warning_report(["Accounting subscriber not found",
-						{module, ?MODULE}, {subscriber, Subscriber},
-						{module, ?MODULE}, {username, UserName},
-						{nas, NasID}, {address, Address},
-						{session, AcctSessionId}]),
-				State
-		end,
-		{reply, {ok, response(Id, Authenticator, Secret)}, NewState}
+		request1(AcctStatusType, AcctSessionId, Id,
+				Authenticator, Secret, NasID, Address, Attributes, State)
 	catch
 		_:_ ->
 			{reply, {error, ignore}, State}
 	end.
+%% @hidden
+request1(?AccountingStart, _AcctSessionId, Id,
+		Authenticator, Secret, _NasID, _Address, _Attributes, State) ->
+	{reply, {ok, response(Id, Authenticator, Secret)}, State};
+request1(?AccountingStop, AcctSessionId, Id,
+		Authenticator, Secret, NasID, Address, Attributes,
+		#state{disc_sup = DiscSup, disc_id = DiskId} = State) ->
+	InOctets = radius_attributes:find(?AcctInputOctets, Attributes),
+	OutOctets = radius_attributes:find(?AcctOutputOctets, Attributes),
+	Usage = case {InOctets, OutOctets} of
+		{{error, not_found}, {error, not_found}} ->
+			0;
+		{{ok,In}, {ok,Out}} ->
+			In + Out
+	end,
+	{ok, UserName} = radius_attributes:find(?UserName, Attributes),
+	Subscriber = ocs:normalize(UserName),
+	case decrement_balance(Subscriber, Usage) of
+		{ok, OverUsed, false} when OverUsed =< 0 ->
+			case supervisor:start_child(DiscSup, [[Address, NasID,
+					Subscriber, AcctSessionId, Secret, Attributes, DiskId], []]) of
+				{ok, _Child} ->
+					NewDiskId = DiskId + 1,
+					NewState = State#state{disc_id = NewDiskId},
+					{reply, {ok, response(Id, Authenticator, Secret)}, NewState};
+				{error, Reason} ->
+					error_logger:error_report(["Failed to initiate session disconnect function",
+							{module, ?MODULE}, {subscriber, Subscriber},
+							{username, UserName}, {nas, NasID}, {address, Address},
+							{session, AcctSessionId}, {error, Reason}]),
+					{reply, {ok, response(Id, Authenticator, Secret)}, State}
+			end;
+		{ok, _SufficientBalance, _Flag} ->
+			{reply, {ok, response(Id, Authenticator, Secret)}, State};
+		{error, not_found} ->
+			error_logger:warning_report(["Accounting subscriber not found",
+					{module, ?MODULE}, {subscriber, Subscriber},
+					{module, ?MODULE}, {username, UserName},
+					{nas, NasID}, {address, Address},
+					{session, AcctSessionId}]),
+			{reply, {ok, response(Id, Authenticator, Secret)}, State}
+	end;
+request1(?AccountingInterimUpdate, _AcctSessionId, Id,
+		Authenticator, Secret, _NasID, _Address, _Attributes, State) ->
+	{reply, {ok, response(Id, Authenticator, Secret)}, State};
+request1(?AccountingON, _AcctSessionId, Id,
+		Authenticator, Secret, _NasID, _Address, _Attributes, State) ->
+	{reply, {ok, response(Id, Authenticator, Secret)}, State};
+request1(?AccountingOFF, _AcctSessionId, Id,
+		Authenticator, Secret, _NasID, _Address, _Attributes, State) ->
+	{reply, {ok, response(Id, Authenticator, Secret)}, State};
+request1(_AcctStatusType, _AcctSessionId, _Id,
+		_Authenticator, _Secret, _NasID, _Address, _Attributes, State) ->
+	{reply, {error, ignore}, State}.
 
 -spec response(Id :: byte(), RequestAuthenticator :: [byte()],
 		Secret :: string() | binary()) ->
