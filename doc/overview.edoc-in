@@ -1092,6 +1092,10 @@ The {@link //ocs. ocs} application is configured using the following environment
 <dl>
 	<dt>accounting_dir</dt>
 		<dd>Path of directory to store accounting logs.</dd>
+	<dt>acct_log_files</dt>
+		<dd>Number of accounting log files.</dd>
+	<dt>acct_log_size</dt>
+		<dd>Size in bytes of accounting log files.</dd>
 	<dt>radius_auth_addr</dt>
 		<dd>IP address for RADIUS authentication (default: {0,0,0,0}).</dd>
 	<dt>radius_auth_port</dt>

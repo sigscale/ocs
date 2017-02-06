@@ -69,6 +69,8 @@
 %%
 init([AcctSup, Address, Port, _Options]) ->
 	{ok, Directory} = application:get_env(ocs, accounting_dir),
+	{ok, LogSize} = application:get_env(ocs, acct_log_size),
+	{ok, LogFiles} = application:get_env(ocs, acct_log_files),
 	Log = ?LOGNAME,
 	FileName = Directory ++ "/" ++ atom_to_list(Log),
 	State = #state{address = Address, port = Port,
@@ -88,7 +90,7 @@ init([AcctSup, Address, Port, _Options]) ->
 	end of
 		ok ->
 			case disk_log:open([{name, Log}, {file, FileName},
-					{type, wrap}, {size, {1048575, 20}}]) of
+					{type, wrap}, {size, {LogSize, LogFiles}}]) of
 				{ok, Log} ->
 					{ok, State#state{log = Log}, 0};
 				{repaired, Log, {recovered, Rec}, {badbytes, Bad}} ->
