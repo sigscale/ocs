@@ -20,7 +20,7 @@ initialize_db() ->
 					ok = application:stop(mnesia),
 					ok = mnesia:create_schema([node()]),
 					ok = mnesia:start(),
-					{ok, [radius_client, subscriber]} = ocs_app:install([node()]),
+					{ok, [radius_client, subscriber, httpd_user,httpd_group]} = ocs_app:install([node()]),
 					initialize_db();
 				ok ->
 					ok
