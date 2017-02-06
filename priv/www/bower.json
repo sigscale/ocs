@@ -1,7 +1,7 @@
 {
-  "name": "polymer-starter-kit",
+  "name": "Online Charging System (OCS)",
   "authors": [
-    "The Polymer Authors"
+    "SigScale Global Inc."
   ],
   "private": true,
   "dependencies": {
