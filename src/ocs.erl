@@ -23,7 +23,7 @@
 %% export the ocs public API
 -export([add_client/2, find_client/1, update_client/2, get_clients/0,
 				 delete_client/1]).
--export([add_subscriber/3, add_subscriber/5, find_subscriber/1,
+-export([add_subscriber/3, add_subscriber/4, add_subscriber/5, find_subscriber/1,
 				delete_subscriber/1, update_password/2, update_attributes/4,
 				get_subscribers/0]).
 -export([log_file/1]).
@@ -144,6 +144,15 @@ delete_client(Client) when is_tuple(Client) ->
 %% @equiv add_subscriber(Subscriber, Password, Attributes, 0, true)
 add_subscriber(Subscriber, Password, Attributes) ->
 	add_subscriber(Subscriber, Password, Attributes, 0, true).
+
+-spec add_subscriber(Subscriber :: string() | binary(),
+		Password :: string() | binary(),
+		Attributes :: radius_attributes:attributes() | binary(),
+		Balance :: non_neg_integer()) ->
+	ok | {error, Reason :: term()}.
+%% @equiv add_subscriber(Subscriber, Password, Attributes, Balance, true)
+add_subscriber(Subscriber, Password, Attributes, Balance) ->
+	add_subscriber(Subscriber, Password, Attributes, Balance, true).
 
 -spec add_subscriber(Subscriber :: string() | binary(),
 		Password :: string() | binary(),
