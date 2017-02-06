@@ -261,8 +261,8 @@ request1(?AccountingStop, AcctSessionId, Id,
 	Subscriber = ocs:normalize(UserName),
 	case decrement_balance(Subscriber, Usage) of
 		{ok, OverUsed, false} when OverUsed =< 0 ->
-			case supervisor:start_child(DiscSup, [[Address, NasID,
-					Subscriber, AcctSessionId, Secret, Attributes, DiskId], [{debug, [trace]}]]) of
+			case supervisor:start_child(DiscSup,
+					[[Address, Subscriber, Secret, Attributes, DiskId], [{debug, [trace]}]]) of
 				{ok, _Child} ->
 					NewDiskId = DiskId + 1,
 					NewState = State#state{disc_id = NewDiskId},
@@ -298,8 +298,8 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 	Subscriber = ocs:normalize(UserName),
 	case ocs:find_subscriber(Subscriber) of
 		{ok, _, _, Balance, Enabled} when Enabled == false; Balance =< Usage ->
-			case supervisor:start_child(DiscSup, [[Address, NasID,
-					Subscriber, AcctSessionId, Secret, Attributes, DiskId], [{debug, [trace]}]]) of
+			case supervisor:start_child(DiscSup,
+					[[Address, Subscriber, Secret, Attributes, DiskId], [{debug, [trace]}]]) of
 				{ok, _Child} ->
 					NewDiskId = DiskId + 1,
 					NewState = State#state{disc_id = NewDiskId},

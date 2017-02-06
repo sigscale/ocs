@@ -73,12 +73,10 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([NasIpAddress, NasIdentifier, Subscriber, AcctSessionId, Secret,
-			Attributes, Id]) ->
+init([Address, Subscriber, Secret, Attributes, Id]) ->
 	process_flag(trap_exit, true),
-	StateData = #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
-		subscriber = Subscriber, acct_session_id = AcctSessionId,
-		secret = Secret, attributes = Attributes, id = Id},
+	StateData = #statedata{nas_ip = Address, subscriber = Subscriber,
+			secret = Secret, attributes = Attributes, id = Id},
 	{ok, send_request, StateData, 0}.
 
 -spec send_request(Event :: timeout | term(), StateData :: #statedata{}) ->
@@ -93,37 +91,28 @@ init([NasIpAddress, NasIdentifier, Subscriber, AcctSessionId, Secret,
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-send_request(timeout, #statedata{nas_ip = NasIpAddress, nas_id = NasIdentifier,
-		subscriber = Subscriber, acct_session_id = AcctSessionId, id = Id,
-		secret = SharedSecret, attributes = Attributes, retry_time = Retry} = StateData) ->
+send_request(timeout, #statedata{nas_ip = Address, id = Id,
+		secret = SharedSecret, attributes = Attributes,
+		retry_time = Retry} = StateData) ->
 	{ok, Port} = application:get_env(ocs, radius_disconnect_port),
-	Attr0 = radius_attributes:new(),
-	Attr1 = radius_attributes:add(?NasIpAddress, NasIpAddress, Attr0),
-	Attr2 = radius_attributes:add(?UserName, Subscriber, Attr1),
-	Attr3 = radius_attributes:add(?NasPort, Port, Attr2),
-	Attr4 = radius_attributes:add(?AcctSessionId, AcctSessionId , Attr3),
-	Attr5 = case NasIdentifier of
-		undefined ->
-			Attr4;
-		_ ->
-			radius_attributes:add(?NasIdentifier, NasIdentifier, Attr4)
-	end,
-	Attrs = [?NasPortType, ?NasPortId, ?CallingStationId, ?CalledStationId, ?FramedIpAddress],
-	Attr6 = extract_attributes(Attrs, Attributes, Attr5),
-	Attributes1 = radius_attributes:codec(Attr6),
-	Length = size(Attributes1) + 20,
+	IdAttrs = [?NasIpAddress, ?NasIdentifier, ?UserName, ?NasPort, ?FramedIpAddress,
+			?CallingStationId, ?CalledStationId, ?AcctSessionId, ?AcctMultiSessionId,
+			?NasPortType, ?NasPortId],
+	DiscAttrList  = extract_attributes(IdAttrs, Attributes, radius_attributes:new()),
+	DiscAttr = radius_attributes:codec(DiscAttrList),
+	Length = size(DiscAttr) + 20,
 	RequestAuthenticator = crypto:hash(md5,
 			[<<?DisconnectRequest, Id, Length:16>>,
-			<<0:128>>, Attributes1, SharedSecret]),
+			<<0:128>>, DiscAttr, SharedSecret]),
 	DisconRec = #radius{code = ?DisconnectRequest, id = Id,
-			authenticator = RequestAuthenticator, attributes = Attributes1},
+			authenticator = RequestAuthenticator, attributes = DiscAttr},
 	DisconnectRequest = radius:codec(DisconRec),
 	case gen_udp:open(0, [{active, once}, binary]) of
 		{ok, Socket} ->
-			case gen_udp:send(Socket, NasIpAddress, Port, DisconnectRequest)of
+			case gen_udp:send(Socket, Address, Port, DisconnectRequest)of
 				ok ->
 					NewStateData = StateData#statedata{id = Id, socket = Socket,
-						request = DisconnectRequest},
+							request = DisconnectRequest},
 					{next_state, receive_response, NewStateData, Retry};
 				{error, _Reason} ->
 					{next_state, send_request, StateData, ?TIMEOUT}
@@ -225,11 +214,11 @@ handle_info({udp, _, NasIp, NasPort, Packet}, _StateName, #statedata{id = Id,
 			Attr = radius_attributes:codec(Attrbin),
 			case radius_attributes:find(?ErrorCause, Attr) of
 				{ok, ErrorCause} ->
-					error_logger:error_report(["Failed to disconnect subscriber session on",
+					error_logger:error_report(["Failed to disconnect subscriber session",
 							{server, NasIp}, {port, NasPort},
 							{error, radius_attributes:error_cause(ErrorCause)}]);
 				{error, not_found} ->
-					error_logger:error_report(["Failed to disconnect subscriber session on",
+					error_logger:error_report(["Failed to disconnect subscriber session",
 							{server, NasIp}, {port, NasPort}])
 			end
 	end,
@@ -261,8 +250,9 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%----------------------------------------------------------------------
 
 -spec extract_attributes(Attributes :: [integer()], 
-		AttrList :: radius_attributes:attributes(), CurrentAttrList :: radius_attributes:attributes())->
-		NewAttrList :: radius_attributes:attributes().
+		AttrList :: radius_attributes:attributes(),
+		CurrentAttrList :: radius_attributes:attributes())->
+	NewAttrList :: radius_attributes:attributes().
 %% @doc Appends radius attributes needed for a Disconnect/Request
 %% @private
 %%
