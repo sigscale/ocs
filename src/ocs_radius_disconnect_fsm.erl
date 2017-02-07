@@ -73,9 +73,10 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([Address, Subscriber, Secret, Attributes, Id]) ->
+init([Address, NasId, Subscriber, AcctSessionId, Secret, Attributes, Id]) ->
 	process_flag(trap_exit, true),
-	StateData = #statedata{nas_ip = Address, subscriber = Subscriber,
+	StateData = #statedata{nas_ip = Address, nas_id = NasId,
+			subscriber = Subscriber, acct_session_id = AcctSessionId,
 			secret = Secret, attributes = Attributes, id = Id},
 	{ok, send_request, StateData, 0}.
 
@@ -133,9 +134,10 @@ send_request(timeout, #statedata{nas_ip = Address, id = Id,
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-receive_response(timeout, #statedata{retry_count = Count} = StateData)
-		when Count > 5 ->
-	{stop, shutdown, StateData};
+receive_response(timeout, #statedata{retry_count = Count,
+		nas_id = NasId, subscriber = Subscriber,
+		acct_session_id = AcctSessionId} = StateData) when Count > 5 ->
+	{stop, {shutdown, {NasId, Subscriber, AcctSessionId}}, StateData};
 receive_response(timeout, #statedata{socket = Socket, nas_ip = NasIp ,
 		request =  DisconnectRequest, retry_count = Count, retry_time = Retry} = StateData) ->
 	{ok, Port} = application:get_env(ocs, radius_disconnect_port),
@@ -196,8 +198,9 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 %% @see //stdlib/gen_fsm:handle_info/3
 %% @private
 %%
-handle_info({udp, _, NasIp, NasPort, Packet}, _StateName, #statedata{id = Id,
-		subscriber = Subscriber} = StateData) ->
+handle_info({udp, _, NasIp, NasPort, Packet}, _StateName,
+		#statedata{id = Id, nas_id = NasId, subscriber = Subscriber,
+		acct_session_id = AcctSessionId} = StateData) ->
 	case radius:codec(Packet) of
 		#radius{code = ?DisconnectAck, id = Id} ->
 			F = fun() ->
@@ -222,7 +225,7 @@ handle_info({udp, _, NasIp, NasPort, Packet}, _StateName, #statedata{id = Id,
 							{server, NasIp}, {port, NasPort}])
 			end
 	end,
-	{stop, shutdown, StateData}.
+	{stop, {shutdown, {NasId, Subscriber, AcctSessionId}}, StateData}.
 
 -spec terminate(Reason :: normal | shutdown | term(), StateName :: atom(),
 		StateData :: #statedata{}) -> any().
