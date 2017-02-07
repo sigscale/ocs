@@ -82,8 +82,8 @@
 
 		<paper-dialog id="modal1" modal style="width:60%;">
 			<paper-tabs selected="{{selected}}">
-				<paper-tab> Authentication </paper-tab>
-				<paper-tab> Authorizarion </paper-tab>
+				<paper-tab> <h2>Authentication</h2> </paper-tab>
+				<paper-tab> <h2>Authorizarion</h2> </paper-tab>
 			</paper-tabs>
 
 			<iron-pages selected="{{selected}}">
@@ -269,8 +269,8 @@
 			grid.header.getCell(0,2).content = '<div style="font-size:16px">Balance</div>';
 			grid.header.getCell(0,3).content = '<div style="font-size:16px">Data Rate</div>' ;
 			grid.header.getCell(0,4).content = '<div style="font-size:16px">Xmit Rate</div>' ;
-			grid.header.getCell(0,5).content = '<div style="font-size:16px">Session Timeout</div>';
-			grid.header.getCell(0,6).content = '<div style="font-size:16px">Accounting Interval</div>';
+			grid.header.getCell(0,5).content = '<div style="font-size:16px">Session <br>Timeout</div>';
+			grid.header.getCell(0,6).content = '<div style="font-size:16px">Accounting <br>Interval</div>';
 			grid.header.getCell(0,7).content = '<div style="font-size:16px">Class</div>';
 			grid.header.getCell(0,8).content = '<div style="font-size:16px">Enabled</div>';
 			document.getElementById("progressbar").indeterminate = false;
