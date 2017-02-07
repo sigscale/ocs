@@ -335,7 +335,7 @@ server_cipher(Socket, Address, Port, NasId, UserName,
 	server_cipher1(TtlsData, Socket, Address, Port, NasId,
 			UserName, Secret, MAC, Auth, RadId, EapId, <<>>).
 %% @hidden
-server_cipher1(#eap_ttls{more = true, data = SH}, Socket, Address, Port,
+server_cipher1(#eap_ttls{more = true, data = SC}, Socket, Address, Port,
 		NasId, UserName, Secret, MAC, Auth, RadId, EapId, Buf) ->
 	send_ack(Socket, Address, Port, NasId, UserName, Secret,
 			MAC, Auth, RadId, EapId),
@@ -346,13 +346,13 @@ server_cipher1(#eap_ttls{more = true, data = SH}, Socket, Address, Port,
 	NewRadId = RadId + 1,
 	NewAuth = radius:authenticator(),
 	server_hello1(TtlsPacket, Socket, Address, Port, NasId,
-		UserName, Secret, MAC, NewAuth, NewRadId, NewEapId, <<Buf/binary, SH/binary>>);
-server_cipher1(#eap_ttls{data = SH}, Socket, Address, Port, NasId,
+		UserName, Secret, MAC, NewAuth, NewRadId, NewEapId, <<Buf/binary, SC/binary>>);
+server_cipher1(#eap_ttls{data = SC}, Socket, Address, Port, NasId,
 		UserName, Secret, MAC, Auth, RadId, EapId, Buf) ->
 	%send_ack(Socket, Address, Port, NasId, UserName, Secret,
 	%		MAC, Auth, RadId, EapId),
 	NewRadId = RadId + 1,
-	{NewRadId, EapId, <<Buf/binary, SH/binary>>}.
+	{NewRadId, EapId, <<Buf/binary, SC/binary>>}.
 
 client_passthrough(SslSocket, UserName, Password, Socket, Address, Port,
 		NasId, Secret, MAC, Auth, EapId, RadId) ->
