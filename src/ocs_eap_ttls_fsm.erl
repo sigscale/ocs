@@ -82,8 +82,8 @@
 		socket_options :: ssl:options(),
 		max_size :: undefined | pos_integer(),
 		rx_length :: undefined | pos_integer(),
-		rx_buf = [] :: iolist(),
-		tx_buf = [] :: iolist(),
+		rx_buf = <<>> :: binary(),
+		tx_buf = <<>> :: binary(),
 		ssl_pid :: undefined | pid(),
 		client_rand :: undefined | binary(),
 		server_rand :: undefined | binary(),
@@ -272,27 +272,30 @@ client_hello({#radius{code = ?AccessRequest, id = RadiusID,
 		case ocs_eap_codec:eap_ttls(TtlsData) of
 			#eap_ttls{more = false, message_len = undefined,
 					start = false, data = Data} when RxLength == undefined ->
-				NextStateData = client_hello1(iolist_to_binary([RxBuf, Data]), NewStateData),
-				ocs_eap_tls_transport:deliver(SslPid, self(), [RxBuf, Data]),
-				NextNewStateData = NextStateData#statedata{rx_buf = [],
+				CHMsg = <<RxBuf/binary, Data/binary>>,
+				NextStateData = client_hello1(CHMsg, NewStateData),
+				ocs_eap_tls_transport:deliver(SslPid, self(), CHMsg),
+				NextNewStateData = NextStateData#statedata{rx_buf = <<>>,
 						rx_length = undefined},
 				{next_state, server_hello, NextNewStateData, ?TIMEOUT};
 			#eap_ttls{more = false, message_len = undefined,
 					start = false, data = Data} ->
-				RxLength = iolist_size([RxBuf, Data]),
-				ocs_eap_tls_transport:deliver(SslPid, self(), [RxBuf, Data]),
-				NextStateData = NewStateData#statedata{rx_buf = [],
+				CHMsg = <<RxBuf/binary, Data/binary>>,
+				RxLength = size(CHMsg),
+				ocs_eap_tls_transport:deliver(SslPid, self(), CHMsg),
+				NextStateData = NewStateData#statedata{rx_buf = <<>>,
 								rx_length = undefined},
 				{next_state, server_hello, NextStateData, ?TIMEOUT};
 			#eap_ttls{more = true, message_len = undefined,
-					start = false, data = Data} when RxBuf /= [] ->
+					start = false, data = Data} when RxBuf /= <<>> ->
 				NewEapID = EapID + 1,
 				TtlsData = ocs_eap_codec:eap_ttls(#eap_ttls{}),
 				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
 						identifier = NewEapID, data = TtlsData},
 				send_response(EapPacket1, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-				NextStateData = NewStateData#statedata{rx_buf = [RxBuf, Data]},
+				NextRxBuf = <<RxBuf/binary, Data/binary>>,
+				NextStateData = NewStateData#statedata{rx_buf = NextRxBuf},
 				{next_state, client_hello, NextStateData, ?TIMEOUT};
 			#eap_ttls{more = true, message_len = MessageLength,
 					start = false, data = Data} ->
@@ -302,7 +305,7 @@ client_hello({#radius{code = ?AccessRequest, id = RadiusID,
 						identifier = NewEapID, data = TtlsData},
 				send_response(EapPacket1, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-				NextStateData = NewStateData#statedata{rx_buf = [Data],
+				NextStateData = NewStateData#statedata{rx_buf = Data,
 						rx_length = MessageLength},
 				{next_state, client_hello, NextStateData, ?TIMEOUT}
 		end
@@ -336,10 +339,10 @@ client_hello1(<<?Handshake, _Version:16, _L1:16, ?ClientHello, _L2:24,
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 server_hello(timeout, #statedata{session_id = SessionID,
-		tx_buf = []} = StateData) ->
+		tx_buf = <<>>} = StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
 server_hello(timeout, StateData) ->
-	server_hello1(StateData);
+	server_hello2(StateData);
 %% TLS Record - <<ContentType, Version:16, Length:16, ProtocolMessage>>
 %% ProtocolMessage - <<MessageType, Length:24, ServeHelloMessage>>
 %% RFC 5246 Section 7.4.1.3
@@ -347,27 +350,22 @@ server_hello(timeout, StateData) ->
 %% <<ProtocolVersion:16, Gmt_unix_time:32, ServerRand:28/binary,
 %% SessionID, CipherSuite, CompressionMethod, ..>>
 server_hello({eap_tls, _SslPid, <<?Handshake, _Version:16, _L1:16,
-		?ServerHello, _ServerVersion:16,
-		ServerRand:32/binary, _/binary>> = Data},
-		#statedata{tx_buf = TxBuf} = StateData) ->
-	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data],
-			server_rand = ServerRand},
-	{next_state, server_hello, NewStateData};
+		?ServerHello, _ServerVersion:16, ServerRand:32/binary,
+		_/binary>> = Data}, StateData) ->
+	NewStateData = StateData#statedata{server_rand = ServerRand},
+	server_hello1(Data, NewStateData);
 server_hello({eap_tls, _SslPid, <<?Handshake, _Version:16, _L1:16,
-		?Certificate, _/binary>> = Data},
-		#statedata{tx_buf = TxBuf} = StateData) ->
-	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
-	{next_state, server_hello, NewStateData};
+		?Certificate, _/binary>> = Data}, StateData) ->
+	server_hello1(Data, StateData);
 server_hello({eap_tls, _SslPid, <<?Handshake, _Version:16, _L1:16,
-		?ServerKeyExchange, _/binary>> = Data},
-		#statedata{tx_buf = TxBuf} = StateData) ->
-	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
-	{next_state, server_hello, NewStateData};
+		?ServerKeyExchange, _/binary>> = Data}, StateData) ->
+	server_hello1(Data, StateData);
 server_hello({eap_tls, _SslPid, <<?Handshake, _Version:16, _L1:16,
 		?ServerHelloDone, _/binary>> = Data},
 		#statedata{tx_buf = TxBuf} = StateData) ->
-	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
-	server_hello1(NewStateData);
+	NextTxBuf = <<TxBuf/binary, Data/binary>>,
+	NewStateData = StateData#statedata{tx_buf = NextTxBuf},
+	server_hello2(NewStateData);
 server_hello({#radius{code = ?AccessRequest, id = RadiusID,
 		authenticator = RequestAuthenticator, attributes = Attributes},
 		RadiusFsm}, #statedata{eap_id = EapID, session_id = SessionID,
@@ -381,7 +379,7 @@ server_hello({#radius{code = ?AccessRequest, id = RadiusID,
 				data = TtlsData} = ocs_eap_codec:eap_packet(EapMessage),
 		#eap_ttls{more = false, message_len = undefined,
 				start = false, data = <<>>} = ocs_eap_codec:eap_ttls(TtlsData),
-		server_hello1(NewStateData)
+		server_hello2(NewStateData)
 	catch
 		_:_ ->
 			EapPacket = #eap_packet{code = failure, identifier = EapID},
@@ -390,30 +388,45 @@ server_hello({#radius{code = ?AccessRequest, id = RadiusID,
 			{stop, {shutdown, SessionID}, NewStateData}
 	end.
 %% @hidden
-server_hello1(#statedata{tx_buf = TxBuf, radius_fsm = RadiusFsm,
+server_hello1(<<_:24, Length:16, _/binary>> = Data,
+		#statedata{ssl_pid = SslPid, tx_buf = TxBuf} = StateData) ->
+	case Data of
+		<<_:40, _:Length/binary>>  = TRLayer->
+			NextTxBuf = <<TxBuf/binary, TRLayer/binary>>,
+			NewStateData = StateData#statedata{tx_buf = NextTxBuf},
+			{next_state, server_hello, NewStateData, ?TIMEOUT};
+		<<_:40,  _:Length/binary, Rest/binary>> = TRLayer ->
+			Size = Length + 5,
+			<<Msg:Size/binary, _/binary>>  = TRLayer,
+			NextTxBuf = <<TxBuf/binary, Msg/binary>>,
+			NewStateData = StateData#statedata{tx_buf = NextTxBuf},
+			server_hello({eap_tls, SslPid, Rest}, NewStateData)
+	end.
+%% @hidden
+server_hello2(#statedata{tx_buf = TxBuf, radius_fsm = RadiusFsm,
 		radius_id = RadiusID, req_auth = RequestAuthenticator,
 		secret = Secret, eap_id = EapID, max_size = MaxSize} = StateData) ->
 	MaxData = MaxSize - 10,
 	NewEapID = EapID + 1,
-	case iolist_size(TxBuf) of
+	case size(TxBuf) of
 		Size when Size > MaxData ->
-			<<Chunk:MaxData/binary, Rest/binary>> = iolist_to_binary(TxBuf),
+			<<Chunk:MaxData/binary, Rest/binary>> = TxBuf,
 			EapTtls = #eap_ttls{more = true, message_len = Size, data = Chunk},
 			EapData = ocs_eap_codec:eap_ttls(EapTtls),
 			EapPacket = #eap_packet{code = request, type = ?TTLS,
 					identifier = NewEapID, data = EapData},
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-			NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = [Rest]},
+			NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = Rest},
 			{next_state, server_hello, NewStateData, ?TIMEOUT};
 		_Size ->
-			EapTtls = #eap_ttls{data = iolist_to_binary(TxBuf)},
+			EapTtls = #eap_ttls{data = TxBuf},
 			EapData = ocs_eap_codec:eap_ttls(EapTtls),
 			EapPacket = #eap_packet{code = request, type = ?TTLS,
 					identifier = NewEapID, data = EapData},
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-			NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = []},
+			NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = <<>>},
 			{next_state, client_cipher, NewStateData, ?TIMEOUT}
 	end.
 
@@ -445,26 +458,29 @@ client_cipher({#radius{code = ?AccessRequest, id = RadiusID,
 		case ocs_eap_codec:eap_ttls(TtlsData) of
 			#eap_ttls{more = false, message_len = undefined,
 					start = false, data = Data} when RxLength == undefined ->
-				ocs_eap_tls_transport:deliver(SslPid, self(), [RxBuf, Data]),
-				NextStateData = NewStateData#statedata{rx_buf = [],
+				CCMsg = <<RxBuf/binary, Data/binary>>,
+				ocs_eap_tls_transport:deliver(SslPid, self(), CCMsg),
+				NextStateData = NewStateData#statedata{rx_buf = <<>>,
 						rx_length = undefined},
 				{next_state, server_cipher, NextStateData};
 			#eap_ttls{more = false, message_len = undefined,
 					start = false, data = Data} ->
-				RxLength = iolist_size([RxBuf, Data]),
-				ocs_eap_tls_transport:deliver(SslPid, self(), [RxBuf, Data]),
-				NextStateData = NewStateData#statedata{rx_buf = [],
+				CCMsg = <<RxBuf/binary, Data/binary>>,
+				RxLength = size(CCMsg),
+				ocs_eap_tls_transport:deliver(SslPid, self(), CCMsg),
+				NextStateData = NewStateData#statedata{rx_buf = <<>>,
 						rx_length = undefined},
 				{next_state, server_cipher, NextStateData};
 			#eap_ttls{more = true, message_len = undefined,
-					start = false, data = Data} when RxBuf /= [] ->
+					start = false, data = Data} when RxBuf /= <<>> ->
 				NewEapID = EapID + 1,
 				TtlsData = ocs_eap_codec:eap_ttls(#eap_ttls{}),
 				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
 						identifier = NewEapID, data = TtlsData},
+				CCMsg = <<RxBuf/binary, Data/binary>>,
 				send_response(EapPacket1, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-				NextStateData = NewStateData#statedata{rx_buf = [RxBuf, Data]},
+				NextStateData = NewStateData#statedata{rx_buf = CCMsg},
 				{next_state, client_cipher, NextStateData, ?TIMEOUT};
 			#eap_ttls{more = true, message_len = MessageLength,
 					start = false, data = Data} ->
@@ -474,7 +490,7 @@ client_cipher({#radius{code = ?AccessRequest, id = RadiusID,
 						identifier = NewEapID, data = TtlsData},
 				send_response(EapPacket1, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-				NextStateData = NewStateData#statedata{rx_buf = [Data],
+				NextStateData = NewStateData#statedata{rx_buf = Data,
 						rx_length = MessageLength},
 				{next_state, client_cipher, NextStateData, ?TIMEOUT}
 		end
@@ -499,10 +515,25 @@ client_cipher({#radius{code = ?AccessRequest, id = RadiusID,
 server_cipher(timeout,
 		#statedata{session_id = SessionID} = StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
-server_cipher({eap_tls, _SslPid, <<?ChangeCipherSpec, _/binary>> = Data},
-		#statedata{tx_buf = TxBuf} = StateData) ->
-	NewStateData = StateData#statedata{tx_buf = [TxBuf, Data]},
-	{next_state, finish, NewStateData}.
+server_cipher({eap_tls, SslPid, <<?ChangeCipherSpec, _/binary>> = Data}, StateData) ->
+	NewStateData = StateData#statedata{ssl_pid = SslPid},
+	server_cipher1(Data, NewStateData).
+
+%% @hidden
+server_cipher1(<<_:24, Length:16, _/binary>> = Data,
+		#statedata{ssl_pid = SslPid, tx_buf = Buf} = StateData) ->
+	case Data of
+		<<_:40, _:Length/binary>> = SC ->
+			TxBuf = <<Buf/binary, SC/binary>>,
+			NewStateData = #statedata{tx_buf = TxBuf},
+			{next_state, finish, NewStateData};
+		<<_:40, _:Length/binary, Rest/binary>> = SC ->
+			Size = Length + 5,
+			<<Msg:Size/binary, _/binary>>  = SC,
+			TxBuf = <<Buf/binary, Msg/binary>>,
+			NewStateData = StateData#statedata{tx_buf = TxBuf},
+			finish({eap_tls, SslPid, Rest}, NewStateData)
+	end.
 
 -spec finish(Event :: timeout | term(), StateData :: statedata()) ->
 	Result :: {next_state, NextStateName :: atom(), NewStateData :: statedata()}
@@ -522,14 +553,14 @@ finish({eap_tls, _SslPid, <<?Handshake, _/binary>> = Data},
 		req_auth = RequestAuthenticator,secret = Secret,
 		eap_id = EapID} = StateData) ->
 	NewEapID = EapID + 1,
-	BinData = iolist_to_binary([TxBuf, Data]),
+	BinData = <<TxBuf/binary, Data/binary>>,
 	EapTtls = #eap_ttls{data = BinData},
 	EapData = ocs_eap_codec:eap_ttls(EapTtls),
 	EapPacket = #eap_packet{code = request, type = ?TTLS,
 			identifier = NewEapID, data = EapData},
 	send_response(EapPacket, ?AccessChallenge,
 			RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
-	NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = []},
+	NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = <<>>},
 	{next_state, client_passthrough, NewStateData}.
 
 -spec client_passthrough(Event :: timeout | term(), StateData :: statedata()) ->
@@ -556,7 +587,7 @@ client_passthrough({#radius{code = ?AccessRequest, id = RadiusID,
 		case ocs_eap_codec:eap_packet(EapMessage) of
 			#eap_packet{code = response, identifier = EapID, data = TtlsPacket} ->
 				#eap_ttls{data = TtlsData} = ocs_eap_codec:eap_ttls(TtlsPacket),
-				ocs_eap_tls_transport:deliver(SslPid, self(), [TtlsData]),
+				ocs_eap_tls_transport:deliver(SslPid, self(), TtlsData),
 				{next_state, server_passthrough, NewStateData};
 			#eap_packet{code = request, identifier = NewEapID} ->
 					NewEapPacket = #eap_packet{code = response, type = ?LegacyNak,
