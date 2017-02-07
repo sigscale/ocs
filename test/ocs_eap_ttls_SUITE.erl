@@ -69,7 +69,6 @@ suite() ->
 %% Initialization before the whole suite.
 %%
 init_per_suite(Config) ->
-	DataDir = ?config(data_dir, Config),
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
 	{ok, AuthAddress} = application:get_env(ocs, radius_auth_addr),
@@ -151,7 +150,7 @@ eap_ttls_authentication(Config) ->
 	{RadId5, EapId4, ServerHello} = server_hello(Socket, Address, Port,
 			NasId, AnonymousName, Secret, MAC, CHAuth, RadId4),
 	peer_tls_transport:deliver(SslPid1, self(), ServerHello),
-	{SslPid2, ClientCipher} = ssl_handshake(),
+	{_SslPid2, ClientCipher} = ssl_handshake(),
 	ReqAuth5 = radius:authenticator(),
 	{RadId6, CCAuth} = client_cipher(ClientCipher, Socket, Address, Port,
 			NasId, AnonymousName, Secret, MAC, ReqAuth5, EapId4, RadId5),
@@ -160,7 +159,7 @@ eap_ttls_authentication(Config) ->
 	peer_tls_transport:deliver(SslPid1, self(), ServerCipher),
 	SslSocket = ssl_handshake(),
 	Seed = prf_seed(ClientHelloMsg, ServerHello),
-	{MSK, _} = prf(SslSocket, master_secret ,
+	{_MSK, _} = prf(SslSocket, master_secret ,
 			<<"ttls keying material">>, Seed, 128),
 	ReqAuth6 = radius:authenticator(),
 	{RadId7, CPAuth} = client_passthrough(SslSocket, Subscriber, PeerAuth,
@@ -259,7 +258,7 @@ server_hello1(#eap_ttls{more = true, data = SH}, Socket, Address, Port,
 	NewAuth = radius:authenticator(),
 	server_hello1(TtlsPacket, Socket, Address, Port, NasId,
 		UserName, Secret, MAC, NewAuth, NewRadId, NewEapId, <<SH/binary, Buf/binary>>);
-server_hello1(#eap_ttls{data = SH}, Socket, _, _, _, _, _, _, _,
+server_hello1(#eap_ttls{data = SH}, _, _, _, _, _, _, _, _,
 		RadId, EapId, Buf) ->
 	%send_ack(Socket, Address, Port, NasId, UserName, Secret,
 	%		MAC, Auth, RadId, EapId),
@@ -347,8 +346,8 @@ server_cipher1(#eap_ttls{more = true, data = SC}, Socket, Address, Port,
 	NewAuth = radius:authenticator(),
 	server_hello1(TtlsPacket, Socket, Address, Port, NasId,
 		UserName, Secret, MAC, NewAuth, NewRadId, NewEapId, <<Buf/binary, SC/binary>>);
-server_cipher1(#eap_ttls{data = SC}, Socket, Address, Port, NasId,
-		UserName, Secret, MAC, Auth, RadId, EapId, Buf) ->
+server_cipher1(#eap_ttls{data = SC}, _, _, _, _, _, _, _, _,
+		RadId, EapId, Buf) ->
 	%send_ack(Socket, Address, Port, NasId, UserName, Secret,
 	%		MAC, Auth, RadId, EapId),
 	NewRadId = RadId + 1,
@@ -372,11 +371,11 @@ client_passthrough(SslSocket, UserName, Password, Socket, Address, Port,
 		binary_to_list(UserName), Secret, MAC, Auth, RadId),
 	{RadId, Auth}.
 
-server_passthrough(Socket, Address, Port, NasId, UserName, Secret,
-			MAC, Auth, RadId) ->
+server_passthrough(Socket, Address, Port, NasId, _UserName, Secret,
+			_MAC, Auth, RadId) ->
 	EapMsg = access_accept(Socket, Address, Port,
 			Secret, RadId, Auth),
-	#eap_packet{code = success, identifier = EapId} = ocs_eap_codec:eap_packet(EapMsg),
+	#eap_packet{code = success, identifier = _EapId} = ocs_eap_codec:eap_packet(EapMsg),
 	ok.
 
 %% EapPacket :: #eap_packet{}.
