@@ -183,7 +183,7 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 			case catch ocs_eap_codec:eap_packet(EAPMessage) of
 				#eap_packet{code = response,
 						type = ?Identity, identifier = StartEapID} ->
-					NewEapID = StartEapID + 1,
+					NewEapID = (StartEapID rem 255) + 1,
 					NewEapPacket = #eap_packet{code = request, type = ?TTLS,
 							identifier = NewEapID, data = EapData},
 					send_response(NewEapPacket, ?AccessChallenge,
@@ -288,7 +288,7 @@ client_hello({#radius{code = ?AccessRequest, id = RadiusID,
 				{next_state, server_hello, NextStateData, ?TIMEOUT};
 			#eap_ttls{more = true, message_len = undefined,
 					start = false, data = Data} when RxBuf /= <<>> ->
-				NewEapID = EapID + 1,
+				NewEapID = (EapID rem 255) + 1,
 				TtlsData = ocs_eap_codec:eap_ttls(#eap_ttls{}),
 				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
 						identifier = NewEapID, data = TtlsData},
@@ -299,7 +299,7 @@ client_hello({#radius{code = ?AccessRequest, id = RadiusID,
 				{next_state, client_hello, NextStateData, ?TIMEOUT};
 			#eap_ttls{more = true, message_len = MessageLength,
 					start = false, data = Data} ->
-				NewEapID = EapID + 1,
+				NewEapID = (EapID rem 255) + 1,
 				TtlsData = ocs_eap_codec:eap_ttls(#eap_ttls{}),
 				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
 						identifier = NewEapID, data = TtlsData},
@@ -407,7 +407,7 @@ server_hello2(#statedata{tx_buf = TxBuf, radius_fsm = RadiusFsm,
 		radius_id = RadiusID, req_auth = RequestAuthenticator,
 		secret = Secret, eap_id = EapID, max_size = MaxSize} = StateData) ->
 	MaxData = MaxSize - 10,
-	NewEapID = EapID + 1,
+	NewEapID = (EapID rem 255) + 1,
 	case size(TxBuf) of
 		Size when Size > MaxData ->
 			<<Chunk:MaxData/binary, Rest/binary>> = TxBuf,
@@ -473,7 +473,7 @@ client_cipher({#radius{code = ?AccessRequest, id = RadiusID,
 				{next_state, server_cipher, NextStateData};
 			#eap_ttls{more = true, message_len = undefined,
 					start = false, data = Data} when RxBuf /= <<>> ->
-				NewEapID = EapID + 1,
+				NewEapID = (EapID rem 255) + 1,
 				TtlsData = ocs_eap_codec:eap_ttls(#eap_ttls{}),
 				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
 						identifier = NewEapID, data = TtlsData},
@@ -484,7 +484,7 @@ client_cipher({#radius{code = ?AccessRequest, id = RadiusID,
 				{next_state, client_cipher, NextStateData, ?TIMEOUT};
 			#eap_ttls{more = true, message_len = MessageLength,
 					start = false, data = Data} ->
-				NewEapID = EapID + 1,
+				NewEapID = (EapID rem 255) + 1,
 				TtlsData = ocs_eap_codec:eap_ttls(#eap_ttls{}),
 				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
 						identifier = NewEapID, data = TtlsData},
@@ -552,7 +552,7 @@ finish({eap_tls, _SslPid, <<?Handshake, _/binary>> = Data},
 		#statedata{tx_buf = TxBuf, radius_id = RadiusID, radius_fsm = RadiusFsm,
 		req_auth = RequestAuthenticator,secret = Secret,
 		eap_id = EapID} = StateData) ->
-	NewEapID = EapID + 1,
+	NewEapID = (EapID rem 255) + 1,
 	BinData = <<TxBuf/binary, Data/binary>>,
 	EapTtls = #eap_ttls{data = BinData},
 	EapData = ocs_eap_codec:eap_ttls(EapTtls),
