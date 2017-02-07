@@ -127,7 +127,7 @@ eap_start(timeout, #statedata{radius_fsm = RadiusFsm, eap_id = EapID,
 			case catch ocs_eap_codec:eap_packet(EAPMessage) of
 				#eap_packet{code = response, type = ?Identity,
 						identifier = NewEapID} ->
-					NextEapID = NewEapID + 1,
+					NextEapID = (NewEapID rem 255) + 1,
 					EapPacket = #eap_packet{code = request,
 							type = ?PWD, identifier = NextEapID, data = EapData},
 					send_response(EapPacket, ?AccessChallenge,
@@ -208,7 +208,7 @@ id1(PeerID, Token, RadiusID, RadiusFsm, RequestAuthenticator,
 			session_id = SessionID} = StateData) ->
 	try
 		S_rand = crypto:rand_uniform(1, ?R),
-		NewEapID = EapID + 1,
+		NewEapID = (EapID rem 255) + 1,
 		case catch ocs:find_subscriber(PeerID) of
 			{ok, Password, _Attributes, _Balance, _Enabled} ->
 				PWE = ocs_eap_pwd:compute_pwe(Token, PeerID, ServerID, Password),
@@ -344,7 +344,7 @@ commit4(RadiusFsm, #radius{id = RadiusID,
 			ConfirmHeader = #eap_pwd{length = false,
 					more = false, pwd_exch = confirm, data = ConfirmS},
 			ConfirmEapData = ocs_eap_codec:eap_pwd(ConfirmHeader),
-			NewEapID = EapID + 1,
+			NewEapID = (EapID rem 255) + 1,
 			EapPacket = #eap_packet{code = request,
 					type = ?PWD, identifier = NewEapID, data = ConfirmEapData},
 			send_response(EapPacket, ?AccessChallenge,
