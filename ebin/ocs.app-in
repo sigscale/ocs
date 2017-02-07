@@ -47,5 +47,7 @@
 				{radius_acct_port, 1813},
 				{radius_disconnect_port, 3799},
 				{radius_disconnect_dir, "log"},
-				{accounting_dir, "log"}]},
+				{accounting_dir, "log"},
+				{acct_log_size, 10485760},
+				{acct_log_files, 100}]},
 		{mod, {ocs_app, []}}]}.
