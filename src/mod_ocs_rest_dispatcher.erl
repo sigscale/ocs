@@ -56,7 +56,7 @@ do(#mod{request_uri = Uri, data = Data} = ModData) ->
 						["ocs", "v1" | _] ->
 							{proceed, Data};
 						_ ->
-							dispatch(ModData)
+							serve_file(ModData)
 					end;
 				_Response ->
 					{proceed,  Data}
@@ -64,7 +64,7 @@ do(#mod{request_uri = Uri, data = Data} = ModData) ->
 	end.
 
 %% @hidden
-dispatch(#mod{socket = Socket, socket_type = SockType, data = Data,
+serve_file(#mod{socket = Socket, socket_type = SockType, data = Data,
 		config_db = ConfigDb, request_uri = Uri} = ModData) ->
 	Path = mod_alias:path(Data, ConfigDb, Uri),
 	send_response(Socket, SockType, Path, ModData). 
