@@ -261,8 +261,8 @@ request1(?AccountingStop, AcctSessionId, Id,
 	Subscriber = ocs:normalize(UserName),
 	case decrement_balance(Subscriber, Usage) of
 		{ok, OverUsed, false} when OverUsed =< 0 ->
-			case supervisor:start_child(DiscSup, [[Address, NasID,
-					Subscriber, AcctSessionId, Secret, Attributes, DiskId], []]) of
+			case supervisor:start_child(DiscSup,
+					[[Address, Subscriber, Secret, Attributes, DiskId], [{debug, [trace]}]]) of
 				{ok, _Child} ->
 					NewDiskId = DiskId + 1,
 					NewState = State#state{disc_id = NewDiskId},
@@ -279,14 +279,47 @@ request1(?AccountingStop, AcctSessionId, Id,
 		{error, not_found} ->
 			error_logger:warning_report(["Accounting subscriber not found",
 					{module, ?MODULE}, {subscriber, Subscriber},
-					{module, ?MODULE}, {username, UserName},
-					{nas, NasID}, {address, Address},
+					{username, UserName}, {nas, NasID}, {address, Address},
 					{session, AcctSessionId}]),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
-request1(?AccountingInterimUpdate, _AcctSessionId, Id,
-		Authenticator, Secret, _NasID, _Address, _Attributes, State) ->
-	{reply, {ok, response(Id, Authenticator, Secret)}, State};
+request1(?AccountingInterimUpdate, AcctSessionId, Id,
+		Authenticator, Secret, NasID, Address, Attributes,
+		#state{disc_sup = DiscSup, disc_id = DiskId} = State) ->
+	InOctets = radius_attributes:find(?AcctInputOctets, Attributes),
+	OutOctets = radius_attributes:find(?AcctOutputOctets, Attributes),
+	Usage = case {InOctets, OutOctets} of
+		{{error, not_found}, {error, not_found}} ->
+			0;
+		{{ok,In}, {ok,Out}} ->
+			In + Out
+	end,
+	{ok, UserName} = radius_attributes:find(?UserName, Attributes),
+	Subscriber = ocs:normalize(UserName),
+	case ocs:find_subscriber(Subscriber) of
+		{ok, _, _, Balance, Enabled} when Enabled == false; Balance =< Usage ->
+			case supervisor:start_child(DiscSup,
+					[[Address, Subscriber, Secret, Attributes, DiskId], [{debug, [trace]}]]) of
+				{ok, _Child} ->
+					NewDiskId = DiskId + 1,
+					NewState = State#state{disc_id = NewDiskId},
+					{reply, {ok, response(Id, Authenticator, Secret)}, NewState};
+				{error, Reason} ->
+					error_logger:error_report(["Failed to initiate session disconnect function",
+							{module, ?MODULE}, {subscriber, Subscriber},
+							{username, UserName}, {nas, NasID}, {address, Address},
+							{session, AcctSessionId}, {error, Reason}]),
+					{reply, {ok, response(Id, Authenticator, Secret)}, State}
+			end;
+		{ok, _, _, _, _} ->
+			{reply, {ok, response(Id, Authenticator, Secret)}, State};
+		{error, not_found} ->
+			error_logger:warning_report(["Accounting subscriber not found",
+					{module, ?MODULE}, {subscriber, Subscriber},
+					{username, UserName}, {nas, NasID}, {address, Address},
+					{session, AcctSessionId}]),
+			{reply, {ok, response(Id, Authenticator, Secret)}, State}
+	end;
 request1(?AccountingON, _AcctSessionId, Id,
 		Authenticator, Secret, _NasID, _Address, _Attributes, State) ->
 	{reply, {ok, response(Id, Authenticator, Secret)}, State};
