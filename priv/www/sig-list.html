@@ -104,7 +104,7 @@
 					<paper-input id="edit-trans-data-rate" name="ascendXmitRate" type="number" label="Transmit Data Rate"  ></paper-input>
 					<paper-input id="edit-sess-timeout" name="sessionTimeout" type="number" label="Session Timeout"  ></paper-input>
 					<paper-input id="edit-update-interval" name="acctInterimInterval" type="number" label="Update interval"  ></paper-input>
-					<paper-input id="edit-class" name="class" label="Class"  ></paper-input> </br>
+					<paper-input id="edit-class" name="class" type="text" label="Class" ></paper-input> </br>
 					Enable <div style="display:inline-block;"> <paper-toggle-button id="edit-enabled"></paper-toggle-button> </div>
 					<div class="buttons">
 						<paper-button on-click="cancel" class="cancle-btn">Cancel</paper-button>
@@ -358,7 +358,11 @@
 
 			var classx = new Object(); 
 			classx.name = "class"; 
-			classx.value = document.getElementById("edit-class").value;
+			if(document.getElementById("edit-class").value == undefined){
+				classx.value = null;
+			}else{
+				classx.value = document.getElementById("edit-class").value;
+			}
 			attr[4] = classx;
 
 			sub.attributes = attr;
