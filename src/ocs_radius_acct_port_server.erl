@@ -40,7 +40,6 @@
 		dir :: string(),
 		address :: inet:ip_address(),
 		port :: non_neg_integer(),
-		module :: atom(),
 		log :: term(),
 		handlers = gb_trees:empty() :: gb_trees:tree(Key ::
 				({NAS :: string() | inet:ip_address(), Port :: string(),
@@ -155,9 +154,9 @@ handle_info(timeout, #state{acct_sup = AcctSup} = State) ->
 	Children = supervisor:which_children(AcctSup),
 	{_, DiscSup, _, _} = lists:keyfind(ocs_radius_disconnect_fsm_sup, 1, Children),
 	{noreply, State#state{disc_sup = DiscSup}};
-handle_info({'EXIT', _Pid, {shutdown, SessionID}},
+handle_info({'EXIT', _Pid, {shutdown, SessionId}},
 		#state{handlers = Handlers} = State) ->
-	NewHandlers = gb_trees:delete(SessionID, Handlers),
+	NewHandlers = gb_trees:delete(SessionId, Handlers),
 	NewState = State#state{handlers = NewHandlers},
 	{noreply, NewState};
 handle_info({'EXIT', Fsm, _Reason},
@@ -222,11 +221,11 @@ request(Address, _Port, Secret, Radius, {_RadiusFsm, _Tag} = _From,
 		{ok, AcctStatusType}  = radius_attributes:find(?AcctStatusType, Attributes),
 		NasIpAddressV = radius_attributes:find(?NasIpAddress, Attributes),
 		NasIdentifierV = radius_attributes:find(?NasIdentifier, Attributes),
-		NasID = case {NasIpAddressV, NasIdentifierV} of
+		NasId = case {NasIpAddressV, NasIdentifierV} of
 			{{error, not_found}, {error, not_found}} ->
 				throw(reject);
-			{_, {error, not_found}} ->
-				undefined;
+			{Value, {error, not_found}} ->
+				Value;
 			{_, {ok, Value}} ->
 				Value
 		end,
@@ -237,18 +236,17 @@ request(Address, _Port, Secret, Radius, {_RadiusFsm, _Tag} = _From,
 		{ok, AcctSessionId} = radius_attributes:find(?AcctSessionId, Attributes),
 		ok = disk_log:log(Log, Attributes),
 		request1(AcctStatusType, AcctSessionId, Id,
-				Authenticator, Secret, NasID, Address, Attributes, State)
+				Authenticator, Secret, NasId, Address, Attributes, State)
 	catch
 		_:_ ->
 			{reply, {error, ignore}, State}
 	end.
 %% @hidden
 request1(?AccountingStart, _AcctSessionId, Id,
-		Authenticator, Secret, _NasID, _Address, _Attributes, State) ->
+		Authenticator, Secret, _NasId, _Address, _Attributes, State) ->
 	{reply, {ok, response(Id, Authenticator, Secret)}, State};
 request1(?AccountingStop, AcctSessionId, Id,
-		Authenticator, Secret, NasID, Address, Attributes,
-		#state{disc_sup = DiscSup, disc_id = DiskId} = State) ->
+		Authenticator, Secret, NasId, Address, Attributes, State) ->
 	InOctets = radius_attributes:find(?AcctInputOctets, Attributes),
 	OutOctets = radius_attributes:find(?AcctOutputOctets, Attributes),
 	Usage = case {InOctets, OutOctets} of
@@ -261,31 +259,19 @@ request1(?AccountingStop, AcctSessionId, Id,
 	Subscriber = ocs:normalize(UserName),
 	case decrement_balance(Subscriber, Usage) of
 		{ok, OverUsed, false} when OverUsed =< 0 ->
-			case supervisor:start_child(DiscSup,
-					[[Address, Subscriber, Secret, Attributes, DiskId], [{debug, [trace]}]]) of
-				{ok, _Child} ->
-					NewDiskId = DiskId + 1,
-					NewState = State#state{disc_id = NewDiskId},
-					{reply, {ok, response(Id, Authenticator, Secret)}, NewState};
-				{error, Reason} ->
-					error_logger:error_report(["Failed to initiate session disconnect function",
-							{module, ?MODULE}, {subscriber, Subscriber},
-							{username, UserName}, {nas, NasID}, {address, Address},
-							{session, AcctSessionId}, {error, Reason}]),
-					{reply, {ok, response(Id, Authenticator, Secret)}, State}
-			end;
+			start_disconnect(AcctSessionId, Id, Authenticator, Secret, NasId,
+					Address, Attributes, Subscriber, State);
 		{ok, _SufficientBalance, _Flag} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{error, not_found} ->
 			error_logger:warning_report(["Accounting subscriber not found",
 					{module, ?MODULE}, {subscriber, Subscriber},
-					{username, UserName}, {nas, NasID}, {address, Address},
+					{username, UserName}, {nas, NasId}, {address, Address},
 					{session, AcctSessionId}]),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
 request1(?AccountingInterimUpdate, AcctSessionId, Id,
-		Authenticator, Secret, NasID, Address, Attributes,
-		#state{disc_sup = DiscSup, disc_id = DiskId} = State) ->
+		Authenticator, Secret, NasId, Address, Attributes, State) ->
 	InOctets = radius_attributes:find(?AcctInputOctets, Attributes),
 	OutOctets = radius_attributes:find(?AcctOutputOctets, Attributes),
 	Usage = case {InOctets, OutOctets} of
@@ -298,36 +284,25 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 	Subscriber = ocs:normalize(UserName),
 	case ocs:find_subscriber(Subscriber) of
 		{ok, _, _, Balance, Enabled} when Enabled == false; Balance =< Usage ->
-			case supervisor:start_child(DiscSup,
-					[[Address, Subscriber, Secret, Attributes, DiskId], [{debug, [trace]}]]) of
-				{ok, _Child} ->
-					NewDiskId = DiskId + 1,
-					NewState = State#state{disc_id = NewDiskId},
-					{reply, {ok, response(Id, Authenticator, Secret)}, NewState};
-				{error, Reason} ->
-					error_logger:error_report(["Failed to initiate session disconnect function",
-							{module, ?MODULE}, {subscriber, Subscriber},
-							{username, UserName}, {nas, NasID}, {address, Address},
-							{session, AcctSessionId}, {error, Reason}]),
-					{reply, {ok, response(Id, Authenticator, Secret)}, State}
-			end;
+			start_disconnect(AcctSessionId, Id, Authenticator, Secret, NasId,
+					Address, Attributes, Subscriber, State);
 		{ok, _, _, _, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{error, not_found} ->
 			error_logger:warning_report(["Accounting subscriber not found",
 					{module, ?MODULE}, {subscriber, Subscriber},
-					{username, UserName}, {nas, NasID}, {address, Address},
+					{username, UserName}, {nas, NasId}, {address, Address},
 					{session, AcctSessionId}]),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
 request1(?AccountingON, _AcctSessionId, Id,
-		Authenticator, Secret, _NasID, _Address, _Attributes, State) ->
+		Authenticator, Secret, _NasId, _Address, _Attributes, State) ->
 	{reply, {ok, response(Id, Authenticator, Secret)}, State};
 request1(?AccountingOFF, _AcctSessionId, Id,
-		Authenticator, Secret, _NasID, _Address, _Attributes, State) ->
+		Authenticator, Secret, _NasId, _Address, _Attributes, State) ->
 	{reply, {ok, response(Id, Authenticator, Secret)}, State};
 request1(_AcctStatusType, _AcctSessionId, _Id,
-		_Authenticator, _Secret, _NasID, _Address, _Attributes, State) ->
+		_Authenticator, _Secret, _NasId, _Address, _Attributes, State) ->
 	{reply, {error, ignore}, State}.
 
 -spec response(Id :: byte(), RequestAuthenticator :: [byte()],
@@ -373,3 +348,34 @@ decrement_balance(Subscriber, Usage) when is_binary(Subscriber),
 			{error, Reason}
 	end.
 
+-spec start_disconnect(AcctSessionId :: string(), Id :: byte(),
+		Authenticator :: binary(), Secret :: string(),
+		NasId :: inet:ip_address() | string(), Address :: inet:ip_address(),
+		Attributes :: binary(), Subscriber :: string(), State :: #state{}) ->
+	{reply, {ok, Response :: binary()}, NewState :: #state{}}.
+%% @doc Start a disconnect_fsm worker.
+start_disconnect(AcctSessionId, Id, Authenticator, Secret, NasId, Address,
+		Attributes, Subscriber, #state{handlers = Handlers,
+		disc_sup = DiscSup, disc_id = DiscId} = State) ->
+	case gb_trees:lookup({NasId, Subscriber, AcctSessionId}, Handlers) of
+		{value, _DiscPid} ->
+			{reply, {ok, response(Id, Authenticator, Secret)}, State};
+		none ->
+			DiscArgs = [Address, NasId, Subscriber,
+					AcctSessionId, Secret, Attributes, Id],
+			StartArgs = [DiscArgs, []],
+			case supervisor:start_child(DiscSup, StartArgs) of
+				{ok, Child} ->
+					NewHandlers = gb_trees:insert({NasId, Subscriber, AcctSessionId},
+							Child, Handlers),
+					NewDiscId = DiscId + 1,
+					NewState = State#state{handlers = NewHandlers,
+							disc_id = NewDiscId},
+					{reply, {ok, response(Id, Authenticator, Secret)}, NewState};
+				{error, Reason} ->
+					error_logger:error_report(["Failed to initiate session disconnect function",
+							{module, ?MODULE}, {subscriber, Subscriber}, {nas, NasId},
+							{address, Address}, {session, AcctSessionId}, {error, Reason}]),
+					{reply, {ok, response(Id, Authenticator, Secret)}, State}
+			end
+	end.
