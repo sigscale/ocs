@@ -8,6 +8,8 @@
       {tls_cacert, "ssl/ca.pem"}]},
 {radius,
       [{sock_opts, [{recbuf, 131072}, {sndbuf, 131072}]}]},
+{mnesia,
+      [{dir, "db"}]},
 {sasl,
       [{sasl_error_logger, {file, "log/sasl/sasl.log"}},
       {errlog_type, error},
