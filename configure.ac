@@ -56,13 +56,22 @@ AC_LANG_POP([Erlang])
 ##
 ## Libraries:  check for libraries
 ##
+AC_ERLANG_SUBST_ERTS_VER
 AC_CHECK_LIB([crypto], [EC_GROUP_new], [],
 		[AC_MSG_ERROR([openssl crypto was not found!])])
 AC_LANG_PUSH([Erlang])
+AC_ERLANG_CHECK_LIB([kernel], [], [AC_MSG_ERROR([kernel was not found!])])
+AC_ERLANG_CHECK_LIB([stdlib], [], [AC_MSG_ERROR([stdlib was not found!])])
+AC_ERLANG_CHECK_LIB([sasl], [], [AC_MSG_ERROR([sasl was not found!])])
+AC_ERLANG_CHECK_LIB([mnesia], [], [AC_MSG_ERROR([mnesia was not found!])])
 AC_ERLANG_CHECK_LIB([crypto], [], [AC_MSG_ERROR([crypto was not found!])])
-AC_ERLANG_CHECK_LIB([inets], [], [AC_MSG_ERROR([inets was not found!])])
-AC_ERLANG_CHECK_LIB([ssl], [], [AC_MSG_ERROR([ssl was not found!])])
+AC_ERLANG_CHECK_LIB([asn1], [], [AC_MSG_ERROR([asn1 was not found!])])
 AC_ERLANG_CHECK_LIB([public_key], [], [AC_MSG_ERROR([public_key was not found!])])
+AC_ERLANG_CHECK_LIB([ssl], [], [AC_MSG_ERROR([ssl was not found!])])
+AC_ERLANG_CHECK_LIB([inets], [], [AC_MSG_ERROR([inets was not found!])])
+AC_ERLANG_CHECK_LIB([xmerl], [], [AC_MSG_ERROR([xmerl was not found!])])
+AC_ERLANG_CHECK_LIB([compiler], [], [AC_MSG_ERROR([compiler was not found!])])
+AC_ERLANG_CHECK_LIB([syntax_tools], [], [AC_MSG_ERROR([syntax_tools was not found!])])
 AC_ERLANG_CHECK_LIB([mochiweb], [], [AC_MSG_ERROR([mochiweb was not found!])])
 AC_ERLANG_CHECK_LIB([radius], [], [AC_MSG_ERROR([radius was not found!])])
 AC_LANG_POP([Erlang])
@@ -93,7 +102,8 @@ AC_CHECK_FUNC([BN_new], [], [AC_MSG_ERROR([BN_new function not found!])])
 ##
 ## Output:  create output files
 ## 
+
 AC_OUTPUT([Makefile include/Makefile ebin/Makefile doc/Makefile
 		c_src/Makefile priv/Makefile priv/lib/Makefile
-		priv/www/Makefile test/Makefile])
+		priv/www/Makefile test/Makefile ocs.rel sys.config])
 
