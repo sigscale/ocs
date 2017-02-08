@@ -525,7 +525,7 @@ server_cipher1(<<_:24, Length:16, _/binary>> = Data,
 	case Data of
 		<<_:40, _:Length/binary>> = SC ->
 			TxBuf = <<Buf/binary, SC/binary>>,
-			NewStateData = #statedata{tx_buf = TxBuf},
+			NewStateData = StateData#statedata{tx_buf = TxBuf},
 			{next_state, finish, NewStateData};
 		<<_:40, _:Length/binary, Rest/binary>> = SC ->
 			Size = Length + 5,
