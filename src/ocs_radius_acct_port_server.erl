@@ -91,6 +91,7 @@ init([AcctSup, Address, Port, _Options]) ->
 			case disk_log:open([{name, Log}, {file, FileName},
 					{type, wrap}, {size, {LogSize, LogFiles}}]) of
 				{ok, Log} ->
+					process_flag(trap_exit, true),
 					{ok, State#state{log = Log}, 0};
 				{repaired, Log, {recovered, Rec}, {badbytes, Bad}} ->
 					error_logger:warning_report(["Disk log repaired",
@@ -365,9 +366,10 @@ start_disconnect(AcctSessionId, Id, Authenticator, Secret, NasId, Address,
 					AcctSessionId, Secret, Attributes, Id],
 			StartArgs = [DiscArgs, []],
 			case supervisor:start_child(DiscSup, StartArgs) of
-				{ok, Child} ->
+				{ok, DiscFsm} ->
+					link(DiscFsm),
 					NewHandlers = gb_trees:insert({NasId, Subscriber, AcctSessionId},
-							Child, Handlers),
+							DiscFsm, Handlers),
 					NewDiscId = DiscId + 1,
 					NewState = State#state{handlers = NewHandlers,
 							disc_id = NewDiscId},
