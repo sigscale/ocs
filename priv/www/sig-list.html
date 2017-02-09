@@ -225,8 +225,8 @@
 									{ name: "secret" }
 								];
 			grid.items = event.detail.xhr.response;
-			grid.header.getCell(0,0).content = 'Address';
-			grid.header.getCell(0,1).content = 'Secret';
+			grid.header.getCell(0,0).content = '<div style="font-size:16px;">Address</div>';
+			grid.header.getCell(0,1).content = '<div style="font-size:16px;">Secret</div>';
 			grid.visibleRows =17;
 			document.getElementById("progressbar").indeterminate = false;
 		},
