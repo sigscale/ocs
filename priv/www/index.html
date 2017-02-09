@@ -73,25 +73,40 @@
 
 				function downloadCSV(event){
 					var data = document.getElementById("frozen").items;
+					var csvObject = new Object();
+					csvObject.gridData = data;
+
+					if(selection == "selectionSubscribers"){
+						csvObject.headers = "Identity, Secret, Balance, Data Rate, Xmit Rate, Session Timeout," +
+								  "Accounting Interval, Class, Enabled \n";
+						csvObject.keys = [ "id","password","balance","ascendDataRate","ascendXmitRate", +
+								  "sessionTimeout","acctInterimInterval","class","enabled"];
+						csvObject.fileName = "subscribers.csv";
+					}
+					if(selection == "selectionRadiusClients"){
+						csvObject.headers = "Identity, Secret \n";
+						csvObject.keys = ["id", "secret"];
+						csvObject.fileName = "radius_clients.csv";
+					}
+					generateCSVData(csvObject);
+
+				}
+
+				function generateCSVData(csvObject){
 					var csvData = "data:text/csv;charset=utf-8,";
-					csvData += "identity, password, balance, data rate, xmit rate, session timeout," +
-									"accounting interval, class, enabled \n"
-					data.forEach(function(item, index){
-						dataLine = item.id + ","
-										+ item.password + ","
-										+ item.balance + ","
-										+ item.ascendDataRate + ","
-										+ item.ascendXmitRate + ","
-										+ item.sessionTimeout + ","
-										+ item.acctInterimInterval + ","
-										+ item.class + ","
-										+ item.enabled + "\n";
+					csvData += csvObject.headers;
+					csvObject.gridData.forEach(function(row, index){
+						var dataLine = "";
+						csvObject.keys.forEach(function(key, i){
+											dataLine += row[key] + ",";
+										});
+						dataLine += "\n";
 						csvData += dataLine;
 						});
 					var encodedUri = encodeURI(csvData);
 					var link = document.createElement("a");
 					link.setAttribute("href", encodedUri);
-					link.setAttribute("download", "subscriber_data.csv");
+					link.setAttribute("download", csvObject.fileName);
 					document.body.appendChild(link);
 					link.click();
 				}
