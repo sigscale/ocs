@@ -464,7 +464,13 @@
 					var selection = grid.items[index];
 					document.getElementById("edit-id1").value = selection.id;
 					document.getElementById("edit-id2").value = selection.id;
-					document.getElementById("edit-pwd").value = selection.password;
+
+					if(selection.password == ""){
+						document.getElementById("edit-pwd").value = "[no secret]";
+					}else{
+						document.getElementById("edit-pwd").value = selection.password;
+					}
+
 					document.getElementById("edit-balance").value = selection.balance;
 					document.getElementById("edit-recv-data-rate").value = selection.ascendDataRate;
 					document.getElementById("edit-trans-data-rate").value = selection.ascendXmitRate;
