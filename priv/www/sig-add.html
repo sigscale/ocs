@@ -181,8 +181,11 @@
 
 				var classx = new Object();
 				classx.name = "class";
-				classx.value = document.getElementById("add7").value;
-
+				if(document.getElementById("add7").value == ""){
+					classx.value = null;
+				}else{
+					classx.value = document.getElementById("add7").value;
+				}
 				var attributes = new Array();
 				attributes[0] = ascendDataRate;
 				attributes[1] = ascendXmitRate;
