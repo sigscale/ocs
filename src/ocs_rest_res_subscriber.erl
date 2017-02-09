@@ -112,6 +112,8 @@ perform_post(RequestBody) ->
 			{error, 400}
 	end.
 %% @hidden
+perform_post1(Id, null, RadAttributes, Balance, EnabledStatus) ->
+	perform_post1(Id, "", RadAttributes, Balance, EnabledStatus);
 perform_post1(Id, Password, RadAttributes, Balance, EnabledStatus) ->
 	try
 	case catch ocs:add_subscriber(Id, Password, RadAttributes, Balance, EnabledStatus) of

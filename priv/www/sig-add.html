@@ -89,7 +89,7 @@
 			</paper-toolbar>
 				<form  is="iron-form"  id="presubmit" method="post" action="/ocs/v1/subscriber"  content-type="application/json" >
 					<paper-input id="add1" name="subscriber" label="Identity*" required></paper-input>
-					<paper-input id="add2" name="password"  label="Secret*" required></paper-input>
+					<paper-input id="add2" name="password"  label="Secret" ></paper-input>
 					<paper-input id="add3" name="ascendDataRate" type="number" label="Receive Data Rate" ></paper-input>
 					<paper-input id="add4" name="ascendXmitRate" type="number" label="Transmit Data Rate" ></paper-input>
 					<paper-input id="add5" name="sessionTimeout" type="number" label="Session Timeout" ></paper-input>
@@ -151,7 +151,11 @@
 				var form = document.getElementById('presubmit');
 				var formData = new Object();
 				formData.id = document.getElementById("add1").value;
-				formData.password = document.getElementById("add2").value;
+				if(document.getElementById("add2").value == ""){
+					formData.password = null;
+				}else{
+					formData.password = document.getElementById("add2").value;
+				}
 
 				var ascendDataRate = new Object(); 
 				ascendDataRate.name = "ascendDataRate";
