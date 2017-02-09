@@ -201,17 +201,17 @@ json_to_radius([{struct, [{"name", "ascendXmitRate"} | VendorSpecific]} | T], Ac
 		Attribute ->
 			json_to_radius(T, [Attribute | Acc])
 	end;
-json_to_radius([{struct,[{"name","sessionTimeout"}, {"value", null}]} | T], Acc) ->
+json_to_radius([{struct,[{"name","sessionTimeout"}, {"value", V}]} | T], Acc) when V == null; V == "" ->
 	json_to_radius(T, Acc);
 json_to_radius([{struct,[{"name","sessionTimeout"}, {"value", V}]} | T], Acc) ->
 	Attribute = {?SessionTimeout, V},
 	json_to_radius(T, [Attribute | Acc]);
-json_to_radius([{struct,[{"name","acctInterimInterval"}, {"value", null}]} | T], Acc) ->
+json_to_radius([{struct,[{"name","acctInterimInterval"}, {"value", V}]} | T], Acc) when V == null; V == ""->
 	json_to_radius(T,Acc);
 json_to_radius([{struct,[{"name","acctInterimInterval"}, {"value", V}]} | T], Acc) ->
 	Attribute = {?AcctInterimInterval, V},
 	json_to_radius(T, [Attribute | Acc]);
-json_to_radius([{struct,[{"name","class"}, {"value", null}]} | T], Acc) ->
+json_to_radius([{struct,[{"name","class"}, {"value", V}]} | T], Acc) when V == null; V == "" ->
 	json_to_radius(T, Acc);
 json_to_radius([{struct,[{"name","class"}, {"value", V}]} | T], Acc) ->
 	Attribute = {?Class, V},
