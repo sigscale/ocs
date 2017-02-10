@@ -114,7 +114,7 @@ update_client(Address, Password) ->
 -spec get_clients() -> Result
 	when
 		Result :: [#radius_client{}] | {error, Reason :: term()}.
-%% @doc Get all RADIUS clients
+%% @doc Get all RADIUS clients.
 get_clients()->
 	MatchSpec = [{'_', [], ['$_']}],
 	F = fun(F, start, Acc) ->
