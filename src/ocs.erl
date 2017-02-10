@@ -36,6 +36,8 @@
 
 -include("ocs.hrl").
 -define(LOGNAME, radius_acct).
+-define(CHUNKSIZE, 100).
+
 %%----------------------------------------------------------------------
 %%  The ocs public API
 %%----------------------------------------------------------------------
@@ -109,17 +111,27 @@ update_client(Address, Password) ->
 			{error, Reason}
 	end.
 
--spec get_clients() -> Result :: [#radius_client{}] |
-	{error, Reason :: term()}.
+-spec get_clients() -> Result
+	when
+		Result :: [#radius_client{}] | {error, Reason :: term()}.
 %% @doc Get all RADIUS clients
 get_clients()->
-	F1 = fun(Sub, Acc)->  [Sub | Acc] end,
-	F2 = fun()-> mnesia:foldl(F1, [], radius_client) end,
-	case mnesia:transaction(F2) of
+	MatchSpec = [{'_', [], ['$_']}],
+	F = fun(F, start, Acc) ->
+				F(F, mnesia:select(radius_client, MatchSpec,
+						?CHUNKSIZE, read), Acc);
+			(_F, '$end_of_table', Acc) ->
+				lists:flatten(lists:reverse(Acc));
+			(_F, {error, Reason}, _Acc) ->
+				{error, Reason};
+			(F,{Clients, Cont}, Acc) ->
+				F(F, mnesia:select(Cont), [Clients | Acc])
+	end,
+	case mnesia:transaction(F, [F, start, []]) of
 		{aborted, Reason} ->
 			{error, Reason};
-		{atomic, Clients} ->
-			Clients
+		{atomic, Result} ->
+			Result
 	end.
 
 -spec delete_client(Client :: string() | inet:ip_address()) -> ok.
@@ -229,17 +241,27 @@ find_subscriber(Subscriber) when is_binary(Subscriber) ->
 			{error, Reason}
 	end.
 
--spec get_subscribers() -> Result :: [#subscriber{}] |
-	{error, Reason :: term()}.
+-spec get_subscribers() -> Result
+	when
+		Result :: [#subscriber{}] | {error, Reason :: term()}.
 %% @doc Get all entries in the subscriber table.
 get_subscribers()->
-	F1 = fun(Sub, Acc)->  [Sub | Acc] end,
-	F2 = fun()-> mnesia:foldl(F1, [], subscriber) end,
-	case mnesia:transaction(F2) of
-		{aborted, Reason} -> 
+	MatchSpec = [{'_', [], ['$_']}],
+	F = fun(F, start, Acc) ->
+				F(F, mnesia:select(subscriber, MatchSpec,
+						?CHUNKSIZE, read), Acc);
+			(_F, '$end_of_table', Acc) ->
+				lists:flatten(lists:reverse(Acc));
+			(_F, {error, Reason}, _Acc) ->
+				{error, Reason};
+			(F,{Subscribers, Cont}, Acc) ->
+				F(F, mnesia:select(Cont), [Subscribers | Acc])
+	end,
+	case mnesia:transaction(F, [F, start, []]) of
+		{aborted, Reason} ->
 			{error, Reason};
-		{atomic, Subscribers} ->
-			Subscribers
+		{atomic, Result} ->
+			Result
 	end.
 
 -spec delete_subscriber(Subscriber :: string() | binary()) -> ok.
