@@ -174,8 +174,7 @@ code_change(_OldVsn, State, _Extra) ->
 			| {reply, {error, ignore}, NewState :: state()}.
 %% @doc Handle a received RADIUS Accounting Request packet.
 %% @private
-request(Address, Port, Secret, Radius, {_RadiusFsm, _Tag} = _From,
-		#state{address = ServerAddress, port = ServerPort} = State) ->
+request(Address, Port, Secret, Radius, {_RadiusFsm, _Tag} = _From, State) ->
 	try
 		#radius{code = ?AccountingRequest, id = Id, attributes = Attributes,
 				authenticator = Authenticator} = Radius,
@@ -200,20 +199,22 @@ request(Address, Port, Secret, Radius, {_RadiusFsm, _Tag} = _From,
 		{error, not_found} = radius_attributes:find(?ReplyMessage, Attributes),
 		{error, not_found} = radius_attributes:find(?State, Attributes),
 		{ok, AcctSessionId} = radius_attributes:find(?AcctSessionId, Attributes),
-		ok = ocs_log:radius_acct_log({ServerAddress, ServerPort},
-				{Address, Port}, Attributes),
 		request1(AcctStatusType, AcctSessionId, Id,
-				Authenticator, Secret, NasId, Address, Attributes, State)
+				Authenticator, Secret, NasId, Address, Port, Attributes, State)
 	catch
 		_:_ ->
 			{reply, {error, ignore}, State}
 	end.
 %% @hidden
 request1(?AccountingStart, _AcctSessionId, Id,
-		Authenticator, Secret, _NasId, _Address, _Attributes, State) ->
+		Authenticator, Secret, _NasId, Address, Port, Attributes,
+		#state{address = ServerAddress, port = ServerPort} = State) ->
+	ok = ocs_log:radius_acct_log({ServerAddress, ServerPort},
+				{Address, Port}, Attributes),
 	{reply, {ok, response(Id, Authenticator, Secret)}, State};
 request1(?AccountingStop, AcctSessionId, Id,
-		Authenticator, Secret, NasId, Address, Attributes, State) ->
+		Authenticator, Secret, NasId, Address, Port, Attributes,
+		#state{address = ServerAddress, port = ServerPort} = State) ->
 	InOctets = radius_attributes:find(?AcctInputOctets, Attributes),
 	OutOctets = radius_attributes:find(?AcctOutputOctets, Attributes),
 	Usage = case {InOctets, OutOctets} of
@@ -223,6 +224,8 @@ request1(?AccountingStop, AcctSessionId, Id,
 			In + Out
 	end,
 	{ok, UserName} = radius_attributes:find(?UserName, Attributes),
+	ok = ocs_log:radius_acct_log({ServerAddress, ServerPort},
+				{Address, Port}, Attributes),
 	Subscriber = ocs:normalize(UserName),
 	case decrement_balance(Subscriber, Usage) of
 		{ok, OverUsed, false} when OverUsed =< 0 ->
@@ -238,7 +241,8 @@ request1(?AccountingStop, AcctSessionId, Id,
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
 request1(?AccountingInterimUpdate, AcctSessionId, Id,
-		Authenticator, Secret, NasId, Address, Attributes, State) ->
+		Authenticator, Secret, NasId, Address, Port, Attributes,
+		#state{address = ServerAddress, port = ServerPort} = State) ->
 	InOctets = radius_attributes:find(?AcctInputOctets, Attributes),
 	OutOctets = radius_attributes:find(?AcctOutputOctets, Attributes),
 	Usage = case {InOctets, OutOctets} of
@@ -248,6 +252,8 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 			In + Out
 	end,
 	{ok, UserName} = radius_attributes:find(?UserName, Attributes),
+	ok = ocs_log:radius_acct_log({ServerAddress, ServerPort},
+				{Address, Port}, Attributes),
 	Subscriber = ocs:normalize(UserName),
 	case ocs:find_subscriber(Subscriber) of
 		{ok, _, _, Balance, Enabled} when Enabled == false; Balance =< Usage ->
@@ -263,13 +269,19 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
 request1(?AccountingON, _AcctSessionId, Id,
-		Authenticator, Secret, _NasId, _Address, _Attributes, State) ->
+		Authenticator, Secret, _NasId, Address, Port, Attributes,
+		#state{address = ServerAddress, port = ServerPort} = State) ->
+	ok = ocs_log:radius_acct_log({ServerAddress, ServerPort},
+				{Address, Port}, Attributes),
 	{reply, {ok, response(Id, Authenticator, Secret)}, State};
 request1(?AccountingOFF, _AcctSessionId, Id,
-		Authenticator, Secret, _NasId, _Address, _Attributes, State) ->
+		Authenticator, Secret, _NasId, Address, Port, Attributes,
+		#state{address = ServerAddress, port = ServerPort} = State) ->
+	ok = ocs_log:radius_acct_log({ServerAddress, ServerPort},
+				{Address, Port}, Attributes),
 	{reply, {ok, response(Id, Authenticator, Secret)}, State};
-request1(_AcctStatusType, _AcctSessionId, _Id,
-		_Authenticator, _Secret, _NasId, _Address, _Attributes, State) ->
+request1(_AcctStatusType, _AcctSessionId, _Id, _Authenticator,
+		_Secret, _NasId, _Address, _Port, _Attributes, State) ->
 	{reply, {error, ignore}, State}.
 
 -spec response(Id :: byte(), RequestAuthenticator :: [byte()],
