@@ -132,7 +132,7 @@ file_chunk(Log, IODevice, Continuation) ->
 			{error, Reason};
 		{Continuation2, Terms} ->
 			Fun =  fun(Event) ->
-						io:fwrite(IODevice, "~w~n", [Event])
+						io:fwrite(IODevice, "~999p~n", [Event])
 			end,
 			lists:foreach(Fun, Terms),
 			file_chunk(Log, IODevice, Continuation2)
