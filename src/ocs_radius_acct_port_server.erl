@@ -210,7 +210,7 @@ request1(?AccountingStart, _AcctSessionId, Id,
 		Authenticator, Secret, _NasId, Address, Port, Attributes,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
 	ok = ocs_log:radius_acct_log({ServerAddress, ServerPort},
-				{Address, Port}, Attributes),
+				{Address, Port}, start, Attributes),
 	{reply, {ok, response(Id, Authenticator, Secret)}, State};
 request1(?AccountingStop, AcctSessionId, Id,
 		Authenticator, Secret, NasId, Address, Port, Attributes,
@@ -225,7 +225,7 @@ request1(?AccountingStop, AcctSessionId, Id,
 	end,
 	{ok, UserName} = radius_attributes:find(?UserName, Attributes),
 	ok = ocs_log:radius_acct_log({ServerAddress, ServerPort},
-				{Address, Port}, Attributes),
+				{Address, Port}, stop, Attributes),
 	Subscriber = ocs:normalize(UserName),
 	case decrement_balance(Subscriber, Usage) of
 		{ok, OverUsed, false} when OverUsed =< 0 ->
@@ -253,7 +253,7 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 	end,
 	{ok, UserName} = radius_attributes:find(?UserName, Attributes),
 	ok = ocs_log:radius_acct_log({ServerAddress, ServerPort},
-				{Address, Port}, Attributes),
+				{Address, Port}, interim, Attributes),
 	Subscriber = ocs:normalize(UserName),
 	case ocs:find_subscriber(Subscriber) of
 		{ok, _, _, Balance, Enabled} when Enabled == false; Balance =< Usage ->
@@ -272,13 +272,13 @@ request1(?AccountingON, _AcctSessionId, Id,
 		Authenticator, Secret, _NasId, Address, Port, Attributes,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
 	ok = ocs_log:radius_acct_log({ServerAddress, ServerPort},
-				{Address, Port}, Attributes),
+				{Address, Port}, on, Attributes),
 	{reply, {ok, response(Id, Authenticator, Secret)}, State};
 request1(?AccountingOFF, _AcctSessionId, Id,
 		Authenticator, Secret, _NasId, Address, Port, Attributes,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
 	ok = ocs_log:radius_acct_log({ServerAddress, ServerPort},
-				{Address, Port}, Attributes),
+				{Address, Port}, off, Attributes),
 	{reply, {ok, response(Id, Authenticator, Secret)}, State};
 request1(_AcctStatusType, _AcctSessionId, _Id, _Authenticator,
 		_Secret, _NasId, _Address, _Port, _Attributes, State) ->

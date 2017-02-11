@@ -21,7 +21,7 @@
 -copyright('Copyright (c) 2016-2017 SigScale Global Inc.').
 
 %% export the ocs_log public API
--export([radius_acct_open/0, radius_acct_log/3, radius_acct_file/1,
+-export([radius_acct_open/0, radius_acct_log/4, radius_acct_file/1,
 		radius_acct_close/0]).
 
 %% export the ocs_log private API
@@ -70,18 +70,19 @@ radius_acct_open1(Directory) ->
 			{error, Reason}
 	end.
 
--spec radius_acct_log(Server, Client, Attributes) -> Result
+-spec radius_acct_log(Server, Client, Type, Attributes) -> Result
 	when
 		Server :: {Address :: inet:ip_address(),
 				Port :: integer()},
 		Client :: {Address :: inet:ip_address(),
 				Port :: integer()},
+		Type :: on | off | start | stop | interim,
 		Attributes :: radius_attributes:attributes(),
 		Result :: ok | {error, Reason :: term()}.
 %% @doc Write an accounting event to disk log.
-radius_acct_log(Server, Client, Attributes) ->
+radius_acct_log(Server, Client, Type, Attributes) ->
 	TS = erlang:system_time(millisecond),
-	Event = {TS, node(), Server, Client, Attributes},
+	Event = {TS, node(), Server, Client, Type, Attributes},
 	disk_log:log(?RADACCT, Event).
 
 -spec radius_acct_close() -> Result
