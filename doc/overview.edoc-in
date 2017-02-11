@@ -1090,7 +1090,7 @@ content-Length: 0
 ==Configuration==
 The {@link //ocs. ocs} application is configured using the following environment variables:
 <dl>
-	<dt>accounting_dir</dt>
+	<dt>acct_log_dir</dt>
 		<dd>Path of directory to store accounting logs.</dd>
 	<dt>acct_log_files</dt>
 		<dd>Number of accounting log files.</dd>

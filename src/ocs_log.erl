@@ -41,7 +41,7 @@
 		Result :: ok | {error, Reason :: term()}.
 %% @doc Open the accounting log for logging events.
 radius_acct_open() ->
-	{ok, Directory} = application:get_env(ocs, accounting_dir),
+	{ok, Directory} = application:get_env(ocs, acct_log_dir),
 	case file:make_dir(Directory) of
 		ok ->
 			radius_acct_open1(Directory);
