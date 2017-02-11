@@ -37,17 +37,13 @@
 -record(state,
 		{acct_sup :: pid(),
 		disc_sup :: undefined | pid(),
-		dir :: string(),
 		address :: inet:ip_address(),
 		port :: non_neg_integer(),
-		log :: term(),
 		handlers = gb_trees:empty() :: gb_trees:tree(Key ::
 				({NAS :: string() | inet:ip_address(), Port :: string(),
 				Peer :: string()}), Value :: (Fsm :: pid())),
 		disc_id = 1 :: integer()}).
 -type state() :: #state{}.
-
--define(LOGNAME, radius_acct).
 
 %%----------------------------------------------------------------------
 %%  The ocs_radius_acct_port_server API
@@ -67,44 +63,13 @@
 %% @private
 %%
 init([AcctSup, Address, Port, _Options]) ->
-	{ok, Directory} = application:get_env(ocs, accounting_dir),
-	{ok, LogSize} = application:get_env(ocs, acct_log_size),
-	{ok, LogFiles} = application:get_env(ocs, acct_log_files),
-	Log = ?LOGNAME,
-	FileName = Directory ++ "/" ++ atom_to_list(Log),
-	State = #state{address = Address, port = Port,
-			dir = Directory, acct_sup = AcctSup},
-	try case file:list_dir(Directory) of
-		{ok, _} ->
-			ok;
-		{error, enoent} ->
-			case file:make_dir(Directory) of
-				ok ->
-					ok;
-				{error, Reason} ->
-					throw(Reason)
-			end;
-		{error, Reason} ->
-			throw(Reason)
-	end of
+	State = #state{address = Address, port = Port, acct_sup = AcctSup},
+	case ocs_log:radius_acct_open() of
 		ok ->
-			case disk_log:open([{name, Log}, {file, FileName},
-					{type, wrap}, {size, {LogSize, LogFiles}}]) of
-				{ok, Log} ->
-					process_flag(trap_exit, true),
-					{ok, State#state{log = Log}, 0};
-				{repaired, Log, {recovered, Rec}, {badbytes, Bad}} ->
-					error_logger:warning_report(["Disk log repaired",
-							{log, Log}, {path, FileName}, {recovered, Rec},
-							{badbytes, Bad}]),
-					process_flag(trap_exit, true),
-					{ok, State#state{log = Log}, 0};
-				{error, Reason1} ->
-					{stop, Reason1}
-			end
-	catch
-		Reason2 ->
-			{stop, Reason2}
+			process_flag(trap_exit, true),
+			{ok, State, 0};
+		{error, Reason} ->
+			{stop, Reason}
 	end.
 
 -spec handle_call(Request :: term(), From :: {Pid :: pid(), Tag :: any()},
@@ -185,8 +150,8 @@ handle_info({'EXIT', Fsm, _Reason},
 %% @see //stdlib/gen_server:terminate/3
 %% @private
 %%
-terminate(_Reason, #state{log = Log} = _State) ->
-	disk_log:close(Log).
+terminate(_Reason,  _State) ->
+	ocs_log:radius_acct_close().
 
 -spec code_change(OldVsn :: (Vsn :: term() | {down, Vsn :: term()}),
 		State :: state(), Extra :: term()) ->
@@ -209,8 +174,8 @@ code_change(_OldVsn, State, _Extra) ->
 			| {reply, {error, ignore}, NewState :: state()}.
 %% @doc Handle a received RADIUS Accounting Request packet.
 %% @private
-request(Address, _Port, Secret, Radius, {_RadiusFsm, _Tag} = _From,
-		#state{handlers = _Handlers, log = Log} = State) ->
+request(Address, Port, Secret, Radius, {_RadiusFsm, _Tag} = _From,
+		#state{address = ServerAddress, port = ServerPort} = State) ->
 	try
 		#radius{code = ?AccountingRequest, id = Id, attributes = Attributes,
 				authenticator = Authenticator} = Radius,
@@ -235,7 +200,8 @@ request(Address, _Port, Secret, Radius, {_RadiusFsm, _Tag} = _From,
 		{error, not_found} = radius_attributes:find(?ReplyMessage, Attributes),
 		{error, not_found} = radius_attributes:find(?State, Attributes),
 		{ok, AcctSessionId} = radius_attributes:find(?AcctSessionId, Attributes),
-		ok = disk_log:log(Log, Attributes),
+		ok = ocs_log:radius_acct_log({ServerAddress, ServerPort},
+				{Address, Port}, Attributes),
 		request1(AcctStatusType, AcctSessionId, Id,
 				Authenticator, Secret, NasId, Address, Attributes, State)
 	catch

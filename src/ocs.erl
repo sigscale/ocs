@@ -26,7 +26,6 @@
 -export([add_subscriber/3, add_subscriber/4, add_subscriber/5, find_subscriber/1,
 				delete_subscriber/1, update_password/2, update_attributes/4,
 				get_subscribers/0]).
--export([log_file/1]).
 -export([generate_password/0]).
 -export([start/3]).
 %% export the ocs private API
@@ -340,13 +339,6 @@ update_attributes(Subscriber, Balance, Attributes, EnabledStatus)
 			{error, Reason}
 	end.
 
--spec log_file(FileName :: string()) -> ok.
-%% @doc Write all logged accounting records to a file.
-%%
-log_file(FileName) when is_list(FileName) ->
-   {ok, IODevice} = file:open(FileName, [write]),
-   file_chunk(?LOGNAME, IODevice, start).
-
 -type password() :: [50..57 | 97..104 | 106..107 | 109..110 | 112..116 | 119..122].
 -spec generate_password() -> password().
 %% @equiv generate_password(12)
@@ -402,22 +394,6 @@ charset() ->
 	C5 = lists:seq($p, $t),
 	C6 = lists:seq($w, $z),
 	lists:append([C1, C2, C3, C4, C5, C6]).
-
-%% @hidden
-file_chunk(Log, IODevice, Continuation) ->
-	case disk_log:chunk(Log, Continuation) of
-		eof ->
-			file:close(IODevice);
-		{error, Reason} ->
-			file:close(IODevice),
-			exit(Reason);
-		{Continuation2, Terms} ->
-			Fun =  fun(Event) ->
-						io:fwrite(IODevice, "~999p~n", [Event])
-			end,
-			lists:foreach(Fun, Terms),
-			file_chunk(Log, IODevice, Continuation2)
-	end.
 
 -spec authorize(Subscriber :: string() | binary(),
 		Password :: string() | binary()) ->
