@@ -70,9 +70,16 @@
 init([AuthPortSup, Address, Port, Options]) ->
 	MethodPrefer = proplists:get_value(eap_method_prefer, Options, pwd),
 	MethodOrder = proplists:get_value(eap_method_order, Options, [pwd, ttls]),
-	process_flag(trap_exit, true),
-	{ok, #state{auth_port_sup = AuthPortSup, address = Address, port = Port,
-		method_prefer = MethodPrefer, method_order = MethodOrder}, 0}.
+	State = #state{auth_port_sup = AuthPortSup,
+			address = Address, port = Port,
+			method_prefer = MethodPrefer, method_order = MethodOrder},
+	case ocs_log:radius_auth_open() of
+		ok ->
+			process_flag(trap_exit, true),
+			{ok, State, 0};
+		{error, Reason} ->
+			{stop, Reason}
+	end.
 
 -spec handle_call(Request :: term(), From :: {Pid :: pid(), Tag :: any()},
 		State :: state()) ->
@@ -161,7 +168,7 @@ handle_info({'EXIT', Fsm, _Reason},
 %% @private
 %%
 terminate(_Reason, _State) ->
-	ok.
+	ocs_log:radius_auth_close().
 
 -spec code_change(OldVsn :: (Vsn :: term() | {down, Vsn :: term()}),
 		State :: state(), Extra :: term()) ->
@@ -188,7 +195,8 @@ request(Address, Port, Secret,
 		#radius{id = RadiusId, authenticator = RequestAuthenticator,
 		attributes = Attributes} = AccessRequest, {RadiusFsm, _Tag} = _From,
 		#state{handlers = Handlers, method_prefer = MethodPrefer,
-		method_order = MethodOrder} = State) ->
+		method_order = MethodOrder, address = ServerAddress,
+		port = ServerPort} = State) ->
 	try
 		NAS = case {radius_attributes:find(?NasIdentifier, Attributes),
 				radius_attributes:find(?NasIpAddress, Attributes)} of
@@ -230,18 +238,18 @@ request(Address, Port, Secret,
 						radius_attributes:find(?UserPassword, Attributes)} of
 					{{ok, _}, _, _} when MethodPrefer == pwd ->
 						Sup = State#state.pwd_sup,
-						NewState = start_fsm(AccessRequest, RadiusFsm,
-								Address, Port, Secret, SessionID, Identity, Sup, State),
+						NewState = start_fsm(AccessRequest, RadiusFsm, Address,
+								Port, Secret, SessionID, Identity, Sup, State),
 						{reply, {ok, wait}, NewState};
 					{{ok, _}, _, _} when MethodPrefer == ttls ->
 						Sup = State#state.ttls_sup,
-						NewState = start_fsm(AccessRequest, RadiusFsm,
-								Address, Port, Secret, SessionID, Identity, Sup, State),
+						NewState = start_fsm(AccessRequest, RadiusFsm, Address,
+								Port, Secret, SessionID, Identity, Sup, State),
 						{reply, {ok, wait}, NewState};
 					{_, {ok, _}, {ok, _}} ->
 						Sup = State#state.simple_auth_sup,
-						NewState = start_fsm(AccessRequest, RadiusFsm,
-								Address, Port, Secret, SessionID, Identity, Sup, State),
+						NewState = start_fsm(AccessRequest, RadiusFsm, Address,
+								Port, Secret, SessionID, Identity, Sup, State),
 						{reply, {ok, wait}, NewState};
 					{_, _, _} ->
 						{reply, {error, ignore}, State}
@@ -260,7 +268,8 @@ request(Address, Port, Secret,
 										NewEapMessage, Attributes),
 								NewAccessRequest = AccessRequest#radius{attributes = RequestAttributes},
 								NewState = start_fsm(NewAccessRequest, RadiusFsm,
-										Address, Port, Secret, SessionID, Identity1, Sup, State),
+										Address, Port, Secret, SessionID, Identity1,
+										Sup, State),
 								{reply, {ok, wait}, NewState};
 							{error, none} ->
 								Length = 20,
@@ -275,6 +284,8 @@ request(Address, Port, Secret,
 										authenticator = ResponseAuthenticator, 
 										attributes = RejectAttributes},
 								AccessReject = radius:codec(AccessRejectPacket),
+								ok = ocs_log:radius_auth_log({ServerAddress, ServerPort},
+										{Address, Port}, reject, Attributes, RejectAttributes),
 								{reply, {ok, AccessReject}, State}	
 						end;
 					{ok, #eap_packet{}} ->
@@ -296,21 +307,26 @@ request(Address, Port, Secret,
 		Sup :: pid(), State :: state()) -> NewState :: state().
 %% @doc Start a new session handler.
 %% @hidden
-start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret,
-		SessionID, Identity, Sup, #state{ttls_sup = Sup} = State) ->
-	StartArgs = [Address, Port, RadiusFsm, Secret, SessionID, AccessRequest],
+start_fsm(AccessRequest, RadiusFsm, ClientAddress, ClientPort, Secret,
+		SessionID, Identity, Sup, #state{address = ServerAddress,
+		port = ServerPort, ttls_sup = Sup} = State) ->
+	StartArgs = [ServerAddress, ServerPort, ClientAddress, ClientPort,
+			RadiusFsm, Secret, SessionID, AccessRequest],
 	ChildSpec = [StartArgs],
-	start_fsm1(Address, Port, RadiusFsm, SessionID,
+	start_fsm1(ServerAddress, ServerPort, RadiusFsm, SessionID,
 			Identity, Sup, ChildSpec, State);
-start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret,
-		SessionID, Identity, Sup,  State) ->
-	StartArgs = [Address, Port, RadiusFsm, Secret, SessionID, AccessRequest],
+start_fsm(AccessRequest, RadiusFsm, ClientAddress, ClientPort, Secret,
+		SessionID, Identity, Sup,  #state{address = ServerAddress,
+		port = ServerPort} = State) ->
+	StartArgs = [ServerAddress, ServerPort, ClientAddress, ClientPort,
+			RadiusFsm, Secret, SessionID, AccessRequest],
 	ChildSpec = [StartArgs, []],
-	start_fsm1(Address, Port, RadiusFsm, SessionID,
+	start_fsm1(ServerAddress, ServerPort, RadiusFsm, SessionID,
 			Identity, Sup, ChildSpec, State).
 %% @hidden
-start_fsm1(Address, Port, RadiusFsm, SessionID, Identity,
-		Sup, ChildSpec, #state{ttls_sup = TtlsSup, handlers = Handlers} = State) ->
+start_fsm1(ServerAddress, ServerPort,
+		RadiusFsm, SessionID, Identity, Sup, ChildSpec,
+		#state{ttls_sup = TtlsSup, handlers = Handlers} = State) ->
 	case supervisor:start_child(Sup, ChildSpec) of
 		{ok, FsmSup} when Sup == TtlsSup ->
 			Children = supervisor:which_children(FsmSup),
@@ -324,8 +340,9 @@ start_fsm1(Address, Port, RadiusFsm, SessionID, Identity,
 			State#state{handlers = NewHandlers};
 		{error, Reason} ->
 			error_logger:error_report(["Error starting session handler",
-					{error, Reason}, {supervisor, Sup}, {address, Address},
-					{port, Port}, {radius_fsm, RadiusFsm}, {session, SessionID}]),
+					{error, Reason}, {supervisor, Sup},
+					{address, ServerAddress}, {port, ServerPort},
+					{radius_fsm, RadiusFsm}, {session, SessionID}]),
 			State
 	end.
 

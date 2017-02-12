@@ -78,7 +78,7 @@ request(Address, Port, Packet, #state{port_server = Server} = _State)
 			gen_server:call(Server,
 					{request, Address, Port, Secret, AccessRequest})
 	catch
-		_:_ ->
+		_:_R ->
 			{error, ignore}
 	end.
 

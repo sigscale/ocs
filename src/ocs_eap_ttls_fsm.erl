@@ -67,10 +67,12 @@
 -record(statedata,
 		{sup :: pid(),
 		aaah_fsm :: undefined | pid(),
-		address :: inet:ip_address(),
-		port :: pos_integer(),
+		server_address :: inet:ip_address(),
+		server_port :: pos_integer(),
+		client_address :: inet:ip_address(),
+		client_port :: pos_integer(),
 		session_id :: {NAS :: inet:ip_address() | string(),
-			Port :: string(), Peer :: string()},
+				Port :: string(), Peer :: string()},
 		secret :: binary(),
 		eap_id = 0 :: byte(),
 		start :: #radius{},
@@ -113,15 +115,18 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([Sup, Address, Port, RadiusFsm, Secret, SessionID, AccessRequest] = _Args) ->
+init([Sup, ServerAddress, ServerPort, ClientAddress, ClientPort,
+		RadiusFsm, Secret, SessionID, AccessRequest] = _Args) ->
 	{ok, TLSkey} = application:get_env(ocs, tls_key),
 	{ok, TLScert} = application:get_env(ocs, tls_cert),
 	{ok, TLScacert} = application:get_env(ocs, tls_cacert),
 	{ok, Hostname} = inet:gethostname(),
-	StateData = #statedata{sup = Sup, address = Address, port = Port,
-			radius_fsm = RadiusFsm, secret = Secret, session_id = SessionID,
-			server_id = list_to_binary(Hostname), start = AccessRequest,
-			tls_key = TLSkey, tls_cert = TLScert, tls_cacert = TLScacert},
+	StateData = #statedata{sup = Sup, server_address = ServerAddress,
+			server_port = ServerPort, client_address = ClientAddress,
+			client_port = ClientPort, radius_fsm = RadiusFsm, secret = Secret,
+			session_id = SessionID, server_id = list_to_binary(Hostname),
+			start = AccessRequest, tls_key = TLSkey, tls_cert = TLScert,
+			tls_cacert = TLScacert},
 	process_flag(trap_exit, true),
 	{ok, ssl_start, StateData, 0}.
 

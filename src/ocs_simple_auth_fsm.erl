@@ -38,8 +38,10 @@
 -include_lib("radius/include/radius.hrl").
 -include("ocs_eap_codec.hrl").
 -record(statedata,
-		{address :: inet:ip_address(),
-		port :: pos_integer(),
+		{server_address :: inet:ip_address(),
+		server_port :: pos_integer(),
+		client_address :: inet:ip_address(),
+		client_port :: pos_integer(),
 		radius_fsm :: pid(),
 		secret :: binary(),
 		session_id:: {NAS :: inet:ip_address() | string(),
@@ -70,12 +72,14 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([Address, Port, RadiusFsm, Secret, SessionID,
-		#radius{code = ?AccessRequest, id = ID,
+init([ServerAddress, ServerPort, ClientAddress, ClientPort, RadiusFsm,
+		Secret, SessionID, #radius{code = ?AccessRequest, id = ID,
 		authenticator = Authenticator, attributes = Attributes}] = _Args) ->
-	StateData = #statedata{address = Address, port = Port,
-		radius_fsm = RadiusFsm, secret = Secret, session_id = SessionID,
-		radius_id = ID, req_auth = Authenticator, req_attr = Attributes},
+	StateData = #statedata{server_address = ServerAddress,
+		server_port = ServerPort, client_address = ClientAddress,
+		client_port = ClientPort, radius_fsm = RadiusFsm, secret = Secret,
+		session_id = SessionID, radius_id = ID, req_auth = Authenticator,
+		req_attr = Attributes},
 	process_flag(trap_exit, true),
 	{ok, request, StateData, 0}.
 
@@ -232,8 +236,11 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %% @doc Send a RADIUS Access-Reject or Access-Accept reply
 %% @hidden
 response(RadiusCode, ResponseAttributes,
-		#statedata{radius_id = RadiusID, req_auth = RequestAuthenticator,
-		secret = Secret, radius_fsm = RadiusFsm} = _StateData) ->
+		#statedata{server_address = ServerAddress, server_port = ServerPort,
+		client_address = ClientAddress, client_port = ClientPort,
+		radius_id = RadiusID, req_auth = RequestAuthenticator,
+		secret = Secret, radius_fsm = RadiusFsm,
+		req_attr = RequestAttributes} = _StateData) ->
 	AttributeList1 = radius_attributes:add(?MessageAuthenticator,
 			<<0:128>>, ResponseAttributes),
 	Attributes1 = radius_attributes:codec(AttributeList1),
@@ -248,5 +255,13 @@ response(RadiusCode, ResponseAttributes,
 	Response = #radius{code = RadiusCode, id = RadiusID,
 			authenticator = ResponseAuthenticator, attributes = Attributes2},
 	ResponsePacket = radius:codec(Response),
+	Type = case RadiusCode of
+		?AccessAccept ->
+			accept;
+		?AccessReject ->
+			reject
+	end,
+	ok = ocs_log:radius_auth_log({ServerAddress, ServerPort},
+			{ClientAddress, ClientPort}, Type, RequestAttributes, Attributes2),
 	radius:response(RadiusFsm, {response, ResponsePacket}).
 

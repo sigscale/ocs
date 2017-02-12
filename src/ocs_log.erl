@@ -23,6 +23,8 @@
 %% export the ocs_log public API
 -export([radius_acct_open/0, radius_acct_log/4, radius_acct_file/1,
 		radius_acct_close/0]).
+-export([radius_auth_open/0, radius_auth_log/5, radius_auth_file/1,
+		radius_auth_close/0]).
 
 %% export the ocs_log private API
 -export([]).
@@ -31,6 +33,7 @@
 -include_lib("radius/include/radius.hrl").
 
 -define(RADACCT, radius_acct).
+-define(RADAUTH, radius_auth).
 
 %%----------------------------------------------------------------------
 %%  The ocs_log public API
@@ -108,12 +111,96 @@ radius_acct_close() ->
 %% @doc Write all logged accounting records to a file.
 %%
 radius_acct_file(FileName) when is_list(FileName) ->
-   case file:open(FileName, [write]) of
-   	{ok, IODevice} ->
-   		file_chunk(?RADACCT, IODevice, start);
+	case file:open(FileName, [write]) of
+	{ok, IODevice} ->
+	file_chunk(?RADACCT, IODevice, start);
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
 					{module, ?MODULE}, {log, ?RADACCT}, {error, Reason}]),
+			{error, Reason}
+	end.
+
+-spec radius_auth_open() -> Result
+	when
+		Result :: ok | {error, Reason :: term()}.
+%% @doc Open the authorization log for logging events.
+radius_auth_open() ->
+	{ok, Directory} = application:get_env(ocs, auth_log_dir),
+	case file:make_dir(Directory) of
+		ok ->
+			radius_auth_open1(Directory);
+		{error, eexist} ->
+			radius_auth_open1(Directory);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+radius_auth_open1(Directory) ->
+	{ok, LogSize} = application:get_env(ocs, auth_log_size),
+	{ok, LogFiles} = application:get_env(ocs, auth_log_files),
+	Log = ?RADAUTH,
+	FileName = Directory ++ "/" ++ atom_to_list(Log),
+	case disk_log:open([{name, Log}, {file, FileName},
+					{type, wrap}, {size, {LogSize, LogFiles}}]) of
+		{ok, Log} ->
+			ok;
+		{repaired, Log, _Recovered, _Bad} ->
+			ok;
+		{error, Reason} ->
+			Descr = lists:flatten(disk_log:format_error(Reason)),
+			Trunc = lists:sublist(Descr, length(Descr) - 1),
+			error_logger:error_report([Trunc, {module, ?MODULE},
+					{log, Log}, {error, Reason}]),
+			{error, Reason}
+	end.
+
+-spec radius_auth_log(Server, Client, Type, RequestAttributes,
+		ResponseAttributes) -> Result
+	when
+		Server :: {Address :: inet:ip_address(),
+				Port :: integer()},
+		Client :: {Address :: inet:ip_address(),
+				Port :: integer()},
+		Type :: accept | reject | change,
+		RequestAttributes :: radius_attributes:attributes(),
+		ResponseAttributes :: radius_attributes:attributes(),
+		Result :: ok | {error, Reason :: term()}.
+%% @doc Write an authorization event to disk log.
+radius_auth_log(Server, Client, Type, RequestAttributes, ResponseAttributes) ->
+	TS = erlang:system_time(millisecond),
+	Event = {TS, node(), Server, Client, Type,
+			RequestAttributes, ResponseAttributes},
+	disk_log:log(?RADAUTH, Event).
+
+-spec radius_auth_close() -> Result
+	when
+		Result :: ok | {error, Reason :: term()}.
+%% @doc Close authorization disk log.
+radius_auth_close() ->
+	case disk_log:close(?RADAUTH) of
+		ok ->
+			ok;
+		{error, Reason} ->
+			Descr = lists:flatten(disk_log:format_error(Reason)),
+			Trunc = lists:sublist(Descr, length(Descr) - 1),
+			error_logger:error_report([Trunc, {module, ?MODULE},
+					{log, ?RADAUTH}, {error, Reason}]),
+			{error, Reason}
+	end.
+
+-spec radius_auth_file(FileName) -> Result
+	when
+		FileName :: string(),
+		Result :: ok | {error, Reason :: term()}.
+%% @doc Write all logged authorization records to a file.
+%%
+radius_auth_file(FileName) when is_list(FileName) ->
+	case file:open(FileName, [write]) of
+	{ok, IODevice} ->
+	file_chunk(?RADAUTH, IODevice, start);
+		{error, Reason} ->
+			error_logger:error_report([file:format_error(Reason),
+					{module, ?MODULE}, {log, ?RADAUTH}, {error, Reason}]),
 			{error, Reason}
 	end.
 

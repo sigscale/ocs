@@ -53,5 +53,8 @@
 				{radius_disconnect_dir, "log"},
 				{acct_log_dir, "log"},
 				{acct_log_size, 10485760},
-				{acct_log_files, 100}]},
+				{acct_log_files, 100},
+				{auth_log_dir, "log"},
+				{auth_log_size, 10485760},
+				{auth_log_files, 100}]},
 		{mod, {ocs_app, []}}]}.
