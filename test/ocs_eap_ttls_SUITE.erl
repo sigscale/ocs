@@ -71,7 +71,7 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
-	{ok, AuthAddress} = application:get_env(ocs, radius_auth_addr),
+	AuthAddress = {127, 0, 0, 1},
 	SharedSecret = ct:get_config(radius_shared_secret),
 	ok = ocs:add_client(AuthAddress, SharedSecret),
 	NasId = atom_to_list(node()),
@@ -88,8 +88,9 @@ end_per_suite(Config) ->
 %% Initialization before each test case.
 %%
 init_per_testcase(_TestCase, Config) ->
-	{ok, IP} = application:get_env(ocs, radius_auth_addr),
-	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, IP}, binary]),
+	AuthAddress = {127, 0, 0, 1},
+	{ok, Socket} = gen_udp:open(0, [{active, false},
+			inet, {ip, AuthAddress}, binary]),
 	[{socket, Socket} | Config].
 
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
@@ -125,7 +126,7 @@ eap_ttls_authentication(Config) ->
 	PeerAuth = list_to_binary(ocs:generate_password()),
 	ok = ocs:add_subscriber(Subscriber, PeerAuth, [], 10000),
 	Socket = ?config(socket, Config),
-	{ok, Address} = application:get_env(ocs, radius_auth_addr),
+	Address = {127, 0, 0, 1},
 	{ok, Port} = application:get_env(ocs, radius_auth_port),
 	NasId = ?config(nas_id, Config),
 	UserName = ct:get_config(radius_username),
