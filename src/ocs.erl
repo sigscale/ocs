@@ -22,10 +22,10 @@
 
 %% export the ocs public API
 -export([add_client/2, find_client/1, update_client/2, get_clients/0,
-				 delete_client/1]).
--export([add_subscriber/3, add_subscriber/4, add_subscriber/5, find_subscriber/1,
-				delete_subscriber/1, update_password/2, update_attributes/4,
-				get_subscribers/0]).
+		delete_client/1]).
+-export([add_subscriber/3, add_subscriber/4, add_subscriber/5,
+		find_subscriber/1, delete_subscriber/1, update_password/2,
+		update_attributes/2, update_attributes/4, get_subscribers/0]).
 -export([generate_password/0]).
 -export([start/3]).
 %% export the ocs private API
@@ -294,6 +294,35 @@ update_password(Subscriber, Password) ->
 				case mnesia:read(subscriber, Subscriber, write) of
 					[Entry] ->
 						NewEntry = Entry#subscriber{password = Password},
+						mnesia:write(subscriber, NewEntry, write);
+					[] ->
+						throw(not_found)
+				end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, ok} ->
+			ok;
+		{aborted, {throw, Reason}} ->
+			{error, Reason};
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+
+-spec update_attributes(Subscriber, Attributes) -> Result
+	when
+		Subscriber :: string() | binary(),
+		Attributes :: radius_attributes:attributes(),
+		Result :: ok | {error, Reason :: not_found | term()}.
+%% @doc Update subscriber attributes.
+%%
+update_attributes(Subscriber, Attributes) when is_list(Subscriber) ->
+	update_attributes(list_to_binary(Subscriber), Attributes);
+update_attributes(Subscriber, Attributes)
+		when is_binary(Subscriber), is_list(Attributes) ->
+	F = fun() ->
+				case mnesia:read(subscriber, Subscriber, write) of
+					[Entry] ->
+						NewEntry = Entry#subscriber{attributes = Attributes},
 						mnesia:write(subscriber, NewEntry, write);
 					[] ->
 						throw(not_found)
