@@ -8,6 +8,7 @@
 <link rel="import" href="bower_components/paper-toolbar/paper-toolbar.html">
 <link rel="import" href="bower_components/paper-toast/paper-toast.html">
 <link rel="import" href="bower_components/paper-input/paper-input.html">
+<link rel="import" href="bower_components/paper-tooltip/paper-tooltip.html">
 <link rel="import" href="bower_components/paper-styles/paper-styles.html">
 
 <dom-module id="sig-add-client">
@@ -87,8 +88,14 @@
 			<h2>Add Client</h2>
 			</paper-toolbar>
 				<form  is="iron-form"  id="presubmit3" method="post" content-type="application/json" >
-					<paper-input id="add-client1" name="address" label="Ip Address" ></paper-input>
-					<paper-input id="add-client2" name="secret" label="Secret" ></paper-input>
+					<div>
+						<paper-input id="add-client1" name="address" label="Ip Address" ></paper-input>
+						<paper-tooltip >IP address of network access server, router or access point</paper-tooltip>
+					</div>
+					<div>
+						<paper-input id="add-client2" name="secret" label="Secret" ></paper-input>
+						<paper-tooltip >Secret, or password, shared with the network access server, router or access point.</paper-tooltip>
+					</div>
 					<div class="buttons">
 						<paper-button raised class="custom indigo" onclick="_submit()" style="float: right; width: 200px;"  >Submit</paper-button>
 						<paper-button dialog-confirm autofocus >Cancel</paper-button>
@@ -121,6 +128,7 @@
 						document.getElementById('presubmit3').submit();
 					}
 				</script>
+
 	</template>
 		<script>
 			Polymer({
