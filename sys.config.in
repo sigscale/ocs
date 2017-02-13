@@ -3,6 +3,8 @@
       {radius_auth_addr, {0, 0, 0, 0}},
       {radius_acct_port, 1813},
       {radius_acct_addr, {0, 0, 0, 0}},
+      {acct_log_dir, "log/radius"},
+      {auth_log_dir, "log/radius"},
       {tls_key, "ssl/key.pem"},
       {tls_cert, "ssl/cert.pem"},
       {tls_cacert, "ssl/ca.pem"}]},
