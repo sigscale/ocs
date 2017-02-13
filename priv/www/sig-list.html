@@ -11,6 +11,7 @@
 <link rel="import" href="bower_components/paper-dialog/paper-dialog.html">
 <link rel="import" href="bower_components/paper-toast/paper-toast.html">
 <link rel="import" href="bower_components/paper-input/paper-input.html">
+<link rel="import" href="bower_components/paper-tooltip/paper-tooltip.html">
 <link rel="import" href="bower_components/paper-fab/paper-fab.html" >
 <link rel="import" href="bower_components/paper-toggle-button/paper-toggle-button.html" >
 <link rel="import" href="bower_components/paper-styles/paper-styles.html">
@@ -82,9 +83,15 @@
 
 		<paper-dialog id="modal1" modal style="width:60%;">
 			<paper-tabs selected="{{selected}}">
-				<paper-tab> <h2>Authentication</h2> </paper-tab>
-				<paper-tab> <h2>Authorizarion</h2> </paper-tab>
+					  <paper-tab id="authen"> 
+							<h2 >Authentication</h2>
+					  </paper-tab>
+					 <paper-tab id="autho">
+							<h2>Authorizarion</h2>
+					 </paper-tab>
 			</paper-tabs>
+								<paper-tooltip for="authen">Credentials used to authenticate subscriber</paper-tooltip>
+								<paper-tooltip for="autho">Services authorized for subscriber</paper-tooltip>
 
 			<iron-pages selected="{{selected}}">
 				<div id="edit-password" >
@@ -99,13 +106,33 @@
 				</div>
 				<div id="edit-attributes" >
 					<paper-input id="edit-id2" name="id" label="Identity" disabled></paper-input>
-					<paper-input id="edit-balance" name="balance" type="number" label="Balance (Bytes)" ></paper-input>
-					<paper-input id="edit-recv-data-rate" name="ascendDataRate" type="number" label="Receive Data Rate"  ></paper-input>
-					<paper-input id="edit-trans-data-rate" name="ascendXmitRate" type="number" label="Transmit Data Rate"  ></paper-input>
-					<paper-input id="edit-sess-timeout" name="sessionTimeout" type="number" label="Session Timeout"  ></paper-input>
-					<paper-input id="edit-update-interval" name="acctInterimInterval" type="number" label="Update interval"  ></paper-input>
-					<paper-input id="edit-class" name="class" type="text" label="Class" ></paper-input> </br>
-					Enable <div style="display:inline-block;"> <paper-toggle-button id="edit-enabled"></paper-toggle-button> </div>
+					<div>
+						<paper-input id="edit-balance" name="balance" type="number" label="Balance (Bytes)" ></paper-input>
+						<paper-tooltip >Credit value, in bytes, against which accounting will debit usage against</paper-tooltip>
+					</div>
+					<div>
+						<paper-input id="edit-recv-data-rate" name="ascendDataRate" type="number" label="Receive Data Rate"  ></paper-input>
+						<paper-tooltip >Limit on received (download) data per second in bits</paper-tooltip>
+					</div>
+					<div>
+						<paper-input id="edit-trans-data-rate" name="ascendXmitRate" type="number" label="Transmit Data Rate"  ></paper-input>
+						<paper-tooltip >Limit on transmitted (upload) data per second in bits</paper-tooltip>
+					</div>
+					<div>
+						<paper-input id="edit-sess-timeout" name="sessionTimeout" type="number" label="Session Timeout"  ></paper-input>
+						<paper-tooltip >Time between authorization requests in an active session in seconds</paper-tooltip>
+					</div>
+					<div>
+						<paper-input id="edit-update-interval" name="acctInterimInterval" type="number" label="Accouting interval"  ></paper-input>
+						<paper-tooltip >Time between accouting interim updates in seconds</paper-tooltip>
+					</div>
+					<div>
+						<paper-input id="edit-class" name="class" type="text" label="Class" ></paper-input>
+					</div></br>
+					<div>
+						Enable <div style="display:inline-block;"> <paper-toggle-button id="edit-enabled"></paper-toggle-button> </div>
+						<paper-tooltip >Enabled for service or temporarily disabled</paper-tooltip>
+					</div>
 					<div class="buttons">
 						<paper-button on-click="cancel" class="cancle-btn">Cancel</paper-button>
 						<paper-button dialog-confirm autofocus on-click="updateAttributes" class="edit">Update Authorizarion</paper-button>
@@ -116,10 +143,18 @@
 		</paper-dialog>
 
 		<paper-dialog id="modal4" modal style="width:60%;">
+				<paper-toolbar> <h2> Authentication</h2> </paper-toolbar>  
 				<div id="edit-client" >
-					<paper-input id="edit-client-id" name="id" label="Address" disabled></paper-input>
-					<paper-input id="edit-client-pwd" name="password"  label="Secret" disabled ></paper-input>
-					<paper-input id="edit-client-new-pwd" name="secret" label="New Secret"  ></paper-input>
+					<div >
+						<paper-input id="edit-client-id" name="id" label="Address" disabled></paper-input>
+					</div>
+					<div>
+						<paper-input id="edit-client-pwd" name="password"  label="Secret" disabled ></paper-input>
+					</div>
+					<div>
+						<paper-input id="edit-client-new-pwd" name="secret" label="New Secret"  ></paper-input>
+						<paper-tooltip>Secret, or password, shared with the network access server, router or access point.</paper-tooltip>
+					</div>
 					<div class="buttons">
 						<paper-button on-click="cancel" class="cancle-btn">Cancel</paper-button>
 						<paper-button dialog-confirm autofocus on-click="updateClientPassword" class="edit">Edit</paper-button>
@@ -133,7 +168,7 @@
 			<sig-add ></sig-add>
 		</paper-dialog>
 
-		<paper-dialog id="modal3" modal style="width:60%; height: 67%; top:10%;">
+		<paper-dialog id="modal3" modal style="width:60%; height: 30%; top:30%;">
 			<sig-add-client></sig-add-client>
 		</paper-dialog>
 
@@ -199,6 +234,7 @@
 			method = "delete"
 			on-response="deletionResponse"
 			debounce-duration="300"> </iron-ajax>
+
 	</template>
 
 	<script>
@@ -225,11 +261,14 @@
 									{ name: "secret" }
 								];
 			grid.items = event.detail.xhr.response;
-			grid.header.getCell(0,0).content = '<div style="font-size:16px;">Address</div>';
-			grid.header.getCell(0,1).content = '<div style="font-size:16px;">Secret</div>';
+			grid.header.getCell(0,0).content = '<div style="font-size:16px;"><div>Address</div><paper-tooltip >IP address of network access server, router or access point</paper-tooltip></div>';
+			grid.header.getCell(0,1).content = '<div style="font-size:16px;"><div>Secret</div><paper-tooltip>Secret, or password, shared with the network access server, router or access point</paper-tooltip></div>';
 			grid.visibleRows =17;
 			document.getElementById("progressbar").indeterminate = false;
 		},
+
+
+
 
 		responseHandler: function(event) {
 			var grid = this.$.frozen; 
@@ -264,15 +303,15 @@
 									{ name: "class"},
 									{ name: "enabled"}
 								];
-			grid.header.getCell(0,0).content = '<div style="font-size:16px;">Identity</div>';
-			grid.header.getCell(0,1).content = '<div style="font-size:16px">Secret</div>';
-			grid.header.getCell(0,2).content = '<div style="font-size:16px">Balance</div>';
-			grid.header.getCell(0,3).content = '<div style="font-size:16px">Data Rate</div>' ;
-			grid.header.getCell(0,4).content = '<div style="font-size:16px">Xmit Rate</div>' ;
-			grid.header.getCell(0,5).content = '<div style="font-size:16px">Session <br>Timeout</div>';
-			grid.header.getCell(0,6).content = '<div style="font-size:16px">Accounting <br>Interval</div>';
-			grid.header.getCell(0,7).content = '<div style="font-size:16px">Class</div>';
-			grid.header.getCell(0,8).content = '<div style="font-size:16px">Enabled</div>';
+			grid.header.getCell(0,0).content = '<div style="font-size:16px"><div> Identity</div> <paper-tooltip >Identity, or username, of the subscriber to authenticate</paper-tooltip></div>';
+			grid.header.getCell(0,1).content = '<div style="font-size:16px"><div>Secret</div><paper-tooltip>Secret, or password, shared only with the subscriber</paper-tooltip></div>';
+			grid.header.getCell(0,2).content = '<div style="font-size:16px"><div>Balance</div><paper-tooltip>Current credit value,in bytes against which accounting will debit usage against</paper-tooltip></div>';
+			grid.header.getCell(0,3).content = '<div style="font-size:16px"><div>Data Rate</div><paper-tooltip>Limit on received (download) data per second in bits.</paper-tooltip></div>' ;
+			grid.header.getCell(0,4).content = '<div style="font-size:16px"><div>Xmit Rate</div><paper-tooltip>Limit on transmitted (upload) data per second in bits.</paper-tooltip></div>' ;
+			grid.header.getCell(0,5).content = '<div style="font-size:16px"><div>Session <br>Timeout</div><paper-tooltip>Time between authorization requests in an active session in seconds</paper-tooltip></div>';
+			grid.header.getCell(0,6).content = '<div style="font-size:16px"><div>Accounting <br>Interval</div><paper-tooltip>Time between accounting interim updates in seconds</paper-tooltip></div>';
+			grid.header.getCell(0,7).content = '<div style="font-size:16px"><div>Class</div><paper-tooltip>Lable used in accounting records</paper-tooltip></div>';
+			grid.header.getCell(0,8).content = '<div style="font-size:16px"><div>Enabled</div><paper-tooltip >Authorization temporarily enabled, or disabled.</paper-tooltip></div>';
 			document.getElementById("progressbar").indeterminate = false;
 		},
 

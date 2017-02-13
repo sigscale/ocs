@@ -8,6 +8,7 @@
 <link rel="import" href="bower_components/paper-toolbar/paper-toolbar.html">
 <link rel="import" href="bower_components/paper-toast/paper-toast.html">
 <link rel="import" href="bower_components/paper-input/paper-input.html">
+<link rel="import" href="bower_components/paper-tooltip/paper-tooltip.html">
 <link rel="import" href="bower_components/paper-toggle-button/paper-toggle-button.html" >
 <link rel="import" href="bower_components/paper-styles/paper-styles.html">
 
@@ -88,15 +89,41 @@
 			<h2>Add subscriber</h2>
 			</paper-toolbar>
 				<form  is="iron-form"  id="presubmit" method="post" action="/ocs/v1/subscriber"  content-type="application/json" >
-					<paper-input id="add1" name="subscriber" label="Identity*" required></paper-input>
-					<paper-input id="add2" name="password"  label="Secret" ></paper-input>
-					<paper-input id="add3" name="ascendDataRate" type="number" label="Receive Data Rate" ></paper-input>
-					<paper-input id="add4" name="ascendXmitRate" type="number" label="Transmit Data Rate" ></paper-input>
-					<paper-input id="add5" name="sessionTimeout" type="number" label="Session Timeout" ></paper-input>
-					<paper-input id="add6" name="acctInterimInterval" type="number" label="Update Interval" ></paper-input>
-					<paper-input id="add7" name="class" label="Class" ></paper-input>
-					<paper-input id="add8" name="balance" type="number" label="Balance(Bytes)*" required> </paper-input></br>
-					Enable <div style="display:inline-block;"> <paper-toggle-button id="add9" name="enabled"></paper-toggle-button> </div>
+					<div>
+						<paper-input id="add1" name="subscriber" label="Identity*" required></paper-input>
+						<paper-tooltip >Identity, or username, of the subscriber to authenticate</paper-tooltip>
+					</div>
+					<div>
+						<paper-input id="add2" name="password"  label="Secret" ></paper-input>
+						<paper-tooltip >Secret, or password, shared only with the subscriber</paper-tooltip>
+					</div>
+					<div>
+						<paper-input id="add3" name="ascendDataRate" type="number" label="Receive Data Rate" ></paper-input>
+						<paper-tooltip >Limit on received (download) data per second in bits.</paper-tooltip>
+					</div>
+					<div>
+						<paper-input id="add4" name="ascendXmitRate" type="number" label="Transmit Data Rate" ></paper-input>
+						<paper-tooltip >Limit on transmitted (upload) data per second in bits.</paper-tooltip>
+					</div>
+					<div>
+						<paper-input id="add5" name="sessionTimeout" type="number" label="Session Timeout" ></paper-input>
+						<paper-tooltip >Time between authorization requests in an active session in seconds</paper-tooltip>
+					</div>
+					<div>
+						<paper-input id="add6" name="acctInterimInterval" type="number" label="Update Interval" ></paper-input>
+						<paper-tooltip >Time between accounting interim updates in seconds</paper-tooltip>
+					</div>
+					<div>
+						<paper-input id="add7" name="class" label="Class" ></paper-input>
+					</div>
+					<div>
+						<paper-input id="add8" name="balance" type="number" label="Balance (bytes)*" required> </paper-input>
+						<paper-tooltip >Initial credit value, in bytes, against which accounting will debit usage against</paper-tooltip>
+					</div><br>
+					<div>
+						Enable <div style="display:inline-block;"> <paper-toggle-button id="add9" name="enabled"></paper-toggle-button> </div>
+						<paper-tooltip >Temporarily enable, or disable, authorization for service</paper-tooltip>
+					</div>
 					<div class="buttons">
 						<paper-button raised class="custom indigo" onclick="_submitSubForm()" style="float: right; width: 200px;"  >Submit</paper-button>
 						<paper-button dialog-confirm autofocus onclick="cancelModal2()"  >Cancel</paper-button>
