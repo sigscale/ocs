@@ -262,6 +262,6 @@ response(RadiusCode, ResponseAttributes,
 			reject
 	end,
 	ok = ocs_log:radius_auth_log({ServerAddress, ServerPort},
-			{ClientAddress, ClientPort}, Type, RequestAttributes, Attributes2),
+			{ClientAddress, ClientPort}, Type, RequestAttributes, AttributeList2),
 	radius:response(RadiusFsm, {response, ResponsePacket}).
 
