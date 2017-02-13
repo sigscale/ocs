@@ -49,7 +49,7 @@
 		radius_id :: byte(),
 		req_auth :: binary(),
 		req_attr :: radius_attributes:attributes(),
-		subscriber :: undefined | binary()}).
+		subscriber :: undefined | string()}).
 -type statedata() :: #statedata{}.
 
 -define(TIMEOUT, 30000).
