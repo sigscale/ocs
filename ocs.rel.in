@@ -8,9 +8,9 @@
 	{public_key, "@ERLANG_LIB_VER_public_key@"},
 	{ssl, "@ERLANG_LIB_VER_ssl@"},
 	{inets, "@ERLANG_LIB_VER_inets@"},
-	{xmerl, "@ERLANG_LIB_VER_xmerl@", load},
-	{compiler, "@ERLANG_LIB_VER_compiler@", load},
-	{syntax_tools, "@ERLANG_LIB_VER_syntax_tools@", load},
-	{mochiweb, "@ERLANG_LIB_VER_mochiweb@", load},
+	{xmerl, "@ERLANG_LIB_VER_xmerl@"},
+	{compiler, "@ERLANG_LIB_VER_compiler@"},
+	{syntax_tools, "@ERLANG_LIB_VER_syntax_tools@"},
+	{mochiweb, "@ERLANG_LIB_VER_mochiweb@"},
 	{radius, "@ERLANG_LIB_VER_radius@"},
 	{@PACKAGE@, "@VERSION@"}]}.
