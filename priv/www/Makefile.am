@@ -23,5 +23,5 @@ install-data-local:
 	cp -r $(abs_builddir)/bower_components $(DESTDIR)$(wwwdir)
 
 clean-local:
-	-rm -rf bower_components
+	-rm -rf bower_components bower.json
 
