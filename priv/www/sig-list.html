@@ -390,7 +390,7 @@
 			var id = document.getElementById("edit-client-id1").value;
 			editAjax.url = "/ocs/v1/client/" + id;
 			var client = new Object();
-			client.password = document.getElementById("edit-client-new-pwd").value;
+			client.secret = document.getElementById("edit-client-new-pwd").value;
 			editAjax.body = client;
 		},
 

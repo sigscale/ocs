@@ -148,7 +148,7 @@ perform_patch(Id, ReqBody) ->
 						Protocol_Atom = string:to_upper(atom_to_list(CurrProtocol)),
 						perfrom_patch1(Id, CurrDiscPort, Protocol_Atom, NewPassword);
 					[{"disconnectPort", NewDiscPort},{"protocol", NewProtocol}] ->
-						NewProtocolAtom = string:to_upper(atom_to_list(NewProtocol)),
+						NewProtocolAtom = list_to_atom(string:to_lower(NewProtocol)),
 						perform_patch2(Id, NewDiscPort, NewProtocolAtom, CurrSecret)
 				end
 			catch
@@ -162,7 +162,7 @@ perform_patch(Id, ReqBody) ->
 perfrom_patch1(Id, DiscPort, Protocol, NewPassword) ->
 	ok = ocs:update_client_password(Id, NewPassword),
 	RespObj =[{id, Id}, {href, "/ocs/v1/client/" ++ Id},
-			{"disconnectPort", DiscPort}, {protocol, Protocol}, {password, NewPassword}],
+			{"disconnectPort", DiscPort}, {protocol, Protocol}, {secret, NewPassword}],
 	JsonObj  = {struct, RespObj},
 	RespBody = mochijson:encode(JsonObj),
 	{body, RespBody}.
@@ -171,7 +171,7 @@ perfrom_patch1(Id, DiscPort, Protocol, NewPassword) ->
 perform_patch2(Id, DiscPort, Protocol, Secret) ->
 	ok = ocs:update_client_attributes(Id, DiscPort, Protocol),
 	RespObj =[{id, Id}, {href, "/ocs/v1/client/" ++ Id},
-			{"disconnectPort", DiscPort}, {protocol, Protocol}, {password, Secret}],
+			{"disconnectPort", DiscPort}, {protocol, Protocol}, {secret, Secret}],
 	JsonObj  = {struct, RespObj},
 	RespBody = mochijson:encode(JsonObj),
 	{body, RespBody}.
