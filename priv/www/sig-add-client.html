@@ -8,7 +8,10 @@
 <link rel="import" href="bower_components/paper-toolbar/paper-toolbar.html">
 <link rel="import" href="bower_components/paper-toast/paper-toast.html">
 <link rel="import" href="bower_components/paper-input/paper-input.html">
+<link rel="import" href="bower_components/paper-item/paper-item.html">
+<link rel="import" href="bower_components/paper-listbox/paper-listbox.html">
 <link rel="import" href="bower_components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
 <link rel="import" href="bower_components/paper-styles/paper-styles.html">
 
 <dom-module id="sig-add-client">
@@ -89,11 +92,27 @@
 			</paper-toolbar>
 				<form  is="iron-form"  id="presubmit3" method="post" content-type="application/json" >
 					<div>
-						<paper-input id="add-client1" name="address" label="Ip Address" ></paper-input>
+						<paper-input id="add-client1" name="address" label="IP Address" ></paper-input>
 						<paper-tooltip >IP address of network access server, router or access point</paper-tooltip>
 					</div>
 					<div>
-						<paper-input id="add-client2" name="secret" label="Secret" ></paper-input>
+						<paper-input id="add-client2" name="disconnectPort" label="Disconnect Port" type="number"></paper-input>
+						<paper-tooltip >Disconnect port used in network access server, router or access point.</paper-tooltip>
+					</div>
+					<div>
+						<template is="dom-bind">
+							<paper-dropdown-menu id="add-client3" label="Protocol" selected-item-label="{{selectedItem}}">
+								<paper-listbox class="dropdown-content">
+									<paper-item value="RADIUS">RADIUS</paper-item>
+									<paper-item value="DIAMETER" disabled>DIAMETER</paper-item>
+								</paper-listbox>
+							</paper-dropdown-menu>
+							<input is="iron-input" name="protocol" type="hidden" value$="[[selectedItem]]">
+							<paper-tooltip >Protocol ued by network access server, router or access point.</paper-tooltip>
+						</template>
+					</div>
+					<div>
+						<paper-input id="add-client4" name="secret" label="Secret" ></paper-input>
 						<paper-tooltip >Secret, or password, shared with the network access server, router or access point.</paper-tooltip>
 					</div>
 					<div class="buttons">
@@ -148,7 +167,9 @@
 				var form = document.getElementById('presubmit3');
 				var formData = new Object();
 				formData.id = document.getElementById("add-client1").value;	
-				formData.secret = document.getElementById("add-client2").value;	
+				formData.disconnectPort = parseInt(document.getElementById("add-client2").value);	
+				formData.protocol = document.getElementById("add-client3").value;	
+				formData.secret = document.getElementById("add-client4").value;	
 				var ajax = document.getElementById("ajaxClientAdd");
 				ajax.body = formData;
 				ajax.generateRequest();
