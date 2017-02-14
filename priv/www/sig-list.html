@@ -143,10 +143,21 @@
 		</paper-dialog>
 
 		<paper-dialog id="modal4" modal style="width:60%;">
-				<paper-toolbar> <h2> Authentication</h2> </paper-toolbar>  
-				<div id="edit-client" >
+			<paper-tabs selected="{{selected}}">
+					  <paper-tab id="authen"> 
+							<h2 >Authentication</h2>
+					  </paper-tab>
+					 <paper-tab id="autho">
+							<h2>Authorizarion</h2>
+					 </paper-tab>
+			</paper-tabs>
+								<paper-tooltip for="authen">Credentials used to authenticate subscriber</paper-tooltip>
+								<paper-tooltip for="autho">Services authorized for subscriber</paper-tooltip>
+
+			<iron-pages selected="{{selected}}">
+				<div id="edit-client-password" >
 					<div >
-						<paper-input id="edit-client-id" name="id" label="Address" disabled></paper-input>
+						<paper-input id="edit-client-id1" name="id" label="Address" disabled></paper-input>
 					</div>
 					<div>
 						<paper-input id="edit-client-pwd" name="password"  label="Secret" disabled ></paper-input>
@@ -157,18 +168,47 @@
 					</div>
 					<div class="buttons">
 						<paper-button on-click="cancel" class="cancle-btn">Cancel</paper-button>
-						<paper-button dialog-confirm autofocus on-click="updateClientPassword" class="edit">Edit</paper-button>
-						<paper-button toggles raised on-click = "deleteClient"  > Delete </paper-button>
+						<paper-button dialog-confirm autofocus on-click="updateClientPassword" class="edit">Update Authentication</paper-button>
+						<paper-button toggles raised on-click = "deleteClient"  > Delete Client</paper-button>
 					</div>
 				</div>
 					</div>
+				<div id="edit-client-attributes" >
+					<div >
+						<paper-input id="edit-client-id2" name="id" label="IP Address" disabled></paper-input>
+					</div>
+					<div>
+						<paper-input id="edit-client-disc-port" name="disconnectPort" label="Disconnect Port" type="number"></paper-input>
+						<paper-tooltip >Disconnect port used in network access server, router or access point.</paper-tooltip>
+					</div>
+
+					<div>
+						<template is="dom-bind">
+							<paper-dropdown-menu id="edit-client-protocol" label="Protocol" selected-item-label="{{selectedItem}}">
+								<paper-listbox id="protocol-menu" class="dropdown-content">
+									<paper-item value="RADIUS">RADIUS</paper-item>
+									<paper-item value="DIAMETER" disabled>DIAMETER</paper-item>
+								</paper-listbox>
+							</paper-dropdown-menu>
+							<input is="iron-input" name="protocol" type="hidden" value$="[[selectedItem]]">
+							<paper-tooltip >Protocol used by network access server, router or access point.</paper-tooltip>
+						</template>
+					</div>
+					<div class="buttons">
+						<paper-button on-click="cancel" class="cancle-btn">Cancel</paper-button>
+						<paper-button dialog-confirm autofocus on-click="updateClientAttributes" class="edit">Update Authorization</paper-button>
+						<paper-button toggles raised on-click = "deleteClient"  > Delete Client</paper-button>
+					</div>
+				</div>
+					</div>
+			</iron-pages>
 		</paper-dialog>
 
 		<paper-dialog id="modal2" modal style="width:60%; height: 70%; top:10%;">
 			<sig-add ></sig-add>
 		</paper-dialog>
 
-		<paper-dialog id="modal3" modal style="width:60%; height: 30%; top:30%;">
+		<paper-dialog id="modal3" modal style="width:60%; height: 43%; top:30%;">
 			<sig-add-client></sig-add-client>
 		</paper-dialog>
 
@@ -207,6 +247,12 @@
 			auto=true
 			headers='{"Accept": "application/json", "Content-type": "application/json"}'
 			on-response="updateClientPwdResponseHandler"
+			debounce-duration="300"> </iron-ajax>
+
+		<iron-ajax id="updateClientAttributes"
+			auto=true
+			headers='{"Accept": "application/json", "Content-type": "application/json"}'
+			on-response="updateClientAttrResponseHandler"
 			debounce-duration="300"> </iron-ajax>
 
 		<iron-ajax id="updatePassword"
@@ -258,11 +304,15 @@
 			var grid = this.$.frozen; 
 			grid.columns = [
 									{ name: "id"},
-									{ name: "secret" }
+									{ name: "secret"},
+									{ name: "disconnectPort"},
+									{ name: "protocol"}
 								];
 			grid.items = event.detail.xhr.response;
 			grid.header.getCell(0,0).content = '<div style="font-size:16px;"><div>Address</div><paper-tooltip >IP address of network access server, router or access point</paper-tooltip></div>';
 			grid.header.getCell(0,1).content = '<div style="font-size:16px;"><div>Secret</div><paper-tooltip>Secret, or password, shared with the network access server, router or access point</paper-tooltip></div>';
+			grid.header.getCell(0,2).content = '<div style="font-size:16px;"><div>Disconnect <br>Port</div><paper-tooltip>Disconnect port used by network access server, router or access point</paper-tooltip></div>';
+			grid.header.getCell(0,3).content = '<div style="font-size:16px;"><div>Protocol</div><paper-tooltip>AAA protocol used by the network access server, router or access point</paper-tooltip></div>';
 			grid.visibleRows =17;
 			document.getElementById("progressbar").indeterminate = false;
 		},
@@ -337,12 +387,27 @@
 			var editAjax =  document.getElementById("updateClientPassword");
 			editAjax.method = "PATCH";
 			editAjax.contentType = "application/json";
-			var id = document.getElementById("edit-client-id").value;
+			var id = document.getElementById("edit-client-id1").value;
 			editAjax.url = "/ocs/v1/client/" + id;
 			var client = new Object();
 			client.password = document.getElementById("edit-client-new-pwd").value;
 			editAjax.body = client;
 		},
+
+		updateClientAttributes: function(event){
+			document.getElementById("progressbar").indeterminate = true;
+			var editAjax =  document.getElementById("updateClientAttributes");
+			editAjax.method = "PATCH";
+			editAjax.contentType = "application/json";
+			var id = document.getElementById("edit-client-id2").value;
+			editAjax.url = "/ocs/v1/client/" + id;
+			var client = new Object();
+			client.disconnectPort = parseInt(document.getElementById("edit-client-disc-port").value);
+			client.protocol = document.getElementById("edit-client-protocol").value;
+			editAjax.body = client;
+			editAjax.generateRequest();
+		},
+
 
 		updatePassword: function(event){
 			document.getElementById("progressbar").indeterminate = true;
@@ -410,6 +475,19 @@
 		},
 
 		updateClientPwdResponseHandler: function (event){
+			if(event.detail.succeeded){
+				document.getElementById("edit-toast").open();
+				document.getElementById("edit-client-new-pwd").value = "";
+				var getClientsAjax = document.getElementById("getClients");
+				getClientsAjax.generateRequest();
+				document.getElementById("progressbar").indeterminate = false;
+			}
+			else{
+				console.log("Not Success");
+			}
+		},
+
+		updateClientAttrResponseHandler: function (event){
 			if(event.detail.succeeded){
 				document.getElementById("edit-toast").open();
 				document.getElementById("edit-client-new-pwd").value = "";
@@ -523,7 +601,16 @@
 					modal.open();
 					grid.selection.selected(function(index) {
 					var selection = grid.items[index];
-					document.getElementById("edit-client-id").value = selection.id;
+					document.getElementById("edit-client-id1").value = selection.id;
+					document.getElementById("edit-client-id2").value = selection.id;
+					document.getElementById("edit-client-disc-port").value = selection.disconnectPort;
+					document.getElementById("protocol-menu").selectedItemLabel = selection.protocol;
+
+					switch(selection.protocol){
+						case "RADIUS": document.getElementById("protocol-menu").selected=0; break;
+						case "DIAMETER": document.getElementById("protocol-menu").selected=1; break;
+					}
+
 					document.getElementById("edit-client-pwd").value = selection.secret;
 				});}
 
