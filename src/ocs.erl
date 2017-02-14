@@ -21,8 +21,8 @@
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 %% export the ocs public API
--export([add_client/2, find_client/1, update_client/2, get_clients/0,
-		delete_client/1]).
+-export([add_client/4, find_client/1, update_client_password/2,
+		update_client_attributes/3, get_clients/0, delete_client/1]).
 -export([add_subscriber/3, add_subscriber/4, add_subscriber/5,
 		find_subscriber/1, delete_subscriber/1, update_password/2,
 		update_attributes/2, update_attributes/4, get_subscribers/0]).
@@ -41,18 +41,20 @@
 %%  The ocs public API
 %%----------------------------------------------------------------------
 
--spec add_client(Address :: inet:ip_address(), Secret :: string() | binary()) ->
+-spec add_client(Address :: inet:ip_address(), DisconnectPort :: inet:port_number(),
+			Protocol :: atom(), Secret :: string() | binary()) ->
 	Result :: ok.
 %% @doc Create an entry in the RADIUS client table.
 %%
-add_client(Address, Secret) when is_list(Secret) ->
-	add_client(Address, list_to_binary(Secret));
-add_client(Address, Secret) when is_list(Address) ->
+add_client(Address, DiscPort, Protocol, Secret) when is_list(Secret), is_integer(DiscPort), is_atom(Protocol) ->
+	add_client(Address, DiscPort, Protocol, list_to_binary(Secret));
+add_client(Address, DiscPort, Protocol, Secret) when is_list(Address) ->
 	{ok, AddressTuple} = inet_parse:address(Address),
-	add_client(AddressTuple, Secret);
-add_client(Address, Secret) when is_tuple(Address), is_binary(Secret) ->
+	add_client(AddressTuple, DiscPort, Protocol, Secret);
+add_client(Address, DiscPort, Protocol, Secret) when is_tuple(Address), is_binary(Secret) ->
 	F = fun() ->
-				R = #radius_client{address = Address, secret = Secret},
+				R = #radius_client{address = Address, disconnect_port = DiscPort,
+						protocol = Protocol, secret = Secret},
 				mnesia:write(R)
 	end,
 	case mnesia:transaction(F) of
@@ -63,7 +65,7 @@ add_client(Address, Secret) when is_tuple(Address), is_binary(Secret) ->
 	end.
 
 -spec find_client(Address :: inet:ip_address()) ->
-	Result :: {ok, Secret :: binary()} | {error, Reason :: not_found | term()}.
+	Result :: {ok, DisconnectPort :: inet:port_number(), Protocol :: atom(), Secret :: binary()} | {error, Reason :: not_found | term()}.
 %% @doc Look up the shared secret for a RADIUS client.
 %%
 find_client(Address) when is_list(Address) ->
@@ -74,28 +76,56 @@ find_client(Address) when is_tuple(Address) ->
 				mnesia:read(radius_client, Address, read)
 	end,
 	case mnesia:transaction(F) of
-		{atomic, [#radius_client{secret = Secret}]} ->
-			{ok, Secret};
+		{atomic, [#radius_client{disconnect_port = DiscPort,
+				protocol = Protocol, secret = Secret}]} ->
+			{ok, DiscPort, Protocol, Secret};
 		{atomic, []} ->
 			{error, not_found};
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
 
--spec update_client(Address :: string() | inet:ip_address(),
+-spec update_client_password(Address :: string() | inet:ip_address(),
 		Password :: string() | binary())->
 	ok | {error, Reason :: not_found | term()}.
 %% @doc Update client password
-update_client(Address, Password) when is_list(Address) ->
+update_client_password(Address, Password) when is_list(Address) ->
 	{ok, AddressTuple} = inet_parse:address(Address),
-	update_client(AddressTuple, Password);
-update_client(Address, Password) when is_list(Password) ->
-	update_client(Address, list_to_binary(Password));
-update_client(Address, Password) ->
+	update_client_password(AddressTuple, Password);
+update_client_password(Address, Password) when is_list(Password) ->
+	update_client_password(Address, list_to_binary(Password));
+update_client_password(Address, Password) ->
 	F = fun() ->
 				case mnesia:read(radius_client, Address, write) of
 					[Entry] ->
 						NewEntry = Entry#radius_client{secret = Password},
+						mnesia:write(radius_client, NewEntry, write);
+					[] ->
+						throw(not_found)
+				end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, ok} ->
+			ok;
+		{aborted, {throw, Reason}} ->
+			{error, Reason};
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+
+-spec update_client_attributes(Address :: string() | inet:ip_address(),
+		DisconnectPort :: inet:port_number(), Protocol :: atom())->
+	ok | {error, Reason :: not_found | term()}.
+%% @doc Update client attributes
+update_client_attributes(Address, DiscPort, Protocol) when is_list(Address),
+			is_integer(DiscPort), is_atom(Protocol)  ->
+	{ok, AddressTuple} = inet_parse:address(Address),
+	update_client_attributes(AddressTuple, DiscPort, Protocol);
+update_client_attributes(Address, DiscPort, Protocol) when is_tuple(Address) ->
+	F = fun() ->
+				case mnesia:read(radius_client, Address, write) of
+					[Entry] ->
+						NewEntry = Entry#radius_client{disconnect_port = DiscPort, protocol = Protocol},
 						mnesia:write(radius_client, NewEntry, write);
 					[] ->
 						throw(not_found)
