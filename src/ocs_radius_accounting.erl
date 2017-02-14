@@ -57,7 +57,7 @@ init(Address, Port) ->
 request(Address, Port, Packet, #state{acct_server = Server} = _State)
 		when is_tuple(Address) ->
 	try
-		{ok, SharedSecret} = ocs:find_client(Address),
+		{ok, _, _, SharedSecret} = ocs:find_client(Address),
 		Radius = radius:codec(Packet),
 		#radius{code = ?AccountingRequest, attributes = AttributeData} = Radius,
 		Attributes = radius_attributes:codec(AttributeData),
