@@ -327,10 +327,10 @@ decrement_balance(Subscriber, Usage) when is_binary(Subscriber),
 			{error, Reason}
 	end.
 
--spec start_disconnect(AcctSessionId :: string(), Id :: byte(),
-		Authenticator :: binary(), Secret :: string(),
+-spec start_disconnect(AcctSessionId :: integer(), Id :: byte(),
+		Authenticator :: [byte()], Secret :: string(),
 		NasId :: inet:ip_address() | string(), Address :: inet:ip_address(),
-		Attributes :: binary(), Subscriber :: string(), State :: #state{}) ->
+		Attributes :: [binary()], Subscriber :: [byte()], State :: #state{}) ->
 	{reply, {ok, Response :: binary()}, NewState :: #state{}}.
 %% @doc Start a disconnect_fsm worker.
 start_disconnect(AcctSessionId, Id, Authenticator, Secret, NasId, Address,

@@ -49,7 +49,7 @@
 		radius_id :: byte(),
 		req_auth :: binary(),
 		req_attr :: radius_attributes:attributes(),
-		subscriber :: undefined | binary()}).
+		subscriber :: undefined | string()}).
 -type statedata() :: #statedata{}.
 
 -define(TIMEOUT, 30000).
@@ -247,9 +247,9 @@ response(RadiusCode, ResponseAttributes,
 	Length = size(Attributes1) + 20,
 	MessageAuthenticator = crypto:hmac(md5, Secret, [<<RadiusCode, RadiusID,
 			Length:16>>, RequestAuthenticator, Attributes1]),
-	AttrbuteList2 = radius_attributes:store(?MessageAuthenticator,
+	AttributeList2 = radius_attributes:store(?MessageAuthenticator,
 			MessageAuthenticator, AttributeList1),
-	Attributes2 = radius_attributes:codec(AttrbuteList2),
+	Attributes2 = radius_attributes:codec(AttributeList2),
 	ResponseAuthenticator = crypto:hash(md5, [<<RadiusCode, RadiusID,
 			Length:16>>, RequestAuthenticator, Attributes2, Secret]),
 	Response = #radius{code = RadiusCode, id = RadiusID,
@@ -262,6 +262,6 @@ response(RadiusCode, ResponseAttributes,
 			reject
 	end,
 	ok = ocs_log:radius_auth_log({ServerAddress, ServerPort},
-			{ClientAddress, ClientPort}, Type, RequestAttributes, Attributes2),
+			{ClientAddress, ClientPort}, Type, RequestAttributes, AttributeList2),
 	radius:response(RadiusFsm, {response, ResponsePacket}).
 
