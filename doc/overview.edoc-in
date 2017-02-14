@@ -229,6 +229,18 @@ member resource may include a link for the enclosing collection resource.
 			<td id="mt">URI of the client resource.(Mandatory only in response)</td>
 		</tr>
 		<tr id="mt">
+		<tr id="mt">
+			<td id="mt">disconnectPort</td>
+			<td id="mt">integer</td>
+			<td id="mt">M</td>
+			<td id="mt">Disconnect port used in the NAS</td>
+		</tr>
+			<td id="mt">protocol</td>
+			<td id="mt">string</td>
+			<td id="mt">M</td>
+			<td id="mt">AAA protocol used by NAS</td>
+		</tr>
+		<tr id="mt">
 			<td id="mt">secret</td>
 			<td id="mt">string</td>
 			<td id="mt">M</td>
@@ -860,6 +872,8 @@ content-length: nn
 
 {
  "id":"10.2.53.9",
+ "disconnectPort": 1899,
+ "protocol": "RADIUS",
  "secret":"ksc8c244npqc",
 }
 </pre></p>
@@ -872,6 +886,8 @@ content-Length: nn
 {
  "id": "10.2.53.9",
  "href": "/ocs/v1/client/10.2.53.9"
+ "disconnectPort": 1899,
+ "protocol": "RADIUS",
  "secret": "ksc8c244npqc",
 }
 </pre></p>
@@ -918,6 +934,8 @@ content-Length: nn
 {
  "id": "10.2.53.9",
  "href": "/ocs/v1/client/10.2.53.9"
+ "disconnectPort": 1899,
+ "protocol": "RADIUS",
  "secret": "ksc8c244npqc",
 }
 </pre></p>
@@ -965,11 +983,15 @@ content-Length: nn
  {
    "id": "10.2.53.9",
    "href": "/ocs/v1/client/10.2.53.9"
+   "disconnectPort": 1899,
+   "protocol": "RADIUS",
    "secret": "2h7csggw35aa",
  },
  {
   "id": "10.2.53.10",
   "href": "/ocs/v1/client/10.2.53.10"
+  "disconnectPort": 1899,
+  "protocol": "RADIUS",
   "secret": "rzambns7knr4",
  }
 ]
@@ -1023,6 +1045,63 @@ Content-Length: 315
 {
  "id": "10.2.53.9",
  "href": "/ocs/v1/client/10.2.53.9",
+ "disconnectPort": 1899,
+ "protocol": "RADIUS",
+ "secret": "7fy8qhs7hh7n",
+}
+</pre></p>
+
+<table id="op">
+<caption id="op"><b>Update Client Attributes</b></caption>
+	<tr id="op">
+		<td id="opl">Resource URI</td>
+		<td id="opr">/ocs/v1/client/{id}</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Methods</td>
+		<td id="opr">PATCH</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Headers</td>
+		<td id="opr">Accept, Content-Type</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Message Body</td>
+		<td id="opr">Partial representation of a client</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Headers</td>
+		<td id="opr">Content-Type, Content-Length</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Body</td>
+		<td id="opr">Representation of the updated client</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Status</td>
+		<td id="opr">200 Ok</td>
+	</tr>
+</table>
+<p>Example request for accept : "application/json" request header :<pre>
+PATCH /ocs/v1/client/10.2.53.9 HTTP/1.1
+content-type: application/json
+accept: application/json
+{
+  "disconnectPort":7899,
+  "protocol": "DIAMETER" 
+}
+</pre></p>
+<p>Example response for accept : "application/json" request header :<pre>
+HTTP/1.1 200 Ok
+Content-Type: application/json
+Content-Length: 315
+
+
+{
+ "id": "10.2.53.9",
+ "href": "/ocs/v1/client/10.2.53.9",
+ "disconnectPort": 7899,
+ "protocol": "DIAMETER",
  "secret": "7fy8qhs7hh7n",
 }
 </pre></p>
