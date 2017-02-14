@@ -566,16 +566,18 @@ send_response(EapPacket, RadiusCode, ResponseAttributes,
 	Response = #radius{code = RadiusCode, id = RadiusID,
 			authenticator = ResponseAuthenticator, attributes = Attributes2},
 	ResponsePacket = radius:codec(Response),
-	Type = case RadiusCode of
+	case RadiusCode of
 		?AccessAccept ->
-			accept;
+			ok = ocs_log:radius_auth_log({ServerAddress, ServerPort},
+					{ClientAddress, ClientPort}, accept,
+					RequestAttributes, Attributes2);
 		?AccessReject ->
-			reject;
+			ok = ocs_log:radius_auth_log({ServerAddress, ServerPort},
+					{ClientAddress, ClientPort}, reject,
+					RequestAttributes, Attributes2);
 		?AccessChallenge ->
-			challenge
+			ok
 	end,
-	ok = ocs_log:radius_auth_log({ServerAddress, ServerPort},
-			{ClientAddress, ClientPort}, Type, RequestAttributes, Attributes2),
 	radius:response(RadiusFsm, {response, ResponsePacket}).
 
 -spec encrypt_key(Secret :: binary(), RequestAuthenticator :: [byte()],
