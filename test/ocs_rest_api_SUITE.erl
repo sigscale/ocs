@@ -41,7 +41,9 @@
 suite() ->
 	[{userdata, [{doc, "Test suite for REST API in OCS"}]}, 
 	{timetrap, {minutes, 1}},
-	{require, host}, {default_config, host, "localhost"}].
+	{require, rest_user}, {default_config, rest_user, "bss"},
+	{require, rest_pass}, {default_config, rest_pass, "nfc9xgp32xha"},
+	{require, rest_group}, {default_config, rest_group, "all"}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before the whole suite.
@@ -53,17 +55,39 @@ init_per_suite(Config) ->
 	Fport = fun(F, [{httpd, L} | T]) ->
 				case lists:keyfind(server_name, 1, L) of
 					{_, "rest"} ->
-						{_, Port} = lists:keyfind(port, 1, L),
-						Port;
+						H1 = lists:keyfind(bind_address, 1, L),
+						P1 = lists:keyfind(port, 1, L),
+						{H1, P1};
 					_ ->
 						F(F, T)
 				end;
 			(F, [_ | T]) ->
 				F(F, T)
 	end,
-	Port = Fport(Fport, Services),
+	RestUser = ct:get_config(rest_user), 
+	RestPass = ct:get_config(rest_pass), 
+	RestGroup = ct:get_config(rest_group),
+	{Host, Port} = case Fport(Fport, Services) of
+		{{_, H2}, {_, P2}} when H2 == "localhost"; H2 == {127,0,0,1} -> 
+			true = mod_auth:add_user(RestUser, RestPass, [], {127,0,0,1}, P2, "/"),
+			true = mod_auth:add_group_member(RestGroup, RestUser, {127,0,0,1}, P2, "/"),
+			{"localhost", P2}; 
+		{{_, H2}, {_, P2}} -> 
+			true = mod_auth:add_user(RestUser, RestPass, [], H2, P2, "/"),
+			true = mod_auth:add_group_member(RestGroup, RestUser, H2, P2, "/"),
+			case H2 of
+				H2 when is_tuple(H2) ->
+					{inet:ntoa(H2), P2};
+				H2 when is_list(H2) ->
+					{H2, P2}
+			end; 
+		{false, {_, P2}} -> 
+			true = mod_auth:add_user(RestUser, RestPass, [], P2, "/"),
+			true = mod_auth:add_group_member(RestGroup, RestUser, P2, "/"),
+			{"localhost", P2} 
+	end,
 	Config1 = [{port, Port} | Config],
-	HostUrl = "https://localhost:" ++ integer_to_list(Port),
+	HostUrl = "https://" ++ Host ++ ":" ++ integer_to_list(Port),
 	[{host_url, HostUrl} | Config1].
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
@@ -98,19 +122,57 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[bogus_uri].
+	[add_subscriber].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
 
-bogus_uri() ->
-		[{userdata, [{doc,"Get bogus URI"}]}].
+add_subscriber() ->
+	[{userdata, [{doc,"Add subscriber in rest interface"}]}].
 
-bogus_uri(Config) ->
+add_subscriber(Config) ->
+	ContentType = "application/json",
+	ID = "eacfd73ae10a",
+	Password = "ksc8c244npqc",
+	AsendDataRate = {struct, [{"name", "ascendDataRate"}, {"type", 26},
+		{"vendorId", 529}, {"vendorType", 197}, {"value", 1024}]}, 
+	AsendXmitRate = {struct, [{"name", "ascendXmitRate"}, {"type", 26}, 
+		{"vendorId", 529}, {"vendorType", 255}, {"value", 512}]}, 
+	SessionTimeout = {struct, [{"name", "sessionTimeout"}, {"value", 10864}]}, 
+	Interval = {struct, [{"name", "acctInterimInterval"}, {"value", 300}]}, 
+	Class = {struct, [{"name", "class"}, {"value", "skiorgs"}]},
+	SortedAttributes = lists:sort([AsendDataRate, AsendXmitRate, SessionTimeout, Interval, Class]),
+	AttributeArray = {array, SortedAttributes},
+	Balance = 100,
+	Enable = true,
+	JSON1 = {struct, [{"id", ID}, {"password", Password},
+	{"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enable}]},
+	RequestBody = lists:flatten(mochijson:encode(JSON1)),
 	HostUrl = ?config(host_url, Config),
-	{ok, Result} = httpc:request(HostUrl ++ "/asad"),
-	{{"HTTP/1.1", 404, _NotFound}, _Headers, _Body} = Result.
+	Accept = {"accept", "application/json"},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+   Authentication = {"authorization", AuthKey},
+	Request = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{_, _, "/ocs/v1/subscriber/" ++ RuleID, _, _} = mochiweb_util:urlsplit(URI),
+	{struct, Object} = mochijson:decode(ResponseBody),
+	{"id", ID} = lists:keyfind("id", 1, Object),
+	{_, URI} = lists:keyfind("href", 1, Object),
+	{"password", Password} = lists:keyfind("password", 1, Object),
+	{_, {array, Attributes}} = lists:keyfind("attributes", 1, Object),
+	ExtraAttributes = Attributes -- SortedAttributes, 
+	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
+	{"balance", Balance} = lists:keyfind("balance", 1, Object),
+	{"enabled", Enable} = lists:keyfind("enabled", 1, Object).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
