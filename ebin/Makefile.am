@@ -42,9 +42,10 @@ beam_DATA = ocs.beam \
 			mod_ocs_rest_delete.beam \
 			ocs_rest_res_subscriber.beam \
 			ocs_rest_res_client.beam \
-			ocs_rest_res_log.beam
+			ocs_rest_res_usage.beam
 
-%.beam:$(top_srcdir)/src/%.erl	$(top_srcdir)/include/ocs.hrl $(top_srcdir)/include/ocs_eap_codec.hrl
+%.beam:$(top_srcdir)/src/%.erl	$(top_srcdir)/include/ocs.hrl $(top_srcdir)/include/ocs_log.hrl \
+		$(top_srcdir)/include/ocs_eap_codec.hrl
 	$(ERLC) $(ERLCFLAGS) -I $(top_srcdir)/include $<
 
 %.app:   %.app-in
