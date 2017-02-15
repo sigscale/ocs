@@ -53,7 +53,7 @@ do(#mod{request_uri = Uri, data = Data} = ModData) ->
 			case proplists:get_value(response, Data) of
 				undefined ->
 					case string:tokens(Uri, "/") of
-						["ocs", "v1" | _] ->
+						[_, "v1" | _] ->
 							{proceed, Data};
 						_ ->
 							serve_file(ModData)

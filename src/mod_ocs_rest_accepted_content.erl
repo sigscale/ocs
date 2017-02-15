@@ -54,9 +54,9 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 			case proplists:get_value(response, Data) of
 				undefined ->
 					case string:tokens(Uri, "/") of
-						["ocs", "v1", Resource] ->
+						[_, "v1", Resource] ->
 							do_accept(Headers, Method, Resource, Data);
-						["ocs", "v1", Resource, _Id] ->
+						[_, "v1", Resource, _Id] ->
 							do_accept(Headers, Method, Resource, Data);
 							_ ->
 								Response = "<h2>HTTP Error 400 - Bad Request</h2>",

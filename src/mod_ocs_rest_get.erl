@@ -85,14 +85,14 @@ content_type_available(Headers, Uri, Resource, ModData) ->
 %% @hidden
 do_get(Uri, Resource, ModData) ->
 	case string:tokens(Uri, "/") of
-		["ocs", "v1", _] ->
+		[_, "v1", _] ->
 			case Resource:perform_get_all() of
 				{body, Body} ->
 					send_response(Body, ModData);
 				{error, ErrorCode} ->
 					{break, [{response, {ErrorCode, "<h1>Not Found</h1>"}}]}
 			end;
-		["ocs", "v1", _, Identity] ->
+		[_, "v1", _, Identity] ->
 			case Resource:perform_get(Identity) of
 				{body, Body} ->
 					send_response(Body, ModData);
