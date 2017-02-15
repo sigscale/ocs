@@ -32,7 +32,7 @@
 				ocs_eap_tls_transport,
 				ocs_rest_res_subscriber,
 				ocs_rest_res_client,
-				ocs_rest_res_log,
+				ocs_rest_res_usage,
 				mod_ocs_rest_dispatcher,
 				mod_ocs_rest_accepted_content,
 				mod_ocs_rest_delete,

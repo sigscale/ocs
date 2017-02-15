@@ -1,4 +1,4 @@
-%%% ocs_rest_res_log.erl
+%%% ocs_rest_res_usage.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 SigScale Global Inc.
 %%% @end
@@ -17,12 +17,11 @@
 %%% @doc This library module implements resource handling functions
 %%% 	for a REST server in the {@link //ocs. ocs} application.
 %%%
--module(ocs_rest_res_log).
+-module(ocs_rest_res_usage).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 -export([content_types_accepted/0,
-				content_types_provided/0,
-				perform_get_all/0]).
+				content_types_provided/0]).
 
 -include_lib("radius/include/radius.hrl").
 
@@ -35,13 +34,6 @@ content_types_accepted() ->
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
 	["application/json", "application/hal+json"].
-
--spec perform_get_all() -> {body, Body :: iolist()}
-		| {error, ErrorCode :: integer()}.
-%% @doc Body producing function for `GET /ocs/v1/log'
-%% requests.
-perform_get_all() ->
-	{body, []}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
