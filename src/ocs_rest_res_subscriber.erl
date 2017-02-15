@@ -124,7 +124,7 @@ perform_post1(Id, Password, RadAttributes, Balance, EnabledStatus) ->
 				{enabled, EnabledStatus}],
 			JsonObj  = {struct, RespObj},
 			Body = mochijson:encode(JsonObj),
-			Location = "/ocs/v1/subscriber" ++ Id,
+			Location = "/ocs/v1/subscriber/" ++ Id,
 			{Location, Body};
 		{error, _Reason} ->
 			{error, 400}
