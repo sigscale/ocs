@@ -334,7 +334,7 @@
 				}
 			]
 		}, {
-			"name": "Billing-Class-Of-Service",
+			"name": "billingClassOfService",
 			"description": "Indicates Service Type. Service level provided to user derived from Max-bandwidth-level. (Added for compatibility with WISPr)",
 			"configurable": "true",
 			"usageSpecCharacteristicValue": [
@@ -467,7 +467,7 @@
 				}
 			]
 		}, {
-			"name": "RelatedIpdrIdList",
+			"name": "relatedIpdrIdList",
 			"description": "Used to link together multiple related IPDRs when usage scenario and business rules demand so. Can’t change parent IPDR for audit/revenue assurance integrity.",
 			"configurable": "true",
 			"usageSpecCharacteristicValue": [
