@@ -62,6 +62,6 @@
 		intermediaryName :: string(),
 		serviceName :: 1..6,
 		relatedIpdrIdList :: string(),
-		tempUserId :: string(),
+		tempUserId :: string()
 		}).
 
