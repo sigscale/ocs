@@ -122,7 +122,8 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[add_subscriber, get_subscriber, retrieve_all_subscriber, delete_subscriber].
+	[add_subscriber, get_subscriber, retrieve_all_subscriber, delete_subscriber, 
+	add_client].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -316,6 +317,40 @@ delete_subscriber(Config) ->
    {ok, Result1} = httpc:request(delete, Request2, [], []),
    {{"HTTP/1.1", 204, _NoContent}, Headers1, []} = Result1,
 	{_, "0"} = lists:keyfind("content-length", 1, Headers1).
+
+add_client() ->
+   [{userdata, [{doc,"Add client in rest interface"}]}].
+
+add_client(Config) ->
+   ContentType = "application/json",
+   ID = "10.2.53.9",
+	Disconnect = 1899,
+	Protocol = "radius",
+   Secret = "ksc8c244npqc",
+   JSON = {struct, [{"id", ID}, {"disconnectPort", Disconnect}, {"protocol", Protocol}, 
+		{"secret", Secret}]},
+   RequestBody = lists:flatten(mochijson:encode(JSON)),
+   HostUrl = ?config(host_url, Config),
+   Accept = {"accept", "application/json"},
+	RestUser = ct:get_config(rest_user),
+   RestPass = ct:get_config(rest_pass),
+   Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+   AuthKey = "Basic " ++ Encodekey,
+   Authentication = {"authorization", AuthKey},
+   Request1 = {HostUrl ++ "/ocs/v1/client/", [Accept, Authentication], ContentType, RequestBody},
+   {ok, Result} = httpc:request(post, Request1, [], []),
+   {{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+   {_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+   ContentLength = integer_to_list(length(ResponseBody)),
+   {_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+   {_, URI} = lists:keyfind("location", 1, Headers),
+	{_, _, "/ocs/v1/client/" ++ IP, _, _} = mochiweb_util:urlsplit(URI),
+   {struct, Object} = mochijson:decode(ResponseBody),
+   {_, ID} = lists:keyfind("id", 1, Object),
+   {_, URI} = lists:keyfind("href", 1, Object),
+   {_, Disconnect} = lists:keyfind("disconnectPort", 1, Object),
+   {_, Protocol} = lists:keyfind("protocol", 1, Object),
+   {_, Secret} = lists:keyfind("secret", 1, Object).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
