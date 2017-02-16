@@ -29,7 +29,7 @@
 %% export the ocs_log private API
 -export([]).
 
--include("ocs.hrl").
+-include("ocs_log.hrl").
 -include_lib("radius/include/radius.hrl").
 
 -define(RADACCT, radius_acct).
