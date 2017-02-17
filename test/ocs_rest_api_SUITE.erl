@@ -122,12 +122,25 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[add_subscriber, get_subscriber, retrieve_all_subscriber, delete_subscriber, 
+	[authenticate_request, add_subscriber, get_subscriber, retrieve_all_subscriber, delete_subscriber, 
 	add_client, get_client, get_all_clients, delete_client].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
+authenticate_request() ->
+	[{userdata, [{doc, "Authorized request to the server"}]}].
+
+authenticate_request(Config) ->
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	RestUser = ct:get_config(rest_user),
+   RestPass = ct:get_config(rest_pass),
+   Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication]},
+	{ok, _Result} = httpc:request(get, Request, [], []).
 
 add_subscriber() ->
 	[{userdata, [{doc,"Add subscriber in rest interface"}]}].
