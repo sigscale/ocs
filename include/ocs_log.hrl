@@ -18,10 +18,9 @@
 
 %% IPDR Document
 -record(ipdr_doc,
-		docId :: string(),
+		{docId :: string(),
 		version :: string(),
-		creationTime :: erlang:system_time(),
-		}).
+		creationTime :: erlang:system_time()}).
 
 %% IPDR Public WLAN Access - WISP Use Case
 -record(ipdr_wlan,
