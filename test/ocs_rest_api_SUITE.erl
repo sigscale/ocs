@@ -123,7 +123,7 @@ sequences() ->
 %%
 all() -> 
 	[add_subscriber, get_subscriber, retrieve_all_subscriber, delete_subscriber, 
-	add_client, get_client, get_all_clients].
+	add_client, get_client, get_all_clients, delete_client].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -432,6 +432,35 @@ get_all_clients(Config) ->
 	{_, Disconnect} = lists:keyfind("disconnectPort", 1, ClientVar),
    {_, Protocol} = lists:keyfind("protocol", 1, ClientVar),
    {_, Secret} = lists:keyfind("secret", 1, ClientVar).
+
+delete_client() ->
+   [{userdata, [{doc,"Delete client in rest interface"}]}].
+
+delete_client(Config) ->
+   ContentType = "application/json",
+   ID = "10.2.53.9",
+	Disconnect = 1899,
+	Protocol = "RADIUS",
+   Secret = "ksc8c244npqc",
+   JSON1 = {struct, [{"id", ID}, {"disconnectPort", Disconnect}, {"protocol", Protocol}, 
+		{"secret", Secret}]},
+   RequestBody = lists:flatten(mochijson:encode(JSON1)),
+   HostUrl = ?config(host_url, Config),
+   Accept = {"accept", "application/json"},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+   AuthKey = "Basic " ++ Encodekey,
+   Authentication = {"authorization", AuthKey},
+   Request1 = {HostUrl ++ "/ocs/v1/client", [Accept, Authentication], ContentType, RequestBody},
+   {ok, Result} = httpc:request(post, Request1, [], []),
+   {{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
+   {_, URI1} = lists:keyfind("location", 1, Headers),
+   {_, _, URI2, _, _} = mochiweb_util:urlsplit(URI1),
+   Request2 = {HostUrl ++ URI2, [Accept, Authentication], ContentType, []},
+   {ok, Result1} = httpc:request(delete, Request2, [], []),
+   {{"HTTP/1.1", 204, _NoContent}, Headers1, []} = Result1,
+   {_, "0"} = lists:keyfind("content-length", 1, Headers1).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
