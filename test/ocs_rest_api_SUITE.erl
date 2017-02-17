@@ -123,7 +123,7 @@ sequences() ->
 %%
 all() -> 
 	[add_subscriber, get_subscriber, retrieve_all_subscriber, delete_subscriber, 
-	add_client, get_client].
+	add_client, get_client, get_all_clients].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -388,6 +388,50 @@ get_client(Config) ->
 	{_, Disconnect} = lists:keyfind("disconnectPort", 1, Object),
 	{_, Protocol} = lists:keyfind("protocol", 1, Object),
    {_, Secret} = lists:keyfind("secret", 1, Object).
+
+get_all_clients() ->
+   [{userdata, [{doc,"get all clients in rest interface"}]}].
+
+get_all_clients(Config) ->
+   ContentType = "application/json",
+   ID = "10.2.53.8",
+	Disconnect = 1899,
+	Protocol = "RADIUS",
+   Secret = "ksc8c344npqc",
+   JSON = {struct, [{"id", ID}, {"disconnectPort", Disconnect}, {"protocol", Protocol}, 
+		{"secret", Secret}]},
+   RequestBody = lists:flatten(mochijson:encode(JSON)),
+   HostUrl = ?config(host_url, Config),
+   Accept = {"accept", "application/json"},
+	RestUser = ct:get_config(rest_user),
+   RestPass = ct:get_config(rest_pass),
+   Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+   AuthKey = "Basic " ++ Encodekey,
+   Authentication = {"authorization", AuthKey},
+   Request1 = {HostUrl ++ "/ocs/v1/client", [Accept, Authentication], ContentType, RequestBody},
+   {ok, Result} = httpc:request(post, Request1, [], []),
+   {{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
+   {_, URI1} = lists:keyfind("location", 1, Headers),
+   Request2 = {HostUrl ++ "/ocs/v1/client", [Accept, Authentication]},
+   {ok, Result1} = httpc:request(get, Request2, [], []),
+   {{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
+   {_, Accept} = lists:keyfind("content-type", 1, Headers1),
+   ContentLength = integer_to_list(length(Body1)),
+   {_, ContentLength} = lists:keyfind("content-length", 1, Headers1),
+	{array, ClientsList} = mochijson:decode(Body1),
+   Pred1 = fun({struct, Param}) ->
+      case lists:keyfind("id", 1, Param) of
+         {_, ID} ->
+            true;
+         {_, _ID} ->
+            false
+      end
+   end,
+   [{struct, ClientVar}] = lists:filter(Pred1, ClientsList),
+   {_, URI1} = lists:keyfind("href", 1, ClientVar),
+	{_, Disconnect} = lists:keyfind("disconnectPort", 1, ClientVar),
+   {_, Protocol} = lists:keyfind("protocol", 1, ClientVar),
+   {_, Secret} = lists:keyfind("secret", 1, ClientVar).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
