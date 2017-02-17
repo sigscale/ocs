@@ -17,14 +17,20 @@
 %%% 
 
 %% IPDR Document
--record(ipdr_doc,
+-record(ipdrDoc,
 		{docId :: string(),
 		version :: string(),
-		creationTime :: erlang:system_time()}).
+		creationTime :: pos_integer(),
+		ipdrRecorderInfo :: string()}).
+-record(ipdrDocEnd,
+		{count :: non_neg_integer(),
+		endTime :: pos_integer()}).
 
 %% IPDR Public WLAN Access - WISP Use Case
--record(ipdr_wlan,
-		{username :: string(),
+-record(ipdr,
+		{ipdrCreationTime :: pos_integer(),
+		seqNum :: non_neg_integer(),
+		username :: string(),
 		scIdType :: 1..3,
 		scId :: string(),
 		homeServiceProviderType :: 1..4,
@@ -52,8 +58,8 @@
 		inputOctets :: pos_integer(),
 		outputOctets :: pos_integer(),
 		class :: string(), 
-		gmtSessionStartDateTime :: erlang:system_time(),
-		gmtSessionEndDateTime :: erlang:system_time(),
+		gmtSessionStartDateTime :: pos_integer(),
+		gmtSessionEndDateTime :: pos_integer(),
 		sessionTerminateCause :: 1..7,
 		billingClassOfService :: string(),
 		unitOfMeasure :: 1..7,
