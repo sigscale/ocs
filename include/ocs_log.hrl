@@ -16,8 +16,15 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% 
 
+%% IPDR Document
+-record(ipdr_doc,
+		docId :: string(),
+		version :: string(),
+		creationTime :: erlang:system_time(),
+		}).
+
 %% IPDR Public WLAN Access - WISP Use Case
--record(ipdr,
+-record(ipdr_wlan,
 		{username :: string(),
 		scIdType :: 1..3,
 		scId :: string(),
@@ -62,6 +69,5 @@
 		intermediaryName :: string(),
 		serviceName :: 1..6,
 		relatedIpdrIdList :: string(),
-		tempUserId :: string()
-		}).
+		tempUserId :: string()}).
 
