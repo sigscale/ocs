@@ -14,7 +14,7 @@
                {directory_index, ["index.html"]},
                {directory, {"/",
                      [{auth_type, mnesia},
-                     {auth_name, "ocs.facinet.mx"},
+                     {auth_name, "ocs.sigscale.org"},
                      {require_group, ["all"]}]}},
                {modules, [mod_alias, mod_auth,
                      mod_ocs_rest_dispatcher, mod_ocs_rest_accepted_content,
