@@ -25,7 +25,7 @@
             {directory_index, ["index.html"]},
             {directory, {"/",
                   [{auth_type, mnesia},
-                  {auth_name, "ocs.facinet.mx"},
+                  {auth_name, "ocs.sigscale.org"},
                   {require_group, ["staff"]}]}},
             {transfer_disk_log, "log/http/transfer"},
             {security_disk_log, "log/http/security"},
