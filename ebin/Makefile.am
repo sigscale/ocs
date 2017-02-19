@@ -44,7 +44,8 @@ beam_DATA = ocs.beam \
 			ocs_rest_res_client.beam \
 			ocs_rest_res_usage.beam
 
-%.beam:$(top_srcdir)/src/%.erl	$(top_srcdir)/include/ocs.hrl $(top_srcdir)/include/ocs_log.hrl \
+%.beam:$(top_srcdir)/src/%.erl	$(top_srcdir)/include/ocs.hrl \
+		$(top_srcdir)/include/ocs_log.hrl \
 		$(top_srcdir)/include/ocs_eap_codec.hrl
 	$(ERLC) $(ERLCFLAGS) -I $(top_srcdir)/include $<
 
