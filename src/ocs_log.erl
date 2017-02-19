@@ -266,36 +266,43 @@ ipdr_log5(IpdrLog, {error, Reason}) ->
 %% 	Returns filtered records.
 %% @private
 get_range(Log, Start, End, Cont) ->
-	get_range(Log, Start, End, Cont, []).
+	get_range(Log, Start, End, Cont, disk_log:chunk(Log, Cont, 1)).
 %% @hidden
-get_range(Log, Start, End, Cont, Acc) ->
-	case disk_log:chunk(Log, Cont) of
-		{error, Reason} ->
-			{error, Reason};
-		{NextCont, Records} ->
-			Fstart = fun(R) when element(1, R) < Start ->
+get_range(_Log, _Start, _End, _PrevCont, {error, Reason}) ->
+	{error, Reason};
+get_range(_Log, _Start, _End, _PrevCont, eof) ->
+	[];
+get_range(Log, Start, End, _PrevCont, {Cont, [R]}) when element(1, R) < Start ->
+	get_range(Log, Start, End, Cont, disk_log:chunk(Log, Cont, 1));
+get_range(Log, Start, End, PrevCont, {_Cont, _Chunk}) ->
+	get_range1(Log, Start, End, disk_log:chunk(Log, PrevCont), []).
+%% @hidden
+get_range1(_Log, _Start, _End, {error, Reason}, _Acc) ->
+	{error, Reason};
+get_range1(_Log, _Start, _End, eof, Acc) ->
+	lists:flatten(lists:reverse(Acc));
+get_range1(Log, Start, End, {Cont, Records}, Acc) ->
+	Fstart = fun(R) when element(1, R) < Start ->
+				true;
+			(_) ->
+				false
+	end,
+	case lists:dropwhile(Fstart, Records) of
+		[] ->
+			get_range1(Log, Start, End, disk_log:chunk(Log, Cont), Acc);
+		Records1 ->
+			Fend = fun(R) when element(1, R) =< End ->
 						true;
 					(_) ->
 						false
 			end,
-			case lists:dropwhile(Fstart, Records) of
-				[] ->
-					get_range(Log, Start, End, NextCont, Acc);
+			case lists:takewhile(Fend, Records1) of
 				Records1 ->
-					Fend = fun(R) when element(1, R) =< End ->
-								true;
-							(_) ->
-								false
-					end,
-					case lists:takewhile(Fend, Records1) of
-						Records1 ->
-							get_range(Log, Start, End, NextCont, [Records1 | Acc]);
-						Records2 ->
-							lists:flatten(lists:reverse([Records2 | Acc]))
-					end
-			end;
-		eof ->
-			lists:flatten(lists:reverse(Acc))
+					get_range1(Log, Start, End,
+							disk_log:chunk(Log, Cont), [Records1 | Acc]);
+				Records2 ->
+					lists:flatten(lists:reverse([Records2 | Acc]))
+			end
 	end.
 
 -spec dump_file(Log, FileName) -> Result
