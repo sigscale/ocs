@@ -253,6 +253,51 @@ ipdr_log5(IpdrLog, {error, Reason}) ->
 			{module, ?MODULE}, {log, IpdrLog}, {error, Reason}]),
 	{error, Reason}.
 
+-spec get_range(Log, Start, End, Cont) -> Result
+	when
+		Log :: disk_log:log(),
+		Start :: pos_integer(),
+		End :: pos_integer(),
+		Cont :: disk_log:continuation(),
+		Result :: [term()].
+%% @doc Sequentially read 64KB chunks.
+%%
+%% 	Filters out records before `Start' and after `End'.
+%% 	Returns filtered records.
+%% @private
+get_range(Log, Start, End, Cont) ->
+	get_range(Log, Start, End, Cont, []).
+%% @hidden
+get_range(Log, Start, End, Cont, Acc) ->
+	case disk_log:chunk(Log, Cont) of
+		{error, Reason} ->
+			{error, Reason};
+		{NextCont, Records} ->
+			Fstart = fun(R) when element(1, R) < Start ->
+						true;
+					(_) ->
+						false
+			end,
+			case lists:dropwhile(Fstart, Records) of
+				[] ->
+					get_range(Log, Start, End, NextCont, Acc);
+				Records1 ->
+					Fend = fun(R) when element(1, R) =< End ->
+								true;
+							(_) ->
+								false
+					end,
+					case lists:takewhile(Fend, Records1) of
+						Records1 ->
+							get_range(Log, Start, End, NextCont, [Records1 | Acc]);
+						Records2 ->
+							lists:flatten(lists:reverse([Records2 | Acc]))
+					end
+			end;
+		eof ->
+			lists:flatten(lists:reverse(Acc))
+	end.
+
 -spec dump_file(Log, FileName) -> Result
 	when
 		Log :: disk_log:log(),
@@ -349,49 +394,4 @@ start_binary_tree(Log, Start, NumFiles, _LastCont, _LastStep, StepSize,
 			NewStepSize, Step - NewStepSize);
 start_binary_tree(_, _, _, _, _, _, _, _, {error, Reason}) ->
 	{error, Reason}.
-
--spec get_range(Log, Start, End, Cont) -> Result
-	when
-		Log :: disk_log:log(),
-		Start :: pos_integer(),
-		End :: pos_integer(),
-		Cont :: disk_log:continuation(),
-		Result :: [term()].
-%% @doc Sequentially read 64KB chunks.
-%%
-%% 	Filters out records before `Start' and after `End'.
-%% 	Returns filtered records.
-%% @private
-get_range(Log, Start, End, Cont) ->
-	get_range(Log, Start, End, Cont, []).
-%% @hidden
-get_range(Log, Start, End, Cont, Acc) ->
-	case disk_log:chunk(Log, Cont) of
-		{error, Reason} ->
-			{error, Reason};
-		{NextCont, Records} ->
-			Fstart = fun(R) when element(1, R) < Start ->
-						true;
-					(_) ->
-						false
-			end,
-			case lists:dropwhile(Fstart, Records) of
-				[] ->
-					get_range(Log, Start, End, NextCont, Acc);
-				Records1 ->
-					Fend = fun(R) when element(1, R) =< End ->
-								true;
-							(_) ->
-								false
-					end,
-					case lists:takewhile(Fend, Records1) of
-						Records1 ->
-							get_range(Log, Start, End, NextCont, [Records1 | Acc]);
-						Records2 ->
-							lists:flatten(lists:reverse([Records2 | Acc]))
-					end
-			end;
-		eof ->
-			lists:flatten(lists:reverse(Acc))
-	end.
 
