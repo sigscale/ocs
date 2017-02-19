@@ -24,6 +24,7 @@
 -export([radius_acct_open/0, radius_acct_log/4, radius_acct_close/0]).
 -export([radius_auth_open/0, radius_auth_log/5, radius_auth_close/0]).
 -export([ipdr_log/3, get_range/4, dump_file/2]).
+-export([date/1, iso8601/1]).
 
 %% export the ocs_log private API
 -export([]).
@@ -322,6 +323,29 @@ dump_file(Log, FileName) when is_list(FileName) ->
 			{error, Reason}
 	end.
 
+-spec date(MilliSeconds) -> Result
+	when
+		MilliSeconds :: pos_integer(),
+		Result :: calendar:datetime().
+%% @doc Convert timestamp to date and time.
+date(MilliSeconds) when is_integer(MilliSeconds) ->
+	Epoch = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
+	Seconds = Epoch + (MilliSeconds div 1000),
+	calendar:gregorian_seconds_to_datetime(Seconds).
+
+-spec iso8601(MilliSeconds) -> Result
+	when
+		MilliSeconds :: pos_integer(),
+		Result :: string().
+%% @doc Convert timestamp to ISO 8601 format date and time.
+iso8601(MilliSeconds) when is_integer(MilliSeconds) ->
+	{{Year, Month, Day}, {Hour, Minute, Seond}} = date(Milliseonds),
+	DateFormat = "~4.10.$0b-~2.10.$0b-~2.10.$0b",
+	TimeFormat = "T~2.10.$0b:~2.10.$0b:~2.10.$0b.~3.10.$0Z",
+	Chars = io_lib:fwrite(DateFormat ++ TimeFormat,
+			[Year, Month, Day, Hour, Minute, Second, MilliSeconds rem 1000]),
+	lists:flatten(Chars).
+
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
@@ -401,14 +425,4 @@ start_binary_tree(Log, Start, NumFiles, _LastCont, _LastStep, StepSize,
 			NewStepSize, Step - NewStepSize);
 start_binary_tree(_, _, _, _, _, _, _, _, {error, Reason}) ->
 	{error, Reason}.
-
--spec date(Milliseconds) -> Result
-	when
-		Milliseconds :: pos_integer(),
-		Result :: calendar:datetime().
-%% @doc Convert timestamp to date and time.
-date(Milliseconds) when is_integer(Milliseconds) ->
-	Epoch = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
-	Seconds = Epoch + (Milliseconds div 1000),
-	calendar:gregorian_seconds_to_datetime(Seconds).
 
