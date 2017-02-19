@@ -395,13 +395,13 @@ start_binary_tree(Log, Start, NumFiles, _LastCont, _LastStep, StepSize,
 start_binary_tree(_, _, _, _, _, _, _, _, {error, Reason}) ->
 	{error, Reason}.
 
--spec date(Milliseonds) -> Result
+-spec date(Milliseconds) -> Result
 	when
 		Milliseconds :: pos_integer(),
 		Result :: calendar:datetime().
 %% @doc Convert timestamp to date and time.
-date(Milliseonds) when is_integer(Milliseconds) ->
+date(Milliseconds) when is_integer(Milliseconds) ->
 	Epoch = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
-	Seonds = Epoch + (Milliseonds div 1000),
+	Seconds = Epoch + (Milliseconds div 1000),
 	calendar:gregorian_seconds_to_datetime(Seconds).
 
