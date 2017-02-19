@@ -38,7 +38,7 @@
 %%
 suite() ->
 	[{userdata, [{doc, "Test suite for logging in OCS"}]},
-	{timetrap, {seconds, 20}}].
+	{timetrap, {seconds, 60}}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before the whole suite.
@@ -77,7 +77,7 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[log_auth_event, log_acct_event, get_range].
+	[log_auth_event, log_acct_event, get_range, ipdr_log].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -222,4 +222,72 @@ get_range(_Config) ->
 				N
 	end,
 	lists:foldl(Fverify, StartNum, Result).
+
+ipdr_log() ->
+   [{userdata, [{doc, "Log IPDR reords for date/time range"}]}].
+
+ipdr_log(_Config) ->
+	Node = node(),
+	ServerAddress = {0, 0, 0, 0},
+	ServerPort = 1813,
+	Server = {ServerAddress, ServerPort},
+	ClientAddress = {192, 168, 151, 153},
+	ClientPort = 59132,
+	Client = {ClientAddress, ClientPort},
+	Start = erlang:system_time(millisecond),
+	Attrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
+			{?UserName, "BE:EF:CA:FE:FE:DE"},
+			{?CallingStationId, "FE-ED-BE-EF-F1-1D"},
+			{?CalledStationId, "CA-FE-AC-EF-CA-FE:AP 1"}, {?AcctAuthentic, 1},
+			{?AcctStatusType, 1}, {?NasIdentifier, "ap-1.sigscale.net"},
+			{?AcctDelayTime, 4}, {?NasIpAddress, ClientAddress},
+			{?AcctSessionTime, 245}, {?AcctTerminateCause, 1},
+			{?AcctInputOctets, 16584}, {?AcctOutputOctets, 1387},
+			{?AcctInputGigawords, 1}, {?AcctOutputGigawords, 0}],
+	Event = {Start, Node, Server, Client, start,
+			[{?AcctSessionId, "1234567890"} | Attrs]},
+	LogInfo = disk_log:info(radius_acct),
+	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
+	EventSize = erlang:external_size(Event),
+	Weight = [7,8] ++ lists:duplicate(32, 1) ++ lists:duplicate(32, 2)
+			++ lists:duplicate(33, 3),
+	NumItems = (FileSize div EventSize) * 5,
+	Fill = fun(_F, 0) ->
+				ok;
+			(F, N) ->
+				Random = crypto:rand_uniform(1, 100),
+				{Type, AcctType} = case lists:nth(Random, Weight) of
+					1 -> {start, 1};
+					2 -> {stop, 2};
+					3 -> {interim, 3};
+					7 -> {on, 7};
+					8 -> {off, 8}
+				end,
+				Attrs1 = [{?AcctSessionId, integer_to_list(N)} | Attrs],
+				Attrs2 = [{?AcctStatusType, AcctType} | Attrs1],
+				ocs_log:radius_acct_log(Server, Client, Type, Attrs2),
+				F(F, N - 1)
+	end,
+	Fill(Fill, NumItems),
+	End = erlang:system_time(millisecond),
+	Range = (End - Start),
+	StartRange = Start + (Range div 3),
+	EndRange = End - (Range div 3),
+	Filename = "ipdr-" ++ ocs_log:iso8601(erlang:system_time(millisecond)),
+	ok = ocs_log:ipdr_log(Filename, StartRange, EndRange),
+	GetRangeResult = ocs_log:get_range(radius_acct, StartRange, EndRange, start),
+	Fstop = fun(E, Acc) when element(5, E) == stop ->
+				Acc + 1;
+			(_, Acc) ->
+				Acc
+	end,
+	NumStops = lists:foldl(Fstop, 0, GetRangeResult),
+	{ok, IpdrLog} = disk_log:open([{name, Filename}, {file, Filename}]),
+	Fchunk = fun(F, {Cont, Chunk}, Acc) ->
+				F(F, disk_log:chunk(IpdrLog, Cont), Acc + length(Chunk));
+			(_, eof, Acc) ->
+				disk_log:close(IpdrLog),
+				Acc
+	end,
+	NumStops = Fchunk(Fchunk, disk_log:chunk(IpdrLog, start), 0).
 
