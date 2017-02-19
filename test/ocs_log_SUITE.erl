@@ -77,7 +77,7 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[log_auth_event, log_acct_event].
+	[log_auth_event, log_acct_event, get_range].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -103,7 +103,8 @@ log_auth_event(_Config) ->
 			{?CallingStationId, "FE-ED-BE-EF-F0-0D"},
 			{?CalledStationId, "CA-FE-CA-FE-CA-FE:AP 1"},
 			{?UserPassword, RandomList},
-			{?NasIdentifier, "AP 1"}, {?NasIpAddress, ClientAddress}],
+			{?NasIdentifier, "ap-1.sigscale.net"},
+			{?NasIpAddress, ClientAddress}],
 	ResAttrs = [{?SessionTimeout, 3600}, {?MessageAuthenticator, RandomBin}],
 	ok = ocs_log:radius_auth_log(Server, Client, Type, ReqAttrs, ResAttrs),
 	End = erlang:system_time(millisecond),
@@ -143,8 +144,8 @@ log_acct_event(_Config) ->
 			{?UserName, "DE:AD:BE:EF:CA:FE"}, {?AcctSessionId, "8240019b"},
 			{?CallingStationId, "FE-ED-BE-EF-F0-0D"},
 			{?CalledStationId, "CA-FE-CA-FE-CA-FE:AP 1"}, {?AcctAuthentic, 1},
-			{?AcctStatusType, 1}, {?NasIdentifier, "AP 1"}, {?AcctDelayTime, 0},
-			{?NasIpAddress, ClientAddress}],
+			{?AcctStatusType, 1}, {?NasIdentifier, "ap-1.sigscale.net"},
+			{?AcctDelayTime, 0}, {?NasIpAddress, ClientAddress}],
 	ok = ocs_log:radius_acct_log(Server, Client, Type, ReqAttrs),
 	End = erlang:system_time(millisecond),
 	Fany = fun({TS, N, S, C, T, A}) when TS >= Start, TS =< End,
@@ -165,4 +166,60 @@ log_acct_event(_Config) ->
 				false
 	end,
 	true = Find(Find, disk_log:chunk(radius_acct, start)).
+
+get_range() ->
+   [{userdata, [{doc, "Get date/time range from log"}]}].
+
+get_range(_Config) ->
+	Node = node(),
+	ServerAddress = {0, 0, 0, 0},
+	ServerPort = 1813,
+	Server = {ServerAddress, ServerPort},
+	ClientAddress = {192, 168, 151, 153},
+	ClientPort = 59132,
+	Client = {ClientAddress, ClientPort},
+	Type = start,
+	Start = erlang:system_time(millisecond),
+	Attrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
+			{?UserName, "BE:EF:CA:FE:FE:DE"},
+			{?CallingStationId, "FE-ED-BE-EF-F1-1D"},
+			{?CalledStationId, "CA-FE-AC-EF-CA-FE:AP 1"}, {?AcctAuthentic, 1},
+			{?AcctStatusType, 1}, {?NasIdentifier, "ap-1.sigscale.net"},
+			{?AcctDelayTime, 0}, {?NasIpAddress, ClientAddress}],
+	Event = {Start, Node, Server, Client, Type,
+			[{?AcctSessionId, "1234567890"} | Attrs]},
+	LogInfo = disk_log:info(radius_acct),
+	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
+	EventSize = erlang:external_size(Event),
+	NumItems = (FileSize div EventSize) * 5,
+	Fill = fun(_F, 0) ->
+				ok;
+			(F, N) ->
+				ocs_log:radius_acct_log(Server, Client, Type,
+						[{?AcctSessionId, integer_to_list(N)} | Attrs]),
+				F(F, N - 1)
+	end,
+	Fill(Fill, NumItems),
+	End = erlang:system_time(millisecond),
+	Range = (End - Start),
+	StartRange = Start + (Range div 3),
+	EndRange = End - (Range div 3),
+	Result = ocs_log:get_range(radius_acct, StartRange, EndRange, start),
+	true = length(Result) > ((NumItems div 3) - (NumItems div 10)),
+	[{?AcctSessionId, ID} | _] = element(6, lists:nth(1, Result)),
+	StartNum = list_to_integer(ID),
+	Fverify = fun({TS, _, _, _, _,  _}, _N)
+					when TS < StartRange, TS > EndRange ->
+				ct:fail(verify);
+			({_, _, _, _, _, [{?AcctSessionId, S} | _]}, N) ->
+				case list_to_integer(S) of
+					N ->
+						N - 1;
+					_ ->
+						ct:fail(verify)
+				end;
+			(_, N) ->
+				N
+	end,
+	lists:foldl(Fverify, StartNum, Result).
 
