@@ -204,7 +204,7 @@ get_range(_Config) ->
 	Range = (End - Start),
 	StartRange = Start + (Range div 3),
 	EndRange = End - (Range div 3),
-	Result = ocs_log:get_range(radius_acct, StartRange, EndRange, start),
+	Result = ocs_log:get_range(radius_acct, StartRange, EndRange),
 	true = length(Result) > ((NumItems div 3) - (NumItems div 10)),
 	[{?AcctSessionId, ID} | _] = element(6, lists:nth(1, Result)),
 	StartNum = list_to_integer(ID),
@@ -275,7 +275,7 @@ ipdr_log(_Config) ->
 	EndRange = End - (Range div 3),
 	Filename = "ipdr-" ++ ocs_log:iso8601(erlang:system_time(millisecond)),
 	ok = ocs_log:ipdr_log(Filename, StartRange, EndRange),
-	GetRangeResult = ocs_log:get_range(radius_acct, StartRange, EndRange, start),
+	GetRangeResult = ocs_log:get_range(radius_acct, StartRange, EndRange),
 	Fstop = fun(E, Acc) when element(5, E) == stop ->
 				Acc + 1;
 			(_, Acc) ->

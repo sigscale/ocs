@@ -23,7 +23,7 @@
 %% export the ocs_log public API
 -export([radius_acct_open/0, radius_acct_log/4, radius_acct_close/0]).
 -export([radius_auth_open/0, radius_auth_log/5, radius_auth_close/0]).
--export([ipdr_log/3, get_range/4, dump_file/2]).
+-export([ipdr_log/3, get_range/3, dump_file/2]).
 -export([date/1, iso8601/1]).
 
 %% export the ocs_log private API
@@ -254,57 +254,25 @@ ipdr_log5(IpdrLog, {error, Reason}) ->
 			{module, ?MODULE}, {log, IpdrLog}, {error, Reason}]),
 	{error, Reason}.
 
--spec get_range(Log, Start, End, Cont) -> Result
+-spec get_range(Log, Start, End) -> Result
 	when
 		Log :: disk_log:log(),
-		Start :: pos_integer(),
-		End :: pos_integer(),
-		Cont :: disk_log:continuation(),
+		Start :: calendar:datetime() | pos_integer(),
+		End :: calendar:datetime() | pos_integer(),
 		Result :: [term()].
-%% @doc Sequentially read 64KB chunks.
+%% @doc Get all events in a log within a date/time range.
 %%
-%% 	Filters out records before `Start' and after `End'.
-%% 	Returns filtered records.
 %% @private
-get_range(Log, Start, End, Cont) ->
-	get_range(Log, Start, End, Cont, disk_log:chunk(Log, Cont, 1)).
-%% @hidden
-get_range(_Log, _Start, _End, _PrevCont, {error, Reason}) ->
-	{error, Reason};
-get_range(_Log, _Start, _End, _PrevCont, eof) ->
-	[];
-get_range(Log, Start, End, _PrevCont, {Cont, [R]}) when element(1, R) < Start ->
-	get_range(Log, Start, End, Cont, disk_log:chunk(Log, Cont, 1));
-get_range(Log, Start, End, PrevCont, {_Cont, _Chunk}) ->
-	get_range1(Log, Start, End, disk_log:chunk(Log, PrevCont), []).
-%% @hidden
-get_range1(_Log, _Start, _End, {error, Reason}, _Acc) ->
-	{error, Reason};
-get_range1(_Log, _Start, _End, eof, Acc) ->
-	lists:flatten(lists:reverse(Acc));
-get_range1(Log, Start, End, {Cont, Records}, Acc) ->
-	Fstart = fun(R) when element(1, R) < Start ->
-				true;
-			(_) ->
-				false
-	end,
-	case lists:dropwhile(Fstart, Records) of
-		[] ->
-			get_range1(Log, Start, End, disk_log:chunk(Log, Cont), Acc);
-		Records1 ->
-			Fend = fun(R) when element(1, R) =< End ->
-						true;
-					(_) ->
-						false
-			end,
-			case lists:takewhile(Fend, Records1) of
-				Records1 ->
-					get_range1(Log, Start, End,
-							disk_log:chunk(Log, Cont), [Records1 | Acc]);
-				Records2 ->
-					lists:flatten(lists:reverse([Records2 | Acc]))
-			end
-	end.
+get_range(Log, {{_, _, _}, {_, _, _}} = Start, End) ->
+	Epoch = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
+	Seconds = calendar:datetime_to_gregorian_seconds(Start) - Epoch,
+	get_range(Log, Seconds * 1000, End);
+get_range(Log, Start, {{_, _, _}, {_, _, _}} = End) ->
+	Epoch = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
+	Seconds = calendar:datetime_to_gregorian_seconds(End) - Epoch,
+	get_range(Log, Start, Seconds * 1000);
+get_range(Log, Start, End) when is_integer(Start), is_integer(End) ->
+	get_range(Log, Start, End, start).
 
 -spec dump_file(Log, FileName) -> Result
 	when
@@ -427,6 +395,58 @@ start_binary_tree(Log, Start, NumFiles, _LastCont, _LastStep, StepSize,
 start_binary_tree(_, _, _, _, _, _, _, _, {error, Reason}) ->
 	{error, Reason}.
 
+-spec get_range(Log, Start, End, Cont) -> Result
+	when
+		Log :: disk_log:log(),
+		Start :: pos_integer(),
+		End :: pos_integer(),
+		Cont :: start | disk_log:continuation(),
+		Result :: [term()].
+%% @doc Sequentially read 64KB chunks.
+%%
+%% 	Filters out records before `Start' and after `End'.
+%% 	Returns filtered records.
+%% @private
+get_range(Log, Start, End, Cont) ->
+	get_range(Log, Start, End, Cont, disk_log:chunk(Log, Cont, 1)).
+%% @hidden
+get_range(_Log, _Start, _End, _PrevCont, {error, Reason}) ->
+	{error, Reason};
+get_range(_Log, _Start, _End, _PrevCont, eof) ->
+	[];
+get_range(Log, Start, End, _PrevCont, {Cont, [R]}) when element(1, R) < Start ->
+	get_range(Log, Start, End, Cont, disk_log:chunk(Log, Cont, 1));
+get_range(Log, Start, End, PrevCont, {_Cont, _Chunk}) ->
+	get_range1(Log, Start, End, disk_log:chunk(Log, PrevCont), []).
+%% @hidden
+get_range1(_Log, _Start, _End, {error, Reason}, _Acc) ->
+	{error, Reason};
+get_range1(_Log, _Start, _End, eof, Acc) ->
+	lists:flatten(lists:reverse(Acc));
+get_range1(Log, Start, End, {Cont, Records}, Acc) ->
+	Fstart = fun(R) when element(1, R) < Start ->
+				true;
+			(_) ->
+				false
+	end,
+	case lists:dropwhile(Fstart, Records) of
+		[] ->
+			get_range1(Log, Start, End, disk_log:chunk(Log, Cont), Acc);
+		Records1 ->
+			Fend = fun(R) when element(1, R) =< End ->
+						true;
+					(_) ->
+						false
+			end,
+			case lists:takewhile(Fend, Records1) of
+				Records1 ->
+					get_range1(Log, Start, End,
+							disk_log:chunk(Log, Cont), [Records1 | Acc]);
+				Records2 ->
+					lists:flatten(lists:reverse([Records2 | Acc]))
+			end
+	end.
+
 -spec ipdr_codec({TimeStamp, Node, Server, Client, stop, Attributes}) -> IPDR
 	when
 		TimeStamp :: pos_integer(),
@@ -441,7 +461,7 @@ start_binary_tree(_, _, _, _, _, _, _, _, {error, Reason}) ->
 ipdr_codec({TimeStamp, _Node, _Server, _Client, stop, Attributes}) ->
 	IPDR = #ipdr{ipdrCreationTime = iso8601(TimeStamp)},
 	ipdr_codec1(TimeStamp, Attributes, IPDR).
-%% @hidden
+%% @private
 ipdr_codec1(TimeStamp, Attributes, Acc) ->
 	case radius_attributes:find(?AcctDelayTime, Attributes) of
 		{ok, DelayTime} ->
