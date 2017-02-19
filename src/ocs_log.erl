@@ -375,17 +375,21 @@ get_range(Log, Start, End, Cont, Acc) ->
 					(_) ->
 						false
 			end,
-			Records1 = lists:dropwhile(Fstart, Records),
-			Fend = fun(R) when element(1, R) < End ->
-						true;
-					(_) ->
-						false
-			end,
-			case lists:takewhile(Fend, Records1) of
+			case lists:dropwhile(Fstart, Records) of
+				[] ->
+					get_range(Log, Start, End, NextCont, Acc);
 				Records1 ->
-					get_range(Log, Start, End, NextCont, [Records1 | Acc]);
-				Records2 ->
-					lists:flatten(lists:reverse([Records2 | Acc]))
+					Fend = fun(R) when element(1, R) =< End ->
+								true;
+							(_) ->
+								false
+					end,
+					case lists:takewhile(Fend, Records1) of
+						Records1 ->
+							get_range(Log, Start, End, NextCont, [Records1 | Acc]);
+						Records2 ->
+							lists:flatten(lists:reverse([Records2 | Acc]))
+					end
 			end;
 		eof ->
 			lists:flatten(lists:reverse(Acc))
