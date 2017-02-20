@@ -96,7 +96,9 @@ client() ->
 client(Config) ->
 	{ok, Address} = application:get_env(ocs, radius_auth_addr),
 	SharedSecret = ct:get_config(radius_shared_secret, Config),
-	ok = ocs:add_client(Address, SharedSecret),
+	DiscPort = application:get_env(ocs, radius_disconnect_port),
+	Protocol = ct:get_config(protocol),
+	ok = ocs:add_client({127, 0, 0, 1}, DiscPort, Protocol, SharedSecret),
 	{ok, BinSharedSecret} = ocs:find_client(Address),
 	SharedSecret = binary_to_list(BinSharedSecret).
 
@@ -110,9 +112,11 @@ get_all_clients(Config) ->
 	Secret1 = "Enid blyton 1",
 	Secret2 = "Enid blyton 2",
 	Secret3 = "Enid blyton 3",
-	ok = ocs:add_client(A1, Secret1),
-	ok = ocs:add_client(A2, Secret2),
-	ok = ocs:add_client(A3, Secret3),
+	DiscPort = application:get_env(ocs, radius_disconnect_port),
+	Protocol = ct:get_config(protocol),
+	ok = ocs:add_client(A1, DiscPort, Protocol, Secret1),
+	ok = ocs:add_client(A2, DiscPort, Protocol, Secret2),
+	ok = ocs:add_client(A3, DiscPort, Protocol, Secret3),
 	Clients = ocs:get_clients(),
 	F = fun(#radius_client{address = Addr, secret = Sec} = _R) ->
 		{ok, Sec} = ocs:find_client(Addr)
@@ -125,7 +129,9 @@ update_client_password() ->
 update_client_password(_Config) ->
 	Address = "192.168.90.23",
 	Password = "gentoo",
-	ok = ocs:add_client(Address, Password),
+	DiscPort = application:get_env(ocs, radius_disconnect_port),
+	Protocol = ct:get_config(protocol),
+	ok = ocs:add_client(Address, DiscPort, Protocol, Password),
 	PasswordBin = list_to_binary(Password),
 	{ok, PasswordBin} = ocs:find_client(Address),
 	NewPassword = "GentooNewxD",
@@ -140,7 +146,9 @@ delete_client() ->
 delete_client(Config) ->
 	{ok, Address} = application:get_env(ocs, radius_auth_addr),
 	SharedSecret = ct:get_config(radius_shared_secret, Config),
-	ok = ocs:add_client(Address, SharedSecret),
+	DiscPort = application:get_env(ocs, radius_disconnect_port),
+	Protocol = ct:get_config(protocol),
+	ok = ocs:add_client(Address, DiscPort, Protocol, SharedSecret),
 	ok = ocs:delete_client(Address),
 	{error, not_found} = ocs:find_client(Address).
 
