@@ -122,16 +122,18 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[authenticate_request, add_subscriber, get_subscriber, retrieve_all_subscriber, delete_subscriber, 
+	[authenticate_subscriber_request, unauthenticate_subscriber_request, 
+	authenticate_client_request, unauthenticate_client_request, 
+	add_subscriber, get_subscriber, retrieve_all_subscriber, delete_subscriber, 
 	add_client, get_client, get_all_clients, delete_client].
-
+  
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
-authenticate_request() ->
-	[{userdata, [{doc, "Authorized request to the server"}]}].
+authenticate_subscriber_request() ->
+	[{userdata, [{doc, "Authorized subscriber request to the server"}]}].
 
-authenticate_request(Config) ->
+authenticate_subscriber_request(Config) ->
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
 	RestUser = ct:get_config(rest_user),
@@ -141,6 +143,50 @@ authenticate_request(Config) ->
 	Authentication = {"authorization", AuthKey},
 	Request = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication]},
 	{ok, _Result} = httpc:request(get, Request, [], []).
+
+unauthenticate_subscriber_request() ->
+	[{userdata, [{doc, "Unauthorized subscriber request to the server"}]}].
+
+unauthenticate_subscriber_request(Config) ->
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	RestUser = "Love",
+   RestPass = "Like",
+   Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 401, _}, _, _} = Result.
+
+authenticate_client_request() ->
+	[{userdata, [{doc, "Authorized client request to the server"}]}].
+
+authenticate_client_request(Config) ->
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	RestUser = ct:get_config(rest_user),
+   RestPass = ct:get_config(rest_pass),
+   Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request = {HostUrl ++ "/ocs/v1/client", [Accept, Authentication]},
+	{ok, _Result} = httpc:request(get, Request, [], []).
+
+unauthenticate_client_request() ->
+	[{userdata, [{doc, "Unauthorized subscriber request to the server"}]}].
+
+unauthenticate_client_request(Config) ->
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	RestUser = "Love",
+   RestPass = "Like",
+   Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request = {HostUrl ++ "/ocs/v1/client", [Accept, Authentication]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 401, _}, _, _} = Result.
 
 add_subscriber() ->
 	[{userdata, [{doc,"Add subscriber in rest interface"}]}].
