@@ -228,6 +228,10 @@ ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, Chunk}) ->
 	ipdr_log4(IpdrLog, Start, End, SeqNum,
 			{Cont, lists:dropwhile(Fstart, Chunk)}).
 %% @hidden
+ipdr_log4(IpdrLog, _Start, _End, _SeqNum, eof) ->
+	ipdr_log5(IpdrLog, disk_log:close(IpdrLog));
+ipdr_log4(IpdrLog, _Start, _End, _SeqNum, {error, _Reason}) ->
+	ipdr_log5(IpdrLog, disk_log:close(IpdrLog));
 ipdr_log4(IpdrLog, Start, End, SeqNum, {Cont, []}) ->
 	ipdr_log4(IpdrLog, Start, End, SeqNum, disk_log:chunk(?RADACCT, Cont));
 ipdr_log4(IpdrLog, _Start, End, _SeqNum, {_Cont, [H | _]})
