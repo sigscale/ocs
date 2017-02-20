@@ -243,6 +243,13 @@
 			on-response="responseHandler"
 			debounce-duration="10"> </iron-ajax>
 
+		<iron-ajax id="getAccoutingLogs"
+			auto=false
+			url="/usageManagement/v1/usage"
+			headers='{"Accept": "application/json", "Content-type": "application/json"}'
+			on-response="accountingLogsResponseHandler"
+			debounce-duration="10"> </iron-ajax>
+
 		<iron-ajax id="updateClientPassword"
 			auto=true
 			headers='{"Accept": "application/json", "Content-type": "application/json"}'
@@ -317,8 +324,44 @@
 			document.getElementById("progressbar").indeterminate = false;
 		},
 
+		accountingLogsResponseHandler: function(event) {
+			var grid = this.$.frozen; 
+			var results = event.detail.xhr.response;
+			var vaadinItems = new Array();
 
+			for(var index in results){
+					  var newRecord = new Object();
+					  newRecord.date = results[index].date;
+					  newRecord.type = results[index].type;
+					  newRecord.usageSpecificationName = results[index].usageSpecification.name;
 
+					 results[index].usageCharacteristic.forEach(function(attrObj){
+							newRecord[attrObj.key] = attrObj.value;
+						});
+
+					  vaadinItems[index] = newRecord;
+			}
+
+			grid.frozenColumns = 1;
+
+			grid.items = vaadinItems;
+			grid.columns = [
+			{ name: "username"},
+			{ name: "acctSessionId"},
+			{ name: "callingStationId"},
+			{ name: "nasIpAddress"},
+			{ name: "calledStationId"},
+			{ name: "nasId"},
+			{ name: "sessionDuration"},
+			{ name: "inputOctets"},
+			{ name: "outputOctets"},
+			{ name: "gmtSessionStartDateTime"},
+			{ name: "gmtSessionEndDateTime"},
+			{ name: "sessionTerminateCause"}
+			];
+
+			document.getElementById("progressbar").indeterminate = false;
+		},
 
 		responseHandler: function(event) {
 			var grid = this.$.frozen; 

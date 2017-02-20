@@ -45,7 +45,7 @@
 							<paper-submenu>
 								<paper-item class="menu-trigger">Logs</paper-item>
 									<paper-menu class="menu-content" selectedClass="bbb">
-										<paper-item> &nbsp &nbsp &nbsp Accounting</paper-item>
+										<paper-item onclick="setSelection(event)" id="selectionAccountingLogs"> &nbsp &nbsp &nbsp Accounting</paper-item>
 										<paper-item> &nbsp &nbsp &nbsp Authentication</paper-item>
 									</paper-menu>
 							</paper-submenu>
@@ -78,6 +78,10 @@
 					}
 					if(selection == "selectionRadiusClients"){
 						document.getElementById("getClients").generateRequest();
+						document.getElementById("progressbar").indeterminate = true;
+					}
+					if(selection == "selectionAccountingLogs"){
+						document.getElementById("getAccoutingLogs").generateRequest();
 						document.getElementById("progressbar").indeterminate = true;
 					}
 				}
