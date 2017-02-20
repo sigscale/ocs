@@ -48,9 +48,11 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
+	{ok, DiscPort} = application:get_env(ocs, radius_disconnect_port),
+	Protocol = ct:get_config(protocol),
 	SharedSecret = ct:get_config(radius_shared_secret),
 	Config1 = [{radius_shared_secret, SharedSecret} | Config],
-	ok = ocs:add_client({127, 0, 0, 1}, SharedSecret),
+	ok = ocs:add_client({127, 0, 0, 1}, DiscPort, Protocol, SharedSecret),
 	NasId = atom_to_list(node()),
 	[{nas_id, NasId} | Config1].
 
@@ -170,7 +172,8 @@ disconnect_session() ->
 
 disconnect_session(Config) ->
 	Id = 1,
-	PeerID = list_to_binary(?config(peer_id, Config)),
+	%PeerID = list_to_binary(?config(peer_id, Config)),
+	PeerID = ocs:generate_password(),
 	Password = ?config(password, Config),
 	NasId = ?config(nas_id, Config),
 	AcctAddress = {127, 0, 0, 1},
