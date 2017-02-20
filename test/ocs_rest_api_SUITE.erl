@@ -126,7 +126,7 @@ all() ->
 	authenticate_client_request, unauthenticate_client_request, 
 	add_subscriber, get_subscriber, get_subscriber_not_found, 
 	retrieve_all_subscriber, delete_subscriber, add_client, get_client, 
-	get_all_clients, delete_client].  
+	get_client_bogus, get_client_notfound, get_all_clients, delete_client].  
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -138,8 +138,8 @@ authenticate_subscriber_request(Config) ->
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
 	RestUser = ct:get_config(rest_user),
-   RestPass = ct:get_config(rest_pass),
-   Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	AuthKey = "Basic " ++ Encodekey,
 	Authentication = {"authorization", AuthKey},
 	Request = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication]},
@@ -152,8 +152,8 @@ unauthenticate_subscriber_request(Config) ->
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
 	RestUser = "Love",
-   RestPass = "Like",
-   Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	RestPass = "Like",
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	AuthKey = "Basic " ++ Encodekey,
 	Authentication = {"authorization", AuthKey},
 	Request = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication]},
@@ -167,8 +167,8 @@ authenticate_client_request(Config) ->
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
 	RestUser = ct:get_config(rest_user),
-   RestPass = ct:get_config(rest_pass),
-   Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	AuthKey = "Basic " ++ Encodekey,
 	Authentication = {"authorization", AuthKey},
 	Request = {HostUrl ++ "/ocs/v1/client", [Accept, Authentication]},
@@ -181,8 +181,8 @@ unauthenticate_client_request(Config) ->
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
 	RestUser = "Love",
-   RestPass = "Like",
-   Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	RestPass = "Like",
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	AuthKey = "Basic " ++ Encodekey,
 	Authentication = {"authorization", AuthKey},
 	Request = {HostUrl ++ "/ocs/v1/client", [Accept, Authentication]},
@@ -216,7 +216,7 @@ add_subscriber(Config) ->
 	RestPass = ct:get_config(rest_pass),
 	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	AuthKey = "Basic " ++ Encodekey,
-   Authentication = {"authorization", AuthKey},
+	Authentication = {"authorization", AuthKey},
 	Request = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, [], []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
@@ -237,7 +237,7 @@ add_subscriber(Config) ->
 
 
 get_subscriber() ->
-   [{userdata, [{doc,"get subscriber in rest interface"}]}].
+	[{userdata, [{doc,"get subscriber in rest interface"}]}].
 
 get_subscriber(Config) ->
 	ContentType = "application/json",
@@ -256,26 +256,26 @@ get_subscriber(Config) ->
 	Enable = true,
 	JSON1 = {struct, [{"id", ID}, {"password", Password},
 	{"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enable}]},
-   RequestBody = lists:flatten(mochijson:encode(JSON1)),
-   HostUrl = ?config(host_url, Config),
-   Accept = {"accept", "application/json"},
+	RequestBody = lists:flatten(mochijson:encode(JSON1)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
 	RestUser = ct:get_config(rest_user),
 	RestPass = ct:get_config(rest_pass),
 	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	AuthKey = "Basic " ++ Encodekey,
-   Authentication = {"authorization", AuthKey},
-   Request1 = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication], ContentType, RequestBody},
-   {ok, Result} = httpc:request(post, Request1, [], []),
-   {{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
-   {_, URI1} = lists:keyfind("location", 1, Headers),
-   {_, _, URI2, _, _} = mochiweb_util:urlsplit(URI1),
-   Request2 = {HostUrl ++ URI2, [Accept, Authentication ]},
-   {ok, Result1} = httpc:request(get, Request2, [], []),
-   {{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
-   {_, Accept} = lists:keyfind("content-type", 1, Headers1),
-   ContentLength = integer_to_list(length(Body1)),
-   {_, ContentLength} = lists:keyfind("content-length", 1, Headers1),
-   {struct, Object} = mochijson:decode(Body1),
+	Authentication = {"authorization", AuthKey},
+	Request1 = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
+	{_, URI1} = lists:keyfind("location", 1, Headers),
+	{_, _, URI2, _, _} = mochiweb_util:urlsplit(URI1),
+	Request2 = {HostUrl ++ URI2, [Accept, Authentication ]},
+	{ok, Result1} = httpc:request(get, Request2, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
+	{_, Accept} = lists:keyfind("content-type", 1, Headers1),
+	ContentLength = integer_to_list(length(Body1)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers1),
+	{struct, Object} = mochijson:decode(Body1),
 	{"id", ID} = lists:keyfind("id", 1, Object),
 	{_, URI} = lists:keyfind("href", 1, Object),
 	{"password", Password} = lists:keyfind("password", 1, Object),
@@ -286,23 +286,23 @@ get_subscriber(Config) ->
 	{"enabled", Enable} = lists:keyfind("enabled", 1, Object).
 
 get_subscriber_not_found() ->
-        [{userdata, [{doc, "get subscriber notfound in rest interface"}]}].
+	[{userdata, [{doc, "get subscriber notfound in rest interface"}]}].
 
 get_subscriber_not_found(Config) ->
-        HostUrl = ?config(host_url, Config),
+	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
-        Username = ct:get_config(rest_user),
-        Password = ct:get_config(rest_pass),
-        Encodekey = base64:encode_to_string(string:concat(Username ++ ":", Password)),
-        AuthKey = "Basic " ++ Encodekey,
-        Authentication = {"authorization", AuthKey},
-        ID = "beefbeefcafe",
-        Request = {HostUrl ++ "/ocs/v1/subscriber/" ++ ID, [Accept, Authentication]},
-        {ok, Result} = httpc:request(get, Request, [], []),
-        {{"HTTP/1.1", 404, _NotFound}, _Headers, _Body} = Result.
+	Username = ct:get_config(rest_user),
+	Password = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(Username ++ ":", Password)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	ID = "beefbeefcafe",
+	Request = {HostUrl ++ "/ocs/v1/subscriber/" ++ ID, [Accept, Authentication]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 404, _NotFound}, _Headers, _Body} = Result.
 
 retrieve_all_subscriber() ->
-   [{userdata, [{doc,"get subscriber in rest interface"}]}].
+	[{userdata, [{doc,"get subscriber in rest interface"}]}].
 
 retrieve_all_subscriber(Config) ->
 	ContentType = "application/json",
@@ -321,24 +321,24 @@ retrieve_all_subscriber(Config) ->
 	Enable = true,
 	JSON1 = {struct, [{"id", ID}, {"password", Password},
 	{"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enable}]},
-   RequestBody = lists:flatten(mochijson:encode(JSON1)),
-   HostUrl = ?config(host_url, Config),
-   Accept = {"accept", "application/json"},
+	RequestBody = lists:flatten(mochijson:encode(JSON1)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
 	RestUser = ct:get_config(rest_user),
 	RestPass = ct:get_config(rest_pass),
 	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	AuthKey = "Basic " ++ Encodekey,
-   Authentication = {"authorization", AuthKey},
-   Request1 = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication], ContentType, RequestBody},
-   {ok, Result} = httpc:request(post, Request1, [], []),
-   {{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
+	Authentication = {"authorization", AuthKey},
+	Request1 = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
 	{_, URI1} = lists:keyfind("location", 1, Headers),
-   Request2 = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication]},
-   {ok, Result1} = httpc:request(get, Request2, [], []),
-   {{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
-   {_, Accept} = lists:keyfind("content-type", 1, Headers1),
-   ContentLength = integer_to_list(length(Body1)),
-   {_, ContentLength} = lists:keyfind("content-length", 1, Headers1),
+	Request2 = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication]},
+	{ok, Result1} = httpc:request(get, Request2, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
+	{_, Accept} = lists:keyfind("content-type", 1, Headers1),
+	ContentLength = integer_to_list(length(Body1)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers1),
 	{array, Subscribers} = mochijson:decode(Body1),
 	Pred = fun({struct, Params}) -> 
 		case lists:keyfind("id", 1, Params) of
@@ -358,186 +358,218 @@ retrieve_all_subscriber(Config) ->
 	{"enabled", Enable} = lists:keyfind("enabled", 1, Subscriber).
 
 delete_subscriber() ->
-   [{userdata, [{doc,"Delete subscriber in rest interface"}]}].
+	[{userdata, [{doc,"Delete subscriber in rest interface"}]}].
 
 delete_subscriber(Config) ->
 	ContentType = "application/json",
-   ID = "eacfd73ae11d",
-   Password = "ksc8c333npqc",
-   AsendDataRate = {struct, [{"name", "ascendDataRate"}, {"type", 26},
-      {"vendorId", 529}, {"vendorType", 197}, {"value", 1024}]},
-   AsendXmitRate = {struct, [{"name", "ascendXmitRate"}, {"type", 26},
-      {"vendorId", 529}, {"vendorType", 255}, {"value", 512}]},
-   SessionTimeout = {struct, [{"name", "sessionTimeout"}, {"value", 10864}]},
-   Interval = {struct, [{"name", "acctInterimInterval"}, {"value", 300}]},
-   Class = {struct, [{"name", "class"}, {"value", "skiorgs"}]},
-   SortedAttributes = lists:sort([AsendDataRate, AsendXmitRate, SessionTimeout, Interval, Class]),
-   AttributeArray = {array, SortedAttributes},
-   Balance = 100,
-   Enable = true,
-   JSON1 = {struct, [{"id", ID}, {"password", Password},
-   {"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enable}]},
-   RequestBody = lists:flatten(mochijson:encode(JSON1)),
-   HostUrl = ?config(host_url, Config),
-   Accept = {"accept", "application/json"},
-	RestUser = ct:get_config(rest_user),
-   RestPass = ct:get_config(rest_pass),
-   Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
-   AuthKey = "Basic " ++ Encodekey,
-   Authentication = {"authorization", AuthKey},
-   Request1 = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication], ContentType, RequestBody},
-   {ok, Result} = httpc:request(post, Request1, [], []),
-   {{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
-   {_, URI1} = lists:keyfind("location", 1, Headers),
-   {_, _, URI2, _, _} = mochiweb_util:urlsplit(URI1),
-   Request2 = {HostUrl ++ URI2, [Accept, Authentication], ContentType, []},
-   {ok, Result1} = httpc:request(delete, Request2, [], []),
-   {{"HTTP/1.1", 204, _NoContent}, Headers1, []} = Result1,
-	{_, "0"} = lists:keyfind("content-length", 1, Headers1).
-
-add_client() ->
-   [{userdata, [{doc,"Add client in rest interface"}]}].
-
-add_client(Config) ->
-   ContentType = "application/json",
-   ID = "10.2.53.9",
-	Disconnect = 1899,
-	Protocol = "RADIUS",
-   Secret = "ksc8c244npqc",
-   JSON = {struct, [{"id", ID}, {"disconnectPort", Disconnect}, {"protocol", Protocol}, 
-		{"secret", Secret}]},
-   RequestBody = lists:flatten(mochijson:encode(JSON)),
-   HostUrl = ?config(host_url, Config),
-   Accept = {"accept", "application/json"},
-	RestUser = ct:get_config(rest_user),
-   RestPass = ct:get_config(rest_pass),
-   Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
-   AuthKey = "Basic " ++ Encodekey,
-   Authentication = {"authorization", AuthKey},
-   Request1 = {HostUrl ++ "/ocs/v1/client/", [Accept, Authentication], ContentType, RequestBody},
-   {ok, Result} = httpc:request(post, Request1, [], []),
-   {{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
-   {_, "application/json"} = lists:keyfind("content-type", 1, Headers),
-   ContentLength = integer_to_list(length(ResponseBody)),
-   {_, ContentLength} = lists:keyfind("content-length", 1, Headers),
-   {_, URI} = lists:keyfind("location", 1, Headers),
-	{_, _, "/ocs/v1/client/" ++ IP, _, _} = mochiweb_util:urlsplit(URI),
-   {struct, Object} = mochijson:decode(ResponseBody),
-   {_, ID} = lists:keyfind("id", 1, Object),
-   {_, URI} = lists:keyfind("href", 1, Object),
-   {_, Disconnect} = lists:keyfind("disconnectPort", 1, Object),
-   {_, Protocol} = lists:keyfind("protocol", 1, Object),
-   {_, Secret} = lists:keyfind("secret", 1, Object).
-
-get_client() ->
-   [{userdata, [{doc,"get client in rest interface"}]}].
-
-get_client(Config) ->
-   ContentType = "application/json",
-   ID = "10.2.53.9",
-	Disconnect = 1899,
-	Protocol = "RADIUS",
-   Secret = "ksc8c244npqc",
-   JSON = {struct, [{"id", ID}, {"disconnectPort", Disconnect}, {"protocol", Protocol}, 
-		{"secret", Secret}]},
-   RequestBody = lists:flatten(mochijson:encode(JSON)),
-   HostUrl = ?config(host_url, Config),
-   Accept = {"accept", "application/json"},
-	RestUser = ct:get_config(rest_user),
-   RestPass = ct:get_config(rest_pass),
-   Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
-   AuthKey = "Basic " ++ Encodekey,
-   Authentication = {"authorization", AuthKey},
-   Request1 = {HostUrl ++ "/ocs/v1/client/", [Accept, Authentication], ContentType, RequestBody},
-   {ok, Result} = httpc:request(post, Request1, [], []),
-   {{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
-   {_, URI1} = lists:keyfind("location", 1, Headers),
-   {_, _, URI2, _, _} = mochiweb_util:urlsplit(URI1),
-   Request2 = {HostUrl ++ URI2, [Accept, Authentication]},
-   {ok, Result1} = httpc:request(get, Request2, [], []),
-   {{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
-   {_, Accept} = lists:keyfind("content-type", 1, Headers1),
-   ContentLength = integer_to_list(length(Body1)),
-   {_, ContentLength} = lists:keyfind("content-length", 1, Headers1),
-   {struct, Object} = mochijson:decode(Body1),
-   {_, ID} = lists:keyfind("id", 1, Object),
-   {_, URI12} = lists:keyfind("href", 1, Object),
-	{_, Disconnect} = lists:keyfind("disconnectPort", 1, Object),
-	{_, Protocol} = lists:keyfind("protocol", 1, Object),
-   {_, Secret} = lists:keyfind("secret", 1, Object).
-
-get_all_clients() ->
-   [{userdata, [{doc,"get all clients in rest interface"}]}].
-
-get_all_clients(Config) ->
-   ContentType = "application/json",
-   ID = "10.2.53.8",
-	Disconnect = 1899,
-	Protocol = "RADIUS",
-   Secret = "ksc8c344npqc",
-   JSON = {struct, [{"id", ID}, {"disconnectPort", Disconnect}, {"protocol", Protocol}, 
-		{"secret", Secret}]},
-   RequestBody = lists:flatten(mochijson:encode(JSON)),
-   HostUrl = ?config(host_url, Config),
-   Accept = {"accept", "application/json"},
-	RestUser = ct:get_config(rest_user),
-   RestPass = ct:get_config(rest_pass),
-   Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
-   AuthKey = "Basic " ++ Encodekey,
-   Authentication = {"authorization", AuthKey},
-   Request1 = {HostUrl ++ "/ocs/v1/client", [Accept, Authentication], ContentType, RequestBody},
-   {ok, Result} = httpc:request(post, Request1, [], []),
-   {{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
-   {_, URI1} = lists:keyfind("location", 1, Headers),
-   Request2 = {HostUrl ++ "/ocs/v1/client", [Accept, Authentication]},
-   {ok, Result1} = httpc:request(get, Request2, [], []),
-   {{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
-   {_, Accept} = lists:keyfind("content-type", 1, Headers1),
-   ContentLength = integer_to_list(length(Body1)),
-   {_, ContentLength} = lists:keyfind("content-length", 1, Headers1),
-	{array, ClientsList} = mochijson:decode(Body1),
-   Pred1 = fun({struct, Param}) ->
-      case lists:keyfind("id", 1, Param) of
-         {_, ID} ->
-            true;
-         {_, _ID} ->
-            false
-      end
-   end,
-   [{struct, ClientVar}] = lists:filter(Pred1, ClientsList),
-   {_, URI1} = lists:keyfind("href", 1, ClientVar),
-	{_, Disconnect} = lists:keyfind("disconnectPort", 1, ClientVar),
-   {_, Protocol} = lists:keyfind("protocol", 1, ClientVar),
-   {_, Secret} = lists:keyfind("secret", 1, ClientVar).
-
-delete_client() ->
-   [{userdata, [{doc,"Delete client in rest interface"}]}].
-
-delete_client(Config) ->
-   ContentType = "application/json",
-   ID = "10.2.53.9",
-	Disconnect = 1899,
-	Protocol = "RADIUS",
-   Secret = "ksc8c244npqc",
-   JSON1 = {struct, [{"id", ID}, {"disconnectPort", Disconnect}, {"protocol", Protocol}, 
-		{"secret", Secret}]},
-   RequestBody = lists:flatten(mochijson:encode(JSON1)),
-   HostUrl = ?config(host_url, Config),
-   Accept = {"accept", "application/json"},
+	ID = "eacfd73ae11d",
+	Password = "ksc8c333npqc",
+	AsendDataRate = {struct, [{"name", "ascendDataRate"}, {"type", 26},
+		{"vendorId", 529}, {"vendorType", 197}, {"value", 1024}]},
+	AsendXmitRate = {struct, [{"name", "ascendXmitRate"}, {"type", 26},
+		{"vendorId", 529}, {"vendorType", 255}, {"value", 512}]},
+	SessionTimeout = {struct, [{"name", "sessionTimeout"}, {"value", 10864}]},
+	Interval = {struct, [{"name", "acctInterimInterval"}, {"value", 300}]},
+	Class = {struct, [{"name", "class"}, {"value", "skiorgs"}]},
+	SortedAttributes = lists:sort([AsendDataRate, AsendXmitRate, SessionTimeout, Interval, Class]),
+	AttributeArray = {array, SortedAttributes},
+	Balance = 100,
+	Enable = true,
+	JSON1 = {struct, [{"id", ID}, {"password", Password},
+	{"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enable}]},
+	RequestBody = lists:flatten(mochijson:encode(JSON1)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
 	RestUser = ct:get_config(rest_user),
 	RestPass = ct:get_config(rest_pass),
 	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
-   AuthKey = "Basic " ++ Encodekey,
-   Authentication = {"authorization", AuthKey},
-   Request1 = {HostUrl ++ "/ocs/v1/client", [Accept, Authentication], ContentType, RequestBody},
-   {ok, Result} = httpc:request(post, Request1, [], []),
-   {{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
-   {_, URI1} = lists:keyfind("location", 1, Headers),
-   {_, _, URI2, _, _} = mochiweb_util:urlsplit(URI1),
-   Request2 = {HostUrl ++ URI2, [Accept, Authentication], ContentType, []},
-   {ok, Result1} = httpc:request(delete, Request2, [], []),
-   {{"HTTP/1.1", 204, _NoContent}, Headers1, []} = Result1,
-   {_, "0"} = lists:keyfind("content-length", 1, Headers1).
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request1 = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
+	{_, URI1} = lists:keyfind("location", 1, Headers),
+	{_, _, URI2, _, _} = mochiweb_util:urlsplit(URI1),
+	Request2 = {HostUrl ++ URI2, [Accept, Authentication], ContentType, []},
+	{ok, Result1} = httpc:request(delete, Request2, [], []),
+	{{"HTTP/1.1", 204, _NoContent}, Headers1, []} = Result1,
+	{_, "0"} = lists:keyfind("content-length", 1, Headers1).
+
+add_client() ->
+	[{userdata, [{doc,"Add client in rest interface"}]}].
+
+add_client(Config) ->
+	ContentType = "application/json",
+	ID = "10.2.53.9",
+	Disconnect = 1899,
+	Protocol = "RADIUS",
+	Secret = "ksc8c244npqc",
+	JSON = {struct, [{"id", ID}, {"disconnectPort", Disconnect}, {"protocol", Protocol}, 
+		{"secret", Secret}]},
+	RequestBody = lists:flatten(mochijson:encode(JSON)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request1 = {HostUrl ++ "/ocs/v1/client/", [Accept, Authentication], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{_, _, "/ocs/v1/client/" ++ IP, _, _} = mochiweb_util:urlsplit(URI),
+	{struct, Object} = mochijson:decode(ResponseBody),
+	{_, ID} = lists:keyfind("id", 1, Object),
+	{_, URI} = lists:keyfind("href", 1, Object),
+	{_, Disconnect} = lists:keyfind("disconnectPort", 1, Object),
+	{_, Protocol} = lists:keyfind("protocol", 1, Object),
+	{_, Secret} = lists:keyfind("secret", 1, Object).
+
+get_client() ->
+	[{userdata, [{doc,"get client in rest interface"}]}].
+
+get_client(Config) ->
+	ContentType = "application/json",
+	ID = "10.2.53.9",
+	Disconnect = 1899,
+	Protocol = "RADIUS",
+	Secret = "ksc8c244npqc",
+	JSON = {struct, [{"id", ID}, {"disconnectPort", Disconnect}, {"protocol", Protocol}, 
+		{"secret", Secret}]},
+	RequestBody = lists:flatten(mochijson:encode(JSON)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request1 = {HostUrl ++ "/ocs/v1/client/", [Accept, Authentication], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
+	{_, URI1} = lists:keyfind("location", 1, Headers),
+	{_, _, URI2, _, _} = mochiweb_util:urlsplit(URI1),
+	Request2 = {HostUrl ++ URI2, [Accept, Authentication]},
+	{ok, Result1} = httpc:request(get, Request2, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
+	{_, Accept} = lists:keyfind("content-type", 1, Headers1),
+	ContentLength = integer_to_list(length(Body1)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers1),
+	{struct, Object} = mochijson:decode(Body1),
+	{_, ID} = lists:keyfind("id", 1, Object),
+	{_, URI12} = lists:keyfind("href", 1, Object),
+	{_, Disconnect} = lists:keyfind("disconnectPort", 1, Object),
+	{_, Protocol} = lists:keyfind("protocol", 1, Object),
+	{_, Secret} = lists:keyfind("secret", 1, Object).
+
+get_client_bogus() ->
+	[{userdata, [{doc, "get client bogus in rest interface"}]}].
+
+get_client_bogus(Config) ->
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	Username = ct:get_config(rest_user),
+	Password = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(Username ++ ":", Password)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	ID = "beefbeefcafe",
+	Request = {HostUrl ++ "/ocs/v1/client/" ++ ID, [Accept, Authentication]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 400, _BadRequest}, _Headers, _Body} = Result.
+
+get_client_notfound() ->
+	[{userdata, [{doc, "get client notfound in rest interface"}]}].
+
+get_client_notfound(Config) ->
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	Username = ct:get_config(rest_user),
+	Password = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(Username ++ ":", Password)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	ID = "10.2.53.20",
+	Request = {HostUrl ++ "/ocs/v1/client/" ++ ID, [Accept, Authentication]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 404, _}, _Headers, _Body} = Result.
+
+get_all_clients() ->
+	[{userdata, [{doc,"get all clients in rest interface"}]}].
+
+get_all_clients(Config) ->
+	ContentType = "application/json",
+	ID = "10.2.53.8",
+	Disconnect = 1899,
+	Protocol = "RADIUS",
+	Secret = "ksc8c344npqc",
+	JSON = {struct, [{"id", ID}, {"disconnectPort", Disconnect}, {"protocol", Protocol}, 
+		{"secret", Secret}]},
+	RequestBody = lists:flatten(mochijson:encode(JSON)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request1 = {HostUrl ++ "/ocs/v1/client", [Accept, Authentication], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
+	{_, URI1} = lists:keyfind("location", 1, Headers),
+	Request2 = {HostUrl ++ "/ocs/v1/client", [Accept, Authentication]},
+	{ok, Result1} = httpc:request(get, Request2, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
+	{_, Accept} = lists:keyfind("content-type", 1, Headers1),
+	ContentLength = integer_to_list(length(Body1)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers1),
+	{array, ClientsList} = mochijson:decode(Body1),
+	Pred1 = fun({struct, Param}) ->
+		case lists:keyfind("id", 1, Param) of
+			{_, ID} ->
+				true;
+			{_, _ID} ->
+				false
+		end
+	end,
+	[{struct, ClientVar}] = lists:filter(Pred1, ClientsList),
+	{_, URI1} = lists:keyfind("href", 1, ClientVar),
+	{_, Disconnect} = lists:keyfind("disconnectPort", 1, ClientVar),
+	{_, Protocol} = lists:keyfind("protocol", 1, ClientVar),
+	{_, Secret} = lists:keyfind("secret", 1, ClientVar).
+
+delete_client() ->
+	[{userdata, [{doc,"Delete client in rest interface"}]}].
+
+delete_client(Config) ->
+	ContentType = "application/json",
+	ID = "10.2.53.9",
+	Disconnect = 1899,
+	Protocol = "RADIUS",
+	Secret = "ksc8c244npqc",
+	JSON1 = {struct, [{"id", ID}, {"disconnectPort", Disconnect}, {"protocol", Protocol}, 
+		{"secret", Secret}]},
+	RequestBody = lists:flatten(mochijson:encode(JSON1)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request1 = {HostUrl ++ "/ocs/v1/client", [Accept, Authentication], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
+	{_, URI1} = lists:keyfind("location", 1, Headers),
+	{_, _, URI2, _, _} = mochiweb_util:urlsplit(URI1),
+	Request2 = {HostUrl ++ URI2, [Accept, Authentication], ContentType, []},
+	{ok, Result1} = httpc:request(delete, Request2, [], []),
+	{{"HTTP/1.1", 204, _NoContent}, Headers1, []} = Result1,
+	{_, "0"} = lists:keyfind("content-length", 1, Headers1).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
