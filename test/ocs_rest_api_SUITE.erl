@@ -124,9 +124,10 @@ sequences() ->
 all() -> 
 	[authenticate_subscriber_request, unauthenticate_subscriber_request, 
 	authenticate_client_request, unauthenticate_client_request, 
-	add_subscriber, get_subscriber, retrieve_all_subscriber, delete_subscriber, 
-	add_client, get_client, get_all_clients, delete_client].
-  
+	add_subscriber, get_subscriber, get_subscriber_not_found, 
+	retrieve_all_subscriber, delete_subscriber, add_client, get_client, 
+	get_all_clients, delete_client].  
+
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
@@ -234,6 +235,7 @@ add_subscriber(Config) ->
 	{"balance", Balance} = lists:keyfind("balance", 1, Object),
 	{"enabled", Enable} = lists:keyfind("enabled", 1, Object).
 
+
 get_subscriber() ->
    [{userdata, [{doc,"get subscriber in rest interface"}]}].
 
@@ -282,6 +284,22 @@ get_subscriber(Config) ->
 	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
 	{"balance", Balance} = lists:keyfind("balance", 1, Object),
 	{"enabled", Enable} = lists:keyfind("enabled", 1, Object).
+
+get_subscriber_not_found() ->
+        [{userdata, [{doc, "get subscriber notfound in rest interface"}]}].
+
+get_subscriber_not_found(Config) ->
+        HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+        Username = ct:get_config(rest_user),
+        Password = ct:get_config(rest_pass),
+        Encodekey = base64:encode_to_string(string:concat(Username ++ ":", Password)),
+        AuthKey = "Basic " ++ Encodekey,
+        Authentication = {"authorization", AuthKey},
+        ID = "beefbeefcafe",
+        Request = {HostUrl ++ "/ocs/v1/subscriber/" ++ ID, [Accept, Authentication]},
+        {ok, Result} = httpc:request(get, Request, [], []),
+        {{"HTTP/1.1", 404, _NotFound}, _Headers, _Body} = Result.
 
 retrieve_all_subscriber() ->
    [{userdata, [{doc,"get subscriber in rest interface"}]}].
