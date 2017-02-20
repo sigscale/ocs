@@ -126,7 +126,7 @@ all() ->
 	authenticate_client_request, unauthenticate_client_request, 
 	add_subscriber, get_subscriber, get_subscriber_not_found, 
 	retrieve_all_subscriber, delete_subscriber, add_client, get_client, 
-	get_all_clients, delete_client].  
+	get_client_bogus, get_all_clients, delete_client].  
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -465,6 +465,22 @@ get_client(Config) ->
 	{_, Disconnect} = lists:keyfind("disconnectPort", 1, Object),
 	{_, Protocol} = lists:keyfind("protocol", 1, Object),
 	{_, Secret} = lists:keyfind("secret", 1, Object).
+
+get_client_bogus() ->
+	[{userdata, [{doc, "get client bogus in rest interface"}]}].
+
+get_client_bogus(Config) ->
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	Username = ct:get_config(rest_user),
+	Password = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(Username ++ ":", Password)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	ID = "beefbeefcafe",
+	Request = {HostUrl ++ "/ocs/v1/client/" ++ ID, [Accept, Authentication]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 400, _BadRequest}, _Headers, _Body} = Result.
 
 get_all_clients() ->
 	[{userdata, [{doc,"get all clients in rest interface"}]}].
