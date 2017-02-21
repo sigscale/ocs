@@ -122,15 +122,30 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[authenticate_subscriber_request, unauthenticate_subscriber_request, 
-	authenticate_client_request, unauthenticate_client_request, 
-	add_subscriber, get_subscriber, get_subscriber_not_found, 
-	retrieve_all_subscriber, delete_subscriber, add_client, get_client, 
-	get_client_bogus, get_client_notfound, get_all_clients, delete_client].  
+	[authenticate_user_request, authenticate_subscriber_request, 
+	unauthenticate_subscriber_request, authenticate_client_request, 
+	unauthenticate_client_request, add_subscriber, get_subscriber, 
+	get_subscriber_not_found, retrieve_all_subscriber, delete_subscriber, 
+	add_client, get_client, get_client_bogus, get_client_notfound, get_all_clients, 
+	delete_client].  
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
+authenticate_user_request() ->
+	[{userdata, [{doc, "Authorized user request to the server"}]}].
+
+authenticate_user_request(Config) ->
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request = {HostUrl ++ "/usageManagement/v1/usage", [Accept, Authentication]},
+	{ok, _Result} = httpc:request(get, Request, [], []).
+	
 authenticate_subscriber_request() ->
 	[{userdata, [{doc, "Authorized subscriber request to the server"}]}].
 
