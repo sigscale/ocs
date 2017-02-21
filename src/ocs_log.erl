@@ -182,43 +182,54 @@ radius_auth_close() ->
 %% @doc Log accounting records within range to new IPDR disk log.
 ipdr_log(File, Start, End) when is_list(File),
 		is_integer(Start), is_integer(End) ->
-	case disk_log:open([{name, File}, {file, File}]) of
+	case disk_log:open([{name, File}, {file, File}, {repair, truncate}]) of
 		{ok, IpdrLog} ->
-			ipdr_log1(IpdrLog, Start, End,
-					start_binary_tree(?RADACCT, Start, End));
+			IpdrDoc = #ipdrDoc{docId = uuid(), version = "3.1",
+					creationTime = iso8601(erlang:system_time(millisecond)),
+					ipdrRecorderInfo = atom_to_list(node())},
+			case disk_log:log(IpdrLog, IpdrDoc) of
+				ok ->
+					ipdr_log1(IpdrLog, Start, End,
+							start_binary_tree(?RADACCT, Start, End));
+				{error, Reason} ->
+					error_logger:error_report([disk_log:format_error(Reason),
+							{module, ?MODULE}, {log, IpdrLog}, {error, Reason}]),
+					disk_log:close(IpdrLog),
+					{error, Reason}
+			end;
 		{error, Reason} ->
 			error_logger:error_report([disk_log:format_error(Reason),
 					{module, ?MODULE}, {file, File}, {error, Reason}]),
 			{error, Reason}
 	end.
 %% @hidden
-ipdr_log1(_IpdrLog, _Start, _End, {error, Reason}) ->
+ipdr_log1(IpdrLog, _Start, _End, {error, Reason}) ->
 	error_logger:error_report([disk_log:format_error(Reason),
 			{module, ?MODULE}, {log, ?RADACCT}, {error, Reason}]),
-	{error, Reason};
+	ipdr_log5(IpdrLog, 0);
 ipdr_log1(IpdrLog, _Start, _End, eof) ->
-	ipdr_log5(IpdrLog, disk_log:close(IpdrLog));
+	ipdr_log5(IpdrLog, 0);
 ipdr_log1(IpdrLog, Start, End, Cont) ->
-	ipdr_log2(IpdrLog, Start, End, Cont, disk_log:chunk(?RADACCT, Cont, 1)).
+	ipdr_log2(IpdrLog, Start, End, [], disk_log:chunk(?RADACCT, Cont)).
 %% @hidden
-ipdr_log2(IpdrLog, _Start, _End, _PrevCont, eof) ->
-	ipdr_log5(IpdrLog, disk_log:close(IpdrLog));
-ipdr_log2(IpdrLog, _Start, _End, _PrevCont, {error, Reason}) ->
+ipdr_log2(IpdrLog, _Start, _End, _PrevChunk, {error, Reason}) ->
 	error_logger:error_report([disk_log:format_error(Reason),
 			{module, ?MODULE}, {log, ?RADACCT}, {error, Reason}]),
-	ipdr_log5(IpdrLog, disk_log:close(IpdrLog));
-ipdr_log2(IpdrLog, Start, End, _PrevCont, {Cont, [R]})
-		when element(1, R) < Start ->
-	ipdr_log2(IpdrLog, Start, End, Cont, disk_log:chunk(?RADACCT, Cont, 1));
-ipdr_log2(IpdrLog, Start, End, PrevCont, {_Cont, _Chunk}) ->
-	ipdr_log3(IpdrLog, Start, End, 0, disk_log:chunk(?RADACCT, PrevCont)).
+	ipdr_log5(IpdrLog, 0);
+ipdr_log2(IpdrLog, _Start, _End, _PrevChunk, eof) ->
+	ipdr_log5(IpdrLog, 0);
+ipdr_log2(IpdrLog, Start, End, _PrevChunk, {Cont, [H | T]})
+		when element(1, H) < Start ->
+	ipdr_log2(IpdrLog, Start, End, T, disk_log:chunk(?RADACCT, Cont));
+ipdr_log2(IpdrLog, Start, End, PrevChunk, {Cont, Chunk}) ->
+	ipdr_log3(IpdrLog, Start, End, 0, {Cont, PrevChunk ++ Chunk}).
 %% @hidden
-ipdr_log3(IpdrLog, _Start, _End, _SeqNum, {error, Reason}) ->
+ipdr_log3(IpdrLog, _Start, _End, SeqNum, {error, Reason}) ->
 	error_logger:error_report([disk_log:format_error(Reason),
 			{module, ?MODULE}, {log, ?RADACCT}, {error, Reason}]),
-	ipdr_log5(IpdrLog, disk_log:close(IpdrLog));
-ipdr_log3(IpdrLog, _Start, _End, _SeqNum, eof) ->
-	ipdr_log5(IpdrLog, disk_log:close(IpdrLog));
+	ipdr_log5(IpdrLog, SeqNum);
+ipdr_log3(IpdrLog, _Start, _End, SeqNum, eof) ->
+	ipdr_log5(IpdrLog, SeqNum);
 ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, Chunk}) ->
 	Fstart = fun(R) when element(1, R) < Start ->
 				true;
@@ -228,35 +239,50 @@ ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, Chunk}) ->
 	ipdr_log4(IpdrLog, Start, End, SeqNum,
 			{Cont, lists:dropwhile(Fstart, Chunk)}).
 %% @hidden
-ipdr_log4(IpdrLog, _Start, _End, _SeqNum, eof) ->
-	ipdr_log5(IpdrLog, disk_log:close(IpdrLog));
-ipdr_log4(IpdrLog, _Start, _End, _SeqNum, {error, _Reason}) ->
-	ipdr_log5(IpdrLog, disk_log:close(IpdrLog));
+ipdr_log4(IpdrLog, _Start, _End, SeqNum, eof) ->
+	ipdr_log5(IpdrLog, SeqNum);
+ipdr_log4(IpdrLog, _Start, _End, SeqNum, {error, _Reason}) ->
+	ipdr_log5(IpdrLog, SeqNum);
 ipdr_log4(IpdrLog, Start, End, SeqNum, {Cont, []}) ->
 	ipdr_log4(IpdrLog, Start, End, SeqNum, disk_log:chunk(?RADACCT, Cont));
-ipdr_log4(IpdrLog, _Start, End, _SeqNum, {_Cont, [H | _]})
+ipdr_log4(IpdrLog, _Start, End, SeqNum, {_Cont, [H | _]})
 		when element(1, H) > End ->
-	ipdr_log5(IpdrLog, disk_log:close(IpdrLog));
+	ipdr_log5(IpdrLog, SeqNum);
 ipdr_log4(IpdrLog, _Start, End, SeqNum, {Cont, [H | T]})
 		when element(5, H) == stop ->
 	IPDR = ipdr_codec(H),
-	case disk_log:log(IpdrLog, IPDR#ipdr{seqNum = SeqNum}) of
+	NewSeqNum = SeqNum + 1,
+	case disk_log:log(IpdrLog, IPDR#ipdr{seqNum = NewSeqNum}) of
 		ok ->
-			ipdr_log4(IpdrLog, _Start, End, SeqNum + 1, {Cont, T});
+			ipdr_log4(IpdrLog, _Start, End, NewSeqNum, {Cont, T});
 		{error, Reason} ->
 			error_logger:error_report([disk_log:format_error(Reason),
 					{module, ?MODULE}, {log, IpdrLog}, {error, Reason}]),
+			disk_log:close(IpdrLog),
 			{error, Reason}
 	end;
 ipdr_log4(IpdrLog, Start, End, SeqNum, {Cont, [_ | T]}) ->
 	ipdr_log4(IpdrLog, Start, End, SeqNum, {Cont, T}).
 %% @hidden
-ipdr_log5(_IpdrLog, ok) ->
-	ok;
-ipdr_log5(IpdrLog, {error, Reason}) ->
-	error_logger:error_report([disk_log:format_error(Reason),
-			{module, ?MODULE}, {log, IpdrLog}, {error, Reason}]),
-	{error, Reason}.
+ipdr_log5(IpdrLog, SeqNum) ->
+	EndTime = iso8601(erlang:system_time(millisecond)),
+	IpdrDocEnd = #ipdrDocEnd{count = SeqNum, endTime = EndTime},
+	case disk_log:log(IpdrLog, IpdrDocEnd) of
+		ok ->
+			case disk_log:close(IpdrLog) of
+				ok ->
+					ok;
+				{error, Reason} ->
+					error_logger:error_report([disk_log:format_error(Reason),
+							{module, ?MODULE}, {log, IpdrLog}, {error, Reason}]),
+					{error, Reason}
+			end;
+		{error, Reason} ->
+			error_logger:error_report([disk_log:format_error(Reason),
+					{module, ?MODULE}, {log, IpdrLog}, {error, Reason}]),
+			disk_log:close(IpdrLog),
+			{error, Reason}
+	end.
 
 -spec get_range(Log, Start, End) -> Result
 	when
@@ -317,6 +343,14 @@ iso8601(MilliSeconds) when is_integer(MilliSeconds) ->
 	Chars = io_lib:fwrite(DateFormat ++ TimeFormat,
 			[Year, Month, Day, Hour, Minute, Second, MilliSeconds rem 1000]),
 	lists:flatten(Chars).
+
+uuid() ->
+	<<A:32, B:16, C:16, D:16, E:48>> = crypto:strong_rand_bytes(16),
+	Format = "~8.16.0b-~4.16.0b-~4.16.0b-~4.16.0b-~12.16.0b",
+	Values = [A, B, (C bsr 4) bor 16#4000, (D bsr 2) bor 16#8000, E],
+	Chars = io_lib:fwrite(Format, Values),
+	lists:flatten(Chars).
+
 
 %%----------------------------------------------------------------------
 %%  internal functions
