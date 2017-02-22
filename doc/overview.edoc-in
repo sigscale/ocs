@@ -1186,11 +1186,11 @@ Content-Type: application/json
 Content-Length: 0
 
  {
-   "id": 1,
-   "href": "/usageManagement/v1/usage/1"
-   "date": "2017-02-22T10:00:14.910Z",
-   "type": "PublicWLANAccessUsage",
-   "description": "Public WLAN Access",
+	"id": 1,
+	"href": "/usageManagement/v1/usage/1"
+	"date": "2017-02-22T10:00:14.910Z",
+	"type": "PublicWLANAccessUsage",
+	"description": "Public WLAN Access",
 	"status" : "recieved",
 	"usageSpecification" : {
 		"id" : "PublicWLANAccessUsageSpec",
