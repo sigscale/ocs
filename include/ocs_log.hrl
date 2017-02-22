@@ -20,11 +20,11 @@
 -record(ipdrDoc,
 		{docId :: string(),
 		version :: string(),
-		creationTime :: pos_integer(),
+		creationTime :: string(),
 		ipdrRecorderInfo :: string()}).
 -record(ipdrDocEnd,
 		{count :: non_neg_integer(),
-		endTime :: pos_integer()}).
+		endTime :: string()}).
 
 %% IPDR Public WLAN Access - WISP Use Case
 -record(ipdr,

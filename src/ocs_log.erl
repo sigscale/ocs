@@ -206,65 +206,66 @@ ipdr_log(File, Start, End) when is_list(File),
 ipdr_log1(IpdrLog, _Start, _End, {error, Reason}) ->
 	error_logger:error_report([disk_log:format_error(Reason),
 			{module, ?MODULE}, {log, ?RADACCT}, {error, Reason}]),
-	ipdr_log5(IpdrLog, 0);
+	ipdr_log4(IpdrLog, 0);
 ipdr_log1(IpdrLog, _Start, _End, eof) ->
-	ipdr_log5(IpdrLog, 0);
+	ipdr_log4(IpdrLog, 0);
 ipdr_log1(IpdrLog, Start, End, Cont) ->
 	ipdr_log2(IpdrLog, Start, End, [], disk_log:chunk(?RADACCT, Cont)).
 %% @hidden
 ipdr_log2(IpdrLog, _Start, _End, _PrevChunk, {error, Reason}) ->
 	error_logger:error_report([disk_log:format_error(Reason),
 			{module, ?MODULE}, {log, ?RADACCT}, {error, Reason}]),
-	ipdr_log5(IpdrLog, 0);
-ipdr_log2(IpdrLog, _Start, _End, _PrevChunk, eof) ->
-	ipdr_log5(IpdrLog, 0);
-ipdr_log2(IpdrLog, Start, End, _PrevChunk, {Cont, [H | T]})
-		when element(1, H) < Start ->
-	ipdr_log2(IpdrLog, Start, End, T, disk_log:chunk(?RADACCT, Cont));
-ipdr_log2(IpdrLog, Start, End, PrevChunk, {Cont, Chunk}) ->
-	ipdr_log3(IpdrLog, Start, End, 0, {Cont, PrevChunk ++ Chunk}).
-%% @hidden
-ipdr_log3(IpdrLog, _Start, _End, SeqNum, {error, Reason}) ->
-	error_logger:error_report([disk_log:format_error(Reason),
-			{module, ?MODULE}, {log, ?RADACCT}, {error, Reason}]),
-	ipdr_log5(IpdrLog, SeqNum);
-ipdr_log3(IpdrLog, _Start, _End, SeqNum, eof) ->
-	ipdr_log5(IpdrLog, SeqNum);
-ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, Chunk}) ->
+	ipdr_log4(IpdrLog, 0);
+ipdr_log2(IpdrLog, _Start, _End, [], eof) ->
+	ipdr_log4(IpdrLog, 0);
+ipdr_log2(IpdrLog, Start, End, PrevChunk, eof) ->
 	Fstart = fun(R) when element(1, R) < Start ->
 				true;
 			(_) ->
 				false
 	end,
-	ipdr_log4(IpdrLog, Start, End, SeqNum,
-			{Cont, lists:dropwhile(Fstart, Chunk)}).
+	ipdr_log3(IpdrLog, Start, End, 0,
+			{eof, lists:dropwhile(Fstart, PrevChunk)});
+ipdr_log2(IpdrLog, Start, End, _PrevChunk, {Cont, [H | T]})
+		when element(1, H) < Start ->
+	ipdr_log2(IpdrLog, Start, End, T, disk_log:chunk(?RADACCT, Cont));
+ipdr_log2(IpdrLog, Start, End, PrevChunk, {Cont, Chunk}) ->
+	Fstart = fun(R) when element(1, R) < Start ->
+				true;
+			(_) ->
+				false
+	end,
+	ipdr_log3(IpdrLog, Start, End, 0,
+			{Cont, lists:dropwhile(Fstart, PrevChunk ++ Chunk)}).
 %% @hidden
-ipdr_log4(IpdrLog, _Start, _End, SeqNum, eof) ->
-	ipdr_log5(IpdrLog, SeqNum);
-ipdr_log4(IpdrLog, _Start, _End, SeqNum, {error, _Reason}) ->
-	ipdr_log5(IpdrLog, SeqNum);
-ipdr_log4(IpdrLog, Start, End, SeqNum, {Cont, []}) ->
-	ipdr_log4(IpdrLog, Start, End, SeqNum, disk_log:chunk(?RADACCT, Cont));
-ipdr_log4(IpdrLog, _Start, End, SeqNum, {_Cont, [H | _]})
+ipdr_log3(IpdrLog, _Start, _End, SeqNum, eof) ->
+	ipdr_log4(IpdrLog, SeqNum);
+ipdr_log3(IpdrLog, _Start, _End, SeqNum, {error, _Reason}) ->
+	ipdr_log4(IpdrLog, SeqNum);
+ipdr_log3(IpdrLog, _Start, _End, SeqNum, {eof, []}) ->
+	ipdr_log4(IpdrLog, SeqNum);
+ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, []}) ->
+	ipdr_log3(IpdrLog, Start, End, SeqNum, disk_log:chunk(?RADACCT, Cont));
+ipdr_log3(IpdrLog, _Start, End, SeqNum, {_Cont, [H | _]})
 		when element(1, H) > End ->
-	ipdr_log5(IpdrLog, SeqNum);
-ipdr_log4(IpdrLog, _Start, End, SeqNum, {Cont, [H | T]})
+	ipdr_log4(IpdrLog, SeqNum);
+ipdr_log3(IpdrLog, _Start, End, SeqNum, {Cont, [H | T]})
 		when element(5, H) == stop ->
 	IPDR = ipdr_codec(H),
 	NewSeqNum = SeqNum + 1,
 	case disk_log:log(IpdrLog, IPDR#ipdr{seqNum = NewSeqNum}) of
 		ok ->
-			ipdr_log4(IpdrLog, _Start, End, NewSeqNum, {Cont, T});
+			ipdr_log3(IpdrLog, _Start, End, NewSeqNum, {Cont, T});
 		{error, Reason} ->
 			error_logger:error_report([disk_log:format_error(Reason),
 					{module, ?MODULE}, {log, IpdrLog}, {error, Reason}]),
 			disk_log:close(IpdrLog),
 			{error, Reason}
 	end;
-ipdr_log4(IpdrLog, Start, End, SeqNum, {Cont, [_ | T]}) ->
-	ipdr_log4(IpdrLog, Start, End, SeqNum, {Cont, T}).
+ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, [_ | T]}) ->
+	ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, T}).
 %% @hidden
-ipdr_log5(IpdrLog, SeqNum) ->
+ipdr_log4(IpdrLog, SeqNum) ->
 	EndTime = iso8601(erlang:system_time(millisecond)),
 	IpdrDocEnd = #ipdrDocEnd{count = SeqNum, endTime = EndTime},
 	case disk_log:log(IpdrLog, IpdrDocEnd) of
