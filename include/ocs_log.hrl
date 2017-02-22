@@ -19,7 +19,7 @@
 %% IPDR Document
 -record(ipdrDoc,
 		{docId :: string(),
-		version :: string(),
+		version = "3.1" :: string(),
 		creationTime :: string(),
 		ipdrRecorderInfo :: string()}).
 -record(ipdrDocEnd,
