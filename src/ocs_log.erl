@@ -175,11 +175,30 @@ radius_auth_close() ->
 -spec ipdr_log(File, Start, End) -> Result
 	when
 		File :: file:filename(),
-		Start :: pos_integer(),
-		End :: pos_integer(),
+		Start :: calendar:datetime() | pos_integer(),
+		End :: calendar:datetime() | pos_integer(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Log accounting records within range to new IPDR disk log.
+%%
+%% 	Creates a new {@link //kernel/disk_log:log(). disk_log:log()},
+%% 	or overwrites an existing, with filename `File'. The log starts
+%% 	with a `#ipdrDoc{}' header, is followed by `#ipdr{}' records,
+%% 	and ends with a `#ipdrDocEnd{}' trailer.
+%%
+%% 	The `radius_acct' log is searched for events created between `Start'
+%% 	and `End' which may be given as
+%% 	`{{Year, Month, Day}, {Hour, Minute, Second}}' or the native
+%% 	{@link //erts/erlang:system_time(). erlang:system_time(milliseonds)}.
+%%
+ipdr_log(File, {{_, _, _}, {_, _, _}} = Start, End) ->
+	Epoch = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
+	Seconds = calendar:datetime_to_gregorian_seconds(Start) - Epoch,
+	ipdr_log(File, Seconds * 1000, End);
+ipdr_log(File, Start, {{_, _, _}, {_, _, _}} = End) ->
+	Epoch = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
+	Seconds = calendar:datetime_to_gregorian_seconds(End) - Epoch,
+	ipdr_log(File, Start, Seconds * 1000);
 ipdr_log(File, Start, End) when is_list(File),
 		is_integer(Start), is_integer(End) ->
 	case disk_log:open([{name, File}, {file, File}, {repair, truncate}]) of
@@ -496,7 +515,7 @@ get_range1(Log, Start, End, {Cont, Records}, Acc) ->
 		Port :: pos_integer(),
 		Attributes :: radius_attributes:attributes(),
 		IPDR :: #ipdr{}.
-%% @doc Convert `radius_acct' log entry to IPDR log entry. 
+%% @doc Convert `radius_acct' log entry to IPDR log entry.
 ipdr_codec({TimeStamp, _Node, _Server, _Client, stop, Attributes}) ->
 	IPDR = #ipdr{ipdrCreationTime = iso8601(TimeStamp)},
 	ipdr_codec1(TimeStamp, Attributes, IPDR).
