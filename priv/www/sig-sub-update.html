@@ -1,0 +1,215 @@
+<link rel="import" href="bower_components/polymer/polymer.html">
+<link rel="import" href="bower_components/paper-styles/paper-styles.html">
+<link rel="import" href="bower_components/paper-tabs/paper-tabs.html">
+<link rel="import" href="bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="bower_components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="bower_components/paper-button/paper-button.html">
+<link rel="import" href="bower_components/paper-input/paper-input.html">
+<link rel="import" href="bower_components/iron-selector/iron-selector.html">
+
+<dom-module id="sig-sub-update">
+	<template>
+		<style is="custom-style"> 
+			.update-buttons{ background: #66BB6A; color: white;}
+
+			.delete-buttons{ background: #EF5350; color: white;}
+
+			paper-fab {--paper-fab-background: #7d8ff5;--paper-fab-keyboard-focus-background: var(--paper-light-blue-900); }
+			
+			paper-tab.iron-selected {background-color: var(--paper-indigo-500);color:#E8EAF6; }                                                                                                                                                                                                                                                       
+		</style>
+
+		<paper-dialog id="subUpdateModal" modal style="width:60%;">
+			<paper-tabs selected="{{selected}}">
+				<paper-tab id="authen"> 
+					<h2 >Authentication</h2>
+				</paper-tab>
+				<paper-tab id="autho">
+					<h2>Authorizarion</h2>
+				</paper-tab>
+			</paper-tabs>
+
+			<paper-tooltip for="authen">Credentials used to authenticate subscriber</paper-tooltip>
+			<paper-tooltip for="autho">Services authorized for subscriber</paper-tooltip>
+
+			<iron-pages selected="{{selected}}">
+				<div id="edit-password" >
+					<paper-input id="edit-id1" name="id" label="Identity" disabled></paper-input>
+					<paper-input id="edit-pwd" name="password"  label="Secret" disabled ></paper-input>
+					<paper-input id="edit-new-pwd" name="newpassword" label="New Secret" required auto-validate error-message="New secret can't be empty!" ></paper-input>
+					<div class="buttons">
+						<paper-button onclick="subUpdateModal.close()" class="cancle-btn">Cancel</paper-button>
+						<paper-button dialog-confirm autofocus on-click="updateSubAuthen" class="update-buttons">Update Authentication</paper-button>
+						<paper-button toggles raised on-click = "deleteSub"  class="delete-buttons"> Delete Subscriber</paper-button>
+					</div>
+				</div>
+				<div id="edit-attributes" >
+					<paper-input id="edit-id2" name="id" label="Identity" disabled></paper-input>
+				<div>
+					<paper-input id="edit-balance" name="balance" type="number" label="Balance (Bytes)" ></paper-input>
+					<paper-tooltip >Credit value, in bytes, against which accounting will debit usage against</paper-tooltip>
+				</div>
+				<div>
+					<paper-input id="edit-recv-data-rate" name="ascendDataRate" type="number" label="Receive Data Rate"  ></paper-input>
+					<paper-tooltip >Limit on received (download) data per second in bits</paper-tooltip>
+				</div>
+				<div>
+					<paper-input id="edit-trans-data-rate" name="ascendXmitRate" type="number" label="Transmit Data Rate"  ></paper-input>
+					<paper-tooltip >Limit on transmitted (upload) data per second in bits</paper-tooltip>
+				</div>
+				<div>
+					<paper-input id="edit-sess-timeout" name="sessionTimeout" type="number" label="Session Timeout"  ></paper-input>
+					<paper-tooltip >Time between authorization requests in an active session in seconds</paper-tooltip>
+				</div>
+				<div>
+					<paper-input id="edit-update-interval" name="acctInterimInterval" type="number" label="Accouting interval"  ></paper-input>
+					<paper-tooltip >Time between accouting interim updates in seconds</paper-tooltip>
+				</div>
+				<div>
+					<paper-input id="edit-class" name="class" type="text" label="Class" ></paper-input>
+				</div></br>
+				<div>
+					Enable <div style="display:inline-block;"> <paper-toggle-button id="edit-enabled"></paper-toggle-button> </div>
+					<paper-tooltip >Enabled for service or temporarily disabled</paper-tooltip>
+				</div>
+				<div class="buttons">
+					<paper-button onclick="subUpdateModal.close()" class="cancle-btn">Cancel</paper-button>
+					<paper-button dialog-confirm autofocus on-click="updateSubAutho" class="update-buttons">Update Authorizarion</paper-button>
+					<paper-button toggles raised on-click = "deleteSub"  class="delete-buttons"> Delete Subcriber</paper-button>
+				</div>
+				</div>
+				</iron-pages>
+		</paper-dialog>
+
+		<iron-ajax id="updateSubAuthen"
+			auto=true
+			headers='{"Accept": "application/json", "Content-type": "application/json"}'
+			on-response="updateSubAuthenResponse"
+			debounce-duration="300"> </iron-ajax>
+
+		<iron-ajax id="updateSubAutho"
+			auto=true
+			headers='{"Accept": "application/json", "Content-type": "application/json"}'
+			on-response="updateSubAuthoResponse"
+			debounce-duration="300"> </iron-ajax>
+
+		<iron-ajax id="deleteSub"
+			auto=false
+			handle-as="json"
+			on-response="deleteSubResponse"
+			debounce-duration="300"> </iron-ajax>
+
+
+	</template>
+	<script>
+		Polymer({
+			is: 'sig-sub-update',
+
+		updateSubAuthen: function(event){
+			var editAjax =  document.getElementById("updateSubAuthen");
+			editAjax.method = "PATCH";
+			editAjax.contentType = "application/json";
+			var id = document.getElementById("edit-id1").value;
+			editAjax.url = "/ocs/v1/subscriber/" + id;
+			var sub = new Object();
+			sub.update = "password";
+			sub.newpassword = document.getElementById("edit-new-pwd").value;
+			editAjax.body = sub;
+		},
+
+		updateSubAuthenResponse: function (event){
+			if(event.detail.succeeded){
+				document.getElementById("edit-toast").open();
+				document.getElementById("edit-new-pwd").value = "";
+				var getSubsAjax = document.getElementById("getSubs");
+				getSubsAjax.generateRequest();
+			}
+			else{
+				console.log("Not Success");
+			}
+		},
+
+		updateSubAutho: function(event){
+			var editAjax =  document.getElementById("updateSubAutho");
+			editAjax.method = "PATCH";
+			editAjax.contentType = "application/json";
+			var id = document.getElementById("edit-id2").value;
+			editAjax.url = "/ocs/v1/subscriber/" + id;
+			var sub = new Object();
+			sub.update = "attributes";
+			sub.balance= parseInt(document.getElementById("edit-balance").value);
+			var attr = new Array();
+
+			var ascendDataRate = new Object();
+			ascendDataRate.name = "ascendDataRate";
+			ascendDataRate.type = 26;
+			ascendDataRate.vendorId = 529;
+			ascendDataRate.vendorType = 197;
+			ascendDataRate.value = parseInt(document.getElementById("edit-recv-data-rate").value);
+			attr[0] = ascendDataRate;
+
+			var ascendXmitRate = new Object(); 
+			ascendXmitRate.name = "ascendXmitRate";
+			ascendXmitRate.type = 26;
+			ascendXmitRate.vendorId = 529;
+			ascendXmitRate.vendorType = 255;
+			ascendXmitRate.value = parseInt(document.getElementById("edit-trans-data-rate").value);
+			attr[1] = ascendXmitRate;
+
+			var sessionTimeout = new Object(); 
+			sessionTimeout.name = "sessionTimeout"; 
+			sessionTimeout.value = parseInt(document.getElementById("edit-sess-timeout").value);
+			attr[2] = sessionTimeout;
+
+			var acctInterimInterval = new Object(); 
+			acctInterimInterval.name = "acctInterimInterval"; 
+			acctInterimInterval.value = parseInt(document.getElementById("edit-update-interval").value);
+			attr[3] = acctInterimInterval;
+
+			var classx = new Object(); 
+			classx.name = "class"; 
+			if(document.getElementById("edit-class").value == undefined){
+				classx.value = null;
+			}else{
+				classx.value = document.getElementById("edit-class").value;
+			}
+			attr[4] = classx;
+
+			sub.attributes = attr;
+			sub.enabled= document.getElementById("edit-enabled").checked;
+			editAjax.body = sub;
+		},
+
+		updateSubAuthoResponse: function (event){
+			if(event.detail.succeeded){
+				document.getElementById("edit-toast").open();
+				var getSubsAjax = document.getElementById("getSubs");
+				getSubsAjax.generateRequest();
+			}
+			else{
+				console.log("Not Success");
+			}
+		},
+		  
+		deleteSub: function(event){
+			var grid = document.getElementById("grid"); 
+			grid.selection.selected(function(index){
+				var selection = grid.items[index];
+				var deleteAjax = document.getElementById("deleteSub");
+				deleteAjax.method = "DELETE";
+				deleteAjax.url = "/ocs/v1/subscriber/"+ selection.id;
+				deleteAjax.generateRequest();
+			});
+		},
+
+		deleteSubResponse: function(event){
+			document.getElementById("subUpdateModal").close();
+			document.getElementById("delete-toast").open();
+			var getSubsAjax = document.getElementById("getSubs");
+			getSubsAjax.generateRequest();
+		},
+
+
+		});
+	</script>
+</dom-module>

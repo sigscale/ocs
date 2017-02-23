@@ -3,128 +3,14 @@
 	<head>
 		<script src="bower_components/webcomponentsjs/webcomponents-lite.js"></script>
 		<link rel="import" href="bower_components/polymer/polymer.html">
-		<link rel="import" href="bower_components/paper-header-panel/paper-header-panel.html">
-		<link rel="import" href="bower_components/iron-flex-layout/iron-flex-layout.html">
-		<link rel="import" href="bower_components/paper-toolbar/paper-toolbar.html">
-		<link rel="import" href="bower_components/paper-item/paper-item.html">
-		<link rel="import" href="bower_components/paper-tabs/paper-tabs.html">
-		<link rel="import" href="bower_components/paper-menu/paper-menu.html">
-		<link rel="import" href="bower_components/paper-item/paper-item.html">
-		<link rel="import" href="bower_components/paper-input/paper-input.html">
-		<link rel="import" href="bower_components/paper-progress/paper-progress.html">
-		<link rel="import" href="bower_components/iron-icons/iron-icons.html">
-		<link rel="import" href="bower_components/paper-menu/paper-menu.html"/>
-		<link rel="import" href="bower_components/paper-menu/paper-submenu.html" />
-		<link rel="import" href="bower_components/iron-icon/iron-icon.html">
-		<link rel="import" href="bower_components/paper-styles/typography.html">
-		<link rel="import" href="sig-add.html">
-		<link rel="import" href="sig-search.html">
-		<link rel="import" href="sig-list.html">
+		<link rel="import" href="sig-app.html">
+
+		<style>
+			html, body { margin: 0; background: #f1f1f1;  height:100%; width:100%;} 
+		</style>
 	</head>
-	<body  class="fullbleed layout vertical" >
-		<paper-toolbar>
-			<span class="title"><h1>Online Charging System (OCS)</h1></span>
-		</paper-toolbar>
-		<template is="dom-bind">
-			<style is="custom-style"> 
-				:root{@apply(--paper-font-common-base);}
-				.flex-horizontal { @apply(--layout-horizontal); height:100%;  } 
-				.flexchild { @apply(--layout-flex); height:100%;background-color: #f7f7f7;} 
-				paper-item.fancy {
-						--paper-item-focused: { background: #e0e3f3; font-weight: bold; font-size: x-large;};
-						--paper-item-focused-before: { opacity: 0; };
-										}
-			</style> 
-
-			<div class="container flex-horizontal">
-				<div  style="width:20%;">
-					<div role="menuitemcheckbox">
-						<paper-menu>
-							<paper-item onclick="setSelection(event)" id="selectionSubscribers"> Subscribers</paper-item>
-							<paper-item onclick="setSelection(event)" id="selectionRadiusClients"> Clients</paper-item>
-							<paper-submenu>
-								<paper-item class="menu-trigger">Logs</paper-item>
-									<paper-menu class="menu-content" selectedClass="bbb">
-										<paper-item onclick="setSelection(event)" id="selectionAccountingLogs"> &nbsp &nbsp &nbsp Accounting</paper-item>
-										<paper-item> &nbsp &nbsp &nbsp Authentication</paper-item>
-									</paper-menu>
-							</paper-submenu>
-						</paper-menu>
-					</div>
-					<sig-search></sig-search>
-					<div id="subcriber-not-found" style="height: 10%;"></div>
-				</div>
-				<div class="flexchild">
-					<paper-progress id="progressbar" style="width:100%"></paper-progress>
-				  <paper-button toggles class="download-btn" onclick="downloadCSV()">
-							 <iron-icon icon="file-download"></iron-icon>csv
-				  </paper-button>
-				  <sig-list ></sig-list>
-				</div>
-			</div>
-
-		</template>
-
-			<script>
-				// Deafult user selection before user selects
-				window.selection = "selectionSubscribers";
-				function setSelection(event){
-					window.selection = event.target.id;
-					document.getElementById(window.selection).style.backgroundColor = "#f7f7f7";
-
-					if(selection == "selectionSubscribers"){
-						document.getElementById("getSubs").generateRequest();
-						document.getElementById("progressbar").indeterminate = true;
-					}
-					if(selection == "selectionRadiusClients"){
-						document.getElementById("getClients").generateRequest();
-						document.getElementById("progressbar").indeterminate = true;
-					}
-					if(selection == "selectionAccountingLogs"){
-						document.getElementById("getAccoutingLogs").generateRequest();
-						document.getElementById("progressbar").indeterminate = true;
-					}
-				}
-
-				function downloadCSV(event){
-					var data = document.getElementById("frozen").items;
-					var csvObject = new Object();
-					csvObject.gridData = data;
-
-					if(selection == "selectionSubscribers"){
-						csvObject.headers = "Identity, Secret, Balance, Data Rate, Xmit Rate, Session Timeout," +
-								  "Accounting Interval, Class, Enabled \n";
-						csvObject.keys = [ "id","password","balance","ascendDataRate","ascendXmitRate", +
-								  "sessionTimeout","acctInterimInterval","class","enabled"];
-						csvObject.fileName = "subscribers.csv";
-					}
-					if(selection == "selectionRadiusClients"){
-						csvObject.headers = "Identity, Secret \n";
-						csvObject.keys = ["id", "secret"];
-						csvObject.fileName = "radius_clients.csv";
-					}
-					generateCSVData(csvObject);
-
-				}
-
-				function generateCSVData(csvObject){
-					var csvData = "data:text/csv;charset=utf-8,";
-					csvData += csvObject.headers;
-					csvObject.gridData.forEach(function(row, index){
-						var dataLine = "";
-						csvObject.keys.forEach(function(key, i){
-											dataLine += row[key] + ",";
-										});
-						dataLine += "\n";
-						csvData += dataLine;
-						});
-					var encodedUri = encodeURI(csvData);
-					var link = document.createElement("a");
-					link.setAttribute("href", encodedUri);
-					link.setAttribute("download", csvObject.fileName);
-					document.body.appendChild(link);
-					link.click();
-				}
-			</script>
+	<body>
+		<sig-app></sig-app>
 	</body>
 </html>
+

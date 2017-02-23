@@ -1,0 +1,214 @@
+<link rel="import" href="bower_components/polymer/polymer.html">
+<link rel="import" href="bower_components/paper-toolbar/paper-toolbar.html">
+<link rel="import" href="bower_components/paper-styles/typography.html">
+<link rel="import" href="bower_components/paper-styles/paper-styles.html" />
+<link rel="import" href="bower_components/paper-item/paper-item.html" />
+<link rel="import" href="bower_components/paper-menu/paper-menu.html"/>
+<link rel="import" href="bower_components/paper-menu/paper-submenu.html" />
+<link rel="import" href="bower_components/paper-listbox/paper-listbox.html" />
+<link rel="import" href="bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="bower_components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="bower_components/paper-button/paper-button.html">
+<link rel="import" href="bower_components/paper-input/paper-input.html">
+<link rel="import" href="bower_components/paper-input/paper-input.html">
+<link rel="import" href="bower_components/paper-styles/typography.html">
+<link rel="import" href="bower_components/app-layout/app-drawer/app-drawer.html">
+<link rel="import" href="bower_components/app-layout/app-drawer-layout/app-drawer-layout.html">
+<link rel="import" href="bower_components/app-layout/app-header/app-header.html">
+<link rel="import" href="bower_components/app-layout/app-header-layout/app-header-layout.html">
+<link rel="import" href="bower_components/app-layout/app-scroll-effects/app-scroll-effects.html">
+<link rel="import" href="bower_components/app-layout/app-toolbar/app-toolbar.html">
+<link rel="import" href="bower_components/app-route/app-location.html">
+<link rel="import" href="bower_components/app-route/app-route.html">
+<link rel="import" href="bower_components/paper-progress/paper-progress.html">
+<link rel="import" href="bower_components/iron-pages/iron-pages.html">
+<link rel="import" href="bower_components/iron-selector/iron-selector.html">
+<link rel="import" href="bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="bower_components/iron-icons/communication-icons.html">
+<link rel="import" href="bower_components/iron-icons/hardware-icons.html">
+<link rel="import" href="bower_components/iron-icons/device-icons.html">
+<link rel="import" href="bower_components/iron-icons/notification-icons.html">
+<link rel="import" href="bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="sig-sub-add.html">
+<link rel="import" href="sig-sub-list.html">
+<link rel="import" href="sig-sub-update.html">
+<link rel="import" href="sig-client-add.html">
+<link rel="import" href="sig-client-list.html">
+<link rel="import" href="sig-client-update.html">
+<link rel="import" href="sig-acct-list.html">
+
+<dom-module id="sig-app">
+	<template is="dom-bind">
+		<style is="custom-style">
+			
+			 :root{@apply(--paper-font-common-base);}
+
+			.search-text{
+				--paper-input-container-color: white;
+				--paper-input-container-focus-color: blue;
+				--paper-input-container-invalid-color: green;
+				--paper-input-container-input-color: white;
+			}
+
+			.flex-vertical { @apply(--layout-vertical); height: 100%; }
+
+			.flexchild-vertical { @apply(--layout-flex); height:100%;} 
+
+			app-toolbar { background-color: #4285f4; color: #fff; }
+
+			paper-icon-button { --paper-icon-button-ink-color: white; }
+
+			paper-icon-button + [main-title] { margin-left: 24px; }
+
+			paper-progress { display: block; width: 100%; --paper-progress-active-color: rgba(255, 255, 255, 0.5); --paper-progress-container-color: transparent; }
+
+			app-header { @apply(--layout-fixed-top); color: #fff; --app-header-background-rear-layer: { background-color: #ef6c00; }; }
+
+			app-drawer { --app-drawer-scrim-background: rgba(0, 0, 100, 0.8); --app-drawer-content-container: { background-color: #FFFFFF; padding-top:10px;}; height:100%; top:64px; }
+
+			.menuitem{ font-size: normal;}
+
+			#contentContainer{height:100%}
+
+			sample-content { padding-top: 64px; }
+		</style>
+
+		<div class="container flex-vertical">
+			<div id="vertical-child1" style="height:100%;">
+				<app-header-layout fixed fullbleed style="height:100%;">
+					<app-header reveals>
+					  <app-toolbar>
+						  <paper-icon-button icon="menu" onclick="drawer.toggle()"></paper-icon-button>
+						  <div main-title>Online Charging System (OCS)</div>
+							  <paper-icon-button id="refresh "icon="refresh" on-click="refresh" ></paper-icon-button>
+							  <paper-icon-button id="download "icon="file-download" on-click="download" ></paper-icon-button>
+								<paper-input label="" class="search-text" id="searchTerm"></paper-input>
+							  <paper-icon-button id="search "icon="search" on-click="search" ></paper-icon-button>
+							  <paper-progress value="10" indeterminate bottom-item></paper-progress>
+					  </app-toolbar>
+					  </app-header>
+					  <iron-pages id="loadPage" selected="{{page}}"  role="main" style="height:100%;">
+						  <sig-sub-list name="view1"></sig-sub-list>
+						  <sig-client-list name="view2"></sig-client-list>
+						  <sig-acct-list name="view3"></sig-acct-list>
+					  </iron-pages>
+				  </app-header-layout>
+			</div>
+			<div  id="vertical-child2">
+				 <!--Flex Container including app-drawer and content body -->
+				<app-drawer-layout style="height:100%;">
+				<app-drawer id="drawer" swipe-open>
+					<iron-selector id ="pageSelection" selected="{{page}}" class="drawer-list" role="navigation">
+						</paper-menu>
+						<paper-item name ="view1" onclick="drawer.toggle()" class="menuitem"><iron-icon icon ="device:devices"></iron-icon>&nbsp Subscribers</paper-item>
+							<paper-item name="view2" onclick="drawer.toggle()" class="menuitem"><iron-icon icon ="hardware:router"></iron-icon>&nbsp Clients</paper-item>
+							<paper-submenu>
+								<paper-item class="menu-trigger menuitem"><iron-icon icon ="icons:history"></iron-icon>&nbsp Logs</paper-item>
+									<paper-menu class="menu-content" >
+										<paper-item name="view3" onclick="drawer.toggle()" class="menuitem"> &nbsp &nbsp <iron-icon icon ="device:data-usage"></iron-icon> &nbsp Accounting</paper-item>
+										<paper-item class="menuitem">&nbsp &nbsp <iron-icon icon ="icons:perm-identity"></iron-icon> &nbsp Authentication</paper-item>
+									</paper-menu>
+							</paper-submenu>
+						</paper-menu>
+					</iron-selector>
+				</app-drawer>
+			</div>
+		</div>
+		
+		<!--Modal Definitions-->
+		<sig-sub-add></sig-sub-add> 
+		<sig-sub-update></sig-sub-update>
+		<sig-client-add></sig-client-add> 
+		<sig-client-update></sig-client-update>
+		
+		<iron-ajax id="searchAjax"
+			method = "GET"
+			headers='{"Accept": "application/json", "Content-type": "application/json"}'
+			url=""
+			on-response="searchResponse"
+			debounce-duration="0"></iron-ajax>
+
+	</template>
+		<script>
+			Polymer({
+				is: 'sig-app',
+				
+				search: function(event){
+					var ajax = this.$.searchAjax;
+					var id = this.$.searchTerm.value;
+
+					if(this.$.pageSelection.selected == 0){
+						ajax.url = "/ocs/v1/subscriber/" + id
+					}
+					if(this.$.pageSelection.selected == 1){
+						ajax.url = "/ocs/v1/client/" + id
+					}
+
+					ajax.generateRequest();
+				},
+
+				searchResponse: function(event){
+					var item = new Array();
+					item[0] = event.detail.response;
+					if(this.$.pageSelection.selected == 0){
+						document.getElementById('grid').items = item;
+					}
+					if(this.$.pageSelection.selected == 1){
+						document.getElementById('clientsGrid').items = item;
+					}
+				},
+
+				refresh: function(){
+					if(this.$.pageSelection.selected == 0){
+						document.getElementById('getSubs').generateRequest();
+					}
+					if(this.$.pageSelection.selected == 1){
+						document.getElementById('getClients').generateRequest();
+					}
+				},
+
+				download: function(){
+					var csvObject = new Object();
+
+					if(this.$.pageSelection.selected == 0){
+						var data = document.getElementById("grid").items;
+						csvObject.gridData = data;
+						csvObject.headers = "Identity, Secret, Balance, Data Rate, Xmit Rate, Session Timeout," +
+								  "Accounting Interval, Class, Enabled \n";
+						csvObject.keys = [ "id","password","balance","ascendDataRate","ascendXmitRate", +
+								  "sessionTimeout","acctInterimInterval","class","enabled"];
+						csvObject.fileName = "subscribers.csv";
+					}
+					if(this.$.pageSelection.selected == 1){
+						var data = document.getElementById("clientsGrid").items;
+						csvObject.gridData = data;
+						csvObject.headers = "Identity, Secret, Disconnect Port, Protocol\n";
+						csvObject.keys = ["id", "secret", "disconnectPort", "protocol"];
+						csvObject.fileName = "radius_clients.csv";
+					}
+					generateCSVData(csvObject);
+				}
+
+		});
+		
+		function generateCSVData(csvObject){
+			var csvData = "data:text/csv;charset=utf-8,";
+			csvData += csvObject.headers;
+			csvObject.gridData.forEach(function(row, index){
+			var dataLine = "";
+			csvObject.keys.forEach(function(key, i){
+								dataLine += row[key] + ",";
+								});
+			dataLine += "\n";
+			csvData += dataLine;
+			});
+			var encodedUri = encodeURI(csvData);
+			var link = document.createElement("a");
+			link.setAttribute("href", encodedUri);
+			link.setAttribute("download", csvObject.fileName);
+			document.body.appendChild(link);
+			link.click();
+		}
+		</script>
+</dom-module>

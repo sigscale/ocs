@@ -8,89 +8,27 @@
 <link rel="import" href="bower_components/paper-toolbar/paper-toolbar.html">
 <link rel="import" href="bower_components/paper-toast/paper-toast.html">
 <link rel="import" href="bower_components/paper-input/paper-input.html">
-<link rel="import" href="bower_components/paper-item/paper-item.html">
-<link rel="import" href="bower_components/paper-listbox/paper-listbox.html">
+<link rel="import" href="bower_components/paper-dialog/paper-dialog.html">
 <link rel="import" href="bower_components/paper-tooltip/paper-tooltip.html">
-<link rel="import" href="bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="bower_components/paper-toggle-button/paper-toggle-button.html" >
 <link rel="import" href="bower_components/paper-styles/paper-styles.html">
 
-<dom-module id="sig-add-client">
+<dom-module id="sig-client-add">
 	<template>
-		<style> /* local DOM styles go here */
-			:host {
-				display: inline-block;
-				width:96%;
-			} 
-			:host([pressed]) iron-icon {
-				fill: currentcolor
-			}
-			iron-icon {
-				fill: rgba(0,0,0,0);
-				stroke: currentcolor;
-			}
-		</style>
-
 		<style is="custom-style"> 
-			paper-button.custom {
-				background-color: #7d8ff5;
-				color: white;
-				font-weight: bold;
-				--paper-button-ink-color: var(--paper-pink-a200);
-				--paper-button-flat-keyboard-focus: {
-					background-color: var(--paper-pink-a200);
-					color: white !important;
-				};
-				--paper-button-raised-keyboard-focus: {
-					background-color: var(--paper-pink-a200) !important;
-					color: white !important;
-				};
-			}
+			paper-dialog{width:60%; height:50%; padding:10px; margin-top:auto;}
 
-			paper-button.custom:hover {
-				background-color: var(--paper-indigo-100);
-			}
+			.add-button{ background-color: #3f51b5; color:#FFFFFF; }
 
-			paper-button.pink {
-				color: var(--paper-pink-a200);
-			}
-
-			paper-button.indigo {
-				background-color: #7d8ff5;
-				color: white;
-				--paper-button-raised-keyboard-focus: {
-						background-color: var(--paper-pink-a200) !important;
-						color: white !important; };
-			}
-
-			paper-button.green {
-				background-color: var(--paper-green-500);
-				color: white;
-			}
-
-			paper-button.green[active] {
-				background-color: var(--paper-red-500);
-			}
-
-			paper-button.disabled {
-				color: white;
-			}
-
-			#subscriber{
-				padding-top:
-				5px;
-				width: 58px;
-			}
-
-			#toastError {
-				--paper-toast-background-color:red;
-				--paper-toast-color: white;
-			}
+			paper-toast.error{background-color:#EF5350;}
 		</style>
 
+	<div id="add_client_container">
+		<paper-dialog id="clientAddModal" modal>
 		<paper-toolbar>
 			<h2>Add Client</h2>
 			</paper-toolbar>
-				<form  is="iron-form"  id="presubmit3" method="post" content-type="application/json" >
+				<form  is="iron-form"  id="clientAddForm" method="post" content-type="application/json" >
 					<div>
 						<paper-input id="add-client1" name="address" label="IP Address" ></paper-input>
 						<paper-tooltip >IP address of network access server, router or access point</paper-tooltip>
@@ -116,11 +54,11 @@
 						<paper-tooltip >Secret, or password, shared with the network access server, router or access point.</paper-tooltip>
 					</div>
 					<div class="buttons">
-						<paper-button raised class="custom indigo" onclick="_submit()" style="float: right; width: 200px;"  >Submit</paper-button>
-						<paper-button dialog-confirm autofocus >Cancel</paper-button>
+						<paper-button raised class="add-button" onclick="_submitClientForm()" style="float: right; width: 200px;"  >Submit</paper-button>
+						<paper-button dialog-confirm autofocus onclick="clientAddModal.close()" >Cancel</paper-button>
 					</div>
 				</form>
-				<div id="response-display-container" style="padding-top: 14%;margin-top:16%;">
+				<div id="response-display-container">
 					<paper-toast id="toastError" class="fit-bottom" >
 						<h2> Couldn't add Client!</h2>
 						<h5> Please recheck the following.</h5>
@@ -133,51 +71,49 @@
 						<h2> Client added !</h2>
 					</paper-toast>
 				</div>
+		</paper-dialog>
+	</div>
 
-				<iron-ajax id="ajaxClientAdd"
-					 auto
-				    url="/ocs/v1/client"
-		  			 method = "post"
-					 headers='{"Accept": "application/json", "Content-type": "application/json"}'
-					 client-as="json"
-					 debounce-duration="300"></iron-ajax>
+	<iron-ajax id="clientAddAjax"
+		auto
+		url="/ocs/v1/client"
+		method = "post"
+		headers='{"Accept": "application/json", "Content-type": "application/json"}'
+		client-as="json"
+		debounce-duration="300"></iron-ajax>
 
-				<script>
-					function _submit() {
-						document.getElementById('presubmit3').submit();
-					}
-				</script>
+	<script>
+		function _submitClientForm() {
+		  document.getElementById('clientAddForm').submit();
+		}
 
+		function toastErrorClose(event) {
+		  document.getElementById('toastError').close();
+		}
+
+	</script>
 	</template>
 		<script>
 			Polymer({
-				is: 'sig-add-client',
-
-			properties:{},
+				is: 'sig-client-add',
 
 			listeners: {
-				'presubmit3.iron-form-presubmit': '_clientFormPreSubmit',
-				'presubmit3.iron-form-submit': '_clientFormSubmit',
-				'ajaxClientAdd.error': '_clientFormError',
-				'ajaxClientAdd.response': '_clientFormResponse'
+				'clientAddForm.iron-form-presubmit': '_clientFormPreSubmit',
+				'clientAddForm.iron-form-error': '_clientFormError',
+				'clientAddForm.iron-form-response': '_clientFormResponse'
 			},
 
 			_clientFormPreSubmit: function() {
-				document.getElementById("progressbar").indeterminate = true;
 				var form = document.getElementById('presubmit3');
 				var formData = new Object();
 				formData.id = document.getElementById("add-client1").value;	
 				formData.disconnectPort = parseInt(document.getElementById("add-client2").value);	
 				formData.protocol = document.getElementById("add-client3").value;	
 				formData.secret = document.getElementById("add-client4").value;	
-				var ajax = document.getElementById("ajaxClientAdd");
+				var ajax = document.getElementById("clientAddAjax");
 				ajax.body = formData;
 				ajax.generateRequest();
-
 			},
-
-			_clientFormSubmit: function() {
-		  },
 
 			_clientFormError: function() {
 				var toast = document.getElementById("toastError");
@@ -191,10 +127,9 @@
 				toast.open();
 				toast.duration = 4;
 				toast.fitInto = document.getElementById("response-display-container");
-				document.getElementById("presubmit3").reset();
-				document.getElementById("modal3").close();
+				document.getElementById("clientAddForm").reset();
+				document.getElementById("clientAddModal").close();
 				document.getElementById("getClients").generateRequest();
-				document.getElementById("progressbar").indeterminate = false;
 			}   
 		});
 	</script>

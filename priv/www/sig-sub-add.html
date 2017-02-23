@@ -8,83 +8,23 @@
 <link rel="import" href="bower_components/paper-toolbar/paper-toolbar.html">
 <link rel="import" href="bower_components/paper-toast/paper-toast.html">
 <link rel="import" href="bower_components/paper-input/paper-input.html">
+<link rel="import" href="bower_components/paper-dialog/paper-dialog.html">
 <link rel="import" href="bower_components/paper-tooltip/paper-tooltip.html">
 <link rel="import" href="bower_components/paper-toggle-button/paper-toggle-button.html" >
 <link rel="import" href="bower_components/paper-styles/paper-styles.html">
 
-<dom-module id="sig-add">
+<dom-module id="sig-sub-add">
 	<template>
-		<style> /* local DOM styles go here */
-			:host {
-				display: inline-block;
-				width:96%;
-			} 
-			:host([pressed]) iron-icon {
-				fill: currentcolor
-			}
-			iron-icon {
-				fill: rgba(0,0,0,0);
-				stroke: currentcolor;
-			}
-		</style>
-
 		<style is="custom-style"> 
-			paper-button.custom {
-				background-color: #7d8ff5;
-				color: white;
-				font-weight: bold;
-				--paper-button-ink-color: var(--paper-pink-a200);
-				--paper-button-flat-keyboard-focus: {
-					background-color: var(--paper-pink-a200);
-					color: white !important;
-				};
-				--paper-button-raised-keyboard-focus: {
-					background-color: var(--paper-pink-a200) !important;
-					color: white !important;
-				};
-			}
+			paper-dialog{width:60%; padding:10px;}
 
-			paper-button.custom:hover {
-				background-color: var(--paper-indigo-100);
-			}
+			.add-button{ background-color: #3f51b5; color:#FFFFFF; }
 
-			paper-button.pink {
-				color: var(--paper-pink-a200);
-			}
-
-			paper-button.indigo {
-				background-color: #7d8ff5;
-				color: white;
-				--paper-button-raised-keyboard-focus: {
-						background-color: var(--paper-pink-a200) !important;
-						color: white !important; };
-			}
-
-			paper-button.green {
-				background-color: var(--paper-green-500);
-				color: white;
-			}
-
-			paper-button.green[active] {
-				background-color: var(--paper-red-500);
-			}
-
-			paper-button.disabled {
-				color: white;
-			}
-
-			#subscriber{
-				padding-top:
-				5px;
-				width: 58px;
-			}
-
-			#toastError {
-				--paper-toast-background-color:red;
-				--paper-toast-color: white;
-			}
+			paper-toast.error{background-color:#EF5350;}
 		</style>
 
+	<div id="add_subscriber_container">
+	<paper-dialog id="subAddModal" modal>
 		<paper-toolbar>
 			<h2>Add subscriber</h2>
 			</paper-toolbar>
@@ -125,12 +65,12 @@
 						<paper-tooltip >Temporarily enable, or disable, authorization for service</paper-tooltip>
 					</div>
 					<div class="buttons">
-						<paper-button raised class="custom indigo" onclick="_submitSubForm()" style="float: right; width: 200px;"  >Submit</paper-button>
-						<paper-button dialog-confirm autofocus onclick="cancelModal2()"  >Cancel</paper-button>
+						<paper-button raised class="add-button" onclick="_submitSubForm()" style="float: right; width: 200px;"  >Submit</paper-button>
+						<paper-button dialog-confirm autofocus onclick="subAddModal.close()"  >Cancel</paper-button>
 					</div>
 				</form>
-				<div id="response-display-container" style="padding-top: 14%;margin-top:16%;">
-					<paper-toast id="toastError" class="fit-bottom" >
+				<div id="response-display-container">
+					<paper-toast id="toastError" class="fit-bottom error" >
 						<h2> Couldn't add subscriber !</h2>
 						<h5> Please recheck the following.</h5>
 						<ul>
@@ -144,7 +84,8 @@
 						<h2> Subscriber added !</h2>
 					</paper-toast>
 				</div>
-
+		</paper-dialog>
+		</div>
 	<script>
 		function _submitSubForm() {
 		  document.getElementById('presubmit').submit();
@@ -155,15 +96,14 @@
 		}
 
 		function cancelModal2(event) {
-		  document.getElementById('modal2').close();
-		  document.getElementById("progressbar").indeterminate = false;
+		  document.getElementById('subAddModal').close();
 		}
 
 	</script>
 	</template>
 		<script>
 			Polymer({
-				is: 'sig-add',
+				is: 'sig-sub-add',
 			properties:{},
 			listeners: {
 				'toastErrorClose.on-click': 'closeToast',
@@ -174,7 +114,6 @@
 			},
 
 			_handleFormPreSubmit: function() {
-				document.getElementById("progressbar").indeterminate = true;
 				var form = document.getElementById('presubmit');
 				var formData = new Object();
 				formData.id = document.getElementById("add1").value;
@@ -237,7 +176,7 @@
 				var toast = document.getElementById("toastError");
 				toast.open();
 				toast.duration = 0;
-				toast.fitInto = document.getElementById("modal2");
+				toast.fitInto = document.getElementById("subAddModal");
 				toast.class="fit-bottom";
 			},
 
@@ -247,9 +186,8 @@
 				toast.duration = 4;
 				toast.fitInto = document.getElementById("response-display-container");
 				document.getElementById("presubmit").reset();
-				document.getElementById("modal2").close();
+				document.getElementById("subAddModal").close();
 				document.getElementById("getSubs").generateRequest();
-			 	document.getElementById("progressbar").indeterminate = false;
 			},
 
 			toastErrorClose: function(event) {

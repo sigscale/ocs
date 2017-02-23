@@ -1,0 +1,173 @@
+<link rel="import" href="bower_components/polymer/polymer.html">
+<link rel="import" href="bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="bower_components/iron-pages/iron-pages.html">
+<link rel="import" href="bower_components/iron-icons/notification-icons.html">
+<link rel="import" href="bower_components/iron-icons/editor-icons.html">
+<link rel="import" href="bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="bower_components/vaadin-grid/vaadin-grid.html">
+<link rel="import" href="bower_components/paper-button/paper-button.html">
+<link rel="import" href="bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="bower_components/paper-toast/paper-toast.html">
+<link rel="import" href="bower_components/paper-input/paper-input.html">
+<link rel="import" href="bower_components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="bower_components/paper-fab/paper-fab.html" >
+<link rel="import" href="bower_components/paper-toggle-button/paper-toggle-button.html" >
+<link rel="import" href="bower_components/paper-styles/paper-styles.html">
+<link rel="import" href="sig-sub-add.html">
+
+<dom-module id="sig-acct-list">
+	<template>
+		<style>
+			:host { display: inline-block; height:95%; }
+
+			iron-icon { fill: rgba(0,0,0,0); stroke: currentcolor; } :host([pressed]) iron-icon { fill: currentcolor; }
+
+
+
+			paper-fab{background:#4285f4;}
+
+		</style>
+
+
+		<style include="shared-styles">
+			:host {
+				display: block;
+				padding: 10px;
+			}
+			paper-fab { 
+				--paper-fab-background: #7d8ff5;
+				--paper-fab-keyboard-focus-background: var(--paper-light-blue-900); }
+				vaadin-grid{font-size: inherit;}
+				vaadin-grid col {font-size: 46px;}
+			.edit{
+				background: #81C784;
+			}
+
+			paper-tab.iron-selected {
+			    background-color: var(--paper-indigo-500);
+				 color:#E8EAF6;
+			}
+
+		</style>
+		<vaadin-grid selection-mode="single" id="accoutingGrid" grid-columns="2" style="height:100%;">
+			<table>
+				<colgroup> 
+					<col>
+					<col>
+					<col>
+					<col>
+					<col>
+					<col>
+					<col>
+					<col>
+					<col>
+					<col>
+					<col>
+					<col>
+				</colgroup>
+				<thead>
+				<tr>
+					<th> First</th>
+					<th> Second</th>
+					<th> 3econd</th>
+					<th> 4econd</th>
+					<th> 5econd</th>
+					<th> 6econd</th>
+					<th> 7econd</th>
+					<th> 8econd</th>
+					<th> 8econd</th>
+					<th> 8econd</th>
+					<th> 8econd</th>
+					<th> 8econd</th>
+					</tr>
+				</thead>
+			</table>
+		</vaadin-grid>
+
+		<paper-toast id="edit-toast">
+			<h2>Record sucessfully updated !</h2>
+		</paper-toast>
+
+		<paper-toast id="delete-toast">
+			<h2>Record sucessfully deleted !</h2>
+		</paper-toast>
+
+	<iron-ajax id="getAcctLogs"
+			auto=false
+			url="/usageManagement/v1/usage"
+			headers='{"Accept": "application/json", "Content-type": "application/json"}'
+			on-response="getAcctLogsResponse"
+			debounce-duration="10"> </iron-ajax> 
+
+	</template>
+
+	<script>
+		Polymer({
+		  is: 'sig-acct-list',
+
+		listeners: {
+				'accoutingGrid.click': 'onSelect'
+		},
+
+		getAcctLogsResponse: function(event) {
+			var grid = this.$.accoutingGrid; 
+			var results = event.detail.xhr.response;
+			var vaadinItems = new Array();
+
+			for(var index in results){
+					  var newRecord = new Object();
+					  newRecord.date = results[index].date;
+					  newRecord.type = results[index].type;
+					  newRecord.usageSpecificationName = results[index].usageSpecification.name;
+
+					 results[index].usageCharacteristic.forEach(function(attrObj){
+							newRecord[attrObj.key] = attrObj.value;
+						});
+
+					  vaadinItems[index] = newRecord;
+			}
+
+			grid.frozenColumns = 1;
+			grid.items = vaadinItems;
+			grid.columns = [
+			{ name: "username"},
+			{ name: "acctSessionId"},
+			{ name: "callingStationId"},
+			{ name: "nasIpAddress"},
+			{ name: "calledStationId"},
+			{ name: "nasId"},
+			{ name: "sessionDuration"},
+			{ name: "inputOctets"},
+			{ name: "outputOctets"},
+			{ name: "gmtSessionStartDateTime"},
+			{ name: "gmtSessionEndDateTime"},
+			{ name: "sessionTerminateCause"}
+			];
+
+			grid.header.getCell(0,0).content = '<div style="font-size:16px;"><div>Username</div></div>';
+			grid.header.getCell(0,1).content = '<div style="font-size:16px;"><div>Accounting </br>Session Id</div></div>';
+			grid.header.getCell(0,2).content = '<div style="font-size:16px;"><div>Calling <br> Station Id</div></div>';
+			grid.header.getCell(0,3).content = '<div style="font-size:16px;"><div>NAS <br>IP Address</div></div>';
+			grid.header.getCell(0,4).content = '<div style="font-size:16px;"><div>Called <br> Station Id</div></div>';
+			grid.header.getCell(0,5).content = '<div style="font-size:16px;"><div>NAS Id</div></div>';
+			grid.header.getCell(0,6).content = '<div style="font-size:16px;"><div>Session </br> Duration</div></div>';
+			grid.header.getCell(0,7).content = '<div style="font-size:16px;"><div>Input <br>Octets</div></div>';
+			grid.header.getCell(0,8).content = '<div style="font-size:16px;"><div>Output <br>Octets</div></div>';
+			grid.header.getCell(0,9).content = '<div style="font-size:16px;"><div>GMT Session Start</br> DateTime</div></div>';
+			grid.header.getCell(0,10).content = '<div style="font-size:16px;"><div>GMT Session End</br> DateTime</div></div>';
+			grid.header.getCell(0,11).content = '<div style="font-size:16px;"><div>Session Terminate <br> Cause</div></div>';
+
+		},
+
+		showAddModal: function(event){
+				var modal = document.getElementById("acctLogsAddModal");
+				modal.open();
+		},
+
+
+		onSelect: function(event) {
+		}
+	});
+	</script>
+</dom-module>

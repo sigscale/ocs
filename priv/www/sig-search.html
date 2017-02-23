@@ -83,11 +83,13 @@
 				margin:0px 15px 0px 15px;
 			}
 		</style>
+
 		<form  is="iron-form"  name = "presubmit1" id="presubmit1" method="get" content-type="application/json" >
 			<paper-input label="Search by Identity" required></paper-input>
 			<paper-button raised class="custom indigo" on-click="submitForm" style="float: right; "  >Search</paper-button>
 			<paper-button dialog-confirm autofocus on-click="resetForm" >Reset</paper-button> 
 		</form>
+
 		<paper-toast id="toast-no-subscriber" class="fit-bottom" >
 			<h2> No Subscriber found !</h2>
 		</paper-toast>
