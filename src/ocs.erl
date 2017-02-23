@@ -21,7 +21,7 @@
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 %% export the ocs public API
--export([add_client/4, find_client/1, update_client_password/2,
+-export([add_client/2, add_client/4, find_client/1, update_client_password/2,
 		update_client_attributes/3, get_clients/0, delete_client/1]).
 -export([add_subscriber/3, add_subscriber/4, add_subscriber/5,
 		find_subscriber/1, delete_subscriber/1, update_password/2,
@@ -40,6 +40,15 @@
 %%----------------------------------------------------------------------
 %%  The ocs public API
 %%----------------------------------------------------------------------
+
+-spec add_client(Address, Secret) -> ok
+	when
+		Address :: inet:ip_address(),
+		Secret :: string() | binary().
+%% @doc Create an entry in the RADIUS client table.
+%%
+add_client(Address, Secret) ->
+	add_client(Address, 3799, radius, Secret).
 
 -spec add_client(Address :: inet:ip_address(), DisconnectPort :: inet:port_number(),
 			Protocol :: atom(), Secret :: string() | binary()) ->
