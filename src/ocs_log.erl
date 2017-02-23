@@ -466,43 +466,44 @@ start_binary_tree(_, _, _, _, _, _, _, _, {error, Reason}) ->
 %% 	Returns filtered records.
 %% @private
 get_range(Log, Start, End, Cont) ->
-	get_range(Log, Start, End, Cont, disk_log:chunk(Log, Cont, 1)).
+	get_range(Log, Start, End, [], disk_log:chunk(Log, Cont)).
 %% @hidden
-get_range(_Log, _Start, _End, _PrevCont, {error, Reason}) ->
+get_range(_Log, _Start, _End, _PrevChunk, {error, Reason}) ->
 	{error, Reason};
-get_range(_Log, _Start, _End, _PrevCont, eof) ->
-	[];
-get_range(Log, Start, End, _PrevCont, {Cont, [R]}) when element(1, R) < Start ->
-	get_range(Log, Start, End, Cont, disk_log:chunk(Log, Cont, 1));
-get_range(Log, Start, End, PrevCont, {_Cont, _Chunk}) ->
-	get_range1(Log, Start, End, disk_log:chunk(Log, PrevCont), []).
+get_range(Log, Start, End, PrevChunk, eof) ->
+	get_range1(Log, Start, End, {eof, PrevChunk}, []);
+get_range(Log, Start, End, _PrevChunk, {Cont, [H | T]})
+		when element(1, H) < Start ->
+	get_range(Log, Start, End, T, disk_log:chunk(Log, Cont));
+get_range(Log, Start, End, PrevChunk, {Cont, Chunk}) ->
+	get_range1(Log, Start, End, {Cont, PrevChunk ++ Chunk}, []).
 %% @hidden
-get_range1(_Log, _Start, _End, {error, Reason}, _Acc) ->
-	{error, Reason};
-get_range1(_Log, _Start, _End, eof, Acc) ->
-	lists:flatten(lists:reverse(Acc));
-get_range1(Log, Start, End, {Cont, Records}, Acc) ->
+get_range1(Log, Start, End, {Cont, Chunk}, Acc) ->
 	Fstart = fun(R) when element(1, R) < Start ->
 				true;
 			(_) ->
 				false
 	end,
-	case lists:dropwhile(Fstart, Records) of
-		[] ->
-			get_range1(Log, Start, End, disk_log:chunk(Log, Cont), Acc);
-		Records1 ->
-			Fend = fun(R) when element(1, R) =< End ->
-						true;
-					(_) ->
-						false
-			end,
-			case lists:takewhile(Fend, Records1) of
-				Records1 ->
-					get_range1(Log, Start, End,
-							disk_log:chunk(Log, Cont), [Records1 | Acc]);
-				Records2 ->
-					lists:flatten(lists:reverse([Records2 | Acc]))
-			end
+	NewChunk = lists:dropwhile(Fstart, Chunk),
+	get_range2(Log, End, {Cont, NewChunk}, Acc).
+%% @hidden
+get_range2(_Log, _End, eof, Acc) ->
+	lists:flatten(lists:reverse(Acc));
+get_range2(_Log, _End, {error, Reason}, _Acc) ->
+	{error, Reason};
+get_range2(Log, End, {Cont, Chunk}, Acc) ->
+	Fend = fun(R) when element(1, R) =< End ->
+				true;
+			(_) ->
+				false
+	end,
+	case {Cont, lists:last(Chunk)} of
+		{eof, R} when element(1, R) =< End ->
+			lists:flatten(lists:reverse([Chunk | Acc]));
+		{Cont, R} when element(1, R) =< End ->
+			get_range2(Log, End, disk_log:chunk(Log, Cont), [Chunk | Acc]);
+		{_, _} ->
+			lists:flatten(lists:reverse([lists:takewhile(Fend, Chunk) | Acc]))
 	end.
 
 -spec ipdr_codec({TimeStamp, Node, Server, Client, stop, Attributes}) -> IPDR
