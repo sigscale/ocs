@@ -33,13 +33,18 @@ e.g &#058;
 ===HTTP Authentication===
 To use the {@link //inets/mod_auth. mod_auth} module for authentication
 you should create users and groups in the {@link //mnesia/mnesia. mnesia}
-tables it uses:
+tables it uses.
+e.g &#058;
  	```
-	4> mod_auth:add_user("bss", "nfc9xgp32xha", [], 8080, "/").
+	4> inets:start().
+	ok
+	5> mod_auth:add_user("john", "g2k7hyeh6qag", [], 8080, "/").
 	true
-	5> mod_auth:add_user("john", "sEcReT", [], 8080, "/").
+	6> mod_auth:add_user("bss", "nfc9xgp32xha", [], 8080, "/").
 	true
-	6> mod_auth:add_group_member("staff", "john", 8080, "/").
+	7> mod_auth:add_group_member("all", "john", 8080, "/").
+	true
+	8> mod_auth:add_group_member("all", "bss", 8080, "/").
 	true
 	'''
 
