@@ -12,7 +12,7 @@ www_DATA = favicon.ico \
 	sig-client-list.html \
 	sig-client-update.html \
 	sig-acct-list.html \
-	sig-search.html \
+	sig-search.html 
 
 noinst_DATA = bower_components
 
