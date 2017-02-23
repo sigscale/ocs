@@ -83,21 +83,24 @@ read_ipdr1(Log, FileName, DateTime, Continuation, Acc) ->
 
 %% @hidden
 ipdr_to_json(Log, FileName, DateTime, IpdrList) ->
-	F = fun(#ipdr{} = Ipdr, {Id, Acc}) ->
-		UsageSpecification = {struct, [{id, 1},
-			{href, "usageManagement/v1/usageSpecification/1"},
-			{name, "PublicWLANAccessUsageSpec"}]},
-		UsageCharacteristicObjs = usage_characteristics(Ipdr),
-		UsageCharacteristic = {array, UsageCharacteristicObjs},
-		RespObj = [{struct, [{id, Id},
-			{href, "usageManagement/v1/usage/" ++ integer_to_list(Id)},
-			{date, DateTime},
-			{type, "PublicWLANAccessUsage"},
-			{description, "Description for individual usage content"},
-			{status, received},
-			{usageSpecification, UsageSpecification},
-			{usageCharacteristic, UsageCharacteristic}]}],
-		{Id + 1, Acc ++ RespObj}
+	F = fun(#ipdrDoc{}, {Id, Acc}) ->
+				{Id, Acc};
+			(#ipdr{} = Ipdr, {Id, Acc}) ->
+				UsageSpecification = {struct, [{id, 1},
+						{href, "usageManagement/v1/usageSpecification/1"},
+						{name, "PublicWLANAccessUsageSpec"}]},
+				UsageCharacteristicObjs = usage_characteristics(Ipdr),
+				UsageCharacteristic = {array, UsageCharacteristicObjs},
+				RespObj = [{struct, [{id, Id},
+						{href, "usageManagement/v1/usage/" ++ integer_to_list(Id)},
+						{date, DateTime}, {type, "PublicWLANAccessUsage"},
+						{description, "Description for individual usage content"},
+						{status, received},
+						{usageSpecification, UsageSpecification},
+						{usageCharacteristic, UsageCharacteristic}]}],
+						{Id + 1, Acc ++ RespObj};
+			(#ipdrDocEnd{}, {Id, Acc}) ->
+				{Id, Acc}
 	end,
 	{_Count, JsonObj} = lists:foldl(F, {1, []}, IpdrList),
 	Response = {array, JsonObj},

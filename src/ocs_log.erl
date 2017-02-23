@@ -175,88 +175,134 @@ radius_auth_close() ->
 -spec ipdr_log(File, Start, End) -> Result
 	when
 		File :: file:filename(),
-		Start :: pos_integer(),
-		End :: pos_integer(),
+		Start :: calendar:datetime() | pos_integer(),
+		End :: calendar:datetime() | pos_integer(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Log accounting records within range to new IPDR disk log.
+%%
+%% 	Creates a new {@link //kernel/disk_log:log(). disk_log:log()},
+%% 	or overwrites an existing, with filename `File'. The log starts
+%% 	with a `#ipdrDoc{}' header, is followed by `#ipdr{}' records,
+%% 	and ends with a `#ipdrDocEnd{}' trailer.
+%%
+%% 	The `radius_acct' log is searched for events created between `Start'
+%% 	and `End' which may be given as
+%% 	`{{Year, Month, Day}, {Hour, Minute, Second}}' or the native
+%% 	{@link //erts/erlang:system_time(). erlang:system_time(milliseonds)}.
+%%
+ipdr_log(File, {{_, _, _}, {_, _, _}} = Start, End) ->
+	Epoch = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
+	Seconds = calendar:datetime_to_gregorian_seconds(Start) - Epoch,
+	ipdr_log(File, Seconds * 1000, End);
+ipdr_log(File, Start, {{_, _, _}, {_, _, _}} = End) ->
+	Epoch = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
+	Seconds = calendar:datetime_to_gregorian_seconds(End) - Epoch,
+	ipdr_log(File, Start, Seconds * 1000);
 ipdr_log(File, Start, End) when is_list(File),
 		is_integer(Start), is_integer(End) ->
-	case disk_log:open([{name, File}, {file, File}]) of
+	case disk_log:open([{name, File}, {file, File}, {repair, truncate}]) of
 		{ok, IpdrLog} ->
-			ipdr_log1(IpdrLog, Start, End,
-					start_binary_tree(?RADACCT, Start, End));
+			IpdrDoc = #ipdrDoc{docId = uuid(), version = "3.1",
+					creationTime = iso8601(erlang:system_time(millisecond)),
+					ipdrRecorderInfo = atom_to_list(node())},
+			case disk_log:log(IpdrLog, IpdrDoc) of
+				ok ->
+					ipdr_log1(IpdrLog, Start, End,
+							start_binary_tree(?RADACCT, Start, End));
+				{error, Reason} ->
+					error_logger:error_report([disk_log:format_error(Reason),
+							{module, ?MODULE}, {log, IpdrLog}, {error, Reason}]),
+					disk_log:close(IpdrLog),
+					{error, Reason}
+			end;
 		{error, Reason} ->
 			error_logger:error_report([disk_log:format_error(Reason),
 					{module, ?MODULE}, {file, File}, {error, Reason}]),
 			{error, Reason}
 	end.
 %% @hidden
-ipdr_log1(_IpdrLog, _Start, _End, {error, Reason}) ->
+ipdr_log1(IpdrLog, _Start, _End, {error, Reason}) ->
 	error_logger:error_report([disk_log:format_error(Reason),
 			{module, ?MODULE}, {log, ?RADACCT}, {error, Reason}]),
-	{error, Reason};
+	ipdr_log4(IpdrLog, 0);
 ipdr_log1(IpdrLog, _Start, _End, eof) ->
-	ipdr_log5(IpdrLog, disk_log:close(IpdrLog));
+	ipdr_log4(IpdrLog, 0);
 ipdr_log1(IpdrLog, Start, End, Cont) ->
-	ipdr_log2(IpdrLog, Start, End, Cont, disk_log:chunk(?RADACCT, Cont, 1)).
+	ipdr_log2(IpdrLog, Start, End, [], disk_log:chunk(?RADACCT, Cont)).
 %% @hidden
-ipdr_log2(IpdrLog, _Start, _End, _PrevCont, eof) ->
-	ipdr_log5(IpdrLog, disk_log:close(IpdrLog));
-ipdr_log2(IpdrLog, _Start, _End, _PrevCont, {error, Reason}) ->
+ipdr_log2(IpdrLog, _Start, _End, _PrevChunk, {error, Reason}) ->
 	error_logger:error_report([disk_log:format_error(Reason),
 			{module, ?MODULE}, {log, ?RADACCT}, {error, Reason}]),
-	ipdr_log5(IpdrLog, disk_log:close(IpdrLog));
-ipdr_log2(IpdrLog, Start, End, _PrevCont, {Cont, [R]})
-		when element(1, R) < Start ->
-	ipdr_log2(IpdrLog, Start, End, Cont, disk_log:chunk(?RADACCT, Cont, 1));
-ipdr_log2(IpdrLog, Start, End, PrevCont, {_Cont, _Chunk}) ->
-	ipdr_log3(IpdrLog, Start, End, 0, disk_log:chunk(?RADACCT, PrevCont)).
-%% @hidden
-ipdr_log3(IpdrLog, _Start, _End, _SeqNum, {error, Reason}) ->
-	error_logger:error_report([disk_log:format_error(Reason),
-			{module, ?MODULE}, {log, ?RADACCT}, {error, Reason}]),
-	ipdr_log5(IpdrLog, disk_log:close(IpdrLog));
-ipdr_log3(IpdrLog, _Start, _End, _SeqNum, eof) ->
-	ipdr_log5(IpdrLog, disk_log:close(IpdrLog));
-ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, Chunk}) ->
+	ipdr_log4(IpdrLog, 0);
+ipdr_log2(IpdrLog, _Start, _End, [], eof) ->
+	ipdr_log4(IpdrLog, 0);
+ipdr_log2(IpdrLog, Start, End, PrevChunk, eof) ->
 	Fstart = fun(R) when element(1, R) < Start ->
 				true;
 			(_) ->
 				false
 	end,
-	ipdr_log4(IpdrLog, Start, End, SeqNum,
-			{Cont, lists:dropwhile(Fstart, Chunk)}).
+	ipdr_log3(IpdrLog, Start, End, 0,
+			{eof, lists:dropwhile(Fstart, PrevChunk)});
+ipdr_log2(IpdrLog, Start, End, _PrevChunk, {Cont, [H | T]})
+		when element(1, H) < Start ->
+	ipdr_log2(IpdrLog, Start, End, T, disk_log:chunk(?RADACCT, Cont));
+ipdr_log2(IpdrLog, Start, End, PrevChunk, {Cont, Chunk}) ->
+	Fstart = fun(R) when element(1, R) < Start ->
+				true;
+			(_) ->
+				false
+	end,
+	ipdr_log3(IpdrLog, Start, End, 0,
+			{Cont, lists:dropwhile(Fstart, PrevChunk ++ Chunk)}).
 %% @hidden
-ipdr_log4(IpdrLog, _Start, _End, _SeqNum, eof) ->
-	ipdr_log5(IpdrLog, disk_log:close(IpdrLog));
-ipdr_log4(IpdrLog, _Start, _End, _SeqNum, {error, _Reason}) ->
-	ipdr_log5(IpdrLog, disk_log:close(IpdrLog));
-ipdr_log4(IpdrLog, Start, End, SeqNum, {Cont, []}) ->
-	ipdr_log4(IpdrLog, Start, End, SeqNum, disk_log:chunk(?RADACCT, Cont));
-ipdr_log4(IpdrLog, _Start, End, _SeqNum, {_Cont, [H | _]})
+ipdr_log3(IpdrLog, _Start, _End, SeqNum, eof) ->
+	ipdr_log4(IpdrLog, SeqNum);
+ipdr_log3(IpdrLog, _Start, _End, SeqNum, {error, _Reason}) ->
+	ipdr_log4(IpdrLog, SeqNum);
+ipdr_log3(IpdrLog, _Start, _End, SeqNum, {eof, []}) ->
+	ipdr_log4(IpdrLog, SeqNum);
+ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, []}) ->
+	ipdr_log3(IpdrLog, Start, End, SeqNum, disk_log:chunk(?RADACCT, Cont));
+ipdr_log3(IpdrLog, _Start, End, SeqNum, {_Cont, [H | _]})
 		when element(1, H) > End ->
-	ipdr_log5(IpdrLog, disk_log:close(IpdrLog));
-ipdr_log4(IpdrLog, _Start, End, SeqNum, {Cont, [H | T]})
+	ipdr_log4(IpdrLog, SeqNum);
+ipdr_log3(IpdrLog, _Start, End, SeqNum, {Cont, [H | T]})
 		when element(5, H) == stop ->
 	IPDR = ipdr_codec(H),
-	case disk_log:log(IpdrLog, IPDR#ipdr{seqNum = SeqNum}) of
+	NewSeqNum = SeqNum + 1,
+	case disk_log:log(IpdrLog, IPDR#ipdr{seqNum = NewSeqNum}) of
 		ok ->
-			ipdr_log4(IpdrLog, _Start, End, SeqNum + 1, {Cont, T});
+			ipdr_log3(IpdrLog, _Start, End, NewSeqNum, {Cont, T});
 		{error, Reason} ->
 			error_logger:error_report([disk_log:format_error(Reason),
 					{module, ?MODULE}, {log, IpdrLog}, {error, Reason}]),
+			disk_log:close(IpdrLog),
 			{error, Reason}
 	end;
-ipdr_log4(IpdrLog, Start, End, SeqNum, {Cont, [_ | T]}) ->
-	ipdr_log4(IpdrLog, Start, End, SeqNum, {Cont, T}).
+ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, [_ | T]}) ->
+	ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, T}).
 %% @hidden
-ipdr_log5(_IpdrLog, ok) ->
-	ok;
-ipdr_log5(IpdrLog, {error, Reason}) ->
-	error_logger:error_report([disk_log:format_error(Reason),
-			{module, ?MODULE}, {log, IpdrLog}, {error, Reason}]),
-	{error, Reason}.
+ipdr_log4(IpdrLog, SeqNum) ->
+	EndTime = iso8601(erlang:system_time(millisecond)),
+	IpdrDocEnd = #ipdrDocEnd{count = SeqNum, endTime = EndTime},
+	case disk_log:log(IpdrLog, IpdrDocEnd) of
+		ok ->
+			case disk_log:close(IpdrLog) of
+				ok ->
+					ok;
+				{error, Reason} ->
+					error_logger:error_report([disk_log:format_error(Reason),
+							{module, ?MODULE}, {log, IpdrLog}, {error, Reason}]),
+					{error, Reason}
+			end;
+		{error, Reason} ->
+			error_logger:error_report([disk_log:format_error(Reason),
+					{module, ?MODULE}, {log, IpdrLog}, {error, Reason}]),
+			disk_log:close(IpdrLog),
+			{error, Reason}
+	end.
 
 -spec get_range(Log, Start, End) -> Result
 	when
@@ -317,6 +363,14 @@ iso8601(MilliSeconds) when is_integer(MilliSeconds) ->
 	Chars = io_lib:fwrite(DateFormat ++ TimeFormat,
 			[Year, Month, Day, Hour, Minute, Second, MilliSeconds rem 1000]),
 	lists:flatten(Chars).
+
+uuid() ->
+	<<A:32, B:16, C:16, D:16, E:48>> = crypto:strong_rand_bytes(16),
+	Format = "~8.16.0b-~4.16.0b-~4.16.0b-~4.16.0b-~12.16.0b",
+	Values = [A, B, (C bsr 4) bor 16#4000, (D bsr 2) bor 16#8000, E],
+	Chars = io_lib:fwrite(Format, Values),
+	lists:flatten(Chars).
+
 
 %%----------------------------------------------------------------------
 %%  internal functions
@@ -412,43 +466,44 @@ start_binary_tree(_, _, _, _, _, _, _, _, {error, Reason}) ->
 %% 	Returns filtered records.
 %% @private
 get_range(Log, Start, End, Cont) ->
-	get_range(Log, Start, End, Cont, disk_log:chunk(Log, Cont, 1)).
+	get_range(Log, Start, End, [], disk_log:chunk(Log, Cont)).
 %% @hidden
-get_range(_Log, _Start, _End, _PrevCont, {error, Reason}) ->
+get_range(_Log, _Start, _End, _PrevChunk, {error, Reason}) ->
 	{error, Reason};
-get_range(_Log, _Start, _End, _PrevCont, eof) ->
-	[];
-get_range(Log, Start, End, _PrevCont, {Cont, [R]}) when element(1, R) < Start ->
-	get_range(Log, Start, End, Cont, disk_log:chunk(Log, Cont, 1));
-get_range(Log, Start, End, PrevCont, {_Cont, _Chunk}) ->
-	get_range1(Log, Start, End, disk_log:chunk(Log, PrevCont), []).
+get_range(Log, Start, End, PrevChunk, eof) ->
+	get_range1(Log, Start, End, {eof, PrevChunk}, []);
+get_range(Log, Start, End, _PrevChunk, {Cont, [H | T]})
+		when element(1, H) < Start ->
+	get_range(Log, Start, End, T, disk_log:chunk(Log, Cont));
+get_range(Log, Start, End, PrevChunk, {Cont, Chunk}) ->
+	get_range1(Log, Start, End, {Cont, PrevChunk ++ Chunk}, []).
 %% @hidden
-get_range1(_Log, _Start, _End, {error, Reason}, _Acc) ->
-	{error, Reason};
-get_range1(_Log, _Start, _End, eof, Acc) ->
-	lists:flatten(lists:reverse(Acc));
-get_range1(Log, Start, End, {Cont, Records}, Acc) ->
+get_range1(Log, Start, End, {Cont, Chunk}, Acc) ->
 	Fstart = fun(R) when element(1, R) < Start ->
 				true;
 			(_) ->
 				false
 	end,
-	case lists:dropwhile(Fstart, Records) of
-		[] ->
-			get_range1(Log, Start, End, disk_log:chunk(Log, Cont), Acc);
-		Records1 ->
-			Fend = fun(R) when element(1, R) =< End ->
-						true;
-					(_) ->
-						false
-			end,
-			case lists:takewhile(Fend, Records1) of
-				Records1 ->
-					get_range1(Log, Start, End,
-							disk_log:chunk(Log, Cont), [Records1 | Acc]);
-				Records2 ->
-					lists:flatten(lists:reverse([Records2 | Acc]))
-			end
+	NewChunk = lists:dropwhile(Fstart, Chunk),
+	get_range2(Log, End, {Cont, NewChunk}, Acc).
+%% @hidden
+get_range2(_Log, _End, eof, Acc) ->
+	lists:flatten(lists:reverse(Acc));
+get_range2(_Log, _End, {error, Reason}, _Acc) ->
+	{error, Reason};
+get_range2(Log, End, {Cont, Chunk}, Acc) ->
+	Fend = fun(R) when element(1, R) =< End ->
+				true;
+			(_) ->
+				false
+	end,
+	case {Cont, lists:last(Chunk)} of
+		{eof, R} when element(1, R) =< End ->
+			lists:flatten(lists:reverse([Chunk | Acc]));
+		{Cont, R} when element(1, R) =< End ->
+			get_range2(Log, End, disk_log:chunk(Log, Cont), [Chunk | Acc]);
+		{_, _} ->
+			lists:flatten(lists:reverse([lists:takewhile(Fend, Chunk) | Acc]))
 	end.
 
 -spec ipdr_codec({TimeStamp, Node, Server, Client, stop, Attributes}) -> IPDR
@@ -461,7 +516,7 @@ get_range1(Log, Start, End, {Cont, Records}, Acc) ->
 		Port :: pos_integer(),
 		Attributes :: radius_attributes:attributes(),
 		IPDR :: #ipdr{}.
-%% @doc Convert `radius_acct' log entry to IPDR log entry. 
+%% @doc Convert `radius_acct' log entry to IPDR log entry.
 ipdr_codec({TimeStamp, _Node, _Server, _Client, stop, Attributes}) ->
 	IPDR = #ipdr{ipdrCreationTime = iso8601(TimeStamp)},
 	ipdr_codec1(TimeStamp, Attributes, IPDR).

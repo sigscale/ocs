@@ -38,7 +38,7 @@
 %%
 suite() ->
 	[{userdata, [{doc, "Test suite for logging in OCS"}]},
-	{timetrap, {seconds, 60}}].
+	{timetrap, {seconds, 120}}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before the whole suite.
@@ -289,5 +289,5 @@ ipdr_log(_Config) ->
 				disk_log:close(IpdrLog),
 				Acc
 	end,
-	NumStops = Fchunk(Fchunk, disk_log:chunk(IpdrLog, start), 0).
+	NumStops = Fchunk(Fchunk, disk_log:chunk(IpdrLog, start), 0) - 2.
 

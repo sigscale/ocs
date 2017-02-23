@@ -14,7 +14,7 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%  @doc Test suite for REST API 
+%%%  @doc Test suite for REST API
 %%% 	of the {@link //ocs. ocs} application.
 %%%
 -module(ocs_rest_api_SUITE).
@@ -39,7 +39,7 @@
 %% Require variables and set default values for the suite.
 %%
 suite() ->
-	[{userdata, [{doc, "Test suite for REST API in OCS"}]}, 
+	[{userdata, [{doc, "Test suite for REST API in OCS"}]},
 	{timetrap, {minutes, 1}},
 	{require, rest_user}, {default_config, rest_user, "bss"},
 	{require, rest_pass}, {default_config, rest_pass, "nfc9xgp32xha"},
@@ -64,15 +64,15 @@ init_per_suite(Config) ->
 			(F, [_ | T]) ->
 				F(F, T)
 	end,
-	RestUser = ct:get_config(rest_user), 
-	RestPass = ct:get_config(rest_pass), 
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
 	RestGroup = ct:get_config(rest_group),
 	{Host, Port} = case Fport(Fport, Services) of
-		{{_, H2}, {_, P2}} when H2 == "localhost"; H2 == {127,0,0,1} -> 
+		{{_, H2}, {_, P2}} when H2 == "localhost"; H2 == {127,0,0,1} ->
 			true = mod_auth:add_user(RestUser, RestPass, [], {127,0,0,1}, P2, "/"),
 			true = mod_auth:add_group_member(RestGroup, RestUser, {127,0,0,1}, P2, "/"),
-			{"localhost", P2}; 
-		{{_, H2}, {_, P2}} -> 
+			{"localhost", P2};
+		{{_, H2}, {_, P2}} ->
 			true = mod_auth:add_user(RestUser, RestPass, [], H2, P2, "/"),
 			true = mod_auth:add_group_member(RestGroup, RestUser, H2, P2, "/"),
 			case H2 of
@@ -80,11 +80,11 @@ init_per_suite(Config) ->
 					{inet:ntoa(H2), P2};
 				H2 when is_list(H2) ->
 					{H2, P2}
-			end; 
-		{false, {_, P2}} -> 
+			end;
+		{false, {_, P2}} ->
 			true = mod_auth:add_user(RestUser, RestPass, [], P2, "/"),
 			true = mod_auth:add_group_member(RestGroup, RestUser, P2, "/"),
-			{"localhost", P2} 
+			{"localhost", P2}
 	end,
 	Config1 = [{port, Port} | Config],
 	HostUrl = "https://" ++ Host ++ ":" ++ integer_to_list(Port),
@@ -115,22 +115,52 @@ end_per_testcase(_TestCase, Config) ->
 -spec sequences() -> Sequences :: [{SeqName :: atom(), Testcases :: [atom()]}].
 %% Group test cases into a test sequence.
 %%
-sequences() -> 
+sequences() ->
 	[].
 
 -spec all() -> TestCases :: [Case :: atom()].
 %% Returns a list of all test cases in this test suite.
 %%
-all() -> 
-	[authenticate_subscriber_request, unauthenticate_subscriber_request, 
-	authenticate_client_request, unauthenticate_client_request, 
-	add_subscriber, get_subscriber, get_subscriber_not_found, 
-	retrieve_all_subscriber, delete_subscriber, add_client, get_client, 
-	get_client_bogus, get_client_notfound, get_all_clients, delete_client].  
+all() ->
+	[authenticate_user_request, unauthenticate_user_request, authenticate_subscriber_request,
+	unauthenticate_subscriber_request, authenticate_client_request,
+	unauthenticate_client_request, add_subscriber, get_subscriber,
+	get_subscriber_not_found, retrieve_all_subscriber, delete_subscriber,
+	add_client, get_client, get_client_bogus, get_client_notfound, get_all_clients,
+	delete_client, get_usage].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
+authenticate_user_request() ->
+	[{userdata, [{doc, "Authorized user request to the server"}]}].
+
+authenticate_user_request(Config) ->
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request = {HostUrl ++ "/usageManagement/v1/usage", [Accept, Authentication]},
+	{ok, _Result} = httpc:request(get, Request, [], []).
+
+unauthenticate_user_request() ->
+	[{userdata, [{doc, "Authorized user request to the server"}]}].
+
+unauthenticate_user_request(Config) ->
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	RestUser = "Polymer",
+	RestPass = "Interest",
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request = {HostUrl ++ "/usageManagement/v1/usage", [Accept, Authentication]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 401, _}, _, _} = Result.
+
 authenticate_subscriber_request() ->
 	[{userdata, [{doc, "Authorized subscriber request to the server"}]}].
 
@@ -197,11 +227,11 @@ add_subscriber(Config) ->
 	ID = "eacfd73ae10a",
 	Password = "ksc8c244npqc",
 	AsendDataRate = {struct, [{"name", "ascendDataRate"}, {"type", 26},
-		{"vendorId", 529}, {"vendorType", 197}, {"value", 1024}]}, 
-	AsendXmitRate = {struct, [{"name", "ascendXmitRate"}, {"type", 26}, 
-		{"vendorId", 529}, {"vendorType", 255}, {"value", 512}]}, 
-	SessionTimeout = {struct, [{"name", "sessionTimeout"}, {"value", 10864}]}, 
-	Interval = {struct, [{"name", "acctInterimInterval"}, {"value", 300}]}, 
+		{"vendorId", 529}, {"vendorType", 197}, {"value", 1024}]},
+	AsendXmitRate = {struct, [{"name", "ascendXmitRate"}, {"type", 26},
+		{"vendorId", 529}, {"vendorType", 255}, {"value", 512}]},
+	SessionTimeout = {struct, [{"name", "sessionTimeout"}, {"value", 10864}]},
+	Interval = {struct, [{"name", "acctInterimInterval"}, {"value", 300}]},
 	Class = {struct, [{"name", "class"}, {"value", "skiorgs"}]},
 	SortedAttributes = lists:sort([AsendDataRate, AsendXmitRate, SessionTimeout, Interval, Class]),
 	AttributeArray = {array, SortedAttributes},
@@ -230,7 +260,7 @@ add_subscriber(Config) ->
 	{_, URI} = lists:keyfind("href", 1, Object),
 	{"password", Password} = lists:keyfind("password", 1, Object),
 	{_, {array, Attributes}} = lists:keyfind("attributes", 1, Object),
-	ExtraAttributes = Attributes -- SortedAttributes, 
+	ExtraAttributes = Attributes -- SortedAttributes,
 	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
 	{"balance", Balance} = lists:keyfind("balance", 1, Object),
 	{"enabled", Enable} = lists:keyfind("enabled", 1, Object).
@@ -244,11 +274,11 @@ get_subscriber(Config) ->
 	ID = "eacfd73ae10a",
 	Password = "ksc8c244npqc",
 	AsendDataRate = {struct, [{"name", "ascendDataRate"}, {"type", 26},
-		{"vendorId", 529}, {"vendorType", 197}, {"value", 1024}]}, 
-	AsendXmitRate = {struct, [{"name", "ascendXmitRate"}, {"type", 26}, 
-		{"vendorId", 529}, {"vendorType", 255}, {"value", 512}]}, 
-	SessionTimeout = {struct, [{"name", "sessionTimeout"}, {"value", 10864}]}, 
-	Interval = {struct, [{"name", "acctInterimInterval"}, {"value", 300}]}, 
+		{"vendorId", 529}, {"vendorType", 197}, {"value", 1024}]},
+	AsendXmitRate = {struct, [{"name", "ascendXmitRate"}, {"type", 26},
+		{"vendorId", 529}, {"vendorType", 255}, {"value", 512}]},
+	SessionTimeout = {struct, [{"name", "sessionTimeout"}, {"value", 10864}]},
+	Interval = {struct, [{"name", "acctInterimInterval"}, {"value", 300}]},
 	Class = {struct, [{"name", "class"}, {"value", "skiorgs"}]},
 	SortedAttributes = lists:sort([AsendDataRate, AsendXmitRate, SessionTimeout, Interval, Class]),
 	AttributeArray = {array, SortedAttributes},
@@ -280,7 +310,7 @@ get_subscriber(Config) ->
 	{_, URI} = lists:keyfind("href", 1, Object),
 	{"password", Password} = lists:keyfind("password", 1, Object),
 	{_, {array, Attributes}} = lists:keyfind("attributes", 1, Object),
-	ExtraAttributes = Attributes -- SortedAttributes, 
+	ExtraAttributes = Attributes -- SortedAttributes,
 	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
 	{"balance", Balance} = lists:keyfind("balance", 1, Object),
 	{"enabled", Enable} = lists:keyfind("enabled", 1, Object).
@@ -309,11 +339,11 @@ retrieve_all_subscriber(Config) ->
 	ID = "5557615036fd",
 	Password = "2h7csggw35aa",
 	AsendDataRate = {struct, [{"name", "ascendDataRate"}, {"type", 26},
-		{"vendorId", 529}, {"vendorType", 197}, {"value", 1024}]}, 
-	AsendXmitRate = {struct, [{"name", "ascendXmitRate"}, {"type", 26}, 
-		{"vendorId", 529}, {"vendorType", 255}, {"value", 512}]}, 
-	SessionTimeout = {struct, [{"name", "sessionTimeout"}, {"value", 10864}]}, 
-	Interval = {struct, [{"name", "acctInterimInterval"}, {"value", 300}]}, 
+		{"vendorId", 529}, {"vendorType", 197}, {"value", 1024}]},
+	AsendXmitRate = {struct, [{"name", "ascendXmitRate"}, {"type", 26},
+		{"vendorId", 529}, {"vendorType", 255}, {"value", 512}]},
+	SessionTimeout = {struct, [{"name", "sessionTimeout"}, {"value", 10864}]},
+	Interval = {struct, [{"name", "acctInterimInterval"}, {"value", 300}]},
 	Class = {struct, [{"name", "class"}, {"value", "skiorgs"}]},
 	SortedAttributes = lists:sort([AsendDataRate, AsendXmitRate, SessionTimeout, Interval, Class]),
 	AttributeArray = {array, SortedAttributes},
@@ -340,7 +370,7 @@ retrieve_all_subscriber(Config) ->
 	ContentLength = integer_to_list(length(Body1)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers1),
 	{array, Subscribers} = mochijson:decode(Body1),
-	Pred = fun({struct, Params}) -> 
+	Pred = fun({struct, Params}) ->
 		case lists:keyfind("id", 1, Params) of
 			{_, ID} ->
 				true;
@@ -352,7 +382,7 @@ retrieve_all_subscriber(Config) ->
 	{_, URI1} = lists:keyfind("href", 1, Subscriber),
 	{"password", Password} = lists:keyfind("password", 1, Subscriber),
 	{_, {array, Attributes}} = lists:keyfind("attributes", 1, Subscriber),
-	ExtraAttributes = Attributes -- SortedAttributes, 
+	ExtraAttributes = Attributes -- SortedAttributes,
 	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
 	{"balance", Balance} = lists:keyfind("balance", 1, Subscriber),
 	{"enabled", Enable} = lists:keyfind("enabled", 1, Subscriber).
@@ -404,7 +434,7 @@ add_client(Config) ->
 	Disconnect = 1899,
 	Protocol = "RADIUS",
 	Secret = "ksc8c244npqc",
-	JSON = {struct, [{"id", ID}, {"disconnectPort", Disconnect}, {"protocol", Protocol}, 
+	JSON = {struct, [{"id", ID}, {"disconnectPort", Disconnect}, {"protocol", Protocol},
 		{"secret", Secret}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
 	HostUrl = ?config(host_url, Config),
@@ -438,7 +468,7 @@ get_client(Config) ->
 	Disconnect = 1899,
 	Protocol = "RADIUS",
 	Secret = "ksc8c244npqc",
-	JSON = {struct, [{"id", ID}, {"disconnectPort", Disconnect}, {"protocol", Protocol}, 
+	JSON = {struct, [{"id", ID}, {"disconnectPort", Disconnect}, {"protocol", Protocol},
 		{"secret", Secret}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
 	HostUrl = ?config(host_url, Config),
@@ -507,7 +537,7 @@ get_all_clients(Config) ->
 	Disconnect = 1899,
 	Protocol = "RADIUS",
 	Secret = "ksc8c344npqc",
-	JSON = {struct, [{"id", ID}, {"disconnectPort", Disconnect}, {"protocol", Protocol}, 
+	JSON = {struct, [{"id", ID}, {"disconnectPort", Disconnect}, {"protocol", Protocol},
 		{"secret", Secret}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
 	HostUrl = ?config(host_url, Config),
@@ -551,7 +581,7 @@ delete_client(Config) ->
 	Disconnect = 1899,
 	Protocol = "RADIUS",
 	Secret = "ksc8c244npqc",
-	JSON1 = {struct, [{"id", ID}, {"disconnectPort", Disconnect}, {"protocol", Protocol}, 
+	JSON1 = {struct, [{"id", ID}, {"disconnectPort", Disconnect}, {"protocol", Protocol},
 		{"secret", Secret}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON1)),
 	HostUrl = ?config(host_url, Config),
@@ -570,6 +600,61 @@ delete_client(Config) ->
 	{ok, Result1} = httpc:request(delete, Request2, [], []),
 	{{"HTTP/1.1", 204, _NoContent}, Headers1, []} = Result1,
 	{_, "0"} = lists:keyfind("content-length", 1, Headers1).
+
+get_usage() ->
+	[{userdata, [{doc,"Get usage in rest interface"}]}].
+
+get_usage(Config) ->
+	ContentType = "application/json",
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request2 = {HostUrl ++ "/usageManagement/v1/usage", [Accept, Authentication ]},
+	{ok, Result1} = httpc:request(get, Request2, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
+	{_, Accept} = lists:keyfind("content-type", 1, Headers1),
+	ContentLength = integer_to_list(length(Body1)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers1),
+	{array, [{struct, Usage} | _] = _UsageList} = mochijson:decode(Body1),
+	{_, ID} = lists:keyfind("id", 1, Usage),
+	{_, HREF} = lists:keyfind("href", 1, Usage),
+	{_, Date} = lists:keyfind("date", 1, Usage),
+	{_, "PublicWLANAccessUsage"} = lists:keyfind("type", 1, Usage),
+	{_, Description} = lists:keyfind("description", 1, Usage),
+	{_, "recieved"} = lists:keyfind("status", 1, Usage),
+	{struct, UsageSpecification} = lists:keyfind("usageSpecification", 1, Usage),
+	{_, ID1} = lists:keyfind("id", 1, UsageSpecification),
+	{_, HREF} = lists:keyfind("href", 1, UsageSpecification),
+	{_, "PublicWLANAccessUsageSpec"} = lists:keyfind("name", 1, UsageSpecification),
+	{array, UsageCharacteristic} = lists:keyfind("usageCharacteristic", 1, Usage),
+	F = fun({struct, [{"name", "userName"},{"value", UserName}]}) when is_list(UserName)->
+				true;
+			({struct, [{"name", "acctSessionId"},{"value", AcctSessionId}]}) when is_list(AcctSessionId) ->
+				true;
+			({struct, [{"name", "userIpAddress"},{"value", UserIpAddress}]}) when is_list(UserIpAddress) ->
+				true;
+			({struct, [{"name", "callingStationId"},{"value", CallingStationId}]}) when is_list(CallingStationId) ->
+				true;
+			({struct, [{"name", "calledStationId"},{"value", CalledStationId}]}) when is_list(CalledStationId) ->
+				true;
+			({struct, [{"name", "nasIpAddress"},{"value", NasIpAddress}]}) when is_list(NasIpAddress) ->
+				true;
+			({struct, [{"name", "nasId"},{"value", NasId}]}) when is_list(NasId) ->
+				true;
+			({struct, [{"name", "sessionDuration"},{"value", SessionDuration}]}) when is_integer(SessionDuration) ->
+				true;
+			({struct, [{"name", "inputOctets"},{"value", InputOctets}]}) when is_integer(InputOctets) ->
+				true;
+			({struct, [{"name", "outputOctets"},{"value", OutputOctets}]}) when is_integer(OutputOctets) ->
+				true;
+			({struct, [{"name", "sessionTerminateCause"},{"value", SessionTerminateCause}]}) when is_integer(SessionTerminateCause) ->
+				true
+	end,
+	true = lists:any(F, UsageCharacteristic).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
