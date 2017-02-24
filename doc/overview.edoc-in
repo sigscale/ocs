@@ -1190,7 +1190,7 @@ HTTP/1.1 200 OK
 Content-Type: application/json
 Content-Length: 0
 
- {
+ [{
 	"id": 1,
 	"href": "/usageManagement/v1/usage/1"
 	"date": "2017-02-22T10:00:14.910Z",
@@ -1248,7 +1248,7 @@ Content-Length: 0
 			"value" : 1
 		}
 	]
-}
+}]
 
 </pre></p>
 
