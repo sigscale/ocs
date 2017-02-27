@@ -88,10 +88,11 @@
 							  <paper-progress value="0" indeterminate bottom-item disabled></paper-progress>
 					  </app-toolbar>
 					  </app-header>
-					  <iron-pages id="loadPage" selected="{{page}}"  role="main" style="height:100%;">
-						  <sig-sub-list name="view1"></sig-sub-list>
-						  <sig-client-list name="view2"></sig-client-list>
-						  <sig-acct-list name="view3"></sig-acct-list>
+					  <iron-pages id="loadPage" selected="10000000000"  role="main" style="height:100%;">
+						  <sig-sub-list></sig-sub-list>
+						  <sig-client-list></sig-client-list>
+						  <sig-acct-list></sig-acct-list>
+						  <sig-sub-list></sig-sub-list>
 					  </iron-pages>
 				  </app-header-layout>
 			</div>
@@ -99,15 +100,15 @@
 				 <!--Flex Container including app-drawer and content body -->
 				<app-drawer-layout style="height:100%;">
 				<app-drawer id="drawer" swipe-open>
-					<iron-selector id ="pageSelection" selected="{{page}}" class="drawer-list" role="navigation">
-						</paper-menu>
-						<paper-item name ="view1" onclick="drawer.toggle()" class="menuitem"><iron-icon icon ="device:devices"></iron-icon>&nbsp Subscribers</paper-item>
-							<paper-item name="view2" onclick="drawer.toggle()" class="menuitem"><iron-icon icon ="hardware:router"></iron-icon>&nbsp Clients</paper-item>
+					<iron-selector id ="pageSelection" class="drawer-list" role="navigation">
+						</paper-menu id="menu">
+						<paper-item id ="page0"  onclick="drawer.toggle()" class="menuitem"><iron-icon icon ="device:devices"></iron-icon>&nbsp Subscribers</paper-item>
+							<paper-item id="page1" onclick="drawer.toggle()" class="menuitem"><iron-icon icon ="hardware:router"></iron-icon>&nbsp Clients</paper-item>
 							<paper-submenu>
 								<paper-item class="menu-trigger menuitem"><iron-icon icon ="icons:history"></iron-icon>&nbsp Logs</paper-item>
 									<paper-menu class="menu-content" >
-										<paper-item name="view3" onclick="drawer.toggle()" class="menuitem"> &nbsp &nbsp <iron-icon icon ="device:data-usage"></iron-icon> &nbsp Accounting</paper-item>
-										<paper-item class="menuitem">&nbsp &nbsp <iron-icon icon ="icons:perm-identity"></iron-icon> &nbsp Authentication</paper-item>
+										<paper-item id="page2" onclick="drawer.toggle()" class="menuitem"> &nbsp &nbsp <iron-icon icon ="device:data-usage"></iron-icon> &nbsp Accounting</paper-item>
+										<paper-item id="page3" onclick="drawer.toggle()"class="menuitem">&nbsp &nbsp <iron-icon icon ="icons:perm-identity"></iron-icon> &nbsp Authentication</paper-item>
 									</paper-menu>
 							</paper-submenu>
 						</paper-menu>
@@ -133,6 +134,17 @@
 		<script>
 			Polymer({
 				is: 'sig-app',
+
+				listeners :{'pageSelection.iron-select': 'loadElement'},
+
+				loadElement: function(event){
+					switch(event.detail.item.getAttribute('id')){
+						case 'page0': this.$.loadPage.selected = 0; break;
+						case 'page1': this.$.loadPage.selected = 1; break;
+						case 'page2': this.$.loadPage.selected = 2; break;
+						case 'page3': this.$.loadPage.selected = 3; break;
+					}
+				},
 				
 				search: function(event){
 					var ajax = this.$.searchAjax;
