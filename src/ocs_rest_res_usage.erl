@@ -22,7 +22,8 @@
 
 -export([content_types_accepted/0,
 				content_types_provided/0,
-				perform_get_all/0]).
+				perform_get_all/0,
+				perform_get/1]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs_log.hrl").
@@ -46,43 +47,53 @@ content_types_provided() ->
 perform_get_all() ->
 	{ok, Directory} = application:get_env(ocs, acct_log_dir),
 	Log = ?USAGE_LOG,
-	DateTime = ocs_log:iso8601(erlang:system_time(millisecond)),
-	FileName = Directory ++ "/" ++ atom_to_list(Log) ++ "_"++ DateTime,
-	case ocs_log:ipdr_log(FileName, 1, erlang:system_time(millisecond)) of
-		ok ->
-			read_ipdr(Log, FileName, DateTime);
+	case file:list_dir(Directory) of
+		{ok, Files} ->
+			UsageLogs  = [F || F <- Files, lists:prefix(atom_to_list(Log), F)],
+			Body = mochijson:encode({array, UsageLogs}),
+			{body, Body};
 		{error, _Reason} ->
 			{error, 500}
 	end.
 
+-spec perform_get(Id :: string()) ->
+	{body, Body :: iolist()} | {error, ErrorCode :: integer()}.
+%% @doc Body producing function for `GET /usageManagement/v1/usage/{id}'
+%% requests.
+perform_get(Id) ->
+	{ok, Directory} = application:get_env(ocs, acct_log_dir),
+	Log = ?USAGE_LOG,
+	FileName = Directory ++ "/" ++ atom_to_list(Log) ++ "_"++ Id,
+	read_ipdr(Log, FileName).
+	
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
 
 %% @hidden
-read_ipdr(Log, FileName, DateTime) ->
+read_ipdr(Log, FileName) ->
 	case disk_log:open([{name, Log}, {file, FileName},
 			{type, halt}, {size, infinity}]) of
 		{ok, Log} ->
-			read_ipdr1(Log, FileName, DateTime, start, []);
+			read_ipdr1(Log, start, []);
 		{repaired, Log, _Recovered, _Bad} ->
-			read_ipdr1(Log, FileName, DateTime, start, []);
+			read_ipdr1(Log, start, []);
 		{error, _Reason} ->
 			{error, 500}
 	end.
 
 %% @hidden
-read_ipdr1(Log, FileName, DateTime, Continuation, Acc) ->
+read_ipdr1(Log, Continuation, Acc) ->
 	case disk_log:chunk(Log, Continuation) of
 		eof ->
-			ipdr_to_json(Log, FileName, DateTime, Acc);
+			ipdr_to_json(Log, Acc);
 		{Continuation2, Records} ->
 			NewAcc = Records ++ Acc,
-			read_ipdr1(Log, FileName, DateTime, Continuation2, NewAcc)
+			read_ipdr1(Log, Continuation2, NewAcc)
 	end.
 
 %% @hidden
-ipdr_to_json(Log, FileName, DateTime, IpdrList) ->
+ipdr_to_json(Log, IpdrList) ->
 	F = fun(#ipdrDoc{}, {Id, Acc}) ->
 				{Id, Acc};
 			(#ipdr{} = Ipdr, {Id, Acc}) ->
@@ -93,7 +104,7 @@ ipdr_to_json(Log, FileName, DateTime, IpdrList) ->
 				UsageCharacteristic = {array, UsageCharacteristicObjs},
 				RespObj = [{struct, [{id, Id},
 						{href, "usageManagement/v1/usage/" ++ integer_to_list(Id)},
-						{date, DateTime}, {type, "PublicWLANAccessUsage"},
+						{date, "SomeDateTime"}, {type, "PublicWLANAccessUsage"},
 						{description, "Description for individual usage content"},
 						{status, received},
 						{usageSpecification, UsageSpecification},
@@ -106,7 +117,6 @@ ipdr_to_json(Log, FileName, DateTime, IpdrList) ->
 	Response = {array, JsonObj},
 	Body = mochijson:encode(Response),
 	disk_log:close(Log),
-	file:delete(FileName),
 	{body, Body}.
 
 %% @hidden
