@@ -50,9 +50,13 @@
 add_client(Address, Secret) ->
 	add_client(Address, 3799, radius, Secret).
 
--spec add_client(Address :: inet:ip_address(), DisconnectPort :: inet:port_number(),
-			Protocol :: atom(), Secret :: string() | binary()) ->
-	Result :: ok.
+-spec add_client(Address, DisconnectPort, Protocol, Secret) -> Result
+	when
+		Address :: inet:ip_address(),
+		DisconnectPort :: inet:port_number(),
+		Protocol :: atom(),
+		Secret :: string() | binary(),
+		Result :: ok.
 %% @doc Create an entry in the RADIUS client table.
 %%
 add_client(Address, DiscPort, Protocol, Secret) when is_list(Secret), is_integer(DiscPort), is_atom(Protocol) ->
@@ -73,8 +77,14 @@ add_client(Address, DiscPort, Protocol, Secret) when is_tuple(Address), is_binar
 			exit(Reason)
 	end.
 
--spec find_client(Address :: inet:ip_address()) ->
-	Result :: {ok, DisconnectPort :: inet:port_number(), Protocol :: atom(), Secret :: binary()} | {error, Reason :: not_found | term()}.
+-spec find_client(Address) -> Result
+	when
+		Address :: inet:ip_address(),
+		Result :: {ok, DisconnectPort, Protocol, Secret} | {error, Reason}, 
+		DisconnectPort :: inet:port_number(),
+		Protocol :: atom(),
+		Secret :: binary(),
+		Reason :: notfound | term().
 %% @doc Look up the shared secret for a RADIUS client.
 %%
 find_client(Address) when is_list(Address) ->
@@ -94,9 +104,12 @@ find_client(Address) when is_tuple(Address) ->
 			{error, Reason}
 	end.
 
--spec update_client_password(Address :: string() | inet:ip_address(),
-		Password :: string() | binary())->
-	ok | {error, Reason :: not_found | term()}.
+-spec update_client_password(Address, Password)-> Result
+	when
+		Address :: string() | inet:ip_address(),
+		Password :: string() | binary(),
+		Result :: ok | {error, Reason},
+		Reason :: not_found | term().
 %% @doc Update client password
 update_client_password(Address, Password) when is_list(Address) ->
 	{ok, AddressTuple} = inet_parse:address(Address),
@@ -122,9 +135,13 @@ update_client_password(Address, Password) ->
 			{error, Reason}
 	end.
 
--spec update_client_attributes(Address :: string() | inet:ip_address(),
-		DisconnectPort :: inet:port_number(), Protocol :: atom())->
-	ok | {error, Reason :: not_found | term()}.
+-spec update_client_attributes(Address, DisconnectPort, Protocol)-> Result
+	when
+		Address :: string() | inet:ip_address(),
+		DisconnectPort :: inet:port_number(),
+		Protocol :: atom(),
+		Result :: ok | {error, Reason},
+		Reason :: not_found | term().
 %% @doc Update client attributes
 update_client_attributes(Address, DiscPort, Protocol) when is_list(Address),
 			is_integer(DiscPort), is_atom(Protocol)  ->
@@ -172,7 +189,9 @@ get_clients()->
 			Result
 	end.
 
--spec delete_client(Client :: string() | inet:ip_address()) -> ok.
+-spec delete_client(Client) -> ok
+	when
+		Client :: string() | inet:ip_address().
 %% @doc Delete an entry from the  client table.
 delete_client(Client) when is_list(Client) ->
 	{ok, ClientT} = inet:parse_address(Client),
@@ -188,28 +207,37 @@ delete_client(Client) when is_tuple(Client) ->
 			exit(Reason)
 	end.
 
--spec add_subscriber(Subscriber :: string() | binary(), Password :: string() | binary(),
-		Attributes :: radius_attributes:attributes() | binary()) ->
-	ok | {error, Reason :: term()}.
+-spec add_subscriber(Subscriber, Password, Attributes) -> Result
+	when
+		Subscriber :: string() | binary(),
+		Password :: string() | binary(),
+		Attributes :: radius_attributes:attributes() | binary(),
+		Result :: ok | {error, Reason :: term()}.
 %% @equiv add_subscriber(Subscriber, Password, Attributes, 0, true)
 add_subscriber(Subscriber, Password, Attributes) ->
 	add_subscriber(Subscriber, Password, Attributes, 0, true).
 
--spec add_subscriber(Subscriber :: string() | binary(),
+-spec add_subscriber(Subscriber, Password, Attributes, Balance) -> Result
+	when 
+		Subscriber :: string() | binary(),
 		Password :: string() | binary(),
 		Attributes :: radius_attributes:attributes() | binary(),
-		Balance :: non_neg_integer()) ->
-	ok | {error, Reason :: term()}.
+		Balance :: non_neg_integer(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
 %% @equiv add_subscriber(Subscriber, Password, Attributes, Balance, true)
 add_subscriber(Subscriber, Password, Attributes, Balance) ->
 	add_subscriber(Subscriber, Password, Attributes, Balance, true).
 
--spec add_subscriber(Subscriber :: string() | binary(),
+-spec add_subscriber(Subscriber, Password, Attributes, Balance, EnabledStatus) -> Result
+	when 
+		Subscriber :: string() | binary(),
 		Password :: string() | binary(),
 		Attributes :: radius_attributes:attributes() | binary(),
 		Balance :: non_neg_integer(),
-		EnabledStatus :: boolean()) ->
-		ok | {error, Reason :: term()}.
+		EnabledStatus :: boolean(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
 %% @doc Create an entry in the subscriber table.
 %%
 %% 	Authentication will be done using `Password'. An optional list of
@@ -256,12 +284,15 @@ add_subscriber(Subscriber, Password, Attributes, Balance, EnabledStatus)
 			{error, badarg}
 	end.
 
--spec find_subscriber(Subscriber :: string() | binary()) ->
-	Result :: {ok, Password :: binary(),
-			Attributes :: radius_attributes:attributes(),
-			Balance :: integer(),
-			Enabled :: boolean()}
-			| {error, Reason :: not_found | term()}.
+-spec find_subscriber(Subscriber) -> Result  
+	when
+		Result :: {ok, Password, Attributes, Balance, Enabled} | {error, Reason},
+		Password :: binary(),
+		Subscriber :: string() | binary(),
+		Attributes :: radius_attributes:attributes(),
+		Balance :: integer(),
+		Enabled :: boolean(),
+		Reason :: not_found | term().
 %% @doc Look up an entry in the subscriber table.
 find_subscriber(Subscriber) when is_list(Subscriber) ->
 	find_subscriber(list_to_binary(Subscriber));
@@ -281,7 +312,8 @@ find_subscriber(Subscriber) when is_binary(Subscriber) ->
 
 -spec get_subscribers() -> Result
 	when
-		Result :: [#subscriber{}] | {error, Reason :: term()}.
+		Result :: [#subscriber{}] | {error, Reason},
+		Reason :: term().
 %% @doc Get all entries in the subscriber table.
 get_subscribers()->
 	MatchSpec = [{'_', [], ['$_']}],
@@ -302,7 +334,9 @@ get_subscribers()->
 			Result
 	end.
 
--spec delete_subscriber(Subscriber :: string() | binary()) -> ok.
+-spec delete_subscriber(Subscriber) -> ok
+	when
+		Subscriber :: string() | binary().
 %% @doc Delete an entry in the subscriber table.
 delete_subscriber(Subscriber) when is_list(Subscriber) ->
 	delete_subscriber(list_to_binary(Subscriber));
@@ -317,9 +351,12 @@ delete_subscriber(Subscriber) when is_binary(Subscriber) ->
 			exit(Reason)
 	end.
 
--spec update_password(Subscriber :: string() | binary(),
-		Password :: string() | binary())->
-	ok | {error, Reason :: not_found | term()}.
+-spec update_password(Subscriber, Password)-> Result
+	when
+		Subscriber :: string() | binary(),
+		Password :: string() | binary(),
+		Result :: ok | {error, Reason},
+		Reason :: not_found | term().
 %% @doc Update a new subscriber password
 %% @see ocs:generate_password/0
 update_password(Subscriber, Password)
@@ -351,7 +388,8 @@ update_password(Subscriber, Password) ->
 	when
 		Subscriber :: string() | binary(),
 		Attributes :: radius_attributes:attributes(),
-		Result :: ok | {error, Reason :: not_found | term()}.
+		Result :: ok | {error, Reason},
+		Reason :: not_found | term().
 %% @doc Update subscriber attributes.
 %%
 update_attributes(Subscriber, Attributes) when is_list(Subscriber) ->
@@ -376,10 +414,14 @@ update_attributes(Subscriber, Attributes)
 			{error, Reason}
 	end.
 
--spec update_attributes(Subscriber :: string() | binary(),
-		Balance :: pos_integer(), Attributes :: radius_attributes:attributes(),
-		EnabledStatus :: boolean()) ->
-	ok | {error, Reason :: not_found | term()}.
+-spec update_attributes(Subscriber, Balance, Attributes, EnabledStatus) -> Result
+	when
+		Subscriber :: string() | binary(),
+		Balance :: pos_integer(),
+		Attributes :: radius_attributes:attributes(),
+		EnabledStatus :: boolean(),
+		Result :: ok | {error, Reason},
+		Reason :: not_found | term().
 %% @doc Update subscriber attributes.
 %%
 update_attributes(Subscriber, Balance, Attributes, EnabledStatus)
@@ -413,29 +455,42 @@ update_attributes(Subscriber, Balance, Attributes, EnabledStatus)
 generate_password() ->
 	generate_password(12).
 
--spec start(Type :: auth | acct, Address :: inet:ip_address(),
-		Port :: pos_integer()) ->
-	{ok, Pid :: pid()} | {error, Reason :: term()}.
+-spec start(Type, Address, Port) -> Result
+	when
+		Type :: auth | acct,
+		Address :: inet:ip_address(),
+		Port :: pos_integer(),
+		Result :: {ok, Pid} | {error, Reason},
+		Pid :: pid(),
+		Reason :: term().
 %% @equiv start(Type, Address, Port, [])
 start(Type, Address, Port) when is_tuple(Address), is_integer(Port) ->
 	start(Type, Address, Port, []).
 
 -type eap_method() :: pwd | ttls.
--spec start(Type :: auth | acct, Address :: inet:ip_address(),
+-spec start(Type, Address, Port, Options) -> Result
+	when
+		Type :: auth | acct,
+		Address :: inet:ip_address(),
 		Port :: pos_integer(),
-		Options :: [{eap_method_prefer, EapType :: eap_method()} |
-		{eap_method_order, EapTypes :: [eap_method()]}]) ->
-	{ok, Pid :: pid()} | {error, Reason :: term()}.
+		Options :: [{eap_method_prefer, EapType} | {eap_method_order, EapTypes}],
+		EapType :: eap_method(),
+		EapTypes :: [eap_method()],
+		Result :: {ok, Pid} | {error, Reason},
+		Pid :: pid(),
+		Reason :: term().
 %% @doc Start a RADIUS request handler.
 start(Type, Address, Port, Options) when is_tuple(Address),
 		is_integer(Port), is_list(Options) ->
-	gen_server:call(ocs, {start, Type, Address, Port, Options}).
+		gen_server:call(ocs, {start, Type, Address, Port, Options}).
 
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec generate_password(Length :: pos_integer()) -> password().
+-spec generate_password(Length) -> password()
+	when 
+		Length :: pos_integer().
 %% @doc Generate a random uniform password.
 %% @private
 generate_password(Length) when Length > 0 ->
@@ -451,7 +506,9 @@ generate_password(<<N, Rest/binary>>, Charset, NumChars, Acc) ->
 generate_password(<<>>, _Charset, _NumChars, Acc) ->
 	Acc.
 
--spec charset() -> Charset :: password().
+-spec charset() -> Charset
+	when
+		Charset :: password().
 %% @doc Returns the table of valid characters for passwords.
 %% @private
 charset() ->
@@ -463,11 +520,13 @@ charset() ->
 	C6 = lists:seq($w, $z),
 	lists:append([C1, C2, C3, C4, C5, C6]).
 
--spec authorize(Subscriber :: string() | binary(),
-		Password :: string() | binary()) ->
-	{ok, Password :: binary(), Attributes :: radius_attributes:attributes()} |
-	{error, Reason :: out_of_credit | disabled | bad_password |
-					not_found | term()}.
+-spec authorize(Subscriber, Password) -> Result
+	when
+		Subscriber :: string() | binary(),
+		Password :: string() | binary(),
+		Result :: {ok, Password, Attributes} | {error, Reason},
+		Attributes :: radius_attributes:attributes(),
+		Reason :: out_of_credit | disabled | bad_password | not_found | term().
 %% @doc Authorize a subscriber based on `enabled' and `balance' fields.
 %%
 %% 	If the subscriber `enabled' field true and have sufficient `balance'
@@ -526,7 +585,9 @@ authorize(Subscriber, Password) when is_binary(Subscriber),
 			{error, Reason}
 	end.
 
--spec normalize(String :: string()) -> string().
+-spec normalize(String) -> string()
+	when
+		String :: string().
 %% @doc Strip non hex digits and convert to lower case.
 %% @private
 normalize(String) ->
