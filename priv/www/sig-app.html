@@ -37,6 +37,7 @@
 <link rel="import" href="sig-client-list.html">
 <link rel="import" href="sig-client-update.html">
 <link rel="import" href="sig-acct-list.html">
+<link rel="import" href="sig-acct-log-files.html">
 
 <dom-module id="sig-app">
 	<template is="dom-bind">
@@ -92,7 +93,6 @@
 						  <sig-sub-list></sig-sub-list>
 						  <sig-client-list></sig-client-list>
 						  <sig-acct-list></sig-acct-list>
-						  <sig-sub-list></sig-sub-list>
 					  </iron-pages>
 				  </app-header-layout>
 			</div>
@@ -122,6 +122,7 @@
 		<sig-sub-update></sig-sub-update>
 		<sig-client-add></sig-client-add> 
 		<sig-client-update></sig-client-update>
+		<sig-acct-log-files></sig-acct-log-files>
 		
 		<iron-ajax id="searchAjax"
 			method = "GET"
@@ -141,8 +142,9 @@
 					switch(event.detail.item.getAttribute('id')){
 						case 'page0': this.$.loadPage.selected = 0; break;
 						case 'page1': this.$.loadPage.selected = 1; break;
-						case 'page2': this.$.loadPage.selected = 2; break;
-						case 'page3': this.$.loadPage.selected = 3; break;
+						case 'page2': this.$.loadPage.selected = 2;
+											document.getElementById("selectLogFileModal").open();
+											break;
 					}
 				},
 				

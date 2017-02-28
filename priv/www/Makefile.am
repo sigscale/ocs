@@ -4,15 +4,16 @@
 
 www_DATA = favicon.ico \
 	index.html \
+	sig-acct-list.html \
+	sig-acct-log-files.html \
 	sig-app.html \
-	sig-sub-add.html \
-	sig-sub-list.html \
-	sig-sub-update.html \
 	sig-client-add.html \
 	sig-client-list.html \
 	sig-client-update.html \
-	sig-acct-list.html \
-	sig-search.html 
+	sig-search.html \
+	sig-sub-add.html \
+	sig-sub-list.html \
+	sig-sub-update.html
 
 noinst_DATA = bower_components
 
