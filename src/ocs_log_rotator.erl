@@ -31,6 +31,7 @@
 -type state() :: #state{}.
 
 -define(USAGE_LOG, usage_log).
+-define(WAIT_TIME, 60000).
 
 %%----------------------------------------------------------------------
 %%  The ocs_log_rotator API
@@ -91,15 +92,15 @@ handle_cast(stop, State) ->
 %% @private
 %%
 handle_info(timeout, State) ->
-	{ok, Directory} = application:get_env(ocs, acct_log_dir),
-	{ok, RotateTime} = application:get_env(ocs, log_rotate_time),
-	Wait = RotateTime * 60 * 1000,
-	FileName = Directory ++ "/" ++ atom_to_list(?USAGE_LOG) ++ "_" ++
-		ocs_log:iso8601(erlang:system_time(millisecond)),
-	Start = erlang:system_time(millisecond) - Wait,
-	End = erlang:system_time(millisecond),
-	ocs_log:ipdr_log(FileName, Start, End),
-	{noreply, State, Wait}.
+	{ok, {H, M, _}} = application:get_env(ocs, log_rotate_time),
+	case erlang:time() of
+		{H, M, _} ->
+			log(State);
+		_ ->
+			{noreply, State, ?WAIT_TIME}
+	end.
+
+
 
 -spec terminate(Reason :: normal | shutdown | {shutdown, term()} | term(),
 		State::state()) ->
@@ -124,4 +125,22 @@ code_change(_OldVsn, State, _Extra) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+%% @hidden
+log(State) ->
+	{ok, Directory} = application:get_env(ocs, acct_log_dir),
+	{ok, LogPeriod} = application:get_env(ocs, log_rotate_period),
+	FileName = Directory ++ "/" ++ atom_to_list(?USAGE_LOG) ++ "_" ++
+		ocs_log:iso8601(erlang:system_time(millisecond)),
+	Now = erlang:system_time(millisecond),
+	Start = Now - LogPeriod,
+	End = Now,
+	case ocs_log:ipdr_log(FileName, Start, End) of
+		ok ->
+			{noreply, State, ?WAIT_TIME} ;
+		{error, Reason} ->
+			error_logger:format([{module, ?MODULE}, {reason, Reason}]),
+			{noreply, State, ?WAIT_TIME}
+	end.
+
 
