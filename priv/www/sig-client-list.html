@@ -32,11 +32,11 @@
 			paper-fab{background:#4285f4;}
 
 		</style>
-
+<!--
 		<div class="add-button">
 			<paper-fab icon="add" on-click = "showAddModal"></paper-fab>
 		</div>
-
+-->
 		<style include="shared-styles">
 			:host {
 				display: block;
@@ -114,36 +114,36 @@
 			grid.columns = [
 									{ name: "id"},
 									{ name: "secret"},
-									{ name: "disconnectPort"},
-									{ name: "protocol"}
+									{ name: "disconnectPort"}
+								//	{ name: "protocol"}
 								];
 			grid.items = event.detail.xhr.response;
 			grid.header.getCell(0,0).content = '<div style="font-size:16px;"><div>Address</div><paper-tooltip >IP address of network access server, router or access point</paper-tooltip></div>';
 			grid.header.getCell(0,1).content = '<div style="font-size:16px;"><div>Secret</div><paper-tooltip>Secret, or password, shared with the network access server, router or access point</paper-tooltip></div>';
 			grid.header.getCell(0,2).content = '<div style="font-size:16px;"><div>Disconnect <br>Port</div><paper-tooltip>Disconnect port used by network access server, router or access point</paper-tooltip></div>';
-			grid.header.getCell(0,3).content = '<div style="font-size:16px;"><div>Protocol</div><paper-tooltip>AAA protocol used by the network access server, router or access point</paper-tooltip></div>';
+		//	grid.header.getCell(0,3).content = '<div style="font-size:16px;"><div>Protocol</div><paper-tooltip>AAA protocol used by the network access server, router or access point</paper-tooltip></div>';
 		},
 
 
 		showAddModal: function(event){
 				var modal = document.getElementById("clientAddModal");
 				modal.open();
-		},
-
-
-		onSelect: function(event) {
-			var grid = this.$.clientsGrid; 
-			var modal = document.getElementById("clientUpdateModal");; 
-			modal.open();
-			grid.selection.selected(function(index) {
-				var selection = grid.items[index];
-				document.getElementById("edit-client-id1").value = selection.id;
-				document.getElementById("edit-client-id2").value = selection.id;
-				document.getElementById("edit-client-disc-port").value = selection.disconnectPort;
-				document.getElementById("protocol-menu").selectedItemLabel = selection.protocol;
-				document.getElementById("edit-client-pwd").value = selection.secret;
-			});
 		}
+
+
+	//	onSelect: function(event) {
+	//		var grid = this.$.clientsGrid; 
+	//		var modal = document.getElementById("clientUpdateModal");; 
+	//		modal.open();
+	//		grid.selection.selected(function(index) {
+	//			var selection = grid.items[index];
+	//			document.getElementById("edit-client-id1").value = selection.id;
+	//			document.getElementById("edit-client-id2").value = selection.id;
+	//			document.getElementById("edit-client-disc-port").value = selection.disconnectPort;
+	//			document.getElementById("protocol-menu").selectedItemLabel = selection.protocol;
+	//			document.getElementById("edit-client-pwd").value = selection.secret;
+	//		});
+	//	}
 	});
 	</script>
 </dom-module>
