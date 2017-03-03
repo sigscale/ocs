@@ -139,7 +139,9 @@ log(State) ->
 		ok ->
 			{noreply, State, ?WAIT_TIME} ;
 		{error, Reason} ->
-			error_logger:format([{module, ?MODULE}, {reason, Reason}]),
+			error_logger:error_report("Failed to create usage logs", [{module, ?MODULE},
+				{failed_at, ocs_log:iso8601(erlang:system_time(millisecond))},
+				{reason, Reason}]),
 			{noreply, State, ?WAIT_TIME}
 	end.
 
