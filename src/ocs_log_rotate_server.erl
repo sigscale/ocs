@@ -1,4 +1,4 @@
-%%% ocs_log_rotator.erl
+%%% ocs_log_rotate_server.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 SigScale Global Inc.
 %%% @end
@@ -15,12 +15,12 @@
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
--module(ocs_log_rotator).
+-module(ocs_log_rotate_server).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 -behaviour(gen_server).
 
-%% export the ocs_log_rotator API
+%% export the ocs_log_rotate_server API
 -export([]).
 
 %% export the callbacks needed for gen_server behaviour
@@ -34,11 +34,11 @@
 -define(WAIT_TIME, 60000).
 
 %%----------------------------------------------------------------------
-%%  The ocs_log_rotator API
+%%  The ocs_log_rotate_server API
 %%----------------------------------------------------------------------
 
 %%----------------------------------------------------------------------
-%%  The ocs_log_rotator gen_server call backs
+%%  The ocs_log_rotate_server gen_server call backs
 %%----------------------------------------------------------------------
 
 -spec init(Args :: [term()]) ->

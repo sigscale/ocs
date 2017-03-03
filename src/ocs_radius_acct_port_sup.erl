@@ -39,7 +39,7 @@ init([Address, Port, Options]) ->
 	ChildSpecs = [supervisor(ocs_radius_disconnect_fsm_sup, []),
 			server(ocs_radius_acct_port_server, Address, Port, Options),
 			supervisor_bridge(ocs_radius_acct_server_sup, [Address, Port]),
-			log_server(ocs_log_rotator, [])],
+			log_server(ocs_log_rotate_server, [])],
 	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
 
 %%----------------------------------------------------------------------
