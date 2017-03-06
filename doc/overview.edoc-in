@@ -1290,12 +1290,12 @@ The {@link //ocs. ocs} application is configured using the following environment
 		<dd>Size in bytes of authorization log files.</dd>
 	<dt>radius_auth_addr</dt>
 		<dd>IP address for RADIUS authentication (default: {0,0,0,0}).</dd>
-	<dt>radius_auth_port</dt>
-		<dd>UCP port for RADIUS authenticationi (default: {0,0,0,0}).</dd>
+	<dt>radius_auth</dt>
+		<dd>Configuration groups for RADIUS authentication (including authentication port and log rotate time).</dd>
 	<dt>radius_acct_addr</dt>
-		<dd>IP address for RADIUS accounting.</dd>
-	<dt>radius_acct_port</dt>
-		<dd>UCP port for RADIUS accounting.</dd>
+		<dd>IP address for RADIUS accounting (default: {0,0,0,0}).</dd>
+	<dt>radius_acct</dt>
+		<dd>Configuration groups for RADIUS accounting (including accounting port and log rotate time).</dd>
 	<dt>tls_cert</dt>
 		<dd>Public certificate for TLS over EAP.</dd>
 	<dt>tlst_key</dt>
