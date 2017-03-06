@@ -220,7 +220,8 @@ request(Address, Port, Secret,
 			[] ->
 				{error, not_found};
 			EapMessages ->
-				{ok, ocs_eap_codec:eap_packet(iolist_to_binary(EapMessages))}
+				BinEapMessage = iolist_to_binary(EapMessages),
+				{ok, ocs_eap_codec:eap_packet(BinEapMessage)}
 		end,
 		Identity = case EapMessageV of
 			{ok, #eap_packet{code = response, type = ?Identity,
