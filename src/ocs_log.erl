@@ -218,8 +218,7 @@ radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,[{TS,
 	end;
 radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,[{TS,_,_,_,_,ReqAttrs,_} | T1] = Chunk}, Acc, []) ->
 %erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE}),
-	radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, Acc, RespAttrsMatch);
-radius_auth_query1(_, _, _, _, _, _, _, _) ->
+	radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, Acc, RespAttrsMatch).
 
 %% @hidden
 radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,[{TS,_,_,_,_,_,RespAttrs} | T1] = Chunk}, Acc, [{Attribute, Match} | T2]) ->
