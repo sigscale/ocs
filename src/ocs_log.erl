@@ -22,7 +22,7 @@
 
 %% export the ocs_log public API
 -export([radius_acct_open/0, radius_acct_log/4, radius_acct_close/0]).
--export([radius_auth_open/0, radius_auth_log/5, radius_auth_close/0]).
+-export([radius_auth_open/0, radius_auth_log/5, radius_auth_close/0, radius_auth_query/5]).
 -export([ipdr_log/3, get_range/3, dump_file/2]).
 -export([date/1, iso8601/1]).
 
@@ -156,11 +156,90 @@ radius_auth_log(Server, Client, Type, RequestAttributes, ResponseAttributes) ->
 			RequestAttributes, ResponseAttributes},
 	disk_log:log(?RADAUTH, Event).
 
+-spec radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch) -> Result
+	when
+		Start :: calendar:datetime() | pos_integer(),
+		End :: calendar:datetime() | pos_integer(),
+		Types :: [Type],
+		Type :: accept | reject | change,
+		ReqAttrsMatch :: [{Attribute, Match}],
+		RespAttrsMatch :: [{Attribute, Match}],
+		Attribute :: byte(),
+		Match :: term() | '_',
+		Result :: [{TimeStamp, Node, Server, Client, Type, ReqAttrs, RespAttrs}],
+		TimeStamp :: pos_integer(),
+		Node :: atom,
+		Server :: {Address, Port},
+		Client :: {Address, Port},
+		ReqAttrs :: radius_attributes:attributes(),
+		RespAttrs :: radius_attributes:attributes(),
+		Address :: inet:ip_address(),
+		Port :: pos_integer().
+%% @doc Query RADIUS access request events with filters.
+radius_auth_query({{_, _, _}, {_, _, _}} = Start, End, Types, ReqAttrsMatch, RespAttrsMatch) ->
+	Epoch = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
+	Seconds = calendar:datetime_to_gregorian_seconds(Start) - Epoch,
+	radius_auth_query(Seconds * 1000, End, Types, ReqAttrsMatch, RespAttrsMatch);
+radius_auth_query(Start, {{_, _, _}, {_, _, _}} = End, Types, ReqAttrsMatch, RespAttrsMatch) ->
+	Epoch = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
+	Seconds = calendar:datetime_to_gregorian_seconds(Start) - Epoch,
+	radius_auth_query(Start, Seconds * 1000, Types, ReqAttrsMatch, RespAttrsMatch);
+radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch) when is_integer(Start), is_integer(End) ->
+	radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, disk_log:chunk(radius_auth, start), []).
+
+%% @hidden
+radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, eof, Acc) ->
+%erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE}),
+	lists:reverse(Acc);
+radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {error, Reason}, Acc) ->
+	{error, Reason};
+radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, [{TS,_,_,_,Type,_,_} | T] = Chunk}, Acc) when TS >= Start, TS =< End ->
+	case lists:member(Type, Types) of
+		true ->
+			radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, Acc, ReqAttrsMatch);
+		false ->
+			radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, T}, Acc)
+	end; 
+radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, [_ | T]}, Acc) ->
+	radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, T}, Acc);
+radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, []}, Acc) ->
+	radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, disk_log:chunk(radius_auth, Cont), Acc).
+
+%% @hidden
+radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,[{TS,_,_,_,_,ReqAttrs,_} | T1] = Chunk}, Acc, [{Attribute, Match} | T]) ->
+	case lists:keyfind(Attribute, 1, ReqAttrs) of
+		{Attribute, Match} ->
+%erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE, Attribute, ReqAttrs, Match}),
+			radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, [ReqAttrs | Acc], T);
+		{Attribute, _} when Match == '_' ->
+			radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, Acc, T);
+		false ->
+			radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, T1}, Acc)
+	end;
+radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,[{TS,_,_,_,_,ReqAttrs,_} | T1] = Chunk}, Acc, []) ->
+%erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE}),
+	radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, Acc, RespAttrsMatch);
+radius_auth_query1(_, _, _, _, _, _, _, _) ->
+
+%% @hidden
+radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,[{TS,_,_,_,_,_,RespAttrs} | T1] = Chunk}, Acc, [{Attribute, Match} | T2]) ->
+	case lists:keyfind(Attribute, 1, RespAttrs) of
+		{Attribute, Match} ->
+%erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE}),
+					radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, [RespAttrs | Acc], T2);
+		false ->
+%erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE, Attribute, Match}),
+			radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, T1}, Acc)
+	end;
+radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, [H | T]}, Acc, []) ->
+%erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE}),
+	radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, T}, Acc).
+
 -spec radius_auth_close() -> Result
 	when
 		Result :: ok | {error, Reason :: term()}.
 %% @doc Close authorization disk log.
-radius_auth_close() ->
+radius_auth_close() ->    
 	case disk_log:close(?RADAUTH) of
 		ok ->
 			ok;
