@@ -68,9 +68,25 @@ start(normal = _StartType, _Args) ->
 %% @hidden
 start1() ->
 	{ok, AcctAddr} = application:get_env(radius_acct_addr),
-	{ok, AcctPort} = application:get_env(radius_acct_port),
+	{ok, AcctInstances} = application:get_env(radius_acct_config),
 	{ok, AuthAddr} = application:get_env(radius_auth_addr),
-	{ok, AuthPort} = application:get_env(radius_auth_port),
+	{ok, AuthInstances} = application:get_env(radius_auth_config),
+	F1 = fun({radius, AcctPort, [{rotate, AcctLogRotate}]}= _Instance) ->
+		case ocs:start(acct, AcctAddr, AcctPort, AcctLogRotate) of
+			{ok, _AcctSup} ->
+				ok;
+			{error, Reason2} ->
+				throw(Reason2)
+		end
+	end,
+	F2 = fun({radius, AuthPort, [{rotate, AuthLogRotate}]}= _Instance) ->
+		case ocs:start(auth, AuthAddr, AuthPort, AuthLogRotate) of
+			{ok, _EapSup} ->
+				ok;
+			{error, Reason3} ->
+				throw(Reason3)
+		end
+	end,
 	try
 		TopSup = case supervisor:start_link(ocs_sup, []) of
 			{ok, OcsSup} ->
@@ -78,18 +94,8 @@ start1() ->
 			{error, Reason1} ->
 				throw(Reason1)
 		end,
-		case ocs:start(acct, AcctAddr, AcctPort) of
-			{ok, _AcctSup} ->
-				ok;
-			{error, Reason2} ->
-				throw(Reason2)
-		end,
-		case ocs:start(auth, AuthAddr, AuthPort) of
-			{ok, _EapSup} ->
-				ok;
-			{error, Reason3} ->
-				throw(Reason3)
-		end,
+		lists:foreach(F1, AcctInstances),
+		lists:foreach(F2, AuthInstances),
 		TopSup
 	of
 		Sup ->

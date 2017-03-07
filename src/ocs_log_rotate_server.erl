@@ -27,7 +27,8 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 			terminate/2, code_change/3]).
 
--record(state, {}).
+-record(state,
+				{rotate_time :: pos_integer()}).
 -type state() :: #state{}.
 
 -define(USAGE_LOG, usage_log).
@@ -49,9 +50,9 @@
 %% @see //stdlib/gen_server:init/1
 %% @private
 %%
-init(_Args) ->
+init([LogRotateTime] = _Args) ->
 	process_flag(trap_exit, true),
-	{ok, #state{}, 0}.
+	{ok, #state{rotate_time = LogRotateTime}, 0}.
 
 -spec handle_call(Request :: term(), From :: {pid(), Tag :: any()},
 		State :: state()) ->
@@ -127,13 +128,12 @@ code_change(_OldVsn, State, _Extra) ->
 %%----------------------------------------------------------------------
 
 %% @hidden
-log(State) ->
+log(#state{rotate_time = LogRotateTime} = State) ->
 	{ok, Directory} = application:get_env(ocs, acct_log_dir),
-	{ok, LogPeriod} = application:get_env(ocs, log_rotate_period),
 	FileName = Directory ++ "/" ++ atom_to_list(?USAGE_LOG) ++ "_" ++
 		ocs_log:iso8601(erlang:system_time(millisecond)),
 	Now = erlang:system_time(millisecond),
-	Start = Now - LogPeriod,
+	Start = Now - LogRotateTime,
 	End = Now,
 	case ocs_log:ipdr_log(FileName, Start, End) of
 		ok ->

@@ -37,7 +37,7 @@
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init([Address, Port, Options]) ->
+init([Address, Port, _LogRotateTime, Options]) ->
 	ChildSpecs = [supervisor(ocs_simple_auth_fsm_sup, []),
 		supervisor(ocs_eap_ttls_fsm_sup_sup, []),
 		supervisor(ocs_eap_pwd_fsm_sup, []),
