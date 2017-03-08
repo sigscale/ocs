@@ -119,8 +119,7 @@ get_all_clients(Config) ->
 	ok = ocs:add_client(A3, DiscPort, Protocol, Secret3),
 	Clients = ocs:get_clients(),
 	F = fun(#client{address = A, disconnect_port = DP, protocol = P, secret = S} = _R) ->
-		Sbin = list_to_binary(S),
-		{ok, DP, P, Sbin} = ocs:find_client(A)
+		{ok, DP, P, S} = ocs:find_client(A)
 	end,
 	lists:foreach(F, Clients).
 
