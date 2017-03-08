@@ -96,10 +96,10 @@ client() ->
 client(Config) ->
 	{ok, Address} = application:get_env(ocs, radius_auth_addr),
 	SharedSecret = ct:get_config(radius_shared_secret, Config),
-	DiscPort = application:get_env(ocs, radius_disconnect_port),
+	{ok, DiscPort} = application:get_env(ocs, radius_disconnect_port),
 	Protocol = ct:get_config(protocol),
-	ok = ocs:add_client({127, 0, 0, 1}, DiscPort, Protocol, SharedSecret),
-	{ok, BinSharedSecret} = ocs:find_client(Address),
+	ok = ocs:add_client(Address, DiscPort, Protocol, SharedSecret),
+	{ok, DiscPort, Protocol, BinSharedSecret} = ocs:find_client(Address),
 	SharedSecret = binary_to_list(BinSharedSecret).
 
 get_all_clients() ->
