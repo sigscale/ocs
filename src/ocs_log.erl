@@ -166,7 +166,7 @@ radius_auth_log(Server, Client, Type, RequestAttributes, ResponseAttributes) ->
 		RespAttrsMatch :: [{Attribute, Match}],
 		Attribute :: byte(),
 		Match :: term() | '_',
-		Result :: list(). 
+		Result :: [term()].
 %% @doc Query RADIUS access request events with filters.
 radius_auth_query({{_, _, _}, {_, _, _}} = Start, End, Types, ReqAttrsMatch, RespAttrsMatch) ->
 	Epoch = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
