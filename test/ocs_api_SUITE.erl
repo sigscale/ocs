@@ -133,11 +133,11 @@ update_client_password(_Config) ->
 	Protocol = ct:get_config(protocol),
 	ok = ocs:add_client(Address, DiscPort, Protocol, Password),
 	PasswordBin = list_to_binary(Password),
-	{ok, PasswordBin} = ocs:find_client(Address),
+	{ok, DiscPort, Protocol, PasswordBin} = ocs:find_client(Address),
 	NewPassword = "GentooNewxD",
 	ok = ocs:update_client_password(Address, NewPassword),
 	NewPasswordBin = list_to_binary(NewPassword),
-	{ok, NewPasswordBin} = ocs:find_client(Address).
+	{ok,  DiscPort, Protocol, NewPasswordBin} = ocs:find_client(Address).
 
 
 delete_client() ->
