@@ -26,7 +26,7 @@ e.g &#058;
 	2> mnesia:start().
 	ok
 	3> ocs_app:install([node()]).
-	{ok,[radius_client, subscriber, httpd_user, httpd_group]}
+	{ok,[client, subscriber, httpd_user, httpd_group]}
 	ok
 	'''
 
@@ -210,8 +210,8 @@ member resource may include a link for the enclosing collection resource.
 	</tbody>
 </table></div></p>
 
-<p><div id="radius_client"><table id="mt">
-	<caption id="mt">The <b>Client</b> object relates a record in `radius_client' table:</caption>
+<p><div id="client"><table id="mt">
+	<caption id="mt">The <b>Client</b> object relates a record in `client' table:</caption>
 	<thead>
 		<tr id="mt">
 			<th id="mt">Field Name</th>
@@ -1263,7 +1263,7 @@ Content-Length: 0
 	</thead>
 	<tbody>
 		<tr id="mt">
-			<td id="mt">radius_client</td>
+			<td id="mt">client</td>
 			<td id="mt">RADIUS clients</td>
 		</tr>
 		<tr id="mt">

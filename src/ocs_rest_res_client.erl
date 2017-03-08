@@ -86,7 +86,7 @@ perform_get_all() ->
 	end.
 %% @hidden
 perform_get_all1(Clients) ->
-	F = fun(#radius_client{address= Address, disconnect_port = DiscPort,
+	F = fun(#client{address= Address, disconnect_port = DiscPort,
 			protocol = Protocol, secret = Secret}, Acc) ->
 		Id = inet:ntoa(Address),
 		RespObj = [{struct, [{id, Id}, {href, "/ocs/v1/client/" ++ Id},
@@ -136,7 +136,7 @@ perform_post1(Id, DiscPort, Protocol, Secret) ->
 -spec perform_patch(Id :: list(), ReqBody :: list()) ->
 	{body, Body :: iolist()} | {error, ErrorCode :: integer()} .
 %% @doc	Respond to `PATCH /ocs/v1/client/{id}' request and
-%% Updates a existing `radius_client''s password or attributes.
+%% Updates a existing `client''s password or attributes.
 perform_patch(Id, ReqBody) ->
 	{ok, Address} = inet:parse_address(Id),
 	case ocs:find_client(Address) of

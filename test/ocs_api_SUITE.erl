@@ -91,7 +91,7 @@ all() ->
 %%---------------------------------------------------------------------
 
 client() ->
-	[{userdata, [{doc, "Add radius_client to database"}]}].
+	[{userdata, [{doc, "Add client to database"}]}].
 
 client(Config) ->
 	{ok, Address} = application:get_env(ocs, radius_auth_addr),
@@ -103,7 +103,7 @@ client(Config) ->
 	SharedSecret = binary_to_list(BinSharedSecret).
 
 get_all_clients() ->
-	[{userdata, [{doc, "Retrieve  all radius_clients from  database"}]}].
+	[{userdata, [{doc, "Retrieve  all clients from  database"}]}].
 
 get_all_clients(Config) ->
 	A1 = {10,2,45,67},
@@ -118,13 +118,13 @@ get_all_clients(Config) ->
 	ok = ocs:add_client(A2, DiscPort, Protocol, Secret2),
 	ok = ocs:add_client(A3, DiscPort, Protocol, Secret3),
 	Clients = ocs:get_clients(),
-	F = fun(#radius_client{address = Addr, secret = Sec} = _R) ->
+	F = fun(#client{address = Addr, secret = Sec} = _R) ->
 		{ok, Sec} = ocs:find_client(Addr)
 	end,
 	lists:foreach(F, Clients).
 
 update_client_password() ->
-	[{userdata, [{doc, "Update password in radius_client record in database"}]}].
+	[{userdata, [{doc, "Update password in client record in database"}]}].
 
 update_client_password(_Config) ->
 	Address = "192.168.90.23",
@@ -141,7 +141,7 @@ update_client_password(_Config) ->
 
 
 delete_client() ->
-	[{userdata, [{doc, "Delete  a radius_client from database"}]}].
+	[{userdata, [{doc, "Delete  a client from database"}]}].
 
 delete_client(Config) ->
 	{ok, Address} = application:get_env(ocs, radius_auth_addr),

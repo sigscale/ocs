@@ -17,7 +17,7 @@
 %%% 
 
 %% define client table entries record
--record(radius_client,
+-record(client,
 		{address :: inet:ip_address(),
 		disconnect_port :: inet:port_number(),
 		protocol :: radius | diameter,

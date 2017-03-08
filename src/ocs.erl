@@ -66,7 +66,7 @@ add_client(Address, DiscPort, Protocol, Secret) when is_list(Address) ->
 	add_client(AddressTuple, DiscPort, Protocol, Secret);
 add_client(Address, DiscPort, Protocol, Secret) when is_tuple(Address), is_binary(Secret) ->
 	F = fun() ->
-				R = #radius_client{address = Address, disconnect_port = DiscPort,
+				R = #client{address = Address, disconnect_port = DiscPort,
 						protocol = Protocol, secret = Secret},
 				mnesia:write(R)
 	end,
@@ -92,10 +92,10 @@ find_client(Address) when is_list(Address) ->
 	find_client(AddressTuple);
 find_client(Address) when is_tuple(Address) ->
 	F = fun() ->
-				mnesia:read(radius_client, Address, read)
+				mnesia:read(client, Address, read)
 	end,
 	case mnesia:transaction(F) of
-		{atomic, [#radius_client{disconnect_port = DiscPort,
+		{atomic, [#client{disconnect_port = DiscPort,
 				protocol = Protocol, secret = Secret}]} ->
 			{ok, DiscPort, Protocol, Secret};
 		{atomic, []} ->
@@ -118,10 +118,10 @@ update_client_password(Address, Password) when is_list(Password) ->
 	update_client_password(Address, list_to_binary(Password));
 update_client_password(Address, Password) ->
 	F = fun() ->
-				case mnesia:read(radius_client, Address, write) of
+				case mnesia:read(client, Address, write) of
 					[Entry] ->
-						NewEntry = Entry#radius_client{secret = Password},
-						mnesia:write(radius_client, NewEntry, write);
+						NewEntry = Entry#client{secret = Password},
+						mnesia:write(client, NewEntry, write);
 					[] ->
 						throw(not_found)
 				end
@@ -149,10 +149,10 @@ update_client_attributes(Address, DiscPort, Protocol) when is_list(Address),
 	update_client_attributes(AddressTuple, DiscPort, Protocol);
 update_client_attributes(Address, DiscPort, Protocol) when is_tuple(Address) ->
 	F = fun() ->
-				case mnesia:read(radius_client, Address, write) of
+				case mnesia:read(client, Address, write) of
 					[Entry] ->
-						NewEntry = Entry#radius_client{disconnect_port = DiscPort, protocol = Protocol},
-						mnesia:write(radius_client, NewEntry, write);
+						NewEntry = Entry#client{disconnect_port = DiscPort, protocol = Protocol},
+						mnesia:write(client, NewEntry, write);
 					[] ->
 						throw(not_found)
 				end
@@ -168,12 +168,12 @@ update_client_attributes(Address, DiscPort, Protocol) when is_tuple(Address) ->
 
 -spec get_clients() -> Result
 	when
-		Result :: [#radius_client{}] | {error, Reason :: term()}.
+		Result :: [#client{}] | {error, Reason :: term()}.
 %% @doc Get all RADIUS clients.
 get_clients()->
 	MatchSpec = [{'_', [], ['$_']}],
 	F = fun(F, start, Acc) ->
-				F(F, mnesia:select(radius_client, MatchSpec,
+				F(F, mnesia:select(client, MatchSpec,
 						?CHUNKSIZE, read), Acc);
 			(_F, '$end_of_table', Acc) ->
 				lists:flatten(lists:reverse(Acc));
@@ -198,7 +198,7 @@ delete_client(Client) when is_list(Client) ->
 	delete_client(ClientT);
 delete_client(Client) when is_tuple(Client) ->
 	F = fun() ->
-		mnesia:delete(radius_client, Client, write)
+		mnesia:delete(client, Client, write)
 	end,
 	case mnesia:transaction(F) of
 		{atomic, _} ->
