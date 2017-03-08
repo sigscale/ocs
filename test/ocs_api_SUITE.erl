@@ -112,7 +112,7 @@ get_all_clients(Config) ->
 	Secret1 = "Enid blyton 1",
 	Secret2 = "Enid blyton 2",
 	Secret3 = "Enid blyton 3",
-	DiscPort = application:get_env(ocs, radius_disconnect_port),
+	{ok, DiscPort} = application:get_env(ocs, radius_disconnect_port),
 	Protocol = ct:get_config(protocol),
 	ok = ocs:add_client(A1, DiscPort, Protocol, Secret1),
 	ok = ocs:add_client(A2, DiscPort, Protocol, Secret2),
@@ -129,7 +129,7 @@ update_client_password() ->
 update_client_password(_Config) ->
 	Address = "192.168.90.23",
 	Password = "gentoo",
-	DiscPort = application:get_env(ocs, radius_disconnect_port),
+	{ok, DiscPort} = application:get_env(ocs, radius_disconnect_port),
 	Protocol = ct:get_config(protocol),
 	ok = ocs:add_client(Address, DiscPort, Protocol, Password),
 	PasswordBin = list_to_binary(Password),
@@ -146,7 +146,7 @@ delete_client() ->
 delete_client(Config) ->
 	{ok, Address} = application:get_env(ocs, radius_auth_addr),
 	SharedSecret = ct:get_config(radius_shared_secret, Config),
-	DiscPort = application:get_env(ocs, radius_disconnect_port),
+	{ok, DiscPort} = application:get_env(ocs, radius_disconnect_port),
 	Protocol = ct:get_config(protocol),
 	ok = ocs:add_client(Address, DiscPort, Protocol, SharedSecret),
 	ok = ocs:delete_client(Address),
