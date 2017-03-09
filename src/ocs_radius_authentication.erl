@@ -60,23 +60,24 @@ request(Address, Port, Packet, #state{port_server = Server} = _State)
 		Radius = radius:codec(Packet),
 		#radius{code = ?AccessRequest, attributes = AttributeData} = Radius,
 		Attributes = radius_attributes:codec(AttributeData),
-		case radius_attributes:find(?EAPMessage, Attributes) of
-			{ok, _} ->
+		Eap = case radius_attributes:find(?EAPMessage, Attributes) of
+			{ok, EapMessage} ->
 				MsgAuth = radius_attributes:fetch(?MessageAuthenticator,
 						Attributes),
 				Attr1 = radius_attributes:store(?MessageAuthenticator,
 						<<0:128>>, Attributes),
 				AttrBin = radius_attributes:codec(Attr1),
 				Packet1 = radius:codec(Radius#radius{attributes = AttrBin}),
-				MsgAuth = crypto:hmac(md5, SharedSecret, Packet1);
+				MsgAuth = crypto:hmac(md5, SharedSecret, Packet1),
+				{eap, EapMessage};
 			{error, not_found} ->
-				ok
+				none
 		end,
-		{SharedSecret, Radius#radius{attributes = Attributes}}
+		{SharedSecret, Radius#radius{attributes = Attributes}, Eap}
 	of
-		{Secret, AccessRequest} ->
+		{Secret, AccessRequest, IsEap} ->
 			gen_server:call(Server,
-					{request, Address, Port, Secret, AccessRequest})
+					{request, Address, Port, Secret, AccessRequest, IsEap})
 	catch
 		_:_R ->
 			{error, ignore}

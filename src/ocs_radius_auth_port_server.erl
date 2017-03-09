@@ -99,8 +99,8 @@ init([AuthPortSup, Address, Port, Options]) ->
 handle_call(shutdown, _From, State) ->
 	{stop, normal, ok, State};
 handle_call({request, Address, Port, Secret,
-			#radius{code = ?AccessRequest} = Radius}, From, State) ->
-	request(Address, Port, Secret, Radius, From, State).
+			#radius{code = ?AccessRequest} = Radius, IsEap}, From, State) ->
+	request(IsEap, Address, Port, Secret, Radius, From, State).
 
 -spec handle_cast(Request :: term(), State :: state()) ->
 	Result :: {noreply, NewState :: state()}
@@ -184,14 +184,26 @@ code_change(_OldVsn, State, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec request(Address :: inet:ip_address(), Port :: pos_integer(),
+-spec request(IsEap :: {eap, binary()} | none, 
+		Address :: inet:ip_address(), Port :: pos_integer(),
 		Secret :: string(), Radius :: #radius{},
 		From :: {Pid :: pid(), Tag :: term()}, State :: state()) ->
 	{reply, {ok, wait}, NewState :: state()}
 			| {reply, {error, ignore}, NewState :: state()}.
 %% @doc Handle a received RADIUS Access-Request packet.
 %% @private
-request(Address, Port, Secret,
+request(none, Address, Port, Secret, Radius, From, State) ->
+	request(none, Address, Port, Secret, Radius, From, State);
+request({eap, <<?EapResponse:32, ?Identity, Identity/binary>>},
+		Address, Port, Secret, Radius, From, State) ->
+	request1({identity, Identity}, Address, Port, Secret, Radius, From, State);
+request({eap, <<?EapResponse, EapID, _:16, ?LegacyNak, Data/binary>>},
+		Address, Port, Secret, Radius, From, State) ->
+	request1({lgcy_nack, EapID, Data}, Address, Port, Secret, Radius, From, State);
+request(Eap, Address, Port, Secret, Radius, From, State) ->
+	request1(Eap, Address, Port, Secret, Radius, From, State).
+%% @hidden
+request1(EapType, Address, Port, Secret,
 		#radius{id = RadiusId, authenticator = RequestAuthenticator,
 		attributes = Attributes} = AccessRequest, {RadiusFsm, _Tag} = _From,
 		#state{handlers = Handlers, method_prefer = MethodPrefer,
@@ -216,38 +228,24 @@ request(Address, Port, Secret,
 						undefined
 				end
 		end,
-		EapMessageV = case radius_attributes:get_all(?EAPMessage, Attributes) of
-			[] ->
-				{error, not_found};
-			EapMessages ->
-				BinEapMessage = iolist_to_binary(EapMessages),
-				{ok, ocs_eap_codec:eap_packet(BinEapMessage)}
-		end,
-		Identity = case EapMessageV of
-			{ok, #eap_packet{code = response, type = ?Identity,
-					data = Data}} ->
-				Data;
-			_ ->
-				<<>>
-		end,
 		Peer = radius_attributes:fetch(?CallingStationId, Attributes),
 		SessionID = {NAS, NasPort, Peer},
 		case gb_trees:lookup(SessionID, Handlers) of
 			none ->
-				case {EapMessageV,
+				case {EapType,
 						radius_attributes:find(?UserName, Attributes),
 						radius_attributes:find(?UserPassword, Attributes)} of
-					{{ok, _}, _, _} when MethodPrefer == pwd ->
+					{{_, Identity}, _, _} when MethodPrefer == pwd ->
 						Sup = State#state.pwd_sup,
 						NewState = start_fsm(AccessRequest, RadiusFsm, Address,
 								Port, Secret, SessionID, Identity, Sup, State),
 						{reply, {ok, wait}, NewState};
-					{{ok, _}, _, _} when MethodPrefer == ttls ->
+					{{_, Identity}, _, _} when MethodPrefer == ttls ->
 						Sup = State#state.ttls_sup,
 						NewState = start_fsm(AccessRequest, RadiusFsm, Address,
 								Port, Secret, SessionID, Identity, Sup, State),
 						{reply, {ok, wait}, NewState};
-					{_, {ok, _}, {ok, _}} ->
+					{{_, Identity}, {ok, _}, {ok, _}} ->
 						Sup = State#state.simple_auth_sup,
 						NewState = start_fsm(AccessRequest, RadiusFsm, Address,
 								Port, Secret, SessionID, Identity, Sup, State),
@@ -256,9 +254,8 @@ request(Address, Port, Secret,
 						{reply, {error, ignore}, State}
 				end;
 			{value, {Fsm, Identity1}} ->
-				case EapMessageV of
-					{ok, #eap_packet{code = response, type = ?LegacyNak, identifier = EapId,
-									data = AlternateMethods}} ->
+				case EapType of
+					{lgcy_nack, EapId, AlternateMethods} -> 
 						case get_alternate(MethodOrder, AlternateMethods, State) of
 							{ok , Sup} ->
 								gen_fsm:send_event(Fsm, {AccessRequest, RadiusFsm}),
@@ -289,10 +286,10 @@ request(Address, Port, Secret,
 										{Address, Port}, reject, Attributes, RejectAttributes),
 								{reply, {ok, AccessReject}, State}	
 						end;
-					{ok, #eap_packet{}} ->
+					{eap, _} ->
 						gen_fsm:send_event(Fsm, {AccessRequest, RadiusFsm}),
 						{reply, {ok, wait}, State};
-					{error, not_found} ->
+					none ->
 						gen_fsm:send_event(Fsm, {AccessRequest, RadiusFsm}),
 						{reply, {ok, wait}, State}
 				end
