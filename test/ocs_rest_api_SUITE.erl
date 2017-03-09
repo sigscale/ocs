@@ -254,7 +254,7 @@ add_subscriber(Config) ->
 	ContentLength = integer_to_list(length(ResponseBody)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
 	{_, URI} = lists:keyfind("location", 1, Headers),
-	{_, _, "/ocs/v1/subscriber/" ++ RuleID, _, _} = mochiweb_util:urlsplit(URI),
+	{_, _, "/ocs/v1/subscriber/" ++ ID, _, _} = mochiweb_util:urlsplit(URI),
 	{struct, Object} = mochijson:decode(ResponseBody),
 	{"id", ID} = lists:keyfind("id", 1, Object),
 	{_, URI} = lists:keyfind("href", 1, Object),
@@ -308,7 +308,7 @@ get_subscriber(Config) ->
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers1),
 	{struct, Object} = mochijson:decode(Body1),
 	{"id", ID} = lists:keyfind("id", 1, Object),
-	{_, URI} = lists:keyfind("href", 1, Object),
+	{_, URI2} = lists:keyfind("href", 1, Object),
 	{"password", Password} = lists:keyfind("password", 1, Object),
 	{_, {array, Attributes}} = lists:keyfind("attributes", 1, Object),
 	ExtraAttributes = Attributes -- SortedAttributes,
@@ -452,7 +452,7 @@ add_client(Config) ->
 	ContentLength = integer_to_list(length(ResponseBody)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
 	{_, URI} = lists:keyfind("location", 1, Headers),
-	{_, _, "/ocs/v1/client/" ++ IP, _, _} = mochiweb_util:urlsplit(URI),
+	{_, _, "/ocs/v1/client/" ++ ID, _, _} = mochiweb_util:urlsplit(URI),
 	{struct, Object} = mochijson:decode(ResponseBody),
 	{_, ID} = lists:keyfind("id", 1, Object),
 	{_, URI} = lists:keyfind("href", 1, Object),
@@ -493,7 +493,7 @@ get_client(Config) ->
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers1),
 	{struct, Object} = mochijson:decode(Body1),
 	{_, ID} = lists:keyfind("id", 1, Object),
-	{_, URI12} = lists:keyfind("href", 1, Object),
+	{_, URI2} = lists:keyfind("href", 1, Object),
 	{_, Disconnect} = lists:keyfind("disconnectPort", 1, Object),
 	{_, Protocol} = lists:keyfind("protocol", 1, Object),
 	{_, Secret} = lists:keyfind("secret", 1, Object).
@@ -607,7 +607,6 @@ get_usage() ->
 	[{userdata, [{doc,"Get usage in rest interface"}]}].
 
 get_usage(Config) ->
-	ContentType = "application/json",
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
 	RestUser = ct:get_config(rest_user),
