@@ -50,7 +50,7 @@
 %% @see //kernel/application:start/2
 %%
 start(normal = _StartType, _Args) ->
-	case mnesia:wait_for_tables([radius_client, subscriber], 60000) of
+	case mnesia:wait_for_tables([client, subscriber], 60000) of
 		ok ->
 			start1();
 		{timeout, BadTabList} ->
@@ -123,7 +123,7 @@ start1() ->
 %% 		2> mnesia:start().
 %% 		ok
 %% 		3> {@module}:install([node()]).
-%% 		{ok,[radius_client, subscriber, httpd_user, httpd_group]}
+%% 		{ok,[client, subscriber, httpd_user, httpd_group]}
 %% 		ok
 %% 	'''
 %%
@@ -137,12 +137,12 @@ install(Nodes) when is_list(Nodes) ->
 			SchemaResult ->
 				throw(SchemaResult)
 		end,
-		case mnesia:create_table(radius_client, [{disc_copies, Nodes},
-				{attributes, record_info(fields, radius_client)}]) of
+		case mnesia:create_table(client, [{disc_copies, Nodes},
+				{attributes, record_info(fields, client)}]) of
 			{atomic, ok} ->
-				error_logger:info_msg("Created new radius_client table.~n");
-			{aborted, {already_exists, radius_client}} ->
-				error_logger:warning_msg("Found existing radius_client table.~n");
+				error_logger:info_msg("Created new client table.~n");
+			{aborted, {already_exists, client}} ->
+				error_logger:warning_msg("Found existing client table.~n");
 			T1Result ->
 				throw(T1Result)
 		end,
@@ -173,7 +173,7 @@ install(Nodes) when is_list(Nodes) ->
 			T4Result ->
 				throw(T4Result)
 		end,
-		Tables = [radius_client, subscriber, httpd_user, httpd_group],
+		Tables = [client, subscriber, httpd_user, httpd_group],
 		case mnesia:wait_for_tables(Tables, ?WAITFORTABLES) of
 			ok ->
 				Tables;

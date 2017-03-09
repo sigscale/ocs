@@ -15,12 +15,12 @@ initialize_db() ->
 					initialize_db()
 			end;
 		yes ->
-			case mnesia:wait_for_tables([radius_client, subscriber], 1000) of
+			case mnesia:wait_for_tables([client, subscriber], 1000) of
 				{timeout, _} ->
 					ok = application:stop(mnesia),
 					ok = mnesia:create_schema([node()]),
 					ok = mnesia:start(),
-					{ok, [radius_client, subscriber, httpd_user,httpd_group]} = ocs_app:install([node()]),
+					{ok, [client, subscriber, httpd_user,httpd_group]} = ocs_app:install([node()]),
 					initialize_db();
 				ok ->
 					ok

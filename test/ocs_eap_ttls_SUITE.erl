@@ -129,7 +129,7 @@ eap_ttls_authentication(Config) ->
 	ok = ocs:add_subscriber(Subscriber, PeerAuth, [], 10000),
 	Socket = ?config(socket, Config),
 	Address = {127, 0, 0, 1},
-	{ok, Port} = application:get_env(ocs, radius_auth_port),
+	{ok, [{radius, Port, _}]} = application:get_env(ocs, radius_auth_config),
 	NasId = ?config(nas_id, Config),
 	UserName = ct:get_config(radius_username),
 	Secret = ct:get_config(radius_shared_secret),
