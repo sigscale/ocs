@@ -166,15 +166,7 @@ radius_auth_log(Server, Client, Type, RequestAttributes, ResponseAttributes) ->
 		RespAttrsMatch :: [{Attribute, Match}],
 		Attribute :: byte(),
 		Match :: term() | '_',
-		Result :: [{TimeStamp, Node, Server, Client, Type, ReqAttrs, RespAttrs}],
-		TimeStamp :: pos_integer(),
-		Node :: atom,
-		Server :: {Address, Port},
-		Client :: {Address, Port},
-		ReqAttrs :: radius_attributes:attributes(),
-		RespAttrs :: radius_attributes:attributes(),
-		Address :: inet:ip_address(),
-		Port :: pos_integer().
+		Result :: [term()].
 %% @doc Query RADIUS access request events with filters.
 radius_auth_query({{_, _, _}, {_, _, _}} = Start, End, Types, ReqAttrsMatch, RespAttrsMatch) ->
 	Epoch = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
@@ -182,16 +174,16 @@ radius_auth_query({{_, _, _}, {_, _, _}} = Start, End, Types, ReqAttrsMatch, Res
 	radius_auth_query(Seconds * 1000, End, Types, ReqAttrsMatch, RespAttrsMatch);
 radius_auth_query(Start, {{_, _, _}, {_, _, _}} = End, Types, ReqAttrsMatch, RespAttrsMatch) ->
 	Epoch = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
-	Seconds = calendar:datetime_to_gregorian_seconds(Start) - Epoch,
+	Seconds = calendar:datetime_to_gregorian_seconds(End) - Epoch,
 	radius_auth_query(Start, Seconds * 1000, Types, ReqAttrsMatch, RespAttrsMatch);
 radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch) when is_integer(Start), is_integer(End) ->
 	radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, disk_log:chunk(radius_auth, start), []).
 
 %% @hidden
-radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, eof, Acc) ->
+radius_auth_query(_Start, _End, _Types, _ReqAttrsMatch, _RespAttrsMatch, eof, Acc) ->
 %erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE}),
 	lists:reverse(Acc);
-radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {error, Reason}, Acc) ->
+radius_auth_query(_Start, _End, _Types, _ReqAttrsMatch, _RespAttrsMatch, {error, Reason}, _Acc) ->
 	{error, Reason};
 radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, [{TS,_,_,_,Type,_,_} | T] = Chunk}, Acc) when TS >= Start, TS =< End ->
 	case lists:member(Type, Types) of
@@ -206,7 +198,7 @@ radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, []}, 
 	radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, disk_log:chunk(radius_auth, Cont), Acc).
 
 %% @hidden
-radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,[{TS,_,_,_,_,ReqAttrs,_} | T1] = Chunk}, Acc, [{Attribute, Match} | T]) ->
+radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,[{_,_,_,_,_,ReqAttrs,_} | T1] = Chunk}, Acc, [{Attribute, Match} | T]) ->
 	case lists:keyfind(Attribute, 1, ReqAttrs) of
 		{Attribute, Match} ->
 %erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE, Attribute, ReqAttrs, Match}),
@@ -216,12 +208,12 @@ radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,[{TS,
 		false ->
 			radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, T1}, Acc)
 	end;
-radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,[{TS,_,_,_,_,ReqAttrs,_} | T1] = Chunk}, Acc, []) ->
+radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, Acc, []) ->
 %erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE}),
 	radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, Acc, RespAttrsMatch).
 
 %% @hidden
-radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,[{TS,_,_,_,_,_,RespAttrs} | T1] = Chunk}, Acc, [{Attribute, Match} | T2]) ->
+radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,[{_,_,_,_,_,_,RespAttrs} | T1] = Chunk}, Acc, [{Attribute, Match} | T2]) ->
 	case lists:keyfind(Attribute, 1, RespAttrs) of
 		{Attribute, Match} ->
 %erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE}),
@@ -230,7 +222,7 @@ radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,[{TS,
 %erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE, Attribute, Match}),
 			radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, T1}, Acc)
 	end;
-radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, [H | T]}, Acc, []) ->
+radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, T}, Acc, []) ->
 %erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE}),
 	radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, T}, Acc).
 

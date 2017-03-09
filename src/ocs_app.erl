@@ -50,7 +50,7 @@
 %% @see //kernel/application:start/2
 %%
 start(normal = _StartType, _Args) ->
-	case mnesia:wait_for_tables([radius_client, subscriber], 60000) of
+	case mnesia:wait_for_tables([client, subscriber], 60000) of
 		ok ->
 			start1();
 		{timeout, BadTabList} ->
@@ -68,9 +68,25 @@ start(normal = _StartType, _Args) ->
 %% @hidden
 start1() ->
 	{ok, AcctAddr} = application:get_env(radius_acct_addr),
-	{ok, AcctPort} = application:get_env(radius_acct_port),
+	{ok, AcctInstances} = application:get_env(radius_acct_config),
 	{ok, AuthAddr} = application:get_env(radius_auth_addr),
-	{ok, AuthPort} = application:get_env(radius_auth_port),
+	{ok, AuthInstances} = application:get_env(radius_auth_config),
+	F1 = fun({radius, AcctPort, [{rotate, AcctLogRotate}]}= _Instance) ->
+		case ocs:start(acct, AcctAddr, AcctPort, AcctLogRotate) of
+			{ok, _AcctSup} ->
+				ok;
+			{error, Reason2} ->
+				throw(Reason2)
+		end
+	end,
+	F2 = fun({radius, AuthPort, [{rotate, AuthLogRotate}]}= _Instance) ->
+		case ocs:start(auth, AuthAddr, AuthPort, AuthLogRotate) of
+			{ok, _EapSup} ->
+				ok;
+			{error, Reason3} ->
+				throw(Reason3)
+		end
+	end,
 	try
 		TopSup = case supervisor:start_link(ocs_sup, []) of
 			{ok, OcsSup} ->
@@ -78,18 +94,8 @@ start1() ->
 			{error, Reason1} ->
 				throw(Reason1)
 		end,
-		case ocs:start(acct, AcctAddr, AcctPort) of
-			{ok, _AcctSup} ->
-				ok;
-			{error, Reason2} ->
-				throw(Reason2)
-		end,
-		case ocs:start(auth, AuthAddr, AuthPort) of
-			{ok, _EapSup} ->
-				ok;
-			{error, Reason3} ->
-				throw(Reason3)
-		end,
+		lists:foreach(F1, AcctInstances),
+		lists:foreach(F2, AuthInstances),
 		TopSup
 	of
 		Sup ->
@@ -117,7 +123,7 @@ start1() ->
 %% 		2> mnesia:start().
 %% 		ok
 %% 		3> {@module}:install([node()]).
-%% 		{ok,[radius_client, subscriber, httpd_user, httpd_group]}
+%% 		{ok,[client, subscriber, httpd_user, httpd_group]}
 %% 		ok
 %% 	'''
 %%
@@ -131,12 +137,12 @@ install(Nodes) when is_list(Nodes) ->
 			SchemaResult ->
 				throw(SchemaResult)
 		end,
-		case mnesia:create_table(radius_client, [{disc_copies, Nodes},
-				{attributes, record_info(fields, radius_client)}]) of
+		case mnesia:create_table(client, [{disc_copies, Nodes},
+				{attributes, record_info(fields, client)}]) of
 			{atomic, ok} ->
-				error_logger:info_msg("Created new radius_client table.~n");
-			{aborted, {already_exists, radius_client}} ->
-				error_logger:warning_msg("Found existing radius_client table.~n");
+				error_logger:info_msg("Created new client table.~n");
+			{aborted, {already_exists, client}} ->
+				error_logger:warning_msg("Found existing client table.~n");
 			T1Result ->
 				throw(T1Result)
 		end,
@@ -167,7 +173,7 @@ install(Nodes) when is_list(Nodes) ->
 			T4Result ->
 				throw(T4Result)
 		end,
-		Tables = [radius_client, subscriber, httpd_user, httpd_group],
+		Tables = [client, subscriber, httpd_user, httpd_group],
 		case mnesia:wait_for_tables(Tables, ?WAITFORTABLES) of
 			ok ->
 				Tables;

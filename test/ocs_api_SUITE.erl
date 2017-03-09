@@ -91,19 +91,19 @@ all() ->
 %%---------------------------------------------------------------------
 
 client() ->
-	[{userdata, [{doc, "Add radius_client to database"}]}].
+	[{userdata, [{doc, "Add client to database"}]}].
 
 client(Config) ->
 	{ok, Address} = application:get_env(ocs, radius_auth_addr),
 	SharedSecret = ct:get_config(radius_shared_secret, Config),
-	DiscPort = application:get_env(ocs, radius_disconnect_port),
+	{ok, DiscPort} = application:get_env(ocs, radius_disconnect_port),
 	Protocol = ct:get_config(protocol),
-	ok = ocs:add_client({127, 0, 0, 1}, DiscPort, Protocol, SharedSecret),
-	{ok, BinSharedSecret} = ocs:find_client(Address),
+	ok = ocs:add_client(Address, DiscPort, Protocol, SharedSecret),
+	{ok, DiscPort, Protocol, BinSharedSecret} = ocs:find_client(Address),
 	SharedSecret = binary_to_list(BinSharedSecret).
 
 get_all_clients() ->
-	[{userdata, [{doc, "Retrieve  all radius_clients from  database"}]}].
+	[{userdata, [{doc, "Retrieve  all clients from  database"}]}].
 
 get_all_clients(Config) ->
 	A1 = {10,2,45,67},
@@ -112,41 +112,41 @@ get_all_clients(Config) ->
 	Secret1 = "Enid blyton 1",
 	Secret2 = "Enid blyton 2",
 	Secret3 = "Enid blyton 3",
-	DiscPort = application:get_env(ocs, radius_disconnect_port),
+	{ok, DiscPort} = application:get_env(ocs, radius_disconnect_port),
 	Protocol = ct:get_config(protocol),
 	ok = ocs:add_client(A1, DiscPort, Protocol, Secret1),
 	ok = ocs:add_client(A2, DiscPort, Protocol, Secret2),
 	ok = ocs:add_client(A3, DiscPort, Protocol, Secret3),
 	Clients = ocs:get_clients(),
-	F = fun(#radius_client{address = Addr, secret = Sec} = _R) ->
-		{ok, Sec} = ocs:find_client(Addr)
+	F = fun(#client{address = A, disconnect_port = DP, protocol = P, secret = S} = _R) ->
+		{ok, DP, P, S} = ocs:find_client(A)
 	end,
 	lists:foreach(F, Clients).
 
 update_client_password() ->
-	[{userdata, [{doc, "Update password in radius_client record in database"}]}].
+	[{userdata, [{doc, "Update password in client record in database"}]}].
 
 update_client_password(_Config) ->
 	Address = "192.168.90.23",
 	Password = "gentoo",
-	DiscPort = application:get_env(ocs, radius_disconnect_port),
+	{ok, DiscPort} = application:get_env(ocs, radius_disconnect_port),
 	Protocol = ct:get_config(protocol),
 	ok = ocs:add_client(Address, DiscPort, Protocol, Password),
 	PasswordBin = list_to_binary(Password),
-	{ok, PasswordBin} = ocs:find_client(Address),
+	{ok, DiscPort, Protocol, PasswordBin} = ocs:find_client(Address),
 	NewPassword = "GentooNewxD",
 	ok = ocs:update_client_password(Address, NewPassword),
 	NewPasswordBin = list_to_binary(NewPassword),
-	{ok, NewPasswordBin} = ocs:find_client(Address).
+	{ok,  DiscPort, Protocol, NewPasswordBin} = ocs:find_client(Address).
 
 
 delete_client() ->
-	[{userdata, [{doc, "Delete  a radius_client from database"}]}].
+	[{userdata, [{doc, "Delete  a client from database"}]}].
 
 delete_client(Config) ->
 	{ok, Address} = application:get_env(ocs, radius_auth_addr),
 	SharedSecret = ct:get_config(radius_shared_secret, Config),
-	DiscPort = application:get_env(ocs, radius_disconnect_port),
+	{ok, DiscPort} = application:get_env(ocs, radius_disconnect_port),
 	Protocol = ct:get_config(protocol),
 	ok = ocs:add_client(Address, DiscPort, Protocol, SharedSecret),
 	ok = ocs:delete_client(Address),
