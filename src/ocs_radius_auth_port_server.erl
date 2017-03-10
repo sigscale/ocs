@@ -193,11 +193,11 @@ code_change(_OldVsn, State, _Extra) ->
 %% @doc Handle a received RADIUS Access-Request packet.
 %% @private
 request(none, Address, Port, Secret, Radius, From, State) ->
-	request(none, Address, Port, Secret, Radius, From, State);
-request({eap, <<?EapResponse:32, ?Identity, Identity/binary>>},
+	request1(none, Address, Port, Secret, Radius, From, State);
+request({eap, <<_:32, ?Identity, Identity/binary>>},
 		Address, Port, Secret, Radius, From, State) ->
 	request1({identity, Identity}, Address, Port, Secret, Radius, From, State);
-request({eap, <<?EapResponse, EapID, _:16, ?LegacyNak, Data/binary>>},
+request({eap, <<_, EapID, _:16, ?LegacyNak, Data/binary>>},
 		Address, Port, Secret, Radius, From, State) ->
 	request1({lgcy_nack, EapID, Data}, Address, Port, Secret, Radius, From, State);
 request(Eap, Address, Port, Secret, Radius, From, State) ->
@@ -245,10 +245,10 @@ request1(EapType, Address, Port, Secret,
 						NewState = start_fsm(AccessRequest, RadiusFsm, Address,
 								Port, Secret, SessionID, Identity, Sup, State),
 						{reply, {ok, wait}, NewState};
-					{{_, Identity}, {ok, _}, {ok, _}} ->
+					{none, {ok, _}, {ok, _}} ->
 						Sup = State#state.simple_auth_sup,
 						NewState = start_fsm(AccessRequest, RadiusFsm, Address,
-								Port, Secret, SessionID, Identity, Sup, State),
+								Port, Secret, SessionID, <<>>, Sup, State),
 						{reply, {ok, wait}, NewState};
 					{_, _, _} ->
 						{reply, {error, ignore}, State}
