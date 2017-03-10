@@ -337,7 +337,8 @@ retrieve_all_subscriber() ->
 
 retrieve_all_subscriber(Config) ->
 	ContentType = "application/json",
-	Accept = {"accept", "application/json"},
+	AcceptValue = "application/json",
+	Accept = {"accept", AcceptValue},
 	ID = "5557615036fd",
 	Password = "2h7csggw35aa",
 	AsendDataRate = {struct, [{"name", "ascendDataRate"}, {"type", 26},
@@ -367,7 +368,7 @@ retrieve_all_subscriber(Config) ->
 	Request2 = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication]},
 	{ok, Result1} = httpc:request(get, Request2, [], []),
 	{{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
-	{_, "application/json"} = lists:keyfind("content-type", 1, Headers1),
+	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers1),
 	ContentLength = integer_to_list(length(Body1)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers1),
 	{array, Subscribers} = mochijson:decode(Body1),
@@ -622,7 +623,7 @@ get_usage(Config) ->
 	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers1),
 	ContentLength = integer_to_list(length(Body1)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers1),
-	{array, [{struct, Usage} | _] = _UsageList} = mochijson:decode(Body1),
+	{_, {array, [{struct, Usage}]}} = mochijson:decode(Body1),
 	{_, _} = lists:keyfind("id", 1, Usage),
 	{_, _} = lists:keyfind("href", 1, Usage),
 	{_, _} = lists:keyfind("date", 1, Usage),
