@@ -35,18 +35,24 @@
 -define(AscendDataRate, 197).
 -define(AscendXmitRate, 255).
 
--spec content_types_accepted() -> ContentTypes :: list().
+-spec content_types_accepted() -> ContentTypes
+	when
+		ContentTypes :: list().
 %% @doc Provides list of resource representations accepted.
 content_types_accepted() ->
 	["application/json"].
 
--spec content_types_provided() -> ContentTypes :: list().
+-spec content_types_provided() -> ContentTypes
+	when
+		ContentTypes :: list().
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
 	["application/json", "application/hal+json"].
 
--spec perform_get(Ip :: string()) ->
-	{body, Body :: iolist()} | {error, ErrorCode :: integer()}.
+-spec perform_get(Ip) -> Result
+	when
+		Ip :: string(),
+		Result :: {body, Body :: iolist()} | {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/client/{id}'
 %% requests.
 perform_get(Ip) ->
@@ -71,8 +77,9 @@ perform_get1(Address) ->
 			{error, 404}
 	end.
 
--spec perform_get_all() -> {body, Body :: iolist()}
-		| {error, ErrorCode :: integer()}.
+-spec perform_get_all() -> Result 
+	when
+		Result ::{body, Body :: iolist()} | {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/client'
 %% requests.
 perform_get_all() ->
@@ -97,9 +104,10 @@ perform_get_all1(Clients) ->
 	JsonObj = lists:foldl(F, [], Clients),
 	{array, JsonObj}.
 
--spec perform_post(RequestBody :: list()) ->
-	{Location :: string(), Body :: iolist()}
-	| {error, ErrorCode :: integer()}.
+-spec perform_post(RequestBody) -> Result 
+	when
+		RequestBody :: list(),
+		Result :: {Location :: string(), Body :: iolist()} | {error, ErrorCode :: integer()}.
 %% @doc Respond to `POST /ocs/v1/client' and add a new `client'
 %% resource.
 perform_post(RequestBody) ->
@@ -133,8 +141,11 @@ perform_post1(Id, DiscPort, Protocol, Secret) ->
 			{error, 400}
 	end.
 
--spec perform_patch(Id :: list(), ReqBody :: list()) ->
-	{body, Body :: iolist()} | {error, ErrorCode :: integer()} .
+-spec perform_patch(Id, ReqBody) -> Result 
+	when
+		Id :: list(),
+		ReqBody :: list(),
+		Result :: {body, Body :: iolist()} | {error, ErrorCode :: integer()} .
 %% @doc	Respond to `PATCH /ocs/v1/client/{id}' request and
 %% Updates a existing `client''s password or attributes.
 perform_patch(Id, ReqBody) ->
@@ -176,8 +187,9 @@ perform_patch2(Id, DiscPort, Protocol, Secret) ->
 	RespBody = mochijson:encode(JsonObj),
 	{body, RespBody}.
 
--spec perform_delete(Ip :: list()) ->
-	ok .
+-spec perform_delete(Ip) -> ok 
+	when
+		Ip :: list().
 %% @doc Respond to `DELETE /ocs/v1/client/{address}' request and deletes
 %% a `client' resource. If the deletion is succeeded return true.
 perform_delete(Ip) ->

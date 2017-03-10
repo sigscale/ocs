@@ -30,18 +30,23 @@
 
 -define(USAGE_LOG, usage_log).
 
--spec content_types_accepted() -> ContentTypes :: list().
+-spec content_types_accepted() -> ContentTypes
+	when
+		ContentTypes :: list().
 %% @doc Provides list of resource representations accepted.
 content_types_accepted() ->
 	["application/json"].
 
--spec content_types_provided() -> ContentTypes :: list().
+-spec content_types_provided() -> ContentTypes
+	when
+		ContentTypes :: list().
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
 	["application/json", "application/hal+json"].
 
--spec perform_get_all() -> {body, Body :: iolist()}
-		| {error, ErrorCode :: integer()}.
+-spec perform_get_all() -> Result
+	when
+		Result :: {body, Body :: iolist()} | {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /usageManagement/v1/usage'
 %% requests.
 perform_get_all() ->
@@ -56,8 +61,10 @@ perform_get_all() ->
 			{error, 500}
 	end.
 
--spec perform_get(Id :: string()) ->
-	{body, Body :: iolist()} | {error, ErrorCode :: integer()}.
+-spec perform_get(Id) -> Result
+	when
+		Id :: string(),
+		Result :: {body, Body :: iolist()} | {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /usageManagement/v1/usage/{id}'
 %% requests.
 perform_get(Id) ->

@@ -42,9 +42,11 @@
 %%----------------------------------------------------------------------
 
 -type start_type() :: normal | {takeover, node()} | {failover, node()}.
--spec start(StartType :: start_type(), StartArgs :: term()) ->
-	{'ok', pid()} | {'ok', pid(), State :: #state{}}
-			| {'error', Reason :: term()}.
+-spec start(StartType, StartArgs) -> Result
+	when
+		StartType :: start_type(),
+		StartArgs :: term(),
+		Result :: {'ok', pid()} | {'ok', pid(), State :: #state{}} | {'error', Reason :: term()}.
 %% @doc Starts the application processes.
 %% @see //kernel/application:start/1
 %% @see //kernel/application:start/2
@@ -111,7 +113,10 @@ start1() ->
 %%  The ocs private API
 %%----------------------------------------------------------------------
 
--spec install(Nodes :: [node()]) -> {ok, Tables :: [atom()]}.
+-spec install(Nodes) -> Result
+	when
+		Nodes :: [node()],
+		Result :: {ok, Tables :: [atom()]}.
 %% @doc Initialize a new installation.
 %% 	`Nodes' is a list of the nodes where the 
 %% 	{@link //ocs. ocs} application will run.
@@ -187,8 +192,12 @@ install(Nodes) when is_list(Nodes) ->
 			mnesia:error_description(Error)
 	end.
 
--spec start_phase(Phase :: atom(), StartType :: start_type(),
-		PhaseArgs :: term()) -> ok | {error, Reason :: term()}.
+-spec start_phase(Phase, StartType, PhaseArgs) -> Result
+	when
+		Phase :: atom(),
+		StartType :: start_type(),
+		PhaseArgs :: term(),
+		Result :: ok | {error, Reason :: term()}.
 %% @doc Called for each start phase in the application and included
 %% 	applications.
 %% @see //kernel/app
@@ -196,7 +205,9 @@ install(Nodes) when is_list(Nodes) ->
 start_phase(_Phase, _StartType, _PhaseArgs) ->
 	ok.
 
--spec prep_stop(State :: #state{}) -> #state{}.
+-spec prep_stop(State) -> #state{}
+	when
+		State :: #state{}.
 %% @doc Called when the application is about to be shut down,
 %% 	before any processes are terminated.
 %% @see //kernel/application:stop/1
@@ -204,15 +215,19 @@ start_phase(_Phase, _StartType, _PhaseArgs) ->
 prep_stop(State) ->
 	State.
 
--spec stop(State :: #state{}) -> any().
+-spec stop(State) -> any()
+	when
+		State :: #state{}.
 %% @doc Called after the application has stopped to clean up.
 %%
 stop(_State) ->
 	ok.
 
--spec config_change(Changed :: [{Par :: atom(), Val :: atom()}],
+-spec config_change(Changed, New, Removed) -> ok
+	when
+		Changed:: [{Par :: atom(), Val :: atom()}],
 		New :: [{Par :: atom(), Val :: atom()}],
-		Removed :: [Par :: atom()]) -> ok.
+		Removed :: [Par :: atom()].
 %% @doc Called after a code  replacement, if there are any 
 %% 	changes to the configuration  parameters.
 %%
@@ -223,8 +238,10 @@ config_change(_Changed, _New, _Removed) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec force(Tables :: [TableName :: atom()]) ->
-	ok | {error, Reason :: term()}.
+-spec force(Tables) -> Result
+	when
+		Tables :: [TableName :: atom()],
+		Result :: ok | {error, Reason :: term()}.
 %% @doc Try to force load bad tables.
 force([H | T]) ->
 	case mnesia:force_load_table(H) of
