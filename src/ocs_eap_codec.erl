@@ -33,7 +33,10 @@
 
 -include("ocs_eap_codec.hrl").
 
--spec eap_packet(Packet :: binary() | #eap_packet{}) -> #eap_packet{} | binary().
+-spec eap_packet(Packet) -> Result 
+	when
+		Packet :: binary() | #eap_packet{},
+		Result :: #eap_packet{} | binary().
 %% @doc Encode or decode an EAP packet transported in the RADIUS `EAP-Message'
 %% attribute.
 eap_packet(<<?EapSuccess, Identifier, 4:16>> = _Packet) ->
@@ -63,7 +66,10 @@ eap_packet(#eap_packet{code = response, type = Type,
 	Length = size(Data) + 5,
 	<<?EapResponse, Identifier, Length:16, Type, Data/binary>>.
 
--spec eap_pwd(Packet :: binary() | #eap_pwd{}) -> #eap_pwd{} | binary().
+-spec eap_pwd(Packet) -> Result
+	when
+		Packet :: binary() | #eap_pwd{},
+		Result :: #eap_pwd{} | binary().
 %% @doc Encode or Decode an EAP-PWD-Header packet transported in the
 %% RADIUS `EAP-Message' attribute.
 %%
@@ -126,7 +132,10 @@ eap_pwd(<<0:1, 0:1, 3:6, Payload/binary>>) ->
 	#eap_pwd{length = false, more = false, pwd_exch = confirm,
 			data = Payload}.
 
--spec eap_pwd_id(Packet :: binary() | #eap_pwd_id{}) -> #eap_pwd_id{} | binary().
+-spec eap_pwd_id(Packet) -> Result
+	when
+		Packet :: binary() | #eap_pwd_id{},
+		Result :: #eap_pwd_id{} | binary().
 %% @doc Encode or Decode `EAP-pwd-ID'
 %%
 %% RFC-5931 3.2.1
@@ -154,7 +163,10 @@ eap_pwd_id(#eap_pwd_id{group_desc = GDesc, random_fun = RanFun, prf = PRF,
 		when size(Token) == 4, is_binary(Identity) ->
 	<<GDesc:16, RanFun, PRF, Token/binary, 2, Identity/binary>>.
 
--spec eap_pwd_commit(Packet :: binary() | #eap_pwd_commit{}) -> #eap_pwd_commit{} | binary().
+-spec eap_pwd_commit(Packet) -> Result 
+	when
+		Packet :: binary() | #eap_pwd_commit{},
+		Result :: #eap_pwd_commit{} | binary().
 %% @doc Encode or Decode `EAP-pwd-commit'
 %%
 %%RFC-5931 3.2.2
@@ -165,7 +177,10 @@ eap_pwd_commit(<<Element:64/binary, Scalar:32/binary>>) ->
 eap_pwd_commit(#eap_pwd_commit{element = Element, scalar = Scalar}) ->
 	<<Element:64/binary, Scalar:32/binary>>.
 
--spec eap_ttls(Packet :: binary() | #eap_ttls{}) -> #eap_ttls{} | binary().
+-spec eap_ttls(Packet) -> Result
+	when
+		Packet :: binary() | #eap_ttls{},
+		Result :: #eap_ttls{} | binary().
 %% @doc Encode or Decode `EAP-TTLS' packet
 %%
 %% RFC-5281 9.1

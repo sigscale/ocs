@@ -32,7 +32,10 @@
 
 -include("ocs_eap_codec.hrl").
 
--spec h([Data :: binary()]) -> binary().
+-spec h(Data) -> Result
+	when 
+		Data :: [Data :: binary()],
+		Result :: binary().
 %% @doc Random function (H).
 %% 	RFC5931 section 2.4
 h(Data) when is_list(Data) ->
@@ -43,31 +46,46 @@ h(Context, [H | T]) ->
 h(Context, []) ->
 	crypto:hmac_final(Context).
 	
--spec kdf(Key :: binary(), Label :: binary(), Length :: integer()) ->
-	Result :: binary().
+-spec kdf(Key, Label, Length) -> Result 
+	when
+		Key :: binary(),
+		Label :: binary(),
+		Length :: integer(),
+		Result :: binary().
 %% @doc Key Derivation Function (KDF).
 %% 	RFC5931 section 2.5
 kdf(_Key, _Label, _Length) ->
 	erlang:nif_error(nif_library_not_loaded).
 
--spec compute_pwe(Token :: binary(), PeerIdentity :: binary(),
-		ServerIdentity :: binary(), Password :: binary()) ->
-	PWE :: binary().
+-spec compute_pwe(Token, PeerIdentity, ServerIdentity, Password) -> PWE 
+	when
+		Token :: binary(),
+		PeerIdentity :: binary(),
+		ServerIdentity :: binary(),
+		Password :: binary(),
+		PWE :: binary().
 %% @doc Compute Password Element (PWE).
 %% 	RFC5931 section 2.8.3
 compute_pwe(_Token, _PeerIdentity, _ServerIdentity, _Password) ->
 	erlang:nif_error(nif_library_not_loaded).
 
--spec compute_scalar(Random :: binary(), PWE :: binary()) ->
-	{Scalar :: binary(), Element :: binary()}.
+-spec compute_scalar(Random, PWE) -> Result
+	when
+		Random :: binary(),
+		PWE :: binary(),
+		Result :: {Scalar :: binary(), Element :: binary()}.
 %% @doc Compute Scalar Element.
 %% 	RFC5931 section 2.8.4.1
 compute_scalar(_Random, _PWE) ->
 	erlang:nif_error(nif_library_not_loaded).
 
--spec compute_ks(Random :: binary(), PWE :: binary(),
-		Scalar :: binary(), Element :: binary()) ->
-	Ks :: binary().
+-spec compute_ks(Random, PWE, Scalar , Element) -> Ks
+	when
+		Random :: binary(),
+		PWE :: binary(),
+		Scalar :: binary(),
+		Element :: binary(),
+		Ks :: binary().
 %% @doc Compute Ks.
 %% 	RFC5931 section 2.8.4.1
 compute_ks(_Random, _PWE, _Scalar, _Element) ->
