@@ -88,9 +88,11 @@ content_type_available(Headers, Body, Resource, ModData) ->
 	end.
 
 %% @hidden
-send_response(Info, Location, ResponseBody)->
+send_response(#mod{data = Data} = Info, Location, ResponseBody)->
 	    Size = integer_to_list(iolist_size(ResponseBody)),
-	    Headers = [{location, Location}, {content_length, Size}],
+			Accept = proplists:get_value(accept, Data),
+	    Headers = [{location, Location}, {content_length, Size},
+					{content_type, Accept}],
 	    send(Info, 201, Headers, ResponseBody),
 	    {proceed,[{response,{already_sent,201, Size}}]}.
 

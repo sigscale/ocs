@@ -97,9 +97,10 @@ do_patch(Uri, Body, Resource, ModData) ->
 	end.
 
 %% @hidden
-send_response(Info, ResponseBody)->
+send_response(#mod{data = Data} = Info, ResponseBody)->
 	    Size = integer_to_list(iolist_size(ResponseBody)),
-	    Headers = [{content_length, Size}],
+			Accept = proplists:get_value(accept, Data),
+	    Headers = [{content_length, Size},{content_type, Accept}],
 	    send(Info, 200, Headers, ResponseBody),
 	    {proceed,[{response,{already_sent,200, Size}}]}.
 

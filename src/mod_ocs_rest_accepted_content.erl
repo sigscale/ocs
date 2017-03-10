@@ -55,9 +55,9 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 				undefined ->
 					case string:tokens(Uri, "/") of
 						[_, "v1", Resource] ->
-							do_accept(Headers, Method, Resource, Data);
+							check_content_type_header(Headers, Method, Resource, Data);
 						[_, "v1", Resource, _Id] ->
-							do_accept(Headers, Method, Resource, Data);
+							check_content_type_header(Headers, Method, Resource, Data);
 							_ ->
 								Response = "<h2>HTTP Error 400 - Bad Request</h2>",
 								{break, [{response, {400, Response}}]}
@@ -68,20 +68,41 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 	end.
 
 %% @hidden
-do_accept(Headers, Method, Resource, Data) ->
+check_content_type_header(Headers, Method, Resource, Data) ->
 	ResourceName = list_to_atom("ocs_rest_res_" ++ Resource),
 	case lists:keyfind("content-type", 1, Headers) of
 		{_, ProvidedType} ->
 			AcceptedTypes = ResourceName:content_types_accepted(),
 			case lists:member(ProvidedType, AcceptedTypes) of
 				true ->
-					{proceed, [{resource, ResourceName} | Data]};
+					check_accept_header(Headers, Method, ResourceName,
+						[{resource, ResourceName} | Data]);
 				false ->
 					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
 					{break, [{response, {415, Response}}]}
 			end;
 		false when Method == "DELETE"; Method == "GET" ->
-			{proceed, [{resource, ResourceName} | Data]};
+			check_accept_header(Headers, Method, ResourceName,
+				[{resource, ResourceName} | Data]);
+		false ->
+			Response = "<h2>HTTP Error 400 - Bad Request</h2>",
+			{break, [{response, {400, Response}}]}
+	end.
+
+%% @hidden
+check_accept_header(Headers, Method, ResourceName, Data) ->
+	case lists:keyfind("accept", 1, Headers) of
+		{_, AcceptType} ->
+			Representations = ResourceName:content_types_provided(),
+			case lists:member(AcceptType, Representations) of
+				true ->
+					{proceed, [{accept, AcceptType} | Data]};
+				false ->
+					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
+					{break, [{response, {415, Response}}]}
+			end;
+		false when Method == "DELETE" ->
+			{proceed, Data};
 		false ->
 			Response = "<h2>HTTP Error 400 - Bad Request</h2>",
 			{break, [{response, {400, Response}}]}

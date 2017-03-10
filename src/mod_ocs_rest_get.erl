@@ -104,9 +104,10 @@ do_get(Uri, Resource, ModData) ->
 end.
 
 %% @hidden
-send_response(ResponseBody, ModData) ->
+send_response(ResponseBody, #mod{data = Data} = ModData) ->
 	Size = integer_to_list(iolist_size(ResponseBody)),
-	Headers = [{content_length, Size}],
+	Accept = proplists:get_value(accept, Data),
+	Headers = [{content_length, Size}, {content_type, Accept}],
 	send(ModData, 200, Headers, ResponseBody),
 	{proceed,[{response,{already_sent,201, Size}}]}.
 
