@@ -122,7 +122,7 @@ perform_post1(Id, DiscPort, Protocol, Secret) ->
 		ok ->
 			Location = "/ocs/v1/client/" ++ Id,
 			RespObj = [{id, Id}, {href, Location}, {"disconnectPort", DiscPort},
-					{protocol, Protocol}, {secret, Secret}],
+					{protocol, string:to_upper(atom_to_list(Protocol))}, {secret, Secret}],
 			JsonObj  = {struct, RespObj},
 			Body = mochijson:encode(JsonObj),
 			{Location, Body};
