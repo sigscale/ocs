@@ -15,7 +15,7 @@ This OCS performs authentication, authorization and accounting (AAA)
 for subscribers of wireless local area network (WLAN) services (WiFi).
 
 ==Installation==
-Before starting the application for the first time, an mnesia
+Before starting the application for the first time, an {@link //mnesia/mnesia. mnesia}
 schema should be created and started on all nodes the application
 should run.Schema should be created on a list of nodes where the
 {@link //ocs. ocs} application will run.
@@ -32,7 +32,7 @@ e.g &#058;
 
 ===HTTP Authentication===
 To use the {@link //inets/mod_auth. mod_auth} module for authentication
-you should create users and groups in the {@link //mnesia/mnesia. mnesia}
+you should create necessary users and groups in the {@link //mnesia/mnesia. mnesia}
 tables it uses.
 e.g &#058;
  	```
@@ -156,8 +156,8 @@ member resource may include a link for the enclosing collection resource.
 		<tr id="mt">
 			<td id="mt">password</td>
 			<td id="mt">string</td>
-			<td id="mt">M</td>
-			<td id="mt">Password given to the subscriber</td>
+			<td id="mt">O</td>
+			<td id="mt">Password given to the subscriber (Mandatory only in response)</td>
 		</tr>
 		<tr id="mt">
 			<td id="mt">attributes</td>
@@ -1151,10 +1151,10 @@ Content-Length: 0
 </pre></p>
 
 <table id="op">
-<caption id="op"><b>Get Usage</b></caption>
+<caption id="op"><b>Get Usage Records</b></caption>
 <tr id="op">
 <td id="opl">Resource URI</td>
-		<td id="opr">/usageManagement/v1/usage</td>
+		<td id="opr">/usageManagement/v1/usage/{id}</td>
 	</tr>
 	<tr id="op">
 		<td id="opl">Request Methods</td>
@@ -1182,7 +1182,7 @@ Content-Length: 0
 	</tr>
 </table>
 <p>Example request for accept : "application/json" request header :<pre>
-GET /usageManagement/v1/usage HTTP/1.1
+GET /usageManagement/v1/usage/2017-02-22T10:00:14.910Z HTTP/1.1
 Accept: application/json
 </pre></p>
 <p>Example response for accept : "application/json" request header :<pre>
@@ -1334,8 +1334,8 @@ The {@link //inets. inets} application's {@link //inets/httpd. httpd} server con
 ===Example sys.config===
 ```
 [{ocs,
-      [{radius_auth_port, 1812},
-      {radius_acct_port, 1813},
+      [{radius_auth_config, [{radius, 1812, [{rotate, 86400000}]}]},
+      {radius_acct_config, [{radius, 1813, [{rotate, 86400000}]}]},
       {tls_key, "/etc/ssl/private/ocs.pem"},
       {tls_cert, "/etc/ssl/certs/ocs.pem"},
       {tls_cacert, "/etc/ssl/certs/ocsCA.pem"}]},
