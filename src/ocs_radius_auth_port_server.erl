@@ -232,26 +232,24 @@ request1(EapType, Address, Port, Secret,
 		SessionID = {NAS, NasPort, Peer},
 		case gb_trees:lookup(SessionID, Handlers) of
 			none ->
-				case {EapType,
-						radius_attributes:find(?UserName, Attributes),
-						radius_attributes:find(?UserPassword, Attributes)} of
-					{{_, Identity}, _, _} when MethodPrefer == pwd ->
+				case EapType of
+					{_, Identity} when MethodPrefer == pwd ->
 						Sup = State#state.pwd_sup,
 						NewState = start_fsm(AccessRequest, RadiusFsm, Address,
 								Port, Secret, SessionID, Identity, Sup, State),
 						{reply, {ok, wait}, NewState};
-					{{_, Identity}, _, _} when MethodPrefer == ttls ->
+					{_, Identity} when MethodPrefer == ttls ->
 						Sup = State#state.ttls_sup,
 						NewState = start_fsm(AccessRequest, RadiusFsm, Address,
 								Port, Secret, SessionID, Identity, Sup, State),
 						{reply, {ok, wait}, NewState};
-					{none, {ok, _}, {ok, _}} ->
+					none ->
+						{ok, _} = radius_attributes:find(?UserName, Attributes),
+						{ok, _} = radius_attributes:find(?UserPassword, Attributes),
 						Sup = State#state.simple_auth_sup,
 						NewState = start_fsm(AccessRequest, RadiusFsm, Address,
 								Port, Secret, SessionID, <<>>, Sup, State),
-						{reply, {ok, wait}, NewState};
-					{_, _, _} ->
-						{reply, {error, ignore}, State}
+						{reply, {ok, wait}, NewState}
 				end;
 			{value, {Fsm, Identity1}} ->
 				case EapType of
