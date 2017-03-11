@@ -35,6 +35,10 @@
 -define(RADACCT, radius_acct).
 -define(RADAUTH, radius_auth).
 
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
+
 %%----------------------------------------------------------------------
 %%  The ocs_log public API
 %%----------------------------------------------------------------------
@@ -84,7 +88,7 @@ radius_acct_open1(Directory) ->
 		Result :: ok | {error, Reason :: term()}.
 %% @doc Write an accounting event to disk log.
 radius_acct_log(Server, Client, Type, Attributes) ->
-	TS = erlang:system_time(millisecond),
+	TS = erlang:system_time(?MILLISECOND),
 	Event = {TS, node(), Server, Client, Type, Attributes},
 	disk_log:log(?RADACCT, Event).
 
@@ -151,7 +155,7 @@ radius_auth_open1(Directory) ->
 		Result :: ok | {error, Reason :: term()}.
 %% @doc Write an authorization event to disk log.
 radius_auth_log(Server, Client, Type, RequestAttributes, ResponseAttributes) ->
-	TS = erlang:system_time(millisecond),
+	TS = erlang:system_time(?MILLISECOND),
 	Event = {TS, node(), Server, Client, Type,
 			RequestAttributes, ResponseAttributes},
 	disk_log:log(?RADAUTH, Event).
@@ -274,7 +278,7 @@ ipdr_log(File, Start, End) when is_list(File),
 	case disk_log:open([{name, File}, {file, File}, {repair, truncate}]) of
 		{ok, IpdrLog} ->
 			IpdrDoc = #ipdrDoc{docId = uuid(), version = "3.1",
-					creationTime = iso8601(erlang:system_time(millisecond)),
+					creationTime = iso8601(erlang:system_time(?MILLISECOND)),
 					ipdrRecorderInfo = atom_to_list(node())},
 			case disk_log:log(IpdrLog, IpdrDoc) of
 				ok ->
@@ -355,7 +359,7 @@ ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, [_ | T]}) ->
 	ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, T}).
 %% @hidden
 ipdr_log4(IpdrLog, SeqNum) ->
-	EndTime = iso8601(erlang:system_time(millisecond)),
+	EndTime = iso8601(erlang:system_time(?MILLISECOND)),
 	IpdrDocEnd = #ipdrDocEnd{count = SeqNum, endTime = EndTime},
 	case disk_log:log(IpdrLog, IpdrDocEnd) of
 		ok ->
