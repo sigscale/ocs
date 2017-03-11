@@ -259,7 +259,7 @@ radius_auth_close() ->
 %% 	The `radius_acct' log is searched for events created between `Start'
 %% 	and `End' which may be given as
 %% 	`{{Year, Month, Day}, {Hour, Minute, Second}}' or the native
-%% 	{@link //erts/erlang:system_time(). erlang:system_time(milliseonds)}.
+%% 	{@link //erts/erlang:system_time(). erlang:system_time(millisecond)}.
 %%
 ipdr_log(File, {{_, _, _}, {_, _, _}} = Start, End) ->
 	Epoch = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
