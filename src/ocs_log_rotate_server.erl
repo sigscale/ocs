@@ -34,6 +34,10 @@
 -define(USAGE_LOG, usage_log).
 -define(WAIT_TIME, 60000).
 
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
+
 %%----------------------------------------------------------------------
 %%  The ocs_log_rotate_server API
 %%----------------------------------------------------------------------
@@ -131,8 +135,8 @@ code_change(_OldVsn, State, _Extra) ->
 log(#state{rotate_time = LogRotateTime} = State) ->
 	{ok, Directory} = application:get_env(ocs, acct_log_dir),
 	FileName = Directory ++ "/" ++ atom_to_list(?USAGE_LOG) ++ "_" ++
-		ocs_log:iso8601(erlang:system_time(millisecond)),
-	Now = erlang:system_time(millisecond),
+		ocs_log:iso8601(erlang:system_time(?MILLISECOND)),
+	Now = erlang:system_time(?MILLISECOND),
 	Start = Now - LogRotateTime,
 	End = Now,
 	case ocs_log:ipdr_log(FileName, Start, End) of
@@ -140,7 +144,7 @@ log(#state{rotate_time = LogRotateTime} = State) ->
 			{noreply, State, ?WAIT_TIME} ;
 		{error, Reason} ->
 			error_logger:error_report("Failed to create usage logs", [{module, ?MODULE},
-				{failed_at, ocs_log:iso8601(erlang:system_time(millisecond))},
+				{failed_at, ocs_log:iso8601(erlang:system_time(?MILLISECOND))},
 				{reason, Reason}]),
 			{noreply, State, ?WAIT_TIME}
 	end.
