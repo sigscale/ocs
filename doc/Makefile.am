@@ -65,7 +65,5 @@ overview.edoc: overview.edoc-in
 
 CLEANFILES = overview.edoc edoc-info index.html \
 		modules-frame.html overview-summary.html packages-frame.html \
-		stylesheet.css erlang.png $(modhtml) \
-		sigscale-logo.png  supervision.png
-
+		erlang.png $(modhtml)
 
