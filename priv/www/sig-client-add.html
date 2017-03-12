@@ -37,7 +37,7 @@
 						<paper-input id="add-client2" name="disconnectPort" label="Disconnect Port" type="number"></paper-input>
 						<paper-tooltip >Disconnect port used in network access server, router or access point.</paper-tooltip>
 					</div>
-					<div>
+<!--					<div>
 						<template is="dom-bind">
 							<paper-dropdown-menu id="add-client3" label="Protocol" selected-item-label="{{selectedItem}}">
 								<paper-listbox class="dropdown-content">
@@ -49,6 +49,7 @@
 							<paper-tooltip >Protocol ued by network access server, router or access point.</paper-tooltip>
 						</template>
 					</div>
+-->
 					<div>
 						<paper-input id="add-client4" name="secret" label="Secret" ></paper-input>
 						<paper-tooltip >Secret, or password, shared with the network access server, router or access point.</paper-tooltip>
@@ -108,7 +109,8 @@
 				var formData = new Object();
 				formData.id = document.getElementById("add-client1").value;	
 				formData.disconnectPort = parseInt(document.getElementById("add-client2").value);	
-				formData.protocol = document.getElementById("add-client3").value;	
+				//formData.protocol = document.getElementById("add-client3").value;	
+				formData.protocol =  'RADIUS';	
 				formData.secret = document.getElementById("add-client4").value;	
 				var ajax = document.getElementById("clientAddAjax");
 				ajax.body = formData;
