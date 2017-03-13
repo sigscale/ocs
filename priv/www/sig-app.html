@@ -166,6 +166,17 @@
 					var item = new Array();
 					item[0] = event.detail.response;
 					if(this.$.pageSelection.selected == 0){
+						var newRecord = new Object();
+						newRecord.id = item[0].id;
+						newRecord.password = item[0].password;
+						newRecord.balance = item[0].balance;
+
+						item[0].attributes.forEach(function(attrObj){
+							 newRecord[attrObj.name] = attrObj.value;
+						}); 
+
+						newRecord.enabled = item[0].enabled;
+						item[0] = newRecord;
 						document.getElementById('grid').items = item;
 					}
 					if(this.$.pageSelection.selected == 1){
