@@ -101,7 +101,7 @@ end_per_suite(Config) ->
 %% Initialization before each test case.
 %%
 init_per_testcase(_TestCase, Config) ->
-	{ok, IP} = application:get_env(ocs, radius_auth_addr),
+	{ok, [{_, IP, _l, _}]} = application:get_env(ocs, radius_auth_config),
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, IP}, binary]),
 	[{socket, Socket} | Config].
 

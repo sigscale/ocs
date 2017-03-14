@@ -1288,14 +1288,10 @@ The {@link //ocs. ocs} application is configured using the following environment
 		<dd>Number of authorization log files.</dd>
 	<dt>auth_log_size</dt>
 		<dd>Size in bytes of authorization log files.</dd>
-	<dt>radius_auth_addr</dt>
-		<dd>IP address for RADIUS authentication (default: {0,0,0,0}).</dd>
 	<dt>radius_auth_config</dt>
-		<dd>Configuration groups for RADIUS authentication (including authentication port and log rotate time).</dd>
-	<dt>radius_acct_addr</dt>
-		<dd>IP address for RADIUS accounting (default: {0,0,0,0}).</dd>
+		<dd>Configuration groups for RADIUS authentication (including IP address (default: {0,0,0,0}), authentication port and log rotate time).</dd>
 	<dt>radius_acct_config</dt>
-		<dd>Configuration groups for RADIUS accounting (including accounting port and log rotate time).</dd>
+		<dd>Configuration groups for RADIUS accounting (including IP address(default: {0,0,0,0}), accounting port and log rotate time).</dd>
 	<dt>tls_cert</dt>
 		<dd>Public certificate for TLS over EAP.</dd>
 	<dt>tlst_key</dt>
@@ -1334,8 +1330,8 @@ The {@link //inets. inets} application's {@link //inets/httpd. httpd} server con
 ===Example sys.config===
 ```
 [{ocs,
-      [{radius_auth_config, [{radius, 1812, [{rotate, 86400000}]}]},
-      {radius_acct_config, [{radius, 1813, [{rotate, 86400000}]}]},
+      [{radius_auth_config, [{radius, {127,0,0,1}, 1812, [{rotate, 86400000}]}]},
+      {radius_acct_config, [{radius, {127,0,0,1}, 1813, [{rotate, 86400000}]}]},
       {tls_key, "/etc/ssl/private/ocs.pem"},
       {tls_cert, "/etc/ssl/certs/ocs.pem"},
       {tls_cacert, "/etc/ssl/certs/ocsCA.pem"}]},

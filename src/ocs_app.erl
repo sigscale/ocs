@@ -69,11 +69,11 @@ start(normal = _StartType, _Args) ->
 	end.
 %% @hidden
 start1() ->
-	{ok, AcctAddr} = application:get_env(radius_acct_addr),
+	%{ok, AcctAddr} = application:get_env(radius_acct_addr),
 	{ok, AcctInstances} = application:get_env(radius_acct_config),
-	{ok, AuthAddr} = application:get_env(radius_auth_addr),
+	%{ok, AuthAddr} = application:get_env(radius_auth_addr),
 	{ok, AuthInstances} = application:get_env(radius_auth_config),
-	F1 = fun({radius, AcctPort, [{rotate, AcctLogRotate}]}= _Instance) ->
+	F1 = fun({radius, AcctAddr, AcctPort, [{rotate, AcctLogRotate}]}= _Instance) ->
 		case ocs:start(acct, AcctAddr, AcctPort, AcctLogRotate) of
 			{ok, _AcctSup} ->
 				ok;
@@ -81,7 +81,7 @@ start1() ->
 				throw(Reason2)
 		end
 	end,
-	F2 = fun({radius, AuthPort, [{rotate, AuthLogRotate}]}= _Instance) ->
+	F2 = fun({radius, AuthAddr, AuthPort, [{rotate, AuthLogRotate}]}= _Instance) ->
 		case ocs:start(auth, AuthAddr, AuthPort, AuthLogRotate) of
 			{ok, _EapSup} ->
 				ok;
