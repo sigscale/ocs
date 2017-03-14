@@ -28,8 +28,10 @@
 %%  The supervisor_bridge callbacks
 %%----------------------------------------------------------------------
 
--spec init(Args :: list()) ->
-	Result :: {ok, Pid :: pid(), State :: pid()}
+-spec init(Args ) -> Result
+	when
+		Args :: list(),
+		Result :: {ok, Pid :: pid(), State :: pid()}
 		| ignore | {error, Error :: term()}.
 %% @doc Initialize the {@module} supervisor_bridge.
 %% @see //stdlib/supervisor_bridge:init/1
@@ -44,7 +46,10 @@ init([Address, Port] = _Args) ->
 			{error, Reason}
 	end.
 
--spec terminate(Reason :: shutdown | term(), State :: pid()) -> any().
+-spec terminate(Reason, State) -> any()
+	when
+		Reason :: shutdown | term(), 
+		State :: pid().
 %% @doc This function is called when it is about to terminate.
 terminate(_Reason, State) ->
 	radius:stop(State).

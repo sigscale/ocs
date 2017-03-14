@@ -28,8 +28,10 @@
 %%  The supervisor callback
 %%----------------------------------------------------------------------
 
--spec init(Args :: [term()]) ->
-	{ok, {{supervisor:strategy(), non_neg_integer(), pos_integer()},
+-spec init(Args) -> Result
+	when
+		Args :: [term()],
+		Result :: {ok, {{supervisor:strategy(), non_neg_integer(), pos_integer()},
 			[supervisor:child_spec()]}} | ignore.
 %% @doc Initialize the {@module} supervisor.
 %% @see //stdlib/supervisor:init/1

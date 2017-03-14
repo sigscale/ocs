@@ -28,8 +28,10 @@
 %%  The supervisor callback
 %%----------------------------------------------------------------------
 
--spec init(Args :: [term()]) ->
-	{ok, {{supervisor:strategy(), non_neg_integer(), pos_integer()},
+-spec init(Args) -> Result
+	when
+		Args :: [term()],
+		Result :: {ok, {{supervisor:strategy(), non_neg_integer(), pos_integer()},
 			[supervisor:child_spec()]}} | ignore.
 %% @doc Initialize the {@module} supervisor.
 %% @see //stdlib/supervisor:init/1
@@ -45,8 +47,11 @@ init(_Args) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec supervisor(StartMod :: atom(), Args :: [term()]) ->
-	supervisor:child_spec().
+-spec supervisor(StartMod, Args) -> Result
+	when
+		StartMod :: atom(), 
+		Args :: [term()],
+		Result :: supervisor:child_spec().
 %% @doc Build a supervisor child specification for a
 %% 	{@link //stdlib/supervisor. supervisor} behaviour.
 %% @private
@@ -56,8 +61,11 @@ supervisor(StartMod, Args) ->
 	StartFunc = {supervisor, start_link, StartArgs},
 	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
 
--spec server(StartMod :: atom(), Args :: [term()]) ->
-	supervisor:child_spec().
+-spec server(StartMod, Args) -> Result
+	when
+		StartMod :: atom(), 
+		Args :: [term()],
+		Result :: supervisor:child_spec().
 %% @doc Build a supervisor child specification for a
 %% 	{@link //stdlib/gen_server. gen_server} behaviour.
 %% @private

@@ -35,8 +35,11 @@
 %%  The radius callbacks
 %%----------------------------------------------------------------------
 
--spec init(Address :: inet:ip_address(), Port :: pos_integer()) ->
-	{ok, State :: #state{}} | {error, Reason :: term()}.
+-spec init(Address, Port) -> Result
+	when
+		Address :: inet:ip_address(), 
+		Port :: pos_integer(),
+		Result :: {ok, State :: #state{}} | {error, Reason :: term()}.
 %% @doc This callback function is called when a
 %% 	{@link //radius/radius_server. radius_server} behaviour process
 %% 	initializes.
@@ -48,9 +51,13 @@ init(Address, Port) when is_tuple(Address), is_integer(Port) ->
 			{error, radius_auth_port_server_not_found}
 	end.
 
--spec request(Address :: inet:ip_address(), Port :: pos_integer(),
-		Packet :: binary(), State :: #state{}) ->
-	{ok, Response :: binary()} | {error, Reason :: ignore | term()}.
+-spec request(Address, Port, Packet, State) -> Result
+	when
+		Address :: inet:ip_address(), 
+		Port :: pos_integer(),
+		Packet :: binary(), 
+		State :: #state{},
+		Result :: {ok, Response :: binary()} | {error, Reason :: ignore | term()}.
 %% @doc This function is called when a request is received on the port.
 %%
 request(Address, Port, Packet, #state{port_server = Server} = _State)
@@ -83,7 +90,10 @@ request(Address, Port, Packet, #state{port_server = Server} = _State)
 			{error, ignore}
 	end.
 
--spec terminate(Reason :: term(), State :: #state{}) -> ok.
+-spec terminate(Reason, State) -> ok
+	when
+		Reason :: term(), 
+		State :: #state{}.
 %% @doc This callback function is called just before the server exits.
 %%
 terminate(_Reason, _State) ->

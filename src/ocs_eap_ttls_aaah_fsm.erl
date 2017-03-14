@@ -55,8 +55,10 @@
 %%  The ocs_eap_ttls_aaah_fsm gen_fsm call backs
 %%----------------------------------------------------------------------
 
--spec init(Args :: list()) ->
-	Result :: {ok, StateName :: atom(), StateData :: statedata()}
+-spec init(Args) -> Result
+	when
+		Args :: list(),
+		Result :: {ok, StateName :: atom(), StateData :: statedata()}
 		| {ok, StateName :: atom(), StateData :: statedata(),
 			Timeout :: non_neg_integer() | infinity}
 		| {ok, StateName :: atom(), StateData :: statedata(), hibernate}
@@ -69,8 +71,11 @@ init(_Args) ->
 	process_flag(trap_exit, true),
 	{ok, idle, #statedata{}, ?TIMEOUT}.
 
--spec idle(Event :: timeout | term(), StateData :: statedata()) ->
-	Result :: {next_state, NextStateName :: atom(), NewStateData :: statedata()}
+-spec idle(Event, StateData) -> Result
+	when
+		Event :: timeout | term(), 
+		StateData :: statedata(),
+		Result :: {next_state, NextStateName :: atom(), NewStateData :: statedata()}
 		| {next_state, NextStateName :: atom(), NewStateData :: statedata(),
 		Timeout :: non_neg_integer() | infinity}
 		| {next_state, NextStateName :: atom(), NewStateData :: statedata(), hibernate}
@@ -97,9 +102,12 @@ idle({ttls_socket, TtlsFsm, TlsRecordLayerSocket}, StateData) ->
 			{stop, Reason, StateData}
 	end.
 
--spec handle_event(Event :: term(), StateName :: atom(),
-		StateData :: statedata()) ->
-	Result :: {next_state, NextStateName :: atom(), NewStateData :: statedata()}
+-spec handle_event(Event, StateName, StateData) -> Result
+	when
+		Event :: term(), 
+		StateName :: atom(),
+      StateData :: statedata(),
+		Result :: {next_state, NextStateName :: atom(), NewStateData :: statedata()}
 		| {next_state, NextStateName :: atom(), NewStateData :: statedata(),
 		Timeout :: non_neg_integer() | infinity}
 		| {next_state, NextStateName :: atom(), NewStateData :: statedata(), hibernate}
@@ -114,9 +122,13 @@ idle({ttls_socket, TtlsFsm, TlsRecordLayerSocket}, StateData) ->
 handle_event(_Event, StateName, StateData) ->
 	{next_state, StateName, StateData, ?TIMEOUT}.
 
--spec handle_sync_event(Event :: term(), From :: {Pid :: pid(), Tag :: term()},
-		StateName :: atom(), StateData :: statedata()) ->
-	Result :: {reply, Reply :: term(), NextStateName :: atom(), NewStateData :: statedata()}
+-spec handle_sync_event(Event, From, StateName, StateData) -> Result
+	when
+		Event :: term(), 
+		From :: {Pid :: pid(), Tag :: term()},
+      StateName :: atom(), 
+		StateData :: statedata(),
+		Result :: {reply, Reply :: term(), NextStateName :: atom(), NewStateData :: statedata()}
 		| {reply, Reply :: term(), NextStateName :: atom(), NewStateData :: statedata(),
 		Timeout :: non_neg_integer() | infinity}
 		| {reply, Reply :: term(), NextStateName :: atom(), NewStateData :: statedata(), hibernate}
@@ -135,8 +147,12 @@ handle_event(_Event, StateName, StateData) ->
 handle_sync_event(_Event, _From, StateName, StateData) ->
 	{reply, ok, StateName, StateData}.
 
--spec handle_info(Info :: term(), StateName :: atom(), StateData :: statedata()) ->
-	Result :: {next_state, NextStateName :: atom(), NewStateData :: statedata()}
+-spec handle_info(Info, StateName, StateData) -> Result
+	when
+		Info :: term(), 
+		StateName :: atom(), 
+		StateData :: statedata(),
+		Result :: {next_state, NextStateName :: atom(), NewStateData :: statedata()}
 		| {next_state, NextStateName :: atom(), NewStateData :: statedata(),
 		Timeout :: non_neg_integer() | infinity}
 		| {next_state, NextStateName :: atom(), NewStateData :: statedata(), hibernate}
@@ -190,8 +206,11 @@ handle_info1(Subscriber, Password) ->
 			{error, bad_password}
 	end.
 
--spec terminate(Reason :: normal | shutdown | term(), StateName :: atom(),
-		StateData :: statedata()) -> any().
+-spec terminate(Reason, StateName, StateData) -> any()
+	when
+		Reason :: normal | shutdown | term(), 
+		StateName :: atom(),
+      StateData :: statedata().
 %% @doc Cleanup and exit.
 %% @see //stdlib/gen_fsm:terminate/3
 %% @private
@@ -199,9 +218,13 @@ handle_info1(Subscriber, Password) ->
 terminate(_Reason, _StateName, _StateData) ->
 	ok.
 
--spec code_change(OldVsn :: (Vsn :: term() | {down, Vsn :: term()}),
-		StateName :: atom(), StateData :: statedata(), Extra :: term()) ->
-	Result :: {ok, NextStateName :: atom(), NewStateData :: statedata()}.
+-spec code_change(OldVsn, StateName, StateData, Extra ) -> Result
+	when
+		OldVsn :: (Vsn :: term() | {down, Vsn :: term()}),
+      StateName :: atom(), 
+		StateData :: statedata(), 
+		Extra :: term(),
+		Result :: {ok, NextStateName :: atom(), NewStateData :: statedata()}.
 %% @doc Update internal state data during a release upgrade&#047;downgrade.
 %% @see //stdlib/gen_fsm:code_change/4
 %% @private

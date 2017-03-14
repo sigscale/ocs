@@ -63,8 +63,10 @@
 %%  The ocs_radius_disconnect_fsm gen_fsm call backs
 %%----------------------------------------------------------------------
 
--spec init(Args :: list()) ->
-	Result :: {ok, StateName :: atom(), StateData :: #statedata{}}
+-spec init(Args) -> Result
+	when
+		Args :: list(),
+		Result :: {ok, StateName :: atom(), StateData :: #statedata{}}
 		| {ok, StateName :: atom(), StateData :: #statedata{},
 			Timeout :: non_neg_integer() | infinity}
 		| {ok, StateName :: atom(), StateData :: #statedata{}, hibernate}
@@ -80,8 +82,11 @@ init([Address, NasId, Subscriber, AcctSessionId, Secret, Attributes, Id]) ->
 			secret = Secret, attributes = Attributes, id = Id},
 	{ok, send_request, StateData, 0}.
 
--spec send_request(Event :: timeout | term(), StateData :: #statedata{}) ->
-	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
+-spec send_request(Event, StateData) -> Result
+	when
+		Event :: timeout | term(), 
+		StateData :: #statedata{},
+		Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
 		Timeout :: non_neg_integer() | infinity}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
@@ -122,8 +127,11 @@ send_request(timeout, #statedata{nas_ip = Address, id = Id,
 				{next_state, send_request, StateData, ?TIMEOUT}
 	end.
 
--spec receive_response(Event :: timeout | term(), StateData :: #statedata{}) ->
-	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
+-spec receive_response(Event, StateData) -> Result
+	when
+		Event :: timeout | term(), 
+		StateData :: #statedata{},
+		Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
 		Timeout :: non_neg_integer() | infinity}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
@@ -151,9 +159,12 @@ receive_response(timeout, #statedata{socket = Socket, nas_ip = NasIp ,
 			{next_state, receive_response, NewStateData, 0}
 	end.
 
--spec handle_event(Event :: term(), StateName :: atom(),
-		StateData :: #statedata{}) ->
-	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
+-spec handle_event(Event, StateName, StateData) -> Result
+	when
+		Event :: term(), 
+		StateName :: atom(), 
+		StateData :: #statedata{},
+		Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
 		Timeout :: non_neg_integer() | infinity}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
@@ -167,9 +178,13 @@ receive_response(timeout, #statedata{socket = Socket, nas_ip = NasIp ,
 handle_event(_Event, StateName, StateData) ->
 	{next_state, StateName, StateData}.
 
--spec handle_sync_event(Event :: term(), From :: {Pid :: pid(), Tag :: term()},
-		StateName :: atom(), StateData :: #statedata{}) ->
-	Result :: {reply, Reply :: term(), NextStateName :: atom(), NewStateData :: #statedata{}}
+-spec handle_sync_event(Event, From, StateName, StateData) -> Result
+	when
+		Event :: term(), 
+		From :: {Pid :: pid(), Tag :: term()},
+		StateName :: atom(), 
+		StateData :: #statedata{},
+		Result :: {reply, Reply :: term(), NextStateName :: atom(), NewStateData :: #statedata{}}
 		| {reply, Reply :: term(), NextStateName :: atom(), NewStateData :: #statedata{},
 		Timeout :: non_neg_integer() | infinity}
 		| {reply, Reply :: term(), NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
@@ -188,8 +203,12 @@ handle_event(_Event, StateName, StateData) ->
 handle_sync_event(_Event, _From, StateName, StateData) ->
 	{reply, ok, StateName, StateData}.
 
--spec handle_info(Info :: term(), StateName :: atom(), StateData :: #statedata{}) ->
-	Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
+-spec handle_info(Info, StateName, StateData) -> Result
+	when
+		Info :: term(), 
+		StateName :: atom(), 
+		StateData :: #statedata{},
+		Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
 		Timeout :: non_neg_integer() | infinity}
 		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
@@ -227,8 +246,11 @@ handle_info({udp, _, NasIp, NasPort, Packet}, _StateName,
 	end,
 	{stop, {shutdown, {NasId, Subscriber, AcctSessionId}}, StateData}.
 
--spec terminate(Reason :: normal | shutdown | term(), StateName :: atom(),
-		StateData :: #statedata{}) -> any().
+-spec terminate(Reason, StateName, StateData) -> any()
+	when
+		Reason :: normal | shutdown | term(), 
+		StateName :: atom(),
+		StateData :: #statedata{}.
 %% @doc Cleanup and exit.
 %% @see //stdlib/gen_fsm:terminate/3
 %% @private
@@ -238,9 +260,13 @@ terminate(_Reason, _StateName, #statedata{socket = undefined} = _StateData) ->
 terminate(_Reason, _StateName, #statedata{socket = Socket} = _StateData) ->
 	gen_udp:close(Socket).
 
--spec code_change(OldVsn :: (Vsn :: term() | {down, Vsn :: term()}),
-		StateName :: atom(), StateData :: #statedata{}, Extra :: term()) ->
-	Result :: {ok, NextStateName :: atom(), NewStateData :: #statedata{}}.
+-spec code_change(OldVsn, StateName, StateData, Extra) -> Result
+	when
+		OldVsn :: (Vsn :: term() | {down, Vsn :: term()}),
+		StateName :: atom(), 
+		StateData :: #statedata{}, 
+		Extra :: term(),
+		Result :: {ok, NextStateName :: atom(), NewStateData :: #statedata{}}.
 %% @doc Update internal state data during a release upgrade&#047;downgrade.
 %% @see //stdlib/gen_fsm:code_change/4
 %% @private
@@ -252,10 +278,12 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec extract_attributes(Attributes :: [integer()], 
+-spec extract_attributes(Attributes, AttrList, CurrentAttrList) -> NewAttrList
+	when
+		Attributes :: [integer()],
 		AttrList :: radius_attributes:attributes(),
-		CurrentAttrList :: radius_attributes:attributes())->
-	NewAttrList :: radius_attributes:attributes().
+		CurrentAttrList :: radius_attributes:attributes(),
+		NewAttrList :: radius_attributes:attributes().
 %% @doc Appends radius attributes needed for a Disconnect/Request
 %% @private
 %%

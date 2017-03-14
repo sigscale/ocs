@@ -53,7 +53,10 @@
 %%  The ocs_radius_acct_port_server gen_server call backs
 %%----------------------------------------------------------------------
 
--spec init(Args :: list()) -> Result :: {ok, State :: state()}
+-spec init(Args) -> Result
+	when
+		Args :: list(),
+		Result :: {ok, State :: state()}
 		| {ok, State :: state(), Timeout :: non_neg_integer() | infinity}
 		| {stop, Reason :: term()} | ignore.
 %% @doc Initialize the {@module} server.
@@ -72,9 +75,12 @@ init([AcctSup, Address, Port, _Options]) ->
 			{stop, Reason}
 	end.
 
--spec handle_call(Request :: term(), From :: {Pid :: pid(), Tag :: any()},
-		State :: state()) ->
-	Result :: {reply, Reply :: term(), NewState :: state()}
+-spec handle_call(Request, From, State) -> Result
+	when
+		Request :: term(), 
+		From :: {Pid :: pid(), Tag :: any()},
+		State :: state(),
+		Result :: {reply, Reply :: term(), NewState :: state()}
 		| {reply, Reply :: term(), NewState :: state(), Timeout :: non_neg_integer() | infinity}
 		| {reply, Reply :: term(), NewState :: state(), hibernate}
 		| {noreply, NewState :: state()}
@@ -93,8 +99,11 @@ handle_call({request, Address, Port, Secret,
 			#radius{code = ?AccountingRequest} = Radius}, From, State) ->
 	request(Address, Port, Secret, Radius, From, State).
 
--spec handle_cast(Request :: term(), State :: state()) ->
-	Result :: {noreply, NewState :: state()}
+-spec handle_cast(Request, State) -> Result
+	when
+		Request :: term(), 
+		State :: state(),
+		Result :: {noreply, NewState :: state()}
 		| {noreply, NewState :: state(), Timeout :: non_neg_integer() | infinity}
 		| {noreply, NewState :: state(), hibernate}
 		| {stop, Reason :: term(), NewState :: state()}.
@@ -107,8 +116,11 @@ handle_call({request, Address, Port, Secret,
 handle_cast(_Request, State) ->
 	{noreply, State}.
 
--spec handle_info(Info :: timeout | term(), State :: state()) ->
-	Result :: {noreply, NewState :: state()}
+-spec handle_info(Info, State) -> Result
+	when
+		Info :: timeout | term(), 
+		State :: state(),
+		Result :: {noreply, NewState :: state()}
 		| {noreply, NewState :: state(), Timeout :: non_neg_integer() | infinity}
 		| {noreply, NewState :: state(), hibernate}
 		| {stop, Reason :: term(), NewState :: state()}.
@@ -144,8 +156,10 @@ handle_info({'EXIT', Fsm, _Reason},
 			{noreply, NewState}
 	end.
 
--spec terminate(Reason :: normal | shutdown | term(),
-		State :: state()) -> any().
+-spec terminate(Reason, State) -> any()
+	when
+		Reason :: normal | shutdown | term(), 
+		State :: state().
 %% @doc Cleanup and exit.
 %% @see //stdlib/gen_server:terminate/3
 %% @private
@@ -153,9 +167,12 @@ handle_info({'EXIT', Fsm, _Reason},
 terminate(_Reason,  _State) ->
 	ocs_log:radius_acct_close().
 
--spec code_change(OldVsn :: (Vsn :: term() | {down, Vsn :: term()}),
-		State :: state(), Extra :: term()) ->
-	Result :: {ok, NewState :: state()}.
+-spec code_change(OldVsn, State, Extra) -> Result
+	when
+		OldVsn :: (Vsn :: term() | {down, Vsn :: term()}),
+		State :: state(), 
+		Extra :: term(),
+		Result :: {ok, NewState :: state()}.
 %% @doc Update internal state data during a release upgrade&#047;downgrade.
 %% @see //stdlib/gen_server:code_change/3
 %% @private
@@ -167,10 +184,16 @@ code_change(_OldVsn, State, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec request(Address :: inet:ip_address(), Port :: pos_integer(),
-		Secret :: string(), Radius :: #radius{},
-		From :: {Pid :: pid(), Tag :: term()}, State :: state()) ->
-	{reply, {ok, wait}, NewState :: state()}
+-spec request(Address, Port,
+		Secret, Radius, From, State) -> Result
+	when
+		Address :: inet:ip_address(), 
+		Port :: pos_integer(),
+		Secret :: string(), 
+		Radius :: #radius{},
+		From :: {Pid :: pid(), Tag :: term()}, 
+		State :: state(),
+		Result :: {reply, {ok, wait}, NewState :: state()}
 			| {reply, {error, ignore}, NewState :: state()}.
 %% @doc Handle a received RADIUS Accounting Request packet.
 %% @private
@@ -284,9 +307,12 @@ request1(_AcctStatusType, _AcctSessionId, _Id, _Authenticator,
 		_Secret, _NasId, _Address, _Port, _Attributes, State) ->
 	{reply, {error, ignore}, State}.
 
--spec response(Id :: byte(), RequestAuthenticator :: [byte()],
-		Secret :: string() | binary()) ->
-	AccessAccept :: binary().
+-spec response(Id, RequestAuthenticator, Secret) -> AccessAccept
+	when
+		Id :: byte(), 
+		RequestAuthenticator :: [byte()],
+		Secret :: string() | binary(),
+		AccessAccept :: binary().
 %% @hidden
 response(Id, RequestAuthenticator, Secret) ->
 	Length = 20,
@@ -327,11 +353,19 @@ decrement_balance(Subscriber, Usage) when is_binary(Subscriber),
 			{error, Reason}
 	end.
 
--spec start_disconnect(AcctSessionId :: integer(), Id :: byte(),
-		Authenticator :: [byte()], Secret :: string(),
-		NasId :: inet:ip_address() | string(), Address :: inet:ip_address(),
-		Attributes :: [binary()], Subscriber :: [byte()], State :: #state{}) ->
-	{reply, {ok, Response :: binary()}, NewState :: #state{}}.
+-spec start_disconnect(AcctSessionId, Id, Authenticator, Secret, NasId, Address, 
+	Attributes, Subscriber, State) -> Result
+	when
+		AcctSessionId :: integer(), 
+		Id :: byte(),
+		Authenticator :: [byte()], 
+		Secret :: string(),
+		NasId :: inet:ip_address() | string(), 
+		Address :: inet:ip_address(),
+		Attributes :: [binary()], 
+		Subscriber :: [byte()], 
+		State :: #state{},
+		Result :: {reply, {ok, Response :: binary()}, NewState :: #state{}}.
 %% @doc Start a disconnect_fsm worker.
 start_disconnect(AcctSessionId, Id, Authenticator, Secret, NasId, Address,
 		Attributes, Subscriber, #state{handlers = Handlers,
