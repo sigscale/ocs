@@ -1,4 +1,4 @@
-# v1.0 - 2017-03-10
-
-Initial release.
-
+March 14 2017
+------------
+	- version change to 1.0
+	- implement autotools build

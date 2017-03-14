@@ -1,4 +1,8 @@
-# v1.0 - 2017-03-10
+2017-03-14  Kalpa Gunarathna  <kalpa@sigscale.com>
 
-Initial release.
+	* ocs_rest_res*.erl : perform RESTful operations
+	* ocs_log.erl : add IPDR log functionality
+	* mod_ocs_rest*.erl.erl : add custom mods for inets, httpd server
+	* ocs_eap*.erl.erl : add EAP authentication functionality
+	* ocs_radius*.erl.erl : add RADIUS protocol support 
 
