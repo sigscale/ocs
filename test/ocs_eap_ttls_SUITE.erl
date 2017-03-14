@@ -290,7 +290,7 @@ client_cipher2(<<_:24, L1:16, _/binary>>  = Data, Socket, Address, Port,
 		NasId, UserName, Secret, MAC, Auth, EapId, RadId, Buff) ->
 	case Data of
 		<<_:40, _:L1/binary>> ->
-			{SslPid2, Rest} = ssl_handshake(),
+			{_SslPid2, Rest} = ssl_handshake(),
 			Chunk = <<Buff/binary, Data/binary>>,
 			client_cipher1(Rest, Socket, Address, Port,
 				NasId, UserName, Secret, MAC, Auth, EapId, RadId, Chunk);
@@ -364,7 +364,7 @@ client_passthrough(SslSocket, UserName, Password, Socket, Address, Port,
 	AVPs = list_to_binary(lists:map(fun diameter_codec:pack_avp/1,
 			[UN, PW])),
 	ok = ssl:send(SslSocket, AVPs),
-	{SslPid, UserCredential} = ssl_handshake(),
+	{_SslPid, UserCredential} = ssl_handshake(),
 	TtlsPacket = #eap_ttls{data = UserCredential},
 	TtlsData = ocs_eap_codec:eap_ttls(TtlsPacket),
 	EapPacket = #eap_packet{code = response, identifier = EapId, type = ?TTLS,
@@ -373,7 +373,7 @@ client_passthrough(SslSocket, UserName, Password, Socket, Address, Port,
 		binary_to_list(UserName), Secret, MAC, Auth, RadId),
 	{RadId, Auth}.
 
-server_passthrough(Socket, Address, Port, NasId, _UserName, Secret,
+server_passthrough(Socket, Address, Port, _NasId, _UserName, Secret,
 			_MAC, Auth, RadId) ->
 	EapMsg = access_accept(Socket, Address, Port,
 			Secret, RadId, Auth),

@@ -104,7 +104,7 @@ send(ClientPid, Data) when is_pid(ClientPid) ->
 		Pid :: pid(),
 		Reason :: closed | not_owner | term().
 %% @doc Assigns a new controlling process Pid to EAP session.
-controlling_process(ClientPid, Pid) when is_pid(ClientPid) ->
+controlling_process(ClientPid, _Pid) when is_pid(ClientPid) ->
 	ok.
 
 -spec close(ClientPid) ->
