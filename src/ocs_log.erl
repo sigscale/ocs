@@ -175,6 +175,18 @@ radius_auth_log(Server, Client, Type, RequestAttributes, ResponseAttributes) ->
 		Match :: term() | '_',
 		Result :: [term()].
 %% @doc Query RADIUS access request events with filters.
+%%
+%% 	Events before `Start' or after `Stop' or which do not match one of
+%% 	the `Types' are ignored.
+%%
+%% 	Events which do not include `Attribute' in request or response
+%% 	attributes are ignored. If `Match' is `'_'' any attribute value
+%% 	will match, otherwise events with attributes having a value not
+%% 	equal to `Match' will be ignored. All attribute filters must
+%% 	match or the event will be ignored.
+%%
+%% 	Returns a list of mathing authentication events.
+%%
 radius_auth_query({{_, _, _}, {_, _, _}} = Start, End, Types, ReqAttrsMatch, RespAttrsMatch) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(Start) - ?EPOCH,
 	radius_auth_query(Seconds * 1000, End, Types, ReqAttrsMatch, RespAttrsMatch);
