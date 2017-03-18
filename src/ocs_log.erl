@@ -39,6 +39,9 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
+% calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
+-define(EPOCH, 62167219200).
+
 %%----------------------------------------------------------------------
 %%  The ocs_log public API
 %%----------------------------------------------------------------------
@@ -173,12 +176,10 @@ radius_auth_log(Server, Client, Type, RequestAttributes, ResponseAttributes) ->
 		Result :: [term()].
 %% @doc Query RADIUS access request events with filters.
 radius_auth_query({{_, _, _}, {_, _, _}} = Start, End, Types, ReqAttrsMatch, RespAttrsMatch) ->
-	Epoch = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
-	Seconds = calendar:datetime_to_gregorian_seconds(Start) - Epoch,
+	Seconds = calendar:datetime_to_gregorian_seconds(Start) - ?EPOCH,
 	radius_auth_query(Seconds * 1000, End, Types, ReqAttrsMatch, RespAttrsMatch);
 radius_auth_query(Start, {{_, _, _}, {_, _, _}} = End, Types, ReqAttrsMatch, RespAttrsMatch) ->
-	Epoch = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
-	Seconds = calendar:datetime_to_gregorian_seconds(End) - Epoch,
+	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
 	radius_auth_query(Start, Seconds * 1000, Types, ReqAttrsMatch, RespAttrsMatch);
 radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch) when is_integer(Start), is_integer(End) ->
 	radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, disk_log:chunk(radius_auth, start), []).
@@ -266,12 +267,10 @@ radius_auth_close() ->
 %% 	{@link //erts/erlang:system_time(). erlang:system_time(millisecond)}.
 %%
 ipdr_log(File, {{_, _, _}, {_, _, _}} = Start, End) ->
-	Epoch = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
-	Seconds = calendar:datetime_to_gregorian_seconds(Start) - Epoch,
+	Seconds = calendar:datetime_to_gregorian_seconds(Start) - ?EPOCH,
 	ipdr_log(File, Seconds * 1000, End);
 ipdr_log(File, Start, {{_, _, _}, {_, _, _}} = End) ->
-	Epoch = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
-	Seconds = calendar:datetime_to_gregorian_seconds(End) - Epoch,
+	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
 	ipdr_log(File, Start, Seconds * 1000);
 ipdr_log(File, Start, End) when is_list(File),
 		is_integer(Start), is_integer(End) ->
@@ -388,12 +387,10 @@ ipdr_log4(IpdrLog, SeqNum) ->
 %%
 %% @private
 get_range(Log, {{_, _, _}, {_, _, _}} = Start, End) ->
-	Epoch = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
-	Seconds = calendar:datetime_to_gregorian_seconds(Start) - Epoch,
+	Seconds = calendar:datetime_to_gregorian_seconds(Start) - ?EPOCH,
 	get_range(Log, Seconds * 1000, End);
 get_range(Log, Start, {{_, _, _}, {_, _, _}} = End) ->
-	Epoch = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
-	Seconds = calendar:datetime_to_gregorian_seconds(End) - Epoch,
+	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
 	get_range(Log, Start, Seconds * 1000);
 get_range(Log, Start, End) when is_integer(Start), is_integer(End) ->
 	get_range(Log, Start, End, start).
@@ -421,8 +418,7 @@ dump_file(Log, FileName) when is_list(FileName) ->
 		Result :: calendar:datetime().
 %% @doc Convert timestamp to date and time.
 date(MilliSeconds) when is_integer(MilliSeconds) ->
-	Epoch = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
-	Seconds = Epoch + (MilliSeconds div 1000),
+	Seconds = ?EPOCH + (MilliSeconds div 1000),
 	calendar:gregorian_seconds_to_datetime(Seconds).
 
 -spec iso8601(MilliSeconds) -> Result
