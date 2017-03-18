@@ -186,7 +186,6 @@ radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch) when is_inte
 
 %% @hidden
 radius_auth_query(_Start, _End, _Types, _ReqAttrsMatch, _RespAttrsMatch, eof, Acc) ->
-%erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE}),
 	lists:reverse(Acc);
 radius_auth_query(_Start, _End, _Types, _ReqAttrsMatch, _RespAttrsMatch, {error, Reason}, _Acc) ->
 	{error, Reason};
@@ -203,33 +202,30 @@ radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, []}, 
 	radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, disk_log:chunk(radius_auth, Cont), Acc).
 
 %% @hidden
-radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,[{_,_,_,_,_,ReqAttrs,_} | T1] = Chunk}, Acc, [{Attribute, Match} | T]) ->
+radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,[{_,_,_,_,_,ReqAttrs,_} | T] = Chunk}, Acc, [{Attribute, Match} | T1]) ->
 	case lists:keyfind(Attribute, 1, ReqAttrs) of
 		{Attribute, Match} ->
-%erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE, Attribute, ReqAttrs, Match}),
-			radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, [ReqAttrs | Acc], T);
+			radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, Acc, T1);
 		{Attribute, _} when Match == '_' ->
-			radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, Acc, T);
-		false ->
-			radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, T1}, Acc)
+			radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, Acc, T1);
+		_ ->
+			radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, T}, Acc)
 	end;
 radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, Acc, []) ->
-%erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE}),
 	radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, Acc, RespAttrsMatch).
 
 %% @hidden
-radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,[{_,_,_,_,_,_,RespAttrs} | T1] = Chunk}, Acc, [{Attribute, Match} | T2]) ->
+radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,[{_,_,_,_,_,_,RespAttrs} | T] = Chunk}, Acc, [{Attribute, Match} | T1]) ->
 	case lists:keyfind(Attribute, 1, RespAttrs) of
 		{Attribute, Match} ->
-%erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE}),
-					radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, [RespAttrs | Acc], T2);
+			radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, Acc, T1);
+		{Attribute, _} when Match == '_' ->
+			radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, Acc, T1);
 		false ->
-%erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE, Attribute, Match}),
-			radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, T1}, Acc)
+			radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, T}, Acc)
 	end;
-radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, T}, Acc, []) ->
-%erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE}),
-	radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, T}, Acc).
+radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, [H | T]}, Acc, []) ->
+	radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, T}, [H | Acc]).
 
 -spec radius_auth_close() -> Result
 	when
