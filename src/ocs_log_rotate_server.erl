@@ -148,9 +148,8 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% @hidden
 log(#state{rotate_time = LogRotateTime} = State) ->
-	{ok, Directory} = application:get_env(ocs, acct_log_dir),
-	FileName = Directory ++ "/" ++ atom_to_list(?USAGE_LOG) ++ "_" ++
-		ocs_log:iso8601(erlang:system_time(?MILLISECOND)),
+	{ok, Directory} = application:get_env(ocs, ipdr_dir),
+	FileName = Directory ++ "/" ++ ocs_log:iso8601(erlang:system_time(?MILLISECOND)),
 	Now = erlang:system_time(?MILLISECOND),
 	Start = Now - LogRotateTime,
 	End = Now,

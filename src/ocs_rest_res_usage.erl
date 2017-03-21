@@ -28,7 +28,7 @@
 -include_lib("radius/include/radius.hrl").
 -include("ocs_log.hrl").
 
--define(USAGE_LOG, usage_log).
+-define(IPDR_LOG, ipdr_log).
 
 -spec content_types_accepted() -> ContentTypes
 	when
@@ -50,12 +50,10 @@ content_types_provided() ->
 %% @doc Body producing function for `GET /usageManagement/v1/usage'
 %% requests.
 perform_get_all() ->
-	{ok, Directory} = application:get_env(ocs, acct_log_dir),
-	Log = ?USAGE_LOG,
+	{ok, Directory} = application:get_env(ocs, ipdr_dir),
 	case file:list_dir(Directory) of
 		{ok, Files} ->
-			UsageLogs  = [F || F <- Files, lists:prefix(atom_to_list(Log), F)],
-			Body = mochijson:encode({array, UsageLogs}),
+			Body = mochijson:encode({array, Files}),
 			{body, Body};
 		{error, _Reason} ->
 			{error, 500}
@@ -68,9 +66,9 @@ perform_get_all() ->
 %% @doc Body producing function for `GET /usageManagement/v1/usage/{id}'
 %% requests.
 perform_get(Id) ->
-	{ok, Directory} = application:get_env(ocs, acct_log_dir),
-	Log = ?USAGE_LOG,
-	FileName = Directory ++ "/" ++ atom_to_list(Log) ++ "_"++ Id,
+	{ok, Directory} = application:get_env(ocs, ipdr_dir),
+	Log = ?IPDR_LOG,
+	FileName = Directory ++ Id,
 	read_ipdr(Log, FileName).
 	
 %%----------------------------------------------------------------------

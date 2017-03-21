@@ -75,7 +75,7 @@
 			getLogContent: function (event){
 				var searchAjax = this.$.getLogContentAjax;
 				searchAjax,method = "GET";
-				searchAjax.url = "/usageManagement/v1/usage/" + event.model.item.split("_")[2];
+				searchAjax.url = "/usageManagement/v1/usage/" + event.model.item;
 				searchAjax.generateRequest();
 			},
 
