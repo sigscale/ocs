@@ -1,4 +1,4 @@
-%%% ocs_log_rotate_server.erl
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 SigScale Global Inc.
 %%% @end
@@ -28,7 +28,8 @@
 			terminate/2, code_change/3]).
 
 -record(state,
-				{rotate_time :: pos_integer()}).
+				{rotate_time :: pos_integer(),
+				 ipdr_dir :: string()}).
 -type state() :: #state{}.
 
 -define(USAGE_LOG, usage_log).
@@ -37,6 +38,9 @@
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
+
+% calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
+-define(EPOCH, 62167219200).
 
 %%----------------------------------------------------------------------
 %%  The ocs_log_rotate_server API
@@ -56,9 +60,18 @@
 %% @see //stdlib/gen_server:init/1
 %% @private
 %%
-init([LogRotateTime] = _Args) ->
+init([Rotate] = _Args) ->
 	process_flag(trap_exit, true),
-	{ok, #state{rotate_time = LogRotateTime}, 0}.
+	{ok, Directory} = application:get_env(ipdr_dir),
+	State = #state{ipdr_dir = Directory, rotate_time = Rotate*60*1000},
+	case file:make_dir(Directory) of
+		ok ->
+			{ok, State, 0};
+		{error, eexist} ->
+			{ok, State, 0};
+		{error, Reason} ->
+			{stop, Reason}
+	end.
 
 -spec handle_call(Request, From, State) -> Result
 	when
@@ -107,13 +120,18 @@ handle_cast(stop, State) ->
 %% @see //stdlib/gen_server:handle_info/2
 %% @private
 %%
-handle_info(timeout, State) ->
-	{ok, {H, M, _}} = application:get_env(ocs, log_rotate_time),
-	case erlang:time() of
-		{H, M, _} ->
-			log(State);
-		_ ->
-			{noreply, State, ?WAIT_TIME}
+handle_info(timeout, #state{ipdr_dir = Directory, rotate_time = Rotate} = State) ->
+	FileName = Directory ++ "/" ++ ocs_log:iso8601(erlang:system_time(?MILLISECOND)),
+	Now = ?EPOCH + erlang:system_time(?MILLISECOND),
+	Start = Now - Rotate,
+	case ocs_log:ipdr_log(FileName, Start, Now) of
+		ok ->
+			{noreply, State, Rotate} ;
+		{error, Reason} ->
+			error_logger:error_report("Failed to create usage logs", [{module, ?MODULE},
+				{failed_at, ocs_log:iso8601(erlang:system_time(?MILLISECOND))},
+				{reason, Reason}]),
+			{noreply, State, Rotate}
 	end.
 
 
@@ -145,22 +163,4 @@ code_change(_OldVsn, State, _Extra) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
-
-%% @hidden
-log(#state{rotate_time = LogRotateTime} = State) ->
-	{ok, Directory} = application:get_env(ocs, ipdr_dir),
-	FileName = Directory ++ "/" ++ ocs_log:iso8601(erlang:system_time(?MILLISECOND)),
-	Now = erlang:system_time(?MILLISECOND),
-	Start = Now - LogRotateTime,
-	End = Now,
-	case ocs_log:ipdr_log(FileName, Start, End) of
-		ok ->
-			{noreply, State, ?WAIT_TIME} ;
-		{error, Reason} ->
-			error_logger:error_report("Failed to create usage logs", [{module, ?MODULE},
-				{failed_at, ocs_log:iso8601(erlang:system_time(?MILLISECOND))},
-				{reason, Reason}]),
-			{noreply, State, ?WAIT_TIME}
-	end.
-
 
