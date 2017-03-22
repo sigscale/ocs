@@ -95,9 +95,9 @@ init([AcctSup, Address, Port, _Options]) ->
 %% @private
 handle_call(shutdown, _From, State) ->
 	{stop, normal, ok, State};
-handle_call({request, Address, Port, Secret,
+handle_call({request, Address, AccPort, Secret, DiscPort,
 			#radius{code = ?AccountingRequest} = Radius}, From, State) ->
-	request(Address, Port, Secret, Radius, From, State).
+	request(Address, AccPort, Secret, DiscPort, Radius, From, State).
 
 -spec handle_cast(Request, State) -> Result
 	when
@@ -184,12 +184,13 @@ code_change(_OldVsn, State, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec request(Address, Port,
-		Secret, Radius, From, State) -> Result
+-spec request(Address, Port, Secret,
+						DiscPort, Radius, From, State) -> Result
 	when
 		Address :: inet:ip_address(), 
 		Port :: pos_integer(),
 		Secret :: string(), 
+		DiscPort :: pos_integer(),
 		Radius :: #radius{},
 		From :: {Pid :: pid(), Tag :: term()}, 
 		State :: state(),
@@ -197,7 +198,8 @@ code_change(_OldVsn, State, _Extra) ->
 			| {reply, {error, ignore}, NewState :: state()}.
 %% @doc Handle a received RADIUS Accounting Request packet.
 %% @private
-request(Address, Port, Secret, Radius, {_RadiusFsm, _Tag} = _From, State) ->
+request(Address, AccPort, Secret,
+				DiscPort, Radius, {_RadiusFsm, _Tag} = _From, State) ->
 	try
 		#radius{code = ?AccountingRequest, id = Id, attributes = Attributes,
 				authenticator = Authenticator} = Radius,
@@ -222,21 +224,21 @@ request(Address, Port, Secret, Radius, {_RadiusFsm, _Tag} = _From, State) ->
 		{error, not_found} = radius_attributes:find(?ReplyMessage, Attributes),
 		{error, not_found} = radius_attributes:find(?State, Attributes),
 		{ok, AcctSessionId} = radius_attributes:find(?AcctSessionId, Attributes),
-		request1(AcctStatusType, AcctSessionId, Id,
-				Authenticator, Secret, NasId, Address, Port, Attributes, State)
+		request1(AcctStatusType, AcctSessionId, Id, Authenticator,
+						 Secret, NasId, Address, AccPort, DiscPort, Attributes, State)
 	catch
 		_:_ ->
 			{reply, {error, ignore}, State}
 	end.
 %% @hidden
 request1(?AccountingStart, _AcctSessionId, Id,
-		Authenticator, Secret, _NasId, Address, Port, Attributes,
+		Authenticator, Secret, _NasId, Address, AccPort, _DiscPort, Attributes,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
 	ok = ocs_log:radius_acct_log({ServerAddress, ServerPort},
-				{Address, Port}, start, Attributes),
+				{Address, AccPort}, start, Attributes),
 	{reply, {ok, response(Id, Authenticator, Secret)}, State};
 request1(?AccountingStop, AcctSessionId, Id,
-		Authenticator, Secret, NasId, Address, Port, Attributes,
+		Authenticator, Secret, NasId, Address, AccPort, DiscPort, Attributes,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
 	InOctets = radius_attributes:find(?AcctInputOctets, Attributes),
 	OutOctets = radius_attributes:find(?AcctOutputOctets, Attributes),
@@ -248,12 +250,12 @@ request1(?AccountingStop, AcctSessionId, Id,
 	end,
 	{ok, UserName} = radius_attributes:find(?UserName, Attributes),
 	ok = ocs_log:radius_acct_log({ServerAddress, ServerPort},
-				{Address, Port}, stop, Attributes),
+				{Address, AccPort}, stop, Attributes),
 	Subscriber = ocs:normalize(UserName),
 	case decrement_balance(Subscriber, Usage) of
 		{ok, OverUsed, false} when OverUsed =< 0 ->
-			start_disconnect(AcctSessionId, Id, Authenticator, Secret, NasId,
-					Address, Attributes, Subscriber, State);
+			start_disconnect(AcctSessionId, Id, Authenticator, Secret, DiscPort,
+					NasId, Address, Attributes, Subscriber, State);
 		{ok, _SufficientBalance, _Flag} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{error, not_found} ->
@@ -264,7 +266,7 @@ request1(?AccountingStop, AcctSessionId, Id,
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
 request1(?AccountingInterimUpdate, AcctSessionId, Id,
-		Authenticator, Secret, NasId, Address, Port, Attributes,
+		Authenticator, Secret, NasId, Address, AccPort, DiscPort, Attributes,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
 	InOctets = radius_attributes:find(?AcctInputOctets, Attributes),
 	OutOctets = radius_attributes:find(?AcctOutputOctets, Attributes),
@@ -276,12 +278,12 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 	end,
 	{ok, UserName} = radius_attributes:find(?UserName, Attributes),
 	ok = ocs_log:radius_acct_log({ServerAddress, ServerPort},
-				{Address, Port}, interim, Attributes),
+				{Address, AccPort}, interim, Attributes),
 	Subscriber = ocs:normalize(UserName),
 	case ocs:find_subscriber(Subscriber) of
 		{ok, _, _, Balance, Enabled} when Enabled == false; Balance =< Usage ->
-			start_disconnect(AcctSessionId, Id, Authenticator, Secret, NasId,
-					Address, Attributes, Subscriber, State);
+			start_disconnect(AcctSessionId, Id, Authenticator, Secret, DiscPort,
+					NasId, Address, Attributes, Subscriber, State);
 		{ok, _, _, _, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{error, not_found} ->
@@ -292,19 +294,19 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
 request1(?AccountingON, _AcctSessionId, Id,
-		Authenticator, Secret, _NasId, Address, Port, Attributes,
+		Authenticator, Secret, _NasId, Address, AccPort, _DiscPort, Attributes,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
 	ok = ocs_log:radius_acct_log({ServerAddress, ServerPort},
-				{Address, Port}, on, Attributes),
+				{Address, AccPort}, on, Attributes),
 	{reply, {ok, response(Id, Authenticator, Secret)}, State};
 request1(?AccountingOFF, _AcctSessionId, Id,
-		Authenticator, Secret, _NasId, Address, Port, Attributes,
+		Authenticator, Secret, _NasId, Address, AccPort, _DiscPort, Attributes,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
 	ok = ocs_log:radius_acct_log({ServerAddress, ServerPort},
-				{Address, Port}, off, Attributes),
+				{Address, AccPort}, off, Attributes),
 	{reply, {ok, response(Id, Authenticator, Secret)}, State};
 request1(_AcctStatusType, _AcctSessionId, _Id, _Authenticator,
-		_Secret, _NasId, _Address, _Port, _Attributes, State) ->
+		_Secret, _NasId, _Address, _Port, _DiscPort, _Attributes, State) ->
 	{reply, {error, ignore}, State}.
 
 -spec response(Id, RequestAuthenticator, Secret) -> AccessAccept
@@ -353,13 +355,14 @@ decrement_balance(Subscriber, Usage) when is_binary(Subscriber),
 			{error, Reason}
 	end.
 
--spec start_disconnect(AcctSessionId, Id, Authenticator, Secret, NasId, Address, 
-	Attributes, Subscriber, State) -> Result
+-spec start_disconnect(AcctSessionId, Id, Authenticator, Secret,
+	DiscPort,NasId, Address, Attributes, Subscriber, State) -> Result
 	when
 		AcctSessionId :: integer(), 
 		Id :: byte(),
 		Authenticator :: [byte()], 
 		Secret :: string(),
+		DiscPort :: non_neg_integer(),
 		NasId :: inet:ip_address() | string(), 
 		Address :: inet:ip_address(),
 		Attributes :: [binary()], 
@@ -367,15 +370,15 @@ decrement_balance(Subscriber, Usage) when is_binary(Subscriber),
 		State :: #state{},
 		Result :: {reply, {ok, Response :: binary()}, NewState :: #state{}}.
 %% @doc Start a disconnect_fsm worker.
-start_disconnect(AcctSessionId, Id, Authenticator, Secret, NasId, Address,
-		Attributes, Subscriber, #state{handlers = Handlers,
+start_disconnect(AcctSessionId, Id, Authenticator, Secret, DiscPort,
+		NasId, Address, Attributes, Subscriber, #state{handlers = Handlers,
 		disc_sup = DiscSup, disc_id = DiscId} = State) ->
 	case gb_trees:lookup({NasId, Subscriber, AcctSessionId}, Handlers) of
 		{value, _DiscPid} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		none ->
 			DiscArgs = [Address, NasId, Subscriber,
-					AcctSessionId, Secret, Attributes, Id],
+					AcctSessionId, Secret, DiscPort, Attributes, Id],
 			StartArgs = [DiscArgs, []],
 			case supervisor:start_child(DiscSup, StartArgs) of
 				{ok, DiscFsm} ->

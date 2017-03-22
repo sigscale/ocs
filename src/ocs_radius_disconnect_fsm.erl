@@ -43,6 +43,7 @@
 		{id :: integer(),
 		 nas_ip :: inet:ip_address(),
 		 nas_id :: undefined | string(),
+		 disc_port :: non_neg_integer(),
 		 subscriber :: string(),
 		 acct_session_id :: string(),
 		 secret :: string(),
@@ -75,11 +76,13 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([Address, NasId, Subscriber, AcctSessionId, Secret, Attributes, Id]) ->
+init([Address, NasId, Subscriber,
+				AcctSessionId, Secret, DiscPort, Attributes, Id]) ->
 	process_flag(trap_exit, true),
 	StateData = #statedata{nas_ip = Address, nas_id = NasId,
 			subscriber = Subscriber, acct_session_id = AcctSessionId,
-			secret = Secret, attributes = Attributes, id = Id},
+			secret = Secret, attributes = Attributes, id = Id,
+			disc_port = DiscPort},
 	{ok, send_request, StateData, 0}.
 
 -spec send_request(Event, StateData) -> Result
@@ -97,10 +100,9 @@ init([Address, NasId, Subscriber, AcctSessionId, Secret, Attributes, Id]) ->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-send_request(timeout, #statedata{nas_ip = Address, id = Id,
-		secret = SharedSecret, attributes = Attributes,
+send_request(timeout, #statedata{nas_ip = Address, disc_port = Port,
+		id = Id, secret = SharedSecret, attributes = Attributes,
 		retry_time = Retry} = StateData) ->
-	{ok, Port} = application:get_env(ocs, radius_disconnect_port),
 	IdAttrs = [?NasIpAddress, ?NasIdentifier, ?UserName, ?NasPort, ?FramedIpAddress,
 			?CallingStationId, ?CalledStationId, ?AcctSessionId, ?AcctMultiSessionId,
 			?NasPortType, ?NasPortId],

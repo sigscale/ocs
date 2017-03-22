@@ -61,18 +61,18 @@ init(Address, Port) ->
 		Result :: {ok, Response :: binary()} | {error, Reason :: ignore | term()}.
 %% @doc This function is called when a request is received on the port.
 %%
-request(Address, Port, Packet, #state{acct_server = Server} = _State)
+request(Address, AccPort, Packet, #state{acct_server = Server} = _State)
 		when is_tuple(Address) ->
 	try
-		{ok, _, _, SharedSecret} = ocs:find_client(Address),
+		{ok, DiscPort, _, SharedSecret} = ocs:find_client(Address),
 		Radius = radius:codec(Packet),
 		#radius{code = ?AccountingRequest, attributes = AttributeData} = Radius,
 		Attributes = radius_attributes:codec(AttributeData),
-		{SharedSecret, Radius#radius{attributes = Attributes}}
+		{SharedSecret, Radius#radius{attributes = Attributes}, DiscPort}
 	of
-		{Secret, AccountingRequest} ->
+		{Secret, AccountingRequest, DisconnectPort} ->
 			gen_server:call(Server,
-					{request, Address, Port, Secret, AccountingRequest})
+					{request, Address, AccPort, Secret, DisconnectPort, AccountingRequest})
 	catch
 		_:_ ->
 			{error, ignore}
