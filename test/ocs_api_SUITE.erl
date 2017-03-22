@@ -62,7 +62,8 @@ end_per_suite(Config) ->
 %% Initialization before each test case.
 %%
 init_per_testcase(_TestCase, Config) ->
-	{ok, [{_, IP, _, _}]} = application:get_env(ocs, radius_auth_config),
+	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, radius),
+	[{IP, _, _}] = AuthInstance,
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, IP}, binary]),
 	[{socket, Socket} | Config].
 
@@ -94,7 +95,8 @@ client() ->
 	[{userdata, [{doc, "Add client to database"}]}].
 
 client(Config) ->
-	{ok, [{_, Address, _, _}]} = application:get_env(ocs, radius_auth_config),
+	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, radius),
+	[{Address, _, _}] = AuthInstance,
 	SharedSecret = ct:get_config(radius_shared_secret, Config),
 	{ok, DiscPort} = application:get_env(ocs, radius_disconnect_port),
 	Protocol = ct:get_config(protocol),
@@ -144,7 +146,8 @@ delete_client() ->
 	[{userdata, [{doc, "Delete  a client from database"}]}].
 
 delete_client(Config) ->
-	{ok, [{_, Address, _, _}]} = application:get_env(ocs, radius_auth_config),
+	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, radius),
+	[{Address, _, _}] = AuthInstance,
 	SharedSecret = ct:get_config(radius_shared_secret, Config),
 	{ok, DiscPort} = application:get_env(ocs, radius_disconnect_port),
 	Protocol = ct:get_config(protocol),

@@ -72,7 +72,8 @@ end_per_suite(Config) ->
 %% Initiation before each test case.
 %%
 init_per_testcase(_TestCase, Config) ->
-	{ok, [{_, IP, _, _}]} = application:get_env(ocs, radius_auth_config),
+	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, radius),
+	[{IP, _AuthPort, _}] = AuthInstance,
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, IP}, binary]),
 	[{socket, Socket} | Config].
 
@@ -115,7 +116,8 @@ simple_authentication(Config) ->
 	Authenticator = radius:authenticator(),
 	SharedSecret = ct:get_config(radius_shared_secret),
 	UserPassword = radius_attributes:hide(SharedSecret, Authenticator, PeerPassword),	
-	{ok, [{radius, AuthAddress, AuthPort, _}]} = application:get_env(ocs, radius_auth_config),
+	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, radius),
+	[{AuthAddress, AuthPort, _}] = AuthInstance,
 	Socket = ?config(socket, Config), 
 	A0 = radius_attributes:new(),
 	A1 = radius_attributes:add(?ServiceType, 2, A0),
@@ -151,7 +153,8 @@ out_of_credit(Config) ->
 	Authenticator = radius:authenticator(),
 	SharedSecret = ct:get_config(radius_shared_secret),
 	UserPassword = radius_attributes:hide(SharedSecret, Authenticator, PeerPassword),	
-	{ok, [{radius, AuthAddress, AuthPort, _}]} = application:get_env(ocs, radius_auth_config),
+	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, radius),
+	[{AuthAddress, AuthPort, _}] = AuthInstance,
 	Socket = ?config(socket, Config), 
 	A0 = radius_attributes:new(),
 	A1 = radius_attributes:add(?ServiceType, 2, A0),
@@ -190,7 +193,8 @@ bad_password(Config) ->
 	Authenticator = radius:authenticator(),
 	SharedSecret = ct:get_config(radius_shared_secret),
 	BoguesPassowrd = radius_attributes:hide(SharedSecret, Authenticator, "bogus"),	
-	{ok, [{radius, AuthAddress, AuthPort, _}]} = application:get_env(ocs, radius_auth_config),
+	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, radius),
+	[{AuthAddress, AuthPort, _}] = AuthInstance,
 	Socket = ?config(socket, Config), 
 	A0 = radius_attributes:new(),
 	A1 = radius_attributes:add(?ServiceType, 2, A0),
@@ -229,7 +233,8 @@ unknown_username(Config) ->
 	SharedSecret = ct:get_config(radius_shared_secret),
 	UserPassword = radius_attributes:hide(SharedSecret, Authenticator, PeerPassword),	
 	BogusUserName = "tormentor",
-	{ok, [{radius, AuthAddress, AuthPort, _}]} = application:get_env(ocs, radius_auth_config),
+	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, radius),
+	[{AuthAddress, AuthPort, _}] = AuthInstance,
 	Socket = ?config(socket, Config), 
 	A0 = radius_attributes:new(),
 	A1 = radius_attributes:add(?ServiceType, 2, A0),

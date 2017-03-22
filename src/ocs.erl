@@ -460,7 +460,7 @@ generate_password() ->
 		Type :: auth | acct,
 		Address :: inet:ip_address(),
 		Port :: pos_integer(),
-		LogRotateTime :: pos_integer(),
+		LogRotateTime :: non_neg_integer(),
 		Result :: {ok, Pid} | {error, Reason},
 		Pid :: pid(),
 		Reason :: term().
@@ -475,7 +475,7 @@ start(Type, Address, Port, LogRotateTime) when is_tuple(Address), is_integer(Por
 		Type :: auth | acct,
 		Address :: inet:ip_address(),
 		Port :: pos_integer(),
-		LogRotateTime :: pos_integer(),
+		LogRotateTime :: non_neg_integer(),
 		Options :: [{eap_method_prefer, EapType} | {eap_method_order, EapTypes}],
 		EapType :: eap_method(),
 		EapTypes :: [eap_method()],
