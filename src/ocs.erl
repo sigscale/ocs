@@ -7,7 +7,7 @@
 %%% You may obtain a copy of the License at
 %%%
 %%%     http://www.apache.org/licenses/LICENSE-2.0
-%%%
+%html%%
 %%% Unless required by applicable law or agreed to in writing, software
 %%% distributed under the License is distributed on an "AS IS" BASIS,
 %%% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,8 +21,8 @@
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 %% export the ocs public API
--export([add_client/2, add_client/4, find_client/1, update_client_password/2,
-		update_client_attributes/3, get_clients/0, delete_client/1]).
+-export([add_client/2, add_client/4, find_client/1, update_client/2,
+		update_client/3, get_clients/0, delete_client/1]).
 -export([add_subscriber/3, add_subscriber/4, add_subscriber/5,
 		find_subscriber/1, delete_subscriber/1, update_password/2,
 		update_attributes/2, update_attributes/4, get_subscribers/0]).
@@ -104,19 +104,19 @@ find_client(Address) when is_tuple(Address) ->
 			{error, Reason}
 	end.
 
--spec update_client_password(Address, Password)-> Result
+-spec update_client(Address, Password)-> Result
 	when
 		Address :: string() | inet:ip_address(),
 		Password :: string() | binary(),
 		Result :: ok | {error, Reason},
 		Reason :: not_found | term().
 %% @doc Update client password
-update_client_password(Address, Password) when is_list(Address) ->
+update_client(Address, Password) when is_list(Address) ->
 	{ok, AddressTuple} = inet_parse:address(Address),
-	update_client_password(AddressTuple, Password);
-update_client_password(Address, Password) when is_list(Password) ->
-	update_client_password(Address, list_to_binary(Password));
-update_client_password(Address, Password) ->
+	update_client(AddressTuple, Password);
+update_client(Address, Password) when is_list(Password) ->
+	update_client(Address, list_to_binary(Password));
+update_client(Address, Password) ->
 	F = fun() ->
 				case mnesia:read(client, Address, write) of
 					[Entry] ->
@@ -135,7 +135,7 @@ update_client_password(Address, Password) ->
 			{error, Reason}
 	end.
 
--spec update_client_attributes(Address, DisconnectPort, Protocol)-> Result
+-spec update_client(Address, DisconnectPort, Protocol)-> Result
 	when
 		Address :: string() | inet:ip_address(),
 		DisconnectPort :: inet:port_number(),
@@ -143,11 +143,11 @@ update_client_password(Address, Password) ->
 		Result :: ok | {error, Reason},
 		Reason :: not_found | term().
 %% @doc Update client attributes
-update_client_attributes(Address, DiscPort, Protocol) when is_list(Address),
+update_client(Address, DiscPort, Protocol) when is_list(Address),
 			is_integer(DiscPort), is_atom(Protocol)  ->
 	{ok, AddressTuple} = inet_parse:address(Address),
-	update_client_attributes(AddressTuple, DiscPort, Protocol);
-update_client_attributes(Address, DiscPort, Protocol) when is_tuple(Address) ->
+	update_client(AddressTuple, DiscPort, Protocol);
+update_client(Address, DiscPort, Protocol) when is_tuple(Address) ->
 	F = fun() ->
 				case mnesia:read(client, Address, write) of
 					[Entry] ->

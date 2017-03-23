@@ -137,7 +137,7 @@ update_client_password(_Config) ->
 	PasswordBin = list_to_binary(Password),
 	{ok, DiscPort, Protocol, PasswordBin} = ocs:find_client(Address),
 	NewPassword = "GentooNewxD",
-	ok = ocs:update_client_password(Address, NewPassword),
+	ok = ocs:update_client(Address, NewPassword),
 	NewPasswordBin = list_to_binary(NewPassword),
 	{ok,  DiscPort, Protocol, NewPasswordBin} = ocs:find_client(Address).
 

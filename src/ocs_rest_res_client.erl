@@ -171,7 +171,7 @@ perform_patch(Id, ReqBody) ->
 	end.
 %% @hidden
 perfrom_patch1(Id, DiscPort, Protocol, NewPassword) ->
-	ok = ocs:update_client_password(Id, NewPassword),
+	ok = ocs:update_client(Id, NewPassword),
 	RespObj =[{id, Id}, {href, "/ocs/v1/client/" ++ Id},
 			{"disconnectPort", DiscPort}, {protocol, Protocol}, {secret, NewPassword}],
 	JsonObj  = {struct, RespObj},
@@ -180,7 +180,7 @@ perfrom_patch1(Id, DiscPort, Protocol, NewPassword) ->
 
 %% @hidden
 perform_patch2(Id, DiscPort, Protocol, Secret) ->
-	ok = ocs:update_client_attributes(Id, DiscPort, Protocol),
+	ok = ocs:update_client(Id, DiscPort, Protocol),
 	RespObj =[{id, Id}, {href, "/ocs/v1/client/" ++ Id},
 			{"disconnectPort", DiscPort}, {protocol, Protocol}, {secret, Secret}],
 	JsonObj  = {struct, RespObj},
