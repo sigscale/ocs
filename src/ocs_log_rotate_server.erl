@@ -39,9 +39,6 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
-% calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
--define(EPOCH, 62167219200).
-
 %%----------------------------------------------------------------------
 %%  The ocs_log_rotate_server API
 %%----------------------------------------------------------------------
@@ -122,7 +119,7 @@ handle_cast(stop, State) ->
 %%
 handle_info(timeout, #state{ipdr_dir = Directory, rotate_time = Rotate} = State) ->
 	FileName = Directory ++ "/" ++ ocs_log:iso8601(erlang:system_time(?MILLISECOND)),
-	Now = ?EPOCH + erlang:system_time(?MILLISECOND),
+	Now = erlang:system_time(?MILLISECOND),
 	Start = Now - Rotate,
 	case ocs_log:ipdr_log(FileName, Start, Now) of
 		ok ->
