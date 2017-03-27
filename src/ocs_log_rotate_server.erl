@@ -29,6 +29,7 @@
 
 -record(state,
 				{rotate_time :: pos_integer(),
+				 last_rotated_at :: calendar:datetime(),
 				 ipdr_dir :: string()}).
 -type state() :: #state{}.
 
@@ -60,7 +61,8 @@
 init([Rotate] = _Args) ->
 	process_flag(trap_exit, true),
 	{ok, Directory} = application:get_env(ipdr_dir),
-	State = #state{ipdr_dir = Directory, rotate_time = Rotate*60*1000},
+	State = #state{rotate_time = Rotate, ipdr_dir = Directory,
+			last_rotated_at = calendar:local_time()},
 	case file:make_dir(Directory) of
 		ok ->
 			{ok, State, 0};
@@ -117,18 +119,18 @@ handle_cast(stop, State) ->
 %% @see //stdlib/gen_server:handle_info/2
 %% @private
 %%
-handle_info(timeout, #state{ipdr_dir = Directory, rotate_time = Rotate} = State) ->
+handle_info(timeout, #state{rotate_time = Rotate, ipdr_dir = Directory,
+		last_rotated_at = LastRotated} = State) ->
 	FileName = Directory ++ "/" ++ ocs_log:iso8601(erlang:system_time(?MILLISECOND)),
-	Now = erlang:system_time(?MILLISECOND),
-	Start = Now - Rotate,
-	case ocs_log:ipdr_log(FileName, Start, Now) of
+	Now = calendar:local_time(),
+	case ocs_log:ipdr_log(FileName, LastRotated, Now) of
 		ok ->
-			{noreply, State, Rotate} ;
+			{noreply, State#state{last_rotated_at = Now}, Rotate};
 		{error, Reason} ->
 			error_logger:error_report("Failed to create usage logs", [{module, ?MODULE},
 				{failed_at, ocs_log:iso8601(erlang:system_time(?MILLISECOND))},
 				{reason, Reason}]),
-			{noreply, State, Rotate}
+			{noreply, State#state{last_rotated_at = Now}, Rotate}
 	end.
 
 
