@@ -31,10 +31,6 @@
 -include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
 
--define(VendorID, 529).
--define(AscendDataRate, 197).
--define(AscendXmitRate, 255).
-
 -spec content_types_accepted() -> ContentTypes
 	when
 		ContentTypes :: list().
@@ -235,11 +231,11 @@ json_to_radius([], Acc) ->
 radius_to_json(RadiusAttributes) ->
 	radius_to_json(RadiusAttributes, []).
 %% @hidden
-radius_to_json([{?VendorSpecific, {?VendorID, {?AscendDataRate, _}}} = H | T], Acc) ->
+radius_to_json([{?VendorSpecific, {?Ascend, {?AscendDataRate, _}}} = H | T], Acc) ->
 	{struct, Values} = vendor_specific(H),
 	Attribute = {struct, [{"name", "ascendDataRate"} | Values]},
 	radius_to_json(T, [Attribute | Acc]);
-radius_to_json([{?VendorSpecific, {?VendorID, {?AscendXmitRate, _}}} = H | T], Acc) ->
+radius_to_json([{?VendorSpecific, {?Ascend, {?AscendXmitRate, _}}} = H | T], Acc) ->
 	{struct, Values} = vendor_specific(H),
 	Attribute = {struct, [{"name", "ascendXmitRate"} | Values]},
 	radius_to_json(T, [Attribute | Acc]);

@@ -31,10 +31,6 @@
 -include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
 
--define(VendorID, 529).
--define(AscendDataRate, 197).
--define(AscendXmitRate, 255).
-
 -spec content_types_accepted() -> ContentTypes
 	when
 		ContentTypes :: list().
