@@ -28,13 +28,9 @@
 			terminate/2, code_change/3]).
 
 -record(state,
-				{rotate_time :: pos_integer(),
-				 last_rotated_at :: calendar:datetime(),
-				 ipdr_dir :: string()}).
+			{interval :: pos_integer(),
+			dir :: string()}).
 -type state() :: #state{}.
-
--define(USAGE_LOG, usage_log).
--define(WAIT_TIME, 60000).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -58,16 +54,23 @@
 %% @see //stdlib/gen_server:init/1
 %% @private
 %%
-init([Rotate] = _Args) ->
+init([Rotate] = _Args) when is_integer(Rotate), Rotate > 0 ->
 	process_flag(trap_exit, true),
+	Interval = case round_up(Rotate) of
+		Rotate ->
+			Rotate;
+		I ->
+			error_logger:warning_report(["Using sane log rotation interval",
+					{rotate, Rotate}, {interval, I}]),
+			I
+	end,
 	{ok, Directory} = application:get_env(ipdr_dir),
-	State = #state{rotate_time = Rotate, ipdr_dir = Directory,
-			last_rotated_at = calendar:local_time()},
+	State = #state{interval = Interval, dir = Directory},
 	case file:make_dir(Directory) of
 		ok ->
-			{ok, State, 0};
+			{ok, State, wait(Interval)};
 		{error, eexist} ->
-			{ok, State, 0};
+			{ok, State, wait(Interval)};
 		{error, Reason} ->
 			{stop, Reason}
 	end.
@@ -119,21 +122,18 @@ handle_cast(stop, State) ->
 %% @see //stdlib/gen_server:handle_info/2
 %% @private
 %%
-handle_info(timeout, #state{rotate_time = Rotate, ipdr_dir = Directory,
-		last_rotated_at = LastRotated} = State) ->
-	FileName = Directory ++ "/" ++ ocs_log:iso8601(erlang:system_time(?MILLISECOND)),
-	Now = calendar:local_time(),
-	case ocs_log:ipdr_log(FileName, LastRotated, Now) of
+handle_info(timeout, #state{interval = Interval, dir = Directory} = State) ->
+	Time = erlang:system_time(?MILLISECOND),
+	FileName = Directory ++ "/" ++ ocs_log:iso8601(Time),
+	{Start, End} = previous(Interval),
+	case ocs_log:ipdr_log(FileName, Start, End) of
 		ok ->
-			{noreply, State#state{last_rotated_at = Now}, Rotate};
+			{noreply, State, wait(Interval)};
 		{error, Reason} ->
-			error_logger:error_report("Failed to create usage logs", [{module, ?MODULE},
-				{failed_at, ocs_log:iso8601(erlang:system_time(?MILLISECOND))},
-				{reason, Reason}]),
-			{noreply, State#state{last_rotated_at = Now}, Rotate}
+			error_logger:error_report("Failed to create log",
+					[{module, ?MODULE}, {file, FileName}, {reason, Reason}]),
+			{noreply, State, wait(Interval)}
 	end.
-
-
 
 -spec terminate(Reason, State) -> any()
 	when
@@ -162,4 +162,58 @@ code_change(_OldVsn, State, _Extra) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+-spec wait(Interval) -> Timeout
+	when
+		Interval :: pos_integer(),
+		Timeout :: timeout().
+%% @doc Calculate time until start of next interval.
+%% @hidden
+wait(Interval) ->
+	{Date, Time} = erlang:universaltime(),
+	Midnight = calendar:datetime_to_gregorian_seconds({Date, {0, 0, 0}}),
+	Now  = calendar:datetime_to_gregorian_seconds({Date, Time}),
+	I = Interval * 60,
+	Guard = 30,
+	(I - ((Now - Midnight) rem I) + Guard) * 1000.
+
+-spec round_up(Rotate) -> Interval
+	when
+		Rotate :: pos_integer(),
+		Interval :: pos_integer().
+%% @doc Rotate must be a divisor of one day.
+%% @hidden
+round_up(Rotate) when Rotate > 1440 ->
+	1440;
+round_up(Rotate) when (1440 rem Rotate) =:= 0 ->
+	Rotate;
+round_up(Rotate) ->
+	round_up(Rotate + 1).
+
+-spec previous(Interval) -> {Start, End}
+	when
+		Interval :: pos_integer(),
+		Start :: calendar:datetime(),
+		End :: calendar:datetime().
+%% @doc Find start of previous interval.
+%% @hidden
+previous(Interval) when is_integer(Interval) ->
+	{Date, Time} = erlang:universaltime(),
+	Midnight = calendar:datetime_to_gregorian_seconds({Date, {0, 0, 0}}),
+	Now = calendar:datetime_to_gregorian_seconds({Date, Time}),
+	previous(Interval, Date, Midnight, Now).
+%% @hidden
+previous(Interval, _, Midnight, Now)
+		when Now - Midnight < (Interval * 60) ->
+	S = Midnight - (Interval * 60),
+	{SD, {SH, SM, _}} = calendar:gregorian_seconds_to_datetime(S),
+	{{SD, {SH, SM, 0}}, {SD, {23, 59, 59}}};
+previous(Interval, Date, Midnight, Now) ->
+	I = Interval * 60,
+	P = Now - I,
+	Start = P - ((P - Midnight) rem I),
+	End = Start + I - 1,
+	{_, {SH, SM, _}} = calendar:gregorian_seconds_to_datetime(Start),
+	{_, {EH, EM, _}} = calendar:gregorian_seconds_to_datetime(End),
+	{{Date, {SH, SM, 0}}, {Date, {EH, EM, 59}}}.
 
