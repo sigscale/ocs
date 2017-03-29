@@ -115,12 +115,20 @@ init([ServerAddress, ServerPort, ClientAddress, ClientPort,
 %%		gen_fsm:send_event/2} in the <b>eap_start</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
-eap_start(timeout, #statedata{eap_id = EapID,
+eap_start(timeout, StateData) ->
+	try crypto:strong_rand_bytes(4) of
+		Token ->
+			eap_start1(Token, StateData)
+	catch
+		Reason ->
+			{stop, Reason, StateData}
+	end.
+%% @hidden
+eap_start1(Token, #statedata{eap_id = EapID,
 		start = #radius{code = ?AccessRequest, id = RadiusID,
 		authenticator = RequestAuthenticator, attributes = RequestAttributes},
 		session_id = SessionID, server_id = ServerID, group_desc = GroupDesc,
 		rand_func = RandFunc, prf = PRF} = StateData) ->
-	Token = crypto:rand_bytes(4),
 	EapPwdId = #eap_pwd_id{group_desc = GroupDesc,
 			random_fun = RandFunc, prf = PRF, token = Token,
 			pwd_prep = none, identity = ServerID},
