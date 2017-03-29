@@ -47,7 +47,7 @@
 						[{auth,
 								[{{0,0,0,0}, 1812, []}]},
 						{acct,
-								[{{0,0,0,0}, 1813, [{rotate, 15}]}]}]},
+								[{{0,0,0,0}, 1813, [{rotate, 1440}]}]}]},
 				{radius_disconnect_dir, "log"},
 				{acct_log_dir, "log"},
 				{acct_log_size, 10485760},
