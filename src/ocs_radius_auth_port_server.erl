@@ -303,7 +303,7 @@ request1(EapType, Address, Port, Secret,
 										attributes = RejectAttributes},
 								AccessReject = radius:codec(AccessRejectPacket),
 								ok = ocs_log:radius_auth_log({ServerAddress, ServerPort},
-										{Address, Port}, reject, Attributes, RejectAttributes),
+										{Address, Port}, reject, Attributes, NewAttributes),
 								{reply, {ok, AccessReject}, State}	
 						end;
 					{eap, _} ->

@@ -633,11 +633,11 @@ send_response(EapPacket, RadiusCode, ResponseAttributes,
 		?AccessAccept ->
 			ok = ocs_log:radius_auth_log({ServerAddress, ServerPort},
 					{ClientAddress, ClientPort}, accept,
-					RequestAttributes, Attributes2);
+					RequestAttributes, AttrList3);
 		?AccessReject ->
 			ok = ocs_log:radius_auth_log({ServerAddress, ServerPort},
 					{ClientAddress, ClientPort}, reject,
-					RequestAttributes, Attributes2);
+					RequestAttributes, AttrList3);
 		?AccessChallenge ->
 			ok
 	end,
