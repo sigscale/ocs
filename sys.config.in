@@ -3,7 +3,7 @@
                [{auth,
                       [{{0,0,0,0}, 1812, []}]},
                {acct,
-                     [{{0,0,0,0}, 1813, [{rotate, 15}]}]}]},
+                     [{{0,0,0,0}, 1813, [{rotate, 1440}]}]}]},
       {acct_log_dir, "log/radius"},
       {auth_log_dir, "log/radius"},
       {tls_key, "ssl/key.pem"},
