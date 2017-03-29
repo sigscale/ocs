@@ -39,7 +39,9 @@
 	when
 		Address :: inet:ip_address(), 
 		Port :: pos_integer(),
-		Result :: {ok, State :: #state{}} | {error, Reason :: term()}.
+		Result :: {ok, State} | {error, Reason},
+		State :: #state{},
+		Reason :: term().
 %% @doc This callback function is called when a
 %% 	{@link //radius/radius_server. radius_server} behaviour process
 %% 	initializes.
@@ -58,7 +60,9 @@ init(Address, Port) ->
 		Port :: pos_integer(),
 		Packet :: binary(), 
 		State :: #state{},
-		Result :: {ok, Response :: binary()} | {error, Reason :: ignore | term()}.
+		Result :: {ok, Response} | {error, Reason},
+		Response :: binary(),
+		Reason :: ignore | term().
 %% @doc This function is called when a request is received on the port.
 %%
 request(Address, AccPort, Packet, #state{acct_server = Server} = _State)

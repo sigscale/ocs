@@ -168,7 +168,8 @@ update_client(Address, DiscPort, Protocol) when is_tuple(Address) ->
 
 -spec get_clients() -> Result
 	when
-		Result :: [#client{}] | {error, Reason :: term()}.
+		Result :: [#client{}] | {error, Reason},
+		Reason :: term().
 %% @doc Get all RADIUS clients.
 get_clients()->
 	MatchSpec = [{'_', [], ['$_']}],
@@ -212,7 +213,8 @@ delete_client(Client) when is_tuple(Client) ->
 		Subscriber :: string() | binary(),
 		Password :: string() | binary(),
 		Attributes :: radius_attributes:attributes() | binary(),
-		Result :: ok | {error, Reason :: term()}.
+		Result :: ok | {error, Reason},
+		Reason :: term().
 %% @equiv add_subscriber(Subscriber, Password, Attributes, 0, true)
 add_subscriber(Subscriber, Password, Attributes) ->
 	add_subscriber(Subscriber, Password, Attributes, 0, true).
