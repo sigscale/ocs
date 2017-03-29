@@ -31,10 +31,12 @@
 -spec init(Args) -> Result
 	when
 		Args :: list(),
-		Result :: {ok,{{RestartStrategy :: one_for_all | one_for_one
-		| rest_for_one | simple_one_for_one,
-		MaxR :: non_neg_integer(), MaxT :: pos_integer()},
-		[ChildSpec :: supervisor:child_spec()]}} | ignore.
+		Result :: {ok,{{RestartStrategy, MaxR, MaxT}, [ChildSpec]}} | ignore,
+		RestartStrategy :: one_for_all | one_for_one | rest_for_one | simple_one_for_one,
+		MaxR :: non_neg_integer(),
+		MaxT :: pos_integer(),
+		ChildSpec :: supervisor:child_spec().
+		
 %% @doc Initialize the {@module} supervisor.
 %% @see //stdlib/supervisor:init/1
 %% @private

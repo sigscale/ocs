@@ -47,9 +47,12 @@
 -spec init(Args) -> Result
 	when
 		Args :: [term()],
-		Result :: {ok, State :: state()}
-			| {ok, State :: state(), Timeout :: timeout()}
-			| {stop, Reason :: term()} | ignore.
+		Result :: {ok, State}
+			| {ok, State, Timeout}
+			| {stop, Reason} | ignore,
+		State :: state(),
+		Timeout :: timeout(),
+		Reason :: term().
 %% @doc Initialize the {@module} server.
 %% @see //stdlib/gen_server:init/1
 %% @private
@@ -78,14 +81,18 @@ init([Rotate] = _Args) when is_integer(Rotate), Rotate > 0 ->
 -spec handle_call(Request, From, State) -> Result
 	when
 		Request :: term(), 
-		From :: {pid(), Tag :: any()},
+		From :: {pid(), Tag},
+		Tag :: any(),
 		State :: state(),
-		Result :: {reply, Reply :: term(), NewState :: state()}
-			| {reply, Reply :: term(), NewState :: state(), timeout() | hibernate}
-			| {noreply, NewState :: state()}
-			| {noreply, NewState :: state(), timeout() | hibernate}
-			| {stop, Reason :: term(), Reply :: term(), NewState :: state()}
-			| {stop, Reason :: term(), NewState :: state()}.
+		Result :: {reply, Reply, NewState}
+			| {reply, Reply, NewState, timeout() | hibernate}
+			| {noreply, NewState}
+			| {noreply, NewState, timeout() | hibernate}
+			| {stop, Reason, Reply, NewState}
+			| {stop, Reason, NewState},
+		Reply :: term(),
+		NewState :: state(),
+		Reason :: term().
 %% @doc Handle a request sent using {@link //stdlib/gen_server:call/2.
 %% 	gen_server:call/2,3} or {@link //stdlib/gen_server:multi_call/2.
 %% 	gen_server:multi_call/2,3,4}.
@@ -99,9 +106,11 @@ handle_call(_Request, _From, State) ->
 	when
 		Request :: term(), 
 		State :: state(),
-		Result :: {noreply, NewState :: state()}
-			| {noreply, NewState :: state(), timeout() | hibernate}
-			| {stop, Reason :: term(), NewState :: state()}.
+		Result :: {noreply, NewState}
+			| {noreply, NewState, timeout() | hibernate}
+			| {stop, Reason, NewState},
+		NewState :: state(),
+		Reason :: term().
 %% @doc Handle a request sent using {@link //stdlib/gen_server:cast/2.
 %% 	gen_server:cast/2} or {@link //stdlib/gen_server:abcast/2.
 %% 	gen_server:abcast/2,3}.
@@ -115,9 +124,11 @@ handle_cast(stop, State) ->
 	when
 		Info :: timeout | term(), 
 		State::state(),
-		Result :: {noreply, NewState :: state()}
-			| {noreply, NewState :: state(), timeout() | hibernate}
-			| {stop, Reason :: term(), NewState :: state()}.
+		Result :: {noreply, NewState}
+			| {noreply, NewState, timeout() | hibernate}
+			| {stop, Reason, NewState},
+		NewState :: state(),
+		Reason :: term().
 %% @doc Handle a received message.
 %% @see //stdlib/gen_server:handle_info/2
 %% @private
@@ -151,7 +162,9 @@ terminate(_Reason, _State) ->
 		OldVsn :: term() | {down, term()}, 
 		State :: state(),
 		Extra :: term(),
-		Result :: {ok, NewState :: state()} | {error, Reason :: term()}.
+		Result :: {ok, NewState} | {error, Reason},
+		NewState :: state(),
+		Reason :: term().
 %% @doc Update internal state data during a release upgrade&#047;downgrade.
 %% @see //stdlib/gen_server:code_change/3
 %% @private

@@ -46,7 +46,9 @@
 	when
 		StartType :: start_type(),
 		StartArgs :: term(),
-		Result :: {'ok', pid()} | {'ok', pid(), State :: #state{}} | {'error', Reason :: term()}.
+		Result :: {'ok', pid()} | {'ok', pid(), State} | {'error', Reason},
+		State :: #state{},
+		Reason :: term().
 %% @doc Starts the application processes.
 %% @see //kernel/application:start/1
 %% @see //kernel/application:start/2
@@ -114,7 +116,8 @@ start1() ->
 -spec install(Nodes) -> Result
 	when
 		Nodes :: [node()],
-		Result :: {ok, Tables :: [atom()]}.
+		Result :: {ok, Tables},
+		Tables :: [atom()].
 %% @doc Initialize a new installation.
 %% 	`Nodes' is a list of the nodes where the 
 %% 	{@link //ocs. ocs} application will run.
@@ -195,7 +198,8 @@ install(Nodes) when is_list(Nodes) ->
 		Phase :: atom(),
 		StartType :: start_type(),
 		PhaseArgs :: term(),
-		Result :: ok | {error, Reason :: term()}.
+		Result :: ok | {error, Reason},
+		Reason :: term().
 %% @doc Called for each start phase in the application and included
 %% 	applications.
 %% @see //kernel/app
@@ -223,9 +227,11 @@ stop(_State) ->
 
 -spec config_change(Changed, New, Removed) -> ok
 	when
-		Changed:: [{Par :: atom(), Val :: atom()}],
-		New :: [{Par :: atom(), Val :: atom()}],
-		Removed :: [Par :: atom()].
+		Changed:: [{Par, Val}],
+		New :: [{Par, Val}],
+		Removed :: [Par],
+		Par :: atom(),
+		Val :: atom().
 %% @doc Called after a code  replacement, if there are any 
 %% 	changes to the configuration  parameters.
 %%
@@ -238,8 +244,10 @@ config_change(_Changed, _New, _Removed) ->
 
 -spec force(Tables) -> Result
 	when
-		Tables :: [TableName :: atom()],
-		Result :: ok | {error, Reason :: term()}.
+		Tables :: [TableName],
+		Result :: ok | {error, Reason},
+		TableName :: atom(),
+		Reason :: term().
 %% @doc Try to force load bad tables.
 force([H | T]) ->
 	case mnesia:force_load_table(H) of

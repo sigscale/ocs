@@ -31,8 +31,11 @@
 -spec init(Args ) -> Result
 	when
 		Args :: list(),
-		Result :: {ok, Pid :: pid(), State :: pid()}
-		| ignore | {error, Error :: term()}.
+		Result :: {ok, Pid, State}
+			| ignore | {error, Error},
+		Pid :: pid(),
+		State :: pid(), 
+		Error :: term().
 %% @doc Initialize the {@module} supervisor_bridge.
 %% @see //stdlib/supervisor_bridge:init/1
 %% @private

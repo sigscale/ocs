@@ -48,7 +48,8 @@
 
 -spec radius_acct_open() -> Result
 	when
-		Result :: ok | {error, Reason :: term()}.
+		Result :: ok | {error, Reason},
+		Reason :: term().
 %% @doc Open the accounting log for logging events.
 radius_acct_open() ->
 	{ok, Directory} = application:get_env(ocs, acct_log_dir),
@@ -82,13 +83,14 @@ radius_acct_open1(Directory) ->
 
 -spec radius_acct_log(Server, Client, Type, Attributes) -> Result
 	when
-		Server :: {Address :: inet:ip_address(),
-				Port :: integer()},
-		Client :: {Address :: inet:ip_address(),
-				Port :: integer()},
+		Server :: {Address, Port},
+		Client :: {Address, Port},
+		Address :: inet:ip_address(),
+		Port :: integer(),
 		Type :: on | off | start | stop | interim,
 		Attributes :: radius_attributes:attributes(),
-		Result :: ok | {error, Reason :: term()}.
+		Result :: ok | {error, Reason},
+		Reason :: term().
 %% @doc Write an accounting event to disk log.
 radius_acct_log(Server, Client, Type, Attributes) ->
 	TS = erlang:system_time(?MILLISECOND),
@@ -97,7 +99,8 @@ radius_acct_log(Server, Client, Type, Attributes) ->
 
 -spec radius_acct_close() -> Result
 	when
-		Result :: ok | {error, Reason :: term()}.
+		Result :: ok | {error, Reason},
+		Reason :: term().
 %% @doc Close accounting disk log.
 radius_acct_close() ->
 	case disk_log:close(?RADACCT) of
@@ -113,7 +116,8 @@ radius_acct_close() ->
 
 -spec radius_auth_open() -> Result
 	when
-		Result :: ok | {error, Reason :: term()}.
+		Result :: ok | {error, Reason},
+		Reason :: term().
 %% @doc Open the authorization log for logging events.
 radius_auth_open() ->
 	{ok, Directory} = application:get_env(ocs, auth_log_dir),
@@ -148,14 +152,15 @@ radius_auth_open1(Directory) ->
 -spec radius_auth_log(Server, Client, Type, RequestAttributes,
 		ResponseAttributes) -> Result
 	when
-		Server :: {Address :: inet:ip_address(),
-				Port :: integer()},
-		Client :: {Address :: inet:ip_address(),
-				Port :: integer()},
+		Server :: {Address, Port},
+		Client :: {Address, Port},
+		Address :: inet:ip_address(),
+		Port :: integer(),
 		Type :: accept | reject | change,
 		RequestAttributes :: radius_attributes:attributes(),
 		ResponseAttributes :: radius_attributes:attributes(),
-		Result :: ok | {error, Reason :: term()}.
+		Result :: ok | {error, Reason},
+		Reason :: term().
 %% @doc Write an authorization event to disk log.
 radius_auth_log(Server, Client, Type, RequestAttributes, ResponseAttributes) ->
 	TS = erlang:system_time(?MILLISECOND),
@@ -241,7 +246,8 @@ radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, [H |
 
 -spec radius_auth_close() -> Result
 	when
-		Result :: ok | {error, Reason :: term()}.
+		Result :: ok | {error, Reason},
+		Reason :: term().
 %% @doc Close authorization disk log.
 radius_auth_close() ->    
 	case disk_log:close(?RADAUTH) of
@@ -407,7 +413,8 @@ get_range(Log, Start, End) when is_integer(Start), is_integer(End) ->
 	when
 		Log :: disk_log:log(),
 		FileName :: file:filename(),
-		Result :: ok | {error, Reason :: term()}.
+		Result :: ok | {error, Reason},
+		Reason :: term().
 %% @doc Write all logged records to a file.
 %%
 dump_file(Log, FileName) when is_list(FileName) ->
