@@ -111,10 +111,18 @@ perform_post(RequestBody) ->
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, Id} = lists:keyfind("id", 1, Object),
 		{_, DiscPort} = lists:keyfind("disconnectPort", 1, Object),
-		{_, Protocol} = lists:keyfind("protocol", 1, Object),
+		Protocol = case lists:keyfind("protocol", 1, Object) of
+			{_, "radius"} ->
+				radius;
+			{_, "RADIUS"} ->
+				radius;
+			{_, "diameter"} ->
+				diameter;
+			{_, "DIAMETER"} ->
+				diameter
+		end,
 		{_, Secret} = lists:keyfind("secret", 1, Object),
-		Protocol_Atom = list_to_atom(string:to_lower(Protocol)),
-		perform_post1(Id, DiscPort, Protocol_Atom, Secret)
+		perform_post1(Id, DiscPort, Protocol, Secret)
 	catch
 		_Error ->
 			{error, 400}
@@ -154,9 +162,14 @@ perform_patch(Id, ReqBody) ->
 					[{"secret", NewPassword}] ->
 						Protocol_Atom = string:to_upper(atom_to_list(CurrProtocol)),
 						perfrom_patch1(Id, CurrDiscPort, Protocol_Atom, NewPassword);
-					[{"disconnectPort", NewDiscPort},{"protocol", NewProtocol}] ->
-						NewProtocolAtom = list_to_atom(string:to_lower(NewProtocol)),
-						perform_patch2(Id, NewDiscPort, NewProtocolAtom, CurrSecret)
+					[{"disconnectPort", NewDiscPort},{"protocol", "RADIUS"}] ->
+						perform_patch2(Id, NewDiscPort, radius, CurrSecret);
+					[{"disconnectPort", NewDiscPort},{"protocol", "radius"}] ->
+						perform_patch2(Id, NewDiscPort, radius, CurrSecret);
+					[{"disconnectPort", NewDiscPort},{"protocol", "DIAMETER"}] ->
+						perform_patch2(Id, NewDiscPort, diameter, CurrSecret);
+					[{"disconnectPort", NewDiscPort},{"protocol", "diameter"}] ->
+						perform_patch2(Id, NewDiscPort, diameter, CurrSecret)
 				end
 			catch
 				throw : _ ->
