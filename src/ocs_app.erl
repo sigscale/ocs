@@ -72,9 +72,11 @@ start(normal = _StartType, _Args) ->
 %% @hidden
 start1() ->
 	{ok, RadiusConfig} = application:get_env(radius),
-	[{auth, AuthInstances}, {acct, AcctInstances}] = RadiusConfig,
+	{ok, DiameterConfig} = application:get_env(diameter),
+	[{auth, RadAuthInstances}, {acct, RadAcctInstances}] = RadiusConfig,
+	[{auth, DiamAuthInstances}, {acct, _DiamAcctInstances}] = DiameterConfig,
 	F1 = fun({AcctAddr, AcctPort, [{rotate, AcctLogRotate}]}= _Instance) ->
-		case ocs:start(acct, AcctAddr, AcctPort, AcctLogRotate) of
+		case ocs:start(radius, acct, AcctAddr, AcctPort, AcctLogRotate) of
 			{ok, _AcctSup} ->
 				ok;
 			{error, Reason2} ->
@@ -82,8 +84,16 @@ start1() ->
 		end
 	end,
 	F2 = fun({AuthAddr, AuthPort, _Options}= _Instance) ->
-		case ocs:start(auth, AuthAddr, AuthPort, 0) of
-			{ok, _EapSup} ->
+		case ocs:start(radius, auth, AuthAddr, AuthPort, 0) of
+			{ok, _Authup} ->
+				ok;
+			{error, Reason3} ->
+				throw(Reason3)
+		end
+	end,
+	F3 = fun({AuthAddr, AuthPort, _Options}= _Instance) ->
+		case ocs:start(diameter, auth, AuthAddr, AuthPort, 0) of
+			{ok, _AuthSup} ->
 				ok;
 			{error, Reason3} ->
 				throw(Reason3)
@@ -96,8 +106,9 @@ start1() ->
 			{error, Reason1} ->
 				throw(Reason1)
 		end,
-		lists:foreach(F1, AcctInstances),
-		lists:foreach(F2, AuthInstances),
+		lists:foreach(F1, RadAcctInstances),
+		lists:foreach(F2, RadAuthInstances),
+		lists:foreach(F3, DiamAuthInstances),
 		TopSup
 	of
 		Sup ->

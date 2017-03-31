@@ -27,7 +27,7 @@
 		find_subscriber/1, delete_subscriber/1, update_password/2,
 		update_attributes/2, update_attributes/4, get_subscribers/0]).
 -export([generate_password/0]).
--export([start/4]).
+-export([start/5]).
 %% export the ocs private API
 -export([authorize/2, normalize/1]).
 
@@ -457,8 +457,9 @@ update_attributes(Subscriber, Balance, Attributes, EnabledStatus)
 generate_password() ->
 	generate_password(12).
 
--spec start(Type, Address, Port, LogRotateTime) -> Result
+-spec start(Protocol, Type, Address, Port, LogRotateTime) -> Result
 	when
+		Protocol :: radius | diameter,
 		Type :: auth | acct,
 		Address :: inet:ip_address(),
 		Port :: pos_integer(),
@@ -467,13 +468,14 @@ generate_password() ->
 		Pid :: pid(),
 		Reason :: term().
 %% @equiv start(Type, Address, Port, [])
-start(Type, Address, Port, LogRotateTime) when is_tuple(Address), is_integer(Port),
+start(Protocol, Type, Address, Port, LogRotateTime) when is_tuple(Address), is_integer(Port),
 		is_integer(LogRotateTime)->
-	start(Type, Address, Port, LogRotateTime, []).
+	start(Protocol, Type, Address, Port, LogRotateTime, []).
 
 -type eap_method() :: pwd | ttls.
--spec start(Type, Address, Port, LogRotateTime, Options) -> Result
+-spec start(Protocol, Type, Address, Port, LogRotateTime, Options) -> Result
 	when
+		Protocol :: radius | diameter,
 		Type :: auth | acct,
 		Address :: inet:ip_address(),
 		Port :: pos_integer(),
@@ -485,9 +487,9 @@ start(Type, Address, Port, LogRotateTime) when is_tuple(Address), is_integer(Por
 		Pid :: pid(),
 		Reason :: term().
 %% @doc Start a RADIUS request handler.
-start(Type, Address, Port, LogRotateTime, Options) when is_tuple(Address),
+start(Protocol, Type, Address, Port, LogRotateTime, Options) when is_tuple(Address),
 		is_integer(Port), is_integer(LogRotateTime), is_list(Options) ->
-		gen_server:call(ocs, {start, Type, Address, Port, LogRotateTime, Options}).
+		gen_server:call(ocs, {start, Protocol, Type, Address, Port, LogRotateTime, Options}).
 
 %%----------------------------------------------------------------------
 %%  internal functions
