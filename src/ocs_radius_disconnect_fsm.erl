@@ -67,11 +67,14 @@
 -spec init(Args) -> Result
 	when
 		Args :: list(),
-		Result :: {ok, StateName :: atom(), StateData :: #statedata{}}
-		| {ok, StateName :: atom(), StateData :: #statedata{},
-			Timeout :: non_neg_integer() | infinity}
-		| {ok, StateName :: atom(), StateData :: #statedata{}, hibernate}
-		| {stop, Reason :: term()} | ignore.
+		Result :: {ok, StateName, StateData}
+			| {ok, StateName, StateData, Timeout}
+			| {ok, StateName, StateData, hibernate}
+			| {stop, Reason} | ignore,
+		StateName :: atom(),
+		StateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity,
+		Reason :: term().
 %% @doc Initialize the {@module} finite state machine.
 %% @see //stdlib/gen_fsm:init/1
 %% @private
@@ -89,11 +92,14 @@ init([Address, NasId, Subscriber,
 	when
 		Event :: timeout | term(), 
 		StateData :: #statedata{},
-		Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
-		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+		Result :: {next_state, NextStateName, NewStateData}
+			| {next_state, NextStateName, NewStateData, Timeout}
+			| {next_state, NextStateName, NewStateData, hibernate}
+			| {stop, Reason, NewStateData},
+		NextStateName :: atom(),
+		NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity,
+		Reason :: normal | term().
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
 %%		gen_fsm:send_event/2} in the <b>send_request</b> state. This state is responsible
 %%		for sending a RADIUS-Disconnect/Request to an access point.
@@ -133,11 +139,14 @@ send_request(timeout, #statedata{nas_ip = Address, disc_port = Port,
 	when
 		Event :: timeout | term(), 
 		StateData :: #statedata{},
-		Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
-		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+		Result :: {next_state, NextStateName, NewStateData}
+			| {next_state, NextStateName, NewStateData, Timeout}
+			| {next_state, NextStateName, NewStateData, hibernate}
+			| {stop, Reason, NewStateData},
+		NextStateName :: atom(), 
+		NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity,
+		Reason :: normal | term().
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
 %%		gen_fsm:send_event/2} in the <b>receive_response</b> state. This state is responsible
 %%		for recieving a RADIUS-Disconnect/ACK or RADIUS-Disconnect/NAK from an  access point.
@@ -166,11 +175,14 @@ receive_response(timeout, #statedata{socket = Socket, nas_ip = NasIp ,
 		Event :: term(), 
 		StateName :: atom(), 
 		StateData :: #statedata{},
-		Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
-		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+		Result :: {next_state, NextStateName, NewStateData}
+			| {next_state, NextStateName, NewStateData, Timeout}
+			| {next_state, NextStateName, NewStateData, hibernate}
+			| {stop, Reason , NewStateData},
+		NextStateName :: atom(),
+		NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity,
+		Reason :: normal | term().
 %% @doc Handle an event sent with
 %% 	{@link //stdlib/gen_fsm:send_all_state_event/2.
 %% 	gen_fsm:send_all_state_event/2}.
@@ -186,16 +198,19 @@ handle_event(_Event, StateName, StateData) ->
 		From :: {Pid :: pid(), Tag :: term()},
 		StateName :: atom(), 
 		StateData :: #statedata{},
-		Result :: {reply, Reply :: term(), NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {reply, Reply :: term(), NextStateName :: atom(), NewStateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity}
-		| {reply, Reply :: term(), NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
-		| {stop, Reason :: normal | term(), Reply :: term(), NewStateData :: #statedata{}}
-		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+		Result :: {reply, Reply, NextStateName, NewStateData}
+			| {reply, Reply, NextStateName, NewStateData, Timeout}
+			| {reply, Reply, NextStateName, NewStateData, hibernate}
+			| {next_state, NextStateName, NewStateData}
+			| {next_state, NextStateName, NewStateData, Timeout}
+			| {next_state, NextStateName, NewStateData, hibernate}
+			| {stop, Reason, Reply, NewStateData}
+			| {stop, Reason, NewStateData},
+		Reply :: term(),
+		NextStateName :: atom(),
+		NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity,
+		Reason :: normal | term().
 %% @doc Handle an event sent with
 %% 	{@link //stdlib/gen_fsm:sync_send_all_state_event/2.
 %% 	gen_fsm:sync_send_all_state_event/2,3}.
@@ -210,11 +225,14 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 		Info :: term(), 
 		StateName :: atom(), 
 		StateData :: #statedata{},
-		Result :: {next_state, NextStateName :: atom(), NewStateData :: #statedata{}}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{},
-		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: #statedata{}, hibernate}
-		| {stop, Reason :: normal | term(), NewStateData :: #statedata{}}.
+		Result :: {next_state, NextStateName, NewStateData}
+			| {next_state, NextStateName, NewStateData, Timeout}
+			| {next_state, NextStateName, NewStateData, hibernate}
+			| {stop, Reason, NewStateData},
+		NextStateName :: atom(),
+		NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity,
+		Reason :: normal | term().
 %% @doc Handle a received message.
 %% @see //stdlib/gen_fsm:handle_info/3
 %% @private

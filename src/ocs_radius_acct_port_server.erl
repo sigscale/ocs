@@ -56,9 +56,12 @@
 -spec init(Args) -> Result
 	when
 		Args :: list(),
-		Result :: {ok, State :: state()}
-		| {ok, State :: state(), Timeout :: non_neg_integer() | infinity}
-		| {stop, Reason :: term()} | ignore.
+		Result :: {ok, State}
+			| {ok, State, Timeout}
+			| {stop, Reason} | ignore,
+		State :: state(),
+		Timeout :: non_neg_integer() | infinity,
+		Reason :: term().
 %% @doc Initialize the {@module} server.
 %% 	Args :: [Sup :: pid(), Module :: atom(), Port :: non_neg_integer(),
 %% 	Address :: inet:ip_address()].
@@ -78,16 +81,22 @@ init([AcctSup, Address, Port, _Options]) ->
 -spec handle_call(Request, From, State) -> Result
 	when
 		Request :: term(), 
-		From :: {Pid :: pid(), Tag :: any()},
+		From :: {Pid, Tag},
+		Pid :: pid(), 
+		Tag :: any(),
 		State :: state(),
-		Result :: {reply, Reply :: term(), NewState :: state()}
-		| {reply, Reply :: term(), NewState :: state(), Timeout :: non_neg_integer() | infinity}
-		| {reply, Reply :: term(), NewState :: state(), hibernate}
-		| {noreply, NewState :: state()}
-		| {noreply, NewState :: state(), Timeout :: non_neg_integer() | infinity}
-		| {noreply, NewState :: state(), hibernate}
-		| {stop, Reason :: term(), Reply :: term(), NewState :: state()}
-		| {stop, Reason :: term(), NewState :: state()}.
+		Result :: {reply, Reply, NewState}
+			| {reply, Reply, NewState, Timeout}
+			| {reply, Reply, NewState, hibernate}
+			| {noreply, NewState}
+			| {noreply, NewState, Timeout}
+			| {noreply, NewState, hibernate}
+			| {stop, Reason, Reply, NewState}
+			| {stop, Reason, NewState},
+		Reply :: term(),
+		NewState :: state(),
+		Timeout :: non_neg_integer() | infinity,
+		Reason :: term().
 %% @doc Handle a request sent using {@link //stdlib/gen_server:call/2.
 %% 	gen_server:call/2,3} or {@link //stdlib/gen_server:multi_call/2.
 %% 	gen_server:multi_call/2,3,4}.
@@ -103,10 +112,13 @@ handle_call({request, Address, AccPort, Secret, DiscPort,
 	when
 		Request :: term(), 
 		State :: state(),
-		Result :: {noreply, NewState :: state()}
-		| {noreply, NewState :: state(), Timeout :: non_neg_integer() | infinity}
-		| {noreply, NewState :: state(), hibernate}
-		| {stop, Reason :: term(), NewState :: state()}.
+		Result :: {noreply, NewState}
+			| {noreply, NewState, Timeout}
+			| {noreply, NewState, hibernate}
+			| {stop, Reason, NewState},
+		NewState :: state(),
+		Timeout :: non_neg_integer() | infinity,
+		Reason :: term().
 %% @doc Handle a request sent using {@link //stdlib/gen_server:cast/2.
 %% 	gen_server:cast/2} or {@link //stdlib/gen_server:abcast/2.
 %% 	gen_server:abcast/2,3}.
@@ -120,10 +132,13 @@ handle_cast(_Request, State) ->
 	when
 		Info :: timeout | term(), 
 		State :: state(),
-		Result :: {noreply, NewState :: state()}
-		| {noreply, NewState :: state(), Timeout :: non_neg_integer() | infinity}
-		| {noreply, NewState :: state(), hibernate}
-		| {stop, Reason :: term(), NewState :: state()}.
+		Result :: {noreply, NewState}
+			| {noreply, NewState, Timeout}
+			| {noreply, NewState, hibernate}
+			| {stop, Reason, NewState},
+		NewState :: state(),
+		Timeout :: non_neg_integer() | infinity,
+		Reason :: term().
 %% @doc Handle a received message.
 %% @see //stdlib/gen_server:handle_info/2
 %% @private
@@ -169,10 +184,12 @@ terminate(_Reason,  _State) ->
 
 -spec code_change(OldVsn, State, Extra) -> Result
 	when
-		OldVsn :: (Vsn :: term() | {down, Vsn :: term()}),
+		OldVsn :: (Vsn | {down, Vsn}),
+		Vsn :: term(),
 		State :: state(), 
 		Extra :: term(),
-		Result :: {ok, NewState :: state()}.
+		Result :: {ok, NewState},
+		NewState :: state().
 %% @doc Update internal state data during a release upgrade&#047;downgrade.
 %% @see //stdlib/gen_server:code_change/3
 %% @private
@@ -184,18 +201,20 @@ code_change(_OldVsn, State, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec request(Address, Port, Secret,
-						DiscPort, Radius, From, State) -> Result
+-spec request(Address, Port, Secret, DiscPort, Radius, From, State) -> Result
 	when
 		Address :: inet:ip_address(), 
 		Port :: pos_integer(),
 		Secret :: string(), 
 		DiscPort :: pos_integer(),
 		Radius :: #radius{},
-		From :: {Pid :: pid(), Tag :: term()}, 
+		From :: {Pid, Tag}, 
+		Pid :: pid(),
+		Tag :: term(),
 		State :: state(),
-		Result :: {reply, {ok, wait}, NewState :: state()}
-			| {reply, {error, ignore}, NewState :: state()}.
+		Result :: {reply, {ok, wait}, NewState}
+			| {reply, {error, ignore}, NewState},
+		NewState :: state().
 %% @doc Handle a received RADIUS Accounting Request packet.
 %% @private
 request(Address, AccPort, Secret,
@@ -368,7 +387,9 @@ decrement_balance(Subscriber, Usage) when is_binary(Subscriber),
 		Attributes :: [binary()], 
 		Subscriber :: [byte()], 
 		State :: #state{},
-		Result :: {reply, {ok, Response :: binary()}, NewState :: #state{}}.
+		Result :: {reply, {ok, Response}, NewState},
+		Response :: binary(),
+		NewState :: #state{}.
 %% @doc Start a disconnect_fsm worker.
 start_disconnect(AcctSessionId, Id, Authenticator, Secret, DiscPort,
 		NasId, Address, Attributes, Subscriber, #state{handlers = Handlers,

@@ -58,11 +58,14 @@
 -spec init(Args) -> Result
 	when
 		Args :: list(),
-		Result :: {ok, StateName :: atom(), StateData :: statedata()}
-		| {ok, StateName :: atom(), StateData :: statedata(),
-			Timeout :: non_neg_integer() | infinity}
-		| {ok, StateName :: atom(), StateData :: statedata(), hibernate}
-		| {stop, Reason :: term()} | ignore.
+		Result :: {ok, StateName, StateData}
+		| {ok, StateName, StateData, Timeout}
+		| {ok, StateName, StateData, hibernate}
+		| {stop, Reason} | ignore,
+		StateName :: atom(),
+		StateData :: statedata(),
+		Timeout :: non_neg_integer() | infinity,
+		Reason ::term.
 %% @doc Initialize the {@module} finite state machine.
 %% @see //stdlib/gen_fsm:init/1
 %% @private
@@ -75,11 +78,14 @@ init(_Args) ->
 	when
 		Event :: timeout | term(), 
 		StateData :: statedata(),
-		Result :: {next_state, NextStateName :: atom(), NewStateData :: statedata()}
-		| {next_state, NextStateName :: atom(), NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: statedata(), hibernate}
-		| {stop, Reason :: normal | term(), NewStateData :: statedata()}.
+		Result :: {next_state, NextStateName, NewStateData} | {next_state, NextStateName, NewStateData,
+		Timeout}
+		| {next_state, NextStateName, NewStateData, hibernate}
+		| {stop, Reason, NewStateData},
+		NextStateName :: atom(),
+		NewStateData :: statedata(),
+		Timeout :: non_neg_integer() | infinity,
+		Reason :: normal | term().
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
 %%		gen_fsm:send_event/2} in the <b>idle</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
@@ -107,11 +113,14 @@ idle({ttls_socket, TtlsFsm, TlsRecordLayerSocket}, StateData) ->
 		Event :: term(), 
 		StateName :: atom(),
       StateData :: statedata(),
-		Result :: {next_state, NextStateName :: atom(), NewStateData :: statedata()}
-		| {next_state, NextStateName :: atom(), NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: statedata(), hibernate}
-		| {stop, Reason :: normal | term(), NewStateData :: statedata()}.
+		Result :: {next_state, NextStateName, NewStateData} | {next_state, NextStateName, NewStateData,
+		Timeout}
+		| {next_state, NextStateName, NewStateData, hibernate}
+		| {stop, Reason, NewStateData},
+		NextStateName :: atom(),
+		NewStateData :: statedata(),
+		Timeout :: non_neg_integer() | infinity,
+		Reason :: normal | term().
 %% @doc Handle an event sent with
 %% 	{@link //stdlib/gen_fsm:send_all_state_event/2.
 %% 	gen_fsm:send_all_state_event/2}.
@@ -125,19 +134,24 @@ handle_event(_Event, StateName, StateData) ->
 -spec handle_sync_event(Event, From, StateName, StateData) -> Result
 	when
 		Event :: term(), 
-		From :: {Pid :: pid(), Tag :: term()},
+		From :: {Pid, Tag},
+		Pid :: pid(),
+		Tag :: term(),
       StateName :: atom(), 
 		StateData :: statedata(),
-		Result :: {reply, Reply :: term(), NextStateName :: atom(), NewStateData :: statedata()}
-		| {reply, Reply :: term(), NextStateName :: atom(), NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity}
-		| {reply, Reply :: term(), NextStateName :: atom(), NewStateData :: statedata(), hibernate}
-		| {next_state, NextStateName :: atom(), NewStateData :: statedata()}
-		| {next_state, NextStateName :: atom(), NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: statedata(), hibernate}
-		| {stop, Reason :: normal | term(), Reply :: term(), NewStateData :: statedata()}
-		| {stop, Reason :: normal | term(), NewStateData :: statedata()}.
+		Result :: {reply, Reply, NextStateName, NewStateData}
+		| {reply, Reply, NextStateName, NewStateData, Timeout}
+		| {reply, Reply, NextStateName, NewStateData, hibernate}
+		| {next_state, NextStateName, NewStateData}
+		| {next_state, NextStateName, NewStateData, Timeout}
+		| {next_state, NextStateName, NewStateData, hibernate}
+		| {stop, Reason, Reply, NewStateData}
+		| {stop, Reason, NewStateData},
+		Reply :: term(),
+		NextStateName ::atom(),
+		NewStateData :: statedata(),
+		Timeout :: non_neg_integer() | infinity,
+		Reason :: normal | term().
 %% @doc Handle an event sent with
 %% 	{@link //stdlib/gen_fsm:sync_send_all_state_event/2.
 %% 	gen_fsm:sync_send_all_state_event/2,3}.
@@ -152,11 +166,14 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 		Info :: term(), 
 		StateName :: atom(), 
 		StateData :: statedata(),
-		Result :: {next_state, NextStateName :: atom(), NewStateData :: statedata()}
-		| {next_state, NextStateName :: atom(), NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: statedata(), hibernate}
-		| {stop, Reason :: normal | term(), NewStateData :: statedata()}.
+		Result :: {next_state, NextStateName, NewStateData}
+		| {next_state, NextStateName, NewStateData, Timeout}
+		| {next_state, NextStateName, NewStateData, hibernate}
+		| {stop, Reason, NewStateData},
+		NextStateName :: atom(),
+		NewStateData :: statedata(),
+		Timeout :: non_neg_integer() | infinity,
+		Reason :: normal | term().
 %% @doc Handle a received message.
 %% @see //stdlib/gen_fsm:handle_info/3
 %% @private
@@ -220,11 +237,14 @@ terminate(_Reason, _StateName, _StateData) ->
 
 -spec code_change(OldVsn, StateName, StateData, Extra ) -> Result
 	when
-		OldVsn :: (Vsn :: term() | {down, Vsn :: term()}),
+		OldVsn :: (Vsn | {down, Vsn}),
+		Vsn :: term(),
       StateName :: atom(), 
 		StateData :: statedata(), 
 		Extra :: term(),
-		Result :: {ok, NextStateName :: atom(), NewStateData :: statedata()}.
+		Result :: {ok, NextStateName, NewStateData},
+		NextStateName :: atom(),
+		NewStateData :: statedata().
 %% @doc Update internal state data during a release upgrade&#047;downgrade.
 %% @see //stdlib/gen_fsm:code_change/4
 %% @private

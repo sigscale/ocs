@@ -73,7 +73,9 @@ compute_pwe(_Token, _PeerIdentity, _ServerIdentity, _Password) ->
 	when
 		Random :: binary(),
 		PWE :: binary(),
-		Result :: {Scalar :: binary(), Element :: binary()}.
+		Result :: {Scalar, Element},
+		Scalar :: binary(),
+		Element :: binary().
 %% @doc Compute Scalar Element.
 %% 	RFC5931 section 2.8.4.1
 compute_scalar(_Random, _PWE) ->
