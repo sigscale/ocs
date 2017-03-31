@@ -5,6 +5,12 @@
 modhtml = ocs.html \
 			ocs_app.html \
 			ocs_sup.html \
+			ocs_diameter_auth_port_server.html \
+			ocs_diameter_auth_port_sup.html \
+			ocs_diameter_auth_service_server_sup.html \
+			ocs_diameter_auth_service_server.html \
+			ocs_diameter_auth_sup.html \
+			ocs_diameter_auth_service_callback.html \
 			ocs_radius_acct_port_server.html \
 			ocs_radius_acct_port_sup.html \
 			ocs_radius_acct_top_sup.html \
