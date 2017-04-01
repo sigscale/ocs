@@ -6,6 +6,7 @@
                      [{{0,0,0,0}, 1813, [{rotate, 1440}]}]}]},
       {acct_log_dir, "log/radius"},
       {auth_log_dir, "log/radius"},
+      {ipdr_log_dir, "log/ipdr"},
       {tls_key, "ssl/key.pem"},
       {tls_cert, "ssl/cert.pem"},
       {tls_cacert, "ssl/ca.pem"}]},
