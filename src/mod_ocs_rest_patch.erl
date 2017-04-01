@@ -85,7 +85,7 @@ content_type_available(Headers, Body, Uri, Resource, ModData) ->
 %% @hidden
 do_patch(Uri, Body, Resource, ModData) ->
 	case string:tokens(Uri, "/") of
-		[_, "v1", _, Identity] ->
+		["ocs", "v1", _, Identity] ->
 			case Resource:perform_patch(Identity, Body) of
 				{error, ErrorCode} ->
 					{break, [{response,	{ErrorCode, "<h1>Not Found</h1>"}}]};

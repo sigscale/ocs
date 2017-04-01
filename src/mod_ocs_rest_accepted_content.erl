@@ -54,17 +54,17 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 			case proplists:get_value(response, Data) of
 				undefined ->
 					case string:tokens(Uri, "/") of
-						[_, "v1", "client"] ->
+						["ocs", "v1", "client"] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_client, Data);
-						[_, "v1", "client", _Id] ->
+						["ocs", "v1", "client", _Id] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_client, Data);
-						[_, "v1", "subsriber"] ->
-							check_content_type_header(Headers, Method, ocs_rest_res_subsriber, Data);
-						[_, "v1", "subsriber", _Id] ->
-							check_content_type_header(Headers, Method, ocs_rest_res_subsriber, Data);
-						[_, "v1", "usage"] ->
+						["ocs", "v1", "subscriber"] ->
+							check_content_type_header(Headers, Method, ocs_rest_res_subscriber, Data);
+						["ocs", "v1", "subscriber", _Id] ->
+							check_content_type_header(Headers, Method, ocs_rest_res_subscriber, Data);
+						["usageManagement", "v1", "usage"] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_usage, Data);
-						[_, "v1", "usage", _Id] ->
+						["usageManagement", "v1", "usage", _Id] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_usage, Data);
 						_ ->
 							Response = "<h2>HTTP Error 400 - Bad Request</h2>",

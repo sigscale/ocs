@@ -56,7 +56,7 @@ do(#mod{method = Method, request_uri = Uri, data = Data} = ModData) ->
 						undefined ->
 							{_, Resource} = lists:keyfind(resource, 1, Data),
 							case string:tokens(Uri, "/") of
-								[_, "v1", _, Identity] ->
+								["ocs", "v1", _, Identity] ->
 									Resource:perform_delete(Identity),
 									send_response(ModData, []);
 								_ ->
