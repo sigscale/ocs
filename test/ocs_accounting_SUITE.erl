@@ -48,11 +48,10 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
-	{ok, DiscPort} = application:get_env(ocs, radius_disconnect_port),
 	Protocol = ct:get_config(protocol),
 	SharedSecret = ct:get_config(radius_shared_secret),
 	Config1 = [{radius_shared_secret, SharedSecret} | Config],
-	ok = ocs:add_client({127, 0, 0, 1}, DiscPort, Protocol, SharedSecret),
+	ok = ocs:add_client({127, 0, 0, 1}, 3799, Protocol, SharedSecret),
 	NasID = atom_to_list(node()),
 	[{nas_id, NasID} | Config1].
 
@@ -181,8 +180,7 @@ accounting_stop(Socket, Address, Port, PeerID,
 	accounting_response(Socket, Address, Port, Secret, RadID, ReqAuth).
 
 disconnect_request() ->
-	{ok, DiscPort} = application:get_env(ocs, radius_disconnect_port),
-	{ok, Socket} = gen_udp:open(DiscPort, [{active, false}, inet, binary]), 
+	{ok, Socket} = gen_udp:open(3799, [{active, false}, inet, binary]), 
 	{ok, {OCSAddr, OCSPort, DiscReq}} = gen_udp:recv(Socket, 0),
 	#radius{code = ?DisconnectRequest, id = DiscReqID} = radius:codec(DiscReq),
 	DiscAckAuth = radius:authenticator(),

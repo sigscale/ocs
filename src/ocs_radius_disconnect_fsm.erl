@@ -157,9 +157,8 @@ receive_response(timeout, #statedata{retry_count = Count,
 		nas_id = NasId, subscriber = Subscriber,
 		acct_session_id = AcctSessionId} = StateData) when Count > 5 ->
 	{stop, {shutdown, {NasId, Subscriber, AcctSessionId}}, StateData};
-receive_response(timeout, #statedata{socket = Socket, nas_ip = NasIp ,
+receive_response(timeout, #statedata{socket = Socket, nas_ip = NasIp, disc_port = Port,
 		request =  DisconnectRequest, retry_count = Count, retry_time = Retry} = StateData) ->
-	{ok, Port} = application:get_env(ocs, radius_disconnect_port),
 	NewRetry = Retry * 2,
 	NewCount = Count + 1,
 	NewStateData = StateData#statedata{retry_count = NewCount, retry_time = NewRetry},
