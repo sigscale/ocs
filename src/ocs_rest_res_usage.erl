@@ -68,7 +68,7 @@ perform_get_all() ->
 perform_get(Id) ->
 	{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
 	Log = ?IPDR_LOG,
-	FileName = Directory ++ Id,
+	FileName = Directory ++ "/" ++ Id,
 	read_ipdr(Log, FileName).
 	
 %%----------------------------------------------------------------------
