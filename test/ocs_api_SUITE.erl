@@ -106,7 +106,7 @@ client(Config) ->
 get_all_clients() ->
 	[{userdata, [{doc, "Retrieve  all clients from  database"}]}].
 
-get_all_clients(Config) ->
+get_all_clients(_Config) ->
 	A1 = {10,2,45,67},
 	A2 = {10,2,45,68},
 	A3 = {10,2,45,69},
@@ -136,7 +136,7 @@ update_client_password(_Config) ->
 	NewPassword = "GentooNewxD",
 	ok = ocs:update_client(Address, NewPassword),
 	NewPasswordBin = list_to_binary(NewPassword),
-	{ok,  DiscPort, Protocol, NewPasswordBin} = ocs:find_client(Address).
+	{ok, 3799, Protocol, NewPasswordBin} = ocs:find_client(Address).
 
 
 delete_client() ->
