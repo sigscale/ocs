@@ -50,7 +50,7 @@
 				{acct_log_dir, "log"},
 				{acct_log_size, 10485760},
 				{acct_log_files, 100},
-				{ipdr_dir, "ipdr_log"},
+				{ipdr_log_dir, "ipdr_log"},
 				{auth_log_dir, "log"},
 				{auth_log_size, 10485760},
 				{auth_log_files, 100},
