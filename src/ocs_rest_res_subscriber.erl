@@ -105,7 +105,12 @@ perform_post(RequestBody) ->
 	try 
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, Id} = lists:keyfind("id", 1, Object),
-		{_, Password} = lists:keyfind("password", 1, Object),
+		Password = case lists:keyfind("password", 1, Object) of
+			{_, PWD} ->
+				PWD;
+			false ->
+				ocs:generate_password()
+		end,
 		{_, {array, JsonObjList}} = lists:keyfind("attributes", 1, Object),
 		RadAttributes = json_to_radius(JsonObjList),
 		{_, Balance} = lists:keyfind("balance", 1, Object),

@@ -123,12 +123,13 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[authenticate_user_request, unauthenticate_user_request, authenticate_subscriber_request,
-	unauthenticate_subscriber_request, authenticate_client_request,
-	unauthenticate_client_request, add_subscriber, get_subscriber,
+	[authenticate_user_request, unauthenticate_user_request,
+	authenticate_subscriber_request, unauthenticate_subscriber_request,
+	authenticate_client_request, unauthenticate_client_request,
+	add_subscriber, add_subscriber_without_password, get_subscriber,
 	get_subscriber_not_found, retrieve_all_subscriber, delete_subscriber,
-	add_client, get_client, get_client_bogus, get_client_notfound, get_all_clients,
-	delete_client, get_usage].
+	add_client, get_client, get_client_bogus, get_client_notfound,
+	get_all_clients, delete_client, get_usage].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -266,6 +267,26 @@ add_subscriber(Config) ->
 	{"balance", Balance} = lists:keyfind("balance", 1, Object),
 	{"enabled", Enable} = lists:keyfind("enabled", 1, Object).
 
+add_subscriber_without_password() ->
+	[{userdata, [{doc,"Add subscriber with generated password"}]}].
+
+add_subscriber_without_password(Config) ->
+	ContentType = "application/json",
+	JSON1 = {struct, [{"id", "beebdeedfeef"}, {"balance", 100000}, {"enabled", true}]},
+	RequestBody = lists:flatten(mochijson:encode(JSON1)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, _Headers, ResponseBody} = Result,
+	{struct, Object} = mochijson:decode(ResponseBody),
+	{"password", Password} = lists:keyfind("password", 1, Object),
+	12 = length(Password).
 
 get_subscriber() ->
 	[{userdata, [{doc,"get subscriber in rest interface"}]}].
