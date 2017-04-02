@@ -43,7 +43,7 @@ content_types_accepted() ->
 		ContentTypes :: list().
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
-	["application/json", "application/hal+json"].
+	["application/json"].
 
 -spec perform_get(Ip) -> Result
 	when
@@ -173,7 +173,7 @@ perform_patch(Id, ReqBody) ->
 				case Object of
 					[{"secret", NewPassword}] ->
 						Protocol_Atom = string:to_upper(atom_to_list(CurrProtocol)),
-						perfrom_patch1(Id, CurrDiscPort, Protocol_Atom, NewPassword);
+						perform_patch1(Id, CurrDiscPort, Protocol_Atom, NewPassword);
 					[{"disconnectPort", NewDiscPort},{"protocol", "RADIUS"}] ->
 						perform_patch2(Id, NewDiscPort, radius, CurrSecret);
 					[{"disconnectPort", NewDiscPort},{"protocol", "radius"}] ->
@@ -191,7 +191,7 @@ perform_patch(Id, ReqBody) ->
 			{error, 404}
 	end.
 %% @hidden
-perfrom_patch1(Id, DiscPort, Protocol, NewPassword) ->
+perform_patch1(Id, DiscPort, Protocol, NewPassword) ->
 	ok = ocs:update_client(Id, NewPassword),
 	RespObj =[{id, Id}, {href, "/ocs/v1/client/" ++ Id},
 			{"disconnectPort", DiscPort}, {protocol, Protocol}, {secret, NewPassword}],

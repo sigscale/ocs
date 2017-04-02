@@ -35,14 +35,14 @@
 		ContentTypes :: list().
 %% @doc Provides list of resource representations accepted.
 content_types_accepted() ->
-	["application/json"].
+	[].
 
 -spec content_types_provided() -> ContentTypes
 	when
 		ContentTypes :: list().
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
-	["application/json", "application/hal+json"].
+	["application/json"].
 
 -spec perform_get_all() -> Result
 	when
