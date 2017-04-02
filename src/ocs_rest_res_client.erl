@@ -110,7 +110,12 @@ perform_post(RequestBody) ->
 	try 
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, Id} = lists:keyfind("id", 1, Object),
-		{_, DiscPort} = lists:keyfind("disconnectPort", 1, Object),
+		DiscPort = case lists:keyfind("disconnectPort", 1, Object) of
+			{_, DP} ->
+				DP;
+			false ->
+				3799
+		end,
 		Protocol = case lists:keyfind("protocol", 1, Object) of
 			{_, "radius"} ->
 				radius;
@@ -119,7 +124,9 @@ perform_post(RequestBody) ->
 			{_, "diameter"} ->
 				diameter;
 			{_, "DIAMETER"} ->
-				diameter
+				diameter;
+			false ->
+				radius
 		end,
 		Secret = case lists:keyfind("secret", 1, Object) of
 			{_, PWD} ->
