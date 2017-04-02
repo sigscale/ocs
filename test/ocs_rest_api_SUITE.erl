@@ -488,8 +488,7 @@ add_client_without_password() ->
 
 add_client_without_password(Config) ->
 	ContentType = "application/json",
-	ID = "10.2.58.8",
-	JSON = {struct, [{"id", "10.5.55.10"},
+	JSON = {struct, [{"id", "10.5.55.10"}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
