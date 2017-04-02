@@ -121,7 +121,12 @@ perform_post(RequestBody) ->
 			{_, "DIAMETER"} ->
 				diameter
 		end,
-		{_, Secret} = lists:keyfind("secret", 1, Object),
+		Secret = case lists:keyfind("secret", 1, Object) of
+			{_, PWD} ->
+				PWD;
+			false ->
+				ocs:generate_password()
+		end,
 		perform_post1(Id, DiscPort, Protocol, Secret)
 	catch
 		_Error ->
