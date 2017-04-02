@@ -111,8 +111,12 @@ perform_post(RequestBody) ->
 			false ->
 				ocs:generate_password()
 		end,
-		{_, {array, JsonObjList}} = lists:keyfind("attributes", 1, Object),
-		RadAttributes = json_to_radius(JsonObjList),
+		RadAttributes = case lists:keyfind("attributes", 1, Object) of
+			{_, {array, JsonObjList}} ->
+				json_to_radius(JsonObjList);
+			false ->
+				[]
+		end,
 		{_, Balance} = lists:keyfind("balance", 1, Object),
 		{_, EnabledStatus} = lists:keyfind("enabled", 1, Object),
 		perform_post1(Id, Password, RadAttributes, Balance, EnabledStatus)
