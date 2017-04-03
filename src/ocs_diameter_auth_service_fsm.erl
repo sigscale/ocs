@@ -37,9 +37,7 @@
 			terminate/3, code_change/4]).
 
 -include_lib("diameter/include/diameter.hrl").
--record(statedata,
-		{address :: inet:ip_address(),
-		port :: pos_integer()}).
+-record(statedata, {}).
 
 -define(AUTHENTICATION, diameter_authentication).
 
@@ -67,11 +65,22 @@
 %% @private
 %%
 init([Address, Port] = _Args) ->
-	SvcName = ?AUTHENTICATION,
-	diameter:subscribe(SvcName),
-	StateData  = #statedata{address = Address, port = Port},
 	process_flag(trap_exit, true),
-	{ok, wait_for_start, StateData, 0}.
+	SvcName = ?AUTHENTICATION,
+	SOptions = service_options(SvcName),
+	TOptions = transport_options(diameter_tcp, Address, Port),
+	case diameter:start_service(SvcName, SOptions) of
+		ok ->
+			case diameter:add_transport(SvcName, TOptions) of
+				{ok, _Ref} ->
+					diameter:subscribe(SvcName),
+					{ok, wait_for_start, #statedata{}, 0};
+				{error, Reason} ->
+					{stop, Reason}
+			end;
+		{error, Reason} ->
+			{stop, Reason}
+	end.
 
 -spec wait_for_start(Event, StateData) -> Result
 	when
@@ -110,12 +119,7 @@ wait_for_start(timeout, StateData) ->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-started(timeout, #statedata{address = Address, port = Port} = StateData) ->
-	SvcName = ?AUTHENTICATION,
-	SOptions = service_options(SvcName),
-	TOptions = transport_options(diameter_tcp, Address, Port),
-	diameter:start_service(SvcName, SOptions),
-	diameter:add_transport(SvcName, TOptions),
+started(timeout, StateData) ->
 	{next_state, started, StateData}.
 
 -spec wait_for_stop(Event, StateData) -> Result
