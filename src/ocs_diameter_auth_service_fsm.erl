@@ -30,13 +30,16 @@
 -export([]).
 
 %% export the ocs_radius_disconnect_fsm state callbacks
--export([start/2]).
+-export([wait_for_start/2, started/2, wait_for_stop/2]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
 			terminate/3, code_change/4]).
 
--record(statedata, {}).
+-include_lib("diameter/include/diameter.hrl").
+-record(statedata,
+		{address :: inet:ip_address(),
+		port :: pos_integer()}).
 
 -define(AUTHENTICATION, diameter_authentication).
 
@@ -63,15 +66,14 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init( [Address, Port] = _Args) ->
+init([Address, Port] = _Args) ->
 	SvcName = ?AUTHENTICATION,
-	SOptions = service_options(SvcName),
-	TOptions = transport_options(diameter_tcp, Address, Port),
-	diameter:start_service(SvcName, SOptions),
-	diameter:add_transport(SvcName, TOptions),
-	{ok, start, #statedata{}}.
+	diameter:subscribe(SvcName),
+	StateData  = #statedata{address = Address, port = Port},
+	process_flag(trap_exit, true),
+	{ok, wait_for_start, StateData, 0}.
 
--spec start(Event, StateData) -> Result
+-spec wait_for_start(Event, StateData) -> Result
 	when
 		Event :: timeout | term(), 
 		StateData :: #statedata{},
@@ -84,13 +86,57 @@ init( [Address, Port] = _Args) ->
 		Timeout :: non_neg_integer() | infinity,
 		Reason :: normal | term().
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>send_request</b> state. This state is responsible
-%%		for sending a RADIUS-Disconnect/Request to an access point.
+%%		gen_fsm:send_event/2} in the <b>wait_for_start</b> state.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-start(_Event, StateData) ->
-	{next_state, start, StateData}.
+wait_for_start(timeout, StateData) ->
+	{next_state, wait_for_start, StateData}.
+
+-spec started(Event, StateData) -> Result
+	when
+		Event :: timeout | term(), 
+		StateData :: #statedata{},
+		Result :: {next_state, NextStateName, NewStateData}
+			| {next_state, NextStateName, NewStateData, Timeout}
+			| {next_state, NextStateName, NewStateData, hibernate}
+			| {stop, Reason, NewStateData},
+		NextStateName :: atom(),
+		NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity,
+		Reason :: normal | term().
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
+%%		gen_fsm:send_event/2} in the <b>started</b> state.
+%% @@see //stdlib/gen_fsm:StateName/2
+%% @private
+%%
+started(timeout, #statedata{address = Address, port = Port} = StateData) ->
+	SvcName = ?AUTHENTICATION,
+	SOptions = service_options(SvcName),
+	TOptions = transport_options(diameter_tcp, Address, Port),
+	diameter:start_service(SvcName, SOptions),
+	diameter:add_transport(SvcName, TOptions),
+	{next_state, started, StateData}.
+
+-spec wait_for_stop(Event, StateData) -> Result
+	when
+		Event :: timeout | term(), 
+		StateData :: #statedata{},
+		Result :: {next_state, NextStateName, NewStateData}
+			| {next_state, NextStateName, NewStateData, Timeout}
+			| {next_state, NextStateName, NewStateData, hibernate}
+			| {stop, Reason, NewStateData},
+		NextStateName :: atom(),
+		NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity,
+		Reason :: normal | term().
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
+%%		gen_fsm:send_event/2} in the <b>wait_for_stop</b> state.
+%% @@see //stdlib/gen_fsm:StateName/2
+%% @private
+%%
+wait_for_stop(timeout, StateData) ->
+	{stop, shutdown, StateData}.
 
 -spec handle_event(Event, StateName, StateData) -> Result
 	when
@@ -159,8 +205,9 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 %% @see //stdlib/gen_fsm:handle_info/3
 %% @private
 %%
-handle_info(_Event, _StateName, StateData) ->
-	{stop, not_implemented, StateData}.
+handle_info(#diameter_event{service = ?AUTHENTICATION, info = EventInfo},
+		_StateName, StateData) ->
+	change_state(EventInfo, StateData).
 
 -spec terminate(Reason, StateName, StateData) -> any()
 	when
@@ -221,4 +268,38 @@ transport_options(Transport, Address, Port) ->
 							{ip, Address},
 							{port, Port}]}],
 	{listen, Opts}.
+
+-spec change_state(EventInfo, StateData) -> Result
+	when
+		EventInfo :: term(),
+		StateData :: #statedata{},
+		Result :: {next_state, NextStateName, NewStateData}
+			| {next_state, NextStateName, NewStateData, Timeout}
+			| {next_state, NextStateName, NewStateData, hibernate}
+			| {stop, Reason, NewStateData},
+		NextStateName :: atom(),
+		NewStateData :: #statedata{},
+		Timeout :: non_neg_integer() | infinity,
+		Reason :: normal | term().
+%% @doc Chnage the state of the fsm based on the event sent
+%% by the diameter service.
+%% @hidden
+change_state(start, StateData) ->
+	{next_state, started, StateData, 0};
+change_state({up, _, _, _, _}, StateData) ->
+	{next_state, started, StateData, 0};
+change_state({up, _, _, __}, StateData) ->
+	{next_state, started, StateData, 0};
+change_state({down, _, _,  _}, StateData) ->
+	{next_state, wait_for_stop, StateData, 0};
+change_state({reconnect, _, _}, StateData) ->
+	{next_state, started, StateData, 0};
+change_state(closed, StateData) ->
+	{next_state, started, StateData, 0};
+change_state({watchdog, _, _, {_, down}, _}, StateData) ->
+	{next_state, wait_for_stop, StateData, 0};
+change_state({watchdog, _, _, _, _}, StateData) ->
+	{next_state, started, StateData, 0};
+change_state(stop, StateData) ->
+	{next_state, wait_for_stop, StateData, 0}.
 
