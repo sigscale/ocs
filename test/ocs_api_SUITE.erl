@@ -98,27 +98,25 @@ client(Config) ->
 	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, radius),
 	[{Address, _, _}] = AuthInstance,
 	SharedSecret = ct:get_config(radius_shared_secret, Config),
-	{ok, DiscPort} = application:get_env(ocs, radius_disconnect_port),
 	Protocol = ct:get_config(protocol),
-	ok = ocs:add_client(Address, DiscPort, Protocol, SharedSecret),
-	{ok, DiscPort, Protocol, BinSharedSecret} = ocs:find_client(Address),
+	ok = ocs:add_client(Address, 3799, Protocol, SharedSecret),
+	{ok, 3799, Protocol, BinSharedSecret} = ocs:find_client(Address),
 	SharedSecret = binary_to_list(BinSharedSecret).
 
 get_all_clients() ->
 	[{userdata, [{doc, "Retrieve  all clients from  database"}]}].
 
-get_all_clients(Config) ->
+get_all_clients(_Config) ->
 	A1 = {10,2,45,67},
 	A2 = {10,2,45,68},
 	A3 = {10,2,45,69},
 	Secret1 = "Enid blyton 1",
 	Secret2 = "Enid blyton 2",
 	Secret3 = "Enid blyton 3",
-	{ok, DiscPort} = application:get_env(ocs, radius_disconnect_port),
 	Protocol = ct:get_config(protocol),
-	ok = ocs:add_client(A1, DiscPort, Protocol, Secret1),
-	ok = ocs:add_client(A2, DiscPort, Protocol, Secret2),
-	ok = ocs:add_client(A3, DiscPort, Protocol, Secret3),
+	ok = ocs:add_client(A1, 3799, Protocol, Secret1),
+	ok = ocs:add_client(A2, 3799, Protocol, Secret2),
+	ok = ocs:add_client(A3, 13799, Protocol, Secret3),
 	Clients = ocs:get_clients(),
 	F = fun(#client{address = A, disconnect_port = DP, protocol = P, secret = S} = _R) ->
 		{ok, DP, P, S} = ocs:find_client(A)
@@ -131,15 +129,14 @@ update_client_password() ->
 update_client_password(_Config) ->
 	Address = "192.168.90.23",
 	Password = "gentoo",
-	{ok, DiscPort} = application:get_env(ocs, radius_disconnect_port),
 	Protocol = ct:get_config(protocol),
-	ok = ocs:add_client(Address, DiscPort, Protocol, Password),
+	ok = ocs:add_client(Address, 3799, Protocol, Password),
 	PasswordBin = list_to_binary(Password),
-	{ok, DiscPort, Protocol, PasswordBin} = ocs:find_client(Address),
+	{ok, 3799, Protocol, PasswordBin} = ocs:find_client(Address),
 	NewPassword = "GentooNewxD",
 	ok = ocs:update_client(Address, NewPassword),
 	NewPasswordBin = list_to_binary(NewPassword),
-	{ok,  DiscPort, Protocol, NewPasswordBin} = ocs:find_client(Address).
+	{ok, 3799, Protocol, NewPasswordBin} = ocs:find_client(Address).
 
 
 delete_client() ->
@@ -149,9 +146,8 @@ delete_client(Config) ->
 	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, radius),
 	[{Address, _, _}] = AuthInstance,
 	SharedSecret = ct:get_config(radius_shared_secret, Config),
-	{ok, DiscPort} = application:get_env(ocs, radius_disconnect_port),
 	Protocol = ct:get_config(protocol),
-	ok = ocs:add_client(Address, DiscPort, Protocol, SharedSecret),
+	ok = ocs:add_client(Address, 3799, Protocol, SharedSecret),
 	ok = ocs:delete_client(Address),
 	{error, not_found} = ocs:find_client(Address).
 

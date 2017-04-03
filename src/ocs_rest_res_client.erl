@@ -43,7 +43,7 @@ content_types_accepted() ->
 		ContentTypes :: list().
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
-	["application/json", "application/hal+json"].
+	["application/json"].
 
 -spec perform_get(Ip) -> Result
 	when
@@ -110,11 +110,31 @@ perform_post(RequestBody) ->
 	try 
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, Id} = lists:keyfind("id", 1, Object),
-		{_, DiscPort} = lists:keyfind("disconnectPort", 1, Object),
-		{_, Protocol} = lists:keyfind("protocol", 1, Object),
-		{_, Secret} = lists:keyfind("secret", 1, Object),
-		Protocol_Atom = list_to_atom(string:to_lower(Protocol)),
-		perform_post1(Id, DiscPort, Protocol_Atom, Secret)
+		DiscPort = case lists:keyfind("disconnectPort", 1, Object) of
+			{_, DP} ->
+				DP;
+			false ->
+				3799
+		end,
+		Protocol = case lists:keyfind("protocol", 1, Object) of
+			{_, "radius"} ->
+				radius;
+			{_, "RADIUS"} ->
+				radius;
+			{_, "diameter"} ->
+				diameter;
+			{_, "DIAMETER"} ->
+				diameter;
+			false ->
+				radius
+		end,
+		Secret = case lists:keyfind("secret", 1, Object) of
+			{_, PWD} ->
+				PWD;
+			false ->
+				ocs:generate_password()
+		end,
+		perform_post1(Id, DiscPort, Protocol, Secret)
 	catch
 		_Error ->
 			{error, 400}
@@ -153,10 +173,15 @@ perform_patch(Id, ReqBody) ->
 				case Object of
 					[{"secret", NewPassword}] ->
 						Protocol_Atom = string:to_upper(atom_to_list(CurrProtocol)),
-						perfrom_patch1(Id, CurrDiscPort, Protocol_Atom, NewPassword);
-					[{"disconnectPort", NewDiscPort},{"protocol", NewProtocol}] ->
-						NewProtocolAtom = list_to_atom(string:to_lower(NewProtocol)),
-						perform_patch2(Id, NewDiscPort, NewProtocolAtom, CurrSecret)
+						perform_patch1(Id, CurrDiscPort, Protocol_Atom, NewPassword);
+					[{"disconnectPort", NewDiscPort},{"protocol", "RADIUS"}] ->
+						perform_patch2(Id, NewDiscPort, radius, CurrSecret);
+					[{"disconnectPort", NewDiscPort},{"protocol", "radius"}] ->
+						perform_patch2(Id, NewDiscPort, radius, CurrSecret);
+					[{"disconnectPort", NewDiscPort},{"protocol", "DIAMETER"}] ->
+						perform_patch2(Id, NewDiscPort, diameter, CurrSecret);
+					[{"disconnectPort", NewDiscPort},{"protocol", "diameter"}] ->
+						perform_patch2(Id, NewDiscPort, diameter, CurrSecret)
 				end
 			catch
 				throw : _ ->
@@ -166,7 +191,7 @@ perform_patch(Id, ReqBody) ->
 			{error, 404}
 	end.
 %% @hidden
-perfrom_patch1(Id, DiscPort, Protocol, NewPassword) ->
+perform_patch1(Id, DiscPort, Protocol, NewPassword) ->
 	ok = ocs:update_client(Id, NewPassword),
 	RespObj =[{id, Id}, {href, "/ocs/v1/client/" ++ Id},
 			{"disconnectPort", DiscPort}, {protocol, Protocol}, {secret, NewPassword}],

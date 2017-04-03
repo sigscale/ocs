@@ -50,8 +50,8 @@ e.g &#058;
 
 ==Operation==
 The OCS application will start RADIUS servers for authentication and
-accounting, as well as an HTTP server for the REST API, on the configured
-ports.
+accounting on the configured ports. The {@link //inets. inets} application
+may be started to provide a REST API and web user interface (UI).
 
 ==REST API==
 The {@link //ocs. ocs} application provides a
@@ -90,20 +90,8 @@ Each of the media types used in this application are described below.
 		<tr id="mt">
 			<td id="mt"><a href="http://tools.ietf.org/html/rfc4627">application/json</a></td>
 		</tr>
-		<tr id="mt">
-			<td id="mt"><a href="https://tools.ietf.org/html/draft-kelly-json-hal-08#section-3">application/hal+json</a></td>
-		</tr>
 	</tbody>
 </table></p>
-
-===HAL===
-The JSON Hypertext Application Language
-(<a href="http://tools.ietf.org/html/draft-kelly-json-hal-08">HAL</a>)
-is a standard which establishes conventions for expressing hypermedia
-controls, such as links, with <a href="http://tools.ietf.org/html/rfc4627">JSON</a>.
-HAL assists clients in navigating a REST application by providing links
-organized by relation type.  For example a HAL document describing a collection
-member resource may include a link for the enclosing collection resource.
 
 ===JSON Types===
 <p><div id="status"><table id="mt">
@@ -254,7 +242,6 @@ member resource may include a link for the enclosing collection resource.
 	</tbody>
 </table></div></p>
 
-
 ===Resources &amp; Operations===
 The resources, their URIs, the methods available on them and expected
 responses, are described in this section.  Only the headers, and responses,
@@ -292,7 +279,7 @@ headers may be included in requests and responses and responses.
 		<td id="opr">201 Created</td>
 	</tr>
 </table>
-<p>Example request for accept : "application/json" request header :<pre>
+<p>Example request:<pre>
 POST /ocs/v1/subscriber HTTP/1.1
 Accept: application/json
 Content-type: application/json
@@ -312,7 +299,7 @@ Content-length: nn
  "enabled": true
 }
 </pre></p>
-<p>Example response for accept : "application/json" request header :<pre>
+<p>Example response:<pre>
 HTTP/1.1 201 Created
 Location: /ocs/v1/subscriber/eacfd73ae10a
 Content-Type: application/json
@@ -321,52 +308,6 @@ Content-Length: nn
 {
  "id": "eacfd73ae10a",
  "href": "/ocs/v1/subscriber/eacfd73ae10a"
- "password": "ksc8c244npqc",
- "attributes":[
-               { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
-               { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
-               { "name" : "sessionTimeout", "value" : 10864 },
-               { "name" : "acctInterimInterval", "value": 300},
-               { "name" : "class", "value": "skiorgs"}
-              ],
- "balance": 100,
- "enabled": true
-}
-</pre></p>
-
-<p>Example request for accept : "application/hal+json" request header :<pre>
-POST /ocs/v1/subscriber HTTP/1.1
-Accept: application/hal+json
-Content-type: application/json
-Content-length: nn
-
-{
- "id":"eacfd73ae10a",
- "password":"ksc8c244npqc",
- "attributes":[
-               { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
-               { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
-               { "name" : "sessionTimeout", "value" : 10864 },
-               { "name" : "acctInterimInterval", "value": 300},
-               { "name" : "class", "value": "skiorgs"}
-              ],
- "balance":100,
- "enabled": true
-}
-</pre></p>
-<p>Example response for accept : "application/hal+json" request header :<pre>
-HTTP/1.1 201 Created
-Location: /ocs/v1/subscriber/eacfd73ae10a
-Content-Type: application/hal+json
-Content-Length: nn
-
-{
- "_links": {
-            "self": {
-                     "href": "/ocs/v1/subscriber/eacfd73ae10a"
-                    }
-           },
- "id": "eacfd73ae10a",
  "password": "ksc8c244npqc",
  "attributes":[
                { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
@@ -411,46 +352,17 @@ Content-Length: nn
 		<td id="opr">200 OK, 404 Not Found</td>
 	</tr>
 </table>
-<p>Example request for accept : "application/json" request header :<pre>
+<p>Example request:<pre>
 GET /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
 Accept: application/json
 </pre></p>
-<p>Example response for accept : "application/json" request header :<pre>
+<p>Example response:<pre>
 HTTP/1.1 200 OK
 Content-Type: application/json
 Content-Length: nn
 {
  "id": "eacfd73ae10a",
  "href": "/ocs/v1/subscriber/eacfd73ae10a"
- "password": "ksc8c244npqc",
- "attributes":[
-               { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
-               { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
-               { "name" : "sessionTimeout", "value" : 10864 },
-               { "name" : "acctInterimInterval", "value": 300},
-               { "name" : "class", "value": "skiorgs"}
-              ],
- "balance": 100,
- "enabled": true
-}
-</pre></p>
-
-<p>Example request for accept : "application/hal+json" request header :<pre>
-GET /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
-Accept: application/hal+json
-</pre></p>
-<p>Example response for accept : "application/hal+json" request header :<pre>
-HTTP/1.1 200 OK
-Content-Type: application/hal+json
-Content-Length: 319
-
-{
- "_links": {
-            "self": {
-                     "href": "/ocs/v1/subscriber/eacfd73ae10a"
-                    }
-           },
- "id": "eacfd73ae10a",
  "password": "ksc8c244npqc",
  "attributes":[
                { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
@@ -495,11 +407,11 @@ Content-Length: 319
 		<td id="opr">200 OK, 404 Not Found</td>
 	</tr>
 </table>
-<p>Example request for accept : "application/json" request header :<pre>
+<p>Example request:<pre>
 GET /ocs/v1/subscriber HTTP/1.1
 Accept: application/json
 </pre></p>
-<p>Example response for accept : "application/json" request header :<pre>
+<p>Example response:<pre>
 HTTP/1.1 200 OK
 Content-Type: application/json
 Content-Length: nn
@@ -535,62 +447,6 @@ Content-Length: nn
 ]
 </pre></p>
 
-<p>Example request for accept : "application/hal+json" request header :<pre>
-GET /ocs/v1/subscriber HTTP/1.1
-Accept: application/hal+json
-</pre></p>
-<p>Example response for accept : "application/hal+json" request header :<pre>
-HTTP/1.1 200 OK
-Content-Type: application/hal+json
-Content-Length: nn
-
-{
- "_links": {
-             "self": "/ocs/v1/subscriber"
-           },
- "_embedded": {
-               "subcribers": [
-                              {
-                               "_links": {
-                                          "self": {
-                                                   "href": "/ocs/v1/subscriber/5557615036fd"
-                                                  }
-                                         },
-                               "id": "5557615036fd",
-                               "password": "2h7csggw35aa",
-                               "attributes":[
-                                             { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
-                                             { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
-                                             { "name" : "sessionTimeout", "value" : 10864 },
-                                             { "name" : "acctInterimInterval", "value": 300},
-                                             { "name" : "class", "value": "skiorgs"}
-                                            ],
-                                "balance": 65,
-                                "enabled": true
-                              },
-                              {
-                               "_links": {
-                                          "self": {
-                                                   "href": "/ocs/v1/subscriber/e5b9265c8c0d"
-                                                  }
-                                         },
-                               "id": "e5b9265c8c0d",
-                               "password": "rzambns7knr4",
-                               "attributes":[
-                                             { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
-                                             { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
-                                             { "name" : "sessionTimeout", "value" : 10864 },
-                                             { "name" : "acctInterimInterval", "value": 300},
-                                             { "name" : "class", "value": "xbnfdk"}
-                                            ],
-                               "balance": 76,
-                               "enabled": true
-                              }
-                             ]
-              }
-}
-</pre></p>
-
 <table id="op">
 <caption id="op"><b>Update Subscriber Password</b></caption>
 	<tr id="op">
@@ -622,7 +478,7 @@ Content-Length: nn
 		<td id="opr">200 Ok</td>
 	</tr>
 </table>
-<p>Example request for accept : "application/json" request header :<pre>
+<p>Example request:<pre>
 PATCH /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
 Content-type: application/json
 Accept: application/json
@@ -631,49 +487,14 @@ Accept: application/json
   "newpassword":"7fy8qhs7hh7n"
 }
 </pre></p>
-<p>Example response for accept : "application/json" request header :<pre>
+<p>Example respons:<pre>
 HTTP/1.1 200 Ok
 Content-Type: application/json
 Content-Length: 315
 
-
 {
  "id": "eacfd73ae10a",
  "href": "/ocs/v1/subscriber/eacfd73ae10a",
- "password": "7fy8qhs7hh7n",
- "attributes":[
-               { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
-               { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
-               { "name" : "sessionTimeout", "value" : 10864 },
-               { "name" : "acctInterimInterval", "value": 300},
-               { "name" : "class", "value": "skiorgs"}
-              ],
- "balance": 100,
- "enabled": true
-}
-</pre></p>
-
-<p>Example request for accept : "application/hal+json" request header :<pre>
-PATCH /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
-Content-type: application/json
-Accept: application/hal+json
-{
-  "update":"password",
-  "newpassword":"7fy8qhs7hh7n"
-}
-</pre></p>
-<p>Example response for accept : "application/hal+json" request header :<pre>
-HTTP/1.1 200 Ok
-Content-Type: application/json
-Content-Length: 373
-
-{
- "_links": {
-            "self": {
-                     "href": "/ocs/v1/subscriber/eacfd73ae10a"
-                    }
-           },
- "id": "eacfd73ae10a",
  "password": "7fy8qhs7hh7n",
  "attributes":[
                { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
@@ -718,7 +539,7 @@ Content-Length: 373
 		<td id="opr">200 Ok</td>
 	</tr>
 </table>
-<p>Example request for accept : "application/json" request header :<pre>
+<p>Example request:<pre>
 PATCH /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
 Content-type: application/json
 Accept: application/json
@@ -736,7 +557,7 @@ Accept: application/json
  "enabled":false
 }
 </pre></p>
-<p>Example response for accept : "application/json" request header :<pre>
+<p>Example response:<pre>
 HTTP/1.1 200 Ok
 Content-Type: application/json
 Content-Length: 315
@@ -744,48 +565,6 @@ Content-Length: 315
 {
  "id": "eacfd73ae10a",
  "href": "/ocs/v1/subscriber/eacfd73ae10a",
- "password": "ksc8c244npqc",
- "attributes":[
-               { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
-               { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
-               { "name" : "sessionTimeout", "value" : 10864 },
-               { "name" : "acctInterimInterval", "value": 300},
-               { "name" : "class", "value": "skiorgs"}
-              ],
- "balance": 153,
- "enabled": false
-}
-</pre></p>
-
-<p>Example request for accept : "application/hal+json" request header :<pre>
-PATCH /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
-Content-type: application/json
-Accept: application/hal+json
-{
- "update":"attributes",
- "balance":153,
- "attributes":[
-               { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
-               { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
-               { "name" : "sessionTimeout", "value" : 10864 },
-               { "name" : "acctInterimInterval", "value": 300},
-               { "name" : "class", "value": "skiorgs"}
-              ],
- "enabled":false
-}
-</pre></p>
-<p>Example response for accept : "application/hal+json" request header :<pre>
-HTTP/1.1 200 Ok
-Content-Type: application/hal+json
-Content-Length:
-
-{
- "_links": {
-            "self": {
-                     "href": "/ocs/v1/subscriber/eacfd73ae10a"
-                    }
-           },
- "id": "eacfd73ae10a",
  "password": "ksc8c244npqc",
  "attributes":[
                { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
@@ -869,7 +648,7 @@ Content-Length: 0
 		<td id="opr">201 Created</td>
 	</tr>
 </table>
-<p>Example request for accept : "application/json" request header :<pre>
+<p>Example request:<pre>
 POST /ocs/v1/client HTTP/1.1
 Accept: application/json
 Content-type: application/json
@@ -882,7 +661,7 @@ Content-length: nn
  "secret":"ksc8c244npqc",
 }
 </pre></p>
-<p>Example response for accept : "application/json" request header :<pre>
+<p>Example response:<pre>
 HTTP/1.1 201 Created
 Location: /ocs/v1/client/10.2.53.9
 Content-Type: application/json
@@ -928,11 +707,11 @@ Content-Length: nn
 		<td id="opr">200 OK, 404 Not Found</td>
 	</tr>
 </table>
-<p>Example request for accept : "application/json" request header :<pre>
+<p>Example request:<pre>
 GET /ocs/v1/client/10.2.53.9 HTTP/1.1
 Accept: application/json
 </pre></p>
-<p>Example response for accept : "application/json" request header :<pre>
+<p>Example response:<pre>
 HTTP/1.1 200 OK
 Content-Type: application/json
 Content-Length: nn
@@ -976,11 +755,11 @@ Content-Length: nn
 		<td id="opr">200 OK, 404 Not Found</td>
 	</tr>
 </table>
-<p>Example request for accept : "application/json" request header :<pre>
+<p>Example request:<pre>
 GET /ocs/v1/client HTTP/1.1
 Accept: application/json
 </pre></p>
-<p>Example response for accept : "application/json" request header :<pre>
+<p>Example response:<pre>
 HTTP/1.1 200 OK
 Content-Type: application/json
 Content-Length: nn
@@ -1033,7 +812,7 @@ Content-Length: nn
 		<td id="opr">200 Ok</td>
 	</tr>
 </table>
-<p>Example request for accept : "application/json" request header :<pre>
+<p>Example request:<pre>
 PATCH /ocs/v1/client/10.2.53.9 HTTP/1.1
 Content-type: application/json
 Accept: application/json
@@ -1041,11 +820,10 @@ Accept: application/json
   "secret":"7fy8qhs7hh7n"
 }
 </pre></p>
-<p>Example response for accept : "application/json" request header :<pre>
+<p>Example response:<pre>
 HTTP/1.1 200 Ok
 Content-Type: application/json
 Content-Length: 315
-
 
 {
  "id": "10.2.53.9",
@@ -1087,7 +865,7 @@ Content-Length: 315
 		<td id="opr">200 Ok</td>
 	</tr>
 </table>
-<p>Example request for accept : "application/json" request header :<pre>
+<p>Example request:<pre>
 PATCH /ocs/v1/client/10.2.53.9 HTTP/1.1
 Content-type: application/json
 Accept: application/json
@@ -1096,11 +874,10 @@ Accept: application/json
   "protocol": "DIAMETER" 
 }
 </pre></p>
-<p>Example response for accept : "application/json" request header :<pre>
+<p>Example response:<pre>
 HTTP/1.1 200 Ok
 Content-Type: application/json
 Content-Length: 315
-
 
 {
  "id": "10.2.53.9",
@@ -1181,17 +958,16 @@ Content-Length: 0
 		<td id="opr">200 OK, 404 Not Found</td>
 	</tr>
 </table>
-<p>Example request for accept : "application/json" request header :<pre>
+<p>Example request:<pre>
 GET /usageManagement/v1/usage/2017-02-22T10:00:14.910Z HTTP/1.1
 Accept: application/json
 </pre></p>
-<p>Example response for accept : "application/json" request header :<pre>
+<p>Example response:<pre>
 HTTP/1.1 200 OK
 Content-Type: application/json
 Content-Length: 0
 
- [{
-	"id": 1,
+[{"id": 1,
 	"href": "/usageManagement/v1/usage/1"
 	"date": "2017-02-22T10:00:14.910Z",
 	"type": "PublicWLANAccessUsage",
@@ -1249,7 +1025,6 @@ Content-Length: 0
 		}
 	]
 }]
-
 </pre></p>
 
 ==Database Schema==
@@ -1282,14 +1057,14 @@ The {@link //ocs. ocs} application is configured using the following environment
 		<dd>Number of accounting log files.</dd>
 	<dt>acct_log_size</dt>
 		<dd>Size in bytes of accounting log files.</dd>
-	<dt>ipdr_dir</dt>
-		<dd>Path of directory to store IPDR logs.</dd>
 	<dt>auth_log_dir</dt>
 		<dd>Path of directory to store authorization logs.</dd>
 	<dt>auth_log_files</dt>
 		<dd>Number of authorization log files.</dd>
 	<dt>auth_log_size</dt>
 		<dd>Size in bytes of authorization log files.</dd>
+	<dt>ipdr_log_dir</dt>
+		<dd>Path of directory to store IPDR logs.</dd>
 	<dt>radius</dt>
 		<dd>Configuration groups for RADIUS authentication and accounting (includes IP address (default: {0,0,0,0}), port and log rotate time).</dd>
 	<dt>tls_cert</dt>

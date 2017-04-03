@@ -108,7 +108,9 @@
 								<paper-item class="menu-trigger menuitem"><iron-icon icon ="icons:history"></iron-icon>&nbsp Logs</paper-item>
 									<paper-menu class="menu-content" >
 										<paper-item id="page2" onclick="drawer.toggle()" class="menuitem"> &nbsp &nbsp <iron-icon icon ="device:data-usage"></iron-icon> &nbsp Accounting</paper-item>
+<!--
 										<paper-item id="page3" onclick="drawer.toggle()"class="menuitem">&nbsp &nbsp <iron-icon icon ="icons:perm-identity"></iron-icon> &nbsp Authentication</paper-item>
+-->
 									</paper-menu>
 							</paper-submenu>
 						</paper-menu>
@@ -198,30 +200,39 @@
 					if(this.$.pageSelection.selected == 0){
 						var data = document.getElementById("grid").items;
 						csvObject.gridData = data;
-						csvObject.headers = "Identity, Secret, Balance, Data Rate, Xmit Rate, Session Timeout," +
-								  "Accounting Interval, Class, Enabled \n";
-						csvObject.keys = [ "id","password","balance","ascendDataRate","ascendXmitRate", +
-								  "sessionTimeout","acctInterimInterval","class","enabled"];
+						csvObject.headers = "Identity,Secret,Balance,Data Rate," +
+								"Xmit Rate,Session Timeout,Accounting Interval," +
+								"Class,Enabled\n";
+						csvObject.keys = ["id", "password", "balance",
+								"ascendDataRate", "ascendXmitRate", "sessionTimeout",
+								"acctInterimInterval", "class", "enabled"];
 						csvObject.fileName = "subscribers.csv";
 					}
 					if(this.$.pageSelection.selected == 1){
 						var data = document.getElementById("clientsGrid").items;
 						csvObject.gridData = data;
-						csvObject.headers = "Identity, Secret, Disconnect Port, Protocol\n";
-						csvObject.keys = ["id", "secret", "disconnectPort", "protocol"];
+						csvObject.headers = "Identity,Secret,Disconnect Port," +
+								"Protocol\n";
+						csvObject.keys = ["id", "secret", "disconnectPort",
+								"protocol"];
 						csvObject.fileName = "clients.csv";
 					}
 					if(this.$.pageSelection.selected == 2){
 						var data = document.getElementById("accoutingGrid").items;
 						csvObject.gridData = data;
-						csvObject.headers = "IPDR creation time, Sequence Number, Username, Session ID," +
-								  "Calling Station, Called Station, NAS IP, NAS ID, Session Duration, Input Octets," +
-								  "Output Octets, Session Start Time, Session End Time, Session Terminate \n";
-						csvObject.keys = ["ipdrCreationTime", "seqNum", "username", "acctSessionId", +
-									"callingStationId", "calledStationId", "nasIpAddress", "nasId", "sessionDuration" +
-									"inputOctets", "outputOctets", "gmtSessionStartDateTime", "gmtSessionEndDateTime" +
-									"sessionTerminateCause"];
-						csvObject.fileName = "usage_logs.csv";
+						csvObject.headers = "IPDR Creation Time,Sequence Number," +
+								"Username,Session ID,Calling Station," +
+								"Called Station,NAS Address,NAS Identity," +
+								"Session Duration,Input Octets,Output Octets," +
+								"Session Start Time,Session End Time," +
+								"Terminate Cause\n";
+						csvObject.keys = ["ipdrCreationTime", "seqNum", "username",
+								"acctSessionId", "callingStationId", "calledStationId",
+								"nasIpAddress", "nasId", "sessionDuration",
+								"inputOctets", "outputOctets",
+								"gmtSessionStartDateTime", "gmtSessionEndDateTime",
+								"sessionTerminateCause"];
+						csvObject.fileName = "usage.csv";
 					}
 					generateCSVData(csvObject);
 				}

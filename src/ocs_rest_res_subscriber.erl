@@ -43,7 +43,7 @@ content_types_accepted() ->
 		ContentTypes :: list().
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
-	["application/json", "application/hal+json"].
+	["application/json"].
 
 -spec perform_get(Id) -> Result
 	when
@@ -105,9 +105,18 @@ perform_post(RequestBody) ->
 	try 
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, Id} = lists:keyfind("id", 1, Object),
-		{_, Password} = lists:keyfind("password", 1, Object),
-		{_, {array, JsonObjList}} = lists:keyfind("attributes", 1, Object),
-		RadAttributes = json_to_radius(JsonObjList),
+		Password = case lists:keyfind("password", 1, Object) of
+			{_, PWD} ->
+				PWD;
+			false ->
+				ocs:generate_password()
+		end,
+		RadAttributes = case lists:keyfind("attributes", 1, Object) of
+			{_, {array, JsonObjList}} ->
+				json_to_radius(JsonObjList);
+			false ->
+				[]
+		end,
 		{_, Balance} = lists:keyfind("balance", 1, Object),
 		{_, EnabledStatus} = lists:keyfind("enabled", 1, Object),
 		perform_post1(Id, Password, RadAttributes, Balance, EnabledStatus)

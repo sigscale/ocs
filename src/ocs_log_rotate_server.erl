@@ -67,7 +67,7 @@ init([Rotate] = _Args) when is_integer(Rotate), Rotate > 0 ->
 					{rotate, Rotate}, {interval, I}]),
 			I
 	end,
-	{ok, Directory} = application:get_env(ipdr_dir),
+	{ok, Directory} = application:get_env(ipdr_log_dir),
 	State = #state{interval = Interval, dir = Directory},
 	case file:make_dir(Directory) of
 		ok ->
