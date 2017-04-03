@@ -1,4 +1,4 @@
-%%% ocs_diameter_auth_service_server_sup.erl
+%%% ocs_diameter_auth_service_fsm_sup.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 SigScale Global Inc.
 %%% @end
@@ -16,7 +16,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @docfile "{@docsrc supervision.edoc}"
 %%%
--module(ocs_diameter_auth_service_server_sup).
+-module(ocs_diameter_auth_service_fsm_sup).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 -behaviour(supervisor).
@@ -40,15 +40,15 @@
 %% @private
 %%
 init(Args) ->
-	ChildSpec = [server(ocs_diameter_auth_service_server, Args)],
+	ChildSpec = [fsm(ocs_diameter_auth_service_fsm, Args)],
 	{ok, {{one_for_one, 10, 60}, ChildSpec}}.
 
 %% @doc Build a supervisor child specification for a
-%% 	{@link //stdlib/gen_server. gen_server} behaviour.
+%% 	{@link //stdlib/gen_fsm. gen_fsm} behaviour.
 %% @private
 %%
-server(StartMod, Args) ->
+fsm(StartMod, Args) ->
 	StartArgs = [StartMod, Args, []],
-	StartFunc = {gen_server, start_link, StartArgs},
+	StartFunc = {gen_fsm, start_link, StartArgs},
 	{StartMod, StartFunc, transient, 4000, worker, [StartMod]}.
 

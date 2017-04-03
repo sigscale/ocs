@@ -41,7 +41,7 @@
 %%
 init([Address, Port, _LogRotateTime, Options]) ->
 	ChildSpecs = [server(ocs_diameter_auth_port_server, Address, Port, Options),
-		supervisor(ocs_diameter_auth_service_server_sup, [Address, Port])],
+		supervisor(ocs_diameter_auth_service_fsm_sup, [Address, Port])],
 	{ok, {{one_for_one, 10, 3600}, ChildSpecs}}.
 
 %% @hidden
