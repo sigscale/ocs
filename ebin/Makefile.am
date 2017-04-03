@@ -11,8 +11,8 @@ beam_DATA = ocs.beam \
 			ocs_sup.beam \
 			ocs_diameter_auth_port_server.beam \
 			ocs_diameter_auth_port_sup.beam \
-			ocs_diameter_auth_service_server_sup.beam \
-			ocs_diameter_auth_service_server.beam \
+			ocs_diameter_auth_service_fsm_sup.beam \
+			ocs_diameter_auth_service_fsm.beam \
 			ocs_diameter_auth_sup.beam \
 			ocs_diameter_auth_service_callback.beam \
 			ocs_radius_acct_port_server.beam \
