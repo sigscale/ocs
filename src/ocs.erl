@@ -258,31 +258,19 @@ add_subscriber(Subscriber, Password, Attributes, Balance, EnabledStatus)
 			EnabledStatus);
 add_subscriber(Subscriber, Password, Attributes, Balance, EnabledStatus)
 		when is_binary(Subscriber), is_binary(Password),
-		is_list(Attributes), is_integer(Balance) ->
-	F1 = fun(F, <<C, Rest/binary>>) ->
-				F(F, Rest);
-			(_, <<_, _/binary>>) ->
-				false;
-			(_, <<>>) ->
-				true
+		is_list(Attributes), is_integer(Balance), Balance >= 0 ->
+	F1 = fun() ->
+				R = #subscriber{name = Subscriber, password = Password,
+						attributes = Attributes, balance = Balance,
+						enabled = EnabledStatus},
+				mnesia:write(R)
 	end,
-	case F1(F1, Password) of
-		true ->
-			F2 = fun() ->
-						R = #subscriber{name = Subscriber, password = Password,
-								attributes = Attributes, balance = Balance,
-								enabled = EnabledStatus},
-						mnesia:write(R)
-			end,
-			case mnesia:transaction(F2) of
-				{atomic, ok} ->
-					ok;
-				{aborted, Reason} ->
-					{error, Reason}
-			end;
-		false ->
-			{error, badarg}
-	end.
+	case mnesia:transaction(F1) of
+		{atomic, ok} ->
+			ok;
+		{aborted, Reason} ->
+			{error, Reason}
+			end.
 
 -spec find_subscriber(Subscriber) -> Result  
 	when
