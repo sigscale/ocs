@@ -143,30 +143,43 @@ handle_error(_Reason, _Request, _SvcName, _Peer) ->
 		Opt :: diameter:call_opt(),
 		PostF :: diameter:evaluable().
 %% @doc Invoked when a request messge is received from the peer. 
-handle_request(#diameter_packet{msg = Req, errors = []}, _SvcName, {_, Caps})
-		when is_record(Req, diameter_base_RAR) ->
-	#diameter_caps{origin_host = {OH,_}, origin_realm = {OR,_}} = Caps,
-	#diameter_base_RAR{'Session-Id' = Id, 'Re-Auth-Request-Type' = Type} = Req,
-	Action = {reply, #diameter_base_RAA{'Result-Code' = rc(Type),
-			'Origin-Host' = OH, 'Origin-Realm' = OR, 'Session-Id' = Id}},
-	Action;
-handle_request(#diameter_packet{msg = Req}, _SvcName, {_, Caps})
-		when is_record(Req, diameter_base_RAR) ->
-	#diameter_caps{origin_host = {OH,_}, origin_realm = {OR,_}} = Caps,
-	#diameter_base_RAR{'Session-Id' = Id} = Req,
-	Action = {reply, #diameter_base_RAA{'Origin-Host' = OH,
-		'Origin-Realm' = OR, 'Session-Id' = Id}},
-	Action;
-handle_request(#diameter_packet{}, _SvcName, _) ->
-	{answer_message, 3001}.
+handle_request(#diameter_packet{msg = Req, errors = []}, _SvcName, {_Peer, Caps}) ->
+	send_to_port_server(Caps, Req).
 
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
 
-%% @doc Generate result codes
-%% @hidden
-rc(0) ->
-    2001;
-rc(_) ->
-    5012.
+-spec send_to_port_server(Caps, Request) -> Action
+	when
+		Caps :: capabilities(),
+		Request :: message(),
+		Action :: Reply | {relay, [Opt]} | discard
+			| {eval|eval_packet, Action, PostF},
+		Reply :: {reply, packet() | message()}
+			| {answer_message, 3000..3999|5000..5999}
+			| {protocol_error, 3000..3999},
+		Opt :: diameter:call_opt(),
+		PostF :: diameter:evaluable().
+%% @doc Locate ocs_diameter_auth_port_server process and sent it
+%% peer's capabilities and diameter request.
+send_to_port_server(Caps, Request) ->
+	[Svc] = diameter:services(),
+	[Info] = diameter:service_info(Svc, transport),
+	case lists:keyfind(options, 1, Info) of
+		{options, Options} ->
+			case lists:keyfind(transport_config, 1, Options) of
+				{transport_config, [_, {ip, IP}, {port, Port}]} ->
+					case global:whereis_name({ocs_diameter_auth, IP, Port}) of
+						undefined ->
+							discard;
+						PortServer ->
+							gen_server:call(PortServer, {diameter_request, Caps, Request})
+					end;
+				false ->
+					discard
+			end;
+		false ->
+			discard
+	end.
+
