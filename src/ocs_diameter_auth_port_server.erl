@@ -33,6 +33,9 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 			terminate/2, code_change/3]).
 
+-include_lib("diameter/include/diameter.hrl").
+-include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
+
 -record(state, {}).
 
 -type state() :: #state{}.
@@ -78,8 +81,13 @@ init([_AuthPortSup, _Address, _Port, _Options]) ->
 %% 	gen_server:multi_call/2,3,4}.
 %% @see //stdlib/gen_server:handle_call/3
 %% @private
-handle_call(_Request, _From, State) ->
-	{noreply, State}.
+handle_call({diameter_request, Caps, Request}, _From, State)
+		when is_record(Request, diameter_base_RAR)->
+	#diameter_caps{origin_host = {OH,_}, origin_realm = {OR,_}} = Caps,
+	#diameter_base_RAR{'Session-Id' = Id, 'Re-Auth-Request-Type' = Type} = Request,
+	Action = {reply, #diameter_base_RAA{'Result-Code' = result_code(Type),
+		'Origin-Host' = OH, 'Origin-Realm' = OR, 'Session-Id' = Id}},
+	{reply, Action, State}.
 
 -spec handle_cast(Request, State) -> Result
 	when
@@ -140,4 +148,15 @@ code_change(_OldVsn, State, _Extra) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+-spec result_code(Type) -> Code
+	when
+		Type :: non_neg_integer(),
+		Code :: non_neg_integer().
+%% @doc Generate result codes
+%% @hidden
+result_code(0) ->
+	 2001;
+result_code(_) ->
+	5012.
 
