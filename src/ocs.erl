@@ -259,9 +259,7 @@ add_subscriber(Subscriber, Password, Attributes, Balance, EnabledStatus)
 add_subscriber(Subscriber, Password, Attributes, Balance, EnabledStatus)
 		when is_binary(Subscriber), is_binary(Password),
 		is_list(Attributes), is_integer(Balance) ->
-	F1 = fun(F, <<C, Rest/binary>>)
-					when (((C >= $a) and (C =< $z)) or ((C >= $2) and (C =< $9))),
-					C /= $i, C /= $l, C /= $o, C /= $u, C /= $v, C /= $0, C /= $1 ->
+	F1 = fun(F, <<C, Rest/binary>>) ->
 				F(F, Rest);
 			(_, <<_, _/binary>>) ->
 				false;
