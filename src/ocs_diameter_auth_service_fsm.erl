@@ -224,7 +224,10 @@ handle_info(#diameter_event{service = ?AUTHENTICATION, info = EventInfo},
 %% @see //stdlib/gen_fsm:terminate/3
 %% @private
 %%
-terminate(_Reason, _StateName, _StateData) ->
+terminate(_Reason, _StateName,  #statedata{transport_ref = TranstRef}	=
+		_StateData) ->
+	diameter:remove_transport(?AUTHENTICATION, TranstRef),
+	diameter:stop_service(?AUTHENTICATION),
 	ok.
 
 -spec code_change(OldVsn, StateName, StateData, Extra) -> Result
@@ -300,8 +303,8 @@ change_state({down, _, _,  _}, StateData) ->
 	{next_state, wait_for_stop, StateData, 0};
 change_state({reconnect, _, _}, StateData) ->
 	{next_state, started, StateData, 0};
-change_state(closed, StateData) ->
-	{next_state, started, StateData, 0};
+change_state({closed, _, _, _}, StateData) ->
+	{next_state, wait_for_stop, StateData, 0};
 change_state({watchdog, _, _, {_, down}, _}, StateData) ->
 	{next_state, wait_for_stop, StateData, 0};
 change_state({watchdog, _, _, _, _}, StateData) ->
