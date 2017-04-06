@@ -37,7 +37,8 @@
 			terminate/3, code_change/4]).
 
 -include_lib("diameter/include/diameter.hrl").
--record(statedata, {}).
+-record(statedata,
+		{transport_ref :: reference()}).
 
 -define(AUTHENTICATION, diameter_authentication).
 
@@ -69,12 +70,13 @@ init([Address, Port] = _Args) ->
 	SvcName = ?AUTHENTICATION,
 	SOptions = service_options(SvcName),
 	TOptions = transport_options(diameter_tcp, Address, Port),
+	diameter:subscribe(SvcName),
 	case diameter:start_service(SvcName, SOptions) of
 		ok ->
 			case diameter:add_transport(SvcName, TOptions) of
-				{ok, _Ref} ->
-					diameter:subscribe(SvcName),
-					{ok, wait_for_start, #statedata{}, 0};
+				{ok, Ref} ->
+					StateData = #statedata{transport_ref = Ref},
+					{ok, wait_for_start, StateData, 0};
 				{error, Reason} ->
 					{stop, Reason}
 			end;
