@@ -2,7 +2,7 @@
 ##
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = ebin doc include c_src priv test
+SUBDIRS = include src ebin doc c_src priv test
 
 .PHONY:
 release:

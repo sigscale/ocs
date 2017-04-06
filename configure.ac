@@ -40,12 +40,14 @@ AC_ERLANG_SUBST_ROOT_DIR
 AC_PROG_INSTALL
 AC_ERLANG_SUBST_INSTALL_LIB_DIR
 appdir=$ERLANG_INSTALL_LIB_DIR/$PACKAGE_NAME-$PACKAGE_VERSION
+erldir=$ERLANG_INSTALL_LIB_DIR/$PACKAGE_NAME-$PACKAGE_VERSION/src
 beamdir=$ERLANG_INSTALL_LIB_DIR/$PACKAGE_NAME-$PACKAGE_VERSION/ebin
 eincludedir=$ERLANG_INSTALL_LIB_DIR/$PACKAGE_NAME-$PACKAGE_VERSION/include
 docdir=$ERLANG_INSTALL_LIB_DIR/$PACKAGE_NAME-$PACKAGE_VERSION/doc
 libdir=$ERLANG_INSTALL_LIB_DIR/$PACKAGE_NAME-$PACKAGE_VERSION/priv/lib
 wwwdir=$ERLANG_INSTALL_LIB_DIR/$PACKAGE_NAME-$PACKAGE_VERSION/priv/www
 AC_SUBST(appdir)
+AC_SUBST(erldir)
 AC_SUBST(beamdir)
 AC_SUBST(eincludedir)
 AC_SUBST(privdir)
@@ -104,7 +106,7 @@ AC_CHECK_FUNC([BN_new], [], [AC_MSG_ERROR([BN_new function not found!])])
 ## Output:  create output files
 ## 
 
-AC_OUTPUT([Makefile include/Makefile ebin/Makefile doc/Makefile
+AC_OUTPUT([Makefile include/Makefile src/Makefile ebin/Makefile doc/Makefile
 		c_src/Makefile priv/Makefile priv/lib/Makefile
 		priv/www/Makefile test/Makefile ocs.rel sys.config])
 
