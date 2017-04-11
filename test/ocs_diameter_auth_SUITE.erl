@@ -28,6 +28,8 @@
 -compile(export_all).
 
 -include_lib("common_test/include/ct.hrl").
+-include_lib("diameter/include/diameter.hrl").
+-include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
@@ -77,13 +79,30 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[].
+	[capability_exchange].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
+capability_exchange() ->
+	[{userdata, [{doc, "CER/CEA message exchange between DIAMETER client and server"}]}].
+
+capability_exchange(_Config) ->
+	SvcName = diameter_base_app_client,
+	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, diameter),
+	[{Address, Port, _}] = AuthInstance,
+	proc_lib:spawn_link(diameter_test_client, start, [self(), SvcName, Address, Port]),
+	diameter_client_response().
 
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
+
+diameter_client_response() ->
+	receive
+		started ->
+			test_case_started;
+		stopped ->
+			test_case_stopped
+	end.
 
