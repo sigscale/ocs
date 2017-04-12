@@ -48,12 +48,25 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
-	Config.
+	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, diameter),
+	[{Address, Port, _}] = AuthInstance,
+	SvcName = diameter_base_app_client,
+	true = diameter:subscribe(SvcName),
+	ok = diameter:start_service(SvcName, service_opts(SvcName)),
+	{ok, Ref} = connect(SvcName, Address, Port, diameter_tcp),
+	receive
+		#diameter_event{service = SvcName, info = start} ->
+			[{svc_name, SvcName}] ++ Config;
+		_ ->
+			{skip, diameter_service_not_started}
+	end.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
+	SvcName = ?config(svc_name, Config),
+	ok = diameter:stop_service(SvcName),
 	ok = ocs_test_lib:stop(),
 	Config.
 
