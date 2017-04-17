@@ -40,7 +40,7 @@
 -record(statedata,
 		{transport_ref :: reference()}).
 
--define(SERVICE, diameter_base_application).
+-define(BASE_SERVICE, diameter_base_application).
 
 %%----------------------------------------------------------------------
 %%  The ocs_diameter_auth_service_fsm API
@@ -67,7 +67,7 @@
 %%
 init([Address, Port] = _Args) ->
 	process_flag(trap_exit, true),
-	SvcName = ?SERVICE,
+	SvcName = ?BASE_SERVICE,
 	SOptions = service_options(SvcName),
 	TOptions = transport_options(diameter_tcp, Address, Port),
 	diameter:subscribe(SvcName),
@@ -211,7 +211,7 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 %% @see //stdlib/gen_fsm:handle_info/3
 %% @private
 %%
-handle_info(#diameter_event{service = ?SERVICE, info = EventInfo},
+handle_info(#diameter_event{service = ?BASE_SERVICE, info = EventInfo},
 		_StateName, StateData) ->
 	change_state(EventInfo, StateData).
 
@@ -226,8 +226,8 @@ handle_info(#diameter_event{service = ?SERVICE, info = EventInfo},
 %%
 terminate(_Reason, _StateName,  #statedata{transport_ref = TranstRef}	=
 		_StateData) ->
-	diameter:remove_transport(?SERVICE, TranstRef),
-	diameter:stop_service(?SERVICE),
+	diameter:remove_transport(?BASE_SERVICE, TranstRef),
+	diameter:stop_service(?BASE_SERVICE),
 	ok.
 
 -spec code_change(OldVsn, StateName, StateData, Extra) -> Result
