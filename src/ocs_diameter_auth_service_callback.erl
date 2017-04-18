@@ -51,6 +51,7 @@
 		NewState :: state().
 %% @doc Invoked when the peer connection is available
 peer_up(_SvcName, _Peer, State) ->
+erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
     State.
 
 -spec peer_down(SvcName, Peer, State) -> NewState
@@ -61,6 +62,7 @@ peer_up(_SvcName, _Peer, State) ->
 		NewState :: state().
 %% @doc Invoked when the peer connection is not available
 peer_down(_SvcName, _Peer, State) ->
+erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
     State.
 
 -spec pick_peer(LocalCandidates, RemoteCandidates, SvcName, State) -> Result
@@ -116,6 +118,7 @@ prepare_retransmit(_Packet, _SvcName, _Peer) ->
 		Result :: term().
 %% @doc Invoked when an answer message is received from a peer.
 handle_answer(_Packet, _Request, _SvcName, _Peer) ->
+erlang:display({bbbbbbbbbbbbbbbbbbbbbbbbbb, ?MODULE, ?FUNCTION_NAME, ?LINE}),
     not_implemented.
 
 -spec handle_error(Reason, Request, SvcName, Peer) -> Result
@@ -145,8 +148,10 @@ handle_error(_Reason, _Request, _SvcName, _Peer) ->
 %% @doc Invoked when a request messge is received from the peer. 
 handle_request(#diameter_packet{msg = Req, errors = []},
 		diameter_base_application = SvcName, {_Peer, Caps}) ->
+erlang:display({bbbbbbbbbbbbbbbbbbbbbbbbbb, ?MODULE, ?FUNCTION_NAME, ?LINE}),
 	send_to_port_server(SvcName, Caps, Req);
 handle_request(#diameter_packet{msg = Req, errors = []}, _SvcName, {_Peer, Caps}) ->
+erlang:display({bbbbbbbbbbbbbbbbbbbbbbbbbb, ?MODULE, ?FUNCTION_NAME, ?LINE}),
 	discard.
 
 %%----------------------------------------------------------------------

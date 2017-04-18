@@ -212,6 +212,7 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 %%
 handle_info(#diameter_event{service = ?BASE_SERVICE, info = start},
 		_StateName, #statedata{address = Address, port = Port} = StateData) ->
+erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
 	case initiate_service(?NAS_SERVICE, Address, Port, 1, ?NAS_SERVICE,
 			 diameter_gen_nas_application_rfc7155) of
 		{ok, TransRefNas} ->
@@ -222,9 +223,11 @@ handle_info(#diameter_event{service = ?BASE_SERVICE, info = start},
 	end;
 handle_info(#diameter_event{service = ?NAS_SERVICE, info = start},
 		_StateName, StateData) ->
+erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
 	{next_state, started, StateData, 0};
 handle_info(#diameter_event{service = SvcName, info = Event},
 		StateName, StateData) ->
+erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE, SvcName, Event}),
 	change_state(StateName, Event, StateData).
 
 -spec terminate(Reason, StateName, StateData) -> any()
@@ -240,8 +243,6 @@ terminate(_Reason, _StateName,  #statedata{transport_ref_base = TransBase,
 		transport_ref_nas = TransNas}	= _StateData) ->
 	diameter:remove_transport(?BASE_SERVICE, TransBase),
 	diameter:remove_transport(?NAS_SERVICE, TransNas),
-	diameter:stop_service(?BASE_SERVICE),
-	diameter:stop_service(?NAS_SERVICE),
 	ok.
 
 -spec code_change(OldVsn, StateName, StateData, Extra) -> Result
@@ -280,20 +281,28 @@ initiate_service(SvcName, Address, Port, AppId, Alias,
 	SOptions = service_options(AppId, Alias, Dictionary),
 	TOptions = case SvcName of
 		?BASE_SERVICE ->
+erlang:display({?MODULE, ?LINE, ?MODULE}),
 			transport_options(diameter_tcp, Address, Port);
 		?NAS_SERVICE ->
+erlang:display({?MODULE, ?LINE, ?MODULE}),
 			{listen, [{transport_module, diameter_tcp}]}
 	end,
-	diameter:subscribe(SvcName),
+erlang:display({?MODULE, ?LINE, ?MODULE}),
+	T = diameter:subscribe(SvcName),
+erlang:display({?MODULE, ?LINE, ?MODULE, T}),
 	case diameter:start_service(SvcName, SOptions) of
 		ok ->
+erlang:display({?MODULE, ?LINE, ?MODULE}),
 			case diameter:add_transport(SvcName, TOptions) of
 				{ok, Ref} ->
+erlang:display({?MODULE, ?LINE, ?MODULE}),
 					{ok, Ref};
 				{error, Reason} ->
+erlang:display({?MODULE, ?LINE, ?MODULE, Reason}),
 					{error, Reason}
 			end;
 		{error, Reason} ->
+erlang:display({?MODULE, ?LINE, ?MODULE}),
 			{error, Reason}
 	end.
 
@@ -324,7 +333,7 @@ service_options(AppId, Alias, Dictionary) ->
 %% @hidden
 transport_options(Transport, Address, Port) ->
 	Opts = [{transport_module, Transport},
-							{transport_config, [{reuseaddr, true},
+							{transport_config, [{reuseaddr, false},
 							{ip, Address},
 							{port, Port}]}],
 	{listen, Opts}.

@@ -47,6 +47,7 @@
 		NewState :: state().
 %% @doc Invoked when the peer connection is available
 peer_up(_SvcName, _Peer, State) ->
+erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
     State.
 
 -spec peer_down(SvcName, Peer, State) -> NewState
@@ -57,6 +58,7 @@ peer_up(_SvcName, _Peer, State) ->
 		NewState :: state().
 %% @doc Invoked when the peer connection is not available
 peer_down(_SvcName, _Peer, State) ->
+erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
     State.
 
 -spec pick_peer(LocalCandidates, RemoteCandidates, SvcName, State) -> Result
@@ -72,6 +74,7 @@ peer_down(_SvcName, _Peer, State) ->
 %% @doc Invoked as a consequence of a call to diameter:call/4 to select
 %% a destination peer for an outgoing request. 
 pick_peer([Peer | _], _, _SvcName, _State) ->
+erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
 	{ok, Peer}.
 
 -spec prepare_request(Packet, SvcName, Peer) -> Action
@@ -86,11 +89,13 @@ pick_peer([Peer | _], _, _SvcName, _State) ->
 		PostF :: diameter:evaluable().
 %% @doc Invoked to return a request for encoding and transport 
 prepare_request(#diameter_packet{msg = ['RAR' = T | Avps]}, _, {_, Caps}) ->
+erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
 	#diameter_caps{origin_host = {OH, DH}, origin_realm = {OR, DR}} = Caps,
 	{send, [T, {'Origin-Host', OH}, {'Origin-Realm', OR},
 		{'Destination-Host', DH}, {'Destination-Realm', DR}
 		| Avps]};
 prepare_request(#diameter_packet{msg = Rec}, _, {_, Caps}) ->
+erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
 	#diameter_caps{origin_host = {OH, DH}, origin_realm = {OR, DR}} = Caps,
 	{send, Rec#diameter_base_RAR{'Origin-Host' = OH,
 		'Origin-Realm' = OR, 'Destination-Host' = DH,
@@ -109,6 +114,7 @@ prepare_request(#diameter_packet{msg = Rec}, _, {_, Caps}) ->
 %% @doc Invoked to return a request for encoding and retransmission.
 %% In case of peer connection is lost alternate peer is selected.
 prepare_retransmit(Packet, SvcName, Peer) ->
+erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
 	prepare_request(Packet, SvcName, Peer).
 
 -spec handle_answer(Packet, Request, SvcName, Peer) -> Result
@@ -120,6 +126,7 @@ prepare_retransmit(Packet, SvcName, Peer) ->
 		Result :: term().
 %% @doc Invoked when an answer message is received from a peer.
 handle_answer(#diameter_packet{msg =  Msg}, _Request, _SvcName, _Peer) ->
+erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
 	{ok, Msg}.
 
 -spec handle_error(Reason, Request, SvcName, Peer) -> Result
@@ -132,6 +139,7 @@ handle_answer(#diameter_packet{msg =  Msg}, _Request, _SvcName, _Peer) ->
 %% @doc Invoked when an error occurs before an answer message is received
 %% in response to an outgoing request.
 handle_error(Reason, _Request, _SvcName, _Peer) ->
+erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
 	{error, Reason}.
 
 -spec handle_request(Packet, SvcName, Peer) -> Action
@@ -148,5 +156,6 @@ handle_error(Reason, _Request, _SvcName, _Peer) ->
 		PostF :: diameter:evaluable().
 %% @doc Invoked when a request messge is received from the peer. 
 handle_request(#diameter_packet{msg = _Req, errors = []}, _SvcName, {_Peer, _Caps}) ->
+erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
 	discard.
 

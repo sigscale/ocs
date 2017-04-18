@@ -50,23 +50,36 @@ init_per_suite(Config) ->
 	ok = ocs_test_lib:start(),
 	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, diameter),
 	[{Address, Port, _}] = AuthInstance,
-	SvcName = diameter_base_app_client,
-	true = diameter:subscribe(SvcName),
-	ok = diameter:start_service(SvcName, service_opts(SvcName)),
-	{ok, Ref} = connect(SvcName, Address, Port, diameter_tcp),
+	SvcName1 = diameter_client_base_service,
+	true = diameter:subscribe(SvcName1),
+	ok = diameter:start_service(SvcName1, base_service_opts()),
+	{ok, _Ref1} = connect(SvcName1, Address, Port, diameter_tcp),
 	receive
-		#diameter_event{service = SvcName, info = start} ->
-			[{svc_name, SvcName}] ++ Config;
+		#diameter_event{service = SvcName1, info = start} ->
+			NewConfig = [{svc_name1, SvcName1}] ++ Config,
+			SvcName2 = diameter_client_nas_service,
+			true = diameter:subscribe(SvcName2),
+			ok = diameter:start_service(SvcName2, nas_service_opts()),
+			{ok, _Ref2} = connect(SvcName2, Address, Port, diameter_tcp),
+			receive
+				#diameter_event{service = SvcName2, info = start} ->
+					[{svc_name2, SvcName2}] ++ NewConfig;
+				_ ->
+					{skip, diameter_client_nas_service_not_started}
+			end;
 		_ ->
-			{skip, diameter_service_not_started}
+			{skip, diameter_client_base_service_not_started}
 	end.
+
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
-	SvcName = ?config(svc_name, Config),
-	ok = diameter:stop_service(SvcName),
+	SvcName1 = ?config(svc_name1, Config),
+	SvcName2 = ?config(svc_name2, Config),
+	ok = diameter:stop_service(SvcName1),
+	ok = diameter:stop_service(SvcName2),
 	ok = ocs_test_lib:stop(),
 	Config.
 
@@ -92,20 +105,22 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[capability_exchange].
+	[nas_authentication].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
-capability_exchange() ->
-	[{userdata, [{doc, "CER/CEA message exchange between DIAMETER client and server"}]}].
+nas_authentication() ->
+	[{userdata, [{doc, "DIAMETER Authentication in NAS environment"}]}].
 
-capability_exchange(_Config) ->
-	SvcName = diameter_base_app_client,
-	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, diameter),
-	[{Address, Port, _}] = AuthInstance,
-	proc_lib:spawn_link(diameter_test_client, start, [self(), SvcName, Address, Port]),
-	diameter_client_response().
+nas_authentication(Config) ->
+erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, diameter:services()}),
+	SvcName1 = ?config(svc_name1, Config),
+	SId = diameter:session_id(atom_to_list(SvcName1)),
+	RAR = #diameter_base_RAR{'Session-Id' = SId, 'Auth-Application-Id' = 1,
+		'Re-Auth-Request-Type' = 0},
+erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
+	Answer = diameter:call(SvcName1, base_app_test, RAR, []).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
@@ -113,9 +128,58 @@ capability_exchange(_Config) ->
 
 diameter_client_response() ->
 	receive
-		started ->
-			test_case_started;
-		stopped ->
-			test_case_stopped
+		{connected, Ref} ->
+			{connected, Ref};
+		{ok, #diameter_packet{} = Msg}->
+			Msg;
+		{error, Reason} ->
+			{error, Reason}
 	end.
+
+%% @doc Add a transport capability to diameter service.
+%% @hidden
+connect(diameter_client_base_service = SvcName, Address, Port, Transport) when is_atom(Transport) ->
+	connect(SvcName, [{connect_timer, 30000} | transport_opts(Address, Port, Transport)]);
+connect(diameter_client_nas_service = SvcName, _Address, _Port, Transport) when is_atom(Transport) ->
+	connect(SvcName, [{connect_timer, 30000} | [{transport_module, Transport}]]).
+
+%% @hidden
+connect(SvcName, Opts)->
+	diameter:add_transport(SvcName, {connect, Opts}).
+
+%% @hidden
+base_service_opts() ->
+	[{'Origin-Host', "client.testdomain.com"},
+		{'Origin-Realm', "testdomain.com"},
+		{'Vendor-Id', 0},
+		{'Product-Name', "Test Client"},
+		{'Auth-Application-Id', [0]},
+		{string_decode, false},
+		{application, [{alias, base_app_test},
+				{dictionary, diameter_gen_base_rfc6733},
+				{module, diameter_test_client_cb}]}].
+
+%% @hidden
+nas_service_opts() ->
+	[{'Origin-Host', "client.testdomain.com"},
+		{'Origin-Realm', "testdomain.com"},
+		{'Vendor-Id', 0},
+		{'Product-Name', "Test Client"},
+		{'Auth-Application-Id', [1]},
+		{string_decode, false},
+		{application, [{alias, nas_app_test},
+				{dictionary, diameter_gen_nas_application_rfc7155},
+				{module, diameter_test_client_cb}]}].
+
+%% @hidden
+transport_opts(Address, Port, Trans) when is_atom(Trans) ->
+	transport_opts1({Trans, Address, Address, Port}).
+
+%% @hidden
+transport_opts1({Trans, LocalAddr, RemAddr, RemPort}) ->
+	[{transport_module, Trans},
+		{transport_config, [{raddr, RemAddr},
+		{rport, RemPort},
+		{reuseaddr, true}
+		| [{ip, LocalAddr}]]}].
 
