@@ -26,6 +26,7 @@ A web front end built on Google [Polymer](https://www.polymer-project.org)
 [material design](https://material.io/guidelines/material-design/introduction.html) 
 provides quick and easy management of clients and subscribers and log event
 viewing.
+![screenshot](https://raw.githubusercontent.com/sigscale/ocs/master/doc/ocs-gui.png)
 
 ### Application Programming Interfaces (API)
 
