@@ -2,7 +2,7 @@
 
 	* ocs_rest_res*.erl : perform RESTful operations
 	* ocs_log.erl : add IPDR log functionality
-	* mod_ocs_rest*.erl.erl : add custom mods for inets, httpd server
-	* ocs_eap*.erl.erl : add EAP authentication functionality
-	* ocs_radius*.erl.erl : add RADIUS protocol support 
+	* mod_ocs_rest*.erl : add custom mods for inets, httpd server
+	* ocs_eap*.erl : add EAP authentication functionality
+	* ocs_radius*.erl : add RADIUS protocol support 
 
