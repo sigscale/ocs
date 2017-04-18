@@ -73,7 +73,7 @@ negotiated and the peer authenticates directly with the OCS.
 The PWD method authenticates using only a username and a password. This
 method addresses the problem of password-based authenticated key exchange
 using a (possibly weak) password for authentication to derive an
-authenticated and cryptographically strong shared secret. The implmntation
+authenticated and cryptographically strong shared secret. The implementation
 in OCS uses Elliptic Curve Cryptography (ECC).
 
 #### [EAP-TTLS](https://tools.ietf.org/html/rfc5281)
@@ -82,7 +82,7 @@ The TTLS method uses Transport Layer Security
 client authentication of a server, as well as secure ciphersuite
 negotiation and key exchange. The secure connection may then be used to
 allow the server to authenticate the client using existing, widely deployed
-methods such as PAP used in OCS.
+methods such as PAP which is used in OCS.
 
 ### [IPDR](https://www.tmforum.org/ipdr)
 The Internet Protocol (IP) Detail Record (IPDR) is an industry standard
