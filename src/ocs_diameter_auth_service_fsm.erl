@@ -275,26 +275,15 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 		Reason :: term().
 %% @doc Initiate a DIAMETER service and return its transport reference.
 %% @hidden
-initiate_service(?BASE_SERVICE = SvcName, Address, Port, AppId, Alias,
+initiate_service(SvcName, Address, Port, AppId, Alias,
 		Dictionary) ->
 	SOptions = service_options(SvcName, AppId, Alias, Dictionary),
-	TOptions = transport_options(diameter_tcp, Address, Port),
-	diameter:subscribe(SvcName),
-	case diameter:start_service(SvcName, SOptions) of
-		ok ->
-			case diameter:add_transport(SvcName, TOptions) of
-				{ok, Ref} ->
-					{ok, Ref};
-				{error, Reason} ->
-					{error, Reason}
-			end;
-		{error, Reason} ->
-			{error, Reason}
-	end;
-initiate_service(?NAS_SERVICE = SvcName, Address, Port, AppId, Alias,
-		Dictionary) ->
-	SOptions = service_options(SvcName, AppId, Alias, Dictionary),
-	TOptions = {listen, [{transport_module, diameter_tcp}]}, 
+	TOptions = case SvcName of
+		?BASE_SERVICE ->
+			transport_options(diameter_tcp, Address, Port);
+		?NAS_SERVICE ->
+			{listen, [{transport_module, diameter_tcp}]}
+	end,
 	diameter:subscribe(SvcName),
 	case diameter:start_service(SvcName, SOptions) of
 		ok ->
