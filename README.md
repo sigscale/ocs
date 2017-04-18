@@ -22,13 +22,17 @@ for subscribers of wireless local area network (WLAN) services (WiFi).
 |IPDR      | Billing Record Files      |
 
 ### Graphical User Interface (GUI)
-A web front end built on Google [Polymer](https://www.polymer-project.org)
+A web front end built with Google [Polymer](https://www.polymer-project.org)
+web components for
 [material design](https://material.io/guidelines/material-design/introduction.html) 
-provides quick and easy management of clients and subscribers and log event
-viewing.
+provides quick and easy management of clients, subscribers and log event
+viewing. Works great on Android too.
 ![screenshot](https://raw.githubusercontent.com/sigscale/ocs/master/doc/ocs-gui.png)
 
 ### Application Programming Interfaces (API)
+The GUI provides a comfortable interface for simple administration however
+for use at scale you'll want to integrate your Operations & Business Support
+Systems (OSS/BSS) using a machine-to-machine API. 
 
 #### [REST](https://en.wikipedia.org/wiki/Representational_state_transfer)
 Most aspects of provisioning and operations may be performed through
