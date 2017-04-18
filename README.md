@@ -69,7 +69,7 @@ EAP over LAN (EAPoL) to the AP (NAS) which tunnels the EAP over RADIUS to
 the OCS (AAA server). An EAP authentication method (e.g. PWD, TTLS) is
 negotiated and the peer authenticates directly with the OCS.
 
-#### [EAP-PWD[(https://tools.ietf.org/html/rfc5931)
+#### [EAP-PWD](https://tools.ietf.org/html/rfc5931)
 The PWD method authenticates using only a username and a password. This
 method addresses the problem of password-based authenticated key exchange
 using a (possibly weak) password for authentication to derive an
