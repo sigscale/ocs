@@ -32,7 +32,7 @@ viewing.
 #### [REST](https://en.wikipedia.org/wiki/Representational_state_transfer)
 Most aspects of provisioning and operations may be performed through
 integration using an HTTP RESTful interface. Where applicable
-[TM Forum[(https://www.tmforum.org)
+[TM Forum](https://www.tmforum.org)
 [open APIs](https://www.tmforum.org/open-apis/) are supported.
 
 #### [Erlang](http://www.erlang.org)
