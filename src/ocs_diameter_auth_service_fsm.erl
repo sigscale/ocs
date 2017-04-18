@@ -277,7 +277,7 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %% @hidden
 initiate_service(SvcName, Address, Port, AppId, Alias,
 		Dictionary) ->
-	SOptions = service_options(SvcName, AppId, Alias, Dictionary),
+	SOptions = service_options(AppId, Alias, Dictionary),
 	TOptions = case SvcName of
 		?BASE_SERVICE ->
 			transport_options(diameter_tcp, Address, Port);
@@ -297,17 +297,16 @@ initiate_service(SvcName, Address, Port, AppId, Alias,
 			{error, Reason}
 	end.
 
--spec service_options(Name, AppId, Alias, Dictionary) -> Options
+-spec service_options(AppId, Alias, Dictionary) -> Options
 	when
-		Name :: atom(),
 		AppId :: integer(),
 		Alias :: term(),
 		Dictionary :: atom(),
 		Options :: list().
 %% @doc Returns options for a DIAMETER service
 %% @hidden
-service_options(Name, AppId, Alias, Dictionary) ->
-	[{'Origin-Host', atom_to_list(Name) ++ ".example.com"},
+service_options(AppId, Alias, Dictionary) ->
+	[{'Origin-Host', "ocs.example.com"},
 		{'Origin-Realm', "example.com"},{'Vendor-Id', 193},
 		{'Product-Name', "Server"}, {'Auth-Application-Id', [AppId]},
 		{restrict_connections, false}, {string_decode, false},
