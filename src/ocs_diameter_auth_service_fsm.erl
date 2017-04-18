@@ -307,7 +307,7 @@ initiate_service(SvcName, Address, Port, AppId, Alias,
 %% @hidden
 service_options(AppId, Alias, Dictionary) ->
 	[{'Origin-Host', "ocs.example.com"},
-		{'Origin-Realm', "example.com"},{'Vendor-Id', 193},
+		{'Origin-Realm', "example.com"},{'Vendor-Id', 0},
 		{'Product-Name', "Server"}, {'Auth-Application-Id', [AppId]},
 		{restrict_connections, false}, {string_decode, false},
 		{application, [{alias, Alias},
