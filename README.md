@@ -25,8 +25,8 @@ for subscribers of wireless local area network (WLAN) services (WiFi).
 A web front end built with Google [Polymer](https://www.polymer-project.org)
 web components for
 [material design](https://material.io/guidelines/material-design/introduction.html) 
-provides quick and easy management of clients, subscribers and log event
-viewing. Works great on Android too.
+provides simple guided management of clients and subscribers. Supports
+provisioning common authorization attributes as well as viewing usage and access logs.
 ![screenshot](https://raw.githubusercontent.com/sigscale/ocs/master/doc/ocs-gui.png)
 
 ### Application Programming Interfaces (API)
