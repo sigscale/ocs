@@ -11,15 +11,15 @@ This release performs authentication, authorization and accounting (AAA)
 for subscribers of wireless local area network (WLAN) services (WiFi).
 
 ## Interfaces
-Interface | Description
----------- ---------------------------
-GUI | Graphical User Interface
-REST | HTTP API
-CLI | Erlang API
-RADIUS | AAA NAS Clients
-EAP-PWD | Android, Linux
-EAP-TTLS | iPhone, Microsoft Windows
-IPDR | Billing Record Files
+|Interface | Description               |
+|----------|---------------------------|
+|GUI       | Graphical User Interface  |
+|REST      | HTTP API                  |
+|CLI       | Erlang API                |
+|RADIUS    | AAA NAS Clients           |
+|EAP-PWD   | Android, Linux            |
+|EAP-TTLS  | iPhone, Microsoft Windows |
+|IPDR      | Billing Record Files      |
 
 ### Graphical User Interface (GUI)
 A web front end built on Google [Polymer](https://www.polymer-project.org)
