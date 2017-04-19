@@ -40,9 +40,7 @@
 -include("../include/diameter_gen_nas_application_rfc7155.hrl").
 
 -record(statedata,
-		{address :: inet:ip_address(),
-		port :: non_neg_integer(),
-		transport_ref :: undefined | reference()}).
+		{transport_ref :: undefined | reference()}).
 
 -define(DIAMETER_SERVICE, ocs_diameter_service).
 -define(BASE_APPLICATION, diameter_base_application).
@@ -81,7 +79,7 @@ init([Address, Port] = _Args) ->
 		ok ->
 			case diameter:add_transport(SvcName, TOptions) of
 				{ok, Ref} ->
-					StateData = #statedata{address = Address, port = Port, transport_ref = Ref},
+					StateData = #statedata{transport_ref = Ref},
 					{ok, wait_for_start, StateData, 0};
 				{error, Reason} ->
 					{stop, Reason}
