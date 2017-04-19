@@ -212,7 +212,6 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 %%
 handle_info(#diameter_event{service = ?BASE_SERVICE, info = start},
 		_StateName, #statedata{address = Address, port = Port} = StateData) ->
-erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
 	case initiate_service(?NAS_SERVICE, Address, Port, 1, ?NAS_SERVICE,
 			 diameter_gen_nas_application_rfc7155) of
 		{ok, TransRefNas} ->
@@ -223,11 +222,9 @@ erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
 	end;
 handle_info(#diameter_event{service = ?NAS_SERVICE, info = start},
 		_StateName, StateData) ->
-erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
 	{next_state, started, StateData, 0};
 handle_info(#diameter_event{service = SvcName, info = Event},
 		StateName, StateData) ->
-erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE, SvcName, Event}),
 	change_state(StateName, Event, StateData).
 
 -spec terminate(Reason, StateName, StateData) -> any()
@@ -281,28 +278,20 @@ initiate_service(SvcName, Address, Port, AppId, Alias,
 	SOptions = service_options(AppId, Alias, Dictionary),
 	TOptions = case SvcName of
 		?BASE_SERVICE ->
-erlang:display({?MODULE, ?LINE, ?MODULE}),
 			transport_options(diameter_tcp, Address, Port);
 		?NAS_SERVICE ->
-erlang:display({?MODULE, ?LINE, ?MODULE}),
 			{listen, [{transport_module, diameter_tcp}]}
 	end,
-erlang:display({?MODULE, ?LINE, ?MODULE}),
-	T = diameter:subscribe(SvcName),
-erlang:display({?MODULE, ?LINE, ?MODULE, T}),
+	diameter:subscribe(SvcName),
 	case diameter:start_service(SvcName, SOptions) of
 		ok ->
-erlang:display({?MODULE, ?LINE, ?MODULE}),
 			case diameter:add_transport(SvcName, TOptions) of
 				{ok, Ref} ->
-erlang:display({?MODULE, ?LINE, ?MODULE}),
 					{ok, Ref};
 				{error, Reason} ->
-erlang:display({?MODULE, ?LINE, ?MODULE, Reason}),
 					{error, Reason}
 			end;
 		{error, Reason} ->
-erlang:display({?MODULE, ?LINE, ?MODULE}),
 			{error, Reason}
 	end.
 
