@@ -37,15 +37,16 @@
 			terminate/3, code_change/4]).
 
 -include_lib("diameter/include/diameter.hrl").
+-include("../include/diameter_gen_nas_application_rfc7155.hrl").
 
 -record(statedata,
 		{address :: inet:ip_address(),
 		port :: non_neg_integer(),
-		transport_ref_base :: undefined | reference(),
-		transport_ref_nas :: undefined | reference()}).
+		transport_ref :: undefined | reference()}).
 
--define(BASE_SERVICE, diameter_base_application).
--define(NAS_SERVICE, diameter_nas_application).
+-define(DIAMETER_SERVICE, ocs_diameter_service).
+-define(BASE_APPLICATION, diameter_base_application).
+-define(NAS_APPLICATION, diameter_nas_application).
 
 %%----------------------------------------------------------------------
 %%  The ocs_diameter_auth_service_fsm API
@@ -72,16 +73,22 @@
 %%
 init([Address, Port] = _Args) ->
 	process_flag(trap_exit, true),
-	case initiate_service(?BASE_SERVICE, Address, Port, 0, ?BASE_SERVICE,
-			diameter_gen_base_rfc6733) of
-		{ok, TransRefBase} ->
-			StateData = #statedata{address = Address, port = Port,
-					transport_ref_base = TransRefBase},
-			{ok, wait_for_start, StateData, 0};
+	SOptions = service_options(),
+	TOptions = transport_options(diameter_tcp, Address, Port),
+	SvcName = ?DIAMETER_SERVICE,
+	diameter:subscribe(SvcName),
+	case diameter:start_service(SvcName, SOptions) of
+		ok ->
+			case diameter:add_transport(SvcName, TOptions) of
+				{ok, Ref} ->
+					StateData = #statedata{address = Address, port = Port, transport_ref = Ref},
+					{ok, wait_for_start, StateData, 0};
+				{error, Reason} ->
+					{stop, Reason}
+			end;
 		{error, Reason} ->
 			{stop, Reason}
 	end.
-
 
 -spec wait_for_start(Event, StateData) -> Result
 	when
@@ -210,21 +217,11 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 %% @see //stdlib/gen_fsm:handle_info/3
 %% @private
 %%
-handle_info(#diameter_event{service = ?BASE_SERVICE, info = start},
-		_StateName, #statedata{address = Address, port = Port} = StateData) ->
-	case initiate_service(?NAS_SERVICE, Address, Port, 1, ?NAS_SERVICE,
-			 diameter_gen_nas_application_rfc7155) of
-		{ok, TransRefNas} ->
-			NewStateData = StateData#statedata{transport_ref_nas = TransRefNas},
-			{next_state, wait_for_start, NewStateData, 0};
-		{error, Reason} ->
-			{stop, Reason, StateData}
-	end;
-handle_info(#diameter_event{service = ?NAS_SERVICE, info = start},
-		_StateName, StateData) ->
+handle_info(#diameter_event{service = SvcName, info = start},
+		wait_for_start = StateName, StateData) ->
 	{next_state, started, StateData, 0};
 handle_info(#diameter_event{service = SvcName, info = Event},
-		StateName, StateData) ->
+	started = StateName, StateData) ->
 	change_state(StateName, Event, StateData).
 
 -spec terminate(Reason, StateName, StateData) -> any()
@@ -236,10 +233,9 @@ handle_info(#diameter_event{service = SvcName, info = Event},
 %% @see //stdlib/gen_fsm:terminate/3
 %% @private
 %%
-terminate(_Reason, _StateName,  #statedata{transport_ref_base = TransBase,
-		transport_ref_nas = TransNas}	= _StateData) ->
-	diameter:remove_transport(?BASE_SERVICE, TransBase),
-	diameter:remove_transport(?NAS_SERVICE, TransNas),
+terminate(_Reason, _StateName,  #statedata{transport_ref = TransRef}=
+		_StateData) ->
+	diameter:remove_transport(?DIAMETER_SERVICE, TransRef),
 	ok.
 
 -spec code_change(OldVsn, StateName, StateData, Extra) -> Result
@@ -260,56 +256,24 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec initiate_service(SvcName, Address, Port, AppId, Alias, Dictionary) -> Result
+-spec service_options() -> Options
 	when
-		SvcName :: atom(),
-		Address :: inet:ip_address(),
-		Port :: non_neg_integer(),
-		AppId :: integer(),
-		Alias :: term(),
-		Dictionary :: atom(),
-		Result :: {ok, Ref} | {error, Reason},
-		Ref :: reference(),
-		Reason :: term().
-%% @doc Initiate a DIAMETER service and return its transport reference.
-%% @hidden
-initiate_service(SvcName, Address, Port, AppId, Alias,
-		Dictionary) ->
-	SOptions = service_options(AppId, Alias, Dictionary),
-	TOptions = case SvcName of
-		?BASE_SERVICE ->
-			transport_options(diameter_tcp, Address, Port);
-		?NAS_SERVICE ->
-			{listen, [{transport_module, diameter_tcp}]}
-	end,
-	diameter:subscribe(SvcName),
-	case diameter:start_service(SvcName, SOptions) of
-		ok ->
-			case diameter:add_transport(SvcName, TOptions) of
-				{ok, Ref} ->
-					{ok, Ref};
-				{error, Reason} ->
-					{error, Reason}
-			end;
-		{error, Reason} ->
-			{error, Reason}
-	end.
-
--spec service_options(AppId, Alias, Dictionary) -> Options
-	when
-		AppId :: integer(),
-		Alias :: term(),
-		Dictionary :: atom(),
 		Options :: list().
 %% @doc Returns options for a DIAMETER service
 %% @hidden
-service_options(AppId, Alias, Dictionary) ->
+service_options() ->
 	[{'Origin-Host', "ocs.example.com"},
-		{'Origin-Realm', "example.com"},{'Vendor-Id', 0},
-		{'Product-Name', "Server"}, {'Auth-Application-Id', [AppId]},
-		{restrict_connections, false}, {string_decode, false},
-		{application, [{alias, Alias},
-				{dictionary, Dictionary},
+		{'Origin-Realm', "example.com"},
+		{'Vendor-Id', 0},
+		{'Product-Name', "Server"},
+		{'Auth-Application-Id', [0,1]},
+		{restrict_connections, false},
+		{string_decode, false},
+		{application, [{alias, ?BASE_APPLICATION},
+				{dictionary, diameter_gen_base_rfc6733},
+				{module, ocs_diameter_auth_service_callback}]},
+		{application, [{alias, ?NAS_APPLICATION},
+				{dictionary, diameter_gen_nas_application_rfc7155},
 				{module, ocs_diameter_auth_service_callback}]}].
 
 -spec transport_options(Transport, Address, Port) -> Options
@@ -322,7 +286,7 @@ service_options(AppId, Alias, Dictionary) ->
 %% @hidden
 transport_options(Transport, Address, Port) ->
 	Opts = [{transport_module, Transport},
-							{transport_config, [{reuseaddr, false},
+							{transport_config, [{reuseaddr, true},
 							{ip, Address},
 							{port, Port}]}],
 	{listen, Opts}.
@@ -343,12 +307,12 @@ transport_options(Transport, Address, Port) ->
 %% @doc Chnage the state of the fsm based on the event sent
 %% by the diameter service.
 %% @hidden
-change_state(_State, {closed, _, _, _}, StateData) ->
+change_state(started, {closed, _, _, _}, StateData) ->
 	{next_state, wait_for_stop, StateData, 0};
-change_state(_State, {watchdog, _, _, {_, down}, _}, StateData) ->
+change_state(started, {watchdog, _, _, {_, down}, _}, StateData) ->
 	{next_state, wait_for_stop, StateData, 0};
-change_state(_State, stop, StateData) ->
+change_state(started, stop, StateData) ->
 	{next_state, wait_for_stop, StateData, 0};
-change_state(State, _Event, StateData) ->
-	{next_state, State, StateData, 0}.
+change_state(started, _Event, StateData) ->
+	{next_state, started, StateData, 0}.
 
