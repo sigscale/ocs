@@ -217,10 +217,10 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 %% @see //stdlib/gen_fsm:handle_info/3
 %% @private
 %%
-handle_info(#diameter_event{service = SvcName, info = start},
-		wait_for_start = StateName, StateData) ->
+handle_info(#diameter_event{service = ?DIAMETER_SERVICE, info = start},
+		wait_for_start = _StateName, StateData) ->
 	{next_state, started, StateData, 0};
-handle_info(#diameter_event{service = SvcName, info = Event},
+handle_info(#diameter_event{service = ?DIAMETER_SERVICE, info = Event},
 	started = StateName, StateData) ->
 	change_state(StateName, Event, StateData).
 
