@@ -35,6 +35,7 @@
 
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
+-include("../include/diameter_gen_nas_application_rfc7155.hrl").
 
 -record(state, {}).
 
@@ -81,13 +82,10 @@ init([_AuthPortSup, _Address, _Port, _Options]) ->
 %% 	gen_server:multi_call/2,3,4}.
 %% @see //stdlib/gen_server:handle_call/3
 %% @private
-handle_call({diameter_request, Caps, Request}, _From, State)
-		when is_record(Request, diameter_base_RAR)->
-	#diameter_caps{origin_host = {OH,_}, origin_realm = {OR,_}} = Caps,
-	#diameter_base_RAR{'Session-Id' = Id, 'Re-Auth-Request-Type' = Type} = Request,
-	Action = {reply, #diameter_base_RAA{'Result-Code' = result_code(Type),
-		'Origin-Host' = OH, 'Origin-Realm' = OR, 'Session-Id' = Id}},
-	{reply, Action, State}.
+handle_call({diameter_request, Caps, Request}, _From, State) ->
+	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
+	{Answer, State} = generate_answer(OHost, ORealm, Request, State),
+	{reply, Answer, State}.
 
 -spec handle_cast(Request, State) -> Result
 	when
@@ -159,4 +157,28 @@ result_code(0) ->
 	 2001;
 result_code(_) ->
 	5012.
+
+-spec generate_answer(OHost, ORealm, Request, State) -> Reply
+	when
+		OHost :: string(),
+		ORealm :: string(),
+		Request :: #diameter_base_RAR{} | #diameter_nas_app_RAR{},
+		State :: state(),
+		Reply :: {Answer, State},
+		Answer :: #diameter_base_RAA{} | #diameter_nas_app_RAA{}.
+%% @doc Based on the DIAMETER request generate appropriate DIAMETER
+%% answer.
+%% @hidden
+generate_answer(OHost, ORealm, Request, State) 
+		when is_record(Request, diameter_base_RAR)->
+	#diameter_base_RAR{'Session-Id' = Id, 'Re-Auth-Request-Type' = Type} = Request,
+	Answer = #diameter_base_RAA{'Result-Code' = result_code(Type),
+		'Origin-Host' = OHost, 'Origin-Realm' = ORealm, 'Session-Id' = Id},
+	{Answer, State};
+generate_answer(OHost, ORealm, Request, State) 
+		when is_record(Request, diameter_nas_app_RAR)->
+	#diameter_nas_app_RAR{'Session-Id' = Id, 'Re-Auth-Request-Type' = Type} = Request,
+	Answer = #diameter_nas_app_RAA{'Result-Code' = result_code(Type),
+		'Origin-Host' = OHost, 'Origin-Realm' = ORealm, 'Session-Id' = Id},
+	{Answer, State}.
 
