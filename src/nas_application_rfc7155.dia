@@ -213,7 +213,263 @@
 			[ Redirect-Max-Cache-Time ]
 			* [ Proxy-Info ]
 			* [ AVP ]
-			
+
+	RAR ::= < Diameter Header: 258, REQ, PXY >
+			< Session-Id >
+			{ Origin-Host }
+			{ Origin-Realm }
+			{ Destination-Realm }
+			{ Destination-Host }
+			{ Auth-Application-Id }
+			{ Re-Auth-Request-Type }
+			[ User-Name ]
+			[ Origin-AAA-Protocol ]
+			[ Origin-State-Id ]
+			[ NAS-Identifier ]
+			[ NAS-IP-Address ]
+			[ NAS-IPv6-Address ]
+			[ NAS-Port ]
+			[ NAS-Port-Id ]
+			[ NAS-Port-Type ]
+			[ Service-Type ]
+			[ Framed-IP-Address ]
+			[ Framed-IPv6-Prefix ]
+			[ Framed-Interface-Id ]
+			[ Called-Station-Id ]
+			[ Calling-Station-Id ]
+			[ Originating-Line-Info ]
+			[ Acct-Session-Id ]
+			[ Acct-Multi-Session-Id ]
+			[ State ]
+			* [ Class ]
+			[ Reply-Message ]
+			* [ Proxy-Info ]
+			* [ Route-Record ]
+			* [ AVP ]
+
+	RAA ::= < Diameter Header: 258, PXY >
+			< Session-Id >
+			{ Result-Code }
+			{ Origin-Host }
+			{ Origin-Realm }
+			[ User-Name ]
+			[ Origin-AAA-Protocol ]
+			[ Origin-State-Id ]
+			[ Error-Message ]
+			[ Error-Reporting-Host ]
+			* [ Failed-AVP ]
+			* [ Redirect-Host ]
+			[ Redirect-Host-Usage ]
+			[ Redirect-Max-Cache-Time ]
+			[ Service-Type ]
+			* [ Configuration-Token ]
+			[ Idle-Timeout ]
+			[ Authorization-Lifetime ]
+			[ Auth-Grace-Period ]
+			[ Re-Auth-Request-Type ]
+			[ State ]
+			* [ Class ]
+			* [ Reply-Message ]
+			[ Prompt ]
+			* [ Proxy-Info ]
+			* [ AVP ]
+
+	STR ::= < Diameter Header: 275, REQ, PXY >
+			< Session-Id >
+			{ Origin-Host }
+			{ Origin-Realm }
+			{ Destination-Realm }
+			{ Auth-Application-Id }
+			{ Termination-Cause }
+			[ User-Name ]
+			[ Destination-Host ]
+			* [ Class ]
+			[ Origin-AAA-Protocol ]
+			[ Origin-State-Id ]
+			* [ Proxy-Info ]
+			* [ Route-Record ]
+			* [ AVP ]
+
+	STA ::= < Diameter Header: 275, PXY >
+			< Session-Id >
+			{ Result-Code }
+			{ Origin-Host }
+			{ Origin-Realm }
+			[ User-Name ]
+			* [ Class ]
+			[ Error-Message ]
+			[ Error-Reporting-Host ]
+			* [ Failed-AVP ]
+			[ Origin-AAA-Protocol ]
+			[ Origin-State-Id ]
+			* [ Redirect-Host ]
+			[ Redirect-Host-Usage ]
+			[ Redirect-Max-Cache-Time ]
+			* [ Proxy-Info ]
+			* [ AVP ]
+
+	ASR ::= < Diameter Header: 274, REQ, PXY >
+			< Session-Id >
+			{ Origin-Host }
+			{ Origin-Realm }
+			{ Destination-Realm }
+			{ Destination-Host }
+			{ Auth-Application-Id }
+			[ User-Name ]
+			[ Origin-AAA-Protocol ]
+			[ Origin-State-Id ]
+			[ NAS-Identifier ]
+			[ NAS-IP-Address ]
+			[ NAS-IPv6-Address ]
+			[ NAS-Port ]
+			[ NAS-Port-Id ]
+			[ NAS-Port-Type ]
+			[ Service-Type ]
+			[ Framed-IP-Address ]
+			[ Framed-IPv6-Prefix ]
+			[ Framed-Interface-Id ]
+			[ Called-Station-Id ]
+			[ Calling-Station-Id ]
+			[ Originating-Line-Info ]
+			[ Acct-Session-Id ]
+			[ Acct-Multi-Session-Id ]
+			[ State ]
+			* [ Class ]
+			* [ Reply-Message ]
+			* [ Proxy-Info ]
+			* [ Route-Record ]
+			* [ AVP ]
+
+	ASA ::= < Diameter Header: 274, PXY >
+			< Session-Id >
+			{ Result-Code }
+			{ Origin-Host }
+			{ Origin-Realm }
+			[ User-Name ]
+			[ Origin-AAA-Protocol ]
+			[ Origin-State-Id ]
+			[ State]
+			[ Error-Message ]
+			[ Error-Reporting-Host ]
+			* [ Failed-AVP ]
+			* [ Redirect-Host ]
+			[ Redirect-Host-Usage ]
+			[ Redirect-Max-Cache-Time ]
+			* [ Proxy-Info ]
+			* [ AVP ]
+
+	ACR ::= < Diameter Header: 271, REQ, PXY >
+			< Session-Id >
+			{ Origin-Host }
+			{ Origin-Realm }
+			{ Destination-Realm }
+			{ Accounting-Record-Type }
+			{ Accounting-Record-Number }
+			{ Acct-Application-Id }
+			[ User-Name ]
+			[ Accounting-Sub-Session-Id ]
+			[ Acct-Session-Id ]
+			[ Acct-Multi-Session-Id ]
+			[ Origin-AAA-Protocol ]
+			[ Origin-State-Id ]
+			[ Destination-Host ]
+			[ Event-Timestamp ]
+			[ Acct-Delay-Time ]
+			[ NAS-Identifier ]
+			[ NAS-IP-Address ]
+			[ NAS-IPv6-Address ]
+			[ NAS-Port ]
+			[ NAS-Port-Id ]
+			[ NAS-Port-Type ]
+			* [ Class ]
+			[ Service-Type ]
+			[ Termination-Cause ]
+			[ Accounting-Input-Octets ]
+			[ Accounting-Input-Packets ]
+			[ Accounting-Output-Octets ]
+			[ Accounting-Output-Packets ]
+			[ Acct-Authentic ]
+			[ Accounting-Auth-Method ]
+			[ Acct-Link-Count ]
+			[ Acct-Session-Time ]
+			[ Acct-Tunnel-Connection ]
+			[ Acct-Tunnel-Packets-Lost ]
+			[ Callback-Id ]
+			[ Callback-Number ]
+			[ Called-Station-Id ]
+			[ Calling-Station-Id ]
+			* [ Connect-Info ]
+			[ Originating-Line-Info ]
+			[ Authorization-Lifetime ]
+			[ Session-Timeout ]
+			[ Idle-Timeout ]
+			[ Port-Limit ]
+			[ Accounting-Realtime-Required ]
+			[ Acct-Interim-Interval ]
+			* [ Filter-Id ]
+			* [ NAS-Filter-Rule ]
+			* [ QoS-Filter-Rule ]
+			[ Framed-Appletalk-Link ]
+			[ Framed-Appletalk-Network ]
+			[ Framed-Appletalk-Zone ]
+			[ Framed-Compression ]
+			[ Framed-Interface-Id ]
+			[ Framed-IP-Address ]
+			[ Framed-IP-Netmask ]
+			* [ Framed-IPv6-Prefix ]
+			[ Framed-IPv6-Pool ]
+			* [ Framed-IPv6-Route ]
+			[ Framed-IPX-Network ]
+			[ Framed-MTU ]
+			[ Framed-Pool ]
+			[ Framed-Protocol ]
+			* [ Framed-Route ]
+			[ Framed-Routing ]
+			* [ Login-IP-Host ]
+			* [ Login-IPv6-Host ]
+			[ Login-LAT-Group ]
+			[ Login-LAT-Node ]
+			[ Login-LAT-Port ]
+			[ Login-LAT-Service ]
+			[ Login-Service ]
+			[ Login-TCP-Port ]
+			* [ Tunneling ]
+			* [ Proxy-Info ]
+			* [ Route-Record ]
+			* [ AVP ]
+
+	ACA ::= < Diameter Header: 271, PXY >
+			< Session-Id >
+			{ Result-Code }
+			{ Origin-Host }
+			{ Origin-Realm }
+			{ Accounting-Record-Type }
+			{ Accounting-Record-Number }
+			{ Acct-Application-Id }
+			[ User-Name ]
+			[ Accounting-Sub-Session-Id ]
+			[ Acct-Session-Id ]
+			[ Acct-Multi-Session-Id ]
+			[ Event-Timestamp ]
+			[ Error-Message ]
+			[ Error-Reporting-Host ]
+			* [ Failed-AVP ]
+			[ Origin-AAA-Protocol ]
+			[ Origin-State-Id ]
+			[ NAS-Identifier ]
+			[ NAS-IP-Address ]
+			[ NAS-IPv6-Address ]
+			[ NAS-Port ]
+			[ NAS-Port-Id ]
+			[ NAS-Port-Type ]
+			[ Service-Type ]
+			[ Termination-Cause ]
+			[ Accounting-Realtime-Required ]
+			[ Acct-Interim-Interval ]
+			* [ Class ]
+			* [ Proxy-Info ]
+			* [ AVP ]
+
 @grouped
 		CHAP-Auth ::= < AVP Header: 402 >
 				{ CHAP-Algorithm }
