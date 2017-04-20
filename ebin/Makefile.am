@@ -15,6 +15,7 @@ beam_DATA = ocs.beam \
 			ocs_diameter_auth_service_fsm.beam \
 			ocs_diameter_auth_sup.beam \
 			ocs_diameter_base_application_cb.beam \
+			ocs_diameter_nas_application_cb.beam \
 			ocs_radius_acct_port_server.beam \
 			ocs_radius_acct_port_sup.beam \
 			ocs_radius_acct_top_sup.beam \
