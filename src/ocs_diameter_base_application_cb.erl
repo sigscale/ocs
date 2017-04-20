@@ -1,4 +1,4 @@
-%%% ocs_diameter_auth_service_callback.erl 
+%%% ocs_diameter_base_application_cb.erl 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 SigScale Global Inc.
 %%% @end
@@ -21,7 +21,7 @@
 %%% @reference <a href="https://tools.ietf.org/pdf/rfc6733.pdf">
 %%% 	RFC6733 - DIAMETER base protocol</a>
 %%%
--module(ocs_diameter_auth_service_callback).
+-module(ocs_diameter_base_application_cb).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 -export([peer_up/3, peer_down/3, pick_peer/4, prepare_request/3,

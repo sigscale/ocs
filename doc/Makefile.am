@@ -10,7 +10,7 @@ modhtml = ocs.html \
 			ocs_diameter_auth_service_fsm_sup.html \
 			ocs_diameter_auth_service_fsm.html \
 			ocs_diameter_auth_sup.html \
-			ocs_diameter_auth_service_callback.html \
+			ocs_diameter_base_application_cb.html \
 			ocs_radius_acct_port_server.html \
 			ocs_radius_acct_port_sup.html \
 			ocs_radius_acct_top_sup.html \

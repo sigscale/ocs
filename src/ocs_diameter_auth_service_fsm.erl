@@ -43,8 +43,10 @@
 		{transport_ref :: undefined | reference()}).
 
 -define(DIAMETER_SERVICE, ocs_diameter_auth_service).
--define(BASE_APPLICATION, diameter_base_application).
--define(NAS_APPLICATION, diameter_nas_application).
+-define(BASE_APPLICATION, ocs_diameter_base_application).
+-define(NAS_APPLICATION, ocs_diameter_nas_application).
+-define(BASE_APPLICATION_CALLBACK, ocs_diameter_base_application_cb).
+-define(NAS_APPLICATION_CALLBACK, ocs_diameter_nas_application_cb).
 
 %%----------------------------------------------------------------------
 %%  The ocs_diameter_auth_service_fsm API
@@ -269,10 +271,10 @@ service_options() ->
 		{string_decode, false},
 		{application, [{alias, ?BASE_APPLICATION},
 				{dictionary, diameter_gen_base_rfc6733},
-				{module, ocs_diameter_auth_service_callback}]},
+				{module, ?BASE_APPLICATION_CALLBACK}]},
 		{application, [{alias, ?NAS_APPLICATION},
 				{dictionary, diameter_gen_nas_application_rfc7155},
-				{module, ocs_diameter_auth_service_callback}]}].
+				{module, ?NAS_APPLICATION_CALLBACK}]}].
 
 -spec transport_options(Transport, Address, Port) -> Options
 	when
