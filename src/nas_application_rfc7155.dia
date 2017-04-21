@@ -98,8 +98,10 @@
 			{ Origin-Host }
 			{ Origin-Realm }
 			{ Destination-Realm }
+			{ Destination-Host }
 			{ Auth-Request-Type }
-			[ Destination-Host ]
+			{ User-Name }
+			{ User-Password }
 			[ NAS-Identifier ]
 			[ NAS-IP-Address ]
 			[ NAS-IPv6-Address ]
@@ -109,8 +111,6 @@
 			[ Origin-AAA-Protocol ]
 			[ Origin-State-Id ]
 			[ Port-Limit ]
-			[ User-Name ]
-			[ User-Password ]
 			[ Service-Type ]
 			[ State ]
 			[ Authorization-Lifetime ]
