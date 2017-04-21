@@ -41,6 +41,7 @@ modhtml = ocs.html \
 			ocs_rest_res_subscriber.html \
 			ocs_rest_res_client.html \
 			ocs_rest_res_usage.html \
+			ocs_rest_res_radius.html \
 			mod_ocs_rest_dispatcher.html \
 			mod_ocs_rest_accepted_content.html \
 			mod_ocs_rest_delete.html \

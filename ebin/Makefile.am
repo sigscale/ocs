@@ -51,10 +51,11 @@ beam_DATA = ocs.beam \
 			ocs_rest_res_subscriber.beam \
 			ocs_rest_res_client.beam \
 			ocs_rest_res_usage.beam \
-			diameter_gen_nas_application_rfc7155.beam
+			diameter_gen_nas_application_rfc7155.beam \
+			ocs_rest_res_radius.beam
 
-diameter_gen_nas_application_rfc7155.beam:	$(top_builddir)/src/diameter_gen_nas_application_rfc7155.erl \
-			$(top_builddir)/include/diameter_gen_nas_application_rfc7155.hrl
+diameter_gen_nas_application_rfc7155.beam:    $(top_builddir)/src/diameter_gen_nas_application_rfc7155.erl \
+		$(top_builddir)/include/diameter_gen_nas_application_rfc7155.hrl
 	$(ERLC) $(ERLCFLAGS) -I $(top_builddir)/include $<
 
 %.beam:$(top_srcdir)/src/%.erl	$(top_srcdir)/include/ocs.hrl \
