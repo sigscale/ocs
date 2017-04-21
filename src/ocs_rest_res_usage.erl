@@ -35,7 +35,7 @@
 		ContentTypes :: list().
 %% @doc Provides list of resource representations accepted.
 content_types_accepted() ->
-	[].
+	["application/json"].
 
 -spec content_types_provided() -> ContentTypes
 	when
