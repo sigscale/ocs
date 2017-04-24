@@ -37,6 +37,8 @@
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs_eap_codec.hrl").
+-include("../include/diameter_gen_nas_application_rfc7155.hrl").
+
 -record(statedata,
 		{server_address :: inet:ip_address(),
 		server_port :: pos_integer(),
@@ -50,7 +52,16 @@
 		req_auth :: binary(),
 		req_attr :: radius_attributes:attributes(),
 		subscriber :: undefined | string()}).
--type statedata() :: #statedata{}.
+
+-record(diameter_statedata,
+		{session_id :: string(),
+		auth_request_type :: 1..3,
+		origin_host :: string(),
+		origin_realm :: string(),
+		username :: string(),
+		password :: string()}).
+
+-type statedata() :: #statedata{} | #diameter_statedata{}.
 
 -define(TIMEOUT, 30000).
 
@@ -74,6 +85,12 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
+init([SessId, AuthType, OHost, ORealm, UserName, Password] = _Args) ->
+	process_flag(trap_exit, true),
+	StateData = #diameter_statedata{session_id = SessId,
+		auth_request_type = AuthType, origin_host = OHost, origin_realm = ORealm,
+		username = UserName, password = Password},
+	{ok, request, StateData};
 init([ServerAddress, ServerPort, ClientAddress, ClientPort, RadiusFsm,
 		Secret, SessionID, #radius{code = ?AccessRequest, id = ID,
 		authenticator = Authenticator, attributes = Attributes}] = _Args) ->
@@ -203,6 +220,20 @@ handle_event(_Event, StateName, StateData) ->
 %% @see //stdlib/gen_fsm:handle_sync_event/4
 %% @private
 %%
+handle_sync_event(diameter_request, _From, StateName,
+		#diameter_statedata{session_id = SessId, origin_host = OHost,
+		origin_realm = ORealm, username = UserName, password = Password} = StateData) ->
+	case ocs:authorize(UserName, Password) of
+		{ok, _Password, _Attr} ->
+			Answer = #diameter_nas_app_AAA{'Session-Id' = SessId, 'Auth-Application-Id' = 1,
+					'Auth-Request-Type' = 1, 'Result-Code' = 2001, 'Origin-Host' = OHost,
+					'Origin-Realm' = ORealm },
+			{reply, Answer, StateName, StateData};
+		{error, _Reason} ->
+			Answer = #diameter_nas_app_AAA{'Result-Code' = 4001,
+				'Origin-Host' = OHost, 'Origin-Realm' = ORealm, 'Session-Id' = SessId},
+			{reply, Answer, StateName, StateData}
+	end;
 handle_sync_event(_Event, _From, StateName, StateData) ->
 	{reply, ok, StateName, StateData}.
 
