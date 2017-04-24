@@ -37,7 +37,9 @@
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include("../include/diameter_gen_nas_application_rfc7155.hrl").
 
--record(state, {}).
+-record(state,
+		{auth_port_sup :: pid(),
+		simple_auth_sup :: undefined | pid()}).
 
 -type state() :: #state{}.
 
@@ -61,8 +63,10 @@
 %% @see //stdlib/gen_server:init/1
 %% @private
 %%
-init([_AuthPortSup, _Address, _Port, _Options]) ->
-	{ok, #state{}}.
+init([AuthPortSup, _Address, _Port, _Options]) ->
+	process_flag(trap_exit, true),
+	State = #state{auth_port_sup = AuthPortSup},
+	{ok, State, 0}.
 
 -spec handle_call(Request, From, State) -> Result
 	when
@@ -84,8 +88,7 @@ init([_AuthPortSup, _Address, _Port, _Options]) ->
 %% @private
 handle_call({diameter_request, Caps, Request}, _From, State) ->
 	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
-	{Answer, State} = generate_answer(OHost, ORealm, Request, State),
-	{reply, Answer, State}.
+	request(OHost, ORealm, Request, State).
 
 -spec handle_cast(Request, State) -> Result
 	when
@@ -116,8 +119,11 @@ handle_cast(_Request, State) ->
 %% @see //stdlib/gen_server:handle_info/2
 %% @private
 %%
-handle_info(_Info, State) ->
-	{noreply, State}.
+handle_info(timeout, #state{auth_port_sup = AuthPortSup} = State) ->
+	Children = supervisor:which_children(AuthPortSup),
+	{_, SimpleAuthSup, _, _} = lists:keyfind(ocs_simple_auth_fsm_sup, 1, Children),
+	NewState = State#state{simple_auth_sup = SimpleAuthSup},
+	{noreply, NewState}.
 
 -spec terminate(Reason, State) -> any()
 	when
@@ -158,27 +164,71 @@ result_code(0) ->
 result_code(_) ->
 	5012.
 
--spec generate_answer(OHost, ORealm, Request, State) -> Reply
+-spec request(OHost, ORealm, Request, State) -> Reply
 	when
 		OHost :: string(),
 		ORealm :: string(),
-		Request :: #diameter_base_RAR{} | #diameter_nas_app_RAR{},
+		Request :: #diameter_base_RAR{} | #diameter_nas_app_RAR{}
+			| #diameter_nas_app_AAR{},
 		State :: state(),
-		Reply :: {Answer, State},
-		Answer :: #diameter_base_RAA{} | #diameter_nas_app_RAA{}.
+		Reply :: {reply, Answer, State},
+		Answer :: #diameter_base_RAA{} | #diameter_nas_app_RAA{}
+			| #diameter_nas_app_AAA{}.
 %% @doc Based on the DIAMETER request generate appropriate DIAMETER
 %% answer.
 %% @hidden
-generate_answer(OHost, ORealm, Request, State) 
+request(OHost, ORealm, Request, State) 
 		when is_record(Request, diameter_base_RAR)->
 	#diameter_base_RAR{'Session-Id' = Id, 'Re-Auth-Request-Type' = Type} = Request,
 	Answer = #diameter_base_RAA{'Result-Code' = result_code(Type),
 		'Origin-Host' = OHost, 'Origin-Realm' = ORealm, 'Session-Id' = Id},
-	{Answer, State};
-generate_answer(OHost, ORealm, Request, State) 
+	{reply, Answer, State};
+request(OHost, ORealm, Request, State) 
 		when is_record(Request, diameter_nas_app_RAR)->
 	#diameter_nas_app_RAR{'Session-Id' = Id, 'Re-Auth-Request-Type' = Type} = Request,
 	Answer = #diameter_nas_app_RAA{'Result-Code' = result_code(Type),
 		'Origin-Host' = OHost, 'Origin-Realm' = ORealm, 'Session-Id' = Id},
-	{Answer, State}.
+	{reply, Answer, State};
+request(OHost, ORealm, Request, #state{simple_auth_sup = SimpleAuthSup} = State) 
+		when is_record(Request, diameter_nas_app_AAR)->
+	#diameter_nas_app_AAR{'Session-Id' = SessId, 'Auth-Request-Type' = Type,
+			'User-Name' = UserName, 'User-Password' = Password} = Request,
+	case {UserName, Password} of
+		{UserName, Password} when (UserName /= undefined andalso
+				Password /= undefined) ->
+			start_fsm(SimpleAuthSup, SessId, Type, OHost, ORealm, UserName,
+				Password, State);
+		_ ->
+			Answer = #diameter_nas_app_AAA{'Result-Code' = result_code(0),
+				'Origin-Host' = OHost, 'Origin-Realm' = ORealm, 'Session-Id' = SessId},
+			{reply, Answer, State}
+	end.
+
+%% @hidden
+-spec start_fsm(AuthSup, SessionId, AuthRequestType, OHost, ORealm, UserName,
+		Password, State) -> Result
+	when
+		AuthSup :: pid(),
+		SessionId :: string(),
+		AuthRequestType :: 1..3,
+		OHost :: string(),
+		ORealm :: string(),
+		UserName:: string(),
+		Password :: string(),
+		State :: state(),
+		Result :: {reply, Answer, State},
+		Answer :: #diameter_nas_app_AAA{}.
+start_fsm(AuthSup, SessId, Type, OHost, ORealm, UserName, Password, State) ->
+	StartArgs = [SessId, Type, OHost, ORealm, UserName, Password],
+	ChildSpec = [StartArgs, []],
+	case supervisor:start_child(AuthSup, ChildSpec) of
+		{ok, Fsm} ->
+			Answer = gen_fsm:sync_send_all_state_event(Fsm, diameter_request),
+			{reply, Answer, State};
+		{error, _Reason} ->
+			Answer = #diameter_nas_app_AAA{'Session-Id' = SessId, 'Auth-Application-Id' = 1,
+				'Auth-Request-Type' = 1, 'Result-Code' = result_code(Type),
+				'Origin-Host' = OHost, 'Origin-Realm' = ORealm },
+			{reply, Answer, State}
+	end.
 
