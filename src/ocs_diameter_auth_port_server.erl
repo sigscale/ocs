@@ -153,17 +153,6 @@ code_change(_OldVsn, State, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec result_code(Type) -> Code
-	when
-		Type :: non_neg_integer(),
-		Code :: non_neg_integer().
-%% @doc Generate result codes
-%% @hidden
-result_code(0) ->
-	 2001;
-result_code(_) ->
-	5012.
-
 -spec request(OHost, ORealm, Request, State) -> Reply
 	when
 		OHost :: string(),
@@ -179,15 +168,17 @@ result_code(_) ->
 %% @hidden
 request(OHost, ORealm, Request, State) 
 		when is_record(Request, diameter_base_RAR)->
-	#diameter_base_RAR{'Session-Id' = Id, 'Re-Auth-Request-Type' = Type} = Request,
-	Answer = #diameter_base_RAA{'Result-Code' = result_code(Type),
-		'Origin-Host' = OHost, 'Origin-Realm' = ORealm, 'Session-Id' = Id},
+	#diameter_base_RAR{'Session-Id' = Id, 'Re-Auth-Request-Type' = _Type} = Request,
+	Answer = #diameter_base_RAA{
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Origin-Host' = OHost, 'Origin-Realm' = ORealm, 'Session-Id' = Id},
 	{reply, Answer, State};
 request(OHost, ORealm, Request, State) 
 		when is_record(Request, diameter_nas_app_RAR)->
-	#diameter_nas_app_RAR{'Session-Id' = Id, 'Re-Auth-Request-Type' = Type} = Request,
-	Answer = #diameter_nas_app_RAA{'Result-Code' = result_code(Type),
-		'Origin-Host' = OHost, 'Origin-Realm' = ORealm, 'Session-Id' = Id},
+	#diameter_nas_app_RAR{'Session-Id' = Id, 'Re-Auth-Request-Type' = _Type} = Request,
+	Answer = #diameter_nas_app_RAA{
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Origin-Host' = OHost, 'Origin-Realm' = ORealm, 'Session-Id' = Id},
 	{reply, Answer, State};
 request(OHost, ORealm, Request, #state{simple_auth_sup = SimpleAuthSup} = State) 
 		when is_record(Request, diameter_nas_app_AAR)->
@@ -199,8 +190,9 @@ request(OHost, ORealm, Request, #state{simple_auth_sup = SimpleAuthSup} = State)
 			start_fsm(SimpleAuthSup, SessId, Type, OHost, ORealm, UserName,
 				Password, State);
 		_ ->
-			Answer = #diameter_nas_app_AAA{'Result-Code' = result_code(0),
-				'Origin-Host' = OHost, 'Origin-Realm' = ORealm, 'Session-Id' = SessId},
+			Answer = #diameter_nas_app_AAA{
+					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm, 'Session-Id' = SessId},
 			{reply, Answer, State}
 	end.
 
@@ -226,9 +218,10 @@ start_fsm(AuthSup, SessId, Type, OHost, ORealm, UserName, Password, State) ->
 			Answer = gen_fsm:sync_send_all_state_event(Fsm, diameter_request),
 			{reply, Answer, State};
 		{error, _Reason} ->
-			Answer = #diameter_nas_app_AAA{'Session-Id' = SessId, 'Auth-Application-Id' = 1,
-				'Auth-Request-Type' = 1, 'Result-Code' = result_code(Type),
-				'Origin-Host' = OHost, 'Origin-Realm' = ORealm },
+			Answer = #diameter_nas_app_AAA{'Session-Id' = SessId,
+					'Auth-Application-Id' = 1, 'Auth-Request-Type' = 1,
+					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm },
 			{reply, Answer, State}
 	end.
 

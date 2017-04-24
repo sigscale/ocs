@@ -37,6 +37,8 @@
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs_eap_codec.hrl").
+-include_lib("diameter/include/diameter.hrl").
+-include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include("../include/diameter_gen_nas_application_rfc7155.hrl").
 
 -record(statedata,
@@ -226,12 +228,14 @@ handle_sync_event(diameter_request, _From, StateName,
 	case ocs:authorize(UserName, Password) of
 		{ok, _Password, _Attr} ->
 			Answer = #diameter_nas_app_AAA{'Session-Id' = SessId, 'Auth-Application-Id' = 1,
-					'Auth-Request-Type' = 1, 'Result-Code' = 2001, 'Origin-Host' = OHost,
+					'Auth-Request-Type' = 1, 'Origin-Host' = OHost,
+					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 					'Origin-Realm' = ORealm },
 			{reply, Answer, StateName, StateData};
 		{error, _Reason} ->
-			Answer = #diameter_nas_app_AAA{'Result-Code' = 4001,
-				'Origin-Host' = OHost, 'Origin-Realm' = ORealm, 'Session-Id' = SessId},
+			Answer = #diameter_nas_app_AAA{
+					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm, 'Session-Id' = SessId},
 			{reply, Answer, StateName, StateData}
 	end;
 handle_sync_event(_Event, _From, StateName, StateData) ->
