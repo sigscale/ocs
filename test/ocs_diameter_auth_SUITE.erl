@@ -30,6 +30,7 @@
 -include_lib("common_test/include/ct.hrl").
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
+-include_lib("../include/diameter_gen_nas_application_rfc7155.hrl").
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
@@ -48,27 +49,21 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
+	UserName = "Wentworth",
+	Password = "53cr37",
+	ok = ocs:add_subscriber(UserName, Password, [], 1000000), 
 	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, diameter),
 	[{Address, Port, _}] = AuthInstance,
-	SvcName1 = diameter_client_base_service,
-	true = diameter:subscribe(SvcName1),
-	ok = diameter:start_service(SvcName1, base_service_opts()),
-	{ok, _Ref1} = connect(SvcName1, Address, Port, diameter_tcp),
+	SvcName = diameter_client_service,
+	true = diameter:subscribe(SvcName),
+	ok = diameter:start_service(SvcName, client_service_opts()),
+	{ok, _Ref} = connect(SvcName, Address, Port, diameter_tcp),
 	receive
-		#diameter_event{service = SvcName1, info = start} ->
-			NewConfig = [{svc_name1, SvcName1}] ++ Config,
-			SvcName2 = diameter_client_nas_service,
-			true = diameter:subscribe(SvcName2),
-			ok = diameter:start_service(SvcName2, nas_service_opts()),
-			{ok, _Ref2} = connect(SvcName2, Address, Port, diameter_tcp),
-			receive
-				#diameter_event{service = SvcName2, info = start} ->
-					[{svc_name2, SvcName2}] ++ NewConfig;
-				_ ->
-					{skip, diameter_client_nas_service_not_started}
-			end;
+		#diameter_event{service = SvcName, info = start} ->
+			[{svc_name, SvcName}, {username, UserName},
+					{password, Password}] ++ Config;
 		_ ->
-			{skip, diameter_client_base_service_not_started}
+			{skip, diameter_client_service_not_started}
 	end.
 
 
@@ -76,10 +71,10 @@ init_per_suite(Config) ->
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
-	SvcName1 = ?config(svc_name1, Config),
-	SvcName2 = ?config(svc_name2, Config),
-	ok = diameter:stop_service(SvcName1),
-	ok = diameter:stop_service(SvcName2),
+	SvcName = ?config(svc_name, Config),
+	UserName= ?config(username, Config),
+	ok = ocs:delete_subscriber(UserName),
+	ok = diameter:stop_service(SvcName),
 	ok = ocs_test_lib:stop(),
 	Config.
 
@@ -114,59 +109,39 @@ nas_authentication() ->
 	[{userdata, [{doc, "DIAMETER Authentication in NAS environment"}]}].
 
 nas_authentication(Config) ->
-erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, diameter:services()}),
-	SvcName1 = ?config(svc_name1, Config),
-	SId = diameter:session_id(atom_to_list(SvcName1)),
-	RAR = #diameter_base_RAR{'Session-Id' = SId, 'Auth-Application-Id' = 1,
+	SvcName = ?config(svc_name, Config),
+	SId = diameter:session_id(atom_to_list(SvcName)),
+	NAS_RAR = #diameter_nas_app_RAR{'Session-Id' = SId, 'Auth-Application-Id' = 1 ,
 		'Re-Auth-Request-Type' = 0},
-erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
-	Answer = diameter:call(SvcName1, base_app_test, RAR, []).
+	{ok, Answer} = diameter:call(SvcName, nas_app_test, NAS_RAR, []),
+	true = is_record(Answer, diameter_nas_app_RAA),
+	#diameter_nas_app_RAA{'Result-Code' = 2001} = Answer.
+	
 
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
 
-diameter_client_response() ->
-	receive
-		{connected, Ref} ->
-			{connected, Ref};
-		{ok, #diameter_packet{} = Msg}->
-			Msg;
-		{error, Reason} ->
-			{error, Reason}
-	end.
-
 %% @doc Add a transport capability to diameter service.
 %% @hidden
-connect(diameter_client_base_service = SvcName, Address, Port, Transport) when is_atom(Transport) ->
-	connect(SvcName, [{connect_timer, 30000} | transport_opts(Address, Port, Transport)]);
-connect(diameter_client_nas_service = SvcName, _Address, _Port, Transport) when is_atom(Transport) ->
-	connect(SvcName, [{connect_timer, 30000} | [{transport_module, Transport}]]).
+connect(SvcName, Address, Port, Transport) when is_atom(Transport) ->
+	connect(SvcName, [{connect_timer, 30000} | transport_opts(Address, Port, Transport)]).
 
 %% @hidden
 connect(SvcName, Opts)->
 	diameter:add_transport(SvcName, {connect, Opts}).
 
 %% @hidden
-base_service_opts() ->
+client_service_opts() ->
 	[{'Origin-Host', "client.testdomain.com"},
 		{'Origin-Realm', "testdomain.com"},
 		{'Vendor-Id', 0},
 		{'Product-Name', "Test Client"},
-		{'Auth-Application-Id', [0]},
+		{'Auth-Application-Id', [0,1]},
 		{string_decode, false},
 		{application, [{alias, base_app_test},
 				{dictionary, diameter_gen_base_rfc6733},
-				{module, diameter_test_client_cb}]}].
-
-%% @hidden
-nas_service_opts() ->
-	[{'Origin-Host', "client.testdomain.com"},
-		{'Origin-Realm', "testdomain.com"},
-		{'Vendor-Id', 0},
-		{'Product-Name', "Test Client"},
-		{'Auth-Application-Id', [1]},
-		{string_decode, false},
+				{module, diameter_test_client_cb}]},
 		{application, [{alias, nas_app_test},
 				{dictionary, diameter_gen_nas_application_rfc7155},
 				{module, diameter_test_client_cb}]}].

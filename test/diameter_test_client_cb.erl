@@ -26,6 +26,7 @@
 
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
+-include_lib("../include/diameter_gen_nas_application_rfc7155.hrl").
 
 -record(state, {}).
 
@@ -47,7 +48,6 @@
 		NewState :: state().
 %% @doc Invoked when the peer connection is available
 peer_up(_SvcName, _Peer, State) ->
-erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
     State.
 
 -spec peer_down(SvcName, Peer, State) -> NewState
@@ -58,7 +58,6 @@ erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
 		NewState :: state().
 %% @doc Invoked when the peer connection is not available
 peer_down(_SvcName, _Peer, State) ->
-erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
     State.
 
 -spec pick_peer(LocalCandidates, RemoteCandidates, SvcName, State) -> Result
@@ -74,7 +73,6 @@ erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
 %% @doc Invoked as a consequence of a call to diameter:call/4 to select
 %% a destination peer for an outgoing request. 
 pick_peer([Peer | _], _, _SvcName, _State) ->
-erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
 	{ok, Peer}.
 
 -spec prepare_request(Packet, SvcName, Peer) -> Action
@@ -89,17 +87,14 @@ erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
 		PostF :: diameter:evaluable().
 %% @doc Invoked to return a request for encoding and transport 
 prepare_request(#diameter_packet{msg = ['RAR' = T | Avps]}, _, {_, Caps}) ->
-erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
 	#diameter_caps{origin_host = {OH, DH}, origin_realm = {OR, DR}} = Caps,
 	{send, [T, {'Origin-Host', OH}, {'Origin-Realm', OR},
 		{'Destination-Host', DH}, {'Destination-Realm', DR}
 		| Avps]};
-prepare_request(#diameter_packet{msg = Rec}, _, {_, Caps}) ->
-erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
+prepare_request(#diameter_packet{msg = Record}, _, {_, Caps}) ->
 	#diameter_caps{origin_host = {OH, DH}, origin_realm = {OR, DR}} = Caps,
-	{send, Rec#diameter_base_RAR{'Origin-Host' = OH,
-		'Origin-Realm' = OR, 'Destination-Host' = DH,
-		'Destination-Realm' = DR}}.
+	Request = generate_diameter_request(Record, OH, DH, OR, DR),
+	{send, Request}.
 
 -spec prepare_retransmit(Packet, SvcName, Peer) -> Action
 	when
@@ -114,7 +109,6 @@ erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
 %% @doc Invoked to return a request for encoding and retransmission.
 %% In case of peer connection is lost alternate peer is selected.
 prepare_retransmit(Packet, SvcName, Peer) ->
-erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
 	prepare_request(Packet, SvcName, Peer).
 
 -spec handle_answer(Packet, Request, SvcName, Peer) -> Result
@@ -126,7 +120,6 @@ erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
 		Result :: term().
 %% @doc Invoked when an answer message is received from a peer.
 handle_answer(#diameter_packet{msg =  Msg}, _Request, _SvcName, _Peer) ->
-erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
 	{ok, Msg}.
 
 -spec handle_error(Reason, Request, SvcName, Peer) -> Result
@@ -138,8 +131,7 @@ erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
 		Result :: term().
 %% @doc Invoked when an error occurs before an answer message is received
 %% in response to an outgoing request.
-handle_error(Reason, _Request, _SvcName, _Peer) ->
-erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
+handle_error(Reason, Request, _SvcName, _Peer) ->
 	{error, Reason}.
 
 -spec handle_request(Packet, SvcName, Peer) -> Action
@@ -156,6 +148,19 @@ erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
 		PostF :: diameter:evaluable().
 %% @doc Invoked when a request messge is received from the peer. 
 handle_request(#diameter_packet{msg = _Req, errors = []}, _SvcName, {_Peer, _Caps}) ->
-erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE}),
 	discard.
+
+%%---------------------------------------------------------------------
+%% Internal functions
+%%---------------------------------------------------------------------
+
+%% @hidden
+generate_diameter_request(Record, OHost, DHost, ORealm, DRealm)
+		when is_record(Record, diameter_base_RAR) ->
+	Record#diameter_base_RAR{'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+			'Destination-Host' = DHost, 'Destination-Realm' = DRealm};
+generate_diameter_request(Record, OHost, DHost, ORealm, DRealm) 
+		when is_record(Record, diameter_nas_app_RAR) ->
+	Record#diameter_nas_app_RAR{'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+			'Destination-Host' = DHost, 'Destination-Realm' = DRealm}.
 
