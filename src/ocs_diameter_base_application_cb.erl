@@ -175,7 +175,9 @@ send_to_port_server(Svc, Caps, Request) ->
 						undefined ->
 							discard;
 						PortServer ->
-							gen_server:call(PortServer, {diameter_request, Caps, Request})
+							Answer = gen_server:call(PortServer,
+									{diameter_request, Caps, Request}),
+							{reply, Answer}
 					end;
 				false ->
 					discard
