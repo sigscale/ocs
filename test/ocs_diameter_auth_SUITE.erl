@@ -51,9 +51,11 @@ init_per_suite(Config) ->
 	ok = ocs_test_lib:start(),
 	UserName = "Wentworth",
 	Password = "53cr37",
-	ok = ocs:add_subscriber(UserName, Password, [], 1000000), 
 	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, diameter),
 	[{Address, Port, _}] = AuthInstance,
+	Secret = "s3cr3t",
+	ok = ocs:add_client(Address, Port, diameter, Secret),
+	ok = ocs:add_subscriber(UserName, Password, [], 1000000), 
 	SvcName = diameter_client_service,
 	true = diameter:subscribe(SvcName),
 	ok = diameter:start_service(SvcName, client_service_opts()),
@@ -61,7 +63,7 @@ init_per_suite(Config) ->
 	receive
 		#diameter_event{service = SvcName, info = start} ->
 			[{svc_name, SvcName}, {username, UserName},
-					{password, Password}] ++ Config;
+					{password, Password}, {client, Address}] ++ Config;
 		_ ->
 			{skip, diameter_client_service_not_started}
 	end.
@@ -73,6 +75,8 @@ init_per_suite(Config) ->
 end_per_suite(Config) ->
 	SvcName = ?config(svc_name, Config),
 	UserName= ?config(username, Config),
+	Client = ?config(client, Config),
+	ok = ocs:delete_client(Client),
 	ok = ocs:delete_subscriber(UserName),
 	ok = diameter:stop_service(SvcName),
 	ok = ocs_test_lib:stop(),
