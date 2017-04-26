@@ -38,6 +38,8 @@
 <link rel="import" href="sig-client-update.html">
 <link rel="import" href="sig-acct-list.html">
 <link rel="import" href="sig-acct-log-files.html">
+<link rel="import" href="sig-auth-list.html">
+<link rel="import" href="sig-auth-log-files.html">
 
 <dom-module id="sig-app">
 	<template is="dom-bind">
@@ -93,6 +95,7 @@
 						  <sig-sub-list></sig-sub-list>
 						  <sig-client-list></sig-client-list>
 						  <sig-acct-list></sig-acct-list>
+						  <sig-auth-list></sig-auth-list>
 					  </iron-pages>
 				  </app-header-layout>
 			</div>
@@ -108,7 +111,7 @@
 								<paper-item class="menu-trigger menuitem"><iron-icon icon ="icons:history"></iron-icon>&nbsp Logs</paper-item>
 									<paper-menu class="menu-content" >
 										<paper-item id="page2" onclick="drawer.toggle()" class="menuitem"> &nbsp &nbsp <iron-icon icon ="device:data-usage"></iron-icon> &nbsp Accounting</paper-item>
-										<paper-item id="page3" onclick="drawer.toggle()"class="menuitem">&nbsp &nbsp <iron-icon icon ="icons:perm-identity"></iron-icon> &nbsp Authentication</paper-item>
+										<paper-item id="page3" onclick="drawer.toggle()"class="menuitem">&nbsp &nbsp <iron-icon icon ="icons:perm-identity"></iron-icon> &nbsp Access</paper-item>
 									</paper-menu>
 							</paper-submenu>
 						</paper-menu>
@@ -140,11 +143,19 @@
 
 				loadElement: function(event){
 					switch(event.detail.item.getAttribute('id')){
-						case 'page0': this.$.loadPage.selected = 0; break;
-						case 'page1': this.$.loadPage.selected = 1; break;
-						case 'page2': this.$.loadPage.selected = 2;
-											document.getElementById("selectLogFileModal").open();
-											break;
+						case 
+							'page0': this.$.loadPage.selected = 0; 
+							break;
+						case 
+							'page1': this.$.loadPage.selected = 1; 
+							break;
+						case 
+							'page3': this.$.loadPage.selected = 3; 
+							break;
+						case	
+							'page2': this.$.loadPage.selected = 2;
+							document.getElementById("selectLogFileModal").open();
+							break;
 					}
 				},
 				
@@ -158,6 +169,9 @@
 					if(this.$.pageSelection.selected == 1){
 						ajax.url = "/ocs/v1/client/" + id
 					}
+					if(this.$.pageSelection.selected == 3){
+						ajax.url = "/ocs/v1/log/access/" + id
+					}
 
 					ajax.generateRequest();
 				},
@@ -165,6 +179,7 @@
 				searchResponse: function(event){
 					var item = new Array();
 					item[0] = event.detail.response;
+					item[3] = event.detail.response;
 					if(this.$.pageSelection.selected == 0){
 						var newRecord = new Object();
 						newRecord.id = item[0].id;
@@ -177,6 +192,16 @@
 
 						newRecord.enabled = item[0].enabled;
 						item[0] = newRecord;
+						document.getElementById('grid').items = item;
+					}
+					if(this.$.pageSelection.selected == 3){
+						var newRecord = new Object();
+						newRecord.timeStamp = item[3].timeStamp;
+                  newRecord.username = item[3].username;
+                  newRecord.clientAddress = item[3].clientAddress;
+                  newRecord.clientPort = item[3].clientPort;
+                  newRecord.type = item[3].type;
+
 						document.getElementById('grid').items = item;
 					}
 					if(this.$.pageSelection.selected == 1){
