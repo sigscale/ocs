@@ -87,8 +87,8 @@ init([AuthPortSup, _Address, _Port, _Options]) ->
 %% @see //stdlib/gen_server:handle_call/3
 %% @private
 handle_call({diameter_request, Caps, Request}, _From, State) ->
-	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
-	request(OHost, ORealm, Request, State).
+	#diameter_caps{origin_host = {_, SHost}, origin_realm = {_, SRealm}} = Caps,
+	request(SHost, SRealm, Request, State).
 
 -spec handle_cast(Request, State) -> Result
 	when

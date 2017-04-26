@@ -227,29 +227,29 @@ is_client_authorized(SvcName, Caps, Req) ->
 %% error indicated in Result-Code AVP.
 %% @hidden
 send_error(Caps, Request, ErrorCode) ->
-	#diameter_caps{origin_host = {OHost,_},
-			origin_realm = {ORealm, DRealm}} = Caps,
-send_error(OHost, ORealm, DRealm, Request, ErrorCode).
+	#diameter_caps{origin_host = {_,SHost},
+			origin_realm = {_, SRealm}} = Caps,
+send_error(SHost, SRealm, Request, ErrorCode).
 
 %% @hidden
-send_error(OHost, ORealm, DRealm, Request, ErrorCode)
+send_error(SHost, SRealm, Request, ErrorCode)
 		when is_record(Request, diameter_base_RAR)->
 	#diameter_base_RAR{'Session-Id' = Id} = Request,
 	#diameter_base_RAA{'Result-Code' = ErrorCode,
-			'Error-Reporting-Host' = DRealm, 'Origin-Host' = OHost,
-			'Origin-Realm' = ORealm, 'Session-Id' = Id};
-send_error(OHost, ORealm, DRealm, Request, ErrorCode)
+			'Error-Reporting-Host' = SRealm, 'Origin-Host' = SHost,
+			'Origin-Realm' = SRealm, 'Session-Id' = Id};
+send_error(SHost, SRealm, Request, ErrorCode)
 		when is_record(Request, diameter_nas_app_RAR)->
 	#diameter_nas_app_RAR{'Session-Id' = Id} = Request,
 	#diameter_nas_app_RAA{'Result-Code' = ErrorCode,
-			'Error-Reporting-Host' = DRealm, 'Origin-Host' = OHost,
-			'Origin-Realm' = ORealm, 'Session-Id' = Id};
-send_error(OHost, ORealm, DRealm, Request, ErrorCode)
+			'Error-Reporting-Host' = SRealm, 'Origin-Host' = SHost,
+			'Origin-Realm' = SRealm, 'Session-Id' = Id};
+send_error(SHost, SRealm, Request, ErrorCode)
 		when is_record(Request, diameter_nas_app_AAR)->
 	#diameter_nas_app_AAR{'Session-Id' = SessId,
 			'Auth-Request-Type' = Type}= Request,
 	#diameter_nas_app_AAA{'Result-Code' = ErrorCode,
-			'Error-Reporting-Host' = DRealm, 'Auth-Request-Type' = Type,
-			'Auth-Application-Id' = 1, 'Origin-Host' = OHost,
-			'Origin-Realm' = ORealm, 'Session-Id' = SessId}.
+			'Error-Reporting-Host' = SHost, 'Auth-Request-Type' = Type,
+			'Auth-Application-Id' = 1, 'Origin-Host' = SHost,
+			'Origin-Realm' = SRealm, 'Session-Id' = SessId}.
 
