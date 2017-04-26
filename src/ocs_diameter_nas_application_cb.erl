@@ -144,7 +144,7 @@ handle_error(_Reason, _Request, _SvcName, _Peer) ->
 %% @doc Invoked when a request messge is received from the peer. 
 handle_request(#diameter_packet{msg = Req, errors = []},
 		SvcName, {_Peer, Caps}) ->
-	send_to_port_server(SvcName, Caps, Req).
+	is_client_authorized(SvcName, Caps, Req).
 
 %%----------------------------------------------------------------------
 %%  internal functions
@@ -182,6 +182,36 @@ send_to_port_server(Svc, Caps, Request) ->
 					discard
 			end;
 		false ->
+			discard
+	end.
+
+-spec is_client_authorized(Svc, Caps, Request) -> Action
+	when
+		Svc :: atom(),
+		Caps :: capabilities(),
+		Request :: message(),
+		Action :: Reply | {relay, [Opt]} | discard
+			| {eval|eval_packet, Action, PostF},
+		Reply :: {reply, packet() | message()}
+			| {answer_message, 3000..3999|5000..5999}
+			| {protocol_error, 3000..3999},
+		Opt :: diameter:call_opt(),
+		PostF :: diameter:evaluable().
+%% @doc Checks DIAMETER client's identity present in Host-IP-Address AVP in
+%% CER message against identities in client table.
+%% @hidden
+is_client_authorized(SvcName, Caps, Req) ->
+	try
+		HostIPAddresses = Caps#diameter_caps.host_ip_address,
+		{ClientIPs, _} = HostIPAddresses,
+		[HostIpAddress | _] = ClientIPs,
+		{ok, _, diameter, _} = ocs:find_client(HostIpAddress),
+		true
+	of
+		true ->
+			send_to_port_server(SvcName, Caps, Req)
+	catch
+		_ : _ ->
 			discard
 	end.
 
