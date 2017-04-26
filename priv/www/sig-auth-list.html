@@ -14,7 +14,6 @@
 <link rel="import" href="bower_components/paper-fab/paper-fab.html" >
 <link rel="import" href="bower_components/paper-toggle-button/paper-toggle-button.html" >
 <link rel="import" href="bower_components/paper-styles/paper-styles.html">
-<link rel="import" href="sig-auth-log-files.html">
 
 <dom-module id="sig-auth-list">
    <template>
@@ -62,9 +61,6 @@
       <vaadin-grid selection-mode="single" id="grid" grid-columns="2" style="height:100%;">
          <table>
             <colgroup>
-					<col>
-					<col>
-					<col>
 					<col>
 					<col>
 					<col>
@@ -126,10 +122,10 @@
 				{ name: "type"},
          ];
 			grid.header.getCell(0,0).content = '<div style="font-size:16px"><div> Timestamp</div></div>';
-			grid.header.getCell(0,7).content = '<div style="font-size:16px"><div> Username</div></div>';
+			grid.header.getCell(0,1).content = '<div style="font-size:16px"><div> Username</div></div>';
 			grid.header.getCell(0,2).content = '<div style="font-size:16px"><div> ClientAddress</div></div>';
 			grid.header.getCell(0,3).content = '<div style="font-size:16px"><div> ClientPort</div></div>';
-			grid.header.getCell(0,6).content = '<div style="font-size:16px"><div> Type</div></div>';
+			grid.header.getCell(0,4).content = '<div style="font-size:16px"><div> Type</div></div>';
 	}
 		
    });
