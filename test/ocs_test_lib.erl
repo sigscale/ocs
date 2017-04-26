@@ -48,7 +48,12 @@ stop() ->
 		ok ->
 			case application:stop(radius) of
 				ok ->
-					ok;
+					case application:stop(diameter) of
+						ok ->
+							ok;
+						{error, Reason} ->
+							{error, Reason}
+					end;
 				{error, Reason} ->
 					{error, Reason}
 			end;
