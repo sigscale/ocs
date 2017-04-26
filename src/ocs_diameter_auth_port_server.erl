@@ -187,7 +187,7 @@ request(OHost, ORealm, Request, #state{simple_auth_sup = SimpleAuthSup} = State)
 	case {UserName, Password} of
 		{UserName, Password} when (UserName /= undefined andalso
 				Password /= undefined) ->
-			start_fsm(SimpleAuthSup, SessId, Type, OHost, ORealm, UserName,
+			start_fsm(SimpleAuthSup, 1, SessId, Type, OHost, ORealm, UserName,
 				Password, State);
 		_ ->
 			Answer = #diameter_nas_app_AAA{
@@ -197,10 +197,11 @@ request(OHost, ORealm, Request, #state{simple_auth_sup = SimpleAuthSup} = State)
 	end.
 
 %% @hidden
--spec start_fsm(AuthSup, SessionId, AuthRequestType, OHost, ORealm, UserName,
-		Password, State) -> Result
+-spec start_fsm(AuthSup, AppId, SessionId, AuthRequestType, OHost,
+		ORealm, UserName, Password, State) -> Result
 	when
 		AuthSup :: pid(),
+		AppId :: non_neg_integer(),
 		SessionId :: string(),
 		AuthRequestType :: 1..3,
 		OHost :: string(),
@@ -210,8 +211,9 @@ request(OHost, ORealm, Request, #state{simple_auth_sup = SimpleAuthSup} = State)
 		State :: state(),
 		Result :: {reply, Answer, State},
 		Answer :: #diameter_nas_app_AAA{}.
-start_fsm(AuthSup, SessId, Type, OHost, ORealm, UserName, Password, State) ->
-	StartArgs = [SessId, Type, OHost, ORealm, UserName, Password],
+start_fsm(AuthSup, AppId, SessId, Type, OHost, ORealm, UserName,
+			Password, State) ->
+	StartArgs = [SessId, AppId, Type, OHost, ORealm, UserName, Password],
 	ChildSpec = [StartArgs, []],
 	case supervisor:start_child(AuthSup, ChildSpec) of
 		{ok, Fsm} ->

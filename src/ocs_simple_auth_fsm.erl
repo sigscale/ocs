@@ -57,6 +57,7 @@
 
 -record(diameter_statedata,
 		{session_id :: string(),
+		app_id :: non_neg_integer(),
 		auth_request_type :: 1..3,
 		origin_host :: string(),
 		origin_realm :: string(),
@@ -87,9 +88,9 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([SessId, AuthType, OHost, ORealm, UserName, Password] = _Args) ->
+init([SessId, AppId, AuthType, OHost, ORealm, UserName, Password] = _Args) ->
 	process_flag(trap_exit, true),
-	StateData = #diameter_statedata{session_id = SessId,
+	StateData = #diameter_statedata{session_id = SessId, app_id = AppId,
 		auth_request_type = AuthType, origin_host = OHost, origin_realm = ORealm,
 		username = UserName, password = Password},
 	{ok, request, StateData};
@@ -224,11 +225,12 @@ handle_event(_Event, StateName, StateData) ->
 %%
 handle_sync_event(diameter_request, _From, StateName,
 		#diameter_statedata{session_id = SessId, origin_host = OHost,
-		origin_realm = ORealm, username = UserName, password = Password} = StateData) ->
+		origin_realm = ORealm, username = UserName, password = Password,
+		auth_request_type = Type, app_id = AppId} = StateData) ->
 	case ocs:authorize(UserName, Password) of
 		{ok, _Password, _Attr} ->
-			Answer = #diameter_nas_app_AAA{'Session-Id' = SessId, 'Auth-Application-Id' = 1,
-					'Auth-Request-Type' = 1, 'Origin-Host' = OHost,
+			Answer = #diameter_nas_app_AAA{'Session-Id' = SessId, 'Auth-Application-Id' = AppId,
+					'Auth-Request-Type' = Type, 'Origin-Host' = OHost,
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 					'Origin-Realm' = ORealm },
 			{reply, Answer, StateName, StateData};
