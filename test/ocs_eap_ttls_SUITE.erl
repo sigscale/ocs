@@ -116,10 +116,10 @@ all() ->
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
-eap_ttls_authentication() ->
+eap_ttls_authentication_radius() ->
 	[{userdata, [{doc, "EAP-TTLS Authentication using RADIUS"}]}].
 
-eap_ttls_authentication(Config) ->
+eap_ttls_authentication_radius(Config) ->
 	DataDir = ?config(data_dir, Config),
 	AnonymousName = "DonaldTrump",
 	Subscriber = <<"45678901">>,
