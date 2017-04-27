@@ -89,7 +89,7 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([ServerAddress, ServerPort, ClientAddress, ClientPort,
+init([radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
 		RadiusFsm, Secret, SessionID, AccessRequest] = _Args) ->
 	{ok, Hostname} = inet:gethostname(),
 	StateData = #statedata{server_address = ServerAddress,

@@ -84,18 +84,18 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([SessId, AppId, AuthType, OHost, ORealm, UserName, Password] = _Args) ->
+init([diameter, SessId, AppId, AuthType, OHost, ORealm, Subscriber, Password] = _Args) ->
 	process_flag(trap_exit, true),
-	StateData = #diameter_statedata{session_id = SessId, app_id = AppId,
+	StateData = #statedata{session_id = SessId, app_id = AppId,
 		auth_request_type = AuthType, origin_host = OHost, origin_realm = ORealm,
-		username = UserName, password = Password},
+		subscriber = Subscriber, password = Password},
 	{ok, request, StateData};
-init([ServerAddress, ServerPort, ClientAddress, ClientPort, RadiusFsm,
+init([radius, ServerAddress, ServerPort, ClientAddress, ClientPort, RadiusFsm,
 		Secret, SessionID, #radius{code = ?AccessRequest, id = ID,
 		authenticator = Authenticator, attributes = Attributes}] = _Args) ->
 	StateData = #statedata{server_address = ServerAddress,
 		server_port = ServerPort, client_address = ClientAddress,
-		client_port = ClientPort, radius_fsm = RadiusFsm, secret = Secret,
+		client_port = ClientPort, radius_fsm = RadiusFsm, shared_secret = Secret,
 		session_id = SessionID, radius_id = ID, req_auth = Authenticator,
 		req_attr = Attributes},
 	process_flag(trap_exit, true),

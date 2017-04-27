@@ -213,7 +213,7 @@ request(OHost, ORealm, Request, #state{simple_auth_sup = SimpleAuthSup} = State)
 		Answer :: #diameter_nas_app_AAA{}.
 start_fsm(AuthSup, AppId, SessId, Type, OHost, ORealm, UserName,
 			Password, State) ->
-	StartArgs = [SessId, AppId, Type, OHost, ORealm, UserName, Password],
+	StartArgs = [diameter, SessId, AppId, Type, OHost, ORealm, UserName, Password],
 	ChildSpec = [StartArgs, []],
 	case supervisor:start_child(AuthSup, ChildSpec) of
 		{ok, Fsm} ->
