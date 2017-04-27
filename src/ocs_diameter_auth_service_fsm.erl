@@ -262,10 +262,10 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %% @doc Returns options for a DIAMETER service
 %% @hidden
 service_options() ->
-	[{'Origin-Host', "ocs.example.com"},
-		{'Origin-Realm', "example.com"},
+	[{'Origin-Host', "ocs.sigscale.com"},
+		{'Origin-Realm', "sigscale.com"},
 		{'Vendor-Id', 0},
-		{'Product-Name', "Server"},
+		{'Product-Name', "SigScale Diameter Server"},
 		{'Auth-Application-Id', [0,1]},
 		{restrict_connections, false},
 		{string_decode, false},
