@@ -42,29 +42,25 @@
 -include("../include/diameter_gen_nas_application_rfc7155.hrl").
 
 -record(statedata,
-		{server_address :: inet:ip_address(),
-		server_port :: pos_integer(),
-		client_address :: inet:ip_address(),
-		client_port :: pos_integer(),
-		radius_fsm :: pid(),
-		secret :: binary(),
-		session_id:: {NAS :: inet:ip_address() | string(),
+		{server_address :: undefined | inet:ip_address(),
+		server_port :: undefined | pos_integer(),
+		client_address :: undefined | inet:ip_address(),
+		client_port :: undefined | pos_integer(),
+		radius_fsm :: undefined | pid(),
+		shared_secret :: undefined | binary(),
+		session_id :: string() | {NAS :: inet:ip_address() | string(),
 				Port :: string(), Peer :: string()},
-		radius_id :: byte(),
-		req_auth :: binary(),
-		req_attr :: radius_attributes:attributes(),
-		subscriber :: undefined | string()}).
+		radius_id :: undefined | byte(),
+		req_auth :: undefined | binary(),
+		req_attr :: undefined | radius_attributes:attributes(),
+		subscriber :: undefined | string(),
+		app_id :: undefined | non_neg_integer(),
+		auth_request_type :: undefined | 1..3,
+		origin_host :: undefined | string(),
+		origin_realm :: undefined | string(),
+		password :: undefined | string()}).
 
--record(diameter_statedata,
-		{session_id :: string(),
-		app_id :: non_neg_integer(),
-		auth_request_type :: 1..3,
-		origin_host :: string(),
-		origin_realm :: string(),
-		username :: string(),
-		password :: string()}).
-
--type statedata() :: #statedata{} | #diameter_statedata{}.
+-type statedata() :: #statedata{}.
 
 -define(TIMEOUT, 30000).
 
@@ -130,7 +126,7 @@ request(timeout, #statedata{req_attr = Attributes,
 	end.
 %% @hidden
 request1(#statedata{req_attr = Attributes, req_auth = Authenticator,
-		secret = Secret, session_id = SessionID} = StateData) ->
+		shared_secret = Secret, session_id = SessionID} = StateData) ->
 	case radius_attributes:find(?UserPassword, Attributes) of
 		{ok, Hidden} ->
 			Password = radius_attributes:unhide(Secret, Authenticator, Hidden),
@@ -224,10 +220,10 @@ handle_event(_Event, StateName, StateData) ->
 %% @private
 %%
 handle_sync_event(diameter_request, _From, StateName,
-		#diameter_statedata{session_id = SessId, origin_host = OHost,
-		origin_realm = ORealm, username = UserName, password = Password,
+		#statedata{session_id = SessId, origin_host = OHost,
+		origin_realm = ORealm, subscriber = Subscriber, password = Password,
 		auth_request_type = Type, app_id = AppId} = StateData) ->
-	case ocs:authorize(UserName, Password) of
+	case ocs:authorize(Subscriber, Password) of
 		{ok, _Password, _Attr} ->
 			Answer = #diameter_nas_app_AAA{'Session-Id' = SessId, 'Auth-Application-Id' = AppId,
 					'Auth-Request-Type' = Type, 'Origin-Host' = OHost,
@@ -301,7 +297,7 @@ response(RadiusCode, ResponseAttributes,
 		#statedata{server_address = ServerAddress, server_port = ServerPort,
 		client_address = ClientAddress, client_port = ClientPort,
 		radius_id = RadiusID, req_auth = RequestAuthenticator,
-		secret = Secret, radius_fsm = RadiusFsm,
+		shared_secret = Secret, radius_fsm = RadiusFsm,
 		req_attr = RequestAttributes} = _StateData) ->
 	AttributeList1 = radius_attributes:add(?MessageAuthenticator,
 			<<0:128>>, ResponseAttributes),
