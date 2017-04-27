@@ -79,7 +79,7 @@ radius_auth_json(Events) ->
 		Username = radius_attributes:fetch(?UserName, ReqAttrs),
 		JsonObj = {struct, [{"timeStamp", TimeStamp}, {"node", Node}, 
 				{"clientAddress", ClientIp}, {"clientPort", ClientPort}, 
-				{"ServerAddress", ServerIp}, {"serverPort", ServerPort}, 
+				{"serverAddress", ServerIp}, {"serverPort", ServerPort}, 
 				{"type", Type}, {"username", Username}]},
 		[JsonObj | Acc]
 	end,
