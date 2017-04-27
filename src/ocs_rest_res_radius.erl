@@ -51,27 +51,38 @@ content_types_provided() ->
 %% requests.
 perform_get_all() ->
 	Log = ?RADAUTH,
-	read_auth_log(Log, start, []).
+	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
+	read_auth_log(Log, start, MaxItems, []).
 
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
 
 %% @hidden
-read_auth_log(Log, Cont, Acc) ->
+read_auth_log(Log, Cont, MaxItems, Acc) when length(Acc) < MaxItems ->
+	AccLen = length(Acc),
 	case disk_log:chunk(Log, Cont) of
 		eof ->
-			JsonArray = {array, lists:flatten(lists:reverse(Acc))},
-			Body = mochijson:encode(JsonArray),
-			{ok, [], Body};
+			read_auth_log1(MaxItems, Acc);
+		{_Cont1, Events} when (length(Events) + AccLen) >= MaxItems ->
+			{NewEvents, _} = lists:split(MaxItems - AccLen, Events),
+			NewAcc = [radius_auth_json(NewEvents) | Acc],
+			read_auth_log1(MaxItems, NewAcc);
 		{Cont1, Events} ->
 			NewAcc = [radius_auth_json(Events) | Acc],
-			read_auth_log(Log, Cont1, NewAcc)
+			read_auth_log(Log, Cont1, MaxItems, NewAcc)
 	end.
+%% @hidden
+read_auth_log1(MaxItems, Acc) -> 
+	JsonArray = {array, lists:flatten(lists:reverse(Acc))},
+	Body = mochijson:encode(JsonArray),
+	ContentRange = "items 1-" ++ integer_to_list(MaxItems) ++ "/*",
+	Headers = [{content_range, ContentRange}],
+	{ok, Headers, Body}.
 
 % @hidden
 radius_auth_json(Events) ->
-	F = fun({TimeStamp, Node, Client, Server, Type, ReqAttrs, RespAttrs}, Acc) ->
+	F = fun({TimeStamp, Node, Client, Server, Type, ReqAttrs, _RespAttrs}, Acc) ->
 		{ClientAdd, ClientPort} = Client,
 		ClientIp = inet:ntoa(ClientAdd),
 		{ServerAdd, ServerPort} = Server,
