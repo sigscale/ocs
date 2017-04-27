@@ -45,7 +45,8 @@ content_types_provided() ->
 
 -spec perform_get_all() -> Result
 	when
-		Result :: {body, Body :: iolist()} | {error, ErrorCode :: integer()}.
+		Result :: {ok, Headers :: [string()],
+				Body :: iolist()} | {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/log/access'
 %% requests.
 perform_get_all() ->
@@ -62,7 +63,7 @@ read_auth_log(Log, Cont, Acc) ->
 		eof ->
 			JsonArray = {array, lists:flatten(lists:reverse(Acc))},
 			Body = mochijson:encode(JsonArray),
-			{body, Body};
+			{ok, [], Body};
 		{Cont1, Events} ->
 			NewAcc = [radius_auth_json(Events) | Acc],
 			read_auth_log(Log, Cont1, NewAcc)

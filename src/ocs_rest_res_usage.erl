@@ -46,7 +46,8 @@ content_types_provided() ->
 
 -spec perform_get_all() -> Result
 	when
-		Result :: {body, Body :: iolist()} | {error, ErrorCode :: integer()}.
+		Result :: {ok, Headers :: [string()],
+				Body :: iolist()} | {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /usageManagement/v1/usage'
 %% requests.
 perform_get_all() ->
@@ -54,7 +55,7 @@ perform_get_all() ->
 	case file:list_dir(Directory) of
 		{ok, Files} ->
 			Body = mochijson:encode({array, Files}),
-			{body, Body};
+			{ok, [], Body};
 		{error, _Reason} ->
 			{error, 500}
 	end.
@@ -62,7 +63,8 @@ perform_get_all() ->
 -spec perform_get(Id) -> Result
 	when
 		Id :: string(),
-		Result :: {body, Body :: iolist()} | {error, ErrorCode :: integer()}.
+		Result :: {ok, Headers :: [string()],
+				Body :: iolist()} | {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /usageManagement/v1/usage/{id}'
 %% requests.
 perform_get(Id) ->
@@ -122,7 +124,7 @@ ipdr_to_json(Log, IpdrList) ->
 	Response = {array, JsonObj},
 	Body = mochijson:encode(Response),
 	disk_log:close(Log),
-	{body, Body}.
+	{ok, [], Body}.
 
 %% @hidden
 usage_characteristics(#ipdr{} = Ipdr) ->
