@@ -5,6 +5,7 @@
 www_DATA = favicon.ico \
 	index.html \
 	sig-acct-list.html \
+	sig-auth-list.html \
 	sig-acct-log-files.html \
 	sig-app.html \
 	sig-client-add.html \
