@@ -131,7 +131,7 @@ handle_answer(#diameter_packet{msg =  Msg}, _Request, _SvcName, _Peer) ->
 		Result :: term().
 %% @doc Invoked when an error occurs before an answer message is received
 %% in response to an outgoing request.
-handle_error(Reason, Request, _SvcName, _Peer) ->
+handle_error(Reason, _Request, _SvcName, _Peer) ->
 	{error, Reason}.
 
 -spec handle_request(Packet, SvcName, Peer) -> Action
@@ -162,5 +162,9 @@ generate_diameter_request(Record, OHost, DHost, ORealm, DRealm)
 generate_diameter_request(Record, OHost, DHost, ORealm, DRealm) 
 		when is_record(Record, diameter_nas_app_RAR) ->
 	Record#diameter_nas_app_RAR{'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+			'Destination-Host' = DHost, 'Destination-Realm' = DRealm};
+generate_diameter_request(Record, OHost, DHost, ORealm, DRealm) 
+		when is_record(Record, diameter_nas_app_AAR) ->
+	Record#diameter_nas_app_AAR{'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Destination-Host' = DHost, 'Destination-Realm' = DRealm}.
 

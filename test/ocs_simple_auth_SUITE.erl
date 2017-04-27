@@ -28,8 +28,15 @@
 -compile(export_all).
 
 -include_lib("radius/include/radius.hrl").
--include("ocs_eap_codec.hrl").
 -include_lib("common_test/include/ct.hrl").
+-include_lib("diameter/include/diameter.hrl").
+-include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
+-include_lib("../include/diameter_gen_nas_application_rfc7155.hrl").
+-include("ocs_eap_codec.hrl").
+
+-define(SVC, diameter_client_service).
+-define(BASE_APPLICATION_ID, 0).
+-define(NAS_APPLICATION_ID, 1).
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
@@ -51,34 +58,57 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
-	_RadiusAuthAddress = {127, 0, 0, 1},
-	Protocol = ct:get_config(protocol),
-	SharedSecret = ct:get_config(radius_shared_secret),
-	ok = ocs:add_client({127, 0, 0, 1}, 3799, Protocol, SharedSecret),
-	NasId = atom_to_list(node()),
-	Config1 = [{nas_id, NasId} | Config],
-	CalledStationId = "E4-8D-8C-D6-E0-AC:TestSSID",
-	[{called_id, CalledStationId} | Config1].
+	{ok, [{auth, DiaAuthInstance}, {acct, _}]} = application:get_env(ocs, diameter),
+	[{Address, Port, _}] = DiaAuthInstance,
+	true = diameter:subscribe(?SVC),
+	ok = diameter:start_service(?SVC, client_service_opts()),
+	{ok, _Ref} = connect(?SVC, Address, Port, diameter_tcp),
+	receive
+		#diameter_event{service = ?SVC, info = start} ->
+			[{diameter_client, Address}] ++ Config;
+		_ ->
+			{skip, diameter_client_service_not_started}
+	end.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
+	ok = diameter:stop_service(?SVC),
 	ok = ocs_test_lib:stop(),
 	Config.
 
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
 %% Initiation before each test case.
 %%
+init_per_testcase(TestCase, Config) when TestCase == simple_authentication_diameter ->
+	UserName = "Wentworth",
+	Password = "53cr37",
+	{ok, [{auth, AuthInstance}, {acct, _}]} = application:get_env(ocs, diameter),
+	[{Address, Port, _}] = AuthInstance,
+	Secret = "s3cr3t",
+	ok = ocs:add_client(Address, Port, diameter, Secret),
+	ok = ocs:add_subscriber(UserName, Password, [], 1000000),
+	[{username, UserName}, {password, Password}] ++ Config;
 init_per_testcase(_TestCase, Config) ->
+	NasId = atom_to_list(node()),
+	CalledStationId = "E4-8D-8C-D6-E0-AC:TestSSID",
+	Config1 = [{nas_id, NasId}, {called_id, CalledStationId} | Config],
+	SharedSecret = ct:get_config(radius_shared_secret),
+	ok = ocs:add_client({127, 0, 0, 1}, 3799, radius, SharedSecret),
 	{ok, [{auth, RadAuthInstance}, {acct, _RadAcctInstance}]} = application:get_env(ocs, radius),
 	[{RadIP, _RadAuthPort, _}] = RadAuthInstance,
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, RadIP}, binary]),
-	[{socket, Socket} | Config].
+	[{socket, Socket} | Config1].
 
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
 %% Cleanup after each test case.
 %%
+end_per_testcase(TestCase, Config) when TestCase == simple_authentication_diameter ->
+	UserName= ?config(username, Config),
+	Client = ?config(diameter_client, Config),
+	ok = ocs:delete_client(Client),
+	ok = ocs:delete_subscriber(UserName);
 end_per_testcase(_TestCase, Config) ->
 	Socket = ?config(socket, Config),
 	ok = 	gen_udp:close(Socket).
@@ -94,7 +124,7 @@ sequences() ->
 %%
 all() -> 
 	[simple_authentication_radius, out_of_credit_radius, bad_password_radius,
-	unknown_username_radius].
+	unknown_username_radius, simple_authentication_diameter].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -135,6 +165,26 @@ simple_authentication_radius(Config) ->
 	ok = gen_udp:send(Socket, AuthAddress, AuthPort, AccessReqestPacket),
 	{ok, {AuthAddress, AuthPort, AccessAcceptPacket}} = gen_udp:recv(Socket, 0),
 	#radius{code = ?AccessAccept, id = Id} = radius:codec(AccessAcceptPacket).
+
+simple_authentication_diameter() ->
+	[{userdata, [{doc, "Simple authentication using Diameter NAS application"}]}].
+
+simple_authentication_diameter(Config) ->
+	Username = ?config(username, Config),
+	Password = ?config(password, Config),
+	SId = diameter:session_id(atom_to_list(?SVC)),
+	NAS_AAR = #diameter_nas_app_AAR{'Session-Id' = SId,
+			'Auth-Application-Id' = ?NAS_APPLICATION_ID ,
+			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
+			'User-Name' = Username, 'User-Password' = Password},
+	{ok, Answer} = diameter:call(?SVC, nas_app_test, NAS_AAR, []),
+	true = is_record(Answer, diameter_nas_app_AAA),
+	OriginHost = list_to_binary("ocs.sigscale.com"),
+	OriginRealm = list_to_binary("sigscale.com"),
+	#diameter_nas_app_AAA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?NAS_APPLICATION_ID,
+			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
+			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm} = Answer.
 
 out_of_credit_radius() ->
 	[{userdata, [{doc, "Send RADIUS AccessReject response to the peer when balance
@@ -255,4 +305,41 @@ unknown_username_radius(Config) ->
 			radius:codec(AccessRejectPacket),
 	AccessReject = radius_attributes:codec(AccessRejectData),
 	{ok, "Unknown Username"} = radius_attributes:find(?ReplyMessage, AccessReject).
+
+%% @doc Add a transport capability to diameter service.
+%% @hidden
+connect(SvcName, Address, Port, Transport) when is_atom(Transport) ->
+	connect(SvcName, [{connect_timer, 30000} | transport_opts(Address, Port, Transport)]).
+
+%% @hidden
+connect(SvcName, Opts)->
+	diameter:add_transport(SvcName, {connect, Opts}).
+
+%% @hidden
+client_service_opts() ->
+	[{'Origin-Host', "client.testdomain.com"},
+		{'Origin-Realm', "testdomain.com"},
+		{'Vendor-Id', 0},
+		{'Product-Name', "Test Client"},
+		{'Auth-Application-Id', [?BASE_APPLICATION_ID,
+														 ?NAS_APPLICATION_ID]},
+		{string_decode, false},
+		{application, [{alias, base_app_test},
+				{dictionary, diameter_gen_base_rfc6733},
+				{module, diameter_test_client_cb}]},
+		{application, [{alias, nas_app_test},
+				{dictionary, diameter_gen_nas_application_rfc7155},
+				{module, diameter_test_client_cb}]}].
+
+%% @hidden
+transport_opts(Address, Port, Trans) when is_atom(Trans) ->
+	transport_opts1({Trans, Address, Address, Port}).
+
+%% @hidden
+transport_opts1({Trans, LocalAddr, RemAddr, RemPort}) ->
+	[{transport_module, Trans},
+		{transport_config, [{raddr, RemAddr},
+		{rport, RemPort},
+		{reuseaddr, true}
+		| [{ip, LocalAddr}]]}].
 
