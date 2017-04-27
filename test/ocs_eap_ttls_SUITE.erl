@@ -111,13 +111,13 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[eap_ttls_authentication].
+	[eap_ttls_authentication_radius].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
 eap_ttls_authentication() ->
-	[{userdata, [{doc, "EAP-TTLS Authentication"}]}].
+	[{userdata, [{doc, "EAP-TTLS Authentication using RADIUS"}]}].
 
 eap_ttls_authentication(Config) ->
 	DataDir = ?config(data_dir, Config),

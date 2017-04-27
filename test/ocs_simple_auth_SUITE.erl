@@ -51,7 +51,7 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
-	_AuthAddress = {127, 0, 0, 1},
+	_RadiusAuthAddress = {127, 0, 0, 1},
 	Protocol = ct:get_config(protocol),
 	SharedSecret = ct:get_config(radius_shared_secret),
 	ok = ocs:add_client({127, 0, 0, 1}, 3799, Protocol, SharedSecret),
@@ -71,9 +71,9 @@ end_per_suite(Config) ->
 %% Initiation before each test case.
 %%
 init_per_testcase(_TestCase, Config) ->
-	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, radius),
-	[{IP, _AuthPort, _}] = AuthInstance,
-	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, IP}, binary]),
+	{ok, [{auth, RadAuthInstance}, {acct, _RadAcctInstance}]} = application:get_env(ocs, radius),
+	[{RadIP, _RadAuthPort, _}] = RadAuthInstance,
+	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, RadIP}, binary]),
 	[{socket, Socket} | Config].
 
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
@@ -93,16 +93,17 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[simple_authentication, out_of_credit, bad_password, unknown_username].
+	[simple_authentication_radius, out_of_credit_radius, bad_password_radius,
+	unknown_username_radius].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
 
-simple_authentication() ->
-	[{userdata, [{doc, "Send AccessAccept to the peer"}]}].
+simple_authentication_radius() ->
+	[{userdata, [{doc, "Send RADIUS AccessAccept to the peer"}]}].
 
-simple_authentication(Config) ->
+simple_authentication_radius(Config) ->
 	Id = 1,
 	NasId = ?config(nas_id, Config),
 	CalledStationId = ?config(called_id, Config),
@@ -135,11 +136,11 @@ simple_authentication(Config) ->
 	{ok, {AuthAddress, AuthPort, AccessAcceptPacket}} = gen_udp:recv(Socket, 0),
 	#radius{code = ?AccessAccept, id = Id} = radius:codec(AccessAcceptPacket).
 
-out_of_credit() ->
-	[{userdata, [{doc, "Send AccessReject response to the peer when balance
+out_of_credit_radius() ->
+	[{userdata, [{doc, "Send RADIUS AccessReject response to the peer when balance
 			less than 0"}]}].
 
-out_of_credit(Config) ->
+out_of_credit_radius(Config) ->
 	Id = 2,
 	NasId = ?config(nas_id, Config),
 	CalledStationId = ?config(called_id, Config),
@@ -175,11 +176,11 @@ out_of_credit(Config) ->
 	AccessReject = radius_attributes:codec(AccessRejectData),
 	{ok, "Out of Credit"} = radius_attributes:find(?ReplyMessage, AccessReject).
 
-bad_password() ->
-	[{userdata, [{doc, "Send AccessReject response to the peer when password 
+bad_password_radius() ->
+	[{userdata, [{doc, "Send RADIUS AccessReject response to the peer when password 
 			not matched"}]}].
 
-bad_password(Config) ->
+bad_password_radius(Config) ->
 	Id = 2,
 	NasId = ?config(nas_id, Config),
 	CalledStationId = ?config(called_id, Config),
@@ -215,10 +216,10 @@ bad_password(Config) ->
 	AccessReject = radius_attributes:codec(AccessRejectData),
 	{ok, "Bad Password"} = radius_attributes:find(?ReplyMessage, AccessReject).
 
-unknown_username() ->
-	[{userdata, [{doc, "Send AccessReject response to the peer for unknown username"}]}].
+unknown_username_radius() ->
+	[{userdata, [{doc, "Send RADIUS RAccessReject response to the peer for unknown username"}]}].
 
-unknown_username(Config) ->
+unknown_username_radius(Config) ->
 	Id = 3,
 	NasId = ?config(nas_id, Config),
 	CalledStationId = ?config(called_id, Config),

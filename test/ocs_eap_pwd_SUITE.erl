@@ -52,7 +52,7 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
-	_AuthAddress = {127, 0, 0, 1},
+	_RadAuthAddress = {127, 0, 0, 1},
 	Protocol = ct:get_config(protocol),
 	SharedSecret = ct:get_config(radius_shared_secret),
 	ok = ocs:add_client({127, 0, 0, 1}, 3799, Protocol, SharedSecret),
@@ -70,9 +70,9 @@ end_per_suite(Config) ->
 %% Initialization before each test case.
 %%
 init_per_testcase(_TestCase, Config) ->
-	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, radius),
-	[{IP, _, _}] = AuthInstance,
-	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, IP}, binary]),
+	{ok, [{auth, RadAuthInstance}, {acct, _RadAcctInstance}]} = application:get_env(ocs, radius),
+	[{RadIP, _, _}] = RadAuthInstance,
+	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, RadIP}, binary]),
 	[{socket, Socket} | Config].
 
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
@@ -92,17 +92,17 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[eap_identity, pwd_id, pwd_commit, pwd_confirm, message_authentication,
-			role_reversal, validate_pwd_id_cipher, validate_pwd_id_prep,
-			validate_pwd_id_token, negotiate_method].
+	[eap_identity_radius, pwd_id_radius, pwd_commit_radius, pwd_confirm_radius,
+	message_authentication_radius, role_reversal_radius, validate_pwd_id_cipher_radius,
+	validate_pwd_id_prep_radius, validate_pwd_id_token_radius, negotiate_method_radius].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
-eap_identity() ->
-   [{userdata, [{doc, "Send an EAP-Identity/Response to peer"}]}].
+eap_identity_radius() ->
+   [{userdata, [{doc, "Send an EAP-Identity/Response using RADIUS to peer"}]}].
 
-eap_identity(Config) ->
+eap_identity_radius(Config) ->
 	MAC = "AA-BB-CC-DD-EE-FF",
 	PeerId = <<"12345678">>,
 	Socket = ?config(socket, Config),
@@ -119,10 +119,10 @@ eap_identity(Config) ->
 	{NextEapId, _Token, _ServerID} = receive_id(Socket, Address,
 			Port, Secret, ReqAuth, RadId).
 
-pwd_id() ->
+pwd_id_radius() ->
    [{userdata, [{doc, "Send an EAP-pwd-ID/Response to peer"}]}].
 
-pwd_id(Config) ->
+pwd_id_radius(Config) ->
 	PeerId = <<"23456789">>,
 	MAC = "BB-CC-DD-EE-FF-AA",
 	PeerAuth = list_to_binary(ocs:generate_password()),
@@ -148,10 +148,10 @@ pwd_id(Config) ->
 	{EapId3, _ElementS, _ScalarS} = receive_commit(Socket, Address,
 			Port, Secret, ReqAuth2, RadId2).
 
-pwd_commit() ->
-	[{userdata, [{doc, "Send an EAP-pwd-Commit/Response to peer"}]}].
+pwd_commit_radius() ->
+	[{userdata, [{doc, "Send an EAP-pwd-Commit/Response using RADIUS to peer"}]}].
 
-pwd_commit(Config) ->
+pwd_commit_radius(Config) ->
 	PeerId = <<"34567890">>,
 	MAC = "CC-DD-EE-FF-AA-BB",
 	PeerAuth = list_to_binary(ocs:generate_password()),
@@ -187,10 +187,10 @@ pwd_commit(Config) ->
 	{EapId4, _ConfirmS} = receive_confirm(Socket,
 			Address, Port, Secret, ReqAuth3, RadId3).
 	
-pwd_confirm() ->
-	[{userdata, [{doc, "Send an EAP-pwd-Confirm/Response to peer"}]}].
+pwd_confirm_radius() ->
+	[{userdata, [{doc, "Send an EAP-pwd-Confirm/Response using RADIUS to peer"}]}].
 
-pwd_confirm(Config) ->
+pwd_confirm_radius(Config) ->
 	PeerId = <<"45678901">>,
 	MAC = "DD-EE-FF-AA-BB-CC",
 	PeerAuth = list_to_binary(ocs:generate_password()),
@@ -235,10 +235,10 @@ pwd_confirm(Config) ->
 			NasId, MAC, ConfirmP, EapId4, RadId4),
 	EapId4 = receive_success(Socket, Address, Port, Secret, ReqAuth4, RadId4).
 
-message_authentication() ->
-	[{userdata, [{doc, "Send corrupt Message-Authenticator"}]}].
+message_authentication_radius() ->
+	[{userdata, [{doc, "Send corrupt Message-Authenticator using RADIUS"}]}].
 
-message_authentication(Config) ->
+message_authentication_radius(Config) ->
 	PeerId = <<"56789012">>,
 	MAC = "EE-FF-AA-BB-CC-DD",
 	PeerAuth = list_to_binary(ocs:generate_password()),
@@ -255,10 +255,10 @@ message_authentication(Config) ->
 			Secret, PeerId, MAC, ReqAuth, EapId, RadId),
 	{error, timeout} = gen_udp:recv(Socket, 0, 2000).
 
-role_reversal() ->
-	[{userdata, [{doc, "Send EAP-Request (unsupported role reversal)"}]}].
+role_reversal_radius() ->
+	[{userdata, [{doc, "Send EAP-Request (unsupported role reversal) using RADIUS"}]}].
 
-role_reversal(Config) ->
+role_reversal_radius(Config) ->
 	PeerId = <<"67890123">>,
 	MAC = "FF-AA-BB-CC-DD-FF",
 	Socket = ?config(socket, Config),
@@ -281,10 +281,10 @@ role_reversal(Config) ->
 			UserName, Secret, MAC, ReqAuth, RadId, EapMsg),
 	{EapId, <<0>>} = receive_nak(Socket, Address, Port, Secret, ReqAuth, RadId).
 
-validate_pwd_id_cipher() ->
-	[{userdata, [{doc, "Send invalid EAP-pwd-ID (bad cipher)"}]}].
+validate_pwd_id_cipher_radius() ->
+	[{userdata, [{doc, "Send invalid EAP-pwd-ID (bad cipher) using RADIUS"}]}].
 
-validate_pwd_id_cipher(Config) ->
+validate_pwd_id_cipher_radius(Config) ->
 	PeerId = <<"78901234">>,
 	MAC = "AB-CD-EF-FE-DC-BA",
 	PeerAuth = list_to_binary(ocs:generate_password()),
@@ -315,10 +315,10 @@ validate_pwd_id_cipher(Config) ->
 			UserName, Secret, MAC, ReqAuth2, RadId2, EapMsg),
 	EapId2 = receive_failure(Socket, Address, Port, Secret, ReqAuth2, RadId2).
 
-validate_pwd_id_prep() ->
-	[{userdata, [{doc, "Send invalid EAP-pwd-ID (bad prep)"}]}].
+validate_pwd_id_prep_radius() ->
+	[{userdata, [{doc, "Send invalid EAP-pwd-ID (bad prep) using RADIUS"}]}].
 
-validate_pwd_id_prep(Config) ->
+validate_pwd_id_prep_radius(Config) ->
 	PeerId = <<"89012345">>,
 	MAC = "CD-EF-FE-DC-BA-AB",
 	PeerAuth = list_to_binary(ocs:generate_password()),
@@ -349,10 +349,10 @@ validate_pwd_id_prep(Config) ->
 			UserName, Secret, MAC, ReqAuth2, RadId2, EapMsg),
 	EapId2 = receive_failure(Socket, Address, Port, Secret, ReqAuth2, RadId2).
 
-validate_pwd_id_token() ->
-	[{userdata, [{doc, "Send invalid EAP-pwd-ID (bad token)"}]}].
+validate_pwd_id_token_radius() ->
+	[{userdata, [{doc, "Send invalid EAP-pwd-ID (bad token) using RADIUS"}]}].
 
-validate_pwd_id_token(Config) ->
+validate_pwd_id_token_radius(Config) ->
 	PeerId = <<"90123456">>,
 	MAC = "EF-FE-DC-BA-AB-CD",
 	PeerAuth = list_to_binary(ocs:generate_password()),
@@ -383,10 +383,10 @@ validate_pwd_id_token(Config) ->
 			UserName, Secret, MAC, ReqAuth2, RadId2, EapMsg),
 	EapId2 = receive_failure(Socket, Address, Port, Secret, ReqAuth2, RadId2).
 
-negotiate_method() ->
-	[{userdata, [{doc, "Send EAP-Nak with alternate methods"}]}].
+negotiate_method_radius() ->
+	[{userdata, [{doc, "Send EAP-Nak with alternate methods using RADIUS"}]}].
 
-negotiate_method(Config) ->
+negotiate_method_radius(Config) ->
 	PeerId = <<"01234567">>,
 	MAC = "FE-DC-BA-AB-CD-EF",
 	PeerAuth = list_to_binary(ocs:generate_password()),
