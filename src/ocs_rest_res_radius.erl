@@ -52,37 +52,43 @@ content_types_provided() ->
 perform_get_all() ->
 	Log = ?RADAUTH,
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
-	read_auth_log(Log, start, MaxItems, []).
+	read_auth_log(Log, start, MaxItems, 0, []).
 
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
 
 %% @hidden
-read_auth_log(Log, Cont, MaxItems, Acc) when length(Acc) < MaxItems ->
-	AccLen = length(Acc),
+read_auth_log(Log, Cont, MaxItems, Count, Acc) ->
 	case disk_log:chunk(Log, Cont) of
 		eof ->
-			read_auth_log1(MaxItems, Acc);
-		{_Cont1, Events} when (length(Events) + AccLen) >= MaxItems ->
-			{NewEvents, _} = lists:split(MaxItems - AccLen, Events),
-			NewAcc = [radius_auth_json(NewEvents) | Acc],
-			read_auth_log1(MaxItems, NewAcc);
+			read_auth_log1(Count, Acc);
+		{_Cont1, Events} when (length(Events) + Count) > MaxItems ->
+			{NewEvents, _} = lists:split(MaxItems - Count, Events),
+			{NewCount, JsonObj} = radius_auth_json(Count, NewEvents),
+			NewAcc = [lists:reverse(JsonObj) | Acc],
+			read_auth_log1(NewCount, NewAcc);
+		{_Cont1, Events} when (length(Events) + Count) == MaxItems ->
+			{NewCount, JsonObj} = radius_auth_json(Count, Events),
+			NewAcc = [lists:reverse(JsonObj) | Acc],
+			read_auth_log1(NewCount, NewAcc);
 		{Cont1, Events} ->
-			NewAcc = [radius_auth_json(Events) | Acc],
-			read_auth_log(Log, Cont1, MaxItems, NewAcc)
+			{NewCount, JsonObj} = radius_auth_json(Count, Events),
+			NewAcc = [lists:reverse(JsonObj) | Acc],
+			read_auth_log(Log, Cont1, MaxItems, NewCount, NewAcc)
 	end.
 %% @hidden
-read_auth_log1(MaxItems, Acc) -> 
-	JsonArray = {array, lists:flatten(lists:reverse(Acc))},
+read_auth_log1(Count, Acc) -> 
+	NewAcc = lists:flatten(lists:reverse(Acc)),
+	JsonArray = {array, NewAcc},
 	Body = mochijson:encode(JsonArray),
-	ContentRange = "items 1-" ++ integer_to_list(MaxItems) ++ "/*",
+	ContentRange = "items 1-" ++ integer_to_list(Count) ++ "/*",
 	Headers = [{content_range, ContentRange}],
 	{ok, Headers, Body}.
 
 % @hidden
-radius_auth_json(Events) ->
-	F = fun({TimeStamp, Node, Client, Server, Type, ReqAttrs, _RespAttrs}, Acc) ->
+radius_auth_json(Count, Events) ->
+	F = fun({TimeStamp, Node, Client, Server, Type, ReqAttrs, _RespAttrs}, {N, Acc}) ->
 		{ClientAdd, ClientPort} = Client,
 		ClientIp = inet:ntoa(ClientAdd),
 		{ServerAdd, ServerPort} = Server,
@@ -92,7 +98,7 @@ radius_auth_json(Events) ->
 				{"clientAddress", ClientIp}, {"clientPort", ClientPort}, 
 				{"serverAddress", ServerIp}, {"serverPort", ServerPort}, 
 				{"type", Type}, {"username", Username}]},
-		[JsonObj | Acc]
+		{N + 1, [JsonObj | Acc]}
 	end,
-	lists:foldl(F, [], Events).
+	lists:foldl(F, {Count, []}, Events).
 
