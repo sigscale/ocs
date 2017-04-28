@@ -82,7 +82,8 @@ end_per_suite(Config) ->
 %% Initiation before each test case.
 %%
 init_per_testcase(TestCase, Config) when
-		TestCase == simple_authentication_diameter; TestCase == bad_password_diameter ->
+		TestCase == simple_authentication_diameter; TestCase == bad_password_diameter;
+		TestCase == unknown_username_diameter ->
 	UserName = "Wentworth",
 	Password = "53cr37",
 	{ok, [{auth, AuthInstance}, {acct, _}]} = application:get_env(ocs, diameter),
@@ -106,7 +107,8 @@ init_per_testcase(_TestCase, Config) ->
 %% Cleanup after each test case.
 %%
 end_per_testcase(TestCase, Config) when
-		TestCase == simple_authentication_diameter; TestCase == bad_password_diameter ->
+		TestCase == simple_authentication_diameter; TestCase == bad_password_diameter;
+		TestCase == unknown_username_diameter ->
 	UserName= ?config(username, Config),
 	Client = ?config(diameter_client, Config),
 	ok = ocs:delete_client(Client),
@@ -126,7 +128,8 @@ sequences() ->
 %%
 all() -> 
 	[simple_authentication_radius, out_of_credit_radius, bad_password_radius,
-	unknown_username_radius, simple_authentication_diameter, bad_password_diameter].
+	unknown_username_radius, simple_authentication_diameter, bad_password_diameter,
+	unknown_username_diameter].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -328,6 +331,27 @@ unknown_username_radius(Config) ->
 			radius:codec(AccessRejectPacket),
 	AccessReject = radius_attributes:codec(AccessRejectData),
 	{ok, "Unknown Username"} = radius_attributes:find(?ReplyMessage, AccessReject).
+
+unknown_username_diameter() ->
+	[{userdata, [{doc, "Diameter simple authentication failure wheh a unknown username is used"}]}].
+
+unknown_username_diameter(Config) ->
+	UnknownUsername = "PeterGriffin",
+	Password = ?config(password, Config),
+	SId = diameter:session_id(atom_to_list(?FUNCTION_NAME)),
+	NAS_AAR = #diameter_nas_app_AAR{'Session-Id' = SId,
+			'Auth-Application-Id' = ?NAS_APPLICATION_ID ,
+			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
+			'User-Name' = UnknownUsername, 'User-Password' = Password},
+erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE, NAS_AAR}),
+	{ok, Answer} = diameter:call(?SVC, nas_app_test, NAS_AAR, []),
+	true = is_record(Answer, diameter_nas_app_AAA),
+	OriginHost = list_to_binary("ocs.sigscale.com"),
+	OriginRealm = list_to_binary("sigscale.com"),
+	#diameter_nas_app_AAA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
+			'Auth-Application-Id' = ?NAS_APPLICATION_ID,
+			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
+	'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm} = Answer.
 
 %%--------------------------------------------------------------------------------------
 %% Internal functions
