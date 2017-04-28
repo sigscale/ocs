@@ -231,9 +231,10 @@ handle_sync_event(diameter_request, _From, StateName,
 					'Origin-Realm' = ORealm },
 			{reply, Answer, StateName, StateData};
 		{error, _Reason} ->
-			Answer = #diameter_nas_app_AAA{
+			Answer = #diameter_nas_app_AAA{'Session-Id' = SessId, 'Auth-Application-Id' = AppId,
+					'Auth-Request-Type' = Type, 'Origin-Host' = OHost, 
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
-					'Origin-Host' = OHost, 'Origin-Realm' = ORealm, 'Session-Id' = SessId},
+					'Origin-Realm' = ORealm },
 			{reply, Answer, StateName, StateData}
 	end;
 handle_sync_event(_Event, _From, StateName, StateData) ->
