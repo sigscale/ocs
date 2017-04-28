@@ -329,6 +329,10 @@ unknown_username_radius(Config) ->
 	AccessReject = radius_attributes:codec(AccessRejectData),
 	{ok, "Unknown Username"} = radius_attributes:find(?ReplyMessage, AccessReject).
 
+%%--------------------------------------------------------------------------------------
+%% Internal functions
+%%--------------------------------------------------------------------------------------
+
 %% @doc Add a transport capability to diameter service.
 %% @hidden
 connect(SvcName, Address, Port, Transport) when is_atom(Transport) ->
