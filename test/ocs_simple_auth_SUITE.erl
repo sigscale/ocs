@@ -83,7 +83,7 @@ end_per_suite(Config) ->
 %%
 init_per_testcase(TestCase, Config) when
 		TestCase == simple_authentication_diameter; TestCase == bad_password_diameter;
-		TestCase == unknown_username_diameter ->
+		TestCase == unknown_username_diameter; TestCase == out_of_credit_diameter ->
 	UserName = "Wentworth",
 	Password = "53cr37",
 	{ok, [{auth, AuthInstance}, {acct, _}]} = application:get_env(ocs, diameter),
@@ -108,7 +108,7 @@ init_per_testcase(_TestCase, Config) ->
 %%
 end_per_testcase(TestCase, Config) when
 		TestCase == simple_authentication_diameter; TestCase == bad_password_diameter;
-		TestCase == unknown_username_diameter ->
+		TestCase == unknown_username_diameter; TestCase == out_of_credit_diameter ->
 	UserName= ?config(username, Config),
 	Client = ?config(diameter_client, Config),
 	ok = ocs:delete_client(Client),
@@ -129,7 +129,7 @@ sequences() ->
 all() -> 
 	[simple_authentication_radius, out_of_credit_radius, bad_password_radius,
 	unknown_username_radius, simple_authentication_diameter, bad_password_diameter,
-	unknown_username_diameter].
+	unknown_username_diameter, out_of_credit_diameter].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -230,6 +230,27 @@ out_of_credit_radius(Config) ->
 			radius:codec(AccessRejectPacket),
 	AccessReject = radius_attributes:codec(AccessRejectData),
 	{ok, "Out of Credit"} = radius_attributes:find(?ReplyMessage, AccessReject).
+
+out_of_credit_diameter() ->
+	[{userdata, [{doc, "Diameter authentication failure when subscriber has a balance less than 0"}]}].
+
+out_of_credit_diameter(_Config) ->
+	Username = "Axl Rose",
+	Password = "Guns&Roses",
+	ok = ocs:add_subscriber(Username, Password, []),
+	SId = diameter:session_id(atom_to_list(?FUNCTION_NAME)),
+	NAS_AAR = #diameter_nas_app_AAR{'Session-Id' = SId,
+			'Auth-Application-Id' = ?NAS_APPLICATION_ID ,
+			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
+			'User-Name' = Username, 'User-Password' = Password},
+	{ok, Answer} = diameter:call(?SVC, nas_app_test, NAS_AAR, []),
+	true = is_record(Answer, diameter_nas_app_AAA),
+	OriginHost = list_to_binary("ocs.sigscale.com"),
+	OriginRealm = list_to_binary("sigscale.com"),
+	#diameter_nas_app_AAA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
+			'Auth-Application-Id' = ?NAS_APPLICATION_ID,
+			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
+			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm} = Answer.
 
 bad_password_radius() ->
 	[{userdata, [{doc, "Send RADIUS AccessReject response to the peer when password 
