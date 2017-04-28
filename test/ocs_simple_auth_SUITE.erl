@@ -343,7 +343,6 @@ unknown_username_diameter(Config) ->
 			'Auth-Application-Id' = ?NAS_APPLICATION_ID ,
 			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
 			'User-Name' = UnknownUsername, 'User-Password' = Password},
-erlang:display({xxxxxx, ?MODULE, ?FUNCTION_NAME, ?LINE, NAS_AAR}),
 	{ok, Answer} = diameter:call(?SVC, nas_app_test, NAS_AAR, []),
 	true = is_record(Answer, diameter_nas_app_AAA),
 	OriginHost = list_to_binary("ocs.sigscale.com"),
