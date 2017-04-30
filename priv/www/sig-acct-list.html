@@ -51,7 +51,7 @@
 
 		<paper-button raised class="indigo" on-click="openLogList" >Show Log Files</paper-button>
 
-		<vaadin-grid selection-mode="single" id="accoutingGrid" grid-columns="2" style="height:100%;">
+		<vaadin-grid selection-mode="single" id="accountingGrid" grid-columns="2" style="height:100%;">
 			<table>
 				<colgroup> 
 				</colgroup>
@@ -67,7 +67,7 @@
 		  is: 'sig-acct-list',
 
 		listeners: {
-				'accoutingGrid.click': 'onSelect'
+				'accountingGrid.click': 'onSelect'
 		},
 
 
