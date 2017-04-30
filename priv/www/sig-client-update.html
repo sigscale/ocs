@@ -22,15 +22,15 @@
 
 		<paper-dialog id="clientUpdateModal" modal style="width:60%;">
 			<paper-tabs selected="{{selected}}">
-					  <paper-tab id="authen-client"> 
+					  <paper-tab id="authenticate-client"> 
 							<h2 >Authentication</h2>
 					  </paper-tab>
-					 <paper-tab id="autho-client">
+					 <paper-tab id="authorize-client">
 							<h2>Properties</h2>
 					 </paper-tab>
 			</paper-tabs>
-								<paper-tooltip for="authen-client">Credentials used to authenticate network access server, router or access point</paper-tooltip>
-								<paper-tooltip for="autho-client">Properties of network access server, router or access pointor client</paper-tooltip>
+								<paper-tooltip for="authenticate-client">Credentials used to authenticate network access server, router or access point</paper-tooltip>
+								<paper-tooltip for="authorize-client">Properties of network access server, router or access pointor client</paper-tooltip>
 
 			<iron-pages selected="{{selected}}">
 				<div id="edit-client-password" >
@@ -45,7 +45,7 @@
 						<paper-tooltip>Secret, or password, shared with the network access server, router or access point.</paper-tooltip>
 					</div>
 					<div class="buttons">
-						<paper-button onclick="clientUpdateModal.close()" class="cancle-btn">Cancel</paper-button>
+						<paper-button onclick="clientUpdateModal.close()" class="cancel-btn">Cancel</paper-button>
 						<paper-button dialog-confirm autofocus on-click="updateClientAuthen" class="update-buttons">Update Authentication</paper-button>
 						<paper-button toggles raised on-click = "deleteClient" class="delete-buttons" > Delete Client</paper-button>
 					</div>
@@ -74,7 +74,7 @@
 					</div>
 -->
 					<div class="buttons">
-						<paper-button onclick="clientUpdateModal.close()" class="cancle-btn">Cancel</paper-button>
+						<paper-button onclick="clientUpdateModal.close()" class="cancel-btn">Cancel</paper-button>
 						<paper-button dialog-confirm autofocus on-click="updateClientProperties" class="update-buttons">Update Properties</paper-button>
 						<paper-button toggles raised on-click = "deleteClient" class="delete-buttons" > Delete Client</paper-button>
 					</div>
