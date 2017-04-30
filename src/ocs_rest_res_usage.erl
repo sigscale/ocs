@@ -94,7 +94,6 @@ read_ipdr(Log, FileName, MaxItems) ->
 read_ipdr1(Log, Continuation, MaxItems, Count, Acc) ->
 	case disk_log:chunk(Log, Continuation) of
 		eof ->
-erlang:display({?MODULE, ?LINE, Count}),
 			read_ipdr2(Log, Count, Acc);
 		{Continuation2, Records} -> 
 			case ipdr_to_json(Count, Records) of
