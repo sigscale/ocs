@@ -88,7 +88,8 @@ read_auth_log1(Count, Acc) ->
 
 % @hidden
 radius_auth_json(Count, Events) ->
-	F = fun({TimeStamp, Node, Client, Server, Type, ReqAttrs, _RespAttrs}, {N, Acc}) ->
+	F = fun({Milliseconds, Node, Client, Server, Type, ReqAttrs, _RespAttrs}, {N, Acc}) ->
+		TimeStamp = ocs_log:iso8601(Milliseconds),
 		{ClientAdd, ClientPort} = Client,
 		ClientIp = inet:ntoa(ClientAdd),
 		{ServerAdd, ServerPort} = Server,
