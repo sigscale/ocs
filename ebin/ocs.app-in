@@ -57,5 +57,5 @@
 				{tls_key, "%APP_PRIV%/key.pem"},
 				{tls_cert, "%APP_PRIV%/cert.pem"},
 				{tls_cacert, "%APP_PRIV%/CAcert.pem"},
-				{rest_page_size, 100}]},
+				{rest_page_size, 1000}]},
 		{mod, {ocs_app, []}}]}.
