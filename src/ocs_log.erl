@@ -23,7 +23,8 @@
 %% export the ocs_log public API
 -export([radius_acct_open/0, radius_acct_log/4, radius_acct_close/0]).
 -export([radius_auth_open/0, radius_auth_log/5, radius_auth_close/0, radius_auth_query/5]).
--export([ipdr_log/3, get_range/3, dump_file/2, last/2]).
+-export([ipdr_log/3, get_range/3, last/2]).
+-export([dump_file/2, http_file/2]).
 -export([date/1, iso8601/1]).
 
 %% export the ocs_log private API
@@ -420,7 +421,44 @@ get_range(Log, Start, End) when is_integer(Start), is_integer(End) ->
 dump_file(Log, FileName) when is_list(FileName) ->
 	case file:open(FileName, [write]) of
 		{ok, IoDevice} ->
-			file_chunk(Log, IoDevice, start);
+			file_chunk(Log, IoDevice, tuple, start);
+		{error, Reason} ->
+			error_logger:error_report([file:format_error(Reason),
+					{module, ?MODULE}, {log, Log}, {error, Reason}]),
+			{error, Reason}
+	end.
+
+-spec http_file(Log, FileName) -> Result
+	when
+		Log :: transfer | error | security,
+		FileName :: file:filename(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Write events logged by `httpd' to a file.
+%%
+http_file(Log, FileName) when is_atom(Log), is_list(FileName) ->
+	{ok, Services} = application:get_env(inets, services),
+	{_, HttpdConfig} = lists:keyfind(httpd, 1, Services),
+	{_, ServerRoot} = lists:keyfind(server_root, 1, HttpdConfig),
+	http_file1(Log, FileName, ServerRoot, HttpdConfig).
+%% @hidden
+http_file1(transfer, FileName, ServerRoot, HttpdConfig) ->
+	{_, LogName} = lists:keyfind(transfer_disk_log, 1, HttpdConfig),
+	Log = filename:join(ServerRoot, string:strip(LogName)),
+	http_file2(Log, FileName);
+http_file1(error, FileName, ServerRoot, HttpdConfig) ->
+	{_, LogName} = lists:keyfind(error_disk_log, 1, HttpdConfig),
+	Log = filename:join(ServerRoot, string:strip(LogName)),
+	http_file2(Log, FileName);
+http_file1(security, FileName, ServerRoot, HttpdConfig) ->
+	{_, LogName} = lists:keyfind(security_disk_log, 1, HttpdConfig),
+	Log = filename:join(ServerRoot, string:strip(LogName)),
+	http_file2(Log, FileName).
+%% @hidden
+http_file2(Log, FileName) ->
+	case file:open(FileName, [raw, write]) of
+		{ok, IoDevice} ->
+			file_chunk(Log, IoDevice, binary, start);
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
 					{module, ?MODULE}, {log, Log}, {error, Reason}]),
@@ -527,7 +565,7 @@ uuid() ->
 %%----------------------------------------------------------------------
 
 %% @hidden
-file_chunk(Log, IoDevice, Cont) ->
+file_chunk(Log, IoDevice, Type, Cont) ->
 	case disk_log:chunk(Log, Cont) of
 		eof ->
 			file:close(IoDevice);
@@ -537,21 +575,31 @@ file_chunk(Log, IoDevice, Cont) ->
 			file:close(IoDevice),
 			{error, Reason};
 		{NextCont, Terms} ->
-			file_chunk1(Log, IoDevice, NextCont, Terms)
+			file_chunk1(Log, IoDevice, Type, NextCont, Terms)
 	end.
 %% @hidden
-file_chunk1(Log, IoDevice, Cont, [Event | T]) ->
+file_chunk1(Log, IoDevice, tuple, Cont, [Event | T]) ->
 	case io:fwrite(IoDevice, "~999p~n", [Event]) of
 		ok ->
-			file_chunk1(Log, IoDevice, Cont, T);
+			file_chunk1(Log, IoDevice, tuple, Cont, T);
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
 					{module, ?MODULE}, {log, Log}, {error, Reason}]),
 			file:close(IoDevice),
 			{error, Reason}
 	end;
-file_chunk1(Log, IoDevice, Cont, []) ->
-	file_chunk(Log, IoDevice, Cont).
+file_chunk1(Log, IoDevice, binary, Cont, [Event | T]) ->
+	case file:write(IoDevice, Event) of
+		ok ->
+			file_chunk1(Log, IoDevice, binary, Cont, T);
+		{error, Reason} ->
+			error_logger:error_report([file:format_error(Reason),
+					{module, ?MODULE}, {log, Log}, {error, Reason}]),
+			file:close(IoDevice),
+			{error, Reason}
+	end;
+file_chunk1(Log, IoDevice, Type, Cont, []) ->
+	file_chunk(Log, IoDevice, Type, Cont).
 
 -spec start_binary_tree(Log, Start, End) -> Result
 	when
