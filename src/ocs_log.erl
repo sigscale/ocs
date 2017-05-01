@@ -23,7 +23,7 @@
 %% export the ocs_log public API
 -export([radius_acct_open/0, radius_acct_log/4, radius_acct_close/0]).
 -export([radius_auth_open/0, radius_auth_log/5, radius_auth_close/0, radius_auth_query/5]).
--export([ipdr_log/3, get_range/3, dump_file/2]).
+-export([ipdr_log/3, get_range/3, dump_file/2, last/2]).
 -export([date/1, iso8601/1]).
 
 %% export the ocs_log private API
@@ -426,6 +426,71 @@ dump_file(Log, FileName) when is_list(FileName) ->
 					{module, ?MODULE}, {log, Log}, {error, Reason}]),
 			{error, Reason}
 	end.
+
+-spec last(Log, MaxItems) -> Events
+	when
+		Log :: disk_log:log(),
+		MaxItems :: pos_integer(),
+		Events :: [term()].
+%% @doc Return the last `MaxItems' events in most recent item first order.
+last(Log, MaxItems) ->
+	last(Log, MaxItems, start, []).
+%% @hidden
+last(Log, MaxItems, Cont, Acc) ->
+	case disk_log:chunk_step(Log, Cont, 1) of
+		{error, end_of_log} ->
+			last1(Log, MaxItems, 0, Acc, []);
+		{ok, Cont1} ->
+			last(Log, MaxItems, Cont1, [Cont | Acc])
+	end.
+%% @hidden
+last1(Log, MaxItems, NumItems, [Cont | T], Acc) ->
+	case last2(Log, MaxItems, NumItems, Cont, []) of
+		{error, Reason} ->
+			{error, Reason};
+		{MaxItems, Events} ->
+			NewAcc = [Events | Acc],
+			lists:flatten(lists:reverse(NewAcc));
+		{NewNumItems, Events} ->
+			NewAcc = [Events | Acc],
+			last1(Log, MaxItems, NewNumItems, T, NewAcc)
+	end;
+last1(_Log, _MaxItems, _NumItems, [], Acc) ->
+	lists:flatten(lists:reverse(Acc)).
+%% @hidden
+last2(Log, MaxItems, NumItems, Cont, Acc) ->
+	case disk_log:chunk(Log, Cont) of
+		{error, Reason} ->
+			{error, Reason};
+		eof ->
+			last3(Log, MaxItems, NumItems, Acc, []);
+		{Cont1, _Events} ->
+			last2(Log, MaxItems, NumItems, Cont1, [Cont | Acc])
+	end.
+%% @hidden
+last3(Log, MaxItems, NumItems, [Cont | T], Acc) ->
+	case disk_log:chunk(Log, Cont) of
+		{error, Reason} ->
+			{error, Reason};
+		{_, Events} ->
+			RevEvents = lists:reverse(Events),
+			NumEvents = length(RevEvents),
+			case NumItems + NumEvents of
+				MaxItems ->
+					NewAcc = [RevEvents | Acc],
+					{MaxItems, lists:reverse(NewAcc)};
+				N when N > MaxItems ->
+					NumHead = MaxItems - NumItems,
+					{NewEvents, _} = lists:split(NumHead, RevEvents),
+					NewAcc = [NewEvents | Acc],
+					{MaxItems, lists:reverse(NewAcc)};
+				N ->
+					NewAcc = [RevEvents | Acc],
+					last3(Log, MaxItems, N, T, NewAcc)
+			end
+	end;
+last3(_Log, _MaxItems, NumItems, [], Acc) ->
+	{NumItems, lists:reverse(Acc)}.
 
 -spec date(MilliSeconds) -> Result
 	when
