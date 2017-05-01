@@ -537,12 +537,21 @@ file_chunk(Log, IoDevice, Cont) ->
 			file:close(IoDevice),
 			{error, Reason};
 		{NextCont, Terms} ->
-			Fun =  fun(Event) ->
-						io:fwrite(IoDevice, "~999p~n", [Event])
-			end,
-			lists:foreach(Fun, Terms),
-			file_chunk(Log, IoDevice, NextCont)
+			file_chunk1(Log, IoDevice, NextCont, Terms)
 	end.
+%% @hidden
+file_chunk1(Log, IoDevice, Cont, [Event | T]) ->
+	case io:fwrite(IoDevice, "~999p~n", [Event]) of
+		ok ->
+			file_chunk1(Log, IoDevice, Cont, T);
+		{error, Reason} ->
+			error_logger:error_report([file:format_error(Reason),
+					{module, ?MODULE}, {log, Log}, {error, Reason}]),
+			file:close(IoDevice),
+			{error, Reason}
+	end;
+file_chunk1(Log, IoDevice, Cont, []) ->
+	file_chunk(Log, IoDevice, Cont).
 
 -spec start_binary_tree(Log, Start, End) -> Result
 	when
