@@ -1,4 +1,4 @@
-%%% ocs_rest_res_radius.erl
+%%% ocs_rest_res_access.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 SigScale Global Inc.
 %%% @end
@@ -17,7 +17,7 @@
 %%% @doc This library module implements resource handling functions
 %%%   for a REST server in the {@link //ocs. ocs} application.
 %%%
--module(ocs_rest_res_radius).
+-module(ocs_rest_res_access).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 -export([content_types_accepted/0,
@@ -26,8 +26,6 @@
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs_log.hrl").
-
--define(RADAUTH, radius_auth).
 
 -spec content_types_accepted() -> ContentTypes
 	when
@@ -50,18 +48,17 @@ content_types_provided() ->
 %% @doc Body producing function for `GET /ocs/v1/log/access'
 %% requests.
 perform_get_all() ->
-	Log = ?RADAUTH,
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	case ocs_log:last(radius_auth, MaxItems) of
+		{error, Reason} -> 
+			{error, Reason};
 		{NewCount, Events} -> 
 			JsonObj = radius_auth_json(Events),
 			JsonArray = {array, JsonObj},
 			Body = mochijson:encode(JsonArray),
 			ContentRange = "items 1-" ++ integer_to_list(NewCount) ++ "/*",
 			Headers = [{content_range, ContentRange}],
-			{ok, Headers, Body};
-		{error, Reason} -> 
-			{error, Reason}
+			{ok, Headers, Body}
 	end.
 
 %%----------------------------------------------------------------------

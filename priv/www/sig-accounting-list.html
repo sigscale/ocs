@@ -15,7 +15,7 @@
 <link rel="import" href="bower_components/paper-toggle-button/paper-toggle-button.html" >
 <link rel="import" href="bower_components/paper-styles/paper-styles.html">
 
-<dom-module id="sig-auth-list">
+<dom-module id="sig-accounting-list">
    <template>
       <style>
          :host { display: inline-block; height:95%; }
@@ -79,9 +79,9 @@
          </table>
       </vaadin-grid>
 
-		<iron-ajax id="getAccess"
+		<iron-ajax id="getAccounting"
          auto = false
-         url="/ocs/v1/log/access"
+         url="/ocs/v1/log/accounting"
 			method = "GET"
          headers='{"Accept": "application/json"}'
          on-response="responseHandler"
@@ -91,7 +91,7 @@
 
 <script>
       Polymer({
-        is: 'sig-auth-list',
+        is: 'sig-accounting-list',
 
       listeners: {
             'grid.click': 'onSelect'

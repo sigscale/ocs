@@ -36,9 +36,10 @@
 <link rel="import" href="sig-client-add.html">
 <link rel="import" href="sig-client-list.html">
 <link rel="import" href="sig-client-update.html">
-<link rel="import" href="sig-acct-list.html">
-<link rel="import" href="sig-acct-log-files.html">
-<link rel="import" href="sig-auth-list.html">
+<link rel="import" href="sig-ipdr-list.html">
+<link rel="import" href="sig-ipdr-log-files.html">
+<link rel="import" href="sig-access-list.html">
+<link rel="import" href="sig-accounting-list.html">
 
 <dom-module id="sig-app">
 	<template is="dom-bind">
@@ -93,8 +94,9 @@
 					  <iron-pages id="loadPage" selected="10000000000"  role="main" style="height:100%;">
 						  <sig-sub-list></sig-sub-list>
 						  <sig-client-list></sig-client-list>
-						  <sig-acct-list></sig-acct-list>
-						  <sig-auth-list></sig-auth-list>
+						  <sig-ipdr-list></sig-ipdr-list>
+						  <sig-access-list></sig-access-list>
+						  <sig-accounting-list></sig-accounting-list>
 					  </iron-pages>
 				  </app-header-layout>
 			</div>
@@ -112,7 +114,6 @@
 										<paper-item id="page3" onclick="drawer.toggle()"class="menuitem">&nbsp &nbsp <iron-icon icon ="icons:perm-identity"></iron-icon> &nbsp Access</paper-item>
 										<paper-item id="page4" onclick="drawer.toggle()" class="menuitem"> &nbsp &nbsp <iron-icon icon ="device:data-usage"></iron-icon> &nbsp Accounting</paper-item>
 										<paper-item id="page2" onclick="drawer.toggle()" class="menuitem"> &nbsp &nbsp <iron-icon icon ="device:data-usage"></iron-icon> &nbsp IPDR</paper-item>
-										<paper-item id="page2" onclick="drawer.toggle()" class="menuitem"> &nbsp &nbsp <iron-icon icon ="device:data-usage"></iron-icon> &nbsp HTTP</paper-item>
 									</paper-menu>
 							</paper-submenu>
 						</paper-menu>
@@ -126,7 +127,7 @@
 		<sig-sub-update></sig-sub-update>
 		<sig-client-add></sig-client-add> 
 		<sig-client-update></sig-client-update>
-		<sig-acct-log-files></sig-acct-log-files>
+		<sig-ipdr-log-files></sig-ipdr-log-files>
 		
 		<iron-ajax id="searchAjax"
 			method = "GET"
@@ -153,6 +154,9 @@
 						case 
 							'page3': this.$.loadPage.selected = 3; 
 							break;
+						case 
+							'page4': this.$.loadPage.selected = 4; 
+							break;
 						case	
 							'page2': this.$.loadPage.selected = 2;
 							document.getElementById("selectLogFileModal").open();
@@ -172,6 +176,9 @@
 					}
 					if(this.$.pageSelection.selected == 3){
 						ajax.url = "/ocs/v1/log/access/" + id
+					}
+					if(this.$.pageSelection.selected == 4){
+						ajax.url = "/ocs/v1/log/accounting/" + id
 					}
 
 					ajax.generateRequest();
