@@ -465,12 +465,15 @@ http_file2(Log, FileName) ->
 			{error, Reason}
 	end.
 
--spec last(Log, MaxItems) -> Events
+-spec last(Log, MaxItems) -> Result
 	when
 		Log :: disk_log:log(),
 		MaxItems :: pos_integer(),
-		Events :: [term()].
-%% @doc Return the last `MaxItems' events in most recent item first order.
+		Result :: {NumItems, Events} | {error, Reason},
+		NumItems :: non_neg_integer(),
+		Events :: [term()],
+		Reason :: term().
+%% @doc Get the last `MaxItems' events in most recent item first order.
 last(Log, MaxItems) ->
 	last(Log, MaxItems, start, []).
 %% @hidden
@@ -493,8 +496,8 @@ last1(Log, MaxItems, NumItems, [Cont | T], Acc) ->
 			NewAcc = [Events | Acc],
 			last1(Log, MaxItems, NewNumItems, T, NewAcc)
 	end;
-last1(_Log, _MaxItems, _NumItems, [], Acc) ->
-	lists:flatten(lists:reverse(Acc)).
+last1(_Log, _MaxItems, NumItems, [], Acc) ->
+	{NumItems, lists:flatten(lists:reverse(Acc))}.
 %% @hidden
 last2(Log, MaxItems, NumItems, Cont, Acc) ->
 	case disk_log:chunk(Log, Cont) of
