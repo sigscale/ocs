@@ -11,170 +11,243 @@
 <dom-module id="sig-client-update">
 	<template>
 		<style is="custom-style"> 
-			.update-buttons{ background: #66BB6A; color: white;}
-
-			.delete-buttons{ background: #EF5350; color: white;}
-
-			paper-fab {--paper-fab-background: #7d8ff5;--paper-fab-keyboard-focus-background: var(--paper-light-blue-900); }
-			
-			paper-tab.iron-selected {background-color: var(--paper-indigo-500);color:#E8EAF6; }                                                                                                                                                                                                                                                       
+			.update-buttons {
+				background: #66BB6A;
+				color: white;
+			}
+			.delete-buttons {
+					background: #EF5350;
+					color: white;
+			}
+			paper-fab {
+				--paper-fab-background: #7d8ff5;
+				--paper-fab-keyboard-focus-background: var(--paper-light-blue-900);
+			}
+			paper-tab.iron-selected {
+				background-color: var(--paper-indigo-500);
+				color:#E8EAF6;
+			}
 		</style>
-
-		<paper-dialog id="clientUpdateModal" modal style="width:60%;">
+		<paper-dialog
+				id="clientUpdateModal"
+				modal style="width:60%;">
 			<paper-tabs selected="{{selected}}">
-					  <paper-tab id="authenticate-client"> 
-							<h2 >Authentication</h2>
-					  </paper-tab>
-					 <paper-tab id="authorize-client">
-							<h2>Properties</h2>
-					 </paper-tab>
+				<paper-tab id="authenticate-client"> 
+					<h2>Authentication</h2>
+				</paper-tab>
+				 <paper-tab id="authorize-client">
+					<h2>Properties</h2>
+				</paper-tab>
 			</paper-tabs>
-								<paper-tooltip for="authenticate-client">Credentials used to authenticate network access server, router or access point</paper-tooltip>
-								<paper-tooltip for="authorize-client">Properties of network access server, router or access pointor client</paper-tooltip>
-
+			<paper-tooltip for="authenticate-client">
+				Credentials used to authenticate network access server, router or access point.
+			</paper-tooltip>
+			<paper-tooltip for="authorize-client">
+				Properties of network access server, router or access pointor client.
+			</paper-tooltip>
 			<iron-pages selected="{{selected}}">
-				<div id="edit-client-password" >
-					<div >
-						<paper-input id="edit-client-id1" name="id" label="Address" disabled></paper-input>
+				<div id="edit-client-password">
+					<div>
+						<paper-input
+								id="edit-client-id1"
+								name="id"
+								label="Address" 
+								disabled>
+						</paper-input>
 					</div>
 					<div>
-						<paper-input id="edit-client-pwd" name="password"  label="Secret" disabled ></paper-input>
+						<paper-input
+								id="edit-client-pwd"
+								name="password"
+								label="Secret"
+								disabled>
+						</paper-input>
 					</div>
 					<div>
-						<paper-input id="edit-client-new-pwd" name="secret" label="New Secret"  ></paper-input>
-						<paper-tooltip>Secret, or password, shared with the network access server, router or access point.</paper-tooltip>
+						<paper-input
+								id="edit-client-new-pwd"
+								name="secret"
+								label="New Secret">
+						</paper-input>
+						<paper-tooltip>
+							Secret, or password, shared with the network access server, router or access point.
+						</paper-tooltip>
 					</div>
 					<div class="buttons">
-						<paper-button onclick="clientUpdateModal.close()" class="cancel-btn">Cancel</paper-button>
-						<paper-button dialog-confirm autofocus on-click="updateClientAuthen" class="update-buttons">Update Authentication</paper-button>
-						<paper-button toggles raised on-click = "deleteClient" class="delete-buttons" > Delete Client</paper-button>
+						<paper-button
+								onclick="clientUpdateModal.close()"
+								class="cancel-btn">
+							Cancel
+						</paper-button>
+						<paper-button
+								dialog-confirm
+								autofocus
+								on-click="updateClientAuthen"
+								class="update-buttons">
+							Update Authentication
+						</paper-button>
+						<paper-button
+								toggles
+								raised
+								on-click="deleteClient"
+								class="delete-buttons">
+							Delete Client
+						</paper-button>
 					</div>
 				</div>
-					</div>
-				<div id="edit-client-attributes" >
+				<div id="edit-client-attributes">
 					<div >
-						<paper-input id="edit-client-id2" name="id" label="IP Address" disabled></paper-input>
+						<paper-input
+								id="edit-client-id2"
+								name="id"
+								label="IP Address"
+								disabled>
+						</paper-input>
 					</div>
 					<div>
-						<paper-input id="edit-client-disc-port" name="disconnectPort" label="Disconnect Port" type="number"></paper-input>
-						<paper-tooltip >Disconnect port used in network access server, router or access point.</paper-tooltip>
+						<paper-input
+								id="edit-client-disc-port"
+								name="disconnectPort"
+								label="Disconnect Port"
+								type="number">
+						</paper-input>
+						<paper-tooltip>
+							Disconnect port used in network access server, router or access point.
+						</paper-tooltip>
 					</div>
 <!--
 					<div>
 						<template is="dom-bind">
-							<paper-dropdown-menu id="edit-client-protocol" label="Protocol" selected-item-label="{{selectedItem}}">
-								<paper-listbox id="protocol-menu" class="dropdown-content" selected="0">
+							<paper-dropdown-menu
+									id="edit-client-protocol"
+									label="Protocol"
+									selected-item-label="{{selectedItem}}">
+								<paper-listbox
+										id="protocol-menu"
+										class="dropdown-content"
+										selected="0">
 									<paper-item value="RADIUS">RADIUS</paper-item>
 									<paper-item value="DIAMETER" disabled>DIAMETER</paper-item>
 								</paper-listbox>
 							</paper-dropdown-menu>
-							<input is="iron-input" name="protocol" type="hidden" value$="[[selectedItem]]">
-							<paper-tooltip >Protocol used by network access server, router or access point.</paper-tooltip>
+							<input
+									is="iron-input"
+									name="protocol"
+									type="hidden"
+									value$="[[selectedItem]]">
+							<paper-tooltip>
+								Protocol used by network access server, router or access point.
+							</paper-tooltip>
 						</template>
 					</div>
 -->
 					<div class="buttons">
-						<paper-button onclick="clientUpdateModal.close()" class="cancel-btn">Cancel</paper-button>
-						<paper-button dialog-confirm autofocus on-click="updateClientProperties" class="update-buttons">Update Properties</paper-button>
-						<paper-button toggles raised on-click = "deleteClient" class="delete-buttons" > Delete Client</paper-button>
+						<paper-button
+								onclick="clientUpdateModal.close()"
+								class="cancel-btn">
+							Cancel
+						</paper-button>
+						<paper-button
+								dialog-confirm
+								autofocus
+								on-click="updateClientProperties"
+								class="update-buttons">
+							Update Properties
+						</paper-button>
+						<paper-button
+								toggles
+								raised
+								on-click="deleteClient"
+								class="delete-buttons">
+							Delete Client
+						</paper-button>
 					</div>
 				</div>
-					</div>
 			</iron-pages>
 		</paper-dialog>
-
 		<iron-ajax id="updateClientAuthen"
-			auto=true
-			headers='{"Accept": "application/json", "Content-type": "application/json"}'
-			on-response="updateClientAuthenResponse"
-			debounce-duration="300"> </iron-ajax>
-
+				auto=true
+				headers='{"Accept": "application/json", "Content-type": "application/json"}'
+				on-response="updateClientAuthenResponse"
+				debounce-duration="300">
+		</iron-ajax>
 		<iron-ajax id="updateClientProperties"
-			auto=true
-			headers='{"Accept": "application/json", "Content-type": "application/json"}'
-			on-response="updateClientPropertiesResponse"
-			debounce-duration="300"> </iron-ajax>
-
+				auto=true
+				headers='{"Accept": "application/json", "Content-type": "application/json"}'
+				on-response="updateClientPropertiesResponse"
+				debounce-duration="300">
+		</iron-ajax>
 		<iron-ajax id="deleteClient"
-			auto=false
-			handle-as="json"
-			on-response="deleteClientResponse"
-			debounce-duration="300"> </iron-ajax>
-
-
+				auto=false
+				handle-as="json"
+				on-response="deleteClientResponse"
+				debounce-duration="300">
+		</iron-ajax>
 	</template>
 	<script>
-		Polymer({
-			is: 'sig-client-update',
-
-		updateClientAuthen: function(event){
-			var editAjax =  document.getElementById("updateClientAuthen");
-			editAjax.method = "PATCH";
-			editAjax.contentType = "application/json";
-			var id = document.getElementById("edit-client-id1").value;
-			editAjax.url = "/ocs/v1/client/" + id;
-			var client = new Object();
-			client.secret = document.getElementById("edit-client-new-pwd").value;
-			editAjax.body = client;
-		},
-
-		updateClientAuthenResponse: function (event){
-			if(event.detail.succeeded){
-				document.getElementById("edit-toast").open();
-				document.getElementById("edit-client-new-pwd").value = "";
-				var getClientsAjax = document.getElementById("getClients");
-				getClientsAjax.generateRequest();
+		Polymer (
+			{
+				is: 'sig-client-update',
+				updateClientAuthen: function(event) {
+					var editAjax =  document.getElementById("updateClientAuthen");
+					editAjax.method = "PATCH";
+					editAjax.contentType = "application/json";
+					var id = document.getElementById("edit-client-id1").value;
+					editAjax.url = "/ocs/v1/client/" + id;
+					var client = new Object();
+					client.secret = document.getElementById("edit-client-new-pwd").value;
+					editAjax.body = client;
+				},
+				updateClientAuthenResponse: function (event) {
+					if (event.detail.succeeded) {
+						document.getElementById("edit-toast").open();
+						document.getElementById("edit-client-new-pwd").value = "";
+						var getClientsAjax = document.getElementById("getClients");
+						getClientsAjax.generateRequest();
+					} else {
+						console.log("Not Success");
+					}
+				},
+				updateClientProperties: function(event) {
+					var editAjax =  document.getElementById("updateClientProperties");
+					editAjax.method = "PATCH";
+					editAjax.contentType = "application/json";
+					var id = document.getElementById("edit-client-id2").value;
+					editAjax.url = "/ocs/v1/client/" + id;
+					var client = new Object();
+					client.disconnectPort = parseInt(document.getElementById("edit-client-disc-port").value);
+					//client.protocol = document.getElementById("edit-client-protocol").value;
+					client.protocol = "RADIUS";
+					editAjax.body = client;
+					editAjax.generateRequest();
+				},
+				updateClientPropertiesResponse: function (event) {
+					if(event.detail.succeeded) {
+						document.getElementById("edit-toast").open();
+						document.getElementById("edit-client-new-pwd").value = "";
+						var getClientsAjax = document.getElementById("getClients");
+						getClientsAjax.generateRequest();
+					} else {
+						console.log("Not Success");
+					}
+				},
+				deleteClient: function(event) {
+					var grid = document.getElementById("clientGrid"); 
+					grid.selection.selected(function(index) {
+						var selection = grid.items[index];
+						var deleteAjax = document.getElementById("deleteClient");
+						deleteAjax.method = "DELETE";
+						deleteAjax.url = "/ocs/v1/client/"+ selection.id;
+						deleteAjax.generateRequest();
+					});
+				},
+				deleteClientResponse: function(event) {
+					document.getElementById("clientUpdateModal").close();
+					document.getElementById("delete-toast").open();
+					var getSubsAjax = document.getElementById("getClients");
+					getSubsAjax.generateRequest();
+				}
 			}
-			else{
-				console.log("Not Success");
-			}
-		},
-
-		updateClientProperties: function(event){
-			var editAjax =  document.getElementById("updateClientProperties");
-			editAjax.method = "PATCH";
-			editAjax.contentType = "application/json";
-			var id = document.getElementById("edit-client-id2").value;
-			editAjax.url = "/ocs/v1/client/" + id;
-			var client = new Object();
-			client.disconnectPort = parseInt(document.getElementById("edit-client-disc-port").value);
-			//client.protocol = document.getElementById("edit-client-protocol").value;
-			client.protocol = "RADIUS";
-			editAjax.body = client;
-			editAjax.generateRequest();
-		},
-
-		updateClientPropertiesResponse: function (event){
-			if(event.detail.succeeded){
-				document.getElementById("edit-toast").open();
-				document.getElementById("edit-client-new-pwd").value = "";
-				var getClientsAjax = document.getElementById("getClients");
-				getClientsAjax.generateRequest();
-			}
-			else{
-				console.log("Not Success");
-			}
-		},
-
-		deleteClient: function(event){
-			var grid = document.getElementById("clientGrid"); 
-			grid.selection.selected(function(index){
-				var selection = grid.items[index];
-				var deleteAjax = document.getElementById("deleteClient");
-				deleteAjax.method = "DELETE";
-				deleteAjax.url = "/ocs/v1/client/"+ selection.id;
-				deleteAjax.generateRequest();
-			});
-		},
-
-		deleteClientResponse: function(event){
-			document.getElementById("clientUpdateModal").close();
-			document.getElementById("delete-toast").open();
-			var getSubsAjax = document.getElementById("getClients");
-			getSubsAjax.generateRequest();
-		},
-
-
-		});
+		);
 	</script>
 </dom-module>

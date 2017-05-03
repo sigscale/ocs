@@ -19,24 +19,40 @@
 <dom-module id="sig-sub-list">
 	<template>
 		<style>
-			:host { display: inline-block; height:95%; }
-
-			iron-icon { fill: rgba(0,0,0,0); stroke: currentcolor; } :host([pressed]) iron-icon { fill: currentcolor; }
-
-			paper-button{   color: white; font-weight: bold; } 
-
-			#subscriber{ width:3%; }
-
-			.add-button{ right: 2%; position: fixed; bottom: 5%; z-index: 100; }
-
-			paper-fab{background:#4285f4;}
-
+			:host {
+				display: inline-block;
+				height:95%;
+			}
+			iron-icon {
+					fill: rgba(0,0,0,0);
+					stroke: currentcolor;
+			}
+			:host([pressed]) iron-icon {
+				fill: currentcolor;
+			}
+			paper-button {
+				color: white;
+				font-weight: bold;
+			} 
+			#subscriber {
+				width:3%;
+			}
+			.add-button {
+				right: 2%;
+				position: fixed;
+				bottom: 5%;
+				z-index: 100;
+			}
+			paper-fab {
+				background:#4285f4;
+			}
 		</style>
-
 		<div class="add-button">
-			<paper-fab icon="add" on-click = "showAddModal"></paper-fab>
+			<paper-fab
+					icon="add"
+					on-click="showAddModal">
+			</paper-fab>
 		</div>
-
 		<style include="shared-styles">
 			:host {
 				display: block;
@@ -44,28 +60,32 @@
 			}
 			paper-fab { 
 				--paper-fab-background: #7d8ff5;
-				--paper-fab-keyboard-focus-background: var(--paper-light-blue-900); }
-				vaadin-grid{font-size: inherit;}
-				vaadin-grid col {font-size: 46px;}
-			.edit{
+				--paper-fab-keyboard-focus-background: var(--paper-light-blue-900);
+			}
+			vaadin-grid {
+				font-size: inherit;
+			}
+			vaadin-grid col {
+				font-size: 46px;
+			}
+			.edit {
 				background: #81C784;
 			}
 			paper-button[raised] {
 			  background: #FF8A80;
 			}
-
 			paper-tab.iron-selected {
-			    background-color: var(--paper-indigo-500);
-				 color:#E8EAF6;
+				background-color: var(--paper-indigo-500);
+				color:#E8EAF6;
 			}
 			paper-button.cancel-btn {
 				color: #7d8ff5;
 				font-weight:normal;
 			}
-
 		</style>
-		
-		<vaadin-grid selection-mode="single" id="subscriberGrid" grid-columns="2" style="height:100%;">
+		<vaadin-grid id="subscriberGrid"
+				selection-mode="single"
+				grid-columns="2" style="height:100%;">
 			<table>
 				<colgroup> 
 					<col>
@@ -79,114 +99,124 @@
 					<col>
 				</colgroup>
 				<thead>
-				<tr>
-					<th> Identity</th>
-					<th> Password</th>
-					<th> Balance</th>
-					<th> Data Rate</th>
-					<th> Xmit Rate</th>
-					<th> Session Timeout</th>
-					<th> Accouing Interval</th>
-					<th> Enabled</th>
+					<tr>
+						<th>Identity</th>
+						<th>Password</th>
+						<th>Balance</th>
+						<th>Data Rate</th>
+						<th>Xmit Rate</th>
+						<th>Session Timeout</th>
+						<th>Accouing Interval</th>
+						<th>Enabled</th>
 					</tr>
 				</thead>
 			</table>
 		</vaadin-grid>
-
 		<paper-toast id="edit-toast">
-			<h2>Record sucessfully updated !</h2>
+			<h2>Record sucessfully updated!</h2>
 		</paper-toast>
-
 		<paper-toast id="delete-toast">
-			<h2>Record sucessfully deleted !</h2>
+			<h2>Record sucessfully deleted!</h2>
 		</paper-toast>
-
 		<iron-ajax id="getSubs"
 			auto=false
 			url="/ocs/v1/subscriber"
 			headers='{"Accept": "application/json"}'
 			on-response="responseHandler"
-			debounce-duration="10"> </iron-ajax>
-
+			debounce-duration="10">
+		</iron-ajax>
 	</template>
-
 	<script>
-		Polymer({
-		  is: 'sig-sub-list',
-
-		listeners: {
-				'subscriberGrid.click': 'onSelect'
-		},
-
-		responseHandler: function(event) {
-			var grid = this.$.subscriberGrid; 
-			var results = event.detail.xhr.response;
-			var vaadinItems = new Array();
-
-			for(var index in results){
-					  var newRecord = new Object();
-					  newRecord.id = results[index].id;
-					  newRecord.password = results[index].password;
-					  newRecord.balance = results[index].balance;
-
-					 results[index].attributes.forEach(function(attrObj){
-							newRecord[attrObj.name] = attrObj.value;
-						});
-
-					  newRecord.enabled = results[index].enabled;
-
-					  vaadinItems[index] = newRecord;;
+		Polymer (
+			{
+				is: 'sig-sub-list',
+				listeners: {
+					'subscriberGrid.click': 'onSelect'
+				},
+				responseHandler: function(event) {
+					var grid = this.$.subscriberGrid; 
+					var results = event.detail.xhr.response;
+					var vaadinItems = new Array();
+					for (var index in results) {
+						var newRecord = new Object();
+						newRecord.id = results[index].id;
+						newRecord.password = results[index].password;
+						newRecord.balance = results[index].balance;
+						results[index].attributes.forEach(
+							function(attrObj) {
+								newRecord[attrObj.name] = attrObj.value;
+							}
+						);
+						newRecord.enabled = results[index].enabled;
+						vaadinItems[index] = newRecord;
+					}
+					grid.items = vaadinItems;
+					grid.frozenColumns = 2;
+//					grid.visibleRows = 17;
+					grid.columns = [
+						{
+							name: "id"
+						},
+						{
+							name: "password"
+						},
+						{
+							name: "balance"
+						},
+						{
+							name: "ascendDataRate"
+						},
+						{
+							name: "ascendXmitRate"
+						},
+						{
+							name: "sessionTimeout"
+						},
+						{
+							name: "acctInterimInterval"
+						},
+						{
+							name: "class"
+						},
+						{
+							name: "enabled"
+						}
+					];
+					grid.header.getCell(0,0).content = '<div style="font-size:16px"><div> Identity</div> <paper-tooltip >Identity, or username, of the subscriber to authenticate</paper-tooltip></div>';
+					grid.header.getCell(0,1).content = '<div style="font-size:16px"><div>Secret</div><paper-tooltip>Secret, or password, shared only with the subscriber</paper-tooltip></div>';
+					grid.header.getCell(0,2).content = '<div style="font-size:16px"><div>Balance</div><paper-tooltip>Current credit value,in bytes against which accounting will debit usage against</paper-tooltip></div>';
+					grid.header.getCell(0,3).content = '<div style="font-size:16px"><div>Data Rate</div><paper-tooltip>Limit on received (download) data per second in bits.</paper-tooltip></div>' ;
+					grid.header.getCell(0,4).content = '<div style="font-size:16px"><div>Xmit Rate</div><paper-tooltip>Limit on transmitted (upload) data per second in bits.</paper-tooltip></div>' ;
+					grid.header.getCell(0,5).content = '<div style="font-size:16px"><div>Session <br>Timeout</div><paper-tooltip>Time between authorization requests in an active session in seconds</paper-tooltip></div>';
+					grid.header.getCell(0,6).content = '<div style="font-size:16px"><div>Accounting <br>Interval</div><paper-tooltip>Time between accounting interim updates in seconds</paper-tooltip></div>';
+					grid.header.getCell(0,7).content = '<div style="font-size:16px"><div>Class</div><paper-tooltip>Lable used in accounting records</paper-tooltip></div>';
+					grid.header.getCell(0,8).content = '<div style="font-size:16px"><div>Enabled</div><paper-tooltip >Authorization temporarily enabled, or disabled.</paper-tooltip></div>';
+				},
+				showAddModal: function(event) {
+						var modal = document.getElementById("subAddModal");
+						modal.open();
+				},
+				onSelect: function(event) {
+					var grid = this.$.subscriberGrid; 
+					var modal = document.getElementById("subUpdateModal"); 
+					modal.open();
+					grid.selection.selected(
+						function(index) {
+							var selection = grid.items[index];
+							document.getElementById("edit-id1").value = selection.id;
+							document.getElementById("edit-id2").value = selection.id;
+							document.getElementById("edit-pwd").value = selection.password;
+							document.getElementById("edit-balance").value = selection.balance;
+							document.getElementById("edit-recv-data-rate").value = selection.ascendDataRate;
+							document.getElementById("edit-trans-data-rate").value = selection.ascendXmitRate;
+							document.getElementById("edit-sess-timeout").value = selection.sessionTimeout;
+							document.getElementById("edit-update-interval").value = selection.acctInterimInterval;
+							document.getElementById("edit-class").value =  selection.class;
+							document.getElementById("edit-enabled").checked =  selection.enabled;
+						}
+					);
+				}
 			}
-
-			grid.items = vaadinItems;
-			grid.frozenColumns = 2;
-			//grid.visibleRows =17;
-			grid.columns = [
-					{ name: "id"},
-					{ name: "password" },
-					{ name: "balance"},
-					{ name: "ascendDataRate"},
-					{ name: "ascendXmitRate" },
-					{ name: "sessionTimeout"},
-					{ name: "acctInterimInterval"},
-					{ name: "class"},
-					{ name: "enabled"}
-			];
-			grid.header.getCell(0,0).content = '<div style="font-size:16px"><div> Identity</div> <paper-tooltip >Identity, or username, of the subscriber to authenticate</paper-tooltip></div>';
-			grid.header.getCell(0,1).content = '<div style="font-size:16px"><div>Secret</div><paper-tooltip>Secret, or password, shared only with the subscriber</paper-tooltip></div>';
-			grid.header.getCell(0,2).content = '<div style="font-size:16px"><div>Balance</div><paper-tooltip>Current credit value,in bytes against which accounting will debit usage against</paper-tooltip></div>';
-			grid.header.getCell(0,3).content = '<div style="font-size:16px"><div>Data Rate</div><paper-tooltip>Limit on received (download) data per second in bits.</paper-tooltip></div>' ;
-			grid.header.getCell(0,4).content = '<div style="font-size:16px"><div>Xmit Rate</div><paper-tooltip>Limit on transmitted (upload) data per second in bits.</paper-tooltip></div>' ;
-			grid.header.getCell(0,5).content = '<div style="font-size:16px"><div>Session <br>Timeout</div><paper-tooltip>Time between authorization requests in an active session in seconds</paper-tooltip></div>';
-			grid.header.getCell(0,6).content = '<div style="font-size:16px"><div>Accounting <br>Interval</div><paper-tooltip>Time between accounting interim updates in seconds</paper-tooltip></div>';
-			grid.header.getCell(0,7).content = '<div style="font-size:16px"><div>Class</div><paper-tooltip>Lable used in accounting records</paper-tooltip></div>';
-			grid.header.getCell(0,8).content = '<div style="font-size:16px"><div>Enabled</div><paper-tooltip >Authorization temporarily enabled, or disabled.</paper-tooltip></div>';
-		},
-
-		showAddModal: function(event){
-				var modal = document.getElementById("subAddModal");
-				modal.open();
-		},
-
-
-		onSelect: function(event) {
-			var grid = this.$.subscriberGrid; 
-			var modal = document.getElementById("subUpdateModal"); 
-			modal.open();
-			grid.selection.selected(function(index) {
-				var selection = grid.items[index];
-				document.getElementById("edit-id1").value = selection.id;
-				document.getElementById("edit-id2").value = selection.id;
-				document.getElementById("edit-pwd").value = selection.password;
-				document.getElementById("edit-balance").value = selection.balance;
-				document.getElementById("edit-recv-data-rate").value = selection.ascendDataRate;
-				document.getElementById("edit-trans-data-rate").value = selection.ascendXmitRate;
-				document.getElementById("edit-sess-timeout").value = selection.sessionTimeout;
-				document.getElementById("edit-update-interval").value = selection.acctInterimInterval;
-				document.getElementById("edit-class").value =  selection.class;
-				document.getElementById("edit-enabled").checked =  selection.enabled;
-			});
-		}
-	});
+		);
 	</script>
 </dom-module>

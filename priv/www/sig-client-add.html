@@ -16,123 +16,177 @@
 <dom-module id="sig-client-add">
 	<template>
 		<style is="custom-style"> 
-			paper-dialog{width:60%; height:50%; padding:10px; margin-top:auto;}
-
-			.add-button{ background-color: #3f51b5; color:#FFFFFF; }
-
-			paper-toast.error{background-color:#EF5350;}
+			paper-dialog {
+				width:60%;
+				height:50%;
+				padding:10px;
+				margin-top:auto;
+			}
+			.add-button {
+				background-color: #3f51b5;
+				color:#FFFFFF;
+			}
+			paper-toast.error {
+				background-color:#EF5350;
+			}
 		</style>
-
-	<div id="add_client_container">
-		<paper-dialog id="clientAddModal" modal>
-		<paper-toolbar>
-			<h2>Add Client</h2>
-			</paper-toolbar>
-				<form  is="iron-form"  id="clientAddForm" method="post" content-type="application/json" >
+		<div id="add_client_container">
+			<paper-dialog id="clientAddModal" modal>
+				<paper-toolbar>
+					<h2>Add Client</h2>
+				</paper-toolbar>
+				<form
+						is="iron-form"
+						id="clientAddForm"
+						method="post"
+						content-type="application/json">
 					<div>
-						<paper-input id="add-client1" name="address" label="IP Address" ></paper-input>
-						<paper-tooltip >IP address of network access server, router or access point</paper-tooltip>
+						<paper-input
+								id="add-client1"
+								name="address"
+								label="IP Address">
+						</paper-input>
+						<paper-tooltip >
+							IP address of network access server, router or access point
+						</paper-tooltip>
 					</div>
 					<div>
-						<paper-input id="add-client2" name="disconnectPort" label="Disconnect Port" type="number"></paper-input>
-						<paper-tooltip >Disconnect port used in network access server, router or access point.</paper-tooltip>
-					</div>
-<!--					<div>
-						<template is="dom-bind">
-							<paper-dropdown-menu id="add-client3" label="Protocol" selected-item-label="{{selectedItem}}">
-								<paper-listbox class="dropdown-content">
-									<paper-item value="RADIUS">RADIUS</paper-item>
-									<paper-item value="DIAMETER" disabled>DIAMETER</paper-item>
-								</paper-listbox>
-							</paper-dropdown-menu>
-							<input is="iron-input" name="protocol" type="hidden" value$="[[selectedItem]]">
-							<paper-tooltip >Protocol ued by network access server, router or access point.</paper-tooltip>
-						</template>
-					</div>
+						<paper-input
+								id="add-client2"
+								name="disconnectPort"
+								label="Disconnect Port"
+								type="number">
+						</paper-input>
+						<paper-tooltip>
+							Disconnect port used in network access server, router or access point.
+						</paper-tooltip>
+						</div>
+<!--				<div>
+							<template is="dom-bind">
+								<paper-dropdown-menu
+										id="add-client3"
+										label="Protocol"
+										selected-item-label="{{selectedItem}}">
+									<paper-listbox class="dropdown-content">
+										<paper-item value="RADIUS">
+											RADIUS
+										</paper-item>
+										<paper-item value="DIAMETER" disabled>
+											DIAMETER
+										</paper-item>
+									</paper-listbox>
+								</paper-dropdown-menu>
+								<input
+										is="iron-input"
+										name="protocol"
+										type="hidden"
+										value$="[[selectedItem]]">
+								<paper-tooltip>
+									Protocol used by network access server, router or access point.
+								</paper-tooltip>
+							</template>
+						</div>
 -->
-					<div>
-						<paper-input id="add-client4" name="secret" label="Secret" ></paper-input>
-						<paper-tooltip >Secret, or password, shared with the network access server, router or access point.</paper-tooltip>
+						<div>
+							<paper-input
+									id="add-client4"
+									name="secret"
+									label="Secret" >
+							</paper-input>
+							<paper-tooltip>
+								Secret, or password, shared with the network access server, router or access point.
+							</paper-tooltip>
+						</div>
+						<div class="buttons">
+							<paper-button
+									raised
+									class="add-button"
+									onclick="_submitClientForm()"
+									style="float: right; width: 200px;">
+								Submit
+							</paper-button>
+							<paper-button
+									dialog-confirm
+									autofocus
+									onclick="clientAddModal.close()">
+								Cancel
+							</paper-button>
+						</div>
+					</form>
+					<div id="response-display-container">
+						<paper-toast
+								id="toastError"
+								class="fit-bottom">
+							<h2>Couldn't add Client!</h2>
+							<h5> Please recheck the following.</h5>
+							<ul>
+								<li>Subscriber name should be a valid ipv4 address</li>
+								<li>Password does not include 0, 1, i, l, o characters</li>
+							</ul>
+						</paper-toast>
+						<paper-toast
+								id="toast-success"
+								class="fit-bottom">
+							<h2>Client added!</h2>
+						</paper-toast>
 					</div>
-					<div class="buttons">
-						<paper-button raised class="add-button" onclick="_submitClientForm()" style="float: right; width: 200px;"  >Submit</paper-button>
-						<paper-button dialog-confirm autofocus onclick="clientAddModal.close()" >Cancel</paper-button>
-					</div>
-				</form>
-				<div id="response-display-container">
-					<paper-toast id="toastError" class="fit-bottom" >
-						<h2> Couldn't add Client!</h2>
-						<h5> Please recheck the following.</h5>
-						<ul>
-							<li>Subscriber name should be a valid ipv4 address</li>
-							<li>Password does not include 0, 1, i, l, o characters</li>
-						</ul>
-					</paper-toast>
-					<paper-toast id="toast-success" class="fit-bottom" >
-						<h2> Client added !</h2>
-					</paper-toast>
-				</div>
-		</paper-dialog>
-	</div>
-
-	<iron-ajax id="clientAddAjax"
-		auto
-		url="/ocs/v1/client"
-		method = "post"
-		headers='{"Accept": "application/json", "Content-type": "application/json"}'
-		client-as="json"
-		debounce-duration="300"></iron-ajax>
-
-	<script>
-		function _submitClientForm() {
-		  document.getElementById('clientAddForm').submit();
-		}
-
-		function toastErrorClose(event) {
-		  document.getElementById('toastError').close();
-		}
-
-	</script>
-	</template>
+			</paper-dialog>
+		</div>
+		<iron-ajax
+				id="clientAddAjax"
+				auto
+				url="/ocs/v1/client"
+				method = "post"
+				headers='{"Accept": "application/json", "Content-type": "application/json"}'
+				client-as="json"
+				debounce-duration="300">
+		</iron-ajax>
 		<script>
-			Polymer({
+			function _submitClientForm() {
+				document.getElementById('clientAddForm').submit();
+			}
+			function toastErrorClose(event) {
+				document.getElementById('toastError').close();
+			}
+		</script>
+	</template>
+	<script>
+		Polymer (
+			{
 				is: 'sig-client-add',
-
-			listeners: {
-				'clientAddForm.iron-form-presubmit': '_clientFormPreSubmit',
-				'clientAddForm.iron-form-error': '_clientFormError',
-				'clientAddForm.iron-form-response': '_clientFormResponse'
-			},
-
-			_clientFormPreSubmit: function() {
-				var form = document.getElementById('presubmit3');
-				var formData = new Object();
-				formData.id = document.getElementById("add-client1").value;	
-				formData.disconnectPort = parseInt(document.getElementById("add-client2").value);	
-				//formData.protocol = document.getElementById("add-client3").value;	
-				formData.protocol =  'RADIUS';	
-				formData.secret = document.getElementById("add-client4").value;	
-				var ajax = document.getElementById("clientAddAjax");
-				ajax.body = formData;
-				ajax.generateRequest();
-			},
-
-			_clientFormError: function() {
-				var toast = document.getElementById("toastError");
-				toast.open();
-				toast.duration = 0;
-				toast.fitInto = document.getElementById("response-display-container");
-			},
-
-			_clientFormResponse: function(event) {
-				var toast = document.getElementById("toast-success");
-				toast.open();
-				toast.duration = 4;
-				toast.fitInto = document.getElementById("response-display-container");
-				document.getElementById("clientAddForm").reset();
-				document.getElementById("clientAddModal").close();
-				document.getElementById("getClients").generateRequest();
-			}   
-		});
+				listeners: {
+					'clientAddForm.iron-form-presubmit': '_clientFormPreSubmit',
+					'clientAddForm.iron-form-error': '_clientFormError',
+					'clientAddForm.iron-form-response': '_clientFormResponse'
+				},
+				_clientFormPreSubmit: function() {
+					var form = document.getElementById('presubmit3');
+					var formData = new Object();
+					formData.id = document.getElementById("add-client1").value;
+					formData.disconnectPort = parseInt(document.getElementById("add-client2").value);
+					//formData.protocol = document.getElementById("add-client3").value;
+					formData.protocol =  'RADIUS';
+					formData.secret = document.getElementById("add-client4").value;
+					var ajax = document.getElementById("clientAddAjax");
+					ajax.body = formData;
+					ajax.generateRequest();
+				},
+				_clientFormError: function() {
+					var toast = document.getElementById("toastError");
+					toast.open();
+					toast.duration = 0;
+					toast.fitInto = document.getElementById("response-display-container");
+				},
+				_clientFormResponse: function(event) {
+					var toast = document.getElementById("toast-success");
+					toast.open();
+					toast.duration = 4;
+					toast.fitInto = document.getElementById("response-display-container");
+					document.getElementById("clientAddForm").reset();
+					document.getElementById("clientAddModal").close();
+					document.getElementById("getClients").generateRequest();
+				}   
+			}
+		);
 	</script>
 </dom-module>

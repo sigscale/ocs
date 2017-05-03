@@ -16,120 +16,140 @@
 <link rel="import" href="bower_components/paper-styles/paper-styles.html">
 
 <dom-module id="sig-accounting-list">
-   <template>
-      <style>
-         :host { display: inline-block; height:95%; }
-
-         iron-icon { fill: rgba(0,0,0,0); stroke: currentcolor; } :host([pressed]) iron-icon { fill: currentcolor; }
-
-			paper-button{   color: white; font-weight: bold; }
-
-         #subscriber{ width:3%; }
-
-         .add-button{ right: 2%; position: fixed; bottom: 5%; z-index: 100; }
-
-         paper-fab{background:#4285f4;}
-
-      </style>
-
-
-      <style include="shared-styles">
-         :host {
-            display: block;
-            padding: 10px;
-         }
-         paper-fab {
-            --paper-fab-background: #7d8ff5;
-            --paper-fab-keyboard-focus-background: var(--paper-light-blue-900); }
-            vaadin-grid{font-size: inherit;}
-            vaadin-grid col {font-size: 46px;}
-         .edit{
-            background: #81C784;
-         }
-
+	<template>
+		<style>
+			:host {
+				display: inline-block;
+				height:95%;
+			}
+			iron-icon {
+				fill: rgba(0,0,0,0);
+				stroke: currentcolor;
+			}
+			:host([pressed]) iron-icon {
+				fill: currentcolor;
+			}
+			paper-button {
+				color: white;
+				font-weight: bold;
+			}
+			#subscriber {
+				width:3%;
+			}
+			.add-button {
+				right: 2%;
+				position: fixed;
+				bottom: 5%;
+				z-index: 100;
+			}
+			paper-fab{background:#4285f4;}
+		</style>
+		<style include="shared-styles">
+			:host {
+				display: block;
+				padding: 10px;
+			}
+			paper-fab {
+				--paper-fab-background: #7d8ff5;
+				--paper-fab-keyboard-focus-background: var(--paper-light-blue-900);
+			}
+			vaadin-grid {
+				font-size: inherit;
+			}
+			vaadin-grid col {
+				font-size: 46px;
+			}
+			.edit {
+				background: #81C784;
+			}
 			paper-button[raised] {
-           background: #FF8A80;
-         }
-
-         paper-tab.iron-selected {
-             background-color: var(--paper-indigo-500);
-             color:#E8EAF6;
-         }
-
-      </style>
-
-      <vaadin-grid selection-mode="single" id="accountingGrid" grid-columns="2" style="height:100%;">
-         <table>
-            <colgroup>
+				background: #FF8A80;
+			}
+			paper-tab.iron-selected {
+				background-color: var(--paper-indigo-500);
+				color:#E8EAF6;
+			}
+		</style>
+		<vaadin-grid id="accountingGrid"
+				selection-mode="single"
+				grid-columns="2"
+				style="height:100%;">
+			<table>
+				<colgroup>
 					<col sortable sort-direction="desc">
 					<col>
 					<col>
 					<col>
 					<col>
-            </colgroup>
-            <thead>
-				<tr>
-					<th> Timestamp </th>
-					<th> ClientAddress </th>
-					<th> ClientPort </th>
-					<th> Type </th>
-					<th> Username </th>
-				</tr>
-            </thead>
-         </table>
-      </vaadin-grid>
-
+				</colgroup>
+				<thead>
+					<tr>
+						<th>Timestamp</th>
+						<th>ClientAddress</th>
+						<th>ClientPort</th>
+						<th>Type</th>
+						<th>Username</th>
+					</tr>
+				</thead>
+			</table>
+		</vaadin-grid>
 		<iron-ajax id="getAccounting"
-         auto = false
-         url="/ocs/v1/log/accounting"
-			method = "GET"
-         headers='{"Accept": "application/json"}'
-         on-response="responseHandler"
-         debounce-duration="10"> </iron-ajax>
-
-   </template>
-
-<script>
-      Polymer({
-        is: 'sig-accounting-list',
-
-      listeners: {
-            'accountingGrid.click': 'onSelect'
-      },
-
-		responseHandler: function(event) {
-         var grid = this.$.accountingGrid; 
-         var results = event.detail.xhr.response;
-         var vaadinItems = new Array();
-
-		for(var index in results){
-			var newRecord = new Object();
-			newRecord.timeStamp = results[index].timeStamp;
-			newRecord.username = results[index].username;
-			newRecord.clientAddress = results[index].clientAddress;
-			newRecord.clientPort = results[index].clientPort;
-			newRecord.type = results[index].type;
-
-			vaadinItems[index] = newRecord;
+				auto = false
+				url="/ocs/v1/log/accounting"
+				method = "GET"
+				headers='{"Accept": "application/json"}'
+				on-response="responseHandler"
+				debounce-duration="10">
+		</iron-ajax>
+	</template>
+	<script>
+		Polymer (
+			{
+				is: 'sig-accounting-list',
+				listeners: {
+					'accountingGrid.click': 'onSelect'
+				},
+				responseHandler: function(event) {
+					var grid = this.$.accountingGrid; 
+					var results = event.detail.xhr.response;
+					var vaadinItems = new Array();
+					for(var index in results){
+						var newRecord = new Object();
+						newRecord.timeStamp = results[index].timeStamp;
+						newRecord.username = results[index].username;
+						newRecord.clientAddress = results[index].clientAddress;
+						newRecord.clientPort = results[index].clientPort;
+						newRecord.type = results[index].type;
+						vaadinItems[index] = newRecord;
+					}
+					grid.items = vaadinItems;
+					grid.frozenColumns = 2;
+					grid.columns = [
+						{
+							name: "timeStamp"
+						},
+						{
+							name: "username"
+						}, 
+						{
+							name: "clientAddress"
+						},
+						{
+							name: "clientPort"
+						},
+						{
+							name: "type"
+						},
+					];
+					grid.columns[0].sortable = true;
+					grid.sortOrder = [{column: 0, direction: 'desc'}];
+					grid.header.getCell(0,0).content = '<div style="font-size:16px"><div> Timestamp</div></div>';
+					grid.header.getCell(0,1).content = '<div style="font-size:16px"><div> Username</div></div>';
+					grid.header.getCell(0,2).content = '<div style="font-size:16px"><div> ClientAddress</div></div>';
+					grid.header.getCell(0,3).content = '<div style="font-size:16px"><div> ClientPort</div></div>';
+					grid.header.getCell(0,4).content = '<div style="font-size:16px"><div> Type</div></div>';
+				}
 			}
-			grid.items = vaadinItems;
-			grid.frozenColumns = 2;
-			grid.columns = [
-				{ name: "timeStamp"},
-				{ name: "username"}, 
-				{ name: "clientAddress"},
-				{ name: "clientPort"},
-				{ name: "type"},
-         ];
-			grid.columns[0].sortable = true;
-			grid.sortOrder = [{column: 0, direction: 'desc'}];
-			grid.header.getCell(0,0).content = '<div style="font-size:16px"><div> Timestamp</div></div>';
-			grid.header.getCell(0,1).content = '<div style="font-size:16px"><div> Username</div></div>';
-			grid.header.getCell(0,2).content = '<div style="font-size:16px"><div> ClientAddress</div></div>';
-			grid.header.getCell(0,3).content = '<div style="font-size:16px"><div> ClientPort</div></div>';
-			grid.header.getCell(0,4).content = '<div style="font-size:16px"><div> Type</div></div>';
-	}
-		
-   });
-   </script>
+		);
+	</script>
 </dom-module>

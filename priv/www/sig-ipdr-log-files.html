@@ -18,158 +18,259 @@
 <dom-module id="sig-ipdr-log-files">
 	<template>
 		<style is="custom-style"> 
-			paper-dialog{width:60%; height:68%; padding:10px; margin-top:auto;}
-
-			.add-button{ background-color: #3f51b5; color:#FFFFFF; }
-
-			paper-toast.error{background-color:#EF5350;}
-			
-			iron-list{height:37vh; font-size: large;}
-
-			.item {
-				border-bottom: 1px solid #3f51b5; height: 5vh; cursor:pointer; padding: 1.5vh; }
-		</style>
-
-	<div id="logFilesContainer">
-		<paper-dialog id="selectLogFileModal" modal>
-		<paper-toolbar>
-			<h2>Select Log File</h2>
-		</paper-toolbar>
-		<paper-dialog-scrollable style="height:60%;">
-			<iron-list id="logFiles" scroll-target="document" as="item" >
-				<template>
-						  <div class="item" on-click="getLogContent">
-								<iron-icon icon="assignment"></iron-icon> &nbsp
-								[[item]]
-							</div>
-				</template>
-			</iron-list>
-		</paper-dialog-scrollable>
-		<div class="buttons">
-			<paper-button dialog-dismiss>Cancel</paper-button>
-		</div>
-		</paper-dialog>
-	</div>
-
-	<iron-ajax id="getLogsAjax"
-		auto
-		url="/usageManagement/v1/usage"
-		method = "GET"
-		headers='{"Accept": "application/json"}'
-		on-response="getLogsResponse"
-		debounce-duration="300"></iron-ajax>
-
-	<iron-ajax id="getLogContentAjax"
-		headers='{"Accept": "application/json"}'
-		on-response="getLogContentResponse"
-		debounce-duration="0"></iron-ajax>
-
-	</template>
-		<script>
-			Polymer({
-				is: 'sig-ipdr-log-files',
-
-			listeners: {
-			},
-
-			getLogContent: function (event){
-				var searchAjax = this.$.getLogContentAjax;
-				searchAjax,method = "GET";
-				searchAjax.url = "/usageManagement/v1/usage/" + event.model.item;
-				searchAjax.generateRequest();
-			},
-
-			getLogsResponse: function(event){
-				this.$.logFiles.items = event.detail.response;
-			},
-
-			getLogContentResponse: function(event){
-				this.$.selectLogFileModal.close();
-				var grid = document.getElementById("ipdrGrid");
-				var results = event.detail.response;
-				vaadinItems = new Array();
-	
-				for(var index in results){
-						  var newRecord = new Object();
-						  newRecord.date = results[index].date;
-						  newRecord.type = results[index].type;
-						  newRecord.usageSpecificationName = results[index].usageSpecification.name;
-	
-						 results[index].usageCharacteristic.forEach(function(attrObj){
-								newRecord[attrObj.key] = attrObj.value;
-							});
-	
-					  vaadinItems[index] = newRecord;
+			paper-dialog {
+				width: 60%;
+				height: 68%;
+				padding: 10px;
+				margin-top: auto;
 			}
-	
-				grid.frozenColumns = 1;
-				grid.items = vaadinItems;
-				grid.columns = [
-					{ "name": "ipdrCreationTime"},
-					{ "name": "seqNum"},
-					{ "name": "username"},
-				//	{ "name": "scIdType"},
-				//	{ "name": "scId"},
-				//	{ "name": "homeServiceProviderType"},
-				//	{ "name": "homeServiceProvider"},
-					{ "name": "acctSessionId"},
-				//	{ "name": "userIpAddress"},
-					{ "name": "callingStationId"},
-					{ "name": "calledStationId"},
-					{ "name": "nasIpAddress"},
-					{ "name": "nasId"},
-				//	{ "name": "accessProviderType"},
-				//	{ "name": "accessServiceProvider"},
-				//	{ "name": "locationName"},
-				//	{ "name": "locationId"},
-				//	{ "name": "locationType"},
-				//	{ "name": "locationCountryCode"},
-				//	{ "name": "locationStateProvince"},
-				//	{ "name": "locationCity"},
-				//	{ "name": "locationGeocode"},
-				//	{ "name": "locationGeocodeType"},
-				//	{ "name": "nasPortType"},
-				//	{ "name": "paymentType"},
-				//	{ "name": "networkConnectionType"},
-					{ "name": "sessionDuration"},
-					{ "name": "inputOctets"},
-					{ "name": "outputOctets"},
-				//	{ "name": "class"},
-					{ "name": "gmtSessionStartDateTime"},
-					{ "name": "gmtSessionEndDateTime"},
-					{ "name": "sessionTerminateCause"}
-				//	{ "name": "billingClassOfService"},
-				//	{ "name": "unitOfMeasure"},
-				//	{ "name": "chargeableUnit"},
-				//	{ "name": "chargeableQuantity"},
-				//	{ "name": "chargeAmount"},
-				//	{ "name": "chargeCurrencyType"},
-				//	{ "name": "otherParty"},
-				//	{ "name": "taxPercentage"},
-				//	{ "name": "taxAmount"},
-				//	{ "name": "taxType"},
-				//	{ "name": "intermediaryName"},
-				//	{ "name": "serviceName"},
-				//	{ "name": "relatedIpdrIdList"},
-				//	{ "name": "tempUserId"}
-								];
-	
-				grid.header.getCell(0,0).content = '<div style="font-size:16px;"><div>IPDR <br> Creation Time</div></div>';
-				grid.header.getCell(0,1).content = '<div style="font-size:16px;"><div>Sequence<br> Number</div></div>';
-				grid.header.getCell(0,2).content = '<div style="font-size:16px;"><div>Username</div></div>';
-				grid.header.getCell(0,3).content = '<div style="font-size:16px;"><div>Session Id</div></div>';
-				grid.header.getCell(0,4).content = '<div style="font-size:16px;"><div>Calling <br> Station Id</div></div>';
-				grid.header.getCell(0,5).content = '<div style="font-size:16px;"><div>Called <br> Station Id</div></div>';
-				grid.header.getCell(0,6).content = '<div style="font-size:16px;"><div>NAS <br>Address</div></div>';
-				grid.header.getCell(0,7).content = '<div style="font-size:16px;"><div>NAS <br>Identity</div></div>';
-				grid.header.getCell(0,8).content = '<div style="font-size:16px;"><div>Session </br> Duration</div></div>';
-				grid.header.getCell(0,9).content = '<div style="font-size:16px;"><div>Input <br>Octets</div></div>';
-				grid.header.getCell(0,10).content = '<div style="font-size:16px;"><div>Output <br>Octets</div></div>';
-				grid.header.getCell(0,11).content = '<div style="font-size:16px;"><div>Session Start</div></div>';
-				grid.header.getCell(0,12).content = '<div style="font-size:16px;"><div>Session End</div></div>';
-				grid.header.getCell(0,13).content = '<div style="font-size:16px;"><div>Terminate <br> Cause</div></div>';
+			.add-button {
+				background-color: #3f51b5;
+				color: #FFFFFF;
+			}
+			paper-toast.error {
+				background-color: #EF5350;
+			}
+			iron-list {
+				height: 37vh;
+				font-size: large;
+			}
+			.item {
+				border-bottom: 1px solid #3f51b5;
+				height: 5vh;
+				cursor: pointer;
+				padding: 1.5vh;
+			}
+		</style>
+		<div id="logFilesContainer">
+			<paper-dialog id="selectLogFileModal" modal>
+				<paper-toolbar>
+					<h2>Select Log File</h2>
+				</paper-toolbar>
+				<paper-dialog-scrollable style="height:60%;">
+					<iron-list id="logFiles"
+							scroll-target="document"
+							as="item" >
+						<template>
+							<div class="item" on-click="getLogContent">
+								<iron-icon icon="assignment"></iron-icon>
+								&nbsp [[item]]
+							</div>
+						</template>
+					</iron-list>
+				</paper-dialog-scrollable>
+				<div class="buttons">
+					<paper-button dialog-dismiss>Cancel</paper-button>
+				</div>
+			</paper-dialog>
+		</div>
+		<iron-ajax id="getLogsAjax"
+				auto
+				url="/usageManagement/v1/usage"
+				method = "GET"
+				headers='{"Accept": "application/json"}'
+				on-response="getLogsResponse"
+				debounce-duration="300">
+		</iron-ajax>
+		<iron-ajax id="getLogContentAjax"
+				headers='{"Accept": "application/json"}'
+				on-response="getLogContentResponse"
+				debounce-duration="0">
+		</iron-ajax>
+	</template>
+	<script>
+		Polymer (
+			{
+				is: 'sig-ipdr-log-files',
+				listeners: {
+				},
+				getLogContent: function (event) {
+					var searchAjax = this.$.getLogContentAjax;
+					searchAjax,method = "GET";
+					searchAjax.url = "/usageManagement/v1/usage/" + event.model.item;
+					searchAjax.generateRequest();
+				},
+				getLogsResponse: function(event){
+					this.$.logFiles.items = event.detail.response;
+				},
+				getLogContentResponse: function(event) {
+					this.$.selectLogFileModal.close();
+					var grid = document.getElementById("ipdrGrid");
+					var results = event.detail.response;
+					vaadinItems = new Array();
+					for(var index in results) {
+							var newRecord = new Object();
+							newRecord.date = results[index].date;
+							newRecord.type = results[index].type;
+							newRecord.usageSpecificationName = results[index].usageSpecification.name;
+							results[index].usageCharacteristic.forEach(
+								function(attrObj) {
+									newRecord[attrObj.key] = attrObj.value;
+								}
+							);
+							vaadinItems[index] = newRecord;
+					}
+					grid.frozenColumns = 1;
+					grid.items = vaadinItems;
+					grid.columns = [
+						{
+							"name": "ipdrCreationTime"
+						},
+						{
+							"name": "seqNum"
+						},
+						{
+							"name": "username"
+						},
+//							{
+//								"name": "scIdType"
+//							},
+//							{
+//								"name": "scId"
+//							},
+//							{
+//								"name": "homeServiceProviderType"
+//							},
+//							{
+//								"name": "homeServiceProvider"
+//							},
+						{
+							"name": "acctSessionId"
+						},
+//							{
+//								"name": "userIpAddress"
+//							},
+						{
+							"name": "callingStationId"
+						},
+						{
+							"name": "calledStationId"
+						},
+						{
+							"name": "nasIpAddress"
+						},
+						{
+							"name": "nasId"
+						},
+//							{
+//								"name": "accessProviderType"
+//							},
+//							{
+//								"name": "accessServiceProvider"
+//							},
+//							{
+//								"name": "locationName"
+//							},
+//							{
+//								"name": "locationId"
+//							},
+//							{
+//								"name": "locationType"
+//							},
+//							{
+//								"name": "locationCountryCode"
+//							},
+//							{
+//								"name": "locationStateProvince"
+//							},
+//							{
+//								"name": "locationCity"
+//							},
+//							{
+//								"name": "locationGeocode"
+//							},
+//							{
+//								"name": "locationGeocodeType"
+//							},
+//							{
+//								"name": "nasPortType"
+//							},
+//							{
+//								"name": "paymentType"
+//							},
+//							{
+//								"name": "networkConnectionType"
+//							},
+						{
+							"name": "sessionDuration"
+						},
+						{
+							"name": "inputOctets"
+						},
+						{
+							"name": "outputOctets"
+						},
+//							{
+//								"name": "class"},
+//							},
+						{
+							"name": "gmtSessionStartDateTime"
+						},
+						{
+							"name": "gmtSessionEndDateTime"
+						},
+						{
+							"name": "sessionTerminateCause"
+						}
+//							{
+//								"name": "billingClassOfService"
+//							},
+//							{
+//								"name": "unitOfMeasure"
+//							},
+//							{
+//								"name": "chargeableUnit"
+//							},
+//							{
+//								"name": "chargeableQuantity"
+//							},
+//							{
+//								"name": "chargeAmount"
+//							},
+//							{
+//								"name": "chargeCurrencyType"
+//							},
+//							{
+//								"name": "otherParty"
+//							},
+//							{
+//								"name": "taxPercentage"
+//							},
+//							{
+//								"name": "taxAmount"
+//							},
+//							{
+//								"name": "taxType"
+//							},
+//							{
+//								"name": "intermediaryName"
+//							},
+//							{
+//								"name": "serviceName"
+//							},
+//							{
+//								"name": "relatedIpdrIdList"
+//							},
+//							{
+//								"name": "tempUserId"
+//							}
+					];
+					grid.header.getCell(0,0).content = '<div style="font-size:16px;"><div>IPDR <br> Creation Time</div></div>';
+					grid.header.getCell(0,1).content = '<div style="font-size:16px;"><div>Sequence<br> Number</div></div>';
+					grid.header.getCell(0,2).content = '<div style="font-size:16px;"><div>Username</div></div>';
+					grid.header.getCell(0,3).content = '<div style="font-size:16px;"><div>Session Id</div></div>';
+					grid.header.getCell(0,4).content = '<div style="font-size:16px;"><div>Calling <br> Station Id</div></div>';
+					grid.header.getCell(0,5).content = '<div style="font-size:16px;"><div>Called <br> Station Id</div></div>';
+					grid.header.getCell(0,6).content = '<div style="font-size:16px;"><div>NAS <br>Address</div></div>';
+					grid.header.getCell(0,7).content = '<div style="font-size:16px;"><div>NAS <br>Identity</div></div>';
+					grid.header.getCell(0,8).content = '<div style="font-size:16px;"><div>Session </br> Duration</div></div>';
+					grid.header.getCell(0,9).content = '<div style="font-size:16px;"><div>Input <br>Octets</div></div>';
+					grid.header.getCell(0,10).content = '<div style="font-size:16px;"><div>Output <br>Octets</div></div>';
+					grid.header.getCell(0,11).content = '<div style="font-size:16px;"><div>Session Start</div></div>';
+					grid.header.getCell(0,12).content = '<div style="font-size:16px;"><div>Session End</div></div>';
+					grid.header.getCell(0,13).content = '<div style="font-size:16px;"><div>Terminate <br> Cause</div></div>';
 				}
-	
-			});
+			}
+		);
 	</script>
 </dom-module>

@@ -18,15 +18,21 @@
 <dom-module id="sig-ipdr-list">
 	<template>
 		<style>
-			:host { display: inline-block; height:95%; }
-
-			iron-icon { fill: rgba(0,0,0,0); stroke: currentcolor; } :host([pressed]) iron-icon { fill: currentcolor; }
-
-			paper-fab{background:#4285f4;}
-
+			:host {
+				display: inline-block;
+				height:95%;
+			}
+			iron-icon {
+				fill: rgba(0,0,0,0);
+				stroke: currentcolor;
+			}
+			:host([pressed]) iron-icon {
+				fill: currentcolor;
+			}
+			paper-fab {
+				background:#4285f4;
+			}
 		</style>
-
-
 		<style include="shared-styles">
 			:host {
 				display: block;
@@ -34,23 +40,31 @@
 			}
 			paper-fab { 
 				--paper-fab-background: #7d8ff5;
-				--paper-fab-keyboard-focus-background: var(--paper-light-blue-900); }
-				vaadin-grid{font-size: inherit;}
-				vaadin-grid col {font-size: 46px;}
-			.edit{
+				--paper-fab-keyboard-focus-background: var(--paper-light-blue-900);
+			}
+			vaadin-grid {
+				font-size: inherit;
+			}
+			vaadin-grid col {
+				font-size: 46px;
+			}
+			.edit {
 				background: #81C784;
 			}
-
 			paper-tab.iron-selected {
-			    background-color: var(--paper-indigo-500);
-				 color:#E8EAF6;
+				background-color: var(--paper-indigo-500);
+			 color:#E8EAF6;
 			}
-
 		</style>
-
-		<paper-button raised class="indigo" on-click="openLogList" >Show Log Files</paper-button>
-
-		<vaadin-grid selection-mode="single" id="ipdrGrid" grid-columns="2" style="height:100%;">
+		<paper-button
+				raised class="indigo"
+				on-click="openLogList">
+			Show Log Files
+		</paper-button>
+		<vaadin-grid id="ipdrGrid"
+				selection-mode="single"
+				grid-columns="2"
+				style="height:100%;">
 			<table>
 				<colgroup> 
 				</colgroup>
@@ -58,22 +72,18 @@
 				</thead>
 			</table>
 		</vaadin-grid>
-
 	</template>
-
 	<script>
-		Polymer({
-		  is: 'sig-ipdr-list',
-
-		listeners: {
-				'ipdrGrid.click': 'onSelect'
-		},
-
-
-		 openLogList: function(event){
-			document.getElementById("selectLogFileModal").open();
-		 }
-
-	});
+		Polymer (
+			{
+				is: 'sig-ipdr-list',
+				listeners: {
+					'ipdrGrid.click': 'onSelect'
+				},
+				openLogList: function(event) {
+					document.getElementById("selectLogFileModal").open();
+				}
+			}
+		);
 	</script>
 </dom-module>
