@@ -166,5 +166,9 @@ generate_diameter_request(Record, OHost, DHost, ORealm, DRealm)
 generate_diameter_request(Record, OHost, DHost, ORealm, DRealm) 
 		when is_record(Record, diameter_nas_app_AAR) ->
 	Record#diameter_nas_app_AAR{'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+			'Destination-Host' = DHost, 'Destination-Realm' = DRealm};
+generate_diameter_request(Record, OHost, DHost, ORealm, DRealm) 
+		when is_record(Record, diameter_nas_app_STR) ->
+	Record#diameter_nas_app_STR{'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Destination-Host' = DHost, 'Destination-Realm' = DRealm}.
 
