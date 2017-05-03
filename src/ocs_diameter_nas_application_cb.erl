@@ -233,18 +233,6 @@ send_error(OHost, ORealm, DRealm, Request, ErrorCode).
 
 %% @hidden
 send_error(OHost, ORealm, DRealm, Request, ErrorCode)
-		when is_record(Request, diameter_base_RAR)->
-	#diameter_base_RAR{'Session-Id' = Id} = Request,
-	#diameter_base_RAA{'Result-Code' = ErrorCode,
-			'Error-Reporting-Host' = DRealm, 'Origin-Host' = OHost,
-			'Origin-Realm' = ORealm, 'Session-Id' = Id};
-send_error(OHost, ORealm, DRealm, Request, ErrorCode)
-		when is_record(Request, diameter_nas_app_RAR)->
-	#diameter_nas_app_RAR{'Session-Id' = Id} = Request,
-	#diameter_nas_app_RAA{'Result-Code' = ErrorCode,
-			'Error-Reporting-Host' = DRealm, 'Origin-Host' = OHost,
-			'Origin-Realm' = ORealm, 'Session-Id' = Id};
-send_error(OHost, ORealm, DRealm, Request, ErrorCode)
 		when is_record(Request, diameter_nas_app_AAR)->
 	#diameter_nas_app_AAR{'Session-Id' = SessId,
 			'Auth-Request-Type' = Type}= Request,

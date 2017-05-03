@@ -157,29 +157,13 @@ code_change(_OldVsn, State, _Extra) ->
 	when
 		OHost :: string(),
 		ORealm :: string(),
-		Request :: #diameter_base_RAR{} | #diameter_nas_app_RAR{}
-			| #diameter_nas_app_AAR{},
+		Request :: #diameter_nas_app_AAR{},
 		State :: state(),
 		Reply :: {reply, Answer, State},
-		Answer :: #diameter_base_RAA{} | #diameter_nas_app_RAA{}
-			| #diameter_nas_app_AAA{}.
+		Answer :: #diameter_nas_app_AAA{}.
 %% @doc Based on the DIAMETER request generate appropriate DIAMETER
 %% answer.
 %% @hidden
-request(OHost, ORealm, Request, State) 
-		when is_record(Request, diameter_base_RAR)->
-	#diameter_base_RAR{'Session-Id' = Id, 'Re-Auth-Request-Type' = _Type} = Request,
-	Answer = #diameter_base_RAA{
-			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			'Origin-Host' = OHost, 'Origin-Realm' = ORealm, 'Session-Id' = Id},
-	{reply, Answer, State};
-request(OHost, ORealm, Request, State) 
-		when is_record(Request, diameter_nas_app_RAR)->
-	#diameter_nas_app_RAR{'Session-Id' = Id, 'Re-Auth-Request-Type' = _Type} = Request,
-	Answer = #diameter_nas_app_RAA{
-			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			'Origin-Host' = OHost, 'Origin-Realm' = ORealm, 'Session-Id' = Id},
-	{reply, Answer, State};
 request(OHost, ORealm, Request, #state{simple_auth_sup = SimpleAuthSup} = State) 
 		when is_record(Request, diameter_nas_app_AAR)->
 	#diameter_nas_app_AAR{'Session-Id' = SessId, 'Auth-Request-Type' = Type,
