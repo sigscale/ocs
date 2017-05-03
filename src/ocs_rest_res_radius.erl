@@ -52,43 +52,25 @@ content_types_provided() ->
 perform_get_all() ->
 	Log = ?RADAUTH,
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
-	read_auth_log(Log, start, MaxItems, 0, []).
+	case ocs_log:last(radius_auth, MaxItems) of
+		{NewCount, Events} -> 
+			JsonObj = radius_auth_json(Events),
+			JsonArray = {array, JsonObj},
+			Body = mochijson:encode(JsonArray),
+			ContentRange = "items 1-" ++ integer_to_list(NewCount) ++ "/*",
+			Headers = [{content_range, ContentRange}],
+			{ok, Headers, Body};
+		{error, Reason} -> 
+			{error, Reason}
+	end.
 
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
 
-%% @hidden
-read_auth_log(Log, Cont, MaxItems, Count, Acc) ->
-	case disk_log:chunk(Log, Cont) of
-		eof ->
-			read_auth_log1(Count, Acc);
-		{_Cont1, Events} when (length(Events) + Count) > MaxItems ->
-			{NewEvents, _} = lists:split(MaxItems - Count, Events),
-			{NewCount, JsonObj} = radius_auth_json(Count, NewEvents),
-			NewAcc = [lists:reverse(JsonObj) | Acc],
-			read_auth_log1(NewCount, NewAcc);
-		{_Cont1, Events} when (length(Events) + Count) == MaxItems ->
-			{NewCount, JsonObj} = radius_auth_json(Count, Events),
-			NewAcc = [lists:reverse(JsonObj) | Acc],
-			read_auth_log1(NewCount, NewAcc);
-		{Cont1, Events} ->
-			{NewCount, JsonObj} = radius_auth_json(Count, Events),
-			NewAcc = [lists:reverse(JsonObj) | Acc],
-			read_auth_log(Log, Cont1, MaxItems, NewCount, NewAcc)
-	end.
-%% @hidden
-read_auth_log1(Count, Acc) -> 
-	NewAcc = lists:flatten(lists:reverse(Acc)),
-	JsonArray = {array, NewAcc},
-	Body = mochijson:encode(JsonArray),
-	ContentRange = "items 1-" ++ integer_to_list(Count) ++ "/*",
-	Headers = [{content_range, ContentRange}],
-	{ok, Headers, Body}.
-
 % @hidden
-radius_auth_json(Count, Events) ->
-	F = fun({Milliseconds, Node, Client, Server, Type, ReqAttrs, _RespAttrs}, {N, Acc}) ->
+radius_auth_json(Events) ->
+	F = fun({Milliseconds, Node, Client, Server, Type, ReqAttrs, _RespAttrs},  Acc) ->
 		TimeStamp = ocs_log:iso8601(Milliseconds),
 		{ClientAdd, ClientPort} = Client,
 		ClientIp = inet:ntoa(ClientAdd),
@@ -99,7 +81,7 @@ radius_auth_json(Count, Events) ->
 				{"clientAddress", ClientIp}, {"clientPort", ClientPort}, 
 				{"serverAddress", ServerIp}, {"serverPort", ServerPort}, 
 				{"type", Type}, {"username", Username}]},
-		{N + 1, [JsonObj | Acc]}
+		[JsonObj | Acc]
 	end,
-	lists:foldl(F, {Count, []}, Events).
+	lists:foldl(F, [], Events).
 
