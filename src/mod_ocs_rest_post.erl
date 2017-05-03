@@ -72,19 +72,22 @@ content_type_available(Headers, Body, Resource, ModData) ->
 			AvailableTypes = Resource:content_types_provided(),
 			case lists:member(RequestingType, AvailableTypes) of
 				true ->
-					case Resource:perform_post(Body) of
-						{error, ErrorCode} ->
-							{break, [{response,	{ErrorCode, "</h2>Erroneous Request</h2>"}}]};
-						{Location, ResponseBody} ->
-							send_response(ModData, Location, ResponseBody)
-					end;
+					do_post(Resource, Body, ModData);
 				false ->
 					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
 					{break, [{response, {415, Response}}]}
 			end;
 		_ ->
-			Response = "<h2>HTTP Error 400 - Bad Request</h2>",
-			{break, [{response, {400, Response}}]}
+			do_post(Resource, Body, ModData)
+	end.
+
+%% @hidden
+do_post(Resource, Body, ModData) ->
+	case Resource:perform_post(Body) of
+		{error, ErrorCode} ->
+			{break, [{response,	{ErrorCode, "</h2>Erroneous Request</h2>"}}]};
+		{Location, ResponseBody} ->
+			send_response(ModData, Location, ResponseBody)
 	end.
 
 %% @hidden

@@ -81,7 +81,8 @@ perform_get_all() ->
 		Subscribers ->
 			Response = perform_get_all1(Subscribers),
 			Body  = mochijson:encode(Response),
-			{ok, [], Body}
+			Headers = [{content_type, "application/json"}],
+			{ok, Headers, Body}
 	end.
 %% @hidden
 perform_get_all1(Subscribers) ->

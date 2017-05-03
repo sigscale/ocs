@@ -78,8 +78,7 @@ content_type_available(Headers, Body, Uri, Resource, ModData) ->
 					{break, [{response, {415, Response}}]}
 			end;
 		_ ->
-			Response = "<h2>HTTP Error 400 - Bad Request</h2>",
-			{break, [{response, {400, Response}}]}
+			do_patch(Uri, Body, Resource, ModData)
 	end.
 
 %% @hidden
@@ -97,10 +96,9 @@ do_patch(Uri, Body, Resource, ModData) ->
 	end.
 
 %% @hidden
-send_response(#mod{data = Data} = Info, ResponseBody)->
+send_response(Info, ResponseBody)->
 	    Size = integer_to_list(iolist_size(ResponseBody)),
-			Accept = proplists:get_value(accept, Data),
-	    Headers = [{content_length, Size},{content_type, Accept}],
+	    Headers = [{content_length, Size}],
 	    send(Info, 200, Headers, ResponseBody),
 	    {proceed,[{response,{already_sent,200, Size}}]}.
 
