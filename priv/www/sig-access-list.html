@@ -61,7 +61,7 @@
       <vaadin-grid selection-mode="single" id="grid" grid-columns="2" style="height:100%;">
          <table>
             <colgroup>
-					<col>
+					<col sortable sort-direction="desc">
 					<col>
 					<col>
 					<col>
@@ -121,6 +121,8 @@
 				{ name: "clientPort"},
 				{ name: "type"},
          ];
+			grid.columns[0].sortable = true;
+			grid.sortOrder = [{column: 0, direction: 'desc'}];
 			grid.header.getCell(0,0).content = '<div style="font-size:16px"><div> Timestamp</div></div>';
 			grid.header.getCell(0,1).content = '<div style="font-size:16px"><div> Username</div></div>';
 			grid.header.getCell(0,2).content = '<div style="font-size:16px"><div> ClientAddress</div></div>';
