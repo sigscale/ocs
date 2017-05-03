@@ -83,10 +83,10 @@ perform_get_all() ->
 	case ocs:get_clients() of
 		{error, _} ->
 			{error, 404};
-				Clients ->
-				Response = perform_get_all1(Clients),
-				Body  = mochijson:encode(Response),
-			{ok, [], Body}
+		Clients ->
+			Response = perform_get_all1(Clients),
+			Body  = mochijson:encode(Response),
+			{ok, [{"content-type", "application/json"}], Body}
 	end.
 %% @hidden
 perform_get_all1(Clients) ->

@@ -24,7 +24,7 @@
 -export([radius_acct_open/0, radius_acct_log/4, radius_acct_close/0]).
 -export([radius_auth_open/0, radius_auth_log/5, radius_auth_close/0, radius_auth_query/5]).
 -export([ipdr_log/3, get_range/3, last/2]).
--export([dump_file/2, http_file/2]).
+-export([dump_file/2, http_file/2, httpd_logname/1]).
 -export([date/1, iso8601/1]).
 
 %% export the ocs_log private API
@@ -437,7 +437,7 @@ dump_file(Log, FileName) when is_list(FileName) ->
 %% @doc Write events logged by `httpd' to a file.
 %%
 http_file(LogType, FileName) when is_atom(LogType), is_list(FileName) ->
-	Log = httpd_log(LogType),
+	Log = httpd_logname(LogType),
 	case file:open(FileName, [raw, write]) of
 		{ok, IoDevice} ->
 			file_chunk(Log, IoDevice, binary, start);
@@ -446,6 +446,27 @@ http_file(LogType, FileName) when is_atom(LogType), is_list(FileName) ->
 					{module, ?MODULE}, {log, Log}, {error, Reason}]),
 			{error, Reason}
 	end.
+
+-spec httpd_logname(LogType) -> disk_log:log()
+	when
+		LogType :: transfer | error | security.
+%% @doc Find local name of {@link //inets/httpd. httpd} disk_log.
+%%
+httpd_logname(Log) ->
+	{ok, Services} = application:get_env(inets, services),
+	{_, HttpdConfig} = lists:keyfind(httpd, 1, Services),
+	{_, ServerRoot} = lists:keyfind(server_root, 1, HttpdConfig),
+	httpd_logname(Log, ServerRoot, HttpdConfig).
+%% @hidden
+httpd_logname(transfer, ServerRoot, HttpdConfig) ->
+	{_, LogName} = lists:keyfind(transfer_disk_log, 1, HttpdConfig),
+	filename:join(ServerRoot, string:strip(LogName));
+httpd_logname(error, ServerRoot, HttpdConfig) ->
+	{_, LogName} = lists:keyfind(error_disk_log, 1, HttpdConfig),
+	filename:join(ServerRoot, string:strip(LogName));
+httpd_logname(security, ServerRoot, HttpdConfig) ->
+	{_, LogName} = lists:keyfind(security_disk_log, 1, HttpdConfig),
+	filename:join(ServerRoot, string:strip(LogName)).
 
 -spec last(Log, MaxItems) -> Result
 	when
@@ -461,6 +482,8 @@ last(Log, MaxItems) ->
 %% @hidden
 last(Log, MaxItems, Cont, Acc) ->
 	case disk_log:chunk_step(Log, Cont, 1) of
+		{error, end_of_log} when Acc == [] ->
+			last1(Log, MaxItems, 0, [start], []);
 		{error, end_of_log} ->
 			last1(Log, MaxItems, 0, Acc, []);
 		{ok, Cont1} ->
@@ -585,23 +608,6 @@ file_chunk1(Log, IoDevice, binary, Cont, [Event | T]) ->
 	end;
 file_chunk1(Log, IoDevice, Type, Cont, []) ->
 	file_chunk(Log, IoDevice, Type, Cont).
-
-%% @hidden
-httpd_log(Log) ->
-	{ok, Services} = application:get_env(inets, services),
-	{_, HttpdConfig} = lists:keyfind(httpd, 1, Services),
-	{_, ServerRoot} = lists:keyfind(server_root, 1, HttpdConfig),
-	httpd_log(Log, ServerRoot, HttpdConfig).
-%% @hidden
-httpd_log(transfer, ServerRoot, HttpdConfig) ->
-	{_, LogName} = lists:keyfind(transfer_disk_log, 1, HttpdConfig),
-	filename:join(ServerRoot, string:strip(LogName));
-httpd_log(error, ServerRoot, HttpdConfig) ->
-	{_, LogName} = lists:keyfind(error_disk_log, 1, HttpdConfig),
-	filename:join(ServerRoot, string:strip(LogName));
-httpd_log(security, ServerRoot, HttpdConfig) ->
-	{_, LogName} = lists:keyfind(security_disk_log, 1, HttpdConfig),
-	filename:join(ServerRoot, string:strip(LogName)).
 
 -spec start_binary_tree(Log, Start, End) -> Result
 	when

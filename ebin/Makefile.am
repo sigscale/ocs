@@ -45,7 +45,8 @@ beam_DATA = ocs.beam \
 			ocs_rest_res_client.beam \
 			ocs_rest_res_usage.beam \
 			ocs_rest_res_access.beam \
-			ocs_rest_res_accounting.beam
+			ocs_rest_res_accounting.beam \
+			ocs_rest_res_http.beam
 
 %.beam:$(top_srcdir)/src/%.erl	$(top_srcdir)/include/ocs.hrl \
 		$(top_srcdir)/include/ocs_log.hrl \

@@ -36,6 +36,7 @@ modhtml = ocs.html \
 			ocs_rest_res_usage.html \
 			ocs_rest_res_access.html \
 			ocs_rest_res_accounting.html \
+			ocs_rest_res_http.html \
 			mod_ocs_rest_dispatcher.html \
 			mod_ocs_rest_accepted_content.html \
 			mod_ocs_rest_delete.html \

@@ -55,7 +55,8 @@ perform_get_all() ->
 	case file:list_dir(Directory) of
 		{ok, Files} ->
 			Body = mochijson:encode({array, Files}),
-			{ok, [], Body};
+			Headers = [{content_type, "application/json"}],
+			{ok, Headers, Body};
 		{error, _Reason} ->
 			{error, 500}
 	end.
