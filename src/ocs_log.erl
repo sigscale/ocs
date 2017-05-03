@@ -436,26 +436,8 @@ dump_file(Log, FileName) when is_list(FileName) ->
 		Reason :: term().
 %% @doc Write events logged by `httpd' to a file.
 %%
-http_file(Log, FileName) when is_atom(Log), is_list(FileName) ->
-	{ok, Services} = application:get_env(inets, services),
-	{_, HttpdConfig} = lists:keyfind(httpd, 1, Services),
-	{_, ServerRoot} = lists:keyfind(server_root, 1, HttpdConfig),
-	http_file1(Log, FileName, ServerRoot, HttpdConfig).
-%% @hidden
-http_file1(transfer, FileName, ServerRoot, HttpdConfig) ->
-	{_, LogName} = lists:keyfind(transfer_disk_log, 1, HttpdConfig),
-	Log = filename:join(ServerRoot, string:strip(LogName)),
-	http_file2(Log, FileName);
-http_file1(error, FileName, ServerRoot, HttpdConfig) ->
-	{_, LogName} = lists:keyfind(error_disk_log, 1, HttpdConfig),
-	Log = filename:join(ServerRoot, string:strip(LogName)),
-	http_file2(Log, FileName);
-http_file1(security, FileName, ServerRoot, HttpdConfig) ->
-	{_, LogName} = lists:keyfind(security_disk_log, 1, HttpdConfig),
-	Log = filename:join(ServerRoot, string:strip(LogName)),
-	http_file2(Log, FileName).
-%% @hidden
-http_file2(Log, FileName) ->
+http_file(LogType, FileName) when is_atom(LogType), is_list(FileName) ->
+	Log = httpd_log(LogType),
 	case file:open(FileName, [raw, write]) of
 		{ok, IoDevice} ->
 			file_chunk(Log, IoDevice, binary, start);
@@ -603,6 +585,23 @@ file_chunk1(Log, IoDevice, binary, Cont, [Event | T]) ->
 	end;
 file_chunk1(Log, IoDevice, Type, Cont, []) ->
 	file_chunk(Log, IoDevice, Type, Cont).
+
+%% @hidden
+httpd_log(Log) ->
+	{ok, Services} = application:get_env(inets, services),
+	{_, HttpdConfig} = lists:keyfind(httpd, 1, Services),
+	{_, ServerRoot} = lists:keyfind(server_root, 1, HttpdConfig),
+	httpd_log(Log, ServerRoot, HttpdConfig).
+%% @hidden
+httpd_log(transfer, ServerRoot, HttpdConfig) ->
+	{_, LogName} = lists:keyfind(transfer_disk_log, 1, HttpdConfig),
+	filename:join(ServerRoot, string:strip(LogName));
+httpd_log(error, ServerRoot, HttpdConfig) ->
+	{_, LogName} = lists:keyfind(error_disk_log, 1, HttpdConfig),
+	filename:join(ServerRoot, string:strip(LogName));
+httpd_log(security, ServerRoot, HttpdConfig) ->
+	{_, LogName} = lists:keyfind(security_disk_log, 1, HttpdConfig),
+	filename:join(ServerRoot, string:strip(LogName)).
 
 -spec start_binary_tree(Log, Start, End) -> Result
 	when
