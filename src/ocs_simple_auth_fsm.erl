@@ -42,7 +42,8 @@
 -include("../include/diameter_gen_nas_application_rfc7155.hrl").
 
 -record(statedata,
-		{server_address :: undefined | inet:ip_address(),
+		{protocol :: radius | diameter,
+		server_address :: undefined | inet:ip_address(),
 		server_port :: undefined | pos_integer(),
 		client_address :: undefined | inet:ip_address(),
 		client_port :: undefined | pos_integer(),
@@ -86,14 +87,14 @@
 %%
 init([diameter, SessId, AppId, AuthType, OHost, ORealm, Subscriber, Password] = _Args) ->
 	process_flag(trap_exit, true),
-	StateData = #statedata{session_id = SessId, app_id = AppId,
+	StateData = #statedata{protocol = diameter, session_id = SessId, app_id = AppId,
 		auth_request_type = AuthType, origin_host = OHost, origin_realm = ORealm,
 		subscriber = Subscriber, password = Password},
 	{ok, request, StateData};
 init([radius, ServerAddress, ServerPort, ClientAddress, ClientPort, RadiusFsm,
 		Secret, SessionID, #radius{code = ?AccessRequest, id = ID,
 		authenticator = Authenticator, attributes = Attributes}] = _Args) ->
-	StateData = #statedata{server_address = ServerAddress,
+	StateData = #statedata{protocol = radius, server_address = ServerAddress,
 		server_port = ServerPort, client_address = ClientAddress,
 		client_port = ClientPort, radius_fsm = RadiusFsm, shared_secret = Secret,
 		session_id = SessionID, radius_id = ID, req_auth = Authenticator,
@@ -115,7 +116,7 @@ init([radius, ServerAddress, ServerPort, ClientAddress, ClientPort, RadiusFsm,
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-request(timeout, #statedata{req_attr = Attributes,
+request(timeout, #statedata{protocol = radius, req_attr = Attributes,
 		session_id = SessionID} = StateData) ->
 	case radius_attributes:find(?UserName, Attributes) of
 		{ok, Subscriber} ->
