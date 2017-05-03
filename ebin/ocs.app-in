@@ -33,6 +33,8 @@
 				ocs_rest_res_subscriber,
 				ocs_rest_res_client,
 				ocs_rest_res_usage,
+				ocs_rest_res_radius,
+				ocs_rest_res_http,
 				mod_ocs_rest_dispatcher,
 				mod_ocs_rest_accepted_content,
 				mod_ocs_rest_delete,
