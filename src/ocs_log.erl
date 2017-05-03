@@ -491,7 +491,7 @@ last1(Log, MaxItems, NumItems, [Cont | T], Acc) ->
 			{error, Reason};
 		{MaxItems, Events} ->
 			NewAcc = [Events | Acc],
-			lists:flatten(lists:reverse(NewAcc));
+			{MaxItems, lists:flatten(lists:reverse(NewAcc))};
 		{NewNumItems, Events} ->
 			NewAcc = [Events | Acc],
 			last1(Log, MaxItems, NewNumItems, T, NewAcc)
