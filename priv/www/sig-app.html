@@ -112,6 +112,7 @@
 										<paper-item id="page3" onclick="drawer.toggle()"class="menuitem">&nbsp &nbsp <iron-icon icon ="icons:perm-identity"></iron-icon> &nbsp Access</paper-item>
 										<paper-item id="page4" onclick="drawer.toggle()" class="menuitem"> &nbsp &nbsp <iron-icon icon ="device:data-usage"></iron-icon> &nbsp Accounting</paper-item>
 										<paper-item id="page2" onclick="drawer.toggle()" class="menuitem"> &nbsp &nbsp <iron-icon icon ="device:data-usage"></iron-icon> &nbsp IPDR</paper-item>
+										<paper-item id="page2" onclick="drawer.toggle()" class="menuitem"> &nbsp &nbsp <iron-icon icon ="device:data-usage"></iron-icon> &nbsp HTTP</paper-item>
 									</paper-menu>
 							</paper-submenu>
 						</paper-menu>
@@ -129,7 +130,7 @@
 		
 		<iron-ajax id="searchAjax"
 			method = "GET"
-			headers='{"Accept": "application/json", "Content-type": "application/json"}'
+			headers='{"Accept": "application/json"}'
 			url=""
 			on-response="searchResponse"
 			debounce-duration="0"></iron-ajax>

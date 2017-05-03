@@ -55,12 +55,12 @@
 		auto
 		url="/usageManagement/v1/usage"
 		method = "GET"
-		headers='{"Accept": "application/json", "Content-type": "application/json"}'
+		headers='{"Accept": "application/json"}'
 		on-response="getLogsResponse"
 		debounce-duration="300"></iron-ajax>
 
 	<iron-ajax id="getLogContentAjax"
-		headers='{"Accept": "application/json", "Content-type": "application/json"}'
+		headers='{"Accept": "application/json"}'
 		on-response="getLogContentResponse"
 		debounce-duration="0"></iron-ajax>
 
