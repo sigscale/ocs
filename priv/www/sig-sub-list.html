@@ -65,7 +65,7 @@
 
 		</style>
 		
-		<vaadin-grid selection-mode="single" id="grid" grid-columns="2" style="height:100%;">
+		<vaadin-grid selection-mode="single" id="subscriberGrid" grid-columns="2" style="height:100%;">
 			<table>
 				<colgroup> 
 					<col>
@@ -115,11 +115,11 @@
 		  is: 'sig-sub-list',
 
 		listeners: {
-				'grid.click': 'onSelect'
+				'subscriberGrid.click': 'onSelect'
 		},
 
 		responseHandler: function(event) {
-			var grid = this.$.grid; 
+			var grid = this.$.subscriberGrid; 
 			var results = event.detail.xhr.response;
 			var vaadinItems = new Array();
 
@@ -170,7 +170,7 @@
 
 
 		onSelect: function(event) {
-			var grid = this.$.grid; 
+			var grid = this.$.subscriberGrid; 
 			var modal = document.getElementById("subUpdateModal"); 
 			modal.open();
 			grid.selection.selected(function(index) {

@@ -50,7 +50,7 @@
 
 		<paper-button raised class="indigo" on-click="openLogList" >Show Log Files</paper-button>
 
-		<vaadin-grid selection-mode="single" id="accountingGrid" grid-columns="2" style="height:100%;">
+		<vaadin-grid selection-mode="single" id="ipdrGrid" grid-columns="2" style="height:100%;">
 			<table>
 				<colgroup> 
 				</colgroup>
@@ -66,7 +66,7 @@
 		  is: 'sig-ipdr-list',
 
 		listeners: {
-				'accountingGrid.click': 'onSelect'
+				'ipdrGrid.click': 'onSelect'
 		},
 
 

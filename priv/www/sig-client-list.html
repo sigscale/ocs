@@ -65,7 +65,7 @@
 
 		</style>
 
-		<vaadin-grid selection-mode="single" id="clientsGrid" grid-columns="2" style="height:100%;">
+		<vaadin-grid selection-mode="single" id="clientGrid" grid-columns="2" style="height:100%;">
 			<table>
 				<colgroup> 
 					<col>
@@ -106,11 +106,11 @@
 		  is: 'sig-client-list',
 
 		listeners: {
-				'clientsGrid.click': 'onSelect'
+				'clientGrid.click': 'onSelect'
 		},
 
 		getClientsResponse: function(event) {
-			var grid = this.$.clientsGrid; 
+			var grid = this.$.clientGrid; 
 			grid.columns = [
 									{ name: "id"},
 									{ name: "secret"},
@@ -130,7 +130,7 @@
 		},
 
 		onSelect: function(event) {
-			var grid = this.$.clientsGrid; 
+			var grid = this.$.clientGrid; 
 			var modal = document.getElementById("clientUpdateModal");; 
 			modal.open();
 			grid.selection.selected(function(index) {

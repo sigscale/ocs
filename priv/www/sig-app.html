@@ -200,7 +200,7 @@
 
 						newRecord.enabled = item[0].enabled;
 						item[0] = newRecord;
-						document.getElementById('grid').items = item;
+						document.getElementById('subscriberGrid').items = item;
 					}
 					if(this.$.pageSelection.selected == 3){
 						var newRecord = new Object();
@@ -210,10 +210,10 @@
                   newRecord.clientPort = item[3].clientPort;
                   newRecord.type = item[3].type;
 
-						document.getElementById('grid').items = item;
+						document.getElementById('subscriberGrid').items = item;
 					}
 					if(this.$.pageSelection.selected == 1){
-						document.getElementById('clientsGrid').items = item;
+						document.getElementById('clientGrid').items = item;
 					}
 				},
 
@@ -229,7 +229,7 @@
 				download: function(){
 					var csvObject = new Object();
 					if(this.$.pageSelection.selected == 0){
-						var data = document.getElementById("grid").items;
+						var data = document.getElementById("subscriberGrid").items;
 						csvObject.gridData = data;
 						csvObject.headers = "Identity, Secret, Balance, Data Rate, Xmit Rate, Session Timeout," +
 								  "Accounting Interval, Class, Enabled \n";
@@ -238,14 +238,14 @@
 						csvObject.fileName = "subscribers.csv";
 					}
 					if(this.$.pageSelection.selected == 1){
-						var data = document.getElementById("clientsGrid").items;
+						var data = document.getElementById("clientGrid").items;
 						csvObject.gridData = data;
 						csvObject.headers = "Identity, Secret, Disconnect Port, Protocol\n";
 						csvObject.keys = ["id", "secret", "disconnectPort", "protocol"];
 						csvObject.fileName = "clients.csv";
 					}
 					if(this.$.pageSelection.selected == 2){
-						var data = document.getElementById("accountingGrid").items;
+						var data = document.getElementById("ipdrGrid").items;
 						csvObject.gridData = data;
 						csvObject.headers = "IPDR creation time, Sequence Number, Username, Session ID," +
 								  "Calling Station, Called Station, NAS IP, NAS ID, Session Duration, Input Octets," +

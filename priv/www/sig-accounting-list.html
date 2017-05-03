@@ -58,7 +58,7 @@
 
       </style>
 
-      <vaadin-grid selection-mode="single" id="grid" grid-columns="2" style="height:100%;">
+      <vaadin-grid selection-mode="single" id="accountingGrid" grid-columns="2" style="height:100%;">
          <table>
             <colgroup>
 					<col sortable sort-direction="desc">
@@ -94,11 +94,11 @@
         is: 'sig-accounting-list',
 
       listeners: {
-            'grid.click': 'onSelect'
+            'accountingGrid.click': 'onSelect'
       },
 
 		responseHandler: function(event) {
-         var grid = this.$.grid; 
+         var grid = this.$.accountingGrid; 
          var results = event.detail.xhr.response;
          var vaadinItems = new Array();
 
