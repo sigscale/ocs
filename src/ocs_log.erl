@@ -461,6 +461,8 @@ last(Log, MaxItems) ->
 %% @hidden
 last(Log, MaxItems, Cont, Acc) ->
 	case disk_log:chunk_step(Log, Cont, 1) of
+		{error, end_of_log} when Acc == [] ->
+			last1(Log, MaxItems, 0, [start], []);
 		{error, end_of_log} ->
 			last1(Log, MaxItems, 0, Acc, []);
 		{ok, Cont1} ->
