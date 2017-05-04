@@ -6,12 +6,10 @@
 <link rel="import" href="bower_components/iron-icons/editor-icons.html">
 <link rel="import" href="bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="bower_components/vaadin-grid/vaadin-grid.html">
-<link rel="import" href="bower_components/paper-button/paper-button.html">
 <link rel="import" href="bower_components/paper-dialog/paper-dialog.html">
 <link rel="import" href="bower_components/paper-toast/paper-toast.html">
 <link rel="import" href="bower_components/paper-input/paper-input.html">
 <link rel="import" href="bower_components/paper-tooltip/paper-tooltip.html">
-<link rel="import" href="bower_components/paper-fab/paper-fab.html" >
 <link rel="import" href="bower_components/paper-toggle-button/paper-toggle-button.html" >
 <link rel="import" href="bower_components/paper-styles/paper-styles.html">
 
@@ -29,43 +27,17 @@
          :host([pressed]) iron-icon {
             fill: currentcolor;
          }
-         paper-button {
-            color: white;
-            font-weight: bold;
-         }
-         #subscriber{
-            width:3%;
-         }
-         .add-button {
-            right: 2%;
-            position: fixed;
-            bottom: 5%;
-            z-index: 100;
-         }
-         paper-fab {
-            background:#4285f4;
-         }
       </style>
 		<style>
          :host {
             display: block;
             padding: 10px;
          }
-         paper-fab {
-            --paper-fab-background: #7d8ff5;
-            --paper-fab-keyboard-focus-background: var(--paper-light-blue-900);
-         }
          vaadin-grid {
             font-size: inherit;
          }
          vaadin-grid col {
             font-size: 46px
-         }
-         .edit {
-            background: #81C784;
-         }
-         paper-button[raised] {
-            background: #FF8A80;
          }
          paper-tab.iron-selected {
             background-color: var(--paper-indigo-500);
