@@ -58,12 +58,8 @@
 				@apply(--layout-vertical);
 				height: 100%;
 			}
-			.flexchild-vertical {
-				@apply(--layout-flex);
-				height:100%;
-			}
 			app-toolbar {
-				background-color: #4285f4;
+				background: var(--google-blue-500);
 				color: #fff;
 			}
 			paper-icon-button {
@@ -97,10 +93,6 @@
 			.menuitem {
 				font-size: normal;
 			}
-			#contentContainer {
-				height:100%
-			}
-			sample-content { padding-top: 64px; }
 		</style>
 		<div class="container flex-vertical">
 			<div id="vertical-child1" style="height:100%;">

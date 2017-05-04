@@ -19,24 +19,10 @@
 <dom-module id="sig-sub-list">
 	<template>
 		<style>
-			:host {
-				display: inline-block;
-				height:95%;
-			}
-			iron-icon {
-					fill: rgba(0,0,0,0);
-					stroke: currentcolor;
-			}
-			:host([pressed]) iron-icon {
-				fill: currentcolor;
-			}
 			paper-button {
 				color: white;
 				font-weight: bold;
 			} 
-			#subscriber {
-				width:3%;
-			}
 			.add-button {
 				right: 2%;
 				position: fixed;
@@ -44,44 +30,20 @@
 				z-index: 100;
 			}
 			paper-fab {
-				background:#4285f4;
-			}
-		</style>
-		<div class="add-button">
-			<paper-fab
-					icon="add"
-					on-click="showAddModal">
-			</paper-fab>
-		</div>
-		<style>
-			:host {
-				display: block;
-				padding: 10px;
-			}
-			paper-fab { 
+				background: var(--google-blue-500);
 				--paper-fab-background: #7d8ff5;
 				--paper-fab-keyboard-focus-background: var(--paper-light-blue-900);
 			}
-			vaadin-grid {
-				font-size: inherit;
-			}
-			vaadin-grid col {
-				font-size: 46px;
-			}
-			.edit {
-				background: #81C784;
-			}
 			paper-button[raised] {
 			  background: #FF8A80;
-			}
-			paper-tab.iron-selected {
-				background-color: var(--paper-indigo-500);
-				color:#E8EAF6;
 			}
 			paper-button.cancel-btn {
 				color: #7d8ff5;
 				font-weight:normal;
 			}
+         vaadin-grid {
+            font-size: inherit;
+         }
 		</style>
 		<vaadin-grid id="subscriberGrid"
 				selection-mode="single"
@@ -106,12 +68,18 @@
 						<th>Data Rate</th>
 						<th>Xmit Rate</th>
 						<th>Session Timeout</th>
-						<th>Accouing Interval</th>
+						<th>Interim Interval</th>
 						<th>Enabled</th>
 					</tr>
 				</thead>
 			</table>
 		</vaadin-grid>
+		<div class="add-button">
+			<paper-fab
+					icon="add"
+					on-click="showAddModal">
+			</paper-fab>
+		</div>
 		<paper-toast id="edit-toast">
 			<h2>Record sucessfully updated!</h2>
 		</paper-toast>
@@ -155,7 +123,8 @@
 //					grid.visibleRows = 17;
 					grid.columns = [
 						{
-							name: "id"
+							name: "id",
+							sortable: true
 						},
 						{
 							name: "password"
@@ -180,6 +149,12 @@
 						},
 						{
 							name: "enabled"
+						}
+					];
+					grid.sortOrder = [
+						{
+							column: 0,
+							direction: 'asc'
 						}
 					];
 					grid.header.getCell(0,0).content = '<div style="font-size:16px"><div> Identity</div> <paper-tooltip >Identity, or username, of the subscriber to authenticate</paper-tooltip></div>';
