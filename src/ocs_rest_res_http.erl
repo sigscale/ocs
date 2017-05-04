@@ -87,6 +87,7 @@ json(Events) ->
 						{"host", E#event.host}, 
 						{"user", E#event.user},
 						{"method", E#event.method},
+						{"uri", E#event.uri},
 						{"httpStatus", E#event.httpStatus}]},
 				[JsonObj | Acc]
 	end,
