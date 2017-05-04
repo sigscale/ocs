@@ -11,7 +11,6 @@
 <link rel="import" href="bower_components/paper-toast/paper-toast.html">
 <link rel="import" href="bower_components/paper-input/paper-input.html">
 <link rel="import" href="bower_components/paper-tooltip/paper-tooltip.html">
-<link rel="import" href="bower_components/paper-fab/paper-fab.html" >
 <link rel="import" href="bower_components/paper-toggle-button/paper-toggle-button.html" >
 <link rel="import" href="bower_components/paper-styles/paper-styles.html">
 
@@ -22,38 +21,11 @@
 				display: inline-block;
 				height:95%;
 			}
-			iron-icon {
-				fill: rgba(0,0,0,0);
-				stroke: currentcolor;
-			}
-			:host([pressed]) iron-icon {
-				fill: currentcolor;
-			}
-			paper-fab {
-				background:#4285f4;
-			}
 		</style>
 		<style>
 			:host {
 				display: block;
 				padding: 10px;
-			}
-			paper-fab { 
-				--paper-fab-background: #7d8ff5;
-				--paper-fab-keyboard-focus-background: var(--paper-light-blue-900);
-			}
-			vaadin-grid {
-				font-size: inherit;
-			}
-			vaadin-grid col {
-				font-size: 46px;
-			}
-			.edit {
-				background: #81C784;
-			}
-			paper-tab.iron-selected {
-				background-color: var(--paper-indigo-500);
-			 color:#E8EAF6;
 			}
 		</style>
 		<paper-button
