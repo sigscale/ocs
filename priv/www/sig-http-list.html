@@ -65,9 +65,6 @@
       Polymer (
          {
             is: 'sig-http-list',
-            listeners: {
-               'httpGrid.click': 'onSelect'
-            },
             responseHandler: function(event) {
                var grid = this.$.httpGrid; 
                var results = event.detail.xhr.response;

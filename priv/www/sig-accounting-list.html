@@ -56,9 +56,6 @@
 		Polymer (
 			{
 				is: 'sig-accounting-list',
-				listeners: {
-					'accountingGrid.click': 'onSelect'
-				},
 				responseHandler: function(event) {
 					var grid = this.$.accountingGrid; 
 					var results = event.detail.xhr.response;

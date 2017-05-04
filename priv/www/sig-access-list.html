@@ -57,9 +57,6 @@
 		Polymer (
 			{
 				is: 'sig-access-list',
-				listeners: {
-					'accessGrid.click': 'onSelect'
-				},
 				responseHandler: function(event) {
 					var grid = this.$.accessGrid; 
 					var results = event.detail.xhr.response;
