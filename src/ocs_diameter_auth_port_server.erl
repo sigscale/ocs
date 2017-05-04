@@ -284,8 +284,7 @@ start_fsm(AuthSup, AppId, SessId, Type, OHost, ORealm, UserName,
 		{ok, Fsm} ->
 			link(Fsm),
 			NewHandlers = gb_trees:enter(SessId, Fsm, Handlers),
-			State#state{handlers = NewHandlers},
-			{Fsm, State};
+			{Fsm, State#state{handlers = NewHandlers}};
 		{error, Reason} ->
 			error_logger:error_report(["Error starting session handler",
 					{error, Reason}, {supervisor, AuthSup},{session_id, SessId}]),
