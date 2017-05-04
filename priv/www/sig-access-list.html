@@ -88,8 +88,8 @@
 				<thead>
 					<tr>
 						<th>Timestamp</th>
-						<th>ClientAddress</th>
-						<th>ClientPort</th>
+						<th>Client Address</th>
+						<th>Client Port</th>
 						<th>Type</th>
 						<th>Username</th>
 					</tr>
@@ -128,11 +128,21 @@
 					grid.items = vaadinItems;
 					grid.frozenColumns = 2;
 					grid.columns = [
-						{name: "timeStamp"},
-						{name: "username"}, 
-						{name: "clientAddress"},
-						{name: "clientPort"},
-						{name: "type"}
+						{
+							name: "timeStamp"
+						},
+						{
+							name: "username"
+						},
+						{
+							name: "clientAddress"
+						},
+						{
+							name: "clientPort"
+						},
+						{
+							name: "type"
+						}
 					];
 					grid.columns[0].sortable = true;
 					grid.sortOrder = [
