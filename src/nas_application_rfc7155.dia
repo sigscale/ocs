@@ -281,8 +281,8 @@
 			{ Destination-Realm }
 			{ Auth-Application-Id }
 			{ Termination-Cause }
-			[ User-Name ]
-			[ Destination-Host ]
+			{ User-Name }
+			{ Destination-Host }
 			* [ Class ]
 			[ Origin-AAA-Protocol ]
 			[ Origin-State-Id ]
