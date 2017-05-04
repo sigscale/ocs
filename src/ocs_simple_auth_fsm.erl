@@ -124,7 +124,10 @@ request(timeout, #statedata{protocol = radius, req_attr = Attributes,
 		{error, not_found} ->
 			response(?AccessReject, [], StateData),
 			{stop, {shutdown, SessionID}, StateData}
-	end.
+	end;
+request(timeout, #statedata{protocol = diameter,
+		session_id = SessionID} = StateData) ->
+			{stop, {shutdown, SessionID}, StateData}.
 %% @hidden
 request1(#statedata{req_attr = Attributes, req_auth = Authenticator,
 		shared_secret = Secret, session_id = SessionID} = StateData) ->
@@ -236,7 +239,7 @@ handle_sync_event(diameter_request, _From, StateName,
 					'Auth-Request-Type' = Type, 'Origin-Host' = OHost, 
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
 					'Origin-Realm' = ORealm },
-			{reply, Answer, StateName, StateData}
+			{reply, Answer, StateName, StateData, 0}
 	end;
 handle_sync_event(_Event, _From, StateName, StateData) ->
 	{reply, ok, StateName, StateData}.
