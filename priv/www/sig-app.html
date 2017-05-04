@@ -40,6 +40,7 @@
 <link rel="import" href="sig-ipdr-log-files.html">
 <link rel="import" href="sig-access-list.html">
 <link rel="import" href="sig-accounting-list.html">
+<link rel="import" href="sig-http-list.html">
 
 <dom-module id="sig-app">
 	<template is="dom-bind">
@@ -149,6 +150,7 @@
 						<sig-ipdr-list></sig-ipdr-list>
 						<sig-access-list></sig-access-list>
 						<sig-accounting-list></sig-accounting-list>
+						<sig-http-list></sig-http-list>
 					</iron-pages>
 				</app-header-layout>
 			</div>
@@ -186,6 +188,11 @@
 										&nbsp &nbsp
 										<iron-icon icon ="device:data-usage"></iron-icon>
 										&nbsp IPDR
+									</paper-item>
+									<paper-item id="page5" onclick="drawer.toggle()" class="menuitem">
+										&nbsp &nbsp
+										<iron-icon icon ="device:data-usage"></iron-icon>
+										&nbsp HTTP
 									</paper-item>
 								</paper-menu>
 							</paper-submenu>
@@ -228,6 +235,9 @@
 							break;
 						case 'page4':
 							this.$.loadPage.selected = 4; 
+							break;
+						case 'page5':
+							this.$.loadPage.selected = 5; 
 							break;
 						case 'page2':
 							this.$.loadPage.selected = 2;
