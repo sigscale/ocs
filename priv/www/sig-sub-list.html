@@ -123,7 +123,8 @@
 //					grid.visibleRows = 17;
 					grid.columns = [
 						{
-							name: "id"
+							name: "id",
+							sortable: true
 						},
 						{
 							name: "password"
@@ -148,6 +149,12 @@
 						},
 						{
 							name: "enabled"
+						}
+					];
+					grid.sortOrder = [
+						{
+							column: 0,
+							direction: 'asc'
 						}
 					];
 					grid.header.getCell(0,0).content = '<div style="font-size:16px"><div> Identity</div> <paper-tooltip >Identity, or username, of the subscriber to authenticate</paper-tooltip></div>';
