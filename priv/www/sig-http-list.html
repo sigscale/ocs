@@ -85,14 +85,26 @@
                grid.items = vaadinItems;
                grid.frozenColumns = 2;
                grid.columns = [
-                  {name: "datetime"},
-                  {name: "host"}, 
-                  {name: "user"},
-                  {name: "method"},
-                  {name: "uri"},
-                  {name: "httpStatus"}
+                  {
+							name: "datetime",
+							sortable: true
+						},
+						{
+							name: "host"
+						},
+						{
+							name: "user"
+						},
+						{
+							name: "method"
+						},
+						{
+							name: "uri"
+						},
+						{
+							name: "httpStatus"
+						}
                ];
-               grid.columns[0].sortable = true;
                grid.sortOrder = [
                   {
                      column: 0,

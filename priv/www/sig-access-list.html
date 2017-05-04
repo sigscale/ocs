@@ -77,7 +77,8 @@
 					grid.frozenColumns = 2;
 					grid.columns = [
 						{
-							name: "timeStamp"
+							name: "timeStamp",
+							sortable: true
 						},
 						{
 							name: "username"
@@ -92,7 +93,6 @@
 							name: "type"
 						}
 					];
-					grid.columns[0].sortable = true;
 					grid.sortOrder = [
 						{
 							column: 0,

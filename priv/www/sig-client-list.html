@@ -103,7 +103,8 @@
 					var grid = this.$.clientGrid; 
 					grid.columns = [
 						{
-							name: "id"
+							name: "id",
+							sortable: true
 						},
 						{
 							name: "secret"
@@ -114,6 +115,12 @@
 //						{
 //							name: "protocol"
 //						}
+					];
+					grid.sortOrder = [
+						{
+							column: 0,
+							direction: 'asc'
+						}
 					];
 					grid.items = event.detail.xhr.response;
 					grid.header.getCell(0,0).content = '<div style="font-size:16px;"><div>Address</div><paper-tooltip >IP address of network access server, router or access point</paper-tooltip></div>';
