@@ -115,11 +115,16 @@ parse3(Event, Acc) ->
 	parse4(Rest, Acc#event{method = binary_to_list(Method)}).
 % @hidden
 parse4(Event, Acc) ->
-	{Offset, 1} = binary:match(Event, <<$">>),
-	<<URI:Offset/binary, $", 32, Rest/binary>> = Event,
+	{Offset, 1} = binary:match(Event, <<32>>),
+	<<URI:Offset/binary, 32, Rest/binary>> = Event,
 	parse5(Rest, Acc#event{uri = binary_to_list(URI)}).
 % @hidden
 parse5(Event, Acc) ->
+	{Offset, 2} = binary:match(Event, <<$", 32>>),
+	<<_Http:Offset/binary, $", 32, Rest/binary>> = Event,
+	parse6(Rest, Acc).
+% @hidden
+parse6(Event, Acc) ->
 	{Offset, 1} = binary:match(Event, <<32>>),
 	<<Status:Offset/binary, 32, _Rest/binary>> = Event,
 	Acc#event{httpStatus = binary_to_integer(Status)}.
