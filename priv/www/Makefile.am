@@ -7,6 +7,7 @@ www_DATA = favicon.ico \
 	sig-ipdr-list.html \
 	sig-access-list.html \
 	sig-accounting-list.html \
+	sig-http-list.html \
 	sig-ipdr-log-files.html \
 	sig-app.html \
 	sig-client-add.html \
