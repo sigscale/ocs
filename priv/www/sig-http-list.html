@@ -91,6 +91,7 @@
                   <th>Host</th>
                   <th>User</th>
                   <th>Method</th>
+                  <th>Resource</th>
                   <th>Status</th>
                </tr>
             </thead>
@@ -122,6 +123,7 @@
                   newRecord.host = results[index].host;
                   newRecord.user = results[index].user;
                   newRecord.method = results[index].method;
+                  newRecord.uri = results[index].uri;
                   newRecord.httpStatus = results[index].httpStatus;
                   vaadinItems[index] = newRecord;
                }
@@ -132,6 +134,7 @@
                   {name: "host"}, 
                   {name: "user"},
                   {name: "method"},
+                  {name: "uri"},
                   {name: "httpStatus"}
                ];
                grid.columns[0].sortable = true;
@@ -145,7 +148,8 @@
                grid.header.getCell(0,1).content = '<div style="font-size:16px"><div> Host</div></div>';
                grid.header.getCell(0,2).content = '<div style="font-size:16px"><div> User</div></div>';
                grid.header.getCell(0,3).content = '<div style="font-size:16px"><div> Method</div></div>';
-               grid.header.getCell(0,4).content = '<div style="font-size:16px"><div> Status</div></div>';
+               grid.header.getCell(0,4).content = '<div style="font-size:16px"><div> Resource</div></div>';
+               grid.header.getCell(0,5).content = '<div style="font-size:16px"><div> Status</div></div>';
             }
          }
       );
