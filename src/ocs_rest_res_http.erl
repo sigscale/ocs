@@ -32,7 +32,7 @@
 		date :: string(),
 		method :: string(),
 		uri :: string(),
-		status :: integer()}).
+		httpStatus :: integer()}).
 
 -spec content_types_accepted() -> ContentTypes
 	when
@@ -65,12 +65,10 @@ perform_get_all() ->
 
 %% @hidden
 read_http_log(Log, MaxItems) ->
-erlang:display({?MODULE, ?LINE, {log, Log}, {max_items, MaxItems}}),
 	case ocs_log:last(Log, MaxItems) of
 		{error, Reason} ->
 			{error, Reason};
 		{NumItems, Events} ->
-erlang:display({?MODULE, ?LINE, num_items, NumItems}),
 			JsonObjs = json(Events),
 			JsonArray = {array, JsonObjs},
 			Body = mochijson:encode(JsonArray),
@@ -89,7 +87,7 @@ json(Events) ->
 						{"host", E#event.host}, 
 						{"user", E#event.user},
 						{"method", E#event.method},
-						{"status", E#event.status}]},
+						{"httpStatus", E#event.httpStatus}]},
 				[JsonObj | Acc]
 	end,
 	lists:foldl(F, [], Events).
@@ -123,5 +121,5 @@ parse4(Event, Acc) ->
 parse5(Event, Acc) ->
 	{Offset, 1} = binary:match(Event, <<32>>),
 	<<Status:Offset/binary, 32, _Rest/binary>> = Event,
-	Acc#event{status = binary_to_integer(Status)}.
+	Acc#event{httpStatus = binary_to_integer(Status)}.
 
