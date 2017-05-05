@@ -16,9 +16,6 @@
 <dom-module id="sig-http-list">
 	<template>
 		<style>
-			vaadin-grid {
-				font-size: inherit;
-			}
 			vaadin-grid col {
 				font-size: 46px
 			}
@@ -27,26 +24,37 @@
 				selection-mode="single"
 				id="httpGrid"
 				grid-columns="2"
-				style="height:100%;"
-			<table>
-				<colgroup>
-					<col sortable sort-direction="desc">
-					<col>
-					<col>
-					<col>
-					<col>
-				</colgroup>
-				<thead>
-				<tr>
-					<th>Datetime</th>
-					<th>Host</th>
-					<th>User</th>
-					<th>Method</th>
-					<th>Resource</th>
-					<th>Status</th>
-					</tr>
-				</thead>
-			</table>
+				style="height:100%;">
+			<vaadin-grid-column width="28ex" flex-grow="2">
+				<template class="header">
+               <vaadin-grid-sorter path="datetime" direction="desc">Date Time</vaadin-grid-sorter>
+            </template>
+            <template>[[item.datetime]]</template>
+         </vaadin-grid-column>
+         <vaadin-grid-column width="15ex" flex-grow="2">
+				<template class="header">
+               <vaadin-grid-sorter path="host" direction="desc">Host</vaadin-grid-sorter>
+            </template>
+            <template>[[item.host]]</template>
+         </vaadin-grid-column>
+         <vaadin-grid-column width="8ex" flex-grow="3">
+				<template class="header">
+               <vaadin-grid-sorter path="user" direction="desc">User</vaadin-grid-sorter>
+            </template>
+            <template>[[item.user]]</template>
+         </vaadin-grid-column>
+         <vaadin-grid-column width="8ex" flex-grow="2">
+            <template class="header">Method</template>
+            <template>[[item.method]]</template>
+         </vaadin-grid-column>
+         <vaadin-grid-column width="40ex" flex-grow="15">
+            <template class="header">Resource</template>
+            <template>[[item.uri]]</template>
+         </vaadin-grid-column>
+         <vaadin-grid-column width="7ex" flex-grow="0">
+            <template class="header">Status</template>
+            <template>[[item.httpStatus]]</template>
+         </vaadin-grid-column>
 		</vaadin-grid>
 		<iron-ajax id="getHttp"
 			auto = false
@@ -79,8 +87,7 @@
 					grid.frozenColumns = 2;
 					grid.columns = [
 						{
-							name: "datetime",
-							sortable: true
+							name: "datetime"
 						},
 						{
 							name: "host"
@@ -98,18 +105,6 @@
 							name: "httpStatus"
 						}
 					];
-					grid.sortOrder = [
-						{
-							column: 0,
-							direction: 'desc'
-						}
-					];
-					grid.header.getCell(0,0).content = '<div style="font-size:16px"><div> Datetime</div></div>';
-					grid.header.getCell(0,1).content = '<div style="font-size:16px"><div> Host</div></div>';
-					grid.header.getCell(0,2).content = '<div style="font-size:16px"><div> User</div></div>';
-					grid.header.getCell(0,3).content = '<div style="font-size:16px"><div> Method</div></div>';
-					grid.header.getCell(0,4).content = '<div style="font-size:16px"><div> Resource</div></div>';
-					grid.header.getCell(0,5).content = '<div style="font-size:16px"><div> Status</div></div>';
 				}
 			}
 		);

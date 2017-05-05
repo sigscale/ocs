@@ -6,6 +6,7 @@
 <link rel="import" href="bower_components/iron-icons/editor-icons.html">
 <link rel="import" href="bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="bower_components/vaadin-grid/vaadin-grid.html">
+<link rel="import" href="bower_components/vaadin-grid/vaadin-grid-sorter.html">
 <link rel="import" href="bower_components/paper-dialog/paper-dialog.html">
 <link rel="import" href="bower_components/paper-toast/paper-toast.html">
 <link rel="import" href="bower_components/paper-input/paper-input.html">
@@ -15,33 +16,36 @@
 
 <dom-module id="sig-accounting-list">
 	<template>
-		<style>
-         vaadin-grid {
-            font-size: inherit;
-         }
-		</style>
 		<vaadin-grid id="accountingGrid"
 				selection-mode="single"
 				grid-columns="2"
 				style="height:100%;">
-			<table>
-				<colgroup>
-					<col sortable sort-direction="desc">
-					<col>
-					<col>
-					<col>
-					<col>
-				</colgroup>
-				<thead>
-					<tr>
-						<th>Timestamp</th>
-						<th>Client Address</th>
-						<th>Client Port</th>
-						<th>Type</th>
-						<th>Username</th>
-					</tr>
-				</thead>
-			</table>
+			<vaadin-grid-column width="24ex">
+				<template class="header">
+               <vaadin-grid-sorter path="timeStamp" direction="desc">Time Stamp</vaadin-grid-sorter>
+            </template>
+            <template>[[item.timeStamp]]</template>
+         </vaadin-grid-column>
+         <vaadin-grid-column width="18ex" flex-grow="4">
+				<template class="header">
+               <vaadin-grid-sorter path="username" direction="desc">Username</vaadin-grid-sorter>
+            </template>
+            <template>[[item.username]]</template>
+         </vaadin-grid-column>
+         <vaadin-grid-column width="15ex" flex-grow="3">
+				<template class="header">
+               <vaadin-grid-sorter path="clientAddress" direction="desc">Client Address</vaadin-grid-sorter>
+            </template>
+            <template>[[item.clientAddress]]</template>
+         </vaadin-grid-column>
+         <vaadin-grid-column width="5ex" flex-grow="2">
+            <template class="header">Client Port</template>
+            <template>[[item.clientPort]]</template>
+         </vaadin-grid-column>
+         <vaadin-grid-column width="8ex" flex-grow="0">
+            <template class="header">Type</template>
+            <template>[[item.type]]</template>
+         </vaadin-grid-column>
 		</vaadin-grid>
 		<iron-ajax id="getAccounting"
 				auto = false
@@ -73,8 +77,7 @@
 					grid.frozenColumns = 2;
 					grid.columns = [
 						{
-							name: "timeStamp",
-							sortable: true
+							name: "timeStamp"
 						},
 						{
 							name: "username"
@@ -89,17 +92,6 @@
 							name: "type"
 						},
 					];
-					grid.sortOrder = [
-						{
-							column: 0,
-							direction: 'desc'
-						}
-					];
-					grid.header.getCell(0,0).content = '<div style="font-size:16px"><div> Timestamp</div></div>';
-					grid.header.getCell(0,1).content = '<div style="font-size:16px"><div> Username</div></div>';
-					grid.header.getCell(0,2).content = '<div style="font-size:16px"><div> ClientAddress</div></div>';
-					grid.header.getCell(0,3).content = '<div style="font-size:16px"><div> ClientPort</div></div>';
-					grid.header.getCell(0,4).content = '<div style="font-size:16px"><div> Type</div></div>';
 				}
 			}
 		);

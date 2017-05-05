@@ -41,38 +41,42 @@
 				color: #7d8ff5;
 				font-weight:normal;
 			}
-         vaadin-grid {
-            font-size: inherit;
-         }
 		</style>
 		<vaadin-grid id="subscriberGrid"
 				selection-mode="single"
 				grid-columns="2" style="height:100%;">
-			<table>
-				<colgroup> 
-					<col>
-					<col>
-					<col>
-					<col>
-					<col>
-					<col>
-					<col>
-					<col>
-					<col>
-				</colgroup>
-				<thead>
-					<tr>
-						<th>Identity</th>
-						<th>Password</th>
-						<th>Balance</th>
-						<th>Data Rate</th>
-						<th>Xmit Rate</th>
-						<th>Session Timeout</th>
-						<th>Interim Interval</th>
-						<th>Enabled</th>
-					</tr>
-				</thead>
-			</table>
+			<vaadin-grid-column width="15ex" flex-grow="5">
+            <template class="header">Identity</template>
+            <template>[[item.id]]</template>
+         </vaadin-grid-column>
+			<vaadin-grid-column width="14ex">
+            <template class="header">Password</template>
+            <template>[[item.password]]</template>
+         </vaadin-grid-column>
+			<vaadin-grid-column width="12ex" flex-grow="2">
+            <template class="header">Balance</template>
+            <template>[[item.balance]]</template>
+         </vaadin-grid-column>
+			<vaadin-grid-column width="9ex" flex-grow="2">
+            <template class="header">Data Rate</template>
+            <template>[[item.ascendDataRate]]</template>
+         </vaadin-grid-column>
+			<vaadin-grid-column width="9ex" flex-grow="2">
+            <template class="header">Xmit Rate</template>
+            <template>[[item.ascendXmitRate]]</template>
+         </vaadin-grid-column>
+			<vaadin-grid-column width="8ex">
+            <template class="header">Timeout</template>
+            <template>[[item.sessionTimeout]]</template>
+         </vaadin-grid-column>
+			<vaadin-grid-column width="8ex">
+            <template class="header">Interval</template>
+            <template>[[item.acctInterimInterval]]</template>
+         </vaadin-grid-column>
+			<vaadin-grid-column width="8ex" flex-grow="0">
+            <template class="header">Enabled</template>
+            <template>[[item.enabled]]</template>
+         </vaadin-grid-column>
 		</vaadin-grid>
 		<div class="add-button">
 			<paper-fab
@@ -123,8 +127,7 @@
 //					grid.visibleRows = 17;
 					grid.columns = [
 						{
-							name: "id",
-							sortable: true
+							name: "id"
 						},
 						{
 							name: "password"
@@ -151,21 +154,6 @@
 							name: "enabled"
 						}
 					];
-					grid.sortOrder = [
-						{
-							column: 0,
-							direction: 'asc'
-						}
-					];
-					grid.header.getCell(0,0).content = '<div style="font-size:16px"><div> Identity</div> <paper-tooltip >Identity, or username, of the subscriber to authenticate</paper-tooltip></div>';
-					grid.header.getCell(0,1).content = '<div style="font-size:16px"><div>Secret</div><paper-tooltip>Secret, or password, shared only with the subscriber</paper-tooltip></div>';
-					grid.header.getCell(0,2).content = '<div style="font-size:16px"><div>Balance</div><paper-tooltip>Current credit value,in bytes against which accounting will debit usage against</paper-tooltip></div>';
-					grid.header.getCell(0,3).content = '<div style="font-size:16px"><div>Data Rate</div><paper-tooltip>Limit on received (download) data per second in bits.</paper-tooltip></div>' ;
-					grid.header.getCell(0,4).content = '<div style="font-size:16px"><div>Xmit Rate</div><paper-tooltip>Limit on transmitted (upload) data per second in bits.</paper-tooltip></div>' ;
-					grid.header.getCell(0,5).content = '<div style="font-size:16px"><div>Session <br>Timeout</div><paper-tooltip>Time between authorization requests in an active session in seconds</paper-tooltip></div>';
-					grid.header.getCell(0,6).content = '<div style="font-size:16px"><div>Accounting <br>Interval</div><paper-tooltip>Time between accounting interim updates in seconds</paper-tooltip></div>';
-					grid.header.getCell(0,7).content = '<div style="font-size:16px"><div>Class</div><paper-tooltip>Lable used in accounting records</paper-tooltip></div>';
-					grid.header.getCell(0,8).content = '<div style="font-size:16px"><div>Enabled</div><paper-tooltip >Authorization temporarily enabled, or disabled.</paper-tooltip></div>';
 				},
 				showAddModal: function(event) {
 						var modal = document.getElementById("subAddModal");
