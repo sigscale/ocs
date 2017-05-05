@@ -28,11 +28,11 @@
 
 -record(event,
 		{host :: string(),
-		user :: string(),
-		date :: string(),
-		method :: string(),
-		uri :: string(),
-		httpStatus :: integer()}).
+		user :: string() | undefined,
+		date :: string() | undefined,
+		method :: string() | undefined,
+		uri :: string() | undefined,
+		httpStatus :: integer() | undefined}).
 
 -spec content_types_accepted() -> ContentTypes
 	when
@@ -66,8 +66,8 @@ perform_get_all() ->
 %% @hidden
 read_http_log(Log, MaxItems) ->
 	case ocs_log:last(Log, MaxItems) of
-		{error, Reason} ->
-			{error, Reason};
+		{error, _} ->
+			{error, 404};
 		{NumItems, Events} ->
 			JsonObjs = json(Events),
 			JsonArray = {array, JsonObjs},
