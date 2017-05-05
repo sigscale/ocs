@@ -50,8 +50,8 @@ content_types_provided() ->
 perform_get_all() ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	case ocs_log:last(radius_auth, MaxItems) of
-		{error, Reason} -> 
-			{error, Reason};
+		{error, _} -> 
+			{error, 404};
 		{NewCount, Events} -> 
 			JsonObj = radius_auth_json(Events),
 			JsonArray = {array, JsonObj},
