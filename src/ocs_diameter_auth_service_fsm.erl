@@ -42,7 +42,7 @@
 -record(statedata,
 		{transport_ref :: undefined | reference()}).
 
--define(DIAMETER_SERVICE, ocs_diameter_auth_service).
+-define(DIAMETER_SERVICE, ocs_diameter_service).
 -define(BASE_APPLICATION, ocs_diameter_base_application).
 -define(NAS_APPLICATION, ocs_diameter_nas_application).
 -define(CC_APPLICATION, ocs_diameter_cc_application).
