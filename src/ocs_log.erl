@@ -587,15 +587,8 @@ file_chunk(Log, IoDevice, Type, Cont) ->
 	end.
 %% @hidden
 file_chunk1(Log, IoDevice, tuple, Cont, [Event | T]) ->
-	case io:fwrite(IoDevice, "~999p~n", [Event]) of
-		ok ->
-			file_chunk1(Log, IoDevice, tuple, Cont, T);
-		{error, Reason} ->
-			error_logger:error_report([file:format_error(Reason),
-					{module, ?MODULE}, {log, Log}, {error, Reason}]),
-			file:close(IoDevice),
-			{error, Reason}
-	end;
+	io:fwrite(IoDevice, "~999p~n", [Event]),
+	file_chunk1(Log, IoDevice, tuple, Cont, T);
 file_chunk1(Log, IoDevice, binary, Cont, [Event | T]) ->
 	case file:write(IoDevice, Event) of
 		ok ->
