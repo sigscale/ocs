@@ -45,8 +45,10 @@
 -define(DIAMETER_SERVICE, ocs_diameter_auth_service).
 -define(BASE_APPLICATION, ocs_diameter_base_application).
 -define(NAS_APPLICATION, ocs_diameter_nas_application).
+-define(CC_APPLICATION, ocs_diameter_cc_application).
 -define(BASE_APPLICATION_CALLBACK, ocs_diameter_base_application_cb).
 -define(NAS_APPLICATION_CALLBACK, ocs_diameter_nas_application_cb).
+-define(CC_APPLICATION_CALLBACK, ocs_diameter_cc_application_cb).
 
 %%----------------------------------------------------------------------
 %%  The ocs_diameter_auth_service_fsm API
@@ -266,7 +268,7 @@ service_options() ->
 		{'Origin-Realm', "sigscale.com"},
 		{'Vendor-Id', 0},
 		{'Product-Name', "SigScale Diameter Server"},
-		{'Auth-Application-Id', [0,1]},
+		{'Auth-Application-Id', [0, 1, 4]},
 		{restrict_connections, false},
 		{string_decode, false},
 		{application, [{alias, ?BASE_APPLICATION},
@@ -274,7 +276,10 @@ service_options() ->
 				{module, ?BASE_APPLICATION_CALLBACK}]},
 		{application, [{alias, ?NAS_APPLICATION},
 				{dictionary, diameter_gen_nas_application_rfc7155},
-				{module, ?NAS_APPLICATION_CALLBACK}]}].
+				{module, ?NAS_APPLICATION_CALLBACK}]},
+		{application, [{alias, ?CC_APPLICATION},
+				{dictionary, diameter_gen_cc_application_rfc4006},
+				{module, ?CC_APPLICATION_CALLBACK}]}].
 
 -spec transport_options(Transport, Address, Port) -> Options
 	when
