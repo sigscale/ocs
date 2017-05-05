@@ -29,6 +29,15 @@
 -include_lib("radius/include/radius.hrl").
 -include("ocs_eap_codec.hrl").
 -include_lib("common_test/include/ct.hrl").
+-include_lib("diameter/include/diameter.hrl").
+-include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
+-include_lib("../include/diameter_gen_nas_application_rfc7155.hrl").
+-include_lib("../include/diameter_gen_cc_application_rfc4006.hrl").
+
+-define(SVC, diameter_client_service).
+-define(BASE_APPLICATION_ID, 0).
+-define(NAS_APPLICATION_ID, 1).
+-define(CC_APPLICATION_ID, 4).
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
@@ -53,12 +62,24 @@ init_per_suite(Config) ->
 	Config1 = [{radius_shared_secret, SharedSecret} | Config],
 	ok = ocs:add_client({127, 0, 0, 1}, 3799, Protocol, SharedSecret),
 	NasID = atom_to_list(node()),
-	[{nas_id, NasID} | Config1].
+	Config2 = [{nas_id, NasID} | Config1],
+	{ok, [{auth, DiaAuthInstance}, {acct, _}]} = application:get_env(ocs, diameter),
+	[{Address, Port, _}] = DiaAuthInstance,
+	true = diameter:subscribe(?SVC),
+	ok = diameter:start_service(?SVC, client_service_opts()),
+	{ok, _Ref} = connect(?SVC, Address, Port, diameter_tcp),
+	receive
+		#diameter_event{service = ?SVC, info = start} ->
+			[{diameter_client, Address}] ++ Config2;
+		_ ->
+			{skip, diameter_client_service_not_started}
+	end.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
+	ok = diameter:stop_service(?SVC),
 	ok = ocs_test_lib:stop(),
 	ok = ocs:delete_subscriber("25252525"),
 	Config.
@@ -66,12 +87,28 @@ end_per_suite(Config) ->
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before each test case.
 %%
+init_per_testcase(TestCase, Config) when
+		TestCase == diameter_accounting ->
+	UserName = "SlimShady",
+	Password = "TeRcEs",
+	{ok, [{auth, AuthInstance}, {acct, _}]} = application:get_env(ocs, diameter),
+	[{Address, Port, _}] = AuthInstance,
+	Secret = "s3cr3t",
+	ok = ocs:add_client(Address, Port, diameter, Secret),
+	ok = ocs:add_subscriber(UserName, Password, [], 1000000),
+	[{username, UserName}, {password, Password}] ++ Config;
 init_per_testcase(_TestCase, Config) ->
 	Config.
 
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
 %% Cleanup after each test case.
 %%
+end_per_testcase(TestCase, Config) when
+		TestCase == diameter_accounting ->
+	UserName= ?config(username, Config),
+	Client = ?config(diameter_client, Config),
+	ok = ocs:delete_client(Client),
+	ok = ocs:delete_subscriber(UserName);
 end_per_testcase(_TestCase, Config) ->
 	Config.
 
@@ -85,7 +122,7 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[radius_accouting, radius_disconnect_session].
+	[radius_accouting, radius_disconnect_session, diameter_accounting].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -146,6 +183,17 @@ radius_disconnect_session(Config) ->
 	accounting_stop(Socket, AcctAddress, AcctPort,
 			PeerID, Secret, NasID, AcctSessionID, RadID4),
 	disconnect_request().
+
+diameter_accounting() ->
+	[{userdata, [{doc, "Initiate and terminate a Diameter accouting session"}]}].
+
+diameter_accounting(Config) ->
+	% Add a subscriber
+	% Authenticate Subscriber
+	% Send Accounting Start
+	% Send Interim
+	% Send Accounting Stop
+	ok.
 
 %%---------------------------------------------------------------------
 %%  Internal functions
@@ -245,3 +293,43 @@ accounting_request(StatusType, Socket, Address, Port,
 	ok = gen_udp:send(Socket, Address, Port, AccPacket),
 	AccAuthenticator.
 
+%% @doc Add a transport capability to diameter service.
+%% @hidden
+connect(SvcName, Address, Port, Transport) when is_atom(Transport) ->
+	connect(SvcName, [{connect_timer, 30000} | transport_opts(Address, Port, Transport)]).
+
+%% @hidden
+connect(SvcName, Opts)->
+	diameter:add_transport(SvcName, {connect, Opts}).
+
+%% @hidden
+client_service_opts() ->
+	[{'Origin-Host', "client.testdomain.com"},
+		{'Origin-Realm', "testdomain.com"},
+		{'Vendor-Id', 0},
+		{'Product-Name', "Test Client"},
+		{'Auth-Application-Id', [?BASE_APPLICATION_ID,
+														?NAS_APPLICATION_ID,
+														?CC_APPLICATION_ID]},
+		{string_decode, false},
+		{application, [{alias, base_app_test},
+				{dictionary, diameter_gen_base_rfc6733},
+				{module, diameter_test_client_cb}]},
+		{application, [{alias, nas_app_test},
+				{dictionary, diameter_gen_nas_application_rfc7155},
+				{module, diameter_test_client_cb}]},
+		{application, [{alias, cc_app_test},
+				{dictionary, diameter_gen_cc_application_rfc4006},
+				{module, diameter_test_client_cb}]}].
+
+%% @hidden
+transport_opts(Address, Port, Trans) when is_atom(Trans) ->
+	transport_opts1({Trans, Address, Address, Port}).
+
+%% @hidden
+transport_opts1({Trans, LocalAddr, RemAddr, RemPort}) ->
+	[{transport_module, Trans},
+		{transport_config, [{raddr, RemAddr},
+		{rport, RemPort},
+		{reuseaddr, true}
+		| [{ip, LocalAddr}]]}].
