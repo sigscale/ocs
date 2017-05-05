@@ -52,16 +52,23 @@ beam_DATA = ocs.beam \
 			ocs_rest_res_client.beam \
 			ocs_rest_res_usage.beam \
 			diameter_gen_nas_application_rfc7155.beam \
+			diameter_gen_cc_application_rfc4006.beam \
 			ocs_rest_res_radius.beam
-
-diameter_gen_nas_application_rfc7155.beam:    $(top_builddir)/src/diameter_gen_nas_application_rfc7155.erl \
-		$(top_builddir)/include/diameter_gen_nas_application_rfc7155.hrl
-	$(ERLC) $(ERLCFLAGS) -I $(top_builddir)/include $<
 
 %.beam:$(top_srcdir)/src/%.erl	$(top_srcdir)/include/ocs.hrl \
 		$(top_srcdir)/include/ocs_log.hrl \
 		$(top_srcdir)/include/ocs_eap_codec.hrl \
+		$(top_builddir)/include/diameter_gen_nas_application_rfc7155.hrl \
+		$(top_builddir)/include/diameter_gen_cc_application_rfc4006.hrl
+	$(ERLC) $(ERLCFLAGS) -I $(top_srcdir)/include $<
+
+diameter_gen_nas_application_rfc7155.beam:$(top_builddir)/src/diameter_gen_nas_application_rfc7155.erl \
 		$(top_builddir)/include/diameter_gen_nas_application_rfc7155.hrl
+	$(ERLC) $(ERLCFLAGS) -I $(top_builddir)/include $<
+
+diameter_gen_cc_application_rfc4006.beam:$(top_builddir)/src/diameter_gen_cc_application_rfc4006.erl \
+		$(top_builddir)/include/diameter_gen_nas_application_rfc7155.hrl \
+		$(top_builddir)/include/diameter_gen_cc_application_rfc4006.hrl
 	$(ERLC) $(ERLCFLAGS) -I $(top_srcdir)/include $<
 
 %.app:   %.app-in
