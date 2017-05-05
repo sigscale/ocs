@@ -12,6 +12,7 @@
 				ocs_diameter_auth_sup,
 				ocs_diameter_base_application_cb,
 				ocs_diameter_nas_application_cb,
+				ocs_diameter_cc_application_cb,
 				ocs_radius_acct_port_server,
 				ocs_radius_acct_port_sup,
 				ocs_radius_acct_top_sup,
