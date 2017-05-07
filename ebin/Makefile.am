@@ -18,7 +18,10 @@ beam_DATA = ocs.beam \
 			ocs_diameter_nas_application_cb.beam \
 			ocs_diameter_cc_application_cb.beam \
 			ocs_radius_acct_port_server.beam \
+			ocs_diameter_acct_port_server.beam \
 			ocs_radius_acct_port_sup.beam \
+			ocs_diameter_acct_port_sup.beam \
+			ocs_diameter_acct_top_sup.beam \
 			ocs_radius_acct_top_sup.beam \
 			ocs_radius_acct_server_sup.beam \
 			ocs_radius_auth_server_sup.beam \

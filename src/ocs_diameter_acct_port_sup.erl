@@ -1,4 +1,4 @@
-%%% ocs_sup.erl
+%%% ocs_diameter_acct_port_sup.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 SigScale Global Inc.
 %%% @end
@@ -16,7 +16,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @docfile "{@docsrc supervision.edoc}"
 %%%
--module(ocs_sup).
+-module(ocs_diameter_acct_port_sup).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 -behaviour(supervisor).
@@ -37,43 +37,19 @@
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init(_Args) ->
-	ChildSpecs = [supervisor(ocs_radius_acct_top_sup, []),
-			supervisor(ocs_radius_auth_sup, []),
-			supervisor(ocs_diameter_auth_sup, []),
-			supervisor(ocs_diameter_acct_top_sup, []),
-			server(ocs_server, [self()])],
+init([Address, Port, LogRotateTime, Options]) ->
+	ChildSpecs = [server(ocs_diameter_acct_port_server, Address, Port, Options)],
 	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec supervisor(StartMod, Args) -> Result
-	when
-		StartMod :: atom(), 
-		Args :: [term()],
-		Result :: supervisor:child_spec().
-%% @doc Build a supervisor child specification for a
-%% 	{@link //stdlib/supervisor. supervisor} behaviour.
-%% @private
-%%
-supervisor(StartMod, Args) ->
-	StartArgs = [StartMod, Args],
-	StartFunc = {supervisor, start_link, StartArgs},
-	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
-
--spec server(StartMod, Args) -> Result
-	when
-		StartMod :: atom(), 
-		Args :: [term()],
-		Result :: supervisor:child_spec().
-%% @doc Build a supervisor child specification for a
-%% 	{@link //stdlib/gen_server. gen_server} behaviour.
-%% @private
-%%
-server(StartMod, Args) ->
-	StartArgs = [{local, ocs}, StartMod, Args, []],
+%% @hidden
+server(StartMod, Address, Port, Options) ->
+	GlobalName = {ocs_diameter_acct, Address, Port},
+	Args = [Address, Port, Options],
+	StartArgs = [{global, GlobalName}, StartMod, Args, []],
 	StartFunc = {gen_server, start_link, StartArgs},
 	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
 
