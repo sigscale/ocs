@@ -205,7 +205,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% @doc Handle a received Diameter Accounting packet.
 %% @private
 request(Request, Caps,  _From, State) ->
-#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm, _}} = Caps,
+	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm, _}} = Caps,
 	#diameter_cc_app_CCR{'Session-Id' = SId,
 			'Auth-Application-Id' = ?CC_APPLICATION_ID,
 			'Service-Context-Id' = _SvcContextId, 'CC-Request-Type' = RequestType,
