@@ -71,8 +71,8 @@
 			{ Service-Context-Id }
 			{ CC-Request-Type }
 			{ CC-Request-Number }
+			{ User-Name }
 			[ Destination-Host ]
-			[ User-Name ]
 			[ CC-Sub-Session-Id ]
 			[ Acct-Multi-Session-Id ]
 			[ Origin-State-Id ]
