@@ -30,6 +30,7 @@
 
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
+-include("../include/diameter_gen_nas_application_rfc7155.hrl").
 -include("../include/diameter_gen_cc_application_rfc4006.hrl").
 
 -record(state, {}).
@@ -144,10 +145,100 @@ handle_error(_Reason, _Request, _SvcName, _Peer) ->
 		Opt :: diameter:call_opt(),
 		PostF :: diameter:evaluable().
 %% @doc Invoked when a request messge is received from the peer. 
-handle_request(#diameter_packet{msg = Req, errors = []}, _SvcName, Peer) ->
-	discard.
+handle_request(#diameter_packet{msg = Req, errors = []},
+		SvcName, {_Peer, Caps}) ->
+	is_client_authorized(SvcName, Caps, Req).
 
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+-spec send_to_port_server(Svc, Caps, Request) -> Action
+	when
+		Svc :: atom(),
+		Caps :: capabilities(),
+		Request :: message(),
+		Action :: Reply | {relay, [Opt]} | discard
+			| {eval|eval_packet, Action, PostF},
+		Reply :: {reply, packet() | message()}
+			| {answer_message, 3000..3999|5000..5999}
+			| {protocol_error, 3000..3999},
+		Opt :: diameter:call_opt(),
+		PostF :: diameter:evaluable().
+%% @doc Locate ocs_diameter_acct_port_server process and sent it
+%% peer's capabilities and diameter request.
+send_to_port_server(Svc, Caps, Request) ->
+	[Info] = diameter:service_info(Svc, transport),
+	case lists:keyfind(options, 1, Info) of
+		{options, Options} ->
+			case lists:keyfind(transport_config, 1, Options) of
+				{transport_config, [_, {ip, IP}, {port, Port}]} ->
+					case global:whereis_name({ocs_diameter_acct, IP, Port}) of
+						undefined ->
+							discard;
+						PortServer ->
+							Answer = gen_server:call(PortServer,
+									{diameter_request, Caps, Request}),
+							{reply, Answer}
+					end;
+				false ->
+					discard
+			end;
+		false ->
+			discard
+	end.
+
+-spec is_client_authorized(Svc, Caps, Request) -> Action
+	when
+		Svc :: atom(),
+		Caps :: capabilities(),
+		Request :: message(),
+		Action :: Reply | {relay, [Opt]} | discard
+			| {eval|eval_packet, Action, PostF},
+		Reply :: {reply, packet() | message()}
+			| {answer_message, 3000..3999|5000..5999}
+			| {protocol_error, 3000..3999},
+		Opt :: diameter:call_opt(),
+		PostF :: diameter:evaluable().
+%% @doc Checks DIAMETER client's identity present in Host-IP-Address AVP in
+%% CER message against identities in client table.
+%% @hidden
+is_client_authorized(SvcName, Caps, Req) ->
+	try
+		HostIPAddresses = Caps#diameter_caps.host_ip_address,
+		{ClientIPs, _} = HostIPAddresses,
+		[HostIpAddress | _] = ClientIPs,
+		{ok, _, diameter, _} = ocs:find_client(HostIpAddress),
+		true
+	of
+		true ->
+			send_to_port_server(SvcName, Caps, Req)
+	catch
+		_ : _ ->
+			send_error(Caps, Req, ?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_PEER')
+	end.
+
+-spec send_error(Caps, Request, ErrorCode) -> Answer
+	when
+		Caps :: capabilities(),
+		Request :: message(),
+		ErrorCode :: non_neg_integer(),
+		Answer :: message().
+%% @doc When protocol/application error occurs, send Diameter answer with appropriate
+%% error indicated in Result-Code AVP.
+%% @hidden
+send_error(Caps, Request, ErrorCode) ->
+	#diameter_caps{origin_host = {OHost,_},
+			origin_realm = {ORealm, DRealm}} = Caps,
+send_error(OHost, ORealm, DRealm, Request, ErrorCode).
+
+%% @hidden
+send_error(OHost, ORealm, DRealm, Request, ErrorCode)
+		when is_record(Request, diameter_nas_app_AAR)->
+	#diameter_nas_app_AAR{'Session-Id' = SessId,
+			'Auth-Request-Type' = Type}= Request,
+	#diameter_nas_app_AAA{'Result-Code' = ErrorCode,
+			'Error-Reporting-Host' = DRealm, 'Auth-Request-Type' = Type,
+			'Auth-Application-Id' = 1, 'Origin-Host' = OHost,
+			'Origin-Realm' = ORealm, 'Session-Id' = SessId}.
 
