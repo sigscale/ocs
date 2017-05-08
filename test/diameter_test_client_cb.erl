@@ -27,6 +27,7 @@
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include_lib("../include/diameter_gen_nas_application_rfc7155.hrl").
+-include_lib("../include/diameter_gen_cc_application_rfc4006.hrl").
 
 -record(state, {}).
 
@@ -170,5 +171,9 @@ generate_diameter_request(Record, OHost, DHost, ORealm, DRealm)
 generate_diameter_request(Record, OHost, DHost, ORealm, DRealm) 
 		when is_record(Record, diameter_nas_app_STR) ->
 	Record#diameter_nas_app_STR{'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
-			'Destination-Host' = DHost, 'Destination-Realm' = DRealm}.
+			'Destination-Host' = DHost, 'Destination-Realm' = DRealm};
+generate_diameter_request(Record, OHost, _DHost, ORealm, DRealm) 
+		when is_record(Record, diameter_cc_app_CCR) ->
+	Record#diameter_cc_app_CCR{'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+			'Destination-Realm' = DRealm}.
 

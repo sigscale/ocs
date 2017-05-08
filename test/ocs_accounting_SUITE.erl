@@ -188,12 +188,45 @@ diameter_accounting() ->
 	[{userdata, [{doc, "Initiate and terminate a Diameter accouting session"}]}].
 
 diameter_accounting(Config) ->
-	% Add a subscriber
-	% Authenticate Subscriber
-	% Send Accounting Start
-	% Send Interim
-	% Send Accounting Stop
-	ok.
+	Username = ?config(username, Config),
+	Password = ?config(password, Config),
+	SId = diameter:session_id(atom_to_list(?FUNCTION_NAME)),
+	NAS_AAR = #diameter_nas_app_AAR{'Session-Id' = SId,
+			'Auth-Application-Id' = ?NAS_APPLICATION_ID ,
+			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
+			'User-Name' = Username, 'User-Password' = Password},
+	{ok, Answer} = diameter:call(?SVC, nas_app_test, NAS_AAR, []),
+	true = is_record(Answer, diameter_nas_app_AAA),
+	OriginHost = list_to_binary("ocs.sigscale.com"),
+	OriginRealm = list_to_binary("sigscale.com"),
+	#diameter_nas_app_AAA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?NAS_APPLICATION_ID,
+			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
+			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm} = Answer,
+	RequestNum = 0,
+	CC_CCR0 = #diameter_cc_app_CCR{'Session-Id' = SId,
+			'Auth-Application-Id' = ?CC_APPLICATION_ID,
+			'Service-Context-Id' = "nas45@testdomain.com" ,
+			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = RequestNum},
+	{ok, Answer0} = diameter:call(?SVC, cc_app_test, CC_CCR0, []),
+	true = is_record(Answer0, diameter_cc_app_CCA),
+	#diameter_cc_app_CCA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?CC_APPLICATION_ID,
+			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = RequestNum} = Answer0,
+	NewRequestNum = RequestNum + 1,
+	CC_CCR1 = #diameter_cc_app_CCR{'Session-Id' = SId,
+			'Auth-Application-Id' = ?CC_APPLICATION_ID,
+			'Service-Context-Id' = "nas45@testdomain.com" ,
+			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
+			'CC-Request-Number' = NewRequestNum},
+	{ok, Answer1} = diameter:call(?SVC, cc_app_test, CC_CCR1, []),
+	true = is_record(Answer1, diameter_cc_app_CCA),
+	#diameter_cc_app_CCA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?CC_APPLICATION_ID,
+			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
+			'CC-Request-Number' = NewRequestNum} = Answer1.
 
 %%---------------------------------------------------------------------
 %%  Internal functions
