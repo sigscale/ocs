@@ -207,6 +207,7 @@ diameter_accounting(Config) ->
 	CC_CCR0 = #diameter_cc_app_CCR{'Session-Id' = SId,
 			'Auth-Application-Id' = ?CC_APPLICATION_ID,
 			'Service-Context-Id' = "nas45@testdomain.com" ,
+			'User-Name' = Username,
 			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST',
 			'CC-Request-Number' = RequestNum},
 	{ok, Answer0} = diameter:call(?SVC, cc_app_test, CC_CCR0, []),
