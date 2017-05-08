@@ -92,6 +92,13 @@ handle_call({start, diameter, auth, Address, Port, LogRotateTime, Options}, _Fro
 	{_, AuthSup, _, _} = lists:keyfind(ocs_diameter_auth_sup, 1, Children),
 	Result = supervisor:start_child(AuthSup, [[Address, Port, LogRotateTime,
 		Options]]),
+	{reply, Result, State};
+handle_call({start, diameter, acct, Address, Port, LogRotateTime, Options}, _From,
+		#state{sup = Sup} = State) ->
+	Children = supervisor:which_children(Sup),
+	{_, AcctSup, _, _} = lists:keyfind(ocs_diameter_acct_top_sup, 1, Children),
+	Result = supervisor:start_child(AcctSup, [[Address, Port, LogRotateTime,
+		Options]]),
 	{reply, Result, State}.
 
 -spec handle_cast(Request, State) -> Result

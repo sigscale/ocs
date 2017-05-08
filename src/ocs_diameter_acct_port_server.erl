@@ -199,5 +199,5 @@ code_change(_OldVsn, State, _Extra) ->
 		NewState :: state().
 %% @doc Handle a received Diameter Accounting packet.
 %% @private
-request(Request, _From, State) ->
+request(Request, _From, _State) ->
 	Request.

@@ -99,6 +99,14 @@ start1() ->
 				throw(Reason3)
 		end
 	end,
+	F4 = fun({AuthAddr, AuthPort, _Options}= _Instance) ->
+		case ocs:start(diameter, acct, AuthAddr, AuthPort, 0) of
+			{ok, _AcctSup} ->
+				ok;
+			{error, Reason3} ->
+				throw(Reason3)
+		end
+	end,
 	try
 		TopSup = case supervisor:start_link(ocs_sup, []) of
 			{ok, OcsSup} ->
@@ -109,6 +117,7 @@ start1() ->
 		lists:foreach(F1, RadAcctInstances),
 		lists:foreach(F2, RadAuthInstances),
 		lists:foreach(F3, DiamAuthInstances),
+		lists:foreach(F4, DiamAuthInstances),
 		TopSup
 	of
 		Sup ->
