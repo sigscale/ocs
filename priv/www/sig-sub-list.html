@@ -6,6 +6,7 @@
 <link rel="import" href="bower_components/iron-icons/editor-icons.html">
 <link rel="import" href="bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="bower_components/vaadin-grid/vaadin-grid.html">
+<link rel="import" href="bower_components/vaadin-grid/vaadin-grid-filter.html">
 <link rel="import" href="bower_components/paper-button/paper-button.html">
 <link rel="import" href="bower_components/paper-dialog/paper-dialog.html">
 <link rel="import" href="bower_components/paper-toast/paper-toast.html">
@@ -46,37 +47,37 @@
 				selection-mode="single"
 				grid-columns="2" style="height:100%;">
 			<vaadin-grid-column width="15ex" flex-grow="5">
-            <template class="header">Identity</template>
-            <template>[[item.id]]</template>
-         </vaadin-grid-column>
+				<template class="header"> Identity</template>
+				<template>[[item.id]]</template>
+			</vaadin-grid-column>
 			<vaadin-grid-column width="14ex">
-            <template class="header">Password</template>
-            <template>[[item.password]]</template>
-         </vaadin-grid-column>
+				<template class="header">Password</template>
+				<template>[[item.password]]</template>
+			</vaadin-grid-column>
 			<vaadin-grid-column width="12ex" flex-grow="2">
-            <template class="header">Balance</template>
-            <template>[[item.balance]]</template>
-         </vaadin-grid-column>
+				<template class="header">Balance</template>
+				<template>[[item.balance]]</template>
+			</vaadin-grid-column>
 			<vaadin-grid-column width="9ex" flex-grow="2">
-            <template class="header">Data Rate</template>
-            <template>[[item.ascendDataRate]]</template>
-         </vaadin-grid-column>
+				<template class="header">Data Rate</template>
+				<template>[[item.ascendDataRate]]</template>
+			</vaadin-grid-column>
 			<vaadin-grid-column width="9ex" flex-grow="2">
-            <template class="header">Xmit Rate</template>
-            <template>[[item.ascendXmitRate]]</template>
-         </vaadin-grid-column>
+				<template class="header">Xmit Rate</template>
+				<template>[[item.ascendXmitRate]]</template>
+			</vaadin-grid-column>
 			<vaadin-grid-column width="8ex">
-            <template class="header">Timeout</template>
-            <template>[[item.sessionTimeout]]</template>
-         </vaadin-grid-column>
+				<template class="header">Timeout</template>
+				<template>[[item.sessionTimeout]]</template>
+			</vaadin-grid-column>
 			<vaadin-grid-column width="8ex">
-            <template class="header">Interval</template>
-            <template>[[item.acctInterimInterval]]</template>
-         </vaadin-grid-column>
+				<template class="header">Interval</template>
+				<template>[[item.acctInterimInterval]]</template>
+			</vaadin-grid-column>
 			<vaadin-grid-column width="8ex" flex-grow="0">
-            <template class="header">Enabled</template>
-            <template>[[item.enabled]]</template>
-         </vaadin-grid-column>
+				<template class="header">Enabled</template>
+				<template>[[item.enabled]]</template>
+			</vaadin-grid-column>
 		</vaadin-grid>
 		<div class="add-button">
 			<paper-fab
