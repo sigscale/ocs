@@ -193,57 +193,84 @@ radius_auth_log(Server, Client, Type, RequestAttributes, ResponseAttributes) ->
 %%
 %% 	Returns a list of mathing authentication events.
 %%
-radius_auth_query({{_, _, _}, {_, _, _}} = Start, End, Types, ReqAttrsMatch, RespAttrsMatch) ->
+radius_auth_query({{_, _, _}, {_, _, _}} = Start, End, Types, 
+ReqAttrsMatch, RespAttrsMatch) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(Start) - ?EPOCH,
-	radius_auth_query(Seconds * 1000, End, Types, ReqAttrsMatch, RespAttrsMatch);
-radius_auth_query(Start, {{_, _, _}, {_, _, _}} = End, Types, ReqAttrsMatch, RespAttrsMatch) ->
+	radius_auth_query(Seconds * 1000, End, Types, ReqAttrsMatch, 
+RespAttrsMatch);
+radius_auth_query(Start, {{_, _, _}, {_, _, _}} = End, Types, 
+ReqAttrsMatch, RespAttrsMatch) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
-	radius_auth_query(Start, Seconds * 1000, Types, ReqAttrsMatch, RespAttrsMatch);
-radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch) when is_integer(Start), is_integer(End) ->
-	radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, disk_log:chunk(radius_auth, start), []).
+	radius_auth_query(Start, Seconds * 1000, Types, ReqAttrsMatch, 
+RespAttrsMatch);
+radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch) 
+when is_integer(Start), is_integer(End) ->
+	radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+disk_log:chunk(radius_auth, start), []).
 
 %% @hidden
-radius_auth_query(_Start, _End, _Types, _ReqAttrsMatch, _RespAttrsMatch, eof, Acc) ->
+radius_auth_query(_Start, _End, _Types, _ReqAttrsMatch, _RespAttrsMatch, 
+eof, Acc) ->
 	lists:reverse(Acc);
-radius_auth_query(_Start, _End, _Types, _ReqAttrsMatch, _RespAttrsMatch, {error, Reason}, _Acc) ->
+radius_auth_query(_Start, _End, _Types, _ReqAttrsMatch, _RespAttrsMatch, 
+{error, Reason}, _Acc) ->
 	{error, Reason};
-radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, [{TS,_,_,_,Type,_,_} | T] = Chunk}, Acc) when TS >= Start, TS =< End ->
+radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
+[{TS,_,_,_,Type,_,_} | T] = Chunk}, Acc) when TS >= Start, TS =< End ->
 	case lists:member(Type, Types) of
 		true ->
-			radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, Acc, ReqAttrsMatch);
+			radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+{Cont, Chunk}, Acc, ReqAttrsMatch);
 		false ->
-			radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, T}, Acc)
+			radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+{Cont, T}, Acc)
 	end; 
-radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, [_ | T]}, Acc) ->
-	radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, T}, Acc);
-radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, []}, Acc) ->
-	radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, disk_log:chunk(radius_auth, Cont), Acc).
+radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
+[_ | T]}, Acc) ->
+	radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
+T}, Acc);
+radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, []}, 
+Acc) ->
+	radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+disk_log:chunk(radius_auth, Cont), Acc).
 
 %% @hidden
-radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,[{_,_,_,_,_,ReqAttrs,_} | T] = Chunk}, Acc, [{Attribute, Match} | T1]) ->
+radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,
+[{_,_,_,_,_,ReqAttrs,_} | T] = Chunk}, Acc, [{Attribute, Match} | T1]) ->
 	case lists:keyfind(Attribute, 1, ReqAttrs) of
 		{Attribute, Match} ->
-			radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, Acc, T1);
+			radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+{Cont, Chunk}, Acc, T1);
 		{Attribute, _} when Match == '_' ->
-			radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, Acc, T1);
+			radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+{Cont, Chunk}, Acc, T1);
 		_ ->
-			radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, T}, Acc)
+			radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+{Cont, T}, Acc)
 	end;
-radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, Acc, []) ->
-	radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, Acc, RespAttrsMatch).
+radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
+Chunk}, Acc, []) ->
+	radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
+Chunk}, Acc, RespAttrsMatch).
 
 %% @hidden
-radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,[{_,_,_,_,_,_,RespAttrs} | T] = Chunk}, Acc, [{Attribute, Match} | T1]) ->
+radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,
+[{_,_,_,_,_,_,RespAttrs} | T] = Chunk}, Acc, [{Attribute, Match} | T1]) ->
 	case lists:keyfind(Attribute, 1, RespAttrs) of
 		{Attribute, Match} ->
-			radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, Acc, T1);
+			radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+{Cont, Chunk}, Acc, T1);
 		{Attribute, _} when Match == '_' ->
-			radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, Acc, T1);
+			radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+{Cont, Chunk}, Acc, T1);
 		false ->
-			radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, T}, Acc)
+			radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+{Cont, T}, Acc)
 	end;
-radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, [H | T]}, Acc, []) ->
-	radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, T}, [H | Acc]).
+radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
+[H | T]}, Acc, []) ->
+	radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
+T}, [H | Acc]).
 
 -spec radius_auth_close() -> Result
 	when
