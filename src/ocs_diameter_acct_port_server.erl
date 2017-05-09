@@ -99,7 +99,7 @@ init([Address, Port, _Options]) ->
 %% @private
 handle_call(shutdown, _From, State) ->
 	{stop, normal, ok, State};
-handle_call({diameter_request, Request, Caps}, From, State) ->
+handle_call({diameter_request, Caps, Request}, From, State) ->
 	request(Request, Caps, From, State).
 
 -spec handle_cast(Request, State) -> Result
