@@ -212,9 +212,9 @@ request(Request, Caps,  _From, State) ->
 			'CC-Request-Number' = RequestNum} = Request,
 	try
 		Subscriber = case Request#diameter_cc_app_CCR.'Subscription-Id' of
-			undefined ->
+			SubscriptionId when SubscriptionId == undefine; SubscriptionId == [] ->
 				case Request#diameter_cc_app_CCR.'User-Name' of
-					undefined ->
+					UserName when UserName == undefined; UserName == [] ->
 						throw(no_subscriber_identification_information);
 					UserName ->
 						UserName
