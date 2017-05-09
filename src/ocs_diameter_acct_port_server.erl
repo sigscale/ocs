@@ -249,6 +249,38 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 			send_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 				OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
 					RequestNum, State)
+	end;
+request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
+		SId, RequestNum, Subscriber, OHost, ORealm, State) ->
+	case ocs:find_subscriber(Subscriber) of
+		{ok, _, _, _Balance, true}  ->
+			F = fun() ->
+				case mnesia:read(subscriber, Subscriber, write) of
+					[#subscriber{disconnect = false} = Entry] ->
+						NewEntry = Entry#subscriber{disconnect = true},
+						mnesia:write(subscriber, NewEntry, write);
+					[#subscriber{disconnect = true}] ->
+						ok
+				end
+			end,
+			case mnesia:transaction(F) of
+				{atomic, ok} ->
+					send_answer(SId, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+							OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
+							RequestNum, State);
+				{aborted, Reason} ->
+					error_logger:error_report(["Failed to disconnect subscriber",
+							{subscriber, Subscriber}, {origin_host, OHost},
+							{origin_realm, ORealm},{session, SId}, {state, State},
+							{reason, Reason}]),
+					send_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+						OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
+							RequestNum, State)
+			end;
+		{error, _Reason} ->
+			send_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+				OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
+					RequestNum, State)
 	end.
 
 -spec send_answer(SessionId, ResultCode, OriginHost, OriginRealm,
