@@ -79,7 +79,7 @@ init([AuthPortSup, Address, Port, Options]) ->
 	State = #state{auth_port_sup = AuthPortSup,
 			address = Address, port = Port,
 			method_prefer = MethodPrefer, method_order = MethodOrder},
-	case ocs_log:radius_auth_open() of
+	case ocs_log:auth_open() of
 		ok ->
 			process_flag(trap_exit, true),
 			{ok, State, 0};
@@ -198,7 +198,7 @@ handle_info({'EXIT', Fsm, _Reason},
 %% @private
 %%
 terminate(_Reason, _State) ->
-	ocs_log:radius_auth_close().
+	ocs_log:auth_close().
 
 -spec code_change(OldVsn, State, Extra) -> Result
 	when
@@ -323,7 +323,7 @@ request1(EapType, Address, Port, Secret,
 										authenticator = ResponseAuthenticator, 
 										attributes = RejectAttributes},
 								AccessReject = radius:codec(AccessRejectPacket),
-								ok = ocs_log:radius_auth_log({ServerAddress, ServerPort},
+								ok = ocs_log:auth_log({ServerAddress, ServerPort},
 										{Address, Port}, reject, Attributes, NewAttributes),
 								{reply, {ok, AccessReject}, State}	
 						end;

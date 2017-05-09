@@ -106,7 +106,7 @@ log_auth_event(_Config) ->
 			{?NasIdentifier, "ap-1.sigscale.net"},
 			{?NasIpAddress, ClientAddress}],
 	ResAttrs = [{?SessionTimeout, 3600}, {?MessageAuthenticator, RandomBin}],
-	ok = ocs_log:radius_auth_log(Server, Client, Type, ReqAttrs, ResAttrs),
+	ok = ocs_log:auth_log(Server, Client, Type, ReqAttrs, ResAttrs),
 	End = erlang:system_time(millisecond),
 	Fany = fun({TS, N, S, C, T, A1, A2}) when TS >= Start, TS =< End,
 					N == Node, S == Server, C == Client, T == Type,
@@ -146,7 +146,7 @@ log_acct_event(_Config) ->
 			{?CalledStationId, "CA-FE-CA-FE-CA-FE:AP 1"}, {?AcctAuthentic, 1},
 			{?AcctStatusType, 1}, {?NasIdentifier, "ap-1.sigscale.net"},
 			{?AcctDelayTime, 0}, {?NasIpAddress, ClientAddress}],
-	ok = ocs_log:radius_acct_log(Server, Client, Type, ReqAttrs),
+	ok = ocs_log:acct_log(Server, Client, Type, ReqAttrs),
 	End = erlang:system_time(millisecond),
 	Fany = fun({TS, N, S, C, T, A}) when TS >= Start, TS =< End,
 					N == Node, S == Server, C == Client, T == Type,
@@ -195,7 +195,7 @@ get_range(_Config) ->
 	Fill = fun(_F, 0) ->
 				ok;
 			(F, N) ->
-				ocs_log:radius_acct_log(Server, Client, Type,
+				ocs_log:acct_log(Server, Client, Type,
 						[{?AcctSessionId, integer_to_list(N)} | Attrs]),
 				F(F, N - 1)
 	end,
@@ -265,7 +265,7 @@ ipdr_log(_Config) ->
 				end,
 				Attrs1 = [{?AcctSessionId, integer_to_list(N)} | Attrs],
 				Attrs2 = [{?AcctStatusType, AcctType} | Attrs1],
-				ocs_log:radius_acct_log(Server, Client, Type, Attrs2),
+				ocs_log:acct_log(Server, Client, Type, Attrs2),
 				F(F, N - 1)
 	end,
 	Fill(Fill, NumItems),

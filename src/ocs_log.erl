@@ -21,8 +21,8 @@
 -copyright('Copyright (c) 2016-2017 SigScale Global Inc.').
 
 %% export the ocs_log public API
--export([radius_acct_open/0, radius_acct_log/4, radius_acct_close/0]).
--export([radius_auth_open/0, radius_auth_log/5, radius_auth_close/0, radius_auth_query/5]).
+-export([acct_open/0, acct_log/4, acct_close/0]).
+-export([auth_open/0, auth_log/5, auth_close/0, auth_query/5]).
 -export([ipdr_log/3, get_range/3, last/2]).
 -export([dump_file/2, http_file/2, httpd_logname/1]).
 -export([date/1, iso8601/1]).
@@ -47,23 +47,23 @@
 %%  The ocs_log public API
 %%----------------------------------------------------------------------
 
--spec radius_acct_open() -> Result
+-spec acct_open() -> Result
 	when
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Open the accounting log for logging events.
-radius_acct_open() ->
+acct_open() ->
 	{ok, Directory} = application:get_env(ocs, acct_log_dir),
 	case file:make_dir(Directory) of
 		ok ->
-			radius_acct_open1(Directory);
+			acct_open1(Directory);
 		{error, eexist} ->
-			radius_acct_open1(Directory);
+			acct_open1(Directory);
 		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
-radius_acct_open1(Directory) ->
+acct_open1(Directory) ->
 	{ok, LogSize} = application:get_env(ocs, acct_log_size),
 	{ok, LogFiles} = application:get_env(ocs, acct_log_files),
 	Log = ?ACCTLOG,
@@ -82,7 +82,7 @@ radius_acct_open1(Directory) ->
 			{error, Reason}
 	end.
 
--spec radius_acct_log(Server, Client, Type, Attributes) -> Result
+-spec acct_log(Server, Client, Type, Attributes) -> Result
 	when
 		Server :: {Address, Port},
 		Client :: {Address, Port},
@@ -93,17 +93,17 @@ radius_acct_open1(Directory) ->
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Write an accounting event to disk log.
-radius_acct_log(Server, Client, Type, Attributes) ->
+acct_log(Server, Client, Type, Attributes) ->
 	TS = erlang:system_time(?MILLISECOND),
 	Event = {TS, node(), Server, Client, Type, Attributes},
 	disk_log:log(?ACCTLOG, Event).
 
--spec radius_acct_close() -> Result
+-spec acct_close() -> Result
 	when
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Close accounting disk log.
-radius_acct_close() ->
+acct_close() ->
 	case disk_log:close(?ACCTLOG) of
 		ok ->
 			ok;
@@ -115,23 +115,23 @@ radius_acct_close() ->
 			{error, Reason}
 	end.
 
--spec radius_auth_open() -> Result
+-spec auth_open() -> Result
 	when
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Open the authorization log for logging events.
-radius_auth_open() ->
+auth_open() ->
 	{ok, Directory} = application:get_env(ocs, auth_log_dir),
 	case file:make_dir(Directory) of
 		ok ->
-			radius_auth_open1(Directory);
+			auth_open1(Directory);
 		{error, eexist} ->
-			radius_auth_open1(Directory);
+			auth_open1(Directory);
 		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
-radius_auth_open1(Directory) ->
+auth_open1(Directory) ->
 	{ok, LogSize} = application:get_env(ocs, auth_log_size),
 	{ok, LogFiles} = application:get_env(ocs, auth_log_files),
 	Log = ?AUTHLOG,
@@ -150,7 +150,7 @@ radius_auth_open1(Directory) ->
 			{error, Reason}
 	end.
 
--spec radius_auth_log(Server, Client, Type, RequestAttributes,
+-spec auth_log(Server, Client, Type, RequestAttributes,
 		ResponseAttributes) -> Result
 	when
 		Server :: {Address, Port},
@@ -163,13 +163,13 @@ radius_auth_open1(Directory) ->
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Write an authorization event to disk log.
-radius_auth_log(Server, Client, Type, RequestAttributes, ResponseAttributes) ->
+auth_log(Server, Client, Type, RequestAttributes, ResponseAttributes) ->
 	TS = erlang:system_time(?MILLISECOND),
 	Event = {TS, node(), Server, Client, Type,
 			RequestAttributes, ResponseAttributes},
 	disk_log:log(?AUTHLOG, Event).
 
--spec radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch) -> Result
+-spec auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch) -> Result
 	when
 		Start :: calendar:datetime() | pos_integer(),
 		End :: calendar:datetime() | pos_integer(),
@@ -193,91 +193,91 @@ radius_auth_log(Server, Client, Type, RequestAttributes, ResponseAttributes) ->
 %%
 %% 	Returns a list of mathing authentication events.
 %%
-radius_auth_query({{_, _, _}, {_, _, _}} = Start, End, Types, 
+auth_query({{_, _, _}, {_, _, _}} = Start, End, Types, 
 ReqAttrsMatch, RespAttrsMatch) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(Start) - ?EPOCH,
-	radius_auth_query(Seconds * 1000, End, Types, ReqAttrsMatch, 
+	auth_query(Seconds * 1000, End, Types, ReqAttrsMatch, 
 RespAttrsMatch);
-radius_auth_query(Start, {{_, _, _}, {_, _, _}} = End, Types, 
+auth_query(Start, {{_, _, _}, {_, _, _}} = End, Types, 
 ReqAttrsMatch, RespAttrsMatch) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
-	radius_auth_query(Start, Seconds * 1000, Types, ReqAttrsMatch, 
+	auth_query(Start, Seconds * 1000, Types, ReqAttrsMatch, 
 RespAttrsMatch);
-radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch) 
+auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch) 
 when is_integer(Start), is_integer(End) ->
-	radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+	auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
 disk_log:chunk(?AUTHLOG, start), []).
 
 %% @hidden
-radius_auth_query(_Start, _End, _Types, _ReqAttrsMatch, _RespAttrsMatch, 
+auth_query(_Start, _End, _Types, _ReqAttrsMatch, _RespAttrsMatch, 
 eof, Acc) ->
 	lists:reverse(Acc);
-radius_auth_query(_Start, _End, _Types, _ReqAttrsMatch, _RespAttrsMatch, 
+auth_query(_Start, _End, _Types, _ReqAttrsMatch, _RespAttrsMatch, 
 {error, Reason}, _Acc) ->
 	{error, Reason};
-radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
+auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
 [{TS,_,_,_,Type,_,_} | T] = Chunk}, Acc) when TS >= Start, TS =< End ->
 	case lists:member(Type, Types) of
 		true ->
-			radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+			auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
 {Cont, Chunk}, Acc, ReqAttrsMatch);
 		false ->
-			radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+			auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
 {Cont, T}, Acc)
 	end; 
-radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
+auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
 [_ | T]}, Acc) ->
-	radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
+	auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
 T}, Acc);
-radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, []}, 
+auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, []}, 
 Acc) ->
-	radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+	auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
 disk_log:chunk(?AUTHLOG, Cont), Acc).
 
 %% @hidden
-radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,
+auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,
 [{_,_,_,_,_,ReqAttrs,_} | T] = Chunk}, Acc, [{Attribute, Match} | T1]) ->
 	case lists:keyfind(Attribute, 1, ReqAttrs) of
 		{Attribute, Match} ->
-			radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+			auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
 {Cont, Chunk}, Acc, T1);
 		{Attribute, _} when Match == '_' ->
-			radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+			auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
 {Cont, Chunk}, Acc, T1);
 		_ ->
-			radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+			auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
 {Cont, T}, Acc)
 	end;
-radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
+auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
 Chunk}, Acc, []) ->
-	radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
+	auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
 Chunk}, Acc, RespAttrsMatch).
 
 %% @hidden
-radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,
+auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,
 [{_,_,_,_,_,_,RespAttrs} | T] = Chunk}, Acc, [{Attribute, Match} | T1]) ->
 	case lists:keyfind(Attribute, 1, RespAttrs) of
 		{Attribute, Match} ->
-			radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+			auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
 {Cont, Chunk}, Acc, T1);
 		{Attribute, _} when Match == '_' ->
-			radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+			auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
 {Cont, Chunk}, Acc, T1);
 		false ->
-			radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+			auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
 {Cont, T}, Acc)
 	end;
-radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
+auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
 [H | T]}, Acc, []) ->
-	radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
+	auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
 T}, [H | Acc]).
 
--spec radius_auth_close() -> Result
+-spec auth_close() -> Result
 	when
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Close authorization disk log.
-radius_auth_close() ->    
+auth_close() ->    
 	case disk_log:close(?AUTHLOG) of
 		ok ->
 			ok;
