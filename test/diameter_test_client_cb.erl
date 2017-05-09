@@ -148,7 +148,9 @@ handle_error(Reason, _Request, _SvcName, _Peer) ->
 		Opt :: diameter:call_opt(),
 		PostF :: diameter:evaluable().
 %% @doc Invoked when a request messge is received from the peer. 
-handle_request(#diameter_packet{msg = _Req, errors = []}, _SvcName, {_Peer, _Caps}) ->
+handle_request(#diameter_packet{msg = Request, errors = []}, _SvcName, {_Peer, Caps}) ->
+	TestCase = whereis(diameter_disconnect_session),
+	TestCase ! Request,
 	discard.
 
 %%---------------------------------------------------------------------

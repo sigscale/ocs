@@ -122,7 +122,8 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[radius_accouting, radius_disconnect_session, diameter_accounting].
+	[radius_accouting, radius_disconnect_session, diameter_accounting,
+	diameter_disconnect_session].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -213,6 +214,68 @@ diameter_accounting(Config) ->
 			'Auth-Application-Id' = ?CC_APPLICATION_ID,
 			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
 			'CC-Request-Number' = NewRequestNum} = Answer1.
+
+diameter_disconnect_session() ->
+	[{userdata, [{doc, "Disconnect a Diameter accouting session based on usage"}]}].
+
+diameter_disconnect_session(Config) ->
+	register(?FUNCTION_NAME, self()),
+	Username = ?config(username, Config),
+	Password = ?config(password, Config),
+	SId = diameter:session_id(atom_to_list(?FUNCTION_NAME)),
+	Answer = diameter_authentication(SId, Username, Password),
+	true = is_record(Answer, diameter_nas_app_AAA),
+	OriginHost = list_to_binary("ocs.sigscale.com"),
+	OriginRealm = list_to_binary("sigscale.com"),
+	#diameter_nas_app_AAA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?NAS_APPLICATION_ID,
+			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
+			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm} = Answer,
+	RequestNum0 = 0,
+	Answer0 = diameter_accounting_start(SId, Username, RequestNum0),
+	true = is_record(Answer0, diameter_cc_app_CCA),
+	#diameter_cc_app_CCA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?CC_APPLICATION_ID,
+			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = RequestNum0, 'Granted-Service-Unit' = GrantedUnits0} = Answer0,
+	#'diameter_cc_app_Granted-Service-Unit'{'CC-Total-Octets' = Balance0} = GrantedUnits0,
+	Usage0 = Balance0 - 1000000,
+	RequestNum1 = RequestNum0 + 1,
+	Answer1 = diameter_accounting_interim(SId, Username, RequestNum1, Usage0),
+	#diameter_cc_app_CCA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?CC_APPLICATION_ID,
+			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST',
+			'CC-Request-Number' = RequestNum1, 'Granted-Service-Unit' = GrantedUnits1} = Answer1,
+	#'diameter_cc_app_Granted-Service-Unit'{'CC-Total-Octets' = Balance1} = GrantedUnits1,
+	Usage2 = Balance1 - 1000000,
+	RequestNum2 = RequestNum1 + 1,
+	Answer2 = diameter_accounting_interim(SId, Username, RequestNum2, Usage2),
+	#diameter_cc_app_CCA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?CC_APPLICATION_ID,
+			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST',
+			'CC-Request-Number' = RequestNum2, 'Granted-Service-Unit' = GrantedUnits2} = Answer2,
+	#'diameter_cc_app_Granted-Service-Unit'{'CC-Total-Octets' = Balance2} = GrantedUnits2,
+	Usage3 = Balance2 - 10000000,
+	RequestNum3 = RequestNum2 + 1,
+	% Final Interim
+	Answer3 = diameter_accounting_interim(SId, Username, RequestNum3, Usage3),
+	#diameter_cc_app_CCA{'Result-Code' = ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
+			'Auth-Application-Id' = ?CC_APPLICATION_ID,
+			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST',
+			'CC-Request-Number' = RequestNum3, 'Granted-Service-Unit' = GrantedUnits3} = Answer3,
+	#'diameter_cc_app_Granted-Service-Unit'{'CC-Total-Octets' = _Balance3} = GrantedUnits3,
+	Result = receive
+		ASR ->
+			ASR
+	end,
+	true = is_record(Result, diameter_base_ASR),
+	#diameter_base_ASR{'Session-Id' = SId, 'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+	'Destination-Realm' = _DRealm, 'Destination-Host' = _DHost,
+	'Auth-Application-Id' = ?CC_APPLICATION_ID, 'User-Name' = Username} = Result,
+	ASA = #diameter_base_ASA{'Session-Id' = SId,
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
+	_Answer4 = diameter:call(?SVC, cc_app_test, ASA, []).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
@@ -384,3 +447,16 @@ diameter_accounting_stop(SId, Username, RequestNum) ->
 	{ok, Answer} = diameter:call(?SVC, cc_app_test, CC_CCR, []),
 	Answer.
 
+%% @hidden
+diameter_accounting_interim(SId, Username, RequestNum, Usage) ->
+	UsedUnits = #'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = Usage},
+	CC_CCR = #diameter_cc_app_CCR{'Session-Id' = SId,
+			'Auth-Application-Id' = ?CC_APPLICATION_ID,
+			'Service-Context-Id' = "nas45@testdomain.com" ,
+			'User-Name' = Username,
+			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST',
+			'CC-Request-Number' = RequestNum,
+			'Used-Service-Unit' = UsedUnits},
+	{ok, Answer} = diameter:call(?SVC, cc_app_test, CC_CCR, []),
+	Answer.
+	
