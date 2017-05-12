@@ -36,233 +36,302 @@
 <link rel="import" href="sig-client-add.html">
 <link rel="import" href="sig-client-list.html">
 <link rel="import" href="sig-client-update.html">
-<link rel="import" href="sig-acct-list.html">
-<link rel="import" href="sig-acct-log-files.html">
-<link rel="import" href="sig-auth-list.html">
+<link rel="import" href="sig-ipdr-list.html">
+<link rel="import" href="sig-ipdr-log-files.html">
+<link rel="import" href="sig-access-list.html">
+<link rel="import" href="sig-accounting-list.html">
+<link rel="import" href="sig-http-list.html">
 
 <dom-module id="sig-app">
 	<template is="dom-bind">
 		<style is="custom-style">
-			
-			 :root{@apply(--paper-font-common-base);}
-
-			.search-text{
+			:root {
+				@apply(--paper-font-common-base);
+			}
+			.search-text {
 				--paper-input-container-color: white;
 				--paper-input-container-focus-color: blue;
 				--paper-input-container-invalid-color: green;
 				--paper-input-container-input-color: white;
 			}
-
-			.flex-vertical { @apply(--layout-vertical); height: 100%; }
-
-			.flexchild-vertical { @apply(--layout-flex); height:100%;} 
-
-			app-toolbar { background-color: #4285f4; color: #fff; }
-
-			paper-icon-button { --paper-icon-button-ink-color: white; }
-
-			paper-icon-button + [main-title] { margin-left: 24px; }
-
-			paper-progress { display: block; width: 100%; --paper-progress-active-color: rgba(255, 255, 255, 0.5); --paper-progress-container-color: transparent; }
-
-			app-header { @apply(--layout-fixed-top); color: #fff; --app-header-background-rear-layer: { background-color: #ef6c00; }; }
-
-			app-drawer { --app-drawer-scrim-background: rgba(0, 0, 100, 0.8); --app-drawer-content-container: { background-color: #FFFFFF; padding-top:10px;}; height:100%; top:64px; }
-
-			.menuitem{ font-size: normal;}
-
-			#contentContainer{height:100%}
-
-			sample-content { padding-top: 64px; }
+			.flex-vertical {
+				@apply(--layout-vertical);
+				height: 100%;
+			}
+			app-toolbar {
+				background: var(--google-blue-500);
+				color: #fff;
+			}
+			paper-icon-button {
+				--paper-icon-button-ink-color: white;
+			}
+			paper-icon-button + [main-title] {
+				margin-left: 24px;
+			}
+			paper-progress {
+				display: block;
+				width: 100%;
+				--paper-progress-active-color: rgba(255, 255, 255, 0.5);
+				--paper-progress-container-color: transparent;
+			}
+			app-header {
+				@apply(--layout-fixed-top);
+				color: #fff;
+				--app-header-background-rear-layer: {
+					background-color: #ef6c00;
+				};
+			}
+			app-drawer {
+				--app-drawer-scrim-background: rgba(0, 0, 100, 0.8);
+				--app-drawer-content-container: {
+					background-color: #FFFFFF;
+					padding-top:10px;
+				};
+				height:100%;
+				top:64px;
+			}
+			.menuitem {
+				font-size: normal;
+			}
 		</style>
-
 		<div class="container flex-vertical">
 			<div id="vertical-child1" style="height:100%;">
 				<app-header-layout fixed fullbleed style="height:100%;">
 					<app-header reveals>
-					  <app-toolbar>
-						  <paper-icon-button icon="menu" onclick="drawer.toggle()"></paper-icon-button>
-						  <div main-title>Online Charging System (OCS)</div>
-							  <paper-icon-button id="refresh "icon="refresh" on-click="refresh" ></paper-icon-button>
-							  <paper-icon-button id="download "icon="file-download" on-click="download" ></paper-icon-button>
-								<paper-input label="" class="search-text" id="searchTerm"></paper-input>
-							  <paper-icon-button id="search "icon="search" on-click="search" ></paper-icon-button>
-							  <paper-progress value="0" indeterminate bottom-item disabled></paper-progress>
-					  </app-toolbar>
-					  </app-header>
-					  <iron-pages id="loadPage" selected="10000000000"  role="main" style="height:100%;">
-						  <sig-sub-list></sig-sub-list>
-						  <sig-client-list></sig-client-list>
-						  <sig-acct-list></sig-acct-list>
-						  <sig-auth-list></sig-auth-list>
-					  </iron-pages>
-				  </app-header-layout>
+						<app-toolbar>
+							<paper-icon-button
+									icon="menu"
+									onclick="drawer.toggle()">
+							</paper-icon-button>
+							<div main-title>Online Charging System (OCS)</div>
+							<paper-icon-button
+									id="refresh
+									"icon="refresh"
+									on-click="refresh">
+							</paper-icon-button>
+							<paper-icon-button
+									id="download
+									"icon="file-download"
+									on-click="download" >
+							</paper-icon-button>
+							<paper-progress
+									value="0"
+									indeterminate
+									bottom-item
+									disabled>
+							</paper-progress>
+						</app-toolbar>
+					</app-header>
+					<iron-pages
+							id="loadPage"
+							selected="10000000000"
+							role="main"
+							style="height:100%;">
+						<sig-sub-list></sig-sub-list>
+						<sig-client-list></sig-client-list>
+						<sig-ipdr-list></sig-ipdr-list>
+						<sig-access-list></sig-access-list>
+						<sig-accounting-list></sig-accounting-list>
+						<sig-http-list></sig-http-list>
+					</iron-pages>
+				</app-header-layout>
 			</div>
 			<div  id="vertical-child2">
 				 <!--Flex Container including app-drawer and content body -->
 				<app-drawer-layout style="height:100%;">
 				<app-drawer id="drawer" swipe-open>
 					<iron-selector id ="pageSelection" class="drawer-list" role="navigation">
-						</paper-menu id="menu">
-						<paper-item id ="page0"  onclick="drawer.toggle()" class="menuitem"><iron-icon icon ="device:devices"></iron-icon>&nbsp Subscribers</paper-item>
-							<paper-item id="page1" onclick="drawer.toggle()" class="menuitem"><iron-icon icon ="hardware:router"></iron-icon>&nbsp Clients</paper-item>
+						<paper-menu id="menu">
+							<paper-item id="page0"  onclick="drawer.toggle()" class="menuitem">
+								<iron-icon icon ="device:devices"></iron-icon>
+								&nbsp Subscribers
+							</paper-item>
+							<paper-item id="page1" onclick="drawer.toggle()" class="menuitem">
+								<iron-icon icon ="hardware:router"></iron-icon>
+								&nbsp Clients
+							</paper-item>
 							<paper-submenu>
-								<paper-item class="menu-trigger menuitem"><iron-icon icon ="icons:history"></iron-icon>&nbsp Logs</paper-item>
-									<paper-menu class="menu-content" >
-										<paper-item id="page2" onclick="drawer.toggle()" class="menuitem"> &nbsp &nbsp <iron-icon icon ="device:data-usage"></iron-icon> &nbsp Accounting</paper-item>
-										<paper-item id="page3" onclick="drawer.toggle()"class="menuitem">&nbsp &nbsp <iron-icon icon ="icons:perm-identity"></iron-icon> &nbsp Access</paper-item>
-									</paper-menu>
+								<paper-item class="menu-trigger menuitem">
+									<iron-icon icon ="icons:history"></iron-icon>
+									&nbsp Logs
+								</paper-item>
+								<paper-menu class="menu-content" >
+									<paper-item id="page3" onclick="drawer.toggle()"class="menuitem">
+										&nbsp &nbsp
+										<iron-icon icon ="icons:perm-identity"></iron-icon>
+										&nbsp Access
+									</paper-item>
+									<paper-item id="page4" onclick="drawer.toggle()" class="menuitem">
+										&nbsp &nbsp
+										<iron-icon icon ="device:data-usage"></iron-icon>
+										&nbsp Accounting
+									</paper-item>
+									<paper-item id="page2" onclick="drawer.toggle()" class="menuitem">
+										&nbsp &nbsp
+										<iron-icon icon ="device:data-usage"></iron-icon>
+										&nbsp IPDR
+									</paper-item>
+									<paper-item id="page5" onclick="drawer.toggle()" class="menuitem">
+										&nbsp &nbsp
+										<iron-icon icon ="device:data-usage"></iron-icon>
+										&nbsp HTTP
+									</paper-item>
+								</paper-menu>
 							</paper-submenu>
 						</paper-menu>
 					</iron-selector>
 				</app-drawer>
 			</div>
 		</div>
-		
 		<!--Modal Definitions-->
 		<sig-sub-add></sig-sub-add> 
 		<sig-sub-update></sig-sub-update>
 		<sig-client-add></sig-client-add> 
 		<sig-client-update></sig-client-update>
-		<sig-acct-log-files></sig-acct-log-files>
-		
+		<sig-ipdr-log-files></sig-ipdr-log-files>
 		<iron-ajax id="searchAjax"
-			method = "GET"
-			headers='{"Accept": "application/json", "Content-type": "application/json"}'
-			url=""
-			on-response="searchResponse"
-			debounce-duration="0"></iron-ajax>
-
+				method = "GET"
+				headers='{"Accept": "application/json"}'
+				url=""
+				on-response="searchResponse"
+				debounce-duration="0">
+		</iron-ajax>
 	</template>
-		<script>
-			Polymer({
+	<script>
+		Polymer (
+			{
 				is: 'sig-app',
-
-				listeners :{'pageSelection.iron-select': 'loadElement'},
-
-				loadElement: function(event){
-					switch(event.detail.item.getAttribute('id')){
-						case 
-							'page0': this.$.loadPage.selected = 0; 
+				listeners: {
+					'pageSelection.iron-select': 'loadElement'
+				},
+				loadElement: function(event) {
+					switch(event.detail.item.getAttribute('id')) {
+						case 'page0':
+							this.$.loadPage.selected = 0; 
 							break;
-						case 
-							'page1': this.$.loadPage.selected = 1; 
+						case 'page1':
+							this.$.loadPage.selected = 1; 
 							break;
-						case 
-							'page3': this.$.loadPage.selected = 3; 
+						case 'page3':
+							this.$.loadPage.selected = 3; 
 							break;
-						case	
-							'page2': this.$.loadPage.selected = 2;
+						case 'page4':
+							this.$.loadPage.selected = 4; 
+							break;
+						case 'page5':
+							this.$.loadPage.selected = 5; 
+							break;
+						case 'page2':
+							this.$.loadPage.selected = 2;
 							document.getElementById("selectLogFileModal").open();
 							break;
 					}
 				},
-				
-				search: function(event){
+				search: function(event) {
 					var ajax = this.$.searchAjax;
 					var id = this.$.searchTerm.value;
-
-					if(this.$.pageSelection.selected == 0){
+					if (this.$.pageSelection.selected == 0) {
 						ajax.url = "/ocs/v1/subscriber/" + id
 					}
-					if(this.$.pageSelection.selected == 1){
+					if(this.$.pageSelection.selected == 1) {
 						ajax.url = "/ocs/v1/client/" + id
 					}
-					if(this.$.pageSelection.selected == 3){
+					if(this.$.pageSelection.selected == 3) {
 						ajax.url = "/ocs/v1/log/access/" + id
 					}
-
+					if(this.$.pageSelection.selected == 4) {
+						ajax.url = "/ocs/v1/log/accounting/" + id
+					}
 					ajax.generateRequest();
 				},
-
-				searchResponse: function(event){
+				searchResponse: function(event) {
 					var item = new Array();
 					item[0] = event.detail.response;
 					item[3] = event.detail.response;
-					if(this.$.pageSelection.selected == 0){
+					if (this.$.pageSelection.selected == 0) {
 						var newRecord = new Object();
 						newRecord.id = item[0].id;
 						newRecord.password = item[0].password;
 						newRecord.balance = item[0].balance;
-
-						item[0].attributes.forEach(function(attrObj){
-							 newRecord[attrObj.name] = attrObj.value;
-						}); 
-
+						item[0].attributes.forEach(
+							function(attrObj) {
+								newRecord[attrObj.name] = attrObj.value;
+							}
+						); 
 						newRecord.enabled = item[0].enabled;
 						item[0] = newRecord;
-						document.getElementById('grid').items = item;
+						document.getElementById('subscriberGrid').items = item;
 					}
-					if(this.$.pageSelection.selected == 3){
+					if(this.$.pageSelection.selected == 3) {
 						var newRecord = new Object();
 						newRecord.timeStamp = item[3].timeStamp;
-                  newRecord.username = item[3].username;
-                  newRecord.clientAddress = item[3].clientAddress;
-                  newRecord.clientPort = item[3].clientPort;
-                  newRecord.type = item[3].type;
-
-						document.getElementById('grid').items = item;
+						newRecord.username = item[3].username;
+						newRecord.clientAddress = item[3].clientAddress;
+						newRecord.clientPort = item[3].clientPort;
+						newRecord.type = item[3].type;
+						document.getElementById('subscriberGrid').items = item;
 					}
-					if(this.$.pageSelection.selected == 1){
-						document.getElementById('clientsGrid').items = item;
+					if(this.$.pageSelection.selected == 1) {
+						document.getElementById('clientGrid').items = item;
 					}
 				},
-
-				refresh: function(){
+				refresh: function() {
 					if(this.$.pageSelection.selected == 0){
 						document.getElementById('getSubs').generateRequest();
-					}
+					 }
 					if(this.$.pageSelection.selected == 1){
 						document.getElementById('getClients').generateRequest();
-					}
+					 }
 				},
-
-				download: function(){
+				download: function() {
 					var csvObject = new Object();
-					if(this.$.pageSelection.selected == 0){
-						var data = document.getElementById("grid").items;
+					if(this.$.pageSelection.selected == 0) {
+						var data = document.getElementById("subscriberGrid").items;
 						csvObject.gridData = data;
 						csvObject.headers = "Identity, Secret, Balance, Data Rate, Xmit Rate, Session Timeout," +
-								  "Accounting Interval, Class, Enabled \n";
-						csvObject.keys = [ "id","password","balance","ascendDataRate","ascendXmitRate", +
-								  "sessionTimeout","acctInterimInterval","class","enabled"];
+								"Accounting Interval, Class, Enabled \n";
+						csvObject.keys = [ "id", "password", "balance", "ascendDataRate", "ascendXmitRate", +
+								"sessionTimeout", "acctInterimInterval", "class", "enabled"];
 						csvObject.fileName = "subscribers.csv";
 					}
-					if(this.$.pageSelection.selected == 1){
-						var data = document.getElementById("clientsGrid").items;
+					if(this.$.pageSelection.selected == 1) {
+						var data = document.getElementById("clientGrid").items;
 						csvObject.gridData = data;
 						csvObject.headers = "Identity, Secret, Disconnect Port, Protocol\n";
 						csvObject.keys = ["id", "secret", "disconnectPort", "protocol"];
 						csvObject.fileName = "clients.csv";
 					}
-					if(this.$.pageSelection.selected == 2){
-						var data = document.getElementById("accoutingGrid").items;
+					if(this.$.pageSelection.selected == 2) {
+						var data = document.getElementById("ipdrGrid").items;
 						csvObject.gridData = data;
 						csvObject.headers = "IPDR creation time, Sequence Number, Username, Session ID," +
-								  "Calling Station, Called Station, NAS IP, NAS ID, Session Duration, Input Octets," +
-								  "Output Octets, Session Start Time, Session End Time, Session Terminate \n";
+								"Calling Station, Called Station, NAS IP, NAS ID, Session Duration, Input Octets," +
+								"Output Octets, Session Start Time, Session End Time, Session Terminate \n";
 						csvObject.keys = ["ipdrCreationTime", "seqNum", "username", "acctSessionId", +
-									"callingStationId", "calledStationId", "nasIpAddress", "nasId", "sessionDuration" +
-									"inputOctets", "outputOctets", "gmtSessionStartDateTime", "gmtSessionEndDateTime" +
-									"sessionTerminateCause"];
+								"callingStationId", "calledStationId", "nasIpAddress", "nasId", "sessionDuration" +
+								"inputOctets", "outputOctets", "gmtSessionStartDateTime", "gmtSessionEndDateTime" +
+								"sessionTerminateCause"];
 						csvObject.fileName = "usage_logs.csv";
 					}
 					generateCSVData(csvObject);
 				}
-
-		});
-		
-		function generateCSVData(csvObject){
+			}
+		);
+		function generateCSVData(csvObject) {
 			var csvData = "data:text/csv;charset=utf-8,";
 			csvData += csvObject.headers;
-			csvObject.gridData.forEach(function(row, index){
-			var dataLine = "";
-			csvObject.keys.forEach(function(key, i){
-								dataLine += row[key] + ",";
-								});
-			dataLine += "\n";
-			csvData += dataLine;
-			});
+			csvObject.gridData.forEach(
+				function(row, index) {
+					var dataLine = "";
+					csvObject.keys.forEach(
+						function(key, i) {
+							dataLine += row[key] + ",";
+						}
+					);
+					dataLine += "\n";
+					csvData += dataLine;
+				}
+			);
 			var encodedUri = encodeURI(csvData);
 			var link = document.createElement("a");
 			link.setAttribute("href", encodedUri);

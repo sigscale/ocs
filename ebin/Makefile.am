@@ -57,7 +57,10 @@ beam_DATA = ocs.beam \
 			ocs_rest_res_usage.beam \
 			diameter_gen_nas_application_rfc7155.beam \
 			diameter_gen_cc_application_rfc4006.beam \
-			ocs_rest_res_radius.beam
+			ocs_rest_res_radius.beam \
+			ocs_rest_res_access.beam \
+			ocs_rest_res_accounting.beam \
+			ocs_rest_res_http.beam
 
 %.beam:$(top_srcdir)/src/%.erl	$(top_srcdir)/include/ocs.hrl \
 		$(top_srcdir)/include/ocs_log.hrl \

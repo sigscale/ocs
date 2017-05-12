@@ -1,4 +1,4 @@
-%%% ocs_rest_res_radius.erl
+%%% ocs_rest_res_access.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 SigScale Global Inc.
 %%% @end
@@ -17,7 +17,7 @@
 %%% @doc This library module implements resource handling functions
 %%%   for a REST server in the {@link //ocs. ocs} application.
 %%%
--module(ocs_rest_res_radius).
+-module(ocs_rest_res_access).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 -export([content_types_accepted/0,
@@ -27,14 +27,12 @@
 -include_lib("radius/include/radius.hrl").
 -include("ocs_log.hrl").
 
--define(RADAUTH, radius_auth).
-
 -spec content_types_accepted() -> ContentTypes
 	when
 		ContentTypes :: list().
 %% @doc Provides list of resource representations accepted.
 content_types_accepted() ->
-	["application/json"].
+	[].
 
 -spec content_types_provided() -> ContentTypes
 	when
@@ -45,32 +43,32 @@ content_types_provided() ->
 
 -spec perform_get_all() -> Result
 	when
-		Result :: {body, Body :: iolist()} | {error, ErrorCode :: integer()}.
+		Result :: {ok, Headers :: [string()],
+				Body :: iolist()} | {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/log/access'
 %% requests.
 perform_get_all() ->
-	Log = ?RADAUTH,
-	read_auth_log(Log, start, []).
+	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
+	case ocs_log:last(radius_auth, MaxItems) of
+		{error, _} -> 
+			{error, 404};
+		{NewCount, Events} -> 
+			JsonObj = radius_auth_json(Events),
+			JsonArray = {array, JsonObj},
+			Body = mochijson:encode(JsonArray),
+			ContentRange = "items 1-" ++ integer_to_list(NewCount) ++ "/*",
+			Headers = [{content_range, ContentRange}],
+			{ok, Headers, Body}
+	end.
 
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
 
-%% @hidden
-read_auth_log(Log, Cont, Acc) ->
-	case disk_log:chunk(Log, Cont) of
-		eof ->
-			JsonArray = {array, lists:flatten(lists:reverse(Acc))},
-			Body = mochijson:encode(JsonArray),
-			{body, Body};
-		{Cont1, Events} ->
-			NewAcc = [radius_auth_json(Events) | Acc],
-			read_auth_log(Log, Cont1, NewAcc)
-	end.
-
 % @hidden
 radius_auth_json(Events) ->
-	F = fun({TimeStamp, Node, Client, Server, Type, ReqAttrs, RespAttrs}, Acc) ->
+	F = fun({Milliseconds, Node, Client, Server, Type, ReqAttrs, _RespAttrs},  Acc) ->
+		TimeStamp = ocs_log:iso8601(Milliseconds),
 		{ClientAdd, ClientPort} = Client,
 		ClientIp = inet:ntoa(ClientAdd),
 		{ServerAdd, ServerPort} = Server,

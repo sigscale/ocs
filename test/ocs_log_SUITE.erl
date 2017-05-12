@@ -106,7 +106,7 @@ log_auth_event(_Config) ->
 			{?NasIdentifier, "ap-1.sigscale.net"},
 			{?NasIpAddress, ClientAddress}],
 	ResAttrs = [{?SessionTimeout, 3600}, {?MessageAuthenticator, RandomBin}],
-	ok = ocs_log:radius_auth_log(Server, Client, Type, ReqAttrs, ResAttrs),
+	ok = ocs_log:auth_log(Server, Client, Type, ReqAttrs, ResAttrs),
 	End = erlang:system_time(millisecond),
 	Fany = fun({TS, N, S, C, T, A1, A2}) when TS >= Start, TS =< End,
 					N == Node, S == Server, C == Client, T == Type,
@@ -118,14 +118,14 @@ log_auth_event(_Config) ->
 	Find = fun(F, {Cont, Chunk}) ->
 				case lists:any(Fany, Chunk) of
 					false ->
-						F(F, disk_log:chunk(radius_auth, Cont));
+						F(F, disk_log:chunk(ocs_auth, Cont));
 					true ->
 						true
 				end;
 			(_F, eof) ->
 				false
 	end,
-	true = Find(Find, disk_log:chunk(radius_auth, start)).
+	true = Find(Find, disk_log:chunk(ocs_auth, start)).
 
 log_acct_event() ->
    [{userdata, [{doc, "Log an accounting event"}]}].
@@ -146,7 +146,7 @@ log_acct_event(_Config) ->
 			{?CalledStationId, "CA-FE-CA-FE-CA-FE:AP 1"}, {?AcctAuthentic, 1},
 			{?AcctStatusType, 1}, {?NasIdentifier, "ap-1.sigscale.net"},
 			{?AcctDelayTime, 0}, {?NasIpAddress, ClientAddress}],
-	ok = ocs_log:radius_acct_log(Server, Client, Type, ReqAttrs),
+	ok = ocs_log:acct_log(Server, Client, Type, ReqAttrs),
 	End = erlang:system_time(millisecond),
 	Fany = fun({TS, N, S, C, T, A}) when TS >= Start, TS =< End,
 					N == Node, S == Server, C == Client, T == Type,
@@ -158,14 +158,14 @@ log_acct_event(_Config) ->
 	Find = fun(F, {Cont, Chunk}) ->
 				case lists:any(Fany, Chunk) of
 					false ->
-						F(F, disk_log:chunk(radius_acct, Cont));
+						F(F, disk_log:chunk(ocs_acct, Cont));
 					true ->
 						true
 				end;
 			(_F, eof) ->
 				false
 	end,
-	true = Find(Find, disk_log:chunk(radius_acct, start)).
+	true = Find(Find, disk_log:chunk(ocs_acct, start)).
 
 get_range() ->
    [{userdata, [{doc, "Get date/time range from log"}]}].
@@ -188,14 +188,14 @@ get_range(_Config) ->
 			{?AcctDelayTime, 0}, {?NasIpAddress, ClientAddress}],
 	Event = {Start, Node, Server, Client, Type,
 			[{?AcctSessionId, "1234567890"} | Attrs]},
-	LogInfo = disk_log:info(radius_acct),
+	LogInfo = disk_log:info(ocs_acct),
 	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
 	EventSize = erlang:external_size(Event),
 	NumItems = (FileSize div EventSize) * 5,
 	Fill = fun(_F, 0) ->
 				ok;
 			(F, N) ->
-				ocs_log:radius_acct_log(Server, Client, Type,
+				ocs_log:acct_log(Server, Client, Type,
 						[{?AcctSessionId, integer_to_list(N)} | Attrs]),
 				F(F, N - 1)
 	end,
@@ -204,7 +204,7 @@ get_range(_Config) ->
 	Range = (End - Start),
 	StartRange = Start + (Range div 3),
 	EndRange = End - (Range div 3),
-	Result = ocs_log:get_range(radius_acct, StartRange, EndRange),
+	Result = ocs_log:get_range(ocs_acct, StartRange, EndRange),
 	true = length(Result) > ((NumItems div 3) - (NumItems div 10)),
 	[{?AcctSessionId, ID} | _] = element(6, lists:nth(1, Result)),
 	StartNum = list_to_integer(ID),
@@ -246,7 +246,7 @@ ipdr_log(_Config) ->
 			{?AcctInputGigawords, 1}, {?AcctOutputGigawords, 0}],
 	Event = {Start, Node, Server, Client, start,
 			[{?AcctSessionId, "1234567890"} | Attrs]},
-	LogInfo = disk_log:info(radius_acct),
+	LogInfo = disk_log:info(ocs_acct),
 	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
 	EventSize = erlang:external_size(Event),
 	Weight = [7,8] ++ lists:duplicate(32, 1) ++ lists:duplicate(32, 2)
@@ -265,7 +265,7 @@ ipdr_log(_Config) ->
 				end,
 				Attrs1 = [{?AcctSessionId, integer_to_list(N)} | Attrs],
 				Attrs2 = [{?AcctStatusType, AcctType} | Attrs1],
-				ocs_log:radius_acct_log(Server, Client, Type, Attrs2),
+				ocs_log:acct_log(Server, Client, Type, Attrs2),
 				F(F, N - 1)
 	end,
 	Fill(Fill, NumItems),
@@ -275,7 +275,7 @@ ipdr_log(_Config) ->
 	EndRange = End - (Range div 3),
 	Filename = "ipdr-" ++ ocs_log:iso8601(erlang:system_time(millisecond)),
 	ok = ocs_log:ipdr_log(Filename, StartRange, EndRange),
-	GetRangeResult = ocs_log:get_range(radius_acct, StartRange, EndRange),
+	GetRangeResult = ocs_log:get_range(ocs_acct, StartRange, EndRange),
 	Fstop = fun(E, Acc) when element(5, E) == stop ->
 				Acc + 1;
 			(_, Acc) ->

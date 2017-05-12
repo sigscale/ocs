@@ -51,4 +51,5 @@
                   [{certfile, "ssl/cert.pem"},
                   {keyfile, "ssl/key.pem"}]}},
             {server_root, "./"},
+            {alias, {"/doc", "@ERLANG_INSTALL_LIB_DIR@/@PACKAGE@-@VERSION@/doc"}},
             {document_root, "@ERLANG_INSTALL_LIB_DIR@/@PACKAGE@-@VERSION@/priv/www"}]}]}]}].

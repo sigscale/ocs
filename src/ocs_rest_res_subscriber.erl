@@ -36,7 +36,7 @@
 		ContentTypes :: list().
 %% @doc Provides list of resource representations accepted.
 content_types_accepted() ->
-	["application/json"].
+	[].
 
 -spec content_types_provided() -> ContentTypes
 	when
@@ -48,7 +48,8 @@ content_types_provided() ->
 -spec perform_get(Id) -> Result
 	when
 		Id :: string(),
-		Result :: {body, Body :: iolist()} | {error, ErrorCode :: integer()}.
+		Result :: {ok, Headers :: [string()],
+				Body :: iolist()} | {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/subscriber/{id}'
 %% requests.
 perform_get(Id) ->
@@ -62,14 +63,15 @@ perform_get(Id) ->
 				{enabled, Enabled}],
 			JsonObj  = {struct, RespObj},
 			Body = mochijson:encode(JsonObj),
-			{body, Body};
+			{ok, [], Body};
 		{error, _Reason} ->
 			{error, 404}
 	end.
 
 -spec perform_get_all() -> Result
 	when
-		Result :: {body, Body :: iolist()} | {error, ErrorCode :: integer()}.
+		Result :: {ok, Headers :: [string()],
+				Body :: iolist()} | {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/subscriber'
 %% requests.
 perform_get_all() ->
@@ -79,7 +81,8 @@ perform_get_all() ->
 		Subscribers ->
 			Response = perform_get_all1(Subscribers),
 			Body  = mochijson:encode(Response),
-			{body, Body}
+			Headers = [{content_type, "application/json"}],
+			{ok, Headers, Body}
 	end.
 %% @hidden
 perform_get_all1(Subscribers) ->

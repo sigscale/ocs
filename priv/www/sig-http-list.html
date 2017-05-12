@@ -1,0 +1,135 @@
+<link rel="import" href="bower_components/polymer/polymer.html">
+<link rel="import" href="bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="bower_components/iron-pages/iron-pages.html">
+<link rel="import" href="bower_components/iron-icons/notification-icons.html">
+<link rel="import" href="bower_components/iron-icons/editor-icons.html">
+<link rel="import" href="bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="bower_components/vaadin-grid/vaadin-grid.html">
+<link rel="import" href="bower_components/vaadin-grid/vaadin-grid-sorter.html">
+<link rel="import" href="bower_components/vaadin-grid/vaadin-grid-filter.html">
+<link rel="import" href="bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="bower_components/paper-toast/paper-toast.html">
+<link rel="import" href="bower_components/paper-input/paper-input.html">
+<link rel="import" href="bower_components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="bower_components/paper-toggle-button/paper-toggle-button.html" >
+<link rel="import" href="bower_components/paper-styles/paper-styles.html">
+
+<dom-module id="sig-http-list">
+	<template>
+		<style>
+			vaadin-grid col {
+				font-size: 46px
+			}
+		</style>
+		<vaadin-grid
+				selection-mode="single"
+				id="httpGrid"
+				grid-columns="2"
+				style="height:100%;">
+			<vaadin-grid-column width="28ex" flex-grow="2">
+				<template class="header">
+					<vaadin-grid-filter aria-label="DateTime" path="datetime" value="[[_filterDateTime]]">
+						<input placeholder="DateTime" value="{{_filterDateTime::input}}" focus-target>
+					</vaadin-grid-filter>
+					<vaadin-grid-sorter path="datetime" direction="desc">Date Time</vaadin-grid-sorter>
+				</template>
+				<template>[[item.datetime]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="15ex" flex-grow="4">
+				<template class="header">
+					<vaadin-grid-filter aria-label="Host" path="host" value="[[_filterHost]]">
+						<input placeholder="Host" value="{{_filterHost::input}}" focus-target>
+					</vaadin-grid-filter>
+					<vaadin-grid-sorter path="host" direction="desc">Host</vaadin-grid-sorter>
+				</template>
+				<template>[[item.host]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="8ex" flex-grow="5">
+				<template class="header">
+					<vaadin-grid-filter aria-label="User" path="user" value="[[_filterUser]]">
+						<input placeholder="User" value="{{_filterUser::input}}" focus-target>
+					</vaadin-grid-filter>
+					<vaadin-grid-sorter path="user" direction="desc">User</vaadin-grid-sorter>
+				</template>
+				<template>[[item.user]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="8ex" flex-grow="2">
+				<template class="header">
+					<vaadin-grid-filter aria-label="Method" path="method" value="[[_filterMethod]]">
+						<input placeholder="Method" value="{{_filterMethod::input}}" focus-target>
+					</vaadin-grid-filter>
+				Method</template>
+				<template>[[item.method]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="40ex" flex-grow="15">
+				<template class="header">
+					<vaadin-grid-filter aria-label="Resource" path="uri" value="[[_filterResource]]">
+						<input placeholder="Resource" value="{{_filterResource::input}}" focus-target>
+					</vaadin-grid-filter>
+				Resource</template>
+				<template>[[item.uri]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="7ex" flex-grow="0">
+				<template class="header">
+					<vaadin-grid-filter aria-label="Status" path="httpStatus" value="[[_filterStatus]]">
+						<input placeholder="Status" value="{{_filterStatus::input}}" focus-target>
+					</vaadin-grid-filter>
+				Status</template>
+				<template>[[item.httpStatus]]</template>
+			</vaadin-grid-column>
+		</vaadin-grid>
+		<iron-ajax id="getHttp"
+			auto = false
+			url="/ocs/v1/log/http"
+			method = "GET"
+			headers='{"Accept": "application/json"}'
+			on-response="responseHandler"
+			debounce-duration="10">
+		</iron-ajax>
+	</template>
+	<script>
+		Polymer (
+			{
+				is: 'sig-http-list',
+				responseHandler: function(event) {
+					var grid = this.$.httpGrid; 
+					var results = event.detail.xhr.response;
+					var vaadinItems = new Array();
+					for (var index in results) {
+						var newRecord = new Object();
+						newRecord.datetime = results[index].datetime;
+						newRecord.host = results[index].host;
+						newRecord.user = results[index].user;
+						newRecord.method = results[index].method;
+						newRecord.uri = results[index].uri;
+						newRecord.httpStatus = results[index].httpStatus;
+						vaadinItems[index] = newRecord;
+					}
+					grid.items = vaadinItems;
+					grid.frozenColumns = 2;
+					grid.columns = [
+						{
+							name: "datetime"
+						},
+						{
+							name: "host"
+						},
+						{
+							name: "user"
+						},
+						{
+							name: "method"
+						},
+						{
+							name: "uri"
+						},
+						{
+							name: "httpStatus"
+						}
+					];
+				}
+			}
+		);
+	</script>
+</dom-module>

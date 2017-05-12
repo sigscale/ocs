@@ -1,0 +1,118 @@
+<link rel="import" href="bower_components/polymer/polymer.html">
+<link rel="import" href="bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="bower_components/iron-pages/iron-pages.html">
+<link rel="import" href="bower_components/iron-icons/notification-icons.html">
+<link rel="import" href="bower_components/iron-icons/editor-icons.html">
+<link rel="import" href="bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="bower_components/vaadin-grid/vaadin-grid.html">
+<link rel="import" href="bower_components/vaadin-grid/vaadin-grid-sorter.html">
+<link rel="import" href="bower_components/vaadin-grid/vaadin-grid-filter.html">
+<link rel="import" href="bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="bower_components/paper-toast/paper-toast.html">
+<link rel="import" href="bower_components/paper-input/paper-input.html">
+<link rel="import" href="bower_components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="bower_components/paper-toggle-button/paper-toggle-button.html" >
+<link rel="import" href="bower_components/paper-styles/paper-styles.html">
+
+<dom-module id="sig-access-list">
+	<template>
+		<vaadin-grid
+				selection-mode="single"
+				id="accessGrid"
+				grid-columns="2"
+				style="height:100%;">
+			<vaadin-grid-column width="24ex">
+				<template class="header">
+					<vaadin-grid-filter aria-label="TimeStamp" path="timeStamp" value="[[_filterTimeStamp]]">
+						<input placeholder="TimeStamp" value="{{_filterTimeStamp::input}}" focus-target>
+					</vaadin-grid-filter>
+					<vaadin-grid-sorter path="timeStamp" direction="desc">Time Stamp</vaadin-grid-sorter>
+				</template>
+				<template>[[item.timeStamp]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="18ex" flex-grow="4">
+				<template class="header">
+					<vaadin-grid-filter aria-label="UserName" path="username" value="[[_filterUserName]]">
+						<input placeholder="UserName" value="{{_filterUserName::input}}" focus-target>
+					</vaadin-grid-filter>
+					<vaadin-grid-sorter path="username" direction="desc">Username</vaadin-grid-sorter>
+				</template>
+				<template>[[item.username]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="15ex" flex-grow="3">
+				<template class="header">
+					<vaadin-grid-filter aria-label="ClientAddress" path="clientAddress" value="[[_filterClientAddress]]">
+						<input placeholder="ClientAddress" value="{{_filterClientAddress::input}}" focus-target>
+					</vaadin-grid-filter>
+					<vaadin-grid-sorter path="clientAddress" direction="desc">Client Address</vaadin-grid-sorter>
+				</template>
+				<template>[[item.clientAddress]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="5ex" flex-grow="2">
+				<template class="header">
+					<vaadin-grid-filter aria-label="ClientPort" path="clientPort" value="[[_filterClientPort]]">
+						<input placeholder="ClientPort" value="{{_filterClientPort::input}}" focus-target>
+					</vaadin-grid-filter>
+				Client Port</template>
+				<template>[[item.clientPort]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="8ex" flex-grow="0">
+				<template class="header">
+					<vaadin-grid-filter aria-label="Type" path="type" value="[[_filterType]]">
+						<input placeholder="Type" value="{{_filterType::input}}" focus-target>
+					</vaadin-grid-filter>
+				Type</template>
+				<template>[[item.type]]</template>
+			</vaadin-grid-column>
+		</vaadin-grid>
+		<iron-ajax id="getAccess"
+				auto = false
+				url="/ocs/v1/log/access"
+				method = "GET"
+				headers='{"Accept": "application/json"}'
+				on-response="responseHandler"
+				debounce-duration="10">
+		</iron-ajax>
+	</template>
+	<script>
+		Polymer (
+			{
+				is: 'sig-access-list',
+				responseHandler: function(event) {
+					var grid = this.$.accessGrid; 
+					var results = event.detail.xhr.response;
+					var vaadinItems = new Array();
+					for (var index in results) {
+						var newRecord = new Object();
+						newRecord.timeStamp = results[index].timeStamp;
+						newRecord.username = results[index].username;
+						newRecord.clientAddress = results[index].clientAddress;
+						newRecord.clientPort = results[index].clientPort;
+						newRecord.type = results[index].type;
+						vaadinItems[index] = newRecord;
+					}
+					grid.items = vaadinItems;
+					grid.frozenColumns = 2;
+					grid.columns = [
+						{
+							name: "timeStamp"
+						},
+						{
+							name: "username"
+						},
+						{
+							name: "clientAddress"
+						},
+						{
+							name: "clientPort"
+						},
+						{
+							name: "type"
+						}
+					];
+				}
+			}
+		);
+	</script>
+</dom-module>

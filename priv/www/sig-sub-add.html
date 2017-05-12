@@ -16,182 +16,246 @@
 <dom-module id="sig-sub-add">
 	<template>
 		<style is="custom-style"> 
-			paper-dialog{width:60%; padding:10px;}
-
-			.add-button{ background-color: #3f51b5; color:#FFFFFF; }
-
-			paper-toast.error{background-color:#EF5350;}
+			paper-dialog {
+				width: 60%;
+				padding: 10px;
+			}
+			.add-button {
+				background-color: #3f51b5;
+				color:#FFFFFF;
+			}
+			paper-toast.error {
+				background-color:#EF5350;
+			}
 		</style>
-
-	<div id="add_subscriber_container">
-	<paper-dialog id="subAddModal" modal>
-		<paper-toolbar>
-			<h2>Add subscriber</h2>
-			</paper-toolbar>
-				<form  is="iron-form"  id="presubmit" method="post" action="/ocs/v1/subscriber"  content-type="application/json" >
+		<div id="add_subscriber_container">
+			<paper-dialog id="subAddModal" modal>
+				<paper-toolbar>
+					<h2>Add subscriber</h2>
+				</paper-toolbar>
+				<form
+						is="iron-form"
+						id="presubmit"
+						method="post"
+						action="/ocs/v1/subscriber"
+						content-type="application/json">
 					<div>
-						<paper-input id="add1" name="subscriber" label="Identity*" required></paper-input>
-						<paper-tooltip >Identity, or username, of the subscriber to authenticate</paper-tooltip>
+						<paper-input id="add1"
+								name="subscriber"
+								label="Identity*"
+								required>
+						</paper-input>
+						<paper-tooltip>
+							Identity, or username, of the subscriber to authenticate.
+						</paper-tooltip>
 					</div>
 					<div>
-						<paper-input id="add2" name="password"  label="Secret" ></paper-input>
-						<paper-tooltip >Secret, or password, shared only with the subscriber</paper-tooltip>
+						<paper-input id="add2"
+								name="password"
+								label="Secret">
+						</paper-input>
+						<paper-tooltip>
+							Secret, or password, shared only with the subscriber
+						</paper-tooltip>
 					</div>
 					<div>
-						<paper-input id="add3" name="ascendDataRate" type="number" label="Receive Data Rate" ></paper-input>
-						<paper-tooltip >Limit on received (download) data per second in bits.</paper-tooltip>
+						<paper-input id="add3"
+								name="ascendDataRate"
+								type="number"
+								label="Receive Data Rate">
+						</paper-input>
+						<paper-tooltip>
+							Limit on received (download) data per second in bits.
+						</paper-tooltip>
 					</div>
 					<div>
-						<paper-input id="add4" name="ascendXmitRate" type="number" label="Transmit Data Rate" ></paper-input>
-						<paper-tooltip >Limit on transmitted (upload) data per second in bits.</paper-tooltip>
+						<paper-input id="add4"
+								name="ascendXmitRate"
+								type="number"
+								label="Transmit Data Rate">
+						</paper-input>
+						<paper-tooltip>
+							Limit on transmitted (upload) data per second in bits.
+						</paper-tooltip>
 					</div>
 					<div>
-						<paper-input id="add5" name="sessionTimeout" type="number" label="Session Timeout" ></paper-input>
-						<paper-tooltip >Time between authorization requests in an active session in seconds</paper-tooltip>
+						<paper-input id="add5"
+								name="sessionTimeout"
+								type="number"
+								label="Session Timeout">
+						</paper-input>
+						<paper-tooltip>
+							Time between authorization requests in an active session in seconds.
+						</paper-tooltip>
 					</div>
 					<div>
-						<paper-input id="add6" name="acctInterimInterval" type="number" label="Update Interval" ></paper-input>
-						<paper-tooltip >Time between accounting interim updates in seconds</paper-tooltip>
+						<paper-input id="add6"
+								name="acctInterimInterval"
+								type="number"
+								label="Update Interval">
+						</paper-input>
+						<paper-tooltip>
+							Time between accounting interim updates in seconds.
+						</paper-tooltip>
 					</div>
 					<div>
-						<paper-input id="add7" name="class" label="Class" ></paper-input>
+						<paper-input id="add7"
+								name="class"
+								label="Class">
+						</paper-input>
 					</div>
 					<div>
-						<paper-input id="add8" name="balance" type="number" label="Balance (bytes)*" required> </paper-input>
-						<paper-tooltip >Initial credit value, in bytes, against which accounting will debit usage against</paper-tooltip>
-					</div><br>
+						<paper-input id="add8"
+								name="balance"
+								type="number"
+								label="Balance (bytes)*"
+								required>
+						</paper-input>
+						<paper-tooltip>
+							Initial credit value, in bytes, against which accounting will debit usage against.
+						</paper-tooltip>
+					</div>
+					<br>
 					<div>
-						Enable <div style="display:inline-block;"> <paper-toggle-button id="add9" name="enabled"></paper-toggle-button> </div>
-						<paper-tooltip >Temporarily enable, or disable, authorization for service</paper-tooltip>
+						Enable
+						<div style="display:inline-block;">
+							<paper-toggle-button id="add9" name="enabled">
+							</paper-toggle-button>
+						</div>
+						<paper-tooltip>
+							Temporarily enable, or disable, authorization for service.
+						</paper-tooltip>
 					</div>
 					<div class="buttons">
-						<paper-button raised class="add-button" onclick="_submitSubForm()" style="float: right; width: 200px;"  >Submit</paper-button>
-						<paper-button dialog-confirm autofocus onclick="subAddModal.close()"  >Cancel</paper-button>
+						<paper-button
+								raised
+								class="add-button"
+								onclick="_submitSubForm()"
+								style="float: right; width: 200px;">
+							Submit
+						</paper-button>
+						<paper-button
+								dialog-confirm
+								autofocus
+								onclick="subAddModal.close()">
+							Cancel
+						</paper-button>
 					</div>
 				</form>
 				<div id="response-display-container">
-					<paper-toast id="toastError" class="fit-bottom error" >
-						<h2> Couldn't add subscriber !</h2>
-						<h5> Please recheck the following.</h5>
+					<paper-toast id="toastError" class="fit-bottom error">
+						<h2>Couldn't add subscriber!</h2>
+						<h5>Please recheck the following.</h5>
 						<ul>
-							<li>Balance must be a postive number </li>
+							<li>Balance must be a postive number</li>
 						</ul>
-						<paper-button id="toastErrorClose" onclick="toastErrorClose()" style="background-color: #fffcfc;color: #170101;">Close</paper-button>
+						<paper-button id="toastErrorClose"
+								onclick="toastErrorClose()"
+								style="background-color: #fffcfc;color: #170101;">
+							Close
+						</paper-button>
 					</paper-toast>
-					<paper-toast id="toast-success" class="fit-bottom" >
-						<h2> Subscriber added !</h2>
+					<paper-toast id="toast-success" class="fit-bottom">
+						<h2>Subscriber added!</h2>
 					</paper-toast>
 				</div>
-		</paper-dialog>
+			</paper-dialog>
 		</div>
-	<script>
-		function _submitSubForm() {
-		  document.getElementById('presubmit').submit();
-		}
-
-		function toastErrorClose(event) {
-		  document.getElementById('toastError').close();
-		}
-
-		function cancelModal2(event) {
-		  document.getElementById('subAddModal').close();
-		}
-
-	</script>
-	</template>
 		<script>
-			Polymer({
+			function _submitSubForm() {
+				document.getElementById('presubmit').submit();
+			}
+			function toastErrorClose(event) {
+				document.getElementById('toastError').close();
+			}
+			function cancelModal2(event) {
+				document.getElementById('subAddModal').close();
+			}
+		</script>
+	</template>
+	<script>
+		Polymer (
+			{
 				is: 'sig-sub-add',
-			properties:{},
-			listeners: {
-				'toastErrorClose.on-click': 'closeToast',
-				'presubmit.iron-form-presubmit': '_handleFormPreSubmit',
-				'presubmit.iron-form-submit': '_handleFormSubmit',
-				'presubmit.iron-form-error': '_handleFormError',
-				'presubmit.iron-form-response': '_handleFormResponse'
-			},
-
-			_handleFormPreSubmit: function() {
-				var form = document.getElementById('presubmit');
-				var formData = new Object();
-				formData.id = document.getElementById("add1").value;
-				if(document.getElementById("add2").value == ""){
-					formData.password = null;
-				}else{
-					formData.password = document.getElementById("add2").value;
-				}
-
-				var ascendDataRate = new Object(); 
-				ascendDataRate.name = "ascendDataRate";
-				ascendDataRate.type = 26;
-				ascendDataRate.vendorId = 529;
-				ascendDataRate.vendorType = 197;
-				ascendDataRate.value = parseInt(document.getElementById("add3").value);
-
-				var ascendXmitRate = new Object(); 
-				ascendXmitRate.name = "ascendXmitRate";
-				ascendXmitRate.type = 26;
-				ascendXmitRate.vendorId = 529;
-				ascendXmitRate.vendorType = 255;
-				ascendXmitRate.value = parseInt(document.getElementById("add4").value);
-
-				var sessionTimeout = new Object();
-				sessionTimeout.name = "sessionTimeout";
-				sessionTimeout.value = parseInt(document.getElementById("add5").value);
-
-				var acctInterimInterval = new Object();
-				acctInterimInterval.name = "acctInterimInterval";
-				acctInterimInterval.value = parseInt(document.getElementById("add6").value);
-
-				var classx = new Object();
-				classx.name = "class";
-				if(document.getElementById("add7").value == ""){
-					classx.value = null;
-				}else{
-					classx.value = document.getElementById("add7").value;
-				}
-				var attributes = new Array();
-				attributes[0] = ascendDataRate;
-				attributes[1] = ascendXmitRate;
-				attributes[2] = sessionTimeout;
-				attributes[3] = acctInterimInterval;
-				attributes[4] = classx;
-
-				formData.attributes = attributes; 
-				formData.balance = parseInt(document.getElementById("add8").value);
-				formData.enabled= document.getElementById("add9").checked;
-
-				form.request.body = formData;
-			},
-
-			_handleFormSubmit: function() {
-				var form = document.getElementById('presubmit');
-				form.request.headers='{"Content-Type": "application/json"}';
-				form.request.contentType = "application/json";
-		  },
-
-			_handleFormError: function(event) {
-				var toast = document.getElementById("toastError");
-				toast.open();
-				toast.duration = 0;
-				toast.fitInto = document.getElementById("subAddModal");
-				toast.class="fit-bottom";
-			},
-
-			_handleFormResponse: function(event) {
-				var toast = document.getElementById("toast-success");
-				toast.open();
-				toast.duration = 4;
-				toast.fitInto = document.getElementById("response-display-container");
-				document.getElementById("presubmit").reset();
-				document.getElementById("subAddModal").close();
-				document.getElementById("getSubs").generateRequest();
-			},
-
-			toastErrorClose: function(event) {
-				var toast = document.getElementById("toastError");
-				toast.close();
-			}   
-		});
+				properties:{},
+				listeners: {
+					'toastErrorClose.on-click': 'closeToast',
+					'presubmit.iron-form-presubmit': '_handleFormPreSubmit',
+					'presubmit.iron-form-submit': '_handleFormSubmit',
+					'presubmit.iron-form-error': '_handleFormError',
+					'presubmit.iron-form-response': '_handleFormResponse'
+				},
+				_handleFormPreSubmit: function() {
+					var form = document.getElementById('presubmit');
+					var formData = new Object();
+					formData.id = document.getElementById("add1").value;
+					if(document.getElementById("add2").value == "") {
+						formData.password = null;
+					} else {
+						formData.password = document.getElementById("add2").value;
+					}
+					var ascendDataRate = new Object(); 
+					ascendDataRate.name = "ascendDataRate";
+					ascendDataRate.type = 26;
+					ascendDataRate.vendorId = 529;
+					ascendDataRate.vendorType = 197;
+					ascendDataRate.value = parseInt(document.getElementById("add3").value);
+					var ascendXmitRate = new Object(); 
+					ascendXmitRate.name = "ascendXmitRate";
+					ascendXmitRate.type = 26;
+					ascendXmitRate.vendorId = 529;
+					ascendXmitRate.vendorType = 255;
+					ascendXmitRate.value = parseInt(document.getElementById("add4").value);
+					var sessionTimeout = new Object();
+					sessionTimeout.name = "sessionTimeout";
+					sessionTimeout.value = parseInt(document.getElementById("add5").value);
+					var acctInterimInterval = new Object();
+					acctInterimInterval.name = "acctInterimInterval";
+					acctInterimInterval.value = parseInt(document.getElementById("add6").value);
+					var classx = new Object();
+					classx.name = "class";
+					if(document.getElementById("add7").value == "") {
+						classx.value = null;
+					} else {
+						classx.value = document.getElementById("add7").value;
+					}
+					var attributes = new Array();
+					attributes[0] = ascendDataRate;
+					attributes[1] = ascendXmitRate;
+					attributes[2] = sessionTimeout;
+					attributes[3] = acctInterimInterval;
+					attributes[4] = classx;
+					formData.attributes = attributes; 
+					formData.balance = parseInt(document.getElementById("add8").value);
+					formData.enabled= document.getElementById("add9").checked;
+					form.request.body = formData;
+				},
+				_handleFormSubmit: function() {
+					var form = document.getElementById('presubmit');
+					form.request.headers='{"Content-Type": "application/json"}';
+					form.request.contentType = "application/json";
+				},
+				_handleFormError: function(event) {
+					var toast = document.getElementById("toastError");
+					toast.open();
+					toast.duration = 0;
+					toast.fitInto = document.getElementById("subAddModal");
+					toast.class="fit-bottom";
+				},
+				_handleFormResponse: function(event) {
+					var toast = document.getElementById("toast-success");
+					toast.open();
+					toast.duration = 4;
+					toast.fitInto = document.getElementById("response-display-container");
+					document.getElementById("presubmit").reset();
+					document.getElementById("subAddModal").close();
+					document.getElementById("getSubs").generateRequest();
+				},
+				toastErrorClose: function(event) {
+					var toast = document.getElementById("toastError");
+					toast.close();
+				}   
+			}
+		);
 	</script>
 </dom-module>

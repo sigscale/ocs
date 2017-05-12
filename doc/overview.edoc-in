@@ -1100,6 +1100,8 @@ The {@link //inets. inets} application's {@link //inets/httpd. httpd} server con
 					<dd>Defines list of groups to grant access to path().</dd>
 			</dl>
 		</dd>
+	<dt>{rest_page_size, integer()}</dt>
+		<dd>Defines the maximum number of items in REST collection.</dd>
 </dl>
 
 ===Example sys.config===

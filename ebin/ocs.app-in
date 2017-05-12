@@ -44,6 +44,9 @@
 				ocs_rest_res_subscriber,
 				ocs_rest_res_client,
 				ocs_rest_res_usage,
+				ocs_rest_res_access,
+				ocs_rest_res_accounting,
+				ocs_rest_res_http,
 				mod_ocs_rest_dispatcher,
 				mod_ocs_rest_accepted_content,
 				mod_ocs_rest_delete,
@@ -72,5 +75,6 @@
 				{ipdr_log_dir, "log/ipdr"},
 				{tls_key, "%APP_PRIV%/key.pem"},
 				{tls_cert, "%APP_PRIV%/cert.pem"},
-				{tls_cacert, "%APP_PRIV%/CAcert.pem"}]},
+				{tls_cacert, "%APP_PRIV%/CAcert.pem"},
+				{rest_page_size, 1000}]},
 		{mod, {ocs_app, []}}]}.

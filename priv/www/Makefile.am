@@ -4,9 +4,11 @@
 
 www_DATA = favicon.ico \
 	index.html \
-	sig-acct-list.html \
-	sig-auth-list.html \
-	sig-acct-log-files.html \
+	sig-ipdr-list.html \
+	sig-access-list.html \
+	sig-accounting-list.html \
+	sig-http-list.html \
+	sig-ipdr-log-files.html \
 	sig-app.html \
 	sig-client-add.html \
 	sig-client-list.html \

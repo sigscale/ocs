@@ -631,11 +631,11 @@ send_response(EapPacket, RadiusCode, ResponseAttributes,
 	ResponsePacket = radius:codec(Response),
 	case RadiusCode of
 		?AccessAccept ->
-			ok = ocs_log:radius_auth_log({ServerAddress, ServerPort},
+			ok = ocs_log:auth_log({ServerAddress, ServerPort},
 					{ClientAddress, ClientPort}, accept,
 					RequestAttributes, AttrList3);
 		?AccessReject ->
-			ok = ocs_log:radius_auth_log({ServerAddress, ServerPort},
+			ok = ocs_log:auth_log({ServerAddress, ServerPort},
 					{ClientAddress, ClientPort}, reject,
 					RequestAttributes, AttrList3);
 		?AccessChallenge ->

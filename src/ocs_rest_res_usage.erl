@@ -46,7 +46,8 @@ content_types_provided() ->
 
 -spec perform_get_all() -> Result
 	when
-		Result :: {body, Body :: iolist()} | {error, ErrorCode :: integer()}.
+		Result :: {ok, Headers :: [string()],
+				Body :: iolist()} | {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /usageManagement/v1/usage'
 %% requests.
 perform_get_all() ->
@@ -54,7 +55,8 @@ perform_get_all() ->
 	case file:list_dir(Directory) of
 		{ok, Files} ->
 			Body = mochijson:encode({array, Files}),
-			{body, Body};
+			Headers = [{content_type, "application/json"}],
+			{ok, Headers, Body};
 		{error, _Reason} ->
 			{error, 500}
 	end.
@@ -62,67 +64,84 @@ perform_get_all() ->
 -spec perform_get(Id) -> Result
 	when
 		Id :: string(),
-		Result :: {body, Body :: iolist()} | {error, ErrorCode :: integer()}.
+		Result :: {ok, Headers :: [string()],
+				Body :: iolist()} | {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /usageManagement/v1/usage/{id}'
 %% requests.
 perform_get(Id) ->
+	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
 	Log = ?IPDR_LOG,
 	FileName = Directory ++ "/" ++ Id,
-	read_ipdr(Log, FileName).
+	read_ipdr(Log, FileName, MaxItems).
 	
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
 
 %% @hidden
-read_ipdr(Log, FileName) ->
+read_ipdr(Log, FileName, MaxItems) ->
 	case disk_log:open([{name, Log}, {file, FileName},
 			{type, halt}, {size, infinity}]) of
 		{ok, Log} ->
-			read_ipdr1(Log, start, []);
+			read_ipdr1(Log, start, MaxItems, 0, []);
 		{repaired, Log, _Recovered, _Bad} ->
-			read_ipdr1(Log, start, []);
+			read_ipdr1(Log, start, MaxItems, 0, []);
 		{error, _Reason} ->
 			{error, 500}
 	end.
 
 %% @hidden
-read_ipdr1(Log, Continuation, Acc) ->
+read_ipdr1(Log, Continuation, MaxItems, Count, Acc) ->
 	case disk_log:chunk(Log, Continuation) of
 		eof ->
-			ipdr_to_json(Log, Acc);
-		{Continuation2, Records} ->
-			NewAcc = Records ++ Acc,
-			read_ipdr1(Log, Continuation2, NewAcc)
+			read_ipdr2(Log, Count, Acc);
+		{Continuation2, Records} -> 
+			case ipdr_to_json(Count, Records) of
+				{NewCount, JsonObj} when NewCount > MaxItems ->
+					{NewJsonObj, _} = lists:split(MaxItems - Count, lists:reverse(JsonObj)),
+					NewAcc = [NewJsonObj | Acc],
+					read_ipdr2(Log, NewCount, NewAcc);
+				{NewCount, JsonObj} when NewCount == MaxItems ->
+					NewAcc = [JsonObj | Acc],
+					read_ipdr2(Log, NewCount, NewAcc);
+				{NewCount, JsonObj} ->
+					NewAcc = [JsonObj | Acc],
+					read_ipdr1(Log, Continuation2, MaxItems, NewCount, NewAcc)
+			end
 	end.
+%% @hidden
+read_ipdr2(Log, Count, Acc)->
+	NewAcc = lists:flatten(lists:reverse(Acc)),
+	Response = {array, NewAcc},
+	Body = mochijson:encode(Response),
+	disk_log:close(Log),
+	ContentRange = "items 1-" ++ integer_to_list(Count) ++ "/*",
+   Headers = [{content_range, ContentRange}],
+	{ok, Headers, Body}.
 
 %% @hidden
-ipdr_to_json(Log, IpdrList) ->
-	F = fun(#ipdrDoc{}, {Id, Acc}) ->
-				{Id, Acc};
-			(#ipdr{} = Ipdr, {Id, Acc}) ->
+ipdr_to_json(Count, Records) ->
+	F = fun(#ipdrDoc{}, {N, Acc}) ->
+				{N, Acc};
+			(#ipdr{} = Ipdr, {N, Acc}) ->
 				UsageSpecification = {struct, [{id, 1},
 						{href, "usageManagement/v1/usageSpecification/1"},
 						{name, "PublicWLANAccessUsageSpec"}]},
 				UsageCharacteristicObjs = usage_characteristics(Ipdr),
 				UsageCharacteristic = {array, UsageCharacteristicObjs},
-				RespObj = [{struct, [{id, Id},
-						{href, "usageManagement/v1/usage/" ++ integer_to_list(Id)},
+				RespObj = [{struct, [{id, N + 1},
+						{href, "usageManagement/v1/usage/" ++ integer_to_list(N + 1)},
 						{date, "SomeDateTime"}, {type, "PublicWLANAccessUsage"},
 						{description, "Description for individual usage content"},
 						{status, received},
 						{usageSpecification, UsageSpecification},
 						{usageCharacteristic, UsageCharacteristic}]}],
-						{Id + 1, Acc ++ RespObj};
-			(#ipdrDocEnd{}, {Id, Acc}) ->
-				{Id, Acc}
+						{N + 1, [RespObj | Acc]};
+			(#ipdrDocEnd{}, {N, Acc}) ->
+				{N, Acc}
 	end,
-	{_Count, JsonObj} = lists:foldl(F, {1, []}, IpdrList),
-	Response = {array, JsonObj},
-	Body = mochijson:encode(Response),
-	disk_log:close(Log),
-	{body, Body}.
+	lists:foldl(F, {Count, []}, Records).
 
 %% @hidden
 usage_characteristics(#ipdr{} = Ipdr) ->

@@ -36,7 +36,7 @@
 		ContentTypes :: list().
 %% @doc Provides list of resource representations accepted.
 content_types_accepted() ->
-	["application/json"].
+	[].
 
 -spec content_types_provided() -> ContentTypes
 	when
@@ -75,17 +75,18 @@ perform_get1(Address) ->
 
 -spec perform_get_all() -> Result 
 	when
-		Result ::{body, Body :: iolist()} | {error, ErrorCode :: integer()}.
+		Result ::{ok, Headers :: [string()],
+				Body :: iolist()} | {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/client'
 %% requests.
 perform_get_all() ->
 	case ocs:get_clients() of
 		{error, _} ->
 			{error, 404};
-				Clients ->
-				Response = perform_get_all1(Clients),
-				Body  = mochijson:encode(Response),
-			{body, Body}
+		Clients ->
+			Response = perform_get_all1(Clients),
+			Body  = mochijson:encode(Response),
+			{ok, [{"content-type", "application/json"}], Body}
 	end.
 %% @hidden
 perform_get_all1(Clients) ->

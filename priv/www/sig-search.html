@@ -14,19 +14,11 @@
 <dom-module id="sig-search">
 	<template>
 		<style> /* local DOM styles go here */
-			:host {
-				display: inline-block;
-				width:100%;
-			}
 			iron-icon {
 				fill: rgba(0,0,0,0);
 				stroke: currentcolor;
 			}
-			:host([pressed]) iron-icon {
-				fill: currentcolor;
-			}
 		</style>
-
 		<style is="custom-style"> 
 			.flex-horizontal {
 				@apply(--layout-horizontal);
@@ -83,95 +75,107 @@
 				margin:0px 15px 0px 15px;
 			}
 		</style>
-
-		<form  is="iron-form"  name = "presubmit1" id="presubmit1" method="get" content-type="application/json" >
-			<paper-input label="Search by Identity" required></paper-input>
-			<paper-button raised class="custom indigo" on-click="submitForm" style="float: right; "  >Search</paper-button>
-			<paper-button dialog-confirm autofocus on-click="resetForm" >Reset</paper-button> 
+		<form
+				is="iron-form"
+				name="presubmit1"
+				id="presubmit1"
+				method="get"
+				content-type="application/json">
+			<paper-input
+					label="Search by Identity"
+					required>
+			</paper-input>
+			<paper-button
+					raised
+					class="custom indigo"
+					on-click="submitForm"
+					style="float: right;">
+				Search
+			</paper-button>
+			<paper-button
+					dialog-confirm
+					autofocus
+					on-click="resetForm">
+				Reset
+			</paper-button> 
 		</form>
-
 		<paper-toast id="toast-no-subscriber" class="fit-bottom" >
-			<h2> No Subscriber found !</h2>
+			<h2>No Subscriber found!</h2>
 		</paper-toast>
-
 	</template>
 	<script>
-		Polymer({
-			is: 'sig-search',
-			properties:{ },
-			listeners: {
-				'presubmit1.iron-form-presubmit': '_handleFormSubmit',
-				'presubmit1.iron-form-error': '_handleFormError',
-				'presubmit1.iron-form-response': '_handleFormResponse'
-			},
-
-			submitForm: function(){
-				document.getElementById("progressbar").indeterminate = true;
-				var form = document.getElementById('presubmit1');
-				form.submit();
-				document.getElementById('modal1').close();
+		Polymer (
+			{
+				is: 'sig-search',
+				properties:{},
+				listeners: {
+					'presubmit1.iron-form-presubmit': '_handleFormSubmit',
+					'presubmit1.iron-form-error': '_handleFormError',
+					'presubmit1.iron-form-response': '_handleFormResponse'
 				},
-
-				detached: function (){
+				submitForm: function() {
+					document.getElementById("progressbar").indeterminate = true;
+					var form = document.getElementById('presubmit1');
+					form.submit();
+					document.getElementById('modal1').close();
 				},
-
-			resetForm: function() {
-				var form = document.getElementById('presubmit1');
-				form.reset();
-				if(window.selection == "selectionSubscribers"){
-					document.getElementById('getSubs').generateRequest();
-				}
-				if(window.selection == "selectionRadiusClients"){
-					document.getElementById('getClients').generateRequest();
-				}
-				document.getElementById('modal1').close();
-			} ,
-
-			_handleFormSubmit: function() {
-				var form = document.getElementById('presubmit1');
-				form.request.headers='{"Content-Type": "application/json", "Accept": "application/json"}';
-				form.request.contentType = "application/json";
-				if(window.selection == "selectionSubscribers"){
-						  form.request.url = "/ocs/v1/subscriber/" + form[0].value;
-				}
-				if(window.selection == "selectionRadiusClients"){
-						  form.request.url = "/ocs/v1/client/" + form[0].value;
-				}
-			} ,
-
-			_handleFormResponse: function(event) {
-				var grid = document.getElementById("frozen");; 
-				var result = event.detail.response;
-				var vaadinItems = new Array();
-				var newRecord = new Object();
-				newRecord.id = result.id;
-
-				if(window.selection == "selectionSubscribers"){
-					newRecord.password = result.password;
-					newRecord.balance = result.balance;
-					result.attributes.forEach(function(attrObj){
-					newRecord[attrObj.name] = attrObj.value;
-						});
-					newRecord.enabled = result.enabled;
-				}
-				if(window.selection == "selectionRadiusClients"){
-					newRecord.secret = result.secret;
-					newRecord.disconnectPort = result.disconnectPort;
-					newRecord.protocol = result.protocol;
-				}
-
-				vaadinItems[0] = newRecord;
-				grid.items = vaadinItems;
-				document.getElementById('modal1').close();
-				document.getElementById("progressbar").indeterminate = false;
-			},
-
-			_handleFormError: function(event) {
-				var toast  = document.getElementById("toast-no-subscriber");
-				toast.open();
-				toast.fitInto = document.getElementById("subcriber-not-found");
-				document.getElementById("progressbar").indeterminate = false;
-			}   
-		});
+				detached: function () {
+				},
+				resetForm: function() {
+					var form = document.getElementById('presubmit1');
+					form.reset();
+					if(window.selection == "selectionSubscribers") {
+						document.getElementById('getSubs').generateRequest();
+					}
+					if(window.selection == "selectionRadiusClients") {
+						document.getElementById('getClients').generateRequest();
+					}
+					document.getElementById('modal1').close();
+				} ,
+				_handleFormSubmit: function() {
+					var form = document.getElementById('presubmit1');
+					form.request.headers='{"Content-Type": "application/json", "Accept": "application/json"}';
+					form.request.contentType = "application/json";
+					if(window.selection == "selectionSubscribers") {
+							  form.request.url = "/ocs/v1/subscriber/" + form[0].value;
+					}
+					if(window.selection == "selectionRadiusClients") {
+							  form.request.url = "/ocs/v1/client/" + form[0].value;
+					}
+				},
+				_handleFormResponse: function(event) {
+					var grid = document.getElementById("frozen");; 
+					var result = event.detail.response;
+					var vaadinItems = new Array();
+					var newRecord = new Object();
+					newRecord.id = result.id;
+					if(window.selection == "selectionSubscribers") {
+						newRecord.password = result.password;
+						newRecord.balance = result.balance;
+						result.attributes.forEach(
+							function(attrObj) {
+								newRecord[attrObj.name] = attrObj.value;
+							}
+						);
+						newRecord.enabled = result.enabled;
+					}
+					if(window.selection == "selectionRadiusClients") {
+						newRecord.secret = result.secret;
+						newRecord.disconnectPort = result.disconnectPort;
+						newRecord.protocol = result.protocol;
+					}
+					vaadinItems[0] = newRecord;
+					grid.items = vaadinItems;
+					document.getElementById('modal1').close();
+					document.getElementById("progressbar").indeterminate = false;
+				},
+				_handleFormError: function(event) {
+					var toast  = document.getElementById("toast-no-subscriber");
+					toast.open();
+					toast.fitInto = document.getElementById("subcriber-not-found");
+					document.getElementById("progressbar").indeterminate = false;
+				}   
+			}
+		);
 	</script>
 </dom-module>

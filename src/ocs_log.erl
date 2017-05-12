@@ -21,9 +21,10 @@
 -copyright('Copyright (c) 2016-2017 SigScale Global Inc.').
 
 %% export the ocs_log public API
--export([radius_acct_open/0, radius_acct_log/4, radius_acct_close/0]).
--export([radius_auth_open/0, radius_auth_log/5, radius_auth_close/0, radius_auth_query/5]).
--export([ipdr_log/3, get_range/3, dump_file/2]).
+-export([acct_open/0, acct_log/4, acct_close/0]).
+-export([auth_open/0, auth_log/5, auth_close/0, auth_query/5]).
+-export([ipdr_log/3, get_range/3, last/2]).
+-export([dump_file/2, http_file/2, httpd_logname/1]).
 -export([date/1, iso8601/1]).
 
 %% export the ocs_log private API
@@ -32,8 +33,8 @@
 -include("ocs_log.hrl").
 -include_lib("radius/include/radius.hrl").
 
--define(RADACCT, radius_acct).
--define(RADAUTH, radius_auth).
+-define(ACCTLOG, ocs_acct).
+-define(AUTHLOG, ocs_auth).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -46,26 +47,26 @@
 %%  The ocs_log public API
 %%----------------------------------------------------------------------
 
--spec radius_acct_open() -> Result
+-spec acct_open() -> Result
 	when
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Open the accounting log for logging events.
-radius_acct_open() ->
+acct_open() ->
 	{ok, Directory} = application:get_env(ocs, acct_log_dir),
 	case file:make_dir(Directory) of
 		ok ->
-			radius_acct_open1(Directory);
+			acct_open1(Directory);
 		{error, eexist} ->
-			radius_acct_open1(Directory);
+			acct_open1(Directory);
 		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
-radius_acct_open1(Directory) ->
+acct_open1(Directory) ->
 	{ok, LogSize} = application:get_env(ocs, acct_log_size),
 	{ok, LogFiles} = application:get_env(ocs, acct_log_files),
-	Log = ?RADACCT,
+	Log = ?ACCTLOG,
 	FileName = Directory ++ "/" ++ atom_to_list(Log),
 	case disk_log:open([{name, Log}, {file, FileName},
 					{type, wrap}, {size, {LogSize, LogFiles}}]) of
@@ -81,7 +82,7 @@ radius_acct_open1(Directory) ->
 			{error, Reason}
 	end.
 
--spec radius_acct_log(Server, Client, Type, Attributes) -> Result
+-spec acct_log(Server, Client, Type, Attributes) -> Result
 	when
 		Server :: {Address, Port},
 		Client :: {Address, Port},
@@ -92,48 +93,48 @@ radius_acct_open1(Directory) ->
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Write an accounting event to disk log.
-radius_acct_log(Server, Client, Type, Attributes) ->
+acct_log(Server, Client, Type, Attributes) ->
 	TS = erlang:system_time(?MILLISECOND),
 	Event = {TS, node(), Server, Client, Type, Attributes},
-	disk_log:log(?RADACCT, Event).
+	disk_log:log(?ACCTLOG, Event).
 
--spec radius_acct_close() -> Result
+-spec acct_close() -> Result
 	when
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Close accounting disk log.
-radius_acct_close() ->
-	case disk_log:close(?RADACCT) of
+acct_close() ->
+	case disk_log:close(?ACCTLOG) of
 		ok ->
 			ok;
 		{error, Reason} ->
 			Descr = lists:flatten(disk_log:format_error(Reason)),
 			Trunc = lists:sublist(Descr, length(Descr) - 1),
 			error_logger:error_report([Trunc, {module, ?MODULE},
-					{log, ?RADACCT}, {error, Reason}]),
+					{log, ?ACCTLOG}, {error, Reason}]),
 			{error, Reason}
 	end.
 
--spec radius_auth_open() -> Result
+-spec auth_open() -> Result
 	when
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Open the authorization log for logging events.
-radius_auth_open() ->
+auth_open() ->
 	{ok, Directory} = application:get_env(ocs, auth_log_dir),
 	case file:make_dir(Directory) of
 		ok ->
-			radius_auth_open1(Directory);
+			auth_open1(Directory);
 		{error, eexist} ->
-			radius_auth_open1(Directory);
+			auth_open1(Directory);
 		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
-radius_auth_open1(Directory) ->
+auth_open1(Directory) ->
 	{ok, LogSize} = application:get_env(ocs, auth_log_size),
 	{ok, LogFiles} = application:get_env(ocs, auth_log_files),
-	Log = ?RADAUTH,
+	Log = ?AUTHLOG,
 	FileName = Directory ++ "/" ++ atom_to_list(Log),
 	case disk_log:open([{name, Log}, {file, FileName},
 					{type, wrap}, {size, {LogSize, LogFiles}}]) of
@@ -149,7 +150,7 @@ radius_auth_open1(Directory) ->
 			{error, Reason}
 	end.
 
--spec radius_auth_log(Server, Client, Type, RequestAttributes,
+-spec auth_log(Server, Client, Type, RequestAttributes,
 		ResponseAttributes) -> Result
 	when
 		Server :: {Address, Port},
@@ -162,13 +163,13 @@ radius_auth_open1(Directory) ->
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Write an authorization event to disk log.
-radius_auth_log(Server, Client, Type, RequestAttributes, ResponseAttributes) ->
+auth_log(Server, Client, Type, RequestAttributes, ResponseAttributes) ->
 	TS = erlang:system_time(?MILLISECOND),
 	Event = {TS, node(), Server, Client, Type,
 			RequestAttributes, ResponseAttributes},
-	disk_log:log(?RADAUTH, Event).
+	disk_log:log(?AUTHLOG, Event).
 
--spec radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch) -> Result
+-spec auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch) -> Result
 	when
 		Start :: calendar:datetime() | pos_integer(),
 		End :: calendar:datetime() | pos_integer(),
@@ -192,72 +193,99 @@ radius_auth_log(Server, Client, Type, RequestAttributes, ResponseAttributes) ->
 %%
 %% 	Returns a list of mathing authentication events.
 %%
-radius_auth_query({{_, _, _}, {_, _, _}} = Start, End, Types, ReqAttrsMatch, RespAttrsMatch) ->
+auth_query({{_, _, _}, {_, _, _}} = Start, End, Types, 
+ReqAttrsMatch, RespAttrsMatch) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(Start) - ?EPOCH,
-	radius_auth_query(Seconds * 1000, End, Types, ReqAttrsMatch, RespAttrsMatch);
-radius_auth_query(Start, {{_, _, _}, {_, _, _}} = End, Types, ReqAttrsMatch, RespAttrsMatch) ->
+	auth_query(Seconds * 1000, End, Types, ReqAttrsMatch, 
+RespAttrsMatch);
+auth_query(Start, {{_, _, _}, {_, _, _}} = End, Types, 
+ReqAttrsMatch, RespAttrsMatch) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
-	radius_auth_query(Start, Seconds * 1000, Types, ReqAttrsMatch, RespAttrsMatch);
-radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch) when is_integer(Start), is_integer(End) ->
-	radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, disk_log:chunk(radius_auth, start), []).
+	auth_query(Start, Seconds * 1000, Types, ReqAttrsMatch, 
+RespAttrsMatch);
+auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch) 
+when is_integer(Start), is_integer(End) ->
+	auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+disk_log:chunk(?AUTHLOG, start), []).
 
 %% @hidden
-radius_auth_query(_Start, _End, _Types, _ReqAttrsMatch, _RespAttrsMatch, eof, Acc) ->
+auth_query(_Start, _End, _Types, _ReqAttrsMatch, _RespAttrsMatch, 
+eof, Acc) ->
 	lists:reverse(Acc);
-radius_auth_query(_Start, _End, _Types, _ReqAttrsMatch, _RespAttrsMatch, {error, Reason}, _Acc) ->
+auth_query(_Start, _End, _Types, _ReqAttrsMatch, _RespAttrsMatch, 
+{error, Reason}, _Acc) ->
 	{error, Reason};
-radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, [{TS,_,_,_,Type,_,_} | T] = Chunk}, Acc) when TS >= Start, TS =< End ->
+auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
+[{TS,_,_,_,Type,_,_} | T] = Chunk}, Acc) when TS >= Start, TS =< End ->
 	case lists:member(Type, Types) of
 		true ->
-			radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, Acc, ReqAttrsMatch);
+			auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+{Cont, Chunk}, Acc, ReqAttrsMatch);
 		false ->
-			radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, T}, Acc)
+			auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+{Cont, T}, Acc)
 	end; 
-radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, [_ | T]}, Acc) ->
-	radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, T}, Acc);
-radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, []}, Acc) ->
-	radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, disk_log:chunk(radius_auth, Cont), Acc).
+auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
+[_ | T]}, Acc) ->
+	auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
+T}, Acc);
+auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, []}, 
+Acc) ->
+	auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+disk_log:chunk(?AUTHLOG, Cont), Acc).
 
 %% @hidden
-radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,[{_,_,_,_,_,ReqAttrs,_} | T] = Chunk}, Acc, [{Attribute, Match} | T1]) ->
+auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,
+[{_,_,_,_,_,ReqAttrs,_} | T] = Chunk}, Acc, [{Attribute, Match} | T1]) ->
 	case lists:keyfind(Attribute, 1, ReqAttrs) of
 		{Attribute, Match} ->
-			radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, Acc, T1);
+			auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+{Cont, Chunk}, Acc, T1);
 		{Attribute, _} when Match == '_' ->
-			radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, Acc, T1);
+			auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+{Cont, Chunk}, Acc, T1);
 		_ ->
-			radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, T}, Acc)
+			auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+{Cont, T}, Acc)
 	end;
-radius_auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, Acc, []) ->
-	radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, Acc, RespAttrsMatch).
+auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
+Chunk}, Acc, []) ->
+	auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
+Chunk}, Acc, RespAttrsMatch).
 
 %% @hidden
-radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,[{_,_,_,_,_,_,RespAttrs} | T] = Chunk}, Acc, [{Attribute, Match} | T1]) ->
+auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,
+[{_,_,_,_,_,_,RespAttrs} | T] = Chunk}, Acc, [{Attribute, Match} | T1]) ->
 	case lists:keyfind(Attribute, 1, RespAttrs) of
 		{Attribute, Match} ->
-			radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, Acc, T1);
+			auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+{Cont, Chunk}, Acc, T1);
 		{Attribute, _} when Match == '_' ->
-			radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, Chunk}, Acc, T1);
+			auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+{Cont, Chunk}, Acc, T1);
 		false ->
-			radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, T}, Acc)
+			auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+{Cont, T}, Acc)
 	end;
-radius_auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, [H | T]}, Acc, []) ->
-	radius_auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, T}, [H | Acc]).
+auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
+[H | T]}, Acc, []) ->
+	auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
+T}, [H | Acc]).
 
--spec radius_auth_close() -> Result
+-spec auth_close() -> Result
 	when
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Close authorization disk log.
-radius_auth_close() ->    
-	case disk_log:close(?RADAUTH) of
+auth_close() ->    
+	case disk_log:close(?AUTHLOG) of
 		ok ->
 			ok;
 		{error, Reason} ->
 			Descr = lists:flatten(disk_log:format_error(Reason)),
 			Trunc = lists:sublist(Descr, length(Descr) - 1),
 			error_logger:error_report([Trunc, {module, ?MODULE},
-					{log, ?RADAUTH}, {error, Reason}]),
+					{log, ?AUTHLOG}, {error, Reason}]),
 			{error, Reason}
 	end.
 
@@ -275,7 +303,7 @@ radius_auth_close() ->
 %% 	with a `#ipdrDoc{}' header, is followed by `#ipdr{}' records,
 %% 	and ends with a `#ipdrDocEnd{}' trailer.
 %%
-%% 	The `radius_acct' log is searched for events created between `Start'
+%% 	The `ocs_acct' log is searched for events created between `Start'
 %% 	and `End' which may be given as
 %% 	`{{Year, Month, Day}, {Hour, Minute, Second}}' or the native
 %% 	{@link //erts/erlang:system_time(). erlang:system_time(millisecond)}.
@@ -296,7 +324,7 @@ ipdr_log(File, Start, End) when is_list(File),
 			case disk_log:log(IpdrLog, IpdrDoc) of
 				ok ->
 					ipdr_log1(IpdrLog, Start, End,
-							start_binary_tree(?RADACCT, Start, End));
+							start_binary_tree(?ACCTLOG, Start, End));
 				{error, Reason} ->
 					error_logger:error_report([disk_log:format_error(Reason),
 							{module, ?MODULE}, {log, IpdrLog}, {error, Reason}]),
@@ -311,16 +339,16 @@ ipdr_log(File, Start, End) when is_list(File),
 %% @hidden
 ipdr_log1(IpdrLog, _Start, _End, {error, Reason}) ->
 	error_logger:error_report([disk_log:format_error(Reason),
-			{module, ?MODULE}, {log, ?RADACCT}, {error, Reason}]),
+			{module, ?MODULE}, {log, ?ACCTLOG}, {error, Reason}]),
 	ipdr_log4(IpdrLog, 0);
 ipdr_log1(IpdrLog, _Start, _End, eof) ->
 	ipdr_log4(IpdrLog, 0);
 ipdr_log1(IpdrLog, Start, End, Cont) ->
-	ipdr_log2(IpdrLog, Start, End, [], disk_log:chunk(?RADACCT, Cont)).
+	ipdr_log2(IpdrLog, Start, End, [], disk_log:chunk(?ACCTLOG, Cont)).
 %% @hidden
 ipdr_log2(IpdrLog, _Start, _End, _PrevChunk, {error, Reason}) ->
 	error_logger:error_report([disk_log:format_error(Reason),
-			{module, ?MODULE}, {log, ?RADACCT}, {error, Reason}]),
+			{module, ?MODULE}, {log, ?ACCTLOG}, {error, Reason}]),
 	ipdr_log4(IpdrLog, 0);
 ipdr_log2(IpdrLog, _Start, _End, [], eof) ->
 	ipdr_log4(IpdrLog, 0);
@@ -334,7 +362,7 @@ ipdr_log2(IpdrLog, Start, End, PrevChunk, eof) ->
 			{eof, lists:dropwhile(Fstart, PrevChunk)});
 ipdr_log2(IpdrLog, Start, End, _PrevChunk, {Cont, [H | T]})
 		when element(1, H) < Start ->
-	ipdr_log2(IpdrLog, Start, End, T, disk_log:chunk(?RADACCT, Cont));
+	ipdr_log2(IpdrLog, Start, End, T, disk_log:chunk(?ACCTLOG, Cont));
 ipdr_log2(IpdrLog, Start, End, PrevChunk, {Cont, Chunk}) ->
 	Fstart = fun(R) when element(1, R) < Start ->
 				true;
@@ -351,7 +379,7 @@ ipdr_log3(IpdrLog, _Start, _End, SeqNum, {error, _Reason}) ->
 ipdr_log3(IpdrLog, _Start, _End, SeqNum, {eof, []}) ->
 	ipdr_log4(IpdrLog, SeqNum);
 ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, []}) ->
-	ipdr_log3(IpdrLog, Start, End, SeqNum, disk_log:chunk(?RADACCT, Cont));
+	ipdr_log3(IpdrLog, Start, End, SeqNum, disk_log:chunk(?ACCTLOG, Cont));
 ipdr_log3(IpdrLog, _Start, End, SeqNum, {_Cont, [H | _]})
 		when element(1, H) > End ->
 	ipdr_log4(IpdrLog, SeqNum);
@@ -420,12 +448,122 @@ get_range(Log, Start, End) when is_integer(Start), is_integer(End) ->
 dump_file(Log, FileName) when is_list(FileName) ->
 	case file:open(FileName, [write]) of
 		{ok, IoDevice} ->
-			file_chunk(Log, IoDevice, start);
+			file_chunk(Log, IoDevice, tuple, start);
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
 					{module, ?MODULE}, {log, Log}, {error, Reason}]),
 			{error, Reason}
 	end.
+
+-spec http_file(Log, FileName) -> Result
+	when
+		Log :: transfer | error | security,
+		FileName :: file:filename(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Write events logged by `httpd' to a file.
+%%
+http_file(LogType, FileName) when is_atom(LogType), is_list(FileName) ->
+	Log = httpd_logname(LogType),
+	case file:open(FileName, [raw, write]) of
+		{ok, IoDevice} ->
+			file_chunk(Log, IoDevice, binary, start);
+		{error, Reason} ->
+			error_logger:error_report([file:format_error(Reason),
+					{module, ?MODULE}, {log, Log}, {error, Reason}]),
+			{error, Reason}
+	end.
+
+-spec httpd_logname(LogType) -> disk_log:log()
+	when
+		LogType :: transfer | error | security.
+%% @doc Find local name of {@link //inets/httpd. httpd} disk_log.
+%%
+httpd_logname(Log) ->
+	{ok, Services} = application:get_env(inets, services),
+	{_, HttpdConfig} = lists:keyfind(httpd, 1, Services),
+	{_, ServerRoot} = lists:keyfind(server_root, 1, HttpdConfig),
+	httpd_logname(Log, ServerRoot, HttpdConfig).
+%% @hidden
+httpd_logname(transfer, ServerRoot, HttpdConfig) ->
+	{_, LogName} = lists:keyfind(transfer_disk_log, 1, HttpdConfig),
+	filename:join(ServerRoot, string:strip(LogName));
+httpd_logname(error, ServerRoot, HttpdConfig) ->
+	{_, LogName} = lists:keyfind(error_disk_log, 1, HttpdConfig),
+	filename:join(ServerRoot, string:strip(LogName));
+httpd_logname(security, ServerRoot, HttpdConfig) ->
+	{_, LogName} = lists:keyfind(security_disk_log, 1, HttpdConfig),
+	filename:join(ServerRoot, string:strip(LogName)).
+
+-spec last(Log, MaxItems) -> Result
+	when
+		Log :: disk_log:log(),
+		MaxItems :: pos_integer(),
+		Result :: {NumItems, Events} | {error, Reason},
+		NumItems :: non_neg_integer(),
+		Events :: [term()],
+		Reason :: term().
+%% @doc Get the last `MaxItems' events in most recent item first order.
+last(Log, MaxItems) ->
+	last(Log, MaxItems, start, []).
+%% @hidden
+last(Log, MaxItems, Cont, Acc) ->
+	case disk_log:chunk_step(Log, Cont, 1) of
+		{error, end_of_log} when Acc == [] ->
+			last1(Log, MaxItems, 0, [start], []);
+		{error, end_of_log} ->
+			last1(Log, MaxItems, 0, Acc, []);
+		{ok, Cont1} ->
+			last(Log, MaxItems, Cont1, [Cont | Acc])
+	end.
+%% @hidden
+last1(Log, MaxItems, NumItems, [Cont | T], Acc) ->
+	case last2(Log, MaxItems, NumItems, Cont, []) of
+		{error, Reason} ->
+			{error, Reason};
+		{MaxItems, Events} ->
+			NewAcc = [Events | Acc],
+			{MaxItems, lists:flatten(lists:reverse(NewAcc))};
+		{NewNumItems, Events} ->
+			NewAcc = [Events | Acc],
+			last1(Log, MaxItems, NewNumItems, T, NewAcc)
+	end;
+last1(_Log, _MaxItems, NumItems, [], Acc) ->
+	{NumItems, lists:flatten(lists:reverse(Acc))}.
+%% @hidden
+last2(Log, MaxItems, NumItems, Cont, Acc) ->
+	case disk_log:chunk(Log, Cont) of
+		{error, Reason} ->
+			{error, Reason};
+		eof ->
+			last3(Log, MaxItems, NumItems, Acc, []);
+		{Cont1, _Events} ->
+			last2(Log, MaxItems, NumItems, Cont1, [Cont | Acc])
+	end.
+%% @hidden
+last3(Log, MaxItems, NumItems, [Cont | T], Acc) ->
+	case disk_log:chunk(Log, Cont) of
+		{error, Reason} ->
+			{error, Reason};
+		{_, Events} ->
+			RevEvents = lists:reverse(Events),
+			NumEvents = length(RevEvents),
+			case NumItems + NumEvents of
+				MaxItems ->
+					NewAcc = [RevEvents | Acc],
+					{MaxItems, lists:reverse(NewAcc)};
+				N when N > MaxItems ->
+					NumHead = MaxItems - NumItems,
+					{NewEvents, _} = lists:split(NumHead, RevEvents),
+					NewAcc = [NewEvents | Acc],
+					{MaxItems, lists:reverse(NewAcc)};
+				N ->
+					NewAcc = [RevEvents | Acc],
+					last3(Log, MaxItems, N, T, NewAcc)
+			end
+	end;
+last3(_Log, _MaxItems, NumItems, [], Acc) ->
+	{NumItems, lists:reverse(Acc)}.
 
 -spec date(MilliSeconds) -> Result
 	when
@@ -462,7 +600,7 @@ uuid() ->
 %%----------------------------------------------------------------------
 
 %% @hidden
-file_chunk(Log, IoDevice, Cont) ->
+file_chunk(Log, IoDevice, Type, Cont) ->
 	case disk_log:chunk(Log, Cont) of
 		eof ->
 			file:close(IoDevice);
@@ -472,12 +610,24 @@ file_chunk(Log, IoDevice, Cont) ->
 			file:close(IoDevice),
 			{error, Reason};
 		{NextCont, Terms} ->
-			Fun =  fun(Event) ->
-						io:fwrite(IoDevice, "~999p~n", [Event])
-			end,
-			lists:foreach(Fun, Terms),
-			file_chunk(Log, IoDevice, NextCont)
+			file_chunk1(Log, IoDevice, Type, NextCont, Terms)
 	end.
+%% @hidden
+file_chunk1(Log, IoDevice, tuple, Cont, [Event | T]) ->
+	io:fwrite(IoDevice, "~999p~n", [Event]),
+	file_chunk1(Log, IoDevice, tuple, Cont, T);
+file_chunk1(Log, IoDevice, binary, Cont, [Event | T]) ->
+	case file:write(IoDevice, Event) of
+		ok ->
+			file_chunk1(Log, IoDevice, binary, Cont, T);
+		{error, Reason} ->
+			error_logger:error_report([file:format_error(Reason),
+					{module, ?MODULE}, {log, Log}, {error, Reason}]),
+			file:close(IoDevice),
+			{error, Reason}
+	end;
+file_chunk1(Log, IoDevice, Type, Cont, []) ->
+	file_chunk(Log, IoDevice, Type, Cont).
 
 -spec start_binary_tree(Log, Start, End) -> Result
 	when
@@ -601,7 +751,7 @@ get_range2(Log, End, {Cont, Chunk}, Acc) ->
 		Port :: pos_integer(),
 		Attributes :: radius_attributes:attributes(),
 		IPDR :: #ipdr{}.
-%% @doc Convert `radius_acct' log entry to IPDR log entry.
+%% @doc Convert `ocs_acct' log entry to IPDR log entry.
 ipdr_codec({TimeStamp, _Node, _Server, _Client, stop, Attributes}) ->
 	IPDR = #ipdr{ipdrCreationTime = iso8601(TimeStamp)},
 	ipdr_codec1(TimeStamp, Attributes, IPDR).

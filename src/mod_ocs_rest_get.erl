@@ -78,8 +78,7 @@ content_type_available(Headers, Uri, Resource, ModData) ->
 					{break, [{response, {415, Response}}]}
 			end;
 		_ ->
-			Response = "<h2>HTTP Error 400 - Bad Request</h2>",
-			{break, [{response, {400, Response}}]}
+			do_get(Uri, Resource, ModData)
 	end.
 
 %% @hidden
@@ -87,22 +86,22 @@ do_get(Uri, Resource, ModData) ->
 	case string:tokens(Uri, "/") of
 		[API, "v1", _, _] when API == "ocs" ->
 			case Resource:perform_get_all() of
-				{body, Body} ->
-					send_response(Body, ModData);
+				{ok, Headers, Body} ->
+					send_response(Headers, Body, ModData);
 				{error, ErrorCode} ->
 					{break, [{response, {ErrorCode, "<h1>Not Found</h1>"}}]}
 			end;
 		[API, "v1", _] when API == "ocs"; API == "usageManagement" ->
 			case Resource:perform_get_all() of
-				{body, Body} ->
-					send_response(Body, ModData);
+				{ok, Headers, Body} ->
+					send_response(Headers, Body, ModData);
 				{error, ErrorCode} ->
 					{break, [{response, {ErrorCode, "<h1>Not Found</h1>"}}]}
 			end;
 		[API, "v1", _, Identity] when API == "ocs"; API == "usageManagement" ->
 			case Resource:perform_get(Identity) of
-				{body, Body} ->
-					send_response(Body, ModData);
+				{ok, Headers, Body} ->
+					send_response(Headers, Body, ModData);
 				{error, ErrorCode} ->
 					{break, [{response, {ErrorCode, "<h1>Not Found</h1>"}}]}
 			end;
@@ -111,11 +110,10 @@ do_get(Uri, Resource, ModData) ->
 end.
 
 %% @hidden
-send_response(ResponseBody, #mod{data = Data} = ModData) ->
+send_response(Headers, ResponseBody, ModData) ->
 	Size = integer_to_list(iolist_size(ResponseBody)),
-	Accept = proplists:get_value(accept, Data),
-	Headers = [{content_length, Size}, {content_type, Accept}],
-	send(ModData, 200, Headers, ResponseBody),
+	NewHeaders = Headers ++ [{content_length, Size}],
+	send(ModData, 200, NewHeaders, ResponseBody),
 	{proceed,[{response,{already_sent,201, Size}}]}.
 
 %% @hidden
