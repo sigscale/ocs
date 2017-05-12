@@ -51,7 +51,7 @@
 	when
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Open the accounting log for logging events.
+%% @doc Open accounting log for logging events.
 acct_open() ->
 	{ok, Directory} = application:get_env(ocs, acct_log_dir),
 	case file:make_dir(Directory) of
@@ -119,7 +119,7 @@ acct_close() ->
 	when
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Open the authorization log for logging events.
+%% @doc Open authorization log for logging events.
 auth_open() ->
 	{ok, Directory} = application:get_env(ocs, auth_log_dir),
 	case file:make_dir(Directory) of
@@ -638,6 +638,7 @@ file_chunk1(Log, IoDevice, Type, Cont, []) ->
 		Reason :: term().
 %% @doc Binary tree search of multi file wrap disk_log.
 %% @private
+%% @hidden
 start_binary_tree(Log, Start, _End) ->
 	InfoList = disk_log:info(Log),
 	{size, {_MaxBytes, MaxFiles}} = lists:keyfind(size, 1, InfoList),
@@ -700,6 +701,7 @@ start_binary_tree(_, _, _, _, _, _, _, _, {error, Reason}) ->
 %% 	Filters out records before `Start' and after `End'.
 %% 	Returns filtered records.
 %% @private
+%% @hidden
 get_range(Log, Start, End, Cont) ->
 	get_range(Log, Start, End, [], disk_log:chunk(Log, Cont)).
 %% @hidden
@@ -752,10 +754,12 @@ get_range2(Log, End, {Cont, Chunk}, Acc) ->
 		Attributes :: radius_attributes:attributes(),
 		IPDR :: #ipdr{}.
 %% @doc Convert `ocs_acct' log entry to IPDR log entry.
+%% @hidden
 ipdr_codec({TimeStamp, _Node, _Server, _Client, stop, Attributes}) ->
 	IPDR = #ipdr{ipdrCreationTime = iso8601(TimeStamp)},
 	ipdr_codec1(TimeStamp, Attributes, IPDR).
 %% @private
+%% @hidden
 ipdr_codec1(TimeStamp, Attributes, Acc) ->
 	case radius_attributes:find(?AcctDelayTime, Attributes) of
 		{ok, DelayTime} ->
