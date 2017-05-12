@@ -77,16 +77,16 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[log_auth_event, log_acct_event, get_range, ipdr_log].
+	[radius_log_auth_event, radius_log_acct_event, get_range, ipdr_log].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
 
-log_auth_event() ->
-   [{userdata, [{doc, "Log an access request event"}]}].
+radius_log_auth_event() ->
+   [{userdata, [{doc, "Log a RADIUS access request event"}]}].
 
-log_auth_event(_Config) ->
+radius_log_auth_event(_Config) ->
 	Start = erlang:system_time(millisecond),
 	Node = node(),
 	ServerAddress = {0, 0, 0, 0},
@@ -106,9 +106,9 @@ log_auth_event(_Config) ->
 			{?NasIdentifier, "ap-1.sigscale.net"},
 			{?NasIpAddress, ClientAddress}],
 	ResAttrs = [{?SessionTimeout, 3600}, {?MessageAuthenticator, RandomBin}],
-	ok = ocs_log:auth_log(Server, Client, Type, ReqAttrs, ResAttrs),
+	ok = ocs_log:auth_log(radius, Server, Client, Type, ReqAttrs, ResAttrs),
 	End = erlang:system_time(millisecond),
-	Fany = fun({TS, N, S, C, T, A1, A2}) when TS >= Start, TS =< End,
+	Fany = fun({radius, TS, N, S, C, T, A1, A2}) when TS >= Start, TS =< End,
 					N == Node, S == Server, C == Client, T == Type,
 					A1 == ReqAttrs, A2 == ResAttrs ->
 				true;
@@ -127,10 +127,10 @@ log_auth_event(_Config) ->
 	end,
 	true = Find(Find, disk_log:chunk(ocs_auth, start)).
 
-log_acct_event() ->
-   [{userdata, [{doc, "Log an accounting event"}]}].
+radius_log_acct_event() ->
+   [{userdata, [{doc, "Log a RADIUS accounting event"}]}].
 
-log_acct_event(_Config) ->
+radius_log_acct_event(_Config) ->
 	Start = erlang:system_time(millisecond),
 	Node = node(),
 	ServerAddress = {0, 0, 0, 0},

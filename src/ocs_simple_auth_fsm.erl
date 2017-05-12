@@ -324,7 +324,7 @@ response(RadiusCode, ResponseAttributes,
 		?AccessReject ->
 			reject
 	end,
-	ok = ocs_log:auth_log({ServerAddress, ServerPort},
+	ok = ocs_log:auth_log(radius, {ServerAddress, ServerPort},
 			{ClientAddress, ClientPort}, Type, RequestAttributes, AttributeList2),
 	radius:response(RadiusFsm, {response, ResponsePacket}).
 

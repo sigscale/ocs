@@ -22,7 +22,7 @@
 
 %% export the ocs_log public API
 -export([acct_open/0, acct_log/4, acct_close/0]).
--export([auth_open/0, auth_log/5, auth_close/0, auth_query/5]).
+-export([auth_open/0, auth_log/6, auth_close/0, auth_query/5]).
 -export([ipdr_log/3, get_range/3, last/2]).
 -export([dump_file/2, http_file/2, httpd_logname/1]).
 -export([date/1, iso8601/1]).
@@ -150,9 +150,10 @@ auth_open1(Directory) ->
 			{error, Reason}
 	end.
 
--spec auth_log(Server, Client, Type, RequestAttributes,
+-spec auth_log(Protocol, Server, Client, Type, RequestAttributes,
 		ResponseAttributes) -> Result
 	when
+		Protocol :: radius,
 		Server :: {Address, Port},
 		Client :: {Address, Port},
 		Address :: inet:ip_address(),
@@ -162,10 +163,10 @@ auth_open1(Directory) ->
 		ResponseAttributes :: radius_attributes:attributes(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Write an authorization event to disk log.
-auth_log(Server, Client, Type, RequestAttributes, ResponseAttributes) ->
+%% @doc Write a RADIUS  authorization event to disk log.
+auth_log(Protocol, Server, Client, Type, RequestAttributes, ResponseAttributes) ->
 	TS = erlang:system_time(?MILLISECOND),
-	Event = {TS, node(), Server, Client, Type,
+	Event = {Protocol, TS, node(), Server, Client, Type,
 			RequestAttributes, ResponseAttributes},
 	disk_log:log(?AUTHLOG, Event).
 
