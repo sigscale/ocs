@@ -253,7 +253,7 @@ request(Address, AccPort, Secret,
 request1(?AccountingStart, _AcctSessionId, Id,
 		Authenticator, Secret, _NasId, Address, AccPort, _DiscPort, Attributes,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
-	ok = ocs_log:acct_log({ServerAddress, ServerPort},
+	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort},
 				{Address, AccPort}, start, Attributes),
 	{reply, {ok, response(Id, Authenticator, Secret)}, State};
 request1(?AccountingStop, AcctSessionId, Id,
@@ -268,7 +268,7 @@ request1(?AccountingStop, AcctSessionId, Id,
 			In + Out
 	end,
 	{ok, UserName} = radius_attributes:find(?UserName, Attributes),
-	ok = ocs_log:acct_log({ServerAddress, ServerPort},
+	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort},
 				{Address, AccPort}, stop, Attributes),
 	Subscriber = ocs:normalize(UserName),
 	case decrement_balance(Subscriber, Usage) of
@@ -296,7 +296,7 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 			In + Out
 	end,
 	{ok, UserName} = radius_attributes:find(?UserName, Attributes),
-	ok = ocs_log:acct_log({ServerAddress, ServerPort},
+	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort},
 				{Address, AccPort}, interim, Attributes),
 	Subscriber = ocs:normalize(UserName),
 	case ocs:find_subscriber(Subscriber) of
@@ -315,13 +315,13 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 request1(?AccountingON, _AcctSessionId, Id,
 		Authenticator, Secret, _NasId, Address, AccPort, _DiscPort, Attributes,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
-	ok = ocs_log:acct_log({ServerAddress, ServerPort},
+	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort},
 				{Address, AccPort}, on, Attributes),
 	{reply, {ok, response(Id, Authenticator, Secret)}, State};
 request1(?AccountingOFF, _AcctSessionId, Id,
 		Authenticator, Secret, _NasId, Address, AccPort, _DiscPort, Attributes,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
-	ok = ocs_log:acct_log({ServerAddress, ServerPort},
+	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort},
 				{Address, AccPort}, off, Attributes),
 	{reply, {ok, response(Id, Authenticator, Secret)}, State};
 request1(_AcctStatusType, _AcctSessionId, _Id, _Authenticator,

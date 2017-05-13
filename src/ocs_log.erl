@@ -21,7 +21,7 @@
 -copyright('Copyright (c) 2016-2017 SigScale Global Inc.').
 
 %% export the ocs_log public API
--export([acct_open/0, acct_log/4, acct_close/0]).
+-export([acct_open/0, acct_log/5, acct_close/0]).
 -export([auth_open/0, auth_log/6, auth_close/0, auth_query/5]).
 -export([ipdr_log/3, get_range/3, last/2]).
 -export([dump_file/2, http_file/2, httpd_logname/1]).
@@ -82,8 +82,9 @@ acct_open1(Directory) ->
 			{error, Reason}
 	end.
 
--spec acct_log(Server, Client, Type, Attributes) -> Result
+-spec acct_log(Protocol, Server, Client, Type, Attributes) -> Result
 	when
+		Protocol :: radius,
 		Server :: {Address, Port},
 		Client :: {Address, Port},
 		Address :: inet:ip_address(),
@@ -93,9 +94,9 @@ acct_open1(Directory) ->
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Write an accounting event to disk log.
-acct_log(Server, Client, Type, Attributes) ->
+acct_log(Protocol, Server, Client, Type, Attributes) ->
 	TS = erlang:system_time(?MILLISECOND),
-	Event = {TS, node(), Server, Client, Type, Attributes},
+	Event = {Protocol, TS, node(), Server, Client, Type, Attributes},
 	disk_log:log(?ACCTLOG, Event).
 
 -spec acct_close() -> Result

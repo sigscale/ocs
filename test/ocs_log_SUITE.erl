@@ -146,9 +146,9 @@ radius_log_acct_event(_Config) ->
 			{?CalledStationId, "CA-FE-CA-FE-CA-FE:AP 1"}, {?AcctAuthentic, 1},
 			{?AcctStatusType, 1}, {?NasIdentifier, "ap-1.sigscale.net"},
 			{?AcctDelayTime, 0}, {?NasIpAddress, ClientAddress}],
-	ok = ocs_log:acct_log(Server, Client, Type, ReqAttrs),
+	ok = ocs_log:acct_log(radius, Server, Client, Type, ReqAttrs),
 	End = erlang:system_time(millisecond),
-	Fany = fun({TS, N, S, C, T, A}) when TS >= Start, TS =< End,
+	Fany = fun({radius, TS, N, S, C, T, A}) when TS >= Start, TS =< End,
 					N == Node, S == Server, C == Client, T == Type,
 					A == ReqAttrs ->
 				true;
@@ -186,21 +186,24 @@ get_range(_Config) ->
 			{?CalledStationId, "CA-FE-AC-EF-CA-FE:AP 1"}, {?AcctAuthentic, 1},
 			{?AcctStatusType, 1}, {?NasIdentifier, "ap-1.sigscale.net"},
 			{?AcctDelayTime, 0}, {?NasIpAddress, ClientAddress}],
-	Event = {Start, Node, Server, Client, Type,
+	Event = {radius, Start, Node, Server, Client, Type,
 			[{?AcctSessionId, "1234567890"} | Attrs]},
 	LogInfo = disk_log:info(ocs_acct),
 	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
 	EventSize = erlang:external_size(Event),
+erlang:display({xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx, event_size,   EventSize}),
 	NumItems = (FileSize div EventSize) * 5,
+erlang:display({xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx, num_itesm,   NumItems}),
 	Fill = fun(_F, 0) ->
 				ok;
 			(F, N) ->
-				ocs_log:acct_log(Server, Client, Type,
+				ocs_log:acct_log(radius, Server, Client, Type,
 						[{?AcctSessionId, integer_to_list(N)} | Attrs]),
 				F(F, N - 1)
 	end,
 	Fill(Fill, NumItems),
 	End = erlang:system_time(millisecond),
+erlang:display({xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx, disk_log,  Start, End}),
 	Range = (End - Start),
 	StartRange = Start + (Range div 3),
 	EndRange = End - (Range div 3),
@@ -208,10 +211,10 @@ get_range(_Config) ->
 	true = length(Result) > ((NumItems div 3) - (NumItems div 10)),
 	[{?AcctSessionId, ID} | _] = element(6, lists:nth(1, Result)),
 	StartNum = list_to_integer(ID),
-	Fverify = fun({TS, _, _, _, _,  _}, _N)
+	Fverify = fun({radius, TS, _, _, _, _,  _}, _N)
 					when TS < StartRange, TS > EndRange ->
 				ct:fail(verify);
-			({_, _, _, _, _, [{?AcctSessionId, S} | _]}, N) ->
+			({_, _, _, _, _, _, [{?AcctSessionId, S} | _]}, N) ->
 				case list_to_integer(S) of
 					N ->
 						N - 1;
@@ -265,7 +268,7 @@ ipdr_log(_Config) ->
 				end,
 				Attrs1 = [{?AcctSessionId, integer_to_list(N)} | Attrs],
 				Attrs2 = [{?AcctStatusType, AcctType} | Attrs1],
-				ocs_log:acct_log(Server, Client, Type, Attrs2),
+				ocs_log:acct_log(radius, Server, Client, Type, Attrs2),
 				F(F, N - 1)
 	end,
 	Fill(Fill, NumItems),
