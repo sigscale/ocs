@@ -74,7 +74,7 @@ start1() ->
 	{ok, RadiusConfig} = application:get_env(radius),
 	{ok, DiameterConfig} = application:get_env(diameter),
 	[{auth, RadAuthInstances}, {acct, RadAcctInstances}] = RadiusConfig,
-	[{auth, DiamAuthInstances}, {acct, _DiamAcctInstances}] = DiameterConfig,
+	[{auth, DiamAuthInstances}, {acct, DiamAcctInstances}] = DiameterConfig,
 	F1 = fun({AcctAddr, AcctPort, [{rotate, AcctLogRotate}]}= _Instance) ->
 		case ocs:start(radius, acct, AcctAddr, AcctPort, AcctLogRotate) of
 			{ok, _AcctSup} ->
@@ -117,7 +117,7 @@ start1() ->
 		lists:foreach(F1, RadAcctInstances),
 		lists:foreach(F2, RadAuthInstances),
 		lists:foreach(F3, DiamAuthInstances),
-		lists:foreach(F4, DiamAuthInstances),
+		lists:foreach(F4, DiamAcctInstances),
 		TopSup
 	of
 		Sup ->
