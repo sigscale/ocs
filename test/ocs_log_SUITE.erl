@@ -191,9 +191,7 @@ get_range(_Config) ->
 	LogInfo = disk_log:info(ocs_acct),
 	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
 	EventSize = erlang:external_size(Event),
-erlang:display({xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx, event_size,   EventSize}),
 	NumItems = (FileSize div EventSize) * 5,
-erlang:display({xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx, num_itesm,   NumItems}),
 	Fill = fun(_F, 0) ->
 				ok;
 			(F, N) ->
@@ -203,7 +201,6 @@ erlang:display({xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx, num_itesm,   
 	end,
 	Fill(Fill, NumItems),
 	End = erlang:system_time(millisecond),
-erlang:display({xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx, disk_log,  Start, End}),
 	Range = (End - Start),
 	StartRange = Start + (Range div 3),
 	EndRange = End - (Range div 3),
