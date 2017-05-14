@@ -34,7 +34,8 @@
 -include_lib("../include/diameter_gen_nas_application_rfc7155.hrl").
 -include_lib("../include/diameter_gen_cc_application_rfc4006.hrl").
 
--define(SVC, diameter_client_service).
+-define(SVC_AUTH, diameter_client_auth_service).
+-define(SVC_ACCT, diameter_client_acct_service).
 -define(BASE_APPLICATION_ID, 0).
 -define(NAS_APPLICATION_ID, 1).
 -define(CC_APPLICATION_ID, 4).
@@ -63,23 +64,33 @@ init_per_suite(Config) ->
 	ok = ocs:add_client({127, 0, 0, 1}, 3799, Protocol, SharedSecret),
 	NasID = atom_to_list(node()),
 	Config2 = [{nas_id, NasID} | Config1],
-	{ok, [{auth, DiaAuthInstance}, {acct, _}]} = application:get_env(ocs, diameter),
-	[{Address, Port, _}] = DiaAuthInstance,
-	true = diameter:subscribe(?SVC),
-	ok = diameter:start_service(?SVC, client_service_opts()),
-	{ok, _Ref} = connect(?SVC, Address, Port, diameter_tcp),
+	{ok, [{auth, DiaAuthInstance}, {acct, DiaAcctInstances}]} =
+			application:get_env(ocs, diameter),
+	[{AuthAddress, AuthPort, _}] = DiaAuthInstance,
+	[{AcctAddress, AcctPort, _}] = DiaAcctInstances,
+	true = diameter:subscribe(?SVC_AUTH),
+	ok = diameter:start_service(?SVC_AUTH, client_auth_service_opts()),
+	{ok, _Ref1} = connect(?SVC_AUTH, AuthAddress, AuthPort, diameter_tcp),
 	receive
-		#diameter_event{service = ?SVC, info = start} ->
-			[{diameter_client, Address}] ++ Config2;
+		#diameter_event{service = ?SVC_AUTH, info = start} ->
+			true = diameter:subscribe(?SVC_ACCT),
+			ok = diameter:start_service(?SVC_ACCT, client_acct_service_opts()),
+			{ok, _Ref2} = connect(?SVC_ACCT, AcctAddress, AcctPort, diameter_tcp),
+			receive
+				#diameter_event{service = ?SVC_ACCT, info = start} ->
+					[{diameter_auth_client, AuthAddress}] ++ Config2;
+				_ ->
+					{skip, diameter_client_acct_service_not_started}
+			end;
 		_ ->
-			{skip, diameter_client_service_not_started}
+			{skip, diameter_client_auth_service_not_started}
 	end.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
-	ok = diameter:stop_service(?SVC),
+	ok = diameter:stop_service(?SVC_AUTH),
 	ok = ocs_test_lib:stop(),
 	ok = ocs:delete_subscriber("25252525"),
 	Config.
@@ -106,7 +117,7 @@ init_per_testcase(_TestCase, Config) ->
 end_per_testcase(TestCase, Config) when
 		TestCase == diameter_accounting ->
 	UserName= ?config(username, Config),
-	Client = ?config(diameter_client, Config),
+	Client = ?config(diameter_auth_client, Config),
 	ok = ocs:delete_client(Client),
 	ok = ocs:delete_subscriber(UserName);
 end_per_testcase(_TestCase, Config) ->
@@ -275,7 +286,7 @@ diameter_disconnect_session(Config) ->
 	ASA = #diameter_base_ASA{'Session-Id' = SId,
 			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
-	_Answer4 = diameter:call(?SVC, cc_app_test, ASA, []).
+	_Answer4 = diameter:call(?SVC_AUTH, cc_app_test, ASA, []).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
@@ -385,20 +396,30 @@ connect(SvcName, Opts)->
 	diameter:add_transport(SvcName, {connect, Opts}).
 
 %% @hidden
-client_service_opts() ->
+client_auth_service_opts() ->
 	[{'Origin-Host', "client.testdomain.com"},
 		{'Origin-Realm', "testdomain.com"},
 		{'Vendor-Id', 0},
 		{'Product-Name', "Test Client"},
-		{'Auth-Application-Id', [?BASE_APPLICATION_ID,
-														?NAS_APPLICATION_ID,
-														?CC_APPLICATION_ID]},
+		{'Auth-Application-Id', [?BASE_APPLICATION_ID, ?NAS_APPLICATION_ID]},
 		{string_decode, false},
 		{application, [{alias, base_app_test},
 				{dictionary, diameter_gen_base_rfc6733},
 				{module, diameter_test_client_cb}]},
 		{application, [{alias, nas_app_test},
 				{dictionary, diameter_gen_nas_application_rfc7155},
+				{module, diameter_test_client_cb}]}].
+
+%% @hidden
+client_acct_service_opts() ->
+	[{'Origin-Host', "client.testdomain.com"},
+		{'Origin-Realm', "testdomain.com"},
+		{'Vendor-Id', 0},
+		{'Product-Name', "Test Acct Client"},
+		{'Auth-Application-Id', [?BASE_APPLICATION_ID, ?CC_APPLICATION_ID]},
+		{string_decode, false},
+		{application, [{alias, base_app_test},
+				{dictionary, diameter_gen_base_rfc6733},
 				{module, diameter_test_client_cb}]},
 		{application, [{alias, cc_app_test},
 				{dictionary, diameter_gen_cc_application_rfc4006},
@@ -422,7 +443,7 @@ diameter_authentication(SId, Username, Password) ->
 			'Auth-Application-Id' = ?NAS_APPLICATION_ID ,
 			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
 			'User-Name' = Username, 'User-Password' = Password},
-	{ok, Answer} = diameter:call(?SVC, nas_app_test, NAS_AAR, []),
+	{ok, Answer} = diameter:call(?SVC_AUTH, nas_app_test, NAS_AAR, []),
 	Answer.
 
 %% @hidden
@@ -433,7 +454,7 @@ diameter_accounting_start(SId, Username, RequestNum) ->
 			'User-Name' = Username,
 			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST',
 			'CC-Request-Number' = RequestNum},
-	{ok, Answer} = diameter:call(?SVC, cc_app_test, CC_CCR, []),
+	{ok, Answer} = diameter:call(?SVC_ACCT, cc_app_test, CC_CCR, []),
 	Answer.
 	
 %% @hidden
@@ -444,7 +465,7 @@ diameter_accounting_stop(SId, Username, RequestNum) ->
 			'User-Name' = Username,
 			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
 			'CC-Request-Number' = RequestNum},
-	{ok, Answer} = diameter:call(?SVC, cc_app_test, CC_CCR, []),
+	{ok, Answer} = diameter:call(?SVC_ACCT, cc_app_test, CC_CCR, []),
 	Answer.
 
 %% @hidden
@@ -457,6 +478,6 @@ diameter_accounting_interim(SId, Username, RequestNum, Usage) ->
 			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST',
 			'CC-Request-Number' = RequestNum,
 			'Used-Service-Unit' = UsedUnits},
-	{ok, Answer} = diameter:call(?SVC, cc_app_test, CC_CCR, []),
+	{ok, Answer} = diameter:call(?SVC_ACCT, cc_app_test, CC_CCR, []),
 	Answer.
 	
