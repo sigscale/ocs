@@ -77,7 +77,7 @@ start1() ->
 	[{auth, RadAuthInstances}, {acct, RadAcctInstances}] = RadiusConfig,
 	[{auth, DiamAuthInstances}, {acct, DiamAcctInstances}] = DiameterConfig,
 	F1 = fun({AcctAddr, AcctPort, _Options}= _Instance) ->
-		case ocs:start(radius, acct, AcctAddr, AcctPort, 0) of
+		case ocs:start(radius, acct, AcctAddr, AcctPort) of
 			{ok, _AcctSup} ->
 				ok;
 			{error, Reason2} ->
@@ -85,7 +85,7 @@ start1() ->
 		end
 	end,
 	F2 = fun({AuthAddr, AuthPort, _Options}= _Instance) ->
-		case ocs:start(radius, auth, AuthAddr, AuthPort, 0) of
+		case ocs:start(radius, auth, AuthAddr, AuthPort) of
 			{ok, _Authup} ->
 				ok;
 			{error, Reason3} ->
@@ -93,7 +93,7 @@ start1() ->
 		end
 	end,
 	F3 = fun({AuthAddr, AuthPort, _Options}= _Instance) ->
-		case ocs:start(diameter, auth, AuthAddr, AuthPort, 0) of
+		case ocs:start(diameter, auth, AuthAddr, AuthPort) of
 			{ok, _AuthSup} ->
 				ok;
 			{error, Reason3} ->
@@ -101,7 +101,7 @@ start1() ->
 		end
 	end,
 	F4 = fun({AuthAddr, AuthPort, _Options}= _Instance) ->
-		case ocs:start(diameter, acct, AuthAddr, AuthPort, 0) of
+		case ocs:start(diameter, acct, AuthAddr, AuthPort) of
 			{ok, _AcctSup} ->
 				ok;
 			{error, Reason3} ->

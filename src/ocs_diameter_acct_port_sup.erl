@@ -37,7 +37,7 @@
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init([Address, Port, _LogRotateTime, Options]) ->
+init([Address, Port, Options]) ->
 	ChildSpecs = [server(ocs_diameter_acct_port_server, Address, Port, Options)],
 	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
 

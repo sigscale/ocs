@@ -37,7 +37,7 @@
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init([Address, Port, LogRotateTime, Options]) ->
+init([Address, Port, Options]) ->
 	ChildSpecs = [supervisor(ocs_radius_disconnect_fsm_sup, []),
 			server(ocs_radius_acct_port_server, Address, Port, Options),
 			supervisor_bridge(ocs_radius_acct_server_sup, [Address, Port])],

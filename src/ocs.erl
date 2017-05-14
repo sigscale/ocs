@@ -27,7 +27,7 @@
 		find_subscriber/1, delete_subscriber/1, update_password/2,
 		update_attributes/2, update_attributes/4, get_subscribers/0]).
 -export([generate_password/0]).
--export([start/5]).
+-export([start/4]).
 %% export the ocs private API
 -export([authorize/2, normalize/1]).
 
@@ -443,29 +443,26 @@ update_attributes(Subscriber, Balance, Attributes, EnabledStatus)
 generate_password() ->
 	generate_password(12).
 
--spec start(Protocol, Type, Address, Port, LogRotateTime) -> Result
+-spec start(Protocol, Type, Address, Port) -> Result
 	when
 		Protocol :: radius | diameter,
 		Type :: auth | acct,
 		Address :: inet:ip_address(),
 		Port :: pos_integer(),
-		LogRotateTime :: non_neg_integer(),
 		Result :: {ok, Pid} | {error, Reason},
 		Pid :: pid(),
 		Reason :: term().
 %% @equiv start(Type, Address, Port, [])
-start(Protocol, Type, Address, Port, LogRotateTime) when is_tuple(Address), is_integer(Port),
-		is_integer(LogRotateTime)->
-	start(Protocol, Type, Address, Port, LogRotateTime, []).
+start(Protocol, Type, Address, Port) when is_tuple(Address), is_integer(Port) ->
+	start(Protocol, Type, Address, Port, []).
 
 -type eap_method() :: pwd | ttls.
--spec start(Protocol, Type, Address, Port, LogRotateTime, Options) -> Result
+-spec start(Protocol, Type, Address, Port, Options) -> Result
 	when
 		Protocol :: radius | diameter,
 		Type :: auth | acct,
 		Address :: inet:ip_address(),
 		Port :: pos_integer(),
-		LogRotateTime :: non_neg_integer(),
 		Options :: [{eap_method_prefer, EapType} | {eap_method_order, EapTypes}],
 		EapType :: eap_method(),
 		EapTypes :: [eap_method()],
@@ -473,9 +470,9 @@ start(Protocol, Type, Address, Port, LogRotateTime) when is_tuple(Address), is_i
 		Pid :: pid(),
 		Reason :: term().
 %% @doc Start a RADIUS request handler.
-start(Protocol, Type, Address, Port, LogRotateTime, Options) when is_tuple(Address),
-		is_integer(Port), is_integer(LogRotateTime), is_list(Options) ->
-		gen_server:call(ocs, {start, Protocol, Type, Address, Port, LogRotateTime, Options}).
+start(Protocol, Type, Address, Port, Options) when is_tuple(Address),
+		is_integer(Port), is_list(Options) ->
+		gen_server:call(ocs, {start, Protocol, Type, Address, Port, Options}).
 
 %%----------------------------------------------------------------------
 %%  internal functions
