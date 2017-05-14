@@ -1,4 +1,4 @@
-%%% ocs_diameter_acct_port_sup.erl
+%%% ocs_diameter_acct_service_fsm_sup.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 SigScale Global Inc.
 %%% @end
@@ -16,46 +16,39 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @docfile "{@docsrc supervision.edoc}"
 %%%
--module(ocs_diameter_acct_port_sup).
+-module(ocs_diameter_acct_service_fsm_sup).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
 
 -behaviour(supervisor).
 
-%% export the callback needed for supervisor behaviour
+%% export the call back needed for supervisor behaviour
 -export([init/1]).
 
 %%----------------------------------------------------------------------
-%%  The supervisor callback
+%%  The supervisor call back
 %%----------------------------------------------------------------------
 
 -spec init(Args) -> Result
 	when
-		Args :: [term()],
-		Result :: {ok, {{supervisor:strategy(), non_neg_integer(), pos_integer()},
-			[supervisor:child_spec()]}} | ignore.
+		Args :: list(),
+		Result :: {ok,{{RestartStrategy :: one_for_all | one_for_one
+		| rest_for_one | simple_one_for_one,
+		MaxR :: non_neg_integer(), MaxT :: pos_integer()},
+		[ChildSpec :: supervisor:child_spec()]}} | ignore.
 %% @doc Initialize the {@module} supervisor.
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init([Address, Port, Options]) ->
-	ChildSpecs = [server(ocs_diameter_acct_port_server, Address, Port, Options),
-		supervisor(ocs_diameter_acct_service_fsm_sup, [Address, Port])],
-	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
+init(Args) ->
+	ChildSpec = [fsm(ocs_diameter_acct_service_fsm, Args)],
+	{ok, {{one_for_one, 10, 60}, ChildSpec}}.
 
-%%----------------------------------------------------------------------
-%%  internal functions
-%%----------------------------------------------------------------------
-
-%% @hidden
-server(StartMod, Address, Port, Options) ->
-	GlobalName = {ocs_diameter_acct, Address, Port},
-	Args = [Address, Port, Options],
-	StartArgs = [{global, GlobalName}, StartMod, Args, []],
-	StartFunc = {gen_server, start_link, StartArgs},
-	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
-
-%% @hidden
-supervisor(StartMod, StartArgs) ->
-	StartFunc = {supervisor, start_link, [StartMod, StartArgs]},
-	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
+%% @doc Build a supervisor child specification for a
+%% 	{@link //stdlib/gen_fsm. gen_fsm} behaviour.
+%% @private
+%%
+fsm(StartMod, Args) ->
+	StartArgs = [StartMod, Args, []],
+	StartFunc = {gen_fsm, start_link, StartArgs},
+	{StartMod, StartFunc, transient, 4000, worker, [StartMod]}.
 
