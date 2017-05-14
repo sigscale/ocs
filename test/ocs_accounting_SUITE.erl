@@ -91,6 +91,7 @@ init_per_suite(Config) ->
 %%
 end_per_suite(Config) ->
 	ok = diameter:stop_service(?SVC_AUTH),
+	ok = diameter:stop_service(?SVC_ACCT),
 	ok = ocs_test_lib:stop(),
 	ok = ocs:delete_subscriber("25252525"),
 	Config.
@@ -99,7 +100,7 @@ end_per_suite(Config) ->
 %% Initialization before each test case.
 %%
 init_per_testcase(TestCase, Config) when
-		TestCase == diameter_accounting ->
+		TestCase == diameter_accounting; TestCase == diameter_disconnect_session ->
 	UserName = "SlimShady",
 	Password = "TeRcEs",
 	{ok, [{auth, AuthInstance}, {acct, _}]} = application:get_env(ocs, diameter),
@@ -115,7 +116,7 @@ init_per_testcase(_TestCase, Config) ->
 %% Cleanup after each test case.
 %%
 end_per_testcase(TestCase, Config) when
-		TestCase == diameter_accounting ->
+		TestCase == diameter_accounting; TestCase == diameter_disconnect_session ->
 	UserName= ?config(username, Config),
 	Client = ?config(diameter_auth_client, Config),
 	ok = ocs:delete_client(Client),
