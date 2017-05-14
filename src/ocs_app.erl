@@ -73,10 +73,11 @@ start(normal = _StartType, _Args) ->
 start1() ->
 	{ok, RadiusConfig} = application:get_env(radius),
 	{ok, DiameterConfig} = application:get_env(diameter),
+	{ok, LogRotate} = application:get_env(acct_log_rotate),
 	[{auth, RadAuthInstances}, {acct, RadAcctInstances}] = RadiusConfig,
 	[{auth, DiamAuthInstances}, {acct, DiamAcctInstances}] = DiameterConfig,
-	F1 = fun({AcctAddr, AcctPort, [{rotate, AcctLogRotate}]}= _Instance) ->
-		case ocs:start(radius, acct, AcctAddr, AcctPort, AcctLogRotate) of
+	F1 = fun({AcctAddr, AcctPort, _Options}= _Instance) ->
+		case ocs:start(radius, acct, AcctAddr, AcctPort, 0) of
 			{ok, _AcctSup} ->
 				ok;
 			{error, Reason2} ->
@@ -108,7 +109,7 @@ start1() ->
 		end
 	end,
 	try
-		TopSup = case supervisor:start_link(ocs_sup, []) of
+		TopSup = case supervisor:start_link(ocs_sup, [LogRotate]) of
 			{ok, OcsSup} ->
 				OcsSup;
 			{error, Reason1} ->
