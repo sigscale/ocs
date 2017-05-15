@@ -287,7 +287,7 @@ get_range(_Config) ->
 	EndRange = End - (Range div 3),
 	Result = ocs_log:get_range(ocs_acct, StartRange, EndRange),
 	true = length(Result) > ((NumItems div 3) - (NumItems div 10)),
-	[{?AcctSessionId, ID} | _] = element(6, lists:nth(1, Result)),
+	[{?AcctSessionId, ID} | _] = element(7, lists:nth(1, Result)),
 	StartNum = list_to_integer(ID),
 	Fverify = fun({radius, TS, _, _, _, _,  _}, _N)
 					when TS < StartRange, TS > EndRange ->

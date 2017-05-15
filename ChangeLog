@@ -1,3 +1,10 @@
+2017-05-15  Kalpa Gunarathna  <kalpa@sigscale.com>
+
+	* ocs_diameter*.erl : add Diameter protocol support
+	* ocs_rest_res_http.erl : retrieve http logs via REST API
+	* ocs_rest_res_access.erl : retrieve access logs via REST API
+	* ocs_rest_res_accounting.erl : retrieve accounting logs via REST API
+
 2017-03-14  Kalpa Gunarathna  <kalpa@sigscale.com>
 
 	* ocs_rest_res*.erl : perform RESTful operations
