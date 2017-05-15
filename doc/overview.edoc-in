@@ -1055,6 +1055,8 @@ The {@link //ocs. ocs} application is configured using the following environment
 		<dd>Path of directory to store accounting logs.</dd>
 	<dt>acct_log_files</dt>
 		<dd>Number of accounting log files.</dd>
+	<dt>acct_log_rotate</dt>
+		<dd>Duration between IPDR logging.</dd>
 	<dt>acct_log_size</dt>
 		<dd>Size in bytes of accounting log files.</dd>
 	<dt>auth_log_dir</dt>
@@ -1066,7 +1068,9 @@ The {@link //ocs. ocs} application is configured using the following environment
 	<dt>ipdr_log_dir</dt>
 		<dd>Path of directory to store IPDR logs.</dd>
 	<dt>radius</dt>
-		<dd>Configuration groups for RADIUS authentication and accounting (includes IP address (default: {0,0,0,0}), port and log rotate time).</dd>
+		<dd>Configuration groups for RADIUS authentication and accounting (includes IP address (default: {0,0,0,0}), port).</dd>
+	<dt>diameter</dt>
+		<dd>Configuration groups for Diameter authentication and accounting (includes IP address (default: {0,0,0,0}), port).</dd>
 	<dt>tls_cert</dt>
 		<dd>Public certificate for TLS over EAP.</dd>
 	<dt>tlst_key</dt>
@@ -1106,34 +1110,54 @@ The {@link //inets. inets} application's {@link //inets/httpd. httpd} server con
 
 ===Example sys.config===
 ```
+
 [{ocs,
       [{radius,
                [{auth,
-                      [{{127,0,0,1}, 1812, []}]},
+                      [{{0,0,0,0}, 1812, []}]},
                {acct,
-                     [{{127,0,0,1}, 1813, [{rotate, 86400000}]}]}]},
-      {tls_key, "/etc/ssl/private/ocs.pem"},
-      {tls_cert, "/etc/ssl/certs/ocs.pem"},
-      {tls_cacert, "/etc/ssl/certs/ocsCA.pem"}]},
+                     [{{0,0,0,0}, 1813, []}]}]},
+      {diameter,
+               [{auth,
+                      [{{0,0,0,0}, 3868, []}]},
+               {acct,
+                     [{{0,0,0,0}, 3869, []}]}]},
+      {acct_log_rotate, 1440},
+      {acct_log_dir, "log/radius"},
+      {auth_log_dir, "log/radius"},
+      {ipdr_log_dir, "log/ipdr"},
+      {tls_key, "ssl/key.pem"},
+      {tls_cert, "ssl/cert.pem"},
+      {tls_cacert, "ssl/ca.pem"}]},
 {radius,
       [{sock_opts, [{recbuf, 131072}, {sndbuf, 131072}]}]},
 {inets,
       [{services,
          [{httpd,
             [{server_name, "ocs"},
+            {directory_index, ["index.html"]},
             {directory, {"/",
                   [{auth_type, mnesia},
-                  {auth_name, "ocs.example.com"},
-                  {require_user, ["bss"]},
+                  {auth_name, "ocs.sigscale.org"},
                   {require_group, ["staff"]}]}},
-            {modules, [mod_alias, mod_auth,
+            {transfer_disk_log, "/usr/lib/erlang/lib/ocs-%VERSION%/log/http/transfer"},
+            {security_disk_log, "/usr/lib/erlang/lib/ocs-%VERSION%/log/http/security"},
+            {error_disk_log, "/usr/lib/erlang/lib/ocs-%VERSION%/log/http/error"},
+            {transfer_disk_log_size, {10485760, 10}},
+            {error_disk_log_size, {10485760, 10}},
+            {error_disk_log_size, {10485760, 10}},
+            {security_disk_log_size, {10485760, 10}},
+            {disk_log_format, internal},
+            {modules, [mod_alias, mod_auth, mod_disk_log,
                   mod_ocs_rest_dispatcher, mod_ocs_rest_accepted_content,
                   mod_ocs_rest_get, mod_ocs_rest_post, mod_ocs_rest_patch,
                   mod_ocs_rest_delete]},
             {port, 8080},
             {socket_type, {essl,
-                  [{certfile, "/etc/ssl/certs/ocs.pem"},
+                  [{certfile,  "/etc/ssl/certs/ocs.pem"},
                   {keyfile, "/etc/ssl/private/ocs.pem"}]}},
             {server_root, "/home/ocs"},
+            {alias, {"/doc", "/usr/lib/erlang/lib/ocs-%VERSION%/doc"}},
             {document_root, "/usr/lib/erlang/lib/ocs-%VERSION%/priv/www"}]}]}]}].
+
 '''
