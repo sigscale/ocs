@@ -17,6 +17,7 @@ for subscribers of wireless local area network (WLAN) services (WiFi).
 |REST      | HTTP API                  |
 |CLI       | Erlang API                |
 |RADIUS    | AAA NAS Clients           |
+|Diameter  | AAA NAS Clients           |
 |EAP-PWD   | Android, Linux            |
 |EAP-TTLS  | iPhone, Microsoft Windows |
 |IPDR      | Billing Record Files      |
@@ -46,14 +47,14 @@ using the Erlang public API, either manually on the command line
 [shell](http://erlang.org/doc/man/shell.html), or through custom Erlang
 module development.
 
-### [RADIUS](https://tools.ietf.org/html/rfc2865)
+### [RADIUS](https://tools.ietf.org/html/rfc2865) & [Diameter](https://tools.ietf.org/html/rfc6733)
 The OCS acts as an authentication, authorization and accounting (AAA) server
 for network access servers (NAS) using the Remote Authentication Dial
-In User Service (RADIUS).
+In User Service (RADIUS) and Diameter protocols.
 
 #### Authentication & Authorization
 A wireless local area network (WLAN/Wi-Fi) access
-point (AP) acts as a NAS using RADIUS protocol to request authentication
+point (AP) acts as a NAS using RADIUS / Diameter protocol to request authentication
 from the OCS (AAA server) for subscribers attempting to associate. The OCS
 may authorize access and provide specific service authorization information
 (i.e. data rate, class, session expiry).
