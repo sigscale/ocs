@@ -141,19 +141,17 @@ diameter_log_auth_event(_Config) ->
 	ServerAddress = {0, 0, 0, 0},
 	ServerPort = 3668,
 	Server = {ServerAddress, ServerPort},
-	ClientAddress = {192, 168, 154, 150},
-	ClientPort = 49635,
-	Client = {ClientAddress, ClientPort},
+	Subscriber = "JohnnyDepp",
 	OHost = "client.testdomain.com",
 	ORealm = "testdomain.com",
 	AuthType = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
 	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 	End = erlang:system_time(millisecond),
-	ok = ocs_log:auth_log(diameter, Server, Client, OHost, ORealm,
+	ok = ocs_log:auth_log(diameter, Server, Subscriber, OHost, ORealm,
 			AuthType, ResultCode),
 	End = erlang:system_time(millisecond),
-	Fany = fun({TS, P, N, S, C, OH, OR, AType, RCode}) when P == Protocol,
-					TS >= Start, TS =< End, N == Node, S == Server, C == Client,
+	Fany = fun({TS, P, N, S, Sub, OH, OR, AType, RCode}) when P == Protocol,
+					TS >= Start, TS =< End, N == Node, S == Server, Sub == Subscriber,
 					OH == OHost, OR == ORealm, AType == AuthType, RCode == ResultCode ->
 				true;
 			(_) ->
@@ -221,21 +219,18 @@ diameter_log_acct_event(_Config) ->
 	ServerAddress = {0, 0, 0, 0},
 	ServerPort = 1813,
 	Server = {ServerAddress, ServerPort},
-	ClientAddress = {192, 168, 150, 151},
-	ClientPort = 59132,
-	Client = {ClientAddress, ClientPort},
 	OHost = "client.testdomain.com",
 	ORealm = "testdomain.com",
 	RequestType = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST',
 	Subscriber  = "PaulMccartney",
 	Balance = 7648,
 	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-	ok = ocs_log:acct_log(diameter, Server, Client, OHost, ORealm, RequestType,
+	ok = ocs_log:acct_log(diameter, Server, OHost, ORealm, RequestType,
 			Subscriber, Balance, ResultCode),
 	End = erlang:system_time(millisecond),
-	Fany = fun({TS, P, N, S, C, OH, OR, RType, Sub, Bal, RCode})
+	Fany = fun({TS, P, N, S, OH, OR, RType, Sub, Bal, RCode})
 					when P == Protocol, TS >= Start, TS =< End, N == Node,
-					S == Server, C == Client, OH == OHost, OR == ORealm, RType == RequestType,
+					S == Server, OH == OHost, OR == ORealm, RType == RequestType,
 					Sub == Subscriber, Bal == Balance, RCode == ResultCode ->
 				true;
 			(_) ->
