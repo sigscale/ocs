@@ -85,11 +85,13 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([diameter, SessId, AppId, AuthType, OHost, ORealm, Subscriber, Password] = _Args) ->
+init([diameter, Address, Port, SessId, AppId, AuthType, OHost, ORealm,
+		Subscriber, Password] = _Args) ->
 	process_flag(trap_exit, true),
 	StateData = #statedata{protocol = diameter, session_id = SessId, app_id = AppId,
 		auth_request_type = AuthType, origin_host = OHost, origin_realm = ORealm,
-		subscriber = Subscriber, password = Password},
+		subscriber = Subscriber, password = Password, server_address = Address,
+		server_port = Port},
 	{ok, request, StateData};
 init([radius, ServerAddress, ServerPort, ClientAddress, ClientPort, RadiusFsm,
 		Secret, SessionID, #radius{code = ?AccessRequest, id = ID,
@@ -226,19 +228,25 @@ handle_event(_Event, StateName, StateData) ->
 handle_sync_event(diameter_request, _From, StateName,
 		#statedata{session_id = SessId, origin_host = OHost,
 		origin_realm = ORealm, subscriber = Subscriber, password = Password,
-		auth_request_type = Type, app_id = AppId} = StateData) ->
+		auth_request_type = Type, app_id = AppId, server_address = Address,
+		server_port = Port} = StateData) ->
+	Server = {Address, Port},
 	case ocs:authorize(Subscriber, Password) of
 		{ok, _Password, _Attr} ->
 			Answer = #diameter_nas_app_AAA{'Session-Id' = SessId, 'Auth-Application-Id' = AppId,
 					'Auth-Request-Type' = Type, 'Origin-Host' = OHost,
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 					'Origin-Realm' = ORealm },
+			ok = ocs_log:auth_log(diameter, Server, Subscriber, OHost, ORealm, Type,
+					?'DIAMETER_BASE_RESULT-CODE_SUCCESS'),
 			{reply, Answer, StateName, StateData};
 		{error, _Reason} ->
 			Answer = #diameter_nas_app_AAA{'Session-Id' = SessId, 'Auth-Application-Id' = AppId,
 					'Auth-Request-Type' = Type, 'Origin-Host' = OHost, 
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
 					'Origin-Realm' = ORealm },
+			ok = ocs_log:auth_log(diameter, Server, Subscriber, OHost, ORealm, Type,
+					?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED'),
 			{reply, Answer, StateName, StateData, 0}
 	end;
 handle_sync_event(_Event, _From, StateName, StateData) ->

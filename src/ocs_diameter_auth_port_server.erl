@@ -40,6 +40,8 @@
 
 -record(state,
 		{auth_port_sup :: pid(),
+		address :: inet:ip_address(),
+		port :: inet:port(),
 		simple_auth_sup :: undefined | pid(),
 		handlers = gb_trees:empty() :: gb_trees:tree(
 				Key :: (SessionId :: string()), Value :: (Fsm :: pid()))}).
@@ -67,10 +69,16 @@
 %% @see //stdlib/gen_server:init/1
 %% @private
 %%
-init([AuthPortSup, _Address, _Port, _Options]) ->
-	process_flag(trap_exit, true),
-	State = #state{auth_port_sup = AuthPortSup},
-	{ok, State, 0}.
+init([AuthPortSup, Address, Port, _Options]) ->
+	State = #state{auth_port_sup = AuthPortSup, address = Address,
+			port = Port},
+	case ocs_log:auth_open() of
+		ok ->
+			process_flag(trap_exit, true),
+			{ok, State, 0};
+		{error, Reason} ->
+			{stop, Reason}
+		end.
 
 -spec handle_call(Request, From, State) -> Result
 	when
@@ -164,6 +172,7 @@ handle_info({'EXIT', Fsm, _Reason},
 %% @private
 %%
 terminate(_Reason, _State) ->
+	ocs_log:auth_close(),
 	stop.
 
 -spec code_change(OldVsn, State, Extra) -> Result
@@ -277,8 +286,9 @@ request1(OHost, ORealm, Request, #state{handlers = Handlers} = State) ->
 		NewState :: state() | {Fsm, State},
 		Fsm :: undefined | pid().
 start_fsm(AuthSup, AppId, SessId, Type, OHost, ORealm, UserName,
-			Password, #state{handlers = Handlers} = State) ->
-	StartArgs = [diameter, SessId, AppId, Type, OHost, ORealm, UserName, Password],
+			Password, #state{handlers = Handlers, address = Address, port = Port} = State) ->
+	StartArgs = [diameter, Address, Port, SessId, AppId, Type, OHost,
+			ORealm, UserName, Password],
 	ChildSpec = [StartArgs, []],
 	case supervisor:start_child(AuthSup, ChildSpec) of
 		{ok, Fsm} ->
