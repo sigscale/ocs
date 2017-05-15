@@ -22,7 +22,7 @@
 
 %% export the ocs_log public API
 -export([acct_open/0, acct_log/5, acct_close/0]).
--export([auth_open/0, auth_log/6, auth_close/0, auth_query/5]).
+-export([auth_open/0, auth_log/6, auth_log/7, auth_close/0, auth_query/5]).
 -export([ipdr_log/3, get_range/3, last/2]).
 -export([dump_file/2, http_file/2, httpd_logname/1]).
 -export([date/1, iso8601/1]).
@@ -169,6 +169,28 @@ auth_log(Protocol, Server, Client, Type, RequestAttributes, ResponseAttributes) 
 	TS = erlang:system_time(?MILLISECOND),
 	Event = {Protocol, TS, node(), Server, Client, Type,
 			RequestAttributes, ResponseAttributes},
+	disk_log:log(?AUTHLOG, Event).
+
+-spec auth_log(Protocol, Server, Client, OriginHost, OriginRealm, AuthType,
+		ResultCode) -> Result
+	when
+		Protocol :: diameter,
+		Server :: {Address, Port},
+		Client :: {Address, Port},
+		Address :: inet:ip_address(),
+		Port :: integer(),
+		OriginHost :: term(),
+		OriginRealm :: term(),
+		AuthType :: integer(),
+		ResultCode:: integer(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Write a Diameter AAR event to disk log.
+auth_log(Protocol, Server, Client, OriginHost, OriginRealm, AuthType,
+		ResultCode) ->
+	TS = erlang:system_time(?MILLISECOND),
+	Event = {Protocol, TS, node(), Server, Client, OriginHost, OriginRealm,
+			AuthType, ResultCode},
 	disk_log:log(?AUTHLOG, Event).
 
 -spec auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch) -> Result
