@@ -109,8 +109,8 @@ acct_log(Protocol, Server, Client, Type, Attributes) ->
 		OriginHost :: term(),
 		OriginRealm :: term(),
 		RequestType :: integer(),
-		Subscriber :: string() | binary(),
-		Balance :: integer(),
+		Subscriber :: undefined| string() | binary(),
+		Balance :: undefined| integer(),
 		ResultCode :: integer(),
 		Result :: ok | {error, Reason},
 		Reason :: term().

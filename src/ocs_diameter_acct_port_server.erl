@@ -71,7 +71,13 @@
 %%
 init([Address, Port, _Options]) ->
 	State = #state{address = Address, port = Port},
-	{ok, State}.
+	case ocs_log:acct_open() of
+		ok ->
+			process_flag(trap_exit, true),	
+			{ok, State};
+		{error, Reason} ->
+			{stop, Reason}
+	end.
 
 -spec handle_call(Request, From, State) -> Result
 	when
@@ -170,7 +176,7 @@ handle_info({'EXIT', Fsm, _Reason},
 %% @private
 %%
 terminate(_Reason,  _State) ->
-	ok.
+	ocs_log:acct_close().
 
 -spec code_change(OldVsn, State, Extra) -> Result
 	when
@@ -225,35 +231,35 @@ request(Request, Caps,  _From, State) ->
 		request1(RequestType, SId, RequestNum, Subscriber, OHost, ORealm, State)
 	catch
 		_:_ ->
-			send_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-					OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
-					RequestNum, State)
+			send_error(SId, undefined, undefined,
+					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost, ORealm,
+					?CC_APPLICATION_ID, RequestType, RequestNum, State)
 	end.
 
 %% @hidden
 request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
-		SId, RequestNum,Subscriber, OHost, ORealm, State) ->
+		SId, RequestNum, Subscriber, OHost, ORealm, State) ->
 	case ocs:find_subscriber(Subscriber) of
-		{ok, Password, _, _Balance, true}  ->
+		{ok, Password, _, Balance, true}  ->
 			case ocs:authorize(Subscriber, Password) of
 				{ok, _, _} ->
-					send_answer(SId, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+					send_answer(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 							OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
 							RequestNum, State);
 				{error, _Reason1} ->
-					send_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					send_error(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 							OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
 							RequestNum, State)
 			end;
 		{error, _Reason} ->
-			send_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+			send_error(SId, undefined, undefined, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 				OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
 					RequestNum, State)
 	end;
 request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		SId, RequestNum, Subscriber, OHost, ORealm, State) ->
 	case ocs:find_subscriber(Subscriber) of
-		{ok, _, _, _Balance, true}  ->
+		{ok, _, _, Balance, true}  ->
 			F = fun() ->
 				case mnesia:read(subscriber, Subscriber, write) of
 					[#subscriber{disconnect = false} = Entry] ->
@@ -265,7 +271,7 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 			end,
 			case mnesia:transaction(F) of
 				{atomic, ok} ->
-					send_answer(SId, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+					send_answer(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 							OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
 							RequestNum, State);
 				{aborted, Reason} ->
@@ -273,20 +279,22 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 							{subscriber, Subscriber}, {origin_host, OHost},
 							{origin_realm, ORealm},{session, SId}, {state, State},
 							{reason, Reason}]),
-					send_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					send_error(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 						OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
 							RequestNum, State)
 			end;
 		{error, _Reason} ->
-			send_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+			send_error(SId, Subscriber, undefined, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 				OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
 					RequestNum, State)
 	end.
 
--spec send_answer(SessionId, ResultCode, OriginHost, OriginRealm,
+-spec send_answer(SessionId, Subscriber, Balance, ResultCode, OriginHost, OriginRealm,
 		AuthAppId, RequestType, RequestNum, State) -> Result
 			when
 				SessionId :: string(),
+				Subscriber :: string() | binary(),
+				Balance :: integer(),
 				ResultCode :: integer(),
 				OriginHost :: string(),
 				OriginRealm :: string(),
@@ -298,18 +306,23 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 				Reply :: #diameter_cc_app_CCA{}.
 %% @doc Send CCA to Diameter client indicating a successful operation.
 %% @hidden
-send_answer(SId, ResultCode, OHost, ORealm, AuthAppId, RequestType,
-		RequestNum, State) ->
+send_answer(SId, Subscriber, Balance, ResultCode, OHost, ORealm, AuthAppId, RequestType,
+		RequestNum, #state{address = Address, port = Port} = State) ->
 	Reply = #diameter_cc_app_CCA{'Session-Id' = SId, 'Result-Code' = ResultCode,
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Auth-Application-Id' = AuthAppId, 'CC-Request-Type' = RequestType,
 			'CC-Request-Number' = RequestNum},
+	Server = {Address, Port},
+	ok = ocs_log:acct_log(diameter, Server, OHost, ORealm, RequestType, Subscriber,
+			Balance, ResultCode),
 	{reply, Reply, State}.
 
--spec send_error(SessionId, ResultCode, OriginHost, OriginRealm,
+-spec send_error(SessionId, Subscriber, Balance, ResultCode, OriginHost, OriginRealm,
 		AuthAppId, RequestType, RequestNum, State) -> Result
 			when
 				SessionId :: string(),
+				Subscriber :: undefined | string() | binary(),
+				Balance :: undefined | integer(),
 				ResultCode :: integer(),
 				OriginHost :: string(),
 				OriginRealm :: string(),
@@ -321,11 +334,14 @@ send_answer(SId, ResultCode, OHost, ORealm, AuthAppId, RequestType,
 				Reply :: #diameter_cc_app_CCA{}.
 %% @doc Send CCA to Diameter client indicating a operation faliure.
 %% @hidden
-send_error(SId, ResultCode, OHost, ORealm, AuthAppId, RequestType,
-		RequestNum, State) ->
+send_error(SId, Subscriber, Balance, ResultCode, OHost, ORealm, AuthAppId, RequestType,
+		RequestNum, #state{address = Address, port = Port} = State) ->
 	Reply = #diameter_cc_app_CCA{'Session-Id' = SId, 'Result-Code' = ResultCode,
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Auth-Application-Id' = AuthAppId, 'CC-Request-Type' = RequestType,
 			'CC-Request-Number' = RequestNum},
+	Server = {Address, Port},
+	ok = ocs_log:acct_log(diameter, Server, OHost, ORealm, RequestType,
+			Subscriber, Balance, ResultCode),
 	{reply, Reply, State}.
 
