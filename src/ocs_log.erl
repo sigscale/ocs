@@ -96,7 +96,7 @@ acct_open1(Directory) ->
 %% @doc Write an accounting event to disk log.
 acct_log(Protocol, Server, Client, Type, Attributes) ->
 	TS = erlang:system_time(?MILLISECOND),
-	Event = {Protocol, TS, node(), Server, Client, Type, Attributes},
+	Event = {TS, Protocol, node(), Server, Client, Type, Attributes},
 	disk_log:log(?ACCTLOG, Event).
 
 -spec acct_log(Protocol, Server, Client, OriginHost, OriginRealm,
@@ -119,7 +119,7 @@ acct_log(Protocol, Server, Client, Type, Attributes) ->
 acct_log(Protocol, Server, Client, OriginHost, OriginRealm,
 		RequestType, Subscriber, Balance, ResultCode) -> 
 	TS = erlang:system_time(?MILLISECOND),
-	Event = {Protocol, TS, node(), Server, Client, OriginHost, OriginRealm,
+	Event = {TS, Protocol,node(), Server, Client, OriginHost, OriginRealm,
 			RequestType, Subscriber, Balance, ResultCode},
 	disk_log:log(?ACCTLOG, Event).
 
@@ -191,7 +191,7 @@ auth_open1(Directory) ->
 %% @doc Write a RADIUS  authorization event to disk log.
 auth_log(Protocol, Server, Client, Type, RequestAttributes, ResponseAttributes) ->
 	TS = erlang:system_time(?MILLISECOND),
-	Event = {Protocol, TS, node(), Server, Client, Type,
+	Event = {TS, Protocol, node(), Server, Client, Type,
 			RequestAttributes, ResponseAttributes},
 	disk_log:log(?AUTHLOG, Event).
 
@@ -213,7 +213,7 @@ auth_log(Protocol, Server, Client, Type, RequestAttributes, ResponseAttributes) 
 auth_log(Protocol, Server, Client, OriginHost, OriginRealm, AuthType,
 		ResultCode) ->
 	TS = erlang:system_time(?MILLISECOND),
-	Event = {Protocol, TS, node(), Server, Client, OriginHost, OriginRealm,
+	Event = {TS, Protocol, node(), Server, Client, OriginHost, OriginRealm,
 			AuthType, ResultCode},
 	disk_log:log(?AUTHLOG, Event).
 

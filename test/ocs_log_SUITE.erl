@@ -152,7 +152,7 @@ diameter_log_auth_event(_Config) ->
 	ok = ocs_log:auth_log(diameter, Server, Client, OHost, ORealm,
 			AuthType, ResultCode),
 	End = erlang:system_time(millisecond),
-	Fany = fun({P, TS, N, S, C, OH, OR, AType, RCode}) when P == Protocol,
+	Fany = fun({TS, P, N, S, C, OH, OR, AType, RCode}) when P == Protocol,
 					TS >= Start, TS =< End, N == Node, S == Server, C == Client,
 					OH == OHost, OR == ORealm, AType == AuthType, RCode == ResultCode ->
 				true;
@@ -192,7 +192,7 @@ radius_log_acct_event(_Config) ->
 			{?AcctDelayTime, 0}, {?NasIpAddress, ClientAddress}],
 	ok = ocs_log:acct_log(radius, Server, Client, Type, ReqAttrs),
 	End = erlang:system_time(millisecond),
-	Fany = fun({radius, TS, N, S, C, T, A}) when TS >= Start, TS =< End,
+	Fany = fun({TS, radius, N, S, C, T, A}) when TS >= Start, TS =< End,
 					N == Node, S == Server, C == Client, T == Type,
 					A == ReqAttrs ->
 				true;
@@ -230,10 +230,10 @@ diameter_log_acct_event(_Config) ->
 	Subscriber  = "PaulMccartney",
 	Balance = 7648,
 	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-	ok = ocs_log:acct_log(radius, Server, Client, OHost, ORealm, RequestType,
+	ok = ocs_log:acct_log(diameter, Server, Client, OHost, ORealm, RequestType,
 			Subscriber, Balance, ResultCode),
 	End = erlang:system_time(millisecond),
-	Fany = fun({P, TS, N, S, C, OH, OR, RType, Sub, Bal, RCode})
+	Fany = fun({TS, P, N, S, C, OH, OR, RType, Sub, Bal, RCode})
 					when P == Protocol, TS >= Start, TS =< End, N == Node,
 					S == Server, C == Client, OH == OHost, OR == ORealm, RType == RequestType,
 					Sub == Subscriber, Bal == Balance, RCode == ResultCode ->
