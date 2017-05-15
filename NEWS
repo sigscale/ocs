@@ -1,5 +1,5 @@
 May 15 2017
--------------
+------------
 	- version change to 2.0
 	- add Diameter protocol support
 	- implement REST APIs to retrieve http, access, accounting logs
