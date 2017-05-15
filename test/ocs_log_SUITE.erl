@@ -30,6 +30,7 @@
 -include_lib("common_test/include/ct.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include_lib("../include/diameter_gen_nas_application_rfc7155.hrl").
+-include_lib("../include/diameter_gen_cc_application_rfc4006.hrl").
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
@@ -80,7 +81,7 @@ sequences() ->
 %%
 all() ->
 	[radius_log_auth_event, radius_log_acct_event, get_range, ipdr_log,
-	diameter_log_auth_event].
+	diameter_log_auth_event, diameter_log_acct_event].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -111,7 +112,7 @@ radius_log_auth_event(_Config) ->
 	ResAttrs = [{?SessionTimeout, 3600}, {?MessageAuthenticator, RandomBin}],
 	ok = ocs_log:auth_log(radius, Server, Client, Type, ReqAttrs, ResAttrs),
 	End = erlang:system_time(millisecond),
-	Fany = fun({radius, TS, N, S, C, T, A1, A2}) when TS >= Start, TS =< End,
+	Fany = fun({TS, radius, N, S, C, T, A1, A2}) when TS >= Start, TS =< End,
 					N == Node, S == Server, C == Client, T == Type,
 					A1 == ReqAttrs, A2 == ResAttrs ->
 				true;
@@ -194,6 +195,48 @@ radius_log_acct_event(_Config) ->
 	Fany = fun({radius, TS, N, S, C, T, A}) when TS >= Start, TS =< End,
 					N == Node, S == Server, C == Client, T == Type,
 					A == ReqAttrs ->
+				true;
+			(_) ->
+				false	
+	end,
+	Find = fun(F, {Cont, Chunk}) ->
+				case lists:any(Fany, Chunk) of
+					false ->
+						F(F, disk_log:chunk(ocs_acct, Cont));
+					true ->
+						true
+				end;
+			(_F, eof) ->
+				false
+	end,
+	true = Find(Find, disk_log:chunk(ocs_acct, start)).
+
+diameter_log_acct_event() ->
+   [{userdata, [{doc, "Log a Diameter CCR event"}]}].
+
+diameter_log_acct_event(_Config) ->
+	Start = erlang:system_time(millisecond),
+	Protocol = diameter,
+	Node = node(),
+	ServerAddress = {0, 0, 0, 0},
+	ServerPort = 1813,
+	Server = {ServerAddress, ServerPort},
+	ClientAddress = {192, 168, 150, 151},
+	ClientPort = 59132,
+	Client = {ClientAddress, ClientPort},
+	OHost = "client.testdomain.com",
+	ORealm = "testdomain.com",
+	RequestType = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST',
+	Subscriber  = "PaulMccartney",
+	Balance = 7648,
+	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+	ok = ocs_log:acct_log(radius, Server, Client, OHost, ORealm, RequestType,
+			Subscriber, Balance, ResultCode),
+	End = erlang:system_time(millisecond),
+	Fany = fun({P, TS, N, S, C, OH, OR, RType, Sub, Bal, RCode})
+					when P == Protocol, TS >= Start, TS =< End, N == Node,
+					S == Server, C == Client, OH == OHost, OR == ORealm, RType == RequestType,
+					Sub == Subscriber, Bal == Balance, RCode == ResultCode ->
 				true;
 			(_) ->
 				false	
