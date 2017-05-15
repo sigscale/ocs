@@ -28,6 +28,8 @@
 
 -include_lib("radius/include/radius.hrl").
 -include_lib("common_test/include/ct.hrl").
+-include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
+-include_lib("../include/diameter_gen_nas_application_rfc7155.hrl").
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
@@ -77,7 +79,8 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[radius_log_auth_event, radius_log_acct_event, get_range, ipdr_log].
+	[radius_log_auth_event, radius_log_acct_event, get_range, ipdr_log,
+	diameter_log_auth_event].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -114,6 +117,46 @@ radius_log_auth_event(_Config) ->
 				true;
 			(_) ->
 				false	
+	end,
+	Find = fun(F, {Cont, Chunk}) ->
+				case lists:any(Fany, Chunk) of
+					false ->
+						F(F, disk_log:chunk(ocs_auth, Cont));
+					true ->
+						true
+				end;
+			(_F, eof) ->
+				false
+	end,
+	true = Find(Find, disk_log:chunk(ocs_auth, start)).
+
+diameter_log_auth_event() ->
+   [{userdata, [{doc, "Log a Diameter AAR event"}]}].
+
+diameter_log_auth_event(_Config) ->
+	Start = erlang:system_time(millisecond),
+	Protocol = diameter,
+	Node = node(),
+	ServerAddress = {0, 0, 0, 0},
+	ServerPort = 3668,
+	Server = {ServerAddress, ServerPort},
+	ClientAddress = {192, 168, 154, 150},
+	ClientPort = 49635,
+	Client = {ClientAddress, ClientPort},
+	OHost = "client.testdomain.com",
+	ORealm = "testdomain.com",
+	AuthType = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
+	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+	End = erlang:system_time(millisecond),
+	ok = ocs_log:auth_log(diameter, Server, Client, OHost, ORealm,
+			AuthType, ResultCode),
+	End = erlang:system_time(millisecond),
+	Fany = fun({P, TS, N, S, C, OH, OR, AType, RCode}) when P == Protocol,
+					TS >= Start, TS =< End, N == Node, S == Server, C == Client,
+					OH == OHost, OR == ORealm, AType == AuthType, RCode == ResultCode ->
+				true;
+			(_) ->
+				false
 	end,
 	Find = fun(F, {Cont, Chunk}) ->
 				case lists:any(Fany, Chunk) of
