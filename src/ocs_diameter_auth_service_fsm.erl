@@ -42,7 +42,7 @@
 -record(statedata,
 		{transport_ref :: undefined | reference()}).
 
--define(DIAMETER_SERVICE, ocs_diameter_service).
+-define(DIAMETER_AUTH_SERVICE, ocs_diameter_service).
 -define(BASE_APPLICATION, ocs_diameter_base_application).
 -define(BASE_APPLICATION_ID, 0).
 -define(BASE_APPLICATION_CALLBACK, ocs_diameter_base_application_cb).
@@ -77,7 +77,7 @@ init([Address, Port] = _Args) ->
 	process_flag(trap_exit, true),
 	SOptions = service_options(),
 	TOptions = transport_options(diameter_tcp, Address, Port),
-	SvcName = ?DIAMETER_SERVICE,
+	SvcName = ?DIAMETER_AUTH_SERVICE,
 	diameter:subscribe(SvcName),
 	case diameter:start_service(SvcName, SOptions) of
 		ok ->
@@ -219,10 +219,10 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 %% @see //stdlib/gen_fsm:handle_info/3
 %% @private
 %%
-handle_info(#diameter_event{service = ?DIAMETER_SERVICE, info = start},
+handle_info(#diameter_event{service = ?DIAMETER_AUTH_SERVICE, info = start},
 		wait_for_start = _StateName, StateData) ->
 	{next_state, started, StateData, 0};
-handle_info(#diameter_event{service = ?DIAMETER_SERVICE, info = Event},
+handle_info(#diameter_event{service = ?DIAMETER_AUTH_SERVICE, info = Event},
 	started = StateName, StateData) ->
 	change_state(StateName, Event, StateData).
 
@@ -237,7 +237,7 @@ handle_info(#diameter_event{service = ?DIAMETER_SERVICE, info = Event},
 %%
 terminate(_Reason, _StateName,  #statedata{transport_ref = TransRef}=
 		_StateData) ->
-	diameter:remove_transport(?DIAMETER_SERVICE, TransRef),
+	diameter:remove_transport(?DIAMETER_AUTH_SERVICE, TransRef),
 	ok.
 
 -spec code_change(OldVsn, StateName, StateData, Extra) -> Result
