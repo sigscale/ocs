@@ -13,4 +13,5 @@
 	{syntax_tools, "@ERLANG_LIB_VER_syntax_tools@"},
 	{mochiweb, "@ERLANG_LIB_VER_mochiweb@"},
 	{radius, "@ERLANG_LIB_VER_radius@"},
+	{diameter, "@ERLANG_LIB_VER_diameter@"},
 	{@PACKAGE@, "@VERSION@"}]}.
