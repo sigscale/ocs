@@ -49,7 +49,7 @@ content_types_provided() ->
 %% requests.
 perform_get_all() ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
-	case ocs_log:last(radius_auth, MaxItems) of
+	case ocs_log:last(ocs_auth, MaxItems) of
 		{error, _} -> 
 			{error, 404};
 		{NewCount, Events} -> 
