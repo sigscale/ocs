@@ -80,8 +80,8 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[radius_log_auth_event, radius_log_acct_event, get_range, ipdr_log,
-	diameter_log_auth_event, diameter_log_acct_event].
+	[radius_log_auth_event, radius_log_acct_event, get_range, ipdr_log].
+	%diameter_log_auth_event, diameter_log_acct_event].
 
 %%---------------------------------------------------------------------
 %%  Test cases

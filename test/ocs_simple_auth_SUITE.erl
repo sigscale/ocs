@@ -130,8 +130,9 @@ sequences() ->
 %%
 all() -> 
 	[simple_authentication_radius, out_of_credit_radius, bad_password_radius,
-	unknown_username_radius, simple_authentication_diameter, bad_password_diameter, 
-	unknown_username_diameter, out_of_credit_diameter, session_termination_diameter].
+	unknown_username_radius]. 
+	%simple_authentication_diameter, bad_password_diameter, 
+	%unknown_username_diameter, out_of_credit_diameter, session_termination_diameter].
 
 %%---------------------------------------------------------------------
 %%  Test cases
