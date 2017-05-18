@@ -86,7 +86,7 @@ perform_get_all() ->
 		Clients ->
 			Response = perform_get_all1(Clients),
 			Body  = mochijson:encode(Response),
-			{ok, [{"content-type", "application/json"}], Body}
+			{ok, [{content_type, "application/json"}], Body}
 	end.
 %% @hidden
 perform_get_all1(Clients) ->

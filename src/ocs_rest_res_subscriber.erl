@@ -48,7 +48,7 @@ content_types_provided() ->
 -spec perform_get(Id) -> Result
 	when
 		Id :: string(),
-		Result :: {ok, Headers :: [string()],
+		Result :: {ok, Headers :: term(), 
 				Body :: iolist()} | {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/subscriber/{id}'
 %% requests.
@@ -63,7 +63,8 @@ perform_get(Id) ->
 				{enabled, Enabled}],
 			JsonObj  = {struct, RespObj},
 			Body = mochijson:encode(JsonObj),
-			{ok, [], Body};
+			Headers = [{content_type, "application/json"}],
+			{ok, Headers, Body};
 		{error, _Reason} ->
 			{error, 404}
 	end.
