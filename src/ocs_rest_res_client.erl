@@ -73,7 +73,7 @@ perform_get1(Address) ->
 			{error, 404}
 	end.
 
--spec perform_get_all() -> Result 
+-spec perform_get_all() -> Result
 	when
 		Result ::{ok, Headers :: [string()],
 				Body :: iolist()} | {error, ErrorCode :: integer()}.
@@ -111,30 +111,14 @@ perform_post(RequestBody) ->
 	try 
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, Id} = lists:keyfind("id", 1, Object),
-		DiscPort = case lists:keyfind("disconnectPort", 1, Object) of
-			{_, DP} ->
-				DP;
-			false ->
-				3799
-		end,
-		Protocol = case lists:keyfind("protocol", 1, Object) of
-			{_, "radius"} ->
+		DiscPort = proplists:get_value("disconnectPort", Object, 3799),
+		Protocol = case proplists:get_value("protocol", Object, "radius") of
+			RADIUS when RADIUS =:= "radius"; RADIUS =:= "RADIUS" ->
 				radius;
-			{_, "RADIUS"} ->
-				radius;
-			{_, "diameter"} ->
-				diameter;
-			{_, "DIAMETER"} ->
-				diameter;
-			false ->
-				radius
+			DIAMETER when DIAMETER =:= "diameter"; DIAMETER =:= "DIAMETER" ->
+				diameter
 		end,
-		Secret = case lists:keyfind("secret", 1, Object) of
-			{_, PWD} ->
-				PWD;
-			false ->
-				ocs:generate_password()
-		end,
+		Secret = proplists:get_value("secret", Object, ocs:generate_password()),
 		perform_post1(Id, DiscPort, Protocol, Secret)
 	catch
 		_Error ->
@@ -175,13 +159,11 @@ perform_patch(Id, ReqBody) ->
 					[{"secret", NewPassword}] ->
 						Protocol_Atom = string:to_upper(atom_to_list(CurrProtocol)),
 						perform_patch1(Id, CurrDiscPort, Protocol_Atom, NewPassword);
-					[{"disconnectPort", NewDiscPort},{"protocol", "RADIUS"}] ->
+					[{"disconnectPort", NewDiscPort},{"protocol", RADIUS}] 
+							when RADIUS =:= "radius"; RADIUS =:= "RADIUS" ->
 						perform_patch2(Id, NewDiscPort, radius, CurrSecret);
-					[{"disconnectPort", NewDiscPort},{"protocol", "radius"}] ->
-						perform_patch2(Id, NewDiscPort, radius, CurrSecret);
-					[{"disconnectPort", NewDiscPort},{"protocol", "DIAMETER"}] ->
-						perform_patch2(Id, NewDiscPort, diameter, CurrSecret);
-					[{"disconnectPort", NewDiscPort},{"protocol", "diameter"}] ->
+					[{"disconnectPort", NewDiscPort},{"protocol", DIAMETER}]
+							when DIAMETER =:= "diameter"; DIAMETER =:= "DIAMETER" ->
 						perform_patch2(Id, NewDiscPort, diameter, CurrSecret)
 				end
 			catch
