@@ -50,9 +50,9 @@ content_types_provided() ->
 perform_get_all() ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	case ocs_log:last(ocs_auth, MaxItems) of
-		{error, _} -> 
+		{error, _} ->
 			{error, 404};
-		{NewCount, Events} -> 
+		{NewCount, Events} ->
 			JsonObj = radius_auth_json(Events),
 			JsonArray = {array, JsonObj},
 			Body = mochijson:encode(JsonArray),
@@ -68,17 +68,20 @@ perform_get_all() ->
 % @hidden
 radius_auth_json(Events) ->
 	F = fun({Milliseconds, _Proto, Node, Client, Server, Type, ReqAttrs, _RespAttrs},  Acc) ->
-		TimeStamp = ocs_log:iso8601(Milliseconds),
-		{ClientAdd, ClientPort} = Client,
-		ClientIp = inet:ntoa(ClientAdd),
-		{ServerAdd, ServerPort} = Server,
-		ServerIp = inet:ntoa(ServerAdd),
-		Username = radius_attributes:fetch(?UserName, ReqAttrs),
-		JsonObj = {struct, [{"timeStamp", TimeStamp}, {"node", Node}, 
-				{"clientAddress", ClientIp}, {"clientPort", ClientPort}, 
-				{"serverAddress", ServerIp}, {"serverPort", ServerPort}, 
-				{"type", Type}, {"username", Username}]},
-		[JsonObj | Acc]
+					TimeStamp = ocs_log:iso8601(Milliseconds),
+					{ClientAdd, ClientPort} = Client,
+					ClientIp = inet:ntoa(ClientAdd),
+					{ServerAdd, ServerPort} = Server,
+					ServerIp = inet:ntoa(ServerAdd),
+					Username = radius_attributes:fetch(?UserName, ReqAttrs),
+					JsonObj = {struct, [{"timeStamp", TimeStamp}, {"node", Node},
+							{"clientAddress", ClientIp}, {"clientPort", ClientPort},
+							{"serverAddress", ServerIp}, {"serverPort", ServerPort},
+							{"type", Type}, {"username", Username}]},
+					[JsonObj | Acc];
+			(_, Acc) ->
+					%% TODO support for DIAMETER
+					Acc
 	end,
 	lists:foldl(F, [], Events).
 

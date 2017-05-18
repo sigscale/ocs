@@ -68,17 +68,20 @@ perform_get_all() ->
 % @hidden
 radius_auth_json(Events) ->
 	F = fun({Milliseconds, _Proto, Node, Client, Server, Type, Attr}, Acc) ->
-		TimeStamp = ocs_log:iso8601(Milliseconds),
-		{ClientAdd, ClientPort} = Client,
-		ClientIp = inet:ntoa(ClientAdd),
-		{ServerAdd, ServerPort} = Server,
-		ServerIp = inet:ntoa(ServerAdd),
-		Username = radius_attributes:fetch(?UserName, Attr),
-		JsonObj = {struct, [{"timeStamp", TimeStamp}, {"node", Node}, 
-				{"clientAddress", ClientIp}, {"clientPort", ClientPort}, 
-				{"serverAddress", ServerIp}, {"serverPort", ServerPort}, 
-				{"type", Type}, {"username", Username}]},
-		[JsonObj | Acc]
+					TimeStamp = ocs_log:iso8601(Milliseconds),
+					{ClientAdd, ClientPort} = Client,
+					ClientIp = inet:ntoa(ClientAdd),
+					{ServerAdd, ServerPort} = Server,
+					ServerIp = inet:ntoa(ServerAdd),
+					Username = radius_attributes:fetch(?UserName, Attr),
+					JsonObj = {struct, [{"timeStamp", TimeStamp}, {"node", Node},
+							{"clientAddress", ClientIp}, {"clientPort", ClientPort},
+							{"serverAddress", ServerIp}, {"serverPort", ServerPort},
+							{"type", Type}, {"username", Username}]},
+					[JsonObj | Acc];
+		(_, Acc) ->
+			%% TODO support for DIAMETER
+			Acc
 	end,
 	lists:foldl(F, [], Events).
 
