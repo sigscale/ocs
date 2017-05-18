@@ -134,8 +134,8 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[radius_accouting, radius_disconnect_session]. 
-	%diameter_accounting, diameter_disconnect_session].
+	[radius_accouting, radius_disconnect_session, diameter_accounting,
+	diameter_disconnect_session].
 
 %%---------------------------------------------------------------------
 %%  Test cases
