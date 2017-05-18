@@ -68,7 +68,7 @@ perform_get1(Address) ->
 					{protocol, string:to_upper(atom_to_list(Protocol))}, {secret, Secret}],
 			JsonObj  = {struct, RespObj},
 			Body = mochijson:encode(JsonObj),
-			{body, Body};
+			{ok, [{content_type, "application/json"}], Body};
 		{error, not_found} ->
 			{error, 404}
 	end.
