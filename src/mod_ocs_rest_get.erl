@@ -84,6 +84,13 @@ content_type_available(Headers, Uri, Resource, ModData) ->
 %% @hidden
 do_get(Uri, Resource, ModData) ->
 	case string:tokens(Uri, "/") of
+		[API, "v1", _, _] when API == "ocs" ->
+			case Resource:perform_get_all() of
+				{ok, Headers, Body} ->
+					send_response(Headers, Body, ModData);
+				{error, ErrorCode} ->
+					{break, [{response, {ErrorCode, "<h1>Not Found</h1>"}}]}
+			end;
 		[API, "v1", _] when API == "ocs"; API == "usageManagement" ->
 			case Resource:perform_get_all() of
 				{ok, Headers, Body} ->
