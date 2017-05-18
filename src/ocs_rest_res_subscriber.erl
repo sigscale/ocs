@@ -82,14 +82,18 @@ perform_get_all() ->
 		Subscribers ->
 			Response = perform_get_all1(Subscribers),
 			Body  = mochijson:encode(Response),
+erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE, Body}),
 			Headers = [{content_type, "application/json"}],
 			{ok, Headers, Body}
 	end.
 %% @hidden
 perform_get_all1(Subscribers) ->
+erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE, Subscribers}),
 			F = fun(#subscriber{name = Id, password = Password,
 					attributes = Attributes, balance = Balance, enabled = Enabled}, Acc) ->
+erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE, Attributes}),
 				JSAttributes = radius_to_json(Attributes),
+erlang:display({?MODULE, ?FUNCTION_NAME, ?LINE, JSAttributes, Id}),
 				AttrObj = {array, JSAttributes},
 				RespObj = [{struct, [{id, Id}, {href, "/ocs/v1/subscriber/" ++ binary_to_list(Id)},
 					{password, Password}, {attributes, AttrObj}, {balance, Balance},
@@ -261,6 +265,8 @@ radius_to_json([{?AcctInterimInterval, V} | T], Acc) ->
 radius_to_json([{?Class, V} | T], Acc) ->
 	Attribute = {struct, [{"name", "class"}, {"value", V}]},
 	radius_to_json(T, [Attribute | Acc]);
+radius_to_json([_| T], Acc) ->
+	radius_to_json(T, Acc);
 radius_to_json([], Acc) ->
 	Acc.
 
