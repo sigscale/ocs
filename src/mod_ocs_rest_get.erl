@@ -114,7 +114,7 @@ send_response(Headers, ResponseBody, ModData) ->
 	Size = integer_to_list(iolist_size(ResponseBody)),
 	NewHeaders = Headers ++ [{content_length, Size}],
 	send(ModData, 200, NewHeaders, ResponseBody),
-	{proceed,[{response,{already_sent,201, Size}}]}.
+	{proceed,[{response,{already_sent, 200, Size}}]}.
 
 %% @hidden
 send(#mod{socket = Socket, socket_type = SocketType} = ModData,
