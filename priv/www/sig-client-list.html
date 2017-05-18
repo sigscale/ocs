@@ -54,22 +54,33 @@
 				id="clientGrid"
 				grid-columns="2"
 				style="height:100%;">
-			<table>
-				<colgroup> 
-					<col>
-					<col>
-					<col>
-					<col>
-				</colgroup>
-				<thead>
-					<tr>
-						<th>Address</th>
-						<th>Secret</th>
-						<th>Port</th>
-						<th>Protocol</th>
-					</tr>
-				</thead>
-			</table>
+			<vaadin-grid-column width="15ex" flex-grow="5">
+				<template class="header">
+					<vaadin-grid-filter aria-label="Address" path="id" value="[[_filterAddress]]">
+						<input placeholder="Address" value="{{_filterAddress::input}}" focus-target>
+					</vaadin-grid-filter>
+					<vaadin-grid-sorter path="id" direction="desc">Address</vaadin-grid-sorter>
+				</template>
+				<template>[[item.id]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="15ex" flex-grow="5">
+				<template class="header">
+					<vaadin-grid-filter aria-label="Secret" path="secret" value="[[_filterSecret]]">
+						<input placeholder="Secret" value="{{_filterSecret::input}}" focus-target>
+					</vaadin-grid-filter>
+					<vaadin-grid-sorter path="secret" direction="desc">Secret</vaadin-grid-sorter>
+				</template>
+				<template>[[item.secret]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="15ex" flex-grow="5">
+				<template class="header">
+					<vaadin-grid-filter aria-label="Port" path="disconnectPort" value="[[_filterPort]]">
+						<input placeholder="Port" value="{{_filterPort::input}}" focus-target>
+					</vaadin-grid-filter>
+					<vaadin-grid-sorter path="disconnectPort" direction="desc">Port</vaadin-grid-sorter>
+				</template>
+				<template>[[item.disconnectPort]]</template>
+			</vaadin-grid-column>
 		</vaadin-grid>
 		<div class="add-button">
 			<paper-fab
@@ -96,15 +107,21 @@
 		Polymer (
 			{
 				is: 'sig-client-list',
-				listeners: {
-					'clientGrid.click': 'onSelect'
-				},
 				getClientsResponse: function(event) {
 					var grid = this.$.clientGrid; 
+					var results = event.detail.xhr.response;
+					var vaadinItems = new Array();
+					for (var index in results) {
+						var newRecord = new Object();
+						newRecord.id = results[index].id;
+						newRecord.secret = results[index].secret;
+						newRecord.disconnectPort = results[index].disconnectPort;
+						vaadinItems[index] = newRecord;
+					}
+					grid.items = vaadinItems;
 					grid.columns = [
 						{
 							name: "id",
-							sortable: true
 						},
 						{
 							name: "secret"
@@ -112,21 +129,7 @@
 						{
 							name: "disconnectPort"
 						}
-//						{
-//							name: "protocol"
-//						}
 					];
-					grid.sortOrder = [
-						{
-							column: 0,
-							direction: 'asc'
-						}
-					];
-					grid.items = event.detail.xhr.response;
-					grid.header.getCell(0,0).content = '<div style="font-size:16px;"><div>Address</div><paper-tooltip >IP address of network access server, router or access point</paper-tooltip></div>';
-					grid.header.getCell(0,1).content = '<div style="font-size:16px;"><div>Secret</div><paper-tooltip>Secret, or password, shared with the network access server, router or access point</paper-tooltip></div>';
-					grid.header.getCell(0,2).content = '<div style="font-size:16px;"><div>Disconnect <br>Port</div><paper-tooltip>Disconnect port used by network access server, router or access point</paper-tooltip></div>';
-//					grid.header.getCell(0,3).content = '<div style="font-size:16px;"><div>Protocol</div><paper-tooltip>AAA protocol used by the network access server, router or access point</paper-tooltip></div>';
 				},
 				showAddModal: function(event) {
 					var modal = document.getElementById("clientAddModal");
@@ -142,7 +145,6 @@
 							document.getElementById("edit-client-id1").value = selection.id;
 							document.getElementById("edit-client-id2").value = selection.id;
 							document.getElementById("edit-client-disc-port").value = selection.disconnectPort;
-							//document.getElementById("protocol-menu").selectedItemLabel = selection.protocol;
 							document.getElementById("edit-client-pwd").value = selection.secret;
 						}
 					);
