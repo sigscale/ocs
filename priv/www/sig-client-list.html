@@ -74,12 +74,21 @@
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
-					<vaadin-grid-filter aria-label="Port" path="disconnectPort" value="[[_filterPort]]">
-						<input placeholder="Port" value="{{_filterPort::input}}" focus-target>
+					<vaadin-grid-filter aria-label="ListenPort" path="disconnectPort" value="[[_filterPort]]">
+						<input placeholder="ListenPort" value="{{_filterPort::input}}" focus-target>
 					</vaadin-grid-filter>
-					<vaadin-grid-sorter path="disconnectPort" direction="desc">Port</vaadin-grid-sorter>
+					<vaadin-grid-sorter path="disconnectPort" direction="desc">ListenPort</vaadin-grid-sorter>
 				</template>
 				<template>[[item.disconnectPort]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="15ex" flex-grow="5">
+				<template class="header">
+					<vaadin-grid-filter aria-label="Protocol" path="protocol" value="[[_filterProtocol]]">
+						<input placeholder="Protocol" value="{{_filterProtocol::input}}" focus-target>
+					</vaadin-grid-filter>
+					<vaadin-grid-sorter path="protocol" direction="desc">Protocol</vaadin-grid-sorter>
+				</template>
+				<template>[[item.protocol]]</template>
 			</vaadin-grid-column>
 		</vaadin-grid>
 		<div class="add-button">
@@ -116,6 +125,7 @@
 						newRecord.id = results[index].id;
 						newRecord.secret = results[index].secret;
 						newRecord.disconnectPort = results[index].disconnectPort;
+						newRecord.protocol = results[index].protocol;
 						vaadinItems[index] = newRecord;
 					}
 					grid.items = vaadinItems;
@@ -128,6 +138,9 @@
 						},
 						{
 							name: "disconnectPort"
+						},
+						{
+							name: "protocol"
 						}
 					];
 				},
