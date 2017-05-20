@@ -18,5 +18,5 @@ diameter_gen_nas_application_rfc7155.hrl:	$(top_srcdir)/src/nas_application_rfc7
 diameter_gen_cc_application_rfc4006.hrl:	$(top_srcdir)/src/cc_application_rfc4006.dia $(top_builddir)/ebin/diameter_gen_nas_application_rfc7155.beam
 	diameterc -i $(top_builddir)/ebin -E $<
 
-CLEANFILES = $(erl_DATA)
+CLEANFILES = diameter_gen_nas_application_rfc7155.hrl diameter_gen_cc_application_rfc4006.hrl
 
