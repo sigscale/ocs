@@ -308,10 +308,11 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 %% @hidden
 send_answer(SId, Subscriber, Balance, ResultCode, OHost, ORealm, AuthAppId, RequestType,
 		RequestNum, #state{address = Address, port = Port} = State) ->
+	GrantedUnits = #'diameter_cc_app_Granted-Service-Unit'{'CC-Total-Octets' = Balance},
 	Reply = #diameter_cc_app_CCA{'Session-Id' = SId, 'Result-Code' = ResultCode,
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Auth-Application-Id' = AuthAppId, 'CC-Request-Type' = RequestType,
-			'CC-Request-Number' = RequestNum},
+			'CC-Request-Number' = RequestNum, 'Granted-Service-Unit' = GrantedUnits},
 	Server = {Address, Port},
 	ok = ocs_log:acct_log(diameter, Server, OHost, ORealm, RequestType, Subscriber,
 			Balance, ResultCode),

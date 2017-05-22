@@ -100,13 +100,13 @@
 			{ Auth-Application-Id }
 			{ CC-Request-Type }
 			{ CC-Request-Number }
+			{ Granted-Service-Unit }
 			[ User-Name ]
 			[ CC-Session-Failover ]
 			[ CC-Sub-Session-Id ]
 			[ Acct-Multi-Session-Id ]
 			[ Origin-State-Id ]
 			[ Event-Timestamp ]
-			[ Granted-Service-Unit ]
 			*[ Multiple-Services-Credit-Control ]
 			[ Cost-Information]
 			[ Final-Unit-Indication ]
@@ -142,10 +142,10 @@
 
 @grouped
 		Granted-Service-Unit ::= < AVP Header: 431 >
+			{ CC-Total-Octets }
 			[ Tariff-Time-Change ]
 			[ CC-Time ]
 			[ CC-Money ]
-			[ CC-Total-Octets ]
 			[ CC-Input-Octets ]
 			[ CC-Output-Octets ]
 			[ CC-Service-Specific-Units ]
