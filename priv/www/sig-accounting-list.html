@@ -16,6 +16,24 @@
 <link rel="import" href="bower_components/paper-styles/paper-styles.html">
 
 <dom-module id="sig-accounting-list">
+	<style>
+		::-webkit-input-placeholder { /* Chrome/Opera/Safari */
+			color: initial;
+			font-weight: bold;
+		}
+		::-moz-placeholder { /* Firefox 19+ */
+			color: initial;
+			font-weight: bold;
+		}
+		:-ms-input-placeholder { /* IE 10+ */
+			color: initial;
+			font-weight: bold;
+		}
+		:-moz-placeholder { /* Firefox 18- */
+			color: initial;
+			font-weight: bold;
+		}
+	</style>
 	<template>
 		<vaadin-grid id="accountingGrid"
 				selection-mode="single"
