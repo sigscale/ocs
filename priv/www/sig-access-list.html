@@ -24,37 +24,40 @@
 				style="height:100%;">
 			<vaadin-grid-column width="24ex">
 				<template class="header">
+					<vaadin-grid-sorter path="timeStamp" direction="desc">
 					<vaadin-grid-filter aria-label="TimeStamp" path="timeStamp" value="[[_filterTimeStamp]]">
-						<input placeholder="TimeStamp" value="{{_filterTimeStamp::input}}" focus-target>
+						<input placeholder="Time Stamp" value="{{_filterTimeStamp::input}}" focus-target>
 					</vaadin-grid-filter>
-					<vaadin-grid-sorter path="timeStamp" direction="desc">Time Stamp</vaadin-grid-sorter>
+					</vaadin-grid-sorter>
 				</template>
 				<template>[[item.timeStamp]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="18ex" flex-grow="4">
 				<template class="header">
+					<vaadin-grid-sorter path="username" direction="desc">
 					<vaadin-grid-filter aria-label="UserName" path="username" value="[[_filterUserName]]">
-						<input placeholder="UserName" value="{{_filterUserName::input}}" focus-target>
+						<input placeholder="User Name" value="{{_filterUserName::input}}" focus-target>
 					</vaadin-grid-filter>
-					<vaadin-grid-sorter path="username" direction="desc">Username</vaadin-grid-sorter>
+					</vaadin-grid-sorter>
 				</template>
 				<template>[[item.username]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="3">
 				<template class="header">
+					<vaadin-grid-sorter path="clientAddress" direction="desc">
 					<vaadin-grid-filter aria-label="ClientAddress" path="clientAddress" value="[[_filterClientAddress]]">
-						<input placeholder="ClientAddress" value="{{_filterClientAddress::input}}" focus-target>
+						<input placeholder="Client Address" value="{{_filterClientAddress::input}}" focus-target>
 					</vaadin-grid-filter>
-					<vaadin-grid-sorter path="clientAddress" direction="desc">Client Address</vaadin-grid-sorter>
+					</vaadin-grid-sorter>
 				</template>
 				<template>[[item.clientAddress]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="5ex" flex-grow="2">
 				<template class="header">
 					<vaadin-grid-filter aria-label="ClientPort" path="clientPort" value="[[_filterClientPort]]">
-						<input placeholder="ClientPort" value="{{_filterClientPort::input}}" focus-target>
+						<input placeholder="Client Port" value="{{_filterClientPort::input}}" focus-target>
 					</vaadin-grid-filter>
-				Client Port</template>
+				</template>
 				<template>[[item.clientPort]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="8ex" flex-grow="0">
@@ -62,7 +65,7 @@
 					<vaadin-grid-filter aria-label="Type" path="type" value="[[_filterType]]">
 						<input placeholder="Type" value="{{_filterType::input}}" focus-target>
 					</vaadin-grid-filter>
-				Type</template>
+				</template>
 				<template>[[item.type]]</template>
 			</vaadin-grid-column>
 		</vaadin-grid>

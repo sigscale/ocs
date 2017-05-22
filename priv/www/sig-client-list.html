@@ -56,37 +56,41 @@
 				style="height:100%;">
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
+					<vaadin-grid-sorter path="id" direction="desc">
 					<vaadin-grid-filter aria-label="Address" path="id" value="[[_filterAddress]]">
 						<input placeholder="Address" value="{{_filterAddress::input}}" focus-target>
 					</vaadin-grid-filter>
-					<vaadin-grid-sorter path="id" direction="desc">Address</vaadin-grid-sorter>
+					</vaadin-grid-sorter>
 				</template>
 				<template>[[item.id]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
+					<vaadin-grid-sorter path="secret" direction="desc">
 					<vaadin-grid-filter aria-label="Secret" path="secret" value="[[_filterSecret]]">
 						<input placeholder="Secret" value="{{_filterSecret::input}}" focus-target>
 					</vaadin-grid-filter>
-					<vaadin-grid-sorter path="secret" direction="desc">Secret</vaadin-grid-sorter>
+					</vaadin-grid-sorter>
 				</template>
 				<template>[[item.secret]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
+					<vaadin-grid-sorter path="disconnectPort" direction="desc">
 					<vaadin-grid-filter aria-label="ListenPort" path="disconnectPort" value="[[_filterPort]]">
-						<input placeholder="ListenPort" value="{{_filterPort::input}}" focus-target>
+						<input placeholder="Listen Port" value="{{_filterPort::input}}" focus-target>
 					</vaadin-grid-filter>
-					<vaadin-grid-sorter path="disconnectPort" direction="desc">ListenPort</vaadin-grid-sorter>
+					</vaadin-grid-sorter>
 				</template>
 				<template>[[item.disconnectPort]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
+					<vaadin-grid-sorter path="protocol" direction="desc">
 					<vaadin-grid-filter aria-label="Protocol" path="protocol" value="[[_filterProtocol]]">
 						<input placeholder="Protocol" value="{{_filterProtocol::input}}" focus-target>
 					</vaadin-grid-filter>
-					<vaadin-grid-sorter path="protocol" direction="desc">Protocol</vaadin-grid-sorter>
+					</vaadin-grid-sorter>
 				</template>
 				<template>[[item.protocol]]</template>
 			</vaadin-grid-column>
