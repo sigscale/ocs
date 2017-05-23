@@ -232,28 +232,28 @@ request(Request, Caps,  _From, State) ->
 			{ok, Password, _, Balance, true} ->
 				case ocs:authorize(Subscriber, Password) of
 					{ok, _, _} ->
-						request1(RequestType, Request, SId, RequestNum, Subscriber, Balance, OHost, ORealm, State);
+						request1(RequestType, Request, SId, RequestNum, Subscriber,
+								Balance, OHost, ORealm, State);
 					{error, _} ->
-						send_error(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_AUTHORIZATION_REJECTED',
-								OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
-								RequestNum, State)
+						send_error(Request, SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_AUTHORIZATION_REJECTED',
+								OHost, ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State)
 				end;
 			{error, _} ->
-				send_error(SId, undefined, undefined, ?'DIAMETER_BASE_RESULT-CODE_AUTHORIZATION_REJECTED',
+				send_error(Request, SId, undefined, undefined, ?'DIAMETER_BASE_RESULT-CODE_AUTHORIZATION_REJECTED',
 					OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
 						RequestNum, State)
 		end
 	catch
 		_:_ ->
-			send_error(SId, undefined, undefined,
+			send_error(Request, SId, undefined, undefined,
 					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost, ORealm,
 					?CC_APPLICATION_ID, RequestType, RequestNum, State)
 	end.
 
 %% @hidden
 request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
-		_Request, SId, RequestNum, Subscriber, Balance, OHost, ORealm, State) ->
-	send_answer(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+		Request, SId, RequestNum, Subscriber, Balance, OHost, ORealm, State) ->
+	send_answer(Request, SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
 			RequestNum, State);
 request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
@@ -275,29 +275,29 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		end,
 		case decrement_balance(Subscriber, Usage) of
 			{ok, OverUsed, false} when OverUsed =< 0 ->
-				send_answer(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+				send_answer(Request, SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 						OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
 						RequestNum, State);
 			{ok, _SufficientBalance, _Flags} ->
-				send_answer(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+				send_answer(Request, SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 						OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
 						RequestNum, State);
 			{error, not_found} ->
 				error_logger:warning_report(["diameter accounting subscriber not found",
 						{module, ?MODULE}, {subscriber, Subscriber},
 						{origin_host, OHost}]),
-				send_error(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+				send_error(Request, SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 						OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
 						RequestNum, State)
 		end
 	catch
 		_:_ ->
-			send_error(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+			send_error(Request, SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
 					RequestNum, State)
 	end;
 request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
-		_Request, SId, RequestNum, Subscriber, Balance, OHost, ORealm, State) ->
+		Request, SId, RequestNum, Subscriber, Balance, OHost, ORealm, State) ->
 	F = fun() ->
 		case mnesia:read(subscriber, Subscriber, write) of
 			[#subscriber{disconnect = false} = Entry] ->
@@ -309,7 +309,7 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 	end,
 	case mnesia:transaction(F) of
 		{atomic, ok} ->
-			send_answer(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			send_answer(Request, SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 					OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
 					RequestNum, State);
 		{aborted, Reason} ->
@@ -317,14 +317,15 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 					{subscriber, Subscriber}, {origin_host, OHost},
 					{origin_realm, ORealm},{session, SId}, {state, State},
 					{reason, Reason}]),
-			send_error(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+			send_error(Request, SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 					OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
 					RequestNum, State)
 	end.
 
--spec send_answer(SessionId, Subscriber, Balance, ResultCode, OriginHost, OriginRealm,
+-spec send_answer(Request, SessionId, Subscriber, Balance, ResultCode, OriginHost, OriginRealm,
 		AuthAppId, RequestType, RequestNum, State) -> Result
 			when
+				Request :: #diameter_cc_app_CCR{},
 				SessionId :: string(),
 				Subscriber :: string() | binary(),
 				Balance :: integer(),
@@ -339,7 +340,7 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 				Reply :: #diameter_cc_app_CCA{}.
 %% @doc Send CCA to Diameter client indicating a successful operation.
 %% @hidden
-send_answer(SId, Subscriber, Balance, ResultCode, OHost, ORealm, AuthAppId, RequestType,
+send_answer(Request, SId, _Subscriber, Balance, ResultCode, OHost, ORealm, AuthAppId, RequestType,
 		RequestNum, #state{address = Address, port = Port} = State) ->
 	GrantedUnits = #'diameter_cc_app_Granted-Service-Unit'{'CC-Total-Octets' = Balance},
 	Reply = #diameter_cc_app_CCA{'Session-Id' = SId, 'Result-Code' = ResultCode,
@@ -347,13 +348,13 @@ send_answer(SId, Subscriber, Balance, ResultCode, OHost, ORealm, AuthAppId, Requ
 			'Auth-Application-Id' = AuthAppId, 'CC-Request-Type' = RequestType,
 			'CC-Request-Number' = RequestNum, 'Granted-Service-Unit' = GrantedUnits},
 	Server = {Address, Port},
-	ok = ocs_log:acct_log(diameter, Server, OHost, ORealm, accounting_event_type(RequestType),
-			Subscriber, Balance, ResultCode),
+	ok = ocs_log:acct_log(diameter, Server, accounting_event_type(RequestType), Request),
 	{reply, Reply, State}.
 
--spec send_error(SessionId, Subscriber, Balance, ResultCode, OriginHost, OriginRealm,
+-spec send_error(Request, SessionId, Subscriber, Balance, ResultCode, OriginHost, OriginRealm,
 		AuthAppId, RequestType, RequestNum, State) -> Result
 			when
+				Request ::#diameter_cc_app_CCR{},
 				SessionId :: string(),
 				Subscriber :: undefined | string() | binary(),
 				Balance :: undefined | integer(),
@@ -368,15 +369,14 @@ send_answer(SId, Subscriber, Balance, ResultCode, OHost, ORealm, AuthAppId, Requ
 				Reply :: #diameter_cc_app_CCA{}.
 %% @doc Send CCA to Diameter client indicating a operation faliure.
 %% @hidden
-send_error(SId, Subscriber, Balance, ResultCode, OHost, ORealm, AuthAppId, RequestType,
+send_error(Request, SId, _Subscriber, _Balance, ResultCode, OHost, ORealm, AuthAppId, RequestType,
 		RequestNum, #state{address = Address, port = Port} = State) ->
 	Reply = #diameter_cc_app_CCA{'Session-Id' = SId, 'Result-Code' = ResultCode,
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Auth-Application-Id' = AuthAppId, 'CC-Request-Type' = RequestType,
 			'CC-Request-Number' = RequestNum},
 	Server = {Address, Port},
-	ok = ocs_log:acct_log(diameter, Server, OHost, ORealm, accounting_event_type(RequestType),
-			Subscriber, Balance, ResultCode),
+	ok = ocs_log:acct_log(diameter, Server, accounting_event_type(RequestType), Request),
 	{reply, Reply, State}.
 
 -spec decrement_balance(Subscriber, Usage) -> Result
