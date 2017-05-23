@@ -346,7 +346,7 @@ ipdr_log(_Config) ->
 				end,
 				Attrs1 = [{?AcctSessionId, integer_to_list(N)} | Attrs],
 				Attrs2 = [{?AcctStatusType, AcctType} | Attrs1],
-				ocs_log:acct_log(radius, Server, Client, Type, Attrs2),
+				ok = ocs_log:acct_log(radius, Server, Client, Type, Attrs2),
 				F(F, N - 1)
 	end,
 	Fill(Fill, NumItems),
