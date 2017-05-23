@@ -347,8 +347,8 @@ send_answer(SId, Subscriber, Balance, ResultCode, OHost, ORealm, AuthAppId, Requ
 			'Auth-Application-Id' = AuthAppId, 'CC-Request-Type' = RequestType,
 			'CC-Request-Number' = RequestNum, 'Granted-Service-Unit' = GrantedUnits},
 	Server = {Address, Port},
-	ok = ocs_log:acct_log(diameter, Server, OHost, ORealm, RequestType, Subscriber,
-			Balance, ResultCode),
+	ok = ocs_log:acct_log(diameter, Server, OHost, ORealm, accounting_event_type(RequestType),
+			Subscriber, Balance, ResultCode),
 	{reply, Reply, State}.
 
 -spec send_error(SessionId, Subscriber, Balance, ResultCode, OriginHost, OriginRealm,
@@ -375,7 +375,7 @@ send_error(SId, Subscriber, Balance, ResultCode, OHost, ORealm, AuthAppId, Reque
 			'Auth-Application-Id' = AuthAppId, 'CC-Request-Type' = RequestType,
 			'CC-Request-Number' = RequestNum},
 	Server = {Address, Port},
-	ok = ocs_log:acct_log(diameter, Server, OHost, ORealm, RequestType,
+	ok = ocs_log:acct_log(diameter, Server, OHost, ORealm, accounting_event_type(RequestType),
 			Subscriber, Balance, ResultCode),
 	{reply, Reply, State}.
 
@@ -413,4 +413,21 @@ decrement_balance(Subscriber, Usage) when is_binary(Subscriber),
 					{error, Reason}, {subscriber, Subscriber}]),
 			{error, Reason}
 end.
+
+-spec accounting_event_type(RequestType) -> EventType
+	when
+	RequestType :: 1..4,
+	EventType :: start | interim | stop | event.
+%% @doc Converts CC-Request-Type integer value to a readable atom.
+accounting_event_type(RequestType) ->
+	case RequestType of 
+		1 ->
+			start;
+		2 ->
+			interim;
+		3 ->
+			stop;
+		4 ->
+			event
+	end.
 

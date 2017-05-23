@@ -220,7 +220,7 @@ diameter_log_acct_event(_Config) ->
 	Server = {ServerAddress, ServerPort},
 	OHost = "client.testdomain.com",
 	ORealm = "testdomain.com",
-	RequestType = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST',
+	RequestType = start,
 	Subscriber  = "PaulMccartney",
 	Balance = 7648,
 	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
