@@ -259,16 +259,16 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		Request, SId, RequestNum, Subscriber, Balance, OHost, ORealm, State) ->
 	try
-		UsedUnits = Request#'diameter_cc_app_CCR'.'Used-Service-Unit',
+		[UsedUnits] = Request#'diameter_cc_app_CCR'.'Used-Service-Unit',
 		#'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = Total,
 				'CC-Input-Octets' = In, 'CC-Output-Octets' = Out} = UsedUnits,
 		Usage = case Total of
-			Total when is_integer(Total) ->
-				Total;
+			[T] when is_integer(T) ->
+				T;
 			_ ->
 				case {In, Out} of
-					{In, Out} when is_integer(In), is_integer(Out) ->
-						In + Out;
+					{[I], [O]} when is_integer(I), is_integer(O) ->
+						I + O;
 					_ ->
 						throw(no_diameter_accounting_usage_information)
 				end
