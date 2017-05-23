@@ -203,7 +203,8 @@ diameter_accounting() ->
 diameter_accounting(Config) ->
 	Username = ?config(username, Config),
 	Password = ?config(password, Config),
-	SId = diameter:session_id(atom_to_list(?FUNCTION_NAME)),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
 	Answer = diameter_authentication(SId, Username, Password),
 	true = is_record(Answer, diameter_nas_app_AAA),
 	OriginHost = list_to_binary("ocs.sigscale.com"),
@@ -231,10 +232,11 @@ diameter_disconnect_session() ->
 	[{userdata, [{doc, "Disconnect a Diameter accouting session based on usage"}]}].
 
 diameter_disconnect_session(Config) ->
-	register(?FUNCTION_NAME, self()),
+	register(diameter_disconnect_session, self()),
 	Username = ?config(username, Config),
 	Password = ?config(password, Config),
-	SId = diameter:session_id(atom_to_list(?FUNCTION_NAME)),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
 	Answer = diameter_authentication(SId, Username, Password),
 	true = is_record(Answer, diameter_nas_app_AAA),
 	OriginHost = list_to_binary("ocs.sigscale.com"),
