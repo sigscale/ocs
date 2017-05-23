@@ -228,7 +228,21 @@ request(Request, Caps,  _From, State) ->
 			SubscriptionId ->
 				SubscriptionId
 		end,
-		request1(RequestType, SId, RequestNum, Subscriber, OHost, ORealm, State)
+		case ocs:find_subscriber(Subscriber) of
+			{ok, Password, _, Balance, true} ->
+				case ocs:authorize(Subscriber, Password) of
+					{ok, _, _} ->
+						request1(RequestType, SId, RequestNum, Subscriber, Balance, OHost, ORealm, State);
+					{error, _} ->
+						send_error(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_AUTHORIZATION_REJECTED',
+								OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
+								RequestNum, State)
+				end;
+			{error, _} ->
+				send_error(SId, undefined, undefined, ?'DIAMETER_BASE_RESULT-CODE_AUTHORIZATION_REJECTED',
+					OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
+						RequestNum, State)
+		end
 	catch
 		_:_ ->
 			send_error(SId, undefined, undefined,
@@ -238,54 +252,38 @@ request(Request, Caps,  _From, State) ->
 
 %% @hidden
 request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
-		SId, RequestNum, Subscriber, OHost, ORealm, State) ->
-	case ocs:find_subscriber(Subscriber) of
-		{ok, Password, _, Balance, true}  ->
-			case ocs:authorize(Subscriber, Password) of
-				{ok, _, _} ->
+		SId, RequestNum, Subscriber, Balance, OHost, ORealm, State) ->
+	send_answer(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
+			RequestNum, State);
+request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
+		SId, RequestNum, Subscriber, Balance, OHost, ORealm, State) ->
 					send_answer(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 							OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
 							RequestNum, State);
-				{error, _Reason1} ->
-					send_error(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-							OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
-							RequestNum, State)
-			end;
-		{error, _Reason} ->
-			send_error(SId, undefined, undefined, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-				OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
-					RequestNum, State)
-	end;
 request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
-		SId, RequestNum, Subscriber, OHost, ORealm, State) ->
-	case ocs:find_subscriber(Subscriber) of
-		{ok, _, _, Balance, true}  ->
-			F = fun() ->
-				case mnesia:read(subscriber, Subscriber, write) of
-					[#subscriber{disconnect = false} = Entry] ->
-						NewEntry = Entry#subscriber{disconnect = true},
-						mnesia:write(subscriber, NewEntry, write);
-					[#subscriber{disconnect = true}] ->
-						ok
-				end
-			end,
-			case mnesia:transaction(F) of
-				{atomic, ok} ->
-					send_answer(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-							OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
-							RequestNum, State);
-				{aborted, Reason} ->
-					error_logger:error_report(["Failed to disconnect subscriber",
-							{subscriber, Subscriber}, {origin_host, OHost},
-							{origin_realm, ORealm},{session, SId}, {state, State},
-							{reason, Reason}]),
-					send_error(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-						OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
-							RequestNum, State)
-			end;
-		{error, _Reason} ->
-			send_error(SId, Subscriber, undefined, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-				OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
+		SId, RequestNum, Subscriber, Balance, OHost, ORealm, State) ->
+	F = fun() ->
+		case mnesia:read(subscriber, Subscriber, write) of
+			[#subscriber{disconnect = false} = Entry] ->
+				NewEntry = Entry#subscriber{disconnect = true},
+				mnesia:write(subscriber, NewEntry, write);
+			[#subscriber{disconnect = true}] ->
+				ok
+		end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, ok} ->
+			send_answer(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+					OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
+					RequestNum, State);
+		{aborted, Reason} ->
+			error_logger:error_report(["Failed to disconnect subscriber",
+					{subscriber, Subscriber}, {origin_host, OHost},
+					{origin_realm, ORealm},{session, SId}, {state, State},
+					{reason, Reason}]),
+			send_error(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
 					RequestNum, State)
 	end.
 
