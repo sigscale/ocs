@@ -246,9 +246,7 @@
 					var toast = document.getElementById("toast-success");
 					toast.open();
 					toast.duration = 4;
-					toast.fitInto = document.getElementById("response-display-container");
 					document.getElementById("presubmit").reset();
-					document.getElementById("subAddModal").close();
 					document.getElementById("getSubs").generateRequest();
 				},
 				toastErrorClose: function(event) {
