@@ -251,13 +251,12 @@ request(Address, AccPort, Secret,
 	end.
 %% @hidden
 request1(?AccountingStart, _AcctSessionId, Id,
-		Authenticator, Secret, _NasId, Address, AccPort, _DiscPort, Attributes,
+		Authenticator, Secret, _NasId, _Address, _AccPort, _DiscPort, Attributes,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
-	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort},
-				{Address, AccPort}, start, Attributes),
+	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, start, Attributes),
 	{reply, {ok, response(Id, Authenticator, Secret)}, State};
 request1(?AccountingStop, AcctSessionId, Id,
-		Authenticator, Secret, NasId, Address, AccPort, DiscPort, Attributes,
+		Authenticator, Secret, NasId, Address, _AccPort, DiscPort, Attributes,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
 	InOctets = radius_attributes:find(?AcctInputOctets, Attributes),
 	OutOctets = radius_attributes:find(?AcctOutputOctets, Attributes),
@@ -268,8 +267,7 @@ request1(?AccountingStop, AcctSessionId, Id,
 			In + Out
 	end,
 	{ok, UserName} = radius_attributes:find(?UserName, Attributes),
-	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort},
-				{Address, AccPort}, stop, Attributes),
+	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, stop, Attributes),
 	Subscriber = ocs:normalize(UserName),
 	case decrement_balance(Subscriber, Usage) of
 		{ok, OverUsed, false} when OverUsed =< 0 ->
@@ -285,7 +283,7 @@ request1(?AccountingStop, AcctSessionId, Id,
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
 request1(?AccountingInterimUpdate, AcctSessionId, Id,
-		Authenticator, Secret, NasId, Address, AccPort, DiscPort, Attributes,
+		Authenticator, Secret, NasId, Address, _AccPort, DiscPort, Attributes,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
 	InOctets = radius_attributes:find(?AcctInputOctets, Attributes),
 	OutOctets = radius_attributes:find(?AcctOutputOctets, Attributes),
@@ -296,8 +294,7 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 			In + Out
 	end,
 	{ok, UserName} = radius_attributes:find(?UserName, Attributes),
-	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort},
-				{Address, AccPort}, interim, Attributes),
+	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, interim, Attributes),
 	Subscriber = ocs:normalize(UserName),
 	case ocs:find_subscriber(Subscriber) of
 		{ok, _, _, Balance, Enabled} when Enabled == false; Balance =< Usage ->
@@ -313,16 +310,14 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
 request1(?AccountingON, _AcctSessionId, Id,
-		Authenticator, Secret, _NasId, Address, AccPort, _DiscPort, Attributes,
+		Authenticator, Secret, _NasId, _Address, _AccPort, _DiscPort, Attributes,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
-	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort},
-				{Address, AccPort}, on, Attributes),
+	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, on, Attributes),
 	{reply, {ok, response(Id, Authenticator, Secret)}, State};
 request1(?AccountingOFF, _AcctSessionId, Id,
-		Authenticator, Secret, _NasId, Address, AccPort, _DiscPort, Attributes,
+		Authenticator, Secret, _NasId, _Address, _AccPort, _DiscPort, Attributes,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
-	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort},
-				{Address, AccPort}, off, Attributes),
+	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, off, Attributes),
 	{reply, {ok, response(Id, Authenticator, Secret)}, State};
 request1(_AcctStatusType, _AcctSessionId, _Id, _Authenticator,
 		_Secret, _NasId, _Address, _Port, _DiscPort, _Attributes, State) ->

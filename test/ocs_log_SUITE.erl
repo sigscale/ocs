@@ -119,7 +119,9 @@ radius_log_auth_event(_Config) ->
 			(_) ->
 				false	
 	end,
-	Find = fun(F, {Cont, Chunk}) ->
+	Find = fun(_F, {error, Reason}) ->
+				ct:fail(Reason);
+			(F, {Cont, Chunk}) ->
 				case lists:any(Fany, Chunk) of
 					false ->
 						F(F, disk_log:chunk(ocs_auth, Cont));
@@ -157,7 +159,9 @@ diameter_log_auth_event(_Config) ->
 			(_) ->
 				false
 	end,
-	Find = fun(F, {Cont, Chunk}) ->
+	Find = fun(_F, {error, Reason}) ->
+				ct:fail(Reason);
+			(F, {Cont, Chunk}) ->
 				case lists:any(Fany, Chunk) of
 					false ->
 						F(F, disk_log:chunk(ocs_auth, Cont));
@@ -188,16 +192,17 @@ radius_log_acct_event(_Config) ->
 			{?CalledStationId, "CA-FE-CA-FE-CA-FE:AP 1"}, {?AcctAuthentic, 1},
 			{?AcctStatusType, 1}, {?NasIdentifier, "ap-1.sigscale.net"},
 			{?AcctDelayTime, 0}, {?NasIpAddress, ClientAddress}],
-	ok = ocs_log:acct_log(radius, Server, Client, Type, ReqAttrs),
+	ok = ocs_log:acct_log(radius, Server, Type, ReqAttrs),
 	End = erlang:system_time(millisecond),
-	Fany = fun({TS, radius, N, S, C, T, A}) when TS >= Start, TS =< End,
-					N == Node, S == Server, C == Client, T == Type,
-					A == ReqAttrs ->
+	Fany = fun({TS, radius, N, S, T, A}) when TS >= Start, TS =< End,
+					N == Node, S == Server, T == Type, A == ReqAttrs ->
 				true;
 			(_) ->
 				false	
 	end,
-	Find = fun(F, {Cont, Chunk}) ->
+	Find = fun(_F, {error, Reason}) ->
+				ct:fail(Reason);
+			(F, {Cont, Chunk}) ->
 				case lists:any(Fany, Chunk) of
 					false ->
 						F(F, disk_log:chunk(ocs_acct, Cont));
@@ -225,18 +230,18 @@ diameter_log_acct_event(_Config) ->
 	Subscriber  = "PaulMccartney",
 	Balance = 7648,
 	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-	ok = ocs_log:acct_log(diameter, Server, OHost, ORealm, RequestType,
-			Subscriber, Balance, ResultCode),
+	ok = ocs_log:acct_log(diameter, Server, RequestType, #diameter_cc_app_CCR{}),
 	End = erlang:system_time(millisecond),
-	Fany = fun({TS, P, N, S, OH, OR, RType, Sub, Bal, RCode})
+	Fany = fun({TS, P, N, S, RType, Attr})
 					when P == Protocol, TS >= Start, TS =< End, N == Node,
-					S == Server, OH == OHost, OR == ORealm, RType == RequestType,
-					Sub == Subscriber, Bal == Balance, RCode == ResultCode ->
+					S == Server, RType == RequestType, is_record(Attr, diameter_cc_app_CCR) ->
 				true;
 			(_) ->
 				false	
 	end,
-	Find = fun(F, {Cont, Chunk}) ->
+	Find = fun(_F, {error, Reason}) ->
+				ct:fail(Reason);
+			(F, {Cont, Chunk}) ->
 				case lists:any(Fany, Chunk) of
 					false ->
 						F(F, disk_log:chunk(ocs_acct, Cont));
@@ -276,7 +281,7 @@ get_range(_Config) ->
 	Fill = fun(_F, 0) ->
 				ok;
 			(F, N) ->
-				ocs_log:acct_log(radius, Server, Client, Type,
+				ocs_log:acct_log(radius, Server, Type,
 						[{?AcctSessionId, integer_to_list(N)} | Attrs]),
 				F(F, N - 1)
 	end,
@@ -287,7 +292,7 @@ get_range(_Config) ->
 	EndRange = End - (Range div 3),
 	Result = ocs_log:get_range(ocs_acct, StartRange, EndRange),
 	true = length(Result) > ((NumItems div 3) - (NumItems div 10)),
-	[{?AcctSessionId, ID} | _] = element(7, lists:nth(1, Result)),
+	[{?AcctSessionId, ID} | _] = element(6, lists:nth(1, Result)),
 	StartNum = list_to_integer(ID),
 	Fverify = fun({radius, TS, _, _, _, _,  _}, _N)
 					when TS < StartRange, TS > EndRange ->
@@ -346,25 +351,29 @@ ipdr_log(_Config) ->
 				end,
 				Attrs1 = [{?AcctSessionId, integer_to_list(N)} | Attrs],
 				Attrs2 = [{?AcctStatusType, AcctType} | Attrs1],
-				ok = ocs_log:acct_log(radius, Server, Client, Type, Attrs2),
+				ok = ocs_log:acct_log(radius, Server, Type, Attrs2),
 				F(F, N - 1)
 	end,
 	Fill(Fill, NumItems),
 	End = erlang:system_time(millisecond),
+	ok = disk_log:sync(ocs_acct),
 	Range = (End - Start),
 	StartRange = Start + (Range div 3),
 	EndRange = End - (Range div 3),
-	Filename = "ipdr-" ++ ocs_log:iso8601(erlang:system_time(millisecond)),
+	{ok, IpdrLogDir} = application:get_env(ocs, ipdr_log_dir),
+	Filename = IpdrLogDir ++ "/ipdr-" ++ ocs_log:iso8601(erlang:system_time(millisecond)),
 	ok = ocs_log:ipdr_log(Filename, StartRange, EndRange),
 	GetRangeResult = ocs_log:get_range(ocs_acct, StartRange, EndRange),
-	Fstop = fun(E, Acc) when element(6, E) == stop ->
+	Fstop = fun(E, Acc) when element(5, E) == stop ->
 				Acc + 1;
 			(_, Acc) ->
 				Acc
 	end,
 	NumStops = lists:foldl(Fstop, 0, GetRangeResult),
 	{ok, IpdrLog} = disk_log:open([{name, Filename}, {file, Filename}]),
-	Fchunk = fun(F, {Cont, Chunk}, Acc) ->
+	Fchunk = fun(_F, {error, Reason}, _Acc) ->
+				ct:fail(Reason);
+			(F, {Cont, Chunk}, Acc) ->
 				F(F, disk_log:chunk(IpdrLog, Cont), Acc + length(Chunk));
 			(_, eof, Acc) ->
 				disk_log:close(IpdrLog),
