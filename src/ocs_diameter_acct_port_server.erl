@@ -228,7 +228,21 @@ request(Request, Caps,  _From, State) ->
 			SubscriptionId ->
 				SubscriptionId
 		end,
-		request1(RequestType, SId, RequestNum, Subscriber, OHost, ORealm, State)
+		case ocs:find_subscriber(Subscriber) of
+			{ok, Password, _, Balance, true} ->
+				case ocs:authorize(Subscriber, Password) of
+					{ok, _, _} ->
+						request1(RequestType, Request, SId, RequestNum, Subscriber, Balance, OHost, ORealm, State);
+					{error, _} ->
+						send_error(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_AUTHORIZATION_REJECTED',
+								OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
+								RequestNum, State)
+				end;
+			{error, _} ->
+				send_error(SId, undefined, undefined, ?'DIAMETER_BASE_RESULT-CODE_AUTHORIZATION_REJECTED',
+					OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
+						RequestNum, State)
+		end
 	catch
 		_:_ ->
 			send_error(SId, undefined, undefined,
@@ -238,54 +252,73 @@ request(Request, Caps,  _From, State) ->
 
 %% @hidden
 request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
-		SId, RequestNum, Subscriber, OHost, ORealm, State) ->
-	case ocs:find_subscriber(Subscriber) of
-		{ok, Password, _, Balance, true}  ->
-			case ocs:authorize(Subscriber, Password) of
-				{ok, _, _} ->
-					send_answer(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-							OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
-							RequestNum, State);
-				{error, _Reason1} ->
-					send_error(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-							OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
-							RequestNum, State)
-			end;
-		{error, _Reason} ->
-			send_error(SId, undefined, undefined, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-				OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
+		_Request, SId, RequestNum, Subscriber, Balance, OHost, ORealm, State) ->
+	send_answer(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
+			RequestNum, State);
+request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
+		Request, SId, RequestNum, Subscriber, Balance, OHost, ORealm, State) ->
+	try
+		UsedUnits = Request#'diameter_cc_app_CCR'.'Used-Service-Unit',
+		#'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = Total,
+				'CC-Input-Octets' = In, 'CC-Output-Octets' = Out} = UsedUnits,
+		Usage = case Total of
+			Total when is_integer(Total) ->
+				Total;
+			_ ->
+				case {In, Out} of
+					{In, Out} when is_integer(In), is_integer(Out) ->
+						In + Out;
+					_ ->
+						throw(no_diameter_accounting_usage_information)
+				end
+		end,
+		case decrement_balance(Subscriber, Usage) of
+			{ok, OverUsed, false} when OverUsed =< 0 ->
+				send_answer(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+						OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
+						RequestNum, State);
+			{ok, _SufficientBalance, _Flags} ->
+				send_answer(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+						OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
+						RequestNum, State);
+			{error, not_found} ->
+				error_logger:warning_report(["diameter accounting subscriber not found",
+						{module, ?MODULE}, {subscriber, Subscriber},
+						{origin_host, OHost}]),
+				send_error(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+						OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
+						RequestNum, State)
+		end
+	catch
+		_:_ ->
+			send_error(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
 					RequestNum, State)
 	end;
 request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
-		SId, RequestNum, Subscriber, OHost, ORealm, State) ->
-	case ocs:find_subscriber(Subscriber) of
-		{ok, _, _, Balance, true}  ->
-			F = fun() ->
-				case mnesia:read(subscriber, Subscriber, write) of
-					[#subscriber{disconnect = false} = Entry] ->
-						NewEntry = Entry#subscriber{disconnect = true},
-						mnesia:write(subscriber, NewEntry, write);
-					[#subscriber{disconnect = true}] ->
-						ok
-				end
-			end,
-			case mnesia:transaction(F) of
-				{atomic, ok} ->
-					send_answer(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-							OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
-							RequestNum, State);
-				{aborted, Reason} ->
-					error_logger:error_report(["Failed to disconnect subscriber",
-							{subscriber, Subscriber}, {origin_host, OHost},
-							{origin_realm, ORealm},{session, SId}, {state, State},
-							{reason, Reason}]),
-					send_error(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-						OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
-							RequestNum, State)
-			end;
-		{error, _Reason} ->
-			send_error(SId, Subscriber, undefined, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-				OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
+		_Request, SId, RequestNum, Subscriber, Balance, OHost, ORealm, State) ->
+	F = fun() ->
+		case mnesia:read(subscriber, Subscriber, write) of
+			[#subscriber{disconnect = false} = Entry] ->
+				NewEntry = Entry#subscriber{disconnect = true},
+				mnesia:write(subscriber, NewEntry, write);
+			[#subscriber{disconnect = true}] ->
+				ok
+		end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, ok} ->
+			send_answer(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+					OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
+					RequestNum, State);
+		{aborted, Reason} ->
+			error_logger:error_report(["Failed to disconnect subscriber",
+					{subscriber, Subscriber}, {origin_host, OHost},
+					{origin_realm, ORealm},{session, SId}, {state, State},
+					{reason, Reason}]),
+			send_error(SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
 					RequestNum, State)
 	end.
 
@@ -308,13 +341,14 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 %% @hidden
 send_answer(SId, Subscriber, Balance, ResultCode, OHost, ORealm, AuthAppId, RequestType,
 		RequestNum, #state{address = Address, port = Port} = State) ->
+	GrantedUnits = #'diameter_cc_app_Granted-Service-Unit'{'CC-Total-Octets' = Balance},
 	Reply = #diameter_cc_app_CCA{'Session-Id' = SId, 'Result-Code' = ResultCode,
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Auth-Application-Id' = AuthAppId, 'CC-Request-Type' = RequestType,
-			'CC-Request-Number' = RequestNum},
+			'CC-Request-Number' = RequestNum, 'Granted-Service-Unit' = GrantedUnits},
 	Server = {Address, Port},
-	ok = ocs_log:acct_log(diameter, Server, OHost, ORealm, RequestType, Subscriber,
-			Balance, ResultCode),
+	ok = ocs_log:acct_log(diameter, Server, OHost, ORealm, accounting_event_type(RequestType),
+			Subscriber, Balance, ResultCode),
 	{reply, Reply, State}.
 
 -spec send_error(SessionId, Subscriber, Balance, ResultCode, OriginHost, OriginRealm,
@@ -341,7 +375,59 @@ send_error(SId, Subscriber, Balance, ResultCode, OHost, ORealm, AuthAppId, Reque
 			'Auth-Application-Id' = AuthAppId, 'CC-Request-Type' = RequestType,
 			'CC-Request-Number' = RequestNum},
 	Server = {Address, Port},
-	ok = ocs_log:acct_log(diameter, Server, OHost, ORealm, RequestType,
+	ok = ocs_log:acct_log(diameter, Server, OHost, ORealm, accounting_event_type(RequestType),
 			Subscriber, Balance, ResultCode),
 	{reply, Reply, State}.
+
+-spec decrement_balance(Subscriber, Usage) -> Result
+	when
+		Subscriber :: string() | binary(),
+		Usage :: non_neg_integer(),
+		Result :: {ok, NewBalance, DiscFlag} | {error, Reason },
+		NewBalance :: integer(),
+		DiscFlag :: boolean(),
+		Reason :: not_found | term().
+%% @doc Decrements subscriber's current balance
+decrement_balance(Subscriber, Usage) when is_list(Subscriber) ->
+	decrement_balance(list_to_binary(Subscriber), Usage);
+decrement_balance(Subscriber, Usage) when is_binary(Subscriber),
+		Usage >= 0 ->
+	F = fun() ->
+		case mnesia:read(subscriber, Subscriber, write) of
+			[#subscriber{balance = Balance, disconnect = Flag} = Entry] ->
+				NewBalance = Balance - Usage,
+				NewEntry = Entry#subscriber{balance = NewBalance},
+				mnesia:write(subscriber, NewEntry, write),
+				{NewBalance, Flag};
+			[] ->
+				throw(not_found)
+		end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, {NewBalance, Flag}} ->
+			{ok, NewBalance, Flag};
+		{aborted, {throw, Reason}} ->
+			{error, Reason};
+		{aborted, Reason} ->
+			error_logger:error_report(["Failed to decrement balance",
+					{error, Reason}, {subscriber, Subscriber}]),
+			{error, Reason}
+end.
+
+-spec accounting_event_type(RequestType) -> EventType
+	when
+	RequestType :: 1..4,
+	EventType :: start | interim | stop | event.
+%% @doc Converts CC-Request-Type integer value to a readable atom.
+accounting_event_type(RequestType) ->
+	case RequestType of 
+		1 ->
+			start;
+		2 ->
+			interim;
+		3 ->
+			stop;
+		4 ->
+			event
+	end.
 

@@ -151,7 +151,6 @@ diameter_log_auth_event(_Config) ->
 	End = erlang:system_time(millisecond),
 	ok = ocs_log:auth_log(diameter, Server, Subscriber, OHost, ORealm,
 			AuthType, ResultCode),
-	End = erlang:system_time(millisecond),
 	Fany = fun({TS, P, N, S, Sub, OH, OR, AType, RCode}) when P == Protocol,
 					TS >= Start, TS =< End, N == Node, S == Server, Sub == Subscriber,
 					OH == OHost, OR == ORealm, AType == AuthType, RCode == ResultCode ->
@@ -226,7 +225,7 @@ diameter_log_acct_event(_Config) ->
 	Server = {ServerAddress, ServerPort},
 	OHost = "client.testdomain.com",
 	ORealm = "testdomain.com",
-	RequestType = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST',
+	RequestType = start,
 	Subscriber  = "PaulMccartney",
 	Balance = 7648,
 	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
