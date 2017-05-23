@@ -15,11 +15,29 @@
 <link rel="import" href="bower_components/paper-styles/paper-styles.html">
 
 <dom-module id="sig-ipdr-list">
+	<style>
+		::-webkit-input-placeholder { /* Chrome/Opera/Safari */
+			color: initial;
+			font-weight: bold;
+		}
+		::-moz-placeholder { /* Firefox 19+ */
+			color: initial;
+			font-weight: bold;
+		}
+		:-ms-input-placeholder { /* IE 10+ */
+			color: initial;
+			font-weight: bold;
+		}
+		:-moz-placeholder { /* Firefox 18- */
+			color: initial;
+			font-weight: bold;
+		}
+	</style>
 	<template>
 		<style>
-         vaadin-grid {
-            font-size: inherit;
-         }
+			vaadin-grid {
+				font-size: inherit;
+			}
 		</style>
 		<paper-button
 				raised class="indigo"
@@ -30,13 +48,127 @@
 				selection-mode="single"
 				grid-columns="2"
 				style="height:100%;">
-			<table>
-				<colgroup> 
-				</colgroup>
-				<thead>
-				</thead>
-			</table>
-		</vaadin-grid>
+			<vaadin-grid-column width="19ex" flex-grow="1">
+				<template class="header">
+					<vaadin-grid-sorter path="ipdrCreationTime" direction="desc">
+					<vaadin-grid-filter aria-label="Creation Time" path="ipdrCreationTime" value="[[_filterIPDRCreationTime]]">
+						<input placeholder="Creation Time" value="{{_filterIPDRCreationTime::input}}" focus-target>
+					</vaadin-grid-filter>
+					</vaadin-grid-sorter>
+				</template>
+				<template>[[item.ipdrCreationTime]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="4ex">
+				<template class="header">Seq</template>
+				<template>[[item.seqNum]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="20ex" flex-grow="4">
+				<template class="header">
+					<vaadin-grid-sorter path="username" direction="desc">
+					<vaadin-grid-filter aria-label="UserName" path="username" value="[[_filterUserName]]">
+						<input placeholder="User Name" value="{{_filterUserName::input}}" focus-target>
+					</vaadin-grid-filter>
+					</vaadin-grid-sorter>
+				</template>
+				<template>[[item.username]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="12ex" flex-grow="0">
+				<template class="header">
+					<vaadin-grid-sorter path="acctSessionId" direction="desc">
+					<vaadin-grid-filter aria-label="AcctSessionId" path="acctSessionId" value="[[_filterAcctSessionId]]">
+						<input placeholder="Session ID" value="{{_filterAcctSessionId::input}}" focus-target>
+					</vaadin-grid-filter>
+					</vaadin-grid-sorter>
+				</template>
+				<template>[[item.acctSessionId]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="20ex" flex-grow="3">
+				<template class="header">
+					<vaadin-grid-sorter path="callingStationId" direction="desc">
+					<vaadin-grid-filter aria-label="CallingStationId" path="callingStationId" value="[[_filterCallingStationId]]">
+						<input placeholder="Calling Station ID" value="{{_filterCallingStationId::input}}" focus-target>
+					</vaadin-grid-filter>
+					</vaadin-grid-sorter>
+				</template>
+				<template>[[item.callingStationId]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="28ex" flex-grow="3">
+				<template class="header">
+					<vaadin-grid-sorter path="calledStationId" direction="desc">
+					<vaadin-grid-filter aria-label="CalledStationId" path="calledStationId" value="[[_filterCalledStationId]]">
+						<input placeholder="Called Station ID" value="{{_filterCalledStationId::input}}" focus-target>
+					</vaadin-grid-filter>
+					</vaadin-grid-sorter>
+				</template>
+				<template>[[item.calledStationId]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="16ex" flex-grow="2">
+				<template class="header">
+					<vaadin-grid-sorter path="nasIpAddress" direction="desc">
+					<vaadin-grid-filter aria-label="NasIpAddress" path="nasIpAddress" value="[[_filterNasIpAddress]]">
+						<input placeholder="NAS Address" value="{{_filterNasIpAddress::input}}" focus-target>
+					</vaadin-grid-filter>
+					</vaadin-grid-sorter>
+				</template>
+				<template>[[item.nasIpAddress]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="12ex" flex-grow="4">
+				<template class="header">
+					<vaadin-grid-sorter path="nasId" direction="desc">
+					<vaadin-grid-filter aria-label="NasId" path="nasId" value="[[_filterNasId]]">
+						<input placeholder="NAS ID" value="{{_filterNasId::input}}" focus-target>
+					</vaadin-grid-filter>
+					</vaadin-grid-sorter>
+				</template>
+				<template>[[item.nasId]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="9ex" flex-grow="2">
+				<template class="header">
+					<vaadin-grid-sorter path="sessionDuration" direction="desc">Duration</vaadin-grid-sorter>
+				</template>
+				<template>[[item.sessionDuration]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="12ex" flex-grow="2">
+				<template class="header">
+					<vaadin-grid-sorter path="inputOctets" direction="desc">Input Octets</vaadin-grid-sorter>
+				</template>
+				<template>[[item.inputOctets]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="13ex" flex-grow="2">
+				<template class="header">
+					<vaadin-grid-sorter path="outputOctets" direction="desc">Output Octets</vaadin-grid-sorter>
+				</template>
+				<template>[[item.outputOctets]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="19ex" flex-grow="1">
+				<template class="header">
+					<vaadin-grid-sorter path="gmtSessionStartDateTime" direction="desc">
+					<vaadin-grid-filter aria-label="GmtSessionStartDateTime" path="gmtSessionStartDateTime" value="[[_filterGmtSessionStartDateTime]]">
+						<input placeholder="Start Time" value="{{_filterGmtSessionStartDateTime::input}}" focus-target>
+					</vaadin-grid-filter>
+					</vaadin-grid-sorter>
+				</template>
+				<template>[[item.gmtSessionStartDateTime]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="19ex" flex-grow="1">
+				<template class="header">
+					<vaadin-grid-sorter path="gmtSessionEndDateTime" direction="desc">
+					<vaadin-grid-filter aria-label="GmtSessionEndDateTime" path="gmtSessionEndDateTime" value="[[_filterGmtSessionEndDateTime]]">
+						<input placeholder="End Time" value="{{_filterGmtSessionEndDateTime::input}}" focus-target>
+					</vaadin-grid-filter>
+					</vaadin-grid-sorter>
+				</template>
+				<template>[[item.gmtSessionEndDateTime]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="5ex">
+				<template class="header">
+					<vaadin-grid-filter aria-label="SessionTerminateCause" path="sessionTerminateCause" value="[[_filterSessionTerminateCause]]">
+						<input Placeholder="Cause" value="{{_filterSessionTerminateCause::input}}" focus-target>
+					</vaadin-grid-filter>
+				</template>
+				<template>[[item.sessionTerminateCause]]</template>
+			</vaadin-grid-column>
+		</vaadin-grid/>
 	</template>
 	<script>
 		Polymer (

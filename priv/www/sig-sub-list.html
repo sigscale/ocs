@@ -18,6 +18,24 @@
 <link rel="import" href="sig-sub-add.html">
 
 <dom-module id="sig-sub-list">
+	<style>
+		::-webkit-input-placeholder { /* Chrome/Opera/Safari */
+			color: initial;
+			font-weight: bold;
+		}
+		::-moz-placeholder { /* Firefox 19+ */
+			color: initial;
+			font-weight: bold;
+		}
+		:-ms-input-placeholder { /* IE 10+ */
+			color: initial;
+			font-weight: bold;
+		}
+		:-moz-placeholder { /* Firefox 18- */
+			color: initial;
+			font-weight: bold;
+		}
+	</style>
 	<template>
 		<style>
 			paper-button {
@@ -48,10 +66,11 @@
 				grid-columns="2" style="height:100%;" active-item="{{activeItem}}" size="200">
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
+					<vaadin-grid-sorter path="id" direction="desc">
 					<vaadin-grid-filter aria-label="Identity" path="id" value="[[_filterIdentity]]">
 						<input placeholder="Identity" value="{{_filterIdentity::input}}" focus-target>
 					</vaadin-grid-filter>
-					<vaadin-grid-sorter path="id" direction="desc">Identity</vaadin-grid-sorter>
+					</vaadin-grid-sorter>
 				</template>
 				<template>[[item.id]]</template>
 			</vaadin-grid-column>
@@ -60,60 +79,66 @@
 					<vaadin-grid-filter aria-label="Password" path="password" value="[[_filterPassword]]">
 						<input placeholder="Password" value="{{_filterPassword::input}}" focus-target>
 					</vaadin-grid-filter>
-				Password</template>
+				</template>
 				<template>[[item.password]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="12ex" flex-grow="2">
 				<template class="header">
+					<vaadin-grid-sorter path="balance" direction="desc">
 					<vaadin-grid-filter aria-label="Balance" path="balance" value="[[_filterBalance]]">
 						<input placeholder="Balance" value="{{_filterBalance::input}}" focus-target>
 					</vaadin-grid-filter>
-					<vaadin-grid-sorter path="balance" direction="desc">Balance</vaadin-grid-sorter>
+					</vaadin-grid-sorter>
 				</template>
 				<template>[[item.balance]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="9ex" flex-grow="2">
 				<template class="header">
+					<vaadin-grid-sorter path="ascendDataRate" direction="desc">
 					<vaadin-grid-filter aria-label="Data Rate" path="ascendDataRate" value="[[_filterDataRate]]">
-						<input placeholder="AscendDataRate" value="{{_filterDataRate::input}}" focus-target>
+						<input placeholder="Data Rate" value="{{_filterDataRate::input}}" focus-target>
 					</vaadin-grid-filter>
-					<vaadin-grid-sorter path="ascendDataRate" direction="desc">Data Rate</vaadin-grid-sorter>
+					</vaadin-grid-sorter>
 				</template>
 				<template>[[item.ascendDataRate]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="9ex" flex-grow="2">
 				<template class="header">
+					<vaadin-grid-sorter path="ascendXmitRate" direction="desc">
 					<vaadin-grid-filter aria-label="Xmit Rate" path="ascendXmitRate" value="[[_filterXmitRate]]">
-						<input placeholder="XmitDataRate" value="{{_filterXmitRate::input}}" focus-target>
+						<input placeholder="Xmit Rate" value="{{_filterXmitRate::input}}" focus-target>
 					</vaadin-grid-filter>
-					<vaadin-grid-sorter path="ascendXmitRate" direction="desc">Xmit Rate</vaadin-grid-sorter>
+					</vaadin-grid-sorter>
 				</template>
 				<template>[[item.ascendXmitRate]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="8ex">
 				<template class="header">
+					<vaadin-grid-sorter path="sessionTimeout" direction="desc">
 					<vaadin-grid-filter aria-label="Timeout" path="sessionTimeout" value="[[_filterTimeout]]">
-						<input placeholder="SessionTimeout" value="{{_filterTimeout::input}}" focus-target>
+						<input placeholder="Timeout" value="{{_filterTimeout::input}}" focus-target>
 					</vaadin-grid-filter>
-					<vaadin-grid-sorter path="sessionTimeout" direction="desc">Timeout</vaadin-grid-sorter>
+					</vaadin-grid-sorter>
 				</template>
 				<template>[[item.sessionTimeout]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="8ex">
 				<template class="header">
+					<vaadin-grid-sorter path="acctInterimInterval" direction="desc">
 					<vaadin-grid-filter aria-label="Interval" path="acctInterimInterval" value="[[_filterInterval]]">
 						<input placeholder="Interval" value="{{_filterInterval::input}}" focus-target>
 					</vaadin-grid-filter>
-					<vaadin-grid-sorter path="acctInterimInterval" direction="desc">Interval</vaadin-grid-sorter>
+					</vaadin-grid-sorter>
 				</template>
 				<template>[[item.acctInterimInterval]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="8ex" flex-grow="1">
 				<template class="header">
+					<vaadin-grid-sorter path="enabled" direction="desc">
 					<vaadin-grid-filter aria-label="Enabled" path="enabled" value="[[_filterEnabled]]">
 						<input placeholder="Enabled" value="{{_filterEnabled::input}}" focus-target>
 					</vaadin-grid-filter>
-					<vaadin-grid-sorter path="enabled" direction="desc">Enabled</vaadin-grid-sorter>
+					</vaadin-grid-sorter>
 				</template>
 				<template>[[item.enabled]]</template>
 			</vaadin-grid-column>
