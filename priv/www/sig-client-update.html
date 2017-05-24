@@ -103,12 +103,12 @@
 					<div>
 						<paper-input
 								id="edit-client-disc-port"
-								name="disconnectPort"
-								label="Disconnect Port"
+								name="port"
+								label="Port"
 								type="number">
 						</paper-input>
 						<paper-tooltip>
-							Disconnect port used in network access server, router or access point.
+							Port network access server, router or access point listens on
 						</paper-tooltip>
 					</div>
 					<div>
@@ -209,7 +209,7 @@
 					var id = document.getElementById("edit-client-id2").value;
 					editAjax.url = "/ocs/v1/client/" + id;
 					var client = new Object();
-					client.disconnectPort = parseInt(document.getElementById("edit-client-disc-port").value);
+					client.port = parseInt(document.getElementById("edit-client-disc-port").value);
 					//client.protocol = document.getElementById("edit-client-protocol").value;
 					client.protocol = "RADIUS";
 					client.protocol = "DIAMETER";

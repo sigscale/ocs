@@ -223,10 +223,10 @@ Each of the media types used in this application are described below.
 		</tr>
 		<tr id="mt">
 		<tr id="mt">
-			<td id="mt">disconnectPort</td>
+			<td id="mt">port</td>
 			<td id="mt">integer</td>
 			<td id="mt">M</td>
-			<td id="mt">Disconnect port used in the NAS</td>
+			<td id="mt">Port the NAS listens for incoming messages on</td>
 		</tr>
 			<td id="mt">protocol</td>
 			<td id="mt">string</td>
@@ -656,7 +656,7 @@ Content-length: nn
 
 {
  "id":"10.2.53.9",
- "disconnectPort": 1899,
+ "port": 3799,
  "protocol": "RADIUS",
  "secret":"ksc8c244npqc",
 }
@@ -670,7 +670,7 @@ Content-Length: nn
 {
  "id": "10.2.53.9",
  "href": "/ocs/v1/client/10.2.53.9"
- "disconnectPort": 1899,
+ "port": 3799,
  "protocol": "RADIUS",
  "secret": "ksc8c244npqc",
 }
@@ -718,7 +718,7 @@ Content-Length: nn
 {
  "id": "10.2.53.9",
  "href": "/ocs/v1/client/10.2.53.9"
- "disconnectPort": 1899,
+ "port": 3799,
  "protocol": "RADIUS",
  "secret": "ksc8c244npqc",
 }
@@ -767,14 +767,14 @@ Content-Length: nn
  {
    "id": "10.2.53.9",
    "href": "/ocs/v1/client/10.2.53.9"
-   "disconnectPort": 1899,
+   "port": 3799,
    "protocol": "RADIUS",
    "secret": "2h7csggw35aa",
  },
  {
   "id": "10.2.53.10",
   "href": "/ocs/v1/client/10.2.53.10"
-  "disconnectPort": 1899,
+  "port": 3799,
   "protocol": "RADIUS",
   "secret": "rzambns7knr4",
  }
@@ -828,7 +828,7 @@ Content-Length: 315
 {
  "id": "10.2.53.9",
  "href": "/ocs/v1/client/10.2.53.9",
- "disconnectPort": 1899,
+ "port": 3799,
  "protocol": "RADIUS",
  "secret": "7fy8qhs7hh7n",
 }
@@ -870,7 +870,7 @@ PATCH /ocs/v1/client/10.2.53.9 HTTP/1.1
 Content-type: application/json
 Accept: application/json
 {
-  "disconnectPort":7899,
+  "port":7899,
   "protocol": "DIAMETER" 
 }
 </pre></p>
@@ -882,7 +882,7 @@ Content-Length: 315
 {
  "id": "10.2.53.9",
  "href": "/ocs/v1/client/10.2.53.9",
- "disconnectPort": 7899,
+ "port": 7899,
  "protocol": "DIAMETER",
  "secret": "7fy8qhs7hh7n",
 }

@@ -118,8 +118,8 @@ get_all_clients(_Config) ->
 	ok = ocs:add_client(A2, 3799, Protocol, Secret2),
 	ok = ocs:add_client(A3, 13799, Protocol, Secret3),
 	Clients = ocs:get_clients(),
-	F = fun(#client{address = A, disconnect_port = DP, protocol = P, secret = S} = _R) ->
-		{ok, DP, P, S} = ocs:find_client(A)
+	F = fun(#client{address = A, port = LP, protocol = P, secret = S} = _R) ->
+		{ok, LP, P, S} = ocs:find_client(A)
 	end,
 	lists:foreach(F, Clients).
 

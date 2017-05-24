@@ -455,10 +455,10 @@ add_client() ->
 add_client(Config) ->
 	ContentType = "application/json",
 	ID = "10.2.53.9",
-	Disconnect = 3799,
+	Port = 3799,
 	Protocol = "RADIUS",
 	Secret = "ksc8c244npqc",
-	JSON = {struct, [{"id", ID}, {"disconnectPort", Disconnect}, {"protocol", Protocol},
+	JSON = {struct, [{"id", ID}, {"port", Port}, {"protocol", Protocol},
 		{"secret", Secret}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
 	HostUrl = ?config(host_url, Config),
@@ -479,7 +479,7 @@ add_client(Config) ->
 	{struct, Object} = mochijson:decode(ResponseBody),
 	{_, ID} = lists:keyfind("id", 1, Object),
 	{_, URI} = lists:keyfind("href", 1, Object),
-	{_, Disconnect} = lists:keyfind("disconnectPort", 1, Object),
+	{_, Port} = lists:keyfind("port", 1, Object),
 	{_, Protocol} = lists:keyfind("protocol", 1, Object),
 	{_, Secret} = lists:keyfind("secret", 1, Object).
 
@@ -501,7 +501,7 @@ add_client_without_password(Config) ->
 	{ok, Result} = httpc:request(post, Request1, [], []),
 	{{"HTTP/1.1", 201, _Created}, _Headers, ResponseBody} = Result,
 	{struct, Object} = mochijson:decode(ResponseBody),
-	{_, 3799} = lists:keyfind("disconnectPort", 1, Object),
+	{_, 3799} = lists:keyfind("port", 1, Object),
 	{_, "RADIUS"} = lists:keyfind("protocol", 1, Object),
 	{_, Secret} = lists:keyfind("secret", 1, Object),
 	12 = length(Secret).
@@ -512,10 +512,10 @@ get_client() ->
 get_client(Config) ->
 	ContentType = "application/json",
 	ID = "10.2.53.9",
-	Disconnect = 1899,
+	Port = 1899,
 	Protocol = "RADIUS",
 	Secret = "ksc8c244npqc",
-	JSON = {struct, [{"id", ID}, {"disconnectPort", Disconnect}, {"protocol", Protocol},
+	JSON = {struct, [{"id", ID}, {"port", Port}, {"protocol", Protocol},
 		{"secret", Secret}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
 	HostUrl = ?config(host_url, Config),
@@ -540,7 +540,7 @@ get_client(Config) ->
 	{struct, Object} = mochijson:decode(Body1),
 	{_, ID} = lists:keyfind("id", 1, Object),
 	{_, URI2} = lists:keyfind("href", 1, Object),
-	{_, Disconnect} = lists:keyfind("disconnectPort", 1, Object),
+	{_, Port} = lists:keyfind("port", 1, Object),
 	{_, Protocol} = lists:keyfind("protocol", 1, Object),
 	{_, Secret} = lists:keyfind("secret", 1, Object).
 
@@ -582,10 +582,10 @@ get_all_clients() ->
 get_all_clients(Config) ->
 	ContentType = "application/json",
 	ID = "10.2.53.8",
-	Disconnect = 1899,
+	Port = 1899,
 	Protocol = "RADIUS",
 	Secret = "ksc8c344npqc",
-	JSON = {struct, [{"id", ID}, {"disconnectPort", Disconnect}, {"protocol", Protocol},
+	JSON = {struct, [{"id", ID}, {"port", Port}, {"protocol", Protocol},
 		{"secret", Secret}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
 	HostUrl = ?config(host_url, Config),
@@ -617,7 +617,7 @@ get_all_clients(Config) ->
 	end,
 	[{struct, ClientVar}] = lists:filter(Pred1, ClientsList),
 	{_, URI1} = lists:keyfind("href", 1, ClientVar),
-	{_, Disconnect} = lists:keyfind("disconnectPort", 1, ClientVar),
+	{_, Port} = lists:keyfind("port", 1, ClientVar),
 	{_, Protocol} = lists:keyfind("protocol", 1, ClientVar),
 	{_, Secret} = lists:keyfind("secret", 1, ClientVar).
 
@@ -627,10 +627,10 @@ delete_client() ->
 delete_client(Config) ->
 	ContentType = "application/json",
 	ID = "10.2.53.9",
-	Disconnect = 1899,
+	Port = 1899,
 	Protocol = "RADIUS",
 	Secret = "ksc8c244npqc",
-	JSON1 = {struct, [{"id", ID}, {"disconnectPort", Disconnect}, {"protocol", Protocol},
+	JSON1 = {struct, [{"id", ID}, {"port", Port}, {"protocol", Protocol},
 		{"secret", Secret}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON1)),
 	HostUrl = ?config(host_url, Config),

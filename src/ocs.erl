@@ -50,23 +50,23 @@
 add_client(Address, Secret) ->
 	add_client(Address, 3799, radius, Secret).
 
--spec add_client(Address, DisconnectPort, Protocol, Secret) -> Result
+-spec add_client(Address, Port, Protocol, Secret) -> Result
 	when
 		Address :: inet:ip_address(),
-		DisconnectPort :: inet:port_number(),
+		Port :: inet:port_number(),
 		Protocol :: atom(),
 		Secret :: string() | binary(),
 		Result :: ok.
 %% @doc Create an entry in the RADIUS client table.
 %%
-add_client(Address, DiscPort, Protocol, Secret) when is_list(Secret), is_integer(DiscPort), is_atom(Protocol) ->
-	add_client(Address, DiscPort, Protocol, list_to_binary(Secret));
-add_client(Address, DiscPort, Protocol, Secret) when is_list(Address) ->
+add_client(Address, Port, Protocol, Secret) when is_list(Secret), is_integer(Port), is_atom(Protocol) ->
+	add_client(Address, Port, Protocol, list_to_binary(Secret));
+add_client(Address, Port, Protocol, Secret) when is_list(Address) ->
 	{ok, AddressTuple} = inet_parse:address(Address),
-	add_client(AddressTuple, DiscPort, Protocol, Secret);
-add_client(Address, DiscPort, Protocol, Secret) when is_tuple(Address), is_binary(Secret) ->
+	add_client(AddressTuple, Port, Protocol, Secret);
+add_client(Address, Port, Protocol, Secret) when is_tuple(Address), is_binary(Secret) ->
 	F = fun() ->
-				R = #client{address = Address, disconnect_port = DiscPort,
+				R = #client{address = Address, port = Port,
 						protocol = Protocol, secret = Secret},
 				mnesia:write(R)
 	end,
@@ -80,8 +80,8 @@ add_client(Address, DiscPort, Protocol, Secret) when is_tuple(Address), is_binar
 -spec find_client(Address) -> Result
 	when
 		Address :: inet:ip_address(),
-		Result :: {ok, DisconnectPort, Protocol, Secret} | {error, Reason}, 
-		DisconnectPort :: inet:port_number(),
+		Result :: {ok, Port, Protocol, Secret} | {error, Reason}, 
+		Port :: inet:port_number(),
 		Protocol :: atom(),
 		Secret :: binary(),
 		Reason :: notfound | term().
@@ -95,9 +95,9 @@ find_client(Address) when is_tuple(Address) ->
 				mnesia:read(client, Address, read)
 	end,
 	case mnesia:transaction(F) of
-		{atomic, [#client{disconnect_port = DiscPort,
+		{atomic, [#client{port = Port,
 				protocol = Protocol, secret = Secret}]} ->
-			{ok, DiscPort, Protocol, Secret};
+			{ok, Port, Protocol, Secret};
 		{atomic, []} ->
 			{error, not_found};
 		{aborted, Reason} ->
@@ -135,23 +135,23 @@ update_client(Address, Password) ->
 			{error, Reason}
 	end.
 
--spec update_client(Address, DisconnectPort, Protocol)-> Result
+-spec update_client(Address, Port, Protocol)-> Result
 	when
 		Address :: string() | inet:ip_address(),
-		DisconnectPort :: inet:port_number(),
+		Port :: inet:port_number(),
 		Protocol :: atom(),
 		Result :: ok | {error, Reason},
 		Reason :: not_found | term().
 %% @doc Update client attributes
-update_client(Address, DiscPort, Protocol) when is_list(Address),
-			is_integer(DiscPort), is_atom(Protocol)  ->
+update_client(Address, Port, Protocol) when is_list(Address),
+			is_integer(Port), is_atom(Protocol)  ->
 	{ok, AddressTuple} = inet_parse:address(Address),
-	update_client(AddressTuple, DiscPort, Protocol);
-update_client(Address, DiscPort, Protocol) when is_tuple(Address) ->
+	update_client(AddressTuple, Port, Protocol);
+update_client(Address, Port, Protocol) when is_tuple(Address) ->
 	F = fun() ->
 				case mnesia:read(client, Address, write) of
 					[Entry] ->
-						NewEntry = Entry#client{disconnect_port = DiscPort, protocol = Protocol},
+						NewEntry = Entry#client{port = Port, protocol = Protocol},
 						mnesia:write(client, NewEntry, write);
 					[] ->
 						throw(not_found)

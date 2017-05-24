@@ -95,13 +95,13 @@
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
-					<vaadin-grid-sorter path="disconnectPort" direction="desc">
-					<vaadin-grid-filter aria-label="ListenPort" path="disconnectPort" value="[[_filterPort]]">
+					<vaadin-grid-sorter path="port" direction="desc">
+					<vaadin-grid-filter aria-label="ListenPort" path="port" value="[[_filterPort]]">
 						<input placeholder="Listen Port" value="{{_filterPort::input}}" focus-target>
 					</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
-				<template>[[item.disconnectPort]]</template>
+				<template>[[item.port]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
@@ -165,7 +165,7 @@
 						var newRecord = new Object();
 						newRecord.id = results[index].id;
 						newRecord.secret = results[index].secret;
-						newRecord.disconnectPort = results[index].disconnectPort;
+						newRecord.port = results[index].port;
 						newRecord.protocol = results[index].protocol;
 						vaadinItems[index] = newRecord;
 					}
@@ -178,7 +178,7 @@
 							name: "secret"
 						},
 						{
-							name: "disconnectPort"
+							name: "port"
 						},
 						{
 							name: "protocol"
