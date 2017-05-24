@@ -198,7 +198,7 @@ radius_disconnect_session(Config) ->
 	disconnect_request().
 
 diameter_accounting() ->
-	[{userdata, [{doc, "Initiate and terminate a Diameter accouting session"}]}].
+	[{userdata, [{doc, "Initiate and terminate a DIAMETER accouting session"}]}].
 
 diameter_accounting(Config) ->
 	Username = ?config(username, Config),
@@ -229,7 +229,7 @@ diameter_accounting(Config) ->
 			'CC-Request-Number' = NewRequestNum} = Answer1.
 
 diameter_disconnect_session() ->
-	[{userdata, [{doc, "Disconnect a Diameter accouting session based on usage"}]}].
+	[{userdata, [{doc, "Disconnect a DIAMETER accouting session based on usage"}]}].
 
 diameter_disconnect_session(Config) ->
 	register(diameter_disconnect_session, self()),

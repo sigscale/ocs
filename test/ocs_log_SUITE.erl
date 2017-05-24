@@ -134,7 +134,7 @@ radius_log_auth_event(_Config) ->
 	true = Find(Find, disk_log:chunk(ocs_auth, start)).
 
 diameter_log_auth_event() ->
-   [{userdata, [{doc, "Log a Diameter AAR event"}]}].
+   [{userdata, [{doc, "Log a DIAMETER AAR event"}]}].
 
 diameter_log_auth_event(_Config) ->
 	Start = erlang:system_time(millisecond),
@@ -214,7 +214,7 @@ radius_log_acct_event(_Config) ->
 	true = Find(Find, disk_log:chunk(ocs_acct, start)).
 
 diameter_log_acct_event() ->
-   [{userdata, [{doc, "Log a Diameter CCR event"}]}].
+   [{userdata, [{doc, "Log a DIAMETER CCR event"}]}].
 
 diameter_log_acct_event(_Config) ->
 	Start = erlang:system_time(millisecond),

@@ -1070,7 +1070,7 @@ The {@link //ocs. ocs} application is configured using the following environment
 	<dt>radius</dt>
 		<dd>Configuration groups for RADIUS authentication and accounting (includes IP address (default: {0,0,0,0}), port).</dd>
 	<dt>diameter</dt>
-		<dd>Configuration groups for Diameter authentication and accounting (includes IP address (default: {0,0,0,0}), port).</dd>
+		<dd>Configuration groups for DIAMETER authentication and accounting (includes IP address (default: {0,0,0,0}), port).</dd>
 	<dt>tls_cert</dt>
 		<dd>Public certificate for TLS over EAP.</dd>
 	<dt>tlst_key</dt>

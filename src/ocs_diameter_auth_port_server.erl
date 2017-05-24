@@ -309,7 +309,7 @@ start_fsm(AuthSup, AppId, SessId, Type, OHost, ORealm, UserName,
 	when
 		Request :: #diameter_nas_app_AAR{},
 		SessionId :: string().
-%% @doc Return value for session id in Diameter Request.
+%% @doc Return value for session id in DIAMETER Request.
 %% @hidden
 get_session_id(Request) when is_record(Request, diameter_nas_app_AAR) ->
 	Request#diameter_nas_app_AAR.'Session-Id'.

@@ -54,7 +54,7 @@ In User Service (RADIUS) and DIAMETER protocols.
 
 #### Authentication & Authorization
 A wireless local area network (WLAN/Wi-Fi) access
-point (AP) acts as a NAS using RADIUS / Diameter protocol to request authentication
+point (AP) acts as a NAS using RADIUS / DIAMETER protocol to request authentication
 from the OCS (AAA server) for subscribers attempting to associate. The OCS
 may authorize access and provide specific service authorization information
 (i.e. data rate, class, session expiry).

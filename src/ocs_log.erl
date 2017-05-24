@@ -186,7 +186,7 @@ auth_log(Protocol, Server, Client, Type, RequestAttributes, ResponseAttributes) 
 		ResultCode:: integer(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Write a Diameter AAR event to disk log.
+%% @doc Write a DIAMETER AAR event to disk log.
 auth_log(Protocol, Server, Subscriber, OriginHost, OriginRealm, AuthType,
 		ResultCode) ->
 	TS = erlang:system_time(?MILLISECOND),

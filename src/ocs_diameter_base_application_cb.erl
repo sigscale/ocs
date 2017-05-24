@@ -40,7 +40,7 @@
 -type peer() :: {Peer_Ref :: term(), Capabilities :: capabilities()}.
 
 %%----------------------------------------------------------------------
-%%  The Diameter application callbacks
+%%  The DIAMETER application callbacks
 %%----------------------------------------------------------------------
 
 -spec peer_up(SvcName, Peer, State) -> NewState

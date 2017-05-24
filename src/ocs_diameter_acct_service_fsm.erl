@@ -267,7 +267,7 @@ service_options() ->
 	[{'Origin-Host', "ocs.sigscale.com"},
 		{'Origin-Realm', "sigscale.com"},
 		{'Vendor-Id', 0},
-		{'Product-Name', "SigScale Diameter Server"},
+		{'Product-Name', "SigScale DIAMETER Server"},
 		{'Auth-Application-Id', [0, 4]},
 		{restrict_connections, false},
 		{string_decode, false},

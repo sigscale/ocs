@@ -18,7 +18,7 @@
 %%% 	module receives {@link //diameter. diameter} messages on a port assigned
 %%% 	for accounting in the {@link //ocs. ocs} application.
 %%%% @reference <a href="https://tools.ietf.org/pdf/rfc4006.pdf">
-%%%% 	RFC4006 - Diameter Credit-Control Application</a>
+%%%% 	RFC4006 - DIAMETER Credit-Control Application</a>
 %%%
 -module(ocs_diameter_acct_port_server).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').
@@ -208,7 +208,7 @@ code_change(_OldVsn, State, _Extra) ->
 		Result :: {reply, Reply, NewState},
 		Reply:: term(),
 		NewState :: state().
-%% @doc Handle a received Diameter Accounting packet.
+%% @doc Handle a received DIAMETER Accounting packet.
 %% @private
 request(Request, Caps,  _From, State) ->
 	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm, _}} = Caps,
@@ -338,7 +338,7 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 				Result :: {reply, Reply, State},
 				State :: state(),
 				Reply :: #diameter_cc_app_CCA{}.
-%% @doc Send CCA to Diameter client indicating a successful operation.
+%% @doc Send CCA to DIAMETER client indicating a successful operation.
 %% @hidden
 send_answer(Request, SId, _Subscriber, Balance, ResultCode, OHost, ORealm, AuthAppId, RequestType,
 		RequestNum, #state{address = Address, port = Port} = State) ->
@@ -367,7 +367,7 @@ send_answer(Request, SId, _Subscriber, Balance, ResultCode, OHost, ORealm, AuthA
 				State :: state(),
 				Result :: {reply, Reply, State},
 				Reply :: #diameter_cc_app_CCA{}.
-%% @doc Send CCA to Diameter client indicating a operation faliure.
+%% @doc Send CCA to DIAMETER client indicating a operation faliure.
 %% @hidden
 send_error(Request, SId, _Subscriber, _Balance, ResultCode, OHost, ORealm, AuthAppId, RequestType,
 		RequestNum, #state{address = Address, port = Port} = State) ->

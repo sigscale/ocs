@@ -174,7 +174,7 @@ simple_authentication_radius(Config) ->
 	#radius{code = ?AccessAccept, id = Id} = radius:codec(AccessAcceptPacket).
 
 simple_authentication_diameter() ->
-	[{userdata, [{doc, "Successful simple authentication using Diameter NAS application"}]}].
+	[{userdata, [{doc, "Successful simple authentication using DIAMETER NAS application"}]}].
 
 simple_authentication_diameter(Config) ->
 	Username = ?config(username, Config),
@@ -380,7 +380,7 @@ unknown_username_diameter(Config) ->
 	'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm} = Answer.
 
 session_termination_diameter() ->
-	[{userdata, [{doc, "Successful simple authentication using Diameter NAS application"}]}].
+	[{userdata, [{doc, "Successful simple authentication using DIAMETER NAS application"}]}].
 
 session_termination_diameter(Config) ->
 	Username = ?config(username, Config),

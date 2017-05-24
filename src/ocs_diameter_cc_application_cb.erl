@@ -42,7 +42,7 @@
 -type peer() :: {Peer_Ref :: term(), Capabilities :: capabilities()}.
 
 %%----------------------------------------------------------------------
-%%  The Diameter application callbacks
+%%  The DIAMETER application callbacks
 %%----------------------------------------------------------------------
 
 -spec peer_up(SvcName, Peer, State) -> NewState
@@ -224,7 +224,7 @@ is_client_authorized(SvcName, Caps, Req) ->
 		Request :: message(),
 		ErrorCode :: non_neg_integer(),
 		Answer :: message().
-%% @doc When protocol/application error occurs, send Diameter answer with appropriate
+%% @doc When protocol/application error occurs, send DIAMETER answer with appropriate
 %% error indicated in Result-Code AVP.
 %% @hidden
 send_error(Caps, Request, ErrorCode) ->
