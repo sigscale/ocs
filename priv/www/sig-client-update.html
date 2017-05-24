@@ -212,6 +212,7 @@
 					client.disconnectPort = parseInt(document.getElementById("edit-client-disc-port").value);
 					//client.protocol = document.getElementById("edit-client-protocol").value;
 					client.protocol = "RADIUS";
+					client.protocol = "DIAMETER";
 					editAjax.body = client;
 					editAjax.generateRequest();
 				},
