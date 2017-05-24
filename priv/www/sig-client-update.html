@@ -111,7 +111,6 @@
 							Disconnect port used in network access server, router or access point.
 						</paper-tooltip>
 					</div>
-<!--
 					<div>
 						<template is="dom-bind">
 							<paper-dropdown-menu
@@ -123,7 +122,7 @@
 										class="dropdown-content"
 										selected="0">
 									<paper-item value="RADIUS">RADIUS</paper-item>
-									<paper-item value="DIAMETER" disabled>DIAMETER</paper-item>
+									<paper-item value="DIAMETER">DIAMETER</paper-item>
 								</paper-listbox>
 							</paper-dropdown-menu>
 							<input
@@ -136,7 +135,6 @@
 							</paper-tooltip>
 						</template>
 					</div>
--->
 					<div class="buttons">
 						<paper-button
 								onclick="clientUpdateModal.close()"
@@ -229,13 +227,11 @@
 				},
 				deleteClient: function(event) {
 					var grid = document.getElementById("clientGrid"); 
-					grid.selection.selected(function(index) {
-						var selection = grid.items[index];
-						var deleteAjax = document.getElementById("deleteClient");
-						deleteAjax.method = "DELETE";
-						deleteAjax.url = "/ocs/v1/client/"+ selection.id;
-						deleteAjax.generateRequest();
-					});
+					var selection = grid.selectedItems[0];
+					var deleteAjax = document.getElementById("deleteClient");
+					deleteAjax.method = "DELETE";
+					deleteAjax.url = "/ocs/v1/client/"+ selection.id;
+					deleteAjax.generateRequest();
 				},
 				deleteClientResponse: function(event) {
 					document.getElementById("clientUpdateModal").close();
