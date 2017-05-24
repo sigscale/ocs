@@ -15,6 +15,8 @@
 				ocs_diameter_base_application_cb,
 				ocs_diameter_nas_application_cb,
 				ocs_diameter_cc_application_cb,
+				ocs_diameter_disconnect_fsm_sup,
+				ocs_diameter_disconnect_fsm,
 				ocs_radius_acct_port_server,
 				ocs_diameter_acct_port_server,
 				ocs_radius_acct_port_sup,
