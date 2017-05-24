@@ -275,10 +275,10 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		end,
 		case decrement_balance(Subscriber, Usage) of
 			{ok, OverUsed, false} when OverUsed =< 0 ->
-				send_answer(Request, SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+				send_answer(Request, SId, Subscriber, 0, ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
 						OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
 						RequestNum, State);
-			{ok, _SufficientBalance, _Flags} ->
+			{ok, SufficientBalance, _Flags} ->
 				send_answer(Request, SId, Subscriber, Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 						OHost, ORealm, ?CC_APPLICATION_ID, RequestType,
 						RequestNum, State);
@@ -328,7 +328,7 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 				Request :: #diameter_cc_app_CCR{},
 				SessionId :: string(),
 				Subscriber :: string() | binary(),
-				Balance :: integer(),
+				Balance :: non_neg_integer(),
 				ResultCode :: integer(),
 				OriginHost :: string(),
 				OriginRealm :: string(),
