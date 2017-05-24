@@ -1,6 +1,6 @@
 %%% ocs_eap_codec.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 SigScale Global Inc.
+%%% @copyright 2016 - 2017 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@
 %%% 	RFC5931 - EAP Authentication Using Only a Password</a>
 %%%
 -module(ocs_eap_codec).
--copyright('Copyright (c) 2016 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 %% export the ocs public API
 -export([eap_packet/1, eap_pwd/1, eap_pwd_id/1, eap_pwd_commit/1,
