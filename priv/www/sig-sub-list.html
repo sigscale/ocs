@@ -173,8 +173,23 @@
 						observer: '_activeItemChanged'
 					}
 				},
-				activeItemChanged: function(item) {
-					this.$.subscriberGrid.selectedItems = item ? [item] : [];
+				_activeItemChanged: function(item) {
+					if (item != null){
+						var grid = this.$.subscriberGrid; 
+						grid.selectedItems = item ? [item] : [];
+						var modal = document.getElementById("subUpdateModal"); 
+						modal.open();
+						document.getElementById("edit-id1").value = item.id;
+						document.getElementById("edit-id2").value = item.id;
+						document.getElementById("edit-pwd").value = item.password;
+						document.getElementById("edit-balance").value = item.balance;
+						document.getElementById("edit-recv-data-rate").value = item.ascendDataRate;
+						document.getElementById("edit-trans-data-rate").value = item.ascendXmitRate;
+						document.getElementById("edit-sess-timeout").value = item.sessionTimeout;
+						document.getElementById("edit-update-interval").value = item.acctInterimInterval;
+						document.getElementById("edit-class").value =  item.class;
+						document.getElementById("edit-enabled").checked =  item.enabled;
+					}
 				},
 				responseHandler: function(event) {
 					var grid = this.$.subscriberGrid; 
@@ -230,26 +245,6 @@
 						var modal = document.getElementById("subAddModal");
 						modal.open();
 				},
-				onSelect: function(event) {
-					var grid = this.$.subscriberGrid; 
-					var modal = document.getElementById("subUpdateModal"); 
-					modal.open();
-					grid.selection.selected(
-						function(index) {
-							var selection = grid.items[index];
-							document.getElementById("edit-id1").value = selection.id;
-							document.getElementById("edit-id2").value = selection.id;
-							document.getElementById("edit-pwd").value = selection.password;
-							document.getElementById("edit-balance").value = selection.balance;
-							document.getElementById("edit-recv-data-rate").value = selection.ascendDataRate;
-							document.getElementById("edit-trans-data-rate").value = selection.ascendXmitRate;
-							document.getElementById("edit-sess-timeout").value = selection.sessionTimeout;
-							document.getElementById("edit-update-interval").value = selection.acctInterimInterval;
-							document.getElementById("edit-class").value =  selection.class;
-							document.getElementById("edit-enabled").checked =  selection.enabled;
-						}
-					);
-				}
 			}
 		);
 		});

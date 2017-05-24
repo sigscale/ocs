@@ -274,17 +274,13 @@
 						console.log("Not Success");
 					}
 				},
-				deleteSub: function(event){
+				deleteSub: function(event) {
 					var grid = document.getElementById("subscriberGrid"); 
-					grid.selection.selected(
-						function(index) {
-							var selection = grid.items[index];
-							var deleteAjax = document.getElementById("deleteSub");
-							deleteAjax.method = "DELETE";
-							deleteAjax.url = "/ocs/v1/subscriber/"+ selection.id;
-							deleteAjax.generateRequest();
-						}
-					);
+					var selection = grid.selectedItems[0];
+					var deleteAjax = document.getElementById("deleteSub");
+					deleteAjax.method = "DELETE";
+					deleteAjax.url = "/ocs/v1/subscriber/" + selection.id;
+					deleteAjax.generateRequest();
 				},
 				deleteSubResponse: function(event) {
 					document.getElementById("subUpdateModal").close();

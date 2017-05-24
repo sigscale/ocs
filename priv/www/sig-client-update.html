@@ -227,13 +227,11 @@
 				},
 				deleteClient: function(event) {
 					var grid = document.getElementById("clientGrid"); 
-					grid.selection.selected(function(index) {
-						var selection = grid.items[index];
-						var deleteAjax = document.getElementById("deleteClient");
-						deleteAjax.method = "DELETE";
-						deleteAjax.url = "/ocs/v1/client/"+ selection.id;
-						deleteAjax.generateRequest();
-					});
+					var selection = grid.selectedItems[0];
+					var deleteAjax = document.getElementById("deleteClient");
+					deleteAjax.method = "DELETE";
+					deleteAjax.url = "/ocs/v1/client/"+ selection.id;
+					deleteAjax.generateRequest();
 				},
 				deleteClientResponse: function(event) {
 					document.getElementById("clientUpdateModal").close();
