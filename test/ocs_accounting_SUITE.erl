@@ -1,6 +1,6 @@
 %%% ocs_accounting_SUITE.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 SigScale Global Inc.
+%%% @copyright 2016 - 2017 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 %%%  @doc Test suite for accounting of the {@link //ocs. ocs} application.
 %%%
 -module(ocs_accounting_SUITE).
--copyright('Copyright (c) 2016 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 %% common_test required callbacks
 -export([suite/0, sequences/0, all/0]).
@@ -198,7 +198,7 @@ radius_disconnect_session(Config) ->
 	disconnect_request().
 
 diameter_accounting() ->
-	[{userdata, [{doc, "Initiate and terminate a Diameter accouting session"}]}].
+	[{userdata, [{doc, "Initiate and terminate a DIAMETER accouting session"}]}].
 
 diameter_accounting(Config) ->
 	Username = ?config(username, Config),
@@ -229,7 +229,7 @@ diameter_accounting(Config) ->
 			'CC-Request-Number' = NewRequestNum} = Answer1.
 
 diameter_disconnect_session() ->
-	[{userdata, [{doc, "Disconnect a Diameter accouting session based on usage"}]}].
+	[{userdata, [{doc, "Disconnect a DIAMETER accouting session based on usage"}]}].
 
 diameter_disconnect_session(Config) ->
 	register(diameter_disconnect_session, self()),

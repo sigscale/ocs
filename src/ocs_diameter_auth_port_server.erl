@@ -1,6 +1,6 @@
 %%% ocs_diameter_auth_port_server.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 SigScale Global Inc.
+%%% @copyright 2016 - 2017 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 %%% 	RFC6733 - DIAMETER base protocol</a>
 %%%
 -module(ocs_diameter_auth_port_server).
--copyright('Copyright (c) 2016 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -behaviour(gen_server).
 
@@ -309,7 +309,7 @@ start_fsm(AuthSup, AppId, SessId, Type, OHost, ORealm, UserName,
 	when
 		Request :: #diameter_nas_app_AAR{},
 		SessionId :: string().
-%% @doc Return value for session id in Diameter Request.
+%% @doc Return value for session id in DIAMETER Request.
 %% @hidden
 get_session_id(Request) when is_record(Request, diameter_nas_app_AAR) ->
 	Request#diameter_nas_app_AAR.'Session-Id'.

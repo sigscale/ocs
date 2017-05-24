@@ -1,6 +1,6 @@
 %%% ocs_diameter_nas_application_cb.erl 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 SigScale Global Inc.
+%%% @copyright 2016 - 2017 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 %%% 	RFC6733 - DIAMETER Network Access Server Application</a>
 %%%
 -module(ocs_diameter_nas_application_cb).
--copyright('Copyright (c) 2016 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([peer_up/3, peer_down/3, pick_peer/4, prepare_request/3,
 			prepare_retransmit/3, handle_answer/4, handle_error/4,
@@ -41,7 +41,7 @@
 -type peer() :: {Peer_Ref :: term(), Capabilities :: capabilities()}.
 
 %%----------------------------------------------------------------------
-%%  The Diameter application callbacks
+%%  The DIAMETER application callbacks
 %%----------------------------------------------------------------------
 
 -spec peer_up(SvcName, Peer, State) -> NewState
@@ -223,7 +223,7 @@ is_client_authorized(SvcName, Caps, Req) ->
 		Request :: message(),
 		ErrorCode :: non_neg_integer(),
 		Answer :: message().
-%% @doc When protocol/application error occurs, send Diameter answer with appropriate
+%% @doc When protocol/application error occurs, send DIAMETER answer with appropriate
 %% error indicated in Result-Code AVP.
 %% @hidden
 send_error(Caps, Request, ErrorCode) ->

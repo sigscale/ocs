@@ -1,6 +1,6 @@
 %%% ocs_eap_pwd.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 SigScale Global Inc.
+%%% @copyright 2016 - 2017 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@
 %%% 	RFC5114 - Additional Diffie-Hellman Groups</a>
 %%%
 -module(ocs_eap_pwd).
--copyright('Copyright (c) 2016 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([h/1, kdf/3]).
 -export([compute_pwe/4, compute_scalar/2, compute_ks/4]).

@@ -1,6 +1,6 @@
 %%% ocs_diameter_auth_service_fsm.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 SigScale Global Inc.
+%%% @copyright 2016 - 2017 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 %%% 	RFC6733 - DIAMETER base protocol</a>
 %%%
 -module(ocs_diameter_auth_service_fsm).
--copyright('Copyright (c) 2016 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -behaviour(gen_fsm).
 
@@ -267,7 +267,7 @@ service_options() ->
 	[{'Origin-Host', "ocs.sigscale.com"},
 		{'Origin-Realm', "sigscale.com"},
 		{'Vendor-Id', 0},
-		{'Product-Name', "SigScale Diameter Server"},
+		{'Product-Name', "SigScale DIAMETER Server"},
 		{'Auth-Application-Id', [0, 1]},
 		{restrict_connections, false},
 		{string_decode, false},

@@ -1,6 +1,6 @@
 %%% ocs_radius_disconnect_fsm.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 SigScale Global Inc.
+%%% @copyright 2016 - 2017 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 %%% 	RFC3576 - Dynamic Authorization Extensions for RADIUS</a>
 %%%
 -module(ocs_radius_disconnect_fsm).
--copyright('Copyright (c) 2016 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -behaviour(gen_fsm).
 
