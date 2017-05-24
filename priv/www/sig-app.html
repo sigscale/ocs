@@ -189,13 +189,6 @@
 		<sig-client-add></sig-client-add> 
 		<sig-client-update></sig-client-update>
 		<sig-ipdr-log-files></sig-ipdr-log-files>
-		<iron-ajax id="searchAjax"
-				method = "GET"
-				headers='{"Accept": "application/json"}'
-				url=""
-				on-response="searchResponse"
-				debounce-duration="0">
-		</iron-ajax>
 	</template>
 	<script>
 		Polymer (
@@ -243,37 +236,6 @@
 						ajax.url = "/ocs/v1/log/accounting/" + id
 					}
 					ajax.generateRequest();
-				},
-				searchResponse: function(event) {
-					var item = new Array();
-					item[0] = event.detail.response;
-					item[3] = event.detail.response;
-					if (this.$.pageSelection.selected == 0) {
-						var newRecord = new Object();
-						newRecord.id = item[0].id;
-						newRecord.password = item[0].password;
-						newRecord.balance = item[0].balance;
-						item[0].attributes.forEach(
-							function(attrObj) {
-								newRecord[attrObj.name] = attrObj.value;
-							}
-						); 
-						newRecord.enabled = item[0].enabled;
-						item[0] = newRecord;
-						document.getElementById('subscriberGrid').items = item;
-					}
-					if(this.$.pageSelection.selected == 3) {
-						var newRecord = new Object();
-						newRecord.timeStamp = item[3].timeStamp;
-						newRecord.username = item[3].username;
-						newRecord.clientAddress = item[3].clientAddress;
-						newRecord.clientPort = item[3].clientPort;
-						newRecord.type = item[3].type;
-						document.getElementById('subscriberGrid').items = item;
-					}
-					if(this.$.pageSelection.selected == 1) {
-						document.getElementById('clientGrid').items = item;
-					}
 				},
 				refresh: function() {
 					if(this.$.pageSelection.selected == 0){
