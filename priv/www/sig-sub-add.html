@@ -20,12 +20,23 @@
 				width: 60%;
 				padding: 10px;
 			}
+			paper-toolbar{
+				color: white;
+				background-color: var(--paper-orange-700);
+			}
 			.add-button {
-				background-color: #3f51b5;
-				color:#FFFFFF;
+				background-color: var(--paper-orange-a700);
+				color: white;
+			}
+			.cancel-button {
+				color: var(--paper-orange-a700);
 			}
 			paper-toast.error {
-				background-color:#EF5350;
+				background-color: var(--paper-red-a400);
+			}
+			paper-toggle-button {
+				--paper-toggle-button-checked-bar-color: var(--paper-orange-200);
+				--paper-toggle-button-checked-button-color: var(--paper-orange-900);
 			}
 		</style>
 		<div id="add_subscriber_container">
@@ -136,6 +147,7 @@
 							Submit
 						</paper-button>
 						<paper-button
+								class="cancel-button"
 								dialog-confirm
 								autofocus
 								onclick="subAddModal.close()">
