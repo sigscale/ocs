@@ -33,12 +33,12 @@
 			color: initial;
 			font-weight: bold;
 		}
+		vaadin-grid {
+            height: 100%;
+		}
 	</style>
 	<template>
-		<vaadin-grid id="accountingGrid"
-				selection-mode="single"
-				grid-columns="2"
-				style="height:100%;">
+		<vaadin-grid id="accountingGrid">
 			<vaadin-grid-column width="24ex">
 				<template class="header">
 					<vaadin-grid-sorter path="timeStamp">

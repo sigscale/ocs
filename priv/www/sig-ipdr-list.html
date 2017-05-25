@@ -37,6 +37,7 @@
 		<style>
 			vaadin-grid {
 				font-size: inherit;
+            height: 100%;
 			}
 		</style>
 		<paper-button
@@ -44,10 +45,7 @@
 				on-click="openLogList">
 			Show Log Files
 		</paper-button>
-		<vaadin-grid id="ipdrGrid"
-				selection-mode="single"
-				grid-columns="2"
-				style="height:100%;">
+		<vaadin-grid id="ipdrGrid">
 			<vaadin-grid-column width="19ex" flex-grow="1">
 				<template class="header">
 					<vaadin-grid-sorter path="ipdrCreationTime" direction="desc">
