@@ -61,7 +61,7 @@ perform_get(Ip) ->
 %% @hidden
 perform_get1(Address) ->
 	case ocs:find_client(Address) of
-		{ok, Port, Protocol, Secret} ->
+		{ok, #client{port = Port, protocol = Protocol, secret = Secret}} ->
 			Id = inet:ntoa(Address),
 			RespObj = [{id, Id}, {href, "/ocs/v1/client/" ++ Id},
 					{"port", Port},

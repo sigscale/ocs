@@ -208,7 +208,7 @@ is_client_authorized(SvcName, Caps, Req) ->
 		HostIPAddresses = Caps#diameter_caps.host_ip_address,
 		{ClientIPs, _} = HostIPAddresses,
 		[HostIpAddress | _] = ClientIPs,
-		{ok, _, diameter, _} = ocs:find_client(HostIpAddress),
+		{ok, #client{protocol = diameter}} = ocs:find_client(HostIpAddress),
 		true
 	of
 		true ->
