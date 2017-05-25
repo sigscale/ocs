@@ -52,7 +52,8 @@
 								id="add-client2"
 								name="disconnectPort"
 								label="Listen Port"
-								type="number">
+								type="number"
+								value=3799>
 						</paper-input>
 						<paper-tooltip>
 							Disconnect port used in network access server, router or access point.
@@ -74,7 +75,7 @@
 										id="add-client3"
 										label="Protocol"
 										selected-item-label="{{selectedItem}}">
-									<paper-listbox class="dropdown-content">
+									<paper-listbox class="dropdown-content" selected="0">
 										<paper-item value="RADIUS">
 											RADIUS
 										</paper-item>
