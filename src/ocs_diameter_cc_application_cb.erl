@@ -77,8 +77,8 @@ peer_down(_SvcName, _Peer, State) ->
 		Result :: Selection | false.
 %% @doc Invoked as a consequence of a call to diameter:call/4 to select
 %% a destination peer for an outgoing request. 
-pick_peer(_, _, _SvcName, _State) ->
-    false.
+pick_peer([Peer | _], _, _SvcName, _State) ->
+	{ok, Peer}.
 
 -spec prepare_request(Packet, SvcName, Peer) -> Action
 	when
