@@ -20,12 +20,18 @@
 				width: 60%;
 				height: 50%;
 				padding: 10px;
-				margin-top: auto;
 			}
+			paper-toolbar{
+            color: white;
+            background-color: var(--paper-orange-700);
+         }
 			.add-button {
-				background-color: #3f51b5;
-				color: #FFFFFF;
+				background-color: var(--paper-orange-a700);
+				color: white;
 			}
+			.cancel-button {
+            color: var(--paper-orange-a700);
+         }
 		</style>
 		<div id="add_client_container">
 			<paper-dialog id="clientAddModal" modal>
@@ -103,6 +109,7 @@
 								Submit
 							</paper-button>
 							<paper-button
+									class="cancel-button"
 									dialog-confirm
 									autofocus
 									onclick="clientAddModal.close()">
@@ -135,6 +142,7 @@
 				url="/ocs/v1/client"
 				method = "post"
 				headers='{"Accept": "application/json", "Content-type": "application/json"}'
+				on-loading-changed="_onLoadingChanged"
 				client-as="json"
 				debounce-duration="300">
 		</iron-ajax>
@@ -154,7 +162,7 @@
 				listeners: {
 					'clientAddForm.iron-form-presubmit': '_clientFormPreSubmit',
 					'clientAddForm.iron-form-error': '_clientFormError',
-					'clientAddForm.iron-form-response': '_clientFormResponse'
+					'clientAddForm.iron-form-response': '_clientFormResponse',
 				},
 				_clientFormPreSubmit: function() {
 					var form = document.getElementById('presubmit3');
@@ -172,6 +180,13 @@
 					toast.open();
 					toast.duration = 0;
 					toast.fitInto = document.getElementById("response-display-container");
+				},
+				_onLoadingChanged: function(event) {
+					if (document.getElementById("clientAddAjax").loading) {
+						document.getElementById('progress').disabled = false;
+					} else {
+						document.getElementById('progress').disabled = true;
+					}
 				},
 				_clientFormResponse: function(event) {
 					var toast = document.getElementById("toast-success");
