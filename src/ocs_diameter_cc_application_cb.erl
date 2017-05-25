@@ -32,6 +32,7 @@
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include("../include/diameter_gen_nas_application_rfc7155.hrl").
 -include("../include/diameter_gen_cc_application_rfc4006.hrl").
+-include("ocs.hrl").
 
 -record(state, {}).
 

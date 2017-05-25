@@ -26,6 +26,7 @@
 %% export the radius behaviour callbacks
 -export([init/2, request/4, terminate/2]).
 
+-include("ocs.hrl").
 -include_lib("radius/include/radius.hrl").
 
 -record(state,
