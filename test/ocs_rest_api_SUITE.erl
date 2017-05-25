@@ -28,6 +28,7 @@
 -compile(export_all).
 
 -include_lib("radius/include/radius.hrl").
+-include("ocs.hrl").
 -include("ocs_eap_codec.hrl").
 -include_lib("common_test/include/ct.hrl").
 
@@ -128,8 +129,9 @@ all() ->
 	authenticate_client_request, unauthenticate_client_request,
 	add_subscriber, add_subscriber_without_password, get_subscriber,
 	get_subscriber_not_found, retrieve_all_subscriber, delete_subscriber,
-	add_client, add_client_without_password, get_client, get_client_bogus,
-	get_client_notfound, get_all_clients, delete_client, get_usage].
+	add_client, add_client_without_password, get_client, get_client_id,
+	get_client_bogus, get_client_notfound, get_all_clients, delete_client,
+	get_usage].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -543,6 +545,35 @@ get_client(Config) ->
 	{_, Port} = lists:keyfind("port", 1, Object),
 	{_, Protocol} = lists:keyfind("protocol", 1, Object),
 	{_, Secret} = lists:keyfind("secret", 1, Object).
+
+get_client_id() ->
+	[{userdata, [{doc,"get client with identifier"}]}].
+
+get_client_id(Config) ->
+	ID = "10.2.53.19",
+	Identifier = "nas-01-23-45",
+	Secret = "ps5mhybc297m",
+	ok = ocs:add_client(ID, Secret),
+	{ok, Address} = inet:parse_address(ID),
+	Fun = fun() ->
+				[C1] = mnesia:read(client, Address, write),
+				C2 = C1#client{identifier = list_to_binary(Identifier)},
+				mnesia:write(C2)
+	end,
+	{atomic, ok} = mnesia:transaction(Fun),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request = {HostUrl ++ "/ocs/v1/client/" ++ ID, [Accept, Authentication]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 200, _OK}, _, Body} = Result,
+	{struct, Object} = mochijson:decode(Body),
+	{_, ID} = lists:keyfind("id", 1, Object),
+	{_, Identifier} = lists:keyfind("identifier", 1, Object).
 
 get_client_bogus() ->
 	[{userdata, [{doc, "get client bogus in rest interface"}]}].
