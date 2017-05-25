@@ -167,7 +167,8 @@ perform_post1(Id, Port, Protocol, Secret) ->
 perform_patch(Id, ReqBody) ->
 	{ok, Address} = inet:parse_address(Id),
 	case ocs:find_client(Address) of
-		{ok, CurrPort, CurrProtocol, CurrSecret} ->
+		{ok, #client{port = CurrPort,
+				protocol = CurrProtocol, secret = CurrSecret}} ->
 			try
 				{struct, Object} = mochijson:decode(ReqBody),
 				case Object of
