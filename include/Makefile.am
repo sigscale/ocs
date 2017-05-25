@@ -6,17 +6,19 @@ einclude_DATA = ocs.hrl ocs_log.hrl ocs_eap_codec.hrl \
 		diameter_gen_nas_application_rfc7155.hrl \
 		diameter_gen_cc_application_rfc4006.hrl
 
+DIAMETERC=$(ERLANG_LIB_DIR_diameter)/bin/diameterc
+
 $(top_builddir)/ebin/%.beam:$(top_builddir)/src/%.erl
 	$(ERLC) $(ERLCFLAGS) -o $(top_builddir)/ebin $<
 
 $(top_builddir)/src/diameter_gen_nas_application_rfc7155.erl:	$(top_builddir)/src/nas_application_rfc7155.dia
-	diameterc -H -o $(top_builddir)/src $<
+	$(DIAMETERC) -H -o $(top_builddir)/src $<
 
 diameter_gen_nas_application_rfc7155.hrl:	$(top_srcdir)/src/nas_application_rfc7155.dia
-	diameterc -E $<
+	$(DIAMETERC) -E $<
 
 diameter_gen_cc_application_rfc4006.hrl:	$(top_srcdir)/src/cc_application_rfc4006.dia $(top_builddir)/ebin/diameter_gen_nas_application_rfc7155.beam
-	diameterc -i $(top_builddir)/ebin -E $<
+	$(DIAMETERC) -i $(top_builddir)/ebin -E $<
 
 CLEANFILES = diameter_gen_nas_application_rfc7155.hrl diameter_gen_cc_application_rfc4006.hrl
 
