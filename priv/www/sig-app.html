@@ -105,13 +105,13 @@
 							</paper-icon-button>
 							<div main-title>Online Charging System (OCS)</div>
 							<paper-icon-button
-									id="refresh
-									"icon="refresh"
+									id="refresh"
+									icon="refresh"
 									on-click="refresh">
 							</paper-icon-button>
 							<paper-icon-button
-									id="download
-									"icon="file-download"
+									id="download"
+									icon="file-download"
 									on-click="download" >
 							</paper-icon-button>
 							<paper-progress
@@ -140,7 +140,7 @@
 				 <!--Flex Container including app-drawer and content body -->
 				<app-drawer-layout style="height:100%;">
 				<app-drawer id="drawer" swipe-open>
-					<iron-selector id ="pageSelection" class="drawer-list" role="navigation">
+					<iron-selector id="pageSelection" class="drawer-list" role="navigation">
 						<paper-menu id="menu">
 							<paper-item id="page0"  onclick="drawer.toggle()" class="menuitem">
 								<iron-icon icon ="device:devices"></iron-icon>
@@ -205,6 +205,10 @@
 						case 'page1':
 							this.$.loadPage.selected = 1; 
 							break;
+						case 'page2':
+							this.$.loadPage.selected = 2;
+							document.getElementById("selectLogFileModal").open();
+							break;
 						case 'page3':
 							this.$.loadPage.selected = 3; 
 							break;
@@ -214,35 +218,23 @@
 						case 'page5':
 							this.$.loadPage.selected = 5; 
 							break;
-						case 'page2':
-							this.$.loadPage.selected = 2;
-							document.getElementById("selectLogFileModal").open();
-							break;
 					}
-				},
-				search: function(event) {
-					var ajax = this.$.searchAjax;
-					var id = this.$.searchTerm.value;
-					if (this.$.pageSelection.selected == 0) {
-						ajax.url = "/ocs/v1/subscriber/" + id
-					}
-					if(this.$.pageSelection.selected == 1) {
-						ajax.url = "/ocs/v1/client/" + id
-					}
-					if(this.$.pageSelection.selected == 3) {
-						ajax.url = "/ocs/v1/log/access/" + id
-					}
-					if(this.$.pageSelection.selected == 4) {
-						ajax.url = "/ocs/v1/log/accounting/" + id
-					}
-					ajax.generateRequest();
 				},
 				refresh: function() {
-					if(this.$.pageSelection.selected == 0){
+					if(this.$.loadPage.selected == 0){
 						document.getElementById('getSubs').generateRequest();
 					 }
-					if(this.$.pageSelection.selected == 1){
+					if(this.$.loadPage.selected == 1){
 						document.getElementById('getClients').generateRequest();
+					 }
+					if(this.$.loadPage.selected == 3){
+						document.getElementById('getAccess').generateRequest();
+					 }
+					if(this.$.loadPage.selected == 4){
+						document.getElementById('getAccounting').generateRequest();
+					 }
+					if(this.$.loadPage.selected == 5){
+						document.getElementById('getHttp').generateRequest();
 					 }
 				},
 				download: function() {
