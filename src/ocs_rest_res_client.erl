@@ -71,7 +71,7 @@ perform_get1(Address) ->
 				Identifier ->
 					[{identifier, binary_to_list(Identifier)}]
 			end,
-			RespObj3 = [{"port", Port}],
+			RespObj3 = [{"port", Port},
 					{protocol, string:to_upper(atom_to_list(Protocol))},
 					{secret, Secret}],
 			JsonObj  = {struct, RespObj1 ++ RespObj2 ++ RespObj3},
@@ -108,13 +108,13 @@ perform_get_all1(Clients) ->
 				Identifier ->
 					[{identifier, binary_to_list(Identifier)}]
 			end,
-			RespObj3 = [{"port", Port}],
+			RespObj3 = [{"port", Port},
 					{protocol, string:to_upper(atom_to_list(Protocol))},
 					{secret, Secret}],
 			[{struct, RespObj1 ++ RespObj2 ++ RespObj3} | Acc]
 	end,
 	JsonObj = lists:foldl(F, [], Clients),
-	{array, lists:reverse(JsonObj]}.
+	{array, lists:reverse(JsonObj)}.
 
 -spec perform_post(RequestBody) -> Result 
 	when
