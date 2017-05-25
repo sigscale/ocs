@@ -284,7 +284,7 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 						0, ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
 						ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
-			{ok, SufficientBalance, _Flags} ->
+			{ok, _SufficientBalance, _Flags} ->
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 						?CC_APPLICATION_ID, RequestType, RequestNum, State),
