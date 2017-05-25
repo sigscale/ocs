@@ -91,7 +91,7 @@
 					</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
-				<template>[[item.secret]]</template>
+				<template>[[item.identifier]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
@@ -163,7 +163,6 @@
 					modal.open();
 					document.getElementById("edit-client-id1").value = item.id;
 					document.getElementById("edit-client-id2").value = item.id;
-					document.getElementById("edit-client-identifier").value = item.identifier;
 					document.getElementById("edit-client-disc-port").value = item.disconnectPort;
 					document.getElementById("edit-client-pwd").value = item.secret;
 					}
