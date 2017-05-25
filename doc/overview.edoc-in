@@ -210,18 +210,11 @@ Each of the media types used in this application are described below.
 	</thead>
 	<tbody>
 		<tr id="mt">
-			<td id="mt">id</td>
+			<td id="mt">address</td>
 			<td id="mt">string</td>
 			<td id="mt">M</td>
 			<td id="mt">NAS IP address</td>
 		</tr>
-		<tr id="mt">
-			<td id="mt">href</td>
-			<td id="mt">string</td>
-			<td id="mt">M</td>
-			<td id="mt">URI of the client resource.(Mandatory only in response)</td>
-		</tr>
-		<tr id="mt">
 		<tr id="mt">
 			<td id="mt">port</td>
 			<td id="mt">integer</td>
