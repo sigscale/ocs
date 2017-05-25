@@ -291,7 +291,8 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						0, ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
 						ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
-				NewState1 = start_disconnect(SId, OHost, DHost, ORealm, DRealm,
+				NewState1 = start_disconnect(ocs_diameter_acct_service,
+						ocs_diameter_cc_application, SId, OHost, DHost, ORealm, DRealm,
 						?CC_APPLICATION_ID, NewState),
 				{reply, Reply, NewState1};
 			{ok, _SufficientBalance, _Flags} ->
@@ -457,9 +458,11 @@ accounting_event_type(RequestType) ->
 			event
 	end.
 
--spec start_disconnect(SessionId, OHost, DHost, ORealm, DRealm,
-		AuthAppId, State) -> NewState
+-spec start_disconnect(Svc, AppAlias, SessionId, OHost, DHost, ORealm,
+		DRealm, AuthAppId, State) -> NewState
 	when
+		Svc :: term(),
+		AppAlias :: term(),
 		SessionId :: string(),
 		OHost :: string() | binary(),
 		DHost :: string() | binary(),
@@ -471,13 +474,14 @@ accounting_event_type(RequestType) ->
 %% @doc Start a disconnect_fsm to send DIAMETER Abort-Session-Request and
 %% store disconnect_fsm pid() in state.
 %% @hidden
-start_disconnect(SessionId, OHost, DHost, ORealm, DRealm, AuthAppId,
-		#state{handlers = Handlers , disc_sup = DiscSup} = State) ->
+start_disconnect(Svc, Alias, SessionId, OHost, DHost, ORealm, DRealm,
+		AuthAppId, #state{handlers = Handlers , disc_sup = DiscSup} = State) ->
 	case gb_trees:lookup(SessionId,  Handlers) of
 		{value, _DiscPid} ->
 			State;
 		none ->
-			DiscArgs = [SessionId, OHost, DHost, ORealm, DRealm, AuthAppId],
+			DiscArgs = [Svc, Alias, SessionId, OHost, DHost, ORealm,
+					DRealm, AuthAppId],
 			StartArgs = [DiscArgs, []],
 			case supervisor:start_child(DiscSup, StartArgs) of
 				{ok, DiscFsm} ->
