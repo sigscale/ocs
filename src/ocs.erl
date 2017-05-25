@@ -81,9 +81,6 @@ add_client(Address, Port, Protocol, Secret) when is_tuple(Address), is_binary(Se
 	when
 		Address :: inet:ip_address(),
 		Result :: {ok, #client{}} | {error, Reason}, 
-		Port :: inet:port_number(),
-		Protocol :: atom(),
-		Secret :: binary(),
 		Reason :: notfound | term().
 %% @doc Find a client by IP address.
 %%
