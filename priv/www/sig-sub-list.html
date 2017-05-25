@@ -58,12 +58,13 @@
 			}
 			paper-button.cancel-btn {
 				color: #7d8ff5;
-				font-weight:normal;
+				font-weight: normal;
 			}
+			vaadin-grid {
+				height: 100%;
+			} 
 		</style>
-		<vaadin-grid id="subscriberGrid"
-				selection-mode="single"
-				grid-columns="2" style="height:100%;" active-item="{{activeItem}}" size="200">
+		<vaadin-grid id="subscriberGrid" active-item="{{activeItem}}">
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
 					<vaadin-grid-sorter path="id" direction="desc">
@@ -209,8 +210,6 @@
 						vaadinItems[index] = newRecord;
 					}
 					grid.items = vaadinItems;
-					grid.frozenColumns = 2;
-//					grid.visibleRows = 17;
 					grid.columns = [
 						{
 							name: "id"
