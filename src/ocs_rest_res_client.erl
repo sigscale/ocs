@@ -61,12 +61,20 @@ perform_get(Ip) ->
 %% @hidden
 perform_get1(Address) ->
 	case ocs:find_client(Address) of
-		{ok, #client{port = Port, protocol = Protocol, secret = Secret}} ->
+		{ok, #client{port = Port, identifier = Identifier,
+				protocol = Protocol, secret = Secret}} ->
 			Id = inet:ntoa(Address),
-			RespObj = [{id, Id}, {href, "/ocs/v1/client/" ++ Id},
-					{"port", Port},
-					{protocol, string:to_upper(atom_to_list(Protocol))}, {secret, Secret}],
-			JsonObj  = {struct, RespObj},
+			RespObj1 = [{id, Id}, {href, "/ocs/v1/client/" ++ Id}],
+			RespObj2 = case Identifier of
+				<<>> ->
+					[];
+				Identifier ->
+					[{identifier, binary_to_list(Identifier)}]
+			end,
+			RespObj3 = [{"port", Port}],
+					{protocol, string:to_upper(atom_to_list(Protocol))},
+					{secret, Secret}],
+			JsonObj  = {struct, RespObj1 ++ RespObj2 ++ RespObj3},
 			Body = mochijson:encode(JsonObj),
 			{ok, [{content_type, "application/json"}], Body};
 		{error, not_found} ->
@@ -90,16 +98,23 @@ perform_get_all() ->
 	end.
 %% @hidden
 perform_get_all1(Clients) ->
-	F = fun(#client{address= Address, port = Port,
-			protocol = Protocol, secret = Secret}, Acc) ->
-		Id = inet:ntoa(Address),
-		RespObj = [{struct, [{id, Id}, {href, "/ocs/v1/client/" ++ Id},
-			{"port", Port},
-			{protocol, string:to_upper(atom_to_list(Protocol))}, {secret, Secret}]}],
-		RespObj ++ Acc
+	F = fun(#client{address= Address, identifier = Identifier, port = Port,
+				protocol = Protocol, secret = Secret}, Acc) ->
+			Id = inet:ntoa(Address),
+			RespObj1 = [{id, Id}, {href, "/ocs/v1/client/" ++ Id}],
+			RespObj2 = case Identifier of
+				<<>> ->
+					[];
+				Identifier ->
+					[{identifier, binary_to_list(Identifier)}]
+			end,
+			RespObj3 = [{"port", Port}],
+					{protocol, string:to_upper(atom_to_list(Protocol))},
+					{secret, Secret}],
+			[{struct, RespObj1 ++ RespObj2 ++ RespObj3} | Acc]
 	end,
 	JsonObj = lists:foldl(F, [], Clients),
-	{array, JsonObj}.
+	{array, lists:reverse(JsonObj]}.
 
 -spec perform_post(RequestBody) -> Result 
 	when

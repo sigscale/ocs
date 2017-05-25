@@ -83,6 +83,16 @@
 				</template>
 				<template>[[item.id]]</template>
 			</vaadin-grid-column>
+			<vaadin-grid-column width="20ex" flex-grow="5">
+				<template class="header">
+					<vaadin-grid-sorter path="identifier" direction="desc">
+					<vaadin-grid-filter aria-label="Identifier" path="identifier" value="[[_filterIdentifier]]">
+						<input placeholder="Identifier" value="{{_filterIdentifier::input}}" focus-target>
+					</vaadin-grid-filter>
+					</vaadin-grid-sorter>
+				</template>
+				<template>[[item.secret]]</template>
+			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
 					<vaadin-grid-sorter path="secret" direction="desc">
@@ -153,6 +163,7 @@
 					modal.open();
 					document.getElementById("edit-client-id1").value = item.id;
 					document.getElementById("edit-client-id2").value = item.id;
+					document.getElementById("edit-client-identifier").value = item.identifier;
 					document.getElementById("edit-client-disc-port").value = item.disconnectPort;
 					document.getElementById("edit-client-pwd").value = item.secret;
 					}
@@ -164,6 +175,7 @@
 					for (var index in results) {
 						var newRecord = new Object();
 						newRecord.id = results[index].id;
+						newRecord.identifier = results[index].identifier;
 						newRecord.secret = results[index].secret;
 						newRecord.port = results[index].port;
 						newRecord.protocol = results[index].protocol;
@@ -173,6 +185,9 @@
 					grid.columns = [
 						{
 							name: "id",
+						},
+						{
+							name: "identifier"
 						},
 						{
 							name: "secret"
