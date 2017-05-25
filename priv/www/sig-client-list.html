@@ -105,7 +105,7 @@
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
-					<vaadin-grid-sorter path="protocol" direction="desc">
+					<vaadin-grid-sorter path="protocol" >
 					<vaadin-grid-filter aria-label="Protocol" path="protocol" value="[[_filterProtocol]]">
 						<input placeholder="Protocol" value="{{_filterProtocol::input}}" focus-target>
 					</vaadin-grid-filter>

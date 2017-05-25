@@ -134,7 +134,7 @@
 			</vaadin-grid-column>
 			<vaadin-grid-column width="8ex" flex-grow="1">
 				<template class="header">
-					<vaadin-grid-sorter path="enabled" direction="desc">
+					<vaadin-grid-sorter path="enabled">
 					<vaadin-grid-filter aria-label="Enabled" path="enabled" value="[[_filterEnabled]]">
 						<input placeholder="Enabled" value="{{_filterEnabled::input}}" focus-target>
 					</vaadin-grid-filter>
@@ -156,7 +156,7 @@
 			<h2>Record sucessfully deleted!</h2>
 		</paper-toast>
 		<iron-ajax id="getSubs"
-			auto=false
+			auto = false
 			url="/ocs/v1/subscriber"
 			headers='{"Accept": "application/json"}'
 			on-response="responseHandler"
