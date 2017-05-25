@@ -58,12 +58,13 @@
 			}
 			paper-button.cancel-btn {
 				color: #7d8ff5;
-				font-weight:normal;
+				font-weight: normal;
 			}
+			vaadin-grid {
+				height: 100%;
+			} 
 		</style>
-		<vaadin-grid id="subscriberGrid"
-				selection-mode="single"
-				grid-columns="2" style="height:100%;" active-item="{{activeItem}}" size="200">
+		<vaadin-grid id="subscriberGrid" active-item="{{activeItem}}">
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
 					<vaadin-grid-sorter path="id" direction="desc">
@@ -134,7 +135,7 @@
 			</vaadin-grid-column>
 			<vaadin-grid-column width="8ex" flex-grow="1">
 				<template class="header">
-					<vaadin-grid-sorter path="enabled" direction="desc">
+					<vaadin-grid-sorter path="enabled">
 					<vaadin-grid-filter aria-label="Enabled" path="enabled" value="[[_filterEnabled]]">
 						<input placeholder="Enabled" value="{{_filterEnabled::input}}" focus-target>
 					</vaadin-grid-filter>
@@ -156,7 +157,7 @@
 			<h2>Record sucessfully deleted!</h2>
 		</paper-toast>
 		<iron-ajax id="getSubs"
-			auto=false
+			auto = false
 			url="/ocs/v1/subscriber"
 			headers='{"Accept": "application/json"}'
 			on-response="responseHandler"
@@ -209,8 +210,6 @@
 						vaadinItems[index] = newRecord;
 					}
 					grid.items = vaadinItems;
-					grid.frozenColumns = 2;
-//					grid.visibleRows = 17;
 					grid.columns = [
 						{
 							name: "id"

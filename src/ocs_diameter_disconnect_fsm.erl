@@ -38,8 +38,19 @@
 			terminate/3, code_change/4]).
 
 -include_lib("diameter/include/diameter.hrl").
+-include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 
--record(statedata, {}).
+-record(statedata,
+		{diameter_service :: term(),
+		app_alias :: term(),
+		session_id :: string(),
+		origin_host :: string() | binary(),
+		destination_host :: string() | binary(),
+		origin_realm :: string() | binary(),
+		destination_realm :: string() | binary(),
+		auth_app_id :: integer()}).
+
+-define(TIMEOUT, 30000).
 
 %%----------------------------------------------------------------------
 %%  The ocs_diameter_disconnect_fsm API
@@ -64,9 +75,12 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([]) ->
+init([Svc, AppAlias, SessionId, OHost, DHost, ORealm, DRealm, AuthAppId]) ->
 	process_flag(trap_exit, true),
-	StateData = #statedata{},
+	StateData = #statedata{diameter_service = Svc, app_alias = AppAlias,
+			session_id = SessionId, origin_host = OHost,
+			destination_host = DHost, origin_realm = ORealm,
+			destination_realm = DRealm, auth_app_id = AuthAppId},
 	{ok, send_request, StateData, 0}.
 
 -spec send_request(Event, StateData) -> Result
@@ -83,12 +97,22 @@ init([]) ->
 		Reason :: normal | term().
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
 %%		gen_fsm:send_event/2} in the <b>send_request</b> state. This state is responsible
-%%		for sending a RADIUS-Disconnect/Request to an access point.
+%%		for sending a DIAMETER Abort-Session-Request to an access point.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-send_request(timeout, #statedata{}  = StateData) ->
-	{next_state, receive_response, StateData}.
+send_request(timeout, #statedata{diameter_service = Svc, app_alias = AppAlias,
+		session_id = SId, origin_host = OH, destination_host = DH, origin_realm = OR,
+		destination_realm = DR, auth_app_id = AuthAppId} = StateData) ->
+	ASR = #diameter_base_ASR{'Session-Id' = SId, 'Origin-Host' = OH,
+			'Origin-Realm' = OR, 'Destination-Realm' = DR, 'Destination-Host' = DH,
+			'Auth-Application-Id' = AuthAppId},
+	case diameter:call(Svc, AppAlias, ASR, []) of
+		ok ->
+			{next_state, receive_response, StateData, ?TIMEOUT};
+		{error, Reason} ->
+			{next_state, receive_response, StateData, ?TIMEOUT}
+	end.
 
 -spec receive_response(Event, StateData) -> Result
 	when
@@ -104,7 +128,7 @@ send_request(timeout, #statedata{}  = StateData) ->
 		Reason :: normal | term().
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
 %%		gen_fsm:send_event/2} in the <b>receive_response</b> state. This state is responsible
-%%		for recieving a RADIUS-Disconnect/ACK or RADIUS-Disconnect/NAK from an  access point.
+%%		for recieving a DIAMETER Abort-Session-Answer from an access point.
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%

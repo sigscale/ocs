@@ -37,6 +37,7 @@
 		<style>
 			vaadin-grid {
 				font-size: inherit;
+            height: 100%;
 			}
 		</style>
 		<paper-button
@@ -44,10 +45,7 @@
 				on-click="openLogList">
 			Show Log Files
 		</paper-button>
-		<vaadin-grid id="ipdrGrid"
-				selection-mode="single"
-				grid-columns="2"
-				style="height:100%;">
+		<vaadin-grid id="ipdrGrid">
 			<vaadin-grid-column width="19ex" flex-grow="1">
 				<template class="header">
 					<vaadin-grid-sorter path="ipdrCreationTime" direction="desc">
@@ -152,7 +150,7 @@
 			</vaadin-grid-column>
 			<vaadin-grid-column width="19ex" flex-grow="1">
 				<template class="header">
-					<vaadin-grid-sorter path="gmtSessionEndDateTime" direction="desc">
+					<vaadin-grid-sorter path="gmtSessionEndDateTime">
 					<vaadin-grid-filter aria-label="GmtSessionEndDateTime" path="gmtSessionEndDateTime" value="[[_filterGmtSessionEndDateTime]]">
 						<input placeholder="End Time" value="{{_filterGmtSessionEndDateTime::input}}" focus-target>
 					</vaadin-grid-filter>

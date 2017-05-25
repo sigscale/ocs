@@ -35,11 +35,12 @@
 -include("ocs.hrl").
 
 -record(state,
-		{address :: inet:ip_address(),
+		{acct_sup :: pid(),
+		 disc_sup :: undefined | pid(),
+		address :: inet:ip_address(),
 		port :: non_neg_integer(),
 		handlers = gb_trees:empty() :: gb_trees:tree(Key ::
-				({NAS :: string() | inet:ip_address(), Port :: string(),
-				Peer :: string()}), Value :: (Fsm :: pid()))}).
+				(SessionId :: string()), Value :: (Fsm :: pid()))}).
 
 -define(CC_APPLICATION_ID, 4).
 
@@ -69,12 +70,12 @@
 %% @see //stdlib/gen_server:init/1
 %% @private
 %%
-init([Address, Port, _Options]) ->
-	State = #state{address = Address, port = Port},
+init([AcctSup, Address, Port, _Options]) ->
+	State = #state{address = Address, port = Port, acct_sup = AcctSup},
 	case ocs_log:acct_open() of
 		ok ->
 			process_flag(trap_exit, true),	
-			{ok, State};
+			{ok, State, 0};
 		{error, Reason} ->
 			{stop, Reason}
 	end.
@@ -143,6 +144,11 @@ handle_cast(_Request, State) ->
 %% @see //stdlib/gen_server:handle_info/2
 %% @private
 %%
+handle_info(timeout, #state{acct_sup = AcctSup} = State) ->
+	Children = supervisor:which_children(AcctSup),
+	{_, DiscSup, _, _} = lists:keyfind(ocs_diameter_disconnect_fsm_sup,
+			1, Children),
+	{noreply, State#state{disc_sup = DiscSup}};
 handle_info({'EXIT', _Pid, {shutdown, SessionId}},
 		#state{handlers = Handlers} = State) ->
 	NewHandlers = gb_trees:delete(SessionId, Handlers),
@@ -211,7 +217,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% @doc Handle a received DIAMETER Accounting packet.
 %% @private
 request(Request, Caps,  _From, State) ->
-	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm, _}} = Caps,
+	#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}} = Caps,
 	#diameter_cc_app_CCR{'Session-Id' = SId,
 			'Auth-Application-Id' = ?CC_APPLICATION_ID,
 			'Service-Context-Id' = _SvcContextId, 'CC-Request-Type' = RequestType,
@@ -233,7 +239,7 @@ request(Request, Caps,  _From, State) ->
 				case ocs:authorize(Subscriber, Password) of
 					{ok, _, _} ->
 						request1(RequestType, Request, SId, RequestNum, Subscriber,
-								Balance, OHost, ORealm, State);
+								Balance, OHost, DHost, ORealm, DRealm, State);
 					{error, _} ->
 						{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
 								Balance, ?'DIAMETER_BASE_RESULT-CODE_AUTHORIZATION_REJECTED',
@@ -256,13 +262,15 @@ request(Request, Caps,  _From, State) ->
 
 %% @hidden
 request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
-		Request, SId, RequestNum, Subscriber, Balance, OHost, ORealm, State) ->
+		Request, SId, RequestNum, Subscriber, Balance, OHost, _DHost, ORealm,
+		_DRealm, State) ->
 	{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 			Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 			?CC_APPLICATION_ID, RequestType, RequestNum, State),
 	{reply, Reply, NewState};
 request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
-		Request, SId, RequestNum, Subscriber, Balance, OHost, ORealm, State) ->
+		Request, SId, RequestNum, Subscriber, Balance, OHost, DHost, ORealm,
+		DRealm, State) ->
 	try
 		[UsedUnits] = Request#'diameter_cc_app_CCR'.'Used-Service-Unit',
 		#'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = Total,
@@ -283,7 +291,10 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						0, ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
 						ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
-				{reply, Reply, NewState};
+				NewState1 = start_disconnect(ocs_diameter_acct_service,
+						ocs_diameter_cc_application, SId, OHost, DHost, ORealm, DRealm,
+						?CC_APPLICATION_ID, NewState),
+				{reply, Reply, NewState1};
 			{ok, _SufficientBalance, _Flags} ->
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
@@ -300,13 +311,14 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		end
 	catch
 		_:_ ->
-			{Reply1, NewState1} = generate_diameter_error(Request, SId, Subscriber,
+			{Reply1, NewState0} = generate_diameter_error(Request, SId, Subscriber,
 					Balance, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
 					ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
-			{reply, Reply1, NewState1}
+			{reply, Reply1, NewState0}
 	end;
 request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
-		Request, SId, RequestNum, Subscriber, Balance, OHost, ORealm, State) ->
+		Request, SId, RequestNum, Subscriber, Balance, OHost, _DHost, ORealm,
+		_DRealm, State) ->
 	F = fun() ->
 		case mnesia:read(subscriber, Subscriber, write) of
 			[#subscriber{disconnect = false} = Entry] ->
@@ -444,5 +456,43 @@ accounting_event_type(RequestType) ->
 			stop;
 		4 ->
 			event
+	end.
+
+-spec start_disconnect(Svc, AppAlias, SessionId, OHost, DHost, ORealm,
+		DRealm, AuthAppId, State) -> NewState
+	when
+		Svc :: term(),
+		AppAlias :: term(),
+		SessionId :: string(),
+		OHost :: string() | binary(),
+		DHost :: string() | binary(),
+		ORealm :: string() | binary(),
+		DRealm :: string() | binary(),
+		AuthAppId :: integer(),
+		State :: #state{},
+		NewState :: #state{}.
+%% @doc Start a disconnect_fsm to send DIAMETER Abort-Session-Request and
+%% store disconnect_fsm pid() in state.
+%% @hidden
+start_disconnect(Svc, Alias, SessionId, OHost, DHost, ORealm, DRealm,
+		AuthAppId, #state{handlers = Handlers , disc_sup = DiscSup} = State) ->
+	case gb_trees:lookup(SessionId,  Handlers) of
+		{value, _DiscPid} ->
+			State;
+		none ->
+			DiscArgs = [Svc, Alias, SessionId, OHost, DHost, ORealm,
+					DRealm, AuthAppId],
+			StartArgs = [DiscArgs, []],
+			case supervisor:start_child(DiscSup, StartArgs) of
+				{ok, DiscFsm} ->
+					link(DiscFsm),
+					NewHandlers = gb_trees:insert(SessionId, DiscFsm, Handlers),
+					State#state{handlers = NewHandlers};
+				{error, Reason} ->
+					error_logger:error_report(["Failed to initiate session disconnect function",
+							{module, ?MODULE}, {session_id, SessionId}, {destion_host, DHost},
+							{error, Reason}]),
+					State
+			end
 	end.
 

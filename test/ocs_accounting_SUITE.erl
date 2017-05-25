@@ -106,9 +106,10 @@ init_per_testcase(TestCase, Config) when
 	{ok, [{auth, AuthInstance}, {acct, _}]} = application:get_env(ocs, diameter),
 	[{Address, Port, _}] = AuthInstance,
 	Secret = "s3cr3t",
+	InitialBal = 1000000,
 	ok = ocs:add_client(Address, Port, diameter, Secret),
-	ok = ocs:add_subscriber(UserName, Password, [], 1000000),
-	[{username, UserName}, {password, Password}] ++ Config;
+	ok = ocs:add_subscriber(UserName, Password, [], InitialBal),
+	[{username, UserName}, {password, Password}, {init_bal, InitialBal}] ++ Config;
 init_per_testcase(_TestCase, Config) ->
 	Config.
 
@@ -235,6 +236,7 @@ diameter_disconnect_session(Config) ->
 	register(diameter_disconnect_session, self()),
 	Username = ?config(username, Config),
 	Password = ?config(password, Config),
+	InitBalance = ?config(init_bal, Config),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	Answer = diameter_authentication(SId, Username, Password),
@@ -252,8 +254,8 @@ diameter_disconnect_session(Config) ->
 			'Auth-Application-Id' = ?CC_APPLICATION_ID,
 			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST',
 			'CC-Request-Number' = RequestNum0, 'Granted-Service-Unit' = GrantedUnits0} = Answer0,
-	#'diameter_cc_app_Granted-Service-Unit'{'CC-Total-Octets' = Balance0} = GrantedUnits0,
-	Usage0 = Balance0 - 1000000,
+	#'diameter_cc_app_Granted-Service-Unit'{'CC-Total-Octets' = InitBalance} = GrantedUnits0,
+	Usage0 = trunc(InitBalance/10),
 	RequestNum1 = RequestNum0 + 1,
 	Answer1 = diameter_accounting_interim(SId, Username, RequestNum1, Usage0),
 	#diameter_cc_app_CCA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
@@ -261,7 +263,7 @@ diameter_disconnect_session(Config) ->
 			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST',
 			'CC-Request-Number' = RequestNum1, 'Granted-Service-Unit' = GrantedUnits1} = Answer1,
 	#'diameter_cc_app_Granted-Service-Unit'{'CC-Total-Octets' = Balance1} = GrantedUnits1,
-	Usage2 = Balance1 - 1000000,
+	Usage2 = trunc(Balance1/10),
 	RequestNum2 = RequestNum1 + 1,
 	Answer2 = diameter_accounting_interim(SId, Username, RequestNum2, Usage2),
 	#diameter_cc_app_CCA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
@@ -269,7 +271,7 @@ diameter_disconnect_session(Config) ->
 			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST',
 			'CC-Request-Number' = RequestNum2, 'Granted-Service-Unit' = GrantedUnits2} = Answer2,
 	#'diameter_cc_app_Granted-Service-Unit'{'CC-Total-Octets' = Balance2} = GrantedUnits2,
-	Usage3 = Balance2 - 10000000,
+	Usage3 = Balance2,
 	RequestNum3 = RequestNum2 + 1,
 	% Final Interim
 	Answer3 = diameter_accounting_interim(SId, Username, RequestNum3, Usage3),
@@ -475,14 +477,14 @@ diameter_accounting_stop(SId, Username, RequestNum) ->
 
 %% @hidden
 diameter_accounting_interim(SId, Username, RequestNum, Usage) ->
-	UsedUnits = #'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = Usage},
+	UsedUnits = #'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = [Usage]},
 	CC_CCR = #diameter_cc_app_CCR{'Session-Id' = SId,
 			'Auth-Application-Id' = ?CC_APPLICATION_ID,
 			'Service-Context-Id' = "nas45@testdomain.com" ,
 			'User-Name' = Username,
 			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST',
 			'CC-Request-Number' = RequestNum,
-			'Used-Service-Unit' = UsedUnits},
+			'Used-Service-Unit' = [UsedUnits]},
 	{ok, Answer} = diameter:call(?SVC_ACCT, cc_app_test, CC_CCR, []),
 	Answer.
 	

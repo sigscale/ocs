@@ -39,12 +39,11 @@
 			vaadin-grid col {
 				font-size: 46px
 			}
+			vaadin-grid {
+            height: 100%;
+         }
 		</style>
-		<vaadin-grid
-				selection-mode="single"
-				id="httpGrid"
-				grid-columns="2"
-				style="height:100%;">
+		<vaadin-grid id="httpGrid">
 			<vaadin-grid-column width="28ex" flex-grow="2">
 				<template class="header">
 					<vaadin-grid-sorter path="datetime" direction="desc">
@@ -67,7 +66,7 @@
 			</vaadin-grid-column>
 			<vaadin-grid-column width="8ex" flex-grow="5">
 				<template class="header">
-					<vaadin-grid-sorter path="user" direction="desc">
+					<vaadin-grid-sorter path="user">
 					<vaadin-grid-filter aria-label="User" path="user" value="[[_filterUser]]">
 						<input placeholder="User" value="{{_filterUser::input}}" focus-target>
 					</vaadin-grid-filter>

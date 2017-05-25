@@ -67,12 +67,13 @@
          vaadin-grid {
             font-size: inherit;
          }
+			vaadin-grid {
+            height: 100%;
+         }
 		</style>
 		<vaadin-grid
-				selection-mode="single"
 				id="clientGrid"
-				grid-columns="2"
-				style="height:100%;", active-item="{{activeItem}}" size="200">
+				active-item="{{activeItem}}">
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
 					<vaadin-grid-sorter path="id" direction="desc">
@@ -115,7 +116,7 @@
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
-					<vaadin-grid-sorter path="protocol" direction="desc">
+					<vaadin-grid-sorter path="protocol" >
 					<vaadin-grid-filter aria-label="Protocol" path="protocol" value="[[_filterProtocol]]">
 						<input placeholder="Protocol" value="{{_filterProtocol::input}}" focus-target>
 					</vaadin-grid-filter>
