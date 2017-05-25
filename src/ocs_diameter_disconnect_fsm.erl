@@ -64,7 +64,7 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([]) ->
+init(_Args) ->
 	process_flag(trap_exit, true),
 	StateData = #statedata{},
 	{ok, send_request, StateData, 0}.
