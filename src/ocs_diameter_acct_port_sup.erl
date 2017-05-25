@@ -50,7 +50,7 @@ init([Address, Port, Options]) ->
 %% @hidden
 server(StartMod, Address, Port, Options) ->
 	GlobalName = {ocs_diameter_acct, Address, Port},
-	Args = [Address, Port, Options],
+	Args = [self(), Address, Port, Options],
 	StartArgs = [{global, GlobalName}, StartMod, Args, []],
 	StartFunc = {gen_server, start_link, StartArgs},
 	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
