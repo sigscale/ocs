@@ -19,7 +19,7 @@
 %% define client table entries record
 -record(client,
 		{address :: inet:ip_address(),
-		identifier :: binary(),
+		identifier = <<>> :: binary(),
 		port :: inet:port_number(),
 		protocol :: radius | diameter,
 		secret :: binary()}).
