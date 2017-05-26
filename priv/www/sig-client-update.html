@@ -119,13 +119,14 @@
 							<paper-dropdown-menu
 									id="edit-client-protocol"
 									label="Protocol"
+									type="number"
 									selected-item-label="{{selectedItem}}">
 								<paper-listbox
 										id="protocol-menu"
 										class="dropdown-content"
 										selected="0">
-									<paper-item value="RADIUS">RADIUS</paper-item>
-									<paper-item value="DIAMETER">DIAMETER</paper-item>
+									<paper-item>RADIUS</paper-item>
+									<paper-item>DIAMETER</paper-item>
 								</paper-listbox>
 							</paper-dropdown-menu>
 							<input
@@ -147,7 +148,7 @@
 						<paper-button
 								dialog-confirm
 								autofocus
-								on-click="updateClientProperties"
+								on-click="_updateClientProperties"
 								class="update-buttons">
 							Update
 						</paper-button>
@@ -205,7 +206,7 @@
 						console.log("Not Success");
 					}
 				},
-				updateClientProperties: function(event) {
+				_updateClientProperties: function(event) {
 					var editAjax =  document.getElementById("updateClientProperties");
 					editAjax.method = "PATCH";
 					editAjax.contentType = "application/json";
@@ -213,9 +214,7 @@
 					editAjax.url = "/ocs/v1/client/" + id;
 					var client = new Object();
 					client.port = parseInt(document.getElementById("edit-client-disc-port").value);
-					//client.protocol = document.getElementById("edit-client-protocol").value;
-					client.protocol = "RADIUS";
-					client.protocol = "DIAMETER";
+					client.protocol = document.getElementById("edit-client-protocol").value;
 					editAjax.body = client;
 					editAjax.generateRequest();
 				},
