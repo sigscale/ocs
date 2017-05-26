@@ -40,8 +40,14 @@
 				font-size: 46px
 			}
 			vaadin-grid {
-            height: 100%;
+				height: 100%;
+				--vaadin-grid-header-cell: {
+            	background:var(--paper-orange-200);
+         	};
          }
+			vaadin-grid input {
+         	background:var(--paper-orange-200);
+      	}
 		</style>
 		<vaadin-grid id="httpGrid">
 			<vaadin-grid-column width="28ex" flex-grow="2">
