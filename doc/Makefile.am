@@ -79,9 +79,9 @@ overview.edoc: overview.edoc-in
 					-e 's!href=\"http://www.erlang.org/\"!href=\"http://www.sigscale.org/\"!' \
 					-e 's!erlang.png!sigscale-logo.png!' $$i > $$i.tmp; \
 			mv $$i.tmp $$i; \
-			cp -n $(top_srcdir)/doc/sigscale-logo.png .; \
-			cp -n $(top_srcdir)/doc/supervision.png .; \
 	done
+	-cp -n $(top_srcdir)/doc/sigscale-logo.png .
+	-cp -n $(top_srcdir)/doc/supervision.png .
 
 CLEANFILES = overview.edoc edoc-info index.html \
 		modules-frame.html overview-summary.html packages-frame.html \
