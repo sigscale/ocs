@@ -11,16 +11,23 @@
 	<template>
 		<style is="custom-style"> 
 			.update-buttons {
-				background: #66BB6A;
-				color: white;
+				background: var(--paper-lime-a700);
+				color: black;
 			}
 			.delete-buttons {
 				background: #EF5350;
-				color: white;
+				color: black;
+			}
+			.cancel-btn {
+				color: black;
 			}
 			paper-tab.iron-selected {
-				background-color: var(--paper-indigo-500);
-				color:#E8EAF6;
+				background-color: #bc5100;
+				color: white;
+			}
+			paper-toggle-button {
+				--paper-toggle-button-checked-bar-color: #ffb04c;
+				--paper-toggle-button-checked-button-color: var(--paper-yellow-900);
 			}
 		</style>
 		<paper-dialog id="subUpdateModal" modal style="width:60%;">
@@ -29,7 +36,7 @@
 					<h2>Authentication</h2>
 				</paper-tab>
 				<paper-tab id="autho">
-					<h2>Authorizarion</h2>
+					<h2>Authorization</h2>
 				</paper-tab>
 			</paper-tabs>
 			<paper-tooltip for="authen">
@@ -68,14 +75,14 @@
 								autofocus
 								on-click="updateSubAuthen"
 								class="update-buttons">
-							Update Authentication
+							Update
 						</paper-button>
 						<paper-button
 								toggles
 								raised
 								on-click="deleteSub"
 								class="delete-buttons">
-							Delete Subscriber
+							Delete
 						</paper-button>
 					</div>
 				</div>
@@ -164,14 +171,14 @@
 								autofocus
 								on-click="updateSubAutho"
 								class="update-buttons">
-							Update Authorizarion
+							Update
 						</paper-button>
 						<paper-button
 								toggles
 								raised
 								on-click="deleteSub"
 								class="delete-buttons">
-							Delete Subcriber
+							Delete
 						</paper-button>
 					</div>
 				</div>

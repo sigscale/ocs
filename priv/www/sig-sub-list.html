@@ -45,11 +45,18 @@
 				z-index: 100;
 			}
 			paper-fab {
-				background: var(--paper-orange-a700);
+				background: var(--paper-lime-a700);
+				color: black;
 			}
 			vaadin-grid {
 				height: 100%;
+				--vaadin-grid-header-cell: {
+            	background: #ffb04c;
+         	};
 			} 
+			vaadin-grid input {
+         	background: #ffb04c;
+      	}
 		</style>
 		<vaadin-grid id="subscriberGrid" active-item="{{activeItem}}">
 			<vaadin-grid-column width="15ex" flex-grow="5">

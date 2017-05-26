@@ -40,8 +40,14 @@
 				font-size: 46px
 			}
 			vaadin-grid {
-            height: 100%;
-         }
+				height: 100%;
+				--vaadin-grid-header-cell: {
+           		background: #ffb04c;
+        		};
+			} 
+			vaadin-grid input {
+        		background: #ffb04c;
+			}
 		</style>
 		<vaadin-grid id="httpGrid">
 			<vaadin-grid-column width="28ex" flex-grow="2">
@@ -104,6 +110,7 @@
 			url="/ocs/v1/log/http"
 			method = "GET"
 			headers='{"Accept": "application/json"}'
+			on-loading-changed="_onLoadingChanged"
 			on-response="responseHandler"
 			debounce-duration="10">
 		</iron-ajax>
@@ -148,6 +155,13 @@
 							name: "httpStatus"
 						}
 					];
+				},
+				_onLoadingChanged: function(event) {
+					if (document.getElementById("getHttp").loading) {
+						document.getElementById("progress").disabled = false;
+					} else {
+						document.getElementById("progress").disabled = true;
+					}
 				}
 			}
 		);

@@ -21,22 +21,24 @@
 				padding: 10px;
 			}
 			paper-toolbar{
-				color: white;
-				background-color: var(--paper-orange-700);
-			}
+            color: white;
+            background-color: #bc5100;
+         }
 			.add-button {
-				background-color: var(--paper-orange-a700);
-				color: white;
+				background-color: var(--paper-lime-a700);
+				color: black;
+				float: right; 
+				width: 8em;
 			}
 			.cancel-button {
-				color: var(--paper-orange-a700);
-			}
+            color: black;
+         }
 			paper-toast.error {
 				background-color: var(--paper-red-a400);
 			}
 			paper-toggle-button {
-				--paper-toggle-button-checked-bar-color: var(--paper-orange-200);
-				--paper-toggle-button-checked-button-color: var(--paper-orange-900);
+				--paper-toggle-button-checked-bar-color: #ffb04c;
+				--paper-toggle-button-checked-button-color: var(--paper-yellow-900);
 			}
 		</style>
 		<div id="add_subscriber_container">
@@ -142,8 +144,7 @@
 						<paper-button
 								raised
 								class="add-button"
-								onclick="_submitSubForm()"
-								style="float: right; width: 200px;">
+								onclick="_submitSubForm()">
 							Submit
 						</paper-button>
 						<paper-button
@@ -174,6 +175,16 @@
 				</div>
 			</paper-dialog>
 		</div>
+		<iron-ajax
+            id="subAddAjax"
+            auto
+            url="/ocs/v1/subscriber"
+            method = "post"
+            headers='{"Accept": "application/json", "Content-type": "application/json"}'
+				on-loading-changed="_onLoadingChanged"
+            client-as="json"
+            debounce-duration="300">
+      </iron-ajax>
 		<script>
 			function _submitSubForm() {
 				document.getElementById('presubmit').submit();
@@ -190,7 +201,6 @@
 		Polymer (
 			{
 				is: 'sig-sub-add',
-				properties:{},
 				listeners: {
 					'toastErrorClose.on-click': 'closeToast',
 					'presubmit.iron-form-presubmit': '_handleFormPreSubmit',
@@ -242,6 +252,9 @@
 					formData.balance = parseInt(document.getElementById("add8").value);
 					formData.enabled= document.getElementById("add9").checked;
 					form.request.body = formData;
+					var ajax = document.getElementById("subAddAjax");
+               ajax.body = formData;
+               ajax.generateRequest();
 				},
 				_handleFormSubmit: function() {
 					var form = document.getElementById('presubmit');
@@ -254,6 +267,13 @@
 					toast.duration = 0;
 					toast.fitInto = document.getElementById("subAddModal");
 					toast.class="fit-bottom";
+				},
+				_onLoadingChanged: function(event) {
+					if (document.getElementById("subAddAjax").loading) {
+						document.getElementById("progress").disabled = false;
+					} else {
+						document.getElementById("progress").disabled = true;
+					}
 				},
 				_handleFormResponse: function(event) {
 					var toast = document.getElementById("toast-success");

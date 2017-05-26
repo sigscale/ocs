@@ -25,10 +25,10 @@
 			}
 			paper-toolbar{
             color: white;
-            background-color: var(--paper-orange-700);
+            background-color: #bc5100;
          }
 			.cancel-button {
-            color: var(--paper-orange-a700);
+            color: black;
          }
 			iron-list {
 				height: 40vh;
@@ -67,6 +67,7 @@
 		</iron-ajax>
 		<iron-ajax id="getLogContentAjax"
 				headers='{"Accept": "application/json"}'
+				on-loading-changed="_onLoadingChanged"
 				on-response="getLogContentResponse"
 				debounce-duration="0">
 		</iron-ajax>
@@ -86,6 +87,13 @@
 				getLogsResponse: function(event){
 					this.$.logFiles.items = event.detail.response;
 				},
+				_onLoadingChanged: function(event) {
+               if (document.getElementById("getLogContentAjax").loading) {
+                  document.getElementById("progress").disabled = false;
+               } else {
+                  document.getElementById("progress").disabled = true;
+               }
+            },
 				getLogContentResponse: function(event) {
 					this.$.selectLogFileModal.close();
 					var grid = document.getElementById("ipdrGrid");
