@@ -285,13 +285,14 @@ diameter_disconnect_session(Config) ->
 			ASR
 	end,
 	true = is_record(Result, diameter_base_ASR),
-	#diameter_base_ASR{'Session-Id' = SId, 'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
-	'Destination-Realm' = _DRealm, 'Destination-Host' = _DHost,
-	'Auth-Application-Id' = ?CC_APPLICATION_ID, 'User-Name' = Username} = Result,
+	#diameter_base_ASR{'Session-Id' = SIdBinary, 'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+			'Destination-Realm' = DRealm, 'Destination-Host' = DHost,
+			'Auth-Application-Id' = ?CC_APPLICATION_ID} = Result,
+	SIdBinary = list_to_binary(SId),
 	ASA = #diameter_base_ASA{'Session-Id' = SId,
 			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
-	_Answer4 = diameter:call(?SVC_AUTH, cc_app_test, ASA, []).
+	ok = diameter:call(?SVC_AUTH, cc_app_test, ASA, []).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
