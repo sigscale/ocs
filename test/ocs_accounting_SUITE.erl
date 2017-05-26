@@ -233,7 +233,6 @@ diameter_disconnect_session() ->
 	[{userdata, [{doc, "Disconnect a DIAMETER accouting session based on usage"}]}].
 
 diameter_disconnect_session(Config) ->
-	register(diameter_disconnect_session, self()),
 	Username = ?config(username, Config),
 	Password = ?config(password, Config),
 	InitBalance = ?config(init_bal, Config),
@@ -273,26 +272,12 @@ diameter_disconnect_session(Config) ->
 	#'diameter_cc_app_Granted-Service-Unit'{'CC-Total-Octets' = Balance2} = GrantedUnits2,
 	Usage3 = Balance2,
 	RequestNum3 = RequestNum2 + 1,
-	% Final Interim
 	Answer3 = diameter_accounting_interim(SId, Username, RequestNum3, Usage3),
 	#diameter_cc_app_CCA{'Result-Code' = ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
 			'Auth-Application-Id' = ?CC_APPLICATION_ID,
 			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST',
 			'CC-Request-Number' = RequestNum3, 'Granted-Service-Unit' = GrantedUnits3} = Answer3,
-	#'diameter_cc_app_Granted-Service-Unit'{'CC-Total-Octets' = _Balance3} = GrantedUnits3,
-	Result = receive
-		ASR ->
-			ASR
-	end,
-	true = is_record(Result, diameter_base_ASR),
-	#diameter_base_ASR{'Session-Id' = SIdBinary, 'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
-			'Destination-Realm' = DRealm, 'Destination-Host' = DHost,
-			'Auth-Application-Id' = ?CC_APPLICATION_ID} = Result,
-	SIdBinary = list_to_binary(SId),
-	ASA = #diameter_base_ASA{'Session-Id' = SId,
-			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
-	ok = diameter:call(?SVC_AUTH, cc_app_test, ASA, []).
+	#'diameter_cc_app_Granted-Service-Unit'{'CC-Total-Octets' = _Balance3} = GrantedUnits3.
 
 %%---------------------------------------------------------------------
 %%  Internal functions
