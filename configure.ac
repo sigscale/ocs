@@ -90,8 +90,8 @@ AC_LANG_POP([Erlang])
 ## Headers:  check for header files
 ##
 AM_CPPFLAGS="$AM_CPPFLAGS -I ${ERLANG_ROOT_DIR}/usr/include"
-AC_CHECK_HEADERS([openssl/bn.h])
-AC_CHECK_HEADERS([openssl/ec.h])
+AC_CHECK_HEADERS([openssl/bn.h], [], [AC_MSG_ERROR([openssl not found!])])
+AC_CHECK_HEADERS([openssl/ec.h], [], [AC_MSG_ERROR([openssl not found!])])
 AC_CHECK_HEADERS([erl_nif.h])
 
 
