@@ -12,17 +12,20 @@
 	<template>
 		<style is="custom-style"> 
 			.update-buttons {
-				background: #66BB6A;
-				color: white;
-			}
-			.delete-buttons {
-					background: #EF5350;
-					color: white;
-			}
+            background: var(--paper-lime-a700);
+            color: black;
+         }
+         .delete-buttons {
+            background: #EF5350;
+            color: black;
+         }
+			.cancel-btn {
+            color: black;
+         }
 			paper-tab.iron-selected {
-				background-color: var(--paper-indigo-500);
-				color:#E8EAF6;
-			}
+            background-color: #bc5100;
+            color: white;
+         }
 		</style>
 		<paper-dialog
 				id="clientUpdateModal"
@@ -80,14 +83,14 @@
 								autofocus
 								on-click="updateClientAuthen"
 								class="update-buttons">
-							Update Authentication
+							Update
 						</paper-button>
 						<paper-button
 								toggles
 								raised
 								on-click="deleteClient"
 								class="delete-buttons">
-							Delete Client
+							Delete
 						</paper-button>
 					</div>
 				</div>
@@ -146,14 +149,14 @@
 								autofocus
 								on-click="updateClientProperties"
 								class="update-buttons">
-							Update Properties
+							Update
 						</paper-button>
 						<paper-button
 								toggles
 								raised
 								on-click="deleteClient"
 								class="delete-buttons">
-							Delete Client
+							Delete
 						</paper-button>
 					</div>
 				</div>

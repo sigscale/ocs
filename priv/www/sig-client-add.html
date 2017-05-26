@@ -23,15 +23,24 @@
 			}
 			paper-toolbar{
             color: white;
-            background-color: var(--paper-orange-700);
+            background-color: #bc5100;
          }
 			.add-button {
-				background-color: var(--paper-orange-a700);
-				color: white;
+				background-color: var(--paper-lime-a700);
+				color: black;
+				float: right; 
+				width: 8em;
 			}
 			.cancel-button {
-            color: var(--paper-orange-a700);
+            color: black;
          }
+			paper-toast.error {
+				background-color: var(--paper-red-a400);
+			}
+			paper-toggle-button {
+				--paper-toggle-button-checked-bar-color: #ffb04c;
+				--paper-toggle-button-checked-button-color: var(--paper-yellow-900);
+			}
 		</style>
 		<div id="add_client_container">
 			<paper-dialog id="clientAddModal" modal>
@@ -104,8 +113,7 @@
 							<paper-button
 									raised
 									class="add-button"
-									onclick="_submitClientForm()"
-									style="float: right; width: 200px;">
+									onclick="_submitClientForm()">
 								Submit
 							</paper-button>
 							<paper-button
