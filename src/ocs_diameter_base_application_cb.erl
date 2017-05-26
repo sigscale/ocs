@@ -122,8 +122,8 @@ prepare_retransmit(_Packet, _SvcName, _Peer) ->
 		Peer :: peer(),
 		Result :: term().
 %% @doc Invoked when an answer message is received from a peer.
-handle_answer(_Packet, _Request, _SvcName, _Peer) ->
-    not_implemented.
+handle_answer(Packet, _Request, _SvcName, _Peer) ->
+	{ok, Packet}.
 
 -spec handle_error(Reason, Request, SvcName, Peer) -> Result
 	when

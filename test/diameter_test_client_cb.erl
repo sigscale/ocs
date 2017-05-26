@@ -149,9 +149,14 @@ handle_error(Reason, _Request, _SvcName, _Peer) ->
 		PostF :: diameter:evaluable().
 %% @doc Invoked when a request messge is received from the peer. 
 handle_request(#diameter_packet{msg = Request, errors = []}, _SvcName, {_Peer, _Caps}) ->
-	TestCase = whereis(diameter_disconnect_session),
-	TestCase ! Request,
-	discard.
+	true = is_record(Request, diameter_base_ASR),
+	#diameter_base_ASR{'Session-Id' = SId, 'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+			'Destination-Realm' = _DRealm, 'Destination-Host' = _DHost,
+			'Auth-Application-Id' = 4} = Request,
+	ASA = #diameter_base_ASA{'Session-Id' = SId,
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Origin-Host' = OHost, 'Origin-Realm' = ORealm},
+	{reply, ASA}.
 
 %%---------------------------------------------------------------------
 %% Internal functions
@@ -177,5 +182,8 @@ generate_diameter_request(Record, OHost, DHost, ORealm, DRealm)
 generate_diameter_request(Record, OHost, _DHost, ORealm, DRealm) 
 		when is_record(Record, diameter_cc_app_CCR) ->
 	Record#diameter_cc_app_CCR{'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
-			'Destination-Realm' = DRealm}.
+			'Destination-Realm' = DRealm};
+generate_diameter_request(Record, OHost, _DHost, ORealm, _DRealm) 
+		when is_record(Record, diameter_base_ASA) ->
+	Record#diameter_base_ASA{'Origin-Host' = OHost, 'Origin-Realm' = ORealm}.
 

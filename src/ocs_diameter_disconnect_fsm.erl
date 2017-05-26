@@ -48,6 +48,8 @@
 		destination_host :: string() | binary(),
 		origin_realm :: string() | binary(),
 		destination_realm :: string() | binary(),
+		retry_time = 500 :: integer(),
+		retry_count = 0 :: integer(),
 		auth_app_id :: integer()}).
 
 -define(TIMEOUT, 30000).
@@ -103,15 +105,22 @@ init([Svc, AppAlias, SessionId, OHost, DHost, ORealm, DRealm, AuthAppId]) ->
 %%
 send_request(timeout, #statedata{diameter_service = Svc, app_alias = AppAlias,
 		session_id = SId, origin_host = OH, destination_host = DH, origin_realm = OR,
-		destination_realm = DR, auth_app_id = AuthAppId} = StateData) ->
+		destination_realm = DR, auth_app_id = AuthAppId, retry_time = Retry,
+		retry_count = Count} = StateData) ->
 	ASR = #diameter_base_ASR{'Session-Id' = SId, 'Origin-Host' = OH,
 			'Origin-Realm' = OR, 'Destination-Realm' = DR, 'Destination-Host' = DH,
 			'Auth-Application-Id' = AuthAppId},
 	case diameter:call(Svc, AppAlias, ASR, []) of
 		ok ->
-			{next_state, receive_response, StateData, ?TIMEOUT};
-		{error, Reason} ->
-			{next_state, receive_response, StateData, ?TIMEOUT}
+			{stop, {shutdown, SId}, StateData};
+		{error, _Reason} ->
+			NewRetry = Retry * 2,
+			NewCount = Count + 1,
+			NewStateData = StateData#statedata{retry_count = NewCount,
+					retry_time = NewRetry},
+			{next_state, send_request, NewStateData, NewRetry};
+		{ok, _ASA} ->
+			{stop, {shutdown, SId}, StateData}
 	end.
 
 -spec receive_response(Event, StateData) -> Result
@@ -132,7 +141,7 @@ send_request(timeout, #statedata{diameter_service = Svc, app_alias = AppAlias,
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-receive_response(timeout, #statedata{} = StateData) ->
+receive_response(_Event, StateData) ->
 	{next_state, receive_response, StateData}.
 
 -spec handle_event(Event, StateName, StateData) -> Result
