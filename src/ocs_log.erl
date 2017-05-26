@@ -218,91 +218,91 @@ auth_log(Protocol, Server, Subscriber, OriginHost, OriginRealm, AuthType,
 %%
 %% 	Returns a list of matching authentication events.
 %%
-auth_query({{_, _, _}, {_, _, _}} = Start, End, Types, 
-ReqAttrsMatch, RespAttrsMatch) ->
+auth_query({{_, _, _}, {_, _, _}} = Start, End, Types,
+		ReqAttrsMatch, RespAttrsMatch) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(Start) - ?EPOCH,
-	auth_query(Seconds * 1000, End, Types, ReqAttrsMatch, 
-RespAttrsMatch);
-auth_query(Start, {{_, _, _}, {_, _, _}} = End, Types, 
-ReqAttrsMatch, RespAttrsMatch) ->
+	auth_query(Seconds * 1000, End, Types, ReqAttrsMatch, RespAttrsMatch);
+auth_query(Start, {{_, _, _}, {_, _, _}} = End, Types,
+		ReqAttrsMatch, RespAttrsMatch) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
-	auth_query(Start, Seconds * 1000, Types, ReqAttrsMatch, 
-RespAttrsMatch);
-auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch) 
-when is_integer(Start), is_integer(End) ->
-	auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
-disk_log:chunk(?AUTHLOG, start), []).
+	auth_query(Start, Seconds * 1000, Types, ReqAttrsMatch, RespAttrsMatch);
+auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch)
+		when is_integer(Start), is_integer(End) ->
+	auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch,
+			disk_log:chunk(?AUTHLOG, start), []).
 
 %% @hidden
-auth_query(_Start, _End, _Types, _ReqAttrsMatch, _RespAttrsMatch, 
-eof, Acc) ->
+auth_query(_Start, _End, _Types, _ReqAttrsMatch,
+		_RespAttrsMatch, eof, Acc) ->
 	lists:reverse(Acc);
-auth_query(_Start, _End, _Types, _ReqAttrsMatch, _RespAttrsMatch, 
-{error, Reason}, _Acc) ->
+auth_query(_Start, _End, _Types, _ReqAttrsMatch,
+		_RespAttrsMatch, {error, Reason}, _Acc) ->
 	{error, Reason};
-auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
-[{TS,_,_,_,Type,_,_} | T] = Chunk}, Acc) when TS >= Start, TS =< End ->
+auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch,
+		{Cont, [{TS,_,_,_,Type,_,_} | T] = Chunk}, Acc)
+		when TS >= Start, TS =< End ->
 	case lists:member(Type, Types) of
 		true ->
-			auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
-{Cont, Chunk}, Acc, ReqAttrsMatch);
+			auth_query1(Start, End, Types, ReqAttrsMatch,
+					RespAttrsMatch, {Cont, Chunk}, Acc, ReqAttrsMatch);
 		false ->
-			auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
-{Cont, T}, Acc)
-	end; 
-auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
-[_ | T]}, Acc) ->
-	auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
-T}, Acc);
-auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, []}, 
-Acc) ->
-	auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
-disk_log:chunk(?AUTHLOG, Cont), Acc).
+			auth_query(Start, End, Types, ReqAttrsMatch,
+					RespAttrsMatch, {Cont, T}, Acc)
+	end;
+auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch,
+		{Cont, [_ | T]}, Acc) ->
+	auth_query(Start, End, Types, ReqAttrsMatch,
+			RespAttrsMatch, {Cont, T}, Acc);
+auth_query(Start, End, Types, ReqAttrsMatch,
+		RespAttrsMatch, {Cont, []}, Acc) ->
+	auth_query(Start, End, Types, ReqAttrsMatch,
+			RespAttrsMatch, disk_log:chunk(?AUTHLOG, Cont), Acc).
 
 %% @hidden
-auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,
-[{_,_,_,_,_,ReqAttrs,_} | T] = Chunk}, Acc, [{Attribute, Match} | T1]) ->
+auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch,
+		{Cont, [{_,_,_,_,_,ReqAttrs,_} | T] = Chunk},
+		Acc, [{Attribute, Match} | T1]) ->
 	case lists:keyfind(Attribute, 1, ReqAttrs) of
 		{Attribute, Match} ->
-			auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
-{Cont, Chunk}, Acc, T1);
+			auth_query1(Start, End, Types, ReqAttrsMatch,
+					RespAttrsMatch, {Cont, Chunk}, Acc, T1);
 		{Attribute, _} when Match == '_' ->
-			auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
-{Cont, Chunk}, Acc, T1);
+			auth_query1(Start, End, Types, ReqAttrsMatch,
+					RespAttrsMatch, {Cont, Chunk}, Acc, T1);
 		_ ->
-			auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
-{Cont, T}, Acc)
+			auth_query(Start, End, Types, ReqAttrsMatch,
+					RespAttrsMatch, {Cont, T}, Acc)
 	end;
-auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
-Chunk}, Acc, []) ->
-	auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
-Chunk}, Acc, RespAttrsMatch).
+auth_query1(Start, End, Types, ReqAttrsMatch,
+		RespAttrsMatch, {Cont, Chunk}, Acc, []) ->
+	auth_query2(Start, End, Types, ReqAttrsMatch,
+			RespAttrsMatch, {Cont, Chunk}, Acc, RespAttrsMatch).
 
 %% @hidden
 auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont,
 [{_,_,_,_,_,_,RespAttrs} | T] = Chunk}, Acc, [{Attribute, Match} | T1]) ->
 	case lists:keyfind(Attribute, 1, RespAttrs) of
 		{Attribute, Match} ->
-			auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+			auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch,
 {Cont, Chunk}, Acc, T1);
 		{Attribute, _} when Match == '_' ->
-			auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+			auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch,
 {Cont, Chunk}, Acc, T1);
 		false ->
-			auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, 
+			auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch,
 {Cont, T}, Acc)
 	end;
-auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
-[H | T]}, Acc, []) ->
-	auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch, {Cont, 
-T}, [H | Acc]).
+auth_query2(Start, End, Types, ReqAttrsMatch,
+		RespAttrsMatch, {Cont, [H | T]}, Acc, []) ->
+	auth_query(Start, End, Types, ReqAttrsMatch,
+			RespAttrsMatch, {Cont, T}, [H | Acc]).
 
 -spec auth_close() -> Result
 	when
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Close authorization disk log.
-auth_close() ->    
+auth_close() ->
 	case disk_log:close(?AUTHLOG) of
 		ok ->
 			ok;
