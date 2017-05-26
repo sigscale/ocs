@@ -245,8 +245,8 @@
 					if(this.$.pageSelection.selected == 1) {
 						var data = document.getElementById("clientGrid").items;
 						csvObject.gridData = data;
-						csvObject.headers = "Identity, Secret, Disconnect Port, Protocol\n";
-						csvObject.keys = ["id", "secret", "disconnectPort", "protocol"];
+						csvObject.headers = "Identity, Secret, Port, Protocol\n";
+						csvObject.keys = ["id", "secret", "port", "protocol"];
 						csvObject.fileName = "clients.csv";
 					}
 					if(this.$.pageSelection.selected == 2) {

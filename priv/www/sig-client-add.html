@@ -56,13 +56,13 @@
 					<div>
 						<paper-input
 								id="add-client2"
-								name="disconnectPort"
+								name="port"
 								label="Listen Port"
 								type="number"
 								value=3799>
 						</paper-input>
 						<paper-tooltip>
-							Disconnect port used in network access server, router or access point.
+							Port network access server, router or access point listens on
 						</paper-tooltip>
 						</div>
 						<div>
@@ -168,7 +168,7 @@
 					var form = document.getElementById('presubmit3');
 					var formData = new Object();
 					formData.id = document.getElementById("add-client1").value;
-					formData.disconnectPort = parseInt(document.getElementById("add-client2").value);
+					formData.port = parseInt(document.getElementById("add-client2").value);
 					formData.protocol = document.getElementById("add-client3").value;
 					formData.secret = document.getElementById("add-client4").value;
 					var ajax = document.getElementById("clientAddAjax");

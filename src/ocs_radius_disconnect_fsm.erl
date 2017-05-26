@@ -43,7 +43,7 @@
 		{id :: integer(),
 		 nas_ip :: inet:ip_address(),
 		 nas_id :: undefined | string(),
-		 disc_port :: non_neg_integer(),
+		 port :: non_neg_integer(),
 		 subscriber :: string(),
 		 acct_session_id :: string(),
 		 secret :: string(),
@@ -80,12 +80,12 @@
 %% @private
 %%
 init([Address, NasId, Subscriber,
-				AcctSessionId, Secret, DiscPort, Attributes, Id]) ->
+				AcctSessionId, Secret, Port, Attributes, Id]) ->
 	process_flag(trap_exit, true),
 	StateData = #statedata{nas_ip = Address, nas_id = NasId,
 			subscriber = Subscriber, acct_session_id = AcctSessionId,
 			secret = Secret, attributes = Attributes, id = Id,
-			disc_port = DiscPort},
+			port = Port},
 	{ok, send_request, StateData, 0}.
 
 -spec send_request(Event, StateData) -> Result
@@ -106,7 +106,7 @@ init([Address, NasId, Subscriber,
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-send_request(timeout, #statedata{nas_ip = Address, disc_port = Port,
+send_request(timeout, #statedata{nas_ip = Address, port = Port,
 		id = Id, secret = SharedSecret, attributes = Attributes,
 		retry_time = Retry} = StateData) ->
 	IdAttrs = [?NasIpAddress, ?NasIdentifier, ?UserName, ?NasPort, ?FramedIpAddress,
@@ -157,7 +157,7 @@ receive_response(timeout, #statedata{retry_count = Count,
 		nas_id = NasId, subscriber = Subscriber,
 		acct_session_id = AcctSessionId} = StateData) when Count > 5 ->
 	{stop, {shutdown, {NasId, Subscriber, AcctSessionId}}, StateData};
-receive_response(timeout, #statedata{socket = Socket, nas_ip = NasIp, disc_port = Port,
+receive_response(timeout, #statedata{socket = Socket, nas_ip = NasIp, port = Port,
 		request =  DisconnectRequest, retry_count = Count, retry_time = Retry} = StateData) ->
 	NewRetry = Retry * 2,
 	NewCount = Count + 1,

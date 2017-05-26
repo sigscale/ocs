@@ -61,12 +61,20 @@ perform_get(Ip) ->
 %% @hidden
 perform_get1(Address) ->
 	case ocs:find_client(Address) of
-		{ok, DiscPort, Protocol, Secret} ->
+		{ok, #client{port = Port, identifier = Identifier,
+				protocol = Protocol, secret = Secret}} ->
 			Id = inet:ntoa(Address),
-			RespObj = [{id, Id}, {href, "/ocs/v1/client/" ++ Id},
-					{"disconnectPort", DiscPort},
-					{protocol, string:to_upper(atom_to_list(Protocol))}, {secret, Secret}],
-			JsonObj  = {struct, RespObj},
+			RespObj1 = [{id, Id}, {href, "/ocs/v1/client/" ++ Id}],
+			RespObj2 = case Identifier of
+				<<>> ->
+					[];
+				Identifier ->
+					[{identifier, binary_to_list(Identifier)}]
+			end,
+			RespObj3 = [{"port", Port},
+					{protocol, string:to_upper(atom_to_list(Protocol))},
+					{secret, Secret}],
+			JsonObj  = {struct, RespObj1 ++ RespObj2 ++ RespObj3},
 			Body = mochijson:encode(JsonObj),
 			{ok, [{content_type, "application/json"}], Body};
 		{error, not_found} ->
@@ -90,16 +98,23 @@ perform_get_all() ->
 	end.
 %% @hidden
 perform_get_all1(Clients) ->
-	F = fun(#client{address= Address, disconnect_port = DiscPort,
-			protocol = Protocol, secret = Secret}, Acc) ->
-		Id = inet:ntoa(Address),
-		RespObj = [{struct, [{id, Id}, {href, "/ocs/v1/client/" ++ Id},
-			{"disconnectPort", DiscPort},
-			{protocol, string:to_upper(atom_to_list(Protocol))}, {secret, Secret}]}],
-		RespObj ++ Acc
+	F = fun(#client{address= Address, identifier = Identifier, port = Port,
+				protocol = Protocol, secret = Secret}, Acc) ->
+			Id = inet:ntoa(Address),
+			RespObj1 = [{id, Id}, {href, "/ocs/v1/client/" ++ Id}],
+			RespObj2 = case Identifier of
+				<<>> ->
+					[];
+				Identifier ->
+					[{identifier, binary_to_list(Identifier)}]
+			end,
+			RespObj3 = [{"port", Port},
+					{protocol, string:to_upper(atom_to_list(Protocol))},
+					{secret, Secret}],
+			[{struct, RespObj1 ++ RespObj2 ++ RespObj3} | Acc]
 	end,
 	JsonObj = lists:foldl(F, [], Clients),
-	{array, JsonObj}.
+	{array, lists:reverse(JsonObj)}.
 
 -spec perform_post(RequestBody) -> Result 
 	when
@@ -111,7 +126,7 @@ perform_post(RequestBody) ->
 	try 
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, Id} = lists:keyfind("id", 1, Object),
-		DiscPort = proplists:get_value("disconnectPort", Object, 3799),
+		Port = proplists:get_value("port", Object, 3799),
 		Protocol = case proplists:get_value("protocol", Object, "radius") of
 			RADIUS when RADIUS =:= "radius"; RADIUS =:= "RADIUS" ->
 				radius;
@@ -119,18 +134,18 @@ perform_post(RequestBody) ->
 				diameter
 		end,
 		Secret = proplists:get_value("secret", Object, ocs:generate_password()),
-		perform_post1(Id, DiscPort, Protocol, Secret)
+		perform_post1(Id, Port, Protocol, Secret)
 	catch
 		_Error ->
 			{error, 400}
 	end.
 %% @hidden
-perform_post1(Id, DiscPort, Protocol, Secret) ->
+perform_post1(Id, Port, Protocol, Secret) ->
 	try
-	case catch ocs:add_client(Id, DiscPort, Protocol, Secret) of
+	case catch ocs:add_client(Id, Port, Protocol, Secret) of
 		ok ->
 			Location = "/ocs/v1/client/" ++ Id,
-			RespObj = [{id, Id}, {href, Location}, {"disconnectPort", DiscPort},
+			RespObj = [{id, Id}, {href, Location}, {"port", Port},
 					{protocol, string:to_upper(atom_to_list(Protocol))}, {secret, Secret}],
 			JsonObj  = {struct, RespObj},
 			Body = mochijson:encode(JsonObj),
@@ -152,19 +167,20 @@ perform_post1(Id, DiscPort, Protocol, Secret) ->
 perform_patch(Id, ReqBody) ->
 	{ok, Address} = inet:parse_address(Id),
 	case ocs:find_client(Address) of
-		{ok, CurrDiscPort, CurrProtocol, CurrSecret} ->
+		{ok, #client{port = CurrPort,
+				protocol = CurrProtocol, secret = CurrSecret}} ->
 			try
 				{struct, Object} = mochijson:decode(ReqBody),
 				case Object of
 					[{"secret", NewPassword}] ->
 						Protocol_Atom = string:to_upper(atom_to_list(CurrProtocol)),
-						perform_patch1(Id, CurrDiscPort, Protocol_Atom, NewPassword);
-					[{"disconnectPort", NewDiscPort},{"protocol", RADIUS}] 
+						perform_patch1(Id, CurrPort, Protocol_Atom, NewPassword);
+					[{"port", NewPort},{"protocol", RADIUS}] 
 							when RADIUS =:= "radius"; RADIUS =:= "RADIUS" ->
-						perform_patch2(Id, NewDiscPort, radius, CurrSecret);
-					[{"disconnectPort", NewDiscPort},{"protocol", DIAMETER}]
+						perform_patch2(Id, NewPort, radius, CurrSecret);
+					[{"port", NewPort},{"protocol", DIAMETER}]
 							when DIAMETER =:= "diameter"; DIAMETER =:= "DIAMETER" ->
-						perform_patch2(Id, NewDiscPort, diameter, CurrSecret)
+						perform_patch2(Id, NewPort, diameter, CurrSecret)
 				end
 			catch
 				throw : _ ->
@@ -174,19 +190,19 @@ perform_patch(Id, ReqBody) ->
 			{error, 404}
 	end.
 %% @hidden
-perform_patch1(Id, DiscPort, Protocol, NewPassword) ->
+perform_patch1(Id, Port, Protocol, NewPassword) ->
 	ok = ocs:update_client(Id, NewPassword),
 	RespObj =[{id, Id}, {href, "/ocs/v1/client/" ++ Id},
-			{"disconnectPort", DiscPort}, {protocol, Protocol}, {secret, NewPassword}],
+			{"port", Port}, {protocol, Protocol}, {secret, NewPassword}],
 	JsonObj  = {struct, RespObj},
 	RespBody = mochijson:encode(JsonObj),
 	{body, RespBody}.
 
 %% @hidden
-perform_patch2(Id, DiscPort, Protocol, Secret) ->
-	ok = ocs:update_client(Id, DiscPort, Protocol),
+perform_patch2(Id, Port, Protocol, Secret) ->
+	ok = ocs:update_client(Id, Port, Protocol),
 	RespObj =[{id, Id}, {href, "/ocs/v1/client/" ++ Id},
-			{"disconnectPort", DiscPort}, {protocol, Protocol}, {secret, Secret}],
+			{"port", Port}, {protocol, Protocol}, {secret, Secret}],
 	JsonObj  = {struct, RespObj},
 	RespBody = mochijson:encode(JsonObj),
 	{body, RespBody}.

@@ -26,6 +26,7 @@
 %% export the radius behaviour callbacks
 -export([init/2, request/4, terminate/2]).
 
+-include("ocs.hrl").
 -include_lib("radius/include/radius.hrl").
 
 -record(state,
@@ -68,15 +69,15 @@ init(Address, Port) ->
 request(Address, AccPort, Packet, #state{acct_server = Server} = _State)
 		when is_tuple(Address) ->
 	try
-		{ok, DiscPort, _, SharedSecret} = ocs:find_client(Address),
+		{ok, #client{port = Port, secret = SharedSecret}} = ocs:find_client(Address),
 		Radius = radius:codec(Packet),
 		#radius{code = ?AccountingRequest, attributes = AttributeData} = Radius,
 		Attributes = radius_attributes:codec(AttributeData),
-		{SharedSecret, Radius#radius{attributes = Attributes}, DiscPort}
+		{SharedSecret, Radius#radius{attributes = Attributes}, Port}
 	of
-		{Secret, AccountingRequest, DisconnectPort} ->
+		{Secret, AccountingRequest, ListenPort} ->
 			gen_server:call(Server,
-					{request, Address, AccPort, Secret, DisconnectPort, AccountingRequest})
+					{request, Address, AccPort, Secret, ListenPort, AccountingRequest})
 	catch
 		_:_ ->
 			{error, ignore}

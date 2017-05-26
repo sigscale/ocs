@@ -100,7 +100,8 @@ client(Config) ->
 	SharedSecret = ct:get_config(radius_shared_secret, Config),
 	Protocol = ct:get_config(protocol),
 	ok = ocs:add_client(Address, 3799, Protocol, SharedSecret),
-	{ok, 3799, Protocol, BinSharedSecret} = ocs:find_client(Address),
+	{ok, #client{port = 3799, protocol = Protocol,
+			secret = BinSharedSecret}} = ocs:find_client(Address),
 	SharedSecret = binary_to_list(BinSharedSecret).
 
 get_all_clients() ->
@@ -118,8 +119,8 @@ get_all_clients(_Config) ->
 	ok = ocs:add_client(A2, 3799, Protocol, Secret2),
 	ok = ocs:add_client(A3, 13799, Protocol, Secret3),
 	Clients = ocs:get_clients(),
-	F = fun(#client{address = A, disconnect_port = DP, protocol = P, secret = S} = _R) ->
-		{ok, DP, P, S} = ocs:find_client(A)
+	F = fun(#client{address = A, port = LP, protocol = P, secret = S} = _R) ->
+		{ok, #client{port = LP, protocol = P, secret = S}} = ocs:find_client(A)
 	end,
 	lists:foreach(F, Clients).
 
@@ -132,11 +133,13 @@ update_client_password(_Config) ->
 	Protocol = ct:get_config(protocol),
 	ok = ocs:add_client(Address, 3799, Protocol, Password),
 	PasswordBin = list_to_binary(Password),
-	{ok, 3799, Protocol, PasswordBin} = ocs:find_client(Address),
+	{ok, #client{port = 3799, protocol = Protocol,
+			secret = PasswordBin}} = ocs:find_client(Address),
 	NewPassword = "GentooNewxD",
 	ok = ocs:update_client(Address, NewPassword),
 	NewPasswordBin = list_to_binary(NewPassword),
-	{ok, 3799, Protocol, NewPasswordBin} = ocs:find_client(Address).
+	{ok, #client{port = 3799, protocol = Protocol,
+			secret = NewPasswordBin}} = ocs:find_client(Address).
 
 
 delete_client() ->

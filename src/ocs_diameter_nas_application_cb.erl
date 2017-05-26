@@ -31,6 +31,7 @@
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include("../include/diameter_gen_nas_application_rfc7155.hrl").
+-include("ocs.hrl").
 
 -record(state, {}).
 
@@ -207,7 +208,7 @@ is_client_authorized(SvcName, Caps, Req) ->
 		HostIPAddresses = Caps#diameter_caps.host_ip_address,
 		{ClientIPs, _} = HostIPAddresses,
 		[HostIpAddress | _] = ClientIPs,
-		{ok, _, diameter, _} = ocs:find_client(HostIpAddress),
+		{ok, #client{protocol = diameter}} = ocs:find_client(HostIpAddress),
 		true
 	of
 		true ->
