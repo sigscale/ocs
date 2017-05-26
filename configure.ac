@@ -93,7 +93,7 @@ AC_LANG_POP([Erlang])
 AM_CPPFLAGS="$AM_CPPFLAGS -I ${ERLANG_ROOT_DIR}/usr/include"
 AC_CHECK_HEADERS([openssl/bn.h], [], [AC_MSG_ERROR([openssl not found!])])
 AC_CHECK_HEADERS([openssl/ec.h], [], [AC_MSG_ERROR([openssl not found!])])
-AC_CHECK_HEADERS([erl_nif.h], [], [AC_MSG_ERROR([Erlang NIFs not found!])]))
+AC_CHECK_HEADERS([erl_nif.h], [], [AC_MSG_ERROR([Erlang NIFs not found!])])
 
 
 ##
