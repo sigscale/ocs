@@ -68,7 +68,8 @@ init(Address, Port) when is_tuple(Address), is_integer(Port) ->
 request(Address, Port, Packet, #state{port_server = Server} = _State)
 		when is_tuple(Address) ->
 	try
-		{ok, #client{secret = SharedSecret}} = ocs:find_client(Address),
+		{ok, #client{secret = SharedSecret,
+				identifier = ClientID}} = ocs:find_client(Address),
 		Radius = radius:codec(Packet),
 		#radius{code = ?AccessRequest, attributes = AttributeData} = Radius,
 		Attributes = radius_attributes:codec(AttributeData),
@@ -84,6 +85,12 @@ request(Address, Port, Packet, #state{port_server = Server} = _State)
 				{eap, EapMessage};
 			{error, not_found} ->
 				none
+		end,
+		case radius_attributes:find(?NasIdentifier, Attributes) of
+			{ok, NasIdentifier} ->
+				update_client(Address, ClientID, NasIdentifier); 
+			{error, not_found} ->
+				ok
 		end,
 		{SharedSecret, Radius#radius{attributes = Attributes}, Eap}
 	of
@@ -107,4 +114,24 @@ terminate(_Reason, _State) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+-spec update_client(Address, OldId, NewId) -> ok
+	when
+		Address :: inet:ip_address(),
+		OldId :: binary(),
+		NewId :: string() | binary().
+%% @doc Try to update client table with received `NAS-Identifier'.
+%% 	Pessimistic to have a light touch as it's informational only.
+%% @private
+update_client(Address, OldId, NewId) when is_list(NewId) ->
+	update_client(Address, OldId, list_to_binary(NewId));
+update_client(_Address, Id, Id) ->
+	ok;
+update_client(Address, OldId, NewId) ->
+	F = fun() ->
+				[#client{identifier = OldId} = C] = mnesia:read(client, Address, read),
+				mnesia:write(C#client{identifier = NewId})
+	end,
+	mnesia:transaction(F, 1),
+	ok.
 
