@@ -91,6 +91,7 @@
 				url="/ocs/v1/log/access"
 				method = "GET"
 				headers='{"Accept": "application/json"}'
+				on-loading-changed="_onLoadingChanged"
 				on-response="responseHandler"
 				debounce-duration="10">
 		</iron-ajax>
@@ -131,6 +132,13 @@
 							name: "type"
 						}
 					];
+				},
+				_onLoadingChanged: function(event) {
+					if (document.getElementById("getAccess").loading) {
+						document.getElementById("progress").disabled = false;
+					} else {
+						document.getElementById("progress").disabled = true;
+					}
 				}
 			}
 		);

@@ -104,6 +104,7 @@
 			url="/ocs/v1/log/http"
 			method = "GET"
 			headers='{"Accept": "application/json"}'
+			on-loading-changed="_onLoadingChanged"
 			on-response="responseHandler"
 			debounce-duration="10">
 		</iron-ajax>
@@ -148,6 +149,13 @@
 							name: "httpStatus"
 						}
 					];
+				},
+				_onLoadingChanged: function(event) {
+					if (document.getElementById("getHttp").loading) {
+						document.getElementById("progress").disabled = false;
+					} else {
+						document.getElementById("progress").disabled = true;
+					}
 				}
 			}
 		);
