@@ -216,7 +216,7 @@ auth_log(Protocol, Server, Subscriber, OriginHost, OriginRealm, AuthType,
 %% 	equal to `Match' will be ignored. All attribute filters must
 %% 	match or the event will be ignored.
 %%
-%% 	Returns a list of mathing authentication events.
+%% 	Returns a list of matching authentication events.
 %%
 auth_query({{_, _, _}, {_, _, _}} = Start, End, Types, 
 ReqAttrsMatch, RespAttrsMatch) ->
