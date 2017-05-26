@@ -48,131 +48,125 @@
 			:root {
 				@apply(--paper-font-common-base);
 			}
-			.search-text {
-				--paper-input-container-color: white;
-				--paper-input-container-focus-color: blue;
-				--paper-input-container-invalid-color: green;
-				--paper-input-container-input-color: white;
-			}
-			.flex-vertical {
-				@apply(--layout-vertical);
-				height: 100%;
-			}
-			app-toolbar {
-				background: var(--google-blue-500);
+			app-header {
 				color: #fff;
 			}
-			paper-icon-button {
-				--paper-icon-button-ink-color: white;
-			}
-			paper-icon-button + [main-title] {
-				margin-left: 24px;
+			app-toolbar {
+            background: var(--paper-orange-500);
+         }
+			app-drawer {
+				--app-drawer-content-container: {
+					padding-top: 10px;
+				};
+				height: 100%;
+				top: 64px;
 			}
 			paper-progress {
 				display: block;
 				width: 100%;
-				--paper-progress-active-color: rgba(255, 255, 255, 0.5);
+				--paper-progress-active-color: var(--paper-orange-50);
 				--paper-progress-container-color: transparent;
 			}
-			app-header {
-				@apply(--layout-fixed-top);
-				color: #fff;
-				--app-header-background-rear-layer: {
-					background-color: #ef6c00;
-				};
-			}
-			app-drawer {
-				--app-drawer-scrim-background: rgba(0, 0, 100, 0.8);
-				--app-drawer-content-container: {
-					background-color: #FFFFFF;
-					padding-top:10px;
-				};
-				height:100%;
-				top:64px;
-			}
-			.menuitem {
-				font-size: normal;
+			iron-pages {
+				height: 100%;
 			}
 		</style>
-		<div class="container flex-vertical">
-			<div id="vertical-child1" style="height:100%;">
-				<app-header-layout fixed fullbleed style="height:100%;">
-					<app-header reveals>
-						<app-toolbar>
-							<paper-icon-button
-									icon="menu"
-									onclick="drawer.toggle()">
-							</paper-icon-button>
-							<div main-title>Online Charging System (OCS)</div>
-							<paper-icon-button
-									id="refresh"
-									icon="refresh"
-									on-click="refresh">
-							</paper-icon-button>
-							<paper-icon-button
-									id="download"
-									icon="file-download"
-									on-click="download" >
-							</paper-icon-button>
-							<paper-progress
-									value="0"
-									indeterminate
-									bottom-item
-									disabled>
-							</paper-progress>
-						</app-toolbar>
-					</app-header>
-					<iron-pages
-							id="loadPage"
-							selected="10000000000"
-							role="main"
-							style="height:100%;">
-						<sig-sub-list></sig-sub-list>
-						<sig-client-list></sig-client-list>
-						<sig-ipdr-list></sig-ipdr-list>
-						<sig-access-list></sig-access-list>
-						<sig-accounting-list></sig-accounting-list>
-						<sig-http-list></sig-http-list>
-					</iron-pages>
-				</app-header-layout>
-			</div>
-			<div  id="vertical-child2">
-				 <!--Flex Container including app-drawer and content body -->
-				<app-drawer-layout style="height:100%;">
-				<app-drawer id="drawer" swipe-open>
-					<iron-selector id="pageSelection" class="drawer-list" role="navigation">
-						<paper-menu id="menu">
-							<paper-item id="page0"  onclick="drawer.toggle()" class="menuitem">
-								<iron-icon icon ="device:devices"></iron-icon>
-								&nbsp Subscribers
-							</paper-item>
-							<paper-item id="page1" onclick="drawer.toggle()" class="menuitem">
-								<iron-icon icon ="hardware:router"></iron-icon>
+		<app-header-layout>
+			<app-header>
+				<app-toolbar>
+					<paper-icon-button
+							icon="menu"
+							onclick="drawer.toggle()">
+						</paper-icon-button>
+						<div main-title>Online Charging System (OCS)</div>
+						<paper-icon-button
+								id="refresh"
+								icon="refresh"
+								on-click="refresh">
+						</paper-icon-button>
+						<paper-icon-button
+								id="download"
+								icon="file-download"
+								on-click="download" >
+						</paper-icon-button>
+						<paper-progress
+								id="progress"
+								value="0"
+								indeterminate
+								bottom-item
+								disabled="true">
+						</paper-progress>
+					</app-toolbar>
+				</app-header>
+				<iron-pages
+						id="loadPage"
+						role="main">
+					<sig-sub-list></sig-sub-list>
+					<sig-client-list></sig-client-list>
+					<sig-ipdr-list></sig-ipdr-list>
+					<sig-access-list></sig-access-list>
+					<sig-accounting-list></sig-accounting-list>
+					<sig-http-list></sig-http-list>
+				</iron-pages>
+				<app-drawer-layout>
+					<app-drawer
+							id="drawer"
+							swipeOpen>
+						<iron-selector
+								id="pageSelection"
+								class="drawer-list"
+								role="navigation">
+							<paper-menu id="menu">
+								<paper-item
+										id="page0"
+										onclick="drawer.toggle()"
+										class="menuitem">
+									<iron-icon icon ="device:devices"></iron-icon>
+									&nbsp Subscribers
+								</paper-item>
+								<paper-item
+										id="page1"
+										onclick="drawer.toggle()"
+										class="menuitem">
+									<iron-icon icon ="hardware:router"></iron-icon>
 								&nbsp Clients
-							</paper-item>
-							<paper-submenu>
-								<paper-item class="menu-trigger menuitem">
+								</paper-item>
+								<paper-submenu>
+								<paper-item
+										class="menu-trigger menuitem">
 									<iron-icon icon ="icons:history"></iron-icon>
 									&nbsp Logs
 								</paper-item>
 								<paper-menu class="menu-content" >
-									<paper-item id="page3" onclick="drawer.toggle()"class="menuitem">
-										&nbsp &nbsp
+									<paper-item
+											id="page3"
+											onclick="drawer.toggle()"
+											class="menuitem">
+											&nbsp &nbsp
 										<iron-icon icon ="icons:perm-identity"></iron-icon>
 										&nbsp Access
 									</paper-item>
-									<paper-item id="page4" onclick="drawer.toggle()" class="menuitem">
-										&nbsp &nbsp
+									<paper-item
+											id="page4"
+											onclick="drawer.toggle()"
+											class="menuitem">
+											&nbsp &nbsp
 										<iron-icon icon ="device:data-usage"></iron-icon>
 										&nbsp Accounting
 									</paper-item>
-									<paper-item id="page2" onclick="drawer.toggle()" class="menuitem">
-										&nbsp &nbsp
+									<paper-item
+											id="page2"
+											onclick="drawer.toggle()"
+											class="menuitem">
+											&nbsp &nbsp
 										<iron-icon icon ="device:data-usage"></iron-icon>
 										&nbsp IPDR
 									</paper-item>
-									<paper-item id="page5" onclick="drawer.toggle()" class="menuitem">
-										&nbsp &nbsp
+									<paper-item
+											id="page5"
+											onclick="drawer.toggle()"
+											class="menuitem">
+											&nbsp &nbsp
 										<iron-icon icon ="device:data-usage"></iron-icon>
 										&nbsp HTTP
 									</paper-item>
@@ -181,12 +175,12 @@
 						</paper-menu>
 					</iron-selector>
 				</app-drawer>
-			</div>
-		</div>
+			</app-drawer-layout>
+		</app-header-layout>
 		<!--Modal Definitions-->
-		<sig-sub-add></sig-sub-add> 
+		<sig-sub-add></sig-sub-add>
 		<sig-sub-update></sig-sub-update>
-		<sig-client-add></sig-client-add> 
+		<sig-client-add></sig-client-add>
 		<sig-client-update></sig-client-update>
 		<sig-ipdr-log-files></sig-ipdr-log-files>
 	</template>
@@ -200,23 +194,23 @@
 				loadElement: function(event) {
 					switch(event.detail.item.getAttribute('id')) {
 						case 'page0':
-							this.$.loadPage.selected = 0; 
+							this.$.loadPage.selected = 0;
 							break;
 						case 'page1':
-							this.$.loadPage.selected = 1; 
+							this.$.loadPage.selected = 1;
 							break;
 						case 'page2':
 							this.$.loadPage.selected = 2;
 							document.getElementById("selectLogFileModal").open();
 							break;
 						case 'page3':
-							this.$.loadPage.selected = 3; 
+							this.$.loadPage.selected = 3;
 							break;
 						case 'page4':
-							this.$.loadPage.selected = 4; 
+							this.$.loadPage.selected = 4;
 							break;
 						case 'page5':
-							this.$.loadPage.selected = 5; 
+							this.$.loadPage.selected = 5;
 							break;
 					}
 				},

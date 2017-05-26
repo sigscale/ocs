@@ -17,6 +17,8 @@ AM_INIT_AUTOMAKE([-Wno-portability])
 ##
 AC_ARG_ENABLE([debug],
 		[AS_HELP_STRING([--enable-debug], [enable debugging (default is no)])])
+AC_ARG_WITH([ssl],
+		[AS_HELP_STRING([--with-ssl=PATH], [specify location of OpenSSL include and lib])])
 CFLAGS="${CFLAGS} -Wall"
 
 ##
@@ -32,11 +34,16 @@ fi
 if test "x$enable_debug" == xyes ; then
 	ERLCFLAGS="$ERLCFLAGS +debug_info"
 fi
+if test "x$with_ssl" != xyes ; then
+	CPPFLAGS="${CPPFLAGS} -I$with_ssl/include"
+	LDFLAGS="${LDFLAGS} -L$with_ssl/lib"
+fi
 AC_ERLANG_SUBST_LIB_DIR
 if test -z "${ERLANG_INSTALL_LIB_DIR}" ; then
 	ERLANG_INSTALL_LIB_DIR=$ERLANG_LIB_DIR
 fi
 AC_ERLANG_SUBST_ROOT_DIR
+CPPFLAGS="${CPPFLAGS} -I ${ERLANG_ROOT_DIR}/usr/include"
 AC_PROG_INSTALL
 AC_ERLANG_SUBST_INSTALL_LIB_DIR
 appdir=$ERLANG_INSTALL_LIB_DIR/$PACKAGE_NAME-$PACKAGE_VERSION
@@ -84,9 +91,9 @@ AC_LANG_POP([Erlang])
 ## Headers:  check for header files
 ##
 AM_CPPFLAGS="$AM_CPPFLAGS -I ${ERLANG_ROOT_DIR}/usr/include"
-AC_CHECK_HEADERS([openssl/bn.h])
-AC_CHECK_HEADERS([openssl/ec.h])
-AC_CHECK_HEADERS([erl_nif.h])
+AC_CHECK_HEADERS([openssl/bn.h], [], [AC_MSG_ERROR([openssl not found!])])
+AC_CHECK_HEADERS([openssl/ec.h], [], [AC_MSG_ERROR([openssl not found!])])
+AC_CHECK_HEADERS([erl_nif.h], [], [AC_MSG_ERROR([Erlang NIFs not found!])])
 
 
 ##

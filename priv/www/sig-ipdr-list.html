@@ -32,19 +32,12 @@
 			color: initial;
 			font-weight: bold;
 		}
+		vaadin-grid {
+			font-size: inherit;
+         height: 100%;
+		}
 	</style>
 	<template>
-		<style>
-			vaadin-grid {
-				font-size: inherit;
-            height: 100%;
-			}
-		</style>
-		<paper-button
-				raised class="indigo"
-				on-click="openLogList">
-			Show Log Files
-		</paper-button>
 		<vaadin-grid id="ipdrGrid">
 			<vaadin-grid-column width="19ex" flex-grow="1">
 				<template class="header">
@@ -172,9 +165,6 @@
 		Polymer (
 			{
 				is: 'sig-ipdr-list',
-				openLogList: function(event) {
-					document.getElementById("selectLogFileModal").open();
-				}
 			}
 		);
 	</script>

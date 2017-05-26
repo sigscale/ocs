@@ -78,8 +78,8 @@ peer_down(_SvcName, _Peer, State) ->
 		Result :: Selection | false.
 %% @doc Invoked as a consequence of a call to diameter:call/4 to select
 %% a destination peer for an outgoing request. 
-pick_peer(_, _, _SvcName, _State) ->
-    false.
+pick_peer([Peer | _], _, _SvcName, _State) ->
+	{ok, Peer}.
 
 -spec prepare_request(Packet, SvcName, Peer) -> Action
 	when
@@ -92,8 +92,15 @@ pick_peer(_, _, _SvcName, _State) ->
 		Reason :: term(),
 		PostF :: diameter:evaluable().
 %% @doc Invoked to return a request for encoding and transport 
-prepare_request(_, _SvcName, _Peer) ->
-    discard.
+prepare_request(#diameter_packet{msg = ['RAR' = T | Avps]}, _, {_, Caps}) ->
+	#diameter_caps{origin_host = {OH, DH}, origin_realm = {OR, DR}} = Caps,
+	{send, [T, {'Origin-Host', OH}, {'Origin-Realm', OR},
+			{'Destination-Host', DH}, {'Destination-Realm', DR} | Avps]};
+prepare_request(#diameter_packet{msg = Record}, _, {_, Caps}) ->
+	#diameter_caps{origin_host = {OH, DH}, origin_realm = {OR, DR}} = Caps,
+	ASR = Record#diameter_base_ASR{'Origin-Host' = OH, 'Origin-Realm' = OR,
+	'Destination-Host' = DH, 'Destination-Realm' = DR},
+	{send, ASR}.
 
 -spec prepare_retransmit(Packet, SvcName, Peer) -> Action
 	when
@@ -107,8 +114,8 @@ prepare_request(_, _SvcName, _Peer) ->
 		PostF :: diameter:evaluable().
 %% @doc Invoked to return a request for encoding and retransmission.
 %% In case of peer connection is lost alternate peer is selected.
-prepare_retransmit(_Packet, _SvcName, _Peer) ->
-    discard.
+prepare_retransmit(Packet, SvcName, Peer) ->
+	prepare_request(Packet, SvcName, Peer).
 
 -spec handle_answer(Packet, Request, SvcName, Peer) -> Result
 	when

@@ -20,42 +20,43 @@
 		<style is="custom-style"> 
 			paper-dialog {
 				width: 60%;
-				height: 68%;
+				height: 60%;
 				padding: 10px;
-				margin-top: auto;
 			}
+			paper-toolbar{
+            color: white;
+            background-color: var(--paper-orange-700);
+         }
+			.cancel-button {
+            color: var(--paper-orange-a700);
+         }
 			iron-list {
-				height: 37vh;
-				font-size: large;
+				height: 40vh;
 			}
 			.item {
-				border-bottom: 1px solid #3f51b5;
-				height: 5vh;
 				cursor: pointer;
-				padding: 1.5vh;
+				padding: 5px;
 			}
 		</style>
-		<div id="logFilesContainer">
 			<paper-dialog id="selectLogFileModal" modal>
 				<paper-toolbar>
 					<h2>Select Log File</h2>
 				</paper-toolbar>
-				<paper-dialog-scrollable style="height:60%;">
+				<paper-dialog-scrollable>
 					<iron-list id="logFiles"
-							as="item" >
+							as="item" grid>
 						<template>
 							<div class="item" on-click="getLogContent">
 								<iron-icon icon="assignment"></iron-icon>
-								&nbsp [[item]]
+								[[item]]
 							</div>
 						</template>
 					</iron-list>
 				</paper-dialog-scrollable>
-				<div class="buttons">
+				<div class="cancel-button">
 					<paper-button dialog-dismiss>Cancel</paper-button>
 				</div>
 			</paper-dialog>
-		</div>
 		<iron-ajax id="getLogsAjax"
 				auto
 				url="/usageManagement/v1/usage"
