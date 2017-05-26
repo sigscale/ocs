@@ -17,6 +17,8 @@ AM_INIT_AUTOMAKE([-Wno-portability])
 ##
 AC_ARG_ENABLE([debug],
 		[AS_HELP_STRING([--enable-debug], [enable debugging (default is no)])])
+AC_ARG_WITH([ssl],
+		[AS_HELP_STRING([--with-ssl=PATH], [specify location of OpenSSL include and lib])])
 CFLAGS="${CFLAGS} -Wall"
 
 ##
@@ -31,6 +33,10 @@ if test -z "${ERLCFLAGS}" ; then
 fi
 if test "x$enable_debug" == xyes ; then
 	ERLCFLAGS="$ERLCFLAGS +debug_info"
+fi
+if test "x$with_ssl" != xyes ; then
+	CPPFLAGS="${CPPFLAGS} -I$with_ssl/include"
+	LDFLAGS="${LDFLAGS} -L$with_ssl/lib"
 fi
 AC_ERLANG_SUBST_LIB_DIR
 if test -z "${ERLANG_INSTALL_LIB_DIR}" ; then
