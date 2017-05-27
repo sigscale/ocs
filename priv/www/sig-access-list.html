@@ -37,9 +37,9 @@
 			<vaadin-grid-column width="24ex">
 				<template class="header">
 					<vaadin-grid-sorter path="timeStamp">
-					<vaadin-grid-filter aria-label="TimeStamp" path="timeStamp" value="[[_filterTimeStamp]]">
-						<input placeholder="Time Stamp" value="{{_filterTimeStamp::input}}" focus-target>
-					</vaadin-grid-filter>
+						<vaadin-grid-filter aria-label="TimeStamp" path="timeStamp" value="[[_filterTimeStamp]]">
+							<input placeholder="Time Stamp" value="{{_filterTimeStamp::input}}" focus-target>
+						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
 				<template>[[item.timeStamp]]</template>
@@ -47,9 +47,9 @@
 			<vaadin-grid-column width="18ex" flex-grow="4">
 				<template class="header">
 					<vaadin-grid-sorter path="username">
-					<vaadin-grid-filter aria-label="UserName" path="username" value="[[_filterUserName]]">
-						<input placeholder="User Name" value="{{_filterUserName::input}}" focus-target>
-					</vaadin-grid-filter>
+						<vaadin-grid-filter aria-label="UserName" path="username" value="[[_filterUserName]]">
+							<input placeholder="User Name" value="{{_filterUserName::input}}" focus-target>
+						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
 				<template>[[item.username]]</template>
@@ -57,9 +57,9 @@
 			<vaadin-grid-column width="15ex" flex-grow="3">
 				<template class="header">
 					<vaadin-grid-sorter path="clientAddress">
-					<vaadin-grid-filter aria-label="ClientAddress" path="clientAddress" value="[[_filterClientAddress]]">
-						<input placeholder="Client Address" value="{{_filterClientAddress::input}}" focus-target>
-					</vaadin-grid-filter>
+						<vaadin-grid-filter aria-label="ClientAddress" path="clientAddress" value="[[_filterClientAddress]]">
+							<input placeholder="Client Address" value="{{_filterClientAddress::input}}" focus-target>
+						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
 				<template>[[item.clientAddress]]</template>

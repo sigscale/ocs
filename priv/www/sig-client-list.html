@@ -54,9 +54,9 @@
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
 					<vaadin-grid-sorter path="id" direction="desc">
-					<vaadin-grid-filter aria-label="Address" path="id" value="[[_filterAddress]]">
-						<input placeholder="Address" value="{{_filterAddress::input}}" focus-target>
-					</vaadin-grid-filter>
+						<vaadin-grid-filter aria-label="Address" path="id" value="[[_filterAddress]]">
+							<input placeholder="Address" value="{{_filterAddress::input}}" focus-target>
+						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
 				<template>[[item.id]]</template>
@@ -64,9 +64,9 @@
 			<vaadin-grid-column width="20ex" flex-grow="5">
 				<template class="header">
 					<vaadin-grid-sorter path="identifier" direction="desc">
-					<vaadin-grid-filter aria-label="Identifier" path="identifier" value="[[_filterIdentifier]]">
-						<input placeholder="Identifier" value="{{_filterIdentifier::input}}" focus-target>
-					</vaadin-grid-filter>
+						<vaadin-grid-filter aria-label="Identifier" path="identifier" value="[[_filterIdentifier]]">
+							<input placeholder="Identifier" value="{{_filterIdentifier::input}}" focus-target>
+						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
 				<template>[[item.identifier]]</template>
@@ -74,9 +74,9 @@
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
 					<vaadin-grid-sorter path="secret" direction="desc">
-					<vaadin-grid-filter aria-label="Secret" path="secret" value="[[_filterSecret]]">
-						<input placeholder="Secret" value="{{_filterSecret::input}}" focus-target>
-					</vaadin-grid-filter>
+						<vaadin-grid-filter aria-label="Secret" path="secret" value="[[_filterSecret]]">
+							<input placeholder="Secret" value="{{_filterSecret::input}}" focus-target>
+						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
 				<template>[[item.secret]]</template>
@@ -84,9 +84,9 @@
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
 					<vaadin-grid-sorter path="port" direction="desc">
-					<vaadin-grid-filter aria-label="ListenPort" path="port" value="[[_filterPort]]">
-						<input placeholder="Listen Port" value="{{_filterPort::input}}" focus-target>
-					</vaadin-grid-filter>
+						<vaadin-grid-filter aria-label="ListenPort" path="port" value="[[_filterPort]]">
+							<input placeholder="Listen Port" value="{{_filterPort::input}}" focus-target>
+						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
 				<template>[[item.port]]</template>
@@ -94,9 +94,9 @@
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
 					<vaadin-grid-sorter path="protocol" >
-					<vaadin-grid-filter aria-label="Protocol" path="protocol" value="[[_filterProtocol]]">
-						<input placeholder="Protocol" value="{{_filterProtocol::input}}" focus-target>
-					</vaadin-grid-filter>
+						<vaadin-grid-filter aria-label="Protocol" path="protocol" value="[[_filterProtocol]]">
+							<input placeholder="Protocol" value="{{_filterProtocol::input}}" focus-target>
+						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
 				<template>[[item.protocol]]</template>

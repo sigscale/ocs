@@ -40,9 +40,9 @@
 			<vaadin-grid-column width="28ex" flex-grow="2">
 				<template class="header">
 					<vaadin-grid-sorter path="datetime" direction="desc">
-					<vaadin-grid-filter aria-label="DateTime" path="datetime" value="[[_filterDateTime]]">
-						<input placeholder="Date Time" value="{{_filterDateTime::input}}" focus-target>
-					</vaadin-grid-filter>
+						<vaadin-grid-filter aria-label="DateTime" path="datetime" value="[[_filterDateTime]]">
+							<input placeholder="Date Time" value="{{_filterDateTime::input}}" focus-target>
+						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
 				<template>[[item.datetime]]</template>
@@ -50,9 +50,9 @@
 			<vaadin-grid-column width="15ex" flex-grow="4">
 				<template class="header">
 					<vaadin-grid-sorter path="host" direction="desc">
-					<vaadin-grid-filter aria-label="Host" path="host" value="[[_filterHost]]">
-						<input placeholder="Host" value="{{_filterHost::input}}" focus-target>
-					</vaadin-grid-filter>
+						<vaadin-grid-filter aria-label="Host" path="host" value="[[_filterHost]]">
+							<input placeholder="Host" value="{{_filterHost::input}}" focus-target>
+						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
 				<template>[[item.host]]</template>
@@ -60,9 +60,9 @@
 			<vaadin-grid-column width="8ex" flex-grow="5">
 				<template class="header">
 					<vaadin-grid-sorter path="user">
-					<vaadin-grid-filter aria-label="User" path="user" value="[[_filterUser]]">
-						<input placeholder="User" value="{{_filterUser::input}}" focus-target>
-					</vaadin-grid-filter>
+						<vaadin-grid-filter aria-label="User" path="user" value="[[_filterUser]]">
+							<input placeholder="User" value="{{_filterUser::input}}" focus-target>
+						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
 				<template>[[item.user]]</template>
