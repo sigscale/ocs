@@ -13,7 +13,6 @@ www_DATA = favicon.ico \
 	sig-client-add.html \
 	sig-client-list.html \
 	sig-client-update.html \
-	sig-search.html \
 	sig-sub-add.html \
 	sig-sub-list.html \
 	sig-sub-update.html
