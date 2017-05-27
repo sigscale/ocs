@@ -14,7 +14,7 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @doc This library module implements function used in handling logging
+%%% @doc This library module implements functions used in handling logging
 %%% 	in the {@link //ocs. ocs} application.
 %%%
 -module(ocs_log).
@@ -52,7 +52,7 @@
 	when
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Open accounting log for logging events.
+%% @doc Open an accounting event disk log.
 acct_open() ->
 	{ok, Directory} = application:get_env(ocs, acct_log_dir),
 	case file:make_dir(Directory) of
@@ -93,7 +93,7 @@ acct_open1(Directory) ->
 		Attributes :: radius_attributes:attributes() | #diameter_cc_app_CCR{},
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Write an RADIUS/DIAMETER accounting event to disk log.
+%% @doc Write an event to accounting log.
 acct_log(Protocol, Server, Type, Attributes)
 		when ((Protocol == radius) or (Protocol == diameter)) ->
 	TS = erlang:system_time(?MILLISECOND),
@@ -121,7 +121,7 @@ acct_close() ->
 	when
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Open authorization log for logging events.
+%% @doc Open authorization event disk log.
 auth_open() ->
 	{ok, Directory} = application:get_env(ocs, auth_log_dir),
 	case file:make_dir(Directory) of
@@ -165,7 +165,7 @@ auth_open1(Directory) ->
 		ResponseAttributes :: radius_attributes:attributes(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Write a RADIUS  authorization event to disk log.
+%% @doc Write a RADIUS event to authorization log.
 auth_log(Protocol, Server, Client, Type, RequestAttributes, ResponseAttributes) ->
 	TS = erlang:system_time(?MILLISECOND),
 	Event = {TS, Protocol, node(), Server, Client, Type,
@@ -186,7 +186,7 @@ auth_log(Protocol, Server, Client, Type, RequestAttributes, ResponseAttributes) 
 		ResultCode:: integer(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Write a DIAMETER AAR event to disk log.
+%% @doc Write a DIAMETER AAR event to authorization log.
 auth_log(Protocol, Server, Subscriber, OriginHost, OriginRealm, AuthType,
 		ResultCode) ->
 	TS = erlang:system_time(?MILLISECOND),
@@ -301,7 +301,7 @@ auth_query2(Start, End, Types, ReqAttrsMatch,
 	when
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Close authorization disk log.
+%% @doc Close auth disk log.
 auth_close() ->
 	case disk_log:close(?AUTHLOG) of
 		ok ->
@@ -468,7 +468,7 @@ get_range(Log, Start, End) when is_integer(Start), is_integer(End) ->
 		FileName :: file:filename(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Write all logged records to a file.
+%% @doc Write all logged events to a file.
 %%
 dump_file(Log, FileName) when is_list(FileName) ->
 	case file:open(FileName, [write]) of
