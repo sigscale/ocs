@@ -38,25 +38,25 @@
 		}
 	</style>
 	<template>
-			<paper-dialog id="selectLogFileModal" modal>
-				<paper-toolbar>
-					<h2>Select Log File</h2>
-				</paper-toolbar>
-				<paper-dialog-scrollable>
-					<iron-list id="logFiles"
-							as="item" grid>
-						<template>
-							<div class="item" on-click="getLogContent">
-								<iron-icon icon="assignment"></iron-icon>
-								[[item]]
-							</div>
-						</template>
-					</iron-list>
-				</paper-dialog-scrollable>
-				<div class="cancel-button">
-					<paper-button dialog-dismiss>Cancel</paper-button>
-				</div>
-			</paper-dialog>
+		<paper-dialog id="selectLogFileModal" modal>
+			<paper-toolbar>
+				<h2>Select Log File</h2>
+			</paper-toolbar>
+			<paper-dialog-scrollable>
+				<iron-list id="logFiles"
+						as="item" grid>
+					<template>
+						<div class="item" on-click="getLogContent">
+							<iron-icon icon="assignment"></iron-icon>
+							[[item]]
+						</div>
+					</template>
+				</iron-list>
+			</paper-dialog-scrollable>
+			<div class="cancel-button">
+				<paper-button dialog-dismiss>Cancel</paper-button>
+			</div>
+		</paper-dialog>
 		<iron-ajax id="getLogsAjax"
 				auto
 				url="/usageManagement/v1/usage"
@@ -88,12 +88,12 @@
 					this.$.logFiles.items = event.detail.response;
 				},
 				_onLoadingChanged: function(event) {
-               if (document.getElementById("getLogContentAjax").loading) {
-                  document.getElementById("progress").disabled = false;
-               } else {
-                  document.getElementById("progress").disabled = true;
-               }
-            },
+					if (document.getElementById("getLogContentAjax").loading) {
+						document.getElementById("progress").disabled = false;
+					} else {
+						document.getElementById("progress").disabled = true;
+					}
+				},
 				getLogContentResponse: function(event) {
 					this.$.selectLogFileModal.close();
 					var grid = document.getElementById("ipdrGrid");
