@@ -77,61 +77,61 @@
 					<paper-icon-button
 							icon="menu"
 							onclick="drawer.toggle()">
-						</paper-icon-button>
-						<div main-title>Online Charging System (OCS)</div>
-						<paper-icon-button
-								id="refresh"
-								icon="refresh"
-								on-click="refresh">
-						</paper-icon-button>
-						<paper-icon-button
-								id="download"
-								icon="file-download"
-								on-click="download" >
-						</paper-icon-button>
-						<paper-progress
-								id="progress"
-								value="0"
-								indeterminate
-								bottom-item
-								disabled="true">
-						</paper-progress>
-					</app-toolbar>
-				</app-header>
-				<iron-pages
-						id="loadPage"
-						role="main">
-					<sig-sub-list></sig-sub-list>
-					<sig-client-list></sig-client-list>
-					<sig-ipdr-list></sig-ipdr-list>
-					<sig-access-list></sig-access-list>
-					<sig-accounting-list></sig-accounting-list>
-					<sig-http-list></sig-http-list>
-				</iron-pages>
-				<app-drawer-layout>
-					<app-drawer
-							id="drawer"
-							swipeOpen>
-						<iron-selector
-								id="pageSelection"
-								class="drawer-list"
-								role="navigation">
-							<paper-menu id="menu">
-								<paper-item
-										id="page0"
-										onclick="drawer.toggle()"
-										class="menuitem">
-									<iron-icon icon ="device:devices"></iron-icon>
-									&nbsp Subscribers
-								</paper-item>
-								<paper-item
-										id="page1"
-										onclick="drawer.toggle()"
-										class="menuitem">
-									<iron-icon icon ="hardware:router"></iron-icon>
+					</paper-icon-button>
+					<div main-title>Online Charging System (OCS)</div>
+					<paper-icon-button
+							id="refresh"
+							icon="refresh"
+							on-click="refresh">
+					</paper-icon-button>
+					<paper-icon-button
+							id="download"
+							icon="file-download"
+							on-click="download" >
+					</paper-icon-button>
+					<paper-progress
+							id="progress"
+							value="0"
+							indeterminate
+							bottom-item
+							disabled="true">
+					</paper-progress>
+				</app-toolbar>
+			</app-header>
+			<iron-pages
+					id="loadPage"
+					role="main">
+				<sig-sub-list></sig-sub-list>
+				<sig-client-list></sig-client-list>
+				<sig-ipdr-list></sig-ipdr-list>
+				<sig-access-list></sig-access-list>
+				<sig-accounting-list></sig-accounting-list>
+				<sig-http-list></sig-http-list>
+			</iron-pages>
+			<app-drawer-layout>
+				<app-drawer
+						id="drawer"
+						swipeOpen>
+					<iron-selector
+							id="pageSelection"
+							class="drawer-list"
+							role="navigation">
+						<paper-menu id="menu">
+							<paper-item
+									id="page0"
+									onclick="drawer.toggle()"
+									class="menuitem">
+								<iron-icon icon ="device:devices"></iron-icon>
+								&nbsp Subscribers
+							</paper-item>
+							<paper-item
+									id="page1"
+									onclick="drawer.toggle()"
+									class="menuitem">
+								<iron-icon icon ="hardware:router"></iron-icon>
 								&nbsp Clients
-								</paper-item>
-								<paper-submenu>
+							</paper-item>
+							<paper-submenu>
 								<paper-item
 										class="menu-trigger menuitem">
 									<iron-icon icon ="icons:history"></iron-icon>
@@ -287,5 +287,5 @@
 			document.body.appendChild(link);
 			link.click();
 		}
-		</script>
+	</script>
 </dom-module>
