@@ -83,5 +83,5 @@ radius_auth_json(Events) ->
 					%% TODO support for DIAMETER
 					Acc
 	end,
-	lists:foldl(F, [], Events).
+	lists:reverse(lists:foldl(F, [], Events)).
 

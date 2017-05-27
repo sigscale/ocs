@@ -94,10 +94,10 @@ perform_get_all1(Subscribers) ->
 				RespObj = [{struct, [{id, Id}, {href, "/ocs/v1/subscriber/" ++ binary_to_list(Id)},
 					{password, Password}, {attributes, AttrObj}, {balance, Balance},
 					{enabled, Enabled}]}],
-				RespObj ++ Acc
+				[RespObj | Acc]
 			end,
-			JsonObj = lists:foldl(F, [], Subscribers),
-			{array, JsonObj}.
+			JsonObj = lists:flatten(lists:foldl(F, [], Subscribers)),
+			{array, lists:reverse(JsonObj)}.
 
 -spec perform_post(RequestBody) -> Result 
 	when 

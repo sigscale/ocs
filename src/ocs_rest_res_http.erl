@@ -91,7 +91,7 @@ json(Events) ->
 						{"httpStatus", E#event.httpStatus}]},
 				[JsonObj | Acc]
 	end,
-	lists:foldl(F, [], Events).
+	lists:reverse(lists:foldl(F, [], Events)).
 
 % @hidden
 parse(Event) ->
