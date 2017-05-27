@@ -189,6 +189,12 @@
 		Polymer (
 			{
 				is: 'sig-client-update',
+				properties: {
+					selected: {
+						type: Number,
+						value: 0
+					}
+				},
 				updateClientAuthen: function(event) {
 					var editAjax =  document.getElementById("updateClientAuthen");
 					editAjax.method = "PATCH";

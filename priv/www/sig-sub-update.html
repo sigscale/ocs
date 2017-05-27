@@ -32,7 +32,7 @@
 	</style>
 	<template>
 		<paper-dialog id="subUpdateModal" modal style="width:60%;">
-			<paper-tabs selected="{{selected}}">
+			<paper-tabs selected="{{selected}}" autoselect>
 				<paper-tab id="authen">
 					<h2>Authentication</h2>
 				</paper-tab>
@@ -208,6 +208,12 @@
 		Polymer (
 			{
 				is: 'sig-sub-update',
+				properties: {
+					selected: {
+						type: Number,
+						value: 0
+					}
+				},
 				updateSubAuthen: function(event) {
 					var editAjax =  document.getElementById("updateSubAuthen");
 					editAjax.method = "PATCH";
@@ -295,7 +301,7 @@
 					document.getElementById("delete-toast").open();
 					var getSubsAjax = document.getElementById("getSubs");
 					getSubsAjax.generateRequest();
-				},
+				}
 			}
 		);
 	</script>
