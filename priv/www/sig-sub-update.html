@@ -8,7 +8,7 @@
 <link rel="import" href="bower_components/iron-selector/iron-selector.html">
 
 <dom-module id="sig-sub-update">
-	<style is="custom-style"> 
+	<style is="custom-style">
 		.update-buttons {
 			background: var(--paper-lime-a700);
 			color: black;
@@ -32,7 +32,7 @@
 	<template>
 		<paper-dialog id="subUpdateModal" modal style="width:60%;">
 			<paper-tabs selected="{{selected}}">
-				<paper-tab id="authen"> 
+				<paper-tab id="authen">
 					<h2>Authentication</h2>
 				</paper-tab>
 				<paper-tab id="autho">
@@ -245,23 +245,23 @@
 					ascendDataRate.vendorType = 197;
 					ascendDataRate.value = parseInt(document.getElementById("edit-recv-data-rate").value);
 					attr[0] = ascendDataRate;
-					var ascendXmitRate = new Object(); 
+					var ascendXmitRate = new Object();
 					ascendXmitRate.name = "ascendXmitRate";
 					ascendXmitRate.type = 26;
 					ascendXmitRate.vendorId = 529;
 					ascendXmitRate.vendorType = 255;
 					ascendXmitRate.value = parseInt(document.getElementById("edit-trans-data-rate").value);
 					attr[1] = ascendXmitRate;
-					var sessionTimeout = new Object(); 
-					sessionTimeout.name = "sessionTimeout"; 
+					var sessionTimeout = new Object();
+					sessionTimeout.name = "sessionTimeout";
 					sessionTimeout.value = parseInt(document.getElementById("edit-sess-timeout").value);
 					attr[2] = sessionTimeout;
-					var acctInterimInterval = new Object(); 
-					acctInterimInterval.name = "acctInterimInterval"; 
+					var acctInterimInterval = new Object();
+					acctInterimInterval.name = "acctInterimInterval";
 					acctInterimInterval.value = parseInt(document.getElementById("edit-update-interval").value);
 					attr[3] = acctInterimInterval;
-					var classx = new Object(); 
-					classx.name = "class"; 
+					var classx = new Object();
+					classx.name = "class";
 					if(document.getElementById("edit-class").value == undefined) {
 						classx.value = null;
 					} else {
@@ -282,7 +282,7 @@
 					}
 				},
 				deleteSub: function(event) {
-					var grid = document.getElementById("subscriberGrid"); 
+					var grid = document.getElementById("subscriberGrid");
 					var selection = grid.selectedItems[0];
 					var deleteAjax = document.getElementById("deleteSub");
 					deleteAjax.method = "DELETE";

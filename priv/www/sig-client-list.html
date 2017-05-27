@@ -144,7 +144,7 @@
             },
 				_activeItemChanged: function(item) {
                if (item != null){
-					var grid = this.$.clientGrid; 
+					var grid = this.$.clientGrid;
 					grid.selectedItems = item ? [item] : [];
 					var modal = document.getElementById("clientUpdateModal");
 					modal.open();
@@ -155,7 +155,7 @@
 					}
 				},
 				getClientsResponse: function(event) {
-					var grid = this.$.clientGrid; 
+					var grid = this.$.clientGrid;
 					var results = event.detail.xhr.response;
 					var vaadinItems = new Array();
 					for (var index in results) {

@@ -9,7 +9,7 @@
 <link rel="import" href="bower_components/iron-selector/iron-selector.html">
 
 <dom-module id="sig-client-update">
-	<style is="custom-style"> 
+	<style is="custom-style">
 		.update-buttons {
 			background: var(--paper-lime-a700);
 			color: black;
@@ -31,7 +31,7 @@
 				id="clientUpdateModal"
 				modal style="width:60%;">
 			<paper-tabs selected="{{selected}}">
-				<paper-tab id="authenticate-client"> 
+				<paper-tab id="authenticate-client">
 					<h2>Authentication</h2>
 				</paper-tab>
 				 <paper-tab id="authorize-client">
@@ -50,7 +50,7 @@
 						<paper-input
 								id="edit-client-id1"
 								name="id"
-								label="Address" 
+								label="Address"
 								disabled>
 						</paper-input>
 					</div>
@@ -229,7 +229,7 @@
 					}
 				},
 				deleteClient: function(event) {
-					var grid = document.getElementById("clientGrid"); 
+					var grid = document.getElementById("clientGrid");
 					var selection = grid.selectedItems[0];
 					var deleteAjax = document.getElementById("deleteClient");
 					deleteAjax.method = "DELETE";

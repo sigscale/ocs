@@ -41,7 +41,7 @@
 			--vaadin-grid-header-cell: {
 				background: #ffb04c;
 			};
-		} 
+		}
 		vaadin-grid input {
 			background: #ffb04c;
 		}
@@ -118,7 +118,7 @@
 			{
 				is: 'sig-http-list',
 				responseHandler: function(event) {
-					var grid = this.$.httpGrid; 
+					var grid = this.$.httpGrid;
 					var results = event.detail.xhr.response;
 					var vaadinItems = new Array();
 					for (var index in results) {

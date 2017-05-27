@@ -38,7 +38,7 @@
 			--vaadin-grid-header-cell: {
 				background: #ffb04c;
 			};
-		} 
+		}
 		vaadin-grid input {
 			background: #ffb04c;
 		}
@@ -89,7 +89,7 @@
 			{
 				is: 'sig-accounting-list',
 				responseHandler: function(event) {
-					var grid = this.$.accountingGrid; 
+					var grid = this.$.accountingGrid;
 					var results = event.detail.xhr.response;
 					var vaadinItems = new Array();
 					for(var index in results){
@@ -107,7 +107,7 @@
 						},
 						{
 							name: "username"
-						}, 
+						},
 						{
 							name: "type"
 						},

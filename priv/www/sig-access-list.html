@@ -38,7 +38,7 @@
 			--vaadin-grid-header-cell: {
 				background: #ffb04c;
 			};
-		} 
+		}
 		vaadin-grid input {
 			background: #ffb04c;
 		}
@@ -107,7 +107,7 @@
 			{
 				is: 'sig-access-list',
 				responseHandler: function(event) {
-					var grid = this.$.accessGrid; 
+					var grid = this.$.accessGrid;
 					var results = event.detail.xhr.response;
 					var vaadinItems = new Array();
 					for (var index in results) {

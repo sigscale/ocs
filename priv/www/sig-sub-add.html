@@ -14,7 +14,7 @@
 <link rel="import" href="bower_components/paper-styles/paper-styles.html">
 
 <dom-module id="sig-sub-add">
-	<style is="custom-style"> 
+	<style is="custom-style">
 		paper-dialog {
 			width: 60%;
 			height: 100vh;
@@ -27,7 +27,7 @@
 		.add-button {
 			background-color: var(--paper-lime-a700);
 			color: black;
-			float: right; 
+			float: right;
 			width: 8em;
 		}
 		.cancel-button {
@@ -218,13 +218,13 @@
 					} else {
 						formData.password = document.getElementById("add2").value;
 					}
-					var ascendDataRate = new Object(); 
+					var ascendDataRate = new Object();
 					ascendDataRate.name = "ascendDataRate";
 					ascendDataRate.type = 26;
 					ascendDataRate.vendorId = 529;
 					ascendDataRate.vendorType = 197;
 					ascendDataRate.value = parseInt(document.getElementById("add3").value);
-					var ascendXmitRate = new Object(); 
+					var ascendXmitRate = new Object();
 					ascendXmitRate.name = "ascendXmitRate";
 					ascendXmitRate.type = 26;
 					ascendXmitRate.vendorId = 529;
@@ -249,7 +249,7 @@
 					attributes[2] = sessionTimeout;
 					attributes[3] = acctInterimInterval;
 					attributes[4] = classx;
-					formData.attributes = attributes; 
+					formData.attributes = attributes;
 					formData.balance = parseInt(document.getElementById("add8").value);
 					formData.enabled= document.getElementById("add9").checked;
 					form.request.body = formData;
@@ -286,7 +286,7 @@
 				toastErrorClose: function(event) {
 					var toast = document.getElementById("toastError");
 					toast.close();
-				}   
+				}
 			}
 		);
 	</script>
