@@ -41,7 +41,7 @@
 		<vaadin-grid id="httpGrid">
 			<vaadin-grid-column width="28ex" flex-grow="2">
 				<template class="header">
-					<vaadin-grid-sorter path="datetime" direction="desc">
+					<vaadin-grid-sorter path="datetime">
 						<vaadin-grid-filter aria-label="DateTime" path="datetime" value="[[_filterDateTime]]">
 							<input placeholder="Date Time" value="{{_filterDateTime::input}}" focus-target>
 						</vaadin-grid-filter>
@@ -51,7 +51,7 @@
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="4">
 				<template class="header">
-					<vaadin-grid-sorter path="host" direction="desc">
+					<vaadin-grid-sorter path="host">
 						<vaadin-grid-filter aria-label="Host" path="host" value="[[_filterHost]]">
 							<input placeholder="Host" value="{{_filterHost::input}}" focus-target>
 						</vaadin-grid-filter>

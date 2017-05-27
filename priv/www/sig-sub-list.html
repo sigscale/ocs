@@ -52,7 +52,7 @@
 		<vaadin-grid id="subscriberGrid" active-item="{{activeItem}}">
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
-					<vaadin-grid-sorter path="id" direction="desc">
+					<vaadin-grid-sorter path="id">
 						<vaadin-grid-filter aria-label="Identity" path="id" value="[[_filterIdentity]]">
 							<input placeholder="Identity" value="{{_filterIdentity::input}}" focus-target>
 						</vaadin-grid-filter>
@@ -70,7 +70,7 @@
 			</vaadin-grid-column>
 			<vaadin-grid-column width="12ex" flex-grow="2">
 				<template class="header">
-					<vaadin-grid-sorter path="balance" direction="desc">
+					<vaadin-grid-sorter path="balance">
 						<vaadin-grid-filter aria-label="Balance" path="balance" value="[[_filterBalance]]">
 							<input placeholder="Balance" value="{{_filterBalance::input}}" focus-target>
 						</vaadin-grid-filter>
@@ -80,7 +80,7 @@
 			</vaadin-grid-column>
 			<vaadin-grid-column width="9ex" flex-grow="2">
 				<template class="header">
-					<vaadin-grid-sorter path="ascendDataRate" direction="desc">
+					<vaadin-grid-sorter path="ascendDataRate">
 						<vaadin-grid-filter aria-label="Data Rate" path="ascendDataRate" value="[[_filterDataRate]]">
 							<input placeholder="Data Rate" value="{{_filterDataRate::input}}" focus-target>
 						</vaadin-grid-filter>
