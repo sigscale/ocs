@@ -16,4 +16,5 @@
 
 ## Options
 	../ocs/configure --enable-debug
+	../ocs/configure --with-ssl=/opt/local
 
