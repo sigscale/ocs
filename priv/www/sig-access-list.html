@@ -58,21 +58,21 @@
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="3">
 				<template class="header">
-					<vaadin-grid-sorter path="clientAddress">
-						<vaadin-grid-filter aria-label="ClientAddress" path="clientAddress" value="[[_filterClientAddress]]">
-							<input placeholder="Client Address" value="{{_filterClientAddress::input}}" focus-target>
+					<vaadin-grid-sorter path="serverAddress">
+						<vaadin-grid-filter aria-label="ServerAddress" path="serverAddress" value="[[_filterServerAddress]]">
+							<input placeholder="Server Address" value="{{_filterServerAddress::input}}" focus-target>
 						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
-				<template>[[item.clientAddress]]</template>
+				<template>[[item.serverAddress]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="5ex" flex-grow="2">
 				<template class="header">
-					<vaadin-grid-filter aria-label="ClientPort" path="clientPort" value="[[_filterClientPort]]">
-						<input placeholder="Client Port" value="{{_filterClientPort::input}}" focus-target>
+					<vaadin-grid-filter aria-label="ServerPort" path="serverPort" value="[[_filterServerPort]]">
+						<input placeholder="Server Port" value="{{_filterServerPort::input}}" focus-target>
 					</vaadin-grid-filter>
 				</template>
-				<template>[[item.clientPort]]</template>
+				<template>[[item.serverPort]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="8ex" flex-grow="0">
 				<template class="header">
@@ -105,8 +105,8 @@
 						var newRecord = new Object();
 						newRecord.timeStamp = results[index].timeStamp;
 						newRecord.username = results[index].username;
-						newRecord.clientAddress = results[index].clientAddress;
-						newRecord.clientPort = results[index].clientPort;
+						newRecord.serverAddress = results[index].serverAddress;
+						newRecord.serverPort = results[index].serverPort;
 						newRecord.type = results[index].type;
 						vaadinItems[index] = newRecord;
 					}
@@ -120,10 +120,10 @@
 							name: "username"
 						},
 						{
-							name: "clientAddress"
+							name: "serverAddress"
 						},
 						{
-							name: "clientPort"
+							name: "serverPort"
 						},
 						{
 							name: "type"
