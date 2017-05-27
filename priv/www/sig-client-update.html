@@ -9,24 +9,24 @@
 <link rel="import" href="bower_components/iron-selector/iron-selector.html">
 
 <dom-module id="sig-client-update">
+	<style is="custom-style"> 
+		.update-buttons {
+			background: var(--paper-lime-a700);
+			color: black;
+		}
+		.delete-buttons {
+			background: #EF5350;
+			color: black;
+		}
+		.cancel-btn {
+			color: black;
+		}
+		paper-tab.iron-selected {
+			background-color: #bc5100;
+			color: white;
+		}
+	</style>
 	<template>
-		<style is="custom-style"> 
-			.update-buttons {
-            background: var(--paper-lime-a700);
-            color: black;
-         }
-         .delete-buttons {
-            background: #EF5350;
-            color: black;
-         }
-			.cancel-btn {
-            color: black;
-         }
-			paper-tab.iron-selected {
-            background-color: #bc5100;
-            color: white;
-         }
-		</style>
 		<paper-dialog
 				id="clientUpdateModal"
 				modal style="width:60%;">

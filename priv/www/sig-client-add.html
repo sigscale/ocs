@@ -14,34 +14,34 @@
 <link rel="import" href="bower_components/paper-styles/paper-styles.html">
 
 <dom-module id="sig-client-add">
+	<style is="custom-style"> 
+		paper-dialog {
+			width: 60%;
+			height: 50%;
+			padding: 10px;
+		}
+		paper-toolbar{
+			color: white;
+			background-color: #bc5100;
+		}
+		.add-button {
+			background-color: var(--paper-lime-a700);
+			color: black;
+			float: right; 
+			width: 8em;
+		}
+		.cancel-button {
+			color: black;
+		}
+		paper-toast.error {
+			background-color: var(--paper-red-a400);
+		}
+		paper-toggle-button {
+			--paper-toggle-button-checked-bar-color: #ffb04c;
+			--paper-toggle-button-checked-button-color: var(--paper-yellow-900);
+		}
+	</style>
 	<template>
-		<style is="custom-style"> 
-			paper-dialog {
-				width: 60%;
-				height: 50%;
-				padding: 10px;
-			}
-			paper-toolbar{
-            color: white;
-            background-color: #bc5100;
-         }
-			.add-button {
-				background-color: var(--paper-lime-a700);
-				color: black;
-				float: right; 
-				width: 8em;
-			}
-			.cancel-button {
-            color: black;
-         }
-			paper-toast.error {
-				background-color: var(--paper-red-a400);
-			}
-			paper-toggle-button {
-				--paper-toggle-button-checked-bar-color: #ffb04c;
-				--paper-toggle-button-checked-button-color: var(--paper-yellow-900);
-			}
-		</style>
 		<div id="add_client_container">
 			<paper-dialog id="clientAddModal" modal>
 				<paper-toolbar>

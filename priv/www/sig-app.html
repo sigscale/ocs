@@ -43,34 +43,34 @@
 <link rel="import" href="sig-http-list.html">
 
 <dom-module id="sig-app">
+	<style is="custom-style">
+		:root {
+			@apply(--paper-font-common-base);
+		}
+		app-header {
+			color: #fff;
+		}
+		app-toolbar {
+			background: var(--paper-yellow-900);
+		}
+		app-drawer {
+			--app-drawer-content-container: {
+				padding-top: 10px;
+			};
+			height: 100%;
+			top: 64px;
+		}
+		paper-progress {
+			display: block;
+			width: 100%;
+			--paper-progress-active-color: var(--paper-lime-a700);
+			--paper-progress-container-color: transparent;
+		}
+		iron-pages {
+			height: 100%;
+		}
+	</style>
 	<template is="dom-bind">
-		<style is="custom-style">
-			:root {
-				@apply(--paper-font-common-base);
-			}
-			app-header {
-				color: #fff;
-			}
-			app-toolbar {
-            background: var(--paper-yellow-900);
-         }
-			app-drawer {
-				--app-drawer-content-container: {
-					padding-top: 10px;
-				};
-				height: 100%;
-				top: 64px;
-			}
-			paper-progress {
-				display: block;
-				width: 100%;
-				--paper-progress-active-color: var(--paper-lime-a700);
-				--paper-progress-container-color: transparent;
-			}
-			iron-pages {
-				height: 100%;
-			}
-		</style>
 		<app-header-layout>
 			<app-header>
 				<app-toolbar>

@@ -35,30 +35,28 @@
 			color: initial;
 			font-weight: bold;
 		}
+		.add-button {
+			right: 2%;
+			position: fixed;
+			bottom: 5%;
+			z-index: 100;
+		}
+		paper-fab {
+			background: var(--paper-lime-a700);
+			color: black;
+		}
+		vaadin-grid {
+			font-size: inherit;
+			height: 100%;
+			--vaadin-grid-header-cell: {
+				background: #ffb04c;
+			};
+		}
+		vaadin-grid input {
+			background: #ffb04c;
+		}
 	</style>
 	<template>
-		<style>
-			.add-button {
-				right: 2%;
-				position: fixed;
-				bottom: 5%;
-				z-index: 100;
-			}
-			paper-fab {
-				background: var(--paper-lime-a700);
-				color: black;
-			}
-			vaadin-grid {
-            font-size: inherit;
-            height: 100%;
-				--vaadin-grid-header-cell: {
-            	background: #ffb04c;
-         	};
-         }
-			vaadin-grid input {
-         	background: #ffb04c;
-      	}
-		</style>
 		<vaadin-grid
 				id="clientGrid"
 				active-item="{{activeItem}}">

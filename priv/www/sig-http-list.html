@@ -33,22 +33,20 @@
 			color: initial;
 			font-weight: bold;
 		}
+		vaadin-grid col {
+			font-size: 46px
+		}
+		vaadin-grid {
+			height: 100%;
+			--vaadin-grid-header-cell: {
+				background: #ffb04c;
+			};
+		} 
+		vaadin-grid input {
+			background: #ffb04c;
+		}
 	</style>
 	<template>
-		<style>
-			vaadin-grid col {
-				font-size: 46px
-			}
-			vaadin-grid {
-				height: 100%;
-				--vaadin-grid-header-cell: {
-           		background: #ffb04c;
-        		};
-			} 
-			vaadin-grid input {
-        		background: #ffb04c;
-			}
-		</style>
 		<vaadin-grid id="httpGrid">
 			<vaadin-grid-column width="28ex" flex-grow="2">
 				<template class="header">
