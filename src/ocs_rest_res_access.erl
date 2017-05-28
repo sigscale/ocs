@@ -67,7 +67,7 @@ perform_get_all() ->
 
 % @hidden
 radius_auth_json(Events) ->
-	F = fun({Milliseconds, _Proto, Node, Client, Server, Type, ReqAttrs, _RespAttrs},  Acc) ->
+	F = fun({Milliseconds, _Proto, Node, Server, Client, Type, ReqAttrs, _RespAttrs},  Acc) ->
 					TimeStamp = ocs_log:iso8601(Milliseconds),
 					{ClientAdd, ClientPort} = Client,
 					ClientIp = inet:ntoa(ClientAdd),
