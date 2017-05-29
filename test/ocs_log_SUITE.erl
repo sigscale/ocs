@@ -362,7 +362,7 @@ ipdr_log(_Config) ->
 				Acc
 	end,
 	NumStops = lists:foldl(Fstop, 0, GetRangeResult),
-	{ok, IpdrLog} = disk_log:open([{name, Filename}, {file, Filename}]),
+	{ok, IpdrLog} = disk_log:open([{name, make_ref()}, {file, Filename}]),
 	Fchunk = fun(_F, {error, Reason}, _Acc) ->
 				ct:fail(Reason);
 			(F, {Cont, Chunk}, Acc) ->

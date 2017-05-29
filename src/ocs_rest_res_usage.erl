@@ -28,8 +28,6 @@
 -include_lib("radius/include/radius.hrl").
 -include("ocs_log.hrl").
 
--define(IPDR_LOG, ipdr_log).
-
 -spec content_types_accepted() -> ContentTypes
 	when
 		ContentTypes :: list().
@@ -71,17 +69,16 @@ perform_get_all() ->
 perform_get(Id) ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
-	Log = ?IPDR_LOG,
 	FileName = Directory ++ "/" ++ Id,
-	read_ipdr(Log, FileName, MaxItems).
+	read_ipdr(FileName, MaxItems).
 	
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
 
 %% @hidden
-read_ipdr(Log, FileName, MaxItems) ->
-	case disk_log:open([{name, Log}, {file, FileName},
+read_ipdr(FileName, MaxItems) ->
+	case disk_log:open([{name, make_ref()}, {file, FileName},
 			{type, halt}, {size, infinity}]) of
 		{ok, Log} ->
 			read_ipdr1(Log, start, MaxItems, 0, []);
