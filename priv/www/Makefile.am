@@ -27,8 +27,8 @@ bower_components: $(srcdir)/bower.json
 	@touch $(builddir)/bower_components
 
 install-data-local:
-	$(MKDIR_P) $(DESTDIR)$(wwwdir)/bower_components
-	cp -r $(abs_builddir)/bower_components $(DESTDIR)$(wwwdir)
+	$(MKDIR_P) $(DESTDIR)$(wwwdir)
+	cp -R $(abs_builddir)/bower_components/* $(DESTDIR)$(wwwdir)
 
 clean-local:
 	-rm -rf bower_components
