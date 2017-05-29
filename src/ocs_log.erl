@@ -460,7 +460,7 @@ ipdr_log4(IpdrLog, SeqNum) ->
 %%
 ipdr_file(LogFile, Format) when is_list(LogFile),
 		Format == xml; Format == xdr; Format == csv ->
-	{ok, Directory} = application:get_env(ocs, ipdr_dir),
+	{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
 	FileName = Directory ++ "/" ++ LogFile,
 	case disk_log:open([{name, make_ref()}, {file, FileName}, {repair, true}]) of
 		{ok, Log} ->
