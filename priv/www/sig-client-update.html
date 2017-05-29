@@ -4,6 +4,7 @@
 <link rel="import" href="paper-input/paper-input.html">
 <link rel="import" href="paper-button/paper-button.html">
 <link rel="import" href="paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="paper-listbox/paper-listbox.html">
 <link rel="import" href="paper-tooltip/paper-tooltip.html">
 <link rel="import" href="paper-styles/color.html">
 <link rel="import" href="iron-pages/iron-pages.html">
@@ -49,23 +50,18 @@
 			</paper-tooltip>
 			<iron-pages selected="{{selected}}">
 				<div id="edit-client-password">
-					<div>
 						<paper-input
 								id="edit-client-id1"
 								name="id"
 								label="Address"
 								disabled>
 						</paper-input>
-					</div>
-					<div>
 						<paper-input
 								id="edit-client-pwd"
 								name="password"
 								label="Secret"
 								disabled>
 						</paper-input>
-					</div>
-					<div>
 						<paper-input
 								id="edit-client-new-pwd"
 								name="secret"
@@ -74,7 +70,6 @@
 						<paper-tooltip>
 							Secret, or password, shared with the network access server, router or access point.
 						</paper-tooltip>
-					</div>
 					<div class="buttons">
 						<paper-button
 								onclick="clientUpdateModal.close()"
@@ -98,15 +93,12 @@
 					</div>
 				</div>
 				<div id="edit-client-attributes">
-					<div >
 						<paper-input
 								id="edit-client-id2"
 								name="id"
 								label="IP Address"
 								disabled>
 						</paper-input>
-					</div>
-					<div>
 						<paper-input
 								id="edit-client-disc-port"
 								name="port"
@@ -116,32 +108,22 @@
 						<paper-tooltip>
 							Port network access server, router or access point listens on
 						</paper-tooltip>
-					</div>
-					<div>
-						<template is="dom-bind">
-							<paper-dropdown-menu
-									id="edit-client-protocol"
-									label="Protocol"
-									type="number"
-									selected-item-label="{{selectedItem}}">
-								<paper-listbox
-										id="protocol-menu"
-										class="dropdown-content"
-										selected="0">
-									<paper-item>RADIUS</paper-item>
-									<paper-item>DIAMETER</paper-item>
-								</paper-listbox>
-							</paper-dropdown-menu>
-							<input
-									is="iron-input"
-									name="protocol"
-									type="hidden"
-									value$="[[selectedItem]]">
-							<paper-tooltip>
-								Protocol used by network access server, router or access point.
-							</paper-tooltip>
-						</template>
-					</div>
+						<paper-dropdown-menu
+								id="edit-client-protocol"
+								label="Protocol"
+								type="number"
+								selected-item-label="{{selectedItem}}">
+							<paper-listbox
+									id="protocol-menu"
+									class="dropdown-content"
+									selected="0">
+								<paper-item>RADIUS</paper-item>
+								<paper-item>DIAMETER</paper-item>
+							</paper-listbox>
+						</paper-dropdown-menu>
+						<paper-tooltip>
+							Protocol used by network access server, router or access point.
+						</paper-tooltip>
 					<div class="buttons">
 						<paper-button
 								onclick="clientUpdateModal.close()"

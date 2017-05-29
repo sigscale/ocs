@@ -2,6 +2,8 @@
 <link rel="import" href="iron-form/iron-form.html">
 <link rel="import" href="iron-ajax/iron-ajax.html">
 <link rel="import" href="paper-dialog/paper-dialog.html">
+<link rel="import" href="paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="paper-listbox/paper-listbox.html">
 <link rel="import" href="paper-toolbar/paper-toolbar.html">
 <link rel="import" href="paper-input/paper-input.html">
 <link rel="import" href="paper-button/paper-button.html">
@@ -39,108 +41,73 @@
 		}
 	</style>
 	<template>
-		<div id="add_client_container">
-			<paper-dialog id="clientAddModal" modal>
-				<paper-toolbar>
-					<h2>Add Client</h2>
-				</paper-toolbar>
-				<form
-						is="iron-form"
-						id="clientAddForm"
-						method="post"
-						content-type="application/json">
-					<div>
-						<paper-input
-								id="add-client1"
-								name="address"
-								label="IP Address">
-						</paper-input>
-						<paper-tooltip >
-							IP address of network access server, router or access point
-						</paper-tooltip>
-					</div>
-					<div>
-						<paper-input
-								id="add-client2"
-								name="port"
-								label="Listen Port"
-								type="number"
-								value=3799>
-						</paper-input>
-						<paper-tooltip>
-							Port network access server, router or access point listens on
-						</paper-tooltip>
-						</div>
-						<div>
-							<paper-input
-									id="add-client4"
-									name="secret"
-									label="Secret" >
-							</paper-input>
-							<paper-tooltip>
-								Secret, or password, shared with the network access server, router or access point.
-							</paper-tooltip>
-						</div>
-						<div>
-							<template is="dom-bind">
-								<paper-dropdown-menu
-										id="add-client3"
-										label="Protocol"
-										selected-item-label="{{selectedItem}}">
-									<paper-listbox class="dropdown-content" selected="0">
-										<paper-item value="RADIUS">
-											RADIUS
-										</paper-item>
-										<paper-item value="DIAMETER">
-											DIAMETER
-										</paper-item>
-									</paper-listbox>
-								</paper-dropdown-menu>
-								<input
-										is="iron-input"
-										name="protocol"
-										type="hidden"
-										value$="[[selectedItem]]">
-								<paper-tooltip>
-									Protocol used by network access server, router or access point.
-								</paper-tooltip>
-							</template>
-						</div>
-						<div class="buttons">
-							<paper-button
-									raised
-									class="add-button"
-									onclick="_submitClientForm()">
-								Submit
-							</paper-button>
-							<paper-button
-									class="cancel-button"
-									dialog-confirm
-									autofocus
-									onclick="clientAddModal.close()">
-								Cancel
-							</paper-button>
-						</div>
-					</form>
-					<div id="response-display-container">
-						<paper-toast
-								id="toastError"
-								class="fit-bottom">
-							<h2>Couldn't add Client!</h2>
-							<h5> Please recheck the following.</h5>
-							<ul>
-								<li>Subscriber name should be a valid ipv4 address</li>
-								<li>Password does not include 0, 1, i, l, o characters</li>
-							</ul>
-						</paper-toast>
-						<paper-toast
-								id="toast-success"
-								class="fit-bottom">
-							<h2>Client added!</h2>
-						</paper-toast>
-					</div>
-			</paper-dialog>
-		</div>
+		<paper-dialog id="clientAddModal" modal>
+			<paper-toolbar>
+				<h2>Add Client</h2>
+			</paper-toolbar>
+			<form
+					is="iron-form"
+					id="clientAddForm"
+					method="post"
+					content-type="application/json">
+				<paper-input
+						id="add-client1"
+						name="address"
+						label="IP Address">
+				</paper-input>
+				<paper-tooltip >
+					IP address of network access server, router or access point
+				</paper-tooltip>
+				<paper-input
+						id="add-client2"
+						name="port"
+						label="Listen Port"
+						type="number"
+						value=3799>
+				</paper-input>
+				<paper-tooltip>
+					Port network access server, router or access point listens on
+				</paper-tooltip>
+				<paper-input
+						id="add-client4"
+						name="secret"
+						label="Secret">
+				</paper-input>
+				<paper-tooltip>
+					Secret, or password, shared with the network access server, router or access point.
+				</paper-tooltip>
+				<paper-dropdown-menu
+						id="add-client3"
+						label="Protocol">
+					<paper-listbox
+							slot="dropdown-content"
+							class="dropdown-content"
+							selected="0">
+						<paper-item value="RADIUS">
+							RADIUS
+						</paper-item>
+						<paper-item value="DIAMETER">
+							DIAMETER
+						</paper-item>
+					</paper-listbox>
+				</paper-dropdown-menu>
+				<div class="buttons">
+					<paper-button
+							raised
+							class="add-button"
+							onclick="_submitClientForm()">
+						Submit
+					</paper-button>
+					<paper-button
+							class="cancel-button"
+							dialog-confirm
+							autofocus
+							onclick="clientAddModal.close()">
+						Cancel
+					</paper-button>
+				</div>
+			</form>
+		</paper-dialog>
 		<iron-ajax
 				id="clientAddAjax"
 				url="/ocs/v1/client"
