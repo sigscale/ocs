@@ -5,5 +5,5 @@
 check_DATA = ocs_eap_pwd.so
 
 ocs_eap_pwd.so:
-	ln -s $(top_builddir)/c_src/.libs/$@
+	$(LN_S)  $(top_builddir)/c_src/.libs/$@
 
