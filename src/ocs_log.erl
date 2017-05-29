@@ -489,7 +489,7 @@ ipdr_file1(FileName, Log, Format) ->
 %% @hidden
 ipdr_file2(FileName, Log, Format, ExportDir) ->
 	CsvFile = ExportDir ++ "/" ++ FileName ++ "." ++ atom_to_list(Format),
-	case file:open(CsvFile, [raw, write]) of
+	case file:open(CsvFile, [raw, write, delayed_write]) of
 		{ok, IoDevice} ->
 			ipdr_file3(Log, IoDevice, Format, disk_log:chunk(Log, start));
 		{error, Reason} ->
