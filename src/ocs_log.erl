@@ -483,6 +483,8 @@ ipdr_file1(FileName, Log, Format) ->
 		{error, eexist} ->
 			ipdr_file2(FileName, Log, Format, Directory);
 		{error, Reason} ->
+			error_logger:error_report([file:format_error(Reason),
+					{directory, Directory}, {error, Reason}]),
 			disk_log:close(Log),
 			{error, Reason}
 	end.
@@ -996,6 +998,8 @@ ipdr_xml(Log, IoDevice, Cont, [#ipdrDoc{} = I | T]) ->
 		ok ->
 			ipdr_xml(Log, IoDevice, Cont, T);
 		{error, Reason} ->
+			error_logger:error_report([file:format_error(Reason),
+					{error, Reason}]),
 			file:close(IoDevice),
 			disk_log:close(Log),
 			{error, Reason}
@@ -1006,6 +1010,8 @@ ipdr_xml(Log, IoDevice, Cont, [#ipdr{} = I | T]) ->
 		ok ->
 			ipdr_xml(Log, IoDevice, Cont, T);
 		{error, Reason} ->
+			error_logger:error_report([file:format_error(Reason),
+					{error, Reason}]),
 			file:close(IoDevice),
 			disk_log:close(Log),
 			{error, Reason}
@@ -1016,6 +1022,8 @@ ipdr_xml(Log, IoDevice, Cont, [#ipdrDocEnd{}]) ->
 		ok ->
 			ipdr_file3(Log, IoDevice, xml, Cont);
 		{error, Reason} ->
+			error_logger:error_report([file:format_error(Reason),
+					{error, Reason}]),
 			file:close(IoDevice),
 			disk_log:close(Log),
 			{error, Reason}
@@ -1028,6 +1036,8 @@ ipdr_xdr(Log, IoDevice, Cont, [#ipdrDoc{} = I | T]) ->
 		ok ->
 			ipdr_xdr(Log, IoDevice, Cont, T);
 		{error, Reason} ->
+			error_logger:error_report([file:format_error(Reason),
+					{error, Reason}]),
 			file:close(IoDevice),
 			disk_log:close(Log),
 			{error, Reason}
@@ -1038,6 +1048,8 @@ ipdr_xdr(Log, IoDevice, Cont, [#ipdr{} = I | T]) ->
 		ok ->
 			ipdr_xdr(Log, IoDevice, Cont, T);
 		{error, Reason} ->
+			error_logger:error_report([file:format_error(Reason),
+					{error, Reason}]),
 			file:close(IoDevice),
 			disk_log:close(Log),
 			{error, Reason}
@@ -1048,6 +1060,8 @@ ipdr_xdr(Log, IoDevice, Cont, [#ipdrDocEnd{}]) ->
 		ok ->
 			ipdr_file3(Log, IoDevice, xdr, Cont);
 		{error, Reason} ->
+			error_logger:error_report([file:format_error(Reason),
+					{error, Reason}]),
 			file:close(IoDevice),
 			disk_log:close(Log),
 			{error, Reason}
@@ -1064,6 +1078,8 @@ ipdr_csv(Log, IoDevice, Cont, [#ipdrDoc{} | T]) ->
 		ok ->
 			ipdr_csv(Log, IoDevice, Cont, T);
 		{error, Reason} ->
+			error_logger:error_report([file:format_error(Reason),
+					{error, Reason}]),
 			file:close(IoDevice),
 			disk_log:close(Log),
 			{error, Reason}
@@ -1100,6 +1116,8 @@ ipdr_csv(Log, IoDevice, Cont, [#ipdr{} = I | T]) ->
 		ok ->
 			ipdr_csv(Log, IoDevice, Cont, T);
 		{error, Reason} ->
+			error_logger:error_report([file:format_error(Reason),
+					{error, Reason}]),
 			file:close(IoDevice),
 			disk_log:close(Log),
 			{error, Reason}
