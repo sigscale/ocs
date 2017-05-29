@@ -13,6 +13,7 @@
       {acct_log_dir, "log/acct"},
       {auth_log_dir, "log/auth"},
       {ipdr_log_dir, "log/ipdr"},
+      {export_dir, "log/export"},
       {tls_key, "ssl/key.pem"},
       {tls_cert, "ssl/cert.pem"},
       {tls_cacert, "ssl/ca.pem"}]},
