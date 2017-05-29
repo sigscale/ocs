@@ -1012,7 +1012,7 @@ ipdr_xml(Log, IoDevice, Cont, [#ipdr{} = I | T]) ->
 	end;
 ipdr_xml(Log, IoDevice, Cont, [#ipdrDocEnd{}]) ->
 	Trailer = <<>>,
-	case file:write_file(IoDevice, Trailer) of
+	case file:write(IoDevice, Trailer) of
 		ok ->
 			ipdr_file3(Log, IoDevice, xml, Cont);
 		{error, Reason} ->
@@ -1060,7 +1060,7 @@ ipdr_csv(Log, IoDevice, Cont, [#ipdrDoc{} | T]) ->
 			<<"Called Station ID;NAS IP Address;NAS Identifier;">>,
 			<<"Session Duration;Input Octets;Output Octets;">>,
 			<<"Class;Session Terminate Cause">>, $\r, $\n],
-	case file:write_file(IoDevice, Header) of
+	case file:write(IoDevice, Header) of
 		ok ->
 			ipdr_csv(Log, IoDevice, Cont, T);
 		{error, Reason} ->
@@ -1096,7 +1096,7 @@ ipdr_csv(Log, IoDevice, Cont, [#ipdr{} = I | T]) ->
 	IPDR = <<Time, $;, Seq, $;, User, $;, Sess, $;, IP, $;, IP, $;,
 			Calling, $;, Called, $;, NasIP, $;, NasID, $;, Duration, $;,
 			Input, $;, Output, $;, Class, $;, Cause, $\r, $\n>>,
-	case file:write_file(IoDevice, IPDR) of
+	case file:write(IoDevice, IPDR) of
 		ok ->
 			ipdr_csv(Log, IoDevice, Cont, T);
 		{error, Reason} ->
