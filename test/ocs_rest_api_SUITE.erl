@@ -693,7 +693,7 @@ get_usage(Config) ->
 	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	AuthKey = "Basic " ++ Encodekey,
 	Authentication = {"authorization", AuthKey},
-	Request2 = {HostUrl ++ "/usageManagement/v1/usage", [Accept, Authentication ]},
+	Request2 = {HostUrl ++ "/usageManagement/v1/usage", [Accept, Authentication]},
 	{ok, Result1} = httpc:request(get, Request2, [], []),
 	{{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
 	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers1),
