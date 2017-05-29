@@ -25,7 +25,7 @@
 %% export the ocs_log public API
 -export([acct_open/0, acct_log/4, acct_close/0]).
 -export([auth_open/0, auth_log/6, auth_log/7, auth_close/0, auth_query/5]).
--export([ipdr_log/3, ipdr_file/1, get_range/3, last/2]).
+-export([ipdr_log/3, ipdr_file/2, get_range/3, last/2]).
 -export([dump_file/2, http_file/2, httpd_logname/1]).
 -export([date/1, iso8601/1]).
 
@@ -446,57 +446,61 @@ ipdr_log4(IpdrLog, SeqNum) ->
 			{error, Reason}
 	end.
 
--spec ipdr_file(LogFile) -> Result
+-spec ipdr_file(LogFile, Format) -> Result
 	when
 		LogFile :: file:filename(),
+		Format :: xml | xdr | csv,
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Write IPDR disk log to a comma seperated values (CSV) file".
+%% @doc Export internal IPDR disk log.
 %%
-%% 	Creates a file named `LogFile.csv' with the details from the
-%%% 	{@link //kernel/disk_log:log(). disk_log:log()} file `LogFile'
+%% 	Creates a file named `LogFile'.`Format' with the details from the
+%% 	{@link //kernel/disk_log:log(). disk_log:log()} file `LogFile'
 %% 	created previously with {@link ipdr_log/3}.
 %%
-ipdr_file(LogFile) is_string(LogFile) ->
+ipdr_file(LogFile, Format) when is_list(LogFile),
+		Format == xml; Format == xdr; Format == csv ->
 	{ok, Directory} = application:get_env(ocs, ipdr_dir),
 	FileName = Directory ++ "/" ++ LogFile,
 	case disk_log:open([{name, make_ref()}, {file, FileName}, {repair, true}]) of
 		{ok, Log} ->
-			ipdr_file1(LogFile, Log);
+			ipdr_file1(LogFile, Log, Format);
 		{repaired, Log, _Recovered, _Bad} ->
-			ipdr_file1(LogFile, Log);
+			ipdr_file1(LogFile, Log, Format);
 		{error, Reason} ->
 			Descr = lists:flatten(disk_log:format_error(Reason)),
 			Trunc = lists:sublist(Descr, length(Descr) - 1),
 			error_logger:error_report([Trunc, {module, ?MODULE},
-					{log, Log}, {error, Reason}]),
+					{file, FileName}, {error, Reason}]),
 			{error, Reason}
 	end.
 %% @hidden
-ipdr_file1(FileName, Log) ->
+ipdr_file1(FileName, Log, Format) ->
 	{ok, Directory} = application:get_env(ocs, export_dir),
 	case file:make_dir(Directory) of
 		ok ->
-			ipdr_file2(FileName, Log, Directory);
+			ipdr_file2(FileName, Log, Format, Directory);
 		{error, eexist} ->
-			ipdr_file2(FileName, Log, Directory);
+			ipdr_file2(FileName, Log, Format, Directory);
 		{error, Reason} ->
+			disk_log:close(Log),
 			{error, Reason}
 	end.
 %% @hidden
-ipdr_file2(FileName, Log, ExportDir) ->
-	CsvFile = ExportDir ++ "/" ++ FileName ++ ".csv",
+ipdr_file2(FileName, Log, Format, ExportDir) ->
+	CsvFile = ExportDir ++ "/" ++ FileName ++ atom_to_list(Format),
 	case file:open(CsvFile, [raw, write]) of
 		{ok, IoDevice} ->
-			ipdr_file3(Log, IoDevice, disk_log:chunk(Log, start));
+			ipdr_file3(Log, IoDevice, Format, disk_log:chunk(Log, start));
 		{error, Reason} ->
 			error_logger:error_report([file:format_error(Reason),
 					{module, ?MODULE}, {log, Log},
 					{filename, CsvFile}, {error, Reason}]),
+			disk_log:close(Log),
 			{error, Reason}
 	end.
 %% @hidden
-ipdr_file3(Log, IoDevice, eof) ->
+ipdr_file3(Log, IoDevice, _Format, eof) ->
 	case disk_log:close(Log) of
 		ok ->
 			file:close(IoDevice);
@@ -505,19 +509,25 @@ ipdr_file3(Log, IoDevice, eof) ->
 			Trunc = lists:sublist(Descr, length(Descr) - 1),
 			error_logger:error_report([Trunc, {module, ?MODULE},
 					{log, Log}, {error, Reason}]),
+			file:close(IoDevice),
 			{error, Reason}
 	end;
-ipdr_file3(Log, IoDevice, {Cont, Events}) ->
-	ipdr_file4(Log, IoDevice, Cont, Terms);
-ipdr_file3(Log, IoDevice, {error, Reason}) ->
+ipdr_file3(Log, IoDevice, xml, {Cont, Events}) ->
+	ipdr_xml(Log, IoDevice, Cont, Events);
+ipdr_file3(Log, IoDevice, xdr, {Cont, Events}) ->
+	ipdr_xdr(Log, IoDevice, Cont, Events);
+ipdr_file3(Log, IoDevice, csv, {Cont, Events}) ->
+	ipdr_csv(Log, IoDevice, Cont, Events);
+ipdr_file3(Log, IoDevice, Format, {Cont, []}) ->
+	ipdr_file3(Log, IoDevice, Format, disk_log:chunk(Log, Cont));
+ipdr_file3(Log, IoDevice, _Format, {error, Reason}) ->
 	Descr = lists:flatten(disk_log:format_error(Reason)),
 	Trunc = lists:sublist(Descr, length(Descr) - 1),
 	error_logger:error_report([Trunc, {module, ?MODULE},
 			{log, Log}, {error, Reason}]),
+	disk_log:close(Log),
+	file:close(IoDevice),
 	{error, Reason}.
-%% @hidden
-ipdr_file4(Log, IoDevice, Cont, Terms) ->
-	ok.
 
 -spec get_range(Log, Start, End) -> Result
 	when
@@ -978,4 +988,122 @@ ipdr_codec14(Attributes, radius, stop, Acc) ->
 		{error, not_found} ->
 			Acc
 	end.
+
+%% @hidden
+ipdr_xml(Log, IoDevice, Cont, [#ipdrDoc{} = I | T]) ->
+	Header = [],
+	case file:write_file(IoDevice, Header) of
+		ok ->
+			ipdr_xml(Log, IoDevice, Cont, T);
+		{error, Reason} ->
+			file:close(IoDevice),
+			disk_log:close(Log),
+			{error, Reason}
+	end;
+ipdr_xml(Log, IoDevice, Cont, [#ipdr{} = I | T]) ->
+	IPDR = <<>>,
+	case file:write_file(IoDevice, IPDR) of
+		ok ->
+			ipdr_xml(Log, IoDevice, Cont, T);
+		{error, Reason} ->
+			file:close(IoDevice),
+			disk_log:close(Log),
+			{error, Reason}
+	end;
+ipdr_xml(Log, IoDevice, Cont, [#ipdrDocEnd{}]) ->
+	Trailer = <<>>,
+	case file:write_file(IoDevice, Trailer) of
+		ok ->
+			ipdr_file3(Log, IoDevice, xml, Cont);
+		{error, Reason} ->
+			file:close(IoDevice),
+			disk_log:close(Log),
+			{error, Reason}
+	end.
+
+%% @hidden
+ipdr_xdr(Log, IoDevice, Cont, [#ipdrDoc{} = I | T]) ->
+	Header = [],
+	case file:write_file(IoDevice, Header) of
+		ok ->
+			ipdr_xdr(Log, IoDevice, Cont, T);
+		{error, Reason} ->
+			file:close(IoDevice),
+			disk_log:close(Log),
+			{error, Reason}
+	end;
+ipdr_xdr(Log, IoDevice, Cont, [#ipdr{} = I | T]) ->
+	IPDR = <<>>,
+	case file:write_file(IoDevice, IPDR) of
+		ok ->
+			ipdr_xdr(Log, IoDevice, Cont, T);
+		{error, Reason} ->
+			file:close(IoDevice),
+			disk_log:close(Log),
+			{error, Reason}
+	end;
+ipdr_xdr(Log, IoDevice, Cont, [#ipdrDocEnd{}]) ->
+	Trailer = <<>>,
+	case file:write_file(IoDevice, Trailer) of
+		ok ->
+			ipdr_file3(Log, IoDevice, xdr, Cont);
+		{error, Reason} ->
+			file:close(IoDevice),
+			disk_log:close(Log),
+			{error, Reason}
+	end.
+
+%% @hidden
+ipdr_csv(Log, IoDevice, Cont, [#ipdrDoc{} | T]) ->
+	Header = [<<"Creation Time;Sequence Number;Username;">>,
+			<<"Accounting Session ID;User IP Address;Calling Station ID;">>,
+			<<"Called Station ID;NAS IP Address;NAS Identifier;">>,
+			<<"Session Duration;Input Octets;Output Octets;">>,
+			<<"Class;Session Terminate Cause">>, $\r, $\n],
+	case file:write_file(IoDevice, Header) of
+		ok ->
+			ipdr_csv(Log, IoDevice, Cont, T);
+		{error, Reason} ->
+			file:close(IoDevice),
+			disk_log:close(Log),
+			{error, Reason}
+	end;
+ipdr_csv(Log, IoDevice, Cont, [#ipdr{} = I | T]) ->
+	Time = list_to_binary(iso8601(I#ipdr.ipdrCreationTime)),
+	Seq = integer_to_binary(I#ipdr.seqNum),
+	User = list_to_binary(I#ipdr.username),
+	Sess = list_to_binary(I#ipdr.acctSessionId),
+	IP = case I#ipdr.userIpAddress of
+		undefined ->
+			<<>>;
+		IpAddress ->
+			list_to_binary(IpAddress)
+	end,
+	Calling = list_to_binary(I#ipdr.callingStationId),
+	Called = list_to_binary(I#ipdr.calledStationId),
+	NasIP = list_to_binary(I#ipdr.nasIpAddress),
+	NasID = list_to_binary(I#ipdr.nasId),
+	Duration = integer_to_binary(I#ipdr.sessionDuration),
+	Input = integer_to_binary(I#ipdr.inputOctets),
+	Output = integer_to_binary(I#ipdr.outputOctets),
+	Class = case I#ipdr.class of
+		undefined ->
+			<<>>;
+		CLS ->
+			list_to_binary(CLS)
+	end,
+	Cause = integer_to_binary(I#ipdr.sessionTerminateCause),
+	IPDR = <<Time, $;, Seq, $;, User, $;, Sess, $;, IP, $;, IP, $;,
+			Calling, $;, Called, $;, NasIP, $;, NasID, $;, Duration, $;,
+			Input, $;, Output, $;, Class, $;, Cause, $\r, $\n>>,
+	case file:write_file(IoDevice, IPDR) of
+		ok ->
+			ipdr_csv(Log, IoDevice, Cont, T);
+		{error, Reason} ->
+			file:close(IoDevice),
+			disk_log:close(Log),
+			{error, Reason}
+	end;
+ipdr_csv(Log, IoDevice, Cont, [#ipdrDocEnd{}]) ->
+	ipdr_file3(Log, IoDevice, csv, Cont).
 
