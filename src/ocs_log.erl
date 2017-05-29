@@ -17,13 +17,15 @@
 %%% @doc This library module implements functions used in handling logging
 %%% 	in the {@link //ocs. ocs} application.
 %%%
+%%% 	@reference <a href="http://www.tmforum.org/ipdr/">IPDR Specifications</a>.
+%%%
 -module(ocs_log).
 -copyright('Copyright (c) 2016-2017 SigScale Global Inc.').
 
 %% export the ocs_log public API
 -export([acct_open/0, acct_log/4, acct_close/0]).
 -export([auth_open/0, auth_log/6, auth_log/7, auth_close/0, auth_query/5]).
--export([ipdr_log/3, get_range/3, last/2]).
+-export([ipdr_log/3, ipdr_file/1, get_range/3, last/2]).
 -export([dump_file/2, http_file/2, httpd_logname/1]).
 -export([date/1, iso8601/1]).
 
@@ -443,6 +445,79 @@ ipdr_log4(IpdrLog, SeqNum) ->
 			disk_log:close(IpdrLog),
 			{error, Reason}
 	end.
+
+-spec ipdr_file(LogFile) -> Result
+	when
+		LogFile :: file:filename(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Write IPDR disk log to a comma seperated values (CSV) file".
+%%
+%% 	Creates a file named `LogFile.csv' with the details from the
+%%% 	{@link //kernel/disk_log:log(). disk_log:log()} file `LogFile'
+%% 	created previously with {@link ipdr_log/3}.
+%%
+ipdr_file(LogFile) is_string(LogFile) ->
+	{ok, Directory} = application:get_env(ocs, ipdr_dir),
+	FileName = Directory ++ "/" ++ LogFile,
+	case disk_log:open([{name, make_ref()}, {file, FileName}, {repair, true}]) of
+		{ok, Log} ->
+			ipdr_file1(LogFile, Log);
+		{repaired, Log, _Recovered, _Bad} ->
+			ipdr_file1(LogFile, Log);
+		{error, Reason} ->
+			Descr = lists:flatten(disk_log:format_error(Reason)),
+			Trunc = lists:sublist(Descr, length(Descr) - 1),
+			error_logger:error_report([Trunc, {module, ?MODULE},
+					{log, Log}, {error, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+ipdr_file1(FileName, Log) ->
+	{ok, Directory} = application:get_env(ocs, export_dir),
+	case file:make_dir(Directory) of
+		ok ->
+			ipdr_file2(FileName, Log, Directory);
+		{error, eexist} ->
+			ipdr_file2(FileName, Log, Directory);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+ipdr_file2(FileName, Log, ExportDir) ->
+	CsvFile = ExportDir ++ "/" ++ FileName ++ ".csv",
+	case file:open(CsvFile, [raw, write]) of
+		{ok, IoDevice} ->
+			ipdr_file3(Log, IoDevice, disk_log:chunk(Log, start));
+		{error, Reason} ->
+			error_logger:error_report([file:format_error(Reason),
+					{module, ?MODULE}, {log, Log},
+					{filename, CsvFile}, {error, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+ipdr_file3(Log, IoDevice, eof) ->
+	case disk_log:close(Log) of
+		ok ->
+			file:close(IoDevice);
+		{error, Reason} ->
+			Descr = lists:flatten(disk_log:format_error(Reason)),
+			Trunc = lists:sublist(Descr, length(Descr) - 1),
+			error_logger:error_report([Trunc, {module, ?MODULE},
+					{log, Log}, {error, Reason}]),
+			{error, Reason}
+	end;
+ipdr_file3(Log, IoDevice, {Cont, Events}) ->
+	ipdr_file4(Log, IoDevice, Cont, Terms);
+ipdr_file3(Log, IoDevice, {error, Reason}) ->
+	Descr = lists:flatten(disk_log:format_error(Reason)),
+	Trunc = lists:sublist(Descr, length(Descr) - 1),
+	error_logger:error_report([Trunc, {module, ?MODULE},
+			{log, Log}, {error, Reason}]),
+	{error, Reason}.
+%% @hidden
+ipdr_file4(Log, IoDevice, Cont, Terms) ->
+	ok.
 
 -spec get_range(Log, Start, End) -> Result
 	when
