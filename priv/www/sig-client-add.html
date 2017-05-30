@@ -53,7 +53,9 @@
 				<paper-input
 						id="add-client1"
 						name="address"
-						label="IP Address">
+						label="IP Address"
+						allowed-pattern="[0-9\.]"
+						required>
 				</paper-input>
 				<paper-tooltip >
 					IP address of network access server, router or access point
@@ -107,6 +109,9 @@
 					</paper-button>
 				</div>
 			</form>
+				<paper-toast id="toastSuccess" class="fit-bottom">
+					<h2>client added</h2>
+				</paper-toast>
 		</paper-dialog>
 		<iron-ajax
 				id="clientAddAjax"
@@ -121,9 +126,6 @@
 			function _submitClientForm() {
 				document.getElementById('clientAddForm').submit();
 			}
-			function toastErrorClose(event) {
-				document.getElementById('toastError').close();
-			}
 		</script>
 	</template>
 	<script>
@@ -132,11 +134,11 @@
 				is: 'sig-client-add',
 				listeners: {
 					'clientAddForm.iron-form-presubmit': '_clientFormPreSubmit',
-					'clientAddForm.iron-form-error': '_clientFormError',
+					'clientAddForm.iron-form-submit': '_handleFormSubmit',
 					'clientAddForm.iron-form-response': '_clientFormResponse',
 				},
 				_clientFormPreSubmit: function() {
-					var form = document.getElementById('presubmit3');
+					var form = document.getElementById('clientAddForm');
 					var formData = new Object();
 					formData.id = document.getElementById("add-client1").value;
 					formData.port = parseInt(document.getElementById("add-client2").value);
@@ -146,12 +148,11 @@
 					ajax.body = formData;
 					ajax.generateRequest();
 				},
-				_clientFormError: function() {
-					var toast = document.getElementById("toastError");
-					toast.open();
-					toast.duration = 0;
-					toast.fitInto = document.getElementById("response-display-container");
-				},
+				_handleFormSubmit: function() {
+               var form = document.getElementById('clientAddForm');
+               form.request.headers='{"Content-Type": "application/json"}';
+               form.request.contentType = "application/json";
+            },
 				_onLoadingChanged: function(event) {
 					if (document.getElementById("clientAddAjax").loading) {
 						document.getElementById('progress').disabled = false;
@@ -160,14 +161,16 @@
 					}
 				},
 				_clientFormResponse: function(event) {
-					var toast = document.getElementById("toast-success");
+					var toast = document.getElementById("toastSuccess");
 					toast.open();
 					toast.duration = 4;
-					toast.fitInto = document.getElementById("response-display-container");
 					document.getElementById("clientAddForm").reset();
-					document.getElementById("clientAddModal").close();
 					document.getElementById("getClients").generateRequest();
-				}
+				},
+				toastErrorClose: function(event) {
+               var toast = document.getElementById("toastError");
+               toast.close();
+            }
 			}
 		);
 	</script>
