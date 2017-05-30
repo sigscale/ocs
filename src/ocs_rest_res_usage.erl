@@ -52,7 +52,8 @@ perform_get_all() ->
 	{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
 	case file:list_dir(Directory) of
 		{ok, Files} ->
-			Body = mochijson:encode({array, Files}),
+			SortedFiles = lists:reverse(lists:sort(Files)),
+			Body = mochijson:encode({array, SortedFiles}),
 			Headers = [{content_type, "application/json"}],
 			{ok, Headers, Body};
 		{error, _Reason} ->
