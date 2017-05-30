@@ -27,7 +27,7 @@
 		find_subscriber/1, delete_subscriber/1, update_password/2,
 		update_attributes/2, update_attributes/4, get_subscribers/0]).
 -export([generate_password/0]).
--export([start/4]).
+-export([start/4, start/5]).
 %% export the ocs private API
 -export([authorize/2, normalize/1]).
 

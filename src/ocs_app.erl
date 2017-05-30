@@ -76,36 +76,36 @@ start1() ->
 	{ok, LogRotate} = application:get_env(acct_log_rotate),
 	[{auth, RadAuthInstances}, {acct, RadAcctInstances}] = RadiusConfig,
 	[{auth, DiamAuthInstances}, {acct, DiamAcctInstances}] = DiameterConfig,
-	F1 = fun({AcctAddr, AcctPort, _Options}= _Instance) ->
-		case ocs:start(radius, acct, AcctAddr, AcctPort) of
+	F1 = fun({AcctAddr, AcctPort, Options} = _Instance) ->
+		case ocs:start(radius, acct, AcctAddr, AcctPort, Options) of
 			{ok, _AcctSup} ->
 				ok;
-			{error, Reason2} ->
-				throw(Reason2)
+			{error, Reason} ->
+				throw(Reason)
 		end
 	end,
-	F2 = fun({AuthAddr, AuthPort, _Options}= _Instance) ->
-		case ocs:start(radius, auth, AuthAddr, AuthPort) of
+	F2 = fun({AuthAddr, AuthPort, Options} = _Instance) ->
+		case ocs:start(radius, auth, AuthAddr, AuthPort, Options) of
 			{ok, _Authup} ->
 				ok;
-			{error, Reason3} ->
-				throw(Reason3)
+			{error, Reason} ->
+				throw(Reason)
 		end
 	end,
-	F3 = fun({AuthAddr, AuthPort, _Options}= _Instance) ->
-		case ocs:start(diameter, auth, AuthAddr, AuthPort) of
+	F3 = fun({AuthAddr, AuthPort, Options} = _Instance) ->
+		case ocs:start(diameter, auth, AuthAddr, AuthPort, Options) of
 			{ok, _AuthSup} ->
 				ok;
-			{error, Reason3} ->
-				throw(Reason3)
+			{error, Reason} ->
+				throw(Reason)
 		end
 	end,
-	F4 = fun({AuthAddr, AuthPort, _Options}= _Instance) ->
-		case ocs:start(diameter, acct, AuthAddr, AuthPort) of
+	F4 = fun({AuthAddr, AuthPort, Options} = _Instance) ->
+		case ocs:start(diameter, acct, AuthAddr, AuthPort, Options) of
 			{ok, _AcctSup} ->
 				ok;
-			{error, Reason3} ->
-				throw(Reason3)
+			{error, Reason} ->
+				throw(Reason)
 		end
 	end,
 	try
