@@ -547,7 +547,7 @@ generate_identity(<<N, Rest/binary>>, Charset, NumChars, Acc) ->
 	NewAcc = [lists:nth(CharNum, Charset) | Acc],
 	generate_identity(Rest, Charset, NumChars, NewAcc);
 generate_identity(<<>>, _Charset, _NumChars, Acc) ->
-	Acc.
+	list_to_binary(Acc).
 
 -spec charset() -> Charset
 	when
