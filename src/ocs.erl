@@ -472,7 +472,7 @@ update_attributes(Subscriber, Balance, Attributes, EnabledStatus)
 generate_password() ->
 	generate_password(12).
 
--type identity() :: [48..57].
+-type identity() :: [48..57] | binary().
 -spec generate_identity() -> identity().
 %% @equiv generate_identity(7)
 generate_identity() ->
