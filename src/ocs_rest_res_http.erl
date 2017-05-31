@@ -20,9 +20,7 @@
 -module(ocs_rest_res_http).
 -copyright('Copyright (c) 2017 SigScale Global Inc.').
 
--export([content_types_accepted/0,
-            content_types_provided/0,
-            perform_get_all/0]).
+-export([content_types_accepted/0, content_types_provided/0, get_http/0]).
 
 -include("ocs_log.hrl").
 
@@ -48,13 +46,13 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json"].
 
--spec perform_get_all() -> Result
+-spec get_http() -> Result
 	when
-		Result :: {ok, Headers :: [string()],
-				Body :: iolist()} | {error, ErrorCode :: integer()}.
+		Result :: {ok, Headers :: [string()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/log/http'
 %% requests.
-perform_get_all() ->
+get_http() ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	Log = ocs_log:httpd_logname(transfer),
 	read_http_log(Log, MaxItems).

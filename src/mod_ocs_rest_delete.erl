@@ -55,13 +55,7 @@ do(#mod{method = Method, request_uri = Uri, data = Data} = ModData) ->
 					case proplists:get_value(response, Data) of
 						undefined ->
 							{_, Resource} = lists:keyfind(resource, 1, Data),
-							case string:tokens(Uri, "/") of
-								["ocs", "v1", _, Identity] ->
-									Resource:perform_delete(Identity),
-									send_response(ModData, []);
-								_ ->
-									{break, [{response,	{404, "<h1>NOT FOUND</h1>"}}]}
-							end;
+							do_delete(Resource, ModData, string:tokens(Uri, "/"));
 						_Response ->
 							{proceed,  Data}
 					end
@@ -71,15 +65,25 @@ do(#mod{method = Method, request_uri = Uri, data = Data} = ModData) ->
 	end.
 
 %% @hidden
-send_response(ModData, ResponseBody)->
-	    Size = integer_to_list(iolist_size(ResponseBody)),
-	    Headers = [{content_length, Size}],
-	    send(ModData, 204, Headers, ResponseBody),
-	    {proceed,[{response,{already_sent,201, Size}}]}.
+do_delete(Resource, ModData, ["ocs", "v1", "client", Identity]) ->
+	do_response(ModData, Resource:delete_client(Identity));
+do_delete(Resource, ModData, ["ocs", "v1", "subscriber", Identity]) ->
+	do_response(ModData, Resource:delete_subscriber(Identity));
+do_delete(_Resource, _ModData, _) ->
+	{break, [{response,	{404, "<h1>Not Found</h1>"}}]}.
+
+%% @hidden
+do_response(ModData, {ok, Headers, ResponseBody}) ->
+	Size = integer_to_list(iolist_size(ResponseBody)),
+	NewHeaders = Headers ++ [{content_length, Size}],
+	send(ModData, 204, NewHeaders, ResponseBody),
+	{proceed, [{response,{already_sent, 204, Size}}]};
+do_response(_ModData, {error, ErrorCode}) ->
+	{break, [{response, {ErrorCode, ["<h1>Server Error</h1>"]}}]}.
 
 %% @hidden
 send(#mod{socket = Socket, socket_type = SocketType} = ModData,
-     StatusCode, Headers, ResponseBody) ->
-    httpd_response:send_header(ModData, StatusCode, Headers),
-    httpd_socket:deliver(SocketType, Socket, ResponseBody).
+		StatusCode, Headers, ResponseBody) ->
+	httpd_response:send_header(ModData, StatusCode, Headers),
+	httpd_socket:deliver(SocketType, Socket, ResponseBody).
 

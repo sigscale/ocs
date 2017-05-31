@@ -20,13 +20,9 @@
 -module(ocs_rest_res_subscriber).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
--export([content_types_accepted/0,
-				content_types_provided/0,
-				perform_get/1,
-				perform_get_all/0,
-				perform_post/1,
-				perform_patch/2,
-				perform_delete/1]).
+-export([content_types_accepted/0, content_types_provided/0,
+		get_subscriber/0, get_subscriber/1, post_subscriber/1,
+		patch_subscriber/2, delete_subscriber/1]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
@@ -45,14 +41,14 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json"].
 
--spec perform_get(Id) -> Result
+-spec get_subscriber(Id) -> Result
 	when
 		Id :: string(),
-		Result :: {ok, Headers :: term(), 
-				Body :: iolist()} | {error, ErrorCode :: integer()}.
+		Result :: {ok, Headers :: [string()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/subscriber/{id}'
 %% requests.
-perform_get(Id) ->
+get_subscriber(Id) ->
 	case ocs:find_subscriber(Id) of
 		{ok, PWBin, Attributes, Balance, Enabled} ->
 			Password = binary_to_list(PWBin),
@@ -69,24 +65,21 @@ perform_get(Id) ->
 			{error, 404}
 	end.
 
--spec perform_get_all() -> Result
+-spec get_subscriber() -> Result
 	when
-		Result :: {ok, Headers :: [string()],
-				Body :: iolist()} | {error, ErrorCode :: integer()}.
+		Result :: {ok, Headers :: [string()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/subscriber'
 %% requests.
-perform_get_all() ->
+get_subscriber() ->
 	case ocs:get_subscribers() of
 		{error, _} ->
 			{error, 404};
 		Subscribers ->
-			Response = perform_get_all1(Subscribers),
-			Body  = mochijson:encode(Response),
-			Headers = [{content_type, "application/json"}],
-			{ok, Headers, Body}
+			get_subscriber0(Subscribers)
 	end.
 %% @hidden
-perform_get_all1(Subscribers) ->
+get_subscriber0(Subscribers) ->
 			F = fun(#subscriber{name = Id, password = Password,
 					attributes = Attributes, balance = Balance, enabled = Enabled}, Acc) ->
 				JSAttributes = radius_to_json(Attributes),
@@ -97,15 +90,18 @@ perform_get_all1(Subscribers) ->
 				[RespObj | Acc]
 			end,
 			JsonObj = lists:flatten(lists:foldl(F, [], Subscribers)),
-			{array, lists:reverse(JsonObj)}.
+			Body  = mochijson:encode({array, lists:reverse(JsonObj)}),
+			Headers = [{content_type, "application/json"}],
+			{ok, Headers, Body}.
 
--spec perform_post(RequestBody) -> Result 
+-spec post_subscriber(RequestBody) -> Result 
 	when 
 		RequestBody :: list(),
-		Result :: {Location :: string(), Body :: iolist()} | {error, ErrorCode :: integer()}.
+		Result :: {ok, Headers :: string(), Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
 %% @doc Respond to `POST /ocs/v1/subscriber' and add a new `subscriber'
 %% resource.
-perform_post(RequestBody) ->
+post_subscriber(RequestBody) ->
 	try 
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, Id} = lists:keyfind("id", 1, Object),
@@ -123,15 +119,15 @@ perform_post(RequestBody) ->
 		end,
 		{_, Balance} = lists:keyfind("balance", 1, Object),
 		{_, EnabledStatus} = lists:keyfind("enabled", 1, Object),
-		perform_post1(Id, Password, RadAttributes, Balance, EnabledStatus)
+		post_subscriber1(Id, Password, RadAttributes, Balance, EnabledStatus)
 	catch
 		_Error ->
 			{error, 400}
 	end.
 %% @hidden
-perform_post1(Id, null, RadAttributes, Balance, EnabledStatus) ->
-	perform_post1(Id, "", RadAttributes, Balance, EnabledStatus);
-perform_post1(Id, Password, RadAttributes, Balance, EnabledStatus) ->
+post_subscriber1(Id, null, RadAttributes, Balance, EnabledStatus) ->
+	post_subscriber1(Id, "", RadAttributes, Balance, EnabledStatus);
+post_subscriber1(Id, Password, RadAttributes, Balance, EnabledStatus) ->
 	try
 	case catch ocs:add_subscriber(Id, Password, RadAttributes, Balance, EnabledStatus) of
 		ok ->
@@ -141,8 +137,8 @@ perform_post1(Id, Password, RadAttributes, Balance, EnabledStatus) ->
 				{enabled, EnabledStatus}],
 			JsonObj  = {struct, RespObj},
 			Body = mochijson:encode(JsonObj),
-			Location = "/ocs/v1/subscriber/" ++ Id,
-			{Location, Body};
+			Headers = [{location, "/ocs/v1/subscriber/" ++ Id}],
+			{ok, Headers, Body};
 		{error, _Reason} ->
 			{error, 400}
 	end catch
@@ -150,14 +146,15 @@ perform_post1(Id, Password, RadAttributes, Balance, EnabledStatus) ->
 			{error, 400}
 	end.
 
--spec perform_patch(Id, ReqBody) -> Result
+-spec patch_subscriber(Id, ReqBody) -> Result
 	when
 		Id :: list(),
 		ReqBody :: list(),
-		Result :: {body, Body :: iolist()} | {error, ErrorCode :: integer()} .
+		Result :: {ok, Headers :: [string()], Body :: iolist()}
+				| {error, ErrorCode :: integer()} .
 %% @doc	Respond to `PATCH /ocs/v1/subscriber/{id}' request and
 %% Updates a existing `subscriber''s password or attributes. 
-perform_patch(Id, ReqBody) ->
+patch_subscriber(Id, ReqBody) ->
 	case ocs:find_subscriber(Id) of
 		{ok, CurrentPwd, CurrentAttr, Bal, Enabled} ->
 			try 
@@ -182,7 +179,7 @@ perform_patch(Id, ReqBody) ->
 					{enabled, Enabled}],
 				JsonObj  = {struct, RespObj},
 				RespBody = mochijson:encode(JsonObj),
-				{body, RespBody}
+				{ok, [], RespBody}
 			catch
 				throw : _ ->
 					{error, 400}
@@ -191,14 +188,20 @@ perform_patch(Id, ReqBody) ->
 			{error, 404}
 	end.
 
--spec perform_delete(Id) -> ok 
+-spec delete_subscriber(ID) -> Result
 	when
-		Id :: list().
+		ID :: list(),
+		Result :: {ok, Headers :: [string()], Body :: iolist()}
+				| {error, ErrorCode :: integer()} .
 %% @doc Respond to `DELETE /ocs/v1/subscriber/{id}' request and deletes
 %% a `subscriber' resource. If the deletion is succeeded return true.
-perform_delete(Id) ->
-	ok = ocs:delete_subscriber(Id),
-	ok.
+delete_subscriber(ID) ->
+	case ocs:delete_subscriber(ID) of
+		ok ->
+			{ok, [], []};
+		_ ->
+			{error, 500}
+	end.
 
 %%----------------------------------------------------------------------
 %%  internal functions

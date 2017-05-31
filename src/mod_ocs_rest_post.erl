@@ -45,8 +45,8 @@
 	Fun :: fun((Arg) -> sent| close | Body),
 	Arg :: [term()].
 %% @doc Erlang web server API callback function.
-do(#mod{method = Method, parsed_header = Headers, entity_body = Body,
-				data = Data} = ModData) ->
+do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
+		entity_body = Body, data = Data} = ModData) ->
 	case Method of
 		"POST" ->
 			case proplists:get_value(status, Data) of
@@ -56,7 +56,7 @@ do(#mod{method = Method, parsed_header = Headers, entity_body = Body,
 					case proplists:get_value(response, Data) of
 						undefined ->
 							{_, Resource} = lists:keyfind(resource, 1, Data),
-							content_type_available(Headers, Body, Resource, ModData);
+							content_type_available(Headers, Uri, Body, Resource, ModData);
 						_Response ->
 							{proceed,  Data}
 					end
@@ -66,42 +66,42 @@ do(#mod{method = Method, parsed_header = Headers, entity_body = Body,
 	end.
 
 %% @hidden
-content_type_available(Headers, Body, Resource, ModData) ->
+content_type_available(Headers, Uri, Body, Resource, ModData) ->
 	case lists:keyfind("accept", 1, Headers) of
 		{_, RequestingType} ->
 			AvailableTypes = Resource:content_types_provided(),
 			case lists:member(RequestingType, AvailableTypes) of
 				true ->
-					do_post(Resource, Body, ModData);
+					do_post(Resource, ModData, Body, string:tokens(Uri, "/"));
 				false ->
 					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
 					{break, [{response, {415, Response}}]}
 			end;
 		_ ->
-			do_post(Resource, Body, ModData)
+			do_post(Resource, ModData, Body, string:tokens(Uri, "/"))
 	end.
 
 %% @hidden
-do_post(Resource, Body, ModData) ->
-	case Resource:perform_post(Body) of
-		{error, ErrorCode} ->
-			{break, [{response,	{ErrorCode, "</h2>Erroneous Request</h2>"}}]};
-		{Location, ResponseBody} ->
-			send_response(ModData, Location, ResponseBody)
-	end.
+do_post(Resource, ModData, Body, ["ocs", "v1", "client"]) ->
+	do_response(ModData, Resource:post_client(Body));
+do_post(Resource, ModData, Body, ["ocs", "v1", "subscriber"]) ->
+	do_response(ModData, Resource:post_subscriber(Body)).
 
 %% @hidden
-send_response(#mod{data = Data} = Info, Location, ResponseBody)->
-	    Size = integer_to_list(iolist_size(ResponseBody)),
-			Accept = proplists:get_value(accept, Data),
-	    Headers = [{location, Location}, {content_length, Size},
-					{content_type, Accept}],
-	    send(Info, 201, Headers, ResponseBody),
-	    {proceed,[{response,{already_sent,201, Size}}]}.
+do_response(#mod{data = Data} = ModData, {ok, Headers, ResponseBody}) ->
+	Size = integer_to_list(iolist_size(ResponseBody)),
+	Accept = proplists:get_value(accept, Data),
+	NewHeaders = Headers ++ [{content_length, Size}, {content_type, Accept}],
+	send(ModData, 201, NewHeaders, ResponseBody),
+	{proceed,[{response,{already_sent,201, Size}}]};
+do_response(_ModData, {error, ErrorCode}) when ErrorCode >= 400, ErrorCode < 500 ->
+	{break, [{response, {ErrorCode, "<h2>Erroneous Request</h2>"}}]};
+do_response(_ModData, {error, ErrorCode}) ->
+	{break, [{response, {ErrorCode, ["<h1>Server Error</h1>"]}}]}.
 
 %% @hidden
 send(#mod{socket = Socket, socket_type = SocketType} = Info,
-     StatusCode, Headers, ResponseBody) ->
-    httpd_response:send_header(Info, StatusCode, Headers),
-    httpd_socket:deliver(SocketType, Socket, ResponseBody).
+		StatusCode, Headers, ResponseBody) ->
+	httpd_response:send_header(Info, StatusCode, Headers),
+	httpd_socket:deliver(SocketType, Socket, ResponseBody).
 

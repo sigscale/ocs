@@ -20,13 +20,9 @@
 -module(ocs_rest_res_client).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
--export([content_types_accepted/0,
-				content_types_provided/0,
-				perform_get/1,
-				perform_get_all/0,
-				perform_post/1,
-				perform_patch/2,
-				perform_delete/1]).
+-export([content_types_accepted/0, content_types_provided/0,
+		get_client/0, get_client/1, post_client/1,
+		patch_client/2, delete_client/1]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
@@ -45,21 +41,56 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json"].
 
--spec perform_get(Ip) -> Result
+-spec get_client() -> Result
+	when
+		Result ::{ok, Headers :: [string()],
+				Body :: iolist()} | {error, ErrorCode :: integer()}.
+%% @doc Body producing function for `GET /ocs/v1/client'
+%% requests.
+get_client() ->
+	case ocs:get_clients() of
+		{error, _} ->
+			{error, 404};
+		Clients ->
+			get_client0(Clients)
+	end.
+%% @hidden
+get_client0(Clients) ->
+	F = fun(#client{address= Address, identifier = Identifier, port = Port,
+				protocol = Protocol, secret = Secret}, Acc) ->
+			Id = inet:ntoa(Address),
+			RespObj1 = [{id, Id}, {href, "/ocs/v1/client/" ++ Id}],
+			RespObj2 = case Identifier of
+				<<>> ->
+					[];
+				Identifier ->
+					[{identifier, binary_to_list(Identifier)}]
+			end,
+			RespObj3 = [{"port", Port},
+					{protocol, string:to_upper(atom_to_list(Protocol))},
+					{secret, Secret}],
+			[{struct, RespObj1 ++ RespObj2 ++ RespObj3} | Acc]
+	end,
+	JsonObj = lists:foldl(F, [], Clients),
+	Body  = mochijson:encode({array, lists:reverse(JsonObj)}),
+	{ok, [{content_type, "application/json"}], Body}.
+
+-spec get_client(Ip) -> Result
 	when
 		Ip :: string(),
-		Result :: {body, Body :: iolist()} | {error, ErrorCode :: integer()}.
+		Result :: {ok, Headers :: list(), Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/client/{id}'
 %% requests.
-perform_get(Ip) ->
+get_client(Ip) ->
 	case inet:parse_address(Ip) of
 		{ok, Address} ->
-			perform_get1(Address);
+			get_client1(Address);
 		{error, einval} ->
 			{error, 400}
 	end.
 %% @hidden
-perform_get1(Address) ->
+get_client1(Address) ->
 	case ocs:find_client(Address) of
 		{ok, #client{port = Port, identifier = Identifier,
 				protocol = Protocol, secret = Secret}} ->
@@ -81,48 +112,14 @@ perform_get1(Address) ->
 			{error, 404}
 	end.
 
--spec perform_get_all() -> Result
-	when
-		Result ::{ok, Headers :: [string()],
-				Body :: iolist()} | {error, ErrorCode :: integer()}.
-%% @doc Body producing function for `GET /ocs/v1/client'
-%% requests.
-perform_get_all() ->
-	case ocs:get_clients() of
-		{error, _} ->
-			{error, 404};
-		Clients ->
-			Response = perform_get_all1(Clients),
-			Body  = mochijson:encode(Response),
-			{ok, [{content_type, "application/json"}], Body}
-	end.
-%% @hidden
-perform_get_all1(Clients) ->
-	F = fun(#client{address= Address, identifier = Identifier, port = Port,
-				protocol = Protocol, secret = Secret}, Acc) ->
-			Id = inet:ntoa(Address),
-			RespObj1 = [{id, Id}, {href, "/ocs/v1/client/" ++ Id}],
-			RespObj2 = case Identifier of
-				<<>> ->
-					[];
-				Identifier ->
-					[{identifier, binary_to_list(Identifier)}]
-			end,
-			RespObj3 = [{"port", Port},
-					{protocol, string:to_upper(atom_to_list(Protocol))},
-					{secret, Secret}],
-			[{struct, RespObj1 ++ RespObj2 ++ RespObj3} | Acc]
-	end,
-	JsonObj = lists:foldl(F, [], Clients),
-	{array, lists:reverse(JsonObj)}.
-
--spec perform_post(RequestBody) -> Result 
+-spec post_client(RequestBody) -> Result 
 	when
 		RequestBody :: list(),
-		Result :: {Location :: string(), Body :: iolist()} | {error, ErrorCode :: integer()}.
+		Result :: {ok, Headers :: string(), Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
 %% @doc Respond to `POST /ocs/v1/client' and add a new `client'
 %% resource.
-perform_post(RequestBody) ->
+post_client(RequestBody) ->
 	try 
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, Id} = lists:keyfind("id", 1, Object),
@@ -134,37 +131,38 @@ perform_post(RequestBody) ->
 				diameter
 		end,
 		Secret = proplists:get_value("secret", Object, ocs:generate_password()),
-		perform_post1(Id, Port, Protocol, Secret)
+		post_client1(Id, Port, Protocol, Secret)
 	catch
 		_Error ->
 			{error, 400}
 	end.
 %% @hidden
-perform_post1(Id, Port, Protocol, Secret) ->
-	try
-	case catch ocs:add_client(Id, Port, Protocol, Secret) of
+post_client1(Id, Port, Protocol, Secret) ->
+	try ocs:add_client(Id, Port, Protocol, Secret) of
 		ok ->
 			Location = "/ocs/v1/client/" ++ Id,
 			RespObj = [{id, Id}, {href, Location}, {"port", Port},
 					{protocol, string:to_upper(atom_to_list(Protocol))}, {secret, Secret}],
 			JsonObj  = {struct, RespObj},
 			Body = mochijson:encode(JsonObj),
-			{Location, Body};
+			Headers = [{location, Location}],
+			{ok, Headers, Body};
 		{error, _Reason} ->
 			{error, 400}
-	end catch
+	catch
 		throw:_ ->
 			{error, 400}
 	end.
 
--spec perform_patch(Id, ReqBody) -> Result 
+-spec patch_client(Id, ReqBody) -> Result 
 	when
 		Id :: list(),
 		ReqBody :: list(),
-		Result :: {body, Body :: iolist()} | {error, ErrorCode :: integer()} .
+		Result :: {ok, Headers :: list(), Body :: iolist()}
+			| {error, ErrorCode :: integer()} .
 %% @doc	Respond to `PATCH /ocs/v1/client/{id}' request and
 %% Updates a existing `client''s password or attributes.
-perform_patch(Id, ReqBody) ->
+patch_client(Id, ReqBody) ->
 	{ok, Address} = inet:parse_address(Id),
 	case ocs:find_client(Address) of
 		{ok, #client{port = CurrPort,
@@ -174,13 +172,13 @@ perform_patch(Id, ReqBody) ->
 				case Object of
 					[{"secret", NewPassword}] ->
 						Protocol_Atom = string:to_upper(atom_to_list(CurrProtocol)),
-						perform_patch1(Id, CurrPort, Protocol_Atom, NewPassword);
+						patch_client1(Id, CurrPort, Protocol_Atom, NewPassword);
 					[{"port", NewPort},{"protocol", RADIUS}] 
 							when RADIUS =:= "radius"; RADIUS =:= "RADIUS" ->
-						perform_patch2(Id, NewPort, radius, CurrSecret);
+						patch_client2(Id, NewPort, radius, CurrSecret);
 					[{"port", NewPort},{"protocol", DIAMETER}]
 							when DIAMETER =:= "diameter"; DIAMETER =:= "DIAMETER" ->
-						perform_patch2(Id, NewPort, diameter, CurrSecret)
+						patch_client2(Id, NewPort, diameter, CurrSecret)
 				end
 			catch
 				throw : _ ->
@@ -190,32 +188,37 @@ perform_patch(Id, ReqBody) ->
 			{error, 404}
 	end.
 %% @hidden
-perform_patch1(Id, Port, Protocol, NewPassword) ->
+patch_client1(Id, Port, Protocol, NewPassword) ->
 	ok = ocs:update_client(Id, NewPassword),
 	RespObj =[{id, Id}, {href, "/ocs/v1/client/" ++ Id},
 			{"port", Port}, {protocol, Protocol}, {secret, NewPassword}],
 	JsonObj  = {struct, RespObj},
 	RespBody = mochijson:encode(JsonObj),
-	{body, RespBody}.
-
+	{ok, [], RespBody}.
 %% @hidden
-perform_patch2(Id, Port, Protocol, Secret) ->
+patch_client2(Id, Port, Protocol, Secret) ->
 	ok = ocs:update_client(Id, Port, Protocol),
 	RespObj =[{id, Id}, {href, "/ocs/v1/client/" ++ Id},
 			{"port", Port}, {protocol, Protocol}, {secret, Secret}],
 	JsonObj  = {struct, RespObj},
 	RespBody = mochijson:encode(JsonObj),
-	{body, RespBody}.
+	{ok, [], RespBody}.
 
--spec perform_delete(Ip) -> ok 
+-spec delete_client(ID) -> Result
 	when
-		Ip :: list().
+		ID :: string(),
+		Result :: {ok, Headers :: [string()], Body :: iolist()}
+			| {error, ErrorCode :: integer()} .
 %% @doc Respond to `DELETE /ocs/v1/client/{address}' request and deletes
-%% a `client' resource. If the deletion is succeeded return true.
-perform_delete(Ip) ->
-	{ok, Address} = inet:parse_address(Ip), 
-	ok = ocs:delete_client(Address),
-	ok.
+%% a `client' resource. If the deletion is successful return true.
+delete_client(ID) ->
+	{ok, Address} = inet:parse_address(ID), 
+	case ocs:delete_client(Address) of
+		ok ->
+			{ok, [], []};
+		_ ->
+			{error, 500}
+	end.
 
 %%----------------------------------------------------------------------
 %%  internal functions

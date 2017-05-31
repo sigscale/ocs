@@ -72,53 +72,48 @@ content_type_available(Headers, Uri, Resource, ModData) ->
 			AvailableTypes = Resource:content_types_provided(),
 			case lists:member(RequestingType, AvailableTypes) of
 				true ->
-					do_get(Uri, Resource, ModData);
+					do_get(Resource, ModData, string:tokens(Uri, "/"));
 				false ->
 					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
 					{break, [{response, {415, Response}}]}
 			end;
 		_ ->
-			do_get(Uri, Resource, ModData)
+			do_get(Resource, ModData, string:tokens(Uri, "/"))
 	end.
 
 %% @hidden
-do_get(Uri, Resource, ModData) ->
-	case string:tokens(Uri, "/") of
-		[API, "v1", _] when API == "ocs"; API == "usageManagement"->
-			case Resource:perform_get_all() of
-				{ok, Headers, Body} ->
-					send_response(Headers, Body, ModData);
-				{error, ErrorCode} ->
-					{break, [{response, {ErrorCode, "<h1>Not Found</h1>"}}]}
-			end;
-		[API, "v1", "log", _] when API == "ocs" ->
-			case Resource:perform_get_all() of
-				{ok, Headers, Body} ->
-					send_response(Headers, Body, ModData);
-				{error, ErrorCode} ->
-					{break, [{response, {ErrorCode, "<h1>Not Found</h1>"}}]}
-			end;
-		[API, "v1", _, Identity] when API == "ocs"; API == "usageManagement"->
-			case Resource:perform_get(Identity) of
-				{ok, Headers, Body} ->
-					send_response(Headers, Body, ModData);
-				{error, ErrorCode} ->
-					{break, [{response, {ErrorCode, "<h1>Not Found</h1>"}}]}
-			end;
-		_ ->
-			{break, [{response, {404, "<h1>NOT FOUND</h1>"}}]}
-end.
+do_get(Resource, ModData, ["ocs", "v1", "client"]) ->
+	do_response(ModData, Resource:get_client());
+do_get(Resource, ModData, ["ocs", "v1", "client", Identity]) ->
+	do_response(ModData, Resource:get_client(Identity));
+do_get(Resource, ModData, ["ocs", "v1", "subscriber"]) ->
+	do_response(ModData, Resource:get_subscriber());
+do_get(Resource, ModData, ["ocs", "v1", "subscriber", Identity]) ->
+	do_response(ModData, Resource:get_subscriber(Identity));
+do_get(Resource, ModData, ["usageManagement", "v1", "usage"]) ->
+	do_response(ModData, Resource:get_usage());
+do_get(Resource, ModData, ["ocs", "v1", "log", "access"]) ->
+	do_response(ModData, Resource:get_access());
+do_get(Resource, ModData, ["ocs", "v1", "log", "accounting"]) ->
+	do_response(ModData, Resource:get_accounting());
+do_get(Resource, ModData, ["ocs", "v1", "log", "http"]) ->
+	do_response(ModData, Resource:get_http());
+do_get(_Resource, _ModData, _) ->
+	{break, [{response, {404, "<h1>Not Found</h1>"}}]}.
 
 %% @hidden
-send_response(Headers, ResponseBody, ModData) ->
+do_response(ModData, {ok, Headers, ResponseBody}) ->
 	Size = integer_to_list(iolist_size(ResponseBody)),
 	NewHeaders = Headers ++ [{content_length, Size}],
 	send(ModData, 200, NewHeaders, ResponseBody),
-	{proceed,[{response,{already_sent, 200, Size}}]}.
+	{proceed,[{response,{already_sent, 200, Size}}]};
+do_response(_ModData, {error, ErrorCode}) ->
+	{break, [{response, {ErrorCode, "<h1>Not Found</h1>"}}]}.
+
 
 %% @hidden
 send(#mod{socket = Socket, socket_type = SocketType} = ModData,
-     StatusCode, Headers, ResponseBody) ->
-    httpd_response:send_header(ModData, StatusCode, Headers),
-    httpd_socket:deliver(SocketType, Socket, ResponseBody).
+		StatusCode, Headers, ResponseBody) ->
+	httpd_response:send_header(ModData, StatusCode, Headers),
+	httpd_socket:deliver(SocketType, Socket, ResponseBody).
 

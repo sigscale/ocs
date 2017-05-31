@@ -72,7 +72,7 @@ content_type_available(Headers, Body, Uri, Resource, ModData) ->
 			AvailableTypes = Resource:content_types_provided(),
 			case lists:member(RequestingType, AvailableTypes) of
 				true ->
-					do_patch(Uri, Body, Resource, ModData);
+					do_patch(Body, Resource, ModData, string:tokens(Uri, "/"));
 				false ->
 					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
 					{break, [{response, {415, Response}}]}
@@ -82,29 +82,25 @@ content_type_available(Headers, Body, Uri, Resource, ModData) ->
 	end.
 
 %% @hidden
-do_patch(Uri, Body, Resource, ModData) ->
-	case string:tokens(Uri, "/") of
-		["ocs", "v1", _, Identity] ->
-			case Resource:perform_patch(Identity, Body) of
-				{error, ErrorCode} ->
-					{break, [{response,	{ErrorCode, "<h1>Not Found</h1>"}}]};
-				{body, RespBody} ->
-					send_response(ModData, RespBody)
-			end;
-		_ ->
-			{break, [{response,	{404, "<h1>NOT FOUND</h1>"}}]}
-	end.
+do_patch(Body, Resource, ModData, ["ocs", "v1", "client", Identity]) ->
+	do_response(ModData, Resource:patch_client(Identity, Body));
+do_patch(Body, Resource, ModData, ["ocs", "v1", "subscriber", Identity]) ->
+	do_response(ModData, Resource:patch_subscriber(Identity, Body));
+do_patch(_Body, _Resource, _ModData, _) ->
+	{break, [{response, {404, "<h1>Not Found</h1>"}}]}.
 
 %% @hidden
-send_response(Info, ResponseBody)->
-	    Size = integer_to_list(iolist_size(ResponseBody)),
-	    Headers = [{content_length, Size}],
-	    send(Info, 200, Headers, ResponseBody),
-	    {proceed,[{response,{already_sent,200, Size}}]}.
+do_response(ModData, {ok, [], ResponseBody}) ->
+	Size = integer_to_list(iolist_size(ResponseBody)),
+	Headers = [{content_length, Size}],
+	send(ModData, 200, Headers, ResponseBody),
+	{proceed,[{response,{already_sent,200, Size}}]};
+do_response(_ModData, {error, ErrorCode}) ->
+	{break, [{response, {ErrorCode, "<h1>Not Found</h1>"}}]}.
 
 %% @hidden
 send(#mod{socket = Socket, socket_type = SocketType} = Info,
-     StatusCode, Headers, ResponseBody) ->
-    httpd_response:send_header(Info, StatusCode, Headers),
-    httpd_socket:deliver(SocketType, Socket, ResponseBody).
+		StatusCode, Headers, ResponseBody) ->
+	httpd_response:send_header(Info, StatusCode, Headers),
+	httpd_socket:deliver(SocketType, Socket, ResponseBody).
 

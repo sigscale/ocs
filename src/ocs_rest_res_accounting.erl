@@ -20,9 +20,8 @@
 -module(ocs_rest_res_accounting).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
--export([content_types_accepted/0,
-            content_types_provided/0,
-            perform_get_all/0]).
+-export([content_types_accepted/0, content_types_provided/0,
+		get_accounting/0]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs_log.hrl").
@@ -41,13 +40,13 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json"].
 
--spec perform_get_all() -> Result
+-spec get_accounting() -> Result
 	when
 		Result :: {ok, Headers :: [string()],
 				Body :: iolist()} | {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/log/accounting'
 %% requests.
-perform_get_all() ->
+get_accounting() ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	case ocs_log:last(ocs_acct, MaxItems) of
 		{error, _} -> 
