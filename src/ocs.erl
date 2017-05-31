@@ -26,7 +26,7 @@
 -export([add_subscriber/3, add_subscriber/4, add_subscriber/5,
 		find_subscriber/1, delete_subscriber/1, update_password/2,
 		update_attributes/2, update_attributes/4, get_subscribers/0]).
--export([generate_password/0]).
+-export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
 -export([authorize/2, normalize/1]).
@@ -440,6 +440,12 @@ update_attributes(Subscriber, Balance, Attributes, EnabledStatus)
 generate_password() ->
 	generate_password(12).
 
+-type identity() :: [48..57].
+-spec generate_identity() -> identity().
+%% @equiv generate_identity(7)
+generate_identity() ->
+	generate_identity(7).
+
 -spec start(Protocol, Type, Address, Port) -> Result
 	when
 		Protocol :: radius | diameter,
@@ -491,6 +497,24 @@ generate_password(<<N, Rest/binary>>, Charset, NumChars, Acc) ->
 	NewAcc = [lists:nth(CharNum, Charset) | Acc],
 	generate_password(Rest, Charset, NumChars, NewAcc);
 generate_password(<<>>, _Charset, _NumChars, Acc) ->
+	Acc.
+
+-spec generate_identity(Length) -> identity()
+	when
+		Length :: pos_integer().
+%% @doc Generate a random uniform identity.
+%% @private
+generate_identity(Length) when Length > 0 ->
+	Charset = lists:seq($0, $9),
+	NumChars = length(Charset),
+	Random = crypto:strong_rand_bytes(Length),
+	generate_identity(Random, Charset, NumChars,[]).
+%% @hidden
+generate_identity(<<N, Rest/binary>>, Charset, NumChars, Acc) ->
+	CharNum = (N rem NumChars) + 1,
+	NewAcc = [lists:nth(CharNum, Charset) | Acc],
+	generate_identity(Rest, Charset, NumChars, NewAcc);
+generate_identity(<<>>, _Charset, _NumChars, Acc) ->
 	Acc.
 
 -spec charset() -> Charset
