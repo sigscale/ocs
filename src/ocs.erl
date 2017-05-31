@@ -23,7 +23,7 @@
 %% export the ocs public API
 -export([add_client/2, add_client/4, find_client/1, update_client/2,
 		update_client/3, get_clients/0, delete_client/1]).
--export([add_subscriber/3, add_subscriber/4, add_subscriber/5,
+-export([add_subscriber/2, add_subscriber/3, add_subscriber/4, add_subscriber/5,
 		find_subscriber/1, delete_subscriber/1, update_password/2,
 		update_attributes/2, update_attributes/4, get_subscribers/0]).
 -export([generate_password/0, generate_identity/0]).
@@ -203,6 +203,38 @@ delete_client(Client) when is_tuple(Client) ->
 			ok;
 		{aborted, Reason} ->
 			exit(Reason)
+	end.
+
+-spec add_subscriber(Attributes, Balance) -> Result
+	when
+		Attributes :: radius_attributes:attributes() | binary(),
+		Balance :: non_neg_integer(),
+		Result :: {ok, Subscriber, Password} | {error, Reason},
+		Subscriber :: binary(),
+		Password :: binary(),
+		Reason :: term().
+add_subscriber(Attributes, Balance) ->
+	F2 = fun() ->
+				Subscriber = generate_identity(),
+				Rec = mnesia:read(subscriber, Subscriber, write),
+				F1 = fun(_, []) ->
+							Password = list_to_binary(generate_password()),
+							R = #subscriber{name = Subscriber, password = Password,
+							attributes = Attributes, balance = Balance,
+								enabled = true},
+							ok = mnesia:write(R),
+						{Subscriber, Password};
+						(F1, _) ->
+							NextID = generate_identity(),
+							F1(F1, mnesia:read(subscriber, NextID, write))
+				end,
+				F1(F1, Rec)
+	end,
+	case mnesia:transaction(F2) of
+		{atomic, {Subscriber, Password}} ->
+			{ok, Subscriber, Password};
+		{aborted, Reason} ->
+			{error, Reason}
 	end.
 
 -spec add_subscriber(Subscriber, Password, Attributes) -> Result
