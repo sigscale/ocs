@@ -10,6 +10,10 @@
 
 <dom-module id="sig-sub-update">
 	<style is="custom-style">
+		paper-dialog {
+			width: 60%;
+			overflow: auto;
+		}
 		.update-buttons {
 			background: var(--paper-lime-a700);
 			color: black;
@@ -31,7 +35,7 @@
 		}
 	</style>
 	<template>
-		<paper-dialog id="subUpdateModal" modal style="width:60%;">
+		<paper-dialog id="subUpdateModal" modal>
 			<paper-tabs selected="{{selected}}" autoselect>
 				<paper-tab id="authen">
 					<h2>Authentication</h2>

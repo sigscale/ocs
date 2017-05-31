@@ -14,6 +14,10 @@
 
 <dom-module id="sig-client-update">
 	<style is="custom-style">
+		paper-dialog{
+			width: 60%;
+			overflow: auto;
+		}
 		.update-buttons {
 			background: var(--paper-lime-a700);
 			color: black;
@@ -33,7 +37,7 @@
 	<template>
 		<paper-dialog
 				id="clientUpdateModal"
-				modal style="width:60%;">
+				modal>
 			<paper-tabs selected="{{selected}}">
 				<paper-tab id="authenticate-client">
 					<h2>Authentication</h2>
