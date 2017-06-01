@@ -994,7 +994,7 @@ ipdr_codec14(Attributes, radius, stop, Acc) ->
 %% @hidden
 ipdr_xml(Log, IoDevice, {Cont, [#ipdrDoc{} = I | T]}) ->
 	Header = [],
-	case file:write_file(IoDevice, Header) of
+	case file:write(IoDevice, Header) of
 		ok ->
 			ipdr_xml(Log, IoDevice, {Cont, T});
 		{error, Reason} ->
@@ -1006,7 +1006,7 @@ ipdr_xml(Log, IoDevice, {Cont, [#ipdrDoc{} = I | T]}) ->
 	end;
 ipdr_xml(Log, IoDevice, {Cont, [#ipdr{} = I | T]}) ->
 	IPDR = <<>>,
-	case file:write_file(IoDevice, IPDR) of
+	case file:write(IoDevice, IPDR) of
 		ok ->
 			ipdr_xml(Log, IoDevice, {Cont, T});
 		{error, Reason} ->
@@ -1033,8 +1033,8 @@ ipdr_xml(Log, IoDevice, {Cont, []}) ->
 
 %% @hidden
 ipdr_xdr(Log, IoDevice, {Cont, [#ipdrDoc{} = I | T]}) ->
-	Header = [],
-	case file:write_file(IoDevice, Header) of
+	Header = [<<>>],
+	case file:write(IoDevice, Header) of
 		ok ->
 			ipdr_xdr(Log, IoDevice, {Cont, T});
 		{error, Reason} ->
@@ -1046,7 +1046,7 @@ ipdr_xdr(Log, IoDevice, {Cont, [#ipdrDoc{} = I | T]}) ->
 	end;
 ipdr_xdr(Log, IoDevice, {Cont, [#ipdr{} = I | T]}) ->
 	IPDR = <<>>,
-	case file:write_file(IoDevice, IPDR) of
+	case file:write(IoDevice, IPDR) of
 		ok ->
 			ipdr_xdr(Log, IoDevice, {Cont, T});
 		{error, Reason} ->
@@ -1058,7 +1058,7 @@ ipdr_xdr(Log, IoDevice, {Cont, [#ipdr{} = I | T]}) ->
 	end;
 ipdr_xdr(Log, IoDevice, {Cont, [#ipdrDocEnd{}]}) ->
 	Trailer = <<>>,
-	case file:write_file(IoDevice, Trailer) of
+	case file:write(IoDevice, Trailer) of
 		ok ->
 			ipdr_file3(Log, IoDevice, xdr, {Cont, []});
 		{error, Reason} ->
@@ -1068,6 +1068,8 @@ ipdr_xdr(Log, IoDevice, {Cont, [#ipdrDocEnd{}]}) ->
 			disk_log:close(Log),
 			{error, Reason}
 	end;
+ipdr_xdr(Log, IoDevice, {Cont, [_ | T]}) ->
+	ipdr_xdr(Log, IoDevice, {Cont, T});
 ipdr_xdr(Log, IoDevice, {Cont, []}) ->
 	ipdr_file3(Log, IoDevice, xdr, {Cont, []}).
 
