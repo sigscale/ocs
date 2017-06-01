@@ -109,7 +109,7 @@ perform_post(RequestBody) ->
 	try 
 		{struct, Object} = mochijson:decode(RequestBody),
 		Id = lists:keyfind("id", 1, Object),
-		Password = lists:keyfind("id", 1, Object),
+		Password = lists:keyfind("password", 1, Object),
 		RadAttributes = case lists:keyfind("attributes", 1, Object) of
 			{_, {array, JsonObjList}} ->
 				json_to_radius(JsonObjList);
@@ -126,9 +126,9 @@ perform_post(RequestBody) ->
 %% @hidden
 perform_post1(false, false, Attributes, Balance, _Enabled) ->
 	perform_post2(Attributes, Balance);
-perform_post1({ok, Id}, {ok, null}, Attributes, Balance, Enabled) ->
+perform_post1({"id", Id}, {"password", null}, Attributes, Balance, Enabled) ->
 	perform_post1(Id, "", Attributes, Balance, Enabled);
-perform_post1({ok, Id}, false, Attributes, Balance, Enabled) ->
+perform_post1({"id", Id}, false, Attributes, Balance, Enabled) ->
 	Password = ocs:generate_password(),
 	perform_post1(Id, Password, Attributes, Balance, Enabled);
 perform_post1(Id, Password, Attributes, Balance, Enabled) ->
