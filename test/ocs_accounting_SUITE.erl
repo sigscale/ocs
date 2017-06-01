@@ -108,7 +108,7 @@ init_per_testcase(TestCase, Config) when
 	Secret = "s3cr3t",
 	InitialBal = 1000000,
 	ok = ocs:add_client(Address, Port, diameter, Secret),
-	ok = ocs:add_subscriber(UserName, Password, [], InitialBal),
+	{ok, _} = ocs:add_subscriber(UserName, Password, [], InitialBal),
 	[{username, UserName}, {password, Password}, {init_bal, InitialBal}] ++ Config;
 init_per_testcase(_TestCase, Config) ->
 	Config.
@@ -156,7 +156,7 @@ radius_accouting(Config) ->
 	PeerID = "845652366",
 	Secret = ct:get_config(radius_shared_secret),
 	Password = ocs:generate_password(),
-   ok = ocs:add_subscriber(PeerID, Password, [], 1000),
+   {ok, _} = ocs:add_subscriber(PeerID, Password, [], 1000),
 	ReqAuth = radius:authenticator(),
    HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
@@ -182,7 +182,7 @@ radius_disconnect_session(Config) ->
 	PeerID = "458565788",
 	Secret = ct:get_config(radius_shared_secret),
 	Password = ocs:generate_password(),
-   ok = ocs:add_subscriber(PeerID, Password, [], 1000),
+   {ok, _} = ocs:add_subscriber(PeerID, Password, [], 1000),
 	ReqAuth = radius:authenticator(),
    HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,

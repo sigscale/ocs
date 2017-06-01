@@ -125,7 +125,7 @@ eap_ttls_authentication_radius(Config) ->
 	Subscriber = <<"45678901">>,
 	MAC = "DD-EE-FF-AA-BB-CC",
 	PeerAuth = list_to_binary(ocs:generate_password()),
-	ok = ocs:add_subscriber(Subscriber, PeerAuth, [], 10000),
+	{ok, _} = ocs:add_subscriber(Subscriber, PeerAuth, [], 10000),
 	Socket = ?config(socket, Config),
 	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, radius),
 	[{Address, Port, _}] = AuthInstance,

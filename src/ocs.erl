@@ -23,7 +23,7 @@
 %% export the ocs public API
 -export([add_client/2, add_client/4, find_client/1, update_client/2,
 		update_client/3, get_clients/0, delete_client/1]).
--export([add_subscriber/2, add_subscriber/3, add_subscriber/4, add_subscriber/5,
+-export([add_subscriber/3, add_subscriber/4, add_subscriber/5,
 		find_subscriber/1, delete_subscriber/1, update_password/2,
 		update_attributes/2, update_attributes/4, get_subscribers/0]).
 -export([generate_password/0, generate_identity/0]).
@@ -205,69 +205,37 @@ delete_client(Client) when is_tuple(Client) ->
 			exit(Reason)
 	end.
 
--spec add_subscriber(Attributes, Balance) -> Result
+-spec add_subscriber(Identity, Password, Attributes) -> Result
 	when
-		Attributes :: radius_attributes:attributes() | binary(),
-		Balance :: non_neg_integer(),
-		Result :: {ok, Subscriber, Password} | {error, Reason},
-		Subscriber :: binary(),
-		Password :: binary(),
-		Reason :: term().
-add_subscriber(Attributes, Balance) ->
-	F2 = fun() ->
-				Subscriber = generate_identity(),
-				Rec = mnesia:read(subscriber, Subscriber, write),
-				F1 = fun(_, []) ->
-							Password = list_to_binary(generate_password()),
-							R = #subscriber{name = Subscriber, password = Password,
-							attributes = Attributes, balance = Balance,
-								enabled = true},
-							ok = mnesia:write(R),
-						{Subscriber, Password};
-						(F1, _) ->
-							NextID = generate_identity(),
-							F1(F1, mnesia:read(subscriber, NextID, write))
-				end,
-				F1(F1, Rec)
-	end,
-	case mnesia:transaction(F2) of
-		{atomic, {Subscriber, Password}} ->
-			{ok, Subscriber, Password};
-		{aborted, Reason} ->
-			{error, Reason}
-	end.
-
--spec add_subscriber(Subscriber, Password, Attributes) -> Result
-	when
-		Subscriber :: string() | binary(),
+		Identity :: string() | binary(),
 		Password :: string() | binary(),
 		Attributes :: radius_attributes:attributes() | binary(),
-		Result :: ok | {error, Reason},
+		Result :: {ok, #subscriber{}} | {error, Reason},
 		Reason :: term().
-%% @equiv add_subscriber(Subscriber, Password, Attributes, 0, true)
-add_subscriber(Subscriber, Password, Attributes) ->
-	add_subscriber(Subscriber, Password, Attributes, 0, true).
+%% @equiv add_subscriber(Identity, Password, Attributes, 0, true)
+add_subscriber(Identity, Password, Attributes) ->
+	add_subscriber(Identity, Password, Attributes, 0, true).
 
--spec add_subscriber(Subscriber, Password, Attributes, Balance) -> Result
+-spec add_subscriber(Identity, Password, Attributes, Balance) -> Result
 	when 
-		Subscriber :: string() | binary(),
+		Identity :: string() | binary(),
 		Password :: string() | binary(),
 		Attributes :: radius_attributes:attributes() | binary(),
 		Balance :: non_neg_integer(),
-		Result :: ok | {error, Reason},
+		Result :: {ok, #subscriber{}} | {error, Reason},
 		Reason :: term().
-%% @equiv add_subscriber(Subscriber, Password, Attributes, Balance, true)
-add_subscriber(Subscriber, Password, Attributes, Balance) ->
-	add_subscriber(Subscriber, Password, Attributes, Balance, true).
+%% @equiv add_subscriber(Identity, Password, Attributes, Balance, true)
+add_subscriber(Identity, Password, Attributes, Balance) ->
+	add_subscriber(Identity, Password, Attributes, Balance, true).
 
--spec add_subscriber(Subscriber, Password, Attributes, Balance, EnabledStatus) -> Result
+-spec add_subscriber(Identity, Password, Attributes, Balance, EnabledStatus) -> Result
 	when 
-		Subscriber :: string() | binary(),
-		Password :: string() | binary(),
+		Identity :: string() | binary() | undefined,
+		Password :: string() | binary() | undefined,
 		Attributes :: radius_attributes:attributes() | binary(),
-		Balance :: non_neg_integer(),
-		EnabledStatus :: boolean(),
-		Result :: ok | {error, Reason},
+		Balance :: non_neg_integer() | undefined,
+		EnabledStatus :: boolean() | undefined,
+		Result :: {ok, #subscriber{}} | {error, Reason},
 		Reason :: term().
 %% @doc Create an entry in the subscriber table.
 %%
@@ -277,45 +245,79 @@ add_subscriber(Subscriber, Password, Attributes, Balance) ->
 %%
 %% 	An initial account `Balance' value and `Enabled' status may be provided.
 %%
-add_subscriber(Subscriber, Password, Attributes, Balance, EnabledStatus)
-		when is_list(Subscriber), is_boolean(EnabledStatus) ->
-	add_subscriber(list_to_binary(Subscriber), Password, Attributes, Balance,
+add_subscriber(Identity, Password, Attributes, Balance, undefined) ->
+	add_subscriber(Identity, Password, Attributes, Balance, true);
+add_subscriber(Identity, Password, Attributes, undefined, EnabledStatus) ->
+	add_subscriber(Identity, Password, Attributes, 0, EnabledStatus);
+add_subscriber(Identity, Password, undefined, Balance, EnabledStatus) ->
+	add_subscriber(Identity, Password, [], Balance, EnabledStatus);
+add_subscriber(Identity, undefined, Attributes, Balance, EnabledStatus) ->
+	add_subscriber(Identity, ocs:generate_password(),
+			Attributes, Balance, EnabledStatus);
+add_subscriber(Identity, Password, Attributes, Balance, EnabledStatus)
+		when is_list(Identity) ->
+	add_subscriber(list_to_binary(Identity), Password, Attributes, Balance,
 			EnabledStatus);
-add_subscriber(Subscriber, Password, Attributes, Balance, EnabledStatus)
+add_subscriber(Identity, Password, Attributes, Balance, EnabledStatus)
 		when is_list(Password) ->
-	add_subscriber(Subscriber, list_to_binary(Password), Attributes, Balance,
+	add_subscriber(Identity, list_to_binary(Password), Attributes, Balance,
 			EnabledStatus);
-add_subscriber(Subscriber, Password, Attributes, Balance, EnabledStatus)
-		when is_binary(Subscriber), is_binary(Password),
-		is_list(Attributes), is_integer(Balance), Balance >= 0 ->
+add_subscriber(undefined, Password, Attributes, Balance, EnabledStatus) ->
+	F2 = fun() ->
+				F1 = fun(_, _, 0) ->
+							mnesia:abort(retries);
+						(F, Identity, N) ->
+							case mnesia:read(subscriber, Identity, read) of
+								[] ->
+									S = #subscriber{name = Identity,
+											password = Password, attributes = Attributes,
+											balance = Balance, enabled = EnabledStatus},
+									ok = mnesia:write(S),
+									S;
+								[_] ->
+									F(F, generate_identity(), N - 1)
+							end
+				end,
+				F1(F1, generate_identity(), 5)
+	end,
+	case mnesia:transaction(F2) of
+		{atomic, Subscriber} ->
+			{ok, Subscriber};
+		{aborted, Reason} ->
+			{error, Reason}
+	end;
+add_subscriber(Identity, Password, Attributes, Balance, EnabledStatus)
+		when is_binary(Identity), is_binary(Password), is_list(Attributes),
+		is_integer(Balance), Balance >= 0, is_boolean(EnabledStatus) ->
 	F1 = fun() ->
-				R = #subscriber{name = Subscriber, password = Password,
+				S = #subscriber{name = Identity, password = Password,
 						attributes = Attributes, balance = Balance,
 						enabled = EnabledStatus},
-				mnesia:write(R)
+				ok = mnesia:write(S),
+				S
 	end,
 	case mnesia:transaction(F1) of
-		{atomic, ok} ->
-			ok;
+		{atomic, Subscriber} ->
+			{ok, Subscriber};
 		{aborted, Reason} ->
 			{error, Reason}
 			end.
 
--spec find_subscriber(Subscriber) -> Result  
+-spec find_subscriber(Identity) -> Result  
 	when
 		Result :: {ok, Password, Attributes, Balance, Enabled} | {error, Reason},
 		Password :: binary(),
-		Subscriber :: string() | binary(),
+		Identity:: string() | binary(),
 		Attributes :: radius_attributes:attributes(),
 		Balance :: integer(),
 		Enabled :: boolean(),
 		Reason :: not_found | term().
 %% @doc Look up an entry in the subscriber table.
-find_subscriber(Subscriber) when is_list(Subscriber) ->
-	find_subscriber(list_to_binary(Subscriber));
-find_subscriber(Subscriber) when is_binary(Subscriber) ->
+find_subscriber(Identity) when is_list(Identity) ->
+	find_subscriber(list_to_binary(Identity));
+find_subscriber(Identity) when is_binary(Identity) ->
 	F = fun() ->
-				mnesia:read(subscriber, Subscriber, read)
+				mnesia:read(subscriber, Identity, read)
 	end,
 	case mnesia:transaction(F) of
 		{atomic, [#subscriber{password = Password, attributes = Attributes,
@@ -351,15 +353,15 @@ get_subscribers()->
 			Result
 	end.
 
--spec delete_subscriber(Subscriber) -> ok
+-spec delete_subscriber(Identity) -> ok
 	when
-		Subscriber :: string() | binary().
+		Identity :: string() | binary().
 %% @doc Delete an entry in the subscriber table.
-delete_subscriber(Subscriber) when is_list(Subscriber) ->
-	delete_subscriber(list_to_binary(Subscriber));
-delete_subscriber(Subscriber) when is_binary(Subscriber) ->
+delete_subscriber(Identity) when is_list(Identity) ->
+	delete_subscriber(list_to_binary(Identity));
+delete_subscriber(Identity) when is_binary(Identity) ->
 	F = fun() ->
-		mnesia:delete(subscriber, Subscriber, write)
+		mnesia:delete(subscriber, Identity, write)
 	end,
 	case mnesia:transaction(F) of
 		{atomic, _} ->
@@ -368,23 +370,23 @@ delete_subscriber(Subscriber) when is_binary(Subscriber) ->
 			exit(Reason)
 	end.
 
--spec update_password(Subscriber, Password)-> Result
+-spec update_password(Identity, Password)-> Result
 	when
-		Subscriber :: string() | binary(),
+		Identity :: string() | binary(),
 		Password :: string() | binary(),
 		Result :: ok | {error, Reason},
 		Reason :: not_found | term().
 %% @doc Update a new subscriber password
 %% @see ocs:generate_password/0
-update_password(Subscriber, Password)
-		when is_list(Subscriber) ->
-	update_password(list_to_binary(Subscriber), Password);
-update_password(Subscriber, Password)
+update_password(Identity, Password)
+		when is_list(Identity) ->
+	update_password(list_to_binary(Identity), Password);
+update_password(Identity, Password)
 		when is_list(Password) ->
-	update_password(Subscriber, list_to_binary(Password));
-update_password(Subscriber, Password) ->
+	update_password(Identity, list_to_binary(Password));
+update_password(Identity, Password) ->
 	F = fun() ->
-				case mnesia:read(subscriber, Subscriber, write) of
+				case mnesia:read(subscriber, Identity, write) of
 					[Entry] ->
 						NewEntry = Entry#subscriber{password = Password},
 						mnesia:write(subscriber, NewEntry, write);
@@ -401,20 +403,20 @@ update_password(Subscriber, Password) ->
 			{error, Reason}
 	end.
 
--spec update_attributes(Subscriber, Attributes) -> Result
+-spec update_attributes(Identity, Attributes) -> Result
 	when
-		Subscriber :: string() | binary(),
+		Identity :: string() | binary(),
 		Attributes :: radius_attributes:attributes(),
 		Result :: ok | {error, Reason},
 		Reason :: not_found | term().
 %% @doc Update subscriber attributes.
 %%
-update_attributes(Subscriber, Attributes) when is_list(Subscriber) ->
-	update_attributes(list_to_binary(Subscriber), Attributes);
-update_attributes(Subscriber, Attributes)
-		when is_binary(Subscriber), is_list(Attributes) ->
+update_attributes(Identity, Attributes) when is_list(Identity) ->
+	update_attributes(list_to_binary(Identity), Attributes);
+update_attributes(Identity, Attributes)
+		when is_binary(Identity), is_list(Attributes) ->
 	F = fun() ->
-				case mnesia:read(subscriber, Subscriber, write) of
+				case mnesia:read(subscriber, Identity, write) of
 					[Entry] ->
 						NewEntry = Entry#subscriber{attributes = Attributes},
 						mnesia:write(subscriber, NewEntry, write);
@@ -431,9 +433,9 @@ update_attributes(Subscriber, Attributes)
 			{error, Reason}
 	end.
 
--spec update_attributes(Subscriber, Balance, Attributes, EnabledStatus) -> Result
+-spec update_attributes(Identity, Balance, Attributes, EnabledStatus) -> Result
 	when
-		Subscriber :: string() | binary(),
+		Identity :: string() | binary(),
 		Balance :: pos_integer(),
 		Attributes :: radius_attributes:attributes(),
 		EnabledStatus :: boolean(),
@@ -441,14 +443,14 @@ update_attributes(Subscriber, Attributes)
 		Reason :: not_found | term().
 %% @doc Update subscriber attributes.
 %%
-update_attributes(Subscriber, Balance, Attributes, EnabledStatus)
-		when is_list(Subscriber), is_number(Balance), is_boolean(EnabledStatus) ->
-	update_attributes(list_to_binary(Subscriber), Balance, Attributes,
+update_attributes(Identity, Balance, Attributes, EnabledStatus)
+		when is_list(Identity), is_number(Balance), is_boolean(EnabledStatus) ->
+	update_attributes(list_to_binary(Identity), Balance, Attributes,
 		EnabledStatus);
-update_attributes(Subscriber, Balance, Attributes, EnabledStatus)
-		when is_binary(Subscriber), is_list(Attributes) ->
+update_attributes(Identity, Balance, Attributes, EnabledStatus)
+		when is_binary(Identity), is_list(Attributes) ->
 	F = fun() ->
-				case mnesia:read(subscriber, Subscriber, write) of
+				case mnesia:read(subscriber, Identity, write) of
 					[Entry] ->
 						NewEntry = Entry#subscriber{attributes = Attributes,
 							balance = Balance, enabled = EnabledStatus},
@@ -563,9 +565,9 @@ charset() ->
 	C6 = lists:seq($w, $z),
 	lists:append([C1, C2, C3, C4, C5, C6]).
 
--spec authorize(Subscriber, Password) -> Result
+-spec authorize(Identity, Password) -> Result
 	when
-		Subscriber :: string() | binary(),
+		Identity :: string() | binary(),
 		Password :: string() | binary(),
 		Result :: {ok, Password, Attributes} | {error, Reason},
 		Attributes :: radius_attributes:attributes(),
@@ -576,14 +578,14 @@ charset() ->
 %%		set disconnect field to false and return `password' and `attributes'
 %%		or return the error reason.
 %% @private
-authorize(Subscriber, Password) when is_list(Subscriber) ->
-	authorize(list_to_binary(Subscriber), Password);
-authorize(Subscriber, Password) when is_list(Password) ->
-	authorize(Subscriber, list_to_binary(Password));
-authorize(Subscriber, Password) when is_binary(Subscriber),
+authorize(Identity, Password) when is_list(Identity) ->
+	authorize(list_to_binary(Identity), Password);
+authorize(Identity, Password) when is_list(Password) ->
+	authorize(Identity, list_to_binary(Password));
+authorize(Identity, Password) when is_binary(Identity),
 		is_binary(Password) ->
 	F= fun() ->
-				case mnesia:read(subscriber, Subscriber, write) of
+				case mnesia:read(subscriber, Identity, write) of
 					[#subscriber{password = Password, attributes = Attributes,
 							enabled = true, disconnect = false} =
 							Entry ] when Entry#subscriber.balance > 0 ->

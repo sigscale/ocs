@@ -76,23 +76,23 @@ get_subscriber() ->
 		{error, _} ->
 			{error, 404};
 		Subscribers ->
-			get_subscriber0(Subscribers)
+			get_subscriber1(Subscribers)
 	end.
 %% @hidden
-get_subscriber0(Subscribers) ->
-			F = fun(#subscriber{name = Id, password = Password,
-					attributes = Attributes, balance = Balance, enabled = Enabled}, Acc) ->
-				JSAttributes = radius_to_json(Attributes),
-				AttrObj = {array, JSAttributes},
-				RespObj = [{struct, [{id, Id}, {href, "/ocs/v1/subscriber/" ++ binary_to_list(Id)},
-					{password, Password}, {attributes, AttrObj}, {balance, Balance},
-					{enabled, Enabled}]}],
-				[RespObj | Acc]
-			end,
-			JsonObj = lists:flatten(lists:foldl(F, [], Subscribers)),
-			Body  = mochijson:encode({array, lists:reverse(JsonObj)}),
-			Headers = [{content_type, "application/json"}],
-			{ok, Headers, Body}.
+get_subscriber1(Subscribers) ->
+	F = fun(#subscriber{name = Id, password = Password,
+			attributes = Attributes, balance = Balance, enabled = Enabled}, Acc) ->
+		JSAttributes = radius_to_json(Attributes),
+		AttrObj = {array, JSAttributes},
+		RespObj = [{struct, [{id, Id}, {href, "/ocs/v1/subscriber/" ++ binary_to_list(Id)},
+			{password, Password}, {attributes, AttrObj}, {balance, Balance},
+			{enabled, Enabled}]}],
+		[RespObj | Acc]
+	end,
+	JsonObj = lists:flatten(lists:foldl(F, [], Subscribers)),
+	Body  = mochijson:encode({array, lists:reverse(JsonObj)}),
+	Headers = [{content_type, "application/json"}],
+	{ok, Headers, Body}.
 
 -spec post_subscriber(RequestBody) -> Result 
 	when 
@@ -104,64 +104,56 @@ get_subscriber0(Subscribers) ->
 post_subscriber(RequestBody) ->
 	try 
 		{struct, Object} = mochijson:decode(RequestBody),
-		Id = lists:keyfind("id", 1, Object),
-		Password = lists:keyfind("password", 1, Object),
-		RadAttributes = case lists:keyfind("attributes", 1, Object) of
+		IdIn = case lists:keyfind("id", 1, Object) of
+			{"id", ID} ->
+				ID;
+			false ->
+				undefined
+		end,
+		PasswordIn = case lists:keyfind("password", 1, Object) of
+			{"password", Pass} ->
+				Pass;
+			false ->
+				undefined
+		end,
+		Attributes = case lists:keyfind("attributes", 1, Object) of
 			{_, {array, JsonObjList}} ->
 				json_to_radius(JsonObjList);
 			false ->
 				[]
 		end,
-		{_, Balance} = lists:keyfind("balance", 1, Object),
-		{_, Enabled} = lists:keyfind("enabled", 1, Object),
-		perform_post1(Id, Password, RadAttributes, Balance, Enabled)
-	catch
-		_Error ->
-			{error, 400}
-	end.
-%% @hidden
-perform_post1(false, false, Attributes, Balance, _Enabled) ->
-	perform_post2(Attributes, Balance);
-perform_post1({"id", Id}, {"password", null}, Attributes, Balance, Enabled) ->
-	perform_post1(Id, "", Attributes, Balance, Enabled);
-perform_post1({"id", Id}, false, Attributes, Balance, Enabled) ->
-	Password = ocs:generate_password(),
-	perform_post1(Id, Password, Attributes, Balance, Enabled);
-perform_post1(Id, Password, Attributes, Balance, Enabled) ->
-	perform_post3(Id, Password, Attributes, Balance, Enabled).
-%% @hidden
-perform_post2(Attributes, Balance) ->
-	try
-		case catch ocs:add_subscriber(Attributes, Balance) of
-			{ok, Identity, Password} ->
-				perform_post4(binary_to_list(Identity),
-						binary_to_list(Password), Attributes, Balance, true);
+		Balance = case lists:keyfind("balance", 1, Object) of
+			{"balance", Bal} ->
+				Bal;
+			false ->
+				undefined
+		end,
+		Enabled = case lists:keyfind("enabled", 1, Object) of
+			{_, En} ->
+				En;
+			false ->
+				undefined
+		end,
+		case ocs:add_subscriber(IdIn, PasswordIn, Attributes, Balance, Enabled) of
+			{ok, #subscriber{name = IdOut} = S} ->
+				Id = binary_to_list(IdOut),
+				Location = "/ocs/v1/subscriber/" ++ Id,
+				JAttributes = {array, radius_to_json(S#subscriber.attributes)},
+				RespObj = [{id, Id}, {href, Location},
+						{password, binary_to_list(S#subscriber.password)},
+						{attributes, JAttributes}, {balance, S#subscriber.balance},
+						{enabled, S#subscriber.enabled}],
+				JsonObj  = {struct, RespObj},
+				Body = mochijson:encode(JsonObj),
+				Headers = [{location, Location}],
+				{ok, Headers, Body};
 			{error, _Reason} ->
 				{error, 400}
 		end
 	catch
-		_:_ ->
+		_:_Reason1 ->
 			{error, 400}
 	end.
-%% @hidden
-perform_post3(Id, Password, Attributes, Balance, Enabled) ->
-	try
-	case catch ocs:add_subscriber(Id, Password, Attributes, Balance, Enabled) of
-		ok ->
-			perform_post4(Id, Password, Attributes, Balance, Enabled);
-		{error, _Reason} ->
-			{error, 400}
-	end.
-%% @hidden
-perform_post4(Id, Password, Attributes, Balance, Enabled) ->
-	JAttributes = {array, radius_to_json(Attributes)},
-	RespObj = [{id, Id}, {href, "/ocs/v1/subscriber/" ++ Id},
-		{password, Password}, {attributes, JAttributes}, {balance, Balance},
-		{enabled, Enabled}],
-	JsonObj  = {struct, RespObj},
-	Body = mochijson:encode(JsonObj),
-	Location = "/ocs/v1/subscriber/" ++ Id,
-	{Location, Body}.
 
 -spec patch_subscriber(Id, ReqBody) -> Result
 	when
@@ -198,7 +190,7 @@ patch_subscriber(Id, ReqBody) ->
 				RespBody = mochijson:encode(JsonObj),
 				{ok, [], RespBody}
 			catch
-				throw : _ ->
+				_:_Reason ->
 					{error, 400}
 			end;
 		{error, _Reason} ->
