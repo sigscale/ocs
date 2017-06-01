@@ -193,6 +193,7 @@
 					toast.open();
 					toast.duration = 4;
 					document.getElementById("clientAddForm").reset();
+					document.getElementById("clientAddModal").close();
 					document.getElementById("getClients").generateRequest();
 				},
 				toastErrorClose: function(event) {
