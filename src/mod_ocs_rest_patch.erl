@@ -87,7 +87,8 @@ do_patch(Body, Resource, ModData, ["ocs", "v1", "client", Identity]) ->
 do_patch(Body, Resource, ModData, ["ocs", "v1", "subscriber", Identity]) ->
 	do_response(ModData, Resource:patch_subscriber(Identity, Body));
 do_patch(_Body, _Resource, _ModData, _) ->
-	{break, [{response, {404, "<h1>Not Found</h1>"}}]}.
+	Response = "<h2>HTTP Error 404 - Not Found</h2>",
+	{break, [{response, {404, Response}}]}.
 
 %% @hidden
 do_response(ModData, {ok, [], ResponseBody}) ->
@@ -95,8 +96,15 @@ do_response(ModData, {ok, [], ResponseBody}) ->
 	Headers = [{content_length, Size}],
 	send(ModData, 200, Headers, ResponseBody),
 	{proceed,[{response,{already_sent,200, Size}}]};
-do_response(_ModData, {error, ErrorCode}) ->
-	{break, [{response, {ErrorCode, "<h1>Not Found</h1>"}}]}.
+do_response(_ModData, {error, 400}) ->
+	Response = "<h2>HTTP Error 400 - Bad Request</h2>",
+	{break, [{response, {400, Response}}]};
+do_response(_ModData, {error, 404}) ->
+	Response = "<h2>HTTP Error 404 - Not Found</h2>",
+	{break, [{response, {404, Response}}]};
+do_response(_ModData, {error, 500}) ->
+	Response = "<h2>HTTP Error 500 - Server Error</h2>",
+	{break, [{response, {500, Response}}]}.
 
 %% @hidden
 send(#mod{socket = Socket, socket_type = SocketType} = Info,

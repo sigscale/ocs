@@ -97,7 +97,7 @@ get_subscriber0(Subscribers) ->
 -spec post_subscriber(RequestBody) -> Result 
 	when 
 		RequestBody :: list(),
-		Result :: {ok, Headers :: string(), Body :: iolist()}
+		Result :: {ok, Headers :: [string()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Respond to `POST /ocs/v1/subscriber' and add a new `subscriber'
 %% resource.
@@ -128,8 +128,7 @@ post_subscriber(RequestBody) ->
 post_subscriber1(Id, null, RadAttributes, Balance, EnabledStatus) ->
 	post_subscriber1(Id, "", RadAttributes, Balance, EnabledStatus);
 post_subscriber1(Id, Password, RadAttributes, Balance, EnabledStatus) ->
-	try
-	case catch ocs:add_subscriber(Id, Password, RadAttributes, Balance, EnabledStatus) of
+	case ocs:add_subscriber(Id, Password, RadAttributes, Balance, EnabledStatus) of
 		ok ->
 			Attributes = {array, radius_to_json(RadAttributes)},
 			RespObj = [{id, Id}, {href, "/ocs/v1/subscriber/" ++ Id},
@@ -141,14 +140,11 @@ post_subscriber1(Id, Password, RadAttributes, Balance, EnabledStatus) ->
 			{ok, Headers, Body};
 		{error, _Reason} ->
 			{error, 400}
-	end catch
-		throw:_ ->
-			{error, 400}
 	end.
 
 -spec patch_subscriber(Id, ReqBody) -> Result
 	when
-		Id :: list(),
+		Id :: string(),
 		ReqBody :: list(),
 		Result :: {ok, Headers :: [string()], Body :: iolist()}
 				| {error, ErrorCode :: integer()} .
@@ -188,20 +184,16 @@ patch_subscriber(Id, ReqBody) ->
 			{error, 404}
 	end.
 
--spec delete_subscriber(ID) -> Result
+-spec delete_subscriber(Id) -> Result
 	when
-		ID :: list(),
+		Id :: string(),
 		Result :: {ok, Headers :: [string()], Body :: iolist()}
 				| {error, ErrorCode :: integer()} .
 %% @doc Respond to `DELETE /ocs/v1/subscriber/{id}' request and deletes
 %% a `subscriber' resource. If the deletion is succeeded return true.
-delete_subscriber(ID) ->
-	case ocs:delete_subscriber(ID) of
-		ok ->
-			{ok, [], []};
-		_ ->
-			{error, 500}
-	end.
+delete_subscriber(Id) ->
+	ok = ocs:delete_subscriber(Id),
+	{ok, [], []}.
 
 %%----------------------------------------------------------------------
 %%  internal functions

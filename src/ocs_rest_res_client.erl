@@ -50,7 +50,7 @@ content_types_provided() ->
 get_client() ->
 	case ocs:get_clients() of
 		{error, _} ->
-			{error, 404};
+			{error, 500};
 		Clients ->
 			get_client0(Clients)
 	end.
@@ -71,14 +71,19 @@ get_client0(Clients) ->
 					{secret, Secret}],
 			[{struct, RespObj1 ++ RespObj2 ++ RespObj3} | Acc]
 	end,
-	JsonObj = lists:foldl(F, [], Clients),
-	Body  = mochijson:encode({array, lists:reverse(JsonObj)}),
-	{ok, [{content_type, "application/json"}], Body}.
+	try
+		JsonObj = lists:foldl(F, [], Clients),
+		Body  = mochijson:encode({array, lists:reverse(JsonObj)}),
+		{ok, [{content_type, "application/json"}], Body}
+	catch
+		_:_Reason ->
+			{error, 500}
+	end.
 
 -spec get_client(Ip) -> Result
 	when
 		Ip :: string(),
-		Result :: {ok, Headers :: list(), Body :: iolist()}
+		Result :: {ok, Headers :: [string()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/client/{id}'
 %% requests.
@@ -115,7 +120,7 @@ get_client1(Address) ->
 -spec post_client(RequestBody) -> Result 
 	when
 		RequestBody :: list(),
-		Result :: {ok, Headers :: string(), Body :: iolist()}
+		Result :: {ok, Headers :: [string()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Respond to `POST /ocs/v1/client' and add a new `client'
 %% resource.
@@ -131,40 +136,37 @@ post_client(RequestBody) ->
 				diameter
 		end,
 		Secret = proplists:get_value("secret", Object, ocs:generate_password()),
-		post_client1(Id, Port, Protocol, Secret)
+		ok = ocs:add_client(Id, Port, Protocol, Secret),
+		Location = "/ocs/v1/client/" ++ Id,
+		RespObj = [{id, Id}, {href, Location}, {"port", Port},
+				{protocol, string:to_upper(atom_to_list(Protocol))}, {secret, Secret}],
+		JsonObj  = {struct, RespObj},
+		Body = mochijson:encode(JsonObj),
+		Headers = [{location, Location}],
+		{ok, Headers, Body}
 	catch
 		_Error ->
 			{error, 400}
 	end.
-%% @hidden
-post_client1(Id, Port, Protocol, Secret) ->
-	try ocs:add_client(Id, Port, Protocol, Secret) of
-		ok ->
-			Location = "/ocs/v1/client/" ++ Id,
-			RespObj = [{id, Id}, {href, Location}, {"port", Port},
-					{protocol, string:to_upper(atom_to_list(Protocol))}, {secret, Secret}],
-			JsonObj  = {struct, RespObj},
-			Body = mochijson:encode(JsonObj),
-			Headers = [{location, Location}],
-			{ok, Headers, Body};
-		{error, _Reason} ->
-			{error, 400}
-	catch
-		throw:_ ->
-			{error, 400}
-	end.
 
--spec patch_client(Id, ReqBody) -> Result 
+-spec patch_client(Ip, ReqBody) -> Result 
 	when
-		Id :: list(),
+		Ip :: string(),
 		ReqBody :: list(),
-		Result :: {ok, Headers :: list(), Body :: iolist()}
+		Result :: {ok, Headers :: [string()], Body :: iolist()}
 			| {error, ErrorCode :: integer()} .
 %% @doc	Respond to `PATCH /ocs/v1/client/{id}' request and
 %% Updates a existing `client''s password or attributes.
-patch_client(Id, ReqBody) ->
-	{ok, Address} = inet:parse_address(Id),
-	case ocs:find_client(Address) of
+patch_client(Ip, ReqBody) ->
+	case inet:parse_address(Ip) of
+		{ok, Address} ->
+			patch_client0(Address, ReqBody);
+		{error, einval} ->
+			{error, 400}
+	end.
+%% @hidden
+patch_client0(Id, ReqBody) ->
+	case ocs:find_client(Id) of
 		{ok, #client{port = CurrPort,
 				protocol = CurrProtocol, secret = CurrSecret}} ->
 			try
@@ -204,20 +206,20 @@ patch_client2(Id, Port, Protocol, Secret) ->
 	RespBody = mochijson:encode(JsonObj),
 	{ok, [], RespBody}.
 
--spec delete_client(ID) -> Result
+-spec delete_client(Ip) -> Result
 	when
-		ID :: string(),
+		Ip :: string(),
 		Result :: {ok, Headers :: [string()], Body :: iolist()}
 			| {error, ErrorCode :: integer()} .
 %% @doc Respond to `DELETE /ocs/v1/client/{address}' request and deletes
 %% a `client' resource. If the deletion is successful return true.
-delete_client(ID) ->
-	{ok, Address} = inet:parse_address(ID), 
-	case ocs:delete_client(Address) of
-		ok ->
+delete_client(Ip) ->
+	case inet:parse_address(Ip) of
+		{ok, Address} ->
+			ocs:delete_client(Address),
 			{ok, [], []};
-		_ ->
-			{error, 500}
+		{error, einval} ->
+			{error, 400}
 	end.
 
 %%----------------------------------------------------------------------

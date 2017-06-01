@@ -99,7 +99,8 @@ do_get(Resource, ModData, ["ocs", "v1", "log", "accounting"]) ->
 do_get(Resource, ModData, ["ocs", "v1", "log", "http"]) ->
 	do_response(ModData, Resource:get_http());
 do_get(_Resource, _ModData, _) ->
-	{break, [{response, {404, "<h1>Not Found</h1>"}}]}.
+	Response = "<h2>HTTP Error 404 - Not Found</h2>",
+	{break, [{response, {404, Response}}]}.
 
 %% @hidden
 do_response(ModData, {ok, Headers, ResponseBody}) ->
@@ -107,8 +108,15 @@ do_response(ModData, {ok, Headers, ResponseBody}) ->
 	NewHeaders = Headers ++ [{content_length, Size}],
 	send(ModData, 200, NewHeaders, ResponseBody),
 	{proceed,[{response,{already_sent, 200, Size}}]};
-do_response(_ModData, {error, ErrorCode}) ->
-	{break, [{response, {ErrorCode, "<h1>Not Found</h1>"}}]}.
+do_response(_ModData, {error, 400}) ->
+	Response = "<h2>HTTP Error 400 - Bad Request</h2>",
+	{break, [{response, {400, Response}}]};
+do_response(_ModData, {error, 404}) ->
+	Response = "<h2>HTTP Error 404 - Not Found</h2>",
+	{break, [{response, {404, Response}}]};
+do_response(_ModData, {error, 500}) ->
+	Response = "<h2>HTTP Error 500 - Server Error</h2>",
+	{break, [{response, {500, Response}}]}.
 
 
 %% @hidden

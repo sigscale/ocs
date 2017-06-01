@@ -94,10 +94,15 @@ do_response(#mod{data = Data} = ModData, {ok, Headers, ResponseBody}) ->
 	NewHeaders = Headers ++ [{content_length, Size}, {content_type, Accept}],
 	send(ModData, 201, NewHeaders, ResponseBody),
 	{proceed,[{response,{already_sent,201, Size}}]};
-do_response(_ModData, {error, ErrorCode}) when ErrorCode >= 400, ErrorCode < 500 ->
-	{break, [{response, {ErrorCode, "<h2>Erroneous Request</h2>"}}]};
-do_response(_ModData, {error, ErrorCode}) ->
-	{break, [{response, {ErrorCode, ["<h1>Server Error</h1>"]}}]}.
+do_response(_ModData, {error, 400}) ->
+	Response = "<h2>HTTP Error 400 - Bad Request</h2>",
+	{break, [{response, {400, Response}}]};
+do_response(_ModData, {error, 404}) ->
+	Response = "<h2>HTTP Error 404 - Not Found</h2>",
+	{break, [{response, {404, Response}}]};
+do_response(_ModData, {error, 500}) ->
+	Response = "<h2>HTTP Error 500 - Server Error</h2>",
+	{break, [{response, {500, Response}}]}.
 
 %% @hidden
 send(#mod{socket = Socket, socket_type = SocketType} = Info,

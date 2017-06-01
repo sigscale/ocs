@@ -65,7 +65,7 @@ get_http() ->
 read_http_log(Log, MaxItems) ->
 	case ocs_log:last(Log, MaxItems) of
 		{error, _} ->
-			{error, 404};
+			{error, 500};
 		{NumItems, Events} ->
 			JsonObjs = json(Events),
 			JsonArray = {array, JsonObjs},

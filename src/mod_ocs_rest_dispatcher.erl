@@ -83,11 +83,11 @@ send_response(_Socket, _SockType, Path, #mod{config_db = ConfigDb,
 			Headers = [{content_type, MimeType},
 					{content_length, Size}|LastModified],
 			send(ModData, 200, Headers, FileContent),
-			{proceed,[{response, {already_sent,200, FileInfo#file_info.size}},
+			{proceed,[{response, {already_sent, 200, FileInfo#file_info.size}},
 				{mime_type,MimeType} | Data]};
 		{error, _Reason} ->
-			Body = "<h2>404 Error not found</h2>",
-			{break, [{response,{404,Body}}]}
+			Response = "<h2>HTTP Error 404 - Not Found</h2>",
+			{break, [{response, {404, Response}}]}
 	end.
 
 %% @hidden

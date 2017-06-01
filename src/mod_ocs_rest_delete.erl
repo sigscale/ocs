@@ -70,7 +70,8 @@ do_delete(Resource, ModData, ["ocs", "v1", "client", Identity]) ->
 do_delete(Resource, ModData, ["ocs", "v1", "subscriber", Identity]) ->
 	do_response(ModData, Resource:delete_subscriber(Identity));
 do_delete(_Resource, _ModData, _) ->
-	{break, [{response,	{404, "<h1>Not Found</h1>"}}]}.
+	Response = "<h2>HTTP Error 404 - Not Found</h2>",
+	{break, [{response,	{404, Response}}]}.
 
 %% @hidden
 do_response(ModData, {ok, Headers, ResponseBody}) ->
@@ -78,8 +79,12 @@ do_response(ModData, {ok, Headers, ResponseBody}) ->
 	NewHeaders = Headers ++ [{content_length, Size}],
 	send(ModData, 204, NewHeaders, ResponseBody),
 	{proceed, [{response,{already_sent, 204, Size}}]};
-do_response(_ModData, {error, ErrorCode}) ->
-	{break, [{response, {ErrorCode, ["<h1>Server Error</h1>"]}}]}.
+do_response(_ModData, {error, 400}) ->
+	Response = "<h2>HTTP Error 400 - Bad Reques</h2>",
+	{break, [{response, {400, Response}}]};
+do_response(_ModData, {error, 500}) ->
+	Response = "<h2>HTTP Error 500 - Server Error</h2>",
+	{break, [{response, {500, Response}}]}.
 
 %% @hidden
 send(#mod{socket = Socket, socket_type = SocketType} = ModData,
