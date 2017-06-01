@@ -11,6 +11,7 @@
 <link rel="import" href="paper-toggle-button/paper-toggle-button.html" >
 <link rel="import" href="paper-toast/paper-toast.html">
 <link rel="import" href="paper-styles/color.html">
+<link rel="import" href="paper-checkbox/paper-checkbox.html">
 
 <dom-module id="sig-client-add">
 	<style is="custom-style">
@@ -39,6 +40,16 @@
 		paper-toggle-button {
 			--paper-toggle-button-checked-bar-color: #ffb04c;
 			--paper-toggle-button-checked-button-color: var(--paper-yellow-900);
+		}
+		.secret {
+			display: inline-block;
+		}
+		paper-input [id="add-client4"]{
+			width: 100%;
+		}
+		paper-checkbox {
+			--paper-checkbox-checked-color: #ffb04c;
+			--paper-checkbox-checkmark-color: var(--paper-yellow-900);
 		}
 	</style>
 	<template>
@@ -71,11 +82,18 @@
 				<paper-tooltip>
 					Port network access server, router or access point listens on
 				</paper-tooltip>
-				<paper-input
-						id="add-client4"
-						name="secret"
-						label="Secret">
-				</paper-input>
+				<div class="secret">
+					<paper-input
+							id="add-client4"
+							name="secret"
+							label="Secret">
+					</paper-input>
+				</div>
+				<paper-checkbox
+						id="check"
+						on-change="checkboxchanged">
+						Generate
+				</paper-checkbox>
 				<paper-tooltip>
 					Secret, or password, shared with the network access server, router or access point.
 				</paper-tooltip>
@@ -144,7 +162,9 @@
 					formData.id = document.getElementById("add-client1").value;
 					formData.port = parseInt(document.getElementById("add-client2").value);
 					formData.protocol = document.getElementById("add-client3").value;
-					formData.secret = document.getElementById("add-client4").value;
+					if (!document.getElementById("add-client4").disabled) {
+						formData.secret = document.getElementById("add-client4").value;
+					}
 					var ajax = document.getElementById("clientAddAjax");
 					ajax.body = formData;
 					ajax.generateRequest();
@@ -159,6 +179,13 @@
 						document.getElementById('progress').disabled = false;
 					} else {
 						document.getElementById('progress').disabled = true;
+					}
+				},
+				checkboxchanged: function(event) {
+					if (event.target.checked) {
+						document.getElementById("add-client4").disabled = true;
+					} else {
+						document.getElementById("add-client4").disabled = false;
 					}
 				},
 				_clientFormResponse: function(event) {
