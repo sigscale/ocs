@@ -992,7 +992,7 @@ ipdr_codec14(Attributes, radius, stop, Acc) ->
 	end.
 
 %% @hidden
-ipdr_xml(Log, IoDevice, {Cont, [#ipdrDoc{} = I | T]}) ->
+ipdr_xml(Log, IoDevice, {Cont, [#ipdrDoc{} = _I | T]}) ->
 	Header = [],
 	case file:write(IoDevice, Header) of
 		ok ->
@@ -1004,7 +1004,7 @@ ipdr_xml(Log, IoDevice, {Cont, [#ipdrDoc{} = I | T]}) ->
 			disk_log:close(Log),
 			{error, Reason}
 	end;
-ipdr_xml(Log, IoDevice, {Cont, [#ipdr{} = I | T]}) ->
+ipdr_xml(Log, IoDevice, {Cont, [#ipdr{} = _I | T]}) ->
 	IPDR = <<>>,
 	case file:write(IoDevice, IPDR) of
 		ok ->
@@ -1032,7 +1032,7 @@ ipdr_xml(Log, IoDevice, {Cont, []}) ->
 	ipdr_file3(Log, IoDevice, xml, {Cont, []}).
 
 %% @hidden
-ipdr_xdr(Log, IoDevice, {Cont, [#ipdrDoc{} = I | T]}) ->
+ipdr_xdr(Log, IoDevice, {Cont, [#ipdrDoc{} = _I | T]}) ->
 	Header = [<<>>],
 	case file:write(IoDevice, Header) of
 		ok ->
@@ -1044,7 +1044,7 @@ ipdr_xdr(Log, IoDevice, {Cont, [#ipdrDoc{} = I | T]}) ->
 			disk_log:close(Log),
 			{error, Reason}
 	end;
-ipdr_xdr(Log, IoDevice, {Cont, [#ipdr{} = I | T]}) ->
+ipdr_xdr(Log, IoDevice, {Cont, [#ipdr{} = _I | T]}) ->
 	IPDR = <<>>,
 	case file:write(IoDevice, IPDR) of
 		ok ->
