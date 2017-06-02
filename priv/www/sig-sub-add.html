@@ -33,11 +33,11 @@
 			color: black;
 		}
 		.password {
-			display: inline-block;
-		}
+         display: inline-block;
+      }
 		paper-input [id="add2"]{
-			width: 100%;
-		}
+         width: 100%;
+      }
 		paper-toast.error {
 			background-color: var(--paper-red-a400);
 		}
@@ -46,9 +46,9 @@
 			--paper-toggle-button-checked-button-color: var(--paper-yellow-900);
 		}
 		paper-checkbox {
-			--paper-checkbox-checked-color: #ffb04c;
-			--paper-checkbox-checkmark-color: var(--paper-yellow-900);
-		}
+         --paper-checkbox-checked-color: #ffb04c;
+         --paper-checkbox-checkmark-color: var(--paper-yellow-900);
+      }
 	</style>
 	<template>
 		<div id="add_subscriber_container">
@@ -82,9 +82,9 @@
 						</paper-tooltip>
 					</div>
 						<paper-checkbox
-							on-change="subcheckboxchanged">
-							Generate
-						</paper-checkbox>
+                  	on-change="subcheckboxchanged">
+                  	Generate
+            		</paper-checkbox>
 					<div>
 						<paper-input id="add3"
 								name="ascendDataRate"
@@ -190,14 +190,14 @@
 			</paper-dialog>
 		</div>
 		<iron-ajax
-				id="subAddAjax"
-				url="/ocs/v1/subscriber"
-				method = "post"
-				headers='{"Accept": "application/json", "Content-type": "application/json"}'
+            id="subAddAjax"
+            url="/ocs/v1/subscriber"
+            method = "post"
+            headers='{"Accept": "application/json", "Content-type": "application/json"}'
 				on-loading-changed="_onLoadingChanged"
-				client-as="json"
-				debounce-duration="300">
-		</iron-ajax>
+            client-as="json"
+            debounce-duration="300">
+      </iron-ajax>
 		<script>
 			function _submitSubForm() {
 				document.getElementById('presubmit').submit();
@@ -219,7 +219,7 @@
 					'presubmit.iron-form-presubmit': '_handleFormPreSubmit',
 					'presubmit.iron-form-submit': '_handleFormSubmit',
 					'presubmit.iron-form-error': '_handleFormError',
-					'presubmit.iron-form-response': '_handleFormResponse'
+					'presubmit.iron-form-response': '_handleFormResponse',
 				},
 				_handleFormPreSubmit: function() {
 					var form = document.getElementById('presubmit');
@@ -264,8 +264,8 @@
 					formData.enabled= document.getElementById("add9").checked;
 					form.request.body = formData;
 					var ajax = document.getElementById("subAddAjax");
-					ajax.body = formData;
-					ajax.generateRequest();
+               ajax.body = formData;
+               ajax.generateRequest();
 				},
 				_handleFormSubmit: function() {
 					var form = document.getElementById('presubmit');
@@ -287,17 +287,18 @@
 					}
 				},
 				subcheckboxchanged: function(event) {
-					if (event.target.checked) {
-						document.getElementById("add2").disabled = true;
-					} else {
-						document.getElementById("add2").disabled = false;
-					}
-				},
-				handleFormResponse: function(event) {
+               if (event.target.checked) {
+                  document.getElementById("add2").disabled = true;
+               } else {
+                  document.getElementById("add2").disabled = false;
+               }
+            },
+				_handleFormResponse: function(event) {
 					var toast = document.getElementById("toast-success");
 					toast.open();
 					toast.duration = 4;
 					document.getElementById("presubmit").reset();
+					document.getElementById("subAddModal").close();
 					document.getElementById("getSubs").generateRequest();
 				},
 				toastErrorClose: function(event) {
