@@ -9,6 +9,7 @@
 <link rel="import" href="paper-styles/color.html">
 <link rel="import" href="iron-form/iron-form.html">
 <link rel="import" href="iron-ajax/iron-ajax.html">
+<link rel="import" href="paper-checkbox/paper-checkbox.html">
 
 <dom-module id="sig-sub-add">
 	<style is="custom-style">
@@ -31,12 +32,22 @@
 		.cancel-button {
 			color: black;
 		}
+		.password {
+			display: inline-block;
+		}
+		paper-input [id="add2"]{
+			width: 100%;
+		}
 		paper-toast.error {
 			background-color: var(--paper-red-a400);
 		}
 		paper-toggle-button {
 			--paper-toggle-button-checked-bar-color: #ffb04c;
 			--paper-toggle-button-checked-button-color: var(--paper-yellow-900);
+		}
+		paper-checkbox {
+			--paper-checkbox-checked-color: #ffb04c;
+			--paper-checkbox-checkmark-color: var(--paper-yellow-900);
 		}
 	</style>
 	<template>
@@ -61,7 +72,7 @@
 							Identity, or username, of the subscriber to authenticate.
 						</paper-tooltip>
 					</div>
-					<div>
+					<div class="password">
 						<paper-input id="add2"
 								name="password"
 								label="Secret">
@@ -70,6 +81,10 @@
 							Secret, or password, shared only with the subscriber
 						</paper-tooltip>
 					</div>
+						<paper-checkbox
+							on-change="subcheckboxchanged">
+							Generate
+						</paper-checkbox>
 					<div>
 						<paper-input id="add3"
 								name="ascendDataRate"
@@ -175,14 +190,14 @@
 			</paper-dialog>
 		</div>
 		<iron-ajax
-            id="subAddAjax"
-            url="/ocs/v1/subscriber"
-            method = "post"
-            headers='{"Accept": "application/json", "Content-type": "application/json"}'
+				id="subAddAjax"
+				url="/ocs/v1/subscriber"
+				method = "post"
+				headers='{"Accept": "application/json", "Content-type": "application/json"}'
 				on-loading-changed="_onLoadingChanged"
-            client-as="json"
-            debounce-duration="300">
-      </iron-ajax>
+				client-as="json"
+				debounce-duration="300">
+		</iron-ajax>
 		<script>
 			function _submitSubForm() {
 				document.getElementById('presubmit').submit();
@@ -210,9 +225,7 @@
 					var form = document.getElementById('presubmit');
 					var formData = new Object();
 					formData.id = document.getElementById("add1").value;
-					if(document.getElementById("add2").value == "") {
-						formData.password = null;
-					} else {
+					if(!document.getElementById("add2").disabled) {
 						formData.password = document.getElementById("add2").value;
 					}
 					var ascendDataRate = new Object();
@@ -251,8 +264,8 @@
 					formData.enabled= document.getElementById("add9").checked;
 					form.request.body = formData;
 					var ajax = document.getElementById("subAddAjax");
-               ajax.body = formData;
-               ajax.generateRequest();
+					ajax.body = formData;
+					ajax.generateRequest();
 				},
 				_handleFormSubmit: function() {
 					var form = document.getElementById('presubmit');
@@ -273,7 +286,14 @@
 						document.getElementById("progress").disabled = true;
 					}
 				},
-				_handleFormResponse: function(event) {
+				subcheckboxchanged: function(event) {
+					if (event.target.checked) {
+						document.getElementById("add2").disabled = true;
+					} else {
+						document.getElementById("add2").disabled = false;
+					}
+				},
+				handleFormResponse: function(event) {
 					var toast = document.getElementById("toast-success");
 					toast.open();
 					toast.duration = 4;
