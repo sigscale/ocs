@@ -1,0 +1,118 @@
+
+@id 5
+@name   diameter_gen_eap_application_rfc4072
+@prefix diameter_eap_app
+@inherits diameter_gen_base_rfc6733
+@inherits diameter_gen_nas_application_rfc7155 
+@vendor 0 IETF
+
+@avp_types
+
+	EAP-Payload						462	OctetString	M
+	EAP-Reissued-Payload			463	OctetString	-
+	EAP-Master-Session-Key		464	OctetString	-
+	EAP-Key-Name					102	OctetString	-
+	Accounting-EAP-Auth-Method	465	Unsigned64	-
+
+@messages
+
+	DER ::= < Diameter Header: 268, REQ, PXY >
+		< Session-Id >
+		{ Auth-Application-Id }
+		{ Origin-Host }
+		{ Origin-Realm }
+		{ Destination-Realm }
+		{ Auth-Request-Type }
+		{ EAP-Payload }
+		[ Destination-Host ]
+		[ NAS-Identifier ]
+		[ NAS-IP-Address ]
+		[ NAS-IPv6-Address ]
+		[ NAS-Port ]
+		[ NAS-Port-Id ]
+		[ NAS-Port-Type ]
+		[ Origin-State-Id ]
+		[ Port-Limit ]
+		[ User-Name ]
+		[ EAP-Key-Name ]
+		[ Service-Type ]
+		[ State ]
+		[ Authorization-Lifetime ]
+		[ Auth-Grace-Period ]
+		[ Auth-Session-State ]
+		[ Callback-Number ]
+		[ Called-Station-Id ]
+		[ Calling-Station-Id ]
+		[ Originating-Line-Info ]
+		[ Connect-Info ]
+		* [ Framed-Compression ]
+		[ Framed-Interface-Id ]
+		[ Framed-IP-Address ]
+		* [ Framed-IPv6-Prefix ]
+		[ Framed-IP-Netmask ]
+		[ Framed-MTU ]
+		[ Framed-Protocol ]
+		* [ Tunneling ]
+		* [ Proxy-Info ]
+		* [ Route-Record ]
+		* [ AVP ]
+
+	DEA ::= < Diameter Header: 268, PXY >
+		< Session-Id >
+		{ Auth-Application-Id }
+		{ Auth-Request-Type }
+		{ Result-Code }
+		{ Origin-Host }
+		{ Origin-Realm }
+		[ User-Name ]
+		[ EAP-Payload ]
+		[ EAP-Reissued-Payload ]
+		[ EAP-Master-Session-Key ]
+		[ EAP-Key-Name ]
+		[ Multi-Round-Time-Out ]
+		[ Accounting-EAP-Auth-Method ]
+		[ Service-Type ]
+		* [ Class ]
+		* [ Configuration-Token ]
+		[ Acct-Interim-Interval ]
+		[ Error-Message ]
+		[ Error-Reporting-Host ]
+		* [ Failed-AVP ]
+		[ Idle-Timeout ]
+		[ Authorization-Lifetime ]
+		[ Auth-Grace-Period ]
+		[ Auth-Session-State ]
+		[ Re-Auth-Request-Type ]
+		[ Session-Timeout ]
+		[ State ]
+		* [ Reply-Message ]
+		[ Origin-State-Id ]
+		* [ Filter-Id ]
+		[ Port-Limit ]
+		[ Callback-Id ]
+		[ Callback-Number ]
+		[ Framed-Appletalk-Link ]
+		* [ Framed-Appletalk-Network ]
+		[ Framed-Appletalk-Zone ]
+		* [ Framed-Compression ]
+		[ Framed-Interface-Id ]
+		[ Framed-IP-Address ]
+		* [ Framed-IPv6-Prefix ]
+		[ Framed-IPv6-Pool ]
+		* [ Framed-IPv6-Route ]
+		[ Framed-IP-Netmask ]
+		* [ Framed-Route ]
+		[ Framed-Pool ]
+		[ Framed-IPX-Network ]
+		[ Framed-MTU ]
+		[ Framed-Protocol ]
+		[ Framed-Routing ]
+		* [ NAS-Filter-Rule ]
+		* [ QoS-Filter-Rule ]
+		* [ Tunneling ]
+		* [ Redirect-Host ]
+		[ Redirect-Host-Usage ]
+		[ Redirect-Max-Cache-Time ]
+		* [ Proxy-Info ]
+		* [ AVP ]
+
