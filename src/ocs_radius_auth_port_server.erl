@@ -242,7 +242,7 @@ request({eap, <<_:32, ?Identity, Identity/binary>>},
 	request1({identity, Identity}, Address, Port, Secret, Radius, From, State);
 request({eap, <<_, EapID, _:16, ?LegacyNak, Data/binary>>},
 		Address, Port, Secret, Radius, From, State) ->
-	request1({lgcy_nack, EapID, Data}, Address, Port, Secret, Radius, From, State);
+	request1({legacy_nak, EapID, Data}, Address, Port, Secret, Radius, From, State);
 request(Eap, Address, Port, Secret, Radius, From, State) ->
 	request1(Eap, Address, Port, Secret, Radius, From, State).
 %% @hidden
@@ -296,7 +296,7 @@ request1(EapType, Address, Port, Secret,
 				end;
 			{value, {Fsm, Identity1}} ->
 				case EapType of
-					{lgcy_nack, EapId, AlternateMethods} -> 
+					{legacy_nak, EapId, AlternateMethods} -> 
 						case get_alternate(MethodOrder, AlternateMethods, State) of
 							{ok , Sup} ->
 								gen_fsm:send_event(Fsm, {AccessRequest, RadiusFsm}),
