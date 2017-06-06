@@ -18,6 +18,7 @@ beam_DATA = ocs.beam \
 			ocs_diameter_auth_sup.beam \
 			ocs_diameter_base_application_cb.beam \
 			ocs_diameter_nas_application_cb.beam \
+			ocs_diameter_eap_application_cb.beam \
 			ocs_diameter_cc_application_cb.beam \
 			ocs_diameter_disconnect_fsm_sup.beam\
 			ocs_diameter_disconnect_fsm.beam\

@@ -19,6 +19,7 @@ modhtml = ocs.html \
 			ocs_diameter_base_application_cb.html \
 			ocs_diameter_cc_application_cb.html \
 			ocs_diameter_nas_application_cb.html \
+			ocs_diameter_eap_application_cb.html \
 			ocs_diameter_disconnect_fsm_sup.html\
 			ocs_diameter_disconnect_fsm.html\
 			ocs_radius_acct_port_server.html \
