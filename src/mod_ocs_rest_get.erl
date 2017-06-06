@@ -92,6 +92,8 @@ do_get(Resource, ModData, ["ocs", "v1", "subscriber", Identity]) ->
 	do_response(ModData, Resource:get_subscriber(Identity));
 do_get(Resource, ModData, ["usageManagement", "v1", "usage"]) ->
 	do_response(ModData, Resource:get_usage());
+do_get(Resource, ModData, ["usageManagement", "v1", "usageSpecification"]) ->
+	do_response(ModData, Resource:get_usagespec());
 do_get(Resource, ModData, ["ocs", "v1", "log", "access"]) ->
 	do_response(ModData, Resource:get_access());
 do_get(Resource, ModData, ["ocs", "v1", "log", "accounting"]) ->

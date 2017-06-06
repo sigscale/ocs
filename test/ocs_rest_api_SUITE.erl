@@ -131,7 +131,7 @@ all() ->
 	get_subscriber_not_found, retrieve_all_subscriber, delete_subscriber,
 	add_client, add_client_without_password, get_client, get_client_id,
 	get_client_bogus, get_client_notfound, get_all_clients, delete_client,
-	get_usage].
+	get_usagespec, get_usage].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -680,6 +680,31 @@ delete_client(Config) ->
 	{ok, Result1} = httpc:request(delete, Request2, [], []),
 	{{"HTTP/1.1", 204, _NoContent}, Headers1, []} = Result1,
 	{_, "0"} = lists:keyfind("content-length", 1, Headers1).
+
+get_usagespec() ->
+	[{userdata, [{doc,"Get usageSpecification"}]}].
+
+get_usagespec(Config) ->
+	HostUrl = ?config(host_url, Config),
+	AcceptValue = "application/json",
+	Accept = {"accept", AcceptValue},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request = {HostUrl ++ "/usageManagement/v1/usageSpecification", [Accept, Authentication]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
+	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(Body)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, {array, [{struct, UsageSpec} | _]}} = mochijson:decode(Body),
+	{_, _} = lists:keyfind("id", 1, UsageSpec),
+	{_, _} = lists:keyfind("href", 1, UsageSpec),
+	{_, _} = lists:keyfind("name", 1, UsageSpec),
+	{_, _} = lists:keyfind("validFor", 1, UsageSpec),
+	{_, _} = lists:keyfind("usageSpecCharacteristic", 1, UsageSpec).
 
 get_usage() ->
 	[{userdata, [{doc,"Get usage in rest interface"}]}].
