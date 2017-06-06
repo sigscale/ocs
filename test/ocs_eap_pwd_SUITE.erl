@@ -113,10 +113,10 @@ eap_identity_radius(Config) ->
 	Secret = ct:get_config(radius_shared_secret),
 	ReqAuth = radius:authenticator(),
 	RadId = 1, EapId = 1,
-	ok = send_identity(Socket, Address, Port, NasId, UserName,
+	ok = send_radius_identity(Socket, Address, Port, NasId, UserName,
 			Secret, PeerId, MAC, ReqAuth, EapId, RadId),
 	NextEapId = EapId + 1,
-	{NextEapId, _Token, _ServerID} = receive_id(Socket, Address,
+	{NextEapId, _Token, _ServerID} = receive_radius_id(Socket, Address,
 			Port, Secret, ReqAuth, RadId).
 
 pwd_id_radius() ->
@@ -135,17 +135,17 @@ pwd_id_radius(Config) ->
 	Secret = ct:get_config(radius_shared_secret),
 	ReqAuth1 = radius:authenticator(),
 	RadId1 = 2, EapId1 = 1,
-	ok = send_identity(Socket, Address, Port, NasId, UserName,
+	ok = send_radius_identity(Socket, Address, Port, NasId, UserName,
 			Secret, PeerId, MAC, ReqAuth1, EapId1, RadId1),
 	EapId2 = EapId1 + 1,
-	{EapId2, Token, _ServerID} = receive_id(Socket, Address,
+	{EapId2, Token, _ServerID} = receive_radius_id(Socket, Address,
 			Port, Secret, ReqAuth1, RadId1),
 	RadId2 = RadId1 + 1,
 	ReqAuth2 = radius:authenticator(),
-	send_id(Socket, Address, Port, Secret,
+	send_radius_id(Socket, Address, Port, Secret,
 			ReqAuth2, UserName, NasId, PeerId, MAC, Token, EapId2, RadId2),
 	EapId3 = EapId2 + 1,
-	{EapId3, _ElementS, _ScalarS} = receive_commit(Socket, Address,
+	{EapId3, _ElementS, _ScalarS} = receive_radius_commit(Socket, Address,
 			Port, Secret, ReqAuth2, RadId2).
 
 pwd_commit_radius() ->
@@ -164,27 +164,27 @@ pwd_commit_radius(Config) ->
 	Secret = ct:get_config(radius_shared_secret),
 	ReqAuth1 = radius:authenticator(),
 	RadId1 = 5, EapId1 = 1,
-	ok = send_identity(Socket, Address, Port, NasId, UserName,
+	ok = send_radius_identity(Socket, Address, Port, NasId, UserName,
 			Secret, PeerId, MAC, ReqAuth1, EapId1, RadId1),
 	EapId2 = EapId1 + 1,
-	{EapId2, Token, ServerID} = receive_id(Socket, Address,
+	{EapId2, Token, ServerID} = receive_radius_id(Socket, Address,
 			Port, Secret, ReqAuth1, RadId1),
 	RadId2 = RadId1 + 1,
 	ReqAuth2 = radius:authenticator(),
-	send_id(Socket, Address, Port, Secret,
+	send_radius_id(Socket, Address, Port, Secret,
 			ReqAuth2, UserName, NasId, PeerId, MAC, Token, EapId2, RadId2),
 	EapId3 = EapId2 + 1,
-	{EapId3, _ElementS, _ScalarS} = receive_commit(Socket, Address,
+	{EapId3, _ElementS, _ScalarS} = receive_radius_commit(Socket, Address,
 			Port, Secret, ReqAuth2, RadId2),
 	Prand = crypto:rand_uniform(1, ?R),
 	PWE = ocs_eap_pwd:compute_pwe(Token, PeerId, ServerID, PeerAuth),
 	{ScalarP, ElementP} = ocs_eap_pwd:compute_scalar(<<Prand:256>>, PWE),
 	RadId3 = RadId2 + 1,
 	ReqAuth3 = radius:authenticator(),
-	ok = send_commit(Socket, Address, Port, Secret, ReqAuth3,
+	ok = send_radius_commit(Socket, Address, Port, Secret, ReqAuth3,
 			UserName, NasId, MAC, ScalarP, ElementP, EapId3, RadId3),
 	EapId4 = EapId3 + 1,
-	{EapId4, _ConfirmS} = receive_confirm(Socket,
+	{EapId4, _ConfirmS} = receive_radius_confirm(Socket,
 			Address, Port, Secret, ReqAuth3, RadId3).
 	
 pwd_confirm_radius() ->
@@ -203,27 +203,27 @@ pwd_confirm_radius(Config) ->
 	Secret = ct:get_config(radius_shared_secret),
 	ReqAuth1 = radius:authenticator(),
 	RadId1 = 8, EapId1 = 1,
-	ok = send_identity(Socket, Address, Port, NasId, UserName,
+	ok = send_radius_identity(Socket, Address, Port, NasId, UserName,
 			Secret, PeerId, MAC, ReqAuth1, EapId1, RadId1),
 	EapId2 = EapId1 + 1,
-	{EapId2, Token, ServerID} = receive_id(Socket, Address,
+	{EapId2, Token, ServerID} = receive_radius_id(Socket, Address,
 			Port, Secret, ReqAuth1, RadId1),
 	RadId2 = RadId1 + 1,
 	ReqAuth2 = radius:authenticator(),
-	send_id(Socket, Address, Port, Secret,
+	send_radius_id(Socket, Address, Port, Secret,
 			ReqAuth2, UserName, NasId, PeerId, MAC, Token, EapId2, RadId2),
 	EapId3 = EapId2 + 1,
-	{EapId3, ElementS, ScalarS} = receive_commit(Socket, Address,
+	{EapId3, ElementS, ScalarS} = receive_radius_commit(Socket, Address,
 			Port, Secret, ReqAuth2, RadId2),
 	PWE = ocs_eap_pwd:compute_pwe(Token, PeerId, ServerID, PeerAuth),
 	Prand = crypto:rand_uniform(1, ?R),
 	{ScalarP, ElementP} = ocs_eap_pwd:compute_scalar(<<Prand:256>>, PWE),
 	RadId3 = RadId2 + 1,
 	ReqAuth3 = radius:authenticator(),
-	ok = send_commit(Socket, Address, Port, Secret, ReqAuth3,
+	ok = send_radius_commit(Socket, Address, Port, Secret, ReqAuth3,
 			UserName, NasId, MAC, ScalarP, ElementP, EapId3, RadId3),
 	EapId4 = EapId3 + 1,
-	{EapId4, _ConfirmS} = receive_confirm(Socket,
+	{EapId4, _ConfirmS} = receive_radius_confirm(Socket,
 			Address, Port, Secret, ReqAuth3, RadId3),
 	Ciphersuite = <<19:16, 1, 1>>,
 	Kp = ocs_eap_pwd:compute_ks(<<Prand:256>>, PWE, ScalarS, ElementS),
@@ -231,9 +231,9 @@ pwd_confirm_radius(Config) ->
 	ConfirmP = ocs_eap_pwd:h(Input),
 	RadId4 = RadId3 + 1,
 	ReqAuth4 = radius:authenticator(),
-	send_confirm(Socket, Address, Port, Secret, ReqAuth4, UserName,
+	send_radius_confirm(Socket, Address, Port, Secret, ReqAuth4, UserName,
 			NasId, MAC, ConfirmP, EapId4, RadId4),
-	EapId4 = receive_success(Socket, Address, Port, Secret, ReqAuth4, RadId4).
+	EapId4 = receive_radius_success(Socket, Address, Port, Secret, ReqAuth4, RadId4).
 
 message_authentication_radius() ->
 	[{userdata, [{doc, "Send corrupt Message-Authenticator using RADIUS"}]}].
@@ -251,7 +251,7 @@ message_authentication_radius(Config) ->
 	Secret = "bogus",
 	ReqAuth = radius:authenticator(),
 	RadId = 13, EapId = 1,
-	ok = send_identity(Socket, Address, Port, NasId, UserName,
+	ok = send_radius_identity(Socket, Address, Port, NasId, UserName,
 			Secret, PeerId, MAC, ReqAuth, EapId, RadId),
 	{error, timeout} = gen_udp:recv(Socket, 0, 2000).
 
@@ -277,9 +277,9 @@ role_reversal_radius(Config) ->
 	EapPacket  = #eap_packet{code = request, type = ?PWD,
 			identifier = EapId, data = ocs_eap_codec:eap_pwd(EapPwd)},
 	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
-	ok = access_request(Socket, Address, Port, NasId,
+	ok = radius_access_request(Socket, Address, Port, NasId,
 			UserName, Secret, MAC, ReqAuth, RadId, EapMsg),
-	{EapId, <<0>>} = receive_nak(Socket, Address, Port, Secret, ReqAuth, RadId).
+	{EapId, <<0>>} = receive_radius_nak(Socket, Address, Port, Secret, ReqAuth, RadId).
 
 validate_pwd_id_cipher_radius() ->
 	[{userdata, [{doc, "Send invalid EAP-pwd-ID (bad cipher) using RADIUS"}]}].
@@ -297,10 +297,10 @@ validate_pwd_id_cipher_radius(Config) ->
 	Secret = ct:get_config(radius_shared_secret),
 	ReqAuth1 = radius:authenticator(),
 	RadId1 = 16, EapId1 = 1,
-	ok = send_identity(Socket, Address, Port, NasId, UserName,
+	ok = send_radius_identity(Socket, Address, Port, NasId, UserName,
 			Secret, PeerId, MAC, ReqAuth1, EapId1, RadId1),
 	EapId2 = EapId1 + 1,
-	{EapId2, Token, _ServerID} = receive_id(Socket, Address,
+	{EapId2, Token, _ServerID} = receive_radius_id(Socket, Address,
 			Port, Secret, ReqAuth1, RadId1),
 	RadId2 = RadId1 + 1,
 	ReqAuth2 = radius:authenticator(),
@@ -311,9 +311,9 @@ validate_pwd_id_cipher_radius(Config) ->
 	EapPacket  = #eap_packet{code = response, type = ?PWD,
 			identifier = EapId2, data = ocs_eap_codec:eap_pwd(EapPwd)},
 	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
-	ok = access_request(Socket, Address, Port, NasId,
+	ok = radius_access_request(Socket, Address, Port, NasId,
 			UserName, Secret, MAC, ReqAuth2, RadId2, EapMsg),
-	EapId2 = receive_failure(Socket, Address, Port, Secret, ReqAuth2, RadId2).
+	EapId2 = receive_radius_failure(Socket, Address, Port, Secret, ReqAuth2, RadId2).
 
 validate_pwd_id_prep_radius() ->
 	[{userdata, [{doc, "Send invalid EAP-pwd-ID (bad prep) using RADIUS"}]}].
@@ -331,10 +331,10 @@ validate_pwd_id_prep_radius(Config) ->
 	Secret = ct:get_config(radius_shared_secret),
 	ReqAuth1 = radius:authenticator(),
 	RadId1 = 16, EapId1 = 1,
-	ok = send_identity(Socket, Address, Port, NasId, UserName,
+	ok = send_radius_identity(Socket, Address, Port, NasId, UserName,
 			Secret, PeerId, MAC, ReqAuth1, EapId1, RadId1),
 	EapId2 = EapId1 + 1,
-	{EapId2, Token, _ServerID} = receive_id(Socket, Address,
+	{EapId2, Token, _ServerID} = receive_radius_id(Socket, Address,
 			Port, Secret, ReqAuth1, RadId1),
 	RadId2 = RadId1 + 1,
 	ReqAuth2 = radius:authenticator(),
@@ -345,9 +345,9 @@ validate_pwd_id_prep_radius(Config) ->
 	EapPacket  = #eap_packet{code = response, type = ?PWD,
 			identifier = EapId2, data = ocs_eap_codec:eap_pwd(EapPwd)},
 	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
-	ok = access_request(Socket, Address, Port, NasId,
+	ok = radius_access_request(Socket, Address, Port, NasId,
 			UserName, Secret, MAC, ReqAuth2, RadId2, EapMsg),
-	EapId2 = receive_failure(Socket, Address, Port, Secret, ReqAuth2, RadId2).
+	EapId2 = receive_radius_failure(Socket, Address, Port, Secret, ReqAuth2, RadId2).
 
 validate_pwd_id_token_radius() ->
 	[{userdata, [{doc, "Send invalid EAP-pwd-ID (bad token) using RADIUS"}]}].
@@ -365,10 +365,10 @@ validate_pwd_id_token_radius(Config) ->
 	Secret = ct:get_config(radius_shared_secret),
 	ReqAuth1 = radius:authenticator(),
 	RadId1 = 16, EapId1 = 1,
-	ok = send_identity(Socket, Address, Port, NasId, UserName,
+	ok = send_radius_identity(Socket, Address, Port, NasId, UserName,
 			Secret, PeerId, MAC, ReqAuth1, EapId1, RadId1),
 	EapId2 = EapId1 + 1,
-	{EapId2, _Token, _ServerID} = receive_id(Socket, Address,
+	{EapId2, _Token, _ServerID} = receive_radius_id(Socket, Address,
 			Port, Secret, ReqAuth1, RadId1),
 	RadId2 = RadId1 + 1,
 	ReqAuth2 = radius:authenticator(),
@@ -379,9 +379,9 @@ validate_pwd_id_token_radius(Config) ->
 	EapPacket  = #eap_packet{code = response, type = ?PWD,
 			identifier = EapId2, data = ocs_eap_codec:eap_pwd(EapPwd)},
 	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
-	ok = access_request(Socket, Address, Port, NasId,
+	ok = radius_access_request(Socket, Address, Port, NasId,
 			UserName, Secret, MAC, ReqAuth2, RadId2, EapMsg),
-	EapId2 = receive_failure(Socket, Address, Port, Secret, ReqAuth2, RadId2).
+	EapId2 = receive_radius_failure(Socket, Address, Port, Secret, ReqAuth2, RadId2).
 
 negotiate_method_radius() ->
 	[{userdata, [{doc, "Send EAP-Nak with alternate methods using RADIUS"}]}].
@@ -399,10 +399,10 @@ negotiate_method_radius(Config) ->
 	Secret = ct:get_config(radius_shared_secret),
 	ReqAuth1 = radius:authenticator(),
 	RadId1 = 16, EapId1 = 1,
-	ok = send_identity(Socket, Address, Port, NasId, UserName,
+	ok = send_radius_identity(Socket, Address, Port, NasId, UserName,
 			Secret, PeerId, MAC, ReqAuth1, EapId1, RadId1),
 	EapId2 = EapId1 + 1,
-	EapMsg1 = access_challenge(Socket, Address, Port,
+	EapMsg1 = radius_access_challenge(Socket, Address, Port,
 			Secret, RadId1, ReqAuth1),
 	#eap_packet{code = request, type = Method,
 			identifier = EapId2} = ocs_eap_codec:eap_packet(EapMsg1),
@@ -415,9 +415,9 @@ negotiate_method_radius(Config) ->
 			type = ?LegacyNak, identifier = EapId2,
 			data = list_to_binary(AlternateMethods)},
 	EapMsg2 = ocs_eap_codec:eap_packet(EapPacket),
-	ok = access_request(Socket, Address, Port, NasId,
+	ok = radius_access_request(Socket, Address, Port, NasId,
 			UserName, Secret, MAC, ReqAuth2, RadId2, EapMsg2),
-	EapMsg3 = access_challenge(Socket, Address, Port,
+	EapMsg3 = radius_access_challenge(Socket, Address, Port,
 			Secret, RadId2, ReqAuth2),
 	EapId3 = EapId2 + 1,
 	#eap_packet{code = request, type = Type,
@@ -428,7 +428,7 @@ negotiate_method_radius(Config) ->
 %%  Internal functions
 %%---------------------------------------------------------------------
 
-access_request(Socket, Address, Port, NasId,
+radius_access_request(Socket, Address, Port, NasId,
 		UserName, Secret, MAC, Auth, RadId, EapMsg) ->
 	A0 = radius_attributes:new(),
 	A1 = radius_attributes:add(?UserName, UserName, A0),
@@ -448,13 +448,13 @@ access_request(Socket, Address, Port, NasId,
 	ReqPacket2 = radius:codec(Request2),
 	gen_udp:send(Socket, Address, Port, ReqPacket2).
 
-access_challenge(Socket, Address, Port, Secret, RadId, ReqAuth) ->
+radius_access_challenge(Socket, Address, Port, Secret, RadId, ReqAuth) ->
 	receive_radius(?AccessChallenge, Socket, Address, Port, Secret, RadId, ReqAuth).
 
-access_accept(Socket, Address, Port, Secret, RadId, ReqAuth) ->
+radius_access_accept(Socket, Address, Port, Secret, RadId, ReqAuth) ->
 	receive_radius(?AccessAccept, Socket, Address, Port, Secret, RadId, ReqAuth).
 
-access_reject(Socket, Address, Port, Secret, RadId, ReqAuth) ->
+radius_access_reject(Socket, Address, Port, Secret, RadId, ReqAuth) ->
 	receive_radius(?AccessReject, Socket, Address, Port, Secret, RadId, ReqAuth).
 
 receive_radius(Code, Socket, Address, Port, Secret, RadId, ReqAuth) ->
@@ -474,16 +474,16 @@ receive_radius(Code, Socket, Address, Port, Secret, RadId, ReqAuth) ->
 	{ok, EapMsg} = radius_attributes:find(?EAPMessage, RespAttr1),
 	EapMsg.
 
-send_identity(Socket, Address, Port, NasId,
+send_radius_identity(Socket, Address, Port, NasId,
 		UserName, Secret, PeerId, MAC, Auth, EapId, RadId) ->
 	EapPacket  = #eap_packet{code = response, type = ?Identity,
 			identifier = EapId, data = PeerId},
 	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
-	access_request(Socket, Address, Port, NasId,
+	radius_access_request(Socket, Address, Port, NasId,
 			UserName, Secret, MAC, Auth, RadId, EapMsg).
 
-receive_id(Socket, Address, Port, Secret, ReqAuth, RadId) ->
-	EapMsg = access_challenge(Socket, Address, Port,
+receive_radius_id(Socket, Address, Port, Secret, ReqAuth, RadId) ->
+	EapMsg = radius_access_challenge(Socket, Address, Port,
 			Secret, RadId, ReqAuth),
 	#eap_packet{code = request, type = ?PWD, identifier = EapId,
 			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
@@ -494,7 +494,7 @@ receive_id(Socket, Address, Port, Secret, ReqAuth, RadId) ->
 			identity = ServerID} = ocs_eap_codec:eap_pwd_id(EapPwdData),
 	{EapId, Token, ServerID}.
 
-send_id(Socket, Address, Port, Secret, Auth, UserName,
+send_radius_id(Socket, Address, Port, Secret, Auth, UserName,
 		NasId, PeerId, MAC, Token, EapId, RadId) ->
 	EapPwdId = #eap_pwd_id{group_desc = 19, random_fun = 16#1, prf = 16#1,
 			token = Token, pwd_prep = none, identity = PeerId},
@@ -502,11 +502,11 @@ send_id(Socket, Address, Port, Secret, Auth, UserName,
 	EapPacket  = #eap_packet{code = response, type = ?PWD, identifier = EapId,
 			data = ocs_eap_codec:eap_pwd(EapPwd)},
 	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
-	access_request(Socket, Address, Port, NasId,
+	radius_access_request(Socket, Address, Port, NasId,
 			UserName, Secret, MAC, Auth, RadId, EapMsg).
 
-receive_commit(Socket, Address, Port, Secret, ReqAuth, RadId) ->
-	EapMsg = access_challenge(Socket, Address, Port,
+receive_radius_commit(Socket, Address, Port, Secret, ReqAuth, RadId) ->
+	EapMsg = radius_access_challenge(Socket, Address, Port,
 			Secret, RadId, ReqAuth),
 	#eap_packet{code = request, type = ?PWD, identifier = EapId,
 			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
@@ -516,7 +516,7 @@ receive_commit(Socket, Address, Port, Secret, ReqAuth, RadId) ->
 			scalar = ScalarS} = ocs_eap_codec:eap_pwd_commit(EapPwdData),
 	{EapId, ElementS, ScalarS}.
 
-send_commit(Socket, Address, Port, Secret, Auth, UserName,
+send_radius_commit(Socket, Address, Port, Secret, Auth, UserName,
 		NasId, MAC, ScalarP, ElementP, EapId, RadId) ->
 	EapPwdCommit = #eap_pwd_commit{scalar = ScalarP, element = ElementP},
 	EapPwd = #eap_pwd{length = false, more = false, pwd_exch = commit,
@@ -524,11 +524,11 @@ send_commit(Socket, Address, Port, Secret, Auth, UserName,
 	EapPacket = #eap_packet{code = response, type = ?PWD,
 			identifier = EapId, data = ocs_eap_codec:eap_pwd(EapPwd)},
 	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
-	access_request(Socket, Address, Port, NasId,
+	radius_access_request(Socket, Address, Port, NasId,
 			UserName, Secret, MAC, Auth, RadId, EapMsg).
 
-receive_confirm(Socket, Address, Port, Secret, ReqAuth, RadId) ->
-	EapMsg = access_challenge(Socket, Address, Port,
+receive_radius_confirm(Socket, Address, Port, Secret, ReqAuth, RadId) ->
+	EapMsg = radius_access_challenge(Socket, Address, Port,
 			Secret, RadId, ReqAuth),
 	#eap_packet{code = request, type = ?PWD, identifier = EapId,
 			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
@@ -536,32 +536,32 @@ receive_confirm(Socket, Address, Port, Secret, ReqAuth, RadId) ->
 			data = ConfirmS} = ocs_eap_codec:eap_pwd(EapData),
 	{EapId, ConfirmS}.
 
-send_confirm(Socket, Address, Port, Secret, Auth, UserName,
+send_radius_confirm(Socket, Address, Port, Secret, Auth, UserName,
 		NasId, MAC, ConfirmP, EapId, RadId) ->
 	EapPwd = #eap_pwd{length = false, more = false,
 			pwd_exch = confirm, data = ConfirmP},
 	EapPacket = #eap_packet{code = response, type = ?PWD,
 			identifier = EapId, data = ocs_eap_codec:eap_pwd(EapPwd)},
 	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
-	access_request(Socket, Address, Port, NasId,
+	radius_access_request(Socket, Address, Port, NasId,
 			UserName, Secret, MAC, Auth, RadId, EapMsg).
 
-receive_success(Socket, Address, Port, Secret, ReqAuth, RadId) ->
-	EapMsg = access_accept(Socket, Address, Port,
+receive_radius_success(Socket, Address, Port, Secret, ReqAuth, RadId) ->
+	EapMsg = radius_access_accept(Socket, Address, Port,
 			Secret, RadId, ReqAuth),
 	#eap_packet{code = success,
 			identifier = EapId} = ocs_eap_codec:eap_packet(EapMsg),
 	EapId.
 
-receive_failure(Socket, Address, Port, Secret, ReqAuth, RadId) ->
-	EapMsg = access_reject(Socket, Address, Port,
+receive_radius_failure(Socket, Address, Port, Secret, ReqAuth, RadId) ->
+	EapMsg = radius_access_reject(Socket, Address, Port,
 			Secret, RadId, ReqAuth),
 	#eap_packet{code = failure,
 			identifier = EapId} = ocs_eap_codec:eap_packet(EapMsg),
 	EapId.
 
-receive_nak(Socket, Address, Port, Secret, ReqAuth, RadId) ->
-	EapMsg = access_reject(Socket, Address, Port,
+receive_radius_nak(Socket, Address, Port, Secret, ReqAuth, RadId) ->
+	EapMsg = radius_access_reject(Socket, Address, Port,
 			Secret, RadId, ReqAuth),
 	#eap_packet{code = response, type = ?LegacyNak, identifier = EapId,
 			data = AuthTypes} = ocs_eap_codec:eap_packet(EapMsg),

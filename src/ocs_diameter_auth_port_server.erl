@@ -209,7 +209,7 @@ request(Caps, Request, State) when is_record(Request, diameter_nas_app_STR) ->
 	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
 	SessionId = Request#diameter_nas_app_STR.'Session-Id',
 	try
-		Username = Request#diameter_nas_app_STR.'User-Name',
+		[Username] = Request#diameter_nas_app_STR.'User-Name',
 		F = fun() ->
 			case mnesia:read(subscriber, Username, write) of
 				[#subscriber{disconnect = false} = Entry] ->
@@ -237,8 +237,8 @@ request(Caps, Request, State) when is_record(Request, diameter_nas_app_STR) ->
 request1(OHost, ORealm, Request, #state{handlers = Handlers} = State) ->
 	SessionId = get_session_id(Request),
 	try
-		#diameter_nas_app_AAR{'Auth-Request-Type' = Type, 'User-Name' = UserName,
-				'User-Password' = Password} = Request,
+		#diameter_nas_app_AAR{'Auth-Request-Type' = Type, 'User-Name' = [UserName],
+				'User-Password' = [Password]} = Request,
 		case gb_trees:lookup(SessionId, Handlers) of
 			none ->
 				SimpleAuthSup = State#state.simple_auth_sup,

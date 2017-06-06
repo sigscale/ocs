@@ -435,7 +435,7 @@ diameter_authentication(SId, Username, Password) ->
 	NAS_AAR = #diameter_nas_app_AAR{'Session-Id' = SId,
 			'Auth-Application-Id' = ?NAS_APPLICATION_ID ,
 			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
-			'User-Name' = Username, 'User-Password' = Password},
+			'User-Name' = [Username], 'User-Password' = [Password]},
 	{ok, Answer} = diameter:call(?SVC_AUTH, nas_app_test, NAS_AAR, []),
 	Answer.
 

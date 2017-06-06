@@ -15,6 +15,7 @@ modhtml = ocs.html \
 			ocs_diameter_acct_port_server.html \
 			diameter_gen_cc_application_rfc4006.html \
 			diameter_gen_nas_application_rfc7155.html \
+			diameter_gen_eap_application_rfc4072.html \
 			ocs_diameter_base_application_cb.html \
 			ocs_diameter_cc_application_cb.html \
 			ocs_diameter_nas_application_cb.html \
