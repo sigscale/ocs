@@ -49,6 +49,9 @@
 -define(NAS_APPLICATION, ocs_diameter_nas_application).
 -define(NAS_APPLICATION_ID, 1).
 -define(NAS_APPLICATION_CALLBACK, ocs_diameter_nas_application_cb).
+-define(EAP_APPLICATION, ocs_diameter_eap_application).
+-define(EAP_APPLICATION_ID, 5).
+-define(EAP_APPLICATION_CALLBACK, ocs_diameter_eap_application_cb).
 
 %%----------------------------------------------------------------------
 %%  The ocs_diameter_auth_service_fsm API
@@ -265,18 +268,27 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %% @hidden
 service_options() ->
 	[{'Origin-Host', "ocs.sigscale.com"},
-		{'Origin-Realm', "sigscale.com"},
-		{'Vendor-Id', 0},
-		{'Product-Name', "SigScale DIAMETER Server"},
-		{'Auth-Application-Id', [0, 1]},
-		{restrict_connections, false},
-		{string_decode, false},
-		{application, [{alias, ?BASE_APPLICATION},
-				{dictionary, diameter_gen_base_rfc6733},
-				{module, ?BASE_APPLICATION_CALLBACK}]},
-		{application, [{alias, ?NAS_APPLICATION},
-				{dictionary, diameter_gen_nas_application_rfc7155},
-				{module, ?NAS_APPLICATION_CALLBACK}]}].
+	{'Origin-Realm', "sigscale.com"},
+	{'Vendor-Id', 0},
+	{'Product-Name', "SigScale DIAMETER Server"},
+	{'Auth-Application-Id',
+			[?BASE_APPLICATION_ID,
+			?NAS_APPLICATION_ID,
+			?EAP_APPLICATION_ID]},
+	{restrict_connections, false},
+	{string_decode, false},
+	{application,
+			[{alias, ?BASE_APPLICATION},
+			{dictionary, diameter_gen_base_rfc6733},
+			{module, ?BASE_APPLICATION_CALLBACK}]},
+	{application,
+			[{alias, ?EAP_APPLICATION},
+			{dictionary, diameter_gen_eap_rfc4072},
+			{module, ?EAP_APPLICATION_CALLBACK}]},
+	{application,
+			[{alias, ?NAS_APPLICATION},
+			{dictionary, diameter_gen_nas_application_rfc7155},
+			{module, ?NAS_APPLICATION_CALLBACK}]}].
 
 -spec transport_options(Transport, Address, Port) -> Options
 	when
