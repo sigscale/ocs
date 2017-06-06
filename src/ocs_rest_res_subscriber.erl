@@ -44,7 +44,7 @@ content_types_provided() ->
 -spec get_subscriber(Id) -> Result
 	when
 		Id :: string(),
-		Result :: {ok, Headers :: [string()], Body :: iolist()}
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/subscriber/{id}'
 %% requests.
@@ -67,7 +67,7 @@ get_subscriber(Id) ->
 
 -spec get_subscriber() -> Result
 	when
-		Result :: {ok, Headers :: [string()], Body :: iolist()}
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/subscriber'
 %% requests.
@@ -97,7 +97,7 @@ get_subscriber1(Subscribers) ->
 -spec post_subscriber(RequestBody) -> Result 
 	when 
 		RequestBody :: list(),
-		Result :: {ok, Headers :: [string()], Body :: iolist()}
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Respond to `POST /ocs/v1/subscriber' and add a new `subscriber'
 %% resource.
@@ -159,7 +159,7 @@ post_subscriber(RequestBody) ->
 	when
 		Id :: string(),
 		ReqBody :: list(),
-		Result :: {ok, Headers :: [string()], Body :: iolist()}
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()} .
 %% @doc	Respond to `PATCH /ocs/v1/subscriber/{id}' request and
 %% Updates a existing `subscriber''s password or attributes. 
@@ -200,7 +200,7 @@ patch_subscriber(Id, ReqBody) ->
 -spec delete_subscriber(Id) -> Result
 	when
 		Id :: string(),
-		Result :: {ok, Headers :: [string()], Body :: iolist()}
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()} .
 %% @doc Respond to `DELETE /ocs/v1/subscriber/{id}' request and deletes
 %% a `subscriber' resource. If the deletion is succeeded return true.

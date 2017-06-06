@@ -48,7 +48,7 @@ content_types_provided() ->
 
 -spec get_http() -> Result
 	when
-		Result :: {ok, Headers :: [string()], Body :: iolist()}
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/log/http'
 %% requests.

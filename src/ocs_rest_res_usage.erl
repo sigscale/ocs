@@ -42,7 +42,7 @@ content_types_provided() ->
 
 -spec get_usage() -> Result
 	when
-		Result :: {ok, Headers :: [string()], Body :: iolist()}
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /usageManagement/v1/usage'
 %% requests.
@@ -61,7 +61,7 @@ get_usage() ->
 -spec get_usage(Id) -> Result
 	when
 		Id :: string(),
-		Result :: {ok, Headers :: [string()], Body :: iolist()}
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /usageManagement/v1/usage/{id}'
 %% requests.

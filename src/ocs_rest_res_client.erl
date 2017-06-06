@@ -43,7 +43,7 @@ content_types_provided() ->
 
 -spec get_client() -> Result
 	when
-		Result ::{ok, Headers :: [string()],
+		Result ::{ok, Headers :: [tuple()],
 				Body :: iolist()} | {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/client'
 %% requests.
@@ -83,7 +83,7 @@ get_client0(Clients) ->
 -spec get_client(Ip) -> Result
 	when
 		Ip :: string(),
-		Result :: {ok, Headers :: [string()], Body :: iolist()}
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/client/{id}'
 %% requests.
@@ -120,7 +120,7 @@ get_client1(Address) ->
 -spec post_client(RequestBody) -> Result 
 	when
 		RequestBody :: list(),
-		Result :: {ok, Headers :: [string()], Body :: iolist()}
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Respond to `POST /ocs/v1/client' and add a new `client'
 %% resource.
@@ -153,7 +153,7 @@ post_client(RequestBody) ->
 	when
 		Ip :: string(),
 		ReqBody :: list(),
-		Result :: {ok, Headers :: [string()], Body :: iolist()}
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()} .
 %% @doc	Respond to `PATCH /ocs/v1/client/{id}' request and
 %% Updates a existing `client''s password or attributes.
@@ -209,7 +209,7 @@ patch_client2(Id, Port, Protocol, Secret) ->
 -spec delete_client(Ip) -> Result
 	when
 		Ip :: string(),
-		Result :: {ok, Headers :: [string()], Body :: iolist()}
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()} .
 %% @doc Respond to `DELETE /ocs/v1/client/{address}' request and deletes
 %% a `client' resource. If the deletion is successful return true.
