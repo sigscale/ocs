@@ -72,6 +72,10 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 							check_content_type_header(Headers, Method, ocs_rest_res_usage, Data);
 						["usageManagement", "v1", "usage", _Id] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_usage, Data);
+						["usageManagement", "v1", "usageSpecification"] ->
+							check_content_type_header(Headers, Method, ocs_rest_res_usage, Data);
+						["usageManagement", "v1", "usageSpecification", _Id] ->
+							check_content_type_header(Headers, Method, ocs_rest_res_usage, Data);
 						_ ->
 							Response = "<h2>HTTP Error 400 - Bad Request</h2>",
 							{break, [{response, {400, Response}}]}

@@ -21,7 +21,7 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
-		get_usage/0, get_usage/1]).
+		get_usage/0, get_usage/1, get_usagespec/0]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs_log.hrl").
@@ -42,10 +42,11 @@ content_types_provided() ->
 
 -spec get_usage() -> Result
 	when
-		Result :: {ok, Headers :: [string()], Body :: iolist()}
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
-%% @doc Body producing function for `GET /usageManagement/v1/usage'
-%% requests.
+%% @doc Body producing function for
+%% 	`GET /usageManagement/v1/usage'
+%% 	requests.
 get_usage() ->
 	{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
 	case file:list_dir(Directory) of
@@ -61,16 +62,28 @@ get_usage() ->
 -spec get_usage(Id) -> Result
 	when
 		Id :: string(),
-		Result :: {ok, Headers :: [string()], Body :: iolist()}
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
-%% @doc Body producing function for `GET /usageManagement/v1/usage/{id}'
-%% requests.
+%% @doc Body producing function for
+%% 	`GET /usageManagement/v1/usage/{id}'
+%% 	requests.
 get_usage(Id) ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
 	FileName = Directory ++ "/" ++ Id,
 	read_ipdr(FileName, MaxItems).
 	
+-spec get_usagespec() -> Result
+	when
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}.
+%% @doc Body producing function for
+%% 	`GET /usageManagement/v1/usageSpecification'
+%% 	requests.
+get_usagespec() ->
+	Headers = [{content_type, "application/json"}],
+	Body = mochijson:encode({array, [spec_public_wlan()]}),
+	{ok, Headers, Body}.
+
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
@@ -287,4 +300,561 @@ usage_characteristics([tempUserId | T], Ipdr, Acc) ->
 	usage_characteristics(T, Ipdr, [Struct |Acc]);
 usage_characteristics([], _Ipdr, Acc) ->
 	lists:reverse(Acc).
+
+%% @hidden
+spec_public_wlan() ->
+	ID = {id, "PublicWLANAccessUsageSpec"},
+	Href = {href, "/usageManagement/v1/usageSpecification/PublicWLANAccessUsageSpec"},
+	Name = {name, "PublicWLANAccessUsageSpec"},
+	Desc = {description, "Specification for IPDR Public WLAN Access - WISP Use Case"},
+	Start = {startDateTime, "2017-01-01T00:00:00Z"},
+	End = {endDateTime, "2017-12-31T23:59:59Z"},
+	Valid = {validFor, {struct, [Start, End]}},
+	Chars = lists:reverse(spec_public_wlan1([])),
+	Char = {usageSpecCharacteristic, {array, Chars}},
+	{struct, [ID, Href, Name, Desc, Valid, Char]}.
+%% @hidden
+spec_public_wlan1(Acc) ->
+	Name = {name, "userName"},
+	Desc = {description, "The end user ID and their domain name (NAI)."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan2(NewAcc).
+%% @hidden
+spec_public_wlan2(Acc) ->
+	Name = {name, "ScIdType"},
+	Desc = {description, "Type of Service Consumer ID Used when a more specific Identifier of Service Consumer is necessary. For example, IMSI for GSM subscribers."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	From = {valueFrom, 1},
+	To = {valueTo, 3},
+	Val1 = {struct, [Typ1, Def1, From, To]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan3(NewAcc).
+%% @hidden
+spec_public_wlan3(Acc) ->
+	Name = {name, "ScId"},
+	Desc = {description, "The Service Consumer ID when a more specific identifier of the Service Consumer is required. For example, IMSI for GSM/GPRS subscribers."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan4(NewAcc).
+%% @hidden
+spec_public_wlan4(Acc) ->
+	Name = {name, "homeServiceProviderType"},
+	Desc = {description, "Identifies how the home service provider is identified."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	From = {valueFrom, 1},
+	To = {valueTo, 4},
+	Val1 = {struct, [Typ1, Def1, From, To]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan5(NewAcc).
+%% @hidden
+spec_public_wlan5(Acc) ->
+	Name = {name, "homeServiceProvider"},
+	Desc = {description, "The user’s Home Service Provider. May be derived from the NAI of the Username. This field, plus the type, will uniquely identify the provider by the same value that they are known in their industry."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan6(NewAcc).
+%% @hidden
+spec_public_wlan6(Acc) ->
+	Name = {name, "acctSessionId"},
+	Desc = {description, "Account session ID assigned by the NAS server. Each session is assigned a unique NAS ID and is therefore used as one of the key criteria in the Settlement Process to identify unique transactions."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan7(NewAcc).
+%% @hidden
+spec_public_wlan7(Acc) ->
+	Name = {name, "userIpAddress"},
+	Desc = {description, "IP Address of the end user (calling station). This field must support IPv6 format."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan8(NewAcc).
+%% @hidden
+spec_public_wlan8(Acc) ->
+	Name = {name, "callingStationId"},
+	Desc = {description, "MAC Address of the end user's device as formatted in RFC3580, section 3.21. For example, 00-10-A4-23-19-C0"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan9(NewAcc).
+%% @hidden
+spec_public_wlan9(Acc) ->
+	Name = {name, "nasIpAddress"},
+	Desc = {description, "The IP address of the local Network Access Server (NAS) (i.e. the access gateway) that provides the service. This field must support IPv6 format."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan10(NewAcc).
+%% @hidden
+spec_public_wlan10(Acc) ->
+	Name = {name, "nasIpAddress"},
+	Desc = {description, "The IP address of the local Network Access Server (NAS) (i.e. the access gateway) that provides the service. This field must support IPv6 format."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan11(NewAcc).
+%% @hidden
+spec_public_wlan11(Acc) ->
+	Name = {name, "calledStationId"},
+	Desc = {description, "A unique name which identifies the hotspot venue. Radius Defined using the Mac Address and SSID in the format shown in RFC3580 section 3.20. For example: 00-10- A4-23-19-C0:AP1."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan12(NewAcc).
+%% @hidden
+spec_public_wlan12(Acc) ->
+	Name = {name, "nasId"},
+	Desc = {description, "Will appear in Access Request record format (depends on WISP network configuration and BSS system). Identifies the access gateway when NAS-IP-Address is insufficient."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan13(NewAcc).
+%% @hidden
+spec_public_wlan13(Acc) ->
+	Name = {name, "accessProviderType"},
+	Desc = {description, "Identifies how the serve/visited service provider is identified. For example, Domain Name, PMN code, SID/BID number, or BRI. Need to identify the possible values."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	From = {valueFrom, 1},
+	To = {valueTo, 4},
+	Val1 = {struct, [Typ1, Def1, From, To]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan14(NewAcc).
+%% @hidden
+spec_public_wlan14(Acc) ->
+	Name = {name, "accessServiceProvider"},
+	Desc = {description, "The PWLAN operator providing network access. This field, plus the type, will uniquely identify the provider by the same value that they are known in their industry."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan15(NewAcc).
+%% @hidden
+spec_public_wlan15(Acc) ->
+	Name = {name, "locationName"},
+	Desc = {description, "Descriptive Location Name of the user access network. For Example: 'Gate_14_Terminal_C_of_Newark_ Airport'. The source of this data will be from Optional VSA or Derived."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan16(NewAcc).
+%% @hidden
+spec_public_wlan16(Acc) ->
+	Name = {name, "locationName"},
+	Desc = {description, "Descriptive Location Name of the user access network. For Example: 'Gate_14_Terminal_C_of_Newark_ Airport'. The source of this data will be from Optional VSA or Derived."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan17(NewAcc).
+%% @hidden
+spec_public_wlan17(Acc) ->
+	Name = {name, "locationId"},
+	Desc = {description, "Describes the user’s access area within a given location. For example: Network=ACMEWISP_NewarkAirport"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan18(NewAcc).
+%% @hidden
+spec_public_wlan18(Acc) ->
+	Name = {name, "locationType"},
+	Desc = {description, "Contains the location type defined within the access provider’s network. Examples include: airport, hotel, coffee shop, and bookstore."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan19(NewAcc).
+%% @hidden
+spec_public_wlan19(Acc) ->
+	Name = {name, "locationCountryCode"},
+	Desc = {description, "ISO country code of the user’s location. 2 character alpha string. Derived. Can be derived from Geocode."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan20(NewAcc).
+%% @hidden
+spec_public_wlan20(Acc) ->
+	Name = {name, "locationStateProvince"},
+	Desc = {description, "2 character alpha string. Can be derived from Geocode"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan21(NewAcc).
+%% @hidden
+spec_public_wlan21(Acc) ->
+	Name = {name, "locationCity"},
+	Desc = {description, "Derived, can be derived from Geocode"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan22(NewAcc).
+%% @hidden
+spec_public_wlan22(Acc) ->
+	Name = {name, "locationGeocode"},
+	Desc = {description, "Content dictated by Type"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan23(NewAcc).
+%% @hidden
+spec_public_wlan23(Acc) ->
+	Name = {name, "locationGeocodeType"},
+	Desc = {description, "UTM, OSGB, Lat/Long"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan24(NewAcc).
+%% @hidden
+spec_public_wlan24(Acc) ->
+	Name = {name, "nasPortType"},
+	Desc = {description, "Identifier indicating the Port type. Values from RFC2865."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	From = {valueFrom, 1},
+	To = {valueTo, 4},
+	Val1 = {struct, [Typ1, Def1, From, To]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan25(NewAcc).
+%% @hidden
+spec_public_wlan25(Acc) ->
+	Name = {name, "paymentType"},
+	Desc = {description, "Applies only to settlement between Venue and Access provider."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	From = {valueFrom, 1},
+	To = {valueTo, 3},
+	Val1 = {struct, [Typ1, Def1, From, To]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan26(NewAcc).
+%% @hidden
+spec_public_wlan26(Acc) ->
+	Name = {name, "networkConnectionType"},
+	Desc = {description, "Uniquely identifies the network type used. For Example: WA=802.11a, WB=802.11b, WG=802.11G, EN=Ethernet (2 character alpha string) [??]=cdma2000"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan27(NewAcc).
+%% @hidden
+spec_public_wlan27(Acc) ->
+	Name = {name, "sessionDuration"},
+	Desc = {description, "Session duration in seconds (already compensated for idle timeout).  Possible source: RADIUS Acct-Session-Time"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	From = {valueFrom, 0},
+	Val1 = {struct, [Typ1, Def1, From]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan28(NewAcc).
+%% @hidden
+spec_public_wlan28(Acc) ->
+	Name = {name, "inputOctets"},
+	Desc = {description, "Bytes user received."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	From = {valueFrom, 0},
+	Val1 = {struct, [Typ1, Def1, From]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan29(NewAcc).
+%% @hidden
+spec_public_wlan29(Acc) ->
+	Name = {name, "outputOctets"},
+	Desc = {description, "Byes user transmitted."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	From = {valueFrom, 0},
+	Val1 = {struct, [Typ1, Def1, From]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan30(NewAcc).
+%% @hidden
+spec_public_wlan30(Acc) ->
+	Name = {name, "class"},
+	Desc = {description, "Home Service Provider specified service class and provided if supported by Access Provider for that session"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan31(NewAcc).
+%% @hidden
+spec_public_wlan31(Acc) ->
+	Name = {name, "gmtSessionStartDateTime"},
+	Desc = {description, "The universal GMT date and time the session started with the Service Consumer’s perceived time zone. See ISO 8601."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "dateTime"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan32(NewAcc).
+%% @hidden
+spec_public_wlan32(Acc) ->
+	Name = {name, "gmtSessionEndDateTime"},
+	Desc = {description, "The universal GMT date and time the session ended with the Service Consumer’s perceived time zone. See ISO 8601."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "dateTime"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan33(NewAcc).
+%% @hidden
+spec_public_wlan33(Acc) ->
+	Name = {name, "sessionTerminateCause"},
+	Desc = {description, "RFC 3580 specifies, RFC 2866 enumerates"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	From = {valueFrom, 1},
+	To = {valueTo, 7},
+	Val1 = {struct, [Typ1, Def1, From, To]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan34(NewAcc).
+%% @hidden
+spec_public_wlan34(Acc) ->
+	Name = {name, "billingClassOfService"},
+	Desc = {description, "Indicates Service Type. Service level provided to user derived from Max-bandwidth-level. (Added for compatibility with WISPr)"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan35(NewAcc).
+%% @hidden
+spec_public_wlan35(Acc) ->
+	Name = {name, "unitOfMeasure"},
+	Desc = {description, "Indicates what is being represented in chargeable units field. The 'Quantity' enum item may be applicable for settlement for Partner content purchase."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	From = {valueFrom, 1},
+	To = {valueTo, 7},
+	Val1 = {struct, [Typ1, Def1, From, To]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan36(NewAcc).
+%% @hidden
+spec_public_wlan36(Acc) ->
+	Name = {name, "chargeableUnit"},
+	Desc = {description, "Indicates what activity the Chargeable_Quantity and Unit of Measure are metering."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	From = {valueFrom, 1},
+	To = {valueTo, 7},
+	Val1 = {struct, [Typ1, Def1, From, To]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan37(NewAcc).
+%% @hidden
+spec_public_wlan37(Acc) ->
+	Name = {name, "chargeableQuantity"},
+	Desc = {description, "Volume of chargeable_unit charged for this record."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	From = {valueFrom, 0},
+	Val1 = {struct, [Typ1, Def1, From]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan38(NewAcc).
+%% @hidden
+spec_public_wlan38(Acc) ->
+	Name = {name, "chargeAmount"},
+	Desc = {description, "Amount of the charge, not including taxes."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	From = {valueFrom, 0},
+	Val1 = {struct, [Typ1, Def1, From]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan39(NewAcc).
+%% @hidden
+spec_public_wlan39(Acc) ->
+	Name = {name, "chargeCurrencyType"},
+	Desc = {description, "Standard currency abbreviation from ISO 4217."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan40(NewAcc).
+%% @hidden
+spec_public_wlan40(Acc) ->
+	Name = {name, "otherParty"},
+	Desc = {description, "Identifies content or other party involved in transaction, if applicable. The party is associated with the charge since types of charges may have involved different parties. For example, the charge for network access is applied to access provider while charge for content applies to content provider."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan41(NewAcc).
+%% @hidden
+spec_public_wlan41(Acc) ->
+	Name = {name, "taxPercentage"},
+	Desc = {description, "The tax % applied to the charge. If blank, then the tax amount was a percentage or fixed value applied."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	From = {valueFrom, 0},
+	To = {valueTo, 100},
+	Val1 = {struct, [Typ1, Def1, From, To]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan42(NewAcc).
+%% @hidden
+spec_public_wlan42(Acc) ->
+	Name = {name, "taxAmount"},
+	Desc = {description, "The amount of tax. The charge amount does not include tax."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	From = {valueFrom, 0},
+	Val1 = {struct, [Typ1, Def1, From]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan43(NewAcc).
+%% @hidden
+spec_public_wlan43(Acc) ->
+	Name = {name, "taxType"},
+	Desc = {description, "Type of tax applied."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	From = {valueFrom, 1},
+	To = {valueTo, 14},
+	Val1 = {struct, [Typ1, Def1, From, To]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan44(NewAcc).
+%% @hidden
+spec_public_wlan44(Acc) ->
+	Name = {name, "intermediaryName"},
+	Desc = {description, "Represents a human-readable PWLAN intermediary name string. Could be a reseller, aggregator, clearinghouse, etc."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan45(NewAcc).
+%% @hidden
+spec_public_wlan45(Acc) ->
+	Name = {name, "serviceName"},
+	Desc = {description, "Specifies the service type used. VoIP, Basic Access, Purchased Content, etc. Mention in remark that it’s not the RADIUS service type."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	From = {valueFrom, 1},
+	To = {valueTo, 6},
+	Val1 = {struct, [Typ1, Def1, From, To]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan46(NewAcc).
+%% @hidden
+spec_public_wlan46(Acc) ->
+	Name = {name, "relatedIpdrIdList"},
+	Desc = {description, "Used to link together multiple related IPDRs when usage scenario and business rules demand so. Can’t change parent IPDR for audit/revenue assurance integrity."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_public_wlan47(NewAcc).
+%% @hidden
+spec_public_wlan47(Acc) ->
+	Name = {name, "tempUserId"},
+	Desc = {description, "Temporary user identification allocated by home SP. This is an ID assigned by the Access Point."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	[{struct, [Name, Desc, Conf, Value]} | Acc].
 
