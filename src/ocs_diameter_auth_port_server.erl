@@ -36,6 +36,8 @@
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include("../include/diameter_gen_nas_application_rfc7155.hrl").
+-include("../include/diameter_gen_eap_application_rfc4072.hrl").
+-include("ocs_eap_codec.hrl").
 -include("ocs.hrl").
 
 -record(state,
@@ -98,8 +100,8 @@ init([AuthPortSup, Address, Port, _Options]) ->
 %% 	gen_server:multi_call/2,3,4}.
 %% @see //stdlib/gen_server:handle_call/3
 %% @private
-handle_call({diameter_request, Caps, Request}, _From, State) ->
-	request(Caps, Request, State).
+handle_call({diameter_request, Caps, Request, Eap}, _From, State) ->
+	request(Caps, Eap, Request, State).
 
 -spec handle_cast(Request, State) -> Result
 	when
@@ -192,20 +194,23 @@ code_change(_OldVsn, State, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec request(Caps, Request, State) -> Reply
+-spec request(Caps, Eap, Request, State) -> Reply
 	when
 		Caps :: capabilities(),
-		Request :: #diameter_nas_app_AAR{} | #diameter_nas_app_STR{},
+		Eap :: none | #eap_packet{},
+		Request :: #diameter_nas_app_AAR{} | #diameter_nas_app_STR{}
+				| #diameter_eap_app_DER{},
 		State :: state(),
 		Reply :: {reply, Answer, State},
-		Answer :: #diameter_nas_app_AAA{} | #diameter_nas_app_STA{}.
+		Answer :: #diameter_nas_app_AAA{} | #diameter_nas_app_STA{}
+				| #diameter_eap_app_DEA{}.
 %% @doc Based on the DIAMETER request generate appropriate DIAMETER
 %% answer.
 %% @hidden
-request(Caps, Request, State) when is_record(Request, diameter_nas_app_AAR) ->
+request(Caps, none, Request, State) when is_record(Request, diameter_nas_app_AAR) ->
 	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
 	request1(OHost, ORealm, Request, State);
-request(Caps, Request, State) when is_record(Request, diameter_nas_app_STR) ->
+request(Caps, none, Request, State) when is_record(Request, diameter_nas_app_STR) ->
 	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
 	SessionId = Request#diameter_nas_app_STR.'Session-Id',
 	try
@@ -307,7 +312,7 @@ start_fsm(AuthSup, AppId, SessId, Type, OHost, ORealm, UserName,
 
 -spec get_session_id(Request) -> SessionId
 	when
-		Request :: #diameter_nas_app_AAR{},
+		Request :: #diameter_nas_app_AAR{} | #diameter_eap_app_DER{},
 		SessionId :: string().
 %% @doc Return value for session id in DIAMETER Request.
 %% @hidden

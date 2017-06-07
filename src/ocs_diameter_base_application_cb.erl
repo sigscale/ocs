@@ -183,7 +183,7 @@ send_to_port_server(Svc, Caps, Request) ->
 							discard;
 						PortServer ->
 							Answer = gen_server:call(PortServer,
-									{diameter_request, Caps, Request}),
+									{diameter_request, Caps, Request, none}),
 							{reply, Answer}
 					end;
 				false ->

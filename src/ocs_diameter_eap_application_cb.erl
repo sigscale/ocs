@@ -31,6 +31,7 @@
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include("../include/diameter_gen_eap_application_rfc4072.hrl").
+-include("ocs_eap_codec.hrl").
 -include("ocs.hrl").
 
 -record(state, {}).
@@ -153,11 +154,12 @@ handle_request(#diameter_packet{msg = Req, errors = []},
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec send_to_port_server(Svc, Caps, Request) -> Action
+-spec send_to_port_server(Svc, Caps, Request, EapPacket) -> Action
 	when
 		Svc :: atom(),
 		Caps :: capabilities(),
 		Request :: message(),
+		EapPacket :: #eap_packet{},
 		Action :: Reply | {relay, [Opt]} | discard
 			| {eval|eval_packet, Action, PostF},
 		Reply :: {reply, packet() | message()}
@@ -167,7 +169,7 @@ handle_request(#diameter_packet{msg = Req, errors = []},
 		PostF :: diameter:evaluable().
 %% @doc Locate ocs_diameter_auth_port_server process and sent it
 %% peer's capabilities and diameter request.
-send_to_port_server(Svc, Caps, Request) ->
+send_to_port_server(Svc, Caps, Request, EapPacket) ->
 	[Info] = diameter:service_info(Svc, transport),
 	case lists:keyfind(options, 1, Info) of
 		{options, Options} ->
@@ -178,7 +180,7 @@ send_to_port_server(Svc, Caps, Request) ->
 							discard;
 						PortServer ->
 							Answer = gen_server:call(PortServer,
-									{diameter_request, Caps, Request}),
+									{diameter_request, Caps, Request, EapPacket}),
 							{reply, Answer}
 					end;
 				false ->
@@ -212,10 +214,35 @@ is_client_authorized(SvcName, Caps, Req) ->
 		true
 	of
 		true ->
-			send_to_port_server(SvcName, Caps, Req)
+			extract_eap(SvcName, Caps, Req)
 	catch
 		_ : _ ->
 			send_error(Caps, Req, ?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_PEER')
+	end.
+
+-spec extract_eap(Svc, Caps, DiameterRequest) -> Action
+	when
+		Svc :: atom(),
+		Caps :: capabilities(),
+		DiameterRequest :: #diameter_eap_app_DER{},
+		Action :: Reply | {relay, [Opt]} | discard
+			| {eval|eval_packet, Action, PostF},
+		Reply :: {reply, packet() | message()}
+			| {answer_message, 3000..3999|5000..5999}
+			| {protocol_error, 3000..3999},
+		Opt :: diameter:call_opt(),
+		PostF :: diameter:evaluable().
+%% @doc Extract EAP packet from DER's EAP-Payload attribute.
+%% @hidden
+extract_eap(Svc, Caps, DiameterRequest) ->
+	try 
+		#diameter_eap_app_DER{'EAP-Payload' = Payload} = DiameterRequest,
+		PacketBin = list_to_binary(Payload),
+		EapPacket = ocs_eap_codec:eap_packet(PacketBin),
+		send_to_port_server(Svc, Caps, DiameterRequest, EapPacket)
+	catch
+		_:_ ->
+			send_error(Caps, DiameterRequest, ?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS')
 	end.
 
 -spec send_error(Caps, Request, ErrorCode) -> Answer
