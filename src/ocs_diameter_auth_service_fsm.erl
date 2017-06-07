@@ -283,7 +283,7 @@ service_options() ->
 			{module, ?BASE_APPLICATION_CALLBACK}]},
 	{application,
 			[{alias, ?EAP_APPLICATION},
-			{dictionary, diameter_gen_eap_rfc4072},
+			{dictionary, diameter_gen_eap_application_rfc4072},
 			{module, ?EAP_APPLICATION_CALLBACK}]},
 	{application,
 			[{alias, ?NAS_APPLICATION},
