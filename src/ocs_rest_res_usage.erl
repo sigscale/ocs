@@ -81,7 +81,7 @@ get_usage(Id) ->
 %% 	requests.
 get_usagespec() ->
 	Headers = [{content_type, "application/json"}],
-	Body = mochijson:encode({array, [spec_public_wlan()]}),
+	Body = mochijson:encode({array, [spec_ocs_usage(), spec_public_wlan()]}),
 	{ok, Headers, Body}.
 
 %%----------------------------------------------------------------------
@@ -301,6 +301,198 @@ usage_characteristics([tempUserId | T], Ipdr, Acc) ->
 usage_characteristics([], _Ipdr, Acc) ->
 	lists:reverse(Acc).
 
+
+%% @hidden
+spec_ocs_usage() ->
+	ID = {id, "OCSAccessUsageSpec"},
+	Href = {href, "/usageManagement/v1/usageSpecification/OCSAccessUsageSpec"},
+	Name = {name, "OCSAccessUsageSpec"},
+	Desc = {description, "Specification for SigScale OCS access requests."},
+	Start = {startDateTime, "2017-01-01T00:00:00Z"},
+	End = {endDateTime, "2017-12-31T23:59:59Z"},
+	Valid = {validFor, {struct, [Start, End]}},
+	Chars = lists:reverse(spec_ocs_usage1([])),
+	Char = {usageSpecCharacteristic, {array, Chars}},
+	{struct, [ID, Href, Name, Desc, Valid, Char]}.
+%% @hidden
+spec_ocs_usage1(Acc) ->
+	Name = {name, "timeStamp"},
+	Desc = {description, "Time and date request was processed by OCS."},
+	Conf = {configurable, false},
+	Typ1 = {valueType, "dateTime"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_ocs_usage2(NewAcc).
+%% @hidden
+spec_ocs_usage2(Acc) ->
+	Name = {name, "protocol"},
+	Desc = {description, "AAA protocol used in access request."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, true},
+	Val1 = {value, "RADIUS"},
+	Value1 = {struct, [Typ1, Def1, Val1]},
+	Typ2 = {valueType, "string"},
+	Def2 = {default, false},
+	Val2 = {value, "DIAMETER"},
+	Value2 = {struct, [Typ2, Def2, Val2]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1, Value2]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_ocs_usage3(NewAcc).
+%% @hidden
+spec_ocs_usage3(Acc) ->
+	Name = {name, "node"},
+	Desc = {description, "Cluster node where access request was handled."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_ocs_usage4(NewAcc).
+%% @hidden
+spec_ocs_usage4(Acc) ->
+	Name = {name, "serverAddress"},
+	Desc = {description, "IP address access request was received on."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_ocs_usage5(NewAcc).
+%% @hidden
+spec_ocs_usage5(Acc) ->
+	Name = {name, "serverPort"},
+	Desc = {description, "IP port access request was received on."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_ocs_usage6(NewAcc).
+%% @hidden
+spec_ocs_usage6(Acc) ->
+	Name = {name, "clientAddress"},
+	Desc = {description, "IP address access request was received from."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_ocs_usage7(NewAcc).
+%% @hidden
+spec_ocs_usage7(Acc) ->
+	Name = {name, "clientPort"},
+	Desc = {description, "IP port access request was received from."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_ocs_usage8(NewAcc).
+%% @hidden
+spec_ocs_usage8(Acc) ->
+	Name = {name, "type"},
+	Desc = {description, "Type of access event."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {value, "accept"},
+	Value1 = {struct, [Typ1, Def1, Val1]},
+	Typ2 = {valueType, "string"},
+	Def2 = {default, false},
+	Val2 = {value, "reject"},
+	Value2 = {struct, [Typ2, Def2, Val2]},
+	Typ3 = {valueType, "string"},
+	Def3 = {default, false},
+	Val3 = {value, "change"},
+	Value3 = {struct, [Typ3, Def3, Val3]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1, Value2, Value3]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_ocs_usage9(NewAcc).
+%% @hidden
+spec_ocs_usage9(Acc) ->
+	Name = {name, "username"},
+	Desc = {description, "Username/identity of subscriber requesting access."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_ocs_usage10(NewAcc).
+%% @hidden
+spec_ocs_usage10(Acc) ->
+	Name = {name, "nasIdentifier"},
+	Desc = {description, "NAS-Identifier attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_ocs_usage11(NewAcc).
+%% @hidden
+spec_ocs_usage11(Acc) ->
+	Name = {name, "nasIpAddress"},
+	Desc = {description, "NAS-IP-Address attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_ocs_usage12(NewAcc).
+%% @hidden
+spec_ocs_usage12(Acc) ->
+	Name = {name, "nasPort"},
+	Desc = {description, "NAS-Port attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_ocs_usage13(NewAcc).
+%% @hidden
+spec_ocs_usage13(Acc) ->
+	Name = {name, "nasPortType"},
+	Desc = {description, "NAS-Port-Type attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_ocs_usage14(NewAcc).
+%% @hidden
+spec_ocs_usage14(Acc) ->
+	Name = {name, "callingStationId"},
+	Desc = {description, "Calling-Station-ID attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_ocs_usage15(NewAcc).
+%% @hidden
+spec_ocs_usage15(Acc) ->
+	Name = {name, "calledStationId"},
+	Desc = {description, "Called-Station-ID attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	[{struct, [Name, Desc, Conf, Value]} | Acc].
+
 %% @hidden
 spec_public_wlan() ->
 	ID = {id, "PublicWLANAccessUsageSpec"},
@@ -320,8 +512,8 @@ spec_public_wlan1(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan2(NewAcc).
 %% @hidden
@@ -333,8 +525,8 @@ spec_public_wlan2(Acc) ->
 	Def1 = {default, false},
 	From = {valueFrom, 1},
 	To = {valueTo, 3},
-	Val1 = {struct, [Typ1, Def1, From, To]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1, From, To]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan3(NewAcc).
 %% @hidden
@@ -344,8 +536,8 @@ spec_public_wlan3(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan4(NewAcc).
 %% @hidden
@@ -357,8 +549,8 @@ spec_public_wlan4(Acc) ->
 	Def1 = {default, false},
 	From = {valueFrom, 1},
 	To = {valueTo, 4},
-	Val1 = {struct, [Typ1, Def1, From, To]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1, From, To]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan5(NewAcc).
 %% @hidden
@@ -368,8 +560,8 @@ spec_public_wlan5(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan6(NewAcc).
 %% @hidden
@@ -379,8 +571,8 @@ spec_public_wlan6(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan7(NewAcc).
 %% @hidden
@@ -390,8 +582,8 @@ spec_public_wlan7(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan8(NewAcc).
 %% @hidden
@@ -401,8 +593,8 @@ spec_public_wlan8(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan9(NewAcc).
 %% @hidden
@@ -412,8 +604,8 @@ spec_public_wlan9(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan10(NewAcc).
 %% @hidden
@@ -423,8 +615,8 @@ spec_public_wlan10(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan11(NewAcc).
 %% @hidden
@@ -434,8 +626,8 @@ spec_public_wlan11(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan12(NewAcc).
 %% @hidden
@@ -445,8 +637,8 @@ spec_public_wlan12(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan13(NewAcc).
 %% @hidden
@@ -458,8 +650,8 @@ spec_public_wlan13(Acc) ->
 	Def1 = {default, false},
 	From = {valueFrom, 1},
 	To = {valueTo, 4},
-	Val1 = {struct, [Typ1, Def1, From, To]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1, From, To]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan14(NewAcc).
 %% @hidden
@@ -469,8 +661,8 @@ spec_public_wlan14(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan15(NewAcc).
 %% @hidden
@@ -480,8 +672,8 @@ spec_public_wlan15(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan16(NewAcc).
 %% @hidden
@@ -491,8 +683,8 @@ spec_public_wlan16(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan17(NewAcc).
 %% @hidden
@@ -502,8 +694,8 @@ spec_public_wlan17(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan18(NewAcc).
 %% @hidden
@@ -513,8 +705,8 @@ spec_public_wlan18(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan19(NewAcc).
 %% @hidden
@@ -524,8 +716,8 @@ spec_public_wlan19(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan20(NewAcc).
 %% @hidden
@@ -535,8 +727,8 @@ spec_public_wlan20(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan21(NewAcc).
 %% @hidden
@@ -546,8 +738,8 @@ spec_public_wlan21(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan22(NewAcc).
 %% @hidden
@@ -557,8 +749,8 @@ spec_public_wlan22(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan23(NewAcc).
 %% @hidden
@@ -568,8 +760,8 @@ spec_public_wlan23(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan24(NewAcc).
 %% @hidden
@@ -581,8 +773,8 @@ spec_public_wlan24(Acc) ->
 	Def1 = {default, false},
 	From = {valueFrom, 1},
 	To = {valueTo, 4},
-	Val1 = {struct, [Typ1, Def1, From, To]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1, From, To]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan25(NewAcc).
 %% @hidden
@@ -594,8 +786,8 @@ spec_public_wlan25(Acc) ->
 	Def1 = {default, false},
 	From = {valueFrom, 1},
 	To = {valueTo, 3},
-	Val1 = {struct, [Typ1, Def1, From, To]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1, From, To]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan26(NewAcc).
 %% @hidden
@@ -605,8 +797,8 @@ spec_public_wlan26(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan27(NewAcc).
 %% @hidden
@@ -617,8 +809,8 @@ spec_public_wlan27(Acc) ->
 	Typ1 = {valueType, "number"},
 	Def1 = {default, false},
 	From = {valueFrom, 0},
-	Val1 = {struct, [Typ1, Def1, From]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1, From]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan28(NewAcc).
 %% @hidden
@@ -629,8 +821,8 @@ spec_public_wlan28(Acc) ->
 	Typ1 = {valueType, "number"},
 	Def1 = {default, false},
 	From = {valueFrom, 0},
-	Val1 = {struct, [Typ1, Def1, From]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1, From]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan29(NewAcc).
 %% @hidden
@@ -641,8 +833,8 @@ spec_public_wlan29(Acc) ->
 	Typ1 = {valueType, "number"},
 	Def1 = {default, false},
 	From = {valueFrom, 0},
-	Val1 = {struct, [Typ1, Def1, From]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1, From]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan30(NewAcc).
 %% @hidden
@@ -652,8 +844,8 @@ spec_public_wlan30(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan31(NewAcc).
 %% @hidden
@@ -663,8 +855,8 @@ spec_public_wlan31(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "dateTime"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan32(NewAcc).
 %% @hidden
@@ -674,8 +866,8 @@ spec_public_wlan32(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "dateTime"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan33(NewAcc).
 %% @hidden
@@ -687,8 +879,8 @@ spec_public_wlan33(Acc) ->
 	Def1 = {default, false},
 	From = {valueFrom, 1},
 	To = {valueTo, 7},
-	Val1 = {struct, [Typ1, Def1, From, To]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1, From, To]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan34(NewAcc).
 %% @hidden
@@ -698,8 +890,8 @@ spec_public_wlan34(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan35(NewAcc).
 %% @hidden
@@ -711,8 +903,8 @@ spec_public_wlan35(Acc) ->
 	Def1 = {default, false},
 	From = {valueFrom, 1},
 	To = {valueTo, 7},
-	Val1 = {struct, [Typ1, Def1, From, To]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1, From, To]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan36(NewAcc).
 %% @hidden
@@ -724,8 +916,8 @@ spec_public_wlan36(Acc) ->
 	Def1 = {default, false},
 	From = {valueFrom, 1},
 	To = {valueTo, 7},
-	Val1 = {struct, [Typ1, Def1, From, To]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1, From, To]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan37(NewAcc).
 %% @hidden
@@ -736,8 +928,8 @@ spec_public_wlan37(Acc) ->
 	Typ1 = {valueType, "number"},
 	Def1 = {default, false},
 	From = {valueFrom, 0},
-	Val1 = {struct, [Typ1, Def1, From]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1, From]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan38(NewAcc).
 %% @hidden
@@ -748,8 +940,8 @@ spec_public_wlan38(Acc) ->
 	Typ1 = {valueType, "number"},
 	Def1 = {default, false},
 	From = {valueFrom, 0},
-	Val1 = {struct, [Typ1, Def1, From]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1, From]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan39(NewAcc).
 %% @hidden
@@ -759,8 +951,8 @@ spec_public_wlan39(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan40(NewAcc).
 %% @hidden
@@ -770,8 +962,8 @@ spec_public_wlan40(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan41(NewAcc).
 %% @hidden
@@ -783,8 +975,8 @@ spec_public_wlan41(Acc) ->
 	Def1 = {default, false},
 	From = {valueFrom, 0},
 	To = {valueTo, 100},
-	Val1 = {struct, [Typ1, Def1, From, To]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1, From, To]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan42(NewAcc).
 %% @hidden
@@ -795,8 +987,8 @@ spec_public_wlan42(Acc) ->
 	Typ1 = {valueType, "number"},
 	Def1 = {default, false},
 	From = {valueFrom, 0},
-	Val1 = {struct, [Typ1, Def1, From]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1, From]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan43(NewAcc).
 %% @hidden
@@ -808,8 +1000,8 @@ spec_public_wlan43(Acc) ->
 	Def1 = {default, false},
 	From = {valueFrom, 1},
 	To = {valueTo, 14},
-	Val1 = {struct, [Typ1, Def1, From, To]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1, From, To]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan44(NewAcc).
 %% @hidden
@@ -819,8 +1011,8 @@ spec_public_wlan44(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan45(NewAcc).
 %% @hidden
@@ -832,8 +1024,8 @@ spec_public_wlan45(Acc) ->
 	Def1 = {default, false},
 	From = {valueFrom, 1},
 	To = {valueTo, 6},
-	Val1 = {struct, [Typ1, Def1, From, To]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1, From, To]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan46(NewAcc).
 %% @hidden
@@ -843,8 +1035,8 @@ spec_public_wlan46(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
 	spec_public_wlan47(NewAcc).
 %% @hidden
@@ -854,7 +1046,7 @@ spec_public_wlan47(Acc) ->
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
-	Val1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Val1]}},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	[{struct, [Name, Desc, Conf, Value]} | Acc].
 
