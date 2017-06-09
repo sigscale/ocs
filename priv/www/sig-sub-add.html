@@ -24,8 +24,8 @@
 			background-color: #bc5100;
 		}
 		paper-input [id="add2"]{
-         width: 100%;
-      }
+			width: 100%;
+		}
 		paper-toast.error {
 			background-color: var(--paper-red-a400);
 		}
@@ -34,9 +34,9 @@
 			--paper-toggle-button-checked-button-color: var(--paper-yellow-900);
 		}
 		paper-checkbox {
-         --paper-checkbox-checked-color: #ffb04c;
-         --paper-checkbox-checkmark-color: var(--paper-yellow-900);
-      }
+			--paper-checkbox-checked-color: #ffb04c;
+			--paper-checkbox-checkmark-color: var(--paper-yellow-900);
+		}
 		.generate {
 			display: inline-block;
 			width: 8em;
@@ -57,17 +57,17 @@
 			color: black;
 		}
 		.generated {
-         width: 35%;
-         height: 40%;
-         padding: 10px;
-         overflow: auto;
-      }
+			width: 35%;
+			height: 40%;
+			padding: 10px;
+			overflow: auto;
+		}
 		.close {
-         background-color: var(--paper-lime-a700);
-         color: black;
-         float: right;
-         width: 5em;
-      }
+			background-color: var(--paper-lime-a700);
+			color: black;
+			float: right;
+			width: 5em;
+		}
 	</style>
 	<template>
 		<div id="add_subscriber_container">
@@ -92,9 +92,9 @@
 						</paper-tooltip>
 						<div class="generate">
 							<paper-checkbox
-                  		on-change="subcheckchanged">
-                  		Generate
-            			</paper-checkbox>
+								on-change="subcheckchanged">
+								Generate
+							</paper-checkbox>
 						</div>
 					</div>
 					<div>
@@ -108,9 +108,9 @@
 						</paper-tooltip>
 						<div class="generate">
 							<paper-checkbox
-                  		on-change="subcheckboxchanged">
-                  		Generate
-            			</paper-checkbox>
+								on-change="subcheckboxchanged">
+								Generate
+							</paper-checkbox>
 						</div>
 					</div>
 					<div>
@@ -218,33 +218,30 @@
 			</paper-dialog>
 			<paper-dialog id="subSecretModal" class="generated" modal>
 				<paper-toolbar>
-            	<h2>Server Generated</h2>
-         	</paper-toolbar>
-         	<paper-item>Identity: &nbsp<b>[[id]]</b></paper-item>
-         	<paper-item>Secret: &nbsp<b>[[password]]</b></paper-item>
-         	<div class="close">
-            	<paper-button dialog-confirm autofocus>Close</paper-button>
-         	</div>
-      	</paper-dialog>
+					<h2>Server Generated</h2>
+				</paper-toolbar>
+				<paper-item>Identity: &nbsp<b>[[id]]</b></paper-item>
+				<paper-item>Secret: &nbsp<b>[[password]]</b></paper-item>
+				<div class="close">
+					<paper-button dialog-confirm autofocus>Close</paper-button>
+				</div>
+			</paper-dialog>
 		</div>
 		<iron-ajax
-            id="subAddAjax"
-            url="/ocs/v1/subscriber"
-            method = "post"
-            headers='{"Accept": "application/json", "Content-type": "application/json"}'
+				id="subAddAjax"
+				url="/ocs/v1/subscriber"
+				method = "post"
+				headers='{"Accept": "application/json", "Content-type": "application/json"}'
 				on-loading-changed="_onLoadingChanged"
-            client-as="json"
-            debounce-duration="300">
-      </iron-ajax>
+				client-as="json"
+				debounce-duration="300">
+		</iron-ajax>
 		<script>
 			function _submitSubForm() {
 				document.getElementById('presubmit').submit();
 			}
 			function toastErrorClose(event) {
 				document.getElementById('toastError').close();
-			}
-			function cancelModal2(event) {
-				document.getElementById('subAddModal').close();
 			}
 		</script>
 	</template>
@@ -308,8 +305,8 @@
 					formData.enabled= document.getElementById("add9").checked;
 					form.request.body = formData;
 					var ajax = document.getElementById("subAddAjax");
-               ajax.body = formData;
-               ajax.generateRequest();
+					ajax.body = formData;
+					ajax.generateRequest();
 				},
 				_handleFormSubmit: function() {
 					var form = document.getElementById('presubmit');
@@ -331,19 +328,19 @@
 					}
 				},
 				subcheckboxchanged: function(event) {
-               if (event.target.checked) {
-                  document.getElementById("add2").disabled = true;
-               } else {
-                  document.getElementById("add2").disabled = false;
-               }
-            },
+					if (event.target.checked) {
+						document.getElementById("add2").disabled = true;
+					} else {
+						document.getElementById("add2").disabled = false;
+					}
+				},
 				subcheckchanged: function(event) {
-               if (event.target.checked) {
-                  document.getElementById("add1").disabled = true;
-               } else {
-                  document.getElementById("add1").disabled = false;
-               }
-            },
+					if (event.target.checked) {
+						document.getElementById("add1").disabled = true;
+					} else {
+						document.getElementById("add1").disabled = false;
+					}
+				},
 				_handleFormResponse: function(event) {
 					var toast = document.getElementById("toast-success");
 					toast.open();
@@ -351,12 +348,12 @@
 					document.getElementById("presubmit").reset();
 					document.getElementById("subAddModal").close();
 					var ajax = document.getElementById("subAddAjax");
-               if (ajax.body.password == undefined || ajax.body.id == undefined) {
-                  this.password = ajax.lastResponse.password;
+					if (ajax.body.password == undefined || ajax.body.id == undefined) {
+						this.password = ajax.lastResponse.password;
 						this.id = ajax.lastResponse.id;
-                  document.getElementById("subSecretModal").open();
-                  document.getElementById("subSecretModal").reset();
-               }
+						document.getElementById("subSecretModal").open();
+						document.getElementById("subSecretModal").reset();
+					}
 					document.getElementById("getSubs").generateRequest();
 				},
 				toastErrorClose: function(event) {
