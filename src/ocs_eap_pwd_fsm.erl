@@ -220,6 +220,11 @@ eap_start1(Token, #statedata{eap_id = EapID,
 		NewStateData :: term(),
 		Timeout :: pos_integer() | infinity,
 		Reason :: normal | term().
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:sync_send_event/2.
+%%		gen_fsm:sync_send_event/2} and {@link //stdlib/gen_fsm:sync_send_event/3.
+%%		gen_fsm:sync_send_event/3} in the <b>eap_start</b> state.
+%% @@see //stdlib/gen_fsm:StateName/3
+%% @private
 eap_start(Request, _From, StateData) ->
 	try crypto:strong_rand_bytes(4) of
 		Token ->
