@@ -44,7 +44,10 @@
 		{auth_port_sup :: pid(),
 		address :: inet:ip_address(),
 		port :: inet:port(),
+		method_prefer :: ocs:eap_method(),
+		method_order :: [ocs:eap_method()],
 		simple_auth_sup :: undefined | pid(),
+		pwd_sup :: undefined | pid(),
 		handlers = gb_trees:empty() :: gb_trees:tree(
 				Key :: (SessionId :: string()), Value :: (Fsm :: pid()))}).
 
@@ -71,9 +74,11 @@
 %% @see //stdlib/gen_server:init/1
 %% @private
 %%
-init([AuthPortSup, Address, Port, _Options]) ->
+init([AuthPortSup, Address, Port, Options]) ->
+	MethodPrefer = proplists:get_value(eap_method_prefer, Options, pwd),
+	MethodOrder = proplists:get_value(eap_method_order, Options, [pwd, ttls]),
 	State = #state{auth_port_sup = AuthPortSup, address = Address,
-			port = Port},
+			port = Port, method_prefer = MethodPrefer, method_order = MethodOrder},
 	case ocs_log:auth_open() of
 		ok ->
 			process_flag(trap_exit, true),
@@ -135,7 +140,8 @@ handle_cast(_Request, State) ->
 handle_info(timeout, #state{auth_port_sup = AuthPortSup} = State) ->
 	Children = supervisor:which_children(AuthPortSup),
 	{_, SimpleAuthSup, _, _} = lists:keyfind(ocs_simple_auth_fsm_sup, 1, Children),
-	NewState = State#state{simple_auth_sup = SimpleAuthSup},
+	{_, PwdSup, _, _} = lists:keyfind(ocs_eap_pwd_fsm_sup, 1, Children),
+	NewState = State#state{simple_auth_sup = SimpleAuthSup, pwd_sup = PwdSup},
 	{noreply, NewState};
 handle_info({'EXIT', Fsm, {shutdown, SessionId}},
 		#state{handlers = Handlers} = State) ->
@@ -209,7 +215,11 @@ code_change(_OldVsn, State, _Extra) ->
 %% @hidden
 request(Caps, none, Request, State) when is_record(Request, diameter_nas_app_AAR) ->
 	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
-	request1(OHost, ORealm, Request, State);
+	request1(none, OHost, ORealm, Request, State);
+request(Caps, <<_:32, ?Identity, Identity/binary>>, Request, State)
+		when is_record(Request, diameter_eap_app_DER) ->
+	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
+	request1({identity, Identity}, OHost, ORealm, Request, State);
 request(Caps, none, Request, State) when is_record(Request, diameter_nas_app_STR) ->
 	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
 	SessionId = Request#diameter_nas_app_STR.'Session-Id',
@@ -239,30 +249,40 @@ request(Caps, none, Request, State) when is_record(Request, diameter_nas_app_STR
 			{reply, Answer, State}
 	end.
 %% @hidden
-request1(OHost, ORealm, Request, #state{handlers = Handlers} = State) ->
-	SessionId = get_session_id(Request),
+request1(EapType, OHost, ORealm, Request, #state{handlers = Handlers,
+		method_prefer = MethodPrefer, method_order = _MethodOrder} = State) ->
+	{SessionId, AuthType} = get_attibutes(Request),
 	try
-		#diameter_nas_app_AAR{'Auth-Request-Type' = Type, 'User-Name' = [UserName],
-				'User-Password' = [Password]} = Request,
 		case gb_trees:lookup(SessionId, Handlers) of
 			none ->
-				SimpleAuthSup = State#state.simple_auth_sup,
-				case {UserName, Password} of
-					{UserName, Password} when (UserName /= undefined andalso
-							Password /= undefined) ->
-						{Fsm, NewState} = start_fsm(SimpleAuthSup, 1, SessionId, Type, OHost, ORealm, UserName,
-							Password, State),
-						Answer = gen_fsm:sync_send_all_state_event(Fsm, diameter_request),
+				case EapType of
+					{_, _Identity} when MethodPrefer == pwd ->
+						PwdSup = State#state.pwd_sup,
+						{Fsm, NewState} = start_fsm(PwdSup, 5, SessionId, AuthType, OHost,
+								ORealm, [], State),
+						Answer = gen_fsm:sync_send_event(Fsm, Request),
 						{reply, Answer, NewState};
-					_ ->
-						Answer = #diameter_nas_app_AAA{
-								'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-								'Origin-Host' = OHost, 'Origin-Realm' = ORealm, 'Session-Id' = SessionId},
-						{reply, Answer, State}
+					none ->
+						#diameter_nas_app_AAR{'User-Name' = [UserName], 'User-Password' = [Password]} = Request,
+						SimpleAuthSup = State#state.simple_auth_sup,
+						case {UserName, Password} of
+							{UserName, Password} when (UserName /= undefined andalso
+									Password /= undefined) ->
+								{Fsm, NewState} = start_fsm(SimpleAuthSup, 1, SessionId, AuthType,
+										OHost, ORealm, [UserName, Password], State),
+								Answer = gen_fsm:sync_send_all_state_event(Fsm, diameter_request),
+								{reply, Answer, NewState};
+							_ ->
+								Answer = #diameter_nas_app_AAA{
+										'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+										'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+										'Session-Id' = SessionId},
+								{reply, Answer, State}
+							end
 					end;
 			{value, _Fsm} ->
 				Answer = #diameter_nas_app_AAA{'Session-Id' = SessionId,
-						'Auth-Application-Id' = 1, 'Auth-Request-Type' = Type,
+						'Auth-Application-Id' = 1, 'Auth-Request-Type' = AuthType,
 						'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 						'Origin-Host' = OHost, 'Origin-Realm' = ORealm },
 				{reply, Answer, State}
@@ -277,7 +297,7 @@ request1(OHost, ORealm, Request, #state{handlers = Handlers} = State) ->
 
 %% @hidden
 -spec start_fsm(AuthSup, AppId, SessionId, AuthRequestType, OHost,
-		ORealm, UserName, Password, State) -> NewState
+		ORealm, Options, State) -> NewState
 	when
 		AuthSup :: pid(),
 		AppId :: non_neg_integer(),
@@ -285,15 +305,14 @@ request1(OHost, ORealm, Request, #state{handlers = Handlers} = State) ->
 		AuthRequestType :: 1..3,
 		OHost :: string(),
 		ORealm :: string(),
-		UserName:: string(),
-		Password :: string(),
+		Options :: list(),
 		State :: state(),
 		NewState :: state() | {Fsm, State},
 		Fsm :: undefined | pid().
-start_fsm(AuthSup, AppId, SessId, Type, OHost, ORealm, UserName,
-			Password, #state{handlers = Handlers, address = Address, port = Port} = State) ->
+start_fsm(AuthSup, AppId, SessId, Type, OHost, ORealm,
+			Options, #state{handlers = Handlers, address = Address, port = Port} = State) ->
 	StartArgs = [diameter, Address, Port, SessId, AppId, Type, OHost,
-			ORealm, UserName, Password],
+			ORealm, Options],
 	ChildSpec = [StartArgs, []],
 	case supervisor:start_child(AuthSup, ChildSpec) of
 		{ok, Fsm} ->
@@ -310,12 +329,20 @@ start_fsm(AuthSup, AppId, SessId, Type, OHost, ORealm, UserName,
 			{undefined, State}
 	end.
 
--spec get_session_id(Request) -> SessionId
+-spec get_attibutes(Request) -> {SessionId, AuthRequestType}
 	when
 		Request :: #diameter_nas_app_AAR{} | #diameter_eap_app_DER{},
-		SessionId :: string().
-%% @doc Return value for session id in DIAMETER Request.
+		SessionId :: string(),
+		AuthRequestType :: integer().
+%% @doc Return values for Session-Id and Auth-Request-Type attributes in
+%% DIAMETER Request.
 %% @hidden
-get_session_id(Request) when is_record(Request, diameter_nas_app_AAR) ->
-	Request#diameter_nas_app_AAR.'Session-Id'.
+get_attibutes(Request) when is_record(Request, diameter_nas_app_AAR) ->
+	#diameter_nas_app_AAR{'Session-Id' = SessionId,
+			'Auth-Request-Type' = Type} = Request,
+	{SessionId, Type};
+get_attibutes(Request) when is_record(Request, diameter_eap_app_DER) ->
+	#diameter_eap_app_DER{'Session-Id' = SessionId,
+		'Auth-Request-Type' = Type} = Request,
+	{SessionId, Type}.
 

@@ -159,7 +159,7 @@ handle_request(#diameter_packet{msg = Req, errors = []},
 		Svc :: atom(),
 		Caps :: capabilities(),
 		Request :: message(),
-		EapPacket :: #eap_packet{},
+		EapPacket :: binary(),
 		Action :: Reply | {relay, [Opt]} | discard
 			| {eval|eval_packet, Action, PostF},
 		Reply :: {reply, packet() | message()}
@@ -237,9 +237,7 @@ is_client_authorized(SvcName, Caps, Req) ->
 extract_eap(Svc, Caps, DiameterRequest) ->
 	try 
 		#diameter_eap_app_DER{'EAP-Payload' = Payload} = DiameterRequest,
-		PacketBin = list_to_binary(Payload),
-		EapPacket = ocs_eap_codec:eap_packet(PacketBin),
-		send_to_port_server(Svc, Caps, DiameterRequest, EapPacket)
+		send_to_port_server(Svc, Caps, DiameterRequest, Payload)
 	catch
 		_:_ ->
 			send_error(Caps, DiameterRequest, ?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS')
