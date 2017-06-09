@@ -26,32 +26,37 @@
 -export([]).
 
 %% export the ocs_eap_pwd_fsm state callbacks
--export([eap_start/2, id/2, commit/2, confirm/2]).
+-export([eap_start/2, id/2, commit/2, confirm/2,
+			eap_start/3]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
 			terminate/3, code_change/4]).
 
 -include_lib("radius/include/radius.hrl").
+-include_lib("diameter/include/diameter.hrl").
+-include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include("ocs_eap_codec.hrl").
+-include("../include/diameter_gen_eap_application_rfc4072.hrl").
+
 -record(statedata,
 		{server_address :: inet:ip_address(),
 		server_port :: pos_integer(),
-		client_address :: inet:ip_address(),
-		client_port :: pos_integer(),
-		radius_fsm :: pid(),
-		session_id:: {NAS :: inet:ip_address() | string(),
+		client_address :: undefined | inet:ip_address(),
+		client_port :: undefined | pos_integer(),
+		radius_fsm :: undefined | pid(),
+		session_id:: string() | {NAS :: inet:ip_address() | string(),
 				Port :: string(), Peer :: string()},
-		start :: undefined | #radius{},
+		start :: undefined | #diameter_eap_app_DER{} | #radius{},
 		eap_id = 0 :: byte(),
 		group_desc  = 19 :: byte(),
 		rand_func = 1 :: byte(),
 		prf = 1 :: byte(),
-		secret :: binary(),
+		secret :: undefined | binary(),
 		token :: undefined | binary(),
 		password :: undefined | binary(),
 		prep :: undefined | none | rfc2759 | saslprep,
-		server_id  :: binary(),
+		server_id  ::  binary(),
 		peer_id :: undefined | binary(),
 		pwe :: undefined | binary(),
 		s_rand :: undefined | integer(),
@@ -63,7 +68,11 @@
 		confirm_s :: undefined | binary(),
 		confirm_p :: undefined | binary(),
 		mk :: undefined | binary(),
-		msk :: undefined | binary()}).
+		msk :: undefined | binary(),
+		auth_app_id :: undefined | integer(),
+		auth_req_type :: undefined | integer(),
+		origin_host :: undefined | binary(),
+		origin_realm :: undefined | binary()}).
 -type statedata() :: #statedata{}.
 
 -define(TIMEOUT, 30000).
@@ -98,7 +107,16 @@ init([radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
 			secret = Secret, session_id = SessionID,
 			server_id = list_to_binary(Hostname), start = AccessRequest},
 	process_flag(trap_exit, true),
-	{ok, eap_start, StateData, 0}.
+	{ok, eap_start, StateData, 0};
+init([diameter, ServerAddress, ServerPort, SessionId, ApplicationId,
+		AuthType, OHost, ORealm, _Options] = _Args) ->
+	{ok, Hostname} = inet:gethostname(),
+	StateData = #statedata{server_address = ServerAddress,
+			server_port = ServerPort, session_id = SessionId, server_id = list_to_binary(Hostname),
+			auth_app_id = ApplicationId, auth_req_type = AuthType, origin_host = OHost,
+			origin_realm = ORealm},
+	process_flag(trap_exit, true),
+	{ok, eap_start, StateData}.
 
 -spec eap_start(Event, StateData) -> Result
 	when
@@ -182,6 +200,52 @@ eap_start1(Token, #statedata{eap_id = EapID,
 					RequestAuthenticator, RequestAttributes, NewStateData),
 			{next_state, id, NewStateData, ?TIMEOUT}
 	end.
+
+-spec eap_start(Event, From, StateData) -> Result
+	when
+		Event :: term(),
+		From :: {Pid, Tag},
+		Pid :: pid(),
+		Tag :: term(),
+		StateData :: term(),
+		Result :: {reply, Reply, NextStateName, NewStateData}
+				| {reply, Reply,NextStateName, NewStateData, Timeout}
+				| {reply, Reply,NextStateName, NewStateData, hibernate}
+				| {next_state, NextStateName, NewStateData}
+				| {next_state, NextStateName, NewStateData, Timeout}
+				| {next_state, NextStateName, NewStateData, hibernate}
+				| {stop, Reason, Reply, NewStateData} | {stop, Reason, NewStateData},
+				Reply :: term(),
+		NextStateName :: atom(),
+		NewStateData :: term(),
+		Timeout :: pos_integer() | infinity,
+		Reason :: normal | term().
+eap_start(Request, _From, StateData) ->
+	try crypto:strong_rand_bytes(4) of
+		Token ->
+			eap_start2(Token, Request, StateData)
+	catch
+		Reason ->
+			{stop, Reason, StateData}
+	end.
+%% @hidden
+eap_start2(Token, Request, #statedata{eap_id = EapID, session_id = SessionId,
+		server_id = ServerID, group_desc = GroupDesc, rand_func = RandFunc,
+		prf = PRF, auth_app_id = AppId, auth_req_type = AuthType,
+		origin_host = OHost, origin_realm = ORealm} = StateData) ->
+	EapPwdId = #eap_pwd_id{group_desc = GroupDesc, random_fun = RandFunc,
+			prf = PRF, token = Token, pwd_prep = none, identity = ServerID},
+	EapPwdData = ocs_eap_codec:eap_pwd_id(EapPwdId),
+	EapPwd = #eap_pwd{pwd_exch = id, data = EapPwdData},
+	EapData = ocs_eap_codec:eap_pwd(EapPwd),
+	NewStateData = StateData#statedata{token = Token, start = Request},
+	EapPacket = #eap_packet{code = request, type = ?PWD, identifier = EapID, data = EapData},
+	EapPayload = ocs_eap_codec:eap_packet(EapPacket),
+	Answer = #diameter_eap_app_DEA{'Session-Id' = SessionId, 'Auth-Application-Id' = AppId,
+			'Auth-Request-Type' = AuthType,
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
+			'Origin-Host' = OHost, 'Origin-Realm' = ORealm, 'EAP-Payload' = [EapPayload]},
+	{reply, Answer, id ,NewStateData, ?TIMEOUT}.
 
 -spec id(Event, StateData) -> Result
 	when

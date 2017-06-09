@@ -23,18 +23,6 @@
 			color: white;
 			background-color: #bc5100;
 		}
-		.add-button {
-			background-color: var(--paper-lime-a700);
-			color: black;
-			float: right;
-			width: 8em;
-		}
-		.cancel-button {
-			color: black;
-		}
-		.password {
-         display: inline-block;
-      }
 		paper-input [id="add2"]{
          width: 100%;
       }
@@ -48,6 +36,37 @@
 		paper-checkbox {
          --paper-checkbox-checked-color: #ffb04c;
          --paper-checkbox-checkmark-color: var(--paper-yellow-900);
+      }
+		.generate {
+			display: inline-block;
+			width: 8em;
+		}
+		.identity {
+			display: inline-block;
+		}
+		.secret {
+			display: inline-block;
+		}
+		.add-button {
+			background-color: var(--paper-lime-a700);
+			color: black;
+			float: right;
+			width: 8em;
+		}
+		.cancel-button {
+			color: black;
+		}
+		.generated {
+         width: 35%;
+         height: 40%;
+         padding: 10px;
+         overflow: auto;
+      }
+		.close {
+         background-color: var(--paper-lime-a700);
+         color: black;
+         float: right;
+         width: 5em;
       }
 	</style>
 	<template>
@@ -64,27 +83,36 @@
 						content-type="application/json">
 					<div>
 						<paper-input id="add1"
+								class="identity"
 								name="subscriber"
-								label="Identity*"
-								required>
+								label="Identity">
 						</paper-input>
 						<paper-tooltip>
 							Identity, or username, of the subscriber to authenticate.
 						</paper-tooltip>
+						<div class="generate">
+							<paper-checkbox
+                  		on-change="subcheckchanged">
+                  		Generate
+            			</paper-checkbox>
+						</div>
 					</div>
-					<div class="password">
+					<div>
 						<paper-input id="add2"
+								class="secret"
 								name="password"
 								label="Secret">
 						</paper-input>
 						<paper-tooltip>
 							Secret, or password, shared only with the subscriber
 						</paper-tooltip>
+						<div class="generate">
+							<paper-checkbox
+                  		on-change="subcheckboxchanged">
+                  		Generate
+            			</paper-checkbox>
+						</div>
 					</div>
-						<paper-checkbox
-                  	on-change="subcheckboxchanged">
-                  	Generate
-            		</paper-checkbox>
 					<div>
 						<paper-input id="add3"
 								name="ascendDataRate"
@@ -188,6 +216,16 @@
 					</paper-toast>
 				</div>
 			</paper-dialog>
+			<paper-dialog id="subSecretModal" class="generated" modal>
+				<paper-toolbar>
+            	<h2>Server Generated</h2>
+         	</paper-toolbar>
+         	<paper-item>Identity: &nbsp<b>[[id]]</b></paper-item>
+         	<paper-item>Secret: &nbsp<b>[[password]]</b></paper-item>
+         	<div class="close">
+            	<paper-button dialog-confirm autofocus>Close</paper-button>
+         	</div>
+      	</paper-dialog>
 		</div>
 		<iron-ajax
             id="subAddAjax"
@@ -214,6 +252,10 @@
 		Polymer (
 			{
 				is: 'sig-sub-add',
+				properties: {
+					password: String,
+					id: String
+				},
 				listeners: {
 					'toastErrorClose.on-click': 'closeToast',
 					'presubmit.iron-form-presubmit': '_handleFormPreSubmit',
@@ -224,7 +266,9 @@
 				_handleFormPreSubmit: function() {
 					var form = document.getElementById('presubmit');
 					var formData = new Object();
-					formData.id = document.getElementById("add1").value;
+					if(!document.getElementById("add1").disabled) {
+						formData.id = document.getElementById("add1").value;
+					}
 					if(!document.getElementById("add2").disabled) {
 						formData.password = document.getElementById("add2").value;
 					}
@@ -293,12 +337,26 @@
                   document.getElementById("add2").disabled = false;
                }
             },
+				subcheckchanged: function(event) {
+               if (event.target.checked) {
+                  document.getElementById("add1").disabled = true;
+               } else {
+                  document.getElementById("add1").disabled = false;
+               }
+            },
 				_handleFormResponse: function(event) {
 					var toast = document.getElementById("toast-success");
 					toast.open();
 					toast.duration = 4;
 					document.getElementById("presubmit").reset();
 					document.getElementById("subAddModal").close();
+					var ajax = document.getElementById("subAddAjax");
+               if (ajax.body.password == undefined || ajax.body.id == undefined) {
+                  this.password = ajax.lastResponse.password;
+						this.id = ajax.lastResponse.id;
+                  document.getElementById("subSecretModal").open();
+                  document.getElementById("subSecretModal").reset();
+               }
 					document.getElementById("getSubs").generateRequest();
 				},
 				toastErrorClose: function(event) {
