@@ -260,7 +260,7 @@ request1(EapType, OHost, ORealm, Request, #state{handlers = Handlers,
 						PwdSup = State#state.pwd_sup,
 						{Fsm, NewState} = start_fsm(PwdSup, 5, SessionId, AuthType, OHost,
 								ORealm, [], State),
-						Answer = gen_fsm:sync_send_event(Fsm, diameter_request),
+						Answer = gen_fsm:sync_send_event(Fsm, Request),
 						{reply, Answer, NewState};
 					none ->
 						#diameter_nas_app_AAR{'User-Name' = [UserName], 'User-Password' = [Password]} = Request,
@@ -270,7 +270,7 @@ request1(EapType, OHost, ORealm, Request, #state{handlers = Handlers,
 									Password /= undefined) ->
 								{Fsm, NewState} = start_fsm(SimpleAuthSup, 1, SessionId, AuthType,
 										OHost, ORealm, [UserName, Password], State),
-								Answer = gen_fsm:sync_send_all_state_event(Fsm, Request),
+								Answer = gen_fsm:sync_send_all_state_event(Fsm, diameter_request),
 								{reply, Answer, NewState};
 							_ ->
 								Answer = #diameter_nas_app_AAA{
