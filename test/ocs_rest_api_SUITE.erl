@@ -699,7 +699,7 @@ get_usagespec(Config) ->
 	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
 	ContentLength = integer_to_list(length(Body)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
-	{_, {array, [{struct, UsageSpec} | _]}} = mochijson:decode(Body),
+	{array, [{struct, UsageSpec} | _]} = mochijson:decode(Body),
 	{_, _} = lists:keyfind("id", 1, UsageSpec),
 	{_, _} = lists:keyfind("href", 1, UsageSpec),
 	{_, _} = lists:keyfind("name", 1, UsageSpec),
