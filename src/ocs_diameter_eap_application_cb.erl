@@ -180,7 +180,7 @@ send_to_port_server(Svc, Caps, Request, EapPacket) ->
 							discard;
 						PortServer ->
 							Answer = gen_server:call(PortServer,
-									{diameter_request, Caps, Request, EapPacket}),
+									{diameter_request, Caps, Request, {eap, EapPacket}}),
 							{reply, Answer}
 					end;
 				false ->

@@ -216,7 +216,7 @@ code_change(_OldVsn, State, _Extra) ->
 request(Caps, none, Request, State) when is_record(Request, diameter_nas_app_AAR) ->
 	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
 	request1(none, OHost, ORealm, Request, State);
-request(Caps, <<_:32, ?Identity, Identity/binary>>, Request, State)
+request(Caps, {eap, <<_:32, ?Identity, Identity/binary>>}, Request, State)
 		when is_record(Request, diameter_eap_app_DER) ->
 	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
 	request1({identity, Identity}, OHost, ORealm, Request, State);
