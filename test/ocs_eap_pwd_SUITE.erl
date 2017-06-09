@@ -122,7 +122,8 @@ sequences() ->
 all() ->
 	[eap_identity_radius, pwd_id_radius, pwd_commit_radius, pwd_confirm_radius,
 	message_authentication_radius, role_reversal_radius, validate_pwd_id_cipher_radius,
-	validate_pwd_id_prep_radius, validate_pwd_id_token_radius, negotiate_method_radius].
+	validate_pwd_id_prep_radius, validate_pwd_id_token_radius, negotiate_method_radius,
+	eap_identity_diameter].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -146,6 +147,23 @@ eap_identity_radius(Config) ->
 	NextEapId = EapId + 1,
 	{NextEapId, _Token, _ServerID} = receive_radius_id(Socket, Address,
 			Port, Secret, ReqAuth, RadId).
+
+eap_identity_diameter() ->
+   [{userdata, [{doc, "Send an EAP-Identity/Response using DIAMETER to peer"}]}].
+
+eap_identity_diameter(_Config) ->
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	EapId = 1,
+	PeerId = <<"12345678">>,
+	DEA = send_diameter_identity(SId, EapId, PeerId),
+	SIdbin = list_to_binary(SId),
+	#diameter_eap_app_DEA{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
+			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm} = DEA,
+	OriginHost = list_to_binary("ocs.sigscale.com"),
+	OriginRealm = list_to_binary("sigscale.com").
 
 pwd_id_radius() ->
    [{userdata, [{doc, "Send an EAP-pwd-ID/Response to peer"}]}].
