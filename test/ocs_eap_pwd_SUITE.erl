@@ -31,6 +31,13 @@
 -include_lib("radius/include/radius.hrl").
 -include("ocs_eap_codec.hrl").
 -include_lib("common_test/include/ct.hrl").
+-include_lib("diameter/include/diameter.hrl").
+-include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
+-include_lib("../include/diameter_gen_eap_application_rfc4072.hrl").
+
+-define(SVC, diameter_client_service).
+-define(BASE_APPLICATION_ID, 0).
+-define(EAP_APPLICATION_ID, 5).
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
@@ -52,34 +59,55 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
-	_RadAuthAddress = {127, 0, 0, 1},
-	Protocol = ct:get_config(protocol),
-	SharedSecret = ct:get_config(radius_shared_secret),
-	ok = ocs:add_client({127, 0, 0, 1}, 3799, Protocol, SharedSecret),
-	NasId = atom_to_list(node()),
-	[{nas_id, NasId}] ++ Config.
+	{ok, [{auth, DiaAuthInstance}, {acct, _}]} = application:get_env(ocs, diameter),
+	[{Address, Port, _}] = DiaAuthInstance,
+	true = diameter:subscribe(?SVC),
+	ok = diameter:start_service(?SVC, client_service_opts()),
+	{ok, _Ref} = connect(?SVC, Address, Port, diameter_tcp),
+	receive
+		#diameter_event{service = ?SVC, info = start} ->
+			[{diameter_client, Address}] ++ Config;
+		_ ->
+			{skip, diameter_client_service_not_started}
+	end.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
+	ok = diameter:stop_service(?SVC),
 	ok = ocs_test_lib:stop(),
 	Config.
 
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before each test case.
 %%
+init_per_testcase(TestCase, Config) when TestCase == eap_identity_diameter ->
+	{ok, [{auth, DiaAuthInstance}, _]} = application:get_env(ocs, diameter),
+	[{Address, Port, _}] = DiaAuthInstance,
+	Secret = "87dhcbwhc",
+	ok = ocs:add_client(Address, Port, diameter, Secret),
+	[{diameter_client, Address}] ++ Config;
 init_per_testcase(_TestCase, Config) ->
 	{ok, [{auth, RadAuthInstance}, {acct, _RadAcctInstance}]} = application:get_env(ocs, radius),
-	[{RadIP, _, _}] = RadAuthInstance,
+	[{RadIP, RadPort, _}] = RadAuthInstance,
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, RadIP}, binary]),
-	[{socket, Socket} | Config].
+	SharedSecret = ct:get_config(radius_shared_secret),
+	Protocol = radius,
+	ok = ocs:add_client(RadIP, RadPort, Protocol, SharedSecret),
+	NasId = atom_to_list(node()),
+	[{nas_id, NasId}, {socket, Socket}, {radius_client, RadIP}] ++ Config.
 
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
 %% Cleanup after each test case.
 %%
+end_per_testcase(TestCase, Config) when TestCase == eap_identity_diameter ->
+	DClient = ?config(diameter_client, Config),
+	ok = ocs:delete_client(DClient);
 end_per_testcase(_TestCase, Config) ->
 	Socket = ?config(socket, Config),
+	RadClient = ?config(radius_client, Config),
+	ok = ocs:delete_client(RadClient),
 	ok = 	gen_udp:close(Socket).
 
 -spec sequences() -> Sequences :: [{SeqName :: atom(), Testcases :: [atom()]}].
@@ -566,4 +594,50 @@ receive_radius_nak(Socket, Address, Port, Secret, ReqAuth, RadId) ->
 	#eap_packet{code = response, type = ?LegacyNak, identifier = EapId,
 			data = AuthTypes} = ocs_eap_codec:eap_packet(EapMsg),
 	{EapId, AuthTypes}.
+
+%% @doc Add a transport capability to diameter service.
+%% @hidden
+connect(SvcName, Address, Port, Transport) when is_atom(Transport) ->
+	connect(SvcName, [{connect_timer, 30000} | transport_opts(Address, Port, Transport)]).
+
+%% @hidden
+connect(SvcName, Opts)->
+	diameter:add_transport(SvcName, {connect, Opts}).
+
+%% @hidden
+client_service_opts() ->
+	[{'Origin-Host', "client.testdomain.com"},
+		{'Origin-Realm', "testdomain.com"},
+		{'Vendor-Id', 0},
+		{'Product-Name', "DIAMETER Test Client"},
+		{'Auth-Application-Id', [?BASE_APPLICATION_ID,
+														 ?EAP_APPLICATION_ID]},
+		{string_decode, false},
+		{application, [{alias, base_app_test},
+				{dictionary, diameter_gen_base_rfc6733},
+				{module, diameter_test_client_cb}]},
+		{application, [{alias, eap_app_test},
+				{dictionary, diameter_gen_eap_application_rfc4072},
+				{module, diameter_test_client_cb}]}].
+
+%% @hidden
+transport_opts(Address, Port, Trans) when is_atom(Trans) ->
+	transport_opts1({Trans, Address, Address, Port}).
+
+%% @hidden
+transport_opts1({Trans, LocalAddr, RemAddr, RemPort}) ->
+	[{transport_module, Trans},
+		{transport_config, [{raddr, RemAddr},
+		{rport, RemPort},
+		{reuseaddr, true}
+		| [{ip, LocalAddr}]]}].
+
+send_diameter_identity(SId, EapId, PeerId) ->
+	EapPacket  = #eap_packet{code = request, type = ?Identity, identifier = EapId, data = PeerId},
+	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
+	DER = #diameter_eap_app_DER{'Session-Id' = SId, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+		'Auth-Request-Type' = ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+		'EAP-Payload' = EapMsg},
+	{ok, Answer} = diameter:call(?SVC, eap_app_test, DER, []),
+	Answer.
 
