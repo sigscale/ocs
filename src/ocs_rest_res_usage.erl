@@ -21,7 +21,7 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
-		get_usage/0, get_usage/1, get_usagespec/0]).
+		get_usage/0, get_usage/1, get_usagespec/0, get_usagespec/1]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs_log.hrl").
@@ -83,6 +83,25 @@ get_usagespec() ->
 	Headers = [{content_type, "application/json"}],
 	Body = mochijson:encode({array, [spec_ocs_usage(), spec_public_wlan()]}),
 	{ok, Headers, Body}.
+
+-spec get_usagespec(Id) -> Result
+	when
+		Id :: string(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%% 	`GET /usageManagement/v1/usageSpecification/{id}'
+%% 	requests.
+get_usagespec("OCSAccessUsageSpec") ->
+	Headers = [{content_type, "application/json"}],
+	Body = mochijson:encode(spec_ocs_usage()),
+	{ok, Headers, Body};
+get_usagespec("PublicWLANAccessUsageSpec") ->
+	Headers = [{content_type, "application/json"}],
+	Body = mochijson:encode(spec_public_wlan()),
+	{ok, Headers, Body};
+get_usagespec(_Id) ->
+	{error, 404}.
 
 %%----------------------------------------------------------------------
 %%  internal functions

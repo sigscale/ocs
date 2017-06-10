@@ -131,7 +131,7 @@ all() ->
 	get_subscriber_not_found, retrieve_all_subscriber, delete_subscriber,
 	add_client, add_client_without_password, get_client, get_client_id,
 	get_client_bogus, get_client_notfound, get_all_clients, delete_client,
-	get_usagespec, get_usage].
+	get_usagespecs, get_usagespec, get_usage].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -681,10 +681,10 @@ delete_client(Config) ->
 	{{"HTTP/1.1", 204, _NoContent}, Headers1, []} = Result1,
 	{_, "0"} = lists:keyfind("content-length", 1, Headers1).
 
-get_usagespec() ->
-	[{userdata, [{doc,"Get usageSpecification"}]}].
+get_usagespecs() ->
+	[{userdata, [{doc,"Get usageSpecification collection"}]}].
 
-get_usagespec(Config) ->
+get_usagespecs(Config) ->
 	HostUrl = ?config(host_url, Config),
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
@@ -705,6 +705,45 @@ get_usagespec(Config) ->
 	{_, _} = lists:keyfind("name", 1, UsageSpec),
 	{_, _} = lists:keyfind("validFor", 1, UsageSpec),
 	{_, _} = lists:keyfind("usageSpecCharacteristic", 1, UsageSpec).
+
+get_usagespec() ->
+	[{userdata, [{doc,"Get a usageSpecification"}]}].
+
+get_usagespec(Config) ->
+	HostUrl = ?config(host_url, Config),
+	AcceptValue = "application/json",
+	Accept = {"accept", AcceptValue},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request1 = {HostUrl ++ "/usageManagement/v1/usageSpecification", [Accept, Authentication]},
+	{ok, Result1} = httpc:request(get, Request1, [], []),
+	{{"HTTP/1.1", 200, _OK}, _Headers1, Body1} = Result1,
+	{array, UsageSpecs} = mochijson:decode(Body1),
+	F1 = fun({struct, UsageSpec1}) ->
+				{_, Id} = lists:keyfind("id", 1, UsageSpec1),
+				Href = "/usageManagement/v1/usageSpecification/" ++ Id,
+				{_, Href} = lists:keyfind("href", 1, UsageSpec1),
+				Href
+	end,
+	Uris = lists:map(F1, UsageSpecs),
+	F2 = fun(Uri) ->
+				Request2 = {HostUrl ++ Uri, [Accept, Authentication]},
+				{ok, Result2} = httpc:request(get, Request2, [], []),
+				{{"HTTP/1.1", 200, _OK}, Headers2, Body2} = Result2,
+				{_, AcceptValue} = lists:keyfind("content-type", 1, Headers2),
+				ContentLength2 = integer_to_list(length(Body2)),
+				{_, ContentLength2} = lists:keyfind("content-length", 1, Headers2),
+				{struct, UsageSpec2} = mochijson:decode(Body2),
+				{_, _} = lists:keyfind("id", 1, UsageSpec2),
+				{_, _} = lists:keyfind("href", 1, UsageSpec2),
+				{_, _} = lists:keyfind("name", 1, UsageSpec2),
+				{_, _} = lists:keyfind("validFor", 1, UsageSpec2),
+				{_, _} = lists:keyfind("usageSpecCharacteristic", 1, UsageSpec2)
+	end,
+	lists:foreach(F2, Uris).
 
 get_usage() ->
 	[{userdata, [{doc,"Get usage in rest interface"}]}].
