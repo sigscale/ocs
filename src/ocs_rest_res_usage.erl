@@ -81,7 +81,7 @@ get_usage(Id) ->
 %% 	requests.
 get_usagespec() ->
 	Headers = [{content_type, "application/json"}],
-	Body = mochijson:encode({array, [spec_ocs_usage(), spec_public_wlan()]}),
+	Body = mochijson:encode({array, [spec_aaa_usage(), spec_public_wlan()]}),
 	{ok, Headers, Body}.
 
 -spec get_usagespec(Id) -> Result
@@ -94,7 +94,11 @@ get_usagespec() ->
 %% 	requests.
 get_usagespec("AAAAccessUsageSpec") ->
 	Headers = [{content_type, "application/json"}],
-	Body = mochijson:encode(spec_ocs_usage()),
+	Body = mochijson:encode(spec_aaa_usage()),
+	{ok, Headers, Body};
+get_usagespec("AAAAccountingUsageSpec") ->
+	Headers = [{content_type, "application/json"}],
+	Body = mochijson:encode(spec_aaa_accounting()),
 	{ok, Headers, Body};
 get_usagespec("PublicWLANAccessUsageSpec") ->
 	Headers = [{content_type, "application/json"}],
@@ -322,7 +326,7 @@ usage_characteristics([], _Ipdr, Acc) ->
 
 
 %% @hidden
-spec_ocs_usage() ->
+spec_aaa_usage() ->
 	ID = {id, "AAAAccessUsageSpec"},
 	Href = {href, "/usageManagement/v1/usageSpecification/AAAAccessUsageSpec"},
 	Name = {name, "AAAAccessUsageSpec"},
@@ -330,253 +334,33 @@ spec_ocs_usage() ->
 	Start = {startDateTime, "2017-01-01T00:00:00Z"},
 	End = {endDateTime, "2017-12-31T23:59:59Z"},
 	Valid = {validFor, {struct, [Start, End]}},
-	Chars = lists:reverse(spec_ocs_usage1([])),
+	Chars = [spec_timestamp(), spec_protocol(), spec_node(),
+			spec_server_address(), spec_server_port(), spec_client_address(),
+			spec_client_port(), spec_type_access(), spec_attr_username(),
+			spec_attr_nasid(), spec_attr_nasip(), spec_attr_nasport(),
+			spec_attr_nastype(), spec_attr_calling(), spec_attr_called(),
+			spec_attr_datarate(), spec_attr_xmitrate(), spec_attr_timeout(),
+			spec_attr_interim(), spec_attr_class()],
 	Char = {usageSpecCharacteristic, {array, Chars}},
 	{struct, [ID, Href, Name, Desc, Valid, Char]}.
+
 %% @hidden
-spec_ocs_usage1(Acc) ->
-	Name = {name, "timeStamp"},
-	Desc = {description, "Time and date request was processed by OCS."},
-	Conf = {configurable, false},
-	Typ1 = {valueType, "dateTime"},
-	Def1 = {default, false},
-	Value1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
-	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
-	spec_ocs_usage2(NewAcc).
-%% @hidden
-spec_ocs_usage2(Acc) ->
-	Name = {name, "protocol"},
-	Desc = {description, "AAA protocol used in access request."},
-	Conf = {configurable, true},
-	Typ1 = {valueType, "string"},
-	Def1 = {default, true},
-	Val1 = {value, "RADIUS"},
-	Value1 = {struct, [Typ1, Def1, Val1]},
-	Typ2 = {valueType, "string"},
-	Def2 = {default, false},
-	Val2 = {value, "DIAMETER"},
-	Value2 = {struct, [Typ2, Def2, Val2]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1, Value2]}},
-	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
-	spec_ocs_usage3(NewAcc).
-%% @hidden
-spec_ocs_usage3(Acc) ->
-	Name = {name, "node"},
-	Desc = {description, "Cluster node where access request was handled."},
-	Conf = {configurable, true},
-	Typ1 = {valueType, "string"},
-	Def1 = {default, false},
-	Value1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
-	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
-	spec_ocs_usage4(NewAcc).
-%% @hidden
-spec_ocs_usage4(Acc) ->
-	Name = {name, "serverAddress"},
-	Desc = {description, "IP address access request was received on."},
-	Conf = {configurable, true},
-	Typ1 = {valueType, "string"},
-	Def1 = {default, false},
-	Value1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
-	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
-	spec_ocs_usage5(NewAcc).
-%% @hidden
-spec_ocs_usage5(Acc) ->
-	Name = {name, "serverPort"},
-	Desc = {description, "IP port access request was received on."},
-	Conf = {configurable, true},
-	Typ1 = {valueType, "number"},
-	Def1 = {default, false},
-	Value1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
-	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
-	spec_ocs_usage6(NewAcc).
-%% @hidden
-spec_ocs_usage6(Acc) ->
-	Name = {name, "clientAddress"},
-	Desc = {description, "IP address access request was received from."},
-	Conf = {configurable, true},
-	Typ1 = {valueType, "string"},
-	Def1 = {default, false},
-	Value1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
-	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
-	spec_ocs_usage7(NewAcc).
-%% @hidden
-spec_ocs_usage7(Acc) ->
-	Name = {name, "clientPort"},
-	Desc = {description, "IP port access request was received from."},
-	Conf = {configurable, true},
-	Typ1 = {valueType, "number"},
-	Def1 = {default, false},
-	Value1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
-	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
-	spec_ocs_usage8(NewAcc).
-%% @hidden
-spec_ocs_usage8(Acc) ->
-	Name = {name, "type"},
-	Desc = {description, "Type of access event."},
-	Conf = {configurable, true},
-	Typ1 = {valueType, "string"},
-	Def1 = {default, false},
-	Val1 = {value, "accept"},
-	Value1 = {struct, [Typ1, Def1, Val1]},
-	Typ2 = {valueType, "string"},
-	Def2 = {default, false},
-	Val2 = {value, "reject"},
-	Value2 = {struct, [Typ2, Def2, Val2]},
-	Typ3 = {valueType, "string"},
-	Def3 = {default, false},
-	Val3 = {value, "change"},
-	Value3 = {struct, [Typ3, Def3, Val3]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1, Value2, Value3]}},
-	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
-	spec_ocs_usage9(NewAcc).
-%% @hidden
-spec_ocs_usage9(Acc) ->
-	Name = {name, "username"},
-	Desc = {description, "Username/identity of subscriber requesting access."},
-	Conf = {configurable, true},
-	Typ1 = {valueType, "string"},
-	Def1 = {default, false},
-	Value1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
-	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
-	spec_ocs_usage10(NewAcc).
-%% @hidden
-spec_ocs_usage10(Acc) ->
-	Name = {name, "nasIdentifier"},
-	Desc = {description, "NAS-Identifier attribute"},
-	Conf = {configurable, true},
-	Typ1 = {valueType, "string"},
-	Def1 = {default, false},
-	Value1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
-	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
-	spec_ocs_usage11(NewAcc).
-%% @hidden
-spec_ocs_usage11(Acc) ->
-	Name = {name, "nasIpAddress"},
-	Desc = {description, "NAS-IP-Address attribute"},
-	Conf = {configurable, true},
-	Typ1 = {valueType, "string"},
-	Def1 = {default, false},
-	Value1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
-	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
-	spec_ocs_usage12(NewAcc).
-%% @hidden
-spec_ocs_usage12(Acc) ->
-	Name = {name, "nasPort"},
-	Desc = {description, "NAS-Port attribute"},
-	Conf = {configurable, true},
-	Typ1 = {valueType, "number"},
-	Def1 = {default, false},
-	Value1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
-	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
-	spec_ocs_usage13(NewAcc).
-%% @hidden
-spec_ocs_usage13(Acc) ->
-	Name = {name, "nasPortType"},
-	Desc = {description, "NAS-Port-Type attribute"},
-	Conf = {configurable, true},
-	Typ1 = {valueType, "number"},
-	Def1 = {default, false},
-	Value1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
-	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
-	spec_ocs_usage14(NewAcc).
-%% @hidden
-spec_ocs_usage14(Acc) ->
-	Name = {name, "callingStationId"},
-	Desc = {description, "Calling-Station-ID attribute"},
-	Conf = {configurable, true},
-	Typ1 = {valueType, "string"},
-	Def1 = {default, false},
-	Value1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
-	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
-	spec_ocs_usage15(NewAcc).
-%% @hidden
-spec_ocs_usage15(Acc) ->
-	Name = {name, "calledStationId"},
-	Desc = {description, "Called-Station-ID attribute"},
-	Conf = {configurable, true},
-	Typ1 = {valueType, "string"},
-	Def1 = {default, false},
-	Value1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
-	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
-	spec_ocs_usage16(NewAcc).
-%% @hidden
-spec_ocs_usage16(Acc) ->
-	Name = {name, "callingStationId"},
-	Desc = {description, "Calling-Station-ID attribute"},
-	Conf = {configurable, true},
-	Typ1 = {valueType, "string"},
-	Def1 = {default, false},
-	Value1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
-	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
-	spec_ocs_usage17(NewAcc).
-%% @hidden
-spec_ocs_usage17(Acc) ->
-	Name = {name, "ascendDataRate"},
-	Desc = {description, "Ascend-Data-Rate attribute"},
-	Conf = {configurable, true},
-	Typ1 = {valueType, "number"},
-	Def1 = {default, false},
-	Value1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
-	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
-	spec_ocs_usage18(NewAcc).
-%% @hidden
-spec_ocs_usage18(Acc) ->
-	Name = {name, "ascendXmitRate"},
-	Desc = {description, "Ascend-Xmit-Rate attribute"},
-	Conf = {configurable, true},
-	Typ1 = {valueType, "number"},
-	Def1 = {default, false},
-	Value1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
-	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
-	spec_ocs_usage19(NewAcc).
-%% @hidden
-spec_ocs_usage19(Acc) ->
-	Name = {name, "sessionTimeout"},
-	Desc = {description, "Session-Timeout attribute"},
-	Conf = {configurable, true},
-	Typ1 = {valueType, "string"},
-	Def1 = {default, false},
-	Value1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
-	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
-	spec_ocs_usage20(NewAcc).
-%% @hidden
-spec_ocs_usage20(Acc) ->
-	Name = {name, "acctInterimInterval"},
-	Desc = {description, "Acct-Interim-Interval  attribute"},
-	Conf = {configurable, true},
-	Typ1 = {valueType, "string"},
-	Def1 = {default, false},
-	Value1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
-	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
-	spec_ocs_usage21(NewAcc).
-%% @hidden
-spec_ocs_usage21(Acc) ->
-	Name = {name, "class"},
-	Desc = {description, "Class attribute"},
-	Conf = {configurable, true},
-	Typ1 = {valueType, "string"},
-	Def1 = {default, false},
-	Value1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
-	[{struct, [Name, Desc, Conf, Value]} | Acc].
+spec_aaa_accounting() ->
+	ID = {id, "AAAAccountingUsageSpec"},
+	Href = {href, "/usageManagement/v1/usageSpecification/AAAAccountingUsageSpec"},
+	Name = {name, "AAAAccountingUsageSpec"},
+	Desc = {description, "Specification for SigScale OCS accounting requests."},
+	Start = {startDateTime, "2017-01-01T00:00:00Z"},
+	End = {endDateTime, "2017-12-31T23:59:59Z"},
+	Valid = {validFor, {struct, [Start, End]}},
+	Chars = [spec_timestamp(), spec_protocol(), spec_node(),
+			spec_server_address(), spec_server_port(), spec_type_accounting(),
+			spec_attr_username(), spec_attr_nasid(), spec_attr_nasip(),
+			spec_attr_nasport(), spec_attr_nastype(), spec_attr_calling(),
+			spec_attr_called(), spec_attr_datarate(), spec_attr_xmitrate(),
+			spec_attr_timeout(), spec_attr_interim(), spec_attr_class()],
+	Char = {usageSpecCharacteristic, {array, Chars}},
+	{struct, [ID, Href, Name, Desc, Valid, Char]}.
 
 %% @hidden
 spec_public_wlan() ->
@@ -1135,3 +919,265 @@ spec_public_wlan47(Acc) ->
 	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	[{struct, [Name, Desc, Conf, Value]} | Acc].
 
+%% @hidden
+spec_timestamp() ->
+	Name = {name, "timeStamp"},
+	Desc = {description, "Time and date request was processed by OCS."},
+	Conf = {configurable, false},
+	Typ1 = {valueType, "dateTime"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_protocol() ->
+	Name = {name, "protocol"},
+	Desc = {description, "AAA protocol used in request."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, true},
+	Val1 = {value, "RADIUS"},
+	Value1 = {struct, [Typ1, Def1, Val1]},
+	Typ2 = {valueType, "string"},
+	Def2 = {default, false},
+	Val2 = {value, "DIAMETER"},
+	Value2 = {struct, [Typ2, Def2, Val2]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1, Value2]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_node() ->
+	Name = {name, "node"},
+	Desc = {description, "Time and date request was processed by OCS."},
+	Conf = {configurable, false},
+	Typ1 = {valueType, "dateTime"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_server_address() ->
+	Name = {name, "serverAddress"},
+	Desc = {description, "IP address request was received on."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_server_port() ->
+	Name = {name, "serverPort"},
+	Desc = {description, "IP port request was received on."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_client_address() ->
+	Name = {name, "clientAddress"},
+	Desc = {description, "IP address request was received from."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_client_port() ->
+	Name = {name, "clientPort"},
+	Desc = {description, "IP port request was received from."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_type_access() ->
+	Name = {name, "type"},
+	Desc = {description, "Type of access event."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {value, "accept"},
+	Value1 = {struct, [Typ1, Def1, Val1]},
+	Typ2 = {valueType, "string"},
+	Def2 = {default, false},
+	Val2 = {value, "reject"},
+	Value2 = {struct, [Typ2, Def2, Val2]},
+	Typ3 = {valueType, "string"},
+	Def3 = {default, false},
+	Val3 = {value, "change"},
+	Value3 = {struct, [Typ3, Def3, Val3]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1, Value2, Value3]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_type_accounting() ->
+	Name = {name, "type"},
+	Desc = {description, "Type of accounting event."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Val1 = {value, "on"},
+	Value1 = {struct, [Typ1, Def1, Val1]},
+	Typ2 = {valueType, "string"},
+	Def2 = {default, false},
+	Val2 = {value, "off"},
+	Value2 = {struct, [Typ2, Def2, Val2]},
+	Typ3 = {valueType, "string"},
+	Def3 = {default, false},
+	Val3 = {value, "start"},
+	Value3 = {struct, [Typ3, Def3, Val3]},
+	Typ4 = {valueType, "string"},
+	Def4 = {default, false},
+	Val4 = {value, "interim"},
+	Value4 = {struct, [Typ4, Def4, Val4]},
+	Typ5 = {valueType, "string"},
+	Def5 = {default, false},
+	Val5 = {value, "event"},
+	Value5 = {struct, [Typ5, Def5, Val5]},
+	Value = {usageSpecCharacteristicValue,
+			{array, [Value1, Value2, Value3, Value4, Value5]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_username() ->
+	Name = {name, "username"},
+	Desc = {description, "Username/identity of subscriber."},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_nasid() ->
+	Name = {name, "nasIdentifier"},
+	Desc = {description, "NAS-Identifier attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_nasip() ->
+	Name = {name, "nasIpAddress"},
+	Desc = {description, "NAS-IP-Address attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_nasport() ->
+	Name = {name, "nasPort"},
+	Desc = {description, "NAS-Port attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_nastype() ->
+	Name = {name, "nasPortType"},
+	Desc = {description, "NAS-Port-Type attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_calling() ->
+	Name = {name, "callingStationId"},
+	Desc = {description, "Calling-Station-ID attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_called() ->
+	Name = {name, "calledStationId"},
+	Desc = {description, "Called-Station-ID attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_datarate() ->
+	Name = {name, "ascendDataRate"},
+	Desc = {description, "Ascend-Data-Rate attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_xmitrate() ->
+	Name = {name, "ascendXmitRate"},
+	Desc = {description, "Ascend-Xmit-Rate attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_timeout() ->
+	Name = {name, "sessionTimeout"},
+	Desc = {description, "Session-Timeout attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_interim() ->
+	Name = {name, "acctInterimInterval"},
+	Desc = {description, "Acct-Interim-Interval  attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_class() ->
+	Name = {name, "class"},
+	Desc = {description, "Class attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
