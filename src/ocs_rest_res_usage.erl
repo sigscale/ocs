@@ -92,7 +92,7 @@ get_usagespec() ->
 %% @doc Body producing function for
 %% 	`GET /usageManagement/v1/usageSpecification/{id}'
 %% 	requests.
-get_usagespec("OCSAccessUsageSpec") ->
+get_usagespec("AAAAccessUsageSpec") ->
 	Headers = [{content_type, "application/json"}],
 	Body = mochijson:encode(spec_ocs_usage()),
 	{ok, Headers, Body};
@@ -323,9 +323,9 @@ usage_characteristics([], _Ipdr, Acc) ->
 
 %% @hidden
 spec_ocs_usage() ->
-	ID = {id, "OCSAccessUsageSpec"},
-	Href = {href, "/usageManagement/v1/usageSpecification/OCSAccessUsageSpec"},
-	Name = {name, "OCSAccessUsageSpec"},
+	ID = {id, "AAAAccessUsageSpec"},
+	Href = {href, "/usageManagement/v1/usageSpecification/AAAAccessUsageSpec"},
+	Name = {name, "AAAAccessUsageSpec"},
 	Desc = {description, "Specification for SigScale OCS access requests."},
 	Start = {startDateTime, "2017-01-01T00:00:00Z"},
 	End = {endDateTime, "2017-12-31T23:59:59Z"},
@@ -387,7 +387,7 @@ spec_ocs_usage5(Acc) ->
 	Name = {name, "serverPort"},
 	Desc = {description, "IP port access request was received on."},
 	Conf = {configurable, true},
-	Typ1 = {valueType, "string"},
+	Typ1 = {valueType, "number"},
 	Def1 = {default, false},
 	Value1 = {struct, [Typ1, Def1]},
 	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
@@ -409,7 +409,7 @@ spec_ocs_usage7(Acc) ->
 	Name = {name, "clientPort"},
 	Desc = {description, "IP port access request was received from."},
 	Conf = {configurable, true},
-	Typ1 = {valueType, "string"},
+	Typ1 = {valueType, "number"},
 	Def1 = {default, false},
 	Value1 = {struct, [Typ1, Def1]},
 	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
@@ -473,7 +473,7 @@ spec_ocs_usage12(Acc) ->
 	Name = {name, "nasPort"},
 	Desc = {description, "NAS-Port attribute"},
 	Conf = {configurable, true},
-	Typ1 = {valueType, "string"},
+	Typ1 = {valueType, "number"},
 	Def1 = {default, false},
 	Value1 = {struct, [Typ1, Def1]},
 	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
@@ -484,7 +484,7 @@ spec_ocs_usage13(Acc) ->
 	Name = {name, "nasPortType"},
 	Desc = {description, "NAS-Port-Type attribute"},
 	Conf = {configurable, true},
-	Typ1 = {valueType, "string"},
+	Typ1 = {valueType, "number"},
 	Def1 = {default, false},
 	Value1 = {struct, [Typ1, Def1]},
 	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
@@ -505,6 +505,72 @@ spec_ocs_usage14(Acc) ->
 spec_ocs_usage15(Acc) ->
 	Name = {name, "calledStationId"},
 	Desc = {description, "Called-Station-ID attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_ocs_usage16(NewAcc).
+%% @hidden
+spec_ocs_usage16(Acc) ->
+	Name = {name, "callingStationId"},
+	Desc = {description, "Calling-Station-ID attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_ocs_usage17(NewAcc).
+%% @hidden
+spec_ocs_usage17(Acc) ->
+	Name = {name, "ascendDataRate"},
+	Desc = {description, "Ascend-Data-Rate attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_ocs_usage18(NewAcc).
+%% @hidden
+spec_ocs_usage18(Acc) ->
+	Name = {name, "ascendXmitRate"},
+	Desc = {description, "Ascend-Xmit-Rate attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_ocs_usage19(NewAcc).
+%% @hidden
+spec_ocs_usage19(Acc) ->
+	Name = {name, "sessionTimeout"},
+	Desc = {description, "Session-Timeout attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_ocs_usage20(NewAcc).
+%% @hidden
+spec_ocs_usage20(Acc) ->
+	Name = {name, "acctInterimInterval"},
+	Desc = {description, "Acct-Interim-Interval  attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_ocs_usage21(NewAcc).
+%% @hidden
+spec_ocs_usage21(Acc) ->
+	Name = {name, "class"},
+	Desc = {description, "Class attribute"},
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
