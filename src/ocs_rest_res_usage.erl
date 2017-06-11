@@ -336,11 +336,19 @@ spec_aaa_usage() ->
 	Valid = {validFor, {struct, [Start, End]}},
 	Chars = [spec_timestamp(), spec_protocol(), spec_node(),
 			spec_server_address(), spec_server_port(), spec_client_address(),
-			spec_client_port(), spec_type_access(), spec_attr_username(),
-			spec_attr_nasid(), spec_attr_nasip(), spec_attr_nasport(),
-			spec_attr_nastype(), spec_attr_calling(), spec_attr_called(),
-			spec_attr_datarate(), spec_attr_xmitrate(), spec_attr_timeout(),
-			spec_attr_interim(), spec_attr_class()],
+			spec_client_port(), spec_type_access(),
+			spec_attr_username(), spec_attr_nas_ip(), spec_attr_nas_port(),
+			spec_attr_service_type(), spec_attr_framed_protocol(),
+			spec_attr_framed_address(), spec_attr_framed_pool(),
+			spec_attr_framed_netmask(), spec_attr_framed_routing(),
+			spec_attr_filter_id(), spec_attr_framed_mtu(),
+			spec_attr_framed_route(), spec_attr_session_timeout(),
+			spec_attr_idle_timeout(), spec_attr_termination_action(),
+			spec_attr_called_id(), spec_attr_calling_id(), spec_attr_nas_id(),
+			spec_attr_nas_port_id(), spec_attr_nas_port_type(),
+			spec_attr_nas_port_limit(), spec_attr_data_rate(),
+			spec_attr_xmit_rate(), spec_attr_interim_interval(),
+			spec_attr_class()],
 	Char = {usageSpecCharacteristic, {array, Chars}},
 	{struct, [ID, Href, Name, Desc, Valid, Char]}.
 
@@ -355,10 +363,22 @@ spec_aaa_accounting() ->
 	Valid = {validFor, {struct, [Start, End]}},
 	Chars = [spec_timestamp(), spec_protocol(), spec_node(),
 			spec_server_address(), spec_server_port(), spec_type_accounting(),
-			spec_attr_username(), spec_attr_nasid(), spec_attr_nasip(),
-			spec_attr_nasport(), spec_attr_nastype(), spec_attr_calling(),
-			spec_attr_called(), spec_attr_datarate(), spec_attr_xmitrate(),
-			spec_attr_timeout(), spec_attr_interim(), spec_attr_class()],
+			spec_attr_username(), spec_attr_nas_ip(), spec_attr_nas_port(),
+			spec_attr_service_type(), spec_attr_framed_protocol(),
+			spec_attr_framed_address(), spec_attr_framed_protocol(),
+			spec_attr_framed_netmask(), spec_attr_framed_routing(),
+			spec_attr_filter_id(), spec_attr_framed_mtu(),
+			spec_attr_framed_route(), spec_attr_class(),
+			spec_attr_session_timeout(), spec_attr_idle_timeout(),
+			spec_attr_termination_action(), spec_attr_called_id(),
+			spec_attr_calling_id(), spec_attr_nas_id(),
+			spec_attr_nas_port_id(), spec_attr_delay(),
+			spec_attr_input_octets(),spec_attr_output_octets(),
+			spec_attr_session_id(), spec_attr_authentic(),
+			spec_attr_session_time(), spec_attr_input_packets(),
+			spec_attr_output_packets(), spec_attr_cause(),
+			spec_attr_multi_session_id(), spec_attr_link_count(),
+			spec_attr_nas_port_type(), spec_attr_nas_port_limit()],
 	Char = {usageSpecCharacteristic, {array, Chars}},
 	{struct, [ID, Href, Name, Desc, Valid, Char]}.
 
@@ -1062,18 +1082,7 @@ spec_attr_username() ->
 	{struct, [Name, Desc, Conf, Value]}.
 
 %% @hidden
-spec_attr_nasid() ->
-	Name = {name, "nasIdentifier"},
-	Desc = {description, "NAS-Identifier attribute"},
-	Conf = {configurable, true},
-	Typ1 = {valueType, "string"},
-	Def1 = {default, false},
-	Value1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
-	{struct, [Name, Desc, Conf, Value]}.
-
-%% @hidden
-spec_attr_nasip() ->
+spec_attr_nas_ip() ->
 	Name = {name, "nasIpAddress"},
 	Desc = {description, "NAS-IP-Address attribute"},
 	Conf = {configurable, true},
@@ -1084,7 +1093,7 @@ spec_attr_nasip() ->
 	{struct, [Name, Desc, Conf, Value]}.
 
 %% @hidden
-spec_attr_nasport() ->
+spec_attr_nas_port() ->
 	Name = {name, "nasPort"},
 	Desc = {description, "NAS-Port attribute"},
 	Conf = {configurable, true},
@@ -1095,9 +1104,9 @@ spec_attr_nasport() ->
 	{struct, [Name, Desc, Conf, Value]}.
 
 %% @hidden
-spec_attr_nastype() ->
-	Name = {name, "nasPortType"},
-	Desc = {description, "NAS-Port-Type attribute"},
+spec_attr_service_type() ->
+	Name = {name, "serviceType"},
+	Desc = {description, "Service-Type attribute"},
 	Conf = {configurable, true},
 	Typ1 = {valueType, "number"},
 	Def1 = {default, false},
@@ -1106,31 +1115,9 @@ spec_attr_nastype() ->
 	{struct, [Name, Desc, Conf, Value]}.
 
 %% @hidden
-spec_attr_calling() ->
-	Name = {name, "callingStationId"},
-	Desc = {description, "Calling-Station-ID attribute"},
-	Conf = {configurable, true},
-	Typ1 = {valueType, "string"},
-	Def1 = {default, false},
-	Value1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
-	{struct, [Name, Desc, Conf, Value]}.
-
-%% @hidden
-spec_attr_called() ->
-	Name = {name, "calledStationId"},
-	Desc = {description, "Called-Station-ID attribute"},
-	Conf = {configurable, true},
-	Typ1 = {valueType, "string"},
-	Def1 = {default, false},
-	Value1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
-	{struct, [Name, Desc, Conf, Value]}.
-
-%% @hidden
-spec_attr_datarate() ->
-	Name = {name, "ascendDataRate"},
-	Desc = {description, "Ascend-Data-Rate attribute"},
+spec_attr_framed_protocol() ->
+	Name = {name, "framedProtocol"},
+	Desc = {description, "Framed-Protocol attribute"},
 	Conf = {configurable, true},
 	Typ1 = {valueType, "number"},
 	Def1 = {default, false},
@@ -1139,20 +1126,9 @@ spec_attr_datarate() ->
 	{struct, [Name, Desc, Conf, Value]}.
 
 %% @hidden
-spec_attr_xmitrate() ->
-	Name = {name, "ascendXmitRate"},
-	Desc = {description, "Ascend-Xmit-Rate attribute"},
-	Conf = {configurable, true},
-	Typ1 = {valueType, "number"},
-	Def1 = {default, false},
-	Value1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
-	{struct, [Name, Desc, Conf, Value]}.
-
-%% @hidden
-spec_attr_timeout() ->
-	Name = {name, "sessionTimeout"},
-	Desc = {description, "Session-Timeout attribute"},
+spec_attr_framed_address() ->
+	Name = {name, "framedIpAddress"},
+	Desc = {description, "Framed-IP-Address attribute"},
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
@@ -1161,9 +1137,64 @@ spec_attr_timeout() ->
 	{struct, [Name, Desc, Conf, Value]}.
 
 %% @hidden
-spec_attr_interim() ->
-	Name = {name, "acctInterimInterval"},
-	Desc = {description, "Acct-Interim-Interval  attribute"},
+spec_attr_framed_pool() ->
+	Name = {name, "framedPool"},
+	Desc = {description, "Framed-Pool attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_framed_netmask() ->
+	Name = {name, "framedIpNetmask"},
+	Desc = {description, "Framed-IP-Netmask attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_framed_routing() ->
+	Name = {name, "framedRouting"},
+	Desc = {description, "Framed-Routing attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_filter_id() ->
+	Name = {name, "filterId"},
+	Desc = {description, "Filter-Id attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_framed_mtu() ->
+	Name = {name, "framedMtu"},
+	Desc = {description, "Framed-MTU attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_framed_route() ->
+	Name = {name, "framedRoute"},
+	Desc = {description, "Framed-Route attribute"},
 	Conf = {configurable, true},
 	Typ1 = {valueType, "string"},
 	Def1 = {default, false},
@@ -1181,3 +1212,257 @@ spec_attr_class() ->
 	Value1 = {struct, [Typ1, Def1]},
 	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_session_timeout() ->
+	Name = {name, "sessionTimeout"},
+	Desc = {description, "Session-Timeout attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_idle_timeout() ->
+	Name = {name, "idleTimeout"},
+	Desc = {description, "Idle-Timeout attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_termination_action() ->
+	Name = {name, "terminationAction"},
+	Desc = {description, "Termination-Action attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_called_id() ->
+	Name = {name, "calledStationId"},
+	Desc = {description, "Called-Station-Id attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_calling_id() ->
+	Name = {name, "callingStationId"},
+	Desc = {description, "Calling-Station-Id attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_nas_id() ->
+	Name = {name, "nasIdentifier"},
+	Desc = {description, "NAS-Identifier attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_nas_port_id() ->
+	Name = {name, "nasPortId"},
+	Desc = {description, "NAS-Port-Id attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_nas_port_type() ->
+	Name = {name, "nasPortType"},
+	Desc = {description, "NAS-Port-Type attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_nas_port_limit() ->
+	Name = {name, "nasPortLimit"},
+	Desc = {description, "NAS-Port-Limit attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_delay() ->
+	Name = {name, "acctDelayTime"},
+	Desc = {description, "Acct-Delay-Time attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_session_id() ->
+	Name = {name, "acctSessionId"},
+	Desc = {description, "Acct-Session-Id attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_multi_session_id() ->
+	Name = {name, "acctMultiSessionId"},
+	Desc = {description, "Acct-Multi-Session-Id attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_link_count() ->
+	Name = {name, "acctLinkCount"},
+	Desc = {description, "Acct-Link-Count attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_authentic() ->
+	Name = {name, "acctAuthentic"},
+	Desc = {description, "Acct-Authentic attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_session_time() ->
+	Name = {name, "acctSessionTime"},
+	Desc = {description, "Acct-Session-Time attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_input_octets() ->
+	Name = {name, "inputOctets"},
+	Desc = {description, "Acct-Input-Octets attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_output_octets() ->
+	Name = {name, "outputOctets"},
+	Desc = {description, "Acct-Output-Octets attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_input_packets() ->
+	Name = {name, "acctInputPackets"},
+	Desc = {description, "Acct-Input-Packets attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_output_packets() ->
+	Name = {name, "acctOutputPackets"},
+	Desc = {description, "Acct-Output-Packets attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_data_rate() ->
+	Name = {name, "ascendDataRate"},
+	Desc = {description, "Ascend-Data-Rate attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_xmit_rate() ->
+	Name = {name, "ascendXmitRate"},
+	Desc = {description, "Ascend-Xmit-Rate attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_interim_interval() ->
+	Name = {name, "acctInterimInterval"},
+	Desc = {description, "Acct-Interim-Interval  attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "string"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_cause() ->
+	Name = {name, "acctTerminateCause"},
+	Desc = {description, "Acct-Terminate-Cause attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
