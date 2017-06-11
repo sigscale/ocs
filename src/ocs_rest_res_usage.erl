@@ -81,7 +81,8 @@ get_usage(Id) ->
 %% 	requests.
 get_usagespec() ->
 	Headers = [{content_type, "application/json"}],
-	Body = mochijson:encode({array, [spec_aaa_usage(), spec_public_wlan()]}),
+	Body = mochijson:encode({array, [spec_aaa_usage(),
+			spec_aaa_accounting(), spec_public_wlan()]}),
 	{ok, Headers, Body}.
 
 -spec get_usagespec(Id) -> Result
