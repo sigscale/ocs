@@ -338,8 +338,8 @@ spec_aaa_usage() ->
 	Chars = [spec_timestamp(), spec_protocol(), spec_node(),
 			spec_server_address(), spec_server_port(), spec_client_address(),
 			spec_client_port(), spec_type_access(),
-			spec_attr_username(), spec_attr_nas_ip(), spec_attr_nas_port(),
-			spec_attr_service_type(), spec_attr_framed_protocol(),
+			spec_attr_username(), spec_attr_nas_ip(),
+			spec_attr_nas_port(), spec_attr_service_type(),
 			spec_attr_framed_address(), spec_attr_framed_pool(),
 			spec_attr_framed_netmask(), spec_attr_framed_routing(),
 			spec_attr_filter_id(), spec_attr_framed_mtu(),
@@ -365,8 +365,7 @@ spec_aaa_accounting() ->
 	Chars = [spec_timestamp(), spec_protocol(), spec_node(),
 			spec_server_address(), spec_server_port(), spec_type_accounting(),
 			spec_attr_username(), spec_attr_nas_ip(), spec_attr_nas_port(),
-			spec_attr_service_type(), spec_attr_framed_protocol(),
-			spec_attr_framed_address(), spec_attr_framed_protocol(),
+			spec_attr_service_type(), spec_attr_framed_address(),
 			spec_attr_framed_netmask(), spec_attr_framed_routing(),
 			spec_attr_filter_id(), spec_attr_framed_mtu(),
 			spec_attr_framed_route(), spec_attr_class(),
@@ -375,11 +374,13 @@ spec_aaa_accounting() ->
 			spec_attr_calling_id(), spec_attr_nas_id(),
 			spec_attr_nas_port_id(), spec_attr_delay(),
 			spec_attr_input_octets(),spec_attr_output_octets(),
-			spec_attr_session_id(), spec_attr_authentic(),
-			spec_attr_session_time(), spec_attr_input_packets(),
-			spec_attr_output_packets(), spec_attr_cause(),
-			spec_attr_multi_session_id(), spec_attr_link_count(),
-			spec_attr_nas_port_type(), spec_attr_nas_port_limit()],
+			spec_attr_input_giga_words(),spec_attr_output_giga_words(),
+			spec_attr_event_timestamp(), spec_attr_session_id(),
+			spec_attr_authentic(), spec_attr_session_time(),
+			spec_attr_input_packets(), spec_attr_output_packets(),
+			spec_attr_cause(), spec_attr_multi_session_id(),
+			spec_attr_link_count(), spec_attr_nas_port_type(),
+			spec_attr_nas_port_limit()],
 	Char = {usageSpecCharacteristic, {array, Chars}},
 	{struct, [ID, Href, Name, Desc, Valid, Char]}.
 
@@ -944,7 +945,7 @@ spec_public_wlan47(Acc) ->
 spec_timestamp() ->
 	Name = {name, "timeStamp"},
 	Desc = {description, "Time and date request was processed by OCS."},
-	Conf = {configurable, false},
+	Conf = {configurable, true},
 	Typ1 = {valueType, "dateTime"},
 	Def1 = {default, false},
 	Value1 = {struct, [Typ1, Def1]},
@@ -971,7 +972,7 @@ spec_protocol() ->
 spec_node() ->
 	Name = {name, "node"},
 	Desc = {description, "Time and date request was processed by OCS."},
-	Conf = {configurable, false},
+	Conf = {configurable, true},
 	Typ1 = {valueType, "dateTime"},
 	Def1 = {default, false},
 	Value1 = {struct, [Typ1, Def1]},
@@ -1109,21 +1110,18 @@ spec_attr_service_type() ->
 	Name = {name, "serviceType"},
 	Desc = {description, "Service-Type attribute"},
 	Conf = {configurable, true},
-	Typ1 = {valueType, "number"},
-	Def1 = {default, false},
-	Value1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
-	{struct, [Name, Desc, Conf, Value]}.
-
-%% @hidden
-spec_attr_framed_protocol() ->
-	Name = {name, "framedProtocol"},
-	Desc = {description, "Framed-Protocol attribute"},
-	Conf = {configurable, true},
-	Typ1 = {valueType, "number"},
-	Def1 = {default, false},
-	Value1 = {struct, [Typ1, Def1]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	Def1 = {default, true},
+	Val1 = {value, "framed"},
+	Value1 = {struct, [Typ1, Def1, Val1]},
+	Typ2 = {valueType, "string"},
+	Def2 = {default, false},
+	Val2 = {value, "administrative"},
+	Value2 = {struct, [Typ2, Def2, Val2]},
+	Typ3 = {valueType, "string"},
+	Def3 = {default, false},
+	Val3 = {value, "authenticate-only"},
+	Value3 = {struct, [Typ3, Def3, Val3]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1, Value2, Value3]}},
 	{struct, [Name, Desc, Conf, Value]}.
 
 %% @hidden
@@ -1325,6 +1323,17 @@ spec_attr_delay() ->
 	{struct, [Name, Desc, Conf, Value]}.
 
 %% @hidden
+spec_attr_event_timestamp() ->
+	Name = {name, "eventTimestamp"},
+	Desc = {description, "Event-Timestamp attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "dateTime"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
 spec_attr_session_id() ->
 	Name = {name, "acctSessionId"},
 	Desc = {description, "Acct-Session-Id attribute"},
@@ -1394,6 +1403,28 @@ spec_attr_input_octets() ->
 spec_attr_output_octets() ->
 	Name = {name, "outputOctets"},
 	Desc = {description, "Acct-Output-Octets attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_input_giga_words() ->
+	Name = {name, "acctInputGigaWords"},
+	Desc = {description, "Acct-Input-Gigawords attribute"},
+	Conf = {configurable, true},
+	Typ1 = {valueType, "number"},
+	Def1 = {default, false},
+	Value1 = {struct, [Typ1, Def1]},
+	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
+	{struct, [Name, Desc, Conf, Value]}.
+
+%% @hidden
+spec_attr_output_giga_words() ->
+	Name = {name, "acctOutputGigaWords"},
+	Desc = {description, "Acct-Output-Gigawords attribute"},
 	Conf = {configurable, true},
 	Typ1 = {valueType, "number"},
 	Def1 = {default, false},
