@@ -230,9 +230,12 @@ pwd_id_over_diameter(_Config) ->
 			'EAP-Payload' = [Payload1]} = DEA1,
 	#eap_packet{code = request, type = ?PWD, identifier = EapId1,
 		data = EapData1} = ocs_eap_codec:eap_packet(Payload1),
+	EapId1 = EapId + 1,
 	#eap_pwd{length = false, more = false, pwd_exch = commit,
 			data = EapPwdData1} = ocs_eap_codec:eap_pwd(EapData1),
 	#eap_pwd_commit{element = Element, scalar = Scalar} = ocs_eap_codec:eap_pwd_commit(EapPwdData1),
+	true = is_binary(Element),
+	true = is_binary(Scalar),
 	ok = ocs:delete_subscriber(PeerId).
 
 pwd_commit_over_radius() ->
