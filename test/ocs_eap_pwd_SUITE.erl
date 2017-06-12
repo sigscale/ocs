@@ -82,7 +82,8 @@ end_per_suite(Config) ->
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before each test case.
 %%
-init_per_testcase(TestCase, Config) when TestCase == eap_identity_diameter ->
+init_per_testcase(TestCase, Config) when TestCase == eap_identity_diameter;
+		TestCase == pwd_id_diameter ->
 	{ok, [{auth, DiaAuthInstance}, _]} = application:get_env(ocs, diameter),
 	[{Address, Port, _}] = DiaAuthInstance,
 	Secret = "87dhcbwhc",
@@ -101,7 +102,8 @@ init_per_testcase(_TestCase, Config) ->
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
 %% Cleanup after each test case.
 %%
-end_per_testcase(TestCase, Config) when TestCase == eap_identity_diameter ->
+end_per_testcase(TestCase, Config) when TestCase == eap_identity_diameter;
+		TestCase == pwd_id_diameter	->
 	DClient = ?config(diameter_client, Config),
 	ok = ocs:delete_client(DClient);
 end_per_testcase(_TestCase, Config) ->
@@ -123,7 +125,7 @@ all() ->
 	[eap_identity_radius, pwd_id_radius, pwd_commit_radius, pwd_confirm_radius,
 	message_authentication_radius, role_reversal_radius, validate_pwd_id_cipher_radius,
 	validate_pwd_id_prep_radius, validate_pwd_id_token_radius, negotiate_method_radius,
-	eap_identity_diameter].
+	eap_identity_diameter, pwd_id_diameter].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -193,6 +195,45 @@ pwd_id_radius(Config) ->
 	EapId3 = EapId2 + 1,
 	{EapId3, _ElementS, _ScalarS} = receive_radius_commit(Socket, Address,
 			Port, Secret, ReqAuth2, RadId2).
+
+pwd_id_diameter() ->
+   [{userdata, [{doc, "Send an EAP-pwd-ID/Response to peer using DIAMETER"}]}].
+
+pwd_id_diameter(_Config) ->
+	PeerId = <<"78923456">>,
+	PeerAuth = list_to_binary(ocs:generate_password()),
+	{ok, _} = ocs:add_subscriber(PeerId, PeerAuth, []),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	EapId0 = 0,
+	DEA = send_diameter_identity(SId, EapId0, PeerId),
+	SIdbin = list_to_binary(SId),
+	#diameter_eap_app_DEA{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
+			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
+			'EAP-Payload' = [Payload]} = DEA,
+	OriginHost = list_to_binary("ocs.sigscale.com"),
+	OriginRealm = list_to_binary("sigscale.com"),
+	#eap_packet{code = request, type = ?PWD, identifier = EapId,
+		data = EapData} = ocs_eap_codec:eap_packet(Payload),
+	#eap_pwd{length = false, more = false, pwd_exch = id,
+			data = EapPwdData} = ocs_eap_codec:eap_pwd(EapData),
+	#eap_pwd_id{group_desc = 19, random_fun = 16#1,
+			prf = 16#1, pwd_prep = none, token = Token,
+			identity = _ServerId} = ocs_eap_codec:eap_pwd_id(EapPwdData),
+	DEA1 = send_diameter_id(SId, Token, PeerId, EapId),
+	#diameter_eap_app_DEA{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
+			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
+			'EAP-Payload' = [Payload1]} = DEA1,
+	#eap_packet{code = request, type = ?PWD, identifier = EapId1,
+		data = EapData1} = ocs_eap_codec:eap_packet(Payload1),
+	#eap_pwd{length = false, more = false, pwd_exch = commit,
+			data = EapPwdData1} = ocs_eap_codec:eap_pwd(EapData1),
+	#eap_pwd_commit{element = Element, scalar = Scalar} = ocs_eap_codec:eap_pwd_commit(EapPwdData1),
+	ok = ocs:delete_subscriber(PeerId).
 
 pwd_commit_radius() ->
 	[{userdata, [{doc, "Send an EAP-pwd-Commit/Response using RADIUS to peer"}]}].
@@ -656,6 +697,19 @@ send_diameter_identity(SId, EapId, PeerId) ->
 	DER = #diameter_eap_app_DER{'Session-Id' = SId, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 		'Auth-Request-Type' = ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
 		'EAP-Payload' = EapMsg},
+	{ok, Answer} = diameter:call(?SVC, eap_app_test, DER, []),
+	Answer.
+
+send_diameter_id(SId, Token, PeerId, EapId) ->
+	EapPwdId = #eap_pwd_id{group_desc = 19, random_fun = 16#1, prf = 16#1,
+			token = Token, pwd_prep = none, identity = PeerId},
+	EapPwd = #eap_pwd{pwd_exch = id, data = ocs_eap_codec:eap_pwd_id(EapPwdId)},
+	EapPacket  = #eap_packet{code = response, type = ?PWD, identifier = EapId,
+			data = ocs_eap_codec:eap_pwd(EapPwd)},
+	EapPayload = ocs_eap_codec:eap_packet(EapPacket),
+	DER = #diameter_eap_app_DER{'Session-Id' = SId, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+		'Auth-Request-Type' = ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+		'EAP-Payload' = EapPayload},
 	{ok, Answer} = diameter:call(?SVC, eap_app_test, DER, []),
 	Answer.
 
