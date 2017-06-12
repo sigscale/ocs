@@ -220,6 +220,9 @@ request(Caps, {eap, <<_:32, ?Identity, Identity/binary>>}, Request, State)
 		when is_record(Request, diameter_eap_app_DER) ->
 	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
 	request1({identity, Identity}, OHost, ORealm, Request, State);
+request(Caps, Eap, Request, State) when is_record(Request, diameter_eap_app_DER) ->
+	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
+	request1(Eap, OHost, ORealm, Request, State);
 request(Caps, none, Request, State) when is_record(Request, diameter_nas_app_STR) ->
 	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
 	SessionId = Request#diameter_nas_app_STR.'Session-Id',
@@ -280,12 +283,18 @@ request1(EapType, OHost, ORealm, Request, #state{handlers = Handlers,
 								{reply, Answer, State}
 							end
 					end;
-			{value, _Fsm} ->
-				Answer = #diameter_nas_app_AAA{'Session-Id' = SessionId,
-						'Auth-Application-Id' = 1, 'Auth-Request-Type' = AuthType,
-						'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-						'Origin-Host' = OHost, 'Origin-Realm' = ORealm },
-				{reply, Answer, State}
+			{value, Fsm} ->
+				case EapType of
+					none ->
+						Answer = #diameter_nas_app_AAA{'Session-Id' = SessionId,
+								'Auth-Application-Id' = 1, 'Auth-Request-Type' = AuthType,
+								'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+								'Origin-Host' = OHost, 'Origin-Realm' = ORealm },
+						{reply, Answer, State};
+					{eap, _Eap} ->
+						Answer = gen_fsm:sync_send_event(Fsm, Request),
+						{reply, Answer, State}
+				end
 		end
 	catch
 		_:_ ->
