@@ -209,7 +209,7 @@ code_change(_OldVsn, State, _Extra) ->
 -spec request(Caps, Eap, Request, State) -> Reply
 	when
 		Caps :: capabilities(),
-		Eap :: none | #eap_packet{},
+		Eap :: none | {eap, #eap_packet{}},
 		Request :: #diameter_nas_app_AAR{} | #diameter_nas_app_STR{}
 				| #diameter_eap_app_DER{},
 		State :: state(),
