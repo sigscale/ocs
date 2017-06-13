@@ -167,7 +167,7 @@ handle_request(#diameter_packet{msg = Req, errors = []},
 			| {protocol_error, 3000..3999},
 		Opt :: diameter:call_opt(),
 		PostF :: diameter:evaluable().
-%% @doc Locate ocs_diameter_auth_port_server process and sent it
+%% @doc Locate ocs_diameter_auth_port_server process and send it
 %% peer's capabilities and diameter request.
 send_to_port_server(Svc, Caps, Request, EapPacket) ->
 	[Info] = diameter:service_info(Svc, transport),
