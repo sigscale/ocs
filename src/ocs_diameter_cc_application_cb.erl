@@ -222,30 +222,6 @@ is_client_authorized(SvcName, Caps, Req) ->
 			send_to_port_server(SvcName, Caps, Req)
 	catch
 		_ : _ ->
-			send_error(Caps, Req, ?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_PEER')
+			{answer, 3010}
 	end.
-
--spec send_error(Caps, Request, ErrorCode) -> Answer
-	when
-		Caps :: capabilities(),
-		Request :: message(),
-		ErrorCode :: non_neg_integer(),
-		Answer :: message().
-%% @doc When protocol/application error occurs, send DIAMETER answer with appropriate
-%% error indicated in Result-Code AVP.
-%% @hidden
-send_error(Caps, Request, ErrorCode) ->
-	#diameter_caps{origin_host = {OHost,_},
-			origin_realm = {ORealm, DRealm}} = Caps,
-send_error(OHost, ORealm, DRealm, Request, ErrorCode).
-
-%% @hidden
-send_error(OHost, ORealm, DRealm, Request, ErrorCode)
-		when is_record(Request, diameter_nas_app_AAR)->
-	#diameter_nas_app_AAR{'Session-Id' = SessId,
-			'Auth-Request-Type' = Type}= Request,
-	#diameter_nas_app_AAA{'Result-Code' = ErrorCode,
-			'Error-Reporting-Host' = DRealm, 'Auth-Request-Type' = Type,
-			'Auth-Application-Id' = 1, 'Origin-Host' = OHost,
-			'Origin-Realm' = ORealm, 'Session-Id' = SessId}.
 
