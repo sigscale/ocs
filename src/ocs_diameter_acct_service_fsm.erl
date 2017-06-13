@@ -37,16 +37,16 @@
 			terminate/3, code_change/4]).
 
 -include_lib("diameter/include/diameter.hrl").
--include("../include/diameter_gen_nas_application_rfc7155.hrl").
--include("../include/diameter_gen_cc_application_rfc4006.hrl").
 
 -record(statedata,
 		{transport_ref :: undefined | reference()}).
 
 -define(DIAMETER_ACCT_SERVICE, ocs_diameter_acct_service).
 -define(BASE_APPLICATION, ocs_diameter_base_application).
--define(CC_APPLICATION, ocs_diameter_cc_application).
+-define(BASE_APPLICATION_ID, 0).
 -define(BASE_APPLICATION_CALLBACK, ocs_diameter_base_application_cb).
+-define(CC_APPLICATION, ocs_diameter_cc_application).
+-define(CC_APPLICATION_ID, 4).
 -define(CC_APPLICATION_CALLBACK, ocs_diameter_cc_application_cb).
 
 %%----------------------------------------------------------------------
@@ -77,7 +77,6 @@ init([Address, Port] = _Args) ->
 	SOptions = service_options(),
 	TOptions = transport_options(diameter_tcp, Address, Port),
 	SvcName = ?DIAMETER_ACCT_SERVICE,
-%	{ok, wait_for_start, #statedata{}, infinity}.
 	diameter:subscribe(SvcName),
 	case diameter:start_service(SvcName, SOptions) of
 		ok ->
@@ -268,7 +267,7 @@ service_options() ->
 		{'Origin-Realm', "sigscale.com"},
 		{'Vendor-Id', 0},
 		{'Product-Name', "SigScale DIAMETER Server"},
-		{'Auth-Application-Id', [0, 4]},
+		{'Auth-Application-Id', [?BASE_APPLICATION_ID, ?CC_APPLICATION_ID]},
 		{restrict_connections, false},
 		{string_decode, false},
 		{application, [{alias, ?BASE_APPLICATION},
