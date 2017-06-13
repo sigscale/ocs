@@ -330,7 +330,7 @@ pwd_commit_over_diameter(_Config) ->
 		data = EapData2} = ocs_eap_codec:eap_packet(Payload2),
 	EapId2 = EapId1 + 1,
 	#eap_pwd{length = false, more = false, pwd_exch = confirm,
-			data = EapPwdData2} = ocs_eap_codec:eap_pwd(EapData2),
+			data = _EapPwdData2} = ocs_eap_codec:eap_pwd(EapData2),
 	ok = ocs:delete_subscriber(PeerId).
 	
 pwd_confirm_over_radius() ->
