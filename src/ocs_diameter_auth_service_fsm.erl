@@ -37,7 +37,6 @@
 			terminate/3, code_change/4]).
 
 -include_lib("diameter/include/diameter.hrl").
--include("../include/diameter_gen_nas_application_rfc7155.hrl").
 
 -record(statedata,
 		{transport_ref :: undefined | reference()}).
