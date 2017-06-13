@@ -16,10 +16,10 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @doc This {@link //stdlib/gen_server. gen_server} behaviour callback
 %%% 	module receives {@link //diameter. diameter} messages on a port assigned
-%%% 	for authentication in the {@link //ocs. ocs} application.
+%%% 	for accounting in the {@link //ocs. ocs} application.
 %%%
-%%% @reference <a href="https://tools.ietf.org/pdf/rfc7155.pdf">
-%%% 	RFC6733 - DIAMETER Network Access Server Application</a>
+%%% @reference <a href="https://tools.ietf.org/pdf/rfc4006.pdf">
+%%% 	RFC4006 - DIAMETER Credit-Control Application </a>
 %%%
 -module(ocs_diameter_cc_application_cb).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
@@ -30,7 +30,6 @@
 
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
--include("../include/diameter_gen_nas_application_rfc7155.hrl").
 -include("../include/diameter_gen_cc_application_rfc4006.hrl").
 -include("ocs.hrl").
 
@@ -173,7 +172,7 @@ handle_request(#diameter_packet{msg = Req, errors = []},
 			| {protocol_error, 3000..3999},
 		Opt :: diameter:call_opt(),
 		PostF :: diameter:evaluable().
-%% @doc Locate ocs_diameter_acct_port_server process and sent it
+%% @doc Locate ocs_diameter_acct_port_server process and send it
 %% peer's capabilities and diameter request.
 send_to_port_server(Svc, Caps, Request) ->
 	[Info] = diameter:service_info(Svc, transport),
