@@ -112,7 +112,7 @@ radius_log_auth_event(_Config) ->
 	ResAttrs = [{?SessionTimeout, 3600}, {?MessageAuthenticator, RandomBin}],
 	ok = ocs_log:auth_log(radius, Server, Client, Type, ReqAttrs, ResAttrs),
 	End = erlang:system_time(millisecond),
-	Fany = fun({TS, radius, N, S, C, T, A1, A2}) when TS >= Start, TS =< End,
+	Fany = fun({TS, _, radius, N, S, C, T, A1, A2}) when TS >= Start, TS =< End,
 					N == Node, S == Server, C == Client, T == Type,
 					A1 == ReqAttrs, A2 == ResAttrs ->
 				true;
@@ -151,7 +151,7 @@ diameter_log_auth_event(_Config) ->
 	End = erlang:system_time(millisecond),
 	ok = ocs_log:auth_log(diameter, Server, Subscriber, OHost, ORealm,
 			AuthType, ResultCode),
-	Fany = fun({TS, P, N, S, Sub, OH, OR, AType, RCode}) when P == Protocol,
+	Fany = fun({TS, _, P, N, S, Sub, OH, OR, AType, RCode}) when P == Protocol,
 					TS >= Start, TS =< End, N == Node, S == Server, Sub == Subscriber,
 					OH == OHost, OR == ORealm, AType == AuthType, RCode == ResultCode ->
 				true;
@@ -191,7 +191,7 @@ radius_log_acct_event(_Config) ->
 			{?AcctDelayTime, 0}, {?NasIpAddress, ClientAddress}],
 	ok = ocs_log:acct_log(radius, Server, Type, ReqAttrs),
 	End = erlang:system_time(millisecond),
-	Fany = fun({TS, radius, N, S, T, A}) when TS >= Start, TS =< End,
+	Fany = fun({TS, _, radius, N, S, T, A}) when TS >= Start, TS =< End,
 					N == Node, S == Server, T == Type, A == ReqAttrs ->
 				true;
 			(_) ->
@@ -224,7 +224,7 @@ diameter_log_acct_event(_Config) ->
 	RequestType = start,
 	ok = ocs_log:acct_log(diameter, Server, RequestType, #diameter_cc_app_CCR{}),
 	End = erlang:system_time(millisecond),
-	Fany = fun({TS, P, N, S, RType, Attr})
+	Fany = fun({TS, _, P, N, S, RType, Attr})
 					when P == Protocol, TS >= Start, TS =< End, N == Node,
 					S == Server, RType == RequestType, is_record(Attr, diameter_cc_app_CCR) ->
 				true;
@@ -284,9 +284,9 @@ get_range(_Config) ->
 	EndRange = End - (Range div 3),
 	Result = ocs_log:get_range(ocs_acct, StartRange, EndRange),
 	true = length(Result) > ((NumItems div 3) - (NumItems div 10)),
-	[{?AcctSessionId, ID} | _] = element(6, lists:nth(1, Result)),
+	[{?AcctSessionId, ID} | _] = element(7, lists:nth(1, Result)),
 	StartNum = list_to_integer(ID),
-	Fverify = fun({radius, TS, _, _, _, _,  _}, _N)
+	Fverify = fun({TS, _, radius, _, _, _,  _}, _N)
 					when TS < StartRange, TS > EndRange ->
 				ct:fail(verify);
 			({_, _, _, _, _, _, [{?AcctSessionId, S} | _]}, N) ->
