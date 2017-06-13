@@ -207,7 +207,7 @@ eap_start1(Token, #statedata{eap_id = EapID,
 		From :: {Pid, Tag},
 		Pid :: pid(),
 		Tag :: term(),
-		StateData :: term(),
+		StateData :: statedata(),
 		Result :: {reply, Reply, NextStateName, NewStateData}
 				| {reply, Reply,NextStateName, NewStateData, Timeout}
 				| {reply, Reply,NextStateName, NewStateData, hibernate}
@@ -217,7 +217,7 @@ eap_start1(Token, #statedata{eap_id = EapID,
 				| {stop, Reason, Reply, NewStateData} | {stop, Reason, NewStateData},
 				Reply :: term(),
 		NextStateName :: atom(),
-		NewStateData :: term(),
+		NewStateData :: statedata(),
 		Timeout :: pos_integer() | infinity,
 		Reason :: normal | term().
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:sync_send_event/2.
@@ -342,7 +342,7 @@ id1(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		From :: {Pid, Tag},
 		Pid :: pid(),
 		Tag :: term(),
-		StateData :: term(),
+		StateData :: statedata(),
 		Result :: {reply, Reply, NextStateName, NewStateData}
 				| {reply, Reply,NextStateName, NewStateData, Timeout}
 				| {reply, Reply,NextStateName, NewStateData, hibernate}
@@ -352,7 +352,7 @@ id1(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 				| {stop, Reason, Reply, NewStateData} | {stop, Reason, NewStateData},
 				Reply :: term(),
 		NextStateName :: atom(),
-		NewStateData :: term(),
+		NewStateData :: statedata(),
 		Timeout :: pos_integer() | infinity,
 		Reason :: normal | term().
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:sync_send_event/2.
@@ -549,7 +549,7 @@ commit4(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		From :: {Pid, Tag},
 		Pid :: pid(),
 		Tag :: term(),
-		StateData :: term(),
+		StateData :: statedata(),
 		Result :: {reply, Reply, NextStateName, NewStateData}
 				| {reply, Reply,NextStateName, NewStateData, Timeout}
 				| {reply, Reply,NextStateName, NewStateData, hibernate}
@@ -559,7 +559,7 @@ commit4(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 				| {stop, Reason, Reply, NewStateData} | {stop, Reason, NewStateData},
 				Reply :: term(),
 		NextStateName :: atom(),
-		NewStateData :: term(),
+		NewStateData :: statedata(),
 		Timeout :: pos_integer() | infinity,
 		Reason :: normal | term().
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:sync_send_event/2.
