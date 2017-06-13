@@ -16,10 +16,10 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @doc This {@link //stdlib/gen_server. gen_server} behaviour callback
 %%% 	module receives {@link //diameter. diameter} messages on a port assigned
-%%% 	for authentication in the {@link //ocs. ocs} application.
+%%% 	for accounting in the {@link //ocs. ocs} application.
 %%%
-%%% @reference <a href="https://tools.ietf.org/pdf/rfc7155.pdf">
-%%% 	RFC6733 - DIAMETER Network Access Server Application</a>
+%%% @reference <a href="https://tools.ietf.org/pdf/rfc4006.pdf">
+%%% 	RFC4006 - DIAMETER Credit-Control Application </a>
 %%%
 -module(ocs_diameter_cc_application_cb).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
@@ -30,7 +30,6 @@
 
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
--include("../include/diameter_gen_nas_application_rfc7155.hrl").
 -include("../include/diameter_gen_cc_application_rfc4006.hrl").
 -include("ocs.hrl").
 
@@ -173,8 +172,9 @@ handle_request(#diameter_packet{msg = Req, errors = []},
 			| {protocol_error, 3000..3999},
 		Opt :: diameter:call_opt(),
 		PostF :: diameter:evaluable().
-%% @doc Locate ocs_diameter_acct_port_server process and sent it
+%% @doc Locate ocs_diameter_acct_port_server process and send it
 %% peer's capabilities and diameter request.
+%% @hidden
 send_to_port_server(Svc, Caps, Request) ->
 	[Info] = diameter:service_info(Svc, transport),
 	case lists:keyfind(options, 1, Info) of
@@ -223,30 +223,6 @@ is_client_authorized(SvcName, Caps, Req) ->
 			send_to_port_server(SvcName, Caps, Req)
 	catch
 		_ : _ ->
-			send_error(Caps, Req, ?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_PEER')
+			{answer, 3010}
 	end.
-
--spec send_error(Caps, Request, ErrorCode) -> Answer
-	when
-		Caps :: capabilities(),
-		Request :: message(),
-		ErrorCode :: non_neg_integer(),
-		Answer :: message().
-%% @doc When protocol/application error occurs, send DIAMETER answer with appropriate
-%% error indicated in Result-Code AVP.
-%% @hidden
-send_error(Caps, Request, ErrorCode) ->
-	#diameter_caps{origin_host = {OHost,_},
-			origin_realm = {ORealm, DRealm}} = Caps,
-send_error(OHost, ORealm, DRealm, Request, ErrorCode).
-
-%% @hidden
-send_error(OHost, ORealm, DRealm, Request, ErrorCode)
-		when is_record(Request, diameter_nas_app_AAR)->
-	#diameter_nas_app_AAR{'Session-Id' = SessId,
-			'Auth-Request-Type' = Type}= Request,
-	#diameter_nas_app_AAA{'Result-Code' = ErrorCode,
-			'Error-Reporting-Host' = DRealm, 'Auth-Request-Type' = Type,
-			'Auth-Application-Id' = 1, 'Origin-Host' = OHost,
-			'Origin-Realm' = ORealm, 'Session-Id' = SessId}.
 

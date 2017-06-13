@@ -21,6 +21,12 @@
 %%% @reference <a href="https://tools.ietf.org/pdf/rfc6733.pdf">
 %%% 	RFC6733 - DIAMETER base protocol</a>
 %%%
+%%% @reference <a href="https://tools.ietf.org/pdf/rfc7155.pdf">
+%%% 	RFC7155 - DIAMETER Network Access Server Application</a>
+%%%
+%%% @reference <a href="https://tools.ietf.org/pdf/rfc4072.pdf">
+%%% 	RFC4072 - DIAMETER Extensible Authentication Protocol (EAP) Application</a>
+%%%
 -module(ocs_diameter_auth_port_server).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
@@ -203,7 +209,7 @@ code_change(_OldVsn, State, _Extra) ->
 -spec request(Caps, Eap, Request, State) -> Reply
 	when
 		Caps :: capabilities(),
-		Eap :: none | #eap_packet{},
+		Eap :: none | {eap, #eap_packet{}},
 		Request :: #diameter_nas_app_AAR{} | #diameter_nas_app_STR{}
 				| #diameter_eap_app_DER{},
 		State :: state(),
