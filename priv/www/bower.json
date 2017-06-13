@@ -31,7 +31,8 @@
     "iron-list": "PolymerElements/iron-list#^1.0.0",
     "paper-dialog-scrollable": "PolymerElements/paper-dialog-scrollable#^1.0.0",
     "vaadin-grid": "^2.0.0",
-    "paper-checkbox": "PolymerElements/paper-checkbox#^2.0.0"
+    "paper-checkbox": "PolymerElements/paper-checkbox#^1.0.0",
+    "i18n-msg": "^1.1.0"
   },
   "resolutions": {
     "font-roboto": "^1.0.0"
