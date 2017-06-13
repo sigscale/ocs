@@ -19,7 +19,7 @@
 %%% 	for authentication in the {@link //ocs. ocs} application.
 %%%
 %%% @reference <a href="https://tools.ietf.org/pdf/rfc7155.pdf">
-%%% 	RFC6733 - DIAMETER Network Access Server Application</a>
+%%% 	RFC7155 - DIAMETER Network Access Server Application</a>
 %%%
 -module(ocs_diameter_nas_application_cb).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
@@ -167,6 +167,7 @@ handle_request(#diameter_packet{msg = Req, errors = []},
 		PostF :: diameter:evaluable().
 %% @doc Locate ocs_diameter_auth_port_server process and send it
 %% peer's capabilities and diameter request.
+%% @hidden 
 send_to_port_server(Svc, Caps, Request) ->
 	[Info] = diameter:service_info(Svc, transport),
 	case lists:keyfind(options, 1, Info) of

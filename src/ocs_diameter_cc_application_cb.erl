@@ -174,6 +174,7 @@ handle_request(#diameter_packet{msg = Req, errors = []},
 		PostF :: diameter:evaluable().
 %% @doc Locate ocs_diameter_acct_port_server process and send it
 %% peer's capabilities and diameter request.
+%% @hidden
 send_to_port_server(Svc, Caps, Request) ->
 	[Info] = diameter:service_info(Svc, transport),
 	case lists:keyfind(options, 1, Info) of
