@@ -21,7 +21,7 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
-		get_usage/0, get_usage/1, get_usagespec/0, get_usagespec/1]).
+		get_usage/1, get_usage/2, get_usagespec/0, get_usagespec/1]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs_log.hrl").
@@ -40,14 +40,15 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json"].
 
--spec get_usage() -> Result
+-spec get_usage(Query) -> Result
 	when
+		Query :: [{Key :: string(), Value :: string()}],
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
 %% 	`GET /usageManagement/v1/usage'
 %% 	requests.
-get_usage() ->
+get_usage(_Query) ->
 	{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
 	case file:list_dir(Directory) of
 		{ok, Files} ->
@@ -59,15 +60,16 @@ get_usage() ->
 			{error, 500}
 	end.
 
--spec get_usage(Id) -> Result
+-spec get_usage(Id, Query) -> Result
 	when
 		Id :: string(),
+		Query :: [{Key :: string(), Value :: string()}],
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
 %% 	`GET /usageManagement/v1/usage/{id}'
 %% 	requests.
-get_usage(Id) ->
+get_usage(Id, _Query) ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
 	FileName = Directory ++ "/" ++ Id,

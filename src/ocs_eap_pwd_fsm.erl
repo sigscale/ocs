@@ -27,7 +27,7 @@
 
 %% export the ocs_eap_pwd_fsm state callbacks
 -export([eap_start/2, id/2, commit/2, confirm/2,
-			eap_start/3, id/3]).
+			eap_start/3, id/3, commit/3, confirm/3]).
 
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
@@ -207,7 +207,7 @@ eap_start1(Token, #statedata{eap_id = EapID,
 		From :: {Pid, Tag},
 		Pid :: pid(),
 		Tag :: term(),
-		StateData :: term(),
+		StateData :: statedata(),
 		Result :: {reply, Reply, NextStateName, NewStateData}
 				| {reply, Reply,NextStateName, NewStateData, Timeout}
 				| {reply, Reply,NextStateName, NewStateData, hibernate}
@@ -217,7 +217,7 @@ eap_start1(Token, #statedata{eap_id = EapID,
 				| {stop, Reason, Reply, NewStateData} | {stop, Reason, NewStateData},
 				Reply :: term(),
 		NextStateName :: atom(),
-		NewStateData :: term(),
+		NewStateData :: statedata(),
 		Timeout :: pos_integer() | infinity,
 		Reason :: normal | term().
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:sync_send_event/2.
@@ -342,7 +342,7 @@ id1(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		From :: {Pid, Tag},
 		Pid :: pid(),
 		Tag :: term(),
-		StateData :: term(),
+		StateData :: statedata(),
 		Result :: {reply, Reply, NextStateName, NewStateData}
 				| {reply, Reply,NextStateName, NewStateData, Timeout}
 				| {reply, Reply,NextStateName, NewStateData, hibernate}
@@ -352,7 +352,7 @@ id1(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 				| {stop, Reason, Reply, NewStateData} | {stop, Reason, NewStateData},
 				Reply :: term(),
 		NextStateName :: atom(),
-		NewStateData :: term(),
+		NewStateData :: statedata(),
 		Timeout :: pos_integer() | infinity,
 		Reason :: normal | term().
 %% @doc Handle events sent with {@link //stdlib/gen_fsm:sync_send_event/2.
@@ -543,6 +543,121 @@ commit4(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 			{next_state, confirm, NewStateData, ?TIMEOUT}
 	end.
 
+-spec commit(Event, From, StateData) -> Result
+	when
+		Event :: term(),
+		From :: {Pid, Tag},
+		Pid :: pid(),
+		Tag :: term(),
+		StateData :: statedata(),
+		Result :: {reply, Reply, NextStateName, NewStateData}
+				| {reply, Reply,NextStateName, NewStateData, Timeout}
+				| {reply, Reply,NextStateName, NewStateData, hibernate}
+				| {next_state, NextStateName, NewStateData}
+				| {next_state, NextStateName, NewStateData, Timeout}
+				| {next_state, NextStateName, NewStateData, hibernate}
+				| {stop, Reason, Reply, NewStateData} | {stop, Reason, NewStateData},
+				Reply :: term(),
+		NextStateName :: atom(),
+		NewStateData :: statedata(),
+		Timeout :: pos_integer() | infinity,
+		Reason :: normal | term().
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:sync_send_event/2.
+%%		gen_fsm:sync_send_event/2} and {@link //stdlib/gen_fsm:sync_send_event/3.
+%%		gen_fsm:sync_send_event/3} in the <b>commit</b> state.
+%% @@see //stdlib/gen_fsm:StateName/3
+%% @private
+commit(Response, _From, #statedata{eap_id = EapID, session_id = SessionID,
+		auth_req_type = AuthType, origin_host = OH,
+		origin_realm = OR} = StateData) ->
+	try 
+		EapMessage = Response#diameter_eap_app_DER.'EAP-Payload',
+		EapPacket1 = ocs_eap_codec:eap_packet(EapMessage),
+		#eap_packet{code = response, type = ?PWD,
+				identifier = EapID, data = Data} = EapPacket1,
+		EapHeader = ocs_eap_codec:eap_pwd(Data),
+		#eap_pwd{pwd_exch = commit, data = BodyData} = EapHeader,
+		Body = ocs_eap_codec:eap_pwd_commit(BodyData),
+		#eap_pwd_commit{element = ElementP, scalar = ScalarP} = Body,
+		NextStateData = StateData#statedata{scalar_p = ScalarP,
+				element_p = ElementP},
+		commit5(BodyData, NextStateData)
+	catch
+		_:_ ->
+			EapPacket2 = #eap_packet{code = failure, identifier = EapID},
+			Answer1 = generate_diameter_response(SessionID, AuthType,
+					 ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR, EapPacket2),
+			{stop, {shutdown, SessionID}, Answer1, StateData}
+	end.
+%% @hidden
+commit5(BodyData, #statedata{eap_id = EapID, scalar_s = ScalarS,
+		element_s = ElementS, session_id = SessionID, auth_req_type = AuthType,
+		origin_host = OH, origin_realm = OR} = StateData) ->
+	ExpectedSize = size(<<ElementS/binary, ScalarS/binary>>),
+	case size(BodyData) of 
+		ExpectedSize ->
+			commit6(StateData);
+		_ ->
+			EapPacket = #eap_packet{code = failure, identifier = EapID},
+			Answer1 = generate_diameter_response(SessionID, AuthType,
+					 ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR, EapPacket),
+			{stop, {shutdown, SessionID}, Answer1, StateData}
+	end.
+%% @hidden
+commit6(#statedata{element_p = ElementP, scalar_p = ScalarP, scalar_s = ScalarS,
+		element_s = ElementS, eap_id = EapID, session_id = SessionID,
+		auth_req_type = AuthType, origin_host = OH, origin_realm = OR} = StateData) ->
+	case {ElementP, ScalarP} of
+		{ElementS, ScalarS} ->
+			EapPacket = #eap_packet{code = failure, identifier = EapID},
+			Answer = generate_diameter_response(SessionID, AuthType,
+					 ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR, EapPacket),
+			{stop, {shutdown, SessionID}, Answer, StateData};
+		_ ->
+			commit7(StateData)
+	end.
+%% @hidden
+commit7(#statedata{scalar_p = ScalarP, eap_id = EapID, session_id = SessionID,
+		auth_req_type = AuthType, origin_host = OH, origin_realm = OR} = StateData)->
+	case ScalarP of
+		<<ScalarP_Valid:256>> when 1 < ScalarP_Valid, ScalarP_Valid < ?R ->
+			commit8(StateData);
+		_ScalarP_Out_of_Range ->
+			EapPacket = #eap_packet{code = failure, identifier = EapID},
+			Answer = generate_diameter_response(SessionID, AuthType,
+					 ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR, EapPacket),
+			{stop, {shutdown, SessionID}, Answer, StateData}
+	end.
+%% @hidden
+commit8(#statedata{eap_id = EapID, session_id = SessionID, scalar_p = ScalarP,
+		element_p = ElementP, scalar_s = ScalarS, element_s = ElementS,
+		s_rand = Srand, pwe = PWE, group_desc = GroupDesc, rand_func = RandFunc,
+		prf = PRF, auth_req_type = AuthType, origin_host = OH,
+		origin_realm = OR} = StateData)->
+	case catch ocs_eap_pwd:compute_ks(<<Srand:256>>,
+			PWE, ScalarP, ElementP) of
+		{'EXIT', _Reason} ->
+			EapPacket = #eap_packet{code = failure, identifier = EapID},
+			Answer = generate_diameter_response(SessionID, AuthType,
+					 ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR, EapPacket),
+			{stop, {shutdown, SessionID}, Answer, StateData};
+		Ks ->
+			Ciphersuite = <<GroupDesc:16, RandFunc, PRF>>,
+			Input = [Ks, ElementS, ScalarS, ElementP, ScalarP, Ciphersuite],
+			ConfirmS = ocs_eap_pwd:h(Input),
+			ConfirmHeader = #eap_pwd{length = false,
+					more = false, pwd_exch = confirm, data = ConfirmS},
+			ConfirmEapData = ocs_eap_codec:eap_pwd(ConfirmHeader),
+			NewEapID = (EapID rem 255) + 1,
+			EapPacket = #eap_packet{code = request,
+					type = ?PWD, identifier = NewEapID, data = ConfirmEapData},
+			NewStateData = StateData#statedata{eap_id = NewEapID, ks = Ks,
+					confirm_s = ConfirmS},
+			Answer1 = generate_diameter_response(SessionID, AuthType,
+					 ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OH, OR, EapPacket),
+			{reply, Answer1, confirm, NewStateData, ?TIMEOUT}
+	end.
+
 -spec confirm(Event, StateData) -> Result
 	when
 		Event :: timeout | term(),
@@ -650,6 +765,104 @@ confirm3(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 			send_response(EapPacket, ?AccessReject, [], RadiusID,
 					RequestAuthenticator, RequestAttributes, StateData),
 			{stop, {shutdown, SessionID}, StateData}
+	end.
+
+-spec confirm(Event, From, StateData) -> Result
+	when
+		Event :: term(),
+		From :: {Pid, Tag},
+		Pid :: pid(),
+		Tag :: term(),
+		StateData :: statedata(),
+		Result :: {reply, Reply, NextStateName, NewStateData}
+				| {reply, Reply,NextStateName, NewStateData, Timeout}
+				| {reply, Reply,NextStateName, NewStateData, hibernate}
+				| {next_state, NextStateName, NewStateData}
+				| {next_state, NextStateName, NewStateData, Timeout}
+				| {next_state, NextStateName, NewStateData, hibernate}
+				| {stop, Reason, Reply, NewStateData} | {stop, Reason, NewStateData},
+				Reply :: term(),
+		NextStateName :: atom(),
+		NewStateData :: statedata(),
+		Timeout :: pos_integer() | infinity,
+		Reason :: normal | term().
+%% @doc Handle events sent with {@link //stdlib/gen_fsm:sync_send_event/2.
+%%		gen_fsm:sync_send_event/2} and {@link //stdlib/gen_fsm:sync_send_event/3.
+%%		gen_fsm:sync_send_event/3} in the <b>confirm</b> state.
+%% @@see //stdlib/gen_fsm:StateName/3
+%% @private
+confirm(Response, _From, #statedata{eap_id = EapID, session_id = SessionID,
+		auth_req_type = AuthType, origin_host = OH, origin_realm = OR} = StateData) ->
+	try
+		EapMessage = Response#diameter_eap_app_DER.'EAP-Payload',
+		EapData = ocs_eap_codec:eap_packet(EapMessage),
+		#eap_packet{code = response, type = ?PWD,
+				identifier = EapID, data = Data} = EapData,
+		EapHeader = ocs_eap_codec:eap_pwd(Data),
+		#eap_pwd{pwd_exch = confirm, data = ConfirmP} = EapHeader,
+		NewStateData = StateData#statedata{confirm_p = ConfirmP},
+		confirm4(NewStateData)
+	catch
+		_:_ ->
+			EapPacket = #eap_packet{code = failure, identifier = EapID},
+			Answer = generate_diameter_response(SessionID, AuthType,
+					 ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR, EapPacket),
+			{stop, {shutdown, SessionID}, Answer, StateData}
+	end.
+%% @hidden
+confirm4(#statedata{confirm_s = ConfirmS, eap_id = EapID, confirm_p = ConfirmP,
+		session_id = SessionID, auth_req_type = AuthType, origin_host = OH,
+		origin_realm = OR} = StateData) ->
+	ExpectedSize = size(ConfirmS),
+	case size(ConfirmP) of 
+		ExpectedSize ->
+			confirm5(StateData);
+		_ ->
+			EapPacket = #eap_packet{code = failure, identifier = EapID},
+			Answer = generate_diameter_response(SessionID, AuthType,
+					 ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR, EapPacket),
+			{stop, {shutdown, SessionID}, Answer, StateData}
+	end.
+%% @hidden
+confirm5(#statedata{eap_id = EapID, ks = Ks, confirm_p = ConfirmP,
+		scalar_s = ScalarS, element_s = ElementS, scalar_p = ScalarP,
+		element_p = ElementP, group_desc = GroupDesc, rand_func = RandFunc,
+		prf = PRF, session_id = SessionID, auth_req_type = AuthType,
+		origin_host = OH, origin_realm = OR} = StateData) ->
+	Ciphersuite = <<GroupDesc:16, RandFunc, PRF>>,
+	case ocs_eap_pwd:h([Ks, ElementP, ScalarP,
+			ElementS, ScalarS, Ciphersuite]) of
+		ConfirmP ->
+			confirm6(StateData);
+		_ ->
+			EapPacket = #eap_packet{code = failure, identifier = EapID},
+			Answer = generate_diameter_response(SessionID, AuthType,
+					 ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR, EapPacket),
+			{stop, {shutdown, SessionID}, Answer, StateData}
+	end.
+%% @hidden
+confirm6(#statedata{eap_id = EapID, ks = Ks, confirm_p = ConfirmP,
+		confirm_s = ConfirmS, scalar_s = ScalarS, scalar_p = ScalarP,
+		group_desc = GroupDesc, rand_func = RandFunc, prf = PRF,
+		session_id = SessionID, peer_id = PeerID, password = Password,
+		auth_req_type = AuthType, origin_host = OH, origin_realm = OR} = StateData) ->
+	Ciphersuite = <<GroupDesc:16, RandFunc, PRF>>,
+	MK = ocs_eap_pwd:h([Ks, ConfirmP, ConfirmS]),
+	MethodID = ocs_eap_pwd:h([Ciphersuite, ScalarP, ScalarS]),
+	<<MSK:64/binary, _EMSK:64/binary>> = ocs_eap_pwd:kdf(MK,
+			<<?PWD, MethodID/binary>>, 128),
+	case ocs:authorize(PeerID, Password) of
+		{ok, _, _} ->
+			EapPacket = #eap_packet{code = success, identifier = EapID},
+			Answer = generate_diameter_response(SessionID, AuthType,
+					 ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OH, OR, EapPacket),
+			{stop, {shutdown, SessionID}, Answer,
+					 StateData#statedata{mk = MK, msk = MSK}};
+		{error, _Reason} ->
+			EapPacket1 = #eap_packet{code = failure, identifier = EapID},
+			Answer1 = generate_diameter_response(SessionID, AuthType,
+					 ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR, EapPacket1),
+			{stop, {shutdown, SessionID}, Answer1, StateData}
 	end.			
 
 -spec handle_event(Event, StateName, StateData) -> Result

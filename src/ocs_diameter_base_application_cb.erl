@@ -150,46 +150,11 @@ handle_error(_Reason, _Request, _SvcName, _Peer) ->
 		Opt :: diameter:call_opt(),
 		PostF :: diameter:evaluable().
 %% @doc Invoked when a request messge is received from the peer. 
-handle_request(#diameter_packet{msg = Req, errors = []},
-		SvcName, {_Peer, Caps}) ->
-	send_to_port_server(SvcName, Caps, Req).
+handle_request(#diameter_packet{msg = _Req, errors = []},
+		_SvcName, {_Peer, _Caps}) ->
+	discard.
 
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
-
--spec send_to_port_server(Svc, Caps, Request) -> Action
-	when
-		Svc :: atom(),
-		Caps :: capabilities(),
-		Request :: message(),
-		Action :: Reply | {relay, [Opt]} | discard
-			| {eval|eval_packet, Action, PostF},
-		Reply :: {reply, packet() | message()}
-			| {answer_message, 3000..3999|5000..5999}
-			| {protocol_error, 3000..3999},
-		Opt :: diameter:call_opt(),
-		PostF :: diameter:evaluable().
-%% @doc Locate ocs_diameter_auth_port_server process and sent it
-%% peer's capabilities and diameter request.
-send_to_port_server(Svc, Caps, Request) ->
-	[Info] = diameter:service_info(Svc, transport),
-	case lists:keyfind(options, 1, Info) of
-		{options, Options} ->
-			case lists:keyfind(transport_config, 1, Options) of
-				{transport_config, [_, {ip, IP}, {port, Port}]} ->
-					case global:whereis_name({ocs_diameter_auth, IP, Port}) of
-						undefined ->
-							discard;
-						PortServer ->
-							Answer = gen_server:call(PortServer,
-									{diameter_request, Caps, Request, none}),
-							{reply, Answer}
-					end;
-				false ->
-					discard
-			end;
-		false ->
-			discard
-	end.
 
