@@ -20,7 +20,7 @@
 
 -export([do/1]).
 
--include_lib("inets/include/httpd.hrl"). 
+-include_lib("inets/include/httpd.hrl").
 
 -spec do(ModData) -> Result when
 	ModData :: #mod{},
@@ -33,13 +33,13 @@
 	Head :: [HeaderOption],
 	HeaderOption :: {Option, Value} | {code, StatusCode},
 	Option :: accept_ranges | allow
-	| cache_control | content_MD5
-	| content_encoding | content_language
-	| content_length | content_location
-	| content_range | content_type | date
-	| etag | expires | last_modified
-	| location | pragma | retry_after
-	| server | trailer | transfer_encoding,
+			| cache_control | content_MD5
+			| content_encoding | content_language
+			| content_length | content_location
+			| content_range | content_type | date
+			| etag | expires | last_modified
+			| location | pragma | retry_after
+			| server | trailer | transfer_encoding,
 	Value :: string(),
 	Size :: term(),
 	Fun :: fun((Arg) -> sent| close | Body),
@@ -71,7 +71,7 @@ do_delete(Resource, ModData, ["ocs", "v1", "subscriber", Identity]) ->
 	do_response(ModData, Resource:delete_subscriber(Identity));
 do_delete(_Resource, _ModData, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
-	{break, [{response,	{404, Response}}]}.
+	{break, [{response, {404, Response}}]}.
 
 %% @hidden
 do_response(ModData, {ok, Headers, ResponseBody}) ->

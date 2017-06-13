@@ -20,7 +20,7 @@
 
 -export([do/1]).
 
--include_lib("inets/include/httpd.hrl"). 
+-include_lib("inets/include/httpd.hrl").
 
 -spec do(ModData) -> Result when
 	ModData :: #mod{},
@@ -33,13 +33,13 @@
 	Head :: [HeaderOption],
 	HeaderOption :: {Option, Value} | {code, StatusCode},
 	Option :: accept_ranges | allow
-	| cache_control | content_MD5
-	| content_encoding | content_language
-	| content_length | content_location
-	| content_range | content_type | date
-	| etag | expires | last_modified
-	| location | pragma | retry_after
-	| server | trailer | transfer_encoding,
+			| cache_control | content_MD5
+			| content_encoding | content_language
+			| content_length | content_location
+			| content_range | content_type | date
+			| etag | expires | last_modified
+			| location | pragma | retry_after
+			| server | trailer | transfer_encoding,
 	Value :: string(),
 	Size :: term(),
 	Fun :: fun((Arg) -> sent| close | Body),
@@ -69,7 +69,7 @@ do(#mod{request_uri = Uri, data = Data} = ModData) ->
 serve_file(#mod{socket = Socket, socket_type = SockType, data = Data,
 		config_db = ConfigDb, request_uri = Uri} = ModData) ->
 	Path = mod_alias:path(Data, ConfigDb, Uri),
-	send_response(Socket, SockType, Path, ModData). 
+	send_response(Socket, SockType, Path, ModData).
 
 %% @hidden
 send_response(_Socket, _SockType, Path, #mod{config_db = ConfigDb,
@@ -98,7 +98,7 @@ send(#mod{socket = Socket, socket_type = SocketType} = ModData,
 
 %% @hidden
 get_modification_date(Path)->
-	{ok, FileInfo0} = file:read_file_info(Path), 
+	{ok, FileInfo0} = file:read_file_info(Path),
 	LastModified = case catch
 			httpd_util:rfc1123_date(FileInfo0#file_info.mtime) of
 		Date when is_list(Date) -> [{last_modified, Date}];

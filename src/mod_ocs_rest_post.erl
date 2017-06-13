@@ -33,13 +33,13 @@
 	Head :: [HeaderOption],
 	HeaderOption :: {Option, Value} | {code, StatusCode},
 	Option :: accept_ranges | allow
-	| cache_control | content_MD5
-	| content_encoding | content_language
-	| content_length | content_location
-	| content_range | content_type | date
-	| etag | expires | last_modified
-	| location | pragma | retry_after
-	| server | trailer | transfer_encoding,
+			| cache_control | content_MD5
+			| content_encoding | content_language
+			| content_length | content_location
+			| content_range | content_type | date
+			| etag | expires | last_modified
+			| location | pragma | retry_after
+			| server | trailer | transfer_encoding,
 	Value :: string(),
 	Size :: term(),
 	Fun :: fun((Arg) -> sent| close | Body),
