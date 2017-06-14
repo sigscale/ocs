@@ -226,6 +226,10 @@ request(Caps, {eap, <<_:32, ?Identity, Identity/binary>>}, Request, State)
 		when is_record(Request, diameter_eap_app_DER) ->
 	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
 	request1({identity, Identity}, OHost, ORealm, Request, State);
+request(Caps, {eap, <<_, EapId, _:16, ?LegacyNak, Data/binary>>}, Request, State)
+		when is_record(Request, diameter_eap_app_DER) ->
+	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
+	request1({legacy_nak, EapId, Data}, OHost, ORealm, Request, State);
 request(Caps, Eap, Request, State) when is_record(Request, diameter_eap_app_DER) ->
 	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
 	request1(Eap, OHost, ORealm, Request, State);
@@ -259,7 +263,7 @@ request(Caps, none, Request, State) when is_record(Request, diameter_nas_app_STR
 	end.
 %% @hidden
 request1(EapType, OHost, ORealm, Request, #state{handlers = Handlers,
-		method_prefer = MethodPrefer, method_order = _MethodOrder} = State) ->
+		method_prefer = MethodPrefer, method_order = MethodOrder} = State) ->
 	{SessionId, AuthType} = get_attibutes(Request),
 	try
 		case gb_trees:lookup(SessionId, Handlers) of
@@ -291,6 +295,31 @@ request1(EapType, OHost, ORealm, Request, #state{handlers = Handlers,
 					end;
 			{value, Fsm} ->
 				case EapType of
+					{legacy_nak, EapId, AlternateMethods} ->
+						case get_alternate(MethodOrder, AlternateMethods, State) of
+							{ok , Sup} ->
+								gen_fsm:sync_send_event(Fsm, Request),
+								NewEapPacket = #eap_packet{code = response,
+										type = ?Identity, identifier = EapId, data = <<>>},
+								NewEapMessage = ocs_eap_codec:eap_packet(NewEapPacket),
+								{Fsm1, NewState} = start_fsm(Sup, 5, SessionId, AuthType,
+										OHost, ORealm, [], State),
+								Request1 = #diameter_eap_app_DER{'Session-Id' = SessionId,
+										'Auth-Application-Id' = 5, 'Auth-Request-Type' = AuthType,
+										'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+										'Destination-Realm' = <<>>, 'EAP-Payload' = NewEapMessage},
+								Answer3 = gen_fsm:sync_send_event(Fsm1, Request1),
+								{reply, Answer3, NewState};
+							{error, none} ->
+								NewEapPacket = #eap_packet{code = failure, identifier = EapId},
+								NewEapMessage = ocs_eap_codec:eap_packet(NewEapPacket),
+								Answer1 = #diameter_eap_app_DEA{'Session-Id' = SessionId,
+										'Auth-Application-Id' = 5, 'Auth-Request-Type' = AuthType,
+										'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+										'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+										'EAP-Payload' = [NewEapMessage]},
+								{reply, Answer1, State}
+						end;
 					none ->
 						Answer = #diameter_nas_app_AAA{'Session-Id' = SessionId,
 								'Auth-Application-Id' = 1, 'Auth-Request-Type' = AuthType,
@@ -360,4 +389,27 @@ get_attibutes(Request) when is_record(Request, diameter_eap_app_DER) ->
 	#diameter_eap_app_DER{'Session-Id' = SessionId,
 		'Auth-Request-Type' = Type} = Request,
 	{SessionId, Type}.
+
+-spec get_alternate(PreferenceOrder, AlternateMethods, State) -> Result
+	when
+		PreferenceOrder :: [ocs:eap_method()],
+		AlternateMethods :: binary() | [byte()],
+		State :: state(),
+		Result :: {ok, SupervisorModule} | {error, none},
+		SupervisorModule :: pid().
+
+get_alternate(PreferenceOrder, AlternateMethods, State)
+		when is_binary(AlternateMethods) ->
+	get_alternate(PreferenceOrder,
+			binary_to_list(AlternateMethods), State);
+get_alternate([pwd | T], AlternateMethods,
+		#state{pwd_sup = Sup} = State) ->
+	case lists:member(?PWD, AlternateMethods) of
+		true ->
+			{ok, Sup};
+		false ->
+			get_alternate(T, AlternateMethods, State)
+	end;
+get_alternate([], _AlternateMethods, _State) ->
+	{error, none}.
 
