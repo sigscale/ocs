@@ -20,7 +20,7 @@
 
 -export([do/1]).
 
--include_lib("inets/include/httpd.hrl"). 
+-include_lib("inets/include/httpd.hrl").
 
 -spec do(ModData) -> Result when
 	ModData :: #mod{},
@@ -33,20 +33,20 @@
 	Head :: [HeaderOption],
 	HeaderOption :: {Option, Value} | {code, StatusCode},
 	Option :: accept_ranges | allow
-	| cache_control | content_MD5
-	| content_encoding | content_language
-	| content_length | content_location
-	| content_range | content_type | date
-	| etag | expires | last_modified
-	| location | pragma | retry_after
-	| server | trailer | transfer_encoding,
+			| cache_control | content_MD5
+			| content_encoding | content_language
+			| content_length | content_location
+			| content_range | content_type | date
+			| etag | expires | last_modified
+			| location | pragma | retry_after
+			| server | trailer | transfer_encoding,
 	Value :: string(),
 	Size :: term(),
 	Fun :: fun((Arg) -> sent| close | Body),
 	Arg :: [term()].
 %% @doc Erlang web server API callback function.
 do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
-				data = Data} = ModData) ->
+		data = Data} = ModData) ->
 	case Method of
 		"GET" ->
 			case proplists:get_value(status, Data) of
@@ -72,37 +72,59 @@ content_type_available(Headers, Uri, Resource, ModData) ->
 			AvailableTypes = Resource:content_types_provided(),
 			case lists:member(RequestingType, AvailableTypes) of
 				true ->
-					do_get(Resource, ModData, string:tokens(Uri, "/"));
+					parse_query(Resource, ModData, string:tokens(Uri, "?"));
 				false ->
 					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
 					{break, [{response, {415, Response}}]}
 			end;
 		_ ->
-			do_get(Resource, ModData, string:tokens(Uri, "/"))
+			parse_query(Resource, ModData, string:tokens(Uri, "?"))
 	end.
 
 %% @hidden
-do_get(Resource, ModData, ["ocs", "v1", "client"]) ->
+parse_query(Resource, ModData, [Path, Query]) ->
+	parse_query1(Resource, ModData, Path, string:tokens(Query, "&"), []);
+parse_query(Resource, ModData, [Path]) ->
+	do_get(Resource, ModData, string:tokens(Path, "/"), []);
+parse_query(_, _, _) ->
+	Response = "<h2>HTTP Error 404 - Not Found</h2>",
+	{break, [{response, {404, Response}}]}.
+%% @hidden
+parse_query1(Resource, ModData, Path, [H | T], Acc) ->
+	parse_query2(Resource, ModData, Path, T, string:tokens(H, "="), Acc);
+parse_query1(Resource, ModData, Path, [], Acc) ->
+	do_get(Resource, ModData, string:tokens(Path, "/"), lists:reverse(Acc)).
+%% @hidden
+parse_query2(Resource, ModData, Path, QueryList, [Key, Val], Acc) ->
+	parse_query1(Resource, ModData, Path, QueryList, [{Key, Val} | Acc]);
+parse_query2(_, _, _, _, _, _) ->
+	Response = "<h2>HTTP Error 400 - Bad Request</h2>",
+	{break, [{response, {400, Response}}]}.
+
+%% @hidden
+do_get(Resource, ModData, ["ocs", "v1", "client"], []) ->
 	do_response(ModData, Resource:get_client());
-do_get(Resource, ModData, ["ocs", "v1", "client", Identity]) ->
-	do_response(ModData, Resource:get_client(Identity));
-do_get(Resource, ModData, ["ocs", "v1", "subscriber"]) ->
+do_get(Resource, ModData, ["ocs", "v1", "client", Id], []) ->
+	do_response(ModData, Resource:get_client(Id));
+do_get(Resource, ModData, ["ocs", "v1", "subscriber"], []) ->
 	do_response(ModData, Resource:get_subscriber());
-do_get(Resource, ModData, ["ocs", "v1", "subscriber", Identity]) ->
-	do_response(ModData, Resource:get_subscriber(Identity));
-do_get(Resource, ModData, ["usageManagement", "v1", "usage"]) ->
-	do_response(ModData, Resource:get_usage());
-do_get(Resource, ModData, ["usageManagement", "v1", "usageSpecification"]) ->
+do_get(Resource, ModData, ["ocs", "v1", "subscriber", Id], []) ->
+	do_response(ModData, Resource:get_subscriber(Id));
+do_get(Resource, ModData, ["usageManagement", "v1", "usage"], Query) ->
+	do_response(ModData, Resource:get_usage(Query));
+do_get(Resource, ModData,
+		["usageManagement", "v1", "usageSpecification"], []) ->
 	do_response(ModData, Resource:get_usagespec());
-do_get(Resource, ModData, ["usageManagement", "v1", "usageSpecification", Id]) ->
+do_get(Resource, ModData,
+		["usageManagement", "v1", "usageSpecification", Id], []) ->
 	do_response(ModData, Resource:get_usagespec(Id));
-do_get(Resource, ModData, ["ocs", "v1", "log", "access"]) ->
-	do_response(ModData, Resource:get_access());
-do_get(Resource, ModData, ["ocs", "v1", "log", "accounting"]) ->
+do_get(Resource, ModData, ["ocs", "v1", "log", "access"], []) ->
+	do_response(ModData, Resource:get_access([]));
+do_get(Resource, ModData, ["ocs", "v1", "log", "accounting"], []) ->
 	do_response(ModData, Resource:get_accounting());
-do_get(Resource, ModData, ["ocs", "v1", "log", "http"]) ->
+do_get(Resource, ModData, ["ocs", "v1", "log", "http"], []) ->
 	do_response(ModData, Resource:get_http());
-do_get(_Resource, _ModData, _) ->
+do_get(_, _, _, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{break, [{response, {404, Response}}]}.
 

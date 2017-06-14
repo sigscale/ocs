@@ -20,7 +20,7 @@
 
 -export([do/1]).
 
--include_lib("inets/include/httpd.hrl"). 
+-include_lib("inets/include/httpd.hrl").
 
 -spec do(ModData) -> Result when
 	ModData :: #mod{},
@@ -33,20 +33,20 @@
 	Head :: [HeaderOption],
 	HeaderOption :: {Option, Value} | {code, StatusCode},
 	Option :: accept_ranges | allow
-	| cache_control | content_MD5
-	| content_encoding | content_language
-	| content_length | content_location
-	| content_range | content_type | date
-	| etag | expires | last_modified
-	| location | pragma | retry_after
-	| server | trailer | transfer_encoding,
+			| cache_control | content_MD5
+			| content_encoding | content_language
+			| content_length | content_location
+			| content_range | content_type | date
+			| etag | expires | last_modified
+			| location | pragma | retry_after
+			| server | trailer | transfer_encoding,
 	Value :: string(),
 	Size :: term(),
 	Fun :: fun((Arg) -> sent| close | Body),
 	Arg :: [term()].
 %% @doc Erlang web server API callback function.
 do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
-				data = Data} = _ModData) ->
+		data = Data} = _ModData) ->
 	case proplists:get_value(status, Data) of
 		{_StatusCode, _PhraseArgs, _Reason} ->
 			{proceed, Data};
