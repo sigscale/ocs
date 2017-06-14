@@ -253,10 +253,10 @@ eap_start2(Token, Event, #statedata{eap_id = EapID, session_id = SessionId,
 		EapMessage ->
 			case catch ocs_eap_codec:eap_packet(EapMessage) of
 				#eap_packet{code = response, type = ?Identity, identifier = NewEapID} ->
-					NewEapID = (EapID rem 255) + 1,
+					NextEapID = (NewEapID rem 255) + 1,
 					EapPacket = #eap_packet{code = request, type = ?PWD,
-							identifier = NewEapID, data = EapData},
-					NewStateData = StateData#statedata{eap_id = NewEapID},
+							identifier = NextEapID, data = EapData},
+					NewStateData = StateData#statedata{eap_id = NextEapID},
 					Answer = generate_diameter_response(SessionId, AuthType,
 							?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OHost, ORealm,
 							EapPacket),
