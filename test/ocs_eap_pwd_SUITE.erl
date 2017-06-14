@@ -821,7 +821,7 @@ transport_opts1({Trans, LocalAddr, RemAddr, RemPort}) ->
 		| [{ip, LocalAddr}]]}].
 
 send_diameter_identity(SId, EapId, PeerId) ->
-	EapPacket  = #eap_packet{code = request, type = ?Identity, identifier = EapId, data = PeerId},
+	EapPacket  = #eap_packet{code = response, type = ?Identity, identifier = EapId, data = PeerId},
 	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
 	DER = #diameter_eap_app_DER{'Session-Id' = SId, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 		'Auth-Request-Type' = ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
