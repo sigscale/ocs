@@ -225,16 +225,16 @@ eap_start1(Token, #statedata{eap_id = EapID,
 %%		gen_fsm:sync_send_event/3} in the <b>eap_start</b> state.
 %% @@see //stdlib/gen_fsm:StateName/3
 %% @private
-eap_start(Request, _From, StateData) ->
+eap_start(Event, _From, StateData) ->
 	try crypto:strong_rand_bytes(4) of
 		Token ->
-			eap_start2(Token, Request, StateData)
+			eap_start2(Token, Event, StateData)
 	catch
 		Reason ->
 			{stop, Reason, StateData}
 	end.
 %% @hidden
-eap_start2(Token, Request, #statedata{eap_id = EapID, session_id = SessionId,
+eap_start2(Token, Event, #statedata{eap_id = EapID, session_id = SessionId,
 		server_id = ServerID, group_desc = GroupDesc, rand_func = RandFunc,
 		prf = PRF, auth_app_id = AppId, auth_req_type = AuthType,
 		origin_host = OHost, origin_realm = ORealm} = StateData) ->
@@ -243,15 +243,49 @@ eap_start2(Token, Request, #statedata{eap_id = EapID, session_id = SessionId,
 	EapPwdData = ocs_eap_codec:eap_pwd_id(EapPwdId),
 	EapPwd = #eap_pwd{pwd_exch = id, data = EapPwdData},
 	EapData = ocs_eap_codec:eap_pwd(EapPwd),
-	NewEapID = (EapID rem 255) + 1,
-	NewStateData = StateData#statedata{token = Token, start = Request, eap_id = NewEapID},
-	EapPacket = #eap_packet{code = request, type = ?PWD, identifier = NewEapID, data = EapData},
-	EapPayload = ocs_eap_codec:eap_packet(EapPacket),
-	Answer = #diameter_eap_app_DEA{'Session-Id' = SessionId, 'Auth-Application-Id' = AppId,
-			'Auth-Request-Type' = AuthType,
-			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-			'Origin-Host' = OHost, 'Origin-Realm' = ORealm, 'EAP-Payload' = [EapPayload]},
-	{reply, Answer, id ,NewStateData, ?TIMEOUT}.
+	case Event#diameter_eap_app_DER.'EAP-Payload' of
+		[] ->
+			EapPacket = #eap_packet{code = request,
+					type = ?PWD, identifier = EapID, data = EapData},
+			Answer = generate_diameter_response(SessionId, AuthType,
+					?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OHost, ORealm, EapPacket),
+			{reply, Answer, id, StateData, ?TIMEOUT};
+		EapMessage ->
+			case catch ocs_eap_codec:eap_packet(EapMessage) of
+				#eap_packet{code = response, type = ?Identity, identifier = NewEapID} ->
+					NewEapID = (EapID rem 255) + 1,
+					EapPacket = #eap_packet{code = request, type = ?PWD,
+							identifier = NewEapID, data = EapData},
+					NewStateData = StateData#statedata{eap_id = NewEapID},
+					Answer = generate_diameter_response(SessionId, AuthType,
+							?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OHost, ORealm,
+							EapPacket),
+					{reply, Answer, id, NewStateData, ?TIMEOUT};
+				#eap_packet{code = request, identifier = NewEapID} ->
+					EapPacket = #eap_packet{code = response, type = ?LegacyNak,
+							identifier = NewEapID, data = <<0>>},
+					Answer = generate_diameter_response(SessionId, AuthType,
+							?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost, ORealm,
+							EapPacket),
+					{stop, {shutdown, SessionId}, Answer, StateData};
+				#eap_packet{code = Code, type = EapType,
+						identifier = NewEapID, data = Data} ->
+					error_logger:warning_report(["Unknown EAP received",
+							{pid, self()}, {session_id, SessionId}, {code, Code},
+							{type, EapType}, {identifier, NewEapID}, {data, Data}]),
+					EapPacket = #eap_packet{code = failure, identifier = NewEapID},
+					Answer = generate_diameter_response(SessionId, AuthType,
+							?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost, ORealm,
+							EapPacket),
+					{stop, {shutdown, SessionId}, Answer, StateData};
+				{'EXIT', _Reason} ->
+					EapPacket = #eap_packet{code = failure, identifier = EapID},
+					Answer = generate_diameter_response(SessionId, AuthType,
+							?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost, ORealm,
+							EapPacket),
+					{stop, {shutdown, SessionId}, Answer, StateData}
+			end
+	end.
 
 -spec id(Event, StateData) -> Result
 	when
