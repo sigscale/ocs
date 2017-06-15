@@ -54,6 +54,8 @@
 		method_order :: [ocs:eap_method()],
 		simple_auth_sup :: undefined | pid(),
 		pwd_sup :: undefined | pid(),
+		cb_fsms = gb_trees:empty() :: gb_trees:tree(
+				Key :: (AuthFsm :: pid()), Value :: (CbFsm :: pid())),
 		handlers = gb_trees:empty() :: gb_trees:tree(
 				Key :: (SessionId :: string()), Value :: (Fsm :: pid()))}).
 
@@ -111,8 +113,8 @@ init([AuthPortSup, Address, Port, Options]) ->
 %% 	gen_server:multi_call/2,3,4}.
 %% @see //stdlib/gen_server:handle_call/3
 %% @private
-handle_call({diameter_request, Caps, Request, Eap}, _From, State) ->
-	request(Caps, Eap, Request, State).
+handle_call({diameter_request, Caps, Request, Eap}, {CbFsm, _Tag}= _From, State) ->
+	request(Caps, Eap, Request, CbFsm, State).
 
 -spec handle_cast(Request, State) -> Result
 	when
@@ -206,34 +208,35 @@ code_change(_OldVsn, State, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec request(Caps, Eap, Request, State) -> Reply
+-spec request(Caps, Eap, Request, CbFsm, State) -> Reply
 	when
 		Caps :: capabilities(),
 		Eap :: none | {eap, #eap_packet{}},
 		Request :: #diameter_nas_app_AAR{} | #diameter_nas_app_STR{}
 				| #diameter_eap_app_DER{},
+		CbFsm :: pid(),
 		State :: state(),
-		Reply :: {reply, Answer, State},
+		Reply :: {reply, Answer, State} | {noreply, State},
 		Answer :: #diameter_nas_app_AAA{} | #diameter_nas_app_STA{}
 				| #diameter_eap_app_DEA{}.
 %% @doc Based on the DIAMETER request generate appropriate DIAMETER
 %% answer.
 %% @hidden
-request(Caps, none, Request, State) when is_record(Request, diameter_nas_app_AAR) ->
+request(Caps, none, Request, CbFsm, State) when is_record(Request, diameter_nas_app_AAR) ->
 	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
-	request1(none, OHost, ORealm, Request, State);
-request(Caps, {eap, <<_:32, ?Identity, Identity/binary>>}, Request, State)
+	request1(none, OHost, ORealm, Request, CbFsm, State);
+request(Caps, {eap, <<_:32, ?Identity, Identity/binary>>}, Request, CbFsm, State)
 		when is_record(Request, diameter_eap_app_DER) ->
 	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
-	request1({identity, Identity}, OHost, ORealm, Request, State);
-request(Caps, {eap, <<_, EapId, _:16, ?LegacyNak, Data/binary>>}, Request, State)
+	request1({identity, Identity}, OHost, ORealm, Request, CbFsm, State);
+request(Caps, {eap, <<_, EapId, _:16, ?LegacyNak, Data/binary>>}, Request, CbFsm, State)
 		when is_record(Request, diameter_eap_app_DER) ->
 	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
-	request1({legacy_nak, EapId, Data}, OHost, ORealm, Request, State);
-request(Caps, Eap, Request, State) when is_record(Request, diameter_eap_app_DER) ->
+	request1({legacy_nak, EapId, Data}, OHost, ORealm, Request, CbFsm, State);
+request(Caps, Eap, Request, CbFsm, State) when is_record(Request, diameter_eap_app_DER) ->
 	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
-	request1(Eap, OHost, ORealm, Request, State);
-request(Caps, none, Request, State) when is_record(Request, diameter_nas_app_STR) ->
+	request1(Eap, OHost, ORealm, Request, CbFsm, State);
+request(Caps, none, Request, _CbFsm, State) when is_record(Request, diameter_nas_app_STR) ->
 	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
 	SessionId = Request#diameter_nas_app_STR.'Session-Id',
 	try
@@ -262,7 +265,7 @@ request(Caps, none, Request, State) when is_record(Request, diameter_nas_app_STR
 			{reply, Answer, State}
 	end.
 %% @hidden
-request1(EapType, OHost, ORealm, Request, #state{handlers = Handlers,
+request1(EapType, OHost, ORealm, Request, CbFsm, #state{handlers = Handlers,
 		method_prefer = MethodPrefer, method_order = MethodOrder} = State) ->
 	{SessionId, AuthType} = get_attibutes(Request),
 	try
@@ -272,9 +275,10 @@ request1(EapType, OHost, ORealm, Request, #state{handlers = Handlers,
 					{_, _Identity} when MethodPrefer == pwd ->
 						PwdSup = State#state.pwd_sup,
 						{Fsm, NewState} = start_fsm(PwdSup, 5, SessionId, AuthType, OHost,
-								ORealm, [], State),
-						Answer = gen_fsm:sync_send_event(Fsm, Request),
-						{reply, Answer, NewState};
+								ORealm, [], CbFsm, State),
+						gen_fsm:send_event(Fsm, Request),
+						%{reply, Answer, NewState};
+						{noreply, NewState};
 					none ->
 						#diameter_nas_app_AAR{'User-Name' = [UserName],
 								'User-Password' = [Password]} = Request,
@@ -283,9 +287,10 @@ request1(EapType, OHost, ORealm, Request, #state{handlers = Handlers,
 							{UserName, Password} when (UserName /= undefined andalso
 									Password /= undefined) ->
 								{Fsm, NewState} = start_fsm(SimpleAuthSup, 1, SessionId, AuthType,
-										OHost, ORealm, [UserName, Password], State),
-								Answer = gen_fsm:sync_send_all_state_event(Fsm, diameter_request),
-								{reply, Answer, NewState};
+										OHost, ORealm, [UserName, Password], CbFsm, State),
+								gen_fsm:send_all_state_event(Fsm, diameter_request),
+								%{reply, Answer, NewState};
+								{noreply, NewState};
 							_ ->
 								Answer = #diameter_nas_app_AAA{
 										'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
@@ -303,14 +308,15 @@ request1(EapType, OHost, ORealm, Request, #state{handlers = Handlers,
 								NewEapPacket = #eap_packet{code = response,
 										type = ?Identity, identifier = EapId, data = <<>>},
 								NewEapMessage = ocs_eap_codec:eap_packet(NewEapPacket),
-								{Fsm1, NewState} = start_fsm(Sup, 5, SessionId, AuthType,
-										OHost, ORealm, [], State),
+								{Fsm, NewState} = start_fsm(Sup, 5, SessionId, AuthType,
+										OHost, ORealm, [], CbFsm, State),
 								Request1 = #diameter_eap_app_DER{'Session-Id' = SessionId,
 										'Auth-Application-Id' = 5, 'Auth-Request-Type' = AuthType,
 										'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 										'Destination-Realm' = <<>>, 'EAP-Payload' = NewEapMessage},
-								Answer3 = gen_fsm:sync_send_event(Fsm1, Request1),
-								{reply, Answer3, NewState};
+								gen_fsm:send_event(Fsm, Request1),
+								%{reply, Answer3, NewState};
+								{noreply, NewState};
 							{error, none} ->
 								NewEapPacket = #eap_packet{code = failure, identifier = EapId},
 								NewEapMessage = ocs_eap_codec:eap_packet(NewEapPacket),
@@ -328,8 +334,9 @@ request1(EapType, OHost, ORealm, Request, #state{handlers = Handlers,
 								'Origin-Host' = OHost, 'Origin-Realm' = ORealm },
 						{reply, Answer, State};
 					{eap, _Eap} ->
-						Answer = gen_fsm:sync_send_event(Fsm, Request),
-						{reply, Answer, State}
+						gen_fsm:send_event(Fsm, Request),
+						%{reply, Answer, State}
+						{noreply, State}
 				end
 		end
 	catch
@@ -343,7 +350,7 @@ request1(EapType, OHost, ORealm, Request, #state{handlers = Handlers,
 
 %% @hidden
 -spec start_fsm(AuthSup, AppId, SessionId, AuthRequestType, OHost,
-		ORealm, Options, State) -> NewState
+		ORealm, Options, CbFsm, State) -> Result
 	when
 		AuthSup :: pid(),
 		AppId :: non_neg_integer(),
@@ -352,12 +359,13 @@ request1(EapType, OHost, ORealm, Request, #state{handlers = Handlers,
 		OHost :: string(),
 		ORealm :: string(),
 		Options :: list(),
+		CbFsm :: pid(),
 		State :: state(),
-		NewState :: state() | {Fsm, State},
+		Result :: {Fsm, State},
 		Fsm :: undefined | pid().
 start_fsm(AuthSup, AppId, SessId, Type, OHost, ORealm,
-			Options, #state{handlers = Handlers, address = Address, port = Port}
-			= State) ->
+		Options, CbFsm, #state{handlers = Handlers, address = Address, port = Port,
+		cb_fsms = FsmHandler} = State) ->
 	StartArgs = [diameter, Address, Port, SessId, AppId, Type, OHost,
 			ORealm, Options],
 	ChildSpec = [StartArgs, []],
@@ -365,7 +373,8 @@ start_fsm(AuthSup, AppId, SessId, Type, OHost, ORealm,
 		{ok, Fsm} ->
 			link(Fsm),
 			NewHandlers = gb_trees:enter(SessId, Fsm, Handlers),
-			{Fsm, State#state{handlers = NewHandlers}};
+			NewFsmHandler = gb_trees:enter(Fsm, CbFsm, FsmHandler),
+			{Fsm, State#state{handlers = NewHandlers, cb_fsms = NewFsmHandler}};
 		{error, Reason} ->
 			error_logger:error_report(["Error starting session handler",
 					{error, Reason}, {supervisor, AuthSup},{session_id, SessId}]),
