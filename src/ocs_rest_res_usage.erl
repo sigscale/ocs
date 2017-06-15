@@ -83,8 +83,8 @@ get_usage(Id, _Query) ->
 %% 	requests.
 get_usagespec() ->
 	Headers = [{content_type, "application/json"}],
-	Body = mochijson:encode({array, [spec_aaa_usage(),
-			spec_aaa_accounting(), spec_public_wlan()]}),
+	Body = mochijson:encode({array, [spec_aaa_auth(),
+			spec_aaa_acct(), spec_public_wlan()]}),
 	{ok, Headers, Body}.
 
 -spec get_usagespec(Id) -> Result
@@ -97,11 +97,11 @@ get_usagespec() ->
 %% 	requests.
 get_usagespec("AAAAccessUsageSpec") ->
 	Headers = [{content_type, "application/json"}],
-	Body = mochijson:encode(spec_aaa_usage()),
+	Body = mochijson:encode(spec_aaa_auth()),
 	{ok, Headers, Body};
 get_usagespec("AAAAccountingUsageSpec") ->
 	Headers = [{content_type, "application/json"}],
-	Body = mochijson:encode(spec_aaa_accounting()),
+	Body = mochijson:encode(spec_aaa_acct()),
 	{ok, Headers, Body};
 get_usagespec("PublicWLANAccessUsageSpec") ->
 	Headers = [{content_type, "application/json"}],
@@ -329,7 +329,7 @@ usage_characteristics([], _Ipdr, Acc) ->
 
 
 %% @hidden
-spec_aaa_usage() ->
+spec_aaa_auth() ->
 	ID = {id, "AAAAccessUsageSpec"},
 	Href = {href, "/usageManagement/v1/usageSpecification/AAAAccessUsageSpec"},
 	Name = {name, "AAAAccessUsageSpec"},
@@ -356,7 +356,7 @@ spec_aaa_usage() ->
 	{struct, [ID, Href, Name, Desc, Valid, Char]}.
 
 %% @hidden
-spec_aaa_accounting() ->
+spec_aaa_acct() ->
 	ID = {id, "AAAAccountingUsageSpec"},
 	Href = {href, "/usageManagement/v1/usageSpecification/AAAAccountingUsageSpec"},
 	Name = {name, "AAAAccountingUsageSpec"},
