@@ -32,6 +32,10 @@
 -include_lib("../include/diameter_gen_nas_application_rfc7155.hrl").
 -include_lib("../include/diameter_gen_cc_application_rfc4006.hrl").
 
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
+
 %%---------------------------------------------------------------------
 %%  Test server callback functions
 %%---------------------------------------------------------------------
@@ -91,7 +95,7 @@ radius_log_auth_event() ->
    [{userdata, [{doc, "Log a RADIUS access request event"}]}].
 
 radius_log_auth_event(_Config) ->
-	Start = erlang:system_time(millisecond),
+	Start = erlang:system_time(?MILLISECOND),
 	Node = node(),
 	ServerAddress = {0, 0, 0, 0},
 	ServerPort = 1812,
@@ -111,7 +115,7 @@ radius_log_auth_event(_Config) ->
 			{?NasIpAddress, ClientAddress}],
 	ResAttrs = [{?SessionTimeout, 3600}, {?MessageAuthenticator, RandomBin}],
 	ok = ocs_log:auth_log(radius, Server, Client, Type, ReqAttrs, ResAttrs),
-	End = erlang:system_time(millisecond),
+	End = erlang:system_time(?MILLISECOND),
 	Fany = fun({TS, _, radius, N, S, C, T, A1, A2}) when TS >= Start, TS =< End,
 					N == Node, S == Server, C == Client, T == Type,
 					A1 == ReqAttrs, A2 == ResAttrs ->
@@ -137,7 +141,7 @@ diameter_log_auth_event() ->
    [{userdata, [{doc, "Log a DIAMETER AAR event"}]}].
 
 diameter_log_auth_event(_Config) ->
-	Start = erlang:system_time(millisecond),
+	Start = erlang:system_time(?MILLISECOND),
 	Protocol = diameter,
 	Node = node(),
 	ServerAddress = {0, 0, 0, 0},
@@ -148,7 +152,7 @@ diameter_log_auth_event(_Config) ->
 	ORealm = "testdomain.com",
 	AuthType = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
 	ResultCode = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-	End = erlang:system_time(millisecond),
+	End = erlang:system_time(?MILLISECOND),
 	ok = ocs_log:auth_log(diameter, Server, Subscriber, OHost, ORealm,
 			AuthType, ResultCode),
 	Fany = fun({TS, _, P, N, S, Sub, OH, OR, AType, RCode}) when P == Protocol,
@@ -176,7 +180,7 @@ radius_log_acct_event() ->
    [{userdata, [{doc, "Log a RADIUS accounting event"}]}].
 
 radius_log_acct_event(_Config) ->
-	Start = erlang:system_time(millisecond),
+	Start = erlang:system_time(?MILLISECOND),
 	Node = node(),
 	ServerAddress = {0, 0, 0, 0},
 	ServerPort = 1813,
@@ -190,7 +194,7 @@ radius_log_acct_event(_Config) ->
 			{?AcctStatusType, 1}, {?NasIdentifier, "ap-1.sigscale.net"},
 			{?AcctDelayTime, 0}, {?NasIpAddress, ClientAddress}],
 	ok = ocs_log:acct_log(radius, Server, Type, ReqAttrs),
-	End = erlang:system_time(millisecond),
+	End = erlang:system_time(?MILLISECOND),
 	Fany = fun({TS, _, radius, N, S, T, A}) when TS >= Start, TS =< End,
 					N == Node, S == Server, T == Type, A == ReqAttrs ->
 				true;
@@ -215,7 +219,7 @@ diameter_log_acct_event() ->
    [{userdata, [{doc, "Log a DIAMETER CCR event"}]}].
 
 diameter_log_acct_event(_Config) ->
-	Start = erlang:system_time(millisecond),
+	Start = erlang:system_time(?MILLISECOND),
 	Protocol = diameter,
 	Node = node(),
 	ServerAddress = {0, 0, 0, 0},
@@ -223,7 +227,7 @@ diameter_log_acct_event(_Config) ->
 	Server = {ServerAddress, ServerPort},
 	RequestType = start,
 	ok = ocs_log:acct_log(diameter, Server, RequestType, #diameter_cc_app_CCR{}),
-	End = erlang:system_time(millisecond),
+	End = erlang:system_time(?MILLISECOND),
 	Fany = fun({TS, _, P, N, S, RType, Attr})
 					when P == Protocol, TS >= Start, TS =< End, N == Node,
 					S == Server, RType == RequestType, is_record(Attr, diameter_cc_app_CCR) ->
@@ -257,7 +261,7 @@ get_range(_Config) ->
 	ClientPort = 59132,
 	Client = {ClientAddress, ClientPort},
 	Type = start,
-	Start = erlang:system_time(millisecond),
+	Start = erlang:system_time(?MILLISECOND),
 	Attrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
 			{?UserName, "BE:EF:CA:FE:FE:DE"},
 			{?CallingStationId, "FE-ED-BE-EF-F1-1D"},
@@ -278,7 +282,7 @@ get_range(_Config) ->
 				F(F, N - 1)
 	end,
 	Fill(Fill, NumItems),
-	End = erlang:system_time(millisecond),
+	End = erlang:system_time(?MILLISECOND),
 	Range = (End - Start),
 	StartRange = Start + (Range div 3),
 	EndRange = End - (Range div 3),
@@ -312,7 +316,7 @@ ipdr_log(_Config) ->
 	ClientAddress = {192, 168, 151, 153},
 	ClientPort = 59132,
 	Client = {ClientAddress, ClientPort},
-	Start = erlang:system_time(millisecond),
+	Start = erlang:system_time(?MILLISECOND),
 	Attrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
 			{?UserName, "BE:EF:CA:FE:FE:DE"},
 			{?CallingStationId, "FE-ED-BE-EF-F1-1D"},
@@ -347,13 +351,13 @@ ipdr_log(_Config) ->
 				F(F, N - 1)
 	end,
 	Fill(Fill, NumItems),
-	End = erlang:system_time(millisecond),
+	End = erlang:system_time(?MILLISECOND),
 	ok = disk_log:sync(ocs_acct),
 	Range = (End - Start),
 	StartRange = Start + (Range div 3),
 	EndRange = End - (Range div 3),
 	{ok, IpdrLogDir} = application:get_env(ocs, ipdr_log_dir),
-	Filename = IpdrLogDir ++ "/ipdr-" ++ ocs_log:iso8601(erlang:system_time(millisecond)),
+	Filename = IpdrLogDir ++ "/ipdr-" ++ ocs_log:iso8601(erlang:system_time(?MILLISECOND)),
 	ok = ocs_log:ipdr_log(Filename, StartRange, EndRange),
 	GetRangeResult = ocs_log:get_range(ocs_acct, StartRange, EndRange),
 	Fstop = fun(E, Acc) when element(5, E) == stop ->
