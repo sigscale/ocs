@@ -337,8 +337,8 @@ spec_aaa_auth() ->
 	Start = {startDateTime, "2017-01-01T00:00:00Z"},
 	End = {endDateTime, "2017-12-31T23:59:59Z"},
 	Valid = {validFor, {struct, [Start, End]}},
-	Chars = [spec_timestamp(), spec_protocol(), spec_node(),
-			spec_server_address(), spec_server_port(), spec_client_address(),
+	Chars = [spec_protocol(), spec_node(), spec_server_address(),
+			spec_server_port(), spec_client_address(),
 			spec_client_port(), spec_type_access(),
 			spec_attr_username(), spec_attr_nas_ip(),
 			spec_attr_nas_port(), spec_attr_service_type(),
@@ -364,8 +364,8 @@ spec_aaa_acct() ->
 	Start = {startDateTime, "2017-01-01T00:00:00Z"},
 	End = {endDateTime, "2017-12-31T23:59:59Z"},
 	Valid = {validFor, {struct, [Start, End]}},
-	Chars = [spec_timestamp(), spec_protocol(), spec_node(),
-			spec_server_address(), spec_server_port(), spec_type_accounting(),
+	Chars = [spec_protocol(), spec_node(), spec_server_address(),
+			spec_server_port(), spec_type_accounting(),
 			spec_attr_username(), spec_attr_nas_ip(), spec_attr_nas_port(),
 			spec_attr_service_type(), spec_attr_framed_address(),
 			spec_attr_framed_netmask(), spec_attr_framed_routing(),
@@ -895,16 +895,6 @@ spec_public_wlan47(Acc) ->
 	Value1 = {struct, [Typ1]},
 	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	[{struct, [Name, Desc, Conf, Value]} | Acc].
-
-%% @hidden
-spec_timestamp() ->
-	Name = {name, "timeStamp"},
-	Desc = {description, "Time and date request was processed by OCS."},
-	Conf = {configurable, true},
-	Typ1 = {valueType, "dateTime"},
-	Value1 = {struct, [Typ1]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
-	{struct, [Name, Desc, Conf, Value]}.
 
 %% @hidden
 spec_protocol() ->
