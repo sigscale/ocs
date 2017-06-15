@@ -48,7 +48,7 @@ content_types_provided() ->
 %% @doc Body producing function for
 %% 	`GET /usageManagement/v1/usage'
 %% 	requests.
-get_usage(_Query) ->
+get_usage([] = _Query) ->
 	{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
 	case file:list_dir(Directory) of
 		{ok, Files} ->
@@ -58,6 +58,19 @@ get_usage(_Query) ->
 			{ok, Headers, Body};
 		{error, _Reason} ->
 			{error, 500}
+	end;
+get_usage([{type, "AAAAccessUsageSpec"} | T]) ->
+	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
+	case ocs_log:last(ocs_auth, MaxItems) of
+		{error, _} ->
+			{error, 404};
+		{NewCount, Events} ->
+			JsonObj = usage_aaa_auth(Events),
+			JsonArray = {array, JsonObj},
+			Body = mochijson:encode(JsonArray),
+			ContentRange = "items 1-" ++ integer_to_list(NewCount) ++ "/*",
+			Headers = [{content_range, ContentRange}],
+			{ok, Headers, Body}
 	end.
 
 -spec get_usage(Id, Query) -> Result
@@ -327,6 +340,37 @@ usage_characteristics([tempUserId | T], Ipdr, Acc) ->
 usage_characteristics([], _Ipdr, Acc) ->
 	lists:reverse(Acc).
 
+%% @hidden
+usage_aaa_auth(Events) ->
+	UsageSpec = {{"id", "AAAAccessUsageSpec"},
+			{"href", "/usageManagement/v1/usageSpecification/AAAAccessUsageSpec"},
+			{name, "AAAAccessUsageSpec"}},
+	Type = "AAAAccessUsageSpec",
+	Status = "received",
+	F = fun({Milliseconds, N, P, Node, Server, Client,
+					Type, ReqAttrs, _RespAttrs},  Acc) ->
+				ID = "access-" ++ integer_to_list(Milliseconds)
+						++ integer_to_list(N),
+				Href = "/usageManagement/v1/usage/" ++ ID,
+				Date = ocs_log:iso8601(Milliseconds),
+				Protocol = case P of
+					radius ->
+						"RADIUS";
+					diameter ->
+						"DIAMETER"
+				end,
+				UsageChars = [{struct, [{name, "protocol"}, {"value", Protocol}]},
+						{struct, [{"name", ""}, {"value", ""}]}],
+				JsonObj = {struct, [{"id", ID}, {"href", Href},
+						{"date", Date}, {"type", Type}, {"status", Status},
+						{"usageSpecification", UsageSpec},
+						{"usageCharacteristic", {array, UsageChars}}]},
+				[JsonObj | Acc];
+		(_, Acc) ->
+				%% TODO support for DIAMETER
+				Acc
+	end,
+	lists:reverse(lists:foldl(F, [], Events)).
 
 %% @hidden
 spec_aaa_auth() ->
