@@ -72,7 +72,8 @@
 		auth_app_id :: undefined | integer(),
 		auth_req_type :: undefined | integer(),
 		origin_host :: undefined | binary(),
-		origin_realm :: undefined | binary()}).
+		origin_realm :: undefined | binary(),
+		diameter_port_server :: pid()}).
 -type statedata() :: #statedata{}.
 
 -define(TIMEOUT, 30000).
@@ -111,12 +112,17 @@ init([radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
 init([diameter, ServerAddress, ServerPort, SessionId, ApplicationId,
 		AuthType, OHost, ORealm, _Options] = _Args) ->
 	{ok, Hostname} = inet:gethostname(),
-	StateData = #statedata{server_address = ServerAddress,
-			server_port = ServerPort, session_id = SessionId, server_id = list_to_binary(Hostname),
-			auth_app_id = ApplicationId, auth_req_type = AuthType, origin_host = OHost,
-			origin_realm = ORealm},
-	process_flag(trap_exit, true),
-	{ok, eap_start, StateData}.
+	case global:whereis_name({ocs_diameter_auth, ServerAddress, ServerPort}) of
+		undefined ->
+			{stop, ocs_diameter_auth_port_server_not_found};
+		PortServer ->
+			StateData = #statedata{server_address = ServerAddress,
+					server_port = ServerPort, session_id = SessionId, server_id = list_to_binary(Hostname),
+					auth_app_id = ApplicationId, auth_req_type = AuthType, origin_host = OHost,
+					origin_realm = ORealm, diameter_port_server = PortServer},
+			process_flag(trap_exit, true),
+			{ok, eap_start, StateData}
+		end.
 
 -spec eap_start(Event, StateData) -> Result
 	when
