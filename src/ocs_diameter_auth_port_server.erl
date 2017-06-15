@@ -276,7 +276,8 @@ request1(EapType, OHost, ORealm, Request, #state{handlers = Handlers,
 						Answer = gen_fsm:sync_send_event(Fsm, Request),
 						{reply, Answer, NewState};
 					none ->
-						#diameter_nas_app_AAR{'User-Name' = [UserName], 'User-Password' = [Password]} = Request,
+						#diameter_nas_app_AAR{'User-Name' = [UserName],
+								'User-Password' = [Password]} = Request,
 						SimpleAuthSup = State#state.simple_auth_sup,
 						case {UserName, Password} of
 							{UserName, Password} when (UserName /= undefined andalso
@@ -335,7 +336,8 @@ request1(EapType, OHost, ORealm, Request, #state{handlers = Handlers,
 		_:_ ->
 			Error = #diameter_nas_app_AAA{
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-					'Origin-Host' = OHost, 'Origin-Realm' = ORealm, 'Session-Id' = SessionId},
+					'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+					'Session-Id' = SessionId},
 			{reply, Error, State}
 	end.
 
@@ -354,7 +356,8 @@ request1(EapType, OHost, ORealm, Request, #state{handlers = Handlers,
 		NewState :: state() | {Fsm, State},
 		Fsm :: undefined | pid().
 start_fsm(AuthSup, AppId, SessId, Type, OHost, ORealm,
-			Options, #state{handlers = Handlers, address = Address, port = Port} = State) ->
+			Options, #state{handlers = Handlers, address = Address, port = Port}
+			= State) ->
 	StartArgs = [diameter, Address, Port, SessId, AppId, Type, OHost,
 			ORealm, Options],
 	ChildSpec = [StartArgs, []],
@@ -366,10 +369,6 @@ start_fsm(AuthSup, AppId, SessId, Type, OHost, ORealm,
 		{error, Reason} ->
 			error_logger:error_report(["Error starting session handler",
 					{error, Reason}, {supervisor, AuthSup},{session_id, SessId}]),
-		%	Answer = #diameter_nas_app_AAA{'Session-Id' = SessId,
-		%			'Auth-Application-Id' = 1, 'Auth-Request-Type' = 1,
-		%			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-		%			'Origin-Host' = OHost, 'Origin-Realm' = ORealm },
 			{undefined, State}
 	end.
 
@@ -397,7 +396,6 @@ get_attibutes(Request) when is_record(Request, diameter_eap_app_DER) ->
 		State :: state(),
 		Result :: {ok, SupervisorModule} | {error, none},
 		SupervisorModule :: pid().
-
 get_alternate(PreferenceOrder, AlternateMethods, State)
 		when is_binary(AlternateMethods) ->
 	get_alternate(PreferenceOrder,
