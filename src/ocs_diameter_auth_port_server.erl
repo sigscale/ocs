@@ -275,7 +275,7 @@ request1(EapType, OHost, ORealm, Request, CbFsm, #state{handlers = Handlers,
 					{_, _Identity} when MethodPrefer == pwd ->
 						PwdSup = State#state.pwd_sup,
 						{Fsm, NewState} = start_fsm(PwdSup, 5, SessionId, AuthType, OHost,
-								ORealm, [], CbFsm, State),
+								ORealm, [], CbFsm, Request, State),
 						gen_fsm:send_event(Fsm, Request),
 						%{reply, Answer, NewState};
 						{noreply, NewState};
@@ -287,7 +287,7 @@ request1(EapType, OHost, ORealm, Request, CbFsm, #state{handlers = Handlers,
 							{UserName, Password} when (UserName /= undefined andalso
 									Password /= undefined) ->
 								{Fsm, NewState} = start_fsm(SimpleAuthSup, 1, SessionId, AuthType,
-										OHost, ORealm, [UserName, Password], CbFsm, State),
+										OHost, ORealm, [UserName, Password], CbFsm, Request, State),
 								gen_fsm:send_all_state_event(Fsm, diameter_request),
 								%{reply, Answer, NewState};
 								{noreply, NewState};
@@ -309,7 +309,7 @@ request1(EapType, OHost, ORealm, Request, CbFsm, #state{handlers = Handlers,
 										type = ?Identity, identifier = EapId, data = <<>>},
 								NewEapMessage = ocs_eap_codec:eap_packet(NewEapPacket),
 								{Fsm, NewState} = start_fsm(Sup, 5, SessionId, AuthType,
-										OHost, ORealm, [], CbFsm, State),
+										OHost, ORealm, [], CbFsm, Request, State),
 								Request1 = #diameter_eap_app_DER{'Session-Id' = SessionId,
 										'Auth-Application-Id' = 5, 'Auth-Request-Type' = AuthType,
 										'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
@@ -350,7 +350,7 @@ request1(EapType, OHost, ORealm, Request, CbFsm, #state{handlers = Handlers,
 
 %% @hidden
 -spec start_fsm(AuthSup, AppId, SessionId, AuthRequestType, OHost,
-		ORealm, Options, CbFsm, State) -> Result
+		ORealm, Options, CbFsm, Request, State) -> Result
 	when
 		AuthSup :: pid(),
 		AppId :: non_neg_integer(),
@@ -360,14 +360,15 @@ request1(EapType, OHost, ORealm, Request, CbFsm, #state{handlers = Handlers,
 		ORealm :: string(),
 		Options :: list(),
 		CbFsm :: pid(),
+		Request :: #diameter_nas_app_AAR{} | #diameter_eap_app_DER{},
 		State :: state(),
 		Result :: {Fsm, State},
 		Fsm :: undefined | pid().
 start_fsm(AuthSup, AppId, SessId, Type, OHost, ORealm,
-		Options, CbFsm, #state{handlers = Handlers, address = Address, port = Port,
+		Options, CbFsm, Request, #state{handlers = Handlers, address = Address, port = Port,
 		cb_fsms = FsmHandler} = State) ->
 	StartArgs = [diameter, Address, Port, SessId, AppId, Type, OHost,
-			ORealm, Options],
+			ORealm, Request, Options],
 	ChildSpec = [StartArgs, []],
 	case supervisor:start_child(AuthSup, ChildSpec) of
 		{ok, Fsm} ->

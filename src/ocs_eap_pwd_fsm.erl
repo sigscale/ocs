@@ -47,7 +47,7 @@
 		radius_fsm :: undefined | pid(),
 		session_id:: string() | {NAS :: inet:ip_address() | string(),
 				Port :: string(), Peer :: string()},
-		start :: undefined | #diameter_eap_app_DER{} | #radius{},
+		start :: #diameter_eap_app_DER{} | #radius{},
 		eap_id = 0 :: byte(),
 		group_desc  = 19 :: byte(),
 		rand_func = 1 :: byte(),
@@ -110,7 +110,7 @@ init([radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
 	process_flag(trap_exit, true),
 	{ok, eap_start, StateData, 0};
 init([diameter, ServerAddress, ServerPort, SessionId, ApplicationId,
-		AuthType, OHost, ORealm, _Options] = _Args) ->
+		AuthType, OHost, ORealm, Request, _Options] = _Args) ->
 	{ok, Hostname} = inet:gethostname(),
 	case global:whereis_name({ocs_diameter_auth, ServerAddress, ServerPort}) of
 		undefined ->
@@ -119,7 +119,7 @@ init([diameter, ServerAddress, ServerPort, SessionId, ApplicationId,
 			StateData = #statedata{server_address = ServerAddress,
 					server_port = ServerPort, session_id = SessionId, server_id = list_to_binary(Hostname),
 					auth_app_id = ApplicationId, auth_req_type = AuthType, origin_host = OHost,
-					origin_realm = ORealm, diameter_port_server = PortServer},
+					origin_realm = ORealm, diameter_port_server = PortServer, start = Request},
 			process_flag(trap_exit, true),
 			{ok, eap_start, StateData}
 		end.
