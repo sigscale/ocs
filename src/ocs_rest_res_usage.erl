@@ -48,7 +48,7 @@ content_types_provided() ->
 %% @doc Body producing function for
 %% 	`GET /usageManagement/v1/usage'
 %% 	requests.
-get_usage(_Query) ->
+get_usage([] = _Query) ->
 	{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
 	case file:list_dir(Directory) of
 		{ok, Files} ->
@@ -58,6 +58,19 @@ get_usage(_Query) ->
 			{ok, Headers, Body};
 		{error, _Reason} ->
 			{error, 500}
+	end;
+get_usage([{type, "AAAAccessUsageSpec"} | T]) ->
+	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
+	case ocs_log:last(ocs_auth, MaxItems) of
+		{error, _} ->
+			{error, 404};
+		{NewCount, Events} ->
+			JsonObj = usage_aaa_auth(Events),
+			JsonArray = {array, JsonObj},
+			Body = mochijson:encode(JsonArray),
+			ContentRange = "items 1-" ++ integer_to_list(NewCount) ++ "/*",
+			Headers = [{content_range, ContentRange}],
+			{ok, Headers, Body}
 	end.
 
 -spec get_usage(Id, Query) -> Result
@@ -83,8 +96,8 @@ get_usage(Id, _Query) ->
 %% 	requests.
 get_usagespec() ->
 	Headers = [{content_type, "application/json"}],
-	Body = mochijson:encode({array, [spec_aaa_usage(),
-			spec_aaa_accounting(), spec_public_wlan()]}),
+	Body = mochijson:encode({array, [spec_aaa_auth(),
+			spec_aaa_acct(), spec_public_wlan()]}),
 	{ok, Headers, Body}.
 
 -spec get_usagespec(Id) -> Result
@@ -97,11 +110,11 @@ get_usagespec() ->
 %% 	requests.
 get_usagespec("AAAAccessUsageSpec") ->
 	Headers = [{content_type, "application/json"}],
-	Body = mochijson:encode(spec_aaa_usage()),
+	Body = mochijson:encode(spec_aaa_auth()),
 	{ok, Headers, Body};
 get_usagespec("AAAAccountingUsageSpec") ->
 	Headers = [{content_type, "application/json"}],
-	Body = mochijson:encode(spec_aaa_accounting()),
+	Body = mochijson:encode(spec_aaa_acct()),
 	{ok, Headers, Body};
 get_usagespec("PublicWLANAccessUsageSpec") ->
 	Headers = [{content_type, "application/json"}],
@@ -327,9 +340,40 @@ usage_characteristics([tempUserId | T], Ipdr, Acc) ->
 usage_characteristics([], _Ipdr, Acc) ->
 	lists:reverse(Acc).
 
+%% @hidden
+usage_aaa_auth(Events) ->
+	UsageSpec = {{"id", "AAAAccessUsageSpec"},
+			{"href", "/usageManagement/v1/usageSpecification/AAAAccessUsageSpec"},
+			{name, "AAAAccessUsageSpec"}},
+	Type = "AAAAccessUsageSpec",
+	Status = "received",
+	F = fun({Milliseconds, N, P, Node, Server, Client,
+					Type, ReqAttrs, _RespAttrs},  Acc) ->
+				ID = "access-" ++ integer_to_list(Milliseconds)
+						++ integer_to_list(N),
+				Href = "/usageManagement/v1/usage/" ++ ID,
+				Date = ocs_log:iso8601(Milliseconds),
+				Protocol = case P of
+					radius ->
+						"RADIUS";
+					diameter ->
+						"DIAMETER"
+				end,
+				UsageChars = [{struct, [{name, "protocol"}, {"value", Protocol}]},
+						{struct, [{"name", ""}, {"value", ""}]}],
+				JsonObj = {struct, [{"id", ID}, {"href", Href},
+						{"date", Date}, {"type", Type}, {"status", Status},
+						{"usageSpecification", UsageSpec},
+						{"usageCharacteristic", {array, UsageChars}}]},
+				[JsonObj | Acc];
+		(_, Acc) ->
+				%% TODO support for DIAMETER
+				Acc
+	end,
+	lists:reverse(lists:foldl(F, [], Events)).
 
 %% @hidden
-spec_aaa_usage() ->
+spec_aaa_auth() ->
 	ID = {id, "AAAAccessUsageSpec"},
 	Href = {href, "/usageManagement/v1/usageSpecification/AAAAccessUsageSpec"},
 	Name = {name, "AAAAccessUsageSpec"},
@@ -337,8 +381,8 @@ spec_aaa_usage() ->
 	Start = {startDateTime, "2017-01-01T00:00:00Z"},
 	End = {endDateTime, "2017-12-31T23:59:59Z"},
 	Valid = {validFor, {struct, [Start, End]}},
-	Chars = [spec_timestamp(), spec_protocol(), spec_node(),
-			spec_server_address(), spec_server_port(), spec_client_address(),
+	Chars = [spec_protocol(), spec_node(), spec_server_address(),
+			spec_server_port(), spec_client_address(),
 			spec_client_port(), spec_type_access(),
 			spec_attr_username(), spec_attr_nas_ip(),
 			spec_attr_nas_port(), spec_attr_service_type(),
@@ -356,7 +400,7 @@ spec_aaa_usage() ->
 	{struct, [ID, Href, Name, Desc, Valid, Char]}.
 
 %% @hidden
-spec_aaa_accounting() ->
+spec_aaa_acct() ->
 	ID = {id, "AAAAccountingUsageSpec"},
 	Href = {href, "/usageManagement/v1/usageSpecification/AAAAccountingUsageSpec"},
 	Name = {name, "AAAAccountingUsageSpec"},
@@ -364,8 +408,8 @@ spec_aaa_accounting() ->
 	Start = {startDateTime, "2017-01-01T00:00:00Z"},
 	End = {endDateTime, "2017-12-31T23:59:59Z"},
 	Valid = {validFor, {struct, [Start, End]}},
-	Chars = [spec_timestamp(), spec_protocol(), spec_node(),
-			spec_server_address(), spec_server_port(), spec_type_accounting(),
+	Chars = [spec_protocol(), spec_node(), spec_server_address(),
+			spec_server_port(), spec_type_accounting(),
 			spec_attr_username(), spec_attr_nas_ip(), spec_attr_nas_port(),
 			spec_attr_service_type(), spec_attr_framed_address(),
 			spec_attr_framed_netmask(), spec_attr_framed_routing(),
@@ -895,16 +939,6 @@ spec_public_wlan47(Acc) ->
 	Value1 = {struct, [Typ1]},
 	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	[{struct, [Name, Desc, Conf, Value]} | Acc].
-
-%% @hidden
-spec_timestamp() ->
-	Name = {name, "timeStamp"},
-	Desc = {description, "Time and date request was processed by OCS."},
-	Conf = {configurable, true},
-	Typ1 = {valueType, "dateTime"},
-	Value1 = {struct, [Typ1]},
-	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
-	{struct, [Name, Desc, Conf, Value]}.
 
 %% @hidden
 spec_protocol() ->

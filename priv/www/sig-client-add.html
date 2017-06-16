@@ -1,4 +1,6 @@
 <link rel="import" href="polymer/polymer.html">
+<link rel="import" href="i18n-msg/i18n-msg.html">
+<link rel="import" href="i18n-msg/i18n-msg-behavior.html">
 <link rel="import" href="iron-form/iron-form.html">
 <link rel="import" href="iron-ajax/iron-ajax.html">
 <link rel="import" href="paper-dialog/paper-dialog.html">
@@ -18,6 +20,9 @@
 		paper-dialog {
 			padding: 10px;
 			overflow: auto;
+		}
+		paper-item {
+			padding-right: 10px;
 		}
 		paper-toolbar{
 			color: white;
@@ -63,7 +68,7 @@
 	<template>
 		<paper-dialog id="clientAddModal" modal>
 			<paper-toolbar>
-				<h2>Add Client</h2>
+				<h2>"[[i18n.addClient]]"</h2>
 			</paper-toolbar>
 			<form
 					is="iron-form"
@@ -73,29 +78,33 @@
 				<paper-input
 						id="add-client1"
 						name="address"
-						label="IP Address"
+						label="[[i18n.ipAddress]]"
 						allowed-pattern="[0-9\.]"
 						required>
 				</paper-input>
 				<paper-tooltip >
-					IP address of network access server, router or access point
+					<i18n-msg msgid="ipTooltip">
+						IP address of network access server, router or access point
+					</i18n-msg>
 				</paper-tooltip>
 				<paper-input
 						id="add-client2"
 						name="port"
-						label="Listen Port"
+						label="[[i18n.listen]]"
 						type="number"
 						value=3799>
 				</paper-input>
 				<paper-tooltip>
-					Port network access server, router or access point listens on
+					<i18n-msg msgid="listenTooltip">
+						Port network access server, router or access point listens on
+					</i18n-msg>
 				</paper-tooltip>
 				<div>
 					<paper-input
 							id="add-client4"
 							class="secret"
 							name="secret"
-							label="Secret">
+							label="[[i18n.secret]]">
 					</paper-input>
 					<paper-tooltip>
 						Secret, or password, shared with the network access server, router or access point.
@@ -104,22 +113,28 @@
 						<paper-checkbox
 							id="check"
 							on-change="checkboxchanged">
-							Generate
+							<i18n-msg msgid="gen">
+								Generate
+							</i18n-msg>
 						</paper-checkbox>
 					</div>
 				</div>
 				<paper-dropdown-menu
 						id="add-client3"
-						label="Protocol">
+						label="[[i18n.proto]]">
 					<paper-listbox
 							slot="dropdown-content"
 							class="dropdown-content"
 							selected="0">
 						<paper-item value="RADIUS">
-							RADIUS
+							<i18n-msg msgid="radius">
+								RADIUS
+							</i18n-msg>
 						</paper-item>
 						<paper-item value="DIAMETER">
-							DIAMETER
+							<i18n-msg msgid="diameter">
+								DIAMETER
+							</i18n-msg>
 						</paper-item>
 					</paper-listbox>
 				</paper-dropdown-menu>
@@ -128,28 +143,36 @@
 							raised
 							class="add-button"
 							onclick="_submitClientForm()">
-						Submit
+						<i18n-msg msgid="submit">
+							Submit
+						</i18n-msg>
 					</paper-button>
 					<paper-button
 							class="cancel-button"
 							dialog-confirm
 							autofocus
 							onclick="clientAddModal.close()">
-						Cancel
+						<i18n-msg msgid="cancel">
+							Cancel
+						</i18n-msg>
 					</paper-button>
 				</div>
 			</form>
 				<paper-toast id="toastSuccess" class="fit-bottom">
-					<h2>client added</h2>
+					<h2>"[[i18n.clientAdded]]"</h2>
 				</paper-toast>
 		</paper-dialog>
 		<paper-dialog id="clientSecretModal" class="generated" modal>
 			<paper-toolbar>
-				<h2>Server Generated</h2>
+				<h2>"[[i18n.serverGen]]"</h2>
 			</paper-toolbar>
-				<paper-item>Secret: &nbsp<b>[[secret]]</b></paper-item>
+				<paper-item>"[[i18n.secretCol]]"<b>[[secret]]</b></paper-item>
 				<div class="close">
-					<paper-button dialog-confirm autofocus>Close</paper-button>
+					<paper-button dialog-confirm autofocus>
+						<i18n-msg msgid="close">
+							Close
+						</i18n-msg>
+					</paper-button>
 				</div>
 		</paper-dialog>
 		<iron-ajax
@@ -171,6 +194,7 @@
 		Polymer (
 			{
 				is: 'sig-client-add',
+				behaviors: [i18nMsgBehavior],
 				properties: {
 					secret: String
 				},

@@ -1,4 +1,6 @@
 <link rel="import" href="polymer/polymer.html">
+<link rel="import" href="i18n-msg/i18n-msg.html">
+<link rel="import" href="i18n-msg/i18n-msg-behavior.html">
 <link rel="import" href="paper-dialog/paper-dialog.html">
 <link rel="import" href="paper-tabs/paper-tabs.html">
 <link rel="import" href="paper-input/paper-input.html">
@@ -40,59 +42,71 @@
 				modal>
 			<paper-tabs selected="{{selected}}">
 				<paper-tab id="authenticate-client">
-					<h2>Authentication</h2>
+					<h2>"[[i18n.AuthTitle]]"</h2>
 				</paper-tab>
 				 <paper-tab id="authorize-client">
-					<h2>Properties</h2>
+					<h2>"[[i18n.propTitle]]</h2>
 				</paper-tab>
 			</paper-tabs>
 			<paper-tooltip for="authenticate-client">
-				Credentials used to authenticate network access server, router or access point.
+				<i18n-msg msgid="authClientTool">
+					Credentials used to authenticate network access server, router or access point.
+				</i18n-msg>
 			</paper-tooltip>
 			<paper-tooltip for="authorize-client">
-				Properties of network access server, router or access pointor client.
+				<i18n-msg msgid="authorClientTool">
+					Properties of network access server, router or access pointor client.
+				</i18n-msg>
 			</paper-tooltip>
 			<iron-pages selected="{{selected}}">
 				<div id="edit-client-password">
 						<paper-input
 								id="edit-client-id1"
 								name="id"
-								label="Address"
+								label="[[i18n.address]]"
 								disabled>
 						</paper-input>
 						<paper-input
 								id="edit-client-pwd"
 								name="password"
-								label="Secret"
+								label="[[i18n.secret]]"
 								disabled>
 						</paper-input>
 						<paper-input
 								id="edit-client-new-pwd"
 								name="secret"
-								label="New Secret">
+								label="[[i18n.newpass]]">
 						</paper-input>
 						<paper-tooltip>
-							Secret, or password, shared with the network access server, router or access point.
+							<i18n-msg msgid="newSecretClientTool">
+								Secret, or password, shared with the network access server, router or access point.
+							</i18n-msg>
 						</paper-tooltip>
 					<div class="buttons">
 						<paper-button
 								onclick="clientUpdateModal.close()"
 								class="cancel-btn">
-							Cancel
+							<i18n-msg msgid="cancel">
+								Cancel
+							</i18n-msg>
 						</paper-button>
 						<paper-button
 								dialog-confirm
 								autofocus
 								on-click="updateClientAuthen"
 								class="update-buttons">
-							Update
+							<i18n-msg msgid="update">
+								Update
+							</i18n-msg>
 						</paper-button>
 						<paper-button
 								toggles
 								raised
 								on-click="deleteClient"
 								class="delete-buttons">
-							Delete
+							<i18n-msg msgid="delete">
+								Delete
+							</i18n-msg>
 						</paper-button>
 					</div>
 				</div>
@@ -100,53 +114,63 @@
 						<paper-input
 								id="edit-client-id2"
 								name="id"
-								label="IP Address"
+								label="[[i18n.ipAddress]]"
 								disabled>
 						</paper-input>
 						<paper-input
 								id="edit-client-disc-port"
 								name="port"
-								label="Port"
+								label="[[i18n.port]]"
 								type="number">
 						</paper-input>
 						<paper-tooltip>
-							Port network access server, router or access point listens on
+							<i18n-msg msgid="portTool">
+								Port network access server, router or access point listens on
+							</i18n-msg>
 						</paper-tooltip>
 						<paper-dropdown-menu
 								id="edit-client-protocol"
-								label="Protocol"
+								label="[[i18n.proto]]"
 								type="number"
 								selected-item-label="{{selectedItem}}">
 							<paper-listbox
 									id="protocol-menu"
 									class="dropdown-content"
 									selected="0">
-								<paper-item>RADIUS</paper-item>
-								<paper-item>DIAMETER</paper-item>
+								<paper-item>[[i18n.radius]]</paper-item>
+								<paper-item>[[i18n.diameter]]</paper-item>
 							</paper-listbox>
 						</paper-dropdown-menu>
 						<paper-tooltip>
-							Protocol used by network access server, router or access point.
+							<i18n-msg msgid="protoTool">
+								Protocol used by network access server, router or access point.
+							</i18n-msg>
 						</paper-tooltip>
 					<div class="buttons">
 						<paper-button
 								onclick="clientUpdateModal.close()"
 								class="cancel-btn">
-							Cancel
+							<i18n-msg msgid="cancel">
+								Cancel
+							</i18n-msg>
 						</paper-button>
 						<paper-button
 								dialog-confirm
 								autofocus
 								on-click="_updateClientProperties"
 								class="update-buttons">
-							Update
+							<i18n-msg msgid="update">
+								Update
+							</i18n-msg>
 						</paper-button>
 						<paper-button
 								toggles
 								raised
 								on-click="deleteClient"
 								class="delete-buttons">
-							Delete
+							<i18n-msg msgid="delete">
+								Delete
+							</i18n-msg>
 						</paper-button>
 					</div>
 				</div>
@@ -175,6 +199,7 @@
 		Polymer (
 			{
 				is: 'sig-client-update',
+				behaviors: [i18nMsgBehavior],
 				properties: {
 					selected: {
 						type: Number,

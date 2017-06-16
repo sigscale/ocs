@@ -57,7 +57,7 @@
 				on-response="getLogsResponse"
 				debounce-duration="300">
 		</iron-ajax>
-		<iron-ajax id="getLogContentAjax"
+		<iron-ajax id="getIpdr"
 				headers='{"Accept": "application/json"}'
 				on-loading-changed="_onLoadingChanged"
 				on-response="getLogContentResponse"
@@ -71,7 +71,7 @@
 				listeners: {
 				},
 				getLogContent: function (event) {
-					var searchAjax = this.$.getLogContentAjax;
+					var searchAjax = this.$.getIpdr;
 					searchAjax,method = "GET";
 					searchAjax.url = "/usageManagement/v1/usage/" + event.model.item;
 					searchAjax.generateRequest();
@@ -80,7 +80,7 @@
 					this.$.logFiles.items = event.detail.response;
 				},
 				_onLoadingChanged: function(event) {
-					if (document.getElementById("getLogContentAjax").loading) {
+					if (document.getElementById("getIpdr").loading) {
 						document.getElementById("progress").disabled = false;
 					} else {
 						document.getElementById("progress").disabled = true;

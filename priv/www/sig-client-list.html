@@ -2,6 +2,7 @@
 <link rel="import" href="vaadin-grid/vaadin-grid.html">
 <link rel="import" href="vaadin-grid/vaadin-grid-sorter.html">
 <link rel="import" href="vaadin-grid/vaadin-grid-filter.html">
+<link rel="import" href="i18n-msg/i18n-msg-behavior.html">
 <link rel="import" href="iron-ajax/iron-ajax.html">
 <link rel="import" href="paper-fab/paper-fab.html" >
 <link rel="import" href="paper-toast/paper-toast.html">
@@ -56,8 +57,8 @@
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
 					<vaadin-grid-sorter path="id">
-						<vaadin-grid-filter aria-label="Address" path="id" value="[[_filterAddress]]">
-							<input placeholder="Address" value="{{_filterAddress::input}}" focus-target>
+						<vaadin-grid-filter aria-label="[[i18n.address]]" path="id" value="[[_filterAddress]]">
+							<input placeholder="[[i18n.address]]" value="{{_filterAddress::input}}" focus-target>
 						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
@@ -66,8 +67,8 @@
 			<vaadin-grid-column width="20ex" flex-grow="5">
 				<template class="header">
 					<vaadin-grid-sorter path="identifier">
-						<vaadin-grid-filter aria-label="Identifier" path="identifier" value="[[_filterIdentifier]]">
-							<input placeholder="Identifier" value="{{_filterIdentifier::input}}" focus-target>
+						<vaadin-grid-filter aria-label="[[i18n.identify]]" path="identifier" value="[[_filterIdentifier]]">
+							<input placeholder="[[i18n.identify]]" value="{{_filterIdentifier::input}}" focus-target>
 						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
@@ -76,8 +77,8 @@
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
 					<vaadin-grid-sorter path="secret">
-						<vaadin-grid-filter aria-label="Secret" path="secret" value="[[_filterSecret]]">
-							<input placeholder="Secret" value="{{_filterSecret::input}}" focus-target>
+						<vaadin-grid-filter aria-label="[[i18n.secret]]" path="secret" value="[[_filterSecret]]">
+							<input placeholder="[[i18n.secret]]" value="{{_filterSecret::input}}" focus-target>
 						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
@@ -86,8 +87,8 @@
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
 					<vaadin-grid-sorter path="port">
-						<vaadin-grid-filter aria-label="ListenPort" path="port" value="[[_filterPort]]">
-							<input placeholder="Listen Port" value="{{_filterPort::input}}" focus-target>
+						<vaadin-grid-filter aria-label="[[i18n.listen]]" path="port" value="[[_filterPort]]">
+							<input placeholder="[[i18n.listen]]" value="{{_filterPort::input}}" focus-target>
 						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
@@ -96,8 +97,8 @@
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
 					<vaadin-grid-sorter path="protocol" >
-						<vaadin-grid-filter aria-label="Protocol" path="protocol" value="[[_filterProtocol]]">
-							<input placeholder="Protocol" value="{{_filterProtocol::input}}" focus-target>
+						<vaadin-grid-filter aria-label="[[i18n.proto]]" path="protocol" value="[[_filterProtocol]]">
+							<input placeholder="[[i18n.proto]]" value="{{_filterProtocol::input}}" focus-target>
 						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
@@ -130,13 +131,14 @@
 		Polymer (
 			{
 				is: 'sig-client-list',
+				behaviors: [i18nMsgBehavior],
 				properties: {
 					activeItem: {
 						observer: '_activeItemChanged'
-               }
-            },
+					}
+				},
 				_activeItemChanged: function(item) {
-               if (item != null){
+					if (item != null){
 					var grid = this.$.clientGrid;
 					grid.selectedItems = item ? [item] : [];
 					var modal = document.getElementById("clientUpdateModal");
