@@ -131,7 +131,7 @@ all() ->
 	get_subscriber_not_found, retrieve_all_subscriber, delete_subscriber,
 	add_client, add_client_without_password, get_client, get_client_id,
 	get_client_bogus, get_client_notfound, get_all_clients, delete_client,
-	get_usagespecs, get_usagespec, get_usage].
+	get_usagespecs, get_usagespec, get_auth_usage, get_ipdr_usage].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -707,7 +707,7 @@ get_usagespecs(Config) ->
 	{_, _} = lists:keyfind("usageSpecCharacteristic", 1, UsageSpec).
 
 get_usagespec() ->
-	[{userdata, [{doc,"Get a usageSpecification"}]}].
+	[{userdata, [{doc,"Get a TMF635 usage specification"}]}].
 
 get_usagespec(Config) ->
 	HostUrl = ?config(host_url, Config),
@@ -745,10 +745,10 @@ get_usagespec(Config) ->
 	end,
 	lists:foreach(F2, Uris).
 
-get_usage() ->
-	[{userdata, [{doc,"Get usage in rest interface"}]}].
+get_auth_usage() ->
+	[{userdata, [{doc,"Get a TMF635 auth usage"}]}].
 
-get_usage(Config) ->
+get_auth_usage(Config) ->
 	HostUrl = ?config(host_url, Config),
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
@@ -757,13 +757,140 @@ get_usage(Config) ->
 	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	AuthKey = "Basic " ++ Encodekey,
 	Authentication = {"authorization", AuthKey},
-	Request2 = {HostUrl ++ "/usageManagement/v1/usage", [Accept, Authentication]},
-	{ok, Result1} = httpc:request(get, Request2, [], []),
-	{{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
-	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers1),
-	ContentLength = integer_to_list(length(Body1)),
-	{_, ContentLength} = lists:keyfind("content-length", 1, Headers1),
-	{_, {array, [{struct, Usage}]}} = mochijson:decode(Body1),
+	RequestUri = HostUrl ++ "/usageManagement/v1/usage?type=AAAAccessUsage",
+	Request = {RequestUri, [Accept, Authentication]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
+	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(Body)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, {array, [{struct, Usage}]}} = mochijson:decode(Body),
+	{_, _} = lists:keyfind("id", 1, Usage),
+	{_, _} = lists:keyfind("href", 1, Usage),
+	{_, _} = lists:keyfind("date", 1, Usage),
+	{_, "AAAAccessUsage"} = lists:keyfind("type", 1, Usage),
+	{_, _} = lists:keyfind("description", 1, Usage),
+	{_, "recieved"} = lists:keyfind("status", 1, Usage),
+	{struct, UsageSpecification} = lists:keyfind("usageSpecification", 1, Usage),
+	{_, _} = lists:keyfind("id", 1, UsageSpecification),
+	{_, _} = lists:keyfind("href", 1, UsageSpecification),
+	{_, "AAAAccessUsageSpec"} = lists:keyfind("name", 1, UsageSpecification),
+	{array, UsageCharacteristic} = lists:keyfind("usageCharacteristic", 1, Usage),
+	F = fun({struct, [{"name", "protocol"}, {"value", Protocol}]})
+					when Protocol == "RADIUS"; Protocol == "DIAMETER" ->
+				true;
+			({struct, [{"name", "node"}, {"value", Node}]}) when is_list(Node) ->
+				true;
+			({struct, [{"name", "serverAddress"}, {"value", Address}]}) when is_list(Address) ->
+				true;
+			({struct, [{"name", "serverPort"}, {"value", Port}]}) when is_integer(Port) ->
+				true;
+			({struct, [{"name", "clientAddress"}, {"value", Address}]}) when is_list(Address) ->
+				true;
+			({struct, [{"name", "clientPort"}, {"value", Port}]}) when is_integer(Port) ->
+				true;
+			({struct, [{"name", "type"}, {"value", Type}]})
+					when Type == "accept"; Type == "reject"; Type == "change" ->
+				true;
+			({struct, [{"name", "username"}, {"value", Username}]}) when is_list(Username) ->
+				true;
+			({struct, [{"name", "nasIpAddress"}, {"value", NasIpAddress}]}) when is_list(NasIpAddress) ->
+				true;
+			({struct, [{"name", "nasPort"}, {"value", Port}]}) when is_integer(Port) ->
+				true;
+			({struct, [{"name", "serviceType"}, {"value", Type}]}) when is_list(Type) ->
+				true;
+			({struct, [{"name", "framedIpAddress"}, {"value", Address}]}) when is_list(Address) ->
+				true;
+			({struct, [{"name", "framedPool"}, {"value", Pool}]}) when is_list(Pool) ->
+				true;
+			({struct, [{"name", "framedIpNetmask"}, {"value", Netmask}]}) when is_list(Netmask) ->
+				true;
+			({struct, [{"name", "framedRouting"}, {"value", Routing}]}) when is_list(Routing) ->
+				true;
+			({struct, [{"name", "filterId"}, {"value", Id}]}) when is_list(Id) ->
+				true;
+			({struct, [{"name", "framedMtu"}, {"value", Mtu}]}) when is_integer(Mtu) ->
+				true;
+			({struct, [{"name", "framedRoute"}, {"value", Route}]}) when is_list(Route) ->
+				true;
+			({struct, [{"name", "class"}, {"value", Class}]}) when is_list(Class) ->
+				true;
+			({struct, [{"name", "sessionTimeout"}, {"value", Timeout}]}) when is_integer(Timeout) ->
+				true;
+			({struct, [{"name", "idleTimeout"}, {"value", Timeout}]}) when is_integer(Timeout) ->
+				true;
+			({struct, [{"name", "terminationAction"}, {"value", Action}]}) when is_list(Action) ->
+				true;
+			({struct, [{"name", "calledStationId"}, {"value", Id}]}) when is_list(Id) ->
+				true;
+			({struct, [{"name", "callingStationId"}, {"value", Id}]}) when is_list(Id) ->
+				true;
+			({struct, [{"name", "nasIdentifier"}, {"value", Id}]}) when is_list(Id) ->
+				true;
+			({struct, [{"name", "nasPortId"}, {"value", Id}]}) when is_list(Id) ->
+				true;
+			({struct, [{"name", "nasPortType"}, {"value", Type}]}) when is_list(Type) ->
+				true;
+			({struct, [{"name", "portLimit"}, {"value", Limit}]}) when is_integer(Limit) ->
+				true;
+			({struct, [{"name", "acctDelayTime"}, {"value", Time}]}) when is_integer(Time) ->
+				true;
+			({struct, [{"name", "eventTimestamp"}, {"value", DateTime}]}) when is_list(DateTime) ->
+				true;
+			({struct, [{"name", "acctSessionId"}, {"value", Id}]}) when is_list(Id) ->
+				true;
+			({struct, [{"name", "acctMultiSessionId"}, {"value", Id}]}) when is_list(Id) ->
+				true;
+			({struct, [{"name", "acctLinkCount"}, {"value", Count}]}) when is_integer(Count) ->
+				true;
+			({struct, [{"name", "acctAuthentic"}, {"value", Type}]}) when is_list(Type) ->
+				true;
+			({struct, [{"name", "acctSessionTime"}, {"value", Time}]}) when is_integer(Time) ->
+				true;
+			({struct, [{"name", "inputOctets"}, {"value", Octets}]}) when is_integer(Octets) ->
+				true;
+			({struct, [{"name", "outputOctets"}, {"value", Octets}]}) when is_integer(Octets) ->
+				true;
+			({struct, [{"name", "acctInputGigaWords"}, {"value", Words}]}) when is_integer(Words) ->
+				true;
+			({struct, [{"name", "acctOutputGigaWords"}, {"value", Words}]}) when is_integer(Words) ->
+				true;
+			({struct, [{"name", "acctInputPackets"}, {"value", Packets}]}) when is_integer(Packets) ->
+				true;
+			({struct, [{"name", "acctOutputPackets"}, {"value", Packets}]}) when is_integer(Packets) ->
+				true;
+			({struct, [{"name", "ascendDataRate"}, {"value", Rate}]}) when is_integer(Rate) ->
+				true;
+			({struct, [{"name", "ascendXmitRate"}, {"value", Rate}]}) when is_integer(Rate) ->
+				true;
+			({struct, [{"name", "acctInterimInterval"}, {"value", Interval}]}) when is_integer(Interval) ->
+				true;
+			({struct, [{"name", "acctTerminateCause"}, {"value", Cause}]}) when is_list(Cause) ->
+				true
+	end,
+	true = lists:any(F, UsageCharacteristic).
+
+get_ipdr_usage() ->
+	[{userdata, [{doc,"Get a TMF635 IPDR usage"}]}].
+
+get_ipdr_usage(Config) ->
+	HostUrl = ?config(host_url, Config),
+	AcceptValue = "application/json",
+	Accept = {"accept", AcceptValue},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	RequestUri = HostUrl ++ "/usageManagement/v1/usage?type=PublicWLANAccessUsage",
+	Request = {RequestUri, [Accept, Authentication]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
+	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(Body)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, {array, [{struct, Usage}]}} = mochijson:decode(Body),
 	{_, _} = lists:keyfind("id", 1, Usage),
 	{_, _} = lists:keyfind("href", 1, Usage),
 	{_, _} = lists:keyfind("date", 1, Usage),
