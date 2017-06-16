@@ -1,4 +1,6 @@
 <link rel="import" href="polymer/polymer.html">
+<link rel="import" href="i18n-msg/i18n-msg.html">
+<link rel="import" href="i18n-msg/i18n-msg-behavior.html">
 <link rel="import" href="paper-dialog/paper-dialog.html">
 <link rel="import" href="paper-toolbar/paper-toolbar.html">
 <link rel="import" href="paper-input/paper-input.html">
@@ -69,7 +71,7 @@
 		<div id="add_subscriber_container">
 			<paper-dialog id="subAddModal" modal>
 				<paper-toolbar>
-					<h2>Add subscriber</h2>
+					<h2>"[[i18n.AddTitle]]"</h2>
 				</paper-toolbar>
 				<form
 						is="iron-form"
@@ -81,15 +83,19 @@
 						<paper-input id="add1"
 								class="identity"
 								name="subscriber"
-								label="Identity">
+								label="[[i18n.identity]]">
 						</paper-input>
 						<paper-tooltip>
-							Identity, or username, of the subscriber to authenticate.
+							<i18n-msg msgid="subTool">
+								Identity, or username, of the subscriber to authenticate.
+							</i18n-msg>
 						</paper-tooltip>
 						<div class="generate">
 							<paper-checkbox
 								on-change="subcheckchanged">
+								<i18n-msg msgid="gen">
 								Generate
+								</i18n-msg>
 							</paper-checkbox>
 						</div>
 					</div>
@@ -97,15 +103,19 @@
 						<paper-input id="add2"
 								class="secret"
 								name="password"
-								label="Secret">
+								label="[[i18n.secret]]">
 						</paper-input>
 						<paper-tooltip>
-							Secret, or password, shared only with the subscriber
+							<i18n-msg msgid="secretTooltip">
+								Secret, or password, shared only with the subscriber
+							</i18n-msg>
 						</paper-tooltip>
 						<div class="generate">
 							<paper-checkbox
 								on-change="subcheckboxchanged">
+								<i18n-msg msgid="gen">
 								Generate
+								</i18n-msg>
 							</paper-checkbox>
 						</div>
 					</div>
@@ -113,69 +123,83 @@
 						<paper-input id="add3"
 								name="ascendDataRate"
 								type="number"
-								label="Receive Data Rate">
+								label="[[i18n.recieve]]">
 						</paper-input>
 						<paper-tooltip>
-							Limit on received (download) data per second in bits.
+							<i18n-msg msgid="dataRateTool">
+								Limit on received (download) data per second in bits.
+							</i18n-msg>
 						</paper-tooltip>
 					</div>
 					<div>
 						<paper-input id="add4"
 								name="ascendXmitRate"
 								type="number"
-								label="Transmit Data Rate">
+								label="[[i18n.trans]]">
 						</paper-input>
 						<paper-tooltip>
-							Limit on transmitted (upload) data per second in bits.
+							<i18n-msg msgid="xmitRateTool">
+								Limit on transmitted (upload) data per second in bits.
+							</i18n-msg>
 						</paper-tooltip>
 					</div>
 					<div>
 						<paper-input id="add5"
 								name="sessionTimeout"
 								type="number"
-								label="Session Timeout"
+								label="[[i18n.ses]]"
 								value=3600>
 						</paper-input>
 						<paper-tooltip>
-							Time between authorization requests in an active session in seconds.
+							<i18n-msg msgid="sessionTimeoutTool">
+								Time between authorization requests in an active session in seconds.
+							</i18n-msg>
 						</paper-tooltip>
 					</div>
 					<div>
 						<paper-input id="add6"
 								name="acctInterimInterval"
 								type="number"
-								label="Update Interval">
+								label="[[i18n.updateInterval]]">
 						</paper-input>
 						<paper-tooltip>
-							Time between accounting interim updates in seconds.
+							<i18n-msg msgid="acctInterimIntervalTool">
+								Time between accounting interim updates in seconds.
+							</i18n-msg>
 						</paper-tooltip>
 					</div>
 					<div>
 						<paper-input id="add7"
 								name="class"
-								label="Class">
+								label="[[i18n.class]]">
 						</paper-input>
 					</div>
 					<div>
 						<paper-input id="add8"
 								name="balance"
 								type="number"
-								label="Balance (bytes)*"
+								label="[[i18n.balance]]"
 								required>
 						</paper-input>
 						<paper-tooltip>
-							Initial credit value, in bytes, against which accounting will debit usage against.
+							<i18n-msg msgid="balanceTool">
+								Initial credit value in bytes, against which accounting will debit usage against.
+							</i18n-msg>
 						</paper-tooltip>
 					</div>
 					<br>
 					<div>
-						Enable
+						<i18n-msg msgid="enable">
+							Enable
+						</i18n-msg>
 						<div style="display:inline-block;">
 							<paper-toggle-button id="add9" name="enabled" checked>
 							</paper-toggle-button>
 						</div>
 						<paper-tooltip>
-							Temporarily enable, or disable, authorization for service.
+							<i18n-msg msgid="enableTool">
+								Temporarily enable, or disable, authorization for service.
+							</i18n-msg>
 						</paper-tooltip>
 					</div>
 					<div class="buttons">
@@ -183,14 +207,18 @@
 								raised
 								class="add-button"
 								onclick="_submitSubForm()">
+						<i18n-msg msgid="submit">
 							Submit
+						</i18n-msg>
 						</paper-button>
 						<paper-button
 								class="cancel-button"
 								dialog-confirm
 								autofocus
 								onclick="subAddModal.close()">
+						<i18n-msg msgid="cancel">
 							Cancel
+						</i18n-msg>
 						</paper-button>
 					</div>
 				</form>
@@ -245,6 +273,7 @@
 		Polymer (
 			{
 				is: 'sig-sub-add',
+				behaviors: [i18nMsgBehavior],
 				properties: {
 					password: String,
 					id: String

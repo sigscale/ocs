@@ -86,7 +86,7 @@
 %% @private
 %%
 init([diameter, Address, Port, SessId, AppId, AuthType, OHost, ORealm,
-		Options] = _Args) ->
+		_Request, Options] = _Args) ->
 	[Subscriber, Password] = Options,
 	process_flag(trap_exit, true),
 	StateData = #statedata{protocol = diameter, session_id = SessId, app_id = AppId,

@@ -2,5 +2,381 @@
   "ocs": {
     "description": "Long form title",
     "message": "Online Charging System (OCS)"
+  },
+	"subs": {
+    "description": "Subscribers menu title",
+    "message": "Subscribers"
+  },
+  "clients": {
+    "description": "Clients menu title",
+    "message": "Clients"
+  },
+  "logs": {
+    "description": "Logs menu title",
+    "message": "Logs"
+  },
+  "access": {
+    "description": "Access sub menu from Log main title",
+    "message": "Access"
+  },
+  "accounting": {
+    "description": "Accounting sub menu from Log main title",
+    "message": "Accounting"
+  },
+  "ipdr": {
+    "description": "IPDR sub menu from Log main title",
+    "message": "IPDR"
+  },
+  "http": {
+    "description": "HTTP sub menu from Log main title",
+    "message": "HTTP"
+  },
+  "identity": {
+    "description": "Identity of subscribers",
+    "message": "identity"
+  },
+  "pass": {
+    "description": "Password of subscribers",
+    "message": "Password"
+  },
+  "bal": {
+    "description": "Balance of subscribers",
+    "message": "Balance"
+	},
+  "asc": {
+    "description": "AscendDataRate of subscribers",
+    "message": "Data Rate"
+  },
+  "xmit": {
+    "description": "XmitDataRate of subscribers",
+    "message": "Xmit Rate"
+  },
+  "session": {
+    "description": "Timeout of subscribers",
+    "message": "Timeout"
+  },
+  "int": {
+    "description": "Interval of subscribers",
+    "message": "Interval"
+  },
+  "enable": {
+    "description": "Enable subscribers",
+    "message": "Enabled"
+  },
+  "gen": {
+    "description": "Generate Password or identity for adding subscribers",
+    "message": "Generate"
+  },
+  "secret": {
+    "description": "Password for adding subscribers",
+    "message": "Secret"
+  },
+  "recieve": {
+    "description": "Receive Data Rate for adding subscribers",
+    "message": "Receive Data Rate"
+  },
+  "trans": {
+    "description": "Transmit Data Rate for adding subscribers",
+    "message": "Transmit Data Rate"
+  },
+	"ses": {
+    "description": "Session Timeout for adding subscribers",
+    "message": "Session Timeout"
+  },
+  "updateInterval": {
+    "description": "Update Interval for adding subscribers",
+    "message": "Update Interval"
+  },
+  "class": {
+    "description": "Class for adding subscribers",
+    "message": "Class"
+  },
+  "balance": {
+    "description": "Balance for adding subscribers",
+    "message": "Balance (bytes) *"
+  },
+  "submit": {
+    "description": "Submit button for adding subscribers",
+    "message": "Submit"
+  },
+  "cancel": {
+    "description": "Cancel button for adding subscribers",
+    "message": "Cancel"
+  },
+	"AddTitle": {
+    "description": "Title for adding subscribers",         
+    "message": "Add subscriber"
+  },
+	"AuthTitle": {
+    "description": "Title for adding subscribers",
+    "message": "Authentication"
+  },
+  "AuthorTitle": {
+    "description": "Title for adding subscribers",
+    "message": "Authorization"
+  },
+	"AuthTooltip": {
+    "description": "Tooltip message for authentication",
+    "message": "Credentials used to authenticate subscriber."
+  },
+  "AuthorTooltip": {
+    "description": "Tooltip message for authorization", 
+    "message": "Services authorized for subscriber."
+  },
+	"newpass": {
+    "description": "New password for update",           
+    "message": "New Secret"
+  },
+	"newpassError": {
+    "description": "New password error message for update",
+    "message": "New secret can't be empty!"
+  },
+	"update": {
+    "description": "Update button for update",             
+    "message": "Update"
+  },
+	"delete": {
+    "description": "Delete button for update",
+    "message": "Delete"
+  },
+	"balTooltip": {
+    "description": "Tooltip message for balance",
+    "message": "Credit value, in bytes, against which accounting will debit usage against."
+  },
+	"dataRateTooltip": {
+    "description": "Tooltip message for DataRate",
+    "message": "Limit on received (download) data per second in bits."
+  },
+	"xmitRateTooltip": {
+    "description": "Tooltip message for xmitRate",
+    "message": "Limit on transmitted (upload) data per second in bits."
+  },
+	"sessionTimeoutTooltip": {
+    "description": "Tooltip message for sessionTimeout",
+    "message": "Time between authorization requests in an active session in seconds "
+  },
+	"intervalTooltip": {
+    "description": "Tooltip message for Accouting interval",
+    "message": "Time between accouting interim updates in seconds."
+  },
+	"EnableTooltip": {
+    "description": "Tooltip message for Enable",            
+    "message": "Enabled for service or temporarily disabled."
+  },
+	"accInt": {
+    "description": "Interval for Accounting",    
+    "message": "Accouting interval"
+  },
+	"address": {
+    "description": "Address of Client",
+    "message": "Address"
+  },
+   "identify": {
+    "description": "identifier of Client",
+    "message": "Identifier"
+  },
+   "listen": {
+    "description": "Listen Port of Client",
+    "message": "Listen Port"
+  },
+   "proto": {
+    "description": "Protocol of Client",
+    "message": "Protocol"
+  },
+	"addClient": {
+    "description": "Title for add Client",
+    "message": "Add Client"
+  },
+	"ipAddress": {
+    "description": "Ip Address for add Client",
+    "message": "IP Address"
+  },
+	"radius": {
+    "description": "radius protocol",
+    "message": "RADIUS"
+  },
+  "diameter": {
+    "description": "diameter protocol",
+    "message": "DIAMETER"
+  },
+	"ipTooltip": {
+    "description": "Tooltip message of Ip address",
+    "message": "IP address of network access server, router or access point"
+  },
+	"listenTooltip": {
+    "description": "Tooltip message of Listen port",
+    "message": "Port network access server, router or access point listens on"
+  },
+	"secretTooltip": {
+    "description": "Tooltip message of Secret",
+    "message": "Secret, or password, shared with the network access server, router or access point."
+  },
+   "clientAdded": {
+    "description": "Success Toast Message",
+    "message": "Client Added"
+  },
+	"serverGen": {
+    "description": "Title of generate password",
+    "message": "Server Generated"
+  },
+   "close": {
+    "description": "button for close",
+    "message": "close"
+  },
+  "secretCol": {
+    "description": "Submit button for adding subscribers",
+    "message": "Secret:"
+  },
+	"propTitle": {
+    "description": "Properties title for update client",
+    "message": "Properties"
+  },
+	"authClientTool": {
+    "description": "Tooltip message for authenticate client",
+    "message": "Credentials used to authenticate network access server, router or access point."
+  },
+	"authorClientTool": {
+    "description": "Tooltip message for authorization client",
+    "message": "Properties of network access server, router or access pointor client."
+  },
+	"newSecretClientTool": {
+    "description": "Tooltip message update new password",
+    "message": "Secret, or password, shared with the network access server, router or access point."
+  },
+	"port": {
+    "description": "port for client",
+    "message": "Port"
+   }
+	"portTool": {
+    "description": "Tooltip message update port",
+    "message": "Port network access server, router or access point listens on"
+   },
+	"protoTool": {
+    "description": "Tooltip mesage for update Protocol",
+    "message": "Protocol used by network access server, router or access point."
+  },
+   "timeStamp": {
+    "description": "Timestamp for access log",
+    "message": "Time Stamp"
+  },
+	"userName": {
+    "description": "Username for logs",
+    "message": "User Name"
+  },
+	"clientAddress": {
+    "description": "clientAddress for logs",
+    "message": "Client Address"
+  },
+	"clientPort": {
+    "description": "clientPort for logs",
+    "message": "Client Port"
+  },
+	"type": {
+    "description": "type for logs",
+    "message": "Type"
+  },
+	"creationTime": {
+    "description": "Creation time for logs",
+    "message": "Creation Time"
+  },
+	"seq": {
+    "description": "Sequence for logs",
+    "message": "Seq"
+  },
+	"acctSessionId": {
+    "description": "Account session ID for logs",
+    "message": "Session ID"
+  },
+   "callingStationId": {
+    "description": "Calling Station ID for logs",
+    "message": "Calling Station ID"
+  },
+   "calledStationId": {
+    "description": "Called Station ID for logs",
+    "message": "Called Station ID"
+  },
+   "nasIpAddress": {
+    "description": "Nas IP for logs",
+    "message": "NAS Address"
+  },
+   "nasID": {
+    "description": "Nas ID for logs",
+    "message": "NAS ID"
+  },
+   "sessionDur": {
+    "description": "Session duration for logs",
+    "message": "Duration"
+  },
+   "inputOctets": {
+    "description": "Input Octets for logs",
+    "message": "Input Octets"
+  },
+   "outputOctets": {
+    "description": "output Octets for logs",
+    "message": "Output Octets"
+  },
+   "gmtSessionStartDateTime": {
+    "description": "gmtSessionStartDateTime for logs",
+    "message": "Start Time"
+  },
+   "gmtSessionendtime": {
+    "description": "gmtSessionStartDateTime for logs",
+    "message": "End Time"
+  },
+   "SessionTerminateCause": {
+    "description": "SessionTerminateCause for logs",
+    "message": "Cause"
+  },
+	"dateTime": {
+    "description": "DateTime for logs",
+    "message": "DateTime"
+  },
+   "host": {
+    "description": "host for logs",
+    "message": "Host"
+  },
+   "user": {
+    "description": "user for logs",
+    "message": "User"
+  },
+   "method": {
+    "description": "Method for logs",
+    "message": "Method"
+  },
+   "resource": {
+    "description": "Resource for logs",
+    "message": "Resource"
+  },
+   "status": {
+    "description": "status for logs",
+    "message": "Status"
+  },
+	 "subTool": {
+    "description": "Tooltip message for subscriber",
+    "message": "Identity, or username, of the subscriber to authenticate."
+  },
+	"dataRateTool": {
+    "description": "Tooltip message for ascendDataRate",
+    "message": "Limit on received (download) data per second in bits."
+  },
+	"xmitRateTool": {
+    "description": "Tooltip message for ascendXmitRate",
+    "message": "Limit on transmitted (upload) data per second in bits."
+  },
+	"sessionTimeoutTool": {
+    "description": "Tooltip message for sessionTimeout",
+    "message": "Time between authorization requests in an active session in seconds."
+  },
+	"acctInterimIntervalTool": {
+    "description": "Tooltip message for acctInterimInterval",
+    "message": "Time between accounting interim updates in seconds."
+  },
+	"balanceTool": {
+    "description": "Tooltip message for balance",            
+    "message": "Initial credit value in bytes, against which accounting will debit usage against."
+  },
+	"enableTool": {
+    "description": "Tooltip message for enable", 
+    "message": "Temporarily enable, or disable, authorization for service."
   }
 }

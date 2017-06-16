@@ -5,7 +5,6 @@
 <link rel="import" href="app-layout/app-drawer-layout/app-drawer-layout.html">
 <link rel="import" href="app-layout/app-drawer/app-drawer.html">
 <link rel="import" href="i18n-msg/i18n-msg.html">
-<link rel="import" href="i18n-msg/i18n-msg-behavior.html">
 <link rel="import" href="iron-pages/iron-pages.html">
 <link rel="import" href="iron-selector/iron-selector.html">
 <link rel="import" href="paper-menu/paper-menu.html"/>
@@ -49,7 +48,7 @@
 			top: 64px;
 		}
 		paper-item {
-			 padding-right: 10px;
+			padding-right: 10px;
 		}
 		paper-progress {
 			display: block;
@@ -72,9 +71,11 @@
 							icon="menu"
 							onclick="drawer.toggle()">
 					</paper-icon-button>
-					<i18n-msg msgid="ocs" main-title>
-						Online Charging System (OCS)
-					</i18n-msg>
+					<div main-title>
+						<i18n-msg msgid="ocs">
+							Online Charging System (OCS)
+						</i18n-msg>
+					</div>
 					<paper-icon-button
 							id="refresh"
 							icon="refresh"
@@ -118,20 +119,26 @@
 									onclick="drawer.toggle()"
 									class="menuitem">
 								<iron-icon icon ="device:devices"></iron-icon>
-									Subscribers
+									<i18n-msg msgid="subs">
+										Subscribers
+									</i18n-msg>
 							</paper-item>
 							<paper-item
 									id="page1"
 									onclick="drawer.toggle()"
 									class="menuitem">
 								<iron-icon icon ="hardware:router"></iron-icon>
-									Clients
+									<i18n-msg msgid="clients">
+										Clients
+									</i18n-msg>
 							</paper-item>
 							<paper-submenu>
 								<paper-item
 										class="menu-trigger menuitem">
 									<iron-icon icon ="icons:history"></iron-icon>
-										Logs
+										<i18n-msg msgid="logs">
+											Logs
+										</i18n-msg>
 								</paper-item>
 								<paper-menu class="menu-content" >
 									<paper-item
@@ -139,28 +146,36 @@
 											onclick="drawer.toggle()"
 											class="menuitem">
 										<iron-icon icon ="device:data-usage"></iron-icon>
-											Access
+											<i18n-msg msgid="access">
+												Access
+											</i18n-msg>
 									</paper-item>
 									<paper-item
 											id="page4"
 											onclick="drawer.toggle()"
 											class="menuitem">
 										<iron-icon icon ="device:data-usage"></iron-icon>
-											Accounting
+											<i18n-msg msgid="accounting">
+												Accounting
+											</i18n-msg>
 									</paper-item>
 									<paper-item
 											id="page2"
 											onclick="drawer.toggle()"
 											class="menuitem">
 										<iron-icon icon ="device:data-usage"></iron-icon>
-											IPDR
+											<i18n-msg msgid="ipdr">
+												IPDR
+											</i18n-msg>
 									</paper-item>
 									<paper-item
 											id="page5"
 											onclick="drawer.toggle()"
 											class="menuitem">
 										<iron-icon icon ="device:data-usage"></iron-icon>
-											HTTP
+											<i18n-msg msgid="http">
+												HTTP
+											</i18n-msg>
 									</paper-item>
 								</paper-menu>
 							</paper-submenu>
@@ -176,9 +191,9 @@
 		<sig-client-update></sig-client-update>
 		<sig-ipdr-log-files></sig-ipdr-log-files>
 	</template>
-	<script>
+		<script>
 		document.addEventListener('HTMLImportsLoaded', function() {
-  			I18nMsg.lang = 'es';
+			I18nMsg.lang = 'es';
 			Platform.performMicrotaskCheckpoint();
 		});
 		Polymer (
