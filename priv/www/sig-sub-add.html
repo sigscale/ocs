@@ -86,7 +86,9 @@
 								label="[[i18n.identity]]">
 						</paper-input>
 						<paper-tooltip>
-							Identity, or username, of the subscriber to authenticate.
+							<i18n-msg msgid="subTool">
+								Identity, or username, of the subscriber to authenticate.
+							</i18n-msg>
 						</paper-tooltip>
 						<div class="generate">
 							<paper-checkbox
@@ -104,7 +106,9 @@
 								label="[[i18n.secret]]">
 						</paper-input>
 						<paper-tooltip>
-							Secret, or password, shared only with the subscriber
+							<i18n-msg msgid="secretTooltip">
+								Secret, or password, shared only with the subscriber
+							</i18n-msg>
 						</paper-tooltip>
 						<div class="generate">
 							<paper-checkbox
@@ -122,7 +126,9 @@
 								label="[[i18n.recieve]]">
 						</paper-input>
 						<paper-tooltip>
-							Limit on received (download) data per second in bits.
+							<i18n-msg msgid="dataRateTool">
+								Limit on received (download) data per second in bits.
+							</i18n-msg>
 						</paper-tooltip>
 					</div>
 					<div>
@@ -132,7 +138,9 @@
 								label="[[i18n.trans]]">
 						</paper-input>
 						<paper-tooltip>
-							Limit on transmitted (upload) data per second in bits.
+							<i18n-msg msgid="xmitRateTool">
+								Limit on transmitted (upload) data per second in bits.
+							</i18n-msg>
 						</paper-tooltip>
 					</div>
 					<div>
@@ -143,7 +151,9 @@
 								value=3600>
 						</paper-input>
 						<paper-tooltip>
-							Time between authorization requests in an active session in seconds.
+							<i18n-msg msgid="sessionTimeoutTool">
+								Time between authorization requests in an active session in seconds.
+							</i18n-msg>
 						</paper-tooltip>
 					</div>
 					<div>
@@ -153,7 +163,9 @@
 								label="[[i18n.updateInterval]]">
 						</paper-input>
 						<paper-tooltip>
-							Time between accounting interim updates in seconds.
+							<i18n-msg msgid="acctInterimIntervalTool">
+								Time between accounting interim updates in seconds.
+							</i18n-msg>
 						</paper-tooltip>
 					</div>
 					<div>
@@ -170,7 +182,9 @@
 								required>
 						</paper-input>
 						<paper-tooltip>
-							Initial credit value, in bytes, against which accounting will debit usage against.
+							<i18n-msg msgid="balanceTool">
+								Initial credit value in bytes, against which accounting will debit usage against.
+							</i18n-msg>
 						</paper-tooltip>
 					</div>
 					<br>
@@ -183,7 +197,9 @@
 							</paper-toggle-button>
 						</div>
 						<paper-tooltip>
-							Temporarily enable, or disable, authorization for service.
+							<i18n-msg msgid="enableTool">
+								Temporarily enable, or disable, authorization for service.
+							</i18n-msg>
 						</paper-tooltip>
 					</div>
 					<div class="buttons">

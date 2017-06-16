@@ -1,4 +1,5 @@
 <link rel="import" href="polymer/polymer.html">
+<link rel="import" href="i18n-msg/i18n-msg.html">
 <link rel="import" href="vaadin-grid/vaadin-grid.html">
 <link rel="import" href="vaadin-grid/vaadin-grid-sorter.html">
 <link rel="import" href="vaadin-grid/vaadin-grid-filter.html">
@@ -39,8 +40,8 @@
 			<vaadin-grid-column width="24ex">
 				<template class="header">
 					<vaadin-grid-sorter path="timeStamp">
-						<vaadin-grid-filter aria-label="TimeStamp" path="timeStamp" value="[[_filterTimeStamp]]">
-							<input placeholder="Time Stamp" value="{{_filterTimeStamp::input}}" focus-target>
+						<vaadin-grid-filter aria-label="[[i18n.timeStamp]]" path="timeStamp" value="[[_filterTimeStamp]]">
+							<input placeholder="[[i18n.timeStamp]]" value="{{_filterTimeStamp::input}}" focus-target>
 						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
@@ -49,8 +50,8 @@
 			<vaadin-grid-column width="18ex" flex-grow="4">
 				<template class="header">
 					<vaadin-grid-sorter path="username">
-						<vaadin-grid-filter aria-label="UserName" path="username" value="[[_filterUserName]]">
-							<input placeholder="User Name" value="{{_filterUserName::input}}" focus-target>
+						<vaadin-grid-filter aria-label="[[i18n.userName]]" path="username" value="[[_filterUserName]]">
+							<input placeholder="[[i18n.userName]]" value="{{_filterUserName::input}}" focus-target>
 						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
@@ -58,8 +59,8 @@
 			</vaadin-grid-column>
 			<vaadin-grid-column width="8ex" flex-grow="0">
 				<template class="header">
-					<vaadin-grid-filter aria-label="Type" path="type" value="[[_filterType]]">
-						<input placeholder="Type" value="{{_filterType::input}}" focus-target>
+					<vaadin-grid-filter aria-label="[[i18n.type]]" path="type" value="[[_filterType]]">
+						<input placeholder="[[i18n.type]]" value="{{_filterType::input}}" focus-target>
 					</vaadin-grid-filter>
 				</template>
 				<template>[[item.type]]</template>
@@ -79,6 +80,7 @@
 		Polymer (
 			{
 				is: 'sig-accounting-list',
+				behaviors: [i18nMsgBehavior],
 				responseHandler: function(event) {
 					var grid = this.$.accountingGrid;
 					var results = event.detail.xhr.response;

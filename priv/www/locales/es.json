@@ -166,5 +166,209 @@
   "accInt": {
     "description": "Interval for Accounting", 
     "message": "Intervalo de distribución"
+  },
+	"address": {
+    "description": "Address of Client",
+    "message": "Dirección"
+  },
+  "identify": {
+    "description": "Identifier of Client",
+    "message": "Identificador"
+  },
+  "listen": {
+    "description": "Listen Port of Client",
+    "message": "Escuchar Puerto"
+  },
+  "proto": {
+    "description": "Protocol of Client",
+    "message": "Protocolo"
+  },
+  "addClient": {
+    "description": "Title for add Client",
+    "message": "Agregar cliente"
+  },
+  "ipAddress": {
+    "description": "Ip Address for add Client",
+    "message": "Dirección IP"
+  },
+  "radius": {
+    "description": "radius protocol",
+    "message": "RADIO"
+  },
+  "diameter": {
+    "description": "diameter protocol",
+    "message": "DIÁMETRO"
+  },
+	"ipTooltip": {
+    "description": "Tooltip messagef or Ip address",
+    "message": "Dirección IP del servidor de acceso a la red, enrutador o punto de acceso"
+  },
+	"listenTooltip": {
+    "description": "Tooltip message of Listen port",
+    "message": "El servidor de acceso a red de puerto, el router o el punto de acceso"
+  },
+	"secretTooltip": {
+    "description": "Tooltip message of Secret",
+    "message": "Secreto o contraseña, compartida con el servidor de acceso a la red, el enrutador o el punto de acceso."
+  },
+	"clientAdded": {
+    "description": "Success Toast Message",
+    "message": "Cliente añadido"
+  },
+   "serverGen": {
+    "description": "Title of generate password",
+    "message": "Generado por el servidor"
+  },
+   "close": {
+    "description": "button for close",
+    "message": "cerca"
+  },
+  "secretCol": {
+    "description": "Submit button for adding subscribers",
+    "message": "Secreto:"
+  },
+   "propTitle": {
+    "description": "Properties title for update client",
+    "message": "Propiedades"
+  },
+	"authClientTool": {
+    "description": "Tooltip message for authenticate client",
+    "message": "Credenciales utilizadas para autenticar el servidor de acceso a la red, el enrutador o el punto de acceso."
+  },
+	"newSecretClientTool": {
+    "description": "Tooltip message update new password",
+    "message": "Secreto o contraseña, compartida con el servidor de acceso a la red, el enrutador o el punto de acceso."
+  },
+	"port": {
+    "description": "port for client",
+    "message": "Puerto"
+  },
+   "protoTool": {
+    "description": "Tooltip mesage for update Protocol",
+    "message": "Protocolo utilizado por el servidor de acceso a la red, el enrutador o el punto de acceso."
+  },
+	"timeStamp": {
+    "description": "Timestamp for access log",
+    "message": "Sello de tiempo"
+  },
+	"userName": {
+    "description": "Username for logs",
+    "message": "Nombre de usuario"
+  },
+	"clientAddress": {
+    "description": "clientAddress for logs",
+    "message": "Dirección del Cliente"
+  },
+	"clientPort": {
+    "description": "clientPort for logs",
+    "message": "Puerto cliente"
+  },
+	"type": {
+    "description": "type for logs",
+    "message": "Tipo"
+  },
+	"creationTime": {
+    "description": "Creation time for logs",
+    "message": "Tiempo de creación"
+  },
+	"seq": {
+    "description": "Sequence for logs",
+    "message": "Seq"
+  },
+	"acctSessionId": {
+    "description": "Account session ID for logs",
+    "message": "ID de sesión"
+  },
+	"callingStationId": {
+    "description": "Calling Station ID for logs",
+    "message": "Identificador de estación de llamada"
+  },
+	"calledStationId": {
+    "description": "Called Station ID for logs",
+    "message": "Se llama ID de estación"
+  },
+	"nasIpAddress": {
+    "description": "Nas IP for logs",
+    "message": "Dirección de EE.UU."
+  },
+	"nasID": {
+    "description": "Nas ID for logs",
+    "message": "nuestra ID"
+  },
+	"sessionDur": {
+    "description": "Session duration for logs",
+    "message": "Duración"
+  },
+	"inputOctets": {
+    "description": "Input Octets for logs",
+    "message": "Octetos de entrada"
+  },
+	"outputOctets": {
+    "description": "output Octets for logs",
+    "message": "Octetos de salida"
+  },
+	"gmtSessionStartDateTime": {
+    "description": "gmtSessionStartDateTime for logs",
+    "message": "Hora de inicio"
+  },
+	"gmtSessionendtime": {
+    "description": "gmtSessionStartDateTime for logs",
+    "message": "Hora de finalización"
+  },
+	"SessionTerminateCause": {
+    "description": "SessionTerminateCause for logs",
+    "message": "Sesión Terminar Causa"
+  },
+	"dateTime": {
+    "description": "DateTime for logs",
+    "message": "Fecha y hora"
+  },
+	"host": {
+    "description": "host for logs",
+    "message": "Anfitrión"
+  },
+	"user": {
+    "description": "user for logs",
+    "message": "Usuario"
+  },
+	"method": {
+    "description": "Method for logs",
+    "message": "Método"
+  },
+	"resource": {
+    "description": "Resource for logs",
+    "message": "Recurso"
+  },
+	"status": {
+    "description": "status for logs",
+    "message": "Estado"
+  },
+	"subTool": {
+    "description": "Tooltip message for subscriber",
+    "message": "Identidad, o nombre de usuario, del suscriptor para autenticar."
+  },
+	"dataRateTool": {
+    "description": "Tooltip message for ascendDataRate",
+    "message": "Limitar los datos recibidos (descargar) por segundo en bits."
+  },
+	"xmitRateTool": {
+    "description": "Tooltip message for ascendXmitRate",
+    "message": "Limitar los datos transmitidos (carga) por segundo en bits."
+  },
+	"sessionTimeoutTool": {
+    "description": "Tooltip message for sessionTimeout",
+    "message": "Tiempo entre las solicitudes de autorización en una sesión activa en segundos."
+  },
+	"acctInterimIntervalTool": {
+    "description": "Tooltip message for acctInterimInterval",
+    "message": "Tiempo entre actualizaciones provisionales de contabilidad en segundos."
+  },
+	"balanceTool": {
+    "description": "Tooltip message for balance", 
+    "message": "Valor del crédito inicial en bytes, contra el cual la contabilidad debitará el uso contra."
+  },
+	"enableTool": {
+    "description": "Tooltip message for enable",            
+    "message": "Activar o desactivar temporalmente la autorización de servicio"
   }
 }
