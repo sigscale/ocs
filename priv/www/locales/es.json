@@ -2,5 +2,169 @@
   "ocs": {
     "description": "Long form title",
     "message": "Sistema de Carga en Línea (OCS)"
+  },
+  "subs": {
+    "description": "Subscribers menu title",
+    "message": "Suscriptores"
+  },
+  "clients": {
+    "description": "Clients menu title",
+    "message": "Clientela"
+  },
+  "logs": {
+    "description": "Logs menu title",
+    "message": "Registros"
+  },
+  "access": {
+    "description": "Access sub menu from Log main title",
+    "message": "Acceso"
+  },
+  "accounting": {
+    "description": "Accounting sub menu from Log main title",
+    "message": "Contabilidad"
+  },
+  "ipdr": {
+    "description": "IPDR sub menu from Log main title",
+    "message": "IPDR"
+  },
+  "http": {
+    "description": "HTTP sub menu from Log main title",
+    "message": "HTTP"
+  },
+  "identity": {
+    "description": "Identity of subscribers",
+    "message": "identidad"
+  },
+  "pass": {
+    "description": "Password of subscribers", 
+    "message": "Contraseña"
+  },
+  "bal": {
+    "description": "Balance of subscribers", 
+    "message": "Equilibrar"
+  },
+  "asc": {
+    "description": "AscendDataRate of subscribers", 
+    "message": "Velocidad de datos"
+  },
+  "xmit": {
+    "description": "XmitDataRate of subscribers", 
+    "message": "Tasa xmit"
+  },
+  "session": {
+    "description": "Timeout of subscribers", 
+    "message": "Se acabó el tiempo"
+  },
+  "int": {
+    "description": "Interval of subscribers", 
+    "message": "Intervalo"
+  },
+  "enable": {
+    "description": "Enable subscribers", 
+    "message": "Habilitar"
+  },
+  "gen": {
+    "description": "Generate Password or identity for adding subscribers", 
+    "message": "Generar"
+  },
+  "secret": {
+    "description": "Password for adding subscribers", 
+    "message": "Secreto"
+  },
+  "recieve": {
+    "description": "Receive Data Rate for adding subscribers", 
+    "message": "Tasa de recepción de datos"
+  },
+  "trans": {
+    "description": "Transmit Data Rate for adding subscribers", 
+    "message": "Transmitir la velocidad de transmisión de datos"
+  },
+  "ses": {
+    "description": "Session Timeout for adding subscribers", 
+    "message": "Hora de término de la sesión"
+  },
+  "updateInterval": {
+    "description": "Update Interval for adding subscribers", 
+    "message": "Intervalo de actualización"
+  },
+  "class": {
+    "description": "Class for adding subscribers", 
+    "message": "Clase"
+  },
+  "balance": {
+    "description": "Balance for adding subscribers", 
+    "message": "Equilibrio (bytes) *"
+  },
+  "submit": {
+    "description": "Submit button for adding subscribers", 
+    "message": "Enviar"
+  },
+  "cancel": {
+    "description": "Cancel button for adding subscribers", 
+    "message": "Cancelar"
+  },
+  "AddTitle": {
+    "description": "Title for adding subscribers", 
+    "message": "Añadir suscriptor"
+  },
+  "AuthTitle": {
+    "description": "Title for authentication", 
+    "message": "Autenticación"
+  },
+  "AuthorTitle": {
+    "description": "Title for autherization", 
+    "message": "Autorización"
+  },
+  "AuthTooltip": {
+    "description": "Tooltip message for authentication", 
+    "message": "Credenciales utilizadas para autenticar al suscriptor."
+  },
+  "AuthorTooltip": {
+    "description": "Tooltip message for authorization", 
+    "message": "Servicios autorizados para el abonado."
+  },
+  "newpass": {
+    "description": "New password for update", 
+    "message": "Nuevo secreto"
+  },
+  "newpassError": {
+    "description": "New password error message for update", 
+    "message": "¡El nuevo secreto no puede estar vacío!"
+  },
+  "update": {
+    "description": "Update button for update", 
+    "message": "Actualizar"
+  },
+  "delete": {
+    "description": "Delete button for update", 
+    "message": "Borrar"
+  },
+  "balTooltip": {
+    "description": "Tooltip message for balance", 
+    "message": "Valor de crédito, en bytes, contra el cual la contabilidad debitará el uso en contra."
+  },
+  "dataRateTooltip": {
+    "description": "Tooltip message for DataRate", 
+    "message": "Limitar los datos recibidos (descargar) por segundo en bits."
+  },
+  "xmitRateTooltip": {
+    "description": "Tooltip message for xmitRate", 
+    "message": "Limitar los datos transmitidos (carga) por segundo en bits."
+  },
+  "sessionTimeoutTooltip": {
+    "description": "Tooltip message for sessionTimeout", 
+    "message": "Tiempo entre solicitudes de autorización en una sesión activa en segundos"
+  },
+  "intervalTooltip": {
+    "description": "Tooltip message for Accouting interval", 
+    "message": "Tiempo entre actualizaciones provisionales en segundos."
+  },
+  "EnableTooltip": {
+    "description": "Tooltip message for Enable", 
+    "message": "Activado para servicio o temporalmente inhabilitado."
+  },
+  "accInt": {
+    "description": "Interval for Accounting", 
+    "message": "Intervalo de distribución"
   }
 }

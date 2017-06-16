@@ -2,5 +2,169 @@
   "ocs": {
     "description": "Long form title",
     "message": "Online Charging System (OCS)"
+  },
+	"subs": {
+    "description": "Subscribers menu title",
+    "message": "Subscribers"
+  },
+  "clients": {
+    "description": "Clients menu title",
+    "message": "Clients"
+  },
+  "logs": {
+    "description": "Logs menu title",
+    "message": "Logs"
+  },
+  "access": {
+    "description": "Access sub menu from Log main title",
+    "message": "Access"
+  },
+  "accounting": {
+    "description": "Accounting sub menu from Log main title",
+    "message": "Accounting"
+  },
+  "ipdr": {
+    "description": "IPDR sub menu from Log main title",
+    "message": "IPDR"
+  },
+  "http": {
+    "description": "HTTP sub menu from Log main title",
+    "message": "HTTP"
+  },
+  "identity": {
+    "description": "Identity of subscribers",
+    "message": "identity"
+  },
+  "pass": {
+    "description": "Password of subscribers",
+    "message": "Password"
+  },
+  "bal": {
+    "description": "Balance of subscribers",
+    "message": "Balance"
+	},
+  "asc": {
+    "description": "AscendDataRate of subscribers",
+    "message": "Data Rate"
+  },
+  "xmit": {
+    "description": "XmitDataRate of subscribers",
+    "message": "Xmit Rate"
+  },
+  "session": {
+    "description": "Timeout of subscribers",
+    "message": "Timeout"
+  },
+  "int": {
+    "description": "Interval of subscribers",
+    "message": "Interval"
+  },
+  "enable": {
+    "description": "Enable subscribers",
+    "message": "Enabled"
+  },
+  "gen": {
+    "description": "Generate Password or identity for adding subscribers",
+    "message": "Generate"
+  },
+  "secret": {
+    "description": "Password for adding subscribers",
+    "message": "Secret"
+  },
+  "recieve": {
+    "description": "Receive Data Rate for adding subscribers",
+    "message": "Receive Data Rate"
+  },
+  "trans": {
+    "description": "Transmit Data Rate for adding subscribers",
+    "message": "Transmit Data Rate"
+  },
+	"ses": {
+    "description": "Session Timeout for adding subscribers",
+    "message": "Session Timeout"
+  },
+  "updateInterval": {
+    "description": "Update Interval for adding subscribers",
+    "message": "Update Interval"
+  },
+  "class": {
+    "description": "Class for adding subscribers",
+    "message": "Class"
+  },
+  "balance": {
+    "description": "Balance for adding subscribers",
+    "message": "Balance (bytes) *"
+  },
+  "submit": {
+    "description": "Submit button for adding subscribers",
+    "message": "Submit"
+  },
+  "cancel": {
+    "description": "Cancel button for adding subscribers",
+    "message": "Cancel"
+  },
+	"AddTitle": {
+    "description": "Title for adding subscribers",         
+    "message": "Add subscriber"
+  },
+	"AuthTitle": {
+    "description": "Title for adding subscribers",
+    "message": "Authentication"
+  },
+  "AuthorTitle": {
+    "description": "Title for adding subscribers",
+    "message": "Authorization"
+  },
+	"AuthTooltip": {
+    "description": "Tooltip message for authentication",
+    "message": "Credentials used to authenticate subscriber."
+  },
+  "AuthorTooltip": {
+    "description": "Tooltip message for authorization", 
+    "message": "Services authorized for subscriber."
+  },
+	"newpass": {
+    "description": "New password for update",           
+    "message": "New Secret"
+  },
+	"newpassError": {
+    "description": "New password error message for update",
+    "message": "New secret can't be empty!"
+  },
+	"update": {
+    "description": "Update button for update",             
+    "message": "Update"
+  },
+	"delete": {
+    "description": "Delete button for update",
+    "message": "Delete"
+  },
+	"balTooltip": {
+    "description": "Tooltip message for balance",
+    "message": "Credit value, in bytes, against which accounting will debit usage against."
+  },
+	"dataRateTooltip": {
+    "description": "Tooltip message for DataRate",
+    "message": "Limit on received (download) data per second in bits."
+  },
+	"xmitRateTooltip": {
+    "description": "Tooltip message for xmitRate",
+    "message": "Limit on transmitted (upload) data per second in bits."
+  },
+	"sessionTimeoutTooltip": {
+    "description": "Tooltip message for sessionTimeout",
+    "message": "Time between authorization requests in an active session in seconds "
+  },
+	"intervalTooltip": {
+    "description": "Tooltip message for Accouting interval",
+    "message": "Time between accouting interim updates in seconds."
+  },
+	"EnableTooltip": {
+    "description": "Tooltip message for Enable",            
+    "message": "Enabled for service or temporarily disabled."
+  },
+	"accInt": {
+    "description": "Interval for Accounting",    
+    "message": "Accouting interval"
   }
 }
