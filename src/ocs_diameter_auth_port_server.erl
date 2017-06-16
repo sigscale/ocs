@@ -55,7 +55,7 @@
 		simple_auth_sup :: undefined | pid(),
 		pwd_sup :: undefined | pid(),
 		cb_fsms = gb_trees:empty() :: gb_trees:tree(
-				Key :: (AuthFsm :: pid()), Value :: (CbFsm :: pid())),
+				Key :: (AuthFsm :: pid()), Value :: (CbProc :: pid())),
 		handlers = gb_trees:empty() :: gb_trees:tree(
 				Key :: (SessionId :: string()), Value :: (Fsm :: pid()))}).
 
@@ -113,8 +113,8 @@ init([AuthPortSup, Address, Port, Options]) ->
 %% 	gen_server:multi_call/2,3,4}.
 %% @see //stdlib/gen_server:handle_call/3
 %% @private
-handle_call({diameter_request, Caps, Request, Eap}, {CbFsm, _Tag}= _From, State) ->
-	request(Caps, Eap, Request, CbFsm, State).
+handle_call({diameter_request, Caps, Request, Eap}, CbProc, State) ->
+	request(Caps, Eap, Request, CbProc, State).
 
 -spec handle_cast(Request, State) -> Result
 	when
@@ -130,8 +130,14 @@ handle_call({diameter_request, Caps, Request, Eap}, {CbFsm, _Tag}= _From, State)
 %% @see //stdlib/gen_server:handle_cast/2
 %% @private
 %%
-handle_cast(_Request, State) ->
-	{noreply, State}.
+handle_cast({AuthFsm, Request}, State) ->
+	case gb_trees:lookup(AuthFsm, State#state.cb_fsms) of
+		{value, CbProc} ->
+			gen_server:reply(CbProc, Request),
+			{noreply, State};
+		none ->
+			{noreply, State}
+	end.
 
 -spec handle_info(Info, State) -> Result
 	when
@@ -152,11 +158,12 @@ handle_info(timeout, #state{auth_port_sup = AuthPortSup} = State) ->
 	NewState = State#state{simple_auth_sup = SimpleAuthSup, pwd_sup = PwdSup},
 	{noreply, NewState};
 handle_info({'EXIT', Fsm, {shutdown, SessionId}},
-		#state{handlers = Handlers} = State) ->
+		#state{handlers = Handlers, cb_fsms = CbHandler} = State) ->
 	case gb_trees:lookup(SessionId, Handlers) of
 		{value, Fsm} ->
 			NewHandlers = gb_trees:delete(SessionId, Handlers),
-			{noreply, State#state{handlers = NewHandlers}};
+			NewCbHandler = gb_trees:delete(Fsm, CbHandler),
+			{noreply, State#state{handlers = NewHandlers, cb_fsms = NewCbHandler}};
 		none ->
 			{noreply, State}
 	end;
@@ -208,13 +215,13 @@ code_change(_OldVsn, State, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec request(Caps, Eap, Request, CbFsm, State) -> Reply
+-spec request(Caps, Eap, Request, CbProc, State) -> Reply
 	when
 		Caps :: capabilities(),
 		Eap :: none | {eap, #eap_packet{}},
 		Request :: #diameter_nas_app_AAR{} | #diameter_nas_app_STR{}
 				| #diameter_eap_app_DER{},
-		CbFsm :: pid(),
+		CbProc :: {pid(), term()},
 		State :: state(),
 		Reply :: {reply, Answer, State} | {noreply, State},
 		Answer :: #diameter_nas_app_AAA{} | #diameter_nas_app_STA{}
@@ -222,21 +229,21 @@ code_change(_OldVsn, State, _Extra) ->
 %% @doc Based on the DIAMETER request generate appropriate DIAMETER
 %% answer.
 %% @hidden
-request(Caps, none, Request, CbFsm, State) when is_record(Request, diameter_nas_app_AAR) ->
+request(Caps, none, Request, CbProc, State) when is_record(Request, diameter_nas_app_AAR) ->
 	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
-	request1(none, OHost, ORealm, Request, CbFsm, State);
-request(Caps, {eap, <<_:32, ?Identity, Identity/binary>>}, Request, CbFsm, State)
+	request1(none, OHost, ORealm, Request, CbProc, State);
+request(Caps, {eap, <<_:32, ?Identity, Identity/binary>>}, Request, CbProc, State)
 		when is_record(Request, diameter_eap_app_DER) ->
 	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
-	request1({identity, Identity}, OHost, ORealm, Request, CbFsm, State);
-request(Caps, {eap, <<_, EapId, _:16, ?LegacyNak, Data/binary>>}, Request, CbFsm, State)
+	request1({identity, Identity}, OHost, ORealm, Request, CbProc, State);
+request(Caps, {eap, <<_, EapId, _:16, ?LegacyNak, Data/binary>>}, Request, CbProc, State)
 		when is_record(Request, diameter_eap_app_DER) ->
 	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
-	request1({legacy_nak, EapId, Data}, OHost, ORealm, Request, CbFsm, State);
-request(Caps, Eap, Request, CbFsm, State) when is_record(Request, diameter_eap_app_DER) ->
+	request1({legacy_nak, EapId, Data}, OHost, ORealm, Request, CbProc, State);
+request(Caps, Eap, Request, CbProc, State) when is_record(Request, diameter_eap_app_DER) ->
 	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
-	request1(Eap, OHost, ORealm, Request, CbFsm, State);
-request(Caps, none, Request, _CbFsm, State) when is_record(Request, diameter_nas_app_STR) ->
+	request1(Eap, OHost, ORealm, Request, CbProc, State);
+request(Caps, none, Request, _CbProc, State) when is_record(Request, diameter_nas_app_STR) ->
 	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
 	SessionId = Request#diameter_nas_app_STR.'Session-Id',
 	try
@@ -265,7 +272,7 @@ request(Caps, none, Request, _CbFsm, State) when is_record(Request, diameter_nas
 			{reply, Answer, State}
 	end.
 %% @hidden
-request1(EapType, OHost, ORealm, Request, CbFsm, #state{handlers = Handlers,
+request1(EapType, OHost, ORealm, Request, CbProc, #state{handlers = Handlers,
 		method_prefer = MethodPrefer, method_order = MethodOrder} = State) ->
 	{SessionId, AuthType} = get_attibutes(Request),
 	try
@@ -275,9 +282,8 @@ request1(EapType, OHost, ORealm, Request, CbFsm, #state{handlers = Handlers,
 					{_, _Identity} when MethodPrefer == pwd ->
 						PwdSup = State#state.pwd_sup,
 						{Fsm, NewState} = start_fsm(PwdSup, 5, SessionId, AuthType, OHost,
-								ORealm, [], CbFsm, Request, State),
+								ORealm, [], CbProc, Request, State),
 						gen_fsm:send_event(Fsm, Request),
-						%{reply, Answer, NewState};
 						{noreply, NewState};
 					none ->
 						#diameter_nas_app_AAR{'User-Name' = [UserName],
@@ -287,9 +293,8 @@ request1(EapType, OHost, ORealm, Request, CbFsm, #state{handlers = Handlers,
 							{UserName, Password} when (UserName /= undefined andalso
 									Password /= undefined) ->
 								{Fsm, NewState} = start_fsm(SimpleAuthSup, 1, SessionId, AuthType,
-										OHost, ORealm, [UserName, Password], CbFsm, Request, State),
+										OHost, ORealm, [UserName, Password], CbProc, Request, State),
 								gen_fsm:send_all_state_event(Fsm, diameter_request),
-								%{reply, Answer, NewState};
 								{noreply, NewState};
 							_ ->
 								Answer = #diameter_nas_app_AAA{
@@ -309,13 +314,12 @@ request1(EapType, OHost, ORealm, Request, CbFsm, #state{handlers = Handlers,
 										type = ?Identity, identifier = EapId, data = <<>>},
 								NewEapMessage = ocs_eap_codec:eap_packet(NewEapPacket),
 								{Fsm, NewState} = start_fsm(Sup, 5, SessionId, AuthType,
-										OHost, ORealm, [], CbFsm, Request, State),
+										OHost, ORealm, [], CbProc, Request, State),
 								Request1 = #diameter_eap_app_DER{'Session-Id' = SessionId,
 										'Auth-Application-Id' = 5, 'Auth-Request-Type' = AuthType,
 										'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 										'Destination-Realm' = <<>>, 'EAP-Payload' = NewEapMessage},
 								gen_fsm:send_event(Fsm, Request1),
-								%{reply, Answer3, NewState};
 								{noreply, NewState};
 							{error, none} ->
 								NewEapPacket = #eap_packet{code = failure, identifier = EapId},
@@ -335,7 +339,6 @@ request1(EapType, OHost, ORealm, Request, CbFsm, #state{handlers = Handlers,
 						{reply, Answer, State};
 					{eap, _Eap} ->
 						gen_fsm:send_event(Fsm, Request),
-						%{reply, Answer, State}
 						{noreply, State}
 				end
 		end
@@ -350,7 +353,7 @@ request1(EapType, OHost, ORealm, Request, CbFsm, #state{handlers = Handlers,
 
 %% @hidden
 -spec start_fsm(AuthSup, AppId, SessionId, AuthRequestType, OHost,
-		ORealm, Options, CbFsm, Request, State) -> Result
+		ORealm, Options, CbProc, Request, State) -> Result
 	when
 		AuthSup :: pid(),
 		AppId :: non_neg_integer(),
@@ -359,13 +362,13 @@ request1(EapType, OHost, ORealm, Request, CbFsm, #state{handlers = Handlers,
 		OHost :: string(),
 		ORealm :: string(),
 		Options :: list(),
-		CbFsm :: pid(),
+		CbProc :: {pid(), term()},
 		Request :: #diameter_nas_app_AAR{} | #diameter_eap_app_DER{},
 		State :: state(),
 		Result :: {Fsm, State},
 		Fsm :: undefined | pid().
 start_fsm(AuthSup, AppId, SessId, Type, OHost, ORealm,
-		Options, CbFsm, Request, #state{handlers = Handlers, address = Address, port = Port,
+		Options, CbProc, Request, #state{handlers = Handlers, address = Address, port = Port,
 		cb_fsms = FsmHandler} = State) ->
 	StartArgs = [diameter, Address, Port, SessId, AppId, Type, OHost,
 			ORealm, Request, Options],
@@ -374,7 +377,7 @@ start_fsm(AuthSup, AppId, SessId, Type, OHost, ORealm,
 		{ok, Fsm} ->
 			link(Fsm),
 			NewHandlers = gb_trees:enter(SessId, Fsm, Handlers),
-			NewFsmHandler = gb_trees:enter(Fsm, CbFsm, FsmHandler),
+			NewFsmHandler = gb_trees:enter(Fsm, CbProc, FsmHandler),
 			{Fsm, State#state{handlers = NewHandlers, cb_fsms = NewFsmHandler}};
 		{error, Reason} ->
 			error_logger:error_report(["Error starting session handler",
