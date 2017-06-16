@@ -1152,7 +1152,7 @@ spec_attr_framed_routing() ->
 	Value1 = {struct, [Typ1, Def1, Val1]},
 	Typ2 = {valueType, "string"},
 	Def2 = {default, false},
-	Val2 = {value, "listen-for-routing-packets"},
+	Val2 = {value, "send-routing-packets"},
 	Value2 = {struct, [Typ2, Def2, Val2]},
 	Typ3 = {valueType, "string"},
 	Def3 = {default, false},
