@@ -292,9 +292,8 @@ request1(EapType, OHost, ORealm, Request, CbProc, #state{handlers = Handlers,
 						case {UserName, Password} of
 							{UserName, Password} when (UserName /= undefined andalso
 									Password /= undefined) ->
-								{Fsm, NewState} = start_fsm(SimpleAuthSup, 1, SessionId, AuthType,
+								{_Fsm, NewState} = start_fsm(SimpleAuthSup, 1, SessionId, AuthType,
 										OHost, ORealm, [UserName, Password], CbProc, Request, State),
-								gen_fsm:send_all_state_event(Fsm, diameter_request),
 								{noreply, NewState};
 							_ ->
 								Answer = #diameter_nas_app_AAA{

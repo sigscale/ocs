@@ -59,7 +59,8 @@
 		auth_request_type :: undefined | 1..3,
 		origin_host :: undefined | string(),
 		origin_realm :: undefined | string(),
-		password :: undefined | string()}).
+		password :: undefined | string(),
+		diameter_port_server :: undefined | pid()}).
 
 -type statedata() :: #statedata{}.
 
@@ -88,12 +89,18 @@
 init([diameter, Address, Port, SessId, AppId, AuthType, OHost, ORealm,
 		_Request, Options] = _Args) ->
 	[Subscriber, Password] = Options,
-	process_flag(trap_exit, true),
-	StateData = #statedata{protocol = diameter, session_id = SessId, app_id = AppId,
-		auth_request_type = AuthType, origin_host = OHost, origin_realm = ORealm,
-		subscriber = Subscriber, password = Password, server_address = Address,
-		server_port = Port},
-	{ok, request, StateData};
+	case global:whereis_name({ocs_diameter_auth, Address, Port}) of
+		undefined ->
+			{stop, ocs_diameter_auth_port_server_not_found};
+		PortServer ->
+			process_flag(trap_exit, true),
+			StateData = #statedata{protocol = diameter, session_id = SessId,
+					app_id = AppId, auth_request_type = AuthType, origin_host = OHost,
+					origin_realm = ORealm, subscriber = Subscriber, password = Password,
+					server_address = Address, server_port = Port,
+					diameter_port_server = PortServer},
+			{ok, request, StateData, 0}
+	end;
 init([radius, ServerAddress, ServerPort, ClientAddress, ClientPort, RadiusFsm,
 		Secret, SessionID, #radius{code = ?AccessRequest, id = ID,
 		authenticator = Authenticator, attributes = Attributes}] = _Args) ->
@@ -128,9 +135,33 @@ request(timeout, #statedata{protocol = radius, req_attr = Attributes,
 			response(?AccessReject, [], StateData),
 			{stop, {shutdown, SessionID}, StateData}
 	end;
-request(timeout, #statedata{protocol = diameter,
-		session_id = SessionID} = StateData) ->
-			{stop, {shutdown, SessionID}, StateData}.
+request(timeout, #statedata{protocol = diameter, session_id = SessionID,
+		server_address = Address, server_port = Port, subscriber = Subscriber,
+		password = Password, app_id = AppId, auth_request_type = Type,
+		origin_host = OHost, origin_realm = ORealm, diameter_port_server = PortServer
+		} = StateData) ->
+	Server = {Address, Port},
+	case ocs:authorize(Subscriber, Password) of
+		{ok, _Password, _Attr} ->
+			Answer = #diameter_nas_app_AAA{'Session-Id' = SessionID,
+					'Auth-Application-Id' = AppId, 'Auth-Request-Type' = Type,
+					'Origin-Host' = OHost, 'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+					'Origin-Realm' = ORealm },
+			ok = ocs_log:auth_log(diameter, Server, Subscriber, OHost, ORealm, Type,
+					?'DIAMETER_BASE_RESULT-CODE_SUCCESS'),
+			gen_server:cast(PortServer, {self(), Answer}),
+			{stop, {shutdown, SessionID}, StateData};
+		{error, _Reason} ->
+			Answer = #diameter_nas_app_AAA{'Session-Id' = SessionID,
+					'Auth-Application-Id' = AppId, 'Auth-Request-Type' = Type,
+					'Origin-Host' = OHost,
+					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
+					'Origin-Realm' = ORealm },
+			ok = ocs_log:auth_log(diameter, Server, Subscriber, OHost, ORealm, Type,
+					?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED'),
+			gen_server:cast(PortServer, {self(), Answer}),
+			{stop, {shutdown, SessionID}, StateData}
+	end.
 %% @hidden
 request1(#statedata{req_attr = Attributes, req_auth = Authenticator,
 		shared_secret = Secret, session_id = SessionID} = StateData) ->
@@ -226,32 +257,8 @@ handle_event(_Event, StateName, StateData) ->
 %% @see //stdlib/gen_fsm:handle_sync_event/4
 %% @private
 %%
-handle_sync_event(diameter_request, _From, StateName,
-		#statedata{session_id = SessId, origin_host = OHost,
-		origin_realm = ORealm, subscriber = Subscriber, password = Password,
-		auth_request_type = Type, app_id = AppId, server_address = Address,
-		server_port = Port} = StateData) ->
-	Server = {Address, Port},
-	case ocs:authorize(Subscriber, Password) of
-		{ok, _Password, _Attr} ->
-			Answer = #diameter_nas_app_AAA{'Session-Id' = SessId, 'Auth-Application-Id' = AppId,
-					'Auth-Request-Type' = Type, 'Origin-Host' = OHost,
-					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-					'Origin-Realm' = ORealm },
-			ok = ocs_log:auth_log(diameter, Server, Subscriber, OHost, ORealm, Type,
-					?'DIAMETER_BASE_RESULT-CODE_SUCCESS'),
-			{reply, Answer, StateName, StateData};
-		{error, _Reason} ->
-			Answer = #diameter_nas_app_AAA{'Session-Id' = SessId, 'Auth-Application-Id' = AppId,
-					'Auth-Request-Type' = Type, 'Origin-Host' = OHost, 
-					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
-					'Origin-Realm' = ORealm },
-			ok = ocs_log:auth_log(diameter, Server, Subscriber, OHost, ORealm, Type,
-					?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED'),
-			{reply, Answer, StateName, StateData, 0}
-	end;
 handle_sync_event(_Event, _From, StateName, StateData) ->
-	{reply, ok, StateName, StateData}.
+	{next_state, StateName, StateData}.
 
 -spec handle_info(Info, StateName, StateData) -> Result
 	when
