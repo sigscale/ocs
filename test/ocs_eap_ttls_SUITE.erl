@@ -153,29 +153,29 @@ eap_ttls_authentication_radius(Config) ->
 	Secret = ct:get_config(radius_shared_secret),
 	ReqAuth1 = radius:authenticator(),
 	RadId1 = 8, EapId1 = 1,
-	ok = send_identity(Socket, Address, Port, NasId, AnonymousName,
+	ok = send_identity_radius(Socket, Address, Port, NasId, AnonymousName,
 			Secret, MAC, ReqAuth1, EapId1, RadId1),
-	{RadId2, EapId2} = receive_id(Socket, Address, Port, Secret,
+	{RadId2, EapId2} = receive_identity(Socket, Address, Port, Secret,
 			ReqAuth1, RadId1),
 	ReqAuth2 = radius:authenticator(),
-	ok = send_legacy_nak(Socket, Address, Port, NasId, AnonymousName,
+	ok = send_legacy_nak_radius(Socket, Address, Port, NasId, AnonymousName,
 			Secret, MAC, ReqAuth2, EapId2, RadId2),
-	{RadId3, EapId3} = receive_ttls_start(Socket, Address,Port, Secret, ReqAuth2,
+	{RadId3, EapId3} = receive_ttls_start_radius(Socket, Address,Port, Secret, ReqAuth2,
 					RadId2),
 	Options  = [{cacertfile, DataDir ++ "CAcert.pem"}],
 	proc_lib:spawn_link(peer_tls_transport, ssl_connect, [Address, self(), Options]),
 	{SslPid1, ClientHelloMsg} = ssl_handshake(),
 	ReqAuth3 = radius:authenticator(),
-	{RadId4, CHAuth} = client_hello(ClientHelloMsg, Socket, Address, Port,
+	{RadId4, CHAuth} = client_hello_radius(ClientHelloMsg, Socket, Address, Port,
 			NasId, AnonymousName, Secret, MAC, ReqAuth3, EapId3, RadId3),
-	{RadId5, EapId4, ServerHello} = server_hello(Socket, Address, Port,
+	{RadId5, EapId4, ServerHello} = server_hello_radius(Socket, Address, Port,
 			NasId, AnonymousName, Secret, MAC, CHAuth, RadId4),
 	peer_tls_transport:deliver(SslPid1, self(), ServerHello),
 	{_SslPid2, ClientCipher} = ssl_handshake(),
 	ReqAuth5 = radius:authenticator(),
-	{RadId6, CCAuth} = client_cipher(ClientCipher, Socket, Address, Port,
+	{RadId6, CCAuth} = client_cipher_radius(ClientCipher, Socket, Address, Port,
 			NasId, AnonymousName, Secret, MAC, ReqAuth5, EapId4, RadId5),
-	{RadId7, EapId5, ServerCipher} = server_cipher(Socket, Address, Port, NasId,
+	{RadId7, EapId5, ServerCipher} = server_cipher_radius(Socket, Address, Port, NasId,
 			AnonymousName, Secret, MAC, CCAuth, RadId6),
 	peer_tls_transport:deliver(SslPid1, self(), ServerCipher),
 	SslSocket = ssl_handshake(),
@@ -183,16 +183,16 @@ eap_ttls_authentication_radius(Config) ->
 	{_MSK, _} = prf(SslSocket, master_secret ,
 			<<"ttls keying material">>, Seed, 128),
 	ReqAuth6 = radius:authenticator(),
-	{RadId7, CPAuth} = client_passthrough(SslSocket, Subscriber, PeerAuth,
+	{RadId7, CPAuth} = client_passthrough_radius(SslSocket, Subscriber, PeerAuth,
 			Socket, Address, Port, NasId, Secret, MAC, ReqAuth6, EapId5, RadId7),
-	ok = server_passthrough(Socket, Address, Port, NasId, UserName, Secret,
+	ok = server_passthrough_radius(Socket, Address, Port, NasId, UserName, Secret,
 			MAC, CPAuth, RadId7),
 	ok = ssl:close(SslSocket).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
-send_identity(Socket, Address, Port, NasId, AnonymousName, Secret, MAC,
+send_identity_radius(Socket, Address, Port, NasId, AnonymousName, Secret, MAC,
 		Auth, EapId, RadId) ->
 	BinAnonymousName = list_to_binary(AnonymousName),
 	EapPacket  = #eap_packet{code = response, type = ?Identity,
@@ -200,7 +200,7 @@ send_identity(Socket, Address, Port, NasId, AnonymousName, Secret, MAC,
 	access_request(EapPacket, Socket, Address, Port, NasId,
 			AnonymousName, Secret, MAC, Auth, RadId).
 
-receive_id(Socket, Address, Port, Secret, Auth, RadId) ->
+receive_identity(Socket, Address, Port, Secret, Auth, RadId) ->
 	EapMsg = access_challenge(Socket, Address, Port,
 			Secret, RadId, Auth),
 	#eap_packet{code = request, type = ?PWD, identifier = EapId,
@@ -212,14 +212,14 @@ receive_id(Socket, Address, Port, Secret, Auth, RadId) ->
 	NewRadId = RadId + 1,
 	{NewRadId, EapId}.
 
-send_legacy_nak(Socket, Address, Port, NasId, AnonymousName, Secret, MAC,
+send_legacy_nak_radius(Socket, Address, Port, NasId, AnonymousName, Secret, MAC,
 		Auth, EapId, RadId) ->
 	EapPacket  = #eap_packet{code = response, type = ?LegacyNak, identifier = EapId,
 			data = <<?TTLS>>},
 	access_request(EapPacket, Socket, Address, Port, NasId, AnonymousName,
 			Secret, MAC, Auth, RadId).
 
-receive_ttls_start(Socket, Address, Port, Secret, Auth, RadId) ->
+receive_ttls_start_radius(Socket, Address, Port, Secret, Auth, RadId) ->
 	EapMsg = access_challenge(Socket, Address, Port, Secret, RadId, Auth),
 	#eap_packet{code = request, type = ?TTLS, identifier = EapId,
 			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
@@ -227,13 +227,13 @@ receive_ttls_start(Socket, Address, Port, Secret, Auth, RadId) ->
 	NewRadId = RadId + 1,
 	{NewRadId, EapId}.
 
-client_hello(<<?Handshake, _:32, ?ClientHello, _/binary>> = Data,
+client_hello_radius(<<?Handshake, _:32, ?ClientHello, _/binary>> = Data,
 		Socket, Address, Port, NasId, UserName, Secret, MAC,
 		Auth, EapId, RadId) ->
-	client_hello1(Data, Socket, Address, Port, NasId, UserName,
+	client_hello_radius1(Data, Socket, Address, Port, NasId, UserName,
 			Secret, MAC, Auth, EapId, RadId).
 %% @hidden
-client_hello1(<<Chunk:1386/binary, Rest/binary>> = Data, Socket, Address,
+client_hello_radius1(<<Chunk:1386/binary, Rest/binary>> = Data, Socket, Address,
 		Port, NasId, UserName, Secret, MAC, Auth, EapId, RadId) ->
 	Size = size(Data),
 	EapTtls = #eap_ttls{more = true, message_len = Size, data = Chunk},
@@ -245,9 +245,9 @@ client_hello1(<<Chunk:1386/binary, Rest/binary>> = Data, Socket, Address,
 	NewEapId = receive_ack(Socket, Address, Port, Secret, Auth, RadId),
 	NewRadId = RadId + 1,
 	NewAuth = radius:athenticator(),
-	client_hello1(Rest, Socket, Address, Port, NasId, UserName,
+	client_hello_radius1(Rest, Socket, Address, Port, NasId, UserName,
 			Secret, MAC, NewAuth, NewEapId, NewRadId);
-client_hello1(Chunk, Socket, Address, Port, NasId, UserName,
+client_hello_radius1(Chunk, Socket, Address, Port, NasId, UserName,
 		Secret, MAC, Auth, EapId, RadId) ->
 	EapTtls = #eap_ttls{data = Chunk},
 	EapData = ocs_eap_codec:eap_ttls(EapTtls),
@@ -257,17 +257,17 @@ client_hello1(Chunk, Socket, Address, Port, NasId, UserName,
 			UserName, Secret, MAC, Auth, RadId),
 	{RadId, Auth}.
 
-server_hello(Socket, Address, Port, NasId, UserName, Secret,
+server_hello_radius(Socket, Address, Port, NasId, UserName, Secret,
 		MAC, Auth, RadId) ->
 	EapMsg = access_challenge(Socket, Address, Port,
 			Secret, RadId, Auth),
 	#eap_packet{code = request, identifier = EapId, type = ?TTLS,
 			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
 	TtlsData = ocs_eap_codec:eap_ttls(EapData),
-	server_hello1(TtlsData, Socket, Address, Port, NasId,
+	server_hello_radius1(TtlsData, Socket, Address, Port, NasId,
 			UserName, Secret, MAC, Auth, RadId, EapId, <<>>).
 %% @hidden
-server_hello1(#eap_ttls{more = true, data = SH}, Socket, Address, Port,
+server_hello_radius1(#eap_ttls{more = true, data = SH}, Socket, Address, Port,
 		NasId, UserName, Secret, MAC, Auth, RadId, EapId, Buf) ->
 	send_ack(Socket, Address, Port, NasId, UserName, Secret,
 			MAC, Auth, RadId, EapId),
@@ -277,51 +277,51 @@ server_hello1(#eap_ttls{more = true, data = SH}, Socket, Address, Port,
 	TtlsPacket = ocs_eap_codec:eap_ttls(EapData),
 	NewRadId = RadId + 1,
 	NewAuth = radius:authenticator(),
-	server_hello1(TtlsPacket, Socket, Address, Port, NasId,
+	server_hello_radius1(TtlsPacket, Socket, Address, Port, NasId,
 		UserName, Secret, MAC, NewAuth, NewRadId, NewEapId, <<SH/binary, Buf/binary>>);
-server_hello1(#eap_ttls{data = SH}, _, _, _, _, _, _, _, _,
+server_hello_radius1(#eap_ttls{data = SH}, _, _, _, _, _, _, _, _,
 		RadId, EapId, Buf) ->
 	%send_ack(Socket, Address, Port, NasId, UserName, Secret,
 	%		MAC, Auth, RadId, EapId),
 	NewRadId = RadId + 1,
 	{NewRadId, EapId, <<Buf/binary, SH/binary>>}.
 
-client_cipher(Data, Socket, Address, Port, NasId, UserName, Secret,
+client_cipher_radius(Data, Socket, Address, Port, NasId, UserName, Secret,
 		MAC, Auth, EapId, RadId) ->
-	client_cipher1(Data, Socket, Address, Port, NasId, UserName, Secret,
+	client_cipher_radius1(Data, Socket, Address, Port, NasId, UserName, Secret,
 			MAC, Auth, EapId, RadId, <<>>).
 %% @hidden
-client_cipher1(<<?Handshake, _:32, ?ClientKeyExchange, _/binary>>  = Data, Socket, Address, Port,
+client_cipher_radius1(<<?Handshake, _:32, ?ClientKeyExchange, _/binary>>  = Data, Socket, Address, Port,
 		NasId, UserName, Secret, MAC, Auth, EapId, RadId, Buff) ->
-	client_cipher2(Data, Socket, Address, Port,
+	client_cipher_radius2(Data, Socket, Address, Port,
 			NasId, UserName, Secret, MAC, Auth, EapId, RadId, Buff);
-client_cipher1(<<?ChangeCipherSpec, _:32, 1, _/binary>>  = Data, Socket, Address, Port,
+client_cipher_radius1(<<?ChangeCipherSpec, _:32, 1, _/binary>>  = Data, Socket, Address, Port,
 		NasId, UserName, Secret, MAC, Auth, EapId, RadId, Buff) ->
-	client_cipher2(Data, Socket, Address, Port,
+	client_cipher_radius2(Data, Socket, Address, Port,
 			NasId, UserName, Secret, MAC, Auth, EapId, RadId, Buff);
-client_cipher1(<<?Handshake, _/binary>>  = Data, Socket, Address, Port,
+client_cipher_radius1(<<?Handshake, _/binary>>  = Data, Socket, Address, Port,
 		NasId, UserName, Secret, MAC, Auth, EapId, RadId, Buff) ->
 	ClientCipher = <<Buff/binary, Data/binary>>,
-	client_cipher3(ClientCipher, Socket, Address, Port,
+	client_cipher_radius3(ClientCipher, Socket, Address, Port,
 			NasId, UserName, Secret, MAC, Auth, EapId, RadId).
 %% @hidden
-client_cipher2(<<_:24, L1:16, _/binary>>  = Data, Socket, Address, Port,
+client_cipher_radius2(<<_:24, L1:16, _/binary>>  = Data, Socket, Address, Port,
 		NasId, UserName, Secret, MAC, Auth, EapId, RadId, Buff) ->
 	case Data of
 		<<_:40, _:L1/binary>> ->
 			{_SslPid2, Rest} = ssl_handshake(),
 			Chunk = <<Buff/binary, Data/binary>>,
-			client_cipher1(Rest, Socket, Address, Port,
+			client_cipher_radius1(Rest, Socket, Address, Port,
 				NasId, UserName, Secret, MAC, Auth, EapId, RadId, Chunk);
 		<<_:40, _:L1/binary, Rest/binary>> = Payload->
 			BlockSize = L1 + 5,
 			<<CCBlock:BlockSize/binary, Rest/binary>> = Payload,
 			Chunk = <<Buff/binary, CCBlock/binary>>,
-			client_cipher1(Rest, Socket, Address, Port,
+			client_cipher_radius1(Rest, Socket, Address, Port,
 				NasId, UserName, Secret, MAC, Auth, EapId, RadId, Chunk)
 	end.
 %% @hidden
-client_cipher3(<<Chunk:1386/binary, Rest/binary>> = Data, Socket, Address, Port,
+client_cipher_radius3(<<Chunk:1386/binary, Rest/binary>> = Data, Socket, Address, Port,
 		NasId, UserName, Secret, MAC, Auth, EapId, RadId) ->
 	Size = size(Data),
 	EapTtls = #eap_ttls{more = true, message_len = Size, data = Chunk},
@@ -333,9 +333,9 @@ client_cipher3(<<Chunk:1386/binary, Rest/binary>> = Data, Socket, Address, Port,
 	NewEapId = receive_ack(Socket, Address, Port, Secret, Auth, RadId),
 	NewRadId = RadId + 1,
 	NewAuth = radius:athenticator(),
-	client_cipher3(Rest, Socket, Address, Port, NasId, UserName,
+	client_cipher_radius3(Rest, Socket, Address, Port, NasId, UserName,
 			Secret, MAC, NewAuth, NewEapId, NewRadId);
-client_cipher3(Chunk, Socket, Address, Port, NasId, UserName,
+client_cipher_radius3(Chunk, Socket, Address, Port, NasId, UserName,
 		Secret, MAC, Auth, EapId, RadId) ->
 	EapTtls = #eap_ttls{data = Chunk},
 	EapData = ocs_eap_codec:eap_ttls(EapTtls),
@@ -345,17 +345,17 @@ client_cipher3(Chunk, Socket, Address, Port, NasId, UserName,
 			UserName, Secret, MAC, Auth, RadId),
 	{RadId, Auth}.
 
-server_cipher(Socket, Address, Port, NasId, UserName,
+server_cipher_radius(Socket, Address, Port, NasId, UserName,
 		Secret, MAC, Auth, RadId) ->
 	EapMsg = access_challenge(Socket, Address, Port,
 			Secret, RadId, Auth),
 	#eap_packet{code = request, identifier = EapId, type = ?TTLS,
 			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
 	TtlsData = ocs_eap_codec:eap_ttls(EapData),
-	server_cipher1(TtlsData, Socket, Address, Port, NasId,
+	server_cipher_radius1(TtlsData, Socket, Address, Port, NasId,
 			UserName, Secret, MAC, Auth, RadId, EapId, <<>>).
 %% @hidden
-server_cipher1(#eap_ttls{more = true, data = SC}, Socket, Address, Port,
+server_cipher_radius1(#eap_ttls{more = true, data = SC}, Socket, Address, Port,
 		NasId, UserName, Secret, MAC, Auth, RadId, EapId, Buf) ->
 	send_ack(Socket, Address, Port, NasId, UserName, Secret,
 			MAC, Auth, RadId, EapId),
@@ -365,16 +365,16 @@ server_cipher1(#eap_ttls{more = true, data = SC}, Socket, Address, Port,
 	TtlsPacket = ocs_eap_codec:eap_ttls(EapData),
 	NewRadId = RadId + 1,
 	NewAuth = radius:authenticator(),
-	server_hello1(TtlsPacket, Socket, Address, Port, NasId,
+	server_hello_radius1(TtlsPacket, Socket, Address, Port, NasId,
 		UserName, Secret, MAC, NewAuth, NewRadId, NewEapId, <<Buf/binary, SC/binary>>);
-server_cipher1(#eap_ttls{data = SC}, _, _, _, _, _, _, _, _,
+server_cipher_radius1(#eap_ttls{data = SC}, _, _, _, _, _, _, _, _,
 		RadId, EapId, Buf) ->
 	%send_ack(Socket, Address, Port, NasId, UserName, Secret,
 	%		MAC, Auth, RadId, EapId),
 	NewRadId = RadId + 1,
 	{NewRadId, EapId, <<Buf/binary, SC/binary>>}.
 
-client_passthrough(SslSocket, UserName, Password, Socket, Address, Port,
+client_passthrough_radius(SslSocket, UserName, Password, Socket, Address, Port,
 		NasId, Secret, MAC, Auth, EapId, RadId) ->
 	UN = #diameter_avp{code = ?UserName, is_mandatory = true,
 			data = UserName},
@@ -392,7 +392,7 @@ client_passthrough(SslSocket, UserName, Password, Socket, Address, Port,
 		binary_to_list(UserName), Secret, MAC, Auth, RadId),
 	{RadId, Auth}.
 
-server_passthrough(Socket, Address, Port, _NasId, _UserName, Secret,
+server_passthrough_radius(Socket, Address, Port, _NasId, _UserName, Secret,
 			_MAC, Auth, RadId) ->
 	EapMsg = access_accept(Socket, Address, Port,
 			Secret, RadId, Auth),
