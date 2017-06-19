@@ -370,5 +370,25 @@
 	"enableTool": {
     "description": "Tooltip message for enable",            
     "message": "Activar o desactivar temporalmente la autorización de servicio"
+  },
+	"subToastErrorReason": {
+    "description": "Toast message Error reason",
+    "message": "No se pudo agregar el suscriptor!"
+  },
+	"subToastErrorReason1": {
+    "description": "Toast message Error reason",
+    "message": "Vuelva a comprobar lo siguiente."
+  },
+	"subToastErrorReason2": {
+    "description": "Toast message Error reason",
+    "message": "El balance debe ser un número positivo"
+  },
+	"subToastSuc": {
+    "description": "Toast message for success",
+    "message": "Suscriptor añadido!"
+  },
+	"identityCol": {
+    "description": "Identity label for generate identity",
+    "message": "Identidad:"
   }
 }

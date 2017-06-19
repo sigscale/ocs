@@ -378,5 +378,25 @@
 	"enableTool": {
     "description": "Tooltip message for enable", 
     "message": "Temporarily enable, or disable, authorization for service."
+  },
+	"subToastErrorReason": {
+    "description": "Toast message Error reason",
+    "message": "Couldn't add subscriber!"
+  },
+	"subToastErrorReason1": {
+    "description": "Toast message Error reason",
+    "message": "Please recheck th1e following."
+  },
+	"subToastErrorReason2": {
+    "description": "Toast message Error reason",
+    "message": "Balance must be a postive number"
+  },
+	"subToastSuc": {
+    "description": "Toast message for success",
+    "message": "Subscriber added!"
+  },
+	"identityCol": {
+    "description": "Identity label for generate identity",
+    "message": "Identity:"
   }
 }
