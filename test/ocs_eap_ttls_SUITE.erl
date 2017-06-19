@@ -48,10 +48,18 @@
 -define(ClientKeyExchange,		16).
 -define(Finished,					20).
 
+%% Macro definitions for diameter service
+-define(SVC, diameter_client_service).
+-define(BASE_APPLICATION_ID, 0).
+-define(EAP_APPLICATION_ID, 5).
+
 -include_lib("radius/include/radius.hrl").
 -include_lib("diameter/include/diameter.hrl").
 -include("ocs_eap_codec.hrl").
 -include_lib("common_test/include/ct.hrl").
+-include_lib("diameter/include/diameter.hrl").
+-include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
+-include_lib("../include/diameter_gen_eap_application_rfc4072.hrl").
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
@@ -76,12 +84,23 @@ init_per_suite(Config) ->
 	SharedSecret = ct:get_config(radius_shared_secret),
 	ok = ocs:add_client(AuthAddress, 3799, Protocol, SharedSecret),
 	NasId = atom_to_list(node()),
-	[{nas_id, NasId}] ++ Config.
+	{ok, [{auth, DiaAuthInstance}, {acct, _}]} = application:get_env(ocs, diameter),
+	[{Address, Port, _}] = DiaAuthInstance,
+	true = diameter:subscribe(?SVC),
+	ok = diameter:start_service(?SVC, client_service_opts()),
+	{ok, _Ref} = connect(?SVC, Address, Port, diameter_tcp),
+	receive
+		#diameter_event{service = ?SVC, info = start} ->
+			[{nas_id, NasId}] ++ Config;
+		_ ->
+			{skip, diameter_client_service_not_started}
+	end.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
+	ok = diameter:stop_service(?SVC),
 	ok = ocs_test_lib:stop(),
 	Config.
 
@@ -494,4 +513,41 @@ cs_random(TlsRecordLayer, MsgType) ->
 	<<?Handshake, _:32, MsgType, _:24, _:16,
 		Rand:32/binary, _/binary>> = TlsRecordLayer,
 	Rand.
+
+%% @doc Add a transport capability to diameter service.
+%% @hidden
+connect(SvcName, Address, Port, Transport) when is_atom(Transport) ->
+	connect(SvcName, [{connect_timer, 30000} | transport_opts(Address, Port, Transport)]).
+
+%% @hidden
+connect(SvcName, Opts)->
+	diameter:add_transport(SvcName, {connect, Opts}).
+
+%% @hidden
+client_service_opts() ->
+	[{'Origin-Host', "client.testdomain.com"},
+		{'Origin-Realm', "testdomain.com"},
+		{'Vendor-Id', 0},
+		{'Product-Name', "DIAMETER Test Client"},
+		{'Auth-Application-Id', [?BASE_APPLICATION_ID,
+														 ?EAP_APPLICATION_ID]},
+		{string_decode, false},
+		{application, [{alias, base_app_test},
+				{dictionary, diameter_gen_base_rfc6733},
+				{module, diameter_test_client_cb}]},
+		{application, [{alias, eap_app_test},
+				{dictionary, diameter_gen_eap_application_rfc4072},
+				{module, diameter_test_client_cb}]}].
+
+%% @hidden
+transport_opts(Address, Port, Trans) when is_atom(Trans) ->
+	transport_opts1({Trans, Address, Address, Port}).
+
+%% @hidden
+transport_opts1({Trans, LocalAddr, RemAddr, RemPort}) ->
+	[{transport_module, Trans},
+		{transport_config, [{raddr, RemAddr},
+		{rport, RemPort},
+		{reuseaddr, true}
+		| [{ip, LocalAddr}]]}].
 
