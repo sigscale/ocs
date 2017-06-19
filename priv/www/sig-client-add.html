@@ -68,7 +68,7 @@
 	<template>
 		<paper-dialog id="clientAddModal" modal>
 			<paper-toolbar>
-				<h2>"[[i18n.addClient]]"</h2>
+				<h2>[[i18n.addClient]]</h2>
 			</paper-toolbar>
 			<form
 					is="iron-form"
@@ -107,7 +107,9 @@
 							label="[[i18n.secret]]">
 					</paper-input>
 					<paper-tooltip>
-						Secret, or password, shared with the network access server, router or access point.
+						<i18n-msg msgid="secretTooltip">
+							Secret, or password, shared with the network access server, router or access point.
+						</i18n-msg>
 					</paper-tooltip>
 					<div class="generate">
 						<paper-checkbox
@@ -159,14 +161,14 @@
 				</div>
 			</form>
 				<paper-toast id="toastSuccess" class="fit-bottom">
-					<h2>"[[i18n.clientAdded]]"</h2>
+					<h2>[[i18n.clientAdded]]</h2>
 				</paper-toast>
 		</paper-dialog>
 		<paper-dialog id="clientSecretModal" class="generated" modal>
 			<paper-toolbar>
-				<h2>"[[i18n.serverGen]]"</h2>
+				<h2>[[i18n.serverGen]]</h2>
 			</paper-toolbar>
-				<paper-item>"[[i18n.secretCol]]"<b>[[secret]]</b></paper-item>
+				<paper-item>[[i18n.secretCol]]<b>[[secret]]</b></paper-item>
 				<div class="close">
 					<paper-button dialog-confirm autofocus>
 						<i18n-msg msgid="close">
