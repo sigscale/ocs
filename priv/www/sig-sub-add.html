@@ -224,30 +224,36 @@
 				</form>
 				<div id="response-display-container">
 					<paper-toast id="toastError" class="fit-bottom error">
-						<h2>Couldn't add subscriber!</h2>
-						<h5>Please recheck the following.</h5>
+						<h2>[[i18n.subToastErrorReason]]</h2>
+						<h5>[[i18n.subToastErrorReason1]]</h5>
 						<ul>
-							<li>Balance must be a postive number</li>
+							<li>[[i18n.subToastErrorReason2]]</li>
 						</ul>
 						<paper-button id="toastErrorClose"
 								onclick="toastErrorClose()"
 								style="background-color: #fffcfc;color: #170101;">
-							Close
+							<i18n-msg msgid="close">
+								Close
+							</i18n-msg>
 						</paper-button>
 					</paper-toast>
 					<paper-toast id="toast-success" class="fit-bottom">
-						<h2>Subscriber added!</h2>
+						<h2>[[i18n.subToastSuc]]</h2>
 					</paper-toast>
 				</div>
 			</paper-dialog>
 			<paper-dialog id="subSecretModal" class="generated" modal>
 				<paper-toolbar>
-					<h2>Server Generated</h2>
+					<h2>[[i18n.serverGen]]</h2>
 				</paper-toolbar>
-				<paper-item>Identity: <b>[[id]]</b></paper-item>
-				<paper-item>Secret: <b>[[password]]</b></paper-item>
+				<paper-item>[[i18n.identityCol]]<b>[[id]]</b></paper-item>
+				<paper-item>[[i18n.secretCol]]<b>[[password]]</b></paper-item>
 				<div class="close">
-					<paper-button dialog-confirm autofocus>Close</paper-button>
+					<paper-button dialog-confirm autofocus>
+						<i18n-msg msgid="close">
+							Close
+						</i18n-msg>
+					</paper-button>
 				</div>
 			</paper-dialog>
 		</div>
