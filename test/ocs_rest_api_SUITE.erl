@@ -749,6 +749,16 @@ get_auth_usage() ->
 	[{userdata, [{doc,"Get a TMF635 auth usage"}]}].
 
 get_auth_usage(Config) ->
+	ClientAddress = {192, 168, 159, 158},
+	ReqAttrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
+			{?UserName, "DE:AD:BE:EF:CA:FE"}, {?AcctSessionId, "8250020b"},
+			{?CallingStationId, "FE-ED-BE-EF-FE-FE"},
+			{?CalledStationId, "CA-FE-CA-FE-CA-FE:AP 1"},
+			{?NasIdentifier, "ap-1.sigscale.net"},
+			{?NasIpAddress, ClientAddress}],
+	ResAttrs = [{?SessionTimeout, 3600}, {?AscendDataRate, 64000}],
+	ok = ocs_log:auth_log(radius, {{0,0,0,0}, 1812},
+			{ClientAddress, 4598}, accept, ReqAttrs, ResAttrs),
 	HostUrl = ?config(host_url, Config),
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
@@ -764,7 +774,7 @@ get_auth_usage(Config) ->
 	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
 	ContentLength = integer_to_list(length(Body)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
-	{_, {array, [{struct, Usage}]}} = mochijson:decode(Body),
+	{array, [{struct, [Usage | _]}]} = mochijson:decode(Body),
 	{_, _} = lists:keyfind("id", 1, Usage),
 	{_, _} = lists:keyfind("href", 1, Usage),
 	{_, _} = lists:keyfind("date", 1, Usage),
