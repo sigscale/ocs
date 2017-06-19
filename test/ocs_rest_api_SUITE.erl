@@ -774,18 +774,17 @@ get_auth_usage(Config) ->
 	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
 	ContentLength = integer_to_list(length(Body)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
-	{array, [{struct, [Usage | _]}]} = mochijson:decode(Body),
+	{array, [{struct, Usage} | _]} = mochijson:decode(Body),
 	{_, _} = lists:keyfind("id", 1, Usage),
 	{_, _} = lists:keyfind("href", 1, Usage),
 	{_, _} = lists:keyfind("date", 1, Usage),
 	{_, "AAAAccessUsage"} = lists:keyfind("type", 1, Usage),
-	{_, _} = lists:keyfind("description", 1, Usage),
-	{_, "recieved"} = lists:keyfind("status", 1, Usage),
-	{struct, UsageSpecification} = lists:keyfind("usageSpecification", 1, Usage),
+	{_, "received"} = lists:keyfind("status", 1, Usage),
+	{_, {struct, UsageSpecification}} = lists:keyfind("usageSpecification", 1, Usage),
 	{_, _} = lists:keyfind("id", 1, UsageSpecification),
 	{_, _} = lists:keyfind("href", 1, UsageSpecification),
 	{_, "AAAAccessUsageSpec"} = lists:keyfind("name", 1, UsageSpecification),
-	{array, UsageCharacteristic} = lists:keyfind("usageCharacteristic", 1, Usage),
+	{_, {array, UsageCharacteristic}} = lists:keyfind("usageCharacteristic", 1, Usage),
 	F = fun({struct, [{"name", "protocol"}, {"value", Protocol}]})
 					when Protocol == "RADIUS"; Protocol == "DIAMETER" ->
 				true;
