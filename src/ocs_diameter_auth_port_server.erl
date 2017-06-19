@@ -282,7 +282,7 @@ request1(EapType, OHost, ORealm, Request, CbProc, #state{handlers = Handlers,
 				case EapType of
 					{_, _Identity} when MethodPrefer == pwd ->
 						PwdSup = State#state.pwd_sup,
-						{_Fsm, NewState} = start_fsm(PwdSup, 5, SessionId, AuthType, OHost,
+						NewState = start_fsm(PwdSup, 5, SessionId, AuthType, OHost,
 								ORealm, [], CbProc, Request, State),
 						{noreply, NewState};
 					none ->
@@ -292,7 +292,7 @@ request1(EapType, OHost, ORealm, Request, CbProc, #state{handlers = Handlers,
 						case {UserName, Password} of
 							{UserName, Password} when (UserName /= undefined andalso
 									Password /= undefined) ->
-								{_Fsm, NewState} = start_fsm(SimpleAuthSup, 1, SessionId, AuthType,
+								NewState = start_fsm(SimpleAuthSup, 1, SessionId, AuthType,
 										OHost, ORealm, [UserName, Password], CbProc, Request, State),
 								{noreply, NewState};
 							_ ->
@@ -312,7 +312,7 @@ request1(EapType, OHost, ORealm, Request, CbProc, #state{handlers = Handlers,
 								NewEapPacket = #eap_packet{code = response,
 										type = ?Identity, identifier = EapId, data = <<>>},
 								NewEapMessage = ocs_eap_codec:eap_packet(NewEapPacket),
-								{Fsm, NewState} = start_fsm(Sup, 5, SessionId, AuthType,
+								NewState = start_fsm(Sup, 5, SessionId, AuthType,
 										OHost, ORealm, [], CbProc, Request, State),
 								Request1 = #diameter_eap_app_DER{'Session-Id' = SessionId,
 										'Auth-Application-Id' = 5, 'Auth-Request-Type' = AuthType,
@@ -365,8 +365,7 @@ request1(EapType, OHost, ORealm, Request, CbProc, #state{handlers = Handlers,
 		CbProc :: {pid(), term()},
 		Request :: #diameter_nas_app_AAR{} | #diameter_eap_app_DER{},
 		State :: state(),
-		Result :: {AuthFsm, State},
-		AuthFsm :: undefined | pid().
+		Result :: State.
 start_fsm(AuthSup, AppId, SessId, Type, OHost, ORealm,
 		Options, CbProc, Request, #state{handlers = Handlers, address = Address,
 		port = Port, cb_fsms = FsmHandler} = State) ->
@@ -379,11 +378,11 @@ start_fsm(AuthSup, AppId, SessId, Type, OHost, ORealm,
 			NewHandlers = gb_trees:enter(SessId, AuthFsm, Handlers),
 			NewFsmHandler = gb_trees:enter(AuthFsm, CbProc, FsmHandler),
 			NewState = State#state{handlers = NewHandlers, cb_fsms = NewFsmHandler},
-			{AuthFsm, NewState};
+			NewState;
 		{error, Reason} ->
 			error_logger:error_report(["Error starting session handler",
 					{error, Reason}, {supervisor, AuthSup},{session_id, SessId}]),
-			{undefined, State}
+			State
 	end.
 
 -spec get_attibutes(Request) -> {SessionId, AuthRequestType}
