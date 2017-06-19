@@ -308,7 +308,7 @@ request1(EapType, OHost, ORealm, Request, CbProc, #state{handlers = Handlers,
 					{legacy_nak, EapId, AlternateMethods} ->
 						case get_alternate(MethodOrder, AlternateMethods, State) of
 							{ok , Sup} ->
-								gen_fsm:sync_send_event(Fsm, Request),
+								gen_fsm:send_event(Fsm, Request),
 								NewEapPacket = #eap_packet{code = response,
 										type = ?Identity, identifier = EapId, data = <<>>},
 								NewEapMessage = ocs_eap_codec:eap_packet(NewEapPacket),
