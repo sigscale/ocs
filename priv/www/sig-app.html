@@ -193,7 +193,7 @@
 	</template>
 		<script>
 		document.addEventListener('HTMLImportsLoaded', function() {
-			I18nMsg.lang = 'es';
+			I18nMsg.lang = document.documentElement.lang || 'en';
 			Platform.performMicrotaskCheckpoint();
 		});
 		Polymer (
