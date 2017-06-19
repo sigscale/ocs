@@ -282,9 +282,8 @@ request1(EapType, OHost, ORealm, Request, CbProc, #state{handlers = Handlers,
 				case EapType of
 					{_, _Identity} when MethodPrefer == pwd ->
 						PwdSup = State#state.pwd_sup,
-						{Fsm, NewState} = start_fsm(PwdSup, 5, SessionId, AuthType, OHost,
+						{_Fsm, NewState} = start_fsm(PwdSup, 5, SessionId, AuthType, OHost,
 								ORealm, [], CbProc, Request, State),
-						gen_fsm:send_event(Fsm, Request),
 						{noreply, NewState};
 					none ->
 						#diameter_nas_app_AAR{'User-Name' = [UserName],
