@@ -71,7 +71,7 @@
 		<div id="add_subscriber_container">
 			<paper-dialog id="subAddModal" modal>
 				<paper-toolbar>
-					<h2>"[[i18n.AddTitle]]"</h2>
+					<h2>[[i18n.AddTitle]]</h2>
 				</paper-toolbar>
 				<form
 						is="iron-form"
@@ -229,13 +229,14 @@
 						<ul>
 							<li>[[i18n.subToastErrorReason2]]</li>
 						</ul>
-						<paper-button id="toastErrorClose"
-								onclick="toastErrorClose()"
-								style="background-color: #fffcfc;color: #170101;">
-							<i18n-msg msgid="close">
-								Close
-							</i18n-msg>
-						</paper-button>
+						<div class="close">
+							<paper-button id="toastErrorClose"
+									onclick="toastErrorClose()">
+								<i18n-msg msgid="close">
+									Close
+								</i18n-msg>
+							</paper-button>
+						</div>
 					</paper-toast>
 					<paper-toast id="toast-success" class="fit-bottom">
 						<h2>[[i18n.subToastSuc]]</h2>
