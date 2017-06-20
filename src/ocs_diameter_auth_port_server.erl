@@ -53,6 +53,7 @@
 		method_prefer :: ocs:eap_method(),
 		method_order :: [ocs:eap_method()],
 		simple_auth_sup :: undefined | pid(),
+		ttls_sup :: undefined | pid(),
 		pwd_sup :: undefined | pid(),
 		cb_fsms = gb_trees:empty() :: gb_trees:tree(
 				Key :: (AuthFsm :: pid()), Value :: (CbProc :: pid())),
@@ -156,12 +157,14 @@ handle_info(timeout, #state{auth_port_sup = AuthPortSup} = State) ->
 	Children = supervisor:which_children(AuthPortSup),
 	{_, SimpleAuthSup, _, _} = lists:keyfind(ocs_simple_auth_fsm_sup, 1, Children),
 	{_, PwdSup, _, _} = lists:keyfind(ocs_eap_pwd_fsm_sup, 1, Children),
-	NewState = State#state{simple_auth_sup = SimpleAuthSup, pwd_sup = PwdSup},
+	{_, TtlsSup, _, _} = lists:keyfind(ocs_eap_ttls_fsm_sup_sup, 1, Children),
+	NewState = State#state{simple_auth_sup = SimpleAuthSup, pwd_sup = PwdSup,
+			ttls_sup = TtlsSup},
 	{noreply, NewState};
 handle_info({'EXIT', Fsm, {shutdown, SessionId}},
 		#state{handlers = Handlers} = State) ->
 	case gb_trees:lookup(SessionId, Handlers) of
-		{value, Fsm} ->
+		{value, _Fsm1} ->
 			NewHandlers = gb_trees:delete(SessionId, Handlers),
 			{noreply, State#state{handlers = NewHandlers}};
 		none ->
@@ -282,7 +285,7 @@ request1(EapType, OHost, ORealm, Request, CbProc, #state{handlers = Handlers,
 				case EapType of
 					{_, _Identity} when MethodPrefer == pwd ->
 						PwdSup = State#state.pwd_sup,
-						NewState = start_fsm(PwdSup, 5, SessionId, AuthType, OHost,
+						{_Fsm, NewState} = start_fsm(PwdSup, 5, SessionId, AuthType, OHost,
 								ORealm, [], CbProc, Request, State),
 						{noreply, NewState};
 					none ->
@@ -292,7 +295,7 @@ request1(EapType, OHost, ORealm, Request, CbProc, #state{handlers = Handlers,
 						case {UserName, Password} of
 							{UserName, Password} when (UserName /= undefined andalso
 									Password /= undefined) ->
-								NewState = start_fsm(SimpleAuthSup, 1, SessionId, AuthType,
+								{_Fsm, NewState} = start_fsm(SimpleAuthSup, 1, SessionId, AuthType,
 										OHost, ORealm, [UserName, Password], CbProc, Request, State),
 								{noreply, NewState};
 							_ ->
@@ -303,22 +306,17 @@ request1(EapType, OHost, ORealm, Request, CbProc, #state{handlers = Handlers,
 								{reply, Answer, State}
 							end
 					end;
-			{value, Fsm} ->
+			{value, ExistingFsm} ->
 				case EapType of
 					{legacy_nak, EapId, AlternateMethods} ->
 						case get_alternate(MethodOrder, AlternateMethods, State) of
 							{ok , Sup} ->
-								gen_fsm:send_event(Fsm, Request),
+								gen_fsm:send_event(ExistingFsm, Request),
 								NewEapPacket = #eap_packet{code = response,
 										type = ?Identity, identifier = EapId, data = <<>>},
 								NewEapMessage = ocs_eap_codec:eap_packet(NewEapPacket),
-								NewState = start_fsm(Sup, 5, SessionId, AuthType,
+								{NewFsm, NewState} = start_fsm(Sup, 5, SessionId, AuthType,
 										OHost, ORealm, [], CbProc, Request, State),
-								Request1 = #diameter_eap_app_DER{'Session-Id' = SessionId,
-										'Auth-Application-Id' = 5, 'Auth-Request-Type' = AuthType,
-										'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
-										'Destination-Realm' = <<>>, 'EAP-Payload' = NewEapMessage},
-								gen_fsm:send_event(Fsm, Request1),
 								{noreply, NewState};
 							{error, none} ->
 								NewEapPacket = #eap_packet{code = failure, identifier = EapId},
@@ -337,8 +335,8 @@ request1(EapType, OHost, ORealm, Request, CbProc, #state{handlers = Handlers,
 								'Origin-Host' = OHost, 'Origin-Realm' = ORealm },
 						{reply, Answer, State};
 					{eap, _Eap} ->
-						NewFsmHandler = gb_trees:enter(Fsm, CbProc, FsmHandler),
-						gen_fsm:send_event(Fsm, Request),
+						NewFsmHandler = gb_trees:enter(ExistingFsm, CbProc, FsmHandler),
+						gen_fsm:send_event(ExistingFsm, Request),
 						{noreply, State#state{cb_fsms = NewFsmHandler}}
 				end
 		end
@@ -365,24 +363,44 @@ request1(EapType, OHost, ORealm, Request, CbProc, #state{handlers = Handlers,
 		CbProc :: {pid(), term()},
 		Request :: #diameter_nas_app_AAR{} | #diameter_eap_app_DER{},
 		State :: state(),
-		Result :: State.
+		Result :: {AuthFsm, State},
+		AuthFsm :: undefined | pid().
 start_fsm(AuthSup, AppId, SessId, Type, OHost, ORealm,
 		Options, CbProc, Request, #state{handlers = Handlers, address = Address,
-		port = Port, cb_fsms = FsmHandler} = State) ->
+		port = Port, ttls_sup = AuthSup} = State) ->
+	StartArgs = [diameter, Address, Port, SessId, AppId, Type, OHost,
+			ORealm, Request, Options],
+	ChildSpec = [StartArgs],
+	start_fsm1(AuthSup, ChildSpec, SessId, CbProc, State);
+start_fsm(AuthSup, AppId, SessId, Type, OHost, ORealm,
+		Options, CbProc, Request, #state{handlers = Handlers, address = Address,
+		port = Port} = State) ->
 	StartArgs = [diameter, Address, Port, SessId, AppId, Type, OHost,
 			ORealm, Request, Options],
 	ChildSpec = [StartArgs, []],
+	start_fsm1(AuthSup, ChildSpec, SessId, CbProc, State).
+%% @hidden
+start_fsm1(AuthSup, ChildSpec, SessId, CbProc, #state{handlers = Handlers,
+		cb_fsms = FsmHandler, ttls_sup = TtlsSup} = State) ->
 	case supervisor:start_child(AuthSup, ChildSpec) of
+		{ok, AuthFsmSup} when AuthSup == TtlsSup ->
+			Children = supervisor:which_children(AuthFsmSup),
+			{_, Fsm, _, _} = lists:keyfind(ocs_eap_ttls_fsm, 1, Children),
+			link(Fsm),
+			NewHandlers = gb_trees:enter(SessId, Fsm, Handlers),
+			NewFsmHandler = gb_trees:enter(Fsm, CbProc, FsmHandler),
+			NewState = State#state{handlers = NewHandlers, cb_fsms = NewFsmHandler},
+			{Fsm, NewState};
 		{ok, AuthFsm} ->
 			link(AuthFsm),
 			NewHandlers = gb_trees:enter(SessId, AuthFsm, Handlers),
 			NewFsmHandler = gb_trees:enter(AuthFsm, CbProc, FsmHandler),
 			NewState = State#state{handlers = NewHandlers, cb_fsms = NewFsmHandler},
-			NewState;
+			{AuthFsm, NewState};
 		{error, Reason} ->
 			error_logger:error_report(["Error starting session handler",
 					{error, Reason}, {supervisor, AuthSup},{session_id, SessId}]),
-			State
+			{undefined, State}
 	end.
 
 -spec get_attibutes(Request) -> {SessionId, AuthRequestType}
@@ -416,6 +434,14 @@ get_alternate(PreferenceOrder, AlternateMethods, State)
 get_alternate([pwd | T], AlternateMethods,
 		#state{pwd_sup = Sup} = State) ->
 	case lists:member(?PWD, AlternateMethods) of
+		true ->
+			{ok, Sup};
+		false ->
+			get_alternate(T, AlternateMethods, State)
+	end;
+get_alternate([ttls | T], AlternateMethods,
+		#state{ttls_sup = Sup} = State) ->
+	case lists:member(?TTLS, AlternateMethods) of
 		true ->
 			{ok, Sup};
 		false ->
