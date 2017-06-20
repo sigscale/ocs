@@ -63,21 +63,24 @@
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs_eap_codec.hrl").
+-include_lib("diameter/include/diameter.hrl").
+-include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
+-include("../include/diameter_gen_eap_application_rfc4072.hrl").
 
 -record(statedata,
 		{sup :: pid(),
 		aaah_fsm :: undefined | pid(),
 		server_address :: inet:ip_address(),
 		server_port :: pos_integer(),
-		client_address :: inet:ip_address(),
-		client_port :: pos_integer(),
-		session_id :: {NAS :: inet:ip_address() | string(),
+		client_address :: undefined | inet:ip_address(),
+		client_port :: undefined | pos_integer(),
+		session_id :: binary() | {NAS :: inet:ip_address() | string(),
 				Port :: string(), Peer :: string()},
-		secret :: binary(),
+		secret :: secret | binary(),
 		eap_id = 0 :: byte(),
-		start :: #radius{},
+		start :: #radius{} | #diameter_eap_app_DER{},
 		server_id :: binary(),
-		radius_fsm :: pid(),
+		radius_fsm :: undefined | pid(),
 		radius_id :: undefined | byte(),
 		req_auth :: undefined | [byte()],
 		ssl_socket :: undefined | ssl:sslsocket(),
@@ -91,7 +94,13 @@
 		server_rand :: undefined | binary(),
 		tls_key :: string(),
 		tls_cert :: string(),
-		tls_cacert :: string()}).
+		tls_cacert :: string(),
+		app_id :: undefined | integer(),
+		auth_req_type :: undefined | integer(),
+		origin_host :: undefined | binary(),
+		origin_realm :: undefined | binary(),
+		port_server :: undefined | pid()}).
+
 -type statedata() :: #statedata{}.
 
 -define(TIMEOUT, 30000).
@@ -133,7 +142,26 @@ init([Sup, radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
 			start = AccessRequest, tls_key = TLSkey, tls_cert = TLScert,
 			tls_cacert = TLScacert},
 	process_flag(trap_exit, true),
-	{ok, ssl_start, StateData, 0}.
+	{ok, ssl_start, StateData, 0};
+init([Sup, diameter, ServerAddress, ServerPort, SessionID, AppId, ReqType, OHost,
+			ORealm, DiameterRequest, _Options] = _Args) ->
+	{ok, TLSkey} = application:get_env(ocs, tls_key),
+	{ok, TLScert} = application:get_env(ocs, tls_cert),
+	{ok, TLScacert} = application:get_env(ocs, tls_cacert),
+	{ok, Hostname} = inet:gethostname(),
+	case global:whereis_name({ocs_diameter_auth, ServerAddress, ServerPort}) of
+		undefined ->
+			{stop, ocs_diameter_auth_port_server_not_found};
+		PortServer ->
+			StateData = #statedata{sup = Sup, server_address = ServerAddress,
+					server_port = ServerPort, session_id = SessionID,
+					server_id = list_to_binary(Hostname), start = DiameterRequest,
+					tls_key = TLSkey, tls_cert = TLScert, tls_cacert = TLScacert,
+					app_id = AppId, auth_req_type = ReqType, origin_host = OHost,
+					origin_realm = ORealm, port_server = PortServer},
+			process_flag(trap_exit, true),
+			{ok, ssl_start, StateData, 0}
+		end.
 
 -spec ssl_start(Event, StateData) -> Result
 	when
@@ -155,6 +183,18 @@ init([Sup, radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
 ssl_start(timeout, #statedata{start = #radius{code = ?AccessRequest},
 		ssl_socket = undefined, sup = Sup,
 		tls_key = TLSkey, tls_cert = TLScert, tls_cacert = TLScacert} = StateData) ->
+	Children = supervisor:which_children(Sup),
+	{_, AaahFsm, _, _} = lists:keyfind(ocs_eap_ttls_aaah_fsm, 1, Children),
+	Options = [{mode, binary}, {certfile, TLScert}, {keyfile, TLSkey},
+			{cacertfile, TLScacert}],
+	{ok, SslSocket} = ocs_eap_tls_transport:ssl_listen(self(), Options),
+	gen_fsm:send_event(AaahFsm, {ttls_socket, self(), SslSocket}),
+	NewStateData = StateData#statedata{aaah_fsm = AaahFsm,
+			ssl_socket = SslSocket},
+	{next_state, ssl_start, NewStateData, ?TIMEOUT};
+ssl_start(timeout, #statedata{start = #diameter_eap_app_DER{},
+		ssl_socket = undefined, sup = Sup, tls_key = TLSkey,
+		tls_cert = TLScert, tls_cacert = TLScacert} = StateData) ->
 	Children = supervisor:which_children(Sup),
 	{_, AaahFsm, _, _} = lists:keyfind(ocs_eap_ttls_aaah_fsm, 1, Children),
 	Options = [{mode, binary}, {certfile, TLScert}, {keyfile, TLSkey},
@@ -240,6 +280,63 @@ eap_start(timeout, #statedata{start = #radius{code = ?AccessRequest,
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			{next_state, client_hello, NewStateData, ?TIMEOUT}
+	end;
+eap_start(timeout, #statedata{start = DiameterRequest,
+		eap_id = EapID, session_id = SessionID, auth_req_type = AuthType,
+		origin_host = OH, origin_realm = OR, port_server = PortServer}
+		= StateData) ->
+	EapTtls = #eap_ttls{start = true},
+	EapData = ocs_eap_codec:eap_ttls(EapTtls),
+	case DiameterRequest#diameter_eap_app_DER.'EAP-Payload' of
+		<<>> ->
+			EapPacket = #eap_packet{code = request, type = ?TTLS,
+					identifier = EapID, data = EapData},
+			Answer = generate_diameter_response(SessionID, AuthType,
+					?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
+					OH, OR, EapPacket),
+			gen_server:cast(PortServer, {self(), Answer}),
+			{next_state, client_hello, StateData, ?TIMEOUT};
+		EAPMessage ->
+			case catch ocs_eap_codec:eap_packet(EAPMessage) of
+				#eap_packet{code = response,
+						type = ?Identity, identifier = StartEapID} ->
+					NewEapID = (StartEapID rem 255) + 1,
+					NewEapPacket = #eap_packet{code = request, type = ?TTLS,
+							identifier = NewEapID, data = EapData},
+					Answer = generate_diameter_response(SessionID, AuthType,
+							?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
+							OH, OR, NewEapPacket),
+					gen_server:cast(PortServer, {self(), Answer}),
+					NextStateData = StateData#statedata{eap_id = NewEapID},
+					{next_state, client_hello, NextStateData, ?TIMEOUT};
+				#eap_packet{code = request, identifier = NewEapID} ->
+					NewEapPacket = #eap_packet{code = response, type = ?LegacyNak,
+							identifier = NewEapID, data = <<0>>},
+					Answer = generate_diameter_response(SessionID, AuthType,
+							?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+							OH, OR, NewEapPacket),
+					gen_server:cast(PortServer, {self(), Answer}),
+					{stop, {shutdown, SessionID}, StateData};
+				#eap_packet{code = Code,
+							type = EapType, identifier = NewEapID, data = Data} ->
+					error_logger:warning_report(["Unknown EAP received",
+							{pid, self()}, {session_id, SessionID},
+							{eap_id, NewEapID}, {code, Code},
+							{type, EapType}, {data, Data}]),
+					NewEapPacket = #eap_packet{code = failure, identifier = NewEapID},
+					Answer = generate_diameter_response(SessionID, AuthType,
+							?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+							OH, OR, NewEapPacket),
+					gen_server:cast(PortServer, {self(), Answer}),
+					{stop, {shutdown, SessionID}, StateData};
+				{'EXIT', _Reason} ->
+					NewEapPacket = #eap_packet{code = failure, identifier = EapID},
+					Answer = generate_diameter_response(SessionID, AuthType,
+							?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+							OH, OR, NewEapPacket),
+					gen_server:cast(PortServer, {self(), Answer}),
+					{stop, {shutdown, SessionID}, StateData}
+			end
 	end.
 
 -spec client_hello(Event, StateData) -> Result
@@ -926,5 +1023,20 @@ prf(SslSocket, Secret, Label, Seed, WantedLength) when is_list(Seed) ->
 			{MSK, EMSK};
 		{'EXIT', _Reason} -> % fake dialyzer out
 			{<<0:512>>, <<0:512>>}
+	end.
+
+%% @hidden
+generate_diameter_response(SId, AuthType, ResultCode, OH, OR, EapPacket) ->
+	try
+		EapData = ocs_eap_codec:eap_packet(EapPacket),
+		#diameter_eap_app_DEA{'Session-Id' = SId, 'Auth-Application-Id' = 5,
+				'Auth-Request-Type' = AuthType, 'Result-Code' = ResultCode,
+				'Origin-Host' = OH, 'Origin-Realm' = OR, 'EAP-Payload' = [EapData]}
+	catch
+		_:_ ->
+		#diameter_eap_app_DEA{'Session-Id' = SId, 'Auth-Application-Id' = 5,
+				'Auth-Request-Type' = AuthType,
+				'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+				'Origin-Host' = OH, 'Origin-Realm' = OR}
 	end.
 
