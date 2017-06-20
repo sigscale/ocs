@@ -79,7 +79,7 @@ get_usage([{"type", "AAAAccountingUsage"}]) ->
 		{error, _} ->
 			{error, 404};
 		{NewCount, Events} ->
-			JsonObj = usage_acct_auth(Events),
+			JsonObj = usage_aaa_acct(Events),
 			JsonArray = {array, JsonObj},
 			Body = mochijson:encode(JsonArray),
 			ContentRange = "items 1-" ++ integer_to_list(NewCount) ++ "/*",
@@ -401,7 +401,7 @@ usage_aaa_auth(Events) ->
 	lists:reverse(lists:foldl(F, [], Events)).
 
 %% @hidden
-usage_acct_auth(Events) ->
+usage_aaa_acct(Events) ->
 	UsageSpec = {struct, [{id, "AAAAccountingUsageSpec"},
 			{href, "/usageManagement/v1/usageSpecification/AAAAccountingUsageSpec"},
 			{name, "AAAAccountingUsageSpec"}]},
