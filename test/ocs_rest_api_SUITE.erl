@@ -131,8 +131,8 @@ all() ->
 	get_subscriber_not_found, retrieve_all_subscriber, delete_subscriber,
 	add_client, add_client_without_password, get_client, get_client_id,
 	get_client_bogus, get_client_notfound, get_all_clients, delete_client,
-	get_usagespecs, get_usagespec, get_auth_usage, get_acct_usage,
-	get_ipdr_usage].
+	get_usagespecs, get_usagespec, get_auth_usage, get_auth_usage_id,
+	get_acct_usage, get_ipdr_usage].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -782,7 +782,8 @@ get_auth_usage(Config) ->
 	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
 	ContentLength = integer_to_list(length(Body)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
-	{array, [{struct, Usage} | _]} = mochijson:decode(Body),
+	{array, Usages} = mochijson:decode(Body),
+	{struct, Usage} = lists:last(Usages),
 	{_, _} = lists:keyfind("id", 1, Usage),
 	{_, _} = lists:keyfind("href", 1, Usage),
 	{_, _} = lists:keyfind("date", 1, Usage),
@@ -860,6 +861,45 @@ get_auth_usage(Config) ->
 	end,
 	true = lists:any(F, UsageCharacteristic).
 
+get_auth_usage_id() ->
+	[{userdata, [{doc,"Get a single TMF635 auth usage"}]}].
+
+get_auth_usage_id(Config) ->
+	ReqAttrs = [{?UserName, "ED:DA:EB:FE:AC:EF"},
+			{?CallingStationId, "ED:DA:EB:FE:AC:EF"},
+			{?CalledStationId, "CA-FE-CA-FE-CA-FE:AP 1"},
+			{?NasIdentifier, "ap-1.sigscale.net"}],
+	ResAttrs = [{?SessionTimeout, 3600}],
+	ok = ocs_log:auth_log(radius, {{0,0,0,0}, 1812},
+			{{192,168,178,167}, 4599}, accept, ReqAttrs, ResAttrs),
+	HostUrl = ?config(host_url, Config),
+	AcceptValue = "application/json",
+	Accept = {"accept", AcceptValue},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	RequestUri1 = HostUrl ++ "/usageManagement/v1/usage?type=AAAAccessUsage",
+	Request1 = {RequestUri1, [Accept, Authentication]},
+	{ok, Result1} = httpc:request(get, Request1, [], []),
+	{{"HTTP/1.1", 200, _OK}, _Headers1, Body1} = Result1,
+	{array, Usages} = mochijson:decode(Body1),
+	{struct, Usage} = lists:last(Usages),
+	{_, Id} = lists:keyfind("id", 1, Usage),
+	{_, Href} = lists:keyfind("href", 1, Usage),
+	RequestUri2 = HostUrl ++ Href,
+	Request2 = {RequestUri2, [Accept, Authentication]},
+erlang:display({?MODULE, ?LINE, Request2}),
+	{ok, Result2} = httpc:request(get, Request2, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers2, Body2} = Result2,
+	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers2),
+	ContentLength = integer_to_list(length(Body2)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers2),
+	{struct, Usage} = mochijson:decode(Body2),
+	{_, Id} = lists:keyfind("id", 1, Usage),
+	{_, Href} = lists:keyfind("href", 1, Usage).
+
 get_acct_usage() ->
 	[{userdata, [{doc,"Get a TMF635 acct usage"}]}].
 
@@ -893,7 +933,8 @@ get_acct_usage(Config) ->
 	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
 	ContentLength = integer_to_list(length(Body)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
-	{array, [{struct, Usage} | _]} = mochijson:decode(Body),
+	{array, Usages} = mochijson:decode(Body),
+	{struct, Usage} = lists:last(Usages),
 	{_, _} = lists:keyfind("id", 1, Usage),
 	{_, _} = lists:keyfind("href", 1, Usage),
 	{_, _} = lists:keyfind("date", 1, Usage),

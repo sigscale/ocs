@@ -99,6 +99,20 @@ get_usage(_Query) ->
 %% @doc Body producing function for
 %% 	`GET /usageManagement/v1/usage/{id}'
 %% 	requests.
+get_usage("auth-" ++ _ = Id, _Query) ->
+	try
+		["auth", TimeStamp, Serial] = string:tokens(Id, [$-]),
+		TS = list_to_integer(TimeStamp),
+		N = list_to_integer(Serial),
+		Events = ocs_log:auth_query(TS, TS, '_', '_', '_'),
+		JsonObj = usage_aaa_auth(lists:keyfind(N, 2, Events)),
+		Body = mochijson:encode(JsonObj),
+		Headers = [{content_type, "application/json"}],
+		{ok, Headers, Body}
+	catch
+		_:_Reason ->
+			{error, 404}
+	end;
 get_usage(Id, _Query) ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
@@ -358,85 +372,85 @@ ipdr_characteristics([], _Ipdr, Acc) ->
 	lists:reverse(Acc).
 
 %% @hidden
-usage_aaa_auth(Events) ->
+usage_aaa_auth({Milliseconds, N, P, Node,
+		{ServerIP, ServerPort}, {ClientIP, ClientPort}, EventType,
+		RequestAttributes, ResponseAttributes}) ->
 	UsageSpec = {struct, [{id, "AAAAccessUsageSpec"},
 			{href, "/usageManagement/v1/usageSpecification/AAAAccessUsageSpec"},
 			{name, "AAAAccessUsageSpec"}]},
 	Type = "AAAAccessUsage",
 	Status = "received",
-	F = fun({Milliseconds, N, P, Node, {ServerIP, ServerPort},
-					{ClientIP, ClientPort}, EventType,
-					RequestAttributes, ResponseAttributes}, Acc) ->
-				ID = "auth-" ++ integer_to_list(Milliseconds) ++ "-"
-						++ integer_to_list(N),
-				Href = "/usageManagement/v1/usage/" ++ ID,
-				Date = ocs_log:iso8601(Milliseconds),
-				Protocol = case P of
-					radius ->
-						"RADIUS";
-					diameter ->
-						"DIAMETER"
-				end,
-				ServerAddress = inet:ntoa(ServerIP),
-				ClientAddress = inet:ntoa(ClientIP),
-				EventChars = [{struct, [{name, "protocol"}, {value, Protocol}]},
-						{struct, [{name, "node"}, {value, atom_to_list(Node)}]},
-						{struct, [{name, "serverAddress"}, {value, ServerAddress}]},
-						{struct, [{name, "serverPort"}, {value, ServerPort}]},
-						{struct, [{name, "clientAddress"}, {value, ClientAddress}]},
-						{struct, [{name, "clientPort"}, {value, ClientPort}]},
-						{struct, [{name, "type"}, {value, atom_to_list(EventType)}]}],
-				RequestChars = usage_characteristics(RequestAttributes),
-				ResponseChars = usage_characteristics(ResponseAttributes),
-				UsageChars = EventChars ++ RequestChars ++ ResponseChars,
-				JsonObj = {struct, [{id, ID}, {href, Href},
-						{date, Date}, {type, Type}, {status, Status},
-						{usageSpecification, UsageSpec},
-						{usageCharacteristic, {array, UsageChars}}]},
-				[JsonObj | Acc];
-		(_, Acc) ->
-				%% TODO support for DIAMETER
-				Acc
+	ID = "auth-" ++ integer_to_list(Milliseconds) ++ "-"
+			++ integer_to_list(N),
+	Href = "/usageManagement/v1/usage/" ++ ID,
+	Date = ocs_log:iso8601(Milliseconds),
+	Protocol = case P of
+		radius ->
+			"RADIUS";
+		diameter ->
+			"DIAMETER"
 	end,
-	lists:reverse(lists:foldl(F, [], Events)).
+	ServerAddress = inet:ntoa(ServerIP),
+	ClientAddress = inet:ntoa(ClientIP),
+	EventChars = [{struct, [{name, "protocol"}, {value, Protocol}]},
+			{struct, [{name, "node"}, {value, atom_to_list(Node)}]},
+			{struct, [{name, "serverAddress"}, {value, ServerAddress}]},
+			{struct, [{name, "serverPort"}, {value, ServerPort}]},
+			{struct, [{name, "clientAddress"}, {value, ClientAddress}]},
+			{struct, [{name, "clientPort"}, {value, ClientPort}]},
+			{struct, [{name, "type"}, {value, atom_to_list(EventType)}]}],
+	RequestChars = usage_characteristics(RequestAttributes),
+	ResponseChars = usage_characteristics(ResponseAttributes),
+	UsageChars = EventChars ++ RequestChars ++ ResponseChars,
+	{struct, [{id, ID}, {href, Href},
+			{date, Date}, {type, Type}, {status, Status},
+			{usageSpecification, UsageSpec},
+			{usageCharacteristic, {array, UsageChars}}]};
+usage_aaa_auth(Events) when is_list(Events) ->
+	usage_aaa_auth(Events, []).
+%% @hidden
+usage_aaa_auth([H | T], Acc) ->
+	usage_aaa_auth(T, [usage_aaa_auth(H) | Acc]);
+usage_aaa_auth([], Acc) ->
+	lists:reverse(Acc).
 
 %% @hidden
-usage_aaa_acct(Events) ->
+usage_aaa_acct({Milliseconds, N, P, Node,
+		{ServerIP, ServerPort}, EventType, Attributes}) ->
 	UsageSpec = {struct, [{id, "AAAAccountingUsageSpec"},
 			{href, "/usageManagement/v1/usageSpecification/AAAAccountingUsageSpec"},
 			{name, "AAAAccountingUsageSpec"}]},
 	Type = "AAAAccountingUsage",
 	Status = "received",
-	F = fun({Milliseconds, N, P, Node, {ServerIP, ServerPort},
-					EventType, Attributes}, Acc) ->
-				ID = "acct-" ++ integer_to_list(Milliseconds) ++ "-"
-						++ integer_to_list(N),
-				Href = "/usageManagement/v1/usage/" ++ ID,
-				Date = ocs_log:iso8601(Milliseconds),
-				Protocol = case P of
-					radius ->
-						"RADIUS";
-					diameter ->
-						"DIAMETER"
-				end,
-				ServerAddress = inet:ntoa(ServerIP),
-				EventChars = [{struct, [{name, "protocol"}, {value, Protocol}]},
-						{struct, [{name, "node"}, {value, atom_to_list(Node)}]},
-						{struct, [{name, "serverAddress"}, {value, ServerAddress}]},
-						{struct, [{name, "serverPort"}, {value, ServerPort}]},
-						{struct, [{name, "type"}, {value, atom_to_list(EventType)}]}],
-				AttributeChars = usage_characteristics(Attributes),
-				UsageChars = EventChars ++ AttributeChars,
-				JsonObj = {struct, [{id, ID}, {href, Href},
-						{date, Date}, {type, Type}, {status, Status},
-						{usageSpecification, UsageSpec},
-						{usageCharacteristic, {array, UsageChars}}]},
-				[JsonObj | Acc];
-		(_, Acc) ->
-				%% TODO support for DIAMETER
-				Acc
+	ID = "acct-" ++ integer_to_list(Milliseconds) ++ "-"
+			++ integer_to_list(N),
+	Href = "/usageManagement/v1/usage/" ++ ID,
+	Date = ocs_log:iso8601(Milliseconds),
+	Protocol = case P of
+		radius ->
+			"RADIUS";
+		diameter ->
+			"DIAMETER"
 	end,
-	lists:reverse(lists:foldl(F, [], Events)).
+	ServerAddress = inet:ntoa(ServerIP),
+	EventChars = [{struct, [{name, "protocol"}, {value, Protocol}]},
+			{struct, [{name, "node"}, {value, atom_to_list(Node)}]},
+			{struct, [{name, "serverAddress"}, {value, ServerAddress}]},
+			{struct, [{name, "serverPort"}, {value, ServerPort}]},
+			{struct, [{name, "type"}, {value, atom_to_list(EventType)}]}],
+	AttributeChars = usage_characteristics(Attributes),
+	UsageChars = EventChars ++ AttributeChars,
+	{struct, [{id, ID}, {href, Href},
+			{date, Date}, {type, Type}, {status, Status},
+			{usageSpecification, UsageSpec},
+			{usageCharacteristic, {array, UsageChars}}]};
+usage_aaa_acct(Events) when is_list(Events) ->
+	usage_aaa_acct(Events, []).
+%% @hidden
+usage_aaa_acct([H | T], Acc) ->
+	usage_aaa_acct(T, [usage_aaa_acct(H) | Acc]);
+usage_aaa_acct([], Acc) ->
+	lists:reverse(Acc).
 
 %% @hidden
 spec_aaa_auth() ->
