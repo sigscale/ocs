@@ -99,7 +99,7 @@ acct_open1(Directory) ->
 acct_log(Protocol, Server, Type, Attributes)
 		when ((Protocol == radius) or (Protocol == diameter)) ->
 	TS = erlang:system_time(?MILLISECOND),
-	N = erlang:unique_integer([monotonic]),
+	N = erlang:unique_integer([positive]),
 	Event = {TS, N, Protocol, node(), Server, Type, Attributes},
 	disk_log:log(?ACCTLOG, Event).
 
@@ -171,7 +171,7 @@ auth_open1(Directory) ->
 %% @doc Write a RADIUS event to authorization log.
 auth_log(Protocol, Server, Client, Type, RequestAttributes, ResponseAttributes) ->
 	TS = erlang:system_time(?MILLISECOND),
-	N = erlang:unique_integer([monotonic]),
+	N = erlang:unique_integer([positive]),
 	Event = {TS, N, Protocol, node(), Server, Client, Type,
 			RequestAttributes, ResponseAttributes},
 	disk_log:log(?AUTHLOG, Event).
@@ -194,7 +194,7 @@ auth_log(Protocol, Server, Client, Type, RequestAttributes, ResponseAttributes) 
 auth_log(Protocol, Server, Subscriber, OriginHost, OriginRealm, AuthType,
 		ResultCode) ->
 	TS = erlang:system_time(?MILLISECOND),
-	N = erlang:unique_integer([monotonic]),
+	N = erlang:unique_integer([positive]),
 	Event = {TS, N, Protocol, node(), Server, Subscriber, OriginHost, OriginRealm,
 			AuthType, ResultCode},
 	disk_log:log(?AUTHLOG, Event).

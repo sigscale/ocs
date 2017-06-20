@@ -367,7 +367,7 @@ usage_aaa_auth(Events) ->
 	F = fun({Milliseconds, N, P, Node, {ServerIP, ServerPort},
 					{ClientIP, ClientPort}, EventType,
 					RequestAttributes, ResponseAttributes}, Acc) ->
-				ID = "auth-" ++ integer_to_list(Milliseconds)
+				ID = "auth-" ++ integer_to_list(Milliseconds) ++ "-"
 						++ integer_to_list(N),
 				Href = "/usageManagement/v1/usage/" ++ ID,
 				Date = ocs_log:iso8601(Milliseconds),
@@ -409,7 +409,7 @@ usage_aaa_acct(Events) ->
 	Status = "received",
 	F = fun({Milliseconds, N, P, Node, {ServerIP, ServerPort},
 					EventType, Attributes}, Acc) ->
-				ID = "acct-" ++ integer_to_list(Milliseconds)
+				ID = "acct-" ++ integer_to_list(Milliseconds) ++ "-"
 						++ integer_to_list(N),
 				Href = "/usageManagement/v1/usage/" ++ ID,
 				Date = ocs_log:iso8601(Milliseconds),
