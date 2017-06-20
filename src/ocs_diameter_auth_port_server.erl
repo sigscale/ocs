@@ -315,8 +315,9 @@ request1(EapType, OHost, ORealm, Request, CbProc, #state{handlers = Handlers,
 								NewEapPacket = #eap_packet{code = response,
 										type = ?Identity, identifier = EapId, data = <<>>},
 								NewEapMessage = ocs_eap_codec:eap_packet(NewEapPacket),
+								NewRequest = Request#diameter_eap_app_DER{'EAP-Payload' = NewEapMessage},
 								{NewFsm, NewState} = start_fsm(Sup, 5, SessionId, AuthType,
-										OHost, ORealm, [], CbProc, Request, State),
+										OHost, ORealm, [], CbProc, NewRequest, State),
 								{noreply, NewState};
 							{error, none} ->
 								NewEapPacket = #eap_packet{code = failure, identifier = EapId},
