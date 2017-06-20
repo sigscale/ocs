@@ -73,6 +73,20 @@ get_usage([{"type", "AAAAccessUsage"}]) ->
 					{content_range, ContentRange}],
 			{ok, Headers, Body}
 	end;
+get_usage([{"type", "AAAAccountingUsage"}]) ->
+	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
+	case ocs_log:last(ocs_acct, MaxItems) of
+		{error, _} ->
+			{error, 404};
+		{NewCount, Events} ->
+			JsonObj = usage_acct_auth(Events),
+			JsonArray = {array, JsonObj},
+			Body = mochijson:encode(JsonArray),
+			ContentRange = "items 1-" ++ integer_to_list(NewCount) ++ "/*",
+			Headers = [{content_type, "application/json"},
+					{content_range, ContentRange}],
+			{ok, Headers, Body}
+	end;
 get_usage(_Query) ->
 	{error, 404}.
 
@@ -351,9 +365,9 @@ usage_aaa_auth(Events) ->
 	Type = "AAAAccessUsage",
 	Status = "received",
 	F = fun({Milliseconds, N, P, Node, {ServerIP, ServerPort},
-					{ClientIP, ClientPort}, AccessType,
+					{ClientIP, ClientPort}, EventType,
 					RequestAttributes, ResponseAttributes}, Acc) ->
-				ID = "access-" ++ integer_to_list(Milliseconds)
+				ID = "auth-" ++ integer_to_list(Milliseconds)
 						++ integer_to_list(N),
 				Href = "/usageManagement/v1/usage/" ++ ID,
 				Date = ocs_log:iso8601(Milliseconds),
@@ -365,16 +379,54 @@ usage_aaa_auth(Events) ->
 				end,
 				ServerAddress = inet:ntoa(ServerIP),
 				ClientAddress = inet:ntoa(ClientIP),
-				AccessChars = [{struct, [{name, "protocol"}, {value, Protocol}]},
+				EventChars = [{struct, [{name, "protocol"}, {value, Protocol}]},
 						{struct, [{name, "node"}, {value, atom_to_list(Node)}]},
 						{struct, [{name, "serverAddress"}, {value, ServerAddress}]},
 						{struct, [{name, "serverPort"}, {value, ServerPort}]},
 						{struct, [{name, "clientAddress"}, {value, ClientAddress}]},
 						{struct, [{name, "clientPort"}, {value, ClientPort}]},
-						{struct, [{name, "type"}, {value, atom_to_list(AccessType)}]}],
+						{struct, [{name, "type"}, {value, atom_to_list(EventType)}]}],
 				RequestChars = usage_characteristics(RequestAttributes),
 				ResponseChars = usage_characteristics(ResponseAttributes),
-				UsageChars = AccessChars ++ RequestChars ++ ResponseChars,
+				UsageChars = EventChars ++ RequestChars ++ ResponseChars,
+				JsonObj = {struct, [{id, ID}, {href, Href},
+						{date, Date}, {type, Type}, {status, Status},
+						{usageSpecification, UsageSpec},
+						{usageCharacteristic, {array, UsageChars}}]},
+				[JsonObj | Acc];
+		(_, Acc) ->
+				%% TODO support for DIAMETER
+				Acc
+	end,
+	lists:reverse(lists:foldl(F, [], Events)).
+
+%% @hidden
+usage_acct_auth(Events) ->
+	UsageSpec = {struct, [{id, "AAAAccountingUsageSpec"},
+			{href, "/usageManagement/v1/usageSpecification/AAAAccountingUsageSpec"},
+			{name, "AAAAccountingUsageSpec"}]},
+	Type = "AAAAccountingUsage",
+	Status = "received",
+	F = fun({Milliseconds, N, P, Node, {ServerIP, ServerPort},
+					EventType, Attributes}, Acc) ->
+				ID = "acct-" ++ integer_to_list(Milliseconds)
+						++ integer_to_list(N),
+				Href = "/usageManagement/v1/usage/" ++ ID,
+				Date = ocs_log:iso8601(Milliseconds),
+				Protocol = case P of
+					radius ->
+						"RADIUS";
+					diameter ->
+						"DIAMETER"
+				end,
+				ServerAddress = inet:ntoa(ServerIP),
+				EventChars = [{struct, [{name, "protocol"}, {value, Protocol}]},
+						{struct, [{name, "node"}, {value, atom_to_list(Node)}]},
+						{struct, [{name, "serverAddress"}, {value, ServerAddress}]},
+						{struct, [{name, "serverPort"}, {value, ServerPort}]},
+						{struct, [{name, "type"}, {value, atom_to_list(EventType)}]}],
+				AttributeChars = usage_characteristics(Attributes),
+				UsageChars = EventChars ++ AttributeChars,
 				JsonObj = {struct, [{id, ID}, {href, Href},
 						{date, Date}, {type, Type}, {status, Status},
 						{usageSpecification, UsageSpec},
