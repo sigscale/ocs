@@ -987,7 +987,7 @@ get_acct_usage(Config) ->
 			({struct, [{"name", "acctTerminateCause"}, {"value", Cause}]}) when is_list(Cause) ->
 				true
 	end,
-	true = lists:any(F, UsageCharacteristic).
+	true = lists:all(F, UsageCharacteristic).
 
 get_ipdr_usage() ->
 	[{userdata, [{doc,"Get a TMF635 IPDR usage"}]}].
@@ -1043,7 +1043,7 @@ get_ipdr_usage(Config) ->
 			({struct, [{"name", "sessionTerminateCause"},{"value", SessionTerminateCause}]}) when is_integer(SessionTerminateCause) ->
 				true
 	end,
-	true = lists:any(F, UsageCharacteristic).
+	true = lists:all(F, UsageCharacteristic).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
