@@ -164,9 +164,11 @@ handle_info(timeout, #state{auth_port_sup = AuthPortSup} = State) ->
 handle_info({'EXIT', Fsm, {shutdown, SessionId}},
 		#state{handlers = Handlers} = State) ->
 	case gb_trees:lookup(SessionId, Handlers) of
-		{value, _Fsm1} ->
+		{value, Fsm} ->
 			NewHandlers = gb_trees:delete(SessionId, Handlers),
 			{noreply, State#state{handlers = NewHandlers}};
+		{value, _} ->
+			{noreply, State};
 		none ->
 			{noreply, State}
 	end;
@@ -336,9 +338,8 @@ request1(EapType, OHost, ORealm, Request, CbProc, #state{handlers = Handlers,
 								'Origin-Host' = OHost, 'Origin-Realm' = ORealm },
 						{reply, Answer, State};
 					{eap, _Eap} ->
-						NewFsmHandler = gb_trees:enter(ExistingFsm, CbProc, FsmHandler),
 						gen_fsm:send_event(ExistingFsm, Request),
-						{noreply, State#state{cb_fsms = NewFsmHandler}}
+						{noreply, State}
 				end
 		end
 	catch
