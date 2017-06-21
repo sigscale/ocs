@@ -278,8 +278,7 @@ request(Caps, none, Request, _CbProc, State) when is_record(Request, diameter_na
 	end.
 %% @hidden
 request1(EapType, OHost, ORealm, Request, CbProc, #state{handlers = Handlers,
-		method_prefer = MethodPrefer, method_order = MethodOrder,
-		cb_fsms = FsmHandler} = State) ->
+		method_prefer = MethodPrefer, method_order = MethodOrder} = State) ->
 	{SessionId, AuthType} = get_attibutes(Request),
 	try
 		case gb_trees:lookup(SessionId, Handlers) of
@@ -318,7 +317,7 @@ request1(EapType, OHost, ORealm, Request, CbProc, #state{handlers = Handlers,
 										type = ?Identity, identifier = EapId, data = <<>>},
 								NewEapMessage = ocs_eap_codec:eap_packet(NewEapPacket),
 								NewRequest = Request#diameter_eap_app_DER{'EAP-Payload' = NewEapMessage},
-								{NewFsm, NewState} = start_fsm(Sup, 5, SessionId, AuthType,
+								{_NewFsm, NewState} = start_fsm(Sup, 5, SessionId, AuthType,
 										OHost, ORealm, [], CbProc, NewRequest, State),
 								{noreply, NewState};
 							{error, none} ->
@@ -368,14 +367,14 @@ request1(EapType, OHost, ORealm, Request, CbProc, #state{handlers = Handlers,
 		Result :: {AuthFsm, State},
 		AuthFsm :: undefined | pid().
 start_fsm(AuthSup, AppId, SessId, Type, OHost, ORealm,
-		Options, CbProc, Request, #state{handlers = Handlers, address = Address,
+		Options, CbProc, Request, #state{address = Address,
 		port = Port, ttls_sup = AuthSup} = State) ->
 	StartArgs = [diameter, Address, Port, SessId, AppId, Type, OHost,
 			ORealm, Request, Options],
 	ChildSpec = [StartArgs],
 	start_fsm1(AuthSup, ChildSpec, SessId, CbProc, State);
 start_fsm(AuthSup, AppId, SessId, Type, OHost, ORealm,
-		Options, CbProc, Request, #state{handlers = Handlers, address = Address,
+		Options, CbProc, Request, #state{address = Address,
 		port = Port} = State) ->
 	StartArgs = [diameter, Address, Port, SessId, AppId, Type, OHost,
 			ORealm, Request, Options],

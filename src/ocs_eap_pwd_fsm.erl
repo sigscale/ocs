@@ -154,7 +154,7 @@ eap_start(timeout, #statedata{start = Request} = StateData) ->
 %% @hidden
 eap_start1(Token, #statedata{eap_id = EapID, session_id = SessionId,
 		server_id = ServerID, group_desc = GroupDesc, rand_func = RandFunc,
-		prf = PRF, auth_app_id = AppId, auth_req_type = AuthType, start = Request,
+		prf = PRF, auth_req_type = AuthType, start = Request,
 		origin_host = OHost, origin_realm = ORealm, diameter_port_server = PortServer} =
 		StateData) ->
 	EapPwdId = #eap_pwd_id{group_desc = GroupDesc, random_fun = RandFunc,
