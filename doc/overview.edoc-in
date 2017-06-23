@@ -48,6 +48,17 @@ e.g &#058;
 	true
 	'''
 
+===Internationalization (i18n)===
+The web user interface (UI) may be internationalized by including a
+`{lang, Code}' tuple in the `UserData' argument of
+{@link //inets/mod_auth:add_user/5. mod_auth:add_user/5} where `Code'
+is a two letter ISO-639-1 language code. A corresponding message file
+should be provided in `priv/www/locales'.
+	```
+	9> mod_auth:add_user("alejandro", "sjjymz5prtcd", [{lang, "es"}], 8080, "/").
+	true
+	'''
+
 ==Operation==
 The OCS application will start RADIUS servers for authentication and
 accounting on the configured ports. The {@link //inets. inets} application
