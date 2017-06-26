@@ -278,7 +278,7 @@ request(Caps, none, Request, _CbProc, State) when is_record(Request, diameter_na
 	end.
 %% @hidden
 request1(EapType, OHost, ORealm, Request, CbProc, #state{handlers = Handlers,
-		method_prefer = MethodPrefer, method_order = MethodOrder} = State) ->
+		method_prefer = MethodPrefer, method_order = MethodOrder, cb_fsms = FsmHandler} = State) ->
 	{SessionId, AuthType} = get_attibutes(Request),
 	try
 		case gb_trees:lookup(SessionId, Handlers) of
@@ -337,8 +337,9 @@ request1(EapType, OHost, ORealm, Request, CbProc, #state{handlers = Handlers,
 								'Origin-Host' = OHost, 'Origin-Realm' = ORealm },
 						{reply, Answer, State};
 					{eap, _Eap} ->
+						NewFsmHandler = gb_trees:enter(ExistingFsm, CbProc, FsmHandler),
 						gen_fsm:send_event(ExistingFsm, Request),
-						{noreply, State}
+						{noreply, State#state{cb_fsms = NewFsmHandler}}
 				end
 		end
 	catch

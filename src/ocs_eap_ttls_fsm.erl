@@ -440,6 +440,79 @@ client_hello({#radius{code = ?AccessRequest, id = RadiusID,
 			send_response(EapPacket2, ?AccessReject,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, NewStateData}
+	end;
+client_hello(#diameter_eap_app_DER{} = Request, #statedata{eap_id = EapID,
+		session_id = SessionID, rx_length = RxLength, rx_buf = RxBuf,
+		ssl_pid = SslPid, origin_host = OH, origin_realm = OR,
+		auth_req_type = AuthType, port_server = PortServer} = StateData) ->
+	{EapMessage, FramedMTU, NasPortType} = get_diameter_attributes(Request),
+	NewStateData = case {FramedMTU, NasPortType} of
+		{undefined, undefined} ->
+			StateData#statedata{max_size = 16#ffff};
+		{MTU, 19} when MTU > 1496 -> % 802.11
+			StateData#statedata{max_size = MTU - 4};
+		{MTU, 19} when MTU < 1496 -> % 802.11
+			StateData#statedata{max_size = 1496};
+		{MTU, 15} -> % Ethernet
+			StateData#statedata{max_size = MTU - 4};
+		{MTU, _} -> % Ethernet
+			StateData#statedata{max_size = MTU}
+	end,
+	try
+		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
+				data = TtlsData} = ocs_eap_codec:eap_packet(EapMessage),
+		case ocs_eap_codec:eap_ttls(TtlsData) of
+			#eap_ttls{more = false, message_len = undefined,
+					start = false, data = Data} when RxLength == undefined ->
+				CHMsg = <<RxBuf/binary, Data/binary>>,
+				NextStateData = client_hello1(CHMsg, NewStateData),
+				ocs_eap_tls_transport:deliver(SslPid, self(), CHMsg),
+				NextNewStateData = NextStateData#statedata{rx_buf = <<>>,
+						rx_length = undefined},
+				{next_state, server_hello, NextNewStateData, ?TIMEOUT};
+			#eap_ttls{more = false, message_len = undefined,
+					start = false, data = Data} ->
+				CHMsg = <<RxBuf/binary, Data/binary>>,
+				RxLength = size(CHMsg),
+				ocs_eap_tls_transport:deliver(SslPid, self(), CHMsg),
+				NextStateData = NewStateData#statedata{rx_buf = <<>>,
+								rx_length = undefined},
+				{next_state, server_hello, NextStateData, ?TIMEOUT};
+			#eap_ttls{more = true, message_len = undefined,
+					start = false, data = Data} when RxBuf /= <<>> ->
+				NewEapID = (EapID rem 255) + 1,
+				TtlsData = ocs_eap_codec:eap_ttls(#eap_ttls{}),
+				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
+						identifier = NewEapID, data = TtlsData},
+				Answer = generate_diameter_response(SessionID, AuthType,
+						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
+						OH, OR, EapPacket1),
+				gen_server:cast(PortServer, {self(), Answer}),
+				NextRxBuf = <<RxBuf/binary, Data/binary>>,
+				NextStateData = NewStateData#statedata{rx_buf = NextRxBuf},
+				{next_state, client_hello, NextStateData, ?TIMEOUT};
+			#eap_ttls{more = true, message_len = MessageLength,
+					start = false, data = Data} ->
+				NewEapID = (EapID rem 255) + 1,
+				TtlsData = ocs_eap_codec:eap_ttls(#eap_ttls{}),
+				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
+						identifier = NewEapID, data = TtlsData},
+				Answer = generate_diameter_response(SessionID, AuthType,
+						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
+						OH, OR, EapPacket1),
+				gen_server:cast(PortServer, {self(), Answer}),
+				NextStateData = NewStateData#statedata{rx_buf = Data,
+						rx_length = MessageLength},
+				{next_state, client_hello, NextStateData, ?TIMEOUT}
+		end
+	catch
+		_:_ ->
+			EapPacket2 = #eap_packet{code = failure, identifier = EapID},
+			Answer2 = generate_diameter_response(SessionID, AuthType,
+					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					OH, OR, EapPacket2),
+			gen_server:cast(PortServer, {self(), Answer2}),
+			{stop, {shutdown, SessionID}, NewStateData}
 	end.
 %% @hidden
 %% TLS Record - <<ContentType, Version:16, Length:16, ProtocolMessage>>
@@ -517,6 +590,25 @@ server_hello({#radius{code = ?AccessRequest, id = RadiusID,
 			send_response(EapPacket, ?AccessReject,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, NewStateData}
+	end;
+server_hello(#diameter_eap_app_DER{} = Request, #statedata{eap_id = EapID,
+		session_id = SessionID, auth_req_type = AuthType, origin_host = OH,
+		origin_realm = OR, port_server = PortServer} = StateData) ->
+	{EapMessages, _, _} = get_diameter_attributes(Request),
+	EapMessage = iolist_to_binary(EapMessages),
+	try
+		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
+				data = TtlsData} = ocs_eap_codec:eap_packet(EapMessage),
+		#eap_ttls{more = false, message_len = undefined,
+				start = false, data = <<>>} = ocs_eap_codec:eap_ttls(TtlsData),
+		server_hello2(StateData)
+	catch
+		_:_ ->
+			EapPacket = #eap_packet{code = failure, identifier = EapID},
+			Answer1 = generate_diameter_response(SessionID, AuthType,
+					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR, EapPacket),
+			gen_server:cast(PortServer, {self(), Answer1}),
+			{stop, {shutdown, SessionID}, StateData}
 	end.
 %% @hidden
 server_hello1(<<_:24, Length:16, _/binary>> = Data,
@@ -534,7 +626,7 @@ server_hello1(<<_:24, Length:16, _/binary>> = Data,
 			server_hello({eap_tls, SslPid, Rest}, NewStateData)
 	end.
 %% @hidden
-server_hello2(#statedata{tx_buf = TxBuf, radius_fsm = RadiusFsm,
+server_hello2(#statedata{start = #radius{}, tx_buf = TxBuf, radius_fsm = RadiusFsm,
 		radius_id = RadiusID, req_auth = RequestAuthenticator,
 		secret = Secret, eap_id = EapID, max_size = MaxSize} = StateData) ->
 	MaxData = MaxSize - 10,
@@ -557,6 +649,35 @@ server_hello2(#statedata{tx_buf = TxBuf, radius_fsm = RadiusFsm,
 					identifier = NewEapID, data = EapData},
 			send_response(EapPacket, ?AccessChallenge,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+			NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = <<>>},
+			{next_state, client_cipher, NewStateData, ?TIMEOUT}
+	end;
+server_hello2(#statedata{start = #diameter_eap_app_DER{}, tx_buf = TxBuf,
+	 eap_id = EapID, max_size = MaxSize, session_id = SessionID,
+	 auth_req_type = AuthType, origin_host = OH, origin_realm = OR,
+	 port_server = PortServer} = StateData) ->
+	MaxData = MaxSize - 10,
+	NewEapID = (EapID rem 255) + 1,
+	case size(TxBuf) of
+		Size when Size > MaxData ->
+			<<Chunk:MaxData/binary, Rest/binary>> = TxBuf,
+			EapTtls = #eap_ttls{more = true, message_len = Size, data = Chunk},
+			EapData = ocs_eap_codec:eap_ttls(EapTtls),
+			EapPacket = #eap_packet{code = request, type = ?TTLS,
+					identifier = NewEapID, data = EapData},
+			Answer = generate_diameter_response(SessionID, AuthType,
+					?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OH, OR, EapPacket),
+			gen_server:cast(PortServer, {self(), Answer}),
+			NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = Rest},
+			{next_state, server_hello, NewStateData, ?TIMEOUT};
+		_Size ->
+			EapTtls = #eap_ttls{data = TxBuf},
+			EapData = ocs_eap_codec:eap_ttls(EapTtls),
+			EapPacket = #eap_packet{code = request, type = ?TTLS,
+					identifier = NewEapID, data = EapData},
+			Answer = generate_diameter_response(SessionID, AuthType,
+					?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OH, OR, EapPacket),
+			gen_server:cast(PortServer, {self(), Answer}),
 			NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = <<>>},
 			{next_state, client_cipher, NewStateData, ?TIMEOUT}
 	end.
@@ -1024,6 +1145,31 @@ prf(SslSocket, Secret, Label, Seed, WantedLength) when is_list(Seed) ->
 		{'EXIT', _Reason} -> % fake dialyzer out
 			{<<0:512>>, <<0:512>>}
 	end.
+
+-spec get_diameter_attributes(Packet) -> Result
+	when
+		Packet :: #diameter_eap_app_DER{},
+		Result :: {EapPacket, FramedMTU, NasPortType},
+		EapPacket :: binary(),
+		FramedMTU :: undefined | integer(),
+		NasPortType :: undefined | integer().
+get_diameter_attributes(Packet) ->
+	EapPacket = Packet#diameter_eap_app_DER.'EAP-Payload',
+	FramedMTU = try
+		[MTU] = Packet#diameter_eap_app_DER.'Framed-MTU',
+		MTU
+	catch
+		_:_ ->
+			undefined
+	end,
+	NasPortType = try
+		[NPT] = Packet#diameter_eap_app_DER.'NAS-Port-Type',
+		NPT
+	catch
+		_:_ ->
+			undefined
+	end,
+	{EapPacket, FramedMTU, NasPortType}.
 
 %% @hidden
 generate_diameter_response(SId, AuthType, ResultCode, OH, OR, EapPacket) ->
