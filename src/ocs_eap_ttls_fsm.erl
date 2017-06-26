@@ -61,6 +61,7 @@
 -define(ClientKeyExchange,		16).
 -define(Finished,					20).
 
+
 -include_lib("radius/include/radius.hrl").
 -include("ocs_eap_codec.hrl").
 -include_lib("diameter/include/diameter.hrl").
@@ -758,6 +759,63 @@ client_cipher({#radius{code = ?AccessRequest, id = RadiusID,
 			send_response(EapPacket2, ?AccessReject,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 			{stop, {shutdown, SessionID}, NewStateData}
+	end;
+client_cipher(#diameter_eap_app_DER{} = Request, #statedata{eap_id = EapID,
+		session_id = SessionID, rx_length = RxLength, rx_buf = RxBuf,
+		ssl_pid = SslPid, auth_req_type = AuthType, origin_host = OH, origin_realm = OR,
+		port_server = PortServer} = StateData) ->
+	EapMessage = Request#diameter_eap_app_DER.'EAP-Payload',
+	try
+		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
+				data = TtlsData} = ocs_eap_codec:eap_packet(EapMessage),
+		case ocs_eap_codec:eap_ttls(TtlsData) of
+			#eap_ttls{more = false, message_len = undefined,
+					start = false, data = Data} when RxLength == undefined ->
+				CCMsg = <<RxBuf/binary, Data/binary>>,
+				ocs_eap_tls_transport:deliver(SslPid, self(), CCMsg),
+				NextStateData = StateData#statedata{rx_buf = <<>>,
+						rx_length = undefined},
+				{next_state, server_cipher, NextStateData};
+			#eap_ttls{more = false, message_len = undefined,
+					start = false, data = Data} ->
+				CCMsg = <<RxBuf/binary, Data/binary>>,
+				RxLength = size(CCMsg),
+				ocs_eap_tls_transport:deliver(SslPid, self(), CCMsg),
+				NextStateData = StateData#statedata{rx_buf = <<>>,
+						rx_length = undefined},
+				{next_state, server_cipher, NextStateData};
+			#eap_ttls{more = true, message_len = undefined,
+					start = false, data = Data} when RxBuf /= <<>> ->
+				NewEapID = (EapID rem 255) + 1,
+				TtlsData = ocs_eap_codec:eap_ttls(#eap_ttls{}),
+				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
+						identifier = NewEapID, data = TtlsData},
+				CCMsg = <<RxBuf/binary, Data/binary>>,
+				Answer = generate_diameter_response(SessionID, AuthType,
+						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OH, OR, EapPacket1),
+				gen_server:cast(PortServer, {self(), Answer}),
+				NextStateData = StateData#statedata{rx_buf = CCMsg},
+				{next_state, client_cipher, NextStateData, ?TIMEOUT};
+			#eap_ttls{more = true, message_len = MessageLength,
+					start = false, data = Data} ->
+				NewEapID = (EapID rem 255) + 1,
+				TtlsData = ocs_eap_codec:eap_ttls(#eap_ttls{}),
+				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
+						identifier = NewEapID, data = TtlsData},
+				Answer = generate_diameter_response(SessionID, AuthType,
+						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OH, OR, EapPacket1),
+				gen_server:cast(PortServer, {self(), Answer}),
+				NextStateData = StateData#statedata{rx_buf = Data,
+						rx_length = MessageLength},
+				{next_state, client_cipher, NextStateData, ?TIMEOUT}
+		end
+	catch
+		_:_ ->
+			EapPacket2 = #eap_packet{code = failure, identifier = EapID},
+			Answer1 = generate_diameter_response(SessionID, AuthType,
+					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR, EapPacket2),
+			gen_server:cast(PortServer, {self(), Answer1}),
+			{stop, {shutdown, SessionID}, StateData}
 	end.
 
 -spec server_cipher(Event, StateData) -> Result
@@ -819,8 +877,8 @@ finish(timeout,
 		#statedata{session_id = SessionID} = StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
 finish({eap_tls, _SslPid, <<?Handshake, _/binary>> = Data},
-		#statedata{tx_buf = TxBuf, radius_id = RadiusID, radius_fsm = RadiusFsm,
-		req_auth = RequestAuthenticator,secret = Secret,
+		#statedata{tx_buf = TxBuf, start = #radius{}, radius_id = RadiusID,
+		radius_fsm = RadiusFsm, req_auth = RequestAuthenticator, secret = Secret,
 		eap_id = EapID} = StateData) ->
 	NewEapID = (EapID rem 255) + 1,
 	BinData = <<TxBuf/binary, Data/binary>>,
@@ -830,6 +888,21 @@ finish({eap_tls, _SslPid, <<?Handshake, _/binary>> = Data},
 			identifier = NewEapID, data = EapData},
 	send_response(EapPacket, ?AccessChallenge,
 			RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
+	NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = <<>>},
+	{next_state, client_passthrough, NewStateData};
+finish({eap_tls, _SslPid, <<?Handshake, _/binary>> = Data},
+		#statedata{tx_buf = TxBuf, start = #diameter_eap_app_DER{},
+		eap_id = EapID, session_id = SessionID, auth_req_type = AuthType,
+		origin_host = OH, origin_realm = OR, port_server = PortServer} = StateData) ->
+	NewEapID = (EapID rem 255) + 1,
+	BinData = <<TxBuf/binary, Data/binary>>,
+	EapTtls = #eap_ttls{data = BinData},
+	EapData = ocs_eap_codec:eap_ttls(EapTtls),
+	EapPacket = #eap_packet{code = request, type = ?TTLS,
+			identifier = NewEapID, data = EapData},
+	Answer = generate_diameter_response(SessionID, AuthType,
+			?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OH, OR, EapPacket),
+	gen_server:cast(PortServer, {self(), Answer}),
 	NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = <<>>},
 	{next_state, client_passthrough, NewStateData}.
 
