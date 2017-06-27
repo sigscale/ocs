@@ -107,6 +107,11 @@ end_per_suite(Config) ->
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before each test case.
 %%
+init_per_testcase(TestCase, Config) when TestCase == eap_ttls_authentication_diameter ->
+	Address = {127, 0, 0, 1},
+	Port = 3868,
+	ok = ocs:add_client(Address, Port, diameter, "639cb6g"),
+	[{diameter_client, Address} | Config];
 init_per_testcase(_TestCase, Config) ->
 	AuthAddress = {127, 0, 0, 1},
 	{ok, Socket} = gen_udp:open(0, [{active, false},
@@ -116,6 +121,9 @@ init_per_testcase(_TestCase, Config) ->
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
 %% Cleanup after each test case.
 %%
+end_per_testcase(TestCase, Config) when TestCase == eap_ttls_authentication_diameter ->
+	Dclient = ?config(diameter_client, Config),
+	ok = ocs:delete_client(Dclient);
 end_per_testcase(_TestCase, Config) ->
 	Socket = ?config(socket, Config),
 	ok = 	gen_udp:close(Socket).
@@ -130,7 +138,7 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[eap_ttls_authentication_radius].
+	[eap_ttls_authentication_radius, eap_ttls_authentication_diameter].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -187,6 +195,60 @@ eap_ttls_authentication_radius(Config) ->
 			Socket, Address, Port, NasId, Secret, MAC, ReqAuth6, EapId5, RadId7),
 	ok = server_passthrough_radius(Socket, Address, Port, NasId, UserName, Secret,
 			MAC, CPAuth, RadId7),
+	ok = ssl:close(SslSocket).
+
+eap_ttls_authentication_diameter() ->
+	[{userdata, [{doc, "EAP-TTLS Authentication using DIAMETER"}]}].
+
+eap_ttls_authentication_diameter(Config) ->
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	EapId = 1,
+	SIdbin = list_to_binary(SId),
+	DataDir = ?config(data_dir, Config),
+	AnonymousName = "HBdasutsmk",
+	Subscriber = <<"45016789">>,
+	PeerAuth = list_to_binary(ocs:generate_password()),
+	{ok, _} = ocs:add_subscriber(Subscriber, PeerAuth, [], 10000),
+	{ok, [{auth, DiaAuthInstance}, _]} = application:get_env(ocs, diameter),
+	[{Address, _Port, _}] = DiaAuthInstance,
+	DEA1 = send_identity_diameter(SId, AnonymousName, EapId),
+	#diameter_eap_app_DEA{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
+			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
+			'EAP-Payload' = [EapMsg]} = DEA1,
+	OriginHost = list_to_binary("ocs.sigscale.com"),
+	OriginRealm = list_to_binary("sigscale.com"),
+	#eap_packet{code = request, type = ?PWD, identifier = EapId1,
+			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
+	#eap_pwd{length = false, more = false, pwd_exch = id,
+			data = EapPwdData} = ocs_eap_codec:eap_pwd(EapData),
+	#eap_pwd_id{group_desc = 19, random_fun = 16#1,
+			prf = 16#1, pwd_prep = none} = ocs_eap_codec:eap_pwd_id(EapPwdData),
+	DEA2 = send_legacy_nak_diameter(SId, EapId1),
+	#diameter_eap_app_DEA{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
+			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
+			'EAP-Payload' = [EapMsg2]} = DEA2,
+	EapId2 = EapId1 + 1,
+	#eap_packet{code = request, type = ?TTLS, identifier = EapId2,
+			data = EapData2} = ocs_eap_codec:eap_packet(EapMsg2),
+	#eap_ttls{start = true} = ocs_eap_codec:eap_ttls(EapData2),
+	Options  = [{cacertfile, DataDir ++ "CAcert.pem"}],
+	proc_lib:spawn_link(peer_tls_transport, ssl_connect, [Address, self(), Options]),
+	{SslPid1, ClientHelloMsg} = ssl_handshake(),
+	{EapId3, ServerHello} = client_hello_diameter(SId, ClientHelloMsg, EapId2),
+	peer_tls_transport:deliver(SslPid1, self(), ServerHello),
+	{_SslPid2, ClientCipher} = ssl_handshake(),
+	{EapId4, ServerCipher} = client_cipher_diameter(ClientCipher, AnonymousName, SId, EapId3),
+	peer_tls_transport:deliver(SslPid1, self(), ServerCipher),
+	SslSocket = ssl_handshake(),
+	Seed = prf_seed(ClientHelloMsg, ServerHello),
+	{_MSK, _} = prf(SslSocket, master_secret ,
+			<<"ttls keying material">>, Seed, 128),
+	ok = client_passthrough_diameter(SslSocket, Subscriber, PeerAuth, SId, EapId4),
 	ok = ssl:close(SslSocket).
 
 %%---------------------------------------------------------------------
@@ -550,4 +612,173 @@ transport_opts1({Trans, LocalAddr, RemAddr, RemPort}) ->
 		{rport, RemPort},
 		{reuseaddr, true}
 		| [{ip, LocalAddr}]]}].
+
+send_identity_diameter(SId, AnonymousName, EapId) ->
+	BinAnonymousName = list_to_binary(AnonymousName),
+	EapPacket  = #eap_packet{code = response, type = ?Identity,
+			identifier = EapId, data = BinAnonymousName},
+	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
+	DER = #diameter_eap_app_DER{'Session-Id' = SId,
+			'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+			'Auth-Request-Type' = ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+		'EAP-Payload' = EapMsg},
+	{ok, Answer} = diameter:call(?SVC, eap_app_test, DER, []),
+	Answer.
+
+send_legacy_nak_diameter(SId, EapId) ->
+	EapPacket  = #eap_packet{code = response, type = ?LegacyNak, identifier = EapId,
+			data = <<?TTLS>>},
+	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
+	DER = #diameter_eap_app_DER{'Session-Id' = SId,
+			'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+			'Auth-Request-Type' = ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+		'EAP-Payload' = EapMsg},
+	{ok, Answer} = diameter:call(?SVC, eap_app_test, DER, []),
+	Answer.
+
+client_hello_diameter(SId, <<?Handshake, _:32, ?ClientHello, _/binary>> = Data, EapId) ->
+	EapTtls = #eap_ttls{data = Data},
+	EapData = ocs_eap_codec:eap_ttls(EapTtls),
+	EapPacket = #eap_packet{code = response, type = ?TTLS,
+			identifier = EapId, data = EapData},
+	EapPayload = ocs_eap_codec:eap_packet(EapPacket),
+	DER = #diameter_eap_app_DER{'Session-Id' = SId,
+			'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+			'Auth-Request-Type' = ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+			'EAP-Payload' = EapPayload, 'Framed-MTU' = [65536],
+			'NAS-Port-Type' = [19]},
+	{ok, Answer} = diameter:call(?SVC, eap_app_test, DER, []),
+	server_hello_diameter(Answer, SId).
+
+server_hello_diameter(Answer, SId) ->
+	[EapMsg] = Answer#diameter_eap_app_DEA.'EAP-Payload',
+	#eap_packet{code = request, identifier = EapId, type = ?TTLS,
+		data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
+	TtlsData = ocs_eap_codec:eap_ttls(EapData),
+	server_hello_diameter1(TtlsData, EapId, SId, <<>>).
+
+server_hello_diameter1(#eap_ttls{more = true, data = SH}, EapId, SId, Buf) ->
+	EapMsg = send_ack_diameter(EapId, SId),
+	#eap_packet{code = request, identifier = NewEapId, type = ?TTLS,
+			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
+	TtlsPacket = ocs_eap_codec:eap_ttls(EapData),
+	server_hello_diameter1(TtlsPacket, NewEapId, SId, <<SH/binary, Buf/binary>>);
+server_hello_diameter1(#eap_ttls{data = SH}, EapId, _, Buf) ->
+	{EapId, <<SH/binary, Buf/binary>>}.
+
+send_ack_diameter(EapId, SId) ->
+	TtlsPacket = #eap_ttls{},
+	EapData = ocs_eap_codec:eap_ttls(TtlsPacket),
+	EapPacket = #eap_packet{code = response, identifier = EapId,
+			type = ?TTLS, data = EapData},
+	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
+	DER = #diameter_eap_app_DER{'Session-Id' = SId,
+			'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+			'Auth-Request-Type' = ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+		'EAP-Payload' = EapMsg},
+	{ok, Answer} = diameter:call(?SVC, eap_app_test, DER, []),
+	[EapMsg] = Answer#diameter_eap_app_DEA.'EAP-Payload',
+	EapMsg.
+
+client_cipher_diameter(Data, UserName, SId, EapId) ->
+	client_cipher_diameter1(Data, UserName, SId, EapId, <<>>).
+%% @hidden
+client_cipher_diameter1(<<?Handshake, _:32, ?ClientKeyExchange, _/binary>>  = Data,
+		UserName, SId, EapId, Buff) ->
+	client_cipher_diameter2(Data, UserName, SId, EapId, Buff);
+client_cipher_diameter1(<<?ChangeCipherSpec, _:32, 1, _/binary>>  = Data,
+		UserName, SId, EapId, Buff) ->
+	client_cipher_diameter2(Data, UserName, SId, EapId, Buff);
+client_cipher_diameter1(<<?Handshake, _/binary>>  = Data,
+		UserName, SId, EapId, Buff) ->
+	ClientCipher = <<Buff/binary, Data/binary>>,
+	client_cipher_diameter3(ClientCipher, UserName, SId, EapId).
+%% @hidden
+client_cipher_diameter2(<<_:24, L1:16, _/binary>>  = Data, UserName, SId, EapId, Buff) ->
+	case Data of
+		<<_:40, _:L1/binary>> ->
+			{_SslPid2, Rest} = ssl_handshake(),
+			Chunk = <<Buff/binary, Data/binary>>,
+			client_cipher_diameter1(Rest, UserName, SId, EapId, Chunk);
+		<<_:40, _:L1/binary, Rest/binary>> = Payload ->
+			BlockSize = L1 + 5,
+			<<CCBlock:BlockSize/binary, Rest/binary>> = Payload,
+			Chunk = <<Buff/binary, CCBlock/binary>>,
+			client_cipher_diameter1(Rest, UserName, SId, EapId, Chunk)
+	end.
+%% @hidden
+client_cipher_diameter3(<<Chunk:1386/binary, Rest/binary>> = Data, UserName, SId, EapId) ->
+	Size = size(Data),
+	EapTtls = #eap_ttls{more = true, message_len = Size, data = Chunk},
+	EapData = ocs_eap_codec:eap_ttls(EapTtls),
+	EapPacket = #eap_packet{code = response, type = ?TTLS,
+			identifier = EapId, data = EapData},
+	{NewEapId, _TtlsData} = access_request_diameter(EapPacket, UserName, SId, EapId),
+	client_cipher_diameter3(Rest, UserName, SId, NewEapId);
+client_cipher_diameter3(Chunk, UserName, SId, EapId) ->
+	EapTtls = #eap_ttls{data = Chunk},
+	EapData = ocs_eap_codec:eap_ttls(EapTtls),
+	EapPacket = #eap_packet{code = response, type = ?TTLS,
+			identifier = EapId, data = EapData},
+	{NewEapId, TtlsData} = access_request_diameter(EapPacket, UserName, SId, EapId),
+	{NewEapId, TtlsData }.
+
+access_request_diameter(EapPacket, UserName, SId, _EapId) ->
+	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
+	DER = #diameter_eap_app_DER{'Session-Id' = SId,
+			'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+			'Auth-Request-Type' = ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+			'EAP-Payload' = EapMsg, 'Framed-MTU' = [65536],
+			'NAS-Port-Type' = [19], 'User-Name' = [UserName]},
+	{ok, Answer} = diameter:call(?SVC, eap_app_test, DER, []),
+	server_cipher_diameter(Answer, SId).
+
+server_cipher_diameter(Answer, SId) ->
+	[EapMsg] = Answer#diameter_eap_app_DEA.'EAP-Payload',
+	#eap_packet{code = request, identifier = EapId, type = ?TTLS,
+			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
+	TtlsData = ocs_eap_codec:eap_ttls(EapData),
+	server_cipher_diameter1(TtlsData, SId, EapId, <<>>).
+%% @hidden
+server_cipher_diameter1(#eap_ttls{more = true, data = SC}, SId, EapId, Buf) ->
+	EapMsg = send_ack_diameter(EapId, SId),
+	#eap_packet{code = request, identifier = NewEapId, type = ?TTLS,
+			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
+	TtlsPacket = ocs_eap_codec:eap_ttls(EapData),
+	server_hello_diameter1(TtlsPacket, NewEapId, SId, <<Buf/binary, SC/binary>>);
+server_cipher_diameter1(#eap_ttls{data = SC}, _SId, EapId, Buf) ->
+	{EapId, <<Buf/binary, SC/binary>>}.
+
+client_passthrough_diameter(SslSocket, UserName, Password, SId, EapId) ->
+	UN = #diameter_avp{code = ?UserName, is_mandatory = true,
+			data = UserName},
+	PW = #diameter_avp{code = ?UserPassword, is_mandatory = true,
+			data = Password},
+	AVPs = list_to_binary(lists:map(fun diameter_codec:pack_avp/1,
+			[UN, PW])),
+	ok = ssl:send(SslSocket, AVPs),
+	{_SslPid, UserCredential} = ssl_handshake(),
+	TtlsPacket = #eap_ttls{data = UserCredential},
+	TtlsData = ocs_eap_codec:eap_ttls(TtlsPacket),
+	EapPacket = #eap_packet{code = response, identifier = EapId, type = ?TTLS,
+		data = TtlsData},
+	EapMsg = ocs_eap_codec:eap_packet(EapPacket),
+	DER = #diameter_eap_app_DER{'Session-Id' = SId,
+			'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+			'Auth-Request-Type' = ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+			'EAP-Payload' = EapMsg, 'Framed-MTU' = [65536],
+			'NAS-Port-Type' = [19], 'User-Name' = [UserName]},
+	{ok, Answer} = diameter:call(?SVC, eap_app_test, DER, []),
+	server_passthrough_diameter(Answer, SId).
+
+server_passthrough_diameter(Answer, SId) ->
+	SIdbin = list_to_binary(SId),
+	%[EapMsg] = Answer#diameter_eap_app_DEA.'EAP-Payload',
+	#diameter_eap_app_DEA{'Session-Id' = SIdbin,
+		'Auth-Application-Id' = ?EAP_APPLICATION_ID,
+		'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
+		'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', 
+		'EAP-Payload' = [EapMsg]} = Answer,
+	#eap_packet{code = success, identifier = _EapId} = ocs_eap_codec:eap_packet(EapMsg),
+	ok.
 
