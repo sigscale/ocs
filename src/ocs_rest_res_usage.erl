@@ -1876,7 +1876,8 @@ char_attr_delay(Attributes, Acc) ->
 char_attr_event_timestamp(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?EventTimestamp, Attributes) of
 		{ok, Value} ->
-			[{struct, [{name, "eventTimestamp"}, {value, Value}]} | Acc];
+			DateTime = ocs_log:iso8601(Value * 1000),
+			[{struct, [{name, "eventTimestamp"}, {value, DateTime}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
