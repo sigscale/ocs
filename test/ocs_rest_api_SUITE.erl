@@ -1072,7 +1072,7 @@ get_acct_usage_id(Config) ->
 	ContentLength = integer_to_list(length(Body2)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers2),
 	{struct, Usage} = mochijson:decode(Body2),
-	{_, Id} = lists:keyfind("id", 1, Usage),
+	{_, _Id} = lists:keyfind("id", 1, Usage),
 	{_, Href} = lists:keyfind("href", 1, Usage).
 
 get_ipdr_usage() ->
