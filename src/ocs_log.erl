@@ -23,11 +23,13 @@
 -copyright('Copyright (c) 2016-2017 SigScale Global Inc.').
 
 %% export the ocs_log public API
--export([acct_open/0, acct_log/4, acct_close/0, acct_query/4]).
--export([auth_open/0, auth_log/6, auth_log/7, auth_close/0, auth_query/5]).
--export([ipdr_log/3, ipdr_file/2, get_range/3, last/2]).
--export([dump_file/2, http_file/2, httpd_logname/1]).
--export([date/1, iso8601/1]).
+-export([acct_open/0, acct_log/4, acct_close/0,
+		acct_query/4, acct_query/5,
+		auth_open/0, auth_log/6, auth_log/7, auth_close/0,
+		auth_query/5, auth_query/6,
+		ipdr_log/3, ipdr_file/2, get_range/3, last/2,
+		dump_file/2, http_file/2, httpd_logname/1,
+		date/1, iso8601/1]).
 
 %% export the ocs_log private API
 -export([]).
@@ -130,69 +132,92 @@ acct_close() ->
 		Attribute :: byte(),
 		Match :: term() | '_',
 		Result :: [term()].
-%% @doc Query RADIUS account request events with filters.
+%% @equiv acct_query(Start, End, radius, Types, AttrsMatch)
+acct_query(Start, End, Types, AttrsMatch) ->
+	acct_query(Start, End, radius, Types, AttrsMatch).
+
+-spec acct_query(Start, End, Protocol, Types, AttrsMatch) -> Result
+	when
+		Start :: calendar:datetime() | pos_integer(),
+		End :: calendar:datetime() | pos_integer(),
+		Protocol :: radius | diameter | '_',
+		Types :: [Type] | '_',
+		Type :: on | off | start | stop | interim | event,
+		AttrsMatch :: [{Attribute, Match}] | '_',
+		Attribute :: byte(),
+		Match :: term() | '_',
+		Result :: [term()].
+%% @doc Query accounting log events with filters.
 %%
-%% 	Events before `Start' or after `Stop' or which do not match one of
-%% 	the `Types' are ignored.
+%% 	Events before `Start' or after `Stop', or which do not match
+%% 	the `Protocol' or one of the `Types', are ignored.
 %%
 %% 	Events which do not include `Attribute' in attributes are ignored.
-%% 	If `Match' is `'_'' any attribute value will match, otherwise events
+%% 	If `Match' is '_' any attribute value will match, otherwise events
 %% 	with attributes having a value not equal to `Match' will be ignored.
 %% 	All attribute filters must match or the event will be ignored.
 %%
+%% 	`Protocol', `Types', or `AttrsMatch' may be '_' which matches any value.
+%% 
 %% 	Returns a list of matching accounting events.
 %%
-acct_query({{_, _, _}, {_, _, _}} = Start, End, Types, AttrsMatch) ->
+acct_query({{_, _, _}, {_, _, _}} = Start, End, Protocol, Types, AttrsMatch) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(Start) - ?EPOCH,
-	acct_query(Seconds * 1000, End, Types, AttrsMatch);
-acct_query(Start, {{_, _, _}, {_, _, _}} = End, Types, AttrsMatch) ->
+	acct_query(Seconds * 1000, End, Protocol, Types, AttrsMatch);
+acct_query(Start, {{_, _, _}, {_, _, _}} = End, Protocol, Types, AttrsMatch) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
-	acct_query(Start, Seconds * 1000, Types, AttrsMatch);
-acct_query(Start, End, Types, AttrsMatch)
+	acct_query(Start, Seconds * 1000, Protocol, Types, AttrsMatch);
+acct_query(Start, End, Protocol, Types, AttrsMatch)
 		when is_integer(Start), is_integer(End) ->
-	acct_query(Start, End, Types, AttrsMatch,
+	acct_query(Start, End, Protocol, Types, AttrsMatch,
 			disk_log:chunk(?ACCTLOG, start), []).
 
 %% @hidden
-acct_query(_Start, _End, _Types, _AttrsMatch, eof, Acc) ->
+acct_query(_Start, _End, _Protocol, _Types, _AttrsMatch, eof, Acc) ->
 	lists:reverse(Acc);
-acct_query(_Start, _End, _Types, _AttrsMatch, {error, Reason}, _Acc) ->
+acct_query(_Start, _End, _Protocol, _Types, _AttrsMatch, {error, Reason}, _Acc) ->
 	{error, Reason};
-acct_query(Start, End, '_', AttrsMatch,
+acct_query(Start, End, '_', '_', AttrsMatch,
 		{Cont, [{TS, _, _, _, _, _, _} | _] = Chunk}, Acc)
 		when TS >= Start, TS =< End ->
-	acct_query1(Start, End, '_', AttrsMatch, {Cont, Chunk}, Acc, AttrsMatch);
-acct_query(Start, End, Types, AttrsMatch,
-		{Cont, [{TS, _, _, _, _, Type, _} | T] = Chunk}, Acc)
+	acct_query1(Start, End, '_', '_', AttrsMatch, {Cont, Chunk}, Acc, AttrsMatch);
+acct_query(Start, End, Protocol, '_', AttrsMatch,
+		{Cont, [{TS, _, Protocol, _, _, _, _} | _] = Chunk}, Acc)
+		when TS >= Start, TS =< End ->
+	acct_query1(Start, End, Protocol, '_', AttrsMatch, {Cont, Chunk}, Acc, AttrsMatch);
+acct_query(Start, End, Protocol, Types, AttrsMatch,
+		{Cont, [{TS, _, Protocol, _, _, Type, _} | T] = Chunk}, Acc)
 		when TS >= Start, TS =< End ->
 	case lists:member(Type, Types) of
 		true ->
-			acct_query1(Start, End, Types, AttrsMatch,
+			acct_query1(Start, End, Protocol, Types, AttrsMatch,
 					{Cont, Chunk}, Acc, AttrsMatch);
 		false ->
-			acct_query(Start, End, Types, AttrsMatch, {Cont, T}, Acc)
+			acct_query(Start, End, Protocol, Types, AttrsMatch, {Cont, T}, Acc)
 	end;
-acct_query(Start, End, Types, AttrsMatch, {Cont, [_ | T]}, Acc) ->
-	acct_query(Start, End, Types, AttrsMatch, {Cont, T}, Acc);
-acct_query(Start, End, Types, AttrsMatch, {Cont, []}, Acc) ->
-	acct_query(Start, End, Types, AttrsMatch,
+acct_query(Start, End, Protocol, Types, AttrsMatch, {Cont, [_ | T]}, Acc) ->
+	acct_query(Start, End, Protocol, Types, AttrsMatch, {Cont, T}, Acc);
+acct_query(Start, End, Protocol, Types, AttrsMatch, {Cont, []}, Acc) ->
+	acct_query(Start, End, Protocol, Types, AttrsMatch,
 			disk_log:chunk(?AUTHLOG, Cont), Acc).
 %% @hidden
-acct_query1(Start, End, Types, '_', {Cont, [H | T]}, Acc, '_') ->
-	acct_query(Start, End, Types, '_', {Cont, T}, [H | Acc]);
-acct_query1(Start, End, Types, AttrsMatch,
+acct_query1(Start, End, Protocol, Types, '_', {Cont, [H | T]}, Acc, '_') ->
+	acct_query(Start, End, Protocol, Types, '_', {Cont, T}, [H | Acc]);
+acct_query1(Start, End, Protocol, Types, AttrsMatch,
 		{Cont, [{_, _, _, _, _, _, Attrs} | T] = Chunk},
 		Acc, [{Attribute, Match} | T1]) ->
 	case lists:keyfind(Attribute, 1, Attrs) of
 		{Attribute, Match} ->
-			acct_query1(Start, End, Types, AttrsMatch, {Cont, Chunk}, Acc, T1);
+			acct_query1(Start, End, Protocol, Types, AttrsMatch,
+					{Cont, Chunk}, Acc, T1);
 		{Attribute, _} when Match == '_' ->
-			acct_query1(Start, End, Types, AttrsMatch, {Cont, Chunk}, Acc, T1);
+			acct_query1(Start, End, Protocol, Types, AttrsMatch,
+					{Cont, Chunk}, Acc, T1);
 		false ->
-			acct_query(Start, End, Types, AttrsMatch, {Cont, T}, Acc)
+			acct_query(Start, End, Protocol, Types, AttrsMatch, {Cont, T}, Acc)
 	end;
-acct_query1(Start, End, Types, AttrsMatch, {Cont, [H | T]}, Acc, []) ->
-	acct_query(Start, End, Types, AttrsMatch, {Cont, T}, [H | Acc]).
+acct_query1(Start, End, Protocol, Types, AttrsMatch, {Cont, [H | T]}, Acc, []) ->
+	acct_query(Start, End, Protocol, Types, AttrsMatch, {Cont, T}, [H | Acc]).
 
 -spec auth_open() -> Result
 	when
@@ -284,108 +309,134 @@ auth_log(Protocol, Server, Subscriber, OriginHost, OriginRealm, AuthType,
 		Attribute :: byte(),
 		Match :: term() | '_',
 		Result :: [term()].
-%% @doc Query RADIUS access request events with filters.
+%% @equiv auth_query(Start, End, radius, Types, ReqAttrsMatch, RespAttrsMatch)
+auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch) ->
+	auth_query(Start, End, radius, Types, ReqAttrsMatch, RespAttrsMatch).
+
+-spec auth_query(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch) -> Result
+	when
+		Start :: calendar:datetime() | pos_integer(),
+		End :: calendar:datetime() | pos_integer(),
+		Protocol :: radius | diameter | '_',
+		Types :: [Type] | '_',
+		Type :: accept | reject | change,
+		ReqAttrsMatch :: [{Attribute, Match}] | '_',
+		RespAttrsMatch :: [{Attribute, Match}] | '_',
+		Attribute :: byte(),
+		Match :: term() | '_',
+		Result :: [term()].
+%% @doc Query access log events with filters.
 %%
-%% 	Events before `Start' or after `Stop' or which do not match one of
-%% 	the `Types' are ignored.
+%% 	Events before `Start' or after `Stop' or which do not match
+%% 	the protocol or one of the `Types' are ignored.
 %%
 %% 	Events which do not include `Attribute' in request or response
-%% 	attributes are ignored. If `Match' is `'_'' any attribute value
+%% 	attributes are ignored. If `Match' is '_' any attribute value
 %% 	will match, otherwise events with attributes having a value not
 %% 	equal to `Match' will be ignored. All attribute filters must
 %% 	match or the event will be ignored.
 %%
+%% 	`Protocol', `Types', `ReqAttrsMatch' `ResAttrsMatch'  may be
+%% 	'_' which matches any value.
+%% 
 %% 	Returns a list of matching authentication events.
 %%
-auth_query({{_, _, _}, {_, _, _}} = Start, End, Types,
+auth_query({{_, _, _}, {_, _, _}} = Start, End, Protocol, Types,
 		ReqAttrsMatch, RespAttrsMatch) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(Start) - ?EPOCH,
-	auth_query(Seconds * 1000, End, Types, ReqAttrsMatch, RespAttrsMatch);
-auth_query(Start, {{_, _, _}, {_, _, _}} = End, Types,
+	auth_query(Seconds * 1000, End, Protocol, Types,
+			ReqAttrsMatch, RespAttrsMatch);
+auth_query(Start, {{_, _, _}, {_, _, _}} = End, Protocol, Types,
 		ReqAttrsMatch, RespAttrsMatch) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
-	auth_query(Start, Seconds * 1000, Types, ReqAttrsMatch, RespAttrsMatch);
-auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch)
+	auth_query(Start, Seconds * 1000, Protocol, Types,
+			ReqAttrsMatch, RespAttrsMatch);
+auth_query(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch)
 		when is_integer(Start), is_integer(End) ->
-	auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch,
+	auth_query(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
 			disk_log:chunk(?AUTHLOG, start), []).
 
 %% @hidden
-auth_query(_Start, _End, _Types, _ReqAttrsMatch,
-		_RespAttrsMatch, eof, Acc) ->
+auth_query(_Start, _End, _Protocol, _Types,
+		_ReqAttrsMatch, _RespAttrsMatch, eof, Acc) ->
 	lists:reverse(Acc);
-auth_query(_Start, _End, _Types, _ReqAttrsMatch,
-		_RespAttrsMatch, {error, Reason}, _Acc) ->
+auth_query(_Start, _End, _Protocol, _Types,
+		_ReqAttrsMatch, _RespAttrsMatch, {error, Reason}, _Acc) ->
 	{error, Reason};
-auth_query(Start, End, '_', ReqAttrsMatch, RespAttrsMatch,
+auth_query(Start, End, '_', '_', ReqAttrsMatch, RespAttrsMatch,
 		{Cont, [{TS, _, _, _, _, _, _, _, _} | _] = Chunk}, Acc)
 		when TS >= Start, TS =< End ->
-	auth_query1(Start, End, '_', ReqAttrsMatch,
+	auth_query1(Start, End, '_', '_', ReqAttrsMatch,
 			RespAttrsMatch, {Cont, Chunk}, Acc, ReqAttrsMatch);
-auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch,
-		{Cont, [{TS, _, _, _, _, _, Type, _, _} | T] = Chunk}, Acc)
+auth_query(Start, End, Protocol, '_', ReqAttrsMatch, RespAttrsMatch,
+		{Cont, [{TS, _, Protocol, _, _, _, _, _, _} | _] = Chunk}, Acc)
+		when TS >= Start, TS =< End ->
+	auth_query1(Start, End, Protocol, '_', ReqAttrsMatch,
+			RespAttrsMatch, {Cont, Chunk}, Acc, ReqAttrsMatch);
+auth_query(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
+		{Cont, [{TS, _, Protocol, _, _, _, Type, _, _} | T] = Chunk}, Acc)
 		when TS >= Start, TS =< End ->
 	case lists:member(Type, Types) of
 		true ->
-			auth_query1(Start, End, Types, ReqAttrsMatch,
+			auth_query1(Start, End, Protocol, Types, ReqAttrsMatch,
 					RespAttrsMatch, {Cont, Chunk}, Acc, ReqAttrsMatch);
 		false ->
-			auth_query(Start, End, Types, ReqAttrsMatch,
+			auth_query(Start, End, Protocol, Types, ReqAttrsMatch,
 					RespAttrsMatch, {Cont, T}, Acc)
 	end;
-auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch,
+auth_query(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
 		{Cont, [_ | T]}, Acc) ->
-	auth_query(Start, End, Types, ReqAttrsMatch,
+	auth_query(Start, End, Protocol, Types, ReqAttrsMatch,
 			RespAttrsMatch, {Cont, T}, Acc);
-auth_query(Start, End, Types, ReqAttrsMatch,
+auth_query(Start, End, Protocol, Types, ReqAttrsMatch,
 		RespAttrsMatch, {Cont, []}, Acc) ->
-	auth_query(Start, End, Types, ReqAttrsMatch,
+	auth_query(Start, End, Protocol, Types, ReqAttrsMatch,
 			RespAttrsMatch, disk_log:chunk(?AUTHLOG, Cont), Acc).
 %% @hidden
-auth_query1(Start, End, Types, '_', RespAttrsMatch,
+auth_query1(Start, End, Protocol, Types, '_', RespAttrsMatch,
 		{Cont, Chunk}, Acc, '_') ->
-	auth_query2(Start, End, Types, '_',
+	auth_query2(Start, End, Protocol, Types, '_',
 			RespAttrsMatch, {Cont, Chunk}, Acc, RespAttrsMatch);
-auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch,
+auth_query1(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
 		{Cont, [{_, _, _, _, _, _, _, ReqAttrs, _} | T] = Chunk},
 		Acc, [{Attribute, Match} | T1]) ->
 	case lists:keyfind(Attribute, 1, ReqAttrs) of
 		{Attribute, Match} ->
-			auth_query1(Start, End, Types, ReqAttrsMatch,
+			auth_query1(Start, End, Protocol, Types, ReqAttrsMatch,
 					RespAttrsMatch, {Cont, Chunk}, Acc, T1);
 		{Attribute, _} when Match == '_' ->
-			auth_query1(Start, End, Types, ReqAttrsMatch,
+			auth_query1(Start, End, Protocol, Types, ReqAttrsMatch,
 					RespAttrsMatch, {Cont, Chunk}, Acc, T1);
 		_ ->
-			auth_query(Start, End, Types, ReqAttrsMatch,
+			auth_query(Start, End, Protocol, Types, ReqAttrsMatch,
 					RespAttrsMatch, {Cont, T}, Acc)
 	end;
-auth_query1(Start, End, Types, ReqAttrsMatch,
+auth_query1(Start, End, Protocol, Types, ReqAttrsMatch,
 		RespAttrsMatch, {Cont, Chunk}, Acc, []) ->
-	auth_query2(Start, End, Types, ReqAttrsMatch,
+	auth_query2(Start, End, Protocol, Types, ReqAttrsMatch,
 			RespAttrsMatch, {Cont, Chunk}, Acc, RespAttrsMatch).
 %% @hidden
-auth_query2(Start, End, Types, ReqAttrsMatch, '_',
+auth_query2(Start, End, Protocol, Types, ReqAttrsMatch, '_',
 		{Cont, [H | T]}, Acc, '_') ->
-	auth_query(Start, End, Types, ReqAttrsMatch, '_',
+	auth_query(Start, End, Protocol, Types, ReqAttrsMatch, '_',
 			{Cont, T}, [H | Acc]);
-auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch,
+auth_query2(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
 		{Cont, [{_, _, _, _, _, _, _, _, RespAttrs} | T] = Chunk},
 		Acc, [{Attribute, Match} | T1]) ->
 	case lists:keyfind(Attribute, 1, RespAttrs) of
 		{Attribute, Match} ->
-			auth_query2(Start, End, Types, ReqAttrsMatch,
+			auth_query2(Start, End, Protocol, Types, ReqAttrsMatch,
 					RespAttrsMatch, {Cont, Chunk}, Acc, T1);
 		{Attribute, _} when Match == '_' ->
-			auth_query2(Start, End, Types, ReqAttrsMatch,
+			auth_query2(Start, End, Protocol, Types, ReqAttrsMatch,
 					RespAttrsMatch, {Cont, Chunk}, Acc, T1);
 		false ->
-			auth_query(Start, End, Types, ReqAttrsMatch,
+			auth_query(Start, End, Protocol, Types, ReqAttrsMatch,
 					RespAttrsMatch, {Cont, T}, Acc)
 	end;
-auth_query2(Start, End, Types, ReqAttrsMatch,
+auth_query2(Start, End, Protocol, Types, ReqAttrsMatch,
 		RespAttrsMatch, {Cont, [H | T]}, Acc, []) ->
-	auth_query(Start, End, Types, ReqAttrsMatch,
+	auth_query(Start, End, Protocol, Types, ReqAttrsMatch,
 			RespAttrsMatch, {Cont, T}, [H | Acc]).
 
 -spec auth_close() -> Result
