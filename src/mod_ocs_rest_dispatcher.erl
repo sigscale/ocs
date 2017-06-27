@@ -21,6 +21,7 @@
 -export([do/1]).
 
 -include_lib("inets/include/httpd.hrl").
+-include_lib("inets/include/mod_auth.hrl").
 
 -spec do(ModData) -> Result when
 	ModData :: #mod{},
@@ -50,30 +51,61 @@ do(#mod{request_uri = Uri, data = Data} = ModData) ->
 		{_StatusCode, _PhraseArgs, _Reason} ->
 			{proceed, Data};
 		undefined ->
-			case proplists:get_value(response, Data) of
+			case proplists:get_value(remote_user, Data) of
 				undefined ->
-					case string:tokens(Uri, "/") of
-						["ocs", "v1" | _] ->
-							{proceed, Data};
-						["usageManagement", "v1" | _] ->
-							{proceed, Data};
-						_ ->
-							serve_file(ModData)
-					end;
-				_Response ->
-					{proceed,  Data}
+					{proceed,  Data};
+				User ->
+					case proplists:get_value(response, Data) of
+						undefined ->
+							case string:tokens(Uri, "/") of
+								["ocs", "v1" | _] ->
+									{proceed, Data};
+								["usageManagement", "v1" | _] ->
+									{proceed, Data};
+								_ ->
+									serve_file(User, ModData)
+							end;
+						_Response ->
+							{proceed,  Data}
+					end
 			end
 	end.
 
 %% @hidden
-serve_file(#mod{socket = Socket, socket_type = SockType, data = Data,
-		config_db = ConfigDb, request_uri = Uri} = ModData) ->
+serve_file(User, #mod{data = Data, config_db = ConfigDb,
+		request_uri = Uri} = ModData) ->
 	Path = mod_alias:path(Data, ConfigDb, Uri),
-	send_response(Socket, SockType, Path, ModData).
+	Port = httpd_util:lookup(ConfigDb, port),
+	case filename:basename(Path) of 
+		"index.html" ->
+			case mod_auth:get_user(User, Port, "/") of
+				{ok, #httpd_user{user_data = UserData}} ->
+					Lang = proplists:get_value(lang, UserData, "en"),
+					case file:read_file(Path) of
+						{ok, FileContent} ->
+							{_FileInfo, LastModified} = get_modification_date(Path),
+							LangBin = list_to_binary(Lang),
+							Body = <<"<!doctype html>", $\n, "<html lang=",
+									LangBin/binary, $>, $\n,
+									FileContent/binary, "</html>">>,
+							Size = integer_to_list(size(Body)),
+							Headers = [{content_type, "text/html"},
+									{content_length, Size} | LastModified],
+							send(ModData, 200, Headers, Body),
+							{proceed, [{response, {already_sent, 200, Size}} | Data]};
+						{error, _Reason} ->
+							Response = "<h2>HTTP Error 404 - Not Found</h2>",
+							{break, [{response, {404, Response}}]}
+					end;
+				{error, _Reason} ->
+					{proceed,  Data}
+			end;
+		_ ->
+			send_response(Path, ModData)
+	end.
 
 %% @hidden
-send_response(_Socket, _SockType, Path, #mod{config_db = ConfigDb,
-		data = Data} = ModData) ->
+send_response(Path, #mod{config_db = ConfigDb, data = Data} = ModData) ->
 	case file:read_file(Path) of
 		{ok, FileContent} ->
 			{FileInfo, LastModified} = get_modification_date(Path),
@@ -81,7 +113,7 @@ send_response(_Socket, _SockType, Path, #mod{config_db = ConfigDb,
 			MimeType = httpd_util:lookup_mime_default(ConfigDb, Suffix, "text/plain"),
 			Size = integer_to_list(FileInfo#file_info.size),
 			Headers = [{content_type, MimeType},
-					{content_length, Size}|LastModified],
+					{content_length, Size} | LastModified],
 			send(ModData, 200, Headers, FileContent),
 			{proceed,[{response, {already_sent, 200, FileInfo#file_info.size}},
 				{mime_type,MimeType} | Data]};

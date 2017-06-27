@@ -73,6 +73,20 @@ get_usage([{"type", "AAAAccessUsage"}]) ->
 					{content_range, ContentRange}],
 			{ok, Headers, Body}
 	end;
+get_usage([{"type", "AAAAccountingUsage"}]) ->
+	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
+	case ocs_log:last(ocs_acct, MaxItems) of
+		{error, _} ->
+			{error, 404};
+		{NewCount, Events} ->
+			JsonObj = usage_aaa_acct(Events),
+			JsonArray = {array, JsonObj},
+			Body = mochijson:encode(JsonArray),
+			ContentRange = "items 1-" ++ integer_to_list(NewCount) ++ "/*",
+			Headers = [{content_type, "application/json"},
+					{content_range, ContentRange}],
+			{ok, Headers, Body}
+	end;
 get_usage(_Query) ->
 	{error, 404}.
 
@@ -85,6 +99,20 @@ get_usage(_Query) ->
 %% @doc Body producing function for
 %% 	`GET /usageManagement/v1/usage/{id}'
 %% 	requests.
+get_usage("auth-" ++ _ = Id, _Query) ->
+	try
+		["auth", TimeStamp, Serial] = string:tokens(Id, [$-]),
+		TS = list_to_integer(TimeStamp),
+		N = list_to_integer(Serial),
+		Events = ocs_log:auth_query(TS, TS, '_', '_', '_'),
+		JsonObj = usage_aaa_auth(lists:keyfind(N, 2, Events)),
+		Body = mochijson:encode(JsonObj),
+		Headers = [{content_type, "application/json"}],
+		{ok, Headers, Body}
+	catch
+		_:_Reason ->
+			{error, 404}
+	end;
 get_usage(Id, _Query) ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
@@ -185,7 +213,7 @@ ipdr_to_json(Count, Records) ->
 						{href, "usageManagement/v1/usage/" ++ integer_to_list(N + 1)},
 						{date, "SomeDateTime"}, {type, "PublicWLANAccessUsage"},
 						{description, "Description for individual usage content"},
-						{status, received},
+						{status, "received"},
 						{usageSpecification, UsageSpecification},
 						{usageCharacteristic, UsageCharacteristic}]}],
 						{N + 1, [RespObj | Acc]};
@@ -344,47 +372,85 @@ ipdr_characteristics([], _Ipdr, Acc) ->
 	lists:reverse(Acc).
 
 %% @hidden
-usage_aaa_auth(Events) ->
-	UsageSpec = {{"id", "AAAAccessUsageSpec"},
-			{"href", "/usageManagement/v1/usageSpecification/AAAAccessUsageSpec"},
-			{name, "AAAAccessUsageSpec"}},
+usage_aaa_auth({Milliseconds, N, P, Node,
+		{ServerIP, ServerPort}, {ClientIP, ClientPort}, EventType,
+		RequestAttributes, ResponseAttributes}) ->
+	UsageSpec = {struct, [{id, "AAAAccessUsageSpec"},
+			{href, "/usageManagement/v1/usageSpecification/AAAAccessUsageSpec"},
+			{name, "AAAAccessUsageSpec"}]},
 	Type = "AAAAccessUsage",
 	Status = "received",
-	F = fun({Milliseconds, N, P, Node, {ServerIP, ServerPort},
-					{ClientIP, ClientPort}, AccessType,
-					RequestAttributes, ResponseAttributes}, Acc) ->
-				ID = "access-" ++ integer_to_list(Milliseconds)
-						++ integer_to_list(N),
-				Href = "/usageManagement/v1/usage/" ++ ID,
-				Date = ocs_log:iso8601(Milliseconds),
-				Protocol = case P of
-					radius ->
-						"RADIUS";
-					diameter ->
-						"DIAMETER"
-				end,
-				ServerAddress = inet:ntoa(ServerIP),
-				ClientAddress = inet:ntoa(ClientIP),
-				AccessChars = [{struct, [{name, "protocol"}, {"value", Protocol}]},
-						{struct, [{"name", "node"}, {"value", atom_to_list(Node)}]},
-						{struct, [{"name", "serverAddress"}, {"value", ServerAddress}]},
-						{struct, [{"name", "serverPort"}, {"value", ServerPort}]},
-						{struct, [{"name", "clientAddress"}, {"value", ClientAddress}]},
-						{struct, [{"name", "clientPort"}, {"value", ClientPort}]},
-						{struct, [{"name", "type"}, {"value", atom_to_list(AccessType)}]}],
-				RequestChars = usage_characteristics(RequestAttributes),
-				ResponseChars = usage_characteristics(ResponseAttributes),
-				UsageChars = AccessChars ++ RequestChars ++ ResponseChars,
-				JsonObj = {struct, [{"id", ID}, {"href", Href},
-						{"date", Date}, {"type", Type}, {"status", Status},
-						{"usageSpecification", UsageSpec},
-						{"usageCharacteristic", {array, UsageChars}}]},
-				[JsonObj | Acc];
-		(_, Acc) ->
-				%% TODO support for DIAMETER
-				Acc
+	ID = "auth-" ++ integer_to_list(Milliseconds) ++ "-"
+			++ integer_to_list(N),
+	Href = "/usageManagement/v1/usage/" ++ ID,
+	Date = ocs_log:iso8601(Milliseconds),
+	Protocol = case P of
+		radius ->
+			"RADIUS";
+		diameter ->
+			"DIAMETER"
 	end,
-	lists:reverse(lists:foldl(F, [], Events)).
+	ServerAddress = inet:ntoa(ServerIP),
+	ClientAddress = inet:ntoa(ClientIP),
+	EventChars = [{struct, [{name, "protocol"}, {value, Protocol}]},
+			{struct, [{name, "node"}, {value, atom_to_list(Node)}]},
+			{struct, [{name, "serverAddress"}, {value, ServerAddress}]},
+			{struct, [{name, "serverPort"}, {value, ServerPort}]},
+			{struct, [{name, "clientAddress"}, {value, ClientAddress}]},
+			{struct, [{name, "clientPort"}, {value, ClientPort}]},
+			{struct, [{name, "type"}, {value, atom_to_list(EventType)}]}],
+	RequestChars = usage_characteristics(RequestAttributes),
+	ResponseChars = usage_characteristics(ResponseAttributes),
+	UsageChars = EventChars ++ RequestChars ++ ResponseChars,
+	{struct, [{id, ID}, {href, Href},
+			{date, Date}, {type, Type}, {status, Status},
+			{usageSpecification, UsageSpec},
+			{usageCharacteristic, {array, UsageChars}}]};
+usage_aaa_auth(Events) when is_list(Events) ->
+	usage_aaa_auth(Events, []).
+%% @hidden
+usage_aaa_auth([H | T], Acc) ->
+	usage_aaa_auth(T, [usage_aaa_auth(H) | Acc]);
+usage_aaa_auth([], Acc) ->
+	lists:reverse(Acc).
+
+%% @hidden
+usage_aaa_acct({Milliseconds, N, P, Node,
+		{ServerIP, ServerPort}, EventType, Attributes}) ->
+	UsageSpec = {struct, [{id, "AAAAccountingUsageSpec"},
+			{href, "/usageManagement/v1/usageSpecification/AAAAccountingUsageSpec"},
+			{name, "AAAAccountingUsageSpec"}]},
+	Type = "AAAAccountingUsage",
+	Status = "received",
+	ID = "acct-" ++ integer_to_list(Milliseconds) ++ "-"
+			++ integer_to_list(N),
+	Href = "/usageManagement/v1/usage/" ++ ID,
+	Date = ocs_log:iso8601(Milliseconds),
+	Protocol = case P of
+		radius ->
+			"RADIUS";
+		diameter ->
+			"DIAMETER"
+	end,
+	ServerAddress = inet:ntoa(ServerIP),
+	EventChars = [{struct, [{name, "protocol"}, {value, Protocol}]},
+			{struct, [{name, "node"}, {value, atom_to_list(Node)}]},
+			{struct, [{name, "serverAddress"}, {value, ServerAddress}]},
+			{struct, [{name, "serverPort"}, {value, ServerPort}]},
+			{struct, [{name, "type"}, {value, atom_to_list(EventType)}]}],
+	AttributeChars = usage_characteristics(Attributes),
+	UsageChars = EventChars ++ AttributeChars,
+	{struct, [{id, ID}, {href, Href},
+			{date, Date}, {type, Type}, {status, Status},
+			{usageSpecification, UsageSpec},
+			{usageCharacteristic, {array, UsageChars}}]};
+usage_aaa_acct(Events) when is_list(Events) ->
+	usage_aaa_acct(Events, []).
+%% @hidden
+usage_aaa_acct([H | T], Acc) ->
+	usage_aaa_acct(T, [usage_aaa_acct(H) | Acc]);
+usage_aaa_acct([], Acc) ->
+	lists:reverse(Acc).
 
 %% @hidden
 spec_aaa_auth() ->
@@ -1537,7 +1603,7 @@ usage_characteristics(Attributes) ->
 char_attr_username(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?UserName, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "username"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "username"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1547,7 +1613,8 @@ char_attr_username(Attributes, Acc) ->
 char_attr_nas_ip(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?NasIpAddress, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "nasIpAddress"}, {"value", Value}]} | Acc];
+			Address = inet:ntoa(Value),
+			[{struct, [{name, "nasIpAddress"}, {value, Address}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1557,7 +1624,7 @@ char_attr_nas_ip(Attributes, Acc) ->
 char_attr_nas_port(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?NasPort, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "nasPort"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "nasPort"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1577,7 +1644,7 @@ char_attr_service_type(Attributes, Acc) ->
 				N ->
 					N
 			end,
-			[{struct, [{"name", "serviceType"}, {"value", Type}]} | Acc];
+			[{struct, [{name, "serviceType"}, {value, Type}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1588,7 +1655,7 @@ char_attr_framed_address(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?FramedIpAddress, Attributes) of
 		{ok, Value} ->
 			Address = inet:ntoa(Value),
-			[{struct, [{"name", "framedIpAddress"}, {"value", Address}]} | Acc];
+			[{struct, [{name, "framedIpAddress"}, {value, Address}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1598,7 +1665,7 @@ char_attr_framed_address(Attributes, Acc) ->
 char_attr_framed_pool(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?FramedPool, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "framedPool"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "framedPool"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1609,7 +1676,7 @@ char_attr_framed_netmask(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?FramedIpNetmask, Attributes) of
 		{ok, Value} ->
 			Netmask = inet:ntoa(Value),
-			[{struct, [{"name", "framedIpNetmask"}, {"value", Netmask}]} | Acc];
+			[{struct, [{name, "framedIpNetmask"}, {value, Netmask}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1631,7 +1698,7 @@ char_attr_framed_routing(Attributes, Acc) ->
 				N ->
 					N
 			end,
-			[{struct, [{"name", "framedIpNetmask"}, {"value", Routing}]} | Acc];
+			[{struct, [{name, "framedIpNetmask"}, {value, Routing}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1641,7 +1708,7 @@ char_attr_framed_routing(Attributes, Acc) ->
 char_attr_filter_id(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?FilterId, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "filterId"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "filterId"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1651,7 +1718,7 @@ char_attr_filter_id(Attributes, Acc) ->
 char_attr_framed_mtu(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?FramedMtu, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "framedMtu"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "framedMtu"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1661,7 +1728,7 @@ char_attr_framed_mtu(Attributes, Acc) ->
 char_attr_framed_route(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?FramedRoute, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "framedRoute"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "framedRoute"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1671,7 +1738,7 @@ char_attr_framed_route(Attributes, Acc) ->
 char_attr_class(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?Class, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "class"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "class"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1681,7 +1748,7 @@ char_attr_class(Attributes, Acc) ->
 char_attr_session_timeout(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?SessionTimeout, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "sessionTimeout"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "sessionTimeout"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1691,7 +1758,7 @@ char_attr_session_timeout(Attributes, Acc) ->
 char_attr_idle_timeout(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?IdleTimeout, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "idleTimeout"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "idleTimeout"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1709,7 +1776,7 @@ char_attr_termination_action(Attributes, Acc) ->
 				N ->
 					N
 			end,
-			[{struct, [{"name", "terminationAction"}, {"value", Action}]} | Acc];
+			[{struct, [{name, "terminationAction"}, {value, Action}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1719,7 +1786,7 @@ char_attr_termination_action(Attributes, Acc) ->
 char_attr_called_id(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?CalledStationId, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "calledStationId"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "calledStationId"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1729,7 +1796,7 @@ char_attr_called_id(Attributes, Acc) ->
 char_attr_calling_id(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?CallingStationId, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "calledStationId"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "calledStationId"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1739,7 +1806,7 @@ char_attr_calling_id(Attributes, Acc) ->
 char_attr_nas_id(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?NasIdentifier, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "nasIdentifier"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "nasIdentifier"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1749,7 +1816,7 @@ char_attr_nas_id(Attributes, Acc) ->
 char_attr_port_id(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?NasPortId, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "nasPortId"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "nasPortId"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1779,7 +1846,7 @@ char_attr_nas_port_type(Attributes, Acc) ->
 				N ->
 					N
 			end,
-			[{struct, [{"name", "nasPortType"}, {"value", Type}]} | Acc];
+			[{struct, [{name, "nasPortType"}, {value, Type}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1789,7 +1856,7 @@ char_attr_nas_port_type(Attributes, Acc) ->
 char_attr_port_limit(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?PortLimit, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "portLimit"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "portLimit"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1799,7 +1866,7 @@ char_attr_port_limit(Attributes, Acc) ->
 char_attr_delay(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctDelayTime, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "acctDelayTime"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "acctDelayTime"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1809,7 +1876,7 @@ char_attr_delay(Attributes, Acc) ->
 char_attr_event_timestamp(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?EventTimestamp, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "eventTimestamp"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "eventTimestamp"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1819,7 +1886,7 @@ char_attr_event_timestamp(Attributes, Acc) ->
 char_attr_session_id(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctSessionId, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "acctSessionId"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "acctSessionId"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1829,7 +1896,7 @@ char_attr_session_id(Attributes, Acc) ->
 char_attr_multi_session_id(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctMultiSessionId, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "acctMultiSessionId"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "acctMultiSessionId"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1839,7 +1906,7 @@ char_attr_multi_session_id(Attributes, Acc) ->
 char_attr_link_count(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctLinkCount, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "acctLinkCount"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "acctLinkCount"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1859,7 +1926,7 @@ char_attr_authentic(Attributes, Acc) ->
 				N ->
 					N
 			end,
-			[{struct, [{"name", "acctAuthentic"}, {"value", Type}]} | Acc];
+			[{struct, [{name, "acctAuthentic"}, {value, Type}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1869,7 +1936,7 @@ char_attr_authentic(Attributes, Acc) ->
 char_attr_session_time(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctSessionTime, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "acctSessionTime"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "acctSessionTime"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1879,7 +1946,7 @@ char_attr_session_time(Attributes, Acc) ->
 char_attr_input_octets(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctInputOctets, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "inputOctets"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "inputOctets"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1889,7 +1956,7 @@ char_attr_input_octets(Attributes, Acc) ->
 char_attr_output_octets(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctOutputOctets, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "outputOctets"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "outputOctets"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1899,7 +1966,7 @@ char_attr_output_octets(Attributes, Acc) ->
 char_attr_input_giga_words(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctInputGigawords, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "acctInputGigaWords"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "acctInputGigaWords"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1909,7 +1976,7 @@ char_attr_input_giga_words(Attributes, Acc) ->
 char_attr_output_giga_words(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctOutputGigawords, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "acctOutputGigaWords"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "acctOutputGigaWords"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1919,7 +1986,7 @@ char_attr_output_giga_words(Attributes, Acc) ->
 char_attr_input_packets(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctInputPackets, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "acctInputPackets"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "acctInputPackets"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1929,7 +1996,7 @@ char_attr_input_packets(Attributes, Acc) ->
 char_attr_output_packets(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctOutputPackets, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "acctOutputPackets"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "acctOutputPackets"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1939,7 +2006,7 @@ char_attr_output_packets(Attributes, Acc) ->
 char_attr_data_rate(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AscendDataRate, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "ascendDataRate"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "ascendDataRate"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1949,7 +2016,7 @@ char_attr_data_rate(Attributes, Acc) ->
 char_attr_xmit_rate(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AscendXmitRate, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "ascendXmitRate"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "ascendXmitRate"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1959,7 +2026,7 @@ char_attr_xmit_rate(Attributes, Acc) ->
 char_attr_interim_interval(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctInterimInterval, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "acctInterimInterval"}, {"value", Value}]} | Acc];
+			[{struct, [{name, "acctInterimInterval"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -2009,7 +2076,7 @@ char_attr_cause(Attributes, Acc) ->
 				N ->
 					N
 			end,
-			[{struct, [{"name", "acctTerminateCause"}, {"value", Cause}]} | Acc];
+			[{struct, [{name, "acctTerminateCause"}, {value, Cause}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end.

@@ -33,7 +33,7 @@
   },
   "identity": {
     "description": "Identity of subscribers",
-    "message": "identidad"
+    "message": "Identidad"
   },
   "pass": {
     "description": "Password of subscribers", 
@@ -45,15 +45,15 @@
   },
   "asc": {
     "description": "AscendDataRate of subscribers", 
-    "message": "Velocidad de datos"
+    "message": "Velocidad de Datos"
   },
   "xmit": {
     "description": "XmitDataRate of subscribers", 
-    "message": "Tasa xmit"
+    "message": "Tasa Xmit"
   },
   "session": {
     "description": "Timeout of subscribers", 
-    "message": "Se acabó el tiempo"
+    "message": "Se Acabó el Tiempo"
   },
   "int": {
     "description": "Interval of subscribers", 
@@ -73,19 +73,19 @@
   },
   "recieve": {
     "description": "Receive Data Rate for adding subscribers", 
-    "message": "Tasa de recepción de datos"
+    "message": "Tasa de Recepción de Datos"
   },
   "trans": {
     "description": "Transmit Data Rate for adding subscribers", 
-    "message": "Transmitir la velocidad de transmisión de datos"
+    "message": "Transmitir la Velocidad de Transmisión de Datos"
   },
   "ses": {
     "description": "Session Timeout for adding subscribers", 
-    "message": "Hora de término de la sesión"
+    "message": "Hora de Término de la Sesión"
   },
   "updateInterval": {
     "description": "Update Interval for adding subscribers", 
-    "message": "Intervalo de actualización"
+    "message": "Intervalo de Actualización"
   },
   "class": {
     "description": "Class for adding subscribers", 
@@ -105,7 +105,7 @@
   },
   "AddTitle": {
     "description": "Title for adding subscribers", 
-    "message": "Añadir suscriptor"
+    "message": "Añadir Suscriptor"
   },
   "AuthTitle": {
     "description": "Title for authentication", 
@@ -117,7 +117,7 @@
   },
   "AuthTooltip": {
     "description": "Tooltip message for authentication", 
-    "message": "Credenciales utilizadas para autenticar al suscriptor."
+    "message": "Credenciales utilizadas para autenticar al Suscriptor."
   },
   "AuthorTooltip": {
     "description": "Tooltip message for authorization", 
@@ -125,7 +125,7 @@
   },
   "newpass": {
     "description": "New password for update", 
-    "message": "Nuevo secreto"
+    "message": "Nuevo Secreto"
   },
   "newpassError": {
     "description": "New password error message for update", 
@@ -165,7 +165,7 @@
   },
   "accInt": {
     "description": "Interval for Accounting", 
-    "message": "Intervalo de distribución"
+    "message": "Intervalo de Distribución"
   },
 	"address": {
     "description": "Address of Client",
@@ -185,7 +185,7 @@
   },
   "addClient": {
     "description": "Title for add Client",
-    "message": "Agregar cliente"
+    "message": "Agregar Cliente"
   },
   "ipAddress": {
     "description": "Ip Address for add Client",
@@ -213,11 +213,11 @@
   },
 	"clientAdded": {
     "description": "Success Toast Message",
-    "message": "Cliente añadido"
+    "message": "Cliente Añadido"
   },
    "serverGen": {
     "description": "Title of generate password",
-    "message": "Generado por el servidor"
+    "message": "Generado Por el Servidor"
   },
    "close": {
     "description": "button for close",
@@ -249,11 +249,11 @@
   },
 	"timeStamp": {
     "description": "Timestamp for access log",
-    "message": "Sello de tiempo"
+    "message": "Sello de Tiempo"
   },
 	"userName": {
     "description": "Username for logs",
-    "message": "Nombre de usuario"
+    "message": "Nombre de Usuario"
   },
 	"clientAddress": {
     "description": "clientAddress for logs",
@@ -261,7 +261,7 @@
   },
 	"clientPort": {
     "description": "clientPort for logs",
-    "message": "Puerto cliente"
+    "message": "Puerto Cliente"
   },
 	"type": {
     "description": "type for logs",
@@ -269,7 +269,7 @@
   },
 	"creationTime": {
     "description": "Creation time for logs",
-    "message": "Tiempo de creación"
+    "message": "Tiempo de Creación"
   },
 	"seq": {
     "description": "Sequence for logs",
@@ -277,15 +277,15 @@
   },
 	"acctSessionId": {
     "description": "Account session ID for logs",
-    "message": "ID de sesión"
+    "message": "ID de Sesión"
   },
 	"callingStationId": {
     "description": "Calling Station ID for logs",
-    "message": "Identificador de estación de llamada"
+    "message": "Identificador de Estación de Llamada"
   },
 	"calledStationId": {
     "description": "Called Station ID for logs",
-    "message": "Se llama ID de estación"
+    "message": "Se Llama ID de Estación"
   },
 	"nasIpAddress": {
     "description": "Nas IP for logs",
@@ -293,7 +293,7 @@
   },
 	"nasID": {
     "description": "Nas ID for logs",
-    "message": "nuestra ID"
+    "message": "Nuestra ID"
   },
 	"sessionDur": {
     "description": "Session duration for logs",
@@ -301,19 +301,19 @@
   },
 	"inputOctets": {
     "description": "Input Octets for logs",
-    "message": "Octetos de entrada"
+    "message": "Octetos de Entrada"
   },
 	"outputOctets": {
     "description": "output Octets for logs",
-    "message": "Octetos de salida"
+    "message": "Octetos de Salida"
   },
 	"gmtSessionStartDateTime": {
     "description": "gmtSessionStartDateTime for logs",
-    "message": "Hora de inicio"
+    "message": "Hora de Inicio"
   },
 	"gmtSessionendtime": {
     "description": "gmtSessionStartDateTime for logs",
-    "message": "Hora de finalización"
+    "message": "Hora de Finalización"
   },
 	"SessionTerminateCause": {
     "description": "SessionTerminateCause for logs",
@@ -321,7 +321,7 @@
   },
 	"dateTime": {
     "description": "DateTime for logs",
-    "message": "Fecha y hora"
+    "message": "Fecha y Hora"
   },
 	"host": {
     "description": "host for logs",
@@ -390,5 +390,9 @@
 	"identityCol": {
     "description": "Identity label for generate identity",
     "message": "Identidad:"
+  },
+	"authorClientTool": {
+    "description": "Tooltip message for authorization client",
+    "message": "Propiedades del servidor de acceso a la red, el router o el cliente de puntero de acceso."
   }
 }

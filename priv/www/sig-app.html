@@ -62,6 +62,9 @@
 		iron-icon {
 			padding-right: 10px;
 		}
+		.sublist paper-item {
+			padding-left: 30px;
+		}
 	</style>
 	<template>
 		<app-header-layout>
@@ -140,7 +143,7 @@
 											Logs
 										</i18n-msg>
 								</paper-item>
-								<paper-menu class="menu-content" >
+								<paper-menu class="menu-content sublist">
 									<paper-item
 											id="page3"
 											onclick="drawer.toggle()"
@@ -193,7 +196,7 @@
 	</template>
 		<script>
 		document.addEventListener('HTMLImportsLoaded', function() {
-			I18nMsg.lang = 'es';
+			I18nMsg.lang = document.documentElement.lang || 'en';
 			Platform.performMicrotaskCheckpoint();
 		});
 		Polymer (

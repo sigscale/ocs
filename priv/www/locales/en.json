@@ -33,7 +33,7 @@
   },
   "identity": {
     "description": "Identity of subscribers",
-    "message": "identity"
+    "message": "Identity"
   },
   "pass": {
     "description": "Password of subscribers",
@@ -246,7 +246,7 @@
 	"port": {
     "description": "port for client",
     "message": "Port"
-   }
+   },
 	"portTool": {
     "description": "Tooltip message update port",
     "message": "Port network access server, router or access point listens on"

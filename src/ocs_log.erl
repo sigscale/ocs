@@ -99,7 +99,7 @@ acct_open1(Directory) ->
 acct_log(Protocol, Server, Type, Attributes)
 		when ((Protocol == radius) or (Protocol == diameter)) ->
 	TS = erlang:system_time(?MILLISECOND),
-	N = erlang:unique_integer([monotonic]),
+	N = erlang:unique_integer([positive]),
 	Event = {TS, N, Protocol, node(), Server, Type, Attributes},
 	disk_log:log(?ACCTLOG, Event).
 
@@ -171,7 +171,7 @@ auth_open1(Directory) ->
 %% @doc Write a RADIUS event to authorization log.
 auth_log(Protocol, Server, Client, Type, RequestAttributes, ResponseAttributes) ->
 	TS = erlang:system_time(?MILLISECOND),
-	N = erlang:unique_integer([monotonic]),
+	N = erlang:unique_integer([positive]),
 	Event = {TS, N, Protocol, node(), Server, Client, Type,
 			RequestAttributes, ResponseAttributes},
 	disk_log:log(?AUTHLOG, Event).
@@ -194,7 +194,7 @@ auth_log(Protocol, Server, Client, Type, RequestAttributes, ResponseAttributes) 
 auth_log(Protocol, Server, Subscriber, OriginHost, OriginRealm, AuthType,
 		ResultCode) ->
 	TS = erlang:system_time(?MILLISECOND),
-	N = erlang:unique_integer([monotonic]),
+	N = erlang:unique_integer([positive]),
 	Event = {TS, N, Protocol, node(), Server, Subscriber, OriginHost, OriginRealm,
 			AuthType, ResultCode},
 	disk_log:log(?AUTHLOG, Event).
@@ -203,10 +203,10 @@ auth_log(Protocol, Server, Subscriber, OriginHost, OriginRealm, AuthType,
 	when
 		Start :: calendar:datetime() | pos_integer(),
 		End :: calendar:datetime() | pos_integer(),
-		Types :: [Type],
+		Types :: [Type] | '_',
 		Type :: accept | reject | change,
-		ReqAttrsMatch :: [{Attribute, Match}],
-		RespAttrsMatch :: [{Attribute, Match}],
+		ReqAttrsMatch :: [{Attribute, Match}] | '_',
+		RespAttrsMatch :: [{Attribute, Match}] | '_',
 		Attribute :: byte(),
 		Match :: term() | '_',
 		Result :: [term()].
@@ -243,6 +243,11 @@ auth_query(_Start, _End, _Types, _ReqAttrsMatch,
 auth_query(_Start, _End, _Types, _ReqAttrsMatch,
 		_RespAttrsMatch, {error, Reason}, _Acc) ->
 	{error, Reason};
+auth_query(Start, End, '_', ReqAttrsMatch, RespAttrsMatch,
+		{Cont, [{TS, _, _, _, _, _, _, _, _} | _] = Chunk}, Acc)
+		when TS >= Start, TS =< End ->
+	auth_query1(Start, End, '_', ReqAttrsMatch,
+			RespAttrsMatch, {Cont, Chunk}, Acc, ReqAttrsMatch);
 auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch,
 		{Cont, [{TS, _, _, _, _, _, Type, _, _} | T] = Chunk}, Acc)
 		when TS >= Start, TS =< End ->
@@ -263,6 +268,10 @@ auth_query(Start, End, Types, ReqAttrsMatch,
 	auth_query(Start, End, Types, ReqAttrsMatch,
 			RespAttrsMatch, disk_log:chunk(?AUTHLOG, Cont), Acc).
 %% @hidden
+auth_query1(Start, End, Types, '_', RespAttrsMatch,
+		{Cont, Chunk}, Acc, '_') ->
+	auth_query2(Start, End, Types, '_',
+			RespAttrsMatch, {Cont, Chunk}, Acc, RespAttrsMatch);
 auth_query1(Start, End, Types, ReqAttrsMatch, RespAttrsMatch,
 		{Cont, [{_, _, _, _, _, _, _, ReqAttrs, _} | T] = Chunk},
 		Acc, [{Attribute, Match} | T1]) ->
@@ -282,6 +291,10 @@ auth_query1(Start, End, Types, ReqAttrsMatch,
 	auth_query2(Start, End, Types, ReqAttrsMatch,
 			RespAttrsMatch, {Cont, Chunk}, Acc, RespAttrsMatch).
 %% @hidden
+auth_query2(Start, End, Types, ReqAttrsMatch, '_',
+		{Cont, [H | T]}, Acc, '_') ->
+	auth_query(Start, End, Types, ReqAttrsMatch, '_',
+			{Cont, T}, [H | Acc]);
 auth_query2(Start, End, Types, ReqAttrsMatch, RespAttrsMatch,
 		{Cont, [{_, _, _, _, _, _, _, _, RespAttrs} | T] = Chunk},
 		Acc, [{Attribute, Match} | T1]) ->

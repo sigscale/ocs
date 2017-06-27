@@ -131,7 +131,8 @@ all() ->
 	get_subscriber_not_found, retrieve_all_subscriber, delete_subscriber,
 	add_client, add_client_without_password, get_client, get_client_id,
 	get_client_bogus, get_client_notfound, get_all_clients, delete_client,
-	get_usagespecs, get_usagespec, get_auth_usage, get_ipdr_usage].
+	get_usagespecs, get_usagespec, get_auth_usage, get_auth_usage_id,
+	get_acct_usage, get_ipdr_usage].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -749,6 +750,23 @@ get_auth_usage() ->
 	[{userdata, [{doc,"Get a TMF635 auth usage"}]}].
 
 get_auth_usage(Config) ->
+	ClientAddress = {192, 168, 159, 158},
+	ReqAttrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
+			{?UserName, "DE:AD:BE:EF:CA:FE"}, {?AcctSessionId, "8250020b"},
+			{?CallingStationId, "FE-ED-BE-EF-FE-FE"},
+			{?CalledStationId, "CA-FE-CA-FE-CA-FE:AP 1"},
+			{?NasIdentifier, "ap-1.sigscale.net"},
+			{?NasIpAddress, ClientAddress}, {?NasPort, 21}],
+	ResAttrs = [{?SessionTimeout, 3600}, {?IdleTimeout, 300},
+			{?AcctInterimInterval, 300},
+			{?AscendDataRate, 4000000}, {?AscendXmitRate, 64000},
+			{?ServiceType, 2}, {?FramedIpAddress, {10,2,56,78}},
+			{?FramedIpNetmask, {255,255,0,0}}, {?FramedPool, "nat"},
+			{?FramedRouting, 2}, {?FilterId, "firewall-1"},
+			{?FramedMtu, 1492}, {?FramedRoute, "192.168.100.0/24 10.2.1.1 1"},
+			{?Class, "silver"}, {?TerminationAction, 1}, {?PortLimit, 1}],
+	ok = ocs_log:auth_log(radius, {{0,0,0,0}, 1812},
+			{ClientAddress, 4598}, accept, ReqAttrs, ResAttrs),
 	HostUrl = ?config(host_url, Config),
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
@@ -764,18 +782,18 @@ get_auth_usage(Config) ->
 	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
 	ContentLength = integer_to_list(length(Body)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
-	{_, {array, [{struct, Usage}]}} = mochijson:decode(Body),
+	{array, Usages} = mochijson:decode(Body),
+	{struct, Usage} = lists:last(Usages),
 	{_, _} = lists:keyfind("id", 1, Usage),
 	{_, _} = lists:keyfind("href", 1, Usage),
 	{_, _} = lists:keyfind("date", 1, Usage),
 	{_, "AAAAccessUsage"} = lists:keyfind("type", 1, Usage),
-	{_, _} = lists:keyfind("description", 1, Usage),
-	{_, "recieved"} = lists:keyfind("status", 1, Usage),
-	{struct, UsageSpecification} = lists:keyfind("usageSpecification", 1, Usage),
+	{_, "received"} = lists:keyfind("status", 1, Usage),
+	{_, {struct, UsageSpecification}} = lists:keyfind("usageSpecification", 1, Usage),
 	{_, _} = lists:keyfind("id", 1, UsageSpecification),
 	{_, _} = lists:keyfind("href", 1, UsageSpecification),
 	{_, "AAAAccessUsageSpec"} = lists:keyfind("name", 1, UsageSpecification),
-	{array, UsageCharacteristic} = lists:keyfind("usageCharacteristic", 1, Usage),
+	{_, {array, UsageCharacteristic}} = lists:keyfind("usageCharacteristic", 1, Usage),
 	F = fun({struct, [{"name", "protocol"}, {"value", Protocol}]})
 					when Protocol == "RADIUS"; Protocol == "DIAMETER" ->
 				true;
@@ -834,6 +852,151 @@ get_auth_usage(Config) ->
 				true;
 			({struct, [{"name", "portLimit"}, {"value", Limit}]}) when is_integer(Limit) ->
 				true;
+			({struct, [{"name", "ascendDataRate"}, {"value", Rate}]}) when is_integer(Rate) ->
+				true;
+			({struct, [{"name", "ascendXmitRate"}, {"value", Rate}]}) when is_integer(Rate) ->
+				true;
+			({struct, [{"name", "acctInterimInterval"}, {"value", Interval}]}) when is_integer(Interval) ->
+				true
+	end,
+	true = lists:any(F, UsageCharacteristic).
+
+get_auth_usage_id() ->
+	[{userdata, [{doc,"Get a single TMF635 auth usage"}]}].
+
+get_auth_usage_id(Config) ->
+	ReqAttrs = [{?UserName, "ED:DA:EB:FE:AC:EF"},
+			{?CallingStationId, "ED:DA:EB:FE:AC:EF"},
+			{?CalledStationId, "CA-FE-CA-FE-CA-FE:AP 1"},
+			{?NasIdentifier, "ap-1.sigscale.net"}],
+	ResAttrs = [{?SessionTimeout, 3600}],
+	ok = ocs_log:auth_log(radius, {{0,0,0,0}, 1812},
+			{{192,168,178,167}, 4599}, accept, ReqAttrs, ResAttrs),
+	HostUrl = ?config(host_url, Config),
+	AcceptValue = "application/json",
+	Accept = {"accept", AcceptValue},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	RequestUri1 = HostUrl ++ "/usageManagement/v1/usage?type=AAAAccessUsage",
+	Request1 = {RequestUri1, [Accept, Authentication]},
+	{ok, Result1} = httpc:request(get, Request1, [], []),
+	{{"HTTP/1.1", 200, _OK}, _Headers1, Body1} = Result1,
+	{array, Usages} = mochijson:decode(Body1),
+	{struct, Usage} = lists:last(Usages),
+	{_, Id} = lists:keyfind("id", 1, Usage),
+	{_, Href} = lists:keyfind("href", 1, Usage),
+	RequestUri2 = HostUrl ++ Href,
+	Request2 = {RequestUri2, [Accept, Authentication]},
+erlang:display({?MODULE, ?LINE, Request2}),
+	{ok, Result2} = httpc:request(get, Request2, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers2, Body2} = Result2,
+	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers2),
+	ContentLength = integer_to_list(length(Body2)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers2),
+	{struct, Usage} = mochijson:decode(Body2),
+	{_, Id} = lists:keyfind("id", 1, Usage),
+	{_, Href} = lists:keyfind("href", 1, Usage).
+
+get_acct_usage() ->
+	[{userdata, [{doc,"Get a TMF635 acct usage"}]}].
+
+get_acct_usage(Config) ->
+	ClientAddress = {192, 168, 159, 158},
+	Attrs = [{?UserName, "DE:AD:BE:EF:CA:FE"}, {?AcctSessionId, "8250020b"},
+			{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
+			{?CallingStationId, "FE-ED-BE-EF-FE-FE"},
+			{?CalledStationId, "CA-FE-CA-FE-CA-FE:AP 1"},
+			{?NasIdentifier, "ap-1.sigscale.net"},
+			{?NasIpAddress, ClientAddress}, {?NasPort, 21},
+			{?SessionTimeout, 3600}, {?IdleTimeout, 300},
+			{?ServiceType, 2}, {?FramedIpAddress, {10,2,56,78}},
+			{?FramedIpNetmask, {255,255,0,0}}, {?FramedPool, "nat"},
+			{?FramedRouting, 2}, {?FilterId, "firewall-1"},
+			{?FramedMtu, 1492}, {?FramedRoute, "192.168.100.0/24 10.2.1.1 1"},
+			{?Class, "silver"}, {?PortLimit, 1}],
+	ok = ocs_log:acct_log(radius, {{0,0,0,0}, 1813}, stop, Attrs),
+	HostUrl = ?config(host_url, Config),
+	AcceptValue = "application/json",
+	Accept = {"accept", AcceptValue},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	RequestUri = HostUrl ++ "/usageManagement/v1/usage?type=AAAAccountingUsage",
+	Request = {RequestUri, [Accept, Authentication]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
+	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(Body)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, Usages} = mochijson:decode(Body),
+	{struct, Usage} = lists:last(Usages),
+	{_, _} = lists:keyfind("id", 1, Usage),
+	{_, _} = lists:keyfind("href", 1, Usage),
+	{_, _} = lists:keyfind("date", 1, Usage),
+	{_, "AAAAccountingUsage"} = lists:keyfind("type", 1, Usage),
+	{_, "received"} = lists:keyfind("status", 1, Usage),
+	{_, {struct, UsageSpecification}} = lists:keyfind("usageSpecification", 1, Usage),
+	{_, _} = lists:keyfind("id", 1, UsageSpecification),
+	{_, _} = lists:keyfind("href", 1, UsageSpecification),
+	{_, "AAAAccountingUsageSpec"} = lists:keyfind("name", 1, UsageSpecification),
+	{_, {array, UsageCharacteristic}} = lists:keyfind("usageCharacteristic", 1, Usage),
+	F = fun({struct, [{"name", "protocol"}, {"value", Protocol}]})
+					when Protocol == "RADIUS"; Protocol == "DIAMETER" ->
+				true;
+			({struct, [{"name", "node"}, {"value", Node}]}) when is_list(Node) ->
+				true;
+			({struct, [{"name", "serverAddress"}, {"value", Address}]}) when is_list(Address) ->
+				true;
+			({struct, [{"name", "serverPort"}, {"value", Port}]}) when is_integer(Port) ->
+				true;
+			({struct, [{"name", "type"}, {"value", Type}]}) when Type == "start";
+					Type == "stop"; Type == "on"; Type == "off"; Type == "interim" ->
+				true;
+			({struct, [{"name", "username"}, {"value", Username}]}) when is_list(Username) ->
+				true;
+			({struct, [{"name", "nasIpAddress"}, {"value", NasIpAddress}]}) when is_list(NasIpAddress) ->
+				true;
+			({struct, [{"name", "nasPort"}, {"value", Port}]}) when is_integer(Port) ->
+				true;
+			({struct, [{"name", "serviceType"}, {"value", Type}]}) when is_list(Type) ->
+				true;
+			({struct, [{"name", "framedIpAddress"}, {"value", Address}]}) when is_list(Address) ->
+				true;
+			({struct, [{"name", "framedPool"}, {"value", Pool}]}) when is_list(Pool) ->
+				true;
+			({struct, [{"name", "framedIpNetmask"}, {"value", Netmask}]}) when is_list(Netmask) ->
+				true;
+			({struct, [{"name", "framedRouting"}, {"value", Routing}]}) when is_list(Routing) ->
+				true;
+			({struct, [{"name", "filterId"}, {"value", Id}]}) when is_list(Id) ->
+				true;
+			({struct, [{"name", "framedMtu"}, {"value", Mtu}]}) when is_integer(Mtu) ->
+				true;
+			({struct, [{"name", "framedRoute"}, {"value", Route}]}) when is_list(Route) ->
+				true;
+			({struct, [{"name", "class"}, {"value", Class}]}) when is_list(Class) ->
+				true;
+			({struct, [{"name", "sessionTimeout"}, {"value", Timeout}]}) when is_integer(Timeout) ->
+				true;
+			({struct, [{"name", "idleTimeout"}, {"value", Timeout}]}) when is_integer(Timeout) ->
+				true;
+			({struct, [{"name", "calledStationId"}, {"value", Id}]}) when is_list(Id) ->
+				true;
+			({struct, [{"name", "callingStationId"}, {"value", Id}]}) when is_list(Id) ->
+				true;
+			({struct, [{"name", "nasIdentifier"}, {"value", Id}]}) when is_list(Id) ->
+				true;
+			({struct, [{"name", "nasPortId"}, {"value", Id}]}) when is_list(Id) ->
+				true;
+			({struct, [{"name", "nasPortType"}, {"value", Type}]}) when is_list(Type) ->
+				true;
+			({struct, [{"name", "portLimit"}, {"value", Limit}]}) when is_integer(Limit) ->
+				true;
 			({struct, [{"name", "acctDelayTime"}, {"value", Time}]}) when is_integer(Time) ->
 				true;
 			({struct, [{"name", "eventTimestamp"}, {"value", DateTime}]}) when is_list(DateTime) ->
@@ -860,16 +1023,12 @@ get_auth_usage(Config) ->
 				true;
 			({struct, [{"name", "acctOutputPackets"}, {"value", Packets}]}) when is_integer(Packets) ->
 				true;
-			({struct, [{"name", "ascendDataRate"}, {"value", Rate}]}) when is_integer(Rate) ->
-				true;
-			({struct, [{"name", "ascendXmitRate"}, {"value", Rate}]}) when is_integer(Rate) ->
-				true;
 			({struct, [{"name", "acctInterimInterval"}, {"value", Interval}]}) when is_integer(Interval) ->
 				true;
 			({struct, [{"name", "acctTerminateCause"}, {"value", Cause}]}) when is_list(Cause) ->
 				true
 	end,
-	true = lists:any(F, UsageCharacteristic).
+	true = lists:all(F, UsageCharacteristic).
 
 get_ipdr_usage() ->
 	[{userdata, [{doc,"Get a TMF635 IPDR usage"}]}].
@@ -925,7 +1084,7 @@ get_ipdr_usage(Config) ->
 			({struct, [{"name", "sessionTerminateCause"},{"value", SessionTerminateCause}]}) when is_integer(SessionTerminateCause) ->
 				true
 	end,
-	true = lists:any(F, UsageCharacteristic).
+	true = lists:all(F, UsageCharacteristic).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
