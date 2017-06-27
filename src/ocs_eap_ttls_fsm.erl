@@ -961,13 +961,50 @@ client_passthrough({#radius{code = ?AccessRequest, id = RadiusID,
 			send_response(EapPacket1, ?AccessReject,
 					RadiusID, [], RequestAuthenticator, Secret, RadiusFsm),
 				{stop, {shutdown, SessionID}, StateData}
+	end;
+client_passthrough(#diameter_eap_app_DER{} = Request, #statedata{eap_id = EapID,
+		session_id = SessionID, ssl_pid = SslPid, auth_req_type = AuthType,
+		origin_host = OH, origin_realm = OR, port_server = PortServer} = StateData) ->
+	try
+		EapMessage = Request#diameter_eap_app_DER.'EAP-Payload',
+		case ocs_eap_codec:eap_packet(EapMessage) of
+			#eap_packet{code = response, identifier = EapID, data = TtlsPacket} ->
+				#eap_ttls{data = TtlsData} = ocs_eap_codec:eap_ttls(TtlsPacket),
+				ocs_eap_tls_transport:deliver(SslPid, self(), TtlsData),
+				{next_state, server_passthrough, StateData};
+			#eap_packet{code = request, identifier = NewEapID} ->
+					NewEapPacket = #eap_packet{code = response, type = ?LegacyNak,
+							identifier = NewEapID, data = <<0>>},
+					Answer = generate_diameter_response(SessionID, AuthType,
+							?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OH, OR, NewEapPacket),
+					gen_server:cast(PortServer, {self(), Answer}),
+					{stop, {shutdown, SessionID}, StateData};
+			#eap_packet{code = Code,
+					type = EapType, identifier = NewEapID, data = Data} ->
+				error_logger:warning_report(["Unknown EAP received",
+						{pid, self()}, {session_id, SessionID},
+						{eap_id, NewEapID}, {code, Code},
+						{type, EapType}, {data, Data}]),
+				NewEapPacket = #eap_packet{code = failure, identifier = NewEapID},
+				Answer = generate_diameter_response(SessionID, AuthType,
+						?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR, NewEapPacket),
+				gen_server:cast(PortServer, {self(), Answer}),
+				{stop, {shutdown, SessionID}, StateData}
+		end
+	catch
+		_:_ ->
+			EapPacket1 = #eap_packet{code = failure, identifier = EapID},
+			Answer1 = generate_diameter_response(SessionID, AuthType,
+					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR, EapPacket1),
+			gen_server:cast(PortServer, {self(), Answer1}),
+			{stop, {shutdown, SessionID}, StateData}
 	end.
 
 -spec server_passthrough(Event, StateData) -> Result
 	when
 		Event :: timeout | term(), 
 		StateData :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData}
+		Result :: {next_state, NextStateName, StateData}
 		| {next_state, NextStateName, NewStateData, Timeout}
 		| {next_state, NextStateName, NewStateData, hibernate}
 		| {stop, Reason, NewStateData},
@@ -983,7 +1020,7 @@ server_passthrough(timeout, #statedata{session_id = SessionID} =
 		StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
 server_passthrough({accept, UserName, SslSocket}, #statedata{eap_id = EapID,
-		session_id = SessionID, secret = Secret,
+		start = #radius{}, session_id = SessionID, secret = Secret,
 		req_auth = RequestAuthenticator, radius_fsm = RadiusFsm,
 		radius_id = RadiusID, %ssl_socket = SslSocket,
 		client_rand = ClientRandom, server_rand = ServerRandom}
@@ -1007,12 +1044,31 @@ server_passthrough({accept, UserName, SslSocket}, #statedata{eap_id = EapID,
 		RadiusID, Attr5, RequestAuthenticator, Secret, RadiusFsm),
 	{stop, {shutdown, SessionID}, StateData};
 server_passthrough(reject, #statedata{eap_id = EapID, 
-		session_id = SessionID, secret = Secret,
+		session_id = SessionID, secret = Secret, start = #radius{},
 		req_auth = RequestAuthenticator, radius_fsm = RadiusFsm,
 		radius_id = RadiusID} = StateData) ->
 	EapPacket = #eap_packet{code = failure, identifier = EapID},
 	send_response(EapPacket, ?AccessReject, RadiusID,
 			[], RequestAuthenticator, Secret, RadiusFsm),
+	{stop, {shutdown, SessionID}, StateData};
+server_passthrough({accept, _UserName, _SslSocket},
+		#statedata{eap_id = EapID, start = #diameter_eap_app_DER{},
+		session_id = SessionID, auth_req_type = AuthType, origin_host = OH,
+		origin_realm = OR, port_server = PortServer} = StateData) ->
+	EapPacket = #eap_packet{code = success, identifier = EapID},
+	Answer = generate_diameter_response(SessionID, AuthType,
+			?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OH, OR, EapPacket),
+	gen_server:cast(PortServer, {self(), Answer}),
+	{stop, {shutdown, SessionID}, StateData};
+server_passthrough(reject, #statedata{eap_id = EapID,
+		session_id = SessionID, start = #diameter_eap_app_DER{},
+	 	auth_req_type = AuthType, origin_host = OH, origin_realm = OR,
+		port_server = PortServer} = StateData) ->
+	EapPacket = #eap_packet{code = failure, identifier = EapID},
+	Answer = generate_diameter_response(SessionID, AuthType,
+			?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED', OH, OR,
+			EapPacket),
+	gen_server:cast(PortServer, {self(), Answer}),
 	{stop, {shutdown, SessionID}, StateData}.
 
 -spec handle_event(Event, StateName, StateData) -> Result
