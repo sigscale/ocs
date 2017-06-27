@@ -23,7 +23,7 @@
 -copyright('Copyright (c) 2016-2017 SigScale Global Inc.').
 
 %% export the ocs_log public API
--export([acct_open/0, acct_log/4, acct_close/0]).
+-export([acct_open/0, acct_log/4, acct_close/0, acct_query/4]).
 -export([auth_open/0, auth_log/6, auth_log/7, auth_close/0, auth_query/5]).
 -export([ipdr_log/3, ipdr_file/2, get_range/3, last/2]).
 -export([dump_file/2, http_file/2, httpd_logname/1]).
@@ -119,6 +119,80 @@ acct_close() ->
 					{log, ?ACCTLOG}, {error, Reason}]),
 			{error, Reason}
 	end.
+
+-spec acct_query(Start, End, Types, AttrsMatch) -> Result
+	when
+		Start :: calendar:datetime() | pos_integer(),
+		End :: calendar:datetime() | pos_integer(),
+		Types :: [Type] | '_',
+		Type :: on | off | start | stop | interim | event,
+		AttrsMatch :: [{Attribute, Match}] | '_',
+		Attribute :: byte(),
+		Match :: term() | '_',
+		Result :: [term()].
+%% @doc Query RADIUS account request events with filters.
+%%
+%% 	Events before `Start' or after `Stop' or which do not match one of
+%% 	the `Types' are ignored.
+%%
+%% 	Events which do not include `Attribute' in attributes are ignored.
+%% 	If `Match' is `'_'' any attribute value will match, otherwise events
+%% 	with attributes having a value not equal to `Match' will be ignored.
+%% 	All attribute filters must match or the event will be ignored.
+%%
+%% 	Returns a list of matching accounting events.
+%%
+acct_query({{_, _, _}, {_, _, _}} = Start, End, Types, AttrsMatch) ->
+	Seconds = calendar:datetime_to_gregorian_seconds(Start) - ?EPOCH,
+	acct_query(Seconds * 1000, End, Types, AttrsMatch);
+acct_query(Start, {{_, _, _}, {_, _, _}} = End, Types, AttrsMatch) ->
+	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
+	acct_query(Start, Seconds * 1000, Types, AttrsMatch);
+acct_query(Start, End, Types, AttrsMatch)
+		when is_integer(Start), is_integer(End) ->
+	acct_query(Start, End, Types, AttrsMatch,
+			disk_log:chunk(?ACCTLOG, start), []).
+
+%% @hidden
+acct_query(_Start, _End, _Types, _AttrsMatch, eof, Acc) ->
+	lists:reverse(Acc);
+acct_query(_Start, _End, _Types, _AttrsMatch, {error, Reason}, _Acc) ->
+	{error, Reason};
+acct_query(Start, End, '_', AttrsMatch,
+		{Cont, [{TS, _, _, _, _, _, _} | _] = Chunk}, Acc)
+		when TS >= Start, TS =< End ->
+	acct_query1(Start, End, '_', AttrsMatch, {Cont, Chunk}, Acc, AttrsMatch);
+acct_query(Start, End, Types, AttrsMatch,
+		{Cont, [{TS, _, _, _, _, Type, _} | T] = Chunk}, Acc)
+		when TS >= Start, TS =< End ->
+	case lists:member(Type, Types) of
+		true ->
+			acct_query1(Start, End, Types, AttrsMatch,
+					{Cont, Chunk}, Acc, AttrsMatch);
+		false ->
+			acct_query(Start, End, Types, AttrsMatch, {Cont, T}, Acc)
+	end;
+acct_query(Start, End, Types, AttrsMatch, {Cont, [_ | T]}, Acc) ->
+	acct_query(Start, End, Types, AttrsMatch, {Cont, T}, Acc);
+acct_query(Start, End, Types, AttrsMatch, {Cont, []}, Acc) ->
+	acct_query(Start, End, Types, AttrsMatch,
+			disk_log:chunk(?AUTHLOG, Cont), Acc).
+%% @hidden
+acct_query1(Start, End, Types, '_', {Cont, [H | T]}, Acc, '_') ->
+	acct_query(Start, End, Types, '_', {Cont, T}, [H | Acc]);
+acct_query1(Start, End, Types, AttrsMatch,
+		{Cont, [{_, _, _, _, _, _, Attrs} | T] = Chunk},
+		Acc, [{Attribute, Match} | T1]) ->
+	case lists:keyfind(Attribute, 1, Attrs) of
+		{Attribute, Match} ->
+			acct_query1(Start, End, Types, AttrsMatch, {Cont, Chunk}, Acc, T1);
+		{Attribute, _} when Match == '_' ->
+			acct_query1(Start, End, Types, AttrsMatch, {Cont, Chunk}, Acc, T1);
+		false ->
+			acct_query(Start, End, Types, AttrsMatch, {Cont, T}, Acc)
+	end;
+acct_query1(Start, End, Types, AttrsMatch, {Cont, [H | T]}, Acc, []) ->
+	acct_query(Start, End, Types, AttrsMatch, {Cont, T}, [H | Acc]).
 
 -spec auth_open() -> Result
 	when
