@@ -1479,7 +1479,7 @@ spec_attr_output_octets() ->
 
 %% @hidden
 spec_attr_input_giga_words() ->
-	Name = {name, "acctInputGigaWords"},
+	Name = {name, "acctInputGigawords"},
 	Desc = {description, "Acct-Input-Gigawords attribute"},
 	Conf = {configurable, true},
 	Typ = {valueType, "number"},
@@ -1489,7 +1489,7 @@ spec_attr_input_giga_words() ->
 
 %% @hidden
 spec_attr_output_giga_words() ->
-	Name = {name, "acctOutputGigaWords"},
+	Name = {name, "acctOutputGigawords"},
 	Desc = {description, "Acct-Output-Gigawords attribute"},
 	Conf = {configurable, true},
 	Typ = {valueType, "number"},
@@ -1966,7 +1966,7 @@ char_attr_output_octets(Attributes, Acc) ->
 char_attr_input_giga_words(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctInputGigawords, Attributes) of
 		{ok, Value} ->
-			[{struct, [{name, "acctInputGigaWords"}, {value, Value}]} | Acc];
+			[{struct, [{name, "acctInputGigawords"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1976,7 +1976,7 @@ char_attr_input_giga_words(Attributes, Acc) ->
 char_attr_output_giga_words(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctOutputGigawords, Attributes) of
 		{ok, Value} ->
-			[{struct, [{name, "acctOutputGigaWords"}, {value, Value}]} | Acc];
+			[{struct, [{name, "acctOutputGigawords"}, {value, Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
