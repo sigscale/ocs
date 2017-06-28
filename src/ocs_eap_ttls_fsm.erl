@@ -144,8 +144,9 @@ init([Sup, radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
 			tls_cacert = TLScacert},
 	process_flag(trap_exit, true),
 	{ok, ssl_start, StateData, 0};
-init([Sup, diameter, ServerAddress, ServerPort, SessionID, AppId, ReqType, OHost,
-			ORealm, DiameterRequest, _Options] = _Args) ->
+init([Sup, diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
+		SessionID, AppId, ReqType, OHost, ORealm, DiameterRequest,
+		_Options] = _Args) ->
 	{ok, TLSkey} = application:get_env(ocs, tls_key),
 	{ok, TLScert} = application:get_env(ocs, tls_cert),
 	{ok, TLScacert} = application:get_env(ocs, tls_cacert),
@@ -155,7 +156,8 @@ init([Sup, diameter, ServerAddress, ServerPort, SessionID, AppId, ReqType, OHost
 			{stop, ocs_diameter_auth_port_server_not_found};
 		PortServer ->
 			StateData = #statedata{sup = Sup, server_address = ServerAddress,
-					server_port = ServerPort, session_id = SessionID,
+					server_port = ServerPort, client_address = ClientAddress,
+					client_port = ClientPort, session_id = SessionID,
 					server_id = list_to_binary(Hostname), start = DiameterRequest,
 					tls_key = TLSkey, tls_cert = TLScert, tls_cacert = TLScacert,
 					app_id = AppId, auth_req_type = ReqType, origin_host = OHost,

@@ -154,10 +154,12 @@ handle_request(#diameter_packet{msg = Req, errors = []},
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec send_to_port_server(Svc, Caps, Request, EapPacket) -> Action
+-spec send_to_port_server(Svc, Caps, Address, Port, Request, EapPacket) -> Action
 	when
 		Svc :: atom(),
 		Caps :: capabilities(),
+		Address :: inet:ip_address(),
+		Port :: inet:port_number(),
 		Request :: message(),
 		EapPacket :: binary(),
 		Action :: Reply | {relay, [Opt]} | discard
@@ -170,7 +172,7 @@ handle_request(#diameter_packet{msg = Req, errors = []},
 %% @doc Locate ocs_diameter_auth_port_server process and send it
 %% peer's capabilities and diameter request.
 %% @hidden
-send_to_port_server(Svc, Caps, Request, EapPacket) ->
+send_to_port_server(Svc, Caps, Address, Port, Request, EapPacket) ->
 	[Info] = diameter:service_info(Svc, transport),
 	case lists:keyfind(options, 1, Info) of
 		{options, Options} ->
@@ -181,7 +183,8 @@ send_to_port_server(Svc, Caps, Request, EapPacket) ->
 							discard;
 						PortServer ->
 							Answer = gen_server:call(PortServer,
-									{diameter_request, Caps, Request, {eap, EapPacket}}),
+									{diameter_request, Caps, Address, Port, Request,
+											{eap, EapPacket}}),
 							{reply, Answer}
 					end;
 				false ->
@@ -211,20 +214,19 @@ is_client_authorized(SvcName, Caps, Req) ->
 		HostIPAddresses = Caps#diameter_caps.host_ip_address,
 		{ClientIPs, _} = HostIPAddresses,
 		[HostIpAddress | _] = ClientIPs,
-		{ok, #client{protocol = diameter}} = ocs:find_client(HostIpAddress),
-		true
-	of
-		true ->
-			extract_eap(SvcName, Caps, Req)
+		{ok, #client{protocol = diameter, port = Port}} = ocs:find_client(HostIpAddress),
+		extract_eap(SvcName, Caps, HostIpAddress, Port, Req)
 	catch
 		_ : _ ->
 			send_error(Caps, Req, ?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_PEER')
 	end.
 
--spec extract_eap(Svc, Caps, DiameterRequest) -> Action
+-spec extract_eap(Svc, Caps, Address, Port, DiameterRequest) -> Action
 	when
 		Svc :: atom(),
 		Caps :: capabilities(),
+		Address :: inet:ip_address(),
+		Port :: inet:port_number(),
 		DiameterRequest :: #diameter_eap_app_DER{},
 		Action :: Reply | {relay, [Opt]} | discard
 			| {eval|eval_packet, Action, PostF},
@@ -235,10 +237,10 @@ is_client_authorized(SvcName, Caps, Req) ->
 		PostF :: diameter:evaluable().
 %% @doc Extract EAP packet from DER's EAP-Payload attribute.
 %% @hidden
-extract_eap(Svc, Caps, DiameterRequest) ->
+extract_eap(Svc, Caps, Address, Port, DiameterRequest) ->
 	try 
 		#diameter_eap_app_DER{'EAP-Payload' = Payload} = DiameterRequest,
-		send_to_port_server(Svc, Caps, DiameterRequest, Payload)
+		send_to_port_server(Svc, Caps, Address, Port, DiameterRequest, Payload)
 	catch
 		_:_ ->
 			send_error(Caps, DiameterRequest, ?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS')

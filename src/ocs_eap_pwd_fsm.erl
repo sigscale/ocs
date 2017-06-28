@@ -108,17 +108,21 @@ init([radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
 			server_id = list_to_binary(Hostname), start = AccessRequest},
 	process_flag(trap_exit, true),
 	{ok, eap_start, StateData, 0};
-init([diameter, ServerAddress, ServerPort, SessionId, ApplicationId,
-		AuthType, OHost, ORealm, Request, _Options] = _Args) ->
+init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
+		SessionId, ApplicationId, AuthType, OHost, ORealm, Request,
+		_Options] = _Args) ->
 	{ok, Hostname} = inet:gethostname(),
 	case global:whereis_name({ocs_diameter_auth, ServerAddress, ServerPort}) of
 		undefined ->
 			{stop, ocs_diameter_auth_port_server_not_found};
 		PortServer ->
 			StateData = #statedata{server_address = ServerAddress,
-					server_port = ServerPort, session_id = SessionId, server_id = list_to_binary(Hostname),
-					auth_app_id = ApplicationId, auth_req_type = AuthType, origin_host = OHost,
-					origin_realm = ORealm, diameter_port_server = PortServer, start = Request},
+					server_port = ServerPort, client_address = ClientAddress,
+					client_port = ClientPort, session_id = SessionId,
+					server_id = list_to_binary(Hostname), auth_app_id = ApplicationId,
+					auth_req_type = AuthType, origin_host = OHost,
+					origin_realm = ORealm, diameter_port_server = PortServer,
+					start = Request},
 			process_flag(trap_exit, true),
 			{ok, eap_start, StateData, 0}
 		end.
