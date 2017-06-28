@@ -1301,19 +1301,31 @@ get_diameter_attributes(Packet) ->
 	end,
 	{EapPacket, FramedMTU, NasPortType}.
 
+-spec send_diameter_response(SessionID, AuthType, ResultCode, OH, OR,
+		EapPacket, PortServer) -> ok
+	when
+		SessionID :: string() | binary(),
+		AuthType :: integer(),
+		ResultCode :: integer(),
+		OH :: binary(),
+		OR :: binary(),
+		EapPacket :: #eap_packet{},
+		PortServer :: pid().
+%% @doc Send appropriate DIAMETER answer to ocs_diameter_auth_port_server.
 %% @hidden
 send_diameter_response(SId, AuthType, ResultCode, OH, OR, EapPacket,
 		PortServer) ->
 	try
 		EapData = ocs_eap_codec:eap_packet(EapPacket),
-		Answer = #diameter_eap_app_DEA{'Session-Id' = SId, 'Auth-Application-Id' = 5,
-				'Auth-Request-Type' = AuthType, 'Result-Code' = ResultCode,
-				'Origin-Host' = OH, 'Origin-Realm' = OR, 'EAP-Payload' = [EapData]},
+		Answer = #diameter_eap_app_DEA{'Session-Id' = SId,
+				'Auth-Application-Id' = 5, 'Auth-Request-Type' = AuthType,
+				'Result-Code' = ResultCode, 'Origin-Host' = OH, 'Origin-Realm' = OR,
+				'EAP-Payload' = [EapData]},
 		gen_server:cast(PortServer, {self(), Answer})
 	catch
 		_:_ ->
-		Answer1 = #diameter_eap_app_DEA{'Session-Id' = SId, 'Auth-Application-Id' = 5,
-				'Auth-Request-Type' = AuthType,
+		Answer1 = #diameter_eap_app_DEA{'Session-Id' = SId,
+				'Auth-Application-Id' = 5, 'Auth-Request-Type' = AuthType,
 				'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 				'Origin-Host' = OH, 'Origin-Realm' = OR},
 		gen_server:cast(PortServer, {self(), Answer1})

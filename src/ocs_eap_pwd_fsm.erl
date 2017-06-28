@@ -332,7 +332,7 @@ id(#diameter_eap_app_DER{} = Request, #statedata{eap_id = EapID,
 			#eap_packet{code = response, type = ?LegacyNak, identifier = EapID} ->
 				send_diameter_response(SessionID, RequestType,
 					?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS', OHost, ORealm,
-					<<>>, PortServer, Request, StateData),
+					#eap_packet{}, PortServer, Request, StateData),
 				{stop, {shutdown, SessionID}, StateData}
 		end
 	catch
@@ -1009,6 +1009,20 @@ encrypt_key(Secret, RequestAuthenticator, Salt, Key) when (Salt bsr 15) == 1 ->
 	AccOut = lists:foldl(F, AccIn, [P || <<P:16/binary>> <= Plaintext]),
 	iolist_to_binary(tl(lists:reverse(AccOut))).
 
+-spec send_diameter_response(SId, AuthType, ResultCode, OH, OR,
+		EapPacket, PortServer, Request, StateData) -> ok
+	when
+		SId :: string(), 
+		AuthType :: integer(),
+		ResultCode :: integer(),
+		OH :: binary(),
+		OR :: binary(),
+		EapPacket :: #eap_packet{},
+		PortServer :: pid(),
+		Request :: #diameter_eap_app_DER{},
+		StateData :: #statedata{}.
+%% @doc Log DIAMETER event and send appropriate DIAMETER answer to
+%% ocs_diameter_auth_port_server.
 %% @hidden
 send_diameter_response(SId, AuthType, ResultCode, OH, OR, EapPacket,
 		PortServer, Request, #statedata{server_address = ServerAddress,
@@ -1018,15 +1032,16 @@ send_diameter_response(SId, AuthType, ResultCode, OH, OR, EapPacket,
 	Client= {ClientAddress, ClientPort},
 	try
 		EapData = ocs_eap_codec:eap_packet(EapPacket),
-		Answer = #diameter_eap_app_DEA{'Session-Id' = SId, 'Auth-Application-Id' = 5,
-				'Auth-Request-Type' = AuthType, 'Result-Code' = ResultCode,
-				'Origin-Host' = OH, 'Origin-Realm' = OR, 'EAP-Payload' = [EapData]},
+		Answer = #diameter_eap_app_DEA{'Session-Id' = SId,
+				'Auth-Application-Id' = 5, 'Auth-Request-Type' = AuthType,
+				'Result-Code' = ResultCode, 'Origin-Host' = OH, 'Origin-Realm' = OR,
+				'EAP-Payload' = [EapData]},
 		ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 		gen_server:cast(PortServer, {self(), Answer})
 	catch
 		_:_ ->
-		Answer1 = #diameter_eap_app_DEA{'Session-Id' = SId, 'Auth-Application-Id' = 5,
-				'Auth-Request-Type' = AuthType,
+		Answer1 = #diameter_eap_app_DEA{'Session-Id' = SId,
+				'Auth-Application-Id' = 5, 'Auth-Request-Type' = AuthType,
 				'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
 				'Origin-Host' = OH, 'Origin-Realm' = OR},
 		ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer1),

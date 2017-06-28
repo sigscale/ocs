@@ -1099,7 +1099,7 @@ The {@link //ocs. ocs} application is configured using the following environment
 			<dt>eap_method_order</dt>
 				<dd>The list of EAP methods supported in order of preference.</dd>
 	<dt>diameter</dt>
-		<dd>Configuration groups for DIAMETER: {radius, [{auth | acct, ip_address(), port(), [option()}]}</dd>
+		<dd>Configuration groups for DIAMETER: {diameter, [{auth | acct, ip_address(), port(), [option()}]}</dd>
 	<dt>tls_cert</dt>
 		<dd>Public certificate for TLS over EAP.</dd>
 	<dt>tlst_key</dt>
@@ -1149,7 +1149,9 @@ The {@link //inets. inets} application's {@link //inets/httpd. httpd} server con
                      [{{0,0,0,0}, 1813, []}]}]},
       {diameter,
                [{auth,
-                      [{{0,0,0,0}, 3868, []}]},
+                      [{{0,0,0,0}, 3868,
+                             [{eap_method_prefer, pwd},
+                             {eap_method_order, [pwd, ttls]}]}]},
                {acct,
                      [{{0,0,0,0}, 3869, []}]}]},
       {acct_log_rotate, 1440},

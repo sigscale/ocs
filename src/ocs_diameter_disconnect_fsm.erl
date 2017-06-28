@@ -16,11 +16,11 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @doc This {@link //stdlib/gen_fsm. gen_fsm} behaviour callback module
 %%% 	implements sending DIAMETER Abort-Session-Request to DIAMETER
-%%% 	credit-control clients (Network Access Servers) usung  {@link //ocs. ocs}
+%%% 	credit-control clients (Network Access Servers) using  {@link //ocs. ocs}
 %%% 	application.
 %%%
-%%% @reference <a href="https://tools.ietf.org/pdf/rfc6733.pdf">
-%%% 	RFC6733 - Diameter Base Protocol</a>
+%%% @reference <a href="https://tools.ietf.org/html/rfc6733#section-8.5">
+%%% 	RFC6733 - Diameter Base Protocol, Sec 8.5, Aborting a Session</a>
 %%%
 -module(ocs_diameter_disconnect_fsm).
 -copyright('Copyright (c) 2016 SigScale Global Inc.').

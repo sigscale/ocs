@@ -18,8 +18,8 @@
 %%% 	module implements functions to subscribe to a {@link //diameter. diameter}
 %%% 	service and to react to events sent by {@link //diameter. diameter} service.
 %%%
-%%% @reference <a href="https://tools.ietf.org/pdf/rfc6733.pdf">
-%%% 	RFC6733 - DIAMETER base protocol</a>
+%%% @reference <a href="https://tools.ietf.org/pdf/rfc4006.pdf">
+%%% 	RFC4006 - DIAMETER Credit-Control Application</a>
 %%%
 -module(ocs_diameter_acct_service_fsm).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').

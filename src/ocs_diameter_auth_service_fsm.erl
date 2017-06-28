@@ -21,6 +21,12 @@
 %%% @reference <a href="https://tools.ietf.org/pdf/rfc6733.pdf">
 %%% 	RFC6733 - DIAMETER base protocol</a>
 %%%
+%%% @reference <a href="https://tools.ietf.org/pdf/rfc7155.pdf">
+%%% 	RFC7155 - DIAMETER Network Access Server Application</a>
+%%%
+%%% @reference <a href="https://tools.ietf.org/pdf/rfc4072.pdf">
+%%% 	RFC4072 - DIAMETER Extensible Authentication Protocol (EAP) Application</a>
+%%%
 -module(ocs_diameter_auth_service_fsm).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 

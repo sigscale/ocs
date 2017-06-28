@@ -19,7 +19,7 @@
 %%% 	for authentication in the {@link //ocs. ocs} application.
 %%%
 %%% @reference <a href="https://tools.ietf.org/pdf/rfc4072.pdf">
-%%% 	RFC4072 - Diameter Extensible Authentication Protocol (EAP) Application</a>
+%%% 	RFC4072 - DIAMETER Extensible Authentication Protocol (EAP) Application</a>
 %%%
 -module(ocs_diameter_eap_application_cb).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
