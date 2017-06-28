@@ -153,12 +153,13 @@ handle_request(#diameter_packet{msg = Req, errors = []},
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec send_to_port_server(Svc, Caps, Address, Port, Request) -> Action
+-spec send_to_port_server(Svc, Caps, ClientAddress, ClientPort,
+		Request) -> Action
 	when
 		Svc :: atom(),
 		Caps :: capabilities(),
-		Address :: inet:ip_address(),
-		Port :: inet:port_number(),
+		ClientAddress :: inet:ip_address(),
+		ClientPort :: inet:port_number(),
 		Request :: message(),
 		Action :: Reply | {relay, [Opt]} | discard
 			| {eval|eval_packet, Action, PostF},
@@ -170,7 +171,7 @@ handle_request(#diameter_packet{msg = Req, errors = []},
 %% @doc Locate ocs_diameter_auth_port_server process and send it
 %% peer's capabilities and diameter request.
 %% @hidden 
-send_to_port_server(Svc, Caps, Address, Port, Request) ->
+send_to_port_server(Svc, Caps, CAddress, CPort, Request) ->
 	[Info] = diameter:service_info(Svc, transport),
 	case lists:keyfind(options, 1, Info) of
 		{options, Options} ->
@@ -181,7 +182,7 @@ send_to_port_server(Svc, Caps, Address, Port, Request) ->
 							discard;
 						PortServer ->
 							Answer = gen_server:call(PortServer,
-									{diameter_request, Caps, Address, Port, Request, none}),
+									{diameter_request, Caps, CAddress, CPort, Request, none}),
 							{reply, Answer}
 					end;
 				false ->
