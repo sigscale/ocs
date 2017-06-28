@@ -32,6 +32,10 @@
 -include("ocs_eap_codec.hrl").
 -include_lib("common_test/include/ct.hrl").
 
+%% support deprecated_time_unit()
+-define(SECOND, seconds).
+%-define(SECOND, second).
+
 %%---------------------------------------------------------------------
 %%  Test server callback functions
 %%---------------------------------------------------------------------
@@ -132,7 +136,7 @@ all() ->
 	add_client, add_client_without_password, get_client, get_client_id,
 	get_client_bogus, get_client_notfound, get_all_clients, delete_client,
 	get_usagespecs, get_usagespec, get_auth_usage, get_auth_usage_id,
-	get_acct_usage, get_ipdr_usage].
+	get_acct_usage, get_acct_usage_id, get_ipdr_usage].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -890,7 +894,6 @@ get_auth_usage_id(Config) ->
 	{_, Href} = lists:keyfind("href", 1, Usage),
 	RequestUri2 = HostUrl ++ Href,
 	Request2 = {RequestUri2, [Accept, Authentication]},
-erlang:display({?MODULE, ?LINE, Request2}),
 	{ok, Result2} = httpc:request(get, Request2, [], []),
 	{{"HTTP/1.1", 200, _OK}, Headers2, Body2} = Result2,
 	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers2),
@@ -905,18 +908,25 @@ get_acct_usage() ->
 
 get_acct_usage(Config) ->
 	ClientAddress = {192, 168, 159, 158},
-	Attrs = [{?UserName, "DE:AD:BE:EF:CA:FE"}, {?AcctSessionId, "8250020b"},
+	Attrs = [{?UserName, "DE:AD:BE:EF:CA:FE"}, {?AcctSessionId, "825df837"},
 			{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
 			{?CallingStationId, "FE-ED-BE-EF-FE-FE"},
 			{?CalledStationId, "CA-FE-CA-FE-CA-FE:AP 1"},
 			{?NasIdentifier, "ap-1.sigscale.net"},
 			{?NasIpAddress, ClientAddress}, {?NasPort, 21},
 			{?SessionTimeout, 3600}, {?IdleTimeout, 300},
-			{?ServiceType, 2}, {?FramedIpAddress, {10,2,56,78}},
+			{?FramedIpAddress, {10,2,56,78}},
 			{?FramedIpNetmask, {255,255,0,0}}, {?FramedPool, "nat"},
 			{?FramedRouting, 2}, {?FilterId, "firewall-1"},
 			{?FramedMtu, 1492}, {?FramedRoute, "192.168.100.0/24 10.2.1.1 1"},
-			{?Class, "silver"}, {?PortLimit, 1}],
+			{?Class, "silver"}, {?PortLimit, 1},
+			{?AcctDelayTime, 5}, {?EventTimestamp, erlang:system_time(?SECOND)},
+			{?AcctMultiSessionId, "8250731f"}, {?AcctLinkCount, 2},
+			{?AcctAuthentic, 1}, {?AcctSessionTime, 3021},
+			{?AcctInputOctets, 1702487}, {?AcctOutputOctets, 301629083},
+			{?AcctInputGigawords, 1}, {?AcctOutputGigawords, 2},
+			{?AcctInputPackets, 3021}, {?AcctOutputPackets, 125026},
+			{?AcctTerminateCause, 5}],
 	ok = ocs_log:acct_log(radius, {{0,0,0,0}, 1813}, stop, Attrs),
 	HostUrl = ?config(host_url, Config),
 	AcceptValue = "application/json",
@@ -1015,20 +1025,55 @@ get_acct_usage(Config) ->
 				true;
 			({struct, [{"name", "outputOctets"}, {"value", Octets}]}) when is_integer(Octets) ->
 				true;
-			({struct, [{"name", "acctInputGigaWords"}, {"value", Words}]}) when is_integer(Words) ->
+			({struct, [{"name", "acctInputGigawords"}, {"value", Words}]}) when is_integer(Words) ->
 				true;
-			({struct, [{"name", "acctOutputGigaWords"}, {"value", Words}]}) when is_integer(Words) ->
+			({struct, [{"name", "acctOutputGigawords"}, {"value", Words}]}) when is_integer(Words) ->
 				true;
 			({struct, [{"name", "acctInputPackets"}, {"value", Packets}]}) when is_integer(Packets) ->
 				true;
 			({struct, [{"name", "acctOutputPackets"}, {"value", Packets}]}) when is_integer(Packets) ->
 				true;
-			({struct, [{"name", "acctInterimInterval"}, {"value", Interval}]}) when is_integer(Interval) ->
-				true;
 			({struct, [{"name", "acctTerminateCause"}, {"value", Cause}]}) when is_list(Cause) ->
 				true
 	end,
 	true = lists:all(F, UsageCharacteristic).
+
+get_acct_usage_id() ->
+	[{userdata, [{doc,"Get a single TMF635 acct usage"}]}].
+
+get_acct_usage_id(Config) ->
+	Attrs = [{?UserName, "ED:DA:EB:FE:AC:EF"},
+			{?CallingStationId, "ED:DA:EB:FE:AC:EF"},
+			{?CalledStationId, "CA-FE-CA-FE-CA-FE:AP 1"},
+			{?NasIdentifier, "ap-1.sigscale.net"},
+			{?AcctSessionTime, 3600}, {?AcctInputOctets, 756012},
+			{?AcctOutputOctets, 312658643}, {?AcctTerminateCause, 5}], 
+	ok = ocs_log:acct_log(radius, {{0,0,0,0}, 1812}, stop, Attrs),
+	HostUrl = ?config(host_url, Config),
+	AcceptValue = "application/json",
+	Accept = {"accept", AcceptValue},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	RequestUri1 = HostUrl ++ "/usageManagement/v1/usage?type=AAAAccountingUsage",
+	Request1 = {RequestUri1, [Accept, Authentication]},
+	{ok, Result1} = httpc:request(get, Request1, [], []),
+	{{"HTTP/1.1", 200, _OK}, _Headers1, Body1} = Result1,
+	{array, Usages} = mochijson:decode(Body1),
+	{struct, Usage} = lists:last(Usages),
+	{_, Href} = lists:keyfind("href", 1, Usage),
+	RequestUri2 = HostUrl ++ Href,
+	Request2 = {RequestUri2, [Accept, Authentication]},
+	{ok, Result2} = httpc:request(get, Request2, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers2, Body2} = Result2,
+	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers2),
+	ContentLength = integer_to_list(length(Body2)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers2),
+	{struct, Usage} = mochijson:decode(Body2),
+	{_, _Id} = lists:keyfind("id", 1, Usage),
+	{_, Href} = lists:keyfind("href", 1, Usage).
 
 get_ipdr_usage() ->
 	[{userdata, [{doc,"Get a TMF635 IPDR usage"}]}].
