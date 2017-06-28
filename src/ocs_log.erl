@@ -25,7 +25,7 @@
 %% export the ocs_log public API
 -export([acct_open/0, acct_log/4, acct_close/0,
 		acct_query/4, acct_query/5,
-		auth_open/0, auth_log/6, auth_log/7, auth_close/0,
+		auth_open/0, auth_log/5, auth_log/6, auth_close/0,
 		auth_query/5, auth_query/6,
 		ipdr_log/3, ipdr_file/2, get_range/3, last/2,
 		dump_file/2, http_file/2, httpd_logname/1,
@@ -37,6 +37,8 @@
 -include("ocs_log.hrl").
 -include_lib("radius/include/radius.hrl").
 -include("../include/diameter_gen_cc_application_rfc4006.hrl").
+-include("../include/diameter_gen_nas_application_rfc7155.hrl").
+-include("../include/diameter_gen_eap_application_rfc4072.hrl").
 
 -define(ACCTLOG, ocs_acct).
 -define(AUTHLOG, ocs_auth).
@@ -275,27 +277,22 @@ auth_log(Protocol, Server, Client, Type, RequestAttributes, ResponseAttributes) 
 			RequestAttributes, ResponseAttributes},
 	disk_log:log(?AUTHLOG, Event).
 
--spec auth_log(Protocol, Server, Subscriber, OriginHost, OriginRealm, AuthType,
-		ResultCode) -> Result
+-spec auth_log(Protocol, Server, Client, Request, Response) -> Result
 	when
 		Protocol :: diameter,
 		Server :: {Address, Port},
-		Subscriber :: string() | binary(),
+		Client :: {Address, Port},
 		Address :: inet:ip_address(),
 		Port :: integer(),
-		OriginHost :: term(),
-		OriginRealm :: term(),
-		AuthType :: integer(),
-		ResultCode:: integer(),
+		Request :: #diameter_nas_app_AAR{} | #diameter_eap_app_DER{},
+		Response :: #diameter_nas_app_AAA{} | #diameter_eap_app_DEA{},
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Write a DIAMETER AAR event to authorization log.
-auth_log(Protocol, Server, Subscriber, OriginHost, OriginRealm, AuthType,
-		ResultCode) ->
+%% @doc Write a DIAMETER event to authorization log.
+auth_log(Protocol, Server, Client, Request, Response) ->
 	TS = erlang:system_time(?MILLISECOND),
 	N = erlang:unique_integer([positive]),
-	Event = {TS, N, Protocol, node(), Server, Subscriber, OriginHost, OriginRealm,
-			AuthType, ResultCode},
+	Event = {TS, N, Protocol, node(), Server, Client, Request, Response},
 	disk_log:log(?AUTHLOG, Event).
 
 -spec auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch) -> Result
