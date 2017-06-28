@@ -292,10 +292,9 @@ eap_start(timeout, #statedata{start = DiameterRequest,
 		<<>> ->
 			EapPacket = #eap_packet{code = request, type = ?TTLS,
 					identifier = EapID, data = EapData},
-			Answer = generate_diameter_response(SessionID, AuthType,
+			send_diameter_response(SessionID, AuthType,
 					?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-					OH, OR, EapPacket),
-			gen_server:cast(PortServer, {self(), Answer}),
+					OH, OR, EapPacket, PortServer),
 			{next_state, client_hello, StateData, ?TIMEOUT};
 		EAPMessage ->
 			case catch ocs_eap_codec:eap_packet(EAPMessage) of
@@ -304,19 +303,17 @@ eap_start(timeout, #statedata{start = DiameterRequest,
 					NewEapID = (StartEapID rem 255) + 1,
 					NewEapPacket = #eap_packet{code = request, type = ?TTLS,
 							identifier = NewEapID, data = EapData},
-					Answer = generate_diameter_response(SessionID, AuthType,
+					send_diameter_response(SessionID, AuthType,
 							?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-							OH, OR, NewEapPacket),
-					gen_server:cast(PortServer, {self(), Answer}),
+							OH, OR, NewEapPacket, PortServer),
 					NextStateData = StateData#statedata{eap_id = NewEapID},
 					{next_state, client_hello, NextStateData, ?TIMEOUT};
 				#eap_packet{code = request, identifier = NewEapID} ->
 					NewEapPacket = #eap_packet{code = response, type = ?LegacyNak,
 							identifier = NewEapID, data = <<0>>},
-					Answer = generate_diameter_response(SessionID, AuthType,
+					send_diameter_response(SessionID, AuthType,
 							?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-							OH, OR, NewEapPacket),
-					gen_server:cast(PortServer, {self(), Answer}),
+							OH, OR, NewEapPacket, PortServer),
 					{stop, {shutdown, SessionID}, StateData};
 				#eap_packet{code = Code,
 							type = EapType, identifier = NewEapID, data = Data} ->
@@ -325,17 +322,15 @@ eap_start(timeout, #statedata{start = DiameterRequest,
 							{eap_id, NewEapID}, {code, Code},
 							{type, EapType}, {data, Data}]),
 					NewEapPacket = #eap_packet{code = failure, identifier = NewEapID},
-					Answer = generate_diameter_response(SessionID, AuthType,
+					send_diameter_response(SessionID, AuthType,
 							?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-							OH, OR, NewEapPacket),
-					gen_server:cast(PortServer, {self(), Answer}),
+							OH, OR, NewEapPacket, PortServer),
 					{stop, {shutdown, SessionID}, StateData};
 				{'EXIT', _Reason} ->
 					NewEapPacket = #eap_packet{code = failure, identifier = EapID},
-					Answer = generate_diameter_response(SessionID, AuthType,
+					send_diameter_response(SessionID, AuthType,
 							?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-							OH, OR, NewEapPacket),
-					gen_server:cast(PortServer, {self(), Answer}),
+							OH, OR, NewEapPacket, PortServer),
 					{stop, {shutdown, SessionID}, StateData}
 			end
 	end.
@@ -485,10 +480,9 @@ client_hello(#diameter_eap_app_DER{} = Request, #statedata{eap_id = EapID,
 				TtlsData = ocs_eap_codec:eap_ttls(#eap_ttls{}),
 				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
 						identifier = NewEapID, data = TtlsData},
-				Answer = generate_diameter_response(SessionID, AuthType,
+				send_diameter_response(SessionID, AuthType,
 						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-						OH, OR, EapPacket1),
-				gen_server:cast(PortServer, {self(), Answer}),
+						OH, OR, EapPacket1, PortServer),
 				NextRxBuf = <<RxBuf/binary, Data/binary>>,
 				NextStateData = NewStateData#statedata{rx_buf = NextRxBuf},
 				{next_state, client_hello, NextStateData, ?TIMEOUT};
@@ -498,10 +492,9 @@ client_hello(#diameter_eap_app_DER{} = Request, #statedata{eap_id = EapID,
 				TtlsData = ocs_eap_codec:eap_ttls(#eap_ttls{}),
 				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
 						identifier = NewEapID, data = TtlsData},
-				Answer = generate_diameter_response(SessionID, AuthType,
+				send_diameter_response(SessionID, AuthType,
 						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
-						OH, OR, EapPacket1),
-				gen_server:cast(PortServer, {self(), Answer}),
+						OH, OR, EapPacket1, PortServer),
 				NextStateData = NewStateData#statedata{rx_buf = Data,
 						rx_length = MessageLength},
 				{next_state, client_hello, NextStateData, ?TIMEOUT}
@@ -509,10 +502,9 @@ client_hello(#diameter_eap_app_DER{} = Request, #statedata{eap_id = EapID,
 	catch
 		_:_ ->
 			EapPacket2 = #eap_packet{code = failure, identifier = EapID},
-			Answer2 = generate_diameter_response(SessionID, AuthType,
+			send_diameter_response(SessionID, AuthType,
 					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-					OH, OR, EapPacket2),
-			gen_server:cast(PortServer, {self(), Answer2}),
+					OH, OR, EapPacket2, PortServer),
 			{stop, {shutdown, SessionID}, NewStateData}
 	end.
 %% @hidden
@@ -606,9 +598,9 @@ server_hello(#diameter_eap_app_DER{} = Request, #statedata{eap_id = EapID,
 	catch
 		_:_ ->
 			EapPacket = #eap_packet{code = failure, identifier = EapID},
-			Answer1 = generate_diameter_response(SessionID, AuthType,
-					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR, EapPacket),
-			gen_server:cast(PortServer, {self(), Answer1}),
+			send_diameter_response(SessionID, AuthType,
+					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR,
+					EapPacket, PortServer),
 			{stop, {shutdown, SessionID}, StateData}
 	end.
 %% @hidden
@@ -666,9 +658,9 @@ server_hello2(#statedata{start = #diameter_eap_app_DER{}, tx_buf = TxBuf,
 			EapData = ocs_eap_codec:eap_ttls(EapTtls),
 			EapPacket = #eap_packet{code = request, type = ?TTLS,
 					identifier = NewEapID, data = EapData},
-			Answer = generate_diameter_response(SessionID, AuthType,
-					?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OH, OR, EapPacket),
-			gen_server:cast(PortServer, {self(), Answer}),
+			send_diameter_response(SessionID, AuthType,
+					?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OH, OR,
+					EapPacket, PortServer),
 			NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = Rest},
 			{next_state, server_hello, NewStateData, ?TIMEOUT};
 		_Size ->
@@ -676,9 +668,9 @@ server_hello2(#statedata{start = #diameter_eap_app_DER{}, tx_buf = TxBuf,
 			EapData = ocs_eap_codec:eap_ttls(EapTtls),
 			EapPacket = #eap_packet{code = request, type = ?TTLS,
 					identifier = NewEapID, data = EapData},
-			Answer = generate_diameter_response(SessionID, AuthType,
-					?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OH, OR, EapPacket),
-			gen_server:cast(PortServer, {self(), Answer}),
+			send_diameter_response(SessionID, AuthType,
+					?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OH, OR,
+					EapPacket, PortServer),
 			NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = <<>>},
 			{next_state, client_cipher, NewStateData, ?TIMEOUT}
 	end.
@@ -791,9 +783,9 @@ client_cipher(#diameter_eap_app_DER{} = Request, #statedata{eap_id = EapID,
 				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
 						identifier = NewEapID, data = TtlsData},
 				CCMsg = <<RxBuf/binary, Data/binary>>,
-				Answer = generate_diameter_response(SessionID, AuthType,
-						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OH, OR, EapPacket1),
-				gen_server:cast(PortServer, {self(), Answer}),
+				send_diameter_response(SessionID, AuthType,
+						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OH, OR,
+						EapPacket1, PortServer),
 				NextStateData = StateData#statedata{rx_buf = CCMsg},
 				{next_state, client_cipher, NextStateData, ?TIMEOUT};
 			#eap_ttls{more = true, message_len = MessageLength,
@@ -802,9 +794,9 @@ client_cipher(#diameter_eap_app_DER{} = Request, #statedata{eap_id = EapID,
 				TtlsData = ocs_eap_codec:eap_ttls(#eap_ttls{}),
 				EapPacket1 = #eap_packet{code = response, type = ?TTLS,
 						identifier = NewEapID, data = TtlsData},
-				Answer = generate_diameter_response(SessionID, AuthType,
-						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OH, OR, EapPacket1),
-				gen_server:cast(PortServer, {self(), Answer}),
+				send_diameter_response(SessionID, AuthType,
+						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OH, OR,
+						EapPacket1, PortServer),
 				NextStateData = StateData#statedata{rx_buf = Data,
 						rx_length = MessageLength},
 				{next_state, client_cipher, NextStateData, ?TIMEOUT}
@@ -812,9 +804,9 @@ client_cipher(#diameter_eap_app_DER{} = Request, #statedata{eap_id = EapID,
 	catch
 		_:_ ->
 			EapPacket2 = #eap_packet{code = failure, identifier = EapID},
-			Answer1 = generate_diameter_response(SessionID, AuthType,
-					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR, EapPacket2),
-			gen_server:cast(PortServer, {self(), Answer1}),
+			send_diameter_response(SessionID, AuthType,
+					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR,
+					EapPacket2, PortServer),
 			{stop, {shutdown, SessionID}, StateData}
 	end.
 
@@ -900,9 +892,9 @@ finish({eap_tls, _SslPid, <<?Handshake, _/binary>> = Data},
 	EapData = ocs_eap_codec:eap_ttls(EapTtls),
 	EapPacket = #eap_packet{code = request, type = ?TTLS,
 			identifier = NewEapID, data = EapData},
-	Answer = generate_diameter_response(SessionID, AuthType,
-			?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OH, OR, EapPacket),
-	gen_server:cast(PortServer, {self(), Answer}),
+	send_diameter_response(SessionID, AuthType,
+			?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OH, OR, EapPacket,
+			PortServer),
 	NewStateData = StateData#statedata{eap_id = NewEapID, tx_buf = <<>>},
 	{next_state, client_passthrough, NewStateData}.
 
@@ -975,9 +967,9 @@ client_passthrough(#diameter_eap_app_DER{} = Request, #statedata{eap_id = EapID,
 			#eap_packet{code = request, identifier = NewEapID} ->
 					NewEapPacket = #eap_packet{code = response, type = ?LegacyNak,
 							identifier = NewEapID, data = <<0>>},
-					Answer = generate_diameter_response(SessionID, AuthType,
-							?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OH, OR, NewEapPacket),
-					gen_server:cast(PortServer, {self(), Answer}),
+					send_diameter_response(SessionID, AuthType,
+							?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OH, OR,
+							NewEapPacket, PortServer),
 					{stop, {shutdown, SessionID}, StateData};
 			#eap_packet{code = Code,
 					type = EapType, identifier = NewEapID, data = Data} ->
@@ -986,17 +978,17 @@ client_passthrough(#diameter_eap_app_DER{} = Request, #statedata{eap_id = EapID,
 						{eap_id, NewEapID}, {code, Code},
 						{type, EapType}, {data, Data}]),
 				NewEapPacket = #eap_packet{code = failure, identifier = NewEapID},
-				Answer = generate_diameter_response(SessionID, AuthType,
-						?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR, NewEapPacket),
-				gen_server:cast(PortServer, {self(), Answer}),
+				send_diameter_response(SessionID, AuthType,
+						?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR,
+						NewEapPacket, PortServer),
 				{stop, {shutdown, SessionID}, StateData}
 		end
 	catch
 		_:_ ->
 			EapPacket1 = #eap_packet{code = failure, identifier = EapID},
-			Answer1 = generate_diameter_response(SessionID, AuthType,
-					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR, EapPacket1),
-			gen_server:cast(PortServer, {self(), Answer1}),
+			send_diameter_response(SessionID, AuthType,
+					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR,
+					EapPacket1, PortServer),
 			{stop, {shutdown, SessionID}, StateData}
 	end.
 
@@ -1051,13 +1043,21 @@ server_passthrough(reject, #statedata{eap_id = EapID,
 	send_response(EapPacket, ?AccessReject, RadiusID,
 			[], RequestAuthenticator, Secret, RadiusFsm),
 	{stop, {shutdown, SessionID}, StateData};
-server_passthrough({accept, _UserName, _SslSocket},
+server_passthrough({accept, _UserName, SslSocket},
 		#statedata{eap_id = EapID, start = #diameter_eap_app_DER{},
 		session_id = SessionID, auth_req_type = AuthType, origin_host = OH,
-		origin_realm = OR, port_server = PortServer} = StateData) ->
+		origin_realm = OR, port_server = PortServer, client_rand = ClientRandom,
+		server_rand = ServerRandom} = StateData) ->
+	Seed = [<<ClientRandom/binary, ServerRandom/binary>>],
+	{MSK, _} = prf(SslSocket, master_secret , <<"ttls keying material">>,
+			Seed, 128),
 	EapPacket = #eap_packet{code = success, identifier = EapID},
-	Answer = generate_diameter_response(SessionID, AuthType,
-			?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OH, OR, EapPacket),
+	EapData = ocs_eap_codec:eap_packet(EapPacket),
+	Answer = #diameter_eap_app_DEA{'Session-Id' = SessionID,
+				'Auth-Application-Id' = 5, 'Auth-Request-Type' = AuthType,
+				'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+				'Origin-Host' = OH, 'Origin-Realm' = OR,
+				'EAP-Payload' = [EapData], 'EAP-Master-Session-Key' = [MSK]},
 	gen_server:cast(PortServer, {self(), Answer}),
 	{stop, {shutdown, SessionID}, StateData};
 server_passthrough(reject, #statedata{eap_id = EapID,
@@ -1065,10 +1065,9 @@ server_passthrough(reject, #statedata{eap_id = EapID,
 	 	auth_req_type = AuthType, origin_host = OH, origin_realm = OR,
 		port_server = PortServer} = StateData) ->
 	EapPacket = #eap_packet{code = failure, identifier = EapID},
-	Answer = generate_diameter_response(SessionID, AuthType,
+	send_diameter_response(SessionID, AuthType,
 			?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED', OH, OR,
-			EapPacket),
-	gen_server:cast(PortServer, {self(), Answer}),
+			EapPacket, PortServer),
 	{stop, {shutdown, SessionID}, StateData}.
 
 -spec handle_event(Event, StateName, StateData) -> Result
@@ -1301,17 +1300,20 @@ get_diameter_attributes(Packet) ->
 	{EapPacket, FramedMTU, NasPortType}.
 
 %% @hidden
-generate_diameter_response(SId, AuthType, ResultCode, OH, OR, EapPacket) ->
+send_diameter_response(SId, AuthType, ResultCode, OH, OR, EapPacket,
+		PortServer) ->
 	try
 		EapData = ocs_eap_codec:eap_packet(EapPacket),
-		#diameter_eap_app_DEA{'Session-Id' = SId, 'Auth-Application-Id' = 5,
+		Answer = #diameter_eap_app_DEA{'Session-Id' = SId, 'Auth-Application-Id' = 5,
 				'Auth-Request-Type' = AuthType, 'Result-Code' = ResultCode,
-				'Origin-Host' = OH, 'Origin-Realm' = OR, 'EAP-Payload' = [EapData]}
+				'Origin-Host' = OH, 'Origin-Realm' = OR, 'EAP-Payload' = [EapData]},
+		gen_server:cast(PortServer, {self(), Answer})
 	catch
 		_:_ ->
-		#diameter_eap_app_DEA{'Session-Id' = SId, 'Auth-Application-Id' = 5,
+		Answer1 = #diameter_eap_app_DEA{'Session-Id' = SId, 'Auth-Application-Id' = 5,
 				'Auth-Request-Type' = AuthType,
 				'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
-				'Origin-Host' = OH, 'Origin-Realm' = OR}
+				'Origin-Host' = OH, 'Origin-Realm' = OR},
+		gen_server:cast(PortServer, {self(), Answer1})
 	end.
 
