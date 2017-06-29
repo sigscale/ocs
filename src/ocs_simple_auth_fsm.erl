@@ -60,7 +60,8 @@
 		origin_host :: undefined | string(),
 		origin_realm :: undefined | string(),
 		password :: undefined | string(),
-		diameter_port_server :: undefined | pid()}).
+		diameter_port_server :: undefined | pid(),
+		request :: undefined | #diameter_nas_app_AAR{}}).
 
 -type statedata() :: #statedata{}.
 
@@ -86,10 +87,10 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([diameter, Address, Port, SessId, AppId, AuthType, OHost, ORealm,
-		_Request, Options] = _Args) ->
+init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
+		SessId, AppId, AuthType, OHost, ORealm, Request, Options] = _Args) ->
 	[Subscriber, Password] = Options,
-	case global:whereis_name({ocs_diameter_auth, Address, Port}) of
+	case global:whereis_name({ocs_diameter_auth, ServerAddress, ServerPort}) of
 		undefined ->
 			{stop, ocs_diameter_auth_port_server_not_found};
 		PortServer ->
@@ -97,8 +98,9 @@ init([diameter, Address, Port, SessId, AppId, AuthType, OHost, ORealm,
 			StateData = #statedata{protocol = diameter, session_id = SessId,
 					app_id = AppId, auth_request_type = AuthType, origin_host = OHost,
 					origin_realm = ORealm, subscriber = Subscriber, password = Password,
-					server_address = Address, server_port = Port,
-					diameter_port_server = PortServer},
+					server_address = ServerAddress, server_port = ServerPort,
+					client_address = ClientAddress, client_port = ClientPort,
+					diameter_port_server = PortServer, request = Request},
 			{ok, request, StateData, 0}
 	end;
 init([radius, ServerAddress, ServerPort, ClientAddress, ClientPort, RadiusFsm,
@@ -136,19 +138,20 @@ request(timeout, #statedata{protocol = radius, req_attr = Attributes,
 			{stop, {shutdown, SessionID}, StateData}
 	end;
 request(timeout, #statedata{protocol = diameter, session_id = SessionID,
-		server_address = Address, server_port = Port, subscriber = Subscriber,
-		password = Password, app_id = AppId, auth_request_type = Type,
-		origin_host = OHost, origin_realm = ORealm, diameter_port_server = PortServer
-		} = StateData) ->
-	Server = {Address, Port},
+		server_address = ServerAddress, server_port = ServerPort,
+		subscriber = Subscriber, password = Password, app_id = AppId,
+		auth_request_type = Type, origin_host = OHost, origin_realm = ORealm,
+		diameter_port_server = PortServer, client_address = ClientAddress,
+		client_port = ClientPort, request = Request} = StateData) ->
+	Server = {ServerAddress, ServerPort},
+	Client= {ClientAddress, ClientPort},
 	case ocs:authorize(Subscriber, Password) of
 		{ok, _Password, _Attr} ->
 			Answer = #diameter_nas_app_AAA{'Session-Id' = SessionID,
 					'Auth-Application-Id' = AppId, 'Auth-Request-Type' = Type,
 					'Origin-Host' = OHost, 'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 					'Origin-Realm' = ORealm },
-			ok = ocs_log:auth_log(diameter, Server, Subscriber, OHost, ORealm, Type,
-					?'DIAMETER_BASE_RESULT-CODE_SUCCESS'),
+			ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 			gen_server:cast(PortServer, {self(), Answer}),
 			{stop, {shutdown, SessionID}, StateData};
 		{error, _Reason} ->
@@ -157,8 +160,7 @@ request(timeout, #statedata{protocol = diameter, session_id = SessionID,
 					'Origin-Host' = OHost,
 					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
 					'Origin-Realm' = ORealm },
-			ok = ocs_log:auth_log(diameter, Server, Subscriber, OHost, ORealm, Type,
-					?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED'),
+			ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 			gen_server:cast(PortServer, {self(), Answer}),
 			{stop, {shutdown, SessionID}, StateData}
 	end.

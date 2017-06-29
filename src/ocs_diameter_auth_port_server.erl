@@ -114,8 +114,9 @@ init([AuthPortSup, Address, Port, Options]) ->
 %% 	gen_server:multi_call/2,3,4}.
 %% @see //stdlib/gen_server:handle_call/3
 %% @private
-handle_call({diameter_request, Caps, Request, Eap}, CbProc, State) ->
-	request(Caps, Eap, Request, CbProc, State).
+handle_call({diameter_request, Caps, ClientAddr, ClientPort, Request, Eap},
+		CbProc, State) ->
+	request(Caps, ClientAddr, ClientPort, Eap, Request, CbProc, State).
 
 -spec handle_cast(Request, State) -> Result
 	when
@@ -220,9 +221,12 @@ code_change(_OldVsn, State, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec request(Caps, Eap, Request, CbProc, State) -> Reply
+-spec request(Caps, ClientAddress, ClientPort, Eap, Request, CbProc,
+		State) -> Reply
 	when
 		Caps :: capabilities(),
+		ClientAddress :: inet:ip_address(),
+		ClientPort :: inet:port_number(),
 		Eap :: none | {eap, #eap_packet{}},
 		Request :: #diameter_nas_app_AAR{} | #diameter_nas_app_STR{}
 				| #diameter_eap_app_DER{},
@@ -234,21 +238,26 @@ code_change(_OldVsn, State, _Extra) ->
 %% @doc Based on the DIAMETER request generate appropriate DIAMETER
 %% answer.
 %% @hidden
-request(Caps, none, Request, CbProc, State) when is_record(Request, diameter_nas_app_AAR) ->
+request(Caps, Address, Port, none, Request, CbProc, State)
+		when is_record(Request, diameter_nas_app_AAR) ->
 	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
-	request1(none, OHost, ORealm, Request, CbProc, State);
-request(Caps, {eap, <<_:32, ?Identity, Identity/binary>>}, Request, CbProc, State)
+	request1(none, Address, Port, OHost, ORealm, Request, CbProc, State);
+request(Caps, Address, Port, {eap, <<_:32, ?Identity, Identity/binary>>},
+		Request, CbProc, State) when is_record(Request, diameter_eap_app_DER) ->
+	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
+	request1({identity, Identity}, Address, Port, OHost, ORealm, Request,
+			CbProc, State);
+request(Caps, Address, Port, {eap, <<_, EapId, _:16, ?LegacyNak, Data/binary>>},
+		Request, CbProc, State) when is_record(Request, diameter_eap_app_DER) ->
+	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
+	request1({legacy_nak, EapId, Data}, Address, Port, OHost, ORealm, Request,
+			CbProc, State);
+request(Caps, Address, Port, Eap, Request, CbProc, State)
 		when is_record(Request, diameter_eap_app_DER) ->
 	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
-	request1({identity, Identity}, OHost, ORealm, Request, CbProc, State);
-request(Caps, {eap, <<_, EapId, _:16, ?LegacyNak, Data/binary>>}, Request, CbProc, State)
-		when is_record(Request, diameter_eap_app_DER) ->
-	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
-	request1({legacy_nak, EapId, Data}, OHost, ORealm, Request, CbProc, State);
-request(Caps, Eap, Request, CbProc, State) when is_record(Request, diameter_eap_app_DER) ->
-	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
-	request1(Eap, OHost, ORealm, Request, CbProc, State);
-request(Caps, none, Request, _CbProc, State) when is_record(Request, diameter_nas_app_STR) ->
+	request1(Eap, Address, Port, OHost, ORealm, Request, CbProc, State);
+request(Caps, _Address, _Port, none, Request, _CbProc, State)
+		when is_record(Request, diameter_nas_app_STR) ->
 	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
 	SessionId = Request#diameter_nas_app_STR.'Session-Id',
 	try
@@ -277,8 +286,9 @@ request(Caps, none, Request, _CbProc, State) when is_record(Request, diameter_na
 			{reply, Answer, State}
 	end.
 %% @hidden
-request1(EapType, OHost, ORealm, Request, CbProc, #state{handlers = Handlers,
-		method_prefer = MethodPrefer, method_order = MethodOrder, cb_fsms = FsmHandler} = State) ->
+request1(EapType, Address, Port, OHost, ORealm, Request, CbProc,
+		#state{handlers = Handlers, method_prefer = MethodPrefer,
+		method_order = MethodOrder, cb_fsms = FsmHandler} = State) ->
 	{SessionId, AuthType} = get_attibutes(Request),
 	try
 		case gb_trees:lookup(SessionId, Handlers) of
@@ -286,8 +296,8 @@ request1(EapType, OHost, ORealm, Request, CbProc, #state{handlers = Handlers,
 				case EapType of
 					{_, _Identity} when MethodPrefer == pwd ->
 						PwdSup = State#state.pwd_sup,
-						{_Fsm, NewState} = start_fsm(PwdSup, 5, SessionId, AuthType, OHost,
-								ORealm, [], CbProc, Request, State),
+						{_Fsm, NewState} = start_fsm(PwdSup, Address, Port, 5, SessionId,
+								AuthType, OHost, ORealm, [], CbProc, Request, State),
 						{noreply, NewState};
 					none ->
 						#diameter_nas_app_AAR{'User-Name' = [UserName],
@@ -296,8 +306,9 @@ request1(EapType, OHost, ORealm, Request, CbProc, #state{handlers = Handlers,
 						case {UserName, Password} of
 							{UserName, Password} when (UserName /= undefined andalso
 									Password /= undefined) ->
-								{_Fsm, NewState} = start_fsm(SimpleAuthSup, 1, SessionId, AuthType,
-										OHost, ORealm, [UserName, Password], CbProc, Request, State),
+								{_Fsm, NewState} = start_fsm(SimpleAuthSup, Address, Port, 1,
+										SessionId, AuthType, OHost, ORealm, [UserName, Password],
+										CbProc, Request, State),
 								{noreply, NewState};
 							_ ->
 								Answer = #diameter_nas_app_AAA{
@@ -317,8 +328,9 @@ request1(EapType, OHost, ORealm, Request, CbProc, #state{handlers = Handlers,
 										type = ?Identity, identifier = EapId, data = <<>>},
 								NewEapMessage = ocs_eap_codec:eap_packet(NewEapPacket),
 								NewRequest = Request#diameter_eap_app_DER{'EAP-Payload' = NewEapMessage},
-								{_NewFsm, NewState} = start_fsm(Sup, 5, SessionId, AuthType,
-										OHost, ORealm, [], CbProc, NewRequest, State),
+								{_NewFsm, NewState} = start_fsm(Sup, Address, Port, 5,
+										SessionId, AuthType, OHost, ORealm, [], CbProc,
+										NewRequest, State),
 								{noreply, NewState};
 							{error, none} ->
 								NewEapPacket = #eap_packet{code = failure, identifier = EapId},
@@ -352,10 +364,12 @@ request1(EapType, OHost, ORealm, Request, CbProc, #state{handlers = Handlers,
 	end.
 
 %% @hidden
--spec start_fsm(AuthSup, AppId, SessionId, AuthRequestType, OHost,
-		ORealm, Options, CbProc, Request, State) -> Result
+-spec start_fsm(AuthSup, ClientAddress, ClientPort, AppId, SessionId,
+		AuthRequestType, OHost, ORealm, Options, CbProc, Request, State) -> Result
 	when
 		AuthSup :: pid(),
+		ClientAddress :: inet:ip_address(),
+		ClientPort :: inet:port_number(),
 		AppId :: non_neg_integer(),
 		SessionId :: string(),
 		AuthRequestType :: 1..3,
@@ -367,18 +381,18 @@ request1(EapType, OHost, ORealm, Request, CbProc, #state{handlers = Handlers,
 		State :: state(),
 		Result :: {AuthFsm, State},
 		AuthFsm :: undefined | pid().
-start_fsm(AuthSup, AppId, SessId, Type, OHost, ORealm,
-		Options, CbProc, Request, #state{address = Address,
-		port = Port, ttls_sup = AuthSup} = State) ->
-	StartArgs = [diameter, Address, Port, SessId, AppId, Type, OHost,
-			ORealm, Request, Options],
+start_fsm(AuthSup, ClientAddress, ClientPort, AppId, SessId, Type, OHost,
+		ORealm, Options, CbProc, Request, #state{address = ServerAddress,
+		port = ServerPort, ttls_sup = AuthSup} = State) ->
+	StartArgs = [diameter, ServerAddress, ServerPort, ClientAddress,
+			ClientPort, SessId, AppId, Type, OHost, ORealm, Request, Options],
 	ChildSpec = [StartArgs],
 	start_fsm1(AuthSup, ChildSpec, SessId, CbProc, State);
-start_fsm(AuthSup, AppId, SessId, Type, OHost, ORealm,
-		Options, CbProc, Request, #state{address = Address,
-		port = Port} = State) ->
-	StartArgs = [diameter, Address, Port, SessId, AppId, Type, OHost,
-			ORealm, Request, Options],
+start_fsm(AuthSup, ClientAddress, ClientPort, AppId, SessId, Type, OHost,
+		ORealm, Options, CbProc, Request, #state{address = ServerAddress,
+		port = ServerPort} = State) ->
+	StartArgs = [diameter, ServerAddress, ServerPort, ClientAddress,
+			ClientPort, SessId, AppId, Type, OHost, ORealm, Request, Options],
 	ChildSpec = [StartArgs, []],
 	start_fsm1(AuthSup, ChildSpec, SessId, CbProc, State).
 %% @hidden
