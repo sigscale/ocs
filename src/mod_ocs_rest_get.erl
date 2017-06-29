@@ -121,7 +121,7 @@ do_get(Resource, ModData,
 		["usageManagement", "v1", "usageSpecification", Id], []) ->
 	do_response(ModData, Resource:get_usagespec(Id));
 do_get(Resource, ModData, ["ocs", "v1", "log", "access"], []) ->
-	do_response(ModData, Resource:get_access([]));
+	do_response(ModData, Resource:get_access());
 do_get(Resource, ModData, ["ocs", "v1", "log", "accounting"], []) ->
 	do_response(ModData, Resource:get_accounting());
 do_get(Resource, ModData, ["ocs", "v1", "log", "http"], []) ->
