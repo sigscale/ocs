@@ -332,7 +332,7 @@ id(#diameter_eap_app_DER{} = Request, #statedata{eap_id = EapID,
 			#eap_packet{code = response, type = ?LegacyNak, identifier = EapID} ->
 				send_diameter_response(SessionID, RequestType,
 					?'DIAMETER_BASE_RESULT-CODE_INVALID_AVP_BITS', OHost, ORealm,
-					#eap_packet{}, PortServer, Request, StateData),
+					none, PortServer, Request, StateData),
 				{stop, {shutdown, SessionID}, StateData}
 		end
 	catch
@@ -1017,13 +1017,24 @@ encrypt_key(Secret, RequestAuthenticator, Salt, Key) when (Salt bsr 15) == 1 ->
 		ResultCode :: integer(),
 		OH :: binary(),
 		OR :: binary(),
-		EapPacket :: #eap_packet{},
+		EapPacket :: none | #eap_packet{},
 		PortServer :: pid(),
 		Request :: #diameter_eap_app_DER{},
 		StateData :: #statedata{}.
 %% @doc Log DIAMETER event and send appropriate DIAMETER answer to
 %% ocs_diameter_auth_port_server.
 %% @hidden
+send_diameter_response(SId, AuthType, ResultCode, OH, OR, none,
+		PortServer, Request, #statedata{server_address = ServerAddress,
+		server_port = ServerPort, client_address = ClientAddress,
+		client_port = ClientPort} = _StateData) ->
+	Server = {ServerAddress, ServerPort},
+	Client= {ClientAddress, ClientPort},
+	Answer = #diameter_eap_app_DEA{'Session-Id' = SId,
+			'Auth-Application-Id' = 5, 'Auth-Request-Type' = AuthType,
+			'Result-Code' = ResultCode, 'Origin-Host' = OH, 'Origin-Realm' = OR},
+	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
+	gen_server:cast(PortServer, {self(), Answer});
 send_diameter_response(SId, AuthType, ResultCode, OH, OR, EapPacket,
 		PortServer, Request, #statedata{server_address = ServerAddress,
 		server_port = ServerPort, client_address = ClientAddress,
