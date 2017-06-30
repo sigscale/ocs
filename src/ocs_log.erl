@@ -748,70 +748,75 @@ httpd_logname(security, ServerRoot, HttpdConfig) ->
 	when
 		Log :: disk_log:log(),
 		MaxItems :: pos_integer(),
-		Result :: {NumItems, Events} | {error, Reason},
+		Result :: {NumItems, Items} | {error, Reason},
 		NumItems :: non_neg_integer(),
-		Events :: [term()],
+		Items :: [term()],
 		Reason :: term().
 %% @doc Get the last `MaxItems' events in most recent item first order.
 last(Log, MaxItems) ->
-	last(Log, MaxItems, start, []).
-%% @hidden
-last(Log, MaxItems, Cont, Acc) ->
-	case disk_log:chunk_step(Log, Cont, 1) of
-		{error, end_of_log} when Acc == [] ->
-			last1(Log, MaxItems, 0, [start], []);
+	case disk_log:chunk_step(Log, start, 0) of
 		{error, end_of_log} ->
-			last1(Log, MaxItems, 0, Acc, []);
-		{ok, Cont1} ->
-			last(Log, MaxItems, Cont1, [Cont | Acc])
-	end.
-%% @hidden
-last1(Log, MaxItems, NumItems, [Cont | T], Acc) ->
-	case last2(Log, MaxItems, NumItems, Cont, []) of
+			{0, []};
 		{error, Reason} ->
 			{error, Reason};
-		{MaxItems, Events} ->
-			NewAcc = [Events | Acc],
-			{MaxItems, lists:flatten(lists:reverse(NewAcc))};
-		{NewNumItems, Events} ->
-			NewAcc = [Events | Acc],
-			last1(Log, MaxItems, NewNumItems, T, NewAcc)
-	end;
-last1(_Log, _MaxItems, NumItems, [], Acc) ->
-	{NumItems, lists:flatten(lists:reverse(Acc))}.
+		{ok, Cont1} ->
+			last(Log, MaxItems, Cont1, [Cont1])
+	end.
 %% @hidden
-last2(Log, MaxItems, NumItems, Cont, Acc) ->
-	case disk_log:chunk(Log, Cont) of
+last(Log, MaxItems, Cont1, [H | _] = Acc) ->
+	case disk_log:chunk_step(Log, H, 1) of
+		{error, end_of_log} ->
+			last1(Log, MaxItems, Acc, {0, []});
+		{ok, Cont1} ->
+			last1(Log, MaxItems, Acc, {0, []});
+		{ok, ContN} ->
+			last(Log, MaxItems, Cont1, [ContN | Acc])
+	end.
+%% @hidden
+last1(Log, MaxItems, [Cont | T], Acc) ->
+	case last2(Log, MaxItems, Cont, []) of
+		{error, Reason} ->
+			{error, Reason};
+		{N, Items} when N < MaxItems ->
+			last1(Log, MaxItems, T, {N, Items});
+		{MaxItems, Items} ->
+			{MaxItems, lists:flatten(Items)}
+	end;
+last1(_Log, _MaxItems, [], {NumItems, Items}) ->
+	{NumItems, lists:flatten(Items)}.
+%% @hidden
+last2(Log, MaxItems, Cont, Acc) ->
+	case disk_log:bchunk(Log, Cont) of
 		{error, Reason} ->
 			{error, Reason};
 		eof ->
-			last3(Log, MaxItems, NumItems, Acc, []);
-		{Cont1, _Events} ->
-			last2(Log, MaxItems, NumItems, Cont1, [Cont | Acc])
+			last3(Log, MaxItems, Acc, 0, []);
+		{Cont1, _Chunk} ->
+			last2(Log, MaxItems, Cont1, [Cont | Acc])
 	end.
 %% @hidden
-last3(Log, MaxItems, NumItems, [Cont | T], Acc) ->
+last3(Log, MaxItems, [Cont | T], NumItems, Acc) ->
 	case disk_log:chunk(Log, Cont) of
 		{error, Reason} ->
 			{error, Reason};
-		{_, Events} ->
-			RevEvents = lists:reverse(Events),
-			NumEvents = length(RevEvents),
-			case NumItems + NumEvents of
+		{_, Items} ->
+			RevItems = lists:reverse(Items),
+			NumNewItems = length(RevItems),
+			case NumItems + NumNewItems of
 				MaxItems ->
-					NewAcc = [RevEvents | Acc],
+					NewAcc = [RevItems | Acc],
 					{MaxItems, lists:reverse(NewAcc)};
 				N when N > MaxItems ->
 					NumHead = MaxItems - NumItems,
-					{NewEvents, _} = lists:split(NumHead, RevEvents),
-					NewAcc = [NewEvents | Acc],
+					{NewItems, _} = lists:split(NumHead, RevItems),
+					NewAcc = [NewItems | Acc],
 					{MaxItems, lists:reverse(NewAcc)};
 				N ->
-					NewAcc = [RevEvents | Acc],
-					last3(Log, MaxItems, N, T, NewAcc)
+					NewAcc = [RevItems | Acc],
+					last3(Log, MaxItems, T, N, NewAcc)
 			end
 	end;
-last3(_Log, _MaxItems, NumItems, [], Acc) ->
+last3(_Log, _MaxItems, [], NumItems, Acc) ->
 	{NumItems, lists:reverse(Acc)}.
 
 -spec date(MilliSeconds) -> Result

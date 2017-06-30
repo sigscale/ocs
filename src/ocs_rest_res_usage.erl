@@ -1051,9 +1051,9 @@ spec_protocol() ->
 %% @hidden
 spec_node() ->
 	Name = {name, "node"},
-	Desc = {description, "Time and date request was processed by OCS."},
+	Desc = {description, "Clusternode on which event was processed by OCS."},
 	Conf = {configurable, true},
-	Typ = {valueType, "dateTime"},
+	Typ = {valueType, "string"},
 	Value1 = {struct, [Typ]},
 	Value = {usageSpecCharacteristicValue, {array, [Value1]}},
 	{struct, [Name, Desc, Conf, Value]}.

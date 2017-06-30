@@ -84,8 +84,9 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[radius_log_auth_event, radius_log_acct_event, get_range, ipdr_log,
-	diameter_log_auth_event, diameter_log_acct_event].
+	[radius_log_auth_event, diameter_log_auth_event,
+			radius_log_acct_event, diameter_log_acct_event,
+			ipdr_log, get_range, get_last].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -260,62 +261,6 @@ diameter_log_acct_event(_Config) ->
 	end,
 	true = Find(Find, disk_log:chunk(ocs_acct, start)).
 
-get_range() ->
-   [{userdata, [{doc, "Get date/time range from log"}]}].
-
-get_range(_Config) ->
-	Node = node(),
-	ServerAddress = {0, 0, 0, 0},
-	ServerPort = 1813,
-	Server = {ServerAddress, ServerPort},
-	ClientAddress = {192, 168, 151, 153},
-	ClientPort = 59132,
-	Client = {ClientAddress, ClientPort},
-	Type = start,
-	Start = erlang:system_time(?MILLISECOND),
-	Attrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
-			{?UserName, "BE:EF:CA:FE:FE:DE"},
-			{?CallingStationId, "FE-ED-BE-EF-F1-1D"},
-			{?CalledStationId, "CA-FE-AC-EF-CA-FE:AP 1"}, {?AcctAuthentic, 1},
-			{?AcctStatusType, 1}, {?NasIdentifier, "ap-1.sigscale.net"},
-			{?AcctDelayTime, 0}, {?NasIpAddress, ClientAddress}],
-	Event = {radius, Start, Node, Server, Client, Type,
-			[{?AcctSessionId, "1234567890"} | Attrs]},
-	LogInfo = disk_log:info(ocs_acct),
-	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
-	EventSize = erlang:external_size(Event),
-	NumItems = (FileSize div EventSize) * 5,
-	Fill = fun(_F, 0) ->
-				ok;
-			(F, N) ->
-				ocs_log:acct_log(radius, Server, Type,
-						[{?AcctSessionId, integer_to_list(N)} | Attrs]),
-				F(F, N - 1)
-	end,
-	Fill(Fill, NumItems),
-	End = erlang:system_time(?MILLISECOND),
-	Range = (End - Start),
-	StartRange = Start + (Range div 3),
-	EndRange = End - (Range div 3),
-	Result = ocs_log:get_range(ocs_acct, StartRange, EndRange),
-	true = length(Result) > ((NumItems div 3) - (NumItems div 10)),
-	[{?AcctSessionId, ID} | _] = element(7, lists:nth(1, Result)),
-	StartNum = list_to_integer(ID),
-	Fverify = fun({TS, _, radius, _, _, _,  _}, _N)
-					when TS < StartRange, TS > EndRange ->
-				ct:fail(verify);
-			({_, _, _, _, _, _, [{?AcctSessionId, S} | _]}, N) ->
-				case list_to_integer(S) of
-					N ->
-						N - 1;
-					_ ->
-						ct:fail(verify)
-				end;
-			(_, N) ->
-				N
-	end,
-	lists:foldl(Fverify, StartNum, Result).
-
 ipdr_log() ->
    [{userdata, [{doc, "Log IPDR reords for date/time range"}]}].
 
@@ -387,4 +332,111 @@ ipdr_log(_Config) ->
 				Acc
 	end,
 	NumStops = Fchunk(Fchunk, disk_log:chunk(IpdrLog, start), 0) - 2.
+
+get_range() ->
+   [{userdata, [{doc, "Get date/time range from log"}]}].
+
+get_range(_Config) ->
+	Node = node(),
+	ServerAddress = {0, 0, 0, 0},
+	ServerPort = 1813,
+	Server = {ServerAddress, ServerPort},
+	ClientAddress = {192, 168, 151, 153},
+	ClientPort = 59132,
+	Client = {ClientAddress, ClientPort},
+	Type = start,
+	Start = erlang:system_time(?MILLISECOND),
+	Attrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
+			{?UserName, "BE:EF:CA:FE:FE:DE"},
+			{?CallingStationId, "FE-ED-BE-EF-F1-1D"},
+			{?CalledStationId, "CA-FE-AC-EF-CA-FE:AP 1"}, {?AcctAuthentic, 1},
+			{?AcctStatusType, 1}, {?NasIdentifier, "ap-1.sigscale.net"},
+			{?AcctDelayTime, 0}, {?NasIpAddress, ClientAddress}],
+	Event = {radius, Start, Node, Server, Client, Type,
+			[{?AcctSessionId, "1234567890"} | Attrs]},
+	LogInfo = disk_log:info(ocs_acct),
+	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
+	EventSize = erlang:external_size(Event),
+	NumItems = (FileSize div EventSize) * 5,
+	Fill = fun(_F, 0) ->
+				ok;
+			(F, N) ->
+				ocs_log:acct_log(radius, Server, Type,
+						[{?AcctSessionId, integer_to_list(N)} | Attrs]),
+				F(F, N - 1)
+	end,
+	Fill(Fill, NumItems),
+	End = erlang:system_time(?MILLISECOND),
+	Range = (End - Start),
+	StartRange = Start + (Range div 3),
+	EndRange = End - (Range div 3),
+	Result = ocs_log:get_range(ocs_acct, StartRange, EndRange),
+	true = length(Result) > ((NumItems div 3) - (NumItems div 10)),
+	[{?AcctSessionId, ID} | _] = element(7, lists:nth(1, Result)),
+	StartNum = list_to_integer(ID),
+	Fverify = fun({TS, _, radius, _, _, _,  _}, _N)
+					when TS < StartRange, TS > EndRange ->
+				ct:fail(verify);
+			({_, _, _, _, _, _, [{?AcctSessionId, S} | _]}, N) ->
+				case list_to_integer(S) of
+					N ->
+						N - 1;
+					_ ->
+						ct:fail(verify)
+				end;
+			(_, N) ->
+				N
+	end,
+	lists:foldl(Fverify, StartNum, Result).
+
+get_last() ->
+   [{userdata, [{doc, "Get last events from log"}]}].
+
+get_last(_Config) ->
+	FileSize = 1048576,
+	NumFiles = 10,
+	Term = {0, lists:duplicate(250, 0)},
+	AverageSize = erlang:external_size({0, Term}),
+	NumChunkItems = 65536 div AverageSize,
+	{ok, Log} = disk_log:open([{name, make_ref()}, {file, "last"},
+			{type, wrap}, {size, {FileSize, NumFiles}}]),
+	Fill = fun(F, FileNum, ItemNum, 0) ->
+				Info = disk_log:info(Log),
+				case lists:keyfind(current_file, 1, Info) of
+					{current_file, FileNum} ->
+						ItemNum;
+					{current_file, _} ->
+						F(F, FileNum, ItemNum, NumChunkItems)
+				end;
+			(F, FileNum, ItemNum, N) ->
+				NewItemNum = ItemNum + 1,
+				R = rand:uniform(500),
+				Item = {NewItemNum, lists:duplicate(R, 0)},
+				disk_log:log(Log, Item),
+				F(F, FileNum, NewItemNum, N - 1)
+	end,
+	% check with half full wrap log
+	NumTotal1 = Fill(Fill, NumFiles div 2, 0, NumChunkItems),
+	MaxSize = (NumChunkItems * 3) + 25,
+	{MaxSize, Items1} = ocs_log:last(Log, MaxSize),
+	Fcheck = fun({N, _}, N) ->
+				N - 1
+	end,
+	StartItem1 = NumTotal1 - MaxSize,
+	StartItem1 = lists:foldl(Fcheck, NumTotal1, Items1),
+	% check while logging into last wrap file
+	NumTotal2 = Fill(Fill, NumFiles, NumTotal1, NumChunkItems),
+	{MaxSize, Items2} = ocs_log:last(Log, MaxSize),
+	StartItem2 = NumTotal2 - MaxSize,
+	StartItem2 = lists:foldl(Fcheck, NumTotal2, Items2),
+	% check while logging into first file, after turnover
+	NumTotal3 = Fill(Fill, 1, NumTotal2, NumChunkItems),
+	{MaxSize, Items3} = ocs_log:last(Log, MaxSize),
+	StartItem3 = NumTotal3 - MaxSize,
+	StartItem3 = lists:foldl(Fcheck, NumTotal3, Items3),
+	% check while logging into second file, after turnover
+	NumTotal4 = Fill(Fill, 2, NumTotal3, NumChunkItems),
+	{MaxSize, Items4} = ocs_log:last(Log, MaxSize),
+	StartItem4 = NumTotal4 - MaxSize,
+	StartItem4 = lists:foldl(Fcheck, NumTotal4, Items4).
 
