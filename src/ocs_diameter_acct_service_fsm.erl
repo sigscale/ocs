@@ -39,9 +39,11 @@
 -include_lib("diameter/include/diameter.hrl").
 
 -record(statedata,
-		{transport_ref :: undefined | reference()}).
+		{transport_ref :: undefined | reference(),
+		address = inet:ip_address(),
+		port = inet:port_number()}).
 
--define(DIAMETER_ACCT_SERVICE, ocs_diameter_acct_service).
+-define(DIAMETER_ACCT_SERVICE(A, P), {ocs_diameter_acct_service, A, P}).
 -define(BASE_APPLICATION, ocs_diameter_base_application).
 -define(BASE_APPLICATION_ID, 0).
 -define(BASE_APPLICATION_CALLBACK, ocs_diameter_base_application_cb).
@@ -76,13 +78,14 @@ init([Address, Port] = _Args) ->
 	process_flag(trap_exit, true),
 	SOptions = service_options(),
 	TOptions = transport_options(diameter_tcp, Address, Port),
-	SvcName = ?DIAMETER_ACCT_SERVICE,
+	SvcName = ?DIAMETER_ACCT_SERVICE(Address, Port),
 	diameter:subscribe(SvcName),
 	case diameter:start_service(SvcName, SOptions) of
 		ok ->
 			case diameter:add_transport(SvcName, TOptions) of
 				{ok, Ref} ->
-					StateData = #statedata{transport_ref = Ref},
+					StateData = #statedata{transport_ref = Ref, address = Address,
+							port = Port},
 					{ok, wait_for_start, StateData, 0};
 				{error, Reason} ->
 					{stop, Reason}
@@ -218,11 +221,13 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 %% @see //stdlib/gen_fsm:handle_info/3
 %% @private
 %%
-handle_info(#diameter_event{service = ?DIAMETER_ACCT_SERVICE, info = start},
-		wait_for_start = _StateName, StateData) ->
+handle_info(#diameter_event{service = ?DIAMETER_ACCT_SERVICE(Address, Port),
+		info = start}, wait_for_start, #statedata{address = Address,
+		port = Port} = StateData) ->
 	{next_state, started, StateData, 0};
-handle_info(#diameter_event{service = ?DIAMETER_ACCT_SERVICE, info = Event},
-	started = StateName, StateData) ->
+handle_info(#diameter_event{service = ?DIAMETER_ACCT_SERVICE(Address, Port),
+	info = Event}, started = StateName, #statedata{address = Address,
+	port =Port} = StateData) ->
 	change_state(StateName, Event, StateData).
 
 -spec terminate(Reason, StateName, StateData) -> any()
@@ -234,9 +239,9 @@ handle_info(#diameter_event{service = ?DIAMETER_ACCT_SERVICE, info = Event},
 %% @see //stdlib/gen_fsm:terminate/3
 %% @private
 %%
-terminate(_Reason, _StateName,  #statedata{transport_ref = TransRef}=
-		_StateData) ->
-	diameter:remove_transport(?DIAMETER_ACCT_SERVICE, TransRef),
+terminate(_Reason, _StateName,  #statedata{transport_ref = TransRef,
+		address = Address, port = Port}= _StateData) ->
+	diameter:remove_transport(?DIAMETER_ACCT_SERVICE(Address, Port), TransRef),
 	ok.
 
 -spec code_change(OldVsn, StateName, StateData, Extra) -> Result
