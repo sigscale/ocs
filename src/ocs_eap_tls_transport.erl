@@ -51,7 +51,7 @@
 -spec ssl_listen(TlsFsm, Options) ->
 		{ok, TlsRecordLayerSocket} | {error, Reason} when
 	TlsFsm :: pid(),
-	Options :: ssl:options(),
+	Options :: [ssl:ssl_option()],
 	TlsRecordLayerSocket :: ssl:sslsocket(),
 	Reason :: term().
 %% @doc Creates an {@link //ssl/ssl. ssl} listen socket.
