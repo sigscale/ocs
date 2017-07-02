@@ -2081,7 +2081,7 @@ get_auth_usage(_Query) ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	case ocs_log:last(ocs_auth, MaxItems) of
 		{error, _} ->
-			{error, 404};
+			{error, 500};
 		{NewCount, Events} ->
 			JsonObj = usage_aaa_auth(Events),
 			JsonArray = {array, JsonObj},
@@ -2097,7 +2097,7 @@ get_acct_usage(_Query) ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	case ocs_log:last(ocs_acct, MaxItems) of
 		{error, _} ->
-			{error, 404};
+			{error, 500};
 		{NewCount, Events} ->
 			JsonObj = usage_aaa_acct(Events),
 			JsonArray = {array, JsonObj},
