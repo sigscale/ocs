@@ -135,7 +135,8 @@ all() ->
 	get_subscriber_not_found, retrieve_all_subscriber, delete_subscriber,
 	add_client, add_client_without_password, get_client, get_client_id,
 	get_client_bogus, get_client_notfound, get_all_clients, delete_client,
-	get_usagespecs, get_usagespec, get_auth_usage, get_auth_usage_id,
+	get_usagespecs, get_usagespecs_query, get_usagespec,
+	get_auth_usage, get_auth_usage_id,
 	get_acct_usage, get_acct_usage_id, get_ipdr_usage].
 
 %%---------------------------------------------------------------------
@@ -710,6 +711,44 @@ get_usagespecs(Config) ->
 	{_, _} = lists:keyfind("name", 1, UsageSpec),
 	{_, _} = lists:keyfind("validFor", 1, UsageSpec),
 	{_, _} = lists:keyfind("usageSpecCharacteristic", 1, UsageSpec).
+
+get_usagespecs_query() ->
+	[{userdata, [{doc,"Get usageSpecification collection with query"}]}].
+
+get_usagespecs_query(Config) ->
+	HostUrl = ?config(host_url, Config),
+	AcceptValue = "application/json",
+	Accept = {"accept", AcceptValue},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Path = HostUrl ++ "/usageManagement/v1/usageSpecification",
+	Request1 = {Path, [Accept, Authentication]},
+	{ok, Result1} = httpc:request(get, Request1, [], []),
+	{{"HTTP/1.1", 200, _OK}, _Headers1, Body1} = Result1,
+	{array, UsageSpecs} = mochijson:decode(Body1),
+	F1 = fun({struct, UsageSpec1}) ->
+				{_, Type1} = lists:keyfind("name", 1, UsageSpec1),
+				Type1
+	end,
+	Types = lists:map(F1, UsageSpecs),
+	F2 = fun(Type2) ->
+				Request2 = {Path ++ "?name=" ++ Type2, [Accept, Authentication]},
+				{ok, Result2} = httpc:request(get, Request2, [], []),
+				{{"HTTP/1.1", 200, _OK}, Headers2, Body2} = Result2,
+				{_, AcceptValue} = lists:keyfind("content-type", 1, Headers2),
+				ContentLength2 = integer_to_list(length(Body2)),
+				{_, ContentLength2} = lists:keyfind("content-length", 1, Headers2),
+				{array, [{struct, UsageSpec2}]} = mochijson:decode(Body2),
+				{_, _} = lists:keyfind("id", 1, UsageSpec2),
+				{_, _} = lists:keyfind("href", 1, UsageSpec2),
+				{_, Type2} = lists:keyfind("name", 1, UsageSpec2),
+				{_, _} = lists:keyfind("validFor", 1, UsageSpec2),
+				{_, _} = lists:keyfind("usageSpecCharacteristic", 1, UsageSpec2)
+	end,
+	lists:foreach(F2, Types).
 
 get_usagespec() ->
 	[{userdata, [{doc,"Get a TMF635 usage specification"}]}].

@@ -105,11 +105,11 @@ do_get(Resource, ModData, ["usageManagement", "v1", "usage"], Query) ->
 do_get(Resource, ModData, ["usageManagement", "v1", "usage", Id], Query) ->
 	do_response(ModData, Resource:get_usage(Id, Query));
 do_get(Resource, ModData,
-		["usageManagement", "v1", "usageSpecification"], []) ->
-	do_response(ModData, Resource:get_usagespec());
+		["usageManagement", "v1", "usageSpecification"], Query) ->
+	do_response(ModData, Resource:get_usagespec(Query));
 do_get(Resource, ModData,
-		["usageManagement", "v1", "usageSpecification", Id], []) ->
-	do_response(ModData, Resource:get_usagespec(Id));
+		["usageManagement", "v1", "usageSpecification", Id], Query) ->
+	do_response(ModData, Resource:get_usagespec(Id, Query));
 do_get(Resource, ModData, ["ocs", "v1", "log", "access"], []) ->
 	do_response(ModData, Resource:get_access());
 do_get(Resource, ModData, ["ocs", "v1", "log", "accounting"], []) ->

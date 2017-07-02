@@ -78,7 +78,7 @@ get_usage(Query) ->
 %% @doc Body producing function for
 %% 	`GET /usageManagement/v1/usage/{id}'
 %% 	requests.
-get_usage("auth-" ++ _ = Id, _Query) ->
+get_usage("auth-" ++ _ = Id, [] = _Query) ->
 	try
 		["auth", TimeStamp, Serial] = string:tokens(Id, [$-]),
 		TS = list_to_integer(TimeStamp),
@@ -92,7 +92,7 @@ get_usage("auth-" ++ _ = Id, _Query) ->
 		_:_Reason ->
 			{error, 404}
 	end;
-get_usage("acct-" ++ _ = Id, _Query) ->
+get_usage("acct-" ++ _ = Id, [] = _Query) ->
 	try
 		["acct", TimeStamp, Serial] = string:tokens(Id, [$-]),
 		TS = list_to_integer(TimeStamp),
@@ -106,7 +106,7 @@ get_usage("acct-" ++ _ = Id, _Query) ->
 		_:_Reason ->
 			{error, 404}
 	end;
-get_usage(Id, _Query) ->
+get_usage(Id, [] = _Query) ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
 	FileName = Directory ++ "/" ++ Id,
@@ -123,7 +123,30 @@ get_usagespec([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
 	Body = mochijson:encode({array, [spec_aaa_auth(),
 			spec_aaa_acct(), spec_public_wlan()]}),
-	{ok, Headers, Body}.
+	{ok, Headers, Body};
+get_usagespec(Query) ->
+	Headers = [{content_type, "application/json"}],
+	case lists:keytake("name", 1, Query) of
+		{_, {_, "AAAAccessUsageSpec"}, []} ->
+			Body = mochijson:encode({array, [spec_aaa_auth()]}),
+			{ok, Headers, Body};
+		{_, {_, "AAAAccessUsageSpec"}, _} ->
+			{error, 400};
+		{_, {_, "AAAAccountingUsageSpec"}, []} ->
+			Body = mochijson:encode({array, [spec_aaa_acct()]}),
+			{ok, Headers, Body};
+		{_, {_, "AAAAccountingUsageSpec"}, _} ->
+			{error, 400};
+		{_, {_, "PublicWLANAccessUsageSpec"}, []} ->
+			Body = mochijson:encode({array, [spec_public_wlan()]}),
+			{ok, Headers, Body};
+		{_, {_, "PublicWLANAccessUsageSpec"}, _} ->
+			{error, 400};
+		false ->
+			{error, 404};
+		_ ->
+			{error, 400}
+	end.
 
 -spec get_usagespec(Id, Query) -> Result
 	when
@@ -138,14 +161,20 @@ get_usagespec("AAAAccessUsageSpec", [] = _Query) ->
 	Headers = [{content_type, "application/json"}],
 	Body = mochijson:encode(spec_aaa_auth()),
 	{ok, Headers, Body};
+get_usagespec("AAAAccessUsageSpec", _Query) ->
+	{error, 400};
 get_usagespec("AAAAccountingUsageSpec", [] = _Query) ->
 	Headers = [{content_type, "application/json"}],
 	Body = mochijson:encode(spec_aaa_acct()),
 	{ok, Headers, Body};
+get_usagespec("AAAAccountingUsageSpec", _Query) ->
+	{error, 400};
 get_usagespec("PublicWLANAccessUsageSpec", [] = _Query) ->
 	Headers = [{content_type, "application/json"}],
 	Body = mochijson:encode(spec_public_wlan()),
 	{ok, Headers, Body};
+get_usagespec("PublicWLANAccessUsageSpec", _Query) ->
+	{error, 400};
 get_usagespec(_Id, _Query) ->
 	{error, 404}.
 
