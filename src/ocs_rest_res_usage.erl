@@ -59,36 +59,16 @@ get_usage([] = _Query) ->
 		{error, _Reason} ->
 			{error, 500}
 	end;
-get_usage([{"type", "AAAAccessUsage"}]) ->
-	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
-	case ocs_log:last(ocs_auth, MaxItems) of
-		{error, _} ->
-			{error, 404};
-		{NewCount, Events} ->
-			JsonObj = usage_aaa_auth(Events),
-			JsonArray = {array, JsonObj},
-			Body = mochijson:encode(JsonArray),
-			ContentRange = "items 1-" ++ integer_to_list(NewCount) ++ "/*",
-			Headers = [{content_type, "application/json"},
-					{content_range, ContentRange}],
-			{ok, Headers, Body}
-	end;
-get_usage([{"type", "AAAAccountingUsage"}]) ->
-	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
-	case ocs_log:last(ocs_acct, MaxItems) of
-		{error, _} ->
-			{error, 404};
-		{NewCount, Events} ->
-			JsonObj = usage_aaa_acct(Events),
-			JsonArray = {array, JsonObj},
-			Body = mochijson:encode(JsonArray),
-			ContentRange = "items 1-" ++ integer_to_list(NewCount) ++ "/*",
-			Headers = [{content_type, "application/json"},
-					{content_range, ContentRange}],
-			{ok, Headers, Body}
-	end;
-get_usage(_Query) ->
-	{error, 404}.
+get_usage(Query) ->
+erlang:display({?MODULE, ?LINE, Query}),
+	case lists:keyfind("type", 1, Query) of
+		{_, "AAAAccessUsage"} ->
+			get_auth_usage(Query);
+		{_, "AAAAccountingUsage"} ->
+			get_acct_usage(Query);
+		_ ->
+			{error, 404}
+	end.
 
 -spec get_usage(Id, Query) -> Result
 	when
@@ -2094,5 +2074,37 @@ char_attr_cause(Attributes, Acc) ->
 			[{struct, [{name, "acctTerminateCause"}, {value, Cause}]} | Acc];
 		{error, not_found} ->
 			Acc
+	end.
+
+%% @hidden
+get_auth_usage(_Query) ->
+	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
+	case ocs_log:last(ocs_auth, MaxItems) of
+		{error, _} ->
+			{error, 404};
+		{NewCount, Events} ->
+			JsonObj = usage_aaa_auth(Events),
+			JsonArray = {array, JsonObj},
+			Body = mochijson:encode(JsonArray),
+			ContentRange = "items 1-" ++ integer_to_list(NewCount) ++ "/*",
+			Headers = [{content_type, "application/json"},
+					{content_range, ContentRange}],
+			{ok, Headers, Body}
+	end.
+
+%% @hidden
+get_acct_usage(_Query) ->
+	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
+	case ocs_log:last(ocs_acct, MaxItems) of
+		{error, _} ->
+			{error, 404};
+		{NewCount, Events} ->
+			JsonObj = usage_aaa_acct(Events),
+			JsonArray = {array, JsonObj},
+			Body = mochijson:encode(JsonArray),
+			ContentRange = "items 1-" ++ integer_to_list(NewCount) ++ "/*",
+			Headers = [{content_type, "application/json"},
+					{content_range, ContentRange}],
+			{ok, Headers, Body}
 	end.
 
