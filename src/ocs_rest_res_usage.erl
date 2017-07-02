@@ -21,7 +21,7 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
-		get_usage/1, get_usage/2, get_usagespec/0, get_usagespec/1]).
+		get_usage/1, get_usage/2, get_usagespec/1, get_usagespec/2]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs_log.hrl").
@@ -60,12 +60,11 @@ get_usage([] = _Query) ->
 			{error, 500}
 	end;
 get_usage(Query) ->
-erlang:display({?MODULE, ?LINE, Query}),
 	case lists:keyfind("type", 1, Query) of
 		{_, "AAAAccessUsage"} ->
-			get_auth_usage(Query);
+			get_auth_usage(lists:keydelete("type", 1, Query));
 		{_, "AAAAccountingUsage"} ->
-			get_acct_usage(Query);
+			get_acct_usage(lists:keydelete("type", 1, Query));
 		_ ->
 			{error, 404}
 	end.
@@ -113,39 +112,41 @@ get_usage(Id, _Query) ->
 	FileName = Directory ++ "/" ++ Id,
 	read_ipdr(FileName, MaxItems).
 	
--spec get_usagespec() -> Result
+-spec get_usagespec(Query) -> Result
 	when
+		Query :: [{Key :: string(), Value :: string()}],
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}.
 %% @doc Body producing function for
 %% 	`GET /usageManagement/v1/usageSpecification'
 %% 	requests.
-get_usagespec() ->
+get_usagespec([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
 	Body = mochijson:encode({array, [spec_aaa_auth(),
 			spec_aaa_acct(), spec_public_wlan()]}),
 	{ok, Headers, Body}.
 
--spec get_usagespec(Id) -> Result
+-spec get_usagespec(Id, Query) -> Result
 	when
 		Id :: string(),
+		Query :: [{Key :: string(), Value :: string()}],
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
 %% 	`GET /usageManagement/v1/usageSpecification/{id}'
 %% 	requests.
-get_usagespec("AAAAccessUsageSpec") ->
+get_usagespec("AAAAccessUsageSpec", [] = _Query) ->
 	Headers = [{content_type, "application/json"}],
 	Body = mochijson:encode(spec_aaa_auth()),
 	{ok, Headers, Body};
-get_usagespec("AAAAccountingUsageSpec") ->
+get_usagespec("AAAAccountingUsageSpec", [] = _Query) ->
 	Headers = [{content_type, "application/json"}],
 	Body = mochijson:encode(spec_aaa_acct()),
 	{ok, Headers, Body};
-get_usagespec("PublicWLANAccessUsageSpec") ->
+get_usagespec("PublicWLANAccessUsageSpec", [] = _Query) ->
 	Headers = [{content_type, "application/json"}],
 	Body = mochijson:encode(spec_public_wlan()),
 	{ok, Headers, Body};
-get_usagespec(_Id) ->
+get_usagespec(_Id, _Query) ->
 	{error, 404}.
 
 %%----------------------------------------------------------------------
@@ -2077,7 +2078,7 @@ char_attr_cause(Attributes, Acc) ->
 	end.
 
 %% @hidden
-get_auth_usage(_Query) ->
+get_auth_usage([] = _Query) ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	case ocs_log:last(ocs_auth, MaxItems) of
 		{error, _} ->
@@ -2090,10 +2091,12 @@ get_auth_usage(_Query) ->
 			Headers = [{content_type, "application/json"},
 					{content_range, ContentRange}],
 			{ok, Headers, Body}
-	end.
+	end;
+get_auth_usage(_Query) ->
+	{error, 400}.
 
 %% @hidden
-get_acct_usage(_Query) ->
+get_acct_usage([] = _Query) ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	case ocs_log:last(ocs_acct, MaxItems) of
 		{error, _} ->
@@ -2106,5 +2109,7 @@ get_acct_usage(_Query) ->
 			Headers = [{content_type, "application/json"},
 					{content_range, ContentRange}],
 			{ok, Headers, Body}
-	end.
+	end;
+get_acct_usage(_Query) ->
+	{error, 400}.
 
