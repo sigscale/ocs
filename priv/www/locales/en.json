@@ -101,7 +101,7 @@
   },
 	"AddTitle": {
     "description": "Title for adding subscribers",         
-    "message": "Add subscriber"
+    "message": "Add Subscriber"
   },
 	"AuthTitle": {
     "description": "Title for adding subscribers",
@@ -221,7 +221,7 @@
   },
    "close": {
     "description": "Button for close",
-    "message": "close"
+    "message": "Close"
   },
 	"propTitle": {
     "description": "Properties title for update client",
