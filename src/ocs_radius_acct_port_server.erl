@@ -271,8 +271,17 @@ request1(?AccountingStop, AcctSessionId, Id,
 	Subscriber = ocs:normalize(UserName),
 	case decrement_balance(Subscriber, Usage) of
 		{ok, OverUsed, false} when OverUsed =< 0 ->
-			start_disconnect(AcctSessionId, Id, Authenticator, Secret, ListenPort,
-					NasId, Address, Attributes, Subscriber, State);
+			case client_disconnect_supported(Address) of
+				true ->
+					start_disconnect(AcctSessionId, Id, Authenticator, Secret,
+							ListenPort, NasId, Address, Attributes, Subscriber, State);
+				false ->
+					error_logger:warning_report(["Client does not support disconnect mesages",
+							{module, ?MODULE}, {subscriber, Subscriber},
+							{username, UserName}, {nas, NasId}, {address, Address},
+							{session, AcctSessionId}]),
+					{reply, {ok, response(Id, Authenticator, Secret)}, State}
+			end;
 		{ok, _SufficientBalance, _Flag} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{error, not_found} ->
@@ -298,8 +307,13 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 	Subscriber = ocs:normalize(UserName),
 	case ocs:find_subscriber(Subscriber) of
 		{ok, _, _, Balance, Enabled} when Enabled == false; Balance =< Usage ->
-			start_disconnect(AcctSessionId, Id, Authenticator, Secret, ListenPort,
-					NasId, Address, Attributes, Subscriber, State);
+			case client_disconnect_supported(Address) of
+				true ->
+					start_disconnect(AcctSessionId, Id, Authenticator, Secret,
+							ListenPort, NasId, Address, Attributes, Subscriber, State);
+				false ->
+					{reply, {ok, response(Id, Authenticator, Secret)}, State}
+			end;
 		{ok, _, _, _, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{error, not_found} ->
@@ -412,3 +426,20 @@ start_disconnect(AcctSessionId, Id, Authenticator, Secret, ListenPort,
 					{reply, {ok, response(Id, Authenticator, Secret)}, State}
 			end
 	end.
+
+-spec client_disconnect_supported(Client) -> Result
+	when
+		Client :: inet:ip_address(),
+		Result :: boolean().
+%% @doc Checks whether the client supports receiving RADIUS disconnect messages.
+%% Value of 0 in port field in client table indicates that the client does not
+%% support disconnect messages.
+client_disconnect_supported(Client) ->
+	{ok, #client{port = Port}} = ocs:find_client(Client),
+		case Port of
+			0 ->
+				false;
+			_ ->
+				true
+		end.
+
