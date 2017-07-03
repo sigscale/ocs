@@ -34,6 +34,8 @@
 		:root {
 			@apply(--paper-font-common-base);
 		}
+		app-header-layout {
+		}
 		app-header {
 			color: #fff;
 		}
@@ -67,7 +69,7 @@
 		}
 	</style>
 	<template>
-		<app-header-layout>
+		<app-header-layout fullbleed>
 			<app-header>
 				<app-toolbar>
 					<paper-icon-button
@@ -206,6 +208,7 @@
 					'pageSelection.iron-select': 'loadElement'
 				},
 				loadElement: function(event) {
+console.log(event.detail.item);
 					switch(event.detail.item.getAttribute('id')) {
 						case 'page0':
 							this.$.loadPage.selected = 0;
