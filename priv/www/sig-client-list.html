@@ -119,11 +119,9 @@
 		</paper-toast>
 		<iron-ajax
 				id="getClients"
-					auto=false
 					url="/ocs/v1/client"
 					headers='{"Accept": "application/json"}'
-					on-response="getClientsResponse"
-					debounce-duration="10">
+					on-response="getClientsResponse">
 		</iron-ajax>
 	</template>
 	<script>

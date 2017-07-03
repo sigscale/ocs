@@ -50,18 +50,15 @@
 			</div>
 		</paper-dialog>
 		<iron-ajax id="getLogsAjax"
-				auto
 				url="/usageManagement/v1/usage"
 				method = "GET"
 				headers='{"Accept": "application/json"}'
-				on-response="getLogsResponse"
-				debounce-duration="300">
+				on-response="getLogsResponse">
 		</iron-ajax>
 		<iron-ajax id="getIpdr"
 				headers='{"Accept": "application/json"}'
 				on-loading-changed="_onLoadingChanged"
-				on-response="getLogContentResponse"
-				debounce-duration="0">
+				on-response="getLogContentResponse">
 		</iron-ajax>
 	</template>
 	<script>

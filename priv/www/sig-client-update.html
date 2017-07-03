@@ -177,22 +177,16 @@
 			</iron-pages>
 		</paper-dialog>
 		<iron-ajax id="updateClientAuthen"
-				auto=true
 				headers='{"Accept": "application/json", "Content-type": "application/json"}'
-				on-response="updateClientAuthenResponse"
-				debounce-duration="300">
+				on-response="updateClientAuthenResponse">
 		</iron-ajax>
 		<iron-ajax id="updateClientProperties"
-				auto=true
 				headers='{"Accept": "application/json", "Content-type": "application/json"}'
-				on-response="updateClientPropertiesResponse"
-				debounce-duration="300">
+				on-response="updateClientPropertiesResponse">
 		</iron-ajax>
 		<iron-ajax id="deleteClient"
-				auto=false
 				handle-as="json"
-				on-response="deleteClientResponse"
-				debounce-duration="300">
+				on-response="deleteClientResponse">
 		</iron-ajax>
 	</template>
 	<script>
@@ -215,6 +209,7 @@
 					var client = new Object();
 					client.secret = document.getElementById("edit-client-new-pwd").value;
 					editAjax.body = client;
+					editAjax.generateRequest();
 				},
 				updateClientAuthenResponse: function (event) {
 					if (event.detail.succeeded) {

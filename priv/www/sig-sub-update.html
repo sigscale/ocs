@@ -223,22 +223,16 @@
 			</iron-pages>
 		</paper-dialog>
 		<iron-ajax id="updateSubAuthen"
-				auto=true
 				headers='{"Accept": "application/json", "Content-type": "application/json"}'
-				on-response="updateSubAuthenResponse"
-				debounce-duration="300">
+				on-response="updateSubAuthenResponse">
 		</iron-ajax>
 		<iron-ajax id="updateSubAutho"
-				auto=true
 				headers='{"Accept": "application/json", "Content-type": "application/json"}'
-				on-response="updateSubAuthoResponse"
-				debounce-duration="300">
+				on-response="updateSubAuthoResponse">
 		</iron-ajax>
 		<iron-ajax id="deleteSub"
-				auto=false
 				handle-as="json"
-				on-response="deleteSubResponse"
-				debounce-duration="300">
+				on-response="deleteSubResponse">
 		</iron-ajax>
 	</template>
 	<script>
@@ -262,6 +256,7 @@
 					sub.update = "password";
 					sub.newpassword = document.getElementById("edit-new-pwd").value;
 					editAjax.body = sub;
+					editAjax.generateRequest();
 				},
 				updateSubAuthenResponse: function (event) {
 					if(event.detail.succeeded) {
@@ -316,6 +311,7 @@
 					sub.attributes = attr;
 					sub.enabled= document.getElementById("edit-enabled").checked;
 					editAjax.body = sub;
+					editAjax.generateRequest();
 				},
 				updateSubAuthoResponse: function (event) {
 					if(event.detail.succeeded) {
