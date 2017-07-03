@@ -5,6 +5,9 @@
 <link rel="import" href="paper-dialog/paper-dialog.html">
 <link rel="import" href="paper-dropdown-menu/paper-dropdown-menu.html">
 <link rel="import" href="paper-listbox/paper-listbox.html">
+<link rel="import" href="paper-item/paper-item.html">
+<link rel="import" href="paper-item/paper-icon-item.html">
+<link rel="import" href="paper-item/paper-item-body.html">
 <link rel="import" href="paper-toolbar/paper-toolbar.html">
 <link rel="import" href="paper-input/paper-input.html">
 <link rel="import" href="paper-button/paper-button.html">
@@ -13,6 +16,8 @@
 <link rel="import" href="paper-toast/paper-toast.html">
 <link rel="import" href="paper-styles/color.html">
 <link rel="import" href="paper-checkbox/paper-checkbox.html">
+<link rel="import" href="iron-icons/iron-icons.html">
+<link rel="import" href="iron-icons/communication-icons.html">
 
 <dom-module id="sig-client-add">
 	<style is="custom-style">
@@ -20,12 +25,15 @@
 			padding: 10px;
 			overflow: auto;
 		}
-		paper-item {
-			padding-right: 10px;
-		}
 		paper-toolbar{
 			color: white;
 			background-color: #bc5100;
+		}
+		paper-item-body {
+			--paper-item-body-secondary: {
+				font-weight: bold;
+				font-size: larger;
+			}
 		}
 		paper-toast.error {
 			background-color: var(--paper-red-a400);
@@ -102,7 +110,7 @@
 				</paper-input>
 				<paper-tooltip>
 					<i18n-msg msgid="secretTooltip">
-						Secret, or password, shared with the network access server, router or access point.
+						Secret shared with the network access server, router or access point.
 					</i18n-msg>
 				</paper-tooltip>
 				<div class="generate">
@@ -161,14 +169,24 @@
 			<paper-toolbar>
 				<h2>[[i18n.serverGen]]</h2>
 			</paper-toolbar>
-				<paper-item>[[i18n.secretCol]]<b>[[secret]]</b></paper-item>
-				<div class="close">
-					<paper-button dialog-confirm autofocus>
-						<i18n-msg msgid="close">
-							Close
-						</i18n-msg>
-					</paper-button>
-				</div>
+			<paper-icon-item>
+				<paper-item-body two-line>
+					<div>
+						<iron-icon icon="communication:vpn-key" item-icon></iron-icon>
+						[[i18n.secret]]&#58;
+					</div>
+					<div secondary>
+						[[secret]]
+					</div>
+				</paper-item-body>
+			</paper-icon-item>
+			<div class="close">
+				<paper-button dialog-confirm autofocus>
+					<i18n-msg msgid="close">
+						Close
+					</i18n-msg>
+				</paper-button>
+			</div>
 		</paper-dialog>
 		<iron-ajax
 				id="clientAddAjax"

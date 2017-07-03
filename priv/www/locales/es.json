@@ -35,11 +35,11 @@
     "description": "Identity of subscribers",
     "message": "Identidad"
   },
-  "pass": {
+  "password": {
     "description": "Password of subscribers", 
     "message": "Contraseña"
   },
-  "bal": {
+  "balance": {
     "description": "Balance of subscribers", 
     "message": "Equilibrar"
   },
@@ -67,9 +67,9 @@
     "description": "Generate Password or identity for adding subscribers", 
     "message": "Generar"
   },
-  "secret": {
+  "password": {
     "description": "Password for adding subscribers", 
-    "message": "Secreto"
+    "message": "Contraseña"
   },
   "recieve": {
     "description": "Receive Data Rate for adding subscribers", 
@@ -208,8 +208,8 @@
     "message": "El servidor de acceso a red de puerto, el router o el punto de acceso"
   },
 	"secretTooltip": {
-    "description": "Tooltip message of Secret",
-    "message": "Secreto o contraseña, compartida con el servidor de acceso a la red, el enrutador o el punto de acceso."
+    "description": "Tooltip message of client secret",
+    "message": "Secreto compartida con el servidor de acceso a la red, el enrutador o el punto de acceso."
   },
 	"clientAdded": {
     "description": "Success Toast Message",
@@ -223,10 +223,6 @@
     "description": "button for close",
     "message": "cerca"
   },
-  "secretCol": {
-    "description": "Submit button for adding subscribers",
-    "message": "Secreto:"
-  },
    "propTitle": {
     "description": "Properties title for update client",
     "message": "Propiedades"
@@ -235,9 +231,9 @@
     "description": "Tooltip message for authenticate client",
     "message": "Credenciales utilizadas para autenticar el servidor de acceso a la red, el enrutador o el punto de acceso."
   },
-	"newSecretClientTool": {
-    "description": "Tooltip message update new password",
-    "message": "Secreto o contraseña, compartida con el servidor de acceso a la red, el enrutador o el punto de acceso."
+	"authorClientTool": {
+    "description": "Tooltip message for authorization client",
+    "message": "Propiedades del servidor de acceso a la red, el router o el cliente de puntero de acceso."
   },
 	"port": {
     "description": "port for client",
@@ -387,12 +383,8 @@
     "description": "Toast message for success",
     "message": "Suscriptor añadido!"
   },
-	"identityCol": {
+	"identity": {
     "description": "Identity label for generate identity",
-    "message": "Identidad:"
-  },
-	"authorClientTool": {
-    "description": "Tooltip message for authorization client",
-    "message": "Propiedades del servidor de acceso a la red, el router o el cliente de puntero de acceso."
+    "message": "Identidad"
   }
 }

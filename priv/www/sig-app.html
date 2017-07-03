@@ -9,7 +9,7 @@
 <link rel="import" href="iron-selector/iron-selector.html">
 <link rel="import" href="paper-menu/paper-menu.html"/>
 <link rel="import" href="paper-menu/paper-submenu.html" />
-<link rel="import" href="paper-item/paper-item.html" />
+<link rel="import" href="paper-item/paper-icon-item.html">
 <link rel="import" href="paper-icon-button/paper-icon-button.html">
 <link rel="import" href="paper-progress/paper-progress.html">
 <link rel="import" href="paper-styles/typography.html">
@@ -49,9 +49,6 @@
 			height: 100%;
 			top: 64px;
 		}
-		paper-item {
-			padding-right: 10px;
-		}
 		paper-progress {
 			display: block;
 			width: 100%;
@@ -64,7 +61,7 @@
 		iron-icon {
 			padding-right: 10px;
 		}
-		.sublist paper-item {
+		.sublist paper-icon-item {
 			padding-left: 30px;
 		}
 	</style>
@@ -119,69 +116,69 @@
 							class="drawer-list"
 							role="navigation">
 						<paper-menu id="menu">
-							<paper-item
+							<paper-icon-item
 									id="page0"
 									onclick="drawer.toggle()"
 									class="menuitem">
-								<iron-icon icon ="device:devices"></iron-icon>
-									<i18n-msg msgid="subs">
-										Subscribers
-									</i18n-msg>
-							</paper-item>
-							<paper-item
+								<iron-icon icon="device:devices" item-icon></iron-icon>
+								<i18n-msg msgid="subs">
+									Subscribers
+								</i18n-msg>
+							</paper-icon-item>
+							<paper-icon-item
 									id="page1"
 									onclick="drawer.toggle()"
 									class="menuitem">
-								<iron-icon icon ="hardware:router"></iron-icon>
+								<iron-icon icon="hardware:router" item-icon></iron-icon>
 									<i18n-msg msgid="clients">
 										Clients
 									</i18n-msg>
-							</paper-item>
+							</paper-icon-item>
 							<paper-submenu>
-								<paper-item
+								<paper-icon-item
 										class="menu-trigger menuitem">
-									<iron-icon icon ="icons:history"></iron-icon>
+									<iron-icon icon="icons:history" item-icon></iron-icon>
 										<i18n-msg msgid="logs">
 											Logs
 										</i18n-msg>
-								</paper-item>
+								</paper-icon-item>
 								<paper-menu class="menu-content sublist">
-									<paper-item
+									<paper-icon-item
 											id="page3"
 											onclick="drawer.toggle()"
 											class="menuitem">
-										<iron-icon icon ="device:data-usage"></iron-icon>
+										<iron-icon icon="device:data-usage" item-icon></iron-icon>
 											<i18n-msg msgid="access">
 												Access
 											</i18n-msg>
-									</paper-item>
-									<paper-item
+									</paper-icon-item>
+									<paper-icon-item
 											id="page4"
 											onclick="drawer.toggle()"
 											class="menuitem">
-										<iron-icon icon ="device:data-usage"></iron-icon>
+										<iron-icon icon ="device:data-usage" item-icon></iron-icon>
 											<i18n-msg msgid="accounting">
 												Accounting
 											</i18n-msg>
-									</paper-item>
-									<paper-item
+									</paper-icon-item>
+									<paper-icon-item
 											id="page2"
 											onclick="drawer.toggle()"
 											class="menuitem">
-										<iron-icon icon ="device:data-usage"></iron-icon>
+										<iron-icon icon ="device:data-usage" item-icon></iron-icon>
 											<i18n-msg msgid="ipdr">
 												IPDR
 											</i18n-msg>
-									</paper-item>
-									<paper-item
+									</paper-icon-item>
+									<paper-icon-item
 											id="page5"
 											onclick="drawer.toggle()"
 											class="menuitem">
-										<iron-icon icon ="device:data-usage"></iron-icon>
+										<iron-icon icon ="device:data-usage" item-icon></iron-icon>
 											<i18n-msg msgid="http">
 												HTTP
 											</i18n-msg>
-									</paper-item>
+									</paper-icon-item>
 								</paper-menu>
 							</paper-submenu>
 						</paper-menu>

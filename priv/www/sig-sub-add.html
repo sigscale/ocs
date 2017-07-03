@@ -4,6 +4,8 @@
 <link rel="import" href="paper-dialog/paper-dialog.html">
 <link rel="import" href="paper-toolbar/paper-toolbar.html">
 <link rel="import" href="paper-input/paper-input.html">
+<link rel="import" href="paper-item/paper-icon-item.html">
+<link rel="import" href="paper-item/paper-item-body.html">
 <link rel="import" href="paper-tooltip/paper-tooltip.html">
 <link rel="import" href="paper-button/paper-button.html">
 <link rel="import" href="paper-toggle-button/paper-toggle-button.html" >
@@ -11,6 +13,8 @@
 <link rel="import" href="paper-styles/color.html">
 <link rel="import" href="iron-ajax/iron-ajax.html">
 <link rel="import" href="paper-checkbox/paper-checkbox.html">
+<link rel="import" href="iron-icons/iron-icons.html">
+<link rel="import" href="iron-icons/communication-icons.html">
 
 <dom-module id="sig-sub-add">
 	<style is="custom-style">
@@ -18,12 +22,15 @@
 			padding: 10px;
 			overflow: auto;
 		}
-		paper-item {
-			padding-right: 10px;
-		}
 		paper-toolbar {
 			color: white;
 			background-color: #bc5100;
+		}
+		paper-item-body {
+			--paper-item-body-secondary: {
+				font-weight: bold;
+				font-size: larger;
+			}
 		}
 		paper-toast.error {
 			background-color: var(--paper-red-a400);
@@ -43,7 +50,7 @@
 		.identity {
 			display: inline-block;
 		}
-		.secret {
+		.password {
 			display: inline-block;
 		}
 		.add-button {
@@ -94,13 +101,13 @@
 				</div>
 				<div>
 					<paper-input id="add2"
-							class="secret"
+							class="password"
 							name="password"
-							label="[[i18n.secret]]">
+							label="[[i18n.password]]">
 					</paper-input>
 					<paper-tooltip>
-						<i18n-msg msgid="secretTooltip">
-							Secret, or password, shared only with the subscriber
+						<i18n-msg msgid="passwordTooltip">
+							Secret password shared only with the subscriber
 						</i18n-msg>
 					</paper-tooltip>
 					<div class="generate">
@@ -239,8 +246,28 @@
 				<paper-toolbar>
 					<h2>[[i18n.serverGen]]</h2>
 				</paper-toolbar>
-				<paper-item>[[i18n.identityCol]]<b>[[id]]</b></paper-item>
-				<paper-item>[[i18n.secretCol]]<b>[[password]]</b></paper-item>
+				<paper-icon-item>
+					<paper-item-body two-line>
+						<div>
+							<iron-icon icon="icons:perm-identity" item-icon></iron-icon>
+							[[i18n.identity]]&#58;
+						</div>
+						<div secondary>
+							[[identity]]
+						</div>
+					</paper-item-body>
+				</paper-icon-item>
+				<paper-icon-item>
+					<paper-item-body two-line>
+						<div>
+							<iron-icon icon="communication:vpn-key" item-icon></iron-icon>
+							[[i18n.password]]&#58;
+						</div>
+						<div secondary>
+							[[password]]
+						</div>
+					</paper-item-body>
+				</paper-icon-item>
 				<div class="close">
 					<paper-button dialog-confirm autofocus>
 						<i18n-msg msgid="close">
@@ -272,7 +299,7 @@
 				behaviors: [i18nMsgBehavior],
 				properties: {
 					password: String,
-					id: String
+					identity: String
 				},
 				listeners: {
 					'toastErrorClose.on-click': 'closeToast',
@@ -331,7 +358,7 @@
 					var ajax = document.getElementById("subAddAjax");
 					if (ajax.body.password == undefined || ajax.body.id == undefined) {
 						this.password = ajax.lastResponse.password;
-						this.id = ajax.lastResponse.id;
+						this.identity = ajax.lastResponse.id;
 						document.getElementById("subSecretModal").open();
 					}
 					document.getElementById("getSubs").generateRequest();

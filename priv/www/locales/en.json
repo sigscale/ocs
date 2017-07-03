@@ -32,14 +32,14 @@
     "message": "HTTP"
   },
   "identity": {
-    "description": "Identity of subscribers",
+    "description": "Identity/username of subscriber",
     "message": "Identity"
   },
-  "pass": {
+  "password": {
     "description": "Password of subscribers",
     "message": "Password"
   },
-  "bal": {
+  "balance": {
     "description": "Balance of subscribers",
     "message": "Balance"
 	},
@@ -66,10 +66,6 @@
   "gen": {
     "description": "Generate Password or identity for adding subscribers",
     "message": "Generate"
-  },
-  "secret": {
-    "description": "Password for adding subscribers",
-    "message": "Secret"
   },
   "recieve": {
     "description": "Receive Data Rate for adding subscribers",
@@ -125,11 +121,11 @@
   },
 	"newpass": {
     "description": "New password for update",           
-    "message": "New Secret"
+    "message": "New Password"
   },
 	"newpassError": {
     "description": "New password error message for update",
-    "message": "New secret can't be empty!"
+    "message": "New password can't be empty!"
   },
 	"update": {
     "description": "Update button for update",             
@@ -208,24 +204,24 @@
     "message": "Port network access server, router or access point listens on"
   },
 	"secretTooltip": {
-    "description": "Tooltip message of Secret",
-    "message": "Secret, or password, shared with the network access server, router or access point."
+    "description": "Tooltip message of client secret",
+    "message": "Secret shared with the network access server, router or access point."
   },
    "clientAdded": {
     "description": "Success Toast Message",
     "message": "Client Added"
   },
 	"serverGen": {
-    "description": "Title of generate password",
+    "description": "Title of server generated identity/password dialog.",
     "message": "Server Generated"
   },
-   "close": {
-    "description": "button for close",
-    "message": "close"
+	"secret": {
+    "description": "Client shared secret.",
+    "message": "Secret"
   },
-  "secretCol": {
-    "description": "Submit button for adding subscribers",
-    "message": "Secret:"
+   "close": {
+    "description": "Button for close",
+    "message": "close"
   },
 	"propTitle": {
     "description": "Properties title for update client",
@@ -238,10 +234,6 @@
 	"authorClientTool": {
     "description": "Tooltip message for authorization client",
     "message": "Properties of network access server, router or access pointor client."
-  },
-	"newSecretClientTool": {
-    "description": "Tooltip message update new password",
-    "message": "Secret, or password, shared with the network access server, router or access point."
   },
 	"port": {
     "description": "port for client",
@@ -394,9 +386,5 @@
 	"subToastSuc": {
     "description": "Toast message for success",
     "message": "Subscriber added!"
-  },
-	"identityCol": {
-    "description": "Identity label for generate identity",
-    "message": "Identity:"
   }
 }
