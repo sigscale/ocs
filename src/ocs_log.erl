@@ -215,7 +215,7 @@ acct_query1(Start, End, Protocol, Types, AttrsMatch,
 		{Attribute, _} when Match == '_' ->
 			acct_query1(Start, End, Protocol, Types, AttrsMatch,
 					{Cont, Chunk}, Acc, T1);
-		false ->
+		_ ->
 			acct_query(Start, End, Protocol, Types, AttrsMatch, {Cont, T}, Acc)
 	end;
 acct_query1(Start, End, Protocol, Types, AttrsMatch, {Cont, [H | T]}, Acc, []) ->
@@ -427,7 +427,7 @@ auth_query2(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
 		{Attribute, _} when Match == '_' ->
 			auth_query2(Start, End, Protocol, Types, ReqAttrsMatch,
 					RespAttrsMatch, {Cont, Chunk}, Acc, T1);
-		false ->
+		_ ->
 			auth_query(Start, End, Protocol, Types, ReqAttrsMatch,
 					RespAttrsMatch, {Cont, T}, Acc)
 	end;

@@ -49,7 +49,7 @@
 -record(state,
 		{auth_port_sup :: pid(),
 		address :: inet:ip_address(),
-		port :: inet:port(),
+		port :: inet:port_number(),
 		method_prefer :: ocs:eap_method(),
 		method_order :: [ocs:eap_method()],
 		simple_auth_sup :: undefined | pid(),

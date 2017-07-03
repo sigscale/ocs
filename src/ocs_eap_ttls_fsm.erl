@@ -85,7 +85,7 @@
 		radius_id :: undefined | byte(),
 		req_auth :: undefined | [byte()],
 		ssl_socket :: undefined | ssl:sslsocket(),
-		socket_options :: ssl:options(),
+		socket_options :: [ssl:ssl_option()],
 		max_size :: undefined | pos_integer(),
 		rx_length :: undefined | pos_integer(),
 		rx_buf = <<>> :: binary(),
@@ -1258,7 +1258,7 @@ encrypt_key(Secret, RequestAuthenticator, Salt, Key) when (Salt bsr 15) == 1 ->
 %% ssl:prf/5 includes an incorrect type specification for Seed!
 -spec prf(SslSocket, Secret, Label, Seed, WantedLength) ->
 	{ok, MSK, EMSK} | {error, Reason} when
-		SslSocket :: ssl:ssl_socket(),
+		SslSocket :: ssl:sslsocket(),
 		Secret :: binary() | master_secret,
 		Label :: binary(),
 		Seed :: [binary() | ssl:prf_random()],

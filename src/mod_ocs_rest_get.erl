@@ -72,34 +72,24 @@ content_type_available(Headers, Uri, Resource, ModData) ->
 			AvailableTypes = Resource:content_types_provided(),
 			case lists:member(RequestingType, AvailableTypes) of
 				true ->
-					parse_query(Resource, ModData, string:tokens(Uri, "?"));
+					parse_query(Resource, ModData, httpd_util:split_path(Uri));
 				false ->
 					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
 					{break, [{response, {415, Response}}]}
 			end;
 		_ ->
-			parse_query(Resource, ModData, string:tokens(Uri, "?"))
+			parse_query(Resource, ModData, httpd_util:split_path(Uri))
 	end.
 
 %% @hidden
-parse_query(Resource, ModData, [Path, Query]) ->
-	parse_query1(Resource, ModData, Path, string:tokens(Query, "&"), []);
-parse_query(Resource, ModData, [Path]) ->
+parse_query(Resource, ModData, {Path, []}) ->
 	do_get(Resource, ModData, string:tokens(Path, "/"), []);
-parse_query(_, _, _) ->
+parse_query(Resource, ModData, {Path, "?" ++ Query}) ->
+	do_get(Resource, ModData, string:tokens(Path, "/"),
+		httpd:parse_query(Query));
+parse_query(_R, _P, _Q) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{break, [{response, {404, Response}}]}.
-%% @hidden
-parse_query1(Resource, ModData, Path, [H | T], Acc) ->
-	parse_query2(Resource, ModData, Path, T, string:tokens(H, "="), Acc);
-parse_query1(Resource, ModData, Path, [], Acc) ->
-	do_get(Resource, ModData, string:tokens(Path, "/"), lists:reverse(Acc)).
-%% @hidden
-parse_query2(Resource, ModData, Path, QueryList, [Key, Val], Acc) ->
-	parse_query1(Resource, ModData, Path, QueryList, [{Key, Val} | Acc]);
-parse_query2(_, _, _, _, _, _) ->
-	Response = "<h2>HTTP Error 400 - Bad Request</h2>",
-	{break, [{response, {400, Response}}]}.
 
 %% @hidden
 do_get(Resource, ModData, ["ocs", "v1", "client"], []) ->
@@ -115,11 +105,11 @@ do_get(Resource, ModData, ["usageManagement", "v1", "usage"], Query) ->
 do_get(Resource, ModData, ["usageManagement", "v1", "usage", Id], Query) ->
 	do_response(ModData, Resource:get_usage(Id, Query));
 do_get(Resource, ModData,
-		["usageManagement", "v1", "usageSpecification"], []) ->
-	do_response(ModData, Resource:get_usagespec());
+		["usageManagement", "v1", "usageSpecification"], Query) ->
+	do_response(ModData, Resource:get_usagespec(Query));
 do_get(Resource, ModData,
-		["usageManagement", "v1", "usageSpecification", Id], []) ->
-	do_response(ModData, Resource:get_usagespec(Id));
+		["usageManagement", "v1", "usageSpecification", Id], Query) ->
+	do_response(ModData, Resource:get_usagespec(Id, Query));
 do_get(Resource, ModData, ["ocs", "v1", "log", "access"], []) ->
 	do_response(ModData, Resource:get_access());
 do_get(Resource, ModData, ["ocs", "v1", "log", "accounting"], []) ->
