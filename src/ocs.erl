@@ -506,7 +506,7 @@ start(Protocol, Type, Address, Port) when is_tuple(Address), is_integer(Port) ->
 		Result :: {ok, Pid} | {error, Reason},
 		Pid :: pid(),
 		Reason :: term().
-%% @doc Start a RADIUS request handler.
+%% @doc Start a RADIUS/DIAMETER request handler.
 start(Protocol, Type, Address, Port, Options) when is_tuple(Address),
 		is_integer(Port), is_list(Options) ->
 		gen_server:call(ocs, {start, Protocol, Type, Address, Port, Options}).
