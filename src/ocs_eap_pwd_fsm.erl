@@ -131,9 +131,10 @@ init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 	when
 		Event :: timeout | term(),
 		StateData :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData} | {next_state, NextStateName,
-		NewStateData, Timeout} | {next_state, NextStateName, NewStateData, hibernate}
-		| {stop, Reason, NewStateData},
+		Result :: {next_state, NextStateName, NewStateData}
+				| {next_state, NextStateName, NewStateData, Timeout}
+				| {next_state, NextStateName, NewStateData, hibernate}
+				| {stop, Reason, NewStateData},
 		NextStateName :: atom(),
 		NewStateData :: statedata(),
 		Timeout :: non_neg_integer() | infinity,
@@ -159,7 +160,8 @@ eap_start(timeout, #statedata{start = Request} = StateData) ->
 eap_start1(Token, #statedata{eap_id = EapID, session_id = SessionId,
 		server_id = ServerID, group_desc = GroupDesc, rand_func = RandFunc,
 		prf = PRF, auth_req_type = AuthType, start = Request,
-		origin_host = OHost, origin_realm = ORealm, diameter_port_server = PortServer} =
+		origin_host = OHost, origin_realm = ORealm,
+		diameter_port_server = PortServer} =
 		StateData) ->
 	EapPwdId = #eap_pwd_id{group_desc = GroupDesc, random_fun = RandFunc,
 			prf = PRF, token = Token, pwd_prep = none, identity = ServerID},
@@ -176,7 +178,8 @@ eap_start1(Token, #statedata{eap_id = EapID, session_id = SessionId,
 			{next_state, id, StateData, ?TIMEOUT};
 		EapMessage ->
 			case catch ocs_eap_codec:eap_packet(EapMessage) of
-				#eap_packet{code = response, type = ?Identity, identifier = NewEapID} ->
+				#eap_packet{code = response, type = ?Identity,
+						identifier = NewEapID} ->
 					NextEapID = (NewEapID rem 255) + 1,
 					EapPacket = #eap_packet{code = request, type = ?PWD,
 							identifier = NextEapID, data = EapData},
@@ -274,9 +277,10 @@ eap_start2(Token, #statedata{eap_id = EapID,
 	when
 		Event :: timeout | term(),
 		StateData :: statedata(),
-		Result :: {next_state, NextStateName, NewStateData} | {next_state, NextStateName, 
-		NewStateData, Timeout} | {next_state, NextStateName, NewStateData, hibernate} 
-		| {stop, Reason, NewStateData},
+		Result :: {next_state, NextStateName, NewStateData}
+				| {next_state, NextStateName, NewStateData, Timeout}
+				| {next_state, NextStateName, NewStateData, hibernate} 
+				| {stop, Reason, NewStateData},
 		NextStateName :: atom(),
 		NewStateData :: statedata(),
 		Timeout :: non_neg_integer() | infinity,
@@ -568,7 +572,8 @@ commit4(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 %% @hidden
 commit5(Request, BodyData, #statedata{eap_id = EapID, scalar_s = ScalarS,
 		element_s = ElementS, session_id = SessionID, auth_req_type = AuthType,
-		origin_host = OH, origin_realm = OR, diameter_port_server = PortServer} = StateData) ->
+		origin_host = OH, origin_realm = OR,
+		diameter_port_server = PortServer} = StateData) ->
 	ExpectedSize = size(<<ElementS/binary, ScalarS/binary>>),
 	case size(BodyData) of 
 		ExpectedSize ->
@@ -581,10 +586,10 @@ commit5(Request, BodyData, #statedata{eap_id = EapID, scalar_s = ScalarS,
 			{stop, {shutdown, SessionID}, StateData}
 	end.
 %% @hidden
-commit6(Request, #statedata{element_p = ElementP, scalar_p = ScalarP, scalar_s = ScalarS,
-		element_s = ElementS, eap_id = EapID, session_id = SessionID,
-		auth_req_type = AuthType, origin_host = OH, origin_realm = OR,
-		diameter_port_server = PortServer} = StateData) ->
+commit6(Request, #statedata{element_p = ElementP, scalar_p = ScalarP,
+		scalar_s = ScalarS, element_s = ElementS, eap_id = EapID,
+		session_id = SessionID, auth_req_type = AuthType, origin_host = OH,
+		origin_realm = OR, diameter_port_server = PortServer} = StateData) ->
 	case {ElementP, ScalarP} of
 		{ElementS, ScalarS} ->
 			EapPacket = #eap_packet{code = failure, identifier = EapID},
@@ -596,8 +601,9 @@ commit6(Request, #statedata{element_p = ElementP, scalar_p = ScalarP, scalar_s =
 			commit7(Request, StateData)
 	end.
 %% @hidden
-commit7(Request, #statedata{scalar_p = ScalarP, eap_id = EapID, session_id = SessionID,
-		auth_req_type = AuthType, origin_host = OH, origin_realm = OR,
+commit7(Request, #statedata{scalar_p = ScalarP, eap_id = EapID,
+		session_id = SessionID, auth_req_type = AuthType, origin_host = OH,
+		origin_realm = OR,
 	diameter_port_server = PortServer} = StateData)->
 	case ScalarP of
 		<<ScalarP_Valid:256>> when 1 < ScalarP_Valid, ScalarP_Valid < ?R ->
@@ -610,11 +616,12 @@ commit7(Request, #statedata{scalar_p = ScalarP, eap_id = EapID, session_id = Ses
 			{stop, {shutdown, SessionID}, StateData}
 	end.
 %% @hidden
-commit8(Request, #statedata{eap_id = EapID, session_id = SessionID, scalar_p = ScalarP,
-		element_p = ElementP, scalar_s = ScalarS, element_s = ElementS,
-		s_rand = Srand, pwe = PWE, group_desc = GroupDesc, rand_func = RandFunc,
-		prf = PRF, auth_req_type = AuthType, origin_host = OH,
-		origin_realm = OR, diameter_port_server = PortServer} = StateData)->
+commit8(Request, #statedata{eap_id = EapID, session_id = SessionID,
+		scalar_p = ScalarP, element_p = ElementP, scalar_s = ScalarS,
+		element_s = ElementS, s_rand = Srand, pwe = PWE, group_desc = GroupDesc,
+		rand_func = RandFunc, prf = PRF, auth_req_type = AuthType,
+		origin_host = OH, origin_realm = OR,
+		diameter_port_server = PortServer} = StateData)->
 	case catch ocs_eap_pwd:compute_ks(<<Srand:256>>,
 			PWE, ScalarP, ElementP) of
 		{'EXIT', _Reason} ->
@@ -770,9 +777,10 @@ confirm3(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 			{stop, {shutdown, SessionID}, StateData}
 	end.
 %% @hidden
-confirm4(Request, #statedata{confirm_s = ConfirmS, eap_id = EapID, confirm_p = ConfirmP,
-		session_id = SessionID, auth_req_type = AuthType, origin_host = OH,
-		origin_realm = OR, diameter_port_server = PortServer} = StateData) ->
+confirm4(Request, #statedata{confirm_s = ConfirmS, eap_id = EapID,
+		confirm_p = ConfirmP, session_id = SessionID, auth_req_type = AuthType,
+		origin_host = OH, origin_realm = OR, diameter_port_server = PortServer} =
+		 StateData) ->
 	ExpectedSize = size(ConfirmS),
 	case size(ConfirmP) of 
 		ExpectedSize ->
@@ -991,7 +999,8 @@ send_response(EapPacket, RadiusCode, ResponseAttributes,
 %% @doc Encrypt the Pairwise Master Key (PMK) according to RFC2548
 %% 	section 2.4.2 for use as String in a MS-MPPE-Send-Key attribute.
 %% @private
-encrypt_key(Secret, RequestAuthenticator, Salt, Key) when (Salt bsr 15) == 1 ->
+encrypt_key(Secret, RequestAuthenticator, Salt, Key)
+		when (Salt bsr 15) == 1 ->
 	KeyLength = size(Key),
 	Plaintext = case (KeyLength + 1) rem 16 of
 		0 ->

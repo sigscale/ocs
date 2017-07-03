@@ -772,8 +772,8 @@ client_cipher({#radius{code = ?AccessRequest, id = RadiusID,
 	end;
 client_cipher(#diameter_eap_app_DER{} = Request, #statedata{eap_id = EapID,
 		session_id = SessionID, rx_length = RxLength, rx_buf = RxBuf,
-		ssl_pid = SslPid, auth_req_type = AuthType, origin_host = OH, origin_realm = OR,
-		port_server = PortServer} = StateData) ->
+		ssl_pid = SslPid, auth_req_type = AuthType, origin_host = OH,
+		origin_realm = OR, port_server = PortServer} = StateData) ->
 	EapMessage = Request#diameter_eap_app_DER.'EAP-Payload',
 	try
 		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
@@ -847,7 +847,8 @@ client_cipher(#diameter_eap_app_DER{} = Request, #statedata{eap_id = EapID,
 server_cipher(timeout,
 		#statedata{session_id = SessionID} = StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
-server_cipher({eap_tls, SslPid, <<?ChangeCipherSpec, _/binary>> = Data}, StateData) ->
+server_cipher({eap_tls, SslPid, <<?ChangeCipherSpec, _/binary>> = Data},
+	StateData) ->
 	NewStateData = StateData#statedata{ssl_pid = SslPid},
 	server_cipher1(Data, NewStateData).
 
@@ -903,7 +904,8 @@ finish({eap_tls, _SslPid, <<?Handshake, _/binary>> = Data},
 finish({eap_tls, _SslPid, <<?Handshake, _/binary>> = Data},
 		#statedata{tx_buf = TxBuf, start = #diameter_eap_app_DER{},
 		eap_id = EapID, session_id = SessionID, auth_req_type = AuthType,
-		origin_host = OH, origin_realm = OR, port_server = PortServer} = StateData) ->
+		origin_host = OH, origin_realm = OR, port_server = PortServer} =
+		StateData) ->
 	NewEapID = (EapID rem 255) + 1,
 	BinData = <<TxBuf/binary, Data/binary>>,
 	EapTtls = #eap_ttls{data = BinData},
@@ -975,9 +977,10 @@ client_passthrough({#radius{code = ?AccessRequest, id = RadiusID,
 					StateData),
 				{stop, {shutdown, SessionID}, StateData}
 	end;
-client_passthrough(#diameter_eap_app_DER{} = Request, #statedata{eap_id = EapID,
-		session_id = SessionID, ssl_pid = SslPid, auth_req_type = AuthType,
-		origin_host = OH, origin_realm = OR, port_server = PortServer} = StateData) ->
+client_passthrough(#diameter_eap_app_DER{} = Request,
+		#statedata{eap_id = EapID, session_id = SessionID, ssl_pid = SslPid,
+		auth_req_type = AuthType, origin_host = OH, origin_realm = OR,
+		port_server = PortServer} = StateData) ->
 	try
 		EapMessage = Request#diameter_eap_app_DER.'EAP-Payload',
 		case ocs_eap_codec:eap_packet(EapMessage) of
@@ -1208,14 +1211,16 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 		StateData :: statedata().
 %% @doc Sends an RADIUS-Access/Challenge or Reject or Accept  packet to peer
 %% @hidden
-send_response(#eap_packet{} = EapPacket, RadiusCode, RadiusID, ResponseAttributes,
-		RequestAuthenticator, RequestAttributes, Secret, RadiusFsm, StateData) ->
+send_response(#eap_packet{} = EapPacket, RadiusCode, RadiusID,
+		ResponseAttributes, RequestAuthenticator, RequestAttributes, Secret,
+		RadiusFsm, StateData) ->
 	BinEapPacket = ocs_eap_codec:eap_packet(EapPacket),
 	send_response1(BinEapPacket, RadiusCode, RadiusID, ResponseAttributes,
 		RequestAuthenticator, RequestAttributes, Secret, RadiusFsm, StateData).
 %% @hidden
 send_response1(<<Chunk:253/binary, Rest/binary>>, RadiusCode, RadiusID,
-		ResponseAttributes, RequestAuthenticator, RequestAttributes, Secret, RadiusFsm, StateData) ->
+		ResponseAttributes, RequestAuthenticator, RequestAttributes, Secret,
+		RadiusFsm, StateData) ->
 	AttrList1 = radius_attributes:add(?EAPMessage, Chunk,
 			ResponseAttributes),
 	send_response1(Rest, RadiusCode, RadiusID, AttrList1,
@@ -1225,7 +1230,8 @@ send_response1(<<>>, RadiusCode, RadiusID, ResponseAttributes,
 	send_response2(RadiusCode, RadiusID, ResponseAttributes,
 		RequestAuthenticator, RequestAttributes, Secret, RadiusFsm, StateData);
 send_response1(Chunk, RadiusCode, RadiusID, ResponseAttributes,
-		RequestAuthenticator, RequestAttributes, Secret, RadiusFsm, StateData) when is_binary(Chunk) ->
+		RequestAuthenticator, RequestAttributes, Secret, RadiusFsm,
+		StateData) when is_binary(Chunk) ->
 	AttrList1 = radius_attributes:add(?EAPMessage, Chunk,
 			ResponseAttributes),
 	send_response2(RadiusCode, RadiusID, AttrList1, RequestAuthenticator,
@@ -1273,7 +1279,8 @@ send_response2(RadiusCode, RadiusID, ResponseAttributes,
 %% @doc Encrypt the Pairwise Master Key (PMK) according to RFC2548
 %% 	section 2.4.2 for use as String in a MS-MPPE-Send-Key attribute.
 %% @private
-encrypt_key(Secret, RequestAuthenticator, Salt, Key) when (Salt bsr 15) == 1 ->
+encrypt_key(Secret, RequestAuthenticator, Salt, Key)
+	when (Salt bsr 15) == 1 ->
 	KeyLength = size(Key),
 	Plaintext = case (KeyLength + 1) rem 16 of
 		0 ->
