@@ -138,7 +138,7 @@
 				<paper-button
 						raised
 						class="add-button"
-						on-click="_clientFormSubmit">
+						on-click="_clientAddSubmit">
 					<i18n-msg msgid="submit">
 						Submit
 					</i18n-msg>
@@ -176,7 +176,7 @@
 				method = "post"
 				headers='{"Accept": "application/json", "Content-type": "application/json"}'
 				on-loading-changed="_onLoadingChanged"
-				on-response="_clientFormResponse"
+				on-response="_clientAddResponse"
 				handle-as="json">
 		</iron-ajax>
 	</template>
@@ -190,7 +190,7 @@
 				},
 				listeners: {
 				},
-				_clientFormSubmit: function(event) {
+				_clientAddSubmit: function(event) {
 					var client = new Object();
 					client.id = document.getElementById("add-client1").value;
 					client.port = parseInt(document.getElementById("add-client2").value);
@@ -216,7 +216,7 @@
 						document.getElementById("add-client4").disabled = false;
 					}
 				},
-				_clientFormResponse: function(event) {
+				_clientAddResponse: function(event) {
 					var toast = document.getElementById("toastSuccess");
 					toast.open();
 					toast.duration = 4;

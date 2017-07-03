@@ -199,7 +199,7 @@
 					<paper-button
 							raised
 							class="add-button"
-							on-click="_subscriberFormSubmit">
+							on-click="_subscriberAddSubmit">
 					<i18n-msg msgid="submit">
 						Submit
 					</i18n-msg>
@@ -256,7 +256,7 @@
 				method = "post"
 				headers='{"Accept": "application/json", "Content-type": "application/json"}'
 				on-loading-changed="_onLoadingChanged"
-				on-response="_subscriberFormResponse"
+				on-response="_subscriberAddResponse"
 				hanlde-as="json">
 		</iron-ajax>
 		<script>
@@ -277,7 +277,7 @@
 				listeners: {
 					'toastErrorClose.on-click': 'closeToast',
 				},
-				_subscriberFormSubmit: function(event) {
+				_subscriberAddSubmit: function(event) {
 					var subscriber = new Object();
 					if(!document.getElementById("add1").disabled) {
 						subscriber.id = document.getElementById("add1").value;
@@ -323,7 +323,7 @@
 					ajax.body = subscriber;
 					ajax.generateRequest();
 				},
-				_subscriberFormResponse: function(event) {
+				_subscriberAddResponse: function(event) {
 					var toast = document.getElementById("toast-success");
 					toast.open();
 					toast.duration = 4;
