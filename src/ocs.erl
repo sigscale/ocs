@@ -59,12 +59,14 @@ add_client(Address, Secret) ->
 		Result :: ok.
 %% @doc Create an entry in the client table.
 %%
-add_client(Address, Port, Protocol, Secret) when is_list(Secret), is_integer(Port), is_atom(Protocol) ->
+add_client(Address, Port, Protocol, Secret) when is_list(Secret),
+		is_integer(Port), is_atom(Protocol), Port >= 0 ->
 	add_client(Address, Port, Protocol, list_to_binary(Secret));
 add_client(Address, Port, Protocol, Secret) when is_list(Address) ->
 	{ok, AddressTuple} = inet_parse:address(Address),
 	add_client(AddressTuple, Port, Protocol, Secret);
-add_client(Address, Port, Protocol, Secret) when is_tuple(Address), is_binary(Secret) ->
+add_client(Address, Port, Protocol, Secret) when is_tuple(Address),
+		is_binary(Secret) ->
 	F = fun() ->
 				R = #client{address = Address, port = Port,
 						protocol = Protocol, secret = Secret},
