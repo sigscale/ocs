@@ -145,11 +145,9 @@
 			<h2>Record sucessfully deleted!</h2>
 		</paper-toast>
 		<iron-ajax id="getSubs"
-			auto = false
 			url="/ocs/v1/subscriber"
 			headers='{"Accept": "application/json"}'
-			on-response="responseHandler"
-			debounce-duration="10">
+			on-response="responseHandler">
 		</iron-ajax>
 	</template>
 	<script>

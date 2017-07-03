@@ -85,13 +85,11 @@
 			</vaadin-grid-column>
 		</vaadin-grid>
 		<iron-ajax id="getAccess"
-				auto = false
 				url="/ocs/v1/log/access"
 				method = "GET"
 				headers='{"Accept": "application/json"}'
 				on-loading-changed="_onLoadingChanged"
-				on-response="responseHandler"
-				debounce-duration="10">
+				on-response="responseHandler">
 		</iron-ajax>
 	</template>
 	<script>
