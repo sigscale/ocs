@@ -1,7 +1,6 @@
 <link rel="import" href="polymer/polymer.html">
 <link rel="import" href="i18n-msg/i18n-msg.html">
 <link rel="import" href="i18n-msg/i18n-msg-behavior.html">
-<link rel="import" href="iron-form/iron-form.html">
 <link rel="import" href="iron-ajax/iron-ajax.html">
 <link rel="import" href="paper-dialog/paper-dialog.html">
 <link rel="import" href="paper-dropdown-menu/paper-dropdown-menu.html">
@@ -70,99 +69,93 @@
 			<paper-toolbar>
 				<h2>[[i18n.addClient]]</h2>
 			</paper-toolbar>
-			<form
-					is="iron-form"
-					id="clientAddForm"
-					method="post"
-					content-type="application/json">
+			<paper-input
+					id="add-client1"
+					name="address"
+					label="[[i18n.ipAddress]]"
+					allowed-pattern="[0-9\.]"
+					required>
+			</paper-input>
+			<paper-tooltip >
+				<i18n-msg msgid="ipTooltip">
+					IP address of network access server, router or access point
+				</i18n-msg>
+			</paper-tooltip>
+			<paper-input
+					id="add-client2"
+					name="port"
+					label="[[i18n.listen]]"
+					type="number"
+					value=3799>
+			</paper-input>
+			<paper-tooltip>
+				<i18n-msg msgid="listenTooltip">
+					Port network access server, router or access point listens on
+				</i18n-msg>
+			</paper-tooltip>
+			<div>
 				<paper-input
-						id="add-client1"
-						name="address"
-						label="[[i18n.ipAddress]]"
-						allowed-pattern="[0-9\.]"
-						required>
-				</paper-input>
-				<paper-tooltip >
-					<i18n-msg msgid="ipTooltip">
-						IP address of network access server, router or access point
-					</i18n-msg>
-				</paper-tooltip>
-				<paper-input
-						id="add-client2"
-						name="port"
-						label="[[i18n.listen]]"
-						type="number"
-						value=3799>
+						id="add-client4"
+						class="secret"
+						name="secret"
+						label="[[i18n.secret]]">
 				</paper-input>
 				<paper-tooltip>
-					<i18n-msg msgid="listenTooltip">
-						Port network access server, router or access point listens on
+					<i18n-msg msgid="secretTooltip">
+						Secret, or password, shared with the network access server, router or access point.
 					</i18n-msg>
 				</paper-tooltip>
-				<div>
-					<paper-input
-							id="add-client4"
-							class="secret"
-							name="secret"
-							label="[[i18n.secret]]">
-					</paper-input>
-					<paper-tooltip>
-						<i18n-msg msgid="secretTooltip">
-							Secret, or password, shared with the network access server, router or access point.
+				<div class="generate">
+					<paper-checkbox
+						id="check"
+						on-change="checkboxchanged">
+						<i18n-msg msgid="gen">
+							Generate
 						</i18n-msg>
-					</paper-tooltip>
-					<div class="generate">
-						<paper-checkbox
-							id="check"
-							on-change="checkboxchanged">
-							<i18n-msg msgid="gen">
-								Generate
-							</i18n-msg>
-						</paper-checkbox>
-					</div>
+					</paper-checkbox>
 				</div>
-				<paper-dropdown-menu
-						id="add-client3"
-						label="[[i18n.proto]]">
-					<paper-listbox
-							slot="dropdown-content"
-							class="dropdown-content"
-							selected="0">
-						<paper-item value="RADIUS">
-							<i18n-msg msgid="radius">
-								RADIUS
-							</i18n-msg>
-						</paper-item>
-						<paper-item value="DIAMETER">
-							<i18n-msg msgid="diameter">
-								DIAMETER
-							</i18n-msg>
-						</paper-item>
-					</paper-listbox>
-				</paper-dropdown-menu>
-				<div class="buttons">
-					<paper-button
-							raised
-							class="add-button"
-							onclick="_submitClientForm()">
-						<i18n-msg msgid="submit">
-							Submit
+			</div>
+			<paper-dropdown-menu
+					id="add-client3"
+					label="[[i18n.proto]]">
+				<paper-listbox
+						slot="dropdown-content"
+						class="dropdown-content"
+						selected="0">
+					<paper-item value="RADIUS">
+						<i18n-msg msgid="radius">
+							RADIUS
 						</i18n-msg>
-					</paper-button>
-					<paper-button
-							class="cancel-button"
-							dialog-confirm
-							autofocus
-							onclick="clientAddModal.close()">
-						<i18n-msg msgid="cancel">
-							Cancel
+					</paper-item>
+					<paper-item value="DIAMETER">
+						<i18n-msg msgid="diameter">
+							DIAMETER
 						</i18n-msg>
-					</paper-button>
-				</div>
-			</form>
-				<paper-toast id="toastSuccess" class="fit-bottom">
-					<h2>[[i18n.clientAdded]]</h2>
-				</paper-toast>
+					</paper-item>
+				</paper-listbox>
+			</paper-dropdown-menu>
+			<div class="buttons">
+				<paper-button
+						raised
+						class="add-button"
+						on-click="_clientFormSubmit">
+					<i18n-msg msgid="submit">
+						Submit
+					</i18n-msg>
+				</paper-button>
+				<paper-button
+						class="cancel-button"
+						dialog-confirm
+						autofocus
+						onclick="clientAddModal.close()">
+					<i18n-msg msgid="cancel">
+						Cancel
+					</i18n-msg>
+				</paper-button>
+			</div>
+			<paper-toast id="toastSuccess" class="fit-bottom">
+				<h2>[[i18n.clientAdded]]</h2>
+			</paper-toast>
 		</paper-dialog>
 		<paper-dialog id="clientSecretModal" class="generated" modal>
 			<paper-toolbar>
@@ -183,14 +176,9 @@
 				method = "post"
 				headers='{"Accept": "application/json", "Content-type": "application/json"}'
 				on-loading-changed="_onLoadingChanged"
-				handle-as="json"
-				debounce-duration="300">
+				on-response="_clientFormResponse"
+				handle-as="json">
 		</iron-ajax>
-		<script>
-			function _submitClientForm() {
-				document.getElementById('clientAddForm').submit();
-			}
-		</script>
 	</template>
 	<script>
 		Polymer (
@@ -201,27 +189,18 @@
 					secret: String
 				},
 				listeners: {
-					'clientAddForm.iron-form-presubmit': '_clientFormPreSubmit',
-					'clientAddForm.iron-form-submit': '_handleFormSubmit',
-					'clientAddForm.iron-form-response': '_clientFormResponse',
 				},
-				_clientFormPreSubmit: function() {
-					var form = document.getElementById('clientAddForm');
-					var formData = new Object();
-					formData.id = document.getElementById("add-client1").value;
-					formData.port = parseInt(document.getElementById("add-client2").value);
-					formData.protocol = document.getElementById("add-client3").value;
+				_clientFormSubmit: function(event) {
+					var client = new Object();
+					client.id = document.getElementById("add-client1").value;
+					client.port = parseInt(document.getElementById("add-client2").value);
+					client.protocol = document.getElementById("add-client3").value;
 					if (!document.getElementById("add-client4").disabled) {
-						formData.secret = document.getElementById("add-client4").value;
+						client.secret = document.getElementById("add-client4").value;
 					}
 					var ajax = document.getElementById("clientAddAjax");
-					ajax.body = formData;
+					ajax.body = client;
 					ajax.generateRequest();
-				},
-				_handleFormSubmit: function() {
-					var form = document.getElementById('clientAddForm');
-					form.request.headers='{"Content-Type": "application/json"}';
-					form.request.contentType = "application/json";
 				},
 				_onLoadingChanged: function(event) {
 					if (document.getElementById("clientAddAjax").loading) {
@@ -241,7 +220,6 @@
 					var toast = document.getElementById("toastSuccess");
 					toast.open();
 					toast.duration = 4;
-					document.getElementById("clientAddForm").reset();
 					document.getElementById("clientAddModal").close();
 					var ajax = document.getElementById("clientAddAjax");
 					if (ajax.body.secret == undefined) {

@@ -9,7 +9,6 @@
 <link rel="import" href="paper-toggle-button/paper-toggle-button.html" >
 <link rel="import" href="paper-toast/paper-toast.html">
 <link rel="import" href="paper-styles/color.html">
-<link rel="import" href="iron-form/iron-form.html">
 <link rel="import" href="iron-ajax/iron-ajax.html">
 <link rel="import" href="paper-checkbox/paper-checkbox.html">
 
@@ -73,155 +72,148 @@
 				<paper-toolbar>
 					<h2>[[i18n.AddTitle]]</h2>
 				</paper-toolbar>
-				<form
-						is="iron-form"
-						id="presubmit"
-						method="post"
-						action="/ocs/v1/subscriber"
-						content-type="application/json">
-					<div>
-						<paper-input id="add1"
-								class="identity"
-								name="subscriber"
-								label="[[i18n.identity]]">
-						</paper-input>
-						<paper-tooltip>
-							<i18n-msg msgid="subTool">
-								Identity, or username, of the subscriber to authenticate.
-							</i18n-msg>
-						</paper-tooltip>
-						<div class="generate">
-							<paper-checkbox
-								on-change="subcheckchanged">
-								<i18n-msg msgid="gen">
-								Generate
-								</i18n-msg>
-							</paper-checkbox>
-						</div>
-					</div>
-					<div>
-						<paper-input id="add2"
-								class="secret"
-								name="password"
-								label="[[i18n.secret]]">
-						</paper-input>
-						<paper-tooltip>
-							<i18n-msg msgid="secretTooltip">
-								Secret, or password, shared only with the subscriber
-							</i18n-msg>
-						</paper-tooltip>
-						<div class="generate">
-							<paper-checkbox
-								on-change="subcheckboxchanged">
-								<i18n-msg msgid="gen">
-								Generate
-								</i18n-msg>
-							</paper-checkbox>
-						</div>
-					</div>
-					<div>
-						<paper-input id="add3"
-								name="ascendDataRate"
-								type="number"
-								label="[[i18n.recieve]]">
-						</paper-input>
-						<paper-tooltip>
-							<i18n-msg msgid="dataRateTool">
-								Limit on received (download) data per second in bits.
-							</i18n-msg>
-						</paper-tooltip>
-					</div>
-					<div>
-						<paper-input id="add4"
-								name="ascendXmitRate"
-								type="number"
-								label="[[i18n.trans]]">
-						</paper-input>
-						<paper-tooltip>
-							<i18n-msg msgid="xmitRateTool">
-								Limit on transmitted (upload) data per second in bits.
-							</i18n-msg>
-						</paper-tooltip>
-					</div>
-					<div>
-						<paper-input id="add5"
-								name="sessionTimeout"
-								type="number"
-								label="[[i18n.ses]]"
-								value=3600>
-						</paper-input>
-						<paper-tooltip>
-							<i18n-msg msgid="sessionTimeoutTool">
-								Time between authorization requests in an active session in seconds.
-							</i18n-msg>
-						</paper-tooltip>
-					</div>
-					<div>
-						<paper-input id="add6"
-								name="acctInterimInterval"
-								type="number"
-								label="[[i18n.updateInterval]]">
-						</paper-input>
-						<paper-tooltip>
-							<i18n-msg msgid="acctInterimIntervalTool">
-								Time between accounting interim updates in seconds.
-							</i18n-msg>
-						</paper-tooltip>
-					</div>
-					<div>
-						<paper-input id="add7"
-								name="class"
-								label="[[i18n.class]]">
-						</paper-input>
-					</div>
-					<div>
-						<paper-input id="add8"
-								name="balance"
-								type="number"
-								label="[[i18n.balance]]"
-								required>
-						</paper-input>
-						<paper-tooltip>
-							<i18n-msg msgid="balanceTool">
-								Initial credit value in bytes, against which accounting will debit usage against.
-							</i18n-msg>
-						</paper-tooltip>
-					</div>
-					<br>
-					<div>
-						<i18n-msg msgid="enable">
-							Enable
+				<div>
+					<paper-input id="add1"
+							class="identity"
+							name="subscriber"
+							label="[[i18n.identity]]">
+					</paper-input>
+					<paper-tooltip>
+						<i18n-msg msgid="subTool">
+							Identity, or username, of the subscriber to authenticate.
 						</i18n-msg>
-						<div style="display:inline-block;">
-							<paper-toggle-button id="add9" name="enabled" checked>
-							</paper-toggle-button>
-						</div>
-						<paper-tooltip>
-							<i18n-msg msgid="enableTool">
-								Temporarily enable, or disable, authorization for service.
+					</paper-tooltip>
+					<div class="generate">
+						<paper-checkbox
+							on-change="subcheckchanged">
+							<i18n-msg msgid="gen">
+							Generate
 							</i18n-msg>
-						</paper-tooltip>
+						</paper-checkbox>
 					</div>
-					<div class="buttons">
-						<paper-button
-								raised
-								class="add-button"
-								onclick="_submitSubForm()">
-						<i18n-msg msgid="submit">
-							Submit
+				</div>
+				<div>
+					<paper-input id="add2"
+							class="secret"
+							name="password"
+							label="[[i18n.secret]]">
+					</paper-input>
+					<paper-tooltip>
+						<i18n-msg msgid="secretTooltip">
+							Secret, or password, shared only with the subscriber
 						</i18n-msg>
-						</paper-button>
-						<paper-button
-								class="cancel-button"
-								dialog-confirm
-								autofocus
-								onclick="subAddModal.close()">
-						<i18n-msg msgid="cancel">
-							Cancel
-						</i18n-msg>
-						</paper-button>
+					</paper-tooltip>
+					<div class="generate">
+						<paper-checkbox
+							on-change="subcheckboxchanged">
+							<i18n-msg msgid="gen">
+							Generate
+							</i18n-msg>
+						</paper-checkbox>
 					</div>
-				</form>
+				</div>
+				<div>
+					<paper-input id="add3"
+							name="ascendDataRate"
+							type="number"
+							label="[[i18n.recieve]]">
+					</paper-input>
+					<paper-tooltip>
+						<i18n-msg msgid="dataRateTool">
+							Limit on received (download) data per second in bits.
+						</i18n-msg>
+					</paper-tooltip>
+				</div>
+				<div>
+					<paper-input id="add4"
+							name="ascendXmitRate"
+							type="number"
+							label="[[i18n.trans]]">
+					</paper-input>
+					<paper-tooltip>
+						<i18n-msg msgid="xmitRateTool">
+							Limit on transmitted (upload) data per second in bits.
+						</i18n-msg>
+					</paper-tooltip>
+				</div>
+				<div>
+					<paper-input id="add5"
+							name="sessionTimeout"
+							type="number"
+							label="[[i18n.ses]]"
+							value=3600>
+					</paper-input>
+					<paper-tooltip>
+						<i18n-msg msgid="sessionTimeoutTool">
+							Time between authorization requests in an active session in seconds.
+						</i18n-msg>
+					</paper-tooltip>
+				</div>
+				<div>
+					<paper-input id="add6"
+							name="acctInterimInterval"
+							type="number"
+							label="[[i18n.updateInterval]]">
+					</paper-input>
+					<paper-tooltip>
+						<i18n-msg msgid="acctInterimIntervalTool">
+							Time between accounting interim updates in seconds.
+						</i18n-msg>
+					</paper-tooltip>
+				</div>
+				<div>
+					<paper-input id="add7"
+							name="class"
+							label="[[i18n.class]]">
+					</paper-input>
+				</div>
+				<div>
+					<paper-input id="add8"
+							name="balance"
+							type="number"
+							label="[[i18n.balance]]"
+							required>
+					</paper-input>
+					<paper-tooltip>
+						<i18n-msg msgid="balanceTool">
+							Initial credit value in bytes, against which accounting will debit usage against.
+						</i18n-msg>
+					</paper-tooltip>
+				</div>
+				<br>
+				<div>
+					<i18n-msg msgid="enable">
+						Enable
+					</i18n-msg>
+					<div style="display:inline-block;">
+						<paper-toggle-button id="add9" name="enabled" checked>
+						</paper-toggle-button>
+					</div>
+					<paper-tooltip>
+						<i18n-msg msgid="enableTool">
+							Temporarily enable, or disable, authorization for service.
+						</i18n-msg>
+					</paper-tooltip>
+				</div>
+				<div class="buttons">
+					<paper-button
+							raised
+							class="add-button"
+							on-click="_subscriberFormSubmit">
+					<i18n-msg msgid="submit">
+						Submit
+					</i18n-msg>
+					</paper-button>
+					<paper-button
+							class="cancel-button"
+							dialog-confirm
+							autofocus
+							onclick="subAddModal.close()">
+					<i18n-msg msgid="cancel">
+						Cancel
+					</i18n-msg>
+					</paper-button>
+				</div>
 				<div id="response-display-container">
 					<paper-toast id="toastError" class="fit-bottom error">
 						<h2>[[i18n.subToastErrorReason]]</h2>
@@ -264,13 +256,10 @@
 				method = "post"
 				headers='{"Accept": "application/json", "Content-type": "application/json"}'
 				on-loading-changed="_onLoadingChanged"
-				hanlde-as="json"
-				debounce-duration="300">
+				on-response="_subscriberFormResponse"
+				hanlde-as="json">
 		</iron-ajax>
 		<script>
-			function _submitSubForm() {
-				document.getElementById('presubmit').submit();
-			}
 			function toastErrorClose(event) {
 				document.getElementById('toastError').close();
 			}
@@ -287,19 +276,14 @@
 				},
 				listeners: {
 					'toastErrorClose.on-click': 'closeToast',
-					'presubmit.iron-form-presubmit': '_handleFormPreSubmit',
-					'presubmit.iron-form-submit': '_handleFormSubmit',
-					'presubmit.iron-form-error': '_handleFormError',
-					'presubmit.iron-form-response': '_handleFormResponse',
 				},
-				_handleFormPreSubmit: function() {
-					var form = document.getElementById('presubmit');
-					var formData = new Object();
+				_subscriberFormSubmit: function(event) {
+					var subscriber = new Object();
 					if(!document.getElementById("add1").disabled) {
-						formData.id = document.getElementById("add1").value;
+						subscriber.id = document.getElementById("add1").value;
 					}
 					if(!document.getElementById("add2").disabled) {
-						formData.password = document.getElementById("add2").value;
+						subscriber.password = document.getElementById("add2").value;
 					}
 					var ascendDataRate = new Object();
 					ascendDataRate.name = "ascendDataRate";
@@ -332,25 +316,25 @@
 					attributes[2] = sessionTimeout;
 					attributes[3] = acctInterimInterval;
 					attributes[4] = classx;
-					formData.attributes = attributes;
-					formData.balance = parseInt(document.getElementById("add8").value);
-					formData.enabled= document.getElementById("add9").checked;
-					form.request.body = formData;
+					subscriber.attributes = attributes;
+					subscriber.balance = parseInt(document.getElementById("add8").value);
+					subscriber.enabled= document.getElementById("add9").checked;
 					var ajax = document.getElementById("subAddAjax");
-					ajax.body = formData;
+					ajax.body = subscriber;
 					ajax.generateRequest();
 				},
-				_handleFormSubmit: function() {
-					var form = document.getElementById('presubmit');
-					form.request.headers='{"Content-Type": "application/json"}';
-					form.request.contentType = "application/json";
-				},
-				_handleFormError: function(event) {
-					var toast = document.getElementById("toastError");
+				_subscriberFormResponse: function(event) {
+					var toast = document.getElementById("toast-success");
 					toast.open();
-					toast.duration = 0;
-					toast.fitInto = document.getElementById("subAddModal");
-					toast.class="fit-bottom";
+					toast.duration = 4;
+					document.getElementById("subAddModal").close();
+					var ajax = document.getElementById("subAddAjax");
+					if (ajax.body.password == undefined || ajax.body.id == undefined) {
+						this.password = ajax.lastResponse.password;
+						this.id = ajax.lastResponse.id;
+						document.getElementById("subSecretModal").open();
+					}
+					document.getElementById("getSubs").generateRequest();
 				},
 				_onLoadingChanged: function(event) {
 					if (document.getElementById("subAddAjax").loading) {
@@ -372,21 +356,6 @@
 					} else {
 						document.getElementById("add1").disabled = false;
 					}
-				},
-				_handleFormResponse: function(event) {
-					var toast = document.getElementById("toast-success");
-					toast.open();
-					toast.duration = 4;
-					document.getElementById("presubmit").reset();
-					document.getElementById("subAddModal").close();
-					var ajax = document.getElementById("subAddAjax");
-					if (ajax.body.password == undefined || ajax.body.id == undefined) {
-						this.password = ajax.lastResponse.password;
-						this.id = ajax.lastResponse.id;
-						document.getElementById("subSecretModal").open();
-						document.getElementById("subSecretModal").reset();
-					}
-					document.getElementById("getSubs").generateRequest();
 				},
 				toastErrorClose: function(event) {
 					var toast = document.getElementById("toastError");
