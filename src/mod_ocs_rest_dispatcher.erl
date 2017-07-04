@@ -82,7 +82,7 @@ serve_file(User, #mod{data = Data, config_db = ConfigDb,
 		"index.html" ->
 			case mod_auth:get_user(User, Port, "/") of
 				{ok, #httpd_user{user_data = UserData}} ->
-					Lang = proplists:get_value(lang, UserData, "en"),
+					Lang = proplists:get_value(locale, UserData, "en"),
 					case file:read_file(Path) of
 						{ok, FileContent} ->
 							{FileInfo, LastModified} = get_modification_date(Path),
