@@ -22,7 +22,8 @@
 		identifier = <<>> :: binary(),
 		port :: inet:port_number(),
 		protocol :: radius | diameter,
-		secret :: binary()}).
+		secret :: binary(),
+		last_modified  = calendar:universal_time():: calendar:datetime()}).
 
 %% define subscriber table entries record
 -record(subscriber,
@@ -31,5 +32,6 @@
 		attributes :: radius_attributes:attributes(),
 		balance :: integer(),
 		enabled = true :: boolean(),
-		disconnect  = false :: boolean()}).
+		disconnect  = false :: boolean(),
+		last_modified = calendar:universal_time() :: calendar:datetime()}).
 
