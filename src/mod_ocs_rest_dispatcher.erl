@@ -83,13 +83,14 @@ serve_file(User, #mod{data = Data, config_db = ConfigDb,
 					Lang = proplists:get_value(lang, UserData, "en"),
 					case file:read_file(Path) of
 						{ok, FileContent} ->
-							{_FileInfo, LastModified} = get_modification_date(Path),
+							{FileInfo, LastModified} = get_modification_date(Path),
 							LangBin = list_to_binary(Lang),
 							Body = <<"<!doctype html>", $\n, "<html lang=",
 									LangBin/binary, $>, $\n,
 									FileContent/binary, "</html>">>,
 							Size = integer_to_list(size(Body)),
 							Headers = [{content_type, "text/html"},
+									{etag, httpd_util:create_etag(FileInfo)},
 									{content_length, Size} | LastModified],
 							send(ModData, 200, Headers, Body),
 							{proceed, [{response, {already_sent, 200, Size}} | Data]};
