@@ -49,7 +49,6 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 		entity_body = Body, data = Data} = ModData) ->
 	case Method of
 		"PUT" ->
-erlang:display({?MODULE, ?LINE}),
 			case proplists:get_value(status, Data) of
 				{_StatusCode, _PhraseArgs, _Reason} ->
 					{proceed, Data};

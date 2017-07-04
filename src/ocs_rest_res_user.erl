@@ -211,10 +211,8 @@ put_user(RequestBody) ->
 		end
 	catch
 		throw:delete ->
-erlang:display({?MODULE, ?LINE}),
 			{error, 500};
 		_:_Reason1 ->
-erlang:display({?MODULE, ?LINE}),
 			{error, 400}
 	end.
 

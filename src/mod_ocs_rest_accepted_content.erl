@@ -77,7 +77,6 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 						["partyManagement", "v1", "individual"] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_user, Data);
 						["partyManagement", "v1", "individual", _Id] ->
-erlang:display({?MODULE, ?LINE}),
 							check_content_type_header(Headers, Method, ocs_rest_res_user, Data);
 						_ ->
 							Response = "<h2>HTTP Error 400 - Bad Request</h2>",
