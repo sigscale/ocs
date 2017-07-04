@@ -84,7 +84,7 @@ get_usage("auth-" ++ _ = Id, [] = _Query) ->
 		TS = list_to_integer(TimeStamp),
 		N = list_to_integer(Serial),
 		Events = ocs_log:auth_query(TS, TS, '_', '_', '_', '_'),
-		JsonObj = usage_aaa_auth(lists:keyfind(N, 2, Events)),
+		JsonObj = usage_aaa_auth(lists:keyfind(N, 2, Events), []),
 		Body = mochijson:encode(JsonObj),
 		Headers = [{content_type, "application/json"}],
 		{ok, Headers, Body}
@@ -98,7 +98,7 @@ get_usage("acct-" ++ _ = Id, [] = _Query) ->
 		TS = list_to_integer(TimeStamp),
 		N = list_to_integer(Serial),
 		Events = ocs_log:acct_query(TS, TS, '_', '_', '_'),
-		JsonObj = usage_aaa_acct(lists:keyfind(N, 2, Events)),
+		JsonObj = usage_aaa_acct(lists:keyfind(N, 2, Events), []),
 		Body = mochijson:encode(JsonObj),
 		Headers = [{content_type, "application/json"}],
 		{ok, Headers, Body}
@@ -398,7 +398,7 @@ ipdr_characteristics([], _Ipdr, Acc) ->
 %% @hidden
 usage_aaa_auth({Milliseconds, N, P, Node,
 		{ServerIP, ServerPort}, {ClientIP, ClientPort}, EventType,
-		RequestAttributes, ResponseAttributes}) ->
+		RequestAttributes, ResponseAttributes}, Filters) ->
 	UsageSpec = {struct, [{id, "AAAAccessUsageSpec"},
 			{href, "/usageManagement/v1/usageSpecification/AAAAccessUsageSpec"},
 			{name, "AAAAccessUsageSpec"}]},
@@ -426,21 +426,21 @@ usage_aaa_auth({Milliseconds, N, P, Node,
 	RequestChars = usage_characteristics(RequestAttributes),
 	ResponseChars = usage_characteristics(ResponseAttributes),
 	UsageChars = EventChars ++ RequestChars ++ ResponseChars,
-	{struct, [{id, ID}, {href, Href},
-			{date, Date}, {type, Type}, {status, Status},
-			{usageSpecification, UsageSpec},
-			{usageCharacteristic, {array, UsageChars}}]};
-usage_aaa_auth(Events) when is_list(Events) ->
-	usage_aaa_auth(Events, []).
+	Members = [{id, ID}, {href, Href}, {date, Date}, {type, Type},
+			{status, Status}, {usageSpecification, UsageSpec},
+			{usageCharacteristic, {array, UsageChars}}],
+	{struct, filter(Filters, Members)};
+usage_aaa_auth(Events, Filters) when is_list(Events) ->
+	usage_aaa_auth(Events, Filters, []).
 %% @hidden
-usage_aaa_auth([H | T], Acc) ->
-	usage_aaa_auth(T, [usage_aaa_auth(H) | Acc]);
-usage_aaa_auth([], Acc) ->
+usage_aaa_auth([H | T], Filters, Acc) ->
+	usage_aaa_auth(T, Filters, [usage_aaa_auth(H, Filters) | Acc]);
+usage_aaa_auth([], _Filters, Acc) ->
 	lists:reverse(Acc).
 
 %% @hidden
 usage_aaa_acct({Milliseconds, N, P, Node,
-		{ServerIP, ServerPort}, EventType, Attributes}) ->
+		{ServerIP, ServerPort}, EventType, Attributes}, Filters) ->
 	UsageSpec = {struct, [{id, "AAAAccountingUsageSpec"},
 			{href, "/usageManagement/v1/usageSpecification/AAAAccountingUsageSpec"},
 			{name, "AAAAccountingUsageSpec"}]},
@@ -464,16 +464,16 @@ usage_aaa_acct({Milliseconds, N, P, Node,
 			{struct, [{name, "type"}, {value, atom_to_list(EventType)}]}],
 	AttributeChars = usage_characteristics(Attributes),
 	UsageChars = EventChars ++ AttributeChars,
-	{struct, [{id, ID}, {href, Href},
-			{date, Date}, {type, Type}, {status, Status},
-			{usageSpecification, UsageSpec},
-			{usageCharacteristic, {array, UsageChars}}]};
-usage_aaa_acct(Events) when is_list(Events) ->
-	usage_aaa_acct(Events, []).
+	Members = [{id, ID}, {href, Href}, {date, Date}, {type, Type},
+			{status, Status}, {usageSpecification, UsageSpec},
+			{usageCharacteristic, {array, UsageChars}}],
+	{struct, filter(Filters, Members)};
+usage_aaa_acct(Events, Filters) when is_list(Events) ->
+	usage_aaa_acct(Events, Filters, []).
 %% @hidden
-usage_aaa_acct([H | T], Acc) ->
-	usage_aaa_acct(T, [usage_aaa_acct(H) | Acc]);
-usage_aaa_acct([], Acc) ->
+usage_aaa_acct([H | T], Filters, Acc) ->
+	usage_aaa_acct(T, Filters, [usage_aaa_acct(H, Filters) | Acc]);
+usage_aaa_acct([], _Filters, Acc) ->
 	lists:reverse(Acc).
 
 %% @hidden
@@ -2107,13 +2107,22 @@ char_attr_cause(Attributes, Acc) ->
 	end.
 
 %% @hidden
-get_auth_usage([] = _Query) ->
+get_auth_usage(Query) ->
+	case lists:keytake(filter, 1, Query) of
+		{value, {_, L, NewQuery}} ->
+			Filters = string:tokens(L, ","),
+			get_auth_usage(NewQuery, Filters);
+		false ->
+			get_auth_usage(Query, [])
+	end.
+%% @hidden
+get_auth_usage([] = _Query, Filters) ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	case ocs_log:last(ocs_auth, MaxItems) of
 		{error, _} ->
 			{error, 500};
 		{NewCount, Events} ->
-			JsonObj = usage_aaa_auth(Events),
+			JsonObj = usage_aaa_auth(Events, Filters),
 			JsonArray = {array, JsonObj},
 			Body = mochijson:encode(JsonArray),
 			ContentRange = "items 1-" ++ integer_to_list(NewCount) ++ "/*",
@@ -2121,17 +2130,26 @@ get_auth_usage([] = _Query) ->
 					{content_range, ContentRange}],
 			{ok, Headers, Body}
 	end;
-get_auth_usage(_Query) ->
+get_auth_usage(_Query, _Filters) ->
 	{error, 400}.
 
 %% @hidden
-get_acct_usage([] = _Query) ->
+get_acct_usage(Query) ->
+	case lists:keytake(filter, 1, Query) of
+		{value, {_, L, NewQuery}} ->
+			Filters = string:tokens(L, ","),
+			get_acct_usage(NewQuery, Filters);
+		false ->
+			get_acct_usage(Query, [])
+	end.
+%% @hidden
+get_acct_usage([] = _Query, Filters) ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	case ocs_log:last(ocs_acct, MaxItems) of
 		{error, _} ->
 			{error, 500};
 		{NewCount, Events} ->
-			JsonObj = usage_aaa_acct(Events),
+			JsonObj = usage_aaa_acct(Events, Filters),
 			JsonArray = {array, JsonObj},
 			Body = mochijson:encode(JsonArray),
 			ContentRange = "items 1-" ++ integer_to_list(NewCount) ++ "/*",
@@ -2139,6 +2157,12 @@ get_acct_usage([] = _Query) ->
 					{content_range, ContentRange}],
 			{ok, Headers, Body}
 	end;
-get_acct_usage(_Query) ->
+get_acct_usage(_Query, _Filters) ->
 	{error, 400}.
+
+%% @hidden
+filter([H | T], Acc) ->
+	filter(T, lists:keydelete(H, 1, Acc));
+filter([], Acc) ->
+	lists:reverse(Acc).
 
