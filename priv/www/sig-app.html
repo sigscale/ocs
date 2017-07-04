@@ -28,6 +28,9 @@
 <link rel="import" href="sig-access-list.html">
 <link rel="import" href="sig-accounting-list.html">
 <link rel="import" href="sig-http-list.html">
+<link rel="import" href="sig-user-add.html">
+<link rel="import" href="sig-user-list.html">
+<link rel="import" href="sig-user-update.html">
 
 <dom-module id="sig-app">
 	<style is="custom-style">
@@ -106,6 +109,7 @@
 				<sig-access-list></sig-access-list>
 				<sig-accounting-list></sig-accounting-list>
 				<sig-http-list></sig-http-list>
+				<sig-user-list></sig-user-list>
 			</iron-pages>
 			<app-drawer-layout>
 				<app-drawer
@@ -181,6 +185,15 @@
 									</paper-icon-item>
 								</paper-menu>
 							</paper-submenu>
+							<paper-item
+									id="page6"
+									onclick="drawer.toggle()"
+									class="menuitem">
+								<iron-icon icon ="icons:perm-identity" item-icon></iron-icon>
+									<i18n-msg msgid="users">
+										Users
+									</i18n-msg>
+							</paper-item>
 						</paper-menu>
 					</iron-selector>
 				</app-drawer>
@@ -192,6 +205,8 @@
 		<sig-client-add></sig-client-add>
 		<sig-client-update></sig-client-update>
 		<sig-ipdr-log-files></sig-ipdr-log-files>
+		<sig-user-add></sig-user-add>
+		<sig-user-update></sig-user-update>
 	</template>
 		<script>
 		document.addEventListener('HTMLImportsLoaded', function() {
@@ -229,6 +244,15 @@
 						case 'page5':
 							this.$.loadPage.selected = 5;
 							document.getElementById('getHttp').generateRequest();
+							break;
+						case 'page6':
+							this.$.loadPage.selected = 6;
+							break;
+						case 'page6':
+							this.$.loadPage.selected = 6;
+							break;
+						case 'page6':
+							this.$.loadPage.selected = 6;
 							break;
 					}
 				},

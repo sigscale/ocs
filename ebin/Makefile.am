@@ -55,11 +55,13 @@ beam_DATA = ocs.beam \
 			mod_ocs_rest_accepted_content.beam \
 			mod_ocs_rest_get.beam \
 			mod_ocs_rest_post.beam \
+			mod_ocs_rest_put.beam \
 			mod_ocs_rest_patch.beam \
 			mod_ocs_rest_delete.beam \
 			ocs_rest_res_subscriber.beam \
 			ocs_rest_res_client.beam \
 			ocs_rest_res_usage.beam \
+			ocs_rest_res_user.beam \
 			diameter_gen_nas_application_rfc7155.beam \
 			diameter_gen_cc_application_rfc4006.beam \
 			diameter_gen_eap_application_rfc4072.beam \

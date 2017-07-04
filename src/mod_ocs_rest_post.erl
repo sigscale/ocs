@@ -85,7 +85,9 @@ content_type_available(Headers, Uri, Body, Resource, ModData) ->
 do_post(Resource, ModData, Body, ["ocs", "v1", "client"]) ->
 	do_response(ModData, Resource:post_client(Body));
 do_post(Resource, ModData, Body, ["ocs", "v1", "subscriber"]) ->
-	do_response(ModData, Resource:post_subscriber(Body)).
+	do_response(ModData, Resource:post_subscriber(Body));
+do_post(Resource, ModData, Body, ["partyManagement", "v1", "individual"]) ->
+	do_response(ModData, Resource:post_user(Body)).
 
 %% @hidden
 do_response(#mod{data = Data} = ModData, {ok, Headers, ResponseBody}) ->

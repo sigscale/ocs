@@ -1,0 +1,154 @@
+<link rel="import" href="polymer/polymer.html">
+<link rel="import" href="vaadin-grid/vaadin-grid.html">
+<link rel="import" href="vaadin-grid/vaadin-grid-sorter.html">
+<link rel="import" href="vaadin-grid/vaadin-grid-filter.html">
+<link rel="import" href="i18n-msg/i18n-msg-behavior.html">
+<link rel="import" href="iron-ajax/iron-ajax.html">
+<link rel="import" href="paper-fab/paper-fab.html" >
+<link rel="import" href="paper-toast/paper-toast.html">
+<link rel="import" href="paper-styles/color.html">
+<link rel="import" href="sig-user-add.html">
+<link rel="import" href="sig-user-update.html">
+
+<dom-module id="sig-user-list">
+	<style>
+		::-webkit-input-placeholder { /* Chrome/Opera/Safari */
+			color: initial;
+			font-weight: bold;
+		}
+		::-moz-placeholder { /* Firefox 19+ */
+			color: initial;
+			font-weight: bold;
+		}
+		:-ms-input-placeholder { /* IE 10+ */
+			color: initial;
+			font-weight: bold;
+		}
+		:-moz-placeholder { /* Firefox 18- */
+			color: initial;
+			font-weight: bold;
+		}
+		.add-button {
+			right: 2%;
+			position: fixed;
+			bottom: 5%;
+			z-index: 100;
+		}
+		paper-fab {
+			background: var(--paper-lime-a700);
+			color: black;
+		}
+		vaadin-grid {
+			height: 100vh;
+			font-size: inherit;
+			--vaadin-grid-header-cell: {
+				background: #ffb04c;
+			};
+		}
+		vaadin-grid input {
+			font-size: inherit;
+			background: #ffb04c;
+			border-style: none;
+		}
+	</style>
+	<template>
+		<vaadin-grid
+				id="UserGrid"
+				active-item="{{activeItem}}">
+			<vaadin-grid-column width="15ex" flex-grow="5">
+				<template class="header">
+					<vaadin-grid-sorter path="id">
+						<vaadin-grid-filter aria-label="[[i18n.userName]]" path="id" value="[[_filterId]]">
+							<input placeholder="[[i18n.userName]]" value="{{_filterId::input}}" focus-target>
+						</vaadin-grid-filter>
+					</vaadin-grid-sorter>
+				</template>
+				<template>[[item.id]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="15ex" flex-grow="5">
+				<template class="header">
+					<vaadin-grid-sorter path="language">
+						<vaadin-grid-filter aria-label="[[i18n.language]]" path="language" value="[[_filterLanguage]]">
+							<input placeholder="[[i18n.language]]" value="{{_filterLanguage::input}}" focus-target>
+						</vaadin-grid-filter>
+					</vaadin-grid-sorter>
+				</template>
+				<template>[[item.language]]</template>
+			</vaadin-grid-column>
+		</vaadin-grid>
+		<div class="add-button">
+			<paper-fab
+					icon="add"
+					on-click = "showAddUserModal">
+			</paper-fab>
+		</div>
+		<iron-ajax
+				id="getUser"
+				auto=false
+				url="/partyManagement/v1/individual"
+				headers='{"Accept": "application/json"}'
+				on-response="getUserResponse"
+				debounce-duration="10">
+		</iron-ajax>
+	</template>
+	<script>
+		addEventListener('WebComponentsReady', function() {
+		Polymer (
+			{
+				is: 'sig-user-list',
+				behaviors: [i18nMsgBehavior],
+				properties: {
+					activeItem: {
+						observer:'_activeItemChanged'
+					},
+				},
+				_activeItemChanged: function(item) {
+					if (item != null){
+						var grid = this.$.UserGrid;
+						grid.selectedItems = item ? [item] : [];
+						var modal = document.getElementById("UpdateUserModal");
+						modal.open();
+						document.getElementById("update-user1").value = item.id;
+						document.getElementById("update-user2").value = item.password;
+						document.getElementById("update-user3").value = item.language;
+					}
+				},
+				getUserResponse: function(event) {
+					var grid = this.$.UserGrid;
+					var results = event.detail.xhr.response;
+					var vaadinItems = new Array();
+					function checkChar(characteristic){
+						return characteristic.name == "locale";
+					}
+					for (var index in results) {
+						var newRecord = new Object();
+						newRecord.id = results[index].id;
+						var result = results[index].characteristic.find(checkChar);
+						if (result != undefined) {
+							if (result.value == "en") {
+								newRecord.language = "English";
+							} else if (result.value == "es") {
+								newRecord.language = "Spanish";
+							}
+						}
+						vaadinItems[index] = newRecord;
+					}
+					grid.items = vaadinItems;
+					grid.columns = [
+						{
+							name: "id"
+						},
+						{
+							name: "language"
+						}
+					];
+				},
+				showAddUserModal: function(event) {
+					var modal = document.getElementById("AddUserModal");
+					modal.open();
+				},
+			}
+		);
+		});
+	</script>
+</dom-module>

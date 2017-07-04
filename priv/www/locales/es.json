@@ -35,6 +35,10 @@
     "description": "Identity of subscribers",
     "message": "Identidad"
   },
+	"secret": {
+    "description": "Client shared secret.",
+    "message": "Secreto"
+  },
   "password": {
     "description": "Password of subscribers", 
     "message": "Contraseña"
@@ -386,5 +390,29 @@
 	"identity": {
     "description": "Identity label for generate identity",
     "message": "Identidad"
+  },
+	"authorClientTool": {
+    "description": "Tooltip message for authorization client",
+    "message": "Propiedades del servidor de acceso a la red, el router o el cliente de puntero de acceso."
+  },
+	"language": {
+    "description": "User language",
+    "message": "Idioma"
+  },
+	"users": {
+    "description": "User menu",
+    "message": "Usuarios"
+  },
+	"AddUserTitle": {
+    "description": "Title for add User",
+    "message": "Agregar usuario"
+  },
+	"eng": {
+    "description": "Dropdown list item",
+    "message": "Inglés"
+  },
+	"spa": {
+    "description": "Dropdown list item",
+    "message": "Español"
   }
 }

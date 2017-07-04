@@ -49,6 +49,7 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 		entity_body = Body, data = Data} = ModData) ->
 	case Method of
 		"PUT" ->
+erlang:display({?MODULE, ?LINE}),
 			case proplists:get_value(status, Data) of
 				{_StatusCode, _PhraseArgs, _Reason} ->
 					{proceed, Data};
@@ -83,17 +84,18 @@ content_type_available(Headers, Body, Uri, Resource, ModData) ->
 
 %% @hidden
 do_put(Body, Resource, ModData, ["partyManagement", "v1", "individual", Identity]) ->
-	do_response(ModData, Resource:put_user(Identity, Body));
+	do_response(ModData, Resource:put_user(Body));
 do_put(_Body, _Resource, _ModData, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{break, [{response, {404, Response}}]}.
 
 %% @hidden
-do_response(ModData, {ok, [], ResponseBody}) ->
+do_response(#mod{data = Data} = ModData, {ok, Headers, ResponseBody}) ->
 	Size = integer_to_list(iolist_size(ResponseBody)),
-	Headers = [{content_length, Size}],
-	send(ModData, 200, Headers, ResponseBody),
-	{proceed,[{response,{already_sent,200, Size}}]};
+	Accept = proplists:get_value(accept, Data),
+	NewHeaders = Headers ++ [{content_length, Size}, {content_type, Accept}],
+	send(ModData, 200, NewHeaders, ResponseBody),
+	{proceed,[{response,{already_sent,201, Size}}]};
 do_response(_ModData, {error, 400}) ->
 	Response = "<h2>HTTP Error 400 - Bad Request</h2>",
 	{break, [{response, {400, Response}}]};

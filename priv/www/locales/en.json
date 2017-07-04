@@ -386,5 +386,29 @@
 	"subToastSuc": {
     "description": "Toast message for success",
     "message": "Subscriber added!"
+  },
+	"identityCol": {
+    "description": "Identity label for generate identity",
+    "message": "Identity:"
+  },
+	"language": {
+    "description": "User language",
+    "message": "Language"
+  },
+	"users": {
+    "description": "User menu",
+    "message": "Users"
+  },
+	"AddUserTitle": {
+    "description": "Title for add User",
+    "message": "Agregar usuario"
+  },
+	"eng": {
+    "description": "Dropdown list item",
+    "message": "English"
+  },
+   "spa": {
+    "description": "Dropdown list item",
+    "message": "spanish"
   }
 }

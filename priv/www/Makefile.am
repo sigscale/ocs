@@ -13,6 +13,9 @@ www_DATA = favicon.ico \
 	sig-client-add.html \
 	sig-client-list.html \
 	sig-client-update.html \
+	sig-user-list.html \
+	sig-user-add.html \
+	sig-user-update.html \
 	sig-sub-add.html \
 	sig-sub-list.html \
 	sig-sub-update.html

@@ -62,6 +62,8 @@ do(#mod{request_uri = Uri, data = Data} = ModData) ->
 									{proceed, Data};
 								["usageManagement", "v1" | _] ->
 									{proceed, Data};
+								["partyManagement", "v1" | _] ->
+									{proceed, Data};
 								_ ->
 									serve_file(User, ModData)
 							end;
