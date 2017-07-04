@@ -113,8 +113,8 @@ send_response(Path, #mod{config_db = ConfigDb, data = Data} = ModData) ->
 			Suffix = httpd_util:suffix(Path),
 			MimeType = httpd_util:lookup_mime_default(ConfigDb, Suffix, "text/plain"),
 			Size = integer_to_list(FileInfo#file_info.size),
-			Headers = [{content_type, MimeType},
-					{content_length, Size} | LastModified],
+			Headers = [{content_type, MimeType}, {content_length, Size},
+					{etag, httpd_util:create_etag(FileInfo)} | LastModified],
 			send(ModData, 200, Headers, FileContent),
 			{proceed,[{response, {already_sent, 200, FileInfo#file_info.size}},
 				{mime_type,MimeType} | Data]};
