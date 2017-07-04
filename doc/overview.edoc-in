@@ -83,13 +83,14 @@ formed as `/ocs/v1/subscriber/eacfd73ae10a'.
 ===HTTP Methods===
 The <a href="http://tools.ietf.org/html/rfc2616">HTTP</a> methods used in
 this API include
-<a href="http://tools.ietf.org/html/rfc2616#section-9.5">`POST'</a>,
 <a href="http://tools.ietf.org/html/rfc2616#section-9.3">`GET'</a>,
+<a href="http://tools.ietf.org/html/rfc2616#section-9.5">`POST'</a>,
+<a href="http://tools.ietf.org/html/rfc2616#section-9.6">`PUT'</a>,
 <a href="https://tools.ietf.org/html/rfc2068#section-19.6.1">`PATCH'</a> and
 <a href="http://tools.ietf.org/html/rfc2616#section-9.7">`DELETE'</a>.
 
 ===Media Types===
-Each of the media types used in this application are described below.
+The media types used in this application are described below.
 
 <p><table id="mt">
 	<thead>
@@ -130,7 +131,7 @@ Each of the media types used in this application are described below.
 </table></div></p>
 
 <p><div id="subscriber"><table id="mt">
-	<caption id="mt">The <b>Subscriber</b> object relates a record in `subscriber' table:</caption>
+	<caption id="mt">The <b>Subscriber</b> object respresents a record in the `subscriber' table:</caption>
 	<thead>
 		<tr id="mt">
 			<th id="mt">Field Name</th>
@@ -143,27 +144,54 @@ Each of the media types used in this application are described below.
 		<tr id="mt">
 			<td id="mt">id</td>
 			<td id="mt">string</td>
-			<td id="mt">M</td>
-			<td id="mt">MAC address of the subscriber</td>
+			<td id="mt">O</td>
+			<td id="mt">Identity (username) of the subscriber</td>
 		</tr>
 		<tr id="mt">
 			<td id="mt">href</td>
 			<td id="mt">string</td>
-			<td id="mt">M</td>
-			<td id="mt">URI of the subscriber resource (Mandatory only in response)</td>
+			<td id="mt">R</td>
+			<td id="mt">URI of the subscriber resource</td>
 		</tr>
 		<tr id="mt">
 			<td id="mt">password</td>
 			<td id="mt">string</td>
 			<td id="mt">O</td>
-			<td id="mt">Password given to the subscriber (Mandatory only in response)</td>
+			<td id="mt">Password used to authenticate the subscriber</td>
 		</tr>
 		<tr id="mt">
 			<td id="mt">attributes</td>
 			<td id="mt">array</td>
 			<td id="mt">O</td>
-			<td id="mt">RADIUS attributes of the subscriber </td>
+			<td id="mt">RADIUS&#47;DIAMETER attributes</td>
 		</tr>
+		<tr id="mt">
+			<td id="mt">balance</td>
+			<td id="mt">integer</td>
+			<td id="mt">M</td>
+			<td id="mt">Avaiable data balance of the subscriber</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">enabled</td>
+			<td id="mt">boolean</td>
+			<td id="mt">O</td>
+			<td id="mt">Subscriber's status of accessing the services</td>
+		</tr>
+	</tbody>
+</table></div></p>
+<p><div id="attributes"><table id="mt">
+	<caption id="mt">The <b>attributes</b> value in the `subscriber' table
+		is an array of attributes which will be included in authenticated
+		access requests.</caption>
+	<thead>
+		<tr id="mt">
+			<th id="mt">Name</th>
+			<th id="mt">Value</th>
+			<th id="mt">Status</th>
+			<th id="mt">Description</th>
+		</tr>
+	</thead>
+	<tbody>
 		<tr id="mt">
 			<td id="mt">ascendDataRate</td>
 			<td id="mt">integer</td>
@@ -192,25 +220,38 @@ Each of the media types used in this application are described below.
 			<td id="mt">class</td>
 			<td id="mt">string</td>
 			<td id="mt">O</td>
-			<td id="mt">Map different user groups </td>
+			<td id="mt">Class name included in accounting events</td>
 		</tr>
 		<tr id="mt">
-			<td id="mt">balance</td>
-			<td id="mt">integer</td>
-			<td id="mt">M</td>
-			<td id="mt">Avaiable data balance of the subscriber</td>
-		</tr>
-		<tr id="mt">
-			<td id="mt">enabled</td>
-			<td id="mt">boolean</td>
+			<td id="mt">vendorSpecific</td>
+			<td id="mt">object</td>
 			<td id="mt">O</td>
-			<td id="mt">Subscriber's status of accessing the services</td>
+			<td id="mt">Vendor specific attributes</td>
 		</tr>
 	</tbody>
 </table></div></p>
+<p><div id="vendor"><table id="op">
+	<caption id="op">A <b>vendorSpecific</b> object:</caption>
+		<tr id="op">
+			<td id="opl">Type</td>
+			<td id="opr">26</td>
+		</tr>
+		<tr id="op">
+			<td id="opl">Vendor</td>
+			<td id="opr">integer</td>
+		</tr>
+		<tr id="op">
+			<td id="opl">VendorType</td>
+			<td id="opr">integer</td>
+		</tr>
+		<tr id="op">
+			<td id="opl">Value</td>
+			<td id="opr">integer | string</td>
+		</tr>
+</table></div></p>
 
 <p><div id="client"><table id="mt">
-	<caption id="mt">The <b>Client</b> object relates a record in `client' table:</caption>
+	<caption id="mt">The <b>Client</b> object respresents a record in the `client' table:</caption>
 	<thead>
 		<tr id="mt">
 			<th id="mt">Field Name</th>
@@ -229,14 +270,8 @@ Each of the media types used in this application are described below.
 		<tr id="mt">
 			<td id="mt">href</td>
 			<td id="mt">string</td>
-			<td id="mt">M</td>
-			<td id="mt">URI of the client resource.(Mandatory only in response)</td>
-		</tr>
-		<tr id="mt">
-			<td id="mt">address</td>
-			<td id="mt">string</td>
-			<td id="mt">M</td>
-			<td id="mt">NAS IP address</td>
+			<td id="mt">R</td>
+			<td id="mt">URI of the client resource</td>
 		</tr>
 		<tr id="mt">
 			<td id="mt">identifier</td>
@@ -247,20 +282,20 @@ Each of the media types used in this application are described below.
 		<tr id="mt">
 			<td id="mt">port</td>
 			<td id="mt">integer</td>
-			<td id="mt">M</td>
-			<td id="mt">Port the NAS listens for incoming messages on</td>
+			<td id="mt">O</td>
+			<td id="mt">Port the NAS listens for incoming (disconnect) messages on</td>
 		</tr>
 		<tr id="mt">
 			<td id="mt">protocol</td>
 			<td id="mt">string</td>
 			<td id="mt">M</td>
-			<td id="mt">AAA protocol used by NAS</td>
+			<td id="mt">AAA protocol used by NAS (RADIUS | DIAMETER)</td>
 		</tr>
 		<tr id="mt">
 			<td id="mt">secret</td>
 			<td id="mt">string</td>
 			<td id="mt">M</td>
-			<td id="mt">Password given to the NAS</td>
+			<td id="mt">Secret shared with NAS for authentication</td>
 		</tr>
 	</tbody>
 </table></div></p>
@@ -295,7 +330,7 @@ headers may be included in requests and responses and responses.
 	</tr>
 	<tr id="op">
 		<td id="opl">Response Body</td>
-		<td id="opr">Representation of the added subscriber</td>
+		<td id="opr">Representation of the newly added subscriber</td>
 	</tr>
 	<tr id="op">
 		<td id="opl">Response Status</td>
@@ -310,13 +345,12 @@ Content-length: nn
 
 {
  "id":"eacfd73ae10a",
- "password":"ksc8c244npqc",
  "attributes":[
-               { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
-               { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
-               { "name" : "sessionTimeout", "value" : 10864 },
-               { "name" : "acctInterimInterval", "value" : 300},
-               { "name" : "class", "value":  "skiorgs"}
+               {"name": "ascendDataRate", "value": 1000000},
+               {"name": "ascendXmitRate", "value": 64000},
+               {"name": "sessionTimeout", "value": 3600},
+               {"name": "acctInterimInterval", "value": 300},
+               {"name": "class", "value": "skiorgs"}
               ],
  "balance":100,
  "enabled": true
@@ -333,11 +367,11 @@ Content-Length: nn
  "href": "/ocs/v1/subscriber/eacfd73ae10a"
  "password": "ksc8c244npqc",
  "attributes":[
-               { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
-               { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
-               { "name" : "sessionTimeout", "value" : 10864 },
-               { "name" : "acctInterimInterval", "value": 300},
-               { "name" : "class", "value": "skiorgs"}
+               {"name": "ascendDataRate", "value": 1000000},
+               {"name": "ascendXmitRate", "value": 64000},
+               {"name": "sessionTimeout", "value": 3600},
+               {"name": "acctInterimInterval", "value": 300},
+               {"name": "class", "value": "skiorgs"}
               ],
  "balance": 100,
  "enabled": true
@@ -384,17 +418,13 @@ HTTP/1.1 200 OK
 Content-Type: application/json
 Content-Length: nn
 {
- "id": "eacfd73ae10a",
- "href": "/ocs/v1/subscriber/eacfd73ae10a"
- "password": "ksc8c244npqc",
+ "id": "ae01b2df60d0",
+ "href": "/ocs/v1/subscriber/ae01b2df60d0"
+ "password": "rx46qsbf2wn8",
  "attributes":[
-               { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
-               { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
-               { "name" : "sessionTimeout", "value" : 10864 },
-               { "name" : "acctInterimInterval", "value": 300},
-               { "name" : "class", "value": "skiorgs"}
+               {"name": "ascendDataRate", "value": 64000}
               ],
- "balance": 100,
+ "balance": 983490,
  "enabled": true
 }
 </pre></p>
@@ -444,13 +474,11 @@ Content-Length: nn
    "href": "/ocs/v1/subscriber/5557615036fd"
    "password": "2h7csggw35aa",
    "attributes":[
-                 { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
-                 { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
-                 { "name" : "sessionTimeout", "value" : 10864 },
-                 { "name" : "acctInterimInterval", "value": 300},
-                 { "name" : "class", "value": "skiorgs"}
+                 {"name": "ascendDataRate", "value": 4000000},
+                 {"name": "sessionTimeout", "value": 3600},
+                 {"name": "class", "value": "skiorgs"}
                 ],
-  "balance": 65,
+  "balance": 6559234,
   "enabled": true
  },
  {
@@ -458,13 +486,9 @@ Content-Length: nn
   "href": "/ocs/v1/subscriber/e5b9265c8c0d"
   "password": "rzambns7knr4",
    "attributes":[
-                 { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
-                 { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
-                 { "name" : "sessionTimeout", "value" : 10864 },
-                 { "name" : "acctInterimInterval", "value": 300},
-                 { "name" : "class", "value": "skiorgs"}
+                 {"name": "sessionTimeout", "value": 3600},
                 ],
-  "balance": 76,
+  "balance": 12038624,
   "enabled": true
  }
 ]
@@ -520,11 +544,11 @@ Content-Length: 315
  "href": "/ocs/v1/subscriber/eacfd73ae10a",
  "password": "7fy8qhs7hh7n",
  "attributes":[
-               { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
-               { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
-               { "name" : "sessionTimeout", "value" : 10864 },
-               { "name" : "acctInterimInterval", "value": 300},
-               { "name" : "class", "value": "skiorgs"}
+               {"name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
+               {"name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
+               {"name" : "sessionTimeout", "value" : 10864 },
+               {"name" : "acctInterimInterval", "value": 300},
+               {"name" : "class", "value": "skiorgs"}
               ],
  "balance": 100,
  "enabled": true
@@ -568,16 +592,13 @@ Content-type: application/json
 Accept: application/json
 
 {
- "update":"attributes",
- "balance":153,
- "attributes":[
-               { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
-               { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
-               { "name" : "sessionTimeout", "value" : 10864 },
-               { "name" : "acctInterimInterval", "value": 300},
-               { "name" : "class", "value": "skiorgs"}
+ "update": "attributes",
+ "balance": 100000000000,
+ "attributes": [
+               {"name": "ascendDataRate", "value": 1000000},
+               {"name": "ascendXmitRate", "value": 512000},
               ],
- "enabled":false
+ "enabled": false
 }
 </pre></p>
 <p>Example response:<pre>
@@ -590,13 +611,10 @@ Content-Length: 315
  "href": "/ocs/v1/subscriber/eacfd73ae10a",
  "password": "ksc8c244npqc",
  "attributes":[
-               { "name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
-               { "name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
-               { "name" : "sessionTimeout", "value" : 10864 },
-               { "name" : "acctInterimInterval", "value": 300},
-               { "name" : "class", "value": "skiorgs"}
+               {"name": "ascendDataRate", "value": 1000000},
+               {"name": "ascendXmitRate", "value": 512000},
               ],
- "balance": 153,
+ "balance": 100000000000,
  "enabled": false
 }
 </pre></p>

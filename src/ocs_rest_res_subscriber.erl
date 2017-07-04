@@ -216,20 +216,16 @@ delete_subscriber(Id) ->
 json_to_radius(JsonObjList) ->
 	json_to_radius(JsonObjList, []).
 %% @hidden
-json_to_radius([{struct, [{"name", "ascendDataRate"} | VendorSpecific]} | T], Acc) ->
-	case vendor_specific(VendorSpecific) of
-		[] ->
-			json_to_radius(T, Acc) ;
-		Attribute ->
-			json_to_radius(T, [Attribute | Acc])
-	end;
-json_to_radius([{struct, [{"name", "ascendXmitRate"} | VendorSpecific]} | T], Acc) ->
-	case vendor_specific(VendorSpecific) of
-		[] ->
-			json_to_radius(T, Acc);
-		Attribute ->
-			json_to_radius(T, [Attribute | Acc])
-	end;
+json_to_radius([{struct, [{"name", "ascendDataRate"}, {"value", V}]} | T], Acc) when V == null; V == "" ->
+	json_to_radius(T,Acc);
+json_to_radius([{struct, [{"name", "ascendDataRate"}, {"value", V}]} | T], Acc) ->
+	Attribute = {?AscendDataRate, V},
+	json_to_radius(T, [Attribute | Acc]);
+json_to_radius([{struct, [{"name", "ascendXmitRate"}, {"value", V}]} | T], Acc) when V == null; V == "" ->
+	json_to_radius(T,Acc);
+json_to_radius([{struct, [{"name", "ascendXmitRate"}, {"value", V}]} | T], Acc) ->
+	Attribute = {?AscendXmitRate, V},
+	json_to_radius(T, [Attribute | Acc]);
 json_to_radius([{struct,[{"name","sessionTimeout"}, {"value", V}]} | T], Acc) when V == null; V == "" ->
 	json_to_radius(T, Acc);
 json_to_radius([{struct,[{"name","sessionTimeout"}, {"value", V}]} | T], Acc) ->
@@ -245,6 +241,13 @@ json_to_radius([{struct,[{"name","class"}, {"value", V}]} | T], Acc) when V == n
 json_to_radius([{struct,[{"name","class"}, {"value", V}]} | T], Acc) ->
 	Attribute = {?Class, V},
 	json_to_radius(T, [Attribute | Acc]);
+json_to_radius([{struct, [{"name", "vendorSpecific"} | VendorSpecific]} | T], Acc) ->
+	case vendor_specific(VendorSpecific) of
+		[] ->
+			json_to_radius(T, Acc);
+		Attribute ->
+			json_to_radius(T, [Attribute | Acc])
+	end;
 json_to_radius([], Acc) ->
 	Acc.
 
@@ -252,14 +255,6 @@ json_to_radius([], Acc) ->
 radius_to_json(RadiusAttributes) ->
 	radius_to_json(RadiusAttributes, []).
 %% @hidden
-radius_to_json([{?VendorSpecific, {?Ascend, {?AscendDataRate, _}}} = H | T], Acc) ->
-	{struct, Values} = vendor_specific(H),
-	Attribute = {struct, [{"name", "ascendDataRate"} | Values]},
-	radius_to_json(T, [Attribute | Acc]);
-radius_to_json([{?VendorSpecific, {?Ascend, {?AscendXmitRate, _}}} = H | T], Acc) ->
-	{struct, Values} = vendor_specific(H),
-	Attribute = {struct, [{"name", "ascendXmitRate"} | Values]},
-	radius_to_json(T, [Attribute | Acc]);
 radius_to_json([{?SessionTimeout, V} | T], Acc) ->
 	Attribute = {struct, [{"name", "sessionTimeout"}, {"value",  V}]},
 	radius_to_json(T, [Attribute | Acc]);
@@ -268,6 +263,15 @@ radius_to_json([{?AcctInterimInterval, V} | T], Acc) ->
 	radius_to_json(T, [Attribute | Acc]);
 radius_to_json([{?Class, V} | T], Acc) ->
 	Attribute = {struct, [{"name", "class"}, {"value", V}]},
+	radius_to_json(T, [Attribute | Acc]);
+radius_to_json([{?VendorSpecific, {?Ascend, {?AscendDataRate, V}}} | T], Acc) ->
+	Attribute = {struct, [{"name", "ascendDataRate"}, {"value",  V}]},
+	radius_to_json(T, [Attribute | Acc]);
+radius_to_json([{?VendorSpecific, {?Ascend, {?AscendXmitRate, V}}} | T], Acc) ->
+	Attribute = {struct, [{"name", "ascendXmitRate"}, {"value",  V}]},
+	radius_to_json(T, [Attribute | Acc]);
+radius_to_json([{?VendorSpecific, _} = H | T], Acc) ->
+	Attribute = {struct, vendor_specific(H)},
 	radius_to_json(T, [Attribute | Acc]);
 radius_to_json([_| T], Acc) ->
 	radius_to_json(T, Acc);
@@ -285,8 +289,8 @@ vendor_specific(AttrJson) when is_list(AttrJson) ->
 		{_, Value} ->
 			{Type, {VendorID, {Key, Value}}}
 	end;
-vendor_specific({Type, {VendorID, {VendorType, Value}}}) ->
-	AttrObj = [{"type", Type},
+vendor_specific({?VendorSpecific, {VendorID, {VendorType, Value}}}) ->
+	AttrObj = [{"name", vendorSpecific},
 				{"vendorId", VendorID},
 				{"vendorType", VendorType},
 				{"value", Value}],
