@@ -83,7 +83,7 @@ content_type_available(Headers, Body, Uri, Resource, ModData) ->
 
 %% @hidden
 do_put(Body, Resource, ModData, ["partyManagement", "v1", "individual", Identity]) ->
-	do_response(ModData, Resource:put_user(Body));
+	do_response(ModData, Resource:put_user(Identity, Body));
 do_put(_Body, _Resource, _ModData, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{break, [{response, {404, Response}}]}.

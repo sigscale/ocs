@@ -21,7 +21,7 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
-		get_user/1, get_user/0, post_user/1, put_user/1, delete_user/1]).
+		get_user/1, get_user/0, post_user/1, put_user/2, delete_user/1]).
 
 -include_lib("radius/include/radius.hrl").
 -include_lib("inets/include/mod_auth.hrl").
@@ -75,7 +75,7 @@ get_user1([H | T], Port, Acc) ->
 		{error, _Reason} ->
 			get_user1(T, Port, Acc)
 	end;
-get_user1([], Port, Acc) ->
+get_user1([], _Port, Acc) ->
 	Body = mochijson:encode({array, lists:reverse(Acc)}),
 	Headers = [{content_type, "application/json"}],
 	{ok, Headers, Body}.
@@ -160,14 +160,15 @@ post_user(RequestBody) ->
 			{error, 400}
 	end.
 
--spec put_user(RequestBody) -> Result
+-spec put_user(ID, RequestBody) -> Result
 	when
+		ID :: string(),
 		RequestBody :: list(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()}.
 %% @doc Respond to `PUT /partyManagement/v1/individual' and Update a `User'
 %% resource.
-put_user(RequestBody) ->
+put_user(ID, RequestBody) ->
 	{_, _, Info} = lists:keyfind(httpd, 1, inets:services_info()),
 	{_, Port} = lists:keyfind(port, 1, Info),
 	try
