@@ -72,21 +72,31 @@ content_type_available(Headers, Body, Uri, Resource, ModData) ->
 			AvailableTypes = Resource:content_types_provided(),
 			case lists:member(RequestingType, AvailableTypes) of
 				true ->
-					do_patch(Body, Resource, ModData, string:tokens(Uri, "/"));
+					Etag = get_etag(Headers),
+					do_patch(Body, Resource, ModData, Etag, string:tokens(Uri, "/"));
 				false ->
 					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
 					{break, [{response, {415, Response}}]}
 			end;
 		_ ->
-			do_patch(Uri, Body, Resource, ModData)
+			do_patch(Uri, Body, Resource, undefined, ModData)
 	end.
 
 %% @hidden
-do_patch(Body, Resource, ModData, ["ocs", "v1", "client", Identity]) ->
-	do_response(ModData, Resource:patch_client(Identity, Body));
-do_patch(Body, Resource, ModData, ["ocs", "v1", "subscriber", Identity]) ->
+get_etag(Headers) ->
+	case lists:keyfind("if-match", 1, Headers) of
+		{_, Etag} ->
+			Etag;
+		false ->
+			undefined
+	end.
+
+%% @hidden
+do_patch(Body, Resource, ModData, Etag, ["ocs", "v1", "client", Identity]) ->
+	do_response(ModData, Resource:patch_client(Identity, Etag, Body));
+do_patch(Body, Resource, ModData, _, ["ocs", "v1", "subscriber", Identity]) ->
 	do_response(ModData, Resource:patch_subscriber(Identity, Body));
-do_patch(_Body, _Resource, _ModData, _) ->
+do_patch(_Body, _Resource, _ModData, _, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{break, [{response, {404, Response}}]}.
 
