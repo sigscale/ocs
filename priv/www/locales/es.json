@@ -411,6 +411,10 @@
     "description": "Dropdown list item",
     "message": "Inglés"
   },
+	"updateUserTitle": {
+    "description": "User Title for Update",
+    "message": "Actualizar usuario"
+  },
 	"spa": {
     "description": "Dropdown list item",
     "message": "Español"
