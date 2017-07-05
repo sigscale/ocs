@@ -773,7 +773,7 @@ last(Log, MaxItems, Cont1, [H | _] = Acc) ->
 			last(Log, MaxItems, Cont1, [ContN | Acc])
 	end.
 %% @hidden
-last1(Log, MaxItems, [Cont | T], Acc) ->
+last1(Log, MaxItems, [Cont | T], _Acc) ->
 	case last2(Log, MaxItems, Cont, []) of
 		{error, Reason} ->
 			{error, Reason};
