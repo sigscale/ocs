@@ -23,7 +23,7 @@
 		port :: inet:port_number(),
 		protocol :: radius | diameter,
 		secret :: binary(),
-		last_modified  = calendar:universal_time():: calendar:datetime()}).
+		last_modified  = erlang:system_time(milli_seconds) :: integer()}).
 
 %% define subscriber table entries record
 -record(subscriber,
@@ -33,5 +33,5 @@
 		balance :: integer(),
 		enabled = true :: boolean(),
 		disconnect  = false :: boolean(),
-		last_modified = calendar:universal_time() :: calendar:datetime()}).
+		last_modified = erlang:system_time(milli_seconds) :: integer()}).
 
