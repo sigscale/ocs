@@ -118,7 +118,9 @@ update_client(Address, Password) ->
 	F = fun() ->
 				case mnesia:read(client, Address, write) of
 					[Entry] ->
-						NewEntry = Entry#client{secret = Password},
+						TS = erlang:system_time(milli_seconds),
+						N = erlang:unique_integer([positive]),
+						NewEntry = Entry#client{secret = Password, last_modified = {TS,N}},
 						mnesia:write(client, NewEntry, write);
 					[] ->
 						throw(not_found)
@@ -150,7 +152,10 @@ update_client(Address, Port, Protocol)
 	F = fun() ->
 				case mnesia:read(client, Address, write) of
 					[Entry] ->
-						NewEntry = Entry#client{port = Port, protocol = Protocol},
+						TS = erlang:system_time(milli_seconds),
+						N = erlang:unique_integer([positive]),
+						NewEntry = Entry#client{port = Port, protocol = Protocol,
+								last_modified = {TS, N}},
 						mnesia:write(client, NewEntry, write);
 					[] ->
 						throw(not_found)
