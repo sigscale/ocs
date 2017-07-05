@@ -48,7 +48,7 @@
 				<paper-input
 						id="add-user2"
 						name="password"
-						label="[[i18n.password]]" required>
+						label="[[i18n.password]]">
 				</paper-input>
 				<paper-dropdown-menu
 						id="add-user3"
@@ -58,7 +58,7 @@
 							id="add-userLocale"
 							slot="dropdown-content"
 							class="dropdown-content"
-							selected="1">
+							selected="0">
 						<paper-item value="en">
 							[[i18n.eng]]
 						</paper-item>
@@ -103,10 +103,6 @@
 			{
 				is: 'sig-user-add',
 				behaviors: [i18nMsgBehavior],
-				properties: {
-				},
-				listeners: {
-				},
 				 _userFormSubmit: function(event) {
 					var user = new Object();
 					user.id = document.getElementById("add-user1").value;

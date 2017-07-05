@@ -46,33 +46,37 @@
 	<template>
 		<paper-dialog id="UpdateUserModal" modal>
 			<paper-toolbar>
-				<h2>Update User</h2>
+				<h2>[[i18n.updateUserTitle]]</h2>
 			</paper-toolbar>
 				<paper-input
 						id="update-user1"
 						name="username"
-						label="Username"
+						label="[[i18n.userName]]"
 						disabled>
 				</paper-input>
 				<paper-input
 						id="update-user2"
 						name="password"
-						label="Password">
+						label="[[i18n.password]]">
 				</paper-input>
 				<paper-dropdown-menu
 						id="update-user3"
 						name="locale"
-						label="language">
+						label="[[i18n.language]]">
 					<paper-listbox
 							id="add-userLo"
 							slot="dropdown-content"
 							class="dropdown-content"
 							selected="0">
 						<paper-item value="en">
-							English
+							<i18n-msg msgid="eng">
+								English
+							<i18n-msg>
 						</paper-item>
 						<paper-item value="es">
-							Spanish
+							<i18n-msg msgid="spa">
+								Spanish
+							<i18n-msg>
 						</paper-item>
 					</paper-listbox>
 				</paper-dropdown-menu>
@@ -81,21 +85,27 @@
 							raised
 							class="add-button"
 							on-click="UpdateUser">
-							Update
+							<i18n-msg msgid="update">
+								Update
+							<i18n-msg>
 					</paper-button>
 					<paper-button
 							class="cancel-button"
 							dialog-confirm
 							autofocus
 							onclick="clientAddModal.close()">
-							Cancel
+							<i18n-msg msgid="cancel">
+								Cancel
+							<i18n-msg>
 					</paper-button>
 					<paper-button
 							toggles
 							raised
 							on-click="deleteUser"
 							class="delete-buttons">
-							Delete
+							<i18n-msg msgid="delete">
+								Delete
+							<i18n-msg>
 					</paper-button>
 				</div>
 		</paper-dialog>
@@ -114,8 +124,7 @@
 		Polymer (
 			{
 				is: 'sig-user-update',
-				properties: {
-				},
+				behaviors: [i18nMsgBehavior],
 				UpdateUser: function(event) {
 					var editAjax =  document.getElementById("UpdateUser");
 					editAjax.method = "PUT";
