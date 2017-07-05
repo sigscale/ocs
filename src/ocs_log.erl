@@ -178,7 +178,7 @@ acct_query(Start, End, Protocol, Types, AttrsMatch)
 acct_query(_Start, _End, _Protocol, _Types, _AttrsMatch, eof, Acc) ->
 	lists:reverse(Acc);
 acct_query(_Start, _End, _Protocol, _Types, _AttrsMatch, {error, Reason}, _Acc) ->
-	{error, Reason};
+	exit(Reason);
 acct_query(Start, End, '_', '_', AttrsMatch,
 		{Cont, [{TS, _, _, _, _, _, _} | _] = Chunk}, Acc)
 		when TS >= Start, TS =< End ->
@@ -359,7 +359,7 @@ auth_query(_Start, _End, _Protocol, _Types,
 	lists:reverse(Acc);
 auth_query(_Start, _End, _Protocol, _Types,
 		_ReqAttrsMatch, _RespAttrsMatch, {error, Reason}, _Acc) ->
-	{error, Reason};
+	exit(Reason);
 auth_query(Start, End, '_', '_', ReqAttrsMatch, RespAttrsMatch,
 		{Cont, [{TS, _, _, _, _, _, _, _, _} | _] = Chunk}, Acc)
 		when TS >= Start, TS =< End ->
