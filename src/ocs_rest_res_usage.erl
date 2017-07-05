@@ -2198,6 +2198,30 @@ get_acct_usage(Query, Filters) ->
 		false ->
 			get_acct_query(Query, Filters);
 		_ ->
+			{error, 400}
+	end.
+
+%% @hidden
+get_acct_query([] = _Query, Filters) ->
+	{ok, _MaxItems} = application:get_env(ocs, rest_page_size),
+	case ocs_log:auth_query(1, 1, '_', '_', '_', '_') of
+		[] ->
+			{error, 404};
+		Events ->
+			JsonObj = usage_aaa_acct(Events, Filters),
+			JsonArray = {array, JsonObj},
+			Body = mochijson:encode(JsonArray),
+			N = integer_to_list(length(Events)),
+			ContentRange = "items 1-" ++ N ++ "/" ++ N,
+			Headers = [{content_type, "application/json"},
+					{content_range, ContentRange}],
+			{ok, Headers, Body}
+	end;
+get_acct_query(_Query, _Filters) ->
+	{error, 400}.
+
+%% @hidden
+get_acct_last([] = _Query, Filters) ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	case ocs_log:last(ocs_acct, MaxItems) of
 		{error, _} ->
