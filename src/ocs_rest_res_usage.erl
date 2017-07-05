@@ -84,10 +84,15 @@ get_usage("auth-" ++ _ = Id, [] = _Query) ->
 		TS = list_to_integer(TimeStamp),
 		N = list_to_integer(Serial),
 		Events = ocs_log:auth_query(TS, TS, '_', '_', '_', '_'),
-		JsonObj = usage_aaa_auth(lists:keyfind(N, 2, Events), []),
-		Body = mochijson:encode(JsonObj),
-		Headers = [{content_type, "application/json"}],
-		{ok, Headers, Body}
+		case lists:keyfind(N, 2, Events) of
+			Event when is_tuple(Event) ->
+				JsonObj = usage_aaa_auth(Event, []),
+				Body = mochijson:encode(JsonObj),
+				Headers = [{content_type, "application/json"}],
+				{ok, Headers, Body};
+			_ ->
+				{error, 404}
+		end
 	catch
 		_:_Reason ->
 			{error, 404}
@@ -98,10 +103,15 @@ get_usage("acct-" ++ _ = Id, [] = _Query) ->
 		TS = list_to_integer(TimeStamp),
 		N = list_to_integer(Serial),
 		Events = ocs_log:acct_query(TS, TS, '_', '_', '_'),
-		JsonObj = usage_aaa_acct(lists:keyfind(N, 2, Events), []),
-		Body = mochijson:encode(JsonObj),
-		Headers = [{content_type, "application/json"}],
-		{ok, Headers, Body}
+		case lists:keyfind(N, 2, Events) of
+			Event when is_tuple(Event) ->
+				JsonObj = usage_aaa_acct(Event, []),
+				Body = mochijson:encode(JsonObj),
+				Headers = [{content_type, "application/json"}],
+				{ok, Headers, Body};
+			_ ->
+				{error, 404}
+		end
 	catch
 		_:_Reason ->
 			{error, 404}
@@ -2108,19 +2118,54 @@ char_attr_cause(Attributes, Acc) ->
 
 %% @hidden
 get_auth_usage(Query) ->
-	case lists:keytake(filter, 1, Query) of
-		{value, {_, L, NewQuery}} ->
+	case lists:keytake("filter", 1, Query) of
+		{value, {_, L}, NewQuery} ->
 			Filters = string:tokens(L, ","),
 			get_auth_usage(NewQuery, Filters);
 		false ->
 			get_auth_usage(Query, [])
 	end.
 %% @hidden
-get_auth_usage([] = _Query, Filters) ->
+get_auth_usage(Query, Filters) ->
+	case lists:keytake("sort", 1, Query) of
+		{value, {_, "-date"}, NewQuery} ->
+			get_auth_last(NewQuery, Filters);
+		{value, {_, Date}, NewQuery}
+				when Date == "date"; Date == "+date" ->
+			get_auth_query(NewQuery, Filters);
+		false ->
+			get_auth_query(Query, Filters);
+		_ ->
+			{error, 400}
+	end.
+
+%% @hidden
+get_auth_query([] = _Query, Filters) ->
+	{ok, _MaxItems} = application:get_env(ocs, rest_page_size),
+	case ocs_log:auth_query(1, 1, '_', '_', '_', '_') of
+		[] ->
+			{error, 404};
+		Events ->
+			JsonObj = usage_aaa_auth(Events, Filters),
+			JsonArray = {array, JsonObj},
+			Body = mochijson:encode(JsonArray),
+			N = integer_to_list(length(Events)),
+			ContentRange = "items 1-" ++ N ++ "/" ++ N,
+			Headers = [{content_type, "application/json"},
+					{content_range, ContentRange}],
+			{ok, Headers, Body}
+	end;
+get_auth_query(_Query, _Filters) ->
+	{error, 400}.
+
+%% @hidden
+get_auth_last([] = _Query, Filters) ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	case ocs_log:last(ocs_auth, MaxItems) of
 		{error, _} ->
 			{error, 500};
+		{0, []} ->
+			{error, 404};
 		{NewCount, Events} ->
 			JsonObj = usage_aaa_auth(Events, Filters),
 			JsonArray = {array, JsonObj},
@@ -2130,24 +2175,35 @@ get_auth_usage([] = _Query, Filters) ->
 					{content_range, ContentRange}],
 			{ok, Headers, Body}
 	end;
-get_auth_usage(_Query, _Filters) ->
+get_auth_last(_Query, _Filters) ->
 	{error, 400}.
 
 %% @hidden
 get_acct_usage(Query) ->
-	case lists:keytake(filter, 1, Query) of
-		{value, {_, L, NewQuery}} ->
+	case lists:keytake("filter", 1, Query) of
+		{value, {_, L}, NewQuery} ->
 			Filters = string:tokens(L, ","),
 			get_acct_usage(NewQuery, Filters);
 		false ->
 			get_acct_usage(Query, [])
 	end.
 %% @hidden
-get_acct_usage([] = _Query, Filters) ->
+get_acct_usage(Query, Filters) ->
+	case lists:keytake("sort", 1, Query) of
+		{value, {_, "-date"}, NewQuery} ->
+			get_acct_last(NewQuery, Filters);
+		{value, {_, Date}, NewQuery}
+				when Date == "date"; Date == "+date" ->
+			get_auth_query(NewQuery, Filters);
+		false ->
+			get_acct_query(Query, Filters);
+		_ ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	case ocs_log:last(ocs_acct, MaxItems) of
 		{error, _} ->
 			{error, 500};
+		{0, []} ->
+			{error, 404};
 		{NewCount, Events} ->
 			JsonObj = usage_aaa_acct(Events, Filters),
 			JsonArray = {array, JsonObj},
@@ -2157,7 +2213,7 @@ get_acct_usage([] = _Query, Filters) ->
 					{content_range, ContentRange}],
 			{ok, Headers, Body}
 	end;
-get_acct_usage(_Query, _Filters) ->
+get_acct_last(_Query, _Filters) ->
 	{error, 400}.
 
 %% @hidden
