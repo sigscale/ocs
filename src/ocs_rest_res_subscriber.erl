@@ -219,12 +219,12 @@ json_to_radius(JsonObjList) ->
 json_to_radius([{struct, [{"name", "ascendDataRate"}, {"value", V}]} | T], Acc) when V == null; V == "" ->
 	json_to_radius(T,Acc);
 json_to_radius([{struct, [{"name", "ascendDataRate"}, {"value", V}]} | T], Acc) ->
-	Attribute = {?AscendDataRate, V},
+	Attribute = {?VendorSpecific, {?Ascend, {?AscendDataRate, V}}},
 	json_to_radius(T, [Attribute | Acc]);
 json_to_radius([{struct, [{"name", "ascendXmitRate"}, {"value", V}]} | T], Acc) when V == null; V == "" ->
 	json_to_radius(T,Acc);
 json_to_radius([{struct, [{"name", "ascendXmitRate"}, {"value", V}]} | T], Acc) ->
-	Attribute = {?AscendXmitRate, V},
+	Attribute = {?VendorSpecific, {?Ascend, {?AscendXmitRate, V}}},
 	json_to_radius(T, [Attribute | Acc]);
 json_to_radius([{struct,[{"name","sessionTimeout"}, {"value", V}]} | T], Acc) when V == null; V == "" ->
 	json_to_radius(T, Acc);
