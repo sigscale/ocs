@@ -50,7 +50,7 @@ content_types_provided() ->
 %% requests.
 get_subscriber(Id) ->
 	case ocs:find_subscriber(Id) of
-		{ok, PWBin, Attributes, Balance, Enabled} ->
+		{ok, PWBin, Attributes, Balance, Enabled, _} ->
 			Password = binary_to_list(PWBin),
 			JSAttributes = radius_to_json(Attributes),
 			AttrObj = {array, JSAttributes},
@@ -165,7 +165,7 @@ post_subscriber(RequestBody) ->
 %% Updates a existing `subscriber''s password or attributes. 
 patch_subscriber(Id, ReqBody) ->
 	case ocs:find_subscriber(Id) of
-		{ok, CurrentPwd, CurrentAttr, Bal, Enabled} ->
+		{ok, CurrentPwd, CurrentAttr, Bal, Enabled, _} ->
 			try 
 				{struct, Object} = mochijson:decode(ReqBody),
 				{_, Type} = lists:keyfind("update", 1, Object),

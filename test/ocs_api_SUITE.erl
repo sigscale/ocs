@@ -165,9 +165,9 @@ subscriber(_Config) ->
 	Password2 = ocs:generate_password(),
 	{ok, _} = ocs:add_subscriber("tomba", Password1, Attribute1),
 	{ok, _} = ocs:add_subscriber("android", Password2, Attribute2),
-	{ok, BinPassword1, Attribute1, _Balance, _Enabled} = ocs:find_subscriber("tomba"),
+	{ok, BinPassword1, Attribute1, _Balance, _Enabled, _} = ocs:find_subscriber("tomba"),
 	Password1 = binary_to_list(BinPassword1),
-	{ok, BinPassword2, Attribute2, _Balance, _Enabled} = ocs:find_subscriber("android"),
+	{ok, BinPassword2, Attribute2, _Balance, _Enabled, _} = ocs:find_subscriber("android"),
 	Password2 = binary_to_list(BinPassword2).
 
 delete_subscriber() ->
@@ -179,7 +179,7 @@ delete_subscriber(_Config) ->
 	Subscriber = "deleteandroid",
 	Password = ocs:generate_password(),
 	{ok, _} = ocs:add_subscriber(Subscriber, Password, Attribute),
-	{ok, _BinPassword, _Attribute, _Balance, _Enabled} = ocs:find_subscriber(Subscriber),
+	{ok, _BinPassword, _Attribute, _Balance, _Enabled, _} = ocs:find_subscriber(Subscriber),
 	ok = ocs:delete_subscriber(Subscriber),
 	{error, _} = ocs:find_subscriber(Subscriber).
 
@@ -192,11 +192,11 @@ update_password(_Config) ->
 	Subscriber = "android",
 	OldPassword = ocs:generate_password(),
 	{ok, _} = ocs:add_subscriber(Subscriber, OldPassword, Attribute),
-	{ok, BinOldPassword, Attribute, _Balance, _Enabled} = ocs:find_subscriber(Subscriber),
+	{ok, BinOldPassword, Attribute, _Balance, _Enabled, _} = ocs:find_subscriber(Subscriber),
 	OldPassword = binary_to_list(BinOldPassword),
 	NewPassword = ocs:generate_password(),
 	ok = ocs:update_password(Subscriber, NewPassword),
-	{ok, BinNewPassword, _BinAttribute, _Balance, _Enabled} = ocs:find_subscriber(Subscriber),
+	{ok, BinNewPassword, _BinAttribute, _Balance, _Enabled, _} = ocs:find_subscriber(Subscriber),
 	NewPassword = binary_to_list(BinNewPassword).
 
 update_attributes() ->
@@ -208,10 +208,10 @@ update_attributes(_Config) ->
 	Attribute0 = radius_attributes:new(),
 	Attribute1 = radius_attributes:add(?NasPortId,"wlan0", Attribute0),
 	{ok, _} = ocs:add_subscriber(Username, Password, Attribute1),
-	{ok, _BinPassword, Attribute1, _Balance, _Enabled} = ocs:find_subscriber(Username),
+	{ok, _BinPassword, Attribute1, _Balance, _Enabled, _} = ocs:find_subscriber(Username),
 	Attribute2 = radius_attributes:add(?NasPortId,"wlan1", Attribute0),
 	ok = ocs:update_attributes(Username, Attribute2),
-	{ok, _BinPassword, Attribute2, _Balance, _Enabled} = ocs:find_subscriber(Username).
+	{ok, _BinPassword, Attribute2, _Balance, _Enabled, _} = ocs:find_subscriber(Username).
 
 
 %%---------------------------------------------------------------------
