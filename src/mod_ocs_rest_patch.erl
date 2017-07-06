@@ -101,10 +101,10 @@ do_patch(_Body, _Resource, _ModData, _, _) ->
 	{break, [{response, {404, Response}}]}.
 
 %% @hidden
-do_response(ModData, {ok, [], ResponseBody}) ->
+do_response(ModData, {ok, Headers, ResponseBody}) ->
 	Size = integer_to_list(iolist_size(ResponseBody)),
-	Headers = [{content_length, Size}],
-	send(ModData, 200, Headers, ResponseBody),
+	NewHeaders = [{content_length, Size} | Headers],
+	send(ModData, 200, NewHeaders, ResponseBody),
 	{proceed,[{response,{already_sent,200, Size}}]};
 do_response(_ModData, {error, 400}) ->
 	Response = "<h2>HTTP Error 400 - Bad Request</h2>",
