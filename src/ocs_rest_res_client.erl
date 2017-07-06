@@ -164,20 +164,23 @@ post_client(RequestBody) ->
 patch_client(Ip, undefined, ReqBody) ->
 	patch_client0(Ip, undefined, ReqBody);
 patch_client(Ip, Etag, ReqBody) ->
+	try
+		Etag1 = etag(Etag), 
+		patch_client0(Ip, Etag1, ReqBody)
+	catch
+		_:_ ->
+			{error, 400}
+	end.
+%% @hidden
+patch_client0(Ip, Etag, ReqBody) ->
 	case inet:parse_address(Ip) of
 		{ok, Address} ->
-			try
-				Etag1 = etag(Etag), 
-				patch_client0(Address, Etag1, ReqBody)
-			catch
-				_:_ ->
-					{error, 400}
-			end;
+			patch_client1(Address, Etag, ReqBody);
 		{error, einval} ->
 			{error, 400}
 	end.
 %% @hidden
-patch_client0(Id, Etag, ReqBody) ->
+patch_client1(Id, Etag, ReqBody) ->
 	case ocs:find_client(Id) of
 		{ok, #client{port = CurrPort, protocol = CurrProtocol,
 				secret = CurrSecret, last_modified = CurrentEtag}}
@@ -187,13 +190,13 @@ patch_client0(Id, Etag, ReqBody) ->
 				case Object of
 					[{"secret", NewPassword}] ->
 						Protocol_Atom = string:to_upper(atom_to_list(CurrProtocol)),
-						patch_client1(Id, CurrPort, Protocol_Atom, NewPassword, Etag);
+						patch_client2(Id, CurrPort, Protocol_Atom, NewPassword, Etag);
 					[{"port", NewPort},{"protocol", RADIUS}] 
 							when RADIUS =:= "radius"; RADIUS =:= "RADIUS" ->
-						patch_client2(Id, NewPort, radius, CurrSecret, Etag);
+						patch_client3(Id, NewPort, radius, CurrSecret, Etag);
 					[{"port", NewPort},{"protocol", DIAMETER}]
 							when DIAMETER =:= "diameter"; DIAMETER =:= "DIAMETER" ->
-						patch_client2(Id, NewPort, diameter, CurrSecret, Etag)
+						patch_client3(Id, NewPort, diameter, CurrSecret, Etag)
 				end
 			catch
 				throw : _ ->
@@ -205,7 +208,7 @@ patch_client0(Id, Etag, ReqBody) ->
 			{error, 404}
 	end.
 %% @hidden
-patch_client1(Id, Port, Protocol, NewPassword, Etag) ->
+patch_client2(Id, Port, Protocol, NewPassword, Etag) ->
 	IDstr = inet:ntoa(Id),
 	ok = ocs:update_client(Id, NewPassword),
 	RespObj =[{id, IDstr}, {href, "/ocs/v1/client/" ++ IDstr},
@@ -220,7 +223,7 @@ patch_client1(Id, Port, Protocol, NewPassword, Etag) ->
 	end,
 	{ok, Headers, RespBody}.
 %% @hidden
-patch_client2(Id, Port, Protocol, Secret, Etag) ->
+patch_client3(Id, Port, Protocol, Secret, Etag) ->
 	ok = ocs:update_client(Id, Port, Protocol),
 	RespObj =[{id, Id}, {href, "/ocs/v1/client/" ++ Id},
 			{"port", Port}, {protocol, Protocol}, {secret, Secret}],
