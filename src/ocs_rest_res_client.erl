@@ -209,7 +209,12 @@ patch_client1(Id, Port, Protocol, NewPassword, Etag) ->
 			{"port", Port}, {protocol, Protocol}, {secret, NewPassword}],
 	JsonObj  = {struct, RespObj},
 	RespBody = mochijson:encode(JsonObj),
-	Headers = [{etag, Etag}],
+	Headers = case Etag of
+		undefined ->
+			[];
+		_ ->
+			[{etag, Etag}]
+	end,
 	{ok, Headers, RespBody}.
 %% @hidden
 patch_client2(Id, Port, Protocol, Secret, Etag) ->
@@ -218,7 +223,12 @@ patch_client2(Id, Port, Protocol, Secret, Etag) ->
 			{"port", Port}, {protocol, Protocol}, {secret, Secret}],
 	JsonObj  = {struct, RespObj},
 	RespBody = mochijson:encode(JsonObj),
-	Headers = [{etag, Etag}],
+	Headers = case Etag of
+		undefined ->
+			[];
+		_ ->
+			[{etag, Etag}]
+	end,
 	{ok, Headers, RespBody}.
 
 -spec delete_client(Ip) -> Result
