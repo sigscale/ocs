@@ -22,7 +22,7 @@
 
 -export([content_types_accepted/0, content_types_provided/0,
 		get_subscriber/0, get_subscriber/1, post_subscriber/1,
-		patch_subscriber/2, delete_subscriber/1]).
+		patch_subscriber/3, delete_subscriber/1]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
@@ -155,17 +155,31 @@ post_subscriber(RequestBody) ->
 			{error, 400}
 	end.
 
--spec patch_subscriber(Id, ReqBody) -> Result
+-spec patch_subscriber(Id, Etag, ReqBody) -> Result
 	when
 		Id :: string(),
+		Etag :: undefined | list(),
 		ReqBody :: list(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()} .
 %% @doc	Respond to `PATCH /ocs/v1/subscriber/{id}' request and
 %% Updates a existing `subscriber''s password or attributes. 
-patch_subscriber(Id, ReqBody) ->
+patch_subscriber(Id, undefined, ReqBody) ->
+	patch_subscriber1(Id, undefined, ReqBody);
+patch_subscriber(Id, Etag, ReqBody) ->
+	try
+		[TS, N] = strings:tokens(Etag, "-"),
+		Etag1 = {list_to_integer(TS), list_to_integer(N)},
+		patch_subscriber1(Id, Etag1, ReqBody)
+	catch
+		_:_ ->
+			{error, 400}
+	end.
+%% @hidden
+patch_subscriber1(Id, Etag, ReqBody) ->
 	case ocs:find_subscriber(Id) of
-		{ok, CurrentPwd, CurrentAttr, Bal, Enabled, _} ->
+		{ok, CurrentPwd, CurrentAttr, Bal, Enabled, CurrentEtag}
+				when Etag == CurrentEtag; Etag == undefined ->
 			try 
 				{struct, Object} = mochijson:decode(ReqBody),
 				{_, Type} = lists:keyfind("update", 1, Object),
@@ -188,11 +202,19 @@ patch_subscriber(Id, ReqBody) ->
 					{enabled, Enabled}],
 				JsonObj  = {struct, RespObj},
 				RespBody = mochijson:encode(JsonObj),
-				{ok, [], RespBody}
+				Headers = case Etag of
+					undefined ->
+						[];
+					_ ->
+						[{etag, Etag}]
+				end,
+				{ok, Headers, RespBody}
 			catch
 				_:_Reason ->
 					{error, 400}
 			end;
+		{ok, _, _, _, _, _NonMatchingEtag} ->
+			{error, 412};
 		{error, _Reason} ->
 			{error, 404}
 	end.
