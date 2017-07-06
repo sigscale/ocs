@@ -136,7 +136,7 @@ post_subscriber(RequestBody) ->
 				undefined
 		end,
 		case ocs:add_subscriber(IdIn, PasswordIn, Attributes, Balance, Enabled) of
-			{ok, #subscriber{name = IdOut} = S} ->
+			{ok, #subscriber{name = IdOut, last_modified = LM} = S} ->
 				Id = binary_to_list(IdOut),
 				Location = "/ocs/v1/subscriber/" ++ Id,
 				JAttributes = {array, radius_to_json(S#subscriber.attributes)},
@@ -146,7 +146,7 @@ post_subscriber(RequestBody) ->
 						{enabled, S#subscriber.enabled}],
 				JsonObj  = {struct, RespObj},
 				Body = mochijson:encode(JsonObj),
-				Headers = [{location, Location}],
+				Headers = [{location, Location}, {etag, etag(LM)}],
 				{ok, Headers, Body};
 			{error, _Reason} ->
 				{error, 400}

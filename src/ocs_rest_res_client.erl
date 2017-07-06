@@ -139,12 +139,13 @@ post_client(RequestBody) ->
 		end,
 		Secret = proplists:get_value("secret", Object, ocs:generate_password()),
 		ok = ocs:add_client(Id, Port, Protocol, Secret),
+		{ok, #client{last_modified = LM}} = ocs:find_client(Id),
 		Location = "/ocs/v1/client/" ++ Id,
 		RespObj = [{id, Id}, {href, Location}, {"port", Port},
 				{protocol, string:to_upper(atom_to_list(Protocol))}, {secret, Secret}],
 		JsonObj  = {struct, RespObj},
 		Body = mochijson:encode(JsonObj),
-		Headers = [{location, Location}],
+		Headers = [{location, Location}, {etag, etag(LM)}],
 		{ok, Headers, Body}
 	catch
 		_Error ->
