@@ -22,7 +22,7 @@
 
 -export([content_types_accepted/0, content_types_provided/0,
 		get_client/0, get_client/1, post_client/1,
-		patch_client/2, delete_client/1]).
+		patch_client/3, delete_client/1]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
@@ -98,8 +98,9 @@ get_client(Ip) ->
 get_client1(Address) ->
 	case ocs:find_client(Address) of
 		{ok, #client{port = Port, identifier = Identifier,
-				protocol = Protocol, secret = Secret}} ->
+				protocol = Protocol, secret = Secret, last_modified = LM}} ->
 			Id = inet:ntoa(Address),
+			Etag = etag(LM),
 			RespObj1 = [{id, Id}, {href, "/ocs/v1/client/" ++ Id}],
 			RespObj2 = case Identifier of
 				<<>> ->
@@ -112,7 +113,8 @@ get_client1(Address) ->
 					{secret, Secret}],
 			JsonObj  = {struct, RespObj1 ++ RespObj2 ++ RespObj3},
 			Body = mochijson:encode(JsonObj),
-			{ok, [{content_type, "application/json"}], Body};
+			Headers = [{content_type, "application/json"}, {etag, Etag}],
+			{ok, Headers, Body};
 		{error, not_found} ->
 			{error, 404}
 	end.
@@ -137,74 +139,104 @@ post_client(RequestBody) ->
 		end,
 		Secret = proplists:get_value("secret", Object, ocs:generate_password()),
 		ok = ocs:add_client(Id, Port, Protocol, Secret),
+		{ok, #client{last_modified = LM}} = ocs:find_client(Id),
 		Location = "/ocs/v1/client/" ++ Id,
 		RespObj = [{id, Id}, {href, Location}, {"port", Port},
 				{protocol, string:to_upper(atom_to_list(Protocol))}, {secret, Secret}],
 		JsonObj  = {struct, RespObj},
 		Body = mochijson:encode(JsonObj),
-		Headers = [{location, Location}],
+		Headers = [{location, Location}, {etag, etag(LM)}],
 		{ok, Headers, Body}
 	catch
 		_Error ->
 			{error, 400}
 	end.
 
--spec patch_client(Ip, ReqBody) -> Result 
+-spec patch_client(Ip, Etag, ReqBody) -> Result 
 	when
 		Ip :: string(),
+		Etag :: undefined | string(),
 		ReqBody :: list(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()} .
 %% @doc	Respond to `PATCH /ocs/v1/client/{id}' request and
 %% Updates a existing `client''s password or attributes.
-patch_client(Ip, ReqBody) ->
+patch_client(Ip, undefined, ReqBody) ->
+	patch_client0(Ip, undefined, ReqBody);
+patch_client(Ip, Etag, ReqBody) ->
+	try
+		Etag1 = etag(Etag), 
+		patch_client0(Ip, Etag1, ReqBody)
+	catch
+		_:_ ->
+			{error, 400}
+	end.
+%% @hidden
+patch_client0(Ip, Etag, ReqBody) ->
 	case inet:parse_address(Ip) of
 		{ok, Address} ->
-			patch_client0(Address, ReqBody);
+			patch_client1(Address, Etag, ReqBody);
 		{error, einval} ->
 			{error, 400}
 	end.
 %% @hidden
-patch_client0(Id, ReqBody) ->
+patch_client1(Id, Etag, ReqBody) ->
 	case ocs:find_client(Id) of
-		{ok, #client{port = CurrPort,
-				protocol = CurrProtocol, secret = CurrSecret}} ->
+		{ok, #client{port = CurrPort, protocol = CurrProtocol,
+				secret = CurrSecret, last_modified = CurrentEtag}}
+				when CurrentEtag == Etag; Etag == undefined ->
 			try
 				{struct, Object} = mochijson:decode(ReqBody),
 				case Object of
 					[{"secret", NewPassword}] ->
 						Protocol_Atom = string:to_upper(atom_to_list(CurrProtocol)),
-						patch_client1(Id, CurrPort, Protocol_Atom, NewPassword);
+						patch_client2(Id, CurrPort, Protocol_Atom, NewPassword, Etag);
 					[{"port", NewPort},{"protocol", RADIUS}] 
 							when RADIUS =:= "radius"; RADIUS =:= "RADIUS" ->
-						patch_client2(Id, NewPort, radius, CurrSecret);
+						patch_client3(Id, NewPort, radius, CurrSecret, Etag);
 					[{"port", NewPort},{"protocol", DIAMETER}]
 							when DIAMETER =:= "diameter"; DIAMETER =:= "DIAMETER" ->
-						patch_client2(Id, NewPort, diameter, CurrSecret)
+						patch_client3(Id, NewPort, diameter, CurrSecret, Etag)
 				end
 			catch
 				throw : _ ->
 					{error, 400}
 			end;
+		{ok, #client{last_modified = _NonMatchingEtag}} ->
+			{error, 412};
 		{error, _Reason} ->
 			{error, 404}
 	end.
 %% @hidden
-patch_client1(Id, Port, Protocol, NewPassword) ->
+patch_client2(Id, Port, Protocol, NewPassword, Etag) ->
+	IDstr = inet:ntoa(Id),
 	ok = ocs:update_client(Id, NewPassword),
-	RespObj =[{id, Id}, {href, "/ocs/v1/client/" ++ Id},
+	RespObj =[{id, IDstr}, {href, "/ocs/v1/client/" ++ IDstr},
 			{"port", Port}, {protocol, Protocol}, {secret, NewPassword}],
 	JsonObj  = {struct, RespObj},
 	RespBody = mochijson:encode(JsonObj),
-	{ok, [], RespBody}.
+	Headers = case Etag of
+		undefined ->
+			[];
+		_ ->
+			[{etag, etag(Etag)}]
+	end,
+	{ok, Headers, RespBody}.
 %% @hidden
-patch_client2(Id, Port, Protocol, Secret) ->
+patch_client3(Id, Port, Protocol, Secret, Etag) ->
+	IDstr = inet:ntoa(Id),
 	ok = ocs:update_client(Id, Port, Protocol),
-	RespObj =[{id, Id}, {href, "/ocs/v1/client/" ++ Id},
+	RespObj =[{id, IDstr}, {href, "/ocs/v1/client/" ++ IDstr},
 			{"port", Port}, {protocol, Protocol}, {secret, Secret}],
 	JsonObj  = {struct, RespObj},
 	RespBody = mochijson:encode(JsonObj),
-	{ok, [], RespBody}.
+	Headers = case Etag of
+		undefined ->
+			[];
+		_ ->
+			[{etag, etag(Etag)}]
+	end,
+	{ok, Headers, RespBody}.
 
 -spec delete_client(Ip) -> Result
 	when
@@ -225,4 +257,20 @@ delete_client(Ip) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+-spec etag(V1) -> V2
+	when
+		V1 :: string() | {N1, N2},
+		V2 :: {N1, N2} | string(),
+		N1 :: integer(),
+		N2 :: integer().
+%% @doc Generate a tuple with 2 integers from Etag string
+%% value or vice versa.
+%% @hidden
+etag(V) when is_list(V) ->
+	[TS, N] = string:tokens(V, "-"),
+	{list_to_integer(TS), list_to_integer(N)};
+etag(V) when is_tuple(V) ->
+	{TS, N} = V,
+	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
 

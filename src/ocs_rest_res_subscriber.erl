@@ -22,7 +22,7 @@
 
 -export([content_types_accepted/0, content_types_provided/0,
 		get_subscriber/0, get_subscriber/1, post_subscriber/1,
-		patch_subscriber/2, delete_subscriber/1]).
+		patch_subscriber/3, delete_subscriber/1]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
@@ -50,7 +50,8 @@ content_types_provided() ->
 %% requests.
 get_subscriber(Id) ->
 	case ocs:find_subscriber(Id) of
-		{ok, PWBin, Attributes, Balance, Enabled} ->
+		{ok, PWBin, Attributes, Balance, Enabled, LM} ->
+			Etag = etag(LM),
 			Password = binary_to_list(PWBin),
 			JSAttributes = radius_to_json(Attributes),
 			AttrObj = {array, JSAttributes},
@@ -59,7 +60,7 @@ get_subscriber(Id) ->
 				{enabled, Enabled}],
 			JsonObj  = {struct, RespObj},
 			Body = mochijson:encode(JsonObj),
-			Headers = [{content_type, "application/json"}],
+			Headers = [{content_type, "application/json"}, {etag, Etag}],
 			{ok, Headers, Body};
 		{error, _Reason} ->
 			{error, 404}
@@ -135,7 +136,7 @@ post_subscriber(RequestBody) ->
 				undefined
 		end,
 		case ocs:add_subscriber(IdIn, PasswordIn, Attributes, Balance, Enabled) of
-			{ok, #subscriber{name = IdOut} = S} ->
+			{ok, #subscriber{name = IdOut, last_modified = LM} = S} ->
 				Id = binary_to_list(IdOut),
 				Location = "/ocs/v1/subscriber/" ++ Id,
 				JAttributes = {array, radius_to_json(S#subscriber.attributes)},
@@ -145,7 +146,7 @@ post_subscriber(RequestBody) ->
 						{enabled, S#subscriber.enabled}],
 				JsonObj  = {struct, RespObj},
 				Body = mochijson:encode(JsonObj),
-				Headers = [{location, Location}],
+				Headers = [{location, Location}, {etag, etag(LM)}],
 				{ok, Headers, Body};
 			{error, _Reason} ->
 				{error, 400}
@@ -155,17 +156,30 @@ post_subscriber(RequestBody) ->
 			{error, 400}
 	end.
 
--spec patch_subscriber(Id, ReqBody) -> Result
+-spec patch_subscriber(Id, Etag, ReqBody) -> Result
 	when
 		Id :: string(),
+		Etag :: undefined | list(),
 		ReqBody :: list(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()} .
 %% @doc	Respond to `PATCH /ocs/v1/subscriber/{id}' request and
 %% Updates a existing `subscriber''s password or attributes. 
-patch_subscriber(Id, ReqBody) ->
+patch_subscriber(Id, undefined, ReqBody) ->
+	patch_subscriber1(Id, undefined, ReqBody);
+patch_subscriber(Id, Etag, ReqBody) ->
+	try
+		Etag1 = etag(Etag),
+		patch_subscriber1(Id, Etag1, ReqBody)
+	catch
+		_:_ ->
+			{error, 400}
+	end.
+%% @hidden
+patch_subscriber1(Id, Etag, ReqBody) ->
 	case ocs:find_subscriber(Id) of
-		{ok, CurrentPwd, CurrentAttr, Bal, Enabled} ->
+		{ok, CurrentPwd, CurrentAttr, Bal, Enabled, CurrentEtag}
+				when Etag == CurrentEtag; Etag == undefined ->
 			try 
 				{struct, Object} = mochijson:decode(ReqBody),
 				{_, Type} = lists:keyfind("update", 1, Object),
@@ -188,11 +202,19 @@ patch_subscriber(Id, ReqBody) ->
 					{enabled, Enabled}],
 				JsonObj  = {struct, RespObj},
 				RespBody = mochijson:encode(JsonObj),
-				{ok, [], RespBody}
+				Headers = case Etag of
+					undefined ->
+						[];
+					_ ->
+						[{etag, Etag}]
+				end,
+				{ok, Headers, RespBody}
 			catch
 				_:_Reason ->
 					{error, 400}
 			end;
+		{ok, _, _, _, _, _NonMatchingEtag} ->
+			{error, 412};
 		{error, _Reason} ->
 			{error, 404}
 	end.
@@ -295,4 +317,20 @@ vendor_specific({?VendorSpecific, {VendorID, {VendorType, Value}}}) ->
 				{"vendorType", VendorType},
 				{"value", Value}],
 	{struct, AttrObj}.
+
+-spec etag(V1) -> V2
+	when
+		V1 :: string() | {N1, N2},
+		V2 :: {N1, N2} | string(),
+		N1 :: integer(),
+		N2 :: integer().
+%% @doc Generate a tuple with 2 integers from Etag string
+%% value or vice versa.
+%% @hidden
+etag(V) when is_list(V) ->
+	[TS, N] = string:tokens(V, "-"),
+	{list_to_integer(TS), list_to_integer(N)};
+etag(V) when is_tuple(V) ->
+	{TS, N} = V,
+	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
 

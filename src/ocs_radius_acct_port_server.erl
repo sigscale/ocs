@@ -306,7 +306,7 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, interim, Attributes),
 	Subscriber = ocs:normalize(UserName),
 	case ocs:find_subscriber(Subscriber) of
-		{ok, _, _, Balance, Enabled} when Enabled == false; Balance =< Usage ->
+		{ok, _, _, Balance, Enabled, _} when Enabled == false; Balance =< Usage ->
 			case client_disconnect_supported(Address) of
 				true ->
 					start_disconnect(AcctSessionId, Id, Authenticator, Secret,
@@ -314,7 +314,7 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 				false ->
 					{reply, {ok, response(Id, Authenticator, Secret)}, State}
 			end;
-		{ok, _, _, _, _} ->
+		{ok, _, _, _, _, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{error, not_found} ->
 			error_logger:warning_report(["Accounting subscriber not found",

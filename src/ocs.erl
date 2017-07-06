@@ -118,7 +118,9 @@ update_client(Address, Password) ->
 	F = fun() ->
 				case mnesia:read(client, Address, write) of
 					[Entry] ->
-						NewEntry = Entry#client{secret = Password},
+						TS = erlang:system_time(milli_seconds),
+						N = erlang:unique_integer([positive]),
+						NewEntry = Entry#client{secret = Password, last_modified = {TS,N}},
 						mnesia:write(client, NewEntry, write);
 					[] ->
 						throw(not_found)
@@ -150,7 +152,10 @@ update_client(Address, Port, Protocol)
 	F = fun() ->
 				case mnesia:read(client, Address, write) of
 					[Entry] ->
-						NewEntry = Entry#client{port = Port, protocol = Protocol},
+						TS = erlang:system_time(milli_seconds),
+						N = erlang:unique_integer([positive]),
+						NewEntry = Entry#client{port = Port, protocol = Protocol,
+								last_modified = {TS, N}},
 						mnesia:write(client, NewEntry, write);
 					[] ->
 						throw(not_found)
@@ -307,12 +312,16 @@ add_subscriber(Identity, Password, Attributes, Balance, EnabledStatus)
 
 -spec find_subscriber(Identity) -> Result  
 	when
-		Result :: {ok, Password, Attributes, Balance, Enabled} | {error, Reason},
+		Result :: {ok, Password, Attributes, Balance, Enabled, Etag}
+				| {error, Reason},
 		Password :: binary(),
 		Identity:: string() | binary(),
 		Attributes :: radius_attributes:attributes(),
 		Balance :: integer(),
 		Enabled :: boolean(),
+		Etag :: {TimeStamp, UniqueNumber},
+		TimeStamp :: integer(),
+		UniqueNumber :: integer(),
 		Reason :: not_found | term().
 %% @doc Look up an entry in the subscriber table.
 find_subscriber(Identity) when is_list(Identity) ->
@@ -323,8 +332,8 @@ find_subscriber(Identity) when is_binary(Identity) ->
 	end,
 	case mnesia:transaction(F) of
 		{atomic, [#subscriber{password = Password, attributes = Attributes,
-				balance = Balance, enabled = Enabled}]} ->
-			{ok, Password, Attributes, Balance, Enabled};
+				balance = Balance, enabled = Enabled, last_modified = Etag}]} ->
+			{ok, Password, Attributes, Balance, Enabled, Etag};
 		{atomic, []} ->
 			{error, not_found};
 		{aborted, Reason} ->

@@ -23,7 +23,8 @@
 		port :: inet:port_number(),
 		protocol :: radius | diameter,
 		secret :: binary(),
-		last_modified  = erlang:system_time(milli_seconds) :: integer()}).
+		last_modified  = {erlang:system_time(milli_seconds),
+				erlang:unique_integer([positive])} :: tuple()}).
 
 %% define subscriber table entries record
 -record(subscriber,
@@ -33,5 +34,6 @@
 		balance :: integer(),
 		enabled = true :: boolean(),
 		disconnect  = false :: boolean(),
-		last_modified = erlang:system_time(milli_seconds) :: integer()}).
+		last_modified  = {erlang:system_time(milli_seconds),
+				erlang:unique_integer([positive])} :: tuple()}).
 

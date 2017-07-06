@@ -211,7 +211,7 @@ handle_info({ssl_error, SslSocket, Reason}, request, #statedata{ssl_socket = Ssl
 handle_info1(Subscriber, Password) ->
 	try
 		case ocs:find_subscriber(Subscriber) of
-			{ok, UserPassWord, _, _, _} ->
+			{ok, UserPassWord, _, _, _, _} ->
 				Size = size(UserPassWord),
 				<<UserPassWord:Size/binary, _/binary>> = Password,
 				{ok, Subscriber};
