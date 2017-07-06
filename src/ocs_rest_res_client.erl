@@ -224,8 +224,9 @@ patch_client2(Id, Port, Protocol, NewPassword, Etag) ->
 	{ok, Headers, RespBody}.
 %% @hidden
 patch_client3(Id, Port, Protocol, Secret, Etag) ->
+	IDstr = inet:ntoa(Id),
 	ok = ocs:update_client(Id, Port, Protocol),
-	RespObj =[{id, Id}, {href, "/ocs/v1/client/" ++ Id},
+	RespObj =[{id, IDstr}, {href, "/ocs/v1/client/" ++ IDstr},
 			{"port", Port}, {protocol, Protocol}, {secret, Secret}],
 	JsonObj  = {struct, RespObj},
 	RespBody = mochijson:encode(JsonObj),
@@ -233,7 +234,7 @@ patch_client3(Id, Port, Protocol, Secret, Etag) ->
 		undefined ->
 			[];
 		_ ->
-			[{etag, Etag}]
+			[{etag, etag(Etag)}]
 	end,
 	{ok, Headers, RespBody}.
 
