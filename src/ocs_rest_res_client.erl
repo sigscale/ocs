@@ -98,8 +98,9 @@ get_client(Ip) ->
 get_client1(Address) ->
 	case ocs:find_client(Address) of
 		{ok, #client{port = Port, identifier = Identifier,
-				protocol = Protocol, secret = Secret}} ->
+				protocol = Protocol, secret = Secret, last_modified = LM}} ->
 			Id = inet:ntoa(Address),
+			Etag = etag(LM),
 			RespObj1 = [{id, Id}, {href, "/ocs/v1/client/" ++ Id}],
 			RespObj2 = case Identifier of
 				<<>> ->
@@ -112,7 +113,8 @@ get_client1(Address) ->
 					{secret, Secret}],
 			JsonObj  = {struct, RespObj1 ++ RespObj2 ++ RespObj3},
 			Body = mochijson:encode(JsonObj),
-			{ok, [{content_type, "application/json"}], Body};
+			Headers = [{content_type, "application/json"}, {etag, Etag}],
+			{ok, Headers, Body};
 		{error, not_found} ->
 			{error, 404}
 	end.

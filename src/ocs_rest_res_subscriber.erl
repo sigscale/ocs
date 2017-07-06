@@ -50,7 +50,8 @@ content_types_provided() ->
 %% requests.
 get_subscriber(Id) ->
 	case ocs:find_subscriber(Id) of
-		{ok, PWBin, Attributes, Balance, Enabled, _} ->
+		{ok, PWBin, Attributes, Balance, Enabled, LM} ->
+			Etag = etag(LM),
 			Password = binary_to_list(PWBin),
 			JSAttributes = radius_to_json(Attributes),
 			AttrObj = {array, JSAttributes},
@@ -59,7 +60,7 @@ get_subscriber(Id) ->
 				{enabled, Enabled}],
 			JsonObj  = {struct, RespObj},
 			Body = mochijson:encode(JsonObj),
-			Headers = [{content_type, "application/json"}],
+			Headers = [{content_type, "application/json"}, {etag, Etag}],
 			{ok, Headers, Body};
 		{error, _Reason} ->
 			{error, 404}
