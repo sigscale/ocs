@@ -20,7 +20,7 @@
 -module(ocs_rest_res_user).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
--export([content_types_accepted/0, content_types_provided/0,
+-export([content_types_accepted/0, content_types_provided/0, get_params/0,
 		get_user/1, get_user/0, post_user/1, put_user/2, delete_user/1]).
 
 -include_lib("radius/include/radius.hrl").
@@ -143,15 +143,19 @@ post_user(RequestBody) ->
 		Locale = F2(F2, Characteristic),
 		case mod_auth:add_user(ID, Password, [{locale, Locale}] , Port, "/") of
 			true ->
-				Location = "/partyManagement/v1/individual/" ++ ID,
-				PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
-				LocaleAttr = {struct, [{"name", "locale"}, {"value", Locale}]},
-				Char = {array, [PasswordAttr, LocaleAttr]},
-				RespObj = [{"id", ID}, {"href", Location}, {"characteristic", Char}],
-				JsonObj  = {struct, RespObj},
-				Body = mochijson:encode(JsonObj),
-				Headers = [{location, Location}],
-				{ok, Headers, Body};
+				GroupName = get_params(),
+				case mod_auth:add_group_member(GroupName, ID, Port, "/") of
+					true ->
+						Location = "/partyManagement/v1/individual/" ++ ID,
+						PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
+						LocaleAttr = {struct, [{"name", "locale"}, {"value", Locale}]},
+						Char = {array, [PasswordAttr, LocaleAttr]},
+						RespObj = [{"id", ID}, {"href", Location}, {"characteristic", Char}],
+						JsonObj  = {struct, RespObj},
+						Body = mochijson:encode(JsonObj),
+						Headers = [{location, Location}],
+						{ok, Headers, Body}
+				end;
 			{error, _Reason} ->
 				{error, 400}
 		end
@@ -175,14 +179,10 @@ put_user(ID, RequestBody) ->
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, ID} = lists:keyfind("id", 1, Object),
 		{_, {array, Characteristic}} = lists:keyfind("characteristic", 1, Object),
-			F1 = fun(_F, [{struct, [{"name", "password"}, {"value", Pass}]} | _]) ->
-						Pass;
-					(_F, [{struct, [{"value", Pass}, {"name", "password"}]} | _]) ->
-						Pass;
-					(F, [_ | T]) ->
-						F(F,T)
-			end,
-		Password = F1(F1, Characteristic),
+		Password = case mod_auth:get_user(ID, Port, "/") of
+			{ok, #httpd_user{password = OPassword}} ->
+				OPassword
+		end,
 			F2 = fun(_F, [{struct, [{"name", "locale"}, {"value", Locale}]} | _]) ->
 						Locale;
 					(_F, [{struct, [{"value", Locale}, {"name", "locale"}]} | _]) ->
@@ -234,6 +234,19 @@ delete_user(Id) ->
 			{error, 400}
 	end.        
 
+-spec get_params() -> {Port :: integer(), Directory :: string(), Group :: string()}.
+get_params() ->
+	{_, _, Info} = lists:keyfind(httpd, 1, inets:services_info()),
+	{_, Port} = lists:keyfind(port, 1, Info),
+	{ok, EnvObj} = application:get_env(inets, services),
+	{httpd, HttpdObj} = lists:keyfind(httpd, 1, EnvObj),
+	{directory, {Directory, AuthObj}} = lists:keyfind(directory, 1, HttpdObj),
+	case lists:keyfind(require_group, 1, AuthObj) of
+		{require_group, [Group | _T]} ->
+			Group;
+		false ->
+			exit(not_found)
+	end.
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
