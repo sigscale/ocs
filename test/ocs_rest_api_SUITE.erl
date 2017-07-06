@@ -135,9 +135,9 @@ all() ->
 	get_subscriber_not_found, retrieve_all_subscriber, delete_subscriber,
 	add_client, add_client_without_password, get_client, get_client_id,
 	get_client_bogus, get_client_notfound, get_all_clients, delete_client,
-	get_usagespecs, get_usagespecs_query, get_usagespec,
-	get_auth_usage, get_auth_usage_id,
-	get_acct_usage, get_acct_usage_id, get_ipdr_usage].
+	get_usagespecs, get_usagespecs_query, get_usagespec, get_auth_usage,
+	get_auth_usage_id, get_auth_usage_filter, get_acct_usage,
+	get_acct_usage_id, get_acct_usage_filter, get_ipdr_usage].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -934,6 +934,50 @@ get_auth_usage_id(Config) ->
 	{_, Id} = lists:keyfind("id", 1, Usage),
 	{_, Href} = lists:keyfind("href", 1, Usage).
 
+get_auth_usage_filter() ->
+	[{userdata, [{doc,"Get filtered TMF635 auth usage"}]}].
+
+get_auth_usage_filter(Config) ->
+	ClientAddress = {192, 168, 199, 198},
+	ReqAttrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
+			{?UserName, "DE:AD:BE:EF:CA:FE"}, {?AcctSessionId, "82510ed5"},
+			{?CallingStationId, "FE-EA-EE-EF-FA-FA"},
+			{?CalledStationId, "CA-FE-CA-FE-CA-FE:AP 1"},
+			{?NasIdentifier, "ap-1.sigscale.net"},
+			{?NasIpAddress, ClientAddress}, {?NasPort, 1}],
+	ResAttrs = [{?SessionTimeout, 3600}, {?IdleTimeout, 300},
+			{?AcctInterimInterval, 300},
+			{?AscendDataRate, 4000000}, {?AscendXmitRate, 64000},
+			{?ServiceType, 2}, {?FramedIpAddress, {10,2,74,45}},
+			{?FramedIpNetmask, {255,255,0,0}}, {?FramedPool, "nat"},
+			{?FramedRouting, 2}, {?FilterId, "firewall-1"},
+			{?FramedMtu, 1492}, {?FramedRoute, "192.168.100.0/24 10.2.1.1 1"},
+			{?Class, "silver"}, {?TerminationAction, 1}, {?PortLimit, 1}],
+	ok = ocs_log:auth_log(radius, {{0,0,0,0}, 1812},
+			{ClientAddress, 4589}, accept, ReqAttrs, ResAttrs),
+	HostUrl = ?config(host_url, Config),
+	AcceptValue = "application/json",
+	Accept = {"accept", AcceptValue},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	RequestUri = HostUrl ++ "/usageManagement/v1/usage?type=AAAAccessUsage&sort=-date&filter=date,status,usageCharacteristic",
+	Request = {RequestUri, [Accept, Authentication]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
+	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(Body)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, Usages} = mochijson:decode(Body),
+	{struct, Usage} = lists:last(Usages),
+	{_, _, Usage1} = lists:keytake("id", 1, Usage),
+	{_, _, Usage2} = lists:keytake("href", 1, Usage1),
+	{_, _, Usage3} = lists:keytake("date", 1, Usage2),
+	{_, _, Usage4} = lists:keytake("status", 1, Usage3),
+	{_, {array, _UsageCharacteristic}, []} = lists:keytake("usageCharacteristic", 1, Usage4).
+
 get_acct_usage() ->
 	[{userdata, [{doc,"Get a TMF635 acct usage"}]}].
 
@@ -1105,6 +1149,40 @@ get_acct_usage_id(Config) ->
 	{struct, Usage} = mochijson:decode(Body2),
 	{_, _Id} = lists:keyfind("id", 1, Usage),
 	{_, Href} = lists:keyfind("href", 1, Usage).
+
+get_acct_usage_filter() ->
+	[{userdata, [{doc,"Get filtered TMF635 acct usage"}]}].
+
+get_acct_usage_filter(Config) ->
+	Attrs = [{?UserName, "ED:DD:B8:F6:4C:8A"},
+			{?CallingStationId, "ED:DA:EB:98:84:A2"},
+			{?CalledStationId, "CA-FE-CA-FE-CA-FE:AP 1"},
+			{?NasIdentifier, "ap-1.sigscale.net"},
+			{?AcctSessionTime, 3600}, {?AcctInputOctets, 890123},
+			{?AcctOutputOctets, 482634213}, {?AcctTerminateCause, 5}], 
+	ok = ocs_log:acct_log(radius, {{0,0,0,0}, 1812}, stop, Attrs),
+	HostUrl = ?config(host_url, Config),
+	AcceptValue = "application/json",
+	Accept = {"accept", AcceptValue},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	RequestUri = HostUrl ++ "/usageManagement/v1/usage?type=AAAAccountingUsage&sort=-date&filter=date,status,usageCharacteristic",
+	Request = {RequestUri, [Accept, Authentication]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
+	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(Body)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, Usages} = mochijson:decode(Body),
+	{struct, Usage} = lists:last(Usages),
+	{_, _, Usage1} = lists:keytake("id", 1, Usage),
+	{_, _, Usage2} = lists:keytake("href", 1, Usage1),
+	{_, _, Usage3} = lists:keytake("date", 1, Usage2),
+	{_, _, Usage4} = lists:keytake("status", 1, Usage3),
+	{_, {array, _UsageCharacteristic}, []} = lists:keytake("usageCharacteristic", 1, Usage4).
 
 get_ipdr_usage() ->
 	[{userdata, [{doc,"Get a TMF635 IPDR usage"}]}].
