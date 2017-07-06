@@ -976,7 +976,7 @@ get_auth_usage_filter(Config) ->
 	{_, _, Usage2} = lists:keytake("href", 1, Usage1),
 	{_, _, Usage3} = lists:keytake("date", 1, Usage2),
 	{_, _, Usage4} = lists:keytake("status", 1, Usage3),
-	{_, {array, _UsageCharacteristic}, []} = lists:keytake("usageCharacteristic", 1, Usage4).
+	{_, {_, {array, _UsageCharacteristic}}, []} = lists:keytake("usageCharacteristic", 1, Usage4).
 
 get_acct_usage() ->
 	[{userdata, [{doc,"Get a TMF635 acct usage"}]}].
@@ -1182,7 +1182,7 @@ get_acct_usage_filter(Config) ->
 	{_, _, Usage2} = lists:keytake("href", 1, Usage1),
 	{_, _, Usage3} = lists:keytake("date", 1, Usage2),
 	{_, _, Usage4} = lists:keytake("status", 1, Usage3),
-	{_, {array, _UsageCharacteristic}, []} = lists:keytake("usageCharacteristic", 1, Usage4).
+	{_, {_, {array, _UsageCharacteristic}}, []} = lists:keytake("usageCharacteristic", 1, Usage4).
 
 get_ipdr_usage() ->
 	[{userdata, [{doc,"Get a TMF635 IPDR usage"}]}].
