@@ -2207,7 +2207,7 @@ get_acct_usage(Query, Filters) ->
 			get_auth_query(NewQuery, Filters);
 		false ->
 			get_acct_query(Query, Filters);
-		Other ->
+		_ ->
 			{error, 400}
 	end.
 
