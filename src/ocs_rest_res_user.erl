@@ -48,9 +48,8 @@ content_types_provided() ->
 %% @doc Body producing function for `GET /partyManagement/v1/individual'
 %% requests.
 get_user() ->
-	{_, _, Info} = lists:keyfind(httpd, 1, inets:services_info()),
-	{_, Port} = lists:keyfind(port, 1, Info),
-	case mod_auth:list_users(Port, "/") of
+	{Port, Directory, _Group} = get_params(),
+	case mod_auth:list_users(Port, Directory) of
 		{error, _} ->
 			{error, 500};
 		{ok, Users} ->
@@ -58,7 +57,8 @@ get_user() ->
 	end.
 %% @hidden
 get_user1([H | T], Port, Acc) ->
-	case mod_auth:get_user(H, Port, "/") of
+	{Port, Directory, _Group} = get_params(),
+	case mod_auth:get_user(H, Port, Directory) of
 		{ok, #httpd_user{username = Id, user_data = UserData}} ->
 			Identity = {struct, [{"name", "username"}, {"value", Id}]},
 			Characteristic = case lists:keyfind(locale, 1, UserData) of
@@ -88,9 +88,8 @@ get_user1([], _Port, Acc) ->
 %% @doc Body producing function for `GET /partyManagement/v1/individual/{id}'
 %% requests.
 get_user(Id) ->
-	{_, _, Info} = lists:keyfind(httpd, 1, inets:services_info()),
-	{_, Port} = lists:keyfind(port, 1, Info),
-	case mod_auth:get_user(Id, Port, "/") of
+	{Port, Directory, _Group} = get_params(),
+	case mod_auth:get_user(Id, Port, Directory) of
 		{ok, #httpd_user{username = Id, password = Password, user_data = UserData}} ->
 			Identity = {struct, [{"name", "username"}, {"value", Id}]},
 			PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
@@ -119,8 +118,7 @@ get_user(Id) ->
 %% @doc Respond to `POST /partyManagement/v1/individual' and add a new `User'
 %% resource.
 post_user(RequestBody) ->
-	{_, _, Info} = lists:keyfind(httpd, 1, inets:services_info()),
-	{_, Port} = lists:keyfind(port, 1, Info),
+	{Port, Directory, Group} = get_params(),
 	try
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, ID} = lists:keyfind("id", 1, Object),
@@ -141,10 +139,9 @@ post_user(RequestBody) ->
 						F(F,T)
 			end,
 		Locale = F2(F2, Characteristic),
-		case mod_auth:add_user(ID, Password, [{locale, Locale}] , Port, "/") of
+		case mod_auth:add_user(ID, Password, [{locale, Locale}] , Port, Directory) of
 			true ->
-				GroupName = get_params(),
-				case mod_auth:add_group_member(GroupName, ID, Port, "/") of
+				case mod_auth:add_group_member(Group, ID, Port, Directory) of
 					true ->
 						Location = "/partyManagement/v1/individual/" ++ ID,
 						PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
@@ -173,27 +170,26 @@ post_user(RequestBody) ->
 %% @doc Respond to `PUT /partyManagement/v1/individual' and Update a `User'
 %% resource.
 put_user(ID, RequestBody) ->
-	{_, _, Info} = lists:keyfind(httpd, 1, inets:services_info()),
-	{_, Port} = lists:keyfind(port, 1, Info),
+	{Port, Directory, _Group} = get_params(),
 	try
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, ID} = lists:keyfind("id", 1, Object),
 		{_, {array, Characteristic}} = lists:keyfind("characteristic", 1, Object),
-		Password = case mod_auth:get_user(ID, Port, "/") of
+		Password = case mod_auth:get_user(ID, Port, Directory) of
 			{ok, #httpd_user{password = OPassword}} ->
 				OPassword
 		end,
-			F2 = fun(_F, [{struct, [{"name", "locale"}, {"value", Locale}]} | _]) ->
-						Locale;
-					(_F, [{struct, [{"value", Locale}, {"name", "locale"}]} | _]) ->
-						Locale;
-					(F, [_ | T]) ->
-						F(F,T)
-			end,
+		F2 = fun(_F, [{struct, [{"name", "locale"}, {"value", Locale}]} | _]) ->
+					Locale;
+				(_F, [{struct, [{"value", Locale}, {"name", "locale"}]} | _]) ->
+					Locale;
+				(F, [_ | T]) ->
+					F(F,T)
+		end,
 		Locale = F2(F2, Characteristic),
-		case mod_auth:delete_user(ID, Port, "/") of
+		case mod_auth:delete_user(ID, Port, Directory) of
 			true ->
-				case mod_auth:add_user(ID, Password, [{locale, Locale}] , Port, "/") of
+				case mod_auth:add_user(ID, Password, [{locale, Locale}] , Port, Directory) of
 					true ->
 						Location = "/partyManagement/v1/individual/" ++ ID,
 						PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
@@ -225,14 +221,17 @@ put_user(ID, RequestBody) ->
 %% @doc Respond to `DELETE /ocs/v1/subscriber/{id}' request and deletes
 %% a `subscriber' resource. If the deletion is succeeded return true.
 delete_user(Id) ->
-	{_, _, Info} = lists:keyfind(httpd, 1, inets:services_info()),
-	{_, Port} = lists:keyfind(port, 1, Info),
-	case mod_auth:delete_user(Id, Port, "/") of
+	{Port, Directory, _Group} = get_params(),
+	case mod_auth:delete_user(Id, Port, Directory) of
 		true ->
 			{ok, [], []};
 		{error, _Reason} ->
 			{error, 400}
 	end.        
+
+%%----------------------------------------------------------------------
+%%  internal functions
+%%----------------------------------------------------------------------
 
 -spec get_params() -> {Port :: integer(), Directory :: string(), Group :: string()}.
 get_params() ->
@@ -243,11 +242,7 @@ get_params() ->
 	{directory, {Directory, AuthObj}} = lists:keyfind(directory, 1, HttpdObj),
 	case lists:keyfind(require_group, 1, AuthObj) of
 		{require_group, [Group | _T]} ->
-			Group;
+			{Port, Directory, Group};
 		false ->
 			exit(not_found)
 	end.
-%%----------------------------------------------------------------------
-%%  internal functions
-%%----------------------------------------------------------------------
-
