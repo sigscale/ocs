@@ -175,42 +175,68 @@ put_user(ID, RequestBody) ->
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, ID} = lists:keyfind("id", 1, Object),
 		{_, {array, Characteristic}} = lists:keyfind("characteristic", 1, Object),
-		Password = case mod_auth:get_user(ID, Port, Directory) of
-			{ok, #httpd_user{password = OPassword}} ->
-				OPassword
+		F1 = fun(_F, [{struct, [{"name", "password"}, {"value", Password}]} | _]) ->
+					Password;
+				(_F, [{struct, [{"value", Password}, {"name", "password"}]} | _]) ->
+					Password;
+				(F, [_ | T]) ->
+					F(F,T);
+				(_F, []) ->
+					undefined
 		end,
+		Password = F1(F1, Characteristic),
 		F2 = fun(_F, [{struct, [{"name", "locale"}, {"value", Locale}]} | _]) ->
 					Locale;
 				(_F, [{struct, [{"value", Locale}, {"name", "locale"}]} | _]) ->
 					Locale;
 				(F, [_ | T]) ->
-					F(F,T)
+					F(F,T);
+				(_F, []) ->
+					undefined
 		end,
 		Locale = F2(F2, Characteristic),
-		case mod_auth:delete_user(ID, Port, Directory) of
-			true ->
-				case mod_auth:add_user(ID, Password, [{locale, Locale}] , Port, Directory) of
-					true ->
-						Location = "/partyManagement/v1/individual/" ++ ID,
-						PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
-						LocaleAttr = {struct, [{"name", "locale"}, {"value", Locale}]},
-						Char = {array, [PasswordAttr, LocaleAttr]},
-						RespObj = [{"id", ID}, {"href", Location}, {"characteristic", Char}],
-						JsonObj  = {struct, RespObj},
-						Body = mochijson:encode(JsonObj),
-						Headers = [{location, Location}],
-						{ok, Headers, Body};
+		case {Password, Locale} of
+			{undefined, undefined} ->
+				{error, 400};
+			{Password, Locale} when is_list(Password) ->
+				put_user1(ID, Password, Locale);
+			{undefined, Locale} when is_list(Locale) ->
+				case mod_auth:get_user(ID, Port, Directory) of
+					{ok, #httpd_user{password = OPassword}} ->
+						put_user1(ID, OPassword, Locale);
+					{error, no_such_user} ->
+						{error, 404};
 					{error, _Reason} ->
-						{error, 400}
-				end;
-			{error, _Reason} ->
-				throw(delete)
+						{error, 500}
+				end
 		end
 	catch
-		throw:delete ->
-			{error, 500};
 		_:_Reason1 ->
 			{error, 400}
+	end.
+%% @hidden
+put_user1(ID, Password, undefined) ->
+	put_user1(ID, Password, "en");
+put_user1(ID, Password, Locale) ->
+	{Port, Directory, _Group} = get_params(),
+	case mod_auth:delete_user(ID, Port, Directory) of
+		true ->
+			case mod_auth:add_user(ID, Password, [{locale, Locale}] , Port, Directory) of
+				true ->
+					Location = "/partyManagement/v1/individual/" ++ ID,
+					PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
+					LocaleAttr = {struct, [{"name", "locale"}, {"value", Locale}]},
+					Char = {array, [PasswordAttr, LocaleAttr]},
+					RespObj = [{"id", ID}, {"href", Location}, {"characteristic", Char}],
+					JsonObj  = {struct, RespObj},
+					Body = mochijson:encode(JsonObj),
+					Headers = [{location, Location}],
+					{ok, Headers, Body};
+				{error, _Reason} ->
+					{error, 500}
+			end;
+		{error, _Reason} ->
+			{error, 500}
 	end.
 
 -spec delete_user(Id) -> Result
