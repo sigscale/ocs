@@ -206,7 +206,7 @@ patch_subscriber1(Id, Etag, ReqBody) ->
 					undefined ->
 						[];
 					_ ->
-						[{etag, Etag}]
+						[{etag, etag(Etag)}]
 				end,
 				{ok, Headers, RespBody}
 			catch
