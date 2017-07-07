@@ -26,6 +26,7 @@
 -export([init_per_suite/1, end_per_suite/1]).
 -export([init_per_testcase/2, end_per_testcase/2]).
 
+%% Note: This directive should only be used in test suites.
 -compile(export_all).
 
 %%Macro definitions for TLS record Content Type
