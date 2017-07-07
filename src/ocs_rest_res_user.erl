@@ -179,13 +179,13 @@ put_user(ID, RequestBody) ->
 			{ok, #httpd_user{password = OPassword}} ->
 				OPassword
 		end,
-			F2 = fun(_F, [{struct, [{"name", "locale"}, {"value", Locale}]} | _]) ->
-						Locale;
-					(_F, [{struct, [{"value", Locale}, {"name", "locale"}]} | _]) ->
-						Locale;
-					(F, [_ | T]) ->
-						F(F,T)
-			end,
+		F2 = fun(_F, [{struct, [{"name", "locale"}, {"value", Locale}]} | _]) ->
+					Locale;
+				(_F, [{struct, [{"value", Locale}, {"name", "locale"}]} | _]) ->
+					Locale;
+				(F, [_ | T]) ->
+					F(F,T)
+		end,
 		Locale = F2(F2, Characteristic),
 		case mod_auth:delete_user(ID, Port, Directory) of
 			true ->
