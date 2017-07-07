@@ -119,8 +119,7 @@ get_user(Id) ->
 %% @doc Respond to `POST /partyManagement/v1/individual' and add a new `User'
 %% resource.
 post_user(RequestBody) ->
-	{_, _, Info} = lists:keyfind(httpd, 1, inets:services_info()),
-	{_, Port} = lists:keyfind(port, 1, Info),
+	{Port, Directory, Group} = get_params(),
 	try
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, ID} = lists:keyfind("id", 1, Object),
@@ -141,10 +140,9 @@ post_user(RequestBody) ->
 						F(F,T)
 			end,
 		Locale = F2(F2, Characteristic),
-		case mod_auth:add_user(ID, Password, [{locale, Locale}] , Port, "/") of
+		case mod_auth:add_user(ID, Password, [{locale, Locale}] , Port, Directory) of
 			true ->
-				GroupName = get_params(),
-				case mod_auth:add_group_member(GroupName, ID, Port, "/") of
+				case mod_auth:add_group_member(Group, ID, Port, Directory) of
 					true ->
 						Location = "/partyManagement/v1/individual/" ++ ID,
 						PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
@@ -234,6 +232,10 @@ delete_user(Id) ->
 			{error, 400}
 	end.        
 
+%%----------------------------------------------------------------------
+%%  internal functions
+%%----------------------------------------------------------------------
+
 -spec get_params() -> {Port :: integer(), Directory :: string(), Group :: string()}.
 get_params() ->
 	{_, _, Info} = lists:keyfind(httpd, 1, inets:services_info()),
@@ -243,11 +245,7 @@ get_params() ->
 	{directory, {Directory, AuthObj}} = lists:keyfind(directory, 1, HttpdObj),
 	case lists:keyfind(require_group, 1, AuthObj) of
 		{require_group, [Group | _T]} ->
-			Group;
+			{Port, Directory, Group};
 		false ->
 			exit(not_found)
 	end.
-%%----------------------------------------------------------------------
-%%  internal functions
-%%----------------------------------------------------------------------
-
