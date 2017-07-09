@@ -242,11 +242,17 @@ acct_query1(Start, End, Protocol, Types, AttrsMatch,
 			acct_query1(Start, End, Protocol, Types,
 					AttrsMatch, {Cont, T}, Acc)
 	end;
+<<<<<<< 4b495f384a0fe9a4b24247a5bef282c30fdc70c5
 acct_query1(Start, End, Protocol, Types, AttrsMatch, {Cont, [_ | T]}, Acc) ->
 	acct_query1(Start, End, Protocol, Types, AttrsMatch, {Cont, T}, Acc);
 acct_query1(_Start, _End, _Protocol, _Types, _AttrsMatch, {eof, []}, Acc) ->
 	{eof, lists:reverse(Acc)};
 acct_query1(_, _, _, _, _, {Cont, []}, Acc) ->
+=======
+acct_query(Start, End, Protocol, Types, AttrsMatch, {Cont, [_ | T]}, Acc) ->
+	acct_query(Start, End, Protocol, Types, AttrsMatch, {Cont, T}, Acc);
+acct_query(_, _, _, _, _, {Cont, []}, Acc) ->
+>>>>>>> refactor auth|acct query with continuation
 	{Cont, lists:reverse(Acc)}.
 %% @hidden
 acct_query2(Start, End, Protocol, Types, '_', {Cont, [H | T]}, Acc, '_') ->
@@ -479,10 +485,14 @@ auth_query1(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
 		{Cont, [_ | T]}, Acc) ->
 	auth_query1(Start, End, Protocol, Types, ReqAttrsMatch,
 			RespAttrsMatch, {Cont, T}, Acc);
+<<<<<<< 4b495f384a0fe9a4b24247a5bef282c30fdc70c5
 auth_query1(_Start, _End, _Protocol, _Types, _ReqAttrsMatch,
 		_RespAttrsMatch, {eof, []}, Acc) ->
 	{eof, lists:reverse(Acc)};
 auth_query1(_, _, _, _, _, _, {Cont, []}, Acc) ->
+=======
+auth_query(_, _, _, _, _, _, {Cont, []}, Acc) ->
+>>>>>>> refactor auth|acct query with continuation
 	{Cont, lists:reverse(Acc)}.
 %% @hidden
 auth_query2(Start, End, Protocol, Types, '_', RespAttrsMatch,
