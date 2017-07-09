@@ -192,10 +192,14 @@ acct_query(Continuation, Start, {{_, _, _}, {_, _, _}} = End,
 	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
 	acct_query(Continuation, Start, Seconds * 1000 + 999,
 			Protocol, Types, AttrsMatch);
-acct_query(Continuation, Start, End, Protocol, Types, AttrsMatch)
+acct_query(start, Start, End, Protocol, Types, AttrsMatch)
 		when is_integer(Start), is_integer(End) ->
 	acct_query(Start, End, Protocol, Types, AttrsMatch,
-			[], disk_log:bchunk(?ACCTLOG, Continuation)).
+			[], disk_log:bchunk(?ACCTLOG, start)).
+acct_query(Continuation, Start, End, Protocol, Types, AttrsMatch)
+		when is_integer(Start), is_integer(End) ->
+	acct_query1(Start, End, Protocol, Types, AttrsMatch,
+			disk_log:chunk(?ACCTLOG, Continuation).
 
 %% @hidden
 acct_query(Start, End, Protocol, Types, AttrsMatch,
@@ -221,11 +225,14 @@ acct_query1(_Start, _End, _Protocol, _Types, _AttrsMatch, eof, Acc) ->
 	{eof, lists:reverse(Acc)};
 acct_query1(_Start, _End, _Protocol, _Types, _AttrsMatch, {error, Reason}, _Acc) ->
 	{error, Reason};
+<<<<<<< 7d2500c4b6f5e9a8769d8070e3aee488c822aaf2
 acct_query1(Start, End, '_', '_', AttrsMatch,
 		{Cont, [{TS, _, _, _, _, _, _} | _] = Chunk}, Acc)
 		when TS >= Start, TS =< End ->
 	acct_query2(Start, End, '_', '_', AttrsMatch,
 			{Cont, Chunk}, Acc, AttrsMatch);
+=======
+>>>>>>> refactor auth|acct query with continuation
 acct_query1(Start, End, Protocol, '_', AttrsMatch,
 		{Cont, [{TS, _, Protocol, _, _, _, _} | _] = Chunk}, Acc)
 		when TS >= Start, TS =< End ->
@@ -247,11 +254,15 @@ acct_query1(Start, End, Protocol, Types, AttrsMatch, {Cont, [_ | T]}, Acc) ->
 	acct_query1(Start, End, Protocol, Types, AttrsMatch, {Cont, T}, Acc);
 acct_query1(_Start, _End, _Protocol, _Types, _AttrsMatch, {eof, []}, Acc) ->
 	{eof, lists:reverse(Acc)};
+<<<<<<< 7d2500c4b6f5e9a8769d8070e3aee488c822aaf2
 acct_query1(_, _, _, _, _, {Cont, []}, Acc) ->
 =======
 acct_query(Start, End, Protocol, Types, AttrsMatch, {Cont, [_ | T]}, Acc) ->
 	acct_query(Start, End, Protocol, Types, AttrsMatch, {Cont, T}, Acc);
 acct_query(_, _, _, _, _, {Cont, []}, Acc) ->
+>>>>>>> refactor auth|acct query with continuation
+=======
+acct_query1(Start, End, Protocol, Types, AttrsMatch, {Cont, []}, Acc) ->
 >>>>>>> refactor auth|acct query with continuation
 	{Cont, lists:reverse(Acc)}.
 %% @hidden
@@ -426,11 +437,16 @@ auth_query(Continuation, Start, {{_, _, _}, {_, _, _}} = End, Protocol,
 	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
 	auth_query(Continuation, Start, Seconds * 1000 + 999,
 			Protocol, Types, ReqAttrsMatch, RespAttrsMatch);
-auth_query(Continuation, Start, End, Protocol, Types,
+auth_query(start, Start, End, Protocol, Types,
 		ReqAttrsMatch, RespAttrsMatch)
 		when is_integer(Start), is_integer(End) ->
 	auth_query(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
-			[], disk_log:bchunk(?AUTHLOG, Continuation)).
+			[], disk_log:bchunk(?AUTHLOG, start)).
+auth_query(Continuation, Start, End, Protocol, Types,
+		ReqAttrsMatch, RespAttrsMatch)
+		when is_integer(Start), is_integer(End) ->
+	auth_query1(Continuation, End, Protocol, Types, ReqAttrsMatch,
+			RespAttrsMatch, disk_log:chunk(?AUTHLOG, Continuation), []).
 
 %% @hidden
 auth_query(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
@@ -489,9 +505,14 @@ auth_query1(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
 auth_query1(_Start, _End, _Protocol, _Types, _ReqAttrsMatch,
 		_RespAttrsMatch, {eof, []}, Acc) ->
 	{eof, lists:reverse(Acc)};
+<<<<<<< 7d2500c4b6f5e9a8769d8070e3aee488c822aaf2
 auth_query1(_, _, _, _, _, _, {Cont, []}, Acc) ->
 =======
 auth_query(_, _, _, _, _, _, {Cont, []}, Acc) ->
+>>>>>>> refactor auth|acct query with continuation
+=======
+auth_query1(Start, End, Protocol, Types, ReqAttrsMatch,
+		RespAttrsMatch, {Cont, []}, Acc) ->
 >>>>>>> refactor auth|acct query with continuation
 	{Cont, lists:reverse(Acc)}.
 %% @hidden
