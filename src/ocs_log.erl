@@ -179,7 +179,7 @@ acct_query(Continuation, Start, End, Types, AttrsMatch) ->
 %% 	All attribute filters must match or the event will be ignored.
 %%
 %% 	`Protocol', `Types', or `AttrsMatch' may be '_' which matches any value.
-%% 
+%%
 %% 	Returns a new `Continuation' and a list of matching accounting events.
 %% 	Successive calls use the new `Continuation' to read more events.
 %%
@@ -403,7 +403,7 @@ auth_query(Continuation, Start, End, Types, ReqAttrsMatch, RespAttrsMatch) ->
 %%
 %% 	`Protocol', `Types', `ReqAttrsMatch' `ResAttrsMatch'  may be
 %% 	'_' which matches any value.
-%% 
+%%
 %% 	Returns a new `Continuation' and a list of matching access events.
 %% 	Successive calls use the new `Continuation' to read more events.
 %%
