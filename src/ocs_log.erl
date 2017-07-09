@@ -24,15 +24,15 @@
 
 %% export the ocs_log public API
 -export([acct_open/0, acct_log/4, acct_close/0,
-		acct_query/4, acct_query/5,
+		acct_query/5, acct_query/6,
 		auth_open/0, auth_log/5, auth_log/6, auth_close/0,
-		auth_query/5, auth_query/6,
+		auth_query/6, auth_query/7,
 		ipdr_log/3, ipdr_file/2, get_range/3, last/2,
 		dump_file/2, http_file/2, httpd_logname/1,
 		date/1, iso8601/1]).
 
-%% export the ocs_log private API
--export([]).
+%% export the ocs_log event types
+-export_type([auth_event/0, acct_event/0]).
 
 -include("ocs_log.hrl").
 -include_lib("radius/include/radius.hrl").
@@ -89,6 +89,14 @@ acct_open1(Directory) ->
 			{error, Reason}
 	end.
 
+-type acct_event() :: {
+		TS :: pos_integer(), % posix time in milliseconds
+		N :: pos_integer(), % unique number
+		Protocol :: radius | diameter,
+		Node :: atom(),
+		Server :: {inet:ip_address(), inet:port_number()},
+		Attributes :: radius_attributes:attributes()}.
+
 -spec acct_log(Protocol, Server, Type, Attributes) -> Result
 	when
 		Protocol :: radius | diameter,
@@ -124,8 +132,9 @@ acct_close() ->
 			{error, Reason}
 	end.
 
--spec acct_query(Start, End, Types, AttrsMatch) -> Result
+-spec acct_query(Continuation, Start, End, Types, AttrsMatch) -> Result
 	when
+		Continuation :: start | disk_log:continuation(),
 		Start :: calendar:datetime() | pos_integer(),
 		End :: calendar:datetime() | pos_integer(),
 		Types :: [Type] | '_',
@@ -133,13 +142,18 @@ acct_close() ->
 		AttrsMatch :: [{Attribute, Match}] | '_',
 		Attribute :: byte(),
 		Match :: term() | '_',
-		Result :: [term()].
-%% @equiv acct_query(Start, End, radius, Types, AttrsMatch)
-acct_query(Start, End, Types, AttrsMatch) ->
-	acct_query(Start, End, radius, Types, AttrsMatch).
+		Result :: {Continuation2, Events} | {eof, Events} | {error, Reason},
+		Continuation2 :: disk_log:continuation(),
+		Events :: [acct_event()],
+		Reason :: term().
+%% @doc Query accounting log events with filters.
+%% @equiv acct_query(Continuation, Start, End, radius, Types, AttrsMatch)
+acct_query(Continuation, Start, End, Types, AttrsMatch) ->
+	acct_query(Continuation, Start, End, radius, Types, AttrsMatch).
 
--spec acct_query(Start, End, Protocol, Types, AttrsMatch) -> Result
+-spec acct_query(Continuation, Start, End, Protocol, Types, AttrsMatch) -> Result
 	when
+		Continuation :: start | disk_log:continuation(),
 		Start :: calendar:datetime() | pos_integer(),
 		End :: calendar:datetime() | pos_integer(),
 		Protocol :: radius | diameter | '_',
@@ -148,8 +162,13 @@ acct_query(Start, End, Types, AttrsMatch) ->
 		AttrsMatch :: [{Attribute, Match}] | '_',
 		Attribute :: byte(),
 		Match :: term() | '_',
-		Result :: [term()].
+		Result :: {Continuation2, Events} | {eof, Events} | {error, Reason},
+		Continuation2 :: disk_log:continuation(),
+		Events :: [acct_event()],
+		Reason :: term().
 %% @doc Query accounting log events with filters.
+%%
+%% 	The first time called `Continuation' should have the value `start'.
 %%
 %% 	Events before `Start' or after `Stop', or which do not match
 %% 	the `Protocol' or one of the `Types', are ignored.
@@ -161,24 +180,27 @@ acct_query(Start, End, Types, AttrsMatch) ->
 %%
 %% 	`Protocol', `Types', or `AttrsMatch' may be '_' which matches any value.
 %% 
-%% 	Returns a list of matching accounting events.
+%% 	Returns a new `Continuation' and a list of matching accounting events.
+%% 	Successive calls use the new `Continuation' to read more events.
 %%
-acct_query({{_, _, _}, {_, _, _}} = Start, End, Protocol, Types, AttrsMatch) ->
+acct_query(Continuation, {{_, _, _}, {_, _, _}} = Start,
+		End, Protocol, Types, AttrsMatch) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(Start) - ?EPOCH,
-	acct_query(Seconds * 1000, End, Protocol, Types, AttrsMatch);
-acct_query(Start, {{_, _, _}, {_, _, _}} = End, Protocol, Types, AttrsMatch) ->
+	acct_query(Continuation, Seconds * 1000, End, Protocol, Types, AttrsMatch);
+acct_query(Continuation, Start, {{_, _, _}, {_, _, _}} = End,
+		Protocol, Types, AttrsMatch) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
-	acct_query(Start, Seconds * 1000, Protocol, Types, AttrsMatch);
-acct_query(Start, End, Protocol, Types, AttrsMatch)
+	acct_query(Continuation, Start, Seconds * 1000, Protocol, Types, AttrsMatch);
+acct_query(Continuation, Start, End, Protocol, Types, AttrsMatch)
 		when is_integer(Start), is_integer(End) ->
 	acct_query(Start, End, Protocol, Types, AttrsMatch,
-			disk_log:chunk(?ACCTLOG, start), []).
+			disk_log:chunk(?ACCTLOG, Continuation), []).
 
 %% @hidden
 acct_query(_Start, _End, _Protocol, _Types, _AttrsMatch, eof, Acc) ->
-	lists:reverse(Acc);
+	{eof, lists:reverse(Acc)};
 acct_query(_Start, _End, _Protocol, _Types, _AttrsMatch, {error, Reason}, _Acc) ->
-	exit(Reason);
+	{error, Reason};
 acct_query(Start, End, '_', '_', AttrsMatch,
 		{Cont, [{TS, _, _, _, _, _, _} | _] = Chunk}, Acc)
 		when TS >= Start, TS =< End ->
@@ -199,9 +221,8 @@ acct_query(Start, End, Protocol, Types, AttrsMatch,
 	end;
 acct_query(Start, End, Protocol, Types, AttrsMatch, {Cont, [_ | T]}, Acc) ->
 	acct_query(Start, End, Protocol, Types, AttrsMatch, {Cont, T}, Acc);
-acct_query(Start, End, Protocol, Types, AttrsMatch, {Cont, []}, Acc) ->
-	acct_query(Start, End, Protocol, Types, AttrsMatch,
-			disk_log:chunk(?AUTHLOG, Cont), Acc).
+acct_query(_, _, _, _, _, {Cont, []}, Acc) ->
+	{Cont, lists:reverse(Acc)}.
 %% @hidden
 acct_query1(Start, End, Protocol, Types, '_', {Cont, [H | T]}, Acc, '_') ->
 	acct_query(Start, End, Protocol, Types, '_', {Cont, T}, [H | Acc]);
@@ -256,6 +277,16 @@ auth_open1(Directory) ->
 			{error, Reason}
 	end.
 
+-type auth_event() :: {
+		TS :: pos_integer(), % posix time in milliseconds
+		N :: pos_integer(), % unique number
+		Protocol :: radius | diameter,
+		Node :: atom(),
+		Server :: {inet:ip_address(), inet:port_number()},
+		Client :: {inet:ip_address(), inet:port_number()},
+		RequestAttributes :: radius_attributes:attributes(),
+		ResponseAttributes :: radius_attributes:attributes()}.
+
 -spec auth_log(Protocol, Server, Client, Type, RequestAttributes,
 		ResponseAttributes) -> Result
 	when
@@ -295,8 +326,10 @@ auth_log(Protocol, Server, Client, Request, Response) ->
 	Event = {TS, N, Protocol, node(), Server, Client, Request, Response},
 	disk_log:log(?AUTHLOG, Event).
 
--spec auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch) -> Result
+-spec auth_query(Continuation, Start, End, Types,
+		ReqAttrsMatch, RespAttrsMatch) -> Result
 	when
+		Continuation :: start | disk_log:continuation(),
 		Start :: calendar:datetime() | pos_integer(),
 		End :: calendar:datetime() | pos_integer(),
 		Types :: [Type] | '_',
@@ -305,13 +338,20 @@ auth_log(Protocol, Server, Client, Request, Response) ->
 		RespAttrsMatch :: [{Attribute, Match}] | '_',
 		Attribute :: byte(),
 		Match :: term() | '_',
-		Result :: [term()].
-%% @equiv auth_query(Start, End, radius, Types, ReqAttrsMatch, RespAttrsMatch)
-auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch) ->
-	auth_query(Start, End, radius, Types, ReqAttrsMatch, RespAttrsMatch).
+		Result :: {Continuation2, Events} | {eof, Events} | {error, Reason},
+		Continuation2 :: disk_log:continuation(),
+		Events :: [auth_event()],
+		Reason :: term().
+%% @doc Query access log events with filters.
+%% @equiv auth_query(Continuation, Start, End, radius, Types, ReqAttrsMatch, RespAttrsMatch)
+auth_query(Continuation, Start, End, Types, ReqAttrsMatch, RespAttrsMatch) ->
+	auth_query(Continuation, Start, End, radius, Types,
+			ReqAttrsMatch, RespAttrsMatch).
 
--spec auth_query(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch) -> Result
+-spec auth_query(Continuation, Start, End, Protocol, Types,
+		ReqAttrsMatch, RespAttrsMatch) -> Result
 	when
+		Continuation :: start | disk_log:continuation(),
 		Start :: calendar:datetime() | pos_integer(),
 		End :: calendar:datetime() | pos_integer(),
 		Protocol :: radius | diameter | '_',
@@ -321,8 +361,13 @@ auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch) ->
 		RespAttrsMatch :: [{Attribute, Match}] | '_',
 		Attribute :: byte(),
 		Match :: term() | '_',
-		Result :: [term()].
+		Result :: {Continuation2, Events} | {eof, Events} | {error, Reason},
+		Continuation2 :: disk_log:continuation(),
+		Events :: [auth_event()],
+		Reason :: term().
 %% @doc Query access log events with filters.
+%%
+%% 	The first time called `Continuation' should have the value `start'.
 %%
 %% 	Events before `Start' or after `Stop' or which do not match
 %% 	the protocol or one of the `Types' are ignored.
@@ -336,30 +381,33 @@ auth_query(Start, End, Types, ReqAttrsMatch, RespAttrsMatch) ->
 %% 	`Protocol', `Types', `ReqAttrsMatch' `ResAttrsMatch'  may be
 %% 	'_' which matches any value.
 %% 
-%% 	Returns a list of matching authentication events.
+%% 	Returns a new `Continuation' and a list of matching access events.
+%% 	Successive calls use the new `Continuation' to read more events.
 %%
-auth_query({{_, _, _}, {_, _, _}} = Start, End, Protocol, Types,
-		ReqAttrsMatch, RespAttrsMatch) ->
+%%
+auth_query(Continuation, {{_, _, _}, {_, _, _}} = Start, End, Protocol,
+		Types, ReqAttrsMatch, RespAttrsMatch) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(Start) - ?EPOCH,
-	auth_query(Seconds * 1000, End, Protocol, Types,
+	auth_query(Continuation, Seconds * 1000, End, Protocol, Types,
 			ReqAttrsMatch, RespAttrsMatch);
-auth_query(Start, {{_, _, _}, {_, _, _}} = End, Protocol, Types,
-		ReqAttrsMatch, RespAttrsMatch) ->
+auth_query(Continuation, Start, {{_, _, _}, {_, _, _}} = End, Protocol,
+		Types, ReqAttrsMatch, RespAttrsMatch) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
-	auth_query(Start, Seconds * 1000, Protocol, Types,
+	auth_query(Continuation, Start, Seconds * 1000, Protocol, Types,
 			ReqAttrsMatch, RespAttrsMatch);
-auth_query(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch)
+auth_query(Continuation, Start, End, Protocol, Types,
+		ReqAttrsMatch, RespAttrsMatch)
 		when is_integer(Start), is_integer(End) ->
-	auth_query(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
-			disk_log:chunk(?AUTHLOG, start), []).
+	auth_query(Start, End, Protocol, Types, ReqAttrsMatch,
+			RespAttrsMatch, disk_log:chunk(?AUTHLOG, Continuation), []).
 
 %% @hidden
 auth_query(_Start, _End, _Protocol, _Types,
 		_ReqAttrsMatch, _RespAttrsMatch, eof, Acc) ->
-	lists:reverse(Acc);
+	{eof, lists:reverse(Acc)};
 auth_query(_Start, _End, _Protocol, _Types,
 		_ReqAttrsMatch, _RespAttrsMatch, {error, Reason}, _Acc) ->
-	exit(Reason);
+	{error, Reason};
 auth_query(Start, End, '_', '_', ReqAttrsMatch, RespAttrsMatch,
 		{Cont, [{TS, _, _, _, _, _, _, _, _} | _] = Chunk}, Acc)
 		when TS >= Start, TS =< End ->
@@ -385,10 +433,8 @@ auth_query(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
 		{Cont, [_ | T]}, Acc) ->
 	auth_query(Start, End, Protocol, Types, ReqAttrsMatch,
 			RespAttrsMatch, {Cont, T}, Acc);
-auth_query(Start, End, Protocol, Types, ReqAttrsMatch,
-		RespAttrsMatch, {Cont, []}, Acc) ->
-	auth_query(Start, End, Protocol, Types, ReqAttrsMatch,
-			RespAttrsMatch, disk_log:chunk(?AUTHLOG, Cont), Acc).
+auth_query(_, _, _, _, _, _, {Cont, []}, Acc) ->
+	{Cont, lists:reverse(Acc)}.
 %% @hidden
 auth_query1(Start, End, Protocol, Types, '_', RespAttrsMatch,
 		{Cont, Chunk}, Acc, '_') ->
