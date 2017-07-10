@@ -104,25 +104,7 @@ serve_file(User, #mod{data = Data, config_db = ConfigDb,
 					{proceed,  Data}
 			end;
 		_ ->
-			send_response(Path, ModData)
-	end.
-
-%% @hidden
-send_response(Path, #mod{config_db = ConfigDb, data = Data} = ModData) ->
-	case file:read_file(Path) of
-		{ok, FileContent} ->
-			{FileInfo, LastModified} = get_modification_date(Path),
-			Suffix = httpd_util:suffix(Path),
-			MimeType = httpd_util:lookup_mime_default(ConfigDb, Suffix, "text/plain"),
-			Size = integer_to_list(FileInfo#file_info.size),
-			Headers = [{content_type, MimeType}, {content_length, Size},
-					{etag, httpd_util:create_etag(FileInfo)} | LastModified],
-			send(ModData, 200, Headers, FileContent),
-			{proceed,[{response, {already_sent, 200, FileInfo#file_info.size}},
-				{mime_type,MimeType} | Data]};
-		{error, _Reason} ->
-			Response = "<h2>HTTP Error 404 - Not Found</h2>",
-			{break, [{response, {404, Response}}]}
+			{proceed, Data}
 	end.
 
 %% @hidden

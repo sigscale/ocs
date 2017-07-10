@@ -55,8 +55,12 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 				undefined ->
 					case proplists:get_value(response, Data) of
 						undefined ->
-							{_, Resource} = lists:keyfind(resource, 1, Data),
-							content_type_available(Headers, Uri, Resource, ModData);
+							case lists:keyfind(resource, 1, Data) of
+								false ->
+									{proceed, Data};
+								{_, Resource} ->
+									content_type_available(Headers, Uri, Resource, ModData)
+							end;
 						_Response ->
 							{proceed,  Data}
 					end

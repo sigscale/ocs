@@ -78,11 +78,25 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 							check_content_type_header(Headers, Method, ocs_rest_res_user, Data);
 						["partyManagement", "v1", "individual", _Id] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_user, Data);
-						_ ->
-							Response = "<h2>HTTP Error 400 - Bad Request</h2>",
-							{break, [{response, {400, Response}}]}
+						NonRestUri ->
+							try
+								File = lists:last(NonRestUri),
+								Parts = string:tokens(File, "."),
+								case lists:reverse(Parts) of
+									[Ext | _] when Ext == "html"; Ext == "css"; Ext == "js";
+											Ext == "json"	->
+										{proceed, Data};
+									_ ->
+										Response = "<h2>HTTP Error 400 - Bad Request</h2>",
+										{break, [{response, {400, Response}}]}
+								end
+							catch
+								_:_ ->
+								Response1 = "<h2>HTTP Error 400 - Bad Request</h2>",
+								{break, [{response, {400, Response1}}]}
+							end
 					end;
-				_Response ->
+				_ ->
 					{proceed,  Data}
 			end
 	end.
