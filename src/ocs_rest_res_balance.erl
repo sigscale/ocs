@@ -1,4 +1,4 @@
-%%% ocs_rest_res_balance_management.erl
+%%% ocs_rest_res_balance.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2017 SigScale Global Inc.
 %%% @end
@@ -17,7 +17,7 @@
 %%% @doc This library module implements resource handling functions
 %%% 	for a REST server in the {@link //ocs. ocs} application.
 %%%
--module(ocs_rest_res_balance_management).
+-module(ocs_rest_res_balance).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
