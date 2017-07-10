@@ -61,6 +61,8 @@ modhtml = ocs.html \
 			ocs_rest_page_sup.html \
 			ocs_rest_page_server.html \
 			mod_ocs_rest_lang.html \
+			ocs_rest_page_sup.html \
+			ocs_rest_page_server.html \
 			mod_ocs_rest_accepted_content.html \
 			mod_ocs_rest_delete.html \
 			mod_ocs_rest_get.html \

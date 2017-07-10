@@ -53,11 +53,11 @@
 %%
 init([Timeout] = _Args) when is_integer(Timeout) ->
 	process_flag(trap_exit, true),
-	{ok, #state{timeout = Timeout}, Timeout}. 
+	{ok, #state{timeout = Timeout}, Timeout}.
 
 -spec handle_call(Request, From, State) -> Result
 	when
-		Request :: term(), 
+		Request :: term(),
 		From :: {pid(), Tag},
 		Tag :: any(),
 		State :: state(),
@@ -81,7 +81,7 @@ handle_call(_Request, _From, State) ->
 
 -spec handle_cast(Request, State) -> Result
 	when
-		Request :: term(), 
+		Request :: term(),
 		State :: state(),
 		Result :: {noreply, NewState}
 			| {noreply, NewState, timeout() | hibernate}
@@ -99,7 +99,7 @@ handle_cast(stop, State) ->
 
 -spec handle_info(Info, State) -> Result
 	when
-		Info :: timeout | term(), 
+		Info :: timeout | term(),
 		State::state(),
 		Result :: {noreply, NewState}
 			| {noreply, NewState, timeout() | hibernate}
@@ -124,9 +124,9 @@ handle_info(timeout, State) ->
 terminate(_Reason, _State) ->
 	ok.
 
--spec code_change(OldVsn, State, Extra) -> Result 
+-spec code_change(OldVsn, State, Extra) -> Result
 	when
-		OldVsn :: term() | {down, term()}, 
+		OldVsn :: term() | {down, term()},
 		State :: state(),
 		Extra :: term(),
 		Result :: {ok, NewState} | {error, Reason},
