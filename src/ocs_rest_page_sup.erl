@@ -42,7 +42,7 @@ init(_Args) ->
 	{ok, {{simple_one_for_one, 10, 60}, ChildSpecs}}.
 
 %% @hidden
-server(StartMod) ->
+server(StartMod, Args) ->
 	StartFunc = {gen_server, start_link, [StartMod]},
 	{StartMod, StartFunc, temporary, infinity, worker, [StartMod]}.
 
