@@ -111,7 +111,7 @@ handle_cast(stop, State) ->
 %% @private
 %%
 handle_info(timeout, State) ->
-	{stop, shutdown, NewState}.
+	{stop, shutdown, State}.
 
 -spec terminate(Reason, State) -> any()
 	when
