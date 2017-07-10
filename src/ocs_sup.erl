@@ -43,6 +43,7 @@ init([LogRotateTime] = _Args) ->
 			supervisor(ocs_diameter_auth_sup, []),
 			supervisor(ocs_diameter_acct_top_sup, []),
 			log_server(ocs_log_rotate_server, [LogRotateTime]),
+			supervisor(ocs_rest_page_sup, []),
 			server(ocs_server, [self()])],
 	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
 
