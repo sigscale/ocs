@@ -54,7 +54,7 @@ get_balance(Identity) ->
 				get_balance1(Identity, Balance, "active");
 			{ok, _, _, Balance, false, _} ->
 				get_balance1(Identity, Balance, "disable");
-			{error, Reason} ->
+			{error, _Reason} ->
 				{error, 500}
 		end
 	catch
@@ -62,7 +62,7 @@ get_balance(Identity) ->
 			{error, 400}
 	end.
 %% @hidden
-get_balance1(Identity, Balance, ActStatus);
+get_balance1(Identity, Balance, ActStatus) ->
 	Id = {"id", Identity},
 	Href = {"href", "/balanceManagement/v1/buckets/" ++ Identity},
 	BucketType = {"bucketType", "octets"},
@@ -73,7 +73,7 @@ get_balance1(Identity, Balance, ActStatus);
 	Object = [Id, Href, BucketType, RemAmount, Status],
 	Json = {struct, Object},
 	Body  = mochijson:encode(Json),
-	{ok, [{content_type, "application/json"}], Body};
+	{ok, [{content_type, "application/json"}], Body}.
 
 -spec top_up(Identity, RequestBody) -> Result
 	when
