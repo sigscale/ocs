@@ -65,7 +65,7 @@ get_balance(Identity) ->
 get_balance1(Identity, Balance, ActStatus) ->
 	Id = {"id", Identity},
 	Href = {"href", "/balanceManagement/v1/buckets/" ++ Identity},
-	BucketType = {"bucketType", "octets"},
+	BucketType = {"bucketType", "octects"},
 	Amount = {"amount", Balance},
 	Units = {"units", "octect"},
 	RemAmount = {"remainedAmount", {struct, [Amount, Units]}},
