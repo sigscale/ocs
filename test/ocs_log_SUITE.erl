@@ -87,7 +87,7 @@ sequences() ->
 all() ->
 	[radius_log_auth_event, diameter_log_auth_event,
 			radius_log_acct_event, diameter_log_acct_event,
-			ipdr_log, get_range, get_last].
+			ipdr_log, get_range, get_last, auth_query, acct_query].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -440,4 +440,160 @@ get_last(_Config) ->
 	{MaxSize, Items4} = ocs_log:last(Log, MaxSize),
 	StartItem4 = NumTotal4 - MaxSize,
 	StartItem4 = lists:foldl(Fcheck, NumTotal4, Items4).
+
+auth_query() ->
+   [{userdata, [{doc, "Get matching access log events"}]}].
+
+auth_query(_Config) ->
+	Server = {{0,0,0,0}, 1812},
+	ClientAddress = {10,0,0,1},
+	Client = {ClientAddress, 37645},
+	Username = ocs:generate_identity(),
+	NasIdentifier = "ap13.sigscale.net",
+	ReqAttrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"},
+			{?NasPortType, 19}, {?UserName, Username},
+			{?CallingStationId, "BE:EF:FE:ED:CA:FE"},
+			{?CalledStationId, "CA:FE:CA:FE:CA:FE:AP13"},
+			{?NasIdentifier, NasIdentifier},
+			{?NasIpAddress, ClientAddress}],
+	RespAttrs = [{?SessionTimeout, 3600}],
+	ok = fill_auth(1000),
+	LogInfo = disk_log:info(ocs_auth),
+	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
+	{_, CurItems} = lists:keyfind(no_current_items, 1, LogInfo),
+	{_, CurBytes} = lists:keyfind(no_current_bytes, 1, LogInfo),
+	EventSize = CurBytes div CurItems,
+	NumItems = (FileSize div EventSize) * 5,
+	Start = erlang:system_time(?MILLISECOND),
+	ok = fill_auth(NumItems),
+	ok = ocs_log:auth_log(radius, Server, Client,
+			accept, ReqAttrs, RespAttrs),
+	ok = fill_auth(rand:uniform(2000)),
+	ok = ocs_log:auth_log(radius, Server, Client,
+			accept, ReqAttrs, RespAttrs),
+	ok = fill_auth(rand:uniform(2000)),
+	ok = ocs_log:auth_log(radius, Server, Client,
+			accept, ReqAttrs, RespAttrs),
+	ok = fill_auth(rand:uniform(2000)),
+	End = erlang:system_time(?MILLISECOND),
+	MatchReq = [{?UserName, Username}, {?NasIdentifier, NasIdentifier}],
+	Fget = fun(_F, {eof, Events}, Acc) ->
+				lists:flatten(lists:reverse([Events | Acc]));
+			(F, {Cont, Events}, Acc) ->
+				F(F, ocs_log:auth_query(Cont, Start, End, [accept],
+						MatchReq, '_'), [Events | Acc])
+	end,
+	Events = Fget(Fget, ocs_log:auth_query(start, Start, End,
+						[accept], MatchReq, '_'), []),
+	3 = length(Events).
+
+acct_query() ->
+   [{userdata, [{doc, "Get matching accounting log events"}]}].
+
+acct_query(_Config) ->
+	Server = {{0,0,0,0}, 1812},
+	Username = ocs:generate_identity(),
+	ClientAddress = {10,0,0,1},
+	NasIdentifier = "ap13.sigscale.net",
+	Attrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"},
+			{?NasPortType, 19}, {?UserName, Username},
+			{?CallingStationId, "BE:EF:FE:ED:CA:FE"},
+			{?CalledStationId, "CA:FE:CA:FE:CA:FE:AP13"},
+			{?NasIdentifier, NasIdentifier}, {?NasIpAddress, ClientAddress},
+			{?AcctStatusType, rand:uniform(3)}, 
+			{?AcctSessionTime, rand:uniform(3600) + 100},
+			{?AcctInputOctets, rand:uniform(100000000)},
+			{?AcctOutputOctets, rand:uniform(100000)}],
+	ok = fill_acct(1000),
+	LogInfo = disk_log:info(ocs_acct),
+	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
+	{_, CurItems} = lists:keyfind(no_current_items, 1, LogInfo),
+	{_, CurBytes} = lists:keyfind(no_current_bytes, 1, LogInfo),
+	EventSize = CurBytes div CurItems,
+	NumItems = (FileSize div EventSize) * 5,
+	Start = erlang:system_time(?MILLISECOND),
+	ok = fill_acct(NumItems),
+	ok = ocs_log:acct_log(radius, Server, stop, Attrs),
+	ok = fill_acct(rand:uniform(2000)),
+	ok = ocs_log:acct_log(radius, Server, stop, Attrs),
+	ok = fill_acct(rand:uniform(2000)),
+	ok = ocs_log:acct_log(radius, Server, stop, Attrs),
+	ok = fill_acct(rand:uniform(2000)),
+	End = erlang:system_time(?MILLISECOND),
+	MatchReq = [{?UserName, Username}, {?NasIdentifier, NasIdentifier}],
+	Fget = fun(_F, {eof, Events}, Acc) ->
+				lists:flatten(lists:reverse([Events | Acc]));
+			(F, {Cont, Events}, Acc) ->
+				F(F, ocs_log:acct_query(Cont, Start, End, [stop],
+						MatchReq), [Events | Acc])
+	end,
+	Events = Fget(Fget, ocs_log:acct_query(start, Start, End,
+						[stop], MatchReq), []),
+	3 = length(Events).
+
+%% internal functions
+
+fill_auth(0) ->
+	ok;
+fill_auth(N) ->
+	Server = {{0, 0, 0, 0}, 1812},
+	I3 = rand:uniform(256) - 1,
+	I4 = rand:uniform(254),
+	ClientAddress = {192, 168, I3, I4},
+	Client = {ClientAddress, rand:uniform(64512) + 1024},
+	NASn = integer_to_list((I3 bsl 8) + I4),
+	NasIdentifier = "ap-" ++ NASn ++ ".sigscale.net",
+	ReqAttrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
+			{?UserName, ocs:generate_identity()}, {?CallingStationId, mac()},
+			{?CalledStationId, mac() ++ ":AP1"}, {?NasIdentifier, NasIdentifier},
+			{?NasIpAddress, ClientAddress}],
+	{Type, RespAttrs} = resp_attr(),
+	ok = ocs_log:auth_log(radius, Server, Client, Type, ReqAttrs, RespAttrs),
+	fill_auth(N - 1).
+
+fill_acct(0) ->
+	ok;
+fill_acct(N) ->
+	Server = {{0, 0, 0, 0}, 1812},
+	I3 = rand:uniform(256) - 1,
+	I4 = rand:uniform(254),
+	ClientAddress = {192, 168, I3, I4},
+	Client = {ClientAddress, rand:uniform(64512) + 1024},
+	NASn = integer_to_list((I3 bsl 8) + I4),
+	NasIdentifier = "ap-" ++ NASn ++ ".sigscale.net",
+	Type = case rand:uniform(3) of
+		1 -> start;
+		2 -> stop;
+		3 -> interim
+	end,
+	Attrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
+			{?UserName, ocs:generate_identity()}, {?CallingStationId, mac()},
+			{?CalledStationId, mac() ++ ":AP1"}, {?NasIdentifier, NasIdentifier},
+			{?NasIpAddress, ClientAddress}, {?AcctStatusType, rand:uniform(3)}, 
+			{?AcctSessionTime, rand:uniform(3600) + 100},
+			{?AcctInputOctets, rand:uniform(100000000)},
+			{?AcctOutputOctets, rand:uniform(100000)}],
+	ok = ocs_log:acct_log(radius, Server, Type, Attrs),
+	fill_acct(N - 1).
+
+mac() ->
+	mac(6, []).
+mac(0, Acc) ->
+	io_lib:fwrite("~.16B:~.16B:~.16B:~.16B:~.16B:~.16B", Acc);
+mac(N, Acc) ->
+	mac(N - 1, [rand:uniform(256) - 1 | Acc]).
+
+resp_attr() ->
+	resp_attr(rand:uniform(100)).
+resp_attr(N) when N < 6 ->
+	{reject, [{?ReplyMessage, "Subscriber Disabled"}]};
+resp_attr(N) when N < 10 ->
+	{reject, [{?ReplyMessage,"Out of Credit"}]};
+resp_attr(N) when N < 16 ->
+	{reject, [{?ReplyMessage,"Unknown Username"}]};
+resp_attr(N) when N < 50 ->
+	{accept, [{?SessionTimeout, 3600}, {?AcctInterimInterval, 300},
+			{?VendorSpecific, {?Ascend, {?AscendDataRate, 10000000}}}]};
+resp_attr(_) ->
+	{accept, [{?SessionTimeout, 3600}]}.
 
