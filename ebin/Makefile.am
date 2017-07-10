@@ -68,7 +68,9 @@ beam_DATA = ocs.beam \
 			diameter_gen_eap_application_rfc4072.beam \
 			ocs_rest_res_access.beam \
 			ocs_rest_res_accounting.beam \
-			ocs_rest_res_http.beam
+			ocs_rest_res_http.beam \
+			ocs_rest_page_sup.beam \
+			ocs_rest_page_server.beam
 
 %.beam:$(top_srcdir)/src/%.erl	$(top_srcdir)/include/ocs.hrl \
 		$(top_srcdir)/include/ocs_log.hrl \

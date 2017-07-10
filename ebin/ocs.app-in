@@ -54,6 +54,8 @@
 				ocs_rest_res_accounting,
 				ocs_rest_res_balance,
 				ocs_rest_res_http,
+				ocs_rest_page_sup,
+				ocs_rest_page_server,
 				mod_ocs_rest_lang,
 				mod_ocs_rest_accepted_content,
 				mod_ocs_rest_delete,
