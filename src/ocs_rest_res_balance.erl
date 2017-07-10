@@ -91,14 +91,34 @@ top_up(Identity, RequestBody) ->
 		{_, "POS"} = lists:keyfind("name", 1, Channel),
 		{_, {struct, AmountObj}} = lists:keyfind("amount", 1, Object),
 		{_, "octect"} = lists:keyfind("units", 1, AmountObj),
-		{_, Ammount} = lists:keyfind("amount", 1, AmountObj),
-		{ok, _, _, _, _, LM} = ocs:find_subscriber(Identity),
-		Location = "/balanceManagement/v1/buckets/" ++ Identity,
-		Headers = [{location, Location}, {etag, etag(LM)}],
-		{ok, Headers, []}
+		{_, Amount} = lists:keyfind("amount", 1, AmountObj),
+		top_up1(Identity, Amount)
 	catch
 		_Error ->
 			{error, 400}
+	end.
+%% @hidden
+top_up1(Identity, Amount) when is_list(Identity) ->
+	top_up1(list_to_binary(Identity), Amount);
+top_up1(Identity, Amount) when is_binary(Identity) ->
+	F = fun()->
+		case mnesia:read(subscriber, list_to_binary(Identity), read) of
+			[] ->
+				not_found;
+			[#subscriber{balance = CrntBal, last_modified = LM} = User] ->
+				mnesia:write(User#subscriber{balance = CrntBal + Amount}),
+				LM
+		end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, not_found} ->
+			{error, 404};
+		{atomic, LastMod} ->
+			Location = "/balanceManagement/v1/buckets/" ++ Identity,
+			Headers = [{location, Location}, {etag, etag(LastMod)}],
+			{ok, Headers, []};
+		{aborted, _Reason} ->
+			{error, 500}
 	end.
 
 
