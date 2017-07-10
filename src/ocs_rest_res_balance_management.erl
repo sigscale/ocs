@@ -21,7 +21,7 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
-		top_up/2]).
+		top_up/2, get_balance/1]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
@@ -40,16 +40,51 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json"].
 
--spec top_up(Identity, RequestBody) -> Result 
+-spec get_balance(Identity) -> Result
+	when
+		Identity :: list(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for `GET /balanceManagment/v1/{id}/buckets'
+%% reuqest
+get_balance(Identity) ->
+	try
+		case ocs:find_subscriber(Identity) of
+			{ok, _, _, Balance, true, _} ->
+				get_balance1(Identity, Balance, "active");
+			{ok, _, _, Balance, false, _} ->
+				get_balance1(Identity, Balance, "disable");
+			{error, Reason} ->
+				{error, 500}
+		end
+	catch
+		_Error ->
+			{error, 400}
+	end.
+%% @hidden
+get_balance1(Identity, Balance, ActStatus);
+	Id = {"id", Identity},
+	Href = {"href", "/balanceManagement/v1/buckets/" ++ Identity},
+	BucketType = {"bucketType", "octets"},
+	Amount = {"amount", Balance},
+	Units = {"units", "octect"},
+	RemAmount = {"remainedAmount", {struct, [Amount, Units]}},
+	Status = {"status", ActStatus},
+	Object = [Id, Href, BucketType, RemAmount, Status],
+	Json = {struct, Object},
+	Body  = mochijson:encode(Json),
+	{ok, [{content_type, "application/json"}], Body};
+
+-spec top_up(Identity, RequestBody) -> Result
 	when
 		Identity :: list(),
 		RequestBody :: list(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
-%% @doc Respond to `POST /balanceManagement/v1/{id}/balanceTopups' 
+%% @doc Respond to `POST /balanceManagement/v1/{id}/balanceTopups'
 %% and top up `subscriber' balance resource
 top_up(Identity, RequestBody) ->
-	try 
+	try
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, "buckettype"} = lists:keyfind("type", 1, Object),
 		{_, {struct, Channel}} = lists:keyfind("channel", 1, Object),
