@@ -51,7 +51,7 @@ beam_DATA = ocs.beam \
 			ocs_log_rotate_server.beam \
 			ocs_eap_pwd.beam \
 			ocs_eap_tls_transport.beam \
-			mod_ocs_rest_dispatcher.beam \
+			mod_ocs_rest_lang.beam \
 			mod_ocs_rest_accepted_content.beam \
 			mod_ocs_rest_get.beam \
 			mod_ocs_rest_post.beam \

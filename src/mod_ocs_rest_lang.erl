@@ -1,4 +1,4 @@
-%%% mod_ocs_rest_dispatcher.erl
+%%% mod_ocs_rest_lang.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2017 SigScale Global Inc.
 %%% @end
@@ -15,7 +15,7 @@
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
--module(mod_ocs_rest_dispatcher).
+-module(mod_ocs_rest_lang).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([do/1]).
@@ -65,7 +65,7 @@ do(#mod{request_uri = Uri, data = Data} = ModData) ->
 								["partyManagement", "v1" | _] ->
 									{proceed, Data};
 								_ ->
-									serve_file(User, ModData)
+									serve_index(User, ModData)
 							end;
 						_Response ->
 							{proceed,  Data}
@@ -74,7 +74,7 @@ do(#mod{request_uri = Uri, data = Data} = ModData) ->
 	end.
 
 %% @hidden
-serve_file(User, #mod{data = Data, config_db = ConfigDb,
+serve_index(User, #mod{data = Data, config_db = ConfigDb,
 		request_uri = Uri} = ModData) ->
 	Path = mod_alias:path(Data, ConfigDb, Uri),
 	Port = httpd_util:lookup(ConfigDb, port),
