@@ -87,7 +87,8 @@ get_usage("auth-" ++ _ = Id, [] = _Query) ->
 				Event when is_tuple(Event) ->
 					JsonObj = usage_aaa_auth(Event, []),
 					Body = mochijson:encode(JsonObj),
-					Headers = [{content_type, "application/json"}],
+					{_, Date} = lists:keyfind("date", 1, Attr),
+					Headers = [{content_type, "application/json"}, {last_modified, Date}],
 					{ok, Headers, Body};
 				_ ->
 					{error, 404}
@@ -106,7 +107,8 @@ get_usage("acct-" ++ _ = Id, [] = _Query) ->
 				Event when is_tuple(Event) ->
 					JsonObj = usage_aaa_acct(Event, []),
 					Body = mochijson:encode(JsonObj),
-					Headers = [{content_type, "application/json"}],
+					{_, Date} = lists:keyfind("date", 1, Attr),
+					Headers = [{content_type, "application/json"}, {last_modified, Date}],
 					{ok, Headers, Body};
 				_ ->
 					{error, 404}
