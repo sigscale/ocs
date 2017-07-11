@@ -80,7 +80,6 @@ get_usage("auth-" ++ _ = Id, [] = _Query) ->
 		["auth", TimeStamp, Serial] = string:tokens(Id, [$-]),
 		TS = list_to_integer(TimeStamp),
 		N = list_to_integer(Serial),
-		Events = ocs_log:auth_query(TS, TS, '_', '_', '_', '_'),
 		case query_auth(TS, TS, '_', '_', '_', '_', MaxItems) of
 			{error, _} ->
 				{error, 500};
@@ -107,7 +106,6 @@ get_usage("acct-" ++ _ = Id, [] = _Query) ->
 		["acct", TimeStamp, Serial] = string:tokens(Id, [$-]),
 		TS = list_to_integer(TimeStamp),
 		N = list_to_integer(Serial),
-		Events = ocs_log:auth_query(TS, TS, '_', '_', '_', '_'),
 		case query_acct(TS, TS, '_', '_', '_', MaxItems) of
 			{error, _} ->
 				{error, 500};
@@ -127,7 +125,6 @@ get_usage("acct-" ++ _ = Id, [] = _Query) ->
 	catch
 		_:_Reason ->
 			{error, 404}
-	end;
 get_usage(Id, [] = _Query) ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
