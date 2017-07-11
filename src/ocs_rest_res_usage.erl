@@ -27,6 +27,10 @@
 -include_lib("radius/include/radius.hrl").
 -include("ocs_log.hrl").
 
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
+
 -spec content_types_accepted() -> ContentTypes
 	when
 		ContentTypes :: list().
@@ -71,42 +75,54 @@ get_usage(Query) ->
 %% 	`GET /usageManagement/v1/usage/{id}'
 %% 	requests.
 get_usage("auth-" ++ _ = Id, [] = _Query) ->
+	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	try
 		["auth", TimeStamp, Serial] = string:tokens(Id, [$-]),
 		TS = list_to_integer(TimeStamp),
 		N = list_to_integer(Serial),
 		Events = ocs_log:auth_query(TS, TS, '_', '_', '_', '_'),
-		case lists:keyfind(N, 2, Events) of
-			Event when is_tuple(Event) ->
-				JsonObj = usage_aaa_auth(Event, []),
-				{struct, Attr} = JsonObj,
-				{_, Date} = lists:keyfind("date", 1, Attr),
-				Body = mochijson:encode(JsonObj),
-				Headers = [{content_type, "application/json"}, {last_modified, Date}],
-				{ok, Headers, Body};
-			_ ->
-				{error, 404}
+		case query_auth(TS, TS, '_', '_', '_', '_', MaxItems) of
+			{error, _} ->
+				{error, 500};
+			{_, Events} ->
+				case lists:keyfind(N, 2, Events) of
+					Event when is_tuple(Event) ->
+						{struct, Attr} = usage_aaa_auth(Event, []),
+						{_, Date} = lists:keyfind("date", 1, Attr),
+						Body = mochijson:encode({struct, Attr}),
+						Headers = [{content_type, "application/json"},
+								{last_modified, Date}],
+						{ok, Headers, Body};
+					_ ->
+						{error, 404}
+				end
 		end
 	catch
 		_:_Reason ->
 			{error, 404}
 	end;
 get_usage("acct-" ++ _ = Id, [] = _Query) ->
+	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	try
 		["acct", TimeStamp, Serial] = string:tokens(Id, [$-]),
 		TS = list_to_integer(TimeStamp),
 		N = list_to_integer(Serial),
-		Events = ocs_log:acct_query(TS, TS, '_', '_', '_'),
-		case lists:keyfind(N, 2, Events) of
-			Event when is_tuple(Event) ->
-				JsonObj = usage_aaa_acct(Event, []),
-				{struct, Attr} = JsonObj,
-				{_, Date} = lists:keyfind("date", 1, Attr),
-				Body = mochijson:encode(JsonObj),
-				Headers = [{content_type, "application/json"}, {last_modified, Date}],
-				{ok, Headers, Body};
-			_ ->
-				{error, 404}
+		Events = ocs_log:auth_query(TS, TS, '_', '_', '_', '_'),
+		case query_acct(TS, TS, '_', '_', '_', MaxItems) of
+			{error, _} ->
+				{error, 500};
+			{_, Events} ->
+				case lists:keyfind(N, 2, Events) of
+					Event when is_tuple(Event) ->
+						{struct, Attr} = usage_aaa_acct(Event, []),
+						{_, Date} = lists:keyfind("date", 1, Attr),
+						Body = mochijson:encode({struct, Attr}),
+						Headers = [{content_type, "application/json"},
+								{last_modified, Date}],
+						{ok, Headers, Body};
+					_ ->
+						{error, 404}
+				end
 		end
 	catch
 		_:_Reason ->
@@ -2169,15 +2185,16 @@ get_auth_usage(Query, Filters) ->
 
 %% @hidden
 get_auth_query([] = _Query, Filters) ->
-	{ok, _MaxItems} = application:get_env(ocs, rest_page_size),
-	case ocs_log:auth_query(1, 1, '_', '_', '_', '_') of
-		[] ->
+	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
+	Now = erlang:system_time(?MILLISECOND),
+	case query_auth(1, Now, '_', '_', '_', '_', MaxItems) of
+		{0, []} ->
 			{error, 404};
-		Events ->
+		{NumItems, Events} ->
 			JsonObj = usage_aaa_auth(Events, Filters),
 			JsonArray = {array, JsonObj},
 			Body = mochijson:encode(JsonArray),
-			N = integer_to_list(length(Events)),
+			N = integer_to_list(NumItems),
 			ContentRange = "items 1-" ++ N ++ "/" ++ N,
 			Headers = [{content_type, "application/json"},
 					{content_range, ContentRange}],
@@ -2231,15 +2248,16 @@ get_acct_usage(Query, Filters) ->
 
 %% @hidden
 get_acct_query([] = _Query, Filters) ->
-	{ok, _MaxItems} = application:get_env(ocs, rest_page_size),
-	case ocs_log:auth_query(1, 1, '_', '_', '_', '_') of
-		[] ->
+	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
+	Now = erlang:system_time(?MILLISECOND),
+	case query_acct(1, Now, '_', '_', '_', MaxItems) of
+		{0, []} ->
 			{error, 404};
-		Events ->
+		{NumItems, Events} ->
 			JsonObj = usage_aaa_acct(Events, Filters),
 			JsonArray = {array, JsonObj},
 			Body = mochijson:encode(JsonArray),
-			N = integer_to_list(length(Events)),
+			N = integer_to_list(NumItems),
 			ContentRange = "items 1-" ++ N ++ "/" ++ N,
 			Headers = [{content_type, "application/json"},
 					{content_range, ContentRange}],
@@ -2267,4 +2285,73 @@ get_acct_last([] = _Query, Filters) ->
 	end;
 get_acct_last(_Query, _Filters) ->
 	{error, 400}.
+
+%% @hidden
+filter(Keys, KeyValuePairs) ->
+	filter(Keys, KeyValuePairs, []).
+%% @hidden
+filter([H | T], L, Acc) ->
+	case lists:keyfind(H, 1, L) of
+		{H, V} ->
+			filter(T, L, [{H, V} | Acc]);
+		false ->
+			filter(T, L, Acc)
+	end;
+filter([], _, Acc) ->
+	lists:reverse(Acc).
+
+%% @hidden
+query_auth(Start, End, Protocol, Types, ReqAttrs, ResAttrs, PageSize) ->
+	query_auth(start, Start, End, Protocol, Types,
+			ReqAttrs, ResAttrs, PageSize, 0, []).
+%% @hidden
+query_auth(Cont, Start, End, Protocol, Types,
+		ReqAttrs, ResAttrs, PageSize, Count, Acc) ->
+	case ocs_log:auth_query(Cont, Start, End,
+			Protocol, Types, ReqAttrs, ResAttrs) of
+		{error, Reason} ->
+			{error, Reason};
+		{Cont1, Events} ->
+			{NewCount, NewAcc} = case length(Events) + Count of
+				Total when Total =< PageSize ->
+					{Total, [Events | Acc]};
+				Total ->
+					{Total, [lists:sublist(Events, PageSize - Count) | Acc]}
+			end,
+			case Cont1 of
+				eof ->
+					{NewCount, lists:flatten(lists:reverse(NewAcc))};
+				_ when NewCount >= PageSize ->
+					{NewCount, lists:flatten(lists:reverse(NewAcc))};
+				_ ->
+					query_auth(Cont1, Start, End, Protocol, Types,
+							ReqAttrs, ResAttrs, PageSize, NewCount, NewAcc)
+			end
+	end.
+
+%% @hidden
+query_acct(Start, End, Protocol, Types, Attrs, PageSize) ->
+	query_acct(start, Start, End, Protocol, Types, Attrs, PageSize, 0, []).
+%% @hidden
+query_acct(Cont, Start, End, Protocol, Types, Attrs, PageSize, Count, Acc) ->
+	case ocs_log:acct_query(Cont, Start, End, Protocol, Types, Attrs) of
+		{error, Reason} ->
+			{error, Reason};
+		{Cont1, Events} ->
+			{NewCount, NewAcc} = case length(Events) + Count of
+				Total when Total =< PageSize ->
+					{Total, [Events | Acc]};
+				Total ->
+					{Total, [lists:sublist(Events, PageSize - Count) | Acc]}
+			end,
+			case Cont1 of
+				eof ->
+					{NewCount, lists:flatten(lists:reverse(NewAcc))};
+				_ when NewCount >= PageSize ->
+					{NewCount, lists:flatten(lists:reverse(NewAcc))};
+				_ ->
+					query_acct(Cont1, Start, End, Protocol, Types,
+							Attrs, PageSize, NewCount, NewAcc)
+			end
+	end.
 
