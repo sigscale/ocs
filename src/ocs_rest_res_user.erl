@@ -144,7 +144,7 @@ post_user(RequestBody) ->
 		case mod_auth:add_user(ID, Password, [{locale, Locale},
 				{last_modified, LastModified}] , Address, Port, Directory) of
 			true ->
-				case mod_auth:add_group_member(Group, ID, Port, Directory) of
+				case mod_auth:add_group_member(Group, ID, Address, Port, Directory) of
 					true ->
 						Location = "/partyManagement/v1/individual/" ++ ID,
 						PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
