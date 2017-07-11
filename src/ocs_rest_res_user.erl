@@ -173,7 +173,18 @@ post_user(RequestBody) ->
 			| {error, ErrorCode :: integer()}.
 %% @doc Respond to `PUT /partyManagement/v1/individual' and Update a `User'
 %% resource.
-put_user(ID, _Etag, RequestBody) ->
+put_user(ID, undefined, RequestBody) ->
+	put_user1(ID, undefined, RequestBody);
+put_user(ID, Etag, RequestBody) ->
+	try
+		Etag1 = etag(Etag),
+		put_user1(ID, Etag1, RequestBody)
+	catch
+		_:_ ->
+			{error, 400}
+	end.
+%% @hidden
+put_user1(ID, Etag, RequestBody) ->
 	{Port, _Address, Directory, _Group} = get_params(),
 	try
 		{struct, Object} = mochijson:decode(RequestBody),
@@ -203,11 +214,11 @@ put_user(ID, _Etag, RequestBody) ->
 			{undefined, undefined} ->
 				{error, 400};
 			{Password, Locale} when is_list(Password) ->
-				put_user1(ID, Password, Locale);
+				put_user2(ID, Etag, Password, Locale);
 			{undefined, Locale} when is_list(Locale) ->
 				case mod_auth:get_user(ID, Port, Directory) of
 					{ok, #httpd_user{password = OPassword}} ->
-						put_user1(ID, OPassword, Locale);
+						put_user2(ID, Etag, OPassword, Locale);
 					{error, no_such_user} ->
 						{error, 404};
 					{error, _Reason} ->
@@ -219,9 +230,25 @@ put_user(ID, _Etag, RequestBody) ->
 			{error, 400}
 	end.
 %% @hidden
-put_user1(ID, Password, undefined) ->
-	put_user1(ID, Password, "en");
-put_user1(ID, Password, Locale) ->
+put_user2(ID, Etag, Password, undefined) ->
+	put_user2(ID, Etag, Password, "en");
+put_user2(ID, Etag, Password, Locale) ->
+	{Port, _, Directory, _} = get_params(),
+	case mod_auth:get_user(ID, Port, Directory) of
+		{ok, #httpd_user{user_data = Data}} ->
+			case lists:keyfind(last_modified, 1, Data) of
+				{_, LastModified} when Etag == undefined; Etag == LastModified ->
+				put_user3(ID, Password, Locale);
+				{_, _NonEtagMatch} ->
+					{error, 412};
+				false ->
+					{error, 500}
+			end;
+		{error, _} ->
+			{error, 404}
+	end.
+%% @hidden
+put_user3(ID, Password, Locale) ->
 	{Port, Address, Directory, _Group} = get_params(),
 	case mod_auth:delete_user(ID, Address, Port, Directory) of
 		true ->
@@ -281,16 +308,16 @@ get_params() ->
 
 -spec etag(V1) -> V2
 	when
-		V1 :: {N1, N2},
-		V2 :: string(),
+		V1 :: {N1, N2} | string(),
+		V2 :: string() | {N1, N2},
 		N1 :: integer(),
 		N2 :: integer().
 %% @doc Generate a tuple with 2 integers from Etag string
 %% value or vice versa.
 %% @hidden
-%etag(V) when is_list(V) ->
-%	[TS, N] = string:tokens(V, "-"),
-%	{list_to_integer(TS), list_to_integer(N)};
+etag(V) when is_list(V) ->
+	[TS, N] = string:tokens(V, "-"),
+	{list_to_integer(TS), list_to_integer(N)};
 etag(V) when is_tuple(V) ->
 	{TS, N} = V,
 	integer_to_list(TS) ++ "-" ++ integer_to_list(N).

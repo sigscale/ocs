@@ -141,7 +141,7 @@ all() ->
 	get_auth_usage_id, get_auth_usage_filter, get_acct_usage,
 	get_acct_usage_id, get_acct_usage_filter, get_ipdr_usage,
 	top_up_subscriber_balance, get_subscriber_balance, add_user,
-   get_user, delete_user].
+	get_user, delete_user, simultaneous_updates_on_user_faliure].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1413,6 +1413,53 @@ get_subscriber_balance(Config) ->
 	{_, Balance} = lists:keyfind("amount", 1, RemAmount),
 	{_, "octect"} = lists:keyfind("units", 1, RemAmount),
 	{_, "active"} = lists:keyfind("status", 1, PrePayBalance).
+
+simultaneous_updates_on_user_faliure() ->
+	[{userdata, [{doc,"Simulataneous updates on user resource using HTTP PUT.
+		PUT operations on a already modified user resource should result in HTTP code
+		412 (Preconditions failed)"}]}].
+
+simultaneous_updates_on_user_faliure(Config) ->
+	ID = "tylerjoseph",
+	Password = ocs:generate_password(),
+	Locale = "en",
+	PasswordObj = {struct, [{name, password}, {value, Password}]},
+	LocaleObj = {struct, [{name, locale}, {value, Locale}]},
+	Characteristic = {array, [PasswordObj, LocaleObj]},
+	JSON = {struct, [{id, ID}, {characteristic, Characteristic}]},
+	RequestBody = lists:flatten(mochijson:encode(JSON)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	ContentType = "application/json",
+	Request1 = {HostUrl ++ "/partyManagement/v1/individual/", [Accept, Authentication],
+			ContentType, RequestBody},
+	{ok, Result1} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result1,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	{_, _Etag} = lists:keyfind("etag", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	URI = "/partyManagement/v1/individual/" ++ ID,
+	{struct, Object} = mochijson:decode(ResponseBody),
+	{_, ID} = lists:keyfind("id", 1, Object),
+	{_, URI} = lists:keyfind("href", 1, Object),
+	{_, Characteristic1} = lists:keyfind("characteristic", 1, Object),
+	{array, [{struct, [{"name", "password"}, {"value", Password}]},
+			{struct, [{"name", "locale"}, {"value", Locale}]}]} = Characteristic1,
+	TS = integer_to_list(erlang:system_time(milli_seconds)),
+	N = integer_to_list(erlang:unique_integer([positive])),
+	NewEtag = TS ++ "-" ++ N,
+	IfMatch = {"if-match", NewEtag},
+	Request2 = {HostUrl ++ "/partyManagement/v1/individual/" ++ ID, [Accept, Authentication,
+			IfMatch], ContentType, RequestBody},
+	{ok, Result2} = httpc:request(put, Request2, [], []),
+	{{"HTTP/1.1", 412, _Failed}, _Headers, _} = Result2.
 
 %%---------------------------------------------------------------------
 %%  Internal functions
