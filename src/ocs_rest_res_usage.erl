@@ -125,6 +125,7 @@ get_usage("acct-" ++ _ = Id, [] = _Query) ->
 	catch
 		_:_Reason ->
 			{error, 404}
+	end;
 get_usage(Id, [] = _Query) ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
