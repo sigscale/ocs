@@ -48,17 +48,17 @@ content_types_provided() ->
 %% @doc Body producing function for `GET /partyManagement/v1/individual'
 %% requests.
 get_user() ->
-	{Port, Directory, _Group} = get_params(),
-	case mod_auth:list_users(Port, Directory) of
+	{Port, Address, Directory, _Group} = get_params(),
+	case mod_auth:list_users(Address, Port, Directory) of
 		{error, _} ->
 			{error, 500};
 		{ok, Users} ->
-			get_user1(Users, Port, [])
+			get_user1(Users, Address, Port, [])
 	end.
 %% @hidden
-get_user1([H | T], Port, Acc) ->
-	{Port, Directory, _Group} = get_params(),
-	case mod_auth:get_user(H, Port, Directory) of
+get_user1([H | T], Address, Port, Acc) ->
+	{Port, Address, Directory, _Group} = get_params(),
+	case mod_auth:get_user(H, Address, Port, Directory) of
 		{ok, #httpd_user{username = Id, user_data = UserData}} ->
 			Identity = {struct, [{"name", "username"}, {"value", Id}]},
 			Characteristic = case lists:keyfind(locale, 1, UserData) of
@@ -71,11 +71,11 @@ get_user1([H | T], Port, Acc) ->
 			RespObj = [{"id", Id}, {"href", "/partyManagement/v1/individual/" ++ Id},
 				{"characteristic", Characteristic}],
 			JsonObj  = {struct, RespObj},
-			get_user1(T, Port, [JsonObj | Acc]);
+			get_user1(T, Address, Port, [JsonObj | Acc]);
 		{error, _Reason} ->
-			get_user1(T, Port, Acc)
+			get_user1(T, Address, Port, Acc)
 	end;
-get_user1([], _Port, Acc) ->
+get_user1([], _Address, _Port, Acc) ->
 	Body = mochijson:encode({array, lists:reverse(Acc)}),
 	Headers = [{content_type, "application/json"}],
 	{ok, Headers, Body}.
@@ -88,8 +88,8 @@ get_user1([], _Port, Acc) ->
 %% @doc Body producing function for `GET /partyManagement/v1/individual/{id}'
 %% requests.
 get_user(Id) ->
-	{Port, Directory, _Group} = get_params(),
-	case mod_auth:get_user(Id, Port, Directory) of
+	{Port, Address, Directory, _Group} = get_params(),
+	case mod_auth:get_user(Id, Address, Port, Directory) of
 		{ok, #httpd_user{username = Id, password = Password, user_data = UserData}} ->
 			Identity = {struct, [{"name", "username"}, {"value", Id}]},
 			PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
@@ -118,7 +118,7 @@ get_user(Id) ->
 %% @doc Respond to `POST /partyManagement/v1/individual' and add a new `User'
 %% resource.
 post_user(RequestBody) ->
-	{Port, Directory, Group} = get_params(),
+	{Port, Address, Directory, Group} = get_params(),
 	try
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, ID} = lists:keyfind("id", 1, Object),
@@ -142,7 +142,7 @@ post_user(RequestBody) ->
 		LastModified = {erlang:system_time(milli_seconds),
 				erlang:unique_integer([positive])},
 		case mod_auth:add_user(ID, Password, [{locale, Locale},
-				{last_modified, LastModified}] , Port, Directory) of
+				{last_modified, LastModified}] , Address, Port, Directory) of
 			true ->
 				case mod_auth:add_group_member(Group, ID, Port, Directory) of
 					true ->
@@ -174,7 +174,7 @@ post_user(RequestBody) ->
 %% @doc Respond to `PUT /partyManagement/v1/individual' and Update a `User'
 %% resource.
 put_user(ID, _Etag, RequestBody) ->
-	{Port, Directory, _Group} = get_params(),
+	{Port, Address, Directory, _Group} = get_params(),
 	try
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, ID} = lists:keyfind("id", 1, Object),
@@ -222,10 +222,10 @@ put_user(ID, _Etag, RequestBody) ->
 put_user1(ID, Password, undefined) ->
 	put_user1(ID, Password, "en");
 put_user1(ID, Password, Locale) ->
-	{Port, Directory, _Group} = get_params(),
-	case mod_auth:delete_user(ID, Port, Directory) of
+	{Port, Address, Directory, _Group} = get_params(),
+	case mod_auth:delete_user(ID, Address, Port, Directory) of
 		true ->
-			case mod_auth:add_user(ID, Password, [{locale, Locale}] , Port, Directory) of
+			case mod_auth:add_user(ID, Password, [{locale, Locale}] , Address, Port, Directory) of
 				true ->
 					Location = "/partyManagement/v1/individual/" ++ ID,
 					PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
@@ -251,8 +251,8 @@ put_user1(ID, Password, Locale) ->
 %% @doc Respond to `DELETE /ocs/v1/subscriber/{id}' request and deletes
 %% a `subscriber' resource. If the deletion is succeeded return true.
 delete_user(Id) ->
-	{Port, Directory, _Group} = get_params(),
-	case mod_auth:delete_user(Id, Port, Directory) of
+	{Port, Address, Directory, _Group} = get_params(),
+	case mod_auth:delete_user(Id, Address, Port, Directory) of
 		true ->
 			{ok, [], []};
 		{error, _Reason} ->
@@ -263,16 +263,18 @@ delete_user(Id) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec get_params() -> {Port :: integer(), Directory :: string(), Group :: string()}.
+-spec get_params() -> {Port :: integer(), Address :: string(), Directory :: string(),
+		Group :: string()}.
 get_params() ->
 	{_, _, Info} = lists:keyfind(httpd, 1, inets:services_info()),
 	{_, Port} = lists:keyfind(port, 1, Info),
+	{_, Address} = lists:keyfind(bind_address, 1, Info),
 	{ok, EnvObj} = application:get_env(inets, services),
 	{httpd, HttpdObj} = lists:keyfind(httpd, 1, EnvObj),
 	{directory, {Directory, AuthObj}} = lists:keyfind(directory, 1, HttpdObj),
 	case lists:keyfind(require_group, 1, AuthObj) of
 		{require_group, [Group | _T]} ->
-			{Port, Directory, Group};
+			{Port, Address, Directory, Group};
 		false ->
 			exit(not_found)
 	end.
