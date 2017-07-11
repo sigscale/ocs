@@ -21,7 +21,7 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0, get_params/0,
-		get_user/1, get_user/0, post_user/1, put_user/2, delete_user/1]).
+		get_user/1, get_user/0, post_user/1, put_user/3, delete_user/1]).
 
 -include_lib("radius/include/radius.hrl").
 -include_lib("inets/include/mod_auth.hrl").
@@ -139,7 +139,10 @@ post_user(RequestBody) ->
 						F(F,T)
 			end,
 		Locale = F2(F2, Characteristic),
-		case mod_auth:add_user(ID, Password, [{locale, Locale}], Address, Port, Directory) of
+		LastModified = {erlang:system_time(milli_seconds),
+				erlang:unique_integer([positive])},
+		case mod_auth:add_user(ID, Password, [{locale, Locale},
+				{last_modified, LastModified}] , Address, Port, Directory) of
 			true ->
 				case mod_auth:add_group_member(Group, ID, Port, Directory) of
 					true ->
@@ -150,10 +153,10 @@ post_user(RequestBody) ->
 						RespObj = [{"id", ID}, {"href", Location}, {"characteristic", Char}],
 						JsonObj  = {struct, RespObj},
 						Body = mochijson:encode(JsonObj),
-						Headers = [{location, Location}],
+						Headers = [{location, Location}, {etag, etag(LastModified)}],
 						{ok, Headers, Body}
 				end;
-			{error, _Reason} ->
+			{error, Reason} ->
 				{error, 400}
 		end
 	catch
@@ -161,15 +164,16 @@ post_user(RequestBody) ->
 			{error, 400}
 	end.
 
--spec put_user(ID, RequestBody) -> Result
+-spec put_user(ID, Etag, RequestBody) -> Result
 	when
 		ID :: string(),
+		Etag :: undefined | string(),
 		RequestBody :: list(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()}.
 %% @doc Respond to `PUT /partyManagement/v1/individual' and Update a `User'
 %% resource.
-put_user(ID, RequestBody) ->
+put_user(ID, _Etag, RequestBody) ->
 	{Port, Address, Directory, _Group} = get_params(),
 	try
 		{struct, Object} = mochijson:decode(RequestBody),
@@ -274,3 +278,20 @@ get_params() ->
 		false ->
 			exit(not_found)
 	end.
+
+-spec etag(V1) -> V2
+	when
+		V1 :: string() | {N1, N2},
+		V2 :: {N1, N2} | string(),
+		N1 :: integer(),
+		N2 :: integer().
+%% @doc Generate a tuple with 2 integers from Etag string
+%% value or vice versa.
+%% @hidden
+etag(V) when is_list(V) ->
+	[TS, N] = string:tokens(V, "-"),
+	{list_to_integer(TS), list_to_integer(N)};
+etag(V) when is_tuple(V) ->
+	{TS, N} = V,
+	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
+
