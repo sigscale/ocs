@@ -29,6 +29,7 @@
 -compile(export_all).
 
 -include_lib("radius/include/radius.hrl").
+-include_lib("inets/include/mod_auth.hrl").
 -include("ocs.hrl").
 -include("ocs_eap_codec.hrl").
 -include_lib("common_test/include/ct.hrl").
@@ -139,7 +140,8 @@ all() ->
 	get_usagespecs, get_usagespecs_query, get_usagespec, get_auth_usage,
 	get_auth_usage_id, get_auth_usage_filter, get_acct_usage,
 	get_acct_usage_id, get_acct_usage_filter, get_ipdr_usage,
-	top_up_subscriber_balance, get_subscriber_balance].
+	top_up_subscriber_balance, get_subscriber_balance, add_user,
+   get_user, delete_user].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -450,6 +452,115 @@ delete_subscriber(Config) ->
 	{ok, Result1} = httpc:request(delete, Request2, [], []),
 	{{"HTTP/1.1", 204, _NoContent}, Headers1, []} = Result1,
 	{_, "0"} = lists:keyfind("content-length", 1, Headers1).
+
+add_user() ->
+	[{userdata, [{doc,"Add user in rest interface"}]}].
+
+add_user(Config) ->
+	ContentType = "application/json",
+	ID = "King",
+	Username = "King",
+	Password = "King",
+	Locale = "en",
+	Port = ?config(port, Config),
+	{_, _, Info} = lists:keyfind(httpd, 1, inets:services_info()),
+	{_, Address} = lists:keyfind(bind_address, 1, Info),
+	{ok, EnvObj} = application:get_env(inets, services),
+	{httpd, HttpdObj} = lists:keyfind(httpd, 1, EnvObj),
+	{directory, {Directory, _AuthObj}} = lists:keyfind(directory, 1, HttpdObj),
+	PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
+	LocaleAttr = {struct, [{"name", "locale"}, {"value", Locale}]},
+	UsernameAttr = {struct, [{"name", "username"}, {"value", Username}]},
+	CharArray = {array, [UsernameAttr, PasswordAttr, LocaleAttr]},
+	JSON = {struct, [{"id", ID}, {"characteristic", CharArray}]},
+	RequestBody = lists:flatten(mochijson:encode(JSON)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request1 = {HostUrl ++ "/partyManagement/v1/individual", [Accept, Authentication], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{"/partyManagement/v1/individual/" ++ ID, _} = httpd_util:split_path(URI),
+	{struct, Object} = mochijson:decode(ResponseBody),
+	{_, ID} = lists:keyfind("id", 1, Object),
+	{_, URI} = lists:keyfind("href", 1, Object),
+	{_, {array, Characteristic}} = lists:keyfind("characteristic", 1, Object),
+	{ok, #httpd_user{}} = mod_auth:get_user(ID, Address, Port, Directory).
+
+get_user() ->
+	[{userdata, [{doc,"get user in rest interface"}]}].
+
+get_user(Config) ->
+	ContentType = "application/json",
+	ID = "King1",
+	Password = "King1",
+	Username = "King1",
+	Locale = "en",
+	Port = ?config(port, Config),
+	PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
+	LocaleAttr = {struct, [{"name", "locale"}, {"value", Locale}]},
+	UsernameAttr = {struct, [{"name", "username"}, {"value", Username}]},
+	CharArray = {array, [UsernameAttr, PasswordAttr, LocaleAttr]},
+	{_, _, Info} = lists:keyfind(httpd, 1, inets:services_info()),
+	{_, Address} = lists:keyfind(bind_address, 1, Info),
+	{ok, EnvObj} = application:get_env(inets, services),
+	{httpd, HttpdObj} = lists:keyfind(httpd, 1, EnvObj),
+	{directory, {Directory, AuthObj}} = lists:keyfind(directory, 1, HttpdObj),
+	true = mod_auth:add_user(ID, Password, [{locale, Locale}], Address,  Port, Directory),
+	JSON = {struct, [{"id", ID}, {"characteristic", CharArray}]},
+	RequestBody = lists:flatten(mochijson:encode(JSON)),
+	HostUrl = ?config(host_url, Config),
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Accept = {"accept", "application/json"},
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request2 = {HostUrl ++ "/partyManagement/v1/individual/" ++ ID, [Accept, Authentication]},
+	{ok, Result1} = httpc:request(get, Request2, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers1),
+	{struct, Object} = mochijson:decode(Body1),
+	{_, ID} = lists:keyfind("id", 1, Object),
+	{_, URI2} = lists:keyfind("href", 1, Object),
+	{_, {array, Characteristic}} = lists:keyfind("characteristic", 1, Object).
+
+delete_user() ->
+	[{userdata, [{doc,"Delete user in rest interface"}]}].
+
+delete_user(Config) ->
+	ID = "Queen",
+	Username = "Queen",
+	Password = "Queen",
+	Locale = "en",
+	Port = ?config(port, Config),
+	{_, _, Info} = lists:keyfind(httpd, 1, inets:services_info()),
+	{_, Address} = lists:keyfind(bind_address, 1, Info),
+	{ok, EnvObj} = application:get_env(inets, services),
+	{httpd, HttpdObj} = lists:keyfind(httpd, 1, EnvObj),
+	{directory, {Directory, AuthObj}} = lists:keyfind(directory, 1, HttpdObj),
+	true = mod_auth:add_user(ID, Password, [{locale, Locale}], Address,  Port, Directory),
+	HostUrl = ?config(host_url, Config),
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request1 = {HostUrl ++ "/partyManagement/v1/individual/" ++ ID, [Authentication]},
+	{ok, Result1} = httpc:request(delete, Request1, [], []),
+	{{"HTTP/1.1", 204, _NoContent}, _Headers1, []} = Result1,
+	{error, no_such_user} = mod_auth:get_user(ID, Address, Port, Directory).
 
 add_client() ->
 	[{userdata, [{doc,"Add client in rest interface"}]}].
