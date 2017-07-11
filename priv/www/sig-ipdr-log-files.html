@@ -50,7 +50,8 @@
 			</div>
 		</paper-dialog>
 		<iron-ajax id="getLogsAjax"
-				url="/usageManagement/v1/usage"
+				auto
+				url="/ocs/v1/log/ipdr"
 				method = "GET"
 				headers='{"Accept": "application/json"}'
 				on-response="getLogsResponse">
