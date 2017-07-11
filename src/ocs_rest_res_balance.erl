@@ -98,9 +98,7 @@ top_up(Identity, RequestBody) ->
 			{error, 400}
 	end.
 %% @hidden
-top_up1(Identity, Amount) when is_list(Identity) ->
-	top_up1(list_to_binary(Identity), Amount);
-top_up1(Identity, Amount) when is_binary(Identity) ->
+top_up1(Identity, Amount) ->
 	F = fun()->
 		case mnesia:read(subscriber, list_to_binary(Identity), read) of
 			[] ->
