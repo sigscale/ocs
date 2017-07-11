@@ -21,7 +21,8 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
-		get_usage/1, get_usage/2, get_usagespec/1, get_usagespec/2]).
+		get_usage/1, get_usage/2, get_usagespec/1, get_usagespec/2,
+		get_ipdr/1]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs_log.hrl").
@@ -48,23 +49,14 @@ content_types_provided() ->
 %% @doc Body producing function for
 %% 	`GET /usageManagement/v1/usage'
 %% 	requests.
-get_usage([] = _Query) ->
-	{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
-	case file:list_dir(Directory) of
-		{ok, Files} ->
-			SortedFiles = lists:reverse(lists:sort(Files)),
-			Body = mochijson:encode({array, SortedFiles}),
-			Headers = [{content_type, "application/json"}],
-			{ok, Headers, Body};
-		{error, _Reason} ->
-			{error, 500}
-	end;
 get_usage(Query) ->
 	case lists:keyfind("type", 1, Query) of
 		{_, "AAAAccessUsage"} ->
 			get_auth_usage(lists:keydelete("type", 1, Query));
 		{_, "AAAAccountingUsage"} ->
 			get_acct_usage(lists:keydelete("type", 1, Query));
+		{_, "PublicWLANAccessUsageSpec"} ->
+			{error, 500}; % todo?
 		_ ->
 			{error, 404}
 	end.
@@ -191,6 +183,28 @@ get_usagespec("PublicWLANAccessUsageSpec", _Query) ->
 	{error, 400};
 get_usagespec(_Id, _Query) ->
 	{error, 404}.
+
+-spec get_ipdr(Query) -> Result
+	when
+		Query :: [{Key :: string(), Value :: string()}],
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Body producing function for
+%% 	`GET /ocs/v1/log/ipdr'
+%% 	requests.
+get_ipdr([] = _Query) ->
+	{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
+	case file:list_dir(Directory) of
+		{ok, Files} ->
+			SortedFiles = lists:reverse(lists:sort(Files)),
+			Body = mochijson:encode({array, SortedFiles}),
+			Headers = [{content_type, "application/json"}],
+			{ok, Headers, Body};
+		{error, _Reason} ->
+			{error, 500}
+	end;
+get_ipdr(_Query) ->
+	{error, 400}.
 
 %%----------------------------------------------------------------------
 %%  internal functions

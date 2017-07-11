@@ -114,6 +114,8 @@ do_get(Resource, ModData,
 do_get(Resource, ModData,
 		["usageManagement", "v1", "usageSpecification", Id], Query) ->
 	do_response(ModData, Resource:get_usagespec(Id, Query));
+do_get(Resource, ModData, ["ocs", "v1", "log", "ipdr"], Query) ->
+	do_response(ModData, Resource:get_ipdr(Query));
 do_get(Resource, ModData, ["ocs", "v1", "log", "access"], []) ->
 	do_response(ModData, Resource:get_access());
 do_get(Resource, ModData, ["ocs", "v1", "log", "accounting"], []) ->
