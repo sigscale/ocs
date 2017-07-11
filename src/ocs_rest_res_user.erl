@@ -156,7 +156,7 @@ post_user(RequestBody) ->
 						Headers = [{location, Location}, {etag, etag(LastModified)}],
 						{ok, Headers, Body}
 				end;
-			{error, Reason} ->
+			{error, _Reason} ->
 				{error, 400}
 		end
 	catch
@@ -174,7 +174,7 @@ post_user(RequestBody) ->
 %% @doc Respond to `PUT /partyManagement/v1/individual' and Update a `User'
 %% resource.
 put_user(ID, _Etag, RequestBody) ->
-	{Port, Address, Directory, _Group} = get_params(),
+	{Port, _Address, Directory, _Group} = get_params(),
 	try
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, ID} = lists:keyfind("id", 1, Object),

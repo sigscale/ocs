@@ -492,31 +492,23 @@ add_user(Config) ->
 	{struct, Object} = mochijson:decode(ResponseBody),
 	{_, ID} = lists:keyfind("id", 1, Object),
 	{_, URI} = lists:keyfind("href", 1, Object),
-	{_, {array, Characteristic}} = lists:keyfind("characteristic", 1, Object),
+	{_, {array, _Characteristic}} = lists:keyfind("characteristic", 1, Object),
 	{ok, #httpd_user{}} = mod_auth:get_user(ID, Address, Port, Directory).
 
 get_user() ->
 	[{userdata, [{doc,"get user in rest interface"}]}].
 
 get_user(Config) ->
-	ContentType = "application/json",
 	ID = "King1",
 	Password = "King1",
-	Username = "King1",
 	Locale = "en",
 	Port = ?config(port, Config),
-	PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
-	LocaleAttr = {struct, [{"name", "locale"}, {"value", Locale}]},
-	UsernameAttr = {struct, [{"name", "username"}, {"value", Username}]},
-	CharArray = {array, [UsernameAttr, PasswordAttr, LocaleAttr]},
 	{_, _, Info} = lists:keyfind(httpd, 1, inets:services_info()),
 	{_, Address} = lists:keyfind(bind_address, 1, Info),
 	{ok, EnvObj} = application:get_env(inets, services),
 	{httpd, HttpdObj} = lists:keyfind(httpd, 1, EnvObj),
-	{directory, {Directory, AuthObj}} = lists:keyfind(directory, 1, HttpdObj),
+	{directory, {Directory, _AuthObj}} = lists:keyfind(directory, 1, HttpdObj),
 	true = mod_auth:add_user(ID, Password, [{locale, Locale}], Address,  Port, Directory),
-	JSON = {struct, [{"id", ID}, {"characteristic", CharArray}]},
-	RequestBody = lists:flatten(mochijson:encode(JSON)),
 	HostUrl = ?config(host_url, Config),
 	RestUser = ct:get_config(rest_user),
 	RestPass = ct:get_config(rest_pass),
@@ -533,15 +525,14 @@ get_user(Config) ->
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers1),
 	{struct, Object} = mochijson:decode(Body1),
 	{_, ID} = lists:keyfind("id", 1, Object),
-	{_, URI2} = lists:keyfind("href", 1, Object),
-	{_, {array, Characteristic}} = lists:keyfind("characteristic", 1, Object).
+	{_, _URI2} = lists:keyfind("href", 1, Object),
+	{_, {array, _Characteristic}} = lists:keyfind("characteristic", 1, Object).
 
 delete_user() ->
 	[{userdata, [{doc,"Delete user in rest interface"}]}].
 
 delete_user(Config) ->
 	ID = "Queen",
-	Username = "Queen",
 	Password = "Queen",
 	Locale = "en",
 	Port = ?config(port, Config),
@@ -549,7 +540,7 @@ delete_user(Config) ->
 	{_, Address} = lists:keyfind(bind_address, 1, Info),
 	{ok, EnvObj} = application:get_env(inets, services),
 	{httpd, HttpdObj} = lists:keyfind(httpd, 1, EnvObj),
-	{directory, {Directory, AuthObj}} = lists:keyfind(directory, 1, HttpdObj),
+	{directory, {Directory, _AuthObj}} = lists:keyfind(directory, 1, HttpdObj),
 	true = mod_auth:add_user(ID, Password, [{locale, Locale}], Address,  Port, Directory),
 	HostUrl = ?config(host_url, Config),
 	RestUser = ct:get_config(rest_user),
