@@ -138,7 +138,8 @@ all() ->
 	get_client_bogus, get_client_notfound, get_all_clients, delete_client,
 	get_usagespecs, get_usagespecs_query, get_usagespec, get_auth_usage,
 	get_auth_usage_id, get_auth_usage_filter, get_acct_usage,
-	get_acct_usage_id, get_acct_usage_filter, get_ipdr_usage].
+	get_acct_usage_id, get_acct_usage_filter, get_ipdr_usage,
+	top_up_subscriber_balance, get_subscriber_balance].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1240,6 +1241,76 @@ get_ipdr_usage(Config) ->
 				true
 	end,
 	true = lists:all(F, UsageCharacteristic).
+
+top_up_subscriber_balance() ->
+	[{userdata, [{doc,"TMF654 Prepay Balance Management API :
+			Top-up balance for subscriber"}]}].
+
+top_up_subscriber_balance(Config) ->
+	HostUrl = ?config(host_url, Config),
+	AcceptValue = "application/json",
+	Accept = {"accept", AcceptValue},
+	ContentType = "application/json",
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Identity = binary_to_list(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	{ok, _} = ocs:add_subscriber(Identity, Password, []),
+	RequestURI = HostUrl ++ "/balanceManagement/v1/" ++ Identity ++ "/balanceTopups",
+	BucketType = {"type", "buckettype"}, 
+	Channel = {"channel", {struct, [{"name", "POS"}]}},
+	Amount = {"amount", {struct, [{"units", "octect"}, {"amount", 10000000}]}},
+	JSON = {struct, [BucketType, Channel, Amount]},
+	RequestBody = lists:flatten(mochijson:encode(JSON)),
+	Request = {RequestURI, [Accept, Authentication], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, _, _} = Result.
+
+get_subscriber_balance() ->
+	[{userdata, [{doc,"TMF654 Prepay Balance Management API :
+			Query balance for subscriber"}]}].
+
+get_subscriber_balance(Config) ->
+	HostUrl = ?config(host_url, Config),
+	AcceptValue = "application/json",
+	Accept = {"accept", AcceptValue},
+	ContentType = "application/json",
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Identity = binary_to_list(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	{ok, _} = ocs:add_subscriber(Identity, Password, []),
+	POSTURI = HostUrl ++ "/balanceManagement/v1/" ++ Identity ++ "/balanceTopups",
+	BucketType = {"type", "buckettype"},
+	Channel = {"channel", {struct, [{"name", "POS"}]}},
+	Balance = 10000000,
+	Amount = {"amount", {struct, [{"units", "octect"}, {"amount", Balance}]}},
+	JSON = {struct, [BucketType, Channel, Amount]},
+	RequestBody = lists:flatten(mochijson:encode(JSON)),
+	PostRequest = {POSTURI, [Accept, Authentication], ContentType, RequestBody},
+	{ok, POSTResult} = httpc:request(post, PostRequest, [], []),
+	{{"HTTP/1.1", 201, _Created}, _, _} = POSTResult,
+	GETURI = HostUrl ++ "/balanceManagement/v1/" ++ Identity ++ "/buckets",
+	GETRequest = {GETURI, [Accept, Authentication]},
+	{ok, GETResult} = httpc:request(get, GETRequest, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, Body} = GETResult,
+	ContentLength = integer_to_list(length(Body)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{struct, PrePayBalance} = mochijson:decode(Body),
+	{_, Identity} = lists:keyfind("id", 1, PrePayBalance),
+	{_, "/balancemanagement/v1/buckets/" ++ Identity} =
+			lists:keyfind("id", 1, PrePayBalance),
+	{_, "ocstects"} = lists:keyfind("bucketType", 1, PrePayBalance),
+	{_, {struct, RemAmount}} = lists:keyfind("remainedAmount", 1, PrePayBalance),
+	{_, Balance} = lists:keyfind("amount", 1, RemAmount),
+	{_, "octect"} = lists:keyfind("units", 1, RemAmount),
+	{_, "active"} = lists:keyfind("status", 1, PrePayBalance).
 
 %%---------------------------------------------------------------------
 %%  Internal functions

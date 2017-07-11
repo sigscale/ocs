@@ -87,7 +87,9 @@ do_post(Resource, ModData, Body, ["ocs", "v1", "client"]) ->
 do_post(Resource, ModData, Body, ["ocs", "v1", "subscriber"]) ->
 	do_response(ModData, Resource:post_subscriber(Body));
 do_post(Resource, ModData, Body, ["partyManagement", "v1", "individual"]) ->
-	do_response(ModData, Resource:post_user(Body)).
+	do_response(ModData, Resource:post_user(Body));
+do_post(Resource, ModData, Body, ["balanceManagement", "v1", Id, "balanceTopups"]) ->
+	do_response(ModData, Resource:top_up(Id, Body)).
 
 %% @hidden
 do_response(#mod{data = Data} = ModData, {ok, Headers, ResponseBody}) ->

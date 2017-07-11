@@ -124,6 +124,8 @@ do_get(Resource, ModData, ["partyManagement", "v1", "individual"], []) ->
 	do_response(ModData, Resource:get_user());
 do_get(Resource, ModData, ["partyManagement", "v1", "individual", Id], []) ->
 	do_response(ModData, Resource:get_user(Id));
+do_get(Resource, ModData, ["balanceManagement", "v1", Id, "buckets"], []) ->
+	do_response(ModData, Resource:get_balance(Id));
 do_get(_, _, _, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{break, [{response, {404, Response}}]}.
