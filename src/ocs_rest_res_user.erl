@@ -21,7 +21,7 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0, get_params/0,
-		get_user/1, get_user/0, post_user/1, put_user/2, delete_user/1]).
+		get_user/1, get_user/0, post_user/1, put_user/3, delete_user/1]).
 
 -include_lib("radius/include/radius.hrl").
 -include_lib("inets/include/mod_auth.hrl").
@@ -164,15 +164,16 @@ post_user(RequestBody) ->
 			{error, 400}
 	end.
 
--spec put_user(ID, RequestBody) -> Result
+-spec put_user(ID, Etag, RequestBody) -> Result
 	when
 		ID :: string(),
+		Etag :: undefined | string(),
 		RequestBody :: list(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()}.
 %% @doc Respond to `PUT /partyManagement/v1/individual' and Update a `User'
 %% resource.
-put_user(ID, RequestBody) ->
+put_user(ID, _Etag, RequestBody) ->
 	{Port, Directory, _Group} = get_params(),
 	try
 		{struct, Object} = mochijson:decode(RequestBody),

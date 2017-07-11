@@ -72,7 +72,8 @@ content_type_available(Headers, Body, Uri, Resource, ModData) ->
 			AvailableTypes = Resource:content_types_provided(),
 			case lists:member(RequestingType, AvailableTypes) of
 				true ->
-					do_put(Body, Resource, ModData, string:tokens(Uri, "/"));
+					Etag = get_etag(Headers),
+					do_put(Body, Resource, ModData, Etag, string:tokens(Uri, "/"));
 				false ->
 					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
 					{break, [{response, {415, Response}}]}
@@ -80,11 +81,20 @@ content_type_available(Headers, Body, Uri, Resource, ModData) ->
 		_ ->
 			do_put(Uri, Body, Resource, ModData)
 	end.
+%%
+%% @hidden
+get_etag(Headers) ->
+	case lists:keyfind("if-match", 1, Headers) of
+		{_, Etag} ->
+			Etag;
+		false ->
+			undefined
+	end.
 
 %% @hidden
-do_put(Body, Resource, ModData, ["partyManagement", "v1", "individual", Identity]) ->
-	do_response(ModData, Resource:put_user(Identity, Body));
-do_put(_Body, _Resource, _ModData, _) ->
+do_put(Body, Resource, ModData, Etag, ["partyManagement", "v1", "individual", Identity]) ->
+	do_response(ModData, Resource:put_user(Identity, Etag, Body));
+do_put(_Body, _Resource, _ModData, _, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{break, [{response, {404, Response}}]}.
 
