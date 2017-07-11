@@ -79,7 +79,7 @@ content_type_available(Headers, Body, Uri, Resource, ModData) ->
 					{break, [{response, {415, Response}}]}
 			end;
 		_ ->
-			do_put(Uri, Body, Resource, ModData)
+			do_put(Uri, Body, Resource, undefined, ModData)
 	end.
 %%
 %% @hidden
