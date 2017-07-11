@@ -156,7 +156,7 @@ post_user(RequestBody) ->
 						Headers = [{location, Location}, {etag, etag(LastModified)}],
 						{ok, Headers, Body}
 				end;
-			{error, Reason} ->
+			{error, _Reason} ->
 				{error, 400}
 		end
 	catch
@@ -178,14 +178,14 @@ put_user(ID, undefined, RequestBody) ->
 put_user(ID, Etag, RequestBody) ->
 	try
 		Etag1 = etag(Etag),
-		put_user1(ID, Etag, RequestBody)
+		put_user1(ID, Etag1, RequestBody)
 	catch
 		_:_ ->
 			{error, 400}
 	end.
 %% @hidden
 put_user1(ID, Etag, RequestBody) ->
-	{Port, Address, Directory, _Group} = get_params(),
+	{Port, _Address, Directory, _Group} = get_params(),
 	try
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, ID} = lists:keyfind("id", 1, Object),
