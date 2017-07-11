@@ -139,7 +139,10 @@ post_user(RequestBody) ->
 						F(F,T)
 			end,
 		Locale = F2(F2, Characteristic),
-		case mod_auth:add_user(ID, Password, [{locale, Locale}] , Port, Directory) of
+		LastModified = {erlang:system_time(milli_seconds),
+				erlang:unique_integer([positive])},
+		case mod_auth:add_user(ID, Password, [{locale, Locale},
+				{last_modified, LastModified}] , Port, Directory) of
 			true ->
 				case mod_auth:add_group_member(Group, ID, Port, Directory) of
 					true ->
@@ -150,10 +153,10 @@ post_user(RequestBody) ->
 						RespObj = [{"id", ID}, {"href", Location}, {"characteristic", Char}],
 						JsonObj  = {struct, RespObj},
 						Body = mochijson:encode(JsonObj),
-						Headers = [{location, Location}],
+						Headers = [{location, Location}, {etag, etag(LastModified)}],
 						{ok, Headers, Body}
 				end;
-			{error, _Reason} ->
+			{error, Reason} ->
 				{error, 400}
 		end
 	catch
@@ -272,3 +275,20 @@ get_params() ->
 		false ->
 			exit(not_found)
 	end.
+
+-spec etag(V1) -> V2
+	when
+		V1 :: string() | {N1, N2},
+		V2 :: {N1, N2} | string(),
+		N1 :: integer(),
+		N2 :: integer().
+%% @doc Generate a tuple with 2 integers from Etag string
+%% value or vice versa.
+%% @hidden
+etag(V) when is_list(V) ->
+	[TS, N] = string:tokens(V, "-"),
+	{list_to_integer(TS), list_to_integer(N)};
+etag(V) when is_tuple(V) ->
+	{TS, N} = V,
+	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
+
