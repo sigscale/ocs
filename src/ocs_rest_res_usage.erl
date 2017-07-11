@@ -85,10 +85,10 @@ get_usage("auth-" ++ _ = Id, [] = _Query) ->
 		{_, Events} ->
 			case lists:keyfind(N, 2, Events) of
 				Event when is_tuple(Event) ->
-					JsonObj = usage_aaa_auth(Event, []),
-					Body = mochijson:encode(JsonObj),
-					{_, Date} = lists:keyfind("date", 1, Attr),
+					{struct, Attrs} = usage_aaa_auth(Event, []),
+					{_, Date} = lists:keyfind("date", 1, Attrs),
 					Headers = [{content_type, "application/json"}, {last_modified, Date}],
+					Body = mochijson:encode({struct, Attrs}),
 					{ok, Headers, Body};
 				_ ->
 					{error, 404}
@@ -105,10 +105,10 @@ get_usage("acct-" ++ _ = Id, [] = _Query) ->
 		{_, Events} ->
 			case lists:keyfind(N, 2, Events) of
 				Event when is_tuple(Event) ->
-					JsonObj = usage_aaa_acct(Event, []),
-					Body = mochijson:encode(JsonObj),
-					{_, Date} = lists:keyfind("date", 1, Attr),
+					{struct, Attrs} = usage_aaa_acct(Event, []),
+					{_, Date} = lists:keyfind("date", 1, Attrs),
 					Headers = [{content_type, "application/json"}, {last_modified, Date}],
+					Body = mochijson:encode({struct, Attrs}),
 					{ok, Headers, Body};
 				_ ->
 					{error, 404}
