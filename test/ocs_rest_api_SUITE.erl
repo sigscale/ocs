@@ -142,7 +142,8 @@ all() ->
 	get_acct_usage_id, get_acct_usage_filter, get_ipdr_usage,
 	top_up_subscriber_balance, get_subscriber_balance, add_user,
 	get_user, delete_user, simultaneous_updates_on_user_faliure,
-	simultaneous_updates_on_subscriber_faliure].
+	simultaneous_updates_on_subscriber_faliure,
+	simultaneous_updates_on_client_faliure].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1523,6 +1524,71 @@ simultaneous_updates_on_subscriber_faliure(Config) ->
 			"Content-Length:" ++ integer_to_list(PatchBodyLen),$\r,$\n,
 			"If-match:" ++ NewEtag, $\r,$\n,$\r,$\n,
 			$\r, $\n,
+			PatchBody],
+	ok = ssl:send(SslSock, list_to_binary(PatchReq)),
+	Timeout = 3000,
+	F = fun(_F, _Sock, {error, timeout}, Acc) ->
+					lists:reverse(Acc);
+			(F, Sock, {ok, Bin}, Acc) ->
+					F(F, Sock, ssl:recv(Sock, 0, Timeout), [Bin | Acc])
+	end,
+	RecvBuf = F(F, SslSock, ssl:recv(SslSock, 0, Timeout), []),
+	PatchResponse = list_to_binary(RecvBuf),
+	[H, _ErroMsg] = binary:split(PatchResponse, <<$\r,$\n,$\r,$\n>>),
+	<<"HTTP/1.1 412", _/binary>> = H,
+	ok = ssl:close(SslSock).
+
+simultaneous_updates_on_client_faliure() ->
+	[{userdata, [{doc,"Simulataneous HTTP PATCH requests on client resource must fail
+			if the resource is already being updated by someone else"}]}].
+
+simultaneous_updates_on_client_faliure(Config) ->
+	ContentType = "application/json",
+	ID = "10.3.53.91",
+	Port = 3699,
+	Protocol = "RADIUS",
+	Secret = "ksc8c244npqc",
+	JSON = {struct, [{"id", ID}, {"port", Port}, {"protocol", Protocol},
+		{"secret", Secret}]},
+	RequestBody = lists:flatten(mochijson:encode(JSON)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request1 = {HostUrl ++ "/ocs/v1/client/", [Accept, Authentication], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	{_, _Etag} = lists:keyfind("etag", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{"/ocs/v1/client/" ++ ID, _} = httpd_util:split_path(URI),
+	{struct, Object} = mochijson:decode(ResponseBody),
+	{_, ID} = lists:keyfind("id", 1, Object),
+	{_, URI} = lists:keyfind("href", 1, Object),
+	{_, Port} = lists:keyfind("port", 1, Object),
+	{_, Protocol} = lists:keyfind("protocol", 1, Object),
+	{_, Secret} = lists:keyfind("secret", 1, Object),
+	RestPort = ?config(port, Config),
+	{ok, SslSock} = ssl:connect({127,0,0,1}, RestPort,  [binary, {active, false}], infinity),
+	ok = ssl:ssl_accept(SslSock),
+	NewSecret = ocs:generate_password(),
+	PatchBody =  "{\"secret\" : \""  ++ NewSecret ++ "\"}",
+	PatchBodyLen = size(list_to_binary(PatchBody)),
+	PatchUri = "/ocs/v1/client/" ++ ID,
+	TS = integer_to_list(erlang:system_time(milli_seconds)),
+	N = integer_to_list(erlang:unique_integer([positive])),
+	NewEtag = TS ++ "-" ++ N,
+	PatchReq = ["PATCH ", PatchUri, " HTTP/1.1",$\r,$\n,
+			"Content-Type:application/json", $\r,$\n, "Accept:application/json",$\r,$\n,
+			"If-match:" ++ NewEtag,$\r,$\n,"Authorization:"++ AuthKey,$\r,$\n,
+			"Host:localhost:" ++ integer_to_list(RestPort),$\r,$\n,
+			"Content-Length:" ++ integer_to_list(PatchBodyLen),$\r,$\n,
+			$\r,$\n,
 			PatchBody],
 	ok = ssl:send(SslSock, list_to_binary(PatchReq)),
 	Timeout = 3000,
