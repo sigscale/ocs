@@ -247,12 +247,7 @@
 							break;
 						case 'page6':
 							this.$.loadPage.selected = 6;
-							break;
-						case 'page6':
-							this.$.loadPage.selected = 6;
-							break;
-						case 'page6':
-							this.$.loadPage.selected = 6;
+							document.getElementById('getUser').generateRequest();
 							break;
 					}
 				},
@@ -274,6 +269,9 @@
 					 }
 					if(this.$.loadPage.selected == 5){
 						document.getElementById('getHttp').generateRequest();
+					 }
+					if(this.$.loadPage.selected == 6){
+						document.getElementById('getUser').generateRequest();
 					 }
 				},
 				download: function() {
@@ -333,6 +331,13 @@
 						csvObject.keys = ["datetime", "host", "user", "method",
 								"uri", "httpStatus"];
 						csvObject.fileName = "http.csv";
+					}
+					if(this.$.loadPage.selected == 6) {
+						var data = document.getElementById("UserGrid").items;
+						csvObject.gridData = data;
+						csvObject.headers = "UserName,Language\n";
+						csvObject.keys = ["id", "language"];
+						csvObject.fileName = "user_list.csv";
 					}
 					generateCSVData(csvObject);
 				}
