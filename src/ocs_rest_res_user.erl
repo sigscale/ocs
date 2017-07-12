@@ -233,8 +233,8 @@ put_user1(ID, Etag, RequestBody) ->
 put_user2(ID, Etag, Password, undefined) ->
 	put_user2(ID, Etag, Password, "en");
 put_user2(ID, Etag, Password, Locale) ->
-	{Port, _, Directory, _} = get_params(),
-	case mod_auth:get_user(ID, Port, Directory) of
+	{Port, Address, Directory, _} = get_params(),
+	case mod_auth:get_user(ID, Address, Port, Directory) of
 		{ok, #httpd_user{user_data = Data}} ->
 			case lists:keyfind(last_modified, 1, Data) of
 				{_, LastModified} when Etag == undefined; Etag == LastModified ->
