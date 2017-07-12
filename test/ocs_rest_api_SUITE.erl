@@ -141,7 +141,8 @@ all() ->
 	get_auth_usage_id, get_auth_usage_filter, get_acct_usage,
 	get_acct_usage_id, get_acct_usage_filter, get_ipdr_usage,
 	top_up_subscriber_balance, get_subscriber_balance, add_user,
-	get_user, delete_user, simultaneous_updates_on_user_faliure].
+	get_user, delete_user, simultaneous_updates_on_user_faliure,
+	simultaneous_updates_on_subscriber_faliure].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1460,6 +1461,81 @@ simultaneous_updates_on_user_faliure(Config) ->
 			IfMatch], ContentType, RequestBody},
 	{ok, Result2} = httpc:request(put, Request2, [], []),
 	{{"HTTP/1.1", 412, _Failed}, _Headers, _} = Result2.
+
+simultaneous_updates_on_subscriber_faliure() ->
+	[{userdata, [{doc,"Simulataneous HTTP PATCH updates on subscriber resource must fail
+			if the resource is already being updated by someone else"}]}].
+
+simultaneous_updates_on_subscriber_faliure(Config) ->
+	ContentType = "application/json",
+	ID = "eacfd73ae10a",
+	Password = "ksc8c244npqc",
+	AsendDataRate = {struct, [{"name", "ascendDataRate"}, {"value", 1000000}]},
+	AsendXmitRate = {struct, [{"name", "ascendXmitRate"}, {"value", 64000}]},
+	SessionTimeout = {struct, [{"name", "sessionTimeout"}, {"value", 3600}]},
+	Interval = {struct, [{"name", "acctInterimInterval"}, {"value", 300}]},
+	Class = {struct, [{"name", "class"}, {"value", "skiorgs"}]},
+	SortedAttributes = lists:sort([AsendDataRate, AsendXmitRate, SessionTimeout, Interval, Class]),
+	AttributeArray = {array, SortedAttributes},
+	Balance = 100,
+	Enable = true,
+	JSON1 = {struct, [{"id", ID}, {"password", Password},
+	{"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enable}]},
+	RequestBody = lists:flatten(mochijson:encode(JSON1)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	{_, Etag} = lists:keyfind("etag", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{"/ocs/v1/subscriber/" ++ ID, _} = httpd_util:split_path(URI),
+	{struct, Object} = mochijson:decode(ResponseBody),
+	{"id", ID} = lists:keyfind("id", 1, Object),
+	{_, URI} = lists:keyfind("href", 1, Object),
+	{"password", Password} = lists:keyfind("password", 1, Object),
+	{_, {array, Attributes}} = lists:keyfind("attributes", 1, Object),
+	ExtraAttributes = Attributes -- SortedAttributes,
+	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
+	{"balance", Balance} = lists:keyfind("balance", 1, Object),
+	{"enabled", Enable} = lists:keyfind("enabled", 1, Object),
+	Port = ?config(port, Config),
+	{ok, SslSock} = ssl:connect({127,0,0,1}, Port,  [binary, {active, false}], infinity),
+	ok = ssl:ssl_accept(SslSock),
+	PatchBody = "{ \"update\":\"password\", \"newpassword\":\"7fy8qhs7hh7n\" }",
+	PatchBodyLen = size(list_to_binary(PatchBody)),
+	PatchUri = "/ocs/v1/subscriber/" ++ ID,
+	TS = integer_to_list(erlang:system_time(milli_seconds)),
+	N = integer_to_list(erlang:unique_integer([positive])),
+	NewEtag = TS ++ "-" ++ N,
+	PatchReq = ["PATCH ", PatchUri, " HTTP/1.1",$\r,$\n,
+			"Content-Type:application/json", $\r,$\n, "Accept:application/json",$\r,$\n,
+			"If-match:" ++ Etag,$\r,$\n,"Authorization:"++ AuthKey,$\r,$\n,
+			"Host:localhost:" ++ integer_to_list(Port),$\r,$\n,
+			"Content-Length:" ++ integer_to_list(PatchBodyLen),$\r,$\n,
+			"If-match:" ++ NewEtag, $\r,$\n,$\r,$\n,
+			$\r, $\n,
+			PatchBody],
+	ok = ssl:send(SslSock, list_to_binary(PatchReq)),
+	Timeout = 3000,
+	F = fun(_F, _Sock, {error, timeout}, Acc) ->
+					lists:reverse(Acc);
+			(F, Sock, {ok, Bin}, Acc) ->
+					F(F, Sock, ssl:recv(Sock, 0, Timeout), [Bin | Acc])
+	end,
+	RecvBuf = F(F, SslSock, ssl:recv(SslSock, 0, Timeout), []),
+	PatchResponse = list_to_binary(RecvBuf),
+	[H, _ErroMsg] = binary:split(PatchResponse, <<$\r,$\n,$\r,$\n>>),
+	<<"HTTP/1.1 412", _/binary>> = H,
+	ok = ssl:close(SslSock).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
