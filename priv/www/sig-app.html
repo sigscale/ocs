@@ -247,12 +247,7 @@
 							break;
 						case 'page6':
 							this.$.loadPage.selected = 6;
-							break;
-						case 'page6':
-							this.$.loadPage.selected = 6;
-							break;
-						case 'page6':
-							this.$.loadPage.selected = 6;
+							document.getElementById('getUser').generateRequest();
 							break;
 					}
 				},
@@ -274,6 +269,9 @@
 					 }
 					if(this.$.loadPage.selected == 5){
 						document.getElementById('getHttp').generateRequest();
+					 }
+					if(this.$.loadPage.selected == 6){
+						document.getElementById('getUser').generateRequest();
 					 }
 				},
 				download: function() {
