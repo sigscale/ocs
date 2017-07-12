@@ -47,6 +47,46 @@
 				</template>
 				<template>[[item.timeStamp]]</template>
 			</vaadin-grid-column>
+			<vaadin-grid-column width="30ex">
+				<template class="header">
+					<vaadin-grid-sorter path="nasIdentifier">
+						<vaadin-grid-filter aria-label="[[i18n.clientIdentity]]" path="nasIdentifier" value="[[_filterclientIdentity]]">
+							<input placeholder="[[i18n.clientIdentity]]" value="{{_filterclientIdentity::input}}" focus-target>
+						</vaadin-grid-filter>
+					</vaadin-grid-sorter>
+				</template>
+				<template>[[item.nasIdentifier]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="15ex" flex-grow="1">
+				<template class="header">
+					<vaadin-grid-sorter path="acctSessiontime">
+						<vaadin-grid-filter aria-label="[[i18n.sessionDur]]" path="acctSessiontime" value="[[_filteracctSessiontime]]">
+							<input placeholder="[[i18n.sessionDur]]" value="{{_filteracctSessiontime::input}}" focus-target>
+						</vaadin-grid-filter>
+					</vaadin-grid-sorter>
+				</template>
+				<template>[[item.acctSessiontime]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="10ex" flex-grow="1">
+				<template class="header">
+					<vaadin-grid-sorter path="acctOutputoctets">
+						<vaadin-grid-filter aria-label="[[i18n.out]]" path="acctOutputoctets" value="[[_filterout]]">
+							<input placeholder="[[i18n.out]]" value="{{_filterout::input}}" focus-target>
+						</vaadin-grid-filter>
+					</vaadin-grid-sorter>
+				</template>
+				<template>[[item.acctOutputoctets]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="10ex" flex-grow="1">
+				<template class="header">
+					<vaadin-grid-sorter path="acctInputoctets">
+						<vaadin-grid-filter aria-label="[[i18n.in]]" path="acctInputoctets" value="[[_filterin]]">
+							<input placeholder="[[i18n.in]]" value="{{_filterin::input}}" focus-target>
+						</vaadin-grid-filter>
+					</vaadin-grid-sorter>
+				</template>
+				<template>[[item.acctInputoctets]]</template>
+			</vaadin-grid-column>
 			<vaadin-grid-column width="18ex" flex-grow="4">
 				<template class="header">
 					<vaadin-grid-sorter path="username">
@@ -86,6 +126,10 @@
 					for(var index in results){
 						var newRecord = new Object();
 						newRecord.timeStamp = results[index].timeStamp;
+						newRecord.nasIdentifier = results[index].nasIdentifier;
+						newRecord.acctSessiontime = results[index].acctSessiontime;
+						newRecord.acctOutputoctets = results[index].acctOutputoctets;
+						newRecord.acctInputoctets = results[index].acctInputoctets;
 						newRecord.username = results[index].username;
 						newRecord.type = results[index].type;
 						vaadinItems[index] = newRecord;
@@ -95,6 +139,18 @@
 					grid.columns = [
 						{
 							name: "timeStamp"
+						},
+						{
+							name: "nasIdentifier"
+						},
+						{
+							name: "acctSessiontime"
+						},
+						{
+							name: "acctOutputoctets"
+						},
+						{
+							name: "acctInputoctets"
 						},
 						{
 							name: "username"

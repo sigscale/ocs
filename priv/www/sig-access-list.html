@@ -47,17 +47,7 @@
 				</template>
 				<template>[[item.timeStamp]]</template>
 			</vaadin-grid-column>
-			<vaadin-grid-column width="18ex" flex-grow="4">
-				<template class="header">
-					<vaadin-grid-sorter path="username">
-						<vaadin-grid-filter aria-label="[[i18n.userName]]" path="username" value="[[_filterUserName]]">
-							<input placeholder="[[i18n.userName]]" value="{{_filterUserName::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
-				</template>
-				<template>[[item.username]]</template>
-			</vaadin-grid-column>
-			<vaadin-grid-column width="15ex" flex-grow="3">
+			<vaadin-grid-column width="10ex" flex-grow="1">
 				<template class="header">
 					<vaadin-grid-sorter path="clientAddress">
 						<vaadin-grid-filter aria-label="[[i18n.clientAddress]]" path="clientAddress" value="[[_filterClientAddress]]">
@@ -67,13 +57,35 @@
 				</template>
 				<template>[[item.clientAddress]]</template>
 			</vaadin-grid-column>
-			<vaadin-grid-column width="5ex" flex-grow="2">
+			<vaadin-grid-column width="20ex" flex-grow="3">
 				<template class="header">
-					<vaadin-grid-filter aria-label="[[i18n.clientPort]]" path="clientPort" value="[[_filterClientPort]]">
-						<input placeholder="[[i18n.clientPort]]" value="{{_filterClientPort::input}}" focus-target>
-					</vaadin-grid-filter>
+					<vaadin-grid-sorter path="nasIdentifier">
+						<vaadin-grid-filter aria-label="[[i18n.clientIdentity]]" path="nasIdentifier" value="[[_filterclientIdentity]]">
+							<input placeholder="[[i18n.clientIdentity]]" value="{{_filterclientIdentity::input}}" focus-target>
+						</vaadin-grid-filter>
+					</vaadin-grid-sorter>
 				</template>
-				<template>[[item.clientPort]]</template>
+				<template>[[item.nasIdentifier]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="16ex">
+				<template class="header">
+					<vaadin-grid-sorter path="calledStation">
+						<vaadin-grid-filter aria-label="[[i18n.calledStation]]" path="calledStation" value="[[_filtercalledStation]]">
+							<input placeholder="[[i18n.calledStation]]" value="{{_filtercalledStation::input}}" focus-target>
+						</vaadin-grid-filter>
+					</vaadin-grid-sorter>
+				</template>
+				<template>[[item.calledStation]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="18ex" flex-grow="4">
+				<template class="header">
+					<vaadin-grid-sorter path="username">
+						<vaadin-grid-filter aria-label="[[i18n.userName]]" path="username" value="[[_filterUserName]]">
+							<input placeholder="[[i18n.userName]]" value="{{_filterUserName::input}}" focus-target>
+						</vaadin-grid-filter>
+					</vaadin-grid-sorter>
+				</template>
+				<template>[[item.username]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="8ex" flex-grow="0">
 				<template class="header">
@@ -104,9 +116,10 @@
 					for (var index in results) {
 						var newRecord = new Object();
 						newRecord.timeStamp = results[index].timeStamp;
-						newRecord.username = results[index].username;
 						newRecord.clientAddress = results[index].clientAddress;
-						newRecord.clientPort = results[index].clientPort;
+						newRecord.nasIdentifier = results[index].nasIdentifier;
+						newRecord.calledStation = results[index].calledStation;
+						newRecord.username = results[index].username;
 						newRecord.type = results[index].type;
 						vaadinItems[index] = newRecord;
 					}
@@ -118,13 +131,16 @@
 							name: "timeStamp"
 						},
 						{
-							name: "username"
-						},
-						{
 							name: "clientAddress"
 						},
 						{
-							name: "clientPort"
+							name: "nasIdentifier"
+						},
+						{
+							name: "calledStation"
+						},
+						{
+							name: "username"
 						},
 						{
 							name: "type"

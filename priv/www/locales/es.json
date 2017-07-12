@@ -418,5 +418,21 @@
 	"spa": {
     "description": "Dropdown list item",
     "message": "Español"
+  },
+	"clientIdentity": {
+    "description": "clients identity",
+    "message": "Identidad del cliente"
+  },
+	"calledStation": {
+    "description": "Called Station for logs",
+    "message": "Estación llamada"
+  },
+	"out": {
+    "description": "out(bytes) for logs",
+    "message": "Fuera(Bytes)"
+  },
+	"in": {
+    "description": "in(bytes) for logs",
+    "message": "En(Bytes)"
   }
 }
