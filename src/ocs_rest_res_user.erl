@@ -100,11 +100,12 @@ get_user(Id) ->
 				false ->
 					{array, [PasswordAttr]}
 			end,
+			LastModified = lists:keyfind(last_modified, 1, UserData),
 			RespObj = [{"id", Id}, {"href", "/partyManagement/v1/individual/" ++ Id},
 				{"characteristic", Characteristic}],
 			JsonObj  = {struct, RespObj},
 			Body = mochijson:encode(JsonObj),
-			Headers = [{content_type, "application/json"}],
+			Headers = [{content_type, "application/json"}, {etag, etag(LastModified)}],
 			{ok, Headers, Body};
 		{error, _Reason} ->
 			{error, 404}
