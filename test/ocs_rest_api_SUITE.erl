@@ -144,7 +144,7 @@ all() ->
 	get_user, delete_user, simultaneous_updates_on_user_faliure,
 	simultaneous_updates_on_subscriber_faliure,
 	simultaneous_updates_on_client_faliure, update_client_password_json_patch,
-	update_client_attributes_json_patch].
+	update_client_attributes_json_patch, update_subscriber_password_json_patch].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1745,6 +1745,90 @@ update_client_attributes_json_patch(Config) ->
 	{_, NewPort} = lists:keyfind("port", 1, Object1),
 	{_, NewProtocol} = lists:keyfind("protocol", 1, Object1),
 	{_, Secret} = lists:keyfind("secret", 1, Object1),
+	ok = ssl:close(SslSock).
+
+update_subscriber_password_json_patch() ->
+	[{userdata, [{doc,"Use HTTP PATCH to update subscriber's password using
+			json-patch media type"}]}].
+
+update_subscriber_password_json_patch(Config) ->
+	ContentType = "application/json",
+	ID = binary_to_list(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	AsendDataRate = {struct, [{"name", "ascendDataRate"}, {"value", 1000000}]},
+	AsendXmitRate = {struct, [{"name", "ascendXmitRate"}, {"value", 64000}]},
+	SessionTimeout = {struct, [{"name", "sessionTimeout"}, {"value", 3600}]},
+	Interval = {struct, [{"name", "acctInterimInterval"}, {"value", 300}]},
+	Class = {struct, [{"name", "class"}, {"value", "skiorgs"}]},
+	SortedAttributes = lists:sort([AsendDataRate, AsendXmitRate, SessionTimeout, Interval, Class]),
+	AttributeArray = {array, SortedAttributes},
+	Balance = 100,
+	Enabled = true,
+	JSON = {struct, [{"id", ID}, {"password", Password},
+	{"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enabled}]},
+	RequestBody = lists:flatten(mochijson:encode(JSON)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	{_, Etag} = lists:keyfind("etag", 1, Headers),
+	true = is_etag_valid(Etag),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{"/ocs/v1/subscriber/" ++ ID, _} = httpd_util:split_path(URI),
+	{struct, Object} = mochijson:decode(ResponseBody),
+	{"id", ID} = lists:keyfind("id", 1, Object),
+	{_, URI} = lists:keyfind("href", 1, Object),
+	{"password", Password} = lists:keyfind("password", 1, Object),
+	{_, {array, Attributes}} = lists:keyfind("attributes", 1, Object),
+	ExtraAttributes = Attributes -- SortedAttributes,
+	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
+	{"balance", Balance} = lists:keyfind("balance", 1, Object),
+	{"enabled", Enabled} = lists:keyfind("enabled", 1, Object),
+	RestPort = ?config(port, Config),
+	{ok, SslSock} = ssl:connect({127,0,0,1}, RestPort,  [binary, {active, false}], infinity),
+	ok = ssl:ssl_accept(SslSock),
+	NewContentType = "application/json-patch+json",
+	NewPassword = ocs:generate_password(),
+	JSON1 = {array, [{struct, [{op, "replace"}, {path, "/password"}, {value, NewPassword}]}]},
+	PatchBody = lists:flatten(mochijson:encode(JSON1)),
+	PatchBodyLen = size(list_to_binary(PatchBody)),
+	PatchUri = "/ocs/v1/subscriber/" ++ ID,
+	PatchReq = ["PATCH ", PatchUri, " HTTP/1.1",$\r,$\n,
+			"Content-Type:" ++ NewContentType, $\r,$\n, "Accept:application/json",$\r,$\n,
+			"If-match:" ++ Etag,$\r,$\n,"Authorization:"++ AuthKey,$\r,$\n,
+			"Host:localhost:" ++ integer_to_list(RestPort),$\r,$\n,
+			"Content-Length:" ++ integer_to_list(PatchBodyLen),$\r,$\n,
+			$\r, $\n,
+			PatchBody],
+	ok = ssl:send(SslSock, list_to_binary(PatchReq)),
+	Timeout = 3000,
+	F = fun(_F, _Sock, {error, timeout}, Acc) ->
+					lists:reverse(Acc);
+			(F, Sock, {ok, Bin}, Acc) ->
+					F(F, Sock, ssl:recv(Sock, 0, Timeout), [Bin | Acc])
+	end,
+	RecvBuf = F(F, SslSock, ssl:recv(SslSock, 0, Timeout), []),
+	PatchResponse = list_to_binary(RecvBuf),
+	[Headers1, ResponseBody1] = binary:split(PatchResponse, <<$\r,$\n,$\r,$\n>>),
+	<<"HTTP/1.1 200", _/binary>> = Headers1,
+	{struct, Object1} = mochijson:decode(ResponseBody1),
+	{"id", ID} = lists:keyfind("id", 1, Object1),
+	{_, URI} = lists:keyfind("href", 1, Object1),
+	{"password", NewPassword} = lists:keyfind("password", 1, Object1),
+	{_, {array, Attributes}} = lists:keyfind("attributes", 1, Object1),
+	ExtraAttributes = Attributes -- SortedAttributes,
+	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
+	{"balance", Balance} = lists:keyfind("balance", 1, Object1),
+	{"enabled", Enabled} = lists:keyfind("enabled", 1, Object1),
 	ok = ssl:close(SslSock).
 
 %%---------------------------------------------------------------------
