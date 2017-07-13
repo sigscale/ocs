@@ -215,22 +215,40 @@ patch_client2(Id, Etag, "application/json", ReqBody, CurrPort,
 patch_client2(Id, Etag, "application/json-patch+json", ReqBody, CurrPort,
 		CurrProtocol, CurrSecret) ->
 	try
-		{array, [Operation]}= mochijson:decode(ReqBody),
-		{struct, [{"op", "replace"}, {"path", Path}, {"value", V}]} = Operation,
-		case Path of
-			"/secret" ->
-				case V of
-					V when is_list(V) ->
-						Protocol_Atom = string:to_upper(atom_to_list(CurrProtocol)),
-						patch_client3(Id, CurrPort, Protocol_Atom, V, Etag);
+		{array, Operation}= mochijson:decode(ReqBody),
+		case Operation of
+			[{struct, [{"op", "replace"}, {"path", Path}, {"value", V}]}] ->
+				case Path of
+					"/secret" ->
+						case V of
+							V when is_list(V) ->
+								Protocol_Atom = string:to_upper(atom_to_list(CurrProtocol)),
+								patch_client3(Id, CurrPort, Protocol_Atom, V, Etag);
+							_ ->
+								{error, 422}
+						end;
+				_ ->
+						{error, 409}
+				end;
+			[{struct, [{"op", "replace"}, {"path", Path1}, {"value", V1}]},
+					{struct, [{"op", "replace"}, {"path", Path2}, {"value", V2}]}] ->
+				case {Path1, Path2} of
+					{"/port", "/protocol"} when V2 =:= "radius"; V2 =:= "RADIUS" ->
+						patch_client4(Id, V1, radius, CurrSecret, Etag);
+					{"/port", "/protocol"} when V2 =:= "diameter"; V2 =:= "DIAMETER" ->
+						patch_client4(Id, V1, diameter, CurrSecret, Etag);
+					{"/protocol", "/path"} when V1 =:= "radius"; V1 =:= "RADIUS" ->
+						patch_client4(Id, V2, radius, CurrSecret, Etag);
+					{"/protocol", "/path"} when V1 =:= "diameter"; V1 =:= "DIAMETER" ->
+						patch_client4(Id, V2, diameter, CurrSecret, Etag);
 					_ ->
 						{error, 422}
 				end;
 			_ ->
-				{error, 409}
+				{error, 422}
 		end
 	catch
-		throw : _ ->
+		 _: _ ->
 			{error, 400}
 	end.
 %% @hidden
@@ -251,9 +269,10 @@ patch_client3(Id, Port, Protocol, NewPassword, Etag) ->
 %% @hidden
 patch_client4(Id, Port, Protocol, Secret, Etag) ->
 	IDstr = inet:ntoa(Id),
+	Protocolstr = string:to_upper(atom_to_list(Protocol)),
 	ok = ocs:update_client(Id, Port, Protocol),
 	RespObj =[{id, IDstr}, {href, "/ocs/v1/client/" ++ IDstr},
-			{"port", Port}, {protocol, Protocol}, {secret, Secret}],
+			{"port", Port}, {protocol, Protocolstr}, {secret, Secret}],
 	JsonObj  = {struct, RespObj},
 	RespBody = mochijson:encode(JsonObj),
 	Headers = case Etag of
