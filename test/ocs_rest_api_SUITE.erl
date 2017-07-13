@@ -143,7 +143,8 @@ all() ->
 	top_up_subscriber_balance, get_subscriber_balance, add_user,
 	get_user, delete_user, simultaneous_updates_on_user_faliure,
 	simultaneous_updates_on_subscriber_faliure,
-	simultaneous_updates_on_client_faliure, update_client_password_json_patch].
+	simultaneous_updates_on_client_faliure, update_client_password_json_patch,
+	update_client_attributes_json_patch].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1671,6 +1672,80 @@ update_client_password_json_patch(Config) ->
 	{_, Port} = lists:keyfind("port", 1, Object1),
 	{_, Protocol} = lists:keyfind("protocol", 1, Object1),
 	{_, NewSecret} = lists:keyfind("secret", 1, Object1),
+	ok = ssl:close(SslSock).
+
+update_client_attributes_json_patch() ->
+	[{userdata, [{doc,"Use HTTP PATCH to update client's attributes using
+			json-patch media type"}]}].
+
+update_client_attributes_json_patch(Config) ->
+	ContentType = "application/json",
+	ID = "103.73.94.4",
+	Port = 2768,
+	Protocol = "RADIUS",
+	Secret = ocs:generate_password(),
+	JSON = {struct, [{"id", ID}, {"port", Port}, {"protocol", Protocol},
+		{"secret", Secret}]},
+	RequestBody = lists:flatten(mochijson:encode(JSON)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request1 = {HostUrl ++ "/ocs/v1/client/", [Accept, Authentication], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	{_, Etag} = lists:keyfind("etag", 1, Headers),
+	true = is_etag_valid(Etag),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{"/ocs/v1/client/" ++ ID, _} = httpd_util:split_path(URI),
+	{struct, Object} = mochijson:decode(ResponseBody),
+	{_, ID} = lists:keyfind("id", 1, Object),
+	{_, URI} = lists:keyfind("href", 1, Object),
+	{_, Port} = lists:keyfind("port", 1, Object),
+	{_, Protocol} = lists:keyfind("protocol", 1, Object),
+	{_, Secret} = lists:keyfind("secret", 1, Object),
+	RestPort = ?config(port, Config),
+	{ok, SslSock} = ssl:connect({127,0,0,1}, RestPort,  [binary, {active, false}], infinity),
+	ok = ssl:ssl_accept(SslSock),
+	NewContentType = "application/json-patch+json",
+	NewPort = 8745,
+	NewProtocol = "DIAMETER",
+	JSON1 = {array, [{struct, [
+			{op, "replace"}, {path, "/port"}, {value, NewPort},
+			{op, "replace"}, {path, "/protocol"}, {value, NewProtocol}]}]},
+	PatchBody = lists:flatten(mochijson:encode(JSON1)),
+	PatchBodyLen = size(list_to_binary(PatchBody)),
+	PatchUri = "/ocs/v1/client/" ++ ID,
+	PatchReq = ["PATCH ", PatchUri, " HTTP/1.1",$\r,$\n,
+			"Content-Type:"++ NewContentType, $\r,$\n, "Accept:application/json",$\r,$\n,
+			"If-match:" ++ Etag,$\r,$\n,"Authorization:"++ AuthKey,$\r,$\n,
+			"Host:localhost:" ++ integer_to_list(RestPort),$\r,$\n,
+			"Content-Length:" ++ integer_to_list(PatchBodyLen),$\r,$\n,
+			$\r,$\n,
+			PatchBody],
+	ok = ssl:send(SslSock, list_to_binary(PatchReq)),
+	Timeout = 3000,
+	F = fun(_F, _Sock, {error, timeout}, Acc) ->
+					lists:reverse(Acc);
+			(F, Sock, {ok, Bin}, Acc) ->
+					F(F, Sock, ssl:recv(Sock, 0, Timeout), [Bin | Acc])
+	end,
+	RecvBuf = F(F, SslSock, ssl:recv(SslSock, 0, Timeout), []),
+	PatchResponse = list_to_binary(RecvBuf),
+	[Headers1, ResponseBody1] = binary:split(PatchResponse, <<$\r,$\n,$\r,$\n>>),
+	<<"HTTP/1.1 200", _/binary>> = Headers1,
+	{struct, Object1} = mochijson:decode(ResponseBody1),
+	{_, ID} = lists:keyfind("id", 1, Object1),
+	{_, URI} = lists:keyfind("href", 1, Object1),
+	{_, NewPort} = lists:keyfind("port", 1, Object1),
+	{_, NewProtocol} = lists:keyfind("protocol", 1, Object1),
+	{_, Secret} = lists:keyfind("secret", 1, Object1),
 	ok = ssl:close(SslSock).
 
 %%---------------------------------------------------------------------
