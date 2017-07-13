@@ -1670,7 +1670,7 @@ update_client_password_json_patch(Config) ->
 	{_, URI} = lists:keyfind("href", 1, Object1),
 	{_, Port} = lists:keyfind("port", 1, Object1),
 	{_, Protocol} = lists:keyfind("protocol", 1, Object1),
-	{_, NewSecret} = lists:keyfind("secret", 1, Object),
+	{_, NewSecret} = lists:keyfind("secret", 1, Object1),
 	ok = ssl:close(SslSock).
 
 %%---------------------------------------------------------------------
