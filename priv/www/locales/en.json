@@ -414,5 +414,21 @@
    "updateUserTitle": {
     "description": "User Title for Update",
     "message": "Update User"
+  },
+   "clientIdentity": {
+    "description": "clients identity",
+    "message": "Client Identity"
+  },
+   "calledStation": {
+    "description": "Called Station for logs",
+    "message": "Called Station"
+  },
+   "out": {
+    "description": "out(bytes) for logs",
+    "message": "Out (bytes)"
+  },
+   "in": {
+    "description": "in(bytes) for logs",
+    "message": "In (bytes)"
   }
 }

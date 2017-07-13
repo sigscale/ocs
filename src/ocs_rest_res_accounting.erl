@@ -67,17 +67,41 @@ get_accounting() ->
 % @hidden
 radius_auth_json(Events) ->
 	F = fun({Milliseconds, _N, radius, Node, Server, Type, Attr}, Acc) ->
-				TimeStamp = ocs_log:iso8601(Milliseconds),
-				{ServerAdd, ServerPort} = Server,
-				ServerIp = inet:ntoa(ServerAdd),
-				Username = radius_attributes:fetch(?UserName, Attr),
-				JsonObj = {struct, [{"timeStamp", TimeStamp}, {"node", Node},
-						{"serverAddress", ServerIp}, {"serverPort", ServerPort},
-						{"type", Type}, {"username", Username}]},
-				[JsonObj | Acc];
-			(_, Acc) ->
-				%% TODO support for DIAMETER
-				Acc
+			TimeStamp = ocs_log:iso8601(Milliseconds),
+			{ServerAdd, ServerPort} = Server,
+			ServerIp = inet:ntoa(ServerAdd),
+			Username = radius_attributes:fetch(?UserName, Attr),
+			Idenifier = radius_attributes:fetch(?NasIdentifier, Attr),
+			AcctInput = case {radius_attributes:find(?AcctInputOctets, Attr), radius_attributes:find(?AcctInputGigawords, Attr)} of
+				{{ok, Octets}, {ok, Giga}} ->
+					[{"acctInputoctets", Octets + (Giga * 4294967296)}];
+				{{ok, Octets}, _} ->
+					[{"acctInputoctets", Octets}];
+				{_, _} ->
+					[]
+			end,
+			AcctOutput = case {radius_attributes:find(?AcctOutputOctets, Attr), radius_attributes:find(?AcctOutputGigawords, Attr)} of
+				{{ok, OctetsOut}, {ok, GigaOut}} ->
+					[{"acctOutputoctets", OctetsOut + (GigaOut * 4294967296)}];
+				{{ok, OctetsOut}, _} ->
+					[{"acctOutputoctets", OctetsOut}];
+				{_, _} ->
+					[]
+			end,
+			Duration = case radius_attributes:find(?AcctSessionTime, Attr) of
+				{ok, SessionTime} ->
+					[{"acctSessiontime", SessionTime}];
+				{error, not_found} ->
+					[]	
+			end,
+			JsonObj = {struct, [{"timeStamp", TimeStamp}, {"node", Node},
+					{"serverAddress", ServerIp}, {"serverPort", ServerPort},
+					{"type", Type}, {"username", Username},
+					{"nasIdentifier", Idenifier}] ++ Duration ++ AcctInput ++ AcctOutput},
+			[JsonObj | Acc];
+		(_, Acc) ->
+			%% TODO support for DIAMETER
+			Acc
 	end,
 	lists:reverse(lists:foldl(F, [], Events)).
 

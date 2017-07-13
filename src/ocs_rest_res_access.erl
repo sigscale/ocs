@@ -73,10 +73,13 @@ radius_auth_json(Events) ->
 				{ServerAdd, ServerPort} = Server,
 				ServerIp = inet:ntoa(ServerAdd),
 				Username = radius_attributes:fetch(?UserName, ReqAttrs),
+				Idenifier = radius_attributes:fetch(?NasIdentifier, ReqAttrs),
+				CalledStation = radius_attributes:fetch(?CalledStationId, ReqAttrs),
 				JsonObj = {struct, [{"timeStamp", TimeStamp}, {"node", Node},
 						{"clientAddress", ClientIp}, {"clientPort", ClientPort},
 						{"serverAddress", ServerIp}, {"serverPort", ServerPort},
-						{"type", Type}, {"username", Username}]},
+						{"type", Type}, {"username", Username}, {"nasIdentifier", Idenifier},
+						{"calledStation", CalledStation}]},
 				[JsonObj | Acc];
 		(_, Acc) ->
 				%% TODO support for DIAMETER
