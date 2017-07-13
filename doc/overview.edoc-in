@@ -528,7 +528,7 @@ Content-Length: nn
 		<td id="opr">200 Ok</td>
 	</tr>
 </table>
-<p>Example request:<pre>
+<p>Example request (for Content-Type: application/json):<pre>
 PATCH /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
 Content-type: application/json
 Accept: application/json
@@ -537,6 +537,19 @@ Accept: application/json
   "newpassword":"7fy8qhs7hh7n"
 }
 </pre></p>
+
+<p>Example request (for Content-Type: application/json-patch+json):<pre>
+PATCH /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
+Content-type: application/json-patch+json
+Accept: application/json
+[
+  {"op" : "replace"
+  "path": "password",
+  "value": "7fy8qhs7hh7n"
+  }
+]
+</pre></p>
+
 <p>Example respons:<pre>
 HTTP/1.1 200 Ok
 Content-Type: application/json
@@ -589,7 +602,7 @@ Content-Length: 315
 		<td id="opr">200 Ok</td>
 	</tr>
 </table>
-<p>Example request:<pre>
+<p>Example request: (for Content-Type: application/json)<pre>
 PATCH /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
 Content-type: application/json
 Accept: application/json
@@ -604,6 +617,34 @@ Accept: application/json
  "enabled": false
 }
 </pre></p>
+
+<p>Example request: (for Content-Type: application/json-patch+json)<pre>
+PATCH /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
+Content-type: application/json-patch+json
+Accept: application/json
+
+[
+ {
+  "op" : "replace",
+  "path" : "balance",
+  "value" :100000000000
+ },
+ {
+  "op" : "replace",
+  "path" : "attributes",
+  "value" : [
+             {"name": "ascendDataRate", "value": 1000000},
+             {"name": "ascendXmitRate", "value": 512000}
+            ]
+ }
+ {
+  "op" : "replace",
+  "path" : "enabled",
+  "value" : false
+ }
+]
+</pre></p>
+
 <p>Example response:<pre>
 HTTP/1.1 200 Ok
 Content-Type: application/json
