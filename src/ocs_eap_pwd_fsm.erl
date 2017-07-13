@@ -46,7 +46,7 @@
 		radius_fsm :: undefined | pid(),
 		session_id:: string() | {NAS :: inet:ip_address() | string(),
 				Port :: string(), Peer :: string()},
-		start :: #diameter_eap_app_DER{} | #radius{},
+		start :: undefined | #diameter_eap_app_DER{} | #radius{},
 		eap_id = 0 :: byte(),
 		group_desc  = 19 :: byte(),
 		rand_func = 1 :: byte(),
@@ -72,7 +72,7 @@
 		auth_req_type :: undefined | integer(),
 		origin_host :: undefined | binary(),
 		origin_realm :: undefined | binary(),
-		diameter_port_server :: pid()}).
+		diameter_port_server :: undefined | pid()}).
 -type statedata() :: #statedata{}.
 
 -define(TIMEOUT, 30000).
