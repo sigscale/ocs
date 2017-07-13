@@ -1716,9 +1716,8 @@ update_client_attributes_json_patch(Config) ->
 	NewContentType = "application/json-patch+json",
 	NewPort = 8745,
 	NewProtocol = "DIAMETER",
-	JSON1 = {array, [{struct, [
-			{op, "replace"}, {path, "/port"}, {value, NewPort},
-			{op, "replace"}, {path, "/protocol"}, {value, NewProtocol}]}]},
+	JSON1 = {array, [{struct, [{op, "replace"}, {path, "/port"}, {value, NewPort}]},
+			{struct, [{op, "replace"}, {path, "/protocol"}, {value, NewProtocol}]}]},
 	PatchBody = lists:flatten(mochijson:encode(JSON1)),
 	PatchBodyLen = size(list_to_binary(PatchBody)),
 	PatchUri = "/ocs/v1/client/" ++ ID,
