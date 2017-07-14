@@ -196,16 +196,16 @@ patch_subscriber2(Id, Etag, "application/json", ReqBody, CurrPassword,
 		{_, Type} = lists:keyfind("update", 1, Object),
 		{Password, RadAttr, NewEnabled} = case Type of
 			"attributes" ->
-		{_, {array, AttrJs}} = lists:keyfind("attributes", 1, Object),
-		NewAttributes = json_to_radius(AttrJs),
-		{_, Balance} = lists:keyfind("balance", 1, Object),
-		{_, EnabledStatus} = lists:keyfind("enabled", 1, Object),
-		ocs:update_attributes(Id, Balance, NewAttributes, EnabledStatus),
-		{CurrPassword, NewAttributes, EnabledStatus};
+				{_, {array, AttrJs}} = lists:keyfind("attributes", 1, Object),
+				NewAttributes = json_to_radius(AttrJs),
+				{_, Balance} = lists:keyfind("balance", 1, Object),
+				{_, EnabledStatus} = lists:keyfind("enabled", 1, Object),
+				ocs:update_attributes(Id, Balance, NewAttributes, EnabledStatus),
+				{CurrPassword, NewAttributes, EnabledStatus};
 			"password" ->
-		{_, NewPassword } = lists:keyfind("newpassword", 1, Object),
-		ocs:update_password(Id, NewPassword),
-		{NewPassword, CurrAttr, Enabled}
+				{_, NewPassword } = lists:keyfind("newpassword", 1, Object),
+				ocs:update_password(Id, NewPassword),
+				{NewPassword, CurrAttr, Enabled}
 		end,
 		patch_subscriber3(Id, Etag, Password, RadAttr, Bal, NewEnabled)
 	catch
@@ -215,23 +215,13 @@ patch_subscriber2(Id, Etag, "application/json", ReqBody, CurrPassword,
 patch_subscriber2(Id, Etag, "application/json-patch+json", ReqBody,
 		CurrPassword, CurrAttr, Bal, Enabled) ->
 	try
-		{array, Ops} = mochijson:decode(ReqBody),
-		{Password, RadAttr, NewEnabled} = case Ops of
-			[{struct, [_, _, _]}] ->
-				Values = sort_json_attributes(Ops),
-				{_, NewPassword} = lists:keyfind("password", 1, Values),
-				ocs:update_password(Id, NewPassword),
-				{NewPassword, CurrAttr, Enabled};
-			[{struct, [_, _, _]}, {struct, [_, _, _]}, {struct, [_, _, _]}] ->
-				Values = sort_json_attributes(Ops),
-				{_, Balance} = lists:keyfind("balance", 1, Values),
-				{_, {array, AttrJs}} = lists:keyfind("attributes", 1, Values),
-				{_, EnabledStatus} = lists:keyfind("enabled", 1, Values),
-				NewAttributes = json_to_radius(AttrJs),
-				ocs:update_attributes(Id, Balance, NewAttributes, EnabledStatus),
-				{CurrPassword, NewAttributes, EnabledStatus}
-		end,
-		patch_subscriber3(Id, Etag, Password, RadAttr, Bal, NewEnabled)
+		{array, OpList} = mochijson:decode(ReqBody),
+		CurrentValues = [{"password", CurrPassword}, {"balance", Bal},
+				{"attributes", CurrAttr}, {"enabled", Enabled}],
+		ValidOpList = validated_operations(OpList),
+		{NPwd, NBal, NAttr, NEnabled} =
+				execute_json_patch_operations(ValidOpList, Id, CurrentValues),
+		patch_subscriber3(Id, Etag, NPwd, NAttr, NBal, NEnabled)
 	catch
 		_:_ ->
 			{error, 400}
@@ -368,14 +358,14 @@ etag(V) when is_tuple(V) ->
 	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
 
 %% @hidden
--spec sort_json_attributes(UnOrderAttributes) -> OrderedAtttibutes
+-spec validated_operations(UnOrderAttributes) -> OrderedAtttibutes
 	when
 		UnOrderAttributes :: [{struct, [tuple()]}],
 		OrderedAtttibutes :: [tuple()].
 %% @doc Processes scrambled json attributes (with regard to
 %% https://tools.ietf.org/html/rfc6902#section-3) and return
 %% a list of key, value tuples.
-sort_json_attributes(UAttr) ->
+validated_operations(UAttr) ->
 	F = fun(F, [{struct, Op} | T],  Acc) ->
 			{_, "replace"} = lists:keyfind("op", 1, Op),
 			{_, P} = lists:keyfind("path", 1, Op),
@@ -383,7 +373,36 @@ sort_json_attributes(UAttr) ->
 			[P1] = string:tokens(P, "/"),
 			F(F, T, [{P1, V} | Acc]);
 		(_, [], Acc) ->
-			Acc
+			lists:reverse(Acc)
 	end,
 	F(F, UAttr, []).
+
+%% @doc Execute json-patch opearations and return resulting object's
+%% attributes.
+%% @hidden
+execute_json_patch_operations(OpList, ID, CValues) ->
+	F = fun(_, [{"password", V} | _], Acc) ->
+			{password, lists:keyreplace("password", 1, Acc, {"password", V})};
+		(F, [{"attributes", {array, V}} | T], Acc) ->
+			NV = json_to_radius(V),
+			NewAcc = lists:keyreplace("attributes", 1, Acc, {"attributes", NV}),
+			F(F, T, NewAcc);
+		(F, [{Path, V} | T], Acc) ->
+			NewAcc = lists:keyreplace(Path, 1, Acc, {Path, V}),
+			F(F, T, NewAcc);
+		(_, [], Acc) ->
+			{attributes, Acc}
+	end,
+	{Update, NValues} = F(F, OpList, CValues),
+	{_, NPwd} = lists:keyfind("password", 1, NValues),
+	{_, NAttr} = lists:keyfind("attributes", 1, NValues),
+	{_, NBal} = lists:keyfind("balance", 1, NValues),
+	{_, NEnabled} = lists:keyfind("enabled", 1, NValues),
+	case Update of
+		password ->
+			ocs:update_password(ID, NPwd);
+		attributes ->
+			ocs:update_attributes(ID, NBal, NAttr, NEnabled)
+	end,
+	{NPwd, NBal, NAttr, NEnabled}.
 
