@@ -215,16 +215,18 @@ patch_subscriber2(Id, Etag, "application/json", ReqBody, CurrPassword,
 patch_subscriber2(Id, Etag, "application/json-patch+json", ReqBody,
 		CurrPassword, CurrAttr, Bal, Enabled) ->
 	try
-		{array, Operations} = mochijson:decode(ReqBody),
-		{Password, RadAttr, NewEnabled} = case Operations of
-			[{struct, [{"op", "replace"}, {"path", "/password"},
-					{"value",NewPassword}]}] ->
+		{array, Ops} = mochijson:decode(ReqBody),
+		{Password, RadAttr, NewEnabled} = case Ops of
+			[{struct, [_, _, _]}] ->
+				Values = sort_json_attributes(Ops),
+				{_, NewPassword} = lists:keyfind("password", 1, Values),
 				ocs:update_password(Id, NewPassword),
 				{NewPassword, CurrAttr, Enabled};
-			[{struct, [{"op", "replace"}, {"path", "/balance"}, {"value", Balance}]},
-					{struct, [{"op", "replace"}, {"path", "/attributes"}, {"value", {array, AttrJs}}]},
-					{struct, [{"op", "replace"}, {"path", "/enabled"},
-					{"value", EnabledStatus}]}] ->
+			[{struct, [_, _, _]}, {struct, [_, _, _]}, {struct, [_, _, _]}] ->
+				Values = sort_json_attributes(Ops),
+				{_, Balance} = lists:keyfind("balance", 1, Values),
+				{_, {array, AttrJs}} = lists:keyfind("attributes", 1, Values),
+				{_, EnabledStatus} = lists:keyfind("enabled", 1, Values),
 				NewAttributes = json_to_radius(AttrJs),
 				ocs:update_attributes(Id, Balance, NewAttributes, EnabledStatus),
 				{CurrPassword, NewAttributes, EnabledStatus}
@@ -364,4 +366,24 @@ etag(V) when is_list(V) ->
 etag(V) when is_tuple(V) ->
 	{TS, N} = V,
 	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
+
+%% @hidden
+-spec sort_json_attributes(UnOrderAttributes) -> OrderedAtttibutes
+	when
+		UnOrderAttributes :: [{struct, [tuple()]}],
+		OrderedAtttibutes :: [tuple()].
+%% @doc Processes scrambled json attributes (with regard to
+%% https://tools.ietf.org/html/rfc6902#section-3) and return
+%% a list of key, value tuples.
+sort_json_attributes(UAttr) ->
+	F = fun(F, [{struct, Op} | T],  Acc) ->
+			{_, "replace"} = lists:keyfind("op", 1, Op),
+			{_, P} = lists:keyfind("path", 1, Op),
+			{_, V} = lists:keyfind("value", 1, Op),
+			[P1] = string:tokens(P, "/"),
+			F(F, T, [{P1, V} | Acc]);
+		(_, [], Acc) ->
+			Acc
+	end,
+	F(F, UAttr, []).
 
