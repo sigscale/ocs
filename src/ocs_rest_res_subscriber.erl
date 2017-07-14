@@ -194,20 +194,20 @@ patch_subscriber2(Id, Etag, "application/json", ReqBody, CurrPassword,
 	try
 		{struct, Object} = mochijson:decode(ReqBody),
 		{_, Type} = lists:keyfind("update", 1, Object),
-		{Password, RadAttr} = case Type of
+		{Password, RadAttr, NewEnabled} = case Type of
 			"attributes" ->
 		{_, {array, AttrJs}} = lists:keyfind("attributes", 1, Object),
 		NewAttributes = json_to_radius(AttrJs),
 		{_, Balance} = lists:keyfind("balance", 1, Object),
 		{_, EnabledStatus} = lists:keyfind("enabled", 1, Object),
 		ocs:update_attributes(Id, Balance, NewAttributes, EnabledStatus),
-		{CurrPassword, NewAttributes};
+		{CurrPassword, NewAttributes, EnabledStatus};
 			"password" ->
 		{_, NewPassword } = lists:keyfind("newpassword", 1, Object),
 		ocs:update_password(Id, NewPassword),
-		{NewPassword, CurrAttr}
+		{NewPassword, CurrAttr, Enabled}
 		end,
-		patch_subscriber3(Id, Etag, Password, RadAttr, Bal, Enabled)
+		patch_subscriber3(Id, Etag, Password, RadAttr, Bal, NewEnabled)
 	catch
 		_:_ ->
 			{error, 400}
