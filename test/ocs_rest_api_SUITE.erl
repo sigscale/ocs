@@ -1885,8 +1885,8 @@ update_subscriber_attributes_json_patch(Config) ->
 	NewEnabled = false,
 	NewBalance = 47398734,
 	NewAttributes = {array,[
-			{struct, [{name, "ascendDataRate"}, {value, 100000}]},
-			{struct, [{name, "ascendXmitRate"}, {value, 512000}]}]},
+			{struct, [{"name", "ascendDataRate"}, {"value", 100000}]},
+			{struct, [{"name", "ascendXmitRate"}, {"value", 512000}]}]},
 	JSON1 = {array, [
 			{struct, [{op, "replace"}, {path, "/balance"}, {value, NewBalance}]},
 			{struct, [{op, "replace"}, {path, "/attributes"}, {value, NewAttributes}]},
@@ -1916,7 +1916,7 @@ update_subscriber_attributes_json_patch(Config) ->
 	{"id", ID} = lists:keyfind("id", 1, Object1),
 	{_, URI} = lists:keyfind("href", 1, Object1),
 	{"password", Password} = lists:keyfind("password", 1, Object1),
-	{_, {array, NewAttributes}} = lists:keyfind("attributes", 1, Object1),
+	{_, NewAttributes} = lists:keyfind("attributes", 1, Object1),
 	{"balance", Balance} = lists:keyfind("balance", 1, Object1),
 	{"enabled", NewEnabled} = lists:keyfind("enabled", 1, Object1),
 	ok = ssl:close(SslSock).
