@@ -98,9 +98,10 @@ get_etag(Headers) ->
 do_patch(ContentType, Body, Resource, ModData, Etag,
 		["ocs", "v1", "client", Identity]) ->
 	do_response(ModData, Resource:patch_client(Identity, Etag, ContentType, Body));
-do_patch(_ContentType, Body, Resource, ModData, Etag,
+do_patch(ContentType, Body, Resource, ModData, Etag,
 		["ocs", "v1", "subscriber", Identity]) ->
-	do_response(ModData, Resource:patch_subscriber(Identity, Etag, Body));
+	do_response(ModData, Resource:patch_subscriber(Identity, Etag, ContentType,
+			Body));
 do_patch(_, _, _, _, _, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{break, [{response, {404, Response}}]}.
