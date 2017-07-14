@@ -1,10 +1,20 @@
+July 14 2017
+------------
+	- version 2.1
+	- UI internationalization (i18n)
+	- REST user management UI view
+	- TMF654 Prepay Balance Management API
+	- TMF632 Party Management API
+	- TMF635 Usage Management API
+
 May 15 2017
 ------------
-	- version change to 2.0
-	- add DIAMETER protocol support
-	- implement REST APIs to retrieve http, access, accounting logs
+	- version 2.0
+	- DIAMETER protocol support
+	- REST APIs to retrieve http, access, accounting logs
 
 March 14 2017
 ------------
-	- version change to 1.0
-	- implement autotools build
+	- version 1.0
+	- autotools build
+

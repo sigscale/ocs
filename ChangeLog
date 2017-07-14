@@ -1,3 +1,9 @@
+2017-07-14  Vance Shipley <vances@sigscale.org>
+
+	* ocs_log*.erl : add query support
+	* ocs_rest_res_user.erl : add rest user management
+	* ocs_rest_res_balance.erl : add balance management
+
 2017-05-15  Kalpa Gunarathna  <kalpa@sigscale.com>
 
 	* ocs_diameter*.erl : add DIAMETER protocol support 

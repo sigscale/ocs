@@ -311,17 +311,17 @@
 					if(this.$.loadPage.selected == 3) {
 						var data = document.getElementById("accessGrid").items;
 						csvObject.gridData = data;
-						csvObject.headers = "TimeStamp,UserName,ClientAddress,"
-								+ "ClientPort,Type\n";
-						csvObject.keys = ["timeStamp", "username", "clientAddress",
-								"clientPort", "type"];
+						csvObject.headers = "TimeStamp,ClientAddress,ClientIdentity,CalledStation,"
+								+ "UserName,Type\n";
+						csvObject.keys = ["timeStamp", "clientAddress", "nasIdentifier", "calledStation", 
+								"username", "type"];
 						csvObject.fileName = "access.csv";
 					}
 					if(this.$.loadPage.selected == 4) {
 						var data = document.getElementById("accountingGrid").items;
 						csvObject.gridData = data;
-						csvObject.headers = "TimeStamp,UserName,Type\n";
-						csvObject.keys = ["timeStamp", "username", "type"];
+						csvObject.headers = "TimeStamp,ClientIdentity,Duration,Out(bytes),In(bytes),Username,Type\n";
+						csvObject.keys = ["timeStamp", "nasIdentifier", "acctSessiontime", "acctOutputoctets", "acctInputoctets", "username", "type"];
 						csvObject.fileName = "accounting.csv";
 					}
 					if(this.$.loadPage.selected == 5) {
@@ -351,7 +351,11 @@
 					var dataLine = "";
 					csvObject.keys.forEach(
 						function(key, i) {
-							dataLine += row[key] + ",";
+							if(row[key] === undefined) {
+								dataLine = ",";
+							} else {
+								dataLine += row[key] + ",";
+							}
 						}
 					);
 					dataLine += "\n";
