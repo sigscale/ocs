@@ -1917,7 +1917,7 @@ update_subscriber_attributes_json_patch(Config) ->
 	{_, URI} = lists:keyfind("href", 1, Object1),
 	{"password", Password} = lists:keyfind("password", 1, Object1),
 	{_, NewAttributes} = lists:keyfind("attributes", 1, Object1),
-	{"balance", Balance} = lists:keyfind("balance", 1, Object1),
+	{"balance", NewBalance} = lists:keyfind("balance", 1, Object1),
 	{"enabled", NewEnabled} = lists:keyfind("enabled", 1, Object1),
 	ok = ssl:close(SslSock).
 
