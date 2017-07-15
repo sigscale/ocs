@@ -196,12 +196,11 @@ wait(Interval) ->
 		Interval :: pos_integer().
 %% @doc Rotate must be a divisor of one day.
 %% @hidden
-round_up(Rotate) when Rotate > 1440 ->
+round_up(Rotate) when Rotate =< 1440 ->
 	1440;
-round_up(Rotate) when (1440 rem Rotate) =:= 0 ->
-	Rotate;
 round_up(Rotate) ->
-	round_up(Rotate + 1).
+	Days = Rotate div 1440,
+	Days * 1440.
 
 -spec previous(Interval) -> {Start, End}
 	when
