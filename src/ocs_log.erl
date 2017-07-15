@@ -168,7 +168,7 @@ acct_query({{_, _, _}, {_, _, _}} = Start, End, Protocol, Types, AttrsMatch) ->
 	acct_query(Seconds * 1000, End, Protocol, Types, AttrsMatch);
 acct_query(Start, {{_, _, _}, {_, _, _}} = End, Protocol, Types, AttrsMatch) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
-	acct_query(Start, Seconds * 1000, Protocol, Types, AttrsMatch);
+	acct_query(Start, Seconds * 1000 + 999, Protocol, Types, AttrsMatch);
 acct_query(Start, End, Protocol, Types, AttrsMatch)
 		when is_integer(Start), is_integer(End) ->
 	acct_query(Start, End, Protocol, Types, AttrsMatch,
@@ -346,7 +346,7 @@ auth_query({{_, _, _}, {_, _, _}} = Start, End, Protocol, Types,
 auth_query(Start, {{_, _, _}, {_, _, _}} = End, Protocol, Types,
 		ReqAttrsMatch, RespAttrsMatch) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
-	auth_query(Start, Seconds * 1000, Protocol, Types,
+	auth_query(Start, Seconds * 1000 + 999, Protocol, Types,
 			ReqAttrsMatch, RespAttrsMatch);
 auth_query(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch)
 		when is_integer(Start), is_integer(End) ->
@@ -477,7 +477,7 @@ ipdr_log(File, {{_, _, _}, {_, _, _}} = Start, End) ->
 	ipdr_log(File, Seconds * 1000, End);
 ipdr_log(File, Start, {{_, _, _}, {_, _, _}} = End) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
-	ipdr_log(File, Start, Seconds * 1000);
+	ipdr_log(File, Start, Seconds * 1000 + 999);
 ipdr_log(File, Start, End) when is_list(File),
 		is_integer(Start), is_integer(End) ->
 	case disk_log:open([{name, File}, {file, File}, {repair, truncate}]) of
@@ -682,7 +682,7 @@ get_range(Log, {{_, _, _}, {_, _, _}} = Start, End) ->
 	get_range(Log, Seconds * 1000, End);
 get_range(Log, Start, {{_, _, _}, {_, _, _}} = End) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
-	get_range(Log, Start, Seconds * 1000);
+	get_range(Log, Start, Seconds * 1000 + 999);
 get_range(Log, Start, End) when is_integer(Start), is_integer(End) ->
 	get_range(Log, Start, End, start).
 
