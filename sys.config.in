@@ -10,6 +10,7 @@
                {acct,
                      [{{0,0,0,0}, 3869, []}]}]},
       {acct_log_rotate, 1440},
+      {acct_log_rotate_time, {4,4,4}},
       {acct_log_dir, "log/acct"},
       {auth_log_dir, "log/auth"},
       {ipdr_log_dir, "log/ipdr"},

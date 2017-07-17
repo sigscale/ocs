@@ -96,7 +96,12 @@
 							newRecord.usageSpecificationName = results[index].usageSpecification.name;
 							results[index].usageCharacteristic.forEach(
 								function(attrObj) {
-									newRecord[attrObj.key] = attrObj.value;
+									if(attrObj.value == "undefined") {
+										attrObj.value = '';
+										newRecord[attrObj.key] = attrObj.value;
+									} else {
+										newRecord[attrObj.key] = attrObj.value;
+									}
 								}
 							);
 							vaadinItems[index] = newRecord;

@@ -29,6 +29,7 @@
 
 -record(state,
 			{interval :: pos_integer(),
+			schedule :: calendar:time(),
 			dir :: string()}).
 -type state() :: #state{}.
 
@@ -56,24 +57,27 @@
 %% @doc Initialize the {@module} server.
 %% @see //stdlib/gen_server:init/1
 %% @private
-%%
-init([Rotate] = _Args) when is_integer(Rotate), Rotate > 0 ->
+%% @todo Allow intervals shorter than one day.
+init([ScheduledTime, Interval] = _Args) when
+		is_tuple(ScheduledTime), size(ScheduledTime) =:= 3,
+		is_integer(Interval), Interval > 0 ->
 	process_flag(trap_exit, true),
-	Interval = case round_up(Rotate) of
-		Rotate ->
-			Rotate;
+	NewInterval = case round_up(Interval) of
+		Interval ->
+			Interval;
 		I ->
 			error_logger:warning_report(["Using sane log rotation interval",
-					{rotate, Rotate}, {interval, I}]),
+					{rotate, Interval}, {interval, I}]),
 			I
 	end,
 	{ok, Directory} = application:get_env(ipdr_log_dir),
-	State = #state{interval = Interval, dir = Directory},
+	State = #state{interval = NewInterval,
+			schedule = ScheduledTime, dir = Directory},
 	case file:make_dir(Directory) of
 		ok ->
-			{ok, State, wait(Interval)};
+			{ok, State, wait(ScheduledTime, NewInterval)};
 		{error, eexist} ->
-			{ok, State, wait(Interval)};
+			{ok, State, wait(ScheduledTime, NewInterval)};
 		{error, Reason} ->
 			{stop, Reason}
 	end.
@@ -133,17 +137,18 @@ handle_cast(stop, State) ->
 %% @see //stdlib/gen_server:handle_info/2
 %% @private
 %%
-handle_info(timeout, #state{interval = Interval, dir = Directory} = State) ->
+handle_info(timeout, #state{interval = Interval,
+		schedule = ScheduledTime, dir = Directory} = State) ->
 	Time = erlang:system_time(?MILLISECOND),
 	FileName = Directory ++ "/" ++ ocs_log:iso8601(Time),
 	{Start, End} = previous(Interval),
 	case ocs_log:ipdr_log(FileName, Start, End) of
 		ok ->
-			{noreply, State, wait(Interval)};
+			{noreply, State, wait(ScheduledTime, Interval)};
 		{error, Reason} ->
 			error_logger:error_report("Failed to create log",
 					[{module, ?MODULE}, {file, FileName}, {reason, Reason}]),
-			{noreply, State, wait(Interval)}
+			{noreply, State, wait(ScheduledTime, Interval)}
 	end.
 
 -spec terminate(Reason, State) -> any()
@@ -176,32 +181,33 @@ code_change(_OldVsn, State, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec wait(Interval) -> Timeout
+-spec wait(ScheduledTime, Interval) -> Timeout
 	when
+		ScheduledTime :: calendar:time(),
 		Interval :: pos_integer(),
 		Timeout :: timeout().
-%% @doc Calculate time until start of next interval.
+%% @doc Calculate time until next scheduled rotation.
 %% @hidden
-wait(Interval) ->
+wait(ScheduledTime, Interval) ->
 	{Date, Time} = erlang:universaltime(),
-	Midnight = calendar:datetime_to_gregorian_seconds({Date, {0, 0, 0}}),
-	Now  = calendar:datetime_to_gregorian_seconds({Date, Time}),
-	I = Interval * 60,
-	Guard = 30,
-	(I - ((Now - Midnight) rem I) + Guard) * 1000.
+	Today = calendar:date_to_gregorian_days(Date),
+	Period = Interval div 1440,
+	ScheduleDay = calendar:gregorian_days_to_date(Today + Period),
+	Next = {ScheduleDay, ScheduledTime},
+	Now = calendar:datetime_to_gregorian_seconds({Date, Time}),
+	(calendar:datetime_to_gregorian_seconds(Next) - Now) * 1000.
 
--spec round_up(Rotate) -> Interval
+-spec round_up(Interval) -> Interval
 	when
-		Rotate :: pos_integer(),
+		Interval :: pos_integer(),
 		Interval :: pos_integer().
-%% @doc Rotate must be a divisor of one day.
+%% @doc Interval must be a divisor of one day.
 %% @hidden
-round_up(Rotate) when Rotate > 1440 ->
+round_up(Interval) when Interval =< 1440 ->
 	1440;
-round_up(Rotate) when (1440 rem Rotate) =:= 0 ->
-	Rotate;
-round_up(Rotate) ->
-	round_up(Rotate + 1).
+round_up(Interval) ->
+	Days = Interval div 1440,
+	Days * 1440.
 
 -spec previous(Interval) -> {Start, End}
 	when
@@ -211,22 +217,12 @@ round_up(Rotate) ->
 %% @doc Find start of previous interval.
 %% @hidden
 previous(Interval) when is_integer(Interval) ->
-	{Date, Time} = erlang:universaltime(),
-	Midnight = calendar:datetime_to_gregorian_seconds({Date, {0, 0, 0}}),
-	Now = calendar:datetime_to_gregorian_seconds({Date, Time}),
-	previous(Interval, Date, Midnight, Now).
-%% @hidden
-previous(Interval, _, Midnight, Now)
-		when Now - Midnight < (Interval * 60) ->
-	S = Midnight - (Interval * 60),
-	{SD, {SH, SM, _}} = calendar:gregorian_seconds_to_datetime(S),
-	{{SD, {SH, SM, 0}}, {SD, {23, 59, 59}}};
-previous(Interval, Date, Midnight, Now) ->
-	I = Interval * 60,
-	P = Now - I,
-	Start = P - ((P - Midnight) rem I),
-	End = Start + I - 1,
-	{_, {SH, SM, _}} = calendar:gregorian_seconds_to_datetime(Start),
-	{_, {EH, EM, _}} = calendar:gregorian_seconds_to_datetime(End),
-	{{Date, {SH, SM, 0}}, {Date, {EH, EM, 59}}}.
+	IntervalDays = Interval div 1440,
+	{Date, _Time} = erlang:universaltime(),
+	Today = calendar:date_to_gregorian_days(Date),
+	StartDay = Today - IntervalDays,
+	Start = {calendar:gregorian_days_to_date(StartDay), {0, 0, 0}},
+	Yesterday = Today - 1,
+	End = {calendar:gregorian_days_to_date(Yesterday), {23, 59, 59}},
+	{Start, End}.
 

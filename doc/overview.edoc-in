@@ -1385,7 +1385,7 @@ Content-Length: nn
 	</tr>
 </table>
 <p>Example request:<pre>
-PATCH /partyManagement/v1/individual/john HTTP/1.1
+PUT /partyManagement/v1/individual/john HTTP/1.1
 Content-type: application/json
 Accept: application/json
 {
@@ -1412,15 +1412,15 @@ Content-Type: application/json
 Content-Length: 315
 
 {
- "id":"johnny",
+ "id":"jim",
  "characteristic": [
           {
                "name": "username",
-               "value": "johnny"
+               "value": "jim"
           },
           {
                "name": "password",
-               "value": "johnny"
+               "value": "jim"
           },
           {
                "name": "locale",
@@ -1499,6 +1499,8 @@ The {@link //ocs. ocs} application is configured using the following environment
 		<dd>Number of accounting log files.</dd>
 	<dt>acct_log_rotate</dt>
 		<dd>Duration between IPDR logging.</dd>
+	<dt>acct_log_rotate_time</dt>
+		<dd>Time for IPDR log rotation: {H, M, S}.</dd>
 	<dt>acct_log_size</dt>
 		<dd>Size in bytes of accounting log files.</dd>
 	<dt>auth_log_dir</dt>
