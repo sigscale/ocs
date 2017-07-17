@@ -102,11 +102,20 @@ do_patch(ContentType, Body, Resource, ModData, Etag,
 		["ocs", "v1", "subscriber", Identity]) ->
 	do_response(ModData, Resource:patch_subscriber(Identity, Etag, ContentType,
 			Body));
+do_patch(ContentType, Body, Resource, ModData, Etag,
+		["partyManagement", "v1", "individual", Identity]) ->
+	do_response(ModData, Resource:patch_user(Identity, Etag, ContentType,
+			Body));
 do_patch(_, _, _, _, _, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{break, [{response, {404, Response}}]}.
 
 %% @hidden
+do_response(ModData, {ok, Headers, []}) ->
+	Size = integer_to_list(iolist_size([])),
+	NewHeaders = [{content_length, Size} | Headers],
+	send(ModData, 204, NewHeaders, []),
+	{proceed,[{response,{already_sent,200, Size}}]};
 do_response(ModData, {ok, Headers, ResponseBody}) ->
 	Size = integer_to_list(iolist_size(ResponseBody)),
 	NewHeaders = [{content_length, Size} | Headers],
