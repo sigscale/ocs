@@ -145,7 +145,7 @@ all() ->
 	simultaneous_updates_on_subscriber_faliure,
 	simultaneous_updates_on_client_faliure, update_client_password_json_patch,
 	update_client_attributes_json_patch, update_subscriber_password_json_patch,
-	update_subscriber_attributes_json_patch].
+	update_subscriber_attributes_json_patch, update_user_characteristics_json_patch].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1919,6 +1919,80 @@ update_subscriber_attributes_json_patch(Config) ->
 	{_, NewAttributes} = lists:keyfind("attributes", 1, Object1),
 	{"balance", NewBalance} = lists:keyfind("balance", 1, Object1),
 	{"enabled", NewEnabled} = lists:keyfind("enabled", 1, Object1),
+	ok = ssl:close(SslSock).
+
+update_user_characteristics_json_patch() ->
+	[{userdata, [{doc,"Use HTTP PATCH to update users's characteristics using
+			json-patch media type"}]}].
+
+update_user_characteristics_json_patch(Config) ->
+	ContentType = "application/json",
+	ID = "ryan",
+	Username = "ryanstiles",
+	Password = "wliaycaducb46",
+	Locale = "en",
+	PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
+	LocaleAttr = {struct, [{"name", "locale"}, {"value", Locale}]},
+	UsernameAttr = {struct, [{"name", "username"}, {"value", Username}]},
+	CharArray = {array, [UsernameAttr, PasswordAttr, LocaleAttr]},
+	JSON = {struct, [{"id", ID}, {"characteristic", CharArray}]},
+	RequestBody = lists:flatten(mochijson:encode(JSON)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", ContentType},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request1 = {HostUrl ++ "/partyManagement/v1/individual", [Accept, Authentication], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	{_, Etag} = lists:keyfind("etag", 1, Headers),
+	true = is_etag_valid(Etag),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{"/partyManagement/v1/individual/" ++ ID, _} = httpd_util:split_path(URI),
+	{struct, Object} = mochijson:decode(ResponseBody),
+	{_, ID} = lists:keyfind("id", 1, Object),
+	{_, URI} = lists:keyfind("href", 1, Object),
+	{_, {array, _Characteristic}} = lists:keyfind("characteristic", 1, Object),
+	RestPort = ?config(port, Config),
+	{ok, SslSock} = ssl:connect({127,0,0,1}, RestPort,  [binary, {active, false}], infinity),
+	ok = ssl:ssl_accept(SslSock),
+	NewContentType = "application/json-patch+json",
+	NewUsername = "ryanstiles89",
+	NewPassword = ocs:generate_password(),
+	NewLocale = "es",
+	JSON1 = {array, [
+			{struct, [{op, "add"}, {path, "/characteristic/-/name"}, {value, "username"}]},
+			{struct, [{op, "add"}, {path, "/characteristic/-/value"}, {value, NewUsername}]},
+			{struct, [{op, "add"}, {path, "/characteristic/-/name"}, {value, "password"}]},
+			{struct, [{op, "add"}, {path, "/characteristic/-/value"}, {value, NewPassword}]},
+			{struct, [{op, "add"}, {path, "/characteristic/-/name"}, {value, "locale"}]},
+			{struct, [{op, "add"}, {path, "/characteristic/-/value"}, {value, NewLocale}]}]},
+	PatchBody = lists:flatten(mochijson:encode(JSON1)),
+	PatchBodyLen = size(list_to_binary(PatchBody)),
+	PatchUri = "/partyManagement/v1/individual/" ++ ID,
+	PatchReq = ["PATCH ", PatchUri, " HTTP/1.1",$\r,$\n,
+			"Content-Type:" ++ NewContentType, $\r,$\n, "Accept:application/json",$\r,$\n,
+			"If-match:" ++ Etag,$\r,$\n,"Authorization:"++ AuthKey,$\r,$\n,
+			"Host:localhost:" ++ integer_to_list(RestPort),$\r,$\n,
+			"Content-Length:" ++ integer_to_list(PatchBodyLen),$\r,$\n,
+			$\r, $\n,
+			PatchBody],
+	ok = ssl:send(SslSock, list_to_binary(PatchReq)),
+	Timeout = 3000,
+	F = fun(_F, _Sock, {error, timeout}, Acc) ->
+					lists:reverse(Acc);
+			(F, Sock, {ok, Bin}, Acc) ->
+					F(F, Sock, ssl:recv(Sock, 0, Timeout), [Bin | Acc])
+	end,
+	RecvBuf = F(F, SslSock, ssl:recv(SslSock, 0, Timeout), []),
+	PatchResponse = list_to_binary(RecvBuf),
+	[Headers1, <<>>] = binary:split(PatchResponse, <<$\r,$\n,$\r,$\n>>),
+	<<"HTTP/1.1 204", _/binary>> = Headers1,
 	ok = ssl:close(SslSock).
 
 %%---------------------------------------------------------------------
