@@ -254,7 +254,9 @@ put_user3(ID, Password, Locale) ->
 	{Port, Address, Directory, _Group} = get_params(),
 	case mod_auth:delete_user(ID, Address, Port, Directory) of
 		true ->
-			case mod_auth:add_user(ID, Password, [{locale, Locale}] , Address, Port, Directory) of
+			LM = {erlang:system_time(milli_seconds), erlang:unique_integer([positive])},
+			case mod_auth:add_user(ID, Password, [{locale, Locale}, {last_modified}],
+					Address, Port, Directory) of
 				true ->
 					Location = "/partyManagement/v1/individual/" ++ ID,
 					PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
@@ -263,7 +265,7 @@ put_user3(ID, Password, Locale) ->
 					RespObj = [{"id", ID}, {"href", Location}, {"characteristic", Char}],
 					JsonObj  = {struct, RespObj},
 					Body = mochijson:encode(JsonObj),
-					Headers = [{location, Location}],
+					Headers = [{location, Location}, {etag, etag(LM)}],
 					{ok, Headers, Body};
 				{error, _Reason} ->
 					{error, 500}
