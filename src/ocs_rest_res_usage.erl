@@ -115,7 +115,6 @@ get_usage("acct-" ++ _ = Id, [] = _Query) ->
 			end
 	end;
 get_usage(Id, [] = _Query) ->
-erlang:display({?MODULE, ?LINE, Id, _Query}),
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
 	FileName = Directory ++ "/" ++ Id,
@@ -215,16 +214,13 @@ get_ipdr(_Query) ->
 
 %% @hidden
 read_ipdr(FileName, MaxItems) ->
-erlang:display({?MODULE, ?LINE, FileName, MaxItems}),
 	case disk_log:open([{name, make_ref()}, {file, FileName},
 			{type, halt}, {size, infinity}]) of
 		{ok, Log} ->
-erlang:display({?MODULE, ?LINE, Log}),
 			read_ipdr1(Log, start, MaxItems, 0, []);
 		{repaired, Log, _Recovered, _Bad} ->
 			read_ipdr1(Log, start, MaxItems, 0, []);
 		{error, _Reason} ->
-erlang:display({?MODULE, ?LINE, _Reason}),
 			{error, 500}
 	end.
 
@@ -234,7 +230,6 @@ read_ipdr1(Log, Continuation, MaxItems, Count, Acc) ->
 		eof ->
 			read_ipdr2(Log, Count, Acc);
 		{Continuation2, Records} ->
-erlang:display({?MODULE, ?LINE, Records}),
 			case ipdr_to_json(Count, Records) of
 				{NewCount, JsonObj} when NewCount > MaxItems ->
 					{NewJsonObj, _} = lists:split(MaxItems - Count, lists:reverse(JsonObj)),
