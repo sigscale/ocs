@@ -127,9 +127,15 @@ do_response(_ModData, {error, 400}) ->
 do_response(_ModData, {error, 404}) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{break, [{response, {404, Response}}]};
+do_response(_ModData, {error, 409}) ->
+	Response = "<h2>HTTP Error 409 - Conflict</h2>",
+	{break, [{response, {409, Response}}]};
 do_response(_ModData, {error, 412}) ->
 	Response = "<h2>HTTP Error 412 - Precondition Failed</h2>",
 	{break, [{response, {412, Response}}]};
+do_response(_ModData, {error, 422}) ->
+	Response = "<h2>HTTP Error 422  - Unprocessable Entity</h2>",
+	{break, [{response, {422, Response}}]};
 do_response(_ModData, {error, 500}) ->
 	Response = "<h2>HTTP Error 500 - Server Error</h2>",
 	{break, [{response, {500, Response}}]}.
