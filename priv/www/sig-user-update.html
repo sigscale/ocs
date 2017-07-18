@@ -111,7 +111,8 @@
 		</paper-dialog>
 		<iron-ajax
 				id="UpdateUser"
-				headers='{"Accept": "application/json", "Content-type": "application/json"}'
+				method="PATCH"
+				headers='{"Accept": "application/json", "Content-type": "application/json-patch+json"}'
 				on-response="_userUpdateResponse"
 				handle-as="json">
 		</iron-ajax>
@@ -126,30 +127,41 @@
 				is: 'sig-user-update',
 				behaviors: [i18nMsgBehavior],
 				UpdateUser: function(event) {
-					var editAjax =  document.getElementById("UpdateUser");
-					editAjax.method = "PUT";
-					var user = new Object();
-					user.id = document.getElementById("update-user1").value;
-					editAjax.url = "/partyManagement/v1/individual/" + user.id;
-					var username = new Object();
-					username.name = "username";
-					username.value = document.getElementById("update-user1").value;
-					var password = new Object();
-					password.name = "password";
-					password.value = document.getElementById("update-user2").value;
-					var language = new Object();
-					language.name = "locale";
+					var id = document.getElementById("update-user1").value;
+					var editAjax = document.getElementById("UpdateUser");
+					editAjax.url = "/partyManagement/v1/individual/" + id;
+					var patch = new Array();
+					var grid = document.getElementById("UserGrid");
+					var language;
 					if (document.getElementById("add-userLo").selected == 0) {
-						language.value = "en";
+						language = "en";
 					} else if (document.getElementById("add-userLo").selected == 1) {
-						language.value = "es";
+						language = "es";
 					}
-					var characteristic = new Array();
-					characteristic[0] = username;
-					characteristic[1] = password;
-					characteristic[2] = language;
-					user.characteristic = characteristic;
-					editAjax.body = user;
+					var characteristic = grid.selectedItems[0].characteristic;
+					for (i = 0; i < characteristic.length; i++) {
+						if (characteristic[i].name == "locale") {
+							if (characteristic[i].value != language) {
+								op0 = new Object();
+								op0.op = "replace";
+								op0.path = "/characteristic/" + i.toString();
+								op0.value = new Object();
+								op0.value.name = "locale";
+								op0.value.value = language;
+								patch.push(op0);
+							}
+						}
+					}
+					if (document.getElementById("update-user2").value) {
+						op1 = new Object();
+						op1.op = "add";
+						op1.path = "/characteristic/-";
+						op1.value = new Object();
+						op1.value.name = "password";
+						op1.value.value = document.getElementById("update-user2").value;
+						patch.push(op1);
+					}
+					editAjax.body = JSON.stringify(patch);
 					editAjax.generateRequest();
 				},
 				_userUpdateResponse: function(event) {
