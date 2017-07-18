@@ -407,17 +407,23 @@ process_json_patch(Ops, ID) ->
 	process_json_patch1(Ops, ID, []).
 %% @hidden
 process_json_patch1([{struct, Attr}| T], ID, Acc) ->
-	{_, "add"} = lists:keyfind("op", 1, Attr),
-	{_, "/characteristic/-/" ++ A} = lists:keyfind("path", 1, Attr),
-	{_, V} = lists:keyfind("value", 1, Attr),
-	case A of
-		"name" when V == "username"; V == "password"; V == "locale"->
-			[{struct, A1}| T1] = T,
-			{_, "add"} = lists:keyfind("op", 1, A1),
-			{_, "/characteristic/-/value"} = lists:keyfind("path", 1, A1),
-			{_, V1} = lists:keyfind("value", 1, A1),
-			process_json_patch1(T1, ID, [{V, V1} | Acc]);
-		"value" ->
+	{_, "replace"} = lists:keyfind("op", 1, Attr),
+	{_, "/characteristic/" ++ I} = lists:keyfind("path", 1, Attr),
+	{_, {struct, Value}} = lists:keyfind("value", 1, Attr),
+	case I of
+		"0" ->
+			{_, "username"} = lists:keyfind("name", 1, Value),
+			{_, NewUserName} = lists:keyfind("value", 1, Value),
+			process_json_patch1(T, ID, [{"username", NewUserName} | Acc]);
+		"1" ->
+			{_, "password"} = lists:keyfind("name", 1, Value),
+			{_, NewPassword} = lists:keyfind("value", 1, Value),
+			process_json_patch1(T, ID, [{"password", NewPassword} | Acc]);
+		"2" ->
+			{_, "locale"} = lists:keyfind("name", 1, Value),
+			{_, NewLocale} = lists:keyfind("value", 1, Value),
+			process_json_patch1(T, ID, [{"locale", NewLocale} | Acc]);
+		_ ->
 			{error, 400}
 	end;
 process_json_patch1([], ID, Acc) ->
