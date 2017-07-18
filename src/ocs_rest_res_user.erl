@@ -21,7 +21,8 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0, get_params/0,
-		get_user/1, get_user/0, post_user/1, put_user/3, delete_user/1]).
+		get_user/1, get_user/0, post_user/1, put_user/3, patch_user/4,
+		delete_user/1]).
 
 -include_lib("radius/include/radius.hrl").
 -include_lib("inets/include/mod_auth.hrl").
@@ -32,7 +33,7 @@
 		ContentTypes :: list().
 %% @doc Provides list of resource representations accepted.
 content_types_accepted() ->
-	["application/json"].
+	["application/json", "application/json-patch+json"].
 
 -spec content_types_provided() -> ContentTypes
 	when
@@ -271,6 +272,67 @@ put_user3(ID, Password, Locale) ->
 			{error, 500}
 	end.
 
+-spec patch_user(ID, Etag, ContenType, ReqBody) -> Result
+	when
+		ID :: string(),
+		Etag :: undefined | list(),
+		ContenType :: string(),
+		ReqBody :: list(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()} .
+%% @doc	Respond to `PATCH /partyManagement/v1/individual/{id}' request and
+%% update an existing `user's characteristics.
+patch_user(ID, undefined, CType, ReqBody) ->
+	patch_user1(ID, undefined, CType, ReqBody);
+patch_user(ID, Etag, CType, ReqBody) ->
+	try
+		Etag1 = etag(Etag),
+		patch_user1(ID, Etag1, CType, ReqBody)
+	catch
+		_:_ ->
+			{error, 400}
+	end.
+%% @hidden
+patch_user1(ID, Etag, CType, ReqBody) ->
+	try
+		{array, Ops} = mochijson:decode(ReqBody),
+		case process_json_patch(Ops, ID) of
+			{error, Code} ->
+				{error, Code};
+			{Username, Password, Locale, LM} ->
+				case LM of
+					Etag ->
+						patch_user3(ID, CType, Username, Password, Locale);
+					_ ->
+						{error, 412}
+				end
+		end
+	catch
+		_:_ ->
+			{error, 400}
+	end.
+%% @hidden
+patch_user3(ID, "application/json-patch+json", Username, Password, Locale) ->
+	{Port, Address, Directory, _} = get_params(),
+	case mod_auth:delete_user(ID, Address, Port, Directory) of
+		true ->
+			LM = {erlang:system_time(milli_seconds),
+					erlang:unique_integer([positive])},
+			NewUserData = [{locale, Locale}, {last_modified, LM}],
+			case mod_auth:add_user(Username, Password, NewUserData , Address, Port,
+					Directory) of
+				true ->
+					Location = "/partyManagement/v1/individual/" ++ ID,
+					Headers = [{location, Location}, {etag, etag(LM)}],
+					{ok, Headers, []};
+				{error, _Reason} ->
+					{error, 500}
+			end;
+		{error, _Reason} ->
+			{error, 500}
+	end.
+
+
 -spec delete_user(Id) -> Result
 	when
 		Id :: string(),
@@ -285,7 +347,7 @@ delete_user(Id) ->
 			{ok, [], []};
 		{error, _Reason} ->
 			{error, 400}
-	end.        
+	end.
 
 %%----------------------------------------------------------------------
 %%  internal functions
@@ -322,4 +384,68 @@ etag(V) when is_list(V) ->
 etag(V) when is_tuple(V) ->
 	{TS, N} = V,
 	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
+
+-spec process_json_patch(Operations, ID) -> Result
+	when
+		Operations :: [{struct, OpObject}],
+		ID :: string(),
+		OpObject :: [{Key, Value}],
+		Key :: term(),
+		Value :: term(),
+		Result :: {Username, Password, Locale, LastModified} | {error, Code},
+		Username :: string(),
+		Password :: string(),
+		Locale :: string(),
+		LastModified :: {integer(), integer()},
+		Code :: integer().
+%% @doc Process a json-patch document and return list of characteristics
+%% for a user .
+%% @hidden
+process_json_patch(Ops, ID) ->
+	process_json_patch1(Ops, ID, []).
+%% @hidden
+process_json_patch1([{struct, Attr}| T], ID, Acc) ->
+	{_, "add"} = lists:keyfind("op", 1, Attr),
+	{_, "/characteristic/-/" ++ A} = lists:keyfind("path", 1, Attr),
+	{_, V} = lists:keyfind("value", 1, Attr),
+	case A of
+		"name" when V == "username"; V == "password"; V == "locale"->
+			[{struct, A1}| T1] = T,
+			{_, "add"} = lists:keyfind("op", 1, A1),
+			{_, "/characteristic/-/value"} = lists:keyfind("path", 1, A1),
+			{_, V1} = lists:keyfind("value", 1, A1),
+			process_json_patch1(T1, ID, [{V, V1} | Acc]);
+		"value" ->
+			{error, 400}
+	end;
+process_json_patch1([], ID, Acc) ->
+	{Port, Address, Directory, _} = get_params(),
+	case mod_auth:get_user(ID, Address, Port, Directory) of
+		{ok, #httpd_user{password = OPassword, user_data = UserData}} ->
+			{_, LastModified} = lists:keyfind(last_modified, 1, UserData),
+			{_, OLocale} = lists:keyfind(locale, 1, UserData),
+			Username = case lists:keyfind("username", 1, Acc) of
+				false ->
+					ID;
+				{_, NewUsername} ->
+					NewUsername
+			end,
+			Password = case lists:keyfind("password", 1, Acc) of
+				false ->
+					OPassword;
+				{_, NewPassword} ->
+					NewPassword
+			end,
+			Locale = case lists:keyfind("locale", 1, Acc) of
+				false ->
+					OLocale;
+				{_, NewLocale} ->
+					NewLocale
+			end,
+			{Username, Password, Locale, LastModified};
+		{error, no_such_user} ->
+			{error, 404};
+		{error, _Reason} ->
+			{error, 500}
+	end.
 

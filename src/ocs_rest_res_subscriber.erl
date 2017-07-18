@@ -22,7 +22,7 @@
 
 -export([content_types_accepted/0, content_types_provided/0,
 		get_subscriber/0, get_subscriber/1, post_subscriber/1,
-		patch_subscriber/3, delete_subscriber/1]).
+		patch_subscriber/4, delete_subscriber/1]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
@@ -32,7 +32,7 @@
 		ContentTypes :: list().
 %% @doc Provides list of resource representations accepted.
 content_types_accepted() ->
-	["application/json"].
+	["application/json", "application/json-patch+json"].
 
 -spec content_types_provided() -> ContentTypes
 	when
@@ -156,68 +156,91 @@ post_subscriber(RequestBody) ->
 			{error, 400}
 	end.
 
--spec patch_subscriber(Id, Etag, ReqBody) -> Result
+-spec patch_subscriber(Id, Etag, ContenType, ReqBody) -> Result
 	when
 		Id :: string(),
 		Etag :: undefined | list(),
+		ContenType :: string(),
 		ReqBody :: list(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()} .
 %% @doc	Respond to `PATCH /ocs/v1/subscriber/{id}' request and
 %% Updates a existing `subscriber''s password or attributes. 
-patch_subscriber(Id, undefined, ReqBody) ->
-	patch_subscriber1(Id, undefined, ReqBody);
-patch_subscriber(Id, Etag, ReqBody) ->
+patch_subscriber(Id, undefined, CType, ReqBody) ->
+	patch_subscriber1(Id, undefined, CType, ReqBody);
+patch_subscriber(Id, Etag, CType, ReqBody) ->
 	try
 		Etag1 = etag(Etag),
-		patch_subscriber1(Id, Etag1, ReqBody)
+		patch_subscriber1(Id, Etag1, CType, ReqBody)
 	catch
 		_:_ ->
 			{error, 400}
 	end.
 %% @hidden
-patch_subscriber1(Id, Etag, ReqBody) ->
+patch_subscriber1(Id, Etag, CType, ReqBody) ->
 	case ocs:find_subscriber(Id) of
-		{ok, CurrentPwd, CurrentAttr, Bal, Enabled, CurrentEtag}
+		{ok, CurrPassword, CurrAttr, Bal, Enabled, CurrentEtag}
 				when Etag == CurrentEtag; Etag == undefined ->
-			try 
-				{struct, Object} = mochijson:decode(ReqBody),
-				{_, Type} = lists:keyfind("update", 1, Object),
-				{Password, RadAttr} = case Type of
-					"attributes" ->
-						{_, {array, AttrJs}} = lists:keyfind("attributes", 1, Object),
-						NewAttributes = json_to_radius(AttrJs),
-						{_, Balance} = lists:keyfind("balance", 1, Object),
-						{_, EnabledStatus} = lists:keyfind("enabled", 1, Object),
-						ocs:update_attributes(Id, Balance, NewAttributes, EnabledStatus),
-						{CurrentPwd, NewAttributes};
-					"password" ->
-						{_, NewPassword } = lists:keyfind("newpassword", 1, Object),
-						ocs:update_password(Id, NewPassword),
-						{NewPassword, CurrentAttr}
-				end,
-				Attributes = {array, radius_to_json(RadAttr)},
-				RespObj =[{id, Id}, {href, "/ocs/v1/subscriber/" ++ Id},
-					{password, Password}, {attributes, Attributes}, {balance, Bal},
-					{enabled, Enabled}],
-				JsonObj  = {struct, RespObj},
-				RespBody = mochijson:encode(JsonObj),
-				Headers = case Etag of
-					undefined ->
-						[];
-					_ ->
-						[{etag, etag(Etag)}]
-				end,
-				{ok, Headers, RespBody}
-			catch
-				_:_Reason ->
-					{error, 400}
-			end;
+			patch_subscriber2(Id, Etag, CType, ReqBody, CurrPassword, CurrAttr,
+					Bal, Enabled);
 		{ok, _, _, _, _, _NonMatchingEtag} ->
 			{error, 412};
-		{error, _Reason} ->
+		{error, _} ->
 			{error, 404}
 	end.
+%% @hidden
+patch_subscriber2(Id, Etag, "application/json", ReqBody, CurrPassword,
+		CurrAttr, Bal, Enabled) ->
+	try
+		{struct, Object} = mochijson:decode(ReqBody),
+		{_, Type} = lists:keyfind("update", 1, Object),
+		{Password, RadAttr, NewEnabled} = case Type of
+			"attributes" ->
+				{_, {array, AttrJs}} = lists:keyfind("attributes", 1, Object),
+				NewAttributes = json_to_radius(AttrJs),
+				{_, Balance} = lists:keyfind("balance", 1, Object),
+				{_, EnabledStatus} = lists:keyfind("enabled", 1, Object),
+				ocs:update_attributes(Id, Balance, NewAttributes, EnabledStatus),
+				{CurrPassword, NewAttributes, EnabledStatus};
+			"password" ->
+				{_, NewPassword } = lists:keyfind("newpassword", 1, Object),
+				ocs:update_password(Id, NewPassword),
+				{NewPassword, CurrAttr, Enabled}
+		end,
+		patch_subscriber3(Id, Etag, Password, RadAttr, Bal, NewEnabled)
+	catch
+		_:_ ->
+			{error, 400}
+	end;
+patch_subscriber2(Id, Etag, "application/json-patch+json", ReqBody,
+		CurrPassword, CurrAttr, Bal, Enabled) ->
+	try
+		{array, OpList} = mochijson:decode(ReqBody),
+		CurrentValues = [{"password", CurrPassword}, {"balance", Bal},
+				{"attributes", CurrAttr}, {"enabled", Enabled}],
+		ValidOpList = validated_operations(OpList),
+		{NPwd, NBal, NAttr, NEnabled} =
+				execute_json_patch_operations(ValidOpList, Id, CurrentValues),
+		patch_subscriber3(Id, Etag, NPwd, NAttr, NBal, NEnabled)
+	catch
+		_:_ ->
+			{error, 400}
+	end.
+%% @hidden
+patch_subscriber3(Id, Etag, Password, RadAttr, Balance, Enabled) ->
+	Attributes = {array, radius_to_json(RadAttr)},
+	RespObj =[{id, Id}, {href, "/ocs/v1/subscriber/" ++ Id},
+		{password, Password}, {attributes, Attributes}, {balance, Balance},
+		{enabled, Enabled}],
+	JsonObj  = {struct, RespObj},
+	RespBody = mochijson:encode(JsonObj),
+	Headers = case Etag of
+		undefined ->
+			[];
+		_ ->
+			[{etag, etag(Etag)}]
+	end,
+	{ok, Headers, RespBody}.
 
 -spec delete_subscriber(Id) -> Result
 	when
@@ -333,4 +356,53 @@ etag(V) when is_list(V) ->
 etag(V) when is_tuple(V) ->
 	{TS, N} = V,
 	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
+
+%% @hidden
+-spec validated_operations(UnOrderAttributes) -> OrderedAtttibutes
+	when
+		UnOrderAttributes :: [{struct, [tuple()]}],
+		OrderedAtttibutes :: [tuple()].
+%% @doc Processes scrambled json attributes (with regard to
+%% https://tools.ietf.org/html/rfc6902#section-3) and return
+%% a list of key, value tuples.
+validated_operations(UAttr) ->
+	F = fun(F, [{struct, Op} | T],  Acc) ->
+			{_, "replace"} = lists:keyfind("op", 1, Op),
+			{_, P} = lists:keyfind("path", 1, Op),
+			{_, V} = lists:keyfind("value", 1, Op),
+			[P1] = string:tokens(P, "/"),
+			F(F, T, [{P1, V} | Acc]);
+		(_, [], Acc) ->
+			lists:reverse(Acc)
+	end,
+	F(F, UAttr, []).
+
+%% @doc Execute json-patch opearations and return resulting object's
+%% attributes.
+%% @hidden
+execute_json_patch_operations(OpList, ID, CValues) ->
+	F = fun(_, [{"password", V} | _], Acc) ->
+			{password, lists:keyreplace("password", 1, Acc, {"password", V})};
+		(F, [{"attributes", {array, V}} | T], Acc) ->
+			NV = json_to_radius(V),
+			NewAcc = lists:keyreplace("attributes", 1, Acc, {"attributes", NV}),
+			F(F, T, NewAcc);
+		(F, [{Path, V} | T], Acc) ->
+			NewAcc = lists:keyreplace(Path, 1, Acc, {Path, V}),
+			F(F, T, NewAcc);
+		(_, [], Acc) ->
+			{attributes, Acc}
+	end,
+	{Update, NValues} = F(F, OpList, CValues),
+	{_, NPwd} = lists:keyfind("password", 1, NValues),
+	{_, NAttr} = lists:keyfind("attributes", 1, NValues),
+	{_, NBal} = lists:keyfind("balance", 1, NValues),
+	{_, NEnabled} = lists:keyfind("enabled", 1, NValues),
+	case Update of
+		password ->
+			ocs:update_password(ID, NPwd);
+		attributes ->
+			ocs:update_attributes(ID, NBal, NAttr, NEnabled)
+	end,
+	{NPwd, NBal, NAttr, NEnabled}.
 

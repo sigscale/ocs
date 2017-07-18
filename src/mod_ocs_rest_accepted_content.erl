@@ -114,7 +114,8 @@ check_content_type_header(Headers, Method, Module, Data) ->
 			AcceptedTypes = Module:content_types_accepted(),
 			case lists:member(ProvidedType, AcceptedTypes) of
 				true ->
-					check_accept_header(Headers, Module, [{resource, Module} | Data]);
+					check_accept_header(Headers, Module, [{resource, Module},
+							{content_type,  ProvidedType} | Data]);
 				false ->
 					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
 					{break, [{response, {415, Response}}]}
