@@ -5,10 +5,13 @@
 <link rel="import" href="app-layout/app-drawer-layout/app-drawer-layout.html">
 <link rel="import" href="app-layout/app-drawer/app-drawer.html">
 <link rel="import" href="i18n-msg/i18n-msg.html">
+<link rel="import" href="i18n-msg/i18n-msg-behavior.html">
 <link rel="import" href="iron-pages/iron-pages.html">
 <link rel="import" href="iron-selector/iron-selector.html">
+<link rel="import" href="paper-input/paper-textarea.html" />
 <link rel="import" href="paper-menu/paper-menu.html"/>
 <link rel="import" href="paper-menu/paper-submenu.html" />
+<link rel="import" href="paper-menu-button/paper-menu-button.html" />
 <link rel="import" href="paper-item/paper-icon-item.html">
 <link rel="import" href="paper-icon-button/paper-icon-button.html">
 <link rel="import" href="paper-progress/paper-progress.html">
@@ -52,6 +55,14 @@
 			height: 100%;
 			top: 64px;
 		}
+		paper-dialog {
+			padding: 10px;
+			overflow: auto;
+		}
+		paper-toolbar{
+			color: white;
+			background-color: #bc5100;
+		}
 		paper-progress {
 			display: block;
 			width: 100%;
@@ -63,6 +74,28 @@
 		}
 		iron-icon {
 			padding-right: 10px;
+		}
+		.icon-style {
+			min-height: 10px;
+		}
+		.helpDialog {
+			position: fixed;
+			top: 35px;
+			right: 10px;
+			width: 300px;
+			overflow: auto;
+		}
+		.add-button {
+			background-color: var(--paper-lime-a700);
+			color: black;
+			width: 8em;
+		}
+		.cancel-button {
+			color: black;
+		}
+		.feedbackDia {
+			width: 300px;
+			overflow: auto;
 		}
 		.sublist paper-icon-item {
 			padding-left: 30px;
@@ -98,6 +131,11 @@
 							bottom-item
 							disabled="true">
 					</paper-progress>
+					<paper-icon-button
+							icon="icons:more-vert"
+							slot="dropdown-trigger"
+							on-click="help">
+					</paper-icon-button>
 				</app-toolbar>
 			</app-header>
 			<iron-pages
@@ -199,6 +237,257 @@
 				</app-drawer>
 			</app-drawer-layout>
 		</app-header-layout>
+		<paper-dialog id="helpDrop"
+			class="helpDialog">
+		<paper-menu>
+			<paper-submenu>
+			<paper-icon-item
+				class="menu-trigger menuitem">
+				<iron-icon icon="communication:business" item-icon></iron-icon>
+					<i18n-msg msgid="contact">
+						Contact us
+					</i18n-msg>
+			</paper-icon-item>
+				<paper-menu class="menu-content sublist">	
+					<paper-icon-item
+						class="menu-trigger menuitem">
+						<iron-icon icon="communication:call" item-icon></iron-icon>
+							<a href="tel:+94771231660">+94771231660</a>
+						</paper-icon-item>
+					<paper-icon-item
+						class="menu-trigger menuitem">
+						<iron-icon icon="communication:email" item-icon></iron-icon>
+						<a href="mailto:info@sigscale.org">info@sigscale.org</a>
+					</paper-icon-item>
+				</paper-menu>
+			</paper-submenu>
+			<paper-icon-item
+				class="menu-trigger menuitem">
+				<iron-icon icon="icons:feedback" item-icon></iron-icon>
+					<a target="_blank" href="https://sigscale.atlassian.net/secure/CreateIssue!default.jspa?pid=10100">
+						[[i18n.sendFeed]]
+					</a>
+			</paper-icon-item>
+			<paper-icon-item
+				class="menu-trigger menuitem"
+				on-click="helpId">
+					<iron-icon icon="icons:help" item-icon></iron-icon>
+						<i18n-msg msgid="help">
+							Help
+						<i18n-msg>
+			</paper-icon-item>
+			<paper-icon-item
+				class="menu-trigger menuitem"
+				on-click="about">
+					<iron-icon icon="icons:error" item-icon></iron-icon>
+						<i18n-msg msgid="about">
+							About
+						</i18n-msg>
+			</paper-icon-item>
+		</paper-menu>
+		</paper-dialog>
+		<paper-dialog 
+			id="helpFaq">
+			<paper-toolbar>
+				<h2>[[i18n.help]]</h2>
+			</paper-toolbar>
+			<paper-icon-item
+				class="icon-style"
+				on-click="addSubQue">
+					<iron-icon icon="icons:assignment" item-icon></iron-icon>
+						<i18n-msg msgid="subs">
+							Subscribers
+						</i18n-msg>
+			</paper-icon-item>
+			<paper-icon-item
+				class="icon-style"
+				on-click="addClientQue">
+					<iron-icon icon="icons:assignment" item-icon></iron-icon>
+						<i18n-msg msgid="clients">
+							Clients
+						</i18n-msg>
+			</paper-icon-item>
+			<paper-icon-item
+				class="icon-style"
+				on-click="viewLogQue">
+					<iron-icon icon="icons:assignment" item-icon></iron-icon>
+						<i18n-msg msgid="logs">
+							Logs
+						</i18n-msg>
+			</paper-icon-item>
+			<paper-icon-item
+				class="icon-style"
+				on-click="addUserQue">
+					<iron-icon icon="icons:assignment" item-icon></iron-icon>
+						<i18n-msg msgid="users">
+							Users
+						</i18n-msg>
+			</paper-icon-item>
+			<paper-icon-item
+				class="icon-style"
+				on-click="downQue">
+					<iron-icon icon="icons:assignment" item-icon></iron-icon>
+						<i18n-msg msgid="tool">
+							Toolbar
+						</i18n-msg>
+			</paper-icon-item>
+		</paper-dialog>
+		<paper-dialog id="helpAddclient">
+			<paper-toolbar>
+			<paper-icon-item
+					class="menu-trigger menuitem"
+					on-click="helpBack">
+				<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
+			</paper-icon-item>
+				<h2>[[i18n.help]]</h2>
+			</paper-toolbar>
+			<paper-icon-item
+					class="menu-trigger menuitem">
+				<iron-icon icon="icons:assignment" item-icon></iron-icon>
+					<h2>[[i18n.clients]]</h2>
+			</paper-icon-item>
+					<p><b>How to add a client?</b><br>
+					Click the green Plus button. Enter the details correctly.
+					If you click generate checkbox secret will be generate automatically 
+					for you or you can give your desire secret<br><br>
+					<b>How to update a client?</b><br>
+					When you click on the client which need to be update
+					there is a update window will appear. There you can see
+					Authentication and authorization tab. Fill whatever field<br>
+					need to update there<br><br>
+					<b>How to delete a client?</b><br>
+					When you click the record which need to be update
+					there is a update will appear. in that update dialog there is a
+					delete button. if you press that client will be delete</p>
+		</paper-dialog>
+		<paper-dialog id="helpAddsub">
+			<paper-toolbar>
+			<paper-icon-item
+					class="menu-trigger menuitem"
+					on-click="helpBack">
+				<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
+			</paper-icon-item>
+				<h2>[[i18n.help]]</h2>
+			</paper-toolbar>
+			<paper-icon-item
+					class="menu-trigger menuitem">
+				<iron-icon icon="icons:assignment" item-icon></iron-icon>
+					<h2>[[i18n.subs]]</h2>
+			</paper-icon-item>
+					<p><b>How to add a subscriber?</b><br>
+					Click the green Plus button. Enter the details correctly.
+					If you click generate checkboxes identity, password will be
+					generate automatically for you or you can give your desire Identity
+					and Password.<br>
+					Balance cant be a negative number. It must be a positive number<br><br>
+					<b>How to update a subscriber?</b><br>
+					When you click on the subscriber which need to be update
+					there is a update window will appear. There you can see Authentication
+					and authorization tab. Fill whatever field need to update there<br><br>
+					<b>How to delete a subscriber?</b><br>
+					When you click on the subscriber which need to be update
+					there is a update will appear. in that update dialog there is a delete button.
+					if you press that subscriber will be delete</p>
+		</paper-dialog>
+		<paper-dialog id="helpAdduser">
+			<paper-toolbar>
+			<paper-icon-item
+					class="menu-trigger menuitem"
+					on-click="helpBack">
+				<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
+			</paper-icon-item>
+				<h2>[[i18n.help]]</h2>
+			</paper-toolbar>
+			<paper-icon-item
+					class="menu-trigger menuitem">
+				<iron-icon icon="icons:assignment" item-icon></iron-icon>
+					<h2>[[i18n.users]]</h2>
+			</paper-icon-item>
+					<p><b>How to add a user?</b><br>
+					Click the green Plus button. Enter the details correctly.
+					You can select your prefer language es(spanish), en(English)<br><br>
+					<b>How to update a user?</b><br>
+					When you click on the user which need to be update
+					there is a update window will appear. Fill whatever field need
+					to update there<br><br>
+					<b>How to delete a user?</b><br>
+					When you click on the subscriber which need to be update
+					there is a update will appear. in that update dialog there is a delete button.
+					if you press that user will be delete</p>
+		</paper-dialog>
+		<paper-dialog id="viewLogs">
+			<paper-toolbar>
+			<paper-icon-item
+					class="menu-trigger menuitem"
+					on-click="helpBack">
+				<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
+			</paper-icon-item>
+				<h2>[[i18n.help]]</h2>
+			</paper-toolbar>
+			<paper-icon-item
+					class="menu-trigger menuitem">
+				<iron-icon icon="icons:assignment" item-icon></iron-icon>
+					<h2>[[i18n.logs]]</h2>
+			</paper-icon-item>
+					<p><b>How to view access log?</b><br>
+					Press the menu button. Then one navigation panel will
+					swipe in for you. From that panel there is a item called Logs.
+					When you press that few submenus will be appear. There you can
+					see Access log. You can view time, address, identity, username,
+					type ant etc from the access log.<br><br>
+					<b>How to view accounting log?</b><br>
+					Press the menu button. Then one navigation panel will
+					swipe in for you. From that panel there is a item called Logs.
+					When you press that few submenus will be appear. There you can
+					see Accounting log. You can view time, identity, duration, in/out (bytes),
+					username, type and etc from the access log.<br><br>
+					<b>How to view IPDR log?</b><br>
+					Press the menu button. Then one navigation panel will
+					swipe in for you. From that panel there is a item called Logs.
+					When you press that few submenus will be appear. There you can see IPDR log.
+					If you click IPDR there is a dialog will popup with lists of IPDR Logs.
+					From that list you can choose your required log file according to the date.
+					IPDR log contains creation time, username, Station Ids, Nas Address and Id,
+					Start/End time, cause.<br><br>
+					<b>How to view HTTP log?</b><br>
+					Press the menu button. Then one navigation panel will
+					swipe in for you. From that panel there is a item called Logs.
+					When you press that few submenus will be appear. There you can see
+					HTTP log. You can view Datetime, host, username, Method, Resource, Status.</p> 
+		</paper-dialog>
+		<paper-dialog id="downCsv">
+			<paper-toolbar>
+			<paper-icon-item
+					class="menu-trigger menuitem"
+					on-click="helpBack">
+				<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
+			</paper-icon-item>
+				<h2>[[i18n.help]]</h2>
+			</paper-toolbar>
+			<paper-icon-item
+					class="menu-trigger menuitem">
+				<iron-icon icon="icons:assignment" item-icon></iron-icon>
+					<h2>[[i18n.tool]]</h2>
+			</paper-icon-item>
+					<p><b>How to download files?</b><br>
+					There is a download icon in top left side of the page. Open the
+					tab you need to download then simply press download button. It will download
+					CSV files to your computer.<br>
+					ex: open Access logs then click download icon<br><br>
+					<b>How to refresh?</b><br>
+					Just click refresh icon which is placed near to download button. It will  
+					refresh the data and get latest data.</p>
+		</paper-dialog>
+		<paper-dialog id="aboutHelp">
+			<paper-toolbar>
+				<h2>[[i18n.about]]</h2>
+			</paper-toolbar>
+			<p>Online Charging System (OCS)<br>
+			Version %VERSION%<br>
+			Copyright 2017 SigScale Global Inc.<br>
+			Apache License Version 2.0<br>
+			<a href="http://www.sigscale.org">www.sigscale.org</a></p>
+		</paper-dialog>
 		<!--Modal Definitions-->
 		<sig-sub-add></sig-sub-add>
 		<sig-sub-update></sig-sub-update>
@@ -216,8 +505,57 @@
 		Polymer (
 			{
 				is: 'sig-app',
+				behaviors: [i18nMsgBehavior],
 				listeners: {
 					'pageSelection.iron-select': 'loadElement'
+				},
+				help: function(element) {
+					helpDrop.positionTarget = element;
+					helpDrop.open();
+				},
+				about: function(event) {
+					document.getElementById("helpDrop").close();
+					var aboutObj = document.getElementById("aboutHelp");
+					aboutObj.open();
+				},
+				helpId: function(event) {
+					document.getElementById("helpDrop").close();
+					var helpObj = document.getElementById("helpFaq");
+					helpObj.open();
+				},
+				addClientQue: function(event) {
+					document.getElementById("helpFaq").close();
+					var queObj = document.getElementById("helpAddclient");
+					queObj.open();
+				},
+				addSubQue: function(event) {
+					document.getElementById("helpFaq").close();
+					var queObj = document.getElementById("helpAddsub");
+					queObj.open();
+				},
+				addUserQue: function(event) {
+					document.getElementById("helpFaq").close();
+					var queObj = document.getElementById("helpAdduser");
+					queObj.open();
+				},
+				viewLogQue: function(event) {
+					document.getElementById("helpFaq").close();
+					var queObj = document.getElementById("viewLogs");
+					queObj.open();
+				},
+				downQue: function(event) {
+					document.getElementById("helpFaq").close();
+					var queObj = document.getElementById("downCsv");
+					queObj.open();
+				},
+				helpBack: function(event) {
+					document.getElementById("helpAddclient").close();
+					document.getElementById("helpAddsub").close();
+					document.getElementById("helpAdduser").close();
+					document.getElementById("viewLogs").close();
+					document.getElementById("downCsv").close();
+					var backObj = document.getElementById("helpFaq");
+					backObj.open();
 				},
 				loadElement: function(event) {
 					switch(event.detail.item.getAttribute('id')) {

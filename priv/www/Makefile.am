@@ -38,3 +38,6 @@ install-data-local:
 clean-local:
 	-rm -rf bower_components
 
+sig-app.html: sig-app.html-in
+	sed -e 's!%VERSION%!$(VERSION)!' < $< > $@
+
