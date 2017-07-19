@@ -28,6 +28,10 @@
 -include_lib("inets/include/mod_auth.hrl").
 -include("ocs.hrl").
 
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
+
 -spec content_types_accepted() -> ContentTypes
 	when
 		ContentTypes :: list().
@@ -101,7 +105,12 @@ get_user(Id) ->
 					LocaleAttr = {struct, [{"name", "locale"}, {"value", "en"}]},
 					{array, [Identity, LocaleAttr]}
 			end,
-			{_, LastModified} = lists:keyfind(last_modified, 1, UserData),
+			LastModified = case lists:keyfind(last_modified, 1, UserData) of
+				{_, LM} ->
+					LM;
+				false ->
+					{erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])}
+			end,
 			RespObj = [{"id", Id}, {"href", "/partyManagement/v1/individual/" ++ Id},
 				{"characteristic", Characteristic}],
 			JsonObj  = {struct, RespObj},
@@ -125,23 +134,23 @@ post_user(RequestBody) ->
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, ID} = lists:keyfind("id", 1, Object),
 		{_, {array, Characteristic}} = lists:keyfind("characteristic", 1, Object),
-			F1 = fun(_F, [{struct, [{"name", "password"}, {"value", Pass}]} | _]) ->
-						Pass;
-					(_F, [{struct, [{"value", Pass}, {"name", "password"}]} | _]) ->
-						Pass;
-					(F, [_ | T]) ->
-						F(F,T)
-			end,
+		F1 = fun(_F, [{struct, [{"name", "password"}, {"value", Pass}]} | _]) ->
+					Pass;
+				(_F, [{struct, [{"value", Pass}, {"name", "password"}]} | _]) ->
+					Pass;
+				(F, [_ | T]) ->
+					F(F,T)
+		end,
 		Password = F1(F1, Characteristic),
-			F2 = fun(_F, [{struct, [{"name", "locale"}, {"value", Locale}]} | _]) ->
-						Locale;
-					(_F, [{struct, [{"value", Locale}, {"name", "locale"}]} | _]) ->
-						Locale;
-					(F, [_ | T]) ->
-						F(F,T)
-			end,
+		F2 = fun(_F, [{struct, [{"name", "locale"}, {"value", Locale}]} | _]) ->
+					Locale;
+				(_F, [{struct, [{"value", Locale}, {"name", "locale"}]} | _]) ->
+					Locale;
+				(F, [_ | T]) ->
+					F(F,T)
+		end,
 		Locale = F2(F2, Characteristic),
-		LastModified = {erlang:system_time(milli_seconds),
+		LastModified = {erlang:system_time(?MILLISECOND),
 				erlang:unique_integer([positive])},
 		case mod_auth:add_user(ID, Password, [{locale, Locale},
 				{last_modified, LastModified}] , Address, Port, Directory) of
@@ -255,7 +264,7 @@ put_user3(ID, Password, Locale) ->
 	{Port, Address, Directory, _Group} = get_params(),
 	case mod_auth:delete_user(ID, Address, Port, Directory) of
 		true ->
-			LM = {erlang:system_time(milli_seconds), erlang:unique_integer([positive])},
+			LM = {erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])},
 			case mod_auth:add_user(ID, Password, [{locale, Locale}, {last_modified}],
 					Address, Port, Directory) of
 				true ->
@@ -292,7 +301,7 @@ patch_user(ID, Etag, CType, ReqBody) ->
 		Etag1 = etag(Etag),
 		patch_user1(ID, Etag1, CType, ReqBody)
 	catch
-		_:_ ->
+		_:_Reason ->
 			{error, 400}
 	end.
 %% @hidden
@@ -302,27 +311,27 @@ patch_user1(ID, Etag, CType, ReqBody) ->
 		case process_json_patch(Ops, ID) of
 			{error, Code} ->
 				{error, Code};
-			{Username, Password, Locale, LM} ->
+			{ID, Password, Locale, LM} ->
 				case LM of
 					LM when Etag == LM; Etag == undefined->
-						patch_user3(ID, CType, Username, Password, Locale);
+						patch_user2(ID, CType, Password, Locale);
 					_ ->
 						{error, 412}
 				end
 		end
 	catch
-		_:_ ->
+		_:_Reason ->
 			{error, 400}
 	end.
 %% @hidden
-patch_user3(ID, "application/json-patch+json", Username, Password, Locale) ->
+patch_user2(ID, "application/json-patch+json", Password, Locale) ->
 	{Port, Address, Directory, _} = get_params(),
 	case mod_auth:delete_user(ID, Address, Port, Directory) of
 		true ->
-			LM = {erlang:system_time(milli_seconds),
+			LM = {erlang:system_time(?MILLISECOND),
 					erlang:unique_integer([positive])},
 			NewUserData = [{locale, Locale}, {last_modified, LM}],
-			case mod_auth:add_user(Username, Password, NewUserData , Address, Port,
+			case mod_auth:add_user(ID, Password, NewUserData , Address, Port,
 					Directory) of
 				true ->
 					Location = "/partyManagement/v1/individual/" ++ ID,
@@ -408,38 +417,38 @@ process_json_patch(Ops, ID) ->
 	process_json_patch1(Ops, ID, []).
 %% @hidden
 process_json_patch1([{struct, Attr}| T], ID, Acc) ->
-	{_, "replace"} = lists:keyfind("op", 1, Attr),
-	{_, "/characteristic/" ++ I} = lists:keyfind("path", 1, Attr),
+	case {lists:keyfind("op", 1, Attr), lists:keyfind("path", 1, Attr)} of
+		{{_, "replace"}, {_, "/characteristic/" ++ _}} ->
+			ok;
+		{{_, "add"}, {_, "/characteristic/-"}} ->
+			ok
+	end,
 	{_, {struct, Value}} = lists:keyfind("value", 1, Attr),
-	case I of
-		"0" ->
-			{_, "username"} = lists:keyfind("name", 1, Value),
-			{_, NewUserName} = lists:keyfind("value", 1, Value),
-			process_json_patch1(T, ID, [{"username", NewUserName} | Acc]);
-		"1" ->
-			{_, "password"} = lists:keyfind("name", 1, Value),
+	case lists:keyfind("name", 1, Value) of
+		{_, "password"} ->
 			{_, NewPassword} = lists:keyfind("value", 1, Value),
 			process_json_patch1(T, ID, [{"password", NewPassword} | Acc]);
-		"2" ->
-			{_, "locale"} = lists:keyfind("name", 1, Value),
+		{_, "locale"} ->
 			{_, NewLocale} = lists:keyfind("value", 1, Value),
 			process_json_patch1(T, ID, [{"locale", NewLocale} | Acc]);
-		"-" ->
-			{_, N} = lists:keyfind("name", 1, Value),
-			{_, V} = lists:keyfind("value", 1, Value),
-			process_json_patch1(T, ID, [{N, V} | Acc])
+		false ->
+			process_json_patch1(T, ID, Acc)
 	end;
 process_json_patch1([], ID, Acc) ->
 	{Port, Address, Directory, _} = get_params(),
 	case mod_auth:get_user(ID, Address, Port, Directory) of
 		{ok, #httpd_user{password = OPassword, user_data = UserData}} ->
-			{_, LastModified} = lists:keyfind(last_modified, 1, UserData),
-			{_, OLocale} = lists:keyfind(locale, 1, UserData),
-			Username = case lists:keyfind("username", 1, Acc) of
+			LastModified = case lists:keyfind(last_modified, 1, UserData) of
+				{_, LM} ->
+					LM;
 				false ->
-					ID;
-				{_, NewUsername} ->
-					NewUsername
+					{erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])}
+			end,
+			OLocale = case lists:keyfind(locale, 1, UserData) of
+				{_, Loc} ->
+					Loc;
+				false ->
+					"en"
 			end,
 			Password = case lists:keyfind("password", 1, Acc) of
 				false ->
@@ -453,7 +462,7 @@ process_json_patch1([], ID, Acc) ->
 				{_, NewLocale} ->
 					NewLocale
 			end,
-			{Username, Password, Locale, LastModified};
+			{ID, Password, Locale, LastModified};
 		{error, no_such_user} ->
 			{error, 404};
 		{error, _Reason} ->
