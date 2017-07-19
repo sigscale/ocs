@@ -126,9 +126,9 @@
 						var result = results[index].characteristic.find(checkChar);
 						if (result != undefined) {
 							if (result.value == "en") {
-								newRecord.language = "English";
+								newRecord.language = document.querySelector('i18n-msg').getMsg('eng');
 							} else if (result.value == "es") {
-								newRecord.language = "Spanish";
+								newRecord.language = document.querySelector('i18n-msg').getMsg('spa');
 							}
 						}
 						newRecord.characteristic = results[index].characteristic;
