@@ -91,15 +91,15 @@ get_user1([], _Address, _Port, Acc) ->
 get_user(Id) ->
 	{Port, Address, Directory, _Group} = get_params(),
 	case mod_auth:get_user(Id, Address, Port, Directory) of
-		{ok, #httpd_user{username = Id, password = Password, user_data = UserData}} ->
+		{ok, #httpd_user{username = Id, user_data = UserData}} ->
 			Identity = {struct, [{"name", "username"}, {"value", Id}]},
-			PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
 			Characteristic = case lists:keyfind(locale, 1, UserData) of
 				{_, Lang} ->
 					LocaleAttr = {struct, [{"name", "locale"}, {"value", Lang}]},
-					{array, [PasswordAttr, LocaleAttr, Identity]};
+					{array, [Identity, LocaleAttr]};
 				false ->
-					{array, [PasswordAttr]}
+					LocaleAttr = {struct, [{"name", "locale"}, {"value", "en"}]},
+					{array, [Identity, LocaleAttr]}
 			end,
 			LastModified = lists:keyfind(last_modified, 1, UserData),
 			RespObj = [{"id", Id}, {"href", "/partyManagement/v1/individual/" ++ Id},
