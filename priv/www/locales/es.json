@@ -429,10 +429,10 @@
   },
 	"out": {
     "description": "out(bytes) for logs",
-    "message": "Fuera(Bytes)"
+    "message": "Fuera (Bytes)"
   },
 	"in": {
     "description": "in(bytes) for logs",
-    "message": "En(Bytes)"
+    "message": "En (Bytes)"
   }
 }
