@@ -49,6 +49,7 @@
 				ocs_rest_res_subscriber,
 				ocs_rest_res_client,
 				ocs_rest_res_usage,
+				ocs_rest_res_user,
 				ocs_rest_res_access,
 				ocs_rest_res_accounting,
 				ocs_rest_res_balance,
