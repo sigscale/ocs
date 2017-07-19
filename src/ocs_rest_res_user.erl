@@ -424,8 +424,10 @@ process_json_patch1([{struct, Attr}| T], ID, Acc) ->
 			{_, "locale"} = lists:keyfind("name", 1, Value),
 			{_, NewLocale} = lists:keyfind("value", 1, Value),
 			process_json_patch1(T, ID, [{"locale", NewLocale} | Acc]);
-		_ ->
-			{error, 400}
+		"-" ->
+			{_, N} = lists:keyfind("name", 1, Value),
+			{_, V} = lists:keyfind("value", 1, Value),
+			process_json_patch1(T, ID, [{N, V} | Acc])
 	end;
 process_json_patch1([], ID, Acc) ->
 	{Port, Address, Directory, _} = get_params(),
