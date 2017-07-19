@@ -144,7 +144,7 @@
 							if (characteristic[i].value != language) {
 								op0 = new Object();
 								op0.op = "replace";
-								op0.path = "/characteristic/" + i.toString();
+								op0.path = "/characteristic/2";
 								op0.value = new Object();
 								op0.value.name = "locale";
 								op0.value.value = language;
@@ -154,8 +154,8 @@
 					}
 					if (document.getElementById("update-user2").value) {
 						op1 = new Object();
-						op1.op = "add";
-						op1.path = "/characteristic/-";
+						op1.op = "replace";
+						op1.path = "/characteristic/1";
 						op1.value = new Object();
 						op1.value.name = "password";
 						op1.value.value = document.getElementById("update-user2").value;

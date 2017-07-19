@@ -303,7 +303,7 @@ patch_user1(ID, Etag, CType, ReqBody) ->
 				{error, Code};
 			{Username, Password, Locale, LM} ->
 				case LM of
-					Etag ->
+					LM when Etag == LM; Etag == undefined->
 						patch_user3(ID, CType, Username, Password, Locale);
 					_ ->
 						{error, 412}
