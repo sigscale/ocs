@@ -530,7 +530,19 @@ get_user(Config) ->
 	{struct, Object} = mochijson:decode(Body1),
 	{_, ID} = lists:keyfind("id", 1, Object),
 	{_, _URI2} = lists:keyfind("href", 1, Object),
-	{_, {array, _Characteristic}} = lists:keyfind("characteristic", 1, Object).
+	{_, {array, Characteristic}} = lists:keyfind("characteristic", 1, Object),
+	F = fun(_F, [{struct, [{"name", Name}, {"value", Value}]} | _T], Name) ->
+				{ok, Value};
+			(_F, [{struct, [{"value", Value}, {"name", Name}]} | _T], Name) ->
+				{ok, Value};
+			(F, [_ | T], Name) ->
+				F(F, T, Name);
+			(_F, [], _Name) ->
+				{error, not_found}
+	end,
+	{ok, ID} = F(F, Characteristic, "username"),
+	{error, not_found} = F(F, Characteristic, "password"),
+	{ok, Locale} = F(F, Characteristic, "locale").
 
 delete_user() ->
 	[{userdata, [{doc,"Delete user in rest interface"}]}].
@@ -1957,7 +1969,7 @@ update_user_characteristics_json_patch(Config) ->
 	{struct, Object} = mochijson:decode(ResponseBody),
 	{_, ID} = lists:keyfind("id", 1, Object),
 	{_, URI} = lists:keyfind("href", 1, Object),
-	{_, {array, _Characteristic}} = lists:keyfind("characteristic", 1, Object),
+	{_, {array, Characteristic}} = lists:keyfind("characteristic", 1, Object),
 	RestPort = ?config(port, Config),
 	{ok, SslSock} = ssl:connect({127,0,0,1}, RestPort,  [binary, {active, false}], infinity),
 	ok = ssl:ssl_accept(SslSock),
@@ -1967,10 +1979,22 @@ update_user_characteristics_json_patch(Config) ->
 	NewPwdObj = {struct, [{"name", "password"}, {"value", NewPassword}]},
 	NewLocale = "es",
 	NewLocaleObj = {struct, [{"name", "locale"}, {"value", NewLocale}]},
+	F1 = fun(_F, [{struct, [{"name", Name}, _]} | _T], Name, N) ->
+				integer_to_list(N);
+			(_F, [{struct, [_, {"name", Name}]} | _T], Name, N) ->
+				integer_to_list(N);
+			(F, [_ | T], Name, N) ->
+				F(F, T, Name, N + 1);
+			(_F, [], _Name, _N) ->
+				"-"
+	end,
+	IndexUser = F1(F1, Characteristic, "usernme", 0),
+	IndexPassword= F1(F1, Characteristic, "password", 0),
+	IndexLocale = F1(F1, Characteristic, "locale", 0),
 	JSON1 = {array, [
-			{struct, [{op, "replace"}, {path, "/characteristic/0"}, {value, NewUnObj}]},
-			{struct, [{op, "replace"}, {path, "/characteristic/1"}, {value, NewPwdObj}]},
-			{struct, [{op, "replace"}, {path, "/characteristic/2"}, {value, NewLocaleObj}]}]},
+			{struct, [{op, "replace"}, {path, "/characteristic/" ++ IndexUser}, {value, NewUnObj}]},
+			{struct, [{op, "replace"}, {path, "/characteristic/" ++ IndexPassword}, {value, NewPwdObj}]},
+			{struct, [{op, "replace"}, {path, "/characteristic/" ++ IndexLocale}, {value, NewLocaleObj}]}]},
 	PatchBody = lists:flatten(mochijson:encode(JSON1)),
 	PatchBodyLen = size(list_to_binary(PatchBody)),
 	PatchUri = "/partyManagement/v1/individual/" ++ ID,
@@ -1983,12 +2007,12 @@ update_user_characteristics_json_patch(Config) ->
 			PatchBody],
 	ok = ssl:send(SslSock, list_to_binary(PatchReq)),
 	Timeout = 3000,
-	F = fun(_F, _Sock, {error, timeout}, Acc) ->
+	F2 = fun(_F, _Sock, {error, timeout}, Acc) ->
 					lists:reverse(Acc);
 			(F, Sock, {ok, Bin}, Acc) ->
 					F(F, Sock, ssl:recv(Sock, 0, Timeout), [Bin | Acc])
 	end,
-	RecvBuf = F(F, SslSock, ssl:recv(SslSock, 0, Timeout), []),
+	RecvBuf = F2(F2, SslSock, ssl:recv(SslSock, 0, Timeout), []),
 	PatchResponse = list_to_binary(RecvBuf),
 	[Headers1, <<>>] = binary:split(PatchResponse, <<$\r,$\n,$\r,$\n>>),
 	<<"HTTP/1.1 204", _/binary>> = Headers1,
