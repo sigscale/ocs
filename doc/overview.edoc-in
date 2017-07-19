@@ -1205,10 +1205,6 @@ Content-length: nn
  "href": "/partyManagement/v1/individual/john",
  "characteristic": [
           {
-               "name": "username",
-               "value": "john"
-          },
-          {
                "name": "password",
                "value": "g2k7hyeh6qag"
           },
@@ -1230,6 +1226,10 @@ Etag: mm-m
  "id":"john",
  "href": "/partyManagement/v1/individual/john",
  "characteristic": [
+          {
+               "name": "username",
+               "value": "john"
+          },
           {
                "name": "password",
                "value": "g2k7hyeh6qag"
@@ -1288,16 +1288,12 @@ Etag: mm-m
  "href": "/partyManagement/v1/individual/john",
  "characteristic": [
           {    
-               "name": "password",
-               "value": "g2k7hyeh6qag"
-          },
+               "name": "username",
+               "value": "john"
+          }
           {    
                "name": "locale",
                "value": "en"
-          },
-          {    
-               "name": "username",
-               "value": "john"
           }
      ]
 }
@@ -1415,10 +1411,6 @@ Accept: application/json
  "id":"john",
  "characteristic": [
           {    
-               "name": "username",
-               "value": "john"
-          },
-          {    
                "name": "password",
                "value": "g2k7hyeh6qag"
           },
@@ -1441,10 +1433,6 @@ Etag: mm-m
           {
                "name": "username",
                "value": "john"
-          },
-          {
-               "name": "password",
-               "value": "g2k7hyeh6qag"
           },
           {
                "name": "locale",
@@ -1494,17 +1482,12 @@ Accept: application/json
 [
  {
    "op" : "replace",
-   "path" : "/characteristic/0",
-   "value" : "{ "name" : "username", "value" : "john"}"
- },
- {
-   "op" : "replace",
    "path" : "/characteristic/1",
    "value" : "{ "name" : "password", "value" : "g2k7hyeh6qag"}"
  },
  {
    "op" : "replace",
-   "path" : "/characteristic/1",
+   "path" : "/characteristic/2",
    "value" : "{ "name" : "locale", "value" : "es"}"
  }
 ]
