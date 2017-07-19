@@ -90,7 +90,7 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 								Parts = string:tokens(File, "."),
 								case lists:reverse(Parts) of
 									[Ext | _] when Ext == "html"; Ext == "css"; Ext == "js";
-											Ext == "json"	->
+											Ext == "json"; Ext == "ico"->
 										{proceed, Data};
 									_ ->
 										Response = "<h2>HTTP Error 400 - Bad Request</h2>",
