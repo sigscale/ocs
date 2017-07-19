@@ -97,7 +97,7 @@
   },
   "balance": {
     "description": "Balance for adding subscribers", 
-    "message": "Equilibrio (bytes) *"
+    "message": "Equilibrio (bytes)"
   },
   "submit": {
     "description": "Submit button for adding subscribers", 
@@ -434,5 +434,25 @@
 	"in": {
     "description": "in(bytes) for logs",
     "message": "En (Bytes)"
+  },
+	"contact": {
+    "description": "Contact us option for users help",
+    "message": "Contáctenos"
+  },
+	"sendFeed": {
+    "description": "users can send feedbacks",
+    "message": "Enviar comentarios"
+  },
+	"help": {
+    "description": "users can get help",
+    "message": "Ayuda"
+  },
+	"about": {
+    "description": "users can know about us",
+    "message": "Acerca de"
+  },
+	"tool": {
+    "description": "user can understand about download and refresh",
+    "message": "Barra de herramientas"
   }
 }
