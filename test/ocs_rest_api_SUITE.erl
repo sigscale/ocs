@@ -512,8 +512,6 @@ get_user(Config) ->
 	{ok, EnvObj} = application:get_env(inets, services),
 	{httpd, HttpdObj} = lists:keyfind(httpd, 1, EnvObj),
 	{directory, {Directory, _AuthObj}} = lists:keyfind(directory, 1, HttpdObj),
-	TS = erlang:system_time(milli_seconds),
-	N = erlang:unique_integer([positive]),
 	LM = {erlang:system_time(milli_seconds), erlang:unique_integer([positive])},
 	true = mod_auth:add_user(ID, Password, [{locale, Locale}, {last_modified, LM}],
 			Address,  Port, Directory),
