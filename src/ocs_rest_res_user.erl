@@ -101,7 +101,7 @@ get_user(Id) ->
 					LocaleAttr = {struct, [{"name", "locale"}, {"value", "en"}]},
 					{array, [Identity, LocaleAttr]}
 			end,
-			LastModified = lists:keyfind(last_modified, 1, UserData),
+			{_, LastModified} = lists:keyfind(last_modified, 1, UserData),
 			RespObj = [{"id", Id}, {"href", "/partyManagement/v1/individual/" ++ Id},
 				{"characteristic", Characteristic}],
 			JsonObj  = {struct, RespObj},
