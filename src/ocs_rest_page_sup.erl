@@ -43,6 +43,6 @@ init(_Args) ->
 
 %% @hidden
 server(StartMod) ->
-	StartFunc = {gen_server, start_link, [StartMod]},
+	StartFunc = {gen_server, start_link, [{local, ?MODULE}, StartMod]},
 	{StartMod, StartFunc, temporary, infinity, worker, [StartMod]}.
 
