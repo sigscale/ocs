@@ -149,9 +149,10 @@ post_user(RequestBody) ->
 				case mod_auth:add_group_member(Group, ID, Address, Port, Directory) of
 					true ->
 						Location = "/partyManagement/v1/individual/" ++ ID,
-						PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
+						IDAttr = {struct, [{"name", "username"}, {"value", ID}]},
+						PWDAttr = {struct, [{"name", "password"}, {"value", Password}]},
 						LocaleAttr = {struct, [{"name", "locale"}, {"value", Locale}]},
-						Char = {array, [PasswordAttr, LocaleAttr]},
+						Char = {array, [IDAttr, PWDAttr, LocaleAttr]},
 						RespObj = [{"id", ID}, {"href", Location}, {"characteristic", Char}],
 						JsonObj  = {struct, RespObj},
 						Body = mochijson:encode(JsonObj),
