@@ -2,6 +2,7 @@
 <link rel="import" href="i18n-msg/i18n-msg.html">
 <link rel="import" href="i18n-msg/i18n-msg-behavior.html">
 <link rel="import" href="paper-dialog/paper-dialog.html">
+<link rel="import" href="paper-toolbar/paper-toolbar.html">
 <link rel="import" href="paper-tabs/paper-tabs.html">
 <link rel="import" href="paper-tooltip/paper-tooltip.html">
 <link rel="import" href="paper-button/paper-button.html">
@@ -17,6 +18,10 @@
 			width: 60%;
 			overflow: auto;
 		}
+		paper-toolbar {
+			margin-top: 0px;
+			background-color: #bc5100;
+		}
 		paper-input {
 			--paper-input-container-focus-color: var(--paper-yellow-900);
 		}
@@ -31,10 +36,6 @@
 		.cancel-btn {
 			color: black;
 		}
-		paper-tab.iron-selected {
-			background-color: #bc5100;
-			color: white;
-		}
 		paper-toggle-button {
 			--paper-toggle-button-checked-bar-color: #ffb04c;
 			--paper-toggle-button-checked-button-color: var(--paper-yellow-900);
@@ -42,14 +43,16 @@
 	</style>
 	<template>
 		<paper-dialog id="subUpdateModal" modal>
-			<paper-tabs selected="{{selected}}" autoselect>
-				<paper-tab id="authen">
-					<h2>[[i18n.AuthTitle]]</h2>
-				</paper-tab>
-				<paper-tab id="autho">
-					<h2>[[i18n.AuthorTitle]]</h2>
-				</paper-tab>
-			</paper-tabs>
+			<paper-toolbar>
+				<paper-tabs selected="{{selected}}" autoselect>
+					<paper-tab id="authen">
+						<h2>[[i18n.AuthTitle]]</h2>
+					</paper-tab>
+					<paper-tab id="autho">
+						<h2>[[i18n.AuthorTitle]]</h2>
+					</paper-tab>
+				</paper-tabs>
+			</paper-toolbar>
 			<paper-tooltip for="authen">
 				<i18n-msg msgid="AuthTooltip">
 					Credentials used to authenticate subscriber.
