@@ -56,10 +56,10 @@
 			top: 64px;
 		}
 		paper-dialog {
-			padding: 10px;
 			overflow: auto;
 		}
 		paper-toolbar{
+			margin-top: 0px;
 			color: white;
 			background-color: #bc5100;
 		}
