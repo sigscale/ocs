@@ -486,7 +486,7 @@
 			Version %VERSION%<br>
 			Copyright 2017 SigScale Global Inc.<br>
 			Apache License Version 2.0<br>
-			<a href="http://www.sigscale.org">www.sigscale.org</a></p>
+			<a target="_blank" href="http://www.sigscale.org">www.sigscale.org</a></p>
 		</paper-dialog>
 		<!--Modal Definitions-->
 		<sig-sub-add></sig-sub-add>
