@@ -454,5 +454,13 @@
 	"tool": {
     "description": "user can understand about download and refresh",
     "message": "Barra de herramientas"
+  },
+   "filt": {
+    "description": "filtering",
+    "message": "Filtración"
+  },
+	"sort": {
+    "description": "sorting",
+    "message": "Clasificación"
   }
 }
