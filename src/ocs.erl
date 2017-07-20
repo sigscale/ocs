@@ -312,16 +312,8 @@ add_subscriber(Identity, Password, Attributes, Balance, EnabledStatus)
 
 -spec find_subscriber(Identity) -> Result  
 	when
-		Result :: {ok, Password, Attributes, Balance, Enabled, Etag}
-				| {error, Reason},
-		Password :: binary(),
-		Identity:: string() | binary(),
-		Attributes :: radius_attributes:attributes(),
-		Balance :: integer(),
-		Enabled :: boolean(),
-		Etag :: {TimeStamp, UniqueNumber},
-		TimeStamp :: integer(),
-		UniqueNumber :: integer(),
+		Identity :: string() | binary(),
+		Result :: {ok, #subscriber{}} | {error, Reason},
 		Reason :: not_found | term().
 %% @doc Look up an entry in the subscriber table.
 find_subscriber(Identity) when is_list(Identity) ->
@@ -331,9 +323,8 @@ find_subscriber(Identity) when is_binary(Identity) ->
 				mnesia:read(subscriber, Identity, read)
 	end,
 	case mnesia:transaction(F) of
-		{atomic, [#subscriber{password = Password, attributes = Attributes,
-				balance = Balance, enabled = Enabled, last_modified = Etag}]} ->
-			{ok, Password, Attributes, Balance, Enabled, Etag};
+		{atomic, [#subscriber{} = Subscriber]} ->
+			{ok, Subscriber};
 		{atomic, []} ->
 			{error, not_found};
 		{aborted, Reason} ->

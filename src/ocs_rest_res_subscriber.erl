@@ -50,7 +50,8 @@ content_types_provided() ->
 %% requests.
 get_subscriber(Id) ->
 	case ocs:find_subscriber(Id) of
-		{ok, PWBin, Attributes, Balance, Enabled, LM} ->
+		{ok, #subscriber{password = PWBin, attributes = Attributes,
+				balance = Balance, enabled = Enabled, last_modified = LM}} ->
 			Etag = etag(LM),
 			Password = binary_to_list(PWBin),
 			JSAttributes = radius_to_json(Attributes),
@@ -179,11 +180,12 @@ patch_subscriber(Id, Etag, CType, ReqBody) ->
 %% @hidden
 patch_subscriber1(Id, Etag, CType, ReqBody) ->
 	case ocs:find_subscriber(Id) of
-		{ok, CurrPassword, CurrAttr, Bal, Enabled, CurrentEtag}
+		{ok, #subscriber{password = CurrPassword, attributes = CurrAttr,
+				balance = Bal, enabled = Enabled, last_modified = CurrentEtag}}
 				when Etag == CurrentEtag; Etag == undefined ->
 			patch_subscriber2(Id, Etag, CType, ReqBody, CurrPassword, CurrAttr,
 					Bal, Enabled);
-		{ok, _, _, _, _, _NonMatchingEtag} ->
+		{ok,  _} ->
 			{error, 412};
 		{error, _} ->
 			{error, 404}
