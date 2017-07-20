@@ -73,15 +73,15 @@ init_per_suite(Config) ->
 	end,
 	RestUser = ct:get_config(rest_user),
 	RestPass = ct:get_config(rest_pass),
-	RestGroup = ct:get_config(rest_group),
+	_RestGroup = ct:get_config(rest_group),
 	{Host, Port} = case Fport(Fport, Services) of
 		{{_, H2}, {_, P2}} when H2 == "localhost"; H2 == {127,0,0,1} ->
-			true = mod_auth:add_user(RestUser, RestPass, [], {127,0,0,1}, P2, "/"),
-			true = mod_auth:add_group_member(RestGroup, RestUser, {127,0,0,1}, P2, "/"),
+			{ok, _} = ocs:add_user(RestUser, RestPass, [], {127,0,0,1}, P2, "/"),
+			true = ocs:add_group_member(RestUser),
 			{"localhost", P2};
 		{{_, H2}, {_, P2}} ->
-			true = mod_auth:add_user(RestUser, RestPass, [], H2, P2, "/"),
-			true = mod_auth:add_group_member(RestGroup, RestUser, H2, P2, "/"),
+			{ok, _} = ocs:add_user(RestUser, RestPass, [], H2, P2, "/"),
+			true = ocs:add_group_member(RestUser),
 			case H2 of
 				H2 when is_tuple(H2) ->
 					{inet:ntoa(H2), P2};
@@ -89,8 +89,8 @@ init_per_suite(Config) ->
 					{H2, P2}
 			end;
 		{false, {_, P2}} ->
-			true = mod_auth:add_user(RestUser, RestPass, [], P2, "/"),
-			true = mod_auth:add_group_member(RestGroup, RestUser, P2, "/"),
+			{ok, _} = ocs:add_user(RestUser, RestPass, [], P2, "/"),
+			true = ocs:add_group_member(RestUser),
 			{"localhost", P2}
 	end,
 	Config1 = [{port, Port} | Config],
@@ -497,7 +497,7 @@ add_user(Config) ->
 	{_, ID} = lists:keyfind("id", 1, Object),
 	{_, URI} = lists:keyfind("href", 1, Object),
 	{_, {array, _Characteristic}} = lists:keyfind("characteristic", 1, Object),
-	{ok, #httpd_user{}} = mod_auth:get_user(ID, Address, Port, Directory).
+	{ok, #httpd_user{}} = ocs:get_user(ID, Address, Port, Directory).
 
 get_user() ->
 	[{userdata, [{doc,"get user in rest interface"}]}].
@@ -512,9 +512,7 @@ get_user(Config) ->
 	{ok, EnvObj} = application:get_env(inets, services),
 	{httpd, HttpdObj} = lists:keyfind(httpd, 1, EnvObj),
 	{directory, {Directory, _AuthObj}} = lists:keyfind(directory, 1, HttpdObj),
-	LM = {erlang:system_time(milli_seconds), erlang:unique_integer([positive])},
-	true = mod_auth:add_user(ID, Password, [{locale, Locale}, {last_modified, LM}],
-			Address,  Port, Directory),
+	{ok, _} = ocs:add_user(ID, Password, [{locale, Locale}], Address,  Port, Directory),
 	HostUrl = ?config(host_url, Config),
 	RestUser = ct:get_config(rest_user),
 	RestPass = ct:get_config(rest_pass),
@@ -559,7 +557,7 @@ delete_user(Config) ->
 	{ok, EnvObj} = application:get_env(inets, services),
 	{httpd, HttpdObj} = lists:keyfind(httpd, 1, EnvObj),
 	{directory, {Directory, _AuthObj}} = lists:keyfind(directory, 1, HttpdObj),
-	true = mod_auth:add_user(ID, Password, [{locale, Locale}], Address,  Port, Directory),
+	{ok, _} = ocs:add_user(ID, Password, [{locale, Locale}], Address,  Port, Directory),
 	HostUrl = ?config(host_url, Config),
 	RestUser = ct:get_config(rest_user),
 	RestPass = ct:get_config(rest_pass),
@@ -569,7 +567,7 @@ delete_user(Config) ->
 	Request1 = {HostUrl ++ "/partyManagement/v1/individual/" ++ ID, [Authentication]},
 	{ok, Result1} = httpc:request(delete, Request1, [], []),
 	{{"HTTP/1.1", 204, _NoContent}, _Headers1, []} = Result1,
-	{error, no_such_user} = mod_auth:get_user(ID, Address, Port, Directory).
+	{error, no_such_user} = ocs:get_user(ID, Address, Port, Directory).
 
 add_client() ->
 	[{userdata, [{doc,"Add client in rest interface"}]}].
