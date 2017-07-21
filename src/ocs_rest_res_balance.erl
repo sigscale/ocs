@@ -50,9 +50,9 @@ content_types_provided() ->
 get_balance(Identity) ->
 	try
 		case ocs:find_subscriber(Identity) of
-			{ok, _, _, Balance, true, _} ->
+			{ok, #subscriber{balance = Balance, enabled = true}} ->
 				get_balance1(Identity, Balance, "active");
-			{ok, _, _, Balance, false, _} ->
+			{ok, #subscriber{balance = Balance, enabled = false}} ->
 				get_balance1(Identity, Balance, "disable");
 			{error, _Reason} ->
 				{error, 500}

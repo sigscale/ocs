@@ -26,6 +26,9 @@
 -export([add_subscriber/3, add_subscriber/4, add_subscriber/5,
 		find_subscriber/1, delete_subscriber/1, update_password/2,
 		update_attributes/2, update_attributes/4, get_subscribers/0]).
+-export([add_user/3, add_user/5, add_user/6, add_group_member/1,
+		add_group_member/4, list_users/0, get_user/1, get_user/3, get_user/4,
+		delete_user/1]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
@@ -34,8 +37,13 @@
 -export_type([eap_method/0]).
 
 -include("ocs.hrl").
+-include_lib("inets/include/mod_auth.hrl").
+
 -define(LOGNAME, radius_acct).
 -define(CHUNKSIZE, 100).
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
 
 %%----------------------------------------------------------------------
 %%  The ocs public API
@@ -312,16 +320,8 @@ add_subscriber(Identity, Password, Attributes, Balance, EnabledStatus)
 
 -spec find_subscriber(Identity) -> Result  
 	when
-		Result :: {ok, Password, Attributes, Balance, Enabled, Etag}
-				| {error, Reason},
-		Password :: binary(),
-		Identity:: string() | binary(),
-		Attributes :: radius_attributes:attributes(),
-		Balance :: integer(),
-		Enabled :: boolean(),
-		Etag :: {TimeStamp, UniqueNumber},
-		TimeStamp :: integer(),
-		UniqueNumber :: integer(),
+		Identity :: string() | binary(),
+		Result :: {ok, #subscriber{}} | {error, Reason},
 		Reason :: not_found | term().
 %% @doc Look up an entry in the subscriber table.
 find_subscriber(Identity) when is_list(Identity) ->
@@ -331,9 +331,8 @@ find_subscriber(Identity) when is_binary(Identity) ->
 				mnesia:read(subscriber, Identity, read)
 	end,
 	case mnesia:transaction(F) of
-		{atomic, [#subscriber{password = Password, attributes = Attributes,
-				balance = Balance, enabled = Enabled, last_modified = Etag}]} ->
-			{ok, Password, Attributes, Balance, Enabled, Etag};
+		{atomic, [#subscriber{} = Subscriber]} ->
+			{ok, Subscriber};
 		{atomic, []} ->
 			{error, not_found};
 		{aborted, Reason} ->
@@ -522,6 +521,173 @@ start(Protocol, Type, Address, Port, Options) when is_tuple(Address),
 		is_integer(Port), is_list(Options) ->
 		gen_server:call(ocs, {start, Protocol, Type, Address, Port, Options}).
 
+-spec add_user(Username, Password, UserData) -> Result
+	when
+		Username :: string(),
+		Password :: string(),
+		UserData :: list(),
+		Result :: {ok, LastModified} | {error, Reason},
+		LastModified :: {integer(), integer()},
+		Reason :: term().
+%% @equiv add_user(Username, Password, UserData, Address, Port, Dir)
+add_user(Username, Password, UserData) ->
+	try
+		{Port, Address, Dir, _} = get_params(),
+		add_user(Username, Password, UserData, Address, Port, Dir)
+	catch
+		_: Reason ->
+			{error, Reason}
+	end.
+
+-spec add_user(Username, Password, UserData, Port, Dir) -> Result
+	when
+		Username :: string(),
+		Password :: string(),
+		UserData :: list(),
+		Port :: inet:port_number(),
+		Dir :: string(),
+		Result :: {ok, LastModified} | {error, Reason},
+		LastModified :: {integer(), integer()},
+		Reason :: term().
+%% @equiv add_user(Username, Password, UserData, Address, Port, Dir)
+add_user(Username, Password, UserData, Port, Dir) ->
+	try
+		{_, Address, _, _} = get_params(),
+		add_user(Username, Password, UserData, Address, Port, Dir)
+	catch
+		_: Reason ->
+			{error, Reason}
+	end.
+
+-spec add_user(Username, Password, UserData, Address, Port, Dir) -> Result
+	when
+		Username :: string(),
+		Password :: string(),
+		UserData :: list(),
+		Address :: inet:ip_address() | string() | undefined,
+		Port :: inet:port_number(),
+		Dir :: string(),
+		Result :: {ok, LastModified} | {error, Reason},
+		LastModified :: {integer(), integer()},
+		Reason :: term().
+%% @equiv mod_auth:add_user(Username, Password, UserData, Address,
+%% Port, Dir)
+add_user(Username, Password, UserData, Address, Port, Dir) ->
+	LastModified = {erlang:system_time(?MILLISECOND),
+			erlang:unique_integer([positive])},
+	NewUserData = [LastModified | UserData],
+	case mod_auth:add_user(Username, Password, NewUserData, Address,
+			Port, Dir) of
+		true ->
+			{ok, LastModified};
+		{error, Reason} ->
+			{error, Reason}
+	end.
+
+-spec add_group_member(Username) -> Result
+	when
+		Username :: string(),
+		Result ::true | {error, Reason},
+		Reason :: term().
+%% @equiv mod_auth:add_group_member(GroupName, Username, Address, Port, Dir)
+add_group_member(Username) ->
+	try
+		{Port, Address, Dir, GroupName} = get_params(),
+		mod_auth:add_group_member(GroupName, Username, Address, Port, Dir)
+	catch
+		_: Reason ->
+			{error, Reason}
+	end.
+
+-spec add_group_member(GroupName, Username, Port, Dir) -> Result
+	when
+		GroupName :: string(),
+		Username :: string(),
+		Port :: inet:port_number(),
+		Dir :: string(),
+		Result ::true | {error, Reason},
+		Reason :: term().
+%% @equiv mod_auth:add_group_member(GroupName, Username, Address, Port, Dir)
+add_group_member(GroupName, Username, Port, Dir) ->
+	try
+		{_, Address, _, _} = get_params(),
+		mod_auth:add_group_member(GroupName, Username, Address, Port, Dir)
+	catch
+		_: Reason ->
+			{error, Reason}
+	end.
+
+-spec list_users() -> Result
+	when
+		Result :: {ok, Users} | {error, Reason},
+		Users :: list(),
+		Reason :: term().
+%% @equiv  mod_auth:list_users(Address, Port, Dir)
+list_users() ->
+	try
+		{Port, Address, Dir, _} = get_params(),
+		mod_auth:list_users(Address, Port, Dir)
+	catch
+		_: Reason ->
+			{error, Reason}
+	end.
+
+-spec get_user(Username) -> Result
+	when
+		Username :: string(),
+		Result :: {ok, User} | {error, Reason},
+		User :: #httpd_user{},
+		Reason :: term().
+%% @equiv get_user(Username, Address, Port, Dir)
+get_user(Username) ->
+	try
+		{Port, Address, Dir, _GroupName} = get_params(),
+		get_user(Username, Address, Port, Dir)
+	catch
+		_: Reason ->
+			{error, Reason}
+	end.
+
+-spec get_user(Username, Port, Dir) -> Result
+	when
+		Username :: string(),
+		Port :: inet:port_number(),
+		Dir :: string(),
+		Result :: {ok, User} | {error, Reason},
+		User :: #httpd_user{},
+		Reason :: term().
+%% @equiv mod_auth:get_user(Username, Port, Dir)
+get_user(Username, Port, Dir) ->
+	mod_auth:get_user(Username, Port, Dir).
+
+-spec get_user(Username, Address, Port, Dir) -> Result
+	when
+		Username :: string(),
+		Address :: inet:ip_address() | string() | undefined,
+		Port :: inet:port_number(),
+		Dir :: string(),
+		Result :: {ok, User} | {error, Reason},
+		User :: #httpd_user{},
+		Reason :: term().
+%% @equiv mod_auth:get_user(Username, Address, Port, Dir)
+get_user(Username, Address, Port, Dir) ->
+	mod_auth:get_user(Username, Address, Port, Dir).
+
+-spec delete_user(Username) -> Result
+	when
+		Username :: string(),
+		Result :: true | {error, Reason},
+		Reason :: term().
+%% @equiv mod_auth:delete_user(Username, Address, Port, Dir)
+delete_user(Username) ->
+	try
+		{Port, Address, Dir, _GroupName} = get_params(),
+		mod_auth:delete_user(Username, Address, Port, Dir)
+	catch
+		_: Reason ->
+			{error, Reason}
+	end.
+
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
@@ -669,4 +835,23 @@ normalize([_ | T], Acc) ->
 	normalize(T, Acc);
 normalize([], Acc) ->
 	lists:reverse(Acc).
+
+-spec get_params() -> {Port :: integer(), Address :: string(),
+		Directory :: string(), Group :: string()}.
+%% @doc Returns configurations details for currently running
+%% {@link //inets. httpd} service.
+%% @hidden
+get_params() ->
+	{_, _, Info} = lists:keyfind(httpd, 1, inets:services_info()),
+	{_, Port} = lists:keyfind(port, 1, Info),
+	{_, Address} = lists:keyfind(bind_address, 1, Info),
+	{ok, EnvObj} = application:get_env(inets, services),
+	{httpd, HttpdObj} = lists:keyfind(httpd, 1, EnvObj),
+	{directory, {Directory, AuthObj}} = lists:keyfind(directory, 1, HttpdObj),
+	case lists:keyfind(require_group, 1, AuthObj) of
+		{require_group, [Group | _T]} ->
+			{Port, Address, Directory, Group};
+		false ->
+			exit(not_found)
+	end.
 

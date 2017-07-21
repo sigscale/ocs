@@ -37,6 +37,7 @@
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
 			terminate/3, code_change/4]).
 
+-include("ocs.hrl").
 -include_lib("radius/include/radius.hrl").
 -include_lib("diameter/include/diameter.hrl").
 
@@ -211,7 +212,7 @@ handle_info({ssl_error, SslSocket, Reason}, request, #statedata{ssl_socket = Ssl
 handle_info1(Subscriber, Password) ->
 	try
 		case ocs:find_subscriber(Subscriber) of
-			{ok, UserPassWord, _, _, _, _} ->
+			{ok, #subscriber{password = UserPassWord}} ->
 				Size = size(UserPassWord),
 				<<UserPassWord:Size/binary, _/binary>> = Password,
 				{ok, Subscriber};

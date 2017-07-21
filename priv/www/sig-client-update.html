@@ -2,6 +2,7 @@
 <link rel="import" href="i18n-msg/i18n-msg.html">
 <link rel="import" href="i18n-msg/i18n-msg-behavior.html">
 <link rel="import" href="paper-dialog/paper-dialog.html">
+<link rel="import" href="paper-toolbar/paper-toolbar.html">
 <link rel="import" href="paper-tabs/paper-tabs.html">
 <link rel="import" href="paper-input/paper-input.html">
 <link rel="import" href="paper-button/paper-button.html">
@@ -16,9 +17,12 @@
 
 <dom-module id="sig-client-update">
 	<style is="custom-style">
-		paper-dialog{
-			width: 60%;
+		paper-dialog {
 			overflow: auto;
+		}
+		paper-toolbar {
+			margin-top: 0px;
+			background-color: #bc5100;
 		}
 		paper-input {
 			--paper-input-container-focus-color: var(--paper-yellow-900);
@@ -34,23 +38,25 @@
 		.cancel-btn {
 			color: black;
 		}
-		paper-tab.iron-selected {
-			background-color: #bc5100;
-			color: white;
+		paper-toggle-button {
+			--paper-toggle-button-checked-bar-color: #ffb04c;
+			--paper-toggle-button-checked-button-color: var(--paper-yellow-900);
 		}
 	</style>
 	<template>
 		<paper-dialog
 				id="clientUpdateModal"
 				modal>
-			<paper-tabs selected="{{selected}}">
-				<paper-tab id="authenticate-client">
-					<h2>[[i18n.AuthTitle]]</h2>
-				</paper-tab>
-				 <paper-tab id="authorize-client">
-					<h2>[[i18n.propTitle]]</h2>
-				</paper-tab>
-			</paper-tabs>
+			<paper-toolbar>
+				<paper-tabs selected="{{selected}}">
+					<paper-tab id="authenticate-client">
+						<h2>[[i18n.AuthTitle]]</h2>
+					</paper-tab>
+					 <paper-tab id="authorize-client">
+						<h2>[[i18n.propTitle]]</h2>
+					</paper-tab>
+				</paper-tabs>
+			</paper-toolbar>
 			<paper-tooltip for="authenticate-client">
 				<i18n-msg msgid="authClientTool">
 					Credentials used to authenticate network access server, router or access point.

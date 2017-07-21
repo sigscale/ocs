@@ -19,13 +19,13 @@
 <dom-module id="sig-sub-add">
 	<style is="custom-style">
 		paper-dialog {
-			padding: 10px;
 			overflow: auto;
 		}
 		paper-input {
 			--paper-input-container-focus-color: var(--paper-yellow-900);
 		}
 		paper-toolbar {
+			margin-top: 0px;
 			color: white;
 			background-color: #bc5100;
 		}
@@ -315,31 +315,40 @@
 					if(!document.getElementById("add2").disabled) {
 						subscriber.password = document.getElementById("add2").value;
 					}
-					var ascendDataRate = new Object();
-					ascendDataRate.name = "ascendDataRate";
-					ascendDataRate.value = parseInt(document.getElementById("add3").value);
-					var ascendXmitRate = new Object();
-					ascendXmitRate.name = "ascendXmitRate";
-					ascendXmitRate.value = parseInt(document.getElementById("add4").value);
-					var sessionTimeout = new Object();
-					sessionTimeout.name = "sessionTimeout";
-					sessionTimeout.value = parseInt(document.getElementById("add5").value);
-					var acctInterimInterval = new Object();
-					acctInterimInterval.name = "acctInterimInterval";
-					acctInterimInterval.value = parseInt(document.getElementById("add6").value);
-					var classx = new Object();
-					classx.name = "class";
-					if(document.getElementById("add7").value == "") {
-						classx.value = null;
-					} else {
-						classx.value = document.getElementById("add7").value;
-					}
 					var attributes = new Array();
-					attributes[0] = ascendDataRate;
-					attributes[1] = ascendXmitRate;
-					attributes[2] = sessionTimeout;
-					attributes[3] = acctInterimInterval;
-					attributes[4] = classx;
+					if(parseInt(document.getElementById("add3").value)) {
+						var ascendDataRate = new Object();
+						ascendDataRate.name = "ascendDataRate";
+						ascendDataRate.value = parseInt(document.getElementById("add3").value);
+						attributes.push(ascendDataRate);
+					}
+					if(parseInt(document.getElementById("add4").value)) {
+						var ascendXmitRate = new Object();
+						ascendXmitRate.name = "ascendXmitRate";
+						ascendXmitRate.value = parseInt(document.getElementById("add4").value);
+						attributes.push(ascendXmitRate);
+					}
+					if(parseInt(document.getElementById("add5").value)) {
+						var sessionTimeout = new Object();
+						sessionTimeout.name = "sessionTimeout";
+						sessionTimeout.value = parseInt(document.getElementById("add5").value);
+						attributes.push(sessionTimeout);
+					}
+					if(parseInt(document.getElementById("add6").value)) {
+						var acctInterimInterval = new Object();
+						acctInterimInterval.name = "acctInterimInterval";
+						acctInterimInterval.value = parseInt(document.getElementById("add6").value);
+						attributes.push(acctInterimInterval);
+					}
+					if(document.getElementById("add7").value) {
+						var classx = new Object();
+						classx.name = "class";
+						if(document.getElementById("add7").value == "") {
+							classx.value = null;
+						} else {
+							classx.value = document.getElementById("add7").value;
+						}
+					}
 					subscriber.attributes = attributes;
 					subscriber.balance = parseInt(document.getElementById("add8").value);
 					subscriber.enabled= document.getElementById("add9").checked;

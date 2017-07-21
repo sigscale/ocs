@@ -450,5 +450,13 @@
 	"tool": {
     "description": "user can understand about download and refresh",
     "message": "Toolbar"
+  },
+	"filt": {
+    "description": "filtering",
+    "message": "Filtering"
+  },
+	"sort": {
+    "description": "sorting",
+    "message": "Sorting"
   }
 }

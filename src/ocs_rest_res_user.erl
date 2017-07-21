@@ -53,17 +53,15 @@ content_types_provided() ->
 %% @doc Body producing function for `GET /partyManagement/v1/individual'
 %% requests.
 get_user() ->
-	{Port, Address, Directory, _Group} = get_params(),
-	case mod_auth:list_users(Address, Port, Directory) of
+	case ocs:list_users() of
 		{error, _} ->
 			{error, 500};
 		{ok, Users} ->
-			get_user1(Users, Address, Port, [])
+			get_user1(Users, [])
 	end.
 %% @hidden
-get_user1([H | T], Address, Port, Acc) ->
-	{Port, Address, Directory, _Group} = get_params(),
-	case mod_auth:get_user(H, Address, Port, Directory) of
+get_user1([H | T], Acc) ->
+	case ocs:get_user(H) of
 		{ok, #httpd_user{username = Id, user_data = UserData}} ->
 			Identity = {struct, [{"name", "username"}, {"value", Id}]},
 			Characteristic = case lists:keyfind(locale, 1, UserData) of
@@ -76,11 +74,11 @@ get_user1([H | T], Address, Port, Acc) ->
 			RespObj = [{"id", Id}, {"href", "/partyManagement/v1/individual/" ++ Id},
 				{"characteristic", Characteristic}],
 			JsonObj  = {struct, RespObj},
-			get_user1(T, Address, Port, [JsonObj | Acc]);
+			get_user1(T, [JsonObj | Acc]);
 		{error, _Reason} ->
-			get_user1(T, Address, Port, Acc)
+			get_user1(T, Acc)
 	end;
-get_user1([], _Address, _Port, Acc) ->
+get_user1([], Acc) ->
 	Body = mochijson:encode({array, lists:reverse(Acc)}),
 	Headers = [{content_type, "application/json"}],
 	{ok, Headers, Body}.
@@ -93,8 +91,7 @@ get_user1([], _Address, _Port, Acc) ->
 %% @doc Body producing function for `GET /partyManagement/v1/individual/{id}'
 %% requests.
 get_user(Id) ->
-	{Port, Address, Directory, _Group} = get_params(),
-	case mod_auth:get_user(Id, Address, Port, Directory) of
+	case ocs:get_user(Id) of
 		{ok, #httpd_user{username = Id, user_data = UserData}} ->
 			Identity = {struct, [{"name", "username"}, {"value", Id}]},
 			Characteristic = case lists:keyfind(locale, 1, UserData) of
@@ -129,7 +126,6 @@ get_user(Id) ->
 %% @doc Respond to `POST /partyManagement/v1/individual' and add a new `User'
 %% resource.
 post_user(RequestBody) ->
-	{Port, Address, Directory, Group} = get_params(),
 	try
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, ID} = lists:keyfind("id", 1, Object),
@@ -150,12 +146,9 @@ post_user(RequestBody) ->
 					F(F,T)
 		end,
 		Locale = F2(F2, Characteristic),
-		LastModified = {erlang:system_time(?MILLISECOND),
-				erlang:unique_integer([positive])},
-		case mod_auth:add_user(ID, Password, [{locale, Locale},
-				{last_modified, LastModified}] , Address, Port, Directory) of
-			true ->
-				case mod_auth:add_group_member(Group, ID, Address, Port, Directory) of
+		case ocs:add_user(ID, Password, [{locale, Locale}]) of
+			{ok, LastModified} ->
+				case ocs:add_group_member(ID) of
 					true ->
 						Location = "/partyManagement/v1/individual/" ++ ID,
 						IDAttr = {struct, [{"name", "username"}, {"value", ID}]},
@@ -197,7 +190,6 @@ put_user(ID, Etag, RequestBody) ->
 	end.
 %% @hidden
 put_user1(ID, Etag, RequestBody) ->
-	{Port, _Address, Directory, _Group} = get_params(),
 	try
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, ID} = lists:keyfind("id", 1, Object),
@@ -228,7 +220,7 @@ put_user1(ID, Etag, RequestBody) ->
 			{Password, Locale} when is_list(Password) ->
 				put_user2(ID, Etag, Password, Locale);
 			{undefined, Locale} when is_list(Locale) ->
-				case mod_auth:get_user(ID, Port, Directory) of
+				case ocs:get_user(ID) of
 					{ok, #httpd_user{password = OPassword}} ->
 						put_user2(ID, Etag, OPassword, Locale);
 					{error, no_such_user} ->
@@ -245,8 +237,7 @@ put_user1(ID, Etag, RequestBody) ->
 put_user2(ID, Etag, Password, undefined) ->
 	put_user2(ID, Etag, Password, "en");
 put_user2(ID, Etag, Password, Locale) ->
-	{Port, Address, Directory, _} = get_params(),
-	case mod_auth:get_user(ID, Address, Port, Directory) of
+	case ocs:get_user(ID) of
 		{ok, #httpd_user{user_data = Data}} ->
 			case lists:keyfind(last_modified, 1, Data) of
 				{_, LastModified} when Etag == undefined; Etag == LastModified ->
@@ -261,13 +252,10 @@ put_user2(ID, Etag, Password, Locale) ->
 	end.
 %% @hidden
 put_user3(ID, Password, Locale) ->
-	{Port, Address, Directory, _Group} = get_params(),
-	case mod_auth:delete_user(ID, Address, Port, Directory) of
+	case ocs:delete_user(ID) of
 		true ->
-			LM = {erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])},
-			case mod_auth:add_user(ID, Password, [{locale, Locale}, {last_modified}],
-					Address, Port, Directory) of
-				true ->
+			case ocs:add_user(ID, Password, [{locale, Locale}]) of
+				{ok, LM} ->
 					Location = "/partyManagement/v1/individual/" ++ ID,
 					PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
 					LocaleAttr = {struct, [{"name", "locale"}, {"value", Locale}]},
@@ -325,15 +313,11 @@ patch_user1(ID, Etag, CType, ReqBody) ->
 	end.
 %% @hidden
 patch_user2(ID, "application/json-patch+json", Password, Locale) ->
-	{Port, Address, Directory, _} = get_params(),
-	case mod_auth:delete_user(ID, Address, Port, Directory) of
+	case ocs:delete_user(ID) of
 		true ->
-			LM = {erlang:system_time(?MILLISECOND),
-					erlang:unique_integer([positive])},
-			NewUserData = [{locale, Locale}, {last_modified, LM}],
-			case mod_auth:add_user(ID, Password, NewUserData , Address, Port,
-					Directory) of
-				true ->
+			UserData = [{locale, Locale}],
+			case ocs:add_user(ID, Password, UserData) of
+				{ok, LM} ->
 					Location = "/partyManagement/v1/individual/" ++ ID,
 					Headers = [{location, Location}, {etag, etag(LM)}],
 					{ok, Headers, []};
@@ -353,8 +337,7 @@ patch_user2(ID, "application/json-patch+json", Password, Locale) ->
 %% @doc Respond to `DELETE /ocs/v1/subscriber/{id}' request and deletes
 %% a `subscriber' resource. If the deletion is succeeded return true.
 delete_user(Id) ->
-	{Port, Address, Directory, _Group} = get_params(),
-	case mod_auth:delete_user(Id, Address, Port, Directory) of
+	case ocs:delete_user(Id) of
 		true ->
 			{ok, [], []};
 		{error, _Reason} ->
@@ -435,8 +418,7 @@ process_json_patch1([{struct, Attr}| T], ID, Acc) ->
 			process_json_patch1(T, ID, Acc)
 	end;
 process_json_patch1([], ID, Acc) ->
-	{Port, Address, Directory, _} = get_params(),
-	case mod_auth:get_user(ID, Address, Port, Directory) of
+	case ocs:get_user(ID) of
 		{ok, #httpd_user{password = OPassword, user_data = UserData}} ->
 			LastModified = case lists:keyfind(last_modified, 1, UserData) of
 				{_, LM} ->

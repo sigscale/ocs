@@ -35,6 +35,7 @@
 -include_lib("radius/include/radius.hrl").
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
+-include("ocs.hrl").
 -include("ocs_eap_codec.hrl").
 -include("../include/diameter_gen_eap_application_rfc4072.hrl").
 
@@ -356,7 +357,7 @@ id1(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		S_rand = crypto:rand_uniform(1, ?R),
 		NewEapID = (EapID rem 255) + 1,
 		case catch ocs:find_subscriber(PeerID) of
-			{ok, Password, _Attributes, _Balance, _Enabled, _} ->
+			{ok, #subscriber{password = Password}} ->
 				PWE = ocs_eap_pwd:compute_pwe(Token, PeerID, ServerID, Password),
 				{ScalarS, ElementS} = ocs_eap_pwd:compute_scalar(<<S_rand:256>>,
 						PWE),
@@ -395,7 +396,7 @@ id2(#diameter_eap_app_DER{} = Request, PeerID, Token,
 		S_rand = crypto:rand_uniform(1, ?R),
 		NewEapID = (EapID rem 255) + 1,
 		case catch ocs:find_subscriber(PeerID) of
-			{ok, Password, _Attributes, _Balance, _Enabled, _} ->
+			{ok, #subscriber{password = Password}} ->
 				PWE = ocs_eap_pwd:compute_pwe(Token, PeerID, ServerID, Password),
 				{ScalarS, ElementS} = ocs_eap_pwd:compute_scalar(<<S_rand:256>>,
 						PWE),

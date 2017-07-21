@@ -56,10 +56,10 @@
 			top: 64px;
 		}
 		paper-dialog {
-			padding: 10px;
 			overflow: auto;
 		}
 		paper-toolbar{
+			margin-top: 0px;
 			color: white;
 			background-color: #bc5100;
 		}
@@ -331,6 +331,22 @@
 							Toolbar
 						</i18n-msg>
 			</paper-icon-item>
+			<paper-icon-item
+				class="icon-style"
+				on-click="filter">
+					<iron-icon icon="icons:assignment" item-icon></iron-icon>
+						<i18n-msg msgid="filt">
+							Filtering	
+						</i18n-msg>
+			</paper-icon-item>
+			<paper-icon-item
+				class="icon-style"
+				on-click="sorting">
+					<iron-icon icon="icons:assignment" item-icon></iron-icon>
+						<i18n-msg msgid="sort">
+							Sorting	
+						</i18n-msg>
+			</paper-icon-item>
 		</paper-dialog>
 		<paper-dialog id="helpAddclient">
 			<paper-toolbar>
@@ -486,7 +502,48 @@
 			Version %VERSION%<br>
 			Copyright 2017 SigScale Global Inc.<br>
 			Apache License Version 2.0<br>
-			<a href="http://www.sigscale.org">www.sigscale.org</a></p>
+			<a target="_blank" href="http://www.sigscale.org">www.sigscale.org</a></p>
+		</paper-dialog>
+		<paper-dialog id="helpFilter">
+			<paper-toolbar>
+			<paper-icon-item
+					class="menu-trigger menuitem"
+					on-click="helpBack">
+				<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
+			</paper-icon-item>
+				<h2>[[i18n.help]]</h2>
+			</paper-toolbar>
+			<paper-icon-item
+					class="menu-trigger menuitem">
+				<iron-icon icon="icons:assignment" item-icon></iron-icon>
+					<h2>[[i18n.filt]]</h2>
+			</paper-icon-item>
+					<p><b>How to filter?</b><br>
+					Filtering is so simple here. If you like to filter any particular records
+					just click the column header that you would like to filter. when you click
+					it you can see a textbox around your selected column header. then simply
+					enter that details which you want to filter. If that entered details available
+					in our records you can see the details which is relevent to your search by our
+					filter method.</p>
+		</paper-dialog>
+		<paper-dialog id="helpSorting">
+			<paper-toolbar>
+			<paper-icon-item
+					class="menu-trigger menuitem"
+					on-click="helpBack">
+				<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
+			</paper-icon-item>
+				<h2>[[i18n.help]]</h2>
+			</paper-toolbar>
+			<paper-icon-item
+					class="menu-trigger menuitem">
+				<iron-icon icon="icons:assignment" item-icon></iron-icon>
+					<h2>[[i18n.sort]]</h2>
+			</paper-icon-item>
+					<p><b>How to Sort?</b><br>
+					If you perform the sorting you should look the arrow icons next to the column
+					header.when you click the down arrow you should able to see the ascending
+					order sorting.</p>
 		</paper-dialog>
 		<!--Modal Definitions-->
 		<sig-sub-add></sig-sub-add>
@@ -548,12 +605,24 @@
 					var queObj = document.getElementById("downCsv");
 					queObj.open();
 				},
+				filter: function(event) {
+					document.getElementById("helpFaq").close();
+					var queObj = document.getElementById("helpFilter");
+					queObj.open();
+				},
+				sorting: function(event) {
+					document.getElementById("helpFaq").close();
+					var queObj = document.getElementById("helpSorting");
+					queObj.open();
+				},
 				helpBack: function(event) {
 					document.getElementById("helpAddclient").close();
 					document.getElementById("helpAddsub").close();
 					document.getElementById("helpAdduser").close();
 					document.getElementById("viewLogs").close();
 					document.getElementById("downCsv").close();
+					document.getElementById("helpFilter").close();
+					document.getElementById("helpSorting").close();
 					var backObj = document.getElementById("helpFaq");
 					backObj.open();
 				},

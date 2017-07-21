@@ -63,6 +63,7 @@
 
 
 -include_lib("radius/include/radius.hrl").
+-include("ocs.hrl").
 -include("ocs_eap_codec.hrl").
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").

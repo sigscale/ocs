@@ -38,25 +38,25 @@ e.g &#058;
  	```
 	4> inets:start().
 	ok
-	5> mod_auth:add_user("john", "g2k7hyeh6qag", [], 8080, "/").
+	5> ocs:add_user("john", "g2k7hyeh6qag", [], 8080, "/").
+	{ok,{1500544354609972724,74}}
+	6> ocs:add_user("bss", "nfc9xgp32xha", [], 8080, "/").
+	{ok,{1500544409802713846,82}}
+	7> ocs:add_group_member("all", "john", 8080, "/").
 	true
-	6> mod_auth:add_user("bss", "nfc9xgp32xha", [], 8080, "/").
-	true
-	7> mod_auth:add_group_member("all", "john", 8080, "/").
-	true
-	8> mod_auth:add_group_member("all", "bss", 8080, "/").
+	8> ocs:add_group_member("all", "bss", 8080, "/").
 	true
 	'''
 
 ===Internationalization (i18n)===
 The web user interface (UI) may be internationalized by including a
 `{locale, Code}' tuple in the `UserData' argument of
-{@link //inets/mod_auth:add_user/5. mod_auth:add_user/5} where `Code'
+{@link //ocs/ocs:add_user/5. ocs:add_user/5} where `Code'
 is a two letter ISO-639-1 language code. A corresponding message file
 should be provided in `priv/www/locales'.
 	```
-	9> mod_auth:add_user("alejandro", "sjjymz5prtcd", [{locale, "es"}], 8080, "/").
-	true
+	9> ocs:add_user("alejandro", "sjjymz5prtcd", [{locale, "es"}], 8080, "/").
+	{ok,{1500544430723584044,90}}
 	'''
 
 ==Operation==
