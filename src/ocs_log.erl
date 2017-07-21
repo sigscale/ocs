@@ -482,11 +482,15 @@ auth_query1(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
 		{Cont, [_ | T]}, Acc) ->
 	auth_query1(Start, End, Protocol, Types, ReqAttrsMatch,
 			RespAttrsMatch, {Cont, T}, Acc);
+<<<<<<< HEAD
 auth_query1(_Start, _End, _Protocol, _Types, _ReqAttrsMatch,
 		_RespAttrsMatch, {eof, []}, Acc) ->
 	{eof, lists:reverse(Acc)};
 auth_query1(Start, End, Protocol, Types, ReqAttrsMatch,
 		RespAttrsMatch, {Cont, []}, Acc) ->
+=======
+auth_query(_, _, _, _, _, _, {Cont, []}, Acc) ->
+>>>>>>> 5016f8bacd50d361a57b569bc64f1c7bf0c29274
 	{Cont, lists:reverse(Acc)}.
 %% @hidden
 auth_query2(Start, End, Protocol, Types, '_', RespAttrsMatch,
