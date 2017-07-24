@@ -575,7 +575,7 @@ add_user(Username, Password, UserData, Port, Dir) ->
 add_user(Username, Password, UserData, Address, Port, Dir) ->
 	LastModified = {erlang:system_time(?MILLISECOND),
 			erlang:unique_integer([positive])},
-	NewUserData = [LastModified | UserData],
+	NewUserData = [{last_modified, LastModified} | UserData],
 	case mod_auth:add_user(Username, Password, NewUserData, Address,
 			Port, Dir) of
 		true ->
