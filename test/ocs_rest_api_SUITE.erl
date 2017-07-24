@@ -1988,11 +1988,9 @@ update_user_characteristics_json_patch(Config) ->
 			(_F, [], _Name, _N) ->
 				"-"
 	end,
-	IndexUser = F1(F1, Characteristic, "usernme", 0),
 	IndexPassword= F1(F1, Characteristic, "password", 0),
 	IndexLocale = F1(F1, Characteristic, "locale", 0),
 	JSON1 = {array, [
-			{struct, [{op, "replace"}, {path, "/characteristic/" ++ IndexUser}, {value, NewUnObj}]},
 			{struct, [{op, "replace"}, {path, "/characteristic/" ++ IndexPassword}, {value, NewPwdObj}]},
 			{struct, [{op, "replace"}, {path, "/characteristic/" ++ IndexLocale}, {value, NewLocaleObj}]}]},
 	PatchBody = lists:flatten(mochijson:encode(JSON1)),
