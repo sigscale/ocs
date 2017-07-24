@@ -1465,9 +1465,19 @@ simultaneous_updates_on_user_faliure(Config) ->
 	{struct, Object} = mochijson:decode(ResponseBody),
 	{_, ID} = lists:keyfind("id", 1, Object),
 	{_, URI} = lists:keyfind("href", 1, Object),
-	{_, Characteristic1} = lists:keyfind("characteristic", 1, Object),
-	{array, [{struct, [{"name", "password"}, {"value", Password}]},
-			{struct, [{"name", "locale"}, {"value", Locale}]}]} = Characteristic1,
+	{_, {array, Characteristic1}} = lists:keyfind("characteristic", 1, Object),
+	F = fun(_F, [{struct, [{"name", N}, {"value", V}]} | _], N) ->
+			V;
+		(_, [{struct, [{"value", V}, {"name", N}]}| _], N) ->
+			V;
+		(F, [_ | T], N) ->
+			F(F,T, N);
+		(_F, [], _N) ->
+			undefined
+	end,
+	ID = F(F, Characteristic1, "username"),
+	Password = F(F, Characteristic1, "password"),
+	Locale = F(F, Characteristic1, "locale"),
 	TS = integer_to_list(erlang:system_time(milli_seconds)),
 	N = integer_to_list(erlang:unique_integer([positive])),
 	NewEtag = TS ++ "-" ++ N,
