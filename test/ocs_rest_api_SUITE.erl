@@ -1549,7 +1549,7 @@ simultaneous_updates_on_subscriber_faliure(Config) ->
 			$\r, $\n,
 			PatchBody],
 	ok = ssl:send(SslSock, list_to_binary(PatchReq)),
-	Timeout = 3000,
+	Timeout = 1500,
 	F = fun(_F, _Sock, {error, timeout}, Acc) ->
 					lists:reverse(Acc);
 			(F, Sock, {ok, Bin}, Acc) ->
@@ -1614,7 +1614,7 @@ simultaneous_updates_on_client_faliure(Config) ->
 			$\r,$\n,
 			PatchBody],
 	ok = ssl:send(SslSock, list_to_binary(PatchReq)),
-	Timeout = 3000,
+	Timeout = 1500,
 	F = fun(_F, _Sock, {error, timeout}, Acc) ->
 					lists:reverse(Acc);
 			(F, Sock, {ok, Bin}, Acc) ->
@@ -1679,7 +1679,7 @@ update_client_password_json_patch(Config) ->
 			$\r,$\n,
 			PatchBody],
 	ok = ssl:send(SslSock, list_to_binary(PatchReq)),
-	Timeout = 3000,
+	Timeout = 1500,
 	F = fun(_F, _Sock, {error, timeout}, Acc) ->
 					lists:reverse(Acc);
 			(F, Sock, {ok, Bin}, Acc) ->
@@ -1752,7 +1752,7 @@ update_client_attributes_json_patch(Config) ->
 			$\r,$\n,
 			PatchBody],
 	ok = ssl:send(SslSock, list_to_binary(PatchReq)),
-	Timeout = 3000,
+	Timeout = 1500,
 	F = fun(_F, _Sock, {error, timeout}, Acc) ->
 					lists:reverse(Acc);
 			(F, Sock, {ok, Bin}, Acc) ->
@@ -1833,7 +1833,7 @@ update_subscriber_password_json_patch(Config) ->
 			$\r, $\n,
 			PatchBody],
 	ok = ssl:send(SslSock, list_to_binary(PatchReq)),
-	Timeout = 3000,
+	Timeout = 1500,
 	F = fun(_F, _Sock, {error, timeout}, Acc) ->
 					lists:reverse(Acc);
 			(F, Sock, {ok, Bin}, Acc) ->
@@ -1924,7 +1924,7 @@ update_subscriber_attributes_json_patch(Config) ->
 			$\r, $\n,
 			PatchBody],
 	ok = ssl:send(SslSock, list_to_binary(PatchReq)),
-	Timeout = 3000,
+	Timeout = 1500,
 	F = fun(_F, _Sock, {error, timeout}, Acc) ->
 					lists:reverse(Acc);
 			(F, Sock, {ok, Bin}, Acc) ->
@@ -2013,7 +2013,7 @@ update_user_characteristics_json_patch(Config) ->
 			$\r, $\n,
 			PatchBody],
 	ok = ssl:send(SslSock, list_to_binary(PatchReq)),
-	Timeout = 3000,
+	Timeout = 1500,
 	F2 = fun(_F, _Sock, {error, timeout}, Acc) ->
 					lists:reverse(Acc);
 			(F, Sock, {ok, Bin}, Acc) ->
