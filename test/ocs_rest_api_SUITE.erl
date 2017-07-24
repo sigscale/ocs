@@ -1984,7 +1984,6 @@ update_user_characteristics_json_patch(Config) ->
 	{ok, SslSock} = ssl:connect({127,0,0,1}, RestPort,  [binary, {active, false}], infinity),
 	ok = ssl:ssl_accept(SslSock),
 	NewContentType = "application/json-patch+json",
-	NewUnObj = {struct, [{"name", "username"}, {"value", "ryanstiles89"}]},
 	NewPassword = ocs:generate_password(),
 	NewPwdObj = {struct, [{"name", "password"}, {"value", NewPassword}]},
 	NewLocale = "es",
