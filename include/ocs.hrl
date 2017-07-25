@@ -34,7 +34,7 @@
 		balance :: integer(),
 		enabled = true :: boolean(),
 		disconnect  = false :: boolean(),
-		session_attributes :: radius_attributes:attributes(),
+		session_attributes  = [] :: radius_attributes:attributes(),
 		allow_multi_session  = false :: boolean(),
 		last_modified  = {erlang:system_time(milli_seconds),
 				erlang:unique_integer([positive])} :: tuple()}).
