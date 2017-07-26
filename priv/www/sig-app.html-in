@@ -248,7 +248,7 @@
 						Contact us
 					</i18n-msg>
 			</paper-icon-item>
-				<paper-menu class="menu-content sublist">	
+				<paper-menu class="menu-content sublist">
 					<paper-icon-item
 						class="menu-trigger menuitem">
 						<iron-icon icon="communication:call" item-icon></iron-icon>
@@ -336,7 +336,7 @@
 				on-click="filter">
 					<iron-icon icon="icons:assignment" item-icon></iron-icon>
 						<i18n-msg msgid="filt">
-							Filtering	
+							Filtering
 						</i18n-msg>
 			</paper-icon-item>
 			<paper-icon-item
@@ -344,7 +344,7 @@
 				on-click="sorting">
 					<iron-icon icon="icons:assignment" item-icon></iron-icon>
 						<i18n-msg msgid="sort">
-							Sorting	
+							Sorting
 						</i18n-msg>
 			</paper-icon-item>
 		</paper-dialog>
