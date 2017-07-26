@@ -1,6 +1,7 @@
 {suites, ".",
 		[ocs_api_SUITE,
 		ocs_rest_api_SUITE,
+		ocs_rest_lib_SUITE,
 		ocs_simple_auth_SUITE,
 		ocs_accounting_SUITE,
 		ocs_eap_pwd_SUITE,
