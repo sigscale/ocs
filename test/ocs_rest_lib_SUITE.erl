@@ -73,11 +73,30 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[].
+	[filter].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
+
+filter() ->
+	[{userdata, [{doc, "Apply filters a JSON object"}]}].
+
+filter(_Config) ->
+	G = {"g", erlang:unique_integer()},
+	F = {struct, [{"f", erlang:unique_integer()}]},
+	E = {struct, [{"g", erlang:unique_integer()},
+			{"h", erlang:unique_integer()}]}, 
+	D = {struct, [{"z", 1}, {"f", F}, {"e", E}, {"y", 2}]},
+	C = {struct, [{"d", D}, {"x", {array, ["u", "v", "w"]}}]},
+	B = {struct, [{"s", 5}, {"t", 6}, {"c", C}]},
+	A = {struct, [{"o", 3}, {"p", 4}, {"b", B},
+			{struct, [{"q", 5}, {"r", 6}]}]},
+	ObjectIn = {struct, [{"a", A}, G, {"m", 9}]},
+	Filters = [["a", "b", "c", "d", "e"], ["g"], ["a", "b", "c", "d", "f"]],
+	ObjectOut = {struct, [{"a", {struct, [{"b", {struct, [{"c",
+			{struct, [{"d", {struct, [{"e", E}, {"f", F}]}}]}}]}}]}}, G]},
+	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
