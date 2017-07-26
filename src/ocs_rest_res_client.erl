@@ -80,15 +80,15 @@ get_client0(Clients) ->
 			{error, 500}
 	end.
 
--spec get_client(Ip) -> Result
+-spec get_client(Id) -> Result
 	when
-		Ip :: string(),
+		Id :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/client/{id}'
 %% requests.
-get_client(Ip) ->
-	case inet:parse_address(Ip) of
+get_client(Id) ->
+	case inet:parse_address(Id) of
 		{ok, Address} ->
 			get_client1(Address);
 		{error, einval} ->
@@ -152,9 +152,9 @@ post_client(RequestBody) ->
 			{error, 400}
 	end.
 
--spec patch_client(Ip, Etag, ContentType, ReqBody) -> Result
+-spec patch_client(Id, Etag, ContentType, ReqBody) -> Result
 	when
-		Ip :: string(),
+		Id :: string(),
 		Etag :: undefined | string(),
 		ContentType :: string(),
 		ReqBody :: list(),
@@ -162,19 +162,19 @@ post_client(RequestBody) ->
 			| {error, ErrorCode :: integer()} .
 %% @doc	Respond to `PATCH /ocs/v1/client/{id}' request and
 %% Updates a existing `client''s password or attributes.
-patch_client(Ip, undefined, CType, ReqBody) ->
-	patch_client0(Ip, undefined, CType, ReqBody);
-patch_client(Ip, Etag, CType, ReqBody) ->
+patch_client(Id, undefined, CType, ReqBody) ->
+	patch_client0(Id, undefined, CType, ReqBody);
+patch_client(Id, Etag, CType, ReqBody) ->
 	try
 		Etag1 = etag(Etag), 
-		patch_client0(Ip, Etag1, CType, ReqBody)
+		patch_client0(Id, Etag1, CType, ReqBody)
 	catch
 		_:_ ->
 			{error, 400}
 	end.
 %% @hidden
-patch_client0(Ip, Etag, CType, ReqBody) ->
-	case inet:parse_address(Ip) of
+patch_client0(Id, Etag, CType, ReqBody) ->
+	case inet:parse_address(Id) of
 		{ok, Address} ->
 			patch_client1(Address, Etag, CType, ReqBody);
 		{error, einval} ->
@@ -283,15 +283,15 @@ patch_client4(Id, Port, Protocol, Secret, Etag) ->
 	end,
 	{ok, Headers, RespBody}.
 
--spec delete_client(Ip) -> Result
+-spec delete_client(Id) -> Result
 	when
-		Ip :: string(),
+		Id :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 			| {error, ErrorCode :: integer()} .
 %% @doc Respond to `DELETE /ocs/v1/client/{address}' request and deletes
 %% a `client' resource. If the deletion is successful return true.
-delete_client(Ip) ->
-	case inet:parse_address(Ip) of
+delete_client(Id) ->
+	case inet:parse_address(Id) of
 		{ok, Address} ->
 			ocs:delete_client(Address),
 			{ok, [], []};
