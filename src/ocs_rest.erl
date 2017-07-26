@@ -28,15 +28,21 @@
 
 -spec filter(Filters, JsonObject) -> Result
 	when
-		Filters :: [list(string())],
+		Filters :: [string()],
 		JsonObject :: tuple(),
 		Result :: tuple().
-%% @doc Filters a JSON object.
+%% @doc Filter a JSON object.
+%%
+%% 	Each filter in `Filters' is the name of a member in the JSON
+%% 	encoded `JsonObject'. A filter may refer to a complex type by
+%% 	use of the "dot" path seperator character (e.g. `"a.b.c"').
+%%
 %% 	Returns a new JSON object with only the matching items.
 %% 
-filter(Filters, {struct, L} = _Object) ->
-	Filters1 = filter1(lists:usort(Filters), []),
-	{struct, filter2(Filters1, L, [])}.
+filter(Filters, {struct, L} = _Object) when is_list(Filters) ->
+	Filters1 = [string:tokens(F, ".") || F <- Filters],
+	Filters2 = filter1(lists:usort(Filters1), []),
+	{struct, filter2(Filters2, L, [])}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
