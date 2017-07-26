@@ -136,8 +136,9 @@ all() ->
 	add_subscriber, add_subscriber_without_password, get_subscriber,
 	get_subscriber_not_found, retrieve_all_subscriber, delete_subscriber,
 	add_client, add_client_without_password, get_client, get_client_id,
-	get_client_bogus, get_client_notfound, get_all_clients, delete_client,
-	get_usagespecs, get_usagespecs_query, get_usagespec, get_auth_usage,
+	get_client_bogus, get_client_notfound, get_all_clients,
+	get_clients_filter, delete_client, get_usagespecs,
+	get_usagespecs_query, get_usagespec, get_auth_usage,
 	get_auth_usage_id, get_auth_usage_filter, get_acct_usage,
 	get_acct_usage_id, get_acct_usage_filter, get_ipdr_usage,
 	top_up_subscriber_balance, get_subscriber_balance, add_user,
@@ -769,6 +770,35 @@ get_all_clients(Config) ->
 	{_, Port} = lists:keyfind("port", 1, ClientVar),
 	{_, Protocol} = lists:keyfind("protocol", 1, ClientVar),
 	{_, Secret} = lists:keyfind("secret", 1, ClientVar).
+
+get_clients_filter() ->
+	[{userdata, [{doc,"Get clients with filters"}]}].
+
+get_clients_filter(Config) ->
+	ok = ocs:add_client("10.0.123.100", 3799, radius, "ziggyzaggy"),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Filters = "?filter=identifier,secret",
+	Url = HostUrl ++ "/ocs/v1/client" ++ Filters,
+	Request = {Url, [Accept, Authentication]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
+	ContentLength = integer_to_list(length(Body)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, ClientsList} = mochijson:decode(Body),
+	Fall = fun({struct, L}) ->
+				lists:keymember("id", 1, L)
+						and lists:keymember("href", 1, L)
+						and not lists:keymember("port", 1, L)
+						and not lists:keymember("protocol", 1, L)
+						and lists:keymember("secret", 1, L)
+	end,
+	true = lists:all(Fall, ClientsList).
 
 delete_client() ->
 	[{userdata, [{doc,"Delete client in rest interface"}]}].
