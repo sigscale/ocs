@@ -170,13 +170,42 @@ request1(#statedata{req_attr = Attributes, req_auth = Authenticator,
 	case radius_attributes:find(?UserPassword, Attributes) of
 		{ok, Hidden} ->
 			Password = radius_attributes:unhide(Secret, Authenticator, Hidden),
-			request2(list_to_binary(Password), StateData);
+			NewStateData = StateData#statedata{password = Password},
+			request3(NewStateData);
 		{error, not_found} ->
 			response(?AccessReject, [], StateData),
 			{stop, {shutdown, SessionID}, StateData}
 	end.
 %% @hidden
-request2(<<>>, #statedata{subscriber = Subscriber,
+request3(#statedata{subscriber = Subscriber} = StateData) ->
+case existing_sessions(Subscriber) of
+	false ->
+		request4(StateData);
+	{true, false, ExistingSessionAtt} ->
+		%% @todo
+		%% 1. Get existing session attributes
+		%% 2. spawn a disconnect fsm and pass it session attributes
+		%% 3. When existing session is disconnected by NAS, authorize new session
+		%% 4. Store new session attributes on subscriber
+		;
+	{true, true, ExistingSessionAtt} ->
+		%% @todo
+		%% 1. Authorize new session
+		%% 2. Append new session attributes to subscribers's session_attributes list
+		;
+	{error, Reason} ->
+		request6(not_found, StateData)
+end.
+%% @hidden
+request4(#statedata{subscriber = Subscriber, password = Password} = StateData) ->
+	case add_session_attributes(Subscriber, Attributes) of
+		ok ->
+			request5(list_to_binary(Password), StateData);
+		{error, Reason} ->
+			request5(Reason, StateData)
+end.
+%% @hidden
+request5(<<>>, #statedata{subscriber = Subscriber,
 		session_id = SessionID} = StateData) ->
 	case ocs:authorize(ocs:normalize(Subscriber), []) of
 		{ok, <<>>, Attributes} ->
@@ -189,31 +218,31 @@ request2(<<>>, #statedata{subscriber = Subscriber,
 			response(?AccessAccept, ResponseAttributes, StateData),
 			{stop, {shutdown, SessionID}, StateData};
 		{error, Reason} ->
-			request3(Reason, StateData)
+			request6(Reason, StateData)
 	end;
-request2(Password, #statedata{subscriber = Subscriber,
+request5(Password, #statedata{subscriber = Subscriber,
 		session_id = SessionID} = StateData) ->
 	case ocs:authorize(Subscriber, Password) of
 		{ok, Password, ResponseAttributes} ->
 			response(?AccessAccept, ResponseAttributes, StateData),
 			{stop, {shutdown, SessionID}, StateData};
 		{error, Reason} ->
-			request3(Reason, StateData)
+			request6(Reason, StateData)
 	end.
 %% @hidden
-request3(out_of_credit, #statedata{session_id = SessionID} = StateData) ->
+request6(out_of_credit, #statedata{session_id = SessionID} = StateData) ->
 	RejectAttributes = [{?ReplyMessage, "Out of Credit"}],
 	response(?AccessReject, RejectAttributes, StateData),
 	{stop, {shutdown, SessionID}, StateData};
-request3(disabled, #statedata{session_id = SessionID} = StateData) ->
+request6(disabled, #statedata{session_id = SessionID} = StateData) ->
 	RejectAttributes = [{?ReplyMessage, "Subscriber Disabled"}],
 	response(?AccessReject, RejectAttributes, StateData),
 	{stop, {shutdown, SessionID}, StateData};
-request3(bad_password, #statedata{session_id = SessionID} = StateData) ->
+request6(bad_password, #statedata{session_id = SessionID} = StateData) ->
 	RejectAttributes = [{?ReplyMessage, "Bad Password"}],
 	response(?AccessReject, RejectAttributes, StateData),
 	{stop, {shutdown, SessionID}, StateData};
-request3(not_found, #statedata{session_id = SessionID} = StateData) ->
+request6(not_found, #statedata{session_id = SessionID} = StateData) ->
 	RejectAttributes = [{?ReplyMessage, "Unknown Username"}],
 	response(?AccessReject, RejectAttributes, StateData),
 	{stop, {shutdown, SessionID}, StateData}.
@@ -345,4 +374,55 @@ response(RadiusCode, ResponseAttributes,
 	ok = ocs_log:auth_log(radius, {ServerAddress, ServerPort},
 			{ClientAddress, ClientPort}, Type, RequestAttributes, AttributeList2),
 	radius:response(RadiusFsm, {response, ResponsePacket}).
+
+-spec existing_sessions(Subscriber) -> Result
+	when
+		Subscriber :: string() | binary(),
+		Result :: boolean() | {boolean(), MultiSessionStatus, SessionAttributes}
+				| {error, Reason},
+		MultiSessionStatus :: boolean(),
+		SessionAttributes :: [radius_attributes:attributes()],
+		Reason :: term().
+%% @doc Checks for Subscriber's existing sessions on OCS.
+%% @hidden
+existing_sessions(Subscriber) ->
+	case ocs:find_subscriber(Subscriber) of
+		{ok, #subscriber{session_attributes = []}} ->
+			false;
+		{ok, #subscriber{session_attributes = SessionAttr,
+				multi_sessions_allowed = MultiSessionStatus}} ->
+			{true, MultiSessionStatus, SessionAttr};
+		{error, Reason} ->
+			{error, Reason}
+	end.
+
+%% @hidden
+add_session_attributes(Subscriber, Attributes) ->
+	NewSessionAttrs = get_session_attributes(Attributes),
+	{ok, #subscriber{session_attributes = CurrentSessionList} = S}
+			= ocs:find_subscriber(Subscriber),
+	NewSessionList = [NewSessionAttrs | CurrentSessionList],
+	F = fun() ->
+		mnesia:write(S#subscriber{session_attributes = NewSessionList})
+	end,
+	case mnesia:transaction(F) of
+		{aborted, Reason} ->
+			{error, Reason};
+		{atomic, _} ->
+			ok
+	end.
+
+-spec get_session_attributes(Attributes) -> SessionAttributes
+	when
+		Attributes :: radius_attributes:attributes(),
+		SessionAttributes :: radius_attributes:attributes().
+%% @hidden
+get_session_attributes(Attributes) ->
+	F = fun({K, _}) when K == ?NasIdentifier; K == ?NasIpAddress;
+				K == ?NasPort; K == ?NasPortType; K == ?CallingStationId ->
+			true;
+		(_) ->
+			false
+	end,
+	lists:filter(F1, Attributes).
 
