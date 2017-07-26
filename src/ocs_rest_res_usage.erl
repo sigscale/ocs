@@ -454,15 +454,10 @@ usage_aaa_auth({Milliseconds, N, P, Node,
 	RequestChars = usage_characteristics(RequestAttributes),
 	ResponseChars = usage_characteristics(ResponseAttributes),
 	UsageChars = EventChars ++ RequestChars ++ ResponseChars,
-	ObjectMembers = [{"id", ID}, {"href", Href}, {"date", Date}, {"type", Type},
+	Object = {struct, [{"id", ID}, {"href", Href}, {"date", Date}, {"type", Type},
 			{"status", Status}, {"usageSpecification", UsageSpec},
-			{"usageCharacteristic", {array, UsageChars}}],
-	case Filters of
-		[] ->
-			{struct, ObjectMembers};
-		_ ->
-			{struct, filter(["id", "href"] ++ Filters, ObjectMembers)}
-	end;
+			{"usageCharacteristic", {array, UsageChars}}]},
+	ocs_rest:filter(["id", "href"] ++ Filters, Object);
 usage_aaa_auth(Events, Filters) when is_list(Events) ->
 	usage_aaa_auth(Events, Filters, []).
 %% @hidden
@@ -497,15 +492,10 @@ usage_aaa_acct({Milliseconds, N, P, Node,
 			{struct, [{"name", "type"}, {"value", atom_to_list(EventType)}]}],
 	AttributeChars = usage_characteristics(Attributes),
 	UsageChars = EventChars ++ AttributeChars,
-	ObjectMembers = [{"id", ID}, {"href", Href}, {"date", Date}, {"type", Type},
+	Object = {struct, [{"id", ID}, {"href", Href}, {"date", Date}, {"type", Type},
 			{"status", Status}, {"usageSpecification", UsageSpec},
-			{"usageCharacteristic", {array, UsageChars}}],
-	case Filters of
-		[] ->
-			{struct, ObjectMembers};
-		_ ->
-			{struct, filter(["id", "href"] ++ Filters, ObjectMembers)}
-	end;
+			{"usageCharacteristic", {array, UsageChars}}]},
+	ocs_rest:filter(["id", "href"] ++ Filters, Object);
 usage_aaa_acct(Events, Filters) when is_list(Events) ->
 	usage_aaa_acct(Events, Filters, []).
 %% @hidden
@@ -2267,18 +2257,4 @@ get_acct_last([] = _Query, Filters) ->
 	end;
 get_acct_last(_Query, _Filters) ->
 	{error, 400}.
-
-%% @hidden
-filter(Keys, KeyValuePairs) ->
-	filter(Keys, KeyValuePairs, []).
-%% @hidden
-filter([H | T], L, Acc) ->
-	case lists:keyfind(H, 1, L) of
-		{H, V} ->
-			filter(T, L, [{H, V} | Acc]);
-		false ->
-			filter(T, L, Acc)
-	end;
-filter([], _, Acc) ->
-	lists:reverse(Acc).
 
