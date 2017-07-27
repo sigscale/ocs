@@ -171,16 +171,16 @@ request1(#statedata{req_attr = Attributes, req_auth = Authenticator,
 		{ok, Hidden} ->
 			Password = radius_attributes:unhide(Secret, Authenticator, Hidden),
 			NewStateData = StateData#statedata{password = Password},
-			request3(NewStateData);
+			request2(NewStateData);
 		{error, not_found} ->
 			response(?AccessReject, [], StateData),
 			{stop, {shutdown, SessionID}, StateData}
 	end.
 %% @hidden
-request3(#statedata{subscriber = Subscriber} = StateData) ->
+request2(#statedata{subscriber = Subscriber, password = Password} = StateData) ->
 case existing_sessions(Subscriber) of
 	false ->
-		request4(StateData);
+		request3(list_to_binary(Password), StateData);
 	{true, false, ExistingSessionAtt} ->
 		%% @todo
 		%% 1. Get existing session attributes
@@ -193,56 +193,55 @@ case existing_sessions(Subscriber) of
 		%% 1. Authorize new session
 		%% 2. Append new session attributes to subscribers's session_attributes list
 		;
-	{error, Reason} ->
-		request6(not_found, StateData)
+	{error, _Reason} ->
+		request5(not_found, StateData)
 end.
 %% @hidden
-request4(#statedata{subscriber = Subscriber, password = Password} = StateData) ->
-	case add_session_attributes(Subscriber, Attributes) of
-		ok ->
-			request5(list_to_binary(Password), StateData);
-		{error, Reason} ->
-			request5(Reason, StateData)
-end.
-%% @hidden
-request5(<<>>, #statedata{subscriber = Subscriber,
+request3(<<>>, #statedata{subscriber = Subscriber,
 		session_id = SessionID} = StateData) ->
 	case ocs:authorize(ocs:normalize(Subscriber), []) of
 		{ok, <<>>, Attributes} ->
-			response(?AccessAccept, Attributes, StateData),
-			{stop, {shutdown, SessionID}, StateData};
+			request4(?AccessAccept, Attributes, StateData);
 		{ok, Password, Attributes} ->
 			VendorSpecific = {?Mikrotik, ?MikrotikWirelessPsk, Password},
 			ResponseAttributes = radius_attributes:store(?VendorSpecific,
 					VendorSpecific, Attributes),
-			response(?AccessAccept, ResponseAttributes, StateData),
-			{stop, {shutdown, SessionID}, StateData};
+			request4(?AccessAccept, ResponseAttributes, StateData);
 		{error, Reason} ->
-			request6(Reason, StateData)
+			request5(Reason, StateData)
 	end;
-request5(Password, #statedata{subscriber = Subscriber,
+request3(Password, #statedata{subscriber = Subscriber,
 		session_id = SessionID} = StateData) ->
 	case ocs:authorize(Subscriber, Password) of
 		{ok, Password, ResponseAttributes} ->
-			response(?AccessAccept, ResponseAttributes, StateData),
-			{stop, {shutdown, SessionID}, StateData};
+			request4(?AccessAccept, ResponseAttributes, StateData),
 		{error, Reason} ->
-			request6(Reason, StateData)
+			request5(Reason, StateData)
 	end.
 %% @hidden
-request6(out_of_credit, #statedata{session_id = SessionID} = StateData) ->
+request4(RadiusPacketType, ResponseAttributes, #statedata{session_id = SessionID,
+		req_attr = Attributes} = StateData) ->
+	case add_session_attributes(Subscriber, Attributes) of
+		ok ->
+			response(RadiusPacketType, ResponseAttributes, StateData),
+			{stop, {shutdown, SessionID}, StateData};
+		{error, Reason} ->
+			request5(Reason, StateData)
+	end.
+%% @hidden
+request5(out_of_credit, #statedata{session_id = SessionID} = StateData) ->
 	RejectAttributes = [{?ReplyMessage, "Out of Credit"}],
 	response(?AccessReject, RejectAttributes, StateData),
 	{stop, {shutdown, SessionID}, StateData};
-request6(disabled, #statedata{session_id = SessionID} = StateData) ->
+request5(disabled, #statedata{session_id = SessionID} = StateData) ->
 	RejectAttributes = [{?ReplyMessage, "Subscriber Disabled"}],
 	response(?AccessReject, RejectAttributes, StateData),
 	{stop, {shutdown, SessionID}, StateData};
-request6(bad_password, #statedata{session_id = SessionID} = StateData) ->
+request5(bad_password, #statedata{session_id = SessionID} = StateData) ->
 	RejectAttributes = [{?ReplyMessage, "Bad Password"}],
 	response(?AccessReject, RejectAttributes, StateData),
 	{stop, {shutdown, SessionID}, StateData};
-request6(not_found, #statedata{session_id = SessionID} = StateData) ->
+request5(not_found, #statedata{session_id = SessionID} = StateData) ->
 	RejectAttributes = [{?ReplyMessage, "Unknown Username"}],
 	response(?AccessReject, RejectAttributes, StateData),
 	{stop, {shutdown, SessionID}, StateData}.
