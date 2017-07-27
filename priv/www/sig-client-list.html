@@ -119,9 +119,9 @@
 		</paper-toast>
 		<iron-ajax
 				id="getClients"
-					url="/ocs/v1/client"
-					headers='{"Accept": "application/json"}'
-					on-response="getClientsResponse">
+				url="/ocs/v1/client"
+				headers='{"Accept": "application/json"}'
+				on-response="getClientsResponse">
 		</iron-ajax>
 	</template>
 	<script>
@@ -134,6 +134,57 @@
 					activeItem: {
 						observer: '_activeItemChanged'
 					}
+				},
+				ready: function() {
+					var grid = this.$.clientGrid;
+					grid.columns = [
+						{
+							name: "id",
+						},
+						{
+							name: "identifier"
+						},
+						{
+							name: "secret"
+						},
+						{
+							name: "port"
+						},
+						{
+							name: "protocol"
+						}
+					];
+					grid.size = 50;
+					grid.dataProvider = function(params, callback) {
+						var ajax = document.getElementById("getClients");
+						callBack = callback;
+						ajax.url="/ocs/v1/client"
+						params.filters.forEach(function(filter, index) {
+							if(index == 0) {
+								ajax.url += '?'+ filter.path + '=' + filter.value;
+							} else {
+								ajax.url += '&'+ filter.path + '=' + filter.value;
+							}
+						});
+						params.sortOrders.forEach(function(sort, index) {
+							var dirsort;
+							if(sort.direction == "desc") {
+								dirsort = '-' + sort.path;
+							} else {
+								dirsort = sort.path;
+							}
+							if(index == 0) {
+								if(params.filters.length == 0) {
+									ajax.url += '?sort=' + dirsort;
+								} else {
+									ajax.url += '&sort=' + dirsort;
+								}
+							} else {
+								ajax.url += ',' + dirsort;
+							}
+						});
+						ajax.generateRequest();
+					};
 				},
 				_activeItemChanged: function(item) {
 					if (item != null){
@@ -160,24 +211,7 @@
 						newRecord.protocol = results[index].protocol;
 						vaadinItems[index] = newRecord;
 					}
-					grid.items = vaadinItems;
-					grid.columns = [
-						{
-							name: "id",
-						},
-						{
-							name: "identifier"
-						},
-						{
-							name: "secret"
-						},
-						{
-							name: "port"
-						},
-						{
-							name: "protocol"
-						}
-					];
+					callBack(vaadinItems);
 				},
 				showAddModal: function(event) {
 					var modal = document.getElementById("clientAddModal");
