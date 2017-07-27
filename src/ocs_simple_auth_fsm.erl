@@ -396,6 +396,13 @@ existing_sessions(Subscriber) ->
 			{error, Reason}
 	end.
 
+-spec add_session_attributes(Subscriber, Attributes) -> Result
+	when
+		Subscriber :: string() | binary(),
+		Attributes :: radius_attributes:attributes(),
+		Result :: ok | {error, term()}.
+%% @doc Extract session related attributes from `Attributes' and append
+%% to `Subscriber's existing session attribute list.
 %% @hidden
 add_session_attributes(Subscriber, Attributes) ->
 	NewSessionAttrs = get_session_attributes(Attributes),
@@ -416,6 +423,8 @@ add_session_attributes(Subscriber, Attributes) ->
 	when
 		Attributes :: radius_attributes:attributes(),
 		SessionAttributes :: radius_attributes:attributes().
+%% @doc Extract and return RADIUS session related attributes from
+%% `Attributes'.
 %% @hidden
 get_session_attributes(Attributes) ->
 	F = fun({K, _}) when K == ?NasIdentifier; K == ?NasIpAddress;
