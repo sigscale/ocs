@@ -2146,7 +2146,7 @@ char_attr_cause(Attributes, Acc) ->
 
 %% @hidden
 get_auth_usage(Query) ->
-	case lists:keytake("filter", 1, Query) of
+	case lists:keytake("fields", 1, Query) of
 		{value, {_, L}, NewQuery} ->
 			Filters = string:tokens(L, ","),
 			get_auth_usage(NewQuery, Filters);
@@ -2208,7 +2208,7 @@ get_auth_last(_Query, _Filters) ->
 
 %% @hidden
 get_acct_usage(Query) ->
-	case lists:keytake("filter", 1, Query) of
+	case lists:keytake("fields", 1, Query) of
 		{value, {_, L}, NewQuery} ->
 			Filters = string:tokens(L, ","),
 			get_acct_usage(NewQuery, Filters);

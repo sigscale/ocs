@@ -53,7 +53,7 @@ get_clients(Query) ->
 		{error, _} ->
 			{error, 500};
 		Clients ->
-			case lists:keytake("filter", 1, Query) of
+			case lists:keytake("fields", 1, Query) of
 				{value, {_, L}, NewQuery} ->
 					get_clients(Clients, NewQuery, string:tokens(L, ","));
 				false ->
@@ -139,7 +139,7 @@ get_clients1(_Clients, _Query, _Filters) ->
 %% @doc Body producing function for `GET /ocs/v1/client/{id}'
 %% requests.
 get_client(Id, Query) ->
-	case lists:keytake("filter", 1, Query) of
+	case lists:keytake("fields", 1, Query) of
 		{value, {_, L}, NewQuery} ->
 			get_client(Id, NewQuery, string:tokens(L, ","));
 		false ->
