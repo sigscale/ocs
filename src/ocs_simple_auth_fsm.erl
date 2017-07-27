@@ -383,17 +383,24 @@ response(RadiusCode, ResponseAttributes,
 		MultiSessionStatus :: boolean(),
 		SessionAttributes :: [radius_attributes:attributes()],
 		Reason :: term().
-%% @doc Checks for Subscriber's existing sessions on OCS.
+%% @doc Checks for `Subscriber's existing sessions on OCS. Only if the
+%% `Subscriber' is authenticatable, returns
+%%  {true, `MultiSessionStatus', `SessionAttributes'}.
 %% @hidden
 existing_sessions(Subscriber) ->
 	case ocs:find_subscriber(Subscriber) of
 		{ok, #subscriber{session_attributes = []}} ->
 			false;
-		{ok, #subscriber{session_attributes = SessionAttr,
-				multi_sessions_allowed = MultiSessionStatus}} ->
+		{ok, #subscriber{session_attributes = SessionAttr, enabled = true,
+				balance = Balance, multi_sessions_allowed = MultiSessionStatus}}
+				when Balance > 0 ->
 			{true, MultiSessionStatus, SessionAttr};
-		{error, Reason} ->
-			{error, Reason}
+		{ok, #subscriber{balance = Balance}} when Balance == 0; Balance < 0 ->
+			{error, out_of_credit};
+		{ok, #subscriber{enabled = false}} ->
+			{error, disabled};
+		{error, _Reason} ->
+			{error, not_found}
 	end.
 
 -spec add_session_attributes(Subscriber, Attributes) -> Result
