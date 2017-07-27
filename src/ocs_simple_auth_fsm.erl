@@ -36,6 +36,7 @@
 			terminate/3, code_change/4]).
 
 -include_lib("radius/include/radius.hrl").
+-include("ocs.hrl").
 -include("ocs_eap_codec.hrl").
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
@@ -181,21 +182,20 @@ request2(#statedata{subscriber = Subscriber, password = Password} = StateData) -
 case existing_sessions(Subscriber) of
 	false ->
 		request3(list_to_binary(Password), StateData);
-	{true, false, ExistingSessionAtt} ->
-		%% @todo
-		%% 1. Get existing session attributes
-		%% 2. spawn a disconnect fsm and pass it session attributes
-		%% 3. When existing session is disconnected by NAS, authorize new session
-		%% 4. Store new session attributes on subscriber
-		;
-	{true, true, ExistingSessionAtt} ->
+	{true, false, [ExistingSessionAtt]} ->
+		case pg2:get_closest_pid(ocs_radius_acct_top_sup) of
+			{error, Reason} ->
+				request5(Reason, StateData);
+			DiscFsmSup ->
+				start_disconnect(DiscFsmSup, ExistingSessionAtt, StateData)
+		end;
+	{true, true, _ExistingSessionAtt} ->
 		request3(list_to_binary(Password), StateData);
 	{error, _Reason} ->
 		request5(not_found, StateData)
 end.
 %% @hidden
-request3(<<>>, #statedata{subscriber = Subscriber,
-		session_id = SessionID} = StateData) ->
+request3(<<>>, #statedata{subscriber = Subscriber} = StateData) ->
 	case ocs:authorize(ocs:normalize(Subscriber), []) of
 		{ok, <<>>, Attributes} ->
 			request4(?AccessAccept, Attributes, StateData);
@@ -207,17 +207,16 @@ request3(<<>>, #statedata{subscriber = Subscriber,
 		{error, Reason} ->
 			request5(Reason, StateData)
 	end;
-request3(Password, #statedata{subscriber = Subscriber,
-		session_id = SessionID} = StateData) ->
+request3(Password, #statedata{subscriber = Subscriber} = StateData) ->
 	case ocs:authorize(Subscriber, Password) of
 		{ok, Password, ResponseAttributes} ->
-			request4(?AccessAccept, ResponseAttributes, StateData),
+			request4(?AccessAccept, ResponseAttributes, StateData);
 		{error, Reason} ->
 			request5(Reason, StateData)
 	end.
 %% @hidden
 request4(RadiusPacketType, ResponseAttributes, #statedata{session_id = SessionID,
-		req_attr = Attributes} = StateData) ->
+		req_attr = Attributes, subscriber = Subscriber} = StateData) ->
 	case add_session_attributes(Subscriber, Attributes) of
 		ok ->
 			response(RadiusPacketType, ResponseAttributes, StateData),
@@ -430,12 +429,57 @@ extract_session_attributes(Attributes) ->
 	F = fun({K, _}) when K == ?NasIdentifier; K == ?NasIpAddress;
 				K == ?UserName; K == ?FramedIpAddress; K == ?NasPort;
 				K == ?NasPortType; K == ?CalledStationId; K == ?CallingStationId;
-				K = ?AcctSessionId; K == ?AcctMultiSessionId; K == ?NasPortId;
+				K == ?AcctSessionId; K == ?AcctMultiSessionId; K == ?NasPortId;
 				K == ?OriginatingLineInfo; K == ?FramedInterfaceId;
 				K == ?FramedIPv6Prefix ->
 			true;
 		(_) ->
 			false
 	end,
-	lists:filter(F1, Attributes).
+	lists:filter(F, Attributes).
+
+-spec start_disconnect(DiscFsmSup, ExistingSessionAtt, StateData) -> Result
+	when
+		DiscFsmSup :: pid(),
+		ExistingSessionAtt :: radius_attributes:attributes(),
+		StateData :: statedata(),
+		Result :: term().
+%% @doc Start a disconnect_fsm worker.
+start_disconnect(DiscFsmSup, ExistingSessionAtt, StateData) ->
+	try
+			F = fun(_F, [{K, V} | _T], K) ->
+						V;
+					(F, [_ | T], K) ->
+						F(F, T, K);
+					(_, [], _) ->
+						undefined
+			end,
+			NasIp= F(F, ExistingSessionAtt, ?NasIpAddress),
+			NasId = F(F, ExistingSessionAtt, ?NasIdentifier),
+			Address = case {NasIp, NasId} of
+				{_, undefined} ->
+					NasIp;
+				_ ->
+					NasId
+			end,
+			{ok, #client{port = ListenPort, protocol = radius, secret = Secret}}
+					= ocs:find_client(Address),
+			Subscriber = F(F, ExistingSessionAtt, ?UserName),
+			AcctSessionId = F(F, ExistingSessionAtt, ?AcctSessionId),
+			DiscArgs = [Address, NasId, Subscriber, AcctSessionId, Secret,
+					ListenPort, ExistingSessionAtt, 1],
+			StartArgs = [DiscArgs, []],
+			case supervisor:start_child(DiscFsmSup, StartArgs) of
+				{ok, _DiscFsm} ->
+					{next_state, request, StateData};
+				{error, Reason} ->
+					error_logger:error_report(["Failed to initiate session disconnect function",
+							{module, ?MODULE}, {subscriber, Subscriber}, {nas, NasId},
+							{address, Address}, {session, AcctSessionId}, {error, Reason}]),
+					{next_state, request, StateData}
+			end
+	catch
+		_: Reason1 ->
+			request5(Reason1, StateData)
+	end.
 
