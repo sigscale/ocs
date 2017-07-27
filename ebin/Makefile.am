@@ -58,6 +58,7 @@ beam_DATA = ocs.beam \
 			mod_ocs_rest_put.beam \
 			mod_ocs_rest_patch.beam \
 			mod_ocs_rest_delete.beam \
+			ocs_rest.beam \
 			ocs_rest_res_subscriber.beam \
 			ocs_rest_res_client.beam \
 			ocs_rest_res_usage.beam \

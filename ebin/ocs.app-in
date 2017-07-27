@@ -46,6 +46,7 @@
 				ocs_log,
 				ocs_eap_pwd,
 				ocs_eap_tls_transport,
+				ocs_rest,
 				ocs_rest_res_subscriber,
 				ocs_rest_res_client,
 				ocs_rest_res_usage,
