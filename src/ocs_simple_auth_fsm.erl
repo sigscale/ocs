@@ -241,6 +241,10 @@ request5(bad_password, #statedata{session_id = SessionID} = StateData) ->
 request5(not_found, #statedata{session_id = SessionID} = StateData) ->
 	RejectAttributes = [{?ReplyMessage, "Unknown Username"}],
 	response(?AccessReject, RejectAttributes, StateData),
+	{stop, {shutdown, SessionID}, StateData};
+request5(_, #statedata{session_id = SessionID} = StateData) ->
+	RejectAttributes = [{?ReplyMessage, "Unable to comply"}],
+	response(?AccessReject, RejectAttributes, StateData),
 	{stop, {shutdown, SessionID}, StateData}.
 
 -spec handle_event(Event, StateName, StateData) -> Result
