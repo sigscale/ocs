@@ -419,7 +419,11 @@ add_session_attributes(Subscriber, Attributes) ->
 %% @hidden
 get_session_attributes(Attributes) ->
 	F = fun({K, _}) when K == ?NasIdentifier; K == ?NasIpAddress;
-				K == ?NasPort; K == ?NasPortType; K == ?CallingStationId ->
+				K == ?UserName; K == ?FramedIpAddress; K == ?NasPort;
+				K == ?NasPortType; K == ?CalledStationId; K == ?CallingStationId;
+				K = ?AcctSessionId; K == ?AcctMultiSessionId; K == ?NasPortId;
+				K == ?OriginatingLineInfo; K == ?FramedInterfaceId;
+				K == ?FramedIPv6Prefix ->
 			true;
 		(_) ->
 			false
