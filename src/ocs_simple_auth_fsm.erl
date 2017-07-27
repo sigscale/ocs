@@ -304,8 +304,9 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 %% @see //stdlib/gen_fsm:handle_info/3
 %% @private
 %%
-handle_info(_Info, StateName, StateData) ->
-	{next_state, StateName, StateData}.
+handle_info({'EXIT', _Fsm, {shutdown, _SessionID}}, _StateName,
+		#statedata{password = Password} = StateData) ->
+	request3(list_to_binary(Password), StateData).
 
 -spec terminate(Reason, StateName, StateData) -> any()
 	when
@@ -470,7 +471,8 @@ start_disconnect(DiscFsmSup, ExistingSessionAtt, StateData) ->
 					ListenPort, ExistingSessionAtt, 1],
 			StartArgs = [DiscArgs, []],
 			case supervisor:start_child(DiscFsmSup, StartArgs) of
-				{ok, _DiscFsm} ->
+				{ok, DiscFsm} ->
+					link(DiscFsm),
 					{next_state, request, StateData};
 				{error, Reason} ->
 					error_logger:error_report(["Failed to initiate session disconnect function",
