@@ -189,10 +189,7 @@ case existing_sessions(Subscriber) of
 		%% 4. Store new session attributes on subscriber
 		;
 	{true, true, ExistingSessionAtt} ->
-		%% @todo
-		%% 1. Authorize new session
-		%% 2. Append new session attributes to subscribers's session_attributes list
-		;
+		request3(list_to_binary(Password), StateData);
 	{error, _Reason} ->
 		request5(not_found, StateData)
 end.
