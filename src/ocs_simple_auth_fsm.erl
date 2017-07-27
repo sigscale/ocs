@@ -401,7 +401,7 @@ existing_sessions(Subscriber) ->
 %% to `Subscriber's existing session attribute list.
 %% @hidden
 add_session_attributes(Subscriber, Attributes) ->
-	NewSessionAttrs = get_session_attributes(Attributes),
+	NewSessionAttrs = extract_session_attributes(Attributes),
 	{ok, #subscriber{session_attributes = CurrentSessionList} = S}
 			= ocs:find_subscriber(Subscriber),
 	NewSessionList = [NewSessionAttrs | CurrentSessionList],
@@ -415,14 +415,14 @@ add_session_attributes(Subscriber, Attributes) ->
 			ok
 	end.
 
--spec get_session_attributes(Attributes) -> SessionAttributes
+-spec extract_session_attributes(Attributes) -> SessionAttributes
 	when
 		Attributes :: radius_attributes:attributes(),
 		SessionAttributes :: radius_attributes:attributes().
 %% @doc Extract and return RADIUS session related attributes from
 %% `Attributes'.
 %% @hidden
-get_session_attributes(Attributes) ->
+extract_session_attributes(Attributes) ->
 	F = fun({K, _}) when K == ?NasIdentifier; K == ?NasIpAddress;
 				K == ?UserName; K == ?FramedIpAddress; K == ?NasPort;
 				K == ?NasPortType; K == ?CalledStationId; K == ?CallingStationId;
