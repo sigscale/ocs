@@ -290,7 +290,7 @@
 			</paper-menu>
 		</paper-dialog>
 		<paper-dialog
-				id="helpFaq">
+				id="helpMenu">
 			<paper-toolbar>
 				<h2>[[i18n.help]]</h2>
 			</paper-toolbar>
@@ -351,7 +351,7 @@
 				</i18n-msg>
 			</paper-icon-item>
 		</paper-dialog>
-		<paper-dialog id="helpAddsub">
+		<paper-dialog id="helpSubscribers">
 			<paper-toolbar>
 				<paper-icon-item
 						class="menu-trigger menuitem"
@@ -388,7 +388,7 @@
 			there is a update will appear. in that update dialog there is a delete button.
 			if you press that subscriber will be delete</p>
 		</paper-dialog>
-		<paper-dialog id="helpAddclient">
+		<paper-dialog id="helpClients">
 			<paper-toolbar>
 				<paper-icon-item
 						class="menu-trigger menuitem"
@@ -424,7 +424,7 @@
 			there is a update will appear. in that update dialog there is a
 			delete button. if you press that client will be delete</p>
 		</paper-dialog>
-		<paper-dialog id="viewLogs">
+		<paper-dialog id="helpLogs">
 			<paper-toolbar>
 				<paper-icon-item
 						class="menu-trigger menuitem"
@@ -465,7 +465,7 @@
 			<b>HTTP</b> view from the submenu in the navigation drawer..
 			You can view Datetime, host, username, Method, Resource, Status.</p>
 		</paper-dialog>
-		<paper-dialog id="helpAdduser">
+		<paper-dialog id="helpUsers">
 			<paper-toolbar>
 				<paper-icon-item
 						class="menu-trigger menuitem"
@@ -499,7 +499,7 @@
 			there is a update will appear. in that update dialog there is a delete button.
 			if you press that user will be delete</p>
 		</paper-dialog>
-		<paper-dialog id="downCsv">
+		<paper-dialog id="helpDownload">
 			<paper-toolbar>
 				<paper-icon-item
 						class="menu-trigger menuitem"
@@ -522,7 +522,7 @@
 			<p>Just click refresh icon which is placed near to download button. It will
 			refresh the data and get latest data.</p>
 		</paper-dialog>
-		<paper-dialog id="helpFilter">
+		<paper-dialog id="helpFiltering">
 			<paper-toolbar>
 				<paper-icon-item
 						class="menu-trigger menuitem"
@@ -604,53 +604,53 @@
 				},
 				helpId: function(event) {
 					document.getElementById("helpDrop").close();
-					var helpObj = document.getElementById("helpFaq");
+					var helpObj = document.getElementById("helpMenu");
 					helpObj.open();
 				},
 				addClientQue: function(event) {
-					document.getElementById("helpFaq").close();
-					var queObj = document.getElementById("helpAddclient");
+					document.getElementById("helpMenu").close();
+					var queObj = document.getElementById("helpClients");
 					queObj.open();
 				},
 				addSubQue: function(event) {
-					document.getElementById("helpFaq").close();
-					var queObj = document.getElementById("helpAddsub");
+					document.getElementById("helpMenu").close();
+					var queObj = document.getElementById("helpSubscribers");
 					queObj.open();
 				},
 				addUserQue: function(event) {
-					document.getElementById("helpFaq").close();
-					var queObj = document.getElementById("helpAdduser");
+					document.getElementById("helpMenu").close();
+					var queObj = document.getElementById("helpUsers");
 					queObj.open();
 				},
 				viewLogQue: function(event) {
-					document.getElementById("helpFaq").close();
-					var queObj = document.getElementById("viewLogs");
+					document.getElementById("helpMenu").close();
+					var queObj = document.getElementById("helpLogs");
 					queObj.open();
 				},
 				downQue: function(event) {
-					document.getElementById("helpFaq").close();
-					var queObj = document.getElementById("downCsv");
+					document.getElementById("helpMenu").close();
+					var queObj = document.getElementById("helpDownload");
 					queObj.open();
 				},
 				filter: function(event) {
-					document.getElementById("helpFaq").close();
-					var queObj = document.getElementById("helpFilter");
+					document.getElementById("helpMenu").close();
+					var queObj = document.getElementById("helpFiltering");
 					queObj.open();
 				},
 				sorting: function(event) {
-					document.getElementById("helpFaq").close();
+					document.getElementById("helpMenu").close();
 					var queObj = document.getElementById("helpSorting");
 					queObj.open();
 				},
 				helpBack: function(event) {
-					document.getElementById("helpAddclient").close();
-					document.getElementById("helpAddsub").close();
-					document.getElementById("helpAdduser").close();
-					document.getElementById("viewLogs").close();
-					document.getElementById("downCsv").close();
-					document.getElementById("helpFilter").close();
+					document.getElementById("helpClients").close();
+					document.getElementById("helpSubscribers").close();
+					document.getElementById("helpUsers").close();
+					document.getElementById("helpLogs").close();
+					document.getElementById("helpDownload").close();
+					document.getElementById("helpFiltering").close();
 					document.getElementById("helpSorting").close();
-					var backObj = document.getElementById("helpFaq");
+					var backObj = document.getElementById("helpMenu");
 					backObj.open();
 				},
 				loadElement: function(event) {
