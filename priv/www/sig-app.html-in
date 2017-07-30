@@ -362,17 +362,17 @@
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 					<h2>[[i18n.clients]]</h2>
 			</paper-icon-item>
-					<p><b>How to add a client?</b><br>
-					Click the green Plus button. Enter the details correctly.
+					<h3>Add a Client</h3>
+					<p>Click the green Plus button. Enter the details correctly.
 					If you click generate checkbox secret will be generate automatically 
-					for you or you can give your desire secret<br><br>
-					<b>How to update a client?</b><br>
-					When you click on the client which need to be update
+					for you or you can give your desire secret</p>
+					<h3>Update a Client</h3>
+					<p>When you click on the client which need to be update
 					there is a update window will appear. There you can see
 					Authentication and authorization tab. Fill whatever field<br>
-					need to update there<br><br>
-					<b>How to delete a client?</b><br>
-					When you click the record which need to be update
+					need to update there</p>
+					<h3>Delete a Client</h3>
+					<p>When you click the record which need to be update
 					there is a update will appear. in that update dialog there is a
 					delete button. if you press that client will be delete</p>
 		</paper-dialog>
@@ -390,18 +390,18 @@
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 					<h2>[[i18n.subs]]</h2>
 			</paper-icon-item>
-					<p><b>How to add a subscriber?</b><br>
-					Click the green Plus button. Enter the details correctly.
+					<h3>Add a Subscriber</h3>
+					<p>Click the green Plus button. Enter the details correctly.
 					If you click generate checkboxes identity, password will be
 					generate automatically for you or you can give your desire Identity
-					and Password.<br>
-					Balance cant be a negative number. It must be a positive number<br><br>
-					<b>How to update a subscriber?</b><br>
-					When you click on the subscriber which need to be update
+					and Password.</p>
+					<p>Balance cant be a negative number. It must be a positive number</p>
+					<h3>Update a Subscriber</h3>
+					<p>When you click on the subscriber which need to be update
 					there is a update window will appear. There you can see Authentication
-					and authorization tab. Fill whatever field need to update there<br><br>
-					<b>How to delete a subscriber?</b><br>
-					When you click on the subscriber which need to be update
+					and authorization tab. Fill whatever field need to update there</p>
+					<h3>Delete a Subscriber</h3>
+					<p>When you click on the subscriber which need to be update
 					there is a update will appear. in that update dialog there is a delete button.
 					if you press that subscriber will be delete</p>
 		</paper-dialog>
@@ -419,15 +419,15 @@
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 					<h2>[[i18n.users]]</h2>
 			</paper-icon-item>
-					<p><b>How to add a user?</b><br>
-					Click the green Plus button. Enter the details correctly.
-					You can select your prefer language es(spanish), en(English)<br><br>
-					<b>How to update a user?</b><br>
-					When you click on the user which need to be update
+					<h3>Add a User</h3>
+					<p>Click the green Plus button. Enter the details correctly.
+					You can select your prefer language es(spanish), en(English)</p>
+					<h3>Update a User</h3>
+					<p>When you click on the user which need to be update
 					there is a update window will appear. Fill whatever field need
-					to update there<br><br>
-					<b>How to delete a user?</b><br>
-					When you click on the subscriber which need to be update
+					to update there</p>
+					<h3>Delete a User</h3>
+					<p>When you click on the subscriber which need to be update
 					there is a update will appear. in that update dialog there is a delete button.
 					if you press that user will be delete</p>
 		</paper-dialog>
@@ -445,28 +445,28 @@
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 					<h2>[[i18n.logs]]</h2>
 			</paper-icon-item>
-					<p><b>How to view access log?</b><br>
-					Press the menu button. Then one navigation panel will
+					<h3>View Access Log</h3>
+					<p>Press the menu button. Then one navigation panel will
 					swipe in for you. From that panel there is a item called Logs.
 					When you press that few submenus will be appear. There you can
 					see Access log. You can view time, address, identity, username,
-					type ant etc from the access log.<br><br>
-					<b>How to view accounting log?</b><br>
-					Press the menu button. Then one navigation panel will
+					type ant etc from the access log.</p>
+					<h3>View Accounting Log</h3>
+					<p>Press the menu button. Then one navigation panel will
 					swipe in for you. From that panel there is a item called Logs.
 					When you press that few submenus will be appear. There you can
 					see Accounting log. You can view time, identity, duration, in/out (bytes),
-					username, type and etc from the access log.<br><br>
-					<b>How to view IPDR log?</b><br>
-					Press the menu button. Then one navigation panel will
+					username, type and etc from the access log.</p>
+					<h3>View IPDR Log</h3>
+					<p>Press the menu button. Then one navigation panel will
 					swipe in for you. From that panel there is a item called Logs.
 					When you press that few submenus will be appear. There you can see IPDR log.
 					If you click IPDR there is a dialog will popup with lists of IPDR Logs.
 					From that list you can choose your required log file according to the date.
 					IPDR log contains creation time, username, Station Ids, Nas Address and Id,
-					Start/End time, cause.<br><br>
-					<b>How to view HTTP log?</b><br>
-					Press the menu button. Then one navigation panel will
+					Start/End time, cause.</p>
+					<h3>View HTTP Log</h3>
+					<p>Press the menu button. Then one navigation panel will
 					swipe in for you. From that panel there is a item called Logs.
 					When you press that few submenus will be appear. There you can see
 					HTTP log. You can view Datetime, host, username, Method, Resource, Status.</p> 
@@ -485,13 +485,13 @@
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 					<h2>[[i18n.tool]]</h2>
 			</paper-icon-item>
-					<p><b>How to download files?</b><br>
-					There is a download icon in top left side of the page. Open the
+					<h3>Download Files</h3>
+					<p>There is a download icon in top left side of the page. Open the
 					tab you need to download then simply press download button. It will download
-					CSV files to your computer.<br>
-					ex: open Access logs then click download icon<br><br>
-					<b>How to refresh?</b><br>
-					Just click refresh icon which is placed near to download button. It will  
+					CSV files to your computer.</p>
+					<p>ex: open Access logs then click download icon</p>
+					<h3>Refresh View</h3>
+					<p>Just click refresh icon which is placed near to download button. It will  
 					refresh the data and get latest data.</p>
 		</paper-dialog>
 		<paper-dialog id="aboutHelp">
@@ -518,8 +518,8 @@
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 					<h2>[[i18n.filt]]</h2>
 			</paper-icon-item>
-					<p><b>How to filter?</b><br>
-					Filtering is so simple here. If you like to filter any particular records
+					<h3>Filter a View</h3>
+					<p>Filtering is so simple here. If you like to filter any particular records
 					just click the column header that you would like to filter. when you click
 					it you can see a textbox around your selected column header. then simply
 					enter that details which you want to filter. If that entered details available
@@ -540,8 +540,8 @@
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 					<h2>[[i18n.sort]]</h2>
 			</paper-icon-item>
-					<p><b>How to Sort?</b><br>
-					If you perform the sorting you should look the arrow icons next to the column
+					<h3>Sorting a View</h3>
+					<p>If you perform the sorting you should look the arrow icons next to the column
 					header.when you click the down arrow you should able to see the ascending
 					order sorting.</p>
 		</paper-dialog>
