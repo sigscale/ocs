@@ -296,6 +296,14 @@
 			</paper-toolbar>
 			<paper-icon-item
 					class="icon-style"
+					on-click="toolQue">
+				<iron-icon icon="icons:assignment" item-icon></iron-icon>
+				<i18n-msg msgid="tool">
+					Toolbar
+				</i18n-msg>
+			</paper-icon-item>
+			<paper-icon-item
+					class="icon-style"
 					on-click="addSubQue">
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 				<i18n-msg msgid="subs">
@@ -328,14 +336,6 @@
 			</paper-icon-item>
 			<paper-icon-item
 					class="icon-style"
-					on-click="downQue">
-				<iron-icon icon="icons:assignment" item-icon></iron-icon>
-				<i18n-msg msgid="tool">
-					Toolbar
-				</i18n-msg>
-			</paper-icon-item>
-			<paper-icon-item
-					class="icon-style"
 					on-click="filter">
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 				<i18n-msg msgid="filt">
@@ -350,6 +350,39 @@
 					Sorting
 				</i18n-msg>
 			</paper-icon-item>
+		</paper-dialog>
+		<paper-dialog id="helpToolbar">
+			<paper-toolbar>
+				<paper-icon-item
+						class="menu-trigger menuitem"
+						on-click="helpBack">
+					<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
+				</paper-icon-item>
+				<h2>[[i18n.help]]</h2>
+			</paper-toolbar>
+			<paper-icon-item
+					class="menu-trigger menuitem">
+				<iron-icon icon="icons:assignment" item-icon></iron-icon>
+				<h2>[[i18n.tool]]</h2>
+			</paper-icon-item>
+			<p>The <b>Toolbar</b> appears across the top of the screen in
+			all views. In the center of the toolbar is the title of the
+			application: <b>Online Charging System (OCS)</b>.
+			To the left of the title is the <b>Navigation Menu</b> icon:
+			<iron-icon class="iconHelp" icon="menu"></iron-icon>. Selecting
+			this opens the <b>Navigation Drawer</b> which contains the main
+			menu for navigating between views within the application.
+			To the right of the title is the <b>Refresh</b> icon:
+			<iron-icon class="iconHelp" icon="refresh"></iron-icon>. Selecting
+			this will get new data from OCS for the current view.
+			Next is the <b>Download</b> icon:
+			<iron-icon class="iconHelp" icon="file-download"></iron-icon>.
+			Selecting this in a grid view will download a comma separated
+			values (<b>CSV</b>) file with all rows in the current view.
+			On the far right of the toolbar is the <b>Overflow Menu</b> icon:
+			<iron-icon class="iconHelp" icon="icons:more-vert"></iron-icon>.
+			Selecting this will open a menu providing access to <b>Help</b>
+			and <b>Support</b></p>.
 		</paper-dialog>
 		<paper-dialog id="helpSubscribers">
 			<paper-toolbar>
@@ -570,29 +603,6 @@
 			<p>Selecting a row in the Users view will open a dialog which
 			includes a <b>DELETE</b> button.</p>
 		</paper-dialog>
-		<paper-dialog id="helpDownload">
-			<paper-toolbar>
-				<paper-icon-item
-						class="menu-trigger menuitem"
-						on-click="helpBack">
-					<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
-				</paper-icon-item>
-				<h2>[[i18n.help]]</h2>
-			</paper-toolbar>
-			<paper-icon-item
-					class="menu-trigger menuitem">
-				<iron-icon icon="icons:assignment" item-icon></iron-icon>
-				<h2>[[i18n.tool]]</h2>
-			</paper-icon-item>
-			<h3>Download Files</h3>
-			<p>There is a download icon in top left side of the page. Open the
-			tab you need to download then simply press download button. It will download
-			CSV files to your computer.</p>
-			<p>ex: open Access logs then click download icon</p>
-			<h3>Refresh View</h3>
-			<p>Just click refresh icon which is placed near to download button. It will
-			refresh the data and get latest data.</p>
-		</paper-dialog>
 		<paper-dialog id="helpFiltering">
 			<paper-toolbar>
 				<paper-icon-item
@@ -607,13 +617,14 @@
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 				<h2>[[i18n.filt]]</h2>
 			</paper-icon-item>
+			<p>Within a grid view (e.g. Subscribers, Clientrs, Logs) the
+			displayed rows may be filtered by selecting column header(s)
+			and entering match values.</p>
 			<h3>Filter a View</h3>
-			<p>Filtering is so simple here. If you like to filter any particular records
-			just click the column header that you would like to filter. when you click
-			it you can see a textbox around your selected column header. then simply
-			enter that details which you want to filter. If that entered details available
-			in our records you can see the details which is relevent to your search by our
-			filter method.</p>
+			<p>In the example below the filter "AP2" is entered in the
+			<b>NAS Identifier</b> column header of the <b>Clients</b> view
+			resulting in only rows with a matching prefix appearing:</p>
+			<img alt="screenshot" src="/filter.png" height="118" width="320">
 		</paper-dialog>
 		<paper-dialog id="helpSorting">
 			<paper-toolbar>
@@ -629,10 +640,17 @@
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 				<h2>[[i18n.sort]]</h2>
 			</paper-icon-item>
+			<p>Within a grid view (e.g. Subscribers, Client, Logs) the
+			displayed rows may be sorted by selecting the arrows in
+			column headers.</p>
 			<h3>Sorting a View</h3>
-			<p>If you perform the sorting you should look the arrow icons next to the column
-			header.when you click the down arrow you should able to see the ascending
-			order sorting.</p>
+			<p>In the example below the down arrow of the <b>Address</b>
+			column header in the <b>Clients</b> view is selected resulting
+			in rows being reordered by address in ascending order:</p>
+			<img alt="screenshot" src="/sort-ascend.png" height="150" width="320">
+			<p>In the example below the up arrow is selected resulting
+			in rows being reordered by address in descending order:</p>
+			<img alt="screenshot" src="/sort-descend.png" height="144" width="320">
 		</paper-dialog>
 		<paper-dialog id="aboutHelp">
 			<paper-toolbar>
@@ -698,9 +716,9 @@
 					var queObj = document.getElementById("helpLogs");
 					queObj.open();
 				},
-				downQue: function(event) {
+				toolQue: function(event) {
 					document.getElementById("helpMenu").close();
-					var queObj = document.getElementById("helpDownload");
+					var queObj = document.getElementById("helpToolbar");
 					queObj.open();
 				},
 				filter: function(event) {
@@ -714,11 +732,11 @@
 					queObj.open();
 				},
 				helpBack: function(event) {
-					document.getElementById("helpClients").close();
+					document.getElementById("helpToolbar").close();
 					document.getElementById("helpSubscribers").close();
+					document.getElementById("helpClients").close();
 					document.getElementById("helpUsers").close();
 					document.getElementById("helpLogs").close();
-					document.getElementById("helpDownload").close();
 					document.getElementById("helpFiltering").close();
 					document.getElementById("helpSorting").close();
 					var backObj = document.getElementById("helpMenu");
