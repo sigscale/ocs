@@ -154,7 +154,6 @@
 							name: "protocol"
 						}
 					];
-					grid.size = 50;
 					grid.dataProvider = function(params, callback) {
 						var ajax = document.getElementById("getClients");
 						callBack = callback;
@@ -201,6 +200,13 @@
 				getClientsResponse: function(event) {
 					var grid = this.$.clientGrid;
 					var results = event.detail.xhr.response;
+					var range = event.detail.xhr.getResponseHeader('Content-Range');
+					if (range) {
+						var itemCount = range.split("/");
+						grid.size = Number(itemCount[1]);
+					} else {
+						grid.size = results.length;
+					}
 					var vaadinItems = new Array();
 					for (var index in results) {
 						var newRecord = new Object();
