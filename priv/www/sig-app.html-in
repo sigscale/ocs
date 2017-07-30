@@ -85,6 +85,9 @@
 			width: 300px;
 			overflow: auto;
 		}
+		.iconHelp {
+			padding: 0px;
+		}
 		.add-button {
 			background-color: var(--paper-lime-a700);
 			color: black;
@@ -362,8 +365,16 @@
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 				<h2>[[i18n.subs]]</h2>
 			</paper-icon-item>
+			<p>To access the <b>Subscribers</b> view first open the navigation drawer
+			by selecting it's icon <iron-icon class="iconHelp" icon="menu"></iron-icon>
+			on the left of the toolbar at top. Select the
+			<iron-icon class="iconHelp" icon="device:devices"></iron-icon>
+			<b>Subscribers</b> view from the navigation menu.</p>
 			<h3>Add a Subscriber</h3>
-			<p>Click the green Plus button. Enter the details correctly.
+			<p>Select the floating action button
+			<iron-icon class="iconHelp" icon="add"></iron-icon> at the bottom right
+			of the view. An input dialog will appear. Enter the details for a new
+			subscriber then press the <b>SUBMIT</b> button.
 			If you click generate checkboxes identity, password will be
 			generate automatically for you or you can give your desire Identity
 			and Password.</p>
@@ -391,8 +402,16 @@
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 				<h2>[[i18n.clients]]</h2>
 			</paper-icon-item>
+			<p>To access the <b>Clients</b> view first open the navigation drawer
+			by selecting it's icon <iron-icon class="iconHelp" icon="menu"></iron-icon>
+			on the left of the toolbar at top. Select the
+			<iron-icon class="iconHelp" icon="hardware:router"></iron-icon>
+			<b>Clients</b> view from the navigation menu.</p>
 			<h3>Add a Client</h3>
-			<p>Click the green Plus button. Enter the details correctly.
+			<p>Select the floating action button
+			<iron-icon class="iconHelp" icon="add"></iron-icon> at the bottom right
+			of the view. An input dialog will appear. Enter the details for a new
+			client then press the <b>SUBMIT</b> button.
 			If you click generate checkbox secret will be generate automatically
 			for you or you can give your desire secret</p>
 			<h3>Update a Client</h3>
@@ -419,31 +438,32 @@
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 				<h2>[[i18n.logs]]</h2>
 			</paper-icon-item>
-			<h3>View Access Log</h3>
-			<p>Press the menu button. Then one navigation panel will
-			swipe in for you. From that panel there is a item called Logs.
-			When you press that few submenus will be appear. There you can
-			see Access log. You can view time, address, identity, username,
+			<p>To access log views first open the navigation drawer
+			by selecting it's icon <iron-icon class="iconHelp" icon="menu"></iron-icon>
+			on the left of the toolbar at top. Select the
+			<iron-icon class="iconHelp" icon="icons:history"></iron-icon>
+			<b>Logs</b> submenu from the navigation menu.</p>
+			<h3>Access</h3>
+			<p>Select the <iron-icon class="iconHelp" icon="device:data-usage"></iron-icon>
+			<b>Access</b> view from the submenu in the navigation drawer.
+			You can view time, address, identity, username,
 			type ant etc from the access log.</p>
-			<h3>View Accounting Log</h3>
-			<p>Press the menu button. Then one navigation panel will
-			swipe in for you. From that panel there is a item called Logs.
-			When you press that few submenus will be appear. There you can
-			see Accounting log. You can view time, identity, duration, in/out (bytes),
+			<h3>Accounting</h3>
+			<p>Select the <iron-icon class="iconHelp" icon="device:data-usage"></iron-icon>
+			<b>Accounting</b> view from the submenu in the navigation drawer.
+			You can view time, identity, duration, in/out (bytes),
 			username, type and etc from the access log.</p>
-			<h3>View IPDR Log</h3>
-			<p>Press the menu button. Then one navigation panel will
-			swipe in for you. From that panel there is a item called Logs.
-			When you press that few submenus will be appear. There you can see IPDR log.
-			If you click IPDR there is a dialog will popup with lists of IPDR Logs.
+			<h3>IPDR</h3>
+			<p>Select the <iron-icon class="iconHelp" icon="device:data-usage"></iron-icon>
+			<b>IPDR</b> view from the submenu in the navigation drawer.
+			A file selction dialog will appear with a list of available IPDR logs.
 			From that list you can choose your required log file according to the date.
 			IPDR log contains creation time, username, Station Ids, Nas Address and Id,
 			Start/End time, cause.</p>
-			<h3>View HTTP Log</h3>
-			<p>Press the menu button. Then one navigation panel will
-			swipe in for you. From that panel there is a item called Logs.
-			When you press that few submenus will be appear. There you can see
-			HTTP log. You can view Datetime, host, username, Method, Resource, Status.</p>
+			<h3>HTTP</h3>
+			<p>Select the <iron-icon class="iconHelp" icon="device:data-usage"></iron-icon>
+			<b>HTTP</b> view from the submenu in the navigation drawer..
+			You can view Datetime, host, username, Method, Resource, Status.</p>
 		</paper-dialog>
 		<paper-dialog id="helpAdduser">
 			<paper-toolbar>
@@ -459,9 +479,17 @@
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 				<h2>[[i18n.users]]</h2>
 			</paper-icon-item>
+			<p>To access the <b>Users</b> view first open the navigation drawer
+			by selecting it's icon <iron-icon class="iconHelp" icon="menu"></iron-icon>
+			on the left of the toolbar at top. Select the
+			<iron-icon class="iconHelp" icon="icons:perm-identity"></iron-icon>
+			<b>Users</b> view from the navigation menu.</p>
 			<h3>Add a User</h3>
-			<p>Click the green Plus button. Enter the details correctly.
-			You can select your prefer language es(spanish), en(English)</p>
+			<p>Select the floating action button
+			<iron-icon class="iconHelp" icon="add"></iron-icon> at the bottom right
+			of the view. An input dialog will appear. Enter the details for a new
+			user then press the <b>SUBMIT</b> button.
+			You can select your prefer language es(Spanish), en(English)</p>
 			<h3>Update a User</h3>
 			<p>When you click on the user which need to be update
 			there is a update window will appear. Fill whatever field need
