@@ -348,34 +348,6 @@
 				</i18n-msg>
 			</paper-icon-item>
 		</paper-dialog>
-		<paper-dialog id="helpAddclient">
-			<paper-toolbar>
-				<paper-icon-item
-						class="menu-trigger menuitem"
-						on-click="helpBack">
-					<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
-				</paper-icon-item>
-				<h2>[[i18n.help]]</h2>
-			</paper-toolbar>
-			<paper-icon-item
-					class="menu-trigger menuitem">
-				<iron-icon icon="icons:assignment" item-icon></iron-icon>
-				<h2>[[i18n.clients]]</h2>
-			</paper-icon-item>
-			<h3>Add a Client</h3>
-			<p>Click the green Plus button. Enter the details correctly.
-			If you click generate checkbox secret will be generate automatically
-			for you or you can give your desire secret</p>
-			<h3>Update a Client</h3>
-			<p>When you click on the client which need to be update
-			there is a update window will appear. There you can see
-			Authentication and authorization tab. Fill whatever field<br>
-			need to update there</p>
-			<h3>Delete a Client</h3>
-			<p>When you click the record which need to be update
-			there is a update will appear. in that update dialog there is a
-			delete button. if you press that client will be delete</p>
-		</paper-dialog>
 		<paper-dialog id="helpAddsub">
 			<paper-toolbar>
 				<paper-icon-item
@@ -405,7 +377,7 @@
 			there is a update will appear. in that update dialog there is a delete button.
 			if you press that subscriber will be delete</p>
 		</paper-dialog>
-		<paper-dialog id="helpAdduser">
+		<paper-dialog id="helpAddclient">
 			<paper-toolbar>
 				<paper-icon-item
 						class="menu-trigger menuitem"
@@ -417,19 +389,21 @@
 			<paper-icon-item
 					class="menu-trigger menuitem">
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
-				<h2>[[i18n.users]]</h2>
+				<h2>[[i18n.clients]]</h2>
 			</paper-icon-item>
-			<h3>Add a User</h3>
+			<h3>Add a Client</h3>
 			<p>Click the green Plus button. Enter the details correctly.
-			You can select your prefer language es(spanish), en(English)</p>
-			<h3>Update a User</h3>
-			<p>When you click on the user which need to be update
-			there is a update window will appear. Fill whatever field need
-			to update there</p>
-			<h3>Delete a User</h3>
-			<p>When you click on the subscriber which need to be update
-			there is a update will appear. in that update dialog there is a delete button.
-			if you press that user will be delete</p>
+			If you click generate checkbox secret will be generate automatically
+			for you or you can give your desire secret</p>
+			<h3>Update a Client</h3>
+			<p>When you click on the client which need to be update
+			there is a update window will appear. There you can see
+			Authentication and authorization tab. Fill whatever field<br>
+			need to update there</p>
+			<h3>Delete a Client</h3>
+			<p>When you click the record which need to be update
+			there is a update will appear. in that update dialog there is a
+			delete button. if you press that client will be delete</p>
 		</paper-dialog>
 		<paper-dialog id="viewLogs">
 			<paper-toolbar>
@@ -471,6 +445,32 @@
 			When you press that few submenus will be appear. There you can see
 			HTTP log. You can view Datetime, host, username, Method, Resource, Status.</p>
 		</paper-dialog>
+		<paper-dialog id="helpAdduser">
+			<paper-toolbar>
+				<paper-icon-item
+						class="menu-trigger menuitem"
+						on-click="helpBack">
+					<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
+				</paper-icon-item>
+				<h2>[[i18n.help]]</h2>
+			</paper-toolbar>
+			<paper-icon-item
+					class="menu-trigger menuitem">
+				<iron-icon icon="icons:assignment" item-icon></iron-icon>
+				<h2>[[i18n.users]]</h2>
+			</paper-icon-item>
+			<h3>Add a User</h3>
+			<p>Click the green Plus button. Enter the details correctly.
+			You can select your prefer language es(spanish), en(English)</p>
+			<h3>Update a User</h3>
+			<p>When you click on the user which need to be update
+			there is a update window will appear. Fill whatever field need
+			to update there</p>
+			<h3>Delete a User</h3>
+			<p>When you click on the subscriber which need to be update
+			there is a update will appear. in that update dialog there is a delete button.
+			if you press that user will be delete</p>
+		</paper-dialog>
 		<paper-dialog id="downCsv">
 			<paper-toolbar>
 				<paper-icon-item
@@ -493,16 +493,6 @@
 			<h3>Refresh View</h3>
 			<p>Just click refresh icon which is placed near to download button. It will
 			refresh the data and get latest data.</p>
-		</paper-dialog>
-		<paper-dialog id="aboutHelp">
-			<paper-toolbar>
-				<h2>[[i18n.about]]</h2>
-			</paper-toolbar>
-			<p>Online Charging System (OCS)<br>
-			Version %VERSION%<br>
-			Copyright 2017 SigScale Global Inc.<br>
-			Apache License Version 2.0<br>
-			<a target="_blank" href="http://www.sigscale.org">www.sigscale.org</a></p>
 		</paper-dialog>
 		<paper-dialog id="helpFilter">
 			<paper-toolbar>
@@ -544,6 +534,16 @@
 			<p>If you perform the sorting you should look the arrow icons next to the column
 			header.when you click the down arrow you should able to see the ascending
 			order sorting.</p>
+		</paper-dialog>
+		<paper-dialog id="aboutHelp">
+			<paper-toolbar>
+				<h2>[[i18n.about]]</h2>
+			</paper-toolbar>
+			<p>Online Charging System (OCS)<br>
+			Version %VERSION%<br>
+			Copyright 2017 SigScale Global Inc.<br>
+			Apache License Version 2.0<br>
+			<a target="_blank" href="http://www.sigscale.org">www.sigscale.org</a></p>
 		</paper-dialog>
 		<!--Modal Definitions-->
 		<sig-sub-add></sig-sub-add>
