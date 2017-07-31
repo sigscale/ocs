@@ -376,11 +376,16 @@ update_sub_values(Subscriber, Usage, AcctSessionID, Nas, Attributes)
 				case mnesia:read(subscriber, Subscriber, write) of
 					[#subscriber{balance = Balance, disconnect = Flag,
 								session_attributes = SessionList} = Entry] ->
-						NewSessionList = remove_session(SessionList, AcctSessionID, Nas,
-								Subscriber, Attributes),
 						NewBalance = Balance - Usage,
-						NewEntry = Entry#subscriber{balance = NewBalance,
-								session_attributes = NewSessionList},
+						NewEntry = case remove_session(SessionList, AcctSessionID, Nas,
+								Subscriber, Attributes) of
+							{ok, NewSessionList} ->
+								Entry#subscriber{balance = NewBalance,
+										session_attributes = NewSessionList};
+							{error, SessionList} ->
+								Entry#subscriber{balance = NewBalance,
+										session_attributes = SessionList}
+						end,
 						mnesia:write(subscriber, NewEntry, write),
 						{NewBalance, Flag};
 					[] ->
@@ -459,16 +464,18 @@ client_disconnect_supported(Client) ->
 		end.
 
 -spec remove_session(SessionList, AcctSessionID, Nas, Subscriber, Attributes) ->
-		NewSessionList
+		Result
 	when
 		SessionList :: [radius_attributes:attributes()],
 		AcctSessionID :: integer(),
 		Nas :: string() | inet:ip_address(),
 		Subscriber :: string() | binary(),
 		Attributes :: radius_attributes:attributes(),
+		Result :: {ok, NewSessionList} | {error, SessionList},
 		NewSessionList :: [] | [radius_attributes:attributes()].
-%% @doc From `SessionList' remove a session which includes `Attributes'
-%% and return rest of the `SessionList'.
+%% @doc From `SessionList' remove a session if it includes certain RADIUS
+%% session related attributes. These attributes can include Acct-Session-Id,
+%% Nas-Identifier, Nas-IP-Address, User-Name, Calling-Station-Id.
 %% @hidden
 remove_session(SessionList, AcctSessionID, Nas, Subscriber, Attributes) ->
 	try
@@ -492,12 +499,15 @@ remove_session(SessionList, AcctSessionID, Nas, Subscriber, Attributes) ->
 							end
 				end;
 			(_, []) ->
-				[]
+				throw(session_not_found)
 		end,
-		F(F, SessionList)
+		{ok, F(F, SessionList)}
 	catch
-		_:_ ->
-			SessionList
+		_: Reason ->
+			error_logger:error_report(["Failed to remove current session from subscriber",
+					{error, Reason}, {subscriber, Subscriber}, {session, AcctSessionID},
+					{nas, Nas}, {attributes, Attributes}]),
+			{error, SessionList}
 	end.
 
 -spec extract_session_attributes(Attributes) -> SessionAttributes
