@@ -224,8 +224,7 @@
 					if (event.detail.succeeded) {
 						document.getElementById("edit-toast").open();
 						document.getElementById("edit-client-new-pwd").value = "";
-						var getClientsAjax = document.getElementById("getClients");
-						getClientsAjax.generateRequest();
+						document.getElementById("getClients").generateRequest();
 					} else {
 						console.log("Not Success");
 					}
@@ -246,8 +245,7 @@
 					if(event.detail.succeeded) {
 						document.getElementById("edit-toast").open();
 						document.getElementById("edit-client-new-pwd").value = "";
-						var getClientsAjax = document.getElementById("getClients");
-						getClientsAjax.generateRequest();
+						document.getElementById("getClients").generateRequest();
 					} else {
 						console.log("Not Success");
 					}
@@ -263,8 +261,7 @@
 				deleteClientResponse: function(event) {
 					document.getElementById("clientUpdateModal").close();
 					document.getElementById("delete-toast").open();
-					var getSubsAjax = document.getElementById("getClients");
-					getSubsAjax.generateRequest();
+					document.getElementById("getClients").generateRequest();
 				}
 			}
 		);
