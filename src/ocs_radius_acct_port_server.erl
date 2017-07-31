@@ -269,7 +269,7 @@ request1(?AccountingStop, AcctSessionId, Id,
 	{ok, UserName} = radius_attributes:find(?UserName, Attributes),
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, stop, Attributes),
 	Subscriber = ocs:normalize(UserName),
-	case decrement_balance(Subscriber, Usage) of
+	case update_sub_values(Subscriber, Usage, AcctSessionId, NasId, Attributes) of
 		{ok, OverUsed, false} when OverUsed =< 0 ->
 			case client_disconnect_supported(Address) of
 				true ->
@@ -353,20 +353,34 @@ response(Id, RequestAuthenticator, Secret) ->
 			authenticator = ResponseAuthenticator, attributes = []},
 	radius:codec(Response).
 
--spec decrement_balance(Subscriber :: string() | binary(),
-		Usage :: non_neg_integer()) ->
-	{ok, NewBalance :: integer(), DiscFlag :: boolean()}|
-			{error, Reason :: not_found | term()}.
+-spec update_sub_values(Subscriber, Usage, AcctSessionID, Nas, Attributes) ->
+		Result
+	when
+			Subscriber :: string() | binary(),
+			Usage :: non_neg_integer(),
+			AcctSessionID :: integer(),
+			Nas :: string() | inet:ip_address(),
+			Attributes :: radius_attributes:attributes(),
+			Result :: {ok, NewBalance, DiscFlag} | {error, Reason},
+			Reason :: term(),
+			NewBalance :: integer(),
+			DiscFlag :: boolean().
 %% @doc Decrements subscriber's current balance
-decrement_balance(Subscriber, Usage) when is_list(Subscriber) ->
-	decrement_balance(list_to_binary(Subscriber), Usage);
-decrement_balance(Subscriber, Usage) when is_binary(Subscriber),
-		Usage >= 0 ->
+update_sub_values(Subscriber, Usage, AcctSessionID, Nas, Attributes)
+		when is_list(Subscriber) ->
+	update_sub_values(list_to_binary(Subscriber), Usage, AcctSessionID, Nas,
+		Attributes);
+update_sub_values(Subscriber, Usage, AcctSessionID, Nas, Attributes)
+		when is_binary(Subscriber), Usage >= 0 ->
 	F = fun() ->
 				case mnesia:read(subscriber, Subscriber, write) of
-					[#subscriber{balance = Balance, disconnect = Flag} = Entry] ->
+					[#subscriber{balance = Balance, disconnect = Flag,
+								session_attributes = SessionList} = Entry] ->
+						NewSessionList = remove_session(SessionList, AcctSessionID, Nas,
+								Subscriber, Attributes),
 						NewBalance = Balance - Usage,
-						NewEntry = Entry#subscriber{balance = NewBalance},
+						NewEntry = Entry#subscriber{balance = NewBalance,
+								session_attributes = NewSessionList},
 						mnesia:write(subscriber, NewEntry, write),
 						{NewBalance, Flag};
 					[] ->
@@ -443,4 +457,66 @@ client_disconnect_supported(Client) ->
 			_ ->
 				true
 		end.
+
+-spec remove_session(SessionList, AcctSessionID, Nas, Subscriber, Attributes) ->
+		NewSessionList
+	when
+		SessionList :: [radius_attributes:attributes()],
+		AcctSessionID :: integer(),
+		Nas :: string() | inet:ip_address(),
+		Subscriber :: string() | binary(),
+		Attributes :: radius_attributes:attributes(),
+		NewSessionList :: [] | [radius_attributes:attributes()].
+%% @doc From `SessionList' remove a session which includes `Attributes'
+%% and return rest of the `SessionList'.
+%% @hidden
+remove_session(SessionList, AcctSessionID, Nas, Subscriber, Attributes) ->
+	try
+		SessionAttributes = extract_session_attributes(Attributes),
+		F = fun(F, [H | T])  ->
+				case lists:keyfind(?AcctSessionId, 1, H) of
+						{_, AcctSessionID} ->
+							T;
+						false ->
+							V1 = lists:keyfind(?NasIdentifier, 1, H),
+							V2 = lists:keyfind(?NasIpAddress, 1, H),
+							{_, Subscriber} = lists:keyfind(?UserName, 1, H),
+							{_, _} = lists:keyfind(?CallingStationId, 1, SessionAttributes),
+							case {V1, V2} of
+								{{_, Nas}, _} ->
+									T;
+								{_, {_, Nas}} ->
+									T;
+								_ ->
+									F(F,T)
+							end
+				end;
+			(_, []) ->
+				[]
+		end,
+		F(F, SessionList)
+	catch
+		_:_ ->
+			SessionList
+	end.
+
+-spec extract_session_attributes(Attributes) -> SessionAttributes
+	when
+		Attributes :: radius_attributes:attributes(),
+		SessionAttributes :: radius_attributes:attributes().
+%% @doc Extract and return RADIUS session related attributes from
+%% `Attributes'.
+%% @hidden
+extract_session_attributes(Attributes) ->
+	F = fun({K, _}) when K == ?NasIdentifier; K == ?NasIpAddress;
+				K == ?UserName; K == ?FramedIpAddress; K == ?NasPort;
+				K == ?NasPortType; K == ?CalledStationId; K == ?CallingStationId;
+				K == ?AcctSessionId; K == ?AcctMultiSessionId; K == ?NasPortId;
+				K == ?OriginatingLineInfo; K == ?FramedInterfaceId;
+				K == ?FramedIPv6Prefix ->
+			true;
+		(_) ->
+			false
+	end,
+	lists:filter(F, Attributes).
 
