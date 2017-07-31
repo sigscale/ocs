@@ -53,7 +53,7 @@ get_clients(Query) ->
 		{error, _} ->
 			{error, 500};
 		Clients ->
-			case lists:keytake("filter", 1, Query) of
+			case lists:keytake("fields", 1, Query) of
 				{value, {_, L}, NewQuery} ->
 					get_clients(Clients, NewQuery, string:tokens(L, ","));
 				false ->
@@ -97,37 +97,99 @@ get_clients(Clients, Query, Filters) ->
 			{error, 400}
 	end.
 %% @hidden
-get_clients1(Clients, [] = _Query, Filters) ->
-	F = fun(#client{address= Address, identifier = Identifier, port = Port,
-				protocol = Protocol, secret = Secret}, Acc) ->
-			Id = inet:ntoa(Address),
-			RespObj1 = [{"id", Id}, {"href", "/ocs/v1/client/" ++ Id}],
-			RespObj2 = case Identifier of
-				<<>> ->
-					[];
-				Identifier ->
-					[{"identifier", binary_to_list(Identifier)}]
-			end,
-			RespObj3 = [{"port", Port},
-					{"protocol", string:to_upper(atom_to_list(Protocol))},
-					{"secret", Secret}],
-			RespObj = {struct, RespObj1 ++ RespObj2 ++ RespObj3},
-			case Filters of
-				[] ->
-					[RespObj | Acc];
-				_ ->
-					[ocs_rest:filter(["id", "href"] ++ Filters, RespObj) | Acc]
+get_clients1(Clients, Query, Filters) ->
+	{Address, Query1} = case lists:keytake("id", 1, Query) of
+		{value, {_, V1}, Q1} ->
+			{V1, Q1};
+		false ->
+			{[], Query}
+	end,
+	{Identifier, Query2} = case lists:keytake("identifier", 1, Query1) of
+		{value, {_, V2}, Q2} ->
+			{V2, Q2};
+		false ->
+			{[], Query1}
+	end,
+	{Port, Query3} = case lists:keytake("port", 1, Query2) of
+		{value, {_, V3}, Q3} ->
+			{V3, Q3};
+		false ->
+			{[], Query2}
+	end,
+	{Protocol, Query4} = case lists:keytake("protocol", 1, Query3) of
+		{value, {_, V4}, Q4} ->
+			{V4, Q4};
+		false ->
+			{[], Query3}
+	end,
+	{Secret, Query5} = case lists:keytake("protocol", 1, Query4) of
+		{value, {_, V5}, Q5} ->
+			{V5, Q5};
+		false ->
+			{[], Query4}
+	end,
+	get_clients2(Clients, Address, Identifier, Port, Protocol, Secret, Query5, Filters).
+%% @hidden
+get_clients2(Clients, Address, Identifier, Port, Protocol, Secret, [] = _Query, Filters) ->
+	F = fun(#client{address = A, identifier = I, port = P1,
+				protocol = P2, secret = S1}) ->
+			Id = inet:ntoa(A),
+			T1 = lists:prefix(Address, Id),
+			T2 = lists:prefix(Identifier, binary_to_list(I)),
+			T3 = lists:prefix(Port, integer_to_list(P1)),
+			Proto = string:to_upper(atom_to_list(P2)),
+			T4 = lists:prefix(string:to_upper(Protocol), Proto),
+			S2 = binary_to_list(S1),
+			T5 = lists:prefix(Secret, S2),
+			if
+				T1 and T2 and T3 and T4 and T5 ->
+					RespObj1 = [{"id", Id}, {"href", "/ocs/v1/client/" ++ Id}],
+					RespObj2 = case I == <<>> orelse Filters /= [] 
+							andalso not lists:keymember("identifier", 1, Filters) of
+						true ->
+							[];
+						false ->
+							[{"identifier", binary_to_list(I)}]
+					end,
+					RespObj3 = case Filters == []
+							orelse lists:keymember("port", 1, Filters) of
+						true ->
+							[{"port", P1}];
+						false ->
+							[]
+					end,
+					RespObj4 = case Filters == []
+							orelse lists:keymember("protocol", 1, Filters) of
+						true ->
+							[{"protocol", Proto}];
+						false ->
+							[]
+					end,
+					RespObj5 = case Filters == []
+							orelse lists:keymember("secret", 1, Filters) of
+						true ->
+							[{"secret", S2}];
+						false ->
+							[]
+					end,
+					{true, {struct, RespObj1 ++ RespObj2
+							++ RespObj3 ++ RespObj4 ++ RespObj5}};
+				true ->
+					false
 			end
 	end,
 	try
-		JsonObj = lists:foldl(F, [], Clients),
+		JsonObj = lists:filtermap(F, Clients),
+		Size = integer_to_list(length(JsonObj)),
+		ContentRange = "item 1-" ++ Size ++ "/" ++ Size,
 		Body = mochijson:encode({array, lists:reverse(JsonObj)}),
-		{ok, [{content_type, "application/json"}], Body}
+		{ok, [{content_type, "application/json"},
+				{content_range, ContentRange}], Body}
 	catch
 		_:_Reason ->
 			{error, 500}
 	end;
-get_clients1(_Clients, _Query, _Filters) ->
+get_clients2(_, _, _, _, _, _, _, _) ->
 	{error, 400}.
 
 -spec get_client(Id, Query) -> Result
@@ -139,7 +201,7 @@ get_clients1(_Clients, _Query, _Filters) ->
 %% @doc Body producing function for `GET /ocs/v1/client/{id}'
 %% requests.
 get_client(Id, Query) ->
-	case lists:keytake("filter", 1, Query) of
+	case lists:keytake("fields", 1, Query) of
 		{value, {_, L}, NewQuery} ->
 			get_client(Id, NewQuery, string:tokens(L, ","));
 		false ->
@@ -163,23 +225,38 @@ get_client1(Address, Filters) ->
 			Id = inet:ntoa(Address),
 			Etag = etag(LM),
 			RespObj1 = [{"id", Id}, {"href", "/ocs/v1/client/" ++ Id}],
-			RespObj2 = case Identifier of
-				<<>> ->
+			RespObj1 = [{"id", Id}, {"href", "/ocs/v1/client/" ++ Id}],
+			RespObj2 = case Identifier == <<>> orelse Filters /= [] 
+					andalso not lists:keymember("identifier", 1, Filters) of
+				true ->
 					[];
-				Identifier ->
+				false ->
 					[{"identifier", binary_to_list(Identifier)}]
 			end,
-			RespObj3 = [{"port", Port},
-					{"protocol", string:to_upper(atom_to_list(Protocol))},
-					{"secret", Secret}],
-			JsonObj  = {struct, RespObj1 ++ RespObj2 ++ RespObj3},
-			Body = case Filters of
-				[] ->
-					mochijson:encode(JsonObj);
-				_ ->
-					FilteredObj = ocs_rest:filter(["id", "href"] ++ Filters, JsonObj),
-					mochijson:encode(FilteredObj)
+			RespObj3 = case Filters == []
+					orelse lists:keymember("port", 1, Filters) of
+				true ->
+					[{"port", Port}];
+				false ->
+					[]
 			end,
+			RespObj4 = case Filters == []
+					orelse lists:keymember("protocol", 1, Filters) of
+				true ->
+					[{"protocol", string:to_upper(atom_to_list(Protocol))}];
+				false ->
+					[]
+			end,
+			RespObj5 = case Filters == []
+					orelse lists:keymember("secret", 1, Filters) of
+				true ->
+					[{"secret", Secret}];
+				false ->
+					[]
+			end,
+			JsonObj = {struct, RespObj1 ++ RespObj2
+					++ RespObj3 ++ RespObj4 ++ RespObj5},
+			Body = mochijson:encode(JsonObj),
 			Headers = [{content_type, "application/json"}, {etag, Etag}],
 			{ok, Headers, Body};
 		{error, not_found} ->

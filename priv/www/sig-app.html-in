@@ -85,6 +85,9 @@
 			width: 300px;
 			overflow: auto;
 		}
+		.iconHelp {
+			padding: 0px;
+		}
 		.add-button {
 			background-color: var(--paper-lime-a700);
 			color: black;
@@ -238,261 +241,416 @@
 			</app-drawer-layout>
 		</app-header-layout>
 		<paper-dialog id="helpDrop"
-			class="helpDialog">
-		<paper-menu>
-			<paper-submenu>
-			<paper-icon-item
-				class="menu-trigger menuitem">
-				<iron-icon icon="communication:business" item-icon></iron-icon>
-					<i18n-msg msgid="contact">
-						Contact us
-					</i18n-msg>
-			</paper-icon-item>
-				<paper-menu class="menu-content sublist">	
+				class="helpDialog">
+			<paper-menu>
+				<paper-submenu>
 					<paper-icon-item
-						class="menu-trigger menuitem">
-						<iron-icon icon="communication:call" item-icon></iron-icon>
+							class="menu-trigger menuitem">
+						<iron-icon icon="communication:business" item-icon></iron-icon>
+						<i18n-msg msgid="contact">
+							Contact us
+						</i18n-msg>
+					</paper-icon-item>
+					<paper-menu class="menu-content sublist">
+						<paper-icon-item
+								class="menu-trigger menuitem">
+							<iron-icon icon="communication:call" item-icon></iron-icon>
 							<a href="tel:+94771231660">+94771231660</a>
 						</paper-icon-item>
-					<paper-icon-item
+						<paper-icon-item
+								class="menu-trigger menuitem">
+							<iron-icon icon="communication:email" item-icon></iron-icon>
+							<a target="_blank" href="mailto:info@sigscale.org">info@sigscale.org</a>
+						</paper-icon-item>
+					</paper-menu>
+				</paper-submenu>
+				<paper-icon-item
 						class="menu-trigger menuitem">
-						<iron-icon icon="communication:email" item-icon></iron-icon>
-						<a target="_blank" href="mailto:info@sigscale.org">info@sigscale.org</a>
-					</paper-icon-item>
-				</paper-menu>
-			</paper-submenu>
-			<paper-icon-item
-				class="menu-trigger menuitem">
-				<iron-icon icon="icons:feedback" item-icon></iron-icon>
+					<iron-icon icon="icons:feedback" item-icon></iron-icon>
 					<a target="_blank" href="https://sigscale.atlassian.net/secure/CreateIssue!default.jspa?pid=10100">
 						[[i18n.sendFeed]]
 					</a>
-			</paper-icon-item>
-			<paper-icon-item
-				class="menu-trigger menuitem"
-				on-click="helpId">
+				</paper-icon-item>
+				<paper-icon-item
+						class="menu-trigger menuitem"
+						on-click="helpId">
 					<iron-icon icon="icons:help" item-icon></iron-icon>
-						<i18n-msg msgid="help">
-							Help
-						<i18n-msg>
-			</paper-icon-item>
-			<paper-icon-item
-				class="menu-trigger menuitem"
-				on-click="about">
+					<i18n-msg msgid="help">
+						Help
+					<i18n-msg>
+				</paper-icon-item>
+				<paper-icon-item
+						class="menu-trigger menuitem"
+						on-click="about">
 					<iron-icon icon="icons:error" item-icon></iron-icon>
-						<i18n-msg msgid="about">
-							About
-						</i18n-msg>
-			</paper-icon-item>
-		</paper-menu>
+					<i18n-msg msgid="about">
+						About
+					</i18n-msg>
+				</paper-icon-item>
+			</paper-menu>
 		</paper-dialog>
-		<paper-dialog 
-			id="helpFaq">
+		<paper-dialog
+				id="helpMenu">
 			<paper-toolbar>
 				<h2>[[i18n.help]]</h2>
 			</paper-toolbar>
 			<paper-icon-item
-				class="icon-style"
-				on-click="addSubQue">
-					<iron-icon icon="icons:assignment" item-icon></iron-icon>
-						<i18n-msg msgid="subs">
-							Subscribers
-						</i18n-msg>
+					class="icon-style"
+					on-click="toolQue">
+				<iron-icon icon="icons:assignment" item-icon></iron-icon>
+				<i18n-msg msgid="tool">
+					Toolbar
+				</i18n-msg>
 			</paper-icon-item>
 			<paper-icon-item
-				class="icon-style"
-				on-click="addClientQue">
-					<iron-icon icon="icons:assignment" item-icon></iron-icon>
-						<i18n-msg msgid="clients">
-							Clients
-						</i18n-msg>
+					class="icon-style"
+					on-click="addSubQue">
+				<iron-icon icon="icons:assignment" item-icon></iron-icon>
+				<i18n-msg msgid="subs">
+					Subscribers
+				</i18n-msg>
 			</paper-icon-item>
 			<paper-icon-item
-				class="icon-style"
-				on-click="viewLogQue">
-					<iron-icon icon="icons:assignment" item-icon></iron-icon>
-						<i18n-msg msgid="logs">
-							Logs
-						</i18n-msg>
+					class="icon-style"
+					on-click="addClientQue">
+				<iron-icon icon="icons:assignment" item-icon></iron-icon>
+				<i18n-msg msgid="clients">
+					Clients
+				</i18n-msg>
 			</paper-icon-item>
 			<paper-icon-item
-				class="icon-style"
-				on-click="addUserQue">
-					<iron-icon icon="icons:assignment" item-icon></iron-icon>
-						<i18n-msg msgid="users">
-							Users
-						</i18n-msg>
+					class="icon-style"
+					on-click="viewLogQue">
+				<iron-icon icon="icons:assignment" item-icon></iron-icon>
+				<i18n-msg msgid="logs">
+					Logs
+				</i18n-msg>
 			</paper-icon-item>
 			<paper-icon-item
-				class="icon-style"
-				on-click="downQue">
-					<iron-icon icon="icons:assignment" item-icon></iron-icon>
-						<i18n-msg msgid="tool">
-							Toolbar
-						</i18n-msg>
+					class="icon-style"
+					on-click="addUserQue">
+				<iron-icon icon="icons:assignment" item-icon></iron-icon>
+				<i18n-msg msgid="users">
+					Users
+				</i18n-msg>
 			</paper-icon-item>
 			<paper-icon-item
-				class="icon-style"
-				on-click="filter">
-					<iron-icon icon="icons:assignment" item-icon></iron-icon>
-						<i18n-msg msgid="filt">
-							Filtering	
-						</i18n-msg>
+					class="icon-style"
+					on-click="filter">
+				<iron-icon icon="icons:assignment" item-icon></iron-icon>
+				<i18n-msg msgid="filt">
+					Filtering
+				</i18n-msg>
 			</paper-icon-item>
 			<paper-icon-item
-				class="icon-style"
-				on-click="sorting">
-					<iron-icon icon="icons:assignment" item-icon></iron-icon>
-						<i18n-msg msgid="sort">
-							Sorting	
-						</i18n-msg>
+					class="icon-style"
+					on-click="sorting">
+				<iron-icon icon="icons:assignment" item-icon></iron-icon>
+				<i18n-msg msgid="sort">
+					Sorting
+				</i18n-msg>
 			</paper-icon-item>
 		</paper-dialog>
-		<paper-dialog id="helpAddclient">
+		<paper-dialog id="helpToolbar">
 			<paper-toolbar>
-			<paper-icon-item
-					class="menu-trigger menuitem"
-					on-click="helpBack">
-				<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
-			</paper-icon-item>
+				<paper-icon-item
+						class="menu-trigger menuitem"
+						on-click="helpBack">
+					<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
+				</paper-icon-item>
 				<h2>[[i18n.help]]</h2>
 			</paper-toolbar>
 			<paper-icon-item
 					class="menu-trigger menuitem">
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
-					<h2>[[i18n.clients]]</h2>
+				<h2>[[i18n.tool]]</h2>
 			</paper-icon-item>
-					<p><b>How to add a client?</b><br>
-					Click the green Plus button. Enter the details correctly.
-					If you click generate checkbox secret will be generate automatically 
-					for you or you can give your desire secret<br><br>
-					<b>How to update a client?</b><br>
-					When you click on the client which need to be update
-					there is a update window will appear. There you can see
-					Authentication and authorization tab. Fill whatever field<br>
-					need to update there<br><br>
-					<b>How to delete a client?</b><br>
-					When you click the record which need to be update
-					there is a update will appear. in that update dialog there is a
-					delete button. if you press that client will be delete</p>
+			<p>The <b>Toolbar</b> appears across the top of the screen in
+			all views. In the center of the toolbar is the title of the
+			application: <b>Online Charging System (OCS)</b>.
+			To the left of the title is the <b>Navigation Menu</b> icon:
+			<iron-icon class="iconHelp" icon="menu"></iron-icon>. Selecting
+			this opens the <b>Navigation Drawer</b> which contains the main
+			menu for navigating between views within the application.
+			To the right of the title is the <b>Refresh</b> icon:
+			<iron-icon class="iconHelp" icon="refresh"></iron-icon>. Selecting
+			this will get new data from OCS for the current view.
+			Next is the <b>Download</b> icon:
+			<iron-icon class="iconHelp" icon="file-download"></iron-icon>.
+			Selecting this in a grid view will download a comma separated
+			values (<b>CSV</b>) file with all rows in the current view.
+			On the far right of the toolbar is the <b>Overflow Menu</b> icon:
+			<iron-icon class="iconHelp" icon="icons:more-vert"></iron-icon>.
+			Selecting this will open a menu providing access to <b>Help</b>
+			and <b>Support</b></p>.
 		</paper-dialog>
-		<paper-dialog id="helpAddsub">
+		<paper-dialog id="helpSubscribers">
 			<paper-toolbar>
-			<paper-icon-item
-					class="menu-trigger menuitem"
-					on-click="helpBack">
+				<paper-icon-item
+						class="menu-trigger menuitem"
+						on-click="helpBack">
 				<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
-			</paper-icon-item>
+				</paper-icon-item>
 				<h2>[[i18n.help]]</h2>
 			</paper-toolbar>
 			<paper-icon-item
 					class="menu-trigger menuitem">
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
-					<h2>[[i18n.subs]]</h2>
+				<h2>[[i18n.subs]]</h2>
 			</paper-icon-item>
-					<p><b>How to add a subscriber?</b><br>
-					Click the green Plus button. Enter the details correctly.
-					If you click generate checkboxes identity, password will be
-					generate automatically for you or you can give your desire Identity
-					and Password.<br>
-					Balance cant be a negative number. It must be a positive number<br><br>
-					<b>How to update a subscriber?</b><br>
-					When you click on the subscriber which need to be update
-					there is a update window will appear. There you can see Authentication
-					and authorization tab. Fill whatever field need to update there<br><br>
-					<b>How to delete a subscriber?</b><br>
-					When you click on the subscriber which need to be update
-					there is a update will appear. in that update dialog there is a delete button.
-					if you press that subscriber will be delete</p>
+			<p>To access the <b>Subscribers</b> view first open the navigation drawer
+			by selecting it's icon <iron-icon class="iconHelp" icon="menu"></iron-icon>
+			on the left of the toolbar at top. Select the
+			<iron-icon class="iconHelp" icon="device:devices"></iron-icon>
+			<b>Subscribers</b> view from the navigation menu.</p>
+			<p><b>Subscribers</b> are the entities which subscribe to
+			communications services. A subscriber is commonly a person using a
+			smartphone, tablet or laptop to access a Wi-Fi network. Subscibers
+			must have a unique <b>Identifier</b> which, along with
+			<b>Password</b>, is used by OCS for <b>authentication</b> of access
+			requests.  Authenticated subscribers must also have
+			<b>authorization</b> for services. An account <b>balance</b> is
+			kept which is decremented as services are consumed by the subscriber.
+			Authorization will fail when the balance is not positive. Optional
+			service <b>attributes</b> may be defined for each subscriber.
+			<b>Receive Data Rate</b> defines a maximum transmission rate (bps)
+			while <b>Transmit Data Rate</b> may also be defined when an
+			asymetrical rate is required.  A <b>Session Timeout</b> (secs)
+			causes periodic reauthentication of sessions. An
+			<b>Update Interval</b> (secs) causes interim accounting requests
+			to be generated. These two timers may be used to configure the
+			granularity of authorization where more frequent updates result
+			in lower negative balances at the cost of increased processing
+			and request transmissions. <b>Class</b> is a label which may be
+			used in rating. Authorization may be temporarily suspended with
+			the <b>Enabled</b> flag.</p>
+			<h3>Add a Subscriber</h3>
+			<p>Select the floating action button
+			<iron-icon class="iconHelp" icon="add"></iron-icon> at the bottom right
+			of the view. An <b>Add Subscriber</b> dialog will appear. Enter the
+			details for a new subscriber and select the <b>SUBMIT</b> button. If
+			the <b>Generate</b> check-box is selected for <b>Identity</b> or
+			<b>Password</b> OCS will create unique values which will be provided
+			in a dialog after the request is successful.</p>
+			<h3>Update a Subscriber</h3>
+			<p>Selecting a row in the Subscriber view will open a dialog allowing
+			updating any fields. There are two tabs in the dialog toolbar used to
+			select <b>Authentication</b> or <b>Authorization</b> fields. After
+			providing new values in either or both tabs select the <b>UPDATE</b>
+			button.</p>
+			<h3>Delete a Subscriber</h3>
+			<p>Selecting a row in the Subscriber view will open a dialog which
+			includes a <b>DELETE</b> button.</p>
 		</paper-dialog>
-		<paper-dialog id="helpAdduser">
+		<paper-dialog id="helpClients">
 			<paper-toolbar>
-			<paper-icon-item
-					class="menu-trigger menuitem"
-					on-click="helpBack">
-				<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
-			</paper-icon-item>
+				<paper-icon-item
+						class="menu-trigger menuitem"
+						on-click="helpBack">
+					<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
+				</paper-icon-item>
 				<h2>[[i18n.help]]</h2>
 			</paper-toolbar>
 			<paper-icon-item
 					class="menu-trigger menuitem">
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
-					<h2>[[i18n.users]]</h2>
+				<h2>[[i18n.clients]]</h2>
 			</paper-icon-item>
-					<p><b>How to add a user?</b><br>
-					Click the green Plus button. Enter the details correctly.
-					You can select your prefer language es(spanish), en(English)<br><br>
-					<b>How to update a user?</b><br>
-					When you click on the user which need to be update
-					there is a update window will appear. Fill whatever field need
-					to update there<br><br>
-					<b>How to delete a user?</b><br>
-					When you click on the subscriber which need to be update
-					there is a update will appear. in that update dialog there is a delete button.
-					if you press that user will be delete</p>
+			<p>To access the <b>Clients</b> view first open the navigation drawer
+			by selecting it's icon <iron-icon class="iconHelp" icon="menu"></iron-icon>
+			on the left of the toolbar at top. Select the
+			<iron-icon class="iconHelp" icon="hardware:router"></iron-icon>
+			<b>Clients</b> view from the navigation menu.</p>
+			<p><b>Clients</b> are Network Access Servers (<b>NAS</b>); typically
+			Wi-Fi access points (AP). Clients must be trusted by the OCS so
+			each one must be defined here. The IP <b>Address</b> must match the
+			origin of access requests from the client. <b>Identifier</b> is a
+			read only field provided by the client. A shared <b>Secret</b> must
+			be configured in the client to authenticate it's requests. The AAA
+			<b>Protocol</b> used with the client (RADIUS/DIAMETER) must match
+			the client. Optionally a listen <b>Port</b> may be provided enabling
+			OCS to initiate disconnection of ongoing sessions.</p>
+			<h3>Add a Client</h3>
+			<p>Select the floating action button
+			<iron-icon class="iconHelp" icon="add"></iron-icon> at the bottom right
+			of the view. An <b>Add Client</b> dialog will appear. Enter details
+			for a new client and select the <b>SUBMIT</b> button. If the
+			<b>Generate</b> check-box is selected for <b>Secret</b> OCS will
+			create a unique value which will be provided in a dialog after the
+			request is successful.</p>
+			<h3>Update a Client</h3>
+			<p>Selecting a row in the Clients view will open a dialog allowing
+			updating any fields. There are two tabs in the dialog toolbar used
+			to select <b>Authentication</b> or <b>Properties</b> fields. After
+			providing new values in either or both tabs select the <b>UPDATE</b>
+			button.</p>
+			<h3>Delete a Client</h3>
+			<p>Selecting a row in the Clients view will open a dialog which
+			includes a <b>DELETE</b> button.</p>
 		</paper-dialog>
-		<paper-dialog id="viewLogs">
+		<paper-dialog id="helpLogs">
 			<paper-toolbar>
-			<paper-icon-item
-					class="menu-trigger menuitem"
-					on-click="helpBack">
-				<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
-			</paper-icon-item>
+				<paper-icon-item
+						class="menu-trigger menuitem"
+						on-click="helpBack">
+					<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
+				</paper-icon-item>
 				<h2>[[i18n.help]]</h2>
 			</paper-toolbar>
 			<paper-icon-item
 					class="menu-trigger menuitem">
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
-					<h2>[[i18n.logs]]</h2>
+				<h2>[[i18n.logs]]</h2>
 			</paper-icon-item>
-					<p><b>How to view access log?</b><br>
-					Press the menu button. Then one navigation panel will
-					swipe in for you. From that panel there is a item called Logs.
-					When you press that few submenus will be appear. There you can
-					see Access log. You can view time, address, identity, username,
-					type ant etc from the access log.<br><br>
-					<b>How to view accounting log?</b><br>
-					Press the menu button. Then one navigation panel will
-					swipe in for you. From that panel there is a item called Logs.
-					When you press that few submenus will be appear. There you can
-					see Accounting log. You can view time, identity, duration, in/out (bytes),
-					username, type and etc from the access log.<br><br>
-					<b>How to view IPDR log?</b><br>
-					Press the menu button. Then one navigation panel will
-					swipe in for you. From that panel there is a item called Logs.
-					When you press that few submenus will be appear. There you can see IPDR log.
-					If you click IPDR there is a dialog will popup with lists of IPDR Logs.
-					From that list you can choose your required log file according to the date.
-					IPDR log contains creation time, username, Station Ids, Nas Address and Id,
-					Start/End time, cause.<br><br>
-					<b>How to view HTTP log?</b><br>
-					Press the menu button. Then one navigation panel will
-					swipe in for you. From that panel there is a item called Logs.
-					When you press that few submenus will be appear. There you can see
-					HTTP log. You can view Datetime, host, username, Method, Resource, Status.</p> 
+			<p>To access log views first open the navigation drawer
+			by selecting it's icon <iron-icon class="iconHelp" icon="menu"></iron-icon>
+			on the left of the toolbar at top. Select the
+			<iron-icon class="iconHelp" icon="icons:history"></iron-icon>
+			<b>Logs</b> submenu from the navigation menu.</p>
+			<p>Activity logs provide persistent storage of chronologically
+			ordered event details. For AAA requests all attributes of RADIUS
+			or DIAMETER requests and responses are logged. Seperate logs
+			are used for AAA <b>Access</b> and <b>Accounting</b> requests.
+			All HTTP requests on REST API and web user interface are logged
+			in <b>Common Log Format</b>.  OCS also generates Internet Protocol
+			Detail Record (IPDR) logs which is an industry standard format
+			for inter-operator exchange of billing records used with roaming
+			agreements.</p>
+			<h3>Access</h3>
+			<p>Select the <iron-icon class="iconHelp" icon="device:data-usage"></iron-icon>
+			<b>Access</b> view from the submenu in the navigation drawer.
+			An ISO8601 <b>Timestamp</b> provides the universal coordinated
+			time (UTC) the event was recorded by OCS.
+			<b>Client</b> and <b>Client Identity</b> identify the NAS which sent
+			the Access-Request.
+			<b>Called Station</b> identifies the subscriber's device.
+			<b>Username</b> identifies the subscriber.
+			<b>Type</b> indicates the response (accept/reject).</p>
+			<h3>Accounting</h3>
+			<p>Select the <iron-icon class="iconHelp" icon="device:data-usage"></iron-icon>
+			<b>Accounting</b> view from the submenu in the navigation drawer.
+			An ISO8601 <b>Timestamp</b> provides the universal coordinated
+			time (UTC) the event was recorded by OCS.
+			<b>Client</b> identifies the NAS which sent the Accounting-Request.
+			<b>Duration</b> indicates the session duration (secs).
+			<b>In</b> and <b>Out</b> indicate the traffic carried (bytes).
+			<b>Username</b> identifies the subscriber.
+			<b>Type</b> indicates the request type (start/stop/interim/on/off).</p>
+			<h3>IPDR</h3>
+			<p>Select <iron-icon class="iconHelp" icon="device:data-usage"></iron-icon>
+			<b>IPDR</b> from the submenu in the navigation drawer.
+			A file selction dialog will appear with a list of available IPDR logs.
+			Filenames are ISO8601 timestamps (UTC) indicating time of creation.
+			Typically IPDR files will contain the previous day's events. Select
+			a file to open the <b>IPDR</b> view.</p>
+			<p><b>Creation Time</b> is an ISO8601 timestamp (UTC).
+			<b>Seq</b> is a unique sequence number within this IPDR log file.
+			<b>Username</b> identifies the subscriber.
+			<b>Session</b> identifies the session.
+			<b>Calling Station</b> identifies the subscriber's device.
+			<b>Called Station ID</b> identifies the access point.
+			<b>NAS Address</b> and <b>NAS ID</b> identify the NAS client.
+			<b>Duration</b> indicates the session duration (secs).
+			<b>Input</b> and <b>Outut</b> indicate the traffic carried (bytes).
+			<b>Start Time</b> indicates the time the session started.
+			<b>End Time</b> indicates the time the session ended.
+			<b>Cause</b> indicates the reason the session ended.
+			</p>
+			<h3>HTTP</h3>
+			<p>Select the <iron-icon class="iconHelp" icon="device:data-usage"></iron-icon>
+			<b>HTTP</b> view from the submenu in the navigation drawer.
+			<b>DateTime</b> is a timestamp for the event in Common Log Format.
+			<b>Host</b> is the IP address the request was received from.
+			<b>User</b> is the name of the authenticated user.
+			<b>Method</b> identifies the request type (GET/POST/PUT/PATCH/DELETE).
+			<b>Resource</b> is the URI provided in the request.
+			<b>Status</b> is the response code.</p>
 		</paper-dialog>
-		<paper-dialog id="downCsv">
+		<paper-dialog id="helpUsers">
 			<paper-toolbar>
-			<paper-icon-item
-					class="menu-trigger menuitem"
-					on-click="helpBack">
-				<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
-			</paper-icon-item>
+				<paper-icon-item
+						class="menu-trigger menuitem"
+						on-click="helpBack">
+					<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
+				</paper-icon-item>
 				<h2>[[i18n.help]]</h2>
 			</paper-toolbar>
 			<paper-icon-item
 					class="menu-trigger menuitem">
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
-					<h2>[[i18n.tool]]</h2>
+				<h2>[[i18n.users]]</h2>
 			</paper-icon-item>
-					<p><b>How to download files?</b><br>
-					There is a download icon in top left side of the page. Open the
-					tab you need to download then simply press download button. It will download
-					CSV files to your computer.<br>
-					ex: open Access logs then click download icon<br><br>
-					<b>How to refresh?</b><br>
-					Just click refresh icon which is placed near to download button. It will  
-					refresh the data and get latest data.</p>
+			<p>To access the <b>Users</b> view first open the navigation drawer
+			by selecting it's icon <iron-icon class="iconHelp" icon="menu"></iron-icon>
+			on the left of the toolbar at top. Select the
+			<iron-icon class="iconHelp" icon="icons:perm-identity"></iron-icon>
+			<b>Users</b> view from the navigation menu.</p>
+			<p><b>Users</b> are entities which may authenticate with an HTTP
+			server within OCS for REST API or web user interface access. Each user
+			requires a unique <b>Username</b> and <b>Password</b>. A language may
+			also be chosen which will internationalize the web user interface.</p>
+			<h3>Add a User</h3>
+			<p>Select the floating action button
+			<iron-icon class="iconHelp" icon="add"></iron-icon> at the bottom right
+			of the view. An input dialog will appear. Enter the details for a new
+			user then press the <b>SUBMIT</b> button. A dropdown selection provides
+			a choice of available languages.</p>
+			<h3>Update a User</h3>
+			<p>Selecting a row in the Users view will open a dialog allowing
+			updating of the <b>Password</b> or <b>Language</b>. Select the
+			<b>UPDATE</b> button to submit.</p>
+			<h3>Delete a User</h3>
+			<p>Selecting a row in the Users view will open a dialog which
+			includes a <b>DELETE</b> button.</p>
+		</paper-dialog>
+		<paper-dialog id="helpFiltering">
+			<paper-toolbar>
+				<paper-icon-item
+						class="menu-trigger menuitem"
+						on-click="helpBack">
+					<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
+				</paper-icon-item>
+				<h2>[[i18n.help]]</h2>
+			</paper-toolbar>
+			<paper-icon-item
+					class="menu-trigger menuitem">
+				<iron-icon icon="icons:assignment" item-icon></iron-icon>
+				<h2>[[i18n.filt]]</h2>
+			</paper-icon-item>
+			<p>Within a grid view (e.g. Subscribers, Clientrs, Logs) the
+			displayed rows may be filtered by selecting column header(s)
+			and entering match values.</p>
+			<h3>Filter a View</h3>
+			<p>In the example below the filter "AP2" is entered in the
+			<b>NAS Identifier</b> column header of the <b>Clients</b> view
+			resulting in only rows with a matching prefix appearing:</p>
+			<img alt="screenshot" src="/filter.png" height="118" width="320">
+		</paper-dialog>
+		<paper-dialog id="helpSorting">
+			<paper-toolbar>
+				<paper-icon-item
+						class="menu-trigger menuitem"
+						on-click="helpBack">
+					<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
+				</paper-icon-item>
+				<h2>[[i18n.help]]</h2>
+			</paper-toolbar>
+			<paper-icon-item
+					class="menu-trigger menuitem">
+				<iron-icon icon="icons:assignment" item-icon></iron-icon>
+				<h2>[[i18n.sort]]</h2>
+			</paper-icon-item>
+			<p>Within a grid view (e.g. Subscribers, Client, Logs) the
+			displayed rows may be sorted by selecting the arrows in
+			column headers.</p>
+			<h3>Sorting a View</h3>
+			<p>In the example below the down arrow of the <b>Address</b>
+			column header in the <b>Clients</b> view is selected resulting
+			in rows being reordered by address in ascending order:</p>
+			<img alt="screenshot" src="/sort-ascend.png" height="150" width="320">
+			<p>In the example below the up arrow is selected resulting
+			in rows being reordered by address in descending order:</p>
+			<img alt="screenshot" src="/sort-descend.png" height="144" width="320">
 		</paper-dialog>
 		<paper-dialog id="aboutHelp">
 			<paper-toolbar>
@@ -504,47 +662,6 @@
 			Apache License Version 2.0<br>
 			<a target="_blank" href="http://www.sigscale.org">www.sigscale.org</a></p>
 		</paper-dialog>
-		<paper-dialog id="helpFilter">
-			<paper-toolbar>
-			<paper-icon-item
-					class="menu-trigger menuitem"
-					on-click="helpBack">
-				<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
-			</paper-icon-item>
-				<h2>[[i18n.help]]</h2>
-			</paper-toolbar>
-			<paper-icon-item
-					class="menu-trigger menuitem">
-				<iron-icon icon="icons:assignment" item-icon></iron-icon>
-					<h2>[[i18n.filt]]</h2>
-			</paper-icon-item>
-					<p><b>How to filter?</b><br>
-					Filtering is so simple here. If you like to filter any particular records
-					just click the column header that you would like to filter. when you click
-					it you can see a textbox around your selected column header. then simply
-					enter that details which you want to filter. If that entered details available
-					in our records you can see the details which is relevent to your search by our
-					filter method.</p>
-		</paper-dialog>
-		<paper-dialog id="helpSorting">
-			<paper-toolbar>
-			<paper-icon-item
-					class="menu-trigger menuitem"
-					on-click="helpBack">
-				<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
-			</paper-icon-item>
-				<h2>[[i18n.help]]</h2>
-			</paper-toolbar>
-			<paper-icon-item
-					class="menu-trigger menuitem">
-				<iron-icon icon="icons:assignment" item-icon></iron-icon>
-					<h2>[[i18n.sort]]</h2>
-			</paper-icon-item>
-					<p><b>How to Sort?</b><br>
-					If you perform the sorting you should look the arrow icons next to the column
-					header.when you click the down arrow you should able to see the ascending
-					order sorting.</p>
-		</paper-dialog>
 		<!--Modal Definitions-->
 		<sig-sub-add></sig-sub-add>
 		<sig-sub-update></sig-sub-update>
@@ -554,13 +671,12 @@
 		<sig-user-add></sig-user-add>
 		<sig-user-update></sig-user-update>
 	</template>
-		<script>
+	<script>
 		document.addEventListener('HTMLImportsLoaded', function() {
 			I18nMsg.lang = document.documentElement.lang || 'en';
 			Platform.performMicrotaskCheckpoint();
 		});
-		Polymer (
-			{
+		Polymer ({
 				is: 'sig-app',
 				behaviors: [i18nMsgBehavior],
 				listeners: {
@@ -577,53 +693,53 @@
 				},
 				helpId: function(event) {
 					document.getElementById("helpDrop").close();
-					var helpObj = document.getElementById("helpFaq");
+					var helpObj = document.getElementById("helpMenu");
 					helpObj.open();
 				},
 				addClientQue: function(event) {
-					document.getElementById("helpFaq").close();
-					var queObj = document.getElementById("helpAddclient");
+					document.getElementById("helpMenu").close();
+					var queObj = document.getElementById("helpClients");
 					queObj.open();
 				},
 				addSubQue: function(event) {
-					document.getElementById("helpFaq").close();
-					var queObj = document.getElementById("helpAddsub");
+					document.getElementById("helpMenu").close();
+					var queObj = document.getElementById("helpSubscribers");
 					queObj.open();
 				},
 				addUserQue: function(event) {
-					document.getElementById("helpFaq").close();
-					var queObj = document.getElementById("helpAdduser");
+					document.getElementById("helpMenu").close();
+					var queObj = document.getElementById("helpUsers");
 					queObj.open();
 				},
 				viewLogQue: function(event) {
-					document.getElementById("helpFaq").close();
-					var queObj = document.getElementById("viewLogs");
+					document.getElementById("helpMenu").close();
+					var queObj = document.getElementById("helpLogs");
 					queObj.open();
 				},
-				downQue: function(event) {
-					document.getElementById("helpFaq").close();
-					var queObj = document.getElementById("downCsv");
+				toolQue: function(event) {
+					document.getElementById("helpMenu").close();
+					var queObj = document.getElementById("helpToolbar");
 					queObj.open();
 				},
 				filter: function(event) {
-					document.getElementById("helpFaq").close();
-					var queObj = document.getElementById("helpFilter");
+					document.getElementById("helpMenu").close();
+					var queObj = document.getElementById("helpFiltering");
 					queObj.open();
 				},
 				sorting: function(event) {
-					document.getElementById("helpFaq").close();
+					document.getElementById("helpMenu").close();
 					var queObj = document.getElementById("helpSorting");
 					queObj.open();
 				},
 				helpBack: function(event) {
-					document.getElementById("helpAddclient").close();
-					document.getElementById("helpAddsub").close();
-					document.getElementById("helpAdduser").close();
-					document.getElementById("viewLogs").close();
-					document.getElementById("downCsv").close();
-					document.getElementById("helpFilter").close();
+					document.getElementById("helpToolbar").close();
+					document.getElementById("helpSubscribers").close();
+					document.getElementById("helpClients").close();
+					document.getElementById("helpUsers").close();
+					document.getElementById("helpLogs").close();
+					document.getElementById("helpFiltering").close();
 					document.getElementById("helpSorting").close();
-					var backObj = document.getElementById("helpFaq");
+					var backObj = document.getElementById("helpMenu");
 					backObj.open();
 				},
 				loadElement: function(event) {
@@ -689,8 +805,8 @@
 						csvObject.headers = "Identity,Secret,Balance,Data Rate,"
 								+ "Xmit Rate,Session Timeout,"
 								+ "Accounting Interval,Class,Enabled \n";
-						csvObject.keys = [ "id", "password", "balance", 
-								"ascendDataRate", "ascendXmitRate", "sessionTimeout", 
+						csvObject.keys = [ "id", "password", "balance",
+								"ascendDataRate", "ascendXmitRate", "sessionTimeout",
 								"acctInterimInterval", "class", "enabled"];
 						csvObject.fileName = "subscribers.csv";
 					}
@@ -705,13 +821,13 @@
 						var data = document.getElementById("ipdrGrid").items;
 						csvObject.gridData = data;
 						csvObject.headers = "Creation Time,Sequence,Username,Session ID,"
-								+ "Calling Station,Called Station,NAS Address,NAS ID," 
+								+ "Calling Station,Called Station,NAS Address,NAS ID,"
 								+ "Duration,Input Octets,Output Octets,Start Time,"
 								+ "End Time,Cause\n";
 						csvObject.keys = ["ipdrCreationTime", "seqNum", "username",
-								"acctSessionId", "callingStationId", "calledStationId", 
-								"nasIpAddress", "nasId", "sessionDuration", "inputOctets", 
-								"outputOctets", "gmtSessionStartDateTime", 
+								"acctSessionId", "callingStationId", "calledStationId",
+								"nasIpAddress", "nasId", "sessionDuration", "inputOctets",
+								"outputOctets", "gmtSessionStartDateTime",
 								"gmtSessionEndDateTime", "sessionTerminateCause"];
 						csvObject.fileName = "usage_logs.csv";
 					}
@@ -720,7 +836,7 @@
 						csvObject.gridData = data;
 						csvObject.headers = "TimeStamp,ClientAddress,ClientIdentity,CalledStation,"
 								+ "UserName,Type\n";
-						csvObject.keys = ["timeStamp", "clientAddress", "nasIdentifier", "calledStation", 
+						csvObject.keys = ["timeStamp", "clientAddress", "nasIdentifier", "calledStation",
 								"username", "type"];
 						csvObject.fileName = "access.csv";
 					}
@@ -748,8 +864,7 @@
 					}
 					generateCSVData(csvObject);
 				}
-			}
-		);
+		});
 		function generateCSVData(csvObject) {
 			var csvData = "data:text/csv;charset=utf-8,";
 			csvData += csvObject.headers;

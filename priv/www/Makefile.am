@@ -3,6 +3,9 @@
 ## Process this file with automake to produce Makefile.in
 
 www_DATA = favicon.ico \
+	filter.png \
+	sort-ascend.png \
+	sort-descend.png \
 	index.html \
 	sig-ipdr-list.html \
 	sig-access-list.html \
