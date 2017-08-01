@@ -511,16 +511,16 @@ remove_session1(SessionList, [], N, S ,A) ->
 %% @doc Find all the attributes in `Attributes' in any member of
 %% `SessionList'.
 %% @hidden
-find_session([H | T] = _SessionList, Attributes) ->
-	F = fun(F, H, [H1 | T1]) ->
-				case lists:member(H1, H) of
+find_session([H | T], Attributes) ->
+	F = fun(F, H1, [H2 | T2]) ->
+				case lists:member(H2, H1) of
 					true ->
-						F(F, H, T1);
+						F(F, H1, T2);
 					false ->
 						not_found
 				end;
-		(_, H, []) ->
-			H
+		(_, H1, []) ->
+			H1
 	end,
 	case F(F, H, Attributes) of
 		not_found ->
