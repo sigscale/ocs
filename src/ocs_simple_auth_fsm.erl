@@ -464,7 +464,8 @@ extract_session_attributes(Attributes) ->
 		StateData :: statedata(),
 		Result :: term().
 %% @doc Start a disconnect_fsm worker.
-start_disconnect(DiscFsmSup, ExistingSessionAtt, StateData) ->
+start_disconnect(DiscFsmSup, ExistingSessionAtt, #statedata{client_address =
+		Address} = StateData) ->
 	try
 			F = fun(_F, [{K, V} | _T], K) ->
 						V;
@@ -475,7 +476,7 @@ start_disconnect(DiscFsmSup, ExistingSessionAtt, StateData) ->
 			end,
 			NasIp= F(F, ExistingSessionAtt, ?NasIpAddress),
 			NasId = F(F, ExistingSessionAtt, ?NasIdentifier),
-			Address = case {NasIp, NasId} of
+			Nas = case {NasIp, NasId} of
 				{_, undefined} ->
 					NasIp;
 				_ ->
