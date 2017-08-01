@@ -1,11 +1,9 @@
 <link rel="import" href="polymer/polymer.html">
 <link rel="import" href="i18n-msg/i18n-msg.html">
 <link rel="import" href="i18n-msg/i18n-msg-behavior.html">
+<link rel="import" href="paper-dialog/paper-dialog.html"/>
 <link rel="import" href="paper-menu/paper-menu.html"/>
 <link rel="import" href="paper-menu/paper-submenu.html" />
-<link rel="import" href="paper-item/paper-icon-item.html">
-<link rel="import" href="paper-styles/typography.html">
-<link rel="import" href="paper-styles/color.html">
 <link rel="import" href="iron-icons/iron-icons.html">
 <link rel="import" href="iron-icons/hardware-icons.html">
 <link rel="import" href="iron-icons/device-icons.html">
@@ -13,10 +11,15 @@
 <dom-module id="sig-help">
 	<style is="custom-style">
 		paper-dialog {
+			position: fixed;
+			right: 10px;
+			width: 300px;
 			overflow: auto;
 		}
-		paper-toolbar{
+		paper-dialog > *:first-child {
 			margin-top: 0px;
+		}
+		paper-toolbar {
 			color: white;
 			background-color: #bc5100;
 		}
@@ -26,27 +29,15 @@
 		.icon-style {
 			min-height: 10px;
 		}
-		.helpDialog {
-			position: fixed;
-			top: 35px;
-			right: 10px;
-			width: 300px;
-			overflow: auto;
-		}
 		.iconHelp {
 			padding: 0px;
 		}
 		.sublist paper-icon-item {
 			padding-left: 30px;
 		}
-		.feedbackDia {
-			width: 300px;
-			overflow: auto;
-		}
 	</style>
 	<template>
-		<paper-dialog id="helpDrop"
-				class="helpDialog">
+		<paper-dialog id="helpDrop">
 			<paper-menu>
 				<paper-submenu>
 					<paper-icon-item
@@ -101,8 +92,7 @@
 				</paper-icon-item>
 			</paper-menu>
 		</paper-dialog>
-		<paper-dialog
-				id="helpMenu">
+		<paper-dialog id="helpMenu">
 			<paper-toolbar>
 				<h2>[[i18n.help]]</h2>
 			</paper-toolbar>
