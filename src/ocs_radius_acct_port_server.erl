@@ -482,55 +482,52 @@ remove_session(SessionList, AcctSessionID, Nas, Subscriber, Attributes)
 	remove_session(SessionList, AcctSessionID, Nas, binary_to_list(Subscriber),
 			Attributes);
 remove_session(SessionList, AcctSessionID, Nas, Subscriber, Attributes) ->
-	try
-		SessionAttributes = extract_session_attributes(Attributes),
-		F = fun(F, [H | T])  ->
-				case lists:keyfind(?AcctSessionId, 1, H) of
-						{_, AcctSessionID} ->
-							T;
-						false ->
-							V1 = lists:keyfind(?NasIdentifier, 1, H),
-							V2 = lists:keyfind(?NasIpAddress, 1, H),
-							{_, Subscriber} = lists:keyfind(?UserName, 1, H),
-							{_, _} = lists:keyfind(?CallingStationId, 1, SessionAttributes),
-							case {V1, V2} of
-								{{_, Nas}, _} ->
-									T;
-								{_, {_, Nas}} ->
-									T;
-								_ ->
-									F(F,T)
-							end
-				end;
-			(_, []) ->
-				throw(session_not_found)
-		end,
-		{ok, F(F, SessionList)}
-	catch
-		_: Reason ->
-			error_logger:error_report(["Failed to remove current session from subscriber",
-					{error, Reason}, {subscriber, Subscriber}, {session, AcctSessionID},
-					{nas, Nas}, {attributes, Attributes}]),
-			{error, SessionList}
-	end.
+	Attributes1 = [{?AcctSessionId, AcctSessionID}],
+	Attributes2 = [{?NasIdentifier, Nas}, {?UserName, Subscriber}],
+	Attributes3 = [{?NasIpAddress, Nas}, {?UserName, Subscriber}],
+	CandidateAttributes = [Attributes1, Attributes2, Attributes3],
+	remove_session1(SessionList, CandidateAttributes, Nas, Subscriber, Attributes).
+% @hidden
+remove_session1(SessionList, [H | T], N, S, A) ->
+	case find_session(SessionList, H) of
+		not_found ->
+			remove_session1(SessionList, T, N, S, A);
+		Session ->
+			NewSessionList = SessionList -- Session,
+			{ok, NewSessionList}
+	end;
+remove_session1(SessionList, [], N, S ,A) ->
+	error_logger:error_report(["Failed to remove current session from subscriber",
+			{subscriber, S}, {nas, N}, {attributes, A}]),
+	{error, SessionList}.
 
--spec extract_session_attributes(Attributes) -> SessionAttributes
+
+-spec find_session(SessionList, Attributes) -> Result
 	when
+		SessionList :: [radius_attributes:attributes()],
 		Attributes :: radius_attributes:attributes(),
-		SessionAttributes :: radius_attributes:attributes().
-%% @doc Extract and return RADIUS session related attributes from
-%% `Attributes'.
+		Result :: Session | not_found,
+		Session :: radius_attributes:attributes().
+%% @doc Find all the attributes in `Attributes' in any member of
+%% `SessionList'.
 %% @hidden
-extract_session_attributes(Attributes) ->
-	F = fun({K, _}) when K == ?NasIdentifier; K == ?NasIpAddress;
-				K == ?UserName; K == ?FramedIpAddress; K == ?NasPort;
-				K == ?NasPortType; K == ?CalledStationId; K == ?CallingStationId;
-				K == ?AcctSessionId; K == ?AcctMultiSessionId; K == ?NasPortId;
-				K == ?OriginatingLineInfo; K == ?FramedInterfaceId;
-				K == ?FramedIPv6Prefix ->
-			true;
-		(_) ->
-			false
+find_session([H | T] = _SessionList, Attributes) ->
+	F = fun(F, H, [H1 | T1]) ->
+				case lists:member(H1, H) of
+					true ->
+						F(F, H, T1);
+					false ->
+						not_found
+				end;
+		(_, H, []) ->
+			H
 	end,
-	lists:filter(F, Attributes).
+	case F(F, H, Attributes) of
+		not_found ->
+			find_session(T, Attributes);
+		Session ->
+			Session
+	end;
+find_session([], _) ->
+	not_found.
 
