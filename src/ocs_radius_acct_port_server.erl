@@ -477,6 +477,10 @@ client_disconnect_supported(Client) ->
 %% session related attributes. These attributes can include Acct-Session-Id,
 %% Nas-Identifier, Nas-IP-Address, User-Name, Calling-Station-Id.
 %% @hidden
+remove_session(SessionList, AcctSessionID, Nas, Subscriber, Attributes)
+		when is_binary(Subscriber) ->
+	remove_session(SessionList, AcctSessionID, Nas, binary_to_list(Subscriber),
+			Attributes);
 remove_session(SessionList, AcctSessionID, Nas, Subscriber, Attributes) ->
 	try
 		SessionAttributes = extract_session_attributes(Attributes),
