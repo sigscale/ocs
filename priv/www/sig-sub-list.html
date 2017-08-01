@@ -152,8 +152,7 @@
 	</template>
 	<script>
 		addEventListener('WebComponentsReady', function() {
-		Polymer (
-			{
+			Polymer ({
 				is: 'sig-sub-list',
 				behaviors: [i18nMsgBehavior],
 				properties: {
@@ -270,9 +269,8 @@
 				showAddModal: function(event) {
 						var modal = document.getElementById("subAddModal");
 						modal.open();
-				},
-			}
-		);
+				}
+			});
 		});
 	</script>
 </dom-module>

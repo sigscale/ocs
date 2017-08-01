@@ -62,61 +62,60 @@
 		</iron-ajax>
 	</template>
 	<script>
-		Polymer (
-			{
-				is: 'sig-ipdr-log-files',
-				listeners: {
-				},
-				getLogContent: function (event) {
-					var searchAjax = this.$.getIpdr;
-					searchAjax,method = "GET";
-					searchAjax.url = "/usageManagement/v1/usage/" + event.model.item;
-					searchAjax.generateRequest();
-				},
-				getLogsResponse: function(event){
-					this.$.logFiles.items = event.detail.response;
-				},
-				_onLoadingChanged: function(event) {
-					if (document.getElementById("getIpdr").loading) {
-						document.getElementById("progress").disabled = false;
-					} else {
-						document.getElementById("progress").disabled = true;
-					}
-				},
-				getLogContentResponse: function(event) {
-					this.$.selectLogFileModal.close();
-					var grid = document.getElementById("ipdrGrid");
-					var results = event.detail.response;
-					vaadinItems = new Array();
-					for(var index in results) {
-							var newRecord = new Object();
-							newRecord.date = results[index].date;
-							newRecord.type = results[index].type;
-							newRecord.usageSpecificationName = results[index].usageSpecification.name;
-							results[index].usageCharacteristic.forEach(
-								function(attrObj) {
-									if(attrObj.value == "undefined") {
-										attrObj.value = '';
-										newRecord[attrObj.key] = attrObj.value;
-									} else {
-										newRecord[attrObj.key] = attrObj.value;
-									}
+		Polymer ({
+			is: 'sig-ipdr-log-files',
+			listeners: {
+			},
+			getLogContent: function (event) {
+				var searchAjax = this.$.getIpdr;
+				searchAjax,method = "GET";
+				searchAjax.url = "/usageManagement/v1/usage/" + event.model.item;
+				searchAjax.generateRequest();
+			},
+			getLogsResponse: function(event){
+				this.$.logFiles.items = event.detail.response;
+			},
+			_onLoadingChanged: function(event) {
+				if (document.getElementById("getIpdr").loading) {
+					document.getElementById("progress").disabled = false;
+				} else {
+					document.getElementById("progress").disabled = true;
+				}
+			},
+			getLogContentResponse: function(event) {
+				this.$.selectLogFileModal.close();
+				var grid = document.getElementById("ipdrGrid");
+				var results = event.detail.response;
+				vaadinItems = new Array();
+				for(var index in results) {
+						var newRecord = new Object();
+						newRecord.date = results[index].date;
+						newRecord.type = results[index].type;
+						newRecord.usageSpecificationName = results[index].usageSpecification.name;
+						results[index].usageCharacteristic.forEach(
+							function(attrObj) {
+								if(attrObj.value == "undefined") {
+									attrObj.value = '';
+									newRecord[attrObj.key] = attrObj.value;
+								} else {
+									newRecord[attrObj.key] = attrObj.value;
 								}
-							);
-							vaadinItems[index] = newRecord;
-					}
-					grid.frozenColumns = 1;
-					grid.items = vaadinItems;
-					grid.columns = [
-						{
-							"name": "ipdrCreationTime"
-						},
-						{
-							"name": "seqNum"
-						},
-						{
-							"name": "username"
-						},
+							}
+						);
+						vaadinItems[index] = newRecord;
+				}
+				grid.frozenColumns = 1;
+				grid.items = vaadinItems;
+				grid.columns = [
+					{
+						"name": "ipdrCreationTime"
+					},
+					{
+						"name": "seqNum"
+					},
+					{
+						"name": "username"
+					},
 //							{
 //								"name": "scIdType"
 //							},
@@ -129,24 +128,24 @@
 //							{
 //								"name": "homeServiceProvider"
 //							},
-						{
-							"name": "acctSessionId"
-						},
+					{
+						"name": "acctSessionId"
+					},
 //							{
 //								"name": "userIpAddress"
 //							},
-						{
-							"name": "callingStationId"
-						},
-						{
-							"name": "calledStationId"
-						},
-						{
-							"name": "nasIpAddress"
-						},
-						{
-							"name": "nasId"
-						},
+					{
+						"name": "callingStationId"
+					},
+					{
+						"name": "calledStationId"
+					},
+					{
+						"name": "nasIpAddress"
+					},
+					{
+						"name": "nasId"
+					},
 //							{
 //								"name": "accessProviderType"
 //							},
@@ -186,27 +185,27 @@
 //							{
 //								"name": "networkConnectionType"
 //							},
-						{
-							"name": "sessionDuration"
-						},
-						{
-							"name": "inputOctets"
-						},
-						{
-							"name": "outputOctets"
-						},
+					{
+						"name": "sessionDuration"
+					},
+					{
+						"name": "inputOctets"
+					},
+					{
+						"name": "outputOctets"
+					},
 //							{
 //								"name": "class"},
 //							},
-						{
-							"name": "gmtSessionStartDateTime"
-						},
-						{
-							"name": "gmtSessionEndDateTime"
-						},
-						{
-							"name": "sessionTerminateCause"
-						}
+					{
+						"name": "gmtSessionStartDateTime"
+					},
+					{
+						"name": "gmtSessionEndDateTime"
+					},
+					{
+						"name": "sessionTerminateCause"
+					}
 //							{
 //								"name": "billingClassOfService"
 //							},
@@ -249,9 +248,8 @@
 //							{
 //								"name": "tempUserId"
 //							}
-					];
-				}
+				];
 			}
-		);
+		});
 	</script>
 </dom-module>

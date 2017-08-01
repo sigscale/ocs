@@ -126,8 +126,7 @@
 	</template>
 	<script>
 		addEventListener('WebComponentsReady', function() {
-		Polymer (
-			{
+			Polymer ({
 				is: 'sig-client-list',
 				behaviors: [i18nMsgBehavior],
 				properties: {
@@ -222,9 +221,8 @@
 				showAddModal: function(event) {
 					var modal = document.getElementById("clientAddModal");
 					modal.open();
-				},
-			}
-		);
+				}
+			});
 		});
 	</script>
 </dom-module>
