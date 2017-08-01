@@ -136,7 +136,7 @@ post_subscriber(RequestBody) ->
 			false ->
 				undefined
 		end,
-		case ocs:add_subscriber(IdIn, PasswordIn, Attributes, Balance, Enabled) of
+		case ocs:add_subscriber(IdIn, PasswordIn, Attributes, Balance, Enabled, false) of
 			{ok, #subscriber{name = IdOut, last_modified = LM} = S} ->
 				Id = binary_to_list(IdOut),
 				Location = "/ocs/v1/subscriber/" ++ Id,
