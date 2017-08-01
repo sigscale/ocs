@@ -13,7 +13,6 @@
 		paper-dialog {
 			position: fixed;
 			right: 10px;
-			width: 300px;
 			overflow: auto;
 		}
 		paper-dialog > *:first-child {
