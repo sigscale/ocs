@@ -161,42 +161,8 @@
 						observer:'_activeItemChanged'
 					},
 				},
-				_activeItemChanged: function(item) {
-					if (item != null){
-						var grid = this.$.subscriberGrid;
-						grid.selectedItems = item ? [item] : [];
-						var modal = document.getElementById("subUpdateModal");
-						modal.open();
-						document.getElementById("edit-id1").value = item.id;
-						document.getElementById("edit-id2").value = item.id;
-						document.getElementById("edit-pwd").value = item.password;
-						document.getElementById("edit-balance").value = item.balance;
-						document.getElementById("edit-recv-data-rate").value = item.ascendDataRate;
-						document.getElementById("edit-trans-data-rate").value = item.ascendXmitRate;
-						document.getElementById("edit-sess-timeout").value = item.sessionTimeout;
-						document.getElementById("edit-update-interval").value = item.acctInterimInterval;
-						document.getElementById("edit-class").value =  item.class;
-						document.getElementById("edit-enabled").checked =  item.enabled;
-					}
-				},
-				responseHandler: function(event) {
+				ready: function() {
 					var grid = this.$.subscriberGrid;
-					var results = event.detail.xhr.response;
-					var vaadinItems = new Array();
-					for (var index in results) {
-						var newRecord = new Object();
-						newRecord.id = results[index].id;
-						newRecord.password = results[index].password;
-						newRecord.balance = results[index].balance;
-						results[index].attributes.forEach(
-							function(attrObj) {
-								newRecord[attrObj.name] = attrObj.value;
-							}
-						);
-						newRecord.enabled = results[index].enabled;
-						vaadinItems[index] = newRecord;
-					}
-					grid.items = vaadinItems;
 					grid.columns = [
 						{
 							name: "id"
@@ -226,6 +192,81 @@
 							name: "enabled"
 						}
 					];
+					grid.dataProvider = function(params, callback) {
+						var ajax = document.getElementById("getSubs");
+						cbSub = callback;
+						ajax.url="/ocs/v1/subscriber"
+						params.filters.forEach(function(filter, index) {
+							if(index == 0) {
+								ajax.url += '?'+ filter.path + '=' + filter.value;
+							} else {
+								ajax.url += '&'+ filter.path + '=' + filter.value;
+							}
+						});
+						params.sortOrders.forEach(function(sort, index) {
+							var dirsort;
+							if(sort.direction == "desc") {
+								dirsort = '-' + sort.path;
+							} else {
+								dirsort = sort.path;
+							}
+								if(index == 0) {
+									if(params.filters.length == 0) {
+										ajax.url += '?sort=' + dirsort;
+									} else {
+										ajax.url += '&sort=' + dirsort;
+									}
+								} else {
+									ajax.url += ',' + dirsort;
+							}
+						});
+						ajax.generateRequest();
+					};
+				},
+				_activeItemChanged: function(item) {
+					if (item != null){
+						var grid = this.$.subscriberGrid;
+						grid.selectedItems = item ? [item] : [];
+						var modal = document.getElementById("subUpdateModal");
+						modal.open();
+						document.getElementById("edit-id1").value = item.id;
+						document.getElementById("edit-id2").value = item.id;
+						document.getElementById("edit-pwd").value = item.password;
+						document.getElementById("edit-balance").value = item.balance;
+						document.getElementById("edit-recv-data-rate").value = item.ascendDataRate;
+						document.getElementById("edit-trans-data-rate").value = item.ascendXmitRate;
+						document.getElementById("edit-sess-timeout").value = item.sessionTimeout;
+						document.getElementById("edit-update-interval").value = item.acctInterimInterval;
+						document.getElementById("edit-class").value =  item.class;
+						document.getElementById("edit-enabled").checked =  item.enabled;
+					}
+				},
+				responseHandler: function(event) {
+					var grid = this.$.subscriberGrid;
+					var results = event.detail.xhr.response;
+					var range = event.detail.xhr.getResponseHeader('Content-Range');
+					if (range) {
+						var itemCount = range.split("/");
+						grid.size = Number(itemCount[1]);
+					} else {
+						grid.size = results.length;
+					}
+					var vaadinItems = new Array();
+					for (var index in results) {
+						var newRecord = new Object();
+						newRecord.id = results[index].id;
+						newRecord.password = results[index].password;
+						newRecord.balance = results[index].balance;
+						results[index].attributes.forEach(
+							function(attrObj) {
+								newRecord[attrObj.name] = attrObj.value;
+							}
+						);
+						newRecord.enabled = results[index].enabled;
+						vaadinItems[index] = newRecord;
+					}
+					cbSub(vaadinItems);
+console.log(vaadinItems);
 				},
 				showAddModal: function(event) {
 						var modal = document.getElementById("subAddModal");
