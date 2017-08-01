@@ -76,6 +76,13 @@
 					</a>
 				</paper-icon-item>
 				<paper-icon-item
+						class="menu-trigger menuitem">
+					<iron-icon icon="icons:build" item-icon></iron-icon>
+					<a target="_blank" href="/doc/index.html">
+						[[i18n.devDocs]]
+					</a>
+				</paper-icon-item>
+				<paper-icon-item
 						class="menu-trigger menuitem"
 						on-click="helpId">
 					<iron-icon icon="icons:help" item-icon></iron-icon>

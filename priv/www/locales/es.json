@@ -443,6 +443,10 @@
     "description": "users can send feedbacks",
     "message": "Enviar comentarios"
   },
+   "devDocs": {
+    "description": "Developer Documentation",
+    "message": "API Docs"
+  },
 	"help": {
     "description": "users can get help",
     "message": "Ayuda"

@@ -436,8 +436,12 @@
     "message": "Contact us"
   },
    "sendFeed": {
-    "description": "users can send feedbacks",
+    "description": "users can send feedback",
     "message": "Send feedback"
+  },
+   "devDocs": {
+    "description": "Developer Documentation",
+    "message": "API Docs"
   },
    "help": {
     "description": "users can get help",
