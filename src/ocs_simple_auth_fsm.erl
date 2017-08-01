@@ -185,7 +185,7 @@ case existing_sessions(Subscriber) of
 		request3(list_to_binary(Password), StateData);
 	{true, false, [ExistingSessionAtt]} ->
 		NewStateData = StateData#statedata{multi_sessions_allowed = false},
-		case pg2:get_closest_pid(ocs_radius_acct_top_sup) of
+		case pg2:get_closest_pid(ocs_radius_acct_port_sup) of
 			{error, Reason} ->
 				request5(Reason, NewStateData);
 			DiscFsmSup ->
