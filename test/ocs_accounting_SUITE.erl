@@ -136,17 +136,17 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[radius_accouting, radius_disconnect_session, diameter_accounting,
-	diameter_disconnect_session].
+	[radius_accounting, radius_disconnect_session, diameter_accounting,
+	diameter_disconnect_session, radius_multi_sessions_not_allowed].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
 
-radius_accouting() ->
+radius_accounting() ->
 	[{userdata, [{doc, "Initiate and terminate a RADIUS accouting session"}]}].
 
-radius_accouting(Config) ->
+radius_accounting(Config) ->
 	RadID1 = 1,
 	NasID = ?config(nas_id, Config),
 	AcctSessionID = "0A0055C1",
