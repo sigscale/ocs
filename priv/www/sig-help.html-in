@@ -36,7 +36,8 @@
 		.iconHelp {
 			padding: 0px;
 		}
-			color: black;
+		.sublist paper-icon-item {
+			padding-left: 30px;
 		}
 		.feedbackDia {
 			width: 300px;
