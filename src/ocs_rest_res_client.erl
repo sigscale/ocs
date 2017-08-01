@@ -225,7 +225,6 @@ get_client1(Address, Filters) ->
 			Id = inet:ntoa(Address),
 			Etag = etag(LM),
 			RespObj1 = [{"id", Id}, {"href", "/ocs/v1/client/" ++ Id}],
-			RespObj1 = [{"id", Id}, {"href", "/ocs/v1/client/" ++ Id}],
 			RespObj2 = case Identifier == <<>> orelse Filters /= [] 
 					andalso not lists:keymember("identifier", 1, Filters) of
 				true ->

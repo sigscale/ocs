@@ -267,8 +267,7 @@
 					if(event.detail.succeeded) {
 						document.getElementById("edit-toast").open();
 						document.getElementById("edit-new-pwd").value = "";
-						var getSubsAjax = document.getElementById("getSubs");
-						getSubsAjax.generateRequest();
+						document.getElementById("getSubs").generateRequest();
 					} else {
 						console.log("Not Success");
 					}
@@ -315,8 +314,7 @@
 				updateSubAuthoResponse: function (event) {
 					if(event.detail.succeeded) {
 						document.getElementById("edit-toast").open();
-						var getSubsAjax = document.getElementById("getSubs");
-						getSubsAjax.generateRequest();
+						document.getElementById("getSubs").generateRequest();
 					} else {
 						console.log("Not Success");
 					}
@@ -332,8 +330,7 @@
 				deleteSubResponse: function(event) {
 					document.getElementById("subUpdateModal").close();
 					document.getElementById("delete-toast").open();
-					var getSubsAjax = document.getElementById("getSubs");
-					getSubsAjax.generateRequest();
+					document.getElementById("getSubs").generateRequest();
 				}
 			}
 		);
