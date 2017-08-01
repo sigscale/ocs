@@ -13,6 +13,7 @@ www_DATA = favicon.ico \
 	sig-http-list.html \
 	sig-ipdr-log-files.html \
 	sig-app.html \
+	sig-help.html \
 	sig-client-add.html \
 	sig-client-list.html \
 	sig-client-update.html \
@@ -41,6 +42,6 @@ install-data-local:
 clean-local:
 	-rm -rf bower_components
 
-sig-app.html: sig-app.html-in
+sig-help.html: sig-help.html-in
 	sed -e 's!%VERSION%!$(VERSION)!' < $< > $@
 
