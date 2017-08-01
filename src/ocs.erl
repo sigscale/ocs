@@ -25,7 +25,7 @@
 		update_client/3, get_clients/0, delete_client/1]).
 -export([add_subscriber/3, add_subscriber/4, add_subscriber/6,
 		find_subscriber/1, delete_subscriber/1, update_password/2,
-		update_attributes/2, update_attributes/4, get_subscribers/0]).
+		update_attributes/2, update_attributes/5, get_subscribers/0]).
 -export([add_user/3, add_user/5, add_user/6, add_group_member/1,
 		add_group_member/4, list_users/0, get_user/1, get_user/3, get_user/4,
 		delete_user/1]).
@@ -447,27 +447,31 @@ update_attributes(Identity, Attributes)
 			{error, Reason}
 	end.
 
--spec update_attributes(Identity, Balance, Attributes, EnabledStatus) -> Result
+-spec update_attributes(Identity, Balance, Attributes, EnabledStatus,
+		MultiSessions) -> Result
 	when
 		Identity :: string() | binary(),
 		Balance :: pos_integer(),
 		Attributes :: radius_attributes:attributes(),
 		EnabledStatus :: boolean(),
+		MultiSessions :: boolean(),
 		Result :: ok | {error, Reason},
 		Reason :: not_found | term().
 %% @doc Update subscriber attributes.
 %%
-update_attributes(Identity, Balance, Attributes, EnabledStatus)
-		when is_list(Identity), is_number(Balance), is_boolean(EnabledStatus) ->
+update_attributes(Identity, Balance, Attributes, EnabledStatus, MSessions)
+		when is_list(Identity), is_number(Balance), is_boolean(EnabledStatus),
+		is_boolean(MSessions) ->
 	update_attributes(list_to_binary(Identity), Balance, Attributes,
-		EnabledStatus);
-update_attributes(Identity, Balance, Attributes, EnabledStatus)
+		EnabledStatus, MSessions);
+update_attributes(Identity, Balance, Attributes, EnabledStatus, MSessions)
 		when is_binary(Identity), is_list(Attributes) ->
 	F = fun() ->
 				case mnesia:read(subscriber, Identity, write) of
 					[Entry] ->
 						NewEntry = Entry#subscriber{attributes = Attributes,
-							balance = Balance, enabled = EnabledStatus},
+							balance = Balance, enabled = EnabledStatus,
+							multi_sessions_allowed = MSessions},
 						mnesia:write(subscriber, NewEntry, write);
 					[] ->
 						throw(not_found)
