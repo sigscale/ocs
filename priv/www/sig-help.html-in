@@ -187,6 +187,11 @@
 			<iron-icon class="iconHelp" icon="icons:more-vert"></iron-icon>.
 			Selecting this will open a menu providing access to <b>Help</b>
 			and <b>Support</b></p>.
+			<h3>Progress Bar</h3>
+			<p>When loading data from OCS takes a few seconds a progress
+			bar appears underneath the toolbar to indicate that it is
+			working on loading the page requested:</p>
+			<img alt="screenshot" src="/progress.png" height="96" width="298">
 		</paper-dialog>
 		<paper-dialog id="helpSubscribers">
 			<paper-toolbar>
