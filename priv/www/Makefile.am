@@ -3,6 +3,7 @@
 ## Process this file with automake to produce Makefile.in
 
 www_DATA = favicon.ico \
+	toolbar.png \
 	progress.png \
 	filter.png \
 	sort-ascend.png \

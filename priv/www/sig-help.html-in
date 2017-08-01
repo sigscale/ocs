@@ -169,6 +169,7 @@
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 				<h2>[[i18n.tool]]</h2>
 			</paper-icon-item>
+			<img alt="screenshot" src="/toolbar.png" height="36" width="320">
 			<p>The <b>Toolbar</b> appears across the top of the screen in
 			all views. In the center of the toolbar is the title of the
 			application: <b>Online Charging System (OCS)</b>.
