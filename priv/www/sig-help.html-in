@@ -71,7 +71,7 @@
 				<paper-icon-item
 						class="menu-trigger menuitem">
 					<iron-icon icon="icons:feedback" item-icon></iron-icon>
-					<a target="_blank" href="https://sigscale.atlassian.net/secure/CreateIssue!default.jspa?pid=10100">
+					<a target="_blank" href="https://sigscale.atlassian.net/secure/CreateIssue!default.jspa?pid=10100&issuetype=10000">
 						[[i18n.sendFeed]]
 					</a>
 				</paper-icon-item>
