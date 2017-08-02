@@ -28,6 +28,7 @@
 -compile(export_all).
 
 -include_lib("radius/include/radius.hrl").
+-include("ocs.hrl").
 -include("ocs_eap_codec.hrl").
 -include_lib("common_test/include/ct.hrl").
 -include_lib("diameter/include/diameter.hrl").
@@ -136,8 +137,8 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[radius_accounting, radius_disconnect_session, diameter_accounting,
-	diameter_disconnect_session, radius_multi_sessions_not_allowed].
+	[radius_accounting, radius_disconnect_session, radius_multi_sessions_not_allowed,
+	diameter_accounting, diameter_disconnect_session].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -198,6 +199,63 @@ radius_disconnect_session(Config) ->
 	accounting_stop(Socket, AcctAddress, AcctPort,
 			PeerID, Secret, NasID, AcctSessionID, RadID4),
 	disconnect_request().
+
+radius_multi_sessions_not_allowed() ->
+	[{userdata, [{doc, "Start multiple RADIUS sessions for a subscriber when
+			multiple RADIUS are not allowed. Previous sessions should be disconnected
+			allowing the last successfull session to exist."}]}].
+
+radius_multi_sessions_not_allowed(Config) ->
+	RadID1 = 8,
+	NasID = ?config(nas_id, Config),
+	AcctSessionID = "BAC10355",
+	{ok, [{auth, AuthInstance}, {acct, AcctInstance}]} = application:get_env(ocs, radius),
+	[{AuthAddress, AuthPort, _}] = AuthInstance,
+	[{AcctAddress, AcctPort, _}] = AcctInstance,
+	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, binary]),
+	PeerID = binary_to_list(ocs:generate_identity()),
+	Secret = ct:get_config(radius_shared_secret),
+	Password = ocs:generate_password(),
+	{ok, _} = ocs:add_subscriber(PeerID, Password, [], 1000, true, false),
+	ReqAuth = radius:authenticator(),
+	HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
+	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
+			HiddenPassword, Secret, NasID, ReqAuth, RadID1),
+	RadID2 = RadID1 + 1,
+	accounting_start(Socket, AcctAddress, AcctPort,
+			PeerID, Secret, NasID, AcctSessionID, RadID2),
+	{ok, #subscriber{multi_sessions_allowed = false, session_attributes = SessionList1}}
+			= ocs:find_subscriber(PeerID),
+	[SessionAttr1] = SessionList1,
+	true = is_list(SessionAttr1),
+	F = fun(SessionAttributes, Nas) ->
+		{_, PeerID} = radius_attributes:find(?UserName, SessionAttributes),
+		case radius_attributes:find(?NasIdentifier, SessionAttributes) of
+			{_, Nas} ->
+				ok;
+			false ->
+				{_, "127.0.0.1"} = radius_attributes:find(?NasIpAddress, SessionAttr1),
+				ok
+		end
+	end,
+	ok = F(SessionAttr1, NasID),
+	Rad2ID1 = 5,
+	NasID2 = "vlkf@ubip.net",
+	authenticate_subscriber1(Socket, AuthAddress, AuthPort, PeerID,
+			HiddenPassword, Secret, NasID2, ReqAuth, Rad2ID1),
+	ct:sleep(2000),
+	{ok, #subscriber{multi_sessions_allowed = false, session_attributes = SessionList2}}
+			= ocs:find_subscriber(PeerID),
+	[SessionAttr2] = SessionList2,
+	ok = F(SessionAttr2, NasID2),
+	Rad2ID2 = Rad2ID1 + 1,
+	accounting_start(Socket, AcctAddress, AcctPort, PeerID, Secret, NasID2,
+			AcctSessionID, Rad2ID2),
+	Rad2ID3 = Rad2ID2 + 1,
+	accounting_stop(Socket, AcctAddress, AcctPort,
+			PeerID, Secret, NasID2, AcctSessionID, Rad2ID3),
+	{ok, #subscriber{multi_sessions_allowed = false, session_attributes = []}}
+			= ocs:find_subscriber(PeerID).
 
 diameter_accounting() ->
 	[{userdata, [{doc, "Initiate and terminate a DIAMETER accouting session"}]}].
@@ -475,3 +533,11 @@ diameter_accounting_interim(SId, Username, RequestNum, Usage) ->
 	{ok, Answer} = diameter:call(?SVC_ACCT, cc_app_test, CC_CCR, []),
 	Answer.
 	
+authenticate_subscriber1(Socket, Address,
+		Port, PeerID, Password, Secret, NasID, ReqAuth, RadID) ->
+	RadAttribute = radius_attributes:add(?UserPassword, Password, []),
+	access_request(Socket, Address,
+		Port, PeerID, Secret, NasID, ReqAuth, RadID, RadAttribute),
+	disconnect_request(),
+	access_accept(Socket, Address, Port, RadID).
+
