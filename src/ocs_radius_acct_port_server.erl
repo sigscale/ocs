@@ -493,8 +493,7 @@ remove_session1(SessionList, [H | T], N, S, A) ->
 		not_found ->
 			remove_session1(SessionList, T, N, S, A);
 		Session ->
-			NewSessionList = SessionList -- Session,
-			{ok, NewSessionList}
+			{ok, lists:delete(Session, SessionList)}
 	end;
 remove_session1(SessionList, [], N, S ,A) ->
 	error_logger:error_report(["Failed to remove current session from subscriber",
