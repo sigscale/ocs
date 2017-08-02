@@ -202,7 +202,7 @@ radius_disconnect_session(Config) ->
 
 radius_multi_sessions_not_allowed() ->
 	[{userdata, [{doc, "Start multiple RADIUS sessions for a subscriber when
-			multiple RADIUS are not allowed. Previous sessions should be disconnected
+			multiple RADIUS sessions are not allowed. Previous sessions should be disconnected
 			allowing the last successfull session to exist."}]}].
 
 radius_multi_sessions_not_allowed(Config) ->
