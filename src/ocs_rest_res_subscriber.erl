@@ -204,28 +204,21 @@ get_subscribers2(Subscribers, Id, Password, Balance, Enabled, [] = _Query, Filte
 			T1 and T2 and T3 and T4 ->
 				RespObj1 = [{"id", Nalist}, {"href", "/ocs/v1/subscriber/" ++ Nalist}],
 				RespObj2 = [{"attributes", Att1}],
-				RespObj3 = case Nalist == <<>> orelse Filters == []
-						andalso not lists:keymember("id", 1, Filters) of
-					true ->
-						[];
-					false ->
-						[{"id", Nalist}]
-				end,
-				RespObj4 = case Filters == []
+				RespObj3 = case Filters == []
 						orelse lists:keymember("password", 1, Filters) of
 					true ->
 						[{"password", Palist}];
 					false ->
 						[]
 				end,
-				RespObj5 = case Filters == []
+				RespObj4 = case Filters == []
 						orelse lists:keymember("balance", 1, Filters) of
 					true ->
 						[{"balance", Ba}];
 					false ->
 						[]
 				end,
-				RespObj6 = case Filters == []
+				RespObj5 = case Filters == []
 						orelse lists:keymember("enabled", 1, Filters) of
 					true ->
 						[{"enabled", Ena}];
@@ -233,7 +226,7 @@ get_subscribers2(Subscribers, Id, Password, Balance, Enabled, [] = _Query, Filte
 						[]
 				end,
 				{true, {struct, RespObj1 ++ RespObj2 ++ RespObj3
-							++ RespObj4 ++ RespObj5 ++ RespObj6}};
+							++ RespObj4 ++ RespObj5}};
 			true ->
 				false
 		end
