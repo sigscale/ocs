@@ -36,6 +36,7 @@
 			terminate/3, code_change/4]).
 
 -include_lib("radius/include/radius.hrl").
+-include("ocs.hrl").
 -include("ocs_eap_codec.hrl").
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
@@ -55,6 +56,7 @@
 		req_auth :: undefined | binary(),
 		req_attr :: undefined | radius_attributes:attributes(),
 		subscriber :: undefined | string(),
+		multi_sessions_allowed :: undefined | boolean(),
 		app_id :: undefined | non_neg_integer(),
 		auth_request_type :: undefined | 1..3,
 		origin_host :: undefined | string(),
@@ -170,51 +172,81 @@ request1(#statedata{req_attr = Attributes, req_auth = Authenticator,
 	case radius_attributes:find(?UserPassword, Attributes) of
 		{ok, Hidden} ->
 			Password = radius_attributes:unhide(Secret, Authenticator, Hidden),
-			request2(list_to_binary(Password), StateData);
+			NewStateData = StateData#statedata{password = Password},
+			request2(NewStateData);
 		{error, not_found} ->
 			response(?AccessReject, [], StateData),
 			{stop, {shutdown, SessionID}, StateData}
 	end.
 %% @hidden
-request2(<<>>, #statedata{subscriber = Subscriber,
-		session_id = SessionID} = StateData) ->
+request2(#statedata{subscriber = Subscriber, password = Password} = StateData) ->
+case existing_sessions(Subscriber) of
+	false ->
+		request3(list_to_binary(Password), StateData);
+	{true, false, [ExistingSessionAtt]} ->
+		NewStateData = StateData#statedata{multi_sessions_allowed = false},
+		case pg2:get_closest_pid(ocs_radius_acct_port_sup) of
+			{error, Reason} ->
+				request5(Reason, NewStateData);
+			DiscFsmSup ->
+				start_disconnect(DiscFsmSup, ExistingSessionAtt, NewStateData)
+		end;
+	{true, true, _ExistingSessionAtt} ->
+		NewStateData = StateData#statedata{multi_sessions_allowed = true},
+		request3(list_to_binary(Password), NewStateData);
+	{error, _Reason} ->
+		request5(not_found, StateData)
+end.
+%% @hidden
+request3(<<>>, #statedata{subscriber = Subscriber} = StateData) ->
 	case ocs:authorize(ocs:normalize(Subscriber), []) of
 		{ok, <<>>, Attributes} ->
-			response(?AccessAccept, Attributes, StateData),
-			{stop, {shutdown, SessionID}, StateData};
+			request4(?AccessAccept, Attributes, StateData);
 		{ok, Password, Attributes} ->
 			VendorSpecific = {?Mikrotik, ?MikrotikWirelessPsk, Password},
 			ResponseAttributes = radius_attributes:store(?VendorSpecific,
 					VendorSpecific, Attributes),
-			response(?AccessAccept, ResponseAttributes, StateData),
-			{stop, {shutdown, SessionID}, StateData};
+			request4(?AccessAccept, ResponseAttributes, StateData);
 		{error, Reason} ->
-			request3(Reason, StateData)
+			request5(Reason, StateData)
 	end;
-request2(Password, #statedata{subscriber = Subscriber,
-		session_id = SessionID} = StateData) ->
+request3(Password, #statedata{subscriber = Subscriber} = StateData) ->
 	case ocs:authorize(Subscriber, Password) of
 		{ok, Password, ResponseAttributes} ->
-			response(?AccessAccept, ResponseAttributes, StateData),
-			{stop, {shutdown, SessionID}, StateData};
+			request4(?AccessAccept, ResponseAttributes, StateData);
 		{error, Reason} ->
-			request3(Reason, StateData)
+			request5(Reason, StateData)
 	end.
 %% @hidden
-request3(out_of_credit, #statedata{session_id = SessionID} = StateData) ->
+request4(RadiusPacketType, ResponseAttributes, #statedata{session_id = SessionID,
+		req_attr = Attributes, subscriber = Subscriber,
+		multi_sessions_allowed = MultiSessions} = StateData) ->
+	case add_session_attributes(Subscriber, Attributes, MultiSessions) of
+		ok ->
+			response(RadiusPacketType, ResponseAttributes, StateData),
+			{stop, {shutdown, SessionID}, StateData};
+		{error, Reason} ->
+			request5(Reason, StateData)
+	end.
+%% @hidden
+request5(out_of_credit, #statedata{session_id = SessionID} = StateData) ->
 	RejectAttributes = [{?ReplyMessage, "Out of Credit"}],
 	response(?AccessReject, RejectAttributes, StateData),
 	{stop, {shutdown, SessionID}, StateData};
-request3(disabled, #statedata{session_id = SessionID} = StateData) ->
+request5(disabled, #statedata{session_id = SessionID} = StateData) ->
 	RejectAttributes = [{?ReplyMessage, "Subscriber Disabled"}],
 	response(?AccessReject, RejectAttributes, StateData),
 	{stop, {shutdown, SessionID}, StateData};
-request3(bad_password, #statedata{session_id = SessionID} = StateData) ->
+request5(bad_password, #statedata{session_id = SessionID} = StateData) ->
 	RejectAttributes = [{?ReplyMessage, "Bad Password"}],
 	response(?AccessReject, RejectAttributes, StateData),
 	{stop, {shutdown, SessionID}, StateData};
-request3(not_found, #statedata{session_id = SessionID} = StateData) ->
+request5(not_found, #statedata{session_id = SessionID} = StateData) ->
 	RejectAttributes = [{?ReplyMessage, "Unknown Username"}],
+	response(?AccessReject, RejectAttributes, StateData),
+	{stop, {shutdown, SessionID}, StateData};
+request5(_, #statedata{session_id = SessionID} = StateData) ->
+	RejectAttributes = [{?ReplyMessage, "Unable to comply"}],
 	response(?AccessReject, RejectAttributes, StateData),
 	{stop, {shutdown, SessionID}, StateData}.
 
@@ -276,8 +308,9 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 %% @see //stdlib/gen_fsm:handle_info/3
 %% @private
 %%
-handle_info(_Info, StateName, StateData) ->
-	{next_state, StateName, StateData}.
+handle_info({'EXIT', _Fsm, {shutdown, _SessionID}}, _StateName,
+		#statedata{password = Password} = StateData) ->
+	request3(list_to_binary(Password), StateData).
 
 -spec terminate(Reason, StateName, StateData) -> any()
 	when
@@ -345,4 +378,129 @@ response(RadiusCode, ResponseAttributes,
 	ok = ocs_log:auth_log(radius, {ServerAddress, ServerPort},
 			{ClientAddress, ClientPort}, Type, RequestAttributes, AttributeList2),
 	radius:response(RadiusFsm, {response, ResponsePacket}).
+
+-spec existing_sessions(Subscriber) -> Result
+	when
+		Subscriber :: string() | binary(),
+		Result :: boolean() | {boolean(), MultiSessionStatus, SessionAttributes}
+				| {error, Reason},
+		MultiSessionStatus :: boolean(),
+		SessionAttributes :: [radius_attributes:attributes()],
+		Reason :: term().
+%% @doc Checks for `Subscriber's existing sessions on OCS. Only if the
+%% `Subscriber' is authenticatable, returns
+%%  {true, `MultiSessionStatus', `SessionAttributes'}.
+%% @hidden
+existing_sessions(Subscriber) ->
+	case ocs:find_subscriber(Subscriber) of
+		{ok, #subscriber{session_attributes = []}} ->
+			false;
+		{ok, #subscriber{session_attributes = SessionAttr, enabled = true,
+				balance = Balance, multi_sessions_allowed = MultiSessionStatus}}
+				when Balance > 0 ->
+			{true, MultiSessionStatus, SessionAttr};
+		{ok, #subscriber{balance = Balance}} when Balance == 0; Balance < 0 ->
+			{error, out_of_credit};
+		{ok, #subscriber{enabled = false}} ->
+			{error, disabled};
+		{error, _Reason} ->
+			{error, not_found}
+	end.
+
+-spec add_session_attributes(Subscriber, Attributes, MultiSessionStatus) -> Result
+	when
+		Subscriber :: string() | binary(),
+		Attributes :: radius_attributes:attributes(),
+		MultiSessionStatus :: undefined | boolean(),
+		Result :: ok | {error, term()}.
+%% @doc Extract session related attributes from `Attributes' and append
+%% to `Subscriber's existing session attribute list.
+%% @hidden
+add_session_attributes(Subscriber, Attributes, MultiSessionStatus) ->
+	NewSessionAttrs = extract_session_attributes(Attributes),
+	{ok, #subscriber{session_attributes = CurrentSessionList} = S}
+			= ocs:find_subscriber(Subscriber),
+	NewRecord = case MultiSessionStatus of
+		false ->
+			S#subscriber{session_attributes = [NewSessionAttrs]};
+		_ ->
+			NewSessionList = [NewSessionAttrs | CurrentSessionList],
+			S#subscriber{session_attributes = NewSessionList}
+	end,
+	F = fun() ->
+		mnesia:write(NewRecord)
+	end,
+	case mnesia:transaction(F) of
+		{aborted, Reason} ->
+			{error, Reason};
+		{atomic, _} ->
+			ok
+	end.
+
+-spec extract_session_attributes(Attributes) -> SessionAttributes
+	when
+		Attributes :: radius_attributes:attributes(),
+		SessionAttributes :: radius_attributes:attributes().
+%% @doc Extract and return RADIUS session related attributes from
+%% `Attributes'.
+%% @hidden
+extract_session_attributes(Attributes) ->
+	F = fun({K, _}) when K == ?NasIdentifier; K == ?NasIpAddress;
+				K == ?UserName; K == ?FramedIpAddress; K == ?NasPort;
+				K == ?NasPortType; K == ?CalledStationId; K == ?CallingStationId;
+				K == ?AcctSessionId; K == ?AcctMultiSessionId; K == ?NasPortId;
+				K == ?OriginatingLineInfo; K == ?FramedInterfaceId;
+				K == ?FramedIPv6Prefix ->
+			true;
+		(_) ->
+			false
+	end,
+	lists:filter(F, Attributes).
+
+-spec start_disconnect(DiscFsmSup, ExistingSessionAtt, StateData) -> Result
+	when
+		DiscFsmSup :: pid(),
+		ExistingSessionAtt :: radius_attributes:attributes(),
+		StateData :: statedata(),
+		Result :: term().
+%% @doc Start a disconnect_fsm worker.
+start_disconnect(DiscFsmSup, ExistingSessionAtt, #statedata{client_address =
+		Address} = StateData) ->
+	try
+			F = fun(_F, [{K, V} | _T], K) ->
+						V;
+					(F, [_ | T], K) ->
+						F(F, T, K);
+					(_, [], _) ->
+						undefined
+			end,
+			NasIp= F(F, ExistingSessionAtt, ?NasIpAddress),
+			NasId = F(F, ExistingSessionAtt, ?NasIdentifier),
+			Nas = case {NasIp, NasId} of
+				{_, undefined} ->
+					NasIp;
+				_ ->
+					NasId
+			end,
+			{ok, #client{port = ListenPort, protocol = radius, secret = Secret}}
+					= ocs:find_client(Address),
+			Subscriber = F(F, ExistingSessionAtt, ?UserName),
+			AcctSessionId = F(F, ExistingSessionAtt, ?AcctSessionId),
+			DiscArgs = [Address, Nas, Subscriber, AcctSessionId, Secret,
+					ListenPort, ExistingSessionAtt, 1],
+			StartArgs = [DiscArgs, []],
+			case supervisor:start_child(DiscFsmSup, StartArgs) of
+				{ok, DiscFsm} ->
+					link(DiscFsm),
+					{next_state, request, StateData};
+				{error, Reason} ->
+					error_logger:error_report(["Failed to initiate session disconnect function",
+							{module, ?MODULE}, {subscriber, Subscriber}, {nas, NasId},
+							{address, Address}, {session, AcctSessionId}, {error, Reason}]),
+					{next_state, request, StateData}
+			end
+	catch
+		_: Reason1 ->
+			request5(Reason1, StateData)
+	end.
 

@@ -285,7 +285,7 @@ post_subscriber(RequestBody) ->
 			false ->
 				undefined
 		end,
-		case ocs:add_subscriber(IdIn, PasswordIn, Attributes, Balance, Enabled) of
+		case ocs:add_subscriber(IdIn, PasswordIn, Attributes, Balance, Enabled, false) of
 			{ok, #subscriber{name = IdOut, last_modified = LM} = S} ->
 				Id = binary_to_list(IdOut),
 				Location = "/ocs/v1/subscriber/" ++ Id,
@@ -351,7 +351,7 @@ patch_subscriber2(Id, Etag, "application/json", ReqBody, CurrPassword,
 				NewAttributes = json_to_radius(AttrJs),
 				{_, Balance} = lists:keyfind("balance", 1, Object),
 				{_, EnabledStatus} = lists:keyfind("enabled", 1, Object),
-				ocs:update_attributes(Id, Balance, NewAttributes, EnabledStatus),
+				ocs:update_attributes(Id, Balance, NewAttributes, EnabledStatus, false),
 				{CurrPassword, NewAttributes, EnabledStatus};
 			"password" ->
 				{_, NewPassword } = lists:keyfind("newpassword", 1, Object),
@@ -553,7 +553,7 @@ execute_json_patch_operations(OpList, ID, CValues) ->
 		password ->
 			ocs:update_password(ID, NPwd);
 		attributes ->
-			ocs:update_attributes(ID, NBal, NAttr, NEnabled)
+			ocs:update_attributes(ID, NBal, NAttr, NEnabled, false)
 	end,
 	{NPwd, NBal, NAttr, NEnabled}.
 

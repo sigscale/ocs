@@ -269,7 +269,7 @@ request1(?AccountingStop, AcctSessionId, Id,
 	{ok, UserName} = radius_attributes:find(?UserName, Attributes),
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, stop, Attributes),
 	Subscriber = ocs:normalize(UserName),
-	case decrement_balance(Subscriber, Usage) of
+	case update_sub_values(Subscriber, Usage, AcctSessionId, NasId, Attributes) of
 		{ok, OverUsed, false} when OverUsed =< 0 ->
 			case client_disconnect_supported(Address) of
 				true ->
@@ -353,20 +353,39 @@ response(Id, RequestAuthenticator, Secret) ->
 			authenticator = ResponseAuthenticator, attributes = []},
 	radius:codec(Response).
 
--spec decrement_balance(Subscriber :: string() | binary(),
-		Usage :: non_neg_integer()) ->
-	{ok, NewBalance :: integer(), DiscFlag :: boolean()}|
-			{error, Reason :: not_found | term()}.
+-spec update_sub_values(Subscriber, Usage, AcctSessionID, Nas, Attributes) ->
+		Result
+	when
+			Subscriber :: string() | binary(),
+			Usage :: non_neg_integer(),
+			AcctSessionID :: integer(),
+			Nas :: string() | inet:ip_address(),
+			Attributes :: radius_attributes:attributes(),
+			Result :: {ok, NewBalance, DiscFlag} | {error, Reason},
+			Reason :: term(),
+			NewBalance :: integer(),
+			DiscFlag :: boolean().
 %% @doc Decrements subscriber's current balance
-decrement_balance(Subscriber, Usage) when is_list(Subscriber) ->
-	decrement_balance(list_to_binary(Subscriber), Usage);
-decrement_balance(Subscriber, Usage) when is_binary(Subscriber),
-		Usage >= 0 ->
+update_sub_values(Subscriber, Usage, AcctSessionID, Nas, Attributes)
+		when is_list(Subscriber) ->
+	update_sub_values(list_to_binary(Subscriber), Usage, AcctSessionID, Nas,
+		Attributes);
+update_sub_values(Subscriber, Usage, AcctSessionID, Nas, Attributes)
+		when is_binary(Subscriber), Usage >= 0 ->
 	F = fun() ->
 				case mnesia:read(subscriber, Subscriber, write) of
-					[#subscriber{balance = Balance, disconnect = Flag} = Entry] ->
+					[#subscriber{balance = Balance, disconnect = Flag,
+								session_attributes = SessionList} = Entry] ->
 						NewBalance = Balance - Usage,
-						NewEntry = Entry#subscriber{balance = NewBalance},
+						NewEntry = case remove_session(SessionList, AcctSessionID, Nas,
+								Subscriber, Attributes) of
+							{ok, NewSessionList} ->
+								Entry#subscriber{balance = NewBalance,
+										session_attributes = NewSessionList};
+							{error, SessionList} ->
+								Entry#subscriber{balance = NewBalance,
+										session_attributes = SessionList}
+						end,
 						mnesia:write(subscriber, NewEntry, write),
 						{NewBalance, Flag};
 					[] ->
@@ -443,4 +462,71 @@ client_disconnect_supported(Client) ->
 			_ ->
 				true
 		end.
+
+-spec remove_session(SessionList, AcctSessionID, Nas, Subscriber, Attributes) ->
+		Result
+	when
+		SessionList :: [radius_attributes:attributes()],
+		AcctSessionID :: integer(),
+		Nas :: string() | inet:ip_address(),
+		Subscriber :: string() | binary(),
+		Attributes :: radius_attributes:attributes(),
+		Result :: {ok, NewSessionList} | {error, SessionList},
+		NewSessionList :: [] | [radius_attributes:attributes()].
+%% @doc From `SessionList' remove a session if it includes certain RADIUS
+%% session related attributes. These attributes can include Acct-Session-Id,
+%% Nas-Identifier, Nas-IP-Address, User-Name, Calling-Station-Id.
+%% @hidden
+remove_session(SessionList, AcctSessionID, Nas, Subscriber, Attributes)
+		when is_binary(Subscriber) ->
+	remove_session(SessionList, AcctSessionID, Nas, binary_to_list(Subscriber),
+			Attributes);
+remove_session(SessionList, AcctSessionID, Nas, Subscriber, Attributes) ->
+	Attributes1 = [{?AcctSessionId, AcctSessionID}],
+	Attributes2 = [{?NasIdentifier, Nas}, {?UserName, Subscriber}],
+	Attributes3 = [{?NasIpAddress, Nas}, {?UserName, Subscriber}],
+	CandidateAttributes = [Attributes1, Attributes2, Attributes3],
+	remove_session1(SessionList, CandidateAttributes, Nas, Subscriber, Attributes).
+% @hidden
+remove_session1(SessionList, [H | T], N, S, A) ->
+	case find_session(SessionList, H) of
+		not_found ->
+			remove_session1(SessionList, T, N, S, A);
+		Session ->
+			{ok, lists:delete(Session, SessionList)}
+	end;
+remove_session1(SessionList, [], N, S ,A) ->
+	error_logger:error_report(["Failed to remove current session from subscriber",
+			{subscriber, S}, {nas, N}, {attributes, A}]),
+	{error, SessionList}.
+
+
+-spec find_session(SessionList, Attributes) -> Result
+	when
+		SessionList :: [radius_attributes:attributes()],
+		Attributes :: radius_attributes:attributes(),
+		Result :: Session | not_found,
+		Session :: radius_attributes:attributes().
+%% @doc Find all the attributes in `Attributes' in any member of
+%% `SessionList'.
+%% @hidden
+find_session([H | T], Attributes) ->
+	F = fun(F, H1, [H2 | T2]) ->
+				case lists:member(H2, H1) of
+					true ->
+						F(F, H1, T2);
+					false ->
+						not_found
+				end;
+		(_, H1, []) ->
+			H1
+	end,
+	case F(F, H, Attributes) of
+		not_found ->
+			find_session(T, Attributes);
+		Session ->
+			Session
+	end;
+find_session([], _) ->
+	not_found.
 
