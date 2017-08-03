@@ -2285,20 +2285,6 @@ get_acct_last(_Query, _Filters) ->
 	{error, 400}.
 
 %% @hidden
-filter(Keys, KeyValuePairs) ->
-	filter(Keys, KeyValuePairs, []).
-%% @hidden
-filter([H | T], L, Acc) ->
-	case lists:keyfind(H, 1, L) of
-		{H, V} ->
-			filter(T, L, [{H, V} | Acc]);
-		false ->
-			filter(T, L, Acc)
-	end;
-filter([], _, Acc) ->
-	lists:reverse(Acc).
-
-%% @hidden
 query_auth(Start, End, Protocol, Types, ReqAttrs, ResAttrs, PageSize) ->
 	query_auth(start, Start, End, Protocol, Types,
 			ReqAttrs, ResAttrs, PageSize, 0, []).
