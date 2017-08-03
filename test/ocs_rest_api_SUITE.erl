@@ -1404,7 +1404,7 @@ top_up_subscriber_balance(Config) ->
 	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	AuthKey = "Basic " ++ Encodekey,
 	Authentication = {"authorization", AuthKey},
-	Identity = binary_to_list(ocs:generate_identity()),
+	Identity = ocs:generate_identity(),
 	Password = ocs:generate_password(),
 	{ok, _} = ocs:add_subscriber(Identity, Password, []),
 	RequestURI = HostUrl ++ "/balanceManagement/v1/" ++ Identity ++ "/balanceTopups",
@@ -1431,7 +1431,7 @@ get_subscriber_balance(Config) ->
 	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	AuthKey = "Basic " ++ Encodekey,
 	Authentication = {"authorization", AuthKey},
-	Identity = binary_to_list(ocs:generate_identity()),
+	Identity = ocs:generate_identity(),
 	Password = ocs:generate_password(),
 	{ok, _} = ocs:add_subscriber(Identity, Password, []),
 	POSTURI = HostUrl ++ "/balanceManagement/v1/" ++ Identity ++ "/balanceTopups",
@@ -1806,7 +1806,7 @@ update_subscriber_password_json_patch() ->
 
 update_subscriber_password_json_patch(Config) ->
 	ContentType = "application/json",
-	ID = binary_to_list(ocs:generate_identity()),
+	ID = ocs:generate_identity(),
 	Password = ocs:generate_password(),
 	AsendDataRate = {struct, [{"name", "ascendDataRate"}, {"value", 1000000}]},
 	AsendXmitRate = {struct, [{"name", "ascendXmitRate"}, {"value", 64000}]},
@@ -1890,7 +1890,7 @@ update_subscriber_attributes_json_patch() ->
 
 update_subscriber_attributes_json_patch(Config) ->
 	ContentType = "application/json",
-	ID = binary_to_list(ocs:generate_identity()),
+	ID = ocs:generate_identity(),
 	Password = ocs:generate_password(),
 	AsendDataRate = {struct, [{"name", "ascendDataRate"}, {"value", 1000000}]},
 	AsendXmitRate = {struct, [{"name", "ascendXmitRate"}, {"value", 64000}]},

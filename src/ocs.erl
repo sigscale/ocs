@@ -290,10 +290,10 @@ add_subscriber(undefined, Password, Attributes, Balance, EnabledStatus) ->
 									ok = mnesia:write(S),
 									S;
 								[_] ->
-									F(F, generate_identity(), N - 1)
+									F(F, list_to_binary(generate_identity()), N - 1)
 							end
 				end,
-				F1(F1, generate_identity(), 5)
+				F1(F1, list_to_binary(generate_identity()), 5)
 	end,
 	case mnesia:transaction(F2) of
 		{atomic, Subscriber} ->
@@ -484,8 +484,7 @@ update_attributes(Identity, Balance, Attributes, EnabledStatus)
 generate_password() ->
 	generate_password(12).
 
--type identity() :: [48..57] | binary().
--spec generate_identity() -> identity().
+-spec generate_identity() -> string().
 %% @equiv generate_identity(7)
 generate_identity() ->
 	generate_identity(7).
@@ -716,10 +715,10 @@ generate_password(<<N, Rest/binary>>, Charset, NumChars, Acc) ->
 generate_password(<<>>, _Charset, _NumChars, Acc) ->
 	Acc.
 
--spec generate_identity(Length) -> identity()
+-spec generate_identity(Length) -> string()
 	when
 		Length :: pos_integer().
-%% @doc Generate a random uniform identity.
+%% @doc Generate a random uniform numeric identity.
 %% @private
 generate_identity(Length) when Length > 0 ->
 	Charset = lists:seq($0, $9),
@@ -732,7 +731,7 @@ generate_identity(<<N, Rest/binary>>, Charset, NumChars, Acc) ->
 	NewAcc = [lists:nth(CharNum, Charset) | Acc],
 	generate_identity(Rest, Charset, NumChars, NewAcc);
 generate_identity(<<>>, _Charset, _NumChars, Acc) ->
-	list_to_binary(Acc).
+	Acc.
 
 -spec charset() -> Charset
 	when
