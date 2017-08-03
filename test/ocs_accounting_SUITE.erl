@@ -243,7 +243,7 @@ radius_multi_sessions_not_allowed(Config) ->
 	NasID2 = "vlkf@ubip.net",
 	authenticate_subscriber1(Socket, AuthAddress, AuthPort, PeerID,
 			HiddenPassword, Secret, NasID2, ReqAuth, Rad2ID1),
-	ct:sleep(2000),
+	ct:sleep(500),
 	{ok, #subscriber{multi_sessions_allowed = false, session_attributes = SessionList2}}
 			= ocs:find_subscriber(PeerID),
 	[SessionAttr2] = SessionList2,
