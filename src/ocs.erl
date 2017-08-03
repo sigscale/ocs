@@ -538,7 +538,8 @@ start(Protocol, Type, Address, Port, Options) when is_tuple(Address),
 		LastModified :: {integer(), integer()},
 		Reason :: term().
 %% @equiv add_user(Username, Password, UserData, Address, Port, Dir)
-add_user(Username, Password, UserData) ->
+add_user(Username, Password, UserData)
+			when is_list(Username), is_list(Password) ->
 	try
 		{Port, Address, Dir, _} = get_params(),
 		add_user(Username, Password, UserData, Address, Port, Dir)
@@ -558,7 +559,10 @@ add_user(Username, Password, UserData) ->
 		LastModified :: {integer(), integer()},
 		Reason :: term().
 %% @equiv add_user(Username, Password, UserData, Address, Port, Dir)
-add_user(Username, Password, UserData, Port, Dir) ->
+add_user(Username, Password, UserData, Port, Dir)
+			when is_list(Username), is_list(Password),
+			is_list(UserData), is_integer(Port),
+			is_list(Dir) ->
 	try
 		{_, Address, _, _} = get_params(),
 		add_user(Username, Password, UserData, Address, Port, Dir)
@@ -580,7 +584,9 @@ add_user(Username, Password, UserData, Port, Dir) ->
 		Reason :: term().
 %% @equiv mod_auth:add_user(Username, Password, UserData, Address,
 %% Port, Dir)
-add_user(Username, Password, UserData, Address, Port, Dir) ->
+add_user(Username, Password, UserData, Address, Port, Dir)
+			when is_list(Username), is_list(Password),
+         is_list(UserData), is_integer(Port), is_list(Dir) ->
 	LastModified = {erlang:system_time(?MILLISECOND),
 			erlang:unique_integer([positive])},
 	NewUserData = [{last_modified, LastModified} | UserData],
