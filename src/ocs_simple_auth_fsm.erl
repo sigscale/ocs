@@ -486,7 +486,7 @@ start_disconnect(DiscFsmSup, ExistingSessionAtt, #statedata{client_address =
 					= ocs:find_client(Address),
 			Subscriber = F(F, ExistingSessionAtt, ?UserName),
 			AcctSessionId = F(F, ExistingSessionAtt, ?AcctSessionId),
-			DiscArgs = [Address, NasId, Subscriber, AcctSessionId, Secret,
+			DiscArgs = [Address, Nas, Subscriber, AcctSessionId, Secret,
 					ListenPort, ExistingSessionAtt, 1],
 			StartArgs = [DiscArgs, []],
 			case supervisor:start_child(DiscFsmSup, StartArgs) of
