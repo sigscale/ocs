@@ -60,12 +60,8 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
-	Protocol = ct:get_config(protocol),
-	SharedSecret = ct:get_config(radius_shared_secret),
-	Config1 = [{radius_shared_secret, SharedSecret} | Config],
-	ok = ocs:add_client({127, 0, 0, 1}, 3799, Protocol, SharedSecret),
 	NasID = atom_to_list(node()),
-	Config2 = [{nas_id, NasID} | Config1],
+	Config1 = [{nas_id, NasID} | Config],
 	{ok, [{auth, DiaAuthInstance}, {acct, DiaAcctInstances}]} =
 			application:get_env(ocs, diameter),
 	[{AuthAddress, AuthPort, _}] = DiaAuthInstance,
@@ -80,7 +76,7 @@ init_per_suite(Config) ->
 			{ok, _Ref2} = connect(?SVC_ACCT, AcctAddress, AcctPort, diameter_tcp),
 			receive
 				#diameter_event{service = ?SVC_ACCT, info = start} ->
-					[{diameter_auth_client, AuthAddress}] ++ Config2;
+					[{diameter_auth_client, AuthAddress}] ++ Config1;
 				_ ->
 					{skip, diameter_client_acct_service_not_started}
 			end;
@@ -113,6 +109,8 @@ init_per_testcase(TestCase, Config) when
 	{ok, _} = ocs:add_subscriber(UserName, Password, [], InitialBal),
 	[{username, UserName}, {password, Password}, {init_bal, InitialBal}] ++ Config;
 init_per_testcase(_TestCase, Config) ->
+	SharedSecret = ct:get_config(radius_shared_secret),
+	ok = ocs:add_client({127, 0, 0, 1}, 3799, radius, SharedSecret),
 	Config.
 
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
