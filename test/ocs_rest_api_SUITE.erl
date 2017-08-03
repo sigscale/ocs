@@ -77,11 +77,9 @@ init_per_suite(Config) ->
 	{Host, Port} = case Fport(Fport, Services) of
 		{{_, H2}, {_, P2}} when H2 == "localhost"; H2 == {127,0,0,1} ->
 			{ok, _} = ocs:add_user(RestUser, RestPass, [], {127,0,0,1}, P2, "/"),
-			true = ocs:add_group_member(RestUser),
 			{"localhost", P2};
 		{{_, H2}, {_, P2}} ->
 			{ok, _} = ocs:add_user(RestUser, RestPass, [], H2, P2, "/"),
-			true = ocs:add_group_member(RestUser),
 			case H2 of
 				H2 when is_tuple(H2) ->
 					{inet:ntoa(H2), P2};
@@ -90,7 +88,6 @@ init_per_suite(Config) ->
 			end;
 		{false, {_, P2}} ->
 			{ok, _} = ocs:add_user(RestUser, RestPass, [], P2, "/"),
-			true = ocs:add_group_member(RestUser),
 			{"localhost", P2}
 	end,
 	Config1 = [{port, Port} | Config],

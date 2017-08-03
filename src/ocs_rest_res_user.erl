@@ -148,19 +148,16 @@ post_user(RequestBody) ->
 		Locale = F2(F2, Characteristic),
 		case ocs:add_user(ID, Password, [{locale, Locale}]) of
 			{ok, LastModified} ->
-				case ocs:add_group_member(ID) of
-					true ->
-						Location = "/partyManagement/v1/individual/" ++ ID,
-						IDAttr = {struct, [{"name", "username"}, {"value", ID}]},
-						PWDAttr = {struct, [{"name", "password"}, {"value", Password}]},
-						LocaleAttr = {struct, [{"name", "locale"}, {"value", Locale}]},
-						Char = {array, [IDAttr, PWDAttr, LocaleAttr]},
-						RespObj = [{"id", ID}, {"href", Location}, {"characteristic", Char}],
-						JsonObj  = {struct, RespObj},
-						Body = mochijson:encode(JsonObj),
-						Headers = [{location, Location}, {etag, etag(LastModified)}],
-						{ok, Headers, Body}
-				end;
+				Location = "/partyManagement/v1/individual/" ++ ID,
+				IDAttr = {struct, [{"name", "username"}, {"value", ID}]},
+				PWDAttr = {struct, [{"name", "password"}, {"value", Password}]},
+				LocaleAttr = {struct, [{"name", "locale"}, {"value", Locale}]},
+				Char = {array, [IDAttr, PWDAttr, LocaleAttr]},
+				RespObj = [{"id", ID}, {"href", Location}, {"characteristic", Char}],
+				JsonObj  = {struct, RespObj},
+				Body = mochijson:encode(JsonObj),
+				Headers = [{location, Location}, {etag, etag(LastModified)}],
+				{ok, Headers, Body};
 			{error, _Reason} ->
 				{error, 400}
 		end

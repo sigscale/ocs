@@ -26,9 +26,8 @@
 -export([add_subscriber/3, add_subscriber/4, add_subscriber/5,
 		find_subscriber/1, delete_subscriber/1, update_password/2,
 		update_attributes/2, update_attributes/4, get_subscribers/0]).
--export([add_user/3, add_user/5, add_user/6, add_group_member/1,
-		add_group_member/4, list_users/0, get_user/1, get_user/3, get_user/4,
-		delete_user/1]).
+-export([add_user/3, add_user/5, add_user/6, list_users/0,
+		get_user/1, get_user/3, get_user/4, delete_user/1]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
@@ -531,13 +530,8 @@ start(Protocol, Type, Address, Port, Options) when is_tuple(Address),
 %% @equiv add_user(Username, Password, UserData, Address, Port, Dir)
 add_user(Username, Password, UserData)
 			when is_list(Username), is_list(Password) ->
-	try
-		{Port, Address, Dir, _} = get_params(),
-		add_user(Username, Password, UserData, Address, Port, Dir)
-	catch
-		_: Reason ->
-			{error, Reason}
-	end.
+	{Port, Address, Dir, _} = get_params(),
+	add_user(Username, Password, UserData, Address, Port, Dir).
 
 -spec add_user(Username, Password, UserData, Port, Dir) -> Result
 	when
@@ -554,13 +548,8 @@ add_user(Username, Password, UserData, Port, Dir)
 			when is_list(Username), is_list(Password),
 			is_list(UserData), is_integer(Port),
 			is_list(Dir) ->
-	try
-		{_, Address, _, _} = get_params(),
-		add_user(Username, Password, UserData, Address, Port, Dir)
-	catch
-		_: Reason ->
-			{error, Reason}
-	end.
+	{_, Address, _, _} = get_params(),
+	add_user(Username, Password, UserData, Address, Port, Dir).
 
 -spec add_user(Username, Password, UserData, Address, Port, Dir) -> Result
 	when
@@ -581,44 +570,18 @@ add_user(Username, Password, UserData, Address, Port, Dir)
 	LastModified = {erlang:system_time(?MILLISECOND),
 			erlang:unique_integer([positive])},
 	NewUserData = [{last_modified, LastModified} | UserData],
-	case mod_auth:add_user(Username, Password, NewUserData, Address,
-			Port, Dir) of
+	case mod_auth:add_user(Username, Password,
+			NewUserData, Address, Port, Dir) of
 		true ->
-			{ok, LastModified};
+			{_, _, _, Group} = get_params(),
+			case mod_auth:add_group_member(Group, Username,
+					Address, Port, Dir) of
+				true ->
+					{ok, LastModified};
+				{error, Reason} ->
+					{error, Reason}
+			end;
 		{error, Reason} ->
-			{error, Reason}
-	end.
-
--spec add_group_member(Username) -> Result
-	when
-		Username :: string(),
-		Result ::true | {error, Reason},
-		Reason :: term().
-%% @equiv mod_auth:add_group_member(GroupName, Username, Address, Port, Dir)
-add_group_member(Username) ->
-	try
-		{Port, Address, Dir, GroupName} = get_params(),
-		mod_auth:add_group_member(GroupName, Username, Address, Port, Dir)
-	catch
-		_: Reason ->
-			{error, Reason}
-	end.
-
--spec add_group_member(GroupName, Username, Port, Dir) -> Result
-	when
-		GroupName :: string(),
-		Username :: string(),
-		Port :: inet:port_number(),
-		Dir :: string(),
-		Result ::true | {error, Reason},
-		Reason :: term().
-%% @equiv mod_auth:add_group_member(GroupName, Username, Address, Port, Dir)
-add_group_member(GroupName, Username, Port, Dir) ->
-	try
-		{_, Address, _, _} = get_params(),
-		mod_auth:add_group_member(GroupName, Username, Address, Port, Dir)
-	catch
-		_: Reason ->
 			{error, Reason}
 	end.
 
@@ -629,13 +592,8 @@ add_group_member(GroupName, Username, Port, Dir) ->
 		Reason :: term().
 %% @equiv  mod_auth:list_users(Address, Port, Dir)
 list_users() ->
-	try
-		{Port, Address, Dir, _} = get_params(),
-		mod_auth:list_users(Address, Port, Dir)
-	catch
-		_: Reason ->
-			{error, Reason}
-	end.
+	{Port, Address, Dir, _} = get_params(),
+	mod_auth:list_users(Address, Port, Dir).
 
 -spec get_user(Username) -> Result
 	when
@@ -643,15 +601,11 @@ list_users() ->
 		Result :: {ok, User} | {error, Reason},
 		User :: #httpd_user{},
 		Reason :: term().
+%% @doc Get a user record.
 %% @equiv get_user(Username, Address, Port, Dir)
 get_user(Username) ->
-	try
-		{Port, Address, Dir, _GroupName} = get_params(),
-		get_user(Username, Address, Port, Dir)
-	catch
-		_: Reason ->
-			{error, Reason}
-	end.
+	{Port, Address, Dir, _GroupName} = get_params(),
+	get_user(Username, Address, Port, Dir).
 
 -spec get_user(Username, Port, Dir) -> Result
 	when
@@ -661,6 +615,7 @@ get_user(Username) ->
 		Result :: {ok, User} | {error, Reason},
 		User :: #httpd_user{},
 		Reason :: term().
+%% @doc Get a user record.
 %% @equiv mod_auth:get_user(Username, Port, Dir)
 get_user(Username, Port, Dir) ->
 	mod_auth:get_user(Username, Port, Dir).
@@ -674,6 +629,7 @@ get_user(Username, Port, Dir) ->
 		Result :: {ok, User} | {error, Reason},
 		User :: #httpd_user{},
 		Reason :: term().
+%% @doc Get a user record.
 %% @equiv mod_auth:get_user(Username, Address, Port, Dir)
 get_user(Username, Address, Port, Dir) ->
 	mod_auth:get_user(Username, Address, Port, Dir).
@@ -683,13 +639,13 @@ get_user(Username, Address, Port, Dir) ->
 		Username :: string(),
 		Result :: true | {error, Reason},
 		Reason :: term().
-%% @equiv mod_auth:delete_user(Username, Address, Port, Dir)
+%% @doc Delete an existing user.
 delete_user(Username) ->
-	try
-		{Port, Address, Dir, _GroupName} = get_params(),
-		mod_auth:delete_user(Username, Address, Port, Dir)
-	catch
-		_: Reason ->
+	{Port, Address, Dir, GroupName} = get_params(),
+	case mod_auth:delete_user(Username, Address, Port, Dir) of
+		true ->
+			mod_auth:delete_group_member(GroupName, Username, Address, Port, Dir);
+		{error, Reason} ->
 			{error, Reason}
 	end.
 
