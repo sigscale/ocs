@@ -558,7 +558,6 @@ fill_acct(N) ->
 	I3 = rand:uniform(256) - 1,
 	I4 = rand:uniform(254),
 	ClientAddress = {192, 168, I3, I4},
-	Client = {ClientAddress, rand:uniform(64512) + 1024},
 	NASn = integer_to_list((I3 bsl 8) + I4),
 	NasIdentifier = "ap-" ++ NASn ++ ".sigscale.net",
 	Type = case rand:uniform(3) of
