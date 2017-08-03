@@ -99,47 +99,45 @@
 		</iron-ajax>
 	</template>
 	<script>
-		Polymer (
-			{
-				is: 'sig-user-add',
-				behaviors: [i18nMsgBehavior],
-				 _userFormSubmit: function(event) {
-					var user = new Object();
-					user.id = document.getElementById("add-user1").value;
-					var username = new Object();
-					username.name = "username";
-					username.value = document.getElementById("add-user1").value;
-					var password = new Object();
-					password.name = "password";
-					password.value = document.getElementById("add-user2").value;
-					var language = new Object();
-					language.name = "locale";
-					if (document.getElementById("add-userLocale").selected == 0) {
-						language.value = "en";
-					} else if (document.getElementById("add-userLocale").selected == 1) {
-						language.value = "es";
-					}
-					var characteristic = new Array();
-					characteristic[0] = username;
-					characteristic[1] = password;
-					characteristic[2] = language;
-					user.characteristic = characteristic;
-					var ajax = document.getElementById("AddUserAjax");
-					ajax.body = user;
-					ajax.generateRequest();
-				},
-				 _userFormResponse: function(event) {
-					document.getElementById("AddUserModal").close();
-					document.getElementById("getUser").generateRequest();
-				},
-				_onLoadingChanged: function(event) {
-					if (document.getElementById("AddUserAjax").loading) {
-						document.getElementById("progress").disabled = false;
-					} else {
-						document.getElementById("progress").disabled = true;
-					}
+		Polymer ({
+			is: 'sig-user-add',
+			behaviors: [i18nMsgBehavior],
+			 _userFormSubmit: function(event) {
+				var user = new Object();
+				user.id = document.getElementById("add-user1").value;
+				var username = new Object();
+				username.name = "username";
+				username.value = document.getElementById("add-user1").value;
+				var password = new Object();
+				password.name = "password";
+				password.value = document.getElementById("add-user2").value;
+				var language = new Object();
+				language.name = "locale";
+				if (document.getElementById("add-userLocale").selected == 0) {
+					language.value = "en";
+				} else if (document.getElementById("add-userLocale").selected == 1) {
+					language.value = "es";
+				}
+				var characteristic = new Array();
+				characteristic[0] = username;
+				characteristic[1] = password;
+				characteristic[2] = language;
+				user.characteristic = characteristic;
+				var ajax = document.getElementById("AddUserAjax");
+				ajax.body = user;
+				ajax.generateRequest();
+			},
+			 _userFormResponse: function(event) {
+				document.getElementById("AddUserModal").close();
+				document.getElementById("getUser").generateRequest();
+			},
+			_onLoadingChanged: function(event) {
+				if (document.getElementById("AddUserAjax").loading) {
+					document.getElementById("progress").disabled = false;
+				} else {
+					document.getElementById("progress").disabled = true;
 				}
 			}
-		);
+		});
 	</script>
 </dom-module>

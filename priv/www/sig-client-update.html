@@ -199,71 +199,69 @@
 		</iron-ajax>
 	</template>
 	<script>
-		Polymer (
-			{
-				is: 'sig-client-update',
-				behaviors: [i18nMsgBehavior],
-				properties: {
-					selected: {
-						type: Number,
-						value: 0
-					}
-				},
-				updateClientAuthen: function(event) {
-					var editAjax =  document.getElementById("updateClientAuthen");
-					editAjax.method = "PATCH";
-					editAjax.contentType = "application/json";
-					var id = document.getElementById("edit-client-id1").value;
-					editAjax.url = "/ocs/v1/client/" + id;
-					var client = new Object();
-					client.secret = document.getElementById("edit-client-new-pwd").value;
-					editAjax.body = client;
-					editAjax.generateRequest();
-				},
-				updateClientAuthenResponse: function (event) {
-					if (event.detail.succeeded) {
-						document.getElementById("edit-toast").open();
-						document.getElementById("edit-client-new-pwd").value = "";
-						document.getElementById("getClients").generateRequest();
-					} else {
-						console.log("Not Success");
-					}
-				},
-				_updateClientProperties: function(event) {
-					var editAjax =  document.getElementById("updateClientProperties");
-					editAjax.method = "PATCH";
-					editAjax.contentType = "application/json";
-					var id = document.getElementById("edit-client-id2").value;
-					editAjax.url = "/ocs/v1/client/" + id;
-					var client = new Object();
-					client.port = parseInt(document.getElementById("edit-client-disc-port").value);
-					client.protocol = document.getElementById("edit-client-protocol").value;
-					editAjax.body = client;
-					editAjax.generateRequest();
-				},
-				updateClientPropertiesResponse: function (event) {
-					if(event.detail.succeeded) {
-						document.getElementById("edit-toast").open();
-						document.getElementById("edit-client-new-pwd").value = "";
-						document.getElementById("getClients").generateRequest();
-					} else {
-						console.log("Not Success");
-					}
-				},
-				deleteClient: function(event) {
-					var grid = document.getElementById("clientGrid");
-					var selection = grid.selectedItems[0];
-					var deleteAjax = document.getElementById("deleteClient");
-					deleteAjax.method = "DELETE";
-					deleteAjax.url = "/ocs/v1/client/"+ selection.id;
-					deleteAjax.generateRequest();
-				},
-				deleteClientResponse: function(event) {
-					document.getElementById("clientUpdateModal").close();
-					document.getElementById("delete-toast").open();
-					document.getElementById("getClients").generateRequest();
+		Polymer ({
+			is: 'sig-client-update',
+			behaviors: [i18nMsgBehavior],
+			properties: {
+				selected: {
+					type: Number,
+					value: 0
 				}
+			},
+			updateClientAuthen: function(event) {
+				var editAjax =  document.getElementById("updateClientAuthen");
+				editAjax.method = "PATCH";
+				editAjax.contentType = "application/json";
+				var id = document.getElementById("edit-client-id1").value;
+				editAjax.url = "/ocs/v1/client/" + id;
+				var client = new Object();
+				client.secret = document.getElementById("edit-client-new-pwd").value;
+				editAjax.body = client;
+				editAjax.generateRequest();
+			},
+			updateClientAuthenResponse: function (event) {
+				if (event.detail.succeeded) {
+					document.getElementById("edit-toast").open();
+					document.getElementById("edit-client-new-pwd").value = "";
+					document.getElementById("getClients").generateRequest();
+				} else {
+					console.log("Not Success");
+				}
+			},
+			_updateClientProperties: function(event) {
+				var editAjax =  document.getElementById("updateClientProperties");
+				editAjax.method = "PATCH";
+				editAjax.contentType = "application/json";
+				var id = document.getElementById("edit-client-id2").value;
+				editAjax.url = "/ocs/v1/client/" + id;
+				var client = new Object();
+				client.port = parseInt(document.getElementById("edit-client-disc-port").value);
+				client.protocol = document.getElementById("edit-client-protocol").value;
+				editAjax.body = client;
+				editAjax.generateRequest();
+			},
+			updateClientPropertiesResponse: function (event) {
+				if(event.detail.succeeded) {
+					document.getElementById("edit-toast").open();
+					document.getElementById("edit-client-new-pwd").value = "";
+					document.getElementById("getClients").generateRequest();
+				} else {
+					console.log("Not Success");
+				}
+			},
+			deleteClient: function(event) {
+				var grid = document.getElementById("clientGrid");
+				var selection = grid.selectedItems[0];
+				var deleteAjax = document.getElementById("deleteClient");
+				deleteAjax.method = "DELETE";
+				deleteAjax.url = "/ocs/v1/client/"+ selection.id;
+				deleteAjax.generateRequest();
+			},
+			deleteClientResponse: function(event) {
+				document.getElementById("clientUpdateModal").close();
+				document.getElementById("delete-toast").open();
+				document.getElementById("getClients").generateRequest();
 			}
-		);
+		});
 	</script>
 </dom-module>

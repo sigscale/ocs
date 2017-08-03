@@ -126,8 +126,7 @@
 	</template>
 	<script>
 		addEventListener('WebComponentsReady', function() {
-		Polymer (
-			{
+			Polymer ({
 				is: 'sig-client-list',
 				behaviors: [i18nMsgBehavior],
 				properties: {
@@ -156,7 +155,7 @@
 					];
 					grid.dataProvider = function(params, callback) {
 						var ajax = document.getElementById("getClients");
-						callBack = callback;
+						cbClient = callback;
 						ajax.url="/ocs/v1/client"
 						params.filters.forEach(function(filter, index) {
 							if(index == 0) {
@@ -217,14 +216,13 @@
 						newRecord.protocol = results[index].protocol;
 						vaadinItems[index] = newRecord;
 					}
-					callBack(vaadinItems);
+					cbClient(vaadinItems);
 				},
 				showAddModal: function(event) {
 					var modal = document.getElementById("clientAddModal");
 					modal.open();
-				},
-			}
-		);
+				}
+			});
 		});
 	</script>
 </dom-module>

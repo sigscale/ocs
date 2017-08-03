@@ -122,65 +122,63 @@
 		</iron-ajax>
 	</template>
 	<script>
-		Polymer (
-			{
-				is: 'sig-user-update',
-				behaviors: [i18nMsgBehavior],
-				UpdateUser: function(event) {
-					var id = document.getElementById("update-user1").value;
-					var editAjax = document.getElementById("UpdateUser");
-					editAjax.url = "/partyManagement/v1/individual/" + id;
-					var patch = new Array();
-					var grid = document.getElementById("UserGrid");
-					var language;
-					if (document.getElementById("add-userLo").selected == 0) {
-						language = "en";
-					} else if (document.getElementById("add-userLo").selected == 1) {
-						language = "es";
-					}
-					var characteristic = grid.selectedItems[0].characteristic;
-					for (i = 0; i < characteristic.length; i++) {
-						if (characteristic[i].name == "locale") {
-							if (characteristic[i].value != language) {
-								op0 = new Object();
-								op0.op = "replace";
-								op0.path = "/characteristic/" + i.toString();
-								op0.value = new Object();
-								op0.value.name = "locale";
-								op0.value.value = language;
-								patch.push(op0);
-							}
+		Polymer ({
+			is: 'sig-user-update',
+			behaviors: [i18nMsgBehavior],
+			UpdateUser: function(event) {
+				var id = document.getElementById("update-user1").value;
+				var editAjax = document.getElementById("UpdateUser");
+				editAjax.url = "/partyManagement/v1/individual/" + id;
+				var patch = new Array();
+				var grid = document.getElementById("UserGrid");
+				var language;
+				if (document.getElementById("add-userLo").selected == 0) {
+					language = "en";
+				} else if (document.getElementById("add-userLo").selected == 1) {
+					language = "es";
+				}
+				var characteristic = grid.selectedItems[0].characteristic;
+				for (i = 0; i < characteristic.length; i++) {
+					if (characteristic[i].name == "locale") {
+						if (characteristic[i].value != language) {
+							op0 = new Object();
+							op0.op = "replace";
+							op0.path = "/characteristic/" + i.toString();
+							op0.value = new Object();
+							op0.value.name = "locale";
+							op0.value.value = language;
+							patch.push(op0);
 						}
 					}
-					if (document.getElementById("update-user2").value) {
-						op1 = new Object();
-						op1.op = "add";
-						op1.path = "/characteristic/-";
-						op1.value = new Object();
-						op1.value.name = "password";
-						op1.value.value = document.getElementById("update-user2").value;
-						patch.push(op1);
-					}
-					editAjax.body = JSON.stringify(patch);
-					editAjax.generateRequest();
-				},
-				_userUpdateResponse: function(event) {
-					document.getElementById("UpdateUserModal").close();
-					document.getElementById("getUser").generateRequest();
-				},
-				deleteUser: function(event) {
-					var grid = document.getElementById("UserGrid");
-					var selection = grid.selectedItems[0];
-					var deleteAjax = document.getElementById("deleteUser");
-					deleteAjax.method = "DELETE";
-					deleteAjax.url = "/partyManagement/v1/individual/"+ selection.id;
-					deleteAjax.generateRequest();
-				},
-				deleteUserResponse: function(event) {
-					document.getElementById("UpdateUserModal").close();
-					document.getElementById("getUser").generateRequest();
 				}
+				if (document.getElementById("update-user2").value) {
+					op1 = new Object();
+					op1.op = "add";
+					op1.path = "/characteristic/-";
+					op1.value = new Object();
+					op1.value.name = "password";
+					op1.value.value = document.getElementById("update-user2").value;
+					patch.push(op1);
+				}
+				editAjax.body = JSON.stringify(patch);
+				editAjax.generateRequest();
+			},
+			_userUpdateResponse: function(event) {
+				document.getElementById("UpdateUserModal").close();
+				document.getElementById("getUser").generateRequest();
+			},
+			deleteUser: function(event) {
+				var grid = document.getElementById("UserGrid");
+				var selection = grid.selectedItems[0];
+				var deleteAjax = document.getElementById("deleteUser");
+				deleteAjax.method = "DELETE";
+				deleteAjax.url = "/partyManagement/v1/individual/"+ selection.id;
+				deleteAjax.generateRequest();
+			},
+			deleteUserResponse: function(event) {
+				document.getElementById("UpdateUserModal").close();
+				document.getElementById("getUser").generateRequest();
 			}
-		);
+		});
 	</script>
 </dom-module>

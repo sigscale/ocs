@@ -21,7 +21,7 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
-		get_subscriber/0, get_subscriber/1, post_subscriber/1,
+		get_subscribers/1, get_subscriber/2, post_subscriber/1,
 		patch_subscriber/4, delete_subscriber/1]).
 
 -include_lib("radius/include/radius.hrl").
@@ -41,60 +41,209 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json"].
 
--spec get_subscriber(Id) -> Result
+-spec get_subscriber(Id, Query) -> Result
 	when
 		Id :: string(),
+		Query :: [{Key :: string(), Value :: string()}],
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/subscriber/{id}'
 %% requests.
-get_subscriber(Id) ->
+get_subscriber(Id, Query) ->
+	case lists:keytake("fields", 1, Query) of
+		{value, {_, L}, NewQuery} ->
+			get_subscriber(Id, NewQuery, string:tokens(L, ","));
+		false ->
+			get_subscriber(Id, Query, [])
+	end.
+%% @hidden
+get_subscriber(Id, [] = _Query, Filters) ->
+	get_subscriber1(Id, Filters);
+get_subscriber(_Id, _Query, _Filters) ->
+	{error, 400}.
+%% @hidden
+get_subscriber1(Id, Filters) ->
 	case ocs:find_subscriber(Id) of
 		{ok, #subscriber{password = PWBin, attributes = Attributes,
 				balance = Balance, enabled = Enabled, last_modified = LM}} ->
 			Etag = etag(LM),
+			Att = radius_to_json(Attributes),
+			Att1 = {array, Att},
 			Password = binary_to_list(PWBin),
-			JSAttributes = radius_to_json(Attributes),
-			AttrObj = {array, JSAttributes},
-			RespObj = [{id, Id}, {href, "/ocs/v1/subscriber/" ++ Id},
-				{password, Password}, {attributes, AttrObj}, {balance, Balance},
-				{enabled, Enabled}],
-			JsonObj  = {struct, RespObj},
+			RespObj1 = [{"id", Id}, {"href", "/ocs/v1/subscriber/" ++ Id}],
+			RespObj2 = [{"attributes", Att1}],
+			RespObj3 = case Id == <<>> orelse Filters == []
+				andalso not lists:keymember("id", 1, Filters) of
+					true ->
+						[];
+					false ->
+						[{"id", Id}]
+				end,
+			RespObj4 = case Filters == []
+				orelse lists:keymember("password", 1, Filters) of
+					true ->
+						[{"password", Password}];
+					false ->
+						[]
+				end,
+			RespObj5 = case Filters == []
+				orelse lists:keymember("balance", 1, Filters) of
+					true ->
+						[{"balance", Balance}];
+					false ->
+						[]
+				end,
+			RespObj6 = case Filters == []
+				orelse lists:keymember("enabled", 1, Filters) of
+					true ->
+						[{"enabled", Enabled}];
+					false ->
+						[]
+				end,
+			JsonObj  = {struct, RespObj1 ++ RespObj2 ++ RespObj3
+					++ RespObj4 ++ RespObj5 ++ RespObj6},
 			Body = mochijson:encode(JsonObj),
 			Headers = [{content_type, "application/json"}, {etag, Etag}],
 			{ok, Headers, Body};
-		{error, _Reason} ->
+		{error, not_found} ->
 			{error, 404}
 	end.
 
--spec get_subscriber() -> Result
+-spec get_subscribers(Query) -> Result
 	when
+		Query :: [{Key :: string(), Value :: string()}],
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/subscriber'
 %% requests.
-get_subscriber() ->
+get_subscribers(Query) ->
 	case ocs:get_subscribers() of
 		{error, _} ->
 			{error, 404};
 		Subscribers ->
-			get_subscriber1(Subscribers)
+			case lists:keytake("fields", 1, Query) of
+				{value, {_, L}, NewQuery} ->
+					get_subscribers(Subscribers, NewQuery, string:tokens(L, ","));
+				false ->
+					get_subscribers(Subscribers, Query, [])
+			end
 	end.
 %% @hidden
-get_subscriber1(Subscribers) ->
-	F = fun(#subscriber{name = Id, password = Password,
-			attributes = Attributes, balance = Balance, enabled = Enabled}, Acc) ->
-		JSAttributes = radius_to_json(Attributes),
-		AttrObj = {array, JSAttributes},
-		RespObj = [{struct, [{id, Id}, {href, "/ocs/v1/subscriber/" ++ binary_to_list(Id)},
-			{password, Password}, {attributes, AttrObj}, {balance, Balance},
-			{enabled, Enabled}]}],
-		[RespObj | Acc]
+get_subscribers(Subscribers, Query, Filters) ->
+	try
+		case lists:keytake("sort", 1, Query) of
+			{value, {_, "id"}, NewQuery} ->
+				{lists:keysort(#subscriber.name, Subscribers), NewQuery};
+			{value, {_, "-id"}, NewQuery} ->
+				{lists:reverse(lists:keysort(#subscriber.name, Subscribers)), NewQuery};
+			{value, {_, "password"}, NewQuery} ->
+				{lists:keysort(#subscriber.password, Subscribers), NewQuery};
+			{value, {_, "-password"}, NewQuery} ->
+				{lists:reverse(lists:keysort(#subscriber.password, Subscribers)), NewQuery};
+			{value, {_, "balance"}, NewQuery} ->
+				{lists:keysort(#subscriber.balance, Subscribers), NewQuery};
+			{value, {_, "-balance"}, NewQuery} ->
+				{lists:reverse(lists:keysort(#subscriber.balance, Subscribers)), NewQuery};
+			{value, {_, "enabled"}, NewQuery} ->
+				{lists:keysort(#subscriber.enabled, Subscribers), NewQuery};
+			{value, {_, "-enabled"}, NewQuery} ->
+				{lists:reverse(lists:keysort(#subscriber.enabled, Subscribers)), NewQuery};
+			false ->
+				{Subscribers, Query};
+			_ ->
+				throw(400)
+		end
+	of
+		{SortedSubscribers, NextQuery} ->
+			get_subscribers1(SortedSubscribers, NextQuery, Filters)
+	catch
+		throw:400 ->
+			{error, 400}
+	end.
+%% @hidden
+get_subscribers1(Subscribers, Query, Filters) ->
+	{Id, Query1} = case lists:keytake("id", 1, Query) of
+		{value, {_, V1}, Q1} ->
+			{V1, Q1};
+		false ->
+			{[], Query}
 	end,
-	JsonObj = lists:flatten(lists:foldl(F, [], Subscribers)),
-	Body  = mochijson:encode({array, lists:reverse(JsonObj)}),
-	Headers = [{content_type, "application/json"}],
-	{ok, Headers, Body}.
+	{Password, Query2} = case lists:keytake("password", 1, Query1) of
+		{value, {_, V2}, Q2} ->
+			{V2, Q2};
+		false ->
+			{[], Query1}
+	end,
+	{Balance, Query3} = case lists:keytake("balance", 1, Query2) of
+		{value, {_, V3}, Q3} ->
+			{V3, Q3};
+		false ->
+			{[], Query2}
+	end,
+	{Enabled, Query4} = case lists:keytake("enabled", 1, Query3) of
+		{value, {_, V4}, Q4} ->
+			{V4, Q4};
+		false ->
+			{[], Query3}
+	end,
+	get_subscribers2(Subscribers, Id, Password, Balance, Enabled, Query4, Filters).
+%% @hidden
+get_subscribers2(Subscribers, Id, Password, Balance, Enabled, [] = _Query, Filters) ->
+	F = fun(#subscriber{name = Na, password = Pa,
+			attributes = Attributes, balance = Ba, enabled = Ena}) ->
+		Nalist = binary_to_list(Na),
+		T1 = lists:prefix(Id, Nalist),
+		Palist = binary_to_list(Pa),
+		T2 = lists:prefix(Password, Palist),
+		Att = radius_to_json(Attributes),
+		Att1 = {array, Att},
+		Balist = integer_to_list(Ba),
+		T3 = lists:prefix(Balance, Balist),
+		T4 = lists:prefix(Enabled, [Ena]),
+		if
+			T1 and T2 and T3 and T4 ->
+				RespObj1 = [{"id", Nalist}, {"href", "/ocs/v1/subscriber/" ++ Nalist}],
+				RespObj2 = [{"attributes", Att1}],
+				RespObj3 = case Filters == []
+						orelse lists:keymember("password", 1, Filters) of
+					true ->
+						[{"password", Palist}];
+					false ->
+						[]
+				end,
+				RespObj4 = case Filters == []
+						orelse lists:keymember("balance", 1, Filters) of
+					true ->
+						[{"balance", Ba}];
+					false ->
+						[]
+				end,
+				RespObj5 = case Filters == []
+						orelse lists:keymember("enabled", 1, Filters) of
+					true ->
+						[{"enabled", Ena}];
+					false ->
+						[]
+				end,
+				{true, {struct, RespObj1 ++ RespObj2 ++ RespObj3
+							++ RespObj4 ++ RespObj5}};
+			true ->
+				false
+		end
+	end,
+	try
+		JsonObj = lists:filtermap(F, Subscribers),
+		Size = integer_to_list(length(JsonObj)),
+		ContentRange = "item 1-" ++ Size ++ "/" ++ Size,
+		Body  = mochijson:encode({array, lists:reverse(JsonObj)}),
+		{ok, [{content_type, "application/json"},
+				{content_range, ContentRange}], Body}
+	catch
+		_:_Reason ->
+			{error, 500}
+	end;
+get_subscribers2(_, _, _, _, _, _, _) ->
+	{error, 400}.
 
 -spec post_subscriber(RequestBody) -> Result 
 	when 
