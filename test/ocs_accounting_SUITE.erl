@@ -341,7 +341,6 @@ radius_multi_sessions_allowed(_Config) ->
 	ok = F2(F2, SessionList4, [{?UserName, PeerID}, {?NasIdentifier, NasID1}]),
 	ok = F2(F2, SessionList4, [{?UserName, PeerID}, {?NasIdentifier, NasID3}]).
 
-
 diameter_accounting() ->
 	[{userdata, [{doc, "Initiate and terminate a DIAMETER accouting session"}]}].
 
