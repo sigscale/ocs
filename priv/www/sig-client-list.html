@@ -121,6 +121,7 @@
 				id="getClients"
 				url="/ocs/v1/client"
 				headers='{"Accept": "application/json"}'
+				auto="false"
 				on-response="getClientsResponse">
 		</iron-ajax>
 	</template>
@@ -206,6 +207,7 @@
 					} else {
 						grid.size = results.length;
 					}
+					grid.pageSize = grid.size;
 					var vaadinItems = new Array();
 					for (var index in results) {
 						var newRecord = new Object();
