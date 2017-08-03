@@ -25,6 +25,7 @@
 		update_client/3, get_clients/0, delete_client/1]).
 -export([add_subscriber/3, add_subscriber/4, add_subscriber/6,
 		find_subscriber/1, delete_subscriber/1, update_password/2,
+		update_attributes/2, update_attributes/4, get_subscribers/0]).
 -export([add_user/3, add_user/5, add_user/6, list_users/0,
 		get_user/1, get_user/3, get_user/4, delete_user/1]).
 -export([generate_password/0, generate_identity/0]).
