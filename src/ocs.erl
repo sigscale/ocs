@@ -526,15 +526,22 @@ start(Protocol, Type, Address, Port, Options) when is_tuple(Address),
 		is_integer(Port), is_list(Options) ->
 		gen_server:call(ocs, {start, Protocol, Type, Address, Port, Options}).
 
--spec add_user(Username, Password, Language) -> Result
+-spec add_user(Username, Password, Locale) -> Result
 	when
 		Username :: string(),
 		Password :: string(),
-		Language :: string(),
+		Locale :: string(),
 		Result :: {ok, LastModified} | {error, Reason},
 		LastModified :: {integer(), integer()},
 		Reason :: term().
-%% @doc Adds a user with `Username', `Password' and locale set to `Language'
+%% @doc Add an HTTP user.
+%% 	HTTP Basic authentication (RFC7617) is required with
+%% 	`Username' and  `Password' used to construct the
+%% 	`Authorization' header in requests.
+%%
+%% 	`Locale' is used to set the language for text in the web UI.
+%% 	For English use `"en"', for Spanish use `"es'"..
+%%
 add_user(Username, Password, Language) when is_list(Username),
 		is_list(Password), is_list(Language) ->
 	{Port, Address, Dir, _} = get_params(),
@@ -561,6 +568,7 @@ add_user(Username, Password, Language) when is_list(Username),
 		Result :: {ok, Users} | {error, Reason},
 		Users :: list(),
 		Reason :: term().
+%% @doc List HTTP users.
 %% @equiv  mod_auth:list_users(Address, Port, Dir)
 list_users() ->
 	{Port, Address, Dir, _} = get_params(),
@@ -572,7 +580,7 @@ list_users() ->
 		Result :: {ok, User} | {error, Reason},
 		User :: #httpd_user{},
 		Reason :: term().
-%% @doc Get a user record.
+%% @doc Get an HTTP user record.
 %% @equiv mod_auth:get_user(Username, Address, Port, Dir)
 get_user(Username) ->
 	{Port, Address, Dir, _} = get_params(),
@@ -583,7 +591,7 @@ get_user(Username) ->
 		Username :: string(),
 		Result :: true | {error, Reason},
 		Reason :: term().
-%% @doc Delete an existing user.
+%% @doc Delete an existing HTTP user.
 delete_user(Username) ->
 	{Port, Address, Dir, GroupName} = get_params(),
 	case mod_auth:delete_user(Username, Address, Port, Dir) of
