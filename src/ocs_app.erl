@@ -154,13 +154,31 @@ install() ->
 %% 	An mnesia schema should be created and mnesia started on
 %% 	all nodes before running this function. e.g.&#058;
 %% 	```
-%% 		1> mnesia:create_schema([node()]).
-%% 		ok
-%% 		2> mnesia:start().
-%% 		ok
-%% 		3> {@module}:install([node()]).
-%% 		{ok,[client, subscriber, httpd_user, httpd_group]}
-%% 		ok
+%%		1>
+%%		=INFO REPORT==== 4-Aug-2017::12:20:20 ===
+%%		Created mnesia database schema on [testnode@rt]
+%%
+%%		=INFO REPORT==== 4-Aug-2017::12:20:20 ===
+%%		Started mnesia on [testnode@rt]
+%%
+%%		=INFO REPORT==== 4-Aug-2017::12:20:20 ===
+%%		Created new client table.
+%%
+%%		=INFO REPORT==== 4-Aug-2017::12:20:20 ===
+%%		Created new subscriber table.
+%%
+%%		=INFO REPORT==== 4-Aug-2017::12:20:20 ===
+%%		Created new httpd_user table.
+%%
+%%		=INFO REPORT==== 4-Aug-2017::12:20:20 ===
+%%		Created new httpd_group table.
+%%
+%%		=INFO REPORT==== 4-Aug-2017::12:20:21 ===
+%%		Started inets.
+%%
+%%		=INFO REPORT==== 4-Aug-2017::12:20:21 ===
+%%		Created a default user, admin with password, admin
+%%
 %% 	'''
 %%
 %% @private

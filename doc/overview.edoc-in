@@ -22,6 +22,7 @@ on current node and create a default user "admin" with password "admin".
 
 e.g &#058;
  	```
+	erl -sname ocs -config sys -s ocs_app install
 	1>
 	=INFO REPORT==== 4-Aug-2017::12:20:20 ===
 	Created mnesia database schema on [testnode@rt]
