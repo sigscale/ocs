@@ -27,7 +27,7 @@
 %% optional callbacks for application behaviour
 -export([prep_stop/1, start_phase/3]).
 %% export the ocs private API
--export([install/1]).
+-export([install/0, install/1]).
 
 -include_lib("inets/include/mod_auth.hrl").
 -include("ocs.hrl").
@@ -135,6 +135,14 @@ start1() ->
 %%  The ocs private API
 %%----------------------------------------------------------------------
 
+-spec install() -> Result
+	when
+		Result :: {ok, Tables},
+		Tables :: [atom()].
+%% @equiv install(Nodes)
+install() ->
+	install([node()]).
+
 -spec install(Nodes) -> Result
 	when
 		Nodes :: [node()],
@@ -159,6 +167,7 @@ start1() ->
 %%
 install(Nodes) when is_list(Nodes) ->
 	try
+		init_mnesia(Nodes),
 		case mnesia:wait_for_tables([schema], ?WAITFORSCHEMA) of
 			ok ->
 				ok;
@@ -204,6 +213,7 @@ install(Nodes) when is_list(Nodes) ->
 		Tables = [client, subscriber, httpd_user, httpd_group],
 		case mnesia:wait_for_tables(Tables, ?WAITFORTABLES) of
 			ok ->
+				add_default_user(),
 				Tables;
 			TablesResult ->
 				throw(TablesResult)
@@ -280,4 +290,40 @@ force([H | T]) ->
 	end;
 force([]) ->
 	ok.
+
+%% @hidden
+init_mnesia(Nodes) ->
+	case mnesia:create_schema(Nodes) of
+		ok ->
+			error_logger:info_msg("Created mnesia database schema on ~p~n", [Nodes]),
+			case mnesia:start() of
+				ok ->
+					error_logger:info_msg("Started mnesia on ~p~n", [Nodes]);
+				StartError ->
+					throw(StartError)
+			end;
+		Error ->
+			throw(Error)
+	end.
+
+%% @hidden
+add_default_user() ->
+	case inets:start() of
+		ok ->
+			error_logger:info_msg("Started inets. ~n"),
+			add_default_user1();
+		{error,{already_started,inets}} ->
+			error_logger:info_msg("Inets already started. ~n"),
+			add_default_user1();
+		Error2 ->
+			throw(Error2)
+	end.
+%% @hidden
+add_default_user1() ->
+	case ocs:add_user("admin", "admin", [{locale, "en"}]) of
+		{ok, _LastModified} ->
+			error_logger:info_msg("Created a default user, admin with password, admin ~n");
+		{error, Reason} ->
+			throw(Reason)
+	end.
 
