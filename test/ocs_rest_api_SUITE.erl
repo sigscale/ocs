@@ -76,10 +76,10 @@ init_per_suite(Config) ->
 	_RestGroup = ct:get_config(rest_group),
 	{Host, Port} = case Fport(Fport, Services) of
 		{{_, H2}, {_, P2}} when H2 == "localhost"; H2 == {127,0,0,1} ->
-			{ok, _} = ocs:add_user(RestUser, RestPass, [], {127,0,0,1}, P2, "/"),
+			{ok, _} = ocs:add_user(RestUser, RestPass, "en"),
 			{"localhost", P2};
 		{{_, H2}, {_, P2}} ->
-			{ok, _} = ocs:add_user(RestUser, RestPass, [], H2, P2, "/"),
+			{ok, _} = ocs:add_user(RestUser, RestPass, "en"),
 			case H2 of
 				H2 when is_tuple(H2) ->
 					{inet:ntoa(H2), P2};
@@ -87,7 +87,7 @@ init_per_suite(Config) ->
 					{H2, P2}
 			end;
 		{false, {_, P2}} ->
-			{ok, _} = ocs:add_user(RestUser, RestPass, [], P2, "/"),
+			{ok, _} = ocs:add_user(RestUser, RestPass, "en"),
 			{"localhost", P2}
 	end,
 	Config1 = [{port, Port} | Config],
@@ -504,13 +504,11 @@ get_user(Config) ->
 	ID = "King1",
 	Password = "King1",
 	Locale = "en",
-	Port = ?config(port, Config),
 	{_, _, Info} = lists:keyfind(httpd, 1, inets:services_info()),
-	{_, Address} = lists:keyfind(bind_address, 1, Info),
 	{ok, EnvObj} = application:get_env(inets, services),
 	{httpd, HttpdObj} = lists:keyfind(httpd, 1, EnvObj),
-	{directory, {Directory, _AuthObj}} = lists:keyfind(directory, 1, HttpdObj),
-	{ok, _} = ocs:add_user(ID, Password, [{locale, Locale}], Address,  Port, Directory),
+	{directory, {_Directory, _AuthObj}} = lists:keyfind(directory, 1, HttpdObj),
+	{ok, _} = ocs:add_user(ID, Password, Locale),
 	HostUrl = ?config(host_url, Config),
 	RestUser = ct:get_config(rest_user),
 	RestPass = ct:get_config(rest_pass),
@@ -555,7 +553,7 @@ delete_user(Config) ->
 	{ok, EnvObj} = application:get_env(inets, services),
 	{httpd, HttpdObj} = lists:keyfind(httpd, 1, EnvObj),
 	{directory, {Directory, _AuthObj}} = lists:keyfind(directory, 1, HttpdObj),
-	{ok, _} = ocs:add_user(ID, Password, [{locale, Locale}], Address,  Port, Directory),
+	{ok, _} = ocs:add_user(ID, Password, Locale),
 	HostUrl = ?config(host_url, Config),
 	RestUser = ct:get_config(rest_user),
 	RestPass = ct:get_config(rest_pass),

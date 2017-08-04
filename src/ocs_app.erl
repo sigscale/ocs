@@ -320,7 +320,7 @@ add_default_user() ->
 	end.
 %% @hidden
 add_default_user1() ->
-	case ocs:add_user("admin", "admin", [{locale, "en"}]) of
+	case ocs:add_user("admin", "admin", "en") of
 		{ok, _LastModified} ->
 			error_logger:info_msg("Created a default user, admin with password, admin ~n");
 		{error, Reason} ->

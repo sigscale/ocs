@@ -146,7 +146,7 @@ post_user(RequestBody) ->
 					F(F,T)
 		end,
 		Locale = F2(F2, Characteristic),
-		case ocs:add_user(ID, Password, [{locale, Locale}]) of
+		case ocs:add_user(ID, Password, Locale) of
 			{ok, LastModified} ->
 				Location = "/partyManagement/v1/individual/" ++ ID,
 				IDAttr = {struct, [{"name", "username"}, {"value", ID}]},
@@ -251,7 +251,7 @@ put_user2(ID, Etag, Password, Locale) ->
 put_user3(ID, Password, Locale) ->
 	case ocs:delete_user(ID) of
 		true ->
-			case ocs:add_user(ID, Password, [{locale, Locale}]) of
+			case ocs:add_user(ID, Password, Locale) of
 				{ok, LM} ->
 					Location = "/partyManagement/v1/individual/" ++ ID,
 					PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
@@ -312,8 +312,7 @@ patch_user1(ID, Etag, CType, ReqBody) ->
 patch_user2(ID, "application/json-patch+json", Password, Locale) ->
 	case ocs:delete_user(ID) of
 		true ->
-			UserData = [{locale, Locale}],
-			case ocs:add_user(ID, Password, UserData) of
+			case ocs:add_user(ID, Password, Locale) of
 				{ok, LM} ->
 					Location = "/partyManagement/v1/individual/" ++ ID,
 					Headers = [{location, Location}, {etag, etag(LM)}],

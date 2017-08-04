@@ -26,8 +26,8 @@
 -export([add_subscriber/3, add_subscriber/4, add_subscriber/6,
 		find_subscriber/1, delete_subscriber/1, update_password/2,
 		update_attributes/2, update_attributes/5, get_subscribers/0]).
--export([add_user/3, add_user/5, add_user/6, list_users/0,
-		get_user/1, get_user/3, get_user/4, delete_user/1]).
+-export([add_user/3, list_users/0, get_user/1, get_user/3,
+		get_user/4, delete_user/1]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
@@ -527,57 +527,21 @@ start(Protocol, Type, Address, Port, Options) when is_tuple(Address),
 		is_integer(Port), is_list(Options) ->
 		gen_server:call(ocs, {start, Protocol, Type, Address, Port, Options}).
 
--spec add_user(Username, Password, UserData) -> Result
+-spec add_user(Username, Password, Language) -> Result
 	when
 		Username :: string(),
 		Password :: string(),
-		UserData :: list(),
+		Language :: string(),
 		Result :: {ok, LastModified} | {error, Reason},
 		LastModified :: {integer(), integer()},
 		Reason :: term().
-%% @equiv add_user(Username, Password, UserData, Address, Port, Dir)
-add_user(Username, Password, UserData)
-			when is_list(Username), is_list(Password) ->
+%% @doc Adds a user with `Username', `Password' and locale set to `Language'
+add_user(Username, Password, Language) when is_list(Username),
+		is_list(Password), is_list(Language) ->
 	{Port, Address, Dir, _} = get_params(),
-	add_user(Username, Password, UserData, Address, Port, Dir).
-
--spec add_user(Username, Password, UserData, Port, Dir) -> Result
-	when
-		Username :: string(),
-		Password :: string(),
-		UserData :: list(),
-		Port :: inet:port_number(),
-		Dir :: string(),
-		Result :: {ok, LastModified} | {error, Reason},
-		LastModified :: {integer(), integer()},
-		Reason :: term().
-%% @equiv add_user(Username, Password, UserData, Address, Port, Dir)
-add_user(Username, Password, UserData, Port, Dir)
-			when is_list(Username), is_list(Password),
-			is_list(UserData), is_integer(Port),
-			is_list(Dir) ->
-	{_, Address, _, _} = get_params(),
-	add_user(Username, Password, UserData, Address, Port, Dir).
-
--spec add_user(Username, Password, UserData, Address, Port, Dir) -> Result
-	when
-		Username :: string(),
-		Password :: string(),
-		UserData :: list(),
-		Address :: inet:ip_address() | string() | undefined,
-		Port :: inet:port_number(),
-		Dir :: string(),
-		Result :: {ok, LastModified} | {error, Reason},
-		LastModified :: {integer(), integer()},
-		Reason :: term().
-%% @equiv mod_auth:add_user(Username, Password, UserData, Address,
-%% Port, Dir)
-add_user(Username, Password, UserData, Address, Port, Dir)
-			when is_list(Username), is_list(Password),
-         is_list(UserData), is_integer(Port), is_list(Dir) ->
 	LastModified = {erlang:system_time(?MILLISECOND),
 			erlang:unique_integer([positive])},
-	NewUserData = [{last_modified, LastModified} | UserData],
+	NewUserData = [{last_modified, LastModified}, {locale, Language}],
 	case mod_auth:add_user(Username, Password,
 			NewUserData, Address, Port, Dir) of
 		true ->
