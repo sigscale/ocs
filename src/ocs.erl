@@ -533,7 +533,7 @@ start(Protocol, Type, Address, Port, Options) when is_tuple(Address),
 		Locale :: string(),
 		Result :: {ok, LastModified} | {error, Reason},
 		LastModified :: {integer(), integer()},
-		Reason :: term().
+		Reason :: user_exists | term().
 %% @doc Add an HTTP user.
 %% 	HTTP Basic authentication (RFC7617) is required with
 %% 	`Username' and  `Password' used to construct the
@@ -545,22 +545,27 @@ start(Protocol, Type, Address, Port, Options) when is_tuple(Address),
 add_user(Username, Password, Language) when is_list(Username),
 		is_list(Password), is_list(Language) ->
 	{Port, Address, Dir, _} = get_params(),
-	LastModified = {erlang:system_time(?MILLISECOND),
-			erlang:unique_integer([positive])},
-	NewUserData = [{last_modified, LastModified}, {locale, Language}],
-	case mod_auth:add_user(Username, Password,
-			NewUserData, Address, Port, Dir) of
-		true ->
-			{_, _, _, Group} = get_params(),
-			case mod_auth:add_group_member(Group, Username,
-					Address, Port, Dir) of
+	case ocs:get_user(Username) of
+		{error, no_such_user} ->
+			LastModified = {erlang:system_time(?MILLISECOND),
+					erlang:unique_integer([positive])},
+			NewUserData = [{last_modified, LastModified}, {locale, Language}],
+			case mod_auth:add_user(Username, Password,
+					NewUserData, Address, Port, Dir) of
 				true ->
-					{ok, LastModified};
+					{_, _, _, Group} = get_params(),
+					case mod_auth:add_group_member(Group, Username,
+							Address, Port, Dir) of
+						true ->
+							{ok, LastModified};
+						{error, Reason} ->
+							{error, Reason}
+					end;
 				{error, Reason} ->
 					{error, Reason}
 			end;
-		{error, Reason} ->
-			{error, Reason}
+		{ok, _} ->
+			{error, user_exists}
 	end.
 
 -spec list_users() -> Result
