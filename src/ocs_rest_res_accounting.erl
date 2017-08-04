@@ -52,7 +52,7 @@ get_accounting() ->
 		{error, _} -> 
 			{error, 404};
 		{NewCount, Events} -> 
-			JsonObj = radius_auth_json(Events),
+			JsonObj = radius_acct_json(Events),
 			JsonArray = {array, JsonObj},
 			Body = mochijson:encode(JsonArray),
 			ContentRange = "items 1-" ++ integer_to_list(NewCount) ++ "/*",
@@ -65,7 +65,7 @@ get_accounting() ->
 %%----------------------------------------------------------------------
 
 % @hidden
-radius_auth_json(Events) ->
+radius_acct_json(Events) ->
 	F = fun({Milliseconds, _N, radius, Node, Server, Type, Attr}, Acc) ->
 			TimeStamp = ocs_log:iso8601(Milliseconds),
 			{ServerAdd, ServerPort} = Server,
