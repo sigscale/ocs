@@ -461,15 +461,10 @@ add_user() ->
 add_user(Config) ->
 	ContentType = "application/json",
 	ID = "King",
-	Username = "King",
-	Password = "King",
+	Username = ID,
+	Password = "KingKong",
 	Locale = "en",
 	Port = ?config(port, Config),
-	{_, _, Info} = lists:keyfind(httpd, 1, inets:services_info()),
-	{_, Address} = lists:keyfind(bind_address, 1, Info),
-	{ok, EnvObj} = application:get_env(inets, services),
-	{httpd, HttpdObj} = lists:keyfind(httpd, 1, EnvObj),
-	{directory, {Directory, _AuthObj}} = lists:keyfind(directory, 1, HttpdObj),
 	PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
 	LocaleAttr = {struct, [{"name", "locale"}, {"value", Locale}]},
 	UsernameAttr = {struct, [{"name", "username"}, {"value", Username}]},
@@ -495,19 +490,17 @@ add_user(Config) ->
 	{_, ID} = lists:keyfind("id", 1, Object),
 	{_, URI} = lists:keyfind("href", 1, Object),
 	{_, {array, _Characteristic}} = lists:keyfind("characteristic", 1, Object),
-	{ok, #httpd_user{}} = ocs:get_user(ID, Address, Port, Directory).
+	{ok, #httpd_user{username = Username, password = Password,
+			user_data = UserData}} = ocs:get_user(ID),
+	{_, Locale} = lists:keyfind(locale, 1, UserData).
 
 get_user() ->
 	[{userdata, [{doc,"get user in rest interface"}]}].
 
 get_user(Config) ->
-	ID = "King1",
-	Password = "King1",
-	Locale = "en",
-	{_, _, Info} = lists:keyfind(httpd, 1, inets:services_info()),
-	{ok, EnvObj} = application:get_env(inets, services),
-	{httpd, HttpdObj} = lists:keyfind(httpd, 1, EnvObj),
-	{directory, {_Directory, _AuthObj}} = lists:keyfind(directory, 1, HttpdObj),
+	ID = "Prince",
+	Password = "Frog",
+	Locale = "es",
 	{ok, _} = ocs:add_user(ID, Password, Locale),
 	HostUrl = ?config(host_url, Config),
 	RestUser = ct:get_config(rest_user),
@@ -545,14 +538,9 @@ delete_user() ->
 
 delete_user(Config) ->
 	ID = "Queen",
-	Password = "Queen",
+	Password = "QueenBee",
 	Locale = "en",
 	Port = ?config(port, Config),
-	{_, _, Info} = lists:keyfind(httpd, 1, inets:services_info()),
-	{_, Address} = lists:keyfind(bind_address, 1, Info),
-	{ok, EnvObj} = application:get_env(inets, services),
-	{httpd, HttpdObj} = lists:keyfind(httpd, 1, EnvObj),
-	{directory, {Directory, _AuthObj}} = lists:keyfind(directory, 1, HttpdObj),
 	{ok, _} = ocs:add_user(ID, Password, Locale),
 	HostUrl = ?config(host_url, Config),
 	RestUser = ct:get_config(rest_user),
@@ -563,7 +551,7 @@ delete_user(Config) ->
 	Request1 = {HostUrl ++ "/partyManagement/v1/individual/" ++ ID, [Authentication]},
 	{ok, Result1} = httpc:request(delete, Request1, [], []),
 	{{"HTTP/1.1", 204, _NoContent}, _Headers1, []} = Result1,
-	{error, no_such_user} = ocs:get_user(ID, Address, Port, Directory).
+	{error, no_such_user} = ocs:get_user(ID).
 
 add_client() ->
 	[{userdata, [{doc,"Add client in rest interface"}]}].

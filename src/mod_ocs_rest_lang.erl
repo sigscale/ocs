@@ -79,10 +79,9 @@ do(#mod{request_uri = Uri, data = Data} = ModData) ->
 serve_index(User, #mod{data = Data, config_db = ConfigDb,
 		request_uri = Uri} = ModData) ->
 	Path = mod_alias:path(Data, ConfigDb, Uri),
-	Port = httpd_util:lookup(ConfigDb, port),
 	case filename:basename(Path) of 
 		"index.html" ->
-			case ocs:get_user(User, Port, "/") of
+			case ocs:get_user(User) of
 				{ok, #httpd_user{user_data = UserData}} ->
 					Lang = proplists:get_value(locale, UserData, "en"),
 					case file:read_file(Path) of
