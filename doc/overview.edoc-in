@@ -14,40 +14,38 @@ This OCS performs authentication, authorization and accounting (AAA)
 for subscribers of wireless local area network (WLAN) services (WiFi).
 
 ==Installation==
-Before starting the application for the first time, an {@link //mnesia/mnesia. mnesia}
-schema should be created and started on all nodes the application
-should run.Schema should be created on a list of nodes where the
+Before starting the application for the first time, {@link //mnesia/mnesia. mnesia}
+should be initialized. Create a schema and start mnesia on all nodes
+where the application should ru 
 {@link //ocs. ocs} application will run. Following command will initialize {@link //ocs. ocs}
 on current node and create a default user "admin" with password "admin".
 
 e.g &#058;
  	```
-	erl -sname ocs -config sys -s ocs_app install
-	1>
-	=INFO REPORT==== 4-Aug-2017::12:20:20 ===
-	Created mnesia database schema on [testnode@rt]
-
-	=INFO REPORT==== 4-Aug-2017::12:20:20 ===
-	Started mnesia on [testnode@rt]
-
-	=INFO REPORT==== 4-Aug-2017::12:20:20 ===
+	$ erl -sname ocs -config sys -s ocs_app install
+	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
+	Started mnesia
+	
+	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
 	Created new client table.
-
-	=INFO REPORT==== 4-Aug-2017::12:20:20 ===
+	
+	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
 	Created new subscriber table.
-
-	=INFO REPORT==== 4-Aug-2017::12:20:20 ===
+	
+	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
 	Created new httpd_user table.
-
-	=INFO REPORT==== 4-Aug-2017::12:20:20 ===
+	
+	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
 	Created new httpd_group table.
-
-	=INFO REPORT==== 4-Aug-2017::12:20:21 ===
-	Started inets.
-
-	=INFO REPORT==== 4-Aug-2017::12:20:21 ===
-	Created a default user, admin with password, admin
-
+	
+	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
+	Started inets. 
+	
+	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
+	    "Created a default user"
+	    username: "admin"
+	    password: "admin"
+	    locale: "en"
 	'''
 
 ===HTTP Authentication===
