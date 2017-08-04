@@ -17,34 +17,50 @@ for subscribers of wireless local area network (WLAN) services (WiFi).
 Before starting the application for the first time, an {@link //mnesia/mnesia. mnesia}
 schema should be created and started on all nodes the application
 should run.Schema should be created on a list of nodes where the
-{@link //ocs. ocs} application will run.
+{@link //ocs. ocs} application will run. Following command will initialize {@link //ocs. ocs}
+on current node and create a default user "admin" with password "admin".
+
 e.g &#058;
  	```
-	1> mnesia:create_schema([node()]).
-	ok
-	2> mnesia:start().
-	ok
-	3> ocs_app:install([node()]).
-	{ok,[client, subscriber, httpd_user, httpd_group]}
-	ok
+	1>
+	=INFO REPORT==== 4-Aug-2017::12:20:20 ===
+	Created mnesia database schema on [testnode@rt]
+
+	=INFO REPORT==== 4-Aug-2017::12:20:20 ===
+	Started mnesia on [testnode@rt]
+
+	=INFO REPORT==== 4-Aug-2017::12:20:20 ===
+	Created new client table.
+
+	=INFO REPORT==== 4-Aug-2017::12:20:20 ===
+	Created new subscriber table.
+
+	=INFO REPORT==== 4-Aug-2017::12:20:20 ===
+	Created new httpd_user table.
+
+	=INFO REPORT==== 4-Aug-2017::12:20:20 ===
+	Created new httpd_group table.
+
+	=INFO REPORT==== 4-Aug-2017::12:20:21 ===
+	Started inets.
+
+	=INFO REPORT==== 4-Aug-2017::12:20:21 ===
+	Created a default user, admin with password, admin
+
 	'''
 
 ===HTTP Authentication===
 To use the {@link //inets/mod_auth. mod_auth} module for authentication
-you should create necessary users and groups in the {@link //mnesia/mnesia. mnesia}
-tables it uses.
+you should create necessary users in the {@link //mnesia/mnesia. mnesia}
+tables it uses. All users will be added to groups specified in `require_group'
+option in inets httpd confifuration.
 e.g &#058;
- 	```
-	4> inets:start().
-	ok
-	5> ocs:add_user("john", "g2k7hyeh6qag", [], 8080, "/").
-	{ok,{1500544354609972724,74}}
-	6> ocs:add_user("bss", "nfc9xgp32xha", [], 8080, "/").
-	{ok,{1500544409802713846,82}}
-	7> ocs:add_group_member("all", "john", 8080, "/").
-	true
-	8> ocs:add_group_member("all", "bss", 8080, "/").
-	true
+   ```
+	1> ocs:add_user("john", "g2k7hyeh6qag", [], 8844, "/").
+	{ok,{1501829429047,149}}
+	2> ocs:add_user("bss", "nfc9xgp32xha", [], 8844, "/").
+	{ok,{1501829458220,157}}
+
 	'''
 
 ===Internationalization (i18n)===
