@@ -26,8 +26,7 @@
 -export([add_subscriber/3, add_subscriber/4, add_subscriber/6,
 		find_subscriber/1, delete_subscriber/1, update_password/2,
 		update_attributes/2, update_attributes/5, get_subscribers/0]).
--export([add_user/3, list_users/0, get_user/1, get_user/3,
-		get_user/4, delete_user/1]).
+-export([add_user/3, list_users/0, get_user/1, delete_user/1]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
@@ -574,36 +573,9 @@ list_users() ->
 		User :: #httpd_user{},
 		Reason :: term().
 %% @doc Get a user record.
-%% @equiv get_user(Username, Address, Port, Dir)
-get_user(Username) ->
-	{Port, Address, Dir, _GroupName} = get_params(),
-	get_user(Username, Address, Port, Dir).
-
--spec get_user(Username, Port, Dir) -> Result
-	when
-		Username :: string(),
-		Port :: inet:port_number(),
-		Dir :: string(),
-		Result :: {ok, User} | {error, Reason},
-		User :: #httpd_user{},
-		Reason :: term().
-%% @doc Get a user record.
-%% @equiv mod_auth:get_user(Username, Port, Dir)
-get_user(Username, Port, Dir) ->
-	mod_auth:get_user(Username, Port, Dir).
-
--spec get_user(Username, Address, Port, Dir) -> Result
-	when
-		Username :: string(),
-		Address :: inet:ip_address() | string() | undefined,
-		Port :: inet:port_number(),
-		Dir :: string(),
-		Result :: {ok, User} | {error, Reason},
-		User :: #httpd_user{},
-		Reason :: term().
-%% @doc Get a user record.
 %% @equiv mod_auth:get_user(Username, Address, Port, Dir)
-get_user(Username, Address, Port, Dir) ->
+get_user(Username) ->
+	{Port, Address, Dir, _} = get_params(),
 	mod_auth:get_user(Username, Address, Port, Dir).
 
 -spec delete_user(Username) -> Result
