@@ -119,15 +119,15 @@
 		</paper-toast>
 		<iron-ajax
 				id="getClients"
-					url="/ocs/v1/client"
-					headers='{"Accept": "application/json"}'
-					on-response="getClientsResponse">
+				url="/ocs/v1/client"
+				headers='{"Accept": "application/json"}'
+				auto="false"
+				on-response="getClientsResponse">
 		</iron-ajax>
 	</template>
 	<script>
 		addEventListener('WebComponentsReady', function() {
-		Polymer (
-			{
+			Polymer ({
 				is: 'sig-client-list',
 				behaviors: [i18nMsgBehavior],
 				properties: {
@@ -135,32 +135,8 @@
 						observer: '_activeItemChanged'
 					}
 				},
-				_activeItemChanged: function(item) {
-					if (item != null){
+				ready: function() {
 					var grid = this.$.clientGrid;
-					grid.selectedItems = item ? [item] : [];
-					var modal = document.getElementById("clientUpdateModal");
-					modal.open();
-					document.getElementById("edit-client-id1").value = item.id;
-					document.getElementById("edit-client-id2").value = item.id;
-					document.getElementById("edit-client-disc-port").value = item.disconnectPort;
-					document.getElementById("edit-client-pwd").value = item.secret;
-					}
-				},
-				getClientsResponse: function(event) {
-					var grid = this.$.clientGrid;
-					var results = event.detail.xhr.response;
-					var vaadinItems = new Array();
-					for (var index in results) {
-						var newRecord = new Object();
-						newRecord.id = results[index].id;
-						newRecord.identifier = results[index].identifier;
-						newRecord.secret = results[index].secret;
-						newRecord.port = results[index].port;
-						newRecord.protocol = results[index].protocol;
-						vaadinItems[index] = newRecord;
-					}
-					grid.items = vaadinItems;
 					grid.columns = [
 						{
 							name: "id",
@@ -178,13 +154,77 @@
 							name: "protocol"
 						}
 					];
+					grid.dataProvider = function(params, callback) {
+						var ajax = document.getElementById("getClients");
+						cbClient = callback;
+						ajax.url="/ocs/v1/client"
+						params.filters.forEach(function(filter, index) {
+							if(index == 0) {
+								ajax.url += '?'+ filter.path + '=' + filter.value;
+							} else {
+								ajax.url += '&'+ filter.path + '=' + filter.value;
+							}
+						});
+						params.sortOrders.forEach(function(sort, index) {
+							var dirsort;
+							if(sort.direction == "desc") {
+								dirsort = '-' + sort.path;
+							} else {
+								dirsort = sort.path;
+							}
+							if(index == 0) {
+								if(params.filters.length == 0) {
+									ajax.url += '?sort=' + dirsort;
+								} else {
+									ajax.url += '&sort=' + dirsort;
+								}
+							} else {
+								ajax.url += ',' + dirsort;
+							}
+						});
+						ajax.generateRequest();
+					};
+				},
+				_activeItemChanged: function(item) {
+					if (item != null){
+					var grid = this.$.clientGrid;
+					grid.selectedItems = item ? [item] : [];
+					var modal = document.getElementById("clientUpdateModal");
+					modal.open();
+					document.getElementById("edit-client-id1").value = item.id;
+					document.getElementById("edit-client-id2").value = item.id;
+					document.getElementById("edit-client-disc-port").value = item.disconnectPort;
+					document.getElementById("edit-client-pwd").value = item.secret;
+					}
+				},
+				getClientsResponse: function(event) {
+					var grid = this.$.clientGrid;
+					var results = event.detail.xhr.response;
+					var range = event.detail.xhr.getResponseHeader('Content-Range');
+					if (range) {
+						var itemCount = range.split("/");
+						grid.size = Number(itemCount[1]);
+					} else {
+						grid.size = results.length;
+					}
+					grid.pageSize = grid.size;
+					var vaadinItems = new Array();
+					for (var index in results) {
+						var newRecord = new Object();
+						newRecord.id = results[index].id;
+						newRecord.identifier = results[index].identifier;
+						newRecord.secret = results[index].secret;
+						newRecord.port = results[index].port;
+						newRecord.protocol = results[index].protocol;
+						vaadinItems[index] = newRecord;
+					}
+					cbClient(vaadinItems);
 				},
 				showAddModal: function(event) {
 					var modal = document.getElementById("clientAddModal");
 					modal.open();
-				},
-			}
-		);
+				}
+			});
 		});
 	</script>
 </dom-module>

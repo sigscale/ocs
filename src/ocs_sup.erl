@@ -53,7 +53,7 @@ init([LogRotateTime, LogRotateInterval] = _Args) ->
 
 -spec supervisor(StartMod, Args) -> Result
 	when
-		StartMod :: atom(), 
+		StartMod :: atom(),
 		Args :: [term()],
 		Result :: supervisor:child_spec().
 %% @doc Build a supervisor child specification for a
@@ -67,7 +67,7 @@ supervisor(StartMod, Args) ->
 
 -spec server(StartMod, Args) -> Result
 	when
-		StartMod :: atom(), 
+		StartMod :: atom(),
 		Args :: [term()],
 		Result :: supervisor:child_spec().
 %% @doc Build a supervisor child specification for a

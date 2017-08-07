@@ -235,7 +235,8 @@ request(Request, Caps,  _From, State) ->
 				SubscriptionId
 		end,
 		case ocs:find_subscriber(Subscriber) of
-			{ok, Password, _, Balance, true, _} ->
+			{ok, #subscriber{password = Password, balance = Balance,
+					enabled = true}} ->
 				case ocs:authorize(Subscriber, Password) of
 					{ok, _, _} ->
 						request1(RequestType, Request, SId, RequestNum, Subscriber,

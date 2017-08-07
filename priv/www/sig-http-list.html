@@ -104,55 +104,53 @@
 		</iron-ajax>
 	</template>
 	<script>
-		Polymer (
-			{
-				is: 'sig-http-list',
-				behaviors: [i18nMsgBehavior],
-				responseHandler: function(event) {
-					var grid = this.$.httpGrid;
-					var results = event.detail.xhr.response;
-					var vaadinItems = new Array();
-					for (var index in results) {
-						var newRecord = new Object();
-						newRecord.datetime = results[index].datetime;
-						newRecord.host = results[index].host;
-						newRecord.user = results[index].user;
-						newRecord.method = results[index].method;
-						newRecord.uri = results[index].uri;
-						newRecord.httpStatus = results[index].httpStatus;
-						vaadinItems[index] = newRecord;
+		Polymer ({
+			is: 'sig-http-list',
+			behaviors: [i18nMsgBehavior],
+			responseHandler: function(event) {
+				var grid = this.$.httpGrid;
+				var results = event.detail.xhr.response;
+				var vaadinItems = new Array();
+				for (var index in results) {
+					var newRecord = new Object();
+					newRecord.datetime = results[index].datetime;
+					newRecord.host = results[index].host;
+					newRecord.user = results[index].user;
+					newRecord.method = results[index].method;
+					newRecord.uri = results[index].uri;
+					newRecord.httpStatus = results[index].httpStatus;
+					vaadinItems[index] = newRecord;
+				}
+				grid.items = vaadinItems;
+				grid.frozenColumns = 2;
+				grid.columns = [
+					{
+						name: "datetime"
+					},
+					{
+						name: "host"
+					},
+					{
+						name: "user"
+					},
+					{
+						name: "method"
+					},
+					{
+						name: "uri"
+					},
+					{
+						name: "httpStatus"
 					}
-					grid.items = vaadinItems;
-					grid.frozenColumns = 2;
-					grid.columns = [
-						{
-							name: "datetime"
-						},
-						{
-							name: "host"
-						},
-						{
-							name: "user"
-						},
-						{
-							name: "method"
-						},
-						{
-							name: "uri"
-						},
-						{
-							name: "httpStatus"
-						}
-					];
-				},
-				_onLoadingChanged: function(event) {
-					if (document.getElementById("getHttp").loading) {
-						document.getElementById("progress").disabled = false;
-					} else {
-						document.getElementById("progress").disabled = true;
-					}
+				];
+			},
+			_onLoadingChanged: function(event) {
+				if (document.getElementById("getHttp").loading) {
+					document.getElementById("progress").disabled = false;
+				} else {
+					document.getElementById("progress").disabled = true;
 				}
 			}
-		);
+		});
 	</script>
 </dom-module>

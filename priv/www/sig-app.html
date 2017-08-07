@@ -5,10 +5,12 @@
 <link rel="import" href="app-layout/app-drawer-layout/app-drawer-layout.html">
 <link rel="import" href="app-layout/app-drawer/app-drawer.html">
 <link rel="import" href="i18n-msg/i18n-msg.html">
+<link rel="import" href="i18n-msg/i18n-msg-behavior.html">
 <link rel="import" href="iron-pages/iron-pages.html">
 <link rel="import" href="iron-selector/iron-selector.html">
 <link rel="import" href="paper-menu/paper-menu.html"/>
 <link rel="import" href="paper-menu/paper-submenu.html" />
+<link rel="import" href="paper-menu-button/paper-menu-button.html" />
 <link rel="import" href="paper-item/paper-icon-item.html">
 <link rel="import" href="paper-icon-button/paper-icon-button.html">
 <link rel="import" href="paper-progress/paper-progress.html">
@@ -17,6 +19,7 @@
 <link rel="import" href="iron-icons/iron-icons.html">
 <link rel="import" href="iron-icons/hardware-icons.html">
 <link rel="import" href="iron-icons/device-icons.html">
+<link rel="import" href="sig-help.html">
 <link rel="import" href="sig-sub-list.html">
 <link rel="import" href="sig-sub-add.html">
 <link rel="import" href="sig-sub-update.html">
@@ -64,6 +67,17 @@
 		iron-icon {
 			padding-right: 10px;
 		}
+		.icon-style {
+			min-height: 10px;
+		}
+		.add-button {
+			background-color: var(--paper-lime-a700);
+			color: black;
+			width: 8em;
+		}
+		.cancel-button {
+			color: black;
+		}
 		.sublist paper-icon-item {
 			padding-left: 30px;
 		}
@@ -98,6 +112,11 @@
 							bottom-item
 							disabled="true">
 					</paper-progress>
+					<paper-icon-button
+							icon="icons:more-vert"
+							slot="dropdown-trigger"
+							on-click="help">
+					</paper-icon-button>
 				</app-toolbar>
 			</app-header>
 			<iron-pages
@@ -200,6 +219,7 @@
 			</app-drawer-layout>
 		</app-header-layout>
 		<!--Modal Definitions-->
+		<sig-help></sig-help>
 		<sig-sub-add></sig-sub-add>
 		<sig-sub-update></sig-sub-update>
 		<sig-client-add></sig-client-add>
@@ -208,141 +228,145 @@
 		<sig-user-add></sig-user-add>
 		<sig-user-update></sig-user-update>
 	</template>
-		<script>
+	<script>
 		document.addEventListener('HTMLImportsLoaded', function() {
 			I18nMsg.lang = document.documentElement.lang || 'en';
 			Platform.performMicrotaskCheckpoint();
 		});
-		Polymer (
-			{
-				is: 'sig-app',
-				listeners: {
-					'pageSelection.iron-select': 'loadElement'
-				},
-				loadElement: function(event) {
-					switch(event.detail.item.getAttribute('id')) {
-						case 'page0':
-							this.$.loadPage.selected = 0;
-							document.getElementById('getSubs').generateRequest();
-							break;
-						case 'page1':
-							this.$.loadPage.selected = 1;
-							document.getElementById('getClients').generateRequest();
-							break;
-						case 'page2':
-							this.$.loadPage.selected = 2;
-							document.getElementById("selectLogFileModal").open();
-							break;
-						case 'page3':
-							this.$.loadPage.selected = 3;
-							document.getElementById('getAccess').generateRequest();
-							break;
-						case 'page4':
-							this.$.loadPage.selected = 4;
-							document.getElementById('getAccounting').generateRequest();
-							break;
-						case 'page5':
-							this.$.loadPage.selected = 5;
-							document.getElementById('getHttp').generateRequest();
-							break;
-						case 'page6':
-							this.$.loadPage.selected = 6;
-							document.getElementById('getUser').generateRequest();
-							break;
-					}
-				},
-				refresh: function() {
-					if(this.$.loadPage.selected == 0){
+		Polymer ({
+			is: 'sig-app',
+			behaviors: [i18nMsgBehavior],
+			listeners: {
+				'pageSelection.iron-select': 'loadElement'
+			},
+			loadElement: function(event) {
+				switch(event.detail.item.getAttribute('id')) {
+					case 'page0':
+						this.$.loadPage.selected = 0;
 						document.getElementById('getSubs').generateRequest();
-					 }
-					if(this.$.loadPage.selected == 1){
+						break;
+					case 'page1':
+						this.$.loadPage.selected = 1;
 						document.getElementById('getClients').generateRequest();
-					 }
-					if(this.$.loadPage.selected == 2){
-						document.getElementById('getIpdr').generateRequest();
-					 }
-					if(this.$.loadPage.selected == 3){
+						break;
+					case 'page2':
+						this.$.loadPage.selected = 2;
+						document.getElementById("selectLogFileModal").open();
+						break;
+					case 'page3':
+						this.$.loadPage.selected = 3;
 						document.getElementById('getAccess').generateRequest();
-					 }
-					if(this.$.loadPage.selected == 4){
+						break;
+					case 'page4':
+						this.$.loadPage.selected = 4;
 						document.getElementById('getAccounting').generateRequest();
-					 }
-					if(this.$.loadPage.selected == 5){
+						break;
+					case 'page5':
+						this.$.loadPage.selected = 5;
 						document.getElementById('getHttp').generateRequest();
-					 }
-					if(this.$.loadPage.selected == 6){
+						break;
+					case 'page6':
+						this.$.loadPage.selected = 6;
 						document.getElementById('getUser').generateRequest();
-					 }
-				},
-				download: function() {
-					var csvObject = new Object();
-					if(this.$.loadPage.selected == 0) {
-						var data = document.getElementById("subscriberGrid").items;
-						csvObject.gridData = data;
-						csvObject.headers = "Identity,Secret,Balance,Data Rate,"
-								+ "Xmit Rate,Session Timeout,"
-								+ "Accounting Interval,Class,Enabled \n";
-						csvObject.keys = [ "id", "password", "balance", 
-								"ascendDataRate", "ascendXmitRate", "sessionTimeout", 
-								"acctInterimInterval", "class", "enabled"];
-						csvObject.fileName = "subscribers.csv";
-					}
-					if(this.$.loadPage.selected == 1) {
-						var data = document.getElementById("clientGrid").items;
-						csvObject.gridData = data;
-						csvObject.headers = "Address,Identifier,Secret,Listen Port,Protocol\n";
-						csvObject.keys = ["id", "identifier", "secret", "port", "protocol"];
-						csvObject.fileName = "clients.csv";
-					}
-					if(this.$.loadPage.selected == 2) {
-						var data = document.getElementById("ipdrGrid").items;
-						csvObject.gridData = data;
-						csvObject.headers = "Creation Time,Sequence,Username,Session ID,"
-								+ "Calling Station,Called Station,NAS Address,NAS ID," 
-								+ "Duration,Input Octets,Output Octets,Start Time,"
-								+ "End Time,Cause\n";
-						csvObject.keys = ["ipdrCreationTime", "seqNum", "username",
-								"acctSessionId", "callingStationId", "calledStationId", 
-								"nasIpAddress", "nasId", "sessionDuration", "inputOctets", 
-								"outputOctets", "gmtSessionStartDateTime", 
-								"gmtSessionEndDateTime", "sessionTerminateCause"];
-						csvObject.fileName = "usage_logs.csv";
-					}
-					if(this.$.loadPage.selected == 3) {
-						var data = document.getElementById("accessGrid").items;
-						csvObject.gridData = data;
-						csvObject.headers = "TimeStamp,ClientAddress,ClientIdentity,CalledStation,"
-								+ "UserName,Type\n";
-						csvObject.keys = ["timeStamp", "clientAddress", "nasIdentifier", "calledStation", 
-								"username", "type"];
-						csvObject.fileName = "access.csv";
-					}
-					if(this.$.loadPage.selected == 4) {
-						var data = document.getElementById("accountingGrid").items;
-						csvObject.gridData = data;
-						csvObject.headers = "TimeStamp,ClientIdentity,Duration,Out(bytes),In(bytes),Username,Type\n";
-						csvObject.keys = ["timeStamp", "nasIdentifier", "acctSessiontime", "acctOutputoctets", "acctInputoctets", "username", "type"];
-						csvObject.fileName = "accounting.csv";
-					}
-					if(this.$.loadPage.selected == 5) {
-						var data = document.getElementById("httpGrid").items;
-						csvObject.gridData = data;
-						csvObject.headers = "DateTime,Host,User,Method,Resource,Status\n";
-						csvObject.keys = ["datetime", "host", "user", "method",
-								"uri", "httpStatus"];
-						csvObject.fileName = "http.csv";
-					}
-					if(this.$.loadPage.selected == 6) {
-						var data = document.getElementById("UserGrid").items;
-						csvObject.gridData = data;
-						csvObject.headers = "UserName,Language\n";
-						csvObject.keys = ["id", "language"];
-						csvObject.fileName = "user_list.csv";
-					}
-					generateCSVData(csvObject);
+						break;
 				}
+			},
+			help: function(element) {
+				overflow = document.getElementById('helpDrop');
+				overflow.positionTarget = element;
+				overflow.open();
+			},
+			refresh: function() {
+				if(this.$.loadPage.selected == 0){
+					document.getElementById('getSubs').generateRequest();
+				 }
+				if(this.$.loadPage.selected == 1){
+					document.getElementById('getClients').generateRequest();
+				 }
+				if(this.$.loadPage.selected == 2){
+					document.getElementById('getIpdr').generateRequest();
+				 }
+				if(this.$.loadPage.selected == 3){
+					document.getElementById('getAccess').generateRequest();
+				 }
+				if(this.$.loadPage.selected == 4){
+					document.getElementById('getAccounting').generateRequest();
+				 }
+				if(this.$.loadPage.selected == 5){
+					document.getElementById('getHttp').generateRequest();
+				 }
+				if(this.$.loadPage.selected == 6){
+					document.getElementById('getUser').generateRequest();
+				 }
+			},
+			download: function() {
+				var csvObject = new Object();
+				if(this.$.loadPage.selected == 0) {
+					var data = document.getElementById("subscriberGrid").items;
+					csvObject.gridData = data;
+					csvObject.headers = "Identity,Secret,Balance,Data Rate,"
+							+ "Xmit Rate,Session Timeout,"
+							+ "Accounting Interval,Class,Enabled \n";
+					csvObject.keys = [ "id", "password", "balance",
+							"ascendDataRate", "ascendXmitRate", "sessionTimeout",
+							"acctInterimInterval", "class", "enabled"];
+					csvObject.fileName = "subscribers.csv";
+				}
+				if(this.$.loadPage.selected == 1) {
+					var data = document.getElementById("clientGrid").items;
+					csvObject.gridData = data;
+					csvObject.headers = "Address,Identifier,Secret,Listen Port,Protocol\n";
+					csvObject.keys = ["id", "identifier", "secret", "port", "protocol"];
+					csvObject.fileName = "clients.csv";
+				}
+				if(this.$.loadPage.selected == 2) {
+					var data = document.getElementById("ipdrGrid").items;
+					csvObject.gridData = data;
+					csvObject.headers = "Creation Time,Sequence,Username,Session ID,"
+							+ "Calling Station,Called Station,NAS Address,NAS ID,"
+							+ "Duration,Input Octets,Output Octets,Start Time,"
+							+ "End Time,Cause\n";
+					csvObject.keys = ["ipdrCreationTime", "seqNum", "username",
+							"acctSessionId", "callingStationId", "calledStationId",
+							"nasIpAddress", "nasId", "sessionDuration", "inputOctets",
+							"outputOctets", "gmtSessionStartDateTime",
+							"gmtSessionEndDateTime", "sessionTerminateCause"];
+					csvObject.fileName = "usage_logs.csv";
+				}
+				if(this.$.loadPage.selected == 3) {
+					var data = document.getElementById("accessGrid").items;
+					csvObject.gridData = data;
+					csvObject.headers = "TimeStamp,ClientAddress,ClientIdentity,CalledStation,"
+							+ "UserName,Type\n";
+					csvObject.keys = ["timeStamp", "clientAddress", "nasIdentifier", "calledStation",
+							"username", "type"];
+					csvObject.fileName = "access.csv";
+				}
+				if(this.$.loadPage.selected == 4) {
+					var data = document.getElementById("accountingGrid").items;
+					csvObject.gridData = data;
+					csvObject.headers = "TimeStamp,ClientIdentity,Duration,Out(bytes),In(bytes),Username,Type\n";
+					csvObject.keys = ["timeStamp", "nasIdentifier", "acctSessiontime", "acctOutputoctets", "acctInputoctets", "username", "type"];
+					csvObject.fileName = "accounting.csv";
+				}
+				if(this.$.loadPage.selected == 5) {
+					var data = document.getElementById("httpGrid").items;
+					csvObject.gridData = data;
+					csvObject.headers = "DateTime,Host,User,Method,Resource,Status\n";
+					csvObject.keys = ["datetime", "host", "user", "method",
+							"uri", "httpStatus"];
+					csvObject.fileName = "http.csv";
+				}
+				if(this.$.loadPage.selected == 6) {
+					var data = document.getElementById("UserGrid").items;
+					csvObject.gridData = data;
+					csvObject.headers = "UserName,Language\n";
+					csvObject.keys = ["id", "language"];
+					csvObject.fileName = "user_list.csv";
+				}
+				generateCSVData(csvObject);
 			}
-		);
+		});
 		function generateCSVData(csvObject) {
 			var csvData = "data:text/csv;charset=utf-8,";
 			csvData += csvObject.headers;

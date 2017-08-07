@@ -19,13 +19,13 @@
 <dom-module id="sig-sub-add">
 	<style is="custom-style">
 		paper-dialog {
-			padding: 10px;
 			overflow: auto;
 		}
 		paper-input {
 			--paper-input-container-focus-color: var(--paper-yellow-900);
 		}
 		paper-toolbar {
+			margin-top: 0px;
 			color: white;
 			background-color: #bc5100;
 		}
@@ -296,37 +296,50 @@
 		</script>
 	</template>
 	<script>
-		Polymer (
-			{
-				is: 'sig-sub-add',
-				behaviors: [i18nMsgBehavior],
-				properties: {
-					password: String,
-					identity: String
-				},
-				listeners: {
-					'toastErrorClose.on-click': 'closeToast',
-				},
-				_subscriberAddSubmit: function(event) {
-					var subscriber = new Object();
-					if(!document.getElementById("add1").disabled) {
-						subscriber.id = document.getElementById("add1").value;
-					}
-					if(!document.getElementById("add2").disabled) {
-						subscriber.password = document.getElementById("add2").value;
-					}
+		Polymer ({
+			is: 'sig-sub-add',
+			behaviors: [i18nMsgBehavior],
+			properties: {
+				password: String,
+				identity: String
+			},
+			listeners: {
+				'toastErrorClose.on-click': 'closeToast',
+			},
+			_subscriberAddSubmit: function(event) {
+				var subscriber = new Object();
+				if(!document.getElementById("add1").disabled) {
+					subscriber.id = document.getElementById("add1").value;
+				}
+				if(!document.getElementById("add2").disabled) {
+					subscriber.password = document.getElementById("add2").value;
+				}
+				var attributes = new Array();
+				if(parseInt(document.getElementById("add3").value)) {
 					var ascendDataRate = new Object();
 					ascendDataRate.name = "ascendDataRate";
 					ascendDataRate.value = parseInt(document.getElementById("add3").value);
+					attributes.push(ascendDataRate);
+				}
+				if(parseInt(document.getElementById("add4").value)) {
 					var ascendXmitRate = new Object();
 					ascendXmitRate.name = "ascendXmitRate";
 					ascendXmitRate.value = parseInt(document.getElementById("add4").value);
+					attributes.push(ascendXmitRate);
+				}
+				if(parseInt(document.getElementById("add5").value)) {
 					var sessionTimeout = new Object();
 					sessionTimeout.name = "sessionTimeout";
 					sessionTimeout.value = parseInt(document.getElementById("add5").value);
+					attributes.push(sessionTimeout);
+				}
+				if(parseInt(document.getElementById("add6").value)) {
 					var acctInterimInterval = new Object();
 					acctInterimInterval.name = "acctInterimInterval";
 					acctInterimInterval.value = parseInt(document.getElementById("add6").value);
+					attributes.push(acctInterimInterval);
+				}
+				if(document.getElementById("add7").value) {
 					var classx = new Object();
 					classx.name = "class";
 					if(document.getElementById("add7").value == "") {
@@ -334,58 +347,52 @@
 					} else {
 						classx.value = document.getElementById("add7").value;
 					}
-					var attributes = new Array();
-					attributes[0] = ascendDataRate;
-					attributes[1] = ascendXmitRate;
-					attributes[2] = sessionTimeout;
-					attributes[3] = acctInterimInterval;
-					attributes[4] = classx;
-					subscriber.attributes = attributes;
-					subscriber.balance = parseInt(document.getElementById("add8").value);
-					subscriber.enabled= document.getElementById("add9").checked;
-					var ajax = document.getElementById("subAddAjax");
-					ajax.body = subscriber;
-					ajax.generateRequest();
-				},
-				_subscriberAddResponse: function(event) {
-					var toast = document.getElementById("toast-success");
-					toast.open();
-					toast.duration = 4;
-					document.getElementById("subAddModal").close();
-					var ajax = document.getElementById("subAddAjax");
-					if (ajax.body.password == undefined || ajax.body.id == undefined) {
-						this.password = ajax.lastResponse.password;
-						this.identity = ajax.lastResponse.id;
-						document.getElementById("subSecretModal").open();
-					}
-					document.getElementById("getSubs").generateRequest();
-				},
-				_onLoadingChanged: function(event) {
-					if (document.getElementById("subAddAjax").loading) {
-						document.getElementById("progress").disabled = false;
-					} else {
-						document.getElementById("progress").disabled = true;
-					}
-				},
-				subcheckboxchanged: function(event) {
-					if (event.target.checked) {
-						document.getElementById("add2").disabled = true;
-					} else {
-						document.getElementById("add2").disabled = false;
-					}
-				},
-				subcheckchanged: function(event) {
-					if (event.target.checked) {
-						document.getElementById("add1").disabled = true;
-					} else {
-						document.getElementById("add1").disabled = false;
-					}
-				},
-				toastErrorClose: function(event) {
-					var toast = document.getElementById("toastError");
-					toast.close();
 				}
+				subscriber.attributes = attributes;
+				subscriber.balance = parseInt(document.getElementById("add8").value);
+				subscriber.enabled= document.getElementById("add9").checked;
+				var ajax = document.getElementById("subAddAjax");
+				ajax.body = subscriber;
+				ajax.generateRequest();
+			},
+			_subscriberAddResponse: function(event) {
+				var toast = document.getElementById("toast-success");
+				toast.open();
+				toast.duration = 4;
+				document.getElementById("subAddModal").close();
+				var ajax = document.getElementById("subAddAjax");
+				if (ajax.body.password == undefined || ajax.body.id == undefined) {
+					this.password = ajax.lastResponse.password;
+					this.identity = ajax.lastResponse.id;
+					document.getElementById("subSecretModal").open();
+				}
+				document.getElementById("getSubs").generateRequest();
+			},
+			_onLoadingChanged: function(event) {
+				if (document.getElementById("subAddAjax").loading) {
+					document.getElementById("progress").disabled = false;
+				} else {
+					document.getElementById("progress").disabled = true;
+				}
+			},
+			subcheckboxchanged: function(event) {
+				if (event.target.checked) {
+					document.getElementById("add2").disabled = true;
+				} else {
+					document.getElementById("add2").disabled = false;
+				}
+			},
+			subcheckchanged: function(event) {
+				if (event.target.checked) {
+					document.getElementById("add1").disabled = true;
+				} else {
+					document.getElementById("add1").disabled = false;
+				}
+			},
+			toastErrorClose: function(event) {
+				var toast = document.getElementById("toastError");
+				toast.close();
 			}
-		);
+		});
 	</script>
 </dom-module>

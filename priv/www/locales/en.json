@@ -89,7 +89,7 @@
   },
   "balance": {
     "description": "Balance for adding subscribers",
-    "message": "Balance (bytes) *"
+    "message": "Balance (bytes)"
   },
   "submit": {
     "description": "Submit button for adding subscribers",
@@ -401,7 +401,7 @@
   },
 	"AddUserTitle": {
     "description": "Title for add User",
-    "message": "Agregar usuario"
+    "message": "Add User"
   },
 	"eng": {
     "description": "Dropdown list item",
@@ -424,11 +424,43 @@
     "message": "Called Station"
   },
    "out": {
-    "description": "out(bytes) for logs",
+    "description": "Out(bytes) for logs",
     "message": "Out (bytes)"
   },
    "in": {
-    "description": "in(bytes) for logs",
+    "description": "In(bytes) for logs",
     "message": "In (bytes)"
+  },
+   "contact": {
+    "description": "Contact us option for users help",
+    "message": "Contact us"
+  },
+   "sendFeed": {
+    "description": "users can send feedback",
+    "message": "Send feedback"
+  },
+   "devDocs": {
+    "description": "Developer Documentation",
+    "message": "API Docs"
+  },
+   "help": {
+    "description": "users can get help",
+    "message": "Help"
+  },
+   "about": {
+    "description": "users can know about us",
+    "message": "About"
+  },
+	"tool": {
+    "description": "user can understand about download and refresh",
+    "message": "Toolbar"
+  },
+	"filt": {
+    "description": "filtering",
+    "message": "Filtering"
+  },
+	"sort": {
+    "description": "sorting",
+    "message": "Sorting"
   }
 }

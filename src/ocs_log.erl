@@ -179,7 +179,7 @@ acct_query(Continuation, Start, End, Types, AttrsMatch) ->
 %% 	All attribute filters must match or the event will be ignored.
 %%
 %% 	`Protocol', `Types', or `AttrsMatch' may be '_' which matches any value.
-%% 
+%%
 %% 	Returns a new `Continuation' and a list of matching accounting events.
 %% 	Successive calls use the new `Continuation' to read more events.
 %%
@@ -190,57 +190,86 @@ acct_query(Continuation, {{_, _, _}, {_, _, _}} = Start,
 acct_query(Continuation, Start, {{_, _, _}, {_, _, _}} = End,
 		Protocol, Types, AttrsMatch) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
-	acct_query(Continuation, Start, Seconds * 1000 + 999, Protocol, Types, AttrsMatch);
-acct_query(Continuation, Start, End, Protocol, Types, AttrsMatch)
+	acct_query(Continuation, Start, Seconds * 1000 + 999,
+			Protocol, Types, AttrsMatch);
+acct_query(start, Start, End, Protocol, Types, AttrsMatch)
 		when is_integer(Start), is_integer(End) ->
 	acct_query(Start, End, Protocol, Types, AttrsMatch,
+			[], disk_log:bchunk(?ACCTLOG, start));
+acct_query(Continuation, Start, End, Protocol, Types, AttrsMatch)
+		when is_integer(Start), is_integer(End) ->
+	acct_query1(Start, End, Protocol, Types, AttrsMatch,
 			disk_log:chunk(?ACCTLOG, Continuation), []).
 
 %% @hidden
-acct_query(_Start, _End, _Protocol, _Types, _AttrsMatch, eof, Acc) ->
-	{eof, lists:reverse(Acc)};
-acct_query(_Start, _End, _Protocol, _Types, _AttrsMatch, {error, Reason}, _Acc) ->
+acct_query(Start, End, Protocol, Types, AttrsMatch,
+		PrevChunk, eof) ->
+	Chunk = [binary_to_term(E) || E <- PrevChunk],
+	acct_query1(Start, End, Protocol, Types, AttrsMatch, {eof, Chunk}, []);
+acct_query(_Start, _End, _Protocol, _Types, _AttrsMatch,
+		_PrevChunk, {error, Reason}) ->
 	{error, Reason};
-acct_query(Start, End, '_', '_', AttrsMatch,
+acct_query(Start, End, Protocol, Types, AttrsMatch,
+		PrevChunk, {Cont, [H | T] = Chunk}) ->
+	case binary_to_term(H) of
+		Event when element(1, Event) >= Start ->
+			NewChunk = [binary_to_term(E) || E <- PrevChunk ++ Chunk],
+			acct_query1(Start, End, Protocol, Types, AttrsMatch,
+					{Cont, NewChunk}, []);
+		_ ->
+			acct_query(Start, End, Protocol, Types, AttrsMatch,
+					T, disk_log:bchunk(?ACCTLOG, Cont))
+	end.
+%% @hidden
+acct_query1(_Start, _End, _Protocol, _Types, _AttrsMatch, eof, Acc) ->
+	{eof, lists:reverse(Acc)};
+acct_query1(_Start, _End, _Protocol, _Types, _AttrsMatch, {error, Reason}, _Acc) ->
+	{error, Reason};
+acct_query1(Start, End, '_', '_', AttrsMatch,
 		{Cont, [{TS, _, _, _, _, _, _} | _] = Chunk}, Acc)
 		when TS >= Start, TS =< End ->
-	acct_query1(Start, End, '_', '_', AttrsMatch, {Cont, Chunk}, Acc, AttrsMatch);
-acct_query(Start, End, Protocol, '_', AttrsMatch,
+	acct_query2(Start, End, '_', '_', AttrsMatch,
+			{Cont, Chunk}, Acc, AttrsMatch);
+acct_query1(Start, End, Protocol, '_', AttrsMatch,
 		{Cont, [{TS, _, Protocol, _, _, _, _} | _] = Chunk}, Acc)
 		when TS >= Start, TS =< End ->
-	acct_query1(Start, End, Protocol, '_', AttrsMatch, {Cont, Chunk}, Acc, AttrsMatch);
-acct_query(Start, End, Protocol, Types, AttrsMatch,
+	acct_query2(Start, End, Protocol, '_', AttrsMatch,
+			{Cont, Chunk}, Acc, AttrsMatch);
+acct_query1(Start, End, Protocol, Types, AttrsMatch,
 		{Cont, [{TS, _, Protocol, _, _, Type, _} | T] = Chunk}, Acc)
 		when TS >= Start, TS =< End ->
 	case lists:member(Type, Types) of
 		true ->
-			acct_query1(Start, End, Protocol, Types, AttrsMatch,
-					{Cont, Chunk}, Acc, AttrsMatch);
+			acct_query2(Start, End, Protocol, Types,
+					AttrsMatch, {Cont, Chunk}, Acc, AttrsMatch);
 		false ->
-			acct_query(Start, End, Protocol, Types, AttrsMatch, {Cont, T}, Acc)
+			acct_query1(Start, End, Protocol, Types,
+					AttrsMatch, {Cont, T}, Acc)
 	end;
-acct_query(Start, End, Protocol, Types, AttrsMatch, {Cont, [_ | T]}, Acc) ->
-	acct_query(Start, End, Protocol, Types, AttrsMatch, {Cont, T}, Acc);
-acct_query(_, _, _, _, _, {Cont, []}, Acc) ->
+acct_query1(Start, End, Protocol, Types, AttrsMatch, {Cont, [_ | T]}, Acc) ->
+	acct_query1(Start, End, Protocol, Types, AttrsMatch, {Cont, T}, Acc);
+acct_query1(_, _, _, _, _, {eof, []}, Acc) ->
+	{eof, lists:reverse(Acc)};
+acct_query1(_, _, _, _, _, {Cont, []}, Acc) ->
 	{Cont, lists:reverse(Acc)}.
 %% @hidden
-acct_query1(Start, End, Protocol, Types, '_', {Cont, [H | T]}, Acc, '_') ->
-	acct_query(Start, End, Protocol, Types, '_', {Cont, T}, [H | Acc]);
-acct_query1(Start, End, Protocol, Types, AttrsMatch,
+acct_query2(Start, End, Protocol, Types, '_', {Cont, [H | T]}, Acc, '_') ->
+	acct_query1(Start, End, Protocol, Types, '_', {Cont, T}, [H | Acc]);
+acct_query2(Start, End, Protocol, Types, AttrsMatch,
 		{Cont, [{_, _, _, _, _, _, Attrs} | T] = Chunk},
 		Acc, [{Attribute, Match} | T1]) ->
 	case lists:keyfind(Attribute, 1, Attrs) of
 		{Attribute, Match} ->
-			acct_query1(Start, End, Protocol, Types, AttrsMatch,
+			acct_query2(Start, End, Protocol, Types, AttrsMatch,
 					{Cont, Chunk}, Acc, T1);
 		{Attribute, _} when Match == '_' ->
-			acct_query1(Start, End, Protocol, Types, AttrsMatch,
+			acct_query2(Start, End, Protocol, Types, AttrsMatch,
 					{Cont, Chunk}, Acc, T1);
 		_ ->
-			acct_query(Start, End, Protocol, Types, AttrsMatch, {Cont, T}, Acc)
+			acct_query1(Start, End, Protocol, Types, AttrsMatch, {Cont, T}, Acc)
 	end;
-acct_query1(Start, End, Protocol, Types, AttrsMatch, {Cont, [H | T]}, Acc, []) ->
-	acct_query(Start, End, Protocol, Types, AttrsMatch, {Cont, T}, [H | Acc]).
+acct_query2(Start, End, Protocol, Types, AttrsMatch, {Cont, [H | T]}, Acc, []) ->
+	acct_query1(Start, End, Protocol, Types, AttrsMatch, {Cont, T}, [H | Acc]).
 
 -spec auth_open() -> Result
 	when
@@ -380,7 +409,7 @@ auth_query(Continuation, Start, End, Types, ReqAttrsMatch, RespAttrsMatch) ->
 %%
 %% 	`Protocol', `Types', `ReqAttrsMatch' `ResAttrsMatch'  may be
 %% 	'_' which matches any value.
-%% 
+%%
 %% 	Returns a new `Continuation' and a list of matching access events.
 %% 	Successive calls use the new `Continuation' to read more events.
 %%
@@ -393,93 +422,121 @@ auth_query(Continuation, {{_, _, _}, {_, _, _}} = Start, End, Protocol,
 auth_query(Continuation, Start, {{_, _, _}, {_, _, _}} = End, Protocol,
 		Types, ReqAttrsMatch, RespAttrsMatch) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
-	auth_query(Continuation, Start, Seconds * 1000 + 999, Protocol, Types,
-			ReqAttrsMatch, RespAttrsMatch);
+	auth_query(Continuation, Start, Seconds * 1000 + 999,
+			Protocol, Types, ReqAttrsMatch, RespAttrsMatch);
+auth_query(start, Start, End, Protocol, Types,
+		ReqAttrsMatch, RespAttrsMatch)
+		when is_integer(Start), is_integer(End) ->
+	auth_query(start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
+			[], disk_log:bchunk(?AUTHLOG, start));
 auth_query(Continuation, Start, End, Protocol, Types,
 		ReqAttrsMatch, RespAttrsMatch)
 		when is_integer(Start), is_integer(End) ->
-	auth_query(Start, End, Protocol, Types, ReqAttrsMatch,
+	auth_query1(Continuation, End, Protocol, Types, ReqAttrsMatch,
 			RespAttrsMatch, disk_log:chunk(?AUTHLOG, Continuation), []).
 
 %% @hidden
-auth_query(_Start, _End, _Protocol, _Types,
-		_ReqAttrsMatch, _RespAttrsMatch, eof, Acc) ->
-	{eof, lists:reverse(Acc)};
-auth_query(_Start, _End, _Protocol, _Types,
-		_ReqAttrsMatch, _RespAttrsMatch, {error, Reason}, _Acc) ->
+auth_query(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
+		PrevChunk, eof) ->
+	Chunk = [binary_to_term(E) || E <- PrevChunk],
+	auth_query1(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
+			{eof, Chunk}, []);
+auth_query(_Start, _End, _Protocol, _Types, _ReqAttrsMatch, _RespAttrsMatch,
+		_PrevChunk, {error, Reason}) ->
 	{error, Reason};
-auth_query(Start, End, '_', '_', ReqAttrsMatch, RespAttrsMatch,
+auth_query(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
+		PrevChunk, {Cont, [H | T] = Chunk}) ->
+	case binary_to_term(H) of
+		Event when element(1, Event) >= Start ->
+			NewChunk = [binary_to_term(E) || E <- PrevChunk ++ Chunk],
+			auth_query1(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
+					{Cont, NewChunk}, []);
+		_ ->
+			auth_query(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
+					T, disk_log:bchunk(?ACCTLOG, Cont))
+	end.
+%% @hidden
+auth_query1(_Start, _End, _Protocol, _Types, _ReqAttrsMatch, _RespAttrsMatch,
+		eof, Acc) ->
+	{eof, lists:reverse(Acc)};
+auth_query1(_Start, _End, _Protocol, _Types, _ReqAttrsMatch, _RespAttrsMatch,
+		{error, Reason}, _Acc) ->
+	{error, Reason};
+%% @hidden
+auth_query1(Start, End, '_', '_', ReqAttrsMatch, RespAttrsMatch,
 		{Cont, [{TS, _, _, _, _, _, _, _, _} | _] = Chunk}, Acc)
 		when TS >= Start, TS =< End ->
-	auth_query1(Start, End, '_', '_', ReqAttrsMatch,
+	auth_query2(Start, End, '_', '_', ReqAttrsMatch,
 			RespAttrsMatch, {Cont, Chunk}, Acc, ReqAttrsMatch);
-auth_query(Start, End, Protocol, '_', ReqAttrsMatch, RespAttrsMatch,
+auth_query1(Start, End, Protocol, '_', ReqAttrsMatch, RespAttrsMatch,
 		{Cont, [{TS, _, Protocol, _, _, _, _, _, _} | _] = Chunk}, Acc)
 		when TS >= Start, TS =< End ->
-	auth_query1(Start, End, Protocol, '_', ReqAttrsMatch,
+	auth_query2(Start, End, Protocol, '_', ReqAttrsMatch,
 			RespAttrsMatch, {Cont, Chunk}, Acc, ReqAttrsMatch);
-auth_query(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
+auth_query1(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
 		{Cont, [{TS, _, Protocol, _, _, _, Type, _, _} | T] = Chunk}, Acc)
 		when TS >= Start, TS =< End ->
 	case lists:member(Type, Types) of
 		true ->
-			auth_query1(Start, End, Protocol, Types, ReqAttrsMatch,
+			auth_query2(Start, End, Protocol, Types, ReqAttrsMatch,
 					RespAttrsMatch, {Cont, Chunk}, Acc, ReqAttrsMatch);
 		false ->
-			auth_query(Start, End, Protocol, Types, ReqAttrsMatch,
+			auth_query1(Start, End, Protocol, Types, ReqAttrsMatch,
 					RespAttrsMatch, {Cont, T}, Acc)
 	end;
-auth_query(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
+auth_query1(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
 		{Cont, [_ | T]}, Acc) ->
-	auth_query(Start, End, Protocol, Types, ReqAttrsMatch,
+	auth_query1(Start, End, Protocol, Types, ReqAttrsMatch,
 			RespAttrsMatch, {Cont, T}, Acc);
-auth_query(_, _, _, _, _, _, {Cont, []}, Acc) ->
+auth_query1(_, _, _, _, _, _, {eof, []}, Acc) ->
+	{eof, lists:reverse(Acc)};
+auth_query1(_, _, _, _, _, _, {Cont, []}, Acc) ->
 	{Cont, lists:reverse(Acc)}.
 %% @hidden
-auth_query1(Start, End, Protocol, Types, '_', RespAttrsMatch,
+auth_query2(Start, End, Protocol, Types, '_', RespAttrsMatch,
 		{Cont, Chunk}, Acc, '_') ->
-	auth_query2(Start, End, Protocol, Types, '_',
+	auth_query3(Start, End, Protocol, Types, '_',
 			RespAttrsMatch, {Cont, Chunk}, Acc, RespAttrsMatch);
-auth_query1(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
+auth_query2(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
 		{Cont, [{_, _, _, _, _, _, _, ReqAttrs, _} | T] = Chunk},
 		Acc, [{Attribute, Match} | T1]) ->
 	case lists:keyfind(Attribute, 1, ReqAttrs) of
 		{Attribute, Match} ->
-			auth_query1(Start, End, Protocol, Types, ReqAttrsMatch,
+			auth_query2(Start, End, Protocol, Types, ReqAttrsMatch,
 					RespAttrsMatch, {Cont, Chunk}, Acc, T1);
 		{Attribute, _} when Match == '_' ->
-			auth_query1(Start, End, Protocol, Types, ReqAttrsMatch,
+			auth_query2(Start, End, Protocol, Types, ReqAttrsMatch,
 					RespAttrsMatch, {Cont, Chunk}, Acc, T1);
 		_ ->
-			auth_query(Start, End, Protocol, Types, ReqAttrsMatch,
+			auth_query1(Start, End, Protocol, Types, ReqAttrsMatch,
 					RespAttrsMatch, {Cont, T}, Acc)
 	end;
-auth_query1(Start, End, Protocol, Types, ReqAttrsMatch,
+auth_query2(Start, End, Protocol, Types, ReqAttrsMatch,
 		RespAttrsMatch, {Cont, Chunk}, Acc, []) ->
-	auth_query2(Start, End, Protocol, Types, ReqAttrsMatch,
+	auth_query3(Start, End, Protocol, Types, ReqAttrsMatch,
 			RespAttrsMatch, {Cont, Chunk}, Acc, RespAttrsMatch).
 %% @hidden
-auth_query2(Start, End, Protocol, Types, ReqAttrsMatch, '_',
+auth_query3(Start, End, Protocol, Types, ReqAttrsMatch, '_',
 		{Cont, [H | T]}, Acc, '_') ->
-	auth_query(Start, End, Protocol, Types, ReqAttrsMatch, '_',
+	auth_query1(Start, End, Protocol, Types, ReqAttrsMatch, '_',
 			{Cont, T}, [H | Acc]);
-auth_query2(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
+auth_query3(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
 		{Cont, [{_, _, _, _, _, _, _, _, RespAttrs} | T] = Chunk},
 		Acc, [{Attribute, Match} | T1]) ->
 	case lists:keyfind(Attribute, 1, RespAttrs) of
 		{Attribute, Match} ->
-			auth_query2(Start, End, Protocol, Types, ReqAttrsMatch,
+			auth_query3(Start, End, Protocol, Types, ReqAttrsMatch,
 					RespAttrsMatch, {Cont, Chunk}, Acc, T1);
 		{Attribute, _} when Match == '_' ->
-			auth_query2(Start, End, Protocol, Types, ReqAttrsMatch,
+			auth_query3(Start, End, Protocol, Types, ReqAttrsMatch,
 					RespAttrsMatch, {Cont, Chunk}, Acc, T1);
 		_ ->
-			auth_query(Start, End, Protocol, Types, ReqAttrsMatch,
+			auth_query1(Start, End, Protocol, Types, ReqAttrsMatch,
 					RespAttrsMatch, {Cont, T}, Acc)
 	end;
-auth_query2(Start, End, Protocol, Types, ReqAttrsMatch,
+auth_query3(Start, End, Protocol, Types, ReqAttrsMatch,
 		RespAttrsMatch, {Cont, [H | T]}, Acc, []) ->
-	auth_query(Start, End, Protocol, Types, ReqAttrsMatch,
+	auth_query1(Start, End, Protocol, Types, ReqAttrsMatch,
 			RespAttrsMatch, {Cont, T}, [H | Acc]).
 
 -spec auth_close() -> Result
@@ -1003,17 +1060,21 @@ start_binary_tree(_, _, _, _, _, _, _, _, {error, Reason}) ->
 %% @private
 %% @hidden
 get_range(Log, Start, End, Cont) ->
-	get_range(Log, Start, End, [], disk_log:chunk(Log, Cont)).
+	get_range(Log, Start, End, [], disk_log:bchunk(Log, Cont)).
 %% @hidden
 get_range(_Log, _Start, _End, _PrevChunk, {error, Reason}) ->
 	{error, Reason};
 get_range(Log, Start, End, PrevChunk, eof) ->
-	get_range1(Log, Start, End, {eof, PrevChunk}, []);
-get_range(Log, Start, End, _PrevChunk, {Cont, [H | T]})
-		when element(1, H) < Start ->
-	get_range(Log, Start, End, T, disk_log:chunk(Log, Cont));
-get_range(Log, Start, End, PrevChunk, {Cont, Chunk}) ->
-	get_range1(Log, Start, End, {Cont, PrevChunk ++ Chunk}, []).
+	Chunk = [binary_to_term(E) || E <- PrevChunk],
+	get_range1(Log, Start, End, {eof, Chunk}, []);
+get_range(Log, Start, End, PrevChunk, {Cont, [H | T] = Chunk}) ->
+	case binary_to_term(H) of
+		Event when element(1, Event) < Start ->
+			get_range(Log, Start, End, T, disk_log:bchunk(Log, Cont));
+		_Event ->
+			NewChunk = [binary_to_term(E) || E <- PrevChunk ++ Chunk],
+			get_range1(Log, Start, End, {Cont, NewChunk}, [])
+	end.
 %% @hidden
 get_range1(Log, Start, End, {Cont, Chunk}, Acc) ->
 	Fstart = fun(R) when element(1, R) < Start ->
@@ -1023,11 +1084,6 @@ get_range1(Log, Start, End, {Cont, Chunk}, Acc) ->
 	end,
 	NewChunk = lists:dropwhile(Fstart, Chunk),
 	get_range2(Log, End, {Cont, NewChunk}, Acc).
-%% @hidden
-get_range2(_Log, _End, eof, Acc) ->
-	lists:flatten(lists:reverse(Acc));
-get_range2(_Log, _End, {error, Reason}, _Acc) ->
-	{error, Reason};
 get_range2(Log, End, {Cont, Chunk}, Acc) ->
 	Fend = fun(R) when element(1, R) =< End ->
 				true;

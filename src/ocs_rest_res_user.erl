@@ -21,18 +21,23 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0, get_params/0,
-		get_user/1, get_user/0, post_user/1, put_user/3, delete_user/1]).
+		get_user/1, get_user/0, post_user/1, put_user/3, patch_user/4,
+		delete_user/1]).
 
 -include_lib("radius/include/radius.hrl").
 -include_lib("inets/include/mod_auth.hrl").
 -include("ocs.hrl").
+
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
 
 -spec content_types_accepted() -> ContentTypes
 	when
 		ContentTypes :: list().
 %% @doc Provides list of resource representations accepted.
 content_types_accepted() ->
-	["application/json"].
+	["application/json", "application/json-patch+json"].
 
 -spec content_types_provided() -> ContentTypes
 	when
@@ -48,17 +53,15 @@ content_types_provided() ->
 %% @doc Body producing function for `GET /partyManagement/v1/individual'
 %% requests.
 get_user() ->
-	{Port, Address, Directory, _Group} = get_params(),
-	case mod_auth:list_users(Address, Port, Directory) of
+	case ocs:list_users() of
 		{error, _} ->
 			{error, 500};
 		{ok, Users} ->
-			get_user1(Users, Address, Port, [])
+			get_user1(Users, [])
 	end.
 %% @hidden
-get_user1([H | T], Address, Port, Acc) ->
-	{Port, Address, Directory, _Group} = get_params(),
-	case mod_auth:get_user(H, Address, Port, Directory) of
+get_user1([H | T], Acc) ->
+	case ocs:get_user(H) of
 		{ok, #httpd_user{username = Id, user_data = UserData}} ->
 			Identity = {struct, [{"name", "username"}, {"value", Id}]},
 			Characteristic = case lists:keyfind(locale, 1, UserData) of
@@ -71,11 +74,11 @@ get_user1([H | T], Address, Port, Acc) ->
 			RespObj = [{"id", Id}, {"href", "/partyManagement/v1/individual/" ++ Id},
 				{"characteristic", Characteristic}],
 			JsonObj  = {struct, RespObj},
-			get_user1(T, Address, Port, [JsonObj | Acc]);
+			get_user1(T, [JsonObj | Acc]);
 		{error, _Reason} ->
-			get_user1(T, Address, Port, Acc)
+			get_user1(T, Acc)
 	end;
-get_user1([], _Address, _Port, Acc) ->
+get_user1([], Acc) ->
 	Body = mochijson:encode({array, lists:reverse(Acc)}),
 	Headers = [{content_type, "application/json"}],
 	{ok, Headers, Body}.
@@ -88,19 +91,23 @@ get_user1([], _Address, _Port, Acc) ->
 %% @doc Body producing function for `GET /partyManagement/v1/individual/{id}'
 %% requests.
 get_user(Id) ->
-	{Port, Address, Directory, _Group} = get_params(),
-	case mod_auth:get_user(Id, Address, Port, Directory) of
-		{ok, #httpd_user{username = Id, password = Password, user_data = UserData}} ->
+	case ocs:get_user(Id) of
+		{ok, #httpd_user{username = Id, user_data = UserData}} ->
 			Identity = {struct, [{"name", "username"}, {"value", Id}]},
-			PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
 			Characteristic = case lists:keyfind(locale, 1, UserData) of
 				{_, Lang} ->
 					LocaleAttr = {struct, [{"name", "locale"}, {"value", Lang}]},
-					{array, [PasswordAttr, LocaleAttr, Identity]};
+					{array, [Identity, LocaleAttr]};
 				false ->
-					{array, [PasswordAttr]}
+					LocaleAttr = {struct, [{"name", "locale"}, {"value", "en"}]},
+					{array, [Identity, LocaleAttr]}
 			end,
-			LastModified = lists:keyfind(last_modified, 1, UserData),
+			LastModified = case lists:keyfind(last_modified, 1, UserData) of
+				{_, LM} ->
+					LM;
+				false ->
+					{erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])}
+			end,
 			RespObj = [{"id", Id}, {"href", "/partyManagement/v1/individual/" ++ Id},
 				{"characteristic", Characteristic}],
 			JsonObj  = {struct, RespObj},
@@ -119,38 +126,35 @@ get_user(Id) ->
 %% @doc Respond to `POST /partyManagement/v1/individual' and add a new `User'
 %% resource.
 post_user(RequestBody) ->
-	{Port, Address, Directory, Group} = get_params(),
 	try
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, ID} = lists:keyfind("id", 1, Object),
 		{_, {array, Characteristic}} = lists:keyfind("characteristic", 1, Object),
-			F1 = fun(_F, [{struct, [{"name", "password"}, {"value", Pass}]} | _]) ->
-						Pass;
-					(_F, [{struct, [{"value", Pass}, {"name", "password"}]} | _]) ->
-						Pass;
-					(F, [_ | T]) ->
-						F(F,T)
-			end,
+		F1 = fun(_F, [{struct, [{"name", "password"}, {"value", Pass}]} | _]) ->
+					Pass;
+				(_F, [{struct, [{"value", Pass}, {"name", "password"}]} | _]) ->
+					Pass;
+				(F, [_ | T]) ->
+					F(F,T)
+		end,
 		Password = F1(F1, Characteristic),
-			F2 = fun(_F, [{struct, [{"name", "locale"}, {"value", Locale}]} | _]) ->
-						Locale;
-					(_F, [{struct, [{"value", Locale}, {"name", "locale"}]} | _]) ->
-						Locale;
-					(F, [_ | T]) ->
-						F(F,T)
-			end,
+		F2 = fun(_F, [{struct, [{"name", "locale"}, {"value", Locale}]} | _]) ->
+					Locale;
+				(_F, [{struct, [{"value", Locale}, {"name", "locale"}]} | _]) ->
+					Locale;
+				(F, [_ | T]) ->
+					F(F,T)
+		end,
 		Locale = F2(F2, Characteristic),
-		LastModified = {erlang:system_time(milli_seconds),
-				erlang:unique_integer([positive])},
-		case mod_auth:add_user(ID, Password, [{locale, Locale},
-				{last_modified, LastModified}] , Address, Port, Directory) of
-			true ->
-				case mod_auth:add_group_member(Group, ID, Address, Port, Directory) of
+		case ocs:add_user(ID, Password, [{locale, Locale}]) of
+			{ok, LastModified} ->
+				case ocs:add_group_member(ID) of
 					true ->
 						Location = "/partyManagement/v1/individual/" ++ ID,
-						PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
+						IDAttr = {struct, [{"name", "username"}, {"value", ID}]},
+						PWDAttr = {struct, [{"name", "password"}, {"value", Password}]},
 						LocaleAttr = {struct, [{"name", "locale"}, {"value", Locale}]},
-						Char = {array, [PasswordAttr, LocaleAttr]},
+						Char = {array, [IDAttr, PWDAttr, LocaleAttr]},
 						RespObj = [{"id", ID}, {"href", Location}, {"characteristic", Char}],
 						JsonObj  = {struct, RespObj},
 						Body = mochijson:encode(JsonObj),
@@ -186,7 +190,6 @@ put_user(ID, Etag, RequestBody) ->
 	end.
 %% @hidden
 put_user1(ID, Etag, RequestBody) ->
-	{Port, _Address, Directory, _Group} = get_params(),
 	try
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, ID} = lists:keyfind("id", 1, Object),
@@ -217,7 +220,7 @@ put_user1(ID, Etag, RequestBody) ->
 			{Password, Locale} when is_list(Password) ->
 				put_user2(ID, Etag, Password, Locale);
 			{undefined, Locale} when is_list(Locale) ->
-				case mod_auth:get_user(ID, Port, Directory) of
+				case ocs:get_user(ID) of
 					{ok, #httpd_user{password = OPassword}} ->
 						put_user2(ID, Etag, OPassword, Locale);
 					{error, no_such_user} ->
@@ -234,8 +237,7 @@ put_user1(ID, Etag, RequestBody) ->
 put_user2(ID, Etag, Password, undefined) ->
 	put_user2(ID, Etag, Password, "en");
 put_user2(ID, Etag, Password, Locale) ->
-	{Port, Address, Directory, _} = get_params(),
-	case mod_auth:get_user(ID, Address, Port, Directory) of
+	case ocs:get_user(ID) of
 		{ok, #httpd_user{user_data = Data}} ->
 			case lists:keyfind(last_modified, 1, Data) of
 				{_, LastModified} when Etag == undefined; Etag == LastModified ->
@@ -250,11 +252,10 @@ put_user2(ID, Etag, Password, Locale) ->
 	end.
 %% @hidden
 put_user3(ID, Password, Locale) ->
-	{Port, Address, Directory, _Group} = get_params(),
-	case mod_auth:delete_user(ID, Address, Port, Directory) of
+	case ocs:delete_user(ID) of
 		true ->
-			case mod_auth:add_user(ID, Password, [{locale, Locale}] , Address, Port, Directory) of
-				true ->
+			case ocs:add_user(ID, Password, [{locale, Locale}]) of
+				{ok, LM} ->
 					Location = "/partyManagement/v1/individual/" ++ ID,
 					PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
 					LocaleAttr = {struct, [{"name", "locale"}, {"value", Locale}]},
@@ -262,7 +263,7 @@ put_user3(ID, Password, Locale) ->
 					RespObj = [{"id", ID}, {"href", Location}, {"characteristic", Char}],
 					JsonObj  = {struct, RespObj},
 					Body = mochijson:encode(JsonObj),
-					Headers = [{location, Location}],
+					Headers = [{location, Location}, {etag, etag(LM)}],
 					{ok, Headers, Body};
 				{error, _Reason} ->
 					{error, 500}
@@ -270,6 +271,63 @@ put_user3(ID, Password, Locale) ->
 		{error, _Reason} ->
 			{error, 500}
 	end.
+
+-spec patch_user(ID, Etag, ContenType, ReqBody) -> Result
+	when
+		ID :: string(),
+		Etag :: undefined | list(),
+		ContenType :: string(),
+		ReqBody :: list(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()} .
+%% @doc	Respond to `PATCH /partyManagement/v1/individual/{id}' request and
+%% update an existing `user's characteristics.
+patch_user(ID, undefined, CType, ReqBody) ->
+	patch_user1(ID, undefined, CType, ReqBody);
+patch_user(ID, Etag, CType, ReqBody) ->
+	try
+		Etag1 = etag(Etag),
+		patch_user1(ID, Etag1, CType, ReqBody)
+	catch
+		_:_Reason ->
+			{error, 400}
+	end.
+%% @hidden
+patch_user1(ID, Etag, CType, ReqBody) ->
+	try
+		{array, Ops} = mochijson:decode(ReqBody),
+		case process_json_patch(Ops, ID) of
+			{error, Code} ->
+				{error, Code};
+			{ID, Password, Locale, LM} ->
+				case LM of
+					LM when Etag == LM; Etag == undefined->
+						patch_user2(ID, CType, Password, Locale);
+					_ ->
+						{error, 412}
+				end
+		end
+	catch
+		_:_Reason ->
+			{error, 400}
+	end.
+%% @hidden
+patch_user2(ID, "application/json-patch+json", Password, Locale) ->
+	case ocs:delete_user(ID) of
+		true ->
+			UserData = [{locale, Locale}],
+			case ocs:add_user(ID, Password, UserData) of
+				{ok, LM} ->
+					Location = "/partyManagement/v1/individual/" ++ ID,
+					Headers = [{location, Location}, {etag, etag(LM)}],
+					{ok, Headers, []};
+				{error, _Reason} ->
+					{error, 500}
+			end;
+		{error, _Reason} ->
+			{error, 500}
+	end.
+
 
 -spec delete_user(Id) -> Result
 	when
@@ -279,13 +337,12 @@ put_user3(ID, Password, Locale) ->
 %% @doc Respond to `DELETE /ocs/v1/subscriber/{id}' request and deletes
 %% a `subscriber' resource. If the deletion is succeeded return true.
 delete_user(Id) ->
-	{Port, Address, Directory, _Group} = get_params(),
-	case mod_auth:delete_user(Id, Address, Port, Directory) of
+	case ocs:delete_user(Id) of
 		true ->
 			{ok, [], []};
 		{error, _Reason} ->
 			{error, 400}
-	end.        
+	end.
 
 %%----------------------------------------------------------------------
 %%  internal functions
@@ -322,4 +379,75 @@ etag(V) when is_list(V) ->
 etag(V) when is_tuple(V) ->
 	{TS, N} = V,
 	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
+
+-spec process_json_patch(Operations, ID) -> Result
+	when
+		Operations :: [{struct, OpObject}],
+		ID :: string(),
+		OpObject :: [{Key, Value}],
+		Key :: term(),
+		Value :: term(),
+		Result :: {Username, Password, Locale, LastModified} | {error, Code},
+		Username :: string(),
+		Password :: string(),
+		Locale :: string(),
+		LastModified :: {integer(), integer()},
+		Code :: integer().
+%% @doc Process a json-patch document and return list of characteristics
+%% for a user .
+%% @hidden
+process_json_patch(Ops, ID) ->
+	process_json_patch1(Ops, ID, []).
+%% @hidden
+process_json_patch1([{struct, Attr}| T], ID, Acc) ->
+	case {lists:keyfind("op", 1, Attr), lists:keyfind("path", 1, Attr)} of
+		{{_, "replace"}, {_, "/characteristic/" ++ _}} ->
+			ok;
+		{{_, "add"}, {_, "/characteristic/-"}} ->
+			ok
+	end,
+	{_, {struct, Value}} = lists:keyfind("value", 1, Attr),
+	case lists:keyfind("name", 1, Value) of
+		{_, "password"} ->
+			{_, NewPassword} = lists:keyfind("value", 1, Value),
+			process_json_patch1(T, ID, [{"password", NewPassword} | Acc]);
+		{_, "locale"} ->
+			{_, NewLocale} = lists:keyfind("value", 1, Value),
+			process_json_patch1(T, ID, [{"locale", NewLocale} | Acc]);
+		false ->
+			process_json_patch1(T, ID, Acc)
+	end;
+process_json_patch1([], ID, Acc) ->
+	case ocs:get_user(ID) of
+		{ok, #httpd_user{password = OPassword, user_data = UserData}} ->
+			LastModified = case lists:keyfind(last_modified, 1, UserData) of
+				{_, LM} ->
+					LM;
+				false ->
+					{erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])}
+			end,
+			OLocale = case lists:keyfind(locale, 1, UserData) of
+				{_, Loc} ->
+					Loc;
+				false ->
+					"en"
+			end,
+			Password = case lists:keyfind("password", 1, Acc) of
+				false ->
+					OPassword;
+				{_, NewPassword} ->
+					NewPassword
+			end,
+			Locale = case lists:keyfind("locale", 1, Acc) of
+				false ->
+					OLocale;
+				{_, NewLocale} ->
+					NewLocale
+			end,
+			{ID, Password, Locale, LastModified};
+		{error, no_such_user} ->
+			{error, 404};
+		{error, _Reason} ->
+			{error, 500}
+	end.
 

@@ -50,21 +50,24 @@ modhtml = ocs.html \
 			ocs_log_rotate_server.html \
 			ocs_eap_pwd.html \
 			ocs_eap_tls_transport.html \
+			ocs_rest.html \
 			ocs_rest_res_subscriber.html \
 			ocs_rest_res_client.html \
 			ocs_rest_res_usage.html \
+			ocs_rest_res_user.html \
 			ocs_rest_res_access.html \
 			ocs_rest_res_accounting.html \
 			ocs_rest_res_balance.html \
 			ocs_rest_res_http.html \
-			mod_ocs_rest_lang.html \
 			ocs_rest_page_sup.html \
 			ocs_rest_page_server.html \
+			mod_ocs_rest_lang.html \
 			mod_ocs_rest_accepted_content.html \
 			mod_ocs_rest_delete.html \
 			mod_ocs_rest_get.html \
 			mod_ocs_rest_patch.html \
-			mod_ocs_rest_post.html
+			mod_ocs_rest_post.html \
+			mod_ocs_rest_put.html
 
 doc_DATA = overview.edoc $(modhtml) \
 		modules-frame.html overview-summary.html \

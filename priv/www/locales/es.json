@@ -97,7 +97,7 @@
   },
   "balance": {
     "description": "Balance for adding subscribers", 
-    "message": "Equilibrio (bytes) *"
+    "message": "Equilibrio (bytes)"
   },
   "submit": {
     "description": "Submit button for adding subscribers", 
@@ -429,10 +429,42 @@
   },
 	"out": {
     "description": "out(bytes) for logs",
-    "message": "Fuera(Bytes)"
+    "message": "Fuera (bytes)"
   },
 	"in": {
     "description": "in(bytes) for logs",
-    "message": "En(Bytes)"
+    "message": "En (bytes)"
+  },
+	"contact": {
+    "description": "Contact us option for users help",
+    "message": "Contáctenos"
+  },
+	"sendFeed": {
+    "description": "users can send feedbacks",
+    "message": "Enviar comentarios"
+  },
+   "devDocs": {
+    "description": "Developer Documentation",
+    "message": "API Docs"
+  },
+	"help": {
+    "description": "users can get help",
+    "message": "Ayuda"
+  },
+	"about": {
+    "description": "users can know about us",
+    "message": "Acerca de"
+  },
+	"tool": {
+    "description": "user can understand about download and refresh",
+    "message": "Barra de herramientas"
+  },
+   "filt": {
+    "description": "filtering",
+    "message": "Filtración"
+  },
+	"sort": {
+    "description": "sorting",
+    "message": "Clasificación"
   }
 }

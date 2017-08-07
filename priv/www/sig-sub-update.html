@@ -2,6 +2,7 @@
 <link rel="import" href="i18n-msg/i18n-msg.html">
 <link rel="import" href="i18n-msg/i18n-msg-behavior.html">
 <link rel="import" href="paper-dialog/paper-dialog.html">
+<link rel="import" href="paper-toolbar/paper-toolbar.html">
 <link rel="import" href="paper-tabs/paper-tabs.html">
 <link rel="import" href="paper-tooltip/paper-tooltip.html">
 <link rel="import" href="paper-button/paper-button.html">
@@ -14,8 +15,11 @@
 <dom-module id="sig-sub-update">
 	<style is="custom-style">
 		paper-dialog {
-			width: 60%;
 			overflow: auto;
+		}
+		paper-toolbar {
+			margin-top: 0px;
+			background-color: #bc5100;
 		}
 		paper-input {
 			--paper-input-container-focus-color: var(--paper-yellow-900);
@@ -31,10 +35,6 @@
 		.cancel-btn {
 			color: black;
 		}
-		paper-tab.iron-selected {
-			background-color: #bc5100;
-			color: white;
-		}
 		paper-toggle-button {
 			--paper-toggle-button-checked-bar-color: #ffb04c;
 			--paper-toggle-button-checked-button-color: var(--paper-yellow-900);
@@ -42,14 +42,16 @@
 	</style>
 	<template>
 		<paper-dialog id="subUpdateModal" modal>
-			<paper-tabs selected="{{selected}}" autoselect>
-				<paper-tab id="authen">
-					<h2>[[i18n.AuthTitle]]</h2>
-				</paper-tab>
-				<paper-tab id="autho">
-					<h2>[[i18n.AuthorTitle]]</h2>
-				</paper-tab>
-			</paper-tabs>
+			<paper-toolbar>
+				<paper-tabs selected="{{selected}}" autoselect>
+					<paper-tab id="authen">
+						<h2>[[i18n.AuthTitle]]</h2>
+					</paper-tab>
+					<paper-tab id="autho">
+						<h2>[[i18n.AuthorTitle]]</h2>
+					</paper-tab>
+				</paper-tabs>
+			</paper-toolbar>
 			<paper-tooltip for="authen">
 				<i18n-msg msgid="AuthTooltip">
 					Credentials used to authenticate subscriber.
@@ -239,101 +241,96 @@
 		</iron-ajax>
 	</template>
 	<script>
-		Polymer (
-			{
-				is: 'sig-sub-update',
-				behaviors: [i18nMsgBehavior],
-				properties: {
-					selected: {
-						type: Number,
-						value: 0
-					}
-				},
-				updateSubAuthen: function(event) {
-					var editAjax =  document.getElementById("updateSubAuthen");
-					editAjax.method = "PATCH";
-					editAjax.contentType = "application/json";
-					var id = document.getElementById("edit-id1").value;
-					editAjax.url = "/ocs/v1/subscriber/" + id;
-					var sub = new Object();
-					sub.update = "password";
-					sub.newpassword = document.getElementById("edit-new-pwd").value;
-					editAjax.body = sub;
-					editAjax.generateRequest();
-				},
-				updateSubAuthenResponse: function (event) {
-					if(event.detail.succeeded) {
-						document.getElementById("edit-toast").open();
-						document.getElementById("edit-new-pwd").value = "";
-						var getSubsAjax = document.getElementById("getSubs");
-						getSubsAjax.generateRequest();
-					} else {
-						console.log("Not Success");
-					}
-				},
-				updateSubAutho: function(event) {
-					var editAjax =  document.getElementById("updateSubAutho");
-					editAjax.method = "PATCH";
-					editAjax.contentType = "application/json";
-					var id = document.getElementById("edit-id2").value;
-					editAjax.url = "/ocs/v1/subscriber/" + id;
-					var sub = new Object();
-					sub.update = "attributes";
-					sub.balance= parseInt(document.getElementById("edit-balance").value);
-					var attr = new Array();
-					var ascendDataRate = new Object();
-					ascendDataRate.name = "ascendDataRate";
-					ascendDataRate.value = parseInt(document.getElementById("edit-recv-data-rate").value);
-					attr[0] = ascendDataRate;
-					var ascendXmitRate = new Object();
-					ascendXmitRate.name = "ascendXmitRate";
-					ascendXmitRate.value = parseInt(document.getElementById("edit-trans-data-rate").value);
-					attr[1] = ascendXmitRate;
-					var sessionTimeout = new Object();
-					sessionTimeout.name = "sessionTimeout";
-					sessionTimeout.value = parseInt(document.getElementById("edit-sess-timeout").value);
-					attr[2] = sessionTimeout;
-					var acctInterimInterval = new Object();
-					acctInterimInterval.name = "acctInterimInterval";
-					acctInterimInterval.value = parseInt(document.getElementById("edit-update-interval").value);
-					attr[3] = acctInterimInterval;
-					var classx = new Object();
-					classx.name = "class";
-					if(document.getElementById("edit-class").value == undefined) {
-						classx.value = null;
-					} else {
-						classx.value = document.getElementById("edit-class").value;
-					}
-					attr[4] = classx;
-					sub.attributes = attr;
-					sub.enabled= document.getElementById("edit-enabled").checked;
-					editAjax.body = sub;
-					editAjax.generateRequest();
-				},
-				updateSubAuthoResponse: function (event) {
-					if(event.detail.succeeded) {
-						document.getElementById("edit-toast").open();
-						var getSubsAjax = document.getElementById("getSubs");
-						getSubsAjax.generateRequest();
-					} else {
-						console.log("Not Success");
-					}
-				},
-				deleteSub: function(event) {
-					var grid = document.getElementById("subscriberGrid");
-					var selection = grid.selectedItems[0];
-					var deleteAjax = document.getElementById("deleteSub");
-					deleteAjax.method = "DELETE";
-					deleteAjax.url = "/ocs/v1/subscriber/" + selection.id;
-					deleteAjax.generateRequest();
-				},
-				deleteSubResponse: function(event) {
-					document.getElementById("subUpdateModal").close();
-					document.getElementById("delete-toast").open();
-					var getSubsAjax = document.getElementById("getSubs");
-					getSubsAjax.generateRequest();
+		Polymer ({
+			is: 'sig-sub-update',
+			behaviors: [i18nMsgBehavior],
+			properties: {
+				selected: {
+					type: Number,
+					value: 0
 				}
+			},
+			updateSubAuthen: function(event) {
+				var editAjax =  document.getElementById("updateSubAuthen");
+				editAjax.method = "PATCH";
+				editAjax.contentType = "application/json";
+				var id = document.getElementById("edit-id1").value;
+				editAjax.url = "/ocs/v1/subscriber/" + id;
+				var sub = new Object();
+				sub.update = "password";
+				sub.newpassword = document.getElementById("edit-new-pwd").value;
+				editAjax.body = sub;
+				editAjax.generateRequest();
+			},
+			updateSubAuthenResponse: function (event) {
+				if(event.detail.succeeded) {
+					document.getElementById("edit-toast").open();
+					document.getElementById("edit-new-pwd").value = "";
+					document.getElementById("getSubs").generateRequest();
+				} else {
+					console.log("Not Success");
+				}
+			},
+			updateSubAutho: function(event) {
+				var editAjax =  document.getElementById("updateSubAutho");
+				editAjax.method = "PATCH";
+				editAjax.contentType = "application/json";
+				var id = document.getElementById("edit-id2").value;
+				editAjax.url = "/ocs/v1/subscriber/" + id;
+				var sub = new Object();
+				sub.update = "attributes";
+				sub.balance= parseInt(document.getElementById("edit-balance").value);
+				var attr = new Array();
+				var ascendDataRate = new Object();
+				ascendDataRate.name = "ascendDataRate";
+				ascendDataRate.value = parseInt(document.getElementById("edit-recv-data-rate").value);
+				attr[0] = ascendDataRate;
+				var ascendXmitRate = new Object();
+				ascendXmitRate.name = "ascendXmitRate";
+				ascendXmitRate.value = parseInt(document.getElementById("edit-trans-data-rate").value);
+				attr[1] = ascendXmitRate;
+				var sessionTimeout = new Object();
+				sessionTimeout.name = "sessionTimeout";
+				sessionTimeout.value = parseInt(document.getElementById("edit-sess-timeout").value);
+				attr[2] = sessionTimeout;
+				var acctInterimInterval = new Object();
+				acctInterimInterval.name = "acctInterimInterval";
+				acctInterimInterval.value = parseInt(document.getElementById("edit-update-interval").value);
+				attr[3] = acctInterimInterval;
+				var classx = new Object();
+				classx.name = "class";
+				if(document.getElementById("edit-class").value == undefined) {
+					classx.value = null;
+				} else {
+					classx.value = document.getElementById("edit-class").value;
+				}
+				attr[4] = classx;
+				sub.attributes = attr;
+				sub.enabled= document.getElementById("edit-enabled").checked;
+				editAjax.body = sub;
+				editAjax.generateRequest();
+			},
+			updateSubAuthoResponse: function (event) {
+				if(event.detail.succeeded) {
+					document.getElementById("edit-toast").open();
+					document.getElementById("getSubs").generateRequest();
+				} else {
+					console.log("Not Success");
+				}
+			},
+			deleteSub: function(event) {
+				var grid = document.getElementById("subscriberGrid");
+				var selection = grid.selectedItems[0];
+				var deleteAjax = document.getElementById("deleteSub");
+				deleteAjax.method = "DELETE";
+				deleteAjax.url = "/ocs/v1/subscriber/" + selection.id;
+				deleteAjax.generateRequest();
+			},
+			deleteSubResponse: function(event) {
+				document.getElementById("subUpdateModal").close();
+				document.getElementById("delete-toast").open();
+				document.getElementById("getSubs").generateRequest();
 			}
-		);
+		});
 	</script>
 </dom-module>

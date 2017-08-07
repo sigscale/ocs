@@ -56,7 +56,9 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 					case proplists:get_value(response, Data) of
 						undefined ->
 							{_, Resource} = lists:keyfind(resource, 1, Data),
-							content_type_available(Headers, Body, Uri, Resource, ModData);
+							{_, ContentType} = lists:keyfind(content_type, 1, Data),
+							content_type_available(Headers, ContentType, Body, Uri,
+									Resource, ModData);
 						_Response ->
 							{proceed,  Data}
 					end
@@ -66,20 +68,21 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 	end.
 
 %% @hidden
-content_type_available(Headers, Body, Uri, Resource, ModData) ->
+content_type_available(Headers, ContentType, Body, Uri, Resource, ModData) ->
 	case lists:keyfind("accept", 1, Headers) of
 		{_, RequestingType} ->
 			AvailableTypes = Resource:content_types_provided(),
 			case lists:member(RequestingType, AvailableTypes) of
 				true ->
 					Etag = get_etag(Headers),
-					do_patch(Body, Resource, ModData, Etag, string:tokens(Uri, "/"));
+					do_patch(ContentType, Body, Resource, ModData, Etag,
+							string:tokens(Uri, "/"));
 				false ->
 					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
 					{break, [{response, {415, Response}}]}
 			end;
 		_ ->
-			do_patch(Uri, Body, Resource, undefined, ModData)
+			do_patch(ContentType, Uri, Body, Resource, undefined, ModData)
 	end.
 
 %% @hidden
@@ -92,15 +95,27 @@ get_etag(Headers) ->
 	end.
 
 %% @hidden
-do_patch(Body, Resource, ModData, Etag, ["ocs", "v1", "client", Identity]) ->
-	do_response(ModData, Resource:patch_client(Identity, Etag, Body));
-do_patch(Body, Resource, ModData, Etag, ["ocs", "v1", "subscriber", Identity]) ->
-	do_response(ModData, Resource:patch_subscriber(Identity, Etag, Body));
-do_patch(_Body, _Resource, _ModData, _, _) ->
+do_patch(ContentType, Body, Resource, ModData, Etag,
+		["ocs", "v1", "client", Identity]) ->
+	do_response(ModData, Resource:patch_client(Identity, Etag, ContentType, Body));
+do_patch(ContentType, Body, Resource, ModData, Etag,
+		["ocs", "v1", "subscriber", Identity]) ->
+	do_response(ModData, Resource:patch_subscriber(Identity, Etag, ContentType,
+			Body));
+do_patch(ContentType, Body, Resource, ModData, Etag,
+		["partyManagement", "v1", "individual", Identity]) ->
+	do_response(ModData, Resource:patch_user(Identity, Etag, ContentType,
+			Body));
+do_patch(_, _, _, _, _, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{break, [{response, {404, Response}}]}.
 
 %% @hidden
+do_response(ModData, {ok, Headers, []}) ->
+	Size = integer_to_list(iolist_size([])),
+	NewHeaders = [{content_length, Size} | Headers],
+	send(ModData, 204, NewHeaders, []),
+	{proceed,[{response,{already_sent,200, Size}}]};
 do_response(ModData, {ok, Headers, ResponseBody}) ->
 	Size = integer_to_list(iolist_size(ResponseBody)),
 	NewHeaders = [{content_length, Size} | Headers],
@@ -112,9 +127,15 @@ do_response(_ModData, {error, 400}) ->
 do_response(_ModData, {error, 404}) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{break, [{response, {404, Response}}]};
+do_response(_ModData, {error, 409}) ->
+	Response = "<h2>HTTP Error 409 - Conflict</h2>",
+	{break, [{response, {409, Response}}]};
 do_response(_ModData, {error, 412}) ->
 	Response = "<h2>HTTP Error 412 - Precondition Failed</h2>",
 	{break, [{response, {412, Response}}]};
+do_response(_ModData, {error, 422}) ->
+	Response = "<h2>HTTP Error 422  - Unprocessable Entity</h2>",
+	{break, [{response, {422, Response}}]};
 do_response(_ModData, {error, 500}) ->
 	Response = "<h2>HTTP Error 500 - Server Error</h2>",
 	{break, [{response, {500, Response}}]}.

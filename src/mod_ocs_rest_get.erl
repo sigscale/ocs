@@ -96,14 +96,14 @@ parse_query(_R, _P, _Q) ->
 	{break, [{response, {404, Response}}]}.
 
 %% @hidden
-do_get(Resource, ModData, ["ocs", "v1", "client"], []) ->
-	do_response(ModData, Resource:get_client());
-do_get(Resource, ModData, ["ocs", "v1", "client", Id], []) ->
-	do_response(ModData, Resource:get_client(Id));
-do_get(Resource, ModData, ["ocs", "v1", "subscriber"], []) ->
-	do_response(ModData, Resource:get_subscriber());
-do_get(Resource, ModData, ["ocs", "v1", "subscriber", Id], []) ->
-	do_response(ModData, Resource:get_subscriber(Id));
+do_get(Resource, ModData, ["ocs", "v1", "client"], Query) ->
+	do_response(ModData, Resource:get_clients(Query));
+do_get(Resource, ModData, ["ocs", "v1", "client", Id], Query) ->
+	do_response(ModData, Resource:get_client(Id, Query));
+do_get(Resource, ModData, ["ocs", "v1", "subscriber"], Query) ->
+	do_response(ModData, Resource:get_subscribers(Query));
+do_get(Resource, ModData, ["ocs", "v1", "subscriber", Id], Query) ->
+	do_response(ModData, Resource:get_subscriber(Id, Query));
 do_get(Resource, ModData, ["usageManagement", "v1", "usage"], Query) ->
 	do_response(ModData, Resource:get_usage(Query));
 do_get(Resource, ModData, ["usageManagement", "v1", "usage", Id], Query) ->

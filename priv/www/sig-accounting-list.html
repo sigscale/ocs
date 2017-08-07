@@ -115,59 +115,57 @@
 		</iron-ajax>
 	</template>
 	<script>
-		Polymer (
-			{
-				is: 'sig-accounting-list',
-				behaviors: [i18nMsgBehavior],
-				responseHandler: function(event) {
-					var grid = this.$.accountingGrid;
-					var results = event.detail.xhr.response;
-					var vaadinItems = new Array();
-					for(var index in results){
-						var newRecord = new Object();
-						newRecord.timeStamp = results[index].timeStamp;
-						newRecord.nasIdentifier = results[index].nasIdentifier;
-						newRecord.acctSessiontime = results[index].acctSessiontime;
-						newRecord.acctOutputoctets = results[index].acctOutputoctets;
-						newRecord.acctInputoctets = results[index].acctInputoctets;
-						newRecord.username = results[index].username;
-						newRecord.type = results[index].type;
-						vaadinItems[index] = newRecord;
-					}
-					grid.items = vaadinItems;
-					grid.frozenColumns = 2;
-					grid.columns = [
-						{
-							name: "timeStamp"
-						},
-						{
-							name: "nasIdentifier"
-						},
-						{
-							name: "acctSessiontime"
-						},
-						{
-							name: "acctOutputoctets"
-						},
-						{
-							name: "acctInputoctets"
-						},
-						{
-							name: "username"
-						},
-						{
-							name: "type"
-						},
-					];
-				},
-				_onLoadingChanged: function(event) {
-               if (document.getElementById("getAccounting").loading) {
-                  document.getElementById("progress").disabled = false;
-               } else {
-                  document.getElementById("progress").disabled = true;
-               }
-            }
+		Polymer ({
+			is: 'sig-accounting-list',
+			behaviors: [i18nMsgBehavior],
+			responseHandler: function(event) {
+				var grid = this.$.accountingGrid;
+				var results = event.detail.xhr.response;
+				var vaadinItems = new Array();
+				for(var index in results){
+					var newRecord = new Object();
+					newRecord.timeStamp = results[index].timeStamp;
+					newRecord.nasIdentifier = results[index].nasIdentifier;
+					newRecord.acctSessiontime = results[index].acctSessiontime;
+					newRecord.acctOutputoctets = results[index].acctOutputoctets;
+					newRecord.acctInputoctets = results[index].acctInputoctets;
+					newRecord.username = results[index].username;
+					newRecord.type = results[index].type;
+					vaadinItems[index] = newRecord;
+				}
+				grid.items = vaadinItems;
+				grid.frozenColumns = 2;
+				grid.columns = [
+					{
+						name: "timeStamp"
+					},
+					{
+						name: "nasIdentifier"
+					},
+					{
+						name: "acctSessiontime"
+					},
+					{
+						name: "acctOutputoctets"
+					},
+					{
+						name: "acctInputoctets"
+					},
+					{
+						name: "username"
+					},
+					{
+						name: "type"
+					},
+				];
+			},
+			_onLoadingChanged: function(event) {
+				if (document.getElementById("getAccounting").loading) {
+					document.getElementById("progress").disabled = false;
+				} else {
+					document.getElementById("progress").disabled = true;
+				}
 			}
-		);
+		});
 	</script>
 </dom-module>

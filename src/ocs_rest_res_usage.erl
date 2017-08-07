@@ -76,43 +76,55 @@ get_usage(Query) ->
 %% 	requests.
 get_usage("auth-" ++ _ = Id, [] = _Query) ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
-	["auth", TimeStamp, Serial] = string:tokens(Id, [$-]),
-	TS = list_to_integer(TimeStamp),
-	N = list_to_integer(Serial),
-	case query_auth(TS, TS, '_', '_', '_', '_', MaxItems) of
-		{error, _} ->
-			{error, 500};
-		{_, Events} ->
-			case lists:keyfind(N, 2, Events) of
-				Event when is_tuple(Event) ->
-					{struct, Attrs} = usage_aaa_auth(Event, []),
-					{_, Date} = lists:keyfind("date", 1, Attrs),
-					Headers = [{content_type, "application/json"}, {last_modified, Date}],
-					Body = mochijson:encode({struct, Attrs}),
-					{ok, Headers, Body};
-				_ ->
-					{error, 404}
-			end
+	try
+		["auth", TimeStamp, Serial] = string:tokens(Id, [$-]),
+		TS = list_to_integer(TimeStamp),
+		N = list_to_integer(Serial),
+		case query_auth(TS, TS, '_', '_', '_', '_', MaxItems) of
+			{error, _} ->
+				{error, 500};
+			{_, Events} ->
+				case lists:keyfind(N, 2, Events) of
+					Event when is_tuple(Event) ->
+						{struct, Attr} = usage_aaa_auth(Event, []),
+						{_, Date} = lists:keyfind("date", 1, Attr),
+						Body = mochijson:encode({struct, Attr}),
+						Headers = [{content_type, "application/json"},
+								{last_modified, Date}],
+						{ok, Headers, Body};
+					_ ->
+						{error, 404}
+				end
+		end
+	catch
+		_:_Reason ->
+			{error, 404}
 	end;
 get_usage("acct-" ++ _ = Id, [] = _Query) ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
-	["acct", TimeStamp, Serial] = string:tokens(Id, [$-]),
-	TS = list_to_integer(TimeStamp),
-	N = list_to_integer(Serial),
-	case query_acct(TS, TS, '_', '_', '_', MaxItems) of
-		{error, _} ->
-			{error, 500};
-		{_, Events} ->
-			case lists:keyfind(N, 2, Events) of
-				Event when is_tuple(Event) ->
-					{struct, Attrs} = usage_aaa_acct(Event, []),
-					{_, Date} = lists:keyfind("date", 1, Attrs),
-					Headers = [{content_type, "application/json"}, {last_modified, Date}],
-					Body = mochijson:encode({struct, Attrs}),
-					{ok, Headers, Body};
-				_ ->
-					{error, 404}
-			end
+	try
+		["acct", TimeStamp, Serial] = string:tokens(Id, [$-]),
+		TS = list_to_integer(TimeStamp),
+		N = list_to_integer(Serial),
+		case query_acct(TS, TS, '_', '_', '_', MaxItems) of
+			{error, _} ->
+				{error, 500};
+			{_, Events} ->
+				case lists:keyfind(N, 2, Events) of
+					Event when is_tuple(Event) ->
+						{struct, Attr} = usage_aaa_acct(Event, []),
+						{_, Date} = lists:keyfind("date", 1, Attr),
+						Body = mochijson:encode({struct, Attr}),
+						Headers = [{content_type, "application/json"},
+								{last_modified, Date}],
+						{ok, Headers, Body};
+					_ ->
+						{error, 404}
+				end
+		end
+	catch
+		_:_Reason ->
+			{error, 404}
 	end;
 get_usage(Id, [] = _Query) ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
@@ -456,14 +468,14 @@ usage_aaa_auth({Milliseconds, N, P, Node,
 	RequestChars = usage_characteristics(RequestAttributes),
 	ResponseChars = usage_characteristics(ResponseAttributes),
 	UsageChars = EventChars ++ RequestChars ++ ResponseChars,
-	ObjectMembers = [{"id", ID}, {"href", Href}, {"date", Date}, {"type", Type},
+	Object = {struct, [{"id", ID}, {"href", Href}, {"date", Date}, {"type", Type},
 			{"status", Status}, {"usageSpecification", UsageSpec},
-			{"usageCharacteristic", {array, UsageChars}}],
+			{"usageCharacteristic", {array, UsageChars}}]},
 	case Filters of
 		[] ->
-			{struct, ObjectMembers};
+			Object;
 		_ ->
-			{struct, filter(["id", "href"] ++ Filters, ObjectMembers)}
+			ocs_rest:filter(["id", "href"] ++ Filters, Object)
 	end;
 usage_aaa_auth(Events, Filters) when is_list(Events) ->
 	usage_aaa_auth(Events, Filters, []).
@@ -499,14 +511,14 @@ usage_aaa_acct({Milliseconds, N, P, Node,
 			{struct, [{"name", "type"}, {"value", atom_to_list(EventType)}]}],
 	AttributeChars = usage_characteristics(Attributes),
 	UsageChars = EventChars ++ AttributeChars,
-	ObjectMembers = [{"id", ID}, {"href", Href}, {"date", Date}, {"type", Type},
+	Object = {struct, [{"id", ID}, {"href", Href}, {"date", Date}, {"type", Type},
 			{"status", Status}, {"usageSpecification", UsageSpec},
-			{"usageCharacteristic", {array, UsageChars}}],
+			{"usageCharacteristic", {array, UsageChars}}]},
 	case Filters of
 		[] ->
-			{struct, ObjectMembers};
+			Object;
 		_ ->
-			{struct, filter(["id", "href"] ++ Filters, ObjectMembers)}
+			ocs_rest:filter(["id", "href"] ++ Filters, Object)
 	end;
 usage_aaa_acct(Events, Filters) when is_list(Events) ->
 	usage_aaa_acct(Events, Filters, []).
@@ -2148,7 +2160,7 @@ char_attr_cause(Attributes, Acc) ->
 
 %% @hidden
 get_auth_usage(Query) ->
-	case lists:keytake("filter", 1, Query) of
+	case lists:keytake("fields", 1, Query) of
 		{value, {_, L}, NewQuery} ->
 			Filters = string:tokens(L, ","),
 			get_auth_usage(NewQuery, Filters);
@@ -2211,7 +2223,7 @@ get_auth_last(_Query, _Filters) ->
 
 %% @hidden
 get_acct_usage(Query) ->
-	case lists:keytake("filter", 1, Query) of
+	case lists:keytake("fields", 1, Query) of
 		{value, {_, L}, NewQuery} ->
 			Filters = string:tokens(L, ","),
 			get_acct_usage(NewQuery, Filters);
@@ -2271,20 +2283,6 @@ get_acct_last([] = _Query, Filters) ->
 	end;
 get_acct_last(_Query, _Filters) ->
 	{error, 400}.
-
-%% @hidden
-filter(Keys, KeyValuePairs) ->
-	filter(Keys, KeyValuePairs, []).
-%% @hidden
-filter([H | T], L, Acc) ->
-	case lists:keyfind(H, 1, L) of
-		{H, V} ->
-			filter(T, L, [{H, V} | Acc]);
-		false ->
-			filter(T, L, Acc)
-	end;
-filter([], _, Acc) ->
-	lists:reverse(Acc).
 
 %% @hidden
 query_auth(Start, End, Protocol, Types, ReqAttrs, ResAttrs, PageSize) ->

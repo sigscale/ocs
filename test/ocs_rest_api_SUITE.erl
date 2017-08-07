@@ -73,15 +73,15 @@ init_per_suite(Config) ->
 	end,
 	RestUser = ct:get_config(rest_user),
 	RestPass = ct:get_config(rest_pass),
-	RestGroup = ct:get_config(rest_group),
+	_RestGroup = ct:get_config(rest_group),
 	{Host, Port} = case Fport(Fport, Services) of
 		{{_, H2}, {_, P2}} when H2 == "localhost"; H2 == {127,0,0,1} ->
-			true = mod_auth:add_user(RestUser, RestPass, [], {127,0,0,1}, P2, "/"),
-			true = mod_auth:add_group_member(RestGroup, RestUser, {127,0,0,1}, P2, "/"),
+			{ok, _} = ocs:add_user(RestUser, RestPass, [], {127,0,0,1}, P2, "/"),
+			true = ocs:add_group_member(RestUser),
 			{"localhost", P2};
 		{{_, H2}, {_, P2}} ->
-			true = mod_auth:add_user(RestUser, RestPass, [], H2, P2, "/"),
-			true = mod_auth:add_group_member(RestGroup, RestUser, H2, P2, "/"),
+			{ok, _} = ocs:add_user(RestUser, RestPass, [], H2, P2, "/"),
+			true = ocs:add_group_member(RestUser),
 			case H2 of
 				H2 when is_tuple(H2) ->
 					{inet:ntoa(H2), P2};
@@ -89,8 +89,8 @@ init_per_suite(Config) ->
 					{H2, P2}
 			end;
 		{false, {_, P2}} ->
-			true = mod_auth:add_user(RestUser, RestPass, [], P2, "/"),
-			true = mod_auth:add_group_member(RestGroup, RestUser, P2, "/"),
+			{ok, _} = ocs:add_user(RestUser, RestPass, [], P2, "/"),
+			true = ocs:add_group_member(RestUser),
 			{"localhost", P2}
 	end,
 	Config1 = [{port, Port} | Config],
@@ -136,14 +136,17 @@ all() ->
 	add_subscriber, add_subscriber_without_password, get_subscriber,
 	get_subscriber_not_found, retrieve_all_subscriber, delete_subscriber,
 	add_client, add_client_without_password, get_client, get_client_id,
-	get_client_bogus, get_client_notfound, get_all_clients, delete_client,
-	get_usagespecs, get_usagespecs_query, get_usagespec, get_auth_usage,
+	get_client_bogus, get_client_notfound, get_all_clients,
+	get_clients_filter, delete_client, get_usagespecs,
+	get_usagespecs_query, get_usagespec, get_auth_usage,
 	get_auth_usage_id, get_auth_usage_filter, get_acct_usage,
 	get_acct_usage_id, get_acct_usage_filter, get_ipdr_usage,
 	top_up_subscriber_balance, get_subscriber_balance, add_user,
 	get_user, delete_user, simultaneous_updates_on_user_faliure,
 	simultaneous_updates_on_subscriber_faliure,
-	simultaneous_updates_on_client_faliure].
+	simultaneous_updates_on_client_faliure, update_client_password_json_patch,
+	update_client_attributes_json_patch, update_subscriber_password_json_patch,
+	update_subscriber_attributes_json_patch, update_user_characteristics_json_patch].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -495,7 +498,7 @@ add_user(Config) ->
 	{_, ID} = lists:keyfind("id", 1, Object),
 	{_, URI} = lists:keyfind("href", 1, Object),
 	{_, {array, _Characteristic}} = lists:keyfind("characteristic", 1, Object),
-	{ok, #httpd_user{}} = mod_auth:get_user(ID, Address, Port, Directory).
+	{ok, #httpd_user{}} = ocs:get_user(ID, Address, Port, Directory).
 
 get_user() ->
 	[{userdata, [{doc,"get user in rest interface"}]}].
@@ -510,7 +513,7 @@ get_user(Config) ->
 	{ok, EnvObj} = application:get_env(inets, services),
 	{httpd, HttpdObj} = lists:keyfind(httpd, 1, EnvObj),
 	{directory, {Directory, _AuthObj}} = lists:keyfind(directory, 1, HttpdObj),
-	true = mod_auth:add_user(ID, Password, [{locale, Locale}], Address,  Port, Directory),
+	{ok, _} = ocs:add_user(ID, Password, [{locale, Locale}], Address,  Port, Directory),
 	HostUrl = ?config(host_url, Config),
 	RestUser = ct:get_config(rest_user),
 	RestPass = ct:get_config(rest_pass),
@@ -528,7 +531,19 @@ get_user(Config) ->
 	{struct, Object} = mochijson:decode(Body1),
 	{_, ID} = lists:keyfind("id", 1, Object),
 	{_, _URI2} = lists:keyfind("href", 1, Object),
-	{_, {array, _Characteristic}} = lists:keyfind("characteristic", 1, Object).
+	{_, {array, Characteristic}} = lists:keyfind("characteristic", 1, Object),
+	F = fun(_F, [{struct, [{"name", Name}, {"value", Value}]} | _T], Name) ->
+				{ok, Value};
+			(_F, [{struct, [{"value", Value}, {"name", Name}]} | _T], Name) ->
+				{ok, Value};
+			(F, [_ | T], Name) ->
+				F(F, T, Name);
+			(_F, [], _Name) ->
+				{error, not_found}
+	end,
+	{ok, ID} = F(F, Characteristic, "username"),
+	{error, not_found} = F(F, Characteristic, "password"),
+	{ok, Locale} = F(F, Characteristic, "locale").
 
 delete_user() ->
 	[{userdata, [{doc,"Delete user in rest interface"}]}].
@@ -543,7 +558,7 @@ delete_user(Config) ->
 	{ok, EnvObj} = application:get_env(inets, services),
 	{httpd, HttpdObj} = lists:keyfind(httpd, 1, EnvObj),
 	{directory, {Directory, _AuthObj}} = lists:keyfind(directory, 1, HttpdObj),
-	true = mod_auth:add_user(ID, Password, [{locale, Locale}], Address,  Port, Directory),
+	{ok, _} = ocs:add_user(ID, Password, [{locale, Locale}], Address,  Port, Directory),
 	HostUrl = ?config(host_url, Config),
 	RestUser = ct:get_config(rest_user),
 	RestPass = ct:get_config(rest_pass),
@@ -553,7 +568,7 @@ delete_user(Config) ->
 	Request1 = {HostUrl ++ "/partyManagement/v1/individual/" ++ ID, [Authentication]},
 	{ok, Result1} = httpc:request(delete, Request1, [], []),
 	{{"HTTP/1.1", 204, _NoContent}, _Headers1, []} = Result1,
-	{error, no_such_user} = mod_auth:get_user(ID, Address, Port, Directory).
+	{error, no_such_user} = ocs:get_user(ID, Address, Port, Directory).
 
 add_client() ->
 	[{userdata, [{doc,"Add client in rest interface"}]}].
@@ -755,6 +770,35 @@ get_all_clients(Config) ->
 	{_, Port} = lists:keyfind("port", 1, ClientVar),
 	{_, Protocol} = lists:keyfind("protocol", 1, ClientVar),
 	{_, Secret} = lists:keyfind("secret", 1, ClientVar).
+
+get_clients_filter() ->
+	[{userdata, [{doc,"Get clients with filters"}]}].
+
+get_clients_filter(Config) ->
+	ok = ocs:add_client("10.0.123.100", 3799, radius, "ziggyzaggy"),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Filters = "?fields=identifier,secret",
+	Url = HostUrl ++ "/ocs/v1/client" ++ Filters,
+	Request = {Url, [Accept, Authentication]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
+	ContentLength = integer_to_list(length(Body)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, ClientsList} = mochijson:decode(Body),
+	Fall = fun({struct, L}) ->
+				lists:keymember("id", 1, L)
+						and lists:keymember("href", 1, L)
+						and not lists:keymember("port", 1, L)
+						and not lists:keymember("protocol", 1, L)
+						and lists:keymember("secret", 1, L)
+	end,
+	true = lists:all(Fall, ClientsList).
 
 delete_client() ->
 	[{userdata, [{doc,"Delete client in rest interface"}]}].
@@ -1069,7 +1113,7 @@ get_auth_usage_filter(Config) ->
 	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	AuthKey = "Basic " ++ Encodekey,
 	Authentication = {"authorization", AuthKey},
-	RequestUri = HostUrl ++ "/usageManagement/v1/usage?type=AAAAccessUsage&sort=-date&filter=date,status,usageCharacteristic",
+	RequestUri = HostUrl ++ "/usageManagement/v1/usage?type=AAAAccessUsage&sort=-date&fields=date,status,usageCharacteristic",
 	Request = {RequestUri, [Accept, Authentication]},
 	{ok, Result} = httpc:request(get, Request, [], []),
 	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
@@ -1275,7 +1319,7 @@ get_acct_usage_filter(Config) ->
 	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	AuthKey = "Basic " ++ Encodekey,
 	Authentication = {"authorization", AuthKey},
-	RequestUri = HostUrl ++ "/usageManagement/v1/usage?type=AAAAccountingUsage&sort=-date&filter=date,status,usageCharacteristic",
+	RequestUri = HostUrl ++ "/usageManagement/v1/usage?type=AAAAccountingUsage&sort=-date&fields=date,status,usageCharacteristic",
 	Request = {RequestUri, [Accept, Authentication]},
 	{ok, Result} = httpc:request(get, Request, [], []),
 	{{"HTTP/1.1", 200, _OK}, Headers, Body} = Result,
@@ -1451,9 +1495,19 @@ simultaneous_updates_on_user_faliure(Config) ->
 	{struct, Object} = mochijson:decode(ResponseBody),
 	{_, ID} = lists:keyfind("id", 1, Object),
 	{_, URI} = lists:keyfind("href", 1, Object),
-	{_, Characteristic1} = lists:keyfind("characteristic", 1, Object),
-	{array, [{struct, [{"name", "password"}, {"value", Password}]},
-			{struct, [{"name", "locale"}, {"value", Locale}]}]} = Characteristic1,
+	{_, {array, Characteristic1}} = lists:keyfind("characteristic", 1, Object),
+	F = fun(_F, [{struct, [{"name", N}, {"value", V}]} | _], N) ->
+			V;
+		(_, [{struct, [{"value", V}, {"name", N}]}| _], N) ->
+			V;
+		(F, [_ | T], N) ->
+			F(F,T, N);
+		(_F, [], _N) ->
+			undefined
+	end,
+	ID = F(F, Characteristic1, "username"),
+	Password = F(F, Characteristic1, "password"),
+	Locale = F(F, Characteristic1, "locale"),
 	TS = integer_to_list(erlang:system_time(milli_seconds)),
 	N = integer_to_list(erlang:unique_integer([positive])),
 	NewEtag = TS ++ "-" ++ N,
@@ -1525,7 +1579,7 @@ simultaneous_updates_on_subscriber_faliure(Config) ->
 			$\r, $\n,
 			PatchBody],
 	ok = ssl:send(SslSock, list_to_binary(PatchReq)),
-	Timeout = 3000,
+	Timeout = 1500,
 	F = fun(_F, _Sock, {error, timeout}, Acc) ->
 					lists:reverse(Acc);
 			(F, Sock, {ok, Bin}, Acc) ->
@@ -1590,7 +1644,7 @@ simultaneous_updates_on_client_faliure(Config) ->
 			$\r,$\n,
 			PatchBody],
 	ok = ssl:send(SslSock, list_to_binary(PatchReq)),
-	Timeout = 3000,
+	Timeout = 1500,
 	F = fun(_F, _Sock, {error, timeout}, Acc) ->
 					lists:reverse(Acc);
 			(F, Sock, {ok, Bin}, Acc) ->
@@ -1602,7 +1656,413 @@ simultaneous_updates_on_client_faliure(Config) ->
 	<<"HTTP/1.1 412", _/binary>> = H,
 	ok = ssl:close(SslSock).
 
+update_client_password_json_patch() ->
+	[{userdata, [{doc,"Use HTTP PATCH to update client's password using
+			json-patch media type"}]}].
+
+update_client_password_json_patch(Config) ->
+	ContentType = "application/json",
+	ID = "10.21.65.83",
+	Port = 3781,
+	Protocol = "RADIUS",
+	Secret = ocs:generate_password(),
+	JSON = {struct, [{"id", ID}, {"port", Port}, {"protocol", Protocol},
+		{"secret", Secret}]},
+	RequestBody = lists:flatten(mochijson:encode(JSON)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request1 = {HostUrl ++ "/ocs/v1/client/", [Accept, Authentication], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	{_, Etag} = lists:keyfind("etag", 1, Headers),
+	true = is_etag_valid(Etag),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{"/ocs/v1/client/" ++ ID, _} = httpd_util:split_path(URI),
+	{struct, Object} = mochijson:decode(ResponseBody),
+	{_, ID} = lists:keyfind("id", 1, Object),
+	{_, URI} = lists:keyfind("href", 1, Object),
+	{_, Port} = lists:keyfind("port", 1, Object),
+	{_, Protocol} = lists:keyfind("protocol", 1, Object),
+	{_, Secret} = lists:keyfind("secret", 1, Object),
+	RestPort = ?config(port, Config),
+	{ok, SslSock} = ssl:connect({127,0,0,1}, RestPort,  [binary, {active, false}], infinity),
+	ok = ssl:ssl_accept(SslSock),
+	NewContentType = "application/json-patch+json",
+	NewSecret = ocs:generate_password(),
+	JSON1 = {array, [{struct, [{op, "replace"}, {path, "/secret"}, {value, NewSecret}]}]},
+	PatchBody = lists:flatten(mochijson:encode(JSON1)),
+	PatchBodyLen = size(list_to_binary(PatchBody)),
+	PatchUri = "/ocs/v1/client/" ++ ID,
+	PatchReq = ["PATCH ", PatchUri, " HTTP/1.1",$\r,$\n,
+			"Content-Type:"++ NewContentType, $\r,$\n, "Accept:application/json",$\r,$\n,
+			"If-match:" ++ Etag,$\r,$\n,"Authorization:"++ AuthKey,$\r,$\n,
+			"Host:localhost:" ++ integer_to_list(RestPort),$\r,$\n,
+			"Content-Length:" ++ integer_to_list(PatchBodyLen),$\r,$\n,
+			$\r,$\n,
+			PatchBody],
+	ok = ssl:send(SslSock, list_to_binary(PatchReq)),
+	Timeout = 1500,
+	F = fun(_F, _Sock, {error, timeout}, Acc) ->
+					lists:reverse(Acc);
+			(F, Sock, {ok, Bin}, Acc) ->
+					F(F, Sock, ssl:recv(Sock, 0, Timeout), [Bin | Acc])
+	end,
+	RecvBuf = F(F, SslSock, ssl:recv(SslSock, 0, Timeout), []),
+	PatchResponse = list_to_binary(RecvBuf),
+	[Headers1, ResponseBody1] = binary:split(PatchResponse, <<$\r,$\n,$\r,$\n>>),
+	<<"HTTP/1.1 200", _/binary>> = Headers1,
+	{struct, Object1} = mochijson:decode(ResponseBody1),
+	{_, ID} = lists:keyfind("id", 1, Object1),
+	{_, URI} = lists:keyfind("href", 1, Object1),
+	{_, Port} = lists:keyfind("port", 1, Object1),
+	{_, Protocol} = lists:keyfind("protocol", 1, Object1),
+	{_, NewSecret} = lists:keyfind("secret", 1, Object1),
+	ok = ssl:close(SslSock).
+
+update_client_attributes_json_patch() ->
+	[{userdata, [{doc,"Use HTTP PATCH to update client's attributes using
+			json-patch media type"}]}].
+
+update_client_attributes_json_patch(Config) ->
+	ContentType = "application/json",
+	ID = "103.73.94.4",
+	Port = 2768,
+	Protocol = "RADIUS",
+	Secret = ocs:generate_password(),
+	JSON = {struct, [{"id", ID}, {"port", Port}, {"protocol", Protocol},
+		{"secret", Secret}]},
+	RequestBody = lists:flatten(mochijson:encode(JSON)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request1 = {HostUrl ++ "/ocs/v1/client/", [Accept, Authentication], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	{_, Etag} = lists:keyfind("etag", 1, Headers),
+	true = is_etag_valid(Etag),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{"/ocs/v1/client/" ++ ID, _} = httpd_util:split_path(URI),
+	{struct, Object} = mochijson:decode(ResponseBody),
+	{_, ID} = lists:keyfind("id", 1, Object),
+	{_, URI} = lists:keyfind("href", 1, Object),
+	{_, Port} = lists:keyfind("port", 1, Object),
+	{_, Protocol} = lists:keyfind("protocol", 1, Object),
+	{_, Secret} = lists:keyfind("secret", 1, Object),
+	RestPort = ?config(port, Config),
+	{ok, SslSock} = ssl:connect({127,0,0,1}, RestPort,  [binary, {active, false}], infinity),
+	ok = ssl:ssl_accept(SslSock),
+	NewContentType = "application/json-patch+json",
+	NewPort = 8745,
+	NewProtocol = "DIAMETER",
+	JSON1 = {array, [{struct, [{op, "replace"}, {path, "/port"}, {value, NewPort}]},
+			{struct, [{op, "replace"}, {path, "/protocol"}, {value, NewProtocol}]}]},
+	PatchBody = lists:flatten(mochijson:encode(JSON1)),
+	PatchBodyLen = size(list_to_binary(PatchBody)),
+	PatchUri = "/ocs/v1/client/" ++ ID,
+	PatchReq = ["PATCH ", PatchUri, " HTTP/1.1",$\r,$\n,
+			"Content-Type:"++ NewContentType, $\r,$\n, "Accept:application/json",$\r,$\n,
+			"If-match:" ++ Etag,$\r,$\n,"Authorization:"++ AuthKey,$\r,$\n,
+			"Host:localhost:" ++ integer_to_list(RestPort),$\r,$\n,
+			"Content-Length:" ++ integer_to_list(PatchBodyLen),$\r,$\n,
+			$\r,$\n,
+			PatchBody],
+	ok = ssl:send(SslSock, list_to_binary(PatchReq)),
+	Timeout = 1500,
+	F = fun(_F, _Sock, {error, timeout}, Acc) ->
+					lists:reverse(Acc);
+			(F, Sock, {ok, Bin}, Acc) ->
+					F(F, Sock, ssl:recv(Sock, 0, Timeout), [Bin | Acc])
+	end,
+	RecvBuf = F(F, SslSock, ssl:recv(SslSock, 0, Timeout), []),
+	PatchResponse = list_to_binary(RecvBuf),
+	[Headers1, ResponseBody1] = binary:split(PatchResponse, <<$\r,$\n,$\r,$\n>>),
+	<<"HTTP/1.1 200", _/binary>> = Headers1,
+	{struct, Object1} = mochijson:decode(ResponseBody1),
+	{_, ID} = lists:keyfind("id", 1, Object1),
+	{_, URI} = lists:keyfind("href", 1, Object1),
+	{_, NewPort} = lists:keyfind("port", 1, Object1),
+	{_, NewProtocol} = lists:keyfind("protocol", 1, Object1),
+	{_, Secret} = lists:keyfind("secret", 1, Object1),
+	ok = ssl:close(SslSock).
+
+update_subscriber_password_json_patch() ->
+	[{userdata, [{doc,"Use HTTP PATCH to update subscriber's password using
+			json-patch media type"}]}].
+
+update_subscriber_password_json_patch(Config) ->
+	ContentType = "application/json",
+	ID = binary_to_list(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	AsendDataRate = {struct, [{"name", "ascendDataRate"}, {"value", 1000000}]},
+	AsendXmitRate = {struct, [{"name", "ascendXmitRate"}, {"value", 64000}]},
+	SessionTimeout = {struct, [{"name", "sessionTimeout"}, {"value", 3600}]},
+	Interval = {struct, [{"name", "acctInterimInterval"}, {"value", 300}]},
+	Class = {struct, [{"name", "class"}, {"value", "skiorgs"}]},
+	SortedAttributes = lists:sort([AsendDataRate, AsendXmitRate, SessionTimeout, Interval, Class]),
+	AttributeArray = {array, SortedAttributes},
+	Balance = 100,
+	Enabled = true,
+	JSON = {struct, [{"id", ID}, {"password", Password},
+	{"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enabled}]},
+	RequestBody = lists:flatten(mochijson:encode(JSON)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	{_, Etag} = lists:keyfind("etag", 1, Headers),
+	true = is_etag_valid(Etag),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{"/ocs/v1/subscriber/" ++ ID, _} = httpd_util:split_path(URI),
+	{struct, Object} = mochijson:decode(ResponseBody),
+	{"id", ID} = lists:keyfind("id", 1, Object),
+	{_, URI} = lists:keyfind("href", 1, Object),
+	{"password", Password} = lists:keyfind("password", 1, Object),
+	{_, {array, Attributes}} = lists:keyfind("attributes", 1, Object),
+	ExtraAttributes = Attributes -- SortedAttributes,
+	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
+	{"balance", Balance} = lists:keyfind("balance", 1, Object),
+	{"enabled", Enabled} = lists:keyfind("enabled", 1, Object),
+	RestPort = ?config(port, Config),
+	{ok, SslSock} = ssl:connect({127,0,0,1}, RestPort,  [binary, {active, false}], infinity),
+	ok = ssl:ssl_accept(SslSock),
+	NewContentType = "application/json-patch+json",
+	NewPassword = ocs:generate_password(),
+	JSON1 = {array, [{struct, [{op, "replace"}, {path, "/password"}, {value, NewPassword}]}]},
+	PatchBody = lists:flatten(mochijson:encode(JSON1)),
+	PatchBodyLen = size(list_to_binary(PatchBody)),
+	PatchUri = "/ocs/v1/subscriber/" ++ ID,
+	PatchReq = ["PATCH ", PatchUri, " HTTP/1.1",$\r,$\n,
+			"Content-Type:" ++ NewContentType, $\r,$\n, "Accept:application/json",$\r,$\n,
+			"If-match:" ++ Etag,$\r,$\n,"Authorization:"++ AuthKey,$\r,$\n,
+			"Host:localhost:" ++ integer_to_list(RestPort),$\r,$\n,
+			"Content-Length:" ++ integer_to_list(PatchBodyLen),$\r,$\n,
+			$\r, $\n,
+			PatchBody],
+	ok = ssl:send(SslSock, list_to_binary(PatchReq)),
+	Timeout = 1500,
+	F = fun(_F, _Sock, {error, timeout}, Acc) ->
+					lists:reverse(Acc);
+			(F, Sock, {ok, Bin}, Acc) ->
+					F(F, Sock, ssl:recv(Sock, 0, Timeout), [Bin | Acc])
+	end,
+	RecvBuf = F(F, SslSock, ssl:recv(SslSock, 0, Timeout), []),
+	PatchResponse = list_to_binary(RecvBuf),
+	[Headers1, ResponseBody1] = binary:split(PatchResponse, <<$\r,$\n,$\r,$\n>>),
+	<<"HTTP/1.1 200", _/binary>> = Headers1,
+	{struct, Object1} = mochijson:decode(ResponseBody1),
+	{"id", ID} = lists:keyfind("id", 1, Object1),
+	{_, URI} = lists:keyfind("href", 1, Object1),
+	{"password", NewPassword} = lists:keyfind("password", 1, Object1),
+	{_, {array, Attributes}} = lists:keyfind("attributes", 1, Object1),
+	ExtraAttributes = Attributes -- SortedAttributes,
+	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
+	{"balance", Balance} = lists:keyfind("balance", 1, Object1),
+	{"enabled", Enabled} = lists:keyfind("enabled", 1, Object1),
+	ok = ssl:close(SslSock).
+
+update_subscriber_attributes_json_patch() ->
+	[{userdata, [{doc,"Use HTTP PATCH to update subscriber's attributes using
+			json-patch media type"}]}].
+
+update_subscriber_attributes_json_patch(Config) ->
+	ContentType = "application/json",
+	ID = binary_to_list(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	AsendDataRate = {struct, [{"name", "ascendDataRate"}, {"value", 1000000}]},
+	AsendXmitRate = {struct, [{"name", "ascendXmitRate"}, {"value", 64000}]},
+	SessionTimeout = {struct, [{"name", "sessionTimeout"}, {"value", 3600}]},
+	Interval = {struct, [{"name", "acctInterimInterval"}, {"value", 300}]},
+	Class = {struct, [{"name", "class"}, {"value", "skiorgs"}]},
+	SortedAttributes = lists:sort([AsendDataRate, AsendXmitRate, SessionTimeout, Interval, Class]),
+	AttributeArray = {array, SortedAttributes},
+	Balance = 100,
+	Enabled = true,
+	JSON = {struct, [{"id", ID}, {"password", Password},
+	{"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enabled}]},
+	RequestBody = lists:flatten(mochijson:encode(JSON)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	{_, Etag} = lists:keyfind("etag", 1, Headers),
+	true = is_etag_valid(Etag),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{"/ocs/v1/subscriber/" ++ ID, _} = httpd_util:split_path(URI),
+	{struct, Object} = mochijson:decode(ResponseBody),
+	{"id", ID} = lists:keyfind("id", 1, Object),
+	{_, URI} = lists:keyfind("href", 1, Object),
+	{"password", Password} = lists:keyfind("password", 1, Object),
+	{_, {array, Attributes}} = lists:keyfind("attributes", 1, Object),
+	ExtraAttributes = Attributes -- SortedAttributes,
+	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
+	{"balance", Balance} = lists:keyfind("balance", 1, Object),
+	{"enabled", Enabled} = lists:keyfind("enabled", 1, Object),
+	RestPort = ?config(port, Config),
+	{ok, SslSock} = ssl:connect({127,0,0,1}, RestPort,  [binary, {active, false}], infinity),
+	ok = ssl:ssl_accept(SslSock),
+	NewContentType = "application/json-patch+json",
+	NewEnabled = false,
+	NewBalance = 47398734,
+	NewAttributes = {array,[
+			{struct, [{"name", "ascendDataRate"}, {"value", 100000}]},
+			{struct, [{"name", "ascendXmitRate"}, {"value", 512000}]}]},
+	JSON1 = {array, [
+			{struct, [{op, "replace"}, {path, "/balance"}, {value, NewBalance}]},
+			{struct, [{op, "replace"}, {path, "/attributes"}, {value, NewAttributes}]},
+			{struct, [{op, "replace"}, {path, "/enabled"}, {value, NewEnabled}]}]},
+	PatchBody = lists:flatten(mochijson:encode(JSON1)),
+	PatchBodyLen = size(list_to_binary(PatchBody)),
+	PatchUri = "/ocs/v1/subscriber/" ++ ID,
+	PatchReq = ["PATCH ", PatchUri, " HTTP/1.1",$\r,$\n,
+			"Content-Type:" ++ NewContentType, $\r,$\n, "Accept:application/json",$\r,$\n,
+			"If-match:" ++ Etag,$\r,$\n,"Authorization:"++ AuthKey,$\r,$\n,
+			"Host:localhost:" ++ integer_to_list(RestPort),$\r,$\n,
+			"Content-Length:" ++ integer_to_list(PatchBodyLen),$\r,$\n,
+			$\r, $\n,
+			PatchBody],
+	ok = ssl:send(SslSock, list_to_binary(PatchReq)),
+	Timeout = 1500,
+	F = fun(_F, _Sock, {error, timeout}, Acc) ->
+					lists:reverse(Acc);
+			(F, Sock, {ok, Bin}, Acc) ->
+					F(F, Sock, ssl:recv(Sock, 0, Timeout), [Bin | Acc])
+	end,
+	RecvBuf = F(F, SslSock, ssl:recv(SslSock, 0, Timeout), []),
+	PatchResponse = list_to_binary(RecvBuf),
+	[Headers1, ResponseBody1] = binary:split(PatchResponse, <<$\r,$\n,$\r,$\n>>),
+	<<"HTTP/1.1 200", _/binary>> = Headers1,
+	{struct, Object1} = mochijson:decode(ResponseBody1),
+	{"id", ID} = lists:keyfind("id", 1, Object1),
+	{_, URI} = lists:keyfind("href", 1, Object1),
+	{"password", Password} = lists:keyfind("password", 1, Object1),
+	{_, NewAttributes} = lists:keyfind("attributes", 1, Object1),
+	{"balance", NewBalance} = lists:keyfind("balance", 1, Object1),
+	{"enabled", NewEnabled} = lists:keyfind("enabled", 1, Object1),
+	ok = ssl:close(SslSock).
+
+update_user_characteristics_json_patch() ->
+	[{userdata, [{doc,"Use HTTP PATCH to update users's characteristics using
+			json-patch media type"}]}].
+
+update_user_characteristics_json_patch(Config) ->
+	ContentType = "application/json",
+	ID = "ryan",
+	Username = "ryanstiles",
+	Password = "wliaycaducb46",
+	Locale = "en",
+	PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
+	LocaleAttr = {struct, [{"name", "locale"}, {"value", Locale}]},
+	UsernameAttr = {struct, [{"name", "username"}, {"value", Username}]},
+	CharArray = {array, [UsernameAttr, PasswordAttr, LocaleAttr]},
+	JSON = {struct, [{"id", ID}, {"characteristic", CharArray}]},
+	RequestBody = lists:flatten(mochijson:encode(JSON)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", ContentType},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request1 = {HostUrl ++ "/partyManagement/v1/individual", [Accept, Authentication], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	{_, Etag} = lists:keyfind("etag", 1, Headers),
+	true = is_etag_valid(Etag),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{"/partyManagement/v1/individual/" ++ ID, _} = httpd_util:split_path(URI),
+	{struct, Object} = mochijson:decode(ResponseBody),
+	{_, ID} = lists:keyfind("id", 1, Object),
+	{_, URI} = lists:keyfind("href", 1, Object),
+	{_, {array, Characteristic}} = lists:keyfind("characteristic", 1, Object),
+	RestPort = ?config(port, Config),
+	{ok, SslSock} = ssl:connect({127,0,0,1}, RestPort,  [binary, {active, false}], infinity),
+	ok = ssl:ssl_accept(SslSock),
+	NewContentType = "application/json-patch+json",
+	NewPassword = ocs:generate_password(),
+	NewPwdObj = {struct, [{"name", "password"}, {"value", NewPassword}]},
+	NewLocale = "es",
+	NewLocaleObj = {struct, [{"name", "locale"}, {"value", NewLocale}]},
+	F1 = fun(_F, [{struct, [{"name", Name}, _]} | _T], Name, N) ->
+				integer_to_list(N);
+			(_F, [{struct, [_, {"name", Name}]} | _T], Name, N) ->
+				integer_to_list(N);
+			(F, [_ | T], Name, N) ->
+				F(F, T, Name, N + 1);
+			(_F, [], _Name, _N) ->
+				"-"
+	end,
+	IndexPassword= F1(F1, Characteristic, "password", 0),
+	IndexLocale = F1(F1, Characteristic, "locale", 0),
+	JSON1 = {array, [
+			{struct, [{op, "replace"}, {path, "/characteristic/" ++ IndexPassword}, {value, NewPwdObj}]},
+			{struct, [{op, "replace"}, {path, "/characteristic/" ++ IndexLocale}, {value, NewLocaleObj}]}]},
+	PatchBody = lists:flatten(mochijson:encode(JSON1)),
+	PatchBodyLen = size(list_to_binary(PatchBody)),
+	PatchUri = "/partyManagement/v1/individual/" ++ ID,
+	PatchReq = ["PATCH ", PatchUri, " HTTP/1.1",$\r,$\n,
+			"Content-Type:" ++ NewContentType, $\r,$\n, "Accept:application/json",$\r,$\n,
+			"If-match:" ++ Etag,$\r,$\n,"Authorization:"++ AuthKey,$\r,$\n,
+			"Host:localhost:" ++ integer_to_list(RestPort),$\r,$\n,
+			"Content-Length:" ++ integer_to_list(PatchBodyLen),$\r,$\n,
+			$\r, $\n,
+			PatchBody],
+	ok = ssl:send(SslSock, list_to_binary(PatchReq)),
+	Timeout = 1500,
+	F2 = fun(_F, _Sock, {error, timeout}, Acc) ->
+					lists:reverse(Acc);
+			(F, Sock, {ok, Bin}, Acc) ->
+					F(F, Sock, ssl:recv(Sock, 0, Timeout), [Bin | Acc])
+	end,
+	RecvBuf = F2(F2, SslSock, ssl:recv(SslSock, 0, Timeout), []),
+	PatchResponse = list_to_binary(RecvBuf),
+	[Headers1, <<>>] = binary:split(PatchResponse, <<$\r,$\n,$\r,$\n>>),
+	<<"HTTP/1.1 204", _/binary>> = Headers1,
+	ok = ssl:close(SslSock).
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
+
+%% @hidden
+is_etag_valid(Etag) ->
+	[X1, X2] = string:tokens(Etag, "-"),
+	true = is_integer(list_to_integer(X1)),
+	true = is_integer(list_to_integer(X2)),
+	true.
 

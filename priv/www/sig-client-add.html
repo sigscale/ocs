@@ -22,13 +22,13 @@
 <dom-module id="sig-client-add">
 	<style is="custom-style">
 		paper-dialog {
-			padding: 10px;
 			overflow: auto;
 		}
 		paper-input {
 			--paper-input-container-focus-color: var(--paper-yellow-900);
 		}
 		paper-toolbar{
+			margin-top: 0px;
 			color: white;
 			background-color: #bc5100;
 		}
@@ -202,52 +202,50 @@
 		</iron-ajax>
 	</template>
 	<script>
-		Polymer (
-			{
-				is: 'sig-client-add',
-				behaviors: [i18nMsgBehavior],
-				properties: {
-					secret: String
-				},
-				_clientAddSubmit: function(event) {
-					var client = new Object();
-					client.id = document.getElementById("add-client1").value;
-					client.port = parseInt(document.getElementById("add-client2").value);
-					client.protocol = document.getElementById("add-client3").value;
-					if (!document.getElementById("add-client4").disabled) {
-						client.secret = document.getElementById("add-client4").value;
-					}
-					var ajax = document.getElementById("clientAddAjax");
-					ajax.body = client;
-					ajax.generateRequest();
-				},
-				_onLoadingChanged: function(event) {
-					if (document.getElementById("clientAddAjax").loading) {
-						document.getElementById('progress').disabled = false;
-					} else {
-						document.getElementById('progress').disabled = true;
-					}
-				},
-				checkboxchanged: function(event) {
-					if (event.target.checked) {
-						document.getElementById("add-client4").disabled = true;
-					} else {
-						document.getElementById("add-client4").disabled = false;
-					}
-				},
-				_clientAddResponse: function(event) {
-					var toast = document.getElementById("toastSuccess");
-					toast.open();
-					toast.duration = 4;
-					document.getElementById("clientAddModal").close();
-					var ajax = document.getElementById("clientAddAjax");
-					if (ajax.body.secret == undefined) {
-						this.secret = ajax.lastResponse.secret;
-						document.getElementById("clientSecretModal").open();
-					}
-					document.getElementById("getClients").generateRequest();
+		Polymer ({
+			is: 'sig-client-add',
+			behaviors: [i18nMsgBehavior],
+			properties: {
+				secret: String
+			},
+			_clientAddSubmit: function(event) {
+				var client = new Object();
+				client.id = document.getElementById("add-client1").value;
+				client.port = parseInt(document.getElementById("add-client2").value);
+				client.protocol = document.getElementById("add-client3").value;
+				if (!document.getElementById("add-client4").disabled) {
+					client.secret = document.getElementById("add-client4").value;
 				}
+				var ajax = document.getElementById("clientAddAjax");
+				ajax.body = client;
+				ajax.generateRequest();
+			},
+			_onLoadingChanged: function(event) {
+				if (document.getElementById("clientAddAjax").loading) {
+					document.getElementById('progress').disabled = false;
+				} else {
+					document.getElementById('progress').disabled = true;
+				}
+			},
+			checkboxchanged: function(event) {
+				if (event.target.checked) {
+					document.getElementById("add-client4").disabled = true;
+				} else {
+					document.getElementById("add-client4").disabled = false;
+				}
+			},
+			_clientAddResponse: function(event) {
+				var toast = document.getElementById("toastSuccess");
+				toast.open();
+				toast.duration = 4;
+				document.getElementById("clientAddModal").close();
+				var ajax = document.getElementById("clientAddAjax");
+				if (ajax.body.secret == undefined) {
+					this.secret = ajax.lastResponse.secret;
+					document.getElementById("clientSecretModal").open();
+				}
+				document.getElementById("getClients").generateRequest();
 			}
-		);
+		});
 	</script>
 </dom-module>

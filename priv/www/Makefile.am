@@ -3,6 +3,11 @@
 ## Process this file with automake to produce Makefile.in
 
 www_DATA = favicon.ico \
+	toolbar.png \
+	progress.png \
+	filter.png \
+	sort-ascend.png \
+	sort-descend.png \
 	index.html \
 	sig-ipdr-list.html \
 	sig-access-list.html \
@@ -10,6 +15,7 @@ www_DATA = favicon.ico \
 	sig-http-list.html \
 	sig-ipdr-log-files.html \
 	sig-app.html \
+	sig-help.html \
 	sig-client-add.html \
 	sig-client-list.html \
 	sig-client-update.html \
@@ -37,4 +43,7 @@ install-data-local:
 
 clean-local:
 	-rm -rf bower_components
+
+sig-help.html: sig-help.html-in
+	sed -e 's!%VERSION%!$(VERSION)!' < $< > $@
 

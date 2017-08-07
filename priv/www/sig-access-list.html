@@ -105,56 +105,53 @@
 		</iron-ajax>
 	</template>
 	<script>
-		Polymer (
-			{
-				is: 'sig-access-list',
-				behaviors: [i18nMsgBehavior],
-				responseHandler: function(event) {
-					var grid = this.$.accessGrid;
-					var results = event.detail.xhr.response;
-					var vaadinItems = new Array();
-					for (var index in results) {
-						var newRecord = new Object();
-						newRecord.timeStamp = results[index].timeStamp;
-						newRecord.clientAddress = results[index].clientAddress;
-						newRecord.nasIdentifier = results[index].nasIdentifier;
-						newRecord.calledStation = results[index].calledStation;
-						newRecord.username = results[index].username;
-						newRecord.type = results[index].type;
-						vaadinItems[index] = newRecord;
+		Polymer ({
+			is: 'sig-access-list',
+			behaviors: [i18nMsgBehavior],
+			responseHandler: function(event) {
+				var grid = this.$.accessGrid;
+				var results = event.detail.xhr.response;
+				var vaadinItems = new Array();
+				for (var index in results) {
+					var newRecord = new Object();
+					newRecord.timeStamp = results[index].timeStamp;
+					newRecord.clientAddress = results[index].clientAddress;
+					newRecord.nasIdentifier = results[index].nasIdentifier;
+					newRecord.calledStation = results[index].calledStation;
+					newRecord.username = results[index].username;
+					newRecord.type = results[index].type;
+					vaadinItems[index] = newRecord;
+				}
+				grid.items = vaadinItems;
+				grid.frozenColumns = 2;
+				grid.columns = [
+					{
+						name: "timeStamp"
+					},
+					{
+						name: "clientAddress"
+					},
+					{
+						name: "nasIdentifier"
+					},
+					{
+						name: "calledStation"
+					},
+					{
+						name: "username"
+					},
+					{
+						name: "type"
 					}
-					grid.items = vaadinItems;
-					grid.visibleRows= vaadinItems.length;
-					grid.frozenColumns = 2;
-					grid.columns = [
-						{
-							name: "timeStamp"
-						},
-						{
-							name: "clientAddress"
-						},
-						{
-							name: "nasIdentifier"
-						},
-						{
-							name: "calledStation"
-						},
-						{
-							name: "username"
-						},
-						{
-							name: "type"
-						}
-					];
-				},
-				_onLoadingChanged: function(event) {
-					if (document.getElementById("getAccess").loading) {
-						document.getElementById("progress").disabled = false;
-					} else {
-						document.getElementById("progress").disabled = true;
-					}
+				];
+			},
+			_onLoadingChanged: function(event) {
+				if (document.getElementById("getAccess").loading) {
+					document.getElementById("progress").disabled = false;
+				} else {
+					document.getElementById("progress").disabled = true;
 				}
 			}
-		);
+		});
 	</script>
 </dom-module>

@@ -92,63 +92,60 @@
 		</iron-ajax>
 	</template>
 	<script>
-		addEventListener('WebComponentsReady', function() {
-		Polymer (
-			{
-				is: 'sig-user-list',
-				behaviors: [i18nMsgBehavior],
-				properties: {
-					activeItem: {
-						observer:'_activeItemChanged'
-					},
+		Polymer ({
+			is: 'sig-user-list',
+			behaviors: [i18nMsgBehavior],
+			properties: {
+				activeItem: {
+					observer:'_activeItemChanged'
 				},
-				_activeItemChanged: function(item) {
-					if (item != null){
-						var grid = this.$.UserGrid;
-						grid.selectedItems = item ? [item] : [];
-						var modal = document.getElementById("UpdateUserModal");
-						modal.open();
-						document.getElementById("update-user1").value = item.id;
-						document.getElementById("update-user2").value = item.password;
-						document.getElementById("update-user3").value = item.language;
-					}
-				},
-				getUserResponse: function(event) {
+			},
+			_activeItemChanged: function(item) {
+				if (item != null){
 					var grid = this.$.UserGrid;
-					var results = event.detail.xhr.response;
-					var vaadinItems = new Array();
-					function checkChar(characteristic){
-						return characteristic.name == "locale";
-					}
-					for (var index in results) {
-						var newRecord = new Object();
-						newRecord.id = results[index].id;
-						var result = results[index].characteristic.find(checkChar);
-						if (result != undefined) {
-							if (result.value == "en") {
-								newRecord.language = "English";
-							} else if (result.value == "es") {
-								newRecord.language = "Spanish";
-							}
-						}
-						vaadinItems[index] = newRecord;
-					}
-					grid.items = vaadinItems;
-					grid.columns = [
-						{
-							name: "id"
-						},
-						{
-							name: "language"
-						}
-					];
-				},
-				showAddUserModal: function(event) {
-					var modal = document.getElementById("AddUserModal");
+					grid.selectedItems = item ? [item] : [];
+					var modal = document.getElementById("UpdateUserModal");
 					modal.open();
-				},
-			}
-		);
+					document.getElementById("update-user1").value = item.id;
+					document.getElementById("update-user2").value = item.password;
+					document.getElementById("update-user3").value = item.language;
+				}
+			},
+			getUserResponse: function(event) {
+				var grid = this.$.UserGrid;
+				var results = event.detail.xhr.response;
+				var vaadinItems = new Array();
+				function checkChar(characteristic){
+					return characteristic.name == "locale";
+				}
+				for (var index in results) {
+					var newRecord = new Object();
+					newRecord.id = results[index].id;
+					var result = results[index].characteristic.find(checkChar);
+					if (result != undefined) {
+						if (result.value == "en") {
+							newRecord.language = document.querySelector('i18n-msg').getMsg('eng');
+						} else if (result.value == "es") {
+							newRecord.language = document.querySelector('i18n-msg').getMsg('spa');
+						}
+					}
+					newRecord.characteristic = results[index].characteristic;
+					vaadinItems[index] = newRecord;
+				}
+				grid.items = vaadinItems;
+				grid.columns = [
+					{
+						name: "id"
+					},
+					{
+						name: "language"
+					}
+				];
+			},
+			showAddUserModal: function(event) {
+				var modal = document.getElementById("AddUserModal");
+				modal.open();
+			},
 		});
 	</script>
 </dom-module>
