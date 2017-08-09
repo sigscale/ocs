@@ -43,7 +43,7 @@
 	<template>
 		<paper-dialog id="subUpdateModal" modal>
 			<paper-toolbar>
-				<paper-tabs selected="{{selected}}" autoselect>
+				<paper-tabs selected="{{selected}}">
 					<paper-tab id="authen">
 						<h2>[[i18n.AuthTitle]]</h2>
 					</paper-tab>
@@ -110,11 +110,6 @@
 					</div>
 				</div>
 				<div id="edit-attributes" >
-					<paper-input id="edit-id2"
-							name="id"
-							label="[[i18n.identity]]"
-							disabled>
-					</paper-input>
 					<div>
 						<paper-input id="edit-balance"
 								name="balance"
@@ -275,7 +270,7 @@
 				var editAjax =  document.getElementById("updateSubAutho");
 				editAjax.method = "PATCH";
 				editAjax.contentType = "application/json";
-				var id = document.getElementById("edit-id2").value;
+				var id = document.getElementById("edit-id1").value;
 				editAjax.url = "/ocs/v1/subscriber/" + id;
 				var sub = new Object();
 				sub.update = "attributes";
