@@ -75,22 +75,24 @@
 								label="[[i18n.address]]"
 								disabled>
 						</paper-input>
+					<div>
 						<paper-input
 								id="edit-client-pwd"
 								name="password"
 								label="[[i18n.secret]]"
 								disabled>
 						</paper-input>
-						<paper-input
-								id="edit-client-new-pwd"
-								name="secret"
-								label="[[i18n.newpass]]">
-						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="secretTooltip">
 								Secret shared with the network access server, router or access point.
 							</i18n-msg>
 						</paper-tooltip>
+					</div>
+						<paper-input
+								id="edit-client-new-pwd"
+								name="secret"
+								label="[[i18n.newpass]]">
+						</paper-input>
 					<div class="buttons">
 						<paper-button
 								onclick="clientUpdateModal.close()"
@@ -120,6 +122,7 @@
 					</div>
 				</div>
 				<div id="edit-client-attributes">
+					<div>
 						<paper-input
 								id="edit-client-disc-port"
 								name="port"
@@ -131,6 +134,8 @@
 								Port network access server, router or access point listens on
 							</i18n-msg>
 						</paper-tooltip>
+					</div>
+					<div>
 						<paper-dropdown-menu
 								id="edit-client-protocol"
 								label="[[i18n.proto]]"
@@ -149,6 +154,7 @@
 								Protocol used by network access server, router or access point.
 							</i18n-msg>
 						</paper-tooltip>
+					</div>
 					<div class="buttons">
 						<paper-button
 								onclick="clientUpdateModal.close()"
