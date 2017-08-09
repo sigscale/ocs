@@ -288,7 +288,7 @@ add_subscriber(undefined, Password, Attributes, Balance, EnabledStatus, MSession
 									S = #subscriber{name = Identity,
 											password = Password, attributes = Attributes,
 											balance = Balance, enabled = EnabledStatus,
-											multi_sessions_allowed = MSessions},
+											multi_session = MSessions},
 									ok = mnesia:write(S),
 									S;
 								[_] ->
@@ -309,7 +309,7 @@ add_subscriber(Identity, Password, Attributes, Balance, EnabledStatus, MSessions
 	F1 = fun() ->
 				S = #subscriber{name = Identity, password = Password,
 						attributes = Attributes, balance = Balance,
-						enabled = EnabledStatus, multi_sessions_allowed = MSessions},
+						enabled = EnabledStatus, multi_session = MSessions},
 				ok = mnesia:write(S),
 				S
 	end,
@@ -469,7 +469,7 @@ update_attributes(Identity, Balance, Attributes, EnabledStatus, MSessions)
 					[Entry] ->
 						NewEntry = Entry#subscriber{attributes = Attributes,
 							balance = Balance, enabled = EnabledStatus,
-							multi_sessions_allowed = MSessions},
+							multi_session = MSessions},
 						mnesia:write(subscriber, NewEntry, write);
 					[] ->
 						throw(not_found)

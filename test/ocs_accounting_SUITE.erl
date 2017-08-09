@@ -136,7 +136,7 @@ sequences() ->
 %%
 all() -> 
 	[radius_accounting, radius_disconnect_session, radius_multi_sessions_not_allowed,
-	radius_multi_sessions_allowed, diameter_accounting, diameter_disconnect_session].
+	radius_multi_session, diameter_accounting, diameter_disconnect_session].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -222,7 +222,7 @@ radius_multi_sessions_not_allowed(Config) ->
 	RadID2 = RadID1 + 1,
 	accounting_start(Socket, AcctAddress, AcctPort,
 			PeerID, Secret, NasID, AcctSessionID, RadID2),
-	{ok, #subscriber{multi_sessions_allowed = false, session_attributes = SessionList1}}
+	{ok, #subscriber{multi_session = false, session_attributes = SessionList1}}
 			= ocs:find_subscriber(PeerID),
 	[SessionAttr1] = SessionList1,
 	true = is_list(SessionAttr1),
@@ -242,7 +242,7 @@ radius_multi_sessions_not_allowed(Config) ->
 	authenticate_subscriber1(Socket, AuthAddress, AuthPort, PeerID,
 			HiddenPassword, Secret, NasID2, ReqAuth, Rad2ID1),
 	ct:sleep(500),
-	{ok, #subscriber{multi_sessions_allowed = false, session_attributes = SessionList2}}
+	{ok, #subscriber{multi_session = false, session_attributes = SessionList2}}
 			= ocs:find_subscriber(PeerID),
 	[SessionAttr2] = SessionList2,
 	ok = F(SessionAttr2, NasID2),
@@ -252,14 +252,14 @@ radius_multi_sessions_not_allowed(Config) ->
 	Rad2ID3 = Rad2ID2 + 1,
 	accounting_stop(Socket, AcctAddress, AcctPort,
 			PeerID, Secret, NasID2, AcctSessionID, Rad2ID3),
-	{ok, #subscriber{multi_sessions_allowed = false, session_attributes = []}}
+	{ok, #subscriber{multi_session = false, session_attributes = []}}
 			= ocs:find_subscriber(PeerID).
 
-radius_multi_sessions_allowed() ->
+radius_multi_session() ->
 	[{userdata, [{doc, "Start multiple RADIUS sessions for a subscriber when
 			multiple RADIUS sessions are allowed."}]}].
 
-radius_multi_sessions_allowed(_Config) ->
+radius_multi_session(_Config) ->
 	RadID1 = 11,
 	NasID1 = "axe1@ap-1.org",
 	AcctSessionID = "BAC10355",
@@ -279,7 +279,7 @@ radius_multi_sessions_allowed(_Config) ->
 	RadID2 = RadID1 + 1,
 	accounting_start(Socket, AcctAddress, AcctPort,
 			PeerID, Secret, NasID1, AcctSessionID, RadID2),
-	{ok, #subscriber{multi_sessions_allowed = true, session_attributes = SessionList1}}
+	{ok, #subscriber{multi_session = true, session_attributes = SessionList1}}
 			= ocs:find_subscriber(PeerID),
 	F1 = fun(F1, Session, [H1 | T1]) ->
 				case lists:member(H1, Session) of
@@ -309,7 +309,7 @@ radius_multi_sessions_allowed(_Config) ->
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
 			HiddenPassword, Secret, NasID2, ReqAuth, Rad2ID1),
 	ct:sleep(500),
-	{ok, #subscriber{multi_sessions_allowed = true, session_attributes = SessionList2}}
+	{ok, #subscriber{multi_session = true, session_attributes = SessionList2}}
 			= ocs:find_subscriber(PeerID),
 	2 = length(SessionList2),
 	ok = F2(F2, SessionList2, [{?UserName, PeerID}, {?NasIdentifier, NasID2}]),
@@ -322,7 +322,7 @@ radius_multi_sessions_allowed(_Config) ->
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
 			HiddenPassword, Secret, NasID3, ReqAuth, Rad3ID1),
 	ct:sleep(500),
-	{ok, #subscriber{multi_sessions_allowed = true, session_attributes = SessionList3}}
+	{ok, #subscriber{multi_session = true, session_attributes = SessionList3}}
 			= ocs:find_subscriber(PeerID),
 	3 = length(SessionList3),
 	ok = F2(F2, SessionList3, [{?UserName, PeerID}, {?NasIdentifier, NasID3}]),
@@ -333,7 +333,7 @@ radius_multi_sessions_allowed(_Config) ->
 	Rad2ID3 = Rad2ID2 + 1,
 	accounting_stop(Socket, AcctAddress, AcctPort,
 			PeerID, Secret, NasID2, AcctSessionID, Rad2ID3),
-	{ok, #subscriber{multi_sessions_allowed = true, session_attributes = SessionList4}}
+	{ok, #subscriber{multi_session = true, session_attributes = SessionList4}}
 			= ocs:find_subscriber(PeerID),
 	2 = length(SessionList4),
 	ok = F2(F2, SessionList4, [{?UserName, PeerID}, {?NasIdentifier, NasID1}]),

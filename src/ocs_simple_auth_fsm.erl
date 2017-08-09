@@ -56,7 +56,7 @@
 		req_auth :: undefined | binary(),
 		req_attr :: undefined | radius_attributes:attributes(),
 		subscriber :: undefined | string(),
-		multi_sessions_allowed :: undefined | boolean(),
+		multi_session :: undefined | boolean(),
 		app_id :: undefined | non_neg_integer(),
 		auth_request_type :: undefined | 1..3,
 		origin_host :: undefined | string(),
@@ -184,7 +184,7 @@ case existing_sessions(Subscriber) of
 	false ->
 		request3(list_to_binary(Password), StateData);
 	{true, false, [ExistingSessionAtt]} ->
-		NewStateData = StateData#statedata{multi_sessions_allowed = false},
+		NewStateData = StateData#statedata{multi_session = false},
 		case pg2:get_closest_pid(ocs_radius_acct_port_sup) of
 			{error, Reason} ->
 				request5(Reason, NewStateData);
@@ -192,7 +192,7 @@ case existing_sessions(Subscriber) of
 				start_disconnect(DiscFsmSup, ExistingSessionAtt, NewStateData)
 		end;
 	{true, true, _ExistingSessionAtt} ->
-		NewStateData = StateData#statedata{multi_sessions_allowed = true},
+		NewStateData = StateData#statedata{multi_session = true},
 		request3(list_to_binary(Password), NewStateData);
 	{error, _Reason} ->
 		request5(not_found, StateData)
@@ -220,7 +220,7 @@ request3(Password, #statedata{subscriber = Subscriber} = StateData) ->
 %% @hidden
 request4(RadiusPacketType, ResponseAttributes, #statedata{session_id = SessionID,
 		req_attr = Attributes, subscriber = Subscriber,
-		multi_sessions_allowed = MultiSessions} = StateData) ->
+		multi_session = MultiSessions} = StateData) ->
 	case add_session_attributes(Subscriber, Attributes, MultiSessions) of
 		ok ->
 			response(RadiusPacketType, ResponseAttributes, StateData),
@@ -396,7 +396,7 @@ existing_sessions(Subscriber) ->
 		{ok, #subscriber{session_attributes = []}} ->
 			false;
 		{ok, #subscriber{session_attributes = SessionAttr, enabled = true,
-				balance = Balance, multi_sessions_allowed = MultiSessionStatus}}
+				balance = Balance, multi_session = MultiSessionStatus}}
 				when Balance > 0 ->
 			{true, MultiSessionStatus, SessionAttr};
 		{ok, #subscriber{balance = Balance}} when Balance == 0; Balance < 0 ->
