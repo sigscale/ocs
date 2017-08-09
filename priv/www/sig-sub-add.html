@@ -3,6 +3,7 @@
 <link rel="import" href="i18n-msg/i18n-msg-behavior.html">
 <link rel="import" href="paper-dialog/paper-dialog.html">
 <link rel="import" href="paper-toolbar/paper-toolbar.html">
+<link rel="import" href="paper-tabs/paper-tabs.html">
 <link rel="import" href="paper-input/paper-input.html">
 <link rel="import" href="paper-item/paper-icon-item.html">
 <link rel="import" href="paper-item/paper-item-body.html">
@@ -12,6 +13,7 @@
 <link rel="import" href="paper-toast/paper-toast.html">
 <link rel="import" href="paper-styles/color.html">
 <link rel="import" href="iron-ajax/iron-ajax.html">
+<link rel="import" href="iron-pages/iron-pages.html">
 <link rel="import" href="paper-checkbox/paper-checkbox.html">
 <link rel="import" href="iron-icons/iron-icons.html">
 <link rel="import" href="iron-icons/communication-icons.html">
@@ -77,11 +79,19 @@
 		}
 	</style>
 	<template>
-		<div id="add_subscriber_container">
-			<paper-dialog id="subAddModal" modal>
-				<paper-toolbar>
-					<h2>[[i18n.AddTitle]]</h2>
-				</paper-toolbar>
+		<paper-dialog id="subAddModal" modal>
+			<paper-toolbar>
+				<paper-tabs selected="{{selected}}">
+					<paper-tab id="auth-add">
+						<h2>[[i18n.AuthTitle]]</h2>
+					</paper-tab>
+					<paper-tab id="auth-attr">
+						<h2>[[i18n.AuthorTitle]]</h2>
+					</paper-tab>
+				</paper-tabs>
+			</paper-toolbar>
+			<iron-pages selected="{{selected}}">
+			<div id="add-div">
 				<div>
 					<paper-input id="add1"
 							class="identity"
@@ -93,117 +103,32 @@
 							Identity, or username, of the subscriber to authenticate.
 						</i18n-msg>
 					</paper-tooltip>
-					<div class="generate">
-						<paper-checkbox
-							on-change="subcheckchanged">
-							<i18n-msg msgid="gen">
+				<div class="generate">
+					<paper-checkbox
+						on-change="subcheckchanged">
+						<i18n-msg msgid="gen">
 							Generate
-							</i18n-msg>
-						</paper-checkbox>
-					</div>
-				</div>
-				<div>
-					<paper-input id="add2"
-							class="password"
-							name="password"
-							label="[[i18n.password]]">
-					</paper-input>
-					<paper-tooltip>
-						<i18n-msg msgid="passwordTooltip">
-							Secret password shared only with the subscriber
 						</i18n-msg>
-					</paper-tooltip>
-					<div class="generate">
-						<paper-checkbox
-							on-change="subcheckboxchanged">
-							<i18n-msg msgid="gen">
-							Generate
-							</i18n-msg>
-						</paper-checkbox>
-					</div>
+					</paper-checkbox>
 				</div>
-				<div>
-					<paper-input id="add3"
-							name="ascendDataRate"
-							type="number"
-							label="[[i18n.recieve]]">
-					</paper-input>
-					<paper-tooltip>
-						<i18n-msg msgid="dataRateTool">
-							Limit on received (download) data per second in bits.
-						</i18n-msg>
-					</paper-tooltip>
 				</div>
-				<div>
-					<paper-input id="add4"
-							name="ascendXmitRate"
-							type="number"
-							label="[[i18n.trans]]">
-					</paper-input>
-					<paper-tooltip>
-						<i18n-msg msgid="xmitRateTool">
-							Limit on transmitted (upload) data per second in bits.
-						</i18n-msg>
-					</paper-tooltip>
-				</div>
-				<div>
-					<paper-input id="add5"
-							name="sessionTimeout"
-							type="number"
-							label="[[i18n.ses]]"
-							value=3600>
-					</paper-input>
-					<paper-tooltip>
-						<i18n-msg msgid="sessionTimeoutTool">
-							Time between authorization requests in an active session in seconds.
-						</i18n-msg>
-					</paper-tooltip>
-				</div>
-				<div>
-					<paper-input id="add6"
-							name="acctInterimInterval"
-							type="number"
-							label="[[i18n.updateInterval]]">
-					</paper-input>
-					<paper-tooltip>
-						<i18n-msg msgid="acctInterimIntervalTool">
-							Time between accounting interim updates in seconds.
-						</i18n-msg>
-					</paper-tooltip>
-				</div>
-				<div>
-					<paper-input id="add7"
-							name="class"
-							label="[[i18n.class]]">
-					</paper-input>
-				</div>
-				<div>
-					<paper-input id="add8"
-							name="balance"
-							type="number"
-							label="[[i18n.balance]]"
-							required>
-					</paper-input>
-					<paper-tooltip>
-						<i18n-msg msgid="balanceTool">
-							Initial credit value in bytes, against which accounting will debit usage against.
-						</i18n-msg>
-					</paper-tooltip>
-				</div>
-				<br>
-				<div>
-					<i18n-msg msgid="enable">
-						Enable
+				<paper-input id="add2"
+						class="password"
+						name="password"
+						label="[[i18n.password]]">
+				</paper-input>
+				<paper-tooltip>
+					<i18n-msg msgid="passwordTooltip">
+						Secret password shared only with the subscriber
 					</i18n-msg>
-					<div style="display:inline-block;">
-						<paper-toggle-button id="add9" name="enabled" checked>
-						</paper-toggle-button>
-					</div>
-					<paper-tooltip>
-						<i18n-msg msgid="enableTool">
-							Temporarily enable, or disable, authorization for service.
+				</paper-tooltip>
+				<div class="generate">
+					<paper-checkbox
+						on-change="subcheckboxchanged">
+						<i18n-msg msgid="gen">
+							Generate
 						</i18n-msg>
-					</paper-tooltip>
+					</paper-checkbox>
 				</div>
 				<div class="buttons">
 					<paper-button
@@ -224,6 +149,98 @@
 					</i18n-msg>
 					</paper-button>
 				</div>
+			</div>
+			<div id="add-divone">
+					<paper-input id="add3"
+							name="ascendDataRate"
+							type="number"
+							label="[[i18n.recieve]]">
+					</paper-input>
+					<paper-tooltip>
+						<i18n-msg msgid="dataRateTool">
+							Limit on received (download) data per second in bits.
+						</i18n-msg>
+					</paper-tooltip>
+					<paper-input id="add4"
+							name="ascendXmitRate"
+							type="number"
+							label="[[i18n.trans]]">
+					</paper-input>
+					<paper-tooltip>
+						<i18n-msg msgid="xmitRateTool">
+							Limit on transmitted (upload) data per second in bits.
+						</i18n-msg>
+					</paper-tooltip>
+					<paper-input id="add5"
+							name="sessionTimeout"
+							type="number"
+							label="[[i18n.ses]]"
+							value=3600>
+					</paper-input>
+					<paper-tooltip>
+						<i18n-msg msgid="sessionTimeoutTool">
+							Time between authorization requests in an active session in seconds.
+						</i18n-msg>
+					</paper-tooltip>
+					<paper-input id="add6"
+							name="acctInterimInterval"
+							type="number"
+							label="[[i18n.updateInterval]]">
+					</paper-input>
+					<paper-tooltip>
+						<i18n-msg msgid="acctInterimIntervalTool">
+							Time between accounting interim updates in seconds.
+						</i18n-msg>
+					</paper-tooltip>
+					<paper-input id="add7"
+							name="class"
+							label="[[i18n.class]]">
+					</paper-input>
+					<paper-input id="add8"
+							name="balance"
+							type="number"
+							label="[[i18n.balance]]"
+							required>
+					</paper-input>
+					<paper-tooltip>
+						<i18n-msg msgid="balanceTool">
+							Initial credit value in bytes, against which accounting will debit usage against.
+						</i18n-msg>
+					</paper-tooltip>
+					<i18n-msg msgid="enable">
+						Enable
+					</i18n-msg>
+					<div style="display:inline-block;">
+						<paper-toggle-button id="add9" 
+							name="enabled" checked>
+						</paper-toggle-button>
+					</div>
+					<paper-tooltip>
+						<i18n-msg msgid="enableTool">
+							Temporarily enable, or disable, authorization for service.
+						</i18n-msg>
+					</paper-tooltip>
+					<div class="buttons">
+					<paper-button
+							raised
+							class="add-button"
+							on-click="_subscriberAddSubmit">
+						<i18n-msg msgid="submit">
+							Submit
+						</i18n-msg>
+						</paper-button>
+						<paper-button
+								class="cancel-button"
+								dialog-confirm
+								autofocus
+								onclick="subAddModal.close()">
+						<i18n-msg msgid="cancel">
+							Cancel
+						</i18n-msg>
+					</paper-button>
+				</div>
+			</div>
+			</iron-pages>
 				<div id="response-display-container">
 					<paper-toast id="toastError" class="fit-bottom error">
 						<h2>[[i18n.subToastErrorReason]]</h2>
@@ -244,42 +261,41 @@
 						<h2>[[i18n.subToastSuc]]</h2>
 					</paper-toast>
 				</div>
-			</paper-dialog>
-			<paper-dialog id="subSecretModal" class="generated" modal>
+		</paper-dialog>
+		<paper-dialog id="subSecretModal" class="generated" modal>
 				<paper-toolbar>
-					<h2>[[i18n.serverGen]]</h2>
-				</paper-toolbar>
-				<paper-icon-item>
-					<paper-item-body two-line>
-						<div>
-							<iron-icon icon="icons:perm-identity" item-icon></iron-icon>
-							[[i18n.identity]]&#58;
-						</div>
-						<div secondary>
-							[[identity]]
-						</div>
-					</paper-item-body>
-				</paper-icon-item>
-				<paper-icon-item>
-					<paper-item-body two-line>
-						<div>
-							<iron-icon icon="communication:vpn-key" item-icon></iron-icon>
-							[[i18n.password]]&#58;
-						</div>
-						<div secondary>
-							[[password]]
-						</div>
-					</paper-item-body>
-				</paper-icon-item>
-				<div class="close">
-					<paper-button dialog-confirm autofocus>
-						<i18n-msg msgid="close">
-							Close
-						</i18n-msg>
-					</paper-button>
-				</div>
-			</paper-dialog>
-		</div>
+				<h2>[[i18n.serverGen]]</h2>
+			</paper-toolbar>
+			<paper-icon-item>
+				<paper-item-body two-line>
+					<div>
+						<iron-icon icon="icons:perm-identity" item-icon></iron-icon>
+						[[i18n.identity]]&#58;
+					</div>
+					<div secondary>
+						[[identity]]
+					</div>
+				</paper-item-body>
+			</paper-icon-item>
+			<paper-icon-item>
+				<paper-item-body two-line>
+					<div>
+						<iron-icon icon="communication:vpn-key" item-icon></iron-icon>
+						[[i18n.password]]&#58;
+					</div>
+					<div secondary>
+						[[password]]
+					</div>
+				</paper-item-body>
+			</paper-icon-item>
+			<div class="close">
+				<paper-button dialog-confirm autofocus>
+					<i18n-msg msgid="close">
+						Close
+					</i18n-msg>
+				</paper-button>
+			</div>
+		</paper-dialog>
 		<iron-ajax
 				id="subAddAjax"
 				url="/ocs/v1/subscriber"
@@ -300,8 +316,10 @@
 			is: 'sig-sub-add',
 			behaviors: [i18nMsgBehavior],
 			properties: {
-				password: String,
-				identity: String
+				selected: {
+					type: Number,
+					value: 0
+				}
 			},
 			listeners: {
 				'toastErrorClose.on-click': 'closeToast',
