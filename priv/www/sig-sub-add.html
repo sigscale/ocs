@@ -103,32 +103,34 @@
 							Identity, or username, of the subscriber to authenticate.
 						</i18n-msg>
 					</paper-tooltip>
-				<div class="generate">
-					<paper-checkbox
-						on-change="subcheckchanged">
-						<i18n-msg msgid="gen">
-							Generate
-						</i18n-msg>
-					</paper-checkbox>
+					<div class="generate">
+						<paper-checkbox
+							on-change="subcheckchanged">
+							<i18n-msg msgid="gen">
+								Generate
+							</i18n-msg>
+						</paper-checkbox>
+					</div>
 				</div>
-				</div>
-				<paper-input id="add2"
-						class="password"
-						name="password"
-						label="[[i18n.password]]">
-				</paper-input>
-				<paper-tooltip>
-					<i18n-msg msgid="passwordTooltip">
-						Secret password shared only with the subscriber
-					</i18n-msg>
-				</paper-tooltip>
-				<div class="generate">
-					<paper-checkbox
-						on-change="subcheckboxchanged">
-						<i18n-msg msgid="gen">
-							Generate
+				<div>
+					<paper-input id="add2"
+							class="password"
+							name="password"
+							label="[[i18n.password]]">
+					</paper-input>
+					<paper-tooltip>
+						<i18n-msg msgid="passwordTooltip">
+							Secret password shared only with the subscriber
 						</i18n-msg>
-					</paper-checkbox>
+					</paper-tooltip>
+					<div class="generate">
+						<paper-checkbox
+							on-change="subcheckboxchanged">
+							<i18n-msg msgid="gen">
+								Generate
+							</i18n-msg>
+						</paper-checkbox>
+					</div>
 				</div>
 				<div class="buttons">
 					<paper-button
@@ -151,6 +153,7 @@
 				</div>
 			</div>
 			<div id="add-divone">
+				<div>
 					<paper-input id="add3"
 							name="ascendDataRate"
 							type="number"
@@ -161,6 +164,8 @@
 							Limit on received (download) data per second in bits.
 						</i18n-msg>
 					</paper-tooltip>
+				</div>
+				<div>
 					<paper-input id="add4"
 							name="ascendXmitRate"
 							type="number"
@@ -171,6 +176,8 @@
 							Limit on transmitted (upload) data per second in bits.
 						</i18n-msg>
 					</paper-tooltip>
+				</div>
+				<div>
 					<paper-input id="add5"
 							name="sessionTimeout"
 							type="number"
@@ -182,6 +189,8 @@
 							Time between authorization requests in an active session in seconds.
 						</i18n-msg>
 					</paper-tooltip>
+				</div>
+				<div>
 					<paper-input id="add6"
 							name="acctInterimInterval"
 							type="number"
@@ -192,10 +201,12 @@
 							Time between accounting interim updates in seconds.
 						</i18n-msg>
 					</paper-tooltip>
+				</div>
 					<paper-input id="add7"
 							name="class"
 							label="[[i18n.class]]">
 					</paper-input>
+				<div>
 					<paper-input id="add8"
 							name="balance"
 							type="number"
@@ -207,6 +218,7 @@
 							Initial credit value in bytes, against which accounting will debit usage against.
 						</i18n-msg>
 					</paper-tooltip>
+				</div>
 				<div>
 					<i18n-msg msgid="enable">
 						Enable
@@ -215,15 +227,15 @@
 						<paper-toggle-button id="add9" 
 							name="enabled" checked>
 						</paper-toggle-button>
+						<paper-tooltip>
+							<i18n-msg msgid="enableTool">
+								Temporarily enable, or disable, authorization for service.
+							</i18n-msg>
+						</paper-tooltip>
 					</div>
-					<paper-tooltip>
-						<i18n-msg msgid="enableTool">
-							Temporarily enable, or disable, authorization for service.
+						<i18n-msg msgid="multi">
+							Multisession
 						</i18n-msg>
-					</paper-tooltip>
-					<i18n-msg msgid="multi">
-						Multisession
-					</i18n-msg>
 					<div style="display:inline-block;">
 						<paper-toggle-button id="add10" 
 							name="multi-session">
