@@ -207,10 +207,6 @@ install1(Nodes) ->
 							" on all nodes", {nodes, Nodes}, {errors, NotOKs}]),
 					{error, NotOKs}
 			end;
-		{error, Reason} ->
-			error_logger:error_report([mnesia:error_description(Reason),
-					{error, Reason}]),
-			{error, Reason};
 		{Results, BadNodes} ->
 			error_logger:error_report(["Failed to start mnesia"
 					" on all nodes", {nodes, Nodes}, {results, Results},
