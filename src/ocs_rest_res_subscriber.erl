@@ -317,7 +317,7 @@ post_subscriber(RequestBody) ->
 			false ->
 				undefined
 		end,
-		case ocs:add_subscriber(IdIn, PasswordIn, Attributes, Balance, Enabled, Multi, false) of
+		case ocs:add_subscriber(IdIn, PasswordIn, Attributes, Balance, Enabled, Multi) of
 			{ok, #subscriber{name = IdOut, last_modified = LM} = S} ->
 				Id = binary_to_list(IdOut),
 				Location = "/ocs/v1/subscriber/" ++ Id,
@@ -379,35 +379,35 @@ patch_subscriber2(Id, Etag, "application/json", ReqBody, CurrPassword,
 	try
 		{struct, Object} = mochijson:decode(ReqBody),
 		{_, Type} = lists:keyfind("update", 1, Object),
-		{Password, RadAttr, NewEnabled} = case Type of
+		{Password, RadAttr, NewEnabled, NewMulti} = case Type of
 			"attributes" ->
 				{_, {array, AttrJs}} = lists:keyfind("attributes", 1, Object),
 				NewAttributes = json_to_radius(AttrJs),
 				{_, Balance} = lists:keyfind("balance", 1, Object),
 				{_, EnabledStatus} = lists:keyfind("enabled", 1, Object),
 				{_, Mul} = lists:keyfind("multi_session", 1, Object),
-				ocs:update_attributes(Id, Balance, NewAttributes, EnabledStatus, false),
+				ocs:update_attributes(Id, Balance, NewAttributes, EnabledStatus, Mul),
 				{CurrPassword, NewAttributes, EnabledStatus, Mul};
 			"password" ->
 				{_, NewPassword } = lists:keyfind("newpassword", 1, Object),
 				ocs:update_password(Id, NewPassword),
-				{NewPassword, CurrAttr, Enabled}
+				{NewPassword, CurrAttr, Enabled, Multi}
 		end,
-		patch_subscriber3(Id, Etag, Password, RadAttr, Bal, Multi, NewEnabled)
+		patch_subscriber3(Id, Etag, Password, RadAttr, Bal, NewEnabled, NewMulti)
 	catch
 		_:_ ->
 			{error, 400}
 	end;
 patch_subscriber2(Id, Etag, "application/json-patch+json", ReqBody,
-		CurrPassword, CurrAttr, Bal, Mul, Enabled) ->
+		CurrPassword, CurrAttr, Bal, Multi, Enabled) ->
 	try
 		{array, OpList} = mochijson:decode(ReqBody),
 		CurrentValues = [{"password", CurrPassword}, {"balance", Bal},
-				{"attributes", CurrAttr}, {"enabled", Enabled}, {"multi_session", Mul}],
+				{"attributes", CurrAttr}, {"enabled", Enabled}, {"multi_session", Multi}],
 		ValidOpList = validated_operations(OpList),
-		{NPwd, NBal, NAttr, NEnabled, NMulti} =
+		{NPwd, NBal, NAttr, NEnabled} =
 				execute_json_patch_operations(ValidOpList, Id, CurrentValues),
-		patch_subscriber3(Id, Etag, NPwd, NAttr, NBal, NEnabled, NMulti)
+		patch_subscriber3(Id, Etag, NPwd, NAttr, NBal, NEnabled, Multi)
 	catch
 		_:_ ->
 			{error, 400}

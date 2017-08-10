@@ -191,7 +191,14 @@
 								Enabled for service or temporarily disabled.
 							</i18n-msg>
 						</paper-tooltip>
-					</div>
+							<i18n-msg msgid="multi">
+								Multisession
+							</i18n-msg>
+						<div style="display:inline-block;">
+							<paper-toggle-button id="edit-multi-session">
+							</paper-toggle-button>
+						</div>
+					</div><br>
 					<div class="buttons">
 						<paper-button
 								onclick="subUpdateModal.close()"
@@ -302,8 +309,11 @@
 				attr[4] = classx;
 				sub.attributes = attr;
 				sub.enabled= document.getElementById("edit-enabled").checked;
+				sub.multi_session= document.getElementById("edit-multi-session").checked;
 				editAjax.body = sub;
+console.log(sub);
 				editAjax.generateRequest();
+console.log(editAjax);
 			},
 			updateSubAuthoResponse: function (event) {
 				if(event.detail.succeeded) {

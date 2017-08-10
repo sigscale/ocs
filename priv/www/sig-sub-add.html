@@ -207,6 +207,7 @@
 							Initial credit value in bytes, against which accounting will debit usage against.
 						</i18n-msg>
 					</paper-tooltip>
+				<div>
 					<i18n-msg msgid="enable">
 						Enable
 					</i18n-msg>
@@ -220,6 +221,15 @@
 							Temporarily enable, or disable, authorization for service.
 						</i18n-msg>
 					</paper-tooltip>
+					<i18n-msg msgid="multi">
+						Multisession
+					</i18n-msg>
+					<div style="display:inline-block;">
+						<paper-toggle-button id="add10" 
+							name="multi-session">
+						</paper-toggle-button>
+					</div>
+				</div><br>
 					<div class="buttons">
 					<paper-button
 							raised
@@ -369,6 +379,7 @@
 				subscriber.attributes = attributes;
 				subscriber.balance = parseInt(document.getElementById("add8").value);
 				subscriber.enabled= document.getElementById("add9").checked;
+				subscriber.multi_session= document.getElementById("add10").checked;
 				var ajax = document.getElementById("subAddAjax");
 				ajax.body = subscriber;
 				ajax.generateRequest();
