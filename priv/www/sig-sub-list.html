@@ -133,13 +133,13 @@
 			</vaadin-grid-column>
 			<vaadin-grid-column width="8ex" flex-grow="1">
 				<template class="header">
-					<vaadin-grid-sorter path="multi_session">
-						<vaadin-grid-filter aria-label="multi_session" path="multi_session" value="[[_filterMulti]]">
+					<vaadin-grid-sorter path="multisession">
+						<vaadin-grid-filter aria-label="multisession" path="multisession" value="[[_filterMulti]]">
 							<input placeholder="Multisession" value="{{_filterMulti::input}}" focus-target>
 						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
-				<template>[[item.multi_session]]</template>
+				<template>[[item.multisession]]</template>
 			</vaadin-grid-column>
 		</vaadin-grid>
 		<div class="add-button">
@@ -201,7 +201,7 @@
 							name: "enabled"
 						},
 						{
-							name: "multi_session"
+							name: "multisession"
 						}
 					];
 					grid.dataProvider = function(params, callback) {
@@ -250,7 +250,7 @@
 						document.getElementById("edit-update-interval").value = item.acctInterimInterval;
 						document.getElementById("edit-class").value =  item.class;
 						document.getElementById("edit-enabled").checked =  item.enabled;
-						document.getElementById("edit-multi-session").checked =  item.multi_session;
+						document.getElementById("edit-multi-session").checked =  item.multisession;
 					}
 				},
 				responseHandler: function(event) {
@@ -276,7 +276,7 @@
 							}
 						);
 						newRecord.enabled = results[index].enabled;
-						newRecord.multi_session = results[index].multi_session;
+						newRecord.multisession = results[index].multisession;
 						vaadinItems[index] = newRecord;
 					}
 					cbSub(vaadinItems);

@@ -35,7 +35,7 @@
 		enabled = true :: boolean(),
 		disconnect  = false :: boolean(),
 		session_attributes = radius_attributes:new() :: [radius_attributes:attributes()],
-		multi_session = false :: boolean(),
+		multisession = false :: boolean(),
 		last_modified  = {erlang:system_time(milli_seconds),
 				erlang:unique_integer([positive])} :: tuple()}).
 
