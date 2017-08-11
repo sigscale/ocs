@@ -193,6 +193,12 @@ The media types used in this application are described below.
 			<td id="mt">O</td>
 			<td id="mt">Subscriber's status of accessing the services</td>
 		</tr>
+		<tr id="mt">
+			<td id="mt">multisession</td>
+			<td id="mt">boolean</td>
+			<td id="mt">O</td>
+			<td id="mt">Subscriber's status of allowed multi session</td>
+		</tr>
 	</tbody>
 </table></div></p>
 <p><div id="attributes"><table id="mt">
@@ -369,7 +375,8 @@ Content-length: nn
                {"name": "class", "value": "skiorgs"}
               ],
  "balance":100,
- "enabled": true
+ "enabled": true,
+ "multisession": false
 }
 </pre></p>
 <p>Example response:<pre>
@@ -391,7 +398,8 @@ Etag: mm-m
                {"name": "class", "value": "skiorgs"}
               ],
  "balance": 100,
- "enabled": true
+ "enabled": true,
+ "multisession": false
 }
 </pre></p>
 
@@ -444,7 +452,8 @@ Etag : mm-m
                {"name": "ascendDataRate", "value": 64000}
               ],
  "balance": 983490,
- "enabled": true
+ "enabled": true,
+ "multisession": false
 }
 </pre></p>
 
@@ -499,7 +508,8 @@ Content-Length: nn
                  {"name": "class", "value": "skiorgs"}
                 ],
   "balance": 6559234,
-  "enabled": true
+  "enabled": true,
+  "multisession": false
  },
  {
   "id": "e5b9265c8c0d",
@@ -509,7 +519,8 @@ Content-Length: nn
                  {"name": "sessionTimeout", "value": 3600},
                 ],
   "balance": 12038624,
-  "enabled": true
+  "enabled": true,
+  "multisession": false
  }
 ]
 </pre></p>
@@ -569,7 +580,7 @@ Accept: application/json
 ]
 </pre></p>
 
-<p>Example respons:<pre>
+<p>Example response:<pre>
 HTTP/1.1 200 Ok
 Content-Type: application/json
 Content-Length: nn
@@ -587,7 +598,8 @@ Etag: mm-m
                {"name" : "class", "value": "skiorgs"}
               ],
  "balance": 100,
- "enabled": true
+ "enabled": true,
+ "multisession": false
 }
 </pre></p>
 
@@ -634,7 +646,8 @@ Accept: application/json
                {"name": "ascendDataRate", "value": 1000000},
                {"name": "ascendXmitRate", "value": 512000},
               ],
- "enabled": false
+ "enabled": false,
+ "multisession": false
 }
 </pre></p>
 
@@ -662,6 +675,11 @@ Accept: application/json
   "path" : "enabled",
   "value" : false
  }
+ {
+  "op" : "replace",
+  "path" : "multisession",
+  "value" : false
+ }
 ]
 </pre></p>
 
@@ -680,7 +698,8 @@ Etag: mm-m
                {"name": "ascendXmitRate", "value": 512000},
               ],
  "balance": 100000000000,
- "enabled": false
+ "enabled": false,
+ "multisession": false
 }
 </pre></p>
 
