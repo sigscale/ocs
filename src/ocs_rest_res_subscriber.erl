@@ -385,9 +385,9 @@ patch_subscriber2(Id, Etag, "application/json", ReqBody, CurrPassword,
 				NewAttributes = json_to_radius(AttrJs),
 				{_, Balance} = lists:keyfind("balance", 1, Object),
 				{_, EnabledStatus} = lists:keyfind("enabled", 1, Object),
-				{_, Mul} = lists:keyfind("multi_session", 1, Object),
-				ocs:update_attributes(Id, Balance, NewAttributes, EnabledStatus, Mul),
-				{CurrPassword, NewAttributes, EnabledStatus, Mul};
+				{_, MultiSession} = lists:keyfind("multi_session", 1, Object),
+				ocs:update_attributes(Id, Balance, NewAttributes, EnabledStatus, MultiSession),
+				{CurrPassword, NewAttributes, EnabledStatus, MultiSession};
 			"password" ->
 				{_, NewPassword } = lists:keyfind("newpassword", 1, Object),
 				ocs:update_password(Id, NewPassword),
@@ -399,15 +399,15 @@ patch_subscriber2(Id, Etag, "application/json", ReqBody, CurrPassword,
 			{error, 400}
 	end;
 patch_subscriber2(Id, Etag, "application/json-patch+json", ReqBody,
-		CurrPassword, CurrAttr, Bal, Multi, Enabled) ->
+		CurrPassword, CurrAttr, Bal, Enabled, Multi) ->
 	try
 		{array, OpList} = mochijson:decode(ReqBody),
 		CurrentValues = [{"password", CurrPassword}, {"balance", Bal},
 				{"attributes", CurrAttr}, {"enabled", Enabled}, {"multi_session", Multi}],
 		ValidOpList = validated_operations(OpList),
-		{NPwd, NBal, NAttr, NEnabled} =
+		{NPwd, NBal, NAttr, NEnabled, NMulti} =
 				execute_json_patch_operations(ValidOpList, Id, CurrentValues),
-		patch_subscriber3(Id, Etag, NPwd, NAttr, NBal, NEnabled, Multi)
+		patch_subscriber3(Id, Etag, NPwd, NAttr, NBal, NEnabled, NMulti)
 	catch
 		_:_ ->
 			{error, 400}
@@ -584,11 +584,12 @@ execute_json_patch_operations(OpList, ID, CValues) ->
 	{_, NAttr} = lists:keyfind("attributes", 1, NValues),
 	{_, NBal} = lists:keyfind("balance", 1, NValues),
 	{_, NEnabled} = lists:keyfind("enabled", 1, NValues),
+	{_, NMulti} = lists:keyfind("multi_session", 1, NValues),
 	case Update of
 		password ->
 			ocs:update_password(ID, NPwd);
 		attributes ->
-			ocs:update_attributes(ID, NBal, NAttr, NEnabled, false)
+			ocs:update_attributes(ID, NBal, NAttr, NEnabled, NMulti)
 	end,
-	{NPwd, NBal, NAttr, NEnabled}.
+	{NPwd, NBal, NAttr, NEnabled, NMulti}.
 
