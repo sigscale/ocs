@@ -66,7 +66,7 @@ get_subscriber1(Id, Filters) ->
 	case ocs:find_subscriber(Id) of
 		{ok, #subscriber{password = PWBin, attributes = Attributes,
 				balance = Balance, enabled = Enabled, 
-				multi_session = Multi, last_modified = LM}} ->
+				multisession = Multi, last_modified = LM}} ->
 			Etag = etag(LM),
 			Att = radius_to_json(Attributes),
 			Att1 = {array, Att},
@@ -102,9 +102,9 @@ get_subscriber1(Id, Filters) ->
 						[]
 				end,
 			RespObj7 = case Filters == []
-				orelse lists:keymember("multi_session", 1, Filters) of
+				orelse lists:keymember("multisession", 1, Filters) of
 					true ->
-						[{"multi_session", Multi}];
+						[{"multisession", Multi}];
 					false ->
 						[]
 				end,
@@ -156,10 +156,10 @@ get_subscribers(Subscribers, Query, Filters) ->
 				{lists:keysort(#subscriber.enabled, Subscribers), NewQuery};
 			{value, {_, "-enabled"}, NewQuery} ->
 				{lists:reverse(lists:keysort(#subscriber.enabled, Subscribers)), NewQuery};
-			{value, {_, "multi_session"}, NewQuery} ->
-				{lists:keysort(#subscriber.multi_session, Subscribers), NewQuery};
-			{value, {_, "-multi_session"}, NewQuery} ->
-				{lists:reverse(lists:keysort(#subscriber.multi_session, Subscribers)), NewQuery};
+			{value, {_, "multisession"}, NewQuery} ->
+				{lists:keysort(#subscriber.multisession, Subscribers), NewQuery};
+			{value, {_, "-multisession"}, NewQuery} ->
+				{lists:reverse(lists:keysort(#subscriber.multisession, Subscribers)), NewQuery};
 			false ->
 				{Subscribers, Query};
 			_ ->
@@ -208,7 +208,7 @@ get_subscribers1(Subscribers, Query, Filters) ->
 %% @hidden
 get_subscribers2(Subscribers, Id, Password, Balance, Enabled, Multi, [] = _Query, Filters) ->
 	F = fun(#subscriber{name = Na, password = Pa, attributes = Attributes, 
-			balance = Ba, enabled = Ena, multi_session = Mul}) ->
+			balance = Ba, enabled = Ena, multisession = Mul}) ->
 		Nalist = binary_to_list(Na),
 		T1 = lists:prefix(Id, Nalist),
 		Palist = binary_to_list(Pa),
@@ -245,9 +245,9 @@ get_subscribers2(Subscribers, Id, Password, Balance, Enabled, Multi, [] = _Query
 						[]
 				end,
 				RespObj6 = case Filters == []
-						orelse lists:keymember("multi_session", 1, Filters) of
+						orelse lists:keymember("multisession", 1, Filters) of
 					true ->
-						[{"multi_session", Mul}];
+						[{"multisession", Mul}];
 					false ->
 						[]
 				end,
@@ -311,7 +311,7 @@ post_subscriber(RequestBody) ->
 			false ->
 				undefined
 		end,
-		Multi = case lists:keyfind("multi_session", 1, Object) of
+		Multi = case lists:keyfind("multisession", 1, Object) of
 			{_, Mu} ->
 				Mu;
 			false ->
@@ -326,7 +326,7 @@ post_subscriber(RequestBody) ->
 						{password, binary_to_list(S#subscriber.password)},
 						{attributes, JAttributes}, {balance, S#subscriber.balance},
 						{enabled, S#subscriber.enabled},
-						{multi_session, S#subscriber.multi_session}],
+						{multisession, S#subscriber.multisession}],
 				JsonObj  = {struct, RespObj},
 				Body = mochijson:encode(JsonObj),
 				Headers = [{location, Location}, {etag, etag(LM)}],
@@ -364,7 +364,7 @@ patch_subscriber1(Id, Etag, CType, ReqBody) ->
 	case ocs:find_subscriber(Id) of
 		{ok, #subscriber{password = CurrPassword, attributes = CurrAttr,
 				balance = Bal, enabled = Enabled,
-				multi_session = Multi, last_modified = CurrentEtag}}
+				multisession = Multi, last_modified = CurrentEtag}}
 				when Etag == CurrentEtag; Etag == undefined ->
 			patch_subscriber2(Id, Etag, CType, ReqBody, CurrPassword, CurrAttr,
 					Bal, Enabled, Multi);
@@ -385,9 +385,9 @@ patch_subscriber2(Id, Etag, "application/json", ReqBody, CurrPassword,
 				NewAttributes = json_to_radius(AttrJs),
 				{_, Balance} = lists:keyfind("balance", 1, Object),
 				{_, EnabledStatus} = lists:keyfind("enabled", 1, Object),
-				{_, Mul} = lists:keyfind("multi_session", 1, Object),
-				ocs:update_attributes(Id, Balance, NewAttributes, EnabledStatus, Mul),
-				{CurrPassword, NewAttributes, EnabledStatus, Mul};
+				{_, MultiSession} = lists:keyfind("multisession", 1, Object),
+				ocs:update_attributes(Id, Balance, NewAttributes, EnabledStatus, MultiSession),
+				{CurrPassword, NewAttributes, EnabledStatus, MultiSession};
 			"password" ->
 				{_, NewPassword } = lists:keyfind("newpassword", 1, Object),
 				ocs:update_password(Id, NewPassword),
@@ -399,15 +399,15 @@ patch_subscriber2(Id, Etag, "application/json", ReqBody, CurrPassword,
 			{error, 400}
 	end;
 patch_subscriber2(Id, Etag, "application/json-patch+json", ReqBody,
-		CurrPassword, CurrAttr, Bal, Multi, Enabled) ->
+		CurrPassword, CurrAttr, Bal, Enabled, Multi) ->
 	try
 		{array, OpList} = mochijson:decode(ReqBody),
 		CurrentValues = [{"password", CurrPassword}, {"balance", Bal},
-				{"attributes", CurrAttr}, {"enabled", Enabled}, {"multi_session", Multi}],
+				{"attributes", CurrAttr}, {"enabled", Enabled}, {"multisession", Multi}],
 		ValidOpList = validated_operations(OpList),
-		{NPwd, NBal, NAttr, NEnabled} =
+		{NPwd, NBal, NAttr, NEnabled, NMulti} =
 				execute_json_patch_operations(ValidOpList, Id, CurrentValues),
-		patch_subscriber3(Id, Etag, NPwd, NAttr, NBal, NEnabled, Multi)
+		patch_subscriber3(Id, Etag, NPwd, NAttr, NBal, NEnabled, NMulti)
 	catch
 		_:_ ->
 			{error, 400}
@@ -417,7 +417,7 @@ patch_subscriber3(Id, Etag, Password, RadAttr, Balance, Enabled, Multi) ->
 	Attributes = {array, radius_to_json(RadAttr)},
 	RespObj =[{id, Id}, {href, "/ocs/v1/subscriber/" ++ Id},
 		{password, Password}, {attributes, Attributes}, {balance, Balance},
-		{enabled, Enabled}, {multi_session, Multi}],
+		{enabled, Enabled}, {multisession, Multi}],
 	JsonObj  = {struct, RespObj},
 	RespBody = mochijson:encode(JsonObj),
 	Headers = case Etag of
@@ -584,11 +584,12 @@ execute_json_patch_operations(OpList, ID, CValues) ->
 	{_, NAttr} = lists:keyfind("attributes", 1, NValues),
 	{_, NBal} = lists:keyfind("balance", 1, NValues),
 	{_, NEnabled} = lists:keyfind("enabled", 1, NValues),
+	{_, NMulti} = lists:keyfind("multisession", 1, NValues),
 	case Update of
 		password ->
 			ocs:update_password(ID, NPwd);
 		attributes ->
-			ocs:update_attributes(ID, NBal, NAttr, NEnabled, false)
+			ocs:update_attributes(ID, NBal, NAttr, NEnabled, NMulti)
 	end,
-	{NPwd, NBal, NAttr, NEnabled}.
+	{NPwd, NBal, NAttr, NEnabled, NMulti}.
 

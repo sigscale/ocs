@@ -251,8 +251,10 @@ add_subscriber(Config) ->
 	AttributeArray = {array, SortedAttributes},
 	Balance = 100,
 	Enable = true,
+	Multi = false,
 	JSON1 = {struct, [{"id", ID}, {"password", Password},
-	{"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enable}]},
+	{"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enable},
+	{"multisession", Multi}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON1)),
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
@@ -277,14 +279,16 @@ add_subscriber(Config) ->
 	ExtraAttributes = Attributes -- SortedAttributes,
 	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
 	{"balance", Balance} = lists:keyfind("balance", 1, Object),
-	{"enabled", Enable} = lists:keyfind("enabled", 1, Object).
+	{"enabled", Enable} = lists:keyfind("enabled", 1, Object),
+	{"multisession", Multi} = lists:keyfind("multisession", 1, Object).
 
 add_subscriber_without_password() ->
 	[{userdata, [{doc,"Add subscriber with generated password"}]}].
 
 add_subscriber_without_password(Config) ->
 	ContentType = "application/json",
-	JSON1 = {struct, [{"id", "beebdeedfeef"}, {"balance", 100000}, {"enabled", true}]},
+	JSON1 = {struct, [{"id", "beebdeedfeef"}, {"balance", 100000}, {"enabled", true},
+	{"multisession", false}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON1)),
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
@@ -317,8 +321,10 @@ get_subscriber(Config) ->
 	AttributeArray = {array, SortedAttributes},
 	Balance = 100,
 	Enable = true,
+	Multi = false,
 	JSON1 = {struct, [{"id", ID}, {"password", Password},
-	{"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enable}]},
+	{"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enable},
+	{"multisession", Multi}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON1)),
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
@@ -346,7 +352,8 @@ get_subscriber(Config) ->
 	ExtraAttributes = Attributes -- SortedAttributes,
 	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
 	{"balance", Balance} = lists:keyfind("balance", 1, Object),
-	{"enabled", Enable} = lists:keyfind("enabled", 1, Object).
+	{"enabled", Enable} = lists:keyfind("enabled", 1, Object),
+	{"multisession", Multi} = lists:keyfind("multisession", 1, Object).
 
 get_subscriber_not_found() ->
 	[{userdata, [{doc, "get subscriber notfound in rest interface"}]}].
@@ -382,8 +389,10 @@ retrieve_all_subscriber(Config) ->
 	AttributeArray = {array, SortedAttributes},
 	Balance = 100,
 	Enable = true,
+	Multi = false,
 	JSON1 = {struct, [{"id", ID}, {"password", Password},
-	{"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enable}]},
+	{"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enable},
+	{"multisession", Multi}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON1)),
 	HostUrl = ?config(host_url, Config),
 	RestUser = ct:get_config(rest_user),
@@ -417,7 +426,8 @@ retrieve_all_subscriber(Config) ->
 	ExtraAttributes = Attributes -- SortedAttributes,
 	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
 	{"balance", Balance} = lists:keyfind("balance", 1, Subscriber),
-	{"enabled", Enable} = lists:keyfind("enabled", 1, Subscriber).
+	{"enabled", Enable} = lists:keyfind("enabled", 1, Subscriber),
+	{"multisession", Multi} = lists:keyfind("multisession", 1, Subscriber).
 
 delete_subscriber() ->
 	[{userdata, [{doc,"Delete subscriber in rest interface"}]}].
@@ -1517,8 +1527,10 @@ simultaneous_updates_on_subscriber_faliure(Config) ->
 	AttributeArray = {array, SortedAttributes},
 	Balance = 100,
 	Enable = true,
+	Multi = false,
 	JSON1 = {struct, [{"id", ID}, {"password", Password},
-	{"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enable}]},
+	{"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enable},
+	{"multisession", Multi}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON1)),
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
@@ -1545,6 +1557,7 @@ simultaneous_updates_on_subscriber_faliure(Config) ->
 	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
 	{"balance", Balance} = lists:keyfind("balance", 1, Object),
 	{"enabled", Enable} = lists:keyfind("enabled", 1, Object),
+	{"multisession", Multi} = lists:keyfind("multisession", 1, Object),
 	Port = ?config(port, Config),
 	{ok, SslSock} = ssl:connect({127,0,0,1}, Port,  [binary, {active, false}], infinity),
 	ok = ssl:ssl_accept(SslSock),
@@ -1800,8 +1813,10 @@ update_subscriber_password_json_patch(Config) ->
 	AttributeArray = {array, SortedAttributes},
 	Balance = 100,
 	Enabled = true,
+	Multi = false,
 	JSON = {struct, [{"id", ID}, {"password", Password},
-	{"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enabled}]},
+	{"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enabled},
+	{"multisession", Multi}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
@@ -1829,6 +1844,7 @@ update_subscriber_password_json_patch(Config) ->
 	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
 	{"balance", Balance} = lists:keyfind("balance", 1, Object),
 	{"enabled", Enabled} = lists:keyfind("enabled", 1, Object),
+	{"multisession", Multi} = lists:keyfind("multisession", 1, Object),
 	RestPort = ?config(port, Config),
 	{ok, SslSock} = ssl:connect({127,0,0,1}, RestPort,  [binary, {active, false}], infinity),
 	ok = ssl:ssl_accept(SslSock),
@@ -1865,6 +1881,7 @@ update_subscriber_password_json_patch(Config) ->
 	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
 	{"balance", Balance} = lists:keyfind("balance", 1, Object1),
 	{"enabled", Enabled} = lists:keyfind("enabled", 1, Object1),
+	{"multisession", Multi} = lists:keyfind("multisession", 1, Object1),
 	ok = ssl:close(SslSock).
 
 update_subscriber_attributes_json_patch() ->
@@ -1884,8 +1901,10 @@ update_subscriber_attributes_json_patch(Config) ->
 	AttributeArray = {array, SortedAttributes},
 	Balance = 100,
 	Enabled = true,
+	Multi = true,
 	JSON = {struct, [{"id", ID}, {"password", Password},
-	{"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enabled}]},
+	{"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enabled},
+	{"multisession", Multi}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
@@ -1913,11 +1932,13 @@ update_subscriber_attributes_json_patch(Config) ->
 	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
 	{"balance", Balance} = lists:keyfind("balance", 1, Object),
 	{"enabled", Enabled} = lists:keyfind("enabled", 1, Object),
+	{"multisession", Multi} = lists:keyfind("multisession", 1, Object),
 	RestPort = ?config(port, Config),
 	{ok, SslSock} = ssl:connect({127,0,0,1}, RestPort,  [binary, {active, false}], infinity),
 	ok = ssl:ssl_accept(SslSock),
 	NewContentType = "application/json-patch+json",
 	NewEnabled = false,
+	NewMulti = false,
 	NewBalance = 47398734,
 	NewAttributes = {array,[
 			{struct, [{"name", "ascendDataRate"}, {"value", 100000}]},
@@ -1925,7 +1946,8 @@ update_subscriber_attributes_json_patch(Config) ->
 	JSON1 = {array, [
 			{struct, [{op, "replace"}, {path, "/balance"}, {value, NewBalance}]},
 			{struct, [{op, "replace"}, {path, "/attributes"}, {value, NewAttributes}]},
-			{struct, [{op, "replace"}, {path, "/enabled"}, {value, NewEnabled}]}]},
+			{struct, [{op, "replace"}, {path, "/enabled"}, {value, NewEnabled}]},
+			{struct, [{op, "replace"}, {path, "/multisession"}, {value, NewMulti}]}]},
 	PatchBody = lists:flatten(mochijson:encode(JSON1)),
 	PatchBodyLen = size(list_to_binary(PatchBody)),
 	PatchUri = "/ocs/v1/subscriber/" ++ ID,
@@ -1954,6 +1976,7 @@ update_subscriber_attributes_json_patch(Config) ->
 	{_, NewAttributes} = lists:keyfind("attributes", 1, Object1),
 	{"balance", NewBalance} = lists:keyfind("balance", 1, Object1),
 	{"enabled", NewEnabled} = lists:keyfind("enabled", 1, Object1),
+	{"multisession", NewMulti} = lists:keyfind("multisession", 1, Object1),
 	ok = ssl:close(SslSock).
 
 update_user_characteristics_json_patch() ->
