@@ -34,6 +34,7 @@
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include_lib("../include/diameter_gen_nas_application_rfc7155.hrl").
 -include("ocs_eap_codec.hrl").
+-include("ocs.hrl").
 
 -define(SVC, diameter_client_service).
 -define(BASE_APPLICATION_ID, 0).
@@ -92,7 +93,10 @@ init_per_testcase(TestCase, Config) when
 	[{Address, Port, _}] = AuthInstance,
 	Secret = "s3cr3t",
 	ok = ocs:add_client(Address, Port, diameter, Secret),
-	{ok, _} = ocs:add_subscriber(UserName, Password, [], 1000000),
+	Amount = 1000000,
+	RemAmnt = #remain_amount{unit = octects, amount = Amount},
+	Buckets = [#bucket{id = "0", name = "default", remain_amount = RemAmnt}],
+	{ok, _} = ocs:add_subscriber(UserName, Password, [], Buckets),
 	[{username, UserName}, {password, Password}] ++ Config;
 init_per_testcase(_TestCase, Config) ->
 	NasId = atom_to_list(node()),
@@ -150,7 +154,10 @@ simple_authentication_radius(Config) ->
 	CallingStationId = string:join(MACtokens, "-"),
 	PeerID = string:to_lower(lists:append(MACtokens)),
 	PeerPassword = ocs:generate_password(),
-	{ok, _} = ocs:add_subscriber(PeerID, PeerPassword, [], 10000),
+	Amount = 1000000,
+	RemAmnt = #remain_amount{unit = octects, amount = Amount},
+	Buckets = [#bucket{id = "0", name = "default", remain_amount = RemAmnt}],
+	{ok, _} = ocs:add_subscriber(PeerID, PeerPassword, [], Buckets),
 	Authenticator = radius:authenticator(),
 	SharedSecret = ct:get_config(radius_shared_secret),
 	UserPassword = radius_attributes:hide(SharedSecret, Authenticator, PeerPassword),	
@@ -270,7 +277,10 @@ bad_password_radius(Config) ->
 	CallingStationId = string:join(MACtokens, "-"),
 	PeerID = string:to_lower(lists:append(MACtokens)),
 	PeerPassword = ocs:generate_password(),
-	{ok, _} = ocs:add_subscriber(PeerID, PeerPassword, [], 1000),
+	Amount = 1000000,
+	RemAmnt = #remain_amount{unit = octects, amount = Amount},
+	Buckets = [#bucket{id = "0", name = "default", remain_amount = RemAmnt}],
+	{ok, _} = ocs:add_subscriber(PeerID, PeerPassword, [], Buckets),
 	Authenticator = radius:authenticator(),
 	SharedSecret = ct:get_config(radius_shared_secret),
 	BoguesPassowrd = radius_attributes:hide(SharedSecret, Authenticator, "bogus"),	
@@ -331,7 +341,10 @@ unknown_username_radius(Config) ->
 	CallingStationId = string:join(MACtokens, "-"),
 	PeerID = string:to_lower(lists:append(MACtokens)),
 	PeerPassword = ocs:generate_password(),
-	{ok, _} = ocs:add_subscriber(PeerID, PeerPassword, [], 1000),
+	Amount = 1000000,
+	RemAmnt = #remain_amount{unit = octects, amount = Amount},
+	Buckets = [#bucket{id = "0", name = "default", remain_amount = RemAmnt}],
+	{ok, _} = ocs:add_subscriber(PeerID, PeerPassword, [], Buckets),
 	Authenticator = radius:authenticator(),
 	SharedSecret = ct:get_config(radius_shared_secret),
 	UserPassword = radius_attributes:hide(SharedSecret, Authenticator, PeerPassword),	

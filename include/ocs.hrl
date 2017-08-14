@@ -26,12 +26,22 @@
 		last_modified  = {erlang:system_time(milli_seconds),
 				erlang:unique_integer([positive])} :: tuple()}).
 
+-record(remain_amount,
+	{unit :: string(),
+	amount :: integer()}).
+
+-record(bucket,
+		{id :: string(),
+		name :: string(),
+		buckt_type :: string(),
+		remain_amount :: #remain_amount{}}).
+
 %% define subscriber table entries record
 -record(subscriber,
 		{name :: binary(),
 		password :: binary(),
 		attributes :: radius_attributes:attributes(),
-		balance :: integer(),
+		buckets :: [#bucket{}],
 		enabled = true :: boolean(),
 		disconnect  = false :: boolean(),
 		session_attributes = radius_attributes:new() :: [radius_attributes:attributes()],
