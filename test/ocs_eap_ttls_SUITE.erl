@@ -57,6 +57,7 @@
 -include_lib("radius/include/radius.hrl").
 -include_lib("diameter/include/diameter.hrl").
 -include("ocs_eap_codec.hrl").
+-include("ocs.hrl").
 -include_lib("common_test/include/ct.hrl").
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
@@ -153,7 +154,9 @@ eap_ttls_authentication_radius(Config) ->
 	Subscriber = <<"45678901">>,
 	MAC = "DD-EE-FF-AA-BB-CC",
 	PeerAuth = list_to_binary(ocs:generate_password()),
-	{ok, _} = ocs:add_subscriber(Subscriber, PeerAuth, [], 10000),
+	RemAcct = #remain_amount{unit = octects, amount = 1000},
+	Buckets = [#bucket{id = "0", name = "default", remain_amount = RemAcct}],
+	{ok, _} = ocs:add_subscriber(Subscriber, PeerAuth, [], Buckets),
 	Socket = ?config(socket, Config),
 	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, radius),
 	[{Address, Port, _}] = AuthInstance,
@@ -210,7 +213,9 @@ eap_ttls_authentication_diameter(Config) ->
 	AnonymousName = "HBdasutsmk",
 	Subscriber = <<"45016789">>,
 	PeerAuth = list_to_binary(ocs:generate_password()),
-	{ok, _} = ocs:add_subscriber(Subscriber, PeerAuth, [], 10000),
+	RemAcct = #remain_amount{unit = octects, amount = 1000},
+	Buckets = [#bucket{id = "0", name = "default", remain_amount = RemAcct}],
+	{ok, _} = ocs:add_subscriber(Subscriber, PeerAuth, [], Buckets),
 	{ok, [{auth, DiaAuthInstance}, _]} = application:get_env(ocs, diameter),
 	[{Address, _Port, _}] = DiaAuthInstance,
 	DEA1 = send_identity_diameter(SId, AnonymousName, EapId),

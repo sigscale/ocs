@@ -235,8 +235,9 @@ request(Request, Caps,  _From, State) ->
 				SubscriptionId
 		end,
 		case ocs:find_subscriber(Subscriber) of
-			{ok, #subscriber{password = Password, balance = Balance,
+			{ok, #subscriber{password = Password, buckets = Buckets,
 					enabled = true}} ->
+				Balance = get_balance(Buckets),
 				case ocs:authorize(Subscriber, Password) of
 					{ok, _, _} ->
 						request1(RequestType, Request, SId, RequestNum, Subscriber,
@@ -422,10 +423,11 @@ decrement_balance(Subscriber, Usage) when is_binary(Subscriber),
 		Usage >= 0 ->
 	F = fun() ->
 		case mnesia:read(subscriber, Subscriber, write) of
-			[#subscriber{balance = Balance, disconnect = Flag} = Entry] ->
-				NewBalance = Balance - Usage,
-				NewEntry = Entry#subscriber{balance = NewBalance},
+			[#subscriber{buckets = Buckets, disconnect = Flag} = Entry] ->
+				UpdatedBuckets = update_buckets(Buckets, Usage),
+				NewEntry = Entry#subscriber{buckets = UpdatedBuckets},
 				mnesia:write(subscriber, NewEntry, write),
+				NewBalance = get_balance(UpdatedBuckets),
 				{NewBalance, Flag};
 			[] ->
 				throw(not_found)
@@ -497,3 +499,37 @@ start_disconnect(Svc, Alias, SessionId, OHost, DHost, ORealm, DRealm,
 			end
 	end.
 
+-spec get_balance(Buckets) ->
+		Balance when
+	Buckets :: [#bucket{}],
+	Balance :: integer().
+%% get the availabel balance form buckets
+get_balance([]) ->
+	0;
+get_balance(Buckets) ->
+	get_balance1(Buckets, 0).
+%% @hidden
+get_balance1([], Balance) ->
+	Balance;
+get_balance1([#bucket{remain_amount = #remain_amount{amount = RemAmnt}}
+		| Tail], Balance) ->
+	get_balance1(Tail, RemAmnt + Balance).
+
+-spec update_buckets(Buckets, Usage) ->
+		UpdatedBuckets when
+	Buckets :: [#bucket{}],
+	Usage :: integer(),
+	UpdatedBuckets :: [#bucket{}].
+%% @doc Decrement bucket balances and return new available buckets
+update_buckets([], _Usage) ->
+	[];
+update_buckets([#bucket{remain_amount = #remain_amount{amount = RemAmount} = RM} = Bucket |
+		Tail], Usage) ->
+	RemUsage = RemAmount - Usage,
+	case RemUsage of
+		RU when RU < 0 ->
+			update_buckets(Tail, RU);
+		_ ->
+			UpdatedBucket = Bucket#bucket{remain_amount = RM#remain_amount{amount = RemUsage}},
+			[UpdatedBucket | Tail]
+	end.
