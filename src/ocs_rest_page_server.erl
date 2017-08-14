@@ -21,18 +21,49 @@
 -behaviour(gen_server).
 
 %% export the ocs_rest_page_server API
--export([]).
+-export([start_link/1]).
+-export_type([continuation/0]).
 
 %% export the callbacks needed for gen_server behaviour
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 			terminate/2, code_change/3]).
 
--record(state, {timeout :: pos_integer()}).
+-opaque continuation() :: any().
+-record(state,
+		{etag :: string(),
+		timeout :: pos_integer(),
+		module :: atom(),
+		function :: atom(),
+		args :: list(),
+		cont = start :: continuation(),
+		buffer = [] :: [tuple()],
+		pointer = 0 :: integer()}).
 -type state() :: #state{}.
+
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
 
 %%----------------------------------------------------------------------
 %%  The ocs_rest_page_server API
 %%----------------------------------------------------------------------
+
+-spec start_link(Args) -> Result
+	when
+		Args :: [term()],
+		Result :: {ok, PageServer} | {error, Reason},
+		PageServer :: pid(),
+		Reason :: term().
+%% @doc Start a handler for a sequence of REST range requests.
+start_link(Args) ->
+	Etag = integer_to_list(erlang:system_time(?MILLISECOND)) ++ "-"
+			++ integer_to_list(erlang:unique_integer([positive])),
+	case gen_server:start_link({global, Etag}, ?MODULE, [Etag | Args], []) of
+		{ok, Child} ->
+			{ok, Child, Etag};
+		{error, Reason} ->
+			{error, Reason}
+	end.
 
 %%----------------------------------------------------------------------
 %%  The ocs_rest_page_server gen_server call backs
@@ -51,9 +82,12 @@
 %% @see //stdlib/gen_server:init/1
 %% @private
 %%
-init([Timeout] = _Args) when is_integer(Timeout) ->
+init([Etag, Timeout, M, F, A] = _Args) when is_integer(Timeout),
+		is_atom(M), is_atom(F), is_list(A) ->
 	process_flag(trap_exit, true),
-	{ok, #state{timeout = Timeout}, Timeout}.
+	State = #state{etag = Etag, module = M, function = F,
+			args = A, timeout = Timeout},
+	{ok, State, Timeout}.
 
 -spec handle_call(Request, From, State) -> Result
 	when
@@ -76,8 +110,16 @@ init([Timeout] = _Args) when is_integer(Timeout) ->
 %% @see //stdlib/gen_server:handle_call/3
 %% @private
 %%
-handle_call(_Request, _From, State) ->
-	{stop, not_implemented, State}.
+handle_call({StartRange, EndRange}, _From, #state{module = Module,
+		function = Function, args = Args, cont = Cont} = State) ->
+	case apply(Module, Function, [Cont | Args]) of
+		{eof, Items} ->
+			{reply, {ok, Items}, State};
+		{error, Reason} ->
+			{reply, {error, Reason}, State};
+		{Cont2, Items} ->
+			{reply, {ok, Items}, State}
+	end.
 
 -spec handle_cast(Request, State) -> Result
 	when

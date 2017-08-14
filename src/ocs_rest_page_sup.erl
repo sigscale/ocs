@@ -37,12 +37,12 @@
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init(_Args) ->
-	ChildSpecs = [server(ocs_rest_page_server)],
+init([Timeout]) when is_integer(Timeout) ->
+	ChildSpecs = [server(ocs_rest_page_server, Timeout)],
 	{ok, {{simple_one_for_one, 10, 60}, ChildSpecs}}.
 
 %% @hidden
-server(StartMod) ->
-	StartFunc = {gen_server, start_link, [{local, ?MODULE}, StartMod]},
+server(StartMod, Timeout) ->
+	StartFunc = {StartMod, start_link, [Timeout]},
 	{StartMod, StartFunc, temporary, infinity, worker, [StartMod]}.
 

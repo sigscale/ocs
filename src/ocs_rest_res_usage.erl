@@ -24,12 +24,18 @@
 		get_usage/1, get_usage/2, get_usagespec/1, get_usagespec/2,
 		get_ipdr/1]).
 
+-export([query_auth/8]).
+
 -include_lib("radius/include/radius.hrl").
 -include("ocs_log.hrl").
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
+
+%%----------------------------------------------------------------------
+%%  The ocs_rest_res_usage API
+%%----------------------------------------------------------------------
 
 -spec content_types_accepted() -> ContentTypes
 	when
@@ -80,7 +86,7 @@ get_usage("auth-" ++ _ = Id, [] = _Query) ->
 		["auth", TimeStamp, Serial] = string:tokens(Id, [$-]),
 		TS = list_to_integer(TimeStamp),
 		N = list_to_integer(Serial),
-		case query_auth(TS, TS, '_', '_', '_', '_', MaxItems) of
+		case query_auth(start, TS, TS, '_', '_', '_', '_', MaxItems) of
 			{error, _} ->
 				{error, 500};
 			{_, Events} ->
@@ -2183,23 +2189,32 @@ get_auth_usage(Query, Filters) ->
 
 %% @hidden
 get_auth_query([] = _Query, Filters) ->
-	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	Now = erlang:system_time(?MILLISECOND),
-	case query_auth(1, Now, '_', '_', '_', '_', MaxItems) of
+	{ok, PageSize} = application:get_env(ocs, rest_page_size),
+	case supervisor:start_child({local, ocs_rest_page_sup},
+			[?MODULE, query_auth, [1, Now, '_', '_', '_', '_', PageSize]]) of
+		{ok, PageServer, Etag} ->
+			{ok, MaxItems} = application:get_env(ocs, rest_page_size),
+			get_auth_query_page(PageServer, 1, MaxItems, Etag, Filters);
+		{error, _Reason} ->
+			{error, 500}
+	end.
+
+%% @hidden
+get_auth_query_page(PageServer, Start, End, Etag, Filters) ->
+	case gen_server:call(PageServer, {Start, End}) of
 		{0, []} ->
 			{error, 404};
 		{NumItems, Events} ->
 			JsonObj = usage_aaa_auth(Events, Filters),
 			JsonArray = {array, JsonObj},
 			Body = mochijson:encode(JsonArray),
-			N = integer_to_list(NumItems),
-			ContentRange = "items 1-" ++ N ++ "/" ++ N,
+			ContentRange = "items " ++ integer_to_list(Start) ++ "-"
+					++ integer_to_list(NumItems) ++ "/*",
 			Headers = [{content_type, "application/json"},
-					{content_range, ContentRange}],
+					{etag, Etag}, {content_range, ContentRange}],
 			{ok, Headers, Body}
-	end;
-get_auth_query(_Query, _Filters) ->
-	{error, 400}.
+	end.
 
 %% @hidden
 get_auth_last([] = _Query, Filters) ->
@@ -2284,31 +2299,50 @@ get_acct_last([] = _Query, Filters) ->
 get_acct_last(_Query, _Filters) ->
 	{error, 400}.
 
+-spec query_auth(Continuation, Start, End, Protocol, Types,
+		ReqAttrsMatch, ResAttrsMatch, PageSize) -> Result
+	when
+		Continuation :: start | disk_log:continuation(),
+		Start :: pos_integer(),
+		End :: pos_integer(),
+		Protocol :: radius | diameter | '_',
+		Types :: [accept | reject | change ] | '_',
+		ReqAttrsMatch :: [{Attribute, Match}] | '_',
+		ResAttrsMatch :: [{Attribute, Match}] | '_',
+		Attribute :: byte(),
+		Match :: term() | '_',
+		PageSize :: pos_integer(),
+		Result :: {Continuation2, JsonArray} | {eof, JsonArray} | {error, Reason},
+		Continuation2 :: disk_log:continuation(),
+		JsonArray :: [tuple()],
+		Reason :: term().
+%% @doc Callback used by REST pagination server.
+%% @private
+query_auth(Continuation, Start, End, Protocol, Types,
+		ReqAttrsMatch, ResAttrsMatch, PageSize) ->
+	query_auth(Continuation, Start, End, Protocol, Types,
+			ReqAttrsMatch, ResAttrsMatch, PageSize, 0, []).
 %% @hidden
-query_auth(Start, End, Protocol, Types, ReqAttrs, ResAttrs, PageSize) ->
-	query_auth(start, Start, End, Protocol, Types,
-			ReqAttrs, ResAttrs, PageSize, 0, []).
-%% @hidden
-query_auth(Cont, Start, End, Protocol, Types,
+query_auth(Cont1, Start, End, Protocol, Types,
 		ReqAttrs, ResAttrs, PageSize, Count, Acc) ->
-	case ocs_log:auth_query(Cont, Start, End,
+	case ocs_log:auth_query(Cont1, Start, End,
 			Protocol, Types, ReqAttrs, ResAttrs) of
 		{error, Reason} ->
 			{error, Reason};
-		{Cont1, Events} ->
+		{Cont2, Events} ->
 			{NewCount, NewAcc} = case length(Events) + Count of
 				Total when Total =< PageSize ->
 					{Total, [Events | Acc]};
 				Total ->
 					{Total, [lists:sublist(Events, PageSize - Count) | Acc]}
 			end,
-			case Cont1 of
+			case Cont2 of
 				eof ->
 					{NewCount, lists:flatten(lists:reverse(NewAcc))};
 				_ when NewCount >= PageSize ->
 					{NewCount, lists:flatten(lists:reverse(NewAcc))};
 				_ ->
-					query_auth(Cont1, Start, End, Protocol, Types,
+					query_auth(Cont2, Start, End, Protocol, Types,
 							ReqAttrs, ResAttrs, PageSize, NewCount, NewAcc)
 			end
 	end.

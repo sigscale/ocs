@@ -37,13 +37,13 @@
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init([LogRotateTime, LogRotateInterval] = _Args) ->
+init([LogRotateTime, LogRotateInterval, PageTimeout] = _Args) ->
 	ChildSpecs = [supervisor(ocs_radius_acct_top_sup, []),
 			supervisor(ocs_radius_auth_sup, []),
 			supervisor(ocs_diameter_auth_sup, []),
 			supervisor(ocs_diameter_acct_top_sup, []),
 			log_server(ocs_log_rotate_server, [LogRotateTime, LogRotateInterval]),
-			supervisor(ocs_rest_page_sup, []),
+			supervisor(ocs_rest_page_sup, [PageTimeout]),
 			server(ocs_server, [self()])],
 	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
 
