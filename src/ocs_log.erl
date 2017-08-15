@@ -142,8 +142,8 @@ acct_close() ->
 		AttrsMatch :: [{Attribute, Match}] | '_',
 		Attribute :: byte(),
 		Match :: term() | '_',
-		Result :: {Continuation2, Events} | {eof, Events} | {error, Reason},
-		Continuation2 :: disk_log:continuation(),
+		Result :: {Continuation2, Events} | {error, Reason},
+		Continuation2 :: eof | disk_log:continuation(),
 		Events :: [acct_event()],
 		Reason :: term().
 %% @doc Query accounting log events with filters.
@@ -162,8 +162,8 @@ acct_query(Continuation, Start, End, Types, AttrsMatch) ->
 		AttrsMatch :: [{Attribute, Match}] | '_',
 		Attribute :: byte(),
 		Match :: term() | '_',
-		Result :: {Continuation2, Events} | {eof, Events} | {error, Reason},
-		Continuation2 :: disk_log:continuation(),
+		Result :: {Continuation2, Events} | {error, Reason},
+		Continuation2 :: eof | disk_log:continuation(),
 		Events :: [acct_event()],
 		Reason :: term().
 %% @doc Query accounting log events with filters.
@@ -367,8 +367,8 @@ auth_log(Protocol, Server, Client, Request, Response) ->
 		RespAttrsMatch :: [{Attribute, Match}] | '_',
 		Attribute :: byte(),
 		Match :: term() | '_',
-		Result :: {Continuation2, Events} | {eof, Events} | {error, Reason},
-		Continuation2 :: disk_log:continuation(),
+		Result :: {Continuation2, Events} | {error, Reason},
+		Continuation2 :: eof | disk_log:continuation(),
 		Events :: [auth_event()],
 		Reason :: term().
 %% @doc Query access log events with filters.
@@ -390,8 +390,8 @@ auth_query(Continuation, Start, End, Types, ReqAttrsMatch, RespAttrsMatch) ->
 		RespAttrsMatch :: [{Attribute, Match}] | '_',
 		Attribute :: byte(),
 		Match :: term() | '_',
-		Result :: {Continuation2, Events} | {eof, Events} | {error, Reason},
-		Continuation2 :: disk_log:continuation(),
+		Result :: {Continuation2, Events} | {error, Reason},
+		Continuation2 :: eof | disk_log:continuation(),
 		Events :: [auth_event()],
 		Reason :: term().
 %% @doc Query access log events with filters.
