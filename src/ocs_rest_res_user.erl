@@ -99,28 +99,28 @@ get_users1(Users, Query, Filters) ->
 	end,
 	get_users2(Users, Id, Query1, Filters).
 %% @hidden
-get_users2([H|_T] = Users, Id, [] = _Query, Filters) ->
+get_users2([H|_T] = Users, Id, [] = _Query, _Filters) ->
 	case ocs:get_user(H) of
-		{ok, #httpd_user{username = Idlist, user_data = UserData}} ->
+		{ok, #httpd_user{username = _Idlist, user_data = UserData}} ->
 			F = fun(Idlist)  ->
-			T1 = lists:prefix(Id, Idlist),
-			Characteristic = case lists:keyfind(locale, 1, UserData) of
-				{_, Lang} ->
-					LocaleAttr = {struct, [{"name", "locale"}, {"value", Lang}]},
-					{array, [LocaleAttr, T1]};
-				false ->
-					{array, []}
-				end,
-			if
-				T1 ->
-					RespObj1 = [{"id", Idlist}, {"href", "/partyManagement/v1/individual/" ++ Idlist}],
-					RespObj2 = [{"characteristic", Characteristic}],
-					{true, {struct, RespObj1 ++ RespObj2}};
-				true ->
-					false
+				T1 = lists:prefix(Id, Idlist),
+				Characteristic = case lists:keyfind(locale, 1, UserData) of
+					{_, Lang} ->
+						LocaleAttr = {struct, [{"name", "locale"}, {"value", Lang}]},
+						{array, [LocaleAttr, T1]};
+					false ->
+						{array, []}
+					end,
+				if
+					T1 ->
+						RespObj1 = [{"id", Idlist}, {"href", "/partyManagement/v1/individual/" ++ Idlist}],
+						RespObj2 = [{"characteristic", Characteristic}],
+						{true, {struct, RespObj1 ++ RespObj2}};
+					true ->
+						false
+				end
 			end
-		end
-	end,
+		end,
 	try
 		JsonObj = lists:filtermap(F, Users),
 		Size = integer_to_list(length(JsonObj)),
@@ -156,7 +156,7 @@ get_user(Id, [] = _Query, Filters) ->
 get_user(_Id, _Query, _Filters) ->
 	{error, 400}.
 %% @hidden
-get_user1(Id, Filters) ->
+get_user1(Id, _Filters) ->
 	case ocs:get_user(Id) of
 		{ok, #httpd_user{username = Id, user_data = UserData}} ->
 			Characteristic = case lists:keyfind(locale, 1, UserData) of
