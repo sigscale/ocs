@@ -198,7 +198,7 @@ get_subscribers1(Subscribers, Query, Filters) ->
 		false ->
 			{[], Query3}
 	end,
-	{Multi, Query5} = case lists:keytake("enabled", 1, Query4) of
+	{Multi, Query5} = case lists:keytake("multisession", 1, Query4) of
 		{value, {_, V5}, Q5} ->
 			{V5, Q5};
 		false ->
