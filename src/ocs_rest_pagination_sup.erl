@@ -38,7 +38,7 @@
 %% @private
 %%
 init([Timeout]) when is_integer(Timeout) ->
-	ChildSpecs = [server(ocs_rest_page_server, Timeout)],
+	ChildSpecs = [server(ocs_rest_pagination_server, Timeout)],
 	{ok, {{simple_one_for_one, 10, 60}, ChildSpecs}}.
 
 %% @hidden
