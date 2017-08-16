@@ -75,22 +75,24 @@
 								label="[[i18n.address]]"
 								disabled>
 						</paper-input>
+					<div>
 						<paper-input
 								id="edit-client-pwd"
 								name="password"
 								label="[[i18n.secret]]"
 								disabled>
 						</paper-input>
-						<paper-input
-								id="edit-client-new-pwd"
-								name="secret"
-								label="[[i18n.newpass]]">
-						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="secretTooltip">
 								Secret shared with the network access server, router or access point.
 							</i18n-msg>
 						</paper-tooltip>
+					</div>
+						<paper-input
+								id="edit-client-new-pwd"
+								name="secret"
+								label="[[i18n.newpass]]">
+						</paper-input>
 					<div class="buttons">
 						<paper-button
 								onclick="clientUpdateModal.close()"
@@ -120,12 +122,7 @@
 					</div>
 				</div>
 				<div id="edit-client-attributes">
-						<paper-input
-								id="edit-client-id2"
-								name="id"
-								label="[[i18n.ipAddress]]"
-								disabled>
-						</paper-input>
+					<div>
 						<paper-input
 								id="edit-client-disc-port"
 								name="port"
@@ -137,6 +134,8 @@
 								Port network access server, router or access point listens on
 							</i18n-msg>
 						</paper-tooltip>
+					</div>
+					<div>
 						<paper-dropdown-menu
 								id="edit-client-protocol"
 								label="[[i18n.proto]]"
@@ -155,6 +154,7 @@
 								Protocol used by network access server, router or access point.
 							</i18n-msg>
 						</paper-tooltip>
+					</div>
 					<div class="buttons">
 						<paper-button
 								onclick="clientUpdateModal.close()"
@@ -232,7 +232,7 @@
 				var editAjax =  document.getElementById("updateClientProperties");
 				editAjax.method = "PATCH";
 				editAjax.contentType = "application/json";
-				var id = document.getElementById("edit-client-id2").value;
+				var id = document.getElementById("edit-client-id1").value;
 				editAjax.url = "/ocs/v1/client/" + id;
 				var client = new Object();
 				client.port = parseInt(document.getElementById("edit-client-disc-port").value);

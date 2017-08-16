@@ -566,7 +566,7 @@ spec_aaa_acct() ->
 			spec_attr_event_timestamp(), spec_attr_session_id(),
 			spec_attr_authentic(), spec_attr_session_time(),
 			spec_attr_input_packets(), spec_attr_output_packets(),
-			spec_attr_cause(), spec_attr_multi_session_id(),
+			spec_attr_cause(), spec_attr_multisession_id(),
 			spec_attr_link_count(), spec_attr_nas_port_type(),
 			spec_attr_port_limit()],
 	Char = {"usageSpecCharacteristic", {array, Chars}},
@@ -1474,7 +1474,7 @@ spec_attr_session_id() ->
 	{struct, [Name, Desc, Conf, Value]}.
 
 %% @hidden
-spec_attr_multi_session_id() ->
+spec_attr_multisession_id() ->
 	Name = {"name", "acctMultiSessionId"},
 	Desc = {"description", "Acct-Multi-Session-Id attribute"},
 	Conf = {"configurable", true},
@@ -1953,10 +1953,10 @@ char_attr_session_id(Attributes, Acc) ->
 		{error, not_found} ->
 			Acc
 	end,
-	char_attr_multi_session_id(Attributes, NewAcc).
+	char_attr_multisession_id(Attributes, NewAcc).
 
 %% @hidden
-char_attr_multi_session_id(Attributes, Acc) ->
+char_attr_multisession_id(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctMultiSessionId, Attributes) of
 		{ok, Value} ->
 			[{struct, [{"name", "acctMultiSessionId"}, {"value", Value}]} | Acc];

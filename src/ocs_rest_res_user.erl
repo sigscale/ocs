@@ -21,7 +21,7 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0, get_params/0,
-		get_user/1, get_user/0, post_user/1, put_user/3, patch_user/4,
+		get_user/2, get_users/1, post_user/1, put_user/3, patch_user/4,
 		delete_user/1]).
 
 -include_lib("radius/include/radius.hrl").
@@ -46,71 +46,136 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json"].
 
--spec get_user() -> Result
+-spec get_users(Query) -> Result
 	when
+		Query :: [{Key :: string(), Value :: string()}],
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /partyManagement/v1/individual'
 %% requests.
-get_user() ->
+get_users(Query) ->
 	case ocs:list_users() of
 		{error, _} ->
 			{error, 500};
 		{ok, Users} ->
-			get_user1(Users, [])
+			case lists:keytake("fields", 1, Query) of
+				{value, {_, L}, NewQuery} ->
+					get_users(Users, NewQuery, string:tokens(L, ","));
+				false ->
+					get_users(Users, Query, [])
+			end
 	end.
 %% @hidden
-get_user1([H | T], Acc) ->
+get_users(Users, Query, Filters) ->
+	try
+		case lists:keytake("sort", 1, Query) of
+			{value, {_, "id"}, NewQuery} ->
+				{lists:reverse(lists:sort(Users)), NewQuery};
+			{value, {_, "-id"}, NewQuery} ->
+				{lists:sort(Users), NewQuery};
+			{value, {_, "locale"}, NewQuery} ->
+				{lists:reverse(lists:sort(Users)), NewQuery};
+			{value, {_, "-locale"}, NewQuery} ->
+				{lists:sort(Users), NewQuery};
+			false ->
+				{Users, Query};
+			_ ->
+				throw(400)
+		end
+	of
+		{SortedUsers, NextQuery} ->
+			get_users1(SortedUsers, NextQuery, Filters)
+	catch
+		throw:400 ->
+			{error, 400}
+	end.
+%% @hidden
+get_users1(Users, Query, Filters) ->
+	{Id, Query1} = case lists:keytake("id", 1, Query) of
+		{value, {_, V1}, Q1} ->
+			{V1, Q1};
+		false ->
+			{[], Query}
+	end,
+	get_users2(Users, Id, Query1, Filters).
+%% @hidden
+get_users2([H|_T] = Users, Id, [] = _Query, _Filters) ->
 	case ocs:get_user(H) of
-		{ok, #httpd_user{username = Id, user_data = UserData}} ->
-			Identity = {struct, [{"name", "username"}, {"value", Id}]},
-			Characteristic = case lists:keyfind(locale, 1, UserData) of
-				{_, Lang} ->
-					LocaleAttr = {struct, [{"name", "locale"}, {"value", Lang}]},
-					{array, [LocaleAttr, Identity]};
-				false ->
-					{array, []}
-			end,
-			RespObj = [{"id", Id}, {"href", "/partyManagement/v1/individual/" ++ Id},
-				{"characteristic", Characteristic}],
-			JsonObj  = {struct, RespObj},
-			get_user1(T, [JsonObj | Acc]);
-		{error, _Reason} ->
-			get_user1(T, Acc)
+		{ok, #httpd_user{username = _Idlist, user_data = UserData}} ->
+			F = fun(Idlist)  ->
+				T1 = lists:prefix(Id, Idlist),
+				Characteristic = case lists:keyfind(locale, 1, UserData) of
+					{_, Lang} ->
+						LocaleAttr = {struct, [{"name", "locale"}, {"value", Lang}]},
+						{array, [LocaleAttr, T1]};
+					false ->
+						{array, []}
+					end,
+				if
+					T1 ->
+						RespObj1 = [{"id", Idlist}, {"href", "/partyManagement/v1/individual/" ++ Idlist}],
+						RespObj2 = [{"characteristic", Characteristic}],
+						{true, {struct, RespObj1 ++ RespObj2}};
+					true ->
+						false
+				end
+			end
+		end,
+	try
+		JsonObj = lists:filtermap(F, Users),
+		Size = integer_to_list(length(JsonObj)),
+		ContentRange = "item 1-" ++ Size ++ "/" ++ Size,
+		Body  = mochijson:encode({array, lists:reverse(JsonObj)}),
+		{ok, [{content_type, "application/json"},
+			{content_range, ContentRange}], Body}
+	catch
+		_:_Reason ->
+			{error, 500}
 	end;
-get_user1([], Acc) ->
-	Body = mochijson:encode({array, lists:reverse(Acc)}),
-	Headers = [{content_type, "application/json"}],
-	{ok, Headers, Body}.
+get_users2(_, _, _, _) ->
+	{error, 400}.
 
--spec get_user(Id) -> Result
+-spec get_user(Id, Query) -> Result
 	when
 		Id :: string(),
+		Query :: [{Key :: string(), Value :: string()}],
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /partyManagement/v1/individual/{id}'
 %% requests.
-get_user(Id) ->
+get_user(Id, Query) ->
+	case lists:keytake("fields", 1, Query) of
+		{value, {_, L}, NewQuery} ->
+			get_user(Id, NewQuery, string:tokens(L, ","));
+		false ->
+			get_user(Id, Query, [])
+	end.
+%% @hidden
+get_user(Id, [] = _Query, Filters) ->
+	get_user1(Id, Filters);
+get_user(_Id, _Query, _Filters) ->
+	{error, 400}.
+%% @hidden
+get_user1(Id, _Filters) ->
 	case ocs:get_user(Id) of
 		{ok, #httpd_user{username = Id, user_data = UserData}} ->
-			Identity = {struct, [{"name", "username"}, {"value", Id}]},
 			Characteristic = case lists:keyfind(locale, 1, UserData) of
 				{_, Lang} ->
 					LocaleAttr = {struct, [{"name", "locale"}, {"value", Lang}]},
-					{array, [Identity, LocaleAttr]};
+					{array, [LocaleAttr]};
 				false ->
 					LocaleAttr = {struct, [{"name", "locale"}, {"value", "en"}]},
-					{array, [Identity, LocaleAttr]}
+					{array, [LocaleAttr]}
 			end,
+			RespObj1 = [{"id", Id}, {"href", "/partyManagement/v1/individual/" ++ Id}],
+			RespObj2 = [{"characteristic", Characteristic}],
 			LastModified = case lists:keyfind(last_modified, 1, UserData) of
 				{_, LM} ->
 					LM;
 				false ->
 					{erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])}
 			end,
-			RespObj = [{"id", Id}, {"href", "/partyManagement/v1/individual/" ++ Id},
-				{"characteristic", Characteristic}],
-			JsonObj  = {struct, RespObj},
+			JsonObj  = {struct, RespObj1 ++ RespObj2},
 			Body = mochijson:encode(JsonObj),
 			Headers = [{content_type, "application/json"}, {etag, etag(LastModified)}],
 			{ok, Headers, Body};

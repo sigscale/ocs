@@ -99,10 +99,6 @@
     "description": "Cancel button for adding subscribers",
     "message": "Cancel"
   },
-	"AddTitle": {
-    "description": "Title for adding subscribers",         
-    "message": "Add Subscriber"
-  },
 	"AuthTitle": {
     "description": "Title for adding subscribers",
     "message": "Authentication"
@@ -377,7 +373,7 @@
   },
 	"subToastErrorReason1": {
     "description": "Toast message Error reason",
-    "message": "Please recheck th1e following."
+    "message": "Please recheck the following."
   },
 	"subToastErrorReason2": {
     "description": "Toast message Error reason",
@@ -462,5 +458,9 @@
 	"sort": {
     "description": "sorting",
     "message": "Sorting"
+  },
+	"multi": {
+    "description": "Multi session allowed",
+    "message": "Multisession"
   }
 }

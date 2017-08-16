@@ -107,10 +107,6 @@
     "description": "Cancel button for adding subscribers", 
     "message": "Cancelar"
   },
-  "AddTitle": {
-    "description": "Title for adding subscribers", 
-    "message": "Añadir Suscriptor"
-  },
   "AuthTitle": {
     "description": "Title for authentication", 
     "message": "Autenticación"
@@ -466,5 +462,9 @@
 	"sort": {
     "description": "sorting",
     "message": "Clasificación"
+  },
+	"multi": {
+    "description": "Multi session allowed",
+    "message": "Sesión múltiple"
   }
 }
