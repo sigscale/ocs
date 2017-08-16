@@ -1,4 +1,4 @@
-%%% ocs_rest_page_sup.erl
+%%% ocs_rest_pagination_sup.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2017 SigScale Global Inc.
 %%% @end
@@ -16,7 +16,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @docfile "{@docsrc supervision.edoc}"
 %%%
--module(ocs_rest_page_sup).
+-module(ocs_rest_pagination_sup).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -behaviour(supervisor).

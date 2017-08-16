@@ -1,4 +1,4 @@
-%%% ocs_rest_page_server.erl
+%%% ocs_rest_pagination_server.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2017 SigScale Global Inc.
 %%% @end
@@ -15,12 +15,12 @@
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
--module(ocs_rest_page_server).
+-module(ocs_rest_pagination_server).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -behaviour(gen_server).
 
-%% export the ocs_rest_page_server API
+%% export the ocs_rest_pagination_server API
 -export([start_link/1]).
 -export_type([continuation/0]).
 
@@ -45,7 +45,7 @@
 %-define(MILLISECOND, millisecond).
 
 %%----------------------------------------------------------------------
-%%  The ocs_rest_page_server API
+%%  The ocs_rest_pagination_server API
 %%----------------------------------------------------------------------
 
 -spec start_link(Args) -> Result
@@ -66,7 +66,7 @@ start_link(Args) ->
 	end.
 
 %%----------------------------------------------------------------------
-%%  The ocs_rest_page_server gen_server call backs
+%%  The ocs_rest_pagination_server gen_server call backs
 %%----------------------------------------------------------------------
 
 -spec init(Args) -> Result

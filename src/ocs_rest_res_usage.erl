@@ -2187,7 +2187,7 @@ get_auth_usage(Query, Filters) ->
 get_auth_query([] = _Query, Filters) ->
 	Now = erlang:system_time(?MILLISECOND),
 	{ok, PageSize} = application:get_env(ocs, rest_page_size),
-	case supervisor:start_child({local, ocs_rest_page_sup},
+	case supervisor:start_child({local, ocs_rest_pagination_sup},
 			[?MODULE, query_auth, [1, Now, '_', '_', '_', '_', PageSize]]) of
 		{ok, PageServer, Etag} ->
 			{ok, MaxItems} = application:get_env(ocs, rest_page_size),
