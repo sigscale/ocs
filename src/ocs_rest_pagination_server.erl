@@ -110,15 +110,16 @@ init([Etag, M, F, A] = _Args) when is_atom(M), is_atom(F), is_list(A) ->
 %% @see //stdlib/gen_server:handle_call/3
 %% @private
 %%
-handle_call({StartRange, EndRange}, _From, #state{module = Module,
-		function = Function, args = Args, cont = Cont} = State) ->
+handle_call({StartRange, EndRange}, _From,
+		#state{module = Module, function = Function, args = Args,
+		cont = Cont, timeout = Timeout} = State) ->
 	case apply(Module, Function, [Cont | Args]) of
 		{eof, Items} ->
-			{reply, {ok, Items}, State};
+			{reply, {ok, Items}, State, Timeout};
 		{error, Reason} ->
-			{reply, {error, Reason}, State};
+			{reply, {error, Reason}, State, Timeout};
 		{Cont2, Items} ->
-			{reply, {ok, Items}, State}
+			{reply, {ok, Items}, State, Timeout}
 	end.
 
 -spec handle_cast(Request, State) -> Result
