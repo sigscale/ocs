@@ -2208,8 +2208,8 @@ get_auth_query_page(PageServer, Start, End, Etag, Filters) ->
 			Body = mochijson:encode(JsonArray),
 			ContentRange = "items " ++ integer_to_list(Start) ++ "-"
 					++ integer_to_list(length(JsonObj)) ++ "/*",
-			Headers = [{content_type, "application/json"},
-					{etag, Etag}, {content_range, ContentRange}],
+			Headers = [{content_type, "application/json"}, {etag, Etag},
+					{accept_ranges, "item"}, {content_range, ContentRange}],
 			{ok, Headers, Body}
 	end.
 
@@ -2271,7 +2271,7 @@ get_acct_query([] = _Query, Filters) ->
 			N = integer_to_list(length(JsonObj)),
 			ContentRange = "items 1-" ++ N ++ "/" ++ N,
 			Headers = [{content_type, "application/json"},
-					{content_range, ContentRange}],
+					{accept_ranges, "item"}, {content_range, ContentRange}],
 			{ok, Headers, Body}
 	end;
 get_acct_query(_Query, _Filters) ->
@@ -2291,7 +2291,7 @@ get_acct_last([] = _Query, Filters) ->
 			Body = mochijson:encode(JsonArray),
 			ContentRange = "items 1-" ++ integer_to_list(NewCount) ++ "/*",
 			Headers = [{content_type, "application/json"},
-					{content_range, ContentRange}],
+					{accept_ranges, "item"}, {content_range, ContentRange}],
 			{ok, Headers, Body}
 	end;
 get_acct_last(_Query, _Filters) ->
