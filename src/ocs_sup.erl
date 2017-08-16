@@ -37,13 +37,15 @@
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init([LogRotateTime, LogRotateInterval, PageTimeout] = _Args) ->
+init([LogRotateTime, LogRotateInterval] = _Args) ->
 	ChildSpecs = [supervisor(ocs_radius_acct_top_sup, []),
 			supervisor(ocs_radius_auth_sup, []),
 			supervisor(ocs_diameter_auth_sup, []),
 			supervisor(ocs_diameter_acct_top_sup, []),
-			log_server(ocs_log_rotate_server, [LogRotateTime, LogRotateInterval]),
-			supervisor(ocs_rest_pagination_sup, [PageTimeout]),
+			log_server(ocs_log_rotate_server,
+					[LogRotateTime, LogRotateInterval]),
+			supervisor(ocs_rest_pagination_sup,
+					ocs_rest_pagination_sup, []),
 			server(ocs_server, [self()])],
 	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
 
@@ -62,6 +64,22 @@ init([LogRotateTime, LogRotateInterval, PageTimeout] = _Args) ->
 %%
 supervisor(StartMod, Args) ->
 	StartArgs = [StartMod, Args],
+	StartFunc = {supervisor, start_link, StartArgs},
+	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
+
+-spec supervisor(StartMod, RegName, Args) -> Result
+	when
+		StartMod :: atom(),
+		RegName :: atom(),
+		Args :: [term()],
+		Result :: supervisor:child_spec().
+%% @doc Build a supervisor child specification for a
+%% 	{@link //stdlib/supervisor. supervisor} behaviour
+%% 	with registered name.
+%% @private
+%%
+supervisor(StartMod, RegName, Args) ->
+	StartArgs = [{local, RegName}, StartMod, Args],
 	StartFunc = {supervisor, start_link, StartArgs},
 	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
 

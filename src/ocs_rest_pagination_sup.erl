@@ -37,12 +37,10 @@
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init([Timeout]) when is_integer(Timeout) ->
-	ChildSpecs = [server(ocs_rest_pagination_server, Timeout)],
+init([] = _Args) ->
+	StartMod = ocs_rest_pagination_server,
+	StartFunc = {StartMod, start_link, []},
+	ChildSpecs = [{StartMod, StartFunc,
+			temporary, infinity, worker, [StartMod]}],
 	{ok, {{simple_one_for_one, 10, 60}, ChildSpecs}}.
-
-%% @hidden
-server(StartMod, Timeout) ->
-	StartFunc = {StartMod, start_link, [Timeout]},
-	{StartMod, StartFunc, temporary, infinity, worker, [StartMod]}.
 

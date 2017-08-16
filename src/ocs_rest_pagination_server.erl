@@ -28,7 +28,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 			terminate/2, code_change/3]).
 
--opaque continuation() :: any().
+-opaque continuation() :: start | disk_log:continuation().
 -record(state,
 		{etag :: string(),
 		timeout :: pos_integer(),
@@ -82,8 +82,8 @@ start_link(Args) ->
 %% @see //stdlib/gen_server:init/1
 %% @private
 %%
-init([Etag, Timeout, M, F, A] = _Args) when is_integer(Timeout),
-		is_atom(M), is_atom(F), is_list(A) ->
+init([Etag, M, F, A] = _Args) when is_atom(M), is_atom(F), is_list(A) ->
+	{ok, Timeout} = application:get_env(rest_page_timeout),
 	process_flag(trap_exit, true),
 	State = #state{etag = Etag, module = M, function = F,
 			args = A, timeout = Timeout},

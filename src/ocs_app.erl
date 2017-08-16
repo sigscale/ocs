@@ -75,7 +75,6 @@ start1() ->
 	{ok, DiameterConfig} = application:get_env(diameter),
 	{ok, RotateInterval} = application:get_env(acct_log_rotate),
 	{ok, RotateTime} = application:get_env(acct_log_rotate_time),
-	{ok, RestPageTimeout} = application:get_env(rest_page_timeout),
 	[{auth, RadAuthInstances}, {acct, RadAcctInstances}] = RadiusConfig,
 	[{auth, DiamAuthInstances}, {acct, DiamAcctInstances}] = DiameterConfig,
 	F1 = fun({AcctAddr, AcctPort, Options} = _Instance) ->
@@ -112,7 +111,7 @@ start1() ->
 	end,
 	try
 		TopSup = case supervisor:start_link(ocs_sup,
-				[RotateTime, RotateInterval, RestPageTimeout]) of
+				[RotateTime, RotateInterval]) of
 			{ok, OcsSup} ->
 				OcsSup;
 			{error, Reason1} ->
