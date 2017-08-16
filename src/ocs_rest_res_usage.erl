@@ -84,9 +84,9 @@ get_usage("auth-" ++ _ = Id, [] = _Query) ->
 		TS = list_to_integer(TimeStamp),
 		N = list_to_integer(Serial),
 		case ocs_log:auth_query(start, TS, TS, '_', '_', '_', '_') of
-			{error, _} ->
+			{error, _Reason} ->
 				{error, 500};
-			{_, Events} ->
+			{_Cont, Events} ->
 				case lists:keyfind(N, 2, Events) of
 					Event when is_tuple(Event) ->
 						{struct, Attr} = usage_aaa_auth(Event, []),
@@ -100,7 +100,7 @@ get_usage("auth-" ++ _ = Id, [] = _Query) ->
 				end
 		end
 	catch
-		_:_Reason ->
+		_:_Reason1 ->
 			{error, 404}
 	end;
 get_usage("acct-" ++ _ = Id, [] = _Query) ->
@@ -109,7 +109,7 @@ get_usage("acct-" ++ _ = Id, [] = _Query) ->
 		TS = list_to_integer(TimeStamp),
 		N = list_to_integer(Serial),
 		case ocs_log:acct_query(start, TS, TS, '_', '_', '_') of
-			{error, _} ->
+			{error, _Reason} ->
 				{error, 500};
 			{_, Events} ->
 				case lists:keyfind(N, 2, Events) of
@@ -125,7 +125,7 @@ get_usage("acct-" ++ _ = Id, [] = _Query) ->
 				end
 		end
 	catch
-		_:_Reason ->
+		_:_Reason1 ->
 			{error, 404}
 	end;
 get_usage(Id, [] = _Query) ->
@@ -2186,9 +2186,8 @@ get_auth_usage(Query, Filters) ->
 %% @hidden
 get_auth_query([] = _Query, Filters) ->
 	Now = erlang:system_time(?MILLISECOND),
-	{ok, PageSize} = application:get_env(ocs, rest_page_size),
-	case supervisor:start_child({local, ocs_rest_pagination_sup},
-			[?MODULE, query_auth, [1, Now, '_', '_', '_', '_', PageSize]]) of
+	case supervisor:start_child(ocs_rest_pagination_sup,
+			[[ocs_log, auth_query, [1, Now, '_', '_', '_', '_']]]) of
 		{ok, PageServer, Etag} ->
 			{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 			get_auth_query_page(PageServer, 1, MaxItems, Etag, Filters);
@@ -2199,7 +2198,7 @@ get_auth_query([] = _Query, Filters) ->
 %% @hidden
 get_auth_query_page(PageServer, Start, End, Etag, Filters) ->
 	case gen_server:call(PageServer, {Start, End}) of
-		{error, _} ->
+		{error, _Reason} ->
 			{error, 500};
 		{_Cont, []} ->
 			{error, 404};
