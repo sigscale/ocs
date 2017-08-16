@@ -95,7 +95,7 @@ get_usage("auth-" ++ _ = Id, [] = _Query) ->
 						Headers = [{content_type, "application/json"},
 								{last_modified, Date}],
 						{ok, Headers, Body};
-					_ ->
+					_Other ->
 						{error, 404}
 				end
 		end
@@ -111,7 +111,7 @@ get_usage("acct-" ++ _ = Id, [] = _Query) ->
 		case ocs_log:acct_query(start, TS, TS, '_', '_', '_') of
 			{error, _Reason} ->
 				{error, 500};
-			{_, Events} ->
+			{_Cont, Events} ->
 				case lists:keyfind(N, 2, Events) of
 					Event when is_tuple(Event) ->
 						{struct, Attr} = usage_aaa_acct(Event, []),
@@ -120,7 +120,7 @@ get_usage("acct-" ++ _ = Id, [] = _Query) ->
 						Headers = [{content_type, "application/json"},
 								{last_modified, Date}],
 						{ok, Headers, Body};
-					_ ->
+					_Other ->
 						{error, 404}
 				end
 		end
