@@ -55,7 +55,8 @@ get_access() ->
 			JsonArray = {array, JsonObj},
 			Body = mochijson:encode(JsonArray),
 			ContentRange = "items 1-" ++ integer_to_list(NewCount) ++ "/*",
-			Headers = [{content_range, ContentRange}],
+			Headers = [{content_type, "application/json"},
+					{content_range, ContentRange}],
 			{ok, Headers, Body}
 	end.
 
