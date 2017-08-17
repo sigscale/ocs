@@ -451,7 +451,7 @@ Etag : mm-m
  "attributes":[
                {"name": "ascendDataRate", "value": 64000}
               ],
- "balance": 983490,
+ "totalBalance": { "amount": 983490, "units": "octets" },
  "enabled": true,
  "multisession": false
 }
@@ -518,7 +518,7 @@ Content-Length: nn
    "attributes":[
                  {"name": "sessionTimeout", "value": 3600},
                 ],
-  "balance": 12038624,
+  "totalBalance": { "amount": 983490, "units": "octets" },,
   "enabled": true,
   "multisession": false
  }

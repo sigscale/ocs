@@ -65,7 +65,7 @@ get_subscriber(_Id, _Query, _Filters) ->
 get_subscriber1(Id, Filters) ->
 	case ocs:find_subscriber(Id) of
 		{ok, #subscriber{password = PWBin, attributes = Attributes,
-				balance = Balance, enabled = Enabled, 
+				buckets = Buckets, enabled = Enabled,
 				multisession = Multi, last_modified = LM}} ->
 			Etag = etag(LM),
 			Att = radius_to_json(Attributes),
@@ -88,9 +88,12 @@ get_subscriber1(Id, Filters) ->
 						[]
 				end,
 			RespObj5 = case Filters == []
-				orelse lists:keymember("balance", 1, Filters) of
+				orelse lists:keymember("totalBalance", 1, Filters) of
 					true ->
-						[{"balance", Balance}];
+						Amount = {"amount", get_balance(Buckets)},
+						Unit = {"units", "octets"},
+						TotalBalance = {struct, [Unit, Amount]},
+						[{"totalBalance", TotalBalance}];
 					false ->
 						[]
 				end,
@@ -148,10 +151,10 @@ get_subscribers(Subscribers, Query, Filters) ->
 				{lists:keysort(#subscriber.password, Subscribers), NewQuery};
 			{value, {_, "-password"}, NewQuery} ->
 				{lists:reverse(lists:keysort(#subscriber.password, Subscribers)), NewQuery};
-			{value, {_, "balance"}, NewQuery} ->
-				{lists:keysort(#subscriber.balance, Subscribers), NewQuery};
-			{value, {_, "-balance"}, NewQuery} ->
-				{lists:reverse(lists:keysort(#subscriber.balance, Subscribers)), NewQuery};
+			{value, {_, "totalBalance"}, NewQuery} ->
+				{lists:keysort(#subscriber.buckets, Subscribers), NewQuery};
+			{value, {_, "-totalBalance"}, NewQuery} ->
+				{lists:reverse(lists:keysort(#subscriber.buckets, Subscribers)), NewQuery};
 			{value, {_, "enabled"}, NewQuery} ->
 				{lists:keysort(#subscriber.enabled, Subscribers), NewQuery};
 			{value, {_, "-enabled"}, NewQuery} ->
@@ -186,7 +189,7 @@ get_subscribers1(Subscribers, Query, Filters) ->
 		false ->
 			{[], Query1}
 	end,
-	{Balance, Query3} = case lists:keytake("balance", 1, Query2) of
+	{Balance, Query3} = case lists:keytake("totalbalance", 1, Query2) of
 		{value, {_, V3}, Q3} ->
 			{V3, Q3};
 		false ->
@@ -208,14 +211,15 @@ get_subscribers1(Subscribers, Query, Filters) ->
 %% @hidden
 get_subscribers2(Subscribers, Id, Password, Balance, Enabled, Multi, [] = _Query, Filters) ->
 	F = fun(#subscriber{name = Na, password = Pa, attributes = Attributes, 
-			balance = Ba, enabled = Ena, multisession = Mul}) ->
+			buckets = Bu, enabled = Ena, multisession = Mul}) ->
 		Nalist = binary_to_list(Na),
 		T1 = lists:prefix(Id, Nalist),
 		Palist = binary_to_list(Pa),
 		T2 = lists:prefix(Password, Palist),
 		Att = radius_to_json(Attributes),
 		Att1 = {array, Att},
-		Balist = integer_to_list(Ba),
+		TotAmount = get_balance(Bu),
+		Balist = integer_to_list(TotAmount),
 		T3 = lists:prefix(Balance, Balist),
 		T4 = lists:prefix(Enabled, [Ena]),
 		T5 = lists:prefix(Multi, [Mul]),
@@ -231,9 +235,9 @@ get_subscribers2(Subscribers, Id, Password, Balance, Enabled, Multi, [] = _Query
 						[]
 				end,
 				RespObj4 = case Filters == []
-						orelse lists:keymember("balance", 1, Filters) of
+						orelse lists:keymember("totalBalance", 1, Filters) of
 					true ->
-						[{"balance", Ba}];
+						[{"totalBalance", TotAmount}];
 					false ->
 						[]
 				end,
@@ -371,7 +375,7 @@ patch_subscriber(Id, Etag, CType, ReqBody) ->
 patch_subscriber1(Id, Etag, CType, ReqBody) ->
 	case ocs:find_subscriber(Id) of
 		{ok, #subscriber{password = CurrPassword, attributes = CurrAttr,
-				balance = Bal, enabled = Enabled,
+				buckets = Bal, enabled = Enabled,
 				multisession = Multi, last_modified = CurrentEtag}}
 				when Etag == CurrentEtag; Etag == undefined ->
 			patch_subscriber2(Id, Etag, CType, ReqBody, CurrPassword, CurrAttr,
@@ -600,4 +604,20 @@ execute_json_patch_operations(OpList, ID, CValues) ->
 			ocs:update_attributes(ID, NBal, NAttr, NEnabled, NMulti)
 	end,
 	{NPwd, NBal, NAttr, NEnabled, NMulti}.
+
+-spec get_balance(Buckets) ->
+		Balance when
+	Buckets :: [#bucket{}],
+	Balance :: integer().
+%% get the availabel balance form buckets
+get_balance([]) ->
+	0;
+get_balance(Buckets) ->
+	get_balance1(Buckets, 0).
+%% @hidden
+get_balance1([], Balance) ->
+	Balance;
+get_balance1([#bucket{remain_amount = #remain_amount{amount = RemAmnt}}
+		| Tail], Balance) ->
+	get_balance1(Tail, RemAmnt + Balance).
 
