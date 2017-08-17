@@ -21,7 +21,7 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
-		get_usage/1, get_usage/2, get_usagespec/1, get_usagespec/2,
+		get_usage/2, get_usage/3, get_usagespec/1, get_usagespec/2,
 		get_ipdr/1]).
 
 -include_lib("radius/include/radius.hrl").
@@ -49,36 +49,38 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json"].
 
--spec get_usage(Query) -> Result
+-spec get_usage(Query, Headers) -> Result
 	when
 		Query :: [{Key :: string(), Value :: string()}],
+		Headers :: [tuple()],
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
 %% 	`GET /usageManagement/v1/usage'
 %% 	requests.
-get_usage(Query) ->
+get_usage(Query, Headers) ->
 	case lists:keyfind("type", 1, Query) of
 		{_, "AAAAccessUsage"} ->
-			get_auth_usage(lists:keydelete("type", 1, Query));
+			get_auth_usage(lists:keydelete("type", 1, Query), Headers);
 		{_, "AAAAccountingUsage"} ->
-			get_acct_usage(lists:keydelete("type", 1, Query));
+			get_acct_usage(lists:keydelete("type", 1, Query), Headers);
 		{_, "PublicWLANAccessUsageSpec"} ->
 			{error, 500}; % todo?
 		_ ->
 			{error, 404}
 	end.
 
--spec get_usage(Id, Query) -> Result
+-spec get_usage(Id, Query, Headers) -> Result
 	when
 		Id :: string(),
 		Query :: [{Key :: string(), Value :: string()}],
+		Headers :: [tuple()],
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
 %% 	`GET /usageManagement/v1/usage/{id}'
 %% 	requests.
-get_usage("auth-" ++ _ = Id, [] = _Query) ->
+get_usage("auth-" ++ _ = Id, [] = _Query, _Headers) ->
 	try
 		["auth", TimeStamp, Serial] = string:tokens(Id, [$-]),
 		TS = list_to_integer(TimeStamp),
@@ -92,9 +94,9 @@ get_usage("auth-" ++ _ = Id, [] = _Query) ->
 						{struct, Attr} = usage_aaa_auth(Event, []),
 						{_, Date} = lists:keyfind("date", 1, Attr),
 						Body = mochijson:encode({struct, Attr}),
-						Headers = [{content_type, "application/json"},
+						RespHeaders = [{content_type, "application/json"},
 								{last_modified, Date}],
-						{ok, Headers, Body};
+						{ok, RespHeaders, Body};
 					_Other ->
 						{error, 404}
 				end
@@ -103,7 +105,7 @@ get_usage("auth-" ++ _ = Id, [] = _Query) ->
 		_:_Reason1 ->
 			{error, 404}
 	end;
-get_usage("acct-" ++ _ = Id, [] = _Query) ->
+get_usage("acct-" ++ _ = Id, [] = _Query, _Headers) ->
 	try
 		["acct", TimeStamp, Serial] = string:tokens(Id, [$-]),
 		TS = list_to_integer(TimeStamp),
@@ -117,9 +119,9 @@ get_usage("acct-" ++ _ = Id, [] = _Query) ->
 						{struct, Attr} = usage_aaa_acct(Event, []),
 						{_, Date} = lists:keyfind("date", 1, Attr),
 						Body = mochijson:encode({struct, Attr}),
-						Headers = [{content_type, "application/json"},
+						RespHeaders = [{content_type, "application/json"},
 								{last_modified, Date}],
-						{ok, Headers, Body};
+						{ok, RespHeaders, Body};
 					_Other ->
 						{error, 404}
 				end
@@ -128,7 +130,7 @@ get_usage("acct-" ++ _ = Id, [] = _Query) ->
 		_:_Reason1 ->
 			{error, 404}
 	end;
-get_usage(Id, [] = _Query) ->
+get_usage(Id, [] = _Query, _Headers) ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 	{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
 	FileName = Directory ++ "/" ++ Id,
@@ -142,26 +144,26 @@ get_usage(Id, [] = _Query) ->
 %% 	`GET /usageManagement/v1/usageSpecification'
 %% 	requests.
 get_usagespec([] = _Query) ->
-	Headers = [{content_type, "application/json"}],
+	RespHeaders = [{content_type, "application/json"}],
 	Body = mochijson:encode({array, [spec_aaa_auth(),
 			spec_aaa_acct(), spec_public_wlan()]}),
-	{ok, Headers, Body};
+	{ok, RespHeaders, Body};
 get_usagespec(Query) ->
-	Headers = [{content_type, "application/json"}],
+	RespHeaders = [{content_type, "application/json"}],
 	case lists:keytake("name", 1, Query) of
 		{_, {_, "AAAAccessUsageSpec"}, []} ->
 			Body = mochijson:encode({array, [spec_aaa_auth()]}),
-			{ok, Headers, Body};
+			{ok, RespHeaders, Body};
 		{_, {_, "AAAAccessUsageSpec"}, _} ->
 			{error, 400};
 		{_, {_, "AAAAccountingUsageSpec"}, []} ->
 			Body = mochijson:encode({array, [spec_aaa_acct()]}),
-			{ok, Headers, Body};
+			{ok, RespHeaders, Body};
 		{_, {_, "AAAAccountingUsageSpec"}, _} ->
 			{error, 400};
 		{_, {_, "PublicWLANAccessUsageSpec"}, []} ->
 			Body = mochijson:encode({array, [spec_public_wlan()]}),
-			{ok, Headers, Body};
+			{ok, RespHeaders, Body};
 		{_, {_, "PublicWLANAccessUsageSpec"}, _} ->
 			{error, 400};
 		false ->
@@ -180,21 +182,21 @@ get_usagespec(Query) ->
 %% 	`GET /usageManagement/v1/usageSpecification/{id}'
 %% 	requests.
 get_usagespec("AAAAccessUsageSpec", [] = _Query) ->
-	Headers = [{content_type, "application/json"}],
+	RespHeaders = [{content_type, "application/json"}],
 	Body = mochijson:encode(spec_aaa_auth()),
-	{ok, Headers, Body};
+	{ok, RespHeaders, Body};
 get_usagespec("AAAAccessUsageSpec", _Query) ->
 	{error, 400};
 get_usagespec("AAAAccountingUsageSpec", [] = _Query) ->
-	Headers = [{content_type, "application/json"}],
+	RespHeaders = [{content_type, "application/json"}],
 	Body = mochijson:encode(spec_aaa_acct()),
-	{ok, Headers, Body};
+	{ok, RespHeaders, Body};
 get_usagespec("AAAAccountingUsageSpec", _Query) ->
 	{error, 400};
 get_usagespec("PublicWLANAccessUsageSpec", [] = _Query) ->
-	Headers = [{content_type, "application/json"}],
+	RespHeaders = [{content_type, "application/json"}],
 	Body = mochijson:encode(spec_public_wlan()),
-	{ok, Headers, Body};
+	{ok, RespHeaders, Body};
 get_usagespec("PublicWLANAccessUsageSpec", _Query) ->
 	{error, 400};
 get_usagespec(_Id, _Query) ->
@@ -214,8 +216,8 @@ get_ipdr([] = _Query) ->
 		{ok, Files} ->
 			SortedFiles = lists:reverse(lists:sort(Files)),
 			Body = mochijson:encode({array, SortedFiles}),
-			Headers = [{content_type, "application/json"}],
-			{ok, Headers, Body};
+			RespHeaders = [{content_type, "application/json"}],
+			{ok, RespHeaders, Body};
 		{error, _Reason} ->
 			{error, 500}
 	end;
@@ -2161,42 +2163,64 @@ char_attr_cause(Attributes, Acc) ->
 	end.
 
 %% @hidden
-get_auth_usage(Query) ->
+get_auth_usage(Query, Headers) ->
 	case lists:keytake("fields", 1, Query) of
 		{value, {_, L}, NewQuery} ->
 			Filters = string:tokens(L, ","),
-			get_auth_usage(NewQuery, Filters);
+			get_auth_usage(NewQuery, Filters, Headers);
 		false ->
-			get_auth_usage(Query, [])
+			get_auth_usage(Query, [], Headers)
 	end.
 %% @hidden
-get_auth_usage(Query, Filters) ->
+get_auth_usage(Query, Filters, Headers) ->
 	case lists:keytake("sort", 1, Query) of
 		{value, {_, "-date"}, NewQuery} ->
 			get_auth_last(NewQuery, Filters);
 		{value, {_, Date}, NewQuery}
 				when Date == "date"; Date == "+date" ->
-			get_auth_query(NewQuery, Filters);
+			get_auth_query(NewQuery, Filters, Headers);
 		false ->
-			get_auth_query(Query, Filters);
+			get_auth_query(Query, Filters, Headers);
 		_ ->
 			{error, 400}
 	end.
 
 %% @hidden
-get_auth_query([] = _Query, Filters) ->
+get_auth_query(Query, Filters, Headers) ->
+	case {lists:keyfind("if-range", 1, Headers),
+			lists:keyfind("range", 1, Headers)} of
+		{{_, Etag}, {_, Range}} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					{Start, End} = range(Range),
+					get_auth_query_start(Query, Filters, Start, End);
+				PageServer ->
+					{Start, End} = range(Range),
+					get_auth_query_page(PageServer, Etag, Filters, Start, End)
+			end;
+		{{_, _Etag}, false} ->
+			{error, 400};
+		{false, {_, Range}} ->
+			{Start, End} = range(Range),
+			get_auth_query_start(Query, Filters, Start, End);
+		{false, false} ->
+			{ok, MaxItems} = application:get_env(ocs, rest_page_size),
+			get_auth_query_start(Query, Filters, 1, MaxItems)
+	end.
+
+%% @hidden
+get_auth_query_start([] = _Query, Filters, RangeStart, RangeEnd) ->
 	Now = erlang:system_time(?MILLISECOND),
 	case supervisor:start_child(ocs_rest_pagination_sup,
 			[[ocs_log, auth_query, [1, Now, '_', '_', '_', '_']]]) of
 		{ok, PageServer, Etag} ->
-			{ok, MaxItems} = application:get_env(ocs, rest_page_size),
-			get_auth_query_page(PageServer, 1, MaxItems, Etag, Filters);
+			get_auth_query_page(PageServer, Etag, Filters, RangeStart, RangeEnd);
 		{error, _Reason} ->
 			{error, 500}
 	end.
 
 %% @hidden
-get_auth_query_page(PageServer, Start, End, Etag, Filters) ->
+get_auth_query_page(PageServer, Etag, Filters, Start, End) ->
 	case gen_server:call(PageServer, {Start, End}) of
 		{error, _Reason} ->
 			{error, 500};
@@ -2234,22 +2258,23 @@ get_auth_last(_Query, _Filters) ->
 	{error, 400}.
 
 %% @hidden
-get_acct_usage(Query) ->
+get_acct_usage(Query, Headers) ->
 	case lists:keytake("fields", 1, Query) of
 		{value, {_, L}, NewQuery} ->
 			Filters = string:tokens(L, ","),
-			get_acct_usage(NewQuery, Filters);
+			get_acct_usage(NewQuery, Filters, Headers);
 		false ->
-			get_acct_usage(Query, [])
+			get_acct_usage(Query, [], Headers)
 	end.
+
 %% @hidden
-get_acct_usage(Query, Filters) ->
+get_acct_usage(Query, Filters, _Headers) ->
 	case lists:keytake("sort", 1, Query) of
 		{value, {_, "-date"}, NewQuery} ->
 			get_acct_last(NewQuery, Filters);
 		{value, {_, Date}, NewQuery}
 				when Date == "date"; Date == "+date" ->
-			get_auth_query(NewQuery, Filters);
+			get_acct_query(NewQuery, Filters);
 		false ->
 			get_acct_query(Query, Filters);
 		_ ->
@@ -2296,4 +2321,21 @@ get_acct_last([] = _Query, Filters) ->
 	end;
 get_acct_last(_Query, _Filters) ->
 	{error, 400}.
+
+-spec range(Range) -> {Start, End}
+	when
+		Range :: string(),
+		Start :: pos_integer(),
+		End :: pos_integer().
+%% @doc Parse Range request header.
+%% @private
+range(Range) when is_list(Range) ->
+	try
+		["item", S, E] = string:tokens(Range, " -"),
+		{list_to_integer(S), list_to_integer(E)}
+	catch
+		_:_ ->
+			{ok, MaxItems} = application:get_env(ocs, rest_page_size),
+			{1, MaxItems}
+	end.
 
