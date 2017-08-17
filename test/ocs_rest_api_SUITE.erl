@@ -440,7 +440,7 @@ retrieve_all_subscriber(Config) ->
 	{_, {array, Attributes}} = lists:keyfind("attributes", 1, Subscriber),
 	ExtraAttributes = Attributes -- SortedAttributes,
 	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
-	{"buckets", Buckets} = lists:keyfind("buckets", 1, Subscriber),
+	{"totalBalance", 20000} = lists:keyfind("totalBalance", 1, Subscriber),
 	{"enabled", Enable} = lists:keyfind("enabled", 1, Subscriber),
 	{"multisession", Multi} = lists:keyfind("multisession", 1, Subscriber).
 
