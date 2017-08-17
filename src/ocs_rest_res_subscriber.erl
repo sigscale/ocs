@@ -189,7 +189,7 @@ get_subscribers1(Subscribers, Query, Filters) ->
 		false ->
 			{[], Query1}
 	end,
-	{Balance, Query3} = case lists:keytake("totalbalance", 1, Query2) of
+	{Balance, Query3} = case lists:keytake("totalBalance", 1, Query2) of
 		{value, {_, V3}, Q3} ->
 			{V3, Q3};
 		false ->
