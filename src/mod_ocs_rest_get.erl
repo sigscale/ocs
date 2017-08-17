@@ -124,10 +124,10 @@ do_get(Resource, ModData, ["ocs", "v1", "log", "accounting"], []) ->
 	do_response(ModData, Resource:get_accounting());
 do_get(Resource, ModData, ["ocs", "v1", "log", "http"], []) ->
 	do_response(ModData, Resource:get_http());
-do_get(Resource, ModData, ["partyManagement", "v1", "individual"], []) ->
-	do_response(ModData, Resource:get_user());
-do_get(Resource, ModData, ["partyManagement", "v1", "individual", Id], []) ->
-	do_response(ModData, Resource:get_user(Id));
+do_get(Resource, ModData, ["partyManagement", "v1", "individual"], Query) ->
+	do_response(ModData, Resource:get_users(Query));
+do_get(Resource, ModData, ["partyManagement", "v1", "individual", Id], Query) ->
+	do_response(ModData, Resource:get_user(Id, Query));
 do_get(Resource, ModData, ["balanceManagement", "v1", Id, "buckets"], []) ->
 	do_response(ModData, Resource:get_balance(Id));
 do_get(_, _, _, _) ->

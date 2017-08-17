@@ -14,47 +14,61 @@ This OCS performs authentication, authorization and accounting (AAA)
 for subscribers of wireless local area network (WLAN) services (WiFi).
 
 ==Installation==
-Before starting the application for the first time, an {@link //mnesia/mnesia. mnesia}
-schema should be created and started on all nodes the application
-should run.Schema should be created on a list of nodes where the
-{@link //ocs. ocs} application will run.
+Before starting the application for the first time, {@link //mnesia/mnesia. mnesia}
+should be initialized. Create a schema and start mnesia on all nodes
+where the application should ru 
+{@link //ocs. ocs} application will run. Following command will initialize {@link //ocs. ocs}
+on current node and create a default user "admin" with password "admin".
+
 e.g &#058;
  	```
-	1> mnesia:create_schema([node()]).
-	ok
-	2> mnesia:start().
-	ok
-	3> ocs_app:install([node()]).
-	{ok,[client, subscriber, httpd_user, httpd_group]}
-	ok
+	$ erl -sname ocs -config sys -s ocs_app install
+	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
+	Started mnesia
+	
+	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
+	Created new client table.
+	
+	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
+	Created new subscriber table.
+	
+	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
+	Created new httpd_user table.
+	
+	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
+	Created new httpd_group table.
+	
+	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
+	Started inets. 
+	
+	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
+	    "Created a default user"
+	    username: "admin"
+	    password: "admin"
+	    locale: "en"
 	'''
 
 ===HTTP Authentication===
 To use the {@link //inets/mod_auth. mod_auth} module for authentication
-you should create necessary users and groups in the {@link //mnesia/mnesia. mnesia}
-tables it uses.
+you should create necessary users in the {@link //mnesia/mnesia. mnesia}
+tables it uses. All users will be added to groups specified in `require_group'
+option in inets httpd confifuration.
 e.g &#058;
- 	```
-	4> inets:start().
-	ok
-	5> ocs:add_user("john", "g2k7hyeh6qag", [], 8080, "/").
-	{ok,{1500544354609972724,74}}
-	6> ocs:add_user("bss", "nfc9xgp32xha", [], 8080, "/").
-	{ok,{1500544409802713846,82}}
-	7> ocs:add_group_member("all", "john", 8080, "/").
-	true
-	8> ocs:add_group_member("all", "bss", 8080, "/").
-	true
+   ```
+	1> ocs:add_user("john", "g2k7hyeh6qa", "en").
+	{ok,{1501829429047,149}}
+	2> ocs:add_user("bss", "nfc9xgp32xha", "en").
+	{ok,{1501829458220,157}}
+
 	'''
 
 ===Internationalization (i18n)===
-The web user interface (UI) may be internationalized by including a
-`{locale, Code}' tuple in the `UserData' argument of
-{@link //ocs/ocs:add_user/5. ocs:add_user/5} where `Code'
+The web user interface (UI) may be internationalized by specifying `Locale' in 
+{@link //ocs/ocs:add_user/3. ocs:add_user/3} where `Locale'
 is a two letter ISO-639-1 language code. A corresponding message file
 should be provided in `priv/www/locales'.
 	```
-	9> ocs:add_user("alejandro", "sjjymz5prtcd", [{locale, "es"}], 8080, "/").
+	3> ocs:add_user("alejandro", "sjjymz5prtcd", "es").
 	{ok,{1500544430723584044,90}}
 	'''
 
@@ -178,6 +192,12 @@ The media types used in this application are described below.
 			<td id="mt">boolean</td>
 			<td id="mt">O</td>
 			<td id="mt">Subscriber's status of accessing the services</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">multisession</td>
+			<td id="mt">boolean</td>
+			<td id="mt">O</td>
+			<td id="mt">Subscriber's status of allowed multi session</td>
 		</tr>
 	</tbody>
 </table></div></p>
@@ -355,7 +375,8 @@ Content-length: nn
                {"name": "class", "value": "skiorgs"}
               ],
  "balance":100,
- "enabled": true
+ "enabled": true,
+ "multisession": false
 }
 </pre></p>
 <p>Example response:<pre>
@@ -377,7 +398,8 @@ Etag: mm-m
                {"name": "class", "value": "skiorgs"}
               ],
  "balance": 100,
- "enabled": true
+ "enabled": true,
+ "multisession": false
 }
 </pre></p>
 
@@ -430,7 +452,8 @@ Etag : mm-m
                {"name": "ascendDataRate", "value": 64000}
               ],
  "balance": 983490,
- "enabled": true
+ "enabled": true,
+ "multisession": false
 }
 </pre></p>
 
@@ -485,7 +508,8 @@ Content-Length: nn
                  {"name": "class", "value": "skiorgs"}
                 ],
   "balance": 6559234,
-  "enabled": true
+  "enabled": true,
+  "multisession": false
  },
  {
   "id": "e5b9265c8c0d",
@@ -495,7 +519,8 @@ Content-Length: nn
                  {"name": "sessionTimeout", "value": 3600},
                 ],
   "balance": 12038624,
-  "enabled": true
+  "enabled": true,
+  "multisession": false
  }
 ]
 </pre></p>
@@ -555,7 +580,7 @@ Accept: application/json
 ]
 </pre></p>
 
-<p>Example respons:<pre>
+<p>Example response:<pre>
 HTTP/1.1 200 Ok
 Content-Type: application/json
 Content-Length: nn
@@ -573,7 +598,8 @@ Etag: mm-m
                {"name" : "class", "value": "skiorgs"}
               ],
  "balance": 100,
- "enabled": true
+ "enabled": true,
+ "multisession": false
 }
 </pre></p>
 
@@ -620,7 +646,8 @@ Accept: application/json
                {"name": "ascendDataRate", "value": 1000000},
                {"name": "ascendXmitRate", "value": 512000},
               ],
- "enabled": false
+ "enabled": false,
+ "multisession": false
 }
 </pre></p>
 
@@ -648,6 +675,11 @@ Accept: application/json
   "path" : "enabled",
   "value" : false
  }
+ {
+  "op" : "replace",
+  "path" : "multisession",
+  "value" : false
+ }
 ]
 </pre></p>
 
@@ -666,7 +698,8 @@ Etag: mm-m
                {"name": "ascendXmitRate", "value": 512000},
               ],
  "balance": 100000000000,
- "enabled": false
+ "enabled": false,
+ "multisession": false
 }
 </pre></p>
 

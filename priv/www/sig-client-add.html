@@ -80,30 +80,34 @@
 			<paper-toolbar>
 				<h2>[[i18n.addClient]]</h2>
 			</paper-toolbar>
-			<paper-input
+			<div>
+				<paper-input
 					id="add-client1"
 					name="address"
 					label="[[i18n.ipAddress]]"
 					allowed-pattern="[0-9\.]"
 					required>
-			</paper-input>
-			<paper-tooltip >
-				<i18n-msg msgid="ipTooltip">
-					IP address of network access server, router or access point
-				</i18n-msg>
-			</paper-tooltip>
-			<paper-input
+				</paper-input>
+				<paper-tooltip >
+					<i18n-msg msgid="ipTooltip">
+						IP address of network access server, router or access point
+					</i18n-msg>
+				</paper-tooltip>
+			</div>
+			<div>
+				<paper-input
 					id="add-client2"
 					name="port"
 					label="[[i18n.listen]]"
 					type="number"
 					value=3799>
-			</paper-input>
-			<paper-tooltip>
-				<i18n-msg msgid="listenTooltip">
-					Port network access server, router or access point listens on
-				</i18n-msg>
-			</paper-tooltip>
+				</paper-input>
+				<paper-tooltip>
+					<i18n-msg msgid="listenTooltip">
+						Port network access server, router or access point listens on
+					</i18n-msg>
+				</paper-tooltip>
+			</div>
 			<div>
 				<paper-input
 						id="add-client4"

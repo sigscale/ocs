@@ -27,7 +27,7 @@
 %% optional callbacks for application behaviour
 -export([prep_stop/1, start_phase/3]).
 %% export the ocs private API
--export([install/1]).
+-export([install/0, install/1]).
 
 -include_lib("inets/include/mod_auth.hrl").
 -include("ocs.hrl").
@@ -136,84 +136,218 @@ start1() ->
 %%  The ocs private API
 %%----------------------------------------------------------------------
 
+-spec install() -> Result
+	when
+		Result :: {ok, Tables},
+		Tables :: [atom()].
+%% @equiv install([node() | nodes()])
+install() ->
+	Nodes = [node() | nodes()],
+	install(Nodes).
+
 -spec install(Nodes) -> Result
 	when
 		Nodes :: [node()],
 		Result :: {ok, Tables},
 		Tables :: [atom()].
-%% @doc Initialize a new installation.
-%% 	`Nodes' is a list of the nodes where the 
-%% 	{@link //ocs. ocs} application will run.
-%% 	An mnesia schema should be created and mnesia started on
-%% 	all nodes before running this function. e.g.&#058;
-%% 	```
-%% 		1> mnesia:create_schema([node()]).
-%% 		ok
-%% 		2> mnesia:start().
-%% 		ok
-%% 		3> {@module}:install([node()]).
-%% 		{ok,[client, subscriber, httpd_user, httpd_group]}
-%% 		ok
-%% 	'''
+%% @doc Initialize OCS tables.
+%% 	`Nodes' is a list of the nodes where
+%% 	{@link //ocs. ocs} tables will be replicated.
+%%
+%% 	If {@link //mnesia. mnesia} is not running an attempt
+%% 	will be made to create a schema on all available nodes.
+%% 	If a schema already exists on any node
+%% 	{@link //mnesia. mnesia} will be started on all nodes
+%% 	using the existing schema.
 %%
 %% @private
 %%
 install(Nodes) when is_list(Nodes) ->
-	try
-		case mnesia:wait_for_tables([schema], ?WAITFORSCHEMA) of
-			ok ->
-				ok;
-			SchemaResult ->
-				throw(SchemaResult)
-		end,
-		case mnesia:create_table(client, [{disc_copies, Nodes},
-				{attributes, record_info(fields, client)}]) of
-			{atomic, ok} ->
-				error_logger:info_msg("Created new client table.~n");
-			{aborted, {already_exists, client}} ->
-				error_logger:warning_msg("Found existing client table.~n");
-			T1Result ->
-				throw(T1Result)
-		end,
-		case mnesia:create_table(subscriber, [{disc_copies, Nodes},
-				{attributes, record_info(fields, subscriber)}]) of
-			{atomic, ok} ->
-				error_logger:info_msg("Created new subscriber table.~n");
-			{aborted, {already_exists, subscriber}} ->
-				error_logger:warning_msg("Found existing subscriber table.~n");
-			T2Result ->
-				throw(T2Result)
-		end,
-		case mnesia:create_table(httpd_user, [{type, bag},{disc_copies, Nodes},
-				{attributes, record_info(fields, httpd_user)}]) of
-			{atomic, ok} ->
-				error_logger:info_msg("Created new httpd_user table.~n");
-			{aborted, {already_exists, httpd_user}} ->
-				error_logger:warning_msg("Found existing httpd_user table.~n");
-			T3Result ->
-				throw(T3Result)
-		end,
-		case mnesia:create_table(httpd_group, [{type, bag},{disc_copies, Nodes},
-				{attributes, record_info(fields, httpd_group)}]) of
-			{atomic, ok} ->
-				error_logger:info_msg("Created new httpd_group table.~n");
-			{aborted, {already_exists, httpd_group}} ->
-				error_logger:warning_msg("Found existing httpd_group table.~n");
-			T4Result ->
-				throw(T4Result)
-		end,
-		Tables = [client, subscriber, httpd_user, httpd_group],
-		case mnesia:wait_for_tables(Tables, ?WAITFORTABLES) of
-			ok ->
-				Tables;
-			TablesResult ->
-				throw(TablesResult)
-		end
-	of
-		Result -> {ok, Result}
-	catch
-		throw:Error ->
-			mnesia:error_description(Error)
+	case mnesia:system_info(is_running) of
+		no ->
+			case mnesia:create_schema(Nodes) of
+				ok ->
+					error_logger:info_report("Created mnesia schema",
+							[{nodes, Nodes}]),
+					install1(Nodes);
+				{error, Reason} ->
+					error_logger:error_report(["Failed to create schema",
+							mnesia:error_description(Reason),
+							{nodes, Nodes}, {error, Reason}]),
+					{error, Reason}
+			end;
+		_ ->
+			install2(Nodes)
+	end.
+%% @hidden
+install1([Node] = Nodes) when Node == node() ->
+	case mnesia:start() of
+		ok ->
+			error_logger:info_msg("Started mnesia~n"),
+			install2(Nodes);
+		{error, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+					{error, Reason}]),
+			{error, Reason}
+	end;
+install1(Nodes) ->
+	case rpc:multicall(Nodes, mnesia, start, [], 60000) of
+		{Results, []} ->
+			F = fun(ok) ->
+						false;
+					(_) ->
+						true
+			end,
+			case lists:filter(F, Results) of
+				[] ->
+					error_logger:info_report(["Started mnesia on all nodes",
+							{nodes, Nodes}]),
+					install2(Nodes);
+				NotOKs ->
+					error_logger:error_report(["Failed to start mnesia"
+							" on all nodes", {nodes, Nodes}, {errors, NotOKs}]),
+					{error, NotOKs}
+			end;
+		{Results, BadNodes} ->
+			error_logger:error_report(["Failed to start mnesia"
+					" on all nodes", {nodes, Nodes}, {results, Results},
+					{badnodes, BadNodes}]),
+			{error, {Results, BadNodes}}
+	end.
+%% @hidden
+install2(Nodes) ->
+	case mnesia:wait_for_tables([schema], ?WAITFORSCHEMA) of
+		ok ->
+			install3(Nodes, []);
+		{error, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+				{error, Reason}]),
+			{error, Reason};
+		{timeout, Tables} ->
+			error_logger:error_report(["Timeout waiting for tables",
+					{tables, Tables}]),
+			{error, timeout}
+	end.
+%% @hidden
+install3(Nodes, Acc) ->
+	case mnesia:create_table(client, [{disc_copies, Nodes},
+			{attributes, record_info(fields, client)}]) of
+		{atomic, ok} ->
+			error_logger:info_msg("Created new client table.~n"),
+			install4(Nodes, [client | Acc]);
+		{aborted, {not_active, _, Node} = Reason} ->
+			error_logger:error_report(["Mnesia not started on node",
+					{node, Node}]),
+			{error, Reason};
+		{aborted, {already_exists, client}} ->
+			error_logger:info_msg("Found existing client table.~n"),
+			install4(Nodes, [client | Acc]);
+		{error, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+				{error, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+install4(Nodes, Acc) ->
+	case mnesia:create_table(subscriber, [{disc_copies, Nodes},
+			{attributes, record_info(fields, subscriber)}]) of
+		{atomic, ok} ->
+			error_logger:info_msg("Created new subscriber table.~n"),
+			install5(Nodes, [subscriber| Acc]);
+		{aborted, {not_active, _, Node} = Reason} ->
+			error_logger:error_report(["Mnesia not started on node",
+					{node, Node}]),
+			{error, Reason};
+		{aborted, {already_exists, subscriber}} ->
+			error_logger:info_msg("Found existing subscriber table.~n"),
+			install5(Nodes, [subscriber| Acc]);
+		{error, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+				{error, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+install5(Nodes, Acc) ->
+	case mnesia:create_table(httpd_user, [{type, bag},{disc_copies, Nodes},
+			{attributes, record_info(fields, httpd_user)}]) of
+		{atomic, ok} ->
+			error_logger:info_msg("Created new httpd_user table.~n"),
+			install6(Nodes, [httpd_user | Acc]);
+		{aborted, {not_active, _, Node} = Reason} ->
+			error_logger:error_report(["Mnesia not started on node",
+					{node, Node}]),
+			{error, Reason};
+		{aborted, {already_exists, httpd_user}} ->
+			error_logger:info_msg("Found existing httpd_user table.~n"),
+			install6(Nodes, [httpd_user | Acc]);
+		{error, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+				{error, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+install6(Nodes, Acc) ->
+	case mnesia:create_table(httpd_group, [{type, bag},{disc_copies, Nodes},
+			{attributes, record_info(fields, httpd_group)}]) of
+		{atomic, ok} ->
+			error_logger:info_msg("Created new httpd_group table.~n"),
+			install7(Nodes, [httpd_group | Acc]);
+		{aborted, {not_active, _, Node} = Reason} ->
+			error_logger:error_report(["Mnesia not started on node",
+					{node, Node}]),
+			{error, Reason};
+		{aborted, {already_exists, httpd_group}} ->
+			error_logger:info_msg("Found existing httpd_group table.~n"),
+			install7(Nodes, [httpd_group | Acc]);
+		{error, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+				{error, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+install7(_Nodes, Tables) ->
+	case mnesia:wait_for_tables(Tables, ?WAITFORTABLES) of
+		ok ->
+			case inets:start() of
+				ok ->
+					error_logger:info_msg("Started inets. ~n"),
+					install8(Tables);
+				{error,{already_started,inets}} ->
+					install8(Tables)
+			end;
+		{timeout, Tables} ->
+			error_logger:error_report(["Timeout waiting for tables",
+					{tables, Tables}]),
+			{error, timeout};
+		{error, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+					{error, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+install8(Tables) ->
+	case ocs:list_users() of
+		{ok, []} ->
+			case ocs:add_user("admin", "admin", "en") of
+				{ok, _LastModified} ->
+					error_logger:info_report(["Created a default user",
+							{username, "admin"}, {password, "admin"},
+							{locale, "en"}]),
+					{ok, Tables};
+				{error, Reason} ->
+					error_logger:error_report(["Failed to creat default user",
+							{username, "admin"}, {password, "admin"},
+							{locale, "en"}]),
+					{error, Reason}
+			end;
+		{ok, Users} ->
+			error_logger:info_report(["Found existing http users",
+					{users, Users}]),
+			{ok, Tables};
+		{error, Reason} ->
+			error_logger:error_report(["Failed to list http users",
+				{error, Reason}]),
+			{error, Reason}
 	end.
 
 -spec start_phase(Phase, StartType, PhaseArgs) -> Result

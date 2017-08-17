@@ -52,11 +52,12 @@ get_accounting() ->
 		{error, _} -> 
 			{error, 404};
 		{NewCount, Events} -> 
-			JsonObj = radius_auth_json(Events),
+			JsonObj = radius_acct_json(Events),
 			JsonArray = {array, JsonObj},
 			Body = mochijson:encode(JsonArray),
 			ContentRange = "items 1-" ++ integer_to_list(NewCount) ++ "/*",
-			Headers = [{content_range, ContentRange}],
+			Headers = [{content_type, "application/json"},
+					{content_range, ContentRange}],
 			{ok, Headers, Body}
 	end.
 
@@ -65,40 +66,50 @@ get_accounting() ->
 %%----------------------------------------------------------------------
 
 % @hidden
-radius_auth_json(Events) ->
+radius_acct_json(Events) ->
 	F = fun({Milliseconds, _N, radius, Node, Server, Type, Attr}, Acc) ->
 			TimeStamp = ocs_log:iso8601(Milliseconds),
 			{ServerAdd, ServerPort} = Server,
 			ServerIp = inet:ntoa(ServerAdd),
-			Username = radius_attributes:fetch(?UserName, Attr),
-			Idenifier = radius_attributes:fetch(?NasIdentifier, Attr),
-			AcctInput = case {radius_attributes:find(?AcctInputOctets, Attr), radius_attributes:find(?AcctInputGigawords, Attr)} of
-				{{ok, Octets}, {ok, Giga}} ->
-					[{"acctInputoctets", Octets + (Giga * 4294967296)}];
-				{{ok, Octets}, _} ->
-					[{"acctInputoctets", Octets}];
-				{_, _} ->
-					[]
-			end,
-			AcctOutput = case {radius_attributes:find(?AcctOutputOctets, Attr), radius_attributes:find(?AcctOutputGigawords, Attr)} of
-				{{ok, OctetsOut}, {ok, GigaOut}} ->
-					[{"acctOutputoctets", OctetsOut + (GigaOut * 4294967296)}];
-				{{ok, OctetsOut}, _} ->
-					[{"acctOutputoctets", OctetsOut}];
-				{_, _} ->
-					[]
-			end,
-			Duration = case radius_attributes:find(?AcctSessionTime, Attr) of
-				{ok, SessionTime} ->
-					[{"acctSessiontime", SessionTime}];
+			Obj0 = [{"type", Type}, {"node", Node}, {"serverPort", ServerPort},
+					{"serverAddress", ServerIp}, {"timeStamp", TimeStamp}],
+			Obj1 = case radius_attributes:find(?UserName, Attr) of
+				{ok, Username} ->
+					[{"username", Username} | Obj0];
 				{error, not_found} ->
-					[]	
+					Obj0
 			end,
-			JsonObj = {struct, [{"timeStamp", TimeStamp}, {"node", Node},
-					{"serverAddress", ServerIp}, {"serverPort", ServerPort},
-					{"type", Type}, {"username", Username},
-					{"nasIdentifier", Idenifier}] ++ Duration ++ AcctInput ++ AcctOutput},
-			[JsonObj | Acc];
+			Obj2 = case radius_attributes:find(?NasIdentifier, Attr) of
+				{ok, Identifier} ->
+					[{"nasIdentifier", Identifier} | Obj1];
+				{error, not_found} ->
+					Obj1
+			end,
+			Obj3 = case {radius_attributes:find(?AcctInputOctets, Attr),
+					radius_attributes:find(?AcctInputGigawords, Attr)} of
+				{{ok, Octets}, {ok, Giga}} ->
+					[{"acctInputoctets", Octets + (Giga * 4294967296)} | Obj2];
+				{{ok, Octets}, _} ->
+					[{"acctInputoctets", Octets} | Obj2];
+				{_, _} ->
+					Obj2
+			end,
+			Obj4 = case {radius_attributes:find(?AcctOutputOctets, Attr),
+					radius_attributes:find(?AcctOutputGigawords, Attr)} of
+				{{ok, OctetsOut}, {ok, GigaOut}} ->
+					[{"acctOutputoctets", OctetsOut + (GigaOut * 4294967296)}| Obj3];
+				{{ok, OctetsOut}, _} ->
+					[{"acctOutputoctets", OctetsOut} | Obj3];
+				{_, _} ->
+					Obj3
+			end,
+			Obj5 = case radius_attributes:find(?AcctSessionTime, Attr) of
+				{ok, SessionTime} ->
+					[{"acctSessiontime", SessionTime} | Obj4];
+				{error, not_found} ->
+					Obj4
+			end,
+			[{struct, lists:reverse(Obj5)} | Acc];
 		(_, Acc) ->
 			%% TODO support for DIAMETER
 			Acc

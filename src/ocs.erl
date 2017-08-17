@@ -23,12 +23,10 @@
 %% export the ocs public API
 -export([add_client/2, add_client/4, find_client/1, update_client/2,
 		update_client/3, get_clients/0, delete_client/1]).
--export([add_subscriber/3, add_subscriber/4, add_subscriber/5,
+-export([add_subscriber/3, add_subscriber/4, add_subscriber/6,
 		find_subscriber/1, delete_subscriber/1, update_password/2,
-		update_attributes/2, update_attributes/4, get_subscribers/0]).
--export([add_user/3, add_user/5, add_user/6, add_group_member/1,
-		add_group_member/4, list_users/0, get_user/1, get_user/3, get_user/4,
-		delete_user/1]).
+		update_attributes/2, update_attributes/5, get_subscribers/0]).
+-export([add_user/3, list_users/0, get_user/1, delete_user/1]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
@@ -227,9 +225,9 @@ delete_client(Client) when is_tuple(Client) ->
 		Attributes :: radius_attributes:attributes() | binary(),
 		Result :: {ok, #subscriber{}} | {error, Reason},
 		Reason :: term().
-%% @equiv add_subscriber(Identity, Password, Attributes, 0, true)
+%% @equiv add_subscriber(Identity, Password, Attributes, 0, true, false)
 add_subscriber(Identity, Password, Attributes) ->
-	add_subscriber(Identity, Password, Attributes, 0, true).
+	add_subscriber(Identity, Password, Attributes, 0, true, false).
 
 -spec add_subscriber(Identity, Password, Attributes, Balance) -> Result
 	when 
@@ -239,17 +237,19 @@ add_subscriber(Identity, Password, Attributes) ->
 		Balance :: non_neg_integer(),
 		Result :: {ok, #subscriber{}} | {error, Reason},
 		Reason :: term().
-%% @equiv add_subscriber(Identity, Password, Attributes, Balance, true)
+%% @equiv add_subscriber(Identity, Password, Attributes, Balance, true, false)
 add_subscriber(Identity, Password, Attributes, Balance) ->
-	add_subscriber(Identity, Password, Attributes, Balance, true).
+	add_subscriber(Identity, Password, Attributes, Balance, true, false).
 
--spec add_subscriber(Identity, Password, Attributes, Balance, EnabledStatus) -> Result
+-spec add_subscriber(Identity, Password, Attributes, Balance, EnabledStatus,
+		MultiSessions) -> Result
 	when 
 		Identity :: string() | binary() | undefined,
 		Password :: string() | binary() | undefined,
 		Attributes :: radius_attributes:attributes() | binary(),
 		Balance :: non_neg_integer() | undefined,
 		EnabledStatus :: boolean() | undefined,
+		MultiSessions :: boolean(),
 		Result :: {ok, #subscriber{}} | {error, Reason},
 		Reason :: term().
 %% @doc Create an entry in the subscriber table.
@@ -258,26 +258,27 @@ add_subscriber(Identity, Password, Attributes, Balance) ->
 %% 	RADIUS `Attributes', to be returned in an `AccessRequest' response,
 %% 	may be provided.  These attributes will overide any default values.
 %%
-%% 	An initial account `Balance' value and `Enabled' status may be provided.
+%% 	An initial account `Balance' value, `Enabled' status and `MultiSessions'
+%% 	status may be provided.
 %%
-add_subscriber(Identity, Password, Attributes, Balance, undefined) ->
-	add_subscriber(Identity, Password, Attributes, Balance, true);
-add_subscriber(Identity, Password, Attributes, undefined, EnabledStatus) ->
-	add_subscriber(Identity, Password, Attributes, 0, EnabledStatus);
-add_subscriber(Identity, Password, undefined, Balance, EnabledStatus) ->
-	add_subscriber(Identity, Password, [], Balance, EnabledStatus);
-add_subscriber(Identity, undefined, Attributes, Balance, EnabledStatus) ->
+add_subscriber(Identity, Password, Attributes, Balance, undefined, MSessions) ->
+	add_subscriber(Identity, Password, Attributes, Balance, true, MSessions);
+add_subscriber(Identity, Password, Attributes, undefined, EnabledStatus, MSessions) ->
+	add_subscriber(Identity, Password, Attributes, 0, EnabledStatus, MSessions);
+add_subscriber(Identity, Password, undefined, Balance, EnabledStatus, MSessions) ->
+	add_subscriber(Identity, Password, [], Balance, EnabledStatus, MSessions);
+add_subscriber(Identity, undefined, Attributes, Balance, EnabledStatus, MSessions) ->
 	add_subscriber(Identity, ocs:generate_password(),
-			Attributes, Balance, EnabledStatus);
-add_subscriber(Identity, Password, Attributes, Balance, EnabledStatus)
+			Attributes, Balance, EnabledStatus, MSessions);
+add_subscriber(Identity, Password, Attributes, Balance, EnabledStatus, MSessions)
 		when is_list(Identity) ->
 	add_subscriber(list_to_binary(Identity), Password, Attributes, Balance,
-			EnabledStatus);
-add_subscriber(Identity, Password, Attributes, Balance, EnabledStatus)
+			EnabledStatus, MSessions);
+add_subscriber(Identity, Password, Attributes, Balance, EnabledStatus, MSessions)
 		when is_list(Password) ->
 	add_subscriber(Identity, list_to_binary(Password), Attributes, Balance,
-			EnabledStatus);
-add_subscriber(undefined, Password, Attributes, Balance, EnabledStatus) ->
+			EnabledStatus, MSessions);
+add_subscriber(undefined, Password, Attributes, Balance, EnabledStatus, MSessions) ->
 	F2 = fun() ->
 				F1 = fun(_, _, 0) ->
 							mnesia:abort(retries);
@@ -286,14 +287,15 @@ add_subscriber(undefined, Password, Attributes, Balance, EnabledStatus) ->
 								[] ->
 									S = #subscriber{name = Identity,
 											password = Password, attributes = Attributes,
-											balance = Balance, enabled = EnabledStatus},
+											balance = Balance, enabled = EnabledStatus,
+											multisession = MSessions},
 									ok = mnesia:write(S),
 									S;
 								[_] ->
-									F(F, generate_identity(), N - 1)
+									F(F, list_to_binary(generate_identity()), N - 1)
 							end
 				end,
-				F1(F1, generate_identity(), 5)
+				F1(F1, list_to_binary(generate_identity()), 5)
 	end,
 	case mnesia:transaction(F2) of
 		{atomic, Subscriber} ->
@@ -301,13 +303,13 @@ add_subscriber(undefined, Password, Attributes, Balance, EnabledStatus) ->
 		{aborted, Reason} ->
 			{error, Reason}
 	end;
-add_subscriber(Identity, Password, Attributes, Balance, EnabledStatus)
+add_subscriber(Identity, Password, Attributes, Balance, EnabledStatus, MSessions)
 		when is_binary(Identity), is_binary(Password), is_list(Attributes),
 		is_integer(Balance), Balance >= 0, is_boolean(EnabledStatus) ->
 	F1 = fun() ->
 				S = #subscriber{name = Identity, password = Password,
 						attributes = Attributes, balance = Balance,
-						enabled = EnabledStatus},
+						enabled = EnabledStatus, multisession = MSessions},
 				ok = mnesia:write(S),
 				S
 	end,
@@ -443,27 +445,31 @@ update_attributes(Identity, Attributes)
 			{error, Reason}
 	end.
 
--spec update_attributes(Identity, Balance, Attributes, EnabledStatus) -> Result
+-spec update_attributes(Identity, Balance, Attributes, EnabledStatus,
+		MultiSessions) -> Result
 	when
 		Identity :: string() | binary(),
 		Balance :: pos_integer(),
 		Attributes :: radius_attributes:attributes(),
 		EnabledStatus :: boolean(),
+		MultiSessions :: boolean(),
 		Result :: ok | {error, Reason},
 		Reason :: not_found | term().
 %% @doc Update subscriber attributes.
 %%
-update_attributes(Identity, Balance, Attributes, EnabledStatus)
-		when is_list(Identity), is_number(Balance), is_boolean(EnabledStatus) ->
+update_attributes(Identity, Balance, Attributes, EnabledStatus, MSessions)
+		when is_list(Identity), is_number(Balance), is_boolean(EnabledStatus),
+		is_boolean(MSessions) ->
 	update_attributes(list_to_binary(Identity), Balance, Attributes,
-		EnabledStatus);
-update_attributes(Identity, Balance, Attributes, EnabledStatus)
+		EnabledStatus, MSessions);
+update_attributes(Identity, Balance, Attributes, EnabledStatus, MSessions)
 		when is_binary(Identity), is_list(Attributes) ->
 	F = fun() ->
 				case mnesia:read(subscriber, Identity, write) of
 					[Entry] ->
 						NewEntry = Entry#subscriber{attributes = Attributes,
-							balance = Balance, enabled = EnabledStatus},
+							balance = Balance, enabled = EnabledStatus,
+							multisession = MSessions},
 						mnesia:write(subscriber, NewEntry, write);
 					[] ->
 						throw(not_found)
@@ -484,8 +490,7 @@ update_attributes(Identity, Balance, Attributes, EnabledStatus)
 generate_password() ->
 	generate_password(12).
 
--type identity() :: [48..57] | binary().
--spec generate_identity() -> identity().
+-spec generate_identity() -> string().
 %% @equiv generate_identity(7)
 generate_identity() ->
 	generate_identity(7).
@@ -521,100 +526,46 @@ start(Protocol, Type, Address, Port, Options) when is_tuple(Address),
 		is_integer(Port), is_list(Options) ->
 		gen_server:call(ocs, {start, Protocol, Type, Address, Port, Options}).
 
--spec add_user(Username, Password, UserData) -> Result
+-spec add_user(Username, Password, Locale) -> Result
 	when
 		Username :: string(),
 		Password :: string(),
-		UserData :: list(),
+		Locale :: string(),
 		Result :: {ok, LastModified} | {error, Reason},
 		LastModified :: {integer(), integer()},
-		Reason :: term().
-%% @equiv add_user(Username, Password, UserData, Address, Port, Dir)
-add_user(Username, Password, UserData) ->
-	try
-		{Port, Address, Dir, _} = get_params(),
-		add_user(Username, Password, UserData, Address, Port, Dir)
-	catch
-		_: Reason ->
-			{error, Reason}
-	end.
-
--spec add_user(Username, Password, UserData, Port, Dir) -> Result
-	when
-		Username :: string(),
-		Password :: string(),
-		UserData :: list(),
-		Port :: inet:port_number(),
-		Dir :: string(),
-		Result :: {ok, LastModified} | {error, Reason},
-		LastModified :: {integer(), integer()},
-		Reason :: term().
-%% @equiv add_user(Username, Password, UserData, Address, Port, Dir)
-add_user(Username, Password, UserData, Port, Dir) ->
-	try
-		{_, Address, _, _} = get_params(),
-		add_user(Username, Password, UserData, Address, Port, Dir)
-	catch
-		_: Reason ->
-			{error, Reason}
-	end.
-
--spec add_user(Username, Password, UserData, Address, Port, Dir) -> Result
-	when
-		Username :: string(),
-		Password :: string(),
-		UserData :: list(),
-		Address :: inet:ip_address() | string() | undefined,
-		Port :: inet:port_number(),
-		Dir :: string(),
-		Result :: {ok, LastModified} | {error, Reason},
-		LastModified :: {integer(), integer()},
-		Reason :: term().
-%% @equiv mod_auth:add_user(Username, Password, UserData, Address,
-%% Port, Dir)
-add_user(Username, Password, UserData, Address, Port, Dir) ->
-	LastModified = {erlang:system_time(?MILLISECOND),
-			erlang:unique_integer([positive])},
-	NewUserData = [{last_modified, LastModified} | UserData],
-	case mod_auth:add_user(Username, Password, NewUserData, Address,
-			Port, Dir) of
-		true ->
-			{ok, LastModified};
-		{error, Reason} ->
-			{error, Reason}
-	end.
-
--spec add_group_member(Username) -> Result
-	when
-		Username :: string(),
-		Result ::true | {error, Reason},
-		Reason :: term().
-%% @equiv mod_auth:add_group_member(GroupName, Username, Address, Port, Dir)
-add_group_member(Username) ->
-	try
-		{Port, Address, Dir, GroupName} = get_params(),
-		mod_auth:add_group_member(GroupName, Username, Address, Port, Dir)
-	catch
-		_: Reason ->
-			{error, Reason}
-	end.
-
--spec add_group_member(GroupName, Username, Port, Dir) -> Result
-	when
-		GroupName :: string(),
-		Username :: string(),
-		Port :: inet:port_number(),
-		Dir :: string(),
-		Result ::true | {error, Reason},
-		Reason :: term().
-%% @equiv mod_auth:add_group_member(GroupName, Username, Address, Port, Dir)
-add_group_member(GroupName, Username, Port, Dir) ->
-	try
-		{_, Address, _, _} = get_params(),
-		mod_auth:add_group_member(GroupName, Username, Address, Port, Dir)
-	catch
-		_: Reason ->
-			{error, Reason}
+		Reason :: user_exists | term().
+%% @doc Add an HTTP user.
+%% 	HTTP Basic authentication (RFC7617) is required with
+%% 	`Username' and  `Password' used to construct the
+%% 	`Authorization' header in requests.
+%%
+%% 	`Locale' is used to set the language for text in the web UI.
+%% 	For English use `"en"', for Spanish use `"es'"..
+%%
+add_user(Username, Password, Language) when is_list(Username),
+		is_list(Password), is_list(Language) ->
+	{Port, Address, Dir, _} = get_params(),
+	case ocs:get_user(Username) of
+		{error, no_such_user} ->
+			LastModified = {erlang:system_time(?MILLISECOND),
+					erlang:unique_integer([positive])},
+			NewUserData = [{last_modified, LastModified}, {locale, Language}],
+			case mod_auth:add_user(Username, Password,
+					NewUserData, Address, Port, Dir) of
+				true ->
+					{_, _, _, Group} = get_params(),
+					case mod_auth:add_group_member(Group, Username,
+							Address, Port, Dir) of
+						true ->
+							{ok, LastModified};
+						{error, Reason} ->
+							{error, Reason}
+					end;
+				{error, Reason} ->
+					{error, Reason}
+			end;
+		{ok, _} ->
+			{error, user_exists}
 	end.
 
 -spec list_users() -> Result
@@ -622,15 +573,11 @@ add_group_member(GroupName, Username, Port, Dir) ->
 		Result :: {ok, Users} | {error, Reason},
 		Users :: list(),
 		Reason :: term().
+%% @doc List HTTP users.
 %% @equiv  mod_auth:list_users(Address, Port, Dir)
 list_users() ->
-	try
-		{Port, Address, Dir, _} = get_params(),
-		mod_auth:list_users(Address, Port, Dir)
-	catch
-		_: Reason ->
-			{error, Reason}
-	end.
+	{Port, Address, Dir, _} = get_params(),
+	mod_auth:list_users(Address, Port, Dir).
 
 -spec get_user(Username) -> Result
 	when
@@ -638,39 +585,10 @@ list_users() ->
 		Result :: {ok, User} | {error, Reason},
 		User :: #httpd_user{},
 		Reason :: term().
-%% @equiv get_user(Username, Address, Port, Dir)
-get_user(Username) ->
-	try
-		{Port, Address, Dir, _GroupName} = get_params(),
-		get_user(Username, Address, Port, Dir)
-	catch
-		_: Reason ->
-			{error, Reason}
-	end.
-
--spec get_user(Username, Port, Dir) -> Result
-	when
-		Username :: string(),
-		Port :: inet:port_number(),
-		Dir :: string(),
-		Result :: {ok, User} | {error, Reason},
-		User :: #httpd_user{},
-		Reason :: term().
-%% @equiv mod_auth:get_user(Username, Port, Dir)
-get_user(Username, Port, Dir) ->
-	mod_auth:get_user(Username, Port, Dir).
-
--spec get_user(Username, Address, Port, Dir) -> Result
-	when
-		Username :: string(),
-		Address :: inet:ip_address() | string() | undefined,
-		Port :: inet:port_number(),
-		Dir :: string(),
-		Result :: {ok, User} | {error, Reason},
-		User :: #httpd_user{},
-		Reason :: term().
+%% @doc Get an HTTP user record.
 %% @equiv mod_auth:get_user(Username, Address, Port, Dir)
-get_user(Username, Address, Port, Dir) ->
+get_user(Username) ->
+	{Port, Address, Dir, _} = get_params(),
 	mod_auth:get_user(Username, Address, Port, Dir).
 
 -spec delete_user(Username) -> Result
@@ -678,13 +596,13 @@ get_user(Username, Address, Port, Dir) ->
 		Username :: string(),
 		Result :: true | {error, Reason},
 		Reason :: term().
-%% @equiv mod_auth:delete_user(Username, Address, Port, Dir)
+%% @doc Delete an existing HTTP user.
 delete_user(Username) ->
-	try
-		{Port, Address, Dir, _GroupName} = get_params(),
-		mod_auth:delete_user(Username, Address, Port, Dir)
-	catch
-		_: Reason ->
+	{Port, Address, Dir, GroupName} = get_params(),
+	case mod_auth:delete_user(Username, Address, Port, Dir) of
+		true ->
+			mod_auth:delete_group_member(GroupName, Username, Address, Port, Dir);
+		{error, Reason} ->
 			{error, Reason}
 	end.
 
@@ -710,10 +628,10 @@ generate_password(<<N, Rest/binary>>, Charset, NumChars, Acc) ->
 generate_password(<<>>, _Charset, _NumChars, Acc) ->
 	Acc.
 
--spec generate_identity(Length) -> identity()
+-spec generate_identity(Length) -> string()
 	when
 		Length :: pos_integer().
-%% @doc Generate a random uniform identity.
+%% @doc Generate a random uniform numeric identity.
 %% @private
 generate_identity(Length) when Length > 0 ->
 	Charset = lists:seq($0, $9),
@@ -726,7 +644,7 @@ generate_identity(<<N, Rest/binary>>, Charset, NumChars, Acc) ->
 	NewAcc = [lists:nth(CharNum, Charset) | Acc],
 	generate_identity(Rest, Charset, NumChars, NewAcc);
 generate_identity(<<>>, _Charset, _NumChars, Acc) ->
-	list_to_binary(Acc).
+	Acc.
 
 -spec charset() -> Charset
 	when

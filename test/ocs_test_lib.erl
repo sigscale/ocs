@@ -18,9 +18,17 @@ initialize_db() ->
 			case mnesia:wait_for_tables([client, subscriber], 1000) of
 				{timeout, _} ->
 					ok = application:stop(mnesia),
-					ok = mnesia:create_schema([node()]),
-					ok = mnesia:start(),
-					{ok, [client, subscriber, httpd_user,httpd_group]} = ocs_app:install([node()]),
+					{ok, Tables} = ocs_app:install(),
+					F = fun(T) ->
+						case T of
+							T when T == client; T == subscriber;
+									T == httpd_user; T == httpd_group ->
+								true;
+							_ ->
+								false
+						end
+					end,
+					lists:all(F, Tables),
 					initialize_db();
 				ok ->
 					ok

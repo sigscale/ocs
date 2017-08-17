@@ -30,7 +30,7 @@
 
 -spec init(Args) -> Result
 	when
-		Args :: [],
+		Args :: list(),
 		Result :: {ok,{{RestartStrategy :: one_for_all | one_for_one
 		| rest_for_one | simple_one_for_one,
 		MaxR :: non_neg_integer(), MaxT :: pos_integer()},
@@ -39,7 +39,8 @@
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init(_Args) ->
+init([ProcGroupName] = _Args) ->
+	ok = pg2:join(ProcGroupName, self()),
 	StartMod = ocs_radius_disconnect_fsm,
 	StartFunc = {gen_fsm, start_link, [StartMod]},
 	ChildSpec = {StartMod, StartFunc, transient, 4000, worker, [StartMod]},

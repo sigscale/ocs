@@ -55,7 +55,8 @@ get_access() ->
 			JsonArray = {array, JsonObj},
 			Body = mochijson:encode(JsonArray),
 			ContentRange = "items 1-" ++ integer_to_list(NewCount) ++ "/*",
-			Headers = [{content_range, ContentRange}],
+			Headers = [{content_type, "application/json"},
+					{content_range, ContentRange}],
 			{ok, Headers, Body}
 	end.
 
@@ -72,15 +73,29 @@ radius_auth_json(Events) ->
 				ClientIp = inet:ntoa(ClientAdd),
 				{ServerAdd, ServerPort} = Server,
 				ServerIp = inet:ntoa(ServerAdd),
-				Username = radius_attributes:fetch(?UserName, ReqAttrs),
-				Idenifier = radius_attributes:fetch(?NasIdentifier, ReqAttrs),
-				CalledStation = radius_attributes:fetch(?CalledStationId, ReqAttrs),
-				JsonObj = {struct, [{"timeStamp", TimeStamp}, {"node", Node},
-						{"clientAddress", ClientIp}, {"clientPort", ClientPort},
-						{"serverAddress", ServerIp}, {"serverPort", ServerPort},
-						{"type", Type}, {"username", Username}, {"nasIdentifier", Idenifier},
-						{"calledStation", CalledStation}]},
-				[JsonObj | Acc];
+				Obj0 = [{"type", Type}, {"serverPort", ServerPort},
+						{"serverAddress", ServerIp}, {"clientPort", ClientPort},
+						{"clientAddress", ClientIp}, {"node", Node},
+						{"timeStamp", TimeStamp}],
+				Obj1 = case radius_attributes:find(?UserName, ReqAttrs) of
+					{ok, Username} ->
+						[{"username", Username} | Obj0];
+					{error, not_found} ->
+						Obj0
+				end,
+				Obj2 = case radius_attributes:find(?NasIdentifier, ReqAttrs) of
+					{ok, Identifier} ->
+						[{"nasIdentifier", Identifier} | Obj1];
+					{error, not_found} ->
+						Obj1
+				end,
+				Obj3 = case radius_attributes:find(?CalledStationId, ReqAttrs) of
+					{ok, CalledStation} ->
+						[{"calledStation", CalledStation} | Obj2];
+					{error, not_found} ->
+						Obj2
+				end,
+				[{struct, lists:reverse(Obj3)} | Acc];
 		(_, Acc) ->
 				%% TODO support for DIAMETER
 				Acc

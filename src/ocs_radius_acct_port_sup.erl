@@ -38,7 +38,8 @@
 %% @private
 %%
 init([Address, Port, Options]) ->
-	ChildSpecs = [supervisor(ocs_radius_disconnect_fsm_sup, []),
+	pg2:create(?MODULE),
+	ChildSpecs = [supervisor(ocs_radius_disconnect_fsm_sup, [?MODULE]),
 			server(ocs_radius_acct_port_server, Address, Port, Options),
 			supervisor_bridge(ocs_radius_acct_server_sup, [Address, Port])],
 	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
