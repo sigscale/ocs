@@ -374,7 +374,7 @@ Content-length: nn
                {"name": "acctInterimInterval", "value": 300},
                {"name": "class", "value": "skiorgs"}
               ],
- "balance":100,
+ "buckets":[ { "amount": 200, "units": "octets", "product": "Wi-Fi" } ],
  "enabled": true,
  "multisession": false
 }
@@ -397,7 +397,7 @@ Etag: mm-m
                {"name": "acctInterimInterval", "value": 300},
                {"name": "class", "value": "skiorgs"}
               ],
- "balance": 100,
+ "buckets": [ { "amount": 200, "units": "octets", "product": "Wi-Fi" } ],
  "enabled": true,
  "multisession": false
 }

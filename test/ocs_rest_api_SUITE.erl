@@ -249,11 +249,14 @@ add_subscriber(Config) ->
 	Class = {struct, [{"name", "class"}, {"value", "skiorgs"}]},
 	SortedAttributes = lists:sort([AsendDataRate, AsendXmitRate, SessionTimeout, Interval, Class]),
 	AttributeArray = {array, SortedAttributes},
-	Balance = 100,
 	Enable = true,
 	Multi = false,
+	Amount = {"amount", 200},
+	Units = {"units", "octets"},
+	Product = {"product", "Wi-Fi"},
+	Buckets = {array, [{struct, [Amount, Units, Product]}]},
 	JSON1 = {struct, [{"id", ID}, {"password", Password},
-	{"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enable},
+	{"attributes", AttributeArray}, {"buckets", Buckets}, {"enabled", Enable},
 	{"multisession", Multi}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON1)),
 	HostUrl = ?config(host_url, Config),
@@ -278,7 +281,7 @@ add_subscriber(Config) ->
 	{_, {array, Attributes}} = lists:keyfind("attributes", 1, Object),
 	ExtraAttributes = Attributes -- SortedAttributes,
 	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
-	{"balance", Balance} = lists:keyfind("balance", 1, Object),
+	{"buckets", Buckets} = lists:keyfind("buckets", 1, Object),
 	{"enabled", Enable} = lists:keyfind("enabled", 1, Object),
 	{"multisession", Multi} = lists:keyfind("multisession", 1, Object).
 
@@ -287,7 +290,11 @@ add_subscriber_without_password() ->
 
 add_subscriber_without_password(Config) ->
 	ContentType = "application/json",
-	JSON1 = {struct, [{"id", "beebdeedfeef"}, {"balance", 100000}, {"enabled", true},
+	Amount = {"amount", 100000},
+	Units = {"units", "octets"},
+	Product = {"product", "Wi-Fi"},
+	Buckets = {array, [{struct, [Amount, Units, Product]}]},
+	JSON1 = {struct, [{"id", "beebdeedfeef"}, {"buckets", Buckets}, {"enabled", true},
 	{"multisession", false}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON1)),
 	HostUrl = ?config(host_url, Config),

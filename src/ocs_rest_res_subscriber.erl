@@ -299,9 +299,17 @@ post_subscriber(RequestBody) ->
 			false ->
 				[]
 		end,
-		Balance = case lists:keyfind("balance", 1, Object) of
-			{"balance", Bal} ->
-				Bal;
+		{Buckets, BucketRef} = case lists:keyfind("buckets", 1, Object) of
+			{"buckets", {array, BktStruct}} ->
+				F = fun({struct, Bucket}, AccIn) ->
+					Amount = proplists:get_value("amount", Bucket, 0),
+					Unit = proplists:get_value("unit", Bucket, "octets"),
+					_Product = proplists:get_value("product", Bucket, ""),
+					BR = #bucket{remain_amount =
+						#remain_amount{unit = Unit, amount = Amount}},
+					[BR | AccIn]
+				end,
+				{lists:reverse(lists:foldl(F, [], BktStruct)), {array, BktStruct}};
 			false ->
 				undefined
 		end,
@@ -317,25 +325,25 @@ post_subscriber(RequestBody) ->
 			false ->
 				undefined
 		end,
-		case ocs:add_subscriber(IdIn, PasswordIn, Attributes, Balance, Enabled, Multi) of
+		case ocs:add_subscriber(IdIn, PasswordIn, Attributes, Buckets, Enabled, Multi) of
 			{ok, #subscriber{name = IdOut, last_modified = LM} = S} ->
 				Id = binary_to_list(IdOut),
 				Location = "/ocs/v1/subscriber/" ++ Id,
 				JAttributes = {array, radius_to_json(S#subscriber.attributes)},
 				RespObj = [{id, Id}, {href, Location},
 						{password, binary_to_list(S#subscriber.password)},
-						{attributes, JAttributes}, {balance, S#subscriber.balance},
+						{attributes, JAttributes}, {buckets, BucketRef},
 						{enabled, S#subscriber.enabled},
 						{multisession, S#subscriber.multisession}],
 				JsonObj  = {struct, RespObj},
 				Body = mochijson:encode(JsonObj),
 				Headers = [{location, Location}, {etag, etag(LM)}],
 				{ok, Headers, Body};
-			{error, _Reason} ->
+			{error, _} ->
 				{error, 400}
 		end
 	catch
-		_:_Reason1 ->
+		_:_ ->
 			{error, 400}
 	end.
 
