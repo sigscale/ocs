@@ -31,13 +31,14 @@
 -opaque continuation() :: start | disk_log:continuation().
 -record(state,
 		{etag :: string(),
+		max_page_size :: pos_integer(),
 		timeout :: pos_integer(),
 		module :: atom(),
 		function :: atom(),
 		args :: list(),
 		cont = start :: continuation(),
 		buffer = [] :: [tuple()],
-		pointer = 0 :: integer()}).
+		offset = 0 :: integer()}).
 -type state() :: #state{}.
 
 %% support deprecated_time_unit()
@@ -83,10 +84,11 @@ start_link(Args) ->
 %% @private
 %%
 init([Etag, M, F, A] = _Args) when is_atom(M), is_atom(F), is_list(A) ->
+	{ok, MaxPageSize} = application:get_env(rest_page_size),
 	{ok, Timeout} = application:get_env(rest_page_timeout),
 	process_flag(trap_exit, true),
 	State = #state{etag = Etag, module = M, function = F,
-			args = A, timeout = Timeout},
+			args = A, max_page_size = MaxPageSize, timeout = Timeout},
 	{ok, State, Timeout}.
 
 -spec handle_call(Request, From, State) -> Result
@@ -110,17 +112,8 @@ init([Etag, M, F, A] = _Args) when is_atom(M), is_atom(F), is_list(A) ->
 %% @see //stdlib/gen_server:handle_call/3
 %% @private
 %%
-handle_call({StartRange, EndRange}, _From,
-		#state{module = Module, function = Function, args = Args,
-		cont = Cont, timeout = Timeout} = State) ->
-	case apply(Module, Function, [Cont | Args]) of
-		{eof, Items} ->
-			{reply, {ok, Items}, State, Timeout};
-		{error, Reason} ->
-			{reply, {error, Reason}, State, Timeout};
-		{Cont2, Items} ->
-			{reply, {ok, Items}, State, Timeout}
-	end.
+handle_call(Range, From, State) ->
+	range_request(Range, From, State).
 
 -spec handle_cast(Request, State) -> Result
 	when
@@ -185,4 +178,66 @@ code_change(_OldVsn, State, _Extra) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+-spec range_request(Range, From, State) -> Result
+	when
+		Range :: {Start, End},
+		Start :: pos_integer(),
+		End :: pos_integer(),
+		From :: {pid(), Tag},
+		Tag :: any(),
+		State :: state(),
+		Result :: {Items, ContentRange} | {error, Reason},
+		Items :: [tuple()],
+		ContentRange :: string(),
+		Reason :: not_found | term().
+%% @doc Handle a range request.
+%% 	Manages a buffer of items read with the callback.
+%%
+%% 	Returns `{Items, ContentRange}' on success where `Items' is
+%% 	a list of collection members and `ContentRange' is to be
+%% 	used in a `Content-Range' header. The total items will be
+%% 	included if known at the time (e.g. "item 1-100/*" or
+%% 	"item 50-100/100").
+%% @private
+range_request({StartRange, EndRange}, From,
+		#state{max_page_size = MaxPageSize} = State)
+		when (EndRange - StartRange) > MaxPageSize ->
+	range_request({StartRange, StartRange + MaxPageSize}, From, State);
+range_request({StartRange, EndRange}, _From,
+		#state{cont = eof, offset = Offset, buffer = Buffer} = State)
+		when StartRange >= Offset, length(Buffer) =< EndRange - Offset ->
+	Rest = lists:sublist(Buffer, StartRange - Offset, length(Buffer)),
+	End = StartRange + length(Rest),
+	ContentRange = content_range(StartRange, End, End),
+	{stop, shutdown, {Rest, ContentRange}, State};
+range_request({StartRange, EndRange}, _From,
+		#state{offset = Offset, buffer = Buffer, timeout = Timeout} = State)
+		when StartRange >= Offset, length(Buffer) >= EndRange - Offset ->
+	PageSize = EndRange - StartRange + 1,
+	Rest = lists:sublist(Buffer, StartRange - Offset, length(Buffer)),
+	{RespItems, NewBuffer} = lists:split(PageSize, Rest),
+	NewState = State#state{offset = EndRange, buffer = NewBuffer},
+	ContentRange = content_range(StartRange, EndRange, undefined),
+	{reply, {RespItems, ContentRange}, NewState, Timeout};
+range_request({StartRange, EndRange}, From,
+		#state{cont = Cont1, module = Module, function = Function,
+		args = Args, buffer = Buffer} = State) ->
+	case apply(Module, Function, [Cont1 | Args]) of
+		{error, Reason} ->
+			{stop, shutdown, {error, Reason}, State};
+		{Cont2, Items} ->
+			NewState = State#state{cont = Cont2, buffer = Buffer ++ Items},
+			range_request({StartRange, EndRange}, From, NewState)
+	end.
+
+%% @hidden
+content_range(Start, End, Total) ->
+	Rest = case Total of
+		N when is_integer(N) ->
+			"/" ++ integer_to_list(N);
+		_ ->
+			"/*"
+	end,
+	"items " ++ integer_to_list(Start) ++ "-" ++ integer_to_list(End) ++ Rest.
 

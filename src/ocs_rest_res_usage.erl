@@ -2222,16 +2222,14 @@ get_auth_query_start([] = _Query, Filters, RangeStart, RangeEnd) ->
 %% @hidden
 get_auth_query_page(PageServer, Etag, Filters, Start, End) ->
 	case gen_server:call(PageServer, {Start, End}) of
+		{error, not_found} ->
+			{error, 404};
 		{error, _Reason} ->
 			{error, 500};
-		{_Cont, []} ->
-			{error, 404};
-		{_Cont, Events} ->
+		{Events, ContentRange} ->
 			JsonObj = usage_aaa_auth(Events, Filters),
 			JsonArray = {array, JsonObj},
 			Body = mochijson:encode(JsonArray),
-			ContentRange = "items " ++ integer_to_list(Start) ++ "-"
-					++ integer_to_list(length(JsonObj)) ++ "/*",
 			Headers = [{content_type, "application/json"}, {etag, Etag},
 					{accept_ranges, "item"}, {content_range, ContentRange}],
 			{ok, Headers, Body}
