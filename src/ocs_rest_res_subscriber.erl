@@ -584,7 +584,7 @@ execute_json_patch_operations(OpList, ID, CValues) ->
 					{error, 500}
 			end;
 		attributes ->
-			case ocs:update_attributes(ID, NBal, NAttr, NEnabled) of
+			case ocs:update_attributes(ID, NBal, NAttr, NEnabled, NMulti) of
 				ok ->
 					{NPwd, NBal, NAttr, NEnabled, NMulti};
 				{error, not_found} ->
