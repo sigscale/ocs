@@ -65,51 +65,36 @@ get_subscriber(_Id, _Query, _Filters) ->
 get_subscriber1(Id, Filters) ->
 	case ocs:find_subscriber(Id) of
 		{ok, #subscriber{password = PWBin, attributes = Attributes,
-				balance = Balance, enabled = Enabled, 
-				multisession = Multi, last_modified = LM}} ->
+				balance = Balance, enabled = Enabled, last_modified = LM}} ->
 			Etag = etag(LM),
 			Att = radius_to_json(Attributes),
 			Att1 = {array, Att},
 			Password = binary_to_list(PWBin),
 			RespObj1 = [{"id", Id}, {"href", "/ocs/v1/subscriber/" ++ Id}],
 			RespObj2 = [{"attributes", Att1}],
-			RespObj3 = case Id == <<>> orelse Filters == []
-				andalso not lists:keymember("id", 1, Filters) of
-					true ->
-						[];
-					false ->
-						[{"id", Id}]
-				end,
-			RespObj4 = case Filters == []
+			RespObj3 = case Filters == []
 				orelse lists:keymember("password", 1, Filters) of
 					true ->
 						[{"password", Password}];
 					false ->
 						[]
 				end,
-			RespObj5 = case Filters == []
+			RespObj4 = case Filters == []
 				orelse lists:keymember("balance", 1, Filters) of
 					true ->
 						[{"balance", Balance}];
 					false ->
 						[]
 				end,
-			RespObj6 = case Filters == []
+			RespObj5 = case Filters == []
 				orelse lists:keymember("enabled", 1, Filters) of
 					true ->
 						[{"enabled", Enabled}];
 					false ->
 						[]
 				end,
-			RespObj7 = case Filters == []
-				orelse lists:keymember("multisession", 1, Filters) of
-					true ->
-						[{"multisession", Multi}];
-					false ->
-						[]
-				end,
 			JsonObj  = {struct, RespObj1 ++ RespObj2 ++ RespObj3
-					++ RespObj4 ++ RespObj5 ++ RespObj6 ++ RespObj7},
+					++ RespObj4 ++ RespObj5},
 			Body = mochijson:encode(JsonObj),
 			Headers = [{content_type, "application/json"}, {etag, Etag}],
 			{ok, Headers, Body};
@@ -405,9 +390,12 @@ patch_subscriber2(Id, Etag, "application/json-patch+json", ReqBody,
 		CurrentValues = [{"password", CurrPassword}, {"balance", Bal},
 				{"attributes", CurrAttr}, {"enabled", Enabled}, {"multisession", Multi}],
 		ValidOpList = validated_operations(OpList),
-		{NPwd, NBal, NAttr, NEnabled, NMulti} =
-				execute_json_patch_operations(ValidOpList, Id, CurrentValues),
-		patch_subscriber3(Id, Etag, NPwd, NAttr, NBal, NEnabled, NMulti)
+		case execute_json_patch_operations(ValidOpList, Id, CurrentValues) of
+			{NPwd, NBal, NAttr, NEnabled, NMulti} ->
+				patch_subscriber3(Id, Etag, NPwd, NAttr, NBal, NEnabled, NMulti);
+			{error, Status} ->
+				{error, Status}
+		end
 	catch
 		_:_ ->
 			{error, 400}
@@ -587,9 +575,22 @@ execute_json_patch_operations(OpList, ID, CValues) ->
 	{_, NMulti} = lists:keyfind("multisession", 1, NValues),
 	case Update of
 		password ->
-			ocs:update_password(ID, NPwd);
+			case ocs:update_password(ID, NPwd) of
+				ok ->
+					{NPwd, NBal, NAttr, NEnabled, NMulti};
+				{error, not_found} ->
+					{error, 404};
+				{error, _Reason} ->
+					{error, 500}
+			end;
 		attributes ->
-			ocs:update_attributes(ID, NBal, NAttr, NEnabled, NMulti)
-	end,
-	{NPwd, NBal, NAttr, NEnabled, NMulti}.
+			case ocs:update_attributes(ID, NBal, NAttr, NEnabled) of
+				ok ->
+					{NPwd, NBal, NAttr, NEnabled, NMulti};
+				{error, not_found} ->
+					{error, 404};
+				{error, _Reason} ->
+					{error, 500}
+			end
+	end.
 
