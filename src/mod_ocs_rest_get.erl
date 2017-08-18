@@ -146,6 +146,9 @@ do_response(_ModData, {error, 400}) ->
 do_response(_ModData, {error, 404}) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{break, [{response, {404, Response}}]};
+do_response(_ModData, {error, 416}) ->
+	Response = "<h2>HTTP Error 416 - Range Not Satisfiable</h2>",
+	{break, [{response, {416, Response}}]};
 do_response(_ModData, {error, 500}) ->
 	Response = "<h2>HTTP Error 500 - Server Error</h2>",
 	{break, [{response, {500, Response}}]}.

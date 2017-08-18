@@ -206,9 +206,13 @@ range_request({StartRange, EndRange}, From,
 	range_request({StartRange, StartRange + MaxPageSize}, From, State);
 range_request({StartRange, EndRange}, _From,
 		#state{cont = eof, offset = Offset, buffer = Buffer} = State)
+		when StartRange > Offset + length(Buffer) ->
+	{stop, shutdown, {error, 416}, State};
+range_request({StartRange, EndRange}, _From,
+		#state{cont = eof, offset = Offset, buffer = Buffer} = State)
 		when StartRange >= Offset, length(Buffer) =< EndRange - Offset ->
 	Rest = lists:sublist(Buffer, StartRange - Offset, length(Buffer)),
-	End = StartRange + length(Rest),
+	End = StartRange + length(Rest) - 1,
 	ContentRange = content_range(StartRange, End, End),
 	{stop, shutdown, {Rest, ContentRange}, State};
 range_request({StartRange, EndRange}, _From,
