@@ -358,54 +358,62 @@ patch_subscriber(Id, Etag, CType, ReqBody) ->
 			{error, 400}
 	end.
 %% @hidden
-patch_subscriber1(Id, Etag, CType, ReqBody) ->
+patch_subscriber1(Id, Etag, "application/json", ReqBody) ->
 	case ocs:find_subscriber(Id) of
 		{ok, #subscriber{password = CurrPassword, attributes = CurrAttr,
 				buckets = Bal, enabled = Enabled,
 				multisession = Multi, last_modified = CurrentEtag}}
 				when Etag == CurrentEtag; Etag == undefined ->
-			patch_subscriber2(Id, Etag, CType, ReqBody, CurrPassword, CurrAttr,
-					Bal, Enabled, Multi);
+			try
+				{struct, Object} = mochijson:decode(ReqBody),
+				{_, Type} = lists:keyfind("update", 1, Object),
+				{Password, RadAttr, NewEnabled, NewMulti} = case Type of
+					"attributes" ->
+						{_, {array, AttrJs}} = lists:keyfind("attributes", 1, Object),
+						NewAttributes = json_to_radius(AttrJs),
+						{_, Balance} = lists:keyfind("balance", 1, Object),
+						{_, EnabledStatus} = lists:keyfind("enabled", 1, Object),
+						{_, MultiSession} = lists:keyfind("multisession", 1, Object),
+						ocs:update_attributes(Id, Balance, NewAttributes, EnabledStatus, MultiSession),
+						{CurrPassword, NewAttributes, EnabledStatus, MultiSession};
+					"password" ->
+						{_, NewPassword } = lists:keyfind("newpassword", 1, Object),
+						ocs:update_password(Id, NewPassword),
+						{NewPassword, CurrAttr, Enabled, Multi}
+				end,
+				patch_subscriber2(Id, Etag, Password, RadAttr, Bal, NewEnabled, NewMulti)
+			catch
+				_:_ ->
+					{error, 400}
+			end;
 		{ok,  _} ->
 			{error, 412};
 		{error, _} ->
 			{error, 404}
-	end.
-%% @hidden
-patch_subscriber2(Id, Etag, "application/json", ReqBody, CurrPassword,
-		CurrAttr, Bal, Enabled, Multi) ->
-	try
-		{struct, Object} = mochijson:decode(ReqBody),
-		{_, Type} = lists:keyfind("update", 1, Object),
-		{Password, RadAttr, NewEnabled, NewMulti} = case Type of
-			"attributes" ->
-				{_, {array, AttrJs}} = lists:keyfind("attributes", 1, Object),
-				NewAttributes = json_to_radius(AttrJs),
-				{_, Balance} = lists:keyfind("balance", 1, Object),
-				{_, EnabledStatus} = lists:keyfind("enabled", 1, Object),
-				{_, MultiSession} = lists:keyfind("multisession", 1, Object),
-				ocs:update_attributes(Id, Balance, NewAttributes, EnabledStatus, MultiSession),
-				{CurrPassword, NewAttributes, EnabledStatus, MultiSession};
-			"password" ->
-				{_, NewPassword } = lists:keyfind("newpassword", 1, Object),
-				ocs:update_password(Id, NewPassword),
-				{NewPassword, CurrAttr, Enabled, Multi}
-		end,
-		patch_subscriber3(Id, Etag, Password, RadAttr, Bal, NewEnabled, NewMulti)
-	catch
-		_:_ ->
-			{error, 400}
 	end;
-patch_subscriber2(Id, Etag, "application/json-patch+json", ReqBody,
-		CurrPassword, CurrAttr, Bal, Enabled, Multi) ->
+patch_subscriber1(Id, Etag, "application/json-patch+json", ReqBody) ->
 	try
 		{array, OpList} = mochijson:decode(ReqBody),
-		CurrentValues = [{"password", CurrPassword}, {"balance", Bal},
-				{"attributes", CurrAttr}, {"enabled", Enabled}, {"multisession", Multi}],
 		ValidOpList = validated_operations(OpList),
-		case execute_json_patch_operations(ValidOpList, Id, CurrentValues) of
-			{NPwd, NBal, NAttr, NEnabled, NMulti} ->
-				patch_subscriber3(Id, Etag, NPwd, NAttr, NBal, NEnabled, NMulti);
+		case execute_json_patch_operations(Id, Etag, ValidOpList) of
+			{ok, #subscriber{name = Id,
+					password = Password, attributes = RadAttr,
+					buckets = Buckets, enabled = Enabled,
+					multisession = MSession}} ->
+				Attributes = {array, radius_to_json(RadAttr)},
+				Balance = get_balance(Buckets),
+				RespObj =[{id, Id}, {href, "/ocs/v1/subscriber/" ++ Id},
+				{password, Password}, {attributes, Attributes},
+				{totalBalance, Balance}, {enabled, Enabled}, {multisession, MSession}],
+				JsonObj  = {struct, RespObj},
+				RespBody = mochijson:encode(JsonObj),
+				Headers = case Etag of
+					undefined ->
+						[];
+					_ ->
+						[{etag, etag(Etag)}]
+				end,
+				{ok, Headers, RespBody};
 			{error, Status} ->
 				{error, Status}
 		end
@@ -414,7 +422,7 @@ patch_subscriber2(Id, Etag, "application/json-patch+json", ReqBody,
 			{error, 400}
 	end.
 %% @hidden
-patch_subscriber3(Id, Etag, Password, RadAttr, Balance, Enabled, Multi) ->
+patch_subscriber2(Id, Etag, Password, RadAttr, Balance, Enabled, Multi) ->
 	Attributes = {array, radius_to_json(RadAttr)},
 	RespObj =[{id, Id}, {href, "/ocs/v1/subscriber/" ++ Id},
 		{password, Password}, {attributes, Attributes}, {balance, Balance},
@@ -564,47 +572,55 @@ validated_operations(UAttr) ->
 	end,
 	F(F, UAttr, []).
 
-%% @doc Execute json-patch opearations and return resulting object's
-%% attributes.
-%% @hidden
-execute_json_patch_operations(OpList, ID, CValues) ->
-	F = fun(_, [{"password", V} | _], Acc) ->
-			{password, lists:keyreplace("password", 1, Acc, {"password", V})};
-		(F, [{"attributes", {array, V}} | T], Acc) ->
-			NV = json_to_radius(V),
-			NewAcc = lists:keyreplace("attributes", 1, Acc, {"attributes", NV}),
-			F(F, T, NewAcc);
-		(F, [{Path, V} | T], Acc) ->
-			NewAcc = lists:keyreplace(Path, 1, Acc, {Path, V}),
-			F(F, T, NewAcc);
-		(_, [], Acc) ->
-			{attributes, Acc}
-	end,
-	{Update, NValues} = F(F, OpList, CValues),
-	{_, NPwd} = lists:keyfind("password", 1, NValues),
-	{_, NAttr} = lists:keyfind("attributes", 1, NValues),
-	{_, NBal} = lists:keyfind("balance", 1, NValues),
-	{_, NEnabled} = lists:keyfind("enabled", 1, NValues),
-	{_, NMulti} = lists:keyfind("multisession", 1, NValues),
-	case Update of
-		password ->
-			case ocs:update_password(ID, NPwd) of
-				ok ->
-					{NPwd, NBal, NAttr, NEnabled, NMulti};
-				{error, not_found} ->
-					{error, 404};
-				{error, _Reason} ->
-					{error, 500}
-			end;
-		attributes ->
-			case ocs:update_attributes(ID, NBal, NAttr, NEnabled) of
-				ok ->
-					{NPwd, NBal, NAttr, NEnabled, NMulti};
-				{error, not_found} ->
-					{error, 404};
-				{error, _Reason} ->
-					{error, 500}
-			end
+-spec execute_json_patch_operations(Id, Etag, OpList) ->
+		{ok, Subscriber} | {error, Status} when
+	Id :: string(),
+	Etag :: tuple(),
+	OpList :: [tuple()],
+	Subscriber :: #subscriber{},
+	Status :: 412 | 404 | 500.
+%% @doc Execute json-patch opearations and return subscriber record
+%% @private
+execute_json_patch_operations(Id, Etag, OpList) ->
+	try
+		Password = proplists:get_value("password", OpList, undefined),
+		Attributes = case lists:keyfind("attributes", 1, OpList) of
+			{_, {array, JsonAttr}} ->
+				json_to_radius(JsonAttr);
+			false ->
+				undefined
+		end,
+		Buckets = case lists:keyfind("buckets", 1, OpList) of
+			{_, {array, BucketObjs}} ->
+				F = fun({strcut, Bucket}, AccIn) ->
+						{_, Amount} = lists:keyfind("amount", 1, Bucket),
+						{_, Units} = lists:keyfind("units", 1, Bucket),
+						_Product = proplists:get_value("product", Bucket, ""),
+						B = #bucket{remain_amount =
+							#remain_amount{amount = Amount, unit = Units}},
+						[B | AccIn]
+				end,
+				AccOut = lists:foldl(F, [], BucketObjs),
+				lists:reverse(AccOut);
+			false ->
+				undefined
+		end,
+		Enabled = proplists:get_value("enabled", OpList, undefined),
+		MultiSession = proplists:get_value("multisession", OpList, undefined),
+		case ocs:update_subscriber(Id, Password,
+				Attributes, Buckets, Enabled, MultiSession, Etag) of
+			{ok, Subscriber} ->
+				Subscriber;
+			{error, not_found} ->
+				{error, 404};
+			{error, precondition_faild} ->
+				{error, 412};
+			{error, _Reason} ->
+				{error, 500}
+		end
+	catch
+		_:_ ->
+			{error, 400}
 	end.
 
 -spec get_balance(Buckets) ->
