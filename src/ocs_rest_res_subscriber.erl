@@ -396,10 +396,9 @@ patch_subscriber1(Id, Etag, "application/json-patch+json", ReqBody) ->
 		{array, OpList} = mochijson:decode(ReqBody),
 		ValidOpList = validated_operations(OpList),
 		case execute_json_patch_operations(Id, Etag, ValidOpList) of
-			{ok, #subscriber{name = Id,
-					password = Password, attributes = RadAttr,
-					buckets = Buckets, enabled = Enabled,
-					multisession = MSession}} ->
+			{ok, #subscriber{password = Password,
+					attributes = RadAttr, buckets = Buckets,
+					enabled = Enabled, multisession = MSession}} ->
 				Attributes = {array, radius_to_json(RadAttr)},
 				Balance = get_balance(Buckets),
 				RespObj =[{id, Id}, {href, "/ocs/v1/subscriber/" ++ Id},
@@ -610,7 +609,7 @@ execute_json_patch_operations(Id, Etag, OpList) ->
 		case ocs:update_subscriber(Id, Password,
 				Attributes, Buckets, Enabled, MultiSession, Etag) of
 			{ok, Subscriber} ->
-				Subscriber;
+				{ok, Subscriber};
 			{error, not_found} ->
 				{error, 404};
 			{error, precondition_faild} ->
