@@ -187,10 +187,10 @@ code_change(_OldVsn, State, _Extra) ->
 		From :: {pid(), Tag},
 		Tag :: any(),
 		State :: state(),
-		Result :: {Items, ContentRange} | {error, Reason},
+		Result :: {Items, ContentRange} | {error, Status},
 		Items :: [tuple()],
 		ContentRange :: string(),
-		Reason :: not_found | term().
+		Status :: 400 | 404 | 416 | 500.
 %% @doc Handle a range request.
 %% 	Manages a buffer of items read with the callback.
 %%
@@ -224,8 +224,8 @@ range_request({StartRange, EndRange}, From,
 		#state{cont = Cont1, module = Module, function = Function,
 		args = Args, buffer = Buffer} = State) ->
 	case apply(Module, Function, [Cont1 | Args]) of
-		{error, Reason} ->
-			{stop, shutdown, {error, Reason}, State};
+		{error, _Reason} ->
+			{stop, shutdown, {error, 500}, State};
 		{Cont2, Items} ->
 			NewState = State#state{cont = Cont2, buffer = Buffer ++ Items},
 			range_request({StartRange, EndRange}, From, NewState)

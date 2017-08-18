@@ -2222,10 +2222,8 @@ get_auth_query_start([] = _Query, Filters, RangeStart, RangeEnd) ->
 %% @hidden
 get_auth_query_page(PageServer, Etag, Filters, Start, End) ->
 	case gen_server:call(PageServer, {Start, End}) of
-		{error, not_found} ->
-			{error, 404};
-		{error, _Reason} ->
-			{error, 500};
+		{error, Status} ->
+			{error, Status};
 		{Events, ContentRange} ->
 			JsonObj = usage_aaa_auth(Events, Filters),
 			JsonArray = {array, JsonObj},
