@@ -211,7 +211,7 @@ range_request({StartRange, EndRange}, From,
 range_request({StartRange, _EndRange}, _From, #state{offset = Offset,
 		timeout = Timeout} = State) when StartRange < Offset ->
 	{reply, {error, 416}, State, Timeout};
-range_request({StartRange, EndRange}, _From,
+range_request({StartRange, _EndRange}, _From,
 		#state{cont = eof, offset = Offset, buffer = Buffer} = State)
 		when StartRange > Offset + length(Buffer) ->
 	{stop, shutdown, {error, 416}, State};
