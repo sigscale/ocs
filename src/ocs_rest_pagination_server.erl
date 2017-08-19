@@ -204,6 +204,9 @@ range_request({StartRange, EndRange}, From,
 		#state{max_page_size = MaxPageSize} = State)
 		when (EndRange - StartRange) > MaxPageSize ->
 	range_request({StartRange, StartRange + MaxPageSize}, From, State);
+range_request({StartRange, _EndRange}, _From,
+		#state{offset = Offset} = State) when StartRange < Offset ->
+	{reply, {error, 416}, NewState, Timeout};
 range_request({StartRange, EndRange}, _From,
 		#state{cont = eof, offset = Offset, buffer = Buffer} = State)
 		when StartRange > Offset + length(Buffer) ->
