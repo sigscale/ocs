@@ -64,8 +64,8 @@ get_usage(Query, Headers) ->
 			get_auth_usage(lists:keydelete("type", 1, Query), Headers);
 		{_, "AAAAccountingUsage"} ->
 			get_acct_usage(lists:keydelete("type", 1, Query), Headers);
-		{_, "PublicWLANAccessUsageSpec"} ->
-			{error, 500}; % todo?
+		{_, "PublicWLANAccessUsage"} ->
+			{error, 404}; % todo?
 		_ ->
 			{error, 404}
 	end.
