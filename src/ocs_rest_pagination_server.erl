@@ -199,6 +199,10 @@ code_change(_OldVsn, State, _Extra) ->
 %% 	used in a `Content-Range' header. The total items will be
 %% 	included if known at the time (e.g. "item 1-100/*" or
 %% 	"item 50-100/100").
+%%
+%% 	Returns `{error, Status}' if the request fails. `Status'
+%% 	is an HTTP status code to be returned tio the client.
+%%
 %% @private
 range_request({StartRange, EndRange}, From,
 		#state{max_page_size = MaxPageSize} = State)
