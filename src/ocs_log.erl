@@ -437,7 +437,7 @@ auth_query(start, Start, End, Protocol, Types,
 auth_query(Continuation, Start, End, Protocol, Types,
 		ReqAttrsMatch, RespAttrsMatch)
 		when is_integer(Start), is_integer(End) ->
-	auth_query1(Continuation, End, Protocol, Types, ReqAttrsMatch,
+	auth_query1(Start, End, Protocol, Types, ReqAttrsMatch,
 			RespAttrsMatch, disk_log:chunk(?AUTHLOG, Continuation), []).
 
 %% @hidden
