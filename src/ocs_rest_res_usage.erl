@@ -2187,23 +2187,58 @@ get_auth_usage(Query, Filters, Headers) ->
 
 %% @hidden
 get_auth_query(Query, Filters, Headers) ->
-	case {lists:keyfind("if-range", 1, Headers),
+	case {lists:keyfind("if-match", 1, Headers),
+			lists:keyfind("if-range", 1, Headers),
 			lists:keyfind("range", 1, Headers)} of
-		{{_, Etag}, {_, Range}} ->
+		{{"if-match", Etag}, false, {"range", Range}} ->
 			case global:whereis_name(Etag) of
 				undefined ->
-					{Start, End} = range(Range),
-					get_auth_query_start(Query, Filters, Start, End);
+					{error, 412};
 				PageServer ->
-					{Start, End} = range(Range),
-					get_auth_query_page(PageServer, Etag, Filters, Start, End)
+					case range(Range) of
+						{error, _} ->
+							{error, 400};
+						{Start, End} ->
+							get_auth_query_page(PageServer, Etag, Filters, Start, End)
+					end
 			end;
-		{{_, _Etag}, false} ->
+		{{"if-match", Etag}, false, false} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					{error, 412};
+				PageServer ->
+					{ok, MaxItems} = application:get_env(ocs, rest_page_size),
+					get_auth_query_page(PageServer, Etag, Filters, 1, MaxItems)
+			end;
+		{false, {"if-range", Etag}, {"range", Range}} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					case range(Range) of
+						{error, _} ->
+							{error, 400};
+						{Start, End} ->
+							get_auth_query_start(Query, Filters, Start, End)
+					end;
+				PageServer ->
+					case range(Range) of
+						{error, _} ->
+							{error, 400};
+						{Start, End} ->
+							get_auth_query_page(PageServer, Etag, Filters, Start, End)
+					end
+			end;
+		{{"if-match", _}, {"if-range", _}, _} ->
 			{error, 400};
-		{false, {_, Range}} ->
-			{Start, End} = range(Range),
-			get_auth_query_start(Query, Filters, Start, End);
-		{false, false} ->
+		{_, {"if-range", _}, false} ->
+			{error, 400};
+		{false, false, {"range", Range}} ->
+			case range(Range) of
+				{error, _} ->
+					{error, 400};
+				{Start, End} ->
+					get_auth_query_start(Query, Filters, Start, End)
+			end;
+		{false, false, false} ->
 			{ok, MaxItems} = application:get_env(ocs, rest_page_size),
 			get_auth_query_start(Query, Filters, 1, MaxItems)
 	end.
@@ -2318,9 +2353,10 @@ get_acct_last([] = _Query, Filters) ->
 get_acct_last(_Query, _Filters) ->
 	{error, 400}.
 
--spec range(Range) -> {Start, End}
+-spec range(Range) -> Result
 	when
 		Range :: string(),
+		Result :: {Start, End} | {error, 400},
 		Start :: pos_integer(),
 		End :: pos_integer().
 %% @doc Parse Range request header.
@@ -2331,7 +2367,6 @@ range(Range) when is_list(Range) ->
 		{list_to_integer(S), list_to_integer(E)}
 	catch
 		_:_ ->
-			{ok, MaxItems} = application:get_env(ocs, rest_page_size),
-			{1, MaxItems}
+			{error, 400}
 	end.
 
