@@ -20,7 +20,7 @@
 -module(ocs_rest).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
--export([filter/2]).
+-export([filter/2, range/1]).
 
 %%----------------------------------------------------------------------
 %%  The ocs_rest public API
@@ -43,6 +43,23 @@ filter(Filters, {struct, L} = _Object) when is_list(Filters) ->
 	Filters1 = [string:tokens(F, ".") || F <- Filters],
 	Filters2 = filter1(lists:usort(Filters1), []),
 	{struct, filter2(Filters2, L, [])}.
+
+-spec range(Range) -> Result
+	when
+		Range :: string(),
+		Result :: {Start, End} | {error, 400},
+		Start :: pos_integer(),
+		End :: pos_integer().
+%% @doc Parse Range request header.
+%% @private
+range(Range) when is_list(Range) ->
+	try
+		["item", S, E] = string:tokens(Range, " -"),
+		{list_to_integer(S), list_to_integer(E)}
+	catch
+		_:_ ->
+			{error, 400}
+	end.
 
 %%----------------------------------------------------------------------
 %%  internal functions

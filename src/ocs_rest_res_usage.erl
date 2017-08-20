@@ -90,7 +90,7 @@ get_usage2(Query, Filters, Headers) ->
 				undefined ->
 					{error, 412};
 				PageServer ->
-					case range(Range) of
+					case ocs_rest:range(Range) of
 						{error, _} ->
 							{error, 400};
 						{Start, End} ->
@@ -108,14 +108,14 @@ get_usage2(Query, Filters, Headers) ->
 		{false, {"if-range", Etag}, {"range", Range}} ->
 			case global:whereis_name(Etag) of
 				undefined ->
-					case range(Range) of
+					case ocs_rest:range(Range) of
 						{error, _} ->
 							{error, 400};
 						{Start, End} ->
 							query_start(Query, Filters, Start, End)
 					end;
 				PageServer ->
-					case range(Range) of
+					case ocs_rest:range(Range) of
 						{error, _} ->
 							{error, 400};
 						{Start, End} ->
@@ -127,7 +127,7 @@ get_usage2(Query, Filters, Headers) ->
 		{_, {"if-range", _}, false} ->
 			{error, 400};
 		{false, false, {"range", Range}} ->
-			case range(Range) of
+			case ocs_rest:range(Range) of
 				{error, _} ->
 					{error, 400};
 				{Start, End} ->
@@ -2320,22 +2320,5 @@ get_last1(Log, Decoder, Filters) ->
 			Headers = [{content_type, "application/json"},
 					{content_range, ContentRange}],
 			{ok, Headers, Body}
-	end.
-
--spec range(Range) -> Result
-	when
-		Range :: string(),
-		Result :: {Start, End} | {error, 400},
-		Start :: pos_integer(),
-		End :: pos_integer().
-%% @doc Parse Range request header.
-%% @private
-range(Range) when is_list(Range) ->
-	try
-		["item", S, E] = string:tokens(Range, " -"),
-		{list_to_integer(S), list_to_integer(E)}
-	catch
-		_:_ ->
-			{error, 400}
 	end.
 
