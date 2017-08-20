@@ -203,7 +203,7 @@ get_usage(Id, [] = _Query, _Headers) ->
 	{ok, Directory} = application:get_env(ocs, ipdr_log_dir),
 	FileName = Directory ++ "/" ++ Id,
 	read_ipdr(FileName, MaxItems).
-	
+
 -spec get_usagespec(Query) -> Result
 	when
 		Query :: [{Key :: string(), Value :: string()}],
@@ -2282,12 +2282,18 @@ query_page1(PageServer, Etag, Decoder, Filters, Start, End) ->
 		{error, Status} ->
 			{error, Status};
 		{Events, ContentRange} ->
-			JsonObj = Decoder(Events, Filters),
-			JsonArray = {array, JsonObj},
-			Body = mochijson:encode(JsonArray),
-			Headers = [{content_type, "application/json"}, {etag, Etag},
-					{accept_ranges, "item"}, {content_range, ContentRange}],
-			{ok, Headers, Body}
+			try Decoder(Events, Filters) of
+				JsonObj ->
+					JsonArray = {array, JsonObj},
+					Body = mochijson:encode(JsonArray),
+					Headers = [{content_type, "application/json"},
+							{etag, Etag}, {accept_ranges, "item"},
+							{content_range, ContentRange}],
+					{ok, Headers, Body}
+			catch
+				throw:{error, Status} ->
+					{error, Status}
+			end
 	end.
 
 %% @hidden
@@ -2313,12 +2319,18 @@ get_last1(Log, Decoder, Filters) ->
 		{0, []} ->
 			{error, 404};
 		{NewCount, Events} ->
-			JsonObj = Decoder(Events, Filters),
-			JsonArray = {array, JsonObj},
-			Body = mochijson:encode(JsonArray),
-			ContentRange = "items 1-" ++ integer_to_list(NewCount) ++ "/*",
-			Headers = [{content_type, "application/json"},
-					{content_range, ContentRange}],
-			{ok, Headers, Body}
+			try Decoder(Events, Filters) of
+				JsonObj ->
+					JsonArray = {array, JsonObj},
+					Body = mochijson:encode(JsonArray),
+					ContentRange = "items 1-"
+							++ integer_to_list(NewCount) ++ "/*",
+					Headers = [{content_type, "application/json"},
+							{content_range, ContentRange}],
+					{ok, Headers, Body}
+			catch
+				throw:{error, Status} ->
+					{error, Status}
+			end
 	end.
 
