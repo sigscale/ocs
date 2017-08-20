@@ -32,13 +32,14 @@
 		JsonObject :: tuple(),
 		Result :: tuple().
 %% @doc Filter a JSON object.
-%% @throws {error, 400}
 %%
 %% 	Each filter in `Filters' is the name of a member in the JSON
 %% 	encoded `JsonObject'. A filter may refer to a complex type by
 %% 	use of the "dot" path seperator character (e.g. `"a.b.c"').
 %%
 %% 	Returns a new JSON object with only the matching items.
+%%
+%% @throws {error, 400}
 %%
 filter(Filters, {struct, L} = _Object) when is_list(Filters) ->
 	Filters1 = [string:tokens(F, ".") || F <- Filters],
