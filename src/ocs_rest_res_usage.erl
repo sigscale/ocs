@@ -2254,6 +2254,8 @@ query_start(Query, Filters, RangeStart, RangeEnd) ->
 			{error, 404}; % todo?
 		{_, {_, _}, []} ->
 			{error, 404};
+		{_, {_, _}, _} ->
+			{error, 400};
 		false ->
 			{error, 400}
 	end.
@@ -2269,6 +2271,8 @@ query_page(PageServer, Etag, Query, Filters, Start, End) ->
 			{error, 404}; % todo?
 		{_, {_, _}, []} ->
 			{error, 404};
+		{_, {_, _}, _} ->
+			{error, 400};
 		false ->
 			{error, 400}
 	end.
