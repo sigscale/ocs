@@ -58,16 +58,84 @@ content_types_provided() ->
 %% @doc Body producing function for
 %% 	`GET /usageManagement/v1/usage'
 %% 	requests.
+%% @hidden
 get_usage(Query, Headers) ->
-	case lists:keyfind("type", 1, Query) of
-		{_, "AAAAccessUsage"} ->
-			get_auth_usage(lists:keydelete("type", 1, Query), Headers);
-		{_, "AAAAccountingUsage"} ->
-			get_acct_usage(lists:keydelete("type", 1, Query), Headers);
-		{_, "PublicWLANAccessUsage"} ->
-			{error, 404}; % todo?
+	case lists:keytake("fields", 1, Query) of
+		{value, {_, L}, NewQuery} ->
+			Filters = string:tokens(L, ","),
+			get_usage1(NewQuery, Filters, Headers);
+		false ->
+			get_usage1(Query, [], Headers)
+	end.
+%% @hidden
+get_usage1(Query, Filters, Headers) ->
+	case lists:keytake("sort", 1, Query) of
+		{value, {_, "-date"}, NewQuery} ->
+			get_last(NewQuery, Filters);
+		{value, {_, Date}, NewQuery}
+				when Date == "date"; Date == "+date" ->
+			get_usage2(NewQuery, Filters, Headers);
+		false ->
+			get_usage2(Query, Filters, Headers);
 		_ ->
-			{error, 404}
+			{error, 400}
+	end.
+%% @hidden
+get_usage2(Query, Filters, Headers) ->
+	case {lists:keyfind("if-match", 1, Headers),
+			lists:keyfind("if-range", 1, Headers),
+			lists:keyfind("range", 1, Headers)} of
+		{{"if-match", Etag}, false, {"range", Range}} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					{error, 412};
+				PageServer ->
+					case range(Range) of
+						{error, _} ->
+							{error, 400};
+						{Start, End} ->
+							query_page(PageServer, Etag, Query, Filters, Start, End)
+					end
+			end;
+		{{"if-match", Etag}, false, false} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					{error, 412};
+				PageServer ->
+					{ok, MaxItems} = application:get_env(ocs, rest_page_size),
+					query_page(PageServer, Etag, Query, Filters, 1, MaxItems)
+			end;
+		{false, {"if-range", Etag}, {"range", Range}} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					case range(Range) of
+						{error, _} ->
+							{error, 400};
+						{Start, End} ->
+							query_start(Query, Filters, Start, End)
+					end;
+				PageServer ->
+					case range(Range) of
+						{error, _} ->
+							{error, 400};
+						{Start, End} ->
+							query_page(PageServer, Etag, Query, Filters, Start, End)
+					end
+			end;
+		{{"if-match", _}, {"if-range", _}, _} ->
+			{error, 400};
+		{_, {"if-range", _}, false} ->
+			{error, 400};
+		{false, false, {"range", Range}} ->
+			case range(Range) of
+				{error, _} ->
+					{error, 400};
+				{Start, End} ->
+					query_start(Query, Filters, Start, End)
+			end;
+		{false, false, false} ->
+			{ok, MaxItems} = application:get_env(ocs, rest_page_size),
+			query_start(Query, Filters, 1, MaxItems)
 	end.
 
 -spec get_usage(Id, Query, Headers) -> Result
@@ -2163,104 +2231,54 @@ char_attr_cause(Attributes, Acc) ->
 	end.
 
 %% @hidden
-get_auth_usage(Query, Headers) ->
-	case lists:keytake("fields", 1, Query) of
-		{value, {_, L}, NewQuery} ->
-			Filters = string:tokens(L, ","),
-			get_auth_usage(NewQuery, Filters, Headers);
+query_start(Query, Filters, RangeStart, RangeEnd) ->
+	Now = erlang:system_time(?MILLISECOND),
+	case lists:keytake("type", 1, Query) of
+		{_, {_, "AAAAccessUsage"}, []} ->
+			case supervisor:start_child(ocs_rest_pagination_sup,
+					[[ocs_log, auth_query, [1, Now, '_', '_', '_', '_']]]) of
+				{ok, PageServer, Etag} ->
+					query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
+				{error, _Reason} ->
+					{error, 500}
+			end;
+		{_, {_, "AAAAccountingUsage"}, []} ->
+			case supervisor:start_child(ocs_rest_pagination_sup,
+					[[ocs_log, acct_query, [1, Now, '_', '_', '_']]]) of
+				{ok, PageServer, Etag} ->
+					query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
+				{error, _Reason} ->
+					{error, 500}
+			end;
+		{_, {_, "PublicWLANAccessUsage"}, []} ->
+			{error, 404}; % todo?
+		{_, {_, _}, []} ->
+			{error, 404};
 		false ->
-			get_auth_usage(Query, [], Headers)
-	end.
-%% @hidden
-get_auth_usage(Query, Filters, Headers) ->
-	case lists:keytake("sort", 1, Query) of
-		{value, {_, "-date"}, NewQuery} ->
-			get_auth_last(NewQuery, Filters);
-		{value, {_, Date}, NewQuery}
-				when Date == "date"; Date == "+date" ->
-			get_auth_query(NewQuery, Filters, Headers);
-		false ->
-			get_auth_query(Query, Filters, Headers);
-		_ ->
 			{error, 400}
 	end.
 
 %% @hidden
-get_auth_query(Query, Filters, Headers) ->
-	case {lists:keyfind("if-match", 1, Headers),
-			lists:keyfind("if-range", 1, Headers),
-			lists:keyfind("range", 1, Headers)} of
-		{{"if-match", Etag}, false, {"range", Range}} ->
-			case global:whereis_name(Etag) of
-				undefined ->
-					{error, 412};
-				PageServer ->
-					case range(Range) of
-						{error, _} ->
-							{error, 400};
-						{Start, End} ->
-							get_auth_query_page(PageServer, Etag, Filters, Start, End)
-					end
-			end;
-		{{"if-match", Etag}, false, false} ->
-			case global:whereis_name(Etag) of
-				undefined ->
-					{error, 412};
-				PageServer ->
-					{ok, MaxItems} = application:get_env(ocs, rest_page_size),
-					get_auth_query_page(PageServer, Etag, Filters, 1, MaxItems)
-			end;
-		{false, {"if-range", Etag}, {"range", Range}} ->
-			case global:whereis_name(Etag) of
-				undefined ->
-					case range(Range) of
-						{error, _} ->
-							{error, 400};
-						{Start, End} ->
-							get_auth_query_start(Query, Filters, Start, End)
-					end;
-				PageServer ->
-					case range(Range) of
-						{error, _} ->
-							{error, 400};
-						{Start, End} ->
-							get_auth_query_page(PageServer, Etag, Filters, Start, End)
-					end
-			end;
-		{{"if-match", _}, {"if-range", _}, _} ->
-			{error, 400};
-		{_, {"if-range", _}, false} ->
-			{error, 400};
-		{false, false, {"range", Range}} ->
-			case range(Range) of
-				{error, _} ->
-					{error, 400};
-				{Start, End} ->
-					get_auth_query_start(Query, Filters, Start, End)
-			end;
-		{false, false, false} ->
-			{ok, MaxItems} = application:get_env(ocs, rest_page_size),
-			get_auth_query_start(Query, Filters, 1, MaxItems)
+query_page(PageServer, Etag, Query, Filters, Start, End) ->
+	case lists:keytake("type", 1, Query) of
+		{_, {_, "AAAAccessUsage"}, []} ->
+			query_page1(PageServer, Etag, fun usage_aaa_auth/2, Filters, Start, End);
+		{_, {_, "AAAAccountingUsage"}, []} ->
+			query_page1(PageServer, Etag, fun usage_aaa_acct/2, Filters, Start, End);
+		{_, {_, "PublicWLANAccessUsage"}, []} ->
+			{error, 404}; % todo?
+		{_, {_, _}, []} ->
+			{error, 404};
+		false ->
+			{error, 400}
 	end.
-
 %% @hidden
-get_auth_query_start([] = _Query, Filters, RangeStart, RangeEnd) ->
-	Now = erlang:system_time(?MILLISECOND),
-	case supervisor:start_child(ocs_rest_pagination_sup,
-			[[ocs_log, auth_query, [1, Now, '_', '_', '_', '_']]]) of
-		{ok, PageServer, Etag} ->
-			get_auth_query_page(PageServer, Etag, Filters, RangeStart, RangeEnd);
-		{error, _Reason} ->
-			{error, 500}
-	end.
-
-%% @hidden
-get_auth_query_page(PageServer, Etag, Filters, Start, End) ->
+query_page1(PageServer, Etag, Decoder, Filters, Start, End) ->
 	case gen_server:call(PageServer, {Start, End}) of
 		{error, Status} ->
 			{error, Status};
 		{Events, ContentRange} ->
-			JsonObj = usage_aaa_auth(Events, Filters),
+			JsonObj = Decoder(Events, Filters),
 			JsonArray = {array, JsonObj},
 			Body = mochijson:encode(JsonArray),
 			Headers = [{content_type, "application/json"}, {etag, Etag},
@@ -2269,89 +2287,36 @@ get_auth_query_page(PageServer, Etag, Filters, Start, End) ->
 	end.
 
 %% @hidden
-get_auth_last([] = _Query, Filters) ->
+get_last(Query, Filters) ->
+	case lists:keytake("type", 1, Query) of
+		{_, {_, "AAAAccessUsage"}, []} ->
+			get_last1(ocs_auth, fun usage_aaa_auth/2, Filters);
+		{_, {_, "AAAAccountingUsage"}, []} ->
+			get_last1(ocs_acct, fun usage_aaa_acct/2, Filters);
+		{_, {_, "PublicWLANAccessUsage"}, []} ->
+			{error, 404}; % todo?
+		{_, {_, _}, []} ->
+			{error, 404};
+		false ->
+			{error, 400}
+	end.
+%% @hidden
+get_last1(Log, Decoder, Filters) ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
-	case ocs_log:last(ocs_auth, MaxItems) of
+	case ocs_log:last(Log, MaxItems) of
 		{error, _} ->
 			{error, 500};
 		{0, []} ->
 			{error, 404};
 		{NewCount, Events} ->
-			JsonObj = usage_aaa_auth(Events, Filters),
+			JsonObj = Decoder(Events, Filters),
 			JsonArray = {array, JsonObj},
 			Body = mochijson:encode(JsonArray),
 			ContentRange = "items 1-" ++ integer_to_list(NewCount) ++ "/*",
 			Headers = [{content_type, "application/json"},
 					{content_range, ContentRange}],
 			{ok, Headers, Body}
-	end;
-get_auth_last(_Query, _Filters) ->
-	{error, 400}.
-
-%% @hidden
-get_acct_usage(Query, Headers) ->
-	case lists:keytake("fields", 1, Query) of
-		{value, {_, L}, NewQuery} ->
-			Filters = string:tokens(L, ","),
-			get_acct_usage(NewQuery, Filters, Headers);
-		false ->
-			get_acct_usage(Query, [], Headers)
 	end.
-
-%% @hidden
-get_acct_usage(Query, Filters, _Headers) ->
-	case lists:keytake("sort", 1, Query) of
-		{value, {_, "-date"}, NewQuery} ->
-			get_acct_last(NewQuery, Filters);
-		{value, {_, Date}, NewQuery}
-				when Date == "date"; Date == "+date" ->
-			get_acct_query(NewQuery, Filters);
-		false ->
-			get_acct_query(Query, Filters);
-		_ ->
-			{error, 400}
-	end.
-
-%% @hidden
-get_acct_query([] = _Query, Filters) ->
-	Now = erlang:system_time(?MILLISECOND),
-	case ocs_log:acct_query(start, 1, Now, '_', '_', '_') of
-		{error, _} ->
-			{error, 500};
-		{_Cont, []} ->
-			{error, 404};
-		{_Cont, Events} ->
-			JsonObj = usage_aaa_acct(Events, Filters),
-			JsonArray = {array, JsonObj},
-			Body = mochijson:encode(JsonArray),
-			N = integer_to_list(length(JsonObj)),
-			ContentRange = "items 1-" ++ N ++ "/" ++ N,
-			Headers = [{content_type, "application/json"},
-					{accept_ranges, "item"}, {content_range, ContentRange}],
-			{ok, Headers, Body}
-	end;
-get_acct_query(_Query, _Filters) ->
-	{error, 400}.
-
-%% @hidden
-get_acct_last([] = _Query, Filters) ->
-	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
-	case ocs_log:last(ocs_acct, MaxItems) of
-		{error, _} ->
-			{error, 500};
-		{0, []} ->
-			{error, 404};
-		{NewCount, Events} ->
-			JsonObj = usage_aaa_acct(Events, Filters),
-			JsonArray = {array, JsonObj},
-			Body = mochijson:encode(JsonArray),
-			ContentRange = "items 1-" ++ integer_to_list(NewCount) ++ "/*",
-			Headers = [{content_type, "application/json"},
-					{accept_ranges, "item"}, {content_range, ContentRange}],
-			{ok, Headers, Body}
-	end;
-get_acct_last(_Query, _Filters) ->
-	{error, 400}.
 
 -spec range(Range) -> Result
 	when
