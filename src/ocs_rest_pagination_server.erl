@@ -28,7 +28,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 			terminate/2, code_change/3]).
 
--opaque continuation() :: start | disk_log:continuation().
+-opaque continuation() :: start | eof | disk_log:continuation().
 -record(state,
 		{etag :: string(),
 		max_page_size :: pos_integer(),
@@ -187,7 +187,10 @@ code_change(_OldVsn, State, _Extra) ->
 		From :: {pid(), Tag},
 		Tag :: any(),
 		State :: state(),
-		Result :: {Items, ContentRange} | {error, Status},
+		Result :: {reply, Reply, State, timeout()}
+			| {stop, Reason, Reply, State},
+		Reason :: term(),
+		Reply :: {Items, ContentRange} | {error, Status},
 		Items :: [tuple()],
 		ContentRange :: string(),
 		Status :: 400 | 404 | 416 | 500.
