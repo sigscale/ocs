@@ -293,7 +293,7 @@ post_subscriber(RequestBody) ->
 			{"buckets", {array, BktStruct}} ->
 				F = fun({struct, Bucket}, AccIn) ->
 					Amount = proplists:get_value("amount", Bucket, 0),
-					Unit = proplists:get_value("unit", Bucket, "octets"),
+					Unit = proplists:get_value("units", Bucket, "octets"),
 					_Product = proplists:get_value("product", Bucket, ""),
 					BR = #bucket{remain_amount =
 						#remain_amount{unit = Unit, amount = Amount}},

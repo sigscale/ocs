@@ -497,7 +497,7 @@ update_attributes(Identity, Buckets, Attributes, EnabledStatus, MSessions)
 	Result 			:: {ok, Subscriber} | {error, Reason},
 	Subscriber		:: #subscriber{},
 	Reason			:: not_found | precondition_faild | term().
-%% @equiv update_subscriber(Identity, Password, Attributes, Buckets, EnabledStatus, MultiSession, undefined).
+%% @equiv update_subscriber(Identity, Password, Attributes, Buckets, EnabledStatus, MultiSession, undefined)
 update_subscriber(Identity, Password, Attributes, Buckets, EnabledStatus, MultiSession) ->
 	update_subscriber(Identity, Password, Attributes, Buckets, EnabledStatus, MultiSession, undefined).
 
