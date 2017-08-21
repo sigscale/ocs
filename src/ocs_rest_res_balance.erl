@@ -50,10 +50,10 @@ content_types_provided() ->
 get_balance(Identity) ->
 	try
 		case ocs:find_subscriber(Identity) of
-			{ok, #subscriber{balance = Balance, enabled = true}} ->
-				get_balance1(Identity, Balance, "active");
-			{ok, #subscriber{balance = Balance, enabled = false}} ->
-				get_balance1(Identity, Balance, "disable");
+			{ok, #subscriber{buckets = Buckets, enabled = true}} ->
+				get_balance1(Identity, Buckets, "active");
+			{ok, #subscriber{buckets = Buckets, enabled = false}} ->
+				get_balance1(Identity, Buckets, "disable");
 			{error, _Reason} ->
 				{error, 500}
 		end
@@ -62,10 +62,11 @@ get_balance(Identity) ->
 			{error, 400}
 	end.
 %% @hidden
-get_balance1(Identity, Balance, ActStatus) ->
+get_balance1(Identity, Buckets, ActStatus) ->
 	Id = {"id", Identity},
 	Href = {"href", "/balanceManagement/v1/buckets/" ++ Identity},
-	BucketType = {"bucketType", "octects"},
+	BucketType = {bucketType, "octets"},
+	Balance = buckets_balance(Buckets),
 	Amount = {"amount", Balance},
 	Units = {"units", "octect"},
 	RemAmount = {"remainedAmount", {struct, [Amount, Units]}},
@@ -88,23 +89,24 @@ top_up(Identity, RequestBody) ->
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, "buckettype"} = lists:keyfind("type", 1, Object),
 		{_, {struct, Channel}} = lists:keyfind("channel", 1, Object),
-		{_, "POS"} = lists:keyfind("name", 1, Channel),
+		{_, _} = lists:keyfind("name", 1, Channel),
 		{_, {struct, AmountObj}} = lists:keyfind("amount", 1, Object),
-		{_, "octect"} = lists:keyfind("units", 1, AmountObj),
+		{_, Units} = lists:keyfind("units", 1, AmountObj),
 		{_, Amount} = lists:keyfind("amount", 1, AmountObj),
-		top_up1(Identity, Amount)
+		Bucket = #bucket{remain_amount = #remain_amount{amount = Amount, unit = Units}},
+		top_up1(Identity, Bucket)
 	catch
 		_Error ->
 			{error, 400}
 	end.
 %% @hidden
-top_up1(Identity, Amount) ->
+top_up1(Identity, Bucket) ->
 	F = fun()->
 		case mnesia:read(subscriber, list_to_binary(Identity), read) of
 			[] ->
 				not_found;
-			[#subscriber{balance = CrntBal, last_modified = LM} = User] ->
-				mnesia:write(User#subscriber{balance = CrntBal + Amount}),
+			[#subscriber{buckets = CrntBuckets, last_modified = LM} = User] ->
+				mnesia:write(User#subscriber{buckets = CrntBuckets ++ [Bucket]}),
 				LM
 		end
 	end,
@@ -139,4 +141,20 @@ etag(V) when is_list(V) ->
 etag(V) when is_tuple(V) ->
 	{TS, N} = V,
 	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
+
+-spec buckets_balance(Buckets) ->
+		Balance when
+	Buckets :: [#bucket{}],
+	Balance :: integer().
+%% get the availabel balance form buckets
+buckets_balance([]) ->
+	0;
+buckets_balance(Buckets) ->
+	buckets_balance1(Buckets, 0).
+%% @hidden
+buckets_balance1([], Balance) ->
+	Balance;
+buckets_balance1([#bucket{remain_amount = #remain_amount{amount = RemAmnt}}
+		| Tail], Balance) ->
+	buckets_balance1(Tail, RemAmnt + Balance).
 
