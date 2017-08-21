@@ -1464,7 +1464,7 @@ get_subscriber_balance(Config) ->
 	{_, Identity} = lists:keyfind("id", 1, PrePayBalance),
 	{_, "/balanceManagement/v1/buckets/" ++ Identity} =
 			lists:keyfind("href", 1, PrePayBalance),
-	{_, "octects"} = lists:keyfind("bucketType", 1, PrePayBalance),
+	{_, "octets"} = lists:keyfind("bucketType", 1, PrePayBalance),
 	{_, {struct, RemAmount}} = lists:keyfind("remainedAmount", 1, PrePayBalance),
 	{_, Balance} = lists:keyfind("amount", 1, RemAmount),
 	{_, "octect"} = lists:keyfind("units", 1, RemAmount),
