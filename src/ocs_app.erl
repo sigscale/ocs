@@ -241,7 +241,7 @@ install3(Nodes, Acc) ->
 		{aborted, {already_exists, client}} ->
 			error_logger:info_msg("Found existing client table.~n"),
 			install4(Nodes, [client | Acc]);
-		{error, Reason} ->
+		{aborted, Reason} ->
 			error_logger:error_report([mnesia:error_description(Reason),
 				{error, Reason}]),
 			{error, Reason}
@@ -260,7 +260,7 @@ install4(Nodes, Acc) ->
 		{aborted, {already_exists, subscriber}} ->
 			error_logger:info_msg("Found existing subscriber table.~n"),
 			install5(Nodes, [subscriber| Acc]);
-		{error, Reason} ->
+		{aborted, Reason} ->
 			error_logger:error_report([mnesia:error_description(Reason),
 				{error, Reason}]),
 			{error, Reason}
@@ -279,7 +279,7 @@ install5(Nodes, Acc) ->
 		{aborted, {already_exists, httpd_user}} ->
 			error_logger:info_msg("Found existing httpd_user table.~n"),
 			install6(Nodes, [httpd_user | Acc]);
-		{error, Reason} ->
+		{aborted, Reason} ->
 			error_logger:error_report([mnesia:error_description(Reason),
 				{error, Reason}]),
 			{error, Reason}
@@ -298,7 +298,7 @@ install6(Nodes, Acc) ->
 		{aborted, {already_exists, httpd_group}} ->
 			error_logger:info_msg("Found existing httpd_group table.~n"),
 			install7(Nodes, [httpd_group | Acc]);
-		{error, Reason} ->
+		{aborted, Reason} ->
 			error_logger:error_report([mnesia:error_description(Reason),
 				{error, Reason}]),
 			{error, Reason}
