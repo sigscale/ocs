@@ -25,8 +25,8 @@
 		update_client/3, get_clients/0, delete_client/1]).
 -export([add_subscriber/3, add_subscriber/4, add_subscriber/6,
 		find_subscriber/1, delete_subscriber/1, update_password/2,
-		update_attributes/2, update_attributes/5, update_subscriber/7,
-		get_subscribers/0]).
+		update_attributes/2, update_attributes/5, update_subscriber/6,
+		update_subscriber/7, get_subscribers/0]).
 -export([add_user/3, list_users/0, get_user/1, delete_user/1]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
@@ -485,6 +485,21 @@ update_attributes(Identity, Buckets, Attributes, EnabledStatus, MSessions)
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
+
+-spec update_subscriber(Identity, Password, Attributes, Buckets, EnabledStatus, MultiSession) ->
+		Result when
+	Identity			:: undefined | string() | binary(),
+	Password			:: undefined | string() | binary(),
+	Attributes		:: undefined | radius_attributes:attributes(),
+	Buckets			:: undefined | [#bucket{}],
+	EnabledStatus	:: undefined | boolean(),
+	MultiSession	:: undefined | boolean(),
+	Result 			:: {ok, Subscriber} | {error, Reason},
+	Subscriber		:: #subscriber{},
+	Reason			:: not_found | precondition_faild | term().
+%% @equiv update_subscriber(Identity, Password, Attributes, Buckets, EnabledStatus, MultiSession, undefined).
+update_subscriber(Identity, Password, Attributes, Buckets, EnabledStatus, MultiSession) ->
+	update_subscriber(Identity, Password, Attributes, Buckets, EnabledStatus, MultiSession, undefined).
 
 -spec update_subscriber(Identity, Password, Attributes, Buckets, EnabledStatus, MultiSession, Etag) ->
 		Result when
