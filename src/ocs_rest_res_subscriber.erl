@@ -574,7 +574,7 @@ validated_operations(UAttr) ->
 -spec execute_json_patch_operations(Id, Etag, OpList) ->
 		{ok, Subscriber} | {error, Status} when
 	Id :: string(),
-	Etag :: tuple(),
+	Etag :: undefined | tuple(),
 	OpList :: [tuple()],
 	Subscriber :: #subscriber{},
 	Status :: 412 | 404 | 500.
