@@ -87,7 +87,7 @@ get_balance1(Identity, Buckets, ActStatus) ->
 top_up(Identity, RequestBody) ->
 	try
 		{struct, Object} = mochijson:decode(RequestBody),
-		{_, "buckettype"} = lists:keyfind("type", 1, Object),
+		{_, _} = lists:keyfind("type", 1, Object),
 		{_, {struct, Channel}} = lists:keyfind("channel", 1, Object),
 		{_, _} = lists:keyfind("name", 1, Channel),
 		{_, {struct, AmountObj}} = lists:keyfind("amount", 1, Object),
