@@ -36,8 +36,19 @@
 %% 	Each filter in `Filters' is the name of a member in the JSON
 %% 	encoded `JsonObject'. A filter may refer to a complex type by
 %% 	use of the "dot" path seperator character (e.g. `"a.b.c"').
+%% 	Where an intermediate node on a complex path is an array
+%% 	containing all matching array members will be included. To
+%% 	filter out array members an `=value' suffix may be added.
 %%
 %% 	Returns a new JSON object with only the matching items.
+%%
+%% 	Example:
+%% 	```
+%% 	1> In = {struct,[{"a",{array,[{struct,[{"name","bob"},{"value",6}]},
+%% 	1> {"b",7},{struct,[{"name","sue"},{"value",5}]}]}},{"b",1}]},
+%% 	1> ocs_rest:filter(["b", "a.name=sue"], In).
+%% 	{struct, [{"a",{array,[{struct,[{"name","sue"},{"value",5}]}]}},{"b",1}]}
+%% 	'''
 %%
 %% @throws {error, 400}
 %%
@@ -81,7 +92,6 @@ filter1([Filter | T1], [{Names, RevPath} | T2] = Acc) ->
 filter1([], Acc) ->
 	[{lists:reverse(Path), lists:reverse(Names)}
 			|| {Names, Path} <- lists:reverse(Acc)].
-
 %% @hidden
 filter2([{[], [H | T1]} | T2] = _Filters, L1, Acc) ->
 	case lists:keyfind(H, 1, L1) of
@@ -94,17 +104,17 @@ filter2([{[H | _], _} | T] = Filters, L1, Acc) ->
 	case lists:keyfind(H, 1, L1) of
 		false ->
 			filter2(T, L1, Acc);
-		{H, {struct, L2}} ->
+		{H, {Type, L2}} when Type == struct; Type == array ->
 			F1 = fun({[Prefix | Suffix], Names}) when Prefix == H ->
 						{true, {Suffix, Names}};
 					(_) ->
 						false
 			end,
 			SubFilters = lists:filtermap(F1, Filters),
-			NewAcc = [{H, {struct, filter2(SubFilters, L2, [])}} | Acc],
+			NewAcc = [{H, filter3(Type, SubFilters, L2)} | Acc],
 			F2 = fun({[Prefix | _], _}) when Prefix == H ->
 						true;
-					(_) ->
+					(_P) ->
 						false
 			end,
 			NewFilters = lists:dropwhile(F2, Filters),
@@ -115,5 +125,50 @@ filter2([{[H | _], _} | T] = Filters, L1, Acc) ->
 filter2([{[], []} | T], L, Acc) ->
 	filter2(T, L, Acc);
 filter2([], _, Acc) ->
+	lists:reverse(Acc).
+%% @hidden
+filter3(struct, Filters, L) ->
+	{struct, filter2(Filters, L, [])};
+filter3(array, Filters, L) ->
+	{array, filter4(Filters, L, [])}.
+%% @hidden
+filter4(Filters, [{struct, L} | T], Acc) ->
+erlang:display({?MODULE, ?LINE, L}),
+	case filter5(Filters, L, []) of
+		false ->
+erlang:display({?MODULE, ?LINE, false}),
+			filter4(Filters, T, Acc);
+		NewFilters ->
+erlang:display({?MODULE, ?LINE, NewFilters}),
+			filter4(NewFilters, T, [{struct, filter2(NewFilters, L, [])} | Acc])
+	end;
+filter4(Filters, [{array, L} | T], Acc) ->
+	filter4(Filters, T, [{array, filter4(Filters, L, [])} | Acc]);
+filter4(Filters, [_ | T], Acc) ->
+	filter4(Filters, T, Acc);
+filter4(_, [], Acc) ->
+	lists:reverse(Acc).
+%% @hidden
+filter5([{[], [Filter]} = H | T], L, Acc) ->
+erlang:display({?MODULE, ?LINE, Filter}),
+	case string:tokens(Filter, "=") of
+		[Key, Value] ->
+			case lists:keyfind(Key, 1, L) of
+				{_, Value} ->
+erlang:display({?MODULE, ?LINE, Value}),
+					filter5(T, L, [{[], [Key]} | Acc]);
+				_Other ->
+erlang:display({?MODULE, ?LINE, _Other}),
+					false
+			end;
+		_Other1 ->
+erlang:display({?MODULE, ?LINE, _Other1}),
+			filter5(T, L, [H | Acc])
+	end;
+filter5([H | T], L, Acc) ->
+erlang:display({?MODULE, ?LINE, H}),
+	filter5(T, L, [H | Acc]);
+filter5([], _, Acc) ->
+erlang:display({?MODULE, ?LINE, Acc}),
 	lists:reverse(Acc).
 
