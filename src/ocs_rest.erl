@@ -54,8 +54,7 @@
 %%
 filter(Filters, {struct, L} = _Object) when is_list(Filters) ->
 	Filters1 = [string:tokens(F, ".") || F <- Filters],
-	Filters2 = filter1(lists:usort(Filters1), []),
-	{struct, filter2(Filters2, L, [])}.
+	{struct, filter1(lists:usort(Filters1), L, [])}.
 
 -spec range(Range) -> Result
 	when
@@ -79,19 +78,20 @@ range(Range) when is_list(Range) ->
 %%----------------------------------------------------------------------
 
 %% @hidden
-filter1([Filter | T], []) ->
+filter1([Filter | T], L, []) ->
 	[Name | RevPath] = lists:reverse(Filter),
-	filter1(T, [{[Name], RevPath}]);
-filter1([Filter | T1], [{Names, RevPath} | T2] = Acc) ->
+	filter1(T, L, [{[Name], RevPath}]);
+filter1([Filter | T1], L, [{Names, RevPath} | T2] = Acc) ->
 	case lists:reverse(Filter) of
 		[Name | RevPath] ->
-			filter1(T1, [{[Name | Names], RevPath} | T2]);
+			filter1(T1, L, [{[Name | Names], RevPath} | T2]);
 		[Name | NewRevPath] ->
-			filter1(T1, [{[Name], NewRevPath} | Acc])
+			filter1(T1, L, [{[Name], NewRevPath} | Acc])
 	end;
-filter1([], Acc) ->
-	[{lists:reverse(Path), lists:reverse(Names)}
-			|| {Names, Path} <- lists:reverse(Acc)].
+filter1([], L, Acc) ->
+	Filters = [{lists:reverse(Path), lists:reverse(Names)}
+			|| {Names, Path} <- lists:reverse(Acc)],
+	filter2(Filters, L, []).
 %% @hidden
 filter2([{[], [H | T1]} | T2] = _Filters, L1, Acc) ->
 	case lists:keyfind(H, 1, L1) of
