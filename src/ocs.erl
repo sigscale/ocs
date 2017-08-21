@@ -880,9 +880,9 @@ get_params() ->
 bucket_balance([]) ->
 	0;
 bucket_balance([#bucket{remain_amount = RemAmount} | _]) 
-		when RemAmount > 0 ->
-	RemAmount;
+		when RemAmount#remain_amount.amount > 0 ->
+	RemAmount#remain_amount.amount;
 bucket_balance([#bucket{remain_amount = RemAmount} | Tail])
-		when RemAmount =< 0 ->
+		when RemAmount#remain_amount.amount =< 0 ->
 	bucket_balance(Tail).
 
