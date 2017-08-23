@@ -518,7 +518,7 @@ Content-Length: nn
    "attributes":[
                  {"name": "sessionTimeout", "value": 3600},
                 ],
-  "totalBalance": { "amount": 983490, "units": "octets" },,
+  "totalBalance": { "amount": 983490, "units": "octets" },
   "enabled": true,
   "multisession": false
  }
@@ -597,7 +597,7 @@ Etag: mm-m
                {"name" : "acctInterimInterval", "value": 300},
                {"name" : "class", "value": "skiorgs"}
               ],
- "balance": 100,
+ "totalBalance": { "amount": 100, "units": "octets" },
  "enabled": true,
  "multisession": false
 }
@@ -659,11 +659,6 @@ Accept: application/json
 [
  {
   "op" : "replace",
-  "path" : "balance",
-  "value" :100000000000
- },
- {
-  "op" : "replace",
   "path" : "attributes",
   "value" : [
              {"name": "ascendDataRate", "value": 1000000},
@@ -697,7 +692,7 @@ Etag: mm-m
                {"name": "ascendDataRate", "value": 1000000},
                {"name": "ascendXmitRate", "value": 512000},
               ],
- "balance": 100000000000,
+ "totalBalance": { "amount": 100, "units": "octets" },
  "enabled": false,
  "multisession": false
 }
