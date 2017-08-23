@@ -226,9 +226,9 @@ request(Request, Caps,  _From, State) ->
 		Subscriber = case Request#diameter_cc_app_CCR.'Subscription-Id' of
 			SubscriptionId when SubscriptionId == undefine; SubscriptionId == [] ->
 				case Request#diameter_cc_app_CCR.'User-Name' of
-					UserName when UserName == undefined; UserName == [] ->
+					[UserName] when UserName == undefined; UserName == [] ->
 						throw(no_subscriber_identification_information);
-					UserName ->
+					[UserName] ->
 						UserName
 				end;
 			SubscriptionId ->
@@ -369,11 +369,11 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 generate_diameter_answer(Request, SId, _Subscriber, Balance, ResultCode, OHost,
 		ORealm, AuthAppId, RequestType, RequestNum, #state{address = Address,
 		port = Port} = State) ->
-	GrantedUnits = #'diameter_cc_app_Granted-Service-Unit'{'CC-Total-Octets' = Balance},
+	GrantedUnits = #'diameter_cc_app_Granted-Service-Unit'{'CC-Total-Octets' = [Balance]},
 	Reply = #diameter_cc_app_CCA{'Session-Id' = SId, 'Result-Code' = ResultCode,
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Auth-Application-Id' = AuthAppId, 'CC-Request-Type' = RequestType,
-			'CC-Request-Number' = RequestNum, 'Granted-Service-Unit' = GrantedUnits},
+			'CC-Request-Number' = RequestNum, 'Granted-Service-Unit' = [GrantedUnits]},
 	Server = {Address, Port},
 	ok = ocs_log:acct_log(diameter, Server, accounting_event_type(RequestType),
 			Request),
