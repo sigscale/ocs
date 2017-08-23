@@ -606,7 +606,7 @@ execute_json_patch_operations(Id, Etag, OpList) ->
 		end,
 		Enabled = proplists:get_value("enabled", OpList, undefined),
 		MultiSession = proplists:get_value("multisession", OpList, undefined),
-		case ocs:update_subscriber(Id, Password,
+		case update_subscriber(Id, Password,
 				Attributes, Buckets, Enabled, MultiSession, Etag) of
 			{ok, Subscriber} ->
 				{ok, Subscriber};
@@ -638,3 +638,84 @@ get_balance1([#bucket{remain_amount = #remain_amount{amount = RemAmnt}}
 		| Tail], Balance) ->
 	get_balance1(Tail, RemAmnt + Balance).
 
+-spec update_subscriber(Identity, Password, Attributes, Buckets, EnabledStatus, MultiSession, Etag) ->
+		Result when
+	Identity			:: undefined | string() | binary(),
+	Password			:: undefined | string() | binary(),
+	Attributes		:: undefined | radius_attributes:attributes(),
+	Buckets			:: undefined | [#bucket{}],
+	EnabledStatus	:: undefined | boolean(),
+	MultiSession	:: undefined | boolean(),
+	Etag 				:: undefined | tuple(),
+	Result 			:: {ok, Subscriber} | {error, Reason},
+	Subscriber		:: #subscriber{},
+	Reason			:: not_found | precondition_faild | term().
+%% @private
+%% @doc update subscriber elements
+update_subscriber(Identity, Password, Attributes, Buckets, EnabledStatus, MultiSession, Etag)
+		when is_list(Identity) ->
+	BIdentity = list_to_binary(Identity),
+	update_subscriber(BIdentity, Password, Attributes, Buckets, EnabledStatus, MultiSession, Etag);
+update_subscriber(Identity, Password, Attributes, Buckets, EnabledStatus, MultiSession, Etag)
+		when is_list(Password) ->
+	BPwd = list_to_binary(Password),
+	update_subscriber(Identity, BPwd, Attributes, Buckets, EnabledStatus, MultiSession, Etag);
+update_subscriber(Identity, Password, Attributes, Buckets, EnabledStatus, MultiSession, Etag) ->
+	F = fun() ->
+		case mnesia:read(subscriber, Identity, write) of
+			[Entry] when
+					Entry#subscriber.last_modified == Etag;
+					Etag == undefined ->
+				NewEntry =
+					update_subscriber1(Entry, Password, Attributes, Buckets, EnabledStatus, MultiSession),
+				mnesia:write(NewEntry),
+				NewEntry;
+			[#subscriber{}] ->
+				throw(precondition_faild);
+			[] ->
+				throw(not_found)
+		end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, Subscriber} ->
+			{ok, Subscriber};
+		{aborted, {throw, Reason}} ->
+			{error, Reason};
+		{aborted, Reason} ->
+			{error, Reason}
+
+	end.
+%% @hidden
+update_subscriber1(Entry, Password, Attributes, Buckets, EnabledStatus, MultiSession) ->
+	NewEntry0 = case Password of
+		undefined ->
+			Entry;
+		P ->
+			Entry#subscriber{password = P}
+	end,
+	NewEntry1 = case Attributes of
+		undefined ->
+			NewEntry0;
+		A ->
+			NewEntry0#subscriber{attributes = A}
+	end,
+	NewEntry2 = case Buckets of
+		undefined ->
+			NewEntry1;
+		B ->
+			OldBuckets = Entry#subscriber.buckets,
+			NewEntry1#subscriber{buckets = [OldBuckets | B]}
+	end,
+	NewEntry3 = case EnabledStatus of
+		undefined ->
+			NewEntry2;
+		E ->
+			NewEntry2#subscriber{enabled = E}
+	end,
+	NewEntry4 = case MultiSession of
+		undefined ->
+			NewEntry3;
+		M ->
+			NewEntry3#subscriber{multisession = M}
+	end,
+	NewEntry4.
