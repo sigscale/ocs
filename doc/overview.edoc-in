@@ -37,6 +37,9 @@ e.g &#058;
 	
 	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
 	Created new httpd_group table.
+
+	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
+	Created new product table.
 	
 	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
 	Started inets. 

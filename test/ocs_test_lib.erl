@@ -22,7 +22,8 @@ initialize_db() ->
 					F = fun(T) ->
 						case T of
 							T when T == client; T == subscriber;
-									T == httpd_user; T == httpd_group ->
+									T == httpd_user; T == httpd_group;
+									T == product ->
 								true;
 							_ ->
 								false

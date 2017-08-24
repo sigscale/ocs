@@ -304,15 +304,34 @@ install6(Nodes, Acc) ->
 			{error, Reason}
 	end.
 %% @hidden
-install7(_Nodes, Tables) ->
+install7(Nodes, Acc) ->
+	case mnesia:create_table(product, [{type, bag},{disc_copies, Nodes},
+			{attributes, record_info(fields, product)}]) of
+		{atomic, ok} ->
+			error_logger:info_msg("Created new product table.~n"),
+			install8(Nodes, [product | Acc]);
+		{aborted, {not_active, _, Node} = Reason} ->
+			error_logger:error_report(["Mnesia not started on node",
+					{node, Node}]),
+			{error, Reason};
+		{aborted, {already_exists, product}} ->
+			error_logger:info_msg("Found existing product table.~n"),
+			install8(Nodes, [product | Acc]);
+		{aborted, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+				{error, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+install8(_Nodes, Tables) ->
 	case mnesia:wait_for_tables(Tables, ?WAITFORTABLES) of
 		ok ->
 			case inets:start() of
 				ok ->
 					error_logger:info_msg("Started inets. ~n"),
-					install8(Tables);
+					install9(Tables);
 				{error,{already_started,inets}} ->
-					install8(Tables)
+					install9(Tables)
 			end;
 		{timeout, Tables} ->
 			error_logger:error_report(["Timeout waiting for tables",
@@ -324,7 +343,7 @@ install7(_Nodes, Tables) ->
 			{error, Reason}
 	end.
 %% @hidden
-install8(Tables) ->
+install9(Tables) ->
 	case ocs:list_users() of
 		{ok, []} ->
 			case ocs:add_user("admin", "admin", "en") of
