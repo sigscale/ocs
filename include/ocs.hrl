@@ -55,11 +55,14 @@
 		recurring_charge_period :: tuple(),
 		unit_of_measure :: string()}).
 
+-type product_status() :: created | aborted | cancelled
+								| active | pending_active | suspended
+								| terminate | pending_terminate.
 -record(product,
 		{name :: string(),
 		is_bundle = false :: boolean(),
 		is_coustomer_visible :: boolean(),
-		status :: boolean(),
+		status :: product_status(),
 		start_date :: pos_integer(), % ISO8601
 		termination_date :: pos_integer(), % ISO8601
 		price :: [#price{}]}).
