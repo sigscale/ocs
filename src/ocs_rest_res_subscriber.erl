@@ -97,8 +97,15 @@ get_subscriber1(Id, Filters) ->
 					false ->
 						[]
 				end,
+			RespObj6 = case Filters == []
+				orelse lists:keymember("multisession", 1, Filters) of
+					true ->
+						[{"multisession", Multi}];
+					false ->
+						[]
+				end,
 			JsonObj  = {struct, RespObj1 ++ RespObj2 ++ RespObj3
-					++ RespObj4 ++ RespObj5},
+					++ RespObj4 ++ RespObj5 ++ RespObj6},
 			Body = mochijson:encode(JsonObj),
 			Headers = [{content_type, "application/json"}, {etag, Etag}],
 			{ok, Headers, Body};
