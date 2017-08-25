@@ -50,4 +50,129 @@ content_types_provided() ->
 %% @doc Respond to `POST /catalogManagement/v1/product' and
 %% add a new `product'
 add_product(ReqData) ->
-	todo.
+	try
+		{struct, Object} = mochijson:decode(ReqData),
+		{_, _Name} = lists:keyfind("name", 1, Object),
+		IsBundle = case lists:keyfind("isBundle", 1, Object) of
+			{"isBundle", true} -> true;
+			_ -> false
+		end,
+		{_, FindStatus} = lists:keyfind("lifecycleStatus", 1, Object),
+		Status = find_status(FindStatus),
+		{_, ValidFor} = lists:keyfind("validFor", 1, Object),
+		{struct, SubObject1} = mochijson:decode(ValidFor),
+		{_, _STime} = lists:keyfind("startDateTime", 1, SubObject1),
+		{_, _ETime} = lists:keyfind("endDateTime", 1, SubObject1),
+		{_, POfPriceObj} = lists:keyfind("productOfferingPrice", 1, Object),
+		{array, POfPrice} = mochijson:decode(POfPriceObj),
+		Product = product_offering_price(POfPrice, IsBundle, Status),
+		_Descirption = proplists:get_value("description", Object, ""),
+		case add_product1(Product) of
+			ok ->
+				add_product2(Object);
+			{error, StatusCode} ->
+				{error, StatusCode}
+		end
+	catch
+		_:_ ->
+			{error, 400}
+	end.
+%% @hidden
+add_product1(Products) ->
+	F2 = fun(Product) ->
+		ok = mnesia:write(product, Product, write)
+	end,
+	F1 = fun() ->
+		lists:foreach(F2, Products)
+	end,
+	case mnesia:transaction(F1) of
+		{atomic, ok} ->
+			ok;
+		{aborted, _} ->
+			{error, 500}
+	end.
+%% @hidden
+add_product2(JsonResponse) ->
+	Id = {id, ""},
+	Body = {struct, [Id | JsonResponse]},
+	Location = "/catalogManagement/v1/product", %% ++ id
+	Headers = [{location, Location}],
+	{ok, Headers, Body}.
+
+%%----------------------------------------------------------------------
+%%  internal functions
+%%----------------------------------------------------------------------
+
+-spec product_offering_price(POfPrice, IsBundle, Status) -> Result when
+	POfPrice	:: list(),
+	IsBundle	:: boolean(),
+	Status	:: product_status(),
+	Result 	:: Products | {error, StatusCode},
+	Products	:: [#product{}],
+	StatusCode	:: 400.
+%% @doc construct list of product
+%% @private
+product_offering_price(POfPrice, IsBundle, Status) ->
+	try
+		F = fun(ProductJson, AccIn) ->
+				{struct, Object} = mochijson:decode(ProductJson),
+				{_, Name} = lists:keyfind("name", 1, Object),
+				{_, ValidFor} = lists:keyfind("validFor", 1, Object),
+				{struct, VForObject1} = mochijson:decode(ValidFor),
+				{_, _STime} = lists:keyfind("startDateTime", 1, VForObject1),
+				{_, _ETime} = lists:keyfind("endDateTime", 1, VForObject1),
+				{_, PriceTypeS} = lists:keyfind("priceType", 1, Object),
+				PriceType = price_type(PriceTypeS),
+				{_, UnitOfMesasure} = lists:keyfind("unitOfMeasure", 1, Object),
+				{_, PriceObject} = lists:keyfind("price", 1, Object),
+				TaxPAmount = proplists:get_value("taxIncludedAmount", PriceObject, ""),
+				_DutyFreeAmount = proplists:get_value("dutyFreeAmount", PriceObject, ""),
+				_TaxRate = proplists:get_value("taxRate", PriceObject, ""),
+				_CurrencyCode = proplists:get_value("currencyCode", PriceObject, ""),
+				_RecurringChargePeriod = proplists:get_value("recurringChargePeriod", Object, ""),
+				Descirption = proplists:get_value("description", Object, ""),
+				Product = #product{name = Name, is_bundle = IsBundle, status = Status,
+					units = UnitOfMesasure, price = TaxPAmount, description = Descirption,
+					price_type = PriceType},
+				[Product | AccIn]
+		end,
+		AccOut = lists:foldl(F, [], POfPrice),
+		lists:reverse(AccOut)
+	catch
+		_:_ ->
+			{error, 400}
+	end.
+
+-spec find_status(StringStatus) -> Status when
+	StringStatus	:: string(),
+	Status			:: product_status().
+%% @doc return life cycle status of the product
+%% @private
+find_status("created") ->
+	created;
+find_status("aborted") ->
+	aborted;
+find_status("cancelled") ->
+	cancelled;
+find_status("active") ->
+	active;
+find_status("pending_active") ->
+	pending_active;
+find_status("suspended") ->
+	suspended;
+find_status("terminate") ->
+	terminate;
+find_status("pending_terminate") ->
+	pending_terminate.
+
+-spec price_type(StringPriceType) -> PriceType when
+	StringPriceType :: string(),
+	PriceType		 :: recurring | one_time | usage.
+%% @private
+price_type("recurring") ->
+	recurring;
+price_type("one_time") ->
+	one_time;
+price_type("usage") ->
+	usage.
+
