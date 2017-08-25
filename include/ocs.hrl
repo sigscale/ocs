@@ -49,20 +49,16 @@
 		last_modified  = {erlang:system_time(milli_seconds),
 				erlang:unique_integer([positive])} :: tuple()}).
 
--record(price,
-		{name :: string(),
-		price_type :: recurring | one_time | usage,
-		recurring_charge_period :: tuple(),
-		unit_of_measure :: string()}).
-
 -type product_status() :: created | aborted | cancelled
 								| active | pending_active | suspended
 								| terminate | pending_terminate.
 -record(product,
 		{name :: string(),
+		description :: string(),
+		price_type :: recurring | one_time | usage,
 		is_bundle = false :: boolean(),
-		is_coustomer_visible :: boolean(),
+		units :: string(),
 		status :: product_status(),
 		start_date :: pos_integer(), % ISO8601
 		termination_date :: pos_integer(), % ISO8601
-		price :: [#price{}]}).
+		price :: integer()}).
