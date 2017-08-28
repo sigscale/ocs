@@ -87,7 +87,6 @@
 		{name :: string(),
 		description :: string(),
 		is_bundle = false :: boolean(),
-		units :: string(),
 		status :: product_status(),
 		start_date :: pos_integer(), % ISO8601
 		termination_date :: pos_integer(), % ISO8601
