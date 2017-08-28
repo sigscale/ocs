@@ -30,7 +30,7 @@
 -type unit_of_measure() :: price_type() | octet | seconds.
 
 %% define validity period of a product
--type valid_period() :: daily | weekly | monthly | yealy.
+-type valid_period() :: daily | weekly | monthly | yearly.
 
 
 %% define client table entries record
