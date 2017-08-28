@@ -21,7 +21,7 @@
 								| terminate | pending_terminate.
 
 %% define currency codes
--type currency() :: mx | us | lkr.
+-type currency() :: "MXN" | "USD" | "LKR".
 
 %% define price types
 -type price_type() :: recurring | one_time | usage.
