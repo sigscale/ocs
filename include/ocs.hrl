@@ -91,4 +91,4 @@
 		status :: product_status(),
 		start_date :: pos_integer(), % ISO8601
 		termination_date :: pos_integer(), % ISO8601
-		price :: integer()}).
+		price :: [#price{}]}).
