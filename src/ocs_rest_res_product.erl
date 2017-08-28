@@ -176,6 +176,15 @@ price_type("one_time") ->
 price_type("usage") ->
 	usage.
 
+-spec date(MilliSeconds) -> Result
+	when
+		MilliSeconds :: pos_integer(),
+		Result :: calendar:datetime().
+%% @doc Convert timestamp to date and time.
+date(MilliSeconds) when is_integer(MilliSeconds) ->
+	Seconds = ?EPOCH + (MilliSeconds div 1000),
+	calendar:gregorian_seconds_to_datetime(Seconds).
+
 -spec iso8601(MilliSeconds) -> Result
 	when
 		MilliSeconds :: pos_integer(),
