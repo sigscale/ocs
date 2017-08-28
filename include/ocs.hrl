@@ -52,6 +52,10 @@
 -type product_status() :: created | aborted | cancelled
 								| active | pending_active | suspended
 								| terminate | pending_terminate.
+
+%% define currency codes
+-type currency() :: mx | us | lkr.
+
 -record(product,
 		{name :: string(),
 		description :: string(),
