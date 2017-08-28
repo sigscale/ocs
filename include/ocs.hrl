@@ -20,9 +20,6 @@
 								| active | pending_active | suspended
 								| terminate | pending_terminate.
 
-%% define currency codes
--type currency() :: "MXN" | "USD" | "LKR".
-
 %% define price types
 -type price_type() :: recurring | one_time | usage.
 
@@ -55,7 +52,7 @@
 		description :: string(),
 		type :: price_type(),
 		units :: unit_of_measure(),
-		currency :: currency(),
+		currency :: string(),
 		period :: valid_period(),
 		size :: integer(),
 		amount :: integer(),
