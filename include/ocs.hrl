@@ -55,6 +55,7 @@
 		description :: string(),
 		type :: price_type(),
 		units :: unit_of_measure(),
+		currency :: currency(),
 		period :: valid_period(),
 		size :: integer(),
 		amount :: integer(),
