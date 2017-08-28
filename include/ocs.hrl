@@ -59,6 +59,9 @@
 %% define price types
 -type price_type() :: recurring | one_time | usage.
 
+%% define unit of measure
+-type unit_of_measure() :: price_type() | octet | seconds.
+
 -record(product,
 		{name :: string(),
 		description :: string(),
