@@ -38,6 +38,10 @@
 -define(SECOND, seconds).
 %-define(SECOND, second).
 
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
+
 %%---------------------------------------------------------------------
 %%  Test server callback functions
 %%---------------------------------------------------------------------
@@ -143,7 +147,8 @@ all() ->
 	simultaneous_updates_on_subscriber_faliure,
 	simultaneous_updates_on_client_faliure, update_client_password_json_patch,
 	update_client_attributes_json_patch, update_subscriber_password_json_patch,
-	update_subscriber_attributes_json_patch, update_user_characteristics_json_patch].
+	update_subscriber_attributes_json_patch, update_user_characteristics_json_patch,
+	add_product].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -2087,6 +2092,61 @@ update_user_characteristics_json_patch(Config) ->
 	[Headers1, <<>>] = binary:split(PatchResponse, <<$\r,$\n,$\r,$\n>>),
 	<<"HTTP/1.1 204", _/binary>> = Headers1,
 	ok = ssl:close(SslSock).
+
+add_product() ->
+	[{userdata, [{doc,"Use HTTP POST to creates a productOffering"}]}].
+
+add_product(Config) ->
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	ContentType = {"accept", "application/json"},
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	ProdName = {"name", "Wi-Fi"},
+	ProdHref = {"href", "/product/product/cpe"},
+	IsBundle = {"isBundle", "false"},
+	IsCustomerVisible = {"isCustomerVisible", "true"},
+	OrderDate = {"orderDate", ocs_log:iso8601(erlang:system_time(?MILLISECOND))},
+	StartDate = {"startDate", ocs_log:iso8601(erlang:system_time(?MILLISECOND))},
+	Status = {"lifecycleStatus", "active"},
+	ProdSpecID = {"id", "cpe"},
+	ProdSpecHref = {"href", "/productCatalogManagement/productSpecification/cpe"},
+	ProdSpecName = {"name", "Monthly subscriber Family Pack"},
+	ProdSpec = {"productSpecification", {struct, [ProdSpecID, ProdSpecHref, ProdSpecName]}},
+	POPName1 = {"name", "Family-Pack"},
+	POPDescription = {"description", "Monthly package"},
+	POPStratDateTime = {"startDateTime", ocs_log:iso8601(erlang:system_time(?MILLISECOND))},
+	POPEndDateTime = {"endDateTime", ocs_log:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
+	POPValidFor = {struct, [POPStratDateTime, POPEndDateTime]},
+	POPPriceType = {"priceType", "recurring"},
+	POPUOMeasure = {"unitOfMeasure", ""},
+	POPPriceTaxInclude = {"taxIncludedAmount", 230},
+	POPPriceCurrency = {"currencyCode", "MXV"},
+	POPPrice = {"price", {struct, [POPPriceTaxInclude, POPPriceCurrency]}},
+	POPRecChargPeriod = {"recurringChargePeriod", "monthly"},
+	ProdAlterName = {"name", "usage"},
+	ProdAlterDescription = {"description", ""},
+	ProdAlterValidFor = {struct, [POPStratDateTime]},
+	ProdAlterPriceType = {"priceType", "usage"},
+	ProdAlterUOMeasure = {"unitOfMeasure", "100g"},
+	ProdAlterAmount = {"amount", 0},
+	ProdAlterPrice = {"price", [{struct, [ProdAlterAmount]}]},
+	POPAlteration = {"productOfferPriceAlteration", {struct, [ProdAlterName, ProdAlterDescription,
+			ProdAlterValidFor, ProdAlterPriceType, ProdAlterUOMeasure, ProdAlterPrice]}},
+	ProdOfferPrice = {"productOfferingPrice", {array, [POPName1, POPDescription, POPValidFor,
+			POPPriceType, POPUOMeasure, POPPrice, POPRecChargPeriod, POPAlteration]}},
+	ReqJson = {struct, [ProdName, ProdHref, IsBundle, IsCustomerVisible, OrderDate, StartDate,
+			Status, ProdSpec, ProdOfferPrice]},
+	ReqBody = mochijson:encode(ReqJson),
+	Authentication = {"authorization", AuthKey},
+	Request = {HostUrl ++ "/catalogManagement/v1/product",
+			[Accept, Authentication], ContentType, ReqBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
