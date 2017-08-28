@@ -279,7 +279,9 @@ add_subscriber(Identity, Password, Attributes, Buckets, EnabledStatus, MSessions
 		when is_list(Password) ->
 	add_subscriber(Identity, list_to_binary(Password), Attributes, Buckets,
 			EnabledStatus, MSessions);
-add_subscriber(undefined, Password, Attributes, Buckets, EnabledStatus, MSessions) ->
+add_subscriber(undefined, Password, Attributes, Buckets, EnabledStatus, MSessions)
+		when is_binary(Password), is_list(Attributes), is_list(Buckets),
+		is_boolean(EnabledStatus), is_boolean(MSessions) ->
 	F2 = fun() ->
 				F1 = fun(_, _, 0) ->
 							mnesia:abort(retries);
@@ -306,7 +308,7 @@ add_subscriber(undefined, Password, Attributes, Buckets, EnabledStatus, MSession
 	end;
 add_subscriber(Identity, Password, Attributes, Buckets, EnabledStatus, MSessions)
 		when is_binary(Identity), is_binary(Password), is_list(Attributes),
-		is_list(Buckets), is_boolean(EnabledStatus) ->
+		is_list(Buckets), is_boolean(EnabledStatus), is_boolean(MSessions) ->
 	F1 = fun() ->
 				S = #subscriber{name = Identity, password = Password,
 						attributes = Attributes, buckets = Buckets,
