@@ -262,26 +262,26 @@ add_subscriber(Identity, Password, Attributes, Buckets) ->
 %% 	An initial account `Bucket', `Enabled' status and `MultiSessions'
 %% 	status may be provided.
 %%
-add_subscriber(Identity, Password, Attributes, Buckets, undefined, MSessions) ->
-	add_subscriber(Identity, Password, Attributes, Buckets, true, MSessions);
-add_subscriber(Identity, Password, Attributes, undefined, EnabledStatus, MSessions) ->
-	add_subscriber(Identity, Password, Attributes, [], EnabledStatus, MSessions);
-add_subscriber(Identity, Password, undefined, Buckets, EnabledStatus, MSessions) ->
-	add_subscriber(Identity, Password, [], Buckets, EnabledStatus, MSessions);
-add_subscriber(Identity, undefined, Attributes, Buckets, EnabledStatus, MSessions) ->
+add_subscriber(Identity, Password, Attributes, Buckets, undefined, MultiSession) ->
+	add_subscriber(Identity, Password, Attributes, Buckets, true, MultiSession);
+add_subscriber(Identity, Password, Attributes, undefined, EnabledStatus, MultiSession) ->
+	add_subscriber(Identity, Password, Attributes, [], EnabledStatus, MultiSession);
+add_subscriber(Identity, Password, undefined, Buckets, EnabledStatus, MultiSession) ->
+	add_subscriber(Identity, Password, [], Buckets, EnabledStatus, MultiSession);
+add_subscriber(Identity, undefined, Attributes, Buckets, EnabledStatus, MultiSession) ->
 	add_subscriber(Identity, ocs:generate_password(),
-			Attributes, Buckets, EnabledStatus, MSessions);
-add_subscriber(Identity, Password, Attributes, Buckets, EnabledStatus, MSessions)
+			Attributes, Buckets, EnabledStatus, MultiSession);
+add_subscriber(Identity, Password, Attributes, Buckets, EnabledStatus, MultiSession)
 		when is_list(Identity) ->
 	add_subscriber(list_to_binary(Identity), Password, Attributes, Buckets,
-			EnabledStatus, MSessions);
-add_subscriber(Identity, Password, Attributes, Buckets, EnabledStatus, MSessions)
+			EnabledStatus, MultiSession);
+add_subscriber(Identity, Password, Attributes, Buckets, EnabledStatus, MultiSession)
 		when is_list(Password) ->
 	add_subscriber(Identity, list_to_binary(Password), Attributes, Buckets,
-			EnabledStatus, MSessions);
-add_subscriber(undefined, Password, Attributes, Buckets, EnabledStatus, MSessions)
+			EnabledStatus, MultiSession);
+add_subscriber(undefined, Password, Attributes, Buckets, EnabledStatus, MultiSession)
 		when is_binary(Password), is_list(Attributes), is_list(Buckets),
-		is_boolean(EnabledStatus), is_boolean(MSessions) ->
+		is_boolean(EnabledStatus), is_boolean(MultiSession) ->
 	F2 = fun() ->
 				F1 = fun(_, _, 0) ->
 							mnesia:abort(retries);
@@ -291,7 +291,7 @@ add_subscriber(undefined, Password, Attributes, Buckets, EnabledStatus, MSession
 									S = #subscriber{name = Identity,
 											password = Password, attributes = Attributes,
 											buckets = Buckets, enabled = EnabledStatus,
-											multisession = MSessions},
+											multisession = MultiSession},
 									ok = mnesia:write(S),
 									S;
 								[_] ->
@@ -306,13 +306,13 @@ add_subscriber(undefined, Password, Attributes, Buckets, EnabledStatus, MSession
 		{aborted, Reason} ->
 			{error, Reason}
 	end;
-add_subscriber(Identity, Password, Attributes, Buckets, EnabledStatus, MSessions)
+add_subscriber(Identity, Password, Attributes, Buckets, EnabledStatus, MultiSession)
 		when is_binary(Identity), is_binary(Password), is_list(Attributes),
-		is_list(Buckets), is_boolean(EnabledStatus), is_boolean(MSessions) ->
+		is_list(Buckets), is_boolean(EnabledStatus), is_boolean(MultiSession) ->
 	F1 = fun() ->
 				S = #subscriber{name = Identity, password = Password,
 						attributes = Attributes, buckets = Buckets,
-						enabled = EnabledStatus, multisession = MSessions},
+						enabled = EnabledStatus, multisession = MultiSession},
 				ok = mnesia:write(S),
 				S
 	end,
@@ -460,19 +460,19 @@ update_attributes(Identity, Attributes)
 		Reason :: not_found | term().
 %% @doc Update subscriber attributes.
 %%
-update_attributes(Identity, Buckets, Attributes, EnabledStatus, MSessions)
+update_attributes(Identity, Buckets, Attributes, EnabledStatus, MultiSession)
 		when is_list(Identity), is_list(Buckets), is_boolean(EnabledStatus),
-		is_boolean(MSessions) ->
+		is_boolean(MultiSession) ->
 	update_attributes(list_to_binary(Identity), Buckets, Attributes,
-		EnabledStatus, MSessions);
-update_attributes(Identity, Buckets, Attributes, EnabledStatus, MSessions)
+		EnabledStatus, MultiSession);
+update_attributes(Identity, Buckets, Attributes, EnabledStatus, MultiSession)
 		when is_binary(Identity), is_list(Attributes) ->
 	F = fun() ->
 				case mnesia:read(subscriber, Identity, write) of
 					[Entry] ->
 						NewEntry = Entry#subscriber{attributes = Attributes,
 							buckets = Buckets, enabled = EnabledStatus,
-							multisession = MSessions},
+							multisession = MultiSession},
 						mnesia:write(subscriber, NewEntry, write);
 					[] ->
 						throw(not_found)
