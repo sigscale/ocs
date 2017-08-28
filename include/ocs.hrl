@@ -57,7 +57,7 @@
 		size :: integer(),
 		amount :: integer(),
 		alteration :: #alteration{},
-		vality :: integer()}).
+		validity :: integer()}).
 
 -record(product,
 		{name :: string(),
