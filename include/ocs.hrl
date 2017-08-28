@@ -65,6 +65,13 @@
 %% define validity period of a product
 -type valid_period() :: daily | weekly | monthly | yealy.
 
+-record(alteration,
+		{name :: string(),
+		description :: string(),
+		units :: unit_of_measure(),
+		size :: integer(),
+		amount :: integer()}).
+
 -record(product,
 		{name :: string(),
 		description :: string(),
