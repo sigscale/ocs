@@ -56,6 +56,9 @@
 %% define currency codes
 -type currency() :: mx | us | lkr.
 
+%% define price types
+-type price_type() :: recurring | one_time | usage.
+
 -record(product,
 		{name :: string(),
 		description :: string(),
