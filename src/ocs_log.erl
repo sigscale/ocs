@@ -212,11 +212,13 @@ acct_query(_Start, _End, _Protocol, _Types, _AttrsMatch,
 acct_query(Start, End, Protocol, Types, AttrsMatch,
 		PrevChunk, {Cont, [H | T] = Chunk}) ->
 	case binary_to_term(H) of
+		Event when element(1, Event) > End ->
+			{eof, []};
 		Event when element(1, Event) >= Start ->
 			NewChunk = [binary_to_term(E) || E <- PrevChunk ++ Chunk],
 			acct_query1(Start, End, Protocol, Types, AttrsMatch,
 					{Cont, NewChunk}, []);
-		_ ->
+		_Event ->
 			acct_query(Start, End, Protocol, Types, AttrsMatch,
 					T, disk_log:bchunk(?ACCTLOG, Cont))
 	end.
@@ -225,6 +227,9 @@ acct_query1(_Start, _End, _Protocol, _Types, _AttrsMatch, eof, Acc) ->
 	{eof, lists:reverse(Acc)};
 acct_query1(_Start, _End, _Protocol, _Types, _AttrsMatch, {error, Reason}, _Acc) ->
 	{error, Reason};
+acct_query1(_, End, _, _, _, {_, [{TS, _, _, _, _, _, _, _} | _]}, Acc)
+		when TS > End ->
+	{eof, lists:reverse(Acc)};
 acct_query1(Start, End, '_', '_', AttrsMatch,
 		{Cont, [{TS, _, _, _, _, _, _} | _] = Chunk}, Acc)
 		when TS >= Start, TS =< End ->
@@ -432,7 +437,7 @@ auth_query(start, Start, End, Protocol, Types,
 auth_query(Continuation, Start, End, Protocol, Types,
 		ReqAttrsMatch, RespAttrsMatch)
 		when is_integer(Start), is_integer(End) ->
-	auth_query1(Continuation, End, Protocol, Types, ReqAttrsMatch,
+	auth_query1(Start, End, Protocol, Types, ReqAttrsMatch,
 			RespAttrsMatch, disk_log:chunk(?AUTHLOG, Continuation), []).
 
 %% @hidden
@@ -447,11 +452,13 @@ auth_query(_Start, _End, _Protocol, _Types, _ReqAttrsMatch, _RespAttrsMatch,
 auth_query(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
 		PrevChunk, {Cont, [H | T] = Chunk}) ->
 	case binary_to_term(H) of
+		Event when element(1, Event) > End ->
+			{eof, []};
 		Event when element(1, Event) >= Start ->
 			NewChunk = [binary_to_term(E) || E <- PrevChunk ++ Chunk],
 			auth_query1(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
 					{Cont, NewChunk}, []);
-		_ ->
+		_Event ->
 			auth_query(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
 					T, disk_log:bchunk(?ACCTLOG, Cont))
 	end.
@@ -463,6 +470,9 @@ auth_query1(_Start, _End, _Protocol, _Types, _ReqAttrsMatch, _RespAttrsMatch,
 		{error, Reason}, _Acc) ->
 	{error, Reason};
 %% @hidden
+auth_query1(_, End, _, _, _, _, {_, [{TS, _, _, _, _, _, _, _, _} | _]}, Acc)
+		when TS > End ->
+	{eof, lists:reverse(Acc)};
 auth_query1(Start, End, '_', '_', ReqAttrsMatch, RespAttrsMatch,
 		{Cont, [{TS, _, _, _, _, _, _, _, _} | _] = Chunk}, Acc)
 		when TS >= Start, TS =< End ->
