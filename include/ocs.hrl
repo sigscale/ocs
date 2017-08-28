@@ -27,7 +27,7 @@
 -type price_type() :: recurring | one_time | usage.
 
 %% define unit of measure
--type unit_of_measure() :: price_type() | octet | seconds.
+-type unit_of_measure() :: octet| cents | seconds.
 
 %% define validity period of a product
 -type valid_period() :: daily | weekly | monthly | yearly.
