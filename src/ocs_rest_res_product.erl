@@ -54,11 +54,15 @@ add_product(ReqData) ->
 		{struct, Object} = mochijson:decode(ReqData),
 		{_, _Name} = lists:keyfind("name", 1, Object),
 		IsBundle = case lists:keyfind("isBundle", 1, Object) of
-			{"isBundle", true} -> true;
+			{"isBundle", "true"} -> true;
 			_ -> false
 		end,
-		{_, FindStatus} = lists:keyfind("lifecycleStatus", 1, Object),
-		Status = find_status(FindStatus),
+		Status  = case lists:keyfind("lifecycleStatus", 1, Object) of
+			{_, FindStatus} ->
+				find_status(FindStatus);
+			false ->
+				"active"
+		end
 		{_, ValidFor} = lists:keyfind("validFor", 1, Object),
 		{struct, SubObject1} = mochijson:decode(ValidFor),
 		{_, _STime} = lists:keyfind("startDateTime", 1, SubObject1),
