@@ -176,3 +176,16 @@ price_type("one_time") ->
 price_type("usage") ->
 	usage.
 
+-spec iso8601(MilliSeconds) -> Result
+	when
+		MilliSeconds :: pos_integer(),
+		Result :: string().
+%% @doc Convert timestamp to ISO 8601 format date and time.
+iso8601(MilliSeconds) when is_integer(MilliSeconds) ->
+	{{Year, Month, Day}, {Hour, Minute, Second}} = date(MilliSeconds),
+	DateFormat = "~4.10.0b-~2.10.0b-~2.10.0b",
+	TimeFormat = "T~2.10.0b:~2.10.0b:~2.10.0b.~3.10.0bZ",
+	Chars = io_lib:fwrite(DateFormat ++ TimeFormat,
+			[Year, Month, Day, Hour, Minute, Second, MilliSeconds rem 1000]),
+	lists:flatten(Chars).
+
