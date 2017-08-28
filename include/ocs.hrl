@@ -71,8 +71,8 @@
 		price :: [#price{}]}).
 
 -record(remain_amount,
-	{unit :: string(),
-	amount :: integer()}).
+		{unit :: string(),
+		amount :: integer()}).
 
 -record(bucket,
 		{id :: string(),
