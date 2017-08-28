@@ -72,6 +72,17 @@
 		size :: integer(),
 		amount :: integer()}).
 
+-record(price,
+		{name :: string(),
+		description :: string(),
+		type :: price_type(),
+		units :: unit_of_measure(),
+		period :: valid_period(),
+		size :: integer(),
+		amount :: integer(),
+		alteration :: #alteration{},
+		vality :: integer()}).
+
 -record(product,
 		{name :: string(),
 		description :: string(),
