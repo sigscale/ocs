@@ -63,10 +63,6 @@ add_product(ReqData) ->
 			false ->
 				"active"
 		end
-		{_, ValidFor} = lists:keyfind("validFor", 1, Object),
-		{struct, SubObject1} = mochijson:decode(ValidFor),
-		{_, _STime} = lists:keyfind("startDateTime", 1, SubObject1),
-		{_, _ETime} = lists:keyfind("endDateTime", 1, SubObject1),
 		{_, POfPriceObj} = lists:keyfind("productOfferingPrice", 1, Object),
 		{array, POfPrice} = mochijson:decode(POfPriceObj),
 		Product = product_offering_price(POfPrice, IsBundle, Status),
