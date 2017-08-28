@@ -63,11 +63,11 @@ add_product(ReqData) ->
 			false ->
 				"active"
 		end
-		{_, POfPriceObj} = lists:keyfind("productOfferingPrice", 1, Object),
-		{array, POfPrice} = mochijson:decode(POfPriceObj),
-		Product = product_offering_price(POfPrice, IsBundle, Status),
-		_Descirption = proplists:get_value("description", Object, ""),
-		case add_product1(Product) of
+		{_, ProdOfPriceObj} = lists:keyfind("productOfferingPrice", 1, Object),
+		{array, ProdOfPrice} = mochijson:decode(ProdOfPriceObj),
+		Product = product_offering_price(ProdOfPrice, IsBundle, Status),
+		Descirption = proplists:get_value("description", Object, ""),
+		case add_product1(Prodcut) of
 			ok ->
 				add_product2(Object);
 			{error, StatusCode} ->
