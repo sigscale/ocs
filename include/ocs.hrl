@@ -86,7 +86,6 @@
 -record(product,
 		{name :: string(),
 		description :: string(),
-		price_type :: recurring | one_time | usage,
 		is_bundle = false :: boolean(),
 		units :: string(),
 		status :: product_status(),
