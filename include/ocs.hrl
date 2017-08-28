@@ -16,39 +16,6 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% 
 
-%% define client table entries record
--record(client,
-		{address :: inet:ip_address(),
-		identifier = <<>> :: binary(),
-		port :: inet:port_number(),
-		protocol :: radius | diameter,
-		secret :: binary(),
-		last_modified  = {erlang:system_time(milli_seconds),
-				erlang:unique_integer([positive])} :: tuple()}).
-
--record(remain_amount,
-	{unit :: string(),
-	amount :: integer()}).
-
--record(bucket,
-		{id :: string(),
-		name :: string(),
-		buckt_type :: string(),
-		remain_amount :: #remain_amount{}}).
-
-%% define subscriber table entries record
--record(subscriber,
-		{name :: binary(),
-		password :: binary(),
-		attributes :: radius_attributes:attributes(),
-		buckets :: [#bucket{}],
-		enabled = true :: boolean(),
-		disconnect  = false :: boolean(),
-		session_attributes = radius_attributes:new() :: [radius_attributes:attributes()],
-		multisession = false :: boolean(),
-		last_modified  = {erlang:system_time(milli_seconds),
-				erlang:unique_integer([positive])} :: tuple()}).
-
 -type product_status() :: created | aborted | cancelled
 								| active | pending_active | suspended
 								| terminate | pending_terminate.
@@ -64,6 +31,17 @@
 
 %% define validity period of a product
 -type valid_period() :: daily | weekly | monthly | yealy.
+
+
+%% define client table entries record
+-record(client,
+		{address :: inet:ip_address(),
+		identifier = <<>> :: binary(),
+		port :: inet:port_number(),
+		protocol :: radius | diameter,
+		secret :: binary(),
+		last_modified  = {erlang:system_time(milli_seconds),
+				erlang:unique_integer([positive])} :: tuple()}).
 
 -record(alteration,
 		{name :: string(),
@@ -91,3 +69,28 @@
 		start_date :: pos_integer(), % ISO8601
 		termination_date :: pos_integer(), % ISO8601
 		price :: [#price{}]}).
+
+-record(remain_amount,
+	{unit :: string(),
+	amount :: integer()}).
+
+-record(bucket,
+		{id :: string(),
+		name :: string(),
+		buckt_type :: string(),
+		remain_amount :: #remain_amount{}}).
+
+%% define subscriber table entries record
+-record(subscriber,
+		{name :: binary(),
+		password :: binary(),
+		attributes :: radius_attributes:attributes(),
+		buckets :: [#bucket{}],
+		enabled = true :: boolean(),
+		disconnect  = false :: boolean(),
+		session_attributes = radius_attributes:new() :: [radius_attributes:attributes()],
+		multisession = false :: boolean(),
+		last_modified  = {erlang:system_time(milli_seconds),
+				erlang:unique_integer([positive])} :: tuple()}).
+
+
