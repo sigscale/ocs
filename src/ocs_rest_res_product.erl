@@ -69,7 +69,7 @@ add_product(ReqData) ->
 				find_status(FindStatus);
 			false ->
 				"active"
-		end
+		end,
 		{_, ProdOfPriceObj} = lists:keyfind("productOfferingPrice", 1, Object),
 		{array, ProdOfPrice} = mochijson:decode(ProdOfPriceObj),
 		Price = product_offering_price(ProdOfPrice),
@@ -151,7 +151,7 @@ product_offering_price(POfPrice) ->
 					{_, ProdAlterObj} ->
 						{_, ProdAlterName} = lists:keyfind("name", 1, ProdAlterObj),
 						{_, ProdAlterValidFor} = lists:keyfind("validFor", 1, ProdAlterObj),
-						{struct, ProdAlterVFObj} = mochijson:decode(ProdAlterVFObj)
+						{struct, ProdAlterVFObj} = mochijson:decode(ProdAlterVFObj),
 						{_, ProdAlterSTimeISO} = lists:keyfind("startDateTime", 1, ProdAlterVFObj),
 						{_, ProdAlterPriceTypeS} = lists:keyfind("priceType", 1, ProdAlterObj),
 						{_, ProdAlterUOMeasure} = lists:keyfind("unitOfMeasure", 1, ProdAlterObj),
@@ -165,7 +165,7 @@ product_offering_price(POfPrice) ->
 						ProdAlterAmount = list_to_integer(ProdAlterAmountS),
 						Alteration = #alteration{name = ProdAlterName, description = ProdAlterDescirption,
 							type = ProdAlterPriceType, units = ProdAlterUnits , size = ProdAlterSize,
-							amount = ProdAlterAmount}
+							amount = ProdAlterAmount},
 						Price2 = Price1#price{alteration = Alteration},
 						[Price2 | AccIn]
 					end
@@ -200,7 +200,7 @@ validity_period(ISOSTime, ISOETime) when is_list(ISOSTime),
 		UnitsOfMeasure	:: string(),
 		Result			:: {Units, Size},
 		Units				:: unit_of_measure(),
-		Size				:: pos_integer(),
+		Size				:: pos_integer().
 %% @doc return units type and size of measurement of a product
 %% @private
 product_unit_of_measure(UnitsOfMeasure) ->
@@ -315,7 +315,7 @@ timestamp(ISO8610) when is_list(ISO8610) ->
 	TimeFormat = "T~2d:~2d:~2d.~3dZ",
 	case io_lib:fread(DateFormat ++ TimeFormat, ISO8610) of
 		{ok, [Y, M, D, H, Min, S, MSR], _} ->
-			DateTime = {{Y, M, D}, {H, Min, S + MSR}}
+			DateTime = {{Y, M, D}, {H, Min, S + MSR}},
 			date(DateTime);
 		{error, Reason} ->
 			{error, Reason}
