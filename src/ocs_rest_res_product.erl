@@ -72,7 +72,9 @@ add_product(ReqData) ->
 		end
 		{_, ProdOfPriceObj} = lists:keyfind("productOfferingPrice", 1, Object),
 		{array, ProdOfPrice} = mochijson:decode(ProdOfPriceObj),
-		Product = product_offering_price(ProdOfPrice, IsBundle, Status),
+		Price = product_offering_price(ProdOfPrice),
+		Product = #product{price = Price, name = Name, is_bundle = IsBundle,
+			status = Status},
 		Descirption = proplists:get_value("description", Object, ""),
 		case add_product1(Prodcut) of
 			ok ->
@@ -110,38 +112,60 @@ add_product2(JsonResponse) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec product_offering_price(POfPrice, IsBundle, Status) -> Result when
+-spec product_offering_price(POfPrice) -> Result when
 	POfPrice	:: list(),
-	IsBundle	:: boolean(),
-	Status	:: product_status(),
-	Result 	:: Products | {error, StatusCode},
-	Products	:: [#product{}],
+	Result 	:: Prices | {error, StatusCode},
+	Prices	:: [#price{}],
 	StatusCode	:: 400.
 %% @doc construct list of product
 %% @private
-product_offering_price(POfPrice, IsBundle, Status) ->
+product_offering_price(POfPrice) ->
 	try
 		F = fun(ProductJson, AccIn) ->
 				{struct, Object} = mochijson:decode(ProductJson),
-				{_, Name} = lists:keyfind("name", 1, Object),
-				{_, ValidFor} = lists:keyfind("validFor", 1, Object),
-				{struct, VForObject1} = mochijson:decode(ValidFor),
-				{_, _STime} = lists:keyfind("startDateTime", 1, VForObject1),
-				{_, _ETime} = lists:keyfind("endDateTime", 1, VForObject1),
-				{_, PriceTypeS} = lists:keyfind("priceType", 1, Object),
-				PriceType = price_type(PriceTypeS),
-				{_, UnitOfMesasure} = lists:keyfind("unitOfMeasure", 1, Object),
-				{_, PriceObject} = lists:keyfind("price", 1, Object),
-				TaxPAmount = proplists:get_value("taxIncludedAmount", PriceObject, ""),
-				_DutyFreeAmount = proplists:get_value("dutyFreeAmount", PriceObject, ""),
-				_TaxRate = proplists:get_value("taxRate", PriceObject, ""),
-				_CurrencyCode = proplists:get_value("currencyCode", PriceObject, ""),
-				_RecurringChargePeriod = proplists:get_value("recurringChargePeriod", Object, ""),
-				Descirption = proplists:get_value("description", Object, ""),
-				Product = #product{name = Name, is_bundle = IsBundle, status = Status,
-					units = UnitOfMesasure, price = TaxPAmount, description = Descirption,
-					price_type = PriceType},
-				[Product | AccIn]
+				{_, ProdName} = lists:keyfind("name", 1, Object),
+				{_, ProdVF} = lists:keyfind("validFor", 1, Object),
+				{struct, VFObj} = mochijson:decode(ProdVF),
+				{_, ProdSTime} = lists:keyfind("startDateTime", 1, VFObj),
+				{_, ProdETime} = lists:keyfind("endDateTime", 1, VFObj),
+				{_, ProdPriceTypeS} = lists:keyfind("priceType", 1, Object),
+				{_, ProdPrice} = lists:keyfind("price", 1, Object),
+				{struct, ProdPriceObj} = mochijson:decode(ProdPrice),
+				{_, TaxPAmount} = lists:keyfind("taxIncludedAmount", 1, ProdPriceObj),
+				{_, CurrencyCode} = lists:keyfind("currencyCode", 1, ProdPriceObj),
+				{_, RCPeriodS} = lists:keyfind("recurringChargePeriod", 1, Object),
+				ProdDescirption = proplists:get_value("description", Object, ""),
+				ProdUOMesasure = proplists:get_value("unitOfMeasure", Object, ""),
+				ProdValidity = validity_period(ProdSTime, ProdETime),
+				ProdPriceType = price_type(ProdPriceTypeS),
+				ProdAmount = list_to_integer(TaxPAmount),
+				RCPeriod = recurring_charge_period(RCPeriodS),
+				Price1 = #price{name = ProdName, description = ProdDescirption,
+					type = ProdPriceType, units = ProdUOMesasure, currency = CurrencyCode,
+					period = RCPeriod, validity = ProdValidity, amount = ProdAmount},
+				case lists:keyfind("productOfferPriceAlteration", 1, PriceObject) of
+					false ->
+						[Price1 | AccIn];
+					{_, ProdAlterObj} ->
+						{_, ProdAlterName} = lists:keyfind("name", 1, ProdAlterObj),
+						{_, ProdAlterValidFor} = lists:keyfind("validFor", 1, ProdAlterObj),
+						{struct, ProdAlterVFObj} = mochijson:decode(ProdAlterVFObj)
+						{_, ProdAlterSTimeISO} = lists:keyfind("startDateTime", 1, ProdAlterVFObj),
+						{_, ProdAlterPriceTypeS} = lists:keyfind("priceType", 1, ProdAlterObj),
+						{_, ProdAlterUOMeasure} = lists:keyfind("unitOfMeasure", 1, ProdAlterObj),
+						{_, ProdAlterPrice} = lists:keyfind("price", 1, ProdAlterObj),
+						{struct, ProdAlterPriceObj} = mochijson:decode(ProdAlterPrice),
+						{_, ProdAlterAmountS} = lists:keyfind("amount", ProdAlterPriceObj),
+						ProdAlterDescirption = proplists:get_value("description", ProdAlterObj, ""),
+						ProdAlterSTime = timestamp(ProdAlterSTimeISO),
+						ProdAlterPriceType = price_type(ProdAlterPriceType),
+						ProdAlterAmount = list_to_integer(ProdAlterAmountS),
+						Alteration = #alteration{name = ProdAlterName, description = ProdAlterDescirption,
+							type = ProdAlterPriceType, units = "?", size = "?",
+							amount = ProdAlterAmount}
+						Price2 = Price1#price{alteration = Alteration},
+						[Price2 | AccIn]
+					end
 		end,
 		AccOut = lists:foldl(F, [], POfPrice),
 		lists:reverse(AccOut)
@@ -203,8 +227,8 @@ price_type("usage") ->
 
 -spec date(DateTimeFormat) -> Result
 	when
-		DateTimeFormat :: pos_integer() | tuple(),
-		Result :: calendar:datetime().
+		DateTimeFormat	:: pos_integer() | tuple(),
+		Result			:: calendar:datetime().
 %% @doc Convert timestamp to date and time or
 %%	date and time to timeStamp.
 date(MilliSeconds) when is_integer(MilliSeconds) ->
@@ -215,8 +239,8 @@ date(DateTime) when is_tuple(DateTime) ->
 
 -spec iso8601(MilliSeconds) -> Result
 	when
-		MilliSeconds :: pos_integer(),
-		Result :: string().
+		MilliSeconds	:: pos_integer(),
+		Result			:: string().
 %% @doc Convert timestamp to ISO 8601 format date and time.
 iso8601(MilliSeconds) when is_integer(MilliSeconds) ->
 	{{Year, Month, Day}, {Hour, Minute, Second}} = date(MilliSeconds),
