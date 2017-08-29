@@ -85,7 +85,7 @@ get_subscriber1(Id, Filters) ->
 					true ->
 						Amount = {"amount", get_balance(Buckets)},
 						Unit = {"units", "octets"},
-						TotalBalance = {struct, [Unit, Amount]},
+						TotalBalance = {array, [{struct, [Unit, Amount]}]},
 						[{"totalBalance", TotalBalance}];
 					false ->
 						[]
@@ -230,7 +230,10 @@ get_subscribers2(Subscribers, Id, Password, Balance, Enabled, Multi, [] = _Query
 				RespObj4 = case Filters == []
 						orelse lists:keymember("totalBalance", 1, Filters) of
 					true ->
-						[{"totalBalance", TotAmount}];
+						Amount = {"amount", TotAmount},
+						Unit = {"units", "octets"},
+						TotalBalance = {array, [{struct, [Unit, Amount]}]},
+						[{"totalBalance", TotalBalance}];
 					false ->
 						[]
 				end,
@@ -408,9 +411,12 @@ patch_subscriber1(Id, Etag, "application/json-patch+json", ReqBody) ->
 					enabled = Enabled, multisession = MSession}} ->
 				Attributes = {array, radius_to_json(RadAttr)},
 				Balance = get_balance(Buckets),
+				Amount = {"amount", Balance},
+				Unit = {"units", "octets"},
+				TotalBalance = {array, [{struct, [Unit, Amount]}]},
 				RespObj =[{id, Id}, {href, "/ocs/v1/subscriber/" ++ Id},
 				{password, Password}, {attributes, Attributes},
-				{totalBalance, Balance}, {enabled, Enabled}, {multisession, MSession}],
+				{totalBalance, TotalBalance}, {enabled, Enabled}, {multisession, MSession}],
 				JsonObj  = {struct, RespObj},
 				RespBody = mochijson:encode(JsonObj),
 				Headers = case Etag of
