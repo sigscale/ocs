@@ -150,6 +150,24 @@ product_offering_price(POfPrice, IsBundle, Status) ->
 			{error, 400}
 	end.
 
+-spec validity_period(StartTime, EndTime) -> Result
+	when
+		StartTime	:: string(),
+		EndTimeTime	:: string(),
+		Result		:: pos_integer() | {error, Reason},
+		Reason		:: term().
+%% @doc return validity period of a product in milliseconds.
+%% @private
+validity_period(ISOSTime, ISOETime) when is_list(ISOSTime),
+		is_list(ISOETime) ->
+	case {timestamp(ISOSTime), timestamp(ISOETime)} of
+		{STime, ETime} when is_integer(STime),
+				is_integer(ETime) ->
+			ETime - STime;
+		_ ->
+			{error, format_error}
+	end.
+
 -spec find_status(StringStatus) -> Status when
 	StringStatus	:: string(),
 	Status			:: product_status().
