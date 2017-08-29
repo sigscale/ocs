@@ -139,10 +139,12 @@ product_offering_price(POfPrice) ->
 				ProdValidity = validity_period(ProdSTime, ProdETime),
 				ProdPriceType = price_type(ProdPriceTypeS),
 				ProdAmount = list_to_integer(TaxPAmount),
+				{ProdUnits, ProdSize} = product_unit_of_measure(ProdUOMesasure),
 				RCPeriod = recurring_charge_period(RCPeriodS),
 				Price1 = #price{name = ProdName, description = ProdDescirption,
-					type = ProdPriceType, units = ProdUOMesasure, currency = CurrencyCode,
-					period = RCPeriod, validity = ProdValidity, amount = ProdAmount},
+					type = ProdPriceType, units = ProdUnits, size = ProdSize,
+					currency = CurrencyCode, period = RCPeriod, validity = ProdValidity,
+					amount = ProdAmount},
 				case lists:keyfind("productOfferPriceAlteration", 1, PriceObject) of
 					false ->
 						[Price1 | AccIn];
@@ -157,11 +159,12 @@ product_offering_price(POfPrice) ->
 						{struct, ProdAlterPriceObj} = mochijson:decode(ProdAlterPrice),
 						{_, ProdAlterAmountS} = lists:keyfind("amount", ProdAlterPriceObj),
 						ProdAlterDescirption = proplists:get_value("description", ProdAlterObj, ""),
+						{ProdAlterUnits, ProdAlterSize} = product_unit_of_measure(ProdAlterUOMesasure),
 						ProdAlterSTime = timestamp(ProdAlterSTimeISO),
 						ProdAlterPriceType = price_type(ProdAlterPriceType),
 						ProdAlterAmount = list_to_integer(ProdAlterAmountS),
 						Alteration = #alteration{name = ProdAlterName, description = ProdAlterDescirption,
-							type = ProdAlterPriceType, units = "?", size = "?",
+							type = ProdAlterPriceType, units = ProdAlterUnits , size = ProdAlterSize,
 							amount = ProdAlterAmount}
 						Price2 = Price1#price{alteration = Alteration},
 						[Price2 | AccIn]
@@ -191,6 +194,57 @@ validity_period(ISOSTime, ISOETime) when is_list(ISOSTime),
 		_ ->
 			{error, format_error}
 	end.
+
+-spec product_unit_of_measure(UnitsOfMeasure) -> Reasult
+	when
+		UnitsOfMeasure	:: string(),
+		Result			:: {Units, Size},
+		Units				:: unit_of_measure(),
+		Size				:: pos_integer(),
+%% @doc return units type and size of measurement of a product
+%% @private
+product_unit_of_measure(UnitsOfMeasure) ->
+	Suffix = "octets",
+	case lists:suffix(Suffix, UnitsOfMeasure) of
+		true ->
+			[Size] = string:tokes(UnitsOfMeasure, Suffix),
+			{octets, Size};
+		false ->
+			product_unit_of_measure1(UnitsOfMeasure)
+	end.
+%% @hidden
+product_unit_of_measure1(UnitsOfMeasure) ->
+	Suffix = "gb",
+	case lists:suffix(Suffix, UnitsOfMeasure) of
+		true ->
+			[Size] = string:tokes(UnitsOfMeasure, Suffix),
+			{gb, Size};
+		false ->
+			product_unit_of_measure2(UnitsOfMeasure)
+	end.
+%% @hidden
+product_unit_of_measure2(UnitsOfMeasure) ->
+	Suffix = "cents",
+	case lists:suffix(Suffix, UnitsOfMeasure) of
+		true ->
+			[Size] = string:tokes(UnitsOfMeasure, Suffix),
+			{cents, Size};
+		false ->
+			product_unit_of_measure3(UnitsOfMeasure)
+	end.
+%% @hidden
+product_unit_of_measure3(UnitsOfMeasure) ->
+	Suffix = "seconds",
+	case lists:suffix(Suffix, UnitsOfMeasure) of
+		true ->
+			[Size] = string:tokes(UnitsOfMeasure, Suffix),
+			{seconds, Size};
+		false ->
+			product_unit_of_measure4(UnitsOfMeasure)
+	end.
+%% @hidden
+product_unit_of_measure4(_UnitsOfMeasure) ->
+	{octets, 0}.
 
 -spec find_status(StringStatus) -> Status when
 	StringStatus	:: string(),
