@@ -69,7 +69,7 @@ add_product(ReqData) ->
 				find_status(FindStatus);
 			false ->
 				"active"
-		end
+		end,
 		{_, ProdOfPriceObj} = lists:keyfind("productOfferingPrice", 1, Object),
 		{array, ProdOfPrice} = mochijson:decode(ProdOfPriceObj),
 		Price = product_offering_price(ProdOfPrice),
