@@ -641,37 +641,37 @@ accumulated_balance(Buckets) ->
 %% @hidden
 accumulated_balance1([Bucket | T], AccBalance) ->
 	AB = accumulated_balance2(T, accumulated_balance2(Bucket, AccBalance)),
-	F = fun({octets, A1}, AccIn) ->
-				Obj = {struct, [{"amount", A1}, {"units", "octets"}]},
+	F = fun({octets, {U1, A1}}, AccIn) ->
+				Obj = {struct, [{"amount", A1}, {"units", U1}]},
 				[Obj | AccIn];
-			({cents, A2}, AccIn) ->
-				Obj = {struct, [{"amount", A2}, {"units", "cents"}]},
+			({cents, {U2, A2}}, AccIn) ->
+				Obj = {struct, [{"amount", A2}, {"units", U2}]},
 				[Obj | AccIn];
-			({seconds, A3}, AccIn) ->
-				Obj = {struct, [{"amount", A3}, {"units", "seconds"}]},
+			({seconds, {U3, A3}}, AccIn) ->
+				Obj = {struct, [{"amount", A3}, {"units", U3}]},
 				[Obj | AccIn]
 	end,
 	JsonArray = lists:reverse(lists:foldl(F, [], AB)),
 	{array, JsonArray}.
 %% @hidden
-accumulated_balance2(#bucket{remain_amount =
-		#remain_amount{unit = "octets", amount = Amount}}, AccBalance) ->
-	accumulated_balance3(octets, Amount, AccBalance);
-accumulated_balance2(#bucket{remain_amount =
-		#remain_amount{unit = cents, amount = Amount}}, AccBalance) ->
-	accumulated_balance3("cents", Amount, AccBalance);
-accumulated_balance2(#bucket{remain_amount =
-		#remain_amount{unit = "seconds", amount = Amount}}, AccBalance) ->
-	accumulated_balance3(seconds, Amount, AccBalance);
+accumulated_balance2(#bucket{bucket_type = octets, remain_amount =
+		#remain_amount{unit = Units, amount = Amount}}, AccBalance) ->
+	accumulated_balance3(octets, Units, Amount, AccBalance);
+accumulated_balance2(#bucket{bucket_type = cents, remain_amount =
+		#remain_amount{unit = Units, amount = Amount}}, AccBalance) ->
+	accumulated_balance3(cents, Units, Amount, AccBalance);
+accumulated_balance2(#bucket{bucket_type = seconds, remain_amount =
+		#remain_amount{unit = Units, amount = Amount}}, AccBalance) ->
+	accumulated_balance3(seconds, Units, Amount, AccBalance);
 accumulated_balance2([], AccBalance) ->
 	AccBalance.
 %% @hidden
-accumulated_balance3(Units, Amount, AccBalance) ->
-	case lists:keytake(Units, 1, AccBalance) of
-		{value, {Units, Balance}, Rest} ->
-			[{Units, Amount + Balance} | Rest];
+accumulated_balance3(Key, Units, Amount, AccBalance) ->
+	case lists:keytake(Key, 1, AccBalance) of
+		{value, {Key, {Units, Balance}}, Rest} ->
+			[{Key, {Units, Amount + Balance}} | Rest];
 		false ->
-			[{Units, Amount} | AccBalance]
+			[{Key, {Units, Amount}} | AccBalance]
 	end.
 
 -spec get_balance(Buckets) ->
