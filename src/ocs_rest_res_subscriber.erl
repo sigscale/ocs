@@ -627,6 +627,27 @@ execute_json_patch_operations(Id, Etag, OpList) ->
 			{error, 400}
 	end.
 
+-spec validate_operation(Operation) -> Result.
+	when
+		Operation	:: [tuple()],
+		Result		:: {Op, Path, Value} | {error, StatusCode},
+		Op				:: string(),
+		Path			:: string(),
+		Value			:: string() | tuple(),
+		StatusCode	:: 400.
+%% @doc validate elements in an operation object and return
+%% `op', `path' and `value' or error status code.
+validate_operation(Operation) ->
+	OpT = lists:keyfind("op", 1, OpObj),
+	PathT = lists:keyfind("path", 1, OpObj),
+	ValueT = lists:keyfind("value", 1, OpObj),
+	case {OpT, PathT, ValueT} of
+		{{_, Op}, {_, Path}, {_, Value}} ->
+			{Op, Path, Value};
+		_ ->
+			{error, 400}
+	end.
+
 -spec accumulated_balance(Buckets) ->	AccumulatedBalance
 	when
 		Buckets					:: [#bucket{}],
