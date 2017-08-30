@@ -37,8 +37,8 @@
 
 -type state() :: #state{}.
 -type capabilities() :: #diameter_caps{}.
--type packet() ::  diameter_codec:packet().
--type message() ::  diameter_codec:message().
+-type packet() ::  #diameter_packet{}.
+-type message() ::  tuple() | list().
 -type peer() :: {Peer_Ref :: term(), Capabilities :: capabilities()}.
 
 %%----------------------------------------------------------------------

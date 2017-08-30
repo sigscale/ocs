@@ -65,7 +65,8 @@ get_subscriber(_Id, _Query, _Filters) ->
 get_subscriber1(Id, Filters) ->
 	case ocs:find_subscriber(Id) of
 		{ok, #subscriber{password = PWBin, attributes = Attributes,
-				balance = Balance, enabled = Enabled, last_modified = LM}} ->
+				balance = Balance, enabled = Enabled, last_modified = LM, 
+				multisession = Multi}} ->
 			Etag = etag(LM),
 			Att = radius_to_json(Attributes),
 			Att1 = {array, Att},
@@ -93,8 +94,15 @@ get_subscriber1(Id, Filters) ->
 					false ->
 						[]
 				end,
+			RespObj6 = case Filters == []
+				orelse lists:keymember("multisession", 1, Filters) of
+					true ->
+						[{"multisession", Multi}];
+					false ->
+						[]
+				end,
 			JsonObj  = {struct, RespObj1 ++ RespObj2 ++ RespObj3
-					++ RespObj4 ++ RespObj5},
+					++ RespObj4 ++ RespObj5 ++ RespObj6},
 			Body = mochijson:encode(JsonObj),
 			Headers = [{content_type, "application/json"}, {etag, Etag}],
 			{ok, Headers, Body};

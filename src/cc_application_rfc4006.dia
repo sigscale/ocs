@@ -71,7 +71,7 @@
 			{ Service-Context-Id }
 			{ CC-Request-Type }
 			{ CC-Request-Number }
-			{ User-Name }
+			[ User-Name ]
 			[ Destination-Host ]
 			[ CC-Sub-Session-Id ]
 			[ Acct-Multi-Session-Id ]
@@ -100,7 +100,7 @@
 			{ Auth-Application-Id }
 			{ CC-Request-Type }
 			{ CC-Request-Number }
-			{ Granted-Service-Unit }
+			[ Granted-Service-Unit ]
 			[ User-Name ]
 			[ CC-Session-Failover ]
 			[ CC-Sub-Session-Id ]
@@ -142,7 +142,7 @@
 
 @grouped
 		Granted-Service-Unit ::= < AVP Header: 431 >
-			{ CC-Total-Octets }
+			[ CC-Total-Octets ]
 			[ Tariff-Time-Change ]
 			[ CC-Time ]
 			[ CC-Money ]
@@ -285,6 +285,11 @@
 	MAC										1
 	EUI64										2
 	MODIFIED_EUI64							3
+
+@enum Final-Unit-Action
+	TERMINATE								0
+	REDIRECT									1
+	REDIRECT_ACCESS						2
 
 @define Result-Code
 	END_USER_SERVICE_DENIED				4010
