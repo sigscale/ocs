@@ -139,7 +139,7 @@
 					</div>
 				</div>
 				<div class="buttons">
-					<paper-button
+					<paper-button dialog-confirm
 							raised
 							class="add-button"
 							on-click="_subscriberAddSubmit">
@@ -147,10 +147,8 @@
 								Submit
 						</i18n-msg>
 					</paper-button>
-					<paper-button
+					<paper-button dialog-dismiss
 							class="cancel-button"
-							dialog-confirm
-							autofocus
 							onclick="subAddModal.close()">
 						<i18n-msg msgid="cancel">
 								Cancel
@@ -236,7 +234,7 @@
 					</div>
 				</div><br>
 					<div class="buttons">
-						<paper-button
+						<paper-button dialog-confirm
 								raised
 								class="add-button"
 								on-click="_subscriberAddSubmit">
@@ -244,10 +242,8 @@
 									Submit
 							</i18n-msg>
 						</paper-button>
-						<paper-button
+						<paper-button dialog-dismiss
 								class="cancel-button"
-								dialog-confirm
-								autofocus
 								onclick="subAddModal.close()">
 							<i18n-msg msgid="cancel">
 									Cancel
@@ -292,7 +288,7 @@
 							label="[[i18n.prod]]">
 					</paper-input>
 					<div class="buttons">
-						<paper-button
+						<paper-button dialog-confirm
 								raised
 								class="add-button"
 								on-click="_subscriberAddSubmit">
@@ -300,10 +296,8 @@
 									Submit
 							</i18n-msg>
 						</paper-button>
-						<paper-button
+						<paper-button dialog-dismiss
 								class="cancel-button"
-								dialog-confirm
-								autofocus
 								onclick="subAddModal.close()">
 							<i18n-msg msgid="cancel">
 									Cancel
