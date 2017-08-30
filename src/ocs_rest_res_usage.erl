@@ -61,8 +61,7 @@ content_types_provided() ->
 %% @hidden
 get_usage(Query, Headers) ->
 	case lists:keytake("fields", 1, Query) of
-		{value, {_, L}, NewQuery} ->
-			Filters = string:tokens(L, ","),
+		{value, {_, Filters}, NewQuery} ->
 			get_usage1(NewQuery, Filters, Headers);
 		false ->
 			get_usage1(Query, [], Headers)
