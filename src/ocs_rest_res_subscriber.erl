@@ -83,10 +83,8 @@ get_subscriber1(Id, Filters) ->
 			RespObj4 = case Filters == []
 				orelse lists:keymember("totalBalance", 1, Filters) of
 					true ->
-						Amount = {"amount", get_balance(Buckets)},
-						Unit = {"units", "octets"},
-						TotalBalance = {array, [{struct, [Unit, Amount]}]},
-						[{"totalBalance", TotalBalance}];
+						AccBalance = accumulated_balance(Buckets),
+						[{"totalBalance", AccBalance}];
 					false ->
 						[]
 				end,
@@ -230,10 +228,8 @@ get_subscribers2(Subscribers, Id, Password, Balance, Enabled, Multi, [] = _Query
 				RespObj4 = case Filters == []
 						orelse lists:keymember("totalBalance", 1, Filters) of
 					true ->
-						Amount = {"amount", TotAmount},
-						Unit = {"units", "octets"},
-						TotalBalance = {array, [{struct, [Unit, Amount]}]},
-						[{"totalBalance", TotalBalance}];
+						AccBalance = accumulated_balance(Bu),
+						[{"totalBalance", AccBalance}];
 					false ->
 						[]
 				end,
@@ -410,10 +406,7 @@ patch_subscriber1(Id, Etag, "application/json-patch+json", ReqBody) ->
 					attributes = RadAttr, buckets = Buckets,
 					enabled = Enabled, multisession = MSession}} ->
 				Attributes = {array, radius_to_json(RadAttr)},
-				Balance = get_balance(Buckets),
-				Amount = {"amount", Balance},
-				Unit = {"units", "octets"},
-				TotalBalance = {array, [{struct, [Unit, Amount]}]},
+				TotalBalance = accumulated_balance(Buckets),
 				RespObj =[{id, Id}, {href, "/ocs/v1/subscriber/" ++ Id},
 				{password, Password}, {attributes, Attributes},
 				{totalBalance, TotalBalance}, {enabled, Enabled}, {multisession, MSession}],
@@ -633,6 +626,51 @@ execute_json_patch_operations(Id, Etag, OpList) ->
 	catch
 		_:_ ->
 			{error, 400}
+	end.
+
+-spec accumulated_balance(Buckets) ->	AccumulatedBalance
+	when
+		Buckets					:: [#bucket{}],
+		AccumulatedBalance	:: tuple().
+%% @doc return accumulated buckets as a json object.
+accumulated_balance([]) ->
+	[];
+accumulated_balance(Buckets) ->
+	accumulated_balance1(Buckets, []).
+%% @hidden
+accumulated_balance1([Bucket | T], AccBalance) ->
+	AB = accumulated_balance2(T, accumulated_balance2(Bucket, AccBalance)),
+	F = fun({octets, A1}, AccIn) ->
+				Obj = {struct, [{"amount", A1}, {"units", "octets"}]},
+				[Obj | AccIn];
+			({cents, A2}, AccIn) ->
+				Obj = {struct, [{"amount", A2}, {"units", "cents"}]},
+				[Obj | AccIn];
+			({seconds, A3}, AccIn) ->
+				Obj = {struct, [{"amount", A3}, {"units", "seconds"}]},
+				[Obj | AccIn]
+	end,
+	JsonArray = lists:reverse(lists:foldl(F, [], AB)),
+	{array, JsonArray}.
+%% @hidden
+accumulated_balance2(#bucket{remain_amount =
+		#remain_amount{unit = "octets", amount = Amount}}, AccBalance) ->
+	accumulated_balance3(octets, Amount, AccBalance);
+accumulated_balance2(#bucket{remain_amount =
+		#remain_amount{unit = cents, amount = Amount}}, AccBalance) ->
+	accumulated_balance3("cents", Amount, AccBalance);
+accumulated_balance2(#bucket{remain_amount =
+		#remain_amount{unit = "seconds", amount = Amount}}, AccBalance) ->
+	accumulated_balance3(seconds, Amount, AccBalance);
+accumulated_balance2([], AccBalance) ->
+	AccBalance.
+%% @hidden
+accumulated_balance3(Units, Amount, AccBalance) ->
+	case lists:keytake(Units, 1, AccBalance) of
+		{value, {Units, Balance}, Rest} ->
+			[{Units, Amount + Balance} | Rest];
+		false ->
+			[{Units, Amount} | AccBalance]
 	end.
 
 -spec get_balance(Buckets) ->
