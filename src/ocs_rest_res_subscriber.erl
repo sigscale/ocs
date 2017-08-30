@@ -209,9 +209,7 @@ get_subscribers2(Subscribers, Id, Password, Balance, Enabled, Multi, [] = _Query
 		T2 = lists:prefix(Password, Palist),
 		Att = radius_to_json(Attributes),
 		Att1 = {array, Att},
-		TotAmount = get_balance(Bu),
-		Balist = integer_to_list(TotAmount),
-		T3 = lists:prefix(Balance, Balist),
+		T3 = lists:prefix(Balance, Bu),
 		T4 = lists:prefix(Enabled, [Ena]),
 		T5 = lists:prefix(Multi, [Mul]),
 		if
@@ -673,22 +671,6 @@ accumulated_balance3(Key, Units, Amount, AccBalance) ->
 		false ->
 			[{Key, {Units, Amount}} | AccBalance]
 	end.
-
--spec get_balance(Buckets) ->
-		Balance when
-	Buckets :: [#bucket{}],
-	Balance :: integer().
-%% get the availabel balance form buckets
-get_balance([]) ->
-	0;
-get_balance(Buckets) ->
-	get_balance1(Buckets, 0).
-%% @hidden
-get_balance1([], Balance) ->
-	Balance;
-get_balance1([#bucket{remain_amount = #remain_amount{amount = RemAmnt}}
-		| Tail], Balance) ->
-	get_balance1(Tail, RemAmnt + Balance).
 
 -spec bucket_type(SBucketType) -> BucketType
 	when
