@@ -298,8 +298,8 @@ post_subscriber(RequestBody) ->
 		{Buckets, BucketRef} = case lists:keyfind("buckets", 1, Object) of
 			{"buckets", {array, BktStruct}} ->
 				F = fun({struct, Bucket}, AccIn) ->
-					Amount = proplists:get_value("amount", Bucket, 0),
-					Unit = proplists:get_value("units", Bucket, "octets"),
+					{_, Amount} = lists:keyfind("amount", 1, Bucket),
+					{_, Units} = lists:keyfind("units", 1, Bucket),
 					_Product = proplists:get_value("product", Bucket, ""),
 					BR = #bucket{remain_amount =
 						#remain_amount{unit = Unit, amount = Amount}},
