@@ -366,7 +366,7 @@
 				id="subAddAjax"
 				url="/ocs/v1/subscriber"
 				method = "post"
-				headers='{"Accept": "application/json", "Content-type": "application/json"}'
+				content-type="application/json"
 				on-loading-changed="_onLoadingChanged"
 				on-response="_subscriberAddResponse"
 				hanlde-as="json">

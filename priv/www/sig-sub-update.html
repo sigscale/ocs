@@ -287,15 +287,18 @@
 			</iron-pages>
 		</paper-dialog>
 		<iron-ajax id="updateSubAuthen"
-				headers='{"Accept": "application/json", "Content-type": "application/json"}'
+				content-type="application/json-patch+json"
+				method="PATCH"
 				on-response="updateSubAuthenResponse">
 		</iron-ajax>
 		<iron-ajax id="updateSubAutho"
-				headers='{"Accept": "application/json", "Content-type": "application/json"}'
+				content-type="application/json-patch+json"
+				method="PATCH"
 				on-response="updateSubAuthoResponse">
 		</iron-ajax>
 		<iron-ajax id="updateSubBal"
-				headers='{"Accept": "application/json", "Content-type": "application/json"}'
+				content-type="application/json-patch+json"
+				method="PATCH"
 				on-response="updateSubBalResponse">
 		</iron-ajax>
 		<iron-ajax id="deleteSub"
@@ -315,8 +318,6 @@
 			},
 			updateSubAuthen: function(event) {
 				var editAjax =  document.getElementById("updateSubAuthen");
-				editAjax.method = "PATCH";
-				editAjax.contentType = "application/json";
 				var id = document.getElementById("edit-id1").value;
 				editAjax.url = "/ocs/v1/subscriber/" + id;
 				var sub = new Object();
@@ -336,8 +337,6 @@
 			},
 			updateSubBal: function(event) {
 				var editAjax =  document.getElementById("updateSubBal");
-				editAjax.method = "PATCH";
-				editAjax.contentType = "application/json-patch+json";
 				var id = document.getElementById("edit-id1").value;
 				editAjax.url = "/ocs/v1/subscriber/" + id;
 				var sub = new Object();
@@ -360,8 +359,6 @@
 			},
 			updateSubAutho: function(event) {
 				var editAjax =  document.getElementById("updateSubAutho");
-				editAjax.method = "PATCH";
-				editAjax.contentType = "application/json";
 				var id = document.getElementById("edit-id1").value;
 				editAjax.url = "/ocs/v1/subscriber/" + id;
 				var sub = new Object();

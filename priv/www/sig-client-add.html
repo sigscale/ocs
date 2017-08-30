@@ -197,7 +197,7 @@
 				id="clientAddAjax"
 				url="/ocs/v1/client"
 				method = "post"
-				headers='{"Accept": "application/json", "Content-type": "application/json"}'
+				content-type="application/json"
 				on-loading-changed="_onLoadingChanged"
 				on-response="_clientAddResponse"
 				handle-as="json">

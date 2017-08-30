@@ -112,7 +112,7 @@
 		<iron-ajax
 				id="UpdateUser"
 				method="PATCH"
-				headers='{"Accept": "application/json", "Content-type": "application/json-patch+json"}'
+				content-type="application/json"
 				on-response="_userUpdateResponse"
 				handle-as="json">
 		</iron-ajax>
