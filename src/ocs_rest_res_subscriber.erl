@@ -654,6 +654,7 @@ accumulated_balance1([Bucket | T], AccBalance) ->
 	JsonArray = lists:reverse(lists:foldl(F, [], AB)),
 	{array, JsonArray}.
 %% @hidden
+<<<<<<< HEAD
 accumulated_balance2(#bucket{bucket_type = octets, remain_amount =
 		#remain_amount{unit = Units, amount = Amount}}, AccBalance) ->
 	accumulated_balance3(octets, Units, Amount, AccBalance);
