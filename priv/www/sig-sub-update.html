@@ -24,6 +24,9 @@
 		paper-input {
 			--paper-input-container-focus-color: var(--paper-yellow-900);
 		}
+		.toggle {
+			display:inline-block;
+		}
 		.update-buttons {
 			background: var(--paper-lime-a700);
 			color: black;
@@ -50,16 +53,19 @@
 					<paper-tab id="autho">
 						<h2>[[i18n.AuthorTitle]]</h2>
 					</paper-tab>
+					<paper-tab id="credit-up">
+						<h2>[[i18n.credit]]</h2>
+					</paper-tab>
 				</paper-tabs>
 			</paper-toolbar>
 			<paper-tooltip for="authen">
 				<i18n-msg msgid="AuthTooltip">
-					Credentials used to authenticate subscriber.
+						Credentials used to authenticate subscriber.
 				</i18n-msg>
 			</paper-tooltip>
 			<paper-tooltip for="autho">
 				<i18n-msg msgid="AuthorTooltip">
-					Services authorized for subscriber.
+						Services authorized for subscriber.
 				</i18n-msg>
 			</paper-tooltip>
 			<iron-pages selected="{{selected}}">
@@ -86,7 +92,7 @@
 								onclick="subUpdateModal.close()"
 								class="cancel-btn">
 							<i18n-msg msgid="cancel">
-								Cancel
+									Cancel
 							</i18n-msg>
 						</paper-button>
 						<paper-button
@@ -95,7 +101,7 @@
 								on-click="updateSubAuthen"
 								class="update-buttons">
 							<i18n-msg msgid="update">
-								Update
+									Update
 							</i18n-msg>
 						</paper-button>
 						<paper-button
@@ -104,24 +110,12 @@
 								on-click="deleteSub"
 								class="delete-buttons">
 							<i18n-msg msgid="delete">
-								Delete
+									Delete
 							</i18n-msg>
 						</paper-button>
 					</div>
 				</div>
-				<div id="edit-attributes" >
-					<div>
-						<paper-input id="edit-balance"
-								name="balance"
-								type="number"
-								label="[[i18n.balance]]">
-						</paper-input>
-						<paper-tooltip>
-							<i18n-msg msgid="balTooltip">
-								Credit value, in bytes, against which accounting will debit usage against.
-							</i18n-msg>
-						</paper-tooltip>
-					</div>
+				<div id="edit-attributes">
 					<div>
 						<paper-input id="edit-recv-data-rate"
 								name="ascendDataRate"
@@ -130,7 +124,7 @@
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="dataRateTooltip">
-								Limit on received (download) data per second in bits.
+									Limit on received (download) data per second in bits.
 							</i18n-msg>
 						</paper-tooltip>
 					</div>
@@ -142,7 +136,7 @@
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="xmitRateTooltip">
-								Limit on transmitted (upload) data per second in bits.
+									Limit on transmitted (upload) data per second in bits.
 							</i18n-msg>
 						</paper-tooltip>
 					</div>
@@ -154,7 +148,7 @@
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="sessionTimeoutTooltip">
-								Time between authorization requests in an active session in seconds
+									Time between authorization requests in an active session in seconds
 							</i18n-msg>
 						</paper-tooltip>
 					</div>
@@ -166,7 +160,7 @@
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="intervalTooltip">
-								Time between accouting interim updates in seconds.
+									Time between accouting interim updates in seconds.
 							</i18n-msg>
 						</paper-tooltip>
 					</div>
@@ -176,35 +170,32 @@
 								type="text"
 								label="[[i18n.class]]" >
 						</paper-input>
-					</div>
-					</br>
-					<div>
+					</div></br>
 						<i18n-msg msgid="enable">
-							Enable
+								Enable
 						</i18n-msg>
-						<div style="display:inline-block;">
-							<paper-toggle-button id="edit-enabled">
-							</paper-toggle-button>
-							<paper-tooltip>
-								<i18n-msg msgid="intervalTooltip">
+					<div class="toggle">
+						<paper-toggle-button id="edit-enabled">
+						</paper-toggle-button>
+						<paper-tooltip>
+							<i18n-msg msgid="intervalTooltip">
 									Enabled for service or temporarily disabled.
-								</i18n-msg>
-							</paper-tooltip>
-						</div>
-							<i18n-msg msgid="multi">
-								Multisession
 							</i18n-msg>
-						<div style="display:inline-block;">
-							<paper-toggle-button id="edit-multi-session">
-							</paper-toggle-button>
-						</div>
+						</paper-tooltip>
+					</div>
+						<i18n-msg msgid="multi">
+								Multisession
+						</i18n-msg>
+					<div class="toggle">
+						<paper-toggle-button id="edit-multi-session">
+						</paper-toggle-button>
 					</div><br>
 					<div class="buttons">
 						<paper-button
 								onclick="subUpdateModal.close()"
 								class="cancel-btn">
 							<i18n-msg msgid="cancel">
-								Cancel
+									Cancel
 							</i18n-msg>
 						</paper-button>
 						<paper-button
@@ -213,7 +204,7 @@
 								on-click="updateSubAutho"
 								class="update-buttons">
 							<i18n-msg msgid="update">
-								Update
+									Update
 							</i18n-msg>
 						</paper-button>
 						<paper-button
@@ -222,7 +213,76 @@
 								on-click="deleteSub"
 								class="delete-buttons">
 							<i18n-msg msgid="delete">
-								Delete
+									Delete
+							</i18n-msg>
+						</paper-button>
+					</div>
+				</div>
+				<div id="edit-bal">
+					<div>
+						<paper-input id="edit-amount"
+								name="amount"
+								type="number"
+								label="[[i18n.amount]]">
+						</paper-input>
+						<paper-dropdown-menu
+								id="updateUni"
+								label="[[i18n.unit]]">
+							<paper-listbox
+									slot="dropdown-content"
+									class="dropdown-content"
+									selected="0">
+								<paper-item value="octets">
+									<i18n-msg msgid="octet">
+											octets
+									</i18n-msg>
+								</paper-item>
+								<paper-item value="cents">
+									<i18n-msg msgid="cent">
+										cents
+									</i18n-msg>
+								</paper-item>
+								<paper-item value="seconds">
+									<i18n-msg msgid="second">
+										seconds
+									</i18n-msg>
+								</paper-item>
+							</paper-listbox>
+						</paper-dropdown-menu>
+						<paper-input id="updatePro"
+								name="product"
+								label="[[i18n.prod]]">
+						</paper-input>
+						<paper-tooltip>
+							<i18n-msg msgid="balTooltip">
+									Credit value, against which accounting will debit usage against.
+							</i18n-msg>
+						</paper-tooltip>
+					</div>
+					<div class="buttons">
+						<paper-button
+								onclick="subUpdateModal.close()"
+								class="cancel-btn">
+							<i18n-msg msgid="cancel">
+									Cancel
+							</i18n-msg>
+						</paper-button>
+						<paper-button
+								dialog-confirm
+								autofocus
+								on-click="updateSubBal"
+								class="update-buttons">
+							<i18n-msg msgid="update">
+									Update
+							</i18n-msg>
+						</paper-button>
+						<paper-button
+								toggles
+								raised
+								on-click="deleteSub"
+								class="delete-buttons">
+							<i18n-msg msgid="delete">
+									Delete
 							</i18n-msg>
 						</paper-button>
 					</div>
@@ -236,6 +296,10 @@
 		<iron-ajax id="updateSubAutho"
 				headers='{"Accept": "application/json", "Content-type": "application/json"}'
 				on-response="updateSubAuthoResponse">
+		</iron-ajax>
+		<iron-ajax id="updateSubBal"
+				headers='{"Accept": "application/json", "Content-type": "application/json"}'
+				on-response="updateSubBalResponse">
 		</iron-ajax>
 		<iron-ajax id="deleteSub"
 				handle-as="json"
@@ -273,6 +337,30 @@
 					console.log("Not Success");
 				}
 			},
+			updateSubBal: function(event) {
+				var editAjax =  document.getElementById("updateSubBal");
+				editAjax.method = "PATCH";
+				editAjax.contentType = "application/json-patch+json";
+				var id = document.getElementById("edit-id1").value;
+				editAjax.url = "/ocs/v1/subscriber/" + id;
+				var sub = new Object();
+				sub.op = "add";
+				sub.path = "/buckets/-";
+				var totalBal = {"amount": parseInt(document.getElementById("edit-amount").value)};
+				totalBal.units = document.getElementById("updateUni").value;
+				totalBal.product = document.getElementById("updatePro").value;
+				sub.value = totalBal;
+				editAjax.body = sub;
+				editAjax.generateRequest();
+			},
+			updateSubBalResponse: function (event) {
+				if(event.detail.succeeded) {
+					document.getElementById("edit-toast").open();
+					document.getElementById("getSubs").generateRequest();
+				} else {
+					console.log("Not Success");
+				}
+			},
 			updateSubAutho: function(event) {
 				var editAjax =  document.getElementById("updateSubAutho");
 				editAjax.method = "PATCH";
@@ -281,7 +369,6 @@
 				editAjax.url = "/ocs/v1/subscriber/" + id;
 				var sub = new Object();
 				sub.update = "attributes";
-				sub.balance= parseInt(document.getElementById("edit-balance").value);
 				var attr = new Array();
 				var ascendDataRate = new Object();
 				ascendDataRate.name = "ascendDataRate";
@@ -311,9 +398,7 @@
 				sub.enabled= document.getElementById("edit-enabled").checked;
 				sub.multisession= document.getElementById("edit-multi-session").checked;
 				editAjax.body = sub;
-console.log(sub);
 				editAjax.generateRequest();
-console.log(editAjax);
 			},
 			updateSubAuthoResponse: function (event) {
 				if(event.detail.succeeded) {

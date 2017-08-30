@@ -71,13 +71,13 @@
 			</vaadin-grid-column>
 			<vaadin-grid-column width="12ex" flex-grow="2">
 				<template class="header">
-						<vaadin-grid-sorter path="balance">
-							<vaadin-grid-filter aria-label="[[i18n.balance]]" path="balance" value="[[_filterBalance]]">
+						<vaadin-grid-sorter path="totalBalance">
+							<vaadin-grid-filter aria-label="[[i18n.balance]]" path="totalBalance" value="[[_filterBalance]]">
 								<input placeholder="[[i18n.balance]]" value="{{_filterBalance::input}}" focus-target>
 							</vaadin-grid-filter>
 						</vaadin-grid-sorter>
 				</template>
-				<template>[[item.balance]]</template>
+				<template>[[item.totalBalance]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="9ex" flex-grow="2">
 				<template class="header">
@@ -180,7 +180,7 @@
 							name: "password"
 						},
 						{
-							name: "balance"
+							name: "totalBalance"
 						},
 						{
 							name: "ascendDataRate"
@@ -243,7 +243,7 @@
 						modal.open();
 						document.getElementById("edit-id1").value = item.id;
 						document.getElementById("edit-pwd").value = item.password;
-						document.getElementById("edit-balance").value = item.balance;
+						document.getElementById("edit-bal").value = item.totalBalance;
 						document.getElementById("edit-recv-data-rate").value = item.ascendDataRate;
 						document.getElementById("edit-trans-data-rate").value = item.ascendXmitRate;
 						document.getElementById("edit-sess-timeout").value = item.sessionTimeout;
@@ -265,11 +265,17 @@
 					}
 					grid.pageSize = grid.size;
 					var vaadinItems = new Array();
+					function bala(totalBalance) {
+						return totalBalance.units == "octets";
+					}
 					for (var index in results) {
 						var newRecord = new Object();
 						newRecord.id = results[index].id;
 						newRecord.password = results[index].password;
-						newRecord.balance = results[index].balance;
+						var totalFind = results[index].totalBalance.find(bala);
+						if (totalFind) {
+							newRecord.totalBalance = totalFind.amount;
+						}
 						results[index].attributes.forEach(
 							function(attrObj) {
 								newRecord[attrObj.name] = attrObj.value;

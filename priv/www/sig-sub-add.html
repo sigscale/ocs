@@ -48,6 +48,9 @@
 			--paper-checkbox-checked-color: #ffb04c;
 			--paper-checkbox-checkmark-color: var(--paper-yellow-900);
 		}
+		.toggle {
+         display:inline-block;
+      }
 		.generate {
 			display: inline-block;
 			width: 8em;
@@ -88,6 +91,9 @@
 					<paper-tab id="auth-attr">
 						<h2>[[i18n.AuthorTitle]]</h2>
 					</paper-tab>
+					<paper-tab id="credit-attr">
+						<h2>[[i18n.credit]]</h2>
+					</paper-tab>
 				</paper-tabs>
 			</paper-toolbar>
 			<iron-pages selected="{{selected}}">
@@ -100,14 +106,14 @@
 					</paper-input>
 					<paper-tooltip>
 						<i18n-msg msgid="subTool">
-							Identity, or username, of the subscriber to authenticate.
+								Identity, or username, of the subscriber to authenticate.
 						</i18n-msg>
 					</paper-tooltip>
 					<div class="generate">
 						<paper-checkbox
 							on-change="subcheckchanged">
 							<i18n-msg msgid="gen">
-								Generate
+									Generate
 							</i18n-msg>
 						</paper-checkbox>
 					</div>
@@ -120,14 +126,14 @@
 					</paper-input>
 					<paper-tooltip>
 						<i18n-msg msgid="passwordTooltip">
-							Secret password shared only with the subscriber
+								Secret password shared only with the subscriber
 						</i18n-msg>
 					</paper-tooltip>
 					<div class="generate">
 						<paper-checkbox
 							on-change="subcheckboxchanged">
 							<i18n-msg msgid="gen">
-								Generate
+									Generate
 							</i18n-msg>
 						</paper-checkbox>
 					</div>
@@ -137,18 +143,18 @@
 							raised
 							class="add-button"
 							on-click="_subscriberAddSubmit">
-					<i18n-msg msgid="submit">
-						Submit
-					</i18n-msg>
+						<i18n-msg msgid="submit">
+								Submit
+						</i18n-msg>
 					</paper-button>
 					<paper-button
 							class="cancel-button"
 							dialog-confirm
 							autofocus
 							onclick="subAddModal.close()">
-					<i18n-msg msgid="cancel">
-						Cancel
-					</i18n-msg>
+						<i18n-msg msgid="cancel">
+								Cancel
+						</i18n-msg>
 					</paper-button>
 				</div>
 			</div>
@@ -161,7 +167,7 @@
 					</paper-input>
 					<paper-tooltip>
 						<i18n-msg msgid="dataRateTool">
-							Limit on received (download) data per second in bits.
+								Limit on received (download) data per second in bits.
 						</i18n-msg>
 					</paper-tooltip>
 				</div>
@@ -173,7 +179,7 @@
 					</paper-input>
 					<paper-tooltip>
 						<i18n-msg msgid="xmitRateTool">
-							Limit on transmitted (upload) data per second in bits.
+								Limit on transmitted (upload) data per second in bits.
 						</i18n-msg>
 					</paper-tooltip>
 				</div>
@@ -186,7 +192,7 @@
 					</paper-input>
 					<paper-tooltip>
 						<i18n-msg msgid="sessionTimeoutTool">
-							Time between authorization requests in an active session in seconds.
+								Time between authorization requests in an active session in seconds.
 						</i18n-msg>
 					</paper-tooltip>
 				</div>
@@ -198,7 +204,7 @@
 					</paper-input>
 					<paper-tooltip>
 						<i18n-msg msgid="acctInterimIntervalTool">
-							Time between accounting interim updates in seconds.
+								Time between accounting interim updates in seconds.
 						</i18n-msg>
 					</paper-tooltip>
 				</div>
@@ -207,21 +213,8 @@
 							label="[[i18n.class]]">
 					</paper-input>
 				<div>
-					<paper-input id="add8"
-							name="balance"
-							type="number"
-							label="[[i18n.balance]]"
-							required>
-					</paper-input>
-					<paper-tooltip>
-						<i18n-msg msgid="balanceTool">
-							Initial credit value in bytes, against which accounting will debit usage against.
-						</i18n-msg>
-					</paper-tooltip>
-				</div>
-				<div>
 					<i18n-msg msgid="enable">
-						Enable
+							Enable
 					</i18n-msg>
 					<div style="display:inline-block;">
 						<paper-toggle-button id="add9" 
@@ -229,37 +222,94 @@
 						</paper-toggle-button>
 						<paper-tooltip>
 							<i18n-msg msgid="enableTool">
-								Temporarily enable, or disable, authorization for service.
+									Temporarily enable, or disable, authorization for service.
 							</i18n-msg>
 						</paper-tooltip>
 					</div>
 						<i18n-msg msgid="multi">
-							Multisession
+								Multisession
 						</i18n-msg>
-					<div style="display:inline-block;">
+					<div class="toggle">
 						<paper-toggle-button id="add10" 
 							name="multi-session">
 						</paper-toggle-button>
 					</div>
 				</div><br>
 					<div class="buttons">
-					<paper-button
-							raised
-							class="add-button"
-							on-click="_subscriberAddSubmit">
-						<i18n-msg msgid="submit">
-							Submit
-						</i18n-msg>
+						<paper-button
+								raised
+								class="add-button"
+								on-click="_subscriberAddSubmit">
+							<i18n-msg msgid="submit">
+									Submit
+							</i18n-msg>
 						</paper-button>
 						<paper-button
 								class="cancel-button"
 								dialog-confirm
 								autofocus
 								onclick="subAddModal.close()">
-						<i18n-msg msgid="cancel">
-							Cancel
-						</i18n-msg>
-					</paper-button>
+							<i18n-msg msgid="cancel">
+									Cancel
+							</i18n-msg>
+						</paper-button>
+					</div>
+				</div>
+			<div id=add-divtwo>
+				<div>
+					<paper-input id="add8"
+							name="amount"
+							type="number"
+							label="[[i18n.amount]]">
+					</paper-input>
+					<paper-dropdown-menu
+							id="adduni9"
+							label="[[i18n.unit]]">
+							<paper-listbox
+								slot="dropdown-content"
+								class="dropdown-content"
+								selected="0">
+								<paper-item value="octets">
+									<i18n-msg msgid="octet">
+                                 octets
+                           </i18n-msg>
+								</paper-item>
+								<paper-item value="cents">
+									<i18n-msg msgid="cent">
+                              cents
+                           </i18n-msg>
+								</paper-item>
+								<paper-item value="seconds">
+									<i18n-msg msgid="second">
+                              seconds
+                           </i18n-msg>
+								</paper-item>
+							</paper-listbox>
+					</paper-dropdown-menu>
+					<paper-input id="addpro10"
+							name="product"
+							type="string"
+							label="[[i18n.prod]]">
+					</paper-input>
+					<div class="buttons">
+						<paper-button
+								raised
+								class="add-button"
+								on-click="_subscriberAddSubmit">
+							<i18n-msg msgid="submit">
+									Submit
+							</i18n-msg>
+						</paper-button>
+						<paper-button
+								class="cancel-button"
+								dialog-confirm
+								autofocus
+								onclick="subAddModal.close()">
+							<i18n-msg msgid="cancel">
+									Cancel
+							</i18n-msg>
+						</paper-button>
+					</div>
 				</div>
 			</div>
 			</iron-pages>
@@ -274,7 +324,7 @@
 							<paper-button id="toastErrorClose"
 									onclick="toastErrorClose()">
 								<i18n-msg msgid="close">
-									Close
+										Close
 								</i18n-msg>
 							</paper-button>
 						</div>
@@ -285,17 +335,17 @@
 				</div>
 		</paper-dialog>
 		<paper-dialog id="subSecretModal" class="generated" modal>
-				<paper-toolbar>
+			<paper-toolbar>
 				<h2>[[i18n.serverGen]]</h2>
 			</paper-toolbar>
 			<paper-icon-item>
 				<paper-item-body two-line>
 					<div>
 						<iron-icon icon="icons:perm-identity" item-icon></iron-icon>
-						[[i18n.identity]]&#58;
+								[[i18n.identity]]&#58;
 					</div>
 					<div secondary>
-						[[identity]]
+								[[identity]]
 					</div>
 				</paper-item-body>
 			</paper-icon-item>
@@ -303,17 +353,17 @@
 				<paper-item-body two-line>
 					<div>
 						<iron-icon icon="communication:vpn-key" item-icon></iron-icon>
-						[[i18n.password]]&#58;
+								[[i18n.password]]&#58;
 					</div>
 					<div secondary>
-						[[password]]
+								[[password]]
 					</div>
 				</paper-item-body>
 			</paper-icon-item>
 			<div class="close">
 				<paper-button dialog-confirm autofocus>
 					<i18n-msg msgid="close">
-						Close
+							Close
 					</i18n-msg>
 				</paper-button>
 			</div>
@@ -389,7 +439,11 @@
 					}
 				}
 				subscriber.attributes = attributes;
-				subscriber.balance = parseInt(document.getElementById("add8").value);
+				var buckets = [];
+				buckets.push({"amount": parseInt(document.getElementById("add8").value),
+				"units": document.getElementById("adduni9").value,
+				"product": document.getElementById("addpro10").value});
+				subscriber.buckets = buckets;
 				subscriber.enabled= document.getElementById("add9").checked;
 				subscriber.multisession= document.getElementById("add10").checked;
 				var ajax = document.getElementById("subAddAjax");
