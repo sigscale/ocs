@@ -89,8 +89,9 @@ filter(Filters, {struct, L} = _Object) when is_list(Filters) ->
 		false ->
 			Filters
 	end,
-	Filters2 = [string:tokens(F, ".") || F <- Filters1],
-	{struct, filter1(lists:usort(Filters2), L, [])}.
+	Filters2 = string:tokens(Filters1, ","),
+	Filters3 = [string:tokens(F, ".") || F <- Filters2],
+	{struct, filter1(lists:usort(Filters3), L, [])}.
 
 -spec range(Range) -> Result
 	when
@@ -180,7 +181,12 @@ filter4(Filters, [{struct, L} | T], Acc) ->
 		false ->
 			filter4(Filters, T, Acc);
 		NewFilters ->
-			filter4(NewFilters, T, [{struct, filter2(NewFilters, L, [])} | Acc])
+			case filter2(NewFilters, L, []) of
+				[] ->
+					filter4(NewFilters, T, Acc);
+				L1 ->
+					filter4(NewFilters, T, [{struct, L1} | Acc])
+			end
 	end;
 filter4(Filters, [{array, L} | T], Acc) ->
 	filter4(Filters, T, [{array, filter4(Filters, L, [])} | Acc]);
@@ -191,6 +197,8 @@ filter4(Filters, [{Key, _Value} = KV | T], Acc) ->
 		false ->
 			filter4(Filters, T, Acc)
 	end;
+filter4(Filters, [_ | T], Acc) ->
+	filter4(Filters, T, Acc);
 filter4(_, [], Acc) ->
 	lists:reverse(Acc).
 %% @hidden
