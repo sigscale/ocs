@@ -300,9 +300,10 @@ post_subscriber(RequestBody) ->
 				F = fun({struct, Bucket}, AccIn) ->
 					{_, Amount} = lists:keyfind("amount", 1, Bucket),
 					{_, Units} = lists:keyfind("units", 1, Bucket),
+					BucketType = bucket_type(Units),
 					_Product = proplists:get_value("product", Bucket, ""),
-					BR = #bucket{remain_amount =
-						#remain_amount{unit = Unit, amount = Amount}},
+					BR = #bucket{bucket_type = BucketType, remain_amount =
+						#remain_amount{unit = Units, amount = Amount}},
 					[BR | AccIn]
 				end,
 				{lists:reverse(lists:foldl(F, [], BktStruct)), {array, BktStruct}};
@@ -688,6 +689,21 @@ get_balance1([], Balance) ->
 get_balance1([#bucket{remain_amount = #remain_amount{amount = RemAmnt}}
 		| Tail], Balance) ->
 	get_balance1(Tail, RemAmnt + Balance).
+
+-spec bucket_type(SBucketType) -> BucketType
+	when
+		SBucketType	:: string(),
+		BucketType	:: octets | cents | seconds.
+%% @doc return the bucket type.
+bucket_type(BucketType) ->
+	bucket_type1(string:to_lower(BucketType)).
+%% @hidden
+bucket_type1("octets") ->
+	octets;
+bucket_type1("cents") ->
+	cents;
+bucket_type1("seconds") ->
+	seconds.
 
 -spec update_subscriber(Identity, Password, Attributes, Buckets, EnabledStatus, MultiSession, Etag) ->
 		Result when

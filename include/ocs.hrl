@@ -75,7 +75,7 @@
 -record(bucket,
 		{id :: string(),
 		name :: string(),
-		buckt_type :: octets | cents | seconds,
+		bucket_type :: octets | cents | seconds,
 		remain_amount :: #remain_amount{}}).
 
 %% define subscriber table entries record
