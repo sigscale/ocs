@@ -657,8 +657,8 @@ accumulated_balance2(#bucket{remain_amount =
 		#remain_amount{unit = "octets", amount = Amount}}, AccBalance) ->
 	accumulated_balance3(octets, Amount, AccBalance);
 accumulated_balance2(#bucket{remain_amount =
-		#remain_amount{unit = cents, amount = Amount}}, AccBalance) ->
-	accumulated_balance3("cents", Amount, AccBalance);
+		#remain_amount{unit = "cents", amount = Amount}}, AccBalance) ->
+	accumulated_balance3(cents, Amount, AccBalance);
 accumulated_balance2(#bucket{remain_amount =
 		#remain_amount{unit = "seconds", amount = Amount}}, AccBalance) ->
 	accumulated_balance3(seconds, Amount, AccBalance);
