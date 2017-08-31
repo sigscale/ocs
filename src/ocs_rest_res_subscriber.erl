@@ -645,6 +645,59 @@ validate_operation(Operation) ->
 			{error, 400}
 	end.
 
+-spec patch_replace(Path , Value, Subscriber) -> Result
+	when
+		Path			:: string(),
+		Value			:: string(),
+		Subscriber	:: #subscriber{},
+		Result		:: ok | {error, Reason},
+		Reason		:: term().
+%% @doc replace the give value with given target path.
+patch_replace(Path , Value, Subscriber) ->
+	[Target] = string:tokens(Path, "/"),
+	patch_replace1(Target , Value, Subscriber).
+%% @hidden
+patch_replace1("name", Value, Subscriber) ->
+	UpdateSubscriber =
+		Subscriber#subscriber{name = list_to_binary(Value)},
+	do_write(UpdateSubscriber);
+patch_replace1("password", Value, Subscriber) ->
+	UpdateSubscriber =
+		Subscriber#subscriber{password = list_to_binary(Value)},
+	do_write(UpdateSubscriber);
+patch_replace1("attributes", Value, Subscriber) ->
+	RadAttributes = json_to_radius(Value),
+	UpdateSubscriber =
+		Subscriber#subscriber{attributes = RadAttributes},
+	do_write(UpdateSubscriber);
+patch_replace1("enabled", Value, Subscriber) ->
+	Enabled = case Value of
+		"true" ->
+			true;
+		"false" ->
+			false
+	end,
+	UpdateSubscriber =
+		Subscriber#subscriber{enabled = Enabled},
+	do_write(UpdateSubscriber);
+patch_replace1("multisession", Value, Subscriber) ->
+	MultiSession = case Value of
+		"true" ->
+			true;
+		"false" ->
+			false
+	end,
+	UpdateSubscriber =
+		Subscriber#subscriber{multisession = MultiSession},
+	do_write(UpdateSubscriber).
+
+
+-spec do_write(Record) -> ok.
+	Record :: #subscriber{}.
+%% @hidden
+do_write(Record) ->
+	mnesia:write(Record).
+
 -spec accumulated_balance(Buckets) ->	AccumulatedBalance
 	when
 		Buckets					:: [#bucket{}],
