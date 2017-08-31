@@ -774,9 +774,9 @@ accumulated_balance2(#bucket{bucket_type = cents, remain_amount =
 	accumulated_balance3(cents, Units, Amount, AccBalance);
 accumulated_balance2(#bucket{bucket_type = seconds, remain_amount =
 		#remain_amount{unit = Units, amount = Amount}}, AccBalance) ->
-	accumulated_balance3(seconds, Units, Amount, AccBalance);
-accumulated_balance2([], AccBalance) ->
-	AccBalance.
+	accumulated_balance3(seconds, Units, Amount, AccBalance).
+%accumulated_balance2([], AccBalance) ->
+%	AccBalance.
 %% @hidden
 accumulated_balance3(Key, Units, Amount, AccBalance) ->
 	case lists:keytake(Key, 1, AccBalance) of
