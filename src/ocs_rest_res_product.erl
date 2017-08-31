@@ -124,26 +124,22 @@ add_product2(JsonResponse) ->
 %% @private
 product_offering_price(POfPrice) ->
 	try
-		F = fun(ProductJson, AccIn) ->
-				{struct, Object} = mochijson:decode(ProductJson),
+		F = fun({struct, Object}, AccIn) ->
 				{_, ProdName} = lists:keyfind("name", 1, Object),
-				{_, ProdVF} = lists:keyfind("validFor", 1, Object),
-				{struct, VFObj} = mochijson:decode(ProdVF),
+				{_,  {struct, VFObj}} = lists:keyfind("validFor", 1, Object),
 				{_, ProdSTime} = lists:keyfind("startDateTime", 1, VFObj),
 				{_, ProdETime} = lists:keyfind("endDateTime", 1, VFObj),
 				{_, ProdPriceTypeS} = lists:keyfind("priceType", 1, Object),
-				{_, ProdPrice} = lists:keyfind("price", 1, Object),
-				{struct, ProdPriceObj} = mochijson:decode(ProdPrice),
-				{_, TaxPAmount} = lists:keyfind("taxIncludedAmount", 1, ProdPriceObj),
+				{_, {struct, ProdPriceObj}} = lists:keyfind("price", 1, Object),
+				{_, ProdAmount} = lists:keyfind("taxIncludedAmount", 1, ProdPriceObj),
 				{_, CurrencyCode} = lists:keyfind("currencyCode", 1, ProdPriceObj),
 				{_, RCPeriodS} = lists:keyfind("recurringChargePeriod", 1, Object),
 				ProdDescirption = proplists:get_value("description", Object, ""),
 				ProdUOMesasure = proplists:get_value("unitOfMeasure", Object, ""),
 				ProdValidity = validity_period(ProdSTime, ProdETime),
 				ProdPriceType = price_type(ProdPriceTypeS),
-				ProdAmount = list_to_integer(TaxPAmount),
 				{ProdUnits, ProdSize} = product_unit_of_measure(ProdUOMesasure),
-				RCPeriod = recurring_charge_period(RCPeriodS),
+				RCPeriod = "",% recurring_charge_period(RCPeriodS),
 				Price1 = #price{name = ProdName, description = ProdDescirption,
 					type = ProdPriceType, units = ProdUnits, size = ProdSize,
 					currency = CurrencyCode, period = RCPeriod, validity = ProdValidity,
@@ -151,21 +147,18 @@ product_offering_price(POfPrice) ->
 				case lists:keyfind("productOfferPriceAlteration", 1, Object) of
 					false ->
 						[Price1 | AccIn];
-					{_, ProdAlterObj} ->
+					{_, {struct, ProdAlterObj}} ->
 						{_, ProdAlterName} = lists:keyfind("name", 1, ProdAlterObj),
-						{_, ProdAlterValidFor} = lists:keyfind("validFor", 1, ProdAlterObj),
-						{struct, ProdAlterVFObj} = mochijson:decode(ProdAlterValidFor),
+						{_, {struct, ProdAlterVFObj}} = lists:keyfind("validFor", 1, ProdAlterObj),
 						{_, ProdAlterSTimeISO} = lists:keyfind("startDateTime", 1, ProdAlterVFObj),
 						{_, ProdAlterPriceTypeS} = lists:keyfind("priceType", 1, ProdAlterObj),
 						{_, ProdAlterUOMeasure} = lists:keyfind("unitOfMeasure", 1, ProdAlterObj),
-						{_, ProdAlterPrice} = lists:keyfind("price", 1, ProdAlterObj),
-						{struct, ProdAlterPriceObj} = mochijson:decode(ProdAlterPrice),
-						{_, ProdAlterAmountS} = lists:keyfind("amount", ProdAlterPriceObj),
+						{_, {struct, ProdAlterPriceObj}} = lists:keyfind("price", 1, ProdAlterObj),
+						{_, ProdAlterAmount} = lists:keyfind("taxIncludedAmount", 1,  ProdAlterPriceObj),
 						ProdAlterDescirption = proplists:get_value("description", ProdAlterObj, ""),
 						{ProdAlterUnits, ProdAlterSize} = product_unit_of_measure(ProdAlterUOMeasure),
 						ProdAlterSTime = timestamp(ProdAlterSTimeISO),
 						ProdAlterPriceType = price_type(ProdAlterPriceTypeS),
-						ProdAlterAmount = list_to_integer(ProdAlterAmountS),
 						Alteration = #alteration{name = ProdAlterName, description = ProdAlterDescirption,
 							units = ProdAlterUnits , size = ProdAlterSize, amount = ProdAlterAmount},
 						Price2 = Price1#price{alteration = Alteration},
