@@ -73,9 +73,9 @@ add_product(ReqData) ->
 		{_, ProdOfPriceObj} = lists:keyfind("productOfferingPrice", 1, Object),
 		{array, ProdOfPrice} = mochijson:decode(ProdOfPriceObj),
 		Price = product_offering_price(ProdOfPrice),
-		Product = #product{price = Price, name = Name, is_bundle = IsBundle,
-			status = Status},
 		Descirption = proplists:get_value("description", Object, ""),
+		Product = #product{price = Price, name = Name, is_bundle = IsBundle,
+			status = Status, description = Descirption},
 		case add_product1(Product) of
 			ok ->
 				add_product2(Object);
