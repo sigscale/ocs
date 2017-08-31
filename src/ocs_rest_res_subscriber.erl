@@ -617,6 +617,34 @@ validate_operation(Operation) ->
 	OpT = lists:keyfind("op", 1, Operation),
 	PathT = lists:keyfind("path", 1, Operation),
 	ValueT = lists:keyfind("value", 1, Operation),
+	case OpT of
+		{_, "replace"} ->
+			validate_operation1(replace, OpT, PathT, ValueT);
+		{_, "add"} ->
+			validate_operation1(add, OpT, PathT, ValueT);
+		_ ->
+			{error, 400}
+	end.
+%% @hidden
+validate_operation1(replace, {_, Op} = OpT, PathT, ValueT) ->
+	Members = ["name", "password, attributes",
+		"enabled", "multisession"],
+	case lists:keymember(Op, Members) of
+		true ->
+			validate_operation2(OpT, PathT, ValueT);
+		false ->
+			{error, 400}
+	end;
+validate_operation1(add, {_, Op} = OpT, PathT, ValueT) ->
+	Members = ["buckets"],
+	case lists:keymember(Op, Members) of
+		true ->
+			validate_operation2(OpT, PathT, ValueT);
+		false ->
+			{error, 400}
+	end.
+%% @hidden
+validate_operation2(OpT, PathT, ValueT) ->
 	case {OpT, PathT, ValueT} of
 		{{_, Op}, {_, Path}, {_, Value}} ->
 			{Op, Path, Value};
@@ -738,9 +766,9 @@ accumulated_balance1([], AccBalance) ->
 				[Obj | AccIn]
 	end,
 	JsonArray = lists:reverse(lists:foldl(F, [], AccBalance)),
-	{array, JsonArray}.
+	{array, JsonArray};
 accumulated_balance1([Bucket | T], AccBalance) ->
-	accumulated_balance1(T, accumulated_balance2(Bucket, AccBalance)),
+	accumulated_balance1(T, accumulated_balance2(Bucket, AccBalance)).
 %% @hidden
 accumulated_balance2(#bucket{bucket_type = octets, remain_amount =
 		#remain_amount{unit = Units, amount = Amount}}, AccBalance) ->
