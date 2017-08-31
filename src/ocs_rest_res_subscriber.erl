@@ -629,7 +629,7 @@ validate_operation(Operation) ->
 validate_operation1(replace, {_, Op} = OpT, PathT, ValueT) ->
 	Members = ["name", "password, attributes",
 		"enabled", "multisession"],
-	case lists:keymember(Op, Members) of
+	case lists:member(Op, Members) of
 		true ->
 			validate_operation2(OpT, PathT, ValueT);
 		false ->
@@ -637,7 +637,7 @@ validate_operation1(replace, {_, Op} = OpT, PathT, ValueT) ->
 	end;
 validate_operation1(add, {_, Op} = OpT, PathT, ValueT) ->
 	Members = ["buckets"],
-	case lists:keymember(Op, Members) of
+	case lists:member(Op, Members) of
 		true ->
 			validate_operation2(OpT, PathT, ValueT);
 		false ->
