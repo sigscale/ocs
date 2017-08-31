@@ -579,8 +579,8 @@ execute_json_patch_operations(Id, Etag, OpList) ->
 							ok = patch_replace(Path, Value, Entry);
 						{"add", Path, Value} ->
 							ok = patch_add(Path, Value, Entry);
-						{error, Status} ->
-							throw(Status)
+						{error, malformed_request} ->
+							throw(malformed_request)
 					end
 				end,
 				lists:foreach(F2, OpList),
@@ -595,6 +595,8 @@ execute_json_patch_operations(Id, Etag, OpList) ->
 	case mnesia:transaction(F) of
 		{atomic, Subscriber} ->
 			{ok, Subscriber};
+		{aborted, {throw, malformed_request}} ->
+			{error, 400};
 		{aborted, {throw, not_found}} ->
 			{error, 404};
 		{aborted, {throw, precondition_failed}} ->
@@ -606,13 +608,13 @@ execute_json_patch_operations(Id, Etag, OpList) ->
 -spec validate_operation(Operation) -> Result
 	when
 		Operation	:: [tuple()],
-		Result		:: {Op, Path, Value} | {error, StatusCode},
+		Result		:: {Op, Path, Value} | {error, Reason},
 		Op				:: string(),
 		Path			:: string(),
 		Value			:: string() | tuple(),
-		StatusCode	:: 400.
+		Reason		:: malformed_request.
 %% @doc validate elements in an operation object and return
-%% `op', `path' and `value' or error status code.
+%% `op', `path' and `value' or reason for failed.
 validate_operation(Operation) ->
 	OpT = lists:keyfind("op", 1, Operation),
 	PathT = lists:keyfind("path", 1, Operation),
@@ -623,7 +625,7 @@ validate_operation(Operation) ->
 		{_, "add"} ->
 			validate_operation1(add, OpT, PathT, ValueT);
 		_ ->
-			{error, 400}
+			{error, malformed_request}
 	end.
 %% @hidden
 validate_operation1(replace, OpT, {_, Path} = PathT, ValueT) ->
@@ -634,7 +636,7 @@ validate_operation1(replace, OpT, {_, Path} = PathT, ValueT) ->
 		true ->
 			validate_operation2(OpT, PathT, ValueT);
 		false ->
-			{error, 400}
+			{error, malformed_request}
 	end;
 validate_operation1(add, OpT, {_, Path} = PathT, ValueT) ->
 	[Target | _] = string:tokens(Path, "/"),
@@ -643,7 +645,7 @@ validate_operation1(add, OpT, {_, Path} = PathT, ValueT) ->
 		true ->
 			validate_operation2(OpT, PathT, ValueT);
 		false ->
-			{error, 400}
+			{error, malformed_request}
 	end.
 %% @hidden
 validate_operation2(OpT, PathT, ValueT) ->
@@ -651,7 +653,7 @@ validate_operation2(OpT, PathT, ValueT) ->
 		{{_, Op}, {_, Path}, {_, Value}} ->
 			{Op, Path, Value};
 		_ ->
-			{error, 400}
+			{error, malformed_request}
 	end.
 
 -spec patch_replace(Path , Value, Subscriber) -> ok
