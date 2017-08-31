@@ -70,16 +70,20 @@ add_product(ReqData) ->
 			false ->
 				"active"
 		end,
-		{_, {array, ProdOfPrice}} = lists:keyfind("productOfferingPrice", 1, Object),
-		Price = product_offering_price(ProdOfPrice),
 		Descirption = proplists:get_value("description", Object, ""),
-		Product = #product{price = Price, name = Name, is_bundle = IsBundle,
-			status = Status, description = Descirption},
-		case add_product1(Product) of
-			ok ->
-				add_product2(Object);
+		{_, {array, ProdOfPrice}} = lists:keyfind("productOfferingPrice", 1, Object),
+		case product_offering_price(ProdOfPrice) of
 			{error, StatusCode} ->
-				{error, StatusCode}
+				{error, StatusCode};
+			Price ->
+				Product = #product{price = Price, name = Name, is_bundle = IsBundle,
+				status = Status, description = Descirption},
+				case add_product1(Product) of
+					ok ->
+						add_product2(Object);
+					{error, StatusCode} ->
+						{error, StatusCode}
+				end
 		end
 	catch
 		_:_ ->
