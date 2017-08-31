@@ -92,7 +92,7 @@
 			id="AddUserAjax"
 			url="/partyManagement/v1/individual"
 			method = "post"
-			headers='{"Accept": "application/json", "Content-type": "application/json"}'
+			content-type="application/json"
 			on-loading-changed="_onLoadingChanged"
 			on-response="_userFormResponse"
 			handle-as="json">

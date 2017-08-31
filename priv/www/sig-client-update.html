@@ -101,8 +101,7 @@
 								Cancel
 							</i18n-msg>
 						</paper-button>
-						<paper-button
-								dialog-confirm
+						<paper-button dialog-confirm
 								autofocus
 								on-click="updateClientAuthen"
 								class="update-buttons">
@@ -163,8 +162,7 @@
 								Cancel
 							</i18n-msg>
 						</paper-button>
-						<paper-button
-								dialog-confirm
+						<paper-button dialog-confirm
 								autofocus
 								on-click="_updateClientProperties"
 								class="update-buttons">
@@ -186,11 +184,13 @@
 			</iron-pages>
 		</paper-dialog>
 		<iron-ajax id="updateClientAuthen"
-				headers='{"Accept": "application/json", "Content-type": "application/json"}'
+				content-type="application/json"
+				method="PATCH"
 				on-response="updateClientAuthenResponse">
 		</iron-ajax>
 		<iron-ajax id="updateClientProperties"
-				headers='{"Accept": "application/json", "Content-type": "application/json"}'
+				content-type="application/json"
+				method="PATCH"
 				on-response="updateClientPropertiesResponse">
 		</iron-ajax>
 		<iron-ajax id="deleteClient"
@@ -210,8 +210,6 @@
 			},
 			updateClientAuthen: function(event) {
 				var editAjax =  document.getElementById("updateClientAuthen");
-				editAjax.method = "PATCH";
-				editAjax.contentType = "application/json";
 				var id = document.getElementById("edit-client-id1").value;
 				editAjax.url = "/ocs/v1/client/" + id;
 				var client = new Object();
@@ -230,8 +228,6 @@
 			},
 			_updateClientProperties: function(event) {
 				var editAjax =  document.getElementById("updateClientProperties");
-				editAjax.method = "PATCH";
-				editAjax.contentType = "application/json";
 				var id = document.getElementById("edit-client-id1").value;
 				editAjax.url = "/ocs/v1/client/" + id;
 				var client = new Object();

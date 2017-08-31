@@ -459,6 +459,34 @@
     "description": "sorting",
     "message": "Sorting"
   },
+	"credit": {
+    "description": "Balance management",
+    "message": "Credit"
+  },
+	"amount": {
+    "description": "Balance amount",
+    "message": "Amount"
+  },
+	"unit": {
+    "description": "Balance units",
+    "message": "Units"
+  },
+	"octet": {
+    "description": "unit types",
+    "message": "octets"
+  },
+	"cent": {
+    "description": "unit types",
+    "message": "cents"
+  },
+	"second": {
+    "description": "unit types",
+    "message": "seconds"
+  },
+	"prod": {
+    "description": "Balance types",
+    "message": "product"
+  },
 	"multi": {
     "description": "Multi session allowed",
     "message": "Multisession"

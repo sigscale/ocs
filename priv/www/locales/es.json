@@ -463,6 +463,34 @@
     "description": "sorting",
     "message": "Clasificación"
   },
+	"credit": {
+    "description": "Balance management",
+    "message": "Crédito"
+  },
+	"amount": {
+    "description": "Balance amount",
+    "message": "Cantidad"
+  },
+   "unit": {
+    "description": "Balance units",
+    "message": "Unidades"
+  },
+	"octet": {
+    "description": "unit types",
+    "message": "octetos"
+  },
+	"cent": {
+    "description": "unit types",
+    "message": "centavos"
+  },
+	"second": {
+    "description": "unit types",
+    "message": "segundos"
+  },
+	"prod": {
+    "description": "Balance types",
+    "message": "producto"
+  },
 	"multi": {
     "description": "Multi session allowed",
     "message": "Sesión múltiple"
