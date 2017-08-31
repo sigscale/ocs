@@ -246,6 +246,21 @@ product_unit_of_measure3(UnitsOfMeasure) ->
 product_unit_of_measure4(_UnitsOfMeasure) ->
 	{octets, 0}.
 
+-spec recurring_charge_period(RCPeriod) -> Result
+	when
+		RCPeriod	:: string(),
+		Result	:: valid_period().
+%% @doc return valid period
+%% @private
+recurring_charge_period("yearly") ->
+	yearly;
+recurring_charge_period("monthly") ->
+	monthly;
+recurring_charge_period("weekly") ->
+	weekly;
+recurring_charge_period("daily") ->
+	daily.
+
 -spec find_status(StringStatus) -> Status when
 	StringStatus	:: string(),
 	Status			:: product_status().
