@@ -70,8 +70,7 @@ add_product(ReqData) ->
 			false ->
 				"active"
 		end,
-		{_, ProdOfPriceObj} = lists:keyfind("productOfferingPrice", 1, Object),
-		{array, ProdOfPrice} = mochijson:decode(ProdOfPriceObj),
+		{_, {array, ProdOfPrice}} = lists:keyfind("productOfferingPrice", 1, Object),
 		Price = product_offering_price(ProdOfPrice),
 		Descirption = proplists:get_value("description", Object, ""),
 		Product = #product{price = Price, name = Name, is_bundle = IsBundle,
