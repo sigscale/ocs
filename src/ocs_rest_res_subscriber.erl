@@ -627,7 +627,7 @@ execute_json_patch_operations(Id, Etag, OpList) ->
 			{error, 400}
 	end.
 
--spec validate_operation(Operation) -> Result.
+-spec validate_operation(Operation) -> Result
 	when
 		Operation	:: [tuple()],
 		Result		:: {Op, Path, Value} | {error, StatusCode},
@@ -638,9 +638,9 @@ execute_json_patch_operations(Id, Etag, OpList) ->
 %% @doc validate elements in an operation object and return
 %% `op', `path' and `value' or error status code.
 validate_operation(Operation) ->
-	OpT = lists:keyfind("op", 1, OpObj),
-	PathT = lists:keyfind("path", 1, OpObj),
-	ValueT = lists:keyfind("value", 1, OpObj),
+	OpT = lists:keyfind("op", 1, Operation),
+	PathT = lists:keyfind("path", 1, Operation),
+	ValueT = lists:keyfind("value", 1, Operation),
 	case {OpT, PathT, ValueT} of
 		{{_, Op}, {_, Path}, {_, Value}} ->
 			{Op, Path, Value};
