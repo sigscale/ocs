@@ -59,7 +59,7 @@ content_types_provided() ->
 add_product(ReqData) ->
 	try
 		{struct, Object} = mochijson:decode(ReqData),
-		{_, _Name} = lists:keyfind("name", 1, Object),
+		{_, Name} = lists:keyfind("name", 1, Object),
 		IsBundle = case lists:keyfind("isBundle", 1, Object) of
 			{"isBundle", "true"} -> true;
 			_ -> false
@@ -76,7 +76,7 @@ add_product(ReqData) ->
 		Product = #product{price = Price, name = Name, is_bundle = IsBundle,
 			status = Status},
 		Descirption = proplists:get_value("description", Object, ""),
-		case add_product1(Prodcut) of
+		case add_product1(Product) of
 			ok ->
 				add_product2(Object);
 			{error, StatusCode} ->
@@ -145,13 +145,13 @@ product_offering_price(POfPrice) ->
 					type = ProdPriceType, units = ProdUnits, size = ProdSize,
 					currency = CurrencyCode, period = RCPeriod, validity = ProdValidity,
 					amount = ProdAmount},
-				case lists:keyfind("productOfferPriceAlteration", 1, PriceObject) of
+				case lists:keyfind("productOfferPriceAlteration", 1, Object) of
 					false ->
 						[Price1 | AccIn];
 					{_, ProdAlterObj} ->
 						{_, ProdAlterName} = lists:keyfind("name", 1, ProdAlterObj),
 						{_, ProdAlterValidFor} = lists:keyfind("validFor", 1, ProdAlterObj),
-						{struct, ProdAlterVFObj} = mochijson:decode(ProdAlterVFObj),
+						{struct, ProdAlterVFObj} = mochijson:decode(ProdAlterValidFor),
 						{_, ProdAlterSTimeISO} = lists:keyfind("startDateTime", 1, ProdAlterVFObj),
 						{_, ProdAlterPriceTypeS} = lists:keyfind("priceType", 1, ProdAlterObj),
 						{_, ProdAlterUOMeasure} = lists:keyfind("unitOfMeasure", 1, ProdAlterObj),
@@ -159,13 +159,12 @@ product_offering_price(POfPrice) ->
 						{struct, ProdAlterPriceObj} = mochijson:decode(ProdAlterPrice),
 						{_, ProdAlterAmountS} = lists:keyfind("amount", ProdAlterPriceObj),
 						ProdAlterDescirption = proplists:get_value("description", ProdAlterObj, ""),
-						{ProdAlterUnits, ProdAlterSize} = product_unit_of_measure(ProdAlterUOMesasure),
+						{ProdAlterUnits, ProdAlterSize} = product_unit_of_measure(ProdAlterUOMeasure),
 						ProdAlterSTime = timestamp(ProdAlterSTimeISO),
-						ProdAlterPriceType = price_type(ProdAlterPriceType),
+						ProdAlterPriceType = price_type(ProdAlterPriceTypeS),
 						ProdAlterAmount = list_to_integer(ProdAlterAmountS),
 						Alteration = #alteration{name = ProdAlterName, description = ProdAlterDescirption,
-							type = ProdAlterPriceType, units = ProdAlterUnits , size = ProdAlterSize,
-							amount = ProdAlterAmount},
+							units = ProdAlterUnits , size = ProdAlterSize, amount = ProdAlterAmount},
 						Price2 = Price1#price{alteration = Alteration},
 						[Price2 | AccIn]
 					end
@@ -180,7 +179,7 @@ product_offering_price(POfPrice) ->
 -spec validity_period(StartTime, EndTime) -> Result
 	when
 		StartTime	:: string(),
-		EndTimeTime	:: string(),
+		EndTime		:: string(),
 		Result		:: pos_integer() | {error, Reason},
 		Reason		:: term().
 %% @doc return validity period of a product in milliseconds.
@@ -195,7 +194,7 @@ validity_period(ISOSTime, ISOETime) when is_list(ISOSTime),
 			{error, format_error}
 	end.
 
--spec product_unit_of_measure(UnitsOfMeasure) -> Reasult
+-spec product_unit_of_measure(UnitsOfMeasure) -> Result
 	when
 		UnitsOfMeasure	:: string(),
 		Result			:: {Units, Size},
