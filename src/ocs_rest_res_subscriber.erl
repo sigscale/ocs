@@ -578,53 +578,50 @@ validated_operations(UAttr) ->
 
 -spec execute_json_patch_operations(Id, Etag, OpList) ->
 		{ok, Subscriber} | {error, Status} when
-	Id :: string(),
-	Etag :: undefined | tuple(),
-	OpList :: [tuple()],
-	Subscriber :: #subscriber{},
-	Status :: 412 | 404 | 500.
+	Id				:: string(),
+	Etag			:: undefined | tuple(),
+	OpList		:: [{struct, [tuple()]}],
+	Subscriber	:: #subscriber{},
+	Status		:: 412 | 404 | 500.
 %% @doc Execute json-patch opearations and return subscriber record
 %% @private
+execute_json_patch_operations(Id, Etag, OpList) when is_list(Id) ->
+	BinId = list_to_binary(Id),
+	execute_json_patch_operations(BinId, Etag, OpList);
 execute_json_patch_operations(Id, Etag, OpList) ->
-	try
-		Password = proplists:get_value("password", OpList, undefined),
-		Attributes = case lists:keyfind("attributes", 1, OpList) of
-			{_, {array, JsonAttr}} ->
-				json_to_radius(JsonAttr);
-			false ->
-				undefined
-		end,
-		Buckets = case lists:keyfind("buckets", 1, OpList) of
-			{_, {array, BucketObjs}} ->
-				F = fun({strcut, Bucket}, AccIn) ->
-						{_, Amount} = lists:keyfind("amount", 1, Bucket),
-						{_, Units} = lists:keyfind("units", 1, Bucket),
-						_Product = proplists:get_value("product", Bucket, ""),
-						B = #bucket{remain_amount =
-							#remain_amount{amount = Amount, unit = Units}},
-						[B | AccIn]
+	F = fun() ->
+		case mnesia:read(subscriber, Id, write) of
+			[Entry] when
+					Entry#subscriber.last_modified == Etag;
+					Etag == undefined ->
+				F2 = fun({struct, OpObj}) ->
+					case validate_operation(OpObj) of
+						{"replace", Path, Value} ->
+							ok = patch_replace(Path, Value, Entry);
+						{"add", Path, Value} ->
+							ok = patch_add(Path, Value, Entry);
+						{error, Status} ->
+							throw(Status)
+					end
 				end,
-				AccOut = lists:foldl(F, [], BucketObjs),
-				lists:reverse(AccOut);
-			false ->
-				undefined
-		end,
-		Enabled = proplists:get_value("enabled", OpList, undefined),
-		MultiSession = proplists:get_value("multisession", OpList, undefined),
-		case update_subscriber(Id, Password,
-				Attributes, Buckets, Enabled, MultiSession, Etag) of
-			{ok, Subscriber} ->
-				{ok, Subscriber};
-			{error, not_found} ->
-				{error, 404};
-			{error, precondition_faild} ->
-				{error, 412};
-			{error, _Reason} ->
-				{error, 500}
+				lists:foreach(F2, OpList),
+				[NewEntry] = mnesia:read(subscriber, Id),
+				NewEntry;
+			[#subscriber{}] ->
+				throw(precondition_failed);
+			[] ->
+				throw(not_found)
 		end
-	catch
-		_:_ ->
-			{error, 400}
+	end,
+	case mnesia:transaction(F) of
+		{atomic, Subscriber} ->
+			{ok, Subscriber};
+		{aborted, {throw, not_found}} ->
+			{error, 404};
+		{aborted, {throw, precondition_failed}} ->
+			{error, 412};
+		{aborted, _Reason} ->
+			{error,  500}
 	end.
 
 -spec validate_operation(Operation) -> Result
