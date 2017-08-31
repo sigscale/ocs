@@ -730,8 +730,9 @@ patch_add(buckets , Value, Location, OldBuckets, Subscriber) ->
 		Subscriber#subscriber{buckets = NewBuckets},
 	do_write(UpdateSubscriber).
 
--spec do_write(Record) -> ok.
-	Record :: #subscriber{}.
+-spec do_write(Record) -> ok
+	when
+		Record :: #subscriber{}.
 %% @hidden
 do_write(Record) ->
 	mnesia:write(Record).
