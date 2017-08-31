@@ -652,13 +652,11 @@ validate_operation2(OpT, PathT, ValueT) ->
 			{error, 400}
 	end.
 
--spec patch_replace(Path , Value, Subscriber) -> Result
+-spec patch_replace(Path , Value, Subscriber) -> ok
 	when
 		Path			:: string(),
 		Value			:: string(),
-		Subscriber	:: #subscriber{},
-		Result		:: ok | {error, Reason},
-		Reason		:: term().
+		Subscriber	:: #subscriber{}.
 %% @doc replace the give value with given target path.
 patch_replace(Path , Value, Subscriber) ->
 	[Target] = string:tokens(Path, "/"),
@@ -698,13 +696,11 @@ patch_replace1("multisession", Value, Subscriber) ->
 		Subscriber#subscriber{multisession = MultiSession},
 	do_write(UpdateSubscriber).
 
--spec patch_add(Path , Value, Subscriber) -> Result
+-spec patch_add(Path , Value, Subscriber) -> ok
 	when
 		Path			:: string(),
 		Value			:: string(),
-		Subscriber	:: #subscriber{},
-		Result		:: ok | {error, Reason},
-		Reason		:: term().
+		Subscriber	:: #subscriber{}.
 %% @doc add the give value with given target location.
 patch_add(Path , Value, Subscriber) ->
 	[Target, Location] = string:tokens(Path, "/"),
