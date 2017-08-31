@@ -747,8 +747,7 @@ accumulated_balance([]) ->
 accumulated_balance(Buckets) ->
 	accumulated_balance1(Buckets, []).
 %% @hidden
-accumulated_balance1([Bucket | T], AccBalance) ->
-	AB = accumulated_balance2(T, accumulated_balance2(Bucket, AccBalance)),
+accumulated_balance1([], AccBalance) ->
 	F = fun({octets, {U1, A1}}, AccIn) ->
 				Obj = {struct, [{"amount", A1}, {"units", U1}]},
 				[Obj | AccIn];
@@ -759,8 +758,10 @@ accumulated_balance1([Bucket | T], AccBalance) ->
 				Obj = {struct, [{"amount", A3}, {"units", U3}]},
 				[Obj | AccIn]
 	end,
-	JsonArray = lists:reverse(lists:foldl(F, [], AB)),
+	JsonArray = lists:reverse(lists:foldl(F, [], AccBalance)),
 	{array, JsonArray}.
+accumulated_balance1([Bucket | T], AccBalance) ->
+	accumulated_balance1(T, accumulated_balance2(Bucket, AccBalance)),
 %% @hidden
 accumulated_balance2(#bucket{bucket_type = octets, remain_amount =
 		#remain_amount{unit = Units, amount = Amount}}, AccBalance) ->
