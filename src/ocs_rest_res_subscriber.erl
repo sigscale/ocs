@@ -626,18 +626,20 @@ validate_operation(Operation) ->
 			{error, 400}
 	end.
 %% @hidden
-validate_operation1(replace, {_, Op} = OpT, PathT, ValueT) ->
-	Members = ["name", "password, attributes",
+validate_operation1(replace, OpT, {_, Path} = PathT, ValueT) ->
+	[Target | _] = string:tokens(Path, "/"),
+	Members = ["name", "password", "attributes",
 		"enabled", "multisession"],
-	case lists:member(Op, Members) of
+	case lists:member(Target, Members) of
 		true ->
 			validate_operation2(OpT, PathT, ValueT);
 		false ->
 			{error, 400}
 	end;
-validate_operation1(add, {_, Op} = OpT, PathT, ValueT) ->
+validate_operation1(add, OpT, {_, Path} = PathT, ValueT) ->
+	[Target | _] = string:tokens(Path, "/"),
 	Members = ["buckets"],
-	case lists:member(Op, Members) of
+	case lists:member(Target, Members) of
 		true ->
 			validate_operation2(OpT, PathT, ValueT);
 		false ->
