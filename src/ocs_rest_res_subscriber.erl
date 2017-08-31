@@ -691,6 +691,44 @@ patch_replace1("multisession", Value, Subscriber) ->
 		Subscriber#subscriber{multisession = MultiSession},
 	do_write(UpdateSubscriber).
 
+-spec patch_add(Path , Value, Subscriber) -> Result
+	when
+		Path			:: string(),
+		Value			:: string(),
+		Subscriber	:: #subscriber{},
+		Result		:: ok | {error, Reason},
+		Reason		:: term().
+%% @doc add the give value with given target location.
+patch_add(Path , Value, Subscriber) ->
+	[Target, Location] = string:tokens(Path, "/"),
+	patch_add1(Target , Value, Location, Subscriber).
+%% @hidden
+patch_add1("buckets" , Value, Location, Subscriber) ->
+	OldBuckets = Subscriber#subscriber.buckets,
+	patch_add(buckets , Value, Location, OldBuckets, Subscriber).
+%% @hidden
+patch_add(buckets , Value, "-", OldBuckets, Subscriber) ->
+	{struct, BucketObj} = Value,
+	{_, Amount} = lists:keyfind("amount", 1, BucketObj),
+	{_, Units} =  lists:keyfind("units", 1, BucketObj),
+	BucketType = bucket_type(Units),
+	Bucket = #bucket{bucket_type = BucketType, remain_amount =
+			#remain_amount{unit = Units, amount = Amount}},
+	NewBuckets = lists:append(OldBuckets, [Bucket]),
+	UpdateSubscriber =
+		Subscriber#subscriber{buckets = NewBuckets},
+	do_write(UpdateSubscriber);
+patch_add(buckets , Value, Location, OldBuckets, Subscriber) ->
+	{struct, BucketObj} = mochijson:decode(Value),
+	{_, Amount} = lists:keyfind("amount", 1, BucketObj),
+	{_, Units} =  lists:keyfind("units", 1, BucketObj),
+	BucketType = bucket_type(Units),
+	Bucket = #bucket{bucket_type = BucketType, remain_amount =
+			#remain_amount{unit = Units, amount = Amount}},
+	NewBuckets = lists:append(OldBuckets, [Bucket]),
+	UpdateSubscriber =
+		Subscriber#subscriber{buckets = NewBuckets},
+	do_write(UpdateSubscriber).
 
 -spec do_write(Record) -> ok.
 	Record :: #subscriber{}.
