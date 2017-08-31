@@ -557,7 +557,7 @@ etag(V) when is_tuple(V) ->
 
 -spec execute_json_patch_operations(Id, Etag, OpList) ->
 		{ok, Subscriber} | {error, Status} when
-	Id				:: string(),
+	Id				:: string() | binary(),
 	Etag			:: undefined | tuple(),
 	OpList		:: [{struct, [tuple()]}],
 	Subscriber	:: #subscriber{},
