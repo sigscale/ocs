@@ -399,8 +399,7 @@ patch_subscriber1(Id, Etag, "application/json", ReqBody) ->
 patch_subscriber1(Id, Etag, "application/json-patch+json", ReqBody) ->
 	try
 		{array, OpList} = mochijson:decode(ReqBody),
-		ValidOpList = validated_operations(OpList),
-		case execute_json_patch_operations(Id, Etag, ValidOpList) of
+		case execute_json_patch_operations(Id, Etag, OpList) of
 			{ok, #subscriber{password = Password,
 					attributes = RadAttr, buckets = Buckets,
 					enabled = Enabled, multisession = MSession}} ->
@@ -555,26 +554,6 @@ etag(V) when is_list(V) ->
 etag(V) when is_tuple(V) ->
 	{TS, N} = V,
 	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
-
-%% @hidden
--spec validated_operations(UnOrderAttributes) -> OrderedAtttibutes
-	when
-		UnOrderAttributes :: [{struct, [tuple()]}],
-		OrderedAtttibutes :: [tuple()].
-%% @doc Processes scrambled json attributes (with regard to
-%% https://tools.ietf.org/html/rfc6902#section-3) and return
-%% a list of key, value tuples.
-validated_operations(UAttr) ->
-	F = fun(F, [{struct, Op} | T],  Acc) ->
-			{_, "replace"} = lists:keyfind("op", 1, Op),
-			{_, P} = lists:keyfind("path", 1, Op),
-			{_, V} = lists:keyfind("value", 1, Op),
-			[P1] = string:tokens(P, "/"),
-			F(F, T, [{P1, V} | Acc]);
-		(_, [], Acc) ->
-			lists:reverse(Acc)
-	end,
-	F(F, UAttr, []).
 
 -spec execute_json_patch_operations(Id, Etag, OpList) ->
 		{ok, Subscriber} | {error, Status} when
