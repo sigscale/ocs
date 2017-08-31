@@ -59,7 +59,7 @@ content_types_provided() ->
 add_product(ReqData) ->
 	try
 		{struct, Object} = mochijson:decode(ReqData),
-		{_, _Name} = lists:keyfind("name", 1, Object),
+		{_, Name} = lists:keyfind("name", 1, Object),
 		IsBundle = case lists:keyfind("isBundle", 1, Object) of
 			{"isBundle", "true"} -> true;
 			_ -> false
@@ -70,17 +70,20 @@ add_product(ReqData) ->
 			false ->
 				"active"
 		end,
-		{_, ProdOfPriceObj} = lists:keyfind("productOfferingPrice", 1, Object),
-		{array, ProdOfPrice} = mochijson:decode(ProdOfPriceObj),
-		Price = product_offering_price(ProdOfPrice),
-		Product = #product{price = Price, name = Name, is_bundle = IsBundle,
-			status = Status},
 		Descirption = proplists:get_value("description", Object, ""),
-		case add_product1(Prodcut) of
-			ok ->
-				add_product2(Object);
+		{_, {array, ProdOfPrice}} = lists:keyfind("productOfferingPrice", 1, Object),
+		case product_offering_price(ProdOfPrice) of
 			{error, StatusCode} ->
-				{error, StatusCode}
+				{error, StatusCode};
+			Price ->
+				Product = #product{price = Price, name = Name, is_bundle = IsBundle,
+				status = Status, description = Descirption},
+				case add_product1(Product) of
+					ok ->
+						add_product2(Object);
+					{error, StatusCode} ->
+						{error, StatusCode}
+				end
 		end
 	catch
 		_:_ ->
@@ -121,51 +124,43 @@ add_product2(JsonResponse) ->
 %% @private
 product_offering_price(POfPrice) ->
 	try
-		F = fun(ProductJson, AccIn) ->
-				{struct, Object} = mochijson:decode(ProductJson),
+		F = fun({struct, Object}, AccIn) ->
 				{_, ProdName} = lists:keyfind("name", 1, Object),
-				{_, ProdVF} = lists:keyfind("validFor", 1, Object),
-				{struct, VFObj} = mochijson:decode(ProdVF),
+				{_,  {struct, VFObj}} = lists:keyfind("validFor", 1, Object),
 				{_, ProdSTime} = lists:keyfind("startDateTime", 1, VFObj),
 				{_, ProdETime} = lists:keyfind("endDateTime", 1, VFObj),
 				{_, ProdPriceTypeS} = lists:keyfind("priceType", 1, Object),
-				{_, ProdPrice} = lists:keyfind("price", 1, Object),
-				{struct, ProdPriceObj} = mochijson:decode(ProdPrice),
-				{_, TaxPAmount} = lists:keyfind("taxIncludedAmount", 1, ProdPriceObj),
+				{_, {struct, ProdPriceObj}} = lists:keyfind("price", 1, Object),
+				{_, ProdAmount} = lists:keyfind("taxIncludedAmount", 1, ProdPriceObj),
 				{_, CurrencyCode} = lists:keyfind("currencyCode", 1, ProdPriceObj),
 				{_, RCPeriodS} = lists:keyfind("recurringChargePeriod", 1, Object),
 				ProdDescirption = proplists:get_value("description", Object, ""),
 				ProdUOMesasure = proplists:get_value("unitOfMeasure", Object, ""),
 				ProdValidity = validity_period(ProdSTime, ProdETime),
 				ProdPriceType = price_type(ProdPriceTypeS),
-				ProdAmount = list_to_integer(TaxPAmount),
 				{ProdUnits, ProdSize} = product_unit_of_measure(ProdUOMesasure),
-				RCPeriod = recurring_charge_period(RCPeriodS),
+				RCPeriod = "",% recurring_charge_period(RCPeriodS),
 				Price1 = #price{name = ProdName, description = ProdDescirption,
 					type = ProdPriceType, units = ProdUnits, size = ProdSize,
 					currency = CurrencyCode, period = RCPeriod, validity = ProdValidity,
 					amount = ProdAmount},
-				case lists:keyfind("productOfferPriceAlteration", 1, PriceObject) of
+				case lists:keyfind("productOfferPriceAlteration", 1, Object) of
 					false ->
 						[Price1 | AccIn];
-					{_, ProdAlterObj} ->
+					{_, {struct, ProdAlterObj}} ->
 						{_, ProdAlterName} = lists:keyfind("name", 1, ProdAlterObj),
-						{_, ProdAlterValidFor} = lists:keyfind("validFor", 1, ProdAlterObj),
-						{struct, ProdAlterVFObj} = mochijson:decode(ProdAlterVFObj),
+						{_, {struct, ProdAlterVFObj}} = lists:keyfind("validFor", 1, ProdAlterObj),
 						{_, ProdAlterSTimeISO} = lists:keyfind("startDateTime", 1, ProdAlterVFObj),
 						{_, ProdAlterPriceTypeS} = lists:keyfind("priceType", 1, ProdAlterObj),
 						{_, ProdAlterUOMeasure} = lists:keyfind("unitOfMeasure", 1, ProdAlterObj),
-						{_, ProdAlterPrice} = lists:keyfind("price", 1, ProdAlterObj),
-						{struct, ProdAlterPriceObj} = mochijson:decode(ProdAlterPrice),
-						{_, ProdAlterAmountS} = lists:keyfind("amount", ProdAlterPriceObj),
+						{_, {struct, ProdAlterPriceObj}} = lists:keyfind("price", 1, ProdAlterObj),
+						{_, ProdAlterAmount} = lists:keyfind("taxIncludedAmount", 1,  ProdAlterPriceObj),
 						ProdAlterDescirption = proplists:get_value("description", ProdAlterObj, ""),
-						{ProdAlterUnits, ProdAlterSize} = product_unit_of_measure(ProdAlterUOMesasure),
+						{ProdAlterUnits, ProdAlterSize} = product_unit_of_measure(ProdAlterUOMeasure),
 						ProdAlterSTime = timestamp(ProdAlterSTimeISO),
-						ProdAlterPriceType = price_type(ProdAlterPriceType),
-						ProdAlterAmount = list_to_integer(ProdAlterAmountS),
+						ProdAlterPriceType = price_type(ProdAlterPriceTypeS),
 						Alteration = #alteration{name = ProdAlterName, description = ProdAlterDescirption,
-							type = ProdAlterPriceType, units = ProdAlterUnits , size = ProdAlterSize,
-							amount = ProdAlterAmount},
+							units = ProdAlterUnits , size = ProdAlterSize, amount = ProdAlterAmount},
 						Price2 = Price1#price{alteration = Alteration},
 						[Price2 | AccIn]
 					end
@@ -180,7 +175,7 @@ product_offering_price(POfPrice) ->
 -spec validity_period(StartTime, EndTime) -> Result
 	when
 		StartTime	:: string(),
-		EndTimeTime	:: string(),
+		EndTime		:: string(),
 		Result		:: pos_integer() | {error, Reason},
 		Reason		:: term().
 %% @doc return validity period of a product in milliseconds.
@@ -195,7 +190,7 @@ validity_period(ISOSTime, ISOETime) when is_list(ISOSTime),
 			{error, format_error}
 	end.
 
--spec product_unit_of_measure(UnitsOfMeasure) -> Reasult
+-spec product_unit_of_measure(UnitsOfMeasure) -> Result
 	when
 		UnitsOfMeasure	:: string(),
 		Result			:: {Units, Size},
@@ -245,6 +240,21 @@ product_unit_of_measure3(UnitsOfMeasure) ->
 %% @hidden
 product_unit_of_measure4(_UnitsOfMeasure) ->
 	{octets, 0}.
+
+-spec recurring_charge_period(RCPeriod) -> Result
+	when
+		RCPeriod	:: string(),
+		Result	:: valid_period().
+%% @doc return valid period
+%% @private
+recurring_charge_period("yearly") ->
+	yearly;
+recurring_charge_period("monthly") ->
+	monthly;
+recurring_charge_period("weekly") ->
+	weekly;
+recurring_charge_period("daily") ->
+	daily.
 
 -spec find_status(StringStatus) -> Status when
 	StringStatus	:: string(),

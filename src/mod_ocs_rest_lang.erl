@@ -66,6 +66,8 @@ do(#mod{request_uri = Uri, data = Data} = ModData) ->
 									{proceed, Data};
 								["balanceManagement", "v1" | _] ->
 									{proceed, Data};
+								["catalogManagement", "v1" | _] ->
+									{proceed, Data};
 								_ ->
 									serve_index(User, ModData)
 							end;
