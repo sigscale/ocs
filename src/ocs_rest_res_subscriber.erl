@@ -371,6 +371,7 @@ patch_subscriber1(Id, Etag, "application/json", ReqBody) ->
 				when Etag == CurrentEtag; Etag == undefined ->
 			try
 				{struct, Object} = mochijson:decode(ReqBody),
+
 				{_, Type} = lists:keyfind("update", 1, Object),
 				{Password, RadAttr, NewEnabled, NewMulti} = case Type of
 					"attributes" ->
@@ -674,7 +675,7 @@ patch_replace1("password", Value, Subscriber) ->
 	UpdateSubscriber =
 		Subscriber#subscriber{password = list_to_binary(Value)},
 	do_write(UpdateSubscriber);
-patch_replace1("attributes", Value, Subscriber) ->
+patch_replace1("attributes", {array, Value}, Subscriber) ->
 	RadAttributes = json_to_radius(Value),
 	UpdateSubscriber =
 		Subscriber#subscriber{attributes = RadAttributes},
