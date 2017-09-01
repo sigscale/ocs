@@ -156,7 +156,7 @@ product_offering_price(POfPrice) ->
 							units = ProdAlterUnits, size = AlterSize, amount = ProdAlterAmount},
 						Price2 = Price1#price{alteration = Alteration},
 						[Price2 | AccIn]
-					end
+				end
 		end,
 		AccOut = lists:foldl(F, [], POfPrice),
 		lists:reverse(AccOut)
@@ -260,12 +260,9 @@ product_unit_of_measure6(_UnitsOfMeasure) ->
 product_size(UnitsFrom, octets, Size) when
 		UnitsFrom == undefined; Size == undefinedi ->
 	0;
-product_size(gb, octets, Size) ->
-	Size * 1000000000;
-product_size(mb, octets, Size) ->
-	Size * 1000000;
-product_size(_, _, Size) ->
-	Size.
+product_size(gb, octets, Size) -> Size * 1000000000;
+product_size(mb, octets, Size) -> Size * 1000000;
+product_size(_, _, Size) -> Size.
 
 -spec recurring_charge_period(RCPeriod) -> Result
 	when
@@ -273,47 +270,31 @@ product_size(_, _, Size) ->
 		Result	:: valid_period().
 %% @doc return valid period
 %% @private
-recurring_charge_period("") ->
-	undefined;
-recurring_charge_period("yearly") ->
-	yearly;
-recurring_charge_period("monthly") ->
-	monthly;
-recurring_charge_period("weekly") ->
-	weekly;
-recurring_charge_period("daily") ->
-	daily.
+recurring_charge_period("") -> undefined;
+recurring_charge_period("yearly") -> yearly;
+recurring_charge_period("monthly") -> monthly;
+recurring_charge_period("weekly") -> weekly;
+recurring_charge_period("daily") -> daily.
 
 -spec find_status(StringStatus) -> Status when
 	StringStatus	:: string(),
 	Status			:: product_status().
 %% @doc return life cycle status of the product
 %% @private
-find_status("created") ->
-	created;
-find_status("aborted") ->
-	aborted;
-find_status("cancelled") ->
-	cancelled;
-find_status("active") ->
-	active;
-find_status("pending_active") ->
-	pending_active;
-find_status("suspended") ->
-	suspended;
-find_status("terminate") ->
-	terminate;
-find_status("pending_terminate") ->
-	pending_terminate.
+find_status("active") -> active;
+find_status("created") -> created;
+find_status("aborted") -> aborted;
+find_status("cancelled") -> cancelled;
+find_status("suspended") -> suspended;
+find_status("terminate") -> terminate;
+find_status("pending_active") -> pending_active;
+find_status("pending_terminate") -> pending_terminate.
 
 -spec price_type(StringPriceType) -> PriceType when
 	StringPriceType :: string(),
 	PriceType		 :: recurring | one_time | usage.
 %% @private
-price_type("recurring") ->
-	recurring;
-price_type("one_time") ->
-	one_time;
-price_type("usage") ->
-	usage.
+price_type("usage") -> usage;
+price_type("recurring") -> recurring;
+price_type("one_time") -> one_time.
 
