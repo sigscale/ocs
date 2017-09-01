@@ -292,7 +292,7 @@
 				on-response="updateSubAuthenResponse">
 		</iron-ajax>
 		<iron-ajax id="updateSubAutho"
-				content-type="application/json"
+				content-type="application/json-patch+json"
 				method="PATCH"
 				on-response="updateSubAuthoResponse">
 		</iron-ajax>
@@ -316,7 +316,6 @@
 					value: 0
 				}
 			},
-
 			updateSubAuthen: function(event) {
 				var editAjax =  document.getElementById("updateSubAuthen");
 				var id = document.getElementById("edit-id1").value;
@@ -325,7 +324,7 @@
 				sub.op = "replace";
 				sub.path = "/password";
 				sub.value = document.getElementById("edit-new-pwd").value;
-				editAjax.body = [sub];
+				editAjax.body = JSON.stringify([sub]);
 				editAjax.generateRequest();
 			},
 			updateSubAuthenResponse: function (event) {
@@ -348,7 +347,7 @@
 				totalBal.units = document.getElementById("updateUni").value;
 				totalBal.product = document.getElementById("updatePro").value;
 				sub.value = totalBal;
-				editAjax.body = [sub];
+				editAjax.body = JSON.stringify([sub]);
 				editAjax.generateRequest();
 			},
 			updateSubBalResponse: function (event) {
@@ -400,8 +399,7 @@
 				multi.op = "replace";
 				multi.path = "/multisession";
 				multi.value= document.getElementById("edit-multi-session").checked;
-				var subAttr = [sub1, ena, multi];
-				editAjax.body = subAttr;
+				editAjax.body = JSON.stringify([sub1, ena, multi]);
 				editAjax.generateRequest();
 			},
 			updateSubAuthoResponse: function (event) {
