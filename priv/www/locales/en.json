@@ -487,6 +487,10 @@
     "description": "Balance types",
     "message": "product"
   },
+	"add": {
+    "description": "Balance add",
+    "message": "ADD"
+  },
 	"multi": {
     "description": "Multi session allowed",
     "message": "Multisession"
