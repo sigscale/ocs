@@ -563,7 +563,7 @@ execute_json_patch_operations(Id, Etag, OpList) ->
 		Result		:: {Op, Path, Value} | {error, Reason},
 		Op				:: string(),
 		Path			:: string(),
-		Value			:: string() | tuple(),
+		Value			:: string() | tuple() | atom(),
 		Reason		:: malformed_request.
 %% @doc validate elements in an operation object and return
 %% `op', `path' and `value' or reason for failed.
@@ -612,7 +612,7 @@ validate_operation2(OpT, PathT, ValueT) ->
 	when
 		Id				:: binary(),
 		Path			:: string(),
-		Value			:: string().
+		Value			:: string() | atom() | tuple().
 %% @doc replace the give value with given target path.
 patch_replace(Id, Path , Value) ->
 	[Target] = string:tokens(Path, "/"),
@@ -660,7 +660,7 @@ patch_replace1("multisession", Id, Value) when is_list(Value) ->
 	UpdateSubscriber =
 		Subscriber#subscriber{multisession = MultiSession},
 	do_write(UpdateSubscriber);
-patch_replace1("multisession", Id, Value) ->
+patch_replace1("multisession", Id, Value) when is_atom(Value) ->
 	[Subscriber] = mnesia:read(subscriber, Id),
 	UpdateSubscriber =
 		Subscriber#subscriber{multisession = Value},
@@ -668,9 +668,9 @@ patch_replace1("multisession", Id, Value) ->
 
 -spec patch_add(Id, Path, Value) -> ok
 	when
-		Id				:: binary(),
-		Path			:: string(),
-		Value			:: string().
+		Id		:: binary(),
+		Path	:: string(),
+		Value	:: string() | atom() | tuple().
 %% @doc add the give value with given target location.
 patch_add(Id, Path, Value) ->
 	[Target, Location] = string:tokens(Path, "/"),
