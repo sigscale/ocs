@@ -106,7 +106,8 @@ add_product1(Products) ->
 %% @hidden
 add_product2(JsonResponse) ->
 	Id = {id, ""},
-	Body = {struct, [Id | JsonResponse]},
+	Json = {struct, [Id | JsonResponse]},
+	Body = mochijson:encode(Json),
 	Location = "/catalogManagement/v1/product", %% ++ id
 	Headers = [{location, Location}],
 	{ok, Headers, Body}.
