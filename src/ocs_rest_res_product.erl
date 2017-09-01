@@ -137,7 +137,7 @@ product_offering_price(POfPrice) ->
 				ProdValidity = validity_period(ProdSTime, ProdETime),
 				ProdPriceType = price_type(ProdPriceTypeS),
 				{ProdUnits, ProdSize} = product_unit_of_measure(ProdUOMesasure),
-				RCPeriod = "",% recurring_charge_period(RCPeriodS),
+				RCPeriod = recurring_charge_period(RCPeriodS),
 				Price1 = #price{name = ProdName, description = ProdDescirption,
 					type = ProdPriceType, units = ProdUnits, size = ProdSize,
 					currency = CurrencyCode, period = RCPeriod, validity = ProdValidity,
@@ -249,6 +249,8 @@ product_unit_of_measure5(_UnitsOfMeasure) ->
 		Result	:: valid_period().
 %% @doc return valid period
 %% @private
+recurring_charge_period("") ->
+	undefined;
 recurring_charge_period("yearly") ->
 	yearly;
 recurring_charge_period("monthly") ->
