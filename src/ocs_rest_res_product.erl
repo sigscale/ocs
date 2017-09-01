@@ -197,46 +197,50 @@ validity_period(ISOSTime, ISOETime) when is_list(ISOSTime),
 %% @doc return units type and size of measurement of a product
 %% @private
 product_unit_of_measure(UnitsOfMeasure) ->
+	LowerUOM = string:to_lower(UnitsOfMeasure),
+	product_unit_of_measure1(LowerUOM).
+%% @hidden
+product_unit_of_measure1(UnitsOfMeasure) ->
 	Suffix = "octets",
 	case lists:suffix(Suffix, UnitsOfMeasure) of
 		true ->
 			[Size] = string:tokens(UnitsOfMeasure, Suffix),
 			{octets, Size};
 		false ->
-			product_unit_of_measure1(UnitsOfMeasure)
+			product_unit_of_measure2(UnitsOfMeasure)
 	end.
 %% @hidden
-product_unit_of_measure1(UnitsOfMeasure) ->
+product_unit_of_measure2(UnitsOfMeasure) ->
 	Suffix = "gb",
 	case lists:suffix(Suffix, UnitsOfMeasure) of
 		true ->
 			[Size] = string:tokens(UnitsOfMeasure, Suffix),
 			{gb, Size};
 		false ->
-			product_unit_of_measure2(UnitsOfMeasure)
+			product_unit_of_measure3(UnitsOfMeasure)
 	end.
 %% @hidden
-product_unit_of_measure2(UnitsOfMeasure) ->
+product_unit_of_measure3(UnitsOfMeasure) ->
 	Suffix = "cents",
 	case lists:suffix(Suffix, UnitsOfMeasure) of
 		true ->
 			[Size] = string:tokens(UnitsOfMeasure, Suffix),
 			{cents, Size};
 		false ->
-			product_unit_of_measure3(UnitsOfMeasure)
+			product_unit_of_measure4(UnitsOfMeasure)
 	end.
 %% @hidden
-product_unit_of_measure3(UnitsOfMeasure) ->
+product_unit_of_measure4(UnitsOfMeasure) ->
 	Suffix = "seconds",
 	case lists:suffix(Suffix, UnitsOfMeasure) of
 		true ->
 			[Size] = string:tokens(UnitsOfMeasure, Suffix),
 			{seconds, Size};
 		false ->
-			product_unit_of_measure4(UnitsOfMeasure)
+			product_unit_of_measure5(UnitsOfMeasure)
 	end.
 %% @hidden
-product_unit_of_measure4(_UnitsOfMeasure) ->
+product_unit_of_measure5(_UnitsOfMeasure) ->
 	{octets, 0}.
 
 -spec recurring_charge_period(RCPeriod) -> Result
