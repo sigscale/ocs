@@ -176,11 +176,12 @@ product_offering_price(POfPrice) ->
 validity_period(ISOSTime, ISOETime) when is_list(ISOSTime),
 		is_list(ISOETime) ->
 	case {ocs_rest:timestamp(ISOSTime), ocs_rest:timestamp(ISOETime)} of
-		{STime, ETime} when is_integer(STime),
-				is_integer(ETime) ->
-			ETime - STime;
-		_ ->
-			{error, format_error}
+		{{error, _}, _} ->
+			{error, format_error};
+		{_, {error, _}} ->
+			{error, format_error};
+		{STime, ETime} ->
+			ETime - STime
 	end.
 
 -spec product_unit_of_measure(UnitsOfMeasure) -> Result
