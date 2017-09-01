@@ -577,9 +577,9 @@ execute_json_patch_operations(Id, Etag, OpList) ->
 				F2 = fun({struct, OpObj}) ->
 					case validate_operation(OpObj) of
 						{"replace", Path, Value} ->
-							ok = patch_replace(Path, Value, Entry);
+							ok = patch_replace(Id, Path, Value);
 						{"add", Path, Value} ->
-							ok = patch_add(Path, Value, Entry);
+							ok = patch_add(Id, Path, Value);
 						{error, malformed_request} ->
 							throw(malformed_request)
 					end
@@ -657,30 +657,33 @@ validate_operation2(OpT, PathT, ValueT) ->
 			{error, malformed_request}
 	end.
 
--spec patch_replace(Path , Value, Subscriber) -> ok
+-spec patch_replace(Id, Path, Value) -> ok
 	when
+		Id				:: binary(),
 		Path			:: string(),
-		Value			:: string(),
-		Subscriber	:: #subscriber{}.
+		Value			:: string().
 %% @doc replace the give value with given target path.
-patch_replace(Path , Value, Subscriber) ->
+patch_replace(Id, Path , Value) ->
 	[Target] = string:tokens(Path, "/"),
-	patch_replace1(Target , Value, Subscriber).
+	patch_replace1(Target , Id, Value).
 %% @hidden
-patch_replace1("name", Value, Subscriber) ->
-	UpdateSubscriber =
-		Subscriber#subscriber{name = list_to_binary(Value)},
+patch_replace1("name", Id, Value) ->
+	[Subscriber] = mnesia:read(subscriber, Id),
+	UpdateSubscriber = Subscriber#subscriber{name = list_to_binary(Value)},
 	do_write(UpdateSubscriber);
-patch_replace1("password", Value, Subscriber) ->
+patch_replace1("password", Id, Value) ->
+	[Subscriber] = mnesia:read(subscriber, Id),
 	UpdateSubscriber =
 		Subscriber#subscriber{password = list_to_binary(Value)},
 	do_write(UpdateSubscriber);
-patch_replace1("attributes", {array, Value}, Subscriber) ->
+patch_replace1("attributes", Id, {array, Value}) ->
+	[Subscriber] = mnesia:read(subscriber, Id),
 	RadAttributes = json_to_radius(Value),
 	UpdateSubscriber =
 		Subscriber#subscriber{attributes = RadAttributes},
 	do_write(UpdateSubscriber);
-patch_replace1("enabled", Value, Subscriber) ->
+patch_replace1("enabled", Id, Value) ->
+	[Subscriber] = mnesia:read(subscriber, Id),
 	Enabled = case Value of
 		"true" ->
 			true;
@@ -690,7 +693,8 @@ patch_replace1("enabled", Value, Subscriber) ->
 	UpdateSubscriber =
 		Subscriber#subscriber{enabled = Enabled},
 	do_write(UpdateSubscriber);
-patch_replace1("multisession", Value, Subscriber) ->
+patch_replace1("multisession", Id, Value) ->
+	[Subscriber] = mnesia:read(subscriber, Id),
 	MultiSession = case Value of
 		"true" ->
 			true;
@@ -701,17 +705,18 @@ patch_replace1("multisession", Value, Subscriber) ->
 		Subscriber#subscriber{multisession = MultiSession},
 	do_write(UpdateSubscriber).
 
--spec patch_add(Path , Value, Subscriber) -> ok
+-spec patch_add(Id, Path, Value) -> ok
 	when
+		Id				:: binary(),
 		Path			:: string(),
-		Value			:: string(),
-		Subscriber	:: #subscriber{}.
+		Value			:: string().
 %% @doc add the give value with given target location.
-patch_add(Path , Value, Subscriber) ->
+patch_add(Id, Path, Value) ->
 	[Target, Location] = string:tokens(Path, "/"),
-	patch_add1(Target , Value, Location, Subscriber).
+	patch_add1(Target , Id, Value, Location).
 %% @hidden
-patch_add1("buckets" , Value, Location, Subscriber) ->
+patch_add1("buckets" , Id, Value, Location) ->
+	[Subscriber] = mnesia:read(subscriber, Id),
 	OldBuckets = Subscriber#subscriber.buckets,
 	patch_add(buckets , Value, Location, OldBuckets, Subscriber).
 %% @hidden
