@@ -221,26 +221,36 @@ product_unit_of_measure2(UnitsOfMeasure) ->
 	end.
 %% @hidden
 product_unit_of_measure3(UnitsOfMeasure) ->
+	Suffix = "mb",
+	case lists:suffix(Suffix, UnitsOfMeasure) of
+		true ->
+			[Size] = string:tokens(UnitsOfMeasure, Suffix),
+			{mb, list_to_integer(Size)};
+		false ->
+			product_unit_of_measure4(UnitsOfMeasure)
+	end.
+%% @hidden
+product_unit_of_measure4(UnitsOfMeasure) ->
 	Suffix = "cents",
 	case lists:suffix(Suffix, UnitsOfMeasure) of
 		true ->
 			[Size] = string:tokens(UnitsOfMeasure, Suffix),
 			{cents, list_to_integer(Size)};
 		false ->
-			product_unit_of_measure4(UnitsOfMeasure)
+			product_unit_of_measure5(UnitsOfMeasure)
 	end.
 %% @hidden
-product_unit_of_measure4(UnitsOfMeasure) ->
+product_unit_of_measure5(UnitsOfMeasure) ->
 	Suffix = "seconds",
 	case lists:suffix(Suffix, UnitsOfMeasure) of
 		true ->
 			[Size] = string:tokens(UnitsOfMeasure, Suffix),
 			{seconds, list_to_integer(Size)};
 		false ->
-			product_unit_of_measure5(UnitsOfMeasure)
+			product_unit_of_measure6(UnitsOfMeasure)
 	end.
 %% @hidden
-product_unit_of_measure5(_UnitsOfMeasure) ->
+product_unit_of_measure6(_UnitsOfMeasure) ->
 	{octets, 0}.
 
 -spec recurring_charge_period(RCPeriod) -> Result
