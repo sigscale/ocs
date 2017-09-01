@@ -137,9 +137,10 @@ product_offering_price(POfPrice) ->
 				ProdValidity = validity_period(ProdSTime, ProdETime),
 				ProdPriceType = price_type(ProdPriceTypeS),
 				{ProdUnits, ProdSize} = product_unit_of_measure(ProdUOMesasure),
+				Size = product_size(ProdUnits, octets, ProdSize),
 				RCPeriod = recurring_charge_period(RCPeriodS),
 				Price1 = #price{name = ProdName, description = ProdDescirption,
-					type = ProdPriceType, units = ProdUnits, size = ProdSize,
+					type = ProdPriceType, units = ProdUnits, size = Size,
 					currency = CurrencyCode, period = RCPeriod, validity = ProdValidity,
 					amount = ProdAmount},
 				case lists:keyfind("productOfferPriceAlteration", 1, Object) of
@@ -155,10 +156,11 @@ product_offering_price(POfPrice) ->
 						{_, ProdAlterAmount} = lists:keyfind("taxIncludedAmount", 1,  ProdAlterPriceObj),
 						ProdAlterDescirption = proplists:get_value("description", ProdAlterObj, ""),
 						{ProdAlterUnits, ProdAlterSize} = product_unit_of_measure(ProdAlterUOMeasure),
+						AlterSize = product_size(ProdAlterUnits, octets, ProdAlterSize),
 						ProdAlterSTime = timestamp(ProdAlterSTimeISO),
 						ProdAlterPriceType = price_type(ProdAlterPriceTypeS),
 						Alteration = #alteration{name = ProdAlterName, description = ProdAlterDescirption,
-							units = ProdAlterUnits , size = ProdAlterSize, amount = ProdAlterAmount},
+							units = ProdAlterUnits, size = AlterSize, amount = ProdAlterAmount},
 						Price2 = Price1#price{alteration = Alteration},
 						[Price2 | AccIn]
 					end
@@ -192,10 +194,12 @@ validity_period(ISOSTime, ISOETime) when is_list(ISOSTime),
 	when
 		UnitsOfMeasure	:: string(),
 		Result			:: {Units, Size},
-		Units				:: unit_of_measure(),
-		Size				:: pos_integer().
+		Units				:: undefined | unit_of_measure(),
+		Size				:: undefined | pos_integer().
 %% @doc return units type and size of measurement of a product
 %% @private
+product_unit_of_measure("") ->
+	{undefined, undefined};
 product_unit_of_measure(UnitsOfMeasure) ->
 	LowerUOM = string:to_lower(UnitsOfMeasure),
 	product_unit_of_measure1(LowerUOM).
@@ -251,7 +255,24 @@ product_unit_of_measure5(UnitsOfMeasure) ->
 	end.
 %% @hidden
 product_unit_of_measure6(_UnitsOfMeasure) ->
-	{octets, 0}.
+	{undefined, undefined}.
+
+-spec product_size(UnitsFrom, UnitsTo, Size) -> Result
+	when
+		UnitsFrom	:: undefined | atom(), % gb | mb | second | cents
+		UnitsTo		:: octets,
+		Size			:: undefined | pos_integer(),
+		Result		:: integer().
+%% @private
+product_size(UnitsFrom, octets, Size) when
+		UnitsFrom == undefined; Size == undefinedi ->
+	0;
+product_size(gb, octets, Size) ->
+	Size * 1000000000;
+product_size(mb, octets, Size) ->
+	Size * 1000000;
+product_size(_, _, Size) ->
+	Size.
 
 -spec recurring_charge_period(RCPeriod) -> Result
 	when
