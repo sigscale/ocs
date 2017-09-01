@@ -113,53 +113,73 @@ add_product2(JsonResponse) ->
 	StatusCode	:: 400.
 %% @doc construct list of product
 %% @private
+product_offering_price([]) ->
+	{error, 400};
 product_offering_price(POfPrice) ->
+	po_price(POfPrice, []).
+%% @hidden
+po_price([], Prices) ->
+	Prices;
+po_price([{struct, Object} | T], Prices) ->
 	try
-		F = fun({struct, Object}, AccIn) ->
-				{_, ProdName} = lists:keyfind("name", 1, Object),
-				{_,  {struct, VFObj}} = lists:keyfind("validFor", 1, Object),
-				{_, ProdSTime} = lists:keyfind("startDateTime", 1, VFObj),
-				{_, ProdETime} = lists:keyfind("endDateTime", 1, VFObj),
-				{_, ProdPriceTypeS} = lists:keyfind("priceType", 1, Object),
-				{_, {struct, ProdPriceObj}} = lists:keyfind("price", 1, Object),
-				{_, ProdAmount} = lists:keyfind("taxIncludedAmount", 1, ProdPriceObj),
-				{_, CurrencyCode} = lists:keyfind("currencyCode", 1, ProdPriceObj),
-				{_, RCPeriodS} = lists:keyfind("recurringChargePeriod", 1, Object),
-				ProdDescirption = proplists:get_value("description", Object, ""),
-				ProdUOMesasure = proplists:get_value("unitOfMeasure", Object, ""),
-				ProdValidity = validity_period(ProdSTime, ProdETime),
+		{_, ProdName} = lists:keyfind("name", 1, Object),
+		{_,  {struct, VFObj}} = lists:keyfind("validFor", 1, Object),
+		{_, ProdSTime} = lists:keyfind("startDateTime", 1, VFObj),
+		{_, ProdETime} = lists:keyfind("endDateTime", 1, VFObj),
+		{_, ProdPriceTypeS} = lists:keyfind("priceType", 1, Object),
+		{_, {struct, ProdPriceObj}} = lists:keyfind("price", 1, Object),
+		{_, ProdAmount} = lists:keyfind("taxIncludedAmount", 1, ProdPriceObj),
+		{_, CurrencyCode} = lists:keyfind("currencyCode", 1, ProdPriceObj),
+		{_, RCPeriodS} = lists:keyfind("recurringChargePeriod", 1, Object),
+		ProdDescirption = proplists:get_value("description", Object, ""),
+		ProdUOMesasure = proplists:get_value("unitOfMeasure", Object, ""),
+		ProdValidity = validity_period(ProdSTime, ProdETime),
+		if
+			ProdValidity =/= {error, format_error} ->
 				ProdPriceType = price_type(ProdPriceTypeS),
 				{ProdUnits, ProdSize} = product_unit_of_measure(ProdUOMesasure),
 				Size = product_size(ProdUnits, octets, ProdSize),
 				RCPeriod = recurring_charge_period(RCPeriodS),
 				Price1 = #price{name = ProdName, description = ProdDescirption,
-					type = ProdPriceType, units = ProdUnits, size = Size,
+				type = ProdPriceType, units = ProdUnits, size = Size,
 					currency = CurrencyCode, period = RCPeriod, validity = ProdValidity,
 					amount = ProdAmount},
 				case lists:keyfind("productOfferPriceAlteration", 1, Object) of
 					false ->
-						[Price1 | AccIn];
+						po_price(T, [Price1 | Prices]);
 					{_, {struct, ProdAlterObj}} ->
-						{_, ProdAlterName} = lists:keyfind("name", 1, ProdAlterObj),
-						{_, {struct, ProdAlterVFObj}} = lists:keyfind("validFor", 1, ProdAlterObj),
-						{_, ProdAlterSTimeISO} = lists:keyfind("startDateTime", 1, ProdAlterVFObj),
-						{_, ProdAlterPriceTypeS} = lists:keyfind("priceType", 1, ProdAlterObj),
-						{_, ProdAlterUOMeasure} = lists:keyfind("unitOfMeasure", 1, ProdAlterObj),
-						{_, {struct, ProdAlterPriceObj}} = lists:keyfind("price", 1, ProdAlterObj),
-						{_, ProdAlterAmount} = lists:keyfind("taxIncludedAmount", 1,  ProdAlterPriceObj),
-						ProdAlterDescirption = proplists:get_value("description", ProdAlterObj, ""),
-						{ProdAlterUnits, ProdAlterSize} = product_unit_of_measure(ProdAlterUOMeasure),
-						AlterSize = product_size(ProdAlterUnits, octets, ProdAlterSize),
-						ProdAlterSTime = ocs_rest:timestamp(ProdAlterSTimeISO),
-						ProdAlterPriceType = price_type(ProdAlterPriceTypeS),
-						Alteration = #alteration{name = ProdAlterName, description = ProdAlterDescirption,
-							units = ProdAlterUnits, size = AlterSize, amount = ProdAlterAmount},
-						Price2 = Price1#price{alteration = Alteration},
-						[Price2 | AccIn]
-				end
-		end,
-		AccOut = lists:foldl(F, [], POfPrice),
-		lists:reverse(AccOut)
+						case po_alteration(ProdAlterObj) of
+							{error, Status} ->
+								{error, Status};
+							Alteration ->
+								Price2 = Price1#price{alteration = Alteration},
+								po_price(T, [Price2 | Prices])
+						end
+				end;
+			true ->
+				{error, 400}
+		end
+	catch
+		_:_ ->
+			{error, 400}
+	end.
+%% @hidden
+po_alteration(ProdAlterObj) ->
+	try
+		{_, ProdAlterName} = lists:keyfind("name", 1, ProdAlterObj),
+		{_, {struct, ProdAlterVFObj}} = lists:keyfind("validFor", 1, ProdAlterObj),
+		{_, ProdAlterSTimeISO} = lists:keyfind("startDateTime", 1, ProdAlterVFObj),
+		{_, ProdAlterPriceTypeS} = lists:keyfind("priceType", 1, ProdAlterObj),
+		{_, ProdAlterUOMeasure} = lists:keyfind("unitOfMeasure", 1, ProdAlterObj),
+		{_, {struct, ProdAlterPriceObj}} = lists:keyfind("price", 1, ProdAlterObj),
+		{_, ProdAlterAmount} = lists:keyfind("taxIncludedAmount", 1,  ProdAlterPriceObj),
+		ProdAlterDescirption = proplists:get_value("description", ProdAlterObj, ""),
+		{ProdAlterUnits, ProdAlterSize} = product_unit_of_measure(ProdAlterUOMeasure),
+		AlterSize = product_size(ProdAlterUnits, octets, ProdAlterSize),
+		ProdAlterSTime = ocs_rest:timestamp(ProdAlterSTimeISO),
+		ProdAlterPriceType = price_type(ProdAlterPriceTypeS),
+		#alteration{name = ProdAlterName, description = ProdAlterDescirption,
+			units = ProdAlterUnits, size = AlterSize, amount = ProdAlterAmount}
 	catch
 		_:_ ->
 			{error, 400}
