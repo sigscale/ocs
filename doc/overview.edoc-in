@@ -529,7 +529,7 @@ Content-Length: nn
 </pre></p>
 
 <table id="op">
-<caption id="op"><b>Update Subscriber Password</b></caption>
+<caption id="op"><b>Update Subscriber</b></caption>
 	<tr id="op">
 		<td id="opl">Resource URI</td>
 		<td id="opr">/ocs/v1/subscriber/{id}</td>
@@ -559,31 +559,21 @@ Content-Length: nn
 		<td id="opr">200 Ok</td>
 	</tr>
 </table>
-<p>Example request (for Content-Type: application/json):<pre>
-PATCH /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
-Content-type: application/json
-Accept: application/json
-
-{
-  "update":"password",
-  "newpassword":"7fy8qhs7hh7n"
-}
-</pre></p>
-
-<p>Example request (for Content-Type: application/json-patch+json):<pre>
+<p>Update Subscriber Password</p>
+<pre>
 PATCH /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
 Content-type: application/json-patch+json
 Accept: application/json
 
 [
   {"op" : "replace"
-  "path": "password",
+  "path": "/password",
   "value": "7fy8qhs7hh7n"
   }
 ]
-</pre></p>
+</pre>
 
-<p>Example response:<pre>
+<pre>
 HTTP/1.1 200 Ok
 Content-Type: application/json
 Content-Length: nn
@@ -604,57 +594,10 @@ Etag: mm-m
  "enabled": true,
  "multisession": false
 }
-</pre></p>
+</pre>
 
-<table id="op">
-	<caption id="op"><b>Update Subscriber Attributes</b></caption>
-	<tr id="op">
-		<td id="opl">Resource URI</td>
-		<td id="opr">/ocs/v1/subscriber/{id}</td>
-	</tr>
-	<tr id="op">
-		<td id="opl">Request Methods</td>
-		<td id="opr">PATCH</td>
-	</tr>
-	<tr id="op">
-		<td id="opl">Request Headers</td>
-		<td id="opr">Accept, Content-Type</td>
-	</tr>
-	<tr id="op">
-		<td id="opl">Request Message Body</td>
-		<td id="opr">Representation of update rule</td>
-	</tr>
-	<tr id="op">
-		<td id="opl">Response Headers</td>
-		<td id="opr">Content-Type, Content-Length, Etag</td>
-	</tr>
-	<tr id="op">
-		<td id="opl">Response Body</td>
-		<td id="opr">None</td>
-	</tr>
-	<tr id="op">
-		<td id="opl">Response Status</td>
-		<td id="opr">200 Ok</td>
-	</tr>
-</table>
-<p>Example request: (for Content-Type: application/json)<pre>
-PATCH /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
-Content-type: application/json
-Accept: application/json
-
-{
- "update": "attributes",
- "balance": 100000000000,
- "attributes": [
-               {"name": "ascendDataRate", "value": 1000000},
-               {"name": "ascendXmitRate", "value": 512000},
-              ],
- "enabled": false,
- "multisession": false
-}
-</pre></p>
-
-<p>Example request: (for Content-Type: application/json-patch+json)<pre>
+<p>Update Subscriber Attributes</p>
+<pre>
 PATCH /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
 Content-type: application/json-patch+json
 Accept: application/json
@@ -662,7 +605,7 @@ Accept: application/json
 [
  {
   "op" : "replace",
-  "path" : "attributes",
+  "path" : "/attributes",
   "value" : [
              {"name": "ascendDataRate", "value": 1000000},
              {"name": "ascendXmitRate", "value": 512000}
@@ -670,18 +613,18 @@ Accept: application/json
  }
  {
   "op" : "replace",
-  "path" : "enabled",
+  "path" : "/enabled",
   "value" : false
  }
  {
   "op" : "replace",
-  "path" : "multisession",
+  "path" : "/multisession",
   "value" : false
  }
 ]
-</pre></p>
+</pre>
 
-<p>Example response:<pre>
+<pre>
 HTTP/1.1 200 Ok
 Content-Type: application/json
 Content-Length: nn
@@ -699,7 +642,48 @@ Etag: mm-m
  "enabled": false,
  "multisession": false
 }
-</pre></p>
+</pre>
+
+<p>Update Subscriber Balance</p>
+<pre>
+PATCH /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
+Content-type: application/json-patch+json
+Accept: application/json
+
+[
+  {"op" : "add"
+  "path": "/buckets/-",
+  "value": {
+            "amount": 1000,
+            "units": "cents",
+            "product": "usage"
+           }
+  }
+]
+</pre>
+
+<pre>
+HTTP/1.1 200 Ok
+Content-Type: application/json
+Content-Length: nn
+Etag: mm-m
+
+{
+ "id": "eacfd73ae10a",
+ "href": "/ocs/v1/subscriber/eacfd73ae10a",
+ "password": "7fy8qhs7hh7n",
+ "attributes":[
+               {"name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
+               {"name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
+               {"name" : "sessionTimeout", "value" : 10864 },
+               {"name" : "acctInterimInterval", "value": 300},
+               {"name" : "class", "value": "skiorgs"}
+              ],
+ "totalBalance": { "amount": 1000, "units": "cents" },
+ "enabled": true,
+ "multisession": false
+}
+</pre>
 
 <table id="op">
 	<caption id="op"><b>Delete a Subscriber</b></caption>
