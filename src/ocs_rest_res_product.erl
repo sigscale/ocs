@@ -205,7 +205,7 @@ product_unit_of_measure1(UnitsOfMeasure) ->
 	case lists:suffix(Suffix, UnitsOfMeasure) of
 		true ->
 			[Size] = string:tokens(UnitsOfMeasure, Suffix),
-			{octets, Size};
+			{octets, list_to_integer(Size)};
 		false ->
 			product_unit_of_measure2(UnitsOfMeasure)
 	end.
@@ -215,7 +215,7 @@ product_unit_of_measure2(UnitsOfMeasure) ->
 	case lists:suffix(Suffix, UnitsOfMeasure) of
 		true ->
 			[Size] = string:tokens(UnitsOfMeasure, Suffix),
-			{gb, Size};
+			{gb, list_to_integer(Size)};
 		false ->
 			product_unit_of_measure3(UnitsOfMeasure)
 	end.
@@ -225,7 +225,7 @@ product_unit_of_measure3(UnitsOfMeasure) ->
 	case lists:suffix(Suffix, UnitsOfMeasure) of
 		true ->
 			[Size] = string:tokens(UnitsOfMeasure, Suffix),
-			{cents, Size};
+			{cents, list_to_integer(Size)};
 		false ->
 			product_unit_of_measure4(UnitsOfMeasure)
 	end.
@@ -235,7 +235,7 @@ product_unit_of_measure4(UnitsOfMeasure) ->
 	case lists:suffix(Suffix, UnitsOfMeasure) of
 		true ->
 			[Size] = string:tokens(UnitsOfMeasure, Suffix),
-			{seconds, Size};
+			{seconds, list_to_integer(Size)};
 		false ->
 			product_unit_of_measure5(UnitsOfMeasure)
 	end.
