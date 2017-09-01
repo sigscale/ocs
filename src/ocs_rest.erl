@@ -21,6 +21,14 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([filter/2]).
+-export([date/1, iso8601/1, timestamp/1]).
+
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
+
+% calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
+-define(EPOCH, 62167219200).
 
 %%----------------------------------------------------------------------
 %%  The ocs_rest public API
@@ -98,3 +106,44 @@ filter2([{[], []} | T], L, Acc) ->
 filter2([], _, Acc) ->
 	lists:reverse(Acc).
 
+-spec date(DateTimeFormat) -> Result
+	when
+		DateTimeFormat	:: pos_integer() | tuple(),
+		Result			:: calendar:datetime().
+%% @doc Convert timestamp to date and time or
+%%		date and time to timeStamp.
+date(MilliSeconds) when is_integer(MilliSeconds) ->
+	Seconds = ?EPOCH + (MilliSeconds div 1000),
+	calendar:gregorian_seconds_to_datetime(Seconds);
+date(DateTime) when is_tuple(DateTime) ->
+	calendar:datetime_to_gregorian_seconds(DateTime) - ?EPOCH.
+
+-spec iso8601(MilliSeconds) -> Result
+	when
+		MilliSeconds	:: pos_integer(),
+		Result			:: string().
+%% @doc Convert timestamp to ISO 8601 format date and time.
+iso8601(MilliSeconds) when is_integer(MilliSeconds) ->
+	{{Year, Month, Day}, {Hour, Minute, Second}} = date(MilliSeconds),
+	DateFormat = "~4.10.0b-~2.10.0b-~2.10.0b",
+	TimeFormat = "T~2.10.0b:~2.10.0b:~2.10.0b.~3.10.0bZ",
+	Chars = io_lib:fwrite(DateFormat ++ TimeFormat,
+			[Year, Month, Day, Hour, Minute, Second, MilliSeconds rem 1000]),
+	lists:flatten(Chars).
+
+-spec timestamp(ISO8610) -> Result
+	when
+		ISO8610	:: string(),
+		Result	:: pos_integer() | {error, Reason},
+		Reason	:: term().
+%% @doc Convert ISO 8601 format date and time to timestamp.
+timestamp(ISO8610) when is_list(ISO8610) ->
+	DateFormat = "~4d-~2d-~2d",
+	TimeFormat = "T~2d:~2d:~2d.~3dZ",
+	case io_lib:fread(DateFormat ++ TimeFormat, ISO8610) of
+		{ok, [Y, M, D, H, Min, S, MSR], _} ->
+			DateTime = {{Y, M, D}, {H, Min, S + MSR}},
+			date(DateTime);
+		{error, Reason} ->
+			{error, Reason}
+	end.
