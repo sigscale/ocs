@@ -98,8 +98,9 @@ filter(_Config) ->
 			{struct, [{"q", 5}, {"r", 6}]}]},
 	ObjectIn = {struct, [{"a", A}, G, {"m", 9}]},
 	Filters = "a.b.c.d.e,g,a.b.c.x.name=w,a.b.c.x.value,a.b.c.d.f,a.b.c.x.p.r",
-	ObjectOut = {struct, [{"a", {struct, [{"b", {struct, [{"c",
-			{struct, [{"d", {struct, [{"e", E}, {"f", F}]}}]}}]}}]}}, G]},
+	ObjectOut = {struct, [{"a", {struct, [{"b", {struct, [{"c", {struct,
+			[{"d", {struct, [{"e", E}, {"f", F}]}},
+			{"x", {array, [W]}}]}}]}}]}}, G]},
 	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
 
 %%---------------------------------------------------------------------
