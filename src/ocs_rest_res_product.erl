@@ -200,7 +200,7 @@ product_unit_of_measure(UnitsOfMeasure) ->
 	Suffix = "octets",
 	case lists:suffix(Suffix, UnitsOfMeasure) of
 		true ->
-			[Size] = string:tokes(UnitsOfMeasure, Suffix),
+			[Size] = string:tokens(UnitsOfMeasure, Suffix),
 			{octets, Size};
 		false ->
 			product_unit_of_measure1(UnitsOfMeasure)
@@ -210,7 +210,7 @@ product_unit_of_measure1(UnitsOfMeasure) ->
 	Suffix = "gb",
 	case lists:suffix(Suffix, UnitsOfMeasure) of
 		true ->
-			[Size] = string:tokes(UnitsOfMeasure, Suffix),
+			[Size] = string:tokens(UnitsOfMeasure, Suffix),
 			{gb, Size};
 		false ->
 			product_unit_of_measure2(UnitsOfMeasure)
@@ -220,7 +220,7 @@ product_unit_of_measure2(UnitsOfMeasure) ->
 	Suffix = "cents",
 	case lists:suffix(Suffix, UnitsOfMeasure) of
 		true ->
-			[Size] = string:tokes(UnitsOfMeasure, Suffix),
+			[Size] = string:tokens(UnitsOfMeasure, Suffix),
 			{cents, Size};
 		false ->
 			product_unit_of_measure3(UnitsOfMeasure)
@@ -230,7 +230,7 @@ product_unit_of_measure3(UnitsOfMeasure) ->
 	Suffix = "seconds",
 	case lists:suffix(Suffix, UnitsOfMeasure) of
 		true ->
-			[Size] = string:tokes(UnitsOfMeasure, Suffix),
+			[Size] = string:tokens(UnitsOfMeasure, Suffix),
 			{seconds, Size};
 		false ->
 			product_unit_of_measure4(UnitsOfMeasure)
