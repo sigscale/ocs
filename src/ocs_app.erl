@@ -305,7 +305,7 @@ install6(Nodes, Acc) ->
 	end.
 %% @hidden
 install7(Nodes, Acc) ->
-	case mnesia:create_table(product, [{type, bag},{disc_copies, Nodes},
+	case mnesia:create_table(product, [{disc_copies, Nodes},
 			{attributes, record_info(fields, product)}]) of
 		{atomic, ok} ->
 			error_logger:info_msg("Created new product table.~n"),
