@@ -321,9 +321,10 @@
 				var id = document.getElementById("edit-id1").value;
 				editAjax.url = "/ocs/v1/subscriber/" + id;
 				var sub = new Object();
-				sub.update = "password";
-				sub.newpassword = document.getElementById("edit-new-pwd").value;
-				editAjax.body = sub;
+				sub.op = "replace";
+				sub.path = "/password";
+				sub.value = document.getElementById("edit-new-pwd").value;
+				editAjax.body = JSON.stringify([sub]);
 				editAjax.generateRequest();
 			},
 			updateSubAuthenResponse: function (event) {
@@ -346,7 +347,7 @@
 				totalBal.units = document.getElementById("updateUni").value;
 				totalBal.product = document.getElementById("updatePro").value;
 				sub.value = totalBal;
-				editAjax.body = sub;
+				editAjax.body = JSON.stringify([sub]);
 				editAjax.generateRequest();
 			},
 			updateSubBalResponse: function (event) {
@@ -361,8 +362,9 @@
 				var editAjax =  document.getElementById("updateSubAutho");
 				var id = document.getElementById("edit-id1").value;
 				editAjax.url = "/ocs/v1/subscriber/" + id;
-				var sub = new Object();
-				sub.update = "attributes";
+				var sub1 = new Object();
+				sub1.op = "replace";
+				sub1.path = "/attributes";
 				var attr = new Array();
 				var ascendDataRate = new Object();
 				ascendDataRate.name = "ascendDataRate";
@@ -388,10 +390,16 @@
 					classx.value = document.getElementById("edit-class").value;
 				}
 				attr[4] = classx;
-				sub.attributes = attr;
-				sub.enabled= document.getElementById("edit-enabled").checked;
-				sub.multisession= document.getElementById("edit-multi-session").checked;
-				editAjax.body = sub;
+				sub1.value = attr;
+				var ena = new Object();
+				ena.op = "replace";
+				ena.path = "/enabled";
+				ena.value = document.getElementById("edit-enabled").checked;
+				var multi = new Object();
+				multi.op = "replace";
+				multi.path = "/multisession";
+				multi.value= document.getElementById("edit-multi-session").checked;
+				editAjax.body = JSON.stringify([sub1, ena, multi]);
 				editAjax.generateRequest();
 			},
 			updateSubAuthoResponse: function (event) {
