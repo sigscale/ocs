@@ -363,40 +363,6 @@ patch_subscriber(Id, Etag, CType, ReqBody) ->
 			{error, 400}
 	end.
 %% @hidden
-patch_subscriber1(Id, Etag, "application/json", ReqBody) ->
-	case ocs:find_subscriber(Id) of
-		{ok, #subscriber{password = CurrPassword, attributes = CurrAttr,
-				buckets = Bal, enabled = Enabled,
-				multisession = Multi, last_modified = CurrentEtag}}
-				when Etag == CurrentEtag; Etag == undefined ->
-			try
-				{struct, Object} = mochijson:decode(ReqBody),
-
-				{_, Type} = lists:keyfind("update", 1, Object),
-				{Password, RadAttr, NewEnabled, NewMulti} = case Type of
-					"attributes" ->
-						{_, {array, AttrJs}} = lists:keyfind("attributes", 1, Object),
-						NewAttributes = json_to_radius(AttrJs),
-						{_, Balance} = lists:keyfind("balance", 1, Object),
-						{_, EnabledStatus} = lists:keyfind("enabled", 1, Object),
-						{_, MultiSession} = lists:keyfind("multisession", 1, Object),
-						ocs:update_attributes(Id, Balance, NewAttributes, EnabledStatus, MultiSession),
-						{CurrPassword, NewAttributes, EnabledStatus, MultiSession};
-					"password" ->
-						{_, NewPassword } = lists:keyfind("newpassword", 1, Object),
-						ocs:update_password(Id, NewPassword),
-						{NewPassword, CurrAttr, Enabled, Multi}
-				end,
-				patch_subscriber2(Id, Etag, Password, RadAttr, Bal, NewEnabled, NewMulti)
-			catch
-				_:_ ->
-					{error, 400}
-			end;
-		{ok,  _} ->
-			{error, 412};
-		{error, _} ->
-			{error, 404}
-	end;
 patch_subscriber1(Id, Etag, "application/json-patch+json", ReqBody) ->
 	try
 		{array, OpList} = mochijson:decode(ReqBody),
@@ -425,21 +391,6 @@ patch_subscriber1(Id, Etag, "application/json-patch+json", ReqBody) ->
 		_:_ ->
 			{error, 400}
 	end.
-%% @hidden
-patch_subscriber2(Id, Etag, Password, RadAttr, Balance, Enabled, Multi) ->
-	Attributes = {array, radius_to_json(RadAttr)},
-	RespObj =[{id, Id}, {href, "/ocs/v1/subscriber/" ++ Id},
-		{password, Password}, {attributes, Attributes}, {balance, Balance},
-		{enabled, Enabled}, {multisession, Multi}],
-	JsonObj  = {struct, RespObj},
-	RespBody = mochijson:encode(JsonObj),
-	Headers = case Etag of
-		undefined ->
-			[];
-		_ ->
-			[{etag, etag(Etag)}]
-	end,
-	{ok, Headers, RespBody}.
 
 -spec delete_subscriber(Id) -> Result
 	when
