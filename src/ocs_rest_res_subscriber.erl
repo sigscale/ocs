@@ -682,7 +682,7 @@ patch_replace1("attributes", Id, {array, Value}) ->
 	UpdateSubscriber =
 		Subscriber#subscriber{attributes = RadAttributes},
 	do_write(UpdateSubscriber);
-patch_replace1("enabled", Id, Value) ->
+patch_replace1("enabled", Id, Value) when is_list(Value) ->
 	[Subscriber] = mnesia:read(subscriber, Id),
 	Enabled = case Value of
 		"true" ->
@@ -692,6 +692,11 @@ patch_replace1("enabled", Id, Value) ->
 	end,
 	UpdateSubscriber =
 		Subscriber#subscriber{enabled = Enabled},
+	do_write(UpdateSubscriber);
+patch_replace1("enabled", Id, Value) when is_atom(Value) ->
+	[Subscriber] = mnesia:read(subscriber, Id),
+	UpdateSubscriber =
+		Subscriber#subscriber{enabled = Value},
 	do_write(UpdateSubscriber);
 patch_replace1("multisession", Id, Value) ->
 	[Subscriber] = mnesia:read(subscriber, Id),
