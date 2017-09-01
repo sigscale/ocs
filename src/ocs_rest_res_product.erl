@@ -91,11 +91,8 @@ add_product(ReqData) ->
 	end.
 %% @hidden
 add_product1(Products) ->
-	F2 = fun(Product) ->
-		ok = mnesia:write(product, Product, write)
-	end,
 	F1 = fun() ->
-		lists:foreach(F2, Products)
+		ok = mnesia:write(product, Products, write)
 	end,
 	case mnesia:transaction(F1) of
 		{atomic, ok} ->
