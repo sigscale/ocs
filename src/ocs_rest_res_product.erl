@@ -96,55 +96,81 @@ add_product2(ProdId, JsonResponse) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
--spec prod_name(Prefix, Json) -> Result
+-spec prod_id(Prefix, Product) -> Result
 	when
 		Prefix	:: erlang_term | json,
-		Json		:: list(),
+		Product	:: list() | #product{},
 		Result	:: string() | tuple().
 %% @private
-prod_name(erlang_term, Json) ->
-	{_, Name} = lists:keyfind("name", 1, Json),
-	Name.
+prod_id(json, Product) ->
+	{"id", Product#product.name}.
 
--spec prod_isBundle(Prefix, Json) -> Result
+-spec prod_name(Prefix, Product) -> Result
 	when
 		Prefix	:: erlang_term | json,
-		Json		:: list(),
+		Product		:: list() | #product{},
+		Result	:: string() | tuple().
+%% @private
+prod_name(erlang_term, Product) ->
+	{_, Name} = lists:keyfind("name", 1, Product),
+	Name;
+prod_name(json, Prod) ->
+	{"name", Prod#product.name}.
+
+-spec prod_isBundle(Prefix, Product) -> Result
+	when
+		Prefix	:: erlang_term | json,
+		Product	:: list() | #product{},
 		Result	:: boolean() | tuple().
 %% @private
-prod_isBundle(erlang_term, Json) ->
-	case lists:keyfind("isBundle", 1, Json) of
+prod_isBundle(erlang_term, Product) ->
+	case lists:keyfind("isBundle", 1, Product) of
 		{"isBundle", "true"} -> true;
 		_ -> false
-	end.
+	end;
+prod_isBundle(json, Product) ->
+	{"is_bundle", Product#product.is_bundle}.
 
--spec prod_status(Prefix, Json) -> Result
+-spec prod_status(Prefix, Product) -> Result
 	when
 		Prefix	:: erlang_term | json,
-		Json		:: list(),
+		Product	:: list() | #product{},
 		Result	:: string() | tuple().
 %% @private
-prod_status(erlang_term, Json) ->
-	case lists:keyfind("lifecycleStatus", 1, Json) of
+prod_status(erlang_term, Product) ->
+	case lists:keyfind("lifecycleStatus", 1, Product) of
 		{_, FindStatus} ->
 			find_status(FindStatus);
 		false ->
 			"active"
-	end.
+	end;
+prod_status(json, Product) ->
+	{"status", Product#product.status}.
 
--spec prod_description(Prefix, Json) -> Result
+-spec prod_description(Prefix, Product) -> Result
 	when
 		Prefix	:: erlang_term | json,
-		Json		:: list(),
+		Product	:: list() | #product{},
 		Result	:: undefined | string() | tuple().
 %% @private
-prod_description(erlang_term, Json) ->
-	proplists:get_value("description", Json, undefined).
+prod_description(erlang_term, Product) ->
+	proplists:get_value("description", Product, undefined);
+prod_description(json, Product) ->
+	{"description", Product#product.description}.
 
--spec prod_offering_price(Prefix, Json) -> Result
+-spec prod_href(Prefix, Product) -> Result
 	when
 		Prefix	:: erlang_term | json,
-		Json		:: list(),
+		Product	:: list() | #product{},
+		Result	:: undefined | string() | tuple().
+%% @private
+prod_href(json, Product) ->
+	{"href", "/product/product/" ++ Product#product.name}.
+
+-spec prod_offering_price(Prefix, Product) -> Result
+	when
+		Prefix	:: erlang_term | json,
+		Product	:: list() | #product{},
 		Result	:: [#price{}] | list() | {error, Status},
 		Status	:: 400.
 %% @doc construct list of product
