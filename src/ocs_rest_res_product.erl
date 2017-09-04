@@ -240,8 +240,8 @@ po_price(erlang_term, [{struct, Object} | T], Prices) ->
 		{ProdSTime, ProdETime} = prod_price_vf(erlang_term, Object),
 		ProdPriceType = prod_price_type(erlang_term, Object),
 		{_, {struct, ProdPriceObj}} = lists:keyfind("price", 1, Object),
-		{_, ProdAmount} = lists:keyfind("taxIncludedAmount", 1, ProdPriceObj),
-		{_, CurrencyCode} = lists:keyfind("currencyCode", 1, ProdPriceObj),
+		ProdAmount = prod_price_price_amount(erlang_term, ProdPriceObj),
+		CurrencyCode = prod_price_price_c_code(erlang_term, ProdPriceObj),
 		{_, RCPeriodS} = lists:keyfind("recurringChargePeriod", 1, Object),
 		ProdDescirption = proplists:get_value("description", Object, ""),
 		ProdUOMesasure = proplists:get_value("unitOfMeasure", Object, ""),
@@ -342,6 +342,30 @@ prod_price_type(erlang_term, Price) ->
 prod_price_type(json, Price) ->
 	PPT = price_type(Price#price.type),
 	{"priceType", PPT}.
+
+-spec prod_price_price_amount(Prefix, Price) -> Result
+	when
+		Prefix	:: erlang_term | json,
+		Price		:: list() | #price{},
+		Result	:: integer() | tuple().
+%% @private
+prod_price_price_amount(erlang_term, PriceObj) ->
+	{_, ProdAmount} = lists:keyfind("taxIncludedAmount", 1, PriceObj),
+	ProdAmount;
+prod_price_price_amount(json, Price) ->
+	{"taxIncludedAmount", Price#price.amount}.
+
+-spec prod_price_price_c_code(Prefix, Price) -> Result
+	when
+		Prefix	:: erlang_term | json,
+		Price		:: list() | #price{},
+		Result	:: integer() | tuple().
+%% @private
+prod_price_price_c_code(erlang_term, PriceObj) ->
+		{_, CurrencyCode} = lists:keyfind("currencyCode", 1, PriceObj),
+		CurrencyCode;
+prod_price_price_c_code(json, Price) ->
+	{"currencyCode", Price#price.currency}.
 
 -spec validity_period(StartTime, EndTime) -> Result
 	when
