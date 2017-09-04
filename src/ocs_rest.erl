@@ -153,7 +153,12 @@ filter2([{[H | _], _} | T] = Filters, L1, Acc) ->
 			end,
 			SubFilters = lists:filtermap(F1, Filters),
 			% filter descendants
-			NewAcc = [{H, filter3(Type, SubFilters, L2)} | Acc],
+			NewAcc = case filter3(Type, SubFilters, L2) of
+				{_, []} ->
+					Acc;
+				L3 ->
+					[{H, L3} | Acc]
+			end,
 			% skip filters applied above
 			F2 = fun({[Prefix | _], _}) when Prefix == H ->
 						true;
@@ -170,26 +175,27 @@ filter2([{[], []} | T], L, Acc) ->
 filter2([], _, Acc) ->
 	lists:reverse(Acc).
 %% @hidden
-filter3(struct, Filters, L) ->
-	{struct, filter2(Filters, L, [])};
-filter3(array, Filters, L) ->
-	{array, filter4(Filters, L, [])}.
+filter3(struct, Filters, L1) ->
+	{struct, filter2(Filters, L1, [])};
+filter3(array, Filters, L1) ->
+	{array, filter4(Filters, L1, [])}.
 %% @hidden
-%% handle complex filters on arrays
-filter4(Filters, [{struct, L} | T], Acc) ->
-	case filter5(Filters, L, []) of
-		false ->
-			filter4(Filters, T, Acc);
-		NewFilters ->
-			case filter2(NewFilters, L, []) of
-				[] ->
-					filter4(NewFilters, T, Acc);
-				L1 ->
-					filter4(NewFilters, T, [{struct, L1} | Acc])
-			end
-	end;
-filter4(Filters, [{array, L} | T], Acc) ->
-	filter4(Filters, T, [{array, filter4(Filters, L, [])} | Acc]);
+filter4(Filters, [{struct, L1} | T], Acc) ->
+	NewAcc = case filter5(Filters, L1, []) of
+		[] ->
+			Acc;
+		L2 ->
+			[{struct, L2} | Acc]
+	end,
+	filter4(Filters, T, NewAcc);
+filter4(Filters, [{array, L1} | T], Acc) ->
+	NewAcc = case filter4(Filters, L1, []) of
+		[] ->
+			Acc;
+		L2 ->
+			[{array, L2} | Acc]
+	end,
+	filter4(Filters, T, NewAcc);
 filter4(Filters, [{Key, _Value} = KV | T], Acc) ->
 	case lists:member(Key, Filters) of
 		true ->
@@ -202,50 +208,53 @@ filter4(Filters, [_ | T], Acc) ->
 filter4(_, [], Acc) ->
 	lists:reverse(Acc).
 %% @hidden
-%% test filters to see if any are match filters
-%% if match filters fail ignore entire structure (L)
-%% if match(s) succeed remove match portions ("=foo")
-filter5([{[], Filters} | T], L, Acc) ->
-	case filter6(Filters, L, undefined, []) of
-		false ->
-			false;
-		NewFilters ->
-			filter5(T, L, [{[], NewFilters} | Acc])
-	end;
-filter5([H | T], L, Acc) ->
-	case lists:keyfind(H, 1, L) of
-		false ->
-			filter5(T, L, Acc);
-		KV ->
-			filter5(T, L, [KV | Acc])
-	end;
+filter5([{[], Names} | T], L, Acc) ->
+	filter6(Names, true, L, []);
 filter5([], _, Acc) ->
 	lists:reverse(Acc).
-
 %% @hidden
 %% check for value matches
-%% returns false if value match fails
-%% returns new filter with value match portions removed
-filter6([H | T], L, Flag, Acc) ->
-	case string:tokens(H, "=") of
-		[Key, Value] ->
-			case lists:keyfind(Key, 1, L) of
-				{_, Value} ->
-					filter6(T, L, true, [Key | Acc]);
-				{_, _} when Flag == undefined ->
-					filter6(T, L, false, [Key | Acc]);
-				_ ->
-					filter6(T, L, Flag, [Key | Acc])
-			end;
-		[Key] ->
-			filter6(T, L, Flag, [Key | Acc]);
-		_ ->
-			throw({error, 400})
+filter6([H | T], Flag, L, Acc) ->
+	filter7(string:tokens(H, "="), T, Flag, L, Acc);
+filter6([], true, L, Acc) ->
+	filter8(L, Acc, []);
+filter6([], false, _, _Acc) ->
+	[].
+%% @hidden
+filter7([Key, _], T, true, L, [Key | _] = Acc) ->
+	filter6(T, true, L, Acc);
+filter7([Key, Value], T, false, L, [Key | _] = Acc) ->
+	case lists:keyfind(Key, 1, L) of
+		{_, Value} ->
+			filter6(T, true, L, Acc);
+		{_, _} ->
+			filter6(T, false, L, Acc)
 	end;
-filter6([], _, false, _Acc) ->
-	false;
-filter6([], _, _, Acc) ->
-	lists:usort(lists:reverse(Acc)).
+filter7([Key, Value], T, true, L, Acc) ->
+	case lists:keyfind(Key, 1, L) of
+		{_, Value} ->
+			filter6(T, true, L, [Key | Acc]);
+		{_, _} ->
+			filter6(T, false, L, [Key | Acc]);
+		false ->
+			[]
+	end;
+filter7(_, _, false, _, _) ->
+	[];
+filter7([Key], T, true, L, Acc) ->
+	filter6(T, true, L, [Key | Acc]);
+filter7(_, _, _, _, _) ->
+	throw({error, 400}).
+%% @hidden
+filter8([{Key, _} = H | T], Keys, Acc) ->
+	case lists:member(Key, Keys) of
+		true ->
+			filter8(T, Keys, [H | Acc]);
+		false ->
+			filter8(T, Keys, Acc)
+	end;
+filter8([], _, Acc) ->
+	lists:reverse(Acc).
 
 %% @hidden
 %% expand parenthesized value lists
