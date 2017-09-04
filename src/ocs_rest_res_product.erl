@@ -286,18 +286,15 @@ po_price(json, [Price | T], Prices) when is_record(Price, price) ->
 %% @private
 po_alteration(erlang_term, ProdAlterObj) ->
 	try
-		{_, ProdAlterName} = lists:keyfind("name", 1, ProdAlterObj),
-		{_, {struct, ProdAlterVFObj}} = lists:keyfind("validFor", 1, ProdAlterObj),
-		{_, ProdAlterSTimeISO} = lists:keyfind("startDateTime", 1, ProdAlterVFObj),
-		{_, ProdAlterPriceTypeS} = lists:keyfind("priceType", 1, ProdAlterObj),
+		ProdAlterName = price_alter_name(erlang_term, ProdAlterObj),
+		_ProdAlterSTime = price_alter_vf(erlang_term, ProdAlterObj),
+		ProdAlterPriceType = price_alter_price_type(erlang_term, ProdAlterObj),
 		{_, ProdAlterUOMeasure} = lists:keyfind("unitOfMeasure", 1, ProdAlterObj),
 		{_, {struct, ProdAlterPriceObj}} = lists:keyfind("price", 1, ProdAlterObj),
-		{_, ProdAlterAmount} = lists:keyfind("taxIncludedAmount", 1,  ProdAlterPriceObj),
-		ProdAlterDescirption = proplists:get_value("description", ProdAlterObj, ""),
+		ProdAlterAmount = price_alter_amount(erlang_term, ProdAlterPriceObj),
+		ProdAlterDescirption = price_alter_description(erlang_term, ProdAlterObj),
 		{ProdAlterUnits, ProdAlterSize} = product_unit_of_measure(ProdAlterUOMeasure),
 		AlterSize = product_size(ProdAlterUnits, octets, ProdAlterSize),
-		_ProdAlterSTime = ocs_rest:timestamp(ProdAlterSTimeISO),
-		ProdAlterPriceType = price_type(ProdAlterPriceTypeS),
 		#alteration{name = ProdAlterName, description = ProdAlterDescirption,
 			units = ProdAlterUnits, size = AlterSize, amount = ProdAlterAmount}
 	catch
@@ -397,6 +394,71 @@ prod_price_description(erlang_term, Price) ->
 	proplists:get_value("description", Price, undefined);
 prod_price_description(json, Price) ->
 	{"description", Price#price.description}.
+
+-spec price_alter_name(Prefix, PAlter) -> Result
+	when
+		Prefix :: erlang_term | json,
+		PAlter :: list() | #alteration{},
+		Result :: string() | tuple().
+%% @private
+price_alter_name(erlang_term, PAlter) ->
+	{_, Name} = lists:keyfind("name", 1, PAlter),
+	Name;
+price_alter_name(json, PAlter) ->
+	{"name", PAlter#alteration.name}.
+
+-spec price_alter_vf(Prefix, PAlter) -> Result
+	when
+		Prefix :: erlang_term | json,
+		PAlter :: list() | #alteration{},
+		Result :: integer() | tuple().
+%% @private
+price_alter_vf(erlang_term, PAlter) ->
+	{_, {struct, PAlterVF}} = lists:keyfind("validFor", 1, PAlter),
+	{_, PAlterSTimeISO} = lists:keyfind("startDateTime", 1, PAlterVF),
+	ocs_rest:timestamp(PAlterSTimeISO).
+
+-spec price_alter_description(Prefix, PAlter) -> Result
+	when
+		Prefix :: erlang_term | json,
+		PAlter :: list() | #alteration{},
+		Result :: undefined | string() | tuple().
+%% @private
+price_alter_description(erlang_term, PAlter) ->
+	proplists:get_value("description", PAlter, undefined);
+price_alter_description(json, PAlter) ->
+	case PAlter#alteration.description of
+		{_, Des} ->
+			{"description", Des};
+		false ->
+			{"description", ""}
+	end.
+
+-spec price_alter_price_type(Prefix, PAlter) -> Result
+	when
+		Prefix :: erlang_term | json,
+		PAlter :: list(),
+		Result :: undefined | atom().
+%% @private
+price_alter_price_type(erlang_term, PAlter) ->
+	case lists:keyfind("priceType", 1, PAlter) of
+		{_, PriceType} ->
+			price_type(PriceType);
+		false ->
+			undefined
+	end.
+
+-spec price_alter_amount(Prefix, PAlter) -> Result
+	when
+		Prefix :: erlang_term | json,
+		PAlter :: list() | #alteration{},
+		Result :: integer() | tuple().
+%% @private
+price_alter_amount(erlang_term, PAlterPriceObj) ->
+	{_, PAlterAmount} = lists:keyfind("taxIncludedAmount", 1,  PAlterPriceObj),
+	PAlterAmount;
+price_alter_amount(json, PAlter) ->
+	{"taxIncludedAmount", PAlter#alteration.amount}.
 
 -spec validity_period(StartTime, EndTime) -> Result
 	when
