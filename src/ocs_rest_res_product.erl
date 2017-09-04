@@ -328,6 +328,22 @@ po_alteration(erlang_term, ProdAlterObj) ->
 	catch
 		_:_ ->
 			{error, 400}
+	end;
+po_alteration(json, ProdAlter) when is_record(ProdAlter, alteration)->
+	try
+		Name = price_alter_name(json, ProdAlter),
+		_STime = price_alter_vf(json, ProdAlter),
+		PriceType = price_alter_price_type(json, ProdAlter),
+		UFM  = prod_price_ufm(json, ProdAlter),
+		Description = price_alter_description(json, ProdAlter),
+		Amount = price_alter_amount(json, ProdAlter),
+		PriceObj = {struct, [Amount]},
+		Price = {"price", PriceObj},
+		{"productOfferPriceAlteration",
+			{struct, [Name, Description, PriceType, UFM, Price]}}
+	catch
+		_:_ ->
+			{error, 500}
 	end.
 
 -spec prod_price_name(Prefix, Price) -> Result
