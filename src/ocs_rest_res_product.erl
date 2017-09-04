@@ -242,7 +242,8 @@ po_price(erlang_term, [{struct, Object} | T], Prices) ->
 		{_, {struct, ProdPriceObj}} = lists:keyfind("price", 1, Object),
 		ProdAmount = prod_price_price_amount(erlang_term, ProdPriceObj),
 		CurrencyCode = prod_price_price_c_code(erlang_term, ProdPriceObj),
-		{_, RCPeriodS} = lists:keyfind("recurringChargePeriod", 1, Object),
+		RCPeriod = prod_price_rc_period(erlang_term, Object)
+
 		ProdDescirption = proplists:get_value("description", Object, ""),
 		ProdUOMesasure = proplists:get_value("unitOfMeasure", Object, ""),
 		ProdValidity = validity_period(ProdSTime, ProdETime),
@@ -366,6 +367,27 @@ prod_price_price_c_code(erlang_term, PriceObj) ->
 		CurrencyCode;
 prod_price_price_c_code(json, Price) ->
 	{"currencyCode", Price#price.currency}.
+
+-spec prod_price_rc_period(Prefix, Price) -> Result
+	when
+		Prefix	:: erlang_term | json,
+		Price		:: list() | #price{},
+		Result	:: undefined | string() | tuple().
+%% @private
+prod_price_rc_period(erlang_term, Price) ->
+	case lists:keyfind("recurringChargePeriod", 1, Price) of
+		{_, RCPeriod} ->
+			RCPeriod;
+		false ->
+			undefined;
+	end;
+prod_price_rc_period(json, Price) ->
+	case Price#price.period of
+		undefined ->
+			"";
+		RCPeriod ->
+			{"recurringChargePeriod", RCPeriod};
+	end.
 
 -spec validity_period(StartTime, EndTime) -> Result
 	when
