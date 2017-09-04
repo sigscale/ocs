@@ -244,11 +244,10 @@ po_price(erlang_term, [{struct, Object} | T], Prices) ->
 		CurrencyCode = prod_price_price_c_code(erlang_term, ProdPriceObj),
 		RCPeriod = prod_price_rc_period(erlang_term, Object),
 		ProdDescirption = prod_price_description(erlang_term, Object),
-		ProdUOMesasure = proplists:get_value("unitOfMeasure", Object, ""),
 		ProdValidity = validity_period(ProdSTime, ProdETime),
 		if
 			ProdValidity =/= {error, format_error} ->
-				{ProdUnits, ProdSize} = product_unit_of_measure(ProdUOMesasure),
+				{ProdUnits, ProdSize} = prod_price_ufm(erlang_term, Object),
 				Size = product_size(ProdUnits, octets, ProdSize),
 				Price1 = #price{name = ProdName, description = ProdDescirption,
 				type = ProdPriceType, units = ProdUnits, size = Size,
@@ -293,7 +292,7 @@ po_alteration(erlang_term, ProdAlterObj) ->
 		{_, {struct, ProdAlterPriceObj}} = lists:keyfind("price", 1, ProdAlterObj),
 		ProdAlterAmount = price_alter_amount(erlang_term, ProdAlterPriceObj),
 		ProdAlterDescirption = price_alter_description(erlang_term, ProdAlterObj),
-		{ProdAlterUnits, ProdAlterSize} = product_unit_of_measure(ProdAlterUOMeasure),
+		{ProdAlterUnits, ProdAlterSize} = prod_price_ufm(erlang_term, ProdAlterObj),
 		AlterSize = product_size(ProdAlterUnits, octets, ProdAlterSize),
 		#alteration{name = ProdAlterName, description = ProdAlterDescirption,
 			units = ProdAlterUnits, size = AlterSize, amount = ProdAlterAmount}
@@ -479,71 +478,92 @@ validity_period(ISOSTime, ISOETime) when is_list(ISOSTime),
 			ETime - STime
 	end.
 
--spec product_unit_of_measure(UnitsOfMeasure) -> Result
+-spec prod_price_ufm(Prefix, Product) -> Result
 	when
-		UnitsOfMeasure	:: string(),
-		Result			:: {Units, Size},
-		Units				:: undefined | unit_of_measure(),
-		Size				:: undefined | pos_integer().
+		Prefix	:: erlang_term | json,
+		Product	:: list() | #product{},
+		Result	:: {Units, Size},
+		Units		:: undefined | unit_of_measure(),
+		Size		:: undefined | pos_integer().
 %% @doc return units type and size of measurement of a product
 %% @private
-product_unit_of_measure("") ->
-	{undefined, undefined};
-product_unit_of_measure(UnitsOfMeasure) ->
-	LowerUOM = string:to_lower(UnitsOfMeasure),
-	product_unit_of_measure1(LowerUOM).
+prod_price_ufm(erlang_term, Product) ->
+	UFM = proplists:get_value("unitOfMeasure", Product, undefined),
+	prod_price_ufm_et(UFM);
+prod_price_ufm(json, Product) ->
+	prod_price_ufm_json1(Product).
 %% @hidden
-product_unit_of_measure1(UnitsOfMeasure) ->
+prod_price_ufm_json1(Price) ->
+	Size = Price#price.size,
+	Units = Price#price.units,
+	{"unitOfMeasure", prod_price_ufm_json2(Units, Size)}.
+%% @hidden
+prod_price_ufm_json2(undefined, _) ->
+	"";
+prod_price_ufm_json2(Units, undefined) ->
+	Units;
+prod_price_ufm_json2(Units, Size) when is_integer(Size) ->
+	prod_price_ufm_json2(Units, integer_to_list(Size));
+prod_price_ufm_json2(Units, Size) when is_list(Units); is_list(Size) ->
+	Size ++ Units.
+%% @hidden
+prod_price_ufm_et(undefined) ->
+	{undefined, undefined};
+prod_price_ufm_et(UFM) ->
+	LowerUOM = string:to_lower(UFM),
+	prod_price_ufm_et1(LowerUOM).
+%% @hidden
+prod_price_ufm_et1(UFM) ->
 	Suffix = "octets",
-	case lists:suffix(Suffix, UnitsOfMeasure) of
+	case lists:suffix(Suffix, UFM) of
 		true ->
-			[Size] = string:tokens(UnitsOfMeasure, Suffix),
+			[Size] = string:tokens(UFM, Suffix),
 			{octets, list_to_integer(Size)};
 		false ->
-			product_unit_of_measure2(UnitsOfMeasure)
+			prod_price_ufm_et2(UFM)
 	end.
 %% @hidden
-product_unit_of_measure2(UnitsOfMeasure) ->
+prod_price_ufm_et2(UFM) ->
 	Suffix = "gb",
-	case lists:suffix(Suffix, UnitsOfMeasure) of
+	case lists:suffix(Suffix, UFM) of
 		true ->
-			[Size] = string:tokens(UnitsOfMeasure, Suffix),
+			[Size] = string:tokens(UFM, Suffix),
 			{gb, list_to_integer(Size)};
 		false ->
-			product_unit_of_measure3(UnitsOfMeasure)
+			prod_price_ufm_et3(UFM)
 	end.
 %% @hidden
-product_unit_of_measure3(UnitsOfMeasure) ->
+prod_price_ufm_et3(UFM) ->
 	Suffix = "mb",
-	case lists:suffix(Suffix, UnitsOfMeasure) of
+	case lists:suffix(Suffix, UFM) of
 		true ->
-			[Size] = string:tokens(UnitsOfMeasure, Suffix),
+			[Size] = string:tokens(UFM, Suffix),
 			{mb, list_to_integer(Size)};
 		false ->
-			product_unit_of_measure4(UnitsOfMeasure)
+			prod_price_ufm_et4(UFM)
 	end.
 %% @hidden
-product_unit_of_measure4(UnitsOfMeasure) ->
+prod_price_ufm_et4(UFM) ->
 	Suffix = "cents",
-	case lists:suffix(Suffix, UnitsOfMeasure) of
+	case lists:suffix(Suffix, UFM) of
 		true ->
-			[Size] = string:tokens(UnitsOfMeasure, Suffix),
+			[Size] = string:tokens(UFM, Suffix),
 			{cents, list_to_integer(Size)};
 		false ->
-			product_unit_of_measure5(UnitsOfMeasure)
+			prod_price_ufm_et5(UFM)
 	end.
 %% @hidden
-product_unit_of_measure5(UnitsOfMeasure) ->
+prod_price_ufm_et5(UFM) ->
 	Suffix = "seconds",
-	case lists:suffix(Suffix, UnitsOfMeasure) of
+	case lists:suffix(Suffix, UFM) of
 		true ->
-			[Size] = string:tokens(UnitsOfMeasure, Suffix),
+			[Size] = string:tokens(UFM, Suffix),
 			{seconds, list_to_integer(Size)};
 		false ->
-			product_unit_of_measure6(UnitsOfMeasure)
+			prod_price_ufm_et6(UFM)
 	end.
 %% @hidden
-product_unit_of_measure6(_UnitsOfMeasure) ->
+prod_price_ufm_et6(_UFM) ->
 	{undefined, undefined}.
 
 -spec product_size(UnitsFrom, UnitsTo, Size) -> Result
