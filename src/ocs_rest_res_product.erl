@@ -273,7 +273,7 @@ po_price(erlang_term, [{struct, Object} | T], Prices) ->
 			{error, 400}
 	end;
 po_price(json, [], Prices) ->
-	{struct, {array, Prices}};
+	Prices;
 po_price(json, [Price | T], Prices) when is_record(Price, price) ->
 	try
 		Name = prod_price_name(json, Price),
@@ -423,7 +423,7 @@ prod_price_rc_period(erlang_term, Price) ->
 prod_price_rc_period(json, Price) ->
 	case Price#price.period of
 		undefined ->
-			"";
+			{"recurringChargePeriod", ""};
 		RCPeriod ->
 			{"recurringChargePeriod", rc_period(RCPeriod)}
 	end.
@@ -472,16 +472,16 @@ price_alter_description(erlang_term, PAlter) ->
 	proplists:get_value("description", PAlter, undefined);
 price_alter_description(json, PAlter) ->
 	case PAlter#alteration.description of
-		{_, Des} ->
-			{"description", Des};
-		false ->
-			{"description", ""}
+		undefined ->
+			{"description", ""};
+		Des ->
+			{"description", Des}
 	end.
 
 -spec price_alter_price_type(Prefix, PAlter) -> Result
 	when
 		Prefix :: erlang_term | json,
-		PAlter :: list(),
+		PAlter :: list() | #alteration{},
 		Result :: undefined | atom().
 %% @private
 price_alter_price_type(erlang_term, PAlter) ->
