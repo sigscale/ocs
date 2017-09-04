@@ -235,11 +235,9 @@ po_price(erlang_term, [], Prices) ->
 	Prices;
 po_price(erlang_term, [{struct, Object} | T], Prices) ->
 	try
-		{_, ProdName} = lists:keyfind("name", 1, Object),
-		{_,  {struct, VFObj}} = lists:keyfind("validFor", 1, Object),
-		{_, ProdSTime} = lists:keyfind("startDateTime", 1, VFObj),
-		{_, ProdETime} = lists:keyfind("endDateTime", 1, VFObj),
-		{_, ProdPriceTypeS} = lists:keyfind("priceType", 1, Object),
+		ProdName = prod_price_name(erlang_term, Object),
+		{ProdSTime, ProdETime} = prod_price_vf(erlang_term, Object),
+		ProdPriceType = prod_price_type(erlang_term, Object),
 		{_, {struct, ProdPriceObj}} = lists:keyfind("price", 1, Object),
 		{_, ProdAmount} = lists:keyfind("taxIncludedAmount", 1, ProdPriceObj),
 		{_, CurrencyCode} = lists:keyfind("currencyCode", 1, ProdPriceObj),
@@ -249,7 +247,6 @@ po_price(erlang_term, [{struct, Object} | T], Prices) ->
 		ProdValidity = validity_period(ProdSTime, ProdETime),
 		if
 			ProdValidity =/= {error, format_error} ->
-				ProdPriceType = price_type(ProdPriceTypeS),
 				{ProdUnits, ProdSize} = product_unit_of_measure(ProdUOMesasure),
 				Size = product_size(ProdUnits, octets, ProdSize),
 				RCPeriod = recurring_charge_period(RCPeriodS),
@@ -307,6 +304,43 @@ po_alteration(erlang_term, ProdAlterObj) ->
 		_:_ ->
 			{error, 400}
 	end.
+
+-spec prod_price_name(Prefix, Price) -> Result
+	when
+		Prefix	:: erlang_term | json,
+		Price		:: list() | #price{},
+		Result	:: string() | tuple().
+%% @private
+prod_price_name(erlang_term, Price) ->
+	{_, Name} = lists:keyfind("name", 1, Price),
+	Name;
+prod_price_name(json, Price) ->
+	{"name", Price#price.name}.
+
+-spec prod_price_vf(Prefix, Price) -> Result
+	when
+		Prefix	:: erlang_term | json,
+		Price		:: list() | #price{},
+		Result	:: tuple().
+%% @private
+prod_price_vf(erlang_term, Price) ->
+	{_,  {struct, VFObj}} = lists:keyfind("validFor", 1, Price),
+	{_, ProdSTime} = lists:keyfind("startDateTime", 1, VFObj),
+	{_, ProdETime} = lists:keyfind("endDateTime", 1, VFObj),
+	{ProdSTime, ProdETime}.
+
+-spec prod_price_type(Prefix, Price) -> Result
+	when
+		Prefix	:: erlang_term | json,
+		Price		:: list() | #price{},
+		Result	:: atom() | tuple().
+%% @private
+prod_price_type(erlang_term, Price) ->
+	{_, ProdPriceTypeS} = lists:keyfind("priceType", 1, Price),
+	price_type(ProdPriceTypeS);
+prod_price_type(json, Price) ->
+	PPT = price_type(Price#price.type),
+	{"priceType", PPT}.
 
 -spec validity_period(StartTime, EndTime) -> Result
 	when
@@ -435,10 +469,13 @@ find_status("pending_active") -> pending_active;
 find_status("pending_terminate") -> pending_terminate.
 
 -spec price_type(StringPriceType) -> PriceType when
-	StringPriceType :: string(),
-	PriceType		 :: recurring | one_time | usage.
+	StringPriceType :: string() | atom(),
+	PriceType		 :: recurring | one_time | usage | string().
 %% @private
 price_type("usage") -> usage;
 price_type("recurring") -> recurring;
-price_type("one_time") -> one_time.
+price_type("one_time") -> one_time;
+price_type(usage) -> "usage";
+price_type(recurring) -> "recurring";
+price_type(one_time) -> "one_time".
 
