@@ -32,7 +32,7 @@
 		ContentTypes :: list().
 %% @doc Provides list of resource representations accepted.
 content_types_accepted() ->
-	["application/json"].
+	[	"application/json"].
 
 -spec content_types_provided() -> ContentTypes
 	when
@@ -73,7 +73,7 @@ add_product(ReqData) ->
 				status = Status, description = Descirption},
 				case add_product1(Product) of
 					ok ->
-						add_product2(Object);
+						add_product2(Name, Object);
 					{error, StatusCode} ->
 						{error, StatusCode}
 				end
@@ -94,11 +94,11 @@ add_product1(Products) ->
 			{error, 500}
 	end.
 %% @hidden
-add_product2(JsonResponse) ->
-	Id = {id, ""},
+add_product2(ProdId, JsonResponse) ->
+	Id = {id, ProdId},
 	Json = {struct, [Id | JsonResponse]},
 	Body = mochijson:encode(Json),
-	Location = "/catalogManagement/v1/product", %% ++ id
+	Location = "/catalogManagement/v1/product/" ++ ProdId,
 	Headers = [{location, Location}],
 	{ok, Headers, Body}.
 
@@ -176,7 +176,7 @@ po_alteration(ProdAlterObj) ->
 		ProdAlterDescirption = proplists:get_value("description", ProdAlterObj, ""),
 		{ProdAlterUnits, ProdAlterSize} = product_unit_of_measure(ProdAlterUOMeasure),
 		AlterSize = product_size(ProdAlterUnits, octets, ProdAlterSize),
-		ProdAlterSTime = ocs_rest:timestamp(ProdAlterSTimeISO),
+		_ProdAlterSTime = ocs_rest:timestamp(ProdAlterSTimeISO),
 		ProdAlterPriceType = price_type(ProdAlterPriceTypeS),
 		#alteration{name = ProdAlterName, description = ProdAlterDescirption,
 			units = ProdAlterUnits, size = AlterSize, amount = ProdAlterAmount}
