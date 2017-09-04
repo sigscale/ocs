@@ -93,6 +93,45 @@ add_product2(ProdId, JsonResponse) ->
 	Headers = [{location, Location}],
 	{ok, Headers, Body}.
 
+-spec get_product(ProdID) -> Result when
+	ProdID	:: string(),
+	Result	:: {ok, Headers, Body} | {error, Status},
+	Headers	:: [tuple()],
+	Body		:: iolist(),
+	Status	:: 400 | 404 | 500 .
+%% @doc Respond to `GET /productInventoryManagement/v1/{id}' and
+%% retrieve a `product' details
+get_product(ProductID) ->
+	F = fun() ->
+		case mnesia:read(product, ProductID) of
+			[Product] ->
+				Product;
+			[] ->
+				throw(not_found)
+		end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, Prod} ->
+			get_product1(Prod);
+		{aborted, {throw, not_found}} ->
+			{error, 404};
+		{aborted, _} ->
+			{error, 500}
+	end.
+%% @hidden
+get_product1(Prod) ->
+	ID = prod_id(json, Prod),
+	Descirption = prod_description(json, Prod),
+	Href = prod_href(json, Prod),
+	IsBundle = prod_isBundle(json, Prod),
+	Name = prod_name(json, Prod),
+	Status = prod_status(json, Prod),
+	OfferPrice = prod_offering_price(json, Prod),
+	Json = {struct, [ID, Descirption, Href, IsBundle, Name, Status, OfferPrice]},
+	Body = mochijson:encode(Json),
+	Headers = [{content_type, "application/json"}],
+	{ok, Headers, Body};
+
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
@@ -179,12 +218,15 @@ prod_offering_price(erlang_term, []) ->
 	{error, 400};
 prod_offering_price(erlang_term, Json) ->
 	{_, {array, ProdOfPrice}} = lists:keyfind("productOfferingPrice", 1, Json),
-	po_price(erlang_term, ProdOfPrice, []).
+	po_price(erlang_term, ProdOfPrice, []);
+prod_offering_price(json, Product) ->
+	ProdOfPrice = po_price(json, Product#product.price, []),
+	{"productOfferingPrice", {array, ProdOfPrice}}.
 
 -spec po_price(Prefix, ProductOfPrice, Prices) -> Result
 	when
 		Prefix	:: erlang_term | json,
-		ProductOfPrice	:: list(),
+		ProductOfPrice	:: list() | [#price{}],
 		Prices	::	list(),
 		Result	:: [#price{}] | list() | {error, Status},
 		Status	:: 400.
@@ -233,7 +275,10 @@ po_price(erlang_term, [{struct, Object} | T], Prices) ->
 	catch
 		_:_ ->
 			{error, 400}
-	end.
+	end;
+po_price(json, [Price | T], Prices) when is_record(Price, price) ->
+	todo.
+
 
 -spec po_alteration(Prefix, ProdAlterObj) -> Result
 	when

@@ -86,6 +86,8 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 							check_content_type_header(Headers, Method, ocs_rest_res_balance, Data);
 						["catalogManagement", "v1", "productOffering"] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_product, Data);
+						["productInventoryManagement", "v1", "product", _] ->
+							check_content_type_header(Headers, Method, ocs_rest_res_product, Data);
 						_ ->
 							{proceed, Data}
 					end;
