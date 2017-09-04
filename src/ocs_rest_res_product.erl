@@ -230,7 +230,7 @@ prod_offering_price(json, Product) ->
 		ProductOfPrice	:: list() | [#price{}],
 		Prices	::	list(),
 		Result	:: [#price{}] | list() | {error, Status},
-		Status	:: 400.
+		Status	:: 400 | 500.
 %% @hidden
 po_price(erlang_term, [], Prices) ->
 	Prices;
@@ -272,9 +272,38 @@ po_price(erlang_term, [{struct, Object} | T], Prices) ->
 		_:_ ->
 			{error, 400}
 	end;
+po_price(json, [], Prices) ->
+	{struct, {array, Prices}};
 po_price(json, [Price | T], Prices) when is_record(Price, price) ->
-	todo.
-
+	try
+		Name = prod_price_name(json, Price),
+		%{ProdSTime, ProdETime} = prod_price_vf(json, Price),
+		PriceType = prod_price_type(json, Price),
+		Amount = prod_price_price_amount(json, Price),
+		CurrencyCode = prod_price_price_c_code(json, Price),
+		PriceObj = {"price", {struct, [Amount, CurrencyCode]}},
+		RCPeriod = prod_price_rc_period(json, Price),
+		Description = prod_price_description(json, Price),
+		UOMeasure = prod_price_ufm(json, Price),
+		%ProdValidity = validity_period(ProdSTime, ProdETime),
+		if
+			Price#price.alteration == undefined ->
+				Price1 = {struct, [Name, Description, PriceType, PriceObj, UOMeasure, RCPeriod]},
+				po_price(json, T, [Price1 | Prices]);
+			true ->
+				case po_alteration(json, Price#price.alteration) of
+					{error, Status} ->
+						{error, Status};
+					Alteration ->
+						Price1 = {struct, [Name, Description, PriceType,
+							PriceObj, UOMeasure, RCPeriod, Alteration]},
+						po_price(json, T, [Price1 | Prices])
+				end
+		end
+	catch
+		_:_ ->
+			{error, 500}
+	end.
 
 -spec po_alteration(Prefix, ProdAlterObj) -> Result
 	when
