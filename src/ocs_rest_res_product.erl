@@ -23,6 +23,7 @@
 -export([content_types_accepted/0, content_types_provided/0]).
 
 -export([add_product/1]).
+-export([get_product/1]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
@@ -130,7 +131,7 @@ get_product1(Prod) ->
 	Json = {struct, [ID, Descirption, Href, IsBundle, Name, Status, OfferPrice]},
 	Body = mochijson:encode(Json),
 	Headers = [{content_type, "application/json"}],
-	{ok, Headers, Body};
+	{ok, Headers, Body}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
