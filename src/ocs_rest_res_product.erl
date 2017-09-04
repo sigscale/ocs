@@ -127,11 +127,15 @@ get_product1(Prod) ->
 	IsBundle = prod_isBundle(json, Prod),
 	Name = prod_name(json, Prod),
 	Status = prod_status(json, Prod),
-	OfferPrice = prod_offering_price(json, Prod),
-	Json = {struct, [ID, Descirption, Href, IsBundle, Name, Status, OfferPrice]},
-	Body = mochijson:encode(Json),
-	Headers = [{content_type, "application/json"}],
-	{ok, Headers, Body}.
+	case prod_offering_price(json, Prod) of
+		{error, StatusCode} ->
+			{error, StatusCode};
+		OfferPrice ->
+			Json = {struct, [ID, Descirption, Href, IsBundle, Name, Status, OfferPrice]},
+			Body = mochijson:encode(Json),
+			Headers = [{content_type, "application/json"}],
+			{ok, Headers, Body}
+	end.
 
 %%----------------------------------------------------------------------
 %%  internal functions
