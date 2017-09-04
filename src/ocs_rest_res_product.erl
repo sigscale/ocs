@@ -394,9 +394,9 @@ prod_price_rc_period(json, Price) ->
 		Result	:: undefined | string() | tuple().
 %% @private
 prod_price_description(erlang_term, Price) ->
-	proplists:get_value("description", Object, undefined).
+	proplists:get_value("description", Price, undefined);
 prod_price_description(json, Price) ->
-	{"description", #price.description}.
+	{"description", Price#price.description}.
 
 -spec validity_period(StartTime, EndTime) -> Result
 	when
