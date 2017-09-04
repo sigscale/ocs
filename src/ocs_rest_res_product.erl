@@ -52,20 +52,11 @@ content_types_provided() ->
 add_product(ReqData) ->
 	try
 		{struct, Object} = mochijson:decode(ReqData),
-		{_, Name} = lists:keyfind("name", 1, Object),
-		IsBundle = case lists:keyfind("isBundle", 1, Object) of
-			{"isBundle", "true"} -> true;
-			_ -> false
-		end,
-		Status  = case lists:keyfind("lifecycleStatus", 1, Object) of
-			{_, FindStatus} ->
-				find_status(FindStatus);
-			false ->
-				"active"
-		end,
-		Descirption = proplists:get_value("description", Object, ""),
-		{_, {array, ProdOfPrice}} = lists:keyfind("productOfferingPrice", 1, Object),
-		case product_offering_price(ProdOfPrice) of
+		Name = prod_name(erlang_term, Object),
+		IsBundle = prod_isBundle(erlang_term, Object),
+		Status = prod_status(erlang_term, Object),
+		Descirption = prod_description(erlang_term, Object),
+		case prod_offering_price(erlang_term, Object) of
 			{error, StatusCode} ->
 				{error, StatusCode};
 			Price ->
@@ -105,22 +96,76 @@ add_product2(ProdId, JsonResponse) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+-spec prod_name(Prefix, Json) -> Result
+	when
+		Prefix	:: erlang_term | json,
+		Json		:: list(),
+		Result	:: string() | tuple().
+%% @private
+prod_name(erlang_term, Json) ->
+	{_, Name} = lists:keyfind("name", 1, Json),
+	Name.
 
--spec product_offering_price(POfPrice) -> Result when
-	POfPrice	:: list(),
-	Result 	:: Prices | {error, StatusCode},
-	Prices	:: [#price{}],
-	StatusCode	:: 400.
+-spec prod_isBundle(Prefix, Json) -> Result
+	when
+		Prefix	:: erlang_term | json,
+		Json		:: list(),
+		Result	:: boolean() | tuple().
+%% @private
+prod_isBundle(erlang_term, Json) ->
+	case lists:keyfind("isBundle", 1, Json) of
+		{"isBundle", "true"} -> true;
+		_ -> false
+	end.
+
+-spec prod_status(Prefix, Json) -> Result
+	when
+		Prefix	:: erlang_term | json,
+		Json		:: list(),
+		Result	:: string() | tuple().
+%% @private
+prod_status(erlang_term, Json) ->
+	case lists:keyfind("lifecycleStatus", 1, Json) of
+		{_, FindStatus} ->
+			find_status(FindStatus);
+		false ->
+			"active"
+	end.
+
+-spec prod_description(Prefix, Json) -> Result
+	when
+		Prefix	:: erlang_term | json,
+		Json		:: list(),
+		Result	:: undefined | string() | tuple().
+%% @private
+prod_description(erlang_term, Json) ->
+	proplists:get_value("description", Json, undefined).
+
+-spec prod_offering_price(Prefix, Json) -> Result
+	when
+		Prefix	:: erlang_term | json,
+		Json		:: list(),
+		Result	:: [#price{}] | list() | {error, Status},
+		Status	:: 400.
 %% @doc construct list of product
 %% @private
-product_offering_price([]) ->
+prod_offering_price(erlang_term, []) ->
 	{error, 400};
-product_offering_price(POfPrice) ->
-	po_price(POfPrice, []).
+prod_offering_price(erlang_term, Json) ->
+	{_, {array, ProdOfPrice}} = lists:keyfind("productOfferingPrice", 1, Json),
+	po_price(erlang_term, ProdOfPrice, []).
+
+-spec po_price(Prefix, ProductOfPrice, Prices) -> Result
+	when
+		Prefix	:: erlang_term | json,
+		ProductOfPrice	:: list(),
+		Prices	::	list(),
+		Result	:: [#price{}] | list() | {error, Status},
+		Status	:: 400.
 %% @hidden
-po_price([], Prices) ->
+po_price(erlang_term, [], Prices) ->
 	Prices;
-po_price([{struct, Object} | T], Prices) ->
+po_price(erlang_term, [{struct, Object} | T], Prices) ->
 	try
 		{_, ProdName} = lists:keyfind("name", 1, Object),
 		{_,  {struct, VFObj}} = lists:keyfind("validFor", 1, Object),
@@ -146,14 +191,14 @@ po_price([{struct, Object} | T], Prices) ->
 					amount = ProdAmount},
 				case lists:keyfind("productOfferPriceAlteration", 1, Object) of
 					false ->
-						po_price(T, [Price1 | Prices]);
+						po_price(erlang_term, T, [Price1 | Prices]);
 					{_, {struct, ProdAlterObj}} ->
-						case po_alteration(ProdAlterObj) of
+						case po_alteration(erlang_term, ProdAlterObj) of
 							{error, Status} ->
 								{error, Status};
 							Alteration ->
 								Price2 = Price1#price{alteration = Alteration},
-								po_price(T, [Price2 | Prices])
+								po_price(erlang_term, T, [Price2 | Prices])
 						end
 				end;
 			true ->
@@ -163,8 +208,15 @@ po_price([{struct, Object} | T], Prices) ->
 		_:_ ->
 			{error, 400}
 	end.
-%% @hidden
-po_alteration(ProdAlterObj) ->
+
+-spec po_alteration(Prefix, ProdAlterObj) -> Result
+	when
+		Prefix	:: erlang_term | json,
+		ProdAlterObj :: list(),
+		Result	:: #alteration{} | {error, Status},
+		Status	:: 400.
+%% @private
+po_alteration(erlang_term, ProdAlterObj) ->
 	try
 		{_, ProdAlterName} = lists:keyfind("name", 1, ProdAlterObj),
 		{_, {struct, ProdAlterVFObj}} = lists:keyfind("validFor", 1, ProdAlterObj),
@@ -279,7 +331,7 @@ product_unit_of_measure6(_UnitsOfMeasure) ->
 		Result		:: integer().
 %% @private
 product_size(UnitsFrom, octets, Size) when
-		UnitsFrom == undefined; Size == undefinedi ->
+		UnitsFrom == undefined; Size == undefined ->
 	0;
 product_size(gb, octets, Size) -> Size * 1000000000;
 product_size(mb, octets, Size) -> Size * 1000000;
