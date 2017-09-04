@@ -250,7 +250,6 @@ po_price(erlang_term, [{struct, Object} | T], Prices) ->
 			ProdValidity =/= {error, format_error} ->
 				{ProdUnits, ProdSize} = product_unit_of_measure(ProdUOMesasure),
 				Size = product_size(ProdUnits, octets, ProdSize),
-				RCPeriod = recurring_charge_period(RCPeriodS),
 				Price1 = #price{name = ProdName, description = ProdDescirption,
 				type = ProdPriceType, units = ProdUnits, size = Size,
 					currency = CurrencyCode, period = RCPeriod, validity = ProdValidity,
@@ -376,7 +375,7 @@ prod_price_price_c_code(json, Price) ->
 prod_price_rc_period(erlang_term, Price) ->
 	case lists:keyfind("recurringChargePeriod", 1, Price) of
 		{_, RCPeriod} ->
-			RCPeriod;
+			rc_period(RCPeriod);
 		false ->
 			undefined
 	end;
@@ -385,7 +384,7 @@ prod_price_rc_period(json, Price) ->
 		undefined ->
 			"";
 		RCPeriod ->
-			{"recurringChargePeriod", RCPeriod}
+			{"recurringChargePeriod", rc_period(RCPeriod)}
 	end.
 
 -spec prod_price_description(Prefix, Price) -> Result
@@ -499,17 +498,22 @@ product_size(gb, octets, Size) -> Size * 1000000000;
 product_size(mb, octets, Size) -> Size * 1000000;
 product_size(_, _, Size) -> Size.
 
--spec recurring_charge_period(RCPeriod) -> Result
+-spec rc_period(RCPeriod) -> Result
 	when
 		RCPeriod	:: string(),
 		Result	:: valid_period().
 %% @doc return valid period
 %% @private
-recurring_charge_period("") -> undefined;
-recurring_charge_period("yearly") -> yearly;
-recurring_charge_period("monthly") -> monthly;
-recurring_charge_period("weekly") -> weekly;
-recurring_charge_period("daily") -> daily.
+rc_period("") -> undefined;
+rc_period("yearly") -> yearly;
+rc_period("monthly") -> monthly;
+rc_period("weekly") -> weekly;
+rc_period("daily") -> daily;
+rc_period(undefined) -> "";
+rc_period(yearly) -> "yearly";
+rc_period(monthly) -> "monthly";
+rc_period(weekly) -> "weekly";
+rc_period(daily) -> "daily".
 
 -spec find_status(StringStatus) -> Status when
 	StringStatus	:: string(),
