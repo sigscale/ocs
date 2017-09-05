@@ -91,7 +91,14 @@ filter(Filters, {struct, L} = _Object) when is_list(Filters) ->
 	end,
 	Filters2 = string:tokens(Filters1, ","),
 	Filters3 = [string:tokens(F, ".") || F <- Filters2],
-	{struct, filter1(lists:usort(Filters3), L, [])}.
+	Filters4 = lists:usort(Filters3),
+	Fsort = fun(A, B) when length(A) =< length(B) ->
+				true;
+			(_, _) ->
+				false
+	end,
+	Filters5 = lists:sort(Fsort, Filters4),
+	{struct, filter1(Filters5, L, [])}.
 
 -spec range(Range) -> Result
 	when
