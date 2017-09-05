@@ -136,7 +136,7 @@ filter1([Filter | T1], L, [{Names, RevPath} | T2] = Acc) ->
 filter1([], L, Acc) ->
 	Filters = [{lists:reverse(Path), lists:reverse(Names)}
 			|| {Names, Path} <- lists:reverse(Acc)],
-	filter2(Filters, L, []).
+	lists:reverse(filter2(Filters, L, [])).
 %% @hidden
 %% filter fields from object
 filter2([{[], [H | T1]} | T2] = _Filters, L, Acc) ->
