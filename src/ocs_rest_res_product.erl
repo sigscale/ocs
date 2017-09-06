@@ -129,6 +129,7 @@ get_product1(Prod) ->
 	ID = prod_id(json, Prod),
 	Descirption = prod_description(json, Prod),
 	Href = prod_href(json, Prod),
+	ValidFor = prod_vf(json, Prod),
 	IsBundle = prod_isBundle(json, Prod),
 	Name = prod_name(json, Prod),
 	Status = prod_status(json, Prod),
@@ -136,7 +137,8 @@ get_product1(Prod) ->
 		{error, StatusCode} ->
 			{error, StatusCode};
 		OfferPrice ->
-			Json = {struct, [ID, Descirption, Href, IsBundle, Name, Status, OfferPrice]},
+			Json = {struct, [ID, Descirption, Href,
+				IsBundle, Name, Status, ValidFor, OfferPrice]},
 			Body = mochijson:encode(Json),
 			Headers = [{content_type, "application/json"}],
 			{ok, Headers, Body}
@@ -183,15 +185,16 @@ po_price(erlang_term, [{struct, Object} | T], Prices) ->
 				{_, {struct, ProdPriceObj}} = lists:keyfind("price", 1, Object),
 				ProdAmount = prod_price_price_amount(erlang_term, ProdPriceObj),
 				CurrencyCode = prod_price_price_c_code(erlang_term, ProdPriceObj),
+				ProdVF = prod_price_vf(erlang_term, Object),
 				RCPeriod = prod_price_rc_period(erlang_term, Object),
 				ProdDescirption = prod_price_description(erlang_term, Object),
-				ProdValidity = ProdSTime - ProdETime,
+				ProdValidity = ProdETime - ProdSTime,
 				if
 					ProdValidity =/= {error, format_error} ->
 						{ProdUnits, ProdSize} = prod_price_ufm(erlang_term, Object),
 						Size = product_size(ProdUnits, octets, ProdSize),
 						Price1 = #price{name = ProdName, description = ProdDescirption,
-							type = ProdPriceType, units = ProdUnits, size = Size,
+							type = ProdPriceType, units = ProdUnits, size = Size, valid_for = ProdVF,
 							currency = CurrencyCode, period = RCPeriod, validity = ProdValidity,
 							amount = ProdAmount},
 						case lists:keyfind("productOfferPriceAlteration", 1, Object) of
@@ -219,7 +222,7 @@ po_price(json, [], Prices) ->
 po_price(json, [Price | T], Prices) when is_record(Price, price) ->
 	try
 		Name = prod_price_name(json, Price),
-		%{ProdSTime, ProdETime} = prod_price_vf(json, Price),
+		ValidFor = prod_price_vf(json, Price),
 		PriceType = prod_price_type(json, Price),
 		Amount = prod_price_price_amount(json, Price),
 		CurrencyCode = prod_price_price_c_code(json, Price),
@@ -230,7 +233,8 @@ po_price(json, [Price | T], Prices) when is_record(Price, price) ->
 		%ProdValidity = validity_period(ProdSTime, ProdETime),
 		if
 			Price#price.alteration == undefined ->
-				Price1 = {struct, [Name, Description, PriceType, PriceObj, UOMeasure, RCPeriod]},
+				Price1 = {struct, [Name, Description,
+					PriceType, PriceObj, UOMeasure, RCPeriod]},
 				po_price(json, T, [Price1 | Prices]);
 			true ->
 				case po_alteration(json, Price#price.alteration) of
@@ -238,7 +242,7 @@ po_price(json, [Price | T], Prices) when is_record(Price, price) ->
 						{error, Status};
 					Alteration ->
 						Price1 = {struct, [Name, Description, PriceType,
-							PriceObj, UOMeasure, RCPeriod, Alteration]},
+							ValidFor, PriceObj, UOMeasure, RCPeriod, Alteration]},
 						po_price(json, T, [Price1 | Prices])
 				end
 		end
@@ -275,7 +279,7 @@ po_alteration(erlang_term, ProdAlterObj) ->
 po_alteration(json, ProdAlter) when is_record(ProdAlter, alteration)->
 	try
 		Name = prod_price_alter_name(json, ProdAlter),
-		_STime = prod_price_alter_vf(json, ProdAlter),
+		ValidFor = prod_price_alter_vf(json, ProdAlter),
 		PriceType = prod_price_alter_price_type(json, ProdAlter),
 		UFM  = prod_price_ufm(json, ProdAlter),
 		Description = prod_price_alter_description(json, ProdAlter),
@@ -283,7 +287,7 @@ po_alteration(json, ProdAlter) when is_record(ProdAlter, alteration)->
 		PriceObj = {struct, [Amount]},
 		Price = {"price", PriceObj},
 		{"productOfferPriceAlteration",
-			{struct, [Name, Description, PriceType, UFM, Price]}}
+			{struct, [Name, Description, PriceType, ValidFor, UFM, Price]}}
 	catch
 		_:_ ->
 			{error, 500}
@@ -377,6 +381,19 @@ prod_vf(erlang_term, Product) ->
 			{SDT, EDT};
 		_ ->
 			{error, 400}
+	end;
+prod_vf(json, Product) ->
+	case Product#product.valid_for of
+		{SDateTime, undefined} ->
+			SDT = {"startDateTime", ocs_rest:iso8601(SDateTime)},
+			{"validFor", {struct, [SDT]}};
+		{undefined, EDateTime} ->
+			EDT = {"endDateTime", ocs_rest:iso8601(EDateTime)},
+			{"validFor", {struct, [EDT]}};
+		{SDateTime, EDateTime} ->
+			SDT = {"startDateTime", ocs_rest:iso8601(SDateTime)},
+			EDT = {"endDateTime", ocs_rest:iso8601(EDateTime)},
+			{"validFor", {struct, [SDT, EDT]}}
 	end.
 
 -spec prod_price_name(Prefix, Price) -> Result
@@ -422,7 +439,9 @@ prod_price_vf(erlang_term, Price) ->
 	end;
 prod_price_vf(json, Price) ->
 	{SDateTime, EDateTime} = Price#price.valid_for,
-	{ocs_rest:iso8601(SDateTime), ocs_rest:iso8601(EDateTime)}.
+	SDT = {"startDateTime", ocs_rest:iso8601(SDateTime)},
+	EDT = {"endDateTime", ocs_rest:iso8601(EDateTime)},
+	{"ValidFor", {struct, [SDT, EDT]}}.
 
 -spec prod_price_type(Prefix, Price) -> Result
 	when
