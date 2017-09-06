@@ -73,7 +73,7 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[filter_members, filter_complex].
+	[filter_members, filter_array, filter_complex].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -90,6 +90,25 @@ filter_members(_Config) ->
 	ObjectIn = {struct, [{"a", 3}, {"b", B}, {"c", 7}]},
 	Filters = "b.f,b.h,b.d",
 	ObjectOut = {struct, [{"b", {struct, [D, F, H]}}]},
+	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
+
+filter_array() ->
+	[{userdata, [{doc, "Filter JSON array"}]}].
+
+filter_array(_Config) ->
+	AX = {"x", erlang:unique_integer()},
+	AY = {"y", erlang:unique_integer()},
+	BX = {"x", erlang:unique_integer()},
+	BY = {"y", erlang:unique_integer()},
+	CX = {"x", erlang:unique_integer()},
+	CY = {"y", erlang:unique_integer()},
+	A = {struct, [{"w", 1}, AX, AY, {"z", 2}]},
+	B = {struct, [{"w", 3}, BX, BY, {"z", 4}]},
+	C = {struct, [{"w", 5}, CX, CY, {"z", 6}]},
+	ObjectIn = {array, [A, B, C]},
+	Filters = "x,y",
+	ObjectOut = {array, [{struct, [AX, AY]},
+			{struct, [BX, BY]}, {struct, [CX, CY]}]},
 	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
 
 filter_complex() ->
