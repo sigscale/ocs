@@ -271,7 +271,7 @@ po_alteration(erlang_term, ProdAlterObj) ->
 		AlterSize = product_size(ProdAlterUnits, octets, ProdAlterSize),
 		#alteration{name = ProdAlterName, description = ProdAlterDescirption,
 			valid_for = ProdAlterVF, units = ProdAlterUnits, size = AlterSize,
-			amount = ProdAlterAmount}
+			amount = ProdAlterAmount, type = ProdAlterPriceType}
 	catch
 		_:_ ->
 			{error, 400}
@@ -604,9 +604,13 @@ prod_price_ufm(erlang_term, Product) ->
 prod_price_ufm(json, Product) ->
 	prod_price_ufm_json1(Product).
 %% @hidden
-prod_price_ufm_json1(Price) ->
+prod_price_ufm_json1(Price) when is_record(Price, price)->
 	Size = Price#price.size,
 	Units = Price#price.units,
+	{"unitOfMeasure", prod_price_ufm_json2(Units, Size)};
+prod_price_ufm_json1(Price) when is_record(Price, alteration)->
+	Size = Price#alteration.size,
+	Units = Price#alteration.units,
 	{"unitOfMeasure", prod_price_ufm_json2(Units, Size)}.
 %% @hidden
 prod_price_ufm_json2(undefined, _) ->
