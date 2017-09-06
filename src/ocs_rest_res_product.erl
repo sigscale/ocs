@@ -368,7 +368,7 @@ prod_vf(erlang_term, Product) ->
 	{_, {struct, VFObj}} = lists:keyfind("validFor", 1, Product),
 	{_, SDT} = lists:keyfind("startDateTime", 1, VFObj),
 	{_, EDT} = lists:keyfind("endDateTime", 1, VFObj),
-	{ocs_rest:timestamp(SDT), ocs_rest:timestamp(EDT)}
+	{ocs_rest:timestamp(SDT), ocs_rest:timestamp(EDT)};
 prod_vf(json, Product) ->
 	case Product#product.valid_for of
 		{SDateTime, undefined} ->
