@@ -73,16 +73,29 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[filter].
+	[filter_members, filter_complex].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
 
-filter() ->
+filter_members() ->
+	[{userdata, [{doc, "Filter JSON object members"}]}].
+
+filter_members(_Config) ->
+	H = {"h", erlang:unique_integer()},
+	F = {"f", erlang:unique_integer()},
+	D = {"d", erlang:unique_integer()},
+	B = {struct, [D, {"e", 5}, F, {"g", 6}, H]},
+	ObjectIn = {struct, [{"a", 3}, {"b", B}, {"c", 7}]},
+	Filters = "b.f,b.h,b.d",
+	ObjectOut = {struct, [{"b", {struct, [D, F, H]}}]},
+	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
+
+filter_complex() ->
 	[{userdata, [{doc, "Apply filters to a JSON object"}]}].
 
-filter(_Config) ->
+filter_complex(_Config) ->
 	G = {"g", erlang:unique_integer()},
 	F = {struct, [{"f", erlang:unique_integer()}]},
 	E = {struct, [{"g", erlang:unique_integer()},
