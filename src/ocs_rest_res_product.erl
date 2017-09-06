@@ -206,8 +206,6 @@ po_price(erlang_term, [{struct, Object} | T], Prices) ->
 									po_price(erlang_term, T, [Price2 | Prices])
 								end
 						end;
-					true ->
-						{error, 400};
 				true ->
 					{error, 400}
 			end
@@ -259,7 +257,7 @@ po_price(json, [Price | T], Prices) when is_record(Price, price) ->
 po_alteration(erlang_term, ProdAlterObj) ->
 	try
 		ProdAlterName = prod_price_alter_name(erlang_term, ProdAlterObj),
-		_ProdAlterSTime = prod_price_alter_vf(erlang_term, ProdAlterObj),
+		ProdAlterVF = prod_price_alter_vf(erlang_term, ProdAlterObj),
 		ProdAlterPriceType = prod_price_alter_price_type(erlang_term, ProdAlterObj),
 		{_, ProdAlterUOMeasure} = lists:keyfind("unitOfMeasure", 1, ProdAlterObj),
 		{_, {struct, ProdAlterPriceObj}} = lists:keyfind("price", 1, ProdAlterObj),
@@ -268,7 +266,8 @@ po_alteration(erlang_term, ProdAlterObj) ->
 		{ProdAlterUnits, ProdAlterSize} = prod_price_ufm(erlang_term, ProdAlterObj),
 		AlterSize = product_size(ProdAlterUnits, octets, ProdAlterSize),
 		#alteration{name = ProdAlterName, description = ProdAlterDescirption,
-			units = ProdAlterUnits, size = AlterSize, amount = ProdAlterAmount}
+			valid_for = ProdAlterVF, units = ProdAlterUnits, size = AlterSize,
+			amount = ProdAlterAmount}
 	catch
 		_:_ ->
 			{error, 400}
@@ -504,7 +503,23 @@ prod_price_alter_name(json, PAlter) ->
 prod_price_alter_vf(erlang_term, PAlter) ->
 	{_, {struct, PAlterVF}} = lists:keyfind("validFor", 1, PAlter),
 	{_, PAlterSTimeISO} = lists:keyfind("startDateTime", 1, PAlterVF),
-	ocs_rest:timestamp(PAlterSTimeISO).
+	case lists:keyfind("endDateTime", 1, PAlterVF) of
+		false ->
+			{ocs_rest:timestamp(PAlterSTimeISO), undefined};
+		PAlterETime ->
+			{ocs_rest:timestamp(PAlterSTimeISO), PAlterETime}
+	end;
+prod_price_alter_vf(json, PAlter) ->
+	ValidFor = PAlter#alteration.valid_for,
+	case ValidFor of
+		{SDateTime, undefined} ->
+			SDT = {"startDateTime", ocs_rest:iso8601(SDateTime)},
+			{"ValidFor", {struct, [SDT]}};
+		{SDateTime, EDateTime} ->
+			SDT = {"startDateTime", ocs_rest:iso8601(SDateTime)},
+			EDT = {"endDateTime", ocs_rest:iso8601(EDateTime)},
+			{"ValidFor", {struct, [SDT, EDT]}}
+	end.
 
 -spec prod_price_alter_description(Prefix, PAlter) -> Result
 	when
