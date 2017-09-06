@@ -24,7 +24,7 @@
 -type price_type() :: recurring | one_time | usage.
 
 %% define unit of measure
--type unit_of_measure() :: octet| cents | seconds.
+-type unit_of_measure() :: octet| cents | seconds | mb | gb.
 
 %% define validity period of a product
 -type valid_period() :: daily | weekly | monthly | yearly.
@@ -43,6 +43,8 @@
 -record(alteration,
 		{name :: string(),
 		description :: string(),
+		valid_for	:: {integer(), integer()},
+		type :: price_type(),
 		units :: unit_of_measure(),
 		size :: integer(),
 		amount :: integer()}).
@@ -50,6 +52,7 @@
 -record(price,
 		{name :: string(),
 		description :: string(),
+		valid_for	:: {integer(), integer()},
 		type :: price_type(),
 		units :: unit_of_measure(),
 		currency :: string(),
@@ -62,6 +65,7 @@
 -record(product,
 		{name :: string(),
 		description :: string(),
+		valid_for	:: {integer(), integer()},
 		is_bundle = false :: boolean(),
 		status :: product_status(),
 		start_date :: pos_integer(), % ISO8601
