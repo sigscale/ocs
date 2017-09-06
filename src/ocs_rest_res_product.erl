@@ -56,18 +56,23 @@ add_product(ReqData) ->
 		Name = prod_name(erlang_term, Object),
 		IsBundle = prod_isBundle(erlang_term, Object),
 		Status = prod_status(erlang_term, Object),
-		Descirption = prod_description(erlang_term, Object),
-		case prod_offering_price(erlang_term, Object) of
-			{error, StatusCode} ->
-				{error, StatusCode};
-			Price ->
-				Product = #product{price = Price, name = Name, is_bundle = IsBundle,
-				status = Status, description = Descirption},
-				case add_product1(Product) of
-					ok ->
-						add_product2(Name, Object);
+		case prod_vf(erlang_term, Object) of
+			{error, Status} ->
+				{error, Status};
+			ValidFor ->
+				Descirption = prod_description(erlang_term, Object),
+				case prod_offering_price(erlang_term, Object) of
 					{error, StatusCode} ->
-						{error, StatusCode}
+						{error, StatusCode};
+					Price ->
+						Product = #product{price = Price, name = Name, valid_for = ValidFor,
+							is_bundle = IsBundle, status = Status, description = Descirption},
+						case add_product1(Product) of
+							ok ->
+								add_product2(Name, Object);
+							{error, StatusCode} ->
+								{error, StatusCode}
+						end
 				end
 		end
 	catch
@@ -350,6 +355,25 @@ prod_status(erlang_term, Product) ->
 prod_status(json, Product) ->
 	{"status", Product#product.status}.
 
+-spec prod_vf(Prefix, Product) -> Result
+	when
+		Prefix :: erlang_term | json,
+		Product :: list() | #product{},
+		Result :: tuple() | {error, Status},
+		Status :: 400.
+%% @private
+prod_vf(erlang_term, Product) ->
+	{_, {struct, VFObj}} = lists:keyfind("validFor", 1, Product),
+	{_, SDateTime} = lists:keyfind("startDateTime", 1, VFObj),
+	{_, EDateTime} = lists:keyfind("endDateTime", 1, VFObj),
+	case {ocs_rest:timestamp(SDateTime), ocs_rest:timestamp(EDateTime)} of
+		{SDT, EDT} when is_integer(SDT),
+				is_integer(EDT) ->
+			{SDT, EDT};
+		_ ->
+			{error, 400}
+	end.
+
 -spec prod_price_name(Prefix, Price) -> Result
 	when
 		Prefix	:: erlang_term | json,
@@ -473,7 +497,7 @@ prod_price_alter_vf(erlang_term, PAlter) ->
 		Result :: undefined | string() | tuple().
 %% @private
 prod_price_alter_description(erlang_term, PAlter) ->
-	prod_proplists:get_value("description", PAlter, undefined);
+	proplists:get_value("description", PAlter, undefined);
 prod_price_alter_description(json, PAlter) ->
 	case PAlter#alteration.description of
 		undefined ->
