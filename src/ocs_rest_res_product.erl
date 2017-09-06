@@ -558,11 +558,11 @@ prod_price_ufm_json2(octets, Size) when is_list(Size) ->
 prod_price_ufm_json2(gb, Size) when is_list(Size) ->
 	Size ++ "GB";
 prod_price_ufm_json2(mb, Size) when is_list(Size) ->
-	Size ++ "MB".
+	Size ++ "MB";
 prod_price_ufm_json2(cents, Size) when is_list(Size) ->
 	Size ++ "cents";
 prod_price_ufm_json2(seconds, Size) when is_list(Size) ->
-	Size ++ "seconds";
+	Size ++ "seconds".
 %% @hidden
 prod_price_ufm_et(undefined) ->
 	{undefined, undefined};
