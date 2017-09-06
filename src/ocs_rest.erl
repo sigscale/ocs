@@ -110,7 +110,7 @@ filter2([], _, Acc) ->
 	when
 		DateTimeFormat	:: pos_integer() | tuple(),
 		Result			:: calendar:datetime().
-%% @doc Convert timestamp to date and time or
+%% @doc Convert iso8610 to date and time or
 %%		date and time to timeStamp.
 date(MilliSeconds) when is_integer(MilliSeconds) ->
 	Seconds = ?EPOCH + (MilliSeconds div 1000),
@@ -180,19 +180,3 @@ iso8601_time([], {H, Mi, S, Ms}) ->
 iso8601_time([], []) ->
 	{0,0,0,0}.
 
--spec timestamp(ISO8610) -> Result
-	when
-		ISO8610	:: string(),
-		Result	:: pos_integer() | {error, Reason},
-		Reason	:: term().
-%% @doc Convert ISO 8601 format date and time to timestamp.
-timestamp(ISO8610) when is_list(ISO8610) ->
-	DateFormat = "~4d-~2d-~2d",
-	TimeFormat = "T~2d:~2d:~2d.~3dZ",
-	case io_lib:fread(DateFormat ++ TimeFormat, ISO8610) of
-		{ok, [Y, M, D, H, Min, S, MSR], _} ->
-			DateTime = {{Y, M, D}, {H, Min, S + MSR}},
-			date(DateTime);
-		{error, Reason} ->
-			{error, Reason}
-	end.
