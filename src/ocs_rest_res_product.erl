@@ -57,6 +57,7 @@ add_product(ReqData) ->
 		IsBundle = prod_isBundle(erlang_term, Object),
 		Status = prod_status(erlang_term, Object),
 		ValidFor = prod_vf(erlang_term, Object),
+erlang:display({?MODULE, ?LINE, ValidFor}),
 		Descirption = prod_description(erlang_term, Object),
 		case prod_offering_price(erlang_term, Object) of
 			{error, StatusCode} ->
@@ -126,6 +127,7 @@ get_product1(Prod) ->
 	Descirption = prod_description(json, Prod),
 	Href = prod_href(json, Prod),
 	ValidFor = prod_vf(json, Prod),
+erlang:display({?MODULE, ?LINE, ValidFor}),
 	IsBundle = prod_isBundle(json, Prod),
 	Name = prod_name(json, Prod),
 	Status = prod_status(json, Prod),
@@ -229,7 +231,7 @@ po_price(json, [Price | T], Prices) when is_record(Price, price) ->
 		%ProdValidity = validity_period(ProdSTime, ProdETime),
 		if
 			Price#price.alteration == undefined ->
-				Price1 = {struct, [Name, Description,
+				Price1 = {struct, [Name, Description, ValidFor,
 					PriceType, PriceObj, UOMeasure, RCPeriod]},
 				po_price(json, T, [Price1 | Prices]);
 			true ->
@@ -370,7 +372,7 @@ prod_vf(erlang_term, Product) ->
 	{_, {struct, VFObj}} = lists:keyfind("validFor", 1, Product),
 	{_, SDT} = lists:keyfind("startDateTime", 1, VFObj),
 	{_, EDT} = lists:keyfind("endDateTime", 1, VFObj),
-	{ocs_rest:timestamp(SDT), ocs_rest:timestamp(EDT)};
+	{ocs_rest:iso8601(SDT), ocs_rest:iso8601(EDT)};
 prod_vf(json, Product) ->
 	case Product#product.valid_for of
 		{SDateTime, undefined} ->
@@ -418,7 +420,7 @@ prod_price_vf(erlang_term, Price) ->
 	{_,  {struct, VFObj}} = lists:keyfind("validFor", 1, Price),
 	{_, SDT} = lists:keyfind("startDateTime", 1, VFObj),
 	{_, EDT} = lists:keyfind("endDateTime", 1, VFObj),
-	{ocs_rest:timestamp(SDT), ocs_rest:timestamp(EDT)};
+	{ocs_rest:iso8601(SDT), ocs_rest:iso8601(EDT)};
 prod_price_vf(json, Price) ->
 	{SDateTime, EDateTime} = Price#price.valid_for,
 	SDT = {"startDateTime", ocs_rest:iso8601(SDateTime)},
@@ -506,9 +508,9 @@ prod_price_alter_vf(erlang_term, PAlter) ->
 	{_, PAlterSTimeISO} = lists:keyfind("startDateTime", 1, PAlterVF),
 	case lists:keyfind("endDateTime", 1, PAlterVF) of
 		false ->
-			{ocs_rest:timestamp(PAlterSTimeISO), undefined};
+			{ocs_rest:iso8601(PAlterSTimeISO), undefined};
 		PAlterETime ->
-			{ocs_rest:timestamp(PAlterSTimeISO), PAlterETime}
+			{ocs_rest:iso8601(PAlterSTimeISO), PAlterETime}
 	end;
 prod_price_alter_vf(json, PAlter) ->
 	ValidFor = PAlter#alteration.valid_for,
@@ -695,7 +697,7 @@ product_size(_, _, Size) -> Size.
 %% @private
 validity_period(ISOSTime, ISOETime) when is_list(ISOSTime),
 		is_list(ISOETime) ->
-	case {ocs_rest:timestamp(ISOSTime), ocs_rest:timestamp(ISOETime)} of
+	case {ocs_rest:iso8601(ISOSTime), ocs_rest:iso8601(ISOETime)} of
 		{{error, _}, _} ->
 			{error, format_error};
 		{_, {error, _}} ->
