@@ -176,35 +176,41 @@ po_price(erlang_term, [{struct, Object} | T], Prices) ->
 	try
 		ProdName = prod_price_name(erlang_term, Object),
 		{ProdSTime, ProdETime} = prod_price_vf(erlang_term, Object),
-		ProdPriceType = prod_price_type(erlang_term, Object),
-		{_, {struct, ProdPriceObj}} = lists:keyfind("price", 1, Object),
-		ProdAmount = prod_price_price_amount(erlang_term, ProdPriceObj),
-		CurrencyCode = prod_price_price_c_code(erlang_term, ProdPriceObj),
-		RCPeriod = prod_price_rc_period(erlang_term, Object),
-		ProdDescirption = prod_price_description(erlang_term, Object),
-		ProdValidity = validity_period(ProdSTime, ProdETime),
 		if
-			ProdValidity =/= {error, format_error} ->
-				{ProdUnits, ProdSize} = prod_price_ufm(erlang_term, Object),
-				Size = product_size(ProdUnits, octets, ProdSize),
-				Price1 = #price{name = ProdName, description = ProdDescirption,
-				type = ProdPriceType, units = ProdUnits, size = Size,
-					currency = CurrencyCode, period = RCPeriod, validity = ProdValidity,
-					amount = ProdAmount},
-				case lists:keyfind("productOfferPriceAlteration", 1, Object) of
-					false ->
-						po_price(erlang_term, T, [Price1 | Prices]);
-					{_, {struct, ProdAlterObj}} ->
-						case po_alteration(erlang_term, ProdAlterObj) of
-							{error, Status} ->
-								{error, Status};
-							Alteration ->
-								Price2 = Price1#price{alteration = Alteration},
-								po_price(erlang_term, T, [Price2 | Prices])
-						end
-				end;
-			true ->
-				{error, 400}
+			is_integer(ProdSTime) and is_integer(ProdETime) ->
+
+				ProdPriceType = prod_price_type(erlang_term, Object),
+				{_, {struct, ProdPriceObj}} = lists:keyfind("price", 1, Object),
+				ProdAmount = prod_price_price_amount(erlang_term, ProdPriceObj),
+				CurrencyCode = prod_price_price_c_code(erlang_term, ProdPriceObj),
+				RCPeriod = prod_price_rc_period(erlang_term, Object),
+				ProdDescirption = prod_price_description(erlang_term, Object),
+				ProdValidity = ProdSTime - ProdETime,
+				if
+					ProdValidity =/= {error, format_error} ->
+						{ProdUnits, ProdSize} = prod_price_ufm(erlang_term, Object),
+						Size = product_size(ProdUnits, octets, ProdSize),
+						Price1 = #price{name = ProdName, description = ProdDescirption,
+							type = ProdPriceType, units = ProdUnits, size = Size,
+							currency = CurrencyCode, period = RCPeriod, validity = ProdValidity,
+							amount = ProdAmount},
+						case lists:keyfind("productOfferPriceAlteration", 1, Object) of
+							false ->
+								po_price(erlang_term, T, [Price1 | Prices]);
+							{_, {struct, ProdAlterObj}} ->
+								case po_alteration(erlang_term, ProdAlterObj) of
+									{error, Status} ->
+										{error, Status};
+									Alteration ->
+										Price2 = Price1#price{alteration = Alteration},
+									po_price(erlang_term, T, [Price2 | Prices])
+								end
+						end;
+					true ->
+						{error, 400};
+				true ->
+					{error, 400}
+			end
 		end
 	catch
 		_:_ ->
@@ -401,13 +407,23 @@ prod_price_description(json, Price) ->
 	when
 		Prefix	:: erlang_term | json,
 		Price		:: list() | #price{},
-		Result	:: tuple().
+		Result	:: tuple() | {error, Status},
+		Status	:: 400.
 %% @private
 prod_price_vf(erlang_term, Price) ->
 	{_,  {struct, VFObj}} = lists:keyfind("validFor", 1, Price),
-	{_, ProdSTime} = lists:keyfind("startDateTime", 1, VFObj),
-	{_, ProdETime} = lists:keyfind("endDateTime", 1, VFObj),
-	{ProdSTime, ProdETime}.
+	{_, SDateTime} = lists:keyfind("startDateTime", 1, VFObj),
+	{_, EDateTime} = lists:keyfind("endDateTime", 1, VFObj),
+	case {ocs_rest:timestamp(SDateTime), ocs_rest:timestamp(EDateTime)} of
+		{SDT, EDT} when is_integer(SDT),
+				is_integer(EDT) ->
+			{SDT, EDT};
+		_ ->
+			{error, 400}
+	end;
+prod_price_vf(json, Price) ->
+	{SDateTime, EDateTime} = Price#price.valid_for,
+	{ocs_rest:iso8601(SDateTime), ocs_rest:iso8601(EDateTime)}.
 
 -spec prod_price_type(Prefix, Price) -> Result
 	when
