@@ -441,7 +441,7 @@ prod_price_vf(json, Price) ->
 	{SDateTime, EDateTime} = Price#price.valid_for,
 	SDT = {"startDateTime", ocs_rest:iso8601(SDateTime)},
 	EDT = {"endDateTime", ocs_rest:iso8601(EDateTime)},
-	{"ValidFor", {struct, [SDT, EDT]}}.
+	{"validFor", {struct, [SDT, EDT]}}.
 
 -spec prod_price_type(Prefix, Price) -> Result
 	when
@@ -568,6 +568,13 @@ prod_price_alter_price_type(erlang_term, PAlter) ->
 			price_type(PriceType);
 		false ->
 			undefined
+	end;
+prod_price_alter_price_type(json, PAlter) ->
+	case PAlter#alteration.type of
+		undefined ->
+			{"priceType", ""};
+		PT ->
+			{"priceType", price_type(PT)}
 	end.
 
 -spec prod_price_alter_amount(Prefix, PAlter) -> Result
