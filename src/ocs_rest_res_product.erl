@@ -155,12 +155,14 @@ prod_offering_price(erlang_term, []) ->
 	{error, 400};
 prod_offering_price(erlang_term, Json) ->
 	{_, {array, ProdOfPrice}} = lists:keyfind("productOfferingPrice", 1, Json),
-	prod_offering_price1(json, ProdOfPrice);
+	case po_price(erlang_term, ProdOfPrice, []) of
+		{error, Status} ->
+			{error, Status};
+		Prices ->
+			Prices
+	end;
 prod_offering_price(json, Product) ->
-	prod_offering_price1(json, Product#product.price).
-%% @hidden
-prod_offering_price1(Prefix, Price) ->
-	case po_price(Prefix, Price, []) of
+	case po_price(json, Product#product.price, []) of
 		{error, Status} ->
 			{error, Status};
 		ProdOfPrice ->
