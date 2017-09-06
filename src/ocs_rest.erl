@@ -82,7 +82,7 @@ parse_query1(Field, N, Acc) ->
 %%
 %% @throws {error, 400}
 %%
-filter(Filters, {struct, L} = _Object) when is_list(Filters) ->
+filter(Filters, JsonObject) when is_list(Filters) ->
 	Filters1 = case lists:member($(, Filters) of
 		true ->
 			expand(Filters, []);
@@ -98,7 +98,7 @@ filter(Filters, {struct, L} = _Object) when is_list(Filters) ->
 				false
 	end,
 	Filters5 = lists:sort(Fsort, Filters4),
-	{struct, filter1(Filters5, L, [])}.
+	filter1(Filters5, JsonObject, []).
 
 -spec range(Range) -> Result
 	when
@@ -123,35 +123,41 @@ range(Range) when is_list(Range) ->
 
 %% @hidden
 %% put filters in order so we can process (once) sequentially
-filter1([Filter | T], L, []) ->
+filter1([Filter | T], JSON, []) ->
 	[Name | RevPath] = lists:reverse(Filter),
-	filter1(T, L, [{[Name], RevPath}]);
-filter1([Filter | T1], L, [{Names, RevPath} | T2] = Acc) ->
+	filter1(T, JSON, [{[Name], RevPath}]);
+filter1([Filter | T1], JSON, [{Names, RevPath} | T2] = Acc) ->
 	case lists:reverse(Filter) of
 		[Name | RevPath] ->
-			filter1(T1, L, [{[Name | Names], RevPath} | T2]);
+			filter1(T1, JSON, [{[Name | Names], RevPath} | T2]);
 		[Name | NewRevPath] ->
-			filter1(T1, L, [{[Name], NewRevPath} | Acc])
+			filter1(T1, JSON, [{[Name], NewRevPath} | Acc])
 	end;
-filter1([], L, Acc) ->
+filter1([], {Type, _} = JSON, Acc) when Type == struct; Type == array ->
 	Filters = [{lists:reverse(Path), lists:reverse(Names)}
 			|| {Names, Path} <- lists:reverse(Acc)],
-	lists:reverse(filter2(Filters, L, [])).
+	{Type, NewJSON} = filter2(Filters, JSON),
+	{Type, lists:reverse(NewJSON)}.
+%% @hidden
+filter2(Filters, {struct, L1}) ->
+	{struct, filter3(Filters, L1, [])};
+filter2(Filters, {array, L1}) ->
+	{array, filter4(Filters, L1, [])}.
 %% @hidden
 %% filter fields from object
-filter2([{[], [H | T1]} | T2] = _Filters, L, Acc) ->
+filter3([{[], [H | T1]} | T2] = _Filters, L, Acc) ->
 	case lists:keyfind(H, 1, L) of
 		false ->
-			filter2([{[], T1} | T2], L, Acc);
+			filter3([{[], T1} | T2], L, Acc);
 		KV ->
-			filter2([{[], T1} | T2], L, [KV | Acc])
+			filter3([{[], T1} | T2], L, [KV | Acc])
 	end;
 %% depth first traversal for complex filters
-filter2([{[H | _], _} | T] = Filters, L1, Acc) ->
+filter3([{[H | _], _} | T] = Filters, L1, Acc) ->
 	case lists:keyfind(H, 1, L1) of
 		false ->
-			filter2(T, L1, Acc);
-		{H, {Type, L2}} when Type == struct; Type == array ->
+			filter3(T, L1, Acc);
+		{H, {Type, _} = JSON} when Type == struct; Type == array ->
 			% remove parent from filter path
 			F1 = fun({[Prefix | Suffix], Names}) when Prefix == H ->
 						{true, {Suffix, Names}};
@@ -160,11 +166,11 @@ filter2([{[H | _], _} | T] = Filters, L1, Acc) ->
 			end,
 			SubFilters = lists:filtermap(F1, Filters),
 			% filter descendants
-			NewAcc = case filter3(Type, SubFilters, L2) of
+			NewAcc = case filter2(SubFilters, JSON) of
 				{_, []} ->
 					Acc;
-				L3 ->
-					[{H, L3} | Acc]
+				NewJSON ->
+					[{H, NewJSON} | Acc]
 			end,
 			% skip filters applied above
 			F2 = fun({[Prefix | _], _}) when Prefix == H ->
@@ -173,19 +179,14 @@ filter2([{[H | _], _} | T] = Filters, L1, Acc) ->
 						false
 			end,
 			NewFilters = lists:dropwhile(F2, Filters),
-			filter2(NewFilters, L1, NewAcc);
+			filter3(NewFilters, L1, NewAcc);
 		_ ->
 			throw({error, 400})
 	end;
-filter2([{[], []} | T], L, Acc) ->
-	filter2(T, L, Acc);
-filter2([], _, Acc) ->
+filter3([{[], []} | T], L, Acc) ->
+	filter3(T, L, Acc);
+filter3([], _, Acc) ->
 	lists:reverse(Acc).
-%% @hidden
-filter3(struct, Filters, L1) ->
-	{struct, filter2(Filters, L1, [])};
-filter3(array, Filters, L1) ->
-	{array, filter4(Filters, L1, [])}.
 %% @hidden
 filter4(Filters, [{struct, L1} | T], Acc) ->
 	NewAcc = case filter5(Filters, L1, []) of
