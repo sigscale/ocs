@@ -346,7 +346,7 @@ prod_isBundle(erlang_term, Product) ->
 		_ -> false
 	end;
 prod_isBundle(json, Product) ->
-	{"is_bundle", Product#product.is_bundle}.
+	{"isBundle", Product#product.is_bundle}.
 
 -spec prod_status(Prefix, Product) -> Result
 	when
@@ -533,11 +533,11 @@ prod_price_alter_vf(json, PAlter) ->
 	case ValidFor of
 		{SDateTime, undefined} ->
 			SDT = {"startDateTime", ocs_rest:iso8601(SDateTime)},
-			{"ValidFor", {struct, [SDT]}};
+			{"validFor", {struct, [SDT]}};
 		{SDateTime, EDateTime} ->
 			SDT = {"startDateTime", ocs_rest:iso8601(SDateTime)},
 			EDT = {"endDateTime", ocs_rest:iso8601(EDateTime)},
-			{"ValidFor", {struct, [SDT, EDT]}}
+			{"validFor", {struct, [SDT, EDT]}}
 	end.
 
 -spec prod_price_alter_description(Prefix, PAlter) -> Result
