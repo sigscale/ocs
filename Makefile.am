@@ -8,6 +8,11 @@ rel_DATA = $(PACKAGE_NAME).tar.gz
 
 EXTRA_DIST = $(PACKAGE_NAME).tar.gz
 
+if HAVE_SYSTEMD
+systemdsystemunit_DATA = ocs.service ocs.service.conf
+endif
+
+
 .PHONY:
 release:	$(PACKAGE_NAME).tar.gz
 
