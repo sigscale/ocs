@@ -87,10 +87,12 @@ filter_members(_Config) ->
 	H = {"h", erlang:unique_integer()},
 	F = {"f", erlang:unique_integer()},
 	D = {"d", erlang:unique_integer()},
+	A = {"a", erlang:unique_integer()},
 	B = {struct, [D, {"e", 5}, F, {"g", 6}, H]},
-	ObjectIn = {struct, [{"a", 3}, {"b", B}, {"c", 7}]},
-	Filters = "b.f,b.h,b.d",
-	ObjectOut = {struct, [{"b", {struct, [D, F, H]}}]},
+	C = {"c", erlang:unique_integer()},
+	ObjectIn = {struct, [A, {"b", B}, C]},
+	Filters = "a,b.f,b.h,b.d,c",
+	ObjectOut = {struct, [A, {"b", {struct, [D, F, H]}}, C]},
 	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
 
 filter_array() ->
@@ -146,9 +148,9 @@ filter_deep_array(_Config) ->
 	C = {array, [F, G, H]},
 	D = {array, [I, J, K]},
 	E = {array, [L, M, N]},
-	ObjectIn = {struct, [{"a", 1},
-			{"b", {array, [C, D, E]}}, {"f", 21}]},
-	Filters = "b.x,b.z",
+	A = {"a", erlang:unique_integer()},
+	ObjectIn = {struct, [A, {"b", {array, [C, D, E]}}, {"f", 21}]},
+	Filters = "a,b.x,b.z",
 	Fo = {struct, [FX, FZ]},
 	Go = {struct, [GX, GZ]},
 	Ho = {struct, [HX, HZ]},
@@ -161,7 +163,7 @@ filter_deep_array(_Config) ->
 	Co = {array, [Fo, Go, Ho]},
 	Do = {array, [Io, Jo, Ko]},
 	Eo = {array, [Lo, Mo, No]},
-	ObjectOut = {struct, [{"b", {array, [Co, Do, Eo]}}]},
+	ObjectOut = {struct, [A, {"b", {array, [Co, Do, Eo]}}]},
 	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
 
 filter_complex() ->
