@@ -73,7 +73,7 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[filter_members, filter_array, filter_complex].
+	[filter_members, filter_array, filter_deep_array, filter_complex].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -109,6 +109,58 @@ filter_array(_Config) ->
 	Filters = "x,y",
 	ObjectOut = {array, [{struct, [AX, AY]},
 			{struct, [BX, BY]}, {struct, [CX, CY]}]},
+	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
+
+filter_deep_array() ->
+	[{userdata, [{doc, "Filter JSON deep array"}]}].
+
+filter_deep_array(_Config) ->
+	FX = {"x", erlang:unique_integer()},
+	FZ = {"z", erlang:unique_integer()},
+	GX = {"x", erlang:unique_integer()},
+	GZ = {"z", erlang:unique_integer()},
+	HX = {"x", erlang:unique_integer()},
+	HZ = {"z", erlang:unique_integer()},
+	IX = {"x", erlang:unique_integer()},
+	IZ = {"z", erlang:unique_integer()},
+	JX = {"x", erlang:unique_integer()},
+	JZ = {"z", erlang:unique_integer()},
+	KX = {"x", erlang:unique_integer()},
+	KZ = {"z", erlang:unique_integer()},
+	LX = {"x", erlang:unique_integer()},
+	LZ = {"z", erlang:unique_integer()},
+	MX = {"x", erlang:unique_integer()},
+	MZ = {"z", erlang:unique_integer()},
+	NX = {"x", erlang:unique_integer()},
+	NZ = {"z", erlang:unique_integer()},
+	F = {struct, [{"w", 17}, FX, {"y", 18}, FZ]},
+	G = {struct, [{"w", 15}, GX, {"y", 16}, GZ]},
+	H = {struct, [{"w", 13}, HX, {"y", 14}, HZ]},
+	I = {struct, [{"w", 11}, IX, {"y", 12}, IZ]},
+	J = {struct, [{"w", 9}, JX, {"y", 10}, JZ]},
+	K = {struct, [{"w", 7}, KX, {"y", 8}, KZ]},
+	L = {struct, [{"w", 5}, LX, {"y", 6}, LZ]},
+	M = {struct, [{"w", 3}, MX, {"y", 4}, MZ]},
+	N = {struct, [{"w", 1}, NX, {"y", 2}, NZ]},
+	C = {array, [F, G, H]},
+	D = {array, [I, J, K]},
+	E = {array, [L, M, N]},
+	ObjectIn = {struct, [{"a", 1},
+			{"b", {array, [C, D, E]}}, {"f", 21}]},
+	Filters = "b.x,b.z",
+	Fo = {struct, [FX, FZ]},
+	Go = {struct, [GX, GZ]},
+	Ho = {struct, [HX, HZ]},
+	Io = {struct, [IX, IZ]},
+	Jo = {struct, [JX, JZ]},
+	Ko = {struct, [KX, KZ]},
+	Lo = {struct, [LX, LZ]},
+	Mo = {struct, [MX, MZ]},
+	No = {struct, [NX, NZ]},
+	Co = {array, [Fo, Go, Ho]},
+	Do = {array, [Io, Jo, Ko]},
+	Eo = {array, [Lo, Mo, No]},
+	ObjectOut = {struct, [{"b", {array, [Co, Do, Eo]}}]},
 	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
 
 filter_complex() ->
