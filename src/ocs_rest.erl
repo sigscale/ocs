@@ -136,8 +136,7 @@ filter1([Filter | T1], JSON, [{Names, RevPath} | T2] = Acc) ->
 filter1([], {Type, _} = JSON, Acc) when Type == struct; Type == array ->
 	Filters = [{lists:reverse(Path), lists:reverse(Names)}
 			|| {Names, Path} <- lists:reverse(Acc)],
-	{Type, NewJSON} = filter2(Filters, JSON),
-	{Type, lists:reverse(NewJSON)}.
+	filter2(Filters, JSON).
 %% @hidden
 filter2(Filters, {struct, L1}) ->
 	{struct, filter3(Filters, L1, [])};
