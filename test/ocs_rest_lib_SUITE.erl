@@ -73,8 +73,8 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[filter_members, filter_array, filter_deep_array, filter_complex,
-			filter_match_list].
+	[filter_members, filter_array, filter_deep_object, filter_deep_array,
+			filter_complex, filter_match_list].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -112,6 +112,32 @@ filter_array(_Config) ->
 	Filters = "x,y",
 	ObjectOut = {array, [{struct, [AX, AY]},
 			{struct, [BX, BY]}, {struct, [CX, CY]}]},
+	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
+
+filter_deep_object() ->
+	[{userdata, [{doc, "Filter deep JSON object"}]}].
+
+filter_deep_object(_Config) ->
+	A3 = {"a", erlang:unique_integer()},
+	B3 = {"b", erlang:unique_integer()},
+	C3 = {"c", erlang:unique_integer()},
+	S3 = {struct, [A3, B3, C3]},
+	A2 = {"a", erlang:unique_integer()},
+	B2 = {"b", erlang:unique_integer()},
+	C2 = {"c", erlang:unique_integer()},
+	S2 = {struct, [A2, B2, C2]},
+	A1 = {"a", erlang:unique_integer()},
+	B1 = {"b", erlang:unique_integer()},
+	C1 = {"c", erlang:unique_integer()},
+	S1 = {struct, [A1, B1, C1]},
+	S4 = {struct, [{"x", S1}, {"y", S2}, {"z", S3}]},
+	S5 = {struct, [{"x", S2}, {"y", S3}, {"z", S1}]},
+	S6 = {struct, [{"x", S3}, {"y", S1}, {"z", S2}]},
+	ObjectIn = {struct, [{"a", S4}, {"b", S5}, {"c", S6}]},
+	Filters = "a,b.y.a,b.y.c,c.x,c.z",
+	O5 = {struct, [{"y", {struct, [A3, C3]}}]},
+	O6 = {struct, [{"x", S3}, {"z", S2}]},
+	ObjectOut = {struct, [{"a", S4}, {"b", O5}, {"c", O6}]},
 	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
 
 filter_deep_array() ->
