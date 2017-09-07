@@ -73,7 +73,8 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[filter_members, filter_array, filter_deep_array, filter_complex].
+	[filter_members, filter_array, filter_deep_array, filter_complex,
+			filter_match_list].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -185,6 +186,30 @@ filter_complex(_Config) ->
 	ObjectOut = {struct, [{"a", {struct, [{"b", {struct, [{"c", {struct,
 			[{"d", {struct, [{"e", E}, {"f", F}]}},
 			{"x", {array, [V]}}]}}]}}]}}, G]},
+	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
+
+filter_match_list() ->
+	[{userdata, [{doc, "Filter match value list syntax"}]}].
+
+filter_match_list(_Config) ->
+	B1 = {"b", "bob"},
+	D1 = {"d", erlang:unique_integer()},
+	S1 = {struct, [{"a", 1}, B1, {"c", 2}, D1, {"e", 3}]},
+	B2 = {"b", "carol"},
+	D2 = {"d", erlang:unique_integer()},
+	S2 = {struct, [{"a", 4}, B2, {"c", 5}, D2, {"e", 6}]},
+	B3 = {"b", "ted"},
+	D3 = {"d", erlang:unique_integer()},
+	S3 = {struct, [{"a", 7}, B3, {"c", 8}, D3, {"e", 9}]},
+	B4 = {"b", "alice"},
+	D4 = {"d", erlang:unique_integer()},
+	S4 = {struct, [{"a", 10}, B4, {"c", 11}, D4, {"e", 12}]},
+	A = {array, [S1, S2, S3, S4]},
+	ObjectIn = {struct, [{"f", 13}, {"g", A}, {"h", 14}]},
+	Filters = "g.b=(carol,alice),g.d",
+	O2 = {struct, [B2, D2]},
+	O4 = {struct, [B4, D4]},
+	ObjectOut = {struct, [{"g", {array, [O2, O4]}}]},
 	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
 
 %%---------------------------------------------------------------------
