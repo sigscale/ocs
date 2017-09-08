@@ -72,6 +72,7 @@ docdir=$ERLANG_INSTALL_LIB_DIR/$PACKAGE_NAME-$PACKAGE_VERSION/doc
 libdir=$ERLANG_INSTALL_LIB_DIR/$PACKAGE_NAME-$PACKAGE_VERSION/priv/lib
 wwwdir=$ERLANG_INSTALL_LIB_DIR/$PACKAGE_NAME-$PACKAGE_VERSION/priv/www
 reldir=$ERLANG_ROOT_DIR/releases
+envdir=/etc/default
 AC_SUBST(appdir)
 AC_SUBST(erldir)
 AC_SUBST(beamdir)
@@ -79,6 +80,7 @@ AC_SUBST(eincludedir)
 AC_SUBST(privdir)
 AC_SUBST(wwwdir)
 AC_SUBST(reldir)
+AC_SUBST(envdir)
 AC_LANG_POP([Erlang])
 
 

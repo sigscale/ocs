@@ -9,7 +9,8 @@ rel_DATA = $(PACKAGE_NAME).tar.gz
 EXTRA_DIST = $(PACKAGE_NAME).tar.gz
 
 if HAVE_SYSTEMD
-systemdsystemunit_DATA = ocs.service ocs.service.conf
+systemdsystemunit_DATA = scripts/ocs.service
+env_DATA = scripts/ocs
 endif
 
 
