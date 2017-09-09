@@ -65,8 +65,8 @@ parse_query1(Field, N, Acc) ->
 %% 	encoded `JsonObject'. A filter may refer to a complex type by
 %% 	use of the "dot" path seperator character (e.g. `"a.b.c"').
 %% 	Where an intermediate node on a complex path is an array all
-%% 	matching array members will be included. To filter out array
-%% 	members an `=value', suffix may be added which will include only
+%% 	matching array members will be included. To filter out objects
+%% 	an `=value', suffix may be added which will include only
 %% 	objects with a member matching the name and value. Multiple
 %% 	values may be provided with `=(value1,value2)'.
 %%
@@ -75,8 +75,8 @@ parse_query1(Field, N, Acc) ->
 %% 	Example:
 %% 	```
 %% 	1> In = {struct,[{"a",{array,[{struct,[{"name","bob"},{"value",6}]},
-%% 	1> {"b",7},{struct,[{"name","sue"},{"value",5}]}]}},{"b",1}]},
-%% 	1> ocs_rest:filter("b,a.name=sue", In).
+%% 	1> {"b",7},{struct,[{"name","sue"},{"value",5},{"other", 8}]}]}},{"b",1}]},
+%% 	1> ocs_rest:filter("b,a.name=sue,a.value", In).
 %% 	{struct, [{"a",{array,[{struct,[{"name","sue"},{"value",5}]}]}},{"b",1}]}
 %% 	'''
 %%
