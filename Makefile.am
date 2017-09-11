@@ -16,7 +16,7 @@ $(PACKAGE_NAME).tar.gz:
 	ERL_LIBS=$(ERLANG_INSTALL_LIB_DIR) $(ERL) -s systools make_script $(PACKAGE_NAME) -s init stop -noinput
 	ERL_LIBS=$(ERLANG_INSTALL_LIB_DIR) $(ERL) -s systools make_tar $(PACKAGE_NAME) -s init stop -noinput
 
-install-data-local: $(PACKAGE_NAME).tar.gz
+install-data-hook: $(PACKAGE_NAME).tar.gz
 	$(MKDIR_P) $(reldir)
 	$(INSTALL_DATA) $< $(reldir)
 
