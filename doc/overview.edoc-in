@@ -1581,6 +1581,10 @@ Content-Length: 0
 			<td id="mt">subscriber</td>
 			<td id="mt">Subscriber data</td>
 		</tr>
+		<tr id="mt">
+			<td id="mt">Product</td>
+			<td id="mt">Product Inventory Data</td>
+		</tr>
 	</tbody>
 </table>
 
