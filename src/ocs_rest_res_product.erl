@@ -104,7 +104,7 @@ add_product2(ProdId, JsonResponse) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /productInventoryManagement/v1/{id}' and
+%% @doc Respond to `GET /productInventoryManagement/v1/product/{id}' and
 %% retrieve a `product' details
 get_product(ProductID) ->
 	F = fun() ->
