@@ -454,7 +454,9 @@ Etag : mm-m
  "attributes":[
                {"name": "ascendDataRate", "value": 64000}
               ],
- "totalBalance": { "amount": 983490, "units": "octets" },
+ "totalBalance":[
+                 { "amount": 983490, "units": "octets" }
+                ],
  "enabled": true,
  "multisession": false
 }
@@ -521,7 +523,9 @@ Content-Length: nn
    "attributes":[
                  {"name": "sessionTimeout", "value": 3600},
                 ],
-  "totalBalance": { "amount": 983490, "units": "octets" },
+  "totalBalance": [
+                   { "amount": 983490, "units": "octets" }
+                  ],
   "enabled": true,
   "multisession": false
  }
@@ -590,7 +594,9 @@ Etag: mm-m
                {"name" : "acctInterimInterval", "value": 300},
                {"name" : "class", "value": "skiorgs"}
               ],
- "totalBalance": { "amount": 100, "units": "octets" },
+ "totalBalance":[
+                 { "amount": 100, "units": "octets" }
+                ],
  "enabled": true,
  "multisession": false
 }
@@ -638,7 +644,9 @@ Etag: mm-m
                {"name": "ascendDataRate", "value": 1000000},
                {"name": "ascendXmitRate", "value": 512000},
               ],
- "totalBalance": { "amount": 100, "units": "octets" },
+ "totalBalance":[
+                 { "amount": 100, "units": "octets" }
+                ],
  "enabled": false,
  "multisession": false
 }
@@ -679,7 +687,9 @@ Etag: mm-m
                {"name" : "acctInterimInterval", "value": 300},
                {"name" : "class", "value": "skiorgs"}
               ],
- "totalBalance": { "amount": 1000, "units": "cents" },
+ "totalBalance":[
+                 { "amount": 1000, "units": "cents" }
+                ],
  "enabled": true,
  "multisession": false
 }
