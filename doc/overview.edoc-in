@@ -1563,6 +1563,169 @@ HTTP/1.1 204 No Content
 Content-Length: 0
 </pre></p>
 
+<table id="op">
+	<caption id="op"><b>Add new Product</b></caption>
+	<tr id="op">
+		<td id="opl">Resource URI</td>
+		<td id="opr">/catalogManagement/v1/productOffering</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Methods</td>
+		<td id="opr">POST</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Headers</td>
+		<td id="opr">Accept, Content-Type</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Message Body</td>
+		<td id="opr">Representation of a product</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Headers</td>
+		<td id="opr">Content-Length</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Body</td>
+		<td id="opr">Reprsentation of a add product</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Status</td>
+		<td id="opr">201 Created</td>
+	</tr>
+</table>
+<p>Example request:<pre>
+POST /catalogManagement/v1/productOffering HTTP/1.1
+Accept: application/json
+Content-type: application/json
+Content-length: nn
+
+{
+ "name": "Wi-Fi",
+ "href": "/product/product/01",
+ "isBundle": false,
+ "orderDate": "2017-09-11T00:00",
+ "startDate": "2017-09-11T00:00",
+ "status": "Active",
+ "validFor":{
+             "startDateTime": "2017-09-11T00:00:00.000",
+             "endDateTime": "2018-09-12T00:00:00.000"
+            },
+ "productOfferingPrice":[
+                         {
+                          "name": "Family-Pack",
+                          "description": "monthlyprice",
+                          "validFor":{
+                                      "startDateTime": "2017-09-11T00:00:00.000",
+                                      "endDateTime": "2017-12-31T00:00:00.000"
+                                     },
+                          "priceType": "recurring",
+                          "unitOfMeasure": "",
+                          "price":{
+                                   "taxIncludedAmount": 230,
+                                   "currencyCode": "MXV"
+                                  },
+                          "recurringChargePeriod": "monthly"
+                         },
+
+                         {
+                          "name": "usage",
+                          "description": "usage definition for family pack",
+                          "validFor":{
+                                      "startDateTime": "2017-09-11T00:00:00.000",
+                                      "endDateTime": "2017-12-31T00:00:00.000"
+                                     },
+                          "priceType": "usage",
+                          "unitOfMeasure": "100000octets",
+                          "price":{
+                                   "taxIncludedAmount": 5,
+                                    "currencyCode": "MXV"
+                                  },
+                          "recurringChargePeriod": "",
+
+                          "productOfferPriceAlteration":{
+                                                         "name": "Usage",
+                                                         "description": "",
+                                                         "validFor":{
+                                                                     "startDateTime": "2017-12-31T00:00:00.000"
+                                                                    },
+                                                          "priceType": "usage",
+                                                          "unitOfMeasure": "60GB",
+                                                          "price":{
+                                                                   "taxIncludedAmount":  0
+                                                           }
+                                                         }
+                         }
+                       ]
+}
+</pre></p>
+<p>Example response:<pre>
+HTTP/1.1 201 Created
+Content-Type: application/json
+Content-Length: nn
+Etag: mm-m
+
+{
+ "name": "Wi-Fi",
+ "href": "/product/product/01",
+ "isBundle": false,
+ "orderDate": "2017-09-11T00:00",
+ "startDate": "2017-09-11T00:00",
+ "status": "Active",
+ "validFor":{
+             "startDateTime": "2017-09-11T00:00:00.000",
+             "endDateTime": "2018-09-12T00:00:00.000"
+            },
+ "productOfferingPrice":[
+                         {
+                          "name": "Family-Pack",
+                          "description": "monthlyprice",
+                          "validFor":{
+                                      "startDateTime": "2017-09-11T00:00:00.000",
+                                      "endDateTime": "2017-12-31T00:00:00.000"
+                                     },
+                          "priceType": "recurring",
+                          "unitOfMeasure": "",
+                          "price":{
+                                   "taxIncludedAmount": 230,
+                                   "currencyCode": "MXV"
+                                  },
+                          "recurringChargePeriod": "monthly"
+                         },
+
+                         {
+                          "name": "usage",
+                          "description": "usage definition for family pack",
+                          "validFor":{
+                                      "startDateTime": "2017-09-11T00:00:00.000",
+                                      "endDateTime": "2017-12-31T00:00:00.000"
+                                     },
+                          "priceType": "usage",
+                          "unitOfMeasure": "100000octets",
+                          "price":{
+                                   "taxIncludedAmount": 5,
+                                    "currencyCode": "MXV"
+                                  },
+                          "recurringChargePeriod": "",
+
+                          "productOfferPriceAlteration":{
+                                                         "name": "Usage",
+                                                         "description": "",
+                                                         "validFor":{
+                                                                     "startDateTime": "2017-12-31T00:00:00.000"
+                                                                    },
+                                                          "priceType": "usage",
+                                                          "unitOfMeasure": "60GB",
+                                                          "price":{
+                                                                   "taxIncludedAmount":  0
+                                                           }
+                                                         }
+                         }
+                       ]
+}
+</pre></p>
+
+
 ==Database Schema==
 <table id="mt">
 	<caption id="mt">There are two persistent {@link //mnesia. mnesia} tables:</caption>
