@@ -23,7 +23,7 @@
 -export([content_types_accepted/0, content_types_provided/0]).
 
 -export([add_product/1]).
--export([get_product/1]).
+-export([get_product/1, get_products/1]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
@@ -144,6 +144,66 @@ get_product1(Prod) ->
 			Body = mochijson:encode(Json),
 			Headers = [{content_type, "application/json"}],
 			{ok, Headers, Body}
+	end.
+
+-define(CHUNKSIZE, 100).
+
+-spec get_products(Query) -> Result when
+	Query :: [{Key :: string(), Value :: string()}],
+	Result	:: {ok, Headers, Body} | {error, Status},
+	Headers	:: [tuple()],
+	Body		:: iolist(),
+	Status	:: 400 | 404 | 500 .
+%% @doc Respond to `GET /productInventoryManagement/v1/product' and
+%% retrieve all `product' details
+%% @todo Filtering
+get_products(_Query) ->
+	MatchSpec = [{'_', [], ['$_']}],
+	F = fun(F, start, Acc) ->
+				F(F, mnesia:select(product, MatchSpec,
+						?CHUNKSIZE, read), Acc);
+			(_F, '$end_of_table', Acc) ->
+				lists:flatten(lists:reverse(Acc));
+			(_F, {error, Reason}, _Acc) ->
+				{error, Reason};
+			(F,{Product, Cont}, Acc) ->
+				F(F, mnesia:select(Cont), [Product | Acc])
+	end,
+	case mnesia:transaction(F, [F, start, []]) of
+		{aborted, _} ->
+			{error, 500};
+		{atomic, Products} ->
+			get_products1(Products, [])
+	end.
+%% @hidden
+get_products1([], Acc) ->
+	Json = {array, Acc},
+	Body = mochijson:encode(Json),
+	Headers = [{content_type, "application/json"}],
+	{ok, Headers, Body};
+get_products1([Prod | T], Acc) ->
+	try
+		ID = prod_id(json, Prod),
+		Descirption = prod_description(json, Prod),
+		Href = prod_href(json, Prod),
+		ValidFor = prod_vf(json, Prod),
+		IsBundle = prod_isBundle(json, Prod),
+		Name = prod_name(json, Prod),
+		Status = prod_status(json, Prod),
+		StartDate = prod_sdate(json, Prod),
+		TerminationDate = prod_tdate(json, Prod),
+		case prod_offering_price(json, Prod) of
+			{error, StatusCode} ->
+				{error, StatusCode};
+			OfferPrice ->
+			Json = {struct, [ID, Descirption, Href, StartDate,
+					TerminationDate, IsBundle, Name, Status, ValidFor,
+					OfferPrice]},
+			get_products1(T, [Json | Acc])
+		end
+	catch
+		_:_ ->
+			{error, 500}
 	end.
 
 %%----------------------------------------------------------------------
