@@ -21,7 +21,7 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([filter/2]).
--export([date/1, iso8601/1, timestamp/1]).
+-export([date/1, iso8601/1]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
