@@ -730,9 +730,9 @@ product_size(UnitsFrom, octets, Size) when
 		UnitsFrom == undefined; Size == undefined ->
 	0;
 product_size(gb, octets, Size) -> Size * 1000000000;
-product_size(octets, gb, Size) -> Size / 1000000000;
+product_size(octets, gb, Size) -> Size div 1000000000;
 product_size(mb, octets, Size) -> Size * 1000000;
-product_size(octets, mb, Size) -> Size / 1000000;
+product_size(octets, mb, Size) -> Size div 1000000;
 product_size(_, _, Size) -> Size.
 
 -spec validity_period(StartTime, EndTime) -> Result
