@@ -270,7 +270,7 @@ po_alteration(erlang_term, ProdAlterObj) ->
 		ProdAlterAmount = prod_price_alter_amount(erlang_term, ProdAlterPriceObj),
 		ProdAlterDescirption = prod_price_alter_description(erlang_term, ProdAlterObj),
 		{ProdAlterUnits, ProdAlterSize} = prod_price_ufm(erlang_term, ProdAlterObj),
-		AlterSize = product_size(ProdAlterUnits, octets, ProdAlterSize),
+		AlterSize = product_size(octets, ProdAlterUnits, ProdAlterSize),
 		#alteration{name = ProdAlterName, description = ProdAlterDescirption,
 			valid_for = ProdAlterVF, units = ProdAlterUnits, size = AlterSize,
 			amount = ProdAlterAmount, type = ProdAlterPriceType}
@@ -730,7 +730,9 @@ product_size(UnitsFrom, octets, Size) when
 		UnitsFrom == undefined; Size == undefined ->
 	0;
 product_size(gb, octets, Size) -> Size * 1000000000;
+product_size(octets, gb, Size) -> Size / 1000000000;
 product_size(mb, octets, Size) -> Size * 1000000;
+product_size(octets, mb, Size) -> Size / 1000000;
 product_size(_, _, Size) -> Size.
 
 -spec validity_period(StartTime, EndTime) -> Result
