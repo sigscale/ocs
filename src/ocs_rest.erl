@@ -127,7 +127,7 @@ date(DateTime) when is_tuple(DateTime) ->
 iso8601(MilliSeconds) when is_integer(MilliSeconds) ->
 	{{Year, Month, Day}, {Hour, Minute, Second}} = date(MilliSeconds),
 	DateFormat = "~4.10.0b-~2.10.0b-~2.10.0b",
-	TimeFormat = "T~2.10.0b:~2.10.0b:~2.10.0b.~3.10.0bZ",
+	TimeFormat = "T~2.10.0b:~2.10.0b:~2.10.0b.~3.10.0b",
 	Chars = io_lib:fwrite(DateFormat ++ TimeFormat,
 			[Year, Month, Day, Hour, Minute, Second, MilliSeconds rem 1000]),
 	lists:flatten(Chars);
