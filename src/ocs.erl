@@ -262,6 +262,8 @@ add_subscriber(Identity, Password, Attributes, Buckets) ->
 %% 	An initial account `Bucket', `Enabled' status and `MultiSessions'
 %% 	status may be provided.
 %%
+add_subscriber(Identity, Password, Attributes, Buckets, EnabledStatus, undefined) ->
+	add_subscriber(Identity, Password, Attributes, Buckets, EnabledStatus, false);
 add_subscriber(Identity, Password, Attributes, Buckets, undefined, MultiSession) ->
 	add_subscriber(Identity, Password, Attributes, Buckets, true, MultiSession);
 add_subscriber(Identity, Password, Attributes, undefined, EnabledStatus, MultiSession) ->
