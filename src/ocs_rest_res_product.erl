@@ -232,7 +232,6 @@ po_price(json, [Price | T], Prices) when is_record(Price, price) ->
 		RCPeriod = prod_price_rc_period(json, Price),
 		Description = prod_price_description(json, Price),
 		UOMeasure = prod_price_ufm(json, Price),
-		%ProdValidity = validity_period(ProdSTime, ProdETime),
 		if
 			Price#price.alteration == undefined ->
 				Price1 = {struct, [Name, Description, ValidFor,
@@ -265,7 +264,6 @@ po_alteration(erlang_term, ProdAlterObj) ->
 		ProdAlterName = prod_price_alter_name(erlang_term, ProdAlterObj),
 		ProdAlterVF = prod_price_alter_vf(erlang_term, ProdAlterObj),
 		ProdAlterPriceType = prod_price_alter_price_type(erlang_term, ProdAlterObj),
-		{_, ProdAlterUOMeasure} = lists:keyfind("unitOfMeasure", 1, ProdAlterObj),
 		{_, {struct, ProdAlterPriceObj}} = lists:keyfind("price", 1, ProdAlterObj),
 		ProdAlterAmount = prod_price_alter_amount(erlang_term, ProdAlterPriceObj),
 		ProdAlterDescirption = prod_price_alter_description(erlang_term, ProdAlterObj),
