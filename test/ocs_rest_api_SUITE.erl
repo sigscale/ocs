@@ -2223,7 +2223,7 @@ get_product(Config) ->
 	ProdAlterDescription = {"description", ""},
 	ProdAlterValidFor = {"validFor", {struct, [POPStratDateTime1]}},
 	ProdAlterPriceType = {"priceType", "usage"},
-	ProdAlterUOMeasure = {"unitOfMeasure", "100gb"},
+	ProdAlterUOMeasure = {"unitOfMeasure", "100GB"},
 	ProdAlterAmount = {"taxIncludedAmount", 0},
 	ProdAlterPrice = {"price", {struct, [ProdAlterAmount]}},
 	POPAlteration = {"productOfferPriceAlteration", {struct, [ProdAlterName, ProdAlterDescription,
