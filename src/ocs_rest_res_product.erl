@@ -59,13 +59,14 @@ add_product(ReqData) ->
 		ValidFor = prod_vf(erlang_term, Object),
 		Descirption = prod_description(erlang_term, Object),
 		StartDate = prod_sdate(erlang_term, Object),
+		TerminationDate = prod_tdate(erlang_term, Object),
 		case prod_offering_price(erlang_term, Object) of
 			{error, StatusCode} ->
 				{error, StatusCode};
 			Price ->
 				Product = #product{price = Price, name = Name, valid_for = ValidFor,
 					is_bundle = IsBundle, status = Status, start_date = StartDate,
-					description = Descirption},
+					termination_date = TerminationDate, description = Descirption},
 				case add_product1(Product) of
 					ok ->
 						add_product2(Name, Object);
@@ -132,12 +133,14 @@ get_product1(Prod) ->
 	Name = prod_name(json, Prod),
 	Status = prod_status(json, Prod),
 	StartDate = prod_sdate(json, Prod),
+	TerminationDate = prod_tdate(json, Prod),
 	case prod_offering_price(json, Prod) of
 		{error, StatusCode} ->
 			{error, StatusCode};
 		OfferPrice ->
 			Json = {struct, [ID, Descirption, Href, StartDate,
-				IsBundle, Name, Status, ValidFor, OfferPrice]},
+				TerminationDate, IsBundle, Name, Status, ValidFor,
+				OfferPrice]},
 			Body = mochijson:encode(Json),
 			Headers = [{content_type, "application/json"}],
 			{ok, Headers, Body}
@@ -382,6 +385,27 @@ prod_sdate(json, Product) ->
 			{"startDate", ""};
 		SD ->
 			{"startDate", ocs_rest:iso8601(SD)}
+	end.
+
+-spec prod_tdate(Prefix, Product) -> Result
+	when
+		Prefix :: erlang_term | json,
+		Product :: list() | #product{},
+		Result :: undefined | tuple().
+%% @private
+prod_tdate(erlang_term, Product) ->
+	case lists:keyfind("terminationDate", 1, Product) of
+		{_, SD} ->
+			ocs_rest:iso8601(SD);
+		false ->
+			undefined
+	end;
+prod_tdate(json, Product) ->
+	case Product#product.termination_date of
+		undefined ->
+			{"terminationDate", ""};
+		SD ->
+			{"terminationDate", ocs_rest:iso8601(SD)}
 	end.
 
 -spec prod_vf(Prefix, Product) -> Result
