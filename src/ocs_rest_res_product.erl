@@ -57,7 +57,6 @@ add_product(ReqData) ->
 		IsBundle = prod_isBundle(erlang_term, Object),
 		Status = prod_status(erlang_term, Object),
 		ValidFor = prod_vf(erlang_term, Object),
-erlang:display({?MODULE, ?LINE, ValidFor}),
 		Descirption = prod_description(erlang_term, Object),
 		case prod_offering_price(erlang_term, Object) of
 			{error, StatusCode} ->
@@ -127,7 +126,6 @@ get_product1(Prod) ->
 	Descirption = prod_description(json, Prod),
 	Href = prod_href(json, Prod),
 	ValidFor = prod_vf(json, Prod),
-erlang:display({?MODULE, ?LINE, ValidFor}),
 	IsBundle = prod_isBundle(json, Prod),
 	Name = prod_name(json, Prod),
 	Status = prod_status(json, Prod),
