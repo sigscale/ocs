@@ -270,7 +270,7 @@ po_alteration(erlang_term, ProdAlterObj) ->
 		ProdAlterAmount = prod_price_alter_amount(erlang_term, ProdAlterPriceObj),
 		ProdAlterDescirption = prod_price_alter_description(erlang_term, ProdAlterObj),
 		{ProdAlterUnits, ProdAlterSize} = prod_price_ufm(erlang_term, ProdAlterObj),
-		AlterSize = product_size(octets, ProdAlterUnits, ProdAlterSize),
+		AlterSize = product_size(ProdAlterUnits, octets, ProdAlterSize),
 		#alteration{name = ProdAlterName, description = ProdAlterDescirption,
 			valid_for = ProdAlterVF, units = ProdAlterUnits, size = AlterSize,
 			amount = ProdAlterAmount, type = ProdAlterPriceType}
@@ -639,15 +639,15 @@ prod_price_ufm_json1(Price) when is_record(Price, price)->
 	Units = Price#price.units,
 	{"unitOfMeasure", prod_price_ufm_json2(Units, Size)};
 prod_price_ufm_json1(Price) when is_record(Price, alteration)->
-	Size = Price#alteration.size,
 	Units = Price#alteration.units,
+	Size = product_size(octets, Units, Price#alteration.size),
 	{"unitOfMeasure", prod_price_ufm_json2(Units, Size)}.
 %% @hidden
 prod_price_ufm_json2(undefined, _) ->
 	"";
 prod_price_ufm_json2(Units, undefined) ->
 	Units;
-prod_price_ufm_json2(Units, Size) when is_integer(Size) ->
+prod_price_ufm_json2(Units, Size) when is_number(Size) ->
 	prod_price_ufm_json2(Units, integer_to_list(Size));
 prod_price_ufm_json2(octets, Size) when is_list(Size) ->
 	Size ++ "octets";
