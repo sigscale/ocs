@@ -118,7 +118,7 @@
 			</paper-fab>
 		</div>
 		<iron-ajax id="getProducts"
-        	url="/catalogManagement/v1/product"
+			url="/productInventoryManagement/v1/product"
          headers='{"Accept": "application/json"}'
          on-response="proResponse">
       </iron-ajax>
@@ -154,7 +154,7 @@
 					grid.dataProvider = function(params, callback) {
                   var ajax = document.getElementById("getProducts");
                   cbPro = callback;
-                  ajax.url="/catalogManagement/v1/product"
+                  ajax.url="/productInventoryManagement/v1/product"
                   params.filters.forEach(function(filter, index) {
                      if(index == 0) {
                         ajax.url += '?'+ filter.path + '=' + filter.value;
