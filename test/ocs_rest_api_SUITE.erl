@@ -2256,7 +2256,7 @@ get_product(Config) ->
 	ProdSpecID = lists:keyfind("id", 1, ProdSpecObj),
 	ProdSpecHref = lists:keyfind("href", 1, ProdSpecObj),
 	ProdSpecName = lists:keyfind("name", 1, ProdSpecObj),
-	{_, {array, POPObj}} = lists:keyfind("productOfferingPrice", 1, ProductObj),
+	{_, {array, POPObj}} = lists:keyfind("productPrice", 1, ProductObj),
 	F1 = fun(POPriceObj) ->
 		POPName1 = lists:keyfind("name", 1 , POPriceObj),
 		POPValidFor1 = lists:keyfind("validFor", 1 , POPriceObj),

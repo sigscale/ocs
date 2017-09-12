@@ -232,7 +232,7 @@ prod_offering_price(json, Product) ->
 		{error, Status} ->
 			{error, Status};
 		ProdOfPrice ->
-			{"productOfferingPrice", {array, ProdOfPrice}}
+			{"productPrice", {array, ProdOfPrice}}
 	end.
 
 -spec po_price(Prefix, ProductOfPrice, Prices) -> Result

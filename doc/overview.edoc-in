@@ -1776,7 +1776,7 @@ Content-Length: nn
              "startDateTime": "2017-09-11T00:00:00.000",
              "endDateTime": "2018-09-12T00:00:00.000"
             },
- "productOfferingPrice":[
+ "productPrice":[
                          {
                           "name": "Family-Pack",
                           "description": "monthlyprice",
@@ -1876,7 +1876,7 @@ Content-Length: nn
              "startDateTime": "2017-09-11T00:00:00.000",
              "endDateTime": "2018-09-12T00:00:00.000"
             },
- "productOfferingPrice":[
+ "productPrice":[
                          {
                           "name": "Family-Pack",
                           "description": "monthlyprice",
