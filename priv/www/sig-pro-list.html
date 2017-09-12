@@ -82,23 +82,23 @@
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="10">
 				<template class="header">
-					<vaadin-grid-sorter path="endDate">
-						<vaadin-grid-filter aria-label="EndDate" path="endDate" value="[[_filterEnd]]">
+					<vaadin-grid-sorter path="terminationDate">
+						<vaadin-grid-filter aria-label="EndDate" path="terminationDate" value="[[_filterEnd]]">
 							<input placeholder="EndDate" value="{{_filterEnd::input}}" focus-target>
 						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
-				<template>[[item.endDate]]</template>
+				<template>[[item.terminationDate]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="7">
 				<template class="header">
-					<vaadin-grid-sorter path="stat">
-						<vaadin-grid-filter aria-label="Status" path="stat" value="[[_filterStatus]]">
+					<vaadin-grid-sorter path="status">
+						<vaadin-grid-filter aria-label="Status" path="status" value="[[_filterStatus]]">
 							<input placeholder="Status" value="{{_filterStatus::input}}" focus-target>
 						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
-				<template>[[item.stat]]</template>
+				<template>[[item.status]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="8">
 				<template class="header">
@@ -118,7 +118,7 @@
 			</paper-fab>
 		</div>
 		<iron-ajax id="getProducts"
-        	url="/catalogManagement/v1/product"
+			url="/productInventoryManagement/v1/product"
          headers='{"Accept": "application/json"}'
          on-response="proResponse">
       </iron-ajax>
@@ -142,10 +142,10 @@
 							name: "startDate"
 						},
 						{
-							name: "endDate"
+							name: "terminationDate"
 						},
 						{
-							name: "stat"
+							name: "status"
 						},
 						{
 							name: "price"
@@ -154,7 +154,7 @@
 					grid.dataProvider = function(params, callback) {
                   var ajax = document.getElementById("getProducts");
                   cbPro = callback;
-                  ajax.url="/catalogManagement/v1/product"
+                  ajax.url="/productInventoryManagement/v1/product"
                   params.filters.forEach(function(filter, index) {
                      if(index == 0) {
                         ajax.url += '?'+ filter.path + '=' + filter.value;
@@ -199,8 +199,8 @@
 						newRecord.name = results[index].name;
 						newRecord.description = results[index].description;
 						newRecord.startDate = results[index].startDate;
-						newRecord.endDate = results[index].endDate;
-						newRecord.stat = results[index].stat;
+						newRecord.terminationDate = results[index].terminationDate;
+						newRecord.status = results[index].status;
 						newRecord.price = results[index].price;
 						vaadinItems[index] = newRecord;
 					}
