@@ -937,8 +937,8 @@ exe_jsonpatch_ON(ProdID, _Etag, OperationList) ->
 validate_operation(Operation) ->
 	try
 		{_, Op} = lists:keyfind("op", 1, Operation),
-		{_, Path} = lists:keyfind("path", Operation),
-		{_, Value} = proplists:get_value("value", Operation),
+		{_, Path} = lists:keyfind("path", 1, Operation),
+		{_, Value} = lists:keyfind("value", 1,  Operation),
 		if
 			Op == "replace" ->
 				validate_operation1(replace, Op, Path, Value);
@@ -954,7 +954,9 @@ validate_operation1(replace, Op, Path, Value) ->
 	Targets = string:tokens(Path, "/"),
 	case validate_operation2({replace, product}, Targets) of
 		ok ->
-			{Op, Path, Value}
+			{Op, Path, Value};
+		{error, Reason} ->
+			{error, Reason}
 	end;
 validate_operation1(_, _, _, _) ->
 	{error, not_implemented}.
