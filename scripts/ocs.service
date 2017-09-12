@@ -6,7 +6,6 @@ After=epmd.service epmd.socket
 [Service]
 User=otp
 Group=otp
-WorkingDirectory=/otp/home
 WorkingDirectory=/home/otp
 RuntimeDirectory=ocs
 RuntimeDirectoryMode=0750
