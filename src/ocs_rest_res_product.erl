@@ -24,6 +24,7 @@
 
 -export([add_product/1]).
 -export([get_product/1, get_products/1]).
+-export([on_patch_product/3]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
@@ -33,7 +34,7 @@
 		ContentTypes :: list().
 %% @doc Provides list of resource representations accepted.
 content_types_accepted() ->
-	[	"application/json"].
+	["application/json", "application/json-patch+json"].
 
 -spec content_types_provided() -> ContentTypes
 	when
@@ -204,6 +205,31 @@ get_products1([Prod | T], Acc) ->
 	catch
 		_:_ ->
 			{error, 500}
+	end.
+
+-spec on_patch_product(ProdId, Etag, ReqData) -> Result
+	when
+		ProdId	:: string(),
+		Etag		:: undefined | list(),
+		ReqData	:: [tuple()],
+		Result	:: {ok, Headers, Body} | {error, Status},
+		Headers	:: [tuple()],
+		Body		:: iolist(),
+		Status	:: 400 | 500 .
+%% @doc Respond to `PATCH /productInventoryManagement/v1/product/{id}' and
+%% apply object notation patch for `product'
+%% RFC6902 `https://tools.ietf.org/html/rfc6902'
+on_patch_product(ProdId, Etag, ReqData) ->
+	try
+		{array, OpList} = mochijson:decode(ReqData),
+		Json = exe_jsonpatch_ON(ProdId, Etag, ReqData),
+		Body = mochijson:encode(Json),
+		Headers = [{content_type, "application/json"}],
+		{ok, Headers, Body}
+
+	catch
+		_:_ ->
+			{error, 400}
 	end.
 
 %%----------------------------------------------------------------------
@@ -854,3 +880,13 @@ price_type(usage) -> "usage";
 price_type(recurring) -> "recurring";
 price_type(one_time) -> "one_time".
 
+-spec exe_jsonpatch_ON(ProductID, Etag, OperationList) -> Result
+	when
+		ProductID		:: string() | binary(),
+		Etag				:: undefined | tuple(),
+		OperationList	:: [tuple()],
+		Result			:: list() | {error, StatusCode},
+		StatusCode		:: 400 | 422.
+%% @doc execute object notation json patch
+exe_jsonpatch_ON(ProdID, _Etag, OperationList) ->
+	todo.
