@@ -222,7 +222,7 @@ get_products1([Prod | T], Acc) ->
 on_patch_product(ProdId, Etag, ReqData) ->
 	try
 		{array, OpList} = mochijson:decode(ReqData),
-		Json = exe_jsonpatch_ON(ProdId, Etag, ReqData),
+		Json = exe_jsonpatch_ON(ProdId, Etag, OpList),
 		Body = mochijson:encode(Json),
 		Headers = [{content_type, "application/json"}],
 		{ok, Headers, Body}
@@ -879,23 +879,29 @@ price_type("one_time") -> one_time;
 price_type(usage) -> "usage";
 price_type(recurring) -> "recurring";
 price_type(one_time) -> "one_time".
- 		Etag				:: undefined | tuple(),
- 		OperationList	:: [tuple()],
- 		Result			:: list() | {error, StatusCode},
+
+-spec exe_jsonpatch_ON(ProductID, Etag, OperationList) -> Result
+	when
+		ProductID		:: string() | binary(),
+		Etag				:: undefined | tuple(),
+		OperationList	:: [tuple()],
+		Result			:: list() | {error, StatusCode},
 		StatusCode		:: 400 | 404 | 422 | 500.
- %% @doc execute object notation json patch
- exe_jsonpatch_ON(ProdID, _Etag, OperationList) ->
+%% @doc execute object notation json patch
+exe_jsonpatch_ON(ProdID, _Etag, OperationList) ->
 	F = fun() ->
 			case mnesia:read(product, ProdID, write) of
 				[Entry] ->
 					F2 = fun({struct, OpObj}) ->
-						case validate_operation(OpObj)
-							{"replace", Path, Value};
+						case validate_operation(OpObj) of
+							{"replace", _Path, _Value} ->
 								todo;
 							{error, malfored_request} ->
 								throw(malfored_request);
-							{error, not_implementd} ->
-								throw(not_implementd)
+							{error, unprocessable} ->
+								throw(unprocessable);
+							{error, not_implemented} ->
+								throw(not_implemented)
 						end
 					end,
 					lists:foreach(F2, OperationList);
@@ -910,19 +916,143 @@ price_type(one_time) -> "one_time".
 			{error, 400};
 		{aborted, {throw, not_found}} ->
 			{error, 404};
-		{aborted, {throw, not_implementd}} ->
+		{aborted, {throw, not_implemented}} ->
+			{error, 422};
+		{aborted, {throw, unprocessable}} ->
 			{error, 422};
 		{aborted, _Reason} ->
 			{error,  500}
 	end.
 
--spec exe_jsonpatch_ON(ProductID, Etag, OperationList) -> Result
+-spec validate_operation(Operation) -> Result
 	when
-		ProductID		:: string() | binary(),
-		Etag				:: undefined | tuple(),
-		OperationList	:: [tuple()],
-		Result			:: list() | {error, StatusCode},
-		StatusCode		:: 400 | 422.
-%% @doc execute object notation json patch
-exe_jsonpatch_ON(ProdID, _Etag, OperationList) ->
+		Operation	:: [tuple()],
+		Result		:: {Op, Path, Value} | {error, Reason},
+		Op				:: string(),
+		Path			:: string(),
+		Value			:: string() | tuple() | atom(),
+		Reason		:: malfored_request | not_implemented | unprocessable.
+%% @doc validate elements in an operation object and return
+%% `op', `path' and `value' or reason for failed.
+validate_operation(Operation) ->
+	try
+		{_, Op} = lists:keyfind("op", 1, Operation),
+		{_, Path} = lists:keyfind("path", Operation),
+		{_, Value} = proplists:get_value("value", Operation),
+		if
+			Op == "replace" ->
+				validate_operation1(replace, Op, Path, Value);
+			true ->
+				{error, not_implemented}
+		end
+	catch
+		_:_ ->
+			{error, malfored_request}
+	end.
+%% @hidden
+validate_operation1(replace, Op, Path, Value) ->
+	Targets = string:tokens(Path, "/"),
+	case validate_operation2({replace, product}, Targets) of
+		ok ->
+			{Op, Path, Value}
+	end;
+validate_operation1(_, _, _, _) ->
+	{error, not_implemented}.
+%% @hidden
+validate_operation2({replace, product}, [Target | T]) ->
+	Members = prod_members(),
+	case lists:member(Target, Members) of
+		true ->
+			if
+				Target == "validFor" ->
+					{error, "not_implemented"};
+				Target == "productPrice" ->
+					validate_operation2({replace, prod_price}, T);
+				true ->
+					ok
+			end;
+		false ->
+			{error, unprocessable}
+	end;
+validate_operation2({replace, prod_price}, [Target | T]) ->
+	Members = product_price_members(),
+	case lists:member(Target, Members) of
+		true ->
+			if
+				Target == "validFor" ->
+					{error, "not_implemented"};
+				Target == "prodPriceAlteration" ->
+					validate_operation3({replace, alteration}, T);
+				Target == "price" ->
+					validate_operation3({replace, price}, T);
+				true ->
+					ok
+			end;
+		false ->
+			{error, unprocessable}
+	end.
+%% @hidden
+validate_operation3({replace, alteration}, [Target | T]) ->
+	Members = prod_price_alteration_members(),
+	case lists:member(Target, Members) of
+		true ->
+			if
+				Target == "validFor" ->
+					{error, "not_implemented"};
+				Target == "price" ->
+					validate_operation3({replace, price}, T);
+				true ->
+					ok
+			end;
+		false ->
+			{error, unprocessable}
+	end;
+validate_operation3({replace, price}, Target) ->
+	Members = prod_price_price_members(),
+	case lists:member(Target, Members) of
+		true ->
+			ok;
+		false ->
+			{error, unprocessable}
+	end.
+
+prod_members() ->
+	["name",
+	"description",
+	"isBundle",
+	"validFor",
+	"startDate",
+	"terminationDate",
+	"status",
+	"productPrice"].
+
+product_price_members() ->
+	["name",
+	"description",
+	"priceType",
+	"validFor",
+	"unitOfMeasure",
+	"price",
+	"prodPriceAlteration",
+	"recurringChargePeriod"].
+
+prod_price_price_members() ->
+	["currencyCode", "taxIncludedAmount"].
+
+prod_price_alteration_members() ->
+	["description",
+	"name",
+	"priceType",
+	"validFor",
+	"unitOfMeasure"].
+
+
+-spec patch_replace(ProdId, Path, Value) -> ok
+	when
+		ProdId		:: binary(),
+		Path			:: undefined | string(),
+		Value			:: undefined | string() | atom() | tuple().
+%% @doc replace the give value with given target path.
+patch_replace(_ProdId, _Path , _Value) ->
 	todo.
+
