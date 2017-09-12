@@ -1,0 +1,385 @@
+<link rel="import" href="polymer/polymer.html">
+<link rel="import" href="i18n-msg/i18n-msg.html">
+<link rel="import" href="i18n-msg/i18n-msg-behavior.html">
+<link rel="import" href="iron-ajax/iron-ajax.html">
+<link rel="import" href="iron-collapse/iron-collapse.html">
+<link rel="import" href="paper-dialog/paper-dialog.html">
+<link rel="import" href="paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="paper-listbox/paper-listbox.html">
+<link rel="import" href="paper-toolbar/paper-toolbar.html">
+<link rel="import" href="paper-input/paper-input.html">
+<link rel="import" href="paper-button/paper-button.html">
+<link rel="import" href="paper-tooltip/paper-tooltip.html">
+<link rel="import" href="paper-toggle-button/paper-toggle-button.html" >
+<link rel="import" href="paper-toast/paper-toast.html">
+<link rel="import" href="paper-styles/color.html">
+<link rel="import" href="paper-date-picker/paper-date-picker.html">
+
+<dom-module id="sig-pro-add">
+	<style is="custom-style">
+      paper-dialog {
+         overflow: auto;
+      }
+      paper-item {
+         padding-right: 10px;
+      }
+      paper-toolbar{
+         margin-top: 0px;
+         color: white;
+         background-color: #bc5100;
+      }
+      .add-button {
+         background-color: var(--paper-lime-a700);
+         color: black;
+         width: 8em;
+      }
+      .cancel-button {
+         color: black;
+      }
+   </style>
+	<template>
+      <paper-dialog id="addProductModal" modal>
+         <paper-toolbar>
+				<paper-tabs selected="{{selected}}">
+					<paper-tab id="offer-add">
+            		<h2>Offering</h2>
+					</paper-tab>
+					<paper-tab id="price-add">
+						<h2>Prices</h2>
+					</paper-tab>
+					<paper-tab id="alt-add">
+						<h2>Alterations</h2>
+					</paper-tab>
+				</paper-tabs>
+			</paper-toolbar>
+			<iron-pages selected="{{selected}}">
+			<div id="addOff-tab">
+				<div>
+					<paper-input id="addOff1"
+						class="name"
+						name="name"
+						label="Name">
+					</paper-input>
+					<paper-input id="addOff2"
+						class="description"
+						name="description"
+						label="Description">
+					</paper-input>
+					<paper-input id="addOff3"
+						class="startDate"
+						name="startDate"
+						label="StartDate">
+					</paper-input>
+					<paper-input id="addOff4"
+						class="endDate"
+						name="endDate"
+						label="EndDate">
+					</paper-input>
+				</div>
+				<div class="buttons">
+					<paper-button dialog-confirm raised
+						class="add-button"
+						on-tap="addOffer">
+							Submit		
+					</paper-button>
+					<paper-button dialog-dismiss
+						class="cancel-button"
+						on-tap="addProductModal.close()">
+							cancel
+					</paper-button>
+				</div>
+			</div>
+			<div id=addPrice-tab>
+				<div>
+					<datalist>
+						<template is="dom-repeat" items="[[alterations]]">
+							<option value="{{item.name}}" />
+						</template>
+					</datalist>
+					<paper-input id="priceName" 
+							list="alts"
+							label="Name"
+							on-change="updateDialog"
+							auto-validate allowed-pattern="[a-zA-Z]">
+					</paper-input>
+					<paper-input id="addPrice1"
+						class="type"
+						name="type"
+						auto-validate allowed-pattern="[a-zA-Z]"
+						label="Type">
+					</paper-input>
+					<paper-input id="addPrice2"
+						class="units"
+						name="units"
+						auto-validate allowed-pattern="[a-zA-Z]"
+						label="Units">
+					</paper-input>
+					<paper-input id="addPrice3"
+						class="amount"
+						name="amount"
+						type="number"
+						label="Amount">
+					</paper-input>
+					<paper-input id="addPrice4"
+						class="currency"
+						name="currency"
+						auto-validate allowed-pattern="[a-zA-Z]"
+						label="Currency">
+					</paper-input>
+					<paper-input id="addPrice5"
+							class="period"
+							name="period"
+							auto-validate allowed-pattern="[a-zA-Z]"
+							label="Period">
+					</paper-input>
+					<paper-dropdown-menu id="addPriceDrop"
+							label="alterations">
+						<paper-listbox
+								slot="dropdown-content"
+								class="dropdown-content"
+								selected="0">	
+							<template is="dom-repeat" items="[[alterations]]">
+								<paper-item>
+									{{item.name}}
+								</paper-item>
+							</template>
+						</paper-listbox>
+					</paper-dropdown-menu>
+				</div>
+				<div class="buttons">
+					<paper-button dialog-confirm raised
+							class="add-button"
+							on-tap="addAlteration">
+								Add		
+					</paper-button>
+					<paper-button dialog-dismiss
+							class="cancel-button"
+							on-click="addProductModal.close()">
+								cancel
+					</paper-button>
+				</div>
+			</div>
+			<div id="add-Alt-tab">
+				<div>
+					<datalist id="alts">
+						<template is="dom-repeat" items="[[alterations]]">
+							<option value="{{item.name}}" />
+						</template>
+					</datalist>
+					<paper-input id="addAlt1" 
+							list="alts" 
+							label="Name" 
+							on-change="updateDialog">
+					</paper-input>
+					<paper-input id="descAlt2"
+							class="description"
+							name="description"
+							label="Description"
+							onfocus="endDatePick.hide(); startDatePick.hide();">
+					</paper-input>
+					<iron-collapse id="startDatePick">
+						<paper-date-picker id="startAlt3" date="{{pickstart}}">
+						</paper-date-picker>
+					</iron-collapse>
+					<paper-input id="startAlt2"
+						value="[[startdate]]"
+						name="startDate"
+						label="Start Date"
+						onfocus="endDatePick.hide(); startDatePick.show();">
+					</paper-input>
+					<iron-collapse id="endDatePick">
+						<paper-date-picker id="endAlt3" date="{{pickend}}">
+						</paper-date-picker>
+					</iron-collapse>
+					<paper-input id="endAlt2"
+						value="{{enddate}}"
+						name="endDate"
+						label="End Date"
+						onfocus="startDatePick.hide(); endDatePick.show();">
+					</paper-input>
+					<paper-input id="typeAlt3"
+						class="type"
+						name="type"
+						label="Type"
+						onfocus="endDatePick.hide(); startDatePick.hide();">
+					</paper-input>
+					<paper-dropdown-menu id=addUnitDrop
+						label="Units">
+						<paper-listbox
+							slot="dropdown-content"
+							class="dropdown-content"
+							selected="0">	
+								<paper-item value="octets">
+									octets
+								</paper-item>
+								<paper-item value="cents">
+									cents	
+								</paper-item>
+								<paper-item value="seconds">
+									seconds
+								</paper-item>
+						</paper-listbox>
+					</paper-dropdown-menu>
+					<paper-input id="sizeAlt3"
+						class="size"
+						name="size"
+						label="Size"
+						type="number"
+						onfocus="endDatePick.hide(); startDatePick.hide();">
+					</paper-input>
+					<paper-input id="amountAlt3"
+						class="amount"
+						name="amount"
+						label="Amount"
+						type="number"
+						onfocus="endDatePick.hide(); startDatePick.hide();">
+					</paper-input>
+				</div>
+				<div class="buttons">
+					<paper-button raised
+						class="add-button"
+						on-tap="addAlteration">
+							Add		
+					</paper-button>
+					<paper-button dialog-dismiss
+						class="cancel-button"
+						on-click="addProductModal.close()">
+							cancel
+					</paper-button>
+				</div>
+			</div>
+		</paper-dialog>
+		<iron-ajax
+				id="productAddAjax"
+				url="/catalogManagement/v1/productOffering"
+            method = "post"
+            content-type="application/json"
+            on-loading-changed="_onLoadingChanged"
+            on-response="productAddResponse"
+            handle-as="json">
+      </iron-ajax>
+	</template>
+	<script>
+		Polymer ({
+			is: 'sig-pro-add',
+			behaviors: [i18nMsgBehavior],
+			properties: {
+				alterations: {
+					type: Array,
+					value: function() {
+						return [];
+					}
+				},
+				selected: {
+              	type: Number,
+              	value: 0
+				},
+				startdate: {
+					type: String,
+					value: ""
+				},
+				enddate: {
+					type: String,
+					value: ""
+				},
+				pickstart: {
+					observer: 'pickStartDate'
+				},
+				pickend: {
+					observer: 'pickEndDate'
+				},
+			},
+			pickStartDate: function(date) {
+				if (this.$.startDatePick.opened) {
+					 this.startdate = date;
+				}
+			},
+			pickEndDate: function(date) {
+				if (this.$.endDatePick.opened) {
+					 this.enddate = date;
+				}
+			},
+			updateDialog: function() {
+				function checkName(alts) {
+					return alts.name == this.addAlt1.value; 
+				}
+				var index = this.alterations.findIndex(checkName);
+				if (index == -1) {
+            	this.$.descAlt2.value = null;
+            	this.$.typeAlt3.value = null;
+            	this.$.sizeAlt3.value = null;
+            	this.$.amountAlt3.value = null;
+				} else {
+            	this.$.descAlt2.value = this.alterations[index].description;
+					this.$.startAlt2.value = this.alterations[index].startDate;
+					this.$.endAlt2.value = this.alterations[index].endDate;
+            	this.$.typeAlt3.value = this.alterations[index].type;
+					this.$.addUnitDrop.value = this.alterations[index].units;
+            	this.$.sizeAlt3.value = this.alterations[index].size;
+            	this.$.amountAlt3.value = this.alterations[index].amount;
+				}
+			},
+			addOffer: function() {
+				var offerNew = new Object();
+				offerNew.name = this.$.addOff1.value;
+				offerNew.description = this.$.addOff2.value;
+				this.push('alterations', offerNew);
+console.log(offerNew);
+				this.$.addOff1.value = null;
+				this.$.addOff2.value = null;
+				var ajax = this.$.productAddAjax;
+				ajax.body = offerNew;
+console.log(ajax.body);
+				ajax.generateRequest();
+				
+			},
+			addAlteration: function() {
+				var priceNew = new Object();
+				priceNew.name = this.$.priceName.value;
+				priceNew.type = this.$.addPrice1.value;
+				priceNew.units = this.$.addPrice2.value;
+				priceNew.amount = this.$.addPrice3.value;
+				priceNew.currency = this.$.addPrice4.value;
+				priceNew.period = this.$.addPrice5.value;
+				priceNew.alteration = this.$.addPriceDrop.value;
+console.log(priceNew);
+				this.push('alterations', priceNew);
+				var priceArray = [priceNew];
+				this.$.priceName.value = null;
+				this.$.addPrice1.value = null;	
+				this.$.addPrice2.value = null;
+				this.$.addPrice3.value = null;
+				this.$.addPrice4.value = null;
+				this.$.addPrice5.value = null;
+				this.$.addPriceDrop.value = null;
+				var altNew = new Object();
+				altNew.name = this.$.addAlt1.value;
+				altNew.description = this.$.descAlt2.value;
+				altNew.startDate = this.$.startAlt2.value;
+				altNew.endDate = this.$.endAlt2.value;
+				altNew.type = this.$.typeAlt3.value;
+				altNew.units = this.$.addUnitDrop.value;
+				altNew.size= this.$.sizeAlt3.value;
+				altNew.amount= this.$.amountAlt3.value;
+console.log(altNew);
+				this.push('alterations', altNew);
+				this.$.addAlt1.value = null
+				this.$.descAlt2.value = null;
+				this.$.typeAlt3.value = null;
+				this.$.sizeAlt3.value = null;
+				this.$.amountAlt3.value = null;
+			},
+			_onLoadingChanged: function(event) {
+            if (document.getElementById("productAddAjax").loading) {
+               document.getElementById("progress").disabled = false;
+            } else {
+               document.getElementById("progress").disabled = true;
+            }
+         },
+			productAddResponse: function(event) {
+				this.$.addProductModal.close();
+				document.getElementById("getProducts").generateRequest();
+			}
+		});
+	</script>
+</dom-module>
