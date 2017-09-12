@@ -222,10 +222,15 @@ get_products1([Prod | T], Acc) ->
 on_patch_product(ProdId, Etag, ReqData) ->
 	try
 		{array, OpList} = mochijson:decode(ReqData),
-		Json = exe_jsonpatch_ON(ProdId, Etag, OpList),
-		Body = mochijson:encode(Json),
-		Headers = [{content_type, "application/json"}],
-		{ok, Headers, Body}
+		case exe_jsonpatch_ON(ProdId, Etag, OpList) of
+			{error, StatusCode} ->
+				{error, StatusCode};
+			Product ->
+				Json = [],
+				Body = mochijson:encode(Json),
+				Headers = [{content_type, "application/json"}],
+				{ok, Headers, Body}
+		end
 
 	catch
 		_:_ ->
