@@ -1606,7 +1606,7 @@ Content-length: nn
  "isBundle": false,
  "startDate": "2017-09-11T00:00",
  "terminationDate": "2018-09-12T00:00",
- "status": "Active",
+ "lifecycleStatus": "Active",
  "validFor":{
              "startDateTime": "2017-09-11T00:00:00.000",
              "endDateTime": "2018-09-12T00:00:00.000"
@@ -1671,7 +1671,7 @@ Etag: mm-m
  "isBundle": false,
  "startDate": "2017-09-11T00:00",
  "terminationDate": "2018-09-12T00:00",
- "status": "Active",
+ "lifecycleStatus": "Active",
  "validFor":{
              "startDateTime": "2017-09-11T00:00:00.000",
              "endDateTime": "2018-09-12T00:00:00.000"
