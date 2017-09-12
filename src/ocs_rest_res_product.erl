@@ -372,7 +372,7 @@ po_alteration(json, ProdAlter) when is_record(ProdAlter, alteration)->
 		Amount = prod_price_alter_amount(json, ProdAlter),
 		PriceObj = {struct, [Amount]},
 		Price = {"price", PriceObj},
-		{"productOfferPriceAlteration",
+		{"prodPriceAlteration",
 			{struct, [Name, Description, PriceType, ValidFor, UFM, Price]}}
 	catch
 		_:_ ->

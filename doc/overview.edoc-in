@@ -1808,7 +1808,7 @@ Content-Length: nn
                                   },
                           "recurringChargePeriod": "",
 
-                          "productOfferPriceAlteration":{
+                          "prodPriceAlteration":{
                                                          "name": "Usage",
                                                          "description": "",
                                                          "validFor":{
@@ -1908,7 +1908,7 @@ Content-Length: nn
                                   },
                           "recurringChargePeriod": "",
 
-                          "productOfferPriceAlteration":{
+                          "prodPriceAlteration":{
                                                          "name": "Usage",
                                                          "description": "",
                                                          "validFor":{
