@@ -981,6 +981,8 @@ validate_operation2({replace, product}, [Target | T]) ->
 		false ->
 			{error, unprocessable}
 	end;
+validate_operation2({replace, prod_price}, []) ->
+	ok;
 validate_operation2({replace, prod_price}, [Target | T]) ->
 	Members = product_price_members(),
 	case lists:member(Target, Members) of
@@ -999,6 +1001,8 @@ validate_operation2({replace, prod_price}, [Target | T]) ->
 			{error, unprocessable}
 	end.
 %% @hidden
+validate_operation3({replace, alteration}, []) ->
+	ok;
 validate_operation3({replace, alteration}, [Target | T]) ->
 	Members = prod_price_alteration_members(),
 	case lists:member(Target, Members) of
