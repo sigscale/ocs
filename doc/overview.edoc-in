@@ -1757,7 +1757,7 @@ Etag: mm-m
 	</tr>
 </table>
 <p>Example request:<pre>
-GET /productInventoryManagement/v1/product/eacfd73ae10a HTTP/1.1
+GET /productInventoryManagement/v1/product/Wi-Fi HTTP/1.1
 Accept: application/json
 </pre></p>
 <p>Example response:<pre>
