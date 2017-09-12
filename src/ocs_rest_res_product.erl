@@ -879,6 +879,42 @@ price_type("one_time") -> one_time;
 price_type(usage) -> "usage";
 price_type(recurring) -> "recurring";
 price_type(one_time) -> "one_time".
+ 		Etag				:: undefined | tuple(),
+ 		OperationList	:: [tuple()],
+ 		Result			:: list() | {error, StatusCode},
+		StatusCode		:: 400 | 404 | 422 | 500.
+ %% @doc execute object notation json patch
+ exe_jsonpatch_ON(ProdID, _Etag, OperationList) ->
+	F = fun() ->
+			case mnesia:read(product, ProdID, write) of
+				[Entry] ->
+					F2 = fun({struct, OpObj}) ->
+						case validate_operation(OpObj)
+							{"replace", Path, Value};
+								todo;
+							{error, malfored_request} ->
+								throw(malfored_request);
+							{error, not_implementd} ->
+								throw(not_implementd)
+						end
+					end,
+					lists:foreach(F2, OperationList);
+				[] ->
+					throw(not_found)
+			end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, Product} ->
+			{ok,  Product};
+		{aborted, {throw, malfored_request}} ->
+			{error, 400};
+		{aborted, {throw, not_found}} ->
+			{error, 404};
+		{aborted, {throw, not_implementd}} ->
+			{error, 422};
+		{aborted, _Reason} ->
+			{error,  500}
+	end.
 
 -spec exe_jsonpatch_ON(ProductID, Etag, OperationList) -> Result
 	when
