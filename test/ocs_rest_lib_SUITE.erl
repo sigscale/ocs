@@ -272,8 +272,8 @@ filter_complex(_Config) ->
 	ObjectIn = {struct, [{"a", A}, G, {"m", 9}]},
 	Filters = "a.b.c.d.e,g,a.b.c.x.name=(w,v),a.b.c.x.value,a.b.c.d.f",
 	ObjectOut = {struct, [{"a", {struct, [{"b", {struct, [{"c", {struct,
-			[{"d", {struct, [{"e", E}, {"f", F}]}},
-			{"x", {array, [W, V]}}]}}]}}]}}, G]},
+			[{"d", {struct, [{"f", F}, {"e", E}]}},
+			{"x", {array, [V, W]}}]}}]}}]}}, G]},
 	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
 
 %%---------------------------------------------------------------------
