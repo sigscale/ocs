@@ -74,7 +74,7 @@ sequences() ->
 %%
 all() ->
 	[filter_members, filter_array, filter_deep_object, filter_deep_array,
-			filter_complex, filter_match_list].
+			filter_match, filter_match_array, filter_match_list, filter_complex].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -192,28 +192,40 @@ filter_deep_array(_Config) ->
 	ObjectOut = {struct, [A, {"b", {array, [Co, Do, Eo]}}]},
 	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
 
-filter_complex() ->
-	[{userdata, [{doc, "Apply filters to a JSON object"}]}].
+filter_match() ->
+	[{userdata, [{doc, "Filter objects with value matching"}]}].
 
-filter_complex(_Config) ->
-	G = {"g", erlang:unique_integer()},
-	F = {struct, [{"f", erlang:unique_integer()}]},
-	E = {struct, [{"g", erlang:unique_integer()},
-			{"h", erlang:unique_integer()}]}, 
-	Y = {struct, [{"p", {struct, [{"r", 3}, {"s", 9}]}}, {"q", 8}]},
-	D = {struct, [{"z", 1}, {"f", F}, {"e", E}]},
-	W = {struct, [{"name", "w"}, {"value", erlang:unique_integer()}]},
-	V = {struct, [{"name", "v"}, {"value", erlang:unique_integer()}]},
-	U = {struct, [{"name", "u"}, {"value", erlang:unique_integer()}]},
-	C = {struct, [{"d", D}, {"x", {array, [U, V, 6, W, Y]}}]},
-	B = {struct, [{"s", 5}, {"t", 6}, {"c", C}]},
-	A = {struct, [{"o", 3}, {"p", 4}, {"b", B},
-			{struct, [{"q", 5}, {"r", 6}]}]},
-	ObjectIn = {struct, [{"a", A}, G, {"m", 9}]},
-	Filters = "a.b.c.d.e,g,a.b.c.x.name=(w,v),a.b.c.x.value,a.b.c.d.f",
-	ObjectOut = {struct, [{"a", {struct, [{"b", {struct, [{"c", {struct,
-			[{"d", {struct, [{"e", E}, {"f", F}]}},
-			{"x", {array, [W, V]}}]}}]}}]}}, G]},
+filter_match(_Config) ->
+	BX = {"x", "carol"},
+	BY = {"y", erlang:unique_integer()},
+	DX = {"x", "alice"},
+	DZ = {"z", erlang:unique_integer()},
+	A = {struct, [{"w", 1}, {"x", "bob"}, {"y", 2}, {"z", 3}]},
+	B = {struct, [{"w", 4}, BX, BY, {"z", 5}]},
+	C = {struct, [{"w", 6}, {"x", "ted"}, {"y", 7}, {"z", 8}]},
+	D = {struct, [{"w", 9}, DX, {"y", 10}, DZ]},
+	ObjectIn = {struct, [{"a", A}, {"b", B}, {"c", C}, {"d", D}]},
+	Filters = "a.x=fred,a.y,b.x=carol,d.x=alice,d.z,b.y",
+	ObjectOut = {struct, [{"b", {struct, [BX, BY]}},
+			{"d", {struct, [DX, DZ]}}]},
+	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
+
+filter_match_array() ->
+	[{userdata, [{doc, "Filter array with value matching"}]}].
+
+filter_match_array(_Config) ->
+	BX = {"x", "carol"},
+	BY = {"y", erlang:unique_integer()},
+	DX = {"x", "alice"},
+	DY = {"y", erlang:unique_integer()},
+	A = {struct, [{"w", 1}, {"x", "bob"}, {"y", 2}, {"z", 3}]},
+	B = {struct, [{"w", 4}, BX, BY, {"z", 5}]},
+	C = {struct, [{"w", 6}, {"x", "ted"}, {"y", 7}, {"z", 8}]},
+	D = {struct, [{"w", 9}, DX, DY, {"z", 10}]},
+	ObjectIn = {array, [A, B, C, D]},
+	Filters = "x=carol,y,x=alice",
+	ObjectOut = {array, [{struct, [BX, BY]},
+			{struct, [DX, DY]}]},
 	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
 
 filter_match_list() ->
@@ -238,6 +250,30 @@ filter_match_list(_Config) ->
 	O2 = {struct, [B2, D2]},
 	O4 = {struct, [B4, D4]},
 	ObjectOut = {struct, [{"g", {array, [O2, O4]}}]},
+	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
+
+filter_complex() ->
+	[{userdata, [{doc, "Apply filters to a JSON object"}]}].
+
+filter_complex(_Config) ->
+	G = {"g", erlang:unique_integer()},
+	F = {struct, [{"f", erlang:unique_integer()}]},
+	E = {struct, [{"g", erlang:unique_integer()},
+			{"h", erlang:unique_integer()}]},
+	Y = {struct, [{"p", {struct, [{"r", 3}, {"s", 9}]}}, {"q", 8}]},
+	D = {struct, [{"z", 1}, {"f", F}, {"e", E}]},
+	W = {struct, [{"name", "w"}, {"value", erlang:unique_integer()}]},
+	V = {struct, [{"name", "v"}, {"value", erlang:unique_integer()}]},
+	U = {struct, [{"name", "u"}, {"value", erlang:unique_integer()}]},
+	C = {struct, [{"d", D}, {"x", {array, [U, V, 6, W, Y]}}]},
+	B = {struct, [{"s", 5}, {"t", 6}, {"c", C}]},
+	A = {struct, [{"o", 3}, {"p", 4}, {"b", B},
+			{struct, [{"q", 5}, {"r", 6}]}]},
+	ObjectIn = {struct, [{"a", A}, G, {"m", 9}]},
+	Filters = "a.b.c.d.e,g,a.b.c.x.name=(w,v),a.b.c.x.value,a.b.c.d.f",
+	ObjectOut = {struct, [{"a", {struct, [{"b", {struct, [{"c", {struct,
+			[{"d", {struct, [{"f", F}, {"e", E}]}},
+			{"x", {array, [V, W]}}]}}]}}]}}, G]},
 	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
 
 %%---------------------------------------------------------------------

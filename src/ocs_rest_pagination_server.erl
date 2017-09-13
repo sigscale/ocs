@@ -234,15 +234,37 @@ range_request({StartRange, EndRange}, _From,
 	NewState = State#state{offset = EndRange, buffer = NewBuffer},
 	ContentRange = content_range(StartRange, EndRange, undefined),
 	{reply, {RespItems, ContentRange}, NewState, Timeout};
-range_request({StartRange, EndRange}, From,
-		#state{cont = Cont1, module = Module, function = Function,
-		args = Args, buffer = Buffer} = State) ->
-	case apply(Module, Function, [Cont1 | Args]) of
-		{error, _Reason} ->
-			{stop, shutdown, {error, 500}, State};
+range_request({1, EndRange}, _From,
+		#state{module = Module, function = Function,
+		args = Args, timeout = Timeout} = State) ->
+	case apply(Module, Function, [start | Args]) of
+		{error, Reason} ->
+			{stop, shutdown, {error, Reason}, State, Timeout};
+		{eof, Items} when length(Items) =< EndRange ->
+			{stop, shutdown, {eof, Items}, State};
+		{Cont2, Items} when length(Items) >= EndRange ->
+			{RespItems, Rest} = lists:split(EndRange, Items),
+			NewState = State#state{cont = Cont2,
+					offset = EndRange + 1, buffer = Rest},
+			{reply, {Cont2, RespItems}, NewState, Timeout};
 		{Cont2, Items} ->
-			NewState = State#state{cont = Cont2, buffer = Buffer ++ Items},
-			range_request({StartRange, EndRange}, From, NewState)
+			NewState = State#state{cont = Cont2,
+					offset = 1, buffer = Items},
+			{reply, {Cont2, Items}, NewState, Timeout}
+	end;
+range_request({StartRange, EndRange}, _From,
+		#state{cont = Cont1, module = Module, function = Function,
+		args = Args, timeout = Timeout} = State) ->
+	case apply(Module, Function, [Cont1 | Args]) of
+		{error, Reason} ->
+			{stop, shutdown, {error, Reason}, State, Timeout};
+		{eof, Items} when length(Items) =< EndRange ->
+			RespItems = lists:sublist(Items, StartRange, EndRange - StartRange),
+			{stop, shutdown, {eof, RespItems}, State};
+		{Cont2, Items} when length(Items) =< EndRange ->
+			{RespItems, Rest} = lists:split(EndRange, Items),
+			NewState = State#state{offset = EndRange + 1, buffer = Rest},
+			{reply, {Cont2, RespItems}, NewState, Timeout}
 	end.
 
 %% @hidden

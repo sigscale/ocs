@@ -92,13 +92,7 @@ filter(Filters, JsonObject) when is_list(Filters) ->
 	Filters2 = string:tokens(Filters1, ","),
 	Filters3 = [string:tokens(F, ".") || F <- Filters2],
 	Filters4 = lists:usort(Filters3),
-	Fsort = fun(A, B) when length(A) =< length(B) ->
-				true;
-			(_, _) ->
-				false
-	end,
-	Filters5 = lists:sort(Fsort, Filters4),
-	filter1(Filters5, JsonObject, []).
+	filter1(Filters4, JsonObject, []).
 
 -spec range(Range) -> Result
 	when
@@ -122,149 +116,110 @@ range(Range) when is_list(Range) ->
 %%----------------------------------------------------------------------
 
 %% @hidden
-%% put filters in order so we can process (once) sequentially
-filter1([Filter | T], JSON, []) ->
-	[Name | RevPath] = lists:reverse(Filter),
-	filter1(T, JSON, [{[Name], RevPath}]);
-filter1([Filter | T1], JSON, [{Names, RevPath} | T2] = Acc) ->
-	case lists:reverse(Filter) of
-		[Name | RevPath] ->
-			filter1(T1, JSON, [{[Name | Names], RevPath} | T2]);
-		[Name | NewRevPath] ->
-			filter1(T1, JSON, [{[Name], NewRevPath} | Acc])
-	end;
-filter1([], {Type, _} = JSON, Acc) when Type == struct; Type == array ->
-	Filters = [{lists:reverse(Path), lists:reverse(Names)}
-			|| {Names, Path} <- lists:reverse(Acc)],
-	filter2(Filters, JSON).
+filter1(Filters, {array, L}, Acc) ->
+	{array, filter2(Filters, L, Acc)};
+filter1(Filters, {struct, L}, Acc) ->
+	{struct, filter3(Filters, L, false, true, Acc)}.
+
+-spec filter2(Filters, Elements, Acc) -> Result
+	when
+		Filters :: [list(string())],
+		Elements :: [Value],
+		Value :: integer() | string() | {struct, Members} | {array, Elements},
+		Members :: [{Key, Value}],
+		Key :: string(),
+		Acc :: [Value],
+		Result :: [Value].
+%% @doc Process each array element.
 %% @hidden
-filter2(Filters, {struct, L1}) ->
-	{struct, filter3(Filters, L1, [])};
-filter2(Filters, {array, L1}) ->
-	{array, filter4(Filters, L1, [])}.
-%% @hidden
-%% filter fields from object
-filter3([{[], [H | T1]} | T2] = _Filters, L, Acc) ->
-	case lists:keyfind(H, 1, L) of
-		false ->
-			filter3([{[], T1} | T2], L, Acc);
-		KV ->
-			filter3([{[], T1} | T2], L, [KV | Acc])
+filter2(Filters, [{Type, Value} | T], Acc)
+		when Type == struct; Type == array ->
+	case filter1(Filters, {Type, Value}, []) of
+		{struct, []} ->
+			filter2(Filters, T, Acc);
+		Object ->
+			filter2(Filters, T, [Object | Acc])
 	end;
-%% depth first traversal for complex filters
-filter3([{[H | _], _} | T] = Filters, L1, Acc) ->
-	case lists:keyfind(H, 1, L1) of
-		false ->
-			filter3(T, L1, Acc);
-		{H, {Type, _} = JSON} when Type == struct; Type == array ->
-			% remove parent from filter path
-			F1 = fun({[Prefix | Suffix], Names}) when Prefix == H ->
-						{true, {Suffix, Names}};
-					(_) ->
-						false
-			end,
-			SubFilters = lists:filtermap(F1, Filters),
-			% filter descendants
-			NewAcc = case filter2(SubFilters, JSON) of
-				{_, []} ->
-					Acc;
-				NewJSON ->
-					[{H, NewJSON} | Acc]
-			end,
-			% skip filters applied above
-			F2 = fun({[Prefix | _], _}) when Prefix == H ->
-						true;
-					(_P) ->
-						false
-			end,
-			NewFilters = lists:dropwhile(F2, Filters),
-			filter3(NewFilters, L1, NewAcc);
-		_ ->
-			throw({error, 400})
-	end;
-filter3([{[], []} | T], L, Acc) ->
-	filter3(T, L, Acc);
-filter3([], _, Acc) ->
-	lists:reverse(Acc).
-%% @hidden
-filter4(Filters, [{struct, L1} | T], Acc) ->
-	NewAcc = case filter5(Filters, L1, []) of
-		[] ->
-			Acc;
-		L2 ->
-			[{struct, L2} | Acc]
-	end,
-	filter4(Filters, T, NewAcc);
-filter4(Filters, [{array, L1} | T], Acc) ->
-	NewAcc = case filter4(Filters, L1, []) of
-		[] ->
-			Acc;
-		L2 ->
-			[{array, L2} | Acc]
-	end,
-	filter4(Filters, T, NewAcc);
-filter4(Filters, [{Key, _Value} = KV | T], Acc) ->
-	case lists:member(Key, Filters) of
-		true ->
-			filter4(Filters, T, [KV | Acc]);
-		false ->
-			filter4(Filters, T, Acc)
-	end;
-filter4(Filters, [_ | T], Acc) ->
-	filter4(Filters, T, Acc);
-filter4(_, [], Acc) ->
-	lists:reverse(Acc).
-%% @hidden
-filter5([{[], Names} | T], L, Acc) ->
-	filter6(Names, true, L, []);
-filter5([], _, Acc) ->
-	lists:reverse(Acc).
-%% @hidden
-%% check for value matches
-filter6([H | T], Flag, L, Acc) ->
-	filter7(string:tokens(H, "="), T, Flag, L, Acc);
-filter6([], true, L, Acc) ->
-	filter8(L, Acc, []);
-filter6([], false, _, _Acc) ->
-	[].
-%% @hidden
-filter7([Key, _], T, true, L, [Key | _] = Acc) ->
-	filter6(T, true, L, Acc);
-filter7([Key, Value], T, false, L, [Key | _] = Acc) ->
-	case lists:keyfind(Key, 1, L) of
-		{_, Value} ->
-			filter6(T, true, L, Acc);
-		{_, _} ->
-			filter6(T, false, L, Acc)
-	end;
-filter7([Key, Value], T, true, L, Acc) ->
-	case lists:keyfind(Key, 1, L) of
-		{_, Value} ->
-			filter6(T, true, L, [Key | Acc]);
-		{_, _} ->
-			filter6(T, false, L, [Key | Acc]);
-		false ->
-			[]
-	end;
-filter7(_, _, false, _, _) ->
-	[];
-filter7([Key], T, true, L, Acc) ->
-	filter6(T, true, L, [Key | Acc]);
-filter7(_, _, _, _, _) ->
-	throw({error, 400}).
-%% @hidden
-filter8([{Key, _} = H | T], Keys, Acc) ->
-	case lists:member(Key, Keys) of
-		true ->
-			filter8(T, Keys, [H | Acc]);
-		false ->
-			filter8(T, Keys, Acc)
-	end;
-filter8([], _, Acc) ->
+filter2(Filters, [_ | T], Acc) ->
+	filter2(Filters, T, Acc);
+filter2(_, [], Acc) ->
 	lists:reverse(Acc).
 
+-spec filter3(Filters, Members, IsValueMatch, ValueMatched, Acc) -> Result
+	when
+		Filters :: [list(string())],
+		Members :: [{Key, Value}],
+		Key :: string(),
+		Value :: integer() | string() | {struct, Members} | {array, Elements},
+		Elements :: [Value],
+		IsValueMatch :: boolean(),
+		ValueMatched :: boolean(),
+		Acc :: [{Key, Value}],
+		Result :: [{Key, Value}].
+%% @doc Process each object member.
 %% @hidden
-%% expand parenthesized value lists
+filter3(Filters, [{Key1, Value1} | T], IsValueMatch, ValueMatched, Acc) ->
+	case filter4(Filters, {Key1, Value1}, false) of
+		{false, false} ->
+			filter3(Filters, T, IsValueMatch, ValueMatched, Acc);
+		{true, false} when IsValueMatch == false ->
+			filter3(Filters, T, true, false, Acc);
+		{true, false} ->
+			filter3(Filters, T, true, ValueMatched, Acc);
+		{false, {_, {_, []}}} ->
+			filter3(Filters, T, IsValueMatch, ValueMatched, Acc);
+		{false, {Key2, Value2}} ->
+			filter3(Filters, T, IsValueMatch, ValueMatched, [{Key2, Value2} | Acc]);
+		{true, {Key2, Value2}} ->
+			filter3(Filters, T, true, true, [{Key2, Value2} | Acc])
+	end;
+filter3(Filters, [H | T], IsValueMatch, ValueMatched, Acc) ->
+	filter3(Filters, T, IsValueMatch, ValueMatched, Acc);
+filter3(_, [], _, false, Acc) ->
+	[];
+filter3(_, [], _, true, Acc) ->
+	lists:reverse(Acc).
+
+-spec filter4(Filters, Member, IsValueMatch) -> Result
+	when
+		Filters :: [list(string())],
+		Member :: {Key, Value},
+		IsValueMatch :: boolean(),
+		Key :: string(),
+		Value :: integer() | string() | {struct, [Member]} | {array, [Value]},
+		Result :: {ValueMatch, MatchResult},
+		ValueMatch :: boolean(),
+		MatchResult :: false | Member.
+%% @doc Apply filters to an object member.
+%% @hidden
+filter4([[Key] | _], {Key, Value}, IsValueMatch) ->
+	{IsValueMatch, {Key, Value}};
+filter4([[S] | T], {Key, Value}, IsValueMatch) ->
+	case split(S) of
+		{Key, Value} ->
+			{true, {Key, Value}};
+		{Key, _} ->
+			filter4(T, {Key, Value}, true);
+		_ ->
+			filter4(T, {Key, Value}, IsValueMatch)
+	end;
+filter4([[Key | _ ] | _] = Filters1, {Key, {Type, L}}, IsValueMatch)
+		when Type == struct; Type == array ->
+	F1 = fun([K | _]) when K =:= Key ->
+				true;
+			(_) ->
+				false
+	end,
+	Filters2 = lists:takewhile(F1, Filters1),
+	F2 = fun([_ | T]) -> T end,
+	Filters3 = lists:map(F2, Filters2),
+	{IsValueMatch, {Key, filter1(Filters3, {Type, L}, [])}};
+filter4([_ | T] = Filters, {Key, Value}, IsValueMatch) ->
+	filter4(T, {Key, Value}, IsValueMatch);
+filter4([], _, IsValueMatch) ->
+	{IsValueMatch, false}.
+
+%% @hidden
 expand("=(" ++ T, Acc) ->
 	{Key, NewAcc} = expand1(Acc, []),
 	expand2(T, Key, [], NewAcc);
@@ -290,4 +245,15 @@ expand2([H | T], Key, Acc1, Acc2) ->
 	expand2(T, Key, [H | Acc1], Acc2);
 expand2([], _, _, _) ->
 	throw({error, 400}).
+
+%% @hidden
+split(S) ->
+	split(S, []).
+%% @hidden
+split([$= | T], Acc) ->
+	{lists:reverse(Acc), T};
+split([H | T], Acc) ->
+	split(T, [H | Acc]);
+split([], Acc) ->
+	lists:reverse(Acc).
 

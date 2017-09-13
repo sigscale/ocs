@@ -1,0 +1,22 @@
+[Unit]
+Description="Online Charging System by SigScale Global Inc."
+Documentation="https://github.com/sigscale/ocs"
+After=epmd.service epmd.socket
+
+[Service]
+User=otp
+Group=otp
+WorkingDirectory=/home/otp
+RuntimeDirectory=ocs
+RuntimeDirectoryMode=0750
+EnvironmentFile=/etc/default/ocs
+ExecStart=/usr/lib/erlang/bin/run_erl -daemon /run/ocs/ log \
+                'exec ${ROOTDIR}/bin/start_erl ${ROOTDIR} releases \
+                ${START_ERL_DATA} +K true +A 32 +Bi -sname ${NODENAME}'
+GuessMainPID=no
+Type=forking
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

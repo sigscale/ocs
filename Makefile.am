@@ -4,16 +4,23 @@
 
 SUBDIRS = include src ebin doc c_src priv test
 
-rel_DATA = $(PACKAGE_NAME).tar.gz
+if HAVE_SYSTEMD
+systemdsystemunit_DATA = scripts/ocs.service
+env_DATA = scripts/ocs
+endif
 
-EXTRA_DIST = $(PACKAGE_NAME).tar.gz
-
-.PHONY:
+.PHONY: release
 release:	$(PACKAGE_NAME).tar.gz
 
 $(PACKAGE_NAME).tar.gz:
-	ERL_LIBS=$(ERLANG_INSTALL_LIB_DIR) $(ERL) -s systools make_script $(PACKAGE_NAME) -s init stop -noinput
-	ERL_LIBS=$(ERLANG_INSTALL_LIB_DIR) $(ERL) -s systools make_tar $(PACKAGE_NAME) -s init stop -noinput
+	ERL_LIBS=$(DESTDIR)/$(ERLANG_INSTALL_LIB_DIR) $(ERL) -s systools make_script $(PACKAGE_NAME) -s init stop -noinput
+	ERL_LIBS=$(DESTDIR)/$(ERLANG_INSTALL_LIB_DIR) $(ERL) -s systools make_tar $(PACKAGE_NAME) -s init stop -noinput
+
+install-data-hook: $(PACKAGE_NAME).tar.gz
+	$(MKDIR_P) $(DESTDIR)/$(reldir)
+	$(INSTALL_DATA) $< $(DESTDIR)/$(reldir)
+
+EXTRA_DIST = $(PACKAGE_NAME).tar.gz
 
 CLEANFILES = $(PACKAGE_NAME).script $(PACKAGE_NAME).boot $(PACKAGE_NAME).tar.gz
 

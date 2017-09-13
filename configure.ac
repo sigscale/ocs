@@ -20,6 +20,22 @@ AC_ARG_ENABLE([debug],
 AC_ARG_WITH([ssl],
 		[AS_HELP_STRING([--with-ssl=PATH], [specify location of OpenSSL include and lib])])
 CFLAGS="${CFLAGS} -Wall"
+PKG_PROG_PKG_CONFIG
+AC_ARG_WITH([systemdsystemunitdir],
+		[AS_HELP_STRING([--with-systemdsystemunitdir=DIR], [Directory for systemd service files])],,
+		[with_systemdsystemunitdir=auto])
+AS_IF([test "x$with_systemdsystemunitdir" = "xyes" -o "x$with_systemdsystemunitdir" = "xauto"], [
+		def_systemdsystemunitdir=$($PKG_CONFIG --variable=systemdsystemunitdir systemd)
+
+		AS_IF([test "x$def_systemdsystemunitdir" = "x"],
+	[AS_IF([test "x$with_systemdsystemunitdir" = "xyes"],
+		[AC_MSG_ERROR([systemd support requested but pkg-config unable to query systemd package])])
+		with_systemdsystemunitdir=no],
+	[with_systemdsystemunitdir="$def_systemdsystemunitdir"])])
+AS_IF([test "x$with_systemdsystemunitdir" != "xno"],
+		[AC_SUBST([systemdsystemunitdir], [$with_systemdsystemunitdir])])
+AM_CONDITIONAL([HAVE_SYSTEMD], [test "x$with_systemdsystemunitdir" != "xno"])
+
 
 ##
 ## Programs:  check for programs needed by the configure process,
@@ -55,7 +71,8 @@ eincludedir=$ERLANG_INSTALL_LIB_DIR/$PACKAGE_NAME-$PACKAGE_VERSION/include
 docdir=$ERLANG_INSTALL_LIB_DIR/$PACKAGE_NAME-$PACKAGE_VERSION/doc
 libdir=$ERLANG_INSTALL_LIB_DIR/$PACKAGE_NAME-$PACKAGE_VERSION/priv/lib
 wwwdir=$ERLANG_INSTALL_LIB_DIR/$PACKAGE_NAME-$PACKAGE_VERSION/priv/www
-reldir=$ERLANG_ROOT_DIR/releases
+reldir=$ERLANG_INSTALL_LIB_DIR/../releases
+envdir=/etc/default
 AC_SUBST(appdir)
 AC_SUBST(erldir)
 AC_SUBST(beamdir)
@@ -63,6 +80,7 @@ AC_SUBST(eincludedir)
 AC_SUBST(privdir)
 AC_SUBST(wwwdir)
 AC_SUBST(reldir)
+AC_SUBST(envdir)
 AC_LANG_POP([Erlang])
 
 
@@ -112,6 +130,7 @@ AC_CHECK_HEADERS([erl_nif.h], [], [AC_MSG_ERROR([Erlang NIFs not found!])])
 AC_CHECK_FUNC([EC_GROUP_new], [], [AC_MSG_ERROR([EC_GROUP_new function not found!])])
 AC_CHECK_FUNC([EC_POINT_new], [], [AC_MSG_ERROR([EC_POINT_new function not found!])])
 AC_CHECK_FUNC([BN_new], [], [AC_MSG_ERROR([BN_new function not found!])])
+
 
 ##
 ## Output:  create output files
