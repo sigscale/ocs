@@ -419,19 +419,25 @@
             }
 				function mapPrice(item) {
                var out = new Object();
-               out.name = item.name;
+					if(item.name != null && item.name != "") {
+						out.name = item.name;
+					}
 					if(item.description != null && item.description != "") {
 						out.description = item.description;
 					}
                var startDateTime = item.start;
                var endDateTime = item.end;
-               if(startDateTime != "" && endDateTime != "") {
+					if(item.start != null && item.start != "") {
+						startDateTime = item.start;
+					}
+					if(item.end != null && item.end != "") {
+						endDateTime = item.end
+					}
+               if(startDateTime != null && endDateTime != "") {
                   out.validFor = {startDateTime, endDateTime};
-               } else if(startDateTime == "" && endDateTime == "") {
-                  out.validFor = {};
-               } else if(startDateTime != "" || endDateTime == "") {
+               } else if(startDateTime != null && endDateTime == "") {
                   out.validFor = {startDateTime};
-               } else if(startDateTime == "" || endDateTime != "") {
+               } else if(startDateTime == null && endDateTime != "") {
                   out.validFor = {endDateTime};
                }
                if(item.type != null && item.type != "") {
