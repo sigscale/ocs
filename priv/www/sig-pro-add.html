@@ -103,8 +103,8 @@
 			</div>
 			<div id=addPrice-tab>
 				<div>
-					<datalist>
-						<template is="dom-repeat" items="[[alterations]]">
+					<datalist id="price">
+						<template is="dom-repeat" items="[[prices]]">
 							<option value="{{item.name}}" />
 						</template>
 					</datalist>
@@ -195,7 +195,7 @@
 					</iron-collapse>
 					<paper-input id="startAlt2"
 						value="[[startdate]]"
-						name="startDate"
+						name="startdate"
 						label="Start Date"
 						onfocus="endDatePick.hide(); startDatePick.show();">
 					</paper-input>
@@ -264,7 +264,7 @@
 		<iron-ajax
 				id="productAddAjax"
 				url="/catalogManagement/v1/productOffering"
-            method = "post"
+            method = "POST"
             content-type="application/json"
             on-loading-changed="_onLoadingChanged"
             on-response="productAddResponse"
@@ -282,6 +282,12 @@
 						return [];
 					}
 				},
+				prices: {
+               type: Array,
+               value: function() {
+                  return [];
+               }
+            },
 				selected: {
               	type: Number,
               	value: 0
@@ -339,7 +345,7 @@
             	this.$.amountAlt3.value = null;
 				} else {
             	this.$.descAlt2.value = this.alterations[index].description;
-					this.$.startAlt2.value = this.alterations[index].startDate;
+					this.$.startAlt2.value = this.alterations[index].startdate;
 					this.$.endAlt2.value = this.alterations[index].endDate;
             	this.$.typeAlt3.value = this.alterations[index].type;
 					this.$.addUnitDrop.value = this.alterations[index].units;
@@ -351,39 +357,38 @@
 				var offerNew = new Object();
 				offerNew.name = this.$.addOff1.value;
 				offerNew.description = this.$.addOff2.value;
-				this.push('alterations', offerNew);
-console.log(offerNew);
 				this.$.addOff1.value = null;
 				this.$.addOff2.value = null;
 				var ajax = this.$.productAddAjax;
 				ajax.body = offerNew;
-console.log(ajax.body);
 				ajax.generateRequest();
-				
 			},
+			addPrice: function() {
+            var priceNew = new Object();
+            priceNew.name = this.$.priceName.value;
+            priceNew.description = this.$.addPriceDes.value;
+            //priceNew.start = this.$.addOff3.value;
+            //priceNew.end = this.$.addOff4.value;
+            priceNew.type = this.$.addPrice1.value;
+            priceNew.unit = this.$.addPrice2.value;
+            priceNew.tax = this.$.addPrice3.value;
+            priceNew.currency = this.$.addPrice4.value;
+            priceNew.period = this.$.addPrice5.value;
+            priceNew.alteration = this.$.addPriceDrop.value;
+            this.push('prices', priceNew);
+            this.$.priceName.value = null;
+            this.$.addPriceDes.value = null;
+            this.$.addPrice1.value = null;   
+            this.$.addPrice2.value = null;
+            this.$.addPrice3.value = null;
+            this.$.addPrice4.value = null;
+            this.$.addPrice5.value = null;
+         },
 			addAlteration: function() {
-				var priceNew = new Object();
-				priceNew.name = this.$.priceName.value;
-				priceNew.type = this.$.addPrice1.value;
-				priceNew.units = this.$.addPrice2.value;
-				priceNew.amount = this.$.addPrice3.value;
-				priceNew.currency = this.$.addPrice4.value;
-				priceNew.period = this.$.addPrice5.value;
-				priceNew.alteration = this.$.addPriceDrop.value;
-console.log(priceNew);
-				this.push('alterations', priceNew);
-				var priceArray = [priceNew];
-				this.$.priceName.value = null;
-				this.$.addPrice1.value = null;	
-				this.$.addPrice2.value = null;
-				this.$.addPrice3.value = null;
-				this.$.addPrice4.value = null;
-				this.$.addPrice5.value = null;
-				this.$.addPriceDrop.value = null;
 				var altNew = new Object();
 				altNew.name = this.$.addAlt1.value;
 				altNew.description = this.$.descAlt2.value;
-				altNew.startDate = this.$.startAlt2.value;
+				altNew.startdate = this.$.startAlt2.value;
 				altNew.endDate = this.$.endAlt2.value;
 				altNew.type = this.$.typeAlt3.value;
 				altNew.units = this.$.addUnitDrop.value;
