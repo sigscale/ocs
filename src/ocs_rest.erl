@@ -173,9 +173,9 @@ filter3(Filters, [{Key1, Value1} | T], IsValueMatch, ValueMatched, Acc) ->
 		{true, {Key2, Value2}} ->
 			filter3(Filters, T, true, true, [{Key2, Value2} | Acc])
 	end;
-filter3(Filters, [H | T], IsValueMatch, ValueMatched, Acc) ->
+filter3(Filters, [_ | T], IsValueMatch, ValueMatched, Acc) ->
 	filter3(Filters, T, IsValueMatch, ValueMatched, Acc);
-filter3(_, [], _, false, Acc) ->
+filter3(_, [], _, false, _) ->
 	[];
 filter3(_, [], _, true, Acc) ->
 	lists:reverse(Acc).
@@ -214,7 +214,7 @@ filter4([[Key | _ ] | _] = Filters1, {Key, {Type, L}}, IsValueMatch)
 	F2 = fun([_ | T]) -> T end,
 	Filters3 = lists:map(F2, Filters2),
 	{IsValueMatch, {Key, filter1(Filters3, {Type, L}, [])}};
-filter4([_ | T] = Filters, {Key, Value}, IsValueMatch) ->
+filter4([_ | T], {Key, Value}, IsValueMatch) ->
 	filter4(T, {Key, Value}, IsValueMatch);
 filter4([], _, IsValueMatch) ->
 	{IsValueMatch, false}.
