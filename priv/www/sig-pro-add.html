@@ -112,42 +112,64 @@
 							list="price"
 							label="Name"
 							on-change="updateDialog"
-							auto-validate allowed-pattern="[a-zA-Z]">
+                  	onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 					</paper-input>
 					<paper-input id="addPriceDes"
                   class="description"
                   name="description"
-                  label="description">
+                  label="description"
+                  onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
+               </paper-input>
+					<iron-collapse id="startDatePickPrice">
+                  <paper-date-picker id="addPriceStart" date="{{pickstart}}" headingFormat="dd, MMM D">
+                  </paper-date-picker>
+               </iron-collapse>
+               <paper-input id="priceStartDate"
+                  value="[[startDatePrice]]"
+                  name="startDatePrice"
+                  label="start Date"
+                  onfocus="endDatePickPrice.hide(); startDatePickPrice.show();">
+               </paper-input>
+               <iron-collapse id="endDatePickPrice">
+                  <paper-date-picker id="addPriceEnd" date="{{pickend}}">
+                  </paper-date-picker>
+               </iron-collapse>
+               <paper-input id="priceEndDate"
+                  value="[[endDatePrice]]"
+                  name="endDatePrice"
+                  label="end Date"
+                  onfocus="startDatePickPrice.hide(); endDatePickPrice.show();">
                </paper-input>
 					<paper-input id="addPrice1"
 						class="type"
 						name="type"
-						auto-validate allowed-pattern="[a-zA-Z]"
-						label="Type">
+						label="Type"
+                  onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 					</paper-input>
 					<paper-input id="addPrice2"
 						class="units"
 						name="units"
-						auto-validate allowed-pattern="[a-zA-Z]"
-						label="Units">
+						label="Units"
+                  onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 					</paper-input>
 					<paper-input id="addPrice3"
 						class="amount"
 						name="amount"
 						type="number"
-						label="Amount">
+						label="Amount"
+                  onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 					</paper-input>
 					<paper-input id="addPrice4"
 						class="currency"
 						name="currency"
-						auto-validate allowed-pattern="[a-zA-Z]"
-						label="Currency">
+						label="Currency"
+                  onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 					</paper-input>
 					<paper-input id="addPrice5"
 							class="period"
 							name="period"
-							auto-validate allowed-pattern="[a-zA-Z]"
-							label="Period">
+							label="Period"
+                  	onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 					</paper-input>
 					<paper-dropdown-menu id="addPriceDrop"
 							label="alterations">
@@ -305,6 +327,10 @@
                type: String,
                value: ""
             },
+				startDatePrice: {
+               type: String,
+               value: ""
+				},
 				enddate: {
 					type: String,
 					value: ""
@@ -313,6 +339,10 @@
                type: String,
                value: ""
             },
+				endDatePrice: {
+               type: String,
+               value: ""
+				},
 				pickstart: {
 					observer: 'pickStartDate'
 				},
@@ -327,7 +357,10 @@
             } else if (this.$.startDatePickOff.opened) {
                var m = moment(date);
                this.startDateOffer = m.format('YYYY-MM-DD');
-            }
+            } else if (this.$.startDatePickPrice.opened) {
+					var p = moment(date);
+					this.startDatePrice = p.format('YYYY-MM-DD');
+				}
 			},
 			pickEndDate: function(date) {
 				if (this.$.endDatePick.opened) {
@@ -336,6 +369,9 @@
             } else if (this.$.endDatePickOff.opened) {
                var m = moment(date);
                this.endDateOffer = m.format('YYYY-MM-DD'); 
+            } else if (this.$.endDatePickPrice.opened) {
+					var p = moment(date);
+					this.endDatePrice = p.format('YYYY-MM-DD');
             }
 			},
 			updateDialog: function() {
@@ -439,8 +475,8 @@ console.log(ajax.body);
             var priceNew = new Object();
             priceNew.name = this.$.priceName.value;
             priceNew.description = this.$.addPriceDes.value;
-            //priceNew.start = this.$.addOff3.value;
-            //priceNew.end = this.$.addOff4.value;
+            priceNew.start = this.$.priceStartDate.value;
+            priceNew.end = this.$.priceEndDate.value;
             priceNew.type = this.$.addPrice1.value;
             priceNew.unit = this.$.addPrice2.value;
             priceNew.tax = this.$.addPrice3.value;
