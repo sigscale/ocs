@@ -58,23 +58,35 @@
 					<paper-input id="addOff1"
 						class="name"
 						name="name"
-						label="Name">
+						label="Name"
+						onfocus="endDatePickOff.hide(); startDatePickOff.hide();">
 					</paper-input>
 					<paper-input id="addOff2"
 						class="description"
 						name="description"
-						label="Description">
+						label="Description"
+						onfocus="endDatePickOff.hide(); startDatePickOff.hide();">
 					</paper-input>
-					<paper-input id="addOff3"
-						class="startDate"
-						name="startDate"
-						label="StartDate">
-					</paper-input>
-					<paper-input id="addOff4"
-						class="endDate"
-						name="endDate"
-						label="EndDate">
-					</paper-input>
+					<iron-collapse id="startDatePickOff">
+                  <paper-date-picker id="startOff3" date="{{pickstart}}" headingFormat="dd, MMM D">
+                  </paper-date-picker>
+               </iron-collapse>
+               <paper-input id="addOff3"
+                  value="[[startDateOffer]]"
+                  name="startDateOffer"
+                  label="start Date"
+                  onfocus="endDatePickOff.hide(); startDatePickOff.show();">
+               </paper-input>
+               <iron-collapse id="endDatePickOff">
+                  <paper-date-picker id="endOff3" date="{{pickend}}">
+                  </paper-date-picker>
+               </iron-collapse>
+               <paper-input id="addOff4"
+                  value="[[endDateOffer]]"
+                  name="terminationDate"
+                  label="end Date"
+                  onfocus="startDatePickOff.hide(); endDatePickOff.show();">
+               </paper-input>
 				</div>
 				<div class="buttons">
 					<paper-button dialog-confirm raised
@@ -147,7 +159,7 @@
 					</paper-dropdown-menu>
 				</div>
 				<div class="buttons">
-					<paper-button dialog-confirm raised
+					<paper-button raised
 							class="add-button"
 							on-tap="addAlteration">
 								Add		
@@ -278,10 +290,18 @@
 					type: String,
 					value: ""
 				},
+				startDateOffer: {
+               type: String,
+               value: ""
+            },
 				enddate: {
 					type: String,
 					value: ""
 				},
+				endDateOffer: {
+               type: String,
+               value: ""
+            },
 				pickstart: {
 					observer: 'pickStartDate'
 				},
@@ -291,13 +311,21 @@
 			},
 			pickStartDate: function(date) {
 				if (this.$.startDatePick.opened) {
-					 this.startdate = date;
-				}
+               var m = moment(date);
+               this.startdate = m.format('YYYY-MM-DD'); 
+            } else if (this.$.startDatePickOff.opened) {
+               var m = moment(date);
+               this.startDateOffer = m.format('YYYY-MM-DD');
+            }
 			},
 			pickEndDate: function(date) {
 				if (this.$.endDatePick.opened) {
-					 this.enddate = date;
-				}
+               var m = moment(date);
+               this.enddate = m.format('YYYY-MM-DD');
+            } else if (this.$.endDatePickOff.opened) {
+               var m = moment(date);
+               this.endDateOffer = m.format('YYYY-MM-DD'); 
+            }
 			},
 			updateDialog: function() {
 				function checkName(alts) {
