@@ -957,7 +957,7 @@ validate_operation(Operation) ->
 %% @hidden
 validate_operation1(replace, Op, Path, Value) ->
 	Targets = string:tokens(Path, "/"),
-	case validate_operation2({replace, product}, Targets) of
+	case validate_operation2({replace, product}, Targets, Value) of
 		ok ->
 			{Op, Path, Value};
 		{error, Reason} ->
@@ -966,7 +966,7 @@ validate_operation1(replace, Op, Path, Value) ->
 validate_operation1(_, _, _, _) ->
 	{error, not_implemented}.
 %% @hidden
-validate_operation2({replace, product}, [Target | T]) ->
+validate_operation2({replace, product}, [Target | T], Value) ->
 	Members = prod_members(),
 	case lists:member(Target, Members) of
 		true ->
@@ -974,16 +974,40 @@ validate_operation2({replace, product}, [Target | T]) ->
 				Target == "validFor" ->
 					{error, "not_implemented"};
 				Target == "productPrice" ->
-					validate_operation2({replace, prod_price}, T);
+					validate_operation2({replace, prod_price}, T, Value);
 				true ->
 					ok
 			end;
 		false ->
 			{error, unprocessable}
 	end;
-validate_operation2({replace, prod_price}, []) ->
-	ok;
-validate_operation2({replace, prod_price}, [Target | T]) ->
+validate_operation2({replace, prod_price}, [], {array, Value}) when is_tuple(hd(Value)) ->
+	try
+		Members = product_price_members(),
+		F1 = fun({struct, Obj}) ->
+				F2 = fun(F2, [{Key, V} | T]) ->
+							true = lists:member(Key, Members),
+							if
+								Key == "prodPriceAlteration" ->
+									ok = validate_operation3({replace, alteration}, [], V),
+									F2(F2, T);
+								Key == "price" ->
+									ok = validate_operation3({replace, price}, [], V),
+									F2(F2, T);
+								true ->
+									F2(F2, T)
+							end;
+						(_F2, []) ->
+							ok
+				end,
+				F2(F2, Obj)
+		end,
+		lists:foreach(F1, Value)
+	catch
+		_:_ ->
+			{error, unprocessable}
+	end;
+validate_operation2({replace, prod_price}, [Target | T], Value) ->
 	Members = product_price_members(),
 	case lists:member(Target, Members) of
 		true ->
@@ -991,9 +1015,9 @@ validate_operation2({replace, prod_price}, [Target | T]) ->
 				Target == "validFor" ->
 					{error, "not_implemented"};
 				Target == "prodPriceAlteration" ->
-					validate_operation3({replace, alteration}, T);
+					validate_operation3({replace, alteration}, T, Value);
 				Target == "price" ->
-					validate_operation3({replace, price}, T);
+					validate_operation3({replace, price}, T, Value);
 				true ->
 					ok
 			end;
@@ -1001,9 +1025,20 @@ validate_operation2({replace, prod_price}, [Target | T]) ->
 			{error, unprocessable}
 	end.
 %% @hidden
-validate_operation3({replace, alteration}, []) ->
-	ok;
-validate_operation3({replace, alteration}, [Target | T]) ->
+validate_operation3({replace, alteration}, [], {struct, Value}) ->
+	try
+		Members = prod_price_alteration_members(),
+		F1 = fun({Key, _}) ->
+					true = lists:member(Key, Members);
+				([]) ->
+					ok
+		end,
+		lists:foreach(F1, Value)
+	catch
+		_:_ ->
+			{error, unprocessable}
+	end;
+validate_operation3({replace, alteration}, [Target | T], Value) ->
 	Members = prod_price_alteration_members(),
 	case lists:member(Target, Members) of
 		true ->
@@ -1011,18 +1046,31 @@ validate_operation3({replace, alteration}, [Target | T]) ->
 				Target == "validFor" ->
 					{error, "not_implemented"};
 				Target == "price" ->
-					validate_operation3({replace, price}, T);
+					validate_operation3({replace, price}, T, Value);
 				true ->
 					ok
 			end;
 		false ->
 			{error, unprocessable}
 	end;
-validate_operation3({replace, price}, Target) ->
+validate_operation3({replace, price}, [], {struct, Value}) ->
+	try
+		Members = prod_price_price_members(),
+		F1 = fun({Key, _}) ->
+					true = lists:member(Key, Members);
+				([]) ->
+					ok
+		end,
+		lists:foreach(F1, Value)
+	catch
+		_:_ ->
+			{error, unprocessable}
+	end;
+validate_operation3({replace, price}, [Target | T], Value) ->
 	Members = prod_price_price_members(),
 	case lists:member(Target, Members) of
 		true ->
-			ok;
+			validate_operation3({replace, price}, T, Value);
 		false ->
 			{error, unprocessable}
 	end.
