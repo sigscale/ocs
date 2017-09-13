@@ -58,23 +58,35 @@
 					<paper-input id="addOff1"
 						class="name"
 						name="name"
-						label="Name">
+						label="Name"
+						onfocus="endDatePickOff.hide(); startDatePickOff.hide();">
 					</paper-input>
 					<paper-input id="addOff2"
 						class="description"
 						name="description"
-						label="Description">
+						label="Description"
+						onfocus="endDatePickOff.hide(); startDatePickOff.hide();">
 					</paper-input>
-					<paper-input id="addOff3"
-						class="startDate"
-						name="startDate"
-						label="StartDate">
-					</paper-input>
-					<paper-input id="addOff4"
-						class="endDate"
-						name="endDate"
-						label="EndDate">
-					</paper-input>
+					<iron-collapse id="startDatePickOff">
+                  <paper-date-picker id="startOff3" date="{{pickstart}}" headingFormat="dd, MMM D">
+                  </paper-date-picker>
+               </iron-collapse>
+               <paper-input id="addOff3"
+                  value="[[startDateOffer]]"
+                  name="startDateOffer"
+                  label="start Date"
+                  onfocus="endDatePickOff.hide(); startDatePickOff.show();">
+               </paper-input>
+               <iron-collapse id="endDatePickOff">
+                  <paper-date-picker id="endOff3" date="{{pickend}}">
+                  </paper-date-picker>
+               </iron-collapse>
+               <paper-input id="addOff4"
+                  value="[[endDateOffer]]"
+                  name="endDateOffer"
+                  label="end Date"
+                  onfocus="startDatePickOff.hide(); endDatePickOff.show();">
+               </paper-input>
 				</div>
 				<div class="buttons">
 					<paper-button dialog-confirm raised
@@ -91,17 +103,22 @@
 			</div>
 			<div id=addPrice-tab>
 				<div>
-					<datalist>
-						<template is="dom-repeat" items="[[alterations]]">
+					<datalist id="price">
+						<template is="dom-repeat" items="[[prices]]">
 							<option value="{{item.name}}" />
 						</template>
 					</datalist>
 					<paper-input id="priceName" 
-							list="alts"
+							list="price"
 							label="Name"
 							on-change="updateDialog"
 							auto-validate allowed-pattern="[a-zA-Z]">
 					</paper-input>
+					<paper-input id="addPriceDes"
+                  class="description"
+                  name="description"
+                  label="description">
+               </paper-input>
 					<paper-input id="addPrice1"
 						class="type"
 						name="type"
@@ -147,9 +164,9 @@
 					</paper-dropdown-menu>
 				</div>
 				<div class="buttons">
-					<paper-button dialog-confirm raised
+					<paper-button raised
 							class="add-button"
-							on-tap="addAlteration">
+							on-tap="addPrice">
 								Add		
 					</paper-button>
 					<paper-button dialog-dismiss
@@ -183,7 +200,7 @@
 					</iron-collapse>
 					<paper-input id="startAlt2"
 						value="[[startdate]]"
-						name="startDate"
+						name="startdate"
 						label="Start Date"
 						onfocus="endDatePick.hide(); startDatePick.show();">
 					</paper-input>
@@ -193,7 +210,7 @@
 					</iron-collapse>
 					<paper-input id="endAlt2"
 						value="{{enddate}}"
-						name="endDate"
+						name="terminationDate"
 						label="End Date"
 						onfocus="startDatePick.hide(); endDatePick.show();">
 					</paper-input>
@@ -252,7 +269,7 @@
 		<iron-ajax
 				id="productAddAjax"
 				url="/catalogManagement/v1/productOffering"
-            method = "post"
+            method = "POST"
             content-type="application/json"
             on-loading-changed="_onLoadingChanged"
             on-response="productAddResponse"
@@ -270,6 +287,12 @@
 						return [];
 					}
 				},
+				prices: {
+               type: Array,
+               value: function() {
+                  return [];
+               }
+            },
 				selected: {
               	type: Number,
               	value: 0
@@ -278,10 +301,18 @@
 					type: String,
 					value: ""
 				},
+				startDateOffer: {
+               type: String,
+               value: ""
+            },
 				enddate: {
 					type: String,
 					value: ""
 				},
+				endDateOffer: {
+               type: String,
+               value: ""
+            },
 				pickstart: {
 					observer: 'pickStartDate'
 				},
@@ -291,13 +322,21 @@
 			},
 			pickStartDate: function(date) {
 				if (this.$.startDatePick.opened) {
-					 this.startdate = date;
-				}
+               var m = moment(date);
+               this.startdate = m.format('YYYY-MM-DD'); 
+            } else if (this.$.startDatePickOff.opened) {
+               var m = moment(date);
+               this.startDateOffer = m.format('YYYY-MM-DD');
+            }
 			},
 			pickEndDate: function(date) {
 				if (this.$.endDatePick.opened) {
-					 this.enddate = date;
-				}
+               var m = moment(date);
+               this.enddate = m.format('YYYY-MM-DD');
+            } else if (this.$.endDatePickOff.opened) {
+               var m = moment(date);
+               this.endDateOffer = m.format('YYYY-MM-DD'); 
+            }
 			},
 			updateDialog: function() {
 				function checkName(alts) {
@@ -311,8 +350,8 @@
             	this.$.amountAlt3.value = null;
 				} else {
             	this.$.descAlt2.value = this.alterations[index].description;
-					this.$.startAlt2.value = this.alterations[index].startDate;
-					this.$.endAlt2.value = this.alterations[index].endDate;
+					this.$.startAlt2.value = this.alterations[index].startdate;
+					this.$.endAlt2.value = this.alterations[index].terminationDate;
             	this.$.typeAlt3.value = this.alterations[index].type;
 					this.$.addUnitDrop.value = this.alterations[index].units;
             	this.$.sizeAlt3.value = this.alterations[index].size;
@@ -321,47 +360,112 @@
 			},
 			addOffer: function() {
 				var offerNew = new Object();
-				offerNew.name = this.$.addOff1.value;
-				offerNew.description = this.$.addOff2.value;
-				this.push('alterations', offerNew);
-console.log(offerNew);
+				if(this.$.addOff1.value != null && this.$.addOff1.value != "") {
+					offerNew.name = this.$.addOff1.value;
+				}
+				if(this.$.addOff2.value != null && this.$.addOff2.value != "") {
+					offerNew.description = this.$.addOff2.value;
+				}
+				var startDate;
+            var endDate;
+            if(this.$.addOff3.value != null && this.$.addOff3.value != "") {
+               startDate = this.$.addOff3.value;
+            }
+            if(this.$.addOff4.value != null && this.$.addOff4.value != "") {
+               endDate = this.$.addOff4.value;
+            }
+            if(startDate != null && endDate != null) {
+               offerNew.validFor = {startDate, endDate};
+            } else if(startDate != null && endDate == null) {
+               offerNew.validFor = {startDate};
+            } else if(startDate == null && endDate != null) {
+               offerNew.validFor = {endDate};
+            }
+				function mapPrice(item) {
+               var out = new Object();
+               out.name = item.name;
+					if(item.description != null && item.description != "") {
+						out.description = item.description;
+					}
+               var startDateTime = item.start;
+               var endDateTime = item.end;
+               if(startDateTime != "" && endDateTime != "") {
+                  out.validFor = {startDateTime, endDateTime};
+               } else if(startDateTime == "" && endDateTime == "") {
+                  out.validFor = {};
+               } else if(startDateTime != "" || endDateTime == "") {
+                  out.validFor = {startDateTime};
+               } else if(startDateTime == "" || endDateTime != "") {
+                  out.validFor = {endDateTime};
+               }
+               if(item.type != null && item.type != "") {
+                  out.priceType = item.type;
+               }
+               if(item.unit != null && item.unit != "") {
+                  out.unitOfMeasure = item.unit;
+               }
+               var taxIncludedAmount;
+               var currencyCode;
+					if(item.tax != null && item.tax != "") {
+						taxIncludedAmount = item.tax;
+					}
+					if(item.currency != null && item.currency != "") {
+						currencyCode = item.currency;
+					}
+               if(taxIncludedAmount != null && currencyCode != null) {
+                  out.price = {taxIncludedAmount, currencyCode};
+               } else if (taxIncludedAmount != null && currencyCode == null) {
+                  out.price = {taxIncludedAmount};
+               } else if (taxIncludedAmount == null && currencyCode != null) {
+                   out.price = {currencyCode};
+               }
+               if(item.period != null && item.period != "") {
+                  out.recurringChargePeriod = item.period;
+               }
+               if(item.alteration != null && item.alteration != "") {
+                  out.productOfferPriceAlteration = item.alteration;
+               }
+               return out; 
+            }
+				offerNew.productOfferingPrice = this.prices.map(mapPrice);
 				this.$.addOff1.value = null;
 				this.$.addOff2.value = null;
 				var ajax = this.$.productAddAjax;
 				ajax.body = offerNew;
 console.log(ajax.body);
 				ajax.generateRequest();
-				
 			},
+			addPrice: function() {
+            var priceNew = new Object();
+            priceNew.name = this.$.priceName.value;
+            priceNew.description = this.$.addPriceDes.value;
+            //priceNew.start = this.$.addOff3.value;
+            //priceNew.end = this.$.addOff4.value;
+            priceNew.type = this.$.addPrice1.value;
+            priceNew.unit = this.$.addPrice2.value;
+            priceNew.tax = this.$.addPrice3.value;
+            priceNew.currency = this.$.addPrice4.value;
+            priceNew.period = this.$.addPrice5.value;
+            priceNew.alteration = this.$.addPriceDrop.value;
+            this.push('prices', priceNew);
+            this.$.priceName.value = null;
+            this.$.addPriceDes.value = null;
+            this.$.addPrice1.value = null;   
+            this.$.addPrice2.value = null;
+            this.$.addPrice3.value = null;
+            this.$.addPrice4.value = null;
+            this.$.addPrice5.value = null;
+         },
 			addAlteration: function() {
-				var priceNew = new Object();
-				priceNew.name = this.$.priceName.value;
-				priceNew.type = this.$.addPrice1.value;
-				priceNew.units = this.$.addPrice2.value;
-				priceNew.amount = this.$.addPrice3.value;
-				priceNew.currency = this.$.addPrice4.value;
-				priceNew.period = this.$.addPrice5.value;
-				priceNew.alteration = this.$.addPriceDrop.value;
-console.log(priceNew);
-				this.push('alterations', priceNew);
-				var priceArray = [priceNew];
-				this.$.priceName.value = null;
-				this.$.addPrice1.value = null;	
-				this.$.addPrice2.value = null;
-				this.$.addPrice3.value = null;
-				this.$.addPrice4.value = null;
-				this.$.addPrice5.value = null;
-				this.$.addPriceDrop.value = null;
 				var altNew = new Object();
 				altNew.name = this.$.addAlt1.value;
 				altNew.description = this.$.descAlt2.value;
-				altNew.startDate = this.$.startAlt2.value;
-				altNew.endDate = this.$.endAlt2.value;
+				altNew.startdate = this.$.startAlt2.value;
+				altNew.terminationDate = this.$.endAlt2.value;
 				altNew.type = this.$.typeAlt3.value;
 				altNew.units = this.$.addUnitDrop.value;
 				altNew.size= this.$.sizeAlt3.value;
 				altNew.amount= this.$.amountAlt3.value;
-console.log(altNew);
 				this.push('alterations', altNew);
 				this.$.addAlt1.value = null
 				this.$.descAlt2.value = null;
