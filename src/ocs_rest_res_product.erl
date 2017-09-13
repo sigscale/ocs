@@ -897,10 +897,15 @@ exe_jsonpatch_ON(ProdID, _Etag, OperationList) ->
 	F = fun() ->
 			case mnesia:read(product, ProdID, write) of
 				[Entry] ->
-					F2 = fun({struct, OpObj}) ->
+					F2 = fun({struct, OpObj}, Acc) ->
 						case validate_operation(OpObj) of
-							{"replace", _Path, _Value} ->
-								todo;
+							{"replace", Path, Value} ->
+								case patch_replace(Path, Value, Acc) of
+									{error, _} ->
+										throw(malfored_request);
+									NewAcc ->
+										NewAcc
+								end;
 							{error, malfored_request} ->
 								throw(malfored_request);
 							{error, unprocessable} ->
@@ -909,7 +914,7 @@ exe_jsonpatch_ON(ProdID, _Etag, OperationList) ->
 								throw(not_implemented)
 						end
 					end,
-					lists:foreach(F2, OperationList);
+					lists:foldl(F2, Entry, OperationList);
 				[] ->
 					throw(not_found)
 			end
@@ -1106,12 +1111,167 @@ prod_price_alteration_members() ->
 	"unitOfMeasure"].
 
 
--spec patch_replace(ProdId, Path, Value) -> ok
+-spec patch_replace(Path, Value, Product) -> Result
 	when
-		ProdId		:: binary(),
 		Path			:: undefined | string(),
-		Value			:: undefined | string() | atom() | tuple().
+		Value			:: undefined | string() | atom() | tuple(),
+		Product		:: #product{},
+		Result 		:: #product{} | {error, malfored_request}.
 %% @doc replace the give value with given target path.
-patch_replace(_ProdId, _Path , _Value) ->
-	todo.
+patch_replace("/name", Value, Product) when is_list(Value) ->
+	Product#product{name = Value};
+patch_replace("/description", Value, Product) when is_list(Value) ->
+	Product#product{description = Value};
+patch_replace("/isBundle", Value, Product) when is_boolean(Value) ->
+	Product#product{is_bundle = Value};
+patch_replace("/startDate", Value, Product) when is_list(Value) ->
+	try
+		SDT = ocs_rest:iso8601(Value),
+		Product#product{start_date = SDT}
+	catch
+		_:_ ->
+			{error, malfored_request}
+	end;
+patch_replace("/terminationDate", Value, Product) when is_list(Value) ->
+	try
+		TDT = ocs_rest:iso8601(Value),
+		Product#product{termination_date = TDT}
+	catch
+		_:_ ->
+			{error, malfored_request}
+	end;
+patch_replace("/status" , Value, Product) when is_list(Value) ->
+	try
+		Status = find_status(Value),
+		Product#product{status = Status}
+	catch
+		_:_ ->
+			{error, malfored_request}
+	end;
+patch_replace("/productPrice", {array, Value}, Product) when is_tuple(hd(Value)) ->
+	patch_replace1(Value, Product);
+patch_replace(_, Value, _)  ->
+	{error, malfored_request}.
+%% @hidden
+patch_replace1([], Product) ->
+	Product;
+patch_replace1([{struct, Value} | T], Product) ->
+	case patch_replace2(Value, Product) of
+		{error, Reason} ->
+			{error, Reason};
+		UpdatedProduct ->
+			patch_replace1(T, UpdatedProduct)
+	end.
+%% @hidden
+patch_replace2([], Product) ->
+	Product;
+patch_replace2([{"name", Value} | T], #product{price = Price} = Product) when is_list(Value) ->
+	UPrice = Price#price{name = Value},
+	UpdatedProduct = Product#product{price = UPrice},
+	patch_replace2(T, UpdatedProduct);
+patch_replace2([{"description", Value} | T], #product{price = Price} = Product) when is_list(Value) ->
+	UPrice = Price#price{name = Value},
+	UpdatedProduct = Product#product{price = UPrice},
+	patch_replace2(T, UpdatedProduct);
+patch_replace2([{"priceType", Value} | T], #product{price = Price} = Product) when is_list(Value) ->
+	try
+		PriceType = price_type(Value),
+		UPrice = Price#price{type = PriceType},
+		UpdatedProduct = Product#product{price = UPrice},
+		patch_replace2(T, UpdatedProduct)
+	catch
+		_:_ ->
+			{error, malfored_request}
+	end;
+patch_replace2([{"unitOfMeasure", Value} | T], #product{price = Price} = Product) when is_list(Value) ->
+	try
+		{Units, Size} = prod_price_ufm_et(Value),
+		UPrice = Price#price{units = Units, size = Size},
+		UpdatedProduct = Product#product{price = UPrice},
+		patch_replace2(T, UpdatedProduct)
+	catch
+		_:_ ->
+			{error, malfored_request}
+	end;
+patch_replace2([{"recurringChargePeriod", Value} | T], #product{price = Price} = Product) when is_list(Value) ->
+	try
+		RCPeriod = rc_period(Value),
+		UPrice = Price#price{period = RCPeriod},
+		UpdatedProduct = Product#product{price = UPrice},
+		patch_replace2(T, UpdatedProduct)
+	catch
+		_:_ ->
+			{error, malfored_request}
+	end;
+patch_replace2([{"ProdPriceAlteration", {struct, Value}} | T], Product) when is_list(Value) ->
+	case patch_replace3(Value, Product) of
+		{error, Reason} ->
+			{error, Reason};
+		UpdatedProduct ->
+			patch_replace2(T, UpdatedProduct)
+	end;
+patch_replace2([{"recurringChargePeriod", Value} | T], #product{price = Price} = Product) when is_list(Value) ->
+	try
+		F = fun({"taxIncludedAmount", Amount}) ->
+					UPrice = Price#price{amount = Amount},
+					Product#product{price = UPrice};
+				({"currencyCode", Currency}) ->
+					UPrice = Price#price{currency = Currency},
+					Product#product{price = UPrice}
+		end,
+		UpdatedProduct = lists:foldl(F, Product, Value),
+		patch_replace2(T, UpdatedProduct)
+	catch
+		_:_ ->
+			{error, malfored_request}
+	end.
+%% @hidden
+patch_replace3([],  Product) ->
+	Product;
+patch_replace3([{"name", Value} | T], #product{price = #price{alteration = Alter} = Price} = Product) when is_list(Value) ->
+	UAlter = Alter#alteration{name = Value},
+	UPrice = Price#price{name = UAlter},
+	UpdatedProduct = Product#product{price = UPrice},
+	patch_replace3(T, UpdatedProduct);
+patch_replace3([{"description", Value} | T], #product{price = #price{alteration = Alter} = Price} = Product) when is_list(Value) ->
+	UAlter = Alter#alteration{description = Value},
+	UPrice = Price#price{name = UAlter},
+	UpdatedProduct = Product#product{price = UPrice},
+	patch_replace3(T, UpdatedProduct);
+patch_replace3([{"priceType", Value} | T], #product{price = #price{alteration = Alter} = Price} = Product) when is_list(Value) ->
+	try
+		PriceType = price_type(Value),
+		UAlter = Alter#alteration{type = PriceType},
+		UPrice = Price#price{name = UAlter},
+		UpdatedProduct = Product#product{price = UPrice},
+		patch_replace3(T, UpdatedProduct)
+	catch
+		_:_ ->
+			{error, malfored_request}
+	end;
+patch_replace3([{"unitOfMeasure", Value} | T], #product{price = #price{alteration = Alter} = Price} = Product) when is_list(Value) ->
+	try
+		{AlterUnits, AlterSize} = prod_price_ufm_et(Value),
+		Size = product_size(AlterUnits, octets, AlterSize),
+		UAlter = Alter#alteration{units = AlterUnits, size = Size},
+		UPrice = Price#price{alteration = UAlter},
+		UpdatedProduct = Product#product{price = UPrice},
+		patch_replace3(T, UpdatedProduct)
+	catch
+		_:_ ->
+			{error, malfored_request}
+	end;
+patch_replace3([{"price", {struct, Value}} | T], #product{price = #price{alteration = #alteration{} = Alter} = Price} = Product) when is_list(Value) ->
+	try
+		F = fun({"taxIncludedAmount", Amount}) ->
+					UAlter = Alter#alteration{amount = Amount},
+					UPrice = Price#price{alteration = UAlter},
+					Product#product{price = UPrice}
+		end,
+		UpdatedProduct = lists:foldl(F, Product, Value),
+		patch_replace3(T, UpdatedProduct)
+	catch
+		_:_ ->
+			{error, malfored_request}
+	end.
 
