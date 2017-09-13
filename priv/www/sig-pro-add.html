@@ -83,7 +83,7 @@
                </iron-collapse>
                <paper-input id="addOff4"
                   value="[[endDateOffer]]"
-                  name="terminationDate"
+                  name="endDateOffer"
                   label="end Date"
                   onfocus="startDatePickOff.hide(); endDatePickOff.show();">
                </paper-input>
@@ -210,7 +210,7 @@
 					</iron-collapse>
 					<paper-input id="endAlt2"
 						value="{{enddate}}"
-						name="endDate"
+						name="terminationDate"
 						label="End Date"
 						onfocus="startDatePick.hide(); endDatePick.show();">
 					</paper-input>
@@ -360,8 +360,74 @@
 			},
 			addOffer: function() {
 				var offerNew = new Object();
-				offerNew.name = this.$.addOff1.value;
-				offerNew.description = this.$.addOff2.value;
+				if(this.$.addOff1.value != null && this.$.addOff1.value != "") {
+					offerNew.name = this.$.addOff1.value;
+				}
+				if(this.$.addOff2.value != null && this.$.addOff2.value != "") {
+					offerNew.description = this.$.addOff2.value;
+				}
+				var startDate;
+            var endDate;
+            if(this.$.addOff3.value != null && this.$.addOff3.value != "") {
+               startDate = this.$.addOff3.value;
+            }
+            if(this.$.addOff4.value != null && this.$.addOff4.value != "") {
+               endDate = this.$.addOff4.value;
+            }
+            if(startDate != null && endDate != null) {
+               offerNew.validFor = {startDate, endDate};
+            } else if(startDate != null && endDate == null) {
+               offerNew.validFor = {startDate};
+            } else if(startDate == null && endDate != null) {
+               offerNew.validFor = {endDate};
+            }
+				function mapPrice(item) {
+               var out = new Object();
+               out.name = item.name;
+					if(item.description != null && item.description != "") {
+						out.description = item.description;
+					}
+               var startDateTime = item.start;
+               var endDateTime = item.end;
+               if(startDateTime != "" && endDateTime != "") {
+                  out.validFor = {startDateTime, endDateTime};
+               } else if(startDateTime == "" && endDateTime == "") {
+                  out.validFor = {};
+               } else if(startDateTime != "" || endDateTime == "") {
+                  out.validFor = {startDateTime};
+               } else if(startDateTime == "" || endDateTime != "") {
+                  out.validFor = {endDateTime};
+               }
+               if(item.type != null && item.type != "") {
+                  out.priceType = item.type;
+               }
+               if(item.unit != null && item.unit != "") {
+                  out.unitOfMeasure = item.unit;
+               }
+               var taxIncludedAmount;
+               var currencyCode;
+					if(item.tax != null && item.tax != "") {
+						taxIncludedAmount = item.tax;
+					}
+					if(item.currency != null && item.currency != "") {
+						currencyCode = item.currency;
+					}
+               if(taxIncludedAmount != null && currencyCode != null) {
+                  out.price = {taxIncludedAmount, currencyCode};
+               } else if (taxIncludedAmount != null && currencyCode == null) {
+                  out.price = {taxIncludedAmount};
+               } else if (taxIncludedAmount == null && currencyCode != null) {
+                   out.price = {currencyCode};
+               }
+               if(item.period != null && item.period != "") {
+                  out.recurringChargePeriod = item.period;
+               }
+               if(item.alteration != null && item.alteration != "") {
+                  out.productOfferPriceAlteration = item.alteration;
+               }
+               return out; 
+            }
+				offerNew.productOfferingPrice = this.prices.map(mapPrice);
 				this.$.addOff1.value = null;
 				this.$.addOff2.value = null;
 				var ajax = this.$.productAddAjax;
