@@ -402,20 +402,26 @@
 				if(this.$.addOff2.value != null && this.$.addOff2.value != "") {
 					offerNew.description = this.$.addOff2.value;
 				}
-				var startDate;
-				var endDate;
 				if(this.$.addOff3.value != null && this.$.addOff3.value != "") {
-					startDate = this.$.addOff3.value;
+					offerNew.startDate = this.$.addOff3.value;
 				}
 				if(this.$.addOff4.value != null && this.$.addOff4.value != "") {
-					endDate = this.$.addOff4.value;
+					offerNew.terminationDate = this.$.addOff4.value;
 				}
-				if(startDate != null && endDate != null) {
-					offerNew.validFor = {startDate, endDate};
-				} else if(startDate != null && endDate == null) {
-					offerNew.validFor = {startDate};
-				} else if(startDate == null && endDate != null) {
-					offerNew.validFor = {endDate};
+				var startDateTime;
+				var endDateTime;
+				if(this.$.addOff3.value != null && this.$.addOff3.value != "") {
+					startDateTime = this.$.addOff3.value;
+				}
+				if(this.$.addOff4.value != null && this.$.addOff4.value != "") {
+					endDateTime = this.$.addOff4.value;
+				}
+				if(startDateTime != null && endDateTime != null) {
+					offerNew.validFor = {startDateTime, endDateTime};
+				} else if(startDateTime != null && endDateTime == null) {
+					offerNew.validFor = {startDateTime};
+				} else if(startDateTime == null && endDateTime != null) {
+					offerNew.validFor = {endDateTime};
 				}
 				function mapPrice(item) {
 					var out = new Object();
@@ -492,6 +498,8 @@ console.log(ajax.body);
 				this.push('prices', priceNew);
 				this.$.priceName.value = null;
 				this.$.addPriceDes.value = null;
+				this.$.priceStartDate.value = null;
+				this.$.priceEndDate.value = null;
 				this.$.addPrice1.value = null;   
 				this.$.addPrice2.value = null;
 				this.$.addPrice3.value = null;
@@ -511,6 +519,8 @@ console.log(ajax.body);
 				this.push('alterations', altNew);
 				this.$.addAlt1.value = null
 				this.$.descAlt2.value = null;
+				this.$.startAlt2.value = null;
+				this.$.endAlt2.value = null;
 				this.$.typeAlt3.value = null;
 				this.$.sizeAlt3.value = null;
 				this.$.amountAlt3.value = null;
