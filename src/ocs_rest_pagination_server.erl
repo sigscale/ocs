@@ -243,7 +243,7 @@ range_request({1, EndRange}, _From,
 		{eof, Items} when length(Items) =< EndRange ->
 			{stop, shutdown, {eof, Items}, State};
 		{Cont2, Items} when length(Items) >= EndRange ->
-			{RespItems, Rest} = lists:split(Items, EndRange),
+			{RespItems, Rest} = lists:split(EndRange, Items),
 			NewState = State#state{cont = Cont2,
 					offset = EndRange + 1, buffer = Rest},
 			{reply, {Cont2, RespItems}, NewState, Timeout};
@@ -262,7 +262,7 @@ range_request({StartRange, EndRange}, _From,
 			RespItems = lists:sublist(Items, StartRange, EndRange - StartRange),
 			{stop, shutdown, {eof, RespItems}, State};
 		{Cont2, Items} when length(Items) =< EndRange ->
-			{RespItems, Rest} = lists:split(Items, EndRange),
+			{RespItems, Rest} = lists:split(EndRange, Items),
 			NewState = State#state{offset = EndRange + 1, buffer = Rest},
 			{reply, {Cont2, RespItems}, NewState, Timeout}
 	end.
