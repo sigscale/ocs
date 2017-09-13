@@ -114,6 +114,11 @@
 							on-change="updateDialog"
 							auto-validate allowed-pattern="[a-zA-Z]">
 					</paper-input>
+					<paper-input id="addPriceDes"
+                  class="description"
+                  name="description"
+                  label="description">
+               </paper-input>
 					<paper-input id="addPrice1"
 						class="type"
 						name="type"
@@ -161,7 +166,7 @@
 				<div class="buttons">
 					<paper-button raised
 							class="add-button"
-							on-tap="addAlteration">
+							on-tap="addPrice">
 								Add		
 					</paper-button>
 					<paper-button dialog-dismiss
@@ -361,6 +366,7 @@
 				this.$.addOff2.value = null;
 				var ajax = this.$.productAddAjax;
 				ajax.body = offerNew;
+console.log(ajax.body);
 				ajax.generateRequest();
 			},
 			addPrice: function() {
