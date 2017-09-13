@@ -196,7 +196,7 @@ filter_match() ->
 	[{userdata, [{doc, "Filter objects with value matching"}]}].
 
 filter_match(_Config) ->
-	BX = {"x", "bob"},
+	BX = {"x", "carol"},
 	BY = {"y", erlang:unique_integer()},
 	DX = {"x", "alice"},
 	DZ = {"z", erlang:unique_integer()},
