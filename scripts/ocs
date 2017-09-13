@@ -1,5 +1,4 @@
 NODENAME=ocs
-OTPHOME=/home/otp
 ERL_LIBS=lib
 ROOTDIR=/usr/lib/erlang
 RELDIR=releases

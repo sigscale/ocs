@@ -4,14 +4,17 @@ Documentation="https://github.com/sigscale/ocs"
 After=epmd.service epmd.socket
 
 [Service]
-EnvironmentFile=/lib/systemd/system/ocs.service.conf
-ExecStart=/usr/lib/erlang/bin/run_erl -daemon /tmp/ log \
-                'exec ${ROOTDIR}/bin/start_erl ${ROOTDIR} releases \
-                ${START_ERL_DATA} +K true +A 32 +Bi -sname ${NODENAME}'
-Type=forking
-WorkingDirectory=/home/otp
 User=otp
 Group=otp
+WorkingDirectory=/home/otp
+RuntimeDirectory=ocs
+RuntimeDirectoryMode=0750
+EnvironmentFile=/etc/default/ocs
+ExecStart=/usr/lib/erlang/bin/run_erl -daemon /run/ocs/ log \
+                'exec ${ROOTDIR}/bin/start_erl ${ROOTDIR} releases \
+                ${START_ERL_DATA} +K true +A 32 +Bi -sname ${NODENAME}'
+GuessMainPID=no
+Type=forking
 Restart=always
 RestartSec=5
 
