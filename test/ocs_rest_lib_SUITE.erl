@@ -207,7 +207,7 @@ filter_match(_Config) ->
 	ObjectIn = {struct, [{"a", A}, {"b", B}, {"c", C}, {"d", D}]},
 	Filters = "a.x=fred,a.y,b.x=carol,d.x=alice,d.z,b.y",
 	ObjectOut = {struct, [{"b", {struct, [BX, BY]}},
-			{"z", {struct, [DX, DZ]}}]},
+			{"d", {struct, [DX, DZ]}}]},
 	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
 
 filter_match_array() ->
