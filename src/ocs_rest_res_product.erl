@@ -225,13 +225,28 @@ on_patch_product(ProdId, Etag, ReqData) ->
 		case exe_jsonpatch_ON(ProdId, Etag, OpList) of
 			{error, StatusCode} ->
 				{error, StatusCode};
-			{ok, _Product} ->
-				Json = [],
-				Body = mochijson:encode(Json),
-				Headers = [{content_type, "application/json"}],
-				{ok, Headers, Body}
+			{ok, Prod} ->
+				ID = prod_id(json, Prod),
+				Descirption = prod_description(json, Prod),
+				Href = prod_href(json, Prod),
+				ValidFor = prod_vf(json, Prod),
+				IsBundle = prod_isBundle(json, Prod),
+				Name = prod_name(json, Prod),
+				Status = prod_status(json, Prod),
+				StartDate = prod_sdate(json, Prod),
+				TerminationDate = prod_tdate(json, Prod),
+				case prod_offering_price(json, Prod) of
+					{error, StatusCode} ->
+						{error, StatusCode};
+					OfferPrice ->
+						Json = {struct, [ID, Descirption, Href, StartDate,
+						TerminationDate, IsBundle, Name, Status, ValidFor,
+						OfferPrice]},
+						Body = mochijson:encode(Json),
+						Headers = [{content_type, "application/json"}],
+						{ok, Headers, Body}
+				end
 		end
-
 	catch
 		_:_ ->
 			{error, 400}
