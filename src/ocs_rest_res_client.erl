@@ -122,7 +122,7 @@ get_clients1(Clients, Query, Filters) ->
 		false ->
 			{[], Query3}
 	end,
-	{Secret, Query5} = case lists:keytake("protocol", 1, Query4) of
+	{Secret, Query5} = case lists:keytake("secret", 1, Query4) of
 		{value, {_, V5}, Q5} ->
 			{V5, Q5};
 		false ->
