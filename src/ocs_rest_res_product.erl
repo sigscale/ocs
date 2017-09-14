@@ -1043,11 +1043,21 @@ patch_replace1(prod_price, [], {array, Values}, _) ->
 		_:_ ->
 			{error, malfored_request}
 	end;
-patch_replace1(prod_price, [$-], {struct, Values}, Product) when Product#product.price == undefined ->
+patch_replace1(prod_price, [$- | T], Values, Product) when Product#product.price == undefined ->
 	try
 		L = Product#product.price,
 		{Hlist, [LastElement]} = lists:split(length(L) - 1, L),
-		case patch_replace2(Values, LastElement) of
+		NewValues = case {Values, T} of
+			{{struct, V}, []} ->
+				V;
+			{V, [T1]} when is_list(V) ->
+				[{T1, V}];
+			{V, [T1, T2]} when is_list(V) ->
+				[{T1, {struct, [{T2, V}]}}];
+			{V, [T1, T2, T3]} when is_list(V) ->
+				[{T1, {struct, [{T2, [{struct, [{T3, V}]}]}]}}]
+		end,
+		case patch_replace2(NewValues, LastElement) of
 			{error, Reason} ->
 				{error, Reason};
 			NLastElement ->
@@ -1057,12 +1067,22 @@ patch_replace1(prod_price, [$-], {struct, Values}, Product) when Product#product
 		_:_ ->
 			{error, unprocessable}
 	end;
-patch_replace1(prod_price, [Index], {struct, Values}, Prices) when is_integer(Index), Prices =/= undefined  ->
+patch_replace1(prod_price, [Index | T], Values, Prices) when is_integer(Index), Prices =/= undefined  ->
 	try
 		{BNth, _} = lists:split(Index + 1, Prices),
 		Nth = lists:nth(Index + 1, Prices),
 		ANth = lists:nthtail(Index + 1, Prices),
-		case patch_replace2(Values, Nth) of
+		NewValues = case {Values, T} of
+			{{struct, V}, []} ->
+				V;
+			{V, [T1]} when is_list(V) ->
+				[{T1, V}];
+			{V, [T1, T2]} when is_list(V) ->
+				[{T1, {struct, [{T2, V}]}}];
+			{V, [T1, T2, T3]} when is_list(V) ->
+				[{T1, {struct, [{T2, [{struct, [{T3, V}]}]}]}}]
+		end,
+		case patch_replace2(NewValues, Nth) of
 			{error, Reason} ->
 				{error, Reason};
 			NewNth ->
