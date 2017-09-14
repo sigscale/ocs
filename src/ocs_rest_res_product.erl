@@ -897,24 +897,18 @@ exe_jsonpatch_ON(ProdID, _Etag, OperationList) ->
 	F = fun() ->
 			case mnesia:read(product, ProdID, write) of
 				[Entry] ->
-					F2 = fun({struct, OpObj}, Acc) ->
-						case validate_operation(OpObj) of
-							{"replace", Path, Value} ->
-								case patch_replace(Path, Value, Acc) of
-									{error, _} ->
-										throw(malfored_request);
-									NewAcc ->
-										NewAcc
-								end;
-							{error, malfored_request} ->
-								throw(malfored_request);
-							{error, unprocessable} ->
-								throw(unprocessable);
-							{error, not_implemented} ->
-								throw(not_implemented)
-						end
-					end,
-					lists:foldl(F2, Entry, OperationList);
+					case ocs_rest:parse(OperationList) of
+						{error, invalid_format} ->
+							throw(malfored_request);
+						Operations ->
+							case lists:foldl(fun do_patch/2, Entry, Operations) of
+								{error, Reason} ->
+									throw(Reason);
+								Updatedentry ->
+									ok = mnesia:write(Updatedentry),
+									Updatedentry
+							end
+					end;
 				[] ->
 					throw(not_found)
 			end
