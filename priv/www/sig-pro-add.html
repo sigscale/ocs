@@ -431,19 +431,19 @@
 					if(item.description != null && item.description != "") {
 						out.description = item.description;
 					}
-					var startDateTime = item.start;
-					var endDateTime = item.end;
+					var startDateTime;
+					var endDateTime;
 					if(item.start != null && item.start != "") {
 						startDateTime = item.start;
 					}
 					if(item.end != null && item.end != "") {
-						endDateTime = item.end
+						endDateTime = item.end;
 					}
-					if(startDateTime != null && endDateTime != "") {
+					if(startDateTime != null && endDateTime != null) {
 						out.validFor = {startDateTime, endDateTime};
-					} else if(startDateTime != null && endDateTime == "") {
+					} else if(startDateTime != null && endDateTime == null) {
 						out.validFor = {startDateTime};
-					} else if(startDateTime == null && endDateTime != "") {
+					} else if(startDateTime == null && endDateTime != null) {
 						out.validFor = {endDateTime};
 					}
 					if(item.type != null && item.type != "") {
