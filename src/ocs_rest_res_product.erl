@@ -225,7 +225,7 @@ on_patch_product(ProdId, Etag, ReqData) ->
 		case exe_jsonpatch_ON(ProdId, Etag, OpList) of
 			{error, StatusCode} ->
 				{error, StatusCode};
-			Product ->
+			{ok, _Product} ->
 				Json = [],
 				Body = mochijson:encode(Json),
 				Headers = [{content_type, "application/json"}],
