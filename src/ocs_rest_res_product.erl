@@ -928,3 +928,122 @@ exe_jsonpatch_ON(ProdID, _Etag, OperationList) ->
 			{error,  500}
 	end.
 
+-spec do_patch(Operation, Product) -> Result
+	when
+		Operation	:: {Op, Path, Value},
+		Product		:: #product{},
+		Op				:: replace | add | remove | move | copy | test,
+		Path			:: list(),
+		Value			:: term(),
+		Result		:: #product{} | {error, Reason},
+		Reason		:: malfored_request | not_implemented | unprocessable.
+%% @doc validate operation and paths for product patch reqeust.
+do_patch({replace, Path, Value}, Product) ->
+	patch_replace(Path, Value, Product);
+do_patch(_, _) ->
+	{error, not_implemented}.
+
+patch_replace(["name"], Value, Product) when is_list(Value) ->
+	Product#product{name = Value};
+patch_replace(["description"], Value, Product) when is_list(Value) ->
+	Product#product{description = Value};
+patch_replace(["isBundle"], Value, Product) when is_boolean(Value) ->
+	Product#product{is_bundle = Value};
+patch_replace(["startDate"], Value, Product) when is_list(Value) ->
+	SDate = ocs_rest:iso8601(Value),
+	Product#product{start_date = SDate};
+patch_replace(["terminationDate"], Value, Product) when is_list(Value) ->
+	TDate = ocs_rest:iso8601(Value),
+	Product#product{termination_date = TDate};
+patch_replace(["status"], Value, Product) when is_list(Value) ->
+	Status = find_status(Value),
+	Product#product{status = Status};
+patch_replace(["productPrice" | T], Value, Product) ->
+	case patch_replace1(prod_price, T, Value, Product#product.price) of
+		{error, Reason} ->
+			{error, Reason};
+		Price ->
+			Product#product{price = Price}
+	end;
+patch_replace(_, _, _) ->
+	{error, unprocessable}.
+%% @hidden
+patch_replace1(prod_price, [], {array, Values}, _) ->
+	try
+	F = fun({struct, Obj}, Acc) ->
+			F5 = fun(F5, [{"taxIncludedAmount", A} | T], Alter) when is_integer(A) ->
+							F5(F5, T, Alter#alteration{amount = A});
+						(_, [], Alter) ->
+							Alter;
+						(_, _, _) ->
+							throw(malfored_request)
+			end,
+			F4 = fun(F4, [{"name", V} | T], Alter) when is_list(V) ->
+							NAlter = Alter#alteration{name = V},
+							F4(F4, T, NAlter);
+						(F4, [{"description", V} | T], Alter) when is_list(V) ->
+							NAlter = Alter#alteration{description = V},
+							F4(F4, T, NAlter);
+						(F4, [{"priceType", V} | T], Alter) when is_list(V) ->
+							PT = price_type(V),
+							NAlter = Alter#alteration{type = PT},
+							F4(F4, T, NAlter);
+						(F4, [{"price", {struct, V}} | T], Alter) when is_list(V) ->
+							NAlter = F5(F5, V, Alter),
+							F4(F4, T, NAlter);
+						(F4, [{"unitOfMeasure", V} | T], Alter) when is_list(V) ->
+							{AU, AS} = prod_price_ufm_et(V),
+							S = product_size(AU, octets, AS),
+							NAlter = Alter#alteration{units = AU, size = S},
+							F4(F4, T, NAlter);
+						(_, [], Alter) ->
+							Alter;
+						(_, _, _) ->
+							throw(malfored_request)
+			end,
+			F3 = fun(F3, [{"currencyCode", C} | T], Price) when is_list(C)->
+							F3(F3, T, Price#price{currency = C});
+						(F3, [{"taxIncludedAmount", A} | T], Price) when is_integer(A) ->
+							F3(F3, T, Price#price{amount = A});
+						(_, [], Price) ->
+							Price;
+						(_, _, _) ->
+							throw(malfored_request)
+			end,
+			F2 = fun(F2, [{"name", V} | T], Price) when is_list(V)->
+							F2(F2, T, Price#price{name = V});
+						(F2, [{"description", V} | T], Price) when is_list(V) ->
+							F2(F2, T, Price#price{description = V});
+						(F2, [{"priceType", V} | T], Price) when is_list(V) ->
+							PT = price_type(V),
+							F2(F2, T, Price#price{type = PT});
+						(F2, [{"unitOfMeasure", V} | T], Price) when is_list(V) ->
+							{U, S} = prod_price_ufm_et(V),
+							UP = Price#price{units = U, size = S},
+							F2(F2, T, UP);
+						(F2, [{"recurringChargePeriod", V} | T], Price) when is_list(V) ->
+							RcPeriod = rc_period(V),
+							UP = Price#price{period = RcPeriod},
+							F2(F2, T, UP);
+						(F2, [{"price", {struct, V}} | T], Price) when is_list(V) ->
+							UP = F3(F3, V, Price),
+							F2(F2, T, UP);
+						(F2, [{"prodPriceAlteration", {struct, V}} | T], Price) when is_list(V) ->
+							Alter = F4(F4, V, #alteration{}),
+							F2(F2, T, Price#price{alteration = Alter});
+						(_, [], Price) ->
+							Price;
+						(_, _, _) ->
+							throw(malfored_request)
+			end,
+			[F2(F2, Obj, #price{}) | Acc]
+	end,
+	lists:foldl(F, [], Values)
+	catch
+		_:_ ->
+			{error, malfored_request}
+	end;
+patch_replace1(_, _, _, _) ->
+	{error, not_implemented}.
+	
+
