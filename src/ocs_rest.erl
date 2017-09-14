@@ -65,7 +65,7 @@ filter(Filters, {struct, L} = _Object) when is_list(Filters) ->
 			OPLObject	:: [{Key, Value}],
 			Result		:: [Operations],
 			Key			:: string(),
-			Value			:: op_values()
+			Value			:: op_values(),
 			Operations	:: [{OP, Path, Value}],
 			OP				:: replace | add | remove | move | copy | test,
 			Path			:: list().
