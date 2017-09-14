@@ -117,7 +117,7 @@
 					<paper-input id="addPriceDes"
 							class="description"
 							name="description"
-							label="description"
+							label="Description"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 					</paper-input>
 					<iron-collapse id="startDatePickPrice">
@@ -127,7 +127,7 @@
 					<paper-input id="priceStartDate"
 							value="[[startDatePrice]]"
 							name="startDatePrice"
-							label="start Date"
+							label="Start Date"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.show();">
 					</paper-input>
 					<iron-collapse id="endDatePickPrice">
@@ -137,21 +137,51 @@
 					<paper-input id="priceEndDate"
 							value="[[endDatePrice]]"
 							name="endDatePrice"
-							label="end Date"
+							label="End Date"
 							onfocus="startDatePickPrice.hide(); endDatePickPrice.show();">
 					</paper-input>
-					<paper-input id="addPrice1"
-							class="type"
-							name="type"
-							label="Type"
+					<paper-dropdown-menu id="addPrice1"
+							label="Price Type"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
-					</paper-input>
-					<paper-input id="addPrice2"
-							class="units"
-							name="units"
+						<paper-listbox
+								slot="dropdown-content"
+								class="dropdown-content"
+								selected="2">
+							<paper-item value="recurring">
+								Recurring
+							</paper-item>
+							<paper-item value="one_time">
+								One Time
+							</paper-item>
+							<paper-item value="usage">
+								Usage
+							</paper-item>
+						</paper-listbox>
+					</paper-dropdown-menu>
+					<paper-dropdown-menu id="addPrice2"
 							label="Units"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
-					</paper-input>
+						<paper-listbox
+								slot="dropdown-content"
+								class="dropdown-content"
+								selected="0">
+							<paper-item value="octet">
+								Octets
+							</paper-item>
+							<paper-item value="cents">
+								Cents
+							</paper-item>
+							<paper-item value="seconds">
+								Seconds
+							</paper-item>
+							<paper-item value="mb">
+								MB
+							</paper-item>
+							<paper-item value="gb">
+								GB
+							</paper-item>
+						</paper-listbox>
+					</paper-dropdown-menu>
 					<paper-input id="addPrice3"
 							class="amount"
 							name="amount"
@@ -165,14 +195,29 @@
 							label="Currency"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 					</paper-input>
-					<paper-input id="addPrice5"
-							class="period"
-							name="period"
+					<paper-dropdown-menu id="addPrice5"
 							label="Period"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
-					</paper-input>
+						<paper-listbox
+								slot="dropdown-content"
+								class="dropdown-content"
+								selected="2">
+							<paper-item value="daily">
+								Daily
+							</paper-item>
+							<paper-item value="weekly">
+								Weekly
+							</paper-item>
+							<paper-item value="monthly">
+								Monthly
+							</paper-item>
+							<paper-item value="yearly">
+								Yearly
+							</paper-item>
+						</paper-listbox>
+					</paper-dropdown-menu>
 					<paper-dropdown-menu id="addPriceDrop"
-							label="alterations">
+							label="Alterations">
 						<paper-listbox
 								slot="dropdown-content"
 								class="dropdown-content"
@@ -236,12 +281,24 @@
 							label="End Date"
 							onfocus="startDatePick.hide(); endDatePick.show();">
 					</paper-input>
-					<paper-input id="typeAlt3"
-							class="type"
-							name="type"
-							label="Type"
+					<paper-dropdown-menu id="typeAlt3"
+							label="Price Type"
 							onfocus="endDatePick.hide(); startDatePick.hide();">
-					</paper-input>
+						<paper-listbox
+								slot="dropdown-content"
+								class="dropdown-content"
+								selected="2">
+							<paper-item value="recurring">
+								Recurring
+							</paper-item>
+							<paper-item value="one_time">
+								One Time
+							</paper-item>
+							<paper-item value="usage">
+								Usage
+							</paper-item>
+						</paper-listbox>
+					</paper-dropdown-menu>
 					<paper-dropdown-menu id=addUnitDrop
 							label="Units">
 						<paper-listbox
@@ -249,13 +306,19 @@
 								class="dropdown-content"
 								selected="0">
 								<paper-item value="octets">
-									octets
+									Octets
 								</paper-item>
 								<paper-item value="cents">
-									cents
+									Cents
 								</paper-item>
 								<paper-item value="seconds">
-									seconds
+									Seconds
+								</paper-item>
+								<paper-item value="mb">
+									MB
+								</paper-item>
+								<paper-item value="gb">
+									GB
 								</paper-item>
 						</paper-listbox>
 					</paper-dropdown-menu>
@@ -465,7 +528,7 @@
 						out.recurringChargePeriod = item.period;
 					}
 					if(item.alteration != null && item.alteration != "") {
-						out.productOfferPriceAlteration = item.alteration;
+						out.productOfferPriceAlteration = new Array();
 					}
 					return out; 
 				}
