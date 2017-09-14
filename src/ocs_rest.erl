@@ -22,6 +22,12 @@
 
 -export([filter/2]).
 -export([date/1, iso8601/1]).
+-export([parse/1]).
+
+-record(pob, {op, path, value}).
+
+-type op_values() :: string() | integer() | boolean()
+		| {array, [{struct, [tuple()]}]} | {struct, [tuple()]}.
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -51,6 +57,37 @@ filter(Filters, {struct, L} = _Object) when is_list(Filters) ->
 	Filters1 = [string:tokens(F, ".") || F <- Filters],
 	Filters2 = filter1(lists:usort(Filters1), []),
 	{struct, filter2(Filters2, L, [])}.
+
+
+-spec  parse(Oplists) -> Result
+	when
+			Oplists		:: [{struct, OPLObject}],
+			OPLObject	:: [{Key, Value}],
+			Result		:: [Operations],
+			Key			:: string(),
+			Value			:: op_values()
+			Operations	:: [{OP, Path, Value}],
+			OP				:: replace | add | remove | move | copy | test,
+			Path			:: list().
+parse(Oplists) ->
+	parse1(lists:map(fun decode_operations/1, Oplists), []).
+%% @hidden
+parse1([], Acc) ->
+	Acc;
+parse1([#pob{op = "replace", path = Path, value = Value} | T], Acc) ->
+	parse1(T, [{replace, parse_path(Path), Value} | Acc]);
+parse1([#pob{op = "add", path = Path, value = Value} | T], Acc) ->
+	parse1(T, [{add, parse_path(Path), Value} | Acc]);
+parse1([#pob{op = "remove", path = Path, value = Value} | T], Acc) ->
+	parse1(T, [{remove, parse_path(Path), Value} | Acc]);
+parse1([#pob{op = "move", path = Path, value = Value} | T], Acc) ->
+	parse1(T, [{move, parse_path(Path), Value} | Acc]);
+parse1([#pob{op = "copy", path = Path, value = Value} | T], Acc) ->
+	parse1(T, [{copy, parse_path(Path), Value} | Acc]);
+parse1([#pob{op = "test", path = Path, value = Value} | T], Acc) ->
+	parse1(T, [{test, parse_path(Path), Value} | Acc]);
+parse1(_, _) ->
+	{error, invalid_format}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
@@ -179,4 +216,26 @@ iso8601_time([], {H, Mi, S, Ms}) ->
 	{H, Mi, S, Ms};
 iso8601_time([], []) ->
 	{0,0,0,0}.
+
+parse_path(Path) ->
+	lists:map(fun is_integer_then_convert/1, string:tokens(Path, "/")).
+
+is_integer_then_convert(Token) ->
+	case re:run(Token, ["^[0-9]+$"]) of
+		{match, _} ->
+			list_to_integer(Token);
+		_ ->
+			Token
+	end.
+
+decode_operations({struct, Operation}) ->
+	F = fun({"op", OP}, AccIn) ->
+				AccIn#pob{op = OP};
+		   ({"path", Path}, AccIn) ->
+				AccIn#pob{path = Path};
+		   ({"value", Value}, AccIn) ->
+				AccIn#pob{value = Value}
+	end,
+	lists:foldl(F, #pob{}, Operation).
+
 
