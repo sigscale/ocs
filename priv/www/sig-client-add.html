@@ -131,18 +131,17 @@
 				</div>
 			</div>
 			<paper-dropdown-menu
-					id="add-client3"
 					label="[[i18n.proto]]">
-				<paper-listbox
+				<paper-listbox id="protoChoice"
 						slot="dropdown-content"
 						class="dropdown-content"
 						selected="0">
-					<paper-item value="RADIUS">
+					<paper-item>
 						<i18n-msg msgid="radius">
 							RADIUS
 						</i18n-msg>
 					</paper-item>
-					<paper-item value="DIAMETER">
+					<paper-item>
 						<i18n-msg msgid="diameter">
 							DIAMETER
 						</i18n-msg>
@@ -214,7 +213,12 @@
 				var client = new Object();
 				client.id = document.getElementById("add-client1").value;
 				client.port = parseInt(document.getElementById("add-client2").value);
-				client.protocol = document.getElementById("add-client3").value;
+				switch(document.getElementById("protoChoice").selected) {
+					case 0:
+						client.protocol = "RADIUS";
+					case 1:
+						client.protocol = "DIAMETER";
+				}
 				if (!document.getElementById("add-client4").disabled) {
 					client.secret = document.getElementById("add-client4").value;
 				}
