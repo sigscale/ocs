@@ -193,11 +193,11 @@
   },
   "radius": {
     "description": "radius protocol",
-    "message": "RADIO"
+    "message": "RADIUS"
   },
   "diameter": {
     "description": "diameter protocol",
-    "message": "DIÁMETRO"
+    "message": "DIÁMETER"
   },
 	"ipTooltip": {
     "description": "Tooltip messagef or Ip address",
