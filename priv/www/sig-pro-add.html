@@ -68,7 +68,7 @@
 							onfocus="endDatePickOff.hide(); startDatePickOff.hide();">
 					</paper-input>
 					<iron-collapse id="startDatePickOff">
-						<paper-date-picker id="startOff3" date="{{pickstart}}" headingFormat="dd, MMM D">
+						<paper-date-picker id="startOff3" date="{{pickstart}}">
 						</paper-date-picker>
 					</iron-collapse>
 					<paper-input id="addOff3"
@@ -117,7 +117,7 @@
 					<paper-input id="addPriceDes"
 							class="description"
 							name="description"
-							label="description"
+							label="Description"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 					</paper-input>
 					<iron-collapse id="startDatePickPrice">
@@ -127,7 +127,7 @@
 					<paper-input id="priceStartDate"
 							value="[[startDatePrice]]"
 							name="startDatePrice"
-							label="start Date"
+							label="Start Date"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.show();">
 					</paper-input>
 					<iron-collapse id="endDatePickPrice">
@@ -137,21 +137,51 @@
 					<paper-input id="priceEndDate"
 							value="[[endDatePrice]]"
 							name="endDatePrice"
-							label="end Date"
+							label="End Date"
 							onfocus="startDatePickPrice.hide(); endDatePickPrice.show();">
 					</paper-input>
-					<paper-input id="addPrice1"
-							class="type"
-							name="type"
-							label="Type"
+					<paper-dropdown-menu id="addPrice1"
+							label="Price Type"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
-					</paper-input>
-					<paper-input id="addPrice2"
-							class="units"
-							name="units"
+						<paper-listbox
+								slot="dropdown-content"
+								class="dropdown-content"
+								selected="2">
+							<paper-item value="recurring">
+								Recurring
+							</paper-item>
+							<paper-item value="one_time">
+								One Time
+							</paper-item>
+							<paper-item value="usage">
+								Usage
+							</paper-item>
+						</paper-listbox>
+					</paper-dropdown-menu>
+					<paper-dropdown-menu id="addPrice2"
 							label="Units"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
-					</paper-input>
+						<paper-listbox
+								slot="dropdown-content"
+								class="dropdown-content"
+								selected="0">
+							<paper-item value="octet">
+								Octets
+							</paper-item>
+							<paper-item value="cents">
+								Cents
+							</paper-item>
+							<paper-item value="seconds">
+								Seconds
+							</paper-item>
+							<paper-item value="mb">
+								MB
+							</paper-item>
+							<paper-item value="gb">
+								GB
+							</paper-item>
+						</paper-listbox>
+					</paper-dropdown-menu>
 					<paper-input id="addPrice3"
 							class="amount"
 							name="amount"
@@ -165,14 +195,29 @@
 							label="Currency"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 					</paper-input>
-					<paper-input id="addPrice5"
-							class="period"
-							name="period"
+					<paper-dropdown-menu id="addPrice5"
 							label="Period"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
-					</paper-input>
+						<paper-listbox
+								slot="dropdown-content"
+								class="dropdown-content"
+								selected="2">
+							<paper-item value="daily">
+								Daily
+							</paper-item>
+							<paper-item value="weekly">
+								Weekly
+							</paper-item>
+							<paper-item value="monthly">
+								Monthly
+							</paper-item>
+							<paper-item value="yearly">
+								Yearly
+							</paper-item>
+						</paper-listbox>
+					</paper-dropdown-menu>
 					<paper-dropdown-menu id="addPriceDrop"
-							label="alterations">
+							label="Alterations">
 						<paper-listbox
 								slot="dropdown-content"
 								class="dropdown-content"
@@ -236,12 +281,24 @@
 							label="End Date"
 							onfocus="startDatePick.hide(); endDatePick.show();">
 					</paper-input>
-					<paper-input id="typeAlt3"
-							class="type"
-							name="type"
-							label="Type"
+					<paper-dropdown-menu id="typeAlt3"
+							label="Price Type"
 							onfocus="endDatePick.hide(); startDatePick.hide();">
-					</paper-input>
+						<paper-listbox
+								slot="dropdown-content"
+								class="dropdown-content"
+								selected="2">
+							<paper-item value="recurring">
+								Recurring
+							</paper-item>
+							<paper-item value="one_time">
+								One Time
+							</paper-item>
+							<paper-item value="usage">
+								Usage
+							</paper-item>
+						</paper-listbox>
+					</paper-dropdown-menu>
 					<paper-dropdown-menu id=addUnitDrop
 							label="Units">
 						<paper-listbox
@@ -249,13 +306,19 @@
 								class="dropdown-content"
 								selected="0">
 								<paper-item value="octets">
-									octets
+									Octets
 								</paper-item>
 								<paper-item value="cents">
-									cents
+									Cents
 								</paper-item>
 								<paper-item value="seconds">
-									seconds
+									Seconds
+								</paper-item>
+								<paper-item value="mb">
+									MB
+								</paper-item>
+								<paper-item value="gb">
+									GB
 								</paper-item>
 						</paper-listbox>
 					</paper-dropdown-menu>
@@ -402,12 +465,6 @@
 				if(this.$.addOff2.value != null && this.$.addOff2.value != "") {
 					offerNew.description = this.$.addOff2.value;
 				}
-				if(this.$.addOff3.value != null && this.$.addOff3.value != "") {
-					offerNew.startDate = this.$.addOff3.value;
-				}
-				if(this.$.addOff4.value != null && this.$.addOff4.value != "") {
-					offerNew.terminationDate = this.$.addOff4.value;
-				}
 				var startDateTime;
 				var endDateTime;
 				if(this.$.addOff3.value != null && this.$.addOff3.value != "") {
@@ -431,19 +488,19 @@
 					if(item.description != null && item.description != "") {
 						out.description = item.description;
 					}
-					var startDateTime = item.start;
-					var endDateTime = item.end;
+					var startDateTime;
+					var endDateTime;
 					if(item.start != null && item.start != "") {
 						startDateTime = item.start;
 					}
 					if(item.end != null && item.end != "") {
-						endDateTime = item.end
+						endDateTime = item.end;
 					}
-					if(startDateTime != null && endDateTime != "") {
+					if(startDateTime != null && endDateTime != null) {
 						out.validFor = {startDateTime, endDateTime};
-					} else if(startDateTime != null && endDateTime == "") {
+					} else if(startDateTime != null && endDateTime == null) {
 						out.validFor = {startDateTime};
-					} else if(startDateTime == null && endDateTime != "") {
+					} else if(startDateTime == null && endDateTime != null) {
 						out.validFor = {endDateTime};
 					}
 					if(item.type != null && item.type != "") {
@@ -471,7 +528,7 @@
 						out.recurringChargePeriod = item.period;
 					}
 					if(item.alteration != null && item.alteration != "") {
-						out.productOfferPriceAlteration = item.alteration;
+						out.productOfferPriceAlteration = new Array();
 					}
 					return out; 
 				}
@@ -479,6 +536,7 @@
 				this.$.addOff1.value = null;
 				this.$.addOff2.value = null;
 				var ajax = this.$.productAddAjax;
+console.log(ajax);
 				ajax.body = offerNew;
 console.log(ajax.body);
 				ajax.generateRequest();
@@ -491,7 +549,7 @@ console.log(ajax.body);
 				priceNew.end = this.$.priceEndDate.value;
 				priceNew.type = this.$.addPrice1.value;
 				priceNew.unit = this.$.addPrice2.value;
-				priceNew.tax = this.$.addPrice3.value;
+				priceNew.tax = parseInt(this.$.addPrice3.value);
 				priceNew.currency = this.$.addPrice4.value;
 				priceNew.period = this.$.addPrice5.value;
 				priceNew.alteration = this.$.addPriceDrop.value;
