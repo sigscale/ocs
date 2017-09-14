@@ -1043,7 +1043,104 @@ patch_replace1(prod_price, [], {array, Values}, _) ->
 		_:_ ->
 			{error, malfored_request}
 	end;
+patch_replace1(prod_price, [$-], {struct, Values}, Product) when Product#product.price == undefined ->
+	try
+		L = Product#product.price,
+		{Hlist, [LastElement]} = lists:split(length(L) - 1, L),
+		case patch_replace2(Values, LastElement) of
+			{error, Reason} ->
+				{error, Reason};
+			NLastElement ->
+				Hlist ++ [NLastElement]
+		end
+	catch
+		_:_ ->
+			{error, unprocessable}
+	end;
+patch_replace1(prod_price, [Index], {struct, Values}, Prices) when is_integer(Index), Prices =/= undefined  ->
+	try
+		{BNth, _} = lists:split(Index + 1, Prices),
+		Nth = lists:nth(Index + 1, Prices),
+		ANth = lists:nthtail(Index + 1, Prices),
+		case patch_replace2(Values, Nth) of
+			{error, Reason} ->
+				{error, Reason};
+			NewNth ->
+				BNth ++ [NewNth] ++ ANth
+		end
+	catch
+		_:_ ->
+			{error, unprocessable}
+	end;
 patch_replace1(_, _, _, _) ->
-	{error, not_implemented}.
-	
+	{error, unprocessable}.
+%% @hidden
+patch_replace2([], Price) when is_record(Price, price) ->
+	Price;
+patch_replace2([{"name", Value} | T], Price) when is_record(Price, price), is_list(Value) ->
+	patch_replace2(T, Price#price{name = Value});
+patch_replace2([{"description", Value} | T], Price) when is_record(Price, price), is_list(Value) ->
+	patch_replace2(T, Price#price{description = Value});
+patch_replace2([{"priceType", Value} | T], Price) when is_record(Price, price), is_list(Value) ->
+	PT = price_type(Value),
+	patch_replace2(T, Price#price{type = PT});
+patch_replace2([{"recurringChargePeriod", Value} | T], Price) when is_record(Price, price), is_list(Value) ->
+	RCP = rc_period(Value),
+	patch_replace2(T, Price#price{period = RCP});
+patch_replace2([{"unitOfMeasure", Value} | T], Price) when is_record(Price, price), is_list(Value) ->
+	{U, S} = prod_price_ufm_et(Value),
+	UPrice = Price#price{units = U, size = S},
+	patch_replace2(T, UPrice);
+patch_replace2([{"price", {struct, Value}} | T], Price) when is_record(Price, price), is_list(Value) ->
+	case patch_replace4(Value, Price) of
+		{error, Reason} ->
+			{error, Reason};
+
+		UPrice ->
+			patch_replace2(T, UPrice)
+	end;
+patch_replace2([{"prodPriceAlteration", {struct, Value}} | T], #price{alteration = Alter} = Price) when is_record(Price, price), is_list(Value) ->
+	case patch_replace3(Value, Alter) of
+		{error, Reason} ->
+			{error, Reason};
+		UAlter ->
+			patch_replace2(T, Price#price{alteration = UAlter})
+	end;
+patch_replace2(_, _) ->
+	{error, unprocessable}.
+%% @hidden
+patch_replace3([], Alter) ->
+	Alter;
+patch_replace3([{"name", Value} | T], Alter) when is_list(Value) ->
+	patch_replace3(T, Alter#alteration{name = Value});
+patch_replace3([{"description", Value} | T], Alter) when is_list(Value) ->
+	patch_replace3(T, Alter#alteration{description = Value});
+patch_replace3([{"priceType", Value} | T], Alter) when is_list(Value) ->
+	PT = price_type(Value),
+	patch_replace3(T, Alter#alteration{type = PT});
+patch_replace3([{"unitOfMeasure", Value} | T], Alter) when is_list(Value) ->
+	{AU, AS} = prod_price_ufm_et(Value),
+	S = product_size(AU, octets, AS),
+	UAlter = Alter#alteration{units = AU, size = S},
+	patch_replace3(T, UAlter);
+patch_replace3([{"price", {struct, Value}} | T], Alter) when is_list(Value) ->
+	case patch_replace4(Value, Alter) of
+		{error, Reason} ->
+			{error, Reason};
+		UAlter ->
+			patch_replace3(T, UAlter)
+	end;
+patch_replace3(_, _) ->
+	{error, unprocessable}.
+%% @hidden
+patch_replace4([], PorA) ->
+	PorA;
+patch_replace4([{"currencyCode", Value} | T], Price) when is_record(Price, price) ->
+	patch_replace4(T, Price#price{currency = Value});
+patch_replace4([{"taxIncludedAmount", Value} | T], Price) when is_record(Price, price), is_integer(Value) ->
+	patch_replace4(T, Price#price{amount = Value});
+patch_replace4([{"taxIncludedAmount", Value} | T], Alter) when is_record(Alter, alteration), is_integer(Value) ->
+	patch_replace4(T, #alteration{amount = Value});
+patch_replace4(_, _) ->
+	{error, unprocessable}.
 
