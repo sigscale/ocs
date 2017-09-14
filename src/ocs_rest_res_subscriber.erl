@@ -74,28 +74,28 @@ get_subscriber1(Id, Filters) ->
 			RespObj1 = [{"id", Id}, {"href", "/ocs/v1/subscriber/" ++ Id}],
 			RespObj2 = [{"attributes", Att1}],
 			RespObj3 = case Filters == []
-				orelse lists:keymember("password", 1, Filters) of
+				orelse lists:member("password", Filters) of
 					true ->
 						[{"password", Password}];
 					false ->
 						[]
 				end,
 			RespObj4 = case Filters == []
-				orelse lists:keymember("balance", 1, Filters) of
+				orelse lists:member("balance", Filters) of
 					true ->
 						[{"balance", Balance}];
 					false ->
 						[]
 				end,
 			RespObj5 = case Filters == []
-				orelse lists:keymember("enabled", 1, Filters) of
+				orelse lists:member("enabled", Filters) of
 					true ->
 						[{"enabled", Enabled}];
 					false ->
 						[]
 				end,
 			RespObj6 = case Filters == []
-				orelse lists:keymember("multisession", 1, Filters) of
+				orelse lists:member("multisession", Filters) of
 					true ->
 						[{"multisession", Multi}];
 					false ->
@@ -217,28 +217,28 @@ get_subscribers2(Subscribers, Id, Password, Balance, Enabled, Multi, [] = _Query
 				RespObj1 = [{"id", Nalist}, {"href", "/ocs/v1/subscriber/" ++ Nalist}],
 				RespObj2 = [{"attributes", Att1}],
 				RespObj3 = case Filters == []
-						orelse lists:keymember("password", 1, Filters) of
+						orelse lists:member("password", Filters) of
 					true ->
 						[{"password", Palist}];
 					false ->
 						[]
 				end,
 				RespObj4 = case Filters == []
-						orelse lists:keymember("balance", 1, Filters) of
+						orelse lists:member("balance", Filters) of
 					true ->
 						[{"balance", Ba}];
 					false ->
 						[]
 				end,
 				RespObj5 = case Filters == []
-						orelse lists:keymember("enabled", 1, Filters) of
+						orelse lists:member("enabled", Filters) of
 					true ->
 						[{"enabled", Ena}];
 					false ->
 						[]
 				end,
 				RespObj6 = case Filters == []
-						orelse lists:keymember("multisession", 1, Filters) of
+						orelse lists:member("multisession", Filters) of
 					true ->
 						[{"multisession", Mul}];
 					false ->

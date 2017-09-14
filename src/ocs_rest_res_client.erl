@@ -145,28 +145,28 @@ get_clients2(Clients, Address, Identifier, Port, Protocol, Secret, [] = _Query, 
 				T1 and T2 and T3 and T4 and T5 ->
 					RespObj1 = [{"id", Id}, {"href", "/ocs/v1/client/" ++ Id}],
 					RespObj2 = case I == <<>> orelse Filters /= [] 
-							andalso not lists:keymember("identifier", 1, Filters) of
+							andalso not lists:member("identifier", Filters) of
 						true ->
 							[];
 						false ->
 							[{"identifier", binary_to_list(I)}]
 					end,
 					RespObj3 = case Filters == []
-							orelse lists:keymember("port", 1, Filters) of
+							orelse lists:member("port", Filters) of
 						true ->
 							[{"port", P1}];
 						false ->
 							[]
 					end,
 					RespObj4 = case Filters == []
-							orelse lists:keymember("protocol", 1, Filters) of
+							orelse lists:member("protocol", Filters) of
 						true ->
 							[{"protocol", Proto}];
 						false ->
 							[]
 					end,
 					RespObj5 = case Filters == []
-							orelse lists:keymember("secret", 1, Filters) of
+							orelse lists:member("secret", Filters) of
 						true ->
 							[{"secret", S2}];
 						false ->
@@ -226,28 +226,28 @@ get_client1(Address, Filters) ->
 			Etag = etag(LM),
 			RespObj1 = [{"id", Id}, {"href", "/ocs/v1/client/" ++ Id}],
 			RespObj2 = case Identifier == <<>> orelse Filters /= [] 
-					andalso not lists:keymember("identifier", 1, Filters) of
+					andalso not lists:member("identifier", Filters) of
 				true ->
 					[];
 				false ->
 					[{"identifier", binary_to_list(Identifier)}]
 			end,
 			RespObj3 = case Filters == []
-					orelse lists:keymember("port", 1, Filters) of
+					orelse lists:member("port", Filters) of
 				true ->
 					[{"port", Port}];
 				false ->
 					[]
 			end,
 			RespObj4 = case Filters == []
-					orelse lists:keymember("protocol", 1, Filters) of
+					orelse lists:member("protocol", Filters) of
 				true ->
 					[{"protocol", string:to_upper(atom_to_list(Protocol))}];
 				false ->
 					[]
 			end,
 			RespObj5 = case Filters == []
-					orelse lists:keymember("secret", 1, Filters) of
+					orelse lists:member("secret", Filters) of
 				true ->
 					[{"secret", Secret}];
 				false ->
