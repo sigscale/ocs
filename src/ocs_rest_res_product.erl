@@ -1084,25 +1084,30 @@ patch_replace1(prod_price, [$- | T], Values, Product) when Product#product.price
 	end;
 patch_replace1(prod_price, [Index | T], Values, Prices) when is_integer(Index), Prices =/= undefined  ->
 	try
-		{BNth, _} = lists:split(Index + 1, Prices),
-		Nth = lists:nth(Index + 1, Prices),
-		ANth = lists:nthtail(Index + 1, Prices),
-		NewValues = case {Values, T} of
-			{{struct, V}, []} ->
-				V;
-			{V, [T1]} when is_list(V) ->
-				[{T1, V}];
-			{V, [T1, T2]} when is_list(V) ->
-				[{T1, {struct, [{T2, V}]}}];
-			{V, [T1, T2, T3]} when is_list(V) ->
-				[{T1, {struct, [{T2, [{struct, [{T3, V}]}]}]}}]
-		end,
-		case patch_replace2(NewValues, Nth) of
-			{error, Reason} ->
-				{error, Reason};
-			NewNth ->
-				BNth ++ [NewNth] ++ ANth
-		end
+	if
+		Index > length(Prices) ->
+			{error, malfored_request};
+		true ->
+			{BNth, _} = lists:split(Index, Prices),
+			Nth = lists:nth(Index + 1, Prices),
+			ANth = lists:nthtail(Index + 1, Prices),
+			NewValues = case {Values, T} of
+				{{struct, V}, []} ->
+					V;
+				{V, [T1]} when is_list(V) ->
+					[{T1, V}];
+				{V, [T1, T2]} when is_list(V) ->
+					[{T1, {struct, [{T2, V}]}}];
+				{V, [T1, T2, T3]} when is_list(V) ->
+					[{T1, {struct, [{T2, [{struct, [{T3, V}]}]}]}}]
+			end,
+			case patch_replace2(NewValues, Nth) of
+				{error, Reason} ->
+					{error, Reason};
+				NewNth ->
+					BNth ++ [NewNth] ++ ANth
+			end
+	end
 	catch
 		_:_ ->
 			{error, unprocessable}
