@@ -73,10 +73,6 @@ get_users(Users, Query, Filters) ->
 				{lists:reverse(lists:sort(Users)), NewQuery};
 			{value, {_, "-id"}, NewQuery} ->
 				{lists:sort(Users), NewQuery};
-			{value, {_, "locale"}, NewQuery} ->
-				{lists:reverse(lists:sort(Users)), NewQuery};
-			{value, {_, "-locale"}, NewQuery} ->
-				{lists:sort(Users), NewQuery};
 			false ->
 				{Users, Query};
 			_ ->
