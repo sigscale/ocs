@@ -86,16 +86,21 @@ get_users(Users, Query, Filters) ->
 			{error, 400}
 	end.
 %% @hidden
-get_users1(Users, Query, Filters) ->
-	{Id, Query1} = case lists:keytake("id", 1, Query) of
-		{value, {_, V1}, Q1} ->
-			{V1, Q1};
+get_users1(Users1, Query1, Filters) ->
+	{Users2, Query2} = case lists:keytake("id", 1, Query) of
+		{value, {_, Id}, Q1} ->
+			case lists:member(Id, Users) of
+				true ->
+					{[Id], Q1};
+				false ->
+					{error, 404}
+			end;
 		false ->
-			{[], Query}
+			{Users1, Query1}
 	end,
-	get_users2(Users, Id, Query1, Filters).
+	get_users2(Users2, Query2, Filters).
 %% @hidden
-get_users2([H|_T] = Users, Id, [] = _Query, _Filters) ->
+get_users2([H|_T] = Users, [] = _Query, _Filters) ->
 	case ocs:get_user(H) of
 		{ok, #httpd_user{username = _Idlist, user_data = UserData}} ->
 			F = fun(Idlist)  ->
