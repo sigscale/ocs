@@ -2309,6 +2309,8 @@ update_product(Config) ->
 	ok = update_product_description(SslSock, RestPort, NewProdID1, Description1),
 	StartDate1 = ocs_rest:iso8601(erlang:system_time(?MILLISECOND)),
 	ok = update_product_startdate(SslSock, RestPort, NewProdID1, StartDate1),
+	TerminationDate1 = ocs_rest:iso8601(erlang:system_time(?MILLISECOND) + 31535984279),
+	ok = update_product_terminationdate(SslSock, RestPort, NewProdID1, TerminationDate1),
 	Status1 = "pending_active",
 	ok = update_product_status(SslSock, RestPort, NewProdID1, Status1),
 	ok = ssl_socket_close(SslSock).
@@ -2432,6 +2434,24 @@ update_product_startdate(SslSock, RestPort, ProdID, StartDate) ->
 			{error, patch_pafiled}
 	end.
 
+update_product_terminationdate(SslSock, RestPort, ProdID, TerminationDate) ->
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	ContentType = "application/json-patch+json",
+	JSON = {array, [product_terminationdate(TerminationDate)]},
+	Body = lists:flatten(mochijson:encode(JSON)),
+	{Headers, Response} = patch_request(SslSock, RestPort, ContentType, AuthKey, ProdID, Body),
+	<<"HTTP/1.1 200", _/binary>> = Headers,
+	{struct, Object} = mochijson:decode(Response),
+	case lists:keyfind("terminationDate", 1, Object) of
+		{_, TerminationDate} ->
+			ok;
+		_ ->
+			{error, patch_pafiled}
+	end.
+
 update_product_status(SslSock, RestPort, ProdID, Status) ->
 	RestUser = ct:get_config(rest_user),
 	RestPass = ct:get_config(rest_pass),
@@ -2502,6 +2522,12 @@ product_startdate(StartDate) ->
 	Op = {"op", "replace"},
 	Path = {"path", "/startDate"},
 	Value = {"value", StartDate},
+	{struct, [Op, Path, Value]}.
+
+product_terminationdate(TerminationDate) ->
+	Op = {"op", "replace"},
+	Path = {"path", "/terminationDate"},
+	Value = {"value", TerminationDate},
 	{struct, [Op, Path, Value]}.
 
 product_status(Status) ->
