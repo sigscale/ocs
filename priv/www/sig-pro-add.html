@@ -140,8 +140,9 @@
 							label="End Date"
 							onfocus="startDatePickPrice.hide(); endDatePickPrice.show();">
 					</paper-input>
-					<paper-dropdown-menu
+					<paper-dropdown-menu id="addPrice1drop"
 							label="Price Type"
+							on-selected-item-changed="checkRecure"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 						<paper-listbox
 								id="addPrice1"
@@ -206,7 +207,7 @@
 							label="Currency"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 					</paper-input>
-					<paper-dropdown-menu
+					<paper-dropdown-menu id="addPrice5drop"
 							label="Period"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 						<paper-listbox
@@ -556,13 +557,29 @@ console.log(ajax);
 console.log(ajax.body);
 				ajax.generateRequest();
 			},
+			checkRecure: function() {
+				if(this.$.addPrice1.selected == 0) {
+					this.$.addPrice5drop.disabled = false;
+				} else { 
+					this.$.addPrice5drop.disabled = true;
+				}
+			},
 			addPrice: function() {
 				var priceNew = new Object();
 				priceNew.name = this.$.priceName.value;
 				priceNew.description = this.$.addPriceDes.value;
 				priceNew.start = this.$.priceStartDate.value;
 				priceNew.end = this.$.priceEndDate.value;
-				priceNew.type = this.$.addPrice1.value;
+				switch(this.$.addPrice1.selected) {
+					case 0:
+						priceNew.type = "recurring";
+						break;
+					case 1:
+						priceNew.type = "one_time";
+						break;
+					case 2:
+						priceNew.type = "usage";
+				}
 				priceNew.size = this.$.addPriceSize.value;
 				switch(this.$.addPrice2.selected) {
 					case 0:
@@ -582,7 +599,19 @@ console.log(ajax.body);
 				}
 				priceNew.tax = parseInt(this.$.addPrice3.value);
 				priceNew.currency = this.$.addPrice4.value;
-				priceNew.period = this.$.addPrice5.value;
+				switch(this.$.addPrice5.selected) {
+					case 0:
+						priceNew.period = "daily";
+						break;
+					case 1:
+						priceNew.period = "weekly";
+						break;
+					case 2:
+						priceNew.period = "monthly";
+						break
+					case 3:
+						priceNew.period = "yearly";
+				}
 				priceNew.alteration = this.$.addPriceDrop.value;
 				this.push('prices', priceNew);
 				this.$.priceName.value = null;
