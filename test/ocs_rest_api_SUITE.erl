@@ -148,7 +148,7 @@ all() ->
 	simultaneous_updates_on_client_faliure, update_client_password_json_patch,
 	update_client_attributes_json_patch, update_subscriber_password_json_patch,
 	update_subscriber_attributes_json_patch, update_user_characteristics_json_patch,
-	add_product, get_product].
+	add_product, get_product, update_product].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -2287,9 +2287,152 @@ get_product(Config) ->
 	end,
 	lists:foreach(F3, POPObj).
 
+update_product() ->
+	[{userdata, [{doc,"Use PATCH for update product entity"}]}].
+
+update_product(Config) ->
+	HostUrl = ?config(host_url, Config),
+	RestPort = ?config(port, Config),
+	Accept = {"accept", "application/json"},
+	ContentType = "application/json",
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authorization = {"authorization", AuthKey},
+	ProdID = "Wi-Fi",
+	add_product(HostUrl, Accept, ContentType, AuthKey, Authorization, ProdID),
+	NewProdID1 = "Wi-Fi_Ultimate",
+	SslSock = ssl_socket_open({127,0,0,1}, RestPort),
+	ok = update_product_name(SslSock, RestPort, ProdID, NewProdID1),
+	ok = ssl_socket_close(SslSock).
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
+
+add_product(HostUrl, Accept, ContentType, AuthKey, Authorization, ProdID) ->
+	ProdName = {"name", ProdID},
+	ProdDescirption = {"description", "Monthly Family Package"},
+	ProdHref = {"href", "/product/product/cpe"},
+	IsBundle = {"isBundle", false},
+	IsCustomerVisible = {"isCustomerVisible", true},
+	StartDate = {"startDate", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
+	TerminationDate = {"terminationDate", ocs_rest:iso8601(erlang:system_time(?MILLISECOND) + 31535984279)},
+	Status = {"status", "active"},
+	StartTime = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
+	EndTime = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
+	ValidFor = {"validFor", {struct, [StartTime, EndTime]}},
+	ProdSpecID = {"id", "cpe"},
+	ProdSpecHref = {"href", "/productCatalogManagement/productSpecification/cpe"},
+	ProdSpecName = {"name", "Monthly subscriber Family Pack"},
+	ProdSpec = {"productSpecification", {struct, [ProdSpecID, ProdSpecHref, ProdSpecName]}},
+	POPName1 = {"name", "Family-Pack"},
+	POPDescription1 = {"description", "Monthly package"},
+	POPStratDateTime1 = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
+	POPEndDateTime1 = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
+	POPValidFor1 = {"validFor", {struct, [POPStratDateTime1, POPEndDateTime1]}},
+	POPPriceType1 = {"priceType", "recurring"},
+	POPUOMeasure1 = {"unitOfMeasure", ""},
+	POPPriceTaxInclude1 = {"taxIncludedAmount", 230},
+	POPPriceCurrency1 = {"currencyCode", "MXV"},
+	POPPrice1 = {"price", {struct, [POPPriceTaxInclude1, POPPriceCurrency1]}},
+	POPRecChargPeriod1 = {"recurringChargePeriod", "monthly"},
+	ProdOfferPrice1 = {struct, [POPName1, POPDescription1, POPValidFor1, POPPriceType1,
+			POPUOMeasure1, POPPrice1, POPRecChargPeriod1]},
+	POPName2 = {"name", "usage"},
+	POPDescription2 = {"description", "Family Pack Alteration"},
+	POPStratDateTime2 = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
+	POPEndDateTime2 = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
+	POPValidFor2 = {"validFor", {struct, [POPStratDateTime2, POPEndDateTime2]}},
+	POPPriceType2 = {"priceType", "usage"},
+	POPUOMeasure2 = {"unitOfMeasure", "1000octets"},
+	POPPriceTaxInclude2 = {"taxIncludedAmount", 5},
+	POPPriceCurrency2 = {"currencyCode", "MXV"},
+	POPPrice2 = {"price", {struct, [POPPriceTaxInclude2, POPPriceCurrency2]}},
+	POPRecChargPeriod2 = {"recurringChargePeriod", ""},
+	ProdAlterName = {"name", "usage"},
+	ProdAlterDescription = {"description", ""},
+	ProdAlterValidFor = {"validFor", {struct, [POPStratDateTime1]}},
+	ProdAlterPriceType = {"priceType", "usage"},
+	ProdAlterUOMeasure = {"unitOfMeasure", "100GB"},
+	ProdAlterAmount = {"taxIncludedAmount", 0},
+	ProdAlterPrice = {"price", {struct, [ProdAlterAmount]}},
+	POPAlteration = {"productOfferPriceAlteration", {struct, [ProdAlterName, ProdAlterDescription,
+		ProdAlterValidFor, ProdAlterPriceType, ProdAlterUOMeasure, ProdAlterPrice]}},
+	ProdOfferPrice2 = {struct, [POPName2, POPDescription2, POPValidFor2, POPPriceType2,
+			POPUOMeasure2, POPPrice2, POPRecChargPeriod2, POPAlteration]},
+	ProdOfferPrice = {"productOfferingPrice", {array, [ProdOfferPrice1, ProdOfferPrice2]}},
+	ReqJson = {struct, [ProdName, ProdDescirption, ProdHref, IsBundle, IsCustomerVisible,
+			TerminationDate, StartDate, ValidFor, ProdSpec, Status, ProdOfferPrice]},
+	ReqBody = lists:flatten(mochijson:encode(ReqJson)),
+	Authorization = {"authorization", AuthKey},
+	Request1 = {HostUrl ++ "/catalogManagement/v1/productOffering",
+			[Accept, Authorization], ContentType, ReqBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, _Headers, _} = Result.
+
+update_product_name(SslSock, RestPort, OldProdID, NewProdID) ->
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	ContentType = "application/json-patch+json",
+	JSON = {array, [product_name(NewProdID)]},
+	Body = lists:flatten(mochijson:encode(JSON)),
+	{Headers, Response} = patch_request(SslSock, RestPort, ContentType, AuthKey, OldProdID, Body),
+	<<"HTTP/1.1 200", _/binary>> = Headers,
+	{struct, Object} = mochijson:decode(Response),
+	case lists:keyfind("name", 1, Object) of
+		{_, NewProdID} ->
+			ok;
+		_ ->
+			{error, patch_pafiled}
+	end.
+
+
+patch_request(SslSock, Port, ContentType, AuthKey, ProdID, ReqBody) when is_list(ReqBody) ->
+	BinBody = list_to_binary(ReqBody),
+	patch_request(SslSock, Port, ContentType, AuthKey, ProdID, BinBody);
+patch_request(SslSock, Port, ContentType, AuthKey, ProdID, ReqBody) ->
+	Timeout = 1500,
+	Length = size(ReqBody),
+	PatchURI = "/productInventoryManagement/v1/product/" ++ ProdID,
+	Request =
+			["PATCH ", PatchURI, " HTTP/1.1",$\r,$\n,
+			"Content-Type:"++ ContentType, $\r,$\n,
+			"Accept:application/json",$\r,$\n,
+			"Authorization:"++ AuthKey,$\r,$\n,
+			"Host:localhost:" ++ integer_to_list(Port),$\r,$\n,
+			"Content-Length:" ++ integer_to_list(Length),$\r,$\n,
+			$\r,$\n,
+			ReqBody],
+	ok = ssl:send(SslSock, Request),
+	F = fun(_F, _Sock, {error, timeout}, Acc) ->
+					lists:reverse(Acc);
+			(F, Sock, {ok, Bin}, Acc) ->
+					F(F, Sock, ssl:recv(Sock, 0, Timeout), [Bin | Acc])
+	end,
+	RecvBuf = F(F, SslSock, ssl:recv(SslSock, 0, Timeout), []),
+	PatchResponse = list_to_binary(RecvBuf),
+	[Headers, ResponseBody] = binary:split(PatchResponse, <<$\r,$\n,$\r,$\n>>),
+	{Headers, ResponseBody}.
+
+
+ssl_socket_open(IP, Port) ->
+	{ok, SslSock} = ssl:connect(IP, Port,
+		[binary, {active, false}], infinity),
+	ok = ssl:ssl_accept(SslSock),
+	SslSock.
+
+ssl_socket_close(SslSock) ->
+	ok = ssl:close(SslSock).
+
+product_name(ProdID) ->
+	Op = {"op", "replace"},
+	Path = {"path", "/name"},
+	Value = {"value", ProdID},
+	{struct, [Op, Path, Value]}.
 
 %% @hidden
 is_etag_valid(Etag) ->
