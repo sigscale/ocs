@@ -302,12 +302,12 @@ po_price(erlang_term, [{struct, Object} | T], Prices) ->
 		ProdVF = prod_price_vf(erlang_term, Object),
 		RCPeriod = prod_price_rc_period(erlang_term, Object),
 		ProdDescirption = prod_price_description(erlang_term, Object),
-		ProdValidity = ProdETime - ProdSTime,
+		%ProdValidity = ProdETime - ProdSTime,
 		{ProdUnits, ProdSize} = prod_price_ufm(erlang_term, Object),
 		Size = product_size(ProdUnits, octets, ProdSize),
 		Price1 = #price{name = ProdName, description = ProdDescirption,
 				type = ProdPriceType, units = ProdUnits, size = Size, valid_for = ProdVF,
-				currency = CurrencyCode, period = RCPeriod, validity = ProdValidity,
+				currency = CurrencyCode, period = RCPeriod, %validity = ProdValidity,
 				amount = ProdAmount},
 		case lists:keyfind("productOfferPriceAlteration", 1, Object) of
 			false ->
@@ -519,12 +519,25 @@ prod_tdate(json, Product) ->
 		Result :: tuple().
 %% @private
 prod_vf(erlang_term, Product) ->
-	{_, {struct, VFObj}} = lists:keyfind("validFor", 1, Product),
-	{_, SDT} = lists:keyfind("startDateTime", 1, VFObj),
-	{_, EDT} = lists:keyfind("endDateTime", 1, VFObj),
-	{ocs_rest:iso8601(SDT), ocs_rest:iso8601(EDT)};
+	case lists:keyfind("validFor", 1, Product) of
+		{_, {struct, VFObj}} ->
+			case {proplists:get_value("startDateTime", VFObj), proplists:get_value("endDateTime", VFObj)} of
+				{undefined, undefined} ->
+					{undefined, undefined};
+				{undefined, EDT} ->
+					{undefined, ocs_rest:iso8601(EDT)};
+				{SDT, undefined} ->
+					{ocs_rest:iso8601(SDT), undefined};
+				{SDT, EDT} ->
+					{ocs_rest:iso8601(SDT), ocs_rest:iso8601(EDT)}
+			end;
+		false ->
+			{undefined, undefined}
+	end;
 prod_vf(json, Product) ->
 	case Product#product.valid_for of
+		{undefined, undefined} ->
+			{"validFor", {struct, []}};
 		{SDateTime, undefined} ->
 			SDT = {"startDateTime", ocs_rest:iso8601(SDateTime)},
 			{"validFor", {struct, [SDT]}};
@@ -567,15 +580,36 @@ prod_price_description(json, Price) ->
 		Result	:: tuple().
 %% @private
 prod_price_vf(erlang_term, Price) ->
-	{_,  {struct, VFObj}} = lists:keyfind("validFor", 1, Price),
-	{_, SDT} = lists:keyfind("startDateTime", 1, VFObj),
-	{_, EDT} = lists:keyfind("endDateTime", 1, VFObj),
-	{ocs_rest:iso8601(SDT), ocs_rest:iso8601(EDT)};
+	case lists:keyfind("validFor", 1, Price) of
+		{_,  {struct, VFObj}} ->
+			case {proplists:get_value("startDateTime", VFObj), proplists:get_value("endDateTime", VFObj)} of
+				{undefined, undefined} ->
+					{undefined, undefined};
+				{undefined, EDT} ->
+					{undefined, ocs_rest:iso8601(EDT)};
+				{SDT, undefined} ->
+					{ocs_rest:iso8601(SDT), undefined};
+				{SDT, EDT} ->
+					{ocs_rest:iso8601(SDT), ocs_rest:iso8601(EDT)}
+			end;
+		false ->
+			{undefined, undefined}
+	end;
 prod_price_vf(json, Price) ->
-	{SDateTime, EDateTime} = Price#price.valid_for,
-	SDT = {"startDateTime", ocs_rest:iso8601(SDateTime)},
-	EDT = {"endDateTime", ocs_rest:iso8601(EDateTime)},
-	{"validFor", {struct, [SDT, EDT]}}.
+	case Price#price.valid_for of
+		{undefined, undefined} ->
+			{"validFor",{struct, []}};
+		{undefined, EDateTime} ->
+			EDT = {"endDateTime", ocs_rest:iso8601(EDateTime)},
+			{"validFor",{struct, [EDT]}};
+		{SDateTime, undefined} ->
+			SDT = {"startDateTime", ocs_rest:iso8601(SDateTime)},
+			{"validFor",{struct, [SDT]}};
+		{SDateTime, EDateTime} ->
+			SDT = {"startDateTime", ocs_rest:iso8601(SDateTime)},
+			EDT = {"endDateTime", ocs_rest:iso8601(EDateTime)},
+			{"validFor", {struct, [SDT, EDT]}}
+	end.
 
 -spec prod_price_type(Prefix, Price) -> Result
 	when
@@ -654,20 +688,34 @@ prod_price_alter_name(json, PAlter) ->
 		Result :: integer() | tuple().
 %% @private
 prod_price_alter_vf(erlang_term, PAlter) ->
-	{_, {struct, PAlterVF}} = lists:keyfind("validFor", 1, PAlter),
-	{_, PAlterSTimeISO} = lists:keyfind("startDateTime", 1, PAlterVF),
-	case lists:keyfind("endDateTime", 1, PAlterVF) of
+	case lists:keyfind("validFor", 1, PAlter) of
+		{_, {struct, PAlterVF}} ->
+			PAlterSTimeISO = proplists:get_value("startDateTime", PAlterVF),
+			PAlterETime = proplists:get_value("endDateTime", PAlterVF),
+			case {PAlterSTimeISO, PAlterETime} of
+				{undefined, undefined} ->
+					{undefined, undefined};
+				{undefined, EDT} ->
+					{undefined, ocs_rest:iso8601(EDT)};
+				{SDT, undefined} ->
+					{ocs_rest:iso8601(SDT), undefined};
+				{SDT, EDT} ->
+					{ocs_rest:iso8601(SDT), ocs_rest:iso8601(EDT)}
+			end;
 		false ->
-			{ocs_rest:iso8601(PAlterSTimeISO), undefined};
-		PAlterETime ->
-			{ocs_rest:iso8601(PAlterSTimeISO), PAlterETime}
+			{undefined, undefined}
 	end;
 prod_price_alter_vf(json, PAlter) ->
 	ValidFor = PAlter#alteration.valid_for,
 	case ValidFor of
+		{undefined, undefined} ->
+			{"validFor", {struct, []}};
 		{SDateTime, undefined} ->
 			SDT = {"startDateTime", ocs_rest:iso8601(SDateTime)},
 			{"validFor", {struct, [SDT]}};
+		{undefined, EDateTime} ->
+			EDT = {"startDateTime", ocs_rest:iso8601(EDateTime)},
+			{"validFor", {struct, [EDT]}};
 		{SDateTime, EDateTime} ->
 			SDT = {"startDateTime", ocs_rest:iso8601(SDateTime)},
 			EDT = {"endDateTime", ocs_rest:iso8601(EDateTime)},
