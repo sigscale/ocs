@@ -204,7 +204,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% 	"item 50-100/100").
 %%
 %% 	Returns `{error, Status}' if the request fails. `Status'
-%% 	is an HTTP status code to be returned tio the client.
+%% 	is an HTTP status code to be returned to the client.
 %%
 %% @private
 range_request({StartRange, EndRange}, From,
