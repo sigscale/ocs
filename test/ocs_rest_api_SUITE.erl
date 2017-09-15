@@ -2313,6 +2313,7 @@ update_product(Config) ->
 	ok = update_product_terminationdate(SslSock, RestPort, NewProdID1, TerminationDate1),
 	Status1 = "pending_active",
 	ok = update_product_status(SslSock, RestPort, NewProdID1, Status1),
+	ok = update_product_price(SslSock, RestPort, NewProdID1),
 	ok = ssl_socket_close(SslSock).
 
 %%---------------------------------------------------------------------
@@ -2470,6 +2471,24 @@ update_product_status(SslSock, RestPort, ProdID, Status) ->
 			{error, patch_pafiled}
 	end.
 
+update_product_price(SslSock, RestPort, ProdID) ->
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	ContentType = "application/json-patch+json",
+	PPN = "FamilyPack Mega",
+	Index = 0,
+	JSON = {array, [prod_price_name(Index, PPN)]},
+	Body = lists:flatten(mochijson:encode(JSON)),
+	{Headers, Response} = patch_request(SslSock, RestPort, ContentType, AuthKey, ProdID, Body),
+	<<"HTTP/1.1 200", _/binary>> = Headers,
+	{struct, Object} = mochijson:decode(Response),
+	{_, {array, Prices}} = lists:keyfind("productPrice", 1, Object),
+	{struct, Price} = lists:nth(Index + 1, lists:reverse(Prices)),
+	{_, PPN} = lists:keyfind("name", 1, Price),
+	ok.
+
 patch_request(SslSock, Port, ContentType, AuthKey, ProdID, ReqBody) when is_list(ReqBody) ->
 	BinBody = list_to_binary(ReqBody),
 	patch_request(SslSock, Port, ContentType, AuthKey, ProdID, BinBody);
@@ -2534,6 +2553,14 @@ product_status(Status) ->
 	Op = {"op", "replace"},
 	Path = {"path", "/status"},
 	Value = {"value", Status},
+	{struct, [Op, Path, Value]}.
+
+prod_price_name(Index, Name) when is_integer(Index) ->
+	prod_price_name(integer_to_list(Index), Name);
+prod_price_name(Index, Name) when is_list(Index) ->
+	Op = {"op", "replace"},
+	Path = {"path", "/productPrice/" ++ Index ++ "/name"},
+	Value = {"value", Name},
 	{struct, [Op, Path, Value]}.
 
 %% @hidden
