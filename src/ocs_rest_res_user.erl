@@ -73,10 +73,6 @@ get_users(Users, Query, Filters) ->
 				{lists:reverse(lists:sort(Users)), NewQuery};
 			{value, {_, "-id"}, NewQuery} ->
 				{lists:sort(Users), NewQuery};
-			{value, {_, "locale"}, NewQuery} ->
-				{lists:reverse(lists:sort(Users)), NewQuery};
-			{value, {_, "-locale"}, NewQuery} ->
-				{lists:sort(Users), NewQuery};
 			false ->
 				{Users, Query};
 			_ ->
@@ -90,48 +86,45 @@ get_users(Users, Query, Filters) ->
 			{error, 400}
 	end.
 %% @hidden
-get_users1(Users, Query, Filters) ->
-	{Id, Query1} = case lists:keytake("id", 1, Query) of
-		{value, {_, V1}, Q1} ->
-			{V1, Q1};
+get_users1(Users1, Query1, Filters) ->
+	{Users2, Query2} = case lists:keytake("id", 1, Query1) of
+		{value, {_, Id}, Q1} ->
+			case lists:member(Id, Users1) of
+				true ->
+					{[Id], Q1};
+				false ->
+					{error, 404}
+			end;
 		false ->
-			{[], Query}
+			{Users1, Query1}
 	end,
-	get_users2(Users, Id, Query1, Filters).
+	get_users2(Users2, Query2, Filters, []).
 %% @hidden
-get_users2([H|_T] = Users, Id, [] = _Query, _Filters) ->
+get_users2([H | T], [] = Query, Filters, Acc) ->
 	case ocs:get_user(H) of
-		{ok, #httpd_user{username = _Idlist, user_data = UserData}} ->
-			F = fun(Idlist)  ->
-				T1 = lists:prefix(Id, Idlist),
-				Characteristic = case lists:keyfind(locale, 1, UserData) of
-					{_, Lang} ->
-						LocaleAttr = {struct, [{"name", "locale"}, {"value", Lang}]},
-						{array, [LocaleAttr, T1]};
-					false ->
-						{array, []}
-					end,
-				if
-					T1 ->
-						RespObj1 = [{"id", Idlist}, {"href", "/partyManagement/v1/individual/" ++ Idlist}],
-						RespObj2 = [{"characteristic", Characteristic}],
-						{true, {struct, RespObj1 ++ RespObj2}};
-					true ->
-						false
-				end
-			end
-		end,
-	try
-		JsonObj = lists:filtermap(F, Users),
-		Size = integer_to_list(length(JsonObj)),
-		ContentRange = "item 1-" ++ Size ++ "/" ++ Size,
-		Body  = mochijson:encode({array, lists:reverse(JsonObj)}),
-		{ok, [{content_type, "application/json"},
-			{content_range, ContentRange}], Body}
-	catch
-		_:_Reason ->
+		{ok, #httpd_user{user_data = UserData}} ->
+			Characteristic1 = [{struct, [{"name", "username"}, {"value", H}]}],
+			Characteristic2 = case lists:keyfind(locale, 1, UserData) of
+				{_, Lang} ->
+					[{struct, [{"name", "locale"},
+							{"value", Lang}]} | Characteristic1];
+				false ->
+					Characteristic1
+			end,
+			User = [{"id", H},
+					{"href", "/partyManagement/v1/individual/" ++ H},
+					{"characteristic", Characteristic2}],
+			get_users2(T, Query, Filters, [User | Acc]);
+		{error, _Reason} ->
 			{error, 500}
 	end;
+get_users2([], _, _, Acc) ->
+	Users = lists:reverse(Acc),
+	Size = integer_to_list(length(Users)),
+	ContentRange = "item 1-" ++ Size ++ "/" ++ Size,
+	Body  = mochijson:encode({array, Users}),
+	{ok, [{content_type, "application/json"},
+			{content_range, ContentRange}], Body};
 get_users2(_, _, _, _) ->
 	{error, 400}.
 
@@ -151,37 +144,34 @@ get_user(Id, Query) ->
 			get_user(Id, Query, [])
 	end.
 %% @hidden
-get_user(Id, [] = _Query, Filters) ->
-	get_user1(Id, Filters);
-get_user(_Id, _Query, _Filters) ->
-	{error, 400}.
-%% @hidden
-get_user1(Id, _Filters) ->
+get_user(Id, [] = _Query, _Filters) ->
 	case ocs:get_user(Id) of
-		{ok, #httpd_user{username = Id, user_data = UserData}} ->
-			Characteristic = case lists:keyfind(locale, 1, UserData) of
+		{ok, #httpd_user{user_data = UserData}} ->
+			Characteristic1 = case lists:keyfind(locale, 1, UserData) of
 				{_, Lang} ->
-					LocaleAttr = {struct, [{"name", "locale"}, {"value", Lang}]},
-					{array, [LocaleAttr]};
+					[{struct, [{"name", "locale"}, {"value", Lang}]}];
 				false ->
-					LocaleAttr = {struct, [{"name", "locale"}, {"value", "en"}]},
-					{array, [LocaleAttr]}
+					[{struct, [{"name", "locale"}, {"value", "en"}]}]
 			end,
-			RespObj1 = [{"id", Id}, {"href", "/partyManagement/v1/individual/" ++ Id}],
-			RespObj2 = [{"characteristic", Characteristic}],
-			LastModified = case lists:keyfind(last_modified, 1, UserData) of
-				{_, LM} ->
-					LM;
+			Characteristic2 = [{struct, [{"name", "username"},
+					{"value", Id}]} | Characteristic1],
+			User = {struct, [{"id", Id},
+					{"href", "/partyManagement/v1/individual/" ++ Id},
+					{"characteristic", {array, Characteristic2}}]},
+			Headers1 = case lists:keyfind(last_modified, 1, UserData) of
+				{_, LastModified} ->
+					[{etag, etag(LastModified)}];
 				false ->
-					{erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])}
+					[]
 			end,
-			JsonObj  = {struct, RespObj1 ++ RespObj2},
-			Body = mochijson:encode(JsonObj),
-			Headers = [{content_type, "application/json"}, {etag, etag(LastModified)}],
-			{ok, Headers, Body};
+			Headers2 = [{content_type, "application/json"} | Headers1],
+			Body = mochijson:encode(User),
+			{ok, Headers2, Body};
 		{error, _Reason} ->
 			{error, 404}
-	end.
+	end;
+get_user(_, _, _) ->
+	{error, 400}.
 
 -spec post_user(RequestBody) -> Result
 	when
