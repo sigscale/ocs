@@ -576,7 +576,8 @@ add_user(Username, Password, Language) when is_list(Username),
 -spec list_users() -> Result
 	when
 		Result :: {ok, Users} | {error, Reason},
-		Users :: list(),
+		Users :: [Username],
+		Username :: string(),
 		Reason :: term().
 %% @doc List HTTP users.
 %% @equiv  mod_auth:list_users(Address, Port, Dir)
