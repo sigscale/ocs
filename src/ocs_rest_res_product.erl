@@ -754,15 +754,15 @@ prod_price_ufm_json2(Units, undefined) ->
 prod_price_ufm_json2(Units, Size) when is_number(Size) ->
 	prod_price_ufm_json2(Units, integer_to_list(Size));
 prod_price_ufm_json2(octets, Size) when is_list(Size) ->
-	Size ++ "octets";
+	Size ++ "b";
 prod_price_ufm_json2(gb, Size) when is_list(Size) ->
-	Size ++ "GB";
+	Size ++ "g";
 prod_price_ufm_json2(mb, Size) when is_list(Size) ->
-	Size ++ "MB";
+	Size ++ "m";
 prod_price_ufm_json2(cents, Size) when is_list(Size) ->
-	Size ++ "cents";
+	Size ++ "c";
 prod_price_ufm_json2(seconds, Size) when is_list(Size) ->
-	Size ++ "seconds".
+	Size ++ "s".
 %% @hidden
 prod_price_ufm_et(undefined) ->
 	{undefined, undefined};
@@ -771,7 +771,7 @@ prod_price_ufm_et(UFM) ->
 	prod_price_ufm_et1(LowerUOM).
 %% @hidden
 prod_price_ufm_et1(UFM) ->
-	Suffix = "octets",
+	Suffix = "b",
 	case lists:suffix(Suffix, UFM) of
 		true ->
 			[Size] = string:tokens(UFM, Suffix),
@@ -781,7 +781,7 @@ prod_price_ufm_et1(UFM) ->
 	end.
 %% @hidden
 prod_price_ufm_et2(UFM) ->
-	Suffix = "gb",
+	Suffix = "g",
 	case lists:suffix(Suffix, UFM) of
 		true ->
 			[Size] = string:tokens(UFM, Suffix),
@@ -791,7 +791,7 @@ prod_price_ufm_et2(UFM) ->
 	end.
 %% @hidden
 prod_price_ufm_et3(UFM) ->
-	Suffix = "mb",
+	Suffix = "m",
 	case lists:suffix(Suffix, UFM) of
 		true ->
 			[Size] = string:tokens(UFM, Suffix),
@@ -801,7 +801,7 @@ prod_price_ufm_et3(UFM) ->
 	end.
 %% @hidden
 prod_price_ufm_et4(UFM) ->
-	Suffix = "cents",
+	Suffix = "c",
 	case lists:suffix(Suffix, UFM) of
 		true ->
 			[Size] = string:tokens(UFM, Suffix),
@@ -811,7 +811,7 @@ prod_price_ufm_et4(UFM) ->
 	end.
 %% @hidden
 prod_price_ufm_et5(UFM) ->
-	Suffix = "seconds",
+	Suffix = "s",
 	case lists:suffix(Suffix, UFM) of
 		true ->
 			[Size] = string:tokens(UFM, Suffix),
