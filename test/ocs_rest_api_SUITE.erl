@@ -2305,6 +2305,8 @@ update_product(Config) ->
 	NewProdID1 = "Wi-Fi_Ultimate",
 	SslSock = ssl_socket_open({127,0,0,1}, RestPort),
 	ok = update_product_name(SslSock, RestPort, ProdID, NewProdID1),
+	Description1 = "Ultmate Family Package",
+	ok = update_product_description(SslSock, RestPort, NewProdID1, Description1),
 	ok = ssl_socket_close(SslSock).
 
 %%---------------------------------------------------------------------
@@ -2390,6 +2392,23 @@ update_product_name(SslSock, RestPort, OldProdID, NewProdID) ->
 			{error, patch_pafiled}
 	end.
 
+update_product_description(SslSock, RestPort, ProdID, Description) ->
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	ContentType = "application/json-patch+json",
+	JSON = {array, [product_description(Description)]},
+	Body = lists:flatten(mochijson:encode(JSON)),
+	{Headers, Response} = patch_request(SslSock, RestPort, ContentType, AuthKey, ProdID, Body),
+	<<"HTTP/1.1 200", _/binary>> = Headers,
+	{struct, Object} = mochijson:decode(Response),
+	case lists:keyfind("description", 1, Object) of
+		{_, Description} ->
+			ok;
+		_ ->
+			{error, patch_pafiled}
+	end.
 
 patch_request(SslSock, Port, ContentType, AuthKey, ProdID, ReqBody) when is_list(ReqBody) ->
 	BinBody = list_to_binary(ReqBody),
@@ -2418,7 +2437,6 @@ patch_request(SslSock, Port, ContentType, AuthKey, ProdID, ReqBody) ->
 	[Headers, ResponseBody] = binary:split(PatchResponse, <<$\r,$\n,$\r,$\n>>),
 	{Headers, ResponseBody}.
 
-
 ssl_socket_open(IP, Port) ->
 	{ok, SslSock} = ssl:connect(IP, Port,
 		[binary, {active, false}], infinity),
@@ -2432,6 +2450,12 @@ product_name(ProdID) ->
 	Op = {"op", "replace"},
 	Path = {"path", "/name"},
 	Value = {"value", ProdID},
+	{struct, [Op, Path, Value]}.
+
+product_description(Description) ->
+	Op = {"op", "replace"},
+	Path = {"path", "/description"},
+	Value = {"value", Description},
 	{struct, [Op, Path, Value]}.
 
 %% @hidden
