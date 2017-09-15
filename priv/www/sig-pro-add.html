@@ -160,8 +160,9 @@
 							</paper-item>
 						</paper-listbox>
 					</paper-dropdown-menu>
-					<paper-dropdown-menu
+					<paper-dropdown-menu id="addPrice2drop"
 							label="Units"
+							on-selected-item-changed="checkUnit"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 						<paper-listbox
 								id="addPrice2"
@@ -185,20 +186,20 @@
 							</paper-item>
 						</paper-listbox>
 					</paper-dropdown-menu>
+					<paper-input id="addPriceSize"
+							class="size"
+							name="size"
+							type="number"
+							label="Unit Size"
+							value=1
+							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
+					</paper-input>
 					<paper-input id="addPrice3"
 							class="amount"
 							name="amount"
 							type="number"
 							label="Amount"
 							value=0
-							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
-					</paper-input>
-					<paper-input id="addPriceSize"
-							class="size"
-							name="size"
-							type="number"
-							label="Size"
-							value=1
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 					</paper-input>
 					<paper-input id="addPrice4"
@@ -341,7 +342,7 @@
 					<paper-input id="sizeAlt3"
 							class="size"
 							name="size"
-							label="Size"
+							label="Unit Size"
 							type="number"
 							onfocus="endDatePick.hide(); startDatePick.hide();">
 					</paper-input>
@@ -562,6 +563,13 @@ console.log(ajax.body);
 					this.$.addPrice5drop.disabled = false;
 				} else { 
 					this.$.addPrice5drop.disabled = true;
+				}
+			},
+			checkUnit: function() {
+				if(this.$.addPrice2.selected == 1) {
+					this.$.addPrice4.disabled = false;
+				} else {
+					this.$.addPrice4.disabled = true;
 				}
 			},
 			addPrice: function() {
