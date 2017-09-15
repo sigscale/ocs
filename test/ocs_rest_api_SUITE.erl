@@ -2478,8 +2478,24 @@ update_product_price(SslSock, RestPort, ProdID) ->
 	AuthKey = "Basic " ++ Encodekey,
 	ContentType = "application/json-patch+json",
 	PPN = "FamilyPack Mega",
+	Des = "Update Family pack",
+	RCP = "daily",
+	UFM = "100octets",
+	PrT = "one_time",
+	AltDes = "Alter Description Updated",
+	AltNam = "usage123",
+	AltPrT = "one_time",
+	AltUFM = "100MB",
 	Index = 0,
-	JSON = {array, [prod_price_name(Index, PPN)]},
+	JSON = {array, [prod_price_name(Index, PPN),
+				prod_price_description(Index, Des),
+				prod_price_rc_period(Index, RCP),
+				prod_price_ufm(Index, UFM),
+				prod_price_type(Index, PrT),
+				pp_alter_description(Index, AltDes),
+				pp_alter_name(Index, AltNam),
+				pp_alter_type(Index, AltPrT),
+				pp_alter_ufm(Index, AltUFM)]},
 	Body = lists:flatten(mochijson:encode(JSON)),
 	{Headers, Response} = patch_request(SslSock, RestPort, ContentType, AuthKey, ProdID, Body),
 	<<"HTTP/1.1 200", _/binary>> = Headers,
@@ -2487,6 +2503,15 @@ update_product_price(SslSock, RestPort, ProdID) ->
 	{_, {array, Prices}} = lists:keyfind("productPrice", 1, Object),
 	{struct, Price} = lists:nth(Index + 1, lists:reverse(Prices)),
 	{_, PPN} = lists:keyfind("name", 1, Price),
+	{_, Des} = lists:keyfind("description", 1, Price),
+	{_, RCP} = lists:keyfind("recurringChargePeriod", 1, Price),
+	{_, UFM} = lists:keyfind("unitOfMeasure", 1, Price),
+	{_, PrT} = lists:keyfind("priceType", 1, Price),
+	{_, {struct, Alter}} = lists:keyfind("prodPriceAlteration", 1, Price),
+	{_, AltDes} = lists:keyfind("description", 1, Alter),
+	{_, AltNam} = lists:keyfind("name", 1, Alter),
+	{_, AltPrT} = lists:keyfind("priceType", 1, Alter),
+	{_, AltUFM} = lists:keyfind("unitOfMeasure", 1, Alter),
 	ok.
 
 patch_request(SslSock, Port, ContentType, AuthKey, ProdID, ReqBody) when is_list(ReqBody) ->
@@ -2561,6 +2586,70 @@ prod_price_name(Index, Name) when is_list(Index) ->
 	Op = {"op", "replace"},
 	Path = {"path", "/productPrice/" ++ Index ++ "/name"},
 	Value = {"value", Name},
+	{struct, [Op, Path, Value]}.
+
+prod_price_description(Index, Description) when is_integer(Index) ->
+	prod_price_description(integer_to_list(Index), Description);
+prod_price_description(Index, Description) when is_list(Index) ->
+	Op = {"op", "replace"},
+	Path = {"path", "/productPrice/" ++ Index ++ "/description"},
+	Value = {"value", Description},
+	{struct, [Op, Path, Value]}.
+
+prod_price_rc_period(Index, Period) when is_integer(Index) ->
+	prod_price_rc_period(integer_to_list(Index), Period);
+prod_price_rc_period(Index, Period) when is_list(Index) ->
+	Op = {"op", "replace"},
+	Path = {"path", "/productPrice/" ++ Index ++ "/recurringChargePeriod"},
+	Value = {"value", Period},
+	{struct, [Op, Path, Value]}.
+
+prod_price_ufm(Index, UFM) when is_integer(Index) ->
+	prod_price_ufm(integer_to_list(Index), UFM);
+prod_price_ufm(Index, UFM) when is_list(Index) ->
+	Op = {"op", "replace"},
+	Path = {"path", "/productPrice/" ++ Index ++ "/unitOfMeasure"},
+	Value = {"value", UFM},
+	{struct, [Op, Path, Value]}.
+
+prod_price_type(Index, PT) when is_integer(Index) ->
+	prod_price_type(integer_to_list(Index), PT);
+prod_price_type(Index, PT) when is_list(Index) ->
+	Op = {"op", "replace"},
+	Path = {"path", "/productPrice/" ++ Index ++ "/priceType"},
+	Value = {"value", PT},
+	{struct, [Op, Path, Value]}.
+
+pp_alter_name(Index, Name) when is_integer(Index) ->
+	pp_alter_name(integer_to_list(Index), Name);
+pp_alter_name(Index, Name) when is_list(Index) ->
+	Op = {"op", "replace"},
+	Path = {"path", "/productPrice/" ++ Index ++ "/prodPriceAlteration/name"},
+	Value = {"value", Name},
+	{struct, [Op, Path, Value]}.
+
+pp_alter_description(Index, Des) when is_integer(Index) ->
+	pp_alter_description(integer_to_list(Index), Des);
+pp_alter_description(Index, Des) when is_list(Index) ->
+	Op = {"op", "replace"},
+	Path = {"path", "/productPrice/" ++ Index ++ "/prodPriceAlteration/description"},
+	Value = {"value", Des},
+	{struct, [Op, Path, Value]}.
+
+pp_alter_type(Index, PT) when is_integer(Index) ->
+	pp_alter_type(integer_to_list(Index), PT);
+pp_alter_type(Index, PT) when is_list(Index) ->
+	Op = {"op", "replace"},
+	Path = {"path", "/productPrice/" ++ Index ++ "/prodPriceAlteration/priceType"},
+	Value = {"value", PT},
+	{struct, [Op, Path, Value]}.
+
+pp_alter_ufm(Index, UFM) when is_integer(Index) ->
+	pp_alter_ufm(integer_to_list(Index), UFM);
+pp_alter_ufm(Index, UFM) when is_list(Index) ->
+	Op = {"op", "replace"},
+	Path = {"path", "/productPrice/" ++ Index ++ "/prodPriceAlteration/unitOfMeasure"},
+	Value = {"value", UFM},
 	{struct, [Op, Path, Value]}.
 
 %% @hidden
