@@ -139,7 +139,7 @@ all() ->
 	get_usagespecs, get_usagespecs_query, get_usagespec,
 	get_auth_usage, get_auth_usage_id, get_auth_usage_filter,
 	get_auth_usage_range, get_acct_usage, get_acct_usage_id,
-	get_acct_usage_filter, get_ipdr_usage,
+	get_acct_usage_filter, get_acct_usage_range, get_ipdr_usage,
 	top_up_subscriber_balance, get_subscriber_balance,
 	add_user, get_user, delete_user,
 	simultaneous_updates_on_user_faliure, simultaneous_updates_on_subscriber_faliure,
@@ -1527,6 +1527,79 @@ get_acct_usage_filter(Config) ->
 	{_, _, Usage3} = lists:keytake("date", 1, Usage2),
 	{_, _, Usage4} = lists:keytake("status", 1, Usage3),
 	{_, {_, {array, _UsageCharacteristic}}, []} = lists:keytake("usageCharacteristic", 1, Usage4).
+
+get_acct_usage_range() ->
+	[{userdata, [{doc,"Get range of items in the usage collection"}]}].
+
+get_acct_usage_range(Config) ->
+	{ok, PageSize} = application:get_env(ocs, rest_page_size),
+	Flog = fun(_F, 0) ->
+				ok;
+			(F, N) ->
+				ClientAddress = ocs_test_lib:ipv4(),
+				ClientPort = ocs_test_lib:port(),
+				Attrs = [{?UserName, ocs:generate_identity()},
+						{?CallingStationId, ocs_test_lib:mac()},
+						{?CalledStationId, ocs_test_lib:mac()},
+						{?NasIpAddress, ClientAddress},
+						{?NasPort, ClientPort},
+						{?AcctSessionTime, 3600},
+						{?AcctInputOctets, rand:uniform(100000000)},
+						{?AcctOutputOctets, rand:uniform(10000000000)},
+						{?AcctTerminateCause, 5}], 
+				ok = ocs_log:acct_log(radius, {{0,0,0,0}, 1812}, stop, Attrs),
+				F(F, N - 1)
+	end,
+	NumLogged = (PageSize * 2) + (PageSize div 2) + 17,
+	ok = Flog(Flog, NumLogged),
+	RangeSize = case PageSize > 100 of
+		true ->
+			rand:uniform(PageSize - 10) + 10;
+		false ->
+			PageSize - 1
+	end,
+	HostUrl = ?config(host_url, Config),
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Accept = {"accept", "application/json"},
+	RequestHeaders1 = [Accept, Authentication],
+	Request1 = {HostUrl ++ "/usageManagement/v1/usage?type=AAAAccountingUsage", RequestHeaders1},
+	{ok, Result1} = httpc:request(get, Request1, [], []),
+	{{"HTTP/1.1", 200, _OK}, ResponseHeaders1, Body1} = Result1,
+	{_, Range1} = lists:keyfind("content-range", 1, ResponseHeaders1),
+	["items", "1", RangeEndS1, "*"] = string:tokens(Range1, " -/"),
+	PageSize = list_to_integer(RangeEndS1),
+	{array, Usages1} = mochijson:decode(Body1),
+	PageSize = length(Usages1),
+	Fget = fun(F, RangeStart2, RangeEnd2) ->
+				RangeHeader = [{"range",
+						"items " ++ integer_to_list(RangeStart2)
+						++ "-" ++ integer_to_list(RangeEnd2)}],
+				RequestHeaders2 = RequestHeaders1 ++ RangeHeader,
+				Request2 = {HostUrl ++ "/usageManagement/v1/usage?type=AAAAccountingUsage", RequestHeaders2},
+				{ok, Result2} = httpc:request(get, Request2, [], []),
+				{{"HTTP/1.1", 200, _OK}, ResponseHeaders2, Body2} = Result2,
+				{_, Range} = lists:keyfind("content-range", 1, ResponseHeaders2),
+				["items", RangeStartS, RangeEndS, EndS] = string:tokens(Range, " -/"),
+				RangeStart2 = list_to_integer(RangeStartS),
+				case EndS of
+					"*" ->
+						RangeEnd2 = list_to_integer(RangeEndS),
+						RangeSize = (RangeEnd2 - (RangeStart2 - 1)),
+						{array, Usages2} = mochijson:decode(Body2),
+						RangeSize = length(Usages2),
+						NewRangeStart = RangeEnd2 + 1,
+						NewRangeEnd = NewRangeStart + (RangeSize - 1),
+						F(F, NewRangeStart, NewRangeEnd);
+					EndS when RangeEndS == EndS ->
+						list_to_integer(EndS)
+				end
+	end,
+	End = Fget(Fget, PageSize + 1, PageSize + RangeSize),
+	End >= NumLogged.
 
 get_ipdr_usage() ->
 	[{userdata, [{doc,"Get a TMF635 IPDR usage"}]}].
