@@ -546,7 +546,7 @@ usage_aaa_auth({Milliseconds, N, P, Node,
 		[] ->
 			Object;
 		_ ->
-			ocs_rest:filter(["id", "href"] ++ Filters, Object)
+			ocs_rest:filter("id,href," ++ Filters, Object)
 	end;
 usage_aaa_auth(Events, Filters) when is_list(Events) ->
 	usage_aaa_auth(Events, Filters, []).
@@ -589,7 +589,7 @@ usage_aaa_acct({Milliseconds, N, P, Node,
 		[] ->
 			Object;
 		_ ->
-			ocs_rest:filter(["id", "href"] ++ Filters, Object)
+			ocs_rest:filter("id,href," ++ Filters, Object)
 	end;
 usage_aaa_acct(Events, Filters) when is_list(Events) ->
 	usage_aaa_acct(Events, Filters, []).
