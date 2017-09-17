@@ -527,7 +527,7 @@ delete_subscriber(Config) ->
 	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
 	{_, URI1} = lists:keyfind("location", 1, Headers),
 	{URI2, _} = httpd_util:split_path(URI1),
-	Request2 = {HostUrl ++ URI2, [Accept, Authentication], ContentType, []},
+	Request2 = {HostUrl ++ URI2, [Authentication]},
 	{ok, Result1} = httpc:request(delete, Request2, [], []),
 	{{"HTTP/1.1", 204, _NoContent}, Headers1, []} = Result1,
 	{_, "0"} = lists:keyfind("content-length", 1, Headers1).
@@ -947,7 +947,7 @@ delete_client(Config) ->
 	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
 	{_, URI1} = lists:keyfind("location", 1, Headers),
 	{URI2, _} = httpd_util:split_path(URI1),
-	Request2 = {HostUrl ++ URI2, [Accept, Authentication], ContentType, []},
+	Request2 = {HostUrl ++ URI2, [Authentication]},
 	{ok, Result1} = httpc:request(delete, Request2, [], []),
 	{{"HTTP/1.1", 204, _NoContent}, Headers1, []} = Result1,
 	{_, "0"} = lists:keyfind("content-length", 1, Headers1).
