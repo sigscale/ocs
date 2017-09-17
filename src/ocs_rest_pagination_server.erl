@@ -56,6 +56,13 @@
 		PageServer :: pid(),
 		Reason :: term().
 %% @doc Start a handler for a sequence of REST range requests.
+%% 	`Args' is a list of `[Module, Function, Arguments]'.
+%% 	Each request will result in a call to the callback
+%% 	with `apply(Module, Function, [Cont | Arguments])'. The result
+%% 	should be `{Cont, Items}' or `{error, Reason}'. `Cont' will
+%% 	be `start' on the first call and the returned value may be
+%% 	`eof' or an opaque continuation value which will be used in
+%% 	the next call to the callback.
 start_link(Args) ->
 	Etag = integer_to_list(erlang:system_time(?MILLISECOND)) ++ "-"
 			++ integer_to_list(erlang:unique_integer([positive])),
@@ -234,37 +241,15 @@ range_request({StartRange, EndRange}, _From,
 	NewState = State#state{offset = EndRange, buffer = NewBuffer},
 	ContentRange = content_range(StartRange, EndRange, undefined),
 	{reply, {RespItems, ContentRange}, NewState, Timeout};
-range_request({1, EndRange}, _From,
-		#state{module = Module, function = Function,
-		args = Args, timeout = Timeout} = State) ->
-	case apply(Module, Function, [start | Args]) of
-		{error, Reason} ->
-			{stop, shutdown, {error, Reason}, State, Timeout};
-		{eof, Items} when length(Items) =< EndRange ->
-			{stop, shutdown, {eof, Items}, State};
-		{Cont2, Items} when length(Items) >= EndRange ->
-			{RespItems, Rest} = lists:split(EndRange, Items),
-			NewState = State#state{cont = Cont2,
-					offset = EndRange + 1, buffer = Rest},
-			{reply, {Cont2, RespItems}, NewState, Timeout};
-		{Cont2, Items} ->
-			NewState = State#state{cont = Cont2,
-					offset = 1, buffer = Items},
-			{reply, {Cont2, Items}, NewState, Timeout}
-	end;
-range_request({StartRange, EndRange}, _From,
+range_request({StartRange, EndRange}, From,
 		#state{cont = Cont1, module = Module, function = Function,
-		args = Args, timeout = Timeout} = State) ->
+		args = Args, buffer = Buffer} = State) ->
 	case apply(Module, Function, [Cont1 | Args]) of
-		{error, Reason} ->
-			{stop, shutdown, {error, Reason}, State, Timeout};
-		{eof, Items} when length(Items) =< EndRange ->
-			RespItems = lists:sublist(Items, StartRange, EndRange - StartRange),
-			{stop, shutdown, {eof, RespItems}, State};
-		{Cont2, Items} when length(Items) =< EndRange ->
-			{RespItems, Rest} = lists:split(EndRange, Items),
-			NewState = State#state{offset = EndRange + 1, buffer = Rest},
-			{reply, {Cont2, RespItems}, NewState, Timeout}
+		{error, _Reason} ->
+			{stop, shutdown, {error, 500}, State};
+		{Cont2, Items} ->
+			NewState = State#state{cont = Cont2, buffer = Buffer ++ Items},
+			range_request({StartRange, EndRange}, From, NewState)
 	end.
 
 %% @hidden
