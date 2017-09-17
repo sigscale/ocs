@@ -131,7 +131,7 @@ all() ->
 	authenticate_subscriber_request, unauthenticate_subscriber_request,
 	authenticate_client_request, unauthenticate_client_request,
 	add_subscriber, add_subscriber_without_password, get_subscriber,
-	get_subscriber_not_found, retrieve_all_subscriber, delete_subscriber,
+	get_subscriber_not_found, get_all_subscriber, delete_subscriber,
 	add_client, add_client_without_password, get_client, get_client_id,
 	get_client_bogus, get_client_notfound, get_all_clients,
 	get_clients_filter, delete_client, get_usagespecs,
@@ -371,10 +371,10 @@ get_subscriber_not_found(Config) ->
 	{ok, Result} = httpc:request(get, Request, [], []),
 	{{"HTTP/1.1", 404, _NotFound}, _Headers, _Body} = Result.
 
-retrieve_all_subscriber() ->
-	[{userdata, [{doc,"get subscriber in rest interface"}]}].
+get_all_subscriber() ->
+	[{userdata, [{doc,"Get all items in the subscriber collection"}]}].
 
-retrieve_all_subscriber(Config) ->
+get_all_subscriber(Config) ->
 	ContentType = "application/json",
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
