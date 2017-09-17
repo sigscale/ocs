@@ -3,6 +3,7 @@
 -module(ocs_test_lib).
 
 -export([initialize_db/0, start/0, stop/0]).
+-export([ipv4/0, port/0, mac/0]).
 
 initialize_db() ->
 	case mnesia:system_info(is_running) of
@@ -68,4 +69,17 @@ stop() ->
 		{error, Reason} ->
 			{error, Reason}
 	end.
+
+ipv4() ->
+	{10, rand:uniform(256) - 1, rand:uniform(256) - 1, rand:uniform(254)}.
+
+port() ->
+	rand:uniform(66559) + 1024.
+
+mac() ->
+	mac(6, []).
+mac(0, Acc) ->
+	lists:flatten(io_lib:fwrite("~.16B:~.16B:~.16B:~.16B:~.16B:~.16B", Acc));
+mac(N, Acc) ->
+	mac(N - 1, [rand:uniform(256) - 1 | Acc]).
 
