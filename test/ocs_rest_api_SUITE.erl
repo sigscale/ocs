@@ -445,10 +445,11 @@ get_subscriber_range(Config) ->
 				{ok, _} = ocs:add_subscriber(Identity, Password, []),
 				F(F, N - 1)
 	end,
-	ok = Fadd(Fadd, (PageSize * 2) + (PageSize div 2)),
+	NumAdded = (PageSize * 2) + (PageSize div 2) + 17,
+	ok = Fadd(Fadd, NumAdded),
 	RangeSize = case PageSize > 25 of
 		true ->
-			25;
+			rand:uniform(PageSize - 10) + 10;
 		false ->
 			PageSize - 1
 	end,
@@ -842,10 +843,11 @@ get_client_range(Config) ->
 				ok = ocs:add_client(Address, Secret),
 				F(F, N - 1)
 	end,
-	ok = Fadd(Fadd, (PageSize * 2) + (PageSize div 2)),
+	NumAdded = (PageSize * 2) + (PageSize div 2) + 17,
+	ok = Fadd(Fadd, NumAdded),
 	RangeSize = case PageSize > 25 of
 		true ->
-			25;
+			rand:uniform(PageSize - 10) + 10;
 		false ->
 			PageSize - 1
 	end,
@@ -1269,10 +1271,11 @@ get_auth_usage_range(Config) ->
 						{ClientAddress, ClientPort}, accept, ReqAttrs, ResAttrs),
 				F(F, N - 1)
 	end,
-	ok = Flog(Flog, (PageSize * 2) + (PageSize div 2)),
+	NumLogged = (PageSize * 2) + (PageSize div 2) + 17,
+	ok = Flog(Flog, NumLogged),
 	RangeSize = case PageSize > 100 of
 		true ->
-			100;
+			rand:uniform(PageSize - 10) + 10;
 		false ->
 			PageSize - 1
 	end,
@@ -1317,7 +1320,7 @@ get_auth_usage_range(Config) ->
 				end
 	end,
 	End = Fget(Fget, PageSize + 1, PageSize + RangeSize),
-	End >= (PageSize * 2) + (PageSize div 2).
+	End >= NumLogged.
 
 get_acct_usage() ->
 	[{userdata, [{doc,"Get a TMF635 acct usage"}]}].
