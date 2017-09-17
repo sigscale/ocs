@@ -544,8 +544,8 @@ fill_auth(N) ->
 	NASn = integer_to_list((I3 bsl 8) + I4),
 	NasIdentifier = "ap-" ++ NASn ++ ".sigscale.net",
 	ReqAttrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
-			{?UserName, ocs:generate_identity()}, {?CallingStationId, mac()},
-			{?CalledStationId, mac() ++ ":AP1"}, {?NasIdentifier, NasIdentifier},
+			{?UserName, ocs:generate_identity()}, {?CallingStationId, ocs_test_lib:mac()},
+			{?CalledStationId, ocs_test_lib:mac() ++ ":AP1"}, {?NasIdentifier, NasIdentifier},
 			{?NasIpAddress, ClientAddress}],
 	{Type, RespAttrs} = resp_attr(),
 	ok = ocs_log:auth_log(radius, Server, Client, Type, ReqAttrs, RespAttrs),
@@ -566,21 +566,14 @@ fill_acct(N) ->
 		3 -> interim
 	end,
 	Attrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
-			{?UserName, ocs:generate_identity()}, {?CallingStationId, mac()},
-			{?CalledStationId, mac() ++ ":AP1"}, {?NasIdentifier, NasIdentifier},
+			{?UserName, ocs:generate_identity()}, {?CallingStationId, ocs_test_lib:mac()},
+			{?CalledStationId, ocs_test_lib:mac() ++ ":AP1"}, {?NasIdentifier, NasIdentifier},
 			{?NasIpAddress, ClientAddress}, {?AcctStatusType, rand:uniform(3)}, 
 			{?AcctSessionTime, rand:uniform(3600) + 100},
 			{?AcctInputOctets, rand:uniform(100000000)},
 			{?AcctOutputOctets, rand:uniform(100000)}],
 	ok = ocs_log:acct_log(radius, Server, Type, Attrs),
 	fill_acct(N - 1).
-
-mac() ->
-	mac(6, []).
-mac(0, Acc) ->
-	io_lib:fwrite("~.16B:~.16B:~.16B:~.16B:~.16B:~.16B", Acc);
-mac(N, Acc) ->
-	mac(N - 1, [rand:uniform(256) - 1 | Acc]).
 
 resp_attr() ->
 	resp_attr(rand:uniform(100)).
