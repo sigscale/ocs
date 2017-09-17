@@ -130,20 +130,22 @@ all() ->
 	[authenticate_user_request, unauthenticate_user_request,
 	authenticate_subscriber_request, unauthenticate_subscriber_request,
 	authenticate_client_request, unauthenticate_client_request,
-	add_subscriber, add_subscriber_without_password, get_subscriber,
-	get_subscriber_not_found, get_all_subscriber, delete_subscriber,
+	add_subscriber, add_subscriber_without_password,
+	get_subscriber, get_subscriber_not_found, get_all_subscriber,
+	get_subscriber_range, delete_subscriber,
 	add_client, add_client_without_password, get_client, get_client_id,
 	get_client_bogus, get_client_notfound, get_all_clients,
-	get_clients_filter, delete_client, get_usagespecs,
-	get_usagespecs_query, get_usagespec, get_auth_usage,
-	get_auth_usage_id, get_auth_usage_filter, get_acct_usage,
-	get_acct_usage_id, get_acct_usage_filter, get_ipdr_usage,
-	top_up_subscriber_balance, get_subscriber_balance, add_user,
-	get_user, delete_user, simultaneous_updates_on_user_faliure,
-	simultaneous_updates_on_subscriber_faliure,
-	simultaneous_updates_on_client_faliure, update_client_password_json_patch,
-	update_client_attributes_json_patch, update_subscriber_password_json_patch,
-	update_subscriber_attributes_json_patch, update_user_characteristics_json_patch].
+	get_client_range, get_clients_filter, delete_client,
+	get_usagespecs, get_usagespecs_query, get_usagespec,
+	get_auth_usage, get_auth_usage_id, get_auth_usage_filter,
+	get_acct_usage, get_acct_usage_id, get_acct_usage_filter, get_ipdr_usage,
+	top_up_subscriber_balance, get_subscriber_balance,
+	add_user, get_user, delete_user,
+	simultaneous_updates_on_user_faliure, simultaneous_updates_on_subscriber_faliure,
+	simultaneous_updates_on_client_faliure,
+	update_client_password_json_patch, update_client_attributes_json_patch,
+	update_subscriber_password_json_patch, update_subscriber_attributes_json_patch,
+	update_user_characteristics_json_patch].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -428,6 +430,69 @@ get_all_subscriber(Config) ->
 	{"balance", Balance} = lists:keyfind("balance", 1, Subscriber),
 	{"enabled", Enable} = lists:keyfind("enabled", 1, Subscriber),
 	{"multisession", Multi} = lists:keyfind("multisession", 1, Subscriber).
+
+get_subscriber_range() ->
+	[{userdata, [{doc,"Get range of items in the subscriber collection"}]}].
+
+get_subscriber_range(Config) ->
+	{ok, PageSize} = application:get_env(ocs, rest_page_size),
+	Fadd = fun(_F, 0) ->
+				ok;
+			(F, N) ->
+				Identity = ocs:generate_identity(),
+				Password = ocs:generate_password(),
+				{ok, _} = ocs:add_subscriber(Identity, Password, []),
+				F(F, N - 1)
+	end,
+	ok = Fadd(Fadd, (PageSize * 2) + (PageSize div 2)),
+	RangeSize = case PageSize > 25 of
+		true ->
+			25;
+		false ->
+			PageSize - 1
+	end,
+	HostUrl = ?config(host_url, Config),
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Accept = {"accept", "application/json"},
+	RequestHeaders1 = [Accept, Authentication],
+	Request1 = {HostUrl ++ "/ocs/v1/subscriber", RequestHeaders1},
+	{ok, Result1} = httpc:request(get, Request1, [], []),
+	{{"HTTP/1.1", 200, _OK}, ResponseHeaders1, Body1} = Result1,
+	{_, Range1} = lists:keyfind("content-range", 1, ResponseHeaders1),
+	["items", "1", RangeEndS1, "*"] = string:tokens(Range1, " -/"),
+	PageSize = list_to_integer(RangeEndS1),
+	{array, Subscribers1} = mochijson:decode(Body1),
+	PageSize = length(Subscribers1),
+	Fget = fun(F, RangeStart2, RangeEnd2) ->
+				RangeHeader = {"range",
+						"items " ++ integer_to_list(RangeStart2)
+						++ "-" ++ integer_to_list(RangeEnd2)},
+				RequestHeaders2 = RequestHeaders1 ++ RangeHeader,
+				Request2 = {HostUrl ++ "/ocs/v1/subscriber", RequestHeaders2},
+				{ok, Result2} = httpc:request(get, Request2, [], []),
+				{{"HTTP/1.1", 200, _OK}, ResponseHeaders2, Body2} = Result2,
+				{_, Range} = lists:keyfind("content-range", 1, ResponseHeaders2),
+				["items", RangeStartS, RangeEndS, EndS] = string:tokens(Range, " -/"),
+				RangeStart2 = list_to_integer(RangeStartS),
+				case EndS of
+					"*" ->
+						RangeEnd2 = list_to_integer(RangeEndS),
+						RangeSize = (RangeEnd2 - (RangeStart2 - 1)),
+						{array, Subscribers2} = mochijson:decode(Body2),
+						RangeSize = length(Subscribers2),
+						NewRangeStart = RangeEnd2 + 1,
+						NewRangeEnd = NewRangeStart + (RangeSize - 1),
+						F(F, NewRangeStart, NewRangeEnd);
+					EndS when RangeEndS == EndS ->
+						list_to_integer(EndS)
+				end
+	end,
+	CollectionSize = length(ocs:get_subscribers()),
+	CollectionSize = Fget(Fget, PageSize + 1, PageSize + RangeSize).
 
 delete_subscriber() ->
 	[{userdata, [{doc,"Delete subscriber in rest interface"}]}].
@@ -761,6 +826,70 @@ get_all_clients(Config) ->
 	{_, Port} = lists:keyfind("port", 1, ClientVar),
 	{_, Protocol} = lists:keyfind("protocol", 1, ClientVar),
 	{_, Secret} = lists:keyfind("secret", 1, ClientVar).
+
+get_client_range() ->
+	[{userdata, [{doc,"Get range of items in the client collection"}]}].
+
+get_client_range(Config) ->
+	{ok, PageSize} = application:get_env(ocs, rest_page_size),
+	Fadd = fun(_F, 0) ->
+				ok;
+			(F, N) ->
+				Address = {10, rand:uniform(255),
+						rand:uniform(255), rand:uniform(254)},
+				Secret = ocs:generate_password(),
+				ok = ocs:add_client(Address, Secret),
+				F(F, N - 1)
+	end,
+	ok = Fadd(Fadd, (PageSize * 2) + (PageSize div 2)),
+	RangeSize = case PageSize > 25 of
+		true ->
+			25;
+		false ->
+			PageSize - 1
+	end,
+	HostUrl = ?config(host_url, Config),
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Accept = {"accept", "application/json"},
+	RequestHeaders1 = [Accept, Authentication],
+	Request1 = {HostUrl ++ "/ocs/v1/client", RequestHeaders1},
+	{ok, Result1} = httpc:request(get, Request1, [], []),
+	{{"HTTP/1.1", 200, _OK}, ResponseHeaders1, Body1} = Result1,
+	{_, Range1} = lists:keyfind("content-range", 1, ResponseHeaders1),
+	["items", "1", RangeEndS1, "*"] = string:tokens(Range1, " -/"),
+	PageSize = list_to_integer(RangeEndS1),
+	{array, Clients1} = mochijson:decode(Body1),
+	PageSize = length(Clients1),
+	Fget = fun(F, RangeStart2, RangeEnd2) ->
+				RangeHeader = {"range",
+						"items " ++ integer_to_list(RangeStart2)
+						++ "-" ++ integer_to_list(RangeEnd2)},
+				RequestHeaders2 = RequestHeaders1 ++ RangeHeader,
+				Request2 = {HostUrl ++ "/ocs/v1/client", RequestHeaders2},
+				{ok, Result2} = httpc:request(get, Request2, [], []),
+				{{"HTTP/1.1", 200, _OK}, ResponseHeaders2, Body2} = Result2,
+				{_, Range} = lists:keyfind("content-range", 1, ResponseHeaders2),
+				["items", RangeStartS, RangeEndS, EndS] = string:tokens(Range, " -/"),
+				RangeStart2 = list_to_integer(RangeStartS),
+				case EndS of
+					"*" ->
+						RangeEnd2 = list_to_integer(RangeEndS),
+						RangeSize = (RangeEnd2 - (RangeStart2 - 1)),
+						{array, Clients2} = mochijson:decode(Body2),
+						RangeSize = length(Clients2),
+						NewRangeStart = RangeEnd2 + 1,
+						NewRangeEnd = NewRangeStart + (RangeSize - 1),
+						F(F, NewRangeStart, NewRangeEnd);
+					EndS when RangeEndS == EndS ->
+						list_to_integer(EndS)
+				end
+	end,
+	CollectionSize = length(ocs:get_clients()),
+	CollectionSize = Fget(Fget, PageSize + 1, PageSize + RangeSize).
 
 get_clients_filter() ->
 	[{userdata, [{doc,"Get clients with filters"}]}].
