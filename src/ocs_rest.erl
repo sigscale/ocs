@@ -96,20 +96,26 @@ filter(Filters, JsonObject) when is_list(Filters) ->
 
 -spec range(Range) -> Result
 	when
-		Range :: string(),
-		Result :: {Start, End} | {error, 400},
+		Range :: RHS | {Start, End},
+		RHS :: string(),
+		Result :: {ok, {Start, End}} | {ok, RHS} | {error, 400},
 		Start :: pos_integer(),
 		End :: pos_integer().
-%% @doc Parse Range request header.
+%% @doc Parse or create a `Range' request header.
+%% 	`RHS' should be the right hand side of an
+%% 	RFC7233 `Range:' header conforming to TMF630
+%% 	(e.g. "items=1-100").
 %% @private
 range(Range) when is_list(Range) ->
 	try
-		["item", S, E] = string:tokens(Range, " -"),
-		{list_to_integer(S), list_to_integer(E)}
+		["items", S, E] = string:tokens(Range, "= -"),
+		{ok, {list_to_integer(S), list_to_integer(E)}}
 	catch
 		_:_ ->
 			{error, 400}
-	end.
+	end;
+range({Start, End}) when is_integer(Start), is_integer(End) ->
+	{ok, "items=" ++ integer_to_list(Start) ++ "-" ++ integer_to_list(End)}.
 
 %%----------------------------------------------------------------------
 %%  internal functions

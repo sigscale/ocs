@@ -121,7 +121,7 @@ get_users2([H | T], [] = Query, Filters, Acc) ->
 get_users2([], _, _, Acc) ->
 	Users = lists:reverse(Acc),
 	Size = integer_to_list(length(Users)),
-	ContentRange = "item 1-" ++ Size ++ "/" ++ Size,
+	ContentRange = "items 1-" ++ Size ++ "/" ++ Size,
 	Body  = mochijson:encode({array, Users}),
 	{ok, [{content_type, "application/json"},
 			{content_range, ContentRange}], Body};

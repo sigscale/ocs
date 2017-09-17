@@ -253,7 +253,7 @@ get_subscribers2(Subscribers, Id, Password, Balance, Enabled, Multi, [] = _Query
 	try
 		JsonObj = lists:filtermap(F, Subscribers),
 		Size = integer_to_list(length(JsonObj)),
-		ContentRange = "item 1-" ++ Size ++ "/" ++ Size,
+		ContentRange = "items 1-" ++ Size ++ "/" ++ Size,
 		Body  = mochijson:encode({array, lists:reverse(JsonObj)}),
 		{ok, [{content_type, "application/json"},
 				{content_range, ContentRange}], Body}

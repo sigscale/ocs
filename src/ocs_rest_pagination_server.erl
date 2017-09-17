@@ -207,8 +207,8 @@ code_change(_OldVsn, State, _Extra) ->
 %% 	Returns `{Items, ContentRange}' on success where `Items' is
 %% 	a list of collection members and `ContentRange' is to be
 %% 	used in a `Content-Range' header. The total items will be
-%% 	included if known at the time (e.g. "item 1-100/*" or
-%% 	"item 50-100/100").
+%% 	included if known at the time (e.g. "items 1-100/*" or
+%% 	"items 50-100/100").
 %%
 %% 	Returns `{error, Status}' if the request fails. `Status'
 %% 	is an HTTP status code to be returned to the client.

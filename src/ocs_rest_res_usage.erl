@@ -92,7 +92,7 @@ get_usage2(Query, Filters, Headers) ->
 					case ocs_rest:range(Range) of
 						{error, _} ->
 							{error, 400};
-						{Start, End} ->
+						{ok, {Start, End}} ->
 							query_page(PageServer, Etag, Query, Filters, Start, End)
 					end
 			end;
@@ -110,14 +110,14 @@ get_usage2(Query, Filters, Headers) ->
 					case ocs_rest:range(Range) of
 						{error, _} ->
 							{error, 400};
-						{Start, End} ->
+						{ok, {Start, End}} ->
 							query_start(Query, Filters, Start, End)
 					end;
 				PageServer ->
 					case ocs_rest:range(Range) of
 						{error, _} ->
 							{error, 400};
-						{Start, End} ->
+						{ok, {Start, End}} ->
 							query_page(PageServer, Etag, Query, Filters, Start, End)
 					end
 			end;
@@ -129,7 +129,7 @@ get_usage2(Query, Filters, Headers) ->
 			case ocs_rest:range(Range) of
 				{error, _} ->
 					{error, 400};
-				{Start, End} ->
+				{ok, {Start, End}} ->
 					query_start(Query, Filters, Start, End)
 			end;
 		{false, false, false} ->
@@ -2286,7 +2286,7 @@ query_page1(PageServer, Etag, Decoder, Filters, Start, End) ->
 					JsonArray = {array, JsonObj},
 					Body = mochijson:encode(JsonArray),
 					Headers = [{content_type, "application/json"},
-							{etag, Etag}, {accept_ranges, "item"},
+							{etag, Etag}, {accept_ranges, "items"},
 							{content_range, ContentRange}],
 					{ok, Headers, Body}
 			catch

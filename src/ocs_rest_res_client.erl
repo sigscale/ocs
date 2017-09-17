@@ -181,7 +181,7 @@ get_clients2(Clients, Address, Identifier, Port, Protocol, Secret, [] = _Query, 
 	try
 		JsonObj = lists:filtermap(F, Clients),
 		Size = integer_to_list(length(JsonObj)),
-		ContentRange = "item 1-" ++ Size ++ "/" ++ Size,
+		ContentRange = "items 1-" ++ Size ++ "/" ++ Size,
 		Body = mochijson:encode({array, lists:reverse(JsonObj)}),
 		{ok, [{content_type, "application/json"},
 				{content_range, ContentRange}], Body}
