@@ -160,6 +160,14 @@
 							</paper-item>
 						</paper-listbox>
 					</paper-dropdown-menu>
+					<paper-input id="addPriceSize"
+							class="size"
+							name="size"
+							type="number"
+							label="Unit Size"
+							value=1
+							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
+					</paper-input>
 					<paper-dropdown-menu id="addPrice2drop"
 							label="Units"
 							on-selected-item-changed="checkUnit"
@@ -186,14 +194,6 @@
 							</paper-item>
 						</paper-listbox>
 					</paper-dropdown-menu>
-					<paper-input id="addPriceSize"
-							class="size"
-							name="size"
-							type="number"
-							label="Unit Size"
-							value=1
-							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
-					</paper-input>
 					<paper-input id="addPrice3"
 							class="amount"
 							name="amount"
@@ -314,6 +314,13 @@
 							</paper-item>
 						</paper-listbox>
 					</paper-dropdown-menu>
+					<paper-input id="sizeAlt3"
+							class="size"
+							name="size"
+							label="Unit Size"
+							type="number"
+							onfocus="endDatePick.hide(); startDatePick.hide();">
+					</paper-input>
 					<paper-dropdown-menu
 							label="Units">
 						<paper-listbox
@@ -338,13 +345,6 @@
 								</paper-item>
 						</paper-listbox>
 					</paper-dropdown-menu>
-					<paper-input id="sizeAlt3"
-							class="size"
-							name="size"
-							label="Unit Size"
-							type="number"
-							onfocus="endDatePick.hide(); startDatePick.hide();">
-					</paper-input>
 					<paper-input id="amountAlt3"
 							class="amount"
 							name="amount"
@@ -352,6 +352,28 @@
 							type="number"
 							onfocus="endDatePick.hide(); startDatePick.hide();">
 					</paper-input>
+					<paper-dropdown-menu id="addalt5drop"
+							label="Period"
+							onfocus="endDatePick.hide(); startDatePick.hide();">
+						<paper-listbox
+								id="addaltPeriod"
+								slot="dropdown-content"
+								class="dropdown-content"
+								selected="2">
+							<paper-item>
+								Daily
+							</paper-item>
+							<paper-item>
+								Weekly
+							</paper-item>
+							<paper-item>
+								Monthly
+							</paper-item>
+							<paper-item>
+								Yearly
+							</paper-item>
+						</paper-listbox>
+					</paper-dropdown-menu>
 				</div>
 				<div class="buttons">
 					<paper-button raised
@@ -630,7 +652,8 @@ console.log(ajax.body);
 				altNew.terminationDate = this.$.endAlt2.value;
 				altNew.type = this.$.typeAlt3.value;
 				altNew.units = this.$.addUnitDrop.value;
-				altNew.size= this.$.sizeAlt3.value;
+				altNew.size = this.$.sizeAlt3.value;
+				altNew.period = this.$.addaltPeriod.value;
 				altNew.amount= this.$.amountAlt3.value;
 				this.push('alterations', altNew);
 				this.$.addAlt1.value = null
