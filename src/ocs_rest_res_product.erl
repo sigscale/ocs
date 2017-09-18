@@ -429,7 +429,12 @@ prod_name(json, Prod) ->
 prod_description(erlang_term, Product) ->
 	proplists:get_value("description", Product, undefined);
 prod_description(json, Product) ->
-	{"description", Product#product.description}.
+	case Product#product.description of
+		undefined ->
+			{"description", ""};
+		Des ->
+			{"description", Des}
+	end.
 
 -spec prod_href(Prefix, Product) -> Result
 	when
@@ -449,10 +454,16 @@ prod_href(json, Product) ->
 prod_isBundle(erlang_term, Product) ->
 	case lists:keyfind("isBundle", 1, Product) of
 		{"isBundle", "true"} -> true;
+		{"isBundle", true} -> true;
 		_ -> false
 	end;
 prod_isBundle(json, Product) ->
-	{"isBundle", Product#product.is_bundle}.
+	case Product#product.is_bundle of
+		undefined ->
+			{"isBundle", ""};
+		IsBundle ->
+			{"isBundle", IsBundle}
+	end.
 
 -spec prod_status(Prefix, Product) -> Result
 	when
@@ -468,7 +479,12 @@ prod_status(erlang_term, Product) ->
 			"active"
 	end;
 prod_status(json, Product) ->
-	{"status", Product#product.status}.
+	case Product#product.status of
+		undefined ->
+			{"status", ""};
+		Status ->
+			{"status", Status}
+	end.
 
 -spec prod_sdate(Prefix, Product) -> Result
 	when
@@ -571,7 +587,12 @@ prod_price_name(json, Price) ->
 prod_price_description(erlang_term, Price) ->
 	proplists:get_value("description", Price, undefined);
 prod_price_description(json, Price) ->
-	{"description", Price#price.description}.
+	case Price#price.description of
+		undefined ->
+			{"description", ""};
+		Des ->
+			{"description", Des}
+	end.
 
 -spec prod_price_vf(Prefix, Price) -> Result
 	when
@@ -634,7 +655,12 @@ prod_price_price_amount(erlang_term, PriceObj) ->
 	{_, ProdAmount} = lists:keyfind("taxIncludedAmount", 1, PriceObj),
 	ProdAmount;
 prod_price_price_amount(json, Price) ->
-	{"taxIncludedAmount", Price#price.amount}.
+	case Price#price.amount of
+		undefined ->
+			{"taxIncludedAmount", ""};
+		Amount ->
+			{"taxIncludedAmount", Price#price.amount}
+	end.
 
 -spec prod_price_price_c_code(Prefix, Price) -> Result
 	when
