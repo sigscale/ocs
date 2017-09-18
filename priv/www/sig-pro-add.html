@@ -175,21 +175,20 @@
 						<paper-listbox
 								id="addPrice2"
 								slot="dropdown-content"
-								class="dropdown-content"
-								selected="0">
-							<paper-item>
+								class="dropdown-content">
+							<paper-item id="priceBytes">
 								Bytes	
 							</paper-item>
-							<paper-item>
+							<paper-item id="priceCents">
 								Cents
 							</paper-item>
-							<paper-item>
+							<paper-item id="priceSeconds">
 								Seconds
 							</paper-item>
-							<paper-item>
+							<paper-item id="priceMB">
 								Megabytes (MB)
 							</paper-item>
-							<paper-item>
+							<paper-item id="priceGB">
 								Gigabytes (GB)
 							</paper-item>
 						</paper-listbox>
@@ -297,6 +296,7 @@
 					</paper-input>
 					<paper-dropdown-menu
 							label="Price Type"
+							on-selected-item-changed="checkRecureAlt"
 							onfocus="endDatePick.hide(); startDatePick.hide();">
 						<paper-listbox
 								id="typeAlt3"
@@ -326,21 +326,20 @@
 						<paper-listbox
 								id="addUnitDrop"
 								slot="dropdown-content"
-								class="dropdown-content"
-								selected="0">
-								<paper-item>
+								class="dropdown-content">
+								<paper-item id="altBytes">
 									Bytes	
 								</paper-item>
-								<paper-item>
+								<paper-item id="altCents">
 									Cents
 								</paper-item>
-								<paper-item>
+								<paper-item id="altSeconds">
 									Seconds
 								</paper-item>
-								<paper-item>
+								<paper-item id="altMB">
 									Megabytes (MB)
 								</paper-item>
-								<paper-item >
+								<paper-item id="altGB">
 									Gigabytes (GB)
 								</paper-item>
 						</paper-listbox>
@@ -570,7 +569,11 @@
 					}
 					return out; 
 				}
-				offerNew.productOfferingPrice = this.prices.map(mapPrice);
+				//if(this.prices.length != 1) {
+					offerNew.productOfferingPrice = this.prices.map(mapPrice);
+				//} else {
+            //   console.log("to do toast");
+            //}
 				this.$.addOff1.value = null;
 				this.$.addOff2.value = null;
 				var ajax = this.$.productAddAjax;
@@ -582,8 +585,65 @@ console.log(ajax.body);
 			checkRecure: function() {
 				if(this.$.addPrice1.selected == 0) {
 					this.$.addPrice5drop.disabled = false;
-				} else { 
+					this.$.priceBytes.disabled = true;
+					this.$.priceSeconds.disabled = true;
+					this.$.priceCents.disabled = false;
+					this.$.priceMB.disabled = true;
+					this.$.priceGB.disabled = true;
+				}else if(this.$.addPrice1.selected == 1) {
 					this.$.addPrice5drop.disabled = true;
+					this.$.priceBytes.disabled = true;
+               this.$.priceSeconds.disabled = true;
+					this.$.priceCents.disabled = false;
+               this.$.priceMB.disabled = true;
+               this.$.priceGB.disabled = true;
+				}else if(this.$.addPrice1.selected == 2) {
+					this.$.addPrice5drop.disabled = true;
+					this.$.priceCents.disabled = true;
+               this.$.priceBytes.disabled = false;
+               this.$.priceSeconds.disabled = false;
+               this.$.priceMB.disabled = false;
+               this.$.priceGB.disabled = false;
+				} else {
+					this.$.addPrice5drop.disabled = true;
+               this.$.priceBytes.disabled = false;
+               this.$.priceSeconds.disabled = false;
+					this.$.priceCents.disabled = false;
+               this.$.priceMB.disabled = false;
+               this.$.priceGB.disabled = false;
+				}
+				//if(this.$.addPrice1.selected == 0) {
+				//	if(this.$.addPrice2.selected == 0) {
+				//	}
+				//}
+			},
+			checkRecureAlt: function() {
+				if(this.$.typeAlt3.selected == 0) {
+               this.$.addalt5drop.disabled = false;
+					this.$.altBytes.disabled = true;
+					this.$.altSeconds.disabled = true;
+					this.$.altCents.disabled = false;
+					this.$.altMB.disabled = true;
+					this.$.altGB.disabled = true;
+            }else if(this.$.typeAlt3.selected == 1) {
+					this.$.altBytes.disabled = true;
+					this.$.altSeconds.disabled = true;
+					this.$.altCents.disabled = false;
+					this.$.altMB.disabled = true;
+					this.$.altGB.disabled = true;
+            }else if(this.$.typeAlt3.selected == 2) {
+					this.$.altBytes.disabled = false;
+					this.$.altSeconds.disabled = false;
+					this.$.altCents.disabled = true;
+					this.$.altMB.disabled = false;
+					this.$.altGB.disabled = false;
+            } else {
+               this.$.addalt5drop.disabled = true;
+					this.$.altBytes.disabled = false;
+					this.$.altSeconds.disabled = false;
+					this.$.altCents.disabled = false;
+					this.$.altMB.disabled = false;
+					this.$.altGB.disabled = false;
 				}
 			},
 			addPrice: function() {
@@ -650,10 +710,31 @@ console.log(ajax.body);
 				altNew.description = this.$.descAlt2.value;
 				altNew.startdate = this.$.startAlt2.value;
 				altNew.terminationDate = this.$.endAlt2.value;
-				altNew.type = this.$.typeAlt3.value;
+				switch(this.$.typeAlt3.selected) {
+               case 0:
+                  altNew.type = "recurring";
+                  break;
+               case 1:
+                  altNew.type = "one_time";
+                  break;
+               case 2:
+                  altNew.type = "usage";
+            }
 				altNew.units = this.$.addUnitDrop.value;
 				altNew.size = this.$.sizeAlt3.value;
-				altNew.period = this.$.addaltPeriod.value;
+				switch(this.$.addaltPeriod.selected) {
+					case 0:
+						altNew.period = "daily";
+						break;
+					case 1:
+						altNew.period = "weekly";
+						break;
+					case 2:
+						altNew.period = "monthly";
+						break
+					case 3:
+						altNew.period = "yearly";
+				}
 				altNew.amount= this.$.amountAlt3.value;
 				this.push('alterations', altNew);
 				this.$.addAlt1.value = null
