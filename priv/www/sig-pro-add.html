@@ -170,7 +170,7 @@
 								class="dropdown-content"
 								selected="0">
 							<paper-item>
-								Octets
+								Bytes	
 							</paper-item>
 							<paper-item>
 								Cents
@@ -179,10 +179,10 @@
 								Seconds
 							</paper-item>
 							<paper-item>
-								MB
+								Megabytes (MB)
 							</paper-item>
 							<paper-item>
-								GB
+								Gigabytes (GB)
 							</paper-item>
 						</paper-listbox>
 					</paper-dropdown-menu>
@@ -235,8 +235,7 @@
 						<paper-listbox
 								id="addPriceDrop"
 								slot="dropdown-content"
-								class="dropdown-content"
-								selected="0">
+								class="dropdown-content">
 							<template is="dom-repeat" items="[[alterations]]">
 								<paper-item>
 									{{item.name}}
@@ -323,7 +322,7 @@
 								class="dropdown-content"
 								selected="0">
 								<paper-item>
-									Octets
+									Bytes	
 								</paper-item>
 								<paper-item>
 									Cents
@@ -332,10 +331,10 @@
 									Seconds
 								</paper-item>
 								<paper-item>
-									MB
+									Megabytes (MB)
 								</paper-item>
 								<paper-item >
-									GB
+									Gigabytes (GB)
 								</paper-item>
 						</paper-listbox>
 					</paper-dropdown-menu>
@@ -563,13 +562,6 @@ console.log(ajax.body);
 					this.$.addPrice5drop.disabled = false;
 				} else { 
 					this.$.addPrice5drop.disabled = true;
-				}
-			},
-			checkUnit: function() {
-				if(this.$.addPrice2.selected == 1) {
-					this.$.addPrice4.disabled = false;
-				} else {
-					this.$.addPrice4.disabled = true;
 				}
 			},
 			addPrice: function() {
