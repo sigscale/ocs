@@ -275,18 +275,8 @@ get_subscribers2(_, _, _, _, _, _, _, _) ->
 post_subscriber(RequestBody) ->
 	try 
 		{struct, Object} = mochijson:decode(RequestBody),
-		IdIn = case lists:keyfind("id", 1, Object) of
-			{"id", ID} ->
-				ID;
-			false ->
-				undefined
-		end,
-		PasswordIn = case lists:keyfind("password", 1, Object) of
-			{"password", Pass} ->
-				Pass;
-			false ->
-				undefined
-		end,
+		IdIn = proplists:get_value("id", Object),
+		PasswordIn = proplists:get_value("password", Object),
 		Attributes = case lists:keyfind("attributes", 1, Object) of
 			{_, {array, JsonObjList}} ->
 				json_to_radius(JsonObjList);
@@ -308,18 +298,8 @@ post_subscriber(RequestBody) ->
 			false ->
 				undefined
 		end,
-		Enabled = case lists:keyfind("enabled", 1, Object) of
-			{_, En} ->
-				En;
-			false ->
-				undefined
-		end,
-		Multi = case lists:keyfind("multisession", 1, Object) of
-			{_, Mu} ->
-				Mu;
-			false ->
-				undefined
-		end,
+		Enabled = proplists:get_value("enabled", Object),
+		Multi = prolists:get_value("multisession", Object),
 		case ocs:add_subscriber(IdIn, PasswordIn, Attributes, Buckets, Enabled, Multi) of
 			{ok, #subscriber{name = IdOut, last_modified = LM} = S} ->
 				Id = binary_to_list(IdOut),
