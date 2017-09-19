@@ -666,7 +666,7 @@ prod_price_price_amount(json, Price) ->
 	when
 		Prefix	:: erlang_term | json,
 		Price		:: list() | #price{},
-		Result	:: integer() | tuple().
+		Result	:: string() | tuple().
 %% @private
 prod_price_price_c_code(erlang_term, PriceObj) ->
 		{_, CurrencyCode} = lists:keyfind("currencyCode", 1, PriceObj),
