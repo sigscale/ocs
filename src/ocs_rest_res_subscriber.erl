@@ -299,7 +299,7 @@ post_subscriber(RequestBody) ->
 				undefined
 		end,
 		Enabled = proplists:get_value("enabled", Object),
-		Multi = prolists:get_value("multisession", Object),
+		Multi = proplists:get_value("multisession", Object),
 		case ocs:add_subscriber(IdIn, PasswordIn, Attributes, Buckets, undefined, Enabled, Multi) of
 			{ok, #subscriber{name = IdOut, last_modified = LM} = S} ->
 				Id = binary_to_list(IdOut),
