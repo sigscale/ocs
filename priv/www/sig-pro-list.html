@@ -117,6 +117,9 @@
 					on-click="showAddProductModal">
 			</paper-fab>
 		</div>
+		<paper-toast id="toast-successPri">
+         <h2>successfully added</h2>
+      </paper-toast>
 		<iron-ajax id="getProducts"
 			url="/productInventoryManagement/v1/product"
          headers='{"Accept": "application/json"}'
