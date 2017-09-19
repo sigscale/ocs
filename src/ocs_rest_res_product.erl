@@ -928,25 +928,6 @@ product_size(mb, octets, Size) -> Size * 1000000;
 product_size(octets, mb, Size) -> Size div 1000000;
 product_size(_, _, Size) -> Size.
 
--spec validity_period(StartTime, EndTime) -> Result
-	when
-		StartTime	:: string(),
-		EndTime		:: string(),
-		Result		:: pos_integer() | {error, Reason},
-		Reason		:: term().
-%% @doc return validity period of a product in milliseconds.
-%% @private
-validity_period(ISOSTime, ISOETime) when is_list(ISOSTime),
-		is_list(ISOETime) ->
-	case {ocs_rest:iso8601(ISOSTime), ocs_rest:iso8601(ISOETime)} of
-		{{error, _}, _} ->
-			{error, format_error};
-		{_, {error, _}} ->
-			{error, format_error};
-		{STime, ETime} ->
-			ETime - STime
-	end.
-
 -spec rc_period(RCPeriod) -> Result
 	when
 		RCPeriod	:: string() | valid_period(),
