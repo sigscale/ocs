@@ -789,13 +789,18 @@ prod_price_alter_price_type(json, PAlter) ->
 	when
 		Prefix :: erlang_term | json,
 		PAlter :: list() | #alteration{},
-		Result :: integer() | tuple().
+		Result :: undefined | integer() | tuple().
 %% @private
 prod_price_alter_amount(erlang_term, PAlterPriceObj) ->
 	{_, PAlterAmount} = lists:keyfind("taxIncludedAmount", 1,  PAlterPriceObj),
 	PAlterAmount;
 prod_price_alter_amount(json, PAlter) ->
-	{"taxIncludedAmount", PAlter#alteration.amount}.
+	case PAlter#alteration.amount of
+		undefined ->
+			{"taxIncludedAmount", ""};
+		Amount ->
+			{"taxIncludedAmount", Amount}
+	end.
 
 -spec prod_price_ufm(Prefix, Price) -> Result
 	when
