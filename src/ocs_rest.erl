@@ -146,7 +146,7 @@ filter2([], _, Acc) ->
 -spec date(DateTimeFormat) -> Result
 	when
 		DateTimeFormat	:: pos_integer() | tuple(),
-		Result			:: calendar:datetime() | calendar:second().
+		Result			:: calendar:datetime() | non_neg_integer().
 %% @doc Convert iso8610 to date and time or
 %%		date and time to timeStamp.
 date(MilliSeconds) when is_integer(MilliSeconds) ->
