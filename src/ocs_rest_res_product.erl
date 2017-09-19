@@ -658,7 +658,7 @@ prod_price_price_amount(json, Price) ->
 		undefined ->
 			{"taxIncludedAmount", ""};
 		Amount ->
-			{"taxIncludedAmount", Price#price.amount}
+			{"taxIncludedAmount", Amount}
 	end.
 
 -spec prod_price_price_c_code(Prefix, Price) -> Result
