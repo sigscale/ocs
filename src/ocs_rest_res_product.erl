@@ -476,7 +476,7 @@ prod_status(erlang_term, Product) ->
 		{_, FindStatus} ->
 			find_status(FindStatus);
 		false ->
-			"active"
+			undefined
 	end;
 prod_status(json, Product) ->
 	case Product#product.status of
