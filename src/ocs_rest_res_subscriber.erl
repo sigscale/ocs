@@ -300,7 +300,7 @@ post_subscriber(RequestBody) ->
 		end,
 		Enabled = proplists:get_value("enabled", Object),
 		Multi = prolists:get_value("multisession", Object),
-		case ocs:add_subscriber(IdIn, PasswordIn, Attributes, Buckets, Enabled, Multi) of
+		case ocs:add_subscriber(IdIn, PasswordIn, Attributes, undefined, Buckets, Enabled, Multi) of
 			{ok, #subscriber{name = IdOut, last_modified = LM} = S} ->
 				Id = binary_to_list(IdOut),
 				Location = "/ocs/v1/subscriber/" ++ Id,

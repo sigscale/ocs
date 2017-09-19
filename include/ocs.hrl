@@ -80,6 +80,8 @@
 		{id :: string(),
 		name :: string(),
 		bucket_type :: octets | cents | seconds,
+		start_date :: pos_integer(),
+		termination_date :: pos_integer(),
 		remain_amount :: #remain_amount{}}).
 
 %% define subscriber table entries record
@@ -88,6 +90,7 @@
 		password :: binary(),
 		attributes :: radius_attributes:attributes(),
 		buckets :: [#bucket{}],
+		product :: #product{},
 		enabled = true :: boolean(),
 		disconnect  = false :: boolean(),
 		session_attributes = radius_attributes:new() :: [radius_attributes:attributes()],
