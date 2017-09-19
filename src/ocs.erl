@@ -267,7 +267,7 @@ add_subscriber(Identity, Password, Attributes, Buckets, Product, EnabledStatus, 
 	add_subscriber(Identity, Password, Attributes, Buckets, Product, EnabledStatus, false);
 add_subscriber(Identity, Password, Attributes, Buckets, Product, undefined, MultiSession) ->
 	add_subscriber(Identity, Password, Attributes, Buckets, Product, true, MultiSession);
-add_subscriber(Identity, Password, Attributes, Product, undefined, EnabledStatus, MultiSession) ->
+add_subscriber(Identity, Password, Attributes, undefined, Product, EnabledStatus, MultiSession) ->
 	add_subscriber(Identity, Password, Attributes, [], Product, EnabledStatus, MultiSession);
 add_subscriber(Identity, Password, undefined, Buckets, Product, EnabledStatus, MultiSession) ->
 	add_subscriber(Identity, Password, [], Buckets, Product, EnabledStatus, MultiSession);
@@ -276,12 +276,12 @@ add_subscriber(Identity, undefined, Attributes, Buckets, Product, EnabledStatus,
 			Attributes, Buckets, Product, EnabledStatus, MultiSession);
 add_subscriber(Identity, Password, Attributes, Buckets, Product, EnabledStatus, MultiSession)
 		when is_list(Identity) ->
-	add_subscriber(list_to_binary(Identity), Password, Attributes, Product,
-			Buckets, EnabledStatus, MultiSession);
+	add_subscriber(list_to_binary(Identity), Password, Attributes, Buckets,
+			Product, EnabledStatus, MultiSession);
 add_subscriber(Identity, Password, Attributes, Buckets, Product, EnabledStatus, MultiSession)
 		when is_list(Password) ->
-	add_subscriber(Identity, list_to_binary(Password), Attributes, Product,
-			Buckets, EnabledStatus, MultiSession);
+	add_subscriber(Identity, list_to_binary(Password), Attributes, Buckets,
+			Product, EnabledStatus, MultiSession);
 add_subscriber(undefined, Password, Attributes, Buckets, Product, EnabledStatus, MultiSession)
 		when is_binary(Password), is_list(Attributes), is_list(Buckets),
 		is_boolean(EnabledStatus), is_boolean(MultiSession) ->
