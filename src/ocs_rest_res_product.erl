@@ -1,4 +1,4 @@
-%%% ocs_rest_res_balance.erl
+%%% ocs_rest_res_product.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2017 SigScale Global Inc.
 %%% @end
