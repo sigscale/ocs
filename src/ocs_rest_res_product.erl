@@ -294,7 +294,7 @@ po_price(erlang_term, [], Prices) ->
 po_price(erlang_term, [{struct, Object} | T], Prices) ->
 	try
 		ProdName = prod_price_name(erlang_term, Object),
-		{ProdSTime, ProdETime} = prod_price_vf(erlang_term, Object),
+		{_ProdSTime, _ProdETime} = prod_price_vf(erlang_term, Object),
 		ProdPriceType = prod_price_type(erlang_term, Object),
 		{_, {struct, ProdPriceObj}} = lists:keyfind("price", 1, Object),
 		ProdAmount = prod_price_price_amount(erlang_term, ProdPriceObj),
@@ -302,7 +302,6 @@ po_price(erlang_term, [{struct, Object} | T], Prices) ->
 		ProdVF = prod_price_vf(erlang_term, Object),
 		RCPeriod = prod_price_rc_period(erlang_term, Object),
 		ProdDescirption = prod_price_description(erlang_term, Object),
-		%ProdValidity = ProdETime - ProdSTime,
 		{ProdUnits, ProdSize} = prod_price_ufm(erlang_term, Object),
 		Size = product_size(ProdUnits, octets, ProdSize),
 		Price1 = #price{name = ProdName, description = ProdDescirption,
