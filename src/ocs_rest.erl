@@ -63,10 +63,10 @@ filter(Filters, {struct, L} = _Object) when is_list(Filters) ->
 	when
 			Oplists		:: [{struct, OPLObject}],
 			OPLObject	:: [{Key, Value}],
-			Result		:: [Operations],
+			Result		:: [Operations] | {error, invalid_format},
 			Key			:: string(),
 			Value			:: op_values(),
-			Operations	:: [{OP, Path, Value}],
+			Operations	:: {OP, Path, Value},
 			OP				:: replace | add | remove | move | copy | test,
 			Path			:: list().
 parse(Oplists) ->
