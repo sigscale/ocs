@@ -105,7 +105,7 @@
 					</paper-button>
 					<paper-button dialog-dismiss
 							class="cancel-button"
-							on-tap="addProductModal.close()">
+							onclick="addProductModal.close()">
 								cancel
 					</paper-button>
 				</div>
@@ -257,7 +257,7 @@
 					</paper-button>
 					<paper-button dialog-dismiss
 							class="cancel-button"
-							on-click="addProductModal.close()">
+							onclick="addProductModal.close()">
 								cancel
 					</paper-button>
 				</div>
@@ -561,8 +561,36 @@
 					if(item.type != null && item.type != "") {
 						out.priceType = item.type;
 					}
-					if(item.unit != null && item.unit != "") {
-						out.unitOfMeasure = item.size;
+					if(item.unit != null && item.unit != ""
+							&& item.size != null
+							&& item.size != "") {
+						var len = item.size.length; 
+						var m = item.size.charAt(len - 1);
+						var s = item.size.slice(0, (len - 1));
+						if(item.unit == "b") {
+							if (m == "m") {
+								out.unitOfMeasure = s + "000000b";
+							} else if(m == "g") {
+								out.unitOfMeasure = s + "000000000b";
+							} else if(m == "k") {
+								out.unitOfMeasure = s + "000b";
+							} else {
+								out.unitOfMeasure = item.size;
+							}
+						} else if(item.unit == "c"){
+							out.unitOfMeasure = item.size + "c";
+						} else if(item.unit == "s") {
+							var n = Number(s);
+							if(m == "m") {
+								n = n * 60;
+								out.unitOfMeasure = n.toString();
+							} else if(m == "h") {
+								n = n * 3600;
+								out.unitOfMeasure = n.toString();
+							} else {
+								out.unitOfMeasure = item.size;
+							}
+						}
 					}
 					var taxIncludedAmount;
 					var currencyCode;
@@ -587,33 +615,31 @@
 					}
 					return out; 
 				}
-				if(this.prices.map(mapPrice).length != 0) {
-					offerNew.productOfferingPrice = this.prices.map(mapPrice);
-				}
-				this.$.addOff1.value = null;
-				this.$.addOff2.value = null;
-				if(offerNew.name && offerNew.name !== null) {
+				offerNew.productOfferingPrice = this.prices.map(mapPrice);
+				if(offerNew.name && offerNew.name !== null 
+						&& offerNew.productOfferingPrice
+						&& offerNew.productOfferingPrice.length > 0) {
 					var ajax = this.$.productAddAjax;
 console.log(ajax);
 					ajax.body = offerNew;
 console.log(ajax.body);
-            } else {
-              console.log("toast"); 
-            }	
-				if(offerNew.hasOwnProperty('productOfferingPrice')) {
+					this.$.addOff1.value = null;
+					this.$.addOff2.value = null;
+					this.prices.length = 0;
+					this.alterations.length = 0;
 					ajax.generateRequest();
             }
 			},
 			checkPattern: function() {
 				if(this.$.addPrice2.selected == 0) {
-					this.$.addPriceSize.allowedPattern = "[0-9bmg]";
-					this.$.addPriceSize.pattern = "^[0-9]+[bmg]?$";
+					this.$.addPriceSize.allowedPattern = "[0-9kmg]";
+					this.$.addPriceSize.pattern = "^[0-9]+[kmg]?$";
 				} else if(this.$.addPrice2.selected == 1) {
-					this.$.addPriceSize.allowedPattern = "[0-9c]";
-					this.$.addPriceSize.pattern = "^[0-9]+[c]?$";
+					this.$.addPriceSize.allowedPattern = "[0-9]";
+					this.$.addPriceSize.pattern = "^[0-9]+$";
 				} else if(this.$.addPrice2.selected == 2) {
-					this.$.addPriceSize.allowedPattern = "[0-9smhdMy]";
-					this.$.addPriceSize.pattern = "^[0-9]+[smhdMy]?$";
+					this.$.addPriceSize.allowedPattern = "[0-9mh]";
+					this.$.addPriceSize.pattern = "^[0-9]+[mh]?$";
 				}
 			},
 			checkRecure: function() {
