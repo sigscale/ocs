@@ -1,4 +1,4 @@
-%%% ocs_rest_res_balance.erl
+%%% ocs_rest_res_product.erl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2017 SigScale Global Inc.
 %%% @end
@@ -294,7 +294,7 @@ po_price(erlang_term, [], Prices) ->
 po_price(erlang_term, [{struct, Object} | T], Prices) ->
 	try
 		ProdName = prod_price_name(erlang_term, Object),
-		{ProdSTime, ProdETime} = prod_price_vf(erlang_term, Object),
+		{_ProdSTime, _ProdETime} = prod_price_vf(erlang_term, Object),
 		ProdPriceType = prod_price_type(erlang_term, Object),
 		{_, {struct, ProdPriceObj}} = lists:keyfind("price", 1, Object),
 		ProdAmount = prod_price_price_amount(erlang_term, ProdPriceObj),
@@ -302,7 +302,6 @@ po_price(erlang_term, [{struct, Object} | T], Prices) ->
 		ProdVF = prod_price_vf(erlang_term, Object),
 		RCPeriod = prod_price_rc_period(erlang_term, Object),
 		ProdDescirption = prod_price_description(erlang_term, Object),
-		%ProdValidity = ProdETime - ProdSTime,
 		{ProdUnits, ProdSize} = prod_price_ufm(erlang_term, Object),
 		Size = product_size(ProdUnits, octets, ProdSize),
 		Price1 = #price{name = ProdName, description = ProdDescirption,
@@ -361,7 +360,7 @@ po_price(json, [Price | T], Prices) when is_record(Price, price) ->
 -spec po_alteration(Prefix, ProdAlterObj) -> Result
 	when
 		Prefix	:: erlang_term | json,
-		ProdAlterObj :: list(),
+		ProdAlterObj :: list() | #alteration{},
 		Result	:: #alteration{} | {error, Status},
 		Status	:: 400 | 500.
 %% @private
@@ -373,7 +372,7 @@ po_alteration(erlang_term, ProdAlterObj) ->
 		{_, {struct, ProdAlterPriceObj}} = lists:keyfind("price", 1, ProdAlterObj),
 		ProdAlterAmount = prod_price_alter_amount(erlang_term, ProdAlterPriceObj),
 		ProdAlterDescirption = prod_price_alter_description(erlang_term, ProdAlterObj),
-		{ProdAlterUnits, ProdAlterSize} = prod_price_ufm(erlang_term, ProdAlterObj),
+		{ProdAlterUnits, ProdAlterSize} = prod_price_alter_ufm(erlang_term, ProdAlterObj),
 		AlterSize = product_size(ProdAlterUnits, octets, ProdAlterSize),
 		#alteration{name = ProdAlterName, description = ProdAlterDescirption,
 			valid_for = ProdAlterVF, units = ProdAlterUnits, size = AlterSize,
@@ -382,12 +381,12 @@ po_alteration(erlang_term, ProdAlterObj) ->
 		_:_ ->
 			{error, 400}
 	end;
-po_alteration(json, ProdAlter) when is_record(ProdAlter, alteration)->
+po_alteration(json, ProdAlter) ->
 	try
 		Name = prod_price_alter_name(json, ProdAlter),
 		ValidFor = prod_price_alter_vf(json, ProdAlter),
 		PriceType = prod_price_alter_price_type(json, ProdAlter),
-		UFM  = prod_price_ufm(json, ProdAlter),
+		UFM  = prod_price_alter_ufm(json, ProdAlter),
 		Description = prod_price_alter_description(json, ProdAlter),
 		Amount = prod_price_alter_amount(json, ProdAlter),
 		PriceObj = {struct, [Amount]},
@@ -476,7 +475,7 @@ prod_status(erlang_term, Product) ->
 		{_, FindStatus} ->
 			find_status(FindStatus);
 		false ->
-			"active"
+			undefined
 	end;
 prod_status(json, Product) ->
 	case Product#product.status of
@@ -659,14 +658,14 @@ prod_price_price_amount(json, Price) ->
 		undefined ->
 			{"taxIncludedAmount", ""};
 		Amount ->
-			{"taxIncludedAmount", Price#price.amount}
+			{"taxIncludedAmount", Amount}
 	end.
 
 -spec prod_price_price_c_code(Prefix, Price) -> Result
 	when
 		Prefix	:: erlang_term | json,
 		Price		:: list() | #price{},
-		Result	:: integer() | tuple().
+		Result	:: string() | tuple().
 %% @private
 prod_price_price_c_code(erlang_term, PriceObj) ->
 		{_, CurrencyCode} = lists:keyfind("currencyCode", 1, PriceObj),
@@ -789,55 +788,70 @@ prod_price_alter_price_type(json, PAlter) ->
 	when
 		Prefix :: erlang_term | json,
 		PAlter :: list() | #alteration{},
-		Result :: integer() | tuple().
+		Result :: undefined | integer() | tuple().
 %% @private
 prod_price_alter_amount(erlang_term, PAlterPriceObj) ->
 	{_, PAlterAmount} = lists:keyfind("taxIncludedAmount", 1,  PAlterPriceObj),
 	PAlterAmount;
 prod_price_alter_amount(json, PAlter) ->
-	{"taxIncludedAmount", PAlter#alteration.amount}.
+	case PAlter#alteration.amount of
+		undefined ->
+			{"taxIncludedAmount", ""};
+		Amount ->
+			{"taxIncludedAmount", Amount}
+	end.
 
--spec prod_price_ufm(Prefix, Product) -> Result
+-spec prod_price_ufm(Prefix, Price) -> Result
 	when
 		Prefix	:: erlang_term | json,
-		Product	:: list() | #product{},
-		Result	:: {Units, Size},
+		Price		:: list() | #price{},
+		Result	:: {Units, Size} | string(),
 		Units		:: undefined | unit_of_measure(),
 		Size		:: undefined | pos_integer().
 %% @doc return units type and size of measurement of a product
 %% @private
-prod_price_ufm(erlang_term, Product) ->
-	UFM = proplists:get_value("unitOfMeasure", Product, undefined),
+prod_price_ufm(erlang_term, Price) ->
+	UFM = proplists:get_value("unitOfMeasure", Price, undefined),
 	prod_price_ufm_et(UFM);
-prod_price_ufm(json, Product) ->
-	prod_price_ufm_json1(Product).
-%% @hidden
-prod_price_ufm_json1(Price) when is_record(Price, price)->
+prod_price_ufm(json, Price) ->
 	Size = Price#price.size,
 	Units = Price#price.units,
-	{"unitOfMeasure", prod_price_ufm_json2(Units, Size)};
-prod_price_ufm_json1(Price) when is_record(Price, alteration)->
-	Units = Price#alteration.units,
-	Size = product_size(octets, Units, Price#alteration.size),
-	{"unitOfMeasure", prod_price_ufm_json2(Units, Size)}.
-%% @hidden
-prod_price_ufm_json2(undefined, _) ->
+	{"unitOfMeasure", prod_price_ufm_json(Units, Size)}.
+
+-spec prod_price_alter_ufm(Prefix, Alter) -> Result
+	when
+		Prefix	:: erlang_term | json,
+		Alter		:: list() | #alteration{},
+		Result	:: {Units, Size} | string(),
+		Units		:: undefined | unit_of_measure(),
+		Size		:: undefined | pos_integer().
+%% @doc return units type and size of measurement of a alteration
+%% @private
+prod_price_alter_ufm(erlang_term, Alter) ->
+	UFM = proplists:get_value("unitOfMeasure", Alter),
+	prod_price_ufm_et(UFM);
+prod_price_alter_ufm(json, Alter) ->
+	Units = Alter#alteration.units,
+	Size = product_size(octets, Units, Alter#alteration.size),
+	{"unitOfMeasure", prod_price_ufm_json(Units, Size)}.
+
+prod_price_ufm_json(undefined, _) ->
 	"";
-prod_price_ufm_json2(Units, undefined) ->
+prod_price_ufm_json(Units, undefined) ->
 	Units;
-prod_price_ufm_json2(Units, Size) when is_number(Size) ->
-	prod_price_ufm_json2(Units, integer_to_list(Size));
-prod_price_ufm_json2(octets, Size) when is_list(Size) ->
+prod_price_ufm_json(Units, Size) when is_number(Size) ->
+	prod_price_ufm_json(Units, integer_to_list(Size));
+prod_price_ufm_json(octets, Size) when is_list(Size) ->
 	Size ++ "b";
-prod_price_ufm_json2(gb, Size) when is_list(Size) ->
+prod_price_ufm_json(gb, Size) when is_list(Size) ->
 	Size ++ "g";
-prod_price_ufm_json2(mb, Size) when is_list(Size) ->
+prod_price_ufm_json(mb, Size) when is_list(Size) ->
 	Size ++ "m";
-prod_price_ufm_json2(cents, Size) when is_list(Size) ->
+prod_price_ufm_json(cents, Size) when is_list(Size) ->
 	Size ++ "c";
-prod_price_ufm_json2(seconds, Size) when is_list(Size) ->
+prod_price_ufm_json(seconds, Size) when is_list(Size) ->
 	Size ++ "s".
-%% @hidden
+
 prod_price_ufm_et(undefined) ->
 	{undefined, undefined};
 prod_price_ufm_et(UFM) ->
@@ -913,29 +927,10 @@ product_size(mb, octets, Size) -> Size * 1000000;
 product_size(octets, mb, Size) -> Size div 1000000;
 product_size(_, _, Size) -> Size.
 
--spec validity_period(StartTime, EndTime) -> Result
-	when
-		StartTime	:: string(),
-		EndTime		:: string(),
-		Result		:: pos_integer() | {error, Reason},
-		Reason		:: term().
-%% @doc return validity period of a product in milliseconds.
-%% @private
-validity_period(ISOSTime, ISOETime) when is_list(ISOSTime),
-		is_list(ISOETime) ->
-	case {ocs_rest:iso8601(ISOSTime), ocs_rest:iso8601(ISOETime)} of
-		{{error, _}, _} ->
-			{error, format_error};
-		{_, {error, _}} ->
-			{error, format_error};
-		{STime, ETime} ->
-			ETime - STime
-	end.
-
 -spec rc_period(RCPeriod) -> Result
 	when
-		RCPeriod	:: string(),
-		Result	:: valid_period().
+		RCPeriod	:: string() | valid_period(),
+		Result	:: valid_period() | string().
 %% @doc return valid period
 %% @private
 rc_period("") -> undefined;
@@ -1132,10 +1127,9 @@ patch_replace1(prod_price, [], {array, Values}, _) ->
 		_:_ ->
 			{error, malfored_request}
 	end;
-patch_replace1(prod_price, [$- | T], Values, Product) when Product#product.price == undefined ->
+patch_replace1(prod_price, [$- | T], Values, Prices) when Prices =/= undefined ->
 	try
-		L = Product#product.price,
-		{Hlist, [LastElement]} = lists:split(length(L) - 1, L),
+		{Hlist, [LastElement]} = lists:split(length(Prices) - 1, Prices),
 		NewValues = case {Values, T} of
 			{{struct, V}, []} ->
 				V;

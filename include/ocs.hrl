@@ -24,10 +24,12 @@
 -type price_type() :: recurring | one_time | usage.
 
 %% define unit of measure
--type unit_of_measure() :: octet| cents | seconds | mb | gb.
+-type unit_of_measure() :: octets| cents | seconds | mb | gb.
 
 %% define validity period of a product
 -type valid_period() :: daily | weekly | monthly | yearly.
+
+-type valid_for() :: {SDT :: integer() | undefined, EDT :: integer() | undefined}.
 
 
 %% define client table entries record
@@ -43,7 +45,7 @@
 -record(alteration,
 		{name :: string(),
 		description :: string(),
-		valid_for	:: {integer(), integer()},
+		valid_for	:: valid_for(),
 		type :: price_type(),
 		units :: unit_of_measure(),
 		size :: integer(),
@@ -52,10 +54,10 @@
 -record(price,
 		{name :: string(),
 		description :: string(),
-		valid_for	:: {integer(), integer()},
+		valid_for	:: valid_for(),
 		type :: price_type(),
 		units :: unit_of_measure(),
-		currency :: string(),
+		currency :: undefined | string(),
 		period :: valid_period(),
 		size :: integer(),
 		amount :: integer(),
@@ -65,9 +67,9 @@
 -record(product,
 		{name :: string(),
 		description :: string(),
-		valid_for	:: {integer(), integer()},
-		is_bundle = false :: boolean(),
-		status :: product_status(),
+		valid_for	:: valid_for(),
+		is_bundle = false :: undefined | boolean(),
+		status :: undefined | product_status(),
 		start_date :: pos_integer(), % ISO8601
 		termination_date :: pos_integer(), % ISO8601
 		price :: [#price{}]}).

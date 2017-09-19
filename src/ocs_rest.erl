@@ -63,10 +63,10 @@ filter(Filters, {struct, L} = _Object) when is_list(Filters) ->
 	when
 			Oplists		:: [{struct, OPLObject}],
 			OPLObject	:: [{Key, Value}],
-			Result		:: [Operations],
+			Result		:: [Operations] | {error, invalid_format},
 			Key			:: string(),
 			Value			:: op_values(),
-			Operations	:: [{OP, Path, Value}],
+			Operations	:: {OP, Path, Value},
 			OP				:: replace | add | remove | move | copy | test,
 			Path			:: list().
 parse(Oplists) ->
@@ -146,7 +146,7 @@ filter2([], _, Acc) ->
 -spec date(DateTimeFormat) -> Result
 	when
 		DateTimeFormat	:: pos_integer() | tuple(),
-		Result			:: calendar:datetime().
+		Result			:: calendar:datetime() | non_neg_integer().
 %% @doc Convert iso8610 to date and time or
 %%		date and time to timeStamp.
 date(MilliSeconds) when is_integer(MilliSeconds) ->

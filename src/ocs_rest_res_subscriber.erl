@@ -299,8 +299,8 @@ post_subscriber(RequestBody) ->
 				undefined
 		end,
 		Enabled = proplists:get_value("enabled", Object),
-		Multi = prolists:get_value("multisession", Object),
-		case ocs:add_subscriber(IdIn, PasswordIn, Attributes, undefined, Buckets, Enabled, Multi) of
+		Multi = proplists:get_value("multisession", Object),
+		case ocs:add_subscriber(IdIn, PasswordIn, Attributes, Buckets, undefined, Enabled, Multi) of
 			{ok, #subscriber{name = IdOut, last_modified = LM} = S} ->
 				Id = binary_to_list(IdOut),
 				Location = "/ocs/v1/subscriber/" ++ Id,
@@ -672,7 +672,7 @@ patch_add(buckets , Value, "-", OldBuckets, Subscriber) ->
 	UpdateSubscriber =
 		Subscriber#subscriber{buckets = NewBuckets},
 	do_write(UpdateSubscriber);
-patch_add(buckets , Value, Location, OldBuckets, Subscriber) ->
+patch_add(buckets , Value, _Location, OldBuckets, Subscriber) ->
 	{struct, BucketObj} = mochijson:decode(Value),
 	{_, Amount} = lists:keyfind("amount", 1, BucketObj),
 	{_, Units} =  lists:keyfind("units", 1, BucketObj),
