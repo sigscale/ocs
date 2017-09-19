@@ -373,7 +373,7 @@ po_alteration(erlang_term, ProdAlterObj) ->
 		{_, {struct, ProdAlterPriceObj}} = lists:keyfind("price", 1, ProdAlterObj),
 		ProdAlterAmount = prod_price_alter_amount(erlang_term, ProdAlterPriceObj),
 		ProdAlterDescirption = prod_price_alter_description(erlang_term, ProdAlterObj),
-		{ProdAlterUnits, ProdAlterSize} = prod_price_ufm(erlang_term, ProdAlterObj),
+		{ProdAlterUnits, ProdAlterSize} = prod_price_alter_ufm(erlang_term, ProdAlterObj),
 		AlterSize = product_size(ProdAlterUnits, octets, ProdAlterSize),
 		#alteration{name = ProdAlterName, description = ProdAlterDescirption,
 			valid_for = ProdAlterVF, units = ProdAlterUnits, size = AlterSize,
@@ -382,12 +382,12 @@ po_alteration(erlang_term, ProdAlterObj) ->
 		_:_ ->
 			{error, 400}
 	end;
-po_alteration(json, ProdAlter) when is_record(ProdAlter, alteration)->
+po_alteration(json, ProdAlter) ->
 	try
 		Name = prod_price_alter_name(json, ProdAlter),
 		ValidFor = prod_price_alter_vf(json, ProdAlter),
 		PriceType = prod_price_alter_price_type(json, ProdAlter),
-		UFM  = prod_price_ufm(json, ProdAlter),
+		UFM  = prod_price_alter_ufm(json, ProdAlter),
 		Description = prod_price_alter_description(json, ProdAlter),
 		Amount = prod_price_alter_amount(json, ProdAlter),
 		PriceObj = {struct, [Amount]},
@@ -797,47 +797,57 @@ prod_price_alter_amount(erlang_term, PAlterPriceObj) ->
 prod_price_alter_amount(json, PAlter) ->
 	{"taxIncludedAmount", PAlter#alteration.amount}.
 
--spec prod_price_ufm(Prefix, Product) -> Result
+-spec prod_price_ufm(Prefix, Price) -> Result
 	when
 		Prefix	:: erlang_term | json,
-		Product	:: list() | #product{},
+		Price		:: list() | #price{},
 		Result	:: {Units, Size} | string(),
 		Units		:: undefined | unit_of_measure(),
 		Size		:: undefined | pos_integer().
 %% @doc return units type and size of measurement of a product
 %% @private
-prod_price_ufm(erlang_term, Product) ->
-	UFM = proplists:get_value("unitOfMeasure", Product, undefined),
+prod_price_ufm(erlang_term, Price) ->
+	UFM = proplists:get_value("unitOfMeasure", Price, undefined),
 	prod_price_ufm_et(UFM);
-prod_price_ufm(json, Product) ->
-	prod_price_ufm_json1(Product).
-%% @hidden
-prod_price_ufm_json1(Price) when is_record(Price, price)->
+prod_price_ufm(json, Price) ->
 	Size = Price#price.size,
 	Units = Price#price.units,
-	{"unitOfMeasure", prod_price_ufm_json2(Units, Size)};
-prod_price_ufm_json1(Price) when is_record(Price, alteration)->
-	Units = Price#alteration.units,
-	Size = product_size(octets, Units, Price#alteration.size),
-	{"unitOfMeasure", prod_price_ufm_json2(Units, Size)}.
-%% @hidden
-prod_price_ufm_json2(undefined, _) ->
+	{"unitOfMeasure", prod_price_ufm_json(Units, Size)}.
+
+-spec prod_price_alter_ufm(Prefix, Alter) -> Result
+	when
+		Prefix	:: erlang_term | json,
+		Alter		:: list() | #alteration{},
+		Result	:: {Units, Size} | string(),
+		Units		:: undefined | unit_of_measure(),
+		Size		:: undefined | pos_integer().
+%% @doc return units type and size of measurement of a alteration
+%% @private
+prod_price_alter_ufm(erlang_term, Alter) ->
+	UFM = proplists:get_value("unitOfMeasure", Alter),
+	prod_price_ufm_et(UFM);
+prod_price_alter_ufm(json, Alter) ->
+	Units = Alter#alteration.units,
+	Size = product_size(octets, Units, Alter#alteration.size),
+	{"unitOfMeasure", prod_price_ufm_json(Units, Size)}.
+
+prod_price_ufm_json(undefined, _) ->
 	"";
-prod_price_ufm_json2(Units, undefined) ->
+prod_price_ufm_json(Units, undefined) ->
 	Units;
-prod_price_ufm_json2(Units, Size) when is_number(Size) ->
-	prod_price_ufm_json2(Units, integer_to_list(Size));
-prod_price_ufm_json2(octets, Size) when is_list(Size) ->
+prod_price_ufm_json(Units, Size) when is_number(Size) ->
+	prod_price_ufm_json(Units, integer_to_list(Size));
+prod_price_ufm_json(octets, Size) when is_list(Size) ->
 	Size ++ "b";
-prod_price_ufm_json2(gb, Size) when is_list(Size) ->
+prod_price_ufm_json(gb, Size) when is_list(Size) ->
 	Size ++ "g";
-prod_price_ufm_json2(mb, Size) when is_list(Size) ->
+prod_price_ufm_json(mb, Size) when is_list(Size) ->
 	Size ++ "m";
-prod_price_ufm_json2(cents, Size) when is_list(Size) ->
+prod_price_ufm_json(cents, Size) when is_list(Size) ->
 	Size ++ "c";
-prod_price_ufm_json2(seconds, Size) when is_list(Size) ->
+prod_price_ufm_json(seconds, Size) when is_list(Size) ->
 	Size ++ "s".
-%% @hidden
+
 prod_price_ufm_et(undefined) ->
 	{undefined, undefined};
 prod_price_ufm_et(UFM) ->
