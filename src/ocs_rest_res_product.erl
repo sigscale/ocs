@@ -1147,10 +1147,9 @@ patch_replace1(prod_price, [], {array, Values}, _) ->
 		_:_ ->
 			{error, malfored_request}
 	end;
-patch_replace1(prod_price, [$- | T], Values, Product) when Product#product.price == undefined ->
+patch_replace1(prod_price, [$- | T], Values, Prices) when Prices =/= undefined ->
 	try
-		L = Product#product.price,
-		{Hlist, [LastElement]} = lists:split(length(L) - 1, L),
+		{Hlist, [LastElement]} = lists:split(length(Prices) - 1, Prices),
 		NewValues = case {Values, T} of
 			{{struct, V}, []} ->
 				V;
