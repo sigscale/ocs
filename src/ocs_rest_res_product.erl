@@ -801,7 +801,7 @@ prod_price_alter_amount(json, PAlter) ->
 	when
 		Prefix	:: erlang_term | json,
 		Product	:: list() | #product{},
-		Result	:: {Units, Size},
+		Result	:: {Units, Size} | string(),
 		Units		:: undefined | unit_of_measure(),
 		Size		:: undefined | pos_integer().
 %% @doc return units type and size of measurement of a product
