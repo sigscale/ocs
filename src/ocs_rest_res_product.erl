@@ -944,8 +944,8 @@ validity_period(ISOSTime, ISOETime) when is_list(ISOSTime),
 
 -spec rc_period(RCPeriod) -> Result
 	when
-		RCPeriod	:: string(),
-		Result	:: valid_period().
+		RCPeriod	:: string() | valid_period(),
+		Result	:: valid_period() | string().
 %% @doc return valid period
 %% @private
 rc_period("") -> undefined;
