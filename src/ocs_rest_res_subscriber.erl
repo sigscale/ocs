@@ -672,7 +672,7 @@ patch_add(buckets , Value, "-", OldBuckets, Subscriber) ->
 	UpdateSubscriber =
 		Subscriber#subscriber{buckets = NewBuckets},
 	do_write(UpdateSubscriber);
-patch_add(buckets , Value, Location, OldBuckets, Subscriber) ->
+patch_add(buckets , Value, _Location, OldBuckets, Subscriber) ->
 	{struct, BucketObj} = mochijson:decode(Value),
 	{_, Amount} = lists:keyfind("amount", 1, BucketObj),
 	{_, Units} =  lists:keyfind("units", 1, BucketObj),
