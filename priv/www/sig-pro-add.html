@@ -163,14 +163,17 @@
 					<paper-input id="addPriceSize"
 							class="size"
 							name="size"
-							type="number"
+							type="text"
+							allowed-pattern="[0-9bmg]"
+							pattern="^[0-9]+[bmg]$"
 							label="Unit Size"
+							auto-validate
 							value=1
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 					</paper-input>
 					<paper-dropdown-menu id="addPrice2drop"
 							label="Units"
-							on-selected-item-changed="checkUnit"
+							on-selected-item-changed="checkPattern"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 						<paper-listbox
 								id="addPrice2"
@@ -184,12 +187,6 @@
 							</paper-item>
 							<paper-item id="priceSeconds">
 								Seconds
-							</paper-item>
-							<paper-item id="priceMB">
-								Megabytes (MB)
-							</paper-item>
-							<paper-item id="priceGB">
-								Gigabytes (GB)
 							</paper-item>
 						</paper-listbox>
 					</paper-dropdown-menu>
@@ -335,12 +332,6 @@
 								</paper-item>
 								<paper-item id="altSeconds">
 									Seconds
-								</paper-item>
-								<paper-item id="altMB">
-									Megabytes (MB)
-								</paper-item>
-								<paper-item id="altGB">
-									Gigabytes (GB)
 								</paper-item>
 						</paper-listbox>
 					</paper-dropdown-menu>
@@ -544,12 +535,12 @@
 						out.priceType = item.type;
 					}
 					if(item.unit != null && item.unit != "") {
-						out.unitOfMeasure = item.size + item.unit;
+						out.unitOfMeasure = item.size;
 					}
 					var taxIncludedAmount;
 					var currencyCode;
-					if(item.tax != null && item.tax != "") {
-						taxIncludedAmount = item.tax;
+					if(item.amount != null && item.amount != "") {
+						taxIncludedAmount = item.amount;
 					}
 					if(item.currency != null && item.currency != "") {
 						currencyCode = item.currency;
@@ -582,35 +573,34 @@ console.log(ajax);
 console.log(ajax.body);
 				ajax.generateRequest();
 			},
+			checkPattern: function() {
+				if(this.$.addPrice2.selected == 0) {
+					this.$.addPriceSize.allowedPattern = "[0-9bmg]";
+					this.$.addPriceSize.pattern = "^[0-9]+[bmg]?$";
+				} else if(this.$.addPrice2.selected == 1) {
+					this.$.addPriceSize.allowedPattern = "[0-9c]";
+					this.$.addPriceSize.pattern = "^[0-9]+[c]?$";
+				} else if(this.$.addPrice2.selected == 2) {
+					this.$.addPriceSize.allowedPattern = "[0-9smhdMy]";
+					this.$.addPriceSize.pattern = "^[0-9]+[smhdMy]?$";
+				}
+			},
 			checkRecure: function() {
 				if(this.$.addPrice1.selected == 0) {
 					this.$.addPrice5drop.disabled = false;
 					this.$.priceBytes.disabled = true;
 					this.$.priceSeconds.disabled = true;
 					this.$.priceCents.disabled = false;
-					this.$.priceMB.disabled = true;
-					this.$.priceGB.disabled = true;
 				}else if(this.$.addPrice1.selected == 1) {
 					this.$.addPrice5drop.disabled = true;
 					this.$.priceBytes.disabled = true;
                this.$.priceSeconds.disabled = true;
 					this.$.priceCents.disabled = false;
-               this.$.priceMB.disabled = true;
-               this.$.priceGB.disabled = true;
 				}else if(this.$.addPrice1.selected == 2) {
 					this.$.addPrice5drop.disabled = true;
 					this.$.priceCents.disabled = true;
                this.$.priceBytes.disabled = false;
                this.$.priceSeconds.disabled = false;
-               this.$.priceMB.disabled = false;
-               this.$.priceGB.disabled = false;
-				} else {
-					this.$.addPrice5drop.disabled = true;
-               this.$.priceBytes.disabled = false;
-               this.$.priceSeconds.disabled = false;
-					this.$.priceCents.disabled = false;
-               this.$.priceMB.disabled = false;
-               this.$.priceGB.disabled = false;
 				}
 				//if(this.$.addPrice1.selected == 0) {
 				//	if(this.$.addPrice2.selected == 0) {
@@ -623,27 +613,14 @@ console.log(ajax.body);
 					this.$.altBytes.disabled = true;
 					this.$.altSeconds.disabled = true;
 					this.$.altCents.disabled = false;
-					this.$.altMB.disabled = true;
-					this.$.altGB.disabled = true;
             }else if(this.$.typeAlt3.selected == 1) {
 					this.$.altBytes.disabled = true;
 					this.$.altSeconds.disabled = true;
 					this.$.altCents.disabled = false;
-					this.$.altMB.disabled = true;
-					this.$.altGB.disabled = true;
             }else if(this.$.typeAlt3.selected == 2) {
 					this.$.altBytes.disabled = false;
 					this.$.altSeconds.disabled = false;
 					this.$.altCents.disabled = true;
-					this.$.altMB.disabled = false;
-					this.$.altGB.disabled = false;
-            } else {
-               this.$.addalt5drop.disabled = true;
-					this.$.altBytes.disabled = false;
-					this.$.altSeconds.disabled = false;
-					this.$.altCents.disabled = false;
-					this.$.altMB.disabled = false;
-					this.$.altGB.disabled = false;
 				}
 			},
 			addPrice: function() {
@@ -662,7 +639,6 @@ console.log(ajax.body);
 					case 2:
 						priceNew.type = "usage";
 				}
-				priceNew.size = this.$.addPriceSize.value;
 				switch(this.$.addPrice2.selected) {
 					case 0:
 						priceNew.unit = "b";
@@ -672,14 +648,9 @@ console.log(ajax.body);
 						break;
 					case 2:
 						priceNew.unit = "s";
-						break;
-					case 3:
-						priceNew.unit = "m";
-						break;
-					case 4:
-						priceNew.unit = "g";
 				}
-				priceNew.tax = parseInt(this.$.addPrice3.value);
+				priceNew.amount = parseInt(this.$.addPrice3.value);
+				priceNew.size = this.$.addPriceSize.value;
 				priceNew.currency = this.$.addPrice4.value;
 				switch(this.$.addPrice5.selected) {
 					case 0:
@@ -695,6 +666,7 @@ console.log(ajax.body);
 						priceNew.period = "yearly";
 				}
 				priceNew.alteration = this.$.addPriceDrop.value;
+console.log(priceNew);
 				this.push('prices', priceNew);
 				this.$.priceName.value = null;
 				this.$.addPriceDes.value = null;
@@ -721,7 +693,7 @@ console.log(ajax.body);
                   altNew.type = "usage";
             }
 				altNew.units = this.$.addUnitDrop.value;
-				altNew.size = this.$.sizeAlt3.value;
+				altNew.size = this.$.addPriceSize.value;
 				switch(this.$.addaltPeriod.selected) {
 					case 0:
 						altNew.period = "daily";
