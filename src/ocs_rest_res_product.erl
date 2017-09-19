@@ -361,7 +361,7 @@ po_price(json, [Price | T], Prices) when is_record(Price, price) ->
 -spec po_alteration(Prefix, ProdAlterObj) -> Result
 	when
 		Prefix	:: erlang_term | json,
-		ProdAlterObj :: list(),
+		ProdAlterObj :: list() | #alteration{},
 		Result	:: #alteration{} | {error, Status},
 		Status	:: 400 | 500.
 %% @private
