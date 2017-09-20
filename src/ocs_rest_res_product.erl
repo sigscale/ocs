@@ -263,7 +263,7 @@ on_patch_product(ProdId, Etag, ReqData) ->
 		Body		:: iolist(),
 		Status	:: 400 | 500 .
 %% @doc Respond to `PATCH /productInventoryManagement/v1/product/{id}' and
-%% apply object notation patch for `product'
+%% apply merge patch for `product'
 %% RFC7386 `https://tools.ietf.org/html/rfc7386'
 merge_patch_product(ProdId, Etag, ReqData) ->
 	try
