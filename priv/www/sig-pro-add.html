@@ -324,13 +324,18 @@
 							class="size"
 							name="size"
 							label="Unit Size"
-							type="number"
+							type="text"
+							allowed-pattern="[0-9bmg]"
+							pattern="^[0-9]+[bmg]$"
+							auto-validate
+							value=1
 							onfocus="endDatePick.hide(); startDatePick.hide();">
 					</paper-input>
 					<paper-dropdown-menu
 							label="Units">
 						<paper-listbox
 								id="addUnitDrop"
+								on-selected-item-changed="checkPatternAlt"
 								slot="dropdown-content"
 								class="dropdown-content">
 								<paper-item id="altBytes">
@@ -349,6 +354,7 @@
 							name="amount"
 							label="Amount"
 							type="number"
+							value=0
 							onfocus="endDatePick.hide(); startDatePick.hide();">
 					</paper-input>
 					<paper-dropdown-menu id="addalt5drop"
@@ -536,6 +542,7 @@
 					offerNew.validFor = {endDateTime};
 				}
 				function mapPrice(item) {
+console.log(item);
 					var out = new Object();
 					if(item.name != null && item.name != "") {
 						out.name = item.name;
@@ -610,8 +617,8 @@
 					if(item.period != null && item.period != "") {
 						out.recurringChargePeriod = item.period;
 					}
-					if(item.alteration != null && item.alteration != "") {
-						out.productOfferPriceAlteration = new Array();
+					if(item.alterations != null && item.alterations != "") {
+						out.productOfferPriceAlteration = item.alterations;
 					}
 					return out; 
 				}
@@ -640,6 +647,18 @@ console.log(ajax.body);
 				} else if(this.$.addPrice2.selected == 2) {
 					this.$.addPriceSize.allowedPattern = "[0-9mh]";
 					this.$.addPriceSize.pattern = "^[0-9]+[mh]?$";
+				}
+			},
+			checkPatternAlt: function() {
+				if(this.$.addUnitDrop.selected == 0) {
+					this.$.sizeAlt3.allowedPattern = "[0-9kmg]";
+					this.$.sizeAlt3.pattern = "^[0-9]+[kmg]?$";
+				} else if(this.$.addUnitDrop.selected == 1) {
+					this.$.sizeAlt3.allowedPattern = "[0-9]";
+					this.$.sizeAlt3.pattern = "^[0-9]+$";
+				} else if(this.$.addUnitDrop.selected == 2) {
+					this.$.sizeAlt3.allowedPattern = "[0-9mh]";
+					this.$.sizeAlt3.pattern = "^[0-9]+[mh]?$";
 				}
 			},
 			checkRecure: function() {
@@ -718,7 +737,7 @@ console.log(ajax.body);
 					case 3:
 						priceNew.period = "yearly";
 				}
-				priceNew.alteration = this.$.addPriceDrop.value;
+				priceNew.alterations = this.$.addPriceDrop.value;
 console.log(priceNew);
 				if(priceNew.name
 						&& priceNew.name !== null
@@ -760,8 +779,17 @@ console.log(priceNew);
                case 2:
                   altNew.type = "usage";
             }
-				altNew.units = this.$.addUnitDrop.value;
-				altNew.size = this.$.addPriceSize.value;
+				switch(this.$.addUnitDrop.selected) {
+					case 0:
+						altNew.unit = "b";
+						break;
+					case 1:
+						altNew.unit = "c";
+						break
+					case 2:
+						altNew.unit = "s";
+				}
+				altNew.size = this.$.sizeAlt3.value;
 				switch(this.$.addaltPeriod.selected) {
 					case 0:
 						altNew.period = "daily";
@@ -776,7 +804,20 @@ console.log(priceNew);
 						altNew.period = "yearly";
 				}
 				altNew.amount= this.$.amountAlt3.value;
-				this.push('alterations', altNew);
+				if(altNew.name
+						&& altNew.name !== null
+						&& altNew.type
+						&& altNew.type !== null
+						&& altNew.unit
+						&& altNew.unit !== null
+						&& altNew.size
+						&& altNew.size !== null
+						&& altNew.amount
+						&& altNew.amount !== null) {
+					this.push('alterations', altNew);
+				} else {
+					console.log("toast error");
+				}
 				this.$.addAlt1.value = null
 				this.$.descAlt2.value = null;
 				this.$.startAlt2.value = null;
