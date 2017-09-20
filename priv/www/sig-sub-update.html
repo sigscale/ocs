@@ -311,9 +311,7 @@
 				sub.enabled= document.getElementById("edit-enabled").checked;
 				sub.multisession= document.getElementById("edit-multi-session").checked;
 				editAjax.body = sub;
-console.log(sub);
 				editAjax.generateRequest();
-console.log(editAjax);
 			},
 			updateSubAuthoResponse: function (event) {
 				if(event.detail.succeeded) {
