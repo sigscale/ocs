@@ -22,9 +22,11 @@
 
 -export([content_types_accepted/0, content_types_provided/0]).
 
--export([add_product_CatMgmt/1]).
--export([get_product_InvMgmt/1, get_products_InvMgmt/1]).
--export([on_patch_product_InvMgmt/3, merge_patch_product_InvMgmt/3]).
+-export([add_product_InvMgmt/1, add_product_CatMgmt/1]).
+-export([get_product_InvMgmt/1, get_products_InvMgmt/1,
+			get_product_CatMgmt/1, get_products_CatMgmt/1]).
+-export([on_patch_product_InvMgmt/3, merge_patch_product_InvMgmt/3,
+			on_patch_product_CatMgmt/3, merge_patch_product_CatMgmt/3]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
@@ -43,6 +45,62 @@ content_types_accepted() ->
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
 	["application/json"].
+
+-spec add_product_InvMgmt(ReqData) -> Result when
+	ReqData	:: [tuple()],
+	Result	:: {ok, Headers, Body} | {error, Status},
+	Headers	:: [tuple()],
+	Body		:: iolist(),
+	Status	:: 400 | 500 .
+%% @doc Respond to `POST /catalogManagement/v1/product' and
+%% add a new `product'
+add_product_InvMgmt(ReqData) ->
+	try
+		{struct, Object} = mochijson:decode(ReqData),
+		Name = prod_name(erl_term, Object),
+		IsBundle = prod_isBundle(erl_term, Object),
+		Status = prod_status({erl_term, invMgmt}, Object),
+		ValidFor = prod_vf(erl_term, Object),
+		Descirption = prod_description(erl_term, Object),
+		StartDate = prod_sdate(erl_term, Object),
+		TerminationDate = prod_tdate(erl_term, Object),
+		case prod_offering_price({erl_term, invMgmt}, Object) of
+			{error, StatusCode} ->
+				{error, StatusCode};
+			Price ->
+				Product = #product{price = Price, name = Name, valid_for = ValidFor,
+					is_bundle = IsBundle, status = Status, start_date = StartDate,
+					termination_date = TerminationDate, description = Descirption},
+				case add_product_InvMgmt1(Product) of
+					ok ->
+						add_product_InvMgmt2(Name, Object);
+					{error, StatusCode} ->
+						{error, StatusCode}
+				end
+		end
+	catch
+		_:_ ->
+			{error, 400}
+	end.
+%% @hidden
+add_product_InvMgmt1(Products) ->
+	F1 = fun() ->
+		ok = mnesia:write(product, Products, write)
+	end,
+	case mnesia:transaction(F1) of
+		{atomic, ok} ->
+			ok;
+		{aborted, _} ->
+			{error, 500}
+	end.
+%% @hidden
+add_product_InvMgmt2(ProdId, JsonResponse) ->
+	Id = {id, ProdId},
+	Json = {struct, [Id | JsonResponse]},
+	Body = mochijson:encode(Json),
+	Location = "/catalogManagement/v1/product/" ++ ProdId,
+	Headers = [{location, Location}],
+	{ok, Headers, Body}.
 
 -spec add_product_CatMgmt(ReqData) -> Result when
 	ReqData	:: [tuple()],
@@ -100,6 +158,114 @@ add_product_CatMgmt2(ProdId, JsonResponse) ->
 	Headers = [{location, Location}],
 	{ok, Headers, Body}.
 
+-spec get_product_CatMgmt(ProdID) -> Result when
+	ProdID	:: string(),
+	Result	:: {ok, Headers, Body} | {error, Status},
+	Headers	:: [tuple()],
+	Body		:: iolist(),
+	Status	:: 400 | 404 | 500 .
+%% @doc Respond to `GET /catalogManagement/v1/product/{id}' and
+%% retrieve a `product' details
+get_product_CatMgmt(ProductID) ->
+	F = fun() ->
+		case mnesia:read(product, ProductID) of
+			[Product] ->
+				Product;
+			[] ->
+				throw(not_found)
+		end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, Prod} ->
+			get_product_CatMgmt1(Prod);
+		{aborted, {throw, not_found}} ->
+			{error, 404};
+		{aborted, _} ->
+			{error, 500}
+	end.
+%% @hidden
+get_product_CatMgmt1(Prod) ->
+	ID = prod_id(json, Prod),
+	Descirption = prod_description(json, Prod),
+	Href = prod_href(json, Prod),
+	ValidFor = prod_vf(json, Prod),
+	IsBundle = prod_isBundle(json, Prod),
+	Name = prod_name(json, Prod),
+	Status = prod_status({json, catMgmt}, Prod),
+	StartDate = prod_sdate(json, Prod),
+	TerminationDate = prod_tdate(json, Prod),
+	case prod_offering_price({json, catMgmt}, Prod) of
+		{error, StatusCode} ->
+			{error, StatusCode};
+		OfferPrice ->
+			Json = {struct, [ID, Descirption, Href, StartDate,
+				TerminationDate, IsBundle, Name, Status, ValidFor,
+				OfferPrice]},
+			Body = mochijson:encode(Json),
+			Headers = [{content_type, "application/json"}],
+			{ok, Headers, Body}
+	end.
+
+-define(CHUNKSIZE, 100).
+
+-spec get_products_CatMgmt(Query) -> Result when
+	Query :: [{Key :: string(), Value :: string()}],
+	Result	:: {ok, Headers, Body} | {error, Status},
+	Headers	:: [tuple()],
+	Body		:: iolist(),
+	Status	:: 400 | 404 | 500 .
+%% @doc Respond to `GET /catalogManagement/v1/product' and
+%% retrieve all `product' details
+%% @todo Filtering
+get_products_CatMgmt(_Query) ->
+	MatchSpec = [{'_', [], ['$_']}],
+	F = fun(F, start, Acc) ->
+				F(F, mnesia:select(product, MatchSpec,
+						?CHUNKSIZE, read), Acc);
+			(_F, '$end_of_table', Acc) ->
+				lists:flatten(lists:reverse(Acc));
+			(_F, {error, Reason}, _Acc) ->
+				{error, Reason};
+			(F,{Product, Cont}, Acc) ->
+				F(F, mnesia:select(Cont), [Product | Acc])
+	end,
+	case mnesia:transaction(F, [F, start, []]) of
+		{aborted, _} ->
+			{error, 500};
+		{atomic, Products} ->
+			get_products_CatMgmt1(Products, [])
+	end.
+%% @hidden
+get_products_CatMgmt1([], Acc) ->
+	Json = {array, Acc},
+	Body = mochijson:encode(Json),
+	Headers = [{content_type, "application/json"}],
+	{ok, Headers, Body};
+get_products_CatMgmt1([Prod | T], Acc) ->
+	try
+		ID = prod_id(json, Prod),
+		Descirption = prod_description(json, Prod),
+		Href = prod_href(json, Prod),
+		ValidFor = prod_vf(json, Prod),
+		IsBundle = prod_isBundle(json, Prod),
+		Name = prod_name(json, Prod),
+		Status = prod_status({json, catMgmt}, Prod),
+		StartDate = prod_sdate(json, Prod),
+		TerminationDate = prod_tdate(json, Prod),
+		case prod_offering_price({json, catMgmt}, Prod) of
+			{error, StatusCode} ->
+				{error, StatusCode};
+			OfferPrice ->
+			Json = {struct, [ID, Descirption, Href, StartDate,
+					TerminationDate, IsBundle, Name, Status, ValidFor,
+					OfferPrice]},
+			get_products_CatMgmt1(T, [Json | Acc])
+		end
+	catch
+		_:_ ->
+			{error, 500}
+	end.
+
 -spec get_product_InvMgmt(ProdID) -> Result when
 	ProdID	:: string(),
 	Result	:: {ok, Headers, Body} | {error, Status},
@@ -147,8 +313,6 @@ get_product_InvMgmt1(Prod) ->
 			Headers = [{content_type, "application/json"}],
 			{ok, Headers, Body}
 	end.
-
--define(CHUNKSIZE, 100).
 
 -spec get_products_InvMgmt(Query) -> Result when
 	Query :: [{Key :: string(), Value :: string()}],
@@ -253,6 +417,51 @@ on_patch_product_InvMgmt(ProdId, Etag, ReqData) ->
 			{error, 400}
 	end.
 
+-spec on_patch_product_CatMgmt(ProdId, Etag, ReqData) -> Result
+	when
+		ProdId	:: string(),
+		Etag		:: undefined | list(),
+		ReqData	:: [tuple()],
+		Result	:: {ok, Headers, Body} | {error, Status},
+		Headers	:: [tuple()],
+		Body		:: iolist(),
+		Status	:: 400 | 500 .
+%% @doc Respond to `PATCH /catalogManagement/v1/product/{id}' and
+%% apply object notation patch for `product'
+%% RFC6902 `https://tools.ietf.org/html/rfc6902'
+on_patch_product_CatMgmt(ProdId, Etag, ReqData) ->
+	try
+		{array, OpList} = mochijson:decode(ReqData),
+		case exe_jsonpatch_ON(ProdId, Etag, OpList) of
+			{error, StatusCode} ->
+				{error, StatusCode};
+			{ok, Prod} ->
+				ID = prod_id(json, Prod),
+				Descirption = prod_description(json, Prod),
+				Href = prod_href(json, Prod),
+				ValidFor = prod_vf(json, Prod),
+				IsBundle = prod_isBundle(json, Prod),
+				Name = prod_name(json, Prod),
+				Status = prod_status({json, catMgmt}, Prod),
+				StartDate = prod_sdate(json, Prod),
+				TerminationDate = prod_tdate(json, Prod),
+				case prod_offering_price({json, catMgmt}, Prod) of
+					{error, StatusCode} ->
+						{error, StatusCode};
+					OfferPrice ->
+						Json = {struct, [ID, Descirption, Href, StartDate,
+						TerminationDate, IsBundle, Name, Status, ValidFor,
+						OfferPrice]},
+						Body = mochijson:encode(Json),
+						Headers = [{content_type, "application/json"}],
+						{ok, Headers, Body}
+				end
+		end
+	catch
+		_:_ ->
+			{error, 400}
+	end.
+
 -spec merge_patch_product_InvMgmt(ProdId, Etag, ReqData) -> Result
 	when
 		ProdId	:: string(),
@@ -269,6 +478,34 @@ merge_patch_product_InvMgmt(ProdId, Etag, ReqData) ->
 	try
 		Json = mochijson:decode(ReqData),
 		case exe_jsonpatch_merge(invMgmt, ProdId, Etag, Json) of
+			{error, Reason} ->
+				{error, Reason};
+			{ok, Response} ->
+				Body = mochijson:encode(Response),
+				Headers = [{content_type, "application/json"}],
+				{ok, Headers, Body}
+		end
+	catch
+		_:_ ->
+			{error, 400}
+	end.
+
+-spec merge_patch_product_CatMgmt(ProdId, Etag, ReqData) -> Result
+	when
+		ProdId	:: string(),
+		Etag		:: undefined | list(),
+		ReqData	:: [tuple()],
+		Result	:: {ok, Headers, Body} | {error, Status},
+		Headers	:: [tuple()],
+		Body		:: iolist(),
+		Status	:: 400 | 500 .
+%% @doc Respond to `PATCH /productInventoryManagement/v1/product/{id}' and
+%% apply merge patch for `product'
+%% RFC7386 `https://tools.ietf.org/html/rfc7386'
+merge_patch_product_CatMgmt(ProdId, Etag, ReqData) ->
+	try
+		Json = mochijson:decode(ReqData),
+		case exe_jsonpatch_merge(catMgmt, ProdId, Etag, Json) of
 			{error, Reason} ->
 				{error, Reason};
 			{ok, Response} ->

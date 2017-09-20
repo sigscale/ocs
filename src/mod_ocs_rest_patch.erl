@@ -107,8 +107,14 @@ do_patch(ContentType, Body, Resource, ModData, Etag,
 	do_response(ModData, Resource:patch_user(Identity, Etag, ContentType,
 			Body));
 do_patch("application/json-patch+json", Body, Resource, ModData, Etag,
+		["catalogManagement", "v1", "productOffering", ProdId]) ->
+	do_response(ModData, Resource:on_patch_product_CatMgmt(ProdId, Etag, Body));
+do_patch("application/merge-patch+json", Body, Resource, ModData, Etag,
+		["catalogManagement", "v1", "productOffering", ProdId]) ->
+	do_response(ModData, Resource:merge_patch_product(ProdId, Etag, Body));
+do_patch("application/json-patch+json", Body, Resource, ModData, Etag,
 		["productInventoryManagement", "v1", "product", ProdId]) ->
-	do_response(ModData, Resource:on_patch_product_InvMgmt(ProdId, Etag, Body));
+	do_response(ModData, Resource:on_patch_product_CatMgmt(ProdId, Etag, Body));
 do_patch("application/merge-patch+json", Body, Resource, ModData, Etag,
 		["productInventoryManagement", "v1", "product", ProdId]) ->
 	do_response(ModData, Resource:merge_patch_product(ProdId, Etag, Body));

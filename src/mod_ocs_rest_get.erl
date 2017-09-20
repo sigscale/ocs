@@ -128,6 +128,10 @@ do_get(Resource, ModData, ["partyManagement", "v1", "individual", Id], Query) ->
 	do_response(ModData, Resource:get_user(Id, Query));
 do_get(Resource, ModData, ["balanceManagement", "v1", Id, "buckets"], []) ->
 	do_response(ModData, Resource:get_balance(Id));
+do_get(Resource, ModData, ["catalogManagement", "v1", "productOffering"], Query) ->
+	do_response(ModData, Resource:get_products_CatMgmt(Query));
+do_get(Resource, ModData, ["catalogManagement", "v1", "productOffering", Id], []) ->
+	do_response(ModData, Resource:get_product_CatMgmt(Id));
 do_get(Resource, ModData, ["productInventoryManagement", "v1", "product"], Query) ->
 	do_response(ModData, Resource:get_products_InvMgmt(Query));
 do_get(Resource, ModData, ["productInventoryManagement", "v1", "product", Id], []) ->
