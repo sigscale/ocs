@@ -129,7 +129,7 @@
 			},
 			 _userFormResponse: function(event) {
 				document.getElementById("AddUserModal").close();
-				document.getElementById("getUser").generateRequest();
+				document.getElementById("userGrid").clearCache();
 			},
 			_onLoadingChanged: function(event) {
 				if (document.getElementById("AddUserAjax").loading) {

@@ -331,7 +331,7 @@
 				if(event.detail.succeeded) {
 					document.getElementById("edit-toast").open();
 					document.getElementById("edit-new-pwd").value = "";
-					document.getElementById("getSubs").generateRequest();
+					document.getElementById("subscriberGrid").clearCache();
 				} else {
 					console.log("Not Success");
 				}
@@ -405,7 +405,7 @@
 			updateSubAuthoResponse: function (event) {
 				if(event.detail.succeeded) {
 					document.getElementById("edit-toast").open();
-					document.getElementById("getSubs").generateRequest();
+					document.getElementById("subscriberGrid").clearCache();
 				} else {
 					console.log("Not Success");
 				}
@@ -421,7 +421,7 @@
 			deleteSubResponse: function(event) {
 				document.getElementById("subUpdateModal").close();
 				document.getElementById("delete-toast").open();
-				document.getElementById("getSubs").generateRequest();
+				document.getElementById("subscriberGrid").clearCache();
 			}
 		});
 	</script>
