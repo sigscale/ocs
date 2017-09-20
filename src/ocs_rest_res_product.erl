@@ -22,7 +22,7 @@
 
 -export([content_types_accepted/0, content_types_provided/0]).
 
--export([add_product_CatMgmt/1]).
+-export([add_product_InvMgmt/1, add_product_CatMgmt/1]).
 -export([get_product_InvMgmt/1, get_products_InvMgmt/1,
 			get_product_CatMgmt/1, get_products_CatMgmt/1]).
 -export([on_patch_product_InvMgmt/3, merge_patch_product_InvMgmt/3,
@@ -45,6 +45,62 @@ content_types_accepted() ->
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
 	["application/json"].
+
+-spec add_product_InvMgmt(ReqData) -> Result when
+	ReqData	:: [tuple()],
+	Result	:: {ok, Headers, Body} | {error, Status},
+	Headers	:: [tuple()],
+	Body		:: iolist(),
+	Status	:: 400 | 500 .
+%% @doc Respond to `POST /catalogManagement/v1/product' and
+%% add a new `product'
+add_product_InvMgmt(ReqData) ->
+	try
+		{struct, Object} = mochijson:decode(ReqData),
+		Name = prod_name(erl_term, Object),
+		IsBundle = prod_isBundle(erl_term, Object),
+		Status = prod_status({erl_term, invMgmt}, Object),
+		ValidFor = prod_vf(erl_term, Object),
+		Descirption = prod_description(erl_term, Object),
+		StartDate = prod_sdate(erl_term, Object),
+		TerminationDate = prod_tdate(erl_term, Object),
+		case prod_offering_price({erl_term, invMgmt}, Object) of
+			{error, StatusCode} ->
+				{error, StatusCode};
+			Price ->
+				Product = #product{price = Price, name = Name, valid_for = ValidFor,
+					is_bundle = IsBundle, status = Status, start_date = StartDate,
+					termination_date = TerminationDate, description = Descirption},
+				case add_product_InvMgmt1(Product) of
+					ok ->
+						add_product_InvMgmt2(Name, Object);
+					{error, StatusCode} ->
+						{error, StatusCode}
+				end
+		end
+	catch
+		_:_ ->
+			{error, 400}
+	end.
+%% @hidden
+add_product_InvMgmt1(Products) ->
+	F1 = fun() ->
+		ok = mnesia:write(product, Products, write)
+	end,
+	case mnesia:transaction(F1) of
+		{atomic, ok} ->
+			ok;
+		{aborted, _} ->
+			{error, 500}
+	end.
+%% @hidden
+add_product_InvMgmt2(ProdId, JsonResponse) ->
+	Id = {id, ProdId},
+	Json = {struct, [Id | JsonResponse]},
+	Body = mochijson:encode(Json),
+	Location = "/catalogManagement/v1/product/" ++ ProdId,
+	Headers = [{location, Location}],
+	{ok, Headers, Body}.
 
 -spec add_product_CatMgmt(ReqData) -> Result when
 	ReqData	:: [tuple()],
