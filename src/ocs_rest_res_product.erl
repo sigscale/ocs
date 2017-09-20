@@ -55,14 +55,14 @@ content_types_provided() ->
 add_product(ReqData) ->
 	try
 		{struct, Object} = mochijson:decode(ReqData),
-		Name = prod_name(erlang_term, Object),
-		IsBundle = prod_isBundle(erlang_term, Object),
-		Status = prod_status(erlang_term, Object),
-		ValidFor = prod_vf(erlang_term, Object),
-		Descirption = prod_description(erlang_term, Object),
-		StartDate = prod_sdate(erlang_term, Object),
-		TerminationDate = prod_tdate(erlang_term, Object),
-		case prod_offering_price(erlang_term, Object) of
+		Name = prod_name(erl_term, Object),
+		IsBundle = prod_isBundle(erl_term, Object),
+		Status = prod_status(erl_term, Object),
+		ValidFor = prod_vf(erl_term, Object),
+		Descirption = prod_description(erl_term, Object),
+		StartDate = prod_sdate(erl_term, Object),
+		TerminationDate = prod_tdate(erl_term, Object),
+		case prod_offering_price(erl_term, Object) of
 			{error, StatusCode} ->
 				{error, StatusCode};
 			Price ->
@@ -286,17 +286,17 @@ merge_patch_product(ProdId, Etag, ReqData) ->
 %%----------------------------------------------------------------------
 -spec prod_offering_price(Prefix, Product) -> Result
 	when
-		Prefix	:: erlang_term | json,
+		Prefix	:: erl_term | json,
 		Product	:: list() | #product{},
 		Result	:: [#price{}] | list() | {error, Status},
 		Status	:: 400.
 %% @doc construct list of product
 %% @private
-prod_offering_price(erlang_term, []) ->
+prod_offering_price(erl_term, []) ->
 	{error, 400};
-prod_offering_price(erlang_term, Json) ->
+prod_offering_price(erl_term, Json) ->
 	{_, {array, ProdOfPrice}} = lists:keyfind("productOfferingPrice", 1, Json),
-	case po_price(erlang_term, ProdOfPrice, []) of
+	case po_price(erl_term, ProdOfPrice, []) of
 		{error, Status} ->
 			{error, Status};
 		Prices ->
@@ -312,26 +312,26 @@ prod_offering_price(json, Product) ->
 
 -spec po_price(Prefix, ProductOfPrice, Prices) -> Result
 	when
-		Prefix	:: erlang_term | json,
+		Prefix	:: erl_term | json,
 		ProductOfPrice	:: list() | [#price{}],
 		Prices	::	list(),
 		Result	:: [#price{}] | list() | {error, Status},
 		Status	:: 400 | 500.
 %% @hidden
-po_price(erlang_term, [], Prices) ->
+po_price(erl_term, [], Prices) ->
 	Prices;
-po_price(erlang_term, [{struct, Object} | T], Prices) ->
+po_price(erl_term, [{struct, Object} | T], Prices) ->
 	try
-		ProdName = prod_price_name(erlang_term, Object),
-		{_ProdSTime, _ProdETime} = prod_price_vf(erlang_term, Object),
-		ProdPriceType = prod_price_type(erlang_term, Object),
+		ProdName = prod_price_name(erl_term, Object),
+		{_ProdSTime, _ProdETime} = prod_price_vf(erl_term, Object),
+		ProdPriceType = prod_price_type(erl_term, Object),
 		{_, {struct, ProdPriceObj}} = lists:keyfind("price", 1, Object),
-		ProdAmount = prod_price_price_amount(erlang_term, ProdPriceObj),
-		CurrencyCode = prod_price_price_c_code(erlang_term, ProdPriceObj),
-		ProdVF = prod_price_vf(erlang_term, Object),
-		RCPeriod = prod_price_rc_period(erlang_term, Object),
-		ProdDescirption = prod_price_description(erlang_term, Object),
-		{ProdUnits, ProdSize} = prod_price_ufm(erlang_term, Object),
+		ProdAmount = prod_price_price_amount(erl_term, ProdPriceObj),
+		CurrencyCode = prod_price_price_c_code(erl_term, ProdPriceObj),
+		ProdVF = prod_price_vf(erl_term, Object),
+		RCPeriod = prod_price_rc_period(erl_term, Object),
+		ProdDescirption = prod_price_description(erl_term, Object),
+		{ProdUnits, ProdSize} = prod_price_ufm(erl_term, Object),
 		Size = product_size(ProdUnits, octets, ProdSize),
 		Price1 = #price{name = ProdName, description = ProdDescirption,
 				type = ProdPriceType, units = ProdUnits, size = Size, valid_for = ProdVF,
@@ -339,14 +339,14 @@ po_price(erlang_term, [{struct, Object} | T], Prices) ->
 				amount = ProdAmount},
 		case lists:keyfind("productOfferPriceAlteration", 1, Object) of
 			false ->
-				po_price(erlang_term, T, [Price1 | Prices]);
+				po_price(erl_term, T, [Price1 | Prices]);
 			{_, {struct, ProdAlterObj}} ->
-				case po_alteration(erlang_term, ProdAlterObj) of
+				case po_alteration(erl_term, ProdAlterObj) of
 					{error, Status} ->
 						{error, Status};
 					Alteration ->
 						Price2 = Price1#price{alteration = Alteration},
-						po_price(erlang_term, T, [Price2 | Prices])
+						po_price(erl_term, T, [Price2 | Prices])
 				end
 		end
 	catch
@@ -388,20 +388,20 @@ po_price(json, [Price | T], Prices) when is_record(Price, price) ->
 
 -spec po_alteration(Prefix, ProdAlterObj) -> Result
 	when
-		Prefix	:: erlang_term | json,
+		Prefix	:: erl_term | json,
 		ProdAlterObj :: list() | #alteration{},
 		Result	:: #alteration{} | {error, Status},
 		Status	:: 400 | 500.
 %% @private
-po_alteration(erlang_term, ProdAlterObj) ->
+po_alteration(erl_term, ProdAlterObj) ->
 	try
-		ProdAlterName = prod_price_alter_name(erlang_term, ProdAlterObj),
-		ProdAlterVF = prod_price_alter_vf(erlang_term, ProdAlterObj),
-		ProdAlterPriceType = prod_price_alter_price_type(erlang_term, ProdAlterObj),
+		ProdAlterName = prod_price_alter_name(erl_term, ProdAlterObj),
+		ProdAlterVF = prod_price_alter_vf(erl_term, ProdAlterObj),
+		ProdAlterPriceType = prod_price_alter_price_type(erl_term, ProdAlterObj),
 		{_, {struct, ProdAlterPriceObj}} = lists:keyfind("price", 1, ProdAlterObj),
-		ProdAlterAmount = prod_price_alter_amount(erlang_term, ProdAlterPriceObj),
-		ProdAlterDescirption = prod_price_alter_description(erlang_term, ProdAlterObj),
-		{ProdAlterUnits, ProdAlterSize} = prod_price_alter_ufm(erlang_term, ProdAlterObj),
+		ProdAlterAmount = prod_price_alter_amount(erl_term, ProdAlterPriceObj),
+		ProdAlterDescirption = prod_price_alter_description(erl_term, ProdAlterObj),
+		{ProdAlterUnits, ProdAlterSize} = prod_price_alter_ufm(erl_term, ProdAlterObj),
 		AlterSize = product_size(ProdAlterUnits, octets, ProdAlterSize),
 		#alteration{name = ProdAlterName, description = ProdAlterDescirption,
 			valid_for = ProdAlterVF, units = ProdAlterUnits, size = AlterSize,
@@ -429,7 +429,7 @@ po_alteration(json, ProdAlter) ->
 
 -spec prod_id(Prefix, Product) -> Result
 	when
-		Prefix	:: erlang_term | json,
+		Prefix	:: erl_term | json,
 		Product	:: list() | #product{},
 		Result	:: string() | tuple().
 %% @private
@@ -438,11 +438,11 @@ prod_id(json, Product) ->
 
 -spec prod_name(Prefix, Product) -> Result
 	when
-		Prefix	:: erlang_term | json,
+		Prefix	:: erl_term | json,
 		Product	:: list() | #product{},
 		Result	:: string() | tuple().
 %% @private
-prod_name(erlang_term, Product) ->
+prod_name(erl_term, Product) ->
 	{_, Name} = lists:keyfind("name", 1, Product),
 	Name;
 prod_name(json, Prod) ->
@@ -450,11 +450,11 @@ prod_name(json, Prod) ->
 
 -spec prod_description(Prefix, Product) -> Result
 	when
-		Prefix	:: erlang_term | json,
+		Prefix	:: erl_term | json,
 		Product	:: list() | #product{},
 		Result	:: undefined | string() | tuple().
 %% @private
-prod_description(erlang_term, Product) ->
+prod_description(erl_term, Product) ->
 	proplists:get_value("description", Product, undefined);
 prod_description(json, Product) ->
 	case Product#product.description of
@@ -466,7 +466,7 @@ prod_description(json, Product) ->
 
 -spec prod_href(Prefix, Product) -> Result
 	when
-		Prefix	:: erlang_term | json,
+		Prefix	:: erl_term | json,
 		Product	:: list() | #product{},
 		Result	:: undefined | string() | tuple().
 %% @private
@@ -475,11 +475,11 @@ prod_href(json, Product) ->
 
 -spec prod_isBundle(Prefix, Product) -> Result
 	when
-		Prefix	:: erlang_term | json,
+		Prefix	:: erl_term | json,
 		Product	:: list() | #product{},
 		Result	:: boolean() | tuple().
 %% @private
-prod_isBundle(erlang_term, Product) ->
+prod_isBundle(erl_term, Product) ->
 	case lists:keyfind("isBundle", 1, Product) of
 		{"isBundle", "true"} -> true;
 		{"isBundle", true} -> true;
@@ -495,11 +495,11 @@ prod_isBundle(json, Product) ->
 
 -spec prod_status(Prefix, Product) -> Result
 	when
-		Prefix	:: erlang_term | json,
+		Prefix	:: erl_term | json,
 		Product	:: list() | #product{},
 		Result	:: string() | tuple().
 %% @private
-prod_status(erlang_term, Product) ->
+prod_status(erl_term, Product) ->
 	case lists:keyfind("lifecycleStatus", 1, Product) of
 		{_, FindStatus} ->
 			find_status(FindStatus);
@@ -516,11 +516,11 @@ prod_status(json, Product) ->
 
 -spec prod_sdate(Prefix, Product) -> Result
 	when
-		Prefix :: erlang_term | json,
+		Prefix :: erl_term | json,
 		Product :: list() | #product{},
 		Result :: undefined | tuple().
 %% @private
-prod_sdate(erlang_term, Product) ->
+prod_sdate(erl_term, Product) ->
 	case lists:keyfind("startDate", 1, Product) of
 		{_, SD} ->
 			ocs_rest:iso8601(SD);
@@ -537,11 +537,11 @@ prod_sdate(json, Product) ->
 
 -spec prod_tdate(Prefix, Product) -> Result
 	when
-		Prefix :: erlang_term | json,
+		Prefix :: erl_term | json,
 		Product :: list() | #product{},
 		Result :: undefined | tuple().
 %% @private
-prod_tdate(erlang_term, Product) ->
+prod_tdate(erl_term, Product) ->
 	case lists:keyfind("terminationDate", 1, Product) of
 		{_, SD} ->
 			ocs_rest:iso8601(SD);
@@ -558,11 +558,11 @@ prod_tdate(json, Product) ->
 
 -spec prod_vf(Prefix, Product) -> Result
 	when
-		Prefix :: erlang_term | json,
+		Prefix :: erl_term | json,
 		Product :: list() | #product{},
 		Result :: tuple().
 %% @private
-prod_vf(erlang_term, Product) ->
+prod_vf(erl_term, Product) ->
 	case lists:keyfind("validFor", 1, Product) of
 		{_, {struct, VFObj}} ->
 			case {proplists:get_value("startDateTime", VFObj), proplists:get_value("endDateTime", VFObj)} of
@@ -596,11 +596,11 @@ prod_vf(json, Product) ->
 
 -spec prod_price_name(Prefix, Price) -> Result
 	when
-		Prefix	:: erlang_term | json,
+		Prefix	:: erl_term | json,
 		Price		:: list() | #price{},
 		Result	:: string() | tuple().
 %% @private
-prod_price_name(erlang_term, Price) ->
+prod_price_name(erl_term, Price) ->
 	{_, Name} = lists:keyfind("name", 1, Price),
 	Name;
 prod_price_name(json, Price) ->
@@ -608,11 +608,11 @@ prod_price_name(json, Price) ->
 
 -spec prod_price_description(Prefix, Price) -> Result
 	when
-		Prefix	:: erlang_term | json,
+		Prefix	:: erl_term | json,
 		Price		:: list() | #price{},
 		Result	:: undefined | string() | tuple().
 %% @private
-prod_price_description(erlang_term, Price) ->
+prod_price_description(erl_term, Price) ->
 	proplists:get_value("description", Price, undefined);
 prod_price_description(json, Price) ->
 	case Price#price.description of
@@ -624,11 +624,11 @@ prod_price_description(json, Price) ->
 
 -spec prod_price_vf(Prefix, Price) -> Result
 	when
-		Prefix	:: erlang_term | json,
+		Prefix	:: erl_term | json,
 		Price		:: list() | #price{},
 		Result	:: tuple().
 %% @private
-prod_price_vf(erlang_term, Price) ->
+prod_price_vf(erl_term, Price) ->
 	case lists:keyfind("validFor", 1, Price) of
 		{_,  {struct, VFObj}} ->
 			case {proplists:get_value("startDateTime", VFObj), proplists:get_value("endDateTime", VFObj)} of
@@ -662,11 +662,11 @@ prod_price_vf(json, Price) ->
 
 -spec prod_price_type(Prefix, Price) -> Result
 	when
-		Prefix	:: erlang_term | json,
+		Prefix	:: erl_term | json,
 		Price		:: list() | #price{},
 		Result	:: atom() | tuple().
 %% @private
-prod_price_type(erlang_term, Price) ->
+prod_price_type(erl_term, Price) ->
 	{_, ProdPriceTypeS} = lists:keyfind("priceType", 1, Price),
 	price_type(ProdPriceTypeS);
 prod_price_type(json, Price) ->
@@ -675,11 +675,11 @@ prod_price_type(json, Price) ->
 
 -spec prod_price_price_amount(Prefix, Price) -> Result
 	when
-		Prefix	:: erlang_term | json,
+		Prefix	:: erl_term | json,
 		Price		:: list() | #price{},
 		Result	:: integer() | tuple().
 %% @private
-prod_price_price_amount(erlang_term, PriceObj) ->
+prod_price_price_amount(erl_term, PriceObj) ->
 	{_, ProdAmount} = lists:keyfind("taxIncludedAmount", 1, PriceObj),
 	ProdAmount;
 prod_price_price_amount(json, Price) ->
@@ -692,11 +692,11 @@ prod_price_price_amount(json, Price) ->
 
 -spec prod_price_price_c_code(Prefix, Price) -> Result
 	when
-		Prefix	:: erlang_term | json,
+		Prefix	:: erl_term | json,
 		Price		:: list() | #price{},
 		Result	:: string() | tuple().
 %% @private
-prod_price_price_c_code(erlang_term, PriceObj) ->
+prod_price_price_c_code(erl_term, PriceObj) ->
 		{_, CurrencyCode} = lists:keyfind("currencyCode", 1, PriceObj),
 		CurrencyCode;
 prod_price_price_c_code(json, Price) ->
@@ -704,11 +704,11 @@ prod_price_price_c_code(json, Price) ->
 
 -spec prod_price_rc_period(Prefix, Price) -> Result
 	when
-		Prefix	:: erlang_term | json,
+		Prefix	:: erl_term | json,
 		Price		:: list() | #price{},
 		Result	:: undefined | string() | tuple().
 %% @private
-prod_price_rc_period(erlang_term, Price) ->
+prod_price_rc_period(erl_term, Price) ->
 	case lists:keyfind("recurringChargePeriod", 1, Price) of
 		{_, RCPeriod} ->
 			rc_period(RCPeriod);
@@ -725,11 +725,11 @@ prod_price_rc_period(json, Price) ->
 
 -spec prod_price_alter_name(Prefix, PAlter) -> Result
 	when
-		Prefix :: erlang_term | json,
+		Prefix :: erl_term | json,
 		PAlter :: list() | #alteration{},
 		Result :: string() | tuple().
 %% @private
-prod_price_alter_name(erlang_term, PAlter) ->
+prod_price_alter_name(erl_term, PAlter) ->
 	{_, Name} = lists:keyfind("name", 1, PAlter),
 	Name;
 prod_price_alter_name(json, PAlter) ->
@@ -737,11 +737,11 @@ prod_price_alter_name(json, PAlter) ->
 
 -spec prod_price_alter_vf(Prefix, PAlter) -> Result
 	when
-		Prefix :: erlang_term | json,
+		Prefix :: erl_term | json,
 		PAlter :: list() | #alteration{},
 		Result :: integer() | tuple().
 %% @private
-prod_price_alter_vf(erlang_term, PAlter) ->
+prod_price_alter_vf(erl_term, PAlter) ->
 	case lists:keyfind("validFor", 1, PAlter) of
 		{_, {struct, PAlterVF}} ->
 			PAlterSTimeISO = proplists:get_value("startDateTime", PAlterVF),
@@ -778,11 +778,11 @@ prod_price_alter_vf(json, PAlter) ->
 
 -spec prod_price_alter_description(Prefix, PAlter) -> Result
 	when
-		Prefix :: erlang_term | json,
+		Prefix :: erl_term | json,
 		PAlter :: list() | #alteration{},
 		Result :: undefined | string() | tuple().
 %% @private
-prod_price_alter_description(erlang_term, PAlter) ->
+prod_price_alter_description(erl_term, PAlter) ->
 	proplists:get_value("description", PAlter, undefined);
 prod_price_alter_description(json, PAlter) ->
 	case PAlter#alteration.description of
@@ -794,11 +794,11 @@ prod_price_alter_description(json, PAlter) ->
 
 -spec prod_price_alter_price_type(Prefix, PAlter) -> Result
 	when
-		Prefix :: erlang_term | json,
+		Prefix :: erl_term | json,
 		PAlter :: list() | #alteration{},
 		Result :: undefined | atom().
 %% @private
-prod_price_alter_price_type(erlang_term, PAlter) ->
+prod_price_alter_price_type(erl_term, PAlter) ->
 	case lists:keyfind("priceType", 1, PAlter) of
 		{_, PriceType} ->
 			price_type(PriceType);
@@ -815,11 +815,11 @@ prod_price_alter_price_type(json, PAlter) ->
 
 -spec prod_price_alter_amount(Prefix, PAlter) -> Result
 	when
-		Prefix :: erlang_term | json,
+		Prefix :: erl_term | json,
 		PAlter :: list() | #alteration{},
 		Result :: undefined | integer() | tuple().
 %% @private
-prod_price_alter_amount(erlang_term, PAlterPriceObj) ->
+prod_price_alter_amount(erl_term, PAlterPriceObj) ->
 	{_, PAlterAmount} = lists:keyfind("taxIncludedAmount", 1,  PAlterPriceObj),
 	PAlterAmount;
 prod_price_alter_amount(json, PAlter) ->
@@ -832,14 +832,14 @@ prod_price_alter_amount(json, PAlter) ->
 
 -spec prod_price_ufm(Prefix, Price) -> Result
 	when
-		Prefix	:: erlang_term | json,
+		Prefix	:: erl_term | json,
 		Price		:: list() | #price{},
 		Result	:: {Units, Size} | string(),
 		Units		:: undefined | unit_of_measure(),
 		Size		:: undefined | pos_integer().
 %% @doc return units type and size of measurement of a product
 %% @private
-prod_price_ufm(erlang_term, Price) ->
+prod_price_ufm(erl_term, Price) ->
 	UFM = proplists:get_value("unitOfMeasure", Price, undefined),
 	prod_price_ufm_et(UFM);
 prod_price_ufm(json, Price) ->
@@ -849,14 +849,14 @@ prod_price_ufm(json, Price) ->
 
 -spec prod_price_alter_ufm(Prefix, Alter) -> Result
 	when
-		Prefix	:: erlang_term | json,
+		Prefix	:: erl_term | json,
 		Alter		:: list() | #alteration{},
 		Result	:: {Units, Size} | string(),
 		Units		:: undefined | unit_of_measure(),
 		Size		:: undefined | pos_integer().
 %% @doc return units type and size of measurement of a alteration
 %% @private
-prod_price_alter_ufm(erlang_term, Alter) ->
+prod_price_alter_ufm(erl_term, Alter) ->
 	UFM = proplists:get_value("unitOfMeasure", Alter),
 	prod_price_ufm_et(UFM);
 prod_price_alter_ufm(json, Alter) ->
@@ -1345,15 +1345,15 @@ target(Prod) when is_record(Prod, product) ->
 	end;
 target({struct, Object}) ->
 	try
-		Name = prod_name(erlang_term, Object),
-		IsBundle = prod_isBundle(erlang_term, Object),
-		Status = prod_status(erlang_term, Object),
-		ValidFor = prod_vf(erlang_term, Object),
-		Descirption = prod_description(erlang_term, Object),
-		StartDate = prod_sdate(erlang_term, Object),
-		TerminationDate = prod_tdate(erlang_term, Object),
+		Name = prod_name(erl_term, Object),
+		IsBundle = prod_isBundle(erl_term, Object),
+		Status = prod_status(erl_term, Object),
+		ValidFor = prod_vf(erl_term, Object),
+		Descirption = prod_description(erl_term, Object),
+		StartDate = prod_sdate(erl_term, Object),
+		TerminationDate = prod_tdate(erl_term, Object),
 		{_, {array, ProdOfPrice}} = lists:keyfind("productPrice", 1, Object),
-		case po_price(erlang_term, ProdOfPrice, []) of
+		case po_price(erl_term, ProdOfPrice, []) of
 			{error, StatusCode} ->
 				{error, StatusCode};
 			Price ->
