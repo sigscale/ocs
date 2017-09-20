@@ -455,7 +455,7 @@
 					this.identity = ajax.lastResponse.id;
 					document.getElementById("subSecretModal").open();
 				}
-				document.getElementById("getSubs").generateRequest();
+				document.getElementById("subscriberGrid").clearCache();
 			},
 			_onLoadingChanged: function(event) {
 				if (document.getElementById("subAddAjax").loading) {

@@ -161,16 +161,21 @@
 		</iron-ajax>
 	</template>
 	<script>
-		addEventListener('WebComponentsReady', function() {
-			Polymer ({
-				is: 'sig-sub-list',
-				behaviors: [i18nMsgBehavior],
-				properties: {
-					activeItem: {
-						observer:'_activeItemChanged'
-					},
+		Polymer ({
+			is: 'sig-sub-list',
+			behaviors: [i18nMsgBehavior],
+			properties: {
+				activePage: {
+					type: Boolean,
+					value: false,
+					observer: '_activePageChanged'
 				},
-				ready: function() {
+				activeItem: {
+					observer:'_activeItemChanged'
+				}
+			},
+			_activePageChanged: function(active) {
+				if (active) {
 					var grid = this.$.subscriberGrid;
 					grid.columns = [
 						{
@@ -290,8 +295,6 @@
 				showAddModal: function(event) {
 						var modal = document.getElementById("subAddModal");
 						modal.open();
-				}
-			});
 		});
 	</script>
 </dom-module>

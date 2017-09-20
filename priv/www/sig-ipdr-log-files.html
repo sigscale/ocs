@@ -66,7 +66,17 @@
 	<script>
 		Polymer ({
 			is: 'sig-ipdr-log-files',
-			listeners: {
+			properties: {
+				activePage: {
+					type: Boolean,
+					value: false,
+					observer: '_activePageChanged'
+				}
+			},
+			_activePageChanged: function(active) {
+				if (active) {
+					this.$.selectLogFileModal.open();
+				}
 			},
 			getLogContent: function (event) {
 				var searchAjax = this.$.getIpdr;
