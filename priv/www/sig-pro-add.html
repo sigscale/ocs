@@ -235,15 +235,20 @@
 							</paper-item>
 						</paper-listbox>
 					</paper-dropdown-menu>
-					<datalist id="alts">
-						<template is="dom-repeat" items="[[alterations]]">
-							<option value="{{item.name}}" />
-						</template>
-					</datalist>
-					<paper-input id="addPriceDrop" 
-							list="alts" 
-							label="Alterations">
-					</paper-input>
+					<paper-dropdown-menu
+							id="addPriceDrop"
+							label="Alterations"
+							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
+						<paper-listbox
+								slot="dropdown-content"
+								class="dropdown-content">
+								<paper-item>
+									<template is="dom-repeat" items="[[alterations]]">
+										{{item.name}}
+									</template>
+								</paper-item>
+						</paper-listbox>
+					</paper-dropdown-menu>
 				</div>
 				<div class="buttons">
 					<paper-button raised
@@ -709,7 +714,7 @@ console.log(item.alterations.name);
 						}
 						if (item.alterations.currency != null
 								&& item.alterations.currency != "") {
-							currencyCode = item.alterations.amount;
+							currencyCode = item.alterations.currency;
 						}
 						if(taxIncludedAmount != null && currencyCode != null) {
 							out.productOfferPriceAlteration.price = {taxIncludedAmount, currencyCode};
