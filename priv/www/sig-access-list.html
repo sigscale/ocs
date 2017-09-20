@@ -108,6 +108,18 @@
 		Polymer ({
 			is: 'sig-access-list',
 			behaviors: [i18nMsgBehavior],
+			properties: {
+				activePage: {
+					type: Boolean,
+					value: false,
+					observer: '_activePageChanged'
+				}
+			},
+			_activePageChanged: function(active) {
+				if (active) {
+					this.$.getAccess.generateRequest();
+				}
+			},
 			responseHandler: function(event) {
 				var grid = this.$.accessGrid;
 				var results = event.detail.xhr.response;

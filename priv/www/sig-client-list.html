@@ -126,16 +126,21 @@
 		</iron-ajax>
 	</template>
 	<script>
-		addEventListener('WebComponentsReady', function() {
-			Polymer ({
-				is: 'sig-client-list',
-				behaviors: [i18nMsgBehavior],
-				properties: {
-					activeItem: {
-						observer: '_activeItemChanged'
-					}
+		Polymer ({
+			is: 'sig-client-list',
+			behaviors: [i18nMsgBehavior],
+			properties: {
+				activePage: {
+					type: Boolean,
+					value: false,
+					observer: '_activePageChanged'
 				},
-				ready: function() {
+				activeItem: {
+					observer: '_activeItemChanged'
+				}
+			},
+			_activePageChanged: function(active) {
+				if (active) {
 					var grid = this.$.clientGrid;
 					grid.columns = [
 						{
@@ -184,46 +189,46 @@
 						});
 						ajax.generateRequest();
 					};
-				},
-				_activeItemChanged: function(item) {
-					if (item != null){
-					var grid = this.$.clientGrid;
-					grid.selectedItems = item ? [item] : [];
-					var modal = document.getElementById("clientUpdateModal");
-					modal.open();
-					document.getElementById("edit-client-id1").value = item.id;
-					document.getElementById("edit-client-disc-port").value = item.disconnectPort;
-					document.getElementById("edit-client-pwd").value = item.secret;
-					}
-				},
-				getClientsResponse: function(event) {
-					var grid = this.$.clientGrid;
-					var results = event.detail.xhr.response;
-					var range = event.detail.xhr.getResponseHeader('Content-Range');
-					if (range) {
-						var itemCount = range.split("/");
-						grid.size = Number(itemCount[1]);
-					} else {
-						grid.size = results.length;
-					}
-					grid.pageSize = grid.size;
-					var vaadinItems = new Array();
-					for (var index in results) {
-						var newRecord = new Object();
-						newRecord.id = results[index].id;
-						newRecord.identifier = results[index].identifier;
-						newRecord.secret = results[index].secret;
-						newRecord.port = results[index].port;
-						newRecord.protocol = results[index].protocol;
-						vaadinItems[index] = newRecord;
-					}
-					cbClient(vaadinItems);
-				},
-				showAddModal: function(event) {
-					var modal = document.getElementById("clientAddModal");
-					modal.open();
 				}
-			});
+			},
+			_activeItemChanged: function(item) {
+				if (item != null){
+				var grid = this.$.clientGrid;
+				grid.selectedItems = item ? [item] : [];
+				var modal = document.getElementById("clientUpdateModal");
+				modal.open();
+				document.getElementById("edit-client-id1").value = item.id;
+				document.getElementById("edit-client-disc-port").value = item.disconnectPort;
+				document.getElementById("edit-client-pwd").value = item.secret;
+				}
+			},
+			getClientsResponse: function(event) {
+				var grid = this.$.clientGrid;
+				var results = event.detail.xhr.response;
+				var range = event.detail.xhr.getResponseHeader('Content-Range');
+				if (range) {
+					var itemCount = range.split("/");
+					grid.size = Number(itemCount[1]);
+				} else {
+					grid.size = results.length;
+				}
+				grid.pageSize = grid.size;
+				var vaadinItems = new Array();
+				for (var index in results) {
+					var newRecord = new Object();
+					newRecord.id = results[index].id;
+					newRecord.identifier = results[index].identifier;
+					newRecord.secret = results[index].secret;
+					newRecord.port = results[index].port;
+					newRecord.protocol = results[index].protocol;
+					vaadinItems[index] = newRecord;
+				}
+				cbClient(vaadinItems);
+			},
+			showAddModal: function(event) {
+				var modal = document.getElementById("clientAddModal");
+				modal.open();
+			}
 		});
 	</script>
 </dom-module>

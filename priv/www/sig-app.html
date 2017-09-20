@@ -121,7 +121,8 @@
 			</app-header>
 			<iron-pages
 					id="loadPage"
-					role="main">
+					role="main"
+					selected-attribute="active-page">
 				<sig-sub-list></sig-sub-list>
 				<sig-client-list></sig-client-list>
 				<sig-ipdr-list></sig-ipdr-list>
@@ -243,31 +244,24 @@
 				switch(event.detail.item.getAttribute('id')) {
 					case 'page0':
 						this.$.loadPage.selected = 0;
-						document.getElementById('getSubs').generateRequest();
 						break;
 					case 'page1':
 						this.$.loadPage.selected = 1;
-						document.getElementById('getClients').generateRequest();
 						break;
 					case 'page2':
 						this.$.loadPage.selected = 2;
-						document.getElementById("selectLogFileModal").open();
 						break;
 					case 'page3':
 						this.$.loadPage.selected = 3;
-						document.getElementById('getAccess').generateRequest();
 						break;
 					case 'page4':
 						this.$.loadPage.selected = 4;
-						document.getElementById('getAccounting').generateRequest();
 						break;
 					case 'page5':
 						this.$.loadPage.selected = 5;
-						document.getElementById('getHttp').generateRequest();
 						break;
 					case 'page6':
 						this.$.loadPage.selected = 6;
-						document.getElementById('getUser').generateRequest();
 						break;
 				}
 			},

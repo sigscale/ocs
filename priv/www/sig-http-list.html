@@ -107,6 +107,18 @@
 		Polymer ({
 			is: 'sig-http-list',
 			behaviors: [i18nMsgBehavior],
+			properties: {
+				activePage: {
+					type: Boolean,
+					value: false,
+					observer: '_activePageChanged'
+				}
+			},
+			_activePageChanged: function(active) {
+				if (active) {
+					this.$.getHttp.generateRequest();
+				}
+			},
 			responseHandler: function(event) {
 				var grid = this.$.httpGrid;
 				var results = event.detail.xhr.response;
