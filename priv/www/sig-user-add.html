@@ -36,7 +36,7 @@
 		}
 	</style>
 	<template>
-		<paper-dialog id="AddUserModal" modal>
+		<paper-dialog id="addUserModal" modal>
 			<paper-toolbar>
 				<h2>[[i18n.AddUserTitle]]</h2>
 			</paper-toolbar>
@@ -80,22 +80,24 @@
 							class="cancel-button"
 							dialog-confirm
 							autofocus
-							onclick="AddUserModal.close()">
+							onclick="userAddModal.close()">
 						<i18n-msg msgid="cancel">
 							Cancel
 						</i18n-msg>
 					</paper-button>
 				</div>
 			</form>
+			<paper-toast
+					id="addUserToastError">
+			</paper-toast>
 		</paper-dialog>
 		<iron-ajax
-			id="AddUserAjax"
+			id="addUserAjax"
 			url="/partyManagement/v1/individual"
 			method = "post"
-			headers='{"Accept": "application/json", "Content-type": "application/json"}'
 			on-loading-changed="_onLoadingChanged"
-			on-response="_userFormResponse"
-			handle-as="json">
+			on-response="_addUserResponse"
+			on-error="_addUserError">
 		</iron-ajax>
 	</template>
 	<script>
@@ -123,16 +125,20 @@
 				characteristic[1] = password;
 				characteristic[2] = language;
 				user.characteristic = characteristic;
-				var ajax = document.getElementById("AddUserAjax");
+				var ajax = this.$.addUserAjax;
 				ajax.body = user;
 				ajax.generateRequest();
 			},
-			 _userFormResponse: function(event) {
-				document.getElementById("AddUserModal").close();
+			 _addUserResponse: function(event) {
+				this.$.addUserModal.close();
 				document.getElementById("userGrid").clearCache();
 			},
+			 _addUserError: function(event) {
+				this.$.addUserToastError.text = event.detail.request.xhr.statusText;
+				this.$.addUserToastError.open();
+			},
 			_onLoadingChanged: function(event) {
-				if (document.getElementById("AddUserAjax").loading) {
+				if (document.getElementById("addUserAjax").loading) {
 					document.getElementById("progress").disabled = false;
 				} else {
 					document.getElementById("progress").disabled = true;

@@ -76,7 +76,7 @@
 		}
 	</style>
 	<template>
-		<paper-dialog id="clientAddModal" modal>
+		<paper-dialog id="addClientModal" modal>
 			<paper-toolbar>
 				<h2>[[i18n.addClient]]</h2>
 			</paper-toolbar>
@@ -152,7 +152,7 @@
 				<paper-button
 						raised
 						class="add-button"
-						on-click="_clientAddSubmit">
+						on-click="_addClientSubmit">
 					<i18n-msg msgid="submit">
 						Submit
 					</i18n-msg>
@@ -161,17 +161,20 @@
 						class="cancel-button"
 						dialog-confirm
 						autofocus
-						onclick="clientAddModal.close()">
+						onclick="addClientModal.close()">
 					<i18n-msg msgid="cancel">
 						Cancel
 					</i18n-msg>
 				</paper-button>
 			</div>
-			<paper-toast id="toastSuccess" class="fit-bottom">
+			<paper-toast id="addClientToastSuccess" class="fit-bottom">
 				<h2>[[i18n.clientAdded]]</h2>
 			</paper-toast>
+			<paper-toast
+					id="addClientToastError">
+			</paper-toast>
 		</paper-dialog>
-		<paper-dialog id="clientSecretModal" class="generated" modal>
+		<paper-dialog id="addClientSecretModal" class="generated" modal>
 			<paper-toolbar>
 				<h2>[[i18n.serverGen]]</h2>
 			</paper-toolbar>
@@ -195,13 +198,13 @@
 			</div>
 		</paper-dialog>
 		<iron-ajax
-				id="clientAddAjax"
+				id="addClientAjax"
 				url="/ocs/v1/client"
 				method = "post"
 				headers='{"Accept": "application/json", "Content-type": "application/json"}'
 				on-loading-changed="_onLoadingChanged"
-				on-response="_clientAddResponse"
-				handle-as="json">
+				on-response="_addClientResponse"
+				on-error="_addClientError">
 		</iron-ajax>
 	</template>
 	<script>
@@ -211,7 +214,7 @@
 			properties: {
 				secret: String
 			},
-			_clientAddSubmit: function(event) {
+			_addClientSubmit: function(event) {
 				var client = new Object();
 				client.id = document.getElementById("add-client1").value;
 				client.port = parseInt(document.getElementById("add-client2").value);
@@ -224,12 +227,12 @@
 				if (!document.getElementById("add-client4").disabled) {
 					client.secret = document.getElementById("add-client4").value;
 				}
-				var ajax = document.getElementById("clientAddAjax");
+				var ajax = document.getElementById("addClientAjax");
 				ajax.body = client;
 				ajax.generateRequest();
 			},
 			_onLoadingChanged: function(event) {
-				if (document.getElementById("clientAddAjax").loading) {
+				if (document.getElementById("addClientAjax").loading) {
 					document.getElementById('progress').disabled = false;
 				} else {
 					document.getElementById('progress').disabled = true;
@@ -242,18 +245,21 @@
 					document.getElementById("add-client4").disabled = false;
 				}
 			},
-			_clientAddResponse: function(event) {
-				var toast = document.getElementById("toastSuccess");
+			_addClientResponse: function(event) {
+				var toast = document.getElementById("addClientToastSuccess");
 				toast.open();
-				toast.duration = 4;
-				document.getElementById("clientAddModal").close();
-				var ajax = document.getElementById("clientAddAjax");
+				document.getElementById("addClientModal").close();
+				var ajax = document.getElementById("addClientAjax");
 				if (ajax.body.secret == undefined) {
 					this.secret = ajax.lastResponse.secret;
-					document.getElementById("clientSecretModal").open();
+					document.getElementById("addClientSecretModal").open();
 				}
 				document.getElementById("clientGrid").clearCache();
-			}
+			},
+			 _addClientError: function(event) {
+				this.$.addClientToastError.text = event.detail.request.xhr.statusText;
+				this.$.addClientToastError.open();
+			},
 		});
 	</script>
 </dom-module>
