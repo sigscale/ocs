@@ -48,6 +48,10 @@
 			background: #ffb04c;
 			border-style: none;
 		}
+		.yellow-button {
+			text-transform: none;
+			color: #eeff41;
+		}
 	</style>
 	<template>
 		<vaadin-grid id="subscriberGrid" active-item="{{activeItem}}">
@@ -154,13 +158,22 @@
 		<paper-toast id="delete-toast">
 			<h2>Record sucessfully deleted!</h2>
 		</paper-toast>
-		<iron-ajax id="getSubs"
-			url="/ocs/v1/subscriber"
-			headers='{"Accept": "application/json"}'
-			on-response="responseHandler">
+		<paper-toast id="subscriberErrorToast" duration="0">
+			<paper-button
+					class="yellow-button"
+					onclick="subscriberErrorToast.toggle()">
+				Close
+			</paper-button>
+		</paper-toast>
+		<iron-ajax
+			id="getSubs"
+			on-response="getSubscriberResponse"
+			on-error="getSubscriberError">
 		</iron-ajax>
 	</template>
 	<script>
+		var cbSubscriber;
+		var etag;
 		Polymer ({
 			is: 'sig-sub-list',
 			behaviors: [i18nMsgBehavior],
@@ -211,13 +224,13 @@
 					];
 					grid.dataProvider = function(params, callback) {
 						var ajax = document.getElementById("getSubs");
-						cbSub = callback;
-						ajax.url="/ocs/v1/subscriber"
+						ajax.url = "/ocs/v1/subscriber"
+						cbSubscriber = callback;
 						params.filters.forEach(function(filter, index) {
 							if(index == 0) {
-								ajax.url += '?'+ filter.path + '=' + filter.value;
+								ajax.url += '?' + filter.path + '=' + filter.value;
 							} else {
-								ajax.url += '&'+ filter.path + '=' + filter.value;
+								ajax.url += '&' + filter.path + '=' + filter.value;
 							}
 						});
 						params.sortOrders.forEach(function(sort, index) {
@@ -227,16 +240,23 @@
 							} else {
 								dirsort = sort.path;
 							}
-								if(index == 0) {
-									if(params.filters.length == 0) {
-										ajax.url += '?sort=' + dirsort;
-									} else {
-										ajax.url += '&sort=' + dirsort;
-									}
+							if(index == 0) {
+								if(params.filters.length == 0) {
+									ajax.url += '?sort=' + dirsort;
 								} else {
-									ajax.url += ',' + dirsort;
+									ajax.url += '&sort=' + dirsort;
+								}
+							} else {
+								ajax.url += ',' + dirsort;
 							}
 						});
+						var startRange = params.page * params.pageSize + 1;
+						var endRange = startRange + params.pageSize;
+						ajax.headers['Range'] = "items="
+									+ startRange.toString() + "-" + endRange.toString();
+						if (etag !== undefined) {
+							ajax.headers['If-Match'] = etag;
+						}
 						ajax.generateRequest();
 					};
 				}
@@ -259,17 +279,25 @@
 					document.getElementById("edit-multi-session").checked =  item.multisession;
 				}
 			},
-			responseHandler: function(event) {
+			getSubscriberResponse: function(event) {
 				var grid = this.$.subscriberGrid;
 				var results = event.detail.xhr.response;
+				etag = event.detail.xhr.getResponseHeader('ETag');
 				var range = event.detail.xhr.getResponseHeader('Content-Range');
-				if (range) {
-					var itemCount = range.split("/");
-					grid.size = Number(itemCount[1]);
-				} else {
-					grid.size = results.length;
+				if (grid.size == undefined) {
+					grid.size = 0;
 				}
-				grid.pageSize = grid.size;
+				if (range) {
+					var range1 = range.split("/");
+					var range2 = range1[0].split("-");
+					if (range1[1] != "*") {
+						grid.size = Number(range1[1]);
+					} else {
+						grid.size = Number(range2[1]) + grid.pageSize * 2;
+					}
+				} else {
+					grid.size += grid.pageSize * 2;
+				}
 				var vaadinItems = new Array();
 				for (var index in results) {
 					var newRecord = new Object();
@@ -285,7 +313,13 @@
 					newRecord.multisession = results[index].multisession;
 					vaadinItems[index] = newRecord;
 				}
-				cbSub(vaadinItems);
+				cbSubscriber(vaadinItems);
+			},
+			getSubscriberError: function(event) {
+				this.$.subscriberGrid.size = 0;
+				cbSubscriber([]);
+				this.$.subscriberErrorToast.text = event.detail.request.xhr.statusText;
+				this.$.subscriberErrorToast.open();
 			},
 			showAddModal: function(event) {
 					var modal = document.getElementById("subAddModal");

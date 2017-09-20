@@ -49,6 +49,10 @@
 			background: #ffb04c;
 			border-style: none;
 		}
+		.yellow-button {
+			text-transform: none;
+			color: #eeff41;
+		}
 	</style>
 	<template>
 		<vaadin-grid
@@ -117,11 +121,19 @@
 		<paper-toast id="delete-toast">
 			<h2>Record sucessfully deleted!</h2>
 		</paper-toast>
+		<paper-toast id="clientErrorToast" duration="0">
+			<paper-button
+					class="yellow-button"
+					onclick="clientErrorToast.toggle()">
+				Close
+			</paper-button>
+		</paper-toast>
 		<iron-ajax
 				id="getClients"
 				url="/ocs/v1/client"
 				headers='{"Accept": "application/json"}'
-				on-response="getClientsResponse">
+				on-response="getClientsResponse"
+				on-error="getClientsError">
 		</iron-ajax>
 	</template>
 	<script>
@@ -223,6 +235,12 @@
 					vaadinItems[index] = newRecord;
 				}
 				cbClient(vaadinItems);
+			},
+			getClientsError: function (event) {
+				this.$.clientGrid.size = 0;
+				cbClient([]);
+				this.$.clientErrorToast.text = event.detail.request.xhr.statusText;
+				this.$.clientErrorToast.open();
 			},
 			showAddModal: function(event) {
 				var modal = document.getElementById("clientAddModal");

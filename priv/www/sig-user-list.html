@@ -50,6 +50,10 @@
 			background: #ffb04c;
 			border-style: none;
 		}
+		.yellow-button {
+			text-transform: none;
+			color: #eeff41;
+		}
 	</style>
 	<template>
 		<vaadin-grid
@@ -82,11 +86,19 @@
 					on-click = "showAddUserModal">
 			</paper-fab>
 		</div>
+		<paper-toast id="userErrorToast" duration="0">
+			<paper-button
+					class="yellow-button"
+					onclick="userErrorToast.toggle()">
+				Close
+			</paper-button>
+		</paper-toast>
 		<iron-ajax
 				id="getUser"
 				url="/partyManagement/v1/individual"
 				headers='{"Accept": "application/json"}'
-				on-response="getUserResponse">
+				on-response="getUserResponse"
+				on-error="getUserError">
 		</iron-ajax>
 	</template>
 	<script>
@@ -186,6 +198,12 @@
 					vaadinItems[index] = newRecord;
 				}
 				cbUser(vaadinItems);
+			},
+			getUserError: function(event) {
+				this.$.UserGrid.size = 0;
+				cbUser([]);
+				this.$.userErrorToast.text = event.detail.request.xhr.statusText;
+				this.$.userErrorToast.open();
 			},
 			showAddUserModal: function(event) {
 				var modal = document.getElementById("AddUserModal");

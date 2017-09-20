@@ -33,6 +33,10 @@
 			background: #ffb04c;
 			border-style: none;
 		}
+		.yellow-button {
+			text-transform: none;
+			color: #eeff41;
+		}
 	</style>
 	<template>
 		<vaadin-grid id="ipdrGrid">
@@ -157,6 +161,13 @@
 				<template>[[item.sessionTerminateCause]]</template>
 			</vaadin-grid-column>
 		</vaadin-grid/>
+		<paper-toast id="ipdrErrorToast" duration="0">
+			<paper-button
+					class="yellow-button"
+					onclick="ipdrErrorToast.toggle()">
+				Close
+			</paper-button>
+		</paper-toast>
 	</template>
 	<script>
 		Polymer ({
