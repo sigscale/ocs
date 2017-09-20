@@ -23,7 +23,8 @@
 -export([content_types_accepted/0, content_types_provided/0]).
 
 -export([add_product_CatMgmt/1]).
--export([get_product_InvMgmt/1, get_products_InvMgmt/1]).
+-export([get_product_InvMgmt/1, get_products_InvMgmt/1,
+			get_product_CatMgmt/1, get_products_CatMgmt/1]).
 -export([on_patch_product_InvMgmt/3, merge_patch_product_InvMgmt/3]).
 
 -include_lib("radius/include/radius.hrl").
@@ -100,6 +101,114 @@ add_product_CatMgmt2(ProdId, JsonResponse) ->
 	Headers = [{location, Location}],
 	{ok, Headers, Body}.
 
+-spec get_product_CatMgmt(ProdID) -> Result when
+	ProdID	:: string(),
+	Result	:: {ok, Headers, Body} | {error, Status},
+	Headers	:: [tuple()],
+	Body		:: iolist(),
+	Status	:: 400 | 404 | 500 .
+%% @doc Respond to `GET /catalogManagement/v1/product/{id}' and
+%% retrieve a `product' details
+get_product_CatMgmt(ProductID) ->
+	F = fun() ->
+		case mnesia:read(product, ProductID) of
+			[Product] ->
+				Product;
+			[] ->
+				throw(not_found)
+		end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, Prod} ->
+			get_product_CatMgmt1(Prod);
+		{aborted, {throw, not_found}} ->
+			{error, 404};
+		{aborted, _} ->
+			{error, 500}
+	end.
+%% @hidden
+get_product_CatMgmt1(Prod) ->
+	ID = prod_id(json, Prod),
+	Descirption = prod_description(json, Prod),
+	Href = prod_href(json, Prod),
+	ValidFor = prod_vf(json, Prod),
+	IsBundle = prod_isBundle(json, Prod),
+	Name = prod_name(json, Prod),
+	Status = prod_status({json, catMgmt}, Prod),
+	StartDate = prod_sdate(json, Prod),
+	TerminationDate = prod_tdate(json, Prod),
+	case prod_offering_price({json, catMgmt}, Prod) of
+		{error, StatusCode} ->
+			{error, StatusCode};
+		OfferPrice ->
+			Json = {struct, [ID, Descirption, Href, StartDate,
+				TerminationDate, IsBundle, Name, Status, ValidFor,
+				OfferPrice]},
+			Body = mochijson:encode(Json),
+			Headers = [{content_type, "application/json"}],
+			{ok, Headers, Body}
+	end.
+
+-define(CHUNKSIZE, 100).
+
+-spec get_products_CatMgmt(Query) -> Result when
+	Query :: [{Key :: string(), Value :: string()}],
+	Result	:: {ok, Headers, Body} | {error, Status},
+	Headers	:: [tuple()],
+	Body		:: iolist(),
+	Status	:: 400 | 404 | 500 .
+%% @doc Respond to `GET /catalogManagement/v1/product' and
+%% retrieve all `product' details
+%% @todo Filtering
+get_products_CatMgmt(_Query) ->
+	MatchSpec = [{'_', [], ['$_']}],
+	F = fun(F, start, Acc) ->
+				F(F, mnesia:select(product, MatchSpec,
+						?CHUNKSIZE, read), Acc);
+			(_F, '$end_of_table', Acc) ->
+				lists:flatten(lists:reverse(Acc));
+			(_F, {error, Reason}, _Acc) ->
+				{error, Reason};
+			(F,{Product, Cont}, Acc) ->
+				F(F, mnesia:select(Cont), [Product | Acc])
+	end,
+	case mnesia:transaction(F, [F, start, []]) of
+		{aborted, _} ->
+			{error, 500};
+		{atomic, Products} ->
+			get_products_CatMgmt1(Products, [])
+	end.
+%% @hidden
+get_products_CatMgmt1([], Acc) ->
+	Json = {array, Acc},
+	Body = mochijson:encode(Json),
+	Headers = [{content_type, "application/json"}],
+	{ok, Headers, Body};
+get_products_CatMgmt1([Prod | T], Acc) ->
+	try
+		ID = prod_id(json, Prod),
+		Descirption = prod_description(json, Prod),
+		Href = prod_href(json, Prod),
+		ValidFor = prod_vf(json, Prod),
+		IsBundle = prod_isBundle(json, Prod),
+		Name = prod_name(json, Prod),
+		Status = prod_status({json, catMgmt}, Prod),
+		StartDate = prod_sdate(json, Prod),
+		TerminationDate = prod_tdate(json, Prod),
+		case prod_offering_price({json, catMgmt}, Prod) of
+			{error, StatusCode} ->
+				{error, StatusCode};
+			OfferPrice ->
+			Json = {struct, [ID, Descirption, Href, StartDate,
+					TerminationDate, IsBundle, Name, Status, ValidFor,
+					OfferPrice]},
+			get_products_CatMgmt1(T, [Json | Acc])
+		end
+	catch
+		_:_ ->
+			{error, 500}
+	end.
+
 -spec get_product_InvMgmt(ProdID) -> Result when
 	ProdID	:: string(),
 	Result	:: {ok, Headers, Body} | {error, Status},
@@ -147,8 +256,6 @@ get_product_InvMgmt1(Prod) ->
 			Headers = [{content_type, "application/json"}],
 			{ok, Headers, Body}
 	end.
-
--define(CHUNKSIZE, 100).
 
 -spec get_products_InvMgmt(Query) -> Result when
 	Query :: [{Key :: string(), Value :: string()}],
