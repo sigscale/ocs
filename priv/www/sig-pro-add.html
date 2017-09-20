@@ -120,7 +120,7 @@
 					<paper-input id="priceName" 
 							list="price"
 							label="Name"
-							on-change="updateDialog"
+							on-change="updatePriceDialog"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 					</paper-input>
 					<paper-input id="addPriceDes"
@@ -242,8 +242,7 @@
 					</datalist>
 					<paper-input id="addPriceDrop" 
 							list="alts" 
-							label="Alterations" 
-							on-change="updateDialog">
+							label="Alterations">
 					</paper-input>
 				</div>
 				<div class="buttons">
@@ -269,7 +268,7 @@
 					<paper-input id="addAlt1" 
 							list="alts" 
 							label="Name" 
-							on-change="updateDialog">
+							on-change="updateAltsDialog">
 					</paper-input>
 					<paper-input id="descAlt2"
 							class="description"
@@ -385,7 +384,7 @@
 					</paper-button>
 					<paper-button dialog-dismiss
 							class="cancel-button"
-							on-click="addProductModal.close()">
+							onclick="addProductModal.close()">
 								cancel
 					</paper-button>
 				</div>
@@ -495,7 +494,27 @@
 					this.endDatePrice = p.format('YYYY-MM-DD');
 				}
 			},
-			updateDialog: function() {
+			updatePriceDialog: function() {
+				function checkPriceName(price) {
+					return price.name == this.priceName.value; 
+				}
+				var indexPrice = this.prices.findIndex(checkPriceName);
+				if (indexPrice == -1) {
+					this.$.addPriceDes.value = null;
+					this.$.addPrice1.value = null;
+					this.$.addPriceSize.value = null;
+					this.$.addPrice3.value = null;
+				} else {
+					this.$.addPriceDes.value = this.prices[indexPrice].description;
+					this.$.priceStartDate.value = this.prices[indexPrice].start;
+					this.$.priceEndDate.value = this.prices[indexPrice].end;
+					this.$.addPrice1.value = this.prices[indexPrice].type;
+					this.$.addPrice2.value = this.prices[indexPrice].unit;
+					this.$.addPriceSize.value = this.prices[indexPrice].size;
+					this.$.addPrice3.value = this.prices[indexPrice].amount;
+				}
+			},
+			updateAltsDialog: function() {
 				function checkName(alts) {
 					return alts.name == this.addAlt1.value; 
 				}
