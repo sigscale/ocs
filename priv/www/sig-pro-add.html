@@ -235,19 +235,16 @@
 							</paper-item>
 						</paper-listbox>
 					</paper-dropdown-menu>
-					<paper-dropdown-menu
-							label="Alterations">
-						<paper-listbox
-								id="addPriceDrop"
-								slot="dropdown-content"
-								class="dropdown-content">
-							<template is="dom-repeat" items="[[alterations]]">
-								<paper-item>
-									{{item.name}}
-								</paper-item>
-							</template>
-						</paper-listbox>
-					</paper-dropdown-menu>
+					<datalist id="alts">
+						<template is="dom-repeat" items="[[alterations]]">
+							<option value="{{item.name}}" />
+						</template>
+					</datalist>
+					<paper-input id="addPriceDrop" 
+							list="alts" 
+							label="Alterations" 
+							on-change="updateDialog">
+					</paper-input>
 				</div>
 				<div class="buttons">
 					<paper-button raised
@@ -686,10 +683,12 @@ console.log(ajax.body);
 					this.$.altSeconds.disabled = true;
 					this.$.altCents.disabled = false;
             }else if(this.$.typeAlt3.selected == 1) {
+               this.$.addalt5drop.disabled = true;
 					this.$.altBytes.disabled = true;
 					this.$.altSeconds.disabled = true;
 					this.$.altCents.disabled = false;
             }else if(this.$.typeAlt3.selected == 2) {
+               this.$.addalt5drop.disabled = true;
 					this.$.altBytes.disabled = false;
 					this.$.altSeconds.disabled = false;
 					this.$.altCents.disabled = true;
