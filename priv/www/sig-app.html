@@ -272,25 +272,25 @@
 			},
 			refresh: function() {
 				if(this.$.loadPage.selected == 0){
-					document.getElementById('getSubs').generateRequest();
+					document.getElementById('subscriberGrid').clearCache();
 				 }
 				if(this.$.loadPage.selected == 1){
-					document.getElementById('getClients').generateRequest();
+					document.getElementById('clientGrid').clearCache();
 				 }
 				if(this.$.loadPage.selected == 2){
-					document.getElementById('getIpdr').generateRequest();
+					document.getElementById('ipdrGrid').clearCache();
 				 }
 				if(this.$.loadPage.selected == 3){
-					document.getElementById('getAccess').generateRequest();
+					document.getElementById('accessGrid').clearCache();
 				 }
 				if(this.$.loadPage.selected == 4){
-					document.getElementById('getAccounting').generateRequest();
+					document.getElementById('accountingGrid').clearCache();
 				 }
 				if(this.$.loadPage.selected == 5){
-					document.getElementById('getHttp').generateRequest();
+					document.getElementById('httpGrid').clearCache();
 				 }
 				if(this.$.loadPage.selected == 6){
-					document.getElementById('getUser').generateRequest();
+					document.getElementById('userGrid').clearCache();
 				 }
 			},
 			download: function() {
