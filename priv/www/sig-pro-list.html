@@ -74,7 +74,7 @@
 				<template class="header">
 					<vaadin-grid-sorter path="startDate">
 						<vaadin-grid-filter aria-label="StartDate" path="startDate" value="[[_filterStart]]">
-							<input placeholder="StartDate" value="{{_filterStart::input}}" focus-target>
+							<input placeholder="Start Date" value="{{_filterStart::input}}" focus-target>
 						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
@@ -82,13 +82,13 @@
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="10">
 				<template class="header">
-					<vaadin-grid-sorter path="terminationDate">
-						<vaadin-grid-filter aria-label="EndDate" path="terminationDate" value="[[_filterEnd]]">
-							<input placeholder="EndDate" value="{{_filterEnd::input}}" focus-target>
+					<vaadin-grid-sorter path="endDate">
+						<vaadin-grid-filter aria-label="EndDate" path="endDate" value="[[_filterEnd]]">
+							<input placeholder="End Date" value="{{_filterEnd::input}}" focus-target>
 						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
-				<template>[[item.terminationDate]]</template>
+				<template>[[item.endDate]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="15ex" flex-grow="7">
 				<template class="header">
@@ -145,7 +145,7 @@
 							name: "startDate"
 						},
 						{
-							name: "terminationDate"
+							name: "endDate"
 						},
 						{
 							name: "status"
@@ -201,8 +201,16 @@
 						var newRecord = new Object();
 						newRecord.name = results[index].name;
 						newRecord.description = results[index].description;
-						newRecord.startDate = results[index].startDate;
-						newRecord.terminationDate = results[index].terminationDate;
+						if(results[index].validFor && results[index].validFor != "") {
+							if(results[index].validFor.startDateTime
+									&& results[index].validFor.startDateTime != ""){
+								newRecord.startDate = results[index].validFor.startDateTime.split("T")[0];
+							}
+							if(results[index].validFor.endDateTime
+									&& results[index].validFor.endDateTime != ""){
+								newRecord.endDate = results[index].validFor.endDateTime.split("T")[0];
+							}
+						}
 						newRecord.status = results[index].status;
 						newRecord.price = results[index].price;
 						vaadinItems[index] = newRecord;
