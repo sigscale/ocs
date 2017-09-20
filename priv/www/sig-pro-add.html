@@ -29,8 +29,8 @@
 			background-color: #bc5100;
 		}
 		paper-toast.error {
-         background-color: var(--paper-red-a400);
-      }
+			background-color: var(--paper-red-a400);
+		}
 		.add-button {
 			background-color: var(--paper-lime-a700);
 			color: black;
@@ -40,11 +40,11 @@
 			color: black;
 		}
 		.close {
-         background-color: var(--paper-lime-a700);
-         color: black;
-         float: right;
-         width: 5em;
-      }
+			background-color: var(--paper-lime-a700);
+			color: black;
+			float: right;
+			width: 5em;
+		}
 	</style>
 	<template>
 		<paper-dialog id="addProductModal" modal>
@@ -249,7 +249,7 @@
 					<paper-button raised
 							class="add-button"
 							on-tap="addPrice">
-								Add		
+								Add
 					</paper-button>
 					<paper-button dialog-dismiss
 							class="cancel-button"
@@ -353,6 +353,12 @@
 							value=0
 							onfocus="endDatePick.hide(); startDatePick.hide();">
 					</paper-input>
+					<paper-input id="addAltCurr"
+							class="currency"
+							name="currency"
+							label="Currency"
+							onfocus="endDatePick.hide(); startDatePick.hide();">
+					</paper-input>
 					<paper-dropdown-menu id="addalt5drop"
 							label="Period"
 							onfocus="endDatePick.hide(); startDatePick.hide();">
@@ -390,23 +396,23 @@
 				</div>
 			</div>
 				<div id="response-display-containe">
-               <paper-toast id="toastErrorPri">
-                  <h2>Error</h2>
-                  <h5>Fill mandatory columns</h5>
-                  <ul>
-                     <li>Fill mandatory columns</li>
-                  </ul>
-                  <div class="close">
-                     <paper-button id="toastErrorClosePri"
-                           on-tap="toastErrorCloseBut()">
-                              Close
-                     </paper-button>
-                  </div>
-               </paper-toast>
-            </div>
-		<paper-toast id="toast-successPrice">
-         <h2>successfully added</h2>
-      </paper-toast>
+					<paper-toast id="toastErrorPri">
+						<h2>Error</h2>
+						<h5>Fill mandatory columns</h5>
+						<ul>
+							<li>Fill mandatory columns</li>
+						</ul>
+						<div class="close">
+							<paper-button id="toastErrorClosePri"
+								on-tap="toastErrorCloseBut()">
+									Close
+								</paper-button>
+						</div>
+					</paper-toast>
+				</div>
+			<paper-toast id="toast-successPrice">
+				<h2>successfully added</h2>
+			</paper-toast>
 		</paper-dialog>
 		<iron-ajax
 				id="productAddAjax"
@@ -634,9 +640,90 @@ console.log(item);
 						out.recurringChargePeriod = item.period;
 					}
 					if(item.alterations != null && item.alterations != "") {
-						out.productOfferPriceAlteration = item.alterations;
+						out.productOfferPriceAlteration = new Object(); 
+						if(item.alterations.name != null 
+								&& item.alterations.name != "") {
+console.log(item.alterations.name);
+							out.productOfferPriceAlteration.name = item.alterations.name;
+						}
+						if (item.alterations.description != null
+								&& item.alterations.description != "") {
+							out.productOfferPriceAlteration.description = item.alterations.description;
+						}
+						var startDateTime;
+						var endDateTime;
+						if (item.alterations.startdate != null
+								&& item.alterations.startdate != "") {
+							startDateTime = item.alterations.startdate;
+						}
+						if (item.alterations.terminationDate != null
+								&& item.alterations.terminationDate != "") {
+							endDateTime = item.alterations.terminationDate;
+						}
+						if (startDateTime != null && endDateTime != null) {
+							out.productOfferPriceAlteration.validFor = {startDateTime, endDateTime}
+						} else if(startDateTime != null && endDateTime == null) {
+							out.productOfferPriceAlteration.validFor = {startDateTime};
+						} else if(startDateTime == null && endDateTime != null) {
+							out.productOfferPriceAlteration.validFor = {endDateTime};
+						}
+						if (item.alterations.type != null
+								&& item.alterations.type != "") {
+							out.productOfferPriceAlteration.priceType = item.alterations.type;
+						}
+						if (item.alterations.unit != null && item.alterations.unit != ""
+								&& item.alterations.size != null && item.alterations.size != "") {
+							var len1 = item.alterations.size.length;
+							var m1 = item.alterations.size.charAt(len - 1);
+							var s1 = item.alterations.size.slice(0, (len - 1));
+							if(item.alterations.unit == "b") {
+								if (m1 == "m") {
+									out.productOfferPriceAlteration.unitOfMeasure = s1 + "000000b";
+								} else if(m1 == "g") {
+									out.productOfferPriceAlteration.unitOfMeasure = s1 + "000000000b";
+								} else if(m1 == "k") {
+									out.productOfferPriceAlteration.unitOfMeasure = s1 + "000b";
+								} else {
+									out.productOfferPriceAlteration.unitOfMeasure = item.alterations.size;
+								}
+							} else if(item.alterations.unit == "c"){
+								out.alterations.unitOfMeasure = item.size + "c";
+							} else if(item.alterations.unit == "s") {
+								var n1 = Number(s1);
+								if(m1 == "m") {
+									n1 = n1 * 60;
+									out.productOfferPriceAlteration.unitOfMeasure = n1.toString();
+								} else if(m1 == "h") {
+									n1 = n1 * 3600;
+									out.productOfferPriceAlteration.unitOfMeasure = n1.toString();
+								} else {
+									out.productOfferPriceAlterationunitOfMeasure = item.alterations.size;
+								}
+							}
+						}
+						var taxIncludedAmount;
+						var currencyCode
+						if (item.alterations.amount != null
+								&& item.alterations.amount != "") {
+							taxIncludedAmount = item.alterations.amount;
+						}
+						if (item.alterations.currency != null
+								&& item.alterations.currency != "") {
+							currencyCode = item.alterations.amount;
+						}
+						if(taxIncludedAmount != null && currencyCode != null) {
+							out.productOfferPriceAlteration.price = {taxIncludedAmount, currencyCode};
+						} else if (taxIncludedAmount != null && currencyCode == null) {
+							out.productOfferPriceAlteration.price = {taxIncludedAmount};
+						} else if (taxIncludedAmount == null && currencyCode != null) {
+							out.productOfferPriceAlteration.price = {currencyCode};
+						}
+						if (item.alterations.period != null
+								&& item.alterations.period != "") {
+							out.productOfferPriceAlteration.recurringChargePeriod = item.alterations.period;
+						}
+						return out; 
 					}
-					return out; 
 				}
 				offerNew.productOfferingPrice = this.prices.map(mapPrice);
 				if(offerNew.name && offerNew.name !== null 
@@ -651,7 +738,7 @@ console.log(ajax.body);
 					this.prices.length = 0;
 					this.alterations.length = 0;
 					ajax.generateRequest();
-            }
+				}
 			},
 			checkPattern: function() {
 				if(this.$.addPrice2.selected == 0) {
@@ -686,28 +773,28 @@ console.log(ajax.body);
 				}else if(this.$.addPrice1.selected == 1) {
 					this.$.addPrice5drop.disabled = true;
 					this.$.priceBytes.disabled = true;
-               this.$.priceSeconds.disabled = true;
+					this.$.priceSeconds.disabled = true;
 					this.$.priceCents.disabled = false;
 				}else if(this.$.addPrice1.selected == 2) {
 					this.$.addPrice5drop.disabled = true;
 					this.$.priceCents.disabled = true;
-               this.$.priceBytes.disabled = false;
-               this.$.priceSeconds.disabled = false;
+					this.$.priceBytes.disabled = false;
+					this.$.priceSeconds.disabled = false;
 				}
 			},
 			checkRecureAlt: function() {
 				if(this.$.typeAlt3.selected == 0) {
-               this.$.addalt5drop.disabled = false;
+					this.$.addalt5drop.disabled = false;
 					this.$.altBytes.disabled = true;
 					this.$.altSeconds.disabled = true;
 					this.$.altCents.disabled = false;
-            }else if(this.$.typeAlt3.selected == 1) {
-               this.$.addalt5drop.disabled = true;
+				}else if(this.$.typeAlt3.selected == 1) {
+					this.$.addalt5drop.disabled = true;
 					this.$.altBytes.disabled = true;
 					this.$.altSeconds.disabled = true;
 					this.$.altCents.disabled = false;
-            }else if(this.$.typeAlt3.selected == 2) {
-               this.$.addalt5drop.disabled = true;
+				}else if(this.$.typeAlt3.selected == 2) {
+					this.$.addalt5drop.disabled = true;
 					this.$.altBytes.disabled = false;
 					this.$.altSeconds.disabled = false;
 					this.$.altCents.disabled = true;
@@ -755,8 +842,11 @@ console.log(ajax.body);
 					case 3:
 						priceNew.period = "yearly";
 				}
-				priceNew.alterations = this.$.addPriceDrop.value;
-console.log(priceNew);
+				function checkAlt(alts) {
+					return alts.name == this.addPriceDrop.value; 
+				}
+				var altIndex = this.alterations.findIndex(checkAlt);
+				priceNew.alterations = this.alterations[altIndex];
 				if(priceNew.name
 						&& priceNew.name !== null
 						&& priceNew.amount 
@@ -788,15 +878,15 @@ console.log(priceNew);
 				altNew.startdate = this.$.startAlt2.value;
 				altNew.terminationDate = this.$.endAlt2.value;
 				switch(this.$.typeAlt3.selected) {
-               case 0:
-                  altNew.type = "recurring";
-                  break;
-               case 1:
-                  altNew.type = "one_time";
-                  break;
-               case 2:
-                  altNew.type = "usage";
-            }
+					case 0:
+						altNew.type = "recurring";
+						break;
+					case 1:
+						altNew.type = "one_time";
+						break;
+					case 2:
+						altNew.type = "usage";
+				}
 				switch(this.$.addUnitDrop.selected) {
 					case 0:
 						altNew.unit = "b";
@@ -821,7 +911,8 @@ console.log(priceNew);
 					case 3:
 						altNew.period = "yearly";
 				}
-				altNew.amount= this.$.amountAlt3.value;
+				altNew.currency = this.$.addAltCurr.value;
+				altNew.amount= parseInt(this.$.amountAlt3.value);
 				if(altNew.name
 						&& altNew.name !== null
 						&& altNew.type
@@ -839,6 +930,7 @@ console.log(priceNew);
 				this.$.addAlt1.value = null
 				this.$.descAlt2.value = null;
 				this.$.startAlt2.value = null;
+				this.$.addAltCurr.value = null;
 				this.$.endAlt2.value = null;
 				this.$.typeAlt3.value = null;
 				this.$.sizeAlt3.value = null;
@@ -856,9 +948,9 @@ console.log(priceNew);
 				document.getElementById("getProducts").generateRequest();
 			},
 			toastErrorCloseBut: function(event) {
-            var toast = document.getElementById("toastErrorPri");
-            toast.close();
-         }
+				var toast = document.getElementById("toastErrorPri");
+				toast.close();
+			}
 		});
 	</script>
 </dom-module>
