@@ -25,7 +25,8 @@
 -export([add_product_CatMgmt/1]).
 -export([get_product_InvMgmt/1, get_products_InvMgmt/1,
 			get_product_CatMgmt/1, get_products_CatMgmt/1]).
--export([on_patch_product_InvMgmt/3, merge_patch_product_InvMgmt/3]).
+-export([on_patch_product_InvMgmt/3, merge_patch_product_InvMgmt/3,
+			on_patch_product_CatMgmt/3, merge_patch_product_CatMgmt/3]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
@@ -360,6 +361,51 @@ on_patch_product_InvMgmt(ProdId, Etag, ReqData) ->
 			{error, 400}
 	end.
 
+-spec on_patch_product_CatMgmt(ProdId, Etag, ReqData) -> Result
+	when
+		ProdId	:: string(),
+		Etag		:: undefined | list(),
+		ReqData	:: [tuple()],
+		Result	:: {ok, Headers, Body} | {error, Status},
+		Headers	:: [tuple()],
+		Body		:: iolist(),
+		Status	:: 400 | 500 .
+%% @doc Respond to `PATCH /catalogManagement/v1/product/{id}' and
+%% apply object notation patch for `product'
+%% RFC6902 `https://tools.ietf.org/html/rfc6902'
+on_patch_product_CatMgmt(ProdId, Etag, ReqData) ->
+	try
+		{array, OpList} = mochijson:decode(ReqData),
+		case exe_jsonpatch_ON(ProdId, Etag, OpList) of
+			{error, StatusCode} ->
+				{error, StatusCode};
+			{ok, Prod} ->
+				ID = prod_id(json, Prod),
+				Descirption = prod_description(json, Prod),
+				Href = prod_href(json, Prod),
+				ValidFor = prod_vf(json, Prod),
+				IsBundle = prod_isBundle(json, Prod),
+				Name = prod_name(json, Prod),
+				Status = prod_status({json, catMgmt}, Prod),
+				StartDate = prod_sdate(json, Prod),
+				TerminationDate = prod_tdate(json, Prod),
+				case prod_offering_price({json, catMgmt}, Prod) of
+					{error, StatusCode} ->
+						{error, StatusCode};
+					OfferPrice ->
+						Json = {struct, [ID, Descirption, Href, StartDate,
+						TerminationDate, IsBundle, Name, Status, ValidFor,
+						OfferPrice]},
+						Body = mochijson:encode(Json),
+						Headers = [{content_type, "application/json"}],
+						{ok, Headers, Body}
+				end
+		end
+	catch
+		_:_ ->
+			{error, 400}
+	end.
+
 -spec merge_patch_product_InvMgmt(ProdId, Etag, ReqData) -> Result
 	when
 		ProdId	:: string(),
@@ -376,6 +422,34 @@ merge_patch_product_InvMgmt(ProdId, Etag, ReqData) ->
 	try
 		Json = mochijson:decode(ReqData),
 		case exe_jsonpatch_merge(invMgmt, ProdId, Etag, Json) of
+			{error, Reason} ->
+				{error, Reason};
+			{ok, Response} ->
+				Body = mochijson:encode(Response),
+				Headers = [{content_type, "application/json"}],
+				{ok, Headers, Body}
+		end
+	catch
+		_:_ ->
+			{error, 400}
+	end.
+
+-spec merge_patch_product_CatMgmt(ProdId, Etag, ReqData) -> Result
+	when
+		ProdId	:: string(),
+		Etag		:: undefined | list(),
+		ReqData	:: [tuple()],
+		Result	:: {ok, Headers, Body} | {error, Status},
+		Headers	:: [tuple()],
+		Body		:: iolist(),
+		Status	:: 400 | 500 .
+%% @doc Respond to `PATCH /productInventoryManagement/v1/product/{id}' and
+%% apply merge patch for `product'
+%% RFC7386 `https://tools.ietf.org/html/rfc7386'
+merge_patch_product_CatMgmt(ProdId, Etag, ReqData) ->
+	try
+		Json = mochijson:decode(ReqData),
+		case exe_jsonpatch_merge(catMgmt, ProdId, Etag, Json) of
 			{error, Reason} ->
 				{error, Reason};
 			{ok, Response} ->
