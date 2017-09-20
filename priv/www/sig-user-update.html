@@ -165,7 +165,7 @@
 			},
 			_userUpdateResponse: function(event) {
 				document.getElementById("UpdateUserModal").close();
-				document.getElementById("getUser").generateRequest();
+				document.getElementById("userGrid").clearCache();
 			},
 			deleteUser: function(event) {
 				var grid = document.getElementById("UserGrid");
@@ -177,7 +177,7 @@
 			},
 			deleteUserResponse: function(event) {
 				document.getElementById("UpdateUserModal").close();
-				document.getElementById("getUser").generateRequest();
+				document.getElementById("userGrid").clearCache();
 			}
 		});
 	</script>

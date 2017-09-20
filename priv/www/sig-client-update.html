@@ -223,7 +223,7 @@
 				if (event.detail.succeeded) {
 					document.getElementById("edit-toast").open();
 					document.getElementById("edit-client-new-pwd").value = "";
-					document.getElementById("getClients").generateRequest();
+					document.getElementById("clientGrid").clearCache();
 				} else {
 					console.log("Not Success");
 				}
@@ -244,7 +244,7 @@
 				if(event.detail.succeeded) {
 					document.getElementById("edit-toast").open();
 					document.getElementById("edit-client-new-pwd").value = "";
-					document.getElementById("getClients").generateRequest();
+					document.getElementById("clientGrid").clearCache();
 				} else {
 					console.log("Not Success");
 				}
@@ -260,7 +260,7 @@
 			deleteClientResponse: function(event) {
 				document.getElementById("clientUpdateModal").close();
 				document.getElementById("delete-toast").open();
-				document.getElementById("getClients").generateRequest();
+				document.getElementById("clientGrid").clearCache();
 			}
 		});
 	</script>
