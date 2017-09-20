@@ -108,7 +108,7 @@ do_patch(ContentType, Body, Resource, ModData, Etag,
 			Body));
 do_patch("application/json-patch+json", Body, Resource, ModData, Etag,
 		["productInventoryManagement", "v1", "product", ProdId]) ->
-	do_response(ModData, Resource:on_patch_product(ProdId, Etag, Body));
+	do_response(ModData, Resource:on_patch_product_InvMgmt(ProdId, Etag, Body));
 do_patch("application/merge-patch+json", Body, Resource, ModData, Etag,
 		["productInventoryManagement", "v1", "product", ProdId]) ->
 	do_response(ModData, Resource:merge_patch_product(ProdId, Etag, Body));
