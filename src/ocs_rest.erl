@@ -22,7 +22,7 @@
 
 -export([filter/2]).
 -export([date/1, iso8601/1]).
--export([parse/1]).
+-export([parse/1, merge_patch/2]).
 
 -record(pob, {op, path, value}).
 
@@ -88,6 +88,26 @@ parse1([#pob{op = "test", path = Path, value = Value} | T], Acc) ->
 	parse1(T, [{test, parse_path(Path), Value} | Acc]);
 parse1(_, _) ->
 	{error, invalid_format}.
+
+-spec merge_patch(Target, Patch) -> Result
+	when
+		Target :: {struct, list()},
+		Patch		:: {struct, list()} | {array, list()},
+		Result :: {struct, list()} | {array, list()}.
+%% @doc Psudo code implementation for RFC7386 Section 2
+merge_patch(Target, Patch) ->
+	case is_object(Patch) of
+		true ->
+			Target1 = case is_object(Target) of
+				true ->
+					Target;
+				false ->
+					{struct, []}
+			end,
+			do_merge(get_patch_keys(Patch), Patch, Target1);
+		false ->
+			Patch
+	end.
 
 %%----------------------------------------------------------------------
 %%  internal functions
@@ -238,4 +258,38 @@ decode_operations({struct, Operation}) ->
 	end,
 	lists:foldl(F, #pob{}, Operation).
 
+do_merge([], _, Target) ->
+	Target;
+do_merge([Key | T], Patch, Target) ->
+	Value = get_value(Key, Patch),
+	Target1 = case Value =:= null of
+		true ->
+			delete(Key, Target);
+		false ->
+			set_value(Key, Value, Target)
+	end,
+	do_merge(T, Patch, Target1).
 
+delete(Key, {struct, L}) when is_list(L) ->
+	case lists:keytake(Key, 1, L) of
+		{value, _, Target} ->
+			{struct, Target};
+		false ->
+			{struct, L}
+	end.
+
+get_patch_keys({struct, L}) when is_list(L) -> proplists:get_keys(L);
+get_patch_keys(_) -> [].
+
+get_value(Key, {struct, L}) when is_list(L) ->
+	proplists:get_value(Key, L);
+get_value(_, _) ->
+	throw(not_found).
+
+set_value(Key, Value, {struct, L}) when is_list(L) ->
+	{struct, lists:keyreplace(Key, 1, L, {Key, Value})};
+set_value(_Key, {struct, _}  = Patch, {struct, _} = Target) ->
+	merge_patch(Target, Patch).
+
+is_object({struct, L}) when is_list(L) -> true;
+is_object(_) -> false.
