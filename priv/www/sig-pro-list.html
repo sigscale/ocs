@@ -212,7 +212,12 @@
 							}
 						}
 						newRecord.status = results[index].status;
-						newRecord.price = results[index].price;
+						if(results[index].productPrice && results[index].productPrice != ""){
+							function getNames(price) {
+								return price.name;
+							}
+							newRecord.price = results[index].productPrice.map(getNames).join(", ");
+						}
 						vaadinItems[index] = newRecord;
 					}
 					cbPro(vaadinItems);
