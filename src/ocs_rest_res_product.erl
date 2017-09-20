@@ -24,7 +24,7 @@
 
 -export([add_product/1]).
 -export([get_product/1, get_products/1]).
--export([on_patch_product/3]).
+-export([on_patch_product/3, merge_patch_product/3]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
@@ -34,7 +34,8 @@
 		ContentTypes :: list().
 %% @doc Provides list of resource representations accepted.
 content_types_accepted() ->
-	["application/json", "application/json-patch+json"].
+	["application/json", "application/json-patch+json",
+	"application/merge-patch+json"].
 
 -spec content_types_provided() -> ContentTypes
 	when
@@ -246,6 +247,34 @@ on_patch_product(ProdId, Etag, ReqData) ->
 						Headers = [{content_type, "application/json"}],
 						{ok, Headers, Body}
 				end
+		end
+	catch
+		_:_ ->
+			{error, 400}
+	end.
+
+-spec merge_patch_product(ProdId, Etag, ReqData) -> Result
+	when
+		ProdId	:: string(),
+		Etag		:: undefined | list(),
+		ReqData	:: [tuple()],
+		Result	:: {ok, Headers, Body} | {error, Status},
+		Headers	:: [tuple()],
+		Body		:: iolist(),
+		Status	:: 400 | 500 .
+%% @doc Respond to `PATCH /productInventoryManagement/v1/product/{id}' and
+%% apply object notation patch for `product'
+%% RFC7386 `https://tools.ietf.org/html/rfc7386'
+merge_patch_product(ProdId, Etag, ReqData) ->
+	try
+		Json = mochijson:decode(ReqData),
+		case exe_jsonpatch_merge(ProdId, Etag, Json) of
+			{error, Reason} ->
+				{error, Reason};
+			{ok, Response} ->
+				Body = mochijson:encode(Response),
+				Headers = [{content_type, "application/json"}],
+				{ok, Headers, Body}
 		end
 	catch
 		_:_ ->
@@ -1012,6 +1041,50 @@ exe_jsonpatch_ON(ProdID, _Etag, OperationList) ->
 			{error,  500}
 	end.
 
+-spec exe_jsonpatch_merge(ProductID, Etag, Patch) -> Result
+	when
+		ProductID		:: string() | binary(),
+		Etag				:: undefined | tuple(),
+		Patch				:: term(),
+		Result			:: list() | {error, StatusCode},
+		StatusCode		:: 400 | 404 | 422 | 500.
+%% @doc execute json merge patch
+exe_jsonpatch_merge(ProdID, _Etag, Patch) ->
+	F = fun() ->
+			case mnesia:read(product, ProdID, write) of
+				[Entry] ->
+					case target(Entry) of
+						{error, Status} ->
+							throw(Status);
+						Target ->
+							Patched = ocs_rest:merge_patch(Target, Patch),
+							case target(Patched) of
+								{error, SC} ->
+									throw(SC);
+								NewEntry ->
+									ok = mnesia:write(NewEntry),
+									Patched
+							end
+					end;
+				[] ->
+					throw(not_found)
+			end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, Product} ->
+			{ok,  Product};
+		{aborted, {throw, malfored_request}} ->
+			{error, 400};
+		{aborted, {throw, not_found}} ->
+			{error, 404};
+		{aborted, {throw, not_implemented}} ->
+			{error, 422};
+		{aborted, {throw, unprocessable}} ->
+			{error, 422};
+		{aborted, _Reason} ->
+			{error,  500}
+	end.
+
 -spec do_patch(Operation, Product) -> Result
 	when
 		Operation	:: {Op, Path, Value},
@@ -1252,3 +1325,43 @@ patch_replace4([{"taxIncludedAmount", Value} | T], Alter) when is_record(Alter, 
 patch_replace4(_, _) ->
 	{error, unprocessable}.
 
+target(Prod) when is_record(Prod, product) ->
+	ID = prod_id(json, Prod),
+	Descirption = prod_description(json, Prod),
+	Href = prod_href(json, Prod),
+	ValidFor = prod_vf(json, Prod),
+	IsBundle = prod_isBundle(json, Prod),
+	Name = prod_name(json, Prod),
+	Status = prod_status(json, Prod),
+	StartDate = prod_sdate(json, Prod),
+	TerminationDate = prod_tdate(json, Prod),
+	case prod_offering_price(json, Prod) of
+		{error, StatusCode} ->
+			{error, StatusCode};
+		OfferPrice ->
+			{struct, [ID, Descirption, Href, StartDate,
+				TerminationDate, IsBundle, Name, Status, ValidFor,
+				OfferPrice]}
+	end;
+target({struct, Object}) ->
+	try
+		Name = prod_name(erlang_term, Object),
+		IsBundle = prod_isBundle(erlang_term, Object),
+		Status = prod_status(erlang_term, Object),
+		ValidFor = prod_vf(erlang_term, Object),
+		Descirption = prod_description(erlang_term, Object),
+		StartDate = prod_sdate(erlang_term, Object),
+		TerminationDate = prod_tdate(erlang_term, Object),
+		{_, {array, ProdOfPrice}} = lists:keyfind("productPrice", 1, Object),
+		case po_price(erlang_term, ProdOfPrice, []) of
+			{error, StatusCode} ->
+				{error, StatusCode};
+			Price ->
+				#product{price = Price, name = Name, valid_for = ValidFor,
+					is_bundle = IsBundle, status = Status, start_date = StartDate,
+					termination_date = TerminationDate, description = Descirption}
+		end
+	catch
+		_:_ ->
+			{error, 400}
+	end.
