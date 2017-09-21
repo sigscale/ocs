@@ -391,38 +391,47 @@
 			},
 			_subscriberAddSubmit: function(event) {
 				var subscriber = new Object();
-				if(!document.getElementById("add1").disabled) {
+				if(!document.getElementById("add1").disabled
+							&& document.getElementById("add1").value != null
+							&& document.getElementById("add1").value != "") {
 					subscriber.id = document.getElementById("add1").value;
 				}
-				if(!document.getElementById("add2").disabled) {
+				if(!document.getElementById("add2").disabled
+							&& document.getElementById("add2").value != null
+							&& document.getElementById("add2").value != "") {
 					subscriber.password = document.getElementById("add2").value;
 				}
 				var attributes = new Array();
-				if(parseInt(document.getElementById("add3").value)) {
+				if(parseInt(document.getElementById("add3").value)
+						&& parseInt(document.getElementById("add3").value) != null) {
 					var ascendDataRate = new Object();
 					ascendDataRate.name = "ascendDataRate";
 					ascendDataRate.value = parseInt(document.getElementById("add3").value);
 					attributes.push(ascendDataRate);
 				}
-				if(parseInt(document.getElementById("add4").value)) {
+				if(parseInt(document.getElementById("add4").value)
+						&& parseInt(document.getElementById("add4").value) != null) {
 					var ascendXmitRate = new Object();
 					ascendXmitRate.name = "ascendXmitRate";
 					ascendXmitRate.value = parseInt(document.getElementById("add4").value);
 					attributes.push(ascendXmitRate);
 				}
-				if(parseInt(document.getElementById("add5").value)) {
+				if(parseInt(document.getElementById("add5").value)
+						&& parseInt(document.getElementById("add5").value) != null) {
 					var sessionTimeout = new Object();
 					sessionTimeout.name = "sessionTimeout";
 					sessionTimeout.value = parseInt(document.getElementById("add5").value);
 					attributes.push(sessionTimeout);
 				}
-				if(parseInt(document.getElementById("add6").value)) {
+				if(parseInt(document.getElementById("add6").value)
+						&& parseInt(document.getElementById("add6").value) != null) {
 					var acctInterimInterval = new Object();
 					acctInterimInterval.name = "acctInterimInterval";
 					acctInterimInterval.value = parseInt(document.getElementById("add6").value);
 					attributes.push(acctInterimInterval);
 				}
-				if(document.getElementById("add7").value) {
+				if(document.getElementById("add7").value
+						&& document.getElementById("add7").value != null) {
 					var classx = new Object();
 					classx.name = "class";
 					if(document.getElementById("add7").value == "") {
@@ -433,10 +442,17 @@
 				}
 				subscriber.attributes = attributes;
 				var buckets = [];
-				buckets.push({"amount": parseInt(document.getElementById("add8").value),
-				"units": document.getElementById("adduni9").value,
-				"product": document.getElementById("addpro10").value});
-				subscriber.buckets = buckets;
+				if(parseInt(document.getElementById("add8").value)
+						&& parseInt(document.getElementById("add8").value) != null
+						&& document.getElementById("adduni9").value
+						&& document.getElementById("adduni9").value != null
+						&& document.getElementById("addpro10").value
+						&& document.getElementById("addpro10").value != null) {
+					buckets.push({"amount": parseInt(document.getElementById("add8").value),
+					"units": document.getElementById("adduni9").value,
+					"product": document.getElementById("addpro10").value});
+					subscriber.buckets = buckets;
+				}
 				subscriber.enabled= document.getElementById("add9").checked;
 				subscriber.multisession= document.getElementById("add10").checked;
 				var ajax = document.getElementById("subAddAjax");
