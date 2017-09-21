@@ -23,9 +23,10 @@
 %% export the ocs public API
 -export([add_client/2, add_client/4, find_client/1, update_client/2,
 		update_client/3, get_clients/0, delete_client/1]).
--export([add_subscriber/3, add_subscriber/4, add_subscriber/7,
-		find_subscriber/1, delete_subscriber/1, update_password/2,
-		update_attributes/2, update_attributes/5, get_subscribers/0]).
+-export([add_subscriber/3, add_subscriber/4, add_subscriber/5,
+		add_subscriber/7, find_subscriber/1, delete_subscriber/1,
+		update_password/2, update_attributes/2, update_attributes/5,
+		get_subscribers/0]).
 -export([add_user/3, list_users/0, get_user/1, delete_user/1]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
@@ -219,37 +220,50 @@ delete_client(Client) when is_tuple(Client) ->
 			exit(Reason)
 	end.
 
--spec add_subscriber(Identity, Password, Attributes) -> Result
+-spec add_subscriber(Identity, Password, Product) -> Result
 	when
 		Identity :: string() | binary(),
 		Password :: string() | binary(),
-		Attributes :: radius_attributes:attributes() | binary(),
+		Product :: string(),
 		Result :: {ok, #subscriber{}} | {error, Reason},
 		Reason :: term().
-%% @equiv add_subscriber(Identity, Password, Attributes, [], undefined, true, false)
-add_subscriber(Identity, Password, Attributes) ->
-	add_subscriber(Identity, Password, Attributes, [], undefined, true, false).
+%% @equiv add_subscriber(Identity, Password, Product, [], [], true, false)
+add_subscriber(Identity, Password, Product) ->
+	add_subscriber(Identity, Password, Product, [], [], true, false).
 
--spec add_subscriber(Identity, Password, Attributes, Buckets) -> Result
+-spec add_subscriber(Identity, Password, Product, Buckets) -> Result
 	when 
 		Identity :: string() | binary(),
 		Password :: string() | binary(),
-		Attributes :: radius_attributes:attributes() | binary(),
+		Product :: string(),
 		Buckets :: [#bucket{}],
 		Result :: {ok, #subscriber{}} | {error, Reason},
 		Reason :: term().
-%% @equiv add_subscriber(Identity, Password, Attributes, Buckets, Product, true, false)
-add_subscriber(Identity, Password, Attributes, Buckets) ->
-	add_subscriber(Identity, Password, Attributes, Buckets, undefined, true, false).
+%% @equiv add_subscriber(Identity, Password, Product, Buckets, [], true, false)
+add_subscriber(Identity, Password, Product, Buckets) ->
+	add_subscriber(Identity, Password, Product, Buckets, [], true, false).
 
--spec add_subscriber(Identity, Password, Attributes,
-		Buckets, Product, EnabledStatus, MultiSessions) -> Result
+-spec add_subscriber(Identity, Password, Product, Buckets, Attributes) -> Result
 	when 
+		Identity :: string() | binary(),
+		Password :: string() | binary(),
+		Product :: string(),
+		Buckets :: [#bucket{}],
+		Attributes :: radius_attributes:attributes() | binary(),
+		Result :: {ok, #subscriber{}} | {error, Reason},
+		Reason :: term().
+%% @equiv add_subscriber(Identity, Password, Product, Buckets, Attributes, true, false)
+add_subscriber(Identity, Password, Product, Buckets, Attributes) ->
+	add_subscriber(Identity, Password, Product, Buckets, Attributes, true, false).
+
+-spec add_subscriber(Identity, Password, Product,
+		Buckets, Attributes, EnabledStatus, MultiSessions) -> Result
+	when
 		Identity :: string() | binary() | undefined,
 		Password :: string() | binary() | undefined,
-		Attributes :: radius_attributes:attributes() | binary(),
 		Product :: string() | undefined,
 		Buckets :: [#bucket{}] | undefined,
+		Attributes :: radius_attributes:attributes() | binary(),
 		EnabledStatus :: boolean() | undefined,
 		MultiSessions :: boolean(),
 		Result :: {ok, #subscriber{}} | {error, Reason},
@@ -263,29 +277,29 @@ add_subscriber(Identity, Password, Attributes, Buckets) ->
 %% 	An initial account `Bucket', `Product' key for product reference
 %%		`Enabled' status and `MultiSessions' status may be provided.
 %%
-add_subscriber(Identity, Password, Attributes, Buckets, Product, EnabledStatus, undefined) ->
-	add_subscriber(Identity, Password, Attributes, Buckets, Product, EnabledStatus, false);
-add_subscriber(Identity, Password, Attributes, Buckets, Product, undefined, MultiSession) ->
-	add_subscriber(Identity, Password, Attributes, Buckets, Product, true, MultiSession);
-add_subscriber(Identity, Password, Attributes, Buckets, undefined, EnabledStatus, MultiSession) ->
-	add_subscriber(Identity, Password, Attributes, Buckets, "", EnabledStatus, MultiSession);
-add_subscriber(Identity, Password, Attributes, undefined, Product, EnabledStatus, MultiSession) ->
-	add_subscriber(Identity, Password, Attributes, [], Product, EnabledStatus, MultiSession);
-add_subscriber(Identity, Password, undefined, Buckets, Product, EnabledStatus, MultiSession) ->
-	add_subscriber(Identity, Password, [], Buckets, Product, EnabledStatus, MultiSession);
-add_subscriber(Identity, undefined, Attributes, Buckets, Product, EnabledStatus, MultiSession) ->
+add_subscriber(Identity, Password, Product, Buckets, Attributes, EnabledStatus, undefined) ->
+	add_subscriber(Identity, Password, Product, Buckets, Attributes, EnabledStatus, false);
+add_subscriber(Identity, Password, Product, Buckets, Attributes, undefined, MultiSession) ->
+	add_subscriber(Identity, Password, Product, Buckets, Attributes, true, MultiSession);
+add_subscriber(Identity, Password, Product, Buckets, undefined, EnabledStatus, MultiSession) ->
+	add_subscriber(Identity, Password, Product, Buckets, [], EnabledStatus, MultiSession);
+add_subscriber(Identity, Password, Product, undefined, Product, EnabledStatus, MultiSession) ->
+	add_subscriber(Identity, Password, Product, [], Product, EnabledStatus, MultiSession);
+add_subscriber(Identity, Password, undefined, Buckets, Attributes, EnabledStatus, MultiSession) ->
+	add_subscriber(Identity, Password, "", Buckets, Attributes, EnabledStatus, MultiSession);
+add_subscriber(Identity, undefined, Product, Buckets, Attributes, EnabledStatus, MultiSession) ->
 	add_subscriber(Identity, ocs:generate_password(),
-			Attributes, Buckets, Product, EnabledStatus, MultiSession);
-add_subscriber(Identity, Password, Attributes, Buckets, Product, EnabledStatus, MultiSession)
+			Product, Buckets, Attributes, EnabledStatus, MultiSession);
+add_subscriber(Identity, Password, Product, Buckets, Attributes, EnabledStatus, MultiSession)
 		when is_list(Identity) ->
-	add_subscriber(list_to_binary(Identity), Password, Attributes, Buckets,
-			Product, EnabledStatus, MultiSession);
-add_subscriber(Identity, Password, Attributes, Buckets, Product, EnabledStatus, MultiSession)
+	add_subscriber(list_to_binary(Identity), Password, Product, Buckets,
+			Attributes, EnabledStatus, MultiSession);
+add_subscriber(Identity, Password, Product, Buckets, Attributes, EnabledStatus, MultiSession)
 		when is_list(Password) ->
-	add_subscriber(Identity, list_to_binary(Password), Attributes, Buckets,
-			Product, EnabledStatus, MultiSession);
-add_subscriber(undefined, Password, Attributes, Buckets, Product, EnabledStatus, MultiSession)
-		when is_binary(Password), is_list(Attributes), is_list(Buckets), is_list(Product),
+	add_subscriber(Identity, list_to_binary(Password), Product, Buckets,
+			Attributes, EnabledStatus, MultiSession);
+add_subscriber(undefined, Password, Product, Buckets, Attributes, EnabledStatus, MultiSession)
+		when is_binary(Password), is_list(Product), is_list(Buckets), is_list(Attributes),
 		is_boolean(EnabledStatus), is_boolean(MultiSession) ->
 	F2 = fun() ->
 				case mnesia:read(product, Product, read) of
@@ -316,9 +330,9 @@ add_subscriber(undefined, Password, Attributes, Buckets, Product, EnabledStatus,
 		{aborted, Reason} ->
 			{error, Reason}
 	end;
-add_subscriber(Identity, Password, Attributes, Buckets, Product, EnabledStatus, MultiSession)
-		when is_binary(Identity), is_binary(Password), is_list(Attributes),
-		is_list(Buckets), is_list(Product), is_boolean(EnabledStatus), is_boolean(MultiSession) ->
+add_subscriber(Identity, Password, Product, Buckets, Attributes, EnabledStatus, MultiSession)
+		when is_binary(Identity), is_binary(Password), is_list(Product),
+		is_list(Buckets), is_list(Attributes), is_boolean(EnabledStatus), is_boolean(MultiSession) ->
 	F1 = fun() ->
 				case mnesia:read(product, Product, read) of
 					[_] ->
