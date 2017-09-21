@@ -79,6 +79,16 @@
 				</template>
 				<template>[[item.totalBalance]]</template>
 			</vaadin-grid-column>
+			<vaadin-grid-column width="8ex" flex-grow="5">
+            <template class="header">
+                  <vaadin-grid-sorter path="product">
+                     <vaadin-grid-filter aria-label="Product" path="product" value="[[_filterBalance]]">
+                        <input placeholder="Product" value="{{_filterBalance::input}}" focus-target>
+                     </vaadin-grid-filter>
+                  </vaadin-grid-sorter>
+            </template>
+            <template>[[item.product]]</template>
+         </vaadin-grid-column>
 			<vaadin-grid-column width="9ex" flex-grow="2">
 				<template class="header">
 					<i18n-msg msgid="asc">
@@ -187,9 +197,9 @@
 						{
 							name: "totalBalance"
 						},
-						//{
-						//	name: "product"
-						//},
+						{
+							name: "product"
+						},
 						{
 							name: "ascendDataRate"
 						},
@@ -281,6 +291,7 @@
 						var newRecord = new Object();
 						newRecord.id = results[index].id;
 						newRecord.password = results[index].password;
+						newRecord.product = results[index].product;
 						var totalFind = results[index].totalBalance.find(bala);
 						if (totalFind) {
 							newRecord.totalBalance = totalFind.amount;
