@@ -411,7 +411,6 @@
 			},
 			_getProductsResponse: function(event) {
 				var results = event.detail.xhr.response;
-console.log(results);
 				this.products.length = 0;
 				for (var index in results) {
 					this.push('products', results[index].name);
