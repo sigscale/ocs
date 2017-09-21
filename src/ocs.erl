@@ -248,7 +248,7 @@ add_subscriber(Identity, Password, Attributes, Buckets) ->
 		Identity :: string() | binary() | undefined,
 		Password :: string() | binary() | undefined,
 		Attributes :: radius_attributes:attributes() | binary(),
-		Product :: #product{} | undefined,
+		Product :: string() | undefined,
 		Buckets :: [#bucket{}] | undefined,
 		EnabledStatus :: boolean() | undefined,
 		MultiSessions :: boolean(),
@@ -260,13 +260,15 @@ add_subscriber(Identity, Password, Attributes, Buckets) ->
 %% 	RADIUS `Attributes', to be returned in an `AccessRequest' response,
 %% 	may be provided.  These attributes will overide any default values.
 %%
-%% 	An initial account `Bucket', `Enabled' status and `MultiSessions'
-%% 	status may be provided.
+%% 	An initial account `Bucket', `Product' key for product reference
+%%		`Enabled' status and `MultiSessions' status may be provided.
 %%
 add_subscriber(Identity, Password, Attributes, Buckets, Product, EnabledStatus, undefined) ->
 	add_subscriber(Identity, Password, Attributes, Buckets, Product, EnabledStatus, false);
 add_subscriber(Identity, Password, Attributes, Buckets, Product, undefined, MultiSession) ->
 	add_subscriber(Identity, Password, Attributes, Buckets, Product, true, MultiSession);
+add_subscriber(Identity, Password, Attributes, Buckets, undefined, EnabledStatus, MultiSession) ->
+	add_subscriber(Identity, Password, Attributes, Buckets, "", EnabledStatus, MultiSession);
 add_subscriber(Identity, Password, Attributes, undefined, Product, EnabledStatus, MultiSession) ->
 	add_subscriber(Identity, Password, Attributes, [], Product, EnabledStatus, MultiSession);
 add_subscriber(Identity, Password, undefined, Buckets, Product, EnabledStatus, MultiSession) ->
@@ -283,13 +285,11 @@ add_subscriber(Identity, Password, Attributes, Buckets, Product, EnabledStatus, 
 	add_subscriber(Identity, list_to_binary(Password), Attributes, Buckets,
 			Product, EnabledStatus, MultiSession);
 add_subscriber(undefined, Password, Attributes, Buckets, Product, EnabledStatus, MultiSession)
-		when is_binary(Password), is_list(Attributes), is_list(Buckets),
+		when is_binary(Password), is_list(Attributes), is_list(Buckets), is_list(Product),
 		is_boolean(EnabledStatus), is_boolean(MultiSession) ->
 	F2 = fun() ->
-				case get_product(Product) of
-					{error, Reason} ->
-						throw(Reason);
-					Prod ->
+				case mnesia:read(product, Product, read) of
+					[_] ->
 						F1 = fun(_, _, 0) ->
 									mnesia:abort(retries);
 								(F, Identity, N) ->
@@ -298,14 +298,16 @@ add_subscriber(undefined, Password, Attributes, Buckets, Product, EnabledStatus,
 											S = #subscriber{name = Identity,
 													password = Password, attributes = Attributes,
 													buckets = Buckets, enabled = EnabledStatus,
-													multisession = MultiSession, product = Prod},
+													multisession = MultiSession, product = Product},
 											ok = mnesia:write(S),
 											S;
 										[_] ->
 											F(F, list_to_binary(generate_identity()), N - 1)
 									end
 						end,
-						F1(F1, list_to_binary(generate_identity()), 5)
+						F1(F1, list_to_binary(generate_identity()), 5);
+					[] ->
+						throw(product_not_found)
 				end
 	end,
 	case mnesia:transaction(F2) of
@@ -316,17 +318,17 @@ add_subscriber(undefined, Password, Attributes, Buckets, Product, EnabledStatus,
 	end;
 add_subscriber(Identity, Password, Attributes, Buckets, Product, EnabledStatus, MultiSession)
 		when is_binary(Identity), is_binary(Password), is_list(Attributes),
-		is_list(Buckets), is_boolean(EnabledStatus), is_boolean(MultiSession) ->
+		is_list(Buckets), is_list(Product), is_boolean(EnabledStatus), is_boolean(MultiSession) ->
 	F1 = fun() ->
-				case get_product(Product) of
-					{error, Reason} ->
-						throw(Reason);
-					Prod ->
+				case mnesia:read(product, Product, read) of
+					[_] ->
 						S = #subscriber{name = Identity, password = Password,
-								attributes = Attributes, buckets = Buckets, product = Prod,
+								attributes = Attributes, buckets = Buckets, product = Product,
 								enabled = EnabledStatus, multisession = MultiSession},
 						ok = mnesia:write(S),
-						S
+						S;
+					[] ->
+						throw(product_not_found)
 				end
 	end,
 	case mnesia:transaction(F1) of
@@ -802,12 +804,3 @@ bucket_balance([#bucket{remain_amount = RemAmount} | Tail])
 		when RemAmount#remain_amount.amount =< 0 ->
 	bucket_balance(Tail).
 
-get_product(undefined) ->
-	undefined;
-get_product(Product) when is_list(Product) ->
-	case mnesia:read(product, Product, read) of
-		[Entry] ->
-			Entry;
-		[] ->
-			{error, not_found}
-	end.
