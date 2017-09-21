@@ -69,16 +69,6 @@
 				</template>
 				<template>[[item.password]]</template>
 			</vaadin-grid-column>
-			<vaadin-grid-column width="12ex" flex-grow="2">
-				<template class="header">
-						<vaadin-grid-sorter path="totalBalance">
-							<vaadin-grid-filter aria-label="[[i18n.balance]]" path="totalBalance" value="[[_filterBalance]]">
-								<input placeholder="[[i18n.balance]]" value="{{_filterBalance::input}}" focus-target>
-							</vaadin-grid-filter>
-						</vaadin-grid-sorter>
-				</template>
-				<template>[[item.totalBalance]]</template>
-			</vaadin-grid-column>
 			<vaadin-grid-column width="8ex" flex-grow="5">
             <template class="header">
                   <vaadin-grid-sorter path="product">
@@ -89,6 +79,16 @@
             </template>
             <template>[[item.product]]</template>
          </vaadin-grid-column>
+			<vaadin-grid-column width="12ex" flex-grow="2">
+				<template class="header">
+						<vaadin-grid-sorter path="totalBalance">
+							<vaadin-grid-filter aria-label="[[i18n.balance]]" path="totalBalance" value="[[_filterBalance]]">
+								<input placeholder="[[i18n.balance]]" value="{{_filterBalance::input}}" focus-target>
+							</vaadin-grid-filter>
+						</vaadin-grid-sorter>
+				</template>
+				<template>[[item.totalBalance]]</template>
+			</vaadin-grid-column>
 			<vaadin-grid-column width="9ex" flex-grow="2">
 				<template class="header">
 					<i18n-msg msgid="asc">
@@ -195,10 +195,10 @@
 							name: "password"
 						},
 						{
-							name: "totalBalance"
+							name: "product"
 						},
 						{
-							name: "product"
+							name: "totalBalance"
 						},
 						{
 							name: "ascendDataRate"
