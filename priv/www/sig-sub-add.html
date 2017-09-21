@@ -255,7 +255,7 @@
 				<div>
 					<paper-dropdown-menu
 							id="addpro10"
-							label="[[i18n.prod]]">
+							label="Products">
 						<paper-listbox
 								slot="dropdown-content"
 								class="dropdown-content">
@@ -472,10 +472,10 @@
 				if(parseInt(document.getElementById("add8").value)
 						&& parseInt(document.getElementById("add8").value) != null) {
 					buckets.push({"amount": parseInt(document.getElementById("add8").value),
-					"units": document.getElementById("adduni9").value,
-					"product": document.getElementById("addpro10").value});
+					"units": document.getElementById("adduni9").value});
 					subscriber.buckets = buckets;
 				}
+				subscriber.product = document.getElementById("addpro10").value;
 				subscriber.enabled= document.getElementById("add9").checked;
 				subscriber.multisession= document.getElementById("add10").checked;
 				var ajax = document.getElementById("subAddAjax");
