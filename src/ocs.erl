@@ -334,7 +334,7 @@ add_subscriber(Identity, Password, Attributes, Buckets, Product, EnabledStatus, 
 			{ok, Subscriber};
 		{aborted, Reason} ->
 			{error, Reason}
-			end.
+	end.
 
 -spec find_subscriber(Identity) -> Result  
 	when
