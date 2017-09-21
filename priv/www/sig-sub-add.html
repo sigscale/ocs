@@ -263,29 +263,16 @@
 				</div>
 			</div>
 			</iron-pages>
-				<div id="response-display-container">
-					<paper-toast id="toastError" class="fit-bottom error">
-						<h2>[[i18n.subToastErrorReason]]</h2>
-						<h5>[[i18n.subToastErrorReason1]]</h5>
-						<ul>
-							<li>[[i18n.subToastErrorReason2]]</li>
-						</ul>
-						<div class="close">
-							<paper-button id="toastErrorClose"
-									onclick="toastErrorClose()">
-								<i18n-msg msgid="close">
-									Close
-								</i18n-msg>
-							</paper-button>
-						</div>
-					</paper-toast>
-					<paper-toast id="toast-success" class="fit-bottom">
-						<h2>[[i18n.subToastSuc]]</h2>
-					</paper-toast>
-				</div>
+			<paper-toast
+					id="addSubscriberToastSuccess"
+					text="[[i18n.subToastSuc]]">
+			</paper-toast>
+			<paper-toast
+					id="addSubscriberToastError">
+			</paper-toast>
 		</paper-dialog>
 		<paper-dialog id="subSecretModal" class="generated" modal>
-				<paper-toolbar>
+			<paper-toolbar>
 				<h2>[[i18n.serverGen]]</h2>
 			</paper-toolbar>
 			<paper-icon-item>
@@ -319,19 +306,13 @@
 			</div>
 		</paper-dialog>
 		<iron-ajax
-				id="subAddAjax"
+				id="addSubscriberAjax"
 				url="/ocs/v1/subscriber"
 				method = "post"
-				headers='{"Accept": "application/json", "Content-type": "application/json"}'
 				on-loading-changed="_onLoadingChanged"
-				on-response="_subscriberAddResponse"
-				hanlde-as="json">
+				on-response="_addSubscriberResponse"
+				on-error="_addSubscriberError">
 		</iron-ajax>
-		<script>
-			function toastErrorClose(event) {
-				document.getElementById('toastError').close();
-			}
-		</script>
 	</template>
 	<script>
 		Polymer ({
@@ -342,9 +323,6 @@
 					type: Number,
 					value: 0
 				}
-			},
-			listeners: {
-				'toastErrorClose.on-click': 'closeToast',
 			},
 			_subscriberAddSubmit: function(event) {
 				var subscriber = new Object();
@@ -392,25 +370,29 @@
 				subscriber.balance = parseInt(document.getElementById("add8").value);
 				subscriber.enabled= document.getElementById("add9").checked;
 				subscriber.multisession= document.getElementById("add10").checked;
-				var ajax = document.getElementById("subAddAjax");
+				var ajax = this.$.addSubscriberAjax;
+				ajax.headers['Content-type'] = "application/json";
 				ajax.body = subscriber;
 				ajax.generateRequest();
 			},
-			_subscriberAddResponse: function(event) {
-				var toast = document.getElementById("toast-success");
-				toast.open();
-				toast.duration = 4;
-				document.getElementById("subAddModal").close();
-				var ajax = document.getElementById("subAddAjax");
+			_addSubscriberResponse: function(event) {
+				this.$.subAddModal.close();
+				var ajax = this.$.addSubscriberAjax;
 				if (ajax.body.password == undefined || ajax.body.id == undefined) {
 					this.password = ajax.lastResponse.password;
 					this.identity = ajax.lastResponse.id;
-					document.getElementById("subSecretModal").open();
+					this.$.subSecretModal.open();
+				} else {
+					this.$.addSubscriberToastSuccess.open();
 				}
 				document.getElementById("subscriberGrid").clearCache();
 			},
+			_addSubscriberError: function(event) {
+				this.$.addSubscriberToastError.text = event.detail.request.xhr.statusText;
+				this.$.addSubscriberToastError.open();
+			},
 			_onLoadingChanged: function(event) {
-				if (document.getElementById("subAddAjax").loading) {
+				if (document.getElementById("addSubscriberAjax").loading) {
 					document.getElementById("progress").disabled = false;
 				} else {
 					document.getElementById("progress").disabled = true;
@@ -429,10 +411,6 @@
 				} else {
 					document.getElementById("add1").disabled = false;
 				}
-			},
-			toastErrorClose: function(event) {
-				var toast = document.getElementById("toastError");
-				toast.close();
 			}
 		});
 	</script>

@@ -111,9 +111,9 @@ get_users2([H | T], [] = Query, Filters, Acc) ->
 				false ->
 					Characteristic1
 			end,
-			User = [{"id", H},
+			User = {struct, [{"id", H},
 					{"href", "/partyManagement/v1/individual/" ++ H},
-					{"characteristic", Characteristic2}],
+					{"characteristic", {array, Characteristic2}}]},
 			get_users2(T, Query, Filters, [User | Acc]);
 		{error, _Reason} ->
 			{error, 500}

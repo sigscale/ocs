@@ -273,6 +273,12 @@ post_client(RequestBody) ->
 	try 
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, Id} = lists:keyfind("id", 1, Object),
+		Ip = case inet:parse_address(Id) of
+			{ok, IPAddress} ->
+				IPAddress;
+			{error, einval} ->
+				throw(400)
+		end,
 		Port = proplists:get_value("port", Object, 3799),
 		Protocol = case proplists:get_value("protocol", Object, "radius") of
 			RADIUS when RADIUS =:= "radius"; RADIUS =:= "RADIUS" ->
@@ -281,8 +287,8 @@ post_client(RequestBody) ->
 				diameter
 		end,
 		Secret = proplists:get_value("secret", Object, ocs:generate_password()),
-		ok = ocs:add_client(Id, Port, Protocol, Secret),
-		{ok, #client{last_modified = LM}} = ocs:find_client(Id),
+		ok = ocs:add_client(Ip, Port, Protocol, Secret),
+		{ok, #client{last_modified = LM}} = ocs:find_client(Ip),
 		Location = "/ocs/v1/client/" ++ Id,
 		RespObj = [{"id", Id}, {"href", Location}, {"port", Port},
 				{"protocol", string:to_upper(atom_to_list(Protocol))}, {"secret", Secret}],

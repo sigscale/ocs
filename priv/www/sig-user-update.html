@@ -93,7 +93,7 @@
 							class="cancel-button"
 							dialog-confirm
 							autofocus
-							onclick="clientAddModal.close()">
+							onclick="updateUserModal.close()">
 							<i18n-msg msgid="cancel">
 								Cancel
 							<i18n-msg>
@@ -164,7 +164,7 @@
 				editAjax.generateRequest();
 			},
 			_userUpdateResponse: function(event) {
-				document.getElementById("UpdateUserModal").close();
+				document.getElementById("updateUserModal").close();
 				document.getElementById("userGrid").clearCache();
 			},
 			deleteUser: function(event) {
