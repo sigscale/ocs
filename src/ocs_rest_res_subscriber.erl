@@ -210,8 +210,8 @@ get_subscribers2(Subscribers, Id, Password, Balance, Enabled, Multi, [] = _Query
 		Att = radius_to_json(Attributes),
 		Att1 = {array, Att},
 		T3 = lists:prefix(Balance, Bu),
-		T4 = lists:prefix(Enabled, [Ena]),
-		T5 = lists:prefix(Multi, [Mul]),
+		T4 = lists:prefix(Enabled, atom_to_list(Ena)),
+		T5 = lists:prefix(Multi, atom_to_list(Mul)),
 		if
 			T1 and T2 and T3 and T4 and T5->
 				RespObj1 = [{"id", Nalist}, {"href", "/ocs/v1/subscriber/" ++ Nalist}],
