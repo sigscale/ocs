@@ -302,6 +302,7 @@ post_subscriber(RequestBody) ->
 		{struct, Object} = mochijson:decode(RequestBody),
 		IdIn = proplists:get_value("id", Object),
 		PasswordIn = proplists:get_value("password", Object),
+		Product = proplists:get_value("product", Object),
 		Attributes = case lists:keyfind("attributes", 1, Object) of
 			{_, {array, JsonObjList}} ->
 				json_to_radius(JsonObjList);
@@ -325,7 +326,7 @@ post_subscriber(RequestBody) ->
 		end,
 		Enabled = proplists:get_value("enabled", Object),
 		Multi = proplists:get_value("multisession", Object),
-		case ocs:add_subscriber(IdIn, PasswordIn, Attributes, Buckets, undefined, Enabled, Multi) of
+		case ocs:add_subscriber(IdIn, PasswordIn, Product, Buckets, Attributes, Enabled, Multi) of
 			{ok, #subscriber{name = IdOut, last_modified = LM} = S} ->
 				Id = binary_to_list(IdOut),
 				Location = "/ocs/v1/subscriber/" ++ Id,
