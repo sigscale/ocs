@@ -308,8 +308,8 @@
 					cbSub(vaadinItems);
 				},
 				showAddModal: function(event) {
-						var modal = document.getElementById("subAddModal");
-						modal.open();
+						document.getElementById("getProductsAjax").generateRequest();
+						document.getElementById("subAddModal").open();
 				}
 		});
 	</script>
