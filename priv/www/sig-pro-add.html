@@ -569,7 +569,6 @@
 					offerNew.validFor = {endDateTime};
 				}
 				function mapPrice(item) {
-console.log(item);
 					var out = new Object();
 					if(item.name != null && item.name != "") {
 						out.name = item.name;
@@ -648,7 +647,6 @@ console.log(item);
 						out.productOfferPriceAlteration = new Object(); 
 						if(item.alterations.name != null 
 								&& item.alterations.name != "") {
-console.log(item.alterations.name);
 							out.productOfferPriceAlteration.name = item.alterations.name;
 						}
 						if (item.alterations.description != null
@@ -727,21 +725,15 @@ console.log(item.alterations.name);
 								&& item.alterations.period != "") {
 							out.productOfferPriceAlteration.recurringChargePeriod = item.alterations.period;
 						}
-						return out; 
 					}
+					return out; 
 				}
 				offerNew.productOfferingPrice = this.prices.map(mapPrice);
 				if(offerNew.name && offerNew.name !== null 
 						&& offerNew.productOfferingPrice
 						&& offerNew.productOfferingPrice.length > 0) {
 					var ajax = this.$.productAddAjax;
-console.log(ajax);
 					ajax.body = offerNew;
-console.log(ajax.body);
-					this.$.addOff1.value = null;
-					this.$.addOff2.value = null;
-					this.prices.length = 0;
-					this.alterations.length = 0;
 					ajax.generateRequest();
 				}
 			},
@@ -950,6 +942,10 @@ console.log(ajax.body);
 			},
 			productAddResponse: function(event) {
 				this.$.addProductModal.close();
+				this.$.addOff1.value = null;
+				this.$.addOff2.value = null;
+				this.prices.length = 0;
+				this.alterations.length = 0;
 				document.getElementById("getProducts").generateRequest();
 			},
 			toastErrorCloseBut: function(event) {
