@@ -253,6 +253,19 @@
 				</div>
 			<div id=add-divtwo>
 				<div>
+					<paper-dropdown-menu
+							id="addpro10"
+							label="[[i18n.prod]]">
+						<paper-listbox
+								slot="dropdown-content"
+								class="dropdown-content">
+								<template is="dom-repeat" items="[[products]]">
+									<paper-item>
+										{{item}}
+									</paper-item>
+								</template>
+						</paper-listbox>
+					</paper-dropdown-menu>
 					<paper-input id="add8"
 							name="amount"
 							type="number"
@@ -282,11 +295,6 @@
 								</paper-item>
 							</paper-listbox>
 					</paper-dropdown-menu>
-					<paper-input id="addpro10"
-							name="product"
-							type="string"
-							label="[[i18n.prod]]">
-					</paper-input>
 					<div class="buttons">
 						<paper-button dialog-confirm
 								raised
@@ -370,6 +378,12 @@
 				on-loading-changed="_onLoadingChanged"
 				on-response="_subscriberAddResponse">
 		</iron-ajax>
+		<iron-ajax
+				id="getProductsAjax"
+				url="catalogManagement/v1/productOffering"
+				method = "GET"
+				on-response="_getProductsResponse">
+		</iron-ajax>
 		<script>
 			function toastErrorClose(event) {
 				document.getElementById('toastError').close();
@@ -384,10 +398,24 @@
 				selected: {
 					type: Number,
 					value: 0
-				}
+				},
+				products: {
+					type: Array,
+					value: function() {
+						return [];
+					}
+				},
 			},
 			listeners: {
 				'toastErrorClose.on-click': 'closeToast',
+			},
+			_getProductsResponse: function(event) {
+				var results = event.detail.xhr.response;
+console.log(results);
+				this.products.length = 0;
+				for (var index in results) {
+					this.push('products', results[index].name);
+				}
 			},
 			_subscriberAddSubmit: function(event) {
 				var subscriber = new Object();
@@ -443,11 +471,7 @@
 				subscriber.attributes = attributes;
 				var buckets = [];
 				if(parseInt(document.getElementById("add8").value)
-						&& parseInt(document.getElementById("add8").value) != null
-						&& document.getElementById("adduni9").value
-						&& document.getElementById("adduni9").value != null
-						&& document.getElementById("addpro10").value
-						&& document.getElementById("addpro10").value != null) {
+						&& parseInt(document.getElementById("add8").value) != null) {
 					buckets.push({"amount": parseInt(document.getElementById("add8").value),
 					"units": document.getElementById("adduni9").value,
 					"product": document.getElementById("addpro10").value});
