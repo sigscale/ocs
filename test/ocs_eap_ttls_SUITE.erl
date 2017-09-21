@@ -81,6 +81,7 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
+	{ok, ProdID} = ocs_test_lib:add_product(),
 	AuthAddress = {127, 0, 0, 1},
 	Protocol = ct:get_config(protocol),
 	SharedSecret = ct:get_config(radius_shared_secret),
@@ -93,7 +94,7 @@ init_per_suite(Config) ->
 	{ok, _Ref} = connect(?SVC, Address, Port, diameter_tcp),
 	receive
 		#diameter_event{service = ?SVC, info = start} ->
-			[{nas_id, NasId}] ++ Config;
+			[{product_id, ProdID}, {nas_id, NasId}] ++ Config;
 		_ ->
 			{skip, diameter_client_service_not_started}
 	end.
@@ -150,13 +151,14 @@ eap_ttls_authentication_radius() ->
 
 eap_ttls_authentication_radius(Config) ->
 	DataDir = ?config(data_dir, Config),
+	ProdID = ?config(product_id, Config),
 	AnonymousName = "DonaldTrump",
 	Subscriber = <<"45678901">>,
 	MAC = "DD-EE-FF-AA-BB-CC",
 	PeerAuth = list_to_binary(ocs:generate_password()),
 	RemAcct = #remain_amount{unit = octects, amount = 1000},
 	Buckets = [#bucket{id = "0", name = "default", remain_amount = RemAcct}],
-	{ok, _} = ocs:add_subscriber(Subscriber, PeerAuth, [], Buckets),
+	{ok, _} = ocs:add_subscriber(Subscriber, PeerAuth, ProdID, Buckets, []),
 	Socket = ?config(socket, Config),
 	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, radius),
 	[{Address, Port, _}] = AuthInstance,
@@ -215,7 +217,8 @@ eap_ttls_authentication_diameter(Config) ->
 	PeerAuth = list_to_binary(ocs:generate_password()),
 	RemAcct = #remain_amount{unit = octects, amount = 1000},
 	Buckets = [#bucket{id = "0", name = "default", remain_amount = RemAcct}],
-	{ok, _} = ocs:add_subscriber(Subscriber, PeerAuth, [], Buckets),
+	ProdID = ?config(product_id, Config),
+	{ok, _} = ocs:add_subscriber(Subscriber, PeerAuth, ProdID, Buckets, []),
 	{ok, [{auth, DiaAuthInstance}, _]} = application:get_env(ocs, diameter),
 	[{Address, _Port, _}] = DiaAuthInstance,
 	DEA1 = send_identity_diameter(SId, AnonymousName, EapId),

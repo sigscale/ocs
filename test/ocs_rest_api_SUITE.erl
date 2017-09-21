@@ -62,6 +62,7 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
+	{ok, ProdID} = ocs_test_lib:add_product(),
 	{ok, Services} = application:get_env(inets, services),
 	Fport = fun(F, [{httpd, L} | T]) ->
 				case lists:keyfind(server_name, 1, L) of
@@ -96,7 +97,7 @@ init_per_suite(Config) ->
 	end,
 	Config1 = [{port, Port} | Config],
 	HostUrl = "https://" ++ Host ++ ":" ++ integer_to_list(Port),
-	[{host_url, HostUrl} | Config1].
+	[{product_id, ProdID}, {host_url, HostUrl} | Config1].
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
@@ -246,6 +247,7 @@ add_subscriber() ->
 add_subscriber(Config) ->
 	ContentType = "application/json",
 	ID = "eacfd73ae10a",
+	ProdID = ?config(product_id, Config),
 	Password = "ksc8c244npqc",
 	AsendDataRate = {struct, [{"name", "ascendDataRate"}, {"value", 1000000}]},
 	AsendXmitRate = {struct, [{"name", "ascendXmitRate"}, {"value", 64000}]},
@@ -262,7 +264,7 @@ add_subscriber(Config) ->
 	Buckets = {array, [{struct, [Amount, Units, Product]}]},
 	JSON1 = {struct, [{"id", ID}, {"password", Password},
 	{"attributes", AttributeArray}, {"buckets", Buckets}, {"enabled", Enable},
-	{"multisession", Multi}]},
+	{"multisession", Multi}, {"product", ProdID}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON1)),
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
@@ -286,6 +288,7 @@ add_subscriber(Config) ->
 	{_, {array, Attributes}} = lists:keyfind("attributes", 1, Object),
 	ExtraAttributes = Attributes -- SortedAttributes,
 	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
+	{"product", ProdID} = lists:keyfind("product", 1, Object),
 	{"buckets", Buckets} = lists:keyfind("buckets", 1, Object),
 	{"enabled", Enable} = lists:keyfind("enabled", 1, Object),
 	{"multisession", Multi} = lists:keyfind("multisession", 1, Object).
@@ -295,12 +298,13 @@ add_subscriber_without_password() ->
 
 add_subscriber_without_password(Config) ->
 	ContentType = "application/json",
+	ProdID = ?config(product_id, Config),
 	Amount = {"amount", 100000},
 	Units = {"units", "octets"},
 	Product = {"product", "Wi-Fi"},
 	Buckets = {array, [{struct, [Amount, Units, Product]}]},
 	JSON1 = {struct, [{"id", "beebdeedfeef"}, {"buckets", Buckets}, {"enabled", true},
-	{"multisession", false}]},
+	{"multisession", false}, {"product", ProdID}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON1)),
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
@@ -322,6 +326,7 @@ get_subscriber() ->
 get_subscriber(Config) ->
 	ContentType = "application/json",
 	AcceptValue = "application/json",
+	ProdID = ?config(product_id, Config),
 	ID = "eacfd73ae10a",
 	Password = "ksc8c244npqc",
 	AsendDataRate = {struct, [{"name", "ascendDataRate"}, {"value", 1000000}]},
@@ -339,7 +344,7 @@ get_subscriber(Config) ->
 	Multi = false,
 	JSON1 = {struct, [{"id", ID}, {"password", Password},
 	{"attributes", AttributeArray}, {"buckets", Buckets}, {"enabled", Enable},
-	{"multisession", Multi}]},
+	{"multisession", Multi}, {"product", ProdID}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON1)),
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
@@ -394,6 +399,7 @@ get_all_subscriber() ->
 get_all_subscriber(Config) ->
 	ContentType = "application/json",
 	AcceptValue = "application/json",
+	ProdID = ?config(product_id, Config),
 	Accept = {"accept", AcceptValue},
 	ID = "5557615036fd",
 	Password = "2h7csggw35aa",
@@ -406,13 +412,13 @@ get_all_subscriber(Config) ->
 	AttributeArray = {array, SortedAttributes},
 	Amount = {"amount", 20000},
 	Units = {"units", "octets"},
-	Product = {"product", "Wi-Fi"},
+	Product = {"product", ProdID},
 	Buckets = {array, [{struct, [Amount, Units, Product]}]},
 	Enable = true,
 	Multi = false,
 	JSON1 = {struct, [{"id", ID}, {"password", Password},
 	{"attributes", AttributeArray}, {"buckets", Buckets}, {"enabled", Enable},
-	{"multisession", Multi}]},
+	{"multisession", Multi}, {"product", ProdID}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON1)),
 	HostUrl = ?config(host_url, Config),
 	RestUser = ct:get_config(rest_user),
@@ -456,6 +462,7 @@ delete_subscriber(Config) ->
 	ContentType = "application/json",
 	ID = "eacfd73ae11d",
 	Password = "ksc8c333npqc",
+	ProdID = ?config(product_id, Config),
 	AsendDataRate = {struct, [{"name", "ascendDataRate"}, {"value", 1000000}]},
 	AsendXmitRate = {struct, [{"name", "ascendXmitRate"}, {"value", 64000}]},
 	SessionTimeout = {struct, [{"name", "sessionTimeout"}, {"value", 10864}]},
@@ -469,7 +476,7 @@ delete_subscriber(Config) ->
 	Product = {"product", "Wi-Fi"},
 	Buckets = {array, [{struct, [Amount, Units, Product]}]},
 	Enable = true,
-	JSON1 = {struct, [{"id", ID}, {"password", Password},
+	JSON1 = {struct, [{"id", ID}, {"password", Password}, {"product", ProdID},
 	{"attributes", AttributeArray}, {"buckets", Buckets}, {"enabled", Enable}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON1)),
 	HostUrl = ?config(host_url, Config),
@@ -1411,6 +1418,7 @@ top_up_subscriber_balance() ->
 
 top_up_subscriber_balance(Config) ->
 	HostUrl = ?config(host_url, Config),
+	ProdID = ?config(product_id, Config),
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
 	ContentType = "application/json",
@@ -1421,7 +1429,7 @@ top_up_subscriber_balance(Config) ->
 	Authentication = {"authorization", AuthKey},
 	Identity = ocs:generate_identity(),
 	Password = ocs:generate_password(),
-	{ok, _} = ocs:add_subscriber(Identity, Password, []),
+	{ok, _} = ocs:add_subscriber(Identity, Password, ProdID),
 	RequestURI = HostUrl ++ "/balanceManagement/v1/" ++ Identity ++ "/balanceTopups",
 	BucketType = {"type", "buckettype"}, 
 	Channel = {"channel", {struct, [{"name", "POS"}]}},
@@ -1438,6 +1446,7 @@ get_subscriber_balance() ->
 
 get_subscriber_balance(Config) ->
 	HostUrl = ?config(host_url, Config),
+	ProdID = ?config(product_id, Config),
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
 	ContentType = "application/json",
@@ -1448,7 +1457,7 @@ get_subscriber_balance(Config) ->
 	Authentication = {"authorization", AuthKey},
 	Identity = ocs:generate_identity(),
 	Password = ocs:generate_password(),
-	{ok, _} = ocs:add_subscriber(Identity, Password, []),
+	{ok, _} = ocs:add_subscriber(Identity, Password, ProdID),
 	POSTURI = HostUrl ++ "/balanceManagement/v1/" ++ Identity ++ "/balanceTopups",
 	BucketType = {"type", "buckettype"},
 	Channel = {"channel", {struct, [{"name", "POS"}]}},
@@ -1540,6 +1549,7 @@ simultaneous_updates_on_subscriber_faliure(Config) ->
 	ContentType = "application/json",
 	ID = "eacfd73ae10a",
 	Password = "ksc8c244npqc",
+	ProdID = ?config(product_id, Config),
 	AsendDataRate = {struct, [{"name", "ascendDataRate"}, {"value", 1000000}]},
 	AsendXmitRate = {struct, [{"name", "ascendXmitRate"}, {"value", 64000}]},
 	SessionTimeout = {struct, [{"name", "sessionTimeout"}, {"value", 3600}]},
@@ -1556,7 +1566,7 @@ simultaneous_updates_on_subscriber_faliure(Config) ->
 	Multi = false,
 	JSON1 = {struct, [{"id", ID}, {"password", Password},
 	{"attributes", AttributeArray}, {"buckets", Buckets}, {"enabled", Enable},
-	{"multisession", Multi}]},
+	{"multisession", Multi}, {"product", ProdID}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON1)),
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},

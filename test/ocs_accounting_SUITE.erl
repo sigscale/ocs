@@ -60,6 +60,7 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
+	{ok, ProdID} = ocs_test_lib:add_product(),
 	NasID = atom_to_list(node()),
 	Config1 = [{nas_id, NasID} | Config],
 	{ok, [{auth, DiaAuthInstance}, {acct, DiaAcctInstances}]} =
@@ -76,7 +77,7 @@ init_per_suite(Config) ->
 			{ok, _Ref2} = connect(?SVC_ACCT, AcctAddress, AcctPort, diameter_tcp),
 			receive
 				#diameter_event{service = ?SVC_ACCT, info = start} ->
-					[{diameter_auth_client, AuthAddress}] ++ Config1;
+					[{product_id, ProdID}, {diameter_auth_client, AuthAddress}] ++ Config1;
 				_ ->
 					{skip, diameter_client_acct_service_not_started}
 			end;
@@ -101,6 +102,7 @@ init_per_testcase(TestCase, Config) when
 		TestCase == diameter_accounting; TestCase == diameter_disconnect_session ->
 	UserName = "SlimShady",
 	Password = "TeRcEs",
+	ProdID = ?config(product_id, Config),
 	{ok, [{auth, AuthInstance}, {acct, _}]} = application:get_env(ocs, diameter),
 	[{Address, Port, _}] = AuthInstance,
 	Secret = "s3cr3t",
@@ -108,7 +110,7 @@ init_per_testcase(TestCase, Config) when
 	InitialBal = #remain_amount{unit = octects, amount = InitialAmount},
 	Buckets = [#bucket{id = "0", name = "default", remain_amount = InitialBal}],
 	ok = ocs:add_client(Address, Port, diameter, Secret),
-	{ok, _} = ocs:add_subscriber(UserName, Password, [], Buckets),
+	{ok, _} = ocs:add_subscriber(UserName, Password, ProdID, Buckets, []),
 	[{username, UserName}, {password, Password}, {init_bal, InitialAmount}] ++ Config;
 init_per_testcase(_TestCase, Config) ->
 	SharedSecret = ct:get_config(radius_shared_secret),
@@ -160,7 +162,8 @@ radius_accounting(Config) ->
 	Password = ocs:generate_password(),
 	RemAcct = #remain_amount{unit = octects, amount = 1000},
 	Buckets = [#bucket{id = "0", name = "default", remain_amount = RemAcct}],
-   {ok, _} = ocs:add_subscriber(PeerID, Password, [], Buckets),
+	ProdID = ?config(product_id, Config),
+   {ok, _} = ocs:add_subscriber(PeerID, Password, ProdID, Buckets, []),
 	ReqAuth = radius:authenticator(),
    HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
@@ -178,6 +181,7 @@ radius_disconnect_session() ->
 radius_disconnect_session(Config) ->
 	RadID1 = 10,
 	NasID = ?config(nas_id, Config),
+	ProdID = ?config(product_id, Config),
 	AcctSessionID = "0B0055D1",
 	{ok, [{auth, AuthInstance}, {acct, AcctInstance}]} = application:get_env(ocs, radius),
 	[{AuthAddress, AuthPort, _}] = AuthInstance,
@@ -188,7 +192,7 @@ radius_disconnect_session(Config) ->
 	Password = ocs:generate_password(),
 	RemAcct = #remain_amount{unit = octects, amount = 1000},
 	Buckets = [#bucket{id = "0", name = "default", remain_amount = RemAcct}],
-   {ok, _} = ocs:add_subscriber(PeerID, Password, [], Buckets),
+   {ok, _} = ocs:add_subscriber(PeerID, Password, ProdID, Buckets, []),
 	ReqAuth = radius:authenticator(),
    HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
@@ -212,6 +216,7 @@ radius_multisessions_not_allowed() ->
 radius_multisessions_not_allowed(Config) ->
 	RadID1 = 8,
 	NasID = ?config(nas_id, Config),
+	ProdID = ?config(product_id, Config),
 	AcctSessionID = "BAC10355",
 	{ok, [{auth, AuthInstance}, {acct, AcctInstance}]} = application:get_env(ocs, radius),
 	[{AuthAddress, AuthPort, _}] = AuthInstance,
@@ -222,7 +227,7 @@ radius_multisessions_not_allowed(Config) ->
 	Password = ocs:generate_password(),
 	RemAcct = #remain_amount{unit = octects, amount = 1000},
 	Buckets = [#bucket{id = "0", name = "default", remain_amount = RemAcct}],
-	{ok, _} = ocs:add_subscriber(PeerID, Password, [], Buckets, true, false),
+	{ok, _} = ocs:add_subscriber(PeerID, Password, ProdID, Buckets, [], true, false),
 	ReqAuth = radius:authenticator(),
 	HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
@@ -267,10 +272,11 @@ radius_multisession() ->
 	[{userdata, [{doc, "Start multiple RADIUS sessions for a subscriber when
 			multiple RADIUS sessions are allowed."}]}].
 
-radius_multisession(_Config) ->
+radius_multisession(Config) ->
 	RadID1 = 11,
 	NasID1 = "axe1@ap-1.org",
 	AcctSessionID = "BAC10355",
+	ProdID = ?config(product_id, Config),
 	{ok, [{auth, AuthInstance}, {acct, AcctInstance}]} = application:get_env(ocs, radius),
 	[{AuthAddress, AuthPort, _}] = AuthInstance,
 	[{AcctAddress, AcctPort, _}] = AcctInstance,
@@ -280,7 +286,7 @@ radius_multisession(_Config) ->
 	Password = ocs:generate_password(),
 	RemAcct = #remain_amount{unit = octects, amount = 1000},
 	Buckets = [#bucket{id = "0", name = "default", remain_amount = RemAcct}],
-	{ok, _} = ocs:add_subscriber(PeerID, Password, [], Buckets, true, true),
+	{ok, _} = ocs:add_subscriber(PeerID, Password, ProdID, Buckets, [], true, true),
 	ReqAuth = radius:authenticator(),
 	HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
 	%% Authenticate session 1
