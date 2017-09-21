@@ -69,6 +69,16 @@
 				</template>
 				<template>[[item.password]]</template>
 			</vaadin-grid-column>
+			<vaadin-grid-column width="8ex" flex-grow="5">
+            <template class="header">
+                  <vaadin-grid-sorter path="product">
+                     <vaadin-grid-filter aria-label="Product" path="product" value="[[_filterBalance]]">
+                        <input placeholder="Product" value="{{_filterBalance::input}}" focus-target>
+                     </vaadin-grid-filter>
+                  </vaadin-grid-sorter>
+            </template>
+            <template>[[item.product]]</template>
+         </vaadin-grid-column>
 			<vaadin-grid-column width="12ex" flex-grow="2">
 				<template class="header">
 						<vaadin-grid-sorter path="totalBalance">
@@ -185,6 +195,9 @@
 							name: "password"
 						},
 						{
+							name: "product"
+						},
+						{
 							name: "totalBalance"
 						},
 						{
@@ -239,6 +252,7 @@
 						});
 						ajax.generateRequest();
 					};
+					}
 				},
 				_activeItemChanged: function(item) {
 					if (item != null){
@@ -277,6 +291,7 @@
 						var newRecord = new Object();
 						newRecord.id = results[index].id;
 						newRecord.password = results[index].password;
+						newRecord.product = results[index].product;
 						var totalFind = results[index].totalBalance.find(bala);
 						if (totalFind) {
 							newRecord.totalBalance = totalFind.amount;
@@ -295,6 +310,7 @@
 				showAddModal: function(event) {
 						var modal = document.getElementById("subAddModal");
 						modal.open();
+				}
 		});
 	</script>
 </dom-module>
