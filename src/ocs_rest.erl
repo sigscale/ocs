@@ -59,16 +59,16 @@ filter(Filters, {struct, L} = _Object) when is_list(Filters) ->
 	{struct, filter2(Filters2, L, [])}.
 
 
--spec  parse(Oplists) -> Result
+-spec parse(Oplists) -> Result
 	when
-			Oplists		:: [{struct, OPLObject}],
-			OPLObject	:: [{Key, Value}],
-			Result		:: [Operations] | {error, invalid_format},
-			Key			:: string(),
-			Value			:: op_values(),
-			Operations	:: {OP, Path, Value},
-			OP				:: replace | add | remove | move | copy | test,
-			Path			:: list().
+		Oplists		:: [{struct, OPLObject}],
+		OPLObject	:: [{Key, Value}],
+		Result		:: [Operations] | {error, invalid_format},
+		Key			:: string(),
+		Value			:: op_values(),
+		Operations	:: {OP, Path, Value},
+		OP				:: replace | add | remove | move | copy | test,
+		Path			:: list().
 parse(Oplists) ->
 	parse1(lists:map(fun decode_operations/1, Oplists), []).
 %% @hidden

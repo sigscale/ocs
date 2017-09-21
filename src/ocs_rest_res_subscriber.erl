@@ -65,7 +65,7 @@ get_subscriber(_Id, _Query, _Filters) ->
 get_subscriber1(Id, Filters) ->
 	case ocs:find_subscriber(Id) of
 		{ok, #subscriber{password = PWBin, attributes = Attributes,
-				buckets = Buckets, enabled = Enabled,
+				buckets = Buckets, product = Product, enabled = Enabled,
 				multisession = Multi, last_modified = LM}} ->
 			Etag = etag(LM),
 			Att = radius_to_json(Attributes),
@@ -89,13 +89,20 @@ get_subscriber1(Id, Filters) ->
 						[]
 				end,
 			RespObj5 = case Filters == []
+				orelse lists:keymember("product", 1, Filters) of
+					true ->
+						[{"product", Product}];
+					false ->
+						[]
+				end,
+			RespObj6 = case Filters == []
 				orelse lists:keymember("enabled", 1, Filters) of
 					true ->
 						[{"enabled", Enabled}];
 					false ->
 						[]
 				end,
-			RespObj6 = case Filters == []
+			RespObj7 = case Filters == []
 				orelse lists:keymember("multisession", 1, Filters) of
 					true ->
 						[{"multisession", Multi}];
@@ -103,7 +110,7 @@ get_subscriber1(Id, Filters) ->
 						[]
 				end,
 			JsonObj  = {struct, RespObj1 ++ RespObj2 ++ RespObj3
-					++ RespObj4 ++ RespObj5 ++ RespObj6},
+					++ RespObj4 ++ RespObj5 ++ RespObj6 ++ RespObj7},
 			Body = mochijson:encode(JsonObj),
 			Headers = [{content_type, "application/json"}, {etag, Etag}],
 			{ok, Headers, Body};
@@ -146,6 +153,10 @@ get_subscribers(Subscribers, Query, Filters) ->
 				{lists:keysort(#subscriber.buckets, Subscribers), NewQuery};
 			{value, {_, "-totalBalance"}, NewQuery} ->
 				{lists:reverse(lists:keysort(#subscriber.buckets, Subscribers)), NewQuery};
+			{value, {_, "product"}, NewQuery} ->
+				{lists:keysort(#subscriber.product, Subscribers), NewQuery};
+			{value, {_, "-product"}, NewQuery} ->
+				{lists:reverse(lists:keysort(#subscriber.product, Subscribers)), NewQuery};
 			{value, {_, "enabled"}, NewQuery} ->
 				{lists:keysort(#subscriber.enabled, Subscribers), NewQuery};
 			{value, {_, "-enabled"}, NewQuery} ->
@@ -186,23 +197,29 @@ get_subscribers1(Subscribers, Query, Filters) ->
 		false ->
 			{[], Query2}
 	end,
-	{Enabled, Query4} = case lists:keytake("enabled", 1, Query3) of
+	{Product, Query4} = case lists:keytake("enabled", 1, Query3) of
 		{value, {_, V4}, Q4} ->
 			{V4, Q4};
 		false ->
 			{[], Query3}
 	end,
-	{Multi, Query5} = case lists:keytake("multisession", 1, Query4) of
+	{Enabled, Query5} = case lists:keytake("enabled", 1, Query3) of
 		{value, {_, V5}, Q5} ->
 			{V5, Q5};
 		false ->
 			{[], Query4}
 	end,
-	get_subscribers2(Subscribers, Id, Password, Balance, Enabled, Multi, Query5, Filters).
+	{Multi, Query6} = case lists:keytake("multisession", 1, Query4) of
+		{value, {_, V6}, Q6} ->
+			{V6, Q6};
+		false ->
+			{[], Query5}
+	end,
+	get_subscribers2(Subscribers, Id, Password, Balance, Product, Enabled, Multi, Query6, Filters).
 %% @hidden
-get_subscribers2(Subscribers, Id, Password, Balance, Enabled, Multi, [] = _Query, Filters) ->
+get_subscribers2(Subscribers, Id, Password, Balance, Product, Enabled, Multi, [] = _Query, Filters) ->
 	F = fun(#subscriber{name = Na, password = Pa, attributes = Attributes, 
-			buckets = Bu, enabled = Ena, multisession = Mul}) ->
+			buckets = Bu, product = Prod, enabled = Ena, multisession = Mul}) ->
 		Nalist = binary_to_list(Na),
 		T1 = lists:prefix(Id, Nalist),
 		Palist = binary_to_list(Pa),
@@ -210,10 +227,11 @@ get_subscribers2(Subscribers, Id, Password, Balance, Enabled, Multi, [] = _Query
 		Att = radius_to_json(Attributes),
 		Att1 = {array, Att},
 		T3 = lists:prefix(Balance, Bu),
-		T4 = lists:prefix(Enabled, atom_to_list(Ena)),
-		T5 = lists:prefix(Multi, atom_to_list(Mul)),
+		T4 = lists:prefix(Product, Prod),
+		T5 = lists:prefix(Enabled, atom_to_list(Ena)),
+		T6 = lists:prefix(Multi, atom_to_list(Mul)),
 		if
-			T1 and T2 and T3 and T4 and T5->
+			T1 and T2 and T3 and T4 and T5 and T6 ->
 				RespObj1 = [{"id", Nalist}, {"href", "/ocs/v1/subscriber/" ++ Nalist}],
 				RespObj2 = [{"attributes", Att1}],
 				RespObj3 = case Filters == []
@@ -232,13 +250,20 @@ get_subscribers2(Subscribers, Id, Password, Balance, Enabled, Multi, [] = _Query
 						[]
 				end,
 				RespObj5 = case Filters == []
+						orelse lists:keymember("product", 1, Filters) of
+					true ->
+						[{"product", Prod}];
+					false ->
+						[]
+				end,
+				RespObj6 = case Filters == []
 						orelse lists:keymember("enabled", 1, Filters) of
 					true ->
 						[{"enabled", Ena}];
 					false ->
 						[]
 				end,
-				RespObj6 = case Filters == []
+				RespObj7 = case Filters == []
 						orelse lists:keymember("multisession", 1, Filters) of
 					true ->
 						[{"multisession", Mul}];
@@ -246,7 +271,7 @@ get_subscribers2(Subscribers, Id, Password, Balance, Enabled, Multi, [] = _Query
 						[]
 				end,
 				{true, {struct, RespObj1 ++ RespObj2 ++ RespObj3
-							++ RespObj4 ++ RespObj5 ++ RespObj6}};
+							++ RespObj4 ++ RespObj5 ++ RespObj6 ++ RespObj7}};
 			true ->
 				false
 		end
@@ -262,7 +287,7 @@ get_subscribers2(Subscribers, Id, Password, Balance, Enabled, Multi, [] = _Query
 		_:_Reason ->
 			{error, 500}
 	end;
-get_subscribers2(_, _, _, _, _, _, _, _) ->
+get_subscribers2(_, _, _, _, _, _, _, _, _) ->
 	{error, 400}.
 
 -spec post_subscriber(RequestBody) -> Result 
@@ -277,6 +302,7 @@ post_subscriber(RequestBody) ->
 		{struct, Object} = mochijson:decode(RequestBody),
 		IdIn = proplists:get_value("id", Object),
 		PasswordIn = proplists:get_value("password", Object),
+		Product = proplists:get_value("product", Object),
 		Attributes = case lists:keyfind("attributes", 1, Object) of
 			{_, {array, JsonObjList}} ->
 				json_to_radius(JsonObjList);
@@ -300,7 +326,7 @@ post_subscriber(RequestBody) ->
 		end,
 		Enabled = proplists:get_value("enabled", Object),
 		Multi = proplists:get_value("multisession", Object),
-		case ocs:add_subscriber(IdIn, PasswordIn, Attributes, Buckets, undefined, Enabled, Multi) of
+		case ocs:add_subscriber(IdIn, PasswordIn, Product, Buckets, Attributes, Enabled, Multi) of
 			{ok, #subscriber{name = IdOut, last_modified = LM} = S} ->
 				Id = binary_to_list(IdOut),
 				Location = "/ocs/v1/subscriber/" ++ Id,

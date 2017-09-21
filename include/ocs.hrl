@@ -92,7 +92,7 @@
 		password :: binary(),
 		attributes :: radius_attributes:attributes(),
 		buckets :: [#bucket{}],
-		product :: #product{},
+		product :: string(),
 		enabled = true :: boolean(),
 		disconnect  = false :: boolean(),
 		session_attributes = radius_attributes:new() :: [radius_attributes:attributes()],

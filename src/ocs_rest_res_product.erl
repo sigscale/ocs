@@ -777,7 +777,7 @@ prod_status({erl_term, catMgmt}, Product) ->
 			undefined
 	end;
 prod_status({erl_term, invMgmt}, Product) ->
-	case lists:keyfind("sttatus", 1, Product) of
+	case lists:keyfind("status", 1, Product) of
 		{_, FindStatus} ->
 			find_status(FindStatus);
 		false ->
