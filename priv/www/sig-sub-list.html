@@ -171,6 +171,7 @@
 		</iron-ajax>
 	</template>
 	<script>
+		var cbSub;
 		Polymer ({
 			is: 'sig-sub-list',
 			behaviors: [i18nMsgBehavior],
@@ -223,9 +224,8 @@
 						}
 					];
 					grid.dataProvider = function(params, callback) {
-						var ajax = document.getElementById("getSubs");
 						cbSub = callback;
-						ajax.url="/ocs/v1/subscriber"
+						var ajax = document.getElementById("getSubs");
 						params.filters.forEach(function(filter, index) {
 							if(index == 0) {
 								ajax.url += '?'+ filter.path + '=' + filter.value;
@@ -276,13 +276,20 @@
 					var grid = this.$.subscriberGrid;
 					var results = event.detail.xhr.response;
 					var range = event.detail.xhr.getResponseHeader('Content-Range');
-					if (range) {
-						var itemCount = range.split("/");
-						grid.size = Number(itemCount[1]);
-					} else {
-						grid.size = results.length;
+					if (grid.size == undefined) {
+						grid.size = 0;
 					}
-					grid.pageSize = grid.size;
+					if (range) {
+						var range1 = range.split("/");
+						var range2 = range1[0].split("-");
+						if (range1[1] != "*") {
+							grid.size = Number(range1[1]);
+						} else {
+							grid.size = Number(range2[1]) + grid.pageSize * 2;
+						}
+					} else {
+						grid.size += grid.pageSize * 2;
+					}
 					var vaadinItems = new Array();
 					function bala(totalBalance) {
 						return totalBalance.units == "octets";
