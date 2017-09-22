@@ -249,7 +249,7 @@ add_subscriber(Identity, Password, Attributes, Balance) ->
 		Attributes :: radius_attributes:attributes() | binary(),
 		Balance :: non_neg_integer() | undefined,
 		EnabledStatus :: boolean() | undefined,
-		MultiSessions :: boolean(),
+		MultiSessions :: boolean() | undefined,
 		Result :: {ok, #subscriber{}} | {error, Reason},
 		Reason :: term().
 %% @doc Create an entry in the subscriber table.
@@ -261,6 +261,8 @@ add_subscriber(Identity, Password, Attributes, Balance) ->
 %% 	An initial account `Balance' value, `Enabled' status and `MultiSessions'
 %% 	status may be provided.
 %%
+add_subscriber(Identity, Password, Attributes, Balance, EnabledStatus, undefined) ->
+	add_subscriber(Identity, Password, Attributes, Balance, EnabledStatus, false);
 add_subscriber(Identity, Password, Attributes, Balance, undefined, MSessions) ->
 	add_subscriber(Identity, Password, Attributes, Balance, true, MSessions);
 add_subscriber(Identity, Password, Attributes, undefined, EnabledStatus, MSessions) ->
