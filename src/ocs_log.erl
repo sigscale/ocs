@@ -213,8 +213,8 @@ acct_query1(Start, End, Protocol, Types, AttrsMatch,
 		false ->
 			acct_query1(Start, End, Protocol, Types, AttrsMatch, {Cont, T}, Acc)
 	end;
-acct_query1(Start, End, Protocol, Types, AttrsMatch, {Cont, [_ | T]}, Acc) ->
-	acct_query1(Start, End, Protocol, Types, AttrsMatch, {Cont, T}, Acc);
+acct_query1(Start, End, Protocol, Types, AttrsMatch, {Cont, [H | T]}, Acc) ->
+	acct_query1(Start, End, Protocol, Types, AttrsMatch, {Cont, T}, [H |Acc]);
 acct_query1(_Start, _End, _Protocol, _Types, _AttrsMatch, {eof, []}, Acc) ->
 	lists:reverse(Acc);
 acct_query1(Start, End, Protocol, Types, AttrsMatch, {Cont, []}, Acc) ->
