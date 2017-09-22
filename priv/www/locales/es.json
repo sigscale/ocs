@@ -213,7 +213,15 @@
   },
 	"clientAdded": {
     "description": "Success Toast Message",
-    "message": "Cliente Añadido"
+    "message": "Cliente añadido"
+  },
+   "clientUpdated": {
+    "description": "Success Toast Message",
+    "message": "Actualización del cliente"
+  },
+   "clientDeleted": {
+    "description": "Success Toast Message",
+    "message": "Cliente suprimido"
   },
    "serverGen": {
     "description": "Title of generate password",

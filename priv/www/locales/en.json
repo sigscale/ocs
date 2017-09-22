@@ -205,7 +205,15 @@
   },
    "clientAdded": {
     "description": "Success Toast Message",
-    "message": "Client Added"
+    "message": "Client added"
+  },
+   "clientUpdated": {
+    "description": "Success Toast Message",
+    "message": "Client updated"
+  },
+   "clientDeleted": {
+    "description": "Success Toast Message",
+    "message": "Client deleted"
   },
 	"serverGen": {
     "description": "Title of server generated identity/password dialog.",
