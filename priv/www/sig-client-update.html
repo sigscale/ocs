@@ -45,7 +45,7 @@
 	</style>
 	<template>
 		<paper-dialog
-				id="clientUpdateModal"
+				id="updateClientModal"
 				modal>
 			<paper-toolbar>
 				<paper-tabs selected="{{selected}}">
@@ -67,17 +67,18 @@
 					Properties of network access server, router or access pointor client.
 				</i18n-msg>
 			</paper-tooltip>
-			<iron-pages selected="{{selected}}">
-				<div id="edit-client-password">
-						<paper-input
-								id="edit-client-id1"
-								name="id"
-								label="[[i18n.address]]"
-								disabled>
-						</paper-input>
+			<iron-pages
+					selected="{{selected}}">
+				<div>
+					<paper-input
+							id="updateClientId"
+							name="id"
+							label="[[i18n.address]]"
+							disabled>
+					</paper-input>
 					<div>
 						<paper-input
-								id="edit-client-pwd"
+								id="updateClientPassword"
 								name="password"
 								label="[[i18n.secret]]"
 								disabled>
@@ -89,22 +90,24 @@
 						</paper-tooltip>
 					</div>
 						<paper-input
-								id="edit-client-new-pwd"
+								id="updateClientNewPassword"
 								name="secret"
 								label="[[i18n.newpass]]">
 						</paper-input>
 					<div class="buttons">
 						<paper-button
-								onclick="clientUpdateModal.close()"
+								dialog-dismiss
+								onclick="updateClientModal.close()"
 								class="cancel-btn">
 							<i18n-msg msgid="cancel">
 								Cancel
 							</i18n-msg>
 						</paper-button>
 						<paper-button
+								raised
 								dialog-confirm
 								autofocus
-								on-click="updateClientAuthen"
+								on-click="updateClientAuth"
 								class="update-buttons">
 							<i18n-msg msgid="update">
 								Update
@@ -124,7 +127,7 @@
 				<div id="edit-client-attributes">
 					<div>
 						<paper-input
-								id="edit-client-disc-port"
+								id="updateClientDisconnectPort"
 								name="port"
 								label="[[i18n.port]]"
 								type="number">
@@ -137,12 +140,12 @@
 					</div>
 					<div>
 						<paper-dropdown-menu
-								id="edit-client-protocol"
+								id="updateClientProtocol"
 								label="[[i18n.proto]]"
 								type="number"
 								selected-item-label="{{selectedItem}}">
 							<paper-listbox
-									id="protocol-menu"
+									id="updateClientProtocolList"
 									class="dropdown-content"
 									selected="0">
 								<paper-item>[[i18n.radius]]</paper-item>
@@ -157,16 +160,18 @@
 					</div>
 					<div class="buttons">
 						<paper-button
-								onclick="clientUpdateModal.close()"
+								dialog-dismiss
+								onclick="updateClientModal.close()"
 								class="cancel-btn">
 							<i18n-msg msgid="cancel">
 								Cancel
 							</i18n-msg>
 						</paper-button>
 						<paper-button
+								raised
 								dialog-confirm
 								autofocus
-								on-click="_updateClientProperties"
+								on-click="updateClientProperties"
 								class="update-buttons">
 							<i18n-msg msgid="update">
 								Update
@@ -184,18 +189,25 @@
 					</div>
 				</div>
 			</iron-pages>
+			<paper-toast id="getClientErrorToast" duration="0">
+				<paper-button
+						class="yellow-button"
+						onclick="getClientErrorToast.toggle()">
+					Close
+				</paper-button>
+			</paper-toast>
 		</paper-dialog>
-		<iron-ajax id="updateClientAuthen"
-				headers='{"Accept": "application/json", "Content-type": "application/json"}'
-				on-response="updateClientAuthenResponse">
+		<iron-ajax id="updateClientAuthAjax"
+				on-response="_updateClientAuthResponse"
+				on-error="_updateClientAuthError">
 		</iron-ajax>
-		<iron-ajax id="updateClientProperties"
-				headers='{"Accept": "application/json", "Content-type": "application/json"}'
-				on-response="updateClientPropertiesResponse">
+		<iron-ajax id="updateClientPropertiesAjax"
+				on-response="_updateClientPropertiesResponse"
+				on-error="_updateClientPropertiesError">
 		</iron-ajax>
-		<iron-ajax id="deleteClient"
-				handle-as="json"
-				on-response="deleteClientResponse">
+		<iron-ajax id="deleteClientAjax"
+				on-response="_deleteClientResponse"
+				on-error="_deleteClientError">
 		</iron-ajax>
 	</template>
 	<script>
@@ -208,59 +220,57 @@
 					value: 0
 				}
 			},
-			updateClientAuthen: function(event) {
-				var editAjax =  document.getElementById("updateClientAuthen");
-				editAjax.method = "PATCH";
-				editAjax.contentType = "application/json";
-				var id = document.getElementById("edit-client-id1").value;
-				editAjax.url = "/ocs/v1/client/" + id;
+			updateClientAuth: function(event) {
+				this.$.updateClientAuthAjax.method = "PATCH";
+				this.$.updateClientAuthAjax.contentType = "application/json";
+				this.$.updateClientAuthAjax.url = "/ocs/v1/client/" + this.$.updateClientId.value;
 				var client = new Object();
-				client.secret = document.getElementById("edit-client-new-pwd").value;
-				editAjax.body = client;
-				editAjax.generateRequest();
+				client.secret = this.$.updateClientNewPassword.value;
+				this.$.updateClientAuthAjax.body = client;
+				this.$.updateClientAuthAjax.generateRequest();
 			},
-			updateClientAuthenResponse: function (event) {
-				if (event.detail.succeeded) {
-					document.getElementById("edit-toast").open();
-					document.getElementById("edit-client-new-pwd").value = "";
-					document.getElementById("clientGrid").clearCache();
-				} else {
-					console.log("Not Success");
-				}
+			_updateClientAuthResponse: function (event) {
+				document.getElementById("updateClientToastSuccess").open();
+				this.$.updateClientNewPassword.value = "";
+				document.getElementById("clientGrid").clearCache();
 			},
-			_updateClientProperties: function(event) {
-				var editAjax =  document.getElementById("updateClientProperties");
-				editAjax.method = "PATCH";
-				editAjax.contentType = "application/json";
-				var id = document.getElementById("edit-client-id1").value;
-				editAjax.url = "/ocs/v1/client/" + id;
+			_updateClientAuthError: function(event) {
+				this.$.updateClientToastError.text = event.detail.request.xhr.statusText;
+				this.$.updateClientToastError.open();
+			},
+			updateClientProperties: function(event) {
+				this.$.updateClientPropertiesAjax.method = "PATCH";
+				this.$.updateClientPropertiesAjax.contentType = "application/json";
+				this.$.updateClientPropertiesAjax.url = "/ocs/v1/client/" + this.$.updateClientId.value;
 				var client = new Object();
-				client.port = parseInt(document.getElementById("edit-client-disc-port").value);
-				client.protocol = document.getElementById("edit-client-protocol").value;
-				editAjax.body = client;
-				editAjax.generateRequest();
+				client.port = parseInt(this.$.updateClientDisconnectPort.value);
+				client.protocol = this.$.updateClientProtocol.value;
+				this.$.updateClientPropertiesAjax.body = client;
+				this.$.updateClientPropertiesAjax.generateRequest();
 			},
-			updateClientPropertiesResponse: function (event) {
-				if(event.detail.succeeded) {
-					document.getElementById("edit-toast").open();
-					document.getElementById("edit-client-new-pwd").value = "";
-					document.getElementById("clientGrid").clearCache();
-				} else {
-					console.log("Not Success");
-				}
+			_updateClientPropertiesResponse: function (event) {
+				document.getElementById("updateClientToastSuccess").open();
+				this.$.updateClientNewPassword.value = "";
+				document.getElementById("clientGrid").clearCache();
+			},
+			_updateClientPropertiesError: function(event) {
+				this.$.updateClientToastError.text = event.detail.request.xhr.statusText;
+				this.$.updateClientToastError.open();
 			},
 			deleteClient: function(event) {
-				var grid = document.getElementById("clientGrid");
-				var selection = grid.selectedItems[0];
-				var deleteAjax = document.getElementById("deleteClient");
-				deleteAjax.method = "DELETE";
-				deleteAjax.url = "/ocs/v1/client/"+ selection.id;
-				deleteAjax.generateRequest();
+			this.$.deleteClientAjax.method = "DELETE";
+				this.$.deleteClientAjax.url = "/ocs/v1/client/"
+						+ document.getElementById("clientGrid").selectedItems[0].id;
+				this.$.deleteClientAjax.generateRequest();
 			},
-			deleteClientResponse: function(event) {
-				document.getElementById("clientUpdateModal").close();
-				document.getElementById("delete-toast").open();
+			_deleteClientResponse: function(event) {
+				this.$.updateClientModal.close();
+				document.getElementById("deleteClientToastSuccess").open();
 				document.getElementById("clientGrid").clearCache();
+			},
+			_deleteClientError: function(event) {
+				this.$.deleteClientToastError.text = event.detail.request.xhr.statusText;
+				this.$.deleteClientToastError.open();
 			}
 		});
 	</script>

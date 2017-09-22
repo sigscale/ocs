@@ -76,13 +76,13 @@
 		}
 	</style>
 	<template>
-		<paper-dialog id="clientAddModal" modal>
+		<paper-dialog id="addClientModal" modal>
 			<paper-toolbar>
 				<h2>[[i18n.addClient]]</h2>
 			</paper-toolbar>
 			<div>
 				<paper-input
-					id="add-client1"
+					id="addClientAddress"
 					name="address"
 					label="[[i18n.ipAddress]]"
 					allowed-pattern="[0-9\.]"
@@ -96,7 +96,7 @@
 			</div>
 			<div>
 				<paper-input
-					id="add-client2"
+					id="addClientPort"
 					name="port"
 					label="[[i18n.listen]]"
 					type="number"
@@ -110,7 +110,7 @@
 			</div>
 			<div>
 				<paper-input
-						id="add-client4"
+						id="addClientSecret"
 						class="secret"
 						name="secret"
 						label="[[i18n.secret]]">
@@ -132,7 +132,7 @@
 			</div>
 			<paper-dropdown-menu
 					label="[[i18n.proto]]">
-				<paper-listbox id="protoChoice"
+				<paper-listbox id="addClientProtocol"
 						slot="dropdown-content"
 						class="dropdown-content"
 						selected="0">
@@ -152,26 +152,29 @@
 				<paper-button
 						raised
 						class="add-button"
-						on-click="_clientAddSubmit">
+						on-click="_addClientSubmit">
 					<i18n-msg msgid="submit">
 						Submit
 					</i18n-msg>
 				</paper-button>
 				<paper-button
 						class="cancel-button"
-						dialog-confirm
+						dialog-dismiss
 						autofocus
-						onclick="clientAddModal.close()">
+						onclick="addClientModal.close()">
 					<i18n-msg msgid="cancel">
 						Cancel
 					</i18n-msg>
 				</paper-button>
 			</div>
-			<paper-toast id="toastSuccess" class="fit-bottom">
+			<paper-toast id="addClientToastSuccess" class="fit-bottom">
 				<h2>[[i18n.clientAdded]]</h2>
 			</paper-toast>
+			<paper-toast
+					id="addClientToastError">
+			</paper-toast>
 		</paper-dialog>
-		<paper-dialog id="clientSecretModal" class="generated" modal>
+		<paper-dialog id="addClientSecretModal" class="generated" modal>
 			<paper-toolbar>
 				<h2>[[i18n.serverGen]]</h2>
 			</paper-toolbar>
@@ -195,13 +198,13 @@
 			</div>
 		</paper-dialog>
 		<iron-ajax
-				id="clientAddAjax"
+				id="addClientAjax"
 				url="/ocs/v1/client"
 				method = "post"
-				headers='{"Accept": "application/json", "Content-type": "application/json"}'
+				content-type="application/json",
 				on-loading-changed="_onLoadingChanged"
-				on-response="_clientAddResponse"
-				handle-as="json">
+				on-response="_addClientResponse"
+				on-error="_addClientError">
 		</iron-ajax>
 	</template>
 	<script>
@@ -211,25 +214,24 @@
 			properties: {
 				secret: String
 			},
-			_clientAddSubmit: function(event) {
+			_addClientSubmit: function(event) {
 				var client = new Object();
-				client.id = document.getElementById("add-client1").value;
-				client.port = parseInt(document.getElementById("add-client2").value);
-				switch(document.getElementById("protoChoice").selected) {
+				client.id = this.$.addClientAddress.value;
+				client.port = parseInt(this.$.addClientPort.value);
+				switch(this.$.addClientProtocol.selected) {
 					case 0:
 						client.protocol = "RADIUS";
 					case 1:
 						client.protocol = "DIAMETER";
 				}
-				if (!document.getElementById("add-client4").disabled) {
-					client.secret = document.getElementById("add-client4").value;
+				if (!this.$.addClientSecret.disabled) {
+					client.secret = this.$.addClientSecret.value;
 				}
-				var ajax = document.getElementById("clientAddAjax");
-				ajax.body = client;
-				ajax.generateRequest();
+				this.$.addClientAjax.body = client;
+				this.$.addClientAjax.generateRequest();
 			},
 			_onLoadingChanged: function(event) {
-				if (document.getElementById("clientAddAjax").loading) {
+				if (this.$.addClientAjax.loading) {
 					document.getElementById('progress').disabled = false;
 				} else {
 					document.getElementById('progress').disabled = true;
@@ -237,23 +239,24 @@
 			},
 			checkboxchanged: function(event) {
 				if (event.target.checked) {
-					document.getElementById("add-client4").disabled = true;
+					this.$.addClientSecret.disabled = true;
 				} else {
-					document.getElementById("add-client4").disabled = false;
+					this.$.addClientSecret.disabled = false;
 				}
 			},
-			_clientAddResponse: function(event) {
-				var toast = document.getElementById("toastSuccess");
-				toast.open();
-				toast.duration = 4;
-				document.getElementById("clientAddModal").close();
-				var ajax = document.getElementById("clientAddAjax");
-				if (ajax.body.secret == undefined) {
-					this.secret = ajax.lastResponse.secret;
-					document.getElementById("clientSecretModal").open();
+			_addClientResponse: function(event) {
+				document.getElementById("addClientToastSuccess").open();
+				this.$.addClientModal.close();
+				if (this.$.addClientAjax.body.secret == undefined) {
+					this.secret = this.$.addClientAjax.lastResponse.secret;
+					this.$.addClientSecretModal.open();
 				}
 				document.getElementById("clientGrid").clearCache();
-			}
+			},
+			 _addClientError: function(event) {
+				this.$.addClientToastError.text = event.detail.request.xhr.statusText;
+				this.$.addClientToastError.open();
+			},
 		});
 	</script>
 </dom-module>

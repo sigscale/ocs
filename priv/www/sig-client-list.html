@@ -49,6 +49,10 @@
 			background: #ffb04c;
 			border-style: none;
 		}
+		.yellow-button {
+			text-transform: none;
+			color: #eeff41;
+		}
 	</style>
 	<template>
 		<vaadin-grid
@@ -108,23 +112,37 @@
 		<div class="add-button">
 			<paper-fab
 					icon="add"
-					on-click = "showAddModal">
+					on-click = "showAddClientModal">
 			</paper-fab>
 		</div>
-		<paper-toast id="edit-toast">
-			<h2>Record sucessfully updated!</h2>
+		<paper-toast
+				id="addClientToastSuccess"
+				text="[[i18n.clientAdded]]">
 		</paper-toast>
-		<paper-toast id="delete-toast">
-			<h2>Record sucessfully deleted!</h2>
+		<paper-toast
+				id="updateClientToastSuccess"
+				text="[[i18n.clientUpdated]]">
+		</paper-toast>
+		<paper-toast
+				id="deleteClientToastSuccess"
+				text="[[i18n.clientDeleted]]">
+		</paper-toast>
+		<paper-toast id="getClientErrorToast" duration="0">
+			<paper-button
+					class="yellow-button"
+					onclick="getClientErrorToast.toggle()">
+				Close
+			</paper-button>
 		</paper-toast>
 		<iron-ajax
-				id="getClients"
+				id="getClientsAjax"
 				url="/ocs/v1/client"
-				headers='{"Accept": "application/json"}'
-				on-response="getClientsResponse">
+				on-response="_getClientsResponse"
+				on-error="_getClientsError">
 		</iron-ajax>
 	</template>
 	<script>
+		var cbClient;
 		Polymer ({
 			is: 'sig-client-list',
 			behaviors: [i18nMsgBehavior],
@@ -159,9 +177,8 @@
 						}
 					];
 					grid.dataProvider = function(params, callback) {
-						var ajax = document.getElementById("getClients");
+						var ajax = document.getElementById("getClientsAjax");
 						cbClient = callback;
-						ajax.url="/ocs/v1/client"
 						params.filters.forEach(function(filter, index) {
 							if(index == 0) {
 								ajax.url += '?'+ filter.path + '=' + filter.value;
@@ -192,26 +209,38 @@
 			},
 			_activeItemChanged: function(item) {
 				if (item != null){
-				var grid = this.$.clientGrid;
-				grid.selectedItems = item ? [item] : [];
-				var modal = document.getElementById("clientUpdateModal");
-				modal.open();
-				document.getElementById("edit-client-id1").value = item.id;
-				document.getElementById("edit-client-disc-port").value = item.disconnectPort;
-				document.getElementById("edit-client-pwd").value = item.secret;
+					var grid = this.$.clientGrid;
+					grid.selectedItems = item ? [item] : [];
+					var modal = document.getElementById("updateClientModal");
+					modal.open();
+					document.getElementById("updateClientId").value = item.id;
+					document.getElementById("updateClientPassword").value = item.secret;
+					document.getElementById("updateClientDisconnectPort").value = item.port;
+					if (item.protocol == "RADIUS") {
+						document.getElementById("updateClientProtocolList").selected = 0;
+					} else if (item.protocol == "DIAMETER") {
+						document.getElementById("updateClientProtocolList").selected = 1;
+					}
 				}
 			},
-			getClientsResponse: function(event) {
+			_getClientsResponse: function(event) {
 				var grid = this.$.clientGrid;
 				var results = event.detail.xhr.response;
 				var range = event.detail.xhr.getResponseHeader('Content-Range');
-				if (range) {
-					var itemCount = range.split("/");
-					grid.size = Number(itemCount[1]);
-				} else {
-					grid.size = results.length;
+				if (grid.size == undefined) {
+					grid.size = 0;
 				}
-				grid.pageSize = grid.size;
+				if (range) {
+					var range1 = range.split("/");
+					var range2 = range1[0].split("-");
+					if (range1[1] != "*") {
+						grid.size = Number(range1[1]);
+					} else {
+						grid.size = Number(range2[1]) + grid.pageSize * 2;
+					}
+				} else {
+					grid.size += grid.pageSize * 2;
+				}
 				var vaadinItems = new Array();
 				for (var index in results) {
 					var newRecord = new Object();
@@ -224,9 +253,14 @@
 				}
 				cbClient(vaadinItems);
 			},
-			showAddModal: function(event) {
-				var modal = document.getElementById("clientAddModal");
-				modal.open();
+			_getClientsError: function (event) {
+				this.$.getClientErrorToast.text = event.detail.request.xhr.statusText;
+				this.$.getClientErrorToast.open();
+				this.$.clientGrid.size = 0;
+				cbClient([]);
+			},
+			showAddClientModal: function(event) {
+				document.getElementById("addClientModal").open();
 			}
 		});
 	</script>
