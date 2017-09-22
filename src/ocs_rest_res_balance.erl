@@ -190,11 +190,13 @@ accumulated_balance3(Key, Units, Amount, AccBalance) ->
 
 -spec bucket_type(SBucketType) -> BucketType
 	when
-		SBucketType	:: string(),
-		BucketType	:: octets | cents | seconds.
+		SBucketType	:: string() | octets | cents | seconds,
+		BucketType	:: octets | cents | seconds | string().
 %% @doc return the bucket type.
-bucket_type(BucketType) ->
-	bucket_type1(string:to_lower(BucketType)).
+bucket_type(BucketType) when is_list(BucketType) ->
+	bucket_type1(string:to_lower(BucketType));
+bucket_type(BucketType) when is_atom(BucketType) ->
+	bucket_type1(BucketType).
 %% @hidden
 bucket_type1("octets") -> octets;
 bucket_type1("cents") -> cents;
