@@ -121,7 +121,7 @@
          <h2>successfully added</h2>
       </paper-toast>
 		<iron-ajax id="getProducts"
-			url="/productInventoryManagement/v1/product"
+			url="/catalogManagement/v1/productOffering"
          headers='{"Accept": "application/json"}'
          on-response="proResponse">
       </iron-ajax>
@@ -157,7 +157,7 @@
 					grid.dataProvider = function(params, callback) {
                   var ajax = document.getElementById("getProducts");
                   cbPro = callback;
-                  ajax.url="/productInventoryManagement/v1/product"
+                  ajax.url="/catalogManagement/v1/productOffering"
                   params.filters.forEach(function(filter, index) {
                      if(index == 0) {
                         ajax.url += '?'+ filter.path + '=' + filter.value;
@@ -211,12 +211,12 @@
 								newRecord.endDate = results[index].validFor.endDateTime.split("T")[0];
 							}
 						}
-						newRecord.status = results[index].status;
-						if(results[index].productPrice && results[index].productPrice != ""){
+						newRecord.lifecycleStatus = results[index].status;
+						if(results[index].productOfferingPrice && results[index].productOfferingPrice != ""){
 							function getNames(price) {
 								return price.name;
 							}
-							newRecord.price = results[index].productPrice.map(getNames).join(", ");
+							newRecord.price = results[index].productOfferingPrice.map(getNames).join(", ");
 						}
 						vaadinItems[index] = newRecord;
 					}
