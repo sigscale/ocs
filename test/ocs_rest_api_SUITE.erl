@@ -2120,7 +2120,7 @@ add_product(Config) ->
 	EndTime = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
 	ValidFor = {"validFor", {struct, [StartTime, EndTime]}},
 	ProdSpecID = {"id", "cpe"},
-	ProdSpecHref = {"href", "/productCatalogManagement/productSpecification/cpe"},
+	ProdSpecHref = {"href", "/catalogManagement/productSpecification/cpe"},
 	ProdSpecName = {"name", "Monthly subscriber Family Pack"},
 	ProdSpec = {"productSpecification", {struct, [ProdSpecID, ProdSpecHref, ProdSpecName]}},
 	POPName1 = {"name", "Family-Pack"},
@@ -2195,7 +2195,7 @@ get_product(Config) ->
 	EndTime = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
 	ValidFor = {"validFor", {struct, [StartTime, EndTime]}},
 	ProdSpecID = {"id", "cpe"},
-	ProdSpecHref = {"href", "/productCatalogManagement/productSpecification/cpe"},
+	ProdSpecHref = {"href", "/catalogManagement/productSpecification/cpe"},
 	ProdSpecName = {"name", "Monthly subscriber Family Pack"},
 	ProdSpec = {"productSpecification", {struct, [ProdSpecID, ProdSpecHref, ProdSpecName]}},
 	POPName1 = {"name", "Family-Pack"},
@@ -2242,7 +2242,7 @@ get_product(Config) ->
 			[Accept, Authentication], ContentType, ReqBody},
 	{ok, Result} = httpc:request(post, Request1, [], []),
 	{{"HTTP/1.1", 201, _Created}, _Headers, _} = Result,
-	Request2 = {HostUrl ++ "/productInventoryManagement/v1/product/" ++ Product,
+	Request2 = {HostUrl ++ "/catalogManagement/v1/productOffering/" ++ Product,
 			[Accept, Authentication]},
 	{ok, Response} = httpc:request(get, Request2, [], []),
 	{{"HTTP/1.1", 200, _OK}, Headers1, RespBody} = Response,
@@ -2259,7 +2259,7 @@ get_product(Config) ->
 	ProdSpecID = lists:keyfind("id", 1, ProdSpecObj),
 	ProdSpecHref = lists:keyfind("href", 1, ProdSpecObj),
 	ProdSpecName = lists:keyfind("name", 1, ProdSpecObj),
-	{_, {array, POPObj}} = lists:keyfind("productPrice", 1, ProductObj),
+	{_, {array, POPObj}} = lists:keyfind("productOfferingPrice", 1, ProductObj),
 	F1 = fun(POPriceObj) ->
 		POPName1 = lists:keyfind("name", 1 , POPriceObj),
 		POPValidFor1 = lists:keyfind("validFor", 1 , POPriceObj),
@@ -2467,7 +2467,7 @@ update_product_status(SslSock, RestPort, ProdID, Status) ->
 	{Headers, Response} = patch_request(SslSock, RestPort, ContentType, AuthKey, ProdID, Body),
 	<<"HTTP/1.1 200", _/binary>> = Headers,
 	{struct, Object} = mochijson:decode(Response),
-	case lists:keyfind("status", 1, Object) of
+	case lists:keyfind("lifecycleStatus", 1, Object) of
 		{_, Status} ->
 			ok;
 		_ ->
@@ -2503,14 +2503,14 @@ update_product_price(SslSock, RestPort, ProdID) ->
 	{Headers, Response} = patch_request(SslSock, RestPort, ContentType, AuthKey, ProdID, Body),
 	<<"HTTP/1.1 200", _/binary>> = Headers,
 	{struct, Object} = mochijson:decode(Response),
-	{_, {array, Prices}} = lists:keyfind("productPrice", 1, Object),
+	{_, {array, Prices}} = lists:keyfind("productOfferingPrice", 1, Object),
 	{struct, Price} = lists:nth(Index + 1, lists:reverse(Prices)),
 	{_, PPN} = lists:keyfind("name", 1, Price),
 	{_, Des} = lists:keyfind("description", 1, Price),
 	{_, RCP} = lists:keyfind("recurringChargePeriod", 1, Price),
 	{_, UFM} = lists:keyfind("unitOfMeasure", 1, Price),
 	{_, PrT} = lists:keyfind("priceType", 1, Price),
-	{_, {struct, Alter}} = lists:keyfind("prodPriceAlteration", 1, Price),
+	{_, {struct, Alter}} = lists:keyfind("productPriceAlteration", 1, Price),
 	{_, AltDes} = lists:keyfind("description", 1, Alter),
 	{_, AltNam} = lists:keyfind("name", 1, Alter),
 	{_, AltPrT} = lists:keyfind("priceType", 1, Alter),
@@ -2523,7 +2523,7 @@ patch_request(SslSock, Port, ContentType, AuthKey, ProdID, ReqBody) when is_list
 patch_request(SslSock, Port, ContentType, AuthKey, ProdID, ReqBody) ->
 	Timeout = 1500,
 	Length = size(ReqBody),
-	PatchURI = "/productInventoryManagement/v1/product/" ++ ProdID,
+	PatchURI = "/catalogManagement/v1/productOffering/" ++ ProdID,
 	Request =
 			["PATCH ", PatchURI, " HTTP/1.1",$\r,$\n,
 			"Content-Type:"++ ContentType, $\r,$\n,
@@ -2579,7 +2579,7 @@ product_terminationdate(TerminationDate) ->
 
 product_status(Status) ->
 	Op = {"op", "replace"},
-	Path = {"path", "/status"},
+	Path = {"path", "/lifecycleStatus"},
 	Value = {"value", Status},
 	{struct, [Op, Path, Value]}.
 
@@ -2587,7 +2587,7 @@ prod_price_name(Index, Name) when is_integer(Index) ->
 	prod_price_name(integer_to_list(Index), Name);
 prod_price_name(Index, Name) when is_list(Index) ->
 	Op = {"op", "replace"},
-	Path = {"path", "/productPrice/" ++ Index ++ "/name"},
+	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/name"},
 	Value = {"value", Name},
 	{struct, [Op, Path, Value]}.
 
@@ -2595,7 +2595,7 @@ prod_price_description(Index, Description) when is_integer(Index) ->
 	prod_price_description(integer_to_list(Index), Description);
 prod_price_description(Index, Description) when is_list(Index) ->
 	Op = {"op", "replace"},
-	Path = {"path", "/productPrice/" ++ Index ++ "/description"},
+	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/description"},
 	Value = {"value", Description},
 	{struct, [Op, Path, Value]}.
 
@@ -2603,7 +2603,7 @@ prod_price_rc_period(Index, Period) when is_integer(Index) ->
 	prod_price_rc_period(integer_to_list(Index), Period);
 prod_price_rc_period(Index, Period) when is_list(Index) ->
 	Op = {"op", "replace"},
-	Path = {"path", "/productPrice/" ++ Index ++ "/recurringChargePeriod"},
+	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/recurringChargePeriod"},
 	Value = {"value", Period},
 	{struct, [Op, Path, Value]}.
 
@@ -2611,7 +2611,7 @@ prod_price_ufm(Index, UFM) when is_integer(Index) ->
 	prod_price_ufm(integer_to_list(Index), UFM);
 prod_price_ufm(Index, UFM) when is_list(Index) ->
 	Op = {"op", "replace"},
-	Path = {"path", "/productPrice/" ++ Index ++ "/unitOfMeasure"},
+	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/unitOfMeasure"},
 	Value = {"value", UFM},
 	{struct, [Op, Path, Value]}.
 
@@ -2619,7 +2619,7 @@ prod_price_type(Index, PT) when is_integer(Index) ->
 	prod_price_type(integer_to_list(Index), PT);
 prod_price_type(Index, PT) when is_list(Index) ->
 	Op = {"op", "replace"},
-	Path = {"path", "/productPrice/" ++ Index ++ "/priceType"},
+	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/priceType"},
 	Value = {"value", PT},
 	{struct, [Op, Path, Value]}.
 
@@ -2627,7 +2627,7 @@ pp_alter_name(Index, Name) when is_integer(Index) ->
 	pp_alter_name(integer_to_list(Index), Name);
 pp_alter_name(Index, Name) when is_list(Index) ->
 	Op = {"op", "replace"},
-	Path = {"path", "/productPrice/" ++ Index ++ "/prodPriceAlteration/name"},
+	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/productPriceAlteration/name"},
 	Value = {"value", Name},
 	{struct, [Op, Path, Value]}.
 
@@ -2635,7 +2635,7 @@ pp_alter_description(Index, Des) when is_integer(Index) ->
 	pp_alter_description(integer_to_list(Index), Des);
 pp_alter_description(Index, Des) when is_list(Index) ->
 	Op = {"op", "replace"},
-	Path = {"path", "/productPrice/" ++ Index ++ "/prodPriceAlteration/description"},
+	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/productPriceAlteration/description"},
 	Value = {"value", Des},
 	{struct, [Op, Path, Value]}.
 
@@ -2643,7 +2643,7 @@ pp_alter_type(Index, PT) when is_integer(Index) ->
 	pp_alter_type(integer_to_list(Index), PT);
 pp_alter_type(Index, PT) when is_list(Index) ->
 	Op = {"op", "replace"},
-	Path = {"path", "/productPrice/" ++ Index ++ "/prodPriceAlteration/priceType"},
+	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/productPriceAlteration/priceType"},
 	Value = {"value", PT},
 	{struct, [Op, Path, Value]}.
 
@@ -2651,7 +2651,7 @@ pp_alter_ufm(Index, UFM) when is_integer(Index) ->
 	pp_alter_ufm(integer_to_list(Index), UFM);
 pp_alter_ufm(Index, UFM) when is_list(Index) ->
 	Op = {"op", "replace"},
-	Path = {"path", "/productPrice/" ++ Index ++ "/prodPriceAlteration/unitOfMeasure"},
+	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/productPriceAlteration/unitOfMeasure"},
 	Value = {"value", UFM},
 	{struct, [Op, Path, Value]}.
 

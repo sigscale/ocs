@@ -22,11 +22,9 @@
 
 -export([content_types_accepted/0, content_types_provided/0]).
 
--export([add_product_InvMgmt/1, add_product_CatMgmt/1]).
--export([get_product_InvMgmt/1, get_products_InvMgmt/1,
-			get_product_CatMgmt/1, get_products_CatMgmt/1]).
--export([on_patch_product_InvMgmt/3, merge_patch_product_InvMgmt/3,
-			on_patch_product_CatMgmt/3, merge_patch_product_CatMgmt/3]).
+-export([add_product_CatMgmt/1]).
+-export([get_product_CatMgmt/1, get_products_CatMgmt/1]).
+-export([on_patch_product_CatMgmt/3, merge_patch_product_CatMgmt/3]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
@@ -46,62 +44,6 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json"].
 
--spec add_product_InvMgmt(ReqData) -> Result when
-	ReqData	:: [tuple()],
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 500 .
-%% @doc Respond to `POST /catalogManagement/v1/product' and
-%% add a new `product'
-add_product_InvMgmt(ReqData) ->
-	try
-		{struct, Object} = mochijson:decode(ReqData),
-		Name = prod_name(erl_term, Object),
-		IsBundle = prod_isBundle(erl_term, Object),
-		Status = prod_status({erl_term, invMgmt}, Object),
-		ValidFor = prod_vf(erl_term, Object),
-		Descirption = prod_description(erl_term, Object),
-		StartDate = prod_sdate(erl_term, Object),
-		TerminationDate = prod_tdate(erl_term, Object),
-		case prod_offering_price({erl_term, invMgmt}, Object) of
-			{error, StatusCode} ->
-				{error, StatusCode};
-			Price ->
-				Product = #product{price = Price, name = Name, valid_for = ValidFor,
-					is_bundle = IsBundle, status = Status, start_date = StartDate,
-					termination_date = TerminationDate, description = Descirption},
-				case add_product_InvMgmt1(Product) of
-					ok ->
-						add_product_InvMgmt2(Name, Object);
-					{error, StatusCode} ->
-						{error, StatusCode}
-				end
-		end
-	catch
-		_:_ ->
-			{error, 400}
-	end.
-%% @hidden
-add_product_InvMgmt1(Products) ->
-	F1 = fun() ->
-		ok = mnesia:write(product, Products, write)
-	end,
-	case mnesia:transaction(F1) of
-		{atomic, ok} ->
-			ok;
-		{aborted, _} ->
-			{error, 500}
-	end.
-%% @hidden
-add_product_InvMgmt2(ProdId, JsonResponse) ->
-	Id = {id, ProdId},
-	Json = {struct, [Id | JsonResponse]},
-	Body = mochijson:encode(Json),
-	Location = "/catalogManagement/v1/product/" ++ ProdId,
-	Headers = [{location, Location}],
-	{ok, Headers, Body}.
-
 -spec add_product_CatMgmt(ReqData) -> Result when
 	ReqData	:: [tuple()],
 	Result	:: {ok, Headers, Body} | {error, Status},
@@ -115,12 +57,12 @@ add_product_CatMgmt(ReqData) ->
 		{struct, Object} = mochijson:decode(ReqData),
 		Name = prod_name(erl_term, Object),
 		IsBundle = prod_isBundle(erl_term, Object),
-		Status = prod_status({erl_term, catMgmt}, Object),
+		Status = prod_status(erl_term, Object),
 		ValidFor = prod_vf(erl_term, Object),
 		Descirption = prod_description(erl_term, Object),
 		StartDate = prod_sdate(erl_term, Object),
 		TerminationDate = prod_tdate(erl_term, Object),
-		case prod_offering_price({erl_term, catMgmt}, Object) of
+		case prod_offering_price(erl_term, Object) of
 			{error, StatusCode} ->
 				{error, StatusCode};
 			Price ->
@@ -191,10 +133,10 @@ get_product_CatMgmt1(Prod) ->
 	ValidFor = prod_vf(json, Prod),
 	IsBundle = prod_isBundle(json, Prod),
 	Name = prod_name(json, Prod),
-	Status = prod_status({json, catMgmt}, Prod),
+	Status = prod_status(json, Prod),
 	StartDate = prod_sdate(json, Prod),
 	TerminationDate = prod_tdate(json, Prod),
-	case prod_offering_price({json, catMgmt}, Prod) of
+	case prod_offering_price(json, Prod) of
 		{error, StatusCode} ->
 			{error, StatusCode};
 		OfferPrice ->
@@ -249,10 +191,10 @@ get_products_CatMgmt1([Prod | T], Acc) ->
 		ValidFor = prod_vf(json, Prod),
 		IsBundle = prod_isBundle(json, Prod),
 		Name = prod_name(json, Prod),
-		Status = prod_status({json, catMgmt}, Prod),
+		Status = prod_status(json, Prod),
 		StartDate = prod_sdate(json, Prod),
 		TerminationDate = prod_tdate(json, Prod),
-		case prod_offering_price({json, catMgmt}, Prod) of
+		case prod_offering_price(json, Prod) of
 			{error, StatusCode} ->
 				{error, StatusCode};
 			OfferPrice ->
@@ -264,157 +206,6 @@ get_products_CatMgmt1([Prod | T], Acc) ->
 	catch
 		_:_ ->
 			{error, 500}
-	end.
-
--spec get_product_InvMgmt(ProdID) -> Result when
-	ProdID	:: string(),
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /productInventoryManagement/v1/product/{id}' and
-%% retrieve a `product' details
-get_product_InvMgmt(ProductID) ->
-	F = fun() ->
-		case mnesia:read(product, ProductID) of
-			[Product] ->
-				Product;
-			[] ->
-				throw(not_found)
-		end
-	end,
-	case mnesia:transaction(F) of
-		{atomic, Prod} ->
-			get_product_InvMgmt1(Prod);
-		{aborted, {throw, not_found}} ->
-			{error, 404};
-		{aborted, _} ->
-			{error, 500}
-	end.
-%% @hidden
-get_product_InvMgmt1(Prod) ->
-	ID = prod_id(json, Prod),
-	Descirption = prod_description(json, Prod),
-	Href = prod_href(json, Prod),
-	ValidFor = prod_vf(json, Prod),
-	IsBundle = prod_isBundle(json, Prod),
-	Name = prod_name(json, Prod),
-	Status = prod_status({json, invMgmt}, Prod),
-	StartDate = prod_sdate(json, Prod),
-	TerminationDate = prod_tdate(json, Prod),
-	case prod_offering_price({json, invMgmt}, Prod) of
-		{error, StatusCode} ->
-			{error, StatusCode};
-		OfferPrice ->
-			Json = {struct, [ID, Descirption, Href, StartDate,
-				TerminationDate, IsBundle, Name, Status, ValidFor,
-				OfferPrice]},
-			Body = mochijson:encode(Json),
-			Headers = [{content_type, "application/json"}],
-			{ok, Headers, Body}
-	end.
-
--spec get_products_InvMgmt(Query) -> Result when
-	Query :: [{Key :: string(), Value :: string()}],
-	Result	:: {ok, Headers, Body} | {error, Status},
-	Headers	:: [tuple()],
-	Body		:: iolist(),
-	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /productInventoryManagement/v1/product' and
-%% retrieve all `product' details
-%% @todo Filtering
-get_products_InvMgmt(_Query) ->
-	MatchSpec = [{'_', [], ['$_']}],
-	F = fun(F, start, Acc) ->
-				F(F, mnesia:select(product, MatchSpec,
-						?CHUNKSIZE, read), Acc);
-			(_F, '$end_of_table', Acc) ->
-				lists:flatten(lists:reverse(Acc));
-			(_F, {error, Reason}, _Acc) ->
-				{error, Reason};
-			(F,{Product, Cont}, Acc) ->
-				F(F, mnesia:select(Cont), [Product | Acc])
-	end,
-	case mnesia:transaction(F, [F, start, []]) of
-		{aborted, _} ->
-			{error, 500};
-		{atomic, Products} ->
-			get_products_InvMgmt1(Products, [])
-	end.
-%% @hidden
-get_products_InvMgmt1([], Acc) ->
-	Json = {array, Acc},
-	Body = mochijson:encode(Json),
-	Headers = [{content_type, "application/json"}],
-	{ok, Headers, Body};
-get_products_InvMgmt1([Prod | T], Acc) ->
-	try
-		ID = prod_id(json, Prod),
-		Descirption = prod_description(json, Prod),
-		Href = prod_href(json, Prod),
-		ValidFor = prod_vf(json, Prod),
-		IsBundle = prod_isBundle(json, Prod),
-		Name = prod_name(json, Prod),
-		Status = prod_status({json, invMgmt}, Prod),
-		StartDate = prod_sdate(json, Prod),
-		TerminationDate = prod_tdate(json, Prod),
-		case prod_offering_price({json, invMgmt}, Prod) of
-			{error, StatusCode} ->
-				{error, StatusCode};
-			OfferPrice ->
-			Json = {struct, [ID, Descirption, Href, StartDate,
-					TerminationDate, IsBundle, Name, Status, ValidFor,
-					OfferPrice]},
-			get_products_InvMgmt1(T, [Json | Acc])
-		end
-	catch
-		_:_ ->
-			{error, 500}
-	end.
-
--spec on_patch_product_InvMgmt(ProdId, Etag, ReqData) -> Result
-	when
-		ProdId	:: string(),
-		Etag		:: undefined | list(),
-		ReqData	:: [tuple()],
-		Result	:: {ok, Headers, Body} | {error, Status},
-		Headers	:: [tuple()],
-		Body		:: iolist(),
-		Status	:: 400 | 500 .
-%% @doc Respond to `PATCH /productInventoryManagement/v1/product/{id}' and
-%% apply object notation patch for `product'
-%% RFC6902 `https://tools.ietf.org/html/rfc6902'
-on_patch_product_InvMgmt(ProdId, Etag, ReqData) ->
-	try
-		{array, OpList} = mochijson:decode(ReqData),
-		case exe_jsonpatch_ON(ProdId, Etag, OpList) of
-			{error, StatusCode} ->
-				{error, StatusCode};
-			{ok, Prod} ->
-				ID = prod_id(json, Prod),
-				Descirption = prod_description(json, Prod),
-				Href = prod_href(json, Prod),
-				ValidFor = prod_vf(json, Prod),
-				IsBundle = prod_isBundle(json, Prod),
-				Name = prod_name(json, Prod),
-				Status = prod_status({json, invMgmt}, Prod),
-				StartDate = prod_sdate(json, Prod),
-				TerminationDate = prod_tdate(json, Prod),
-				case prod_offering_price({json, invMgmt}, Prod) of
-					{error, StatusCode} ->
-						{error, StatusCode};
-					OfferPrice ->
-						Json = {struct, [ID, Descirption, Href, StartDate,
-						TerminationDate, IsBundle, Name, Status, ValidFor,
-						OfferPrice]},
-						Body = mochijson:encode(Json),
-						Headers = [{content_type, "application/json"}],
-						{ok, Headers, Body}
-				end
-		end
-	catch
-		_:_ ->
-			{error, 400}
 	end.
 
 -spec on_patch_product_CatMgmt(ProdId, Etag, ReqData) -> Result
@@ -442,10 +233,10 @@ on_patch_product_CatMgmt(ProdId, Etag, ReqData) ->
 				ValidFor = prod_vf(json, Prod),
 				IsBundle = prod_isBundle(json, Prod),
 				Name = prod_name(json, Prod),
-				Status = prod_status({json, catMgmt}, Prod),
+				Status = prod_status(json, Prod),
 				StartDate = prod_sdate(json, Prod),
 				TerminationDate = prod_tdate(json, Prod),
-				case prod_offering_price({json, catMgmt}, Prod) of
+				case prod_offering_price(json, Prod) of
 					{error, StatusCode} ->
 						{error, StatusCode};
 					OfferPrice ->
@@ -462,34 +253,6 @@ on_patch_product_CatMgmt(ProdId, Etag, ReqData) ->
 			{error, 400}
 	end.
 
--spec merge_patch_product_InvMgmt(ProdId, Etag, ReqData) -> Result
-	when
-		ProdId	:: string(),
-		Etag		:: undefined | list(),
-		ReqData	:: [tuple()],
-		Result	:: {ok, Headers, Body} | {error, Status},
-		Headers	:: [tuple()],
-		Body		:: iolist(),
-		Status	:: 400 | 500 .
-%% @doc Respond to `PATCH /productInventoryManagement/v1/product/{id}' and
-%% apply merge patch for `product'
-%% RFC7386 `https://tools.ietf.org/html/rfc7386'
-merge_patch_product_InvMgmt(ProdId, Etag, ReqData) ->
-	try
-		Json = mochijson:decode(ReqData),
-		case exe_jsonpatch_merge(invMgmt, ProdId, Etag, Json) of
-			{error, Reason} ->
-				{error, Reason};
-			{ok, Response} ->
-				Body = mochijson:encode(Response),
-				Headers = [{content_type, "application/json"}],
-				{ok, Headers, Body}
-		end
-	catch
-		_:_ ->
-			{error, 400}
-	end.
-
 -spec merge_patch_product_CatMgmt(ProdId, Etag, ReqData) -> Result
 	when
 		ProdId	:: string(),
@@ -499,13 +262,13 @@ merge_patch_product_InvMgmt(ProdId, Etag, ReqData) ->
 		Headers	:: [tuple()],
 		Body		:: iolist(),
 		Status	:: 400 | 500 .
-%% @doc Respond to `PATCH /productInventoryManagement/v1/product/{id}' and
+%% @doc Respond to `PATCH /catalogManagement/v1/product/{id}' and
 %% apply merge patch for `product'
 %% RFC7386 `https://tools.ietf.org/html/rfc7386'
 merge_patch_product_CatMgmt(ProdId, Etag, ReqData) ->
 	try
 		Json = mochijson:decode(ReqData),
-		case exe_jsonpatch_merge(catMgmt, ProdId, Etag, Json) of
+		case exe_jsonpatch_merge(ProdId, Etag, Json) of
 			{error, Reason} ->
 				{error, Reason};
 			{ok, Response} ->
@@ -523,60 +286,41 @@ merge_patch_product_CatMgmt(ProdId, Etag, ReqData) ->
 %%----------------------------------------------------------------------
 -spec prod_offering_price(Prefix, Product) -> Result
 	when
-		Prefix	:: {Term, API},
-		Term		:: erl_term | json,
-		API		:: catMgmt | invMgmt,
+		Prefix	:: erl_term | json,
 		Product	:: list() | #product{},
 		Result	:: [#price{}] | list() | {error, Status},
 		Status	:: 400.
 %% @doc construct list of product
 %% @private
-prod_offering_price({erl_term, _}, []) ->
+prod_offering_price(erl_term, []) ->
 	{error, 400};
-prod_offering_price({erl_term, catMgmt}, Json) ->
+prod_offering_price(erl_term, Json) ->
 	{_, {array, ProdOfPrice}} = lists:keyfind("productOfferingPrice", 1, Json),
-	case po_price({erl_term, catMgmt}, ProdOfPrice, []) of
+	case po_price(erl_term, ProdOfPrice, []) of
 		{error, Status} ->
 			{error, Status};
 		Prices ->
 			Prices
 	end;
-prod_offering_price({erl_term, invMgmt}, Json) ->
-	{_, {array, ProdOfPrice}} = lists:keyfind("productPrice", 1, Json),
-	case po_price({erl_term, invMgmt}, ProdOfPrice, []) of
-		{error, Status} ->
-			{error, Status};
-		Prices ->
-			Prices
-	end;
-prod_offering_price({json, catMgmt}, Product) ->
-	case po_price({json, catMgmt}, Product#product.price, []) of
+prod_offering_price(json, Product) ->
+	case po_price(json, Product#product.price, []) of
 		{error, Status} ->
 			{error, Status};
 		ProdOfPrice ->
 			{"productOfferingPrice", {array, ProdOfPrice}}
-	end;
-prod_offering_price({json, invMgmt}, Product) ->
-	case po_price({json, invMgmt}, Product#product.price, []) of
-		{error, Status} ->
-			{error, Status};
-		ProdOfPrice ->
-			{"productPrice", {array, ProdOfPrice}}
 	end.
 
 -spec po_price(Prefix, ProductOfPrice, Prices) -> Result
 	when
-		Prefix	:: {Term, API},
-		Term		:: erl_term | json,
-		API		:: catMgmt | invMgmt,
+		Prefix	:: erl_term | json,
 		ProductOfPrice	:: list() | [#price{}],
 		Prices	::	list(),
 		Result	:: [#price{}] | list() | {error, Status},
 		Status	:: 400 | 500.
 %% @hidden
-po_price({erl_term, _}, [], Prices) ->
+po_price(erl_term, [], Prices) ->
 	Prices;
-po_price({erl_term, API}, [{struct, Object} | T], Prices) ->
+po_price(erl_term, [{struct, Object} | T], Prices) ->
 	try
 		ProdName = prod_price_name(erl_term, Object),
 		{_ProdSTime, _ProdETime} = prod_price_vf(erl_term, Object),
@@ -593,29 +337,25 @@ po_price({erl_term, API}, [{struct, Object} | T], Prices) ->
 				type = ProdPriceType, units = ProdUnits, size = Size, valid_for = ProdVF,
 				currency = CurrencyCode, period = RCPeriod, %validity = ProdValidity,
 				amount = ProdAmount},
-		POAKey = case API of
-			catMgmt -> "productOfferPriceAlteration";
-			invMgmt -> "prodPriceAlteration"
-		end,
-		case lists:keyfind(POAKey, 1, Object) of
+		case lists:keyfind("productOfferPriceAlteration", 1, Object) of
 			false ->
-				po_price({erl_term, API}, T, [Price1 | Prices]);
+				po_price(erl_term, T, [Price1 | Prices]);
 			{_, {struct, ProdAlterObj}} ->
-				case po_alteration({erl_term, API}, ProdAlterObj) of
+				case po_alteration(erl_term, ProdAlterObj) of
 					{error, Status} ->
 						{error, Status};
 					Alteration ->
 						Price2 = Price1#price{alteration = Alteration},
-						po_price({erl_term, API}, T, [Price2 | Prices])
+						po_price(erl_term, T, [Price2 | Prices])
 				end
 		end
 	catch
 		_:_ ->
 			{error, 400}
 	end;
-po_price({json, _}, [], Prices) ->
+po_price(json, [], Prices) ->
 	Prices;
-po_price({json, API}, [Price | T], Prices) when is_record(Price, price) ->
+po_price(json, [Price | T], Prices) when is_record(Price, price) ->
 	try
 		Name = prod_price_name(json, Price),
 		ValidFor = prod_price_vf(json, Price),
@@ -630,15 +370,15 @@ po_price({json, API}, [Price | T], Prices) when is_record(Price, price) ->
 			Price#price.alteration == undefined ->
 				Price1 = {struct, [Name, Description, ValidFor,
 					PriceType, PriceObj, UOMeasure, RCPeriod]},
-				po_price({json, API}, T, [Price1 | Prices]);
+				po_price(json, T, [Price1 | Prices]);
 			true ->
-				case po_alteration({json, API}, Price#price.alteration) of
+				case po_alteration(json, Price#price.alteration) of
 					{error, Status} ->
 						{error, Status};
 					Alteration ->
 						Price1 = {struct, [Name, Description, PriceType,
 							ValidFor, PriceObj, UOMeasure, RCPeriod, Alteration]},
-						po_price({json, API}, T, [Price1 | Prices])
+						po_price(json, T, [Price1 | Prices])
 				end
 		end
 	catch
@@ -648,14 +388,12 @@ po_price({json, API}, [Price | T], Prices) when is_record(Price, price) ->
 
 -spec po_alteration(Prefix, ProdAlterObj) -> Result
 	when
-		Prefix	:: {Term, API},
-		Term		:: erl_term | json,
-		API		:: catMgmt | invMgmt,
+		Prefix	:: erl_term | json,
 		ProdAlterObj :: list() | #alteration{},
 		Result	:: #alteration{} | {error, Status},
 		Status	:: 400 | 500.
 %% @private
-po_alteration({erl_term, _}, ProdAlterObj) ->
+po_alteration(erl_term, ProdAlterObj) ->
 	try
 		ProdAlterName = prod_price_alter_name(erl_term, ProdAlterObj),
 		ProdAlterVF = prod_price_alter_vf(erl_term, ProdAlterObj),
@@ -672,7 +410,7 @@ po_alteration({erl_term, _}, ProdAlterObj) ->
 		_:_ ->
 			{error, 400}
 	end;
-po_alteration({json, API}, ProdAlter) ->
+po_alteration(json, ProdAlter) ->
 	try
 		Name = prod_price_alter_name(json, ProdAlter),
 		ValidFor = prod_price_alter_vf(json, ProdAlter),
@@ -682,14 +420,8 @@ po_alteration({json, API}, ProdAlter) ->
 		Amount = prod_price_alter_amount(json, ProdAlter),
 		PriceObj = {struct, [Amount]},
 		Price = {"price", PriceObj},
-		case API of
-			catMgmt ->
-				{"productPriceAlteration",
-					{struct, [Name, Description, PriceType, ValidFor, UFM, Price]}};
-			invMgmt ->
-				{"prodPriceAlteration",
-					{struct, [Name, Description, PriceType, ValidFor, UFM, Price]}}
-		end
+			{"productPriceAlteration",
+				{struct, [Name, Description, PriceType, ValidFor, UFM, Price]}}
 	catch
 		_:_ ->
 			{error, 500}
@@ -763,39 +495,23 @@ prod_isBundle(json, Product) ->
 
 -spec prod_status(Prefix, Product) -> Result
 	when
-		Prefix	:: {Term, API},
-		Term		:: erl_term | json,
-		API		:: catMgmt | invMgmt,
+		Prefix	:: erl_term | json,
 		Product	:: list() | #product{},
 		Result	:: string() | tuple().
 %% @private
-prod_status({erl_term, catMgmt}, Product) ->
+prod_status(erl_term, Product) ->
 	case lists:keyfind("lifecycleStatus", 1, Product) of
 		{_, FindStatus} ->
 			find_status(FindStatus);
 		false ->
 			undefined
 	end;
-prod_status({erl_term, invMgmt}, Product) ->
-	case lists:keyfind("status", 1, Product) of
-		{_, FindStatus} ->
-			find_status(FindStatus);
-		false ->
-			undefined
-	end;
-prod_status({json, catMgmt}, Product) ->
+prod_status(json, Product) ->
 	case Product#product.status of
 		undefined ->
 			{"lifecycleStatus", ""};
 		Status ->
 			{"lifecycleStatus", Status}
-	end;
-prod_status({json, invMgmt}, Product) ->
-	case Product#product.status of
-		undefined ->
-			{"status", ""};
-		Status ->
-			{"status", Status}
 	end.
 
 -spec prod_sdate(Prefix, Product) -> Result
@@ -1325,25 +1041,24 @@ exe_jsonpatch_ON(ProdID, _Etag, OperationList) ->
 			{error,  500}
 	end.
 
--spec exe_jsonpatch_merge(API, ProductID, Etag, Patch) -> Result
+-spec exe_jsonpatch_merge(ProductID, Etag, Patch) -> Result
 	when
-		API				:: catMgmt | invMgmt,
 		ProductID		:: string() | binary(),
 		Etag				:: undefined | tuple(),
 		Patch				:: term(),
 		Result			:: list() | {error, StatusCode},
 		StatusCode		:: 400 | 404 | 422 | 500.
 %% @doc execute json merge patch
-exe_jsonpatch_merge(API, ProdID, _Etag, Patch) ->
+exe_jsonpatch_merge(ProdID, _Etag, Patch) ->
 	F = fun() ->
 			case mnesia:read(product, ProdID, write) of
 				[Entry] ->
-					case target(API, Entry) of
+					case target(Entry) of
 						{error, Status} ->
 							throw(Status);
 						Target ->
 							Patched = ocs_rest:merge_patch(Target, Patch),
-							case target(API, Patched) of
+							case target(Patched) of
 								{error, SC} ->
 									throw(SC);
 								NewEntry ->
@@ -1397,12 +1112,10 @@ patch_replace(["startDate"], Value, Product) when is_list(Value) ->
 patch_replace(["terminationDate"], Value, Product) when is_list(Value) ->
 	TDate = ocs_rest:iso8601(Value),
 	Product#product{termination_date = TDate};
-patch_replace([Status], Value, Product) when is_list(Value),
-		Status =:= "status" orelse Status =:= "lifecycleStatus" ->
+patch_replace(["lifecycleStatus"], Value, Product) when is_list(Value) ->
 	S = find_status(Value),
 	Product#product{status = S};
-patch_replace([PP | T], Value, Product)
-		when PP =:= "productPrice" orelse PP =:= "productOfferingPrice" ->
+patch_replace(["productOfferingPrice" | T], Value, Product) ->
 	case patch_replace1(prod_price, T, Value, Product#product.price) of
 		{error, Reason} ->
 			{error, Reason};
@@ -1472,9 +1185,6 @@ patch_replace1(prod_price, [], {array, Values}, _) ->
 						(F2, [{"price", {struct, V}} | T], Price) when is_list(V) ->
 							UP = F3(F3, V, Price),
 							F2(F2, T, UP);
-						(F2, [{"prodPriceAlteration", {struct, V}} | T], Price) when is_list(V) ->
-							Alter = F4(F4, V, #alteration{}),
-							F2(F2, T, Price#price{alteration = Alter});
 						(F2, [{"productPriceAlteration", {struct, V}} | T], Price) when is_list(V) ->
 							Alter = F4(F4, V, #alteration{}),
 							F2(F2, T, Price#price{alteration = Alter});
@@ -1570,8 +1280,8 @@ patch_replace2([{"price", {struct, Value}} | T], Price) when is_record(Price, pr
 		UPrice ->
 			patch_replace2(T, UPrice)
 	end;
-patch_replace2([{PPAlter, {struct, Value}} | T], #price{alteration = Alter} = Price)
-		when is_record(Price, price) and is_list(Value), PPAlter =:= "prodPriceAlteration" orelse PPAlter =:= "productPriceAlteration" ->
+patch_replace2([{"productPriceAlteration", {struct, Value}} | T], #price{alteration = Alter} = Price)
+		when is_record(Price, price) and is_list(Value) ->
 	case patch_replace3(Value, Alter) of
 		{error, Reason} ->
 			{error, Reason};
@@ -1616,17 +1326,17 @@ patch_replace4([{"taxIncludedAmount", Value} | T], Alter) when is_record(Alter, 
 patch_replace4(_, _) ->
 	{error, unprocessable}.
 
-target(API, Prod) when is_record(Prod, product) ->
+target(Prod) when is_record(Prod, product) ->
 	ID = prod_id(json, Prod),
 	Descirption = prod_description(json, Prod),
 	Href = prod_href(json, Prod),
 	ValidFor = prod_vf(json, Prod),
 	IsBundle = prod_isBundle(json, Prod),
 	Name = prod_name(json, Prod),
-	Status = prod_status({json, API}, Prod),
+	Status = prod_status(json, Prod),
 	StartDate = prod_sdate(json, Prod),
 	TerminationDate = prod_tdate(json, Prod),
-	case prod_offering_price({json, API}, Prod) of
+	case prod_offering_price(json, Prod) of
 		{error, StatusCode} ->
 			{error, StatusCode};
 		OfferPrice ->
@@ -1634,16 +1344,16 @@ target(API, Prod) when is_record(Prod, product) ->
 				TerminationDate, IsBundle, Name, Status, ValidFor,
 				OfferPrice]}
 	end;
-target(API, {struct, Object}) ->
+target({struct, Object}) ->
 	try
 		Name = prod_name(erl_term, Object),
 		IsBundle = prod_isBundle(erl_term, Object),
-		Status = prod_status({erl_term, API}, Object),
+		Status = prod_status(erl_term, Object),
 		ValidFor = prod_vf(erl_term, Object),
 		Descirption = prod_description(erl_term, Object),
 		StartDate = prod_sdate(erl_term, Object),
 		TerminationDate = prod_tdate(erl_term, Object),
-		case prod_offering_price({erl_term, API}, Object) of
+		case prod_offering_price(erl_term, Object) of
 			{error, StatusCode} ->
 				{error, StatusCode};
 			Price ->
