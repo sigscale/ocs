@@ -44,27 +44,27 @@
 		}
 	</style>
 	<template>
-		<paper-dialog id="UpdateUserModal" modal>
+		<paper-dialog id="updateUserModal" modal>
 			<paper-toolbar>
 				<h2>[[i18n.updateUserTitle]]</h2>
 			</paper-toolbar>
 				<paper-input
-						id="update-user1"
+						id="updateUserName"
 						name="username"
 						label="[[i18n.userName]]"
 						disabled>
 				</paper-input>
 				<paper-input
-						id="update-user2"
+						id="updateUserPassword"
 						name="password"
 						label="[[i18n.password]]">
 				</paper-input>
 				<paper-dropdown-menu
-						id="update-user3"
+						id="updateUserLocale"
 						name="locale"
 						label="[[i18n.language]]">
 					<paper-listbox
-							id="add-userLo"
+							id="updateUserLocaleList"
 							slot="dropdown-content"
 							class="dropdown-content"
 							selected="0">
@@ -84,16 +84,16 @@
 					<paper-button
 							raised
 							class="add-button"
-							on-click="UpdateUser">
+							on-click="_updateUserSubmit">
 							<i18n-msg msgid="update">
 								Update
 							<i18n-msg>
 					</paper-button>
 					<paper-button
 							class="cancel-button"
-							dialog-confirm
+							dialog-dismiss
 							autofocus
-							onclick="clientAddModal.close()">
+							onclick="updateUserModal.cancel()">
 							<i18n-msg msgid="cancel">
 								Cancel
 							<i18n-msg>
@@ -101,43 +101,45 @@
 					<paper-button
 							toggles
 							raised
-							on-click="deleteUser"
+							on-click="_deleteUserSubmit"
 							class="delete-buttons">
 							<i18n-msg msgid="delete">
 								Delete
 							<i18n-msg>
 					</paper-button>
 				</div>
+			<paper-toast
+					id="updateUserToastError">
+			</paper-toast>
 		</paper-dialog>
 		<iron-ajax
-				id="UpdateUser"
+				id="updateUserAjax"
 				method="PATCH"
-				content-type="application/json"
-				on-response="_userUpdateResponse"
+				content-type="application/json-patch+json"
+				on-response="_updateUserResponse"
+				on-error="_updateUserError"
 				handle-as="json">
 		</iron-ajax>
-		<iron-ajax id="deleteUser"
-				handle-as="json"
-				on-response="deleteUserResponse">
+		<iron-ajax id="deleteUserAjax"
+				on-response="_deleteUserResponse"
+				on-error="_updateUserError">
 		</iron-ajax>
 	</template>
 	<script>
 		Polymer ({
 			is: 'sig-user-update',
 			behaviors: [i18nMsgBehavior],
-			UpdateUser: function(event) {
-				var id = document.getElementById("update-user1").value;
-				var editAjax = document.getElementById("UpdateUser");
-				editAjax.url = "/partyManagement/v1/individual/" + id;
+			_updateUserSubmit: function(event) {
+				this.$.updateUserAjax.url = "/partyManagement/v1/individual/"
+						+ this.$.updateUserName.value;
 				var patch = new Array();
-				var grid = document.getElementById("UserGrid");
 				var language;
-				if (document.getElementById("add-userLo").selected == 0) {
+				if (this.$.updateUserLocaleList.selected == 0) {
 					language = "en";
-				} else if (document.getElementById("add-userLo").selected == 1) {
+				} else if (this.$.updateUserLocaleList.selected == 1) {
 					language = "es";
 				}
-				var characteristic = grid.selectedItems[0].characteristic;
+				var characteristic = document.getElementById("userGrid").selectedItems[0].characteristic;
 				for (i = 0; i < characteristic.length; i++) {
 					if (characteristic[i].name == "locale") {
 						if (characteristic[i].value != language) {
@@ -151,32 +153,36 @@
 						}
 					}
 				}
-				if (document.getElementById("update-user2").value) {
+				if (this.$.updateUserPassword.value) {
 					op1 = new Object();
 					op1.op = "add";
 					op1.path = "/characteristic/-";
 					op1.value = new Object();
 					op1.value.name = "password";
-					op1.value.value = document.getElementById("update-user2").value;
+					op1.value.value = this.$.updateUserPassword.value;
 					patch.push(op1);
 				}
-				editAjax.body = JSON.stringify(patch);
-				editAjax.generateRequest();
+				this.$.updateUserAjax.body = JSON.stringify(patch);
+				this.$.updateUserAjax.generateRequest();
 			},
-			_userUpdateResponse: function(event) {
-				document.getElementById("UpdateUserModal").close();
+			_updateUserResponse: function(event) {
+				this.$.updateUserModal.close();
+				document.getElementById("updateUserToastSuccess").open();
 				document.getElementById("userGrid").clearCache();
 			},
-			deleteUser: function(event) {
-				var grid = document.getElementById("UserGrid");
-				var selection = grid.selectedItems[0];
-				var deleteAjax = document.getElementById("deleteUser");
-				deleteAjax.method = "DELETE";
-				deleteAjax.url = "/partyManagement/v1/individual/"+ selection.id;
-				deleteAjax.generateRequest();
+			_updateUserError: function(event) {
+				this.$.updateUserToastError.text = event.detail.request.xhr.statusText;
+				this.$.updateUserToastError.open();
 			},
-			deleteUserResponse: function(event) {
-				document.getElementById("UpdateUserModal").close();
+			_deleteUserSubmit: function(event) {
+				this.$.deleteUserAjax.method = "DELETE";
+				this.$.deleteUserAjax.url = "/partyManagement/v1/individual/"
+						+ document.getElementById("userGrid").selectedItems[0].id;
+				this.$.deleteUserAjax.generateRequest();
+			},
+			_deleteUserResponse: function(event) {
+				this.$.updateUserModal.close();
+				document.getElementById("deleteUserToastSuccess").open();
 				document.getElementById("userGrid").clearCache();
 			}
 		});

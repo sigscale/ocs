@@ -50,10 +50,14 @@
 			background: #ffb04c;
 			border-style: none;
 		}
+		.yellow-button {
+			text-transform: none;
+			color: #eeff41;
+		}
 	</style>
 	<template>
 		<vaadin-grid
-				id="UserGrid"
+				id="userGrid"
 				active-item="{{activeItem}}">
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
@@ -77,19 +81,39 @@
 			</vaadin-grid-column>
 		</vaadin-grid>
 		<div class="add-button">
-			<paper-fab
-					icon="add"
-					on-click = "showAddUserModal">
-			</paper-fab>
+		<paper-fab
+				icon="add"
+				on-click="showAddUserModal">
+		</paper-fab>
 		</div>
+		<paper-toast
+				id="addUserToastSuccess"
+				text="[[i18n.userAdded]]">
+		</paper-toast>
+		<paper-toast
+				id="updateUserToastSuccess"
+				text="[[i18n.userUpdated]]">
+		</paper-toast>
+		<paper-toast
+				id="deleteUserToastSuccess"
+				text="[[i18n.userDeleted]]">
+		</paper-toast>
+		<paper-toast id="userErrorToast" duration="0">
+			<paper-button
+					class="yellow-button"
+					onclick="userErrorToast.toggle()">
+				Close
+			</paper-button>
+		</paper-toast>
 		<iron-ajax
-				id="getUser"
+				id="getUserAjax"
 				url="/partyManagement/v1/individual"
-				headers='{"Accept": "application/json"}'
-				on-response="getUserResponse">
+				on-response="getUserResponse"
+				on-error="getUserError">
 		</iron-ajax>
 	</template>
 	<script>
+		var cbUsers;
 		Polymer ({
 			is: 'sig-user-list',
 			behaviors: [i18nMsgBehavior],
@@ -105,8 +129,7 @@
 			},
 			_activePageChanged: function(active) {
 				if (active) {
-					var grid = this.$.UserGrid;
-					grid.columns = [
+					this.$.userGrid.columns = [
 						{
 							name: "id"
 						},
@@ -114,10 +137,9 @@
 							name: "language"
 						}
 					];
-					grid.dataProvider = function(params, callback) {
-						var ajax = document.getElementById("getUser");
-						cbUser = callback;
-						ajax.url="/partyManagement/v1/individual"
+					this.$.userGrid.dataProvider = function(params, callback) {
+						cbUsers = callback;
+						ajax = document.getElementById("getUserAjax");
 						params.filters.forEach(function(filter, index) {
 							if(index == 0) {
 								ajax.url += '?' + filter.path + '=' + filter.value;
@@ -148,26 +170,32 @@
 			},
 			_activeItemChanged: function(item) {
 				if (item != null){
-					var grid = this.$.UserGrid;
-					grid.selectedItems = item ? [item] : [];
-					var modal = document.getElementById("UpdateUserModal");
+					this.$.userGrid.selectedItems = item ? [item] : [];
+					var modal = document.getElementById("updateUserModal");
 					modal.open();
-					document.getElementById("update-user1").value = item.id;
-					document.getElementById("update-user2").value = item.password;
-					document.getElementById("update-user3").value = item.language;
+					document.getElementById("updateUserName").value = item.id;
+					document.getElementById("updateUserPassword").value = item.password;
+					// document.getElementById("updateUserLocale").selected =
 				}
 			},
 			getUserResponse: function(event) {
-				var grid = this.$.UserGrid;
+				var grid = this.$.userGrid;
 				var results = event.detail.xhr.response;
 				var range = event.detail.xhr.getResponseHeader('Content-Range');
-				if(range) {
-					var itemCount = range.split("/");
-					grid.size = Number(itemCount[1]);
-				} else {
-					grid.size = results.length;
+				if (grid.size == undefined) {
+					grid.size = 0;
 				}
-					grid.pageSize = grid.size;
+				if (range) {
+					var range1 = range.split("/");
+					var range2 = range1[0].split("-");
+					if (range1[1] != "*") {
+						grid.size = Number(range1[1]);
+					} else {
+						grid.size = Number(range2[1]) + grid.pageSize * 2;
+					}
+				} else {
+					grid.size += grid.pageSize * 2;
+				}
 				var vaadinItems = new Array();
 				function checkChar(characteristic){
 					return characteristic.name == "locale";
@@ -183,13 +211,20 @@
 							newRecord.language = document.querySelector('i18n-msg').getMsg('spa');
 						}
 					}
+					newRecord.characteristic = results[index].characteristic;
 					vaadinItems[index] = newRecord;
 				}
-				cbUser(vaadinItems);
+				grid.items = vaadinItems;
+				cbUsers(vaadinItems);
+			},
+			getUserError: function(event) {
+				this.$.userGrid.size = 0;
+				cbUser([]);
+				this.$.userErrorToast.text = event.detail.request.xhr.statusText;
+				this.$.userErrorToast.open();
 			},
 			showAddUserModal: function(event) {
-				var modal = document.getElementById("AddUserModal");
-				modal.open();
+				document.getElementById("addUserModal").open();
 			},
 		});
 	</script>

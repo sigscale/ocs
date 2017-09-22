@@ -265,7 +265,7 @@ add_subscriber(Identity, Password, Product, Buckets, Attributes) ->
 		Buckets :: [#bucket{}] | undefined,
 		Attributes :: radius_attributes:attributes() | binary(),
 		EnabledStatus :: boolean() | undefined,
-		MultiSessions :: boolean(),
+		MultiSessions :: boolean() | undefined,
 		Result :: {ok, #subscriber{}} | {error, Reason},
 		Reason :: term().
 %% @doc Create an entry in the subscriber table.
