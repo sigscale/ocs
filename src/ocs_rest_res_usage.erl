@@ -27,7 +27,6 @@
 -include_lib("radius/include/radius.hrl").
 -include("ocs_log.hrl").
 
-
 -spec content_types_accepted() -> ContentTypes
 	when
 		ContentTypes :: list().
