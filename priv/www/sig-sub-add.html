@@ -481,6 +481,7 @@
 				var ajax = document.getElementById("subAddAjax");
 				ajax.body = subscriber;
 				ajax.generateRequest();
+				document.getElementById("add8").value = null;
 			},
 			_subscriberAddResponse: function(event) {
 				var toast = document.getElementById("toast-success");
