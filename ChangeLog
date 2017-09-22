@@ -1,3 +1,11 @@
+2017-09-22  Prahveen Thiruchelvam <prahveen@sigscale.org>
+
+	* ocs_rest_pagination_server.erl : add REST pagination
+	* ocs_rest_pagination_sup.erl : pagination continuity etag
+	* ocs.erl : add product to subscriber API
+	* ocs_rest.erl : add REST utility library
+	* ocs_rest_res_usage.erl : TMF635 usage management resource handler
+
 2017-07-14  Vance Shipley <vances@sigscale.org>
 
 	* ocs_log*.erl : add query support
