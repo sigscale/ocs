@@ -231,7 +231,6 @@
 					];
 					grid.dataProvider = function(params, callback) {
 						cbSubscriber = callback;
-console.log(0);
 						var ajax = document.getElementById("getSubscriberAjax");
 						params.filters.forEach(function(filter, index) {
 							if(index == 0) {
@@ -240,7 +239,6 @@ console.log(0);
 								ajax.url += '&' + filter.path + '=' + filter.value;
 							}
 						});
-console.log(1);
 						params.sortOrders.forEach(function(sort, index) {
 							var dirsort;
 							if(sort.direction == "desc") {
@@ -258,18 +256,14 @@ console.log(1);
 								ajax.url += ',' + dirsort;
 							}
 						});
-console.log(2);
 						var startRange = params.page * params.pageSize + 1;
 						var endRange = startRange + params.pageSize;
 						ajax.headers['Range'] = "items="
 									+ startRange.toString() + "-" + endRange.toString();
-console.log(3);
 						if (etag !== undefined & etag !== null) {
 							ajax.headers['If-Match'] = etag;
 						}
-console.log(ajax.headers);
 						ajax.generateRequest();
-console.log(5);
 					};
 				}
 			},
