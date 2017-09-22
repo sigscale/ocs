@@ -1426,7 +1426,7 @@ top_up_subscriber_balance(Config) ->
 	RequestURI = HostUrl ++ "/balanceManagement/v1/" ++ Identity ++ "/balanceTopups",
 	BucketType = {"type", "buckettype"}, 
 	Channel = {"channel", {struct, [{"name", "POS"}]}},
-	Amount = {"amount", {struct, [{"units", "octect"}, {"amount", 10000000}]}},
+	Amount = {"amount", {struct, [{"units", "octets"}, {"amount", 10000000}]}},
 	JSON = {struct, [BucketType, Channel, Amount]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
 	Request = {RequestURI, [Accept, Authentication], ContentType, RequestBody},
@@ -1455,7 +1455,7 @@ get_subscriber_balance(Config) ->
 	BucketType = {"type", "buckettype"},
 	Channel = {"channel", {struct, [{"name", "POS"}]}},
 	Balance = 10000000,
-	Amount = {"amount", {struct, [{"units", "octect"}, {"amount", Balance}]}},
+	Amount = {"amount", {struct, [{"units", "octets"}, {"amount", Balance}]}},
 	JSON = {struct, [BucketType, Channel, Amount]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
 	PostRequest = {POSTURI, [Accept, Authentication], ContentType, RequestBody},
@@ -1471,10 +1471,9 @@ get_subscriber_balance(Config) ->
 	{_, Identity} = lists:keyfind("id", 1, PrePayBalance),
 	{_, "/balanceManagement/v1/buckets/" ++ Identity} =
 			lists:keyfind("href", 1, PrePayBalance),
-	{_, "octets"} = lists:keyfind("bucketType", 1, PrePayBalance),
-	{_, {struct, RemAmount}} = lists:keyfind("remainedAmount", 1, PrePayBalance),
+	{_, {array, [{struct, RemAmount}]}} = lists:keyfind("remainedAmount", 1, PrePayBalance),
 	{_, Balance} = lists:keyfind("amount", 1, RemAmount),
-	{_, "octect"} = lists:keyfind("units", 1, RemAmount),
+	{_, "octets"} = lists:keyfind("units", 1, RemAmount),
 	{_, "active"} = lists:keyfind("status", 1, PrePayBalance).
 
 simultaneous_updates_on_user_faliure() ->
