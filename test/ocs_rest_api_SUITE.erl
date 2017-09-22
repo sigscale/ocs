@@ -2510,7 +2510,7 @@ update_product_price(SslSock, RestPort, ProdID) ->
 	{_, RCP} = lists:keyfind("recurringChargePeriod", 1, Price),
 	{_, UFM} = lists:keyfind("unitOfMeasure", 1, Price),
 	{_, PrT} = lists:keyfind("priceType", 1, Price),
-	{_, {struct, Alter}} = lists:keyfind("productPriceAlteration", 1, Price),
+	{_, {struct, Alter}} = lists:keyfind("productOfferPriceAlteration", 1, Price),
 	{_, AltDes} = lists:keyfind("description", 1, Alter),
 	{_, AltNam} = lists:keyfind("name", 1, Alter),
 	{_, AltPrT} = lists:keyfind("priceType", 1, Alter),
@@ -2627,7 +2627,7 @@ pp_alter_name(Index, Name) when is_integer(Index) ->
 	pp_alter_name(integer_to_list(Index), Name);
 pp_alter_name(Index, Name) when is_list(Index) ->
 	Op = {"op", "replace"},
-	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/productPriceAlteration/name"},
+	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/productOfferPriceAlteration/name"},
 	Value = {"value", Name},
 	{struct, [Op, Path, Value]}.
 
@@ -2635,7 +2635,7 @@ pp_alter_description(Index, Des) when is_integer(Index) ->
 	pp_alter_description(integer_to_list(Index), Des);
 pp_alter_description(Index, Des) when is_list(Index) ->
 	Op = {"op", "replace"},
-	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/productPriceAlteration/description"},
+	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/productOfferPriceAlteration/description"},
 	Value = {"value", Des},
 	{struct, [Op, Path, Value]}.
 
@@ -2643,7 +2643,7 @@ pp_alter_type(Index, PT) when is_integer(Index) ->
 	pp_alter_type(integer_to_list(Index), PT);
 pp_alter_type(Index, PT) when is_list(Index) ->
 	Op = {"op", "replace"},
-	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/productPriceAlteration/priceType"},
+	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/productOfferPriceAlteration/priceType"},
 	Value = {"value", PT},
 	{struct, [Op, Path, Value]}.
 
@@ -2651,7 +2651,7 @@ pp_alter_ufm(Index, UFM) when is_integer(Index) ->
 	pp_alter_ufm(integer_to_list(Index), UFM);
 pp_alter_ufm(Index, UFM) when is_list(Index) ->
 	Op = {"op", "replace"},
-	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/productPriceAlteration/unitOfMeasure"},
+	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/productOfferPriceAlteration/unitOfMeasure"},
 	Value = {"value", UFM},
 	{struct, [Op, Path, Value]}.
 

@@ -420,7 +420,7 @@ po_alteration(json, ProdAlter) ->
 		Amount = prod_price_alter_amount(json, ProdAlter),
 		PriceObj = {struct, [Amount]},
 		Price = {"price", PriceObj},
-			{"productPriceAlteration",
+			{"productOfferPriceAlteration",
 				{struct, [Name, Description, PriceType, ValidFor, UFM, Price]}}
 	catch
 		_:_ ->
@@ -1185,7 +1185,7 @@ patch_replace1(prod_price, [], {array, Values}, _) ->
 						(F2, [{"price", {struct, V}} | T], Price) when is_list(V) ->
 							UP = F3(F3, V, Price),
 							F2(F2, T, UP);
-						(F2, [{"productPriceAlteration", {struct, V}} | T], Price) when is_list(V) ->
+						(F2, [{"productOfferPriceAlteration", {struct, V}} | T], Price) when is_list(V) ->
 							Alter = F4(F4, V, #alteration{}),
 							F2(F2, T, Price#price{alteration = Alter});
 						(_, [], Price) ->
@@ -1280,7 +1280,7 @@ patch_replace2([{"price", {struct, Value}} | T], Price) when is_record(Price, pr
 		UPrice ->
 			patch_replace2(T, UPrice)
 	end;
-patch_replace2([{"productPriceAlteration", {struct, Value}} | T], #price{alteration = Alter} = Price)
+patch_replace2([{"productOfferPriceAlteration", {struct, Value}} | T], #price{alteration = Alter} = Price)
 		when is_record(Price, price) and is_list(Value) ->
 	case patch_replace3(Value, Alter) of
 		{error, Reason} ->
