@@ -162,24 +162,30 @@
 					on-click="showAddModal">
 			</paper-fab>
 		</div>
-		<paper-toast id="edit-toast">
-			<h2>Record sucessfully updated!</h2>
+		<paper-toast
+				id="addSubscriberToastSuccess"
+				text="[[i18n.subscriberAdded]]">
 		</paper-toast>
-		<paper-toast id="delete-toast">
-			<h2>Record sucessfully deleted!</h2>
+		<paper-toast
+				id="updateSubscriberToastSuccess"
+				text="[[i18n.subscriberUpdated]]">
 		</paper-toast>
-		<paper-toast id="subscriberErrorToast" duration="0">
+		<paper-toast
+				id="deleteSubscriberToastSuccess"
+				text="[[i18n.subscriberDeleted]]">
+		</paper-toast>
+		<paper-toast id="getSubscriberErrorToast" duration="0">
 			<paper-button
 					class="yellow-button"
-					onclick="subscriberErrorToast.toggle()">
+					onclick="getSubscriberErrorToast.toggle()">
 				Close
 			</paper-button>
 		</paper-toast>
 		<iron-ajax
-			id="getSubs"
+			id="getSubscriberAjax"
 			url="/ocs/v1/subscriber"
-			on-response="getSubscriberResponse"
-			on-error="getSubscriberError">
+			on-response="_getSubscriberResponse"
+			on-error="_getSubscriberError">
 		</iron-ajax>
 	</template>
 	<script>
@@ -238,7 +244,7 @@
 					];
 					grid.dataProvider = function(params, callback) {
 						cbSubscriber = callback;
-						var ajax = document.getElementById("getSubs");
+						var ajax = document.getElementById("getSubscriberAjax");
 						params.filters.forEach(function(filter, index) {
 							if(index == 0) {
 								ajax.url += '?' + filter.path + '=' + filter.value;
@@ -267,32 +273,29 @@
 						var endRange = startRange + params.pageSize;
 						ajax.headers['Range'] = "items="
 									+ startRange.toString() + "-" + endRange.toString();
-						if (etag != undefined) {
+						if (etag !== undefined & etag !== null) {
 							ajax.headers['If-Match'] = etag;
 						}
 						ajax.generateRequest();
 					};
-					}
-				},
-				_activeItemChanged: function(item) {
-					if (item != null){
-						var grid = this.$.subscriberGrid;
-						grid.selectedItems = item ? [item] : [];
-						var modal = document.getElementById("subUpdateModal");
-						modal.open();
-						document.getElementById("edit-id1").value = item.id;
-						document.getElementById("edit-pwd").value = item.password;
-						document.getElementById("edit-bal").value = item.totalBalance;
-						document.getElementById("edit-recv-data-rate").value = item.ascendDataRate;
-						document.getElementById("edit-trans-data-rate").value = item.ascendXmitRate;
-						document.getElementById("edit-sess-timeout").value = item.sessionTimeout;
-						document.getElementById("edit-update-interval").value = item.acctInterimInterval;
-						document.getElementById("edit-class").value =  item.class;
-						document.getElementById("edit-enabled").checked =  item.enabled;
-						document.getElementById("edit-multi-session").checked =  item.multisession;
-					}
-				},
-			getSubscriberResponse: function(event) {
+				}
+			},
+			_activeItemChanged: function(item) {
+				if (item != null){
+					this.$.subscriberGrid.selectedItems = item ? [item] : [];
+					document.getElementById("updateSubscriberModal").open();
+					document.getElementById("updateSubscriberId").value = item.id;
+					document.getElementById("updateSubscriberPassword").value = item.password;
+					document.getElementById("updateSubscriberDataRate").value = item.ascendDataRate;
+					document.getElementById("updateSubscriberXmitRate").value = item.ascendXmitRate;
+					document.getElementById("updateSubscriberTimeout").value = item.sessionTimeout;
+					document.getElementById("updateSubscriberInterval").value = item.acctInterimInterval;
+					document.getElementById("updateSubscriberClass").value =  item.class;
+					document.getElementById("updateSubscriberEnabled").checked =  item.enabled;
+					document.getElementById("updateSubscriberMulti").checked =  item.multisession;
+				}
+			},
+			_getSubscriberResponse: function(event) {
 				var grid = this.$.subscriberGrid;
 				var results = event.detail.xhr.response;
 				etag = event.detail.xhr.getResponseHeader('ETag');
@@ -333,15 +336,15 @@
 				}
 				cbSubscriber(vaadinItems);
 			},
-			getSubscriberError: function(event) {
+			_getSubscriberError: function(event) {
 				this.$.subscriberGrid.size = 0;
 				cbSubscriber([]);
-				this.$.subscriberErrorToast.text = event.detail.request.xhr.statusText;
-				this.$.subscriberErrorToast.open();
+				this.$.getSubscriberErrorToast.text = event.detail.request.xhr.statusText;
+				this.$.getSubscriberErrorToast.open();
 			},
 			showAddModal: function(event) {
 				document.getElementById("getProductsAjax").generateRequest();
-				document.getElementById("subAddModal").open();
+				document.getElementById("addSubscriberModal").open();
 			}
 		});
 	</script>

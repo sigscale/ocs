@@ -82,7 +82,7 @@
 		}
 	</style>
 	<template>
-		<paper-dialog id="subAddModal" modal>
+		<paper-dialog id="addSubscriberModal" modal>
 			<paper-toolbar>
 				<paper-tabs selected="{{selected}}">
 					<paper-tab id="auth-add">
@@ -99,7 +99,7 @@
 			<iron-pages selected="{{selected}}">
 			<div id="add-div">
 				<div>
-					<paper-input id="add1"
+					<paper-input id="addSubscriberId"
 							class="identity"
 							name="subscriber"
 							label="[[i18n.identity]]">
@@ -119,7 +119,7 @@
 					</div>
 				</div>
 				<div>
-					<paper-input id="add2"
+					<paper-input id="addSubscriberPassword"
 							class="password"
 							name="password"
 							label="[[i18n.password]]">
@@ -149,16 +149,18 @@
 					</paper-button>
 					<paper-button dialog-dismiss
 							class="cancel-button"
-							onclick="subAddModal.close()">
-						<i18n-msg msgid="cancel">
-								Cancel
-						</i18n-msg>
+							dialog-confirm
+							autofocus
+							onclick="addSubscriberModal.close()">
+					<i18n-msg msgid="cancel">
+						Cancel
+					</i18n-msg>
 					</paper-button>
 				</div>
 			</div>
 			<div id="add-divone">
 				<div>
-					<paper-input id="add3"
+					<paper-input id="addSubscriberDataRate"
 							name="ascendDataRate"
 							type="number"
 							label="[[i18n.recieve]]">
@@ -170,7 +172,7 @@
 					</paper-tooltip>
 				</div>
 				<div>
-					<paper-input id="add4"
+					<paper-input id="addSubscriberXmitRate"
 							name="ascendXmitRate"
 							type="number"
 							label="[[i18n.trans]]">
@@ -182,7 +184,7 @@
 					</paper-tooltip>
 				</div>
 				<div>
-					<paper-input id="add5"
+					<paper-input id="addSubscriberTimeout"
 							name="sessionTimeout"
 							type="number"
 							label="[[i18n.ses]]"
@@ -195,7 +197,7 @@
 					</paper-tooltip>
 				</div>
 				<div>
-					<paper-input id="add6"
+					<paper-input id="addSubscriberInterval"
 							name="acctInterimInterval"
 							type="number"
 							label="[[i18n.updateInterval]]">
@@ -206,16 +208,29 @@
 						</i18n-msg>
 					</paper-tooltip>
 				</div>
-					<paper-input id="add7"
+					<paper-input id="addSubscriberClass"
 							name="class"
 							label="[[i18n.class]]">
 					</paper-input>
+				<div>
+					<paper-input id="addSubscriberBalance"
+							name="balance"
+							type="number"
+							label="[[i18n.balance]]"
+							required>
+					</paper-input>
+					<paper-tooltip>
+						<i18n-msg msgid="balanceTool">
+							Initial credit value in bytes, against which accounting will debit usage against.
+						</i18n-msg>
+					</paper-tooltip>
+				</div>
 				<div>
 					<i18n-msg msgid="enable">
 							Enable
 					</i18n-msg>
 					<div style="display:inline-block;">
-						<paper-toggle-button id="add9" 
+						<paper-toggle-button id="addSubscriberEnabled" 
 							name="enabled" checked>
 						</paper-toggle-button>
 						<paper-tooltip>
@@ -227,8 +242,8 @@
 						<i18n-msg msgid="multi">
 								Multisession
 						</i18n-msg>
-					<div class="toggle">
-						<paper-toggle-button id="add10" 
+					<div style="display:inline-block;">
+						<paper-toggle-button id="addSubscriberMulti" 
 							name="multi-session">
 						</paper-toggle-button>
 					</div>
@@ -242,9 +257,11 @@
 									Submit
 							</i18n-msg>
 						</paper-button>
-						<paper-button dialog-dismiss
+						<paper-button
+								dialog-dismiss
 								class="cancel-button"
-								onclick="subAddModal.close()">
+								autofocus
+								onclick="addSubscriberModal.close()">
 							<i18n-msg msgid="cancel">
 									Cancel
 							</i18n-msg>
@@ -306,7 +323,7 @@
 						</paper-button>
 						<paper-button dialog-dismiss
 								class="cancel-button"
-								onclick="subAddModal.close()">
+								onclick="addSubscriberModal.close()">
 							<i18n-msg msgid="cancel">
 									Cancel
 							</i18n-msg>
@@ -316,14 +333,12 @@
 			</div>
 			</iron-pages>
 			<paper-toast
-					id="addSubscriberToastSuccess"
-					text="[[i18n.subToastSuc]]">
-			</paper-toast>
-			<paper-toast
 					id="addSubscriberToastError">
 			</paper-toast>
 		</paper-dialog>
-		<paper-dialog id="subSecretModal" class="generated" modal>
+		<paper-dialog
+				id="addSubscriberSecretModal"
+				class="generated" modal>
 			<paper-toolbar>
 				<h2>[[i18n.serverGen]]</h2>
 			</paper-toolbar>
@@ -402,53 +417,44 @@
 			},
 			_subscriberAddSubmit: function(event) {
 				var subscriber = new Object();
-				if(!document.getElementById("add1").disabled
-							&& document.getElementById("add1").value != null
-							&& document.getElementById("add1").value != "") {
-					subscriber.id = document.getElementById("add1").value;
+				if(!this.$.addSubscriberId.disabled) {
+					subscriber.id = this.$.addSubscriberId.value;
 				}
-				if(!document.getElementById("add2").disabled
-							&& document.getElementById("add2").value != null
-							&& document.getElementById("add2").value != "") {
-					subscriber.password = document.getElementById("add2").value;
+				if(!document.getElementById("addSubscriberPassword").disabled) {
+					subscriber.password = document.getElementById("addSubscriberPassword").value;
 				}
 				var attributes = new Array();
-				if(parseInt(document.getElementById("add3").value)
-						&& parseInt(document.getElementById("add3").value) != null) {
+				if(parseInt(this.$.addSubscriberDataRate.value)) {
 					var ascendDataRate = new Object();
 					ascendDataRate.name = "ascendDataRate";
-					ascendDataRate.value = parseInt(document.getElementById("add3").value);
+					ascendDataRate.value = parseInt(this.$.addSubscriberDataRate.value);
 					attributes.push(ascendDataRate);
 				}
-				if(parseInt(document.getElementById("add4").value)
-						&& parseInt(document.getElementById("add4").value) != null) {
+				if(parseInt(this.$.addSubscriberXmitRate.value)) {
 					var ascendXmitRate = new Object();
 					ascendXmitRate.name = "ascendXmitRate";
-					ascendXmitRate.value = parseInt(document.getElementById("add4").value);
+					ascendXmitRate.value = parseInt(this.$.addSubscriberXmitRate.value);
 					attributes.push(ascendXmitRate);
 				}
-				if(parseInt(document.getElementById("add5").value)
-						&& parseInt(document.getElementById("add5").value) != null) {
+				if(parseInt(this.$.addSubscriberTimeout.value)) {
 					var sessionTimeout = new Object();
 					sessionTimeout.name = "sessionTimeout";
-					sessionTimeout.value = parseInt(document.getElementById("add5").value);
+					sessionTimeout.value = parseInt(this.$.addSubscriberTimeout.value);
 					attributes.push(sessionTimeout);
 				}
-				if(parseInt(document.getElementById("add6").value)
-						&& parseInt(document.getElementById("add6").value) != null) {
+				if(parseInt(this.$.addSubscriberInterval.value)) {
 					var acctInterimInterval = new Object();
 					acctInterimInterval.name = "acctInterimInterval";
-					acctInterimInterval.value = parseInt(document.getElementById("add6").value);
+					acctInterimInterval.value = parseInt(this.$.addSubscriberInterval.value);
 					attributes.push(acctInterimInterval);
 				}
-				if(document.getElementById("add7").value
-						&& document.getElementById("add7").value != null) {
+				if(this.$.addSubscriberClass.value) {
 					var classx = new Object();
 					classx.name = "class";
-					if(document.getElementById("add7").value == "") {
+					if(this.$.addSubscriberClass.value == "") {
 						classx.value = null;
 					} else {
-						classx.value = document.getElementById("add7").value;
+						classx.value = this.$.addSubscriberClass.value;
 					}
 				}
 				subscriber.attributes = attributes;
@@ -460,8 +466,8 @@
 					subscriber.buckets = buckets;
 				}
 				subscriber.product = document.getElementById("addpro10").value;
-				subscriber.enabled= document.getElementById("add9").checked;
-				subscriber.multisession= document.getElementById("add10").checked;
+				subscriber.enabled = this.$.addSubscriberEnabled.checked;
+				subscriber.multisession = this.$.addSubscriberMulti.checked;
 				var ajax = this.$.addSubscriberAjax;
 				ajax.headers['Content-type'] = "application/json";
 				ajax.body = subscriber;
@@ -469,12 +475,12 @@
 				document.getElementById("add8").value = null;
 			},
 			_addSubscriberResponse: function(event) {
-				this.$.subAddModal.close();
+				this.$.addSubscriberModal.close();
 				var ajax = this.$.addSubscriberAjax;
 				if (ajax.body.password == undefined || ajax.body.id == undefined) {
 					this.password = ajax.lastResponse.password;
 					this.identity = ajax.lastResponse.id;
-					this.$.subSecretModal.open();
+					this.$.addSubscriberSecretModal.open();
 				} else {
 					this.$.addSubscriberToastSuccess.open();
 				}
@@ -485,7 +491,7 @@
 				this.$.addSubscriberToastError.open();
 			},
 			_onLoadingChanged: function(event) {
-				if (document.getElementById("addSubscriberAjax").loading) {
+				if (this.$.addSubscriberAjax.loading) {
 					document.getElementById("progress").disabled = false;
 				} else {
 					document.getElementById("progress").disabled = true;
@@ -493,16 +499,16 @@
 			},
 			subcheckboxchanged: function(event) {
 				if (event.target.checked) {
-					document.getElementById("add2").disabled = true;
+					this.$.addSubscriberPassword.disabled = true;
 				} else {
-					document.getElementById("add2").disabled = false;
+					this.$.addSubscriberPassword.disabled = false;
 				}
 			},
 			subcheckchanged: function(event) {
 				if (event.target.checked) {
-					document.getElementById("add1").disabled = true;
+					this.$.addSubscriberId.disabled = true;
 				} else {
-					document.getElementById("add1").disabled = false;
+					this.$.addSubscriberId.disabled = false;
 				}
 			}
 		});
