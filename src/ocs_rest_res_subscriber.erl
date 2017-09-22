@@ -81,7 +81,7 @@ get_subscriber1(Id, Filters) ->
 						[]
 				end,
 			RespObj4 = case Filters == []
-				orelse lists:member("totalBalance", 1, Filters) of
+				orelse lists:member("totalBalance", Filters) of
 					true ->
 						AccBalance = accumulated_balance(Buckets),
 						[{"totalBalance", AccBalance}];
@@ -89,21 +89,21 @@ get_subscriber1(Id, Filters) ->
 						[]
 				end,
 			RespObj5 = case Filters == []
-				orelse lists:member("product", 1, Filters) of
+				orelse lists:member("product", Filters) of
 					true ->
 						[{"product", Product#product_instance.product}];
 					false ->
 						[]
 				end,
 			RespObj6 = case Filters == []
-				orelse lists:member("enabled", 1, Filters) of
+				orelse lists:member("enabled", Filters) of
 					true ->
 						[{"enabled", Enabled}];
 					false ->
 						[]
 				end,
 			RespObj7 = case Filters == []
-				orelse lists:member("multisession", 1, Filters) of
+				orelse lists:member("multisession", Filters) of
 					true ->
 						[{"multisession", Multi}];
 					false ->
@@ -242,7 +242,7 @@ get_subscribers2(Subscribers, Id, Password, Balance, Product, Enabled, Multi, []
 						[]
 				end,
 				RespObj4 = case Filters == []
-						orelse lists:member("totalBalance", 1, Filters) of
+						orelse lists:member("totalBalance", Filters) of
 					true ->
 						AccBalance = accumulated_balance(Bu),
 						[{"totalBalance", AccBalance}];
@@ -250,21 +250,21 @@ get_subscribers2(Subscribers, Id, Password, Balance, Product, Enabled, Multi, []
 						[]
 				end,
 				RespObj5 = case Filters == []
-						orelse lists:member("product", 1, Filters) of
+						orelse lists:member("product", Filters) of
 					true ->
 						[{"product", Prod#product_instance.product}];
 					false ->
 						[]
 				end,
 				RespObj6 = case Filters == []
-						orelse lists:member("enabled", 1, Filters) of
+						orelse lists:member("enabled", Filters) of
 					true ->
 						[{"enabled", Ena}];
 					false ->
 						[]
 				end,
 				RespObj7 = case Filters == []
-						orelse lists:member("multisession", 1, Filters) of
+						orelse lists:member("multisession", Filters) of
 					true ->
 						[{"multisession", Mul}];
 					false ->
