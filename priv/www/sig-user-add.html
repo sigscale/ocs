@@ -36,26 +36,25 @@
 		}
 	</style>
 	<template>
-		<paper-dialog id="AddUserModal" modal>
+		<paper-dialog id="addUserModal" modal>
 			<paper-toolbar>
 				<h2>[[i18n.AddUserTitle]]</h2>
 			</paper-toolbar>
 				<paper-input
-						id="add-user1"
+						id="addUserName"
 						name="username"
 						label="[[i18n.userName]]" required>
 				</paper-input>
 				<paper-input
-						id="add-user2"
+						id="addUserPassword"
 						name="password"
 						label="[[i18n.password]]">
 				</paper-input>
 				<paper-dropdown-menu
-						id="add-user3"
 						name="locale"
 						label="[[i18n.language]]">
 					<paper-listbox
-							id="add-userLocale"
+							id="addUserLocale"
 							slot="dropdown-content"
 							class="dropdown-content"
 							selected="0">
@@ -71,68 +70,77 @@
 					<paper-button
 							raised
 							class="add-button"
-							on-click="_userFormSubmit">
+							on-click="_addUserSubmit">
 						<i18n-msg msgid="submit">
 							Submit
 						</i18n-msg>
 					</paper-button>
 					<paper-button
 							class="cancel-button"
-							dialog-confirm
+							dialog-dismiss
 							autofocus
-							onclick="clientAddModal.close()">
+							onclick="addUserModal.cancel()">
 						<i18n-msg msgid="cancel">
 							Cancel
 						</i18n-msg>
 					</paper-button>
 				</div>
 			</form>
+			<paper-toast
+					id="addUserToastError">
+			</paper-toast>
 		</paper-dialog>
 		<iron-ajax
-			id="AddUserAjax"
+			id="addUserAjax"
 			url="/partyManagement/v1/individual"
 			method = "post"
-			headers='{"Accept": "application/json", "Content-type": "application/json"}'
+			content-type="application/json"
 			on-loading-changed="_onLoadingChanged"
-			on-response="_userFormResponse"
-			handle-as="json">
+			on-response="_addUserResponse"
+			on-error="_addUserError">
 		</iron-ajax>
 	</template>
 	<script>
 		Polymer ({
 			is: 'sig-user-add',
 			behaviors: [i18nMsgBehavior],
-			 _userFormSubmit: function(event) {
+			 _addUserSubmit: function(event) {
 				var user = new Object();
-				user.id = document.getElementById("add-user1").value;
+				user.id = this.$.addUserName.value;
 				var username = new Object();
 				username.name = "username";
-				username.value = document.getElementById("add-user1").value;
+				username.value = this.$.addUserName.value;
 				var password = new Object();
 				password.name = "password";
-				password.value = document.getElementById("add-user2").value;
+				password.value = this.$.addUserPassword.value;
 				var language = new Object();
 				language.name = "locale";
-				if (document.getElementById("add-userLocale").selected == 0) {
+				if (this.$.addUserLocale.selected == 0) {
 					language.value = "en";
-				} else if (document.getElementById("add-userLocale").selected == 1) {
+				} else if (this.$.addUserLocale.selected == 1) {
 					language.value = "es";
 				}
 				var characteristic = new Array();
-				characteristic[0] = username;
-				characteristic[1] = password;
-				characteristic[2] = language;
+				characteristic.push(username);
+				characteristic.push(password);
+				characteristic.push(language);
 				user.characteristic = characteristic;
-				var ajax = document.getElementById("AddUserAjax");
-				ajax.body = user;
-				ajax.generateRequest();
+				this.$.addUserAjax.body = user;
+				this.$.addUserAjax.generateRequest();
 			},
-			 _userFormResponse: function(event) {
-				document.getElementById("AddUserModal").close();
-				document.getElementById("userGrid").clearCache();
+			_addUserResponse: function(event) {
+				this.$.addUserModal.close();
+				this.$.addUserName.value = "";
+				this.$.addUserPassword.value = "";
+				document.getElementById('addUserToastSuccess').open();
+				document.getElementById('userGrid').clearCache();
+			},
+			_addUserError: function(event) {
+				this.$.addUserToastError.text = event.detail.request.xhr.statusText;
+				this.$.addUserToastError.open();
 			},
 			_onLoadingChanged: function(event) {
-				if (document.getElementById("AddUserAjax").loading) {
+				if (this.$.addUserAjax.loading) {
 					document.getElementById("progress").disabled = false;
 				} else {
 					document.getElementById("progress").disabled = true;

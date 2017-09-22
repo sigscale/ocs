@@ -411,6 +411,18 @@
     "description": "User Title for Update",
     "message": "Update User"
   },
+   "userAdded": {
+    "description": "Success Toast Message",
+    "message": "User added"
+  },
+   "userUpdated": {
+    "description": "Success Toast Message",
+    "message": "User updated"
+  },
+   "userDeleted": {
+    "description": "Success Toast Message",
+    "message": "User deleted"
+  },
    "clientIdentity": {
     "description": "clients identity",
     "message": "Client Identity"

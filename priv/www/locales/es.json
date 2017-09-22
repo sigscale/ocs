@@ -407,13 +407,25 @@
     "description": "Dropdown list item",
     "message": "Inglés"
   },
+	"spa": {
+    "description": "Dropdown list item",
+    "message": "Español"
+  },
 	"updateUserTitle": {
     "description": "User Title for Update",
     "message": "Actualizar usuario"
   },
-	"spa": {
-    "description": "Dropdown list item",
-    "message": "Español"
+   "userAdded": {
+    "description": "Success Toast Message",
+    "message": "Usuario agregado"
+  },
+   "userUpdated": {
+    "description": "Success Toast Message",
+    "message": "Actualizado por el usuario"
+  },
+   "userDeleted": {
+    "description": "Success Toast Message",
+    "message": "Usuario eliminado"
   },
 	"clientIdentity": {
     "description": "clients identity",
