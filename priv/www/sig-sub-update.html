@@ -270,6 +270,10 @@
 				document.getElementById("updateSubscriberToastSuccess").open();
 				document.getElementById("subscriberGrid").clearCache();
 			},
+			_updateSubscriberAuthenticationError: function(event) {
+				this.$.updateSubscriberToastError.text = event.detail.request.xhr.statusText;
+				this.$.updateSubscriberToastError.open();
+			},
 			updateSubscriberAuthorization: function(event) {
 				var editAjax =  this.$.updateSubscriberAuthorizationAjax;
 				editAjax.method = "PATCH";
@@ -313,6 +317,10 @@
 				document.getElementById("updateSubscriberToastSuccess").open();
 				document.getElementById("subscriberGrid").clearCache();
 			},
+			_updateSubscriberAuthorizationError: function(event) {
+				this.$.updateSubscriberToastError.text = event.detail.request.xhr.statusText;
+				this.$.updateSubscriberToastError.open();
+			},
 			deleteSubscriber: function(event) {
 				this.$.deleteSubscriberAjax.method = "DELETE";
 				this.$.deleteSubscriberAjax.url = "/ocs/v1/subscriber/"
@@ -323,6 +331,10 @@
 				this.$.updateSubscriberModal.close();
 				document.getElementById("deleteSubscriberToastSuccess").open();
 				document.getElementById("subscriberGrid").clearCache();
+			},
+			_deleteSubscriberError: function(event) {
+				this.$.updateSubscriberToastError.text = event.detail.request.xhr.statusText;
+				this.$.updateSubscriberToastError.open();
 			}
 		});
 	</script>
