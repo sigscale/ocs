@@ -79,7 +79,7 @@
 							class="cancel-button"
 							dialog-dismiss
 							autofocus
-							onclick="addUserModal.cancel()">
+							onclick="userAddModal.close()">
 						<i18n-msg msgid="cancel">
 							Cancel
 						</i18n-msg>
@@ -136,6 +136,10 @@
 				document.getElementById('userGrid').clearCache();
 			},
 			_addUserError: function(event) {
+				this.$.addUserToastError.text = event.detail.request.xhr.statusText;
+				this.$.addUserToastError.open();
+			},
+			 _addUserError: function(event) {
 				this.$.addUserToastError.text = event.detail.request.xhr.statusText;
 				this.$.addUserToastError.open();
 			},

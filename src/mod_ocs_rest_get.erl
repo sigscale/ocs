@@ -90,7 +90,7 @@ parse_query(Resource, ModData, {Path, []}) ->
 	do_get(Resource, ModData, string:tokens(Path, "/"), []);
 parse_query(Resource, ModData, {Path, "?" ++ Query}) ->
 	do_get(Resource, ModData, string:tokens(Path, "/"),
-		httpd:parse_query(Query));
+		ocs_rest:parse_query(Query));
 parse_query(_R, _P, _Q) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{break, [{response, {404, Response}}]}.
@@ -104,10 +104,12 @@ do_get(Resource, ModData, ["ocs", "v1", "subscriber"], Query) ->
 	do_response(ModData, Resource:get_subscribers(Query));
 do_get(Resource, ModData, ["ocs", "v1", "subscriber", Id], Query) ->
 	do_response(ModData, Resource:get_subscriber(Id, Query));
-do_get(Resource, ModData, ["usageManagement", "v1", "usage"], Query) ->
-	do_response(ModData, Resource:get_usage(Query));
-do_get(Resource, ModData, ["usageManagement", "v1", "usage", Id], Query) ->
-	do_response(ModData, Resource:get_usage(Id, Query));
+do_get(Resource, #mod{parsed_header = Headers} = ModData,
+		["usageManagement", "v1", "usage"], Query) ->
+	do_response(ModData, Resource:get_usage(Query, Headers));
+do_get(Resource, #mod{parsed_header = Headers} = ModData,
+		["usageManagement", "v1", "usage", Id], Query) ->
+	do_response(ModData, Resource:get_usage(Id, Query, Headers));
 do_get(Resource, ModData,
 		["usageManagement", "v1", "usageSpecification"], Query) ->
 	do_response(ModData, Resource:get_usagespec(Query));
@@ -148,6 +150,12 @@ do_response(_ModData, {error, 400}) ->
 do_response(_ModData, {error, 404}) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{break, [{response, {404, Response}}]};
+do_response(_ModData, {error, 412}) ->
+	Response = "<h2>HTTP Error 412 - Precondition Failed</h2>",
+	{break, [{response, {412, Response}}]};
+do_response(_ModData, {error, 416}) ->
+	Response = "<h2>HTTP Error 416 - Range Not Satisfiable</h2>",
+	{break, [{response, {416, Response}}]};
 do_response(_ModData, {error, 500}) ->
 	Response = "<h2>HTTP Error 500 - Server Error</h2>",
 	{break, [{response, {500, Response}}]}.

@@ -145,28 +145,28 @@ get_clients2(Clients, Address, Identifier, Port, Protocol, Secret, [] = _Query, 
 				T1 and T2 and T3 and T4 and T5 ->
 					RespObj1 = [{"id", Id}, {"href", "/ocs/v1/client/" ++ Id}],
 					RespObj2 = case I == <<>> orelse Filters /= [] 
-							andalso not lists:keymember("identifier", 1, Filters) of
+							andalso not lists:member("identifier", Filters) of
 						true ->
 							[];
 						false ->
 							[{"identifier", binary_to_list(I)}]
 					end,
 					RespObj3 = case Filters == []
-							orelse lists:keymember("port", 1, Filters) of
+							orelse lists:member("port", Filters) of
 						true ->
 							[{"port", P1}];
 						false ->
 							[]
 					end,
 					RespObj4 = case Filters == []
-							orelse lists:keymember("protocol", 1, Filters) of
+							orelse lists:member("protocol", Filters) of
 						true ->
 							[{"protocol", Proto}];
 						false ->
 							[]
 					end,
 					RespObj5 = case Filters == []
-							orelse lists:keymember("secret", 1, Filters) of
+							orelse lists:member("secret", Filters) of
 						true ->
 							[{"secret", S2}];
 						false ->
@@ -181,7 +181,7 @@ get_clients2(Clients, Address, Identifier, Port, Protocol, Secret, [] = _Query, 
 	try
 		JsonObj = lists:filtermap(F, Clients),
 		Size = integer_to_list(length(JsonObj)),
-		ContentRange = "item 1-" ++ Size ++ "/" ++ Size,
+		ContentRange = "items 1-" ++ Size ++ "/" ++ Size,
 		Body = mochijson:encode({array, lists:reverse(JsonObj)}),
 		{ok, [{content_type, "application/json"},
 				{content_range, ContentRange}], Body}
@@ -226,28 +226,28 @@ get_client1(Address, Filters) ->
 			Etag = etag(LM),
 			RespObj1 = [{"id", Id}, {"href", "/ocs/v1/client/" ++ Id}],
 			RespObj2 = case Identifier == <<>> orelse Filters /= [] 
-					andalso not lists:keymember("identifier", 1, Filters) of
+					andalso not lists:member("identifier", Filters) of
 				true ->
 					[];
 				false ->
 					[{"identifier", binary_to_list(Identifier)}]
 			end,
 			RespObj3 = case Filters == []
-					orelse lists:keymember("port", 1, Filters) of
+					orelse lists:member("port", Filters) of
 				true ->
 					[{"port", Port}];
 				false ->
 					[]
 			end,
 			RespObj4 = case Filters == []
-					orelse lists:keymember("protocol", 1, Filters) of
+					orelse lists:member("protocol", Filters) of
 				true ->
 					[{"protocol", string:to_upper(atom_to_list(Protocol))}];
 				false ->
 					[]
 			end,
 			RespObj5 = case Filters == []
-					orelse lists:keymember("secret", 1, Filters) of
+					orelse lists:member("secret", Filters) of
 				true ->
 					[{"secret", Secret}];
 				false ->
@@ -273,6 +273,12 @@ post_client(RequestBody) ->
 	try 
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, Id} = lists:keyfind("id", 1, Object),
+		Ip = case inet:parse_address(Id) of
+			{ok, IPAddress} ->
+				IPAddress;
+			{error, einval} ->
+				throw(400)
+		end,
 		Port = proplists:get_value("port", Object, 3799),
 		Protocol = case proplists:get_value("protocol", Object, "radius") of
 			RADIUS when RADIUS =:= "radius"; RADIUS =:= "RADIUS" ->
@@ -281,8 +287,8 @@ post_client(RequestBody) ->
 				diameter
 		end,
 		Secret = proplists:get_value("secret", Object, ocs:generate_password()),
-		ok = ocs:add_client(Id, Port, Protocol, Secret),
-		{ok, #client{last_modified = LM}} = ocs:find_client(Id),
+		ok = ocs:add_client(Ip, Port, Protocol, Secret),
+		{ok, #client{last_modified = LM}} = ocs:find_client(Ip),
 		Location = "/ocs/v1/client/" ++ Id,
 		RespObj = [{"id", Id}, {"href", Location}, {"port", Port},
 				{"protocol", string:to_upper(atom_to_list(Protocol))}, {"secret", Secret}],

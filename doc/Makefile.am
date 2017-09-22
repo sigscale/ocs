@@ -60,6 +60,8 @@ modhtml = ocs.html \
 			ocs_rest_res_balance.html \
 			ocs_rest_res_product.html \
 			ocs_rest_res_http.html \
+			ocs_rest_pagination_sup.html \
+			ocs_rest_pagination_server.html \
 			mod_ocs_rest_lang.html \
 			mod_ocs_rest_accepted_content.html \
 			mod_ocs_rest_delete.html \

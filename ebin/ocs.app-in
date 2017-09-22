@@ -56,6 +56,8 @@
 				ocs_rest_res_balance,
 				ocs_rest_res_product,
 				ocs_rest_res_http,
+				ocs_rest_pagination_sup,
+				ocs_rest_pagination_server,
 				mod_ocs_rest_lang,
 				mod_ocs_rest_accepted_content,
 				mod_ocs_rest_delete,
@@ -93,5 +95,6 @@
 				{tls_key, "%APP_PRIV%/key.pem"},
 				{tls_cert, "%APP_PRIV%/cert.pem"},
 				{tls_cacert, "%APP_PRIV%/CAcert.pem"},
-				{rest_page_size, 1000}]},
+				{rest_page_size, 1000},
+				{rest_page_timeout, 60000}]},
 		{mod, {ocs_app, []}}]}.

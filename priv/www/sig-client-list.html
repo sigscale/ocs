@@ -134,6 +134,13 @@
 				Close
 			</paper-button>
 		</paper-toast>
+		<paper-toast id="clientErrorToast" duration="0">
+			<paper-button
+					class="yellow-button"
+					onclick="clientErrorToast.toggle()">
+				Close
+			</paper-button>
+		</paper-toast>
 		<iron-ajax
 				id="getClientsAjax"
 				url="/ocs/v1/client"

@@ -97,6 +97,10 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 %% @hidden
 check_content_type_header(Headers, Method, Module, Data) ->
 	case lists:keyfind("content-type", 1, Headers) of
+		false when Method == "DELETE"; Method == "GET" ->
+			check_accept_header(Headers, Module, [{resource, Module} | Data]);
+		{_, []} when Method == "DELETE"; Method == "GET" ->
+			check_accept_header(Headers, Module, [{resource, Module} | Data]);
 		{_, ProvidedType} ->
 			AcceptedTypes = Module:content_types_accepted(),
 			case lists:member(ProvidedType, AcceptedTypes) of
@@ -107,8 +111,6 @@ check_content_type_header(Headers, Method, Module, Data) ->
 					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
 					{break, [{response, {415, Response}}]}
 			end;
-		false when Method == "DELETE"; Method == "GET" ->
-			check_accept_header(Headers, Module, [{resource, Module} | Data]);
 		false ->
 			Response = "<h2>HTTP Error 400 - Bad Request</h2>",
 			{break, [{response, {400, Response}}]}

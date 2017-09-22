@@ -51,7 +51,6 @@
 			</div>
 		</paper-dialog>
 		<iron-ajax id="getLogsAjax"
-				auto
 				url="/ocs/v1/log/ipdr"
 				method = "GET"
 				headers='{"Accept": "application/json"}'
@@ -75,6 +74,7 @@
 			},
 			_activePageChanged: function(active) {
 				if (active) {
+					this.$.getLogsAjax.generateRequest();
 					this.$.selectLogFileModal.open();
 				}
 			},

@@ -222,6 +222,12 @@
 				this.$.userErrorToast.text = event.detail.request.xhr.statusText;
 				this.$.userErrorToast.open();
 			},
+			getUserError: function(event) {
+				this.$.UserGrid.size = 0;
+				cbUser([]);
+				this.$.userErrorToast.text = event.detail.request.xhr.statusText;
+				this.$.userErrorToast.open();
+			},
 			showAddUserModal: function(event) {
 				document.getElementById("addUserModal").open();
 			},

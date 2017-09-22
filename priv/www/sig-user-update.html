@@ -93,7 +93,7 @@
 							class="cancel-button"
 							dialog-dismiss
 							autofocus
-							onclick="updateUserModal.cancel()">
+							onclick="updateUserModal.close()">
 							<i18n-msg msgid="cancel">
 								Cancel
 							<i18n-msg>
@@ -165,9 +165,8 @@
 				this.$.updateUserAjax.body = JSON.stringify(patch);
 				this.$.updateUserAjax.generateRequest();
 			},
-			_updateUserResponse: function(event) {
-				this.$.updateUserModal.close();
-				document.getElementById("updateUserToastSuccess").open();
+			_userUpdateResponse: function(event) {
+				document.getElementById("updateUserModal").close();
 				document.getElementById("userGrid").clearCache();
 			},
 			_updateUserError: function(event) {

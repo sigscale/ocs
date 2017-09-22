@@ -110,7 +110,8 @@ start1() ->
 		end
 	end,
 	try
-		TopSup = case supervisor:start_link(ocs_sup, [RotateTime, RotateInterval]) of
+		TopSup = case supervisor:start_link(ocs_sup,
+				[RotateTime, RotateInterval]) of
 			{ok, OcsSup} ->
 				OcsSup;
 			{error, Reason1} ->

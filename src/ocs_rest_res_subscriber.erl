@@ -74,14 +74,14 @@ get_subscriber1(Id, Filters) ->
 			RespObj1 = [{"id", Id}, {"href", "/ocs/v1/subscriber/" ++ Id}],
 			RespObj2 = [{"attributes", Att1}],
 			RespObj3 = case Filters == []
-				orelse lists:keymember("password", 1, Filters) of
+				orelse lists:member("password", Filters) of
 					true ->
 						[{"password", Password}];
 					false ->
 						[]
 				end,
 			RespObj4 = case Filters == []
-				orelse lists:keymember("totalBalance", 1, Filters) of
+				orelse lists:member("totalBalance", 1, Filters) of
 					true ->
 						AccBalance = accumulated_balance(Buckets),
 						[{"totalBalance", AccBalance}];
@@ -89,21 +89,21 @@ get_subscriber1(Id, Filters) ->
 						[]
 				end,
 			RespObj5 = case Filters == []
-				orelse lists:keymember("product", 1, Filters) of
+				orelse lists:member("product", 1, Filters) of
 					true ->
 						[{"product", Product#product_instance.product}];
 					false ->
 						[]
 				end,
 			RespObj6 = case Filters == []
-				orelse lists:keymember("enabled", 1, Filters) of
+				orelse lists:member("enabled", 1, Filters) of
 					true ->
 						[{"enabled", Enabled}];
 					false ->
 						[]
 				end,
 			RespObj7 = case Filters == []
-				orelse lists:keymember("multisession", 1, Filters) of
+				orelse lists:member("multisession", 1, Filters) of
 					true ->
 						[{"multisession", Multi}];
 					false ->
@@ -235,14 +235,14 @@ get_subscribers2(Subscribers, Id, Password, Balance, Product, Enabled, Multi, []
 				RespObj1 = [{"id", Nalist}, {"href", "/ocs/v1/subscriber/" ++ Nalist}],
 				RespObj2 = [{"attributes", Att1}],
 				RespObj3 = case Filters == []
-						orelse lists:keymember("password", 1, Filters) of
+						orelse lists:member("password", Filters) of
 					true ->
 						[{"password", Palist}];
 					false ->
 						[]
 				end,
 				RespObj4 = case Filters == []
-						orelse lists:keymember("totalBalance", 1, Filters) of
+						orelse lists:member("totalBalance", 1, Filters) of
 					true ->
 						AccBalance = accumulated_balance(Bu),
 						[{"totalBalance", AccBalance}];
@@ -250,21 +250,21 @@ get_subscribers2(Subscribers, Id, Password, Balance, Product, Enabled, Multi, []
 						[]
 				end,
 				RespObj5 = case Filters == []
-						orelse lists:keymember("product", 1, Filters) of
+						orelse lists:member("product", 1, Filters) of
 					true ->
 						[{"product", Prod#product_instance.product}];
 					false ->
 						[]
 				end,
 				RespObj6 = case Filters == []
-						orelse lists:keymember("enabled", 1, Filters) of
+						orelse lists:member("enabled", 1, Filters) of
 					true ->
 						[{"enabled", Ena}];
 					false ->
 						[]
 				end,
 				RespObj7 = case Filters == []
-						orelse lists:keymember("multisession", 1, Filters) of
+						orelse lists:member("multisession", 1, Filters) of
 					true ->
 						[{"multisession", Mul}];
 					false ->
@@ -279,7 +279,7 @@ get_subscribers2(Subscribers, Id, Password, Balance, Product, Enabled, Multi, []
 	try
 		JsonObj = lists:filtermap(F, Subscribers),
 		Size = integer_to_list(length(JsonObj)),
-		ContentRange = "item 1-" ++ Size ++ "/" ++ Size,
+		ContentRange = "items 1-" ++ Size ++ "/" ++ Size,
 		Body  = mochijson:encode({array, lists:reverse(JsonObj)}),
 		{ok, [{content_type, "application/json"},
 				{content_range, ContentRange}], Body}
