@@ -165,8 +165,9 @@
 				this.$.updateUserAjax.body = JSON.stringify(patch);
 				this.$.updateUserAjax.generateRequest();
 			},
-			_userUpdateResponse: function(event) {
-				document.getElementById("updateUserModal").close();
+			_updateUserResponse: function(event) {
+				this.$.updateUserModal.close();
+				document.getElementById("updateUserToastSuccess").open();
 				document.getElementById("userGrid").clearCache();
 			},
 			_updateUserError: function(event) {

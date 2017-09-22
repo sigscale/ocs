@@ -177,6 +177,7 @@
 		</paper-toast>
 		<iron-ajax
 			id="getSubs"
+			url="/ocs/v1/subscriber"
 			on-response="getSubscriberResponse"
 			on-error="getSubscriberError">
 		</iron-ajax>
@@ -236,9 +237,8 @@
 						}
 					];
 					grid.dataProvider = function(params, callback) {
-						var ajax = document.getElementById("getSubs");
-						ajax.url = "/ocs/v1/subscriber"
 						cbSubscriber = callback;
+						var ajax = document.getElementById("getSubs");
 						params.filters.forEach(function(filter, index) {
 							if(index == 0) {
 								ajax.url += '?' + filter.path + '=' + filter.value;
@@ -267,7 +267,7 @@
 						var endRange = startRange + params.pageSize;
 						ajax.headers['Range'] = "items="
 									+ startRange.toString() + "-" + endRange.toString();
-						if (etag !== undefined) {
+						if (etag != undefined) {
 							ajax.headers['If-Match'] = etag;
 						}
 						ajax.generateRequest();
@@ -292,23 +292,6 @@
 						document.getElementById("edit-multi-session").checked =  item.multisession;
 					}
 				},
-				responseHandler: function(event) {
-					var grid = this.$.subscriberGrid;
-					grid.selectedItems = item ? [item] : [];
-					var modal = document.getElementById("subUpdateModal");
-					modal.open();
-					document.getElementById("edit-id1").value = item.id;
-					document.getElementById("edit-pwd").value = item.password;
-					document.getElementById("edit-balance").value = item.balance;
-					document.getElementById("edit-recv-data-rate").value = item.ascendDataRate;
-					document.getElementById("edit-trans-data-rate").value = item.ascendXmitRate;
-					document.getElementById("edit-sess-timeout").value = item.sessionTimeout;
-					document.getElementById("edit-update-interval").value = item.acctInterimInterval;
-					document.getElementById("edit-class").value =  item.class;
-					document.getElementById("edit-enabled").checked =  item.enabled;
-					document.getElementById("edit-multi-session").checked =  item.multisession;
-				}
-			},
 			getSubscriberResponse: function(event) {
 				var grid = this.$.subscriberGrid;
 				var results = event.detail.xhr.response;
@@ -338,20 +321,15 @@
 						function(attrObj) {
 							newRecord[attrObj.name] = attrObj.value;
 						}
-						results[index].attributes.forEach(
-							function(attrObj) {
-								newRecord[attrObj.name] = attrObj.value;
-							}
-						);
-						newRecord.enabled = results[index].enabled;
-						newRecord.multisession = results[index].multisession;
-						vaadinItems[index] = newRecord;
-					}
-					cbSub(vaadinItems);
-				},
-				showAddModal: function(event) {
-					document.getElementById("getProductsAjax").generateRequest();
-					document.getElementById("subAddModal").open();
+					);
+					results[index].attributes.forEach(
+						function(attrObj) {
+							newRecord[attrObj.name] = attrObj.value;
+						}
+					);
+					newRecord.enabled = results[index].enabled;
+					newRecord.multisession = results[index].multisession;
+					vaadinItems[index] = newRecord;
 				}
 				cbSubscriber(vaadinItems);
 			},
@@ -362,8 +340,8 @@
 				this.$.subscriberErrorToast.open();
 			},
 			showAddModal: function(event) {
-					var modal = document.getElementById("subAddModal");
-					modal.open();
+				document.getElementById("getProductsAjax").generateRequest();
+				document.getElementById("subAddModal").open();
 			}
 		});
 	</script>
