@@ -27,6 +27,7 @@
 -include_lib("radius/include/radius.hrl").
 -include("ocs_log.hrl").
 
+
 -spec content_types_accepted() -> ContentTypes
 	when
 		ContentTypes :: list().
@@ -2232,7 +2233,7 @@ get_acct_usage(Query, Filters) ->
 %% @hidden
 get_acct_query([] = _Query, Filters) ->
 	{ok, _MaxItems} = application:get_env(ocs, rest_page_size),
-	case ocs_log:auth_query(1, 1, '_', '_', '_', '_') of
+	case ocs_log:acct_query(1, 1, '_', '_', '_') of
 		[] ->
 			{error, 404};
 		Events ->
