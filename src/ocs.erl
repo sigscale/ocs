@@ -224,7 +224,7 @@ delete_client(Client) when is_tuple(Client) ->
 	when
 		Identity :: string() | binary(),
 		Password :: string() | binary(),
-		Product :: string(),
+		Product :: string() | #product_instance{},
 		Result :: {ok, #subscriber{}} | {error, Reason},
 		Reason :: term().
 %% @equiv add_subscriber(Identity, Password, Product, [], [], true, false)
@@ -235,7 +235,7 @@ add_subscriber(Identity, Password, Product) ->
 	when 
 		Identity :: string() | binary(),
 		Password :: string() | binary(),
-		Product :: string(),
+		Product :: string() | #product_instance{},
 		Buckets :: [#bucket{}],
 		Result :: {ok, #subscriber{}} | {error, Reason},
 		Reason :: term().
@@ -247,7 +247,7 @@ add_subscriber(Identity, Password, Product, Buckets) ->
 	when 
 		Identity :: string() | binary(),
 		Password :: string() | binary(),
-		Product :: string(),
+		Product :: string() | #product_instance{},
 		Buckets :: [#bucket{}],
 		Attributes :: radius_attributes:attributes() | binary(),
 		Result :: {ok, #subscriber{}} | {error, Reason},
@@ -261,7 +261,7 @@ add_subscriber(Identity, Password, Product, Buckets, Attributes) ->
 	when
 		Identity :: string() | binary() | undefined,
 		Password :: string() | binary() | undefined,
-		Product :: string() | undefined,
+		Product :: string() | #product_instance{},
 		Buckets :: [#bucket{}] | undefined,
 		Attributes :: radius_attributes:attributes() | binary(),
 		EnabledStatus :: boolean() | undefined,
@@ -303,16 +303,18 @@ add_subscriber(undefined, Password, Product, Buckets, Attributes, EnabledStatus,
 		is_boolean(EnabledStatus), is_boolean(MultiSession) ->
 	F2 = fun() ->
 				case mnesia:read(product, Product, read) of
-					[_] ->
+					[#product{start_date = SD, termination_date = TD, status = Status }] ->
 						F1 = fun(_, _, 0) ->
 									mnesia:abort(retries);
 								(F, Identity, N) ->
 									case mnesia:read(subscriber, Identity, read) of
 										[] ->
+											P = #product_instance{start_date = SD,
+													termination_date = TD, status = Status, product = Product},
 											S = #subscriber{name = Identity,
 													password = Password, attributes = Attributes,
 													buckets = Buckets, enabled = EnabledStatus,
-													multisession = MultiSession, product = Product},
+													multisession = MultiSession, product = P},
 											ok = mnesia:write(S),
 											S;
 										[_] ->
@@ -335,9 +337,11 @@ add_subscriber(Identity, Password, Product, Buckets, Attributes, EnabledStatus, 
 		is_list(Buckets), is_list(Attributes), is_boolean(EnabledStatus), is_boolean(MultiSession) ->
 	F1 = fun() ->
 				case mnesia:read(product, Product, read) of
-					[_] ->
+					[#product{start_date = SD, termination_date = TD, status = Status }] ->
+						P = #product_instance{start_date = SD,
+							termination_date = TD, status = Status, product = Product},
 						S = #subscriber{name = Identity, password = Password,
-								attributes = Attributes, buckets = Buckets, product = Product,
+								attributes = Attributes, buckets = Buckets, product = P,
 								enabled = EnabledStatus, multisession = MultiSession},
 						ok = mnesia:write(S),
 						S;

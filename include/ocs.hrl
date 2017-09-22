@@ -86,13 +86,20 @@
 		termination_date :: pos_integer(),
 		remain_amount :: #remain_amount{}}).
 
+-record(product_instance,
+		{product :: string(),
+		start_date :: pos_integer(),
+		termination_date :: pos_integer(),
+		status :: atom(),
+		product_characteristics :: list()}).
+
 %% define subscriber table entries record
 -record(subscriber,
 		{name :: binary(),
 		password :: binary(),
 		attributes :: radius_attributes:attributes(),
 		buckets :: [#bucket{}],
-		product :: string(),
+		product :: string() | #product_instance{},
 		enabled = true :: boolean(),
 		disconnect  = false :: boolean(),
 		session_attributes = radius_attributes:new() :: [radius_attributes:attributes()],

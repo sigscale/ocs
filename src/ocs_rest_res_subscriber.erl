@@ -91,7 +91,7 @@ get_subscriber1(Id, Filters) ->
 			RespObj5 = case Filters == []
 				orelse lists:keymember("product", 1, Filters) of
 					true ->
-						[{"product", Product}];
+						[{"product", Product#product_instance.product}];
 					false ->
 						[]
 				end,
@@ -197,7 +197,7 @@ get_subscribers1(Subscribers, Query, Filters) ->
 		false ->
 			{[], Query2}
 	end,
-	{Product, Query4} = case lists:keytake("enabled", 1, Query3) of
+	{Product, Query4} = case lists:keytake("product", 1, Query3) of
 		{value, {_, V4}, Q4} ->
 			{V4, Q4};
 		false ->
@@ -227,7 +227,7 @@ get_subscribers2(Subscribers, Id, Password, Balance, Product, Enabled, Multi, []
 		Att = radius_to_json(Attributes),
 		Att1 = {array, Att},
 		T3 = lists:prefix(Balance, Bu),
-		T4 = lists:prefix(Product, Prod),
+		T4 = lists:prefix(Product, Prod#product_instance.product),
 		T5 = lists:prefix(Enabled, atom_to_list(Ena)),
 		T6 = lists:prefix(Multi, atom_to_list(Mul)),
 		if
@@ -252,7 +252,7 @@ get_subscribers2(Subscribers, Id, Password, Balance, Product, Enabled, Multi, []
 				RespObj5 = case Filters == []
 						orelse lists:keymember("product", 1, Filters) of
 					true ->
-						[{"product", Prod}];
+						[{"product", Prod#product_instance.product}];
 					false ->
 						[]
 				end,
@@ -336,7 +336,7 @@ post_subscriber(RequestBody) ->
 						{attributes, JAttributes}, {buckets, BucketRef},
 						{enabled, S#subscriber.enabled},
 						{multisession, S#subscriber.multisession},
-						{product, S#subscriber.product}],
+						{product, (S#subscriber.product)#product_instance.product}],
 				JsonObj  = {struct, RespObj},
 				Body = mochijson:encode(JsonObj),
 				Headers = [{location, Location}, {etag, etag(LM)}],
