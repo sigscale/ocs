@@ -1,3 +1,11 @@
+September 22 2017
+------------
+	- version 2.1~stable
+	- UI improvements
+	- Support for systemd integration
+	- Multiple subscriber session handling
+	- Filtering support for REST queries
+
 July 14 2017
 ------------
 	- version 2.1

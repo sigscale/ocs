@@ -1,3 +1,10 @@
+2017-09-22  Kalpa Gunarathna <kalpa@sigscale.com>
+
+	* priv/www/* : UI improvments
+	* scripts/* : add service scripts for systemd integration
+	* ocs_[eap,simple_auth]*fsm.erl mutiple sessions handled for a subscriber
+	* ocs_rest.erl add filtering support in REST API
+
 2017-07-14  Vance Shipley <vances@sigscale.org>
 
 	* ocs_log*.erl : add query support
