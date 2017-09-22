@@ -11,50 +11,50 @@
 <dom-module id="sig-pro-list">
 	<style>
 		::-webkit-input-placeholder { /* Chrome/Opera/Safari */
-         color: initial;
-         font-weight: bold;
-      }
-      ::-moz-placeholder { /* Firefox 19+ */
-         color: initial;
-         font-weight: bold;
-      }
-      :-ms-input-placeholder { /* IE 10+ */
-         color: initial;
-         font-weight: bold;
-      }
-      :-moz-placeholder { /* Firefox 18- */
-         color: initial;
-         font-weight: bold;
-      }
-      .add-button {
-         right: 2%;
-         position: fixed;
-         bottom: 5%;
-         z-index: 100;
-      }
-      paper-fab {
-         background: var(--paper-lime-a700);
-         color: black;
-      }
-      vaadin-grid {
-         height: 100%;
-         --vaadin-grid-header-cell: {
-            background: #ffb04c;
-         };
-      }
-		 vaadin-grid input {
-         font-size: inherit;
-         background: #ffb04c;
-         border-style: none;
-      }
-   </style>
+			color: initial;
+			font-weight: bold;
+		}
+		::-moz-placeholder { /* Firefox 19+ */
+			color: initial;
+			font-weight: bold;
+		}
+		:-ms-input-placeholder { /* IE 10+ */
+			color: initial;
+			font-weight: bold;
+		}
+		:-moz-placeholder { /* Firefox 18- */
+			color: initial;
+			font-weight: bold;
+		}
+		.add-button {
+			right: 2%;
+			position: fixed;
+			bottom: 5%;
+			z-index: 100;
+		}
+		paper-fab {
+			background: var(--paper-lime-a700);
+			color: black;
+		}
+		vaadin-grid {
+			height: 100%;
+			--vaadin-grid-header-cell: {
+				background: #ffb04c;
+			};
+		}
+		vaadin-grid input {
+			font-size: inherit;
+			background: #ffb04c;
+			border-style: none;
+		}
+	</style>
 	<template>
 		<vaadin-grid id="productGrid" active-item="{{activeItem}}">
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
 					<vaadin-grid-sorter path="name">
-						<vaadin-grid-filter aria-label="Name" path="name" value="[[_filterName]]">
-							<input placeholder="Name" value="{{_filterName::input}}" focus-target>
+						<vaadin-grid-filter aria-label="[[i18n.name]]" path="name" value="[[_filterName]]">
+							<input placeholder="[[i18n.name]]" value="{{_filterName::input}}" focus-target>
 						</vaadin-grid-filter>
 				 	</vaadin-grid-sorter>
 				</template>
@@ -63,8 +63,8 @@
 			<vaadin-grid-column width="15ex" flex-grow="13">
 				<template class="header">
 					<vaadin-grid-sorter path="description">
-						<vaadin-grid-filter aria-label="Description" path="description" value="[[_filterDes]]">
-							<input placeholder="Description" value="{{_filterDes::input}}" focus-target>
+						<vaadin-grid-filter aria-label="[[i18n.des]]" path="description" value="[[_filterDes]]">
+							<input placeholder="[[i18n.des]]" value="{{_filterDes::input}}" focus-target>
 						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
@@ -73,8 +73,8 @@
 			<vaadin-grid-column width="15ex" flex-grow="10">
 				<template class="header">
 					<vaadin-grid-sorter path="startDate">
-						<vaadin-grid-filter aria-label="StartDate" path="startDate" value="[[_filterStart]]">
-							<input placeholder="Start Date" value="{{_filterStart::input}}" focus-target>
+						<vaadin-grid-filter aria-label="[[i18n.start]]" path="startDate" value="[[_filterStart]]">
+							<input placeholder="[[i18n.start]]" value="{{_filterStart::input}}" focus-target>
 						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
@@ -83,8 +83,8 @@
 			<vaadin-grid-column width="15ex" flex-grow="10">
 				<template class="header">
 					<vaadin-grid-sorter path="endDate">
-						<vaadin-grid-filter aria-label="EndDate" path="endDate" value="[[_filterEnd]]">
-							<input placeholder="End Date" value="{{_filterEnd::input}}" focus-target>
+						<vaadin-grid-filter aria-label="[[i18n.end]]" path="endDate" value="[[_filterEnd]]">
+							<input placeholder="[[i18n.end]]" value="{{_filterEnd::input}}" focus-target>
 						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
@@ -93,8 +93,8 @@
 			<vaadin-grid-column width="15ex" flex-grow="7">
 				<template class="header">
 					<vaadin-grid-sorter path="status">
-						<vaadin-grid-filter aria-label="Status" path="status" value="[[_filterStatus]]">
-							<input placeholder="Status" value="{{_filterStatus::input}}" focus-target>
+						<vaadin-grid-filter aria-label="[[i18n.status]]" path="status" value="[[_filterStatus]]">
+							<input placeholder="[[i18n.status]]" value="{{_filterStatus::input}}" focus-target>
 						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
@@ -103,8 +103,8 @@
 			<vaadin-grid-column width="15ex" flex-grow="8">
 				<template class="header">
 					<vaadin-grid-sorter path="price">
-						<vaadin-grid-filter aria-label="Prices" path="price" value="[[_filterPrice]]">
-							<input placeholder="Prices" value="{{_filterPrice::input}}" focus-target>
+						<vaadin-grid-filter aria-label="[[i18n.prices]]" path="price" value="[[_filterPrice]]">
+							<input placeholder="[[i18n.prices]]" value="{{_filterPrice::input}}" focus-target>
 						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
@@ -118,13 +118,13 @@
 			</paper-fab>
 		</div>
 		<paper-toast id="toast-successPri">
-         <h2>successfully added</h2>
-      </paper-toast>
+			<h2>[[i18n.subToastSucPro]]</h2>
+		</paper-toast>
 		<iron-ajax id="getProducts"
 			url="/catalogManagement/v1/productOffering"
-         headers='{"Accept": "application/json"}'
-         on-response="proResponse">
-      </iron-ajax>
+			headers='{"Accept": "application/json"}'
+			on-response="proResponse">
+		</iron-ajax>
 	</template>
 	<script>
 		addEventListener('WebComponentsReady', function() {
@@ -155,49 +155,49 @@
 						}
 					];
 					grid.dataProvider = function(params, callback) {
-                  var ajax = document.getElementById("getProducts");
-                  cbPro = callback;
-                  ajax.url="/catalogManagement/v1/productOffering"
-                  params.filters.forEach(function(filter, index) {
-                     if(index == 0) {
-                        ajax.url += '?'+ filter.path + '=' + filter.value;
-                     } else {
-                        ajax.url += '&'+ filter.path + '=' + filter.value;
-                     }
-                  });
-                  params.sortOrders.forEach(function(sort, index) {
-                     var dirsort;
-                     if(sort.direction == "desc") {
-                        dirsort = '-' + sort.path;
-                     } else {
-                        dirsort = sort.path;
-                     }
-                        if(index == 0) {
-                           if(params.filters.length == 0) {
-                              ajax.url += '?sort=' + dirsort;
-                           } else {
-                              ajax.url += '&sort=' + dirsort;
-                           }
-                        } else {
-                           ajax.url += ',' + dirsort;
-                     }
-                  });
-                  ajax.generateRequest();
-               };
+						var ajax = document.getElementById("getProducts");
+						cbPro = callback;
+						ajax.url="/catalogManagement/v1/productOffering"
+						params.filters.forEach(function(filter, index) {
+							if(index == 0) {
+								ajax.url += '?'+ filter.path + '=' + filter.value;
+							} else {
+								ajax.url += '&'+ filter.path + '=' + filter.value;
+							}
+						});
+						params.sortOrders.forEach(function(sort, index) {
+							var dirsort;
+							if(sort.direction == "desc") {
+								dirsort = '-' + sort.path;
+							} else {
+								dirsort = sort.path;
+							}
+								if(index == 0) {
+									if(params.filters.length == 0) {
+										ajax.url += '?sort=' + dirsort;
+									} else {
+										ajax.url += '&sort=' + dirsort;
+									}
+								} else {
+									ajax.url += ',' + dirsort;
+							}
+						});
+						ajax.generateRequest();
+					};
 				},
 				proResponse: function(event) {
 					var grid = this.$.productGrid;
 					var results = event.detail.xhr.response;
 					var range = event.detail.xhr.getResponseHeader('Content-Range');
 					if (range) {
-                  var itemCount = range.split("/");
-                  grid.size = Number(itemCount[1]);
-               } else {
-                  grid.size = results.length;
-               }
-               grid.pageSize = grid.size;
+						var itemCount = range.split("/");
+						grid.size = Number(itemCount[1]);
+					} else {
+						grid.size = results.length;
+					}
+						grid.pageSize = grid.size;
 					var vaadinItems = new Array();
-               for (var index in results) {
+					for (var index in results) {
 						var newRecord = new Object();
 						newRecord.name = results[index].name;
 						newRecord.description = results[index].description;
@@ -225,7 +225,7 @@
 				showAddProductModal: function(event) {
 					var modal = document.getElementById("addProductModal");
 					modal.open();
-				},	
+				},
 			});
 		});
 	</script>

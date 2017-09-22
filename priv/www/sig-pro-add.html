@@ -51,13 +51,13 @@
 			<paper-toolbar>
 				<paper-tabs selected="{{selected}}">
 					<paper-tab id="offer-add">
-						<h2>Offering</h2>
+						<h2>[[i18n.offer]]</h2>
 					</paper-tab>
 					<paper-tab id="price-add">
-						<h2>Prices</h2>
+						<h2>[[i18n.prices]]</h2>
 					</paper-tab>
 					<paper-tab id="alt-add">
-						<h2>Alterations</h2>
+						<h2>[[i18n.alter]]</h2>
 					</paper-tab>
 				</paper-tabs>
 			</paper-toolbar>
@@ -67,13 +67,13 @@
 					<paper-input id="addOff1"
 							class="name"
 							name="name"
-							label="Name"
+							label="[[i18n.name]]"
 							onfocus="endDatePickOff.hide(); startDatePickOff.hide();">
 					</paper-input>
 					<paper-input id="addOff2"
 							class="description"
 							name="description"
-							label="Description"
+							label="[[i18n.des]]"
 							onfocus="endDatePickOff.hide(); startDatePickOff.hide();">
 					</paper-input>
 					<iron-collapse id="startDatePickOff">
@@ -83,7 +83,7 @@
 					<paper-input id="addOff3"
 							value="[[startDateOffer]]"
 							name="startDateOffer"
-							label="start Date"
+							label="[[i18n.start]]"
 							onfocus="endDatePickOff.hide(); startDatePickOff.show();">
 					</paper-input>
 					<iron-collapse id="endDatePickOff">
@@ -93,7 +93,7 @@
 					<paper-input id="addOff4"
 							value="[[endDateOffer]]"
 							name="endDateOffer"
-							label="end Date"
+							label="[[i18n.end]]"
 							onfocus="startDatePickOff.hide(); endDatePickOff.show();">
 					</paper-input>
 				</div>
@@ -101,12 +101,16 @@
 					<paper-button dialog-confirm raised
 							class="add-button"
 							on-tap="addOffer">
+							<i18n-msg msgid="submit">
 								Submit
+							</i18n-msg>
 					</paper-button>
 					<paper-button dialog-dismiss
 							class="cancel-button"
 							onclick="addProductModal.close()">
+							<i18n-msg msgid="cancel">
 								cancel
+							</i18n-msg>
 					</paper-button>
 				</div>
 			</div>
@@ -119,14 +123,14 @@
 					</datalist>
 					<paper-input id="priceName" 
 							list="price"
-							label="Name"
+							label="[[i18n.name]]"
 							on-change="updatePriceDialog"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 					</paper-input>
 					<paper-input id="addPriceDes"
 							class="description"
 							name="description"
-							label="Description"
+							label="[[i18n.des]]"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 					</paper-input>
 					<iron-collapse id="startDatePickPrice">
@@ -136,7 +140,7 @@
 					<paper-input id="priceStartDate"
 							value="[[startDatePrice]]"
 							name="startDatePrice"
-							label="Start Date"
+							label="[[i18n.start]]"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.show();">
 					</paper-input>
 					<iron-collapse id="endDatePickPrice">
@@ -146,11 +150,11 @@
 					<paper-input id="priceEndDate"
 							value="[[endDatePrice]]"
 							name="endDatePrice"
-							label="End Date"
+							label="[[i18n.end]]"
 							onfocus="startDatePickPrice.hide(); endDatePickPrice.show();">
 					</paper-input>
 					<paper-dropdown-menu id="addPrice1drop"
-							label="Price Type"
+							label="[[i18n.priceType]]"
 							on-selected-item-changed="checkRecure"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 						<paper-listbox
@@ -175,13 +179,13 @@
 							type="text"
 							allowed-pattern="[0-9bmg]"
 							pattern="^[0-9]+[bmg]$"
-							label="Unit Size"
+							label="[[i18n.unitSize]]"
 							auto-validate
 							value=1
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 					</paper-input>
 					<paper-dropdown-menu id="addPrice2drop"
-							label="Units"
+							label="[[i18n.unit]]"
 							on-selected-item-changed="checkPattern"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 						<paper-listbox
@@ -203,18 +207,18 @@
 							class="amount"
 							name="amount"
 							type="number"
-							label="Amount"
+							label="[[i18n.amount]]"
 							value=0
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 					</paper-input>
 					<paper-input id="addPrice4"
 							class="currency"
 							name="currency"
-							label="Currency"
+							label="[[i18n.currency]]"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 					</paper-input>
 					<paper-dropdown-menu id="addPrice5drop"
-							label="Period"
+							label="[[i18n.period]]"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 						<paper-listbox
 								id="addPrice5"
@@ -237,7 +241,7 @@
 					</paper-dropdown-menu>
 					<paper-dropdown-menu
 							id="addPriceDrop"
-							label="Alterations"
+							label="[[i18n.alter]]"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 						<paper-listbox
 								slot="dropdown-content"
@@ -254,12 +258,16 @@
 					<paper-button raised
 							class="add-button"
 							on-tap="addPrice">
+							<i18n-msg msgid="add">
 								Add
+							</i18n-msg>
 					</paper-button>
 					<paper-button dialog-dismiss
 							class="cancel-button"
 							onclick="addProductModal.close()">
+							<i18n-msg msgid="cancel">
 								cancel
+							</i18n-msg>
 					</paper-button>
 				</div>
 			</div>
@@ -272,13 +280,13 @@
 					</datalist>
 					<paper-input id="addAlt1" 
 							list="alts" 
-							label="Name" 
+							label="[[i18n.name]]" 
 							on-change="updateAltsDialog">
 					</paper-input>
 					<paper-input id="descAlt2"
 							class="description"
 							name="description"
-							label="Description"
+							label="[[i18n.des]]"
 							onfocus="endDatePick.hide(); startDatePick.hide();">
 					</paper-input>
 					<iron-collapse id="startDatePick">
@@ -288,7 +296,7 @@
 					<paper-input id="startAlt2"
 							value="[[startdate]]"
 							name="startdate"
-							label="Start Date"
+							label="[[i18n.start]]"
 							onfocus="endDatePick.hide(); startDatePick.show();">
 					</paper-input>
 					<iron-collapse id="endDatePick">
@@ -298,11 +306,11 @@
 					<paper-input id="endAlt2"
 							value="{{enddate}}"
 							name="terminationDate"
-							label="End Date"
+							label="[[i18n.end]]"
 							onfocus="startDatePick.hide(); endDatePick.show();">
 					</paper-input>
 					<paper-dropdown-menu
-							label="Price Type"
+							label="[[i18n.priceType]]"
 							on-selected-item-changed="checkRecureAlt"
 							onfocus="endDatePick.hide(); startDatePick.hide();">
 						<paper-listbox
@@ -324,7 +332,7 @@
 					<paper-input id="sizeAlt3"
 							class="size"
 							name="size"
-							label="Unit Size"
+							label="[[i18n.unitSize]]"
 							type="text"
 							allowed-pattern="[0-9bmg]"
 							pattern="^[0-9]+[bmg]$"
@@ -333,7 +341,7 @@
 							onfocus="endDatePick.hide(); startDatePick.hide();">
 					</paper-input>
 					<paper-dropdown-menu
-							label="Units">
+							label="[[i18n.unit]]">
 						<paper-listbox
 								id="addUnitDrop"
 								on-selected-item-changed="checkPatternAlt"
@@ -353,7 +361,7 @@
 					<paper-input id="amountAlt3"
 							class="amount"
 							name="amount"
-							label="Amount"
+							label="[[i18n.amount]]"
 							type="number"
 							value=0
 							onfocus="endDatePick.hide(); startDatePick.hide();">
@@ -361,11 +369,11 @@
 					<paper-input id="addAltCurr"
 							class="currency"
 							name="currency"
-							label="Currency"
+							label="[[i18n.currency]]"
 							onfocus="endDatePick.hide(); startDatePick.hide();">
 					</paper-input>
 					<paper-dropdown-menu id="addalt5drop"
-							label="Period"
+							label="[[i18n.period]]"
 							onfocus="endDatePick.hide(); startDatePick.hide();">
 						<paper-listbox
 								id="addaltPeriod"
@@ -391,12 +399,16 @@
 					<paper-button raised
 							class="add-button"
 							on-tap="addAlteration">
+							<i18n-msg msgid="add">
 								Add
+							<i18n-msg>
 					</paper-button>
 					<paper-button dialog-dismiss
 							class="cancel-button"
 							onclick="addProductModal.close()">
+							<i18n-msg msgid="cancel">
 								cancel
+							</i18n-msg>
 					</paper-button>
 				</div>
 			</div>
@@ -416,7 +428,7 @@
 					</paper-toast>
 				</div>
 			<paper-toast id="toast-successPrice">
-				<h2>Successfully Added</h2>
+				<h2>[[i18n.subToastSucPro]]</h2>
 			</paper-toast>
 		</paper-dialog>
 		<iron-ajax
