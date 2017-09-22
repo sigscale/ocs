@@ -169,10 +169,11 @@ subscriber(Config) ->
 	{ok, _} = ocs:add_subscriber("tomba", Password1, ProdID, [], Attribute1),
 	{ok, _} = ocs:add_subscriber("android", Password2, ProdID, [], Attribute2),
 	{ok, #subscriber{password = BinPassword1, attributes = Attribute1,
-			product = ProdID}} = ocs:find_subscriber("tomba"),
+			product = #product_instance{product = ProdID}}} = 
+			ocs:find_subscriber("tomba"),
 	Password1 = binary_to_list(BinPassword1),
 	{ok, #subscriber{password = BinPassword2, attributes = Attribute2,
-			product = ProdID}} = ocs:find_subscriber("android"),
+			product = #product_instance{product = ProdID}}} = ocs:find_subscriber("android"),
 	Password2 = binary_to_list(BinPassword2).
 
 delete_subscriber() ->
