@@ -396,11 +396,13 @@ existing_sessions(Subscriber) ->
 		{ok, #subscriber{session_attributes = []}} ->
 			false;
 		{ok, #subscriber{session_attributes = SessionAttr, enabled = true,
-				balance = Balance, multisession = MultiSessionStatus}}
-				when Balance > 0 ->
-			{true, MultiSessionStatus, SessionAttr};
-		{ok, #subscriber{balance = Balance}} when Balance == 0; Balance < 0 ->
-			{error, out_of_credit};
+				buckets = Buckets, multisession = MultiSessionStatus}} ->
+			case get_balance(Buckets) of
+				Balance when Balance > 0 ->
+					{true, MultiSessionStatus, SessionAttr};
+				Balance when Balance == 0; Balance < 0 ->
+					{error, out_of_credit}
+			end;
 		{ok, #subscriber{enabled = false}} ->
 			{error, disabled};
 		{error, _Reason} ->
@@ -504,3 +506,18 @@ start_disconnect(DiscFsmSup, ExistingSessionAtt, #statedata{client_address =
 			request5(Reason1, StateData)
 	end.
 
+-spec get_balance(Buckets) ->
+		Balance when
+	Buckets :: [#bucket{}],
+	Balance :: integer().
+%% get the availabel balance form buckets
+get_balance([]) ->
+	0;
+get_balance(Buckets) ->
+	get_balance1(Buckets, 0).
+%% @hidden
+get_balance1([], Balance) ->
+	Balance;
+get_balance1([#bucket{remain_amount = #remain_amount{amount = RemAmnt}}
+		| Tail], Balance) ->
+	get_balance1(Tail, RemAmnt + Balance).

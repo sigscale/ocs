@@ -50,7 +50,8 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
-	Config.
+	{ok, ProdID} = ocs_test_lib:add_product(),
+	[{product_id, ProdID} | Config].
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
@@ -158,30 +159,32 @@ delete_client(Config) ->
 subscriber() ->
 	[{userdata, [{doc, "Add subscriber to database"}]}].
 
-subscriber(_Config) ->
+subscriber(Config) ->
+	ProdID = ?config(product_id, Config),
 	Attribute0 = radius_attributes:new(),
 	Attribute1 = radius_attributes:add(?NasPortId, "wlan0", Attribute0),
 	Attribute2 = radius_attributes:add(?NasPortId, "wlan2", Attribute0),
 	Password1 = ocs:generate_password(),
 	Password2 = ocs:generate_password(),
-	{ok, _} = ocs:add_subscriber("tomba", Password1, Attribute1),
-	{ok, _} = ocs:add_subscriber("android", Password2, Attribute2),
-	{ok, #subscriber{password = BinPassword1, attributes = Attribute1}} =
-			ocs:find_subscriber("tomba"),
+	{ok, _} = ocs:add_subscriber("tomba", Password1, ProdID, [], Attribute1),
+	{ok, _} = ocs:add_subscriber("android", Password2, ProdID, [], Attribute2),
+	{ok, #subscriber{password = BinPassword1, attributes = Attribute1,
+			product = ProdID}} = ocs:find_subscriber("tomba"),
 	Password1 = binary_to_list(BinPassword1),
-	{ok, #subscriber{password = BinPassword2, attributes = Attribute2}} =
-			ocs:find_subscriber("android"),
+	{ok, #subscriber{password = BinPassword2, attributes = Attribute2,
+			product = ProdID}} = ocs:find_subscriber("android"),
 	Password2 = binary_to_list(BinPassword2).
 
 delete_subscriber() ->
 	[{userdata, [{doc, "Delete subscriber from the database"}]}].
 
-delete_subscriber(_Config) ->
+delete_subscriber(Config) ->
+	ProdID = ?config(product_id, Config),
 	Attribute0 = radius_attributes:new(),
 	Attribute = radius_attributes:add(?NasPortId,"wlan0", Attribute0),
 	Subscriber = "deleteandroid",
 	Password = ocs:generate_password(),
-	{ok, _} = ocs:add_subscriber(Subscriber, Password, Attribute),
+	{ok, _} = ocs:add_subscriber(Subscriber, Password, ProdID, [], Attribute),
 	{ok, _} = ocs:find_subscriber(Subscriber),
 	ok = ocs:delete_subscriber(Subscriber),
 	{error, _} = ocs:find_subscriber(Subscriber).
@@ -189,12 +192,13 @@ delete_subscriber(_Config) ->
 update_password() ->
 	[{userdata, [{doc, "Update subscriber password to database"}]}].
 
-update_password(_Config) ->
+update_password(Config) ->
+	ProdID = ?config(product_id, Config),
 	Attribute0 = radius_attributes:new(),
 	Attribute = radius_attributes:add(?NasPortId,"wlan0", Attribute0),
 	Subscriber = "android",
 	OldPassword = ocs:generate_password(),
-	{ok, _} = ocs:add_subscriber(Subscriber, OldPassword, Attribute),
+	{ok, _} = ocs:add_subscriber(Subscriber, OldPassword, ProdID, [], Attribute),
 	{ok, #subscriber{password = BinOldPassword, attributes = Attribute}} =
 			ocs:find_subscriber(Subscriber),
 	OldPassword = binary_to_list(BinOldPassword),
@@ -206,12 +210,13 @@ update_password(_Config) ->
 update_attributes() ->
 	[{userdata, [{doc, "Update subscriber attributes to database"}]}].
 
-update_attributes(_Config) ->
+update_attributes(Config) ->
+	ProdID = ?config(product_id, Config),
 	Password = ocs:generate_password(),
 	Username = "tomba1",
 	Attribute0 = radius_attributes:new(),
 	Attribute1 = radius_attributes:add(?NasPortId,"wlan0", Attribute0),
-	{ok, _} = ocs:add_subscriber(Username, Password, Attribute1),
+	{ok, _} = ocs:add_subscriber(Username, Password, ProdID, [], Attribute1),
 	{ok, #subscriber{attributes = Attribute1}} = ocs:find_subscriber(Username),
 	Attribute2 = radius_attributes:add(?NasPortId,"wlan1", Attribute0),
 	ok = ocs:update_attributes(Username, Attribute2),

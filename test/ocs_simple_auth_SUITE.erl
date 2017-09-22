@@ -34,6 +34,7 @@
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include_lib("../include/diameter_gen_nas_application_rfc7155.hrl").
 -include("ocs_eap_codec.hrl").
+-include("ocs.hrl").
 
 -define(SVC, diameter_client_service).
 -define(BASE_APPLICATION_ID, 0).
@@ -59,6 +60,7 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
+	{ok, ProdID} = ocs_test_lib:add_product(),
 	{ok, [{auth, DiaAuthInstance}, {acct, _}]} = application:get_env(ocs, diameter),
 	[{Address, Port, _}] = DiaAuthInstance,
 	true = diameter:subscribe(?SVC),
@@ -66,7 +68,7 @@ init_per_suite(Config) ->
 	{ok, _Ref} = connect(?SVC, Address, Port, diameter_tcp),
 	receive
 		#diameter_event{service = ?SVC, info = start} ->
-			[{diameter_client, Address}] ++ Config;
+			[{product_id, ProdID}, {diameter_client, Address}] ++ Config;
 		_ ->
 			{skip, diameter_client_service_not_started}
 	end.
@@ -92,7 +94,11 @@ init_per_testcase(TestCase, Config) when
 	[{Address, Port, _}] = AuthInstance,
 	Secret = "s3cr3t",
 	ok = ocs:add_client(Address, Port, diameter, Secret),
-	{ok, _} = ocs:add_subscriber(UserName, Password, [], 1000000),
+	Amount = 1000000,
+	RemAmnt = #remain_amount{unit = octects, amount = Amount},
+	Buckets = [#bucket{id = "0", name = "default", remain_amount = RemAmnt}],
+	ProdID = ?config(product_id, Config),
+	{ok, _} = ocs:add_subscriber(UserName, Password, ProdID, Buckets, []),
 	[{username, UserName}, {password, Password}] ++ Config;
 init_per_testcase(_TestCase, Config) ->
 	NasId = atom_to_list(node()),
@@ -144,13 +150,17 @@ simple_authentication_radius() ->
 simple_authentication_radius(Config) ->
 	Id = 1,
 	NasId = ?config(nas_id, Config),
+	ProdID = ?config(product_id, Config),
 	CalledStationId = ?config(called_id, Config),
 	MAC = "DD:EE:DD:EE:BB:AA",
 	MACtokens = string:tokens(MAC, ":"),
 	CallingStationId = string:join(MACtokens, "-"),
 	PeerID = string:to_lower(lists:append(MACtokens)),
 	PeerPassword = ocs:generate_password(),
-	{ok, _} = ocs:add_subscriber(PeerID, PeerPassword, [], 10000),
+	Amount = 1000000,
+	RemAmnt = #remain_amount{unit = octects, amount = Amount},
+	Buckets = [#bucket{id = "0", name = "default", remain_amount = RemAmnt}],
+	{ok, _} = ocs:add_subscriber(PeerID, PeerPassword, ProdID, Buckets, []),
 	Authenticator = radius:authenticator(),
 	SharedSecret = ct:get_config(radius_shared_secret),
 	UserPassword = radius_attributes:hide(SharedSecret, Authenticator, PeerPassword),	
@@ -202,13 +212,14 @@ out_of_credit_radius() ->
 out_of_credit_radius(Config) ->
 	Id = 2,
 	NasId = ?config(nas_id, Config),
+	ProdID = ?config(product_id, Config),
 	CalledStationId = ?config(called_id, Config),
 	MAC = "DD:EE:DD:EE:CC:BB",
 	MACtokens = string:tokens(MAC, ":"),
 	CallingStationId = string:join(MACtokens, "-"),
 	PeerID = string:to_lower(lists:append(MACtokens)),
 	PeerPassword = ocs:generate_password(),
-	{ok, _} = ocs:add_subscriber(PeerID, PeerPassword, []),
+	{ok, _} = ocs:add_subscriber(PeerID, PeerPassword, ProdID),
 	Authenticator = radius:authenticator(),
 	SharedSecret = ct:get_config(radius_shared_secret),
 	UserPassword = radius_attributes:hide(SharedSecret, Authenticator, PeerPassword),	
@@ -238,10 +249,11 @@ out_of_credit_radius(Config) ->
 out_of_credit_diameter() ->
 	[{userdata, [{doc, "Diameter authentication failure when subscriber has a balance less than 0"}]}].
 
-out_of_credit_diameter(_Config) ->
+out_of_credit_diameter(Config) ->
 	Username = "Axl Rose",
 	Password = "Guns&Roses",
-	{ok, _} = ocs:add_subscriber(Username, Password, []),
+	ProdID = ?config(product_id, Config),
+	{ok, _} = ocs:add_subscriber(Username, Password, ProdID),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	NAS_AAR = #diameter_nas_app_AAR{'Session-Id' = SId,
@@ -265,12 +277,16 @@ bad_password_radius(Config) ->
 	Id = 2,
 	NasId = ?config(nas_id, Config),
 	CalledStationId = ?config(called_id, Config),
+	ProdID = ?config(product_id, Config),
 	MAC = "DD:EE:DD:EE:DD:CC",
 	MACtokens = string:tokens(MAC, ":"),
 	CallingStationId = string:join(MACtokens, "-"),
 	PeerID = string:to_lower(lists:append(MACtokens)),
 	PeerPassword = ocs:generate_password(),
-	{ok, _} = ocs:add_subscriber(PeerID, PeerPassword, [], 1000),
+	Amount = 1000000,
+	RemAmnt = #remain_amount{unit = octects, amount = Amount},
+	Buckets = [#bucket{id = "0", name = "default", remain_amount = RemAmnt}],
+	{ok, _} = ocs:add_subscriber(PeerID, PeerPassword, ProdID, Buckets, []),
 	Authenticator = radius:authenticator(),
 	SharedSecret = ct:get_config(radius_shared_secret),
 	BoguesPassowrd = radius_attributes:hide(SharedSecret, Authenticator, "bogus"),	
@@ -326,12 +342,16 @@ unknown_username_radius(Config) ->
 	Id = 3,
 	NasId = ?config(nas_id, Config),
 	CalledStationId = ?config(called_id, Config),
+	ProdID = ?config(product_id, Config),
 	MAC = "DD:EE:DD:EE:DD:CC",
 	MACtokens = string:tokens(MAC, ":"),
 	CallingStationId = string:join(MACtokens, "-"),
 	PeerID = string:to_lower(lists:append(MACtokens)),
 	PeerPassword = ocs:generate_password(),
-	{ok, _} = ocs:add_subscriber(PeerID, PeerPassword, [], 1000),
+	Amount = 1000000,
+	RemAmnt = #remain_amount{unit = octects, amount = Amount},
+	Buckets = [#bucket{id = "0", name = "default", remain_amount = RemAmnt}],
+	{ok, _} = ocs:add_subscriber(PeerID, PeerPassword, ProdID, Buckets, []),
 	Authenticator = radius:authenticator(),
 	SharedSecret = ct:get_config(radius_shared_secret),
 	UserPassword = radius_attributes:hide(SharedSecret, Authenticator, PeerPassword),	

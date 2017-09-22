@@ -483,8 +483,88 @@
     "description": "sorting",
     "message": "Clasificación"
   },
+	"credit": {
+    "description": "Balance management",
+    "message": "Crédito"
+  },
+	"amount": {
+    "description": "Balance amount",
+    "message": "Cantidad"
+  },
+   "unit": {
+    "description": "Balance units",
+    "message": "Unidades"
+  },
+	"octet": {
+    "description": "unit types",
+    "message": "octetos"
+  },
+	"cent": {
+    "description": "unit types",
+    "message": "centavos"
+  },
+	"second": {
+    "description": "unit types",
+    "message": "segundos"
+  },
+	"prod": {
+    "description": "Balance types",
+    "message": "producto"
+  },
+	"add": {
+    "description": "Balance add",
+    "message": "AÑADIR"
+  },
 	"multi": {
     "description": "Multi session allowed",
     "message": "Sesión múltiple"
+  },
+	"offer": {
+    "description": "Offer Prices",
+    "message": "Ofrecimiento"
+  },
+	"prices": {
+    "description": "Offer product Prices",
+    "message": "Precios"
+  },
+	"alter": {
+    "description": "Offer product Prices alterations",
+    "message": "Alteraciones"
+  },
+	"name": {
+    "description": "Offer product name",
+    "message": "Nombre"
+  },
+	"des": {
+    "description": "Offer product description",
+    "message": "Descripción"
+  },
+	"start": {
+    "description": "Offer product startDate",
+    "message": "Fecha de inicio"
+  },
+	"end": {
+    "description": "Offer product endDate",
+    "message": "Fecha final"
+  },
+	"priceType": {
+    "description": "Offer product price type",
+    "message": "Tipo de precio"
+  },
+	"unitSize": {
+    "description": "Offer product unit size",
+    "message": "Tamaño de la unidad"
+  },
+	"currency": {
+    "description": "Offer product currency",
+    "message": "Moneda"
+  },
+	"period": {
+    "description": "Offer product period",
+    "message": "Período"
+  },
+	"subToastSucPro": {
+    "description": "Toast message for success for product",
+    "message": "Agregado exitosamente"
   }
 }

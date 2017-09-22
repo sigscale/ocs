@@ -50,10 +50,10 @@ content_types_provided() ->
 get_balance(Identity) ->
 	try
 		case ocs:find_subscriber(Identity) of
-			{ok, #subscriber{balance = Balance, enabled = true}} ->
-				get_balance1(Identity, Balance, "active");
-			{ok, #subscriber{balance = Balance, enabled = false}} ->
-				get_balance1(Identity, Balance, "disable");
+			{ok, #subscriber{buckets = Buckets, enabled = true}} ->
+				get_balance1(Identity, Buckets, "active");
+			{ok, #subscriber{buckets = Buckets, enabled = false}} ->
+				get_balance1(Identity, Buckets, "disable");
 			{error, _Reason} ->
 				{error, 500}
 		end
@@ -62,13 +62,12 @@ get_balance(Identity) ->
 			{error, 400}
 	end.
 %% @hidden
-get_balance1(Identity, Balance, ActStatus) ->
+get_balance1(Identity, Buckets, ActStatus) ->
 	Id = {"id", Identity},
 	Href = {"href", "/balanceManagement/v1/buckets/" ++ Identity},
-	BucketType = {"bucketType", "octects"},
-	Amount = {"amount", Balance},
-	Units = {"units", "octect"},
-	RemAmount = {"remainedAmount", {struct, [Amount, Units]}},
+	BucketType = {bucketType, ""},
+	Balance = accumulated_balance(Buckets),
+	RemAmount = {"remainedAmount", Balance},
 	Status = {"status", ActStatus},
 	Object = [Id, Href, BucketType, RemAmount, Status],
 	Json = {struct, Object},
@@ -86,25 +85,28 @@ get_balance1(Identity, Balance, ActStatus) ->
 top_up(Identity, RequestBody) ->
 	try
 		{struct, Object} = mochijson:decode(RequestBody),
-		{_, "buckettype"} = lists:keyfind("type", 1, Object),
+		{_, _} = lists:keyfind("type", 1, Object),
 		{_, {struct, Channel}} = lists:keyfind("channel", 1, Object),
-		{_, "POS"} = lists:keyfind("name", 1, Channel),
+		{_, _} = lists:keyfind("name", 1, Channel),
 		{_, {struct, AmountObj}} = lists:keyfind("amount", 1, Object),
-		{_, "octect"} = lists:keyfind("units", 1, AmountObj),
+		{_, Units} = lists:keyfind("units", 1, AmountObj),
 		{_, Amount} = lists:keyfind("amount", 1, AmountObj),
-		top_up1(Identity, Amount)
+		BucketType = bucket_type(Units),
+		Bucket = #bucket{bucket_type = BucketType, remain_amount =
+				#remain_amount{amount = Amount, unit = Units}},
+		top_up1(Identity, Bucket)
 	catch
 		_Error ->
 			{error, 400}
 	end.
 %% @hidden
-top_up1(Identity, Amount) ->
+top_up1(Identity, Bucket) ->
 	F = fun()->
 		case mnesia:read(subscriber, list_to_binary(Identity), read) of
 			[] ->
 				not_found;
-			[#subscriber{balance = CrntBal, last_modified = LM} = User] ->
-				mnesia:write(User#subscriber{balance = CrntBal + Amount}),
+			[#subscriber{buckets = CrntBuckets, last_modified = LM} = User] ->
+				mnesia:write(User#subscriber{buckets = CrntBuckets ++ [Bucket]}),
 				LM
 		end
 	end,
@@ -139,4 +141,67 @@ etag(V) when is_list(V) ->
 etag(V) when is_tuple(V) ->
 	{TS, N} = V,
 	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
+
+-spec accumulated_balance(Buckets) ->	AccumulatedBalance
+	when
+		Buckets					:: [#bucket{}],
+		AccumulatedBalance	:: tuple().
+%% @doc return accumulated buckets as a json object.
+accumulated_balance([]) ->
+	[];
+accumulated_balance(Buckets) ->
+	accumulated_balance1(Buckets, []).
+%% @hidden
+accumulated_balance1([], AccBalance) ->
+	F = fun({octets, {U1, A1}}, AccIn) ->
+				Obj = {struct, [{"amount", A1}, {"units", U1}]},
+				[Obj | AccIn];
+			({cents, {U2, A2}}, AccIn) ->
+				Obj = {struct, [{"amount", A2}, {"units", U2}]},
+				[Obj | AccIn];
+			({seconds, {U3, A3}}, AccIn) ->
+				Obj = {struct, [{"amount", A3}, {"units", U3}]},
+				[Obj | AccIn]
+	end,
+	JsonArray = lists:reverse(lists:foldl(F, [], AccBalance)),
+	{array, JsonArray};
+accumulated_balance1([Bucket | T], AccBalance) ->
+	accumulated_balance1(T, accumulated_balance2(Bucket, AccBalance)).
+%% @hidden
+accumulated_balance2(#bucket{bucket_type = octets, remain_amount =
+		#remain_amount{unit = Units, amount = Amount}}, AccBalance) ->
+	accumulated_balance3(octets, Units, Amount, AccBalance);
+accumulated_balance2(#bucket{bucket_type = cents, remain_amount =
+		#remain_amount{unit = Units, amount = Amount}}, AccBalance) ->
+	accumulated_balance3(cents, Units, Amount, AccBalance);
+accumulated_balance2(#bucket{bucket_type = seconds, remain_amount =
+		#remain_amount{unit = Units, amount = Amount}}, AccBalance) ->
+	accumulated_balance3(seconds, Units, Amount, AccBalance).
+%accumulated_balance2([], AccBalance) ->
+%	AccBalance.
+%% @hidden
+accumulated_balance3(Key, Units, Amount, AccBalance) ->
+	case lists:keytake(Key, 1, AccBalance) of
+		{value, {Key, {Units, Balance}}, Rest} ->
+			[{Key, {Units, Amount + Balance}} | Rest];
+		false ->
+			[{Key, {Units, Amount}} | AccBalance]
+	end.
+
+-spec bucket_type(SBucketType) -> BucketType
+	when
+		SBucketType	:: string() | octets | cents | seconds,
+		BucketType	:: octets | cents | seconds | string().
+%% @doc return the bucket type.
+bucket_type(BucketType) when is_list(BucketType) ->
+	bucket_type1(string:to_lower(BucketType));
+bucket_type(BucketType) when is_atom(BucketType) ->
+	bucket_type1(BucketType).
+%% @hidden
+bucket_type1("octets") -> octets;
+bucket_type1("cents") -> cents;
+bucket_type1("seconds") -> seconds;
+bucket_type1(octets) -> "octets";
+bucket_type1(cents) -> "cents";
+bucket_type1(seconds) -> "seconds".
 

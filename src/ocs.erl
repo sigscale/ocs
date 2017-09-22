@@ -23,9 +23,10 @@
 %% export the ocs public API
 -export([add_client/2, add_client/4, find_client/1, update_client/2,
 		update_client/3, get_clients/0, delete_client/1]).
--export([add_subscriber/3, add_subscriber/4, add_subscriber/6,
-		find_subscriber/1, delete_subscriber/1, update_password/2,
-		update_attributes/2, update_attributes/5, get_subscribers/0]).
+-export([add_subscriber/3, add_subscriber/4, add_subscriber/5,
+		add_subscriber/7, find_subscriber/1, delete_subscriber/1,
+		update_password/2, update_attributes/2, update_attributes/5,
+		get_subscribers/0]).
 -export([add_user/3, list_users/0, get_user/1, delete_user/1]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
@@ -33,6 +34,7 @@
 -export([authorize/2, normalize/1]).
 
 -export_type([eap_method/0]).
+-export([bucket_balance/1]).
 
 -include("ocs.hrl").
 -include_lib("inets/include/mod_auth.hrl").
@@ -218,36 +220,50 @@ delete_client(Client) when is_tuple(Client) ->
 			exit(Reason)
 	end.
 
--spec add_subscriber(Identity, Password, Attributes) -> Result
+-spec add_subscriber(Identity, Password, Product) -> Result
 	when
 		Identity :: string() | binary(),
 		Password :: string() | binary(),
-		Attributes :: radius_attributes:attributes() | binary(),
+		Product :: string() | #product_instance{},
 		Result :: {ok, #subscriber{}} | {error, Reason},
 		Reason :: term().
-%% @equiv add_subscriber(Identity, Password, Attributes, 0, true, false)
-add_subscriber(Identity, Password, Attributes) ->
-	add_subscriber(Identity, Password, Attributes, 0, true, false).
+%% @equiv add_subscriber(Identity, Password, Product, [], [], true, false)
+add_subscriber(Identity, Password, Product) ->
+	add_subscriber(Identity, Password, Product, [], [], true, false).
 
--spec add_subscriber(Identity, Password, Attributes, Balance) -> Result
+-spec add_subscriber(Identity, Password, Product, Buckets) -> Result
 	when 
 		Identity :: string() | binary(),
 		Password :: string() | binary(),
-		Attributes :: radius_attributes:attributes() | binary(),
-		Balance :: non_neg_integer(),
+		Product :: string() | #product_instance{},
+		Buckets :: [#bucket{}],
 		Result :: {ok, #subscriber{}} | {error, Reason},
 		Reason :: term().
-%% @equiv add_subscriber(Identity, Password, Attributes, Balance, true, false)
-add_subscriber(Identity, Password, Attributes, Balance) ->
-	add_subscriber(Identity, Password, Attributes, Balance, true, false).
+%% @equiv add_subscriber(Identity, Password, Product, Buckets, [], true, false)
+add_subscriber(Identity, Password, Product, Buckets) ->
+	add_subscriber(Identity, Password, Product, Buckets, [], true, false).
 
--spec add_subscriber(Identity, Password, Attributes, Balance, EnabledStatus,
-		MultiSessions) -> Result
+-spec add_subscriber(Identity, Password, Product, Buckets, Attributes) -> Result
 	when 
+		Identity :: string() | binary(),
+		Password :: string() | binary(),
+		Product :: string() | #product_instance{},
+		Buckets :: [#bucket{}],
+		Attributes :: radius_attributes:attributes() | binary(),
+		Result :: {ok, #subscriber{}} | {error, Reason},
+		Reason :: term().
+%% @equiv add_subscriber(Identity, Password, Product, Buckets, Attributes, true, false)
+add_subscriber(Identity, Password, Product, Buckets, Attributes) ->
+	add_subscriber(Identity, Password, Product, Buckets, Attributes, true, false).
+
+-spec add_subscriber(Identity, Password, Product,
+		Buckets, Attributes, EnabledStatus, MultiSessions) -> Result
+	when
 		Identity :: string() | binary() | undefined,
 		Password :: string() | binary() | undefined,
+		Product :: string() | #product_instance{},
+		Buckets :: [#bucket{}] | undefined,
 		Attributes :: radius_attributes:attributes() | binary(),
-		Balance :: non_neg_integer() | undefined,
 		EnabledStatus :: boolean() | undefined,
 		MultiSessions :: boolean() | undefined,
 		Result :: {ok, #subscriber{}} | {error, Reason},
@@ -258,48 +274,57 @@ add_subscriber(Identity, Password, Attributes, Balance) ->
 %% 	RADIUS `Attributes', to be returned in an `AccessRequest' response,
 %% 	may be provided.  These attributes will overide any default values.
 %%
-%% 	An initial account `Balance' value, `Enabled' status and `MultiSessions'
-%% 	status may be provided.
+%% 	An initial account `Bucket', `Product' key for product reference
+%%		`Enabled' status and `MultiSessions' status may be provided.
 %%
-add_subscriber(Identity, Password, Attributes, Balance, EnabledStatus, undefined) ->
-	add_subscriber(Identity, Password, Attributes, Balance, EnabledStatus, false);
-add_subscriber(Identity, Password, Attributes, Balance, undefined, MSessions) ->
-	add_subscriber(Identity, Password, Attributes, Balance, true, MSessions);
-add_subscriber(Identity, Password, Attributes, undefined, EnabledStatus, MSessions) ->
-	add_subscriber(Identity, Password, Attributes, 0, EnabledStatus, MSessions);
-add_subscriber(Identity, Password, undefined, Balance, EnabledStatus, MSessions) ->
-	add_subscriber(Identity, Password, [], Balance, EnabledStatus, MSessions);
-add_subscriber(Identity, undefined, Attributes, Balance, EnabledStatus, MSessions) ->
+add_subscriber(Identity, Password, Product, Buckets, Attributes, EnabledStatus, undefined) ->
+	add_subscriber(Identity, Password, Product, Buckets, Attributes, EnabledStatus, false);
+add_subscriber(Identity, Password, Product, Buckets, Attributes, undefined, MultiSession) ->
+	add_subscriber(Identity, Password, Product, Buckets, Attributes, true, MultiSession);
+add_subscriber(Identity, Password, Product, Buckets, undefined, EnabledStatus, MultiSession) ->
+	add_subscriber(Identity, Password, Product, Buckets, [], EnabledStatus, MultiSession);
+add_subscriber(Identity, Password, Product, undefined, Product, EnabledStatus, MultiSession) ->
+	add_subscriber(Identity, Password, Product, [], Product, EnabledStatus, MultiSession);
+add_subscriber(Identity, Password, undefined, Buckets, Attributes, EnabledStatus, MultiSession) ->
+	add_subscriber(Identity, Password, "", Buckets, Attributes, EnabledStatus, MultiSession);
+add_subscriber(Identity, undefined, Product, Buckets, Attributes, EnabledStatus, MultiSession) ->
 	add_subscriber(Identity, ocs:generate_password(),
-			Attributes, Balance, EnabledStatus, MSessions);
-add_subscriber(Identity, Password, Attributes, Balance, EnabledStatus, MSessions)
+			Product, Buckets, Attributes, EnabledStatus, MultiSession);
+add_subscriber(Identity, Password, Product, Buckets, Attributes, EnabledStatus, MultiSession)
 		when is_list(Identity) ->
-	add_subscriber(list_to_binary(Identity), Password, Attributes, Balance,
-			EnabledStatus, MSessions);
-add_subscriber(Identity, Password, Attributes, Balance, EnabledStatus, MSessions)
+	add_subscriber(list_to_binary(Identity), Password, Product, Buckets,
+			Attributes, EnabledStatus, MultiSession);
+add_subscriber(Identity, Password, Product, Buckets, Attributes, EnabledStatus, MultiSession)
 		when is_list(Password) ->
-	add_subscriber(Identity, list_to_binary(Password), Attributes, Balance,
-			EnabledStatus, MSessions);
-add_subscriber(undefined, Password, Attributes, Balance, EnabledStatus, MSessions)
-		when is_binary(Password), is_list(Attributes), is_integer(Balance),
-		Balance >= 0, is_boolean(EnabledStatus), is_boolean(MSessions) ->
+	add_subscriber(Identity, list_to_binary(Password), Product, Buckets,
+			Attributes, EnabledStatus, MultiSession);
+add_subscriber(undefined, Password, Product, Buckets, Attributes, EnabledStatus, MultiSession)
+		when is_binary(Password), is_list(Product), is_list(Buckets), is_list(Attributes),
+		is_boolean(EnabledStatus), is_boolean(MultiSession) ->
 	F2 = fun() ->
-				F1 = fun(_, _, 0) ->
-							mnesia:abort(retries);
-						(F, Identity, N) ->
-							case mnesia:read(subscriber, Identity, read) of
-								[] ->
-									S = #subscriber{name = Identity,
-											password = Password, attributes = Attributes,
-											balance = Balance, enabled = EnabledStatus,
-											multisession = MSessions},
-									ok = mnesia:write(S),
-									S;
-								[_] ->
-									F(F, list_to_binary(generate_identity()), N - 1)
-							end
-				end,
-				F1(F1, list_to_binary(generate_identity()), 5)
+				case mnesia:read(product, Product, read) of
+					[#product{start_date = SD, termination_date = TD, status = Status }] ->
+						F1 = fun(_, _, 0) ->
+									mnesia:abort(retries);
+								(F, Identity, N) ->
+									case mnesia:read(subscriber, Identity, read) of
+										[] ->
+											P = #product_instance{start_date = SD,
+													termination_date = TD, status = Status, product = Product},
+											S = #subscriber{name = Identity,
+													password = Password, attributes = Attributes,
+													buckets = Buckets, enabled = EnabledStatus,
+													multisession = MultiSession, product = P},
+											ok = mnesia:write(S),
+											S;
+										[_] ->
+											F(F, list_to_binary(generate_identity()), N - 1)
+									end
+						end,
+						F1(F1, list_to_binary(generate_identity()), 5);
+					[] ->
+						throw(product_not_found)
+				end
 	end,
 	case mnesia:transaction(F2) of
 		{atomic, Subscriber} ->
@@ -307,16 +332,22 @@ add_subscriber(undefined, Password, Attributes, Balance, EnabledStatus, MSession
 		{aborted, Reason} ->
 			{error, Reason}
 	end;
-add_subscriber(Identity, Password, Attributes, Balance, EnabledStatus, MSessions)
-		when is_binary(Identity), is_binary(Password), is_list(Attributes),
-		is_integer(Balance), Balance >= 0, is_boolean(EnabledStatus),
-		is_boolean(MSessions) ->
+add_subscriber(Identity, Password, Product, Buckets, Attributes, EnabledStatus, MultiSession)
+		when is_binary(Identity), is_binary(Password), is_list(Product),
+		is_list(Buckets), is_list(Attributes), is_boolean(EnabledStatus), is_boolean(MultiSession) ->
 	F1 = fun() ->
-				S = #subscriber{name = Identity, password = Password,
-						attributes = Attributes, balance = Balance,
-						enabled = EnabledStatus, multisession = MSessions},
-				ok = mnesia:write(S),
-				S
+				case mnesia:read(product, Product, read) of
+					[#product{start_date = SD, termination_date = TD, status = Status }] ->
+						P = #product_instance{start_date = SD,
+							termination_date = TD, status = Status, product = Product},
+						S = #subscriber{name = Identity, password = Password,
+								attributes = Attributes, buckets = Buckets, product = P,
+								enabled = EnabledStatus, multisession = MultiSession},
+						ok = mnesia:write(S),
+						S;
+					[] ->
+						throw(product_not_found)
+				end
 	end,
 	case mnesia:transaction(F1) of
 		{atomic, Subscriber} ->
@@ -450,11 +481,11 @@ update_attributes(Identity, Attributes)
 			{error, Reason}
 	end.
 
--spec update_attributes(Identity, Balance, Attributes, EnabledStatus,
+-spec update_attributes(Identity, Buckets, Attributes, EnabledStatus,
 		MultiSessions) -> Result
 	when
 		Identity :: string() | binary(),
-		Balance :: pos_integer(),
+		Buckets :: [#bucket{}],
 		Attributes :: radius_attributes:attributes(),
 		EnabledStatus :: boolean(),
 		MultiSessions :: boolean(),
@@ -462,19 +493,19 @@ update_attributes(Identity, Attributes)
 		Reason :: not_found | term().
 %% @doc Update subscriber attributes.
 %%
-update_attributes(Identity, Balance, Attributes, EnabledStatus, MSessions)
-		when is_list(Identity), is_number(Balance), is_boolean(EnabledStatus),
-		is_boolean(MSessions) ->
-	update_attributes(list_to_binary(Identity), Balance, Attributes,
-		EnabledStatus, MSessions);
-update_attributes(Identity, Balance, Attributes, EnabledStatus, MSessions)
+update_attributes(Identity, Buckets, Attributes, EnabledStatus, MultiSession)
+		when is_list(Identity), is_list(Buckets), is_boolean(EnabledStatus),
+		is_boolean(MultiSession) ->
+	update_attributes(list_to_binary(Identity), Buckets, Attributes,
+		EnabledStatus, MultiSession);
+update_attributes(Identity, Buckets, Attributes, EnabledStatus, MultiSession)
 		when is_binary(Identity), is_list(Attributes) ->
 	F = fun() ->
 				case mnesia:read(subscriber, Identity, write) of
 					[Entry] ->
 						NewEntry = Entry#subscriber{attributes = Attributes,
-							balance = Balance, enabled = EnabledStatus,
-							multisession = MSessions},
+							buckets = Buckets, enabled = EnabledStatus,
+							multisession = MultiSession},
 						mnesia:write(subscriber, NewEntry, write);
 					[] ->
 						throw(not_found)
@@ -676,8 +707,8 @@ charset() ->
 %% @doc Authorize a subscriber based on `enabled' and `balance' fields.
 %%
 %% 	If the subscriber `enabled' field true and have sufficient `balance'
-%%		set disconnect field to false and return `password' and `attributes'
-%%		or return the error reason.
+%%		in `remainAmount' [set disconnect field to false and return `password'
+%%		and `attributes' or return the error reason.
 %% @private
 authorize(Identity, Password) when is_list(Identity) ->
 	authorize(list_to_binary(Identity), Password);
@@ -687,37 +718,35 @@ authorize(Identity, Password) when is_binary(Identity),
 		is_binary(Password) ->
 	F= fun() ->
 				case mnesia:read(subscriber, Identity, write) of
-					[#subscriber{password = Password, attributes = Attributes,
-							enabled = true, disconnect = false} =
-							Entry ] when Entry#subscriber.balance > 0 ->
-						{Password, Attributes};
-					[#subscriber{password = Password, attributes = Attributes,
-							enabled = true, disconnect = true} =
-							Entry] when Entry#subscriber.balance > 0 ->
-						NewEntry = Entry#subscriber{disconnect = false},
-						mnesia:write(subscriber, NewEntry, write),
-						{Password, Attributes};
-					[#subscriber{password = MTPassword, attributes = Attributes,
-							enabled = true, disconnect = false} = Entry ] when
-								Entry#subscriber.balance > 0,
-								Password == <<>>,
-								MTPassword =/= Password ->
-						{MTPassword, Attributes};
-					[#subscriber{password = MTPassword, attributes = Attributes,
-							enabled = true, disconnect = true} = Entry] when
-								Entry#subscriber.balance > 0,
-								Password == <<>>,
-								MTPassword =/= Password ->
-						NewEntry = Entry#subscriber{disconnect = false},
-						mnesia:write(subscriber, NewEntry, write),
-						{MTPassword, Attributes};
-					[#subscriber{password = Password, enabled = false}] ->
-						throw(disabled);
-					[#subscriber{password = Password} = Entry] when
-							Entry#subscriber.balance =< 0 ->
-						throw(out_of_credit);
-					[#subscriber{}] ->
-						throw(bad_password);
+					[#subscriber{buckets = Buckets, attributes = Attributes,
+							enabled = Enabled, disconnect = Disconnect} = Entry] ->
+						case bucket_balance(Buckets) of
+							Balance when Balance > 0 ->
+								case {Enabled, Disconnect, Entry#subscriber.password} of
+									{true, false, Password} ->
+										{Password, Attributes};
+									{true, true, Password} ->
+										NewEntry = Entry#subscriber{disconnect = false},
+										mnesia:write(subscriber, NewEntry, write),
+										{Password, Attributes};
+									{true, false, MTPassword} when
+											Password == <<>>,
+											MTPassword =/= Password ->
+										{MTPassword, Attributes};
+									{true, true, MTPassword} when
+											Password == <<>>,
+											MTPassword =/= Password ->
+										NewEntry = Entry#subscriber{disconnect = false},
+										mnesia:write(subscriber, NewEntry, write),
+										{MTPassword, Attributes};
+									{false, _, Password} ->
+										throw(disabled);
+									{_, _, _} ->
+										throw(bad_password)
+								end;
+							Balance when Balance =< 0 ->
+								throw(out_of_credit)
+						end;
 					[] ->
 						throw(not_found)
 				end
@@ -778,4 +807,18 @@ get_params() ->
 		false ->
 			exit(not_found)
 	end.
+
+-spec bucket_balance(Buckets) ->
+		Balance when
+	Buckets :: [#bucket{}],
+	Balance :: integer().
+%% @doc return oldest availabel amount
+bucket_balance([]) ->
+	0;
+bucket_balance([#bucket{remain_amount = RemAmount} | _]) 
+		when RemAmount#remain_amount.amount > 0 ->
+	RemAmount#remain_amount.amount;
+bucket_balance([#bucket{remain_amount = RemAmount} | Tail])
+		when RemAmount#remain_amount.amount =< 0 ->
+	bucket_balance(Tail).
 

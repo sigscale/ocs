@@ -69,15 +69,25 @@
 				</template>
 				<template>[[item.password]]</template>
 			</vaadin-grid-column>
+			<vaadin-grid-column width="8ex" flex-grow="5">
+            <template class="header">
+                  <vaadin-grid-sorter path="product">
+                     <vaadin-grid-filter aria-label="Product" path="product" value="[[_filterBalance]]">
+                        <input placeholder="Product" value="{{_filterBalance::input}}" focus-target>
+                     </vaadin-grid-filter>
+                  </vaadin-grid-sorter>
+            </template>
+            <template>[[item.product]]</template>
+         </vaadin-grid-column>
 			<vaadin-grid-column width="12ex" flex-grow="2">
 				<template class="header">
-						<vaadin-grid-sorter path="balance">
-							<vaadin-grid-filter aria-label="[[i18n.balance]]" path="balance" value="[[_filterBalance]]">
+						<vaadin-grid-sorter path="totalBalance">
+							<vaadin-grid-filter aria-label="[[i18n.balance]]" path="totalBalance" value="[[_filterBalance]]">
 								<input placeholder="[[i18n.balance]]" value="{{_filterBalance::input}}" focus-target>
 							</vaadin-grid-filter>
 						</vaadin-grid-sorter>
 				</template>
-				<template>[[item.balance]]</template>
+				<template>[[item.totalBalance]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="9ex" flex-grow="2">
 				<template class="header">
@@ -161,6 +171,7 @@
 		</iron-ajax>
 	</template>
 	<script>
+		var cbSub;
 		Polymer ({
 			is: 'sig-sub-list',
 			behaviors: [i18nMsgBehavior],
@@ -185,7 +196,10 @@
 							name: "password"
 						},
 						{
-							name: "balance"
+							name: "product"
+						},
+						{
+							name: "totalBalance"
 						},
 						{
 							name: "ascendDataRate"
@@ -210,9 +224,8 @@
 						}
 					];
 					grid.dataProvider = function(params, callback) {
-						var ajax = document.getElementById("getSubs");
 						cbSub = callback;
-						ajax.url="/ocs/v1/subscriber"
+						var ajax = document.getElementById("getSubs");
 						params.filters.forEach(function(filter, index) {
 							if(index == 0) {
 								ajax.url += '?'+ filter.path + '=' + filter.value;
@@ -239,58 +252,72 @@
 						});
 						ajax.generateRequest();
 					};
-				}
-			},
-			_activeItemChanged: function(item) {
-				if (item != null){
+					}
+				},
+				_activeItemChanged: function(item) {
+					if (item != null){
+						var grid = this.$.subscriberGrid;
+						grid.selectedItems = item ? [item] : [];
+						var modal = document.getElementById("subUpdateModal");
+						modal.open();
+						document.getElementById("edit-id1").value = item.id;
+						document.getElementById("edit-pwd").value = item.password;
+						document.getElementById("edit-bal").value = item.totalBalance;
+						document.getElementById("edit-recv-data-rate").value = item.ascendDataRate;
+						document.getElementById("edit-trans-data-rate").value = item.ascendXmitRate;
+						document.getElementById("edit-sess-timeout").value = item.sessionTimeout;
+						document.getElementById("edit-update-interval").value = item.acctInterimInterval;
+						document.getElementById("edit-class").value =  item.class;
+						document.getElementById("edit-enabled").checked =  item.enabled;
+						document.getElementById("edit-multi-session").checked =  item.multisession;
+					}
+				},
+				responseHandler: function(event) {
 					var grid = this.$.subscriberGrid;
-					grid.selectedItems = item ? [item] : [];
-					var modal = document.getElementById("subUpdateModal");
-					modal.open();
-					document.getElementById("edit-id1").value = item.id;
-					document.getElementById("edit-pwd").value = item.password;
-					document.getElementById("edit-balance").value = item.balance;
-					document.getElementById("edit-recv-data-rate").value = item.ascendDataRate;
-					document.getElementById("edit-trans-data-rate").value = item.ascendXmitRate;
-					document.getElementById("edit-sess-timeout").value = item.sessionTimeout;
-					document.getElementById("edit-update-interval").value = item.acctInterimInterval;
-					document.getElementById("edit-class").value =  item.class;
-					document.getElementById("edit-enabled").checked =  item.enabled;
-					document.getElementById("edit-multi-session").checked =  item.multisession;
-				}
-			},
-			responseHandler: function(event) {
-				var grid = this.$.subscriberGrid;
-				var results = event.detail.xhr.response;
-				var range = event.detail.xhr.getResponseHeader('Content-Range');
-				if (range) {
-					var itemCount = range.split("/");
-					grid.size = Number(itemCount[1]);
-				} else {
-					grid.size = results.length;
-				}
-				grid.pageSize = grid.size;
-				var vaadinItems = new Array();
-				for (var index in results) {
-					var newRecord = new Object();
-					newRecord.id = results[index].id;
-					newRecord.password = results[index].password;
-					newRecord.balance = results[index].balance;
-					results[index].attributes.forEach(
-						function(attrObj) {
-							newRecord[attrObj.name] = attrObj.value;
+					var results = event.detail.xhr.response;
+					var range = event.detail.xhr.getResponseHeader('Content-Range');
+					if (grid.size == undefined) {
+						grid.size = 0;
+					}
+					if (range) {
+						var range1 = range.split("/");
+						var range2 = range1[0].split("-");
+						if (range1[1] != "*") {
+							grid.size = Number(range1[1]);
+						} else {
+							grid.size = Number(range2[1]) + grid.pageSize * 2;
 						}
-					);
-					newRecord.enabled = results[index].enabled;
-					newRecord.multisession = results[index].multisession;
-					vaadinItems[index] = newRecord;
+					} else {
+						grid.size += grid.pageSize * 2;
+					}
+					var vaadinItems = new Array();
+					function bala(totalBalance) {
+						return totalBalance.units == "octets";
+					}
+					for (var index in results) {
+						var newRecord = new Object();
+						newRecord.id = results[index].id;
+						newRecord.password = results[index].password;
+						newRecord.product = results[index].product;
+						var totalFind = results[index].totalBalance.find(bala);
+						if (totalFind) {
+							newRecord.totalBalance = totalFind.amount;
+						}
+						results[index].attributes.forEach(
+							function(attrObj) {
+								newRecord[attrObj.name] = attrObj.value;
+							}
+						);
+						newRecord.enabled = results[index].enabled;
+						newRecord.multisession = results[index].multisession;
+						vaadinItems[index] = newRecord;
+					}
+					cbSub(vaadinItems);
+				},
+				showAddModal: function(event) {
+					document.getElementById("getProductsAjax").generateRequest();
+					document.getElementById("subAddModal").open();
 				}
-				cbSub(vaadinItems);
-			},
-			showAddModal: function(event) {
-					var modal = document.getElementById("subAddModal");
-					modal.open();
-			}
 		});
 	</script>
 </dom-module>

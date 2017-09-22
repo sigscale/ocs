@@ -479,8 +479,88 @@
     "description": "sorting",
     "message": "Sorting"
   },
+	"credit": {
+    "description": "Balance management",
+    "message": "Credit"
+  },
+	"amount": {
+    "description": "Balance amount",
+    "message": "Amount"
+  },
+	"unit": {
+    "description": "Balance units",
+    "message": "Units"
+  },
+	"octet": {
+    "description": "unit types",
+    "message": "octets"
+  },
+	"cent": {
+    "description": "unit types",
+    "message": "cents"
+  },
+	"second": {
+    "description": "unit types",
+    "message": "seconds"
+  },
+	"prod": {
+    "description": "Balance types",
+    "message": "Product"
+  },
+	"add": {
+    "description": "Balance add",
+    "message": "Add"
+  },
 	"multi": {
     "description": "Multi session allowed",
     "message": "Multisession"
+  },
+	"offer": {
+    "description": "Offering product",
+    "message": "Offering"
+  },
+	"prices": {
+    "description": "Offer product Prices",
+    "message": "Prices"
+  },
+	"alter": {
+    "description": "Offer product Prices alterations",
+    "message": "Alterations"
+  },
+	"name": {
+    "description": "Offer product name",
+    "message": "name"
+  },
+	"des": {
+    "description": "Offer product description",
+    "message": "Description"
+  },
+	"start": {
+    "description": "Offer product startDate",
+    "message": "Start Date"
+  },
+	"end": {
+    "description": "Offer product endDate",
+    "message": "End Date"
+  },
+	"priceType": {
+    "description": "Offer product price type",
+    "message": "Price Type"
+  },
+	"unitSize": {
+    "description": "Offer product unit size",
+    "message": "Unit Size"
+  },
+	"currency": {
+    "description": "Offer product currency",
+    "message": "Currency"
+  },
+	"period": {
+    "description": "Offer product period",
+    "message": "Period"
+  },
+	"subToastSucPro": {
+    "description": "Toast message for success for product",
+    "message": "Successfully added!"
   }
 }

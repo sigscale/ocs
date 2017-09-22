@@ -37,6 +37,9 @@ e.g &#058;
 	
 	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
 	Created new httpd_group table.
+
+	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
+	Created new product table.
 	
 	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
 	Started inets. 
@@ -182,9 +185,9 @@ The media types used in this application are described below.
 			<td id="mt">RADIUS&#47;DIAMETER attributes</td>
 		</tr>
 		<tr id="mt">
-			<td id="mt">balance</td>
-			<td id="mt">integer</td>
-			<td id="mt">M</td>
+			<td id="mt">buckets</td>
+			<td id="mt">array</td>
+			<td id="mt">O</td>
 			<td id="mt">Avaiable data balance of the subscriber</td>
 		</tr>
 		<tr id="mt">
@@ -249,6 +252,39 @@ The media types used in this application are described below.
 			<td id="mt">object</td>
 			<td id="mt">O</td>
 			<td id="mt">Vendor specific attributes</td>
+		</tr>
+	</tbody>
+</table></div></p>
+<p><div id="buckets"><table id="mt">
+	<caption id="mt">The <b>buckets</b> value in the `subscriber' table
+		is an array of attributes which will be included user data balance and 
+		units.</caption>
+	<thead>
+		<tr id="mt">
+			<th id="mt">Name</th>
+			<th id="mt">Value</th>
+			<th id="mt">Status</th>
+			<th id="mt">Description</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr id="mt">
+			<td id="mt">products</td>
+			<td id="mt">string</td>
+			<td id="mt">O</td>
+			<td id="mt">name of products.</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">balance</td>
+			<td id="mt">integer</td>
+			<td id="mt">O</td>
+			<td id="mt">User's data balance.</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">units</td>
+			<td id="mt">string</td>
+			<td id="mt">O</td>
+			<td id="mt">Unit of balance</td>
 		</tr>
 	</tbody>
 </table></div></p>
@@ -374,7 +410,7 @@ Content-length: nn
                {"name": "acctInterimInterval", "value": 300},
                {"name": "class", "value": "skiorgs"}
               ],
- "balance":100,
+ "buckets":[ { "amount": 200, "units": "octets", "product": "Wi-Fi" } ],
  "enabled": true,
  "multisession": false
 }
@@ -397,7 +433,7 @@ Etag: mm-m
                {"name": "acctInterimInterval", "value": 300},
                {"name": "class", "value": "skiorgs"}
               ],
- "balance": 100,
+ "buckets": [ { "amount": 200, "units": "octets", "product": "Wi-Fi" } ],
  "enabled": true,
  "multisession": false
 }
@@ -450,8 +486,11 @@ Etag : mm-m
  "password": "rx46qsbf2wn8",
  "attributes":[
                {"name": "ascendDataRate", "value": 64000}
+ "product": "sixPack",
               ],
- "balance": 983490,
+ "totalBalance":[
+                 { "amount": 983490, "units": "octets" }
+                ],
  "enabled": true,
  "multisession": false
 }
@@ -518,7 +557,10 @@ Content-Length: nn
    "attributes":[
                  {"name": "sessionTimeout", "value": 3600},
                 ],
-  "balance": 12038624,
+  "product": "sixPack",
+  "totalBalance": [
+                   { "amount": 983490, "units": "octets" }
+                  ],
   "enabled": true,
   "multisession": false
  }
@@ -526,7 +568,7 @@ Content-Length: nn
 </pre></p>
 
 <table id="op">
-<caption id="op"><b>Update Subscriber Password</b></caption>
+<caption id="op"><b>Update Subscriber</b></caption>
 	<tr id="op">
 		<td id="opl">Resource URI</td>
 		<td id="opr">/ocs/v1/subscriber/{id}</td>
@@ -556,31 +598,21 @@ Content-Length: nn
 		<td id="opr">200 Ok</td>
 	</tr>
 </table>
-<p>Example request (for Content-Type: application/json):<pre>
-PATCH /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
-Content-type: application/json
-Accept: application/json
-
-{
-  "update":"password",
-  "newpassword":"7fy8qhs7hh7n"
-}
-</pre></p>
-
-<p>Example request (for Content-Type: application/json-patch+json):<pre>
+<p>Update Subscriber Password</p>
+<pre>
 PATCH /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
 Content-type: application/json-patch+json
 Accept: application/json
 
 [
   {"op" : "replace"
-  "path": "password",
+  "path": "/password",
   "value": "7fy8qhs7hh7n"
   }
 ]
-</pre></p>
+</pre>
 
-<p>Example response:<pre>
+<pre>
 HTTP/1.1 200 Ok
 Content-Type: application/json
 Content-Length: nn
@@ -597,61 +629,16 @@ Etag: mm-m
                {"name" : "acctInterimInterval", "value": 300},
                {"name" : "class", "value": "skiorgs"}
               ],
- "balance": 100,
+ "totalBalance":[
+                 { "amount": 100, "units": "octets" }
+                ],
  "enabled": true,
  "multisession": false
 }
-</pre></p>
+</pre>
 
-<table id="op">
-	<caption id="op"><b>Update Subscriber Attributes</b></caption>
-	<tr id="op">
-		<td id="opl">Resource URI</td>
-		<td id="opr">/ocs/v1/subscriber/{id}</td>
-	</tr>
-	<tr id="op">
-		<td id="opl">Request Methods</td>
-		<td id="opr">PATCH</td>
-	</tr>
-	<tr id="op">
-		<td id="opl">Request Headers</td>
-		<td id="opr">Accept, Content-Type</td>
-	</tr>
-	<tr id="op">
-		<td id="opl">Request Message Body</td>
-		<td id="opr">Representation of update rule</td>
-	</tr>
-	<tr id="op">
-		<td id="opl">Response Headers</td>
-		<td id="opr">Content-Type, Content-Length, Etag</td>
-	</tr>
-	<tr id="op">
-		<td id="opl">Response Body</td>
-		<td id="opr">None</td>
-	</tr>
-	<tr id="op">
-		<td id="opl">Response Status</td>
-		<td id="opr">200 Ok</td>
-	</tr>
-</table>
-<p>Example request: (for Content-Type: application/json)<pre>
-PATCH /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
-Content-type: application/json
-Accept: application/json
-
-{
- "update": "attributes",
- "balance": 100000000000,
- "attributes": [
-               {"name": "ascendDataRate", "value": 1000000},
-               {"name": "ascendXmitRate", "value": 512000},
-              ],
- "enabled": false,
- "multisession": false
-}
-</pre></p>
-
-<p>Example request: (for Content-Type: application/json-patch+json)<pre>
+<p>Update Subscriber Attributes</p>
+<pre>
 PATCH /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
 Content-type: application/json-patch+json
 Accept: application/json
@@ -659,12 +646,7 @@ Accept: application/json
 [
  {
   "op" : "replace",
-  "path" : "balance",
-  "value" :100000000000
- },
- {
-  "op" : "replace",
-  "path" : "attributes",
+  "path" : "/attributes",
   "value" : [
              {"name": "ascendDataRate", "value": 1000000},
              {"name": "ascendXmitRate", "value": 512000}
@@ -672,18 +654,18 @@ Accept: application/json
  }
  {
   "op" : "replace",
-  "path" : "enabled",
+  "path" : "/enabled",
   "value" : false
  }
  {
   "op" : "replace",
-  "path" : "multisession",
+  "path" : "/multisession",
   "value" : false
  }
 ]
-</pre></p>
+</pre>
 
-<p>Example response:<pre>
+<pre>
 HTTP/1.1 200 Ok
 Content-Type: application/json
 Content-Length: nn
@@ -697,11 +679,56 @@ Etag: mm-m
                {"name": "ascendDataRate", "value": 1000000},
                {"name": "ascendXmitRate", "value": 512000},
               ],
- "balance": 100000000000,
+ "totalBalance":[
+                 { "amount": 100, "units": "octets" }
+                ],
  "enabled": false,
  "multisession": false
 }
-</pre></p>
+</pre>
+
+<p>Update Subscriber Balance</p>
+<pre>
+PATCH /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
+Content-type: application/json-patch+json
+Accept: application/json
+
+[
+  {"op" : "add"
+  "path": "/buckets/-",
+  "value": {
+            "amount": 1000,
+            "units": "cents",
+            "product": "usage"
+           }
+  }
+]
+</pre>
+
+<pre>
+HTTP/1.1 200 Ok
+Content-Type: application/json
+Content-Length: nn
+Etag: mm-m
+
+{
+ "id": "eacfd73ae10a",
+ "href": "/ocs/v1/subscriber/eacfd73ae10a",
+ "password": "7fy8qhs7hh7n",
+ "attributes":[
+               {"name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
+               {"name" : "ascendXmitRate", "type":26, "vendorId":529, "vendorType":255, "value":512 },
+               {"name" : "sessionTimeout", "value" : 10864 },
+               {"name" : "acctInterimInterval", "value": 300},
+               {"name" : "class", "value": "skiorgs"}
+              ],
+ "totalBalance":[
+                 { "amount": 1000, "units": "cents" }
+                ],
+ "enabled": true,
+ "multisession": false
+}
+</pre>
 
 <table id="op">
 	<caption id="op"><b>Delete a Subscriber</b></caption>
@@ -1571,6 +1598,364 @@ HTTP/1.1 204 No Content
 Content-Length: 0
 </pre></p>
 
+<table id="op">
+	<caption id="op"><b>Add Product</b></caption>
+	<tr id="op">
+		<td id="opl">Resource URI</td>
+		<td id="opr">/catalogManagement/v1/productOffering</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Methods</td>
+		<td id="opr">POST</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Headers</td>
+		<td id="opr">Accept, Content-Type</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Message Body</td>
+		<td id="opr">Representation of a product</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Headers</td>
+		<td id="opr">Content-Length</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Body</td>
+		<td id="opr">Reprsentation of a add product</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Status</td>
+		<td id="opr">201 Created</td>
+	</tr>
+</table>
+<p>Example request:<pre>
+POST /catalogManagement/v1/productOffering HTTP/1.1
+Accept: application/json
+Content-type: application/json
+Content-length: nn
+
+{
+ "name": "Wi-Fi",
+ "href": "/product/product/01",
+ "isBundle": false,
+ "lifecycleStatus": "Active",
+ "validFor":{
+             "startDateTime": "2017-09-11T00:00:00.000",
+             "endDateTime": "2018-09-12T00:00:00.000"
+            },
+ "productOfferingPrice":[
+                         {
+                          "name": "Family-Pack",
+                          "description": "monthlyprice",
+                          "validFor":{
+                                      "startDateTime": "2017-09-11T00:00:00.000",
+                                      "endDateTime": "2017-12-31T00:00:00.000"
+                                     },
+                          "priceType": "recurring",
+                          "unitOfMeasure": "",
+                          "price":{
+                                   "taxIncludedAmount": 230,
+                                   "currencyCode": "MXV"
+                                  },
+                          "recurringChargePeriod": "monthly"
+                         },
+
+                         {
+                          "name": "usage",
+                          "description": "usage definition for family pack",
+                          "validFor":{
+                                      "startDateTime": "2017-09-11T00:00:00.000",
+                                      "endDateTime": "2017-12-31T00:00:00.000"
+                                     },
+                          "priceType": "usage",
+                          "unitOfMeasure": "100000b",
+                          "price":{
+                                   "taxIncludedAmount": 5,
+                                    "currencyCode": "MXV"
+                                  },
+                          "recurringChargePeriod": "",
+
+                          "productOfferPriceAlteration":{
+                                                         "name": "Usage",
+                                                         "description": "",
+                                                         "validFor":{
+                                                                     "startDateTime": "2017-12-31T00:00:00.000"
+                                                                    },
+                                                          "priceType": "usage",
+                                                          "unitOfMeasure": "60g",
+                                                          "price":{
+                                                                   "taxIncludedAmount":  0
+                                                                   "currencyCode":  "USD"
+                                                           }
+                                                         }
+                         }
+                       ]
+}
+</pre></p>
+<p>Example response:<pre>
+HTTP/1.1 201 Created
+Content-Type: application/json
+Content-Length: nn
+Etag: mm-m
+
+{
+ "name": "Wi-Fi",
+ "href": "/product/product/01",
+ "isBundle": false,
+ "startDate": "2017-09-11T00:00",
+ "terminationDate": "2018-09-12T00:00",
+ "lifecycleStatus": "Active",
+ "validFor":{
+             "startDateTime": "2017-09-11T00:00:00.000",
+             "endDateTime": "2018-09-12T00:00:00.000"
+            },
+ "productOfferingPrice":[
+                         {
+                          "name": "Family-Pack",
+                          "description": "monthlyprice",
+                          "validFor":{
+                                      "startDateTime": "2017-09-11T00:00:00.000",
+                                      "endDateTime": "2017-12-31T00:00:00.000"
+                                     },
+                          "priceType": "recurring",
+                          "unitOfMeasure": "",
+                          "price":{
+                                   "taxIncludedAmount": 230,
+                                   "currencyCode": "MXV"
+                                  },
+                          "recurringChargePeriod": "monthly"
+                         },
+
+                         {
+                          "name": "usage",
+                          "description": "usage definition for family pack",
+                          "validFor":{
+                                      "startDateTime": "2017-09-11T00:00:00.000",
+                                      "endDateTime": "2017-12-31T00:00:00.000"
+                                     },
+                          "priceType": "usage",
+                          "unitOfMeasure": "100000octets",
+                          "price":{
+                                   "taxIncludedAmount": 5,
+                                    "currencyCode": "MXV"
+                                  },
+                          "recurringChargePeriod": "",
+
+                          "productOfferPriceAlteration":{
+                                                         "name": "Usage",
+                                                         "description": "",
+                                                         "validFor":{
+                                                                     "startDateTime": "2017-12-31T00:00:00.000"
+                                                                    },
+                                                          "priceType": "usage",
+                                                          "unitOfMeasure": "60GB",
+                                                          "price":{
+                                                                   "taxIncludedAmount":  0
+                                                           }
+                                                         }
+                         }
+                       ]
+}
+</pre></p>
+
+<table id="op">
+	<caption id="op"><b>Retrieve a Product entity</b></caption>
+	<tr id="op">
+		<td id="opl">Resource URI</td>
+		<td id="opr">/catalogManagement/v1/product/{id}</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Methods</td>
+		<td id="opr">GET</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Headers</td>
+		<td id="opr">Accept</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Message Body</td>
+		<td id="opr">none</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Headers</td>
+		<td id="opr">Content-Type, Content-Length</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Body</td>
+		<td id="opr">Reprsentation of a product entity</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Status</td>
+		<td id="opr">200 OK, 404 Not Found</td>
+	</tr>
+</table>
+<p>Example request:<pre>
+GET /catalogManagement/v1/product/Wi-Fi HTTP/1.1
+Accept: application/json
+</pre></p>
+<p>Example response:<pre>
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: nn
+
+{
+ "name": "Wi-Fi",
+ "href": "/product/product/01",
+ "isBundle": false,
+ "startDate": "2017-09-11T00:00",
+ "terminationDate": "2018-09-12T00:00",
+ "status": "Active",
+ "validFor":{
+             "startDateTime": "2017-09-11T00:00:00.000",
+             "endDateTime": "2018-09-12T00:00:00.000"
+            },
+ "productPrice":[
+                         {
+                          "name": "Family-Pack",
+                          "description": "monthlyprice",
+                          "validFor":{
+                                      "startDateTime": "2017-09-11T00:00:00.000",
+                                      "endDateTime": "2017-12-31T00:00:00.000"
+                                     },
+                          "priceType": "recurring",
+                          "unitOfMeasure": "",
+                          "price":{
+                                   "taxIncludedAmount": 230,
+                                   "currencyCode": "MXV"
+                                  },
+                          "recurringChargePeriod": "monthly"
+                         },
+
+                         {
+                          "name": "usage",
+                          "description": "usage definition for family pack",
+                          "validFor":{
+                                      "startDateTime": "2017-09-11T00:00:00.000",
+                                      "endDateTime": "2017-12-31T00:00:00.000"
+                                     },
+                          "priceType": "usage",
+                          "unitOfMeasure": "100000b",
+                          "price":{
+                                   "taxIncludedAmount": 5,
+                                    "currencyCode": "MXV"
+                                  },
+                          "recurringChargePeriod": "",
+
+                          "prodPriceAlteration":{
+                                                         "name": "Usage",
+                                                         "description": "",
+                                                         "validFor":{
+                                                                     "startDateTime": "2017-12-31T00:00:00.000"
+                                                                    },
+                                                          "priceType": "usage",
+                                                          "unitOfMeasure": "60g",
+                                                          "price":{
+                                                                   "taxIncludedAmount":  0
+                                                           }
+                                                         }
+                         }
+                       ]
+}
+</pre></p>
+
+<table id="op">
+<caption id="op"><b>Retrieve All Product Enities</b></caption>
+<tr id="op">
+<td id="opl">Resource URI</td>
+		<td id="opr">/catalogManagement/v1/productOffering</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Methods</td>
+		<td id="opr">GET, HEAD</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Headers</td>
+		<td id="opr">Accept</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Request Message Body</td>
+		<td id="opr">none</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Headers</td>
+		<td id="opr">Content-Type, Content-Length</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Body</td>
+		<td id="opr">Array of product representations</td>
+	</tr>
+	<tr id="op">
+		<td id="opl">Response Status</td>
+		<td id="opr">200 OK, 404 Not Found</td>
+	</tr>
+</table>
+<p>Example request:<pre>
+GET /ocs/v1/subscriber HTTP/1.1
+Accept: application/json
+</pre></p>
+<p>Example response:<pre>
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: nn
+
+[{
+ "name": "Wi-Fi",
+ "href": "/product/product/01",
+ "isBundle": false,
+ "status": "Active",
+ "validFor":{
+             "startDateTime": "2017-09-11T00:00:00.000",
+             "endDateTime": "2018-09-12T00:00:00.000"
+            },
+ "productOfferingPrice":[
+                         {
+                          "name": "Family-Pack",
+                          "description": "monthlyprice",
+                          "validFor":{
+                                      "startDateTime": "2017-09-11T00:00:00.000",
+                                      "endDateTime": "2017-12-31T00:00:00.000"
+                                     },
+                          "priceType": "recurring",
+                          "unitOfMeasure": "",
+                          "price":{
+                                   "taxIncludedAmount": 230,
+                                   "currencyCode": "MXV"
+                                  },
+                          "recurringChargePeriod": "monthly"
+                         },
+
+                         {
+                          "name": "usage",
+                          "description": "usage definition for family pack",
+                          "validFor":{
+                                      "startDateTime": "2017-09-11T00:00:00.000",
+                                      "endDateTime": "2017-12-31T00:00:00.000"
+                                     },
+                          "priceType": "usage",
+                          "unitOfMeasure": "100000b",
+                          "price":{
+                                   "taxIncludedAmount": 5,
+                                    "currencyCode": "MXV"
+                                  },
+                          "recurringChargePeriod": "",
+
+                          "productPriceAlteration":{
+                                                         "name": "Usage",
+                                                         "description": "",
+                                                         "validFor":{
+                                                                     "startDateTime": "2017-12-31T00:00:00.000"
+                                                                    },
+                                                          "priceType": "usage",
+                                                          "unitOfMeasure": "60g",
+                                                          "price":{
+                                                                   "taxIncludedAmount":  0
+                                                           }
+                                                         }
+                         }
+                       ]
+}]
+</pre></p>
 ==Database Schema==
 <table id="mt">
 	<caption id="mt">There are two persistent {@link //mnesia. mnesia} tables:</caption>
@@ -1588,6 +1973,10 @@ Content-Length: 0
 		<tr id="mt">
 			<td id="mt">subscriber</td>
 			<td id="mt">Subscriber data</td>
+		</tr>
+		<tr id="mt">
+			<td id="mt">Product</td>
+			<td id="mt">Product Inventory Data</td>
 		</tr>
 	</tbody>
 </table>

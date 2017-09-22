@@ -149,21 +149,21 @@
 				</paper-listbox>
 			</paper-dropdown-menu>
 			<div class="buttons">
-				<paper-button
+				<paper-button dialog-confirm
 						raised
 						class="add-button"
 						on-click="_addClientSubmit">
 					<i18n-msg msgid="submit">
-						Submit
+							Submit
 					</i18n-msg>
 				</paper-button>
-				<paper-button
+				<paper-button dialog-dismiss
 						class="cancel-button"
 						dialog-dismiss
 						autofocus
 						onclick="addClientModal.close()">
 					<i18n-msg msgid="cancel">
-						Cancel
+							Cancel
 					</i18n-msg>
 				</paper-button>
 			</div>
@@ -201,7 +201,7 @@
 				id="addClientAjax"
 				url="/ocs/v1/client"
 				method = "post"
-				content-type="application/json",
+				content-type="application/json"
 				on-loading-changed="_onLoadingChanged"
 				on-response="_addClientResponse"
 				on-error="_addClientError">
@@ -221,6 +221,7 @@
 				switch(this.$.addClientProtocol.selected) {
 					case 0:
 						client.protocol = "RADIUS";
+						break;
 					case 1:
 						client.protocol = "DIAMETER";
 				}

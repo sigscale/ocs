@@ -24,7 +24,9 @@ www_DATA = favicon.ico \
 	sig-user-update.html \
 	sig-sub-add.html \
 	sig-sub-list.html \
-	sig-sub-update.html
+	sig-sub-update.html\
+	sig-pro-list.html\
+	sig-pro-add.html
 
 noinst_DATA = bower_components
 

@@ -39,13 +39,15 @@
 					<template>
 						<div class="item" on-click="getLogContent">
 							<iron-icon icon="assignment"></iron-icon>
-							[[item]]
+									[[item]]
 						</div>
 					</template>
 				</iron-list>
 			</paper-dialog-scrollable>
 			<div class="cancel-button">
-				<paper-button dialog-dismiss>Cancel</paper-button>
+				<paper-button dialog-dismiss>
+						Cancel
+				</paper-button>
 			</div>
 		</paper-dialog>
 		<iron-ajax id="getLogsAjax"

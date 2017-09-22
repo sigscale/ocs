@@ -34,6 +34,8 @@
 <link rel="import" href="sig-user-add.html">
 <link rel="import" href="sig-user-list.html">
 <link rel="import" href="sig-user-update.html">
+<link rel="import" href="sig-pro-list.html">
+<link rel="import" href="sig-pro-add.html">
 
 <dom-module id="sig-app">
 	<style is="custom-style">
@@ -130,6 +132,7 @@
 				<sig-accounting-list></sig-accounting-list>
 				<sig-http-list></sig-http-list>
 				<sig-user-list></sig-user-list>
+				<sig-pro-list></sig-pro-list>
 			</iron-pages>
 			<app-drawer-layout>
 				<app-drawer
@@ -214,6 +217,13 @@
 										Users
 									</i18n-msg>
 							</paper-icon-item>
+							<paper-icon-item
+									id="page7"
+									onclick="drawer.toggle()"
+									class="menuitem">
+								<iron-icon icon ="icons:store" item-icon></iron-icon>
+										Products
+							</paper-icon-item>
 						</paper-menu>
 					</iron-selector>
 				</app-drawer>
@@ -228,6 +238,7 @@
 		<sig-ipdr-log-files></sig-ipdr-log-files>
 		<sig-user-add></sig-user-add>
 		<sig-user-update></sig-user-update>
+		<sig-pro-add></sig-pro-add>
 	</template>
 	<script>
 		document.addEventListener('HTMLImportsLoaded', function() {
@@ -263,6 +274,10 @@
 					case 'page6':
 						this.$.loadPage.selected = 6;
 						break;
+					case 'page7':
+						this.$.loadPage.selected = 7;
+						document.getElementById('getProducts').generateRequest();
+						break;
 				}
 			},
 			help: function(element) {
@@ -291,6 +306,9 @@
 				 }
 				if(this.$.loadPage.selected == 6){
 					document.getElementById('userGrid').clearCache();
+				 }
+				if(this.$.loadPage.selected == 7){
+					document.getElementById('getPro').generateRequest();
 				 }
 			},
 			download: function() {
