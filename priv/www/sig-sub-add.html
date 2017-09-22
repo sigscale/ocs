@@ -411,9 +411,13 @@
 			},
 			_getProductsResponse: function(event) {
 				var results = event.detail.xhr.response;
-				this.products.length = 0;
 				for (var index in results) {
-					this.push('products', results[index].name);
+					function checkExist(name) {
+						return name == results[index].name;
+					}
+					if(!this.products.some(checkExist)){
+						this.push('products', results[index].name);
+					}
 				}
 			},
 			_subscriberAddSubmit: function(event) {
