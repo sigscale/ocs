@@ -489,7 +489,7 @@
   },
 	"octet": {
     "description": "unit types",
-    "message": "octets"
+    "message": "bytes"
   },
 	"cent": {
     "description": "unit types",
