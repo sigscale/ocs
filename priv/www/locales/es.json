@@ -191,14 +191,6 @@
     "description": "Ip Address for add Client",
     "message": "Dirección IP"
   },
-  "radius": {
-    "description": "radius protocol",
-    "message": "RADIUS"
-  },
-  "diameter": {
-    "description": "diameter protocol",
-    "message": "DIÁMETER"
-  },
 	"ipTooltip": {
     "description": "Tooltip messagef or Ip address",
     "message": "Dirección IP del servidor de acceso a la red, enrutador o punto de acceso"

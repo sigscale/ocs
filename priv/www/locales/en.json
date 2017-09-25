@@ -183,14 +183,6 @@
     "description": "Ip Address for add Client",
     "message": "IP Address"
   },
-	"radius": {
-    "description": "radius protocol",
-    "message": "RADIUS"
-  },
-  "diameter": {
-    "description": "diameter protocol",
-    "message": "DIAMETER"
-  },
 	"ipTooltip": {
     "description": "Tooltip message of Ip address",
     "message": "IP address of network access server, router or access point"
