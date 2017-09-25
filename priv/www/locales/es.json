@@ -562,5 +562,65 @@
 	"subToastSucPro": {
     "description": "Toast message for success for product",
     "message": "Agregado exitosamente"
+  },
+	"offerNameTool": {
+    "description": "product offering name",
+    "message": "Nombre de oferta del producto"
+  },
+	"offerDesTool": {
+    "description": "product offering description",
+    "message": "Descripción de la oferta del producto"
+  },
+	"offerStartTool": {
+    "description": "product offering start date",
+    "message": "Fecha de inicio de la oferta de producto"
+  },
+	"offerEndTool": {
+    "description": "product offering end date",
+    "message": "Fecha de finalización de la oferta del producto"
+  },
+	"priceNameTool": {
+    "description": "product offering price name",
+    "message": "Nombre del producto que ofrece el precio"
+  },
+	"priceDesTool": {
+    "description": "product offering price description",
+    "message": "Descripción del precio de oferta del producto"
+  },
+	"priceStartTool": {
+    "description": "product offering price start date",
+    "message": "Fecha de inicio del precio de oferta del producto"
+  },
+   "priceEndTool": {
+    "description": "product offering price end date",
+    "message": "Precio de oferta del producto final fecha"
+	},
+   "priceTypeTool": {
+    "description": "product offering type of price",
+    "message": "Producto que ofrece tipo de precio"
+  },
+   "priceSizeTool": {
+    "description": "product offering unit size",
+    "message": "Tamaño del producto que ofrece la unidad"
+  },
+   "priceUnitTool": {
+    "description": "product offering units",
+    "message": "Unidades de precio de oferta de producto"
+  },
+   "priceAmountTool": {
+    "description": "product offering price amount",
+    "message": "Precio de oferta del producto"
+  },
+   "priceCurrencyTool": {
+    "description": "product offering price currency",
+    "message": "Moneda del precio de oferta del producto"
+  },
+   "pricePeriodTool": {
+    "description": "product offering price period",
+    "message": "Período de precios de oferta de producto"
+  },
+   "priceAlterTool": {
+    "description": "product offering price alteration",
+    "message": "Agregar la alteración al precio de oferta del producto"
   }
 }
