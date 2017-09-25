@@ -145,6 +145,13 @@
 							role="navigation">
 						<paper-menu id="menu">
 							<paper-icon-item
+									id="page7"
+									onclick="drawer.toggle()"
+									class="menuitem">
+								<iron-icon icon ="icons:store" item-icon></iron-icon>
+										Products
+							</paper-icon-item>
+							<paper-icon-item
 									id="page0"
 									onclick="drawer.toggle()"
 									class="menuitem">
@@ -160,6 +167,15 @@
 								<iron-icon icon="hardware:router" item-icon></iron-icon>
 									<i18n-msg msgid="clients">
 										Clients
+									</i18n-msg>
+							</paper-icon-item>
+							<paper-icon-item
+									id="page6"
+									onclick="drawer.toggle()"
+									class="menuitem">
+								<iron-icon icon ="icons:perm-identity" item-icon></iron-icon>
+									<i18n-msg msgid="users">
+										Users
 									</i18n-msg>
 							</paper-icon-item>
 							<paper-submenu>
@@ -209,22 +225,6 @@
 									</paper-icon-item>
 								</paper-menu>
 							</paper-submenu>
-							<paper-icon-item
-									id="page6"
-									onclick="drawer.toggle()"
-									class="menuitem">
-								<iron-icon icon ="icons:perm-identity" item-icon></iron-icon>
-									<i18n-msg msgid="users">
-										Users
-									</i18n-msg>
-							</paper-icon-item>
-							<paper-icon-item
-									id="page7"
-									onclick="drawer.toggle()"
-									class="menuitem">
-								<iron-icon icon ="icons:store" item-icon></iron-icon>
-										Products
-							</paper-icon-item>
 						</paper-menu>
 					</iron-selector>
 				</app-drawer>
