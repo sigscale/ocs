@@ -70,12 +70,22 @@
 							label="[[i18n.name]]"
 							onfocus="endDatePickOff.hide(); startDatePickOff.hide();">
 					</paper-input>
+					<paper-tooltip>
+							Product Offering name
+					</paper-tooltip>
+				</div>
+				<div>
 					<paper-input id="addOff2"
 							class="description"
 							name="description"
 							label="[[i18n.des]]"
 							onfocus="endDatePickOff.hide(); startDatePickOff.hide();">
 					</paper-input>
+					<paper-tooltip>
+							Product Offering description
+					</paper-tooltip>
+				</div>
+				<div>
 					<iron-collapse id="startDatePickOff">
 						<paper-date-picker id="startOff3" date="{{pickstart}}">
 						</paper-date-picker>
@@ -86,6 +96,11 @@
 							label="[[i18n.start]]"
 							onfocus="endDatePickOff.hide(); startDatePickOff.show();">
 					</paper-input>
+					<paper-tooltip>
+							Product Offering start date
+					</paper-tooltip>
+				</div>
+				<div>
 					<iron-collapse id="endDatePickOff">
 						<paper-date-picker id="endOff3" date="{{pickend}}">
 						</paper-date-picker>
@@ -96,6 +111,9 @@
 							label="[[i18n.end]]"
 							onfocus="startDatePickOff.hide(); endDatePickOff.show();">
 					</paper-input>
+					<paper-tooltip>
+							Product Offering end date
+					</paper-tooltip>
 				</div>
 				<div class="buttons">
 					<paper-button dialog-confirm raised
@@ -127,12 +145,22 @@
 							on-change="updatePriceDialog"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 					</paper-input>
+					<paper-tooltip>
+							Product offering price name
+					</paper-tooltip>
+				</div>
+				<div>
 					<paper-input id="addPriceDes"
 							class="description"
 							name="description"
 							label="[[i18n.des]]"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 					</paper-input>
+					<paper-tooltip>
+							Product Offering price description
+					</paper-tooltip>
+				</div>
+				<div>
 					<iron-collapse id="startDatePickPrice">
 						<paper-date-picker id="addPriceStart" date="{{pickstart}}" headingFormat="dd, MMM D">
 						</paper-date-picker>
@@ -143,6 +171,11 @@
 							label="[[i18n.start]]"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.show();">
 					</paper-input>
+					<paper-tooltip>
+							Product Offering price start date
+					</paper-tooltip>
+				</div>
+				<div>
 					<iron-collapse id="endDatePickPrice">
 						<paper-date-picker id="addPriceEnd" date="{{pickend}}">
 						</paper-date-picker>
@@ -153,6 +186,11 @@
 							label="[[i18n.end]]"
 							onfocus="startDatePickPrice.hide(); endDatePickPrice.show();">
 					</paper-input>
+					<paper-tooltip>
+							Product offering price end date
+					</paper-tooltip>
+				</div>
+				<div>
 					<paper-dropdown-menu id="addPrice1drop"
 							label="[[i18n.priceType]]"
 							on-selected-item-changed="checkRecure"
@@ -173,6 +211,11 @@
 							</paper-item>
 						</paper-listbox>
 					</paper-dropdown-menu>
+					<paper-tooltip>
+							Product offering type of price
+					</paper-tooltip>
+				</div>
+				<div>
 					<paper-input id="addPriceSize"
 							class="size"
 							name="size"
@@ -184,6 +227,11 @@
 							value=1
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 					</paper-input>
+					<paper-tooltip>
+							Product offering price unit size
+					</paper-tooltip>
+				</div>
+				<div>
 					<paper-dropdown-menu id="addPrice2drop"
 							label="[[i18n.unit]]"
 							on-selected-item-changed="checkPattern"
@@ -193,7 +241,7 @@
 								slot="dropdown-content"
 								class="dropdown-content">
 							<paper-item id="priceBytes">
-								Bytes	
+								Bytes
 							</paper-item>
 							<paper-item id="priceCents">
 								Cents
@@ -203,6 +251,11 @@
 							</paper-item>
 						</paper-listbox>
 					</paper-dropdown-menu>
+					<paper-tooltip>
+							Product offering price units
+					</paper-tooltip>
+				</div>
+				<div>
 					<paper-input id="addPrice3"
 							class="amount"
 							name="amount"
@@ -211,12 +264,22 @@
 							value=0
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 					</paper-input>
+					<paper-tooltip>
+							Product offering price amount
+					</paper-tooltip>
+				</div>
+				<div>
 					<paper-input id="addPrice4"
 							class="currency"
 							name="currency"
 							label="[[i18n.currency]]"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
 					</paper-input>
+					<paper-tooltip>
+							Product offering price currency
+					</paper-tooltip>
+				</div>
+				<div>
 					<paper-dropdown-menu id="addPrice5drop"
 							label="[[i18n.period]]"
 							onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
@@ -239,6 +302,11 @@
 							</paper-item>
 						</paper-listbox>
 					</paper-dropdown-menu>
+					<paper-tooltip>
+							Product offering price period
+					</paper-tooltip>
+				</div>
+				<div>
 					<paper-dropdown-menu
 							id="addPriceDrop"
 							label="[[i18n.alter]]"
@@ -253,6 +321,9 @@
 								</template>
 						</paper-listbox>
 					</paper-dropdown-menu>
+					<paper-tooltip>
+							add alteration to product offering price
+					</paper-tooltip>
 				</div>
 				<div class="buttons">
 					<paper-button raised
@@ -283,12 +354,22 @@
 							label="[[i18n.name]]" 
 							on-change="updateAltsDialog">
 					</paper-input>
+					<paper-tooltip>
+							product offering alteration name
+					</paper-tooltip>
+				</div>
+				<div>
 					<paper-input id="descAlt2"
 							class="description"
 							name="description"
 							label="[[i18n.des]]"
 							onfocus="endDatePick.hide(); startDatePick.hide();">
 					</paper-input>
+					<paper-tooltip>
+							product offering alteration description
+					</paper-tooltip>
+				</div>
+				<div>
 					<iron-collapse id="startDatePick">
 						<paper-date-picker id="startAlt3" date="{{pickstart}}">
 						</paper-date-picker>
@@ -299,6 +380,11 @@
 							label="[[i18n.start]]"
 							onfocus="endDatePick.hide(); startDatePick.show();">
 					</paper-input>
+					<paper-tooltip>
+							product offering alteration start date
+					</paper-tooltip>
+				</div>
+				<div>
 					<iron-collapse id="endDatePick">
 						<paper-date-picker id="endAlt3" date="{{pickend}}">
 						</paper-date-picker>
@@ -309,6 +395,11 @@
 							label="[[i18n.end]]"
 							onfocus="startDatePick.hide(); endDatePick.show();">
 					</paper-input>
+					<paper-tooltip>
+							product offering alteration end date
+					</paper-tooltip>
+				</div>
+				<div>
 					<paper-dropdown-menu
 							label="[[i18n.priceType]]"
 							on-selected-item-changed="checkRecureAlt"
@@ -329,6 +420,11 @@
 							</paper-item>
 						</paper-listbox>
 					</paper-dropdown-menu>
+					<paper-tooltip>
+							product offering alteration price type
+					</paper-tooltip>
+				</div>
+				<div>
 					<paper-input id="sizeAlt3"
 							class="size"
 							name="size"
@@ -340,6 +436,11 @@
 							value=1
 							onfocus="endDatePick.hide(); startDatePick.hide();">
 					</paper-input>
+					<paper-tooltip>
+							product offering alteration size
+					</paper-tooltip>
+				</div>
+				<div>
 					<paper-dropdown-menu
 							label="[[i18n.unit]]">
 						<paper-listbox
@@ -348,7 +449,7 @@
 								slot="dropdown-content"
 								class="dropdown-content">
 								<paper-item id="altBytes">
-									Bytes	
+									Bytes
 								</paper-item>
 								<paper-item id="altCents">
 									Cents
@@ -358,6 +459,11 @@
 								</paper-item>
 						</paper-listbox>
 					</paper-dropdown-menu>
+					<paper-tooltip>
+							product offering alteration units
+					</paper-tooltip>
+				</div>
+				<div>
 					<paper-input id="amountAlt3"
 							class="amount"
 							name="amount"
@@ -366,12 +472,22 @@
 							value=0
 							onfocus="endDatePick.hide(); startDatePick.hide();">
 					</paper-input>
+					<paper-tooltip>
+							product offering alteration amount
+					</paper-tooltip>
+				</div>
+				<div>
 					<paper-input id="addAltCurr"
 							class="currency"
 							name="currency"
 							label="[[i18n.currency]]"
 							onfocus="endDatePick.hide(); startDatePick.hide();">
 					</paper-input>
+					<paper-tooltip>
+							product offering alteration currency
+					</paper-tooltip>
+				</div>
+				<div>
 					<paper-dropdown-menu id="addalt5drop"
 							label="[[i18n.period]]"
 							onfocus="endDatePick.hide(); startDatePick.hide();">
@@ -394,6 +510,9 @@
 							</paper-item>
 						</paper-listbox>
 					</paper-dropdown-menu>
+					<paper-tooltip>
+							product offering alteration period
+					</paper-tooltip>
 				</div>
 				<div class="buttons">
 					<paper-button raised
