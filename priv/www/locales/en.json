@@ -168,8 +168,8 @@
     "message": "Identifier"
   },
    "listen": {
-    "description": "Listen Port of Client",
-    "message": "Listen Port"
+    "description": "Listen Port of RADIUS Client",
+    "message": "RADIUS Listen Port"
   },
    "proto": {
     "description": "Protocol of Client",
@@ -239,14 +239,6 @@
     "description": "Tooltip message for authorization client",
     "message": "Properties of network access server, router or access pointor client."
   },
-	"port": {
-    "description": "port for client",
-    "message": "Port"
-   },
-	"portTool": {
-    "description": "Tooltip message update port",
-    "message": "Port network access server, router or access point listens on"
-   },
 	"protoTool": {
     "description": "Tooltip mesage for update Protocol",
     "message": "Protocol used by network access server, router or access point."

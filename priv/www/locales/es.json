@@ -177,7 +177,7 @@
   },
   "listen": {
     "description": "Listen Port of Client",
-    "message": "Escuchar Puerto"
+    "message": "RADIUS Escuchar Puerto"
   },
   "proto": {
     "description": "Protocol of Client",
