@@ -1,4 +1,5 @@
 ## configure.ac
+## vim: ts=3
 ##
 ## Process this file with autoconf to produce a configure script.
 ##

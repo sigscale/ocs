@@ -1,4 +1,5 @@
 %%% ocs_test_lib.erl
+%%% vim: ts=3
 %%%
 -module(ocs_test_lib).
 
