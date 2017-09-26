@@ -140,7 +140,7 @@
 					];
 					this.$.userGrid.dataProvider = function(params, callback) {
 						cbUsers = callback;
-						ajax = document.getElementById("getUserAjax");
+						var ajax = document.getElementById("getUserAjax");
 						params.filters.forEach(function(filter, index) {
 							if(index == 0) {
 								ajax.url += '?' + filter.path + '=' + filter.value;

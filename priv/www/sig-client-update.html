@@ -127,19 +127,6 @@
 				</div>
 				<div id="edit-client-attributes">
 					<div>
-						<paper-input
-								id="updateClientDisconnectPort"
-								name="port"
-								label="[[i18n.port]]"
-								type="number">
-						</paper-input>
-						<paper-tooltip>
-							<i18n-msg msgid="portTool">
-								Port network access server, router or access point listens on
-							</i18n-msg>
-						</paper-tooltip>
-					</div>
-					<div>
 						<paper-dropdown-menu
 								id="updateClientProtocol"
 								label="[[i18n.proto]]"
@@ -149,13 +136,26 @@
 									id="updateClientProtocolList"
 									class="dropdown-content"
 									selected="0">
-								<paper-item>[[i18n.radius]]</paper-item>
-								<paper-item>[[i18n.diameter]]</paper-item>
+								<paper-item>RADIUS</paper-item>
+								<paper-item>DIAMETER</paper-item>
 							</paper-listbox>
 						</paper-dropdown-menu>
 						<paper-tooltip>
 							<i18n-msg msgid="protoTool">
 								Protocol used by network access server, router or access point.
+							</i18n-msg>
+						</paper-tooltip>
+					</div>
+					<div>
+						<paper-input
+								id="updateClientDisconnectPort"
+								name="port"
+								label="[[i18n.listen]]"
+								type="number">
+						</paper-input>
+						<paper-tooltip>
+							<i18n-msg msgid="listenTooltip">
+								Port network access server, router or access point listens on
 							</i18n-msg>
 						</paper-tooltip>
 					</div>

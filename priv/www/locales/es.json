@@ -177,7 +177,7 @@
   },
   "listen": {
     "description": "Listen Port of Client",
-    "message": "Escuchar Puerto"
+    "message": "RADIUS Escuchar Puerto"
   },
   "proto": {
     "description": "Protocol of Client",
@@ -190,14 +190,6 @@
   "ipAddress": {
     "description": "Ip Address for add Client",
     "message": "Dirección IP"
-  },
-  "radius": {
-    "description": "radius protocol",
-    "message": "RADIUS"
-  },
-  "diameter": {
-    "description": "diameter protocol",
-    "message": "DIÁMETER"
   },
 	"ipTooltip": {
     "description": "Tooltip messagef or Ip address",
