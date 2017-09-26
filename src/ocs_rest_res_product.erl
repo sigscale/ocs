@@ -51,7 +51,7 @@ content_types_provided() ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 500 .
-%% @doc Respond to `POST /catalogManagement/v1/product' and
+%% @doc Respond to `POST /catalogManagement/v1/productOffering' and
 %% add a new `product'
 add_product_CatMgmt(ReqData) ->
 	try
@@ -97,7 +97,7 @@ add_product_CatMgmt2(ProdId, JsonResponse) ->
 	Id = {id, ProdId},
 	Json = {struct, [Id | JsonResponse]},
 	Body = mochijson:encode(Json),
-	Location = "/catalogManagement/v1/product/" ++ ProdId,
+	Location = "/catalogManagement/v1/productuOffering/" ++ ProdId,
 	Headers = [{location, Location}],
 	{ok, Headers, Body}.
 
@@ -107,7 +107,7 @@ add_product_CatMgmt2(ProdId, JsonResponse) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManagement/v1/product/{id}' and
+%% @doc Respond to `GET /catalogManagement/v1/productOffering/{id}' and
 %% retrieve a `product' details
 get_product_CatMgmt(ProductID) ->
 	F = fun() ->
@@ -157,7 +157,7 @@ get_product_CatMgmt1(Prod) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManagement/v1/product' and
+%% @doc Respond to `GET /catalogManagement/v1/productOffering' and
 %% retrieve all `product' details
 %% @todo Filtering
 get_products_CatMgmt(_Query) ->
@@ -218,7 +218,7 @@ get_products_CatMgmt1([Prod | T], Acc) ->
 		Headers	:: [tuple()],
 		Body		:: iolist(),
 		Status	:: 400 | 500 .
-%% @doc Respond to `PATCH /catalogManagement/v1/product/{id}' and
+%% @doc Respond to `PATCH /catalogManagement/v1/productOffering/{id}' and
 %% apply object notation patch for `product'
 %% RFC6902 `https://tools.ietf.org/html/rfc6902'
 on_patch_product_CatMgmt(ProdId, Etag, ReqData) ->
@@ -263,7 +263,7 @@ on_patch_product_CatMgmt(ProdId, Etag, ReqData) ->
 		Headers	:: [tuple()],
 		Body		:: iolist(),
 		Status	:: 400 | 500 .
-%% @doc Respond to `PATCH /catalogManagement/v1/product/{id}' and
+%% @doc Respond to `PATCH /catalogManagement/v1/productOffering/{id}' and
 %% apply merge patch for `product'
 %% RFC7386 `https://tools.ietf.org/html/rfc7386'
 merge_patch_product_CatMgmt(ProdId, Etag, ReqData) ->
