@@ -35,8 +35,8 @@
 <link rel="import" href="sig-user-add.html">
 <link rel="import" href="sig-user-list.html">
 <link rel="import" href="sig-user-update.html">
-<link rel="import" href="sig-pro-list.html">
-<link rel="import" href="sig-pro-add.html">
+<link rel="import" href="sig-product-list.html">
+<link rel="import" href="sig-product-add.html">
 
 <dom-module id="sig-app">
 	<style is="custom-style">
@@ -133,7 +133,7 @@
 				<sig-accounting-list></sig-accounting-list>
 				<sig-http-list></sig-http-list>
 				<sig-user-list></sig-user-list>
-				<sig-pro-list></sig-pro-list>
+				<sig-product-list></sig-product-list>
 			</iron-pages>
 			<app-drawer-layout>
 				<app-drawer
@@ -239,7 +239,7 @@
 		<sig-ipdr-log-files></sig-ipdr-log-files>
 		<sig-user-add></sig-user-add>
 		<sig-user-update></sig-user-update>
-		<sig-pro-add></sig-pro-add>
+		<sig-product-add></sig-product-add>
 	</template>
 	<script>
 		document.addEventListener('HTMLImportsLoaded', function() {
@@ -277,7 +277,6 @@
 						break;
 					case 'page7':
 						this.$.loadPage.selected = 7;
-						document.getElementById('getProducts').generateRequest();
 						break;
 				}
 			},
@@ -309,7 +308,7 @@
 					document.getElementById('userGrid').clearCache();
 				 }
 				if(this.$.loadPage.selected == 7){
-					document.getElementById('getPro').generateRequest();
+					document.getElementById('productGrid').clearCache();
 				 }
 			},
 			download: function() {
