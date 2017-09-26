@@ -23,7 +23,7 @@
 
 -export([content_types_accepted/0, content_types_provided/0]).
 
--export([add_product_CatMgmt/1]).
+-export([add_product_CatMgmt/1, add_product_InvMgmt/1]).
 -export([get_product_CatMgmt/1, get_products_CatMgmt/1]).
 -export([on_patch_product_CatMgmt/3, merge_patch_product_CatMgmt/3]).
 
@@ -100,6 +100,24 @@ add_product_CatMgmt2(ProdId, JsonResponse) ->
 	Location = "/catalogManagement/v1/productuOffering/" ++ ProdId,
 	Headers = [{location, Location}],
 	{ok, Headers, Body}.
+
+-spec add_product_InvMgmt(ReqData) -> Result when
+	ReqData	:: [tuple()],
+	Result	:: {ok, Headers, Body} | {error, Status},
+	Headers	:: [tuple()],
+	Body		:: iolist(),
+	Status	:: 400 | 500 .
+%% @doc Respond to `POST /productInventoryManagement/v1/product' and
+%% add a new `product'
+add_product_InvMgmt(ReqData) ->
+	try
+		{struct, Object} = mochijson:decode(ReqData),
+		Headers = [{content_type, "application/json"}],
+		{ok, Headers, []}
+	catch
+		_:_ ->
+			{error, 400}
+	end.
 
 -spec get_product_CatMgmt(ProdID) -> Result when
 	ProdID	:: string(),
