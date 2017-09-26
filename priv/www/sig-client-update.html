@@ -131,7 +131,8 @@
 								id="updateClientProtocol"
 								label="[[i18n.proto]]"
 								type="number"
-								selected-item-label="{{selectedItem}}">
+								selected-item-label="{{selectedItem}}"
+								on-selected-item-changed="checkProto">
 							<paper-listbox
 									id="updateClientProtocolList"
 									class="dropdown-content"
@@ -249,7 +250,7 @@
 				this.$.updateClientPropertiesAjax.body = client;
 				this.$.updateClientPropertiesAjax.generateRequest();
 			},
-			_updateClientPropertiesResponse: function (event) {
+			_updateClientPropertiesResponse: function(event) {
 				document.getElementById("updateClientToastSuccess").open();
 				this.$.updateClientNewPassword.value = "";
 				document.getElementById("clientGrid").clearCache();
@@ -257,6 +258,13 @@
 			_updateClientPropertiesError: function(event) {
 				this.$.updateClientToastError.text = event.detail.request.xhr.statusText;
 				this.$.updateClientToastError.open();
+			},
+			checkProto: function(event) {
+				if(this.$.updateClientProtocolList.selected == 0) {
+					this.$.updateClientDisconnectPort.disabled = false;
+				} else if(this.$.updateClientProtocolList.selected == 1) {
+					this.$.updateClientDisconnectPort.disabled = true;
+				}
 			},
 			deleteClient: function(event) {
 			this.$.deleteClientAjax.method = "DELETE";

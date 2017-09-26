@@ -117,8 +117,9 @@
 					</paper-checkbox>
 				</div>
 			</div>
-			<paper-dropdown-menu
-					label="[[i18n.proto]]">
+			<paper-dropdown-menu id="protoDrop"
+					label="[[i18n.proto]]"
+					on-selected-item-changed="checkProto">
 				<paper-listbox id="addClientProtocol"
 						slot="dropdown-content"
 						class="dropdown-content"
@@ -231,6 +232,13 @@
 				}
 				this.$.addClientAjax.body = client;
 				this.$.addClientAjax.generateRequest();
+			},
+			checkProto: function(event) {
+				if(this.$.addClientProtocol.selected == 0) {
+					this.$.addClientPort.disabled = false;
+				} else if(this.$.addClientProtocol.selected == 1) {
+					this.$.addClientPort.disabled = true;
+				}
 			},
 			_onLoadingChanged: function(event) {
 				if (this.$.addClientAjax.loading) {
