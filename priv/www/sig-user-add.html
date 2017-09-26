@@ -140,10 +140,6 @@
 				this.$.addUserToastError.text = event.detail.request.xhr.statusText;
 				this.$.addUserToastError.open();
 			},
-			 _addUserError: function(event) {
-				this.$.addUserToastError.text = event.detail.request.xhr.statusText;
-				this.$.addUserToastError.open();
-			},
 			_onLoadingChanged: function(event) {
 				if (this.$.addUserAjax.loading) {
 					document.getElementById("progress").disabled = false;
