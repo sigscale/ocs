@@ -544,48 +544,48 @@
     "message": "Successfully added!"
   },
 	"offerNameTool": {
-    "description": "product offering name",
-    "message": "Product offering name"
+    "description": "name",
+    "message": "Name of the product"
   },
 	"offerDesTool": {
     "description": "product offering description",
-    "message": "Product offering description"
+    "message": "Description of the product"
   },
 	"offerStartTool": {
     "description": "product offering start date",
-    "message": "Product offering start date"
+    "message": "Valid start date for product"
   },
 	"offerEndTool": {
     "description": "product offering end date",
-    "message": "Product offering end date"
+    "message": "Valid end date for product"
   },
 	"priceNameTool": {
     "description": "product offering price name",
-    "message": "Product offering price name"
+    "message": "Name of the product price"
   },
 	"priceDesTool": {
     "description": "product offering price description",
-    "message": "Product offering price description"
+    "message": "Name of the product description"
   },
 	"priceStartTool": {
     "description": "product offering price start date",
-    "message": "Product offering price start date"
+    "message": "Valid start date for product price"
   },
 	"priceEndTool": {
     "description": "product offering price end date",
-    "message": "Product offering price end date"
+    "message": "Valid end date product price"
   },
 	"priceTypeTool": {
     "description": "product offering type of price",
-    "message": "Product offering type of price"
+    "message": "Types of prices"
   },
 	"priceSizeTool": {
     "description": "product offering unit size",
-    "message": "Product offering unit size"
+    "message": "May use multipliers (k=kilo,m=mega,g=giga,m=minutes,h=hours)"
   },
 	"priceUnitTool": {
     "description": "product offering units",
-    "message": "Product offering price units"
+    "message": "Units for product price"
   },
 	"priceAmountTool": {
     "description": "product offering price amount",
