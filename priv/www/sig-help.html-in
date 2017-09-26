@@ -98,10 +98,10 @@
 			</paper-toolbar>
 			<paper-icon-item
 					class="icon-style"
-					on-click="toolQue">
+					on-click="product">
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
-				<i18n-msg msgid="tool">
-					Toolbar
+				<i18n-msg msgid="prod">
+					Product
 				</i18n-msg>
 			</paper-icon-item>
 			<paper-icon-item
@@ -134,6 +134,14 @@
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 				<i18n-msg msgid="users">
 					Users
+				</i18n-msg>
+			</paper-icon-item>
+			<paper-icon-item
+					class="icon-style"
+					on-click="toolQue">
+				<iron-icon icon="icons:assignment" item-icon></iron-icon>
+				<i18n-msg msgid="tool">
+					Toolbar
 				</i18n-msg>
 			</paper-icon-item>
 			<paper-icon-item
@@ -528,6 +536,48 @@
 			in rows being reordered by address in descending order:</p>
 			<img alt="screenshot" src="/sort-descend.png" height="144" width="320">
 		</paper-dialog>
+		<paper-dialog id="helpProduct">
+			<paper-toolbar>
+				<paper-icon-item
+						class="menu-trigger menuitem"
+						on-click="helpBack">
+					<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
+				</paper-icon-item>
+				<h2>[[i18n.help]]</h2>
+			</paper-toolbar>
+			<paper-icon-item
+					class="menu-trigger menuitem">
+				<iron-icon icon="icons:assignment" item-icon></iron-icon>
+				<h2>[[i18n.prod]]</h2>
+			</paper-icon-item>
+			<p>To add <b>Product</b> first open the navigation drawer by selecting its icon
+			<iron-icon class="iconHelp" icon="menu"></iron-icon> on the left of the toolbar
+			at top. Select the <iron-icon class="iconHelp" icon="icons:store"></iron-icon>
+			<b>Product</b> view from the navigation menu.</p><p>
+			<h3>Add Product</h3>
+			<p>Select the floating action button <iron-icon class="iconHelp" icon="add">
+			</iron-icon> at the bottom right of the view. An <b>Add Product</b> dialog will 
+			appear.<b>Offering, Prices, Alterations</b> tabs are available in the
+			<b>Add Product</b> dialog.Fill all details in <b>Alterations</b>, if required,
+			first and press <b>Add</b> to add the list of available alterations. Fill all
+			details in <b>Prices</b> tab and press <b>Add</b> to add the list of available
+			prices. Finally fill all details in <b>Offering</b> tab and press <b>Submit</b>.</p>
+			<h3>Validations</h3>
+			<p><dl>
+				<dt><b>Bytes</b></dt>
+					<dd>When selected <b>Units</b> is bytes the <b>Unit Size</b> field user
+					should be the number of bytes for the price <b>Amount</b>. Multipliers
+					may be used: <b>m</b> for <b>Megabytes</b>, <b>g</b> for <b>Gigabytes</b>,
+					<b>k</b> for <b>Kilobytes</b></dd>
+				<dt><b>Seconds</b></dt>
+					<dd>When selected <b>Units</b> is seconds the <b>Unit Size</b> field
+					user should be the number of seconds for the price <b>Amount</b>. Multipliers
+					may be used: <b>m</b> for <b>minutes</b>, <b>h</b> for <b>hours</b></dd>
+				<dt><b>Cents</b></dt>
+					<dd>When selected <b>Units</b> is cents the <b>Unit Size</b> field
+               user should be the number of cents for the price <b>Amount</b>.</dd>
+			</dl></p>
+		</paper-dialog>
 		<paper-dialog id="aboutHelp">
 			<paper-toolbar>
 				<h2>[[i18n.about]]</h2>
@@ -588,6 +638,11 @@
 				var queObj = document.getElementById("helpSorting");
 				queObj.open();
 			},
+			product: function(event) {
+				document.getElementById("helpMenu").close();
+				var queObj = document.getElementById("helpProduct");
+				queObj.open();
+			},
 			helpBack: function(event) {
 				document.getElementById("helpToolbar").close();
 				document.getElementById("helpSubscribers").close();
@@ -596,6 +651,7 @@
 				document.getElementById("helpLogs").close();
 				document.getElementById("helpFiltering").close();
 				document.getElementById("helpSorting").close();
+				document.getElementById("helpProduct").close();
 				var backObj = document.getElementById("helpMenu");
 				backObj.open();
 			}
