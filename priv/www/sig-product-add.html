@@ -1117,7 +1117,7 @@
 				this.$.addOff2.value = null;
 				this.prices.length = 0;
 				this.alterations.length = 0;
-				document.getElementById("getProducts").clearCache();
+				document.getElementById("productGrid").clearCache();
 			},
 			_addProductError: function(event) {
 				this.$.addProductToastError.text = event.detail.request.xhr.statusText;
