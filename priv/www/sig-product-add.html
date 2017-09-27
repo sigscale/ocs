@@ -1115,8 +1115,8 @@
 				document.getElementById("addProductToastSuccess").open();
 				this.$.addOff1.value = null;
 				this.$.addOff2.value = null;
-				this.prices.length = 0;
-				this.alterations.length = 0;
+				this.set('prices', []);
+				this.set('alterations', []);
 				document.getElementById("productGrid").clearCache();
 			},
 			_addProductError: function(event) {
