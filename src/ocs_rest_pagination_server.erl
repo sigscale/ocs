@@ -229,15 +229,15 @@ range_request({StartRange, _EndRange}, _From,
 range_request({StartRange, EndRange}, _From,
 		#state{cont = eof, offset = Offset, buffer = Buffer} = State)
 		when StartRange >= Offset, length(Buffer) =< EndRange - Offset ->
-	Rest = lists:sublist(Buffer, StartRange - Offset + 1, length(Buffer)),
+	Rest = lists:sublist(Buffer, StartRange - Offset, length(Buffer)),
 	End = StartRange + length(Rest) - 1,
 	ContentRange = content_range(StartRange, End, End),
 	{stop, shutdown, {Rest, ContentRange}, State};
 range_request({StartRange, EndRange}, _From,
 		#state{offset = Offset, buffer = Buffer, timeout = Timeout} = State)
-		when StartRange >= Offset, length(Buffer) >= EndRange - Offset ->
+		when StartRange > Offset, length(Buffer) >= EndRange - Offset ->
 	PageSize = EndRange - StartRange + 1,
-	Rest = lists:sublist(Buffer, StartRange - Offset + 1, length(Buffer)),
+	Rest = lists:sublist(Buffer, StartRange - Offset, length(Buffer)),
 	{RespItems, NewBuffer} = lists:split(PageSize, Rest),
 	NewState = State#state{offset = EndRange, buffer = NewBuffer},
 	ContentRange = content_range(StartRange, EndRange, undefined),
