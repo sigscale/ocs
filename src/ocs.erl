@@ -29,6 +29,7 @@
 		update_password/2, update_attributes/2, update_attributes/5,
 		get_subscribers/0]).
 -export([add_user/3, list_users/0, get_user/1, delete_user/1]).
+-export([add_product/1, find_product/1, get_products/0, delete_product/1]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
@@ -519,6 +520,88 @@ update_attributes(Identity, Buckets, Attributes, EnabledStatus, MultiSession)
 			{error, Reason};
 		{aborted, Reason} ->
 			{error, Reason}
+	end.
+
+-spec add_product(Product) -> Result
+	when
+		Product :: #product{},
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Add a new entry for product tables
+add_product(Product) ->
+	F = fun() ->
+		mnesia:write(product, Product, write)
+	end,
+	case mnesia:transaction(F) of
+		{atomic, ok} ->
+			ok;
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+
+-spec find_product(ProductID) -> Result
+	when
+		ProductID :: string(),
+		Result :: {ok, Product} | {error, Reason},
+		Product :: #product{},
+		Reason :: term().
+%% @doc Find product by product id
+find_product(ProductID) ->
+	F = fun() ->
+		case mnesia:read(product, ProductID) of
+			[Entry] ->
+				Entry;
+			[] ->
+				throw(not_found)
+		end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, Product} ->
+			{ok, Product};
+		{aborted, {throw, not_found}} ->
+			{error, not_found};
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+
+-spec get_products() -> Result
+	when
+		Result :: [#subscriber{}] | {error, Reason},
+		Reason :: term().
+%% @doc Get all entries in the product table.
+get_products() ->
+	MatchSpec = [{'_', [], ['$_']}],
+	F = fun(F, start, Acc) ->
+				F(F, mnesia:select(product, MatchSpec,
+						?CHUNKSIZE, read), Acc);
+			(_F, '$end_of_table', Acc) ->
+				lists:flatten(lists:reverse(Acc));
+			(_F, {error, Reason}, _Acc) ->
+				{error, Reason};
+			(F,{Product, Cont}, Acc) ->
+				F(F, mnesia:select(Cont), [Product | Acc])
+	end,
+	case mnesia:transaction(F, [F, start, []]) of
+		{aborted, Reason} ->
+			{error, Reason};
+		{atomic, Result} ->
+			Result
+	end.
+
+-spec delete_product(ProductID) -> Result
+	when
+		ProductID :: string(),
+		Result :: ok.
+%% @doc Delete an entry form the product table
+delete_product(ProductID) ->
+	F = fun() ->
+		mnesia:delete(product, ProductID, write)
+	end,
+	case mnesia:transaction(F) of
+		{atomic, _} ->
+			ok;
+		{aborted, Reason} ->
+			exit(Reason)
 	end.
 
 -type password() :: [50..57 | 97..104 | 106..107 | 109..110 | 112..116 | 119..122].

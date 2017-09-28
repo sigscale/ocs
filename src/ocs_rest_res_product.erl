@@ -82,16 +82,14 @@ add_product_CatMgmt(ReqData) ->
 			{error, 400}
 	end.
 %% @hidden
-add_product_CatMgmt1(Products) ->
-	F1 = fun() ->
-		ok = mnesia:write(product, Products, write)
-	end,
-	case mnesia:transaction(F1) of
-		{atomic, ok} ->
+add_product_CatMgmt1(Product) ->
+	case ocs:add_product(Product) of
+		ok ->
 			ok;
-		{aborted, _} ->
+		{error, _} ->
 			{error, 500}
 	end.
+
 %% @hidden
 add_product_CatMgmt2(ProdId, JsonResponse) ->
 	Id = {id, ProdId},
@@ -128,20 +126,12 @@ add_product_InvMgmt(ReqData) ->
 %% @doc Respond to `GET /catalogManagement/v1/productOffering/{id}' and
 %% retrieve a `product' details
 get_product_CatMgmt(ProductID) ->
-	F = fun() ->
-		case mnesia:read(product, ProductID) of
-			[Product] ->
-				Product;
-			[] ->
-				throw(not_found)
-		end
-	end,
-	case mnesia:transaction(F) of
-		{atomic, Prod} ->
-			get_product_CatMgmt1(Prod);
-		{aborted, {throw, not_found}} ->
+	case ocs:find_product(ProductID) of
+		{ok, Product} ->
+			get_product_CatMgmt1(Product);
+		{error, not_found} ->
 			{error, 404};
-		{aborted, _} ->
+		{error, _} ->
 			{error, 500}
 	end.
 %% @hidden
@@ -167,8 +157,6 @@ get_product_CatMgmt1(Prod) ->
 			{ok, Headers, Body}
 	end.
 
--define(CHUNKSIZE, 100).
-
 -spec get_products_CatMgmt(Query) -> Result when
 	Query :: [{Key :: string(), Value :: string()}],
 	Result	:: {ok, Headers, Body} | {error, Status},
@@ -179,21 +167,10 @@ get_product_CatMgmt1(Prod) ->
 %% retrieve all `product' details
 %% @todo Filtering
 get_products_CatMgmt(_Query) ->
-	MatchSpec = [{'_', [], ['$_']}],
-	F = fun(F, start, Acc) ->
-				F(F, mnesia:select(product, MatchSpec,
-						?CHUNKSIZE, read), Acc);
-			(_F, '$end_of_table', Acc) ->
-				lists:flatten(lists:reverse(Acc));
-			(_F, {error, Reason}, _Acc) ->
-				{error, Reason};
-			(F,{Product, Cont}, Acc) ->
-				F(F, mnesia:select(Cont), [Product | Acc])
-	end,
-	case mnesia:transaction(F, [F, start, []]) of
-		{aborted, _} ->
+	case ocs:get_products() of
+		{error, _} ->
 			{error, 500};
-		{atomic, Products} ->
+		Products ->
 			get_products_CatMgmt1(Products, [])
 	end.
 %% @hidden
