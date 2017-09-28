@@ -151,6 +151,8 @@
 	</template>
 	<script>
 		var cbClient;
+		var etag;
+		var lastItem;
 		Polymer ({
 			is: 'sig-client-list',
 			behaviors: [i18nMsgBehavior],
@@ -189,9 +191,9 @@
 						cbClient = callback;
 						params.filters.forEach(function(filter, index) {
 							if(index == 0) {
-								ajax.url += '?'+ filter.path + '=' + filter.value;
+								ajax.url += '?' + filter.path + '=' + filter.value;
 							} else {
-								ajax.url += '&'+ filter.path + '=' + filter.value;
+								ajax.url += '&' + filter.path + '=' + filter.value;
 							}
 						});
 						params.sortOrders.forEach(function(sort, index) {
@@ -211,6 +213,12 @@
 								ajax.url += ',' + dirsort;
 							}
 						});
+						StartRange = params.page * params.pageSize + 1;
+						EndRange = StartRange + params.pageSize - 1;
+						ajax.headers['Range'] = "items=" + StartRange + "-" + EndRange;
+						if (etag && StartRange > lastItem) {
+							ajax.headers['If-Range'] = etag;
+						}
 						ajax.generateRequest();
 					};
 				}
@@ -234,20 +242,18 @@
 			_getClientResponse: function(event) {
 				var grid = this.$.clientGrid;
 				var results = event.detail.xhr.response;
-				var range = event.detail.xhr.getResponseHeader('Content-Range');
 				if (grid.size == undefined) {
 					grid.size = 0;
 				}
-				if (range) {
-					var range1 = range.split("/");
-					var range2 = range1[0].split("-");
-					if (range1[1] != "*") {
-						grid.size = Number(range1[1]);
-					} else {
-						grid.size = Number(range2[1]) + grid.pageSize * 2;
-					}
+				etag = event.detail.xhr.getResponseHeader('ETag');
+				var range = event.detail.xhr.getResponseHeader('Content-Range');
+				var range1 = range.split("/");
+				var range2 = range1[0].split("-");
+				lastItem = Number(range2[1]);
+				if (range1[1] != "*") {
+					grid.size = Number(range1[1]);
 				} else {
-					grid.size += grid.pageSize * 2;
+					grid.size = Number(range2[1]) + grid.pageSize * 2;
 				}
 				var vaadinItems = new Array();
 				for (var index in results) {
