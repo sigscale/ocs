@@ -143,10 +143,10 @@
 			</paper-button>
 		</paper-toast>
 		<iron-ajax
-				id="getClientsAjax"
+				id="getClientAjax"
 				url="/ocs/v1/client"
-				on-response="_getClientsResponse"
-				on-error="_getClientsError">
+				on-response="_getClientResponse"
+				on-error="_getClientError">
 		</iron-ajax>
 	</template>
 	<script>
@@ -185,7 +185,7 @@
 						}
 					];
 					grid.dataProvider = function(params, callback) {
-						var ajax = document.getElementById("getClientsAjax");
+						var ajax = document.getElementById("getClientAjax");
 						cbClient = callback;
 						params.filters.forEach(function(filter, index) {
 							if(index == 0) {
@@ -231,7 +231,7 @@
 					}
 				}
 			},
-			_getClientsResponse: function(event) {
+			_getClientResponse: function(event) {
 				var grid = this.$.clientGrid;
 				var results = event.detail.xhr.response;
 				var range = event.detail.xhr.getResponseHeader('Content-Range');
@@ -261,7 +261,7 @@
 				}
 				cbClient(vaadinItems);
 			},
-			_getClientsError: function (event) {
+			_getClientError: function (event) {
 				this.$.getClientErrorToast.text = event.detail.request.xhr.statusText;
 				this.$.getClientErrorToast.open();
 				this.$.clientGrid.size = 0;
