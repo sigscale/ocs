@@ -129,15 +129,18 @@
 	<script>
 		var etag;
 		var cbProduct;
+		var lastItem;
 		Polymer ({
 			is: 'sig-product-list',
 			behaviors: [i18nMsgBehavior],
-			active: {
-				type: Boolean,
-				value: false,
-				observer: '_activeChanged',
+			properties: {
+				activePage: {
+					type: Boolean,
+					value: false,
+					observer: '_activePageChanged'
+				}
 			},
-			_activeChanged: function(active) {
+			_activePageChanged: function(active) {
 				if (active) {
 					var grid = this.$.productGrid;
 					grid.columns = [
@@ -161,7 +164,44 @@
 						}
 					];
 					grid.dataProvider = function(params, callback) {
-						var ajax = this.$.getProductAjax;
+						cbProduct = callback;
+						var ajax = document.getElementById('getProductAjax');
+						ajax.url="/catalogManagement/v1/productOffering"
+						params.filters.forEach(function(filter, index) {
+							if(index == 0) {
+								ajax.url += '?' + filter.path + '=' + filter.value;
+							} else {
+								ajax.url += '&' + filter.path + '=' + filter.value;
+							}
+						});
+						params.sortOrders.forEach(function(sort, index) {
+							var dirsort;
+							if(sort.direction == "desc") {
+								dirsort = '-' + sort.path;
+							} else {
+								dirsort = sort.path;
+							}
+							if(index == 0) {
+								if(params.filters.length == 0) {
+									ajax.url += '?sort=' + dirsort;
+								} else {
+									ajax.url += '&sort=' + dirsort;
+								}
+							} else {
+								ajax.url += ',' + dirsort;
+							}
+						});
+						StartRange = params.page * params.pageSize + 1;
+						EndRange = StartRange + params.pageSize - 1;
+						ajax.headers['Range'] = "items=" + StartRange + "-" + EndRange;
+console.log(ajax.headers);
+						if (etag && StartRange > lastItem) {
+							ajax.headers['If-Range'] = etag;
+						}
+						ajax.generateRequest();
+					};
+					grid.dataProvider = function(params, callback) {
+						var ajax = document.getElementById("getProductAjax");
 						cbProduct = callback;
 						ajax.url="/catalogManagement/v1/productOffering"
 						params.filters.forEach(function(filter, index) {
@@ -201,21 +241,18 @@
 			_getProductResponse: function(event) {
 				var grid = this.$.productGrid;
 				var results = event.detail.xhr.response;
-				etag = event.detail.xhr.getResponseHeader('ETag');
-				var range = event.detail.xhr.getResponseHeader('Content-Range');
 				if (grid.size == undefined) {
 					grid.size = 0;
 				}
-				if (range == "bogus") {
-					var range1 = range.split("/");
-					var range2 = range1[0].split("-");
-					if (range1[1] != "*") {
-						grid.size = Number(range1[1]);
-					} else {
-						grid.size = Number(range2[1]) + grid.pageSize * 2;
-					}
+				etag = event.detail.xhr.getResponseHeader('ETag');
+				var range = event.detail.xhr.getResponseHeader('Content-Range');
+				var range1 = range.split("/");
+				var range2 = range1[0].split("-");
+				lastItem = Number(range2[1]);
+				if (range1[1] != "*") {
+					grid.size = Number(range1[1]);
 				} else {
-					grid.size += grid.pageSize;
+					grid.size = Number(range2[1]) + grid.pageSize * 2;
 				}
 				var vaadinItems = new Array();
 				for (var index in results) {
