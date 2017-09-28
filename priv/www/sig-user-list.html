@@ -224,7 +224,7 @@
 				this.$.userErrorToast.open();
 			},
 			getUserError: function(event) {
-				this.$.UserGrid.size = 0;
+				this.$.userGrid.size = 0;
 				cbUser([]);
 				this.$.userErrorToast.text = event.detail.request.xhr.statusText;
 				this.$.userErrorToast.open();
