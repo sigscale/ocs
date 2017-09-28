@@ -184,7 +184,6 @@
 		</paper-toast>
 		<iron-ajax
 			id="getSubscriberAjax"
-			url="/ocs/v1/subscriber"
 			on-response="_getSubscriberResponse"
 			on-error="_getSubscriberError">
 		</iron-ajax>
@@ -192,6 +191,7 @@
 	<script>
 		var cbSubscriber;
 		var etag;
+		var lastItem;
 		Polymer ({
 			is: 'sig-sub-list',
 			behaviors: [i18nMsgBehavior],
@@ -246,6 +246,7 @@
 					grid.dataProvider = function(params, callback) {
 						cbSubscriber = callback;
 						var ajax = document.getElementById("getSubscriberAjax");
+						ajax.url = "/ocs/v1/subscriber";
 						params.filters.forEach(function(filter, index) {
 							if(index == 0) {
 								ajax.url += '?' + filter.path + '=' + filter.value;
@@ -270,12 +271,11 @@
 								ajax.url += ',' + dirsort;
 							}
 						});
-						var startRange = params.page * params.pageSize + 1;
-						var endRange = startRange + params.pageSize;
-						ajax.headers['Range'] = "items="
-									+ startRange.toString() + "-" + endRange.toString();
-						if (etag !== undefined & etag !== null) {
-							ajax.headers['If-Match'] = etag;
+						StartRange = params.page * params.pageSize + 1;
+						EndRange = StartRange + params.pageSize - 1;
+						ajax.headers['Range'] = "items=" + StartRange + "-" + EndRange;
+						if (etag && StartRange > lastItem) {
+							ajax.headers['If-Range'] = etag;
 						}
 						ajax.generateRequest();
 					};
@@ -304,16 +304,13 @@
 				if (grid.size == undefined) {
 					grid.size = 0;
 				}
-				if (range) {
-					var range1 = range.split("/");
-					var range2 = range1[0].split("-");
-					if (range1[1] != "*") {
-						grid.size = Number(range1[1]);
-					} else {
-						grid.size = Number(range2[1]) + grid.pageSize * 2;
-					}
+				var range1 = range.split("/");
+				var range2 = range1[0].split("-");
+				lastItem = Number(range2[1]);
+				if (range1[1] != "*") {
+					grid.size = Number(range1[1]);
 				} else {
-					grid.size += grid.pageSize * 2;
+					grid.size = Number(range2[1]) + grid.pageSize * 2;
 				}
 				var vaadinItems = new Array();
 				for (var index in results) {
