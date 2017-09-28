@@ -1021,21 +1021,21 @@
 						&& priceNew.unit 
 						&& priceNew.unit !== null) {
 					this.push('prices', priceNew);
+					this.$.priceName.value = null;
+					this.$.addPriceDes.value = null;
+					this.$.priceStartDate.value = null;
+					this.$.addPriceSize.value = null;
+					this.$.addPrice3.value = null;
+					this.$.addPrice2.value = null;
+					this.$.priceEndDate.value = null;
+					this.$.addPrice1.value = null;
+					this.$.addPrice4.value = null;
+					this.$.addPrice5.value = null;
 					document.getElementById("addProductToastSuccess").open();
 				} else {
 					this.$.addProductToastError.text = "Validation failed";
 					this.$.addProductToastError.open();
 				}
-				this.$.priceName.value = null;
-				this.$.addPriceDes.value = null;
-				this.$.priceStartDate.value = null;
-				this.$.addPriceSize.value = null;
-				this.$.addPrice3.value = null;
-				this.$.addPrice2.value = null;
-				this.$.priceEndDate.value = null;
-				this.$.addPrice1.value = null;   
-				this.$.addPrice4.value = null;
-				this.$.addPrice5.value = null;
 			},
 			addAlteration: function() {
 				var altNew = new Object();
@@ -1090,18 +1090,18 @@
 						&& altNew.amount
 						&& altNew.amount !== null) {
 					this.push('alterations', altNew);
+					this.$.addAlt1.value = null
+					this.$.descAlt2.value = null;
+					this.$.startAlt2.value = null;
+					this.$.addAltCurr.value = null;
+					this.$.endAlt2.value = null;
+					this.$.typeAlt3.value = null;
+					this.$.sizeAlt3.value = null;
+					this.$.amountAlt3.value = null;
 				} else {
 					this.$.addProductToastError.text = "Validation failed";
 					this.$.addProductToastError.open();
 				}
-				this.$.addAlt1.value = null
-				this.$.descAlt2.value = null;
-				this.$.startAlt2.value = null;
-				this.$.addAltCurr.value = null;
-				this.$.endAlt2.value = null;
-				this.$.typeAlt3.value = null;
-				this.$.sizeAlt3.value = null;
-				this.$.amountAlt3.value = null;
 			},
 			_onLoadingChanged: function(event) {
 				if (this.$.addProductAjax.loading) {
@@ -1115,9 +1115,9 @@
 				document.getElementById("addProductToastSuccess").open();
 				this.$.addOff1.value = null;
 				this.$.addOff2.value = null;
-				this.prices.length = 0;
-				this.alterations.length = 0;
-				document.getElementById("getProducts").clearCache();
+				this.set('prices', []);
+				this.set('alterations', []);
+				document.getElementById("productGrid").clearCache();
 			},
 			_addProductError: function(event) {
 				this.$.addProductToastError.text = event.detail.request.xhr.statusText;
