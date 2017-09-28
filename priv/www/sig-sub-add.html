@@ -470,7 +470,7 @@
 					this.identity = ajax.lastResponse.id;
 					this.$.addSubscriberSecretModal.open();
 				} else {
-					this.$.addSubscriberToastSuccess.open();
+					document.getElementById("addSubscriberToastSuccess").open();
 				}
 				document.getElementById("subscriberGrid").clearCache();
 			},
