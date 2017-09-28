@@ -169,21 +169,10 @@ get_product_CatMgmt1(Prod) ->
 %% retrieve all `product' details
 %% @todo Filtering
 get_products_CatMgmt(_Query) ->
-	MatchSpec = [{'_', [], ['$_']}],
-	F = fun(F, start, Acc) ->
-				F(F, mnesia:select(product, MatchSpec,
-						?CHUNKSIZE, read), Acc);
-			(_F, '$end_of_table', Acc) ->
-				lists:flatten(lists:reverse(Acc));
-			(_F, {error, Reason}, _Acc) ->
-				{error, Reason};
-			(F,{Product, Cont}, Acc) ->
-				F(F, mnesia:select(Cont), [Product | Acc])
-	end,
-	case mnesia:transaction(F, [F, start, []]) of
-		{aborted, _} ->
+	case ocs:get_products() of
+		{error, _} ->
 			{error, 500};
-		{atomic, Products} ->
+		Products ->
 			get_products_CatMgmt1(Products, [])
 	end.
 %% @hidden

@@ -29,7 +29,7 @@
 		update_password/2, update_attributes/2, update_attributes/5,
 		get_subscribers/0]).
 -export([add_user/3, list_users/0, get_user/1, delete_user/1]).
--export([add_product/1, find_product/1]).
+-export([add_product/1, find_product/1, get_products/0]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
@@ -562,6 +562,30 @@ find_product(ProductID) ->
 			{error, not_found};
 		{aborted, Reason} ->
 			{error, Reason}
+	end.
+
+-spec get_products() -> Result
+	when
+		Result :: [#subscriber{}] | {error, Reason},
+		Reason :: term().
+%% @doc Get all entries in the product table.
+get_products() ->
+	MatchSpec = [{'_', [], ['$_']}],
+	F = fun(F, start, Acc) ->
+				F(F, mnesia:select(product, MatchSpec,
+						?CHUNKSIZE, read), Acc);
+			(_F, '$end_of_table', Acc) ->
+				lists:flatten(lists:reverse(Acc));
+			(_F, {error, Reason}, _Acc) ->
+				{error, Reason};
+			(F,{Product, Cont}, Acc) ->
+				F(F, mnesia:select(Cont), [Product | Acc])
+	end,
+	case mnesia:transaction(F, [F, start, []]) of
+		{aborted, Reason} ->
+			{error, Reason};
+		{atomic, Result} ->
+			Result
 	end.
 
 -type password() :: [50..57 | 97..104 | 106..107 | 109..110 | 112..116 | 119..122].
