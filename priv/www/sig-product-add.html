@@ -934,16 +934,19 @@
 					this.$.priceBytes.disabled = true;
 					this.$.priceSeconds.disabled = true;
 					this.$.priceCents.disabled = false;
-				}else if(this.$.addPrice1.selected == 1) {
+					this.$.addPrice2.selected = 1;
+				} else if(this.$.addPrice1.selected == 1) {
 					this.$.addPrice5drop.disabled = true;
 					this.$.priceBytes.disabled = true;
 					this.$.priceSeconds.disabled = true;
 					this.$.priceCents.disabled = false;
-				}else if(this.$.addPrice1.selected == 2) {
+					this.$.addPrice2.selected = 1;
+				} else if(this.$.addPrice1.selected == 2) {
 					this.$.addPrice5drop.disabled = true;
 					this.$.priceCents.disabled = true;
 					this.$.priceBytes.disabled = false;
 					this.$.priceSeconds.disabled = false;
+					this.$.addPrice2.selected = 0;
 				}
 			},
 			checkRecureAlt: function() {
@@ -952,16 +955,19 @@
 					this.$.altBytes.disabled = true;
 					this.$.altSeconds.disabled = true;
 					this.$.altCents.disabled = false;
-				}else if(this.$.typeAlt3.selected == 1) {
+					this.$.addUnitDrop.selected = 1;
+				} else if(this.$.typeAlt3.selected == 1) {
 					this.$.addalt5drop.disabled = true;
 					this.$.altBytes.disabled = true;
 					this.$.altSeconds.disabled = true;
 					this.$.altCents.disabled = false;
-				}else if(this.$.typeAlt3.selected == 2) {
+					this.$.addUnitDrop.selected = 1;
+				} else if(this.$.typeAlt3.selected == 2) {
 					this.$.addalt5drop.disabled = true;
 					this.$.altBytes.disabled = false;
 					this.$.altSeconds.disabled = false;
 					this.$.altCents.disabled = true;
+					this.$.addUnitDrop.selected = 0;
 				}
 			},
 			addPrice: function(event) {
