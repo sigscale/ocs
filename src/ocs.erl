@@ -29,6 +29,7 @@
 		update_password/2, update_attributes/2, update_attributes/5,
 		get_subscribers/0]).
 -export([add_user/3, list_users/0, get_user/1, delete_user/1]).
+-export([add_product/1]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
@@ -517,6 +518,23 @@ update_attributes(Identity, Buckets, Attributes, EnabledStatus, MultiSession)
 			ok;
 		{aborted, {throw, Reason}} ->
 			{error, Reason};
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+
+-spec add_product(Product) -> Result
+	when
+		Product :: #product{},
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Add a new entry for product tables
+add_product(Product) ->
+	F = fun() ->
+		mnesia:write(product, Product, write)
+	end,
+	case mnesia:transaction(F) of
+		{atomic, ok} ->
+			ok;
 		{aborted, Reason} ->
 			{error, Reason}
 	end.

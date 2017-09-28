@@ -82,16 +82,14 @@ add_product_CatMgmt(ReqData) ->
 			{error, 400}
 	end.
 %% @hidden
-add_product_CatMgmt1(Products) ->
-	F1 = fun() ->
-		ok = mnesia:write(product, Products, write)
-	end,
-	case mnesia:transaction(F1) of
-		{atomic, ok} ->
+add_product_CatMgmt1(Product) ->
+	case ocs:add_product(Product) of
+		ok ->
 			ok;
-		{aborted, _} ->
+		{error, _} ->
 			{error, 500}
 	end.
+
 %% @hidden
 add_product_CatMgmt2(ProdId, JsonResponse) ->
 	Id = {id, ProdId},
