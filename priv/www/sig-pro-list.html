@@ -132,7 +132,11 @@
 			Polymer ({
 				is: 'sig-pro-list',
 				behaviors: [i18nMsgBehavior],
-				properties: {},
+				properties: {
+					activeItem: {
+						observer: '_activeItemChanged'
+					}
+				},
 				ready: function() {
 					var grid = this.$.productGrid;
 					grid.columns = [
@@ -185,6 +189,13 @@
 						});
 						ajax.generateRequest();
 					};
+				},
+				_activeItemChanged: function(item) {
+					if (item != null) {
+						var grid = this.$.productGrid;
+						grid.selectedItems = item ? [item] : [];
+						document.getElementById("updateProductModal").open();
+					}
 				},
 				proResponse: function(event) {
 					var grid = this.$.productGrid;
