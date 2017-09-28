@@ -29,7 +29,7 @@
 		update_password/2, update_attributes/2, update_attributes/5,
 		get_subscribers/0]).
 -export([add_user/3, list_users/0, get_user/1, delete_user/1]).
--export([add_product/1]).
+-export([add_product/1, find_product/1]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
@@ -535,6 +535,31 @@ add_product(Product) ->
 	case mnesia:transaction(F) of
 		{atomic, ok} ->
 			ok;
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+
+-spec find_product(ProductID) -> Result
+	when
+		ProductID :: string(),
+		Result :: {ok, Product} | {error, Reason},
+		Product :: #product{},
+		Reason :: term().
+%% @doc Find product by product id
+find_product(ProductID) ->
+	F = fun() ->
+		case mnesia:read(product, ProductID) of
+			[Entry] ->
+				Entry;
+			[] ->
+				throw(not_found)
+		end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, Product} ->
+			{ok, Product};
+		{aborted, {throw, not_found}} ->
+			{error, not_found};
 		{aborted, Reason} ->
 			{error, Reason}
 	end.

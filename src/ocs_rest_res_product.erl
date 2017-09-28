@@ -126,20 +126,12 @@ add_product_InvMgmt(ReqData) ->
 %% @doc Respond to `GET /catalogManagement/v1/productOffering/{id}' and
 %% retrieve a `product' details
 get_product_CatMgmt(ProductID) ->
-	F = fun() ->
-		case mnesia:read(product, ProductID) of
-			[Product] ->
-				Product;
-			[] ->
-				throw(not_found)
-		end
-	end,
-	case mnesia:transaction(F) of
-		{atomic, Prod} ->
-			get_product_CatMgmt1(Prod);
-		{aborted, {throw, not_found}} ->
+	case ocs:find_product(ProductID) of
+		{ok, Product} ->
+			get_product_CatMgmt1(Product);
+		{error, not_found} ->
 			{error, 404};
-		{aborted, _} ->
+		{error, _} ->
 			{error, 500}
 	end.
 %% @hidden
