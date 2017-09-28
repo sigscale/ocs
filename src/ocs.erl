@@ -29,7 +29,7 @@
 		update_password/2, update_attributes/2, update_attributes/5,
 		get_subscribers/0]).
 -export([add_user/3, list_users/0, get_user/1, delete_user/1]).
--export([add_product/1, find_product/1, get_products/0]).
+-export([add_product/1, find_product/1, get_products/0, delete_product/1]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
@@ -586,6 +586,22 @@ get_products() ->
 			{error, Reason};
 		{atomic, Result} ->
 			Result
+	end.
+
+-spec delete_product(ProductID) -> Result
+	when
+		ProductID :: string(),
+		Result :: ok.
+%% @doc Delete an entry form the product table
+delete_product(ProductID) ->
+	F = fun() ->
+		mnesia:delete(product, ProductID, write)
+	end,
+	case mnesia:transaction(F) of
+		{atomic, _} ->
+			ok;
+		{aborted, Reason} ->
+			exit(Reason)
 	end.
 
 -type password() :: [50..57 | 97..104 | 106..107 | 109..110 | 112..116 | 119..122].
