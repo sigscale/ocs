@@ -157,8 +157,6 @@ get_product_CatMgmt1(Prod) ->
 			{ok, Headers, Body}
 	end.
 
--define(CHUNKSIZE, 100).
-
 -spec get_products_CatMgmt(Query) -> Result when
 	Query :: [{Key :: string(), Value :: string()}],
 	Result	:: {ok, Headers, Body} | {error, Status},
