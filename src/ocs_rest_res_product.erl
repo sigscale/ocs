@@ -179,7 +179,10 @@ get_products_CatMgmt(_Query) ->
 get_products_CatMgmt1([], Acc) ->
 	Json = {array, Acc},
 	Body = mochijson:encode(Json),
-	Headers = [{content_type, "application/json"}],
+	RangeEnd = integer_to_list(length(Acc)),
+	ContentRange = "items 1-" ++ RangeEnd ++ "/" ++ RangeEnd,
+	Headers = [{content_type, "application/json"},
+			{content_range, ContentRange}],
 	{ok, Headers, Body};
 get_products_CatMgmt1([Prod | T], Acc) ->
 	try
