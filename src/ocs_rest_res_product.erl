@@ -231,99 +231,6 @@ get_products_CatMgmt1(Query, Filters, Headers) ->
 			query_start(Query, Filters, 1, MaxItems)
 	end.
 
-%% @hidden
-query_start(Query, Filters, RangeStart, RangeEnd) ->
-	Name = proplists:get_value("name", 1, Filters),
-	Des = proplists:get_value("description", 1, Filters),
-	Status = proplists:get_value("status", 1, Filters),
-	SDT = proplists:get_value("startDate", 1, Filters),
-	EDT = proplists:get_value("endDate", 1, Filters),
-	Price = proplists:get_value("price", 1, Filters),
-	case supervisor:start_child(ocs_rest_pagination_sup,
-				[[ocs, query_product, [Name, Des, Status, SDT, EDT, Price]]]) of
-		{ok, PageServer, Etag} ->
-			query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
-		{error, _Reason} ->
-			{error, 500}
-	end.
-
-query_page(PageServer, Etag, Query, Filters, Start, End) ->
-	case gen_server:call(PageServer, {Start, End}) of
-		{error, Status} ->
-			{error, Status};
-		{Events, ContentRange} ->
-			try
-				case lists:keytake("sort", 1, Query) of
-					{value, {_, "name"}, Q1} ->
-						{lists:keysort(#product.name, Events), Q1};
-					{value, {_, "-name"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.name, Events)), Q1};
-					{value, {_, "description"}, Q1} ->
-						{lists:keysort(#product.description, Events), Q1};
-					{value, {_, "-description"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.description, Events)), Q1};
-					{value, {_, "status"}, Q1} ->
-						{lists:keysort(#product.status, Events), Q1};
-					{value, {_, "-status"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.status, Events)), Q1};
-					{value, {_, "startDate"}, Q1} ->
-						{lists:keysort(#product.start_date, Events), Q1};
-					{value, {_, "-startDate"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.start_date, Events)), Q1};
-					{value, {_, "endDate"}, Q1} ->
-						{lists:keysort(#product.termination_date, Events), Q1};
-					{value, {_, "-endtDate"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.termination_date, Events)), Q1};
-					{value, {_, "price"}, Q1} ->
-						{lists:keysort(#product.price, Events), Q1};
-					{value, {_, "-price"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.price, Events)), Q1};
-					false ->
-						{Events, Query};
-					_ ->
-						throw(400)
-				end
-			of
-				{SortedEvents, _NewQuery} ->
-					JsonObj = query_page1(lists:map(fun product_json/1, SortedEvents), Filters, []),
-					JsonArray = {array, JsonObj},
-					Body = mochijson:encode(JsonArray),
-					Headers = [{content_type, "application/json"},
-							{etag, Etag}, {accept_ranges, "items"},
-							{content_range, ContentRange}],
-					{ok, Headers, Body}
-			catch
-				throw:{error, Status} ->
-					{error, Status}
-			end
-	end.
-%% @hidden
-query_page1([], _, Acc) ->
-	lists:reverse(Acc);
-query_page1(Json, [], Acc) ->
-	lists:reverse(Json ++ Acc);
-query_page1([H | T], Filters, Acc) ->
-	query_page1(T, Filters, [ocs_rest:filter(Filters, H) | Acc]).
-
-product_json(Prod) when is_record(Prod, product)->
-	ID = prod_id(json, Prod),
-	Descirption = prod_description(json, Prod),
-	Href = prod_href(json, Prod),
-	ValidFor = prod_vf(json, Prod),
-	IsBundle = prod_isBundle(json, Prod),
-	Name = prod_name(json, Prod),
-	Status = prod_status(json, Prod),
-	StartDate = prod_sdate(json, Prod),
-	TerminationDate = prod_tdate(json, Prod),
-	case prod_offering_price(json, Prod) of
-		{error, StatusCode} ->
-			throw(StatusCode);
-		OfferPrice ->
-			{struct, [ID, Descirption, Href, StartDate,
-				TerminationDate, IsBundle, Name, Status, ValidFor,
-				OfferPrice]}
-	end.
-
 -spec on_patch_product_CatMgmt(ProdId, Etag, ReqData) -> Result
 	when
 		ProdId	:: string(),
@@ -1480,4 +1387,97 @@ target({struct, Object}) ->
 	catch
 		_:_ ->
 			{error, 400}
+	end.
+
+%% @hidden
+query_start(Query, Filters, RangeStart, RangeEnd) ->
+	Name =  '_', %%proplists:get_value("name", 1, Filters),
+	Des = '_', %%proplists:get_value("description", 1, Filters),
+	Status = '_', %%proplists:get_value("status", 1, Filters),
+	SDT = '_', %%proplists:get_value("startDate", 1, Filters),
+	EDT = '_', %%proplists:get_value("endDate", 1, Filters),
+	Price = '_', %%proplists:get_value("price", 1, Filters),
+	case supervisor:start_child(ocs_rest_pagination_sup,
+				[[ocs, query_product, [Name, Des, Status, SDT, EDT, Price]]]) of
+		{ok, PageServer, Etag} ->
+			query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
+		{error, _Reason} ->
+			{error, 500}
+	end.
+
+query_page(PageServer, Etag, Query, Filters, Start, End) ->
+	case gen_server:call(PageServer, {Start, End}) of
+		{error, Status} ->
+			{error, Status};
+		{Events, ContentRange} ->
+			try
+				case lists:keytake("sort", 1, Query) of
+					{value, {_, "name"}, Q1} ->
+						{lists:keysort(#product.name, Events), Q1};
+					{value, {_, "-name"}, Q1} ->
+						{lists:reverse(lists:keysort(#product.name, Events)), Q1};
+					{value, {_, "description"}, Q1} ->
+						{lists:keysort(#product.description, Events), Q1};
+					{value, {_, "-description"}, Q1} ->
+						{lists:reverse(lists:keysort(#product.description, Events)), Q1};
+					{value, {_, "status"}, Q1} ->
+						{lists:keysort(#product.status, Events), Q1};
+					{value, {_, "-status"}, Q1} ->
+						{lists:reverse(lists:keysort(#product.status, Events)), Q1};
+					{value, {_, "startDate"}, Q1} ->
+						{lists:keysort(#product.start_date, Events), Q1};
+					{value, {_, "-startDate"}, Q1} ->
+						{lists:reverse(lists:keysort(#product.start_date, Events)), Q1};
+					{value, {_, "endDate"}, Q1} ->
+						{lists:keysort(#product.termination_date, Events), Q1};
+					{value, {_, "-endtDate"}, Q1} ->
+						{lists:reverse(lists:keysort(#product.termination_date, Events)), Q1};
+					{value, {_, "price"}, Q1} ->
+						{lists:keysort(#product.price, Events), Q1};
+					{value, {_, "-price"}, Q1} ->
+						{lists:reverse(lists:keysort(#product.price, Events)), Q1};
+					false ->
+						{Events, Query};
+					_ ->
+						throw(400)
+				end
+			of
+				{SortedEvents, _NewQuery} ->
+					JsonObj = query_page1(lists:map(fun product_json/1, SortedEvents), Filters, []),
+					JsonArray = {array, JsonObj},
+					Body = mochijson:encode(JsonArray),
+					Headers = [{content_type, "application/json"},
+							{etag, Etag}, {accept_ranges, "items"},
+							{content_range, ContentRange}],
+					{ok, Headers, Body}
+			catch
+				throw:{error, Status} ->
+					{error, Status}
+			end
+	end.
+%% @hidden
+query_page1([], _, Acc) ->
+	lists:reverse(Acc);
+query_page1(Json, [], Acc) ->
+	lists:reverse(Json ++ Acc);
+query_page1([H | T], Filters, Acc) ->
+	query_page1(T, Filters, [ocs_rest:filter(Filters, H) | Acc]).
+
+product_json(Prod) when is_record(Prod, product)->
+	ID = prod_id(json, Prod),
+	Descirption = prod_description(json, Prod),
+	Href = prod_href(json, Prod),
+	ValidFor = prod_vf(json, Prod),
+	IsBundle = prod_isBundle(json, Prod),
+	Name = prod_name(json, Prod),
+	Status = prod_status(json, Prod),
+	StartDate = prod_sdate(json, Prod),
+	TerminationDate = prod_tdate(json, Prod),
+	case prod_offering_price(json, Prod) of
+		{error, StatusCode} ->
+			throw(StatusCode);
+		OfferPrice ->
+			{struct, [ID, Descirption, Href, StartDate,
+				TerminationDate, IsBundle, Name, Status, ValidFor,
+				OfferPrice]}
 	end.
