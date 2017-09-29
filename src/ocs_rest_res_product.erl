@@ -242,6 +242,7 @@ on_patch_product_CatMgmt(ProdId, Etag, ReqData) ->
 			{error, StatusCode} ->
 				{error, StatusCode};
 			{ok, Prod} ->
+				NewEtag = etag(Prod#product.last_modified),
 				ID = prod_id(json, Prod),
 				Descirption = prod_description(json, Prod),
 				Href = prod_href(json, Prod),
@@ -259,7 +260,7 @@ on_patch_product_CatMgmt(ProdId, Etag, ReqData) ->
 						TerminationDate, IsBundle, Name, Status, ValidFor,
 						OfferPrice]},
 						Body = mochijson:encode(Json),
-						Headers = [{content_type, "application/json"}],
+						Headers = [{content_type, "application/json"}, {etag, NewEtag}],
 						{ok, Headers, Body}
 				end
 		end
@@ -286,9 +287,10 @@ merge_patch_product_CatMgmt(ProdId, Etag, ReqData) ->
 		case exe_jsonpatch_merge(ProdId, Etag, Json) of
 			{error, Reason} ->
 				{error, Reason};
-			{ok, Response} ->
+			{ok, Response, LM} ->
+				Etag = etag(LM),
 				Body = mochijson:encode(Response),
-				Headers = [{content_type, "application/json"}],
+				Headers = [{content_type, "application/json"}, {etag, Etag}],
 				{ok, Headers, Body}
 		end
 	catch
@@ -1021,10 +1023,12 @@ price_type(one_time) -> "one_time".
 		Result			:: list() | {error, StatusCode},
 		StatusCode		:: 400 | 404 | 422 | 500.
 %% @doc execute object notation json patch
-exe_jsonpatch_ON(ProdID, _Etag, OperationList) ->
+exe_jsonpatch_ON(ProdID, Etag, OperationList) ->
 	F = fun() ->
 			case mnesia:read(product, ProdID, write) of
-				[Entry] ->
+				[Entry] when
+						Entry#product.last_modified == Etag;
+						Etag == undefined ->
 					case ocs_rest:parse(OperationList) of
 						{error, invalid_format} ->
 							throw(malfored_request);
@@ -1033,10 +1037,17 @@ exe_jsonpatch_ON(ProdID, _Etag, OperationList) ->
 								{error, Reason} ->
 									throw(Reason);
 								Updatedentry ->
-									ok = mnesia:write(Updatedentry),
-									Updatedentry
+									mnesia:delete(product, Entry#product.name, write),
+									TS = erlang:system_time(milli_seconds),
+									N = erlang:unique_integer([positive]),
+									LM = {TS, N},
+									NewEntry = Updatedentry#product{last_modified = LM},
+									ok = mnesia:write(NewEntry),
+									NewEntry
 							end
 					end;
+				[#product{}] ->
+					throw(precondition_failed);
 				[] ->
 					throw(not_found)
 			end
@@ -1048,6 +1059,8 @@ exe_jsonpatch_ON(ProdID, _Etag, OperationList) ->
 			{error, 400};
 		{aborted, {throw, not_found}} ->
 			{error, 404};
+		{aborted, {throw, precondition_failed}} ->
+			{error, 412};
 		{aborted, {throw, not_implemented}} ->
 			{error, 422};
 		{aborted, {throw, unprocessable}} ->
@@ -1064,10 +1077,12 @@ exe_jsonpatch_ON(ProdID, _Etag, OperationList) ->
 		Result			:: list() | {error, StatusCode},
 		StatusCode		:: 400 | 404 | 422 | 500.
 %% @doc execute json merge patch
-exe_jsonpatch_merge(ProdID, _Etag, Patch) ->
+exe_jsonpatch_merge(ProdID, Etag, Patch) ->
 	F = fun() ->
 			case mnesia:read(product, ProdID, write) of
-				[Entry] ->
+				[Entry] when
+						Entry#product.last_modified == Etag;
+						Etag == undefined ->
 					case target(Entry) of
 						{error, Status} ->
 							throw(Status);
@@ -1076,22 +1091,31 @@ exe_jsonpatch_merge(ProdID, _Etag, Patch) ->
 							case target(Patched) of
 								{error, SC} ->
 									throw(SC);
-								NewEntry ->
+								Updatedentry ->
+									mnesia:delete(product, Entry#product.name, read),
+									TS = erlang:system_time(milli_seconds),
+									N = erlang:unique_integer([positive]),
+									LM = {TS, N},
+									NewEntry = Updatedentry#product{last_modified = LM},
 									ok = mnesia:write(NewEntry),
-									Patched
+									{Patched, LM}
 							end
 					end;
+				[#product{}] ->
+					throw(precondition_failed);
 				[] ->
 					throw(not_found)
 			end
 	end,
 	case mnesia:transaction(F) of
-		{atomic, Product} ->
-			{ok,  Product};
+		{atomic, {Product, LM}} ->
+			{ok,  Product, LM};
 		{aborted, {throw, malfored_request}} ->
 			{error, 400};
 		{aborted, {throw, not_found}} ->
 			{error, 404};
+		{aborted, {throw, precondition_failed}} ->
+			{error, 412};
 		{aborted, {throw, not_implemented}} ->
 			{error, 422};
 		{aborted, {throw, unprocessable}} ->

@@ -643,7 +643,8 @@ query_product(Con, Name, Description, Status, SDT, EDT, Price) when is_list(SDT)
 query_product(start, Name, Description, Status, SDT, EDT, Price) ->
 	MatchHead = #product{name = Name, description = Description,
 			valid_for = '_', is_bundle = '_', status = Status,
-			start_date = SDT, termination_date = EDT, price = '_'},
+			start_date = SDT, termination_date = EDT, price = '_',
+			last_modified = '_'},
 	MatchSpec = MatchSpec = [{MatchHead, [], ['$_']}],
 	F = fun() ->
 		mnesia:select(product, MatchSpec, read)
