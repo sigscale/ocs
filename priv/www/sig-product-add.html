@@ -92,7 +92,7 @@
 					</div>
 					<div>
 						<iron-collapse id="addProductStartDatePickOff">
-							<paper-date-picker id="startOff3" date="{{pickstart}}">
+							<paper-date-picker id="startOff3" date="{{addProductStartDateOfferPick}}">
 							</paper-date-picker>
 						</iron-collapse>
 						<paper-input id="addOffStart"
@@ -109,7 +109,7 @@
 					</div>
 					<div>
 						<iron-collapse id="addProductEndDatePickOff">
-							<paper-date-picker id="endOff3" date="{{pickend}}">
+							<paper-date-picker id="endOff3" date="{{addProductEndDateOfferPick}}">
 							</paper-date-picker>
 						</iron-collapse>
 						<paper-input id="addOffEnd"
@@ -177,12 +177,12 @@
 					</div>
 					<div>
 						<iron-collapse id="addProductStartDatePickPrice">
-							<paper-date-picker id="addPriceStart" date="{{pickstart}}" headingFormat="dd, MMM D">
+							<paper-date-picker id="addPriceStart" date="{{addProductStartDatePricePick}}" headingFormat="dd, MMM D">
 							</paper-date-picker>
 						</iron-collapse>
 						<paper-input id="addPriceStartDate"
-								value="[[startDatePrice]]"
-								name="startDatePrice"
+								value="[[addProductStartDatePrice]]"
+								name="addProductStartDatePrice"
 								label="[[i18n.start]]"
 								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.show();">
 						</paper-input>
@@ -194,12 +194,12 @@
 					</div>
 					<div>
 						<iron-collapse id="addProductEndDatePickPrice">
-							<paper-date-picker id="addPriceEnd" date="{{pickend}}">
+							<paper-date-picker id="addPriceEnd" date="{{addProductEndDatePricePick}}">
 							</paper-date-picker>
 						</iron-collapse>
 						<paper-input id="addPriceEndDate"
-								value="[[endDatePrice]]"
-								name="endDatePrice"
+								value="[[addProductEndDatePrice]]"
+								name="addProductEndDatePrice"
 								label="[[i18n.end]]"
 								onfocus="addProductStartDatePickPrice.hide(); addProductEndDatePickPrice.show();">
 						</paper-input>
@@ -411,12 +411,12 @@
 					</div>
 					<div>
 						<iron-collapse id="addProductStartDatePickAlt">
-							<paper-date-picker id="startAlt3" date="{{pickstart}}">
+							<paper-date-picker id="startAlt3" date="{{addProductStartDateAltPick}}">
 							</paper-date-picker>
 						</iron-collapse>
 						<paper-input id="addAltStartDate"
-								value="[[startdate]]"
-								name="startdate"
+								value="[[addProductStartDateAlt]]"
+								name="addProductStartDateAlt"
 								label="[[i18n.start]]"
 								onfocus="addProductEndDatePickAlt.hide(); addProductStartDatePickAlt.show();">
 						</paper-input>
@@ -426,12 +426,12 @@
 					</div>
 					<div>
 						<iron-collapse id="addProductEndDatePickAlt">
-							<paper-date-picker id="endAlt3" date="{{pickend}}">
+							<paper-date-picker id="endAlt3" date="{{addProductEndDateAltPick}}">
 							</paper-date-picker>
 						</iron-collapse>
 						<paper-input id="addAltEndDate"
-								value="{{enddate}}"
-								name="terminationDate"
+								value="[[addProductEndDateAlt]]"
+								name="addProductEndDateAlt"
 								label="[[i18n.end]]"
 								onfocus="addProductStartDatePickAlt.hide(); addProductEndDatePickAlt.show();">
 						</paper-input>
@@ -614,19 +614,7 @@
 					type: Number,
 					value: 0
 				},
-				startdate: {
-					type: String,
-					value: ""
-				},
 				addProductStartDateOffer: {
-					type: String,
-					value: ""
-				},
-				startDatePrice: {
-					type: String,
-					value: ""
-				},
-				enddate: {
 					type: String,
 					value: ""
 				},
@@ -634,39 +622,69 @@
 					type: String,
 					value: ""
 				},
-				endDatePrice: {
+				addProductStartDatePrice: {
 					type: String,
 					value: ""
 				},
-				pickstart: {
-					observer: 'pickStartDate'
+				addProductEndDatePrice: {
+					type: String,
+					value: ""
 				},
-				pickend: {
-					observer: 'pickEndDate'
+				addProductStartDateAlt: {
+					type: String,
+					value: ""
 				},
-			},
-			pickStartDate: function(date) {
-				if (this.$.addProductStartDatePickAlt.opened) {
-					var m = moment(date);
-					this.startdate = m.format('YYYY-MM-DD'); 
-				} else if (this.$.addProductStartDatePickOff.opened) {
-					var m = moment(date);
-					this.addProductStartDateOffer = m.format('YYYY-MM-DD');
-				} else if (this.$.addProductStartDatePickPrice.opened) {
-					var p = moment(date);
-					this.startDatePrice = p.format('YYYY-MM-DD');
+				addProductEndDateAlt: {
+					type: String,
+					value: ""
+				},
+				addProductStartDateOfferPick: {
+					observer: '_addProductStartDateOfferPick'
+				},
+				addProductEndDateOfferPick: {
+					observer: '_addProductEndDateOfferPick'
+				},
+				addProductStartDatePricePick: {
+					observer: '_addProductStartDatePricePick'
+				},
+				addProductEndDatePricePick: {
+					observer: '_addProductEndDatePricePick'
+				},
+				addProductStartDateAltPick: {
+					observer: '_addProductStartDateAltPick'
+				},
+				addProductEndDateAltPick: {
+					observer: '_addProductEndDateAltPick'
 				}
 			},
-			pickEndDate: function(date) {
+			_addProductStartDateOfferPick: function(date) {
+				if (this.$.addProductStartDatePickOff.opened) {
+					this.addProductStartDateOffer = moment(date).format('YYYY-MM-DD');
+				}
+			},
+			_addProductEndDateOfferPick: function(date) {
+				if (this.$.addProductEndDatePickOff.opened) {
+					this.addProductEndDateOffer = moment(date).format('YYYY-MM-DD');
+				}
+			},
+			_addProductStartDatePricePick: function(date) {
+				if (this.$.addProductStartDatePickPrice.opened) {
+					this.addProductStartDatePrice = moment(date).format('YYYY-MM-DD');
+				}
+			},
+			_addProductEndDatePricePick: function(date) {
+				if (this.$.addProductEndDatePickPrice.opened) {
+					this.addProductEndDatePrice = moment(date).format('YYYY-MM-DD');
+				}
+			},
+			_addProductStartDateAltPick: function(date) {
+				if (this.$.addProductStartDatePickAlt.opened) {
+					this.addProductStartDateAlt = moment(date).format('YYYY-MM-DD');
+				}
+			},
+			_addProductEndDateAltPick: function(date) {
 				if (this.$.addProductEndDatePickAlt.opened) {
-					var m = moment(date);
-					this.enddate = m.format('YYYY-MM-DD');
-				} else if (this.$.addProductEndDatePickOff.opened) {
-					var m = moment(date);
-					this.addProductEndDateOffer = m.format('YYYY-MM-DD'); 
-				} else if (this.$.addProductEndDatePickPrice.opened) {
-					var p = moment(date);
-					this.endDatePrice = p.format('YYYY-MM-DD');
+					this.addProductEndDateAlt = moment(date).format('YYYY-MM-DD');
 				}
 			},
 			updatePriceDialog: function() {
@@ -714,15 +732,15 @@
 				if(this.$.addOffName.value != null && this.$.addOffName.value != "") {
 					offerNew.name = this.$.addOffName.value;
 				}
-				if(this.$.addOffDesc.value != null && this.$.addOff2.value != "") {
+				if(this.$.addOffDesc.value != null && this.$.addOffDesc.value != "") {
 					offerNew.description = this.$.addOffDesc.value;
 				}
 				var startDateTime;
 				var endDateTime;
-				if(this.$.addOffStart.value != null && this.$.addOff3.value != "") {
+				if(this.$.addOffStart.value != null && this.$.addOffStart.value != "") {
 					startDateTime = this.$.addOffStart.value;
 				}
-				if(this.$.addOffEnd.value != null && this.$.addOff4.value != "") {
+				if(this.$.addOffEnd.value != null && this.$.addOffEnd.value != "") {
 					endDateTime = this.$.addOffEnd.value;
 				}
 				if(startDateTime != null && endDateTime != null) {
