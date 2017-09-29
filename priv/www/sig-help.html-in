@@ -556,7 +556,7 @@
 			<b>Product</b> view from the navigation menu.</p><p>
 			<h3>Add Product</h3>
 			<p>Select the floating action button <iron-icon class="iconHelp" icon="add">
-			</iron-icon> at the bottom right of the view. An <b>Add Product</b> dialog will 
+			</iron-icon> at the bottom right of the view. An <b>Add Product</b> dialog will
 			appear.<b>Offering, Prices, Alterations</b> tabs are available in the
 			<b>Add Product</b> dialog.Fill all details in <b>Alterations</b>, if required,
 			first and press <b>Add</b> to add the list of available alterations. Fill all

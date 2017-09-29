@@ -65,11 +65,11 @@
 			<iron-pages selected="{{selected}}">
 				<div id="addOff-tab">
 					<div>
-						<paper-input id="addOff1"
+						<paper-input id="addOffName"
 								class="name"
 								name="name"
 								label="[[i18n.name]]"
-								onfocus="endDatePickOff.hide(); startDatePickOff.hide();">
+								onfocus="addProductEndDatePickOff.hide(); addProductStartDatePickOff.hide();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="offerNameTool">
@@ -78,11 +78,11 @@
 						</paper-tooltip>
 					</div>
 					<div>
-						<paper-input id="addOff2"
+						<paper-input id="addOffDesc"
 								class="description"
 								name="description"
 								label="[[i18n.des]]"
-								onfocus="endDatePickOff.hide(); startDatePickOff.hide();">
+								onfocus="addProductEndDatePickOff.hide(); addProductStartDatePickOff.hide();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="offerDesTool">
@@ -91,15 +91,15 @@
 						</paper-tooltip>
 					</div>
 					<div>
-						<iron-collapse id="startDatePickOff">
-							<paper-date-picker id="startOff3" date="{{pickstart}}">
+						<iron-collapse id="addProductStartDatePickOff">
+							<paper-date-picker id="startOff3" date="{{addProductStartDateOfferPick}}">
 							</paper-date-picker>
 						</iron-collapse>
-						<paper-input id="addOff3"
-								value="[[startDateOffer]]"
-								name="startDateOffer"
+						<paper-input id="addOffStart"
+								value="[[addProductStartDateOffer]]"
+								name="addProductStartDateOffer"
 								label="[[i18n.start]]"
-								onfocus="endDatePickOff.hide(); startDatePickOff.show();">
+								onfocus="addProductEndDatePickOff.hide(); addProductStartDatePickOff.show();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="offerStartTool">
@@ -108,15 +108,15 @@
 						</paper-tooltip>
 					</div>
 					<div>
-						<iron-collapse id="endDatePickOff">
-							<paper-date-picker id="endOff3" date="{{pickend}}">
+						<iron-collapse id="addProductEndDatePickOff">
+							<paper-date-picker id="endOff3" date="{{addProductEndDateOfferPick}}">
 							</paper-date-picker>
 						</iron-collapse>
-						<paper-input id="addOff4"
-								value="[[endDateOffer]]"
-								name="endDateOffer"
+						<paper-input id="addOffEnd"
+								value="[[addProductEndDateOffer]]"
+								name="addProductEndDateOffer"
 								label="[[i18n.end]]"
-								onfocus="startDatePickOff.hide(); endDatePickOff.show();">
+								onfocus="addProductStartDatePickOff.hide(); addProductEndDatePickOff.show();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="offerEndTool">
@@ -150,24 +150,24 @@
 								<option value="{{item.name}}" />
 							</template>
 						</datalist>
-						<paper-input id="priceName" 
+						<paper-input id="addPriceName"
 								list="price"
 								label="[[i18n.name]]"
 								on-change="updatePriceDialog"
-								onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
 						</paper-input>
 						<paper-tooltip>
-							<i18n-msg msgid="priceNameTool">
+							<i18n-msg msgid="addPriceNameTool">
 								Product offering price name
 							</i18n-msg>
 						</paper-tooltip>
 					</div>
 					<div>
-						<paper-input id="addPriceDes"
+						<paper-input id="addPriceDesc"
 								class="description"
 								name="description"
 								label="[[i18n.des]]"
-								onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="priceDesTool">
@@ -176,15 +176,15 @@
 						</paper-tooltip>
 					</div>
 					<div>
-						<iron-collapse id="startDatePickPrice">
-							<paper-date-picker id="addPriceStart" date="{{pickstart}}" headingFormat="dd, MMM D">
+						<iron-collapse id="addProductStartDatePickPrice">
+							<paper-date-picker id="addPriceStart" date="{{addProductStartDatePricePick}}" headingFormat="dd, MMM D">
 							</paper-date-picker>
 						</iron-collapse>
-						<paper-input id="priceStartDate"
-								value="[[startDatePrice]]"
-								name="startDatePrice"
+						<paper-input id="addPriceStartDate"
+								value="[[addProductStartDatePrice]]"
+								name="addProductStartDatePrice"
 								label="[[i18n.start]]"
-								onfocus="endDatePickPrice.hide(); startDatePickPrice.show();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.show();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="priceStartTool">
@@ -193,15 +193,15 @@
 						</paper-tooltip>
 					</div>
 					<div>
-						<iron-collapse id="endDatePickPrice">
-							<paper-date-picker id="addPriceEnd" date="{{pickend}}">
+						<iron-collapse id="addProductEndDatePickPrice">
+							<paper-date-picker id="addPriceEnd" date="{{addProductEndDatePricePick}}">
 							</paper-date-picker>
 						</iron-collapse>
-						<paper-input id="priceEndDate"
-								value="[[endDatePrice]]"
-								name="endDatePrice"
+						<paper-input id="addPriceEndDate"
+								value="[[addProductEndDatePrice]]"
+								name="addProductEndDatePrice"
 								label="[[i18n.end]]"
-								onfocus="startDatePickPrice.hide(); endDatePickPrice.show();">
+								onfocus="addProductStartDatePickPrice.hide(); addProductEndDatePickPrice.show();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="priceEndTool">
@@ -210,12 +210,12 @@
 						</paper-tooltip>
 					</div>
 					<div>
-						<paper-dropdown-menu id="addPrice1drop"
+						<paper-dropdown-menu id="addPriceTypedrop"
 								label="[[i18n.priceType]]"
 								on-selected-item-changed="checkRecure"
-								onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
 							<paper-listbox
-									id="addPrice1"
+									id="addPriceType"
 									slot="dropdown-content"
 									class="dropdown-content">
 								<paper-item>
@@ -245,7 +245,7 @@
 								label="[[i18n.unitSize]]"
 								auto-validate
 								value=1
-								onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="priceSizeTool">
@@ -254,12 +254,12 @@
 						</paper-tooltip>
 					</div>
 					<div>
-						<paper-dropdown-menu id="addPrice2drop"
+						<paper-dropdown-menu id="addPriceUnitsdrop"
 								label="[[i18n.unit]]"
 								on-selected-item-changed="checkPattern"
-								onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
 							<paper-listbox
-									id="addPrice2"
+									id="addPriceUnits"
 									slot="dropdown-content"
 									class="dropdown-content">
 								<paper-item id="priceBytes">
@@ -286,13 +286,13 @@
 						</paper-tooltip>
 					</div>
 					<div>
-						<paper-input id="addPrice3"
+						<paper-input id="addPriceAmount"
 								class="amount"
 								name="amount"
 								type="number"
 								label="[[i18n.amount]]"
 								value=0
-								onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="priceAmountTool">
@@ -301,11 +301,11 @@
 						</paper-tooltip>
 					</div>
 					<div>
-						<paper-input id="addPrice4"
+						<paper-input id="addPriceCurrency"
 								class="currency"
 								name="currency"
 								label="[[i18n.currency]]"
-								onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="priceCurrencyTool">
@@ -314,11 +314,11 @@
 						</paper-tooltip>
 					</div>
 					<div>
-						<paper-dropdown-menu id="addPrice5drop"
+						<paper-dropdown-menu id="addPricePerioddrop"
 								label="[[i18n.period]]"
-								onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
 							<paper-listbox
-									id="addPrice5"
+									id="addPricePeriod"
 									slot="dropdown-content"
 									class="dropdown-content"
 									selected="2">
@@ -346,7 +346,7 @@
 						<paper-dropdown-menu
 								id="addPriceDrop"
 								label="[[i18n.alter]]"
-								onfocus="endDatePickPrice.hide(); startDatePickPrice.hide();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
 							<paper-listbox
 									slot="dropdown-content"
 									class="dropdown-content">
@@ -389,9 +389,9 @@
 								<option value="{{item.name}}" />
 							</template>
 						</datalist>
-						<paper-input id="addAlt1" 
-								list="alts" 
-								label="[[i18n.name]]" 
+						<paper-input id="addAltName"
+								list="alts"
+								label="[[i18n.name]]"
 								on-change="updateAltsDialog">
 						</paper-input>
 						<paper-tooltip>
@@ -399,41 +399,41 @@
 						</paper-tooltip>
 					</div>
 					<div>
-						<paper-input id="descAlt2"
+						<paper-input id="addAltDesc"
 								class="description"
 								name="description"
 								label="[[i18n.des]]"
-								onfocus="endDatePickAlt.hide(); startDatePickAlt.hide();">
+								onfocus="addProductEndDatePickAlt.hide(); addProductStartDatePickAlt.hide();">
 						</paper-input>
 						<paper-tooltip>
 								product offering alteration description
 						</paper-tooltip>
 					</div>
 					<div>
-						<iron-collapse id="startDatePickAlt">
-							<paper-date-picker id="startAlt3" date="{{pickstart}}">
+						<iron-collapse id="addProductStartDatePickAlt">
+							<paper-date-picker id="startAlt3" date="{{addProductStartDateAltPick}}">
 							</paper-date-picker>
 						</iron-collapse>
-						<paper-input id="startAlt2"
-								value="[[startdate]]"
-								name="startdate"
+						<paper-input id="addAltStartDate"
+								value="[[addProductStartDateAlt]]"
+								name="addProductStartDateAlt"
 								label="[[i18n.start]]"
-								onfocus="endDatePickAlt.hide(); startDatePickAlt.show();">
+								onfocus="addProductEndDatePickAlt.hide(); addProductStartDatePickAlt.show();">
 						</paper-input>
 						<paper-tooltip>
 								product offering alteration start date
 						</paper-tooltip>
 					</div>
 					<div>
-						<iron-collapse id="endDatePickAlt">
-							<paper-date-picker id="endAlt3" date="{{pickend}}">
+						<iron-collapse id="addProductEndDatePickAlt">
+							<paper-date-picker id="endAlt3" date="{{addProductEndDateAltPick}}">
 							</paper-date-picker>
 						</iron-collapse>
-						<paper-input id="endAlt2"
-								value="{{enddate}}"
-								name="terminationDate"
+						<paper-input id="addAltEndDate"
+								value="[[addProductEndDateAlt]]"
+								name="addProductEndDateAlt"
 								label="[[i18n.end]]"
-								onfocus="startDatePickAlt.hide(); endDatePickAlt.show();">
+								onfocus="addProductStartDatePickAlt.hide(); addProductEndDatePickAlt.show();">
 						</paper-input>
 						<paper-tooltip>
 								product offering alteration end date
@@ -443,9 +443,9 @@
 						<paper-dropdown-menu
 								label="[[i18n.priceType]]"
 								on-selected-item-changed="checkRecureAlt"
-								onfocus="endDatePickAlt.hide(); startDatePickAlt.hide();">
+								onfocus="addProductEndDatePickAlt.hide(); addProductStartDatePickAlt.hide();">
 							<paper-listbox
-									id="typeAlt3"
+									id="addAltType"
 									slot="dropdown-content"
 									class="dropdown-content">
 								<paper-item>
@@ -464,7 +464,7 @@
 						</paper-tooltip>
 					</div>
 					<div>
-						<paper-input id="sizeAlt3"
+						<paper-input id="addAltSize"
 								class="size"
 								name="size"
 								label="[[i18n.unitSize]]"
@@ -473,7 +473,7 @@
 								pattern="^[0-9]+[kmg]?$"
 								auto-validate
 								value=1
-								onfocus="endDatePickAlt.hide(); startDatePickAlt.hide();">
+								onfocus="addProductEndDatePickAlt.hide(); addProductStartDatePickAlt.hide();">
 						</paper-input>
 						<paper-tooltip>
 								product offering alteration size
@@ -509,13 +509,13 @@
 						</paper-tooltip>
 					</div>
 					<div>
-						<paper-input id="amountAlt3"
+						<paper-input id="addAltAmount"
 								class="amount"
 								name="amount"
 								label="[[i18n.amount]]"
 								type="number"
 								value=0
-								onfocus="endDatePickAlt.hide(); startDatePickAlt.hide();">
+								onfocus="addProductEndDatePickAlt.hide(); addProductStartDatePickAlt.hide();">
 						</paper-input>
 						<paper-tooltip>
 								product offering alteration amount
@@ -526,7 +526,7 @@
 								class="currency"
 								name="currency"
 								label="[[i18n.currency]]"
-								onfocus="endDatePickAlt.hide(); startDatePickAlt.hide();">
+								onfocus="addProductEndDatePickAlt.hide(); addProductStartDatePickAlt.hide();">
 						</paper-input>
 						<paper-tooltip>
 								product offering alteration currency
@@ -535,7 +535,7 @@
 					<div>
 						<paper-dropdown-menu id="addalt5drop"
 								label="[[i18n.period]]"
-								onfocus="endDatePickAlt.hide(); startDatePickAlt.hide();">
+								onfocus="addProductEndDatePickAlt.hide(); addProductStartDatePickAlt.hide();">
 							<paper-listbox
 									id="addaltPeriod"
 									slot="dropdown-content"
@@ -614,116 +614,134 @@
 					type: Number,
 					value: 0
 				},
-				startdate: {
+				addProductStartDateOffer: {
 					type: String,
 					value: ""
 				},
-				startDateOffer: {
+				addProductEndDateOffer: {
 					type: String,
 					value: ""
 				},
-				startDatePrice: {
+				addProductStartDatePrice: {
 					type: String,
 					value: ""
 				},
-				enddate: {
+				addProductEndDatePrice: {
 					type: String,
 					value: ""
 				},
-				endDateOffer: {
+				addProductStartDateAlt: {
 					type: String,
 					value: ""
 				},
-				endDatePrice: {
+				addProductEndDateAlt: {
 					type: String,
 					value: ""
 				},
-				pickstart: {
-					observer: 'pickStartDate'
+				addProductStartDateOfferPick: {
+					observer: '_addProductStartDateOfferPick'
 				},
-				pickend: {
-					observer: 'pickEndDate'
+				addProductEndDateOfferPick: {
+					observer: '_addProductEndDateOfferPick'
 				},
-			},
-			pickStartDate: function(date) {
-				if (this.$.startDatePickAlt.opened) {
-					var m = moment(date);
-					this.startdate = m.format('YYYY-MM-DD'); 
-				} else if (this.$.startDatePickOff.opened) {
-					var m = moment(date);
-					this.startDateOffer = m.format('YYYY-MM-DD');
-				} else if (this.$.startDatePickPrice.opened) {
-					var p = moment(date);
-					this.startDatePrice = p.format('YYYY-MM-DD');
+				addProductStartDatePricePick: {
+					observer: '_addProductStartDatePricePick'
+				},
+				addProductEndDatePricePick: {
+					observer: '_addProductEndDatePricePick'
+				},
+				addProductStartDateAltPick: {
+					observer: '_addProductStartDateAltPick'
+				},
+				addProductEndDateAltPick: {
+					observer: '_addProductEndDateAltPick'
 				}
 			},
-			pickEndDate: function(date) {
-				if (this.$.endDatePickAlt.opened) {
-					var m = moment(date);
-					this.enddate = m.format('YYYY-MM-DD');
-				} else if (this.$.endDatePickOff.opened) {
-					var m = moment(date);
-					this.endDateOffer = m.format('YYYY-MM-DD'); 
-				} else if (this.$.endDatePickPrice.opened) {
-					var p = moment(date);
-					this.endDatePrice = p.format('YYYY-MM-DD');
+			_addProductStartDateOfferPick: function(date) {
+				if (this.$.addProductStartDatePickOff.opened) {
+					this.addProductStartDateOffer = moment(date).format('YYYY-MM-DD');
+				}
+			},
+			_addProductEndDateOfferPick: function(date) {
+				if (this.$.addProductEndDatePickOff.opened) {
+					this.addProductEndDateOffer = moment(date).format('YYYY-MM-DD');
+				}
+			},
+			_addProductStartDatePricePick: function(date) {
+				if (this.$.addProductStartDatePickPrice.opened) {
+					this.addProductStartDatePrice = moment(date).format('YYYY-MM-DD');
+				}
+			},
+			_addProductEndDatePricePick: function(date) {
+				if (this.$.addProductEndDatePickPrice.opened) {
+					this.addProductEndDatePrice = moment(date).format('YYYY-MM-DD');
+				}
+			},
+			_addProductStartDateAltPick: function(date) {
+				if (this.$.addProductStartDatePickAlt.opened) {
+					this.addProductStartDateAlt = moment(date).format('YYYY-MM-DD');
+				}
+			},
+			_addProductEndDateAltPick: function(date) {
+				if (this.$.addProductEndDatePickAlt.opened) {
+					this.addProductEndDateAlt = moment(date).format('YYYY-MM-DD');
 				}
 			},
 			updatePriceDialog: function() {
 				function checkPriceName(price) {
-					return price.name == this.priceName.value; 
+					return price.name == this.$.addPriceName.value;
 				}
 				var indexPrice = this.prices.findIndex(checkPriceName);
 				if (indexPrice == -1) {
-					this.$.addPriceDes.value = null;
-					this.$.addPrice1.value = null;
+					this.$.addPriceDesc.value = null;
+					this.$.addPriceType.value = null;
 					this.$.addPriceSize.value = null;
-					this.$.addPrice3.value = null;
+					this.$.addPriceAmount.value = null;
 				} else {
-					this.$.addPriceDes.value = this.prices[indexPrice].description;
-					this.$.priceStartDate.value = this.prices[indexPrice].start;
-					this.$.priceEndDate.value = this.prices[indexPrice].end;
-					this.$.addPrice1.value = this.prices[indexPrice].type;
-					this.$.addPrice2.value = this.prices[indexPrice].unit;
+					this.$.addPriceDesc.value = this.prices[indexPrice].description;
+					this.$.addPriceStartDate.value = this.prices[indexPrice].start;
+					this.$.addPriceEndDate.value = this.prices[indexPrice].end;
+					this.$.addPriceType.value = this.prices[indexPrice].type;
+					this.$.addPriceUnits.value = this.prices[indexPrice].unit;
 					this.$.addPriceSize.value = this.prices[indexPrice].size;
-					this.$.addPrice3.value = this.prices[indexPrice].amount;
+					this.$.addPriceAmount.value = this.prices[indexPrice].amount;
 				}
 			},
 			updateAltsDialog: function() {
 				function checkName(alts) {
-					return alts.name == this.addAlt1.value; 
+					return alts.name == this.$.addAltName.value;
 				}
 				var index = this.alterations.findIndex(checkName);
 				if (index == -1) {
-					this.$.descAlt2.value = null;
-					this.$.typeAlt3.value = null;
-					this.$.sizeAlt3.value = null;
-					this.$.amountAlt3.value = null;
+					this.$.addAltDesc.value = null;
+					this.$.addAltType.value = null;
+					this.$.addAltSize.value = null;
+					this.$.addAltAmount.value = null;
 				} else {
-					this.$.descAlt2.value = this.alterations[index].description;
-					this.$.startAlt2.value = this.alterations[index].startdate;
-					this.$.endAlt2.value = this.alterations[index].terminationDate;
-					this.$.typeAlt3.value = this.alterations[index].type;
+					this.$.addAltDesc.value = this.alterations[index].description;
+					this.$.addAltStartDate.value = this.alterations[index].startdate;
+					this.$.addAltEndDate.value = this.alterations[index].terminationDate;
+					this.$.addAltType.value = this.alterations[index].type;
 					this.$.addUnitDrop.value = this.alterations[index].units;
-					this.$.sizeAlt3.value = this.alterations[index].size;
-					this.$.amountAlt3.value = this.alterations[index].amount;
+					this.$.addAltSize.value = this.alterations[index].size;
+					this.$.addAltAmount.value = this.alterations[index].amount;
 				}
 			},
 			addOffer: function() {
 				var offerNew = new Object();
-				if(this.$.addOff1.value != null && this.$.addOff1.value != "") {
-					offerNew.name = this.$.addOff1.value;
+				if(this.$.addOffName.value != null && this.$.addOffName.value != "") {
+					offerNew.name = this.$.addOffName.value;
 				}
-				if(this.$.addOff2.value != null && this.$.addOff2.value != "") {
-					offerNew.description = this.$.addOff2.value;
+				if(this.$.addOffDesc.value != null && this.$.addOffDesc.value != "") {
+					offerNew.description = this.$.addOffDesc.value;
 				}
 				var startDateTime;
 				var endDateTime;
-				if(this.$.addOff3.value != null && this.$.addOff3.value != "") {
-					startDateTime = this.$.addOff3.value;
+				if(this.$.addOffStart.value != null && this.$.addOffStart.value != "") {
+					startDateTime = this.$.addOffStart.value;
 				}
-				if(this.$.addOff4.value != null && this.$.addOff4.value != "") {
-					endDateTime = this.$.addOff4.value;
+				if(this.$.addOffEnd.value != null && this.$.addOffEnd.value != "") {
+					endDateTime = this.$.addOffEnd.value;
 				}
 				if(startDateTime != null && endDateTime != null) {
 					offerNew.validFor = {startDateTime, endDateTime};
@@ -761,7 +779,7 @@
 					if(item.unit != null && item.unit != ""
 							&& item.size != null
 							&& item.size != "") {
-						var len = item.size.length; 
+						var len = item.size.length;
 						var m = item.size.charAt(len - 1);
 						var s = item.size.slice(0, (len - 1));
 						if(item.unit == "b") {
@@ -808,8 +826,8 @@
 						out.recurringChargePeriod = item.period;
 					}
 					if(item.alterations != null && item.alterations != "") {
-						out.productOfferPriceAlteration = new Object(); 
-						if(item.alterations.name != null 
+						out.productOfferPriceAlteration = new Object();
+						if(item.alterations.name != null
 								&& item.alterations.name != "") {
 							out.productOfferPriceAlteration.name = item.alterations.name;
 						}
@@ -890,10 +908,10 @@
 							out.productOfferPriceAlteration.recurringChargePeriod = item.alterations.period;
 						}
 					}
-					return out; 
+					return out;
 				}
 				offerNew.productOfferingPrice = this.prices.map(mapPrice);
-				if(offerNew.name && offerNew.name !== null 
+				if(offerNew.name && offerNew.name !== null
 						&& offerNew.productOfferingPrice
 						&& offerNew.productOfferingPrice.length > 0) {
 					var ajax = this.$.addProductAjax;
@@ -905,64 +923,64 @@
 				}
 			},
 			checkPattern: function() {
-				if(this.$.addPrice2.selected == 0) {
+				if(this.$.addPriceUnits.selected == 0) {
 					this.$.addPriceSize.allowedPattern = "[0-9kmg]";
 					this.$.addPriceSize.pattern = "^[0-9]+[kmg]?$";
-				} else if(this.$.addPrice2.selected == 1) {
+				} else if(this.$.addPriceUnits.selected == 1) {
 					this.$.addPriceSize.allowedPattern = "[0-9]";
 					this.$.addPriceSize.pattern = "^[0-9]+$";
-				} else if(this.$.addPrice2.selected == 2) {
+				} else if(this.$.addPriceUnits.selected == 2) {
 					this.$.addPriceSize.allowedPattern = "[0-9mh]";
 					this.$.addPriceSize.pattern = "^[0-9]+[mh]?$";
 				}
 			},
 			checkPatternAlt: function() {
 				if(this.$.addUnitDrop.selected == 0) {
-					this.$.sizeAlt3.allowedPattern = "[0-9kmg]";
-					this.$.sizeAlt3.pattern = "^[0-9]+[kmg]?$";
+					this.$.addAltSize.allowedPattern = "[0-9kmg]";
+					this.$.addAltSize.pattern = "^[0-9]+[kmg]?$";
 				} else if(this.$.addUnitDrop.selected == 1) {
-					this.$.sizeAlt3.allowedPattern = "[0-9]";
-					this.$.sizeAlt3.pattern = "^[0-9]+$";
+					this.$.addAltSize.allowedPattern = "[0-9]";
+					this.$.addAltSize.pattern = "^[0-9]+$";
 				} else if(this.$.addUnitDrop.selected == 2) {
-					this.$.sizeAlt3.allowedPattern = "[0-9mh]";
-					this.$.sizeAlt3.pattern = "^[0-9]+[mh]?$";
+					this.$.addAltSize.allowedPattern = "[0-9mh]";
+					this.$.addAltSize.pattern = "^[0-9]+[mh]?$";
 				}
 			},
 			checkRecure: function() {
-				if(this.$.addPrice1.selected == 0) {
-					this.$.addPrice5drop.disabled = false;
+				if(this.$.addPriceType.selected == 0) {
+					this.$.addPricePerioddrop.disabled = false;
 					this.$.priceBytes.disabled = true;
 					this.$.priceSeconds.disabled = true;
 					this.$.priceCents.disabled = false;
-					this.$.addPrice2.selected = 1;
-				} else if(this.$.addPrice1.selected == 1) {
-					this.$.addPrice5drop.disabled = true;
+					this.$.addPriceUnits.selected = 1;
+				} else if(this.$.addPriceType.selected == 1) {
+					this.$.addPricePerioddrop.disabled = true;
 					this.$.priceBytes.disabled = true;
 					this.$.priceSeconds.disabled = true;
 					this.$.priceCents.disabled = false;
-					this.$.addPrice2.selected = 1;
-				} else if(this.$.addPrice1.selected == 2) {
-					this.$.addPrice5drop.disabled = true;
+					this.$.addPriceUnits.selected = 1;
+				} else if(this.$.addPriceType.selected == 2) {
+					this.$.addPricePerioddrop.disabled = true;
 					this.$.priceCents.disabled = true;
 					this.$.priceBytes.disabled = false;
 					this.$.priceSeconds.disabled = false;
-					this.$.addPrice2.selected = 0;
+					this.$.addPriceUnits.selected = 0;
 				}
 			},
 			checkRecureAlt: function() {
-				if(this.$.typeAlt3.selected == 0) {
+				if(this.$.addAltType.selected == 0) {
 					this.$.addalt5drop.disabled = false;
 					this.$.altBytes.disabled = true;
 					this.$.altSeconds.disabled = true;
 					this.$.altCents.disabled = false;
 					this.$.addUnitDrop.selected = 1;
-				} else if(this.$.typeAlt3.selected == 1) {
+				} else if(this.$.addAltType.selected == 1) {
 					this.$.addalt5drop.disabled = true;
 					this.$.altBytes.disabled = true;
 					this.$.altSeconds.disabled = true;
 					this.$.altCents.disabled = false;
 					this.$.addUnitDrop.selected = 1;
-				} else if(this.$.typeAlt3.selected == 2) {
+				} else if(this.$.addAltType.selected == 2) {
 					this.$.addalt5drop.disabled = true;
 					this.$.altBytes.disabled = false;
 					this.$.altSeconds.disabled = false;
@@ -972,11 +990,11 @@
 			},
 			addPrice: function(event) {
 				var priceNew = new Object();
-				priceNew.name = this.$.priceName.value;
-				priceNew.description = this.$.addPriceDes.value;
-				priceNew.start = this.$.priceStartDate.value;
-				priceNew.end = this.$.priceEndDate.value;
-				switch(this.$.addPrice1.selected) {
+				priceNew.name = this.$.addPriceName.value;
+				priceNew.description = this.$.addPriceDesc.value;
+				priceNew.start = this.$.addPriceStartDate.value;
+				priceNew.end = this.$.addPriceEndDate.value;
+				switch(this.$.addPriceType.selected) {
 					case 0:
 						priceNew.type = "recurring";
 						break;
@@ -986,7 +1004,7 @@
 					case 2:
 						priceNew.type = "usage";
 				}
-				switch(this.$.addPrice2.selected) {
+				switch(this.$.addPriceUnits.selected) {
 					case 0:
 						priceNew.unit = "b";
 						break;
@@ -996,10 +1014,10 @@
 					case 2:
 						priceNew.unit = "s";
 				}
-				priceNew.amount = parseInt(this.$.addPrice3.value);
+				priceNew.amount = parseInt(this.$.addPriceAmount.value);
 				priceNew.size = this.$.addPriceSize.value;
-				priceNew.currency = this.$.addPrice4.value;
-				switch(this.$.addPrice5.selected) {
+				priceNew.currency = this.$.addPriceCurrency.value;
+				switch(this.$.addPricePeriod.selected) {
 					case 0:
 						priceNew.period = "daily";
 						break;
@@ -1013,29 +1031,29 @@
 						priceNew.period = "yearly";
 				}
 				function checkAlt(alts) {
-					return alts.name == this.addPriceDrop.value; 
+					return alts.name == this.$.addPriceDrop.value;
 				}
 				var altIndex = this.alterations.findIndex(checkAlt);
 				priceNew.alterations = this.alterations[altIndex];
 				if(priceNew.name
 						&& priceNew.name !== null
-						&& priceNew.amount 
-						&& priceNew.amount !== null 
+						&& priceNew.amount
+						&& priceNew.amount !== null
 						&& priceNew.type
 						&& priceNew.type !== null
-						&& priceNew.unit 
+						&& priceNew.unit
 						&& priceNew.unit !== null) {
 					this.push('prices', priceNew);
-					this.$.priceName.value = null;
-					this.$.addPriceDes.value = null;
-					this.$.priceStartDate.value = null;
+					this.$.addPriceName.value = null;
+					this.$.addPriceDesc.value = null;
+					this.$.addPriceStartDate.value = null;
 					this.$.addPriceSize.value = null;
-					this.$.addPrice3.value = null;
-					this.$.addPrice2.value = null;
-					this.$.priceEndDate.value = null;
-					this.$.addPrice1.value = null;
-					this.$.addPrice4.value = null;
-					this.$.addPrice5.value = null;
+					this.$.addPriceAmount.value = null;
+					this.$.addPriceUnits.value = null;
+					this.$.addPriceEndDate.value = null;
+					this.$.addPriceType.value = null;
+					this.$.addPriceCurrency.value = null;
+					this.$.addPricePeriod.value = null;
 					document.getElementById("addProductToastSuccess").open();
 				} else {
 					this.$.addProductToastError.text = "Validation failed";
@@ -1044,11 +1062,11 @@
 			},
 			addAlteration: function() {
 				var altNew = new Object();
-				altNew.name = this.$.addAlt1.value;
-				altNew.description = this.$.descAlt2.value;
-				altNew.startdate = this.$.startAlt2.value;
-				altNew.terminationDate = this.$.endAlt2.value;
-				switch(this.$.typeAlt3.selected) {
+				altNew.name = this.$.addAltName.value;
+				altNew.description = this.$.addAltDesc.value;
+				altNew.startdate = this.$.addAltStartDate.value;
+				altNew.terminationDate = this.$.addAltEndDate.value;
+				switch(this.$.addAltType.selected) {
 					case 0:
 						altNew.type = "recurring";
 						break;
@@ -1068,7 +1086,7 @@
 					case 2:
 						altNew.unit = "s";
 				}
-				altNew.size = this.$.sizeAlt3.value;
+				altNew.size = this.$.addAltSize.value;
 				switch(this.$.addaltPeriod.selected) {
 					case 0:
 						altNew.period = "daily";
@@ -1083,7 +1101,7 @@
 						altNew.period = "yearly";
 				}
 				altNew.currency = this.$.addAltCurr.value;
-				altNew.amount= parseInt(this.$.amountAlt3.value);
+				altNew.amount= parseInt(this.$.addAltAmount.value);
 				if(altNew.name
 						&& altNew.name !== null
 						&& altNew.type
@@ -1095,14 +1113,14 @@
 						&& altNew.amount
 						&& altNew.amount !== null) {
 					this.push('alterations', altNew);
-					this.$.addAlt1.value = null
-					this.$.descAlt2.value = null;
-					this.$.startAlt2.value = null;
+					this.$.addAltName.value = null
+					this.$.addAltDesc.value = null;
+					this.$.addAltStartDate.value = null;
+					this.$.addAltEndDate.value = null;
+					this.$.addAltType.value = null;
+					this.$.addAltSize.value = null;
 					this.$.addAltCurr.value = null;
-					this.$.endAlt2.value = null;
-					this.$.typeAlt3.value = null;
-					this.$.sizeAlt3.value = null;
-					this.$.amountAlt3.value = null;
+					this.$.addAltAmount.value = null;
 				} else {
 					this.$.addProductToastError.text = "Validation failed";
 					this.$.addProductToastError.open();
@@ -1118,8 +1136,8 @@
 			_addProductResponse: function(event) {
 				this.$.addProductModal.close();
 				document.getElementById("addProductToastSuccess").open();
-				this.$.addOff1.value = null;
-				this.$.addOff2.value = null;
+				this.$.addOffName.value = null;
+				this.$.addOffDesc.value = null;
 				this.set('prices', []);
 				this.set('alterations', []);
 				document.getElementById("productGrid").clearCache();
@@ -1131,16 +1149,16 @@
 			cancelDialog: function() {
 				this.set('prices', []);
 				this.set('alterations', []);
-				this.$.addOff1.value = null;
-				this.$.addOff2.value = null;
-				this.$.addOff3.value = null;
-				this.$.addOff4.value = null;
-				this.$.startDatePickOff.hide()
-				this.$.endDatePickOff.hide()
-				this.$.startDatePickPrice.hide();
-				this.$.endDatePickPrice.hide();
-				this.$.startDatePickAlt.hide();
-				this.$.endDatePickAlt.hide();
+				this.$.addOffName.value = null;
+				this.$.addOffDesc.value = null;
+				this.$.addOffStart.value = null;
+				this.$.addOffEnd.value = null;
+				this.$.addProductStartDatePickOff.hide()
+				this.$.addProductEndDatePickOff.hide()
+				this.$.addProductStartDatePickPrice.hide();
+				this.$.addProductEndDatePickPrice.hide();
+				this.$.addProductStartDatePickAlt.hide();
+				this.$.addProductEndDatePickAlt.hide();
 				this.$.addProductModal.close();
 			}
 		});

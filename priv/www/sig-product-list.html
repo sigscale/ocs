@@ -194,7 +194,6 @@
 						StartRange = params.page * params.pageSize + 1;
 						EndRange = StartRange + params.pageSize - 1;
 						ajax.headers['Range'] = "items=" + StartRange + "-" + EndRange;
-console.log(ajax.headers);
 						if (etag && StartRange > lastItem) {
 							ajax.headers['If-Range'] = etag;
 						}
