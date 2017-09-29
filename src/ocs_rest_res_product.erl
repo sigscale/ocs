@@ -70,9 +70,9 @@ add_product_CatMgmt(ReqData) ->
 				Product = #product{price = Price, name = Name, valid_for = ValidFor,
 					is_bundle = IsBundle, status = Status, start_date = StartDate,
 					termination_date = TerminationDate, description = Descirption},
-				case add_product_CatMgmt1(Product) of
-					ok ->
-						add_product_CatMgmt2(Name, Object);
+				case ocs:add_product(Product) of
+					{ok, LM} ->
+						add_product_CatMgmt1(Name, LM, Object);
 					{error, StatusCode} ->
 						{error, StatusCode}
 				end
@@ -82,21 +82,12 @@ add_product_CatMgmt(ReqData) ->
 			{error, 400}
 	end.
 %% @hidden
-add_product_CatMgmt1(Product) ->
-	case ocs:add_product(Product) of
-		ok ->
-			ok;
-		{error, _} ->
-			{error, 500}
-	end.
-
-%% @hidden
-add_product_CatMgmt2(ProdId, JsonResponse) ->
+add_product_CatMgmt1(ProdId, ETag, JsonResponse) ->
 	Id = {id, ProdId},
 	Json = {struct, [Id | JsonResponse]},
 	Body = mochijson:encode(Json),
 	Location = "/catalogManagement/v1/productuOffering/" ++ ProdId,
-	Headers = [{location, Location}],
+	Headers = [{location, Location}, {etag, etag(ETag)}],
 	{ok, Headers, Body}.
 
 -spec add_product_InvMgmt(ReqData) -> Result when
@@ -1486,3 +1477,20 @@ product_json(Prod) when is_record(Prod, product)->
 				TerminationDate, IsBundle, Name, Status, ValidFor,
 				OfferPrice]}
 	end.
+
+-spec etag(V1) -> V2
+	when
+		V1 :: string() | {N1, N2},
+		V2 :: {N1, N2} | string(),
+		N1 :: integer(),
+		N2 :: integer().
+%% @doc Generate a tuple with 2 integers from Etag string
+%% value or vice versa.
+%% @hidden
+etag(V) when is_list(V) ->
+	[TS, N] = string:tokens(V, "-"),
+	{list_to_integer(TS), list_to_integer(N)};
+etag(V) when is_tuple(V) ->
+	{TS, N} = V,
+	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
+
