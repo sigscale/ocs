@@ -48,6 +48,10 @@
 			background: #ffb04c;
 			border-style: none;
 		}
+		.yellow-button {
+			text-transform: none;
+			color: #eeff41;
+		}
 	</style>
 	<template>
 		<vaadin-grid id="productGrid" active-item="{{activeItem}}">
@@ -118,8 +122,24 @@
 					on-click="showAddProductModal">
 			</paper-fab>
 		</div>
-		<paper-toast id="addProductToastSuccess">
-			<h2>[[i18n.subToastSucPro]]</h2>
+		<paper-toast
+				id="addProductToastSuccess"
+				text="[[i18n.productAdded]]">
+		</paper-toast>
+		<paper-toast
+				id="updateProductToastSuccess"
+				text="[[i18n.productUpdated]]">
+		</paper-toast>
+		<paper-toast
+				id="deleteProductToastSuccess"
+				text="[[i18n.productDeleted]]">
+		</paper-toast>
+		<paper-toast id="getProductErrorToast" duration="0">
+			<paper-button
+					class="yellow-button"
+					onclick="getProductErrorToast.toggle()">
+				Close
+			</paper-button>
 		</paper-toast>
 		<iron-ajax id="getProductAjax"
 			on-response="_getProductResponse"
@@ -196,42 +216,6 @@
 						ajax.headers['Range'] = "items=" + StartRange + "-" + EndRange;
 						if (etag && StartRange > lastItem) {
 							ajax.headers['If-Range'] = etag;
-						}
-						ajax.generateRequest();
-					};
-					grid.dataProvider = function(params, callback) {
-						var ajax = document.getElementById("getProductAjax");
-						cbProduct = callback;
-						ajax.url="/catalogManagement/v1/productOffering"
-						params.filters.forEach(function(filter, index) {
-							if(index == 0) {
-								ajax.url += '?' + filter.path + '=' + filter.value;
-							} else {
-								ajax.url += '&' + filter.path + '=' + filter.value;
-							}
-						});
-						params.sortOrders.forEach(function(sort, index) {
-							var dirsort;
-							if(sort.direction == "desc") {
-								dirsort = '-' + sort.path;
-							} else {
-								dirsort = sort.path;
-							}
-							if(index == 0) {
-								if(params.filters.length == 0) {
-									ajax.url += '?sort=' + dirsort;
-								} else {
-									ajax.url += '&sort=' + dirsort;
-								}
-							} else {
-								ajax.url += ',' + dirsort;
-							}
-						});
-						StartRange = params.page * params.pageSize + 1;
-						EndRange = StartRange + params.pageSize - 1;
-						ajax.headers['Range'] = "items=" + StartRange + "-" + EndRange;
-						if (etag && StartRange <= lastItem) {
-							ajax.headers['If-Match'] = etag;
 						}
 						ajax.generateRequest();
 					};

@@ -33,6 +33,10 @@
 -include("ocs.hrl").
 -include_lib("common_test/include/ct.hrl").
 
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
+
 %%---------------------------------------------------------------------
 %%  Test server callback functions
 %%---------------------------------------------------------------------
@@ -88,7 +92,7 @@ sequences() ->
 %%
 all() -> 
 	[client, get_all_clients, update_client_password, delete_client, subscriber, update_password,
-	update_attributes, delete_subscriber].
+	update_attributes, delete_subscriber, add_product, find_product, get_products, delete_product].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -224,6 +228,176 @@ update_attributes(Config) ->
 	ok = ocs:update_attributes(Username, Attribute2),
 	{ok, #subscriber{attributes = Attribute2}} = ocs:find_subscriber(Username).
 
+add_product() ->
+	[{userdata, [{doc, "Add a product to database"}]}].
+
+add_product(_Config) ->
+	SD = erlang:system_time(?MILLISECOND),
+	TD = erlang:system_time(?MILLISECOND)  + 2678400000,
+	Price1 = #price{name = "Family-Pack",
+			description = "monthlyprice",
+			valid_for = {SD, TD},
+			type = recurring,
+			currency = "MXV",
+			period = monthly,
+			amount = 230},
+	Price2 = #price{name = "usage",
+			description = "usage definition for family pack",
+			valid_for = {SD, TD},
+			type = usage,
+			currency = "MXV",
+			size = 0,
+			amount = 5,
+			alteration = #alteration{name = "Usage",
+											valid_for = {SD,undefined},
+											type = usage,
+											units = octets,
+											size = 20000,
+											amount = 0}},
+	Prices = [Price1, Price2],
+	Product = #product{name = "Wi-Fi",
+			description = "monthly subscription Web Family pack",
+			valid_for = {SD, TD},
+			is_bundle = false,
+			status = active,
+			start_date = SD,
+			termination_date = TD,
+			price = Prices},
+	ok = ocs:add_product(Product).
+
+find_product() ->
+	[{userdata, [{doc, "Find a product from database"}]}].
+
+find_product(_Config) ->
+	SD = erlang:system_time(?MILLISECOND),
+	TD = erlang:system_time(?MILLISECOND)  + 2678400000,
+	Price1 = #price{name = "Daily price",
+			description = "Daily price",
+			valid_for = {SD, undefined},
+			type = recurring,
+			currency = "LKR",
+			period = daily,
+			amount = 330},
+	Price2 = #price{name = "Monthly price",
+			description = "Daily price",
+			valid_for = {SD, undefined},
+			type = usage,
+			currency = "LKR",
+			size = 0,
+			amount = 6,
+			alteration = #alteration{name = "Usage",
+											valid_for = {SD,undefined},
+											type = usage,
+											units = octets,
+											size = 80000,
+											amount = 0}},
+	Prices = [Price1, Price2],
+	ProductName = "Mobile-Internet",
+	Product = #product{name = ProductName,
+			description = "Monthly subscription for mobile internet",
+			valid_for = {SD, TD},
+			is_bundle = false,
+			status = active,
+			start_date = SD,
+			termination_date = TD,
+			price = Prices},
+	ok = ocs:add_product(Product),
+	{ok, Product} = ocs:find_product(ProductName).
+
+get_products() ->
+	[{userdata, [{doc, "Get all products from product table database"}]}].
+
+get_products(_Config) ->
+	F = fun(Duration, ProdName, Pname1, Pname2) ->
+		SD = erlang:system_time(?MILLISECOND),
+		TD = erlang:system_time(?MILLISECOND)  + Duration,
+		Price1 = #price{name = Pname1,
+				description = "Daily price",
+				valid_for = {SD, undefined},
+				type = recurring,
+				currency = "LKR",
+				period = daily,
+				amount = 330},
+		Price2 = #price{name = Pname2,
+				description = "Daily price",
+				valid_for = {SD, undefined},
+				type = usage,
+				currency = "LKR",
+				size = 0,
+				amount = 6,
+				alteration = #alteration{name = "Usage",
+												valid_for = {SD,undefined},
+												type = usage,
+												units = octets,
+												size = 80000,
+												amount = 0}},
+		Prices = [Price1, Price2],
+		Product = #product{name = ProdName,
+				description = "Monthly subscription for mobile internet",
+				valid_for = {SD, TD},
+				is_bundle = false,
+				status = active,
+				start_date = SD,
+				termination_date = TD,
+				price = Prices},
+		ok =  ocs:add_product(Product),
+		Product
+	end,
+	P1 = F(rand:uniform(10000000), "WiFI", "A", "B"),
+	P2 = F(rand:uniform(10000000), "Mobile-Prepaid", "P", "Q"),
+	P3 = F(rand:uniform(10000000), "Mobile-Postpaid", "X", "Y"),
+	Products  = ocs:get_products(),
+	F2 = fun(F2, PList, [H | T]) ->
+		case lists:member(H, PList) of
+			true ->
+				F2(F2, PList, T);
+			false ->
+				not_found
+		end;
+	(F2, PList, []) ->
+		ok
+	end,
+	ok = F2(F2, Products, [P1, P2, P3]).
+
+delete_product() ->
+	[{userdata, [{doc, "Remove a product from product table"}]}].
+
+delete_product(_Config) ->
+	SD = erlang:system_time(?MILLISECOND),
+	TD = erlang:system_time(?MILLISECOND)  + rand:uniform(100000000),
+	Price1 = #price{name = "Daily price",
+			description = "Daily price",
+			valid_for = {SD, undefined},
+			type = recurring,
+			currency = "LKR",
+			period = daily,
+			amount = 330},
+	Price2 = #price{name = "Monthly price",
+			description = "Daily price",
+			valid_for = {SD, undefined},
+			type = usage,
+			currency = "LKR",
+			size = 0,
+			amount = 6,
+			alteration = #alteration{name = "Usage",
+											valid_for = {SD,undefined},
+											type = usage,
+											units = octets,
+											size = 80000,
+											amount = 0}},
+	Prices = [Price1, Price2],
+	ProductName = "Mobile-Internet",
+	Product = #product{name = ProductName,
+			description = "Monthly subscription for mobile internet",
+			valid_for = {SD, TD},
+			is_bundle = false,
+			status = active,
+			start_date = SD,
+			termination_date = TD,
+			price = Prices},
+	ok = ocs:add_product(Product),
+	ok = ocs:delete_product(ProductName),
+	{error, not_found} = ocs:find_product(ProductName).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
