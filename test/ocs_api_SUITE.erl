@@ -33,6 +33,10 @@
 -include("ocs.hrl").
 -include_lib("common_test/include/ct.hrl").
 
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
+
 %%---------------------------------------------------------------------
 %%  Test server callback functions
 %%---------------------------------------------------------------------
@@ -88,7 +92,7 @@ sequences() ->
 %%
 all() -> 
 	[client, get_all_clients, update_client_password, delete_client, subscriber, update_password,
-	update_attributes, delete_subscriber].
+	update_attributes, delete_subscriber, add_product].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -224,6 +228,42 @@ update_attributes(Config) ->
 	ok = ocs:update_attributes(Username, Attribute2),
 	{ok, #subscriber{attributes = Attribute2}} = ocs:find_subscriber(Username).
 
+add_product() ->
+	[{userdata, [{doc, "Add a product to database"}]}].
+
+add_product(_Config) ->
+	SD = erlang:system_time(?MILLISECOND),
+	TD = erlang:system_time(?MILLISECOND)  + 2678400000,
+	Price1 = #price{name = "Family-Pack",
+			description = "monthlyprice",
+			valid_for = {SD, TD},
+			type = recurring,
+			currency = "MXV",
+			period = monthly,
+			amount = 230},
+	Price2 = #price{name = "usage",
+			description = "usage definition for family pack",
+			valid_for = {SD, TD},
+			type = usage,
+			currency = "MXV",
+			size = 0,
+			amount = 5,
+			alteration = #alteration{name = "Usage",
+											valid_for = {SD,undefined},
+											type = usage,
+											units = octets,
+											size = 20000,
+											amount = 0}},
+	Prices = [Price1, Price2],
+	Product = #product{name = "Wi-Fi",
+			description = "monthly subscription Web Family pack",
+			valid_for = {SD, TD},
+			is_bundle = false,
+			status = active,
+			start_date = SD,
+			termination_date = TD,
+			price = Prices},
+	ok = ocs:add_product(Product).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
