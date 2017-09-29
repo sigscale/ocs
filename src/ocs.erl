@@ -527,7 +527,7 @@ update_attributes(Identity, Buckets, Attributes, EnabledStatus, MultiSession)
 		Product :: #product{},
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Add a new entry for product tables
+%% @doc Add a new entry in product table.
 add_product(Product) ->
 	F = fun() ->
 		mnesia:write(product, Product, write)
@@ -592,7 +592,7 @@ get_products() ->
 	when
 		ProductID :: string(),
 		Result :: ok.
-%% @doc Delete an entry form the product table
+%% @doc Delete an entry from the product table.
 delete_product(ProductID) ->
 	F = fun() ->
 		mnesia:delete(product, ProductID, write)
