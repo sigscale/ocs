@@ -66,14 +66,14 @@
 		validity :: integer()}).
 
 -record(product,
-		{name :: string(),
-		description :: string(),
-		valid_for	:: valid_for(),
-		is_bundle = false :: undefined | boolean(),
-		status :: undefined | product_status(),
-		start_date :: pos_integer(), % ISO8601
-		termination_date :: pos_integer(), % ISO8601
-		price :: [#price{}]}).
+		{name :: '_' | string(),
+		description :: '_' | string(),
+		valid_for	:: '_' | valid_for(),
+		is_bundle = false :: '_' | undefined | boolean(),
+		status :: '_' | undefined | product_status(),
+		start_date :: '_' | pos_integer(), % ISO8601
+		termination_date :: '_' | pos_integer(), % ISO8601
+		price :: '_' | [#price{}]}).
 
 -record(remain_amount,
 		{unit :: string(),

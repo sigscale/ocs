@@ -28,7 +28,8 @@
 		add_subscriber/7, find_subscriber/1, delete_subscriber/1,
 		update_password/2, update_attributes/2, update_attributes/5,
 		get_subscribers/0]).
--export([add_user/3, list_users/0, get_user/1, delete_user/1]).
+-export([add_user/3, list_users/0, get_user/1, delete_user/1,
+		query_product/7]).
 -export([add_product/1, find_product/1, get_products/0, delete_product/1]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
@@ -602,6 +603,65 @@ delete_product(ProductID) ->
 			ok;
 		{aborted, Reason} ->
 			exit(Reason)
+	end.
+
+-spec query_product(Cont, Name, Description, Status, SDT, EDT, Price) -> Result
+	when
+		Cont :: start | eof | any(),
+		Name :: undefined | '_' | string(),
+		Description :: undefined | '_' | string(),
+		Status :: undefined | '_' | atom(),
+		SDT :: undefined | '_' | string() | integer(),
+		EDT :: undefined | '_' | string() | integer(),
+		Price :: undefined | '_' | string(),
+		Result :: {Cont, [#product{}]} | {error, Reason},
+		Reason :: term().
+%% @doc Query product entires
+query_product(Con, Name, Description, Status, STD, EDT, undefined) ->
+	query_product(Con, Name, Description, Status, STD, EDT, '_');
+query_product(Con, Name, Description, Status, STD, undefined, Price) ->
+	query_product(Con, Name, Description, Status, STD, '_', Price);
+query_product(Con, Name, Description, Status, undefined, EDT, Price) ->
+	query_product(Con, Name, Description, Status, '_', EDT, Price);
+query_product(Con, Name, Description, undefined, SDT, EDT, Price) ->
+	query_product(Con, Name, Description, '_', SDT, EDT, Price);
+query_product(Con, Name, undefined, Status, SDT, EDT, Price) ->
+	query_product(Con, Name, '_', Status, SDT, EDT, Price);
+query_product(Con, undefined, Description, Status, SDT, EDT, Price) ->
+	query_product(Con, '_', Description, Status, SDT, EDT, Price);
+query_product(Con, Name, Description, Status, SDT, EDT, Price) when is_list(EDT) ->
+	ISOEDT = ocs_rest:iso8601(EDT),
+	query_product(Con, Name, Description, Status, SDT, ISOEDT, Price);
+query_product(Con, Name, Description, Status, SDT, EDT, Price) when is_list(SDT) ->
+	ISOSDT = ocs_rest:iso8601(SDT),
+	query_product(Con, Name, Description, Status, ISOSDT, EDT, Price);
+query_product(start, Name, Description, Status, SDT, EDT, Price) ->
+	MatchHead = #product{name = Name, description = Description,
+			valid_for = '_', is_bundle = '_', status = Status,
+			start_date = SDT, termination_date = EDT, price = '_'},
+	MatchSpec = MatchSpec = [{MatchHead, [], ['$_']}],
+	F = fun() ->
+		mnesia:select(product, MatchSpec, read)
+	end,
+	case mnesia:transaction(F) of
+		{atomic, Products} ->
+			query_product1(Products, Price, []);
+		{aborted, Reason} ->
+			{error, Reason}
+	end;
+query_product(eof, _Name, _Description, _Status, _STD, _EDT, _Price) ->
+	{eof, []}.
+%% @hidden
+query_product1([], _, Acc) ->
+	{eof, lists:reverse(Acc)};
+query_product1(Products, '_', _) ->
+	{eof, Products};
+query_product1([#product{price = Prices} = Product | T], PriceName, Acc) ->
+	case lists:keyfind(PriceName, #price.name, Prices) of
+		false ->
+			query_product1(T, PriceName, Acc);
+		_ ->
+			query_product1(T, PriceName, [Product | Acc])
 	end.
 
 -type password() :: [50..57 | 97..104 | 106..107 | 109..110 | 112..116 | 119..122].
