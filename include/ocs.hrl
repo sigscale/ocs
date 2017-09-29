@@ -58,7 +58,7 @@
 		valid_for	:: valid_for(),
 		type :: price_type(),
 		units :: unit_of_measure(),
-		currency :: undefined | string(),
+		currency :: string(),
 		period :: valid_period(),
 		size :: integer(),
 		amount :: integer(),
