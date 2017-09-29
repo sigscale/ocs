@@ -689,7 +689,7 @@
 			},
 			updatePriceDialog: function() {
 				function checkPriceName(price) {
-					return price.name == this.$.addPriceName.value;
+					return price.name == document.getElementById("addPriceName").value;
 				}
 				var indexPrice = this.prices.findIndex(checkPriceName);
 				if (indexPrice == -1) {
@@ -709,7 +709,7 @@
 			},
 			updateAltsDialog: function() {
 				function checkName(alts) {
-					return alts.name == this.$.addAltName.value;
+					return alts.name == document.getElementById("addAltName").value;
 				}
 				var index = this.alterations.findIndex(checkName);
 				if (index == -1) {
@@ -1018,7 +1018,7 @@
 						priceNew.period = "yearly";
 				}
 				function checkAlt(alts) {
-					return alts.name == this.$.addPriceDrop.value;
+					return alts.name == document.getElementById("addPriceDrop").value;
 				}
 				var altIndex = this.alterations.findIndex(checkAlt);
 				priceNew.alterations = this.alterations[altIndex];
