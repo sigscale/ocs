@@ -167,7 +167,6 @@ get_product_CatMgmt1(Prod) ->
 %% retrieve all `product' details
 %% @todo Filtering
 get_products_CatMgmt(Query, Headers) ->
-erlang:display({?MODULE, ?LINE}),
 	case lists:keytake("fields", 1, Query) of
 		{value, {_, Filters}, NewQuery} ->
 			get_products_CatMgmt1(NewQuery, Filters, Headers);
@@ -176,7 +175,6 @@ erlang:display({?MODULE, ?LINE}),
 	end.
 %% @hidden
 get_products_CatMgmt1(Query, Filters, Headers) ->
-erlang:display({?MODULE, ?LINE}),
 	case {lists:keyfind("if-match", 1, Headers),
 			lists:keyfind("if-range", 1, Headers),
 			lists:keyfind("range", 1, Headers)} of
