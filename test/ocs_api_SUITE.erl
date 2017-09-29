@@ -92,7 +92,7 @@ sequences() ->
 %%
 all() -> 
 	[client, get_all_clients, update_client_password, delete_client, subscriber, update_password,
-	update_attributes, delete_subscriber, add_product, find_product].
+	update_attributes, delete_subscriber, add_product, find_product, get_products].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -303,6 +303,61 @@ find_product(_Config) ->
 			price = Prices},
 	ok = ocs:add_product(Product),
 	{ok, Product} = ocs:find_product(ProductName).
+
+get_products() ->
+	[{userdata, [{doc, "Get all products from product table database"}]}].
+
+get_products(_Config) ->
+	F = fun(Duration, ProdName, Pname1, Pname2) ->
+		SD = erlang:system_time(?MILLISECOND),
+		TD = erlang:system_time(?MILLISECOND)  + Duration,
+		Price1 = #price{name = Pname1,
+				description = "Daily price",
+				valid_for = {SD, undefined},
+				type = recurring,
+				currency = "LKR",
+				period = daily,
+				amount = 330},
+		Price2 = #price{name = Pname2,
+				description = "Daily price",
+				valid_for = {SD, undefined},
+				type = usage,
+				currency = "LKR",
+				size = 0,
+				amount = 6,
+				alteration = #alteration{name = "Usage",
+												valid_for = {SD,undefined},
+												type = usage,
+												units = octets,
+												size = 80000,
+												amount = 0}},
+		Prices = [Price1, Price2],
+		Product = #product{name = ProdName,
+				description = "Monthly subscription for mobile internet",
+				valid_for = {SD, TD},
+				is_bundle = false,
+				status = active,
+				start_date = SD,
+				termination_date = TD,
+				price = Prices},
+		ok =  ocs:add_product(Product),
+		Product
+	end,
+	P1 = F(rand:uniform(10000000), "WiFI", "A", "B"),
+	P2 = F(rand:uniform(10000000), "Mobile-Prepaid", "P", "Q"),
+	P3 = F(rand:uniform(10000000), "Mobile-Postpaid", "X", "Y"),
+	Products  = ocs:get_products(),
+	F2 = fun(F2, PList, [H | T]) ->
+		case lists:member(H, PList) of
+			true ->
+				F2(F2, PList, T);
+			false ->
+				not_found
+		end;
+	(F2, PList, []) ->
+		ok
+	end,
+	ok = F2(F2, Products, [P1, P2, P3]).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
