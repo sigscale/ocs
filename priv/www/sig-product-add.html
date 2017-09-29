@@ -150,7 +150,7 @@
 								<option value="{{item.name}}" />
 							</template>
 						</datalist>
-						<paper-input id="addPriceName" 
+						<paper-input id="addPriceName"
 								list="price"
 								label="[[i18n.name]]"
 								on-change="updatePriceDialog"
@@ -389,9 +389,9 @@
 								<option value="{{item.name}}" />
 							</template>
 						</datalist>
-						<paper-input id="addAltName" 
-								list="alts" 
-								label="[[i18n.name]]" 
+						<paper-input id="addAltName"
+								list="alts"
+								label="[[i18n.name]]"
 								on-change="updateAltsDialog">
 						</paper-input>
 						<paper-tooltip>
@@ -689,7 +689,7 @@
 			},
 			updatePriceDialog: function() {
 				function checkPriceName(price) {
-					return price.name == this.$.addPriceName.value; 
+					return price.name == this.$.addPriceName.value;
 				}
 				var indexPrice = this.prices.findIndex(checkPriceName);
 				if (indexPrice == -1) {
@@ -709,7 +709,7 @@
 			},
 			updateAltsDialog: function() {
 				function checkName(alts) {
-					return alts.name == this.$.addAltName.value; 
+					return alts.name == this.$.addAltName.value;
 				}
 				var index = this.alterations.findIndex(checkName);
 				if (index == -1) {
@@ -779,7 +779,7 @@
 					if(item.unit != null && item.unit != ""
 							&& item.size != null
 							&& item.size != "") {
-						var len = item.size.length; 
+						var len = item.size.length;
 						var m = item.size.charAt(len - 1);
 						var s = item.size.slice(0, (len - 1));
 						if(item.unit == "b") {
@@ -826,8 +826,8 @@
 						out.recurringChargePeriod = item.period;
 					}
 					if(item.alterations != null && item.alterations != "") {
-						out.productOfferPriceAlteration = new Object(); 
-						if(item.alterations.name != null 
+						out.productOfferPriceAlteration = new Object();
+						if(item.alterations.name != null
 								&& item.alterations.name != "") {
 							out.productOfferPriceAlteration.name = item.alterations.name;
 						}
@@ -908,10 +908,10 @@
 							out.productOfferPriceAlteration.recurringChargePeriod = item.alterations.period;
 						}
 					}
-					return out; 
+					return out;
 				}
 				offerNew.productOfferingPrice = this.prices.map(mapPrice);
-				if(offerNew.name && offerNew.name !== null 
+				if(offerNew.name && offerNew.name !== null
 						&& offerNew.productOfferingPrice
 						&& offerNew.productOfferingPrice.length > 0) {
 					var ajax = this.$.addProductAjax;
@@ -1031,17 +1031,17 @@
 						priceNew.period = "yearly";
 				}
 				function checkAlt(alts) {
-					return alts.name == this.$.addPriceDrop.value; 
+					return alts.name == this.$.addPriceDrop.value;
 				}
 				var altIndex = this.alterations.findIndex(checkAlt);
 				priceNew.alterations = this.alterations[altIndex];
 				if(priceNew.name
 						&& priceNew.name !== null
-						&& priceNew.amount 
-						&& priceNew.amount !== null 
+						&& priceNew.amount
+						&& priceNew.amount !== null
 						&& priceNew.type
 						&& priceNew.type !== null
-						&& priceNew.unit 
+						&& priceNew.unit
 						&& priceNew.unit !== null) {
 					this.push('prices', priceNew);
 					this.$.addPriceName.value = null;
