@@ -1,3 +1,4 @@
+<!--  vim: set ts=3:  -->
 <link rel="import" href="polymer/polymer.html">
 <link rel="import" href="vaadin-grid/vaadin-grid.html">
 <link rel="import" href="vaadin-grid/vaadin-grid-sorter.html">
@@ -134,15 +135,24 @@
 				Close
 			</paper-button>
 		</paper-toast>
+		<paper-toast id="clientErrorToast" duration="0">
+			<paper-button
+					class="yellow-button"
+					onclick="clientErrorToast.toggle()">
+				Close
+			</paper-button>
+		</paper-toast>
 		<iron-ajax
-				id="getClientsAjax"
+				id="getClientAjax"
 				url="/ocs/v1/client"
-				on-response="_getClientsResponse"
-				on-error="_getClientsError">
+				on-response="_getClientResponse"
+				on-error="_getClientError">
 		</iron-ajax>
 	</template>
 	<script>
 		var cbClient;
+		var etag;
+		var lastItem;
 		Polymer ({
 			is: 'sig-client-list',
 			behaviors: [i18nMsgBehavior],
@@ -177,13 +187,13 @@
 						}
 					];
 					grid.dataProvider = function(params, callback) {
-						var ajax = document.getElementById("getClientsAjax");
+						var ajax = document.getElementById("getClientAjax");
 						cbClient = callback;
 						params.filters.forEach(function(filter, index) {
 							if(index == 0) {
-								ajax.url += '?'+ filter.path + '=' + filter.value;
+								ajax.url += '?' + filter.path + '=' + filter.value;
 							} else {
-								ajax.url += '&'+ filter.path + '=' + filter.value;
+								ajax.url += '&' + filter.path + '=' + filter.value;
 							}
 						});
 						params.sortOrders.forEach(function(sort, index) {
@@ -203,6 +213,12 @@
 								ajax.url += ',' + dirsort;
 							}
 						});
+						StartRange = params.page * params.pageSize + 1;
+						EndRange = StartRange + params.pageSize - 1;
+						ajax.headers['Range'] = "items=" + StartRange + "-" + EndRange;
+						if (etag && StartRange > lastItem) {
+							ajax.headers['If-Range'] = etag;
+						}
 						ajax.generateRequest();
 					};
 				}
@@ -223,23 +239,21 @@
 					}
 				}
 			},
-			_getClientsResponse: function(event) {
+			_getClientResponse: function(event) {
 				var grid = this.$.clientGrid;
 				var results = event.detail.xhr.response;
-				var range = event.detail.xhr.getResponseHeader('Content-Range');
 				if (grid.size == undefined) {
 					grid.size = 0;
 				}
-				if (range) {
-					var range1 = range.split("/");
-					var range2 = range1[0].split("-");
-					if (range1[1] != "*") {
-						grid.size = Number(range1[1]);
-					} else {
-						grid.size = Number(range2[1]) + grid.pageSize * 2;
-					}
+				etag = event.detail.xhr.getResponseHeader('ETag');
+				var range = event.detail.xhr.getResponseHeader('Content-Range');
+				var range1 = range.split("/");
+				var range2 = range1[0].split("-");
+				lastItem = Number(range2[1]);
+				if (range1[1] != "*") {
+					grid.size = Number(range1[1]);
 				} else {
-					grid.size += grid.pageSize * 2;
+					grid.size = Number(range2[1]) + grid.pageSize * 2;
 				}
 				var vaadinItems = new Array();
 				for (var index in results) {
@@ -253,7 +267,7 @@
 				}
 				cbClient(vaadinItems);
 			},
-			_getClientsError: function (event) {
+			_getClientError: function (event) {
 				this.$.getClientErrorToast.text = event.detail.request.xhr.statusText;
 				this.$.getClientErrorToast.open();
 				this.$.clientGrid.size = 0;

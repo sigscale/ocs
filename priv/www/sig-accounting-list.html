@@ -1,3 +1,4 @@
+<!--  vim: set ts=3:  -->
 <link rel="import" href="polymer/polymer.html">
 <link rel="import" href="i18n-msg/i18n-msg.html">
 <link rel="import" href="vaadin-grid/vaadin-grid.html">
@@ -33,6 +34,10 @@
 			font-size: inherit;
 			background: #ffb04c;
 			border-style: none;
+		}
+		.yellow-button {
+			text-transform: none;
+			color: #eeff41;
 		}
 	</style>
 	<template>
@@ -106,12 +111,20 @@
 				<template>[[item.type]]</template>
 			</vaadin-grid-column>
 		</vaadin-grid>
+		<paper-toast id="accountingErrorToast" duration="0">
+			<paper-button
+					class="yellow-button"
+					onclick="accountingErrorToast.toggle()">
+				Close
+			</paper-button>
+		</paper-toast>
 		<iron-ajax id="getAccounting"
 				url="/ocs/v1/log/accounting"
 				method = "GET"
 				headers='{"Accept": "application/json"}'
 				on-loading-changed="_onLoadingChanged"
-				on-response="responseHandler">
+				on-response="getAccountingResponse"
+				on-error="getAccountingError">
 		</iron-ajax>
 	</template>
 	<script>
@@ -130,7 +143,7 @@
 					this.$.getAccounting.generateRequest();
 				}
 			},
-			responseHandler: function(event) {
+			getAccountingResponse: function(event) {
 				var grid = this.$.accountingGrid;
 				var results = event.detail.xhr.response;
 				var vaadinItems = new Array();
@@ -171,6 +184,10 @@
 					},
 				];
 			},
+			getAccountingError: function(event) {
+				this.$.accountingErrorToast.text = event.detail.request.xhr.statusText;
+				this.$.accountingErrorToast.open();
+			},
 			_onLoadingChanged: function(event) {
 				if (document.getElementById("getAccounting").loading) {
 					document.getElementById("progress").disabled = false;
@@ -178,6 +195,6 @@
 					document.getElementById("progress").disabled = true;
 				}
 			}
-	});
+		});
 	</script>
 </dom-module>

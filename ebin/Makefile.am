@@ -1,4 +1,5 @@
 ## Makefile.am
+## vim: ts=3
 ##
 ## Process this file with automake to produce Makefile.in
 
@@ -64,12 +65,15 @@ beam_DATA = ocs.beam \
 			ocs_rest_res_usage.beam \
 			ocs_rest_res_user.beam \
 			ocs_rest_res_balance.beam \
+			ocs_rest_res_product.beam \
 			diameter_gen_nas_application_rfc7155.beam \
 			diameter_gen_cc_application_rfc4006.beam \
 			diameter_gen_eap_application_rfc4072.beam \
 			ocs_rest_res_access.beam \
 			ocs_rest_res_accounting.beam \
-			ocs_rest_res_http.beam
+			ocs_rest_res_http.beam \
+			ocs_rest_pagination_sup.beam \
+			ocs_rest_pagination_server.beam
 
 %.beam:$(top_srcdir)/src/%.erl	$(top_srcdir)/include/ocs.hrl \
 		$(top_srcdir)/include/ocs_log.hrl \

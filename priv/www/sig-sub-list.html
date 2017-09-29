@@ -1,3 +1,4 @@
+<!--  vim: set ts=3:  -->
 <link rel="import" href="polymer/polymer.html">
 <link rel="import" href="vaadin-grid/vaadin-grid.html">
 <link rel="import" href="vaadin-grid/vaadin-grid-filter.html">
@@ -48,6 +49,10 @@
 			background: #ffb04c;
 			border-style: none;
 		}
+		.yellow-button {
+			text-transform: none;
+			color: #eeff41;
+		}
 	</style>
 	<template>
 		<vaadin-grid id="subscriberGrid" active-item="{{activeItem}}">
@@ -69,15 +74,25 @@
 				</template>
 				<template>[[item.password]]</template>
 			</vaadin-grid-column>
+			<vaadin-grid-column width="8ex" flex-grow="5">
+            <template class="header">
+                  <vaadin-grid-sorter path="product">
+                     <vaadin-grid-filter aria-label="Product" path="product" value="[[_filterBalance]]">
+                        <input placeholder="Product" value="{{_filterBalance::input}}" focus-target>
+                     </vaadin-grid-filter>
+                  </vaadin-grid-sorter>
+            </template>
+            <template>[[item.product]]</template>
+         </vaadin-grid-column>
 			<vaadin-grid-column width="12ex" flex-grow="2">
 				<template class="header">
-						<vaadin-grid-sorter path="balance">
-							<vaadin-grid-filter aria-label="[[i18n.balance]]" path="balance" value="[[_filterBalance]]">
+						<vaadin-grid-sorter path="totalBalance">
+							<vaadin-grid-filter aria-label="[[i18n.balance]]" path="totalBalance" value="[[_filterBalance]]">
 								<input placeholder="[[i18n.balance]]" value="{{_filterBalance::input}}" focus-target>
 							</vaadin-grid-filter>
 						</vaadin-grid-sorter>
 				</template>
-				<template>[[item.balance]]</template>
+				<template>[[item.totalBalance]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="9ex" flex-grow="2">
 				<template class="header">
@@ -148,19 +163,35 @@
 					on-click="showAddModal">
 			</paper-fab>
 		</div>
-		<paper-toast id="edit-toast">
-			<h2>Record sucessfully updated!</h2>
+		<paper-toast
+				id="addSubscriberToastSuccess"
+				text="[[i18n.subscriberAdded]]">
 		</paper-toast>
-		<paper-toast id="delete-toast">
-			<h2>Record sucessfully deleted!</h2>
+		<paper-toast
+				id="updateSubscriberToastSuccess"
+				text="[[i18n.subscriberUpdated]]">
 		</paper-toast>
-		<iron-ajax id="getSubs"
-			url="/ocs/v1/subscriber"
-			headers='{"Accept": "application/json"}'
-			on-response="responseHandler">
+		<paper-toast
+				id="deleteSubscriberToastSuccess"
+				text="[[i18n.subscriberDeleted]]">
+		</paper-toast>
+		<paper-toast id="getSubscriberErrorToast" duration="0">
+			<paper-button
+					class="yellow-button"
+					onclick="getSubscriberErrorToast.toggle()">
+				Close
+			</paper-button>
+		</paper-toast>
+		<iron-ajax
+			id="getSubscriberAjax"
+			on-response="_getSubscriberResponse"
+			on-error="_getSubscriberError">
 		</iron-ajax>
 	</template>
 	<script>
+		var cbSubscriber;
+		var etag;
+		var lastItem;
 		Polymer ({
 			is: 'sig-sub-list',
 			behaviors: [i18nMsgBehavior],
@@ -185,7 +216,10 @@
 							name: "password"
 						},
 						{
-							name: "balance"
+							name: "product"
+						},
+						{
+							name: "totalBalance"
 						},
 						{
 							name: "ascendDataRate"
@@ -210,14 +244,14 @@
 						}
 					];
 					grid.dataProvider = function(params, callback) {
-						var ajax = document.getElementById("getSubs");
-						cbSub = callback;
-						ajax.url="/ocs/v1/subscriber"
+						cbSubscriber = callback;
+						var ajax = document.getElementById("getSubscriberAjax");
+						ajax.url = "/ocs/v1/subscriber";
 						params.filters.forEach(function(filter, index) {
 							if(index == 0) {
-								ajax.url += '?'+ filter.path + '=' + filter.value;
+								ajax.url += '?' + filter.path + '=' + filter.value;
 							} else {
-								ajax.url += '&'+ filter.path + '=' + filter.value;
+								ajax.url += '&' + filter.path + '=' + filter.value;
 							}
 						});
 						params.sortOrders.forEach(function(sort, index) {
@@ -227,49 +261,57 @@
 							} else {
 								dirsort = sort.path;
 							}
-								if(index == 0) {
-									if(params.filters.length == 0) {
-										ajax.url += '?sort=' + dirsort;
-									} else {
-										ajax.url += '&sort=' + dirsort;
-									}
+							if(index == 0) {
+								if(params.filters.length == 0) {
+									ajax.url += '?sort=' + dirsort;
 								} else {
-									ajax.url += ',' + dirsort;
+									ajax.url += '&sort=' + dirsort;
+								}
+							} else {
+								ajax.url += ',' + dirsort;
 							}
 						});
+						StartRange = params.page * params.pageSize + 1;
+						EndRange = StartRange + params.pageSize - 1;
+						ajax.headers['Range'] = "items=" + StartRange + "-" + EndRange;
+						if (etag && StartRange > lastItem) {
+							ajax.headers['If-Range'] = etag;
+						}
 						ajax.generateRequest();
 					};
 				}
 			},
 			_activeItemChanged: function(item) {
 				if (item != null){
-					var grid = this.$.subscriberGrid;
-					grid.selectedItems = item ? [item] : [];
-					var modal = document.getElementById("subUpdateModal");
-					modal.open();
-					document.getElementById("edit-id1").value = item.id;
-					document.getElementById("edit-pwd").value = item.password;
-					document.getElementById("edit-balance").value = item.balance;
-					document.getElementById("edit-recv-data-rate").value = item.ascendDataRate;
-					document.getElementById("edit-trans-data-rate").value = item.ascendXmitRate;
-					document.getElementById("edit-sess-timeout").value = item.sessionTimeout;
-					document.getElementById("edit-update-interval").value = item.acctInterimInterval;
-					document.getElementById("edit-class").value =  item.class;
-					document.getElementById("edit-enabled").checked =  item.enabled;
-					document.getElementById("edit-multi-session").checked =  item.multisession;
+					this.$.subscriberGrid.selectedItems = item ? [item] : [];
+					document.getElementById("updateSubscriberModal").open();
+					document.getElementById("updateSubscriberId").value = item.id;
+					document.getElementById("updateSubscriberPassword").value = item.password;
+					document.getElementById("updateSubscriberDataRate").value = item.ascendDataRate;
+					document.getElementById("updateSubscriberXmitRate").value = item.ascendXmitRate;
+					document.getElementById("updateSubscriberTimeout").value = item.sessionTimeout;
+					document.getElementById("updateSubscriberInterval").value = item.acctInterimInterval;
+					document.getElementById("updateSubscriberClass").value =  item.class;
+					document.getElementById("updateSubscriberEnabled").checked =  item.enabled;
+					document.getElementById("updateSubscriberMulti").checked =  item.multisession;
 				}
 			},
-			responseHandler: function(event) {
+			_getSubscriberResponse: function(event) {
 				var grid = this.$.subscriberGrid;
 				var results = event.detail.xhr.response;
+				etag = event.detail.xhr.getResponseHeader('ETag');
 				var range = event.detail.xhr.getResponseHeader('Content-Range');
-				if (range) {
-					var itemCount = range.split("/");
-					grid.size = Number(itemCount[1]);
-				} else {
-					grid.size = results.length;
+				if (grid.size == undefined) {
+					grid.size = 0;
 				}
-				grid.pageSize = grid.size;
+				var range1 = range.split("/");
+				var range2 = range1[0].split("-");
+				lastItem = Number(range2[1]);
+				if (range1[1] != "*") {
+					grid.size = Number(range1[1]);
+				} else {
+					grid.size = Number(range2[1]) + grid.pageSize * 2;
+				}
 				var vaadinItems = new Array();
 				for (var index in results) {
 					var newRecord = new Object();
@@ -281,15 +323,26 @@
 							newRecord[attrObj.name] = attrObj.value;
 						}
 					);
+					results[index].attributes.forEach(
+						function(attrObj) {
+							newRecord[attrObj.name] = attrObj.value;
+						}
+					);
 					newRecord.enabled = results[index].enabled;
 					newRecord.multisession = results[index].multisession;
 					vaadinItems[index] = newRecord;
 				}
-				cbSub(vaadinItems);
+				cbSubscriber(vaadinItems);
+			},
+			_getSubscriberError: function(event) {
+				this.$.subscriberGrid.size = 0;
+				cbSubscriber([]);
+				this.$.getSubscriberErrorToast.text = event.detail.request.xhr.statusText;
+				this.$.getSubscriberErrorToast.open();
 			},
 			showAddModal: function(event) {
-					var modal = document.getElementById("subAddModal");
-					modal.open();
+				document.getElementById("getProductsAjax").generateRequest();
+				document.getElementById("addSubscriberModal").open();
 			}
 		});
 	</script>

@@ -1,4 +1,5 @@
 ## Makefile.am
+## vim: ts=3
 ##
 ## Process this file with automake to produce Makefile.in
 
@@ -58,7 +59,10 @@ modhtml = ocs.html \
 			ocs_rest_res_access.html \
 			ocs_rest_res_accounting.html \
 			ocs_rest_res_balance.html \
+			ocs_rest_res_product.html \
 			ocs_rest_res_http.html \
+			ocs_rest_pagination_sup.html \
+			ocs_rest_pagination_server.html \
 			mod_ocs_rest_lang.html \
 			mod_ocs_rest_accepted_content.html \
 			mod_ocs_rest_delete.html \

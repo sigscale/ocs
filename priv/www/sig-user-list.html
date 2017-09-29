@@ -1,3 +1,4 @@
+<!--  vim: set ts=3:  -->
 <link rel="import" href="polymer/polymer.html">
 <link rel="import" href="vaadin-grid/vaadin-grid.html">
 <link rel="import" href="vaadin-grid/vaadin-grid-sorter.html">
@@ -139,7 +140,7 @@
 					];
 					this.$.userGrid.dataProvider = function(params, callback) {
 						cbUsers = callback;
-						ajax = document.getElementById("getUserAjax");
+						var ajax = document.getElementById("getUserAjax");
 						params.filters.forEach(function(filter, index) {
 							if(index == 0) {
 								ajax.url += '?' + filter.path + '=' + filter.value;
@@ -218,7 +219,13 @@
 			},
 			getUserError: function(event) {
 				this.$.userGrid.size = 0;
-				cbUser([]);
+				cbUsers([]);
+				this.$.userErrorToast.text = event.detail.request.xhr.statusText;
+				this.$.userErrorToast.open();
+			},
+			getUserError: function(event) {
+				this.$.userGrid.size = 0;
+				cbUsers([]);
 				this.$.userErrorToast.text = event.detail.request.xhr.statusText;
 				this.$.userErrorToast.open();
 			},

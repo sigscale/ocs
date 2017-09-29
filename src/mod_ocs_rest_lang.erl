@@ -1,4 +1,5 @@
 %%% mod_ocs_rest_lang.erl
+%%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2017 SigScale Global Inc.
 %%% @end
@@ -65,6 +66,10 @@ do(#mod{request_uri = Uri, data = Data} = ModData) ->
 								["partyManagement", "v1" | _] ->
 									{proceed, Data};
 								["balanceManagement", "v1" | _] ->
+									{proceed, Data};
+								["catalogManagement", "v1" | _] ->
+									{proceed, Data};
+								["productInventoryManagement", "v1" | _] ->
 									{proceed, Data};
 								_ ->
 									serve_index(User, ModData)

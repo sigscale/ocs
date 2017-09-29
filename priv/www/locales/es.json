@@ -177,7 +177,7 @@
   },
   "listen": {
     "description": "Listen Port of Client",
-    "message": "Escuchar Puerto"
+    "message": "RADIUS Escuchar Puerto"
   },
   "proto": {
     "description": "Protocol of Client",
@@ -190,14 +190,6 @@
   "ipAddress": {
     "description": "Ip Address for add Client",
     "message": "Dirección IP"
-  },
-  "radius": {
-    "description": "radius protocol",
-    "message": "RADIUS"
-  },
-  "diameter": {
-    "description": "diameter protocol",
-    "message": "DIÁMETER"
   },
 	"ipTooltip": {
     "description": "Tooltip messagef or Ip address",
@@ -375,21 +367,17 @@
     "description": "Tooltip message for enable",            
     "message": "Activar o desactivar temporalmente la autorización de servicio"
   },
-	"subToastErrorReason": {
-    "description": "Toast message Error reason",
-    "message": "No se pudo agregar el suscriptor!"
-  },
-	"subToastErrorReason1": {
-    "description": "Toast message Error reason",
-    "message": "Vuelva a comprobar lo siguiente."
-  },
-	"subToastErrorReason2": {
-    "description": "Toast message Error reason",
-    "message": "El balance debe ser un número positivo"
-  },
-	"subToastSuc": {
+	"subscriberAdded": {
     "description": "Toast message for success",
-    "message": "Suscriptor añadido!"
+    "message": "Suscriptor añadido"
+  },
+	"subscriberUpdated": {
+    "description": "Toast message for success",
+    "message": "Suscriptor actualizado"
+  },
+	"subscriberDeleted": {
+    "description": "Toast message for success",
+    "message": "Suscriptor eliminado"
   },
 	"identity": {
     "description": "Identity label for generate identity",
@@ -483,8 +471,148 @@
     "description": "sorting",
     "message": "Clasificación"
   },
+	"credit": {
+    "description": "Balance management",
+    "message": "Crédito"
+  },
+	"amount": {
+    "description": "Balance amount",
+    "message": "Cantidad"
+  },
+   "unit": {
+    "description": "Balance units",
+    "message": "Unidades"
+  },
+	"octet": {
+    "description": "unit types",
+    "message": "octetos"
+  },
+	"cent": {
+    "description": "unit types",
+    "message": "centavos"
+  },
+	"second": {
+    "description": "unit types",
+    "message": "segundos"
+  },
+	"prod": {
+    "description": "Balance types",
+    "message": "producto"
+  },
+	"add": {
+    "description": "Balance add",
+    "message": "AÑADIR"
+  },
 	"multi": {
     "description": "Multi session allowed",
     "message": "Sesión múltiple"
+  },
+	"offer": {
+    "description": "Offer Prices",
+    "message": "Ofrecimiento"
+  },
+	"prices": {
+    "description": "Offer product Prices",
+    "message": "Precios"
+  },
+	"alter": {
+    "description": "Offer product Prices alterations",
+    "message": "Alteraciones"
+  },
+	"name": {
+    "description": "Offer product name",
+    "message": "Nombre"
+  },
+	"des": {
+    "description": "Offer product description",
+    "message": "Descripción"
+  },
+	"start": {
+    "description": "Offer product startDate",
+    "message": "Fecha de inicio"
+  },
+	"end": {
+    "description": "Offer product endDate",
+    "message": "Fecha final"
+  },
+	"priceType": {
+    "description": "Offer product price type",
+    "message": "Tipo de precio"
+  },
+	"unitSize": {
+    "description": "Offer product unit size",
+    "message": "Tamaño de la unidad"
+  },
+	"currency": {
+    "description": "Offer product currency",
+    "message": "Moneda"
+  },
+	"period": {
+    "description": "Offer product period",
+    "message": "Período"
+  },
+	"subToastSucPro": {
+    "description": "Toast message for success for product",
+    "message": "Agregado exitosamente"
+  },
+	"offerNameTool": {
+    "description": "product offering name",
+    "message": "Nombre de oferta del producto"
+  },
+	"offerDesTool": {
+    "description": "product offering description",
+    "message": "Descripción de la oferta del producto"
+  },
+	"offerStartTool": {
+    "description": "product offering start date",
+    "message": "Fecha de inicio de la oferta de producto"
+  },
+	"offerEndTool": {
+    "description": "product offering end date",
+    "message": "Fecha de finalización de la oferta del producto"
+  },
+	"priceNameTool": {
+    "description": "product offering price name",
+    "message": "Nombre del producto que ofrece el precio"
+  },
+	"priceDesTool": {
+    "description": "product offering price description",
+    "message": "Descripción del precio de oferta del producto"
+  },
+	"priceStartTool": {
+    "description": "product offering price start date",
+    "message": "Fecha de inicio del precio de oferta del producto"
+  },
+   "priceEndTool": {
+    "description": "product offering price end date",
+    "message": "Precio de oferta del producto final fecha"
+	},
+   "priceTypeTool": {
+    "description": "product offering type of price",
+    "message": "Producto que ofrece tipo de precio"
+  },
+   "priceSizeTool": {
+    "description": "product offering unit size",
+    "message": "Tamaño del producto que ofrece la unidad"
+  },
+   "priceUnitTool": {
+    "description": "product offering units",
+    "message": "Unidades de precio de oferta de producto"
+  },
+   "priceAmountTool": {
+    "description": "product offering price amount",
+    "message": "Precio de oferta del producto"
+  },
+   "priceCurrencyTool": {
+    "description": "product offering price currency",
+    "message": "Moneda del precio de oferta del producto"
+  },
+   "pricePeriodTool": {
+    "description": "product offering price period",
+    "message": "Período de precios de oferta de producto"
+  },
+   "priceAlterTool": {
+    "description": "product offering price alteration",
+    "message": "Agregar la alteración al precio de oferta del producto"
   }
 }

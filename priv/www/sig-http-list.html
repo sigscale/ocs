@@ -1,3 +1,4 @@
+<!--  vim: set ts=3:  -->
 <link rel="import" href="polymer/polymer.html">
 <link rel="import" href="i18n-msg/i18n-msg-behavior.html">
 <link rel="import" href="vaadin-grid/vaadin-grid.html">
@@ -36,6 +37,10 @@
 			font-size: inherit;
 			background: #ffb04c;
 			border-style: none;
+		}
+		.yellow-button {
+			text-transform: none;
+			color: #eeff41;
 		}
 	</style>
 	<template>
@@ -95,12 +100,20 @@
 				<template>[[item.httpStatus]]</template>
 			</vaadin-grid-column>
 		</vaadin-grid>
+		<paper-toast id="httpErrorToast" duration="0">
+			<paper-button
+					class="yellow-button"
+					onclick="httpErrorToast.toggle()">
+				Close
+			</paper-button>
+		</paper-toast>
 		<iron-ajax id="getHttp"
 			url="/ocs/v1/log/http"
 			method = "GET"
 			headers='{"Accept": "application/json"}'
 			on-loading-changed="_onLoadingChanged"
-			on-response="responseHandler">
+			on-response="getHttpResponse"
+			on-error="getHttpError">
 		</iron-ajax>
 	</template>
 	<script>
@@ -119,7 +132,7 @@
 					this.$.getHttp.generateRequest();
 				}
 			},
-			responseHandler: function(event) {
+			getHttpResponse: function(event) {
 				var grid = this.$.httpGrid;
 				var results = event.detail.xhr.response;
 				var vaadinItems = new Array();
@@ -155,6 +168,10 @@
 						name: "httpStatus"
 					}
 				];
+			},
+			getHttpError: function (event) {
+				this.$.httpErrorToast.text = event.detail.request.xhr.statusText;
+				this.$.httpErrorToast.open();
 			},
 			_onLoadingChanged: function(event) {
 				if (document.getElementById("getHttp").loading) {

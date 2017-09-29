@@ -1,4 +1,5 @@
 %%% ocs_radius_acct_port_server.erl
+%%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2017 SigScale Global Inc.
 %%% @end
@@ -306,17 +307,19 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, interim, Attributes),
 	Subscriber = ocs:normalize(UserName),
 	case ocs:find_subscriber(Subscriber) of
-		{ok, #subscriber{balance = Balance, enabled = Enabled}}
-				when Enabled == false; Balance =< Usage ->
-			case client_disconnect_supported(Address) of
-				true ->
-					start_disconnect(AcctSessionId, Id, Authenticator, Secret,
-							ListenPort, NasId, Address, Attributes, Subscriber, State);
-				false ->
-					{reply, {ok, response(Id, Authenticator, Secret)}, State}
-			end;
-		{ok, #subscriber{}} ->
-			{reply, {ok, response(Id, Authenticator, Secret)}, State};
+		{ok, #subscriber{buckets = Buckets, enabled = Enabled}} ->
+				case {Enabled, get_balance(Buckets)} of
+					{Enabled, Balance} when Enabled == false; Balance =< Usage ->
+						case client_disconnect_supported(Address) of
+							true ->
+								start_disconnect(AcctSessionId, Id, Authenticator, Secret,
+										ListenPort, NasId, Address, Attributes, Subscriber, State);
+							false ->
+								{reply, {ok, response(Id, Authenticator, Secret)}, State}
+						end;
+					_ ->
+						{reply, {ok, response(Id, Authenticator, Secret)}, State}
+				end;
 		{error, not_found} ->
 			error_logger:warning_report(["Accounting subscriber not found",
 					{module, ?MODULE}, {subscriber, Subscriber},
@@ -374,19 +377,20 @@ update_sub_values(Subscriber, Usage, AcctSessionID, Nas, Attributes)
 		when is_binary(Subscriber), Usage >= 0 ->
 	F = fun() ->
 				case mnesia:read(subscriber, Subscriber, write) of
-					[#subscriber{balance = Balance, disconnect = Flag,
+					[#subscriber{buckets = Buckets, disconnect = Flag,
 								session_attributes = SessionList} = Entry] ->
-						NewBalance = Balance - Usage,
+						UpdatedBuckets = update_buckets(Buckets, Usage),
 						NewEntry = case remove_session(SessionList, AcctSessionID, Nas,
 								Subscriber, Attributes) of
 							{ok, NewSessionList} ->
-								Entry#subscriber{balance = NewBalance,
+								Entry#subscriber{buckets = UpdatedBuckets,
 										session_attributes = NewSessionList};
 							{error, SessionList} ->
-								Entry#subscriber{balance = NewBalance,
+								Entry#subscriber{buckets = UpdatedBuckets,
 										session_attributes = SessionList}
 						end,
 						mnesia:write(subscriber, NewEntry, write),
+						NewBalance = get_balance(UpdatedBuckets),
 						{NewBalance, Flag};
 					[] ->
 						throw(not_found)
@@ -529,4 +533,39 @@ find_session([H | T], Attributes) ->
 	end;
 find_session([], _) ->
 	not_found.
+
+-spec get_balance(Buckets) ->
+		Balance when
+	Buckets :: [#bucket{}],
+	Balance :: integer().
+%% get the availabel balance form buckets
+get_balance([]) ->
+	0;
+get_balance(Buckets) ->
+	get_balance1(Buckets, 0).
+%% @hidden
+get_balance1([], Balance) ->
+	Balance;
+get_balance1([#bucket{remain_amount = #remain_amount{amount = RemAmnt}}
+		| Tail], Balance) ->
+	get_balance1(Tail, RemAmnt + Balance).
+
+-spec update_buckets(Buckets, Usage) ->
+		UpdatedBuckets when
+	Buckets :: [#bucket{}],
+	Usage :: integer(),
+	UpdatedBuckets :: [#bucket{}].
+%% @doc Decrement bucket balances and return new available buckets
+update_buckets([], _Usage) ->
+	[];
+update_buckets([#bucket{remain_amount = #remain_amount{amount = RemAmount} = RM} = Bucket |
+		Tail], Usage) ->
+	RemUsage = RemAmount - Usage,
+	case RemUsage of
+		RU when RU < 0 ->
+			update_buckets(Tail, RU);
+		_ ->
+			UpdatedBucket = Bucket#bucket{remain_amount = RM#remain_amount{amount = RemUsage}},
+			[UpdatedBucket | Tail]
+	end.
 

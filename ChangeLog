@@ -1,9 +1,10 @@
-2017-09-22  Kalpa Gunarathna <kalpa@sigscale.com>
+2017-09-22  Prahveen Thiruchelvam <prahveen@sigscale.org>
 
-	* priv/www/* : UI improvments
-	* scripts/* : add service scripts for systemd integration
-	* ocs_[eap,simple_auth]*fsm.erl mutiple sessions handled for a subscriber
-	* ocs_rest.erl add filtering support in REST API
+	* ocs_rest_pagination_server.erl : add REST pagination
+	* ocs_rest_pagination_sup.erl : pagination continuity etag
+	* ocs.erl : add product to subscriber API
+	* ocs_rest.erl : add REST utility library
+	* ocs_rest_res_usage.erl : TMF635 usage management resource handler
 
 2017-07-14  Vance Shipley <vances@sigscale.org>
 

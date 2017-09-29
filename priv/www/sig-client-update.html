@@ -1,3 +1,4 @@
+<!--  vim: set ts=3:  -->
 <link rel="import" href="polymer/polymer.html">
 <link rel="import" href="i18n-msg/i18n-msg.html">
 <link rel="import" href="i18n-msg/i18n-msg-behavior.html">
@@ -126,35 +127,36 @@
 				</div>
 				<div id="edit-client-attributes">
 					<div>
-						<paper-input
-								id="updateClientDisconnectPort"
-								name="port"
-								label="[[i18n.port]]"
-								type="number">
-						</paper-input>
-						<paper-tooltip>
-							<i18n-msg msgid="portTool">
-								Port network access server, router or access point listens on
-							</i18n-msg>
-						</paper-tooltip>
-					</div>
-					<div>
 						<paper-dropdown-menu
 								id="updateClientProtocol"
 								label="[[i18n.proto]]"
 								type="number"
-								selected-item-label="{{selectedItem}}">
+								selected-item-label="{{selectedItem}}"
+								on-selected-item-changed="checkProto">
 							<paper-listbox
 									id="updateClientProtocolList"
 									class="dropdown-content"
 									selected="0">
-								<paper-item>[[i18n.radius]]</paper-item>
-								<paper-item>[[i18n.diameter]]</paper-item>
+								<paper-item>RADIUS</paper-item>
+								<paper-item>DIAMETER</paper-item>
 							</paper-listbox>
 						</paper-dropdown-menu>
 						<paper-tooltip>
 							<i18n-msg msgid="protoTool">
 								Protocol used by network access server, router or access point.
+							</i18n-msg>
+						</paper-tooltip>
+					</div>
+					<div>
+						<paper-input
+								id="updateClientDisconnectPort"
+								name="port"
+								label="[[i18n.listen]]"
+								type="number">
+						</paper-input>
+						<paper-tooltip>
+							<i18n-msg msgid="listenTooltip">
+								Port network access server, router or access point listens on
 							</i18n-msg>
 						</paper-tooltip>
 					</div>
@@ -248,7 +250,7 @@
 				this.$.updateClientPropertiesAjax.body = client;
 				this.$.updateClientPropertiesAjax.generateRequest();
 			},
-			_updateClientPropertiesResponse: function (event) {
+			_updateClientPropertiesResponse: function(event) {
 				document.getElementById("updateClientToastSuccess").open();
 				this.$.updateClientNewPassword.value = "";
 				document.getElementById("clientGrid").clearCache();
@@ -256,6 +258,13 @@
 			_updateClientPropertiesError: function(event) {
 				this.$.updateClientToastError.text = event.detail.request.xhr.statusText;
 				this.$.updateClientToastError.open();
+			},
+			checkProto: function(event) {
+				if(this.$.updateClientProtocolList.selected == 0) {
+					this.$.updateClientDisconnectPort.disabled = false;
+				} else if(this.$.updateClientProtocolList.selected == 1) {
+					this.$.updateClientDisconnectPort.disabled = true;
+				}
 			},
 			deleteClient: function(event) {
 			this.$.deleteClientAjax.method = "DELETE";

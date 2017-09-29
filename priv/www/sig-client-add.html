@@ -1,3 +1,4 @@
+<!--  vim: set ts=3:  -->
 <link rel="import" href="polymer/polymer.html">
 <link rel="import" href="i18n-msg/i18n-msg.html">
 <link rel="import" href="i18n-msg/i18n-msg-behavior.html">
@@ -96,20 +97,6 @@
 			</div>
 			<div>
 				<paper-input
-					id="addClientPort"
-					name="port"
-					label="[[i18n.listen]]"
-					type="number"
-					value=3799>
-				</paper-input>
-				<paper-tooltip>
-					<i18n-msg msgid="listenTooltip">
-						Port network access server, router or access point listens on
-					</i18n-msg>
-				</paper-tooltip>
-			</div>
-			<div>
-				<paper-input
 						id="addClientSecret"
 						class="secret"
 						name="secret"
@@ -130,8 +117,9 @@
 					</paper-checkbox>
 				</div>
 			</div>
-			<paper-dropdown-menu
-					label="[[i18n.proto]]">
+			<paper-dropdown-menu id="protoDrop"
+					label="[[i18n.proto]]"
+					on-selected-item-changed="checkProto">
 				<paper-listbox id="addClientProtocol"
 						slot="dropdown-content"
 						class="dropdown-content"
@@ -148,22 +136,36 @@
 					</paper-item>
 				</paper-listbox>
 			</paper-dropdown-menu>
+			<div>
+				<paper-input
+					id="addClientPort"
+					name="port"
+					label="[[i18n.listen]]"
+					type="number"
+					value=3799>
+				</paper-input>
+				<paper-tooltip>
+					<i18n-msg msgid="listenTooltip">
+						Port network access server, router or access point listens on
+					</i18n-msg>
+				</paper-tooltip>
+			</div>
 			<div class="buttons">
-				<paper-button
+				<paper-button dialog-confirm
 						raised
 						class="add-button"
 						on-click="_addClientSubmit">
 					<i18n-msg msgid="submit">
-						Submit
+							Submit
 					</i18n-msg>
 				</paper-button>
-				<paper-button
+				<paper-button dialog-dismiss
 						class="cancel-button"
 						dialog-dismiss
 						autofocus
 						onclick="addClientModal.close()">
 					<i18n-msg msgid="cancel">
-						Cancel
+							Cancel
 					</i18n-msg>
 				</paper-button>
 			</div>
@@ -201,7 +203,7 @@
 				id="addClientAjax"
 				url="/ocs/v1/client"
 				method = "post"
-				content-type="application/json",
+				content-type="application/json"
 				on-loading-changed="_onLoadingChanged"
 				on-response="_addClientResponse"
 				on-error="_addClientError">
@@ -221,6 +223,7 @@
 				switch(this.$.addClientProtocol.selected) {
 					case 0:
 						client.protocol = "RADIUS";
+						break;
 					case 1:
 						client.protocol = "DIAMETER";
 				}
@@ -229,6 +232,13 @@
 				}
 				this.$.addClientAjax.body = client;
 				this.$.addClientAjax.generateRequest();
+			},
+			checkProto: function(event) {
+				if(this.$.addClientProtocol.selected == 0) {
+					this.$.addClientPort.disabled = false;
+				} else if(this.$.addClientProtocol.selected == 1) {
+					this.$.addClientPort.disabled = true;
+				}
 			},
 			_onLoadingChanged: function(event) {
 				if (this.$.addClientAjax.loading) {

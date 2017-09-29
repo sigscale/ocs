@@ -1,3 +1,4 @@
+<!--  vim: set ts=3:  -->
 <link rel="import" href="polymer/polymer.html">
 <link rel="import" href="i18n-msg/i18n-msg-behavior.html">
 <link rel="import" href="vaadin-grid/vaadin-grid.html">
@@ -33,6 +34,10 @@
 			font-size: inherit;
 			background: #ffb04c;
 			border-style: none;
+		}
+		.yellow-button {
+			text-transform: none;
+			color: #eeff41;
 		}
 	</style>
 	<template>
@@ -96,12 +101,20 @@
 				<template>[[item.type]]</template>
 			</vaadin-grid-column>
 		</vaadin-grid>
+		<paper-toast id="accessErrorToast" duration="0">
+			<paper-button
+					class="yellow-button"
+					onclick="accessErrorToast.toggle()">
+				Close
+			</paper-button>
+		</paper-toast>
 		<iron-ajax id="getAccess"
 				url="/ocs/v1/log/access"
 				method = "GET"
 				headers='{"Accept": "application/json"}'
 				on-loading-changed="_onLoadingChanged"
-				on-response="responseHandler">
+				on-response="getAccessResponse"
+				on-error="getAccessError">
 		</iron-ajax>
 	</template>
 	<script>
@@ -120,7 +133,7 @@
 					this.$.getAccess.generateRequest();
 				}
 			},
-			responseHandler: function(event) {
+			getAccessResponse: function(event) {
 				var grid = this.$.accessGrid;
 				var results = event.detail.xhr.response;
 				var vaadinItems = new Array();
@@ -156,6 +169,10 @@
 						name: "type"
 					}
 				];
+			},
+			getAccessError: function(event) {
+				this.$.accessErrorToast.text = event.detail.request.xhr.statusText;
+				this.$.accessErrorToast.open();
 			},
 			_onLoadingChanged: function(event) {
 				if (document.getElementById("getAccess").loading) {

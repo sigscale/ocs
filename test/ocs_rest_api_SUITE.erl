@@ -1,4 +1,5 @@
 %%% ocs_rest_api_SUITE.erl
+%%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2017 SigScale Global Inc.
 %%% @end
@@ -38,6 +39,10 @@
 -define(SECOND, seconds).
 %-define(SECOND, second).
 
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
+
 %%---------------------------------------------------------------------
 %%  Test server callback functions
 %%---------------------------------------------------------------------
@@ -58,6 +63,7 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
+	{ok, ProdID} = ocs_test_lib:add_product(),
 	{ok, Services} = application:get_env(inets, services),
 	Fport = fun(F, [{httpd, L} | T]) ->
 				case lists:keyfind(server_name, 1, L) of
@@ -92,7 +98,7 @@ init_per_suite(Config) ->
 	end,
 	Config1 = [{port, Port} | Config],
 	HostUrl = "https://" ++ Host ++ ":" ++ integer_to_list(Port),
-	[{host_url, HostUrl} | Config1].
+	[{product_id, ProdID}, {host_url, HostUrl} | Config1].
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
@@ -130,20 +136,23 @@ all() ->
 	[authenticate_user_request, unauthenticate_user_request,
 	authenticate_subscriber_request, unauthenticate_subscriber_request,
 	authenticate_client_request, unauthenticate_client_request,
-	add_subscriber, add_subscriber_without_password, get_subscriber,
-	get_subscriber_not_found, get_all_subscriber, delete_subscriber,
+	add_subscriber, add_subscriber_without_password,
+	get_subscriber, get_subscriber_not_found, get_all_subscriber,
+	get_subscriber_range, delete_subscriber,
 	add_client, add_client_without_password, get_client, get_client_id,
 	get_client_bogus, get_client_notfound, get_all_clients,
-	get_clients_filter, delete_client, get_usagespecs,
-	get_usagespecs_query, get_usagespec, get_auth_usage,
-	get_auth_usage_id, get_auth_usage_filter, get_acct_usage,
-	get_acct_usage_id, get_acct_usage_filter, get_ipdr_usage,
-	top_up_subscriber_balance, get_subscriber_balance, add_user,
-	get_user, delete_user, simultaneous_updates_on_user_faliure,
-	simultaneous_updates_on_subscriber_faliure,
-	simultaneous_updates_on_client_faliure, update_client_password_json_patch,
-	update_client_attributes_json_patch, update_subscriber_password_json_patch,
-	update_subscriber_attributes_json_patch, update_user_characteristics_json_patch].
+	get_client_range, get_clients_filter, delete_client,
+	get_usagespecs, get_usagespecs_query, get_usagespec,
+	get_auth_usage, get_auth_usage_id, get_auth_usage_filter,
+	get_auth_usage_range, get_acct_usage, get_acct_usage_id,
+	get_acct_usage_filter, get_acct_usage_range, get_ipdr_usage,
+	top_up_subscriber_balance, get_subscriber_balance,
+	add_user, get_user, delete_user,
+	simultaneous_updates_on_user_faliure, simultaneous_updates_on_subscriber_faliure,
+	simultaneous_updates_on_client_faliure,
+	update_client_password_json_patch, update_client_attributes_json_patch,
+	update_subscriber_password_json_patch, update_subscriber_attributes_json_patch,
+	update_user_characteristics_json_patch, add_product, get_product, update_product].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -241,6 +250,7 @@ add_subscriber() ->
 add_subscriber(Config) ->
 	ContentType = "application/json",
 	ID = "eacfd73ae10a",
+	ProdID = ?config(product_id, Config),
 	Password = "ksc8c244npqc",
 	AsendDataRate = {struct, [{"name", "ascendDataRate"}, {"value", 1000000}]},
 	AsendXmitRate = {struct, [{"name", "ascendXmitRate"}, {"value", 64000}]},
@@ -249,12 +259,14 @@ add_subscriber(Config) ->
 	Class = {struct, [{"name", "class"}, {"value", "skiorgs"}]},
 	SortedAttributes = lists:sort([AsendDataRate, AsendXmitRate, SessionTimeout, Interval, Class]),
 	AttributeArray = {array, SortedAttributes},
-	Balance = 100,
 	Enable = true,
 	Multi = false,
+	Amount = {"amount", 200},
+	Units = {"units", "octets"},
+	Buckets = {array, [{struct, [Amount, Units]}]},
 	JSON1 = {struct, [{"id", ID}, {"password", Password},
-	{"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enable},
-	{"multisession", Multi}]},
+	{"attributes", AttributeArray}, {"buckets", Buckets}, {"enabled", Enable},
+	{"multisession", Multi}, {"product", ProdID}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON1)),
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
@@ -278,7 +290,8 @@ add_subscriber(Config) ->
 	{_, {array, Attributes}} = lists:keyfind("attributes", 1, Object),
 	ExtraAttributes = Attributes -- SortedAttributes,
 	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
-	{"balance", Balance} = lists:keyfind("balance", 1, Object),
+	{"product", ProdID} = lists:keyfind("product", 1, Object),
+	{"buckets", Buckets} = lists:keyfind("buckets", 1, Object),
 	{"enabled", Enable} = lists:keyfind("enabled", 1, Object),
 	{"multisession", Multi} = lists:keyfind("multisession", 1, Object).
 
@@ -287,8 +300,12 @@ add_subscriber_without_password() ->
 
 add_subscriber_without_password(Config) ->
 	ContentType = "application/json",
-	JSON1 = {struct, [{"id", "beebdeedfeef"}, {"balance", 100000}, {"enabled", true},
-	{"multisession", false}]},
+	ProdID = ?config(product_id, Config),
+	Amount = {"amount", 100000},
+	Units = {"units", "octets"},
+	Buckets = {array, [{struct, [Amount, Units]}]},
+	JSON1 = {struct, [{"id", "beebdeedfeef"}, {"buckets", Buckets}, {"enabled", true},
+	{"multisession", false}, {"product", ProdID}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON1)),
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
@@ -310,6 +327,7 @@ get_subscriber() ->
 get_subscriber(Config) ->
 	ContentType = "application/json",
 	AcceptValue = "application/json",
+	ProdID = ?config(product_id, Config),
 	ID = "eacfd73ae10a",
 	Password = "ksc8c244npqc",
 	AsendDataRate = {struct, [{"name", "ascendDataRate"}, {"value", 1000000}]},
@@ -319,12 +337,14 @@ get_subscriber(Config) ->
 	Class = {struct, [{"name", "class"}, {"value", "skiorgs"}]},
 	SortedAttributes = lists:sort([AsendDataRate, AsendXmitRate, SessionTimeout, Interval, Class]),
 	AttributeArray = {array, SortedAttributes},
-	Balance = 100,
+	Amount = {"amount", 20000},
+	Units = {"units", "octets"},
+	Buckets = {array, [{struct, [Amount, Units]}]},
 	Enable = true,
 	Multi = false,
 	JSON1 = {struct, [{"id", ID}, {"password", Password},
-	{"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enable},
-	{"multisession", Multi}]},
+	{"attributes", AttributeArray}, {"buckets", Buckets}, {"enabled", Enable},
+	{"multisession", Multi}, {"product", ProdID}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON1)),
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
@@ -351,7 +371,7 @@ get_subscriber(Config) ->
 	{_, {array, Attributes}} = lists:keyfind("attributes", 1, Object),
 	ExtraAttributes = Attributes -- SortedAttributes,
 	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
-	{"balance", Balance} = lists:keyfind("balance", 1, Object),
+	{"totalBalance", Buckets} = lists:keyfind("totalBalance", 1, Object),
 	{"enabled", Enable} = lists:keyfind("enabled", 1, Object),
 	{"multisession", Multi} = lists:keyfind("multisession", 1, Object).
 
@@ -377,6 +397,7 @@ get_all_subscriber() ->
 get_all_subscriber(Config) ->
 	ContentType = "application/json",
 	AcceptValue = "application/json",
+	ProdID = ?config(product_id, Config),
 	Accept = {"accept", AcceptValue},
 	ID = "5557615036fd",
 	Password = "2h7csggw35aa",
@@ -387,12 +408,14 @@ get_all_subscriber(Config) ->
 	Class = {struct, [{"name", "class"}, {"value", "skiorgs"}]},
 	SortedAttributes = lists:sort([AsendDataRate, AsendXmitRate, SessionTimeout, Interval, Class]),
 	AttributeArray = {array, SortedAttributes},
-	Balance = 100,
+	Amount = {"amount", 20000},
+	Units = {"units", "octets"},
+	Buckets = {array, [{struct, [Amount, Units]}]},
 	Enable = true,
 	Multi = false,
 	JSON1 = {struct, [{"id", ID}, {"password", Password},
-	{"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enable},
-	{"multisession", Multi}]},
+	{"attributes", AttributeArray}, {"buckets", Buckets}, {"enabled", Enable},
+	{"multisession", Multi}, {"product", ProdID}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON1)),
 	HostUrl = ?config(host_url, Config),
 	RestUser = ct:get_config(rest_user),
@@ -425,9 +448,81 @@ get_all_subscriber(Config) ->
 	{_, {array, Attributes}} = lists:keyfind("attributes", 1, Subscriber),
 	ExtraAttributes = Attributes -- SortedAttributes,
 	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
-	{"balance", Balance} = lists:keyfind("balance", 1, Subscriber),
+	{"totalBalance", Buckets} = lists:keyfind("totalBalance", 1, Subscriber),
 	{"enabled", Enable} = lists:keyfind("enabled", 1, Subscriber),
 	{"multisession", Multi} = lists:keyfind("multisession", 1, Subscriber).
+
+get_subscriber_range() ->
+	[{userdata, [{doc,"Get range of items in the subscriber collection"}]}].
+
+get_subscriber_range(Config) ->
+	{ok, PageSize} = application:get_env(ocs, rest_page_size),
+	Fadd = fun(_F, 0) ->
+				ok;
+			(F, N) ->
+				Identity = ocs:generate_identity(),
+				Password = ocs:generate_password(),
+				{ok, _} = ocs:add_subscriber(Identity, Password, []),
+				F(F, N - 1)
+	end,
+	NumAdded = (PageSize * 2) + (PageSize div 2) + 17,
+	ok = Fadd(Fadd, NumAdded),
+	RangeSize = case PageSize > 25 of
+		true ->
+			rand:uniform(PageSize - 10) + 10;
+		false ->
+			PageSize - 1
+	end,
+	HostUrl = ?config(host_url, Config),
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Accept = {"accept", "application/json"},
+	RequestHeaders1 = [Accept, Authentication],
+	Request1 = {HostUrl ++ "/ocs/v1/subscriber", RequestHeaders1},
+	{ok, Result1} = httpc:request(get, Request1, [], []),
+	{{"HTTP/1.1", 200, _OK}, ResponseHeaders1, Body1} = Result1,
+	{_, Etag} = lists:keyfind("etag", 1, ResponseHeaders1),
+	true = is_etag_valid(Etag),
+	{_, AcceptRanges1} = lists:keyfind("accept-ranges", 1, ResponseHeaders1),
+	true = lists:member("items", string:tokens(AcceptRanges1, ", ")),
+	{_, Range1} = lists:keyfind("content-range", 1, ResponseHeaders1),
+	["items", "1", RangeEndS1, "*"] = string:tokens(Range1, " -/"),
+	RequestHeaders2 = RequestHeaders1 ++ [{"if-match", Etag}],
+	PageSize = list_to_integer(RangeEndS1),
+	{array, Subscribers1} = mochijson:decode(Body1),
+	PageSize = length(Subscribers1),
+	Fget = fun(F, RangeStart2, RangeEnd2) ->
+				RangeHeader = [{"range",
+						"items " ++ integer_to_list(RangeStart2)
+						++ "-" ++ integer_to_list(RangeEnd2)}],
+				RequestHeaders3 = RequestHeaders2 ++ RangeHeader,
+				Request2 = {HostUrl ++ "/ocs/v1/subscriber", RequestHeaders3},
+				{ok, Result2} = httpc:request(get, Request2, [], []),
+				{{"HTTP/1.1", 200, _OK}, ResponseHeaders2, Body2} = Result2,
+				{_, Etag} = lists:keyfind("etag", 1, ResponseHeaders2),
+				{_, AcceptRanges2} = lists:keyfind("accept-ranges", 1, ResponseHeaders2),
+				true = lists:member("items", string:tokens(AcceptRanges2, ", ")),
+				{_, Range} = lists:keyfind("content-range", 1, ResponseHeaders2),
+				["items", RangeStartS, RangeEndS, EndS] = string:tokens(Range, " -/"),
+				RangeStart2 = list_to_integer(RangeStartS),
+				case EndS of
+					"*" ->
+						RangeEnd2 = list_to_integer(RangeEndS),
+						RangeSize = (RangeEnd2 - (RangeStart2 - 1)),
+						{array, Subscribers2} = mochijson:decode(Body2),
+						RangeSize = length(Subscribers2),
+						NewRangeStart = RangeEnd2 + 1,
+						NewRangeEnd = NewRangeStart + (RangeSize - 1),
+						F(F, NewRangeStart, NewRangeEnd);
+					EndS when RangeEndS == EndS ->
+						list_to_integer(EndS)
+				end
+	end,
+	CollectionSize = length(ocs:get_subscribers()),
+	CollectionSize = Fget(Fget, PageSize + 1, PageSize + RangeSize).
 
 delete_subscriber() ->
 	[{userdata, [{doc,"Delete subscriber in rest interface"}]}].
@@ -436,6 +531,7 @@ delete_subscriber(Config) ->
 	ContentType = "application/json",
 	ID = "eacfd73ae11d",
 	Password = "ksc8c333npqc",
+	ProdID = ?config(product_id, Config),
 	AsendDataRate = {struct, [{"name", "ascendDataRate"}, {"value", 1000000}]},
 	AsendXmitRate = {struct, [{"name", "ascendXmitRate"}, {"value", 64000}]},
 	SessionTimeout = {struct, [{"name", "sessionTimeout"}, {"value", 10864}]},
@@ -444,9 +540,12 @@ delete_subscriber(Config) ->
 	SortedAttributes = lists:sort([AsendDataRate, AsendXmitRate, SessionTimeout, Interval, Class]),
 	AttributeArray = {array, SortedAttributes},
 	Balance = 100,
+	Amount = {"amount", Balance},
+	Units = {"units", "octets"},
+	Buckets = {array, [{struct, [Amount, Units]}]},
 	Enable = true,
-	JSON1 = {struct, [{"id", ID}, {"password", Password},
-	{"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enable}]},
+	JSON1 = {struct, [{"id", ID}, {"password", Password}, {"product", ProdID},
+	{"attributes", AttributeArray}, {"buckets", Buckets}, {"enabled", Enable}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON1)),
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
@@ -460,7 +559,7 @@ delete_subscriber(Config) ->
 	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
 	{_, URI1} = lists:keyfind("location", 1, Headers),
 	{URI2, _} = httpd_util:split_path(URI1),
-	Request2 = {HostUrl ++ URI2, [Accept, Authentication], ContentType, []},
+	Request2 = {HostUrl ++ URI2, [Authentication]},
 	{ok, Result1} = httpc:request(delete, Request2, [], []),
 	{{"HTTP/1.1", 204, _NoContent}, Headers1, []} = Result1,
 	{_, "0"} = lists:keyfind("content-length", 1, Headers1).
@@ -762,6 +861,79 @@ get_all_clients(Config) ->
 	{_, Protocol} = lists:keyfind("protocol", 1, ClientVar),
 	{_, Secret} = lists:keyfind("secret", 1, ClientVar).
 
+get_client_range() ->
+	[{userdata, [{doc,"Get range of items in the client collection"}]}].
+
+get_client_range(Config) ->
+	{ok, PageSize} = application:get_env(ocs, rest_page_size),
+	Fadd = fun(_F, 0) ->
+				ok;
+			(F, N) ->
+				Address = {10, rand:uniform(255),
+						rand:uniform(255), rand:uniform(254)},
+				Secret = ocs:generate_password(),
+				ok = ocs:add_client(Address, Secret),
+				F(F, N - 1)
+	end,
+	NumAdded = (PageSize * 2) + (PageSize div 2) + 17,
+	ok = Fadd(Fadd, NumAdded),
+	RangeSize = case PageSize > 25 of
+		true ->
+			rand:uniform(PageSize - 10) + 10;
+		false ->
+			PageSize - 1
+	end,
+	HostUrl = ?config(host_url, Config),
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Accept = {"accept", "application/json"},
+	RequestHeaders1 = [Accept, Authentication],
+	Request1 = {HostUrl ++ "/ocs/v1/client", RequestHeaders1},
+	{ok, Result1} = httpc:request(get, Request1, [], []),
+	{{"HTTP/1.1", 200, _OK}, ResponseHeaders1, Body1} = Result1,
+	{_, Etag} = lists:keyfind("etag", 1, ResponseHeaders1),
+	true = is_etag_valid(Etag),
+	{_, AcceptRanges1} = lists:keyfind("accept-ranges", 1, ResponseHeaders1),
+	true = lists:member("items", string:tokens(AcceptRanges1, ", ")),
+	{_, Range1} = lists:keyfind("content-range", 1, ResponseHeaders1),
+	["items", "1", RangeEndS1, "*"] = string:tokens(Range1, " -/"),
+	RequestHeaders2 = RequestHeaders1 ++ [{"if-match", Etag}],
+	PageSize = list_to_integer(RangeEndS1),
+	{array, Clients1} = mochijson:decode(Body1),
+	PageSize = length(Clients1),
+	Fget = fun(F, RangeStart2, RangeEnd2) ->
+				RangeHeader = [{"range",
+						"items " ++ integer_to_list(RangeStart2)
+						++ "-" ++ integer_to_list(RangeEnd2)}],
+				RequestHeaders3 = RequestHeaders2 ++ RangeHeader,
+				Request2 = {HostUrl ++ "/ocs/v1/client", RequestHeaders3},
+				{ok, Result2} = httpc:request(get, Request2, [], []),
+				{{"HTTP/1.1", 200, _OK}, ResponseHeaders2, Body2} = Result2,
+				{_, Etag} = lists:keyfind("etag", 1, ResponseHeaders2),
+				{_, AcceptRanges2} = lists:keyfind("accept-ranges", 1, ResponseHeaders2),
+				true = lists:member("items", string:tokens(AcceptRanges2, ", ")),
+				{_, Range} = lists:keyfind("content-range", 1, ResponseHeaders2),
+				["items", RangeStartS, RangeEndS, EndS] = string:tokens(Range, " -/"),
+				RangeStart2 = list_to_integer(RangeStartS),
+				case EndS of
+					"*" ->
+						RangeEnd2 = list_to_integer(RangeEndS),
+						RangeSize = (RangeEnd2 - (RangeStart2 - 1)),
+						{array, Clients2} = mochijson:decode(Body2),
+						RangeSize = length(Clients2),
+						NewRangeStart = RangeEnd2 + 1,
+						NewRangeEnd = NewRangeStart + (RangeSize - 1),
+						F(F, NewRangeStart, NewRangeEnd);
+					EndS when RangeEndS == EndS ->
+						list_to_integer(EndS)
+				end
+	end,
+	CollectionSize = length(ocs:get_clients()),
+	CollectionSize = Fget(Fget, PageSize + 1, PageSize + RangeSize).
+
 get_clients_filter() ->
 	[{userdata, [{doc,"Get clients with filters"}]}].
 
@@ -815,7 +987,7 @@ delete_client(Config) ->
 	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
 	{_, URI1} = lists:keyfind("location", 1, Headers),
 	{URI2, _} = httpd_util:split_path(URI1),
-	Request2 = {HostUrl ++ URI2, [Accept, Authentication], ContentType, []},
+	Request2 = {HostUrl ++ URI2, [Authentication]},
 	{ok, Result1} = httpc:request(delete, Request2, [], []),
 	{{"HTTP/1.1", 204, _NoContent}, Headers1, []} = Result1,
 	{_, "0"} = lists:keyfind("content-length", 1, Headers1).
@@ -1119,6 +1291,85 @@ get_auth_usage_filter(Config) ->
 	{_, _, Usage4} = lists:keytake("status", 1, Usage3),
 	{_, {_, {array, _UsageCharacteristic}}, []} = lists:keytake("usageCharacteristic", 1, Usage4).
 
+get_auth_usage_range() ->
+	[{userdata, [{doc,"Get range of items in the usage collection"}]}].
+
+get_auth_usage_range(Config) ->
+	{ok, PageSize} = application:get_env(ocs, rest_page_size),
+	Flog = fun(_F, 0) ->
+				ok;
+			(F, N) ->
+				ClientAddress = ocs_test_lib:ipv4(),
+				ClientPort = ocs_test_lib:port(),
+				ReqAttrs = [{?ServiceType, 2}, {?NasPortId, "wlan1"}, {?NasPortType, 19},
+						{?UserName, ocs:generate_identity()},
+						{?CallingStationId, ocs_test_lib:mac()},
+						{?CalledStationId, ocs_test_lib:mac()},
+						{?NasIpAddress, ClientAddress}, {?NasPort, ClientPort}],
+				ResAttrs = [{?SessionTimeout, 3600}, {?IdleTimeout, 300}],
+				ok = ocs_log:auth_log(radius, {{0,0,0,0}, 1812},
+						{ClientAddress, ClientPort}, accept, ReqAttrs, ResAttrs),
+				F(F, N - 1)
+	end,
+	NumLogged = (PageSize * 2) + (PageSize div 2) + 17,
+	ok = Flog(Flog, NumLogged),
+	RangeSize = case PageSize > 100 of
+		true ->
+			rand:uniform(PageSize - 10) + 10;
+		false ->
+			PageSize - 1
+	end,
+	HostUrl = ?config(host_url, Config),
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Accept = {"accept", "application/json"},
+	RequestHeaders1 = [Accept, Authentication],
+	Request1 = {HostUrl ++ "/usageManagement/v1/usage?type=AAAAccessUsage", RequestHeaders1},
+	{ok, Result1} = httpc:request(get, Request1, [], []),
+	{{"HTTP/1.1", 200, _OK}, ResponseHeaders1, Body1} = Result1,
+	{_, Etag} = lists:keyfind("etag", 1, ResponseHeaders1),
+	true = is_etag_valid(Etag),
+	{_, AcceptRanges1} = lists:keyfind("accept-ranges", 1, ResponseHeaders1),
+	true = lists:member("items", string:tokens(AcceptRanges1, ", ")),
+	{_, Range1} = lists:keyfind("content-range", 1, ResponseHeaders1),
+	["items", "1", RangeEndS1, "*"] = string:tokens(Range1, " -/"),
+	RequestHeaders2 = RequestHeaders1 ++ [{"if-match", Etag}],
+	PageSize = list_to_integer(RangeEndS1),
+	{array, Usages1} = mochijson:decode(Body1),
+	PageSize = length(Usages1),
+	Fget = fun(F, RangeStart2, RangeEnd2) ->
+				RangeHeader = [{"range",
+						"items " ++ integer_to_list(RangeStart2)
+						++ "-" ++ integer_to_list(RangeEnd2)}],
+				RequestHeaders3 = RequestHeaders2 ++ RangeHeader,
+				Request2 = {HostUrl ++ "/usageManagement/v1/usage?type=AAAAccessUsage", RequestHeaders3},
+				{ok, Result2} = httpc:request(get, Request2, [], []),
+				{{"HTTP/1.1", 200, _OK}, ResponseHeaders2, Body2} = Result2,
+				{_, Etag} = lists:keyfind("etag", 1, ResponseHeaders2),
+				{_, AcceptRanges2} = lists:keyfind("accept-ranges", 1, ResponseHeaders2),
+				true = lists:member("items", string:tokens(AcceptRanges2, ", ")),
+				{_, Range} = lists:keyfind("content-range", 1, ResponseHeaders2),
+				["items", RangeStartS, RangeEndS, EndS] = string:tokens(Range, " -/"),
+				RangeStart2 = list_to_integer(RangeStartS),
+				case EndS of
+					"*" ->
+						RangeEnd2 = list_to_integer(RangeEndS),
+						RangeSize = (RangeEnd2 - (RangeStart2 - 1)),
+						{array, Usages2} = mochijson:decode(Body2),
+						RangeSize = length(Usages2),
+						NewRangeStart = RangeEnd2 + 1,
+						NewRangeEnd = NewRangeStart + (RangeSize - 1),
+						F(F, NewRangeStart, NewRangeEnd);
+					EndS when RangeEndS == EndS ->
+						list_to_integer(EndS)
+				end
+	end,
+	End = Fget(Fget, PageSize + 1, PageSize + RangeSize),
+	End >= NumLogged.
+
 get_acct_usage() ->
 	[{userdata, [{doc,"Get a TMF635 acct usage"}]}].
 
@@ -1325,6 +1576,87 @@ get_acct_usage_filter(Config) ->
 	{_, _, Usage4} = lists:keytake("status", 1, Usage3),
 	{_, {_, {array, _UsageCharacteristic}}, []} = lists:keytake("usageCharacteristic", 1, Usage4).
 
+get_acct_usage_range() ->
+	[{userdata, [{doc,"Get range of items in the usage collection"}]}].
+
+get_acct_usage_range(Config) ->
+	{ok, PageSize} = application:get_env(ocs, rest_page_size),
+	Flog = fun(_F, 0) ->
+				ok;
+			(F, N) ->
+				ClientAddress = ocs_test_lib:ipv4(),
+				ClientPort = ocs_test_lib:port(),
+				Attrs = [{?UserName, ocs:generate_identity()},
+						{?CallingStationId, ocs_test_lib:mac()},
+						{?CalledStationId, ocs_test_lib:mac()},
+						{?NasIpAddress, ClientAddress},
+						{?NasPort, ClientPort},
+						{?AcctSessionTime, 3600},
+						{?AcctInputOctets, rand:uniform(100000000)},
+						{?AcctOutputOctets, rand:uniform(10000000000)},
+						{?AcctTerminateCause, 5}], 
+				ok = ocs_log:acct_log(radius, {{0,0,0,0}, 1812}, stop, Attrs),
+				F(F, N - 1)
+	end,
+	NumLogged = (PageSize * 2) + (PageSize div 2) + 17,
+	ok = Flog(Flog, NumLogged),
+	RangeSize = case PageSize > 100 of
+		true ->
+			rand:uniform(PageSize - 10) + 10;
+		false ->
+			PageSize - 1
+	end,
+	HostUrl = ?config(host_url, Config),
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Accept = {"accept", "application/json"},
+	RequestHeaders1 = [Accept, Authentication],
+	Request1 = {HostUrl ++ "/usageManagement/v1/usage?type=AAAAccountingUsage", RequestHeaders1},
+	{ok, Result1} = httpc:request(get, Request1, [], []),
+	{{"HTTP/1.1", 200, _OK}, ResponseHeaders1, Body1} = Result1,
+	{_, Etag} = lists:keyfind("etag", 1, ResponseHeaders1),
+	true = is_etag_valid(Etag),
+	{_, AcceptRanges1} = lists:keyfind("accept-ranges", 1, ResponseHeaders1),
+	true = lists:member("items", string:tokens(AcceptRanges1, ", ")),
+	{_, Range1} = lists:keyfind("content-range", 1, ResponseHeaders1),
+	["items", "1", RangeEndS1, "*"] = string:tokens(Range1, " -/"),
+	RequestHeaders2 = RequestHeaders1 ++ [{"if-match", Etag}],
+	PageSize = list_to_integer(RangeEndS1),
+	{array, Usages1} = mochijson:decode(Body1),
+	PageSize = length(Usages1),
+	Fget = fun(F, RangeStart2, RangeEnd2) ->
+				RangeHeader = [{"range",
+						"items " ++ integer_to_list(RangeStart2)
+						++ "-" ++ integer_to_list(RangeEnd2)}],
+				RequestHeaders3 = RequestHeaders2 ++ RangeHeader,
+				Request2 = {HostUrl ++ "/usageManagement/v1/usage?type=AAAAccountingUsage", RequestHeaders3},
+				{ok, Result2} = httpc:request(get, Request2, [], []),
+				{{"HTTP/1.1", 200, _OK}, ResponseHeaders2, Body2} = Result2,
+				{_, Etag} = lists:keyfind("etag", 1, ResponseHeaders2),
+				{_, AcceptRanges2} = lists:keyfind("accept-ranges", 1, ResponseHeaders2),
+				true = lists:member("items", string:tokens(AcceptRanges2, ", ")),
+				{_, Range} = lists:keyfind("content-range", 1, ResponseHeaders2),
+				["items", RangeStartS, RangeEndS, EndS] = string:tokens(Range, " -/"),
+				RangeStart2 = list_to_integer(RangeStartS),
+				case EndS of
+					"*" ->
+						RangeEnd2 = list_to_integer(RangeEndS),
+						RangeSize = (RangeEnd2 - (RangeStart2 - 1)),
+						{array, Usages2} = mochijson:decode(Body2),
+						RangeSize = length(Usages2),
+						NewRangeStart = RangeEnd2 + 1,
+						NewRangeEnd = NewRangeStart + (RangeSize - 1),
+						F(F, NewRangeStart, NewRangeEnd);
+					EndS when RangeEndS == EndS ->
+						list_to_integer(EndS)
+				end
+	end,
+	End = Fget(Fget, PageSize + 1, PageSize + RangeSize),
+	End >= NumLogged.
+
 get_ipdr_usage() ->
 	[{userdata, [{doc,"Get a TMF635 IPDR usage"}]}].
 
@@ -1387,6 +1719,7 @@ top_up_subscriber_balance() ->
 
 top_up_subscriber_balance(Config) ->
 	HostUrl = ?config(host_url, Config),
+	ProdID = ?config(product_id, Config),
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
 	ContentType = "application/json",
@@ -1397,11 +1730,11 @@ top_up_subscriber_balance(Config) ->
 	Authentication = {"authorization", AuthKey},
 	Identity = ocs:generate_identity(),
 	Password = ocs:generate_password(),
-	{ok, _} = ocs:add_subscriber(Identity, Password, []),
+	{ok, _} = ocs:add_subscriber(Identity, Password, ProdID),
 	RequestURI = HostUrl ++ "/balanceManagement/v1/" ++ Identity ++ "/balanceTopups",
 	BucketType = {"type", "buckettype"}, 
 	Channel = {"channel", {struct, [{"name", "POS"}]}},
-	Amount = {"amount", {struct, [{"units", "octect"}, {"amount", 10000000}]}},
+	Amount = {"amount", {struct, [{"units", "octets"}, {"amount", 10000000}]}},
 	JSON = {struct, [BucketType, Channel, Amount]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
 	Request = {RequestURI, [Accept, Authentication], ContentType, RequestBody},
@@ -1414,6 +1747,7 @@ get_subscriber_balance() ->
 
 get_subscriber_balance(Config) ->
 	HostUrl = ?config(host_url, Config),
+	ProdID = ?config(product_id, Config),
 	AcceptValue = "application/json",
 	Accept = {"accept", AcceptValue},
 	ContentType = "application/json",
@@ -1424,12 +1758,12 @@ get_subscriber_balance(Config) ->
 	Authentication = {"authorization", AuthKey},
 	Identity = ocs:generate_identity(),
 	Password = ocs:generate_password(),
-	{ok, _} = ocs:add_subscriber(Identity, Password, []),
+	{ok, _} = ocs:add_subscriber(Identity, Password, ProdID),
 	POSTURI = HostUrl ++ "/balanceManagement/v1/" ++ Identity ++ "/balanceTopups",
 	BucketType = {"type", "buckettype"},
 	Channel = {"channel", {struct, [{"name", "POS"}]}},
 	Balance = 10000000,
-	Amount = {"amount", {struct, [{"units", "octect"}, {"amount", Balance}]}},
+	Amount = {"amount", {struct, [{"units", "octets"}, {"amount", Balance}]}},
 	JSON = {struct, [BucketType, Channel, Amount]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
 	PostRequest = {POSTURI, [Accept, Authentication], ContentType, RequestBody},
@@ -1445,10 +1779,9 @@ get_subscriber_balance(Config) ->
 	{_, Identity} = lists:keyfind("id", 1, PrePayBalance),
 	{_, "/balanceManagement/v1/buckets/" ++ Identity} =
 			lists:keyfind("href", 1, PrePayBalance),
-	{_, "octects"} = lists:keyfind("bucketType", 1, PrePayBalance),
-	{_, {struct, RemAmount}} = lists:keyfind("remainedAmount", 1, PrePayBalance),
+	{_, {array, [{struct, RemAmount}]}} = lists:keyfind("remainedAmount", 1, PrePayBalance),
 	{_, Balance} = lists:keyfind("amount", 1, RemAmount),
-	{_, "octect"} = lists:keyfind("units", 1, RemAmount),
+	{_, "octets"} = lists:keyfind("units", 1, RemAmount),
 	{_, "active"} = lists:keyfind("status", 1, PrePayBalance).
 
 simultaneous_updates_on_user_faliure() ->
@@ -1516,6 +1849,7 @@ simultaneous_updates_on_subscriber_faliure(Config) ->
 	ContentType = "application/json",
 	ID = "eacfd73ae10a",
 	Password = "ksc8c244npqc",
+	ProdID = ?config(product_id, Config),
 	AsendDataRate = {struct, [{"name", "ascendDataRate"}, {"value", 1000000}]},
 	AsendXmitRate = {struct, [{"name", "ascendXmitRate"}, {"value", 64000}]},
 	SessionTimeout = {struct, [{"name", "sessionTimeout"}, {"value", 3600}]},
@@ -1524,11 +1858,14 @@ simultaneous_updates_on_subscriber_faliure(Config) ->
 	SortedAttributes = lists:sort([AsendDataRate, AsendXmitRate, SessionTimeout, Interval, Class]),
 	AttributeArray = {array, SortedAttributes},
 	Balance = 100,
+	Amount = {"amount", Balance},
+	Units = {"units", "octets"},
+	Buckets = {array, [{struct, [Amount, Units]}]},
 	Enable = true,
 	Multi = false,
 	JSON1 = {struct, [{"id", ID}, {"password", Password},
-	{"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enable},
-	{"multisession", Multi}]},
+	{"attributes", AttributeArray}, {"buckets", Buckets}, {"enabled", Enable},
+	{"multisession", Multi}, {"product", ProdID}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON1)),
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
@@ -1553,20 +1890,21 @@ simultaneous_updates_on_subscriber_faliure(Config) ->
 	{_, {array, Attributes}} = lists:keyfind("attributes", 1, Object),
 	ExtraAttributes = Attributes -- SortedAttributes,
 	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
-	{"balance", Balance} = lists:keyfind("balance", 1, Object),
+	{"buckets", Buckets} = lists:keyfind("buckets", 1, Object),
 	{"enabled", Enable} = lists:keyfind("enabled", 1, Object),
 	{"multisession", Multi} = lists:keyfind("multisession", 1, Object),
 	Port = ?config(port, Config),
 	{ok, SslSock} = ssl:connect({127,0,0,1}, Port,  [binary, {active, false}], infinity),
 	ok = ssl:ssl_accept(SslSock),
-	PatchBody = "{ \"update\":\"password\", \"newpassword\":\"7fy8qhs7hh7n\" }",
+	Json = {array, [{struct, [{op, "replace"}, {path, "/password"}, {value, "7fy8qhs7hh7n"}]}]},
+	PatchBody = mochijson:encode(Json),
 	PatchBodyLen = size(list_to_binary(PatchBody)),
 	PatchUri = "/ocs/v1/subscriber/" ++ ID,
 	TS = integer_to_list(erlang:system_time(milli_seconds)),
 	N = integer_to_list(erlang:unique_integer([positive])),
 	NewEtag = TS ++ "-" ++ N,
 	PatchReq = ["PATCH ", PatchUri, " HTTP/1.1",$\r,$\n,
-			"Content-Type:application/json", $\r,$\n, "Accept:application/json",$\r,$\n,
+			"Content-Type:application/json-patch+json", $\r,$\n, "Accept:application/json",$\r,$\n,
 			"If-match:" ++ NewEtag,$\r,$\n,"Authorization:"++ AuthKey,$\r,$\n,
 			"Host:localhost:" ++ integer_to_list(Port),$\r,$\n,
 			"Content-Length:" ++ integer_to_list(PatchBodyLen),$\r,$\n,
@@ -1802,6 +2140,7 @@ update_subscriber_password_json_patch(Config) ->
 	ContentType = "application/json",
 	ID = ocs:generate_identity(),
 	Password = ocs:generate_password(),
+	ProdID = ?config(product_id, Config),
 	AsendDataRate = {struct, [{"name", "ascendDataRate"}, {"value", 1000000}]},
 	AsendXmitRate = {struct, [{"name", "ascendXmitRate"}, {"value", 64000}]},
 	SessionTimeout = {struct, [{"name", "sessionTimeout"}, {"value", 3600}]},
@@ -1810,11 +2149,14 @@ update_subscriber_password_json_patch(Config) ->
 	SortedAttributes = lists:sort([AsendDataRate, AsendXmitRate, SessionTimeout, Interval, Class]),
 	AttributeArray = {array, SortedAttributes},
 	Balance = 100,
+	Amount = {"amount", Balance},
+	Units = {"units", "octets"},
+	Buckets = {array, [{struct, [Amount, Units]}]},
 	Enabled = true,
 	Multi = false,
 	JSON = {struct, [{"id", ID}, {"password", Password},
-	{"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enabled},
-	{"multisession", Multi}]},
+	{"attributes", AttributeArray}, {"buckets", Buckets}, {"enabled", Enabled},
+	{"multisession", Multi}, {"product", ProdID}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
@@ -1840,7 +2182,7 @@ update_subscriber_password_json_patch(Config) ->
 	{_, {array, Attributes}} = lists:keyfind("attributes", 1, Object),
 	ExtraAttributes = Attributes -- SortedAttributes,
 	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
-	{"balance", Balance} = lists:keyfind("balance", 1, Object),
+	{"buckets", Buckets} = lists:keyfind("buckets", 1, Object),
 	{"enabled", Enabled} = lists:keyfind("enabled", 1, Object),
 	{"multisession", Multi} = lists:keyfind("multisession", 1, Object),
 	RestPort = ?config(port, Config),
@@ -1877,7 +2219,7 @@ update_subscriber_password_json_patch(Config) ->
 	{_, {array, Attributes}} = lists:keyfind("attributes", 1, Object1),
 	ExtraAttributes = Attributes -- SortedAttributes,
 	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
-	{"balance", Balance} = lists:keyfind("balance", 1, Object1),
+	{"totalBalance", Buckets} = lists:keyfind("totalBalance", 1, Object1),
 	{"enabled", Enabled} = lists:keyfind("enabled", 1, Object1),
 	{"multisession", Multi} = lists:keyfind("multisession", 1, Object1),
 	ok = ssl:close(SslSock).
@@ -1888,6 +2230,7 @@ update_subscriber_attributes_json_patch() ->
 
 update_subscriber_attributes_json_patch(Config) ->
 	ContentType = "application/json",
+	ProdID = ?config(product_id, Config),
 	ID = ocs:generate_identity(),
 	Password = ocs:generate_password(),
 	AsendDataRate = {struct, [{"name", "ascendDataRate"}, {"value", 1000000}]},
@@ -1898,10 +2241,13 @@ update_subscriber_attributes_json_patch(Config) ->
 	SortedAttributes = lists:sort([AsendDataRate, AsendXmitRate, SessionTimeout, Interval, Class]),
 	AttributeArray = {array, SortedAttributes},
 	Balance = 100,
+	Amount = {"amount", Balance},
+	Units = {"units", "octets"},
+	Buckets = {array, [{struct, [Amount, Units]}]},
 	Enabled = true,
 	Multi = true,
-	JSON = {struct, [{"id", ID}, {"password", Password},
-	{"attributes", AttributeArray}, {"balance", Balance}, {"enabled", Enabled},
+	JSON = {struct, [{"id", ID}, {"password", Password}, {"product", ProdID},
+	{"attributes", AttributeArray}, {"buckets", Buckets}, {"enabled", Enabled},
 	{"multisession", Multi}]},
 	RequestBody = lists:flatten(mochijson:encode(JSON)),
 	HostUrl = ?config(host_url, Config),
@@ -1928,7 +2274,7 @@ update_subscriber_attributes_json_patch(Config) ->
 	{_, {array, Attributes}} = lists:keyfind("attributes", 1, Object),
 	ExtraAttributes = Attributes -- SortedAttributes,
 	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
-	{"balance", Balance} = lists:keyfind("balance", 1, Object),
+	{"buckets", Buckets} = lists:keyfind("buckets", 1, Object),
 	{"enabled", Enabled} = lists:keyfind("enabled", 1, Object),
 	{"multisession", Multi} = lists:keyfind("multisession", 1, Object),
 	RestPort = ?config(port, Config),
@@ -1937,12 +2283,10 @@ update_subscriber_attributes_json_patch(Config) ->
 	NewContentType = "application/json-patch+json",
 	NewEnabled = false,
 	NewMulti = false,
-	NewBalance = 47398734,
 	NewAttributes = {array,[
 			{struct, [{"name", "ascendDataRate"}, {"value", 100000}]},
 			{struct, [{"name", "ascendXmitRate"}, {"value", 512000}]}]},
 	JSON1 = {array, [
-			{struct, [{op, "replace"}, {path, "/balance"}, {value, NewBalance}]},
 			{struct, [{op, "replace"}, {path, "/attributes"}, {value, NewAttributes}]},
 			{struct, [{op, "replace"}, {path, "/enabled"}, {value, NewEnabled}]},
 			{struct, [{op, "replace"}, {path, "/multisession"}, {value, NewMulti}]}]},
@@ -1972,7 +2316,7 @@ update_subscriber_attributes_json_patch(Config) ->
 	{_, URI} = lists:keyfind("href", 1, Object1),
 	{"password", Password} = lists:keyfind("password", 1, Object1),
 	{_, NewAttributes} = lists:keyfind("attributes", 1, Object1),
-	{"balance", NewBalance} = lists:keyfind("balance", 1, Object1),
+	{"totalBalance", Buckets} = lists:keyfind("totalBalance", 1, Object1),
 	{"enabled", NewEnabled} = lists:keyfind("enabled", 1, Object1),
 	{"multisession", NewMulti} = lists:keyfind("multisession", 1, Object1),
 	ok = ssl:close(SslSock).
@@ -2059,14 +2403,568 @@ update_user_characteristics_json_patch(Config) ->
 	<<"HTTP/1.1 204", _/binary>> = Headers1,
 	ok = ssl:close(SslSock).
 
+add_product() ->
+	[{userdata, [{doc,"Use HTTP POST to creates a productOffering"}]}].
+
+add_product(Config) ->
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	ContentType = "application/json",
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	ProdName = {"name", "Wi-Fi"},
+	ProdDescirption = {"description", "Monthly Family Package"},
+	ProdHref = {"href", "/product/product/cpe"},
+	IsBundle = {"isBundle", false},
+	IsCustomerVisible = {"isCustomerVisible", true},
+	StartDate = {"startDate", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
+	TerminationDate = {"terminationDate", ocs_rest:iso8601(erlang:system_time(?MILLISECOND) + 31535984279)},
+	Status = {"status", "active"},
+	StartTime = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
+	EndTime = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
+	ValidFor = {"validFor", {struct, [StartTime, EndTime]}},
+	ProdSpecID = {"id", "cpe"},
+	ProdSpecHref = {"href", "/catalogManagement/productSpecification/cpe"},
+	ProdSpecName = {"name", "Monthly subscriber Family Pack"},
+	ProdSpec = {"productSpecification", {struct, [ProdSpecID, ProdSpecHref, ProdSpecName]}},
+	POPName1 = {"name", "Family-Pack"},
+	POPDescription1 = {"description", "Monthly package"},
+	POPStratDateTime1 = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
+	POPEndDateTime1 = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
+	POPValidFor1 = {"validFor", {struct, [POPStratDateTime1, POPEndDateTime1]}},
+	POPPriceType1 = {"priceType", "recurring"},
+	POPUOMeasure1 = {"unitOfMeasure", ""},
+	POPPriceTaxInclude1 = {"taxIncludedAmount", 230},
+	POPPriceCurrency1 = {"currencyCode", "MXV"},
+	POPPrice1 = {"price", {struct, [POPPriceTaxInclude1, POPPriceCurrency1]}},
+	POPRecChargPeriod1 = {"recurringChargePeriod", "monthly"},
+	ProdOfferPrice1 = {struct, [POPName1, POPDescription1, POPValidFor1, POPPriceType1,
+			POPUOMeasure1, POPPrice1, POPRecChargPeriod1]},
+	POPName2 = {"name", "usage"},
+	POPDescription2 = {"description", "Family Pack Alteration"},
+	POPStratDateTime2 = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
+	POPEndDateTime2 = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
+	POPValidFor2 = {"validFor", {struct, [POPStratDateTime2, POPEndDateTime2]}},
+	POPPriceType2 = {"priceType", "usage"},
+	POPUOMeasure2 = {"unitOfMeasure", "1000b"},
+	POPPriceTaxInclude2 = {"taxIncludedAmount", 5},
+	POPPriceCurrency2 = {"currencyCode", "MXV"},
+	POPPrice2 = {"price", {struct, [POPPriceTaxInclude2, POPPriceCurrency2]}},
+	POPRecChargPeriod2 = {"recurringChargePeriod", ""},
+	ProdAlterName = {"name", "usage"},
+	ProdAlterDescription = {"description", ""},
+	ProdAlterValidFor = {"validFor", {struct, [POPStratDateTime1]}},
+	ProdAlterPriceType = {"priceType", "usage"},
+	ProdAlterUOMeasure = {"unitOfMeasure", "100g"},
+	ProdAlterAmount = {"taxIncludedAmount", 0},
+	ProdAlterPrice = {"price", {struct, [ProdAlterAmount]}},
+	POPAlteration = {"productOfferPriceAlteration", {struct, [ProdAlterName, ProdAlterDescription,
+		ProdAlterValidFor, ProdAlterPriceType, ProdAlterUOMeasure, ProdAlterPrice]}},
+
+	ProdOfferPrice2 = {struct, [POPName2, POPDescription2, POPValidFor2, POPPriceType2,
+			POPUOMeasure2, POPPrice2, POPRecChargPeriod2, POPAlteration]},
+	ProdOfferPrice = {"productOfferingPrice", {array, [ProdOfferPrice1, ProdOfferPrice2]}},
+	ReqJson = {struct, [ProdName, ProdDescirption, ProdHref, IsBundle, IsCustomerVisible, 
+			TerminationDate, StartDate, ValidFor, ProdSpec, Status, ProdOfferPrice]},
+	ReqBody = lists:flatten(mochijson:encode(ReqJson)),
+	Authentication = {"authorization", AuthKey},
+	Request = {HostUrl ++ "/catalogManagement/v1/productOffering",
+			[Accept, Authentication], ContentType, ReqBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers).
+
+get_product() ->
+	[{userdata, [{doc,"Use HTTP GET to retrieves a product entity"}]}].
+
+get_product(Config) ->
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	ContentType = "application/json",
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Product = "Wi-Fi",
+	ProdName = {"name", Product},
+	ProdDescirption = {"description", "Monthly Family Package"},
+	ProdHref = {"href", "/product/product/cpe"},
+	IsBundle = {"isBundle", false},
+	IsCustomerVisible = {"isCustomerVisible", true},
+	StartDate = {"startDate", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
+	TerminationDate = {"terminationDate", ocs_rest:iso8601(erlang:system_time(?MILLISECOND) + 31535984279)},
+	Status = {"status", "active"},
+	StartTime = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
+	EndTime = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
+	ValidFor = {"validFor", {struct, [StartTime, EndTime]}},
+	ProdSpecID = {"id", "cpe"},
+	ProdSpecHref = {"href", "/catalogManagement/productSpecification/cpe"},
+	ProdSpecName = {"name", "Monthly subscriber Family Pack"},
+	ProdSpec = {"productSpecification", {struct, [ProdSpecID, ProdSpecHref, ProdSpecName]}},
+	POPName1 = {"name", "Family-Pack"},
+	POPDescription1 = {"description", "Monthly package"},
+	POPStratDateTime1 = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
+	POPEndDateTime1 = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
+	POPValidFor1 = {"validFor", {struct, [POPStratDateTime1, POPEndDateTime1]}},
+	POPPriceType1 = {"priceType", "recurring"},
+	POPUOMeasure1 = {"unitOfMeasure", ""},
+	POPPriceTaxInclude1 = {"taxIncludedAmount", 230},
+	POPPriceCurrency1 = {"currencyCode", "MXV"},
+	POPPrice1 = {"price", {struct, [POPPriceTaxInclude1, POPPriceCurrency1]}},
+	POPRecChargPeriod1 = {"recurringChargePeriod", "monthly"},
+	ProdOfferPrice1 = {struct, [POPName1, POPDescription1, POPValidFor1, POPPriceType1,
+			POPUOMeasure1, POPPrice1, POPRecChargPeriod1]},
+	POPName2 = {"name", "usage"},
+	POPDescription2 = {"description", "Family Pack Alteration"},
+	POPStratDateTime2 = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
+	POPEndDateTime2 = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
+	POPValidFor2 = {"validFor", {struct, [POPStratDateTime2, POPEndDateTime2]}},
+	POPPriceType2 = {"priceType", "usage"},
+	POPUOMeasure2 = {"unitOfMeasure", "1000b"},
+	POPPriceTaxInclude2 = {"taxIncludedAmount", 5},
+	POPPriceCurrency2 = {"currencyCode", "MXV"},
+	POPPrice2 = {"price", {struct, [POPPriceTaxInclude2, POPPriceCurrency2]}},
+	POPRecChargPeriod2 = {"recurringChargePeriod", ""},
+	ProdAlterName = {"name", "usage"},
+	ProdAlterDescription = {"description", ""},
+	ProdAlterValidFor = {"validFor", {struct, [POPStratDateTime1]}},
+	ProdAlterPriceType = {"priceType", "usage"},
+	ProdAlterUOMeasure = {"unitOfMeasure", "100g"},
+	ProdAlterAmount = {"taxIncludedAmount", 0},
+	ProdAlterPrice = {"price", {struct, [ProdAlterAmount]}},
+	POPAlteration = {"productOfferPriceAlteration", {struct, [ProdAlterName, ProdAlterDescription,
+		ProdAlterValidFor, ProdAlterPriceType, ProdAlterUOMeasure, ProdAlterPrice]}},
+	ProdOfferPrice2 = {struct, [POPName2, POPDescription2, POPValidFor2, POPPriceType2,
+			POPUOMeasure2, POPPrice2, POPRecChargPeriod2, POPAlteration]},
+	ProdOfferPrice = {"productOfferingPrice", {array, [ProdOfferPrice1, ProdOfferPrice2]}},
+	ReqJson = {struct, [ProdName, ProdDescirption, ProdHref, IsBundle, IsCustomerVisible,
+			TerminationDate, StartDate, ValidFor, ProdSpec, Status, ProdOfferPrice]},
+	ReqBody = lists:flatten(mochijson:encode(ReqJson)),
+	Authentication = {"authorization", AuthKey},
+	Request1 = {HostUrl ++ "/catalogManagement/v1/productOffering",
+			[Accept, Authentication], ContentType, ReqBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, _Headers, _} = Result,
+	Request2 = {HostUrl ++ "/catalogManagement/v1/productOffering/" ++ Product,
+			[Accept, Authentication]},
+	{ok, Response} = httpc:request(get, Request2, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers1, RespBody} = Response,
+	{_, ContentType} = lists:keyfind("content-type", 1, Headers1),
+	{struct, ProductObj} = mochijson:decode(RespBody),
+	ProdName = lists:keyfind("name", 1, ProductObj),
+	ProdHref = lists:keyfind("href", 1, ProductObj),
+	IsBundle = lists:keyfind("isBundle", 1, ProductObj),
+	StartDate = lists:keyfind("startDate", 1, ProductObj),
+	TerminationDate = lists:keyfind("terminationDate", 1, ProductObj),
+	Status = lists:keyfind("status", 1, ProductObj),
+	ValidFor = lists:keyfind("validFor", 1, ProductObj),
+	{_, {struct, ProdSpecObj}} = lists:keyfind("productSpecification", 1, ProductObj),
+	ProdSpecID = lists:keyfind("id", 1, ProdSpecObj),
+	ProdSpecHref = lists:keyfind("href", 1, ProdSpecObj),
+	ProdSpecName = lists:keyfind("name", 1, ProdSpecObj),
+	{_, {array, POPObj}} = lists:keyfind("productOfferingPrice", 1, ProductObj),
+	F1 = fun(POPriceObj) ->
+		POPName1 = lists:keyfind("name", 1 , POPriceObj),
+		POPValidFor1 = lists:keyfind("validFor", 1 , POPriceObj),
+		POPUOMeasure1 = lists:keyfind("unitOfMeasure", 1, POPriceObj),
+		POPPrice1 = lists:keyfind("price", 1 , POPriceObj),
+		POPRecChargPeriod1 = lists:keyfind("recurringChargePeriod", 1 , POPriceObj)
+	end,
+	F2 = fun(POPriceObj) ->
+		POPName2 = lists:keyfind("name", 1 , POPriceObj),
+		POPValidFor2 = lists:keyfind("validFor", 1 , POPriceObj),
+		POPUOMeasure2 = lists:keyfind("unitOfMeasure", 1, POPriceObj),
+		POPPrice2 = lists:keyfind("price", 1 , POPriceObj),
+		POPRecChargPeriod2 = lists:keyfind("recurringChargePeriod", 1 , POPriceObj),
+		{_, {struct, POPAlter}} = lists:keyfind("productOfferPriceAlteration", 1, POPriceObj),
+		ProdAlterName = lists:keyfind("name", 1, POPAlter),
+		ProdAlterValidFor = lists:keyfind("validFor", 1, POPAlter),
+		ProdAlterPriceType = lists:keyfind("priceType", 1, POPAlter),
+		ProdAlterUOMeasure = lists:keyfind("unitOfMeasure", 1, POPAlter),
+		ProdAlterPrice = lists:keyfind("price", 1, POPAlter)
+	end,
+	F3 = fun({struct, POPrice})	->
+		case lists:keyfind("priceType", 1, POPrice) of
+			POPPriceType1 ->
+				F1(POPrice);
+			POPPriceType2 ->
+				F2(POPrice)
+		end
+	end,
+	lists:foreach(F3, POPObj).
+
+update_product() ->
+	[{userdata, [{doc,"Use PATCH for update product entity"}]}].
+
+update_product(Config) ->
+	HostUrl = ?config(host_url, Config),
+	RestPort = ?config(port, Config),
+	Accept = {"accept", "application/json"},
+	ContentType = "application/json",
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authorization = {"authorization", AuthKey},
+	ProdID = "Wi-Fi",
+	add_product(HostUrl, Accept, ContentType, AuthKey, Authorization, ProdID),
+	NewProdID1 = "Wi-Fi_Ultimate",
+	SslSock = ssl_socket_open({127,0,0,1}, RestPort),
+	ok = update_product_name(SslSock, RestPort, ProdID, NewProdID1),
+	Description1 = "Ultmate Family Package",
+	ok = update_product_description(SslSock, RestPort, NewProdID1, Description1),
+	StartDate1 = ocs_rest:iso8601(erlang:system_time(?MILLISECOND)),
+	ok = update_product_startdate(SslSock, RestPort, NewProdID1, StartDate1),
+	TerminationDate1 = ocs_rest:iso8601(erlang:system_time(?MILLISECOND) + 31535984279),
+	ok = update_product_terminationdate(SslSock, RestPort, NewProdID1, TerminationDate1),
+	Status1 = "pending_active",
+	ok = update_product_status(SslSock, RestPort, NewProdID1, Status1),
+	ok = update_product_price(SslSock, RestPort, NewProdID1),
+	ok = ssl_socket_close(SslSock).
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
+
+add_product(HostUrl, Accept, ContentType, AuthKey, Authorization, ProdID) ->
+	ProdName = {"name", ProdID},
+	ProdDescirption = {"description", "Monthly Family Package"},
+	ProdHref = {"href", "/product/product/cpe"},
+	IsBundle = {"isBundle", false},
+	IsCustomerVisible = {"isCustomerVisible", true},
+	StartDate = {"startDate", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
+	TerminationDate = {"terminationDate", ocs_rest:iso8601(erlang:system_time(?MILLISECOND) + 31535984279)},
+	Status = {"status", "active"},
+	StartTime = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
+	EndTime = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
+	ValidFor = {"validFor", {struct, [StartTime, EndTime]}},
+	ProdSpecID = {"id", "cpe"},
+	ProdSpecHref = {"href", "/productCatalogManagement/productSpecification/cpe"},
+	ProdSpecName = {"name", "Monthly subscriber Family Pack"},
+	ProdSpec = {"productSpecification", {struct, [ProdSpecID, ProdSpecHref, ProdSpecName]}},
+	POPName1 = {"name", "Family-Pack"},
+	POPDescription1 = {"description", "Monthly package"},
+	POPStratDateTime1 = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
+	POPEndDateTime1 = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
+	POPValidFor1 = {"validFor", {struct, [POPStratDateTime1, POPEndDateTime1]}},
+	POPPriceType1 = {"priceType", "recurring"},
+	POPUOMeasure1 = {"unitOfMeasure", ""},
+	POPPriceTaxInclude1 = {"taxIncludedAmount", 230},
+	POPPriceCurrency1 = {"currencyCode", "MXV"},
+	POPPrice1 = {"price", {struct, [POPPriceTaxInclude1, POPPriceCurrency1]}},
+	POPRecChargPeriod1 = {"recurringChargePeriod", "monthly"},
+	ProdOfferPrice1 = {struct, [POPName1, POPDescription1, POPValidFor1, POPPriceType1,
+			POPUOMeasure1, POPPrice1, POPRecChargPeriod1]},
+	POPName2 = {"name", "usage"},
+	POPDescription2 = {"description", "Family Pack Alteration"},
+	POPStratDateTime2 = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
+	POPEndDateTime2 = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
+	POPValidFor2 = {"validFor", {struct, [POPStratDateTime2, POPEndDateTime2]}},
+	POPPriceType2 = {"priceType", "usage"},
+	POPUOMeasure2 = {"unitOfMeasure", "1000b"},
+	POPPriceTaxInclude2 = {"taxIncludedAmount", 5},
+	POPPriceCurrency2 = {"currencyCode", "MXV"},
+	POPPrice2 = {"price", {struct, [POPPriceTaxInclude2, POPPriceCurrency2]}},
+	POPRecChargPeriod2 = {"recurringChargePeriod", ""},
+	ProdAlterName = {"name", "usage"},
+	ProdAlterDescription = {"description", ""},
+	ProdAlterValidFor = {"validFor", {struct, [POPStratDateTime1]}},
+	ProdAlterPriceType = {"priceType", "usage"},
+	ProdAlterUOMeasure = {"unitOfMeasure", "100g"},
+	ProdAlterAmount = {"taxIncludedAmount", 0},
+	ProdAlterPrice = {"price", {struct, [ProdAlterAmount]}},
+	POPAlteration = {"productOfferPriceAlteration", {struct, [ProdAlterName, ProdAlterDescription,
+		ProdAlterValidFor, ProdAlterPriceType, ProdAlterUOMeasure, ProdAlterPrice]}},
+	ProdOfferPrice2 = {struct, [POPName2, POPDescription2, POPValidFor2, POPPriceType2,
+			POPUOMeasure2, POPPrice2, POPRecChargPeriod2, POPAlteration]},
+	ProdOfferPrice = {"productOfferingPrice", {array, [ProdOfferPrice1, ProdOfferPrice2]}},
+	ReqJson = {struct, [ProdName, ProdDescirption, ProdHref, IsBundle, IsCustomerVisible,
+			TerminationDate, StartDate, ValidFor, ProdSpec, Status, ProdOfferPrice]},
+	ReqBody = lists:flatten(mochijson:encode(ReqJson)),
+	Authorization = {"authorization", AuthKey},
+	Request1 = {HostUrl ++ "/catalogManagement/v1/productOffering",
+			[Accept, Authorization], ContentType, ReqBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, _Headers, _} = Result.
+
+update_product_name(SslSock, RestPort, OldProdID, NewProdID) ->
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	ContentType = "application/json-patch+json",
+	JSON = {array, [product_name(NewProdID)]},
+	Body = lists:flatten(mochijson:encode(JSON)),
+	{Headers, Response} = patch_request(SslSock, RestPort, ContentType, AuthKey, OldProdID, Body),
+	<<"HTTP/1.1 200", _/binary>> = Headers,
+	{struct, Object} = mochijson:decode(Response),
+	case lists:keyfind("name", 1, Object) of
+		{_, NewProdID} ->
+			ok;
+		_ ->
+			{error, patch_pafiled}
+	end.
+
+update_product_description(SslSock, RestPort, ProdID, Description) ->
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	ContentType = "application/json-patch+json",
+	JSON = {array, [product_description(Description)]},
+	Body = lists:flatten(mochijson:encode(JSON)),
+	{Headers, Response} = patch_request(SslSock, RestPort, ContentType, AuthKey, ProdID, Body),
+	<<"HTTP/1.1 200", _/binary>> = Headers,
+	{struct, Object} = mochijson:decode(Response),
+	case lists:keyfind("description", 1, Object) of
+		{_, Description} ->
+			ok;
+		_ ->
+			{error, patch_pafiled}
+	end.
+
+update_product_startdate(SslSock, RestPort, ProdID, StartDate) ->
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	ContentType = "application/json-patch+json",
+	JSON = {array, [product_startdate(StartDate)]},
+	Body = lists:flatten(mochijson:encode(JSON)),
+	{Headers, Response} = patch_request(SslSock, RestPort, ContentType, AuthKey, ProdID, Body),
+	<<"HTTP/1.1 200", _/binary>> = Headers,
+	{struct, Object} = mochijson:decode(Response),
+	case lists:keyfind("startDate", 1, Object) of
+		{_, StartDate} ->
+			ok;
+		_ ->
+			{error, patch_pafiled}
+	end.
+
+update_product_terminationdate(SslSock, RestPort, ProdID, TerminationDate) ->
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	ContentType = "application/json-patch+json",
+	JSON = {array, [product_terminationdate(TerminationDate)]},
+	Body = lists:flatten(mochijson:encode(JSON)),
+	{Headers, Response} = patch_request(SslSock, RestPort, ContentType, AuthKey, ProdID, Body),
+	<<"HTTP/1.1 200", _/binary>> = Headers,
+	{struct, Object} = mochijson:decode(Response),
+	case lists:keyfind("terminationDate", 1, Object) of
+		{_, TerminationDate} ->
+			ok;
+		_ ->
+			{error, patch_pafiled}
+	end.
+
+update_product_status(SslSock, RestPort, ProdID, Status) ->
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	ContentType = "application/json-patch+json",
+	JSON = {array, [product_status(Status)]},
+	Body = lists:flatten(mochijson:encode(JSON)),
+	{Headers, Response} = patch_request(SslSock, RestPort, ContentType, AuthKey, ProdID, Body),
+	<<"HTTP/1.1 200", _/binary>> = Headers,
+	{struct, Object} = mochijson:decode(Response),
+	case lists:keyfind("lifecycleStatus", 1, Object) of
+		{_, Status} ->
+			ok;
+		_ ->
+			{error, patch_pafiled}
+	end.
+
+update_product_price(SslSock, RestPort, ProdID) ->
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	ContentType = "application/json-patch+json",
+	PPN = "FamilyPack Mega",
+	Des = "Update Family pack",
+	RCP = "daily",
+	UFM = "100b",
+	PrT = "one_time",
+	AltDes = "Alter Description Updated",
+	AltNam = "usage123",
+	AltPrT = "one_time",
+	AltUFM = "100m",
+	Index = 0,
+	JSON = {array, [prod_price_name(Index, PPN),
+				prod_price_description(Index, Des),
+				prod_price_rc_period(Index, RCP),
+				prod_price_ufm(Index, UFM),
+				prod_price_type(Index, PrT),
+				pp_alter_description(Index, AltDes),
+				pp_alter_name(Index, AltNam),
+				pp_alter_type(Index, AltPrT),
+				pp_alter_ufm(Index, AltUFM)]},
+	Body = lists:flatten(mochijson:encode(JSON)),
+	{Headers, Response} = patch_request(SslSock, RestPort, ContentType, AuthKey, ProdID, Body),
+	<<"HTTP/1.1 200", _/binary>> = Headers,
+	{struct, Object} = mochijson:decode(Response),
+	{_, {array, Prices}} = lists:keyfind("productOfferingPrice", 1, Object),
+	{struct, Price} = lists:nth(Index + 1, lists:reverse(Prices)),
+	{_, PPN} = lists:keyfind("name", 1, Price),
+	{_, Des} = lists:keyfind("description", 1, Price),
+	{_, RCP} = lists:keyfind("recurringChargePeriod", 1, Price),
+	{_, UFM} = lists:keyfind("unitOfMeasure", 1, Price),
+	{_, PrT} = lists:keyfind("priceType", 1, Price),
+	{_, {struct, Alter}} = lists:keyfind("productOfferPriceAlteration", 1, Price),
+	{_, AltDes} = lists:keyfind("description", 1, Alter),
+	{_, AltNam} = lists:keyfind("name", 1, Alter),
+	{_, AltPrT} = lists:keyfind("priceType", 1, Alter),
+	{_, AltUFM} = lists:keyfind("unitOfMeasure", 1, Alter),
+	ok.
+
+patch_request(SslSock, Port, ContentType, AuthKey, ProdID, ReqBody) when is_list(ReqBody) ->
+	BinBody = list_to_binary(ReqBody),
+	patch_request(SslSock, Port, ContentType, AuthKey, ProdID, BinBody);
+patch_request(SslSock, Port, ContentType, AuthKey, ProdID, ReqBody) ->
+	Timeout = 1500,
+	Length = size(ReqBody),
+	PatchURI = "/catalogManagement/v1/productOffering/" ++ ProdID,
+	Request =
+			["PATCH ", PatchURI, " HTTP/1.1",$\r,$\n,
+			"Content-Type:"++ ContentType, $\r,$\n,
+			"Accept:application/json",$\r,$\n,
+			"Authorization:"++ AuthKey,$\r,$\n,
+			"Host:localhost:" ++ integer_to_list(Port),$\r,$\n,
+			"Content-Length:" ++ integer_to_list(Length),$\r,$\n,
+			$\r,$\n,
+			ReqBody],
+	ok = ssl:send(SslSock, Request),
+	F = fun(_F, _Sock, {error, timeout}, Acc) ->
+					lists:reverse(Acc);
+			(F, Sock, {ok, Bin}, Acc) ->
+					F(F, Sock, ssl:recv(Sock, 0, Timeout), [Bin | Acc])
+	end,
+	RecvBuf = F(F, SslSock, ssl:recv(SslSock, 0, Timeout), []),
+	PatchResponse = list_to_binary(RecvBuf),
+	[Headers, ResponseBody] = binary:split(PatchResponse, <<$\r,$\n,$\r,$\n>>),
+	{Headers, ResponseBody}.
+
+ssl_socket_open(IP, Port) ->
+	{ok, SslSock} = ssl:connect(IP, Port,
+		[binary, {active, false}], infinity),
+	ok = ssl:ssl_accept(SslSock),
+	SslSock.
+
+ssl_socket_close(SslSock) ->
+	ok = ssl:close(SslSock).
+
+product_name(ProdID) ->
+	Op = {"op", "replace"},
+	Path = {"path", "/name"},
+	Value = {"value", ProdID},
+	{struct, [Op, Path, Value]}.
+
+product_description(Description) ->
+	Op = {"op", "replace"},
+	Path = {"path", "/description"},
+	Value = {"value", Description},
+	{struct, [Op, Path, Value]}.
+
+product_startdate(StartDate) ->
+	Op = {"op", "replace"},
+	Path = {"path", "/startDate"},
+	Value = {"value", StartDate},
+	{struct, [Op, Path, Value]}.
+
+product_terminationdate(TerminationDate) ->
+	Op = {"op", "replace"},
+	Path = {"path", "/terminationDate"},
+	Value = {"value", TerminationDate},
+	{struct, [Op, Path, Value]}.
+
+product_status(Status) ->
+	Op = {"op", "replace"},
+	Path = {"path", "/lifecycleStatus"},
+	Value = {"value", Status},
+	{struct, [Op, Path, Value]}.
+
+prod_price_name(Index, Name) when is_integer(Index) ->
+	prod_price_name(integer_to_list(Index), Name);
+prod_price_name(Index, Name) when is_list(Index) ->
+	Op = {"op", "replace"},
+	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/name"},
+	Value = {"value", Name},
+	{struct, [Op, Path, Value]}.
+
+prod_price_description(Index, Description) when is_integer(Index) ->
+	prod_price_description(integer_to_list(Index), Description);
+prod_price_description(Index, Description) when is_list(Index) ->
+	Op = {"op", "replace"},
+	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/description"},
+	Value = {"value", Description},
+	{struct, [Op, Path, Value]}.
+
+prod_price_rc_period(Index, Period) when is_integer(Index) ->
+	prod_price_rc_period(integer_to_list(Index), Period);
+prod_price_rc_period(Index, Period) when is_list(Index) ->
+	Op = {"op", "replace"},
+	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/recurringChargePeriod"},
+	Value = {"value", Period},
+	{struct, [Op, Path, Value]}.
+
+prod_price_ufm(Index, UFM) when is_integer(Index) ->
+	prod_price_ufm(integer_to_list(Index), UFM);
+prod_price_ufm(Index, UFM) when is_list(Index) ->
+	Op = {"op", "replace"},
+	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/unitOfMeasure"},
+	Value = {"value", UFM},
+	{struct, [Op, Path, Value]}.
+
+prod_price_type(Index, PT) when is_integer(Index) ->
+	prod_price_type(integer_to_list(Index), PT);
+prod_price_type(Index, PT) when is_list(Index) ->
+	Op = {"op", "replace"},
+	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/priceType"},
+	Value = {"value", PT},
+	{struct, [Op, Path, Value]}.
+
+pp_alter_name(Index, Name) when is_integer(Index) ->
+	pp_alter_name(integer_to_list(Index), Name);
+pp_alter_name(Index, Name) when is_list(Index) ->
+	Op = {"op", "replace"},
+	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/productOfferPriceAlteration/name"},
+	Value = {"value", Name},
+	{struct, [Op, Path, Value]}.
+
+pp_alter_description(Index, Des) when is_integer(Index) ->
+	pp_alter_description(integer_to_list(Index), Des);
+pp_alter_description(Index, Des) when is_list(Index) ->
+	Op = {"op", "replace"},
+	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/productOfferPriceAlteration/description"},
+	Value = {"value", Des},
+	{struct, [Op, Path, Value]}.
+
+pp_alter_type(Index, PT) when is_integer(Index) ->
+	pp_alter_type(integer_to_list(Index), PT);
+pp_alter_type(Index, PT) when is_list(Index) ->
+	Op = {"op", "replace"},
+	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/productOfferPriceAlteration/priceType"},
+	Value = {"value", PT},
+	{struct, [Op, Path, Value]}.
+
+pp_alter_ufm(Index, UFM) when is_integer(Index) ->
+	pp_alter_ufm(integer_to_list(Index), UFM);
+pp_alter_ufm(Index, UFM) when is_list(Index) ->
+	Op = {"op", "replace"},
+	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/productOfferPriceAlteration/unitOfMeasure"},
+	Value = {"value", UFM},
+	{struct, [Op, Path, Value]}.
 
 %% @hidden
 is_etag_valid(Etag) ->
 	[X1, X2] = string:tokens(Etag, "-"),
 	true = is_integer(list_to_integer(X1)),
-	true = is_integer(list_to_integer(X2)),
-	true.
+	true = is_integer(list_to_integer(X2)).
 

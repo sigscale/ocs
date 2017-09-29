@@ -1,4 +1,5 @@
 %%% ocs_sup.erl
+%%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2017 SigScale Global Inc.
 %%% @end
@@ -42,7 +43,10 @@ init([LogRotateTime, LogRotateInterval] = _Args) ->
 			supervisor(ocs_radius_auth_sup, []),
 			supervisor(ocs_diameter_auth_sup, []),
 			supervisor(ocs_diameter_acct_top_sup, []),
-			log_server(ocs_log_rotate_server, [LogRotateTime, LogRotateInterval]),
+			log_server(ocs_log_rotate_server,
+					[LogRotateTime, LogRotateInterval]),
+			supervisor(ocs_rest_pagination_sup,
+					ocs_rest_pagination_sup, []),
 			server(ocs_server, [self()])],
 	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
 
@@ -52,7 +56,7 @@ init([LogRotateTime, LogRotateInterval] = _Args) ->
 
 -spec supervisor(StartMod, Args) -> Result
 	when
-		StartMod :: atom(), 
+		StartMod :: atom(),
 		Args :: [term()],
 		Result :: supervisor:child_spec().
 %% @doc Build a supervisor child specification for a
@@ -64,9 +68,25 @@ supervisor(StartMod, Args) ->
 	StartFunc = {supervisor, start_link, StartArgs},
 	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
 
+-spec supervisor(StartMod, RegName, Args) -> Result
+	when
+		StartMod :: atom(),
+		RegName :: atom(),
+		Args :: [term()],
+		Result :: supervisor:child_spec().
+%% @doc Build a supervisor child specification for a
+%% 	{@link //stdlib/supervisor. supervisor} behaviour
+%% 	with registered name.
+%% @private
+%%
+supervisor(StartMod, RegName, Args) ->
+	StartArgs = [{local, RegName}, StartMod, Args],
+	StartFunc = {supervisor, start_link, StartArgs},
+	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
+
 -spec server(StartMod, Args) -> Result
 	when
-		StartMod :: atom(), 
+		StartMod :: atom(),
 		Args :: [term()],
 		Result :: supervisor:child_spec().
 %% @doc Build a supervisor child specification for a

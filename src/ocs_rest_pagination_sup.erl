@@ -1,4 +1,4 @@
-%%% ocs_diameter_auth_port_sup.erl
+%%% ocs_rest_pagination_sup.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2017 SigScale Global Inc.
@@ -17,7 +17,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @docfile "{@docsrc supervision.edoc}"
 %%%
--module(ocs_diameter_auth_port_sup).
+-module(ocs_rest_pagination_sup).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -behaviour(supervisor).
@@ -31,33 +31,17 @@
 
 -spec init(Args) -> Result
 	when
-		Args :: list(),
-		Result :: {ok,{{RestartStrategy :: one_for_all | one_for_one
-		| rest_for_one | simple_one_for_one,
-		MaxR :: non_neg_integer(), MaxT :: pos_integer()},
-		[ChildSpec :: supervisor:child_spec()]}} | ignore.
+		Args :: [term()],
+		Result :: {ok, {{supervisor:strategy(), non_neg_integer(), pos_integer()},
+			[supervisor:child_spec()]}} | ignore.
 %% @doc Initialize the {@module} supervisor.
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init([Address, Port, Options]) ->
-	ChildSpecs = [server(ocs_diameter_auth_port_server, Address, Port, Options),
-		supervisor(ocs_simple_auth_fsm_sup, []),
-		supervisor(ocs_eap_pwd_fsm_sup, []),
-		supervisor(ocs_eap_ttls_fsm_sup_sup, []),
-		supervisor(ocs_diameter_auth_service_fsm_sup, [Address, Port])],
-	{ok, {{one_for_one, 10, 3600}, ChildSpecs}}.
-
-%% @hidden
-supervisor(StartMod, StartArgs) ->
-	StartFunc = {supervisor, start_link, [StartMod, StartArgs]},
-	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
-
-%% @hidden
-server(StartMod, Address, Port, Options) ->
-	GlobalName = {ocs_diameter_auth, Address, Port},
-	Args = [self(), Address, Port, Options],
-	StartArgs = [{global, GlobalName}, StartMod, Args, []],
-	StartFunc = {gen_server, start_link, StartArgs},
-	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
+init([] = _Args) ->
+	StartMod = ocs_rest_pagination_server,
+	StartFunc = {StartMod, start_link, []},
+	ChildSpecs = [{StartMod, StartFunc,
+			temporary, infinity, worker, [StartMod]}],
+	{ok, {{simple_one_for_one, 10, 60}, ChildSpecs}}.
 

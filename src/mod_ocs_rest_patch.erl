@@ -1,4 +1,5 @@
 %%% mod_ocs_rest_patch.erl
+%%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2017 SigScale Global Inc.
 %%% @end
@@ -106,6 +107,12 @@ do_patch(ContentType, Body, Resource, ModData, Etag,
 		["partyManagement", "v1", "individual", Identity]) ->
 	do_response(ModData, Resource:patch_user(Identity, Etag, ContentType,
 			Body));
+do_patch("application/json-patch+json", Body, Resource, ModData, Etag,
+		["catalogManagement", "v1", "productOffering", ProdId]) ->
+	do_response(ModData, Resource:on_patch_product_CatMgmt(ProdId, Etag, Body));
+do_patch("application/merge-patch+json", Body, Resource, ModData, Etag,
+		["catalogManagement", "v1", "productOffering", ProdId]) ->
+	do_response(ModData, Resource:merge_patch_product_CatMgmt(ProdId, Etag, Body));
 do_patch(_, _, _, _, _, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{break, [{response, {404, Response}}]}.

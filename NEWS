@@ -1,10 +1,10 @@
 September 22 2017
-------------
-	- version 2.1~stable
-	- UI improvements
-	- Support for systemd integration
-	- Multiple subscriber session handling
-	- Filtering support for REST queries
+----------------
+	- version 3.0
+	- REST pagination
+	- REST result field complex filters
+	- TMF620 Product Catalog Management API
+	- Product management UI view
 
 July 14 2017
 ------------
