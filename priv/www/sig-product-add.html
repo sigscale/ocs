@@ -886,11 +886,11 @@
 						if (item.alterations.currency) {
 							currencyCode = item.alterations.currency;
 						}
-						if(taxIncludedAmount && currencyCode) {
+						if((taxIncludedAmount >= 0) && currencyCode) {
 							out.productOfferPriceAlteration.price = {taxIncludedAmount, currencyCode};
-						} else if (taxIncludedAmount && !currencyCode) {
+						} else if ((taxIncludedAmount >= 0) && !currencyCode) {
 							out.productOfferPriceAlteration.price = {taxIncludedAmount};
-						} else if (!taxIncludedAmount && currencyCode) {
+						} else if (!(taxIncludedAmount >= 0) && currencyCode) {
 							out.productOfferPriceAlteration.price = {currencyCode};
 						}
 						if (item.alterations.period) {
