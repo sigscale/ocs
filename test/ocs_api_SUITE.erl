@@ -92,7 +92,7 @@ sequences() ->
 %%
 all() -> 
 	[client, get_all_clients, update_client_password, delete_client, subscriber, update_password,
-	update_attributes, delete_subscriber, add_product].
+	update_attributes, delete_subscriber, add_product, find_product].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -264,6 +264,45 @@ add_product(_Config) ->
 			termination_date = TD,
 			price = Prices},
 	ok = ocs:add_product(Product).
+
+find_product() ->
+	[{userdata, [{doc, "Find a product from database"}]}].
+
+find_product(_Config) ->
+	SD = erlang:system_time(?MILLISECOND),
+	TD = erlang:system_time(?MILLISECOND)  + 2678400000,
+	Price1 = #price{name = "Daily price",
+			description = "Daily price",
+			valid_for = {SD, undefined},
+			type = recurring,
+			currency = "LKR",
+			period = daily,
+			amount = 330},
+	Price2 = #price{name = "Monthly price",
+			description = "Daily price",
+			valid_for = {SD, undefined},
+			type = usage,
+			currency = "LKR",
+			size = 0,
+			amount = 6,
+			alteration = #alteration{name = "Usage",
+											valid_for = {SD,undefined},
+											type = usage,
+											units = octets,
+											size = 80000,
+											amount = 0}},
+	Prices = [Price1, Price2],
+	ProductName = "Mobile-Internet",
+	Product = #product{name = ProductName,
+			description = "Monthly subscription for mobile internet",
+			valid_for = {SD, TD},
+			is_bundle = false,
+			status = active,
+			start_date = SD,
+			termination_date = TD,
+			price = Prices},
+	ok = ocs:add_product(Product),
+	{ok, Product} = ocs:find_product(ProductName).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
