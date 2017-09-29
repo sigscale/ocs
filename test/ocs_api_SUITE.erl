@@ -92,7 +92,7 @@ sequences() ->
 %%
 all() -> 
 	[client, get_all_clients, update_client_password, delete_client, subscriber, update_password,
-	update_attributes, delete_subscriber, add_product, find_product, get_products].
+	update_attributes, delete_subscriber, add_product, find_product, get_products, delete_product].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -358,6 +358,46 @@ get_products(_Config) ->
 		ok
 	end,
 	ok = F2(F2, Products, [P1, P2, P3]).
+
+delete_product() ->
+	[{userdata, [{doc, "Remove a product from product table"}]}].
+
+delete_product(_Config) ->
+	SD = erlang:system_time(?MILLISECOND),
+	TD = erlang:system_time(?MILLISECOND)  + rand:uniform(100000000),
+	Price1 = #price{name = "Daily price",
+			description = "Daily price",
+			valid_for = {SD, undefined},
+			type = recurring,
+			currency = "LKR",
+			period = daily,
+			amount = 330},
+	Price2 = #price{name = "Monthly price",
+			description = "Daily price",
+			valid_for = {SD, undefined},
+			type = usage,
+			currency = "LKR",
+			size = 0,
+			amount = 6,
+			alteration = #alteration{name = "Usage",
+											valid_for = {SD,undefined},
+											type = usage,
+											units = octets,
+											size = 80000,
+											amount = 0}},
+	Prices = [Price1, Price2],
+	ProductName = "Mobile-Internet",
+	Product = #product{name = ProductName,
+			description = "Monthly subscription for mobile internet",
+			valid_for = {SD, TD},
+			is_bundle = false,
+			status = active,
+			start_date = SD,
+			termination_date = TD,
+			price = Prices},
+	ok = ocs:add_product(Product),
+	ok = ocs:delete_product(ProductName),
+	{error, not_found} = ocs:find_product(ProductName).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
