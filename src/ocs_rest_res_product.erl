@@ -127,6 +127,7 @@ get_product_CatMgmt(ProductID) ->
 	end.
 %% @hidden
 get_product_CatMgmt1(Prod) ->
+	Etag = etag(Prod#product.last_modified),
 	ID = prod_id(json, Prod),
 	Descirption = prod_description(json, Prod),
 	Href = prod_href(json, Prod),
@@ -144,7 +145,7 @@ get_product_CatMgmt1(Prod) ->
 				TerminationDate, IsBundle, Name, Status, ValidFor,
 				OfferPrice]},
 			Body = mochijson:encode(Json),
-			Headers = [{content_type, "application/json"}],
+			Headers = [{content_type, "application/json"}, {etag, Etag}],
 			{ok, Headers, Body}
 	end.
 
