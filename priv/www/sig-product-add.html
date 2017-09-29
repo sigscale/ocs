@@ -483,7 +483,7 @@
 						<paper-dropdown-menu
 								label="[[i18n.unit]]">
 							<paper-listbox
-									id="addUnitDrop"
+									id="addAltUnitDrop"
 									on-selected-item-changed="checkPatternAlt"
 									slot="dropdown-content"
 									class="dropdown-content">
@@ -499,7 +499,7 @@
 									</paper-item>
 									<paper-item id="altSeconds">
 										<i18n-msg msgid="second">
-											Seconds
+											seconds
 										</i18n-msg>
 									</paper-item>
 							</paper-listbox>
@@ -522,7 +522,7 @@
 						</paper-tooltip>
 					</div>
 					<div>
-						<paper-input id="addAltCurr"
+						<paper-input id="addAltCurrency"
 								class="currency"
 								name="currency"
 								label="[[i18n.currency]]"
@@ -537,10 +537,9 @@
 								label="[[i18n.period]]"
 								onfocus="addProductEndDatePickAlt.hide(); addProductStartDatePickAlt.hide();">
 							<paper-listbox
-									id="addaltPeriod"
+									id="addAltPeriod"
 									slot="dropdown-content"
-									class="dropdown-content"
-									selected="2">
+									class="dropdown-content">
 								<paper-item>
 									Daily
 								</paper-item>
@@ -694,17 +693,58 @@
 				var indexPrice = this.prices.findIndex(checkPriceName);
 				if (indexPrice == -1) {
 					this.$.addPriceDesc.value = null;
-					this.$.addPriceType.value = null;
+					this.$.addPriceStartDate.value = null;
+					this.$.addPriceEndDate.value = null;
+					this.$.addPriceType.selected = null;
 					this.$.addPriceSize.value = null;
+					this.$.addPriceUnits.selected = null;
 					this.$.addPriceAmount.value = null;
+					this.$.addPriceCurrency.value = null;
+					this.$.addPricePeriod.selected = null;
 				} else {
 					this.$.addPriceDesc.value = this.prices[indexPrice].description;
 					this.$.addPriceStartDate.value = this.prices[indexPrice].start;
 					this.$.addPriceEndDate.value = this.prices[indexPrice].end;
-					this.$.addPriceType.value = this.prices[indexPrice].type;
-					this.$.addPriceUnits.value = this.prices[indexPrice].unit;
+					switch(this.prices[indexPrice].type) {
+						case "recurring":
+							this.$.addPriceType.selected = 0;
+							break;
+						case "one_time":
+							this.$.addPriceType.selected = 1;
+							break;
+						case "usage":
+							this.$.addPriceType.selected = 2;
+							break;
+					}
 					this.$.addPriceSize.value = this.prices[indexPrice].size;
+					switch(this.prices[indexPrice].unit) {
+						case "b":
+							this.$.addPriceUnits.selected = 0;
+							break;
+						case "c":
+							this.$.addPriceUnits.selected = 1;
+							break;
+						case "s":
+							this.$.addPriceUnits.selected = 2;
+							break;
+					}
+					this.$.addPriceCurrency.value = this.prices[indexPrice].currency;
 					this.$.addPriceAmount.value = this.prices[indexPrice].amount;
+					switch(this.prices[indexPrice].period) {
+						case "daily":
+							this.$.addPricePeriod.selected = 0;
+							break;
+						case "weekly":
+							this.$.addPricePeriod.selected = 1;
+							break;
+						case "monthly":
+							this.$.addPricePeriod.selected = 2;
+							break;
+						case "yearly":
+							this.$.addPricePeriod.selected = 3;
+							break;
+					}
+					// this.$.addPriceAlteration.value = this.prices[indexPrice].alteration;
 				}
 			},
 			updateAltsDialog: function() {
@@ -714,17 +754,57 @@
 				var index = this.alterations.findIndex(checkName);
 				if (index == -1) {
 					this.$.addAltDesc.value = null;
-					this.$.addAltType.value = null;
+					this.$.addAltStartDate.value = null;
+					this.$.addAltEndDate.value = null;
+					this.$.addAltType.selected = null;
 					this.$.addAltSize.value = null;
+					this.$.addAltUnitDrop.selected = null;
 					this.$.addAltAmount.value = null;
+					this.$.addAltCurrency.value = null;
+					this.$.addAltPeriod.selected = null;
 				} else {
 					this.$.addAltDesc.value = this.alterations[index].description;
 					this.$.addAltStartDate.value = this.alterations[index].startdate;
 					this.$.addAltEndDate.value = this.alterations[index].terminationDate;
-					this.$.addAltType.value = this.alterations[index].type;
-					this.$.addUnitDrop.value = this.alterations[index].units;
+					switch(this.alterations[index].type) {
+						case "recurring":
+							this.$.addAltType.selected = 0;
+							break;
+						case "one_time":
+							this.$.addAltType.selected = 1;
+							break;
+						case "usage":
+							this.$.addAltType.selected = 2;
+							break;
+					}
 					this.$.addAltSize.value = this.alterations[index].size;
+					switch(this.alterations[index].unit) {
+						case "b":
+							this.$.addAltUnitDrop.selected = 0;
+							break;
+						case "c":
+							this.$.addAltUnitDrop.selected = 1;
+							break;
+						case "s":
+							this.$.addAltUnitDrop.selected = 2;
+							break;
+					}
 					this.$.addAltAmount.value = this.alterations[index].amount;
+					this.$.addAltCurrency.value = this.alterations[index].amount;
+					switch(this.alterations[index].period) {
+						case "daily":
+							this.$.addAltPeriod.selected = 0;
+							break;
+						case "weekly":
+							this.$.addAltPeriod.selected = 1;
+							break;
+						case "monthly":
+							this.$.addAltPeriod.selected = 2;
+							break;
+						case "yearly":
+							this.$.addAltPeriod.selected = 3;
+							break;
+					}
 				}
 			},
 			addOffer: function() {
@@ -922,13 +1002,13 @@
 				}
 			},
 			checkPatternAlt: function() {
-				if(this.$.addUnitDrop.selected == 0) {
+				if(this.$.addAltUnitDrop.selected == 0) {
 					this.$.addAltSize.allowedPattern = "[0-9kmg]";
 					this.$.addAltSize.pattern = "^[0-9]+[kmg]?$";
-				} else if(this.$.addUnitDrop.selected == 1) {
+				} else if(this.$.addAltUnitDrop.selected == 1) {
 					this.$.addAltSize.allowedPattern = "[0-9]";
 					this.$.addAltSize.pattern = "^[0-9]+$";
-				} else if(this.$.addUnitDrop.selected == 2) {
+				} else if(this.$.addAltUnitDrop.selected == 2) {
 					this.$.addAltSize.allowedPattern = "[0-9mh]";
 					this.$.addAltSize.pattern = "^[0-9]+[mh]?$";
 				}
@@ -960,19 +1040,19 @@
 					this.$.altBytes.disabled = true;
 					this.$.altSeconds.disabled = true;
 					this.$.altCents.disabled = false;
-					this.$.addUnitDrop.selected = 1;
+					this.$.addAltUnitDrop.selected = 1;
 				} else if(this.$.addAltType.selected == 1) {
 					this.$.addalt5drop.disabled = true;
 					this.$.altBytes.disabled = true;
 					this.$.altSeconds.disabled = true;
 					this.$.altCents.disabled = false;
-					this.$.addUnitDrop.selected = 1;
+					this.$.addAltUnitDrop.selected = 1;
 				} else if(this.$.addAltType.selected == 2) {
 					this.$.addalt5drop.disabled = true;
 					this.$.altBytes.disabled = false;
 					this.$.altSeconds.disabled = false;
 					this.$.altCents.disabled = true;
-					this.$.addUnitDrop.selected = 0;
+					this.$.addAltUnitDrop.selected = 0;
 				}
 			},
 			addPrice: function(event) {
@@ -1030,13 +1110,13 @@
 					this.$.addPriceName.value = null;
 					this.$.addPriceDesc.value = null;
 					this.$.addPriceStartDate.value = null;
-					this.$.addPriceSize.value = null;
-					this.$.addPriceAmount.value = null;
-					this.$.addPriceUnits.value = null;
 					this.$.addPriceEndDate.value = null;
-					this.$.addPriceType.value = null;
+					this.$.addPriceType.selected = null;
+					this.$.addPriceSize.value = null;
+					this.$.addPriceUnits.selected = null;
+					this.$.addPriceAmount.value = null;
 					this.$.addPriceCurrency.value = null;
-					this.$.addPricePeriod.value = null;
+					this.$.addPricePeriod.selected = null;
 					document.getElementById("addProductToastSuccess").open();
 				} else {
 					this.$.addProductToastError.text = "Validation failed";
@@ -1059,18 +1139,10 @@
 					case 2:
 						altNew.type = "usage";
 				}
-				switch(this.$.addUnitDrop.selected) {
-					case 0:
-						altNew.unit = "b";
-						break;
-					case 1:
-						altNew.unit = "c";
-						break
-					case 2:
-						altNew.unit = "s";
-				}
 				altNew.size = this.$.addAltSize.value;
-				switch(this.$.addaltPeriod.selected) {
+				altNew.amount= parseInt(this.$.addAltAmount.value);
+				altNew.currency = this.$.addAltCurrency.value;
+				switch(this.$.addAltPeriod.selected) {
 					case 0:
 						altNew.period = "daily";
 						break;
@@ -1083,8 +1155,17 @@
 					case 3:
 						altNew.period = "yearly";
 				}
-				altNew.currency = this.$.addAltCurr.value;
-				altNew.amount= parseInt(this.$.addAltAmount.value);
+				switch(this.$.addAltUnitDrop.selected) {
+					case 0:
+						altNew.unit = "b";
+						break;
+					case 1:
+						altNew.unit = "c";
+						break
+					case 2:
+						altNew.unit = "s";
+						break
+				}
 				if(altNew.name
 						&& altNew.type
 						&& altNew.unit
@@ -1095,10 +1176,12 @@
 					this.$.addAltDesc.value = null;
 					this.$.addAltStartDate.value = null;
 					this.$.addAltEndDate.value = null;
-					this.$.addAltType.value = null;
+					this.$.addAltType.selected = null;
 					this.$.addAltSize.value = null;
-					this.$.addAltCurr.value = null;
+					this.$.addAltUnitDrop.selected = null;
 					this.$.addAltAmount.value = null;
+					this.$.addAltCurrency.value = null;
+					this.$.addAltPeriod.selected = null;
 				} else {
 					this.$.addProductToastError.text = "Validation failed";
 					this.$.addProductToastError.open();
@@ -1137,6 +1220,26 @@
 				this.$.addProductEndDatePickPrice.hide();
 				this.$.addProductStartDatePickAlt.hide();
 				this.$.addProductEndDatePickAlt.hide();
+				this.$.addPriceName.value = null;
+				this.$.addPriceDesc.value = null;
+				this.$.addPriceStartDate.value = null;
+				this.$.addPriceEndDate.value = null;
+				this.$.addPriceType.selected = null;
+				this.$.addPriceSize.value = null;
+				this.$.addPriceUnits.selected = null;
+				this.$.addPriceAmount.value = null;
+				this.$.addPriceCurrency.value = null;
+				this.$.addPricePeriod.selected = null;
+				this.$.addAltName.value = null
+				this.$.addAltDesc.value = null;
+				this.$.addAltStartDate.value = null;
+				this.$.addAltEndDate.value = null;
+				this.$.addAltType.selected = null;
+				this.$.addAltSize.value = null;
+				this.$.addAltUnitDrop.selected = null;
+				this.$.addAltAmount.value = null;
+				this.$.addAltCurrency.value = null;
+				this.$.addAltPeriod.selected = null;
 				this.$.addProductModal.close();
 			}
 		});
