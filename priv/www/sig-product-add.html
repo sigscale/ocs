@@ -689,7 +689,7 @@
 			},
 			updatePriceDialog: function() {
 				function checkPriceName(price) {
-					return price.name == this.$.addPriceName.value;
+					return price.name == document.getElementById("addPriceName").value;
 				}
 				var indexPrice = this.prices.findIndex(checkPriceName);
 				if (indexPrice == -1) {
@@ -709,7 +709,7 @@
 			},
 			updateAltsDialog: function() {
 				function checkName(alts) {
-					return alts.name == this.$.addAltName.value;
+					return alts.name == document.getElementById("addAltName").value;
 				}
 				var index = this.alterations.findIndex(checkName);
 				if (index == -1) {
@@ -729,56 +729,54 @@
 			},
 			addOffer: function() {
 				var offerNew = new Object();
-				if(this.$.addOffName.value != null && this.$.addOffName.value != "") {
+				if(this.$.addOffName.value) {
 					offerNew.name = this.$.addOffName.value;
 				}
-				if(this.$.addOffDesc.value != null && this.$.addOffDesc.value != "") {
+				if(this.$.addOffDesc.value) {
 					offerNew.description = this.$.addOffDesc.value;
 				}
 				var startDateTime;
 				var endDateTime;
-				if(this.$.addOffStart.value != null && this.$.addOffStart.value != "") {
+				if(this.$.addOffStart.value) {
 					startDateTime = this.$.addOffStart.value;
 				}
-				if(this.$.addOffEnd.value != null && this.$.addOffEnd.value != "") {
+				if(this.$.addOffEnd.value) {
 					endDateTime = this.$.addOffEnd.value;
 				}
-				if(startDateTime != null && endDateTime != null) {
+				if(startDateTime && endDateTime) {
 					offerNew.validFor = {startDateTime, endDateTime};
-				} else if(startDateTime != null && endDateTime == null) {
+				} else if(startDateTime && !endDateTime) {
 					offerNew.validFor = {startDateTime};
-				} else if(startDateTime == null && endDateTime != null) {
+				} else if(!startDateTime && endDateTime) {
 					offerNew.validFor = {endDateTime};
 				}
 				function mapPrice(item) {
 					var out = new Object();
-					if(item.name != null && item.name != "") {
+					if(item.name) {
 						out.name = item.name;
 					}
-					if(item.description != null && item.description != "") {
+					if(item.description) {
 						out.description = item.description;
 					}
 					var startDateTime;
 					var endDateTime;
-					if(item.start != null && item.start != "") {
+					if(item.start) {
 						startDateTime = item.start;
 					}
-					if(item.end != null && item.end != "") {
+					if(item.end) {
 						endDateTime = item.end;
 					}
-					if(startDateTime != null && endDateTime != null) {
+					if(startDateTime && endDateTime) {
 						out.validFor = {startDateTime, endDateTime};
-					} else if(startDateTime != null && endDateTime == null) {
+					} else if(startDateTime && !endDateTime) {
 						out.validFor = {startDateTime};
-					} else if(startDateTime == null && endDateTime != null) {
+					} else if(!startDateTime  && endDateTime) {
 						out.validFor = {endDateTime};
 					}
-					if(item.type != null && item.type != "") {
+					if(item.type) {
 						out.priceType = item.type;
 					}
-					if(item.unit != null && item.unit != ""
-							&& item.size != null
-							&& item.size != "") {
+					if(item.unit && item.size) {
 						var len = item.size.length;
 						var m = item.size.charAt(len - 1);
 						var s = item.size.slice(0, (len - 1));
@@ -809,55 +807,49 @@
 					}
 					var taxIncludedAmount;
 					var currencyCode;
-					if(item.amount != null && item.amount != "") {
+					if(item.amount) {
 						taxIncludedAmount = item.amount;
 					}
-					if(item.currency != null && item.currency != "") {
+					if(item.currency) {
 						currencyCode = item.currency;
 					}
-					if(taxIncludedAmount != null && currencyCode != null) {
+					if(item.amount && item.currency) {
 						out.price = {taxIncludedAmount, currencyCode};
-					} else if (taxIncludedAmount != null && currencyCode == null) {
+					} else if (taxIncludedAmount && !currencyCode) {
 						out.price = {taxIncludedAmount};
-					} else if (taxIncludedAmount == null && currencyCode != null) {
+					} else if (!taxIncludedAmount && currencyCode) {
 						out.price = {currencyCode};
 					}
-					if(item.period != null && item.period != "") {
+					if(item.period) {
 						out.recurringChargePeriod = item.period;
 					}
-					if(item.alterations != null && item.alterations != "") {
+					if(item.alterations) {
 						out.productOfferPriceAlteration = new Object();
-						if(item.alterations.name != null
-								&& item.alterations.name != "") {
+						if(item.alterations.name) {
 							out.productOfferPriceAlteration.name = item.alterations.name;
 						}
-						if (item.alterations.description != null
-								&& item.alterations.description != "") {
+						if (item.alterations.description) {
 							out.productOfferPriceAlteration.description = item.alterations.description;
 						}
 						var startDateTime;
 						var endDateTime;
-						if (item.alterations.startdate != null
-								&& item.alterations.startdate != "") {
+						if (item.alterations.startdate) {
 							startDateTime = item.alterations.startdate;
 						}
-						if (item.alterations.terminationDate != null
-								&& item.alterations.terminationDate != "") {
+						if (item.alterations.terminationDate) {
 							endDateTime = item.alterations.terminationDate;
 						}
-						if (startDateTime != null && endDateTime != null) {
+						if (startDateTime && endDateTime) {
 							out.productOfferPriceAlteration.validFor = {startDateTime, endDateTime}
-						} else if(startDateTime != null && endDateTime == null) {
+						} else if(startDateTime && !endDateTime) {
 							out.productOfferPriceAlteration.validFor = {startDateTime};
-						} else if(startDateTime == null && endDateTime != null) {
+						} else if(!startDateTime && endDateTime) {
 							out.productOfferPriceAlteration.validFor = {endDateTime};
 						}
-						if (item.alterations.type != null
-								&& item.alterations.type != "") {
+						if (item.alterations.type) {
 							out.productOfferPriceAlteration.priceType = item.alterations.type;
 						}
-						if (item.alterations.unit != null && item.alterations.unit != ""
-								&& item.alterations.size != null && item.alterations.size != "") {
+						if (item.alterations.unit && item.alterations.size) {
 							var len1 = item.alterations.size.length;
 							var m1 = item.alterations.size.charAt(len - 1);
 							var s1 = item.alterations.size.slice(0, (len - 1));
@@ -888,32 +880,27 @@
 						}
 						var taxIncludedAmount;
 						var currencyCode
-						if (item.alterations.amount != null
-								&& item.alterations.amount != "") {
+						if (item.alterations.amount || item.alterations.amount == 0) {
 							taxIncludedAmount = item.alterations.amount;
 						}
-						if (item.alterations.currency != null
-								&& item.alterations.currency != "") {
+						if (item.alterations.currency) {
 							currencyCode = item.alterations.currency;
 						}
-						if(taxIncludedAmount != null && currencyCode != null) {
+						if(taxIncludedAmount && currencyCode) {
 							out.productOfferPriceAlteration.price = {taxIncludedAmount, currencyCode};
-						} else if (taxIncludedAmount != null && currencyCode == null) {
+						} else if (taxIncludedAmount && !currencyCode) {
 							out.productOfferPriceAlteration.price = {taxIncludedAmount};
-						} else if (taxIncludedAmount == null && currencyCode != null) {
+						} else if (!taxIncludedAmount && currencyCode) {
 							out.productOfferPriceAlteration.price = {currencyCode};
 						}
-						if (item.alterations.period != null
-								&& item.alterations.period != "") {
+						if (item.alterations.period) {
 							out.productOfferPriceAlteration.recurringChargePeriod = item.alterations.period;
 						}
 					}
 					return out;
 				}
 				offerNew.productOfferingPrice = this.prices.map(mapPrice);
-				if(offerNew.name && offerNew.name !== null
-						&& offerNew.productOfferingPrice
-						&& offerNew.productOfferingPrice.length > 0) {
+				if(offerNew.name && offerNew.productOfferingPrice.length > 0) {
 					var ajax = this.$.addProductAjax;
 					ajax.body = offerNew;
 					ajax.generateRequest();
@@ -1031,18 +1018,14 @@
 						priceNew.period = "yearly";
 				}
 				function checkAlt(alts) {
-					return alts.name == this.$.addPriceDrop.value;
+					return alts.name == document.getElementById("addPriceDrop").value;
 				}
 				var altIndex = this.alterations.findIndex(checkAlt);
 				priceNew.alterations = this.alterations[altIndex];
 				if(priceNew.name
-						&& priceNew.name !== null
 						&& priceNew.amount
-						&& priceNew.amount !== null
 						&& priceNew.type
-						&& priceNew.type !== null
-						&& priceNew.unit
-						&& priceNew.unit !== null) {
+						&& priceNew.unit) {
 					this.push('prices', priceNew);
 					this.$.addPriceName.value = null;
 					this.$.addPriceDesc.value = null;
@@ -1103,15 +1086,10 @@
 				altNew.currency = this.$.addAltCurr.value;
 				altNew.amount= parseInt(this.$.addAltAmount.value);
 				if(altNew.name
-						&& altNew.name !== null
 						&& altNew.type
-						&& altNew.type !== null
 						&& altNew.unit
-						&& altNew.unit !== null
 						&& altNew.size
-						&& altNew.size !== null
-						&& altNew.amount
-						&& altNew.amount !== null) {
+						&& (altNew.amount || altNew.amount == 0)) {
 					this.push('alterations', altNew);
 					this.$.addAltName.value = null
 					this.$.addAltDesc.value = null;
