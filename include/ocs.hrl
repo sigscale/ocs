@@ -73,7 +73,9 @@
 		status :: '_' | undefined | product_status(),
 		start_date :: '_' | pos_integer(), % ISO8601
 		termination_date :: '_' | pos_integer(), % ISO8601
-		price :: '_' | [#price{}]}).
+		price :: '_' | [#price{}],
+		last_modified  = {erlang:system_time(milli_seconds),
+				erlang:unique_integer([positive])} :: tuple() | '_'}).
 
 -record(remain_amount,
 		{unit :: string(),

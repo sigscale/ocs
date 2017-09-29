@@ -526,16 +526,21 @@ update_attributes(Identity, Buckets, Attributes, EnabledStatus, MultiSession)
 -spec add_product(Product) -> Result
 	when
 		Product :: #product{},
-		Result :: ok | {error, Reason},
+		Result :: {ok, LastModified} | {error, Reason},
+		LastModified :: {integer(), integer()},
 		Reason :: term().
 %% @doc Add a new entry in product table.
 add_product(Product) ->
 	F = fun() ->
-		mnesia:write(product, Product, write)
+		LM = {erlang:system_time(?MILLISECOND),
+				erlang:unique_integer([positive])},
+		Entry = Product#product{last_modified = LM},
+		mnesia:write(product, Entry, write),
+		LM
 	end,
 	case mnesia:transaction(F) of
-		{atomic, ok} ->
-			ok;
+		{atomic, LastModified} ->
+			{ok, LastModified};
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
@@ -638,7 +643,8 @@ query_product(Con, Name, Description, Status, SDT, EDT, Price) when is_list(SDT)
 query_product(start, Name, Description, Status, SDT, EDT, Price) ->
 	MatchHead = #product{name = Name, description = Description,
 			valid_for = '_', is_bundle = '_', status = Status,
-			start_date = SDT, termination_date = EDT, price = '_'},
+			start_date = SDT, termination_date = EDT, price = '_',
+			last_modified = '_'},
 	MatchSpec = MatchSpec = [{MatchHead, [], ['$_']}],
 	F = fun() ->
 		mnesia:select(product, MatchSpec, read)

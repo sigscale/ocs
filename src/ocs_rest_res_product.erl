@@ -70,9 +70,9 @@ add_product_CatMgmt(ReqData) ->
 				Product = #product{price = Price, name = Name, valid_for = ValidFor,
 					is_bundle = IsBundle, status = Status, start_date = StartDate,
 					termination_date = TerminationDate, description = Descirption},
-				case add_product_CatMgmt1(Product) of
-					ok ->
-						add_product_CatMgmt2(Name, Object);
+				case ocs:add_product(Product) of
+					{ok, LM} ->
+						add_product_CatMgmt1(Name, LM, Object);
 					{error, StatusCode} ->
 						{error, StatusCode}
 				end
@@ -82,21 +82,12 @@ add_product_CatMgmt(ReqData) ->
 			{error, 400}
 	end.
 %% @hidden
-add_product_CatMgmt1(Product) ->
-	case ocs:add_product(Product) of
-		ok ->
-			ok;
-		{error, _} ->
-			{error, 500}
-	end.
-
-%% @hidden
-add_product_CatMgmt2(ProdId, JsonResponse) ->
+add_product_CatMgmt1(ProdId, ETag, JsonResponse) ->
 	Id = {id, ProdId},
 	Json = {struct, [Id | JsonResponse]},
 	Body = mochijson:encode(Json),
 	Location = "/catalogManagement/v1/productuOffering/" ++ ProdId,
-	Headers = [{location, Location}],
+	Headers = [{location, Location}, {etag, etag(ETag)}],
 	{ok, Headers, Body}.
 
 -spec add_product_InvMgmt(ReqData) -> Result when
@@ -136,6 +127,7 @@ get_product_CatMgmt(ProductID) ->
 	end.
 %% @hidden
 get_product_CatMgmt1(Prod) ->
+	Etag = etag(Prod#product.last_modified),
 	ID = prod_id(json, Prod),
 	Descirption = prod_description(json, Prod),
 	Href = prod_href(json, Prod),
@@ -153,7 +145,7 @@ get_product_CatMgmt1(Prod) ->
 				TerminationDate, IsBundle, Name, Status, ValidFor,
 				OfferPrice]},
 			Body = mochijson:encode(Json),
-			Headers = [{content_type, "application/json"}],
+			Headers = [{content_type, "application/json"}, {etag, Etag}],
 			{ok, Headers, Body}
 	end.
 
@@ -250,6 +242,7 @@ on_patch_product_CatMgmt(ProdId, Etag, ReqData) ->
 			{error, StatusCode} ->
 				{error, StatusCode};
 			{ok, Prod} ->
+				NewEtag = etag(Prod#product.last_modified),
 				ID = prod_id(json, Prod),
 				Descirption = prod_description(json, Prod),
 				Href = prod_href(json, Prod),
@@ -267,7 +260,7 @@ on_patch_product_CatMgmt(ProdId, Etag, ReqData) ->
 						TerminationDate, IsBundle, Name, Status, ValidFor,
 						OfferPrice]},
 						Body = mochijson:encode(Json),
-						Headers = [{content_type, "application/json"}],
+						Headers = [{content_type, "application/json"}, {etag, NewEtag}],
 						{ok, Headers, Body}
 				end
 		end
@@ -294,9 +287,10 @@ merge_patch_product_CatMgmt(ProdId, Etag, ReqData) ->
 		case exe_jsonpatch_merge(ProdId, Etag, Json) of
 			{error, Reason} ->
 				{error, Reason};
-			{ok, Response} ->
+			{ok, Response, LM} ->
+				Etag = etag(LM),
 				Body = mochijson:encode(Response),
-				Headers = [{content_type, "application/json"}],
+				Headers = [{content_type, "application/json"}, {etag, Etag}],
 				{ok, Headers, Body}
 		end
 	catch
@@ -1029,10 +1023,12 @@ price_type(one_time) -> "one_time".
 		Result			:: list() | {error, StatusCode},
 		StatusCode		:: 400 | 404 | 422 | 500.
 %% @doc execute object notation json patch
-exe_jsonpatch_ON(ProdID, _Etag, OperationList) ->
+exe_jsonpatch_ON(ProdID, Etag, OperationList) ->
 	F = fun() ->
 			case mnesia:read(product, ProdID, write) of
-				[Entry] ->
+				[Entry] when
+						Entry#product.last_modified == Etag;
+						Etag == undefined ->
 					case ocs_rest:parse(OperationList) of
 						{error, invalid_format} ->
 							throw(malfored_request);
@@ -1041,10 +1037,17 @@ exe_jsonpatch_ON(ProdID, _Etag, OperationList) ->
 								{error, Reason} ->
 									throw(Reason);
 								Updatedentry ->
-									ok = mnesia:write(Updatedentry),
-									Updatedentry
+									mnesia:delete(product, Entry#product.name, write),
+									TS = erlang:system_time(milli_seconds),
+									N = erlang:unique_integer([positive]),
+									LM = {TS, N},
+									NewEntry = Updatedentry#product{last_modified = LM},
+									ok = mnesia:write(NewEntry),
+									NewEntry
 							end
 					end;
+				[#product{}] ->
+					throw(precondition_failed);
 				[] ->
 					throw(not_found)
 			end
@@ -1056,6 +1059,8 @@ exe_jsonpatch_ON(ProdID, _Etag, OperationList) ->
 			{error, 400};
 		{aborted, {throw, not_found}} ->
 			{error, 404};
+		{aborted, {throw, precondition_failed}} ->
+			{error, 412};
 		{aborted, {throw, not_implemented}} ->
 			{error, 422};
 		{aborted, {throw, unprocessable}} ->
@@ -1072,10 +1077,12 @@ exe_jsonpatch_ON(ProdID, _Etag, OperationList) ->
 		Result			:: list() | {error, StatusCode},
 		StatusCode		:: 400 | 404 | 422 | 500.
 %% @doc execute json merge patch
-exe_jsonpatch_merge(ProdID, _Etag, Patch) ->
+exe_jsonpatch_merge(ProdID, Etag, Patch) ->
 	F = fun() ->
 			case mnesia:read(product, ProdID, write) of
-				[Entry] ->
+				[Entry] when
+						Entry#product.last_modified == Etag;
+						Etag == undefined ->
 					case target(Entry) of
 						{error, Status} ->
 							throw(Status);
@@ -1084,22 +1091,31 @@ exe_jsonpatch_merge(ProdID, _Etag, Patch) ->
 							case target(Patched) of
 								{error, SC} ->
 									throw(SC);
-								NewEntry ->
+								Updatedentry ->
+									mnesia:delete(product, Entry#product.name, read),
+									TS = erlang:system_time(milli_seconds),
+									N = erlang:unique_integer([positive]),
+									LM = {TS, N},
+									NewEntry = Updatedentry#product{last_modified = LM},
 									ok = mnesia:write(NewEntry),
-									Patched
+									{Patched, LM}
 							end
 					end;
+				[#product{}] ->
+					throw(precondition_failed);
 				[] ->
 					throw(not_found)
 			end
 	end,
 	case mnesia:transaction(F) of
-		{atomic, Product} ->
-			{ok,  Product};
+		{atomic, {Product, LM}} ->
+			{ok,  Product, LM};
 		{aborted, {throw, malfored_request}} ->
 			{error, 400};
 		{aborted, {throw, not_found}} ->
 			{error, 404};
+		{aborted, {throw, precondition_failed}} ->
+			{error, 412};
 		{aborted, {throw, not_implemented}} ->
 			{error, 422};
 		{aborted, {throw, unprocessable}} ->
@@ -1486,3 +1502,20 @@ product_json(Prod) when is_record(Prod, product)->
 				TerminationDate, IsBundle, Name, Status, ValidFor,
 				OfferPrice]}
 	end.
+
+-spec etag(V1) -> V2
+	when
+		V1 :: string() | {N1, N2},
+		V2 :: {N1, N2} | string(),
+		N1 :: integer(),
+		N2 :: integer().
+%% @doc Generate a tuple with 2 integers from Etag string
+%% value or vice versa.
+%% @hidden
+etag(V) when is_list(V) ->
+	[TS, N] = string:tokens(V, "-"),
+	{list_to_integer(TS), list_to_integer(N)};
+etag(V) when is_tuple(V) ->
+	{TS, N} = V,
+	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
+
