@@ -602,5 +602,17 @@
 	"priceAlterTool": {
     "description": "product offering price alteration",
     "message": "Add alteration to product offering price"
+  },
+   "productAdded": {
+    "description": "Success Toast Message",
+    "message": "Product added"
+  },
+   "productUpdated": {
+    "description": "Success Toast Message",
+    "message": "Product updated"
+  },
+   "productDeleted": {
+    "description": "Success Toast Message",
+    "message": "Product deleted"
   }
 }

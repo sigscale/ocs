@@ -48,6 +48,10 @@
 			background: #ffb04c;
 			border-style: none;
 		}
+		.yellow-button {
+			text-transform: none;
+			color: #eeff41;
+		}
 	</style>
 	<template>
 		<vaadin-grid id="productGrid" active-item="{{activeItem}}">
@@ -118,8 +122,24 @@
 					on-click="showAddProductModal">
 			</paper-fab>
 		</div>
-		<paper-toast id="addProductToastSuccess">
-			<h2>[[i18n.subToastSucPro]]</h2>
+		<paper-toast
+				id="addProductToastSuccess"
+				text="[[i18n.productAdded]]">
+		</paper-toast>
+		<paper-toast
+				id="updateProductToastSuccess"
+				text="[[i18n.productUpdated]]">
+		</paper-toast>
+		<paper-toast
+				id="deleteProductToastSuccess"
+				text="[[i18n.productDeleted]]">
+		</paper-toast>
+		<paper-toast id="getProductErrorToast" duration="0">
+			<paper-button
+					class="yellow-button"
+					onclick="getProductErrorToast.toggle()">
+				Close
+			</paper-button>
 		</paper-toast>
 		<iron-ajax id="getProductAjax"
 			on-response="_getProductResponse"

@@ -614,5 +614,17 @@
    "priceAlterTool": {
     "description": "product offering price alteration",
     "message": "Agregar la alteración al precio de oferta del producto"
+  },
+   "productAdded": {
+    "description": "Success Toast Message",
+    "message": "Producto añadido"
+  },
+   "productUpdated": {
+    "description": "Success Toast Message",
+    "message": "Producto actualizado"
+  },
+   "productDeleted": {
+    "description": "Success Toast Message",
+    "message": "Producto eliminado"
   }
 }
