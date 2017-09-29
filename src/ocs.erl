@@ -566,7 +566,7 @@ find_product(ProductID) ->
 
 -spec get_products() -> Result
 	when
-		Result :: [#subscriber{}] | {error, Reason},
+		Result :: [#product{}] | {error, Reason},
 		Reason :: term().
 %% @doc Get all entries in the product table.
 get_products() ->
