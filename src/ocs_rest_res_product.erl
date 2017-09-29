@@ -167,6 +167,7 @@ get_product_CatMgmt1(Prod) ->
 %% retrieve all `product' details
 %% @todo Filtering
 get_products_CatMgmt(Query, Headers) ->
+erlang:display({?MODULE, ?LINE}),
 	case lists:keytake("fields", 1, Query) of
 		{value, {_, Filters}, NewQuery} ->
 			get_products_CatMgmt1(NewQuery, Filters, Headers);
@@ -175,6 +176,7 @@ get_products_CatMgmt(Query, Headers) ->
 	end.
 %% @hidden
 get_products_CatMgmt1(Query, Filters, Headers) ->
+erlang:display({?MODULE, ?LINE}),
 	case {lists:keyfind("if-match", 1, Headers),
 			lists:keyfind("if-range", 1, Headers),
 			lists:keyfind("range", 1, Headers)} of
@@ -1391,12 +1393,17 @@ target({struct, Object}) ->
 
 %% @hidden
 query_start(Query, Filters, RangeStart, RangeEnd) ->
-	Name =  '_', %%proplists:get_value("name", 1, Filters),
-	Des = '_', %%proplists:get_value("description", 1, Filters),
-	Status = '_', %%proplists:get_value("status", 1, Filters),
-	SDT = '_', %%proplists:get_value("startDate", 1, Filters),
-	EDT = '_', %%proplists:get_value("endDate", 1, Filters),
-	Price = '_', %%proplists:get_value("price", 1, Filters),
+	Name =  proplists:get_value("name", Query),
+	Des = proplists:get_value("description", Query),
+	Status = case lists:keyfind("licecycleStatus", 1, Query) of
+		false ->
+			undefined;
+		{_, S} ->
+			find_status(S)
+	end,
+	SDT = proplists:get_value("startDate", Query),
+	EDT = proplists:get_value("endDate", Query),
+	Price = proplists:get_value("price", Query),
 	case supervisor:start_child(ocs_rest_pagination_sup,
 				[[ocs, query_product, [Name, Des, Status, SDT, EDT, Price]]]) of
 		{ok, PageServer, Etag} ->
@@ -1420,9 +1427,9 @@ query_page(PageServer, Etag, Query, Filters, Start, End) ->
 						{lists:keysort(#product.description, Events), Q1};
 					{value, {_, "-description"}, Q1} ->
 						{lists:reverse(lists:keysort(#product.description, Events)), Q1};
-					{value, {_, "status"}, Q1} ->
+					{value, {_, "licecycleStatus"}, Q1} ->
 						{lists:keysort(#product.status, Events), Q1};
-					{value, {_, "-status"}, Q1} ->
+					{value, {_, "-lifecycleStatus"}, Q1} ->
 						{lists:reverse(lists:keysort(#product.status, Events)), Q1};
 					{value, {_, "startDate"}, Q1} ->
 						{lists:keysort(#product.start_date, Events), Q1};
