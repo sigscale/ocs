@@ -218,18 +218,7 @@ post_user(RequestBody) ->
 			| {error, ErrorCode :: integer()}.
 %% @doc Respond to `PUT /partyManagement/v1/individual' and Update a `User'
 %% resource.
-put_user(ID, undefined, RequestBody) ->
-	put_user1(ID, undefined, RequestBody);
 put_user(ID, Etag, RequestBody) ->
-	try
-		Etag1 = etag(Etag),
-		put_user1(ID, Etag1, RequestBody)
-	catch
-		_:_ ->
-			{error, 400}
-	end.
-%% @hidden
-put_user1(ID, Etag, RequestBody) ->
 	try
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, ID} = lists:keyfind("id", 1, Object),
@@ -245,62 +234,58 @@ put_user1(ID, Etag, RequestBody) ->
 							undefined
 		end,
 		Password = Filter(Filter, Characteristic, "password"),
-		Locale = Filter(Filter, Characteristic, "locale") ,
-		case {Password, Locale} of
-			{undefined, undefined} ->
-				{error, 400};
-			{Password, Locale} when is_list(Password) ->
-				put_user2(ID, Etag, Password, Locale);
-			{undefined, Locale} when is_list(Locale) ->
-				case ocs:get_user(ID) of
-					{ok, #httpd_user{password = OPassword}} ->
-						put_user2(ID, Etag, OPassword, Locale);
-					{error, no_such_user} ->
-						{error, 404};
-					{error, _Reason} ->
-						{error, 500}
-				end
-		end
+		Locale = Filter(Filter, Characteristic, "locale"),
+		put_user1(ID, Password, Locale, Etag)
 	catch
-		_:_Reason1 ->
+		_:_ ->
 			{error, 400}
 	end.
 %% @hidden
-put_user2(ID, Etag, Password, undefined) ->
-	put_user2(ID, Etag, Password, "en");
-put_user2(ID, Etag, Password, Locale) ->
-	case ocs:get_user(ID) of
-		{ok, #httpd_user{user_data = Data}} ->
-			case lists:keyfind(last_modified, 1, Data) of
-				{_, LastModified} when Etag == undefined; Etag == LastModified ->
-				put_user3(ID, Password, Locale);
-				{_, _NonEtagMatch} ->
-					{error, 412};
-				false ->
-					{error, 500}
-			end;
-		{error, _} ->
-			{error, 404}
+put_user1(Id, Password, Locale, Etag) when is_list(Etag) ->
+	put_user1(Id, Password, Locale, etag(Etag));
+put_user1(Id, Password, Locale, Etag) ->
+	try
+		case ocs:get_user(Id) of
+			{ok, #httpd_user{user_data = UD}} ->
+				case lists:keyfind(last_modified, 1, UD) of
+					{_, LM} when Etag =:= undefined; Etag == LM ->
+						case ocs:update_user(Id, Password, Locale) of
+							{ok, NLM} ->
+								put_user2(Id, Password, Locale, NLM);
+							{error, _} ->
+								{error, 500}
+						end;
+					{_, _} ->
+						{error, 412};
+					false ->
+						{error, 500}
+				end;
+			{error, no_such_user} ->
+				{error, 400};
+			{error, _} ->
+				{error, 500}
+		end
+	catch
+		_:_ ->
+			{error, 400}
 	end.
 %% @hidden
-put_user3(ID, Password, Locale) ->
-	case ocs:delete_user(ID) of
-		true ->
-			case ocs:add_user(ID, Password, Locale) of
-				{ok, LM} ->
-					Location = "/partyManagement/v1/individual/" ++ ID,
-					PasswordAttr = {struct, [{"name", "password"}, {"value", Password}]},
-					LocaleAttr = {struct, [{"name", "locale"}, {"value", Locale}]},
-					Char = {array, [PasswordAttr, LocaleAttr]},
-					RespObj = [{"id", ID}, {"href", Location}, {"characteristic", Char}],
-					JsonObj  = {struct, RespObj},
-					Body = mochijson:encode(JsonObj),
-					Headers = [{location, Location}, {etag, etag(LM)}],
-					{ok, Headers, Body};
-				{error, _Reason} ->
-					{error, 500}
-			end;
-		{error, _Reason} ->
+put_user2(ID, Password, Locale, LM) when is_tuple(LM) ->
+	put_user2(ID, Password, Locale, etag(LM));
+put_user2(ID, Password, Locale, LM) ->
+	try
+		Location = "/partyManagement/v1/individual/" ++ ID,
+		PwdObj = {struct, [{"name", "password"}, {"value", Password}]},
+		LocaleObj = {struct, [{"name", "locale"}, {"value", Locale}]},
+		Characteristic = {array, [PwdObj, LocaleObj]},
+		RespObj = [{"id", ID}, {"href", Location},
+				{"characteristic", Characteristic}],
+		JsonObj  = {struct, RespObj},
+		Body = mochijson:encode(JsonObj),
+		Headers = [{location, Location}, {etag, LM}],
+		{ok, Headers, Body}
+	catch
+		_:_ ->
 			{error, 500}
 	end.
 
