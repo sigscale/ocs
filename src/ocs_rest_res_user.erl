@@ -22,7 +22,7 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0, get_params/0,
-		get_user/2, get_users/1, post_user/1, put_user/3, patch_user/4,
+		get_user/2, get_users/2, post_user/1, put_user/3, patch_user/4,
 		delete_user/1]).
 
 -include_lib("radius/include/radius.hrl").
@@ -47,87 +47,78 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json"].
 
--spec get_users(Query) -> Result
+-spec get_users(Query, Headers) -> Result
 	when
 		Query :: [{Key :: string(), Value :: string()}],
+		Headers :: [tuple()],
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /partyManagement/v1/individual'
 %% requests.
-get_users(Query) ->
-	case ocs:list_users() of
-		{error, _} ->
-			{error, 500};
-		{ok, Users} ->
-			case lists:keytake("fields", 1, Query) of
-				{value, {_, L}, NewQuery} ->
-					get_users(Users, NewQuery, string:tokens(L, ","));
-				false ->
-					get_users(Users, Query, [])
-			end
-	end.
-%% @hidden
-get_users(Users, Query, Filters) ->
-	try
-		case lists:keytake("sort", 1, Query) of
-			{value, {_, "id"}, NewQuery} ->
-				{lists:reverse(lists:sort(Users)), NewQuery};
-			{value, {_, "-id"}, NewQuery} ->
-				{lists:sort(Users), NewQuery};
-			false ->
-				{Users, Query};
-			_ ->
-				throw(400)
-		end
-	of
-		{SortedUsers, NextQuery} ->
-			get_users1(SortedUsers, NextQuery, Filters)
-	catch
-		throw:400 ->
-			{error, 400}
-	end.
-%% @hidden
-get_users1(Users1, Query1, Filters) ->
-	{Users2, Query2} = case lists:keytake("id", 1, Query1) of
-		{value, {_, Id}, Q1} ->
-			case lists:member(Id, Users1) of
-				true ->
-					{[Id], Q1};
-				false ->
-					{error, 404}
-			end;
+get_users(Query, Headers) ->
+	case lists:keytake("fields", 1, Query) of
+		{value, {_, Filters}, NewQuery} ->
+			get_users1(NewQuery, Filters, Headers);
 		false ->
-			{Users1, Query1}
-	end,
-	get_users2(Users2, Query2, Filters, []).
+			get_users1(Query, [], Headers)
+	end.
 %% @hidden
-get_users2([H | T], [] = Query, Filters, Acc) ->
-	case ocs:get_user(H) of
-		{ok, #httpd_user{user_data = UserData}} ->
-			Characteristic1 = [{struct, [{"name", "username"}, {"value", H}]}],
-			Characteristic2 = case lists:keyfind(locale, 1, UserData) of
-				{_, Lang} ->
-					[{struct, [{"name", "locale"},
-							{"value", Lang}]} | Characteristic1];
-				false ->
-					Characteristic1
-			end,
-			User = {struct, [{"id", H},
-					{"href", "/partyManagement/v1/individual/" ++ H},
-					{"characteristic", {array, Characteristic2}}]},
-			get_users2(T, Query, Filters, [User | Acc]);
-		{error, _Reason} ->
-			{error, 500}
-	end;
-get_users2([], _, _, Acc) ->
-	Users = lists:reverse(Acc),
-	Size = integer_to_list(length(Users)),
-	ContentRange = "items 1-" ++ Size ++ "/" ++ Size,
-	Body  = mochijson:encode({array, Users}),
-	{ok, [{content_type, "application/json"},
-			{content_range, ContentRange}], Body};
-get_users2(_, _, _, _) ->
-	{error, 400}.
+get_users1(Query, Filters, Headers) ->
+	case {lists:keyfind("if-match", 1, Headers),
+			lists:keyfind("if-range", 1, Headers),
+			lists:keyfind("range", 1, Headers)} of
+		{{"if-match", Etag}, false, {"range", Range}} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					{error, 412};
+				PageServer ->
+					case ocs_rest:range(Range) of
+						{error, _} ->
+							{error, 400};
+						{ok, {Start, End}} ->
+							query_page(PageServer, Etag, Query, Filters, Start, End)
+					end
+			end;
+		{{"if-match", Etag}, false, false} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					{error, 412};
+				PageServer ->
+					{ok, MaxItems} = application:get_env(ocs, rest_page_size),
+					query_page(PageServer, Etag, Query, Filters, 1, MaxItems)
+			end;
+		{false, {"if-range", Etag}, {"range", Range}} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					case ocs_rest:range(Range) of
+						{error, _} ->
+							{error, 400};
+						{ok, {Start, End}} ->
+							query_start(Query, Filters, Start, End)
+					end;
+				PageServer ->
+					case ocs_rest:range(Range) of
+						{error, _} ->
+							{error, 400};
+						{ok, {Start, End}} ->
+							query_page(PageServer, Etag, Query, Filters, Start, End)
+					end
+			end;
+		{{"if-match", _}, {"if-range", _}, _} ->
+			{error, 400};
+		{_, {"if-range", _}, false} ->
+			{error, 400};
+		{false, false, {"range", Range}} ->
+			case ocs_rest:range(Range) of
+				{error, _} ->
+					{error, 400};
+				{ok, {Start, End}} ->
+					query_start(Query, Filters, Start, End)
+			end;
+		{false, false, false} ->
+			{ok, MaxItems} = application:get_env(ocs, rest_page_size),
+			query_start(Query, Filters, 1, MaxItems)
+	end.
 
 -spec get_user(Id, Query) -> Result
 	when
@@ -502,4 +493,69 @@ process_json_patch1([], ID, Acc) ->
 		{error, _Reason} ->
 			{error, 500}
 	end.
+
+%% @hidden
+query_start(Query, Filters, RangeStart, RangeEnd) ->
+	Id =  proplists:get_value("id", Query),
+	Locale =  proplists:get_value("locale", Query),
+	case supervisor:start_child(ocs_rest_pagination_sup,
+				[[ocs, query_users, [Id, Locale]]]) of
+		{ok, PageServer, Etag} ->
+			query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
+		{error, _Reason} ->
+
+			{error, 500}
+	end.
+
+%% @hidden
+query_page(PageServer, Etag, Query, Filters, Start, End) ->
+	case gen_server:call(PageServer, {Start, End}) of
+		{error, Status} ->
+			{error, Status};
+		{Events, ContentRange} ->
+			try
+				case lists:keytake("sort", 1, Query) of
+					{value, {_, "id"}, Q1} ->
+						{lists:keysort(#httpd_user.username, Events), Q1};
+					{value, {_, "-id"}, Q1} ->
+						{lists:reverse(lists:keysort(#httpd_user.username, Events)), Q1};
+					false ->
+						{Events, Query};
+					_ ->
+						throw(400)
+				end
+			of
+				{SortedEvents, _NewQuery} ->
+					JsonObj = query_page1(lists:map(fun user_body/1, SortedEvents), Filters, []),
+					JsonArray = {array, JsonObj},
+					Body = mochijson:encode(JsonArray),
+					Headers = [{content_type, "application/json"},
+							{etag, Etag}, {accept_ranges, "items"},
+							{content_range, ContentRange}],
+					{ok, Headers, Body}
+			catch
+				throw:{error, Status} ->
+					{error, Status}
+			end
+	end.
+%% @hidden
+query_page1([], _, Acc) ->
+	lists:reverse(Acc);
+query_page1(Json, [], Acc) ->
+	lists:reverse(Json ++ Acc);
+query_page1([H | T], Filters, Acc) ->
+	query_page1(T, Filters, [ocs_rest:filter(Filters, H) | Acc]).
+
+%% @hidden
+user_body(#httpd_user{username = {User, _, _, _}, user_data = Characteristic}) ->
+	C1 = [{struct, [{"name", "username"}, {"value", User}]}],
+	C2 = case lists:keyfind("locale", 1, Characteristic) of
+		{_, Locale} ->
+			[{struct, [{"name", "locale"}, {"value", Locale}]} | C1];
+		false ->
+			C1
+	end,
+	{struct, [{"id", User},
+				{"href", "/partyManagement/v1/individual/" ++ User},
+				{"characteristic", {array, C2}}]}.
 
