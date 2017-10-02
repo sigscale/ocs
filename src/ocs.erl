@@ -29,7 +29,7 @@
 		update_password/2, update_attributes/2, update_attributes/5,
 		get_subscribers/0]).
 -export([add_user/3, list_users/0, get_user/1, delete_user/1,
-		query_users/3]).
+		query_users/3, update_user/3]).
 -export([add_product/1, find_product/1, get_products/0, delete_product/1,
 		query_product/7]).
 -export([generate_password/0, generate_identity/0]).
@@ -794,6 +794,33 @@ delete_user(Username) ->
 			{error, Reason}
 	end.
 
+-spec update_user(Username, Password, Language) -> Result
+	when
+		Username :: string(),
+		Password :: string(),
+		Language :: string(),
+		Result :: {ok, LM} | {error, Reason},
+		LM :: {integer(), integer()},
+		Reason :: term().
+%% @hidden Update user password and language
+update_user(Username, Password, Language) ->
+	case get_user(Username) of
+		{error, Reason} ->
+			{error, Reason};
+		{ok, #httpd_user{}} ->
+			case delete_user(Username) of
+				true ->
+					case add_user(Username, Password, Language) of
+						{ok, LM} ->
+							{ok, LM};
+						{error, Reason} ->
+							{error, Reason}
+					end;
+				{error, Reason} ->
+					{error, Reason}
+			end
+	end.
+
 -spec query_users(Cont, Id, Locale) -> Result
 	when
 		Cont :: start | eof | any(),
@@ -834,7 +861,7 @@ query_users2(Users, undefined) ->
 	{eof, Users};
 query_users2(Users, Locale) ->
 	F2 = fun(#httpd_user{user_data = C}) ->
-				case lists:keyfind("locale", 1, C) of
+				case lists:keyfind(locale, 1, C) of
 					{_, Locale} -> true;
 					_ -> false
 				end;
