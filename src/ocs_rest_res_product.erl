@@ -73,8 +73,8 @@ add_product_CatMgmt(ReqData) ->
 				case ocs:add_product(Product) of
 					{ok, LM} ->
 						add_product_CatMgmt1(Name, LM, ObjectMembers);
-					{error, StatusCode} ->
-						{error, StatusCode}
+					{error, Reason} ->
+						{error, Reason}
 				end
 		end
 	catch
@@ -339,12 +339,12 @@ product_offering_price([], Prices) ->
 product_offering_price([{struct, ObjectMembers} | T], Prices) ->
 	try
 		ProdName = prod_price_name(ObjectMembers),
-		{_ProdSTime, _ProdETime} = prod_price_vf(ObjectMembers),
+		{_ProdSTime, _ProdETime} = valid_for(ObjectMembers),
 		ProdPriceType = prod_price_type(ObjectMembers),
 		{_, {struct, ProdPriceObj}} = lists:keyfind("price", 1, ObjectMembers),
 		ProdAmount = prod_price_price_amount(ProdPriceObj),
 		CurrencyCode = prod_price_price_c_code(ProdPriceObj),
-		ProdVF = prod_price_vf(ObjectMembers),
+		ProdVF = valid_for(ObjectMembers),
 		RCPeriod = prod_price_rc_period(ObjectMembers),
 		ProdDescription = prod_price_description(ObjectMembers),
 		{ProdUnits, ProdSize} = prod_price_ufm(ObjectMembers),
@@ -372,7 +372,7 @@ product_offering_price([{struct, ObjectMembers} | T], Prices) ->
 product_offering_price([#price{} = Price | T], Prices) ->
 	try
 		Name = prod_price_name(Price),
-		ValidFor = prod_price_vf(Price),
+		ValidFor = valid_for(Price),
 		PriceType = prod_price_type(Price),
 		Amount = prod_price_price_amount(Price),
 		CurrencyCode = prod_price_price_c_code(Price),
@@ -623,13 +623,13 @@ prod_price_description(#price{} = Price) ->
 			{"description", Des}
 	end.
 
--spec prod_price_vf(Price) -> Result
+-spec valid_for(P) -> Result
 	when
-		Price :: [tuple()] | #product{},
-		Result	:: tuple().
+		P      :: [tuple()] | #price{} | #product{},
+		Result :: tuple().
 %% @private
-prod_price_vf(Price) when is_list(Price) ->
-	case lists:keyfind("validFor", 1, Price) of
+valid_for(P) when is_list(P) ->
+	case lists:keyfind("validFor", 1, P) of
 		{_,  {struct, VFObj}} ->
 			case {proplists:get_value("startDateTime", VFObj), proplists:get_value("endDateTime", VFObj)} of
 				{undefined, undefined} ->
@@ -644,8 +644,13 @@ prod_price_vf(Price) when is_list(Price) ->
 		false ->
 			{undefined, undefined}
 	end;
-prod_price_vf(#price{} = Price) ->
-	case Price#price.valid_for of
+valid_for(#product{} = P) ->
+	valid_for1(P#product.valid_for);
+valid_for(#price{} = P) ->
+	valid_for1(P#price.valid_for).
+%% @hidden
+valid_for1(P) ->
+	case P of
 		{undefined, undefined} ->
 			{"validFor",{struct, []}};
 		{undefined, EDateTime} ->
@@ -694,8 +699,12 @@ prod_price_price_amount(#price{} = Price) ->
 		Result	:: string() | tuple().
 %% @private
 prod_price_price_c_code(Price) when is_list(Price) ->
-		{_, CurrencyCode} = lists:keyfind("currencyCode", 1, Price),
-		CurrencyCode;
+	case lists:keyfind("currencyCode", 1, Price) of
+		{_, CurrencyCode} ->
+			CurrencyCode;
+		false ->
+			undefined
+	end;
 prod_price_price_c_code(#price{} = Price) ->
 	{"currencyCode", Price#price.currency}.
 
