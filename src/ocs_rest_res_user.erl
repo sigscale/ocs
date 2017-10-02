@@ -177,22 +177,18 @@ post_user(RequestBody) ->
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, ID} = lists:keyfind("id", 1, Object),
 		{_, {array, Characteristic}} = lists:keyfind("characteristic", 1, Object),
-		F1 = fun(_F, [{struct, [{"name", "password"}, {"value", Pass}]} | _]) ->
-					Pass;
-				(_F, [{struct, [{"value", Pass}, {"name", "password"}]} | _]) ->
-					Pass;
-				(F, [_ | T]) ->
-					F(F,T)
+		Filter = fun(Filter, [{struct, FilterObj} | T], ObjName) ->
+							case lists:keyfind("name", 1, FilterObj) of
+									{_, ObjName} ->
+										proplists:get_value("value", FilterObj);
+									_ ->
+										Filter(Filter, T, ObjName)
+							end;
+						(_, [], _) ->
+							undefined
 		end,
-		Password = F1(F1, Characteristic),
-		F2 = fun(_F, [{struct, [{"name", "locale"}, {"value", Locale}]} | _]) ->
-					Locale;
-				(_F, [{struct, [{"value", Locale}, {"name", "locale"}]} | _]) ->
-					Locale;
-				(F, [_ | T]) ->
-					F(F,T)
-		end,
-		Locale = F2(F2, Characteristic),
+		Password = Filter(Filter, Characteristic, "password"),
+		Locale = Filter(Filter, Characteristic, "locale"),
 		case ocs:add_user(ID, Password, Locale) of
 			{ok, LastModified} ->
 				Location = "/partyManagement/v1/individual/" ++ ID,
@@ -238,26 +234,18 @@ put_user1(ID, Etag, RequestBody) ->
 		{struct, Object} = mochijson:decode(RequestBody),
 		{_, ID} = lists:keyfind("id", 1, Object),
 		{_, {array, Characteristic}} = lists:keyfind("characteristic", 1, Object),
-		F1 = fun(_F, [{struct, [{"name", "password"}, {"value", Password}]} | _]) ->
-					Password;
-				(_F, [{struct, [{"value", Password}, {"name", "password"}]} | _]) ->
-					Password;
-				(F, [_ | T]) ->
-					F(F,T);
-				(_F, []) ->
-					undefined
+		Filter = fun(Filter, [{struct, FilterObj} | T], ObjName) ->
+							case lists:keyfind("name", 1, FilterObj) of
+									{_, ObjName} ->
+										proplists:get_value("value", FilterObj);
+									_ ->
+										Filter(Filter, T, ObjName)
+							end;
+						(_, [], _) ->
+							undefined
 		end,
-		Password = F1(F1, Characteristic),
-		F2 = fun(_F, [{struct, [{"name", "locale"}, {"value", Locale}]} | _]) ->
-					Locale;
-				(_F, [{struct, [{"value", Locale}, {"name", "locale"}]} | _]) ->
-					Locale;
-				(F, [_ | T]) ->
-					F(F,T);
-				(_F, []) ->
-					undefined
-		end,
-		Locale = F2(F2, Characteristic),
+		Password = Filter(Filter, Characteristic, "password"),
+		Locale = Filter(Filter, Characteristic, "locale") ,
 		case {Password, Locale} of
 			{undefined, undefined} ->
 				{error, 400};
