@@ -549,7 +549,7 @@ query_page1([H | T], Filters, Acc) ->
 %% @hidden
 user_body(#httpd_user{username = {User, _, _, _}, user_data = Characteristic}) ->
 	C1 = [{struct, [{"name", "username"}, {"value", User}]}],
-	C2 = case lists:keyfind("locale", 1, Characteristic) of
+	C2 = case lists:keyfind(locale, 1, Characteristic) of
 		{_, Locale} ->
 			[{struct, [{"name", "locale"}, {"value", Locale}]} | C1];
 		false ->

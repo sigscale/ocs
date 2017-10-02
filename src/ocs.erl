@@ -834,7 +834,7 @@ query_users2(Users, undefined) ->
 	{eof, Users};
 query_users2(Users, Locale) ->
 	F2 = fun(#httpd_user{user_data = C}) ->
-				case lists:keyfind("locale", 1, C) of
+				case lists:keyfind(locale, 1, C) of
 					{_, Locale} -> true;
 					_ -> false
 				end;
