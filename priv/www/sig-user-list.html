@@ -233,8 +233,10 @@
 			getUserError: function(event) {
 				this.$.userGrid.size = 0;
 				cbUsers([]);
-				this.$.userErrorToast.text = event.detail.request.xhr.statusText;
-				this.$.userErrorToast.open();
+				if (!lastItem && event.detail.request.xhr.status != 416) {
+					this.$.userErrorToast.text = event.detail.request.xhr.statusText;
+					this.$.userErrorToast.open();
+				}
 			},
 			showAddUserModal: function(event) {
 				document.getElementById("addUserModal").open();

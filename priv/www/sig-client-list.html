@@ -268,10 +268,12 @@
 				cbClient(vaadinItems);
 			},
 			_getClientError: function (event) {
-				this.$.getClientErrorToast.text = event.detail.request.xhr.statusText;
-				this.$.getClientErrorToast.open();
 				this.$.clientGrid.size = 0;
 				cbClient([]);
+				if (!lastItem && event.detail.request.xhr.status != 416) {
+					this.$.getClientErrorToast.text = event.detail.request.xhr.statusText;
+					this.$.getClientErrorToast.open();
+				}
 			},
 			showAddClientModal: function(event) {
 				document.getElementById("addClientModal").open();

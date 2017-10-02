@@ -337,8 +337,10 @@
 			_getSubscriberError: function(event) {
 				this.$.subscriberGrid.size = 0;
 				cbSubscriber([]);
-				this.$.getSubscriberErrorToast.text = event.detail.request.xhr.statusText;
-				this.$.getSubscriberErrorToast.open();
+				if (!lastItem && event.detail.request.xhr.status != 416) {
+					this.$.getSubscriberErrorToast.text = event.detail.request.xhr.statusText;
+					this.$.getSubscriberErrorToast.open();
+				}
 			},
 			showAddModal: function(event) {
 				document.getElementById("getProductsAjax").generateRequest();

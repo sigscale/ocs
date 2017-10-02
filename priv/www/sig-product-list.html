@@ -266,8 +266,10 @@
 			_getProductError: function(event) {
 				this.$.productGrid.size = 0;
 				cbProduct([]);
-				this.$.getProductErrorToast.text = event.detail.request.xhr.statusText;
-				this.$.getProductErrorToast.open();
+				if (!lastItem && event.detail.request.xhr.status != 416) {
+					this.$.getProductErrorToast.text = event.detail.request.xhr.statusText;
+					this.$.getProductErrorToast.open();
+				}
 			},
 			showAddProductModal: function(event) {
 				var modal = document.getElementById("addProductModal");
