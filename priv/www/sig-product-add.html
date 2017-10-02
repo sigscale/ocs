@@ -368,8 +368,8 @@
 								raised
 								class="add-button"
 								on-tap="addPrice">
-								<i18n-msg msgid="add">
-									Add
+								<i18n-msg msgid="[[addOrUpdateButton]]">
+									[[addOrUpdateButton]]
 								</i18n-msg>
 						</paper-button>
 						<paper-button
@@ -563,8 +563,8 @@
 								raised
 								class="add-button"
 								on-tap="addAlteration">
-								<i18n-msg msgid="add">
-									Add
+								<i18n-msg msgid="[[addOrUpdateButton]]">
+									[[addOrUpdateButton]]
 								<i18n-msg>
 						</paper-button>
 						<paper-button
@@ -654,6 +654,10 @@
 				},
 				addProductEndDateAltPick: {
 					observer: '_addProductEndDateAltPick'
+				},
+				addOrUpdateButton: {
+					type: String,
+					value: "add"
 				}
 			},
 			_addProductStartDateOfferPick: function(date) {
@@ -692,6 +696,7 @@
 				}
 				var indexPrice = this.prices.findIndex(checkPriceName);
 				if (indexPrice == -1) {
+					this.addOrUpdateButton = "add";
 					this.$.addPriceDesc.value = null;
 					this.$.addPriceStartDate.value = null;
 					this.$.addPriceEndDate.value = null;
@@ -702,6 +707,7 @@
 					this.$.addPriceCurrency.value = null;
 					this.$.addPricePeriod.selected = null;
 				} else {
+					this.addOrUpdateButton = "update";
 					this.$.addPriceDesc.value = this.prices[indexPrice].description;
 					this.$.addPriceStartDate.value = this.prices[indexPrice].start;
 					this.$.addPriceEndDate.value = this.prices[indexPrice].end;
@@ -753,6 +759,7 @@
 				}
 				var index = this.alterations.findIndex(checkName);
 				if (index == -1) {
+					this.addOrUpdateButton = "add";
 					this.$.addAltDesc.value = null;
 					this.$.addAltStartDate.value = null;
 					this.$.addAltEndDate.value = null;
@@ -763,6 +770,7 @@
 					this.$.addAltCurrency.value = null;
 					this.$.addAltPeriod.selected = null;
 				} else {
+					this.addOrUpdateButton = "update";
 					this.$.addAltDesc.value = this.alterations[index].description;
 					this.$.addAltStartDate.value = this.alterations[index].startdate;
 					this.$.addAltEndDate.value = this.alterations[index].terminationDate;
@@ -1056,7 +1064,15 @@
 				}
 			},
 			addPrice: function(event) {
-				var priceNew = new Object();
+				function checkPriceName(price) {
+					return price.name == document.getElementById("addPriceName").value;
+				}
+				var indexPrice = this.prices.findIndex(checkPriceName);
+				if (indexPrice == -1) {
+					var priceNew = new Object();
+				} else {
+					var priceNew = this.prices[indexPrice];
+				}
 				priceNew.name = this.$.addPriceName.value;
 				priceNew.description = this.$.addPriceDesc.value;
 				priceNew.start = this.$.addPriceStartDate.value;
@@ -1103,10 +1119,16 @@
 				var altIndex = this.alterations.findIndex(checkAlt);
 				priceNew.alterations = this.alterations[altIndex];
 				if(priceNew.name
-						&& priceNew.amount
 						&& priceNew.type
-						&& priceNew.unit) {
-					this.push('prices', priceNew);
+						&& priceNew.unit
+						&& priceNew.size
+						&& priceNew.amount) {
+					if (indexPrice == -1) {
+						this.push('prices', priceNew);
+					} else {
+						this.splice('prices', indexPrice, 1, priceNew);
+						this.addOrUpdateButton = "add";
+					}
 					this.$.addPriceName.value = null;
 					this.$.addPriceDesc.value = null;
 					this.$.addPriceStartDate.value = null;
@@ -1124,6 +1146,15 @@
 				}
 			},
 			addAlteration: function() {
+				function checkAltName(alt) {
+					return alt.name == document.getElementById("addAltName").value;
+				}
+				var indexAlt = this.alterations.findIndex(checkAltName);
+				if (indexAlt == -1) {
+					var altNew = new Object();
+				} else {
+					var altNew = this.prices[indexAlt];
+				}
 				var altNew = new Object();
 				altNew.name = this.$.addAltName.value;
 				altNew.description = this.$.addAltDesc.value;
@@ -1171,7 +1202,12 @@
 						&& altNew.unit
 						&& altNew.size
 						&& (altNew.amount || altNew.amount == 0)) {
-					this.push('alterations', altNew);
+					if (indexAlt == -1) {
+						this.push('alterations', altNew);
+					} else {
+						this.splice('alterations', indexAlt, 1, altNew);
+						this.addOrUpdateButton = "add";
+					}
 					this.$.addAltName.value = null
 					this.$.addAltDesc.value = null;
 					this.$.addAltStartDate.value = null;
@@ -1210,6 +1246,7 @@
 			cancelDialog: function() {
 				this.set('prices', []);
 				this.set('alterations', []);
+				this.addOrUpdateButton = "add";
 				this.$.addOffName.value = null;
 				this.$.addOffDesc.value = null;
 				this.$.addOffStart.value = null;
