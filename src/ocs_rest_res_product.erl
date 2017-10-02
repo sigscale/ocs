@@ -369,8 +369,6 @@ product_offering_price([{struct, ObjectMembers} | T], Prices) ->
 		_:_ ->
 			{error, 400}
 	end;
-product_offering_price([], Prices) ->
-	Prices;
 product_offering_price([#price{} = Price | T], Prices) ->
 	try
 		Name = prod_price_name(Price),
@@ -847,7 +845,7 @@ prod_price_ufm(#price{} = Price) ->
 		Size		  :: undefined | pos_integer().
 %% @doc return units type and size of measurement of a alteration
 %% @private
-prod_price_alter_ufm(Alteration) ->
+prod_price_alter_ufm(Alteration) when is_list(Alteration) ->
 	UFM = proplists:get_value("unitOfMeasure", Alteration),
 	prod_price_ufm_et(UFM);
 prod_price_alter_ufm(#alteration{} = Alteration) ->
