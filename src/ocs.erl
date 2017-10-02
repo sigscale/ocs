@@ -29,8 +29,9 @@
 		update_password/2, update_attributes/2, update_attributes/5,
 		get_subscribers/0]).
 -export([add_user/3, list_users/0, get_user/1, delete_user/1,
+		query_users/3]).
+-export([add_product/1, find_product/1, get_products/0, delete_product/1,
 		query_product/7]).
--export([add_product/1, find_product/1, get_products/0, delete_product/1]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
@@ -792,6 +793,56 @@ delete_user(Username) ->
 		{error, Reason} ->
 			{error, Reason}
 	end.
+
+-spec query_users(Cont, Id, Locale) -> Result
+	when
+		Cont :: start | eof | any(),
+		Id :: undefined | string(),
+		Locale :: undefined | string(),
+		Result :: {Cont, [#httpd_user{}]} | {error, Reason},
+		Reason :: term().
+query_users(start, Id, Locale) ->
+	MatchSpec = MatchSpec = [{'_', [], ['$_']}],
+	F = fun() ->
+		mnesia:select(httpd_user, MatchSpec, read)
+	end,
+	case mnesia:transaction(F) of
+		{atomic, Users} ->
+			query_users1(Users, Id, Locale);
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+query_users1([], _, _) ->
+	{eof, []};
+query_users1(Users, undefined, Locale) ->
+	query_users2(Users, Locale);
+query_users1(Users, Id, Locale) ->
+	F = fun(#httpd_user{username = Username}) when element(1, Username) =:= Id ->
+				true;
+			(_) ->
+				false
+	end,
+	case lists:filtermap(F, Users) of
+		[] ->
+			{error, not_found};
+		FilteredUsers ->
+			query_users2(FilteredUsers, Locale)
+	end.
+%% @hidden
+query_users2(Users, undefined) ->
+	{eof, Users};
+query_users2(Users, Locale) ->
+	F2 = fun(#httpd_user{user_data = C}) ->
+				case lists:keyfind("locale", 1, C) of
+					{_, Locale} -> true;
+					_ -> false
+				end;
+
+			(_) ->
+					false
+	end,
+	{eof, lists:filtermap(F2, Users)}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
