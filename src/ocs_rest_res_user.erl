@@ -310,40 +310,28 @@ patch_user(ID, Etag, CType, ReqBody) ->
 			{error, 400}
 	end.
 %% @hidden
-patch_user1(ID, Etag, CType, ReqBody) ->
+patch_user1(ID, Etag, "application/json-patch+json", ReqBody) ->
 	try
 		{array, Ops} = mochijson:decode(ReqBody),
 		case process_json_patch(Ops, ID) of
 			{error, Code} ->
 				{error, Code};
-			{ID, Password, Locale, LM} ->
-				case LM of
-					LM when Etag == LM; Etag == undefined->
-						patch_user2(ID, CType, Password, Locale);
-					_ ->
-						{error, 412}
-				end
+			{ID, Password, Locale, LM} when Etag == LM; Etag == undefined ->
+				case ocs:update_user(ID, Password, Locale) of
+					{ok, LastModified} ->
+						Location = "/partyManagement/v1/individual/" ++ ID,
+						Headers = [{location, Location}, {etag, etag(LastModified)}],
+						{ok, Headers, []};
+					{error, _} ->
+						{error, 500}
+				end;
+			{_, _, _, _} ->
+				{error, 412}
 		end
 	catch
 		_:_Reason ->
 			{error, 400}
 	end.
-%% @hidden
-patch_user2(ID, "application/json-patch+json", Password, Locale) ->
-	case ocs:delete_user(ID) of
-		true ->
-			case ocs:add_user(ID, Password, Locale) of
-				{ok, LM} ->
-					Location = "/partyManagement/v1/individual/" ++ ID,
-					Headers = [{location, Location}, {etag, etag(LM)}],
-					{ok, Headers, []};
-				{error, _Reason} ->
-					{error, 500}
-			end;
-		{error, _Reason} ->
-			{error, 500}
-	end.
-
 
 -spec delete_user(Id) -> Result
 	when
@@ -413,25 +401,23 @@ etag(V) when is_tuple(V) ->
 %% for a user .
 %% @hidden
 process_json_patch(Ops, ID) ->
-	process_json_patch1(Ops, ID, []).
+	process_json_patch1(ocs_rest:parse(Ops), ID, []).
 %% @hidden
-process_json_patch1([{struct, Attr}| T], ID, Acc) ->
-	case {lists:keyfind("op", 1, Attr), lists:keyfind("path", 1, Attr)} of
-		{{_, "replace"}, {_, "/characteristic/" ++ _}} ->
-			ok;
-		{{_, "add"}, {_, "/characteristic/-"}} ->
-			ok
-	end,
-	{_, {struct, Value}} = lists:keyfind("value", 1, Attr),
-	case lists:keyfind("name", 1, Value) of
-		{_, "password"} ->
-			{_, NewPassword} = lists:keyfind("value", 1, Value),
-			process_json_patch1(T, ID, [{"password", NewPassword} | Acc]);
+process_json_patch1([{add, ["characteristic" | _], {struct, Obj}} | T], ID, Acc) ->
+	case lists:keyfind("name", 1, Obj) of
 		{_, "locale"} ->
-			{_, NewLocale} = lists:keyfind("value", 1, Value),
-			process_json_patch1(T, ID, [{"locale", NewLocale} | Acc]);
+			{_, Locale} = lists:keyfind("value", 1, Obj),
+			process_json_patch1(T, ID, [{locale, Locale} | Acc]);
 		false ->
-			process_json_patch1(T, ID, Acc)
+			{error, 400}
+	end;
+process_json_patch1([{replace, ["characteristic" | _], {struct, Obj}} | T], ID, Acc) ->
+	case lists:keyfind("name", 1, Obj) of
+		{_, "password"} ->
+			{_, Password} = lists:keyfind("value", 1, Obj),
+			process_json_patch1(T, ID, [{password, Password} | Acc]);
+		false ->
+			{error, 400}
 	end;
 process_json_patch1([], ID, Acc) ->
 	case ocs:get_user(ID) of
@@ -448,13 +434,13 @@ process_json_patch1([], ID, Acc) ->
 				false ->
 					"en"
 			end,
-			Password = case lists:keyfind("password", 1, Acc) of
+			Password = case lists:keyfind(password, 1, Acc) of
 				false ->
 					OPassword;
 				{_, NewPassword} ->
 					NewPassword
 			end,
-			Locale = case lists:keyfind("locale", 1, Acc) of
+			Locale = case lists:keyfind(locale, 1, Acc) of
 				false ->
 					OLocale;
 				{_, NewLocale} ->
