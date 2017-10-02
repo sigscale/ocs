@@ -789,8 +789,8 @@
 							this.$.addAltUnitDrop.selected = 2;
 							break;
 					}
+					this.$.addAltCurrency.value = this.alterations[index].currency;
 					this.$.addAltAmount.value = this.alterations[index].amount;
-					this.$.addAltCurrency.value = this.alterations[index].amount;
 					switch(this.alterations[index].period) {
 						case "daily":
 							this.$.addAltPeriod.selected = 0;
