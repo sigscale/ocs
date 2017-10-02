@@ -92,7 +92,7 @@ do_post(Resource, ModData, Body, ["partyManagement", "v1", "individual"]) ->
 do_post(Resource, ModData, Body, ["balanceManagement", "v1", Id, "balanceTopups"]) ->
 	do_response(ModData, Resource:top_up(Id, Body));
 do_post(Resource, ModData, Body, ["catalogManagement", "v1", "productOffering"]) ->
-	do_response(ModData, Resource:add_product_CatMgmt(Body));
+	do_response(ModData, Resource:add_product_cat_mgmt(Body));
 do_post(Resource, ModData, Body, ["productInventoryManagement", "v1", "product"]) ->
 	do_response(ModData, Resource:add_product_InvMgmt(Body)).
 
