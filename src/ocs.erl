@@ -80,8 +80,11 @@ add_client(Address, Port, Protocol, Secret) when is_list(Address) ->
 add_client(Address, Port, Protocol, Secret) when is_tuple(Address),
 		is_binary(Secret) ->
 	F = fun() ->
+				TS = erlang:system_time(?MILLISECOND),
+				N = erlang:unique_integer([positive]),
 				R = #client{address = Address, port = Port,
-						protocol = Protocol, secret = Secret},
+						protocol = Protocol, secret = Secret,
+						last_modified = {TS, N}},
 				mnesia:write(R)
 	end,
 	case mnesia:transaction(F) of
@@ -311,12 +314,15 @@ add_subscriber(undefined, Password, Product, Buckets, Attributes, EnabledStatus,
 								(F, Identity, N) ->
 									case mnesia:read(subscriber, Identity, read) of
 										[] ->
+											TS = erlang:system_time(?MILLISECOND),
+											N = erlang:unique_integer([positive]),
 											P = #product_instance{start_date = SD,
 													termination_date = TD, status = Status, product = Product},
 											S = #subscriber{name = Identity,
 													password = Password, attributes = Attributes,
 													buckets = Buckets, enabled = EnabledStatus,
-													multisession = MultiSession, product = P},
+													multisession = MultiSession, product = P,
+													last_modified = {TS, N}},
 											ok = mnesia:write(S),
 											S;
 										[_] ->
@@ -340,11 +346,14 @@ add_subscriber(Identity, Password, Product, Buckets, Attributes, EnabledStatus, 
 	F1 = fun() ->
 				case mnesia:read(product, Product, read) of
 					[#product{start_date = SD, termination_date = TD, status = Status }] ->
+						TS = erlang:system_time(?MILLISECOND),
+						N = erlang:unique_integer([positive]),
 						P = #product_instance{start_date = SD,
 							termination_date = TD, status = Status, product = Product},
 						S = #subscriber{name = Identity, password = Password,
 								attributes = Attributes, buckets = Buckets, product = P,
-								enabled = EnabledStatus, multisession = MultiSession},
+								enabled = EnabledStatus, multisession = MultiSession,
+								last_modified = {TS, N}},
 						ok = mnesia:write(S),
 						S;
 					[] ->
@@ -531,9 +540,9 @@ update_attributes(Identity, Buckets, Attributes, EnabledStatus, MultiSession)
 %% @doc Add a new entry in product table.
 add_product(Product) ->
 	F = fun() ->
-		LM = {erlang:system_time(?MILLISECOND),
-				erlang:unique_integer([positive])},
-		Entry = Product#product{last_modified = LM},
+		TS = erlang:system_time(?MILLISECOND),
+		N = erlang:unique_integer([positive]),
+		Entry = Product#product{last_modified = {TS, N}},
 		mnesia:write(product, Entry, write),
 		LM
 	end,
@@ -732,9 +741,9 @@ add_user(Username, Password, Language) when is_list(Username),
 	{Port, Address, Dir, _} = get_params(),
 	case ocs:get_user(Username) of
 		{error, no_such_user} ->
-			LastModified = {erlang:system_time(?MILLISECOND),
-					erlang:unique_integer([positive])},
-			NewUserData = [{last_modified, LastModified}, {locale, Language}],
+			TS = erlang:system_time(?MILLISECOND),
+			N = erlang:unique_integer([positive]),
+			NewUserData = [{last_modified, {TS, N}}, {locale, Language}],
 			case mod_auth:add_user(Username, Password,
 					NewUserData, Address, Port, Dir) of
 				true ->

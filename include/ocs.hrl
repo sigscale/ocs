@@ -40,8 +40,7 @@
 		port :: inet:port_number(),
 		protocol :: radius | diameter,
 		secret :: binary(),
-		last_modified  = {erlang:system_time(milli_seconds),
-				erlang:unique_integer([positive])} :: tuple()}).
+		last_modified :: tuple()}).
 
 -record(alteration,
 		{name :: string(),
@@ -74,8 +73,7 @@
 		start_date :: '_' | pos_integer(), % ISO8601
 		termination_date :: '_' | pos_integer(), % ISO8601
 		price :: '_' | [#price{}],
-		last_modified  = {erlang:system_time(milli_seconds),
-				erlang:unique_integer([positive])} :: tuple() | '_'}).
+		last_modified :: tuple() | '_'}).
 
 -record(remain_amount,
 		{unit :: string(),
@@ -107,7 +105,6 @@
 		disconnect  = false :: boolean(),
 		session_attributes = radius_attributes:new() :: [radius_attributes:attributes()],
 		multisession = false :: boolean(),
-		last_modified  = {erlang:system_time(milli_seconds),
-				erlang:unique_integer([positive])} :: tuple()}).
+		last_modified :: tuple()}).
 
 
