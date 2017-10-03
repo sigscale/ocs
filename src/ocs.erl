@@ -23,7 +23,7 @@
 
 %% export the ocs public API
 -export([add_client/2, add_client/4, find_client/1, update_client/2,
-		update_client/3, get_clients/0, delete_client/1]).
+		update_client/3, get_clients/0, delete_client/1, query_clients/6]).
 -export([add_subscriber/3, add_subscriber/4, add_subscriber/5,
 		add_subscriber/7, find_subscriber/1, delete_subscriber/1,
 		update_password/2, update_attributes/2, update_attributes/5,
@@ -226,6 +226,69 @@ delete_client(Client) when is_tuple(Client) ->
 		{aborted, Reason} ->
 			exit(Reason)
 	end.
+
+-spec query_clients(Cont, Address, Identifier, Port, Protocol, Secret) -> Result
+	when
+		Cont :: start | eof | any(),
+		Address :: undefined | string(),
+		Identifier :: undefined | string(),
+		Port :: undefined | string(),
+		Protocol :: undefined | string(),
+		Secret :: undefined | string(),
+		Result :: {Cont, [#client{}]} | {error, Reason},
+		Reason :: term().
+query_clients(start, Address, Identifier, Port, Protocol, Secret) ->
+	MatchSpec = [{'_', [], ['$_']}],
+	F = fun() ->
+		mnesia:select(client, MatchSpec, read)
+	end,
+	case mnesia:transaction(F) of
+		{atomic, Clients} ->
+			query_clients1(Clients, Address, Identifier, Port, Protocol, Secret);
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+query_clients1(Clients, Address, Identifier, Port, Protocol, undefined) ->
+	query_clients2(Clients, Address, Identifier, Port, Protocol);
+query_clients1(Clients, Address, Identifier, Port, Protocol, Secret) ->
+	Fun = fun(#client{secret = S}) ->
+				LS = binary_to_list(S),
+				lists:prefix(Secret, LS)
+	end,
+	FilteredClients = lists:filtermap(Fun, Clients),
+	query_clients2(FilteredClients, Address, Identifier, Port, Protocol).
+%% @hidden
+query_clients2(Clients, Address, Identifier, Port, undefined) ->
+	query_clients3(Clients, Address, Identifier, Port);
+query_clients2(Clients, Address, Identifier, Port, Protocol) ->
+	Fun = fun(#client{protocol = P}) ->
+				P1 = string:to_upper(Protocol),
+				P2 = string:to_upper(atom_to_list(P)),
+				lists:prefix(P1, P2)
+	end,
+	FilteredClients = lists:filtermap(Fun, Clients),
+	query_clients3(FilteredClients, Address, Identifier, Port).
+%% @hidden
+query_clients3(Clients, Address, Identifier, undefined) ->
+	query_clients4(Clients, Address, Identifier);
+query_clients3(Clients, Address, Identifier, Port) ->
+	Fun = fun(#client{port = P}) -> lists:prefix(Port, integer_to_list(P)) end,
+	FilteredClients = lists:filtermap(Fun, Clients),
+	query_clients4(FilteredClients, Address, Identifier).
+%% @hidden
+query_clients4(Clients, Address, undefined) ->
+	query_clients4(Clients, Address);
+query_clients4(Clients, Address, Identifier) ->
+	Fun = fun(#client{identifier = I}) -> lists:prefix(Identifier, I) end,
+	FilteredClients = lists:filtermap(Fun, Clients),
+	query_clients4(FilteredClients, Address).
+%% @hidden
+query_clients4(Clients, undefined) ->
+	{eof, Clients};
+query_clients4(Clients, Address) ->
+	Fun = fun(#client{address = A}) -> lists:prefix(Address, inet:ntoa(A)) end,
+	{eof, lists:filtermap(Fun, Clients)}.
 
 -spec add_subscriber(Identity, Password, Product) -> Result
 	when

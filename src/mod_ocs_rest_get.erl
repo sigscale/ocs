@@ -97,8 +97,9 @@ parse_query(_R, _P, _Q) ->
 	{break, [{response, {404, Response}}]}.
 
 %% @hidden
-do_get(Resource, ModData, ["ocs", "v1", "client"], Query) ->
-	do_response(ModData, Resource:get_clients(Query));
+do_get(Resource, #mod{parsed_header = Headers} = ModData,
+		["ocs", "v1", "client"], Query) ->
+	do_response(ModData, Resource:get_clients(Query, Headers));
 do_get(Resource, ModData, ["ocs", "v1", "client", Id], Query) ->
 	do_response(ModData, Resource:get_client(Id, Query));
 do_get(Resource, ModData, ["ocs", "v1", "subscriber"], Query) ->
