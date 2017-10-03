@@ -30,7 +30,7 @@
 		auth_query/6, auth_query/7,
 		ipdr_log/3, ipdr_file/2, get_range/3, last/2,
 		dump_file/2, http_file/2, httpd_logname/1,
-		date/1, iso8601/1]).
+		date/1, iso8601/1, http_query/8]).
 
 %% export the ocs_log event types
 -export_type([auth_event/0, acct_event/0]).
@@ -566,6 +566,93 @@ auth_close() ->
 					{log, ?AUTHLOG}, {error, Reason}]),
 			{error, Reason}
 	end.
+
+-record(event,
+		{host :: string(),
+		user :: string() | undefined,
+		date :: string() | undefined,
+		method :: string() | undefined,
+		uri :: string() | undefined,
+		httpStatus :: integer() | undefined}).
+
+-spec http_query(Continuation, LogType, DateTime, Host, User, Method, URI, HTTPStatus) -> Result
+	when
+		Continuation :: start | disk_log:continuation(),
+		LogType ::  transfer | error | security,
+		DateTime :: '_' | string(),
+		Host :: '_' | string(),
+		User :: '_' | string(),
+		Method :: '_' | string(),
+		URI :: '_' | string(),
+		HTTPStatus :: '_' | string() | integer(),
+		Result :: {Continuation2, Events} | {error, Reason},
+		Continuation2 :: eof | disk_log:continuation(),
+		Events :: [auth_event()],
+		Reason :: term().
+%% @doc Query http log events with fileters
+http_query(start, LogType, DateTime, Host, User, Method, URI, HTTPStatus) ->
+	Log = ocs_log:httpd_logname(LogType),
+	http_query1(disk_log:chunk(Log, start), Log,
+		DateTime, Host, User, Method, URI, HTTPStatus, []);
+http_query(Cont, LogType, DateTime, Host, User, Method, URI, HTTPStatus) ->
+	Log = ocs_log:httpd_logname(LogType),
+	http_query1(disk_log:chunk(Log, Cont), Log,
+		DateTime, Host, User, Method, URI, HTTPStatus, []).
+%% @hidden
+http_query1({error, Reason}, _, _, _, _, _, _, _, _) ->
+	{error, Reason};
+http_query1(eof, _Log, DateTime, Host, User, Method, URI, HTTPStatus, PrevChunk) ->
+	http_query2(lists:flatten(PrevChunk), DateTime, Host, User, Method, URI, HTTPStatus);
+http_query1({Cont, Chunk}, Log, DateTime, Host, User, Method, URI, HTTPStatus, PrevChunk) ->
+erlang:display({?MODULE, ?LINE, Chunk}),
+	ParseChunk = lists:map(fun http_parse/1, Chunk),
+	CurrentChunk = [ParseChunk | PrevChunk],
+	http_query1(disk_log:chunk(Log, Cont), Log, DateTime,
+			Host, User, Method, URI, HTTPStatus, CurrentChunk).
+%% @hidden
+http_query2(Chunks, DateTime, Host, User, Method, URI, '_') ->
+	http_query3(Chunks, DateTime, Host, User, Method, URI);
+http_query2(Chunks, DateTime, Host, User, Method, URI, HTTPStatus) when is_list(HTTPStatus) ->
+	http_query2(Chunks, DateTime, Host, User, Method, URI, list_to_integer(HTTPStatus));
+http_query2(Chunks, DateTime, Host, User, Method, URI, HTTPStatus) ->
+	F = fun(#event{httpStatus = HS}) when HS =:= HTTPStatus -> true; (_) -> false end,
+	http_query3(lists:filetermap(F, Chunks), DateTime, Host, User, Method, URI).
+%% @hidden
+http_query3(Chunks, DateTime, Host, User, Method, '_') ->
+	http_query4(Chunks, DateTime, Host, User, Method);
+http_query3(Chunks, DateTime, Host, User, Method, URI) ->
+	F = fun(#event{uri = U}) -> lists:prefix(URI, U) end,
+	http_query4(lists:filetermap(F, Chunks), DateTime, Host, User, Method).
+%% @hidden
+http_query4(Chunks, DateTime, Host, User, '_') ->
+	http_query5(Chunks, DateTime, Host, User);
+http_query4(Chunks, DateTime, Host, User, Method) ->
+	F = fun(#event{method = M}) -> lists:prefix(Method, M) end,
+	http_query5(lists:filtermap(F, Chunks), DateTime, Host, User).
+%% @hidden
+http_query5(Chunks, DateTime, Host, '_') ->
+	http_query6(Chunks, DateTime, Host);
+http_query5(Chunks, DateTime, Host, User) ->
+	F = fun(#event{user = U}) -> lists:prefix(User, U) end,
+	http_query6(lists:filtermap(F, Chunks), DateTime, Host).
+%% @hidden
+http_query6(Chunks, DateTime, '_') ->
+	http_query7(Chunks, DateTime);
+http_query6(Chunks, DateTime, Host) ->
+	F = fun(#event{host = H}) -> lists:prefix(Host, H) end,
+	http_query7(lists:filtermap(F, Chunks), DateTime).
+%% @hidden
+http_query7(Chunks, '_') ->
+	http_query8(Chunks);
+http_query7(Chunks, DateTime) ->
+	F = fun(#event{date = D}) -> lists:prefix(DateTime, D) end,
+	http_query8(lists:filtermap(F, Chunks)).
+%% @hidden
+http_query8(Chunks) ->
+	F = fun(#event{host = H, user = U, date = D, method = M, uri = URI, httpStatus = S}, Acc) ->
+			[{H, U, D, M, URI, S} | Acc]
+	end,
+	{eof, lists:reverse(lists:foldl(F, [], Chunks))}.
 
 -spec ipdr_log(File, Start, End) -> Result
 	when
@@ -1437,4 +1524,41 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdrDocEnd{}]}) ->
 	ipdr_file3(Log, IoDevice, csv, {Cont, []});
 ipdr_csv(Log, IoDevice, {Cont, []}) ->
 	ipdr_file3(Log, IoDevice, csv, {Cont, []}).
+
+% @private
+http_parse(Event) ->
+	{Offset, 1} = binary:match(Event, <<32>>),
+	<<Host:Offset/binary, 32, $-, 32, Rest/binary>> = Event,
+	http_parse1(Rest, #event{host = binary_to_list(Host)}).
+% @hidden
+http_parse1(Event, Acc) ->
+	{Offset, 1} = binary:match(Event, <<32>>),
+	<<User:Offset/binary, 32, $[, Rest/binary>> = Event,
+	http_parse2(Rest, Acc#event{user = binary_to_list(User)}).
+% @hidden
+http_parse2(Event, Acc) ->
+	{Offset, 1} = binary:match(Event, <<$]>>),
+	<<Date:Offset/binary, $], 32, $", Rest/binary>> = Event,
+	http_parse3(Rest, Acc#event{date = binary_to_list(Date)}).
+% @hidden
+http_parse3(Event, Acc) ->
+	{Offset, 1} = binary:match(Event, <<32>>),
+	<<Method:Offset/binary, 32, Rest/binary>> = Event,
+	http_parse4(Rest, Acc#event{method = binary_to_list(Method)}).
+% @hidden
+http_parse4(Event, Acc) ->
+	{Offset, 1} = binary:match(Event, <<32>>),
+	<<URI:Offset/binary, 32, Rest/binary>> = Event,
+	http_parse5(Rest, Acc#event{uri = binary_to_list(URI)}).
+% @hidden
+http_parse5(Event, Acc) ->
+	{Offset, 2} = binary:match(Event, <<$", 32>>),
+	<<_Http:Offset/binary, $", 32, Rest/binary>> = Event,
+	http_parse6(Rest, Acc).
+% @hidden
+http_parse6(Event, Acc) ->
+	{Offset, 1} = binary:match(Event, <<32>>),
+	<<Status:Offset/binary, 32, _Rest/binary>> = Event,
+	Acc#event{httpStatus = binary_to_integer(Status)}.
+
 
