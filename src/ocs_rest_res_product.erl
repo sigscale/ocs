@@ -23,7 +23,7 @@
 
 -export([content_types_accepted/0, content_types_provided/0]).
 
--export([add_product_cat_mgmt/1, add_product_InvMgmt/1]).
+-export([add_product_cat_mgmt/1, add_product_inv_mgmt/1]).
 -export([get_product_cat_mgmt/1, get_products_cat_mgmt/2]).
 -export([on_patch_product_cat_mgmt/3, merge_patch_product_cat_mgmt/3]).
 
@@ -90,7 +90,7 @@ add_product_cat_mgmt1(ProdId, ETag, JsonResponse) ->
 	Headers = [{location, Location}, {etag, etag(ETag)}],
 	{ok, Headers, Body}.
 
--spec add_product_InvMgmt(ReqData) -> Result when
+-spec add_product_inv_mgmt(ReqData) -> Result when
 	ReqData	:: [tuple()],
 	Result	:: {ok, Headers, Body} | {error, Status},
 	Headers	:: [tuple()],
@@ -98,7 +98,7 @@ add_product_cat_mgmt1(ProdId, ETag, JsonResponse) ->
 	Status	:: 400 | 500 .
 %% @doc Respond to `POST /productInventoryManagement/v1/product' and
 %% add a new `product'
-add_product_InvMgmt(ReqData) ->
+add_product_inv_mgmt(ReqData) ->
 	try
 		{struct, Object} = mochijson:decode(ReqData),
 		Headers = [{content_type, "application/json"}],
