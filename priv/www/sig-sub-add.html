@@ -375,10 +375,11 @@
 				on-error="_addSubscriberError">
 		</iron-ajax>
 		<iron-ajax
-				id="getProductsAjax"
+				id="addSubscriberProductsAjax"
 				url="catalogManagement/v1/productOffering"
 				method = "GET"
-				on-response="_getProductsResponse">
+				on-response="_addSubscriberProductsResponse"
+				on-error="_addSubscriberProductsError">
 		</iron-ajax>
 	</template>
 	<script>
@@ -397,7 +398,7 @@
 					}
 				},
 			},
-			_getProductsResponse: function(event) {
+			_addSubscriberProductsResponse: function(event) {
 				var results = event.detail.xhr.response;
 				for (var index in results) {
 					function checkExist(name) {
@@ -407,6 +408,10 @@
 						this.push('products', results[index].name);
 					}
 				}
+			},
+			_addSubscriberProductsError: function(event) {
+				this.$.addSubscriberToastError.text = event.detail.request.xhr.statusText;
+				this.$.addSubscriberToastError.open();
 			},
 			_subscriberAddSubmit: function(event) {
 				var subscriber = new Object();

@@ -9,6 +9,7 @@
 <link rel="import" href="paper-button/paper-button.html">
 <link rel="import" href="paper-input/paper-input.html">
 <link rel="import" href="paper-styles/color.html">
+<link rel="import" href="paper-toast/paper-toast.html">
 <link rel="import" href="iron-pages/iron-pages.html">
 <link rel="import" href="iron-selector/iron-selector.html">
 <link rel="import" href="iron-ajax/iron-ajax.html">
@@ -225,6 +226,19 @@
 				</div>
 				<div id="edit-bal">
 					<div>
+						<paper-dropdown-menu
+								id="updatePro"
+								label="[[i18n.prod]]">
+							<paper-listbox
+									slot="dropdown-content"
+									class="dropdown-content">
+									<template is="dom-repeat" items="[[products]]">
+										<paper-item>
+											{{item}}
+										</paper-item>
+									</template>
+							</paper-listbox>
+						</paper-dropdown-menu>
 						<paper-input id="edit-amount"
 								name="amount"
 								type="number"
@@ -238,7 +252,7 @@
 									class="dropdown-content"
 									selected="0">
 								<paper-item value="octets">
-									<i18n-msg msgid="octet">
+									<i18n-msg msgid="bytes">
 											bytes
 									</i18n-msg>
 								</paper-item>
@@ -254,15 +268,6 @@
 								</paper-item>
 							</paper-listbox>
 						</paper-dropdown-menu>
-						<paper-input id="updatePro"
-								name="product"
-								label="[[i18n.prod]]">
-						</paper-input>
-						<paper-tooltip>
-							<i18n-msg msgid="balTooltip">
-									Credit value, against which accounting will debit usage against.
-							</i18n-msg>
-						</paper-tooltip>
 					</div>
 					<div class="buttons">
 						<paper-button dialog-dismiss
@@ -292,6 +297,9 @@
 					</div>
 				</div>
 			</iron-pages>
+			<paper-toast
+					id="updateSubscriberToastError">
+			</paper-toast>
 		</paper-dialog>
 		<iron-ajax id="updateSubscriberAuthenticationAjax"
 				on-response="_updateSubscriberAuthenticationResponse"
@@ -311,6 +319,13 @@
 				on-response="_updateSubscriberBalanceResponse"
 				on-error="_updateSubscriberBalanceError">
 		</iron-ajax>
+		<iron-ajax
+				id="updateSubscriberProductsAjax"
+				url="catalogManagement/v1/productOffering"
+				method = "GET"
+				on-response="_updateSubscriberProductsResponse"
+				on-error="_updateSubscriberProductsError">
+		</iron-ajax>
 	</template>
 	<script>
 		Polymer ({
@@ -320,7 +335,28 @@
 				selected: {
 					type: Number,
 					value: 0
+				},
+				products: {
+					type: Array,
+					value: function() {
+						return [];
+					}
+				},
+			},
+			_updateSubscriberProductsResponse: function(event) {
+				var results = event.detail.xhr.response;
+				for (var index in results) {
+					function checkExist(name) {
+						return name == results[index].name;
+					}
+					if(!this.products.some(checkExist)){
+						this.push('products', results[index].name);
+					}
 				}
+			},
+			_updateSubscriberProductsError: function (event) {
+				this.$.updateSubscriberToastError.text = event.detail.request.xhr.statusText;
+				this.$.updateSubscriberToastError.open();
 			},
 			updateSubscriberAuthentication: function(event) {
 				var editAjax =  this.$.updateSubscriberAuthenticationAjax;
