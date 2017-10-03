@@ -85,7 +85,8 @@
 		bucket_type :: octets | cents | seconds,
 		start_date :: pos_integer(),
 		termination_date :: pos_integer(),
-		remain_amount :: #remain_amount{}}).
+		remain_amount :: #remain_amount{}},
+		last_modified :: tuple() | '_'}).
 
 -record(product_instance,
 		{product :: string(),

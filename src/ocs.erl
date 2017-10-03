@@ -316,12 +316,14 @@ add_subscriber(undefined, Password, Product, Buckets, Attributes, EnabledStatus,
 										[] ->
 											TS = erlang:system_time(?MILLISECOND),
 											N = erlang:unique_integer([positive]),
+											NewBuckets = [#bucket{last_modified = {TS, N}}
+													|| B <- Buckets],
 											P = #product_instance{start_date = SD,
 													termination_date = TD, status = Status,
 													product = Product, last_modified = {TS, N}},
 											S = #subscriber{name = Identity,
 													password = Password, attributes = Attributes,
-													buckets = Buckets, enabled = EnabledStatus,
+													buckets = NewBuckets, enabled = EnabledStatus,
 													multisession = MultiSession, product = P,
 													last_modified = {TS, N}},
 											ok = mnesia:write(S),
@@ -349,10 +351,11 @@ add_subscriber(Identity, Password, Product, Buckets, Attributes, EnabledStatus, 
 					[#product{start_date = SD, termination_date = TD, status = Status }] ->
 						TS = erlang:system_time(?MILLISECOND),
 						N = erlang:unique_integer([positive]),
+						NewBuckets = [#bucket{last_modified = {TS, N}} || B <- Buckets],
 						P = #product_instance{start_date = SD, termination_date = TD,
 								status = Status, product = Product, last_modified = {TS, N}},
 						S = #subscriber{name = Identity, password = Password,
-								attributes = Attributes, buckets = Buckets, product = P,
+								attributes = Attributes, buckets = NewBuckets, product = P,
 								enabled = EnabledStatus, multisession = MultiSession,
 								last_modified = {TS, N}},
 						ok = mnesia:write(S),
@@ -515,9 +518,12 @@ update_attributes(Identity, Buckets, Attributes, EnabledStatus, MultiSession)
 	F = fun() ->
 				case mnesia:read(subscriber, Identity, write) of
 					[Entry] ->
+						TS = erlang:system_time(?MILLISECOND),
+						N = erlang:unique_integer([positive]),
+						NewBuckets = [#bucket{last_modified = {TS, N}} || B <- Buckets],
 						NewEntry = Entry#subscriber{attributes = Attributes,
-							buckets = Buckets, enabled = EnabledStatus,
-							multisession = MultiSession},
+							buckets = NewBuckets, enabled = EnabledStatus,
+							multisession = MultiSession, last_modified = {TS, N}},
 						mnesia:write(subscriber, NewEntry, write);
 					[] ->
 						throw(not_found)
