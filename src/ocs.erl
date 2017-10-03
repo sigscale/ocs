@@ -379,7 +379,7 @@ add_subscriber(undefined, Password, Product, Buckets, Attributes, EnabledStatus,
 										[] ->
 											TS = erlang:system_time(?MILLISECOND),
 											N = erlang:unique_integer([positive]),
-											NewBuckets = [#bucket{last_modified = {TS, N}}
+											NewBuckets = [B#bucket{last_modified = {TS, N}}
 													|| B <- Buckets],
 											P = #product_instance{start_date = SD,
 													termination_date = TD, status = Status,
@@ -414,7 +414,7 @@ add_subscriber(Identity, Password, Product, Buckets, Attributes, EnabledStatus, 
 					[#product{start_date = SD, termination_date = TD, status = Status }] ->
 						TS = erlang:system_time(?MILLISECOND),
 						N = erlang:unique_integer([positive]),
-						NewBuckets = [#bucket{last_modified = {TS, N}} || B <- Buckets],
+						NewBuckets = [B#bucket{last_modified = {TS, N}} || B <- Buckets],
 						P = #product_instance{start_date = SD, termination_date = TD,
 								status = Status, product = Product, last_modified = {TS, N}},
 						S = #subscriber{name = Identity, password = Password,
@@ -583,7 +583,7 @@ update_attributes(Identity, Buckets, Attributes, EnabledStatus, MultiSession)
 					[Entry] ->
 						TS = erlang:system_time(?MILLISECOND),
 						N = erlang:unique_integer([positive]),
-						NewBuckets = [#bucket{last_modified = {TS, N}} || B <- Buckets],
+						NewBuckets = [B#bucket{last_modified = {TS, N}} || B <- Buckets],
 						NewEntry = Entry#subscriber{attributes = Attributes,
 							buckets = NewBuckets, enabled = EnabledStatus,
 							multisession = MultiSession, last_modified = {TS, N}},
@@ -614,7 +614,7 @@ add_product(Product) ->
 		N = erlang:unique_integer([positive]),
 		Entry = Product#product{last_modified = {TS, N}},
 		mnesia:write(product, Entry, write),
-		LM
+		{TS, N}
 	end,
 	case mnesia:transaction(F) of
 		{atomic, LastModified} ->
@@ -821,7 +821,7 @@ add_user(Username, Password, Language) when is_list(Username),
 					case mod_auth:add_group_member(Group, Username,
 							Address, Port, Dir) of
 						true ->
-							{ok, LastModified};
+							{ok, {TS, N}};
 						{error, Reason} ->
 							{error, Reason}
 					end;
