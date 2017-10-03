@@ -359,6 +359,10 @@
     "description": "Tooltip message for enable", 
     "message": "Temporarily enable, or disable, authorization for service."
   },
+	"multiTool": {
+    "description": "Tooltip message for multisession", 
+    "message": "Allow multiple simultaneous sessions."
+  },
 	"subscriberAdded": {
     "description": "Toast message for success",
     "message": "Subscriber added"
