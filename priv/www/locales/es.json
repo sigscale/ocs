@@ -367,6 +367,10 @@
     "description": "Tooltip message for enable",            
     "message": "Activar o desactivar temporalmente la autorización de servicio"
   },
+	"multiTool": {
+    "description": "Tooltip message for multisession", 
+    "message": "Permitir varias sesiones simultáneas."
+  },
 	"subscriberAdded": {
     "description": "Toast message for success",
     "message": "Suscriptor añadido"
