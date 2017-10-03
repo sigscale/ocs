@@ -266,7 +266,7 @@
 					</div>
 					<div class="buttons">
 						<paper-button dialog-dismiss
-								onclick="subUpdateModal.close()"
+								onclick="updateSubscriberModal.close()"
 								class="cancel-btn">
 							<i18n-msg msgid="cancel">
 									Cancel
@@ -274,7 +274,7 @@
 						</paper-button>
 						<paper-button dialog-confirm
 								autofocus
-								on-click="updateSubBal"
+								on-click="updateSubscriberBalance"
 								class="update-buttons">
 							<i18n-msg msgid="add">
 									Add
@@ -302,14 +302,14 @@
 				on-error="_updateSubscriberAuthorizationError">
 		</iron-ajax>
 		<iron-ajax id="deleteSubscriberAjax"
-				handle-as="json"
 				on-response="_deleteSubscriberResponse"
 				on-error="_deleteSubscriberError">
 		</iron-ajax>
-		<iron-ajax id="updateSubBal"
+		<iron-ajax id="updateSubscriberBalance"
 				content-type="application/json-patch+json"
 				method="PATCH"
-				on-response="updateSubBalResponse">
+				on-response="_updateSubscriberBalanceResponse"
+				on-error="_updateSubscriberBalanceError">
 		</iron-ajax>
 	</template>
 	<script>
@@ -340,8 +340,12 @@
 				this.$.updateSubscriberNewPassword.value = "";
 				document.getElementById("subscriberGrid").clearCache();
 			},
-			updateSubBal: function(event) {
-				var editAjax =  document.getElementById("updateSubBal");
+			_updateSubscriberAuthenticationError: function(event) {
+				this.$.updateSubscriberToastError.text = event.detail.request.xhr.statusText;
+				this.$.updateSubscriberToastError.open();
+			},
+			updateSubscriberBalance: function(event) {
+				var editAjax =  document.getElementById("updateSubscriberBalance");
 				var id = this.$.updateSubscriberId.value;
 				editAjax.url = "/ocs/v1/subscriber/" + id;
 				var sub = new Object();
@@ -354,11 +358,11 @@
 				editAjax.body = JSON.stringify([sub]);
 				editAjax.generateRequest();
 			},
-			updateSubBalResponse: function (event) {
+			_updateSubscriberBalanceResponse: function (event) {
 				document.getElementById("updateSubscriberToastSuccess").open();
 				document.getElementById("getSubscriberAjax").generateRequest();
 			},
-			_updateSubscriberAuthenticationError: function(event) {
+			_updateSubscriberBalanceError: function(event) {
 				this.$.updateSubscriberToastError.text = event.detail.request.xhr.statusText;
 				this.$.updateSubscriberToastError.open();
 			},
