@@ -7,40 +7,40 @@
 <link rel="import" href="iron-ajax/iron-ajax.html">
 
 <dom-module id="sig-access-list">
-	<style>
-		::-webkit-input-placeholder { /* Chrome/Opera/Safari */
-			color: initial;
-			font-weight: bold;
-		}
-		::-moz-placeholder { /* Firefox 19+ */
-			color: initial;
-			font-weight: bold;
-		}
-		:-ms-input-placeholder { /* IE 10+ */
-			color: initial;
-			font-weight: bold;
-		}
-		:-moz-placeholder { /* Firefox 18- */
-			color: initial;
-			font-weight: bold;
-		}
-		vaadin-grid {
-			height: 100%;
-			--vaadin-grid-header-cell: {
-				background: #ffb04c;
-			};
-		}
-		vaadin-grid input {
-			font-size: inherit;
-			background: #ffb04c;
-			border-style: none;
-		}
-		.yellow-button {
-			text-transform: none;
-			color: #eeff41;
-		}
-	</style>
 	<template>
+		<style>
+			::-webkit-input-placeholder { /* Chrome/Opera/Safari */
+				color: initial;
+				font-weight: bold;
+			}
+			::-moz-placeholder { /* Firefox 19+ */
+				color: initial;
+				font-weight: bold;
+			}
+			:-ms-input-placeholder { /* IE 10+ */
+				color: initial;
+				font-weight: bold;
+			}
+			:-moz-placeholder { /* Firefox 18- */
+				color: initial;
+				font-weight: bold;
+			}
+			vaadin-grid {
+				height: 100%;
+				--vaadin-grid-header-cell: {
+					background: #ffb04c;
+				};
+			}
+			vaadin-grid input {
+				font-size: inherit;
+				background: #ffb04c;
+				border-style: none;
+			}
+			.yellow-button {
+				text-transform: none;
+				color: #eeff41;
+			}
+		</style>
 		<vaadin-grid id="accessGrid" >
 			<vaadin-grid-column width="24ex">
 				<template class="header">

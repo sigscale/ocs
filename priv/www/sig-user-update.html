@@ -16,35 +16,35 @@
 <link rel="import" href="paper-checkbox/paper-checkbox.html">
 
 <dom-module id="sig-user-update">
-	<style is="custom-style">
-		paper-dialog {
-			overflow: auto;
-		}
-		paper-toolbar {
-			margin-top: 0px;
-			color: white;
-			background-color: #bc5100;
-		}
-		paper-input {
-         --paper-input-container-focus-color: var(--paper-yellow-900);
-      }
-		paper-item {
-			padding-right: 10px;
-		}
-		.add-button {
-			background-color: var(--paper-lime-a700);
-			color: black;
-			width: 8em;
-		}
-		.delete-buttons {
-         background: #EF5350;
-         color: black;
-      }
-		.cancel-button {
-			color: black;
-		}
-	</style>
 	<template>
+		<style is="custom-style">
+			paper-dialog {
+				overflow: auto;
+			}
+			paper-toolbar {
+				margin-top: 0px;
+				color: white;
+				background-color: #bc5100;
+			}
+			paper-input {
+	         --paper-input-container-focus-color: var(--paper-yellow-900);
+	      }
+			paper-item {
+				padding-right: 10px;
+			}
+			.add-button {
+				background-color: var(--paper-lime-a700);
+				color: black;
+				width: 8em;
+			}
+			.delete-buttons {
+	         background: #EF5350;
+	         color: black;
+	      }
+			.cancel-button {
+				color: black;
+			}
+		</style>
 		<paper-dialog id="updateUserModal" modal>
 			<paper-toolbar>
 				<h2>[[i18n.updateUserTitle]]</h2>

@@ -10,50 +10,50 @@
 <link rel="import" href="paper-styles/color.html">
 
 <dom-module id="sig-product-list">
-	<style>
-		::-webkit-input-placeholder { /* Chrome/Opera/Safari */
-			color: initial;
-			font-weight: bold;
-		}
-		::-moz-placeholder { /* Firefox 19+ */
-			color: initial;
-			font-weight: bold;
-		}
-		:-ms-input-placeholder { /* IE 10+ */
-			color: initial;
-			font-weight: bold;
-		}
-		:-moz-placeholder { /* Firefox 18- */
-			color: initial;
-			font-weight: bold;
-		}
-		.add-button {
-			right: 2%;
-			position: fixed;
-			bottom: 5%;
-			z-index: 100;
-		}
-		paper-fab {
-			background: var(--paper-lime-a700);
-			color: black;
-		}
-		vaadin-grid {
-			height: 100%;
-			--vaadin-grid-header-cell: {
-				background: #ffb04c;
-			};
-		}
-		vaadin-grid input {
-			font-size: inherit;
-			background: #ffb04c;
-			border-style: none;
-		}
-		.yellow-button {
-			text-transform: none;
-			color: #eeff41;
-		}
-	</style>
 	<template>
+		<style>
+			::-webkit-input-placeholder { /* Chrome/Opera/Safari */
+				color: initial;
+				font-weight: bold;
+			}
+			::-moz-placeholder { /* Firefox 19+ */
+				color: initial;
+				font-weight: bold;
+			}
+			:-ms-input-placeholder { /* IE 10+ */
+				color: initial;
+				font-weight: bold;
+			}
+			:-moz-placeholder { /* Firefox 18- */
+				color: initial;
+				font-weight: bold;
+			}
+			.add-button {
+				right: 2%;
+				position: fixed;
+				bottom: 5%;
+				z-index: 100;
+			}
+			paper-fab {
+				background: var(--paper-lime-a700);
+				color: black;
+			}
+			vaadin-grid {
+				height: 100%;
+				--vaadin-grid-header-cell: {
+					background: #ffb04c;
+				};
+			}
+			vaadin-grid input {
+				font-size: inherit;
+				background: #ffb04c;
+				border-style: none;
+			}
+			.yellow-button {
+				text-transform: none;
+				color: #eeff41;
+			}
+		</style>
 		<vaadin-grid id="productGrid" active-item="{{activeItem}}">
 			<vaadin-grid-column width="15ex" flex-grow="5">
 				<template class="header">
