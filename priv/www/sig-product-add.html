@@ -348,6 +348,7 @@
 								label="[[i18n.alter]]"
 								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
 							<paper-listbox
+									id="addPriceAlteration"
 									slot="dropdown-content"
 									class="dropdown-content">
 									<template is="dom-repeat" items="[[alterations]]">
@@ -706,6 +707,7 @@
 					this.$.addPriceAmount.value = null;
 					this.$.addPriceCurrency.value = null;
 					this.$.addPricePeriod.selected = null;
+					this.$.addPriceAlteration.selected = null;
 				} else {
 					this.addOrUpdateButton = "update";
 					this.$.addPriceDesc.value = this.prices[indexPrice].description;
@@ -750,7 +752,13 @@
 							this.$.addPricePeriod.selected = 3;
 							break;
 					}
-					// this.$.addPriceAlteration.value = this.prices[indexPrice].alteration;
+					var altName = this.prices[indexPrice].alteration;
+					if(altName) {
+						function checkAltName(alt) {
+							return alt.name == altName;
+						}
+						this.$.addPriceAlteration.selected = this.alterations.findIndex(checkAltName);
+					}
 				}
 			},
 			updateAltsDialog: function() {
@@ -1113,11 +1121,13 @@
 					case 3:
 						priceNew.period = "yearly";
 				}
-				function checkAlt(alts) {
-					return alts.name == document.getElementById("addPriceDrop").value;
+				if(this.$.addPriceDrop.value) {
+					function checkAlt(alts) {
+						return alts.name == document.getElementById("addPriceDrop").value;
+					}
+					var altIndex = this.alterations.findIndex(checkAlt);
+					priceNew.alteration = this.alterations[altIndex].name;
 				}
-				var altIndex = this.alterations.findIndex(checkAlt);
-				priceNew.alterations = this.alterations[altIndex];
 				if(priceNew.name
 						&& priceNew.type
 						&& priceNew.unit
@@ -1139,6 +1149,7 @@
 					this.$.addPriceAmount.value = null;
 					this.$.addPriceCurrency.value = null;
 					this.$.addPricePeriod.selected = null;
+					this.$.addPriceAlteration.selected = null;
 					document.getElementById("addProductToastSuccess").open();
 				} else {
 					this.$.addProductToastError.text = "Validation failed";
