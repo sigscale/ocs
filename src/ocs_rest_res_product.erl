@@ -599,18 +599,18 @@ prod_vf(#product{} = Product) ->
 
 -spec prod_price_name(Price) -> Result
 	when
-		Price :: [tuple()] | #product{},
+		Price :: [tuple()] | #price{},
 		Result	:: string() | tuple().
 %% @private
 prod_price_name(Price) when is_list(Price) ->
 	{_, Name} = lists:keyfind("name", 1, Price),
 	Name;
-prod_price_name(#product{} = Price) ->
+prod_price_name(#price{} = Price) ->
 	{"name", Price#price.name}.
 
 -spec prod_price_description(Price) -> Result
 	when
-		Price :: [tuple()] | #product{},
+		Price :: [tuple()] | #price{},
 		Result	:: undefined | string() | tuple().
 %% @private
 prod_price_description(Price) when is_list(Price) ->
@@ -667,7 +667,7 @@ valid_for1(P) ->
 
 -spec prod_price_type(Price) -> Result
 	when
-		Price :: [tuple()] | #product{},
+		Price :: [tuple()] | #price{},
 		Result	:: atom() | tuple().
 %% @private
 prod_price_type(Price) when is_list(Price) ->
