@@ -22,7 +22,7 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
-		get_clients/1, get_client/2, post_client/1,
+		get_clients/2, get_client/2, post_client/1,
 		patch_client/4, delete_client/1]).
 
 -include_lib("radius/include/radius.hrl").
@@ -42,156 +42,78 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json"].
 
--spec get_clients(Query) -> Result
+-spec get_clients(Query, Headers) -> Result
 	when
 		Query :: [{Key :: string(), Value :: string()}],
+		Headers :: [tuple()],
 		Result ::{ok, Headers :: [tuple()],
 				Body :: iolist()} | {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/client'
 %% requests.
-get_clients(Query) ->
-	case ocs:get_clients() of
-		{error, _} ->
-			{error, 500};
-		Clients ->
-			case lists:keytake("fields", 1, Query) of
-				{value, {_, L}, NewQuery} ->
-					get_clients(Clients, NewQuery, string:tokens(L, ","));
-				false ->
-					get_clients(Clients, Query, [])
-			end
+get_clients(Query, Headers) ->
+	case lists:keytake("fields", 1, Query) of
+		{value, {_, Filters}, NewQuery} ->
+			get_clients1(NewQuery, Filters, Headers);
+		false ->
+			get_clients1(Query, [], Headers)
 	end.
 %% @hidden
-get_clients(Clients, Query, Filters) ->
-	try
-		case lists:keytake("sort", 1, Query) of
-			{value, {_, "id"}, NewQuery} ->
-				{lists:keysort(#client.address, Clients), NewQuery};
-			{value, {_, "-id"}, NewQuery} ->
-				{lists:reverse(lists:keysort(#client.address, Clients)), NewQuery};
-			{value, {_, "identifier"}, NewQuery} ->
-				{lists:keysort(#client.identifier, Clients), NewQuery};
-			{value, {_, "-identifier"}, NewQuery} ->
-				{lists:reverse(lists:keysort(#client.identifier, Clients)), NewQuery};
-			{value, {_, "port"}, NewQuery} ->
-				{lists:keysort(#client.port, Clients), NewQuery};
-			{value, {_, "-port"}, NewQuery} ->
-				{lists:reverse(lists:keysort(#client.port, Clients)), NewQuery};
-			{value, {_, "protocol"}, NewQuery} ->
-				{lists:keysort(#client.protocol, Clients), NewQuery};
-			{value, {_, "-protocol"}, NewQuery} ->
-				{lists:reverse(lists:keysort(#client.protocol, Clients)), NewQuery};
-			{value, {_, "secret"}, NewQuery} ->
-				{lists:keysort(#client.secret, Clients), NewQuery};
-			{value, {_, "-secret"}, NewQuery} ->
-				{lists:reverse(lists:keysort(#client.secret, Clients)), NewQuery};
-			false ->
-				{Clients, Query};
-			_ ->
-				throw(400)
-		end
-	of
-		{SortedClients, NextQuery} ->
-			get_clients1(SortedClients, NextQuery, Filters)
-	catch
-		throw:400 ->
-			{error, 400}
+get_clients1(Query, Filters, Headers) ->
+	case {lists:keyfind("if-match", 1, Headers),
+			lists:keyfind("if-range", 1, Headers),
+			lists:keyfind("range", 1, Headers)} of
+		{{"if-match", Etag}, false, {"range", Range}} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					{error, 412};
+				PageServer ->
+					case ocs_rest:range(Range) of
+						{error, _} ->
+							{error, 400};
+						{ok, {Start, End}} ->
+							query_page(PageServer, Etag, Query, Filters, Start, End)
+					end
+			end;
+		{{"if-match", Etag}, false, false} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					{error, 412};
+				PageServer ->
+					{ok, MaxItems} = application:get_env(ocs, rest_page_size),
+					query_page(PageServer, Etag, Query, Filters, 1, MaxItems)
+			end;
+		{false, {"if-range", Etag}, {"range", Range}} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					case ocs_rest:range(Range) of
+						{error, _} ->
+							{error, 400};
+						{ok, {Start, End}} ->
+							query_start(Query, Filters, Start, End)
+					end;
+				PageServer ->
+					case ocs_rest:range(Range) of
+						{error, _} ->
+							{error, 400};
+						{ok, {Start, End}} ->
+							query_page(PageServer, Etag, Query, Filters, Start, End)
+					end
+			end;
+		{{"if-match", _}, {"if-range", _}, _} ->
+			{error, 400};
+		{_, {"if-range", _}, false} ->
+			{error, 400};
+		{false, false, {"range", Range}} ->
+			case ocs_rest:range(Range) of
+				{error, _} ->
+					{error, 400};
+				{ok, {Start, End}} ->
+					query_start(Query, Filters, Start, End)
+			end;
+		{false, false, false} ->
+			{ok, MaxItems} = application:get_env(ocs, rest_page_size),
+			query_start(Query, Filters, 1, MaxItems)
 	end.
-%% @hidden
-get_clients1(Clients, Query, Filters) ->
-	{Address, Query1} = case lists:keytake("id", 1, Query) of
-		{value, {_, V1}, Q1} ->
-			{V1, Q1};
-		false ->
-			{[], Query}
-	end,
-	{Identifier, Query2} = case lists:keytake("identifier", 1, Query1) of
-		{value, {_, V2}, Q2} ->
-			{V2, Q2};
-		false ->
-			{[], Query1}
-	end,
-	{Port, Query3} = case lists:keytake("port", 1, Query2) of
-		{value, {_, V3}, Q3} ->
-			{V3, Q3};
-		false ->
-			{[], Query2}
-	end,
-	{Protocol, Query4} = case lists:keytake("protocol", 1, Query3) of
-		{value, {_, V4}, Q4} ->
-			{V4, Q4};
-		false ->
-			{[], Query3}
-	end,
-	{Secret, Query5} = case lists:keytake("secret", 1, Query4) of
-		{value, {_, V5}, Q5} ->
-			{V5, Q5};
-		false ->
-			{[], Query4}
-	end,
-	get_clients2(Clients, Address, Identifier, Port, Protocol, Secret, Query5, Filters).
-%% @hidden
-get_clients2(Clients, Address, Identifier, Port, Protocol, Secret, [] = _Query, Filters) ->
-	F = fun(#client{address = A, identifier = I, port = P1,
-				protocol = P2, secret = S1}) ->
-			Id = inet:ntoa(A),
-			T1 = lists:prefix(Address, Id),
-			T2 = lists:prefix(Identifier, binary_to_list(I)),
-			T3 = lists:prefix(Port, integer_to_list(P1)),
-			Proto = string:to_upper(atom_to_list(P2)),
-			T4 = lists:prefix(string:to_upper(Protocol), Proto),
-			S2 = binary_to_list(S1),
-			T5 = lists:prefix(Secret, S2),
-			if
-				T1 and T2 and T3 and T4 and T5 ->
-					RespObj1 = [{"id", Id}, {"href", "/ocs/v1/client/" ++ Id}],
-					RespObj2 = case I == <<>> orelse Filters /= [] 
-							andalso not lists:member("identifier", Filters) of
-						true ->
-							[];
-						false ->
-							[{"identifier", binary_to_list(I)}]
-					end,
-					RespObj3 = case Filters == []
-							orelse lists:member("port", Filters) of
-						true ->
-							[{"port", P1}];
-						false ->
-							[]
-					end,
-					RespObj4 = case Filters == []
-							orelse lists:member("protocol", Filters) of
-						true ->
-							[{"protocol", Proto}];
-						false ->
-							[]
-					end,
-					RespObj5 = case Filters == []
-							orelse lists:member("secret", Filters) of
-						true ->
-							[{"secret", S2}];
-						false ->
-							[]
-					end,
-					{true, {struct, RespObj1 ++ RespObj2
-							++ RespObj3 ++ RespObj4 ++ RespObj5}};
-				true ->
-					false
-			end
-	end,
-	try
-		JsonObj = lists:filtermap(F, Clients),
-		Size = integer_to_list(length(JsonObj)),
-		ContentRange = "items 1-" ++ Size ++ "/" ++ Size,
-		Body = mochijson:encode({array, lists:reverse(JsonObj)}),
-		{ok, [{content_type, "application/json"},
-				{content_range, ContentRange}], Body}
-	catch
-		_:_Reason ->
-			{error, 500}
-	end;
-get_clients2(_, _, _, _, _, _, _, _) ->
-	{error, 400}.
 
 -spec get_client(Id, Query) -> Result
 	when
@@ -468,4 +390,88 @@ etag(V) when is_list(V) ->
 etag(V) when is_tuple(V) ->
 	{TS, N} = V,
 	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
+
+%% @hidden
+query_start(Query, Filters, RangeStart, RangeEnd) ->
+	Address =  proplists:get_value("id", Query),
+	Identifier = proplists:get_value("identifier", Query),
+	Port =  proplists:get_value("port", Query),
+	Protocol =  proplists:get_value("protocol", Query),
+	Secret = proplists:get_value("secret", Query),
+	case supervisor:start_child(ocs_rest_pagination_sup,
+				[[ocs, query_clients, [Address, Identifier, Port, Protocol, Secret]]]) of
+		{ok, PageServer, Etag} ->
+			query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
+		{error, _} ->
+			{error, 500}
+	end.
+
+query_page(PageServer, Etag, Query, Filters, Start, End) ->
+	case gen_server:call(PageServer, {Start, End}) of
+		{error, Status} ->
+			{error, Status};
+		{Events, ContentRange} ->
+			try
+				case lists:keytake("sort", 1, Query) of
+					{value, {_, "address"}, Q1} ->
+						{lists:keysort(#client.address, Events), Q1};
+					{value, {_, "-address"}, Q1} ->
+						{lists:reverse(lists:keysort(#client.address, Events)), Q1};
+					{value, {_, "identifier"}, Q1} ->
+						{lists:keysort(#client.identifier, Events), Q1};
+					{value, {_, "-identifier"}, Q1} ->
+						{lists:reverse(lists:keysort(#client.identifier, Events)), Q1};
+					{value, {_, "port"}, Q1} ->
+						{lists:keysort(#client.port, Events), Q1};
+					{value, {_, "-port"}, Q1} ->
+						{lists:reverse(lists:keysort(#client.port, Events)), Q1};
+					{value, {_, "protocol"}, Q1} ->
+						{lists:keysort(#client.protocol, Events), Q1};
+					{value, {_, "-protocol"}, Q1} ->
+						{lists:reverse(lists:keysort(#client.protocol, Events)), Q1};
+					{value, {_, "secret"}, Q1} ->
+						{lists:keysort(#client.secret, Events), Q1};
+					{value, {_, "-secret"}, Q1} ->
+						{lists:reverse(lists:keysort(#client.secret, Events)), Q1};
+					false ->
+						{Events, Query};
+					_ ->
+						throw(400)
+				end
+			of
+				{SortedEvents, _NewQuery} ->
+					JsonObj = query_page1(lists:map(fun client_json/1, SortedEvents), Filters, []),
+					JsonArray = {array, JsonObj},
+					Body = mochijson:encode(JsonArray),
+					Headers = [{content_type, "application/json"},
+							{etag, Etag}, {accept_ranges, "items"},
+							{content_range, ContentRange}],
+					{ok, Headers, Body}
+			catch
+				throw:{error, Status} ->
+					{error, Status}
+			end
+	end.
+%% @hidden
+query_page1([], _, Acc) ->
+	lists:reverse(Acc);
+query_page1(Json, [], Acc) ->
+	lists:reverse(Json ++ Acc);
+query_page1([H | T], Filters, Acc) ->
+	query_page1(T, Filters, [ocs_rest:filter(Filters, H) | Acc]).
+
+client_json(#client{address = Addr, identifier = Id,
+		port = Port, protocol = Proto, secret = Secret}) ->
+	Address = inet:ntoa(Addr),
+	Obj1 = [{"id", Address}, {"href", "/ocs/v1/client/" ++ Address}],
+	Obj2 = case Id of
+		<<>> ->
+			[];
+		_ ->
+			[{"identifier", binary_to_list(Id)}]
+	end,
+	Obj3 = [{"port", Port}],
+	Obj4 = [{"protocol", Proto}],
+	Obj5 = [{"secret", Secret}],
+	{struct, Obj1 ++ Obj2 ++ Obj3 ++ Obj4 ++ Obj5}.
 
