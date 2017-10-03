@@ -374,7 +374,7 @@ add_subscriber(undefined, Password, Product, Buckets, Attributes, EnabledStatus,
 					[#product{start_date = SD, termination_date = TD, status = Status }] ->
 						F1 = fun(_, _, 0) ->
 									mnesia:abort(retries);
-								(F, Identity, N) ->
+								(F, Identity, I) ->
 									case mnesia:read(subscriber, Identity, read) of
 										[] ->
 											TS = erlang:system_time(?MILLISECOND),
@@ -392,7 +392,7 @@ add_subscriber(undefined, Password, Product, Buckets, Attributes, EnabledStatus,
 											ok = mnesia:write(S),
 											S;
 										[_] ->
-											F(F, list_to_binary(generate_identity()), N - 1)
+											F(F, list_to_binary(generate_identity()), I - 1)
 									end
 						end,
 						F1(F1, list_to_binary(generate_identity()), 5);
