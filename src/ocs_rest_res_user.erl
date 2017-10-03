@@ -403,7 +403,7 @@ etag(V) when is_tuple(V) ->
 process_json_patch(Ops, ID) ->
 	process_json_patch1(ocs_rest:parse(Ops), ID, []).
 %% @hidden
-process_json_patch1([{add, ["characteristic" | _], {struct, Obj}} | T], ID, Acc) ->
+process_json_patch1([{replace, ["characteristic" | _], {struct, Obj}} | T], ID, Acc) ->
 	case lists:keyfind("name", 1, Obj) of
 		{_, "locale"} ->
 			{_, Locale} = lists:keyfind("value", 1, Obj),
@@ -411,7 +411,7 @@ process_json_patch1([{add, ["characteristic" | _], {struct, Obj}} | T], ID, Acc)
 		false ->
 			{error, 400}
 	end;
-process_json_patch1([{replace, ["characteristic" | _], {struct, Obj}} | T], ID, Acc) ->
+process_json_patch1([{add, ["characteristic" | _], {struct, Obj}} | T], ID, Acc) ->
 	case lists:keyfind("name", 1, Obj) of
 		{_, "password"} ->
 			{_, Password} = lists:keyfind("value", 1, Obj),
@@ -419,6 +419,8 @@ process_json_patch1([{replace, ["characteristic" | _], {struct, Obj}} | T], ID, 
 		false ->
 			{error, 400}
 	end;
+process_json_patch1([{_, _, _} | _], _, _) ->
+	{error, 422};
 process_json_patch1([], ID, Acc) ->
 	case ocs:get_user(ID) of
 		{ok, #httpd_user{password = OPassword, user_data = UserData}} ->
