@@ -14,37 +14,37 @@
 <link rel="import" href="iron-ajax/iron-ajax.html">
 
 <dom-module id="sig-sub-update">
-	<style is="custom-style">
-		paper-dialog {
-			overflow: auto;
-		}
-		paper-toolbar {
-			margin-top: 0px;
-			background-color: #bc5100;
-		}
-		paper-input {
-			--paper-input-container-focus-color: var(--paper-yellow-900);
-		}
-		.toggle {
-			display:inline-block;
-		}
-		.update-buttons {
-			background: var(--paper-lime-a700);
-			color: black;
-		}
-		.delete-buttons {
-			background: #EF5350;
-			color: black;
-		}
-		.cancel-btn {
-			color: black;
-		}
-		paper-toggle-button {
-			--paper-toggle-button-checked-bar-color: #ffb04c;
-			--paper-toggle-button-checked-button-color: var(--paper-yellow-900);
-		}
-	</style>
 	<template>
+		<style is="custom-style">
+			paper-dialog {
+				overflow: auto;
+			}
+			paper-toolbar {
+				margin-top: 0px;
+				background-color: #bc5100;
+			}
+			paper-input {
+				--paper-input-container-focus-color: var(--paper-yellow-900);
+			}
+			.toggle {
+				display:inline-block;
+			}
+			.update-buttons {
+				background: var(--paper-lime-a700);
+				color: black;
+			}
+			.delete-buttons {
+				background: #EF5350;
+				color: black;
+			}
+			.cancel-btn {
+				color: black;
+			}
+			paper-toggle-button {
+				--paper-toggle-button-checked-bar-color: #ffb04c;
+				--paper-toggle-button-checked-button-color: var(--paper-yellow-900);
+			}
+		</style>
 		<paper-dialog id="updateSubscriberModal" modal>
 			<paper-toolbar>
 				<paper-tabs selected="{{selected}}">

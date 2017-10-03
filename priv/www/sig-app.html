@@ -40,53 +40,53 @@
 <link rel="import" href="sig-product-update.html">
 
 <dom-module id="sig-app">
-	<style is="custom-style">
-		:root {
-			@apply(--paper-font-common-base);
-		}
-		app-header-layout {
-		}
-		app-header {
-			color: #fff;
-		}
-		app-toolbar {
-			background: var(--paper-yellow-900);
-		}
-		app-drawer {
-			--app-drawer-content-container: {
-				padding-top: 10px;
-			};
-			height: 100%;
-			top: 64px;
-		}
-		paper-progress {
-			display: block;
-			width: 100%;
-			--paper-progress-active-color: var(--paper-lime-a700);
-			--paper-progress-container-color: transparent;
-		}
-		iron-pages {
-			height: 100%;
-		}
-		iron-icon {
-			padding-right: 10px;
-		}
-		.icon-style {
-			min-height: 10px;
-		}
-		.add-button {
-			background-color: var(--paper-lime-a700);
-			color: black;
-			width: 8em;
-		}
-		.cancel-button {
-			color: black;
-		}
-		.sublist paper-icon-item {
-			padding-left: 30px;
-		}
-	</style>
 	<template>
+		<style is="custom-style">
+			:root {
+				@apply(--paper-font-common-base);
+			}
+			app-header-layout {
+			}
+			app-header {
+				color: #fff;
+			}
+			app-toolbar {
+				background: var(--paper-yellow-900);
+			}
+			app-drawer {
+				--app-drawer-content-container: {
+					padding-top: 10px;
+				};
+				height: 100%;
+				top: 64px;
+			}
+			paper-progress {
+				display: block;
+				width: 100%;
+				--paper-progress-active-color: var(--paper-lime-a700);
+				--paper-progress-container-color: transparent;
+			}
+			iron-pages {
+				height: 100%;
+			}
+			iron-icon {
+				padding-right: 10px;
+			}
+			.icon-style {
+				min-height: 10px;
+			}
+			.add-button {
+				background-color: var(--paper-lime-a700);
+				color: black;
+				width: 8em;
+			}
+			.cancel-button {
+				color: black;
+			}
+			.sublist paper-icon-item {
+				padding-left: 30px;
+			}
+		</style>
 		<app-header-layout fullbleed>
 			<app-header>
 				<app-toolbar>

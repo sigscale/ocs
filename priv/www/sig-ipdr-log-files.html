@@ -9,27 +9,27 @@
 <link rel="import" href="iron-icon/iron-icon.html">
 
 <dom-module id="sig-ipdr-log-files">
-	<style is="custom-style">
-		paper-dialog {
-			width: 60%;
-			overflow: auto;
-		}
-		paper-toolbar {
-			margin-top: 0px;
-			background-color: #bc5100;
-		}
-		.cancel-button {
-			color: black;
-		}
-		iron-list {
-			height: 40vh;
-		}
-		.item {
-			cursor: pointer;
-			padding: 5px;
-		}
-	</style>
 	<template>
+		<style is="custom-style">
+			paper-dialog {
+				width: 60%;
+				overflow: auto;
+			}
+			paper-toolbar {
+				margin-top: 0px;
+				background-color: #bc5100;
+			}
+			.cancel-button {
+				color: black;
+			}
+			iron-list {
+				height: 40vh;
+			}
+			.item {
+				cursor: pointer;
+				padding: 5px;
+			}
+		</style>
 		<paper-dialog id="selectLogFileModal" modal>
 			<paper-toolbar>
 				<h2>Select Log File</h2>
