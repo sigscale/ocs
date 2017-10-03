@@ -224,7 +224,17 @@ delete_client(Client) when is_tuple(Client) ->
 			exit(Reason)
 	end.
 
-query_clients(Cont, Address, Identifier, Port, Protocol, Secret) ->
+-spec query_clients(Cont, Address, Identifier, Port, Protocol, Secret) -> Result
+	when
+		Cont :: start | eof | any(),
+		Address :: undefined | string(),
+		Identifier :: undefined | string(),
+		Port :: undefined | string(),
+		Protocol :: undefined | string(),
+		Secret :: undefined | string(),
+		Result :: {Cont, [#client{}]} | {error, Reason},
+		Reason :: term().
+query_clients(start, Address, Identifier, Port, Protocol, Secret) ->
 	MatchSpec = [{'_', [], ['$_']}],
 	F = fun() ->
 		mnesia:select(client, MatchSpec, read)
