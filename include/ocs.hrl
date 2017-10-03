@@ -92,7 +92,8 @@
 		start_date :: pos_integer(),
 		termination_date :: pos_integer(),
 		status :: atom(),
-		product_characteristics :: list()}).
+		product_characteristics :: list(),
+		last_modified :: tuple() | '_'}).
 
 %% define subscriber table entries record
 -record(subscriber,
