@@ -1,20 +1,45 @@
 # ocs
 
+## Prerequisites
+	Install erlang(>17)
+	$ sudo apt install erlang
+
+	Install radierl
+	Download current <VERSION> of sigscale-release suitsbale for your distribution (<DIST>) to install radierl
+	$ wget https://repo.sigscale.org/pool/main/s/sigscale-release/sigscale-release_1.0-<VERSION>+<DIST>_all.deb
+	$ dpkg -i sigscale-release_1.0-<VERSION>+<DIST>_all.deb
+	$ sudo apt update
+	$ sudo apt install radierl
+
+	Install bower via npm
+	$ curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
+	$ sudo apt-get install -y nodejs
+	$ npm install -g bower
+
+	Install mochiweb
+	$ git clone https://github.com/mochi/mochiweb.git
+	$ cd mochiweb
+	$ make all
+	$ VERSION=`grep vsn ebin/mochiweb.app | cut -d'"' -f 2`
+	$ mv ../mochiweb{,-$VERSION}
+	$ cd ..
+	$ sudo mv mochiweb-$VERSION /usr/lib/erlang/lib
+
 ## Building
-	1. mkdir ../ocs.build     (create build directory)
-	2. cd ../ocs.build        (change working directory for build)
-	3. ../ocs/configure       (creates Makefiles)
-	4. make                      (builds entire package)
-	5. make check                (run dialyzer and common_test)
+	$ mkdir ../ocs.build     (create build directory)
+	$ cd ../ocs.build        (change working directory for build)
+	$ ../ocs/configure       (creates Makefiles)
+	$ make                      (builds entire package)
+	$ make check                (run dialyzer and common_test)
 
 ## Installing
-	1. sudo make install         (installs embedded application in system)
+	$ sudo make install         (installs embedded application in system)
 
 ## Cleaning
-	1. make clean                (removes files created with make)
-	2. make distclean            (removes files created with configure also)
+	$ make clean                (removes files created with make)
+	$ make distclean            (removes files created with configure also)
 
 ## Options
-	../ocs/configure --enable-debug
-	../ocs/configure --with-ssl=/opt/local
+	$ ../ocs/configure --enable-debug
+	$ ../ocs/configure --with-ssl=/opt/local
 
