@@ -616,13 +616,13 @@ http_query2(Chunks, DateTime, Host, User, Method, URI, HTTPStatus) when is_list(
 	http_query2(Chunks, DateTime, Host, User, Method, URI, list_to_integer(HTTPStatus));
 http_query2(Chunks, DateTime, Host, User, Method, URI, HTTPStatus) ->
 	F = fun(#event{httpStatus = HS}) when HS =:= HTTPStatus -> true; (_) -> false end,
-	http_query3(lists:filetermap(F, Chunks), DateTime, Host, User, Method, URI).
+	http_query3(lists:filtermap(F, Chunks), DateTime, Host, User, Method, URI).
 %% @hidden
 http_query3(Chunks, DateTime, Host, User, Method, '_') ->
 	http_query4(Chunks, DateTime, Host, User, Method);
 http_query3(Chunks, DateTime, Host, User, Method, URI) ->
 	F = fun(#event{uri = U}) -> lists:prefix(URI, U) end,
-	http_query4(lists:filetermap(F, Chunks), DateTime, Host, User, Method).
+	http_query4(lists:filtermap(F, Chunks), DateTime, Host, User, Method).
 %% @hidden
 http_query4(Chunks, DateTime, Host, User, '_') ->
 	http_query5(Chunks, DateTime, Host, User);
