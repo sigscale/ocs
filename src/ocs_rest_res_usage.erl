@@ -211,6 +211,7 @@ get_usage(Id, [] = _Query, _Headers) ->
 %% @doc Body producing function for
 %% 	`GET /usageManagement/v1/usageSpecification'
 %% 	requests.
+%% @todo http transfer usage spec
 get_usagespec([] = _Query) ->
 	RespHeaders = [{content_type, "application/json"}],
 	Body = mochijson:encode({array, [spec_aaa_auth(),
@@ -234,6 +235,9 @@ get_usagespec(Query) ->
 			{ok, RespHeaders, Body};
 		{_, {_, "PublicWLANAccessUsageSpec"}, _} ->
 			{error, 400};
+		{_, {_, "HTTPTransferUsageSpec"}, []} ->
+			Body = mochijson:encode({array, [spec_http_transfer()]}),
+			{ok, RespHeaders, Body};
 		false ->
 			{error, 404};
 		_ ->
@@ -249,6 +253,7 @@ get_usagespec(Query) ->
 %% @doc Body producing function for
 %% 	`GET /usageManagement/v1/usageSpecification/{id}'
 %% 	requests.
+%% @todo http transfer usage spec
 get_usagespec("AAAAccessUsageSpec", [] = _Query) ->
 	RespHeaders = [{content_type, "application/json"}],
 	Body = mochijson:encode(spec_aaa_auth()),
@@ -267,6 +272,10 @@ get_usagespec("PublicWLANAccessUsageSpec", [] = _Query) ->
 	{ok, RespHeaders, Body};
 get_usagespec("PublicWLANAccessUsageSpec", _Query) ->
 	{error, 400};
+get_usagespec("HTTPTransferUsageSpec", [] = _Query) ->
+	RespHeaders = [{content_type, "application/json"}],
+	Body = mochijson:encode(spec_http_transfer()),
+	{ok, RespHeaders, Body};
 get_usagespec(_Id, _Query) ->
 	{error, 404}.
 
@@ -683,6 +692,19 @@ spec_aaa_acct() ->
 			spec_attr_cause(), spec_attr_multisession_id(),
 			spec_attr_link_count(), spec_attr_nas_port_type(),
 			spec_attr_port_limit()],
+	Char = {"usageSpecCharacteristic", {array, Chars}},
+	{struct, [ID, Href, Name, Desc, Valid, Char]}.
+
+%% @hidden
+spec_http_transfer() ->
+	ID = {"id", "HTTPTransferUsageSpec"},
+	Href = {"href", "/usageManagement/v1/usageSpecification/HTTPTransferUsageSpec"},
+	Name = {"name", "HTTPTransferUsageSpec"},
+	Desc = {"description", "Specification for SigScale OCS http requests."},
+	Start = {"startDateTime", "2017-01-01T00:00:00Z"},
+	End = {"endDateTime", "2017-12-31T23:59:59Z"},
+	Valid = {"validFor", {struct, [Start, End]}},
+	Chars = [{struct, [{"todo", "todo"}]}],
 	Char = {"usageSpecCharacteristic", {array, Chars}},
 	{struct, [ID, Href, Name, Desc, Valid, Char]}.
 
