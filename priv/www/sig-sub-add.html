@@ -282,23 +282,23 @@
 							label="[[i18n.amount]]">
 					</paper-input>
 					<paper-dropdown-menu
-							id="adduni9"
 							label="[[i18n.unit]]">
 							<paper-listbox
+								id="adduni9"
 								slot="dropdown-content"
 								class="dropdown-content"
 								selected="0">
-								<paper-item value="octets">
+								<paper-item>
 									<i18n-msg msgid="octet">
  										bytes
                            </i18n-msg>
 								</paper-item>
-								<paper-item value="cents">
+								<paper-item>
 									<i18n-msg msgid="cent">
                               cents
                            </i18n-msg>
 								</paper-item>
-								<paper-item value="seconds">
+								<paper-item>
 									<i18n-msg msgid="second">
                               seconds
                            </i18n-msg>
@@ -459,8 +459,20 @@
 				var buckets = [];
 				if(parseInt(document.getElementById("add8").value)
 						&& parseInt(document.getElementById("add8").value) != null) {
+					var units;
+					switch(document.getElementById("adduni9").selected) {
+						case 0:
+							units = "octets";
+							break;
+						case 1:
+							units = "cents";
+							break;
+						case 2:
+							units = "seconds";
+							break;
+					}
 					buckets.push({"amount": parseInt(document.getElementById("add8").value),
-					"units": document.getElementById("adduni9").value});
+							"units": units});
 					subscriber.buckets = buckets;
 				}
 				subscriber.product = document.getElementById("addpro10").value;
