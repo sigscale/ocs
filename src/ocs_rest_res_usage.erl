@@ -601,6 +601,38 @@ usage_aaa_acct([], _Filters, Acc) ->
 	lists:reverse(Acc).
 
 %% @hidden
+usage_http_transfer({Host, User, DateTime, Method, URI, HttpStatus}, Filters) ->
+	UsageSpec = {struct, [{"id", "HTTPUsageTransferSpec"},
+			{"href", "/usageManagement/v1/usageSpecification/HTTPUsageTransferSpec"},
+			{"name", "HTTPUsageTransferSpec"}]},
+	Type = "HTTPUsageTransfer",
+	Status = "?",
+	ID = "http-",
+	Href = "/usageManagement/v1/usage/" ++ ID,
+	UsageChars = [{struct, [{"name", "datetime"}, {"value", DateTime}]},
+			{struct, [{"name", "host"}, {"value", Host}]},
+			{struct, [{"name", "user"}, {"value", User}]},
+			{struct, [{"name", "method"}, {"value", Method}]},
+			{struct, [{"name", "uri"}, {"value", URI}]},
+			{struct, [{"name", "httpStatus"}, {"value", HttpStatus}]}],
+	Object = {struct, [{"id", ID}, {"href", Href}, {"date", "?"}, {"type", Type},
+			{"status", Status}, {"usageSpecification", UsageSpec},
+			{"usageCharacteristic", {array, UsageChars}}]},
+	if
+		Filters =:= [] ->
+			Object;
+		true ->
+			ocs_rest:filter("id,href," ++ Filters, Object)
+	end;
+usage_http_transfer(Events, Filters) when is_list(Events) ->
+	usage_http_transfer(Events, Filters, []).
+%% @hidden
+usage_http_transfer([H | T], Filters, Acc) ->
+	usage_http_transfer(T, Filters, [usage_http_transfer(H, Filters) | Acc]);
+usage_http_transfer([], _Filters, Acc) ->
+	lists:reverse(Acc).
+
+%% @hidden
 spec_aaa_auth() ->
 	ID = {"id", "AAAAccessUsageSpec"},
 	Href = {"href", "/usageManagement/v1/usageSpecification/AAAAccessUsageSpec"},
@@ -2252,6 +2284,21 @@ query_start(Query, Filters, RangeStart, RangeEnd) ->
 			end;
 		{_, {_, "PublicWLANAccessUsage"}, []} ->
 			{error, 404}; % todo?
+		{_, {_, "HTTPUsageTransfer"}, []} ->
+			DateTime = proplists:get_value("datetime", Query, '_'),
+			Host = proplists:get_value("host", Query, '_'),
+			User = proplists:get_value("user", Query, '_'),
+			URI = proplists:get_value("uri", Query, '_'),
+			Method = proplists:get_value("method", Query, '_'),
+			HTTPStatus = proplists:get_value("httpStatus", Query, '_'),
+			case supervisor:start_child(ocs_rest_pagination_sup,
+					[[ocs_log, http_query,
+					[transfer, DateTime, Host, User, Method, URI, HTTPStatus]]]) of
+				{ok, PageServer, Etag} ->
+					query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
+				{error, _Reason} ->
+					{error, 500}
+			end;
 		{_, {_, _}, []} ->
 			{error, 404};
 		{_, {_, _}, _} ->
@@ -2269,6 +2316,8 @@ query_page(PageServer, Etag, Query, Filters, Start, End) ->
 			query_page1(PageServer, Etag, fun usage_aaa_acct/2, Filters, Start, End);
 		{_, {_, "PublicWLANAccessUsage"}, []} ->
 			{error, 404}; % todo?
+		{_, {_, "HTTPUsageTransfer"}, []} ->
+			query_page1(PageServer, Etag, fun usage_http_transfer/2, Filters, Start, End);
 		{_, {_, _}, []} ->
 			{error, 404};
 		{_, {_, _}, _} ->
@@ -2305,6 +2354,8 @@ get_last(Query, Filters) ->
 			get_last1(ocs_acct, fun usage_aaa_acct/2, Filters);
 		{_, {_, "PublicWLANAccessUsage"}, []} ->
 			{error, 404}; % todo?
+		{_, {_, "HTPPUsage"}, []} ->
+			get_last1(ocs_acct, fun usage_http_transfer/2, Filters);
 		{_, {_, _}, []} ->
 			{error, 404};
 		false ->
