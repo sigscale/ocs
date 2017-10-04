@@ -26,7 +26,7 @@
 -export([add_product_offering/1, add_product_inventory/1]).
 -export([get_product_offering/1, get_product_offerings/2]).
 -export([on_patch_product_offering/3, merge_patch_product_offering/3]).
--export([get_catalog/2]).
+-export([get_catalog/2, get_catalogs/1]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
@@ -240,6 +240,22 @@ get_catalog("1", [] =  _Query) ->
 get_catalog(_Id,  [] = _Query) ->
 	{error, 404};
 get_catalog(_Id, _Query) ->
+	{error, 400}.
+
+-spec get_catalogs(Query) -> Result when
+	Query :: [{Key :: string(), Value :: string()}],
+	Result	:: {ok, Headers, Body} | {error, Status},
+	Headers	:: [tuple()],
+	Body		:: iolist(),
+	Status	:: 400 | 404 | 500 .
+%% @doc Respond to `GET /catalogManagement/v1/catalog'.
+%% 	Retrieve all catalogs .
+get_catalogs([] =  _Query) ->
+	Headers = [{content_type, "application/json"}],
+	Object = {array, [product_catalog()]},
+	Body = mochijson:encode(Object),
+	{ok, Headers, Body};
+get_catalogs(_Query) ->
 	{error, 400}.
 
 -spec on_patch_product_offering(ProdId, Etag, ReqData) -> Result
