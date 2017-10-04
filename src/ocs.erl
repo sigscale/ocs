@@ -262,7 +262,7 @@ query_clients1(Clients, Address, Identifier, Port, Protocol, Secret) ->
 					false
 			end
 	end,
-	FilteredClients = lists:filtermap(Fun, Clients),
+	FilteredClients = lists:filter(Fun, Clients),
 	query_clients2(FilteredClients, Address, Identifier, Port, Protocol).
 %% @hidden
 query_clients2(Clients, Address, Identifier, Port, undefined) ->
@@ -273,14 +273,14 @@ query_clients2(Clients, Address, Identifier, Port, Protocol) ->
 				P2 = string:to_upper(atom_to_list(P)),
 				lists:prefix(P1, P2)
 	end,
-	FilteredClients = lists:filtermap(Fun, Clients),
+	FilteredClients = lists:filter(Fun, Clients),
 	query_clients3(FilteredClients, Address, Identifier, Port).
 %% @hidden
 query_clients3(Clients, Address, Identifier, undefined) ->
 	query_clients4(Clients, Address, Identifier);
 query_clients3(Clients, Address, Identifier, Port) ->
 	Fun = fun(#client{port = P}) -> lists:prefix(Port, integer_to_list(P)) end,
-	FilteredClients = lists:filtermap(Fun, Clients),
+	FilteredClients = lists:filter(Fun, Clients),
 	query_clients4(FilteredClients, Address, Identifier).
 %% @hidden
 query_clients4(Clients, Address, undefined) ->
@@ -296,14 +296,14 @@ query_clients4(Clients, Address, Identifier) ->
 					false
 			end
 	end,
-	FilteredClients = lists:filtermap(Fun, Clients),
+	FilteredClients = lists:filter(Fun, Clients),
 	query_clients4(FilteredClients, Address).
 %% @hidden
 query_clients4(Clients, undefined) ->
 	{eof, Clients};
 query_clients4(Clients, Address) ->
 	Fun = fun(#client{address = A}) -> lists:prefix(Address, inet:ntoa(A)) end,
-	{eof, lists:filtermap(Fun, Clients)}.
+	{eof, lists:filter(Fun, Clients)}.
 
 -spec add_subscriber(Identity, Password, Product) -> Result
 	when
@@ -942,7 +942,7 @@ query_users1(Users, Id, Locale) ->
 			(_) ->
 				false
 	end,
-	case lists:filtermap(F, Users) of
+	case lists:filter(F, Users) of
 		[] ->
 			{error, not_found};
 		FilteredUsers ->
@@ -957,11 +957,10 @@ query_users2(Users, Locale) ->
 					{_, Locale} -> true;
 					_ -> false
 				end;
-
 			(_) ->
 					false
 	end,
-	{eof, lists:filtermap(F2, Users)}.
+	{eof, lists:filter(F2, Users)}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
