@@ -283,6 +283,7 @@
 			},
 			_activeItemChanged: function(item) {
 				if (item != null){
+					document.getElementById("updateSubscriberProductsAjax").generateRequest();
 					this.$.subscriberGrid.selectedItems = item ? [item] : [];
 					document.getElementById("updateSubscriberModal").open();
 					document.getElementById("updateSubscriberId").value = item.id;
@@ -345,7 +346,6 @@
 			},
 			showAddModal: function(event) {
 				document.getElementById("addSubscriberProductsAjax").generateRequest();
-				document.getElementById("updateSubscriberProductsAjax").generateRequest();
 				document.getElementById("addSubscriberModal").open();
 			}
 		});
