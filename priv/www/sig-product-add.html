@@ -887,7 +887,6 @@
 								out.unitOfMeasure = item.size;
 							}
 						} else if(item.unit == "c"){
-							//out.unitOfMeasure = item.size + "c";
 							out.unitOfMeasure = item.amount + "c";
 						} else if(item.unit == "s") {
 							var n = Number(s);
@@ -1138,7 +1137,7 @@
 				if(priceNew.name
 						&& priceNew.type
 						&& priceNew.unit
-						&& priceNew.size
+						&& (priceNew.size || priceNew.unit== "c")
 						&& priceNew.amount) {
 					if (indexPrice == -1) {
 						this.push('prices', priceNew);
@@ -1218,7 +1217,7 @@
 				if(altNew.name
 						&& altNew.type
 						&& altNew.unit
-						&& altNew.size
+						&& (altNew.size || altNew.unit== "c")
 						&& (altNew.amount || altNew.amount == 0)) {
 					if (indexAlt == -1) {
 						this.push('alterations', altNew);
