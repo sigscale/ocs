@@ -604,7 +604,6 @@ http_query1({error, Reason}, _, _, _, _, _, _, _, _) ->
 http_query1(eof, _Log, DateTime, Host, User, Method, URI, HTTPStatus, PrevChunk) ->
 	http_query2(lists:flatten(PrevChunk), DateTime, Host, User, Method, URI, HTTPStatus);
 http_query1({Cont, Chunk}, Log, DateTime, Host, User, Method, URI, HTTPStatus, PrevChunk) ->
-erlang:display({?MODULE, ?LINE, Chunk}),
 	ParseChunk = lists:map(fun http_parse/1, Chunk),
 	CurrentChunk = [ParseChunk | PrevChunk],
 	http_query1(disk_log:chunk(Log, Cont), Log, DateTime,
