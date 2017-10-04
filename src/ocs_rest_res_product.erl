@@ -625,7 +625,7 @@ prod_price_description(#price{} = Price) ->
 
 -spec valid_for(P) -> Result
 	when
-		P      :: [tuple()] | #price{} | #product{},
+		P      :: [tuple()] | #price{},
 		Result :: tuple().
 %% @private
 valid_for(P) when is_list(P) ->
@@ -644,8 +644,6 @@ valid_for(P) when is_list(P) ->
 		false ->
 			{undefined, undefined}
 	end;
-valid_for(#product{} = P) ->
-	valid_for1(P#product.valid_for);
 valid_for(#price{} = P) ->
 	valid_for1(P#price.valid_for).
 %% @hidden
