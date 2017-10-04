@@ -3,6 +3,7 @@
 <link rel="import" href="vaadin-grid/vaadin-grid.html">
 <link rel="import" href="vaadin-grid/vaadin-grid-filter.html">
 <link rel="import" href="vaadin-grid/vaadin-grid-sorter.html">
+<link rel="import" href="vaadin-grid/vaadin-grid-column-group.html">
 <link rel="import" href="i18n-msg/i18n-msg-behavior.html">
 <link rel="import" href="iron-ajax/iron-ajax.html">
 <link rel="import" href="paper-fab/paper-fab.html" >
@@ -12,7 +13,7 @@
 
 <dom-module id="sig-sub-list">
 	<template>
-		<style>
+		<style is="custom-style">
 			::-webkit-input-placeholder { /* Chrome/Opera/Safari */
 				color: initial;
 				font-weight: bold;
@@ -44,6 +45,14 @@
 				--vaadin-grid-header-cell: {
 					background: #ffb04c;
 				};
+			}
+			vaadin-grid .grouptitle {
+				text-align: center;
+				border-bottom-style: solid;
+				border-color: var(--paper-yellow-900);
+			}
+			vaadin-grid .cell.numeric{
+				text-align: right;
 			}
 			vaadin-grid input {
 				font-size: inherit;
@@ -84,16 +93,47 @@
             </template>
             <template>[[item.product]]</template>
          </vaadin-grid-column>
-			<vaadin-grid-column width="12ex" flex-grow="2">
+			<vaadin-grid-column-group>
 				<template class="header">
-						<vaadin-grid-sorter path="totalBalance">
-							<vaadin-grid-filter aria-label="[[i18n.balance]]" path="totalBalance" value="[[_filterBalance]]">
-								<input placeholder="[[i18n.balance]]" value="{{_filterBalance::input}}" focus-target>
-							</vaadin-grid-filter>
-						</vaadin-grid-sorter>
+					<div class="grouptitle">Balance</div>
 				</template>
-				<template>[[item.totalBalance]]</template>
-			</vaadin-grid-column>
+				<vaadin-grid-column width="12ex" flex-grow="2">
+					<template class="header">
+							<vaadin-grid-sorter path="cents">
+								<vaadin-grid-filter aria-label="Cents" path="cents" value="[[_filterCents]]">
+									<input placeholder="Cents" value="{{_filterCents::input}}" focus-target>
+								</vaadin-grid-filter>
+							</vaadin-grid-sorter>
+					</template>
+					<template>
+						<div class="cell numeric">[[item.cents]]</div>
+					</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column width="12ex" flex-grow="2">
+					<template class="header">
+							<vaadin-grid-sorter path="totalBalance">
+								<vaadin-grid-filter aria-label="Octets" path="totalBalance" value="[[_filterBalance]]">
+									<input placeholder="Octets" value="{{_filterBalance::input}}" focus-target>
+								</vaadin-grid-filter>
+							</vaadin-grid-sorter>
+					</template>
+					<template>
+						<div class="cell numeric">[[item.totalBalance]]</div>
+					</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column width="12ex" flex-grow="2">
+					<template class="header">
+							<vaadin-grid-sorter path="seconds">
+								<vaadin-grid-filter aria-label="Seconds" path="seconds" value="[[_filterSeconds]]">
+									<input placeholder="Seconds" value="{{_filterSeconds::input}}" focus-target>
+								</vaadin-grid-filter>
+							</vaadin-grid-sorter>
+					</template>
+					<template>
+						<div class="cell numeric">[[item.seconds]]</div>
+					</template>
+				</vaadin-grid-column>
+			</vaadin-grid-column-group>
 			<vaadin-grid-column width="9ex" flex-grow="2">
 				<template class="header">
 					<i18n-msg msgid="asc">
@@ -222,6 +262,12 @@
 							name: "totalBalance"
 						},
 						{
+							name: "cents"
+						},
+						{
+							name: "seconds"
+						},
+						{
 							name: "ascendDataRate"
 						},
 						{
@@ -325,6 +371,20 @@
 					var byteTotal = results[index].totalBalance.find(getBytes);
 					if(byteTotal) {
 						newRecord.totalBalance = byteTotal.amount;
+					}
+					function getCents(balance) {
+						return balance.units == "cents";
+					}
+					var centsTotal = results[index].totalBalance.find(getCents);
+					if(centsTotal) {
+						newRecord.cents = centsTotal.amount;
+					}
+					function getSeconds(balance) {
+						return balance.units == "seconds";
+					}
+					var secondsTotal = results[index].totalBalance.find(getSeconds);
+					if(secondsTotal) {
+						newRecord.seconds = secondsTotal.amount;
 					}
 					results[index].attributes.forEach(
 						function(attrObj) {
