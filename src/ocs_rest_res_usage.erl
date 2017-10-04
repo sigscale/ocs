@@ -602,10 +602,10 @@ usage_aaa_acct([], _Filters, Acc) ->
 
 %% @hidden
 usage_http_transfer({Host, User, DateTime, Method, URI, HttpStatus}, Filters) ->
-	UsageSpec = {struct, [{"id", "HTTPUsageTransferSpec"},
-			{"href", "/usageManagement/v1/usageSpecification/HTTPUsageTransferSpec"},
-			{"name", "HTTPUsageTransferSpec"}]},
-	Type = "HTTPUsageTransfer",
+	UsageSpec = {struct, [{"id", "HTTPTransferUsageSpec"},
+			{"href", "/usageManagement/v1/usageSpecification/HTTPTransferUsageSpec"},
+			{"name", "HTTPTransferUsageSpec"}]},
+	Type = "HTTPTransferUsage",
 	UsageChars = [{struct, [{"name", "host"}, {"value", Host}]},
 			{struct, [{"name", "user"}, {"value", User}]},
 			{struct, [{"name", "method"}, {"value", Method}]},
@@ -2280,7 +2280,7 @@ query_start(Query, Filters, RangeStart, RangeEnd) ->
 			end;
 		{_, {_, "PublicWLANAccessUsage"}, []} ->
 			{error, 404}; % todo?
-		{_, {_, "HTTPUsageTransfer"}, []} ->
+		{_, {_, "HTTPTransferUsage"}, []} ->
 			DateTime = proplists:get_value("datetime", Query, '_'),
 			Host = proplists:get_value("host", Query, '_'),
 			User = proplists:get_value("user", Query, '_'),
@@ -2312,7 +2312,7 @@ query_page(PageServer, Etag, Query, Filters, Start, End) ->
 			query_page1(PageServer, Etag, fun usage_aaa_acct/2, Filters, Start, End);
 		{_, {_, "PublicWLANAccessUsage"}, []} ->
 			{error, 404}; % todo?
-		{_, {_, "HTTPUsageTransfer"}, []} ->
+		{_, {_, "HTTPTransferUsage"}, []} ->
 			query_page1(PageServer, Etag, fun usage_http_transfer/2, Filters, Start, End);
 		{_, {_, _}, []} ->
 			{error, 404};
