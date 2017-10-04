@@ -319,7 +319,13 @@
 					newRecord.id = results[index].id;
 					newRecord.password = results[index].password;
 					newRecord.product = results[index].product;
-					newRecord.balance = results[index].balance;
+					function getBytes(balance) {
+						return balance.units == "octets";
+					}
+					var byteTotal = results[index].totalBalance.find(getBytes);
+					if(byteTotal) {
+						newRecord.totalBalance = byteTotal.amount;
+					}
 					results[index].attributes.forEach(
 						function(attrObj) {
 							newRecord[attrObj.name] = attrObj.value;
