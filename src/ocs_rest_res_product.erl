@@ -27,6 +27,7 @@
 -export([get_product_offering/1, get_product_offerings/2]).
 -export([on_patch_product_offering/3, merge_patch_product_offering/3]).
 -export([get_catalog/2, get_catalogs/1]).
+-export([get_category/2, get_categories/1]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
@@ -256,6 +257,40 @@ get_catalogs([] =  _Query) ->
 	Body = mochijson:encode(Object),
 	{ok, Headers, Body};
 get_catalogs(_Query) ->
+	{error, 400}.
+
+-spec get_category(Id, Query) -> Result when
+	Id :: string(),
+	Query :: [{Key :: string(), Value :: string()}],
+	Result	:: {ok, Headers, Body} | {error, Status},
+	Headers	:: [tuple()],
+	Body		:: iolist(),
+	Status	:: 400 | 404 | 500 .
+%% @doc Respond to `GET /catalogManagement/v1/category/{id}'.
+%% 	Retrieve a category.
+get_category("1", [] =  _Query) ->
+	Headers = [{content_type, "application/json"}],
+	Body = mochijson:encode(prepaid_category()),
+	{ok, Headers, Body};
+get_category(_Id,  [] = _Query) ->
+	{error, 404};
+get_category(_Id, _Query) ->
+	{error, 400}.
+
+-spec get_categories(Query) -> Result when
+	Query :: [{Key :: string(), Value :: string()}],
+	Result	:: {ok, Headers, Body} | {error, Status},
+	Headers	:: [tuple()],
+	Body		:: iolist(),
+	Status	:: 400 | 404 | 500 .
+%% @doc Respond to `GET /catalogManagement/v1/catalog'.
+%% 	Retrieve all catalogs .
+get_categories([] =  _Query) ->
+	Headers = [{content_type, "application/json"}],
+	Object = {array, [prepaid_category()]},
+	Body = mochijson:encode(Object),
+	{ok, Headers, Body};
+get_categories(_Query) ->
 	{error, 400}.
 
 -spec on_patch_product_offering(ProdId, Etag, ReqData) -> Result
