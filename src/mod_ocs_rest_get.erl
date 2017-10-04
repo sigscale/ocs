@@ -135,9 +135,9 @@ do_get(Resource, ModData, ["balanceManagement", "v1", Id, "buckets"], []) ->
 	do_response(ModData, Resource:get_balance(Id));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["catalogManagement", "v1", "productOffering"], Query) ->
-	do_response(ModData, Resource:get_products_cat_mgmt(Query, Headers));
+	do_response(ModData, Resource:get_product_offerings(Query, Headers));
 do_get(Resource, ModData, ["catalogManagement", "v1", "productOffering", Id], []) ->
-	do_response(ModData, Resource:get_product_cat_mgmt(Id));
+	do_response(ModData, Resource:get_product_offering(Id));
 do_get(_, _, _, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{break, [{response, {404, Response}}]}.
