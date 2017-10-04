@@ -33,7 +33,7 @@
 		date/1, iso8601/1, http_query/8]).
 
 %% export the ocs_log event types
--export_type([auth_event/0, acct_event/0]).
+-export_type([auth_event/0, acct_event/0, http_event/0]).
 
 -include("ocs_log.hrl").
 -include_lib("radius/include/radius.hrl").
@@ -575,6 +575,14 @@ auth_close() ->
 		uri :: string() | undefined,
 		httpStatus :: integer() | undefined}).
 
+-type http_event() :: {
+			Host :: string(),
+			User :: string(),
+			DateTime :: string(),
+			Method :: string(),
+			URI :: string(),
+			HttpStatus :: string()}.
+
 -spec http_query(Continuation, LogType, DateTime, Host, User, Method, URI, HTTPStatus) -> Result
 	when
 		Continuation :: start | disk_log:continuation(),
@@ -587,7 +595,7 @@ auth_close() ->
 		HTTPStatus :: '_' | string() | integer(),
 		Result :: {Continuation2, Events} | {error, Reason},
 		Continuation2 :: eof | disk_log:continuation(),
-		Events :: [auth_event()],
+		Events :: [http_event()],
 		Reason :: term().
 %% @doc Query http log events with fileters
 http_query(start, LogType, DateTime, Host, User, Method, URI, HTTPStatus) ->
