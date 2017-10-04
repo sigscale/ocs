@@ -26,6 +26,7 @@
 -export([add_product_offering/1, add_product_inventory/1]).
 -export([get_product_offering/1, get_product_offerings/2]).
 -export([on_patch_product_offering/3, merge_patch_product_offering/3]).
+-export([get_catalog/2]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
@@ -223,6 +224,24 @@ get_product_offerings1(Query, Filters, Headers) ->
 			query_start(Query, Filters, 1, MaxItems)
 	end.
 
+-spec get_catalog(Id, Query) -> Result when
+	Id :: string(),
+	Query :: [{Key :: string(), Value :: string()}],
+	Result	:: {ok, Headers, Body} | {error, Status},
+	Headers	:: [tuple()],
+	Body		:: iolist(),
+	Status	:: 400 | 404 | 500 .
+%% @doc Respond to `GET /catalogManagement/v1/catalog/{id}'.
+%% 	Retrieve a catalog .
+get_catalog("1", [] =  _Query) ->
+	Headers = [{content_type, "application/json"}],
+	Body = mochijson:encode(product_catalog()),
+	{ok, Headers, Body};
+get_catalog(_Id,  [] = _Query) ->
+	{error, 404};
+get_catalog(_Id, _Query) ->
+	{error, 400}.
+
 -spec on_patch_product_offering(ProdId, Etag, ReqData) -> Result
 	when
 		ProdId	:: string(),
@@ -301,6 +320,26 @@ merge_patch_product_offering(ProdId, Etag, ReqData) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+%% @hidden
+product_catalog() ->
+	Type = {"type", "Product Catalog"},
+	Name = {"name", "SigScale OCS"},
+	Status = {"lifecycleStatus", "Active"},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2017-10-04T00:00:00Z"},
+	Category = {"category", {array, [prepaid_category()]}},
+	{struct, [Type, Name, Status, Version, LastUpdate, Category]}.
+
+%% @hidden
+prepaid_category() ->
+	Name = {"name", "Prepaid"},
+	Description = {"description", "Services provided with realtime credit management"},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2017-10-04T00:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	IsRoot = {"isRoot", true},
+	{struct, [Name, Description, Version, Status, LastUpdate, IsRoot]}.
+
 -spec product_offering_price(Product) -> Result
 	when
 		Product	:: [tuple()] | #product{},
