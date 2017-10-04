@@ -2280,7 +2280,7 @@ query_start(Query, Filters, RangeStart, RangeEnd) ->
 			end;
 		{_, {_, "PublicWLANAccessUsage"}, []} ->
 			{error, 404}; % todo?
-		{_, {_, "HTTPTransferUsage"}, []} ->
+		{_, {_, "HTTPTransferUsage"}, _} ->
 			DateTime = proplists:get_value("datetime", Query, '_'),
 			Host = proplists:get_value("host", Query, '_'),
 			User = proplists:get_value("user", Query, '_'),
@@ -2312,7 +2312,7 @@ query_page(PageServer, Etag, Query, Filters, Start, End) ->
 			query_page1(PageServer, Etag, fun usage_aaa_acct/2, Filters, Start, End);
 		{_, {_, "PublicWLANAccessUsage"}, []} ->
 			{error, 404}; % todo?
-		{_, {_, "HTTPTransferUsage"}, []} ->
+		{_, {_, "HTTPTransferUsage"}, _} ->
 			query_page1(PageServer, Etag, fun usage_http_transfer/2, Filters, Start, End);
 		{_, {_, _}, []} ->
 			{error, 404};
