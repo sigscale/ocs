@@ -252,9 +252,15 @@ query_clients(start, Address, Identifier, Port, Protocol, Secret) ->
 query_clients1(Clients, Address, Identifier, Port, Protocol, undefined) ->
 	query_clients2(Clients, Address, Identifier, Port, Protocol);
 query_clients1(Clients, Address, Identifier, Port, Protocol, Secret) ->
+	SecretBin = list_to_binary(Secret),
+	SecretLen = size(SecretBin),
 	Fun = fun(#client{secret = S}) ->
-				LS = binary_to_list(S),
-				lists:prefix(Secret, LS)
+			case S of
+				<<SecretBin:SecretLen/binary, _/binary>> ->
+					true;
+				_ ->
+					false
+			end
 	end,
 	FilteredClients = lists:filtermap(Fun, Clients),
 	query_clients2(FilteredClients, Address, Identifier, Port, Protocol).
@@ -262,8 +268,8 @@ query_clients1(Clients, Address, Identifier, Port, Protocol, Secret) ->
 query_clients2(Clients, Address, Identifier, Port, undefined) ->
 	query_clients3(Clients, Address, Identifier, Port);
 query_clients2(Clients, Address, Identifier, Port, Protocol) ->
+	P1 = string:to_upper(Protocol),
 	Fun = fun(#client{protocol = P}) ->
-				P1 = string:to_upper(Protocol),
 				P2 = string:to_upper(atom_to_list(P)),
 				lists:prefix(P1, P2)
 	end,
