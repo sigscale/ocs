@@ -280,7 +280,16 @@ query_clients3(Clients, Address, Identifier, Port) ->
 query_clients4(Clients, Address, undefined) ->
 	query_clients4(Clients, Address);
 query_clients4(Clients, Address, Identifier) ->
-	Fun = fun(#client{identifier = I}) -> lists:prefix(Identifier, I) end,
+	IdBin = list_to_binary(Identifier),
+	IdLen = size(IdBin),
+	Fun = fun(#client{identifier = I}) ->
+			case I of
+				<<IdBin:IdLen/binary, _/binary>> ->
+					true;
+				_ ->
+					false
+			end
+	end,
 	FilteredClients = lists:filtermap(Fun, Clients),
 	query_clients4(FilteredClients, Address).
 %% @hidden
