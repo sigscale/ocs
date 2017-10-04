@@ -606,16 +606,13 @@ usage_http_transfer({Host, User, DateTime, Method, URI, HttpStatus}, Filters) ->
 			{"href", "/usageManagement/v1/usageSpecification/HTTPUsageTransferSpec"},
 			{"name", "HTTPUsageTransferSpec"}]},
 	Type = "HTTPUsageTransfer",
-	Status = "?",
-	ID = "http-",
-	Href = "/usageManagement/v1/usage/" ++ ID,
 	UsageChars = [{struct, [{"name", "host"}, {"value", Host}]},
 			{struct, [{"name", "user"}, {"value", User}]},
 			{struct, [{"name", "method"}, {"value", Method}]},
 			{struct, [{"name", "uri"}, {"value", URI}]},
 			{struct, [{"name", "httpStatus"}, {"value", HttpStatus}]}],
-	Object = {struct, [{"id", ID}, {"href", Href}, {"date", DateTime}, {"type", Type},
-			{"status", Status}, {"usageSpecification", UsageSpec},
+	Object = {struct, [{"date", DateTime}, {"type", Type},
+			{"usageSpecification", UsageSpec},
 			{"usageCharacteristic", {array, UsageChars}}]},
 	if
 		Filters =:= [] ->
