@@ -23,9 +23,9 @@
 
 -export([content_types_accepted/0, content_types_provided/0]).
 
--export([add_product_cat_mgmt/1, add_product_inv_mgmt/1]).
--export([get_product_cat_mgmt/1, get_products_cat_mgmt/2]).
--export([on_patch_product_cat_mgmt/3, merge_patch_product_cat_mgmt/3]).
+-export([add_product_offering/1, add_product_inventory/1]).
+-export([get_product_offering/1, get_product_offerings/2]).
+-export([on_patch_product_offering/3, merge_patch_product_offering/3]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
@@ -45,15 +45,15 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json"].
 
--spec add_product_cat_mgmt(ReqData) -> Result when
+-spec add_product_offering(ReqData) -> Result when
 	ReqData	:: [tuple()],
 	Result	:: {ok, Headers, Body} | {error, Status},
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 500 .
-%% @doc Respond to `POST /catalogManagement/v1/productOffering' and
-%% add a new `product'
-add_product_cat_mgmt(ReqData) ->
+%% @doc Respond to `POST /catalogManagement/v1/productOffering'.
+%% 	Add a new Product Offering.
+add_product_offering(ReqData) ->
 	try
 		{struct, ObjectMembers} = mochijson:decode(ReqData),
 		Name = prod_name(ObjectMembers),
@@ -72,7 +72,7 @@ add_product_cat_mgmt(ReqData) ->
 					termination_date = TerminationDate, description = Description},
 				case ocs:add_product(Product) of
 					{ok, LM} ->
-						add_product_cat_mgmt1(Name, LM, ObjectMembers);
+						add_product_offering1(Name, LM, ObjectMembers);
 					{error, Reason} ->
 						{error, Reason}
 				end
@@ -82,7 +82,7 @@ add_product_cat_mgmt(ReqData) ->
 			{error, 400}
 	end.
 %% @hidden
-add_product_cat_mgmt1(ProdId, ETag, JsonResponse) ->
+add_product_offering1(ProdId, ETag, JsonResponse) ->
 	Id = {id, ProdId},
 	Json = {struct, [Id | JsonResponse]},
 	Body = mochijson:encode(Json),
@@ -90,15 +90,15 @@ add_product_cat_mgmt1(ProdId, ETag, JsonResponse) ->
 	Headers = [{location, Location}, {etag, etag(ETag)}],
 	{ok, Headers, Body}.
 
--spec add_product_inv_mgmt(ReqData) -> Result when
+-spec add_product_inventory(ReqData) -> Result when
 	ReqData	:: [tuple()],
 	Result	:: {ok, Headers, Body} | {error, Status},
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 500 .
-%% @doc Respond to `POST /productInventoryManagement/v1/product' and
-%% add a new `product'
-add_product_inv_mgmt(ReqData) ->
+%% @doc Respond to `POST /productInventoryManagement/v1/product'.
+%% 	Add a new instance of a Product Offering subscription.
+add_product_inventory(ReqData) ->
 	try
 		{struct, Object} = mochijson:decode(ReqData),
 		Headers = [{content_type, "application/json"}],
@@ -108,25 +108,25 @@ add_product_inv_mgmt(ReqData) ->
 			{error, 400}
 	end.
 
--spec get_product_cat_mgmt(ProdID) -> Result when
+-spec get_product_offering(ProdID) -> Result when
 	ProdID	:: string(),
 	Result	:: {ok, Headers, Body} | {error, Status},
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManagement/v1/productOffering/{id}' and
-%% retrieve a `product' details
-get_product_cat_mgmt(ProductID) ->
+%% @doc Respond to `GET /catalogManagement/v1/productOffering/{id}'.
+%% 	Retrieve a Product Offering.
+get_product_offering(ProductID) ->
 	case ocs:find_product(ProductID) of
 		{ok, Product} ->
-			get_product_cat_mgmt1(Product);
+			get_product_offering1(Product);
 		{error, not_found} ->
 			{error, 404};
 		{error, _} ->
 			{error, 500}
 	end.
 %% @hidden
-get_product_cat_mgmt1(Product) ->
+get_product_offering1(Product) ->
 	Etag = etag(Product#product.last_modified),
 	ID = prod_id(Product),
 	Description = prod_description(Product),
@@ -149,24 +149,24 @@ get_product_cat_mgmt1(Product) ->
 			{ok, Headers, Body}
 	end.
 
--spec get_products_cat_mgmt(Query, Headers) -> Result when
+-spec get_product_offerings(Query, Headers) -> Result when
 	Query :: [{Key :: string(), Value :: string()}],
 	Result	:: {ok, Headers, Body} | {error, Status},
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManagement/v1/productOffering' and
-%% retrieve all `product' details
+%% @doc Respond to `GET /catalogManagement/v1/productOffering'.
+%% 	Retrieve all Product Offerings.
 %% @todo Filtering
-get_products_cat_mgmt(Query, Headers) ->
+get_product_offerings(Query, Headers) ->
 	case lists:keytake("fields", 1, Query) of
 		{value, {_, Filters}, NewQuery} ->
-			get_products_cat_mgmt1(NewQuery, Filters, Headers);
+			get_product_offerings1(NewQuery, Filters, Headers);
 		false ->
-			get_products_cat_mgmt1(Query, [], Headers)
+			get_product_offerings1(Query, [], Headers)
 	end.
 %% @hidden
-get_products_cat_mgmt1(Query, Filters, Headers) ->
+get_product_offerings1(Query, Filters, Headers) ->
 	case {lists:keyfind("if-match", 1, Headers),
 			lists:keyfind("if-range", 1, Headers),
 			lists:keyfind("range", 1, Headers)} of
@@ -223,7 +223,7 @@ get_products_cat_mgmt1(Query, Filters, Headers) ->
 			query_start(Query, Filters, 1, MaxItems)
 	end.
 
--spec on_patch_product_cat_mgmt(ProdId, Etag, ReqData) -> Result
+-spec on_patch_product_offering(ProdId, Etag, ReqData) -> Result
 	when
 		ProdId	:: string(),
 		Etag		:: undefined | list(),
@@ -232,10 +232,10 @@ get_products_cat_mgmt1(Query, Filters, Headers) ->
 		Headers	:: [tuple()],
 		Body		:: iolist(),
 		Status	:: 400 | 500 .
-%% @doc Respond to `PATCH /catalogManagement/v1/productOffering/{id}' and
-%% apply object notation patch for `product'
-%% RFC6902 `https://tools.ietf.org/html/rfc6902'
-on_patch_product_cat_mgmt(ProdId, Etag, ReqData) ->
+%% @doc Respond to `PATCH /catalogManagement/v1/productOffering/{id}'.
+%% 	Update a Product Offering using JSON patch method
+%% 	<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>.
+on_patch_product_offering(ProdId, Etag, ReqData) ->
 	try
 		{array, OpList} = mochijson:decode(ReqData),
 		case exe_jsonpatch_ON(ProdId, Etag, OpList) of
@@ -269,7 +269,7 @@ on_patch_product_cat_mgmt(ProdId, Etag, ReqData) ->
 			{error, 400}
 	end.
 
--spec merge_patch_product_cat_mgmt(ProdId, Etag, ReqData) -> Result
+-spec merge_patch_product_offering(ProdId, Etag, ReqData) -> Result
 	when
 		ProdId	:: string(),
 		Etag		:: undefined | list(),
@@ -278,10 +278,10 @@ on_patch_product_cat_mgmt(ProdId, Etag, ReqData) ->
 		Headers	:: [tuple()],
 		Body		:: iolist(),
 		Status	:: 400 | 500 .
-%% @doc Respond to `PATCH /catalogManagement/v1/productOffering/{id}' and
-%% apply merge patch for `product'
-%% RFC7386 `https://tools.ietf.org/html/rfc7386'
-merge_patch_product_cat_mgmt(ProdId, Etag, ReqData) ->
+%% @doc Respond to `PATCH /catalogManagement/v1/productOffering/{id}'.
+%% 	Update a Product Offering using merge patch method
+%% 	<a href="http://tools.ietf.org/html/rfc7386">RFC7386</a>.
+merge_patch_product_offering(ProdId, Etag, ReqData) ->
 	try
 		Json = mochijson:decode(ReqData),
 		case exe_jsonpatch_merge(ProdId, Etag, Json) of
