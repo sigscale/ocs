@@ -149,7 +149,7 @@ request(timeout, #statedata{protocol = diameter, session_id = SessionID,
 	Server = {ServerAddress, ServerPort},
 	Client= {ClientAddress, ClientPort},
 	case ocs:authorize(Subscriber, Password) of
-		{ok, _Password, _Attr} ->
+		{ok, _, _Attr} ->
 			Answer = #diameter_nas_app_AAA{'Session-Id' = SessionID,
 					'Auth-Application-Id' = AppId, 'Auth-Request-Type' = Type,
 					'Origin-Host' = OHost, 'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
@@ -181,30 +181,30 @@ request1(#statedata{req_attr = Attributes, req_auth = Authenticator,
 	end.
 %% @hidden
 request2(#statedata{subscriber = Subscriber, password = Password} = StateData) ->
-case existing_sessions(Subscriber) of
-	false ->
-		request3(list_to_binary(Password), StateData);
-	{true, false, [ExistingSessionAtt]} ->
-		NewStateData = StateData#statedata{multisession = false},
-		case pg2:get_closest_pid(ocs_radius_acct_port_sup) of
-			{error, Reason} ->
-				request5(Reason, NewStateData);
-			DiscFsmSup ->
-				start_disconnect(DiscFsmSup, ExistingSessionAtt, NewStateData)
-		end;
-	{true, true, _ExistingSessionAtt} ->
-		NewStateData = StateData#statedata{multisession = true},
-		request3(list_to_binary(Password), NewStateData);
-	{error, _Reason} ->
-		request5(not_found, StateData)
-end.
+	case existing_sessions(Subscriber) of
+		false ->
+			request3(list_to_binary(Password), StateData);
+		{true, false, [ExistingSessionAtt]} ->
+			NewStateData = StateData#statedata{multisession = false},
+			case pg2:get_closest_pid(ocs_radius_acct_port_sup) of
+				{error, Reason} ->
+					request5(Reason, NewStateData);
+				DiscFsmSup ->
+					start_disconnect(DiscFsmSup, ExistingSessionAtt, NewStateData)
+			end;
+		{true, true, _ExistingSessionAtt} ->
+			NewStateData = StateData#statedata{multisession = true},
+			request3(list_to_binary(Password), NewStateData);
+		{error, _Reason} ->
+			request5(not_found, StateData)
+	end.
 %% @hidden
 request3(<<>>, #statedata{subscriber = Subscriber} = StateData) ->
 	case ocs:authorize(ocs:normalize(Subscriber), []) of
 		{ok, <<>>, Attributes} ->
 			request4(?AccessAccept, Attributes, StateData);
-		{ok, Password, Attributes} ->
-			VendorSpecific = {?Mikrotik, ?MikrotikWirelessPsk, Password},
+		{ok, PSK, Attributes} when is_binary(PSK) ->
+			VendorSpecific = {?Mikrotik, ?MikrotikWirelessPsk, binary_to_list(PSK)},
 			ResponseAttributes = radius_attributes:store(?VendorSpecific,
 					VendorSpecific, Attributes),
 			request4(?AccessAccept, ResponseAttributes, StateData);
@@ -213,7 +213,7 @@ request3(<<>>, #statedata{subscriber = Subscriber} = StateData) ->
 	end;
 request3(Password, #statedata{subscriber = Subscriber} = StateData) ->
 	case ocs:authorize(Subscriber, Password) of
-		{ok, Password, ResponseAttributes} ->
+		{ok, _, ResponseAttributes} ->
 			request4(?AccessAccept, ResponseAttributes, StateData);
 		{error, Reason} ->
 			request5(Reason, StateData)
