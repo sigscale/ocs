@@ -180,23 +180,23 @@ request1(#statedata{req_attr = Attributes, req_auth = Authenticator,
 	end.
 %% @hidden
 request2(#statedata{subscriber = Subscriber, password = Password} = StateData) ->
-case existing_sessions(Subscriber) of
-	false ->
-		request3(list_to_binary(Password), StateData);
-	{true, false, [ExistingSessionAtt]} ->
-		NewStateData = StateData#statedata{multisession = false},
-		case pg2:get_closest_pid(ocs_radius_acct_port_sup) of
-			{error, Reason} ->
-				request5(Reason, NewStateData);
-			DiscFsmSup ->
-				start_disconnect(DiscFsmSup, ExistingSessionAtt, NewStateData)
-		end;
-	{true, true, _ExistingSessionAtt} ->
-		NewStateData = StateData#statedata{multisession = true},
-		request3(list_to_binary(Password), NewStateData);
-	{error, _Reason} ->
-		request5(not_found, StateData)
-end.
+	case existing_sessions(Subscriber) of
+		false ->
+			request3(list_to_binary(Password), StateData);
+		{true, false, [ExistingSessionAtt]} ->
+			NewStateData = StateData#statedata{multisession = false},
+			case pg2:get_closest_pid(ocs_radius_acct_port_sup) of
+				{error, Reason} ->
+					request5(Reason, NewStateData);
+				DiscFsmSup ->
+					start_disconnect(DiscFsmSup, ExistingSessionAtt, NewStateData)
+			end;
+		{true, true, _ExistingSessionAtt} ->
+			NewStateData = StateData#statedata{multisession = true},
+			request3(list_to_binary(Password), NewStateData);
+		{error, _Reason} ->
+			request5(not_found, StateData)
+	end.
 %% @hidden
 request3(<<>>, #statedata{subscriber = Subscriber} = StateData) ->
 	case ocs:authorize(ocs:normalize(Subscriber), []) of
