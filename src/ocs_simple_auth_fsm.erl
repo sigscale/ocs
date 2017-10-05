@@ -148,7 +148,7 @@ request(timeout, #statedata{protocol = diameter, session_id = SessionID,
 	Server = {ServerAddress, ServerPort},
 	Client= {ClientAddress, ClientPort},
 	case ocs:authorize(Subscriber, Password) of
-		{ok, _Password, _Attr} ->
+		{ok, _, _Attr} ->
 			Answer = #diameter_nas_app_AAA{'Session-Id' = SessionID,
 					'Auth-Application-Id' = AppId, 'Auth-Request-Type' = Type,
 					'Origin-Host' = OHost, 'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
@@ -202,8 +202,8 @@ request3(<<>>, #statedata{subscriber = Subscriber} = StateData) ->
 	case ocs:authorize(ocs:normalize(Subscriber), []) of
 		{ok, <<>>, Attributes} ->
 			request4(?AccessAccept, Attributes, StateData);
-		{ok, Password, Attributes} ->
-			VendorSpecific = {?Mikrotik, ?MikrotikWirelessPsk, Password},
+		{ok, PSK, Attributes} when is_binary(PSK) ->
+			VendorSpecific = {?Mikrotik, ?MikrotikWirelessPsk, binary_to_list(PSK)},
 			ResponseAttributes = radius_attributes:store(?VendorSpecific,
 					VendorSpecific, Attributes),
 			request4(?AccessAccept, ResponseAttributes, StateData);
@@ -212,7 +212,7 @@ request3(<<>>, #statedata{subscriber = Subscriber} = StateData) ->
 	end;
 request3(Password, #statedata{subscriber = Subscriber} = StateData) ->
 	case ocs:authorize(Subscriber, Password) of
-		{ok, Password, ResponseAttributes} ->
+		{ok, _, ResponseAttributes} ->
 			request4(?AccessAccept, ResponseAttributes, StateData);
 		{error, Reason} ->
 			request5(Reason, StateData)
