@@ -424,53 +424,65 @@ merge_patch_product_offering(ProdId, Etag, ReqData) ->
 %%----------------------------------------------------------------------
 %% @hidden
 product_catalog() ->
+	Id = {"id", "1"},
+	Href = {"href", "/catalogManagement/v1/catalog/1"},
 	Type = {"type", "Product Catalog"},
 	Name = {"name", "SigScale OCS"},
 	Status = {"lifecycleStatus", "Active"},
 	Version = {"version", "1.0"},
 	LastUpdate = {"lastUpdate", "2017-10-04T00:00:00Z"},
 	Category = {"category", {array, [prepaid_category()]}},
-	{struct, [Type, Name, Status, Version, LastUpdate, Category]}.
+	{struct, [Id, Href, Type, Name, Status, Version, LastUpdate, Category]}.
 
 %% @hidden
 prepaid_category() ->
+	Id = {"id", "1"},
+	Href = {"href", "/catalogManagement/v1/category/1"},
 	Name = {"name", "Prepaid"},
 	Description = {"description", "Services provided with realtime credit management"},
 	Version = {"version", "1.0"},
 	LastUpdate = {"lastUpdate", "2017-10-04T00:00:00Z"},
 	Status = {"lifecycleStatus", "Active"},
 	IsRoot = {"isRoot", true},
-	{struct, [Name, Description, Version, Status, LastUpdate, IsRoot]}.
+	{struct, [Id, Href, Name, Description, Version, Status, LastUpdate, IsRoot]}.
 
 %% @hidden
 spec_product_network() ->
+	Id = {"id", "1"},
+	Href = {"href", "/catalogManagement/v1/productSpecification/1"},
 	Name = {"name", "NetworkProductSpec"},
 	Description = {"description", "Represents the common behaviour and description of an installed network product that will be provisioned in the network and that enables usages."},
 	Version = {"version", "1.0"},
 	LastUpdate = {"lastUpdate", "2017-10-06T12:00:00Z"},
 	Status = {"lifecycleStatus", "Active"},
-	{struct, [Name, Description, Version, LastUpdate, Status]}.
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status]}.
 
 %% @hidden
 spec_product_fixed_quantity_pkg() ->
+	Id = {"id", "2"},
+	Href = {"href", "/catalogManagement/v1/productSpecification/2"},
 	Name = {"name", "FixedQuantityPackageProductSpec"},
 	Description = {"description", "Defines buckets of usage from which Usages will debit the bucket."},
 	Version = {"version", "1.0"},
 	LastUpdate = {"lastUpdate", "2017-10-06T12:00:00Z"},
 	Status = {"lifecycleStatus", "Active"},
-	{struct, [Name, Description, Version, LastUpdate, Status]}.
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status]}.
 
 %% @hidden
 spec_product_rate_plane() ->
+	Id = {"id", "3"},
+	Href = {"href", "/catalogManagement/v1/productSpecification/3"},
 	Name = {"name", "RatedPlaneProductSpec"},
 	Description = {"description", "Defines criteria to be used to gain special usage tariffs like the period (day, evening) or phone number."},
 	Version = {"version", "1.0"},
 	LastUpdate = {"lastUpdate", "2017-10-06T12:00:00Z"},
 	Status = {"lifecycleStatus", "Active"},
-	{struct, [Name, Description, Version, LastUpdate, Status]}.
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status]}.
 
 %% @hidden
 spec_product_wlan() ->
+	Id = {"id", "4"},
+	Href = {"href", "/catalogManagement/v1/productSpecification/4"},
 	Name = {"name", "WLANProductSpec"},
 	Description = {"description", "Defines characteristics specific to pulic Wi-Fi use."},
 	Version = {"version", "1.0"},
@@ -482,7 +494,7 @@ spec_product_wlan() ->
 	Depend = {struct, [DepId, DepHref, DepType]},
 	Dependency = {"productSpecificationRelationship", {array, [Depend]}},
 	Chars = {"productSpecCharacteristic", {array, characteristic_product_wlan()}},
-	{struct, [Name, Description, Version, LastUpdate, Status, Chars, Dependency]}.
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars, Dependency]}.
 
 %% @hidden
 characteristic_product_wlan() ->
