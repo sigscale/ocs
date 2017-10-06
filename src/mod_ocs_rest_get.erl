@@ -146,6 +146,10 @@ do_get(Resource, ModData, ["catalogManagement", "v1", "category", Id], Query) ->
 	do_response(ModData, Resource:get_category(Id, Query));
 do_get(Resource, ModData, ["catalogManagement", "v1", "category"], Query) ->
 	do_response(ModData, Resource:get_categories(Query));
+do_get(Resource, ModData, ["catalogManagement", "v1", "productSpecification", Id], Query) ->
+	do_response(ModData, Resource:get_product_spec(Id, Query));
+do_get(Resource, ModData, ["catalogManagement", "v1", "productSpecification"], Query) ->
+	do_response(ModData, Resource:get_product_specs(Query));
 do_get(_, _, _, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{break, [{response, {404, Response}}]}.

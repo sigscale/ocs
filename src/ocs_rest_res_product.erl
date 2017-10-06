@@ -28,6 +28,7 @@
 -export([on_patch_product_offering/3, merge_patch_product_offering/3]).
 -export([get_catalog/2, get_catalogs/1]).
 -export([get_category/2, get_categories/1]).
+-export([get_product_spec/2, get_product_specs/1]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
@@ -293,6 +294,56 @@ get_categories([] =  _Query) ->
 get_categories(_Query) ->
 	{error, 400}.
 
+-spec get_product_spec(Id, Query) -> Result when
+	Id :: string(),
+	Query :: [{Key :: string(), Value :: string()}],
+	Result	:: {ok, Headers, Body} | {error, Status},
+	Headers	:: [tuple()],
+	Body		:: iolist(),
+	Status	:: 400 | 404 | 500 .
+%% @doc Respond to `GET /catalogManegment/v1/productSpecification/{id}'.
+%% 	Retrieve a product specification.
+get_product_spec("1", [] = _Query) ->
+	Headers = [{content_type, "application/json"}],
+	Body = mochijson:encode(spec_product_network()),
+	{ok, Headers, Body};
+get_product_spec("2", [] = _Query) ->
+	Headers = [{content_type, "application/json"}],
+	Body = mochijson:encode(spec_product_fixed_quantity_pkg()),
+	{ok, Headers, Body};
+get_product_spec("3", [] = _Query) ->
+	Headers = [{content_type, "application/json"}],
+	Body = mochijson:encode(spec_product_rate_plane()),
+	{ok, Headers, Body};
+get_product_spec("4", [] = _Query) ->
+	Headers = [{content_type, "application/json"}],
+erlang:display({?MODULE, ?LINE, spec_product_wlan()}),
+	Body = mochijson:encode(spec_product_wlan()),
+	{ok, Headers, Body};
+get_product_spec(_Id, [] = _Query) ->
+	{error, 404};
+get_product_spec(_Id, _Query) ->
+	{error, 400}.
+
+-spec get_product_specs(Query) -> Result when
+	Query :: [{Key :: string(), Value :: string()}],
+	Result	:: {ok, Headers, Body} | {error, Status},
+	Headers	:: [tuple()],
+	Body		:: iolist(),
+	Status	:: 400 | 404 | 500 .
+%% @doc Respond to `GET /catalogManegment/v1/productSpecification'.
+%% 	Retrieve all product specifications.
+get_product_specs([] = _Query) ->
+	Headers = [{content_type, "application/json"}],
+	Object = {array, [spec_product_network(),
+					spec_product_fixed_quantity_pkg(),
+					spec_product_rate_plane(),
+					spec_product_wlan()]},
+	Body = mochijson:encode(Object),
+	{ok, Headers, Body};
+get_product_specs(_Query) ->
+	{error, 400}.
+
 -spec on_patch_product_offering(ProdId, Etag, ReqData) -> Result
 	when
 		ProdId	:: string(),
@@ -390,6 +441,62 @@ prepaid_category() ->
 	Status = {"lifecycleStatus", "Active"},
 	IsRoot = {"isRoot", true},
 	{struct, [Name, Description, Version, Status, LastUpdate, IsRoot]}.
+
+%% @hidden
+spec_product_network() ->
+	Name = {"name", "NetworkProductSpec"},
+	Description = {"description", "Represents the common behaviour and description of an installed network product that will be provisioned in the network and that enables usages."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2017-10-06T12:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	{struct, [Name, Description, Version, LastUpdate, Status]}.
+
+%% @hidden
+spec_product_fixed_quantity_pkg() ->
+	Name = {"name", "FixedQuantityPackageProductSpec"},
+	Description = {"description", "Defines buckets of usage from which Usages will debit the bucket."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2017-10-06T12:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	{struct, [Name, Description, Version, LastUpdate, Status]}.
+
+%% @hidden
+spec_product_rate_plane() ->
+	Name = {"name", "RatedPlaneProductSpec"},
+	Description = {"description", "Defines criteria to be used to gain special usage tariffs like the period (day, evening) or phone number."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2017-10-06T12:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	{struct, [Name, Description, Version, LastUpdate, Status]}.
+
+%% @hidden
+spec_product_wlan() ->
+	Name = {"name", "WLANProductSpec"},
+	Description = {"description", "Defines characteristics specific to pulic Wi-Fi use."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2017-10-06T12:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	DepType = {"type", "dependency"},
+	DepId = {"id", "1"},
+	DepHref = {"href", "productCatalogManagement/productSpecification/1"},
+	Depend = {struct, [DepId, DepHref, DepType]},
+	Dependency = {"productSpecificationRelationship", {array, [Depend]}},
+	Chars = {"productSpecCharacteristic", {array, characteristic_product_wlan()}},
+	{struct, [Name, Description, Version, LastUpdate, Status, Chars, Dependency]}.
+
+%% @hidden
+characteristic_product_wlan() ->
+	Name1 = {"name", "subscriberIdentiy"},
+	Description1 = {"description", ""},
+	Type1 = {"valueType", "string"},
+	Value1 = {"productSpecCharacteristicValue", {array, [{struct, [Type1]}]}},
+	Char1 = {struct, [Name1, Description1, Type1, Value1]},
+	Name2 = {"name", "subscriberPassword"},
+	Description2 = {"description", ""},
+	Type2 = {"valueType", "string"},
+	Value2 = {"productSpecCharacteristicValue", {array, [{struct, [Type2]}]}},
+	Char2 = {struct, [Name2, Description2, Type2, Value2]},
+	[Char1, Char2].
 
 -spec product_offering_price(Product) -> Result
 	when
