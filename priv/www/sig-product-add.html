@@ -720,8 +720,8 @@
 			_getProductSpecificationResponse: function(event) {
 				var results = event.detail.xhr.response;
 				for (var index in results) {
-					function checkExist(name) {
-						return name == results[index].name;
+					function checkExist(spec) {
+						return spec.name == results[index].name;
 					}
 					if(!this.productSpec.some(checkExist)){
 						var newSpec = new Object();
@@ -1052,7 +1052,6 @@
 						&& offerNew.productOfferingPrice.length > 0) {
 					var ajax = this.$.addProductAjax;
 					ajax.body = offerNew;
-console.log(ajax.body);
 					ajax.generateRequest();
 				} else {
 					this.$.addProductToastError.text = "Validation failed";
@@ -1113,14 +1112,14 @@ console.log(ajax.body);
 			checkRecureAlt: function() {
 				if(this.$.addAltType.selected == 0) {
 					this.$.addalt5drop.disabled = false;
-					this.$.altBytes.disabled = true;
-					this.$.altSeconds.disabled = true;
+					this.$.altBytes.disabled = false;
+					this.$.altSeconds.disabled = false;
 					this.$.altCents.disabled = false;
 					this.$.addAltUnitDrop.selected = 1;
 				} else if(this.$.addAltType.selected == 1) {
 					this.$.addalt5drop.disabled = true;
-					this.$.altBytes.disabled = true;
-					this.$.altSeconds.disabled = true;
+					this.$.altBytes.disabled = false;
+					this.$.altSeconds.disabled = false;
 					this.$.altCents.disabled = false;
 					this.$.addAltUnitDrop.selected = 1;
 				} else if(this.$.addAltType.selected == 2) {
@@ -1128,7 +1127,6 @@ console.log(ajax.body);
 					this.$.altBytes.disabled = false;
 					this.$.altSeconds.disabled = false;
 					this.$.altCents.disabled = true;
-					this.$.addAltUnitDrop.selected = 0;
 				}
 			},
 			addPrice: function(event) {
@@ -1271,7 +1269,7 @@ console.log(ajax.body);
 				if(altNew.name
 						&& altNew.type
 						&& altNew.unit
-						&& (altNew.size || altNew.unit== "c")
+						&& (altNew.size || altNew.unit == "c")
 						&& (altNew.amount || altNew.amount == 0)) {
 					if (indexAlt == -1) {
 						this.push('alterations', altNew);
