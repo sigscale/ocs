@@ -38,7 +38,6 @@
 -export([authorize/2, normalize/1]).
 
 -export_type([eap_method/0]).
--export([bucket_balance/1]).
 
 -include("ocs.hrl").
 -include_lib("inets/include/mod_auth.hrl").
@@ -1041,8 +1040,14 @@ authorize(Identity, Password) when is_binary(Identity),
 				case mnesia:read(subscriber, Identity, write) of
 					[#subscriber{buckets = Buckets, attributes = Attributes,
 							enabled = Enabled, disconnect = Disconnect} = Entry] ->
-						case bucket_balance(Buckets) of
-							Balance when Balance > 0 ->
+						F2 = fun(#bucket{remain_amount = RM}) when
+											RM#remain_amount.amount > 0 ->
+										true;
+									(_) ->
+										false
+						end,
+						case lists:any(F2, Buckets) of
+							true ->
 								case {Enabled, Disconnect, Entry#subscriber.password} of
 									{true, false, Password} ->
 										{Password, Attributes};
@@ -1065,7 +1070,7 @@ authorize(Identity, Password) when is_binary(Identity),
 									{_, _, _} ->
 										throw(bad_password)
 								end;
-							Balance when Balance =< 0 ->
+							false ->
 								throw(out_of_credit)
 						end;
 					[] ->
@@ -1128,18 +1133,4 @@ get_params() ->
 		false ->
 			exit(not_found)
 	end.
-
--spec bucket_balance(Buckets) ->
-		Balance when
-	Buckets :: [#bucket{}],
-	Balance :: integer().
-%% @doc return oldest availabel amount
-bucket_balance([]) ->
-	0;
-bucket_balance([#bucket{remain_amount = RemAmount} | _]) 
-		when RemAmount#remain_amount.amount > 0 ->
-	RemAmount#remain_amount.amount;
-bucket_balance([#bucket{remain_amount = RemAmount} | Tail])
-		when RemAmount#remain_amount.amount =< 0 ->
-	bucket_balance(Tail).
 
