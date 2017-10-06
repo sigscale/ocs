@@ -272,8 +272,8 @@
 				}
 			},
 			showAddProductModal: function(event) {
-				var modal = document.getElementById("addProductModal");
-				modal.open();
+				document.getElementById("getProductSpecificationAjax").generateRequest();
+				document.getElementById("addProductModal").open();
 			}
 		});
 	</script>

@@ -91,6 +91,21 @@
 						</paper-tooltip>
 					</div>
 					<div>
+						<paper-dropdown-menu
+								label="Product Specification">
+							<paper-listbox
+									id="addOffProductSpecification"
+									slot="dropdown-content"
+									class="dropdown-content">
+								<template is="dom-repeat" items="[[productSpec]]">
+									<paper-item>
+										{{item.sName}}
+									</paper-item>
+								</template>
+							</paper-listbox>
+						</paper-dropdown-menu>
+					</div>
+					<div>
 						<iron-collapse id="addProductStartDatePickOff">
 							<paper-date-picker id="startOff3" date="{{addProductStartDateOfferPick}}">
 							</paper-date-picker>
@@ -590,6 +605,13 @@
 				on-response="_addProductResponse"
 				on-error="_addProductError">
 		</iron-ajax>
+		<iron-ajax
+			id="getProductSpecificationAjax"
+			url="/catalogManagement/v1/productSpecification"
+			method="GET"
+			on-response="_getProductSpecificationResponse"
+			on-error="_getProductSpecificationError">
+		</iron-ajax>
 	</template>
 	<script>
 		Polymer ({
@@ -603,6 +625,12 @@
 					}
 				},
 				prices: {
+					type: Array,
+					value: function() {
+						return [];
+					}
+				},
+				productSpec: {
 					type: Array,
 					value: function() {
 						return [];
@@ -688,6 +716,26 @@
 				if (this.$.addProductEndDatePickAlt.opened) {
 					this.addProductEndDateAlt = moment(date).format('YYYY-MM-DD');
 				}
+			},
+			_getProductSpecificationResponse: function(event) {
+				var results = event.detail.xhr.response;
+				for (var index in results) {
+					function checkExist(name) {
+						return name == results[index].name;
+					}
+					if(!this.productSpec.some(checkExist)){
+						var newSpec = new Object();
+						newSpec.id = results[index].id;
+						newSpec.name = results[index].name;
+						newSpec.sName = newSpec.name.replace("ProductSpec", "");
+						newSpec.href = results[index].href;
+						this.push('productSpec', newSpec);
+					}
+				}
+			},
+			_getProductSpecificationError: function(event) {
+				this.$.addProductToastError.text = event.detail.request.xhr.statusText;
+				this.$.addProductToastError.open();
 			},
 			updatePriceDialog: function() {
 				function checkPriceName(price) {
@@ -828,6 +876,11 @@
 				}
 				if(this.$.addOffDesc.value) {
 					offerNew.description = this.$.addOffDesc.value;
+				}
+				var specIndex = this.$.addOffProductSpecification.selected;
+				if(specIndex) {
+					offerNew.productSpecification = this.productSpec[specIndex];
+					delete offerNew.productSpecification.sName;
 				}
 				var startDateTime;
 				var endDateTime;
@@ -994,9 +1047,12 @@
 					return out;
 				}
 				offerNew.productOfferingPrice = this.prices.map(mapPrice);
-				if(offerNew.name && offerNew.productOfferingPrice.length > 0) {
+				if(offerNew.name
+						&& offerNew.productSpecification
+						&& offerNew.productOfferingPrice.length > 0) {
 					var ajax = this.$.addProductAjax;
 					ajax.body = offerNew;
+console.log(ajax.body);
 					ajax.generateRequest();
 				} else {
 					this.$.addProductToastError.text = "Validation failed";
@@ -1261,9 +1317,11 @@
 			cancelDialog: function() {
 				this.set('prices', []);
 				this.set('alterations', []);
+				this.set('productSpec', []);
 				this.addOrUpdateButton = "add";
 				this.$.addOffName.value = null;
 				this.$.addOffDesc.value = null;
+				this.$.addOffProductSpecification.selected = null;
 				this.$.addOffStart.value = null;
 				this.$.addOffEnd.value = null;
 				this.$.addProductStartDatePickOff.hide()
