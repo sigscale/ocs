@@ -1186,8 +1186,12 @@
 					var altIndex = this.alterations.findIndex(checkAlt);
 					priceNew.alteration = this.alterations[altIndex].name;
 				}
+				function checkExistType(price) {
+					return price.type == priceNew.type;
+				}
 				if(priceNew.name
 						&& priceNew.type
+						&& !this.prices.some(checkExistType)
 						&& priceNew.unit
 						&& (priceNew.size || priceNew.unit== "c")
 						&& priceNew.amount) {
