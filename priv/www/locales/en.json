@@ -615,6 +615,10 @@
     "description": "Success Toast Message",
     "message": "Product updated"
   },
+   "productSpec": {
+    "description": "product specification",
+    "message": "Product Specification"
+  },
    "productDeleted": {
     "description": "Success Toast Message",
     "message": "Product deleted"
