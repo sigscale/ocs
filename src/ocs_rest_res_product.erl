@@ -190,8 +190,7 @@ get_product_offerings1(Query, Filters, Headers) ->
 				undefined ->
 					{error, 412};
 				PageServer ->
-					{ok, MaxItems} = application:get_env(ocs, rest_page_size),
-					query_page(PageServer, Etag, Query, Filters, 1, MaxItems)
+					query_page(PageServer, Etag, Query, Filters, undefined, undefined)
 			end;
 		{false, {"if-range", Etag}, {"range", Range}} ->
 			case global:whereis_name(Etag) of
@@ -222,8 +221,7 @@ get_product_offerings1(Query, Filters, Headers) ->
 					query_start(Query, Filters, Start, End)
 			end;
 		{false, false, false} ->
-			{ok, MaxItems} = application:get_env(ocs, rest_page_size),
-			query_start(Query, Filters, 1, MaxItems)
+			query_start(Query, Filters, undefined, undefined)
 	end.
 
 -spec get_catalog(Id, Query) -> Result when
