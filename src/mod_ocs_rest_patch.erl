@@ -108,10 +108,10 @@ do_patch(ContentType, Body, Resource, ModData, Etag,
 	do_response(ModData, Resource:patch_user(Identity, Etag, ContentType,
 			Body));
 do_patch("application/json-patch+json", Body, Resource, ModData, Etag,
-		["catalogManagement", "v1", "productOffering", ProdId]) ->
+		["catalogManagement", "v2", "productOffering", ProdId]) ->
 	do_response(ModData, Resource:on_patch_product_offering(ProdId, Etag, Body));
 do_patch("application/merge-patch+json", Body, Resource, ModData, Etag,
-		["catalogManagement", "v1", "productOffering", ProdId]) ->
+		["catalogManagement", "v2", "productOffering", ProdId]) ->
 	do_response(ModData, Resource:merge_patch_product_offering(ProdId, Etag, Body));
 do_patch(_, _, _, _, _, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",

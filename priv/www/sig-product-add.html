@@ -598,7 +598,7 @@
 		</paper-dialog>
 		<iron-ajax
 				id="addProductAjax"
-				url="/catalogManagement/v1/productOffering"
+				url="/catalogManagement/v2/productOffering"
 				method = "POST"
 				content-type="application/json"
 				on-loading-changed="_onLoadingChanged"
@@ -607,7 +607,7 @@
 		</iron-ajax>
 		<iron-ajax
 			id="getProductSpecificationAjax"
-			url="/catalogManagement/v1/productSpecification"
+			url="/catalogManagement/v2/productSpecification"
 			method="GET"
 			on-response="_getProductSpecificationResponse"
 			on-error="_getProductSpecificationError">

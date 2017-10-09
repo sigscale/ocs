@@ -1602,7 +1602,7 @@ Content-Length: 0
 	<caption id="op"><b>Add Product</b></caption>
 	<tr id="op">
 		<td id="opl">Resource URI</td>
-		<td id="opr">/catalogManagement/v1/productOffering</td>
+		<td id="opr">/catalogManagement/v2/productOffering</td>
 	</tr>
 	<tr id="op">
 		<td id="opl">Request Methods</td>
@@ -1630,7 +1630,7 @@ Content-Length: 0
 	</tr>
 </table>
 <p>Example request:<pre>
-POST /catalogManagement/v1/productOffering HTTP/1.1
+POST /catalogManagement/v2/productOffering HTTP/1.1
 Accept: application/json
 Content-type: application/json
 Content-length: nn
@@ -1763,7 +1763,7 @@ Etag: mm-m
 	<caption id="op"><b>Retrieve a Product entity</b></caption>
 	<tr id="op">
 		<td id="opl">Resource URI</td>
-		<td id="opr">/catalogManagement/v1/product/{id}</td>
+		<td id="opr">/catalogManagement/v2/product/{id}</td>
 	</tr>
 	<tr id="op">
 		<td id="opl">Request Methods</td>
@@ -1791,7 +1791,7 @@ Etag: mm-m
 	</tr>
 </table>
 <p>Example request:<pre>
-GET /catalogManagement/v1/product/Wi-Fi HTTP/1.1
+GET /catalogManagement/v2/product/Wi-Fi HTTP/1.1
 Accept: application/json
 </pre></p>
 <p>Example response:<pre>
@@ -1863,7 +1863,7 @@ Content-Length: nn
 <caption id="op"><b>Retrieve All Product Enities</b></caption>
 <tr id="op">
 <td id="opl">Resource URI</td>
-		<td id="opr">/catalogManagement/v1/productOffering</td>
+		<td id="opr">/catalogManagement/v2/productOffering</td>
 	</tr>
 	<tr id="op">
 		<td id="opl">Request Methods</td>

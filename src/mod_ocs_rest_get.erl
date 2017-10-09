@@ -134,21 +134,21 @@ do_get(Resource, ModData, ["partyManagement", "v1", "individual", Id], Query) ->
 do_get(Resource, ModData, ["balanceManagement", "v1", Id, "buckets"], []) ->
 	do_response(ModData, Resource:get_balance(Id));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
-		["catalogManagement", "v1", "productOffering"], Query) ->
+		["catalogManagement", "v2", "productOffering"], Query) ->
 	do_response(ModData, Resource:get_product_offerings(Query, Headers));
-do_get(Resource, ModData, ["catalogManagement", "v1", "productOffering", Id], []) ->
+do_get(Resource, ModData, ["catalogManagement", "v2", "productOffering", Id], []) ->
 	do_response(ModData, Resource:get_product_offering(Id));
-do_get(Resource, ModData, ["catalogManagement", "v1", "catalog", Id], Query) ->
+do_get(Resource, ModData, ["catalogManagement", "v2", "catalog", Id], Query) ->
 	do_response(ModData, Resource:get_catalog(Id, Query));
-do_get(Resource, ModData, ["catalogManagement", "v1", "catalog"], Query) ->
+do_get(Resource, ModData, ["catalogManagement", "v2", "catalog"], Query) ->
 	do_response(ModData, Resource:get_catalogs(Query));
-do_get(Resource, ModData, ["catalogManagement", "v1", "category", Id], Query) ->
+do_get(Resource, ModData, ["catalogManagement", "v2", "category", Id], Query) ->
 	do_response(ModData, Resource:get_category(Id, Query));
-do_get(Resource, ModData, ["catalogManagement", "v1", "category"], Query) ->
+do_get(Resource, ModData, ["catalogManagement", "v2", "category"], Query) ->
 	do_response(ModData, Resource:get_categories(Query));
-do_get(Resource, ModData, ["catalogManagement", "v1", "productSpecification", Id], Query) ->
+do_get(Resource, ModData, ["catalogManagement", "v2", "productSpecification", Id], Query) ->
 	do_response(ModData, Resource:get_product_spec(Id, Query));
-do_get(Resource, ModData, ["catalogManagement", "v1", "productSpecification"], Query) ->
+do_get(Resource, ModData, ["catalogManagement", "v2", "productSpecification"], Query) ->
 	do_response(ModData, Resource:get_product_specs(Query));
 do_get(_, _, _, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",

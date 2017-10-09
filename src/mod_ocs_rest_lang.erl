@@ -67,7 +67,7 @@ do(#mod{request_uri = Uri, data = Data} = ModData) ->
 									{proceed, Data};
 								["balanceManagement", "v1" | _] ->
 									{proceed, Data};
-								["catalogManagement", "v1" | _] ->
+								["catalogManagement", "v2" | _] ->
 									{proceed, Data};
 								["productInventoryManagement", "v1" | _] ->
 									{proceed, Data};

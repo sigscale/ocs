@@ -85,13 +85,13 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 							check_content_type_header(Headers, Method, ocs_rest_res_balance, Data);
 						["balanceManagement", "v1", _Id, "buckets"] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_balance, Data);
-						["catalogManagement", "v1", "productOffering" | _] ->
+						["catalogManagement", "v2", "productOffering" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_product, Data);
-						["catalogManagement", "v1", "catalog" | _] ->
+						["catalogManagement", "v2", "catalog" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_product, Data);
-						["catalogManagement", "v1", "category" | _] ->
+						["catalogManagement", "v2", "category" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_product, Data);
-						["catalogManagement", "v1", "productSpecification" | _] ->
+						["catalogManagement", "v2", "productSpecification" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_product, Data);
 						["productInventoryManagement", "v1", "product" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_product, Data);

@@ -186,7 +186,7 @@
 					grid.dataProvider = function(params, callback) {
 						cbProduct = callback;
 						var ajax = document.getElementById('getProductAjax');
-						ajax.url="/catalogManagement/v1/productOffering"
+						ajax.url="/catalogManagement/v2/productOffering"
 						params.filters.forEach(function(filter, index) {
 							if(index == 0) {
 								ajax.url += '?' + filter.path + '=' + filter.value;

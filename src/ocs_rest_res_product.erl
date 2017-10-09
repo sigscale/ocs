@@ -54,7 +54,7 @@ content_types_provided() ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 500 .
-%% @doc Respond to `POST /catalogManagement/v1/productOffering'.
+%% @doc Respond to `POST /catalogManagement/v2/productOffering'.
 %% 	Add a new Product Offering.
 add_product_offering(ReqData) ->
 	try
@@ -89,7 +89,7 @@ add_product_offering1(ProdId, ETag, JsonResponse) ->
 	Id = {id, ProdId},
 	Json = {struct, [Id | JsonResponse]},
 	Body = mochijson:encode(Json),
-	Location = "/catalogManagement/v1/productuOffering/" ++ ProdId,
+	Location = "/catalogManagement/v2/productuOffering/" ++ ProdId,
 	Headers = [{location, Location}, {etag, etag(ETag)}],
 	{ok, Headers, Body}.
 
@@ -99,7 +99,7 @@ add_product_offering1(ProdId, ETag, JsonResponse) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 500 .
-%% @doc Respond to `POST /productInventoryManagement/v1/product'.
+%% @doc Respond to `POST /productInventoryManagement/v2/product'.
 %% 	Add a new instance of a Product Offering subscription.
 add_product_inventory(ReqData) ->
 	try
@@ -117,7 +117,7 @@ add_product_inventory(ReqData) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManagement/v1/productOffering/{id}'.
+%% @doc Respond to `GET /catalogManagement/v2/productOffering/{id}'.
 %% 	Retrieve a Product Offering.
 get_product_offering(ProductID) ->
 	case ocs:find_product(ProductID) of
@@ -158,7 +158,7 @@ get_product_offering1(Product) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManagement/v1/productOffering'.
+%% @doc Respond to `GET /catalogManagement/v2/productOffering'.
 %% 	Retrieve all Product Offerings.
 %% @todo Filtering
 get_product_offerings(Query, Headers) ->
@@ -233,7 +233,7 @@ get_product_offerings1(Query, Filters, Headers) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManagement/v1/catalog/{id}'.
+%% @doc Respond to `GET /catalogManagement/v2/catalog/{id}'.
 %% 	Retrieve a catalog .
 get_catalog("1", [] =  _Query) ->
 	Headers = [{content_type, "application/json"}],
@@ -250,7 +250,7 @@ get_catalog(_Id, _Query) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManagement/v1/catalog'.
+%% @doc Respond to `GET /catalogManagement/v2/catalog'.
 %% 	Retrieve all catalogs .
 get_catalogs([] =  _Query) ->
 	Headers = [{content_type, "application/json"}],
@@ -267,7 +267,7 @@ get_catalogs(_Query) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManagement/v1/category/{id}'.
+%% @doc Respond to `GET /catalogManagement/v2/category/{id}'.
 %% 	Retrieve a category.
 get_category("1", [] =  _Query) ->
 	Headers = [{content_type, "application/json"}],
@@ -284,7 +284,7 @@ get_category(_Id, _Query) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManagement/v1/catalog'.
+%% @doc Respond to `GET /catalogManagement/v2/catalog'.
 %% 	Retrieve all catalogs .
 get_categories([] =  _Query) ->
 	Headers = [{content_type, "application/json"}],
@@ -301,7 +301,7 @@ get_categories(_Query) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManegment/v1/productSpecification/{id}'.
+%% @doc Respond to `GET /catalogManegment/v2/productSpecification/{id}'.
 %% 	Retrieve a product specification.
 get_product_spec("1", [] = _Query) ->
 	Headers = [{content_type, "application/json"}],
@@ -331,7 +331,7 @@ get_product_spec(_Id, _Query) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
-%% @doc Respond to `GET /catalogManegment/v1/productSpecification'.
+%% @doc Respond to `GET /catalogManegment/v2/productSpecification'.
 %% 	Retrieve all product specifications.
 get_product_specs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
@@ -353,7 +353,7 @@ get_product_specs(_Query) ->
 		Headers	:: [tuple()],
 		Body		:: iolist(),
 		Status	:: 400 | 500 .
-%% @doc Respond to `PATCH /catalogManagement/v1/productOffering/{id}'.
+%% @doc Respond to `PATCH /catalogManagement/v2/productOffering/{id}'.
 %% 	Update a Product Offering using JSON patch method
 %% 	<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>.
 on_patch_product_offering(ProdId, Etag, ReqData) ->
@@ -399,7 +399,7 @@ on_patch_product_offering(ProdId, Etag, ReqData) ->
 		Headers	:: [tuple()],
 		Body		:: iolist(),
 		Status	:: 400 | 500 .
-%% @doc Respond to `PATCH /catalogManagement/v1/productOffering/{id}'.
+%% @doc Respond to `PATCH /catalogManagement/v2/productOffering/{id}'.
 %% 	Update a Product Offering using merge patch method
 %% 	<a href="http://tools.ietf.org/html/rfc7386">RFC7386</a>.
 merge_patch_product_offering(ProdId, Etag, ReqData) ->
@@ -425,7 +425,7 @@ merge_patch_product_offering(ProdId, Etag, ReqData) ->
 %% @hidden
 product_catalog() ->
 	Id = {"id", "1"},
-	Href = {"href", "/catalogManagement/v1/catalog/1"},
+	Href = {"href", "/catalogManagement/v2/catalog/1"},
 	Type = {"type", "Product Catalog"},
 	Name = {"name", "SigScale OCS"},
 	Status = {"lifecycleStatus", "Active"},
@@ -437,7 +437,7 @@ product_catalog() ->
 %% @hidden
 prepaid_category() ->
 	Id = {"id", "1"},
-	Href = {"href", "/catalogManagement/v1/category/1"},
+	Href = {"href", "/catalogManagement/v2/category/1"},
 	Name = {"name", "Prepaid"},
 	Description = {"description", "Services provided with realtime credit management"},
 	Version = {"version", "1.0"},
@@ -449,7 +449,7 @@ prepaid_category() ->
 %% @hidden
 spec_product_network() ->
 	Id = {"id", "1"},
-	Href = {"href", "/catalogManagement/v1/productSpecification/1"},
+	Href = {"href", "/catalogManagement/v2/productSpecification/1"},
 	Name = {"name", "NetworkProductSpec"},
 	Description = {"description", "Represents the common behaviour and description of an installed network product that will be provisioned in the network and that enables usages."},
 	Version = {"version", "1.0"},
@@ -460,7 +460,7 @@ spec_product_network() ->
 %% @hidden
 spec_product_fixed_quantity_pkg() ->
 	Id = {"id", "2"},
-	Href = {"href", "/catalogManagement/v1/productSpecification/2"},
+	Href = {"href", "/catalogManagement/v2/productSpecification/2"},
 	Name = {"name", "FixedQuantityPackageProductSpec"},
 	Description = {"description", "Defines buckets of usage from which Usages will debit the bucket."},
 	Version = {"version", "1.0"},
@@ -471,7 +471,7 @@ spec_product_fixed_quantity_pkg() ->
 %% @hidden
 spec_product_rate_plane() ->
 	Id = {"id", "3"},
-	Href = {"href", "/catalogManagement/v1/productSpecification/3"},
+	Href = {"href", "/catalogManagement/v2/productSpecification/3"},
 	Name = {"name", "RatedPlanProductSpec"},
 	Description = {"description", "Defines criteria to be used to gain special usage tariffs like the period (day, evening) or phone number."},
 	Version = {"version", "1.0"},
@@ -482,7 +482,7 @@ spec_product_rate_plane() ->
 %% @hidden
 spec_product_wlan() ->
 	Id = {"id", "4"},
-	Href = {"href", "/catalogManagement/v1/productSpecification/4"},
+	Href = {"href", "/catalogManagement/v2/productSpecification/4"},
 	Name = {"name", "WLANProductSpec"},
 	Description = {"description", "Defines characteristics specific to pulic Wi-Fi use."},
 	Version = {"version", "1.0"},
@@ -499,12 +499,13 @@ spec_product_wlan() ->
 %% @hidden
 characteristic_product_wlan() ->
 	Name1 = {"name", "subscriberIdentity"},
-	Description1 = {"description", ""},
+	Description1 = {"description",
+			"Uniquely identifies subscriber (e.g. MSISDN, IMSI, username)."},
 	Type1 = {"valueType", "string"},
 	Value1 = {"productSpecCharacteristicValue", {array, [{struct, [Type1]}]}},
 	Char1 = {struct, [Name1, Description1, Type1, Value1]},
 	Name2 = {"name", "subscriberPassword"},
-	Description2 = {"description", ""},
+	Description2 = {"description", "Shared secret used in authentication."},
 	Type2 = {"valueType", "string"},
 	Value2 = {"productSpecCharacteristicValue", {array, [{struct, [Type2]}]}},
 	Char2 = {struct, [Name2, Description2, Type2, Value2]},

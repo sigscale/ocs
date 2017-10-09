@@ -2408,7 +2408,7 @@ update_user_characteristics_json_patch(Config) ->
 	ok = ssl:close(SslSock).
 
 add_product() ->
-	[{userdata, [{doc,"Use HTTP POST to creates a productOffering"}]}].
+	[{userdata, [{doc,"Create a new product offering."}]}].
 
 add_product(Config) ->
 	HostUrl = ?config(host_url, Config),
@@ -2431,7 +2431,7 @@ add_product(Config) ->
 	EndTime = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
 	ValidFor = {"validFor", {struct, [StartTime, EndTime]}},
 	ProdSpecID = {"id", "cpe"},
-	ProdSpecHref = {"href", "/catalogManagement/productSpecification/cpe"},
+	ProdSpecHref = {"href", "/catalogManagement/v2/productSpecification/cpe"},
 	ProdSpecName = {"name", "Monthly subscriber Family Pack"},
 	ProdSpec = {"productSpecification", {struct, [ProdSpecID, ProdSpecHref, ProdSpecName]}},
 	POPName1 = {"name", "Family-Pack"},
@@ -2475,7 +2475,7 @@ add_product(Config) ->
 			TerminationDate, StartDate, ValidFor, ProdSpec, Status, ProdOfferPrice]},
 	ReqBody = lists:flatten(mochijson:encode(ReqJson)),
 	Authentication = {"authorization", AuthKey},
-	Request = {HostUrl ++ "/catalogManagement/v1/productOffering",
+	Request = {HostUrl ++ "/catalogManagement/v2/productOffering",
 			[Accept, Authentication], ContentType, ReqBody},
 	{ok, Result} = httpc:request(post, Request, [], []),
 	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
@@ -2506,7 +2506,7 @@ get_product(Config) ->
 	EndTime = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
 	ValidFor = {"validFor", {struct, [StartTime, EndTime]}},
 	ProdSpecID = {"id", "cpe"},
-	ProdSpecHref = {"href", "/catalogManagement/productSpecification/cpe"},
+	ProdSpecHref = {"href", "/catalogManagement/v2/productSpecification/cpe"},
 	ProdSpecName = {"name", "Monthly subscriber Family Pack"},
 	ProdSpec = {"productSpecification", {struct, [ProdSpecID, ProdSpecHref, ProdSpecName]}},
 	POPName1 = {"name", "Family-Pack"},
@@ -2549,11 +2549,11 @@ get_product(Config) ->
 			TerminationDate, StartDate, ValidFor, ProdSpec, Status, ProdOfferPrice]},
 	ReqBody = lists:flatten(mochijson:encode(ReqJson)),
 	Authentication = {"authorization", AuthKey},
-	Request1 = {HostUrl ++ "/catalogManagement/v1/productOffering",
+	Request1 = {HostUrl ++ "/catalogManagement/v2/productOffering",
 			[Accept, Authentication], ContentType, ReqBody},
 	{ok, Result} = httpc:request(post, Request1, [], []),
 	{{"HTTP/1.1", 201, _Created}, _Headers, _} = Result,
-	Request2 = {HostUrl ++ "/catalogManagement/v1/productOffering/" ++ Product,
+	Request2 = {HostUrl ++ "/catalogManagement/v2/productOffering/" ++ Product,
 			[Accept, Authentication]},
 	{ok, Response} = httpc:request(get, Request2, [], []),
 	{{"HTTP/1.1", 200, _OK}, Headers1, RespBody} = Response,
@@ -2690,7 +2690,7 @@ add_product(HostUrl, Accept, ContentType, AuthKey, Authorization, ProdID) ->
 			TerminationDate, StartDate, ValidFor, ProdSpec, Status, ProdOfferPrice]},
 	ReqBody = lists:flatten(mochijson:encode(ReqJson)),
 	Authorization = {"authorization", AuthKey},
-	Request1 = {HostUrl ++ "/catalogManagement/v1/productOffering",
+	Request1 = {HostUrl ++ "/catalogManagement/v2/productOffering",
 			[Accept, Authorization], ContentType, ReqBody},
 	{ok, Result} = httpc:request(post, Request1, [], []),
 	{{"HTTP/1.1", 201, _Created}, _Headers, _} = Result.
@@ -2834,7 +2834,7 @@ patch_request(SslSock, Port, ContentType, AuthKey, ProdID, ReqBody) when is_list
 patch_request(SslSock, Port, ContentType, AuthKey, ProdID, ReqBody) ->
 	Timeout = 1500,
 	Length = size(ReqBody),
-	PatchURI = "/catalogManagement/v1/productOffering/" ++ ProdID,
+	PatchURI = "/catalogManagement/v2/productOffering/" ++ ProdID,
 	Request =
 			["PATCH ", PatchURI, " HTTP/1.1",$\r,$\n,
 			"Content-Type:"++ ContentType, $\r,$\n,
