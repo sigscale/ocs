@@ -32,7 +32,7 @@
 		Return :: {ok, #subscriber{}} | {error, Reason},
 		Reason :: term().
 rating(tariff_request, #subscriber{buckets = Buckets,
-		product = ProdInst} = SubscriptionRef) ->
+		product = #product_instance{product = ProdID},} = SubscriptionRef) ->
 	F = fun(#bucket{bucket_type = octets, remain_amount = RA}) when
 					RA#remain_amount.amount > 0 -> 
 				true;
@@ -40,29 +40,29 @@ rating(tariff_request, #subscriber{buckets = Buckets,
 				false
 	end,
 
-	rating1(lists:any(F, Buckets), ProdInst, Buckets, SubscriptionRef).
+	rating1(lists:any(F, Buckets), ProdID, Buckets, SubscriptionRef).
 %% @hidden
-rating1(false, #product_instance{product = ProdID}, Buckets, SubscriptionRef) ->
+rating1(false, ProdID, Buckets, SubscriptionRef) ->
 	rating2(ocs:find_product(ProdID), Buckets, SubscriptionRef);
-rating1(true, _ProdInst, _Buckets, SubscriptionRef) ->
+rating1(true, _ProdID, _Buckets, SubscriptionRef) ->
 	{ok, SubscriptionRef}.
 %% @hidden
 rating2({ok, #product{price = Prices}}, Buckets, SubscriptionRef) ->
-	rating3(Prices, Buckets, SubscriptionRef);
+	case lists:keyfind(usage, #price.type, Prices) of
+		#price{} = Price ->
+			rating3(Price, Buckets, SubscriptionRef);
+		false ->
+			{error, rating_failed}
+	end;
 rating2({error, Reason}, _Buckets, _SubscriptionRef) ->
 	{error, Reason}.
 %% @hidden
-rating3([#price{type = recurring, units = cents,
-		amount = Amount, alteration = #alteration{type = recurring, units = octets,
-		size = Size}} | T], Buckets, SubscriptionRef) ->
-	rating4(T, Amount, Size, Buckets, SubscriptionRef);
-rating3([#price{type = usage, size = Size, units = octets,
-		amount = Amount} | T], Buckets, SubscriptionRef) ->
-	rating4(T, Amount, Size, Buckets, SubscriptionRef);
-rating3([], _, _SubscriptionRef) ->
+rating3(#price{type = usage, size = Size, units = octets, amount = Amount}, Buckets, SubscriptionRef) ->
+	rating4(Amount, Size, Buckets, SubscriptionRef);
+rating3(_Price, _Buckets, _SubscriptionRef) ->
 	{error, rating_failed}.
 %% @hidden
-rating4(Prices, Amount, Size, Buckets, SubscriptionRef) ->
+rating4(Amount, Size, Buckets, SubscriptionRef) ->
 	case lists:keytake(cents, #bucket.bucket_type, Buckets) of
 		{value, #bucket{remain_amount = 
 				#remain_amount{amount = Cents}} = RecuBucket, ReBuckets} when Cents >= Amount ->
@@ -70,8 +70,6 @@ rating4(Prices, Amount, Size, Buckets, SubscriptionRef) ->
 			B2 = RecuBucket#bucket{remain_amount = #remain_amount{amount = Cents - Amount}},
 			NewBuckets = [B1, B2 | ReBuckets],
 			{ok, SubscriptionRef#subscriber{buckets = NewBuckets}};
-		{value, _, _} ->
-			rating3(Prices, Buckets, SubscriptionRef);
-		false ->
+		_ ->
 			{error, rating_failed}
 	end.
