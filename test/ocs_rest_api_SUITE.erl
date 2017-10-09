@@ -148,8 +148,8 @@ all() ->
 	get_acct_usage_filter, get_acct_usage_range, get_ipdr_usage,
 	top_up_subscriber_balance, get_subscriber_balance,
 	add_user, get_user, delete_user,
-	simultaneous_updates_on_user_faliure, simultaneous_updates_on_subscriber_faliure,
-	simultaneous_updates_on_client_faliure,
+	simultaneous_updates_on_user_failure, simultaneous_updates_on_subscriber_failure,
+	simultaneous_updates_on_client_failure,
 	update_client_password_json_patch, update_client_attributes_json_patch,
 	update_subscriber_password_json_patch, update_subscriber_attributes_json_patch,
 	update_user_characteristics_json_patch, add_product, get_product, update_product].
@@ -1784,12 +1784,12 @@ get_subscriber_balance(Config) ->
 	{_, "octets"} = lists:keyfind("units", 1, RemAmount),
 	{_, "active"} = lists:keyfind("status", 1, PrePayBalance).
 
-simultaneous_updates_on_user_faliure() ->
+simultaneous_updates_on_user_failure() ->
 	[{userdata, [{doc,"Simulataneous updates on user resource using HTTP PUT.
 		PUT operations on a already modified user resource should result in HTTP code
 		412 (Preconditions failed)"}]}].
 
-simultaneous_updates_on_user_faliure(Config) ->
+simultaneous_updates_on_user_failure(Config) ->
 	ID = "tylerjoseph",
 	Password = ocs:generate_password(),
 	Locale = "en",
@@ -1841,11 +1841,11 @@ simultaneous_updates_on_user_faliure(Config) ->
 	{ok, Result2} = httpc:request(put, Request2, [], []),
 	{{"HTTP/1.1", 412, _Failed}, _Headers, _} = Result2.
 
-simultaneous_updates_on_subscriber_faliure() ->
+simultaneous_updates_on_subscriber_failure() ->
 	[{userdata, [{doc,"Simulataneous HTTP PATCH updates on subscriber resource must fail
 			if the resource is already being updated by someone else"}]}].
 
-simultaneous_updates_on_subscriber_faliure(Config) ->
+simultaneous_updates_on_subscriber_failure(Config) ->
 	ContentType = "application/json",
 	ID = "eacfd73ae10a",
 	Password = "ksc8c244npqc",
@@ -1923,11 +1923,11 @@ simultaneous_updates_on_subscriber_faliure(Config) ->
 	<<"HTTP/1.1 412", _/binary>> = H,
 	ok = ssl:close(SslSock).
 
-simultaneous_updates_on_client_faliure() ->
+simultaneous_updates_on_client_failure() ->
 	[{userdata, [{doc,"Simulataneous HTTP PATCH requests on client resource must fail
 			if the resource is already being updated by someone else"}]}].
 
-simultaneous_updates_on_client_faliure(Config) ->
+simultaneous_updates_on_client_failure(Config) ->
 	ContentType = "application/json",
 	ID = "10.3.53.91",
 	Port = 3699,
