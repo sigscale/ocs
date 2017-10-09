@@ -148,11 +148,15 @@ all() ->
 	get_acct_usage_filter, get_acct_usage_range, get_ipdr_usage,
 	top_up_subscriber_balance, get_subscriber_balance,
 	add_user, get_user, delete_user,
-	simultaneous_updates_on_user_failure, simultaneous_updates_on_subscriber_failure,
+	simultaneous_updates_on_user_failure,
+	simultaneous_updates_on_subscriber_failure,
 	simultaneous_updates_on_client_failure,
-	update_client_password_json_patch, update_client_attributes_json_patch,
-	update_subscriber_password_json_patch, update_subscriber_attributes_json_patch,
-	update_user_characteristics_json_patch, add_product, get_product, update_product].
+	update_client_password_json_patch,
+	update_client_attributes_json_patch,
+	update_subscriber_password_json_patch,
+	update_subscriber_attributes_json_patch,
+	update_user_characteristics_json_patch,
+	add_product, get_product, update_product].
 
 %%---------------------------------------------------------------------
 %%  Test cases
