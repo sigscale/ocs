@@ -472,7 +472,7 @@ spec_product_fixed_quantity_pkg() ->
 spec_product_rate_plane() ->
 	Id = {"id", "3"},
 	Href = {"href", "/catalogManagement/v1/productSpecification/3"},
-	Name = {"name", "RatedPlaneProductSpec"},
+	Name = {"name", "RatedPlanProductSpec"},
 	Description = {"description", "Defines criteria to be used to gain special usage tariffs like the period (day, evening) or phone number."},
 	Version = {"version", "1.0"},
 	LastUpdate = {"lastUpdate", "2017-10-06T12:00:00Z"},
