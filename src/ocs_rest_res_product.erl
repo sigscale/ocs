@@ -157,7 +157,7 @@ get_product_offering1(Product) ->
 	Result	:: {ok, Headers, Body} | {error, Status},
 	Headers	:: [tuple()],
 	Body		:: iolist(),
-	Status	:: 400 | 404 | 500 .
+	Status	:: 400 | 404 | 412 | 500 .
 %% @doc Respond to `GET /catalogManagement/v2/productOffering'.
 %% 	Retrieve all Product Offerings.
 %% @todo Filtering
