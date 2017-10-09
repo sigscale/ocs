@@ -498,7 +498,7 @@ spec_product_wlan() ->
 
 %% @hidden
 characteristic_product_wlan() ->
-	Name1 = {"name", "subscriberIdentiy"},
+	Name1 = {"name", "subscriberIdentity"},
 	Description1 = {"description", ""},
 	Type1 = {"valueType", "string"},
 	Value1 = {"productSpecCharacteristicValue", {array, [{struct, [Type1]}]}},
