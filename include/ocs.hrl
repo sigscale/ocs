@@ -45,34 +45,37 @@
 -record(alteration,
 		{name :: string(),
 		description :: string(),
-		valid_for	:: valid_for(),
+		start_date :: pos_integer(),
+		end_date :: pos_integer(),
 		type :: price_type(),
+		period :: valid_period(),
 		units :: unit_of_measure(),
 		size :: integer(),
-		amount :: integer()}).
+		amount :: integer(),
+		currency :: string()}).
 
 -record(price,
 		{name :: string(),
 		description :: string(),
-		valid_for	:: valid_for(),
+		start_date :: pos_integer(),
+		end_date :: pos_integer(),
 		type :: price_type(),
-		units :: unit_of_measure(),
-		currency :: string(),
 		period :: valid_period(),
+		units :: unit_of_measure(),
 		size :: integer(),
 		amount :: integer(),
-		alteration :: #alteration{},
-		validity :: integer()}).
+		currency :: string(),
+		alteration :: #alteration{}}).
 
 -record(product,
 		{name :: '_' | string(),
 		description :: '_' | string(),
-		valid_for	:: '_' | valid_for(),
+		start_date :: '_' | pos_integer(),
+		end_date :: '_' | pos_integer(),
 		is_bundle = false :: '_' | undefined | boolean(),
 		status :: '_' | undefined | product_status(),
-		start_date :: '_' | pos_integer(), % ISO8601
-		termination_date :: '_' | pos_integer(), % ISO8601
 		price :: '_' | [#price{}],
+		characteristics :: [tuple()],
 		last_modified :: tuple() | '_'}).
 
 -record(remain_amount,
@@ -93,7 +96,7 @@
 		start_date :: pos_integer(),
 		termination_date :: pos_integer(),
 		status :: atom(),
-		product_characteristics :: list(),
+		characteristics :: [tuple()],
 		last_modified :: tuple() | '_'}).
 
 %% define subscriber table entries record
