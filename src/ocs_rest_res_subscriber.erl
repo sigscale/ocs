@@ -317,8 +317,8 @@ post_subscriber(RequestBody) ->
 					{_, Units} = lists:keyfind("units", 1, Bucket),
 					BucketType = bucket_type(Units),
 					_Product = proplists:get_value("product", Bucket, ""),
-					BR = #bucket{bucket_type = BucketType, remain_amount =
-						#remain_amount{unit = Units, amount = Amount}},
+					BR = #bucket{bucket_type = BucketType, 
+						remain_amount = Amount, units = BucketType},
 					[BR | AccIn]
 				end,
 				{lists:reverse(lists:foldl(F, [], BktStruct)), {array, BktStruct}};
@@ -694,8 +694,8 @@ patch_add(buckets , Value, "-", OldBuckets, Subscriber) ->
 	{_, Amount} = lists:keyfind("amount", 1, BucketObj),
 	{_, Units} =  lists:keyfind("units", 1, BucketObj),
 	BucketType = bucket_type(Units),
-	Bucket = #bucket{bucket_type = BucketType, remain_amount =
-			#remain_amount{unit = Units, amount = Amount}},
+	Bucket = #bucket{bucket_type = BucketType, 
+			remain_amount = Amount, units = BucketType},
 	NewBuckets = lists:append(OldBuckets, [Bucket]),
 	UpdateSubscriber =
 		Subscriber#subscriber{buckets = NewBuckets},
@@ -705,8 +705,8 @@ patch_add(buckets , Value, _Location, OldBuckets, Subscriber) ->
 	{_, Amount} = lists:keyfind("amount", 1, BucketObj),
 	{_, Units} =  lists:keyfind("units", 1, BucketObj),
 	BucketType = bucket_type(Units),
-	Bucket = #bucket{bucket_type = BucketType, remain_amount =
-			#remain_amount{unit = Units, amount = Amount}},
+	Bucket = #bucket{bucket_type = BucketType, 
+			remain_amount = Amount, units = BucketType},
 	NewBuckets = lists:append(OldBuckets, [Bucket]),
 	UpdateSubscriber =
 		Subscriber#subscriber{buckets = NewBuckets},
@@ -745,17 +745,12 @@ accumulated_balance1([], AccBalance) ->
 accumulated_balance1([Bucket | T], AccBalance) ->
 	accumulated_balance1(T, accumulated_balance2(Bucket, AccBalance)).
 %% @hidden
-accumulated_balance2(#bucket{bucket_type = octets, remain_amount =
-		#remain_amount{unit = Units, amount = Amount}}, AccBalance) ->
-	accumulated_balance3(octets, Units, Amount, AccBalance);
-accumulated_balance2(#bucket{bucket_type = cents, remain_amount =
-		#remain_amount{unit = Units, amount = Amount}}, AccBalance) ->
-	accumulated_balance3(cents, Units, Amount, AccBalance);
-accumulated_balance2(#bucket{bucket_type = seconds, remain_amount =
-		#remain_amount{unit = Units, amount = Amount}}, AccBalance) ->
-	accumulated_balance3(seconds, Units, Amount, AccBalance).
-%accumulated_balance2([], AccBalance) ->
-%	AccBalance.
+accumulated_balance2(#bucket{bucket_type = octets, remain_amount = Amount}, AccBalance) ->
+	accumulated_balance3(octets, "octets", Amount, AccBalance);
+accumulated_balance2(#bucket{bucket_type = cents, remain_amount = Amount}, AccBalance) ->
+	accumulated_balance3(cents, "cents", Amount, AccBalance);
+accumulated_balance2(#bucket{bucket_type = seconds, remain_amount = Amount}, AccBalance) ->
+	accumulated_balance3(seconds, "seconds", Amount, AccBalance).
 %% @hidden
 accumulated_balance3(Key, Units, Amount, AccBalance) ->
 	case lists:keytake(Key, 1, AccBalance) of
