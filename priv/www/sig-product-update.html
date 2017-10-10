@@ -1,0 +1,1252 @@
+<!--  vim: set ts=3:  -->
+<link rel="import" href="polymer/polymer.html">
+<link rel="import" href="i18n-msg/i18n-msg.html">
+<link rel="import" href="i18n-msg/i18n-msg-behavior.html">
+<link rel="import" href="iron-ajax/iron-ajax.html">
+<link rel="import" href="iron-selector/iron-selector.html">
+<link rel="import" href="iron-collapse/iron-collapse.html">
+<link rel="import" href="paper-dialog/paper-dialog.html">
+<link rel="import" href="paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="paper-listbox/paper-listbox.html">
+<link rel="import" href="paper-toolbar/paper-toolbar.html">
+<link rel="import" href="paper-input/paper-input.html">
+<link rel="import" href="paper-button/paper-button.html">
+<link rel="import" href="paper-tabs/paper-tabs.html">
+<link rel="import" href="paper-tooltip/paper-tooltip.html">
+<link rel="import" href="paper-toggle-button/paper-toggle-button.html" >
+<link rel="import" href="paper-toast/paper-toast.html">
+<link rel="import" href="paper-styles/color.html">
+<link rel="import" href="paper-date-picker/paper-date-picker.html">
+
+<dom-module id="sig-product-update">
+	<template>
+		<style is="custom-style">
+			paper-dialog {
+				overflow: auto;
+			}
+			paper-item {
+				padding-right: 10px;
+			}
+			paper-toolbar{
+				margin-top: 0px;
+				background-color: #bc5100;
+			}
+			.add-button {
+				background-color: var(--paper-lime-a700);
+				color: black;
+			}
+			.update-buttons {
+				background-color: var(--paper-lime-a700);
+				color: black;
+			}
+			.cancel-button {
+				color: black;
+			}
+			.delete-buttons {
+				background: #EF5350;
+				color: black;
+			}
+			.close {
+				background-color: var(--paper-lime-a700);
+				color: black;
+				float: right;
+				width: 5em;
+			}
+		</style>
+		<paper-dialog id="updateProductModal" modal>
+			<paper-toolbar>
+				<paper-tabs selected="{{selected}}">
+					<paper-tab id="offer-add">
+						<h2>[[i18n.offer]]</h2>
+					</paper-tab>
+					<paper-tab id="price-add">
+						<h2>[[i18n.prices]]</h2>
+					</paper-tab>
+					<paper-tab id="alt-add">
+						<h2>[[i18n.alter]]</h2>
+					</paper-tab>
+				</paper-tabs>
+			</paper-toolbar>
+			<iron-pages selected="{{selected}}">
+				<div id="addOff-tab">
+					<div>
+						<paper-input id="updateOffName"
+								class="name"
+								name="name"
+								label="[[i18n.name]]"
+								onfocus="updateProductEndDatePickUpdateOff.hide(); updateProductStartDatePickUpdateOff.hide();"
+								disabled>
+						</paper-input>
+						<paper-tooltip>
+							<i18n-msg msgid="offerNameTool">
+								Product Offering name
+							</i18n-msg>
+						</paper-tooltip>
+					</div>
+					<div>
+						<paper-input id="updateOffDesc"
+								class="description"
+								name="description"
+								label="[[i18n.des]]"
+								onfocus="updateProductEndDatePickUpdateOff.hide(); updateProductStartDatePickUpdateOff.hide();">
+						</paper-input>
+						<paper-tooltip>
+							<i18n-msg msgid="offerDesTool">
+								Product Offering description
+							</i18n-msg>
+						</paper-tooltip>
+					</div>
+					<div>
+						<iron-collapse id="updateProductStartDatePickUpdateOff">
+							<paper-date-picker id="startOff3" date="{{updateProductStartDateOfferPick}}">
+							</paper-date-picker>
+						</iron-collapse>
+						<paper-input id="updateOffStart"
+								value="[[updateProductStartDateOffer]]"
+								name="updateProductStartDateOffer"
+								label="[[i18n.start]]"
+								onfocus="updateProductEndDatePickUpdateOff.hide(); updateProductStartDatePickUpdateOff.show();">
+						</paper-input>
+						<paper-tooltip>
+							<i18n-msg msgid="offerStartTool">
+								Product Offering start date
+							</i18n-msg>
+						</paper-tooltip>
+					</div>
+					<div>
+						<iron-collapse id="updateProductEndDatePickUpdateOff">
+							<paper-date-picker id="endOff3" date="{{updateProductEndDateOfferPick}}">
+							</paper-date-picker>
+						</iron-collapse>
+						<paper-input id="updateOffEnd"
+								value="[[updateProductEndDateOffer]]"
+								name="updateProductEndDateOffer"
+								label="[[i18n.end]]"
+								onfocus="updateProductStartDatePickUpdateOff.hide(); updateProductEndDatePickUpdateOff.show();">
+						</paper-input>
+						<paper-tooltip>
+							<i18n-msg msgid="offerEndTool">
+								Product Offering end date
+							</i18n-msg>
+						</paper-tooltip>
+					</div>
+					<div class="buttons">
+						<paper-button
+								autofocus
+								on-tap="updateProductOffer"
+								class="update-buttons">
+								<i18n-msg msgid="update">
+									Update
+								</i18n-msg>
+						</paper-button>
+						<paper-button
+								dialog-dismiss
+								class="cancel-button"
+								on-tap="cancelDialog">
+								<i18n-msg msgid="cancel">
+									cancel
+								</i18n-msg>
+						</paper-button>
+						<paper-button
+								toggles
+								raised
+								on-click="deleteProduct"
+								class="delete-buttons">
+								<i18n-msg msgid="delete">
+									Delete
+								</i18n-msg>
+						</paper-button>
+					</div>
+				</div>
+				<div id=updatePrice-tab>
+					<div>
+						<datalist id="updatePrice">
+							<template is="dom-repeat" items="[[prices]]">
+								<option value="{{item.name}}" />
+							</template>
+						</datalist>
+						<paper-input id="updatePriceName" 
+								list="updatePrice"
+								label="[[i18n.name]]"
+								on-change="updatePriceDialog"
+								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.hide();">
+						</paper-input>
+						<paper-tooltip>
+							<i18n-msg msgid="updatePriceNameTool">
+								Product offering price name
+							</i18n-msg>
+						</paper-tooltip>
+					</div>
+					<div>
+						<paper-input id="updatePriceDesc"
+								class="description"
+								name="description"
+								label="[[i18n.des]]"
+								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.hide();">
+						</paper-input>
+						<paper-tooltip>
+							<i18n-msg msgid="priceDesTool">
+								Product Offering price description
+							</i18n-msg>
+						</paper-tooltip>
+					</div>
+					<div>
+						<iron-collapse id="updateProductStartDatePickPrice">
+							<paper-date-picker id="addPriceStart" date="{{updateProductStartDatePricePick}}">
+							</paper-date-picker>
+						</iron-collapse>
+						<paper-input id="updatePriceStartDate"
+								value="[[updateProductStartDatePrice]]"
+								name="updateProductStartDatePrice"
+								label="[[i18n.start]]"
+								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.show();">
+						</paper-input>
+						<paper-tooltip>
+							<i18n-msg msgid="priceStartTool">
+								Product Offering price start date
+							</i18n-msg>
+						</paper-tooltip>
+					</div>
+					<div>
+						<iron-collapse id="updateProductEndDatePickPrice">
+							<paper-date-picker id="addPriceEnd" date="{{updateProductEndDatePricePick}}">
+							</paper-date-picker>
+						</iron-collapse>
+						<paper-input id="updatePriceEndDate"
+								value="[[updateProductEndDatePrice]]"
+								name="updateProductEndDatePrice"
+								label="[[i18n.end]]"
+								onfocus="updateProductStartDatePickPrice.hide(); updateProductEndDatePickPrice.show();">
+						</paper-input>
+						<paper-tooltip>
+							<i18n-msg msgid="priceEndTool">
+								Product offering price end date
+							</i18n-msg>
+						</paper-tooltip>
+					</div>
+					<div>
+						<paper-dropdown-menu id="updatePriceTypedrop"
+								label="[[i18n.priceType]]"
+								on-selected-item-changed="checkRecure"
+								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.hide();">
+							<paper-listbox
+									id="updatePriceType"
+									slot="dropdown-content"
+									class="dropdown-content">
+								<paper-item>
+									Recurring
+								</paper-item>
+								<paper-item>
+									One Time
+								</paper-item>
+								<paper-item>
+									Usage
+								</paper-item>
+							</paper-listbox>
+						</paper-dropdown-menu>
+						<paper-tooltip>
+							<i18n-msg msgid="priceTypeTool">
+								Product offering type of price
+							</i18n-msg>
+						</paper-tooltip>
+					</div>
+					<div>
+						<paper-input id="updatePriceSize"
+								class="size"
+								name="size"
+								allowed-pattern="[0-9kmg]"
+								pattern="^[0-9]+[kmg]?$"
+								label="[[i18n.unitSize]]"
+								auto-validate
+								value=1
+								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.hide();">
+						</paper-input>
+						<paper-tooltip>
+							<i18n-msg msgid="priceSizeTool">
+								Product offering price unit size
+							</i18n-msg>
+						</paper-tooltip>
+					</div>
+					<div>
+						<paper-dropdown-menu id="updatePriceUnitsdrop"
+								label="[[i18n.unit]]"
+								on-selected-item-changed="checkPattern"
+								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.hide();">
+							<paper-listbox
+									id="updatePriceUnits"
+									slot="dropdown-content"
+									class="dropdown-content">
+								<paper-item id="priceBytes">
+									 <i18n-msg msgid="octet">
+										bytes
+									</i18n-msg>
+								</paper-item>
+								<paper-item id="priceCents">
+									<i18n-msg msgid="cent">
+										cents
+									</i18n-msg>
+								</paper-item>
+								<paper-item id="priceSeconds">
+									<i18n-msg msgid="second">
+										seconds
+									 </i18n-msg>
+								</paper-item>
+							</paper-listbox>
+						</paper-dropdown-menu>
+						<paper-tooltip>
+							<i18n-msg msgid="priceUnitTool">
+								Product offering price units
+							</i18n-msg>
+						</paper-tooltip>
+					</div>
+					<div>
+						<paper-input id="updatePriceAmount"
+								class="amount"
+								name="amount"
+								type="number"
+								label="[[i18n.amount]]"
+								value=0
+								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.hide();">
+						</paper-input>
+						<paper-tooltip>
+							<i18n-msg msgid="priceAmountTool">
+								Product offering price amount
+							</i18n-msg>
+						</paper-tooltip>
+					</div>
+					<div>
+						<paper-input id="updatePriceCurrency"
+								class="currency"
+								name="currency"
+								label="[[i18n.currency]]"
+								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.hide();">
+						</paper-input>
+						<paper-tooltip>
+							<i18n-msg msgid="priceCurrencyTool">
+								Product offering price currency
+							</i18n-msg>
+						</paper-tooltip>
+					</div>
+					<div>
+						<paper-dropdown-menu id="updatePricePerioddrop"
+								label="[[i18n.period]]"
+								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.hide();">
+							<paper-listbox
+									id="updatePricePeriod"
+									slot="dropdown-content"
+									class="dropdown-content"
+									selected="2">
+								<paper-item>
+									Daily
+								</paper-item>
+								<paper-item>
+									Weekly
+								</paper-item>
+								<paper-item>
+									Monthly
+								</paper-item>
+								<paper-item>
+									Yearly
+								</paper-item>
+							</paper-listbox>
+						</paper-dropdown-menu>
+						<paper-tooltip>
+							<i18n-msg msgid="pricePeriodTool">
+								Product offering price period
+							</i18n-msg>
+						</paper-tooltip>
+					</div>
+					<div>
+						<paper-dropdown-menu
+								id="addUpdatePriceDrop"
+								label="[[i18n.alter]]"
+								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.hide();">
+							<paper-listbox
+									id="addUpdatePriceAlteration"
+									slot="dropdown-content"
+									class="dropdown-content">
+									<template is="dom-repeat" items="[[alterations]]">
+										<paper-item>
+											{{item.name}}
+										</paper-item>
+									</template>
+							</paper-listbox>
+						</paper-dropdown-menu>
+						<paper-tooltip>
+							<i18n-msg msgid="priceAlterTool">
+								add alteration to product offering price
+							</i18n-msg>
+						</paper-tooltip>
+					</div>
+					<div class="buttons">
+						<paper-button
+								autofocus
+								on-tap="updateProductPrice"
+								class="update-buttons">
+								<i18n-msg msgid="update">
+									update
+								</i18n-msg>
+						</paper-button>
+						<paper-button
+								raised
+								class="add-button"
+								on-tap="updateAddPrice">
+								<i18n-msg msgid="add">
+									Add
+								</i18n-msg>
+						</paper-button>
+						<paper-button
+								dialog-dismiss
+								class="cancel-button"
+								on-tap="cancelDialog">
+								<i18n-msg msgid="cancel">
+									cancel
+								</i18n-msg>
+						</paper-button>
+						<paper-button
+								toggles
+								raised
+								on-click="deletePro"
+								class="delete-buttons">
+								<i18n-msg msgid="delete">
+									Delete
+								</i18n-msg>
+						</paper-button>
+					</div>
+				</div>
+				<div id="add-Alt-tab">
+					<div>
+						<datalist id="updateAlts">
+							<template is="dom-repeat" items="[[alterations]]">
+								<option value="{{item.name}}"/>
+							</template>
+						</datalist>
+						<paper-input id="updateAltName" 
+								list="updateAlts" 
+								label="[[i18n.name]]" 
+								on-change="updateAddAltsDialog"
+								onfocus="updateProductEndDatePickAlt.hide(); updateProductStartDatePickAlt.hide();">
+						</paper-input>
+						<paper-tooltip>
+								product offering alteration name
+						</paper-tooltip>
+					</div>
+					<div>
+						<paper-input id="updateAltDesc"
+								class="description"
+								name="description"
+								label="[[i18n.des]]"
+								onfocus="updateProductEndDatePickAlt.hide(); updateProductStartDatePickAlt.hide();">
+						</paper-input>
+						<paper-tooltip>
+								product offering alteration description
+						</paper-tooltip>
+					</div>
+					<div>
+						<iron-collapse id="updateProductStartDatePickAlt">
+							<paper-date-picker id="startAlt3" date="{{updateProductStartDateAltPick}}">
+							</paper-date-picker>
+						</iron-collapse>
+						<paper-input id="updateAltStartDate"
+								value="[[updateProductStartDateAlt]]"
+								name="updateProductStartDateAlt"
+								label="[[i18n.start]]"
+								onfocus="updateProductEndDatePickAlt.hide(); updateProductStartDatePickAlt.show();">
+						</paper-input>
+						<paper-tooltip>
+								product offering alteration start date
+						</paper-tooltip>
+					</div>
+					<div>
+						<iron-collapse id="updateProductEndDatePickAlt">
+							<paper-date-picker id="endAlt3" date="{{updateProductEndDateAltPick}}">
+							</paper-date-picker>
+						</iron-collapse>
+						<paper-input id="updateAltEndDate"
+								value="[[updateProductEndDateAlt]]"
+								name="updateProductEndDateAlt"
+								label="[[i18n.end]]"
+								onfocus="updateProductStartDatePickAlt.hide(); updateProductEndDatePickAlt.show();">
+						</paper-input>
+						<paper-tooltip>
+								product offering alteration end date
+						</paper-tooltip>
+					</div>
+					<div>
+						<paper-dropdown-menu
+								label="[[i18n.priceType]]"
+								on-selected-item-changed="checkRecureAlt"
+								onfocus="updateProductEndDatePickAlt.hide(); updateProductStartDatePickAlt.hide();">
+							<paper-listbox
+									id="updateAltType"
+									slot="dropdown-content"
+									class="dropdown-content">
+								<paper-item>
+									Recurring
+								</paper-item>
+								<paper-item>
+									One Time
+								</paper-item>
+								<paper-item>
+									Usage
+								</paper-item>
+							</paper-listbox>
+						</paper-dropdown-menu>
+						<paper-tooltip>
+								product offering alteration price type
+						</paper-tooltip>
+					</div>
+					<div>
+						<paper-input id="updateAltSize"
+								class="size"
+								name="size"
+								label="[[i18n.unitSize]]"
+								type="text"
+								allowed-pattern="[0-9kmg]"
+								pattern="^[0-9]+[kmg]?$"
+								auto-validate
+								value=1
+								onfocus="updateProductEndDatePickAlt.hide(); updateProductStartDatePickAlt.hide();">
+						</paper-input>
+						<paper-tooltip>
+								product offering alteration size
+						</paper-tooltip>
+					</div>
+					<div>
+						<paper-dropdown-menu
+								label="[[i18n.unit]]">
+							<paper-listbox
+									id="updateUnitDrop"
+									on-selected-item-changed="checkPatternAlt"
+									slot="dropdown-content"
+									class="dropdown-content">
+									<paper-item id="altBytes">
+										<i18n-msg msgid="octet">
+											bytes
+										</i18n-msg>
+									</paper-item>
+									<paper-item id="altCents">
+										<i18n-msg msgid="cent">
+											cents
+										</i18n-msg>
+									</paper-item>
+									<paper-item id="altSeconds">
+										<i18n-msg msgid="second">
+											Seconds
+										</i18n-msg>
+									</paper-item>
+							</paper-listbox>
+						</paper-dropdown-menu>
+						<paper-tooltip>
+								product offering alteration units
+						</paper-tooltip>
+					</div>
+					<div>
+						<paper-input id="updateAltAmount"
+								class="amount"
+								name="amount"
+								label="[[i18n.amount]]"
+								type="number"
+								value=0
+								onfocus="updateProductEndDatePickAlt.hide(); updateProductStartDatePickAlt.hide();">
+						</paper-input>
+						<paper-tooltip>
+								product offering alteration amount
+						</paper-tooltip>
+					</div>
+					<div>
+						<paper-input id="updateAltCurr"
+								class="currency"
+								name="currency"
+								label="[[i18n.currency]]"
+								onfocus="updateProductEndDatePickAlt.hide(); updateProductStartDatePickAlt.hide();">
+						</paper-input>
+						<paper-tooltip>
+								product offering alteration currency
+						</paper-tooltip>
+					</div>
+					<div>
+						<paper-dropdown-menu id="addalt5drop"
+								label="[[i18n.period]]"
+								onfocus="updateProductEndDatePickAlt.hide(); updateProductStartDatePickAlt.hide();">
+							<paper-listbox
+									id="updateAltPeriod"
+									slot="dropdown-content"
+									class="dropdown-content"
+									selected="2">
+								<paper-item>
+									Daily
+								</paper-item>
+								<paper-item>
+									Weekly
+								</paper-item>
+								<paper-item>
+									Monthly
+								</paper-item>
+								<paper-item>
+									Yearly
+								</paper-item>
+							</paper-listbox>
+						</paper-dropdown-menu>
+						<paper-tooltip>
+								product offering alteration period
+						</paper-tooltip>
+					</div>
+					<div class="buttons">
+						<paper-button
+								autofocus
+								on-tap="updateProductAlteration"
+								class="update-buttons">
+								<i18n-msg msgid="update">
+									Update
+								</i18n-msg>
+						</paper-button>
+						<paper-button
+								raised
+								class="add-button"
+								on-tap="updateAddAlteration">
+								<i18n-msg msgid="add">
+									Add
+								<i18n-msg>
+						</paper-button>
+						<paper-button
+								dialog-dismiss
+								class="cancel-button"
+								on-tap="cancelDialog">
+								<i18n-msg msgid="cancel">
+									cancel
+								</i18n-msg>
+						</paper-button>
+						<paper-button
+								toggles
+								raised
+								on-click="deletePro"
+								class="delete-buttons">
+								<i18n-msg msgid="delete">
+									Delete
+								</i18n-msg>
+						</paper-button>
+					</div>
+				</div>
+			</iron-pages>
+			<paper-toast
+					id="updateProductToastError">
+			</paper-toast>
+		</paper-dialog>
+		<iron-ajax
+				id="updateAddProductAjax"
+				url="/catalogManagement/v2/productOffering"
+				method = "POST"
+				content-type="application/json"
+				on-loading-changed="_onLoadingChanged"
+				on-response="_addProductResponse"
+				on-error="_addProductError">
+		</iron-ajax>
+		<iron-ajax
+            id="updateProductOfferAjax"
+				on-response="_updateProductOfferResponse"
+            on-error="_updateProductOfferError">
+      </iron-ajax>
+		<iron-ajax
+            id="updateProductPriceAjax"
+				on-response="_updateProductPriceResponse"
+            on-error="_updateProductPriceError">
+      </iron-ajax>
+		 <iron-ajax id="deleteProductAjax"
+            on-response="_deleteProductResponse"
+            on-error="_deleteProductError">
+      </iron-ajax>
+		<iron-ajax
+            id="updateProductAlterationAjax"
+				on-response="_updateProductAlterationResponse"
+            on-error="_updateProductAlterationError">
+      </iron-ajax>
+	</template>
+	<script>
+		Polymer ({
+			is: 'sig-product-update',
+			behaviors: [i18nMsgBehavior],
+			properties: {
+				alterations: {
+					type: Array,
+					value: function() {
+						return [];
+					}
+				},
+				prices: {
+					type: Array,
+					value: function() {
+						return [];
+					}
+				},
+				selected: {
+					type: Number,
+					value: 0
+				},
+				updateProductStartDateOffer: {
+					type: String,
+					value: ""
+				},
+				updateProductEndDateOffer: {
+					type: String,
+					value: ""
+				},
+				updateProductStartDatePrice: {
+					type: String,
+					value: ""
+				},
+				updateProductEndDatePrice: {
+					type: String,
+					value: ""
+				},
+				updateProductStartDateAlt: {
+					type: String,
+					value: ""
+				},
+				updateProductEndDateAlt: {
+					type: String,
+					value: ""
+				},
+				updateProductStartDateOfferPick: {
+					observer: '_updateProductStartDateOfferPick'
+				},
+				updateProductEndDateOfferPick: {
+					observer: '_updateProductEndDateOfferPick'
+				},
+				updateProductStartDatePricePick: {
+					observer: '_updateProductStartDatePricePick'
+				},
+				updateProductEndDatePricePick: {
+					observer: '_updateProductEndDatePricePick'
+				},
+				updateProductStartDateAltPick: {
+					observer: '_updateProductStartDateAltPick'
+				},
+				updateProductEndDateAltPick: {
+					observer: '_updateProductEndDateAltPick'
+				}
+			},
+			initialize: function(item) {
+				this.$.updateProductModal.open();
+				this.$.updateOffName.value = item.name;
+				this.$.updateOffDesc.value = item.description;
+				this.$.updateOffStart.value = item.startDate;
+				this.$.updateOffEnd.value = item.endDate;
+				for(var index in item.prices) {
+					this.push('prices', item.prices[index]);
+					this.push('alterations', item.prices[index].productOfferPriceAlteration);
+				}
+			}, 
+			_updateProductStartDateOfferPick: function(date) {
+				if (this.$.updateProductStartDatePickUpdateOff.opened) {
+					this.updateProductStartDateOffer = moment(date).format('YYYY-MM-DD');
+				}
+			},
+			_updateProductEndDateOfferPick: function(date) {
+				if (this.$.updateProductEndDatePickUpdateOff.opened) {
+					this.updateProductEndDateOffer = moment(date).format('YYYY-MM-DD');
+				}
+			},
+			_updateProductStartDatePricePick: function(date) {
+				if (this.$.updateProductStartDatePickPrice.opened) {
+					this.updateProductStartDatePrice = moment(date).format('YYYY-MM-DD');
+				}
+			},
+			_updateProductEndDatePricePick: function(date) {
+				if (this.$.updateProductEndDatePickPrice.opened) {
+					this.updateProductEndDatePrice = moment(date).format('YYYY-MM-DD');
+				}
+			},
+			_updateProductStartDateAltPick: function(date) {
+				if (this.$.updateProductStartDatePickAlt.opened) {
+					this.updateProductStartDateAlt = moment(date).format('YYYY-MM-DD');
+				}
+			},
+			_updateProductEndDateAltPick: function(date) {
+				if (this.$.updateProductEndDatePickAlt.opened) {
+					this.updateProductEndDateAlt = moment(date).format('YYYY-MM-DD');
+				}
+			},
+			updatePriceDialog: function() {
+				function checkUpdatePriceName(updatePrice) {
+					return updatePrice.name == document.getElementById("updatePriceName").value;
+				}
+				var indexUpdatePrice = this.prices.findIndex(checkUpdatePriceName);
+				if (indexUpdatePrice == -1) {
+					this.$.updatePriceDesc.value = null;
+					this.$.updatePriceStartDate.value = null;
+					this.$.updatePriceEndDate.value = null;
+					this.$.updatePriceType.selected = null;
+					this.$.updatePriceSize.value = null;
+					this.$.updatePriceUnits.selected = null;
+					this.$.updatePriceAmount.value = null;
+					this.$.updatePriceCurrency.value = null;
+					this.$.updatePricePeriod.selected = null;
+					this.$.addUpdatePriceAlteration.selected = null;
+				} else {
+					this.$.updatePriceDesc.value = this.prices[indexUpdatePrice].description;
+					this.$.updatePriceStartDate.value = this.prices[indexUpdatePrice].validFor.startDateTime;
+					this.$.updatePriceEndDate.value = this.prices[indexUpdatePrice].validFor.endDateTime;
+					switch(this.prices[indexUpdatePrice].priceType) {
+						case "recurring":
+							this.$.updatePriceType.selected = 0;
+							break;
+						case "one_time":
+							this.$.updatePriceType.selected = 1;
+							break;
+						case "usage":
+							this.$.updatePriceType.selected = 2;
+							break;
+					}
+					this.$.updatePriceSize.value = this.prices[indexUpdatePrice].unitOfMeasure;
+					switch(this.prices[indexUpdatePrice].units) {
+						case "b":
+							this.$.updatePriceUnits.selected = 0;
+							break;
+						case "c":
+							this.$.updatePriceUnits.selected = 1;
+							break;
+						case "s":
+							this.$.updatePriceUnits.selected = 2;
+							break;
+					}
+					this.$.updatePriceCurrency.value = this.prices[indexUpdatePrice].price.currencyCode;
+					this.$.updatePriceAmount.value = this.prices[indexUpdatePrice].price.taxIncludedAmount;
+					switch(this.prices[indexUpdatePrice].recurringChargePeriod) {
+						case "daily":
+							this.$.updatePricePeriod.selected = 0;
+							break;
+						case "weekly":
+							this.$.updatePricePeriod.selected = 1;
+							break;
+						case "monthly":
+							this.$.updatePricePeriod.selected = 2;
+							break;
+						case "yearly":
+							this.$.updatePricePeriod.selected = 3;
+							break;
+					}
+					var altUpdateName = this.prices[indexUpdatePrice].productOfferPriceAlteration.name;
+					if(altUpdateName) {
+						function checkAltName(updateAlts) {
+							return updateAlts.name == altUpdateName;
+						}
+						this.$.addUpdatePriceAlteration.selected = this.alterations.findIndex(checkAltName);
+					}
+				}
+			},
+			updateAddAltsDialog: function() {
+				function checkUpdateAltName(updateAlts) {
+					return updateAlts.name == document.getElementById("updateAltName").value;
+				}
+				var indexAlt = this.alterations.findIndex(checkUpdateAltName);
+				if (indexAlt == -1) {
+					this.$.updateAltDesc.value = null;
+					this.$.updateAltStartDate.value = null;
+					this.$.updateAltEndDate.value = null;
+					this.$.updateAltType.selected = null;
+					this.$.updateAltSize.value = null;
+					this.$.updateUnitDrop.selected = null;
+					this.$.updateAltAmount.value = null;
+					this.$.updateAltCurr.value = null;
+					this.$.updateAltPeriod.selected = null;
+				} else {
+					this.$.updateAltDesc.value = this.alterations[indexAlt].description;
+					this.$.updateAltStartDate.value = this.alterations[indexAlt].validFor.startDateTime;
+					this.$.updateAltEndDate.value = this.alterations[indexAlt].validFor.endDateTime;
+					switch(this.alterations[indexAlt].priceType) {
+						case "recurring":
+							this.$.updateAltType.selected = 0;
+							break;
+						case "one_time":
+							this.$.updateAltType.selected = 1;
+							break;
+						case "usage":
+							this.$.updateAltType.selected = 2;
+							break;
+					}
+					this.$.updateAltSize.value = this.alterations[indexAlt].unitOfMeasure;
+					switch(this.alterations[indexAlt].unit) {
+						case "b":
+							this.$.updateUnitDrop.selected = 0;
+							break;
+						case "c":
+							this.$.updateUnitDrop.selected = 1;
+							break;
+						case "s":
+							this.$.updateUnitDrop.selected = 2;
+							break;
+					}
+					this.$.updateAltCurr.value = this.alterations[indexAlt].price.currencyCode;
+					this.$.updateAltAmount.value = this.alterations[indexAlt].price.taxIncludedAmount;
+					switch(this.alterations[indexAlt].recurringChargeperiod) {
+						case "daily":
+							this.$.updateAltPeriod.selected = 0;
+							break;
+						case "weekly":
+							this.$.updateAltPeriod.selected = 1;
+							break;
+						case "monthly":
+							this.$.updateAltPeriod.selected = 2;
+							break;
+						case "yearly":
+							this.$.updateAltPeriod.selected = 3;
+							break;
+					}
+				}
+			},
+			updateProductOffer: function(event) {
+				var ajax =  this.$.updateProductOfferAjax;
+				ajax.method = "PATCH";
+				ajax.contentType = "application/json-patch+json";
+				ajax.url = "/catalogManagement/v2/productOffering/" + this.$.updateOffName.value; 
+				var offerNew = new Object();
+				var offerDesc = new Object();
+				offerDesc.op = "replace";
+				offerDesc.path = "/desc";
+				offerDesc.value = this.$.updateOffDesc.value;
+				offerNew.description = offerDesc.value;
+				var startDateTimeObject = new Object();
+				startDateTimeObject.op = "replace";
+				startDateTimeObject.path = "/startDateTime";
+				startDateTimeObject.value = this.$.updateOffStart.value;
+				var endDateTimeObject = new Object();
+				endDateTimeObject.op = "replace";
+				endDateTimeObject.path = "/endDateTime";
+				endDateTimeObject.value = this.$.updateOffEnd.value;
+				offerNew.validFor = {"startDateTime": this.$.updateOffStart.value, 
+					"endDateTime": this.$.updateOffEnd.value};
+				ajax.body = JSON.stringify(offerNew);
+				ajax.generateRequest();
+			},
+			_updateProductOfferResponse: function(event) {
+				this.$.updateProductModal.close();
+				document.getElementById("productGrid").clearCache();
+			},
+			_updateProductOfferError: function(event) {
+				this.$.updateProductToastError.text = event.detail.request.xhr.statusText;
+				this.$.updateProductToastError.open();
+			},
+			updateProductPrice: function(event) {
+				var ajax =  this.$.updateProductPriceAjax;
+				ajax.method = "PATCH";
+				ajax.contentType = "application/json-patch+json";
+				ajax.url = "/catalogManagement/v2/productOffering/" + this.$.updatePriceName.value; 
+				var updatePriceNew = new Object();
+				var priceName = new Object();
+				priceName.op = "replace";
+				priceName.path = "/productPrice/name"
+				priceName.value = this.$.updatePriceName.value;
+				updatePriceNew.name = priceName.value
+				var priceDesc = new Object();
+				priceDesc.op = "replace";
+				priceDesc.path = "/productPrice/desc"
+				priceDesc.value = this.$.updatePriceDesc.value;
+				updatePriceNew.description = priceDesc.value
+				var priceStart = new Object();
+				priceStart.op = "replace";
+				priceStart.path = "/productPrice/startDate";
+				priceStart.value = this.$.updatePriceStartDate.value;
+				var priceEnd = new Object();
+				priceEnd.op = "replace";
+				priceEnd.path = "/productPrice/endDate";
+				priceEnd.value = this.$.updatePriceEndDate.value;
+				updatePriceNew.validFor = {"startDateTime": this.$.updatePriceStartDate.value,
+					"endDateTime": this.$.updatePriceEndDate.value};
+				var priceSize = new Object();
+				priceSize.op = "replace";
+				priceSize.path = "/productPrice/size";
+				priceSize.value = this.$.updatePriceSize.value;
+				var priceUnit = new Object();
+				priceUnit.op = "replace";
+				priceUnit.path = "/productPrice/units";
+				updatePriceNew.unitsOfMeasure = priceSize.value; 
+				var priceAmount = new Object();
+				priceAmount.op = "replace";
+				priceAmount.path = "/productPrice/amount";
+				priceAmount.value = this.$.updatePriceAmount.value;
+				var priceCurrency = new Object();
+				priceCurrency.op = "replace";
+				priceCurrency.path = "/productPrice/currency";
+				priceCurrency.value = this.$.updatePriceCurrency.value;
+				updatePriceNew.price = {"taxIncludedAmount": this.$.updatePriceAmount.value, 
+					"currencyCode": this.$.updatePriceCurrency.value};
+				var pricePeriod = new Object();
+				pricePeriod.op = "replace";
+				pricePeriod.path = "/productPrice/period";
+				pricePeriod.value = this.$.updatePricePeriod.value;
+				updatePriceNew.recurringChargePeriod = pricePeriod.value;
+				var prodAlter = new Object();
+				prodAlter.op = "replace";
+				prodAlter.path = "/productPrice/0/prodPriceAlteration/name"
+				prodAlter.value = this.$.addUpdatePriceAlteration.value; 
+				updatePriceNew.productPriceAlteration = prodAlter.value;
+				ajax.body = JSON.stringify([updatePriceNew]);
+				ajax.generateRequest();
+			}, 
+			_updateProductPriceResponse: function(event) {
+				this.$.updateProductModal.close();
+				document.getElementById("productGrid").clearCache();
+			},
+			_updateProductPriceError: function(event) {
+				this.$.updateProductToastError.text = event.detail.request.xhr.statusText;
+				this.$.updateProductToastError.open();
+			},
+			checkPatternAlt: function() {
+				if(this.$.updateUnitDrop.selected == 0) {
+					this.$.updateAltSize.allowedPattern = "[0-9kmg]";
+					this.$.updateAltSize.pattern = "^[0-9]+[kmg]?$";
+				} else if(this.$.updateUnitDrop.selected == 1) {
+					this.$.updateAltSize.allowedPattern = "[0-9]";
+					this.$.updateAltSize.pattern = "^[0-9]+$";
+				} else if(this.$.updateUnitDrop.selected == 2) {
+					this.$.updateAltSize.allowedPattern = "[0-9mh]";
+					this.$.updateAltSize.pattern = "^[0-9]+[mh]?$";
+				}
+			},
+			checkRecure: function() {
+				if(this.$.updatePriceType.selected == 0) {
+					this.$.updatePricePerioddrop.disabled = false;
+					this.$.priceBytes.disabled = true;
+					this.$.priceSeconds.disabled = true;
+					this.$.priceCents.disabled = false;
+					this.$.updatePriceUnits.selected = 1;
+				} else if(this.$.updatePriceType.selected == 1) {
+					this.$.updatePricePerioddrop.disabled = true;
+					this.$.priceBytes.disabled = true;
+					this.$.priceSeconds.disabled = true;
+					this.$.priceCents.disabled = false;
+					this.$.updatePriceUnits.selected = 1;
+				} else if(this.$.updatePriceType.selected == 2) {
+					this.$.updatePricePerioddrop.disabled = true;
+					this.$.priceCents.disabled = true;
+					this.$.priceBytes.disabled = false;
+					this.$.priceSeconds.disabled = false;
+					this.$.updatePriceUnits.selected = 0;
+				}
+			},
+			checkRecureAlt: function() {
+				if(this.$.updateAltType.selected == 0) {
+					this.$.addalt5drop.disabled = false;
+					this.$.altBytes.disabled = true;
+					this.$.altSeconds.disabled = true;
+					this.$.altCents.disabled = false;
+					this.$.updateUnitDrop.selected = 1;
+				} else if(this.$.updateAltType.selected == 1) {
+					this.$.addalt5drop.disabled = true;
+					this.$.altBytes.disabled = true;
+					this.$.altSeconds.disabled = true;
+					this.$.altCents.disabled = false;
+					this.$.updateUnitDrop.selected = 1;
+				} else if(this.$.updateAltType.selected == 2) {
+					this.$.addalt5drop.disabled = true;
+					this.$.altBytes.disabled = false;
+					this.$.altSeconds.disabled = false;
+					this.$.altCents.disabled = true;
+					this.$.updateUnitDrop.selected = 0;
+				}
+			},
+			updateAddPrice: function(event) {
+				function updateCheckPriceName(updatePrice) {
+					return updatePrice.name == document.getElementById("updatePriceName").value;
+				}
+				var updateIndexPrice = this.prices.findIndex(updateCheckPriceName);
+				if(updateIndexPrice == -1) {
+					var updatePriceNew = new Object();
+				} else {
+					var updatePriceNew = this.prices[updateIndexPrice];
+				}
+				updatePriceNew.name = this.$.updatePriceName.value;
+				updatePriceNew.description = this.$.updatePriceDesc.value;
+				updatePriceNew.start = this.$.updatePriceStartDate.value;
+				updatePriceNew.end = this.$.updatePriceEndDate.value;
+				switch(this.$.updatePriceType.selected) {
+					case 0:
+						updatePriceNew.type = "recurring";
+						break;
+					case 1:
+						updatePriceNew.type = "one_time";
+						break;
+					case 2:
+						updatePriceNew.type = "usage";
+				}
+				switch(this.$.updatePriceUnits.selected) {
+					case 0:
+						updatePriceNew.unit = "b";
+						break;
+					case 1:
+						updatePriceNew.unit = "c";
+						break;
+					case 2:
+						updatePriceNew.unit = "s";
+				}
+				updatePriceNew.amount = parseInt(this.$.updatePriceAmount.value);
+				updatePriceNew.size = this.$.updatePriceSize.value;
+				updatePriceNew.currency = this.$.updatePriceCurrency.value;
+				switch(this.$.updatePricePeriod.selected) {
+					case 0:
+						updatePriceNew.period = "daily";
+						break;
+					case 1:
+						updatePriceNew.period = "weekly";
+						break;
+					case 2:
+						updatePriceNew.period = "monthly";
+						break
+					case 3:
+						updatePriceNew.period = "yearly";
+				}
+				if(this.$.addUpdatePriceDrop.value) {
+					function checkAlt(alts) {
+						return alts.name == this.addUpdatePriceDrop.value; 
+					}
+					var altIndex = this.alterations.findIndex(checkAlt);
+					updatePriceNew.alterations = this.alterations[altIndex];
+				}
+				function checkExistType(price) {
+					return updatePrice.type == updatePriceNew.type
+				}
+				if(updatePriceNew.name
+						&& updatePriceNew.amount 
+						&& updatePriceNew.type
+						&& updatePriceNew.unit) {
+					if(updateIndexPrice == -1) {
+						this.push('prices', updatePriceNew);
+					}
+					this.$.updatePriceName.value = null;
+					this.$.updatePriceDesc.value = null;
+					this.$.updatePriceStartDate.value = null;
+					this.$.updatePriceSize.value = null;
+					this.$.updatePriceAmount.value = null;
+					this.$.updatePriceUnits.value = null;
+					this.$.updatePriceEndDate.value = null;
+					this.$.updatePriceType.value = null;
+					this.$.updatePriceCurrency.value = null;
+					this.$.updatePricePeriod.value = null;
+					this.$.addUpdatePriceAlteration.selected = null;
+					document.getElementById("updateProductToastSuccess").open();
+				} else {
+					this.$.updateProductToastError.text = "Validation failed";
+					this.$.updateProductToastError.open();
+				}
+			},
+			updateAddAlteration: function() {
+				function updateCheckAltName(updateAlts) {
+					return updateAlts.name == document.getElementById("updateAltName").value;
+				}
+				var updateIndexAlt = this.alterations.findIndex(updateCheckAltName);
+				if(updateIndexAlt == -1) {
+					var updateAltNew = new Object();
+				} else {
+					var updateAltNew = this.alterations[updateIndexAlt];
+				}
+				updateAltNew.name = this.$.updateAltName.value;
+				updateAltNew.description = this.$.updateAltDesc.value;
+				updateAltNew.startdate = this.$.updateAltStartDate.value;
+				updateAltNew.terminationDate = this.$.updateAltEndDate.value;
+				switch(this.$.updateAltType.selected) {
+					case 0:
+						updateAltNew.type = "recurring";
+						break;
+					case 1:
+						updateAltNew.type = "one_time";
+						break;
+					case 2:
+						updateAltNew.type = "usage";
+				}
+				switch(this.$.updateUnitDrop.selected) {
+					case 0:
+						updateAltNew.unit = "b";
+						break;
+					case 1:
+						updateAltNew.unit = "c";
+						break
+					case 2:
+						updateAltNew.unit = "s";
+				}
+				updateAltNew.size = this.$.updateAltSize.value;
+				switch(this.$.updateAltPeriod.selected) {
+					case 0:
+						updateAltNew.period = "daily";
+						break;
+					case 1:
+						updateAltNew.period = "weekly";
+						break;
+					case 2:
+						updateAltNew.period = "monthly";
+						break
+					case 3:
+						updateAltNew.period = "yearly";
+				}
+				updateAltNew.currency = this.$.updateAltCurr.value;
+				updateAltNew.amount= parseInt(this.$.updateAltAmount.value);
+				if(updateAltNew.name
+						&& updateAltNew.type
+						&& updateAltNew.unit
+						&& (updateAltNew.size ||  updateAltNew.unit == "c")
+						&& (updateAltNew.amount || updateAltNew.amount == 0)) {
+					if(updateIndexAlt == -1) {
+						this.push('alterations', updateAltNew);
+					}
+					this.$.updateAltName.value = null
+					this.$.updateAltDesc.value = null;
+					this.$.updateAltStartDate.value = null;
+					this.$.updateAltEndDate.value = null;
+					this.$.updateAltType.value = null;
+					this.$.updateAltSize.value = null;
+					this.$.updateAltCurr.value = null;
+					this.$.updateAltAmount.value = null;
+				} else {
+					this.$.updateProductToastError.text = "Validation failed";
+					this.$.updateProductToastError.open();
+				}
+			},
+			deleteProduct: function(event) {
+				this.$.deleteProductAjax.method = "DELETE";
+				this.$.deleteProductAjax.contentType = "application/json-patch+json";
+				this.$.deleteProductAjax.url = "/catalogManagement/v2/productOffering/"
+						+ document.getElementById("productGrid").selectedItems[0].name; 
+				this.$.deleteProductAjax.generateRequest();
+			},
+			_deleteProductResponse: function(event) {
+				this.$.updateProductModal.close();
+				document.getElementById("productGrid").clearCache();
+			},
+			_deleteProductError: function(event) {
+				this.$.updateProductToastError.text = event.detail.request.xhr.statusText;
+				this.$.updateProductToastError.open();
+			},
+			_onLoadingChanged: function(event) {
+				if (this.$.updateProductAjax.loading) {
+					document.getElementById("progress").disabled = false;
+				} else {
+					document.getElementById("progress").disabled = true;
+				}
+			},
+			_addProductResponse: function(event) {
+				this.$.updateProductModal.close();
+				document.getElementById("updateProductToastSuccess").open();
+				//this.$.updateOffName.value = null;
+				//this.$.updateOffDesc.value = null;
+				this.set('prices', []);
+				this.set('alterations', []);
+				document.getElementById("productGrid").clearCache();
+			},
+			cancelDialog: function() {
+				this.set('prices', []);
+				this.set('alterations', []);
+				this.$.updateOffName.value = null;
+				this.$.updateOffDesc.value = null;
+				this.$.updateOffStart.value = null;
+				this.$.updateOffEnd.value = null;
+				this.$.updateProductStartDatePickUpdateOff.hide()
+				this.$.updateProductEndDatePickUpdateOff.hide()
+				this.$.updateProductStartDatePickPrice.hide();
+				this.$.updateProductEndDatePickPrice.hide();
+				this.$.updateProductStartDatePickAlt.hide();
+				this.$.updateProductEndDatePickAlt.hide();
+				this.$.updateProductModal.close();
+			}
+		});
+	</script>
+</dom-module>
