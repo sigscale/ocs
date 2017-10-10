@@ -43,54 +43,54 @@
 		last_modified :: tuple()}).
 
 -record(alteration,
-		{name :: string(),
-		description :: string(),
-		start_date :: pos_integer(),
-		end_date :: pos_integer(),
-		type :: price_type(),
-		period :: valid_period(),
-		units :: unit_of_measure(),
-		size :: integer(),
-		amount :: integer(),
-		currency :: string()}).
+		{name :: string() | undefined,
+		description :: string() | undefined,
+		start_date :: pos_integer() | undefined,
+		end_date :: pos_integer() | undefined,
+		type :: price_type() | undefined,
+		period :: valid_period() | undefined,
+		units :: unit_of_measure() | undefined,
+		size :: integer() | undefined,
+		amount :: integer() | undefined,
+		currency :: string() | undefined}).
 
 -record(price,
-		{name :: string(),
-		description :: string(),
-		start_date :: pos_integer(),
-		end_date :: pos_integer(),
-		type :: price_type(),
-		period :: valid_period(),
-		units :: unit_of_measure(),
-		size :: integer(),
-		amount :: integer(),
-		currency :: string(),
-		alteration :: #alteration{}}).
+		{name :: string() | undefined,
+		description :: string() | undefined,
+		start_date :: pos_integer() | undefined,
+		end_date :: pos_integer() | undefined,
+		type :: price_type() | undefined,
+		period :: valid_period() | undefined,
+		units :: unit_of_measure() | undefined,
+		size :: integer() | undefined,
+		amount :: integer() | undefined,
+		currency :: string() | undefined,
+		alteration :: #alteration{} | undefined}).
 
 -record(product,
-		{name :: '_' | string(),
-		description :: '_' | string(),
-		start_date :: '_' | pos_integer(),
-		end_date :: '_' | pos_integer(),
-		is_bundle = false :: '_' | undefined | boolean(),
-		status :: '_' | undefined | product_status(),
+		{name :: '_' | string() | undefined,
+		description :: '_' | string() | undefined,
+		start_date :: '_' | pos_integer() | undefined,
+		end_date :: '_' | pos_integer() | undefined,
+		is_bundle = false :: '_' | boolean() | undefined,
+		status :: '_' | product_status() | undefined,
 		price :: '_' | [#price{}],
 		characteristics = [] :: [tuple()],
-		last_modified :: tuple() | '_'}).
+		last_modified :: tuple() | '_' | undefined}).
 
 -record(remain_amount,
 		{unit :: string(),
 		amount :: integer()}).
 
 -record(bucket,
-		{id :: string(),
-		name :: string(),
+		{id :: string() | undefined,
+		name :: string() | undefined,
 		bucket_type :: octets | cents | seconds,
-		start_date :: pos_integer(),
-		termination_date :: pos_integer(),
-		remain_amount :: integer(),
-		units :: octets | cents | seconds,
-		last_modified :: tuple() | '_'}).
+		start_date :: pos_integer() | undefined,
+		termination_date :: pos_integer() | undefined,
+		remain_amount = 0 :: integer(),
+		units :: octets | cents | seconds | undefined,
+		last_modified :: tuple() | '_' | undefined}).
 
 -record(product_instance,
 		{product :: string(),
@@ -98,7 +98,7 @@
 		termination_date :: pos_integer(),
 		status :: atom(),
 		characteristics = [] :: [tuple()],
-		last_modified :: tuple() | '_'}).
+		last_modified :: tuple() | '_' | undefined}).
 
 %% define subscriber table entries record
 -record(subscriber,
