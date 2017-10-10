@@ -158,6 +158,9 @@
 					type: Boolean,
 					value: false,
 					observer: '_activePageChanged'
+				},
+				activeItem: {
+					observer: '_activeItemChanged'
 				}
 			},
 			_activePageChanged: function(active) {
@@ -221,6 +224,12 @@
 					};
 				}
 			},
+			_activeItemChanged: function(item) {
+				if(item != null) {
+					this.$.productGrid.selectedItems = item ? [item] : [];
+					document.getElementById("updateProduct").initialize(item);
+				}
+			},
 			_getProductResponse: function(event) {
 				var grid = this.$.productGrid;
 				var results = event.detail.xhr.response;
@@ -258,6 +267,7 @@
 							return price.name;
 						}
 						newRecord.price = results[index].productOfferingPrice.map(getNames).join(", ");
+						newRecord.prices = results[index].productOfferingPrice;
 					}
 					vaadinItems[index] = newRecord;
 				}
