@@ -565,7 +565,7 @@ update_buckets([#bucket{remain_amount = RemAmount} = Bucket |
 		RU when RU < 0 ->
 			update_buckets(Tail, RU);
 		_ ->
-			UpdatedBucket = Bucket#bucket{remain_amount = amount = RemUsage},
+			UpdatedBucket = Bucket#bucket{remain_amount = RemUsage},
 			[UpdatedBucket | Tail]
 	end.
 
