@@ -519,6 +519,6 @@ get_balance(Buckets) ->
 %% @hidden
 get_balance1([], Balance) ->
 	Balance;
-get_balance1([#bucket{remain_amount = #remain_amount{amount = RemAmnt}}
+get_balance1([#bucket{remain_amount = RemAmnt}
 		| Tail], Balance) ->
 	get_balance1(Tail, RemAmnt + Balance).
