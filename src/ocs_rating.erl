@@ -42,12 +42,15 @@ rating(SubscriberID, UsageSecs, UsageOctets) when is_binary(SubscriberID) ->
 	F = fun() ->
 			case mnesia:read(subscriber, SubscriberID, write) of
 				[#subscriber{buckets = Buckets, product =
-						#product_instance{product = ProdID}} = Subscriber] ->
+						#product_instance{product = ProdID,
+						product_characteristics = Chars}} = Subscriber] ->
+					Validity = proplists:get_value(validity, Chars),
 					case mnesia:read(product, ProdID, read) of
 						[#product{price = Prices}] ->
 							case lists:keyfind(usage, #price.type, Prices) of
 								#price{} = Price ->
-									{Charged, NewBuckets} = rating2(Price, UsageSecs, UsageOctets, Buckets),
+									{Charged, NewBuckets} = rating2(Price,
+											Validity, UsageSecs, UsageOctets, Buckets),
 									Entry = Subscriber#subscriber{buckets = NewBuckets},
 									mnesia:write(Entry);
 								false ->
@@ -70,14 +73,13 @@ rating(SubscriberID, UsageSecs, UsageOctets) when is_binary(SubscriberID) ->
 	end.
 %% @hidden
 rating2(#price{type = usage, size = Size, units = octets,
-		amount = Amount}, _UsageSecs, UsageOctets, Buckets) ->
-	rating3(Amount, Size, octets, UsageOctets, Buckets);
+		amount = Amount}, Validity, _UsageSecs, UsageOctets, Buckets) ->
+	rating3(Amount, Size, octets, Validity, UsageOctets, Buckets);
 rating2(#price{type = usage, size = Size, units = seconds,
-		amount = Amount}, UsageSecs, _UsageOctets, Buckets) ->
-	rating3(Amount, Size, seconds, UsageSecs, Buckets).
+		amount = Amount}, Validity, UsageSecs, _UsageOctets, Buckets) ->
+	rating3(Amount, Size, seconds, Validity, UsageSecs, Buckets).
 %% @hidden
-rating3(Price, Size, Type, Used, Buckets) ->
-	Validity = erlang:system_time(?MILLISECOND) + 245200,
+rating3(Price, Size, Validity, Type, Used, Buckets) ->
 	case charge(Type, Used, lists:sort(fun sort_buckets/2, Buckets)) of
 		{Charged, NewBuckets} when Charged < Used ->
 			purchase(Type, Price, Size, Used - Charged, Validity, NewBuckets);
