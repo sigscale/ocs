@@ -190,8 +190,8 @@ code_change(_OldVsn, State, _Extra) ->
 -spec range_request(Range, From, State) -> Result
 	when
 		Range :: {Start, End},
-		Start :: pos_integer(),
-		End :: pos_integer(),
+		Start :: pos_integer() | undefined,
+		End :: pos_integer() | undefined,
 		From :: {pid(), Tag},
 		Tag :: any(),
 		State :: state(),
@@ -215,27 +215,40 @@ code_change(_OldVsn, State, _Extra) ->
 %% 	is an HTTP status code to be returned to the client.
 %%
 %% @private
+range_request({undefined, undefined}, _From,
+		#state{cont = eof, buffer = []} = State) ->
+	ContentRange = content_range(0, 0, 0),
+	{stop, shutdown, {[], ContentRange}, State};
+range_request({undefined, undefined}, From,
+		#state{cont = Cont, max_page_size = MaxPageSize} = State)
+		when Cont /= start ->
+	range_request({1, MaxPageSize}, From, State);
 range_request({StartRange, EndRange}, From,
 		#state{max_page_size = MaxPageSize} = State)
-		when (EndRange - StartRange) > MaxPageSize ->
+		when StartRange /= undefined, EndRange /= undefined,
+		(EndRange - StartRange) > MaxPageSize ->
 	range_request({StartRange, StartRange + MaxPageSize}, From, State);
 range_request({StartRange, _EndRange}, _From, #state{offset = Offset,
-		timeout = Timeout} = State) when StartRange < Offset ->
+		timeout = Timeout} = State)
+		when StartRange /= undefined, StartRange < Offset ->
 	{reply, {error, 416}, State, Timeout};
 range_request({StartRange, _EndRange}, _From,
 		#state{cont = eof, offset = Offset, buffer = Buffer} = State)
-		when StartRange > Offset + length(Buffer) ->
+		when StartRange /= undefined,
+		StartRange > Offset + length(Buffer) ->
 	{stop, shutdown, {error, 416}, State};
 range_request({StartRange, EndRange}, _From,
 		#state{cont = eof, offset = Offset, buffer = Buffer} = State)
-		when StartRange >= Offset, length(Buffer) =< EndRange - Offset ->
+		when StartRange /= undefined, EndRange /= undefined,
+		StartRange >= Offset, length(Buffer) =< EndRange - Offset ->
 	Rest = lists:sublist(Buffer, StartRange - Offset, length(Buffer)),
 	End = StartRange + length(Rest) - 1,
 	ContentRange = content_range(StartRange, End, End),
 	{stop, shutdown, {Rest, ContentRange}, State};
 range_request({StartRange, EndRange}, _From,
 		#state{offset = Offset, buffer = Buffer, timeout = Timeout} = State)
-		when StartRange > Offset, length(Buffer) >= EndRange - Offset ->
+		when StartRange /= undefined, EndRange /= undefined,
+		StartRange > Offset, length(Buffer) >= EndRange - Offset ->
 	PageSize = EndRange - StartRange + 1,
 	Rest = lists:sublist(Buffer, StartRange - Offset, length(Buffer)),
 	{RespItems, NewBuffer} = lists:split(PageSize, Rest),
