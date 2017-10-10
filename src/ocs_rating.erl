@@ -79,7 +79,7 @@ rating2(#price{type = usage, size = Size, units = seconds,
 		amount = Amount}, Validity, UsageSecs, _UsageOctets, Buckets) ->
 	rating3(Amount, Size, seconds, Validity, UsageSecs, Buckets).
 %% @hidden
-rating3(Price, Size, Validity, Type, Used, Buckets) ->
+rating3(Price, Size, Type, Validity, Used, Buckets) ->
 	case charge(Type, Used, lists:sort(fun sort_buckets/2, Buckets)) of
 		{Charged, NewBuckets} when Charged < Used ->
 			purchase(Type, Price, Size, Used - Charged, Validity, NewBuckets);
