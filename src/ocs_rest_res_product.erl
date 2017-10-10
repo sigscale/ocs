@@ -1202,7 +1202,7 @@ exe_jsonpatch_merge(ProdID, Etag, Patch) ->
 								{error, SC} ->
 									throw(SC);
 								Updatedentry ->
-									mnesia:delete(product, Entry#product.name, read),
+									mnesia:delete(product, Entry#product.name, write),
 									TS = erlang:system_time(milli_seconds),
 									N = erlang:unique_integer([positive]),
 									LM = {TS, N},
