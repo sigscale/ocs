@@ -91,8 +91,9 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[client, get_all_clients, update_client_password, delete_client, subscriber, update_password,
-	update_attributes, delete_subscriber, add_product, find_product, get_products, delete_product].
+	[client, get_all_clients, update_client_password, delete_client,
+	subscriber, update_password, update_attributes, delete_subscriber,
+	add_product, find_product, get_products, delete_product].
 
 %%---------------------------------------------------------------------
 %%  Test cases
