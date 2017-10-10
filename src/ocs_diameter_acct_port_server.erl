@@ -512,7 +512,7 @@ get_balance(Buckets) ->
 %% @hidden
 get_balance1([], Balance) ->
 	Balance;
-get_balance1([#bucket{remain_amount = #remain_amount{amount = RemAmnt}}
+get_balance1([#bucket{remain_amount = RemAmnt}
 		| Tail], Balance) ->
 	get_balance1(Tail, RemAmnt + Balance).
 
@@ -524,13 +524,13 @@ get_balance1([#bucket{remain_amount = #remain_amount{amount = RemAmnt}}
 %% @doc Decrement bucket balances and return new available buckets
 update_buckets([], _Usage) ->
 	[];
-update_buckets([#bucket{remain_amount = #remain_amount{amount = RemAmount} = RM} = Bucket |
+update_buckets([#bucket{remain_amount = RemAmount} = Bucket |
 		Tail], Usage) ->
 	RemUsage = RemAmount - Usage,
 	case RemUsage of
 		RU when RU < 0 ->
 			update_buckets(Tail, RU);
 		_ ->
-			UpdatedBucket = Bucket#bucket{remain_amount = RM#remain_amount{amount = RemUsage}},
+			UpdatedBucket = Bucket#bucket{remain_amount = RemUsage},
 			[UpdatedBucket | Tail]
 	end.

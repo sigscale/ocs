@@ -952,9 +952,9 @@ prod_price_alter_name(#alteration{} = Alteration) ->
 %% @private
 prod_price_alter_vf(Alteration) when is_list(Alteration) ->
 	case lists:keyfind("validFor", 1, Alteration) of
-		{_, {struct, Alteration}} ->
-			PAlterSTimeISO = proplists:get_value("startDateTime", Alteration),
-			PAlterETime = proplists:get_value("endDateTime", Alteration),
+		{_, {struct, AlterObject}} ->
+			PAlterSTimeISO = proplists:get_value("startDateTime", AlterObject),
+			PAlterETime = proplists:get_value("endDateTime", AlterObject),
 			case {PAlterSTimeISO, PAlterETime} of
 				{undefined, undefined} ->
 					{undefined, undefined};

@@ -1040,8 +1040,7 @@ authorize(Identity, Password) when is_binary(Identity),
 				case mnesia:read(subscriber, Identity, write) of
 					[#subscriber{buckets = Buckets, attributes = Attributes,
 							enabled = Enabled, disconnect = Disconnect} = Entry] ->
-						F2 = fun(#bucket{remain_amount = RM}) when
-											RM#remain_amount.amount > 0 ->
+						F2 = fun(#bucket{remain_amount = Amount}) when Amount > 0 ->
 										true;
 									(_) ->
 										false

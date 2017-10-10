@@ -93,8 +93,8 @@ top_up(Identity, RequestBody) ->
 		{_, Units} = lists:keyfind("units", 1, AmountObj),
 		{_, Amount} = lists:keyfind("amount", 1, AmountObj),
 		BucketType = bucket_type(Units),
-		Bucket = #bucket{bucket_type = BucketType, remain_amount =
-				#remain_amount{amount = Amount, unit = Units}},
+		Bucket = #bucket{bucket_type = BucketType,
+				remain_amount = Amount, units = BucketType},
 		top_up1(Identity, Bucket)
 	catch
 		_Error ->
@@ -169,17 +169,12 @@ accumulated_balance1([], AccBalance) ->
 accumulated_balance1([Bucket | T], AccBalance) ->
 	accumulated_balance1(T, accumulated_balance2(Bucket, AccBalance)).
 %% @hidden
-accumulated_balance2(#bucket{bucket_type = octets, remain_amount =
-		#remain_amount{unit = Units, amount = Amount}}, AccBalance) ->
-	accumulated_balance3(octets, Units, Amount, AccBalance);
-accumulated_balance2(#bucket{bucket_type = cents, remain_amount =
-		#remain_amount{unit = Units, amount = Amount}}, AccBalance) ->
-	accumulated_balance3(cents, Units, Amount, AccBalance);
-accumulated_balance2(#bucket{bucket_type = seconds, remain_amount =
-		#remain_amount{unit = Units, amount = Amount}}, AccBalance) ->
-	accumulated_balance3(seconds, Units, Amount, AccBalance).
-%accumulated_balance2([], AccBalance) ->
-%	AccBalance.
+accumulated_balance2(#bucket{bucket_type = octets, remain_amount = Amount}, AccBalance) ->
+	accumulated_balance3(octets, "octets", Amount, AccBalance);
+accumulated_balance2(#bucket{bucket_type = cents, remain_amount = Amount}, AccBalance) -> 
+	accumulated_balance3(cents, "cents", Amount, AccBalance);
+accumulated_balance2(#bucket{bucket_type = seconds, remain_amount = Amount}, AccBalance) -> 
+	accumulated_balance3(seconds, "seconds", Amount, AccBalance).
 %% @hidden
 accumulated_balance3(Key, Units, Amount, AccBalance) ->
 	case lists:keytake(Key, 1, AccBalance) of
