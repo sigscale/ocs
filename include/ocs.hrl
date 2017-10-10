@@ -75,7 +75,7 @@
 		is_bundle = false :: '_' | undefined | boolean(),
 		status :: '_' | undefined | product_status(),
 		price :: '_' | [#price{}],
-		characteristics :: [tuple()],
+		characteristics = [] :: [tuple()],
 		last_modified :: tuple() | '_'}).
 
 -record(remain_amount,
@@ -97,7 +97,7 @@
 		start_date :: pos_integer(),
 		termination_date :: pos_integer(),
 		status :: atom(),
-		characteristics :: [tuple()],
+		characteristics = [] :: [tuple()],
 		last_modified :: tuple() | '_'}).
 
 %% define subscriber table entries record
