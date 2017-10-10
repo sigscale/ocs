@@ -92,9 +92,25 @@ top_up(Identity, RequestBody) ->
 		{_, {struct, AmountObj}} = lists:keyfind("amount", 1, Object),
 		{_, Units} = lists:keyfind("units", 1, AmountObj),
 		{_, Amount} = lists:keyfind("amount", 1, AmountObj),
+		{StartDate, EndDate} = case lists:keyfind("validFor", 1, Object) of
+			{_, {struct, VF}} ->
+				SDT = proplists:get_value("startDate", VF),
+				EDT = proplists:get_value("endDate", VF),
+				case {SDT, EDT} of
+					{undefined, undefined} ->
+						{undefined, undefined};
+					{undefined, EDT} ->
+						{undefined, ocs_rest:iso8601(EDT)};
+					{SDT, undefined} ->
+						{ocs_rest:iso8601(SDT), undefined}
+				end;
+			false ->
+				{undefined, undefined}
+		end,
 		BucketType = bucket_type(Units),
-		Bucket = #bucket{bucket_type = BucketType,
-				remain_amount = Amount, units = BucketType},
+		Bucket = #bucket{bucket_type = BucketType, remain_amount = Amount,
+				units = BucketType, start_date = StartDate,
+				termination_date = EndDate},
 		top_up1(Identity, Bucket)
 	catch
 		_Error ->
