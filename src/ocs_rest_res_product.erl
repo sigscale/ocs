@@ -315,7 +315,6 @@ get_product_spec("3", [] = _Query) ->
 	{ok, Headers, Body};
 get_product_spec("4", [] = _Query) ->
 	Headers = [{content_type, "application/json"}],
-erlang:display({?MODULE, ?LINE, spec_product_wlan()}),
 	Body = mochijson:encode(spec_product_wlan()),
 	{ok, Headers, Body};
 get_product_spec(_Id, [] = _Query) ->
