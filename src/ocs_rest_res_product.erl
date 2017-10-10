@@ -506,7 +506,12 @@ characteristic_product_wlan() ->
 	Type2 = {"valueType", "string"},
 	Value2 = {"productSpecCharacteristicValue", {array, [{struct, [Type2]}]}},
 	Char2 = {struct, [Name2, Description2, Type2, Value2]},
-	[Char1, Char2].
+	Name3 = {"name", "topUpDuration"},
+	Description3 = {"description", "Validity period of each top up."},
+	Type3 = {"valueType", "integer"},
+	Value3 = {"productSpecCharacteristicValue", {array, [{struct, [Type2]}]}},
+	Char3 = {struct, [Name3, Description3, Type3, Value3]},
+	[Char1, Char2, Char3].
 
 -spec product_offering_price(Product) -> Result
 	when
