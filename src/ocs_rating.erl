@@ -43,7 +43,7 @@ rating(SubscriberID, UsageSecs, UsageOctets) when is_binary(SubscriberID) ->
 			case mnesia:read(subscriber, SubscriberID, write) of
 				[#subscriber{buckets = Buckets, product =
 						#product_instance{product = ProdID,
-						product_characteristics = Chars}} = Subscriber] ->
+						characteristics = Chars}} = Subscriber] ->
 					Validity = proplists:get_value(validity, Chars),
 					case mnesia:read(product, ProdID, read) of
 						[#product{price = Prices}] ->
