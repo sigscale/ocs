@@ -385,7 +385,7 @@ add_subscriber(undefined, Password, Product, Buckets, Attributes, EnabledStatus,
 		is_boolean(EnabledStatus), is_boolean(MultiSession) ->
 	F2 = fun() ->
 				case mnesia:read(product, Product, read) of
-					[#product{start_date = SD, termination_date = TD, status = Status }] ->
+					[#product{start_date = SD, end_date = TD, status = Status }] ->
 						F1 = fun(_, _, 0) ->
 									mnesia:abort(retries);
 								(F, Identity, I) ->
@@ -425,7 +425,7 @@ add_subscriber(Identity, Password, Product, Buckets, Attributes, EnabledStatus, 
 		is_list(Buckets), is_list(Attributes), is_boolean(EnabledStatus), is_boolean(MultiSession) ->
 	F1 = fun() ->
 				case mnesia:read(product, Product, read) of
-					[#product{start_date = SD, termination_date = TD, status = Status }] ->
+					[#product{start_date = SD, end_date = TD, status = Status }] ->
 						TS = erlang:system_time(?MILLISECOND),
 						N = erlang:unique_integer([positive]),
 						NewBuckets = [B#bucket{last_modified = {TS, N}} || B <- Buckets],
@@ -734,9 +734,8 @@ query_product(Con, Name, Description, Status, SDT, EDT, Price) when is_list(SDT)
 	query_product(Con, Name, Description, Status, ISOSDT, EDT, Price);
 query_product(start, Name, Description, Status, SDT, EDT, Price) ->
 	MatchHead = #product{name = Name, description = Description,
-			valid_for = '_', is_bundle = '_', status = Status,
-			start_date = SDT, termination_date = EDT, price = '_',
-			last_modified = '_'},
+			start_date = SDT, end_date = EDT, is_bundle = '_',
+			status = Status, price = '_', last_modified = '_'},
 	MatchSpec = MatchSpec = [{MatchHead, [], ['$_']}],
 	F = fun() ->
 		mnesia:select(product, MatchSpec, read)

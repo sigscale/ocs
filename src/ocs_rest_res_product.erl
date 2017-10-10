@@ -62,17 +62,16 @@ add_product_offering(ReqData) ->
 		Name = prod_name(ObjectMembers),
 		IsBundle = prod_isBundle(ObjectMembers),
 		Status = prod_status(ObjectMembers),
-		ValidFor = prod_vf(ObjectMembers),
+		{StartDate, EndDate} = prod_vf(ObjectMembers),
 		Description = prod_description(ObjectMembers),
-		StartDate = prod_sdate(ObjectMembers),
-		TerminationDate = prod_tdate(ObjectMembers),
 		case product_offering_price(ObjectMembers) of
 			{error, StatusCode} ->
 				{error, StatusCode};
 			Price ->
-				Product = #product{price = Price, name = Name, valid_for = ValidFor,
-					is_bundle = IsBundle, status = Status, start_date = StartDate,
-					termination_date = TerminationDate, description = Description},
+				Product = #product{price = Price,
+						name = Name, description = Description,
+						is_bundle = IsBundle, status = Status,
+						start_date = StartDate, end_date = EndDate},
 				case ocs:add_product(Product) of
 					{ok, LM} ->
 						add_product_offering1(Name, LM, ObjectMembers);
@@ -138,15 +137,12 @@ get_product_offering1(Product) ->
 	IsBundle = prod_isBundle(Product),
 	Name = prod_name(Product),
 	Status = prod_status(Product),
-	StartDate = prod_sdate(Product),
-	TerminationDate = prod_tdate(Product),
 	case product_offering_price(Product) of
 		{error, StatusCode} ->
 			{error, StatusCode};
 		OfferPrice ->
-			Json = {struct, [ID, Description, Href, StartDate,
-				TerminationDate, IsBundle, Name, Status, ValidFor,
-				OfferPrice]},
+			Json = {struct, [ID, Name, Description, Href, 
+				IsBundle, Status, ValidFor, OfferPrice]},
 			Body = mochijson:encode(Json),
 			Headers = [{content_type, "application/json"}, {etag, Etag}],
 			{ok, Headers, Body}
@@ -363,21 +359,18 @@ on_patch_product_offering(ProdId, Etag, ReqData) ->
 			{ok, Product} ->
 				NewEtag = etag(Product#product.last_modified),
 				ID = prod_id(Product),
-				Description = prod_description(Product),
 				Href = prod_href(Product),
+				Name = prod_name(Product),
+				Description = prod_description(Product),
 				ValidFor = prod_vf(Product),
 				IsBundle = prod_isBundle(Product),
-				Name = prod_name(Product),
 				Status = prod_status(Product),
-				StartDate = prod_sdate(Product),
-				TerminationDate = prod_tdate(Product),
 				case product_offering_price(Product) of
 					{error, StatusCode} ->
 						{error, StatusCode};
 					OfferPrice ->
-						Json = {struct, [ID, Description, Href, StartDate,
-						TerminationDate, IsBundle, Name, Status, ValidFor,
-						OfferPrice]},
+						Json = {struct, [ID, Href, Name, Description,
+								ValidFor, IsBundle, Status, OfferPrice]},
 						Body = mochijson:encode(Json),
 						Headers = [{content_type, "application/json"}, {etag, NewEtag}],
 						{ok, Headers, Body}
@@ -547,20 +540,19 @@ product_offering_price([], Prices) ->
 product_offering_price([{struct, ObjectMembers} | T], Prices) ->
 	try
 		ProdName = prod_price_name(ObjectMembers),
-		{_ProdSTime, _ProdETime} = valid_for(ObjectMembers),
+		ProdDescription = prod_price_description(ObjectMembers),
+		{StartDate, EndDate} = valid_for(ObjectMembers),
 		ProdPriceType = prod_price_type(ObjectMembers),
 		{_, {struct, ProdPriceObj}} = lists:keyfind("price", 1, ObjectMembers),
 		ProdAmount = prod_price_price_amount(ProdPriceObj),
 		CurrencyCode = prod_price_price_c_code(ProdPriceObj),
-		ProdVF = valid_for(ObjectMembers),
 		RCPeriod = prod_price_rc_period(ObjectMembers),
-		ProdDescription = prod_price_description(ObjectMembers),
 		{ProdUnits, ProdSize} = prod_price_ufm(ObjectMembers),
 		Size = product_size(ProdUnits, octets, ProdSize),
 		Price1 = #price{name = ProdName, description = ProdDescription,
-				type = ProdPriceType, units = ProdUnits, size = Size, valid_for = ProdVF,
-				currency = CurrencyCode, period = RCPeriod, %validity = ProdValidity,
-				amount = ProdAmount},
+				start_date = StartDate, end_date = EndDate,
+				type = ProdPriceType, units = ProdUnits, size = Size,
+				currency = CurrencyCode, period = RCPeriod, amount = ProdAmount},
 		case lists:keyfind("productOfferPriceAlteration", 1, ObjectMembers) of
 			false ->
 				product_offering_price(T, [Price1 | Prices]);
@@ -616,17 +608,18 @@ product_offering_price([#price{} = Price | T], Prices) ->
 %% @private
 po_alteration(Alteration) when is_list(Alteration) ->
 	try
-		ProdAlterName = prod_price_alter_name(Alteration),
-		ProdAlterVF = prod_price_alter_vf(Alteration),
-		ProdAlterPriceType = prod_price_alter_price_type(Alteration),
-		{_, {struct, ProdAlterPrice}} = lists:keyfind("price", 1, Alteration),
-		ProdAlterAmount = prod_price_alter_amount(ProdAlterPrice),
-		ProdAlterDescription = prod_price_alter_description(Alteration),
-		{ProdAlterUnits, ProdAlterSize} = prod_price_alter_ufm(Alteration),
-		AlterSize = product_size(ProdAlterUnits, octets, ProdAlterSize),
-		#alteration{name = ProdAlterName, description = ProdAlterDescription,
-			valid_for = ProdAlterVF, units = ProdAlterUnits, size = AlterSize,
-			amount = ProdAlterAmount, type = ProdAlterPriceType}
+		Name = prod_price_alter_name(Alteration),
+		Description = prod_price_alter_description(Alteration),
+		{StartDate, EndDate} = valid_for(Alteration),
+		PriceType = prod_price_alter_price_type(Alteration),
+		{_, {struct, Price}} = lists:keyfind("price", 1, Alteration),
+		Amount = prod_price_alter_amount(Price),
+		{Units, UnitSize} = prod_price_alter_ufm(Alteration),
+		Size = product_size(Units, octets, UnitSize),
+		#alteration{name = Name, description = Description,
+			start_date = StartDate, end_date = EndDate,
+			type = PriceType, units = Units,
+			size = Size, amount = Amount}
 	catch
 		_:_ ->
 			{error, 400}
@@ -634,10 +627,10 @@ po_alteration(Alteration) when is_list(Alteration) ->
 po_alteration(#alteration{} = Alteration) ->
 	try
 		Name = prod_price_alter_name(Alteration),
-		ValidFor = prod_price_alter_vf(Alteration),
+		Description = prod_price_alter_description(Alteration),
+		ValidFor = valid_for(Alteration),
 		PriceType = prod_price_alter_price_type(Alteration),
 		UFM  = prod_price_alter_ufm(Alteration),
-		Description = prod_price_alter_description(Alteration),
 		Amount = prod_price_alter_amount(Alteration),
 		Price = {"price", {struct, [Amount]}},
 		{"productOfferPriceAlteration",
@@ -728,46 +721,6 @@ prod_status(#product{} = Product) ->
 			{"lifecycleStatus", Status}
 	end.
 
--spec prod_sdate(Product) -> Result
-	when
-		Product :: [tuple()] | #product{},
-		Result :: undefined | tuple().
-%% @private
-prod_sdate(Product) when is_list(Product) ->
-	case lists:keyfind("startDate", 1, Product) of
-		{_, SD} ->
-			ocs_rest:iso8601(SD);
-		false ->
-			undefined
-	end;
-prod_sdate(#product{} = Product) ->
-	case Product#product.start_date of
-		undefined ->
-			{"startDate", ""};
-		SD ->
-			{"startDate", ocs_rest:iso8601(SD)}
-	end.
-
--spec prod_tdate(Product) -> Result
-	when
-		Product :: [tuple()] | #product{},
-		Result :: undefined | tuple().
-%% @private
-prod_tdate(Product) when is_list(Product) ->
-	case lists:keyfind("terminationDate", 1, Product) of
-		{_, SD} ->
-			ocs_rest:iso8601(SD);
-		false ->
-			undefined
-	end;
-prod_tdate(#product{} = Product) ->
-	case Product#product.termination_date of
-		undefined ->
-			{"terminationDate", ""};
-		SD ->
-			{"terminationDate", ocs_rest:iso8601(SD)}
-	end.
-
 -spec prod_vf(Product) -> Result
 	when
 		Product :: [tuple()] | #product{},
@@ -790,7 +743,7 @@ prod_vf(Product) when is_list(Product) ->
 			{undefined, undefined}
 	end;
 prod_vf(#product{} = Product) ->
-	case Product#product.valid_for of
+	case {Product#product.start_date, Product#product.end_date} of
 		{undefined, undefined} ->
 			{"validFor", {struct, []}};
 		{SDateTime, undefined} ->
@@ -833,7 +786,7 @@ prod_price_description(#price{} = Price) ->
 
 -spec valid_for(P) -> Result
 	when
-		P      :: [tuple()] | #price{},
+		P      :: [tuple()] | #price{} | #alteration{},
 		Result :: tuple().
 %% @private
 valid_for(P) when is_list(P) ->
@@ -852,24 +805,30 @@ valid_for(P) when is_list(P) ->
 		false ->
 			{undefined, undefined}
 	end;
-valid_for(#price{} = P) ->
-	valid_for1(P#price.valid_for).
-%% @hidden
-valid_for1(P) ->
-	case P of
-		{undefined, undefined} ->
-			{"validFor",{struct, []}};
-		{undefined, EDateTime} ->
-			EDT = {"endDateTime", ocs_rest:iso8601(EDateTime)},
-			{"validFor",{struct, [EDT]}};
-		{SDateTime, undefined} ->
-			SDT = {"startDateTime", ocs_rest:iso8601(SDateTime)},
-			{"validFor",{struct, [SDT]}};
-		{SDateTime, EDateTime} ->
-			SDT = {"startDateTime", ocs_rest:iso8601(SDateTime)},
-			EDT = {"endDateTime", ocs_rest:iso8601(EDateTime)},
-			{"validFor", {struct, [SDT, EDT]}}
-	end.
+valid_for(#price{start_date = undefined, end_date = undefined}) ->
+	{"validFor",{struct, []}};
+valid_for(#price{start_date = undefined, end_date = EndDateTime}) ->
+	EDT = {"endDateTime", ocs_rest:iso8601(EndDateTime)},
+	{"validFor",{struct, [EDT]}};
+valid_for(#price{start_date = StartDateTime, end_date = undefined}) ->
+	SDT = {"startDateTime", ocs_rest:iso8601(StartDateTime)},
+	{"validFor",{struct, [SDT]}};
+valid_for(#price{start_date = StartDateTime, end_date = EndDateTime}) ->
+	SDT = {"startDateTime", ocs_rest:iso8601(StartDateTime)},
+	EDT = {"endDateTime", ocs_rest:iso8601(EndDateTime)},
+	{"validFor", {struct, [SDT, EDT]}};
+valid_for(#alteration{start_date = undefined, end_date = undefined}) ->
+	{"validFor",{struct, []}};
+valid_for(#alteration{start_date = undefined, end_date = EndDateTime}) ->
+	EDT = {"endDateTime", ocs_rest:iso8601(EndDateTime)},
+	{"validFor",{struct, [EDT]}};
+valid_for(#alteration{start_date = StartDateTime, end_date = undefined}) ->
+	SDT = {"startDateTime", ocs_rest:iso8601(StartDateTime)},
+	{"validFor",{struct, [SDT]}};
+valid_for(#alteration{start_date = StartDateTime, end_date = EndDateTime}) ->
+	SDT = {"startDateTime", ocs_rest:iso8601(StartDateTime)},
+	EDT = {"endDateTime", ocs_rest:iso8601(EndDateTime)},
+	{"validFor", {struct, [SDT, EDT]}}.
 
 -spec prod_price_type(Price) -> Result
 	when
@@ -944,46 +903,6 @@ prod_price_alter_name(Alteration) when is_list(Alteration) ->
 	Name;
 prod_price_alter_name(#alteration{} = Alteration) ->
 	{"name", Alteration#alteration.name}.
-
--spec prod_price_alter_vf(Alteration) -> Result
-	when
-		Alteration :: [tuple()] | #alteration{},
-		Result :: integer() | tuple().
-%% @private
-prod_price_alter_vf(Alteration) when is_list(Alteration) ->
-	case lists:keyfind("validFor", 1, Alteration) of
-		{_, {struct, Alteration}} ->
-			PAlterSTimeISO = proplists:get_value("startDateTime", Alteration),
-			PAlterETime = proplists:get_value("endDateTime", Alteration),
-			case {PAlterSTimeISO, PAlterETime} of
-				{undefined, undefined} ->
-					{undefined, undefined};
-				{undefined, EDT} ->
-					{undefined, ocs_rest:iso8601(EDT)};
-				{SDT, undefined} ->
-					{ocs_rest:iso8601(SDT), undefined};
-				{SDT, EDT} ->
-					{ocs_rest:iso8601(SDT), ocs_rest:iso8601(EDT)}
-			end;
-		false ->
-			{undefined, undefined}
-	end;
-prod_price_alter_vf(#alteration{} = Alteration) ->
-	ValidFor = Alteration#alteration.valid_for,
-	case ValidFor of
-		{undefined, undefined} ->
-			{"validFor", {struct, []}};
-		{SDateTime, undefined} ->
-			SDT = {"startDateTime", ocs_rest:iso8601(SDateTime)},
-			{"validFor", {struct, [SDT]}};
-		{undefined, EDateTime} ->
-			EDT = {"startDateTime", ocs_rest:iso8601(EDateTime)},
-			{"validFor", {struct, [EDT]}};
-		{SDateTime, EDateTime} ->
-			SDT = {"startDateTime", ocs_rest:iso8601(SDateTime)},
-			EDT = {"endDateTime", ocs_rest:iso8601(EDateTime)},
-			{"validFor", {struct, [SDT, EDT]}}
-	end.
 
 -spec prod_price_alter_description(Alteration) -> Result
 	when
@@ -1332,12 +1251,19 @@ patch_replace(["description"], Value, Product) when is_list(Value) ->
 	Product#product{description = Value};
 patch_replace(["isBundle"], Value, Product) when is_boolean(Value) ->
 	Product#product{is_bundle = Value};
-patch_replace(["startDate"], Value, Product) when is_list(Value) ->
-	SDate = ocs_rest:iso8601(Value),
-	Product#product{start_date = SDate};
-patch_replace(["terminationDate"], Value, Product) when is_list(Value) ->
-	TDate = ocs_rest:iso8601(Value),
-	Product#product{termination_date = TDate};
+patch_replace(["validFor"], {struct, Value}, Product) when is_list(Value) ->
+	Product1 = case lists:keyfind("startDateTime", 1, Value) of
+		{_, SDT} ->
+			Product#product{start_date = ocs_rest:iso8601(SDT)};
+		false ->
+			Product
+	end,
+	case lists:keyfind("endDateTime", 1, Value) of
+		{_, EDT} ->
+			Product1#product{end_date = ocs_rest:iso8601(EDT)};
+		false ->
+			Product1
+	end;
 patch_replace(["lifecycleStatus"], Value, Product) when is_list(Value) ->
 	S = find_status(Value),
 	Product#product{status = S};
@@ -1554,38 +1480,34 @@ patch_replace4(_, _) ->
 
 target(#product{} = Product) ->
 	ID = prod_id(Product),
-	Description = prod_description(Product),
 	Href = prod_href(Product),
+	Name = prod_name(Product),
+	Description = prod_description(Product),
 	ValidFor = prod_vf(Product),
 	IsBundle = prod_isBundle(Product),
-	Name = prod_name(Product),
 	Status = prod_status(Product),
-	StartDate = prod_sdate(Product),
-	TerminationDate = prod_tdate(Product),
 	case product_offering_price(Product) of
 		{error, StatusCode} ->
 			{error, StatusCode};
 		OfferPrice ->
-			{struct, [ID, Description, Href, StartDate,
-				TerminationDate, IsBundle, Name, Status, ValidFor,
-				OfferPrice]}
+			{struct, [ID, Href, Name, Description,
+					ValidFor, IsBundle, Status, OfferPrice]}
 	end;
 target({struct, ObjectMembers}) ->
 	try
 		Name = prod_name(ObjectMembers),
+		Description = prod_description(ObjectMembers),
 		IsBundle = prod_isBundle(ObjectMembers),
 		Status = prod_status(ObjectMembers),
-		ValidFor = prod_vf(ObjectMembers),
-		Description = prod_description(ObjectMembers),
-		StartDate = prod_sdate(ObjectMembers),
-		TerminationDate = prod_tdate(ObjectMembers),
+		{StartDate, EndDate} = prod_vf(ObjectMembers),
 		case product_offering_price(ObjectMembers) of
 			{error, StatusCode} ->
 				{error, StatusCode};
 			Price ->
-				#product{price = Price, name = Name, valid_for = ValidFor,
-					is_bundle = IsBundle, status = Status, start_date = StartDate,
-					termination_date = TerminationDate, description = Description}
+				#product{price = Price, name = Name,
+						description = Description,
+						start_date = StartDate, end_date = EndDate,
+						is_bundle = IsBundle, status = Status}
 		end
 	catch
 		_:_ ->
@@ -1637,9 +1559,9 @@ query_page(PageServer, Etag, Query, Filters, Start, End) ->
 					{value, {_, "-startDate"}, Q1} ->
 						{lists:reverse(lists:keysort(#product.start_date, Events)), Q1};
 					{value, {_, "endDate"}, Q1} ->
-						{lists:keysort(#product.termination_date, Events), Q1};
-					{value, {_, "-endtDate"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.termination_date, Events)), Q1};
+						{lists:keysort(#product.end_date, Events), Q1};
+					{value, {_, "-endDate"}, Q1} ->
+						{lists:reverse(lists:keysort(#product.end_date, Events)), Q1};
 					{value, {_, "price"}, Q1} ->
 						{lists:keysort(#product.price, Events), Q1};
 					{value, {_, "-price"}, Q1} ->
@@ -1673,21 +1595,18 @@ query_page1([H | T], Filters, Acc) ->
 
 product_json(#product{} = Product) ->
 	ID = prod_id(Product),
-	Description = prod_description(Product),
 	Href = prod_href(Product),
+	Name = prod_name(Product),
+	Description = prod_description(Product),
 	ValidFor = prod_vf(Product),
 	IsBundle = prod_isBundle(Product),
-	Name = prod_name(Product),
 	Status = prod_status(Product),
-	StartDate = prod_sdate(Product),
-	TerminationDate = prod_tdate(Product),
 	case product_offering_price(Product) of
 		{error, StatusCode} ->
 			throw(StatusCode);
 		OfferPrice ->
-			{struct, [ID, Description, Href, StartDate,
-				TerminationDate, IsBundle, Name, Status, ValidFor,
-				OfferPrice]}
+			{struct, [ID, Href, Name, Description,
+					ValidFor, IsBundle, Status, OfferPrice]}
 	end.
 
 -spec etag(V1) -> V2

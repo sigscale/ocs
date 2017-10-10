@@ -80,46 +80,24 @@ stop() ->
 	end.
 
 add_product() ->
-	SD = erlang:system_time(?MILLISECOND),
-	TD = erlang:system_time(?MILLISECOND)  + 2678400000,
-	Price1 = #price{name = "Family-Pack",
-			description = "monthlyprice",
-			valid_for = {SD, TD},
-			type = recurring,
-			currency = "MXV",
-			period = monthly,
-			amount = 230},
-	Price2 = #price{name = "usage",
-			description = "usage definition for family pack",
-			valid_for = {SD, TD},
-			type = usage,
-			currency = "MXV",
-			size = 0,
-			amount = 5,
-			alteration = #alteration{name = "Usage",
-											valid_for = {SD,undefined},
-											type = usage,
-											units = octets,
-											size = 20000,
-											amount = 0}},
+	Price1 = #price{name = "subscription", type = recurring,
+			period = monthly, amount = 1230,
+			alteration = #alteration{name = "allowance",
+					type = usage, units = octets,
+					size = 2000000000, amount = 0}},
+	Price2 = #price{name = "usage", type = usage,
+			size = 1000000000, amount = 100},
 	Prices = [Price1, Price2],
-	Product = #product{name = "Wi-Fi",
-			valid_for = {SD, TD},
-			is_bundle = false,
-			status = active,
-			start_date = SD,
-			termination_date = TD,
-			description = "monthly subscription Web Family pack",
+	ProductName = "Wi-Fi",
+	Product = #product{name = ProductName,
+			description = "Example Wi-Fi package.",
+			is_bundle = false, status = active,
 			price = Prices},
-
-	F = fun() ->
-			mnesia:write(product, Product, write)
-	end,
-	case mnesia:transaction(F) of
-		{atomic, ok} ->
-			{ok, "Wi-Fi"};
-		_ ->
-			{error, aborted}
+	case ocs:add_product(Product) of
+		{ok, _} ->
+			{ok, ProductName};
+		{error, Reason} ->
+			{error, Reason}
 	end.
 
 ipv4() ->
