@@ -643,24 +643,25 @@
 				on-error="_addProductError">
 		</iron-ajax>
 		<iron-ajax
-            id="updateProductOfferAjax"
+				id="updateProductOfferAjax"
 				on-response="_updateProductOfferResponse"
-            on-error="_updateProductOfferError">
-      </iron-ajax>
+				on-error="_updateProductOfferError">
+		</iron-ajax>
 		<iron-ajax
-            id="updateProductPriceAjax"
+				id="updateProductPriceAjax"
 				on-response="_updateProductPriceResponse"
-            on-error="_updateProductPriceError">
-      </iron-ajax>
-		 <iron-ajax id="deleteProductAjax"
-            on-response="_deleteProductResponse"
-            on-error="_deleteProductError">
-      </iron-ajax>
+				on-error="_updateProductPriceError">
+		</iron-ajax>
 		<iron-ajax
-            id="updateProductAlterationAjax"
+				id="deleteProductAjax"
+				on-response="_deleteProductResponse"
+				on-error="_deleteProductError">
+		</iron-ajax>
+		<iron-ajax
+				id="updateProductAlterationAjax"
 				on-response="_updateProductAlterationResponse"
-            on-error="_updateProductAlterationError">
-      </iron-ajax>
+				on-error="_updateProductAlterationError">
+		</iron-ajax>
 	</template>
 	<script>
 		Polymer ({
@@ -992,6 +993,21 @@
 				this.$.updateProductToastError.text = event.detail.request.xhr.statusText;
 				this.$.updateProductToastError.open();
 			},
+			checkPattern: function() {
+				if(this.$.updatePriceUnits.selected == 0) {
+					this.$.updatePriceSize.allowedPattern = "[0-9kmg]";
+					this.$.updatePriceSize.pattern = "^[0-9]+[kmg]?$";
+					this.$.updatePriceSize.disabled = false;
+				} else if(this.$.updatePriceUnits.selected == 1) {
+					this.$.updatePriceSize.allowedPattern = "[0-9]";
+					this.$.updatePriceSize.pattern = "^[0-9]+$";
+					this.$.updatePriceSize.disabled = true;
+				} else if(this.$.updatePriceUnits.selected == 2) {
+					this.$.updatePriceSize.allowedPattern = "[0-9mh]";
+					this.$.updatePriceSize.pattern = "^[0-9]+[mh]?$";
+					this.$.updatePriceSize.disabled = false;
+				}
+			},
 			checkPatternAlt: function() {
 				if(this.$.updateUnitDrop.selected == 0) {
 					this.$.updateAltSize.allowedPattern = "[0-9kmg]";
@@ -1226,8 +1242,6 @@
 			_addProductResponse: function(event) {
 				this.$.updateProductModal.close();
 				document.getElementById("updateProductToastSuccess").open();
-				//this.$.updateOffName.value = null;
-				//this.$.updateOffDesc.value = null;
 				this.set('prices', []);
 				this.set('alterations', []);
 				document.getElementById("productGrid").clearCache();
@@ -1245,6 +1259,27 @@
 				this.$.updateProductEndDatePickPrice.hide();
 				this.$.updateProductStartDatePickAlt.hide();
 				this.$.updateProductEndDatePickAlt.hide();
+				this.$.updatePriceName.value = null;
+				this.$.updatePriceDesc.value = null;
+				this.$.updatePriceStartDate.value = null;
+				this.$.updatePriceEndDate.value = null;
+				this.$.updatePriceType.selected = null;
+				this.$.updatePriceUnits.selected = null;
+				this.$.updatePriceAmount.value = null;
+				this.$.updatePriceSize.value = null;
+				this.$.updatePriceCurrency.value = null;
+				this.$.updatePricePeriod.selected = null;
+				this.$.addUpdatePriceAlteration.selected = null;
+				this.$.updateAltName.value = null;
+				this.$.updateAltDesc.value = null;
+				this.$.updateAltStartDate.value = null;
+				this.$.updateAltEndDate.value = null;
+				this.$.updateAltType.selected = null;
+				this.$.updateAltSize.value = null;
+				this.$.updateAltCurr.value = null;
+				this.$.updateAltAmount.value = null;
+				this.$.updateAltPeriod.selected = null;
+				this.$.updateUnitDrop.selected = null;
 				this.$.updateProductModal.close();
 			}
 		});
