@@ -1094,7 +1094,7 @@
 					this.$.priceBytes.disabled = true;
 					this.$.priceSeconds.disabled = true;
 					this.$.priceCents.disabled = false;
-					this.$.addPriceUnits.disabled = 1;
+					this.$.addPriceUnits.selected = 1;
 				} else if(this.$.addPriceType.selected == 1) {
 					this.$.addPricePerioddrop.disabled = true;
 					this.$.priceBytes.disabled = true;
@@ -1187,7 +1187,9 @@
 					priceNew.alterations = this.alterations[altIndex];
 				}
 				function checkExistType(price) {
-					return price.type == priceNew.type;
+					if(priceNew.type == "usage") {
+						return price.type == priceNew.type;
+					}
 				}
 				if(priceNew.name
 						&& priceNew.type
