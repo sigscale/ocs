@@ -1187,7 +1187,9 @@
 					priceNew.alterations = this.alterations[altIndex];
 				}
 				function checkExistType(price) {
-					return price.type == priceNew.type;
+					if(priceNew.type == "usage") {
+						return price.type == priceNew.type;
+					}
 				}
 				if(priceNew.name
 						&& priceNew.type
