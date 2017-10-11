@@ -800,10 +800,11 @@
 							this.$.addPricePeriod.selected = 3;
 							break;
 					}
-					var altName = this.prices[indexPrice].alterations.name;
-					if(altName) {
+					if(this.prices[indexPrice].alterations &&
+							this.prices[indexPrice].alterations.name) {
+						var altPriceNew = this.prices[indexPrice].alterations.name;
 						function checkAltName(alt) {
-							return alt.name == altName;
+							return alt.name == altPriceNew;
 						}
 						this.$.addPriceAlteration.selected = this.alterations.findIndex(checkAltName);
 					}
