@@ -168,7 +168,8 @@
 						<paper-input id="addPriceName"
 								list="price"
 								label="[[i18n.name]]"
-								on-change="addUpdatePriceDialog"
+								on-value-changed="addUpdatePriceDialog"
+								onclick="addPriceName.value=null"
 								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
 						</paper-input>
 						<paper-tooltip>
@@ -407,7 +408,8 @@
 						<paper-input id="addAltName"
 								list="alts"
 								label="[[i18n.name]]"
-								on-change="updateAltsDialog">
+								onclick="addAltName.value=null"
+								on-value-changed="updateAltsDialog">
 						</paper-input>
 						<paper-tooltip>
 								product offering alteration name
@@ -738,73 +740,75 @@
 				this.$.addProductToastError.open();
 			},
 			addUpdatePriceDialog: function() {
-				function checkPriceName(price) {
+				function checkPriceUpdateName(price) {
 					return price.name == document.getElementById("addPriceName").value;
 				}
-				var indexPrice = this.prices.findIndex(checkPriceName);
-				if (indexPrice == -1) {
-					this.addOrUpdateButton = "add";
-					this.$.addPriceDesc.value = null;
-					this.$.addPriceStartDate.value = null;
-					this.$.addPriceEndDate.value = null;
-					this.$.addPriceType.selected = null;
-					this.$.addPriceSize.value = null;
-					this.$.addPriceUnits.selected = null;
-					this.$.addPriceAmount.value = null;
-					this.$.addPriceCurrency.value = null;
-					this.$.addPricePeriod.selected = null;
-					this.$.addPriceAlteration.selected = null;
-				} else {
-					this.addOrUpdateButton = "update";
-					this.$.addPriceDesc.value = this.prices[indexPrice].description;
-					this.$.addPriceStartDate.value = this.prices[indexPrice].start;
-					this.$.addPriceEndDate.value = this.prices[indexPrice].end;
-					switch(this.prices[indexPrice].type) {
-						case "recurring":
-							this.$.addPriceType.selected = 0;
-							break;
-						case "one_time":
-							this.$.addPriceType.selected = 1;
-							break;
-						case "usage":
-							this.$.addPriceType.selected = 2;
-							break;
-					}
-					this.$.addPriceSize.value = this.prices[indexPrice].size;
-					switch(this.prices[indexPrice].unit) {
-						case "b":
-							this.$.addPriceUnits.selected = 0;
-							break;
-						case "c":
-							this.$.addPriceUnits.selected = 1;
-							break;
-						case "s":
-							this.$.addPriceUnits.selected = 2;
-							break;
-					}
-					this.$.addPriceCurrency.value = this.prices[indexPrice].currency;
-					this.$.addPriceAmount.value = this.prices[indexPrice].amount;
-					switch(this.prices[indexPrice].period) {
-						case "daily":
-							this.$.addPricePeriod.selected = 0;
-							break;
-						case "weekly":
-							this.$.addPricePeriod.selected = 1;
-							break;
-						case "monthly":
-							this.$.addPricePeriod.selected = 2;
-							break;
-						case "yearly":
-							this.$.addPricePeriod.selected = 3;
-							break;
-					}
-					if(this.prices[indexPrice].alterations &&
-							this.prices[indexPrice].alterations.name) {
-						var altPriceNew = this.prices[indexPrice].alterations.name;
-						function checkAltName(alt) {
-							return alt.name == altPriceNew;
+				if(this.prices != undefined) {
+					var indexPrice = this.prices.findIndex(checkPriceUpdateName);
+					if (indexPrice == -1) {
+						this.addOrUpdateButton = "add";
+						this.$.addPriceDesc.value = null;
+						this.$.addPriceStartDate.value = null;
+						this.$.addPriceEndDate.value = null;
+						this.$.addPriceType.selected = null;
+						this.$.addPriceSize.value = null;
+						this.$.addPriceUnits.selected = null;
+						this.$.addPriceAmount.value = null;
+						this.$.addPriceCurrency.value = null;
+						this.$.addPricePeriod.selected = null;
+						this.$.addPriceAlteration.selected = null;
+					} else {
+						this.addOrUpdateButton = "update";
+						this.$.addPriceDesc.value = this.prices[indexPrice].description;
+						this.$.addPriceStartDate.value = this.prices[indexPrice].start;
+						this.$.addPriceEndDate.value = this.prices[indexPrice].end;
+						switch(this.prices[indexPrice].type) {
+							case "recurring":
+								this.$.addPriceType.selected = 0;
+								break;
+							case "one_time":
+								this.$.addPriceType.selected = 1;
+								break;
+							case "usage":
+								this.$.addPriceType.selected = 2;
+								break;
 						}
-						this.$.addPriceAlteration.selected = this.alterations.findIndex(checkAltName);
+						this.$.addPriceSize.value = this.prices[indexPrice].size;
+						switch(this.prices[indexPrice].unit) {
+							case "b":
+								this.$.addPriceUnits.selected = 0;
+								break;
+							case "c":
+								this.$.addPriceUnits.selected = 1;
+								break;
+							case "s":
+								this.$.addPriceUnits.selected = 2;
+								break;
+						}
+						this.$.addPriceCurrency.value = this.prices[indexPrice].currency;
+						this.$.addPriceAmount.value = this.prices[indexPrice].amount;
+						switch(this.prices[indexPrice].period) {
+							case "daily":
+								this.$.addPricePeriod.selected = 0;
+								break;
+							case "weekly":
+								this.$.addPricePeriod.selected = 1;
+								break;
+							case "monthly":
+								this.$.addPricePeriod.selected = 2;
+								break;
+							case "yearly":
+								this.$.addPricePeriod.selected = 3;
+								break;
+						}
+						if(this.prices[indexPrice].alterations &&
+								this.prices[indexPrice].alterations.name) {
+							var altPriceNew = this.prices[indexPrice].alterations.name;
+							function checkAltName(alt) {
+								return alt.name == altPriceNew;
+							}
+							this.$.addPriceAlteration.selected = this.alterations.findIndex(checkAltName);
+						}
 					}
 				}
 			},
@@ -812,61 +816,63 @@
 				function checkName(alts) {
 					return alts.name == document.getElementById("addAltName").value;
 				}
-				var index = this.alterations.findIndex(checkName);
-				if (index == -1) {
-					this.addOrUpdateButton = "add";
-					this.$.addAltDesc.value = null;
-					this.$.addAltStartDate.value = null;
-					this.$.addAltEndDate.value = null;
-					this.$.addAltType.selected = null;
-					this.$.addAltSize.value = null;
-					this.$.addAltUnitDrop.selected = null;
-					this.$.addAltAmount.value = null;
-					this.$.addAltCurrency.value = null;
-					this.$.addAltPeriod.selected = null;
-				} else {
-					this.addOrUpdateButton = "update";
-					this.$.addAltDesc.value = this.alterations[index].description;
-					this.$.addAltStartDate.value = this.alterations[index].startdate;
-					this.$.addAltEndDate.value = this.alterations[index].terminationDate;
-					switch(this.alterations[index].type) {
-						case "recurring":
-							this.$.addAltType.selected = 0;
-							break;
-						case "one_time":
-							this.$.addAltType.selected = 1;
-							break;
-						case "usage":
-							this.$.addAltType.selected = 2;
-							break;
-					}
-					this.$.addAltSize.value = this.alterations[index].size;
-					switch(this.alterations[index].unit) {
-						case "b":
-							this.$.addAltUnitDrop.selected = 0;
-							break;
-						case "c":
-							this.$.addAltUnitDrop.selected = 1;
-							break;
-						case "s":
-							this.$.addAltUnitDrop.selected = 2;
-							break;
-					}
-					this.$.addAltCurrency.value = this.alterations[index].currency;
-					this.$.addAltAmount.value = this.alterations[index].amount;
-					switch(this.alterations[index].period) {
-						case "daily":
-							this.$.addAltPeriod.selected = 0;
-							break;
-						case "weekly":
-							this.$.addAltPeriod.selected = 1;
-							break;
-						case "monthly":
-							this.$.addAltPeriod.selected = 2;
-							break;
-						case "yearly":
-							this.$.addAltPeriod.selected = 3;
-							break;
+				if(this.alterations != undefined) {
+					var index = this.alterations.findIndex(checkName);
+					if (index == -1) {
+						this.addOrUpdateButton = "add";
+						this.$.addAltDesc.value = null;
+						this.$.addAltStartDate.value = null;
+						this.$.addAltEndDate.value = null;
+						this.$.addAltType.selected = null;
+						this.$.addAltSize.value = null;
+						this.$.addAltUnitDrop.selected = null;
+						this.$.addAltAmount.value = null;
+						this.$.addAltCurrency.value = null;
+						this.$.addAltPeriod.selected = null;
+					} else {
+						this.addOrUpdateButton = "update";
+						this.$.addAltDesc.value = this.alterations[index].description;
+						this.$.addAltStartDate.value = this.alterations[index].startdate;
+						this.$.addAltEndDate.value = this.alterations[index].terminationDate;
+						switch(this.alterations[index].type) {
+							case "recurring":
+								this.$.addAltType.selected = 0;
+								break;
+							case "one_time":
+								this.$.addAltType.selected = 1;
+								break;
+							case "usage":
+								this.$.addAltType.selected = 2;
+								break;
+						}
+						this.$.addAltSize.value = this.alterations[index].size;
+						switch(this.alterations[index].unit) {
+							case "b":
+								this.$.addAltUnitDrop.selected = 0;
+								break;
+							case "c":
+								this.$.addAltUnitDrop.selected = 1;
+								break;
+							case "s":
+								this.$.addAltUnitDrop.selected = 2;
+								break;
+						}
+						this.$.addAltCurrency.value = this.alterations[index].currency;
+						this.$.addAltAmount.value = this.alterations[index].amount;
+						switch(this.alterations[index].period) {
+							case "daily":
+								this.$.addAltPeriod.selected = 0;
+								break;
+							case "weekly":
+								this.$.addAltPeriod.selected = 1;
+								break;
+							case "monthly":
+								this.$.addAltPeriod.selected = 2;
+								break;
+							case "yearly":
+								this.$.addAltPeriod.selected = 3;
+								break;
+						}
 					}
 				}
 			},
