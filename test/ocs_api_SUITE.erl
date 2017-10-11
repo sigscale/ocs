@@ -252,7 +252,7 @@ add_product(_Config) ->
 			description = "Medium use residential subscription.",
 			start_date = SD, is_bundle = false,
 			status = active, price = Prices},
-	ok = ocs:add_product(Product).
+	{ok, _Etag} = ocs:add_product(Product).
 
 find_product() ->
 	[{userdata, [{doc, "Find a product offering."}]}].
