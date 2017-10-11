@@ -169,6 +169,7 @@
 								list="price"
 								label="[[i18n.name]]"
 								on-change="addUpdatePriceDialog"
+								onclick="addPriceName.value=null"
 								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
 						</paper-input>
 						<paper-tooltip>
@@ -407,6 +408,7 @@
 						<paper-input id="addAltName"
 								list="alts"
 								label="[[i18n.name]]"
+								onclick="addAltName.value=null"
 								on-change="updateAltsDialog">
 						</paper-input>
 						<paper-tooltip>
