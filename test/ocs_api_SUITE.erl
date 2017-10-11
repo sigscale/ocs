@@ -284,34 +284,25 @@ get_products() ->
 	[{userdata, [{doc, "Get all products from product table database"}]}].
 
 get_products(_Config) ->
-	F = fun(ProdName, P1, P2) ->
-		Price1 = #price{name = P1, type = recurring,
-				currency = "LKR", period = daily, amount = 1330},
-		Price2 = #price{name = P2, type = usage,
-				currency = "LKR", size = 1000000, amount = 6,
-				alteration = #alteration{name = "Usage", type = usage,
-				units = octets, size = 150000000, amount = 0}},
+	F1 = fun(_, 0, Acc) ->
+				Acc;
+			(F, N, Acc) ->
+		ProductName = ocs:generate_password(),
+		Price1 = #price{name = ocs:generate_password(),
+				type = recurring, period = daily, amount = 1330},
+		Price2 = #price{name = ocs:generate_password(),
+				type = usage, size = 1000000, amount = 6,
+				alteration = #alteration{name = ocs:generate_password(),
+						type = usage, units = octets,
+						size = 150000000, amount = 0}},
 		Prices = [Price1, Price2],
-		Product = #product{name = ProdName, is_bundle = false,
+		Product = #product{name = ProductName, is_bundle = false,
 				status = active, price = Prices},
 		{ok, _Etag} =  ocs:add_product(Product),
-		Product
+		F(F, N - 1, [ProductName | Acc])
 	end,
-	P1 = F("WiFI", "A", "B"),
-	P2 = F("Mobile-Prepaid", "P", "Q"),
-	P3 = F("Mobile-Postpaid", "X", "Y"),
-	Products = ocs:get_products(),
-	F2 = fun(F2, PList, [H | T]) ->
-			case lists:member(H, PList) of
-				true ->
-					F2(F2, PList, T);
-				false ->
-					not_found
-			end;
-		(_, _, []) ->
-			ok
-	end,
-	ok = F2(F2, Products, [P1, P2, P3]).
+	NewProducts = F1(F1, 3, []),
+	[] = NewProducts -- [Name || #product{name = Name} <- ocs:get_products()].
 
 delete_product() ->
 	[{userdata, [{doc, "Remove a product from product table"}]}].
