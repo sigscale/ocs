@@ -459,7 +459,7 @@ query_page1([H | T], Filters, Acc) ->
 	query_page1(T, Filters, [ocs_rest:filter(Filters, H) | Acc]).
 
 client_json(#client{address = Addr, identifier = Id,
-		port = Port, protocol = Proto, secret = Secret}) ->
+		port = Port, protocol = Protocol, secret = Secret}) ->
 	Address = inet:ntoa(Addr),
 	Obj1 = [{"id", Address}, {"href", "/ocs/v1/client/" ++ Address}],
 	Obj2 = case Id of
@@ -469,7 +469,7 @@ client_json(#client{address = Addr, identifier = Id,
 			[{"identifier", binary_to_list(Id)}]
 	end,
 	Obj3 = [{"port", Port}],
-	Obj4 = [{"protocol", Proto}],
+	Obj4 = [{"protocol", string:to_upper(atom_to_list(Protocol))}],
 	Obj5 = [{"secret", Secret}],
 	{struct, Obj1 ++ Obj2 ++ Obj3 ++ Obj4 ++ Obj5}.
 
