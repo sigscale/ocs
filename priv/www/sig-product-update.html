@@ -830,8 +830,9 @@
 								this.$.updatePricePeriod.selected = 3;
 								break;
 						}
-						var altUpdateName = this.prices[indexUpdatePrice].productOfferPriceAlteration.name;
-						if(altUpdateName) {
+						if(this.prices[indexUpdatePrice].productOfferPriceAlteration &&
+								this.prices[indexUpdatePrice].productOfferPriceAlteration.name) {
+							var altUpdateName = this.prices[indexUpdatePrice].productOfferPriceAlteration.name;
 							function checkAltName(updateAlts) {
 								return updateAlts.name == altUpdateName;
 							}
@@ -912,7 +913,7 @@
 				offerDesc.op = "replace";
 				offerDesc.path = "/description";
 				offerDesc.value = this.$.updateOffDesc.value;
-				offerNew.description = offerDesc.value;
+				offerNew = offerDesc;
 				var startDateTimeObject = new Object();
 				startDateTimeObject.op = "replace";
 				startDateTimeObject.path = "/startDate";
@@ -923,7 +924,7 @@
 				endDateTimeObject.value = this.$.updateOffEnd.value;
 				offerNew.validFor = {"startDateTime": this.$.updateOffStart.value, 
 					"endDateTime": this.$.updateOffEnd.value};
-				ajax.body = JSON.stringify(offerNew);
+				ajax.body = JSON.stringify(offerDesc, offerNew);
 				ajax.generateRequest();
 			},
 			_updateProductOfferResponse: function(event) {
