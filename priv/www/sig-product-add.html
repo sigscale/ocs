@@ -905,6 +905,7 @@
 					offerNew.validFor = {endDateTime};
 				}
 				function mapPrice(item) {
+console.log(item);
 					var out = new Object();
 					if(item.name) {
 						out.name = item.name;
@@ -969,9 +970,9 @@
 					}
 					if(item.amount && item.currency) {
 						out.price = {taxIncludedAmount, currencyCode};
-					} else if (taxIncludedAmount && !currencyCode) {
+					} else if (item.amount && !item.currency) {
 						out.price = {taxIncludedAmount};
-					} else if (!taxIncludedAmount && currencyCode) {
+					} else if (!item.amount && item.currency) {
 						out.price = {currencyCode};
 					}
 					if(item.period) {
