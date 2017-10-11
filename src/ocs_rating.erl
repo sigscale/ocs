@@ -21,7 +21,7 @@
 -module(ocs_rating).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
--export([rating/3]).
+-export([rating/4]).
 
 -include("ocs.hrl").
 
@@ -29,16 +29,17 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
--spec rating(SubscriberID, UsageSecs, UsageOctets) -> Return
+-spec rating(SubscriberID, Final, UsageSecs, UsageOctets) -> Return
 	when
 		SubscriberID :: string() | binary(),
+		Final :: boolean(),
 		UsageSecs :: integer(),
 		UsageOctets :: integer(),
 		Return :: ok | {error, Reason},
 		Reason :: term().
-rating(SubscriberID, UsageSecs, UsageOctets) when is_list(SubscriberID) ->
-	rating(list_to_binary(SubscriberID), UsageSecs, UsageOctets);
-rating(SubscriberID, UsageSecs, UsageOctets) when is_binary(SubscriberID) ->
+rating(SubscriberID, Final, UsageSecs, UsageOctets) when is_list(SubscriberID) ->
+	rating(list_to_binary(SubscriberID), Final, UsageSecs, UsageOctets);
+rating(SubscriberID, Final, UsageSecs, UsageOctets) when is_binary(SubscriberID) ->
 	F = fun() ->
 			case mnesia:read(subscriber, SubscriberID, write) of
 				[#subscriber{buckets = Buckets, product =
@@ -50,7 +51,7 @@ rating(SubscriberID, UsageSecs, UsageOctets) when is_binary(SubscriberID) ->
 							case lists:keyfind(usage, #price.type, Prices) of
 								#price{} = Price ->
 									{Charged, NewBuckets} = rating2(Price,
-											Validity, UsageSecs, UsageOctets, Buckets),
+											Validity, UsageSecs, UsageOctets, Final, Buckets),
 									Entry = Subscriber#subscriber{buckets = NewBuckets},
 									mnesia:write(Entry);
 								false ->
@@ -73,16 +74,16 @@ rating(SubscriberID, UsageSecs, UsageOctets) when is_binary(SubscriberID) ->
 	end.
 %% @hidden
 rating2(#price{type = usage, size = Size, units = octets,
-		amount = Amount}, Validity, _UsageSecs, UsageOctets, Buckets) ->
-	rating3(Amount, Size, octets, Validity, UsageOctets, Buckets);
+		amount = Amount}, Validity, _UsageSecs, UsageOctets, Final, Buckets) ->
+	rating3(Amount, Size, octets, Validity, UsageOctets, Final, Buckets);
 rating2(#price{type = usage, size = Size, units = seconds,
-		amount = Amount}, Validity, UsageSecs, _UsageOctets, Buckets) ->
-	rating3(Amount, Size, seconds, Validity, UsageSecs, Buckets).
+		amount = Amount}, Validity, UsageSecs, _UsageOctets, Final, Buckets) ->
+	rating3(Amount, Size, seconds, Validity, UsageSecs, Final, Buckets).
 %% @hidden
-rating3(Price, Size, Type, Validity, Used, Buckets) ->
-	case charge(Type, Used, lists:sort(fun sort_buckets/2, Buckets)) of
+rating3(Price, Size, Type, Validity, Used, Final, Buckets) ->
+	case charge(Type, Used, Final, lists:sort(fun sort_buckets/2, Buckets)) of
 		{Charged, NewBuckets} when Charged < Used ->
-			purchase(Type, Price, Size, Used - Charged, Validity, NewBuckets);
+			purchase(Type, Price, Size, Used - Charged, Validity, Final, NewBuckets);
 		{Charged, NewBuckets} ->
 			{Charged, NewBuckets}
 	end.
@@ -90,45 +91,53 @@ rating3(Price, Size, Type, Validity, Used, Buckets) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
--spec charge(Type, Charge, Buckets) -> Result
+-spec charge(Type, Charge, Final, Buckets) -> Result
 	when
 		Type :: octets | seconds | cents,
 		Charge :: integer(),
+		Final :: boolean(),
 		Buckets :: [#bucket{}],
 		Result :: {Charged, Buckets},
 		Charged :: integer().
-charge(Type, Charge, Buckets) ->
+charge(Type, Charge, Final, Buckets) ->
 	Now = erlang:system_time(?MILLISECOND),
-	charge(Type, Charge, Now, Buckets, [], 0).
+	charge(Type, Charge, Now, Final, Buckets, [], 0).
 %% @hidden
-charge(Type, Charge, Now, [#bucket{bucket_type = Type,
+charge(Type, Charge, Now, Final, [#bucket{bucket_type = Type,
 		termination_date = T1} | T], Acc, Charged) when T1 =/= undefined, T1 =< Now->
-	charge(Type, Charge, Now, T, Acc, Charged);
-charge(Type, Charge, _Now, [#bucket{bucket_type = Type,
+	charge(Type, Charge, Now, Final, T, Acc, Charged);
+charge(Type, Charge, _Now, true, [#bucket{bucket_type = Type,
 		remain_amount = R} = B | T], Acc, Charged) when R > Charge ->
 	NewBuckets = [B#bucket{remain_amount = R - Charge} | T],
 	{Charged + Charge, NewBuckets ++ Acc};
-charge(Type, Charge, Now, [#bucket{bucket_type = Type,
+charge(Type, Charge, _Now, false, [#bucket{bucket_type = Type,
+		remain_amount = R} | _] = B, Acc, Charged) when R > Charge ->
+	{Charged + Charge, B ++ Acc};
+charge(Type, Charge, Now, true, [#bucket{bucket_type = Type,
 		remain_amount = R} | T], Acc, Charged) when R =< Charge ->
-	charge(Type, Charge - R, Now, T, Acc, Charged + R);
-charge(_Type, 0, _Now, Buckets, Acc, Charged) ->
+	charge(Type, Charge - R, Now, true, T, Acc, Charged + R);
+charge(Type, Charge, Now, false, [#bucket{bucket_type = Type,
+		remain_amount = R}  = B | T], Acc, Charged) when R =< Charge ->
+	charge(Type, Charge - R, Now, false, T, [B | Acc], Charged);
+charge(_Type, 0, _Now, _Final, Buckets, Acc, Charged) ->
 	{Charged, Buckets ++ Acc};
-charge(_Type, _Charge, _Now, [], Acc, Charged) ->
+charge(_Type, _Charge, _Now, _Final, [], Acc, Charged) ->
 	{Charged, Acc};
-charge(_Type, _Charge, _Now, Buckets, Acc, Charged) ->
+charge(_Type, _Charge, _Now, _Final, Buckets, Acc, Charged) ->
 	{Charged, Buckets ++ Acc}.
 
--spec purchase(Type, Price, Size, Used, Validity, Buckets) -> Result
+-spec purchase(Type, Price, Size, Used, Validity, Final, Buckets) -> Result
 	when
 		Type :: octets | seconds,
 		Price :: integer(),
 		Size :: integer(),
 		Used :: integer(),
 		Validity :: integer(),
+		Final :: boolean(),
 		Buckets :: [#bucket{}],
 		Result :: {Charged, Buckets},
 		Charged :: integer().
-purchase(Type, Price, Size, Used, Validity, Buckets) ->
+purchase(Type, Price, Size, Used, Validity, Final, Buckets) ->
 	UnitsNeeded = case (Used rem Size) of
 		0 ->
 			Used div Size;
@@ -136,7 +145,7 @@ purchase(Type, Price, Size, Used, Validity, Buckets) ->
 			(Used div Size) + 1
 	end,
 	Charge = UnitsNeeded * Price,
-	case charge(cents, Charge, Buckets) of
+	case charge(cents, Charge, Final, Buckets) of
 		{Charged, NewBuckets} when Charged < Charge ->
 			{Charged, NewBuckets};
 		{Charged, NewBuckets} ->

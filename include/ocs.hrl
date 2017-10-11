@@ -78,10 +78,6 @@
 		characteristics = [] :: [tuple()],
 		last_modified :: tuple() | '_' | undefined}).
 
--record(remain_amount,
-		{unit :: string(),
-		amount :: integer()}).
-
 -record(bucket,
 		{id :: string() | undefined,
 		name :: string() | undefined,
