@@ -461,12 +461,13 @@ get_subscriber_range() ->
 
 get_subscriber_range(Config) ->
 	{ok, PageSize} = application:get_env(ocs, rest_page_size),
+	{ok, ProductName} = ocs_test_lib:add_product(),
 	Fadd = fun(_F, 0) ->
 				ok;
 			(F, N) ->
 				Identity = ocs:generate_identity(),
 				Password = ocs:generate_password(),
-				{ok, _} = ocs:add_subscriber(Identity, Password, []),
+				{ok, _} = ocs:add_subscriber(Identity, Password, ProductName),
 				F(F, N - 1)
 	end,
 	NumAdded = (PageSize * 2) + (PageSize div 2) + 17,
