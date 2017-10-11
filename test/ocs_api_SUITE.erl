@@ -277,8 +277,8 @@ find_product(_Config) ->
 	Product = #product{name = ProductName, description = "PDD1",
 			start_date = SD, end_date = ED, is_bundle = false,
 			status = active, price = Prices},
-	ok = ocs:add_product(Product),
-	{ok, Product} = ocs:find_product(ProductName).
+	{ok, _Etag} = ocs:add_product(Product),
+	{ok, #product{name = ProductName}} = ocs:find_product(ProductName).
 
 get_products() ->
 	[{userdata, [{doc, "Get all products from product table database"}]}].
@@ -294,7 +294,7 @@ get_products(_Config) ->
 		Prices = [Price1, Price2],
 		Product = #product{name = ProdName, is_bundle = false,
 				status = active, price = Prices},
-		ok =  ocs:add_product(Product),
+		{ok, _Etag} =  ocs:add_product(Product),
 		Product
 	end,
 	P1 = F("WiFI", "A", "B"),
@@ -326,7 +326,7 @@ delete_product(_Config) ->
 	Product = #product{name = ProductName,
 			description = "Monthly subscription for mobile internet",
 			is_bundle = false, status = active, price = Prices},
-	ok = ocs:add_product(Product),
+	{ok, _Etag} = ocs:add_product(Product),
 	ok = ocs:delete_product(ProductName),
 	{error, not_found} = ocs:find_product(ProductName).
 
