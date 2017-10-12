@@ -37,7 +37,7 @@
 		UsageSecs :: integer(),
 		UsageOctets :: integer(),
 		Attributes :: [tuple()],
-		Return :: ok | {error, Reason},
+		Return :: {ok, #subscriber{}} | {error, Reason},
 		Reason :: term().
 rating(SubscriberID, Final, UsageSecs, UsageOctets, Attributes) when is_list(SubscriberID) ->
 	rating(list_to_binary(SubscriberID), Final, UsageSecs, UsageOctets, Attributes);
@@ -58,7 +58,8 @@ rating(SubscriberID, Final, UsageSecs, UsageOctets, Attributes) when is_binary(S
 									NewSessionList = remove_session(SessionList, Attributes),
 									Entry = Subscriber#subscriber{buckets = NewBuckets,
 											session_attributes = NewSessionList},
-									mnesia:write(Entry);
+									mnesia:write(Entry),
+									Entry;
 								false ->
 									throw(price_not_found)
 							end;
@@ -70,8 +71,8 @@ rating(SubscriberID, Final, UsageSecs, UsageOctets, Attributes) when is_binary(S
 			end
 	end,
 	case mnesia:transaction(F) of
-		{atomic, _} ->
-			ok;
+		{atomic, #subscriber{} = Sub} ->
+			{ok, Sub};
 		{aborted, {throw, Reason}} ->
 			{error, Reason};
 		{aborted, Reason} ->
