@@ -2425,8 +2425,6 @@ add_product(Config) ->
 	CatalogHref = "/productCatalogManagement/v2",
 	IsBundle = {"isBundle", false},
 	IsCustomerVisible = {"isCustomerVisible", true},
-	StartDate = {"startDate", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
-	TerminationDate = {"terminationDate", ocs_rest:iso8601(erlang:system_time(?MILLISECOND) + 31535984279)},
 	Status = {"status", "active"},
 	StartTime = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
 	EndTime = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
@@ -2473,7 +2471,7 @@ add_product(Config) ->
 			POPUOMeasure2, POPPrice2, POPRecChargPeriod2, POPAlteration]},
 	ProdOfferPrice = {"productOfferingPrice", {array, [ProdOfferPrice1, ProdOfferPrice2]}},
 	ReqJson = {struct, [ProdName, ProdDescirption, IsBundle, IsCustomerVisible, 
-			TerminationDate, StartDate, ValidFor, ProdSpec, Status, ProdOfferPrice]},
+			ValidFor, ProdSpec, Status, ProdOfferPrice]},
 	ReqBody = lists:flatten(mochijson:encode(ReqJson)),
 	Authentication = {"authorization", AuthKey},
 	Request = {HostUrl ++ CatalogHref ++ "/productOffering",
@@ -2500,8 +2498,6 @@ get_product(Config) ->
 	ProdDescirption = {"description", "Monthly Family Package"},
 	IsBundle = {"isBundle", false},
 	IsCustomerVisible = {"isCustomerVisible", true},
-	StartDate = {"startDate", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
-	TerminationDate = {"terminationDate", ocs_rest:iso8601(erlang:system_time(?MILLISECOND) + 31535984279)},
 	Status = {"status", "active"},
 	StartTime = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
 	EndTime = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
@@ -2547,7 +2543,7 @@ get_product(Config) ->
 			POPUOMeasure2, POPPrice2, POPRecChargPeriod2, POPAlteration]},
 	ProdOfferPrice = {"productOfferingPrice", {array, [ProdOfferPrice1, ProdOfferPrice2]}},
 	ReqJson = {struct, [ProdName, ProdDescirption, IsBundle, IsCustomerVisible,
-			TerminationDate, StartDate, ValidFor, ProdSpec, Status, ProdOfferPrice]},
+			ValidFor, ProdSpec, Status, ProdOfferPrice]},
 	ReqBody = lists:flatten(mochijson:encode(ReqJson)),
 	Authentication = {"authorization", AuthKey},
 	Request1 = {HostUrl ++ CatalogHref ++ "/productOffering",
@@ -2563,8 +2559,6 @@ get_product(Config) ->
 	ProdName = lists:keyfind("name", 1, ProductObj),
 	true = lists:keymember("href", 1, ProductObj),
 	IsBundle = lists:keyfind("isBundle", 1, ProductObj),
-	StartDate = lists:keyfind("startDate", 1, ProductObj),
-	TerminationDate = lists:keyfind("terminationDate", 1, ProductObj),
 	Status = lists:keyfind("status", 1, ProductObj),
 	ValidFor = lists:keyfind("validFor", 1, ProductObj),
 	{_, {struct, ProdSpecObj}} = lists:keyfind("productSpecification", 1, ProductObj),
@@ -2622,10 +2616,6 @@ update_product(Config) ->
 	ok = update_product_name(SslSock, RestPort, ProdID, NewProdID1),
 	Description1 = "Ultmate Family Package",
 	ok = update_product_description(SslSock, RestPort, NewProdID1, Description1),
-	StartDate1 = ocs_rest:iso8601(erlang:system_time(?MILLISECOND)),
-	ok = update_product_startdate(SslSock, RestPort, NewProdID1, StartDate1),
-	TerminationDate1 = ocs_rest:iso8601(erlang:system_time(?MILLISECOND) + 31535984279),
-	ok = update_product_terminationdate(SslSock, RestPort, NewProdID1, TerminationDate1),
 	Status1 = "pending_active",
 	ok = update_product_status(SslSock, RestPort, NewProdID1, Status1),
 	ok = update_product_price(SslSock, RestPort, NewProdID1),
@@ -2641,8 +2631,6 @@ add_product(HostUrl, Accept, ContentType, AuthKey, Authorization, ProdID) ->
 	CatalogHref = "/productCatalogManagement/v2",
 	IsBundle = {"isBundle", false},
 	IsCustomerVisible = {"isCustomerVisible", true},
-	StartDate = {"startDate", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
-	TerminationDate = {"terminationDate", ocs_rest:iso8601(erlang:system_time(?MILLISECOND) + 31535984279)},
 	Status = {"status", "active"},
 	StartTime = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
 	EndTime = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
@@ -2688,7 +2676,7 @@ add_product(HostUrl, Accept, ContentType, AuthKey, Authorization, ProdID) ->
 			POPUOMeasure2, POPPrice2, POPRecChargPeriod2, POPAlteration]},
 	ProdOfferPrice = {"productOfferingPrice", {array, [ProdOfferPrice1, ProdOfferPrice2]}},
 	ReqJson = {struct, [ProdName, ProdDescirption, IsBundle, IsCustomerVisible,
-			TerminationDate, StartDate, ValidFor, ProdSpec, Status, ProdOfferPrice]},
+			ValidFor, ProdSpec, Status, ProdOfferPrice]},
 	ReqBody = lists:flatten(mochijson:encode(ReqJson)),
 	Authorization = {"authorization", AuthKey},
 	Request1 = {HostUrl ++ CatalogHref ++ "/productOffering",
@@ -2727,42 +2715,6 @@ update_product_description(SslSock, RestPort, ProdID, Description) ->
 	{struct, Object} = mochijson:decode(Response),
 	case lists:keyfind("description", 1, Object) of
 		{_, Description} ->
-			ok;
-		_ ->
-			{error, patch_pafiled}
-	end.
-
-update_product_startdate(SslSock, RestPort, ProdID, StartDate) ->
-	RestUser = ct:get_config(rest_user),
-	RestPass = ct:get_config(rest_pass),
-	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
-	AuthKey = "Basic " ++ Encodekey,
-	ContentType = "application/json-patch+json",
-	JSON = {array, [product_startdate(StartDate)]},
-	Body = lists:flatten(mochijson:encode(JSON)),
-	{Headers, Response} = patch_request(SslSock, RestPort, ContentType, AuthKey, ProdID, Body),
-	<<"HTTP/1.1 200", _/binary>> = Headers,
-	{struct, Object} = mochijson:decode(Response),
-	case lists:keyfind("startDate", 1, Object) of
-		{_, StartDate} ->
-			ok;
-		_ ->
-			{error, patch_pafiled}
-	end.
-
-update_product_terminationdate(SslSock, RestPort, ProdID, TerminationDate) ->
-	RestUser = ct:get_config(rest_user),
-	RestPass = ct:get_config(rest_pass),
-	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
-	AuthKey = "Basic " ++ Encodekey,
-	ContentType = "application/json-patch+json",
-	JSON = {array, [product_terminationdate(TerminationDate)]},
-	Body = lists:flatten(mochijson:encode(JSON)),
-	{Headers, Response} = patch_request(SslSock, RestPort, ContentType, AuthKey, ProdID, Body),
-	<<"HTTP/1.1 200", _/binary>> = Headers,
-	{struct, Object} = mochijson:decode(Response),
-	case lists:keyfind("terminationDate", 1, Object) of
-		{_, TerminationDate} ->
 			ok;
 		_ ->
 			{error, patch_pafiled}
@@ -2876,18 +2828,6 @@ product_description(Description) ->
 	Op = {"op", "replace"},
 	Path = {"path", "/description"},
 	Value = {"value", Description},
-	{struct, [Op, Path, Value]}.
-
-product_startdate(StartDate) ->
-	Op = {"op", "replace"},
-	Path = {"path", "/startDate"},
-	Value = {"value", StartDate},
-	{struct, [Op, Path, Value]}.
-
-product_terminationdate(TerminationDate) ->
-	Op = {"op", "replace"},
-	Path = {"path", "/terminationDate"},
-	Value = {"value", TerminationDate},
 	{struct, [Op, Path, Value]}.
 
 product_status(Status) ->
