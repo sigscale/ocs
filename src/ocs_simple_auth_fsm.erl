@@ -470,12 +470,12 @@ extract_session_attributes(Attributes) ->
 start_disconnect(DiscFsmSup, ExistingSessionAtt, #statedata{client_address =
 		Address} = StateData) ->
 	try
-			Nas = case {radius_attributes:find(?NasIpAddress, ExistingSessionAtt),
+			NAS = case {radius_attributes:find(?NasIpAddress, ExistingSessionAtt),
 								radius_attributes:find(?NasIdentifier)} of
-				{{_, NasIP}, {error, _}} ->
-					NasIp;
-				{_, {ok, NasId}} ->
-					NasId
+				{{_, IP}, {error, _}} ->
+					IP;
+				{_, {ok, ID}} ->
+					ID
 			end,
 			{ok, #client{port = ListenPort, protocol = radius, secret = Secret}}
 					= ocs:find_client(Address),
@@ -483,15 +483,15 @@ start_disconnect(DiscFsmSup, ExistingSessionAtt, #statedata{client_address =
 				{ok, Username} ->
 					Username;
 				{error, not_found} ->
-					undefined;
-			end;
+					undefined
+			end,
 			AcctSessionId = case radius_attributes:find(?AcctSessionId, ExistingSessionAtt) of
 				{ok, ActSesId} ->
 					ActSesId;
 				{error, not_found} ->
-					undefined;
-			end;
-			DiscArgs = [Address, Nas, Subscriber, AcctSessionId, Secret,
+					undefined
+			end,
+			DiscArgs = [Address, NAS, Subscriber, AcctSessionId, Secret,
 					ListenPort, ExistingSessionAtt, 1],
 			StartArgs = [DiscArgs, []],
 			case supervisor:start_child(DiscFsmSup, StartArgs) of
@@ -500,7 +500,7 @@ start_disconnect(DiscFsmSup, ExistingSessionAtt, #statedata{client_address =
 					{next_state, request, StateData};
 				{error, Reason} ->
 					error_logger:error_report(["Failed to initiate session disconnect function",
-							{module, ?MODULE}, {subscriber, Subscriber}, {nas, NasId},
+							{module, ?MODULE}, {subscriber, Subscriber}, {nas, NAS},
 							{address, Address}, {session, AcctSessionId}, {error, Reason}]),
 					{next_state, request, StateData}
 			end
