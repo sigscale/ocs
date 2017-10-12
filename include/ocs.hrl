@@ -26,7 +26,7 @@
 -type price_type() :: recurring | one_time | usage.
 
 %% define unit of measure
--type unit_of_measure() :: octets| cents | seconds | mb | gb.
+-type unit_of_measure() :: octets| cents | seconds.
 
 %% define recurring charge period
 -type recur_period() :: daily | weekly | monthly | yearly.
