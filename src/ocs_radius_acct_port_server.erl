@@ -261,17 +261,27 @@ request1(?AccountingStop, AcctSessionId, Id,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
 	InOctets = radius_attributes:find(?AcctInputOctets, Attributes),
 	OutOctets = radius_attributes:find(?AcctOutputOctets, Attributes),
-	Usage = case {InOctets, OutOctets} of
+	UsageOctets = case {InOctets, OutOctets} of
 		{{error, not_found}, {error, not_found}} ->
 			0;
 		{{ok,In}, {ok,Out}} ->
 			In + Out
 	end,
+	UsageSecs = case radius_attributes:find(?AcctSessionTime, Attributes) of
+		{ok, Secs} ->
+			Secs;
+		{error, not_found} ->
+			0
+	end,
 	{ok, UserName} = radius_attributes:find(?UserName, Attributes),
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, stop, Attributes),
 	Subscriber = ocs:normalize(UserName),
-	case update_sub_values(Subscriber, Usage, AcctSessionId, NasId, Attributes) of
-		{ok, OverUsed, false} when OverUsed =< 0 ->
+	A1 = [{?AcctSessionId, AcctSessionId}],
+	A2 = [{?NasIdentifier, NasId}, {?UserName, Subscriber}],
+	A3 = [{?NasIpAddress, NasId}, {?UserName, Subscriber}],
+	Candidates = [A1, A2, A3],
+	case ocs_rating:rating(Subscriber, true, UsageSecs, UsageOctets, Candidates) of
+		{error, out_of_credit}  ->
 			case client_disconnect_supported(Address) of
 				true ->
 					start_disconnect(AcctSessionId, Id, Authenticator, Secret,
@@ -283,13 +293,13 @@ request1(?AccountingStop, AcctSessionId, Id,
 							{session, AcctSessionId}]),
 					{reply, {ok, response(Id, Authenticator, Secret)}, State}
 			end;
-		{ok, _SufficientBalance, _Flag} ->
-			{reply, {ok, response(Id, Authenticator, Secret)}, State};
-		{error, not_found} ->
-			error_logger:warning_report(["Accounting subscriber not found",
+		{error, Reason} ->
+			error_logger:warning_report(["Accounting failed",
 					{module, ?MODULE}, {subscriber, Subscriber},
 					{username, UserName}, {nas, NasId}, {address, Address},
 					{session, AcctSessionId}]),
+			{reply, {ok, response(Id, Authenticator, Secret)}, State};
+		{ok, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
 request1(?AccountingInterimUpdate, AcctSessionId, Id,
@@ -297,34 +307,49 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
 	InOctets = radius_attributes:find(?AcctInputOctets, Attributes),
 	OutOctets = radius_attributes:find(?AcctOutputOctets, Attributes),
-	Usage = case {InOctets, OutOctets} of
+	UsageOctets = case {InOctets, OutOctets} of
 		{{error, not_found}, {error, not_found}} ->
 			0;
 		{{ok,In}, {ok,Out}} ->
 			In + Out
 	end,
+	UsageSecs = case radius_attributes:find(?AcctSessionTime, Attributes) of
+		{ok, Secs} ->
+			Secs;
+		{error, not_found} ->
+			0
+	end,
 	{ok, UserName} = radius_attributes:find(?UserName, Attributes),
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, interim, Attributes),
 	Subscriber = ocs:normalize(UserName),
-	case ocs:find_subscriber(Subscriber) of
-		{ok, #subscriber{buckets = Buckets, enabled = Enabled}} ->
-				case {Enabled, get_balance(Buckets)} of
-					{Enabled, Balance} when Enabled == false; Balance =< Usage ->
-						case client_disconnect_supported(Address) of
-							true ->
-								start_disconnect(AcctSessionId, Id, Authenticator, Secret,
-										ListenPort, NasId, Address, Attributes, Subscriber, State);
-							false ->
-								{reply, {ok, response(Id, Authenticator, Secret)}, State}
-						end;
-					_ ->
-						{reply, {ok, response(Id, Authenticator, Secret)}, State}
-				end;
+	A1 = [{?AcctSessionId, AcctSessionId}],
+	A2 = [{?NasIdentifier, NasId}, {?UserName, Subscriber}],
+	A3 = [{?NasIpAddress, NasId}, {?UserName, Subscriber}],
+	Candidates = [A1, A2, A3],
+	case ocs_rating:rating(Subscriber, false, UsageSecs, UsageOctets, Candidates) of
 		{error, not_found} ->
 			error_logger:warning_report(["Accounting subscriber not found",
 					{module, ?MODULE}, {subscriber, Subscriber},
 					{username, UserName}, {nas, NasId}, {address, Address},
 					{session, AcctSessionId}]),
+			{reply, {ok, response(Id, Authenticator, Secret)}, State};
+		{error, out_of_credit} ->
+			case client_disconnect_supported(Address) of
+				true ->
+					start_disconnect(AcctSessionId, Id, Authenticator, Secret,
+							ListenPort, NasId, Address, Attributes, Subscriber, State);
+				false ->
+					{reply, {ok, response(Id, Authenticator, Secret)}, State}
+			end;
+		{ok, #subscriber{enabled = Flag}} when Flag == false ->
+			case client_disconnect_supported(Address) of
+				true ->
+					start_disconnect(AcctSessionId, Id, Authenticator, Secret,
+							ListenPort, NasId, Address, Attributes, Subscriber, State);
+				false ->
+					{reply, {ok, response(Id, Authenticator, Secret)}, State}
+			end;
+		{ok, #subscriber{}} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
 request1(?AccountingON, _AcctSessionId, Id,
