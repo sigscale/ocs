@@ -17,7 +17,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% 
 
--type product_offering_status() :: in_study | in_design | in_test
+-type offer_status() :: in_study | in_design | in_test
 		| active | rejected | launched | retired | obsolete.
 -type product_status() :: created | pending_active | aborted
 		| cancelled | active | suspended | pending_terminate | terminated.
@@ -28,8 +28,8 @@
 %% define unit of measure
 -type unit_of_measure() :: octets| cents | seconds | mb | gb.
 
-%% define validity period of a product
--type valid_period() :: daily | weekly | monthly | yearly.
+%% define recurring charge period
+-type recur_period() :: daily | weekly | monthly | yearly.
 
 -type valid_for() :: {SDT :: integer() | undefined, EDT :: integer() | undefined}.
 
@@ -49,7 +49,7 @@
 		start_date :: pos_integer() | undefined,
 		end_date :: pos_integer() | undefined,
 		type :: price_type() | undefined,
-		period :: valid_period() | undefined,
+		period :: recur_period() | undefined,
 		units :: unit_of_measure() | undefined,
 		size :: integer() | undefined,
 		amount :: integer() | undefined,
@@ -61,7 +61,7 @@
 		start_date :: pos_integer() | undefined,
 		end_date :: pos_integer() | undefined,
 		type :: price_type() | undefined,
-		period :: valid_period() | undefined,
+		period :: recur_period() | undefined,
 		units :: unit_of_measure() | undefined,
 		size :: integer() | undefined,
 		amount :: integer() | undefined,
@@ -74,7 +74,7 @@
 		start_date :: '_' | pos_integer() | undefined,
 		end_date :: '_' | pos_integer() | undefined,
 		is_bundle = false :: '_' | boolean() | undefined,
-		status :: product_offering_status() | '_' | undefined,
+		status :: offer_status() | '_' | undefined,
 		specification :: string(),
 		price :: '_' | [#price{}],
 		characteristics = [] :: [tuple()],
@@ -94,7 +94,7 @@
 		{product :: string(),
 		start_date :: pos_integer(),
 		termination_date :: pos_integer(),
-		status :: product_offering_status(),
+		status :: product_status(),
 		characteristics = [] :: [tuple()],
 		last_modified :: tuple() | '_' | undefined}).
 
