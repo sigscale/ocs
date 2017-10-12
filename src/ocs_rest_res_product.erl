@@ -1255,6 +1255,10 @@ patch_replace(["description"], Value, Product) when is_list(Value) ->
 	Product#product{description = Value};
 patch_replace(["isBundle"], Value, Product) when is_boolean(Value) ->
 	Product#product{is_bundle = Value};
+patch_replace(["validFor", "startDateTime"], Value, Product) when is_list(Value) ->
+	Product#product{start_date = ocs_rest:iso8601(Value)};
+patch_replace(["validFor", "endDateTime"], Value, Product) when is_list(Value) ->
+	Product#product{end_date = ocs_rest:iso8601(Value)};
 patch_replace(["validFor"], {struct, Value}, Product) when is_list(Value) ->
 	Product1 = case lists:keyfind("startDateTime", 1, Value) of
 		{_, SDT} ->
