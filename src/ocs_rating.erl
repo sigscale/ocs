@@ -21,7 +21,8 @@
 -module(ocs_rating).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
--export([rating/4]).
+-export([rating/5]).
+-export([remove_session/2]).
 
 -include("ocs.hrl").
 
@@ -29,21 +30,23 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
--spec rating(SubscriberID, Final, UsageSecs, UsageOctets) -> Return
+-spec rating(SubscriberID, Final, UsageSecs, UsageOctets, Attributes) -> Return
 	when
 		SubscriberID :: string() | binary(),
 		Final :: boolean(),
 		UsageSecs :: integer(),
 		UsageOctets :: integer(),
+		Attributes :: [tuple()],
 		Return :: ok | {error, Reason},
 		Reason :: term().
-rating(SubscriberID, Final, UsageSecs, UsageOctets) when is_list(SubscriberID) ->
-	rating(list_to_binary(SubscriberID), Final, UsageSecs, UsageOctets);
-rating(SubscriberID, Final, UsageSecs, UsageOctets) when is_binary(SubscriberID) ->
+rating(SubscriberID, Final, UsageSecs, UsageOctets, Attributes) when is_list(SubscriberID) ->
+	rating(list_to_binary(SubscriberID), Final, UsageSecs, UsageOctets, Attributes);
+rating(SubscriberID, Final, UsageSecs, UsageOctets, Attributes) when is_binary(SubscriberID) ->
 	F = fun() ->
 			case mnesia:read(subscriber, SubscriberID, write) of
-				[#subscriber{buckets = Buckets, product =
-						#product_instance{product = ProdID,
+				[#subscriber{buckets = Buckets,
+						session_attributes = SessionList,
+						product = #product_instance{product = ProdID,
 						characteristics = Chars}} = Subscriber] ->
 					Validity = proplists:get_value(validity, Chars),
 					case mnesia:read(product, ProdID, read) of
@@ -52,7 +55,9 @@ rating(SubscriberID, Final, UsageSecs, UsageOctets) when is_binary(SubscriberID)
 								#price{} = Price ->
 									{Charged, NewBuckets} = rating2(Price,
 											Validity, UsageSecs, UsageOctets, Final, Buckets),
-									Entry = Subscriber#subscriber{buckets = NewBuckets},
+									NewSessionList = remove_session(SessionList, Attributes),
+									Entry = Subscriber#subscriber{buckets = NewBuckets,
+											session_attributes = NewSessionList},
 									mnesia:write(Entry);
 								false ->
 									throw(price_not_found)
@@ -162,4 +167,17 @@ sort_buckets(#bucket{termination_date = T1}, #bucket{termination_date = T2}) whe
 	true;
 sort_buckets(_, _)->
 	false.
+
+remove_session(SessionList, [H | T]) ->
+	remove_session1(remove_session(SessionList, T), H);
+remove_session(SessionList, []) ->
+	SessionList.
+%% @hidden
+remove_session1(SessionList, Candidate) ->
+	F = fun(IsCandidate, Acc) when IsCandidate == Candidate ->
+				Acc;
+			(NotCandidate, Acc) ->
+				[NotCandidate | Acc]
+	end,
+	lists:foldl(F, [], SessionList).
 
