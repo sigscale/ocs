@@ -74,6 +74,7 @@
 		end_date :: '_' | pos_integer() | undefined,
 		is_bundle = false :: '_' | boolean() | undefined,
 		status :: '_' | product_status() | undefined,
+		specification :: string(),
 		price :: '_' | [#price{}],
 		characteristics = [] :: [tuple()],
 		last_modified :: tuple() | '_' | undefined}).
