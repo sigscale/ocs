@@ -18,7 +18,7 @@
 %%% 
 
 -type product_offering_status() :: in_study | in_design | in_test
-		| active | rejected | launched | retired | obsolete,
+		| active | rejected | launched | retired | obsolete.
 -type product_status() :: created | pending_active | aborted
 		| cancelled | active | suspended | pending_terminate | terminated.
 
