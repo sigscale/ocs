@@ -160,13 +160,13 @@
 				</div>
 				<div id=updatePrice-tab>
 					<div>
-						<datalist id="updatePrice">
+						<datalist id="updatePriceNames">
 							<template is="dom-repeat" items="[[prices]]">
 								<option value="{{item.name}}" />
 							</template>
 						</datalist>
 						<paper-input id="updatePriceName" 
-								list="updatePrice"
+								list="updatePriceNames"
 								label="[[i18n.name]]"
 								on-value-changed="updatePriceDialog"
 								onclick="updatePriceName.value=null"
@@ -417,13 +417,13 @@
 				</div>
 				<div id="add-Alt-tab">
 					<div>
-						<datalist id="updateAlts">
+						<datalist id="updateAltNames">
 							<template is="dom-repeat" items="[[alterations]]">
 								<option value="{{item.name}}"/>
 							</template>
 						</datalist>
 						<paper-input id="updateAltName" 
-								list="updateAlts" 
+								list="updateAltNames" 
 								label="[[i18n.name]]" 
 								on-value-changed="updateAddAltsDialog"
 								onclick="updateAltName.value=null"
@@ -737,7 +737,9 @@
 				this.$.updateOffEnd.value = item.endDate;
 				for(var index in item.prices) {
 					this.push('prices', item.prices[index]);
-					this.push('alterations', item.prices[index].productOfferPriceAlteration);
+					if(item.prices[index].productOfferPriceAlteration) {
+						this.push('alterations', item.prices[index].productOfferPriceAlteration);
+					}
 				}
 			}, 
 			_updateProductStartDateOfferPick: function(date) {
@@ -842,10 +844,10 @@
 				}
 			},
 			updateAddAltsDialog: function() {
-				function checkUpdateAltName(updateAlts) {
-					return updateAlts.name == document.getElementById("updateAltName").value;
-				}
 				if(this.alterations != undefined) {
+					function checkUpdateAltName(updateAlts) {
+						return updateAlts.name == document.getElementById("updateAltName").value;
+					}
 					var indexAlt = this.alterations.findIndex(checkUpdateAltName);
 					if (indexAlt == -1) {
 						this.$.updateAltDesc.value = null;
@@ -924,7 +926,7 @@
 				endDateTimeObject.value = this.$.updateOffEnd.value;
 				offerNew.validFor = {"startDateTime": this.$.updateOffStart.value, 
 					"endDateTime": this.$.updateOffEnd.value};
-				ajax.body = JSON.stringify(offerDesc, offerNew);
+				ajax.body = JSON.stringify(offerNew);
 				ajax.generateRequest();
 			},
 			_updateProductOfferResponse: function(event) {
