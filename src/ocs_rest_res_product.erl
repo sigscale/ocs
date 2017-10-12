@@ -1102,8 +1102,7 @@ offer_status(in_test) -> "In Test";
 offer_status(active) -> "Active";
 offer_status(rejected) -> "Rejected";
 offer_status(launched) -> "Launched";
-offer_status(retired) -> "Retired";
-offer_status("Obsolete") -> obsolete.
+offer_status(retired) -> "Retired".
 
 -spec product_status(Status) -> Status
 	when
@@ -1528,9 +1527,9 @@ offer([{"id", _ID} | T], Acc) ->
 	offer(T, Acc);
 offer([{"href", _URI} | T], Acc) ->
 	offer(T, Acc);
-offer([{"name", Name} | T], Acc) ->
+offer([{"name", Name} | T], Acc) when is_list(Name) ->
 	offer(T, Acc#product{name = Name});
-offer([{"description", Description} | T], Acc) ->
+offer([{"description", Description} | T], Acc) when is_list(Description) ->
 	offer(T, Acc#product{description = Description});
 offer([{"validFor", {struct, L}} | T], Acc) ->
 	Acc1 = case lists:keyfind("startDateTime", 1, L) of
@@ -1552,12 +1551,12 @@ offer([{"lifecycleStatus", Status} | T], Acc) ->
 	offer(T, Acc#product{status = offer_status(Status)});
 offer([{"price", Price} | T], Acc) ->
 	offer(T, Acc#product{price = price(Price)});
-offer([{"characteristic", Chars} | T], Acc) ->
-	offer(T, Acc#product{characteristics = characterics(Chars)});
+offer([{"characteristic", Chars} | T], Acc) when is_list(Chars) ->
+	offer(T, Acc#product{characteristics = characteristics(Chars)});
 offer([{"lastUpdate", Last} | T], Acc) ->
 	offer(T, Acc#product{last_modified = ocs_rest:iso8601(Last)}).
 %% @hidden
-offer([name | T], #product{name = Name} = P, Acc) ->
+offer([name | T], #product{name = Name} = P, Acc) when is_list(Name) ->
 	offer(T, P, [{"name", Name} | Acc]);
 offer([description | T], #product{description = Description} = P,
 		Acc) when is_list(Description) ->
@@ -1589,7 +1588,7 @@ offer([price | T], #product{price = Price} = P, Acc)
 	offer(T, P, [{"price", price(Price)} | Acc]);
 offer([characteristics | T],
 		#product{characteristics = Chars} = P, Acc) when is_list(Chars) ->
-	offer(T, P, [{"characteristic", characterics(Chars)} | Acc]);
+	offer(T, P, [{"characteristic", characteristics(Chars)} | Acc]);
 offer([last_modified | T], #product{last_modified = Last} = P, Acc)
 		when is_integer(Last) ->
 	offer(T, P, [{"lastUpdate", ocs_rest:iso8601(Last)} | Acc]);
@@ -1598,8 +1597,7 @@ offer([], _P, Acc) ->
 
 -spec price(Price) -> Price
 	when
-		Price :: #product{} | {struct, ObjectMembers} | ObjectMembers,
-		ObjectMembers :: [tuple()].
+		Price :: #product{} | {struct, [tuple()]}.
 %% @doc CODEC for Product Offering Price.
 %% @private
 price(#price{} = P) ->
@@ -1607,7 +1605,7 @@ price(#price{} = P) ->
 price({struct, ObjectMembers}) ->
 	price(ObjectMembers, #price{}).
 %% @hidden
-price([name| T], #price{name = Name} = P, Acc) when Name /= undefined ->
+price([name| T], #price{name = Name} = P, Acc) when is_list(Name) ->
 	price(T, P, [{"name", Name} | Acc]);
 price([description | T], #price{description = Description} = P, Acc)
 		when is_list(Description) ->
@@ -1666,6 +1664,191 @@ price([alteration | T], #price{alteration = Alteration} = P, Acc)
 	price(T, P, [{"alteration", alteration(Alteration)} | Acc]);
 price([], _P, Acc) ->
 	{struct, lists:reverse(Acc)}.
+%% @hidden
+price([{"id", _ID} | T], Acc) ->
+	price(T, Acc);
+price([{"href", _URI} | T], Acc) ->
+	price(T, Acc);
+price([{"name", Name} | T], Acc) when is_list(Name) ->
+	price(T, Acc#price{name = Name});
+price([{"description", Description} | T], Acc) when is_list(Description) ->
+	price(T, Acc#price{description = Description});
+price([{"validFor", {struct, L}} | T], Acc) ->
+	Acc1 = case lists:keyfind("startDateTime", 1, L) of
+		{_, Start} ->
+			Acc#price{start_date = ocs_rest:iso8601(Start)};
+		undefined ->
+			Acc
+	end,
+	Acc2 = case lists:keyfind("endDateTime", 1, L) of
+		{_, End} ->
+			Acc1#price{end_date = ocs_rest:iso8601(End)};
+		undefined ->
+			Acc
+	end,
+	price(T, Acc2);
+price([{"priceType", Type} | T], Acc) ->
+	price(T, Acc#price{type = price_type(Type)});
+price([{"unitOfMeasure", UnitOfMeasure} | T], Acc) ->
+	case lists:last(UnitOfMeasure) of
+		$b ->
+			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+			price(T, Acc#price{units = octets, size = list_to_integer(N)});
+		$s ->
+			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+			price(T, Acc#price{units = seconds, size = list_to_integer(N)});
+		_ ->
+			price(T, Acc#price{size = list_to_integer(UnitOfMeasure)})
+	end;
+price([{"price", {struct, L}} | T], Acc) ->
+	Acc1 = case lists:keyfind("taxIncludedAmount", 1, L) of
+		{_, Amount} when is_integer(Amount) ->
+			Acc#price{amount = Amount};
+		_ ->
+			Acc
+	end,
+	Acc2 = case lists:keyfind("currency", 1, L) of
+		{_, Currency} when is_list(Currency) ->
+			Acc1#price{currency = Currency};
+		_ ->
+			Acc1
+	end,
+	price(T, Acc2);
+price([{"recurringChargePeriod", Period} | T], Acc) ->
+	price(T, Acc#price{period = price_period(Period)});
+price([{"productOfferPriceAlteration", Alteration} | T], Acc)
+		when is_record(Alteration, alteration) ->
+	price(T, Acc#price{alteration = alteration(Alteration)});
+price([], Acc) ->
+	Acc.
+
+-spec alteration(Alteration) -> Alteration
+	when
+		Alteration :: #alteration{} | {struct, [tuple()]}.
+%% @doc CODEC for Product Offering Price Alteration.
+%% @private
+alteration(#alteration{} = A) ->
+	alteration(record_info(fields, alteration), A, []);
+alteration({struct, ObjectMembers}) ->
+	alteration(ObjectMembers, #alteration{}).
+%% @hidden
+alteration([name| T], #alteration{name = Name} = A, Acc) when is_list(Name) ->
+	alteration(T, A, [{"name", Name} | Acc]);
+alteration([description | T], #alteration{description = Description} = A, Acc)
+		when is_list(Description) ->
+	alteration(T, A, [{"description", Description} | Acc]);
+alteration([start_date | T], #alteration{start_date = Start,
+		end_date = undefined} = A, Acc) when is_integer(Start) ->
+	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(Start)}]},
+	alteration(T, A, [{"validFor", ValidFor} | Acc]);
+alteration([start_date | T], #alteration{start_date = undefined,
+		end_date = End} = A, Acc) when is_integer(End) ->
+	ValidFor = {struct, [{"endDateTime", ocs_rest:iso8601(End)}]},
+	alteration(T, A, [{"validFor", ValidFor} | Acc]);
+alteration([start_date | T], #alteration{start_date = Start,
+		end_date = End} = A, Acc) when is_integer(Start), is_integer(End) ->
+	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(Start)},
+			{"endDateTime", ocs_rest:iso8601(End)}]},
+	alteration(T, A, [{"validFor", ValidFor} | Acc]);
+alteration([end_date | T], A, Acc) ->
+	alteration(T, A, Acc);
+alteration([type | T], #alteration{type = one_time, units = cents} = A, Acc) ->
+	alteration(T, A, [{"priceType", price_type(one_time)} | Acc]);
+alteration([type | T], #alteration{type = recurring, period = Period,
+		units = cents} = A, Acc) when Period /= undefined ->
+	Recurring = [{"priceType", price_type(recurring)},
+			{"recurringChargePeriod", price_period(Period)}],
+	alteration(T, A, Recurring ++ Acc);
+alteration([type | T], #alteration{type = usage, units = octets,
+		size = Size} = A, Acc) when is_integer(Size) ->
+	UsageType = [{"priceType", price_type(usage)},
+			{"unitOfMeasure", integer_to_list(Size) ++ "b"}],
+	alteration(T, A, UsageType ++ Acc);
+alteration([type | T], #alteration{type = usage, units = seconds,
+		size = Size} = A, Acc) when is_integer(Size) ->
+	UsageType = [{"priceType", price_type(usage)},
+			{"unitOfMeasure", integer_to_list(Size) ++ "s"}],
+	alteration(T, A, UsageType ++ Acc);
+alteration([period | T], A, Acc) ->
+	alteration(T, A, Acc);
+alteration([units | T], A, Acc) ->
+	alteration(T, A, Acc);
+alteration([size | T], A, Acc) ->
+	alteration(T, A, Acc);
+alteration([amount | T], #alteration{amount = Amount, currency = Currency} = A, Acc)
+		when is_integer(Amount), is_list(Currency) ->
+	Price = {struct, [{"taxIncludedAmount", integer_to_list(Amount)},
+			{"currencyCode", Currency}]},
+	alteration(T, A, [{"price", Price} | Acc]);
+alteration([amount | T], #alteration{amount = Amount} = A, Acc)
+		when is_integer(Amount) ->
+	Price = {struct, [{"taxIncludedAmount", integer_to_list(Amount)}]},
+	alteration(T, A, [{"price", Price} | Acc]);
+alteration([currency | T], A, Acc) ->
+	alteration(T, A, Acc);
+alteration([], _A, Acc) ->
+	{struct, lists:reverse(Acc)}.
+%% @hidden
+alteration([{"id", _ID} | T], Acc) ->
+	alteration(T, Acc);
+alteration([{"href", _URI} | T], Acc) ->
+	alteration(T, Acc);
+alteration([{"name", Name} | T], Acc) when is_list(Name) ->
+	alteration(T, Acc#alteration{name = Name});
+alteration([{"description", Description} | T], Acc) when is_list(Description) ->
+	alteration(T, Acc#alteration{description = Description});
+alteration([{"validFor", {struct, L}} | T], Acc) ->
+	Acc1 = case lists:keyfind("startDateTime", 1, L) of
+		{_, Start} ->
+			Acc#alteration{start_date = ocs_rest:iso8601(Start)};
+		undefined ->
+			Acc
+	end,
+	Acc2 = case lists:keyfind("endDateTime", 1, L) of
+		{_, End} ->
+			Acc1#alteration{end_date = ocs_rest:iso8601(End)};
+		undefined ->
+			Acc
+	end,
+	alteration(T, Acc2);
+alteration([{"priceType", Type} | T], Acc) ->
+	alteration(T, Acc#alteration{type = price_type(Type)});
+alteration([{"unitOfMeasure", UnitOfMeasure} | T], Acc) ->
+	case lists:last(UnitOfMeasure) of
+		$b ->
+			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+			alteration(T, Acc#alteration{units = octets, size = list_to_integer(N)});
+		$s ->
+			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+			alteration(T, Acc#alteration{units = seconds, size = list_to_integer(N)});
+		_ ->
+			alteration(T, Acc#alteration{size = list_to_integer(UnitOfMeasure)})
+	end;
+alteration([{"alteration", {struct, L}} | T], Acc) ->
+	Acc1 = case lists:keyfind("taxIncludedAmount", 1, L) of
+		{_, Amount} when is_integer(Amount) ->
+			Acc#alteration{amount = Amount};
+		_ ->
+			Acc
+	end,
+	Acc2 = case lists:keyfind("currency", 1, L) of
+		{_, Currency} when is_list(Currency) ->
+			Acc1#alteration{currency = Currency};
+		_ ->
+			Acc1
+	end,
+	alteration(T, Acc2);
+alteration([{"recurringChargePeriod", Period} | T], Acc) ->
+	alteration(T, Acc#alteration{period = price_period(Period)});
+alteration([], Acc) ->
+	Acc.
+
+-spec characteristics(Characteristics) -> Characteristics
+	when
+		Characteristics :: [tuple()].
+%% @doc CODEC for Product Specification Characteristics.
+%% @private
+characteristics([]) -> [].
 
 %% @hidden
 query_start(Query, Filters, RangeStart, RangeEnd) ->
