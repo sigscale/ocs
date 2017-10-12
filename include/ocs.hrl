@@ -17,9 +17,10 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% 
 
--type product_status() :: created | aborted | cancelled
-								| active | pending_active | suspended
-								| terminate | pending_terminate.
+-type product_offering_status() :: in_study | in_design | in_test
+		| active | rejected | launched | retired | obsolete,
+-type product_status() :: created | pending_active | aborted
+		| cancelled | active | suspended | pending_terminate | terminated.
 
 %% define price types
 -type price_type() :: recurring | one_time | usage.
@@ -73,7 +74,7 @@
 		start_date :: '_' | pos_integer() | undefined,
 		end_date :: '_' | pos_integer() | undefined,
 		is_bundle = false :: '_' | boolean() | undefined,
-		status :: '_' | product_status() | undefined,
+		status :: product_offering_status() | '_' | undefined,
 		specification :: string(),
 		price :: '_' | [#price{}],
 		characteristics = [] :: [tuple()],
@@ -93,7 +94,7 @@
 		{product :: string(),
 		start_date :: pos_integer(),
 		termination_date :: pos_integer(),
-		status :: atom(),
+		status :: product_offering_status(),
 		characteristics = [] :: [tuple()],
 		last_modified :: tuple() | '_' | undefined}).
 
