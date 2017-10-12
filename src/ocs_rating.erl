@@ -49,6 +49,7 @@ rating(SubscriberID, Final, UsageSecs, UsageOctets, Attributes) when is_binary(S
 						product = #product_instance{product = ProdID,
 						characteristics = Chars}} = Subscriber] ->
 					Validity = proplists:get_value(validity, Chars),
+erlang:display({?MODULE, ?LINE, SessionList}),
 					case mnesia:read(product, ProdID, read) of
 						[#product{price = Prices}] ->
 							case lists:keyfind(usage, #price.type, Prices) of
@@ -174,11 +175,19 @@ remove_session(SessionList, [H | T]) ->
 remove_session(SessionList, []) ->
 	SessionList.
 %% @hidden
-remove_session1(SessionList, Candidate) ->
-	F = fun(IsCandidate, Acc) when IsCandidate == Candidate ->
-				Acc;
-			(NotCandidate, Acc) ->
-				[NotCandidate | Acc]
+remove_session1(SessionList, [Candidate | T]) ->
+	remove_session1(remove_session2(SessionList, Candidate), T);
+remove_session1(SessionList, []) ->
+	SessionList.
+%% @hidden
+remove_session2(SessionList, Candidate) ->
+	F = fun(IsCandidate, Acc)  ->
+				case lists:member(Candidate, IsCandidate) of
+					true ->
+						Acc;
+					false ->
+						[IsCandidate | Acc]
+				end
 	end,
 	lists:foldl(F, [], SessionList).
 
