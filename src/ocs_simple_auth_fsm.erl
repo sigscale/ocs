@@ -470,25 +470,27 @@ extract_session_attributes(Attributes) ->
 start_disconnect(DiscFsmSup, ExistingSessionAtt, #statedata{client_address =
 		Address} = StateData) ->
 	try
-			F = fun(_F, [{K, V} | _T], K) ->
-						V;
-					(F, [_ | T], K) ->
-						F(F, T, K);
-					(_, [], _) ->
-						undefined
-			end,
-			NasIp= F(F, ExistingSessionAtt, ?NasIpAddress),
-			NasId = F(F, ExistingSessionAtt, ?NasIdentifier),
-			Nas = case {NasIp, NasId} of
-				{_, undefined} ->
+			Nas = case {radius_attributes:find(?NasIpAddress, ExistingSessionAtt),
+								radius_attributes:find(?NasIdentifier)} of
+				{{_, NasIP}, {error, _}} ->
 					NasIp;
-				_ ->
+				{_, {ok, NasId}} ->
 					NasId
 			end,
 			{ok, #client{port = ListenPort, protocol = radius, secret = Secret}}
 					= ocs:find_client(Address),
-			Subscriber = F(F, ExistingSessionAtt, ?UserName),
-			AcctSessionId = F(F, ExistingSessionAtt, ?AcctSessionId),
+			Subscriber = case radius_attributes:find(?UserName, ExistingSessionAtt) of
+				{ok, Username} ->
+					Username;
+				{error, not_found} ->
+					undefined;
+			end;
+			AcctSessionId = case radius_attributes:find(?AcctSessionId, ExistingSessionAtt) of
+				{ok, ActSesId} ->
+					ActSesId;
+				{error, not_found} ->
+					undefined;
+			end;
 			DiscArgs = [Address, Nas, Subscriber, AcctSessionId, Secret,
 					ListenPort, ExistingSessionAtt, 1],
 			StartArgs = [DiscArgs, []],

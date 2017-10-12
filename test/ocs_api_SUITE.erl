@@ -172,8 +172,8 @@ subscriber(Config) ->
 	Attribute2 = radius_attributes:add(?NasPortId, "wlan2", Attribute0),
 	Password1 = ocs:generate_password(),
 	Password2 = ocs:generate_password(),
-	{ok, _} = ocs:add_subscriber("tomba", Password1, ProdID, [], Attribute1),
-	{ok, _} = ocs:add_subscriber("android", Password2, ProdID, [], Attribute2),
+	{ok, _} = ocs:add_subscriber("tomba", Password1, ProdID, [], [], Attribute1),
+	{ok, _} = ocs:add_subscriber("android", Password2, ProdID, [], [], Attribute2),
 	{ok, #subscriber{password = BinPassword1, attributes = Attribute1,
 			product = #product_instance{product = ProdID}}} = 
 			ocs:find_subscriber("tomba"),
@@ -191,7 +191,7 @@ delete_subscriber(Config) ->
 	Attribute = radius_attributes:add(?NasPortId,"wlan0", Attribute0),
 	Subscriber = "deleteandroid",
 	Password = ocs:generate_password(),
-	{ok, _} = ocs:add_subscriber(Subscriber, Password, ProdID, [], Attribute),
+	{ok, _} = ocs:add_subscriber(Subscriber, Password, ProdID, [], [], Attribute),
 	{ok, _} = ocs:find_subscriber(Subscriber),
 	ok = ocs:delete_subscriber(Subscriber),
 	{error, _} = ocs:find_subscriber(Subscriber).
@@ -205,7 +205,7 @@ update_password(Config) ->
 	Attribute = radius_attributes:add(?NasPortId,"wlan0", Attribute0),
 	Subscriber = "android",
 	OldPassword = ocs:generate_password(),
-	{ok, _} = ocs:add_subscriber(Subscriber, OldPassword, ProdID, [], Attribute),
+	{ok, _} = ocs:add_subscriber(Subscriber, OldPassword, ProdID, [], [], Attribute),
 	{ok, #subscriber{password = BinOldPassword, attributes = Attribute}} =
 			ocs:find_subscriber(Subscriber),
 	OldPassword = binary_to_list(BinOldPassword),
@@ -223,7 +223,7 @@ update_attributes(Config) ->
 	Username = "tomba1",
 	Attribute0 = radius_attributes:new(),
 	Attribute1 = radius_attributes:add(?NasPortId,"wlan0", Attribute0),
-	{ok, _} = ocs:add_subscriber(Username, Password, ProdID, [], Attribute1),
+	{ok, _} = ocs:add_subscriber(Username, Password, ProdID, [], [], Attribute1),
 	{ok, #subscriber{attributes = Attribute1}} = ocs:find_subscriber(Username),
 	Attribute2 = radius_attributes:add(?NasPortId,"wlan1", Attribute0),
 	ok = ocs:update_attributes(Username, Attribute2),
