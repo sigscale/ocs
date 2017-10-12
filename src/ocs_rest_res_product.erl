@@ -885,7 +885,7 @@ prod_price_price_c_code(#price{} = Price) ->
 prod_price_rc_period(Price) when is_list(Price) ->
 	case lists:keyfind("recurringChargePeriod", 1, Price) of
 		{_, RCPeriod} ->
-			rc_period(RCPeriod);
+			price_period(RCPeriod);
 		false ->
 			undefined
 	end;
@@ -894,7 +894,7 @@ prod_price_rc_period(#price{} = Price) ->
 		undefined ->
 			{"recurringChargePeriod", ""};
 		RCPeriod ->
-			{"recurringChargePeriod", rc_period(RCPeriod)}
+			{"recurringChargePeriod", price_period(RCPeriod)}
 	end.
 
 -spec prod_price_alter_name(Alteration) -> Result
@@ -1083,44 +1083,27 @@ product_size(mb, octets, Size) -> Size * 1000000;
 product_size(octets, mb, Size) -> Size div 1000000;
 product_size(_, _, Size) -> Size.
 
--spec rc_period(RCPeriod) -> Result
+-spec offer_status(Status) -> Status
 	when
-		RCPeriod	:: string() | valid_period(),
-		Result	:: valid_period() | string().
-%% @doc return valid period
-%% @private
-rc_period("") -> undefined;
-rc_period("yearly") -> yearly;
-rc_period("monthly") -> monthly;
-rc_period("weekly") -> weekly;
-rc_period("daily") -> daily;
-rc_period(undefined) -> "";
-rc_period(yearly) -> "yearly";
-rc_period(monthly) -> "monthly";
-rc_period(weekly) -> "weekly";
-rc_period(daily) -> "daily".
-
--spec product_offering_status(Status) -> Status
-	when
-		Status :: product_offering_status() | string().
+		Status :: offer_status() | string().
 %% @doc CODEC for life cycle status of Product instance.
 %% @private
-product_offering_status("In Study") -> in_study;
-product_offering_status("In Design") -> in_design;
-product_offering_status("In Test") -> in_test;
-product_offering_status("Active") -> active;
-product_offering_status("Rejected") -> rejected;
-product_offering_status("Launched") -> launched;
-product_offering_status("Retired") -> retired;
-product_offering_status("Obsolete") -> obsolete;
-product_offering_status(in_study) -> "In Study";
-product_offering_status(in_design) -> "In Design";
-product_offering_status(in_test) -> "In Test";
-product_offering_status(active) -> "Active";
-product_offering_status(rejected) -> "Rejected";
-product_offering_status(launched) -> "Launched";
-product_offering_status(retired) -> "Retired";
-product_offering_status("Obsolete") -> obsolete.
+offer_status("In Study") -> in_study;
+offer_status("In Design") -> in_design;
+offer_status("In Test") -> in_test;
+offer_status("Active") -> active;
+offer_status("Rejected") -> rejected;
+offer_status("Launched") -> launched;
+offer_status("Retired") -> retired;
+offer_status("Obsolete") -> obsolete;
+offer_status(in_study) -> "In Study";
+offer_status(in_design) -> "In Design";
+offer_status(in_test) -> "In Test";
+offer_status(active) -> "Active";
+offer_status(rejected) -> "Rejected";
+offer_status(launched) -> "Launched";
+offer_status(retired) -> "Retired";
+offer_status("Obsolete") -> obsolete.
 
 -spec product_status(Status) -> Status
 	when
@@ -1133,7 +1116,7 @@ product_status("Aborted") -> aborted;
 product_status("Cancelled") -> cancelled;
 product_status("Active") -> active;
 product_status("Suspended") -> suspended;
-product_status("Pending Terminate") -> pending_terminate.
+product_status("Pending Terminate") -> pending_terminate;
 product_status("Terminated") -> terminated;
 product_status(created) -> "Created";
 product_status(pending_active) -> "Pending Active";
@@ -1144,9 +1127,10 @@ product_status(suspended) -> "Suspended";
 product_status(pending_terminate) -> "Pending Terminate";
 product_status(terminated) -> "Terminated".
 
--spec price_type(StringPriceType) -> PriceType when
-	StringPriceType :: string() | atom(),
-	PriceType		 :: recurring | one_time | usage | string().
+-spec price_type(Type) -> Type
+	when
+		Type :: string() | atom().
+%% @doc CODEC for Price Type.
 %% @private
 price_type("usage") -> usage;
 price_type("recurring") -> recurring;
@@ -1154,6 +1138,20 @@ price_type("one_time") -> one_time;
 price_type(usage) -> "usage";
 price_type(recurring) -> "recurring";
 price_type(one_time) -> "one_time".
+
+-spec price_period(Period) -> Period
+	when
+		Period :: string() | atom().
+%% @doc CODEC for Recurring Charge Period.
+%% @private
+price_period(daily) -> "Daily";
+price_period(weekly) -> "Weekly";
+price_period(monthly) -> "Monthly";
+price_period(yearly) -> "Yearly";
+price_period("Daily") -> daily;
+price_period("Weekly") -> weekly;
+price_period("Monthly") -> monthly;
+price_period("Yearly") -> yearly.
 
 -spec exe_jsonpatch_ON(ProductID, Etag, OperationList) -> Result
 	when
@@ -1223,12 +1221,12 @@ exe_jsonpatch_merge(ProdID, Etag, Patch) ->
 				[Entry] when
 						Entry#product.last_modified == Etag;
 						Etag == undefined ->
-					case target(Entry) of
+					case offer(Entry) of
 						{error, Status} ->
 							throw(Status);
 						Target ->
 							Patched = ocs_rest:merge_patch(Target, Patch),
-							case target(Patched) of
+							case offer(Patched) of
 								{error, SC} ->
 									throw(SC);
 								Updatedentry ->
@@ -1369,7 +1367,7 @@ patch_replace1(prod_price, [], {array, Values}, _) ->
 							UP = Price#price{units = U, size = S},
 							F2(F2, T, UP);
 						(F2, [{"recurringChargePeriod", V} | T], Price) when is_list(V) ->
-							RcPeriod = rc_period(V),
+							RcPeriod = price_period(V),
 							UP = Price#price{period = RcPeriod},
 							F2(F2, T, UP);
 						(F2, [{"price", {struct, V}} | T], Price) when is_list(V) ->
@@ -1456,7 +1454,7 @@ patch_replace2([{"priceType", Value} | T], Price) when is_record(Price, price), 
 	PT = price_type(Value),
 	patch_replace2(T, Price#price{type = PT});
 patch_replace2([{"recurringChargePeriod", Value} | T], Price) when is_record(Price, price), is_list(Value) ->
-	RCP = rc_period(Value),
+	RCP = price_period(Value),
 	patch_replace2(T, Price#price{period = RCP});
 patch_replace2([{"unitOfMeasure", Value} | T], Price) when is_record(Price, price), is_list(Value) ->
 	{U, S} = prod_price_ufm_et(Value),
@@ -1516,93 +1514,158 @@ patch_replace4([{"taxIncludedAmount", Value} | T], Alter) when is_record(Alter, 
 patch_replace4(_, _) ->
 	{error, unprocessable}.
 
--spec product_offering(Product) -> Product
+-spec offer(Product) -> Product
 	when
-		Product :: #product{} | {struct, ObjectMembers} | ObjectMembers,
-		ObjectMembers :: [tuple()].
+		Product :: #product{} | {struct, [tuple()]}.
 %% @doc CODEC for Product Offering.
 %% @private
-product_offering(#product{} = P) ->
-	product_offering(record_info(fields, product), P, []);
-product_offering({struct, ObjectMembers}) ->
-	product_offering(ObjectMembers, #product{});
-product_offering(ObjectMembers) when is_list(ObjectMembers) ->
-	product_offering(ObjectMembers, #product{}).
+offer(#product{} = P) ->
+	offer(record_info(fields, product), P, []);
+offer({struct, ObjectMembers}) ->
+	offer(ObjectMembers, #product{}).
 %% @hidden
-product_offering([{"id", ID} | T], Acc) ->
-	product_offering(T, Acc#product{id = ID});
-product_offering([{"href", URI} | T], Acc) ->
-	product_offering(T, Acc#product{href = URI});
-product_offering([{"name", Name} | T], Acc) ->
-	product_offering(T, Acc#product{name = Name});
-product_offering([{"description", Description} | T], Acc) ->
-	product_offering(T, Acc#product{description = Description});
-product_offering([{"validFor", {struct, L}} | T], Acc) ->
+offer([{"id", _ID} | T], Acc) ->
+	offer(T, Acc);
+offer([{"href", _URI} | T], Acc) ->
+	offer(T, Acc);
+offer([{"name", Name} | T], Acc) ->
+	offer(T, Acc#product{name = Name});
+offer([{"description", Description} | T], Acc) ->
+	offer(T, Acc#product{description = Description});
+offer([{"validFor", {struct, L}} | T], Acc) ->
 	Acc1 = case lists:keyfind("startDateTime", 1, L) of
 		{_, Start} ->
 			Acc#product{start_date = ocs_rest:iso8601(Start)};
 		undefined ->
 			Acc
-	end;
+	end,
 	Acc2 = case lists:keyfind("endDateTime", 1, L) of
 		{_, End} ->
 			Acc1#product{end_date = ocs_rest:iso8601(End)};
 		undefined ->
 			Acc
 	end,
-	product_offering(T, Acc2);
-product_offering([{"is_bundle", Bundle} | T], Acc) ->
-	product_offering(T, Acc#product{is_bundle = Bundle});
-product_offering([{"lifecycleStatus", Status} | T], Acc) ->
-	product_offering(T, Acc#product{status = product_offering_status(Status)});
-product_offering([{"price", Price} | T], Acc) ->
-	product_offering(T, Acc#product{price = product_price(Price)});
-product_offering([{"characteristic", Chars} | T], Acc) ->
-	product_offering(T, Acc#product{characteristics = characterics(Chars)});
-product_offering([{"lastUpdate", Last} | T], Acc) ->
-	product_offering(T, Acc#product{last_modified = ocs_rest:iso8601(Last)}).
+	offer(T, Acc2);
+offer([{"is_bundle", Bundle} | T], Acc) ->
+	offer(T, Acc#product{is_bundle = Bundle});
+offer([{"lifecycleStatus", Status} | T], Acc) ->
+	offer(T, Acc#product{status = offer_status(Status)});
+offer([{"price", Price} | T], Acc) ->
+	offer(T, Acc#product{price = price(Price)});
+offer([{"characteristic", Chars} | T], Acc) ->
+	offer(T, Acc#product{characteristics = characterics(Chars)});
+offer([{"lastUpdate", Last} | T], Acc) ->
+	offer(T, Acc#product{last_modified = ocs_rest:iso8601(Last)}).
 %% @hidden
-product_offering([id | T], #product{id = ID} = P, Acc) ->
-	product_offering(T, P, [{"id", ID} | Acc]);
-product_offering([href | T], #product{href = URI} = P, Acc) ->
-	product_offering(T, P, [{"href", URI} | Acc]);
-product_offering([name | T], #product{name = Name} = P, Acc) ->
-	product_offering(T, P, [{"name", Name} | Acc]);
-product_offering([description | T], #product{description = D} = P, Acc)
-		when D /= undefined ->
-	product_offering(P, [{"description", Description} | Acc]);
-product_offering([start_date | T], #product{start_date = Start,
-		end_date = undefined} = P, Acc) when Start /= undefined ->
+offer([name | T], #product{name = Name} = P, Acc) ->
+	offer(T, P, [{"name", Name} | Acc]);
+offer([description | T], #product{description = Description} = P,
+		Acc) when is_list(Description) ->
+	offer(T, P, [{"description", Description} | Acc]);
+offer([start_date | T], #product{start_date = Start,
+		end_date = undefined} = P, Acc) when is_integer(Start) ->
 	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(Start)}]},
-	product_offering(T, P, [{"validFor", ValidFor} | Acc]);
-product_offering([start_date | T], #product{start_date = undefined,
-		end_date = End} = P, Acc) End /= undefined ->
+	offer(T, P, [{"validFor", ValidFor} | Acc]);
+offer([start_date | T], #product{start_date = undefined,
+		end_date = End} = P, Acc) when is_integer(End) ->
 	ValidFor = {struct, [{"endDateTime", ocs_rest:iso8601(End)}]},
-	product_offering(T, P, [{"validFor", ValidFor} | Acc]);
-product_offering([start_date | T], #product{start_date = Start,
-		end_date = End} = P, Acc) ->
+	offer(T, P, [{"validFor", ValidFor} | Acc]);
+offer([start_date | T], #product{start_date = Start,
+		end_date = End} = P, Acc) when is_integer(Start), is_integer(End) ->
 	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(Start)},
 			{"endDateTime", ocs_rest:iso8601(End)}]},
-	product_offering(T, P, [{"validFor", ValidFor} | Acc]);
-product_offering([end_date | T], P, Acc) ->
-	product_offering(T, P, Acc);
-product_offering([is_bundle | T], (#product{is_bundle = IsBundle} = P, Acc)
-		when IsBundle /= undeined ->
-	product_offering(T, P, [{"isBunde", IsBundle} | Acc]);
-product_offering([status | T], #product{status = Status} = P, Acc)
+	offer(T, P, [{"validFor", ValidFor} | Acc]);
+offer([end_date | T], P, Acc) ->
+	offer(T, P, Acc);
+offer([is_bundle | T], #product{is_bundle = IsBundle} = P, Acc)
+		when is_boolean(IsBundle) ->
+	offer(T, P, [{"isBunde", IsBundle} | Acc]);
+offer([status | T], #product{status = Status} = P, Acc)
 		when Status /= undefined ->
-	StatusString = product_offering_status(Status),
-	product_offering(T, P, [{"lifecycleStatus", StatusString} | Acc]);
-product_offering([price | T], #product{price = Price, Acc)
-		when Price /= undefined ->
-	product_offering(T, P, [{"price", product_price(Price)} | Acc]);
-product_offering([characteristics | T],
-		#product{characteristics = Chars} = P, Acc) when Chars /= undefined ->
-	product_offering(T, P, [{"characteristic", characterics(Chars)} | Acc]);
-product_offering([last_modified | T], #product{last_modified = Last} = P, Acc)
-		when Last /= undefined ->
-product_offering([], P, Acc) ->
-	lists:reverse([{"lastUpdate", ocs_rest:iso8601(Last)} | Acc]).
+	StatusString = offer_status(Status),
+	offer(T, P, [{"lifecycleStatus", StatusString} | Acc]);
+offer([price | T], #product{price = Price} = P, Acc)
+		when is_integer(Price) ->
+	offer(T, P, [{"price", price(Price)} | Acc]);
+offer([characteristics | T],
+		#product{characteristics = Chars} = P, Acc) when is_list(Chars) ->
+	offer(T, P, [{"characteristic", characterics(Chars)} | Acc]);
+offer([last_modified | T], #product{last_modified = Last} = P, Acc)
+		when is_integer(Last) ->
+	offer(T, P, [{"lastUpdate", ocs_rest:iso8601(Last)} | Acc]);
+offer([], _P, Acc) ->
+	{struct, lists:reverse(Acc)}.
+
+-spec price(Price) -> Price
+	when
+		Price :: #product{} | {struct, ObjectMembers} | ObjectMembers,
+		ObjectMembers :: [tuple()].
+%% @doc CODEC for Product Offering Price.
+%% @private
+price(#price{} = P) ->
+	price(record_info(fields, price), P, []);
+price({struct, ObjectMembers}) ->
+	price(ObjectMembers, #price{}).
+%% @hidden
+price([name| T], #price{name = Name} = P, Acc) when Name /= undefined ->
+	price(T, P, [{"name", Name} | Acc]);
+price([description | T], #price{description = Description} = P, Acc)
+		when is_list(Description) ->
+	price(T, P, [{"description", Description} | Acc]);
+price([start_date | T], #price{start_date = Start,
+		end_date = undefined} = P, Acc) when is_integer(Start) ->
+	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(Start)}]},
+	price(T, P, [{"validFor", ValidFor} | Acc]);
+price([start_date | T], #price{start_date = undefined,
+		end_date = End} = P, Acc) when is_integer(End) ->
+	ValidFor = {struct, [{"endDateTime", ocs_rest:iso8601(End)}]},
+	price(T, P, [{"validFor", ValidFor} | Acc]);
+price([start_date | T], #price{start_date = Start,
+		end_date = End} = P, Acc) when is_integer(Start), is_integer(End) ->
+	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(Start)},
+			{"endDateTime", ocs_rest:iso8601(End)}]},
+	price(T, P, [{"validFor", ValidFor} | Acc]);
+price([end_date | T], P, Acc) ->
+	price(T, P, Acc);
+price([type | T], #price{type = one_time, units = cents} = P, Acc) ->
+	price(T, P, [{"priceType", price_type(one_time)} | Acc]);
+price([type | T], #price{type = recurring, period = Period,
+		units = cents} = P, Acc) when Period /= undefined ->
+	Recurring = [{"priceType", price_type(recurring)},
+			{"recurringChargePeriod", price_period(Period)}],
+	price(T, P, Recurring ++ Acc);
+price([type | T], #price{type = usage, units = octets,
+		size = Size} = P, Acc) when is_integer(Size) ->
+	UsageType = [{"priceType", price_type(usage)},
+			{"unitOfMeasure", integer_to_list(Size) ++ "b"}],
+	price(T, P, UsageType ++ Acc);
+price([type | T], #price{type = usage, units = seconds,
+		size = Size} = P, Acc) when is_integer(Size) ->
+	UsageType = [{"priceType", price_type(usage)},
+			{"unitOfMeasure", integer_to_list(Size) ++ "s"}],
+	price(T, P, UsageType ++ Acc);
+price([period | T], P, Acc) ->
+	price(T, P, Acc);
+price([units | T], P, Acc) ->
+	price(T, P, Acc);
+price([size | T], P, Acc) ->
+	price(T, P, Acc);
+price([amount | T], #price{amount = Amount, currency = Currency} = P, Acc)
+		when is_integer(Amount), is_list(Currency) ->
+	Price = {struct, [{"taxIncludedAmount", integer_to_list(Amount)},
+			{"currencyCode", Currency}]},
+	price(T, P, [{"price", Price} | Acc]);
+price([amount | T], #price{amount = Amount} = P, Acc)
+		when is_integer(Amount) ->
+	Price = {struct, [{"taxIncludedAmount", integer_to_list(Amount)}]},
+	price(T, P, [{"price", Price} | Acc]);
+price([currency | T], P, Acc) ->
+	price(T, P, Acc);
+price([alteration | T], #price{alteration = Alteration} = P, Acc)
+		when is_record(Alteration, alteration) ->
+	price(T, P, [{"alteration", alteration(Alteration)} | Acc]);
+price([], _P, Acc) ->
+	{struct, lists:reverse(Acc)}.
 
 %% @hidden
 query_start(Query, Filters, RangeStart, RangeEnd) ->
