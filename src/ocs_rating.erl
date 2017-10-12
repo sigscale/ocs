@@ -49,7 +49,6 @@ rating(SubscriberID, Final, UsageSecs, UsageOctets, Attributes) when is_binary(S
 						product = #product_instance{product = ProdID,
 						characteristics = Chars}} = Subscriber] ->
 					Validity = proplists:get_value(validity, Chars),
-erlang:display({?MODULE, ?LINE, SessionList}),
 					case mnesia:read(product, ProdID, read) of
 						[#product{price = Prices}] ->
 							case lists:keyfind(usage, #price.type, Prices) of
