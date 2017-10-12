@@ -25,9 +25,9 @@
 -export([add_client/2, add_client/4, find_client/1, update_client/2,
 		update_client/3, get_clients/0, delete_client/1, query_clients/6]).
 -export([add_subscriber/3, add_subscriber/4, add_subscriber/5,
-		add_subscriber/7, find_subscriber/1, delete_subscriber/1,
-		update_password/2, update_attributes/2, update_attributes/5,
-		get_subscribers/0]).
+		add_subscriber/6, add_subscriber/8,
+		find_subscriber/1, delete_subscriber/1, update_password/2,
+		update_attributes/2, update_attributes/5, get_subscribers/0]).
 -export([add_user/3, list_users/0, get_user/1, delete_user/1,
 		query_users/3, update_user/3]).
 -export([add_product/1, find_product/1, get_products/0, delete_product/1,
@@ -311,41 +311,59 @@ query_clients4(Clients, Address) ->
 		Product :: string(),
 		Result :: {ok, #subscriber{}} | {error, Reason},
 		Reason :: term().
-%% @equiv add_subscriber(Identity, Password, Product, [], [], true, false)
+%% @equiv add_subscriber(Identity, Password, Product, [], [], [], true, false)
 add_subscriber(Identity, Password, Product) ->
-	add_subscriber(Identity, Password, Product, [], [], true, false).
+	add_subscriber(Identity, Password, Product, [], [], [], true, false).
 
--spec add_subscriber(Identity, Password, Product, Buckets) -> Result
+-spec add_subscriber(Identity, Password, Product, Characteristics) -> Result
 	when 
 		Identity :: string() | binary(),
 		Password :: string() | binary(),
 		Product :: string(),
+		Characteristics :: [tuple()],
+		Result :: {ok, #subscriber{}} | {error, Reason},
+		Reason :: term().
+%% @equiv add_subscriber(Identity, Password, Product, Characteristics, Buckets, [], true, false)
+add_subscriber(Identity, Password, Product, Characteristics) ->
+	add_subscriber(Identity, Password, Product, Characteristics, [], [], true, false).
+
+-spec add_subscriber(Identity, Password, Product, Characteristics, Buckets) -> Result
+	when 
+		Identity :: string() | binary(),
+		Password :: string() | binary(),
+		Product :: string(),
+		Characteristics :: [tuple()],
 		Buckets :: [#bucket{}],
 		Result :: {ok, #subscriber{}} | {error, Reason},
 		Reason :: term().
-%% @equiv add_subscriber(Identity, Password, Product, Buckets, [], true, false)
-add_subscriber(Identity, Password, Product, Buckets) ->
-	add_subscriber(Identity, Password, Product, Buckets, [], true, false).
+%% @equiv add_subscriber(Identity, Password, Product, Characteristics, Buckets, [], true, false)
+add_subscriber(Identity, Password, Product, Characteristics, Buckets) ->
+	add_subscriber(Identity, Password, Product, Characteristics, Buckets, [], true, false).
 
--spec add_subscriber(Identity, Password, Product, Buckets, Attributes) -> Result
+-spec add_subscriber(Identity, Password, Product,
+		Characteristics, Buckets, Attributes) -> Result
 	when 
 		Identity :: string() | binary(),
 		Password :: string() | binary(),
 		Product :: string(),
+		Characteristics :: [tuple()],
 		Buckets :: [#bucket{}],
 		Attributes :: radius_attributes:attributes() | binary(),
 		Result :: {ok, #subscriber{}} | {error, Reason},
 		Reason :: term().
-%% @equiv add_subscriber(Identity, Password, Product, Buckets, Attributes, true, false)
-add_subscriber(Identity, Password, Product, Buckets, Attributes) ->
-	add_subscriber(Identity, Password, Product, Buckets, Attributes, true, false).
+%% @equiv add_subscriber(Identity, Password, Product,
+%%		Characteristics, Buckets, Attributes, true, false)
+add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes) ->
+	add_subscriber(Identity, Password, Product,
+			Characteristics, Buckets, Attributes, true, false).
 
 -spec add_subscriber(Identity, Password, Product,
-		Buckets, Attributes, EnabledStatus, MultiSessions) -> Result
+		Characteristics, Buckets, Attributes, EnabledStatus, MultiSessions) -> Result
 	when
 		Identity :: string() | binary() | undefined,
 		Password :: string() | binary() | undefined,
 		Product :: string(),
+		Characteristics :: [tuple()] | undefined,
 		Buckets :: [#bucket{}] | undefined,
 		Attributes :: radius_attributes:attributes() | binary(),
 		EnabledStatus :: boolean() | undefined,
@@ -361,26 +379,28 @@ add_subscriber(Identity, Password, Product, Buckets, Attributes) ->
 %% 	An initial account `Bucket', `Product' key for product reference
 %%		`Enabled' status and `MultiSessions' status may be provided.
 %%
-add_subscriber(Identity, Password, Product, Buckets, Attributes, EnabledStatus, undefined) ->
-	add_subscriber(Identity, Password, Product, Buckets, Attributes, EnabledStatus, false);
-add_subscriber(Identity, Password, Product, Buckets, Attributes, undefined, MultiSession) ->
-	add_subscriber(Identity, Password, Product, Buckets, Attributes, true, MultiSession);
-add_subscriber(Identity, Password, Product, Buckets, undefined, EnabledStatus, MultiSession) ->
-	add_subscriber(Identity, Password, Product, Buckets, [], EnabledStatus, MultiSession);
-add_subscriber(Identity, Password, Product, undefined, Product, EnabledStatus, MultiSession) ->
-	add_subscriber(Identity, Password, Product, [], Product, EnabledStatus, MultiSession);
-add_subscriber(Identity, undefined, Product, Buckets, Attributes, EnabledStatus, MultiSession) ->
+add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, undefined) ->
+	add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, false);
+add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes, undefined, MultiSession) ->
+	add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes, true, MultiSession);
+add_subscriber(Identity, Password, Product, Characteristics, Buckets, undefined, EnabledStatus, MultiSession) ->
+	add_subscriber(Identity, Password, Product, Characteristics, Buckets, [], EnabledStatus, MultiSession);
+add_subscriber(Identity, Password, Product, Characteristics, undefined, Attributes, EnabledStatus, MultiSession) ->
+	add_subscriber(Identity, Password, Product, Characteristics, [], Attributes, EnabledStatus, MultiSession);
+add_subscriber(Identity, Password, Product, undefined, Buckets, Attributes, EnabledStatus, MultiSession) ->
+	add_subscriber(Identity, Password, Product, [], Buckets, Attributes, EnabledStatus, MultiSession);
+add_subscriber(Identity, undefined, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession) ->
 	add_subscriber(Identity, ocs:generate_password(),
-			Product, Buckets, Attributes, EnabledStatus, MultiSession);
-add_subscriber(Identity, Password, Product, Buckets, Attributes, EnabledStatus, MultiSession)
+			Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession);
+add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
 		when is_list(Identity) ->
-	add_subscriber(list_to_binary(Identity), Password, Product, Buckets,
+	add_subscriber(list_to_binary(Identity), Password, Product, Characteristics, Buckets,
 			Attributes, EnabledStatus, MultiSession);
-add_subscriber(Identity, Password, Product, Buckets, Attributes, EnabledStatus, MultiSession)
+add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
 		when is_list(Password) ->
-	add_subscriber(Identity, list_to_binary(Password), Product, Buckets,
+	add_subscriber(Identity, list_to_binary(Password), Product, Characteristics, Buckets,
 			Attributes, EnabledStatus, MultiSession);
-add_subscriber(undefined, Password, Product, Buckets, Attributes, EnabledStatus, MultiSession)
+add_subscriber(undefined, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
 		when is_binary(Password), is_list(Product), Product /= [], is_list(Buckets), is_list(Attributes),
 		is_boolean(EnabledStatus), is_boolean(MultiSession) ->
 	F2 = fun() ->
@@ -397,7 +417,8 @@ add_subscriber(undefined, Password, Product, Buckets, Attributes, EnabledStatus,
 													|| B <- Buckets],
 											P = #product_instance{start_date = SD,
 													termination_date = TD, status = Status,
-													product = Product, last_modified = {TS, N}},
+													product = Product, characteristics = Characteristics,
+													last_modified = {TS, N}},
 											S = #subscriber{name = Identity,
 													password = Password, attributes = Attributes,
 													buckets = NewBuckets, enabled = EnabledStatus,
@@ -420,7 +441,7 @@ add_subscriber(undefined, Password, Product, Buckets, Attributes, EnabledStatus,
 		{aborted, Reason} ->
 			{error, Reason}
 	end;
-add_subscriber(Identity, Password, Product, Buckets, Attributes, EnabledStatus, MultiSession)
+add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
 		when is_binary(Identity), is_binary(Password), is_list(Product), Product /= [],
 		is_list(Buckets), is_list(Attributes), is_boolean(EnabledStatus), is_boolean(MultiSession) ->
 	F1 = fun() ->
@@ -430,7 +451,9 @@ add_subscriber(Identity, Password, Product, Buckets, Attributes, EnabledStatus, 
 						N = erlang:unique_integer([positive]),
 						NewBuckets = [B#bucket{last_modified = {TS, N}} || B <- Buckets],
 						P = #product_instance{start_date = SD, termination_date = TD,
-								status = Status, product = Product, last_modified = {TS, N}},
+								status = Status, product = Product,
+								characteristics = Characteristics,
+								last_modified = {TS, N}},
 						S = #subscriber{name = Identity, password = Password,
 								attributes = Attributes, buckets = NewBuckets, product = P,
 								enabled = EnabledStatus, multisession = MultiSession,
