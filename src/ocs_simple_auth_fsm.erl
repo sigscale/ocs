@@ -67,7 +67,7 @@
 		origin_realm :: undefined | string(),
 		dest_host :: undefined | string(),
 		dest_realm :: undefined | string(),
-		password :: undefined | string(),
+		password :: undefined | string() | binary(),
 		diameter_port_server :: undefined | pid(),
 		request :: undefined | #diameter_nas_app_AAR{}}).
 
@@ -169,7 +169,7 @@ handle_radius1(#statedata{subscriber = SubscriberId, password = <<>>} = StateDat
 				attributes = Attributes} = Subscriber} ->
 			NewStateData = StateData#statedata{res_attr = Attributes},
 			handle_radius2(Subscriber, NewStateData);
-		{ok, PSK, #subscriber{attributes = Attributes}
+		{ok, #subscriber{attributes = Attributes, password = PSK}
 				= Subscriber} when is_binary(PSK) ->
 			VendorSpecific = {?Mikrotik, ?MikrotikWirelessPsk, binary_to_list(PSK)},
 			ResponseAttributes = radius_attributes:store(?VendorSpecific,
