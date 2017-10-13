@@ -407,7 +407,6 @@
 						<paper-button
 								toggles
 								raised
-								on-click="deletePro"
 								class="delete-buttons">
 								<i18n-msg msgid="delete">
 									Delete
@@ -476,6 +475,7 @@
 					</div>
 					<div>
 						<paper-dropdown-menu
+								id="updateAltTypedrop"
 								label="[[i18n.priceType]]"
 								on-selected-item-changed="checkRecureAlt"
 								onfocus="updateProductEndDatePickAlt.hide(); updateProductStartDatePickAlt.hide();">
@@ -622,7 +622,6 @@
 						<paper-button
 								toggles
 								raised
-								on-click="deletePro"
 								class="delete-buttons">
 								<i18n-msg msgid="delete">
 									Delete
@@ -910,22 +909,28 @@
 				ajax.method = "PATCH";
 				ajax.contentType = "application/json-patch+json";
 				ajax.url = "/catalogManagement/v2/productOffering/" + this.$.updateOffName.value; 
-				var offerNew = new Object();
-				var offerDesc = new Object();
-				offerDesc.op = "replace";
-				offerDesc.path = "/description";
-				offerDesc.value = this.$.updateOffDesc.value;
-				offerNew = offerDesc;
-				var startDateTimeObject = new Object();
-				startDateTimeObject.op = "replace";
-				startDateTimeObject.path = "/startDate";
-				startDateTimeObject.value = this.$.updateOffStart.value;
-				var endDateTimeObject = new Object();
-				endDateTimeObject.op = "replace";
-				endDateTimeObject.path = "/terminationDate";
-				endDateTimeObject.value = this.$.updateOffEnd.value;
-				offerNew.validFor = {"startDateTime": this.$.updateOffStart.value, 
-					"endDateTime": this.$.updateOffEnd.value};
+				var offerNew = new Array();
+				if(this.$.updateOffDesc.value) {
+					var offerDesc = new Object();
+					offerDesc.op = "replace";
+					offerDesc.path = "/description";
+					offerDesc.value = this.$.updateOffDesc.value;
+					offerNew.push(offerDesc);
+				}
+				if(this.$.updateOffStart.value) {
+					var startDateTimeObject = new Object();
+					startDateTimeObject.op = "replace";
+					startDateTimeObject.path = "/validFor/startDateTime";
+					startDateTimeObject.value = this.$.updateOffStart.value;
+					offerNew.push(startDateTimeObject);
+				}
+				if(this.$.updateOffEnd.value){
+					var endDateTimeObject = new Object();
+					endDateTimeObject.op = "replace";
+					endDateTimeObject.path = "/validFor/endDateTime";
+					endDateTimeObject.value = this.$.updateOffEnd.value;
+					offerNew.push(endDateTimeObject);
+				}
 				ajax.body = JSON.stringify(offerNew);
 				ajax.generateRequest();
 			},
@@ -941,57 +946,48 @@
 				var ajax =  this.$.updateProductPriceAjax;
 				ajax.method = "PATCH";
 				ajax.contentType = "application/json-patch+json";
-				ajax.url = "/catalogManagement/v2/productOffering/" + this.$.updatePriceName.value; 
-				var updatePriceNew = new Object();
-				var priceName = new Object();
-				priceName.op = "replace";
-				priceName.path = "/productOfferingPrice/0/name"
-				priceName.value = this.$.updatePriceName.value;
-				updatePriceNew.name = priceName.value
-				var priceDesc = new Object();
-				priceDesc.op = "replace";
-				priceDesc.path = "/productOfferingPrice/0/desc"
-				priceDesc.value = this.$.updatePriceDesc.value;
-				updatePriceNew.description = priceDesc.value
-				var priceStart = new Object();
-				priceStart.op = "replace";
-				priceStart.path = "/productOfferingPrice/0/startDate";
-				priceStart.value = this.$.updatePriceStartDate.value;
-				var priceEnd = new Object();
-				priceEnd.op = "replace";
-				priceEnd.path = "/productOfferingPrice/0/endDate";
-				priceEnd.value = this.$.updatePriceEndDate.value;
-				updatePriceNew.validFor = {"startDateTime": this.$.updatePriceStartDate.value,
-					"endDateTime": this.$.updatePriceEndDate.value};
-				var priceSize = new Object();
-				priceSize.op = "replace";
-				priceSize.path = "/productOfferingPrice/0/unitOfMeasure";
-				priceSize.value = this.$.updatePriceSize.value;
-				var priceUnit = new Object();
-				priceUnit.op = "replace";
-				priceUnit.path = "/productOfferingPrice/0/units";
-				updatePriceNew.unitsOfMeasure = updatePriceUnits.value; 
-				var priceAmount = new Object();
-				priceAmount.op = "replace";
-				priceAmount.path = "/productOfferingPrice/0/amount";
-				priceAmount.value = this.$.updatePriceAmount.value;
-				var priceCurrency = new Object();
-				priceCurrency.op = "replace";
-				priceCurrency.path = "/productOfferingPrice/0/currency";
-				priceCurrency.value = this.$.updatePriceCurrency.value;
-				updatePriceNew.price = {"taxIncludedAmount": this.$.updatePriceAmount.value, 
-					"currencyCode": this.$.updatePriceCurrency.value};
-				var pricePeriod = new Object();
-				pricePeriod.op = "replace";
-				pricePeriod.path = "/productOfferingPrice/0/recurringChargePeriod";
-				pricePeriod.value = this.$.updatePricePeriod.value;
-				updatePriceNew.recurringChargePeriod = pricePeriod.value;
-				var prodAlter = new Object();
-				prodAlter.op = "replace";
-				prodAlter.path = "/productOfferingPrice/0/prodPriceAlteration/name"
-				prodAlter.value = this.$.addUpdatePriceAlteration.value; 
-				updatePriceNew.productPriceAlteration = prodAlter.value;
-				ajax.body = JSON.stringify([updatePriceNew]);
+				ajax.url = "/catalogManagement/v2/productOffering/" + this.$.updateOffName.value; 
+				var updatePriceNew = new Array();
+				function checkName(price) {
+               return price.name == document.getElementById("updatePriceName").value;
+            }
+				var indexPrices = this.prices.findIndex(checkName);
+				if(this.$.updateOffName.value != this.prices[indexPrices].name) {
+					var priceName = new Object();
+					priceName.op = "replace";
+					priceName.path = "/productOfferingPrice/0/name";
+					priceName.value = this.$.updatePriceName.value;
+					updatePriceNew.push(priceName);
+				}
+				if(this.$.updatePriceDesc.value != this.prices[indexPrices].description) {
+					var priceDesc = new Object();
+					priceDesc.op = "replace";
+					priceDesc.path = "/productOfferingPrice/0/description";
+					priceDesc.value = this.$.updatePriceDesc.value;
+					updatePriceNew.push(priceDesc);
+				}
+				if(this.$.updatePricePerioddrop.value != this.prices[indexPrices].recurringChargePeriod) {
+					var pricePeriod = new Object();
+					pricePeriod.op = "replace";
+					pricePeriod.path = "/productOfferingPrice/0/recurringChargePeriod";
+					pricePeriod.value = this.$.updatePricePerioddrop.value;
+					updatePriceNew.push(pricePeriod);
+				}
+				if(this.$.updatePriceTypedrop.value != this.prices[indexPrices].priceType) {
+					var pricetype = new Object();
+					pricetype.op = "replace";
+					pricetype.path = "/productOfferingPrice/0/priceType";
+					pricetype.value = this.$.updatePriceTypedrop.value; 
+					updatePriceNew.push(pricetype);
+				}
+				if(this.$.updatePriceSize.value != this.prices[indexPrices].unitOfMeasure) {
+					var priceSize = new Object();
+					priceSize.op = "replace";
+					priceSize.path = "/productOfferingPrice/0/unitOfMeasure";
+					priceSize.value = this.$.updatePriceSize.value;
+					updatePriceNew.push(priceSize);
+				}
+				ajax.body = JSON.stringify(updatePriceNew);
 				ajax.generateRequest();
 			}, 
 			_updateProductPriceResponse: function(event) {
@@ -999,6 +995,55 @@
 				document.getElementById("productGrid").clearCache();
 			},
 			_updateProductPriceError: function(event) {
+				this.$.updateProductToastError.text = event.detail.request.xhr.statusText;
+				this.$.updateProductToastError.open();
+			},
+			updateProductAlteration: function(event) {
+				var ajax =  this.$.updateProductAlterationAjax;
+				ajax.method = "PATCH";
+				ajax.contentType = "application/json-patch+json";
+				ajax.url = "/catalogManagement/v2/productOffering/" + this.$.updateOffName.value; 
+				var updateAlterationNew = new Array();
+				function checkAlterationName(alts) {
+               return alts.name == document.getElementById("updateAltName").value;
+            }
+				var indexAlter = this.alterations.findIndex(checkAlterationName);
+				if(this.$.updateAltName.value != this.alterations[indexAlter].name) {
+					var alterationName = new Object();
+					alterationName.op = "replace";
+					alterationName.path = "/productOfferingPrice/0/productOfferPriceAlteration/name";
+					alterationName.value = this.$.updateAltName.value;
+					updateAlterationNew.push(alterationName);
+				}
+				if(this.$.updateAltDesc.value != this.alterations[indexAlter].description) {
+					var alterationDesc = new Object();
+					alterationDesc.op = "replace";
+					alterationDesc.path = "/productOfferingPrice/0/productOfferPriceAlteration/description";
+					alterationDesc.value = this.$.updateAltDesc.value;
+					updateAlterationNew.push(alterationDesc);
+				}
+				if(this.$.updateAltTypedrop.value != this.alterations[indexAlter].priceType) {
+					var alterationType = new Object();
+					alterationType.op = "replace";
+					alterationType.path = "/productOfferingPrice/0/productOfferPriceAlteration/priceType";
+					alterationType.value = this.$.updateAltTypedrop.value; 
+					updateAlterationNew.push(alterationType);
+				}
+				if(this.$.updateAltSize.value != this.alterations[indexAlter].unitOfMeasure) {
+					var alterationSize = new Object();
+					alterationSize.op = "replace";
+					alterationSize.path = "/productOfferingPrice/0/productOfferPriceAlteration/unitOfMeasure";
+					alterationSize.value = this.$.updateAltSize.value;
+					updateAlterationNew.push(alterationSize);
+				}
+				ajax.body = JSON.stringify(updateAlterationNew);
+				ajax.generateRequest();
+			},
+			_updateProductAlterationResponse: function(event) {
+				this.$.updateProductModal.close();
+				document.getElementById("productGrid").clearCache();
+			},
+			_updateProductAlterationError: function(event) {
 				this.$.updateProductToastError.text = event.detail.request.xhr.statusText;
 				this.$.updateProductToastError.open();
 			},
@@ -1230,7 +1275,7 @@
 				this.$.deleteProductAjax.method = "DELETE";
 				this.$.deleteProductAjax.contentType = "application/json-patch+json";
 				this.$.deleteProductAjax.url = "/catalogManagement/v2/productOffering/"
-						+ document.getElementById("productGrid").selectedItems[0].name; 
+						+ this.$.updateOffName;
 				this.$.deleteProductAjax.generateRequest();
 			},
 			_deleteProductResponse: function(event) {
