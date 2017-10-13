@@ -43,6 +43,8 @@
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include("../include/diameter_gen_nas_application_rfc7155.hrl").
 
+-define(CC_APPLICATION_ID, 4).
+
 -record(statedata,
 		{protocol :: radius | diameter,
 		server_address :: undefined | inet:ip_address(),
@@ -135,37 +137,15 @@ init([radius, ServerAddress, ServerPort, ClientAddress, ClientPort, RadiusFsm,
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
+%% @todo handle muliti session for diameter
 request(timeout, #statedata{protocol = radius} = StateData) ->
 	handle_radius(StateData);
-request(timeout, #statedata{protocol = diameter, session_id = SessionID,
-		server_address = ServerAddress, server_port = ServerPort,
-		subscriber = Subscriber, password = Password, app_id = AppId,
-		auth_request_type = Type, origin_host = OHost, origin_realm = ORealm,
-		diameter_port_server = PortServer, client_address = ClientAddress,
-		client_port = ClientPort, request = Request} = StateData) ->
-	Server = {ServerAddress, ServerPort},
-	Client= {ClientAddress, ClientPort},
-	case ocs:authorize(Subscriber, Password) of
-		{ok, _} ->
-			Answer = #diameter_nas_app_AAA{'Session-Id' = SessionID,
-					'Auth-Application-Id' = AppId, 'Auth-Request-Type' = Type,
-					'Origin-Host' = OHost, 'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-					'Origin-Realm' = ORealm },
-			ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
-			gen_server:cast(PortServer, {self(), Answer}),
-			{stop, {shutdown, SessionID}, StateData};
-		{error, _Reason} ->
-			Answer = #diameter_nas_app_AAA{'Session-Id' = SessionID,
-					'Auth-Application-Id' = AppId, 'Auth-Request-Type' = Type,
-					'Origin-Host' = OHost,
-					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
-					'Origin-Realm' = ORealm },
-			ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
-			gen_server:cast(PortServer, {self(), Answer}),
-			{stop, {shutdown, SessionID}, StateData}
-	end;
+request(timeout, #statedata{protocol = diameter} = StateData) ->
+	handle_diameter(StateData);
 request(disconnected, #statedata{protocol = radius} = StateData) ->
-	handle_radius3(StateData).
+	handle_radius3(StateData);
+request(disconnected, #statedata{protocol = diameter} = StateData) ->
+	handle_diameter2(StateData).
 
 %% @hidden
 handle_radius(#statedata{req_attr = Attributes, req_auth = Authenticator,
@@ -298,6 +278,84 @@ reject_radius(not_found, #statedata{session_id = SessionID} = StateData) ->
 reject_radius(_, #statedata{session_id = SessionID} = StateData) ->
 	RejectAttributes = [{?ReplyMessage, "Unable to comply"}],
 	response(?AccessReject, RejectAttributes, StateData),
+	{stop, {shutdown, SessionID}, StateData}.
+
+%% @hidden
+handle_diameter(#statedata{protocol = diameter,
+		subscriber = SubscriberId, password = Password} = StateData) ->
+	case ocs:authorize(SubscriberId, Password) of
+		{ok, Subscriber} ->
+			handle_diameter1(Subscriber, StateData);
+		{error, Reason} ->
+			reject_diameter(Reason, StateData)
+	end.
+%% @hidden
+handle_diameter1(#subscriber{multisession = true}, StateData) ->
+	NewStateData = StateData#statedata{multisession = true},
+	handle_diameter2(NewStateData);
+handle_diameter1(#subscriber{session_attributes = [], multisession = MultiSession}, StateData) ->
+	NewStateData = StateData#statedata{multisession = MultiSession},
+	handle_diameter2(NewStateData);
+handle_diameter1(#subscriber{session_attributes = _Session, multisession = false},
+	#statedata{session_id = SessionID, origin_host = OHost, origin_realm = ORealm,
+	dest_host = DHost, dest_realm = DRealm, subscriber = SubscriberId} = StateData) ->
+	case pg2:get_closest_pid(ocs_radius_acct_port_sup) of
+		{error, Reason} ->
+			reject_radius(Reason, StateData);
+		DiscSup ->
+			try
+				Svc = ocs_diameter_acct_service,
+				Alias = ocs_diameter_base_application,
+				AppId = ?CC_APPLICATION_ID,
+				DiscArgs = [Svc, Alias, SessionID, OHost, DHost, ORealm, DRealm, AppId],
+				StartArgs = [DiscArgs, []],
+				NewStateData = StateData#statedata{multisession = false},
+				case supervisor:start_child(DiscSup, StartArgs) of
+					{ok, DiscFsm} ->
+						link(DiscFsm),
+						{next_state, request, NewStateData};
+					{error, Reason} ->
+						error_logger:error_report(["Failed to initiate session disconnect function",
+								{module, ?MODULE}, {subscriber, SubscriberId}, {origin_host, OHost},
+								{origin_realm, ORealm}, {session, SessionID}, {error, Reason}]),
+						{next_state, request, NewStateData}
+				end
+			catch
+				_:R ->
+					reject_diameter(R, StateData)
+			end
+	end.
+%% @hidden
+handle_diameter2(#statedata{protocol = diameter, session_id = SessionID,
+		server_address = ServerAddress, server_port = ServerPort, app_id = AppId,
+		auth_request_type = Type, origin_host = OHost, origin_realm = ORealm,
+		diameter_port_server = PortServer, client_address = ClientAddress,
+		client_port = ClientPort, request = Request} = StateData) ->
+	Server = {ServerAddress, ServerPort},
+	Client= {ClientAddress, ClientPort},
+	Answer = #diameter_nas_app_AAA{'Session-Id' = SessionID,
+			'Auth-Application-Id' = AppId, 'Auth-Request-Type' = Type,
+			'Origin-Host' = OHost, 'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Origin-Realm' = ORealm},
+	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
+	gen_server:cast(PortServer, {self(), Answer}),
+	{stop, {shutdown, SessionID}, StateData}.
+
+%% @hidden
+reject_diameter(_Reason, #statedata{session_id = SessionID, app_id = AppId,
+		auth_request_type = Type, origin_host = OHost, origin_realm = ORealm,
+		server_address = ServerAddress, server_port = ServerPort,
+		diameter_port_server = PortServer, client_address = ClientAddress,
+		client_port = ClientPort, request = Request} = StateData) ->
+	Server = {ServerAddress, ServerPort},
+	Client= {ClientAddress, ClientPort},
+	Answer = #diameter_nas_app_AAA{'Session-Id' = SessionID,
+			'Auth-Application-Id' = AppId, 'Auth-Request-Type' = Type,
+			'Origin-Host' = OHost,
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
+			'Origin-Realm' = ORealm },
+	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
+	gen_server:cast(PortServer, {self(), Answer}),
 	{stop, {shutdown, SessionID}, StateData}.
 
 -spec handle_event(Event, StateName, StateData) -> Result
