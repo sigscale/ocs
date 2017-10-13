@@ -147,7 +147,7 @@ init([Sup, radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
 	process_flag(trap_exit, true),
 	{ok, ssl_start, StateData, 0};
 init([Sup, diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
-		SessionID, AppId, ReqType, OHost, ORealm, DiameterRequest,
+		SessionID, AppId, ReqType, OHost, ORealm, _DHost, _DRealm, DiameterRequest,
 		_Options] = _Args) ->
 	{ok, TLSkey} = application:get_env(ocs, tls_key),
 	{ok, TLScert} = application:get_env(ocs, tls_cert),

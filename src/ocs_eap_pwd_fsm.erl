@@ -111,8 +111,8 @@ init([radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
 	process_flag(trap_exit, true),
 	{ok, eap_start, StateData, 0};
 init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
-		SessionId, ApplicationId, AuthType, OHost, ORealm, Request,
-		_Options] = _Args) ->
+		SessionId, ApplicationId, AuthType, OHost, ORealm, _DHost, _DRealm,
+		Request, _Options] = _Args) ->
 	{ok, Hostname} = inet:gethostname(),
 	case global:whereis_name({ocs_diameter_auth, ServerAddress, ServerPort}) of
 		undefined ->

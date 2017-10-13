@@ -63,6 +63,8 @@
 		auth_request_type :: undefined | 1..3,
 		origin_host :: undefined | string(),
 		origin_realm :: undefined | string(),
+		dest_host :: undefined | string(),
+		dest_realm :: undefined | string(),
 		password :: undefined | string(),
 		diameter_port_server :: undefined | pid(),
 		request :: undefined | #diameter_nas_app_AAR{}}).
@@ -92,7 +94,7 @@
 %% @private
 %%
 init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
-		SessId, AppId, AuthType, OHost, ORealm, Request, Options] = _Args) ->
+		SessId, AppId, AuthType, OHost, ORealm, Request, DHost, DRealm, Options] = _Args) ->
 	[Subscriber, Password] = Options,
 	case global:whereis_name({ocs_diameter_auth, ServerAddress, ServerPort}) of
 		undefined ->
@@ -101,7 +103,8 @@ init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 			process_flag(trap_exit, true),
 			StateData = #statedata{protocol = diameter, session_id = SessId,
 					app_id = AppId, auth_request_type = AuthType, origin_host = OHost,
-					origin_realm = ORealm, subscriber = Subscriber, password = Password,
+					origin_realm = ORealm, dest_host = DHost, dest_realm = DRealm,
+					subscriber = Subscriber, password = Password,
 					server_address = ServerAddress, server_port = ServerPort,
 					client_address = ClientAddress, client_port = ClientPort,
 					diameter_port_server = PortServer, request = Request},
