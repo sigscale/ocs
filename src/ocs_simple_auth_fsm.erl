@@ -209,7 +209,13 @@ handle_radius2(#subscriber{multisession = false, session_attributes = SessionAtt
 					{_, {ok, ID}} ->
 						ID
 				end,
-				DiscArgs = [Address, NAS, SubscriberId, SessionID, Secret,
+				AcctSessionID = case radius_attributes:find(?AcctSessionId, SessionAttributes) of
+					{ok, ASI} ->
+						ASI;
+					{error, _} ->
+						undefined
+				end,
+				DiscArgs = [Address, NAS, SubscriberId, AcctSessionID, Secret,
 						ListenPort, SessionAttributes, 1],
 				StartArgs = [DiscArgs, []],
 				NewStateData = StateData#statedata{multisession = false},
