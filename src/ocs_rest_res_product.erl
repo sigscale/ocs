@@ -1143,14 +1143,14 @@ price_type(one_time) -> "one_time".
 		Period :: string() | atom().
 %% @doc CODEC for Recurring Charge Period.
 %% @private
-price_period(daily) -> "Daily";
-price_period(weekly) -> "Weekly";
-price_period(monthly) -> "Monthly";
-price_period(yearly) -> "Yearly";
-price_period("Daily") -> daily;
-price_period("Weekly") -> weekly;
-price_period("Monthly") -> monthly;
-price_period("Yearly") -> yearly.
+price_period(daily) -> "daily";
+price_period(weekly) -> "weekly";
+price_period(monthly) -> "monthly";
+price_period(yearly) -> "yearly";
+price_period("daily") -> daily;
+price_period("weekly") -> weekly;
+price_period("monthly") -> monthly;
+price_period("yearly") -> yearly.
 
 -spec exe_jsonpatch_ON(ProductID, Etag, OperationList) -> Result
 	when
