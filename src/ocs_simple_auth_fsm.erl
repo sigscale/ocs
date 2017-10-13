@@ -241,7 +241,7 @@ handle_radius3(#statedata{subscriber = SubscriberId, multisession = MultiSession
 						NewSessionAttributes = [SessionAttributes | CurrentAttributes],
 						Subscriber#subscriber{session_attributes = NewSessionAttributes};
 					false ->
-						Subscriber#subscriber{session_attributes = SessionAttributes}
+						Subscriber#subscriber{session_attributes = [SessionAttributes]}
 				end,
 				mnesia:write(Entry);
 			[] ->
