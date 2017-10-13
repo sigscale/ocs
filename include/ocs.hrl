@@ -23,16 +23,13 @@
 		| cancelled | active | suspended | pending_terminate | terminated.
 
 %% define price types
--type price_type() :: recurring | one_time | usage.
+-type product_price_type() :: recurring | one_time | usage.
 
 %% define unit of measure
 -type unit_of_measure() :: octets| cents | seconds.
 
 %% define recurring charge period
 -type recur_period() :: daily | weekly | monthly | yearly.
-
--type valid_for() :: {SDT :: integer() | undefined, EDT :: integer() | undefined}.
-
 
 %% define client table entries record
 -record(client,
@@ -48,7 +45,7 @@
 		description :: string() | undefined,
 		start_date :: pos_integer() | undefined,
 		end_date :: pos_integer() | undefined,
-		type :: price_type() | undefined,
+		type :: product_price_type() | undefined,
 		period :: recur_period() | undefined,
 		units :: unit_of_measure() | undefined,
 		size :: integer() | undefined,
@@ -60,7 +57,7 @@
 		description :: string() | undefined,
 		start_date :: pos_integer() | undefined,
 		end_date :: pos_integer() | undefined,
-		type :: price_type() | undefined,
+		type :: product_price_type() | undefined,
 		period :: recur_period() | undefined,
 		units :: unit_of_measure() | undefined,
 		size :: integer() | undefined,
@@ -76,7 +73,7 @@
 		is_bundle = false :: '_' | boolean() | undefined,
 		status :: offer_status() | '_' | undefined,
 		specification :: string(),
-		price :: '_' | [#price{}],
+		price :: '_' | [#price{}] | undefined,
 		characteristics = [] :: [tuple()],
 		last_modified :: tuple() | '_' | undefined}).
 
