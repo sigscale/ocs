@@ -194,7 +194,7 @@ handle_radius2(#subscriber{multisession = true}, StateData) ->
 handle_radius2(#subscriber{session_attributes = [], multisession = MultiSession}, StateData) ->
 	NewStateData = StateData#statedata{multisession = MultiSession},
 	handle_radius3(NewStateData);
-handle_radius2(#subscriber{multisession = false, session_attributes = SessionAttributes},
+handle_radius2(#subscriber{multisession = false, session_attributes = [SessionAttributes]},
 		#statedata{subscriber = SubscriberId, client_address = Address, client_port = ListenPort,
 		shared_secret = Secret, session_id = SessionID} = StateData) ->
 	case pg2:get_closest_pid(ocs_radius_acct_port_sup) of
