@@ -32,8 +32,6 @@
 %% export the ocs_simple_auth_fsm state callbacks
 -export([request/2]).
 
--export([radius/2]).
-
 %% export the call backs needed for gen_fsm behaviour
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
 			terminate/3, code_change/4]).
@@ -135,7 +133,7 @@ init([radius, ServerAddress, ServerPort, ClientAddress, ClientPort, RadiusFsm,
 %% @private
 %%
 request(timeout, #statedata{protocol = radius} = StateData) ->
-	{next_state, radius, StateData, 0};
+	handle_radius(StateData);
 request(timeout, #statedata{protocol = diameter, session_id = SessionID,
 		server_address = ServerAddress, server_port = ServerPort,
 		subscriber = Subscriber, password = Password, app_id = AppId,
@@ -162,23 +160,12 @@ request(timeout, #statedata{protocol = diameter, session_id = SessionID,
 			ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
 			gen_server:cast(PortServer, {self(), Answer}),
 			{stop, {shutdown, SessionID}, StateData}
-	end.
+	end;
+request(disconnected, #statedata{protocol = radius} = StateData) ->
+	handle_radius3(StateData).
 
--spec radius(Event, StateData) -> Result
-	when
-		Event :: timeout | term(), 
-		StateData :: statedata(),
-		Result :: {next_state, NextStateName :: atom(), NewStateData :: statedata()}
-		| {next_state, NextStateName :: atom(), NewStateData :: statedata(),
-		Timeout :: non_neg_integer() | infinity}
-		| {next_state, NextStateName :: atom(), NewStateData :: statedata(), hibernate}
-		| {stop, Reason :: normal | term(), NewStateData :: statedata()}.
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>request</b> state.
-%% @@see //stdlib/gen_fsm:StateName/2
-%% @private
-%%
-radius(timeout, #statedata{req_attr = Attributes, req_auth = Authenticator,
+%% @hidden
+handle_radius(#statedata{req_attr = Attributes, req_auth = Authenticator,
 		session_id = SessionID, shared_secret = Secret} = StateData) ->
 	try
 		Subscriber = radius_attributes:fetch(?UserName, Attributes),
@@ -186,47 +173,45 @@ radius(timeout, #statedata{req_attr = Attributes, req_auth = Authenticator,
 		Password = radius_attributes:unhide(Secret, Authenticator, Hidden),
 		NewStateData = StateData#statedata{subscriber = Subscriber,
 				password = list_to_binary(Password)},
-		radius(NewStateData)
+		handle_radius1(NewStateData)
 	catch
 		_:_ ->
 			response(?AccessReject, [], StateData),
 			{stop, {shutdown, SessionID}, StateData}
-	end;
-radius(disconnected, StateData) ->
-	radius2(StateData).
+	end.
 %% @hidden
-radius(#statedata{subscriber = SubscriberId, password = <<>>} = StateData) ->
+handle_radius1(#statedata{subscriber = SubscriberId, password = <<>>} = StateData) ->
 	case ocs:authorize(ocs:normalize(SubscriberId), []) of
 		{ok, #subscriber{password = <<>>,
 				attributes = Attributes} = Subscriber} ->
 			NewStateData = StateData#statedata{res_attr = Attributes},
-			radius1(Subscriber, NewStateData);
+			handle_radius2(Subscriber, NewStateData);
 		{ok, PSK, #subscriber{attributes = Attributes}
 				= Subscriber} when is_binary(PSK) ->
 			VendorSpecific = {?Mikrotik, ?MikrotikWirelessPsk, binary_to_list(PSK)},
 			ResponseAttributes = radius_attributes:store(?VendorSpecific,
 					VendorSpecific, Attributes),
 			NewStateData = StateData#statedata{res_attr = ResponseAttributes},
-			radius1(Subscriber, NewStateData);
+			handle_radius2(Subscriber, NewStateData);
 		{error, Reason} ->
 			reject_radius(Reason, StateData)
 	end;
-radius(#statedata{subscriber = SubscriberId, password = Password} = StateData) ->
+handle_radius1(#statedata{subscriber = SubscriberId, password = Password} = StateData) ->
 	case ocs:authorize(ocs:normalize(SubscriberId), Password) of
 		{ok, #subscriber{attributes = Attributes} = Subscriber} ->
 			NewStateData = StateData#statedata{res_attr = Attributes},
-			radius1(Subscriber, NewStateData);
+			handle_radius2(Subscriber, NewStateData);
 		{error, Reason} ->
 			reject_radius(Reason, StateData)
 	end.
 %% @hidden
-radius1(#subscriber{multisession = true}, StateData) ->
+handle_radius2(#subscriber{multisession = true}, StateData) ->
 	NewStateData = StateData#statedata{multisession = true},
-	radius2(NewStateData);
-radius1(#subscriber{session_attributes = [], multisession = MultiSession}, StateData) ->
+	handle_radius3(NewStateData);
+handle_radius2(#subscriber{session_attributes = [], multisession = MultiSession}, StateData) ->
 	NewStateData = StateData#statedata{multisession = MultiSession},
-	radius2(NewStateData);
-radius1(#subscriber{multisession = false, session_attributes = SessionAttributes},
+	handle_radius3(NewStateData);
+handle_radius2(#subscriber{multisession = false, session_attributes = SessionAttributes},
 		#statedata{subscriber = SubscriberId, client_address = Address, client_port = ListenPort,
 		shared_secret = Secret, session_id = SessionID} = StateData) ->
 	case pg2:get_closest_pid(ocs_radius_acct_port_sup) of
@@ -248,12 +233,12 @@ radius1(#subscriber{multisession = false, session_attributes = SessionAttributes
 				case supervisor:start_child(DiscSup, StartArgs) of
 					{ok, DiscFsm} ->
 						link(DiscFsm),
-						{next_state, radius, NewStateData};
+						{next_state, request, NewStateData};
 					{error, Reason} ->
 						error_logger:error_report(["Failed to initiate session disconnect function",
 								{module, ?MODULE}, {subscriber, SubscriberId}, {nas, NAS},
 								{address, Address}, {session, SessionID}, {error, Reason}]),
-						{next_state, radius, NewStateData}
+						{next_state, request, NewStateData}
 				end
 			catch
 				_:R ->
@@ -261,7 +246,7 @@ radius1(#subscriber{multisession = false, session_attributes = SessionAttributes
 			end
 	end.
 %% @hidden
-radius2(#statedata{subscriber = SubscriberId, multisession = MultiSession,
+handle_radius3(#statedata{subscriber = SubscriberId, multisession = MultiSession,
 		req_attr = RequestAttributes, res_attr = ResponseAttributes,
 		session_id = SessionID} = StateData) ->
 	F = fun() ->
