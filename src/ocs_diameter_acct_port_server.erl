@@ -240,7 +240,7 @@ request(Request, Caps,  _From, State) ->
 					enabled = true}} ->
 				Balance = get_balance(Buckets),
 				case ocs:authorize(Subscriber, Password) of
-					{ok, _, _} ->
+					{ok, _} ->
 						request1(RequestType, Request, SId, RequestNum, Subscriber,
 								Balance, OHost, DHost, ORealm, DRealm, State);
 					{error, _} ->

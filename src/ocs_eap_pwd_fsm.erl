@@ -767,7 +767,7 @@ confirm3(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 	Attr4 = radius_attributes:add(?SessionTimeout, 86400, Attr3),
 	Attr5 = radius_attributes:add(?AcctInterimInterval, 300, Attr4),
 	case ocs:authorize(PeerID, Password) of
-		{ok, _, _} ->
+		{ok, _}  ->
 			EapPacket = #eap_packet{code = success, identifier = EapID},
 			send_response(EapPacket, ?AccessAccept, Attr5, RadiusID,
 					RequestAuthenticator, RequestAttributes, StateData),
@@ -826,7 +826,7 @@ confirm6(Request, #statedata{eap_id = EapID, ks = Ks, confirm_p = ConfirmP,
 	<<MSK:64/binary, _EMSK:64/binary>> = ocs_eap_pwd:kdf(MK,
 			<<?PWD, MethodID/binary>>, 128),
 	case ocs:authorize(PeerID, Password) of
-		{ok, _, _} ->
+		{ok, _} ->
 			EapPacket = #eap_packet{code = success, identifier = EapID},
 			send_diameter_response(SessionID, AuthType,
 					 ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OH, OR, EapPacket,
