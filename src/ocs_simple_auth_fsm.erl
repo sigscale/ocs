@@ -141,11 +141,7 @@ init([radius, ServerAddress, ServerPort, ClientAddress, ClientPort, RadiusFsm,
 request(timeout, #statedata{protocol = radius} = StateData) ->
 	handle_radius(StateData);
 request(timeout, #statedata{protocol = diameter} = StateData) ->
-	handle_diameter(StateData);
-request(disconnected, #statedata{protocol = radius} = StateData) ->
-	handle_radius3(StateData);
-request(disconnected, #statedata{protocol = diameter} = StateData) ->
-	handle_diameter2(StateData).
+	handle_diameter(StateData).
 
 %% @hidden
 handle_radius(#statedata{req_attr = Attributes, req_auth = Authenticator,
@@ -194,46 +190,10 @@ handle_radius2(#subscriber{multisession = true}, StateData) ->
 handle_radius2(#subscriber{session_attributes = [], multisession = MultiSession}, StateData) ->
 	NewStateData = StateData#statedata{multisession = MultiSession},
 	handle_radius3(NewStateData);
-handle_radius2(#subscriber{multisession = false, session_attributes = [SessionAttributes]},
-		#statedata{subscriber = SubscriberId, client_address = Address, client_port = ListenPort,
-		shared_secret = Secret, session_id = SessionID} = StateData) ->
-	case pg2:get_closest_pid(ocs_radius_acct_port_sup) of
-		{error, Reason} ->
-			reject_radius(Reason, StateData);
-		DiscSup ->
-			try
-				NAS = case {radius_attributes:find(?NasIpAddress, SessionAttributes),
-							radius_attributes:find(?NasIdentifier, SessionAttributes)} of
-					{{_, IP}, {error, _}} ->
-						IP;
-					{_, {ok, ID}} ->
-						ID
-				end,
-				AcctSessionID = case radius_attributes:find(?AcctSessionId, SessionAttributes) of
-					{ok, ASI} ->
-						ASI;
-					{error, _} ->
-						undefined
-				end,
-				DiscArgs = [Address, NAS, SubscriberId, AcctSessionID, Secret,
-						ListenPort, SessionAttributes, 1],
-				StartArgs = [DiscArgs, []],
-				NewStateData = StateData#statedata{multisession = false},
-				case supervisor:start_child(DiscSup, StartArgs) of
-					{ok, DiscFsm} ->
-						link(DiscFsm),
-						{next_state, request, NewStateData};
-					{error, Reason} ->
-						error_logger:error_report(["Failed to initiate session disconnect function",
-								{module, ?MODULE}, {subscriber, SubscriberId}, {nas, NAS},
-								{address, Address}, {session, SessionID}, {error, Reason}]),
-						{next_state, request, NewStateData}
-				end
-			catch
-				_:R ->
-					reject_radius(R, StateData)
-			end
-	end.
+handle_radius2(#subscriber{multisession = false, session_attributes = SessionAttributes}, StateData) ->
+	NewStateData = StateData#statedata{multisession = false},
+	start_disconnect(SessionAttributes, NewStateData),
+	handle_radius3(NewStateData).
 %% @hidden
 handle_radius3(#statedata{subscriber = SubscriberId, multisession = MultiSession,
 		req_attr = RequestAttributes, res_attr = ResponseAttributes,
@@ -302,35 +262,11 @@ handle_diameter1(#subscriber{multisession = true}, StateData) ->
 handle_diameter1(#subscriber{session_attributes = [], multisession = MultiSession}, StateData) ->
 	NewStateData = StateData#statedata{multisession = MultiSession},
 	handle_diameter2(NewStateData);
-handle_diameter1(#subscriber{session_attributes = _Session, multisession = false},
-	#statedata{session_id = SessionID, origin_host = OHost, origin_realm = ORealm,
-	dest_host = DHost, dest_realm = DRealm, subscriber = SubscriberId} = StateData) ->
-	case pg2:get_closest_pid(ocs_diamter_acct_port_sup) of
-		{error, Reason} ->
-			reject_radius(Reason, StateData);
-		DiscSup ->
-			try
-				Svc = ocs_diameter_acct_service,
-				Alias = ocs_diameter_base_application,
-				AppId = ?CC_APPLICATION_ID,
-				DiscArgs = [Svc, Alias, SessionID, OHost, DHost, ORealm, DRealm, AppId],
-				StartArgs = [DiscArgs, []],
-				NewStateData = StateData#statedata{multisession = false},
-				case supervisor:start_child(DiscSup, StartArgs) of
-					{ok, DiscFsm} ->
-						link(DiscFsm),
-						{next_state, request, NewStateData};
-					{error, Reason} ->
-						error_logger:error_report(["Failed to initiate session disconnect function",
-								{module, ?MODULE}, {subscriber, SubscriberId}, {origin_host, OHost},
-								{origin_realm, ORealm}, {session, SessionID}, {error, Reason}]),
-						{next_state, request, NewStateData}
-				end
-			catch
-				_:R ->
-					reject_diameter(R, StateData)
-			end
-	end.
+handle_diameter1(#subscriber{session_attributes = SessionAttributes,
+		multisession = false}, StateData) ->
+	NewStateData = StateData#statedata{multisession = false},
+	start_disconnect(SessionAttributes, NewStateData),
+	handle_diameter2(NewStateData).
 %% @hidden
 handle_diameter2(#statedata{protocol = diameter, session_id = SessionID,
 		server_address = ServerAddress, server_port = ServerPort, app_id = AppId,
@@ -422,8 +358,8 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 %% @see //stdlib/gen_fsm:handle_info/3
 %% @private
 %%
-handle_info({'EXIT', _Fsm, {shutdown, _SessionID}}, StateName, StateData) ->
-	StateName(disconnected, StateData).
+handle_info(_, StateName, StateData) ->
+	{next_state, StateName, StateData}.
 
 -spec terminate(Reason, StateName, StateData) -> any()
 	when
@@ -512,3 +448,77 @@ extract_session_attributes(Attributes) ->
 	end,
 	lists:filter(F, Attributes).
 
+%% @hidden
+start_disconnect([SessionAttributes], #statedata{protocol = radius,
+		subscriber = SubscriberId, client_address = Address, client_port = ListenPort,
+		shared_secret = Secret, session_id = SessionID}) ->
+	case pg2:get_closest_pid(ocs_radius_acct_port_sup) of
+		{error, Reason} ->
+			error_logger:error_report(["Failed to initiate session disconnect function",
+					{module, ?MODULE}, {subscriber, SubscriberId}, {address, Address},
+					{session, SessionID}, {error, Reason}]);
+		DiscSup ->
+			try
+				NAS = case {radius_attributes:find(?NasIpAddress, SessionAttributes),
+							radius_attributes:find(?NasIdentifier, SessionAttributes)} of
+					{{_, IP}, {error, _}} ->
+						IP;
+					{_, {ok, ID}} ->
+						ID
+				end,
+				AcctSessionID = case radius_attributes:find(?AcctSessionId, SessionAttributes) of
+					{ok, ASI} ->
+						ASI;
+					{error, _} ->
+						undefined
+				end,
+				DiscArgs = [Address, NAS, SubscriberId, AcctSessionID, Secret,
+						ListenPort, SessionAttributes, 1],
+				StartArgs = [DiscArgs, []],
+				case supervisor:start_child(DiscSup, StartArgs) of
+					{ok, _DiscFsm} ->
+						ok;
+					{error, Reason} ->
+						error_logger:error_report(["Failed to initiate session disconnect function",
+								{module, ?MODULE}, {subscriber, SubscriberId}, {nas, NAS},
+								{address, Address}, {session, SessionID}, {error, Reason}])
+				end
+			catch
+				_:R ->
+					error_logger:error_report(["Failed to initiate session disconnect function",
+							{module, ?MODULE}, {subscriber, SubscriberId}, {address, Address},
+							{session, SessionID}, {error, R}])
+			end
+	end;
+start_disconnect(_, #statedata{protocol = diameter, session_id = SessionID,
+		origin_host = OHost, origin_realm = ORealm, dest_host = DHost, dest_realm = DRealm,
+		subscriber = SubscriberId}) ->
+	case pg2:get_closest_pid(ocs_diamter_acct_port_sup) of
+		{error, Reason} ->
+			error_logger:error_report(["Failed to initiate session disconnect function",
+					{module, ?MODULE}, {subscriber, SubscriberId}, {origin_host, OHost},
+					{origin_realm, ORealm}, {session, SessionID}, {error, Reason}]);
+		DiscSup ->
+			try
+				Svc = ocs_diameter_acct_service,
+				Alias = ocs_diameter_base_application,
+				AppId = ?CC_APPLICATION_ID,
+				DiscArgs = [Svc, Alias, SessionID, OHost, DHost, ORealm, DRealm, AppId],
+				StartArgs = [DiscArgs, []],
+				case supervisor:start_child(DiscSup, StartArgs) of
+					{ok, _DiscFsm} ->
+						ok;
+					{error, Reason} ->
+						error_logger:error_report(["Failed to initiate session disconnect function",
+								{module, ?MODULE}, {subscriber, SubscriberId}, {origin_host, OHost},
+								{origin_realm, ORealm}, {session, SessionID}, {error, Reason}])
+				end
+			catch
+				_:R ->
+				error_logger:error_report(["Failed to initiate session disconnect function",
+						{module, ?MODULE}, {subscriber, SubscriberId}, {origin_host, OHost},
+						{origin_realm, ORealm}, {session, SessionID}, {error, R}])
+			end
+	end;
+start_disconnect(_, _) ->
+	ok.
