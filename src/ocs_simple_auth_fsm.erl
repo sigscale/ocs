@@ -299,7 +299,7 @@ handle_diameter1(#subscriber{session_attributes = [], multisession = MultiSessio
 handle_diameter1(#subscriber{session_attributes = _Session, multisession = false},
 	#statedata{session_id = SessionID, origin_host = OHost, origin_realm = ORealm,
 	dest_host = DHost, dest_realm = DRealm, subscriber = SubscriberId} = StateData) ->
-	case pg2:get_closest_pid(ocs_radius_acct_port_sup) of
+	case pg2:get_closest_pid(ocs_diamter_acct_port_sup) of
 		{error, Reason} ->
 			reject_radius(Reason, StateData);
 		DiscSup ->
