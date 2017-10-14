@@ -76,7 +76,7 @@
 		is_bundle = false :: '_' | boolean() | undefined,
 		status :: offer_status() | '_' | undefined,
 		specification :: string() | '_' | undefined,
-		price :: '_' | [#price{}],
+		price = [] :: '_' | [#price{}],
 		characteristics = [] :: [tuple()],
 		last_modified :: tuple() | '_' | undefined}).
 
