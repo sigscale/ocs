@@ -30,7 +30,6 @@
 -export([get_category/2, get_categories/1]).
 -export([get_product_spec/2, get_product_specs/1]).
 
--include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
 
 -spec content_types_accepted() -> ContentTypes

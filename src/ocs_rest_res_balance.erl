@@ -24,7 +24,6 @@
 -export([content_types_accepted/0, content_types_provided/0,
 		top_up/2, get_balance/1]).
 
--include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
 
 -spec content_types_accepted() -> ContentTypes

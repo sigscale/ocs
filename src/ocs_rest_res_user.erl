@@ -25,7 +25,6 @@
 		get_user/2, get_users/2, post_user/1, put_user/3, patch_user/4,
 		delete_user/1]).
 
--include_lib("radius/include/radius.hrl").
 -include_lib("inets/include/mod_auth.hrl").
 -include("ocs.hrl").
 

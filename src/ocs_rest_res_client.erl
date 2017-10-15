@@ -25,7 +25,6 @@
 		get_clients/2, get_client/2, post_client/1,
 		patch_client/4, delete_client/1]).
 
--include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
 
 -spec content_types_accepted() -> ContentTypes
