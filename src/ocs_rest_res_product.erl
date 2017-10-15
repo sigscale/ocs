@@ -25,12 +25,13 @@
 
 -export([add_product_offering/1, add_product_inventory/1]).
 -export([get_product_offering/1, get_product_offerings/2]).
--export([on_patch_product_offering/3, merge_patch_product_offering/3]).
 -export([get_catalog/2, get_catalogs/1]).
 -export([get_category/2, get_categories/1]).
 -export([get_product_spec/2, get_product_specs/1]).
 
 -include("ocs.hrl").
+
+-define(offerPath, "/catalogManagement/v2/productOffering/").
 
 -spec content_types_accepted() -> ContentTypes
 	when
@@ -57,39 +58,25 @@ content_types_provided() ->
 %% 	Add a new Product Offering.
 add_product_offering(ReqData) ->
 	try
-		{struct, ObjectMembers} = mochijson:decode(ReqData),
-		Name = prod_name(ObjectMembers),
-		IsBundle = prod_isBundle(ObjectMembers),
-		Status = prod_status(ObjectMembers),
-		{StartDate, EndDate} = prod_vf(ObjectMembers),
-		Description = prod_description(ObjectMembers),
-		case product_offering_price(ObjectMembers) of
-			{error, StatusCode} ->
-				{error, StatusCode};
-			Price ->
-				Product = #product{price = Price,
-						name = Name, description = Description,
-						is_bundle = IsBundle, status = Status,
-						start_date = StartDate, end_date = EndDate},
-				case ocs:add_product(Product) of
-					{ok, LM} ->
-						add_product_offering1(Name, LM, ObjectMembers);
-					{error, Reason} ->
-						{error, Reason}
-				end
+		case ocs:add_product(offer(mochijson:decode(ReqData))) of
+			{ok, ProductOffering} ->
+				ProductOffering;
+			{error, Reason} ->
+				throw(Reason)
 		end
+	of
+		Offer ->
+			Body = mochijson:encode(offer(Offer)),
+			Etag = ocs_rest:etag(Offer#product.last_modified),
+			Href = ?offerPath ++ Offer#product.name,
+			Headers = [{location, Href}, {etag, Etag}],
+			{ok, Headers, Body}
 	catch
+		throw:_Reason ->
+			{error, 500};
 		_:_ ->
 			{error, 400}
 	end.
-%% @hidden
-add_product_offering1(ProdId, ETag, JsonResponse) ->
-	Id = {id, ProdId},
-	Json = {struct, [Id | JsonResponse]},
-	Body = mochijson:encode(Json),
-	Location = "/catalogManagement/v2/productuOffering/" ++ ProdId,
-	Headers = [{location, Location}, {etag, etag(ETag)}],
-	{ok, Headers, Body}.
 
 -spec add_product_inventory(ReqData) -> Result when
 	ReqData	:: [tuple()],
@@ -109,42 +96,36 @@ add_product_inventory(ReqData) ->
 			{error, 400}
 	end.
 
--spec get_product_offering(ProdID) -> Result when
-	ProdID	:: string(),
+-spec get_product_offering(ID) -> Result when
+	ID			:: string(),
 	Result	:: {ok, Headers, Body} | {error, Status},
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 500 .
 %% @doc Respond to `GET /catalogManagement/v2/productOffering/{id}'.
 %% 	Retrieve a Product Offering.
-get_product_offering(ProductID) ->
-	case ocs:find_product(ProductID) of
-		{ok, Product} ->
-			get_product_offering1(Product);
-		{error, not_found} ->
-			{error, 404};
-		{error, _} ->
-			{error, 500}
-	end.
-%% @hidden
-get_product_offering1(Product) ->
-	Etag = etag(Product#product.last_modified),
-	ID = prod_id(Product),
-	Description = prod_description(Product),
-	Href = prod_href(Product),
-	ValidFor = prod_vf(Product),
-	IsBundle = prod_isBundle(Product),
-	Name = prod_name(Product),
-	Status = prod_status(Product),
-	case product_offering_price(Product) of
-		{error, StatusCode} ->
-			{error, StatusCode};
-		OfferPrice ->
-			Json = {struct, [ID, Name, Description, Href, 
-				IsBundle, Status, ValidFor, OfferPrice]},
-			Body = mochijson:encode(Json),
-			Headers = [{content_type, "application/json"}, {etag, Etag}],
+get_product_offering(ID) ->
+	try
+		case ocs:find_product(ID) of
+			{ok, ProductOffering} ->
+				ProductOffering;
+			{error, not_found} ->
+				{throw, 404};
+			{error, _} ->
+				{throw, 500}
+		end
+	of
+		Offer ->
+			Body = mochijson:encode(offer(Offer)),
+			Etag = ocs_rest:etag(Offer#product.last_modified),
+			Href = ?offerPath ++ Offer#product.name,
+			Headers = [{location, Href}, {etag, Etag}],
 			{ok, Headers, Body}
+	catch
+		throw:_Reason ->
+			{error, 500};
+		_:_ ->
+			{error, 400}
 	end.
 
 -spec get_product_offerings(Query, Headers) -> Result when
@@ -336,81 +317,10 @@ get_product_specs([] = _Query) ->
 get_product_specs(_Query) ->
 	{error, 400}.
 
--spec on_patch_product_offering(ProdId, Etag, ReqData) -> Result
-	when
-		ProdId	:: string(),
-		Etag		:: undefined | list(),
-		ReqData	:: [tuple()],
-		Result	:: {ok, Headers, Body} | {error, Status},
-		Headers	:: [tuple()],
-		Body		:: iolist(),
-		Status	:: 400 | 500 .
-%% @doc Respond to `PATCH /catalogManagement/v2/productOffering/{id}'.
-%% 	Update a Product Offering using JSON patch method
-%% 	<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>.
-on_patch_product_offering(ProdId, Etag, ReqData) ->
-	try
-		{array, OpList} = mochijson:decode(ReqData),
-		case exe_jsonpatch_ON(ProdId, Etag, OpList) of
-			{error, StatusCode} ->
-				{error, StatusCode};
-			{ok, Product} ->
-				NewEtag = etag(Product#product.last_modified),
-				ID = prod_id(Product),
-				Href = prod_href(Product),
-				Name = prod_name(Product),
-				Description = prod_description(Product),
-				ValidFor = prod_vf(Product),
-				IsBundle = prod_isBundle(Product),
-				Status = prod_status(Product),
-				case product_offering_price(Product) of
-					{error, StatusCode} ->
-						{error, StatusCode};
-					OfferPrice ->
-						Json = {struct, [ID, Href, Name, Description,
-								ValidFor, IsBundle, Status, OfferPrice]},
-						Body = mochijson:encode(Json),
-						Headers = [{content_type, "application/json"}, {etag, NewEtag}],
-						{ok, Headers, Body}
-				end
-		end
-	catch
-		_:_ ->
-			{error, 400}
-	end.
-
--spec merge_patch_product_offering(ProdId, Etag, ReqData) -> Result
-	when
-		ProdId	:: string(),
-		Etag		:: undefined | list(),
-		ReqData	:: [tuple()],
-		Result	:: {ok, Headers, Body} | {error, Status},
-		Headers	:: [tuple()],
-		Body		:: iolist(),
-		Status	:: 400 | 500 .
-%% @doc Respond to `PATCH /catalogManagement/v2/productOffering/{id}'.
-%% 	Update a Product Offering using merge patch method
-%% 	<a href="http://tools.ietf.org/html/rfc7386">RFC7386</a>.
-merge_patch_product_offering(ProdId, Etag, ReqData) ->
-	try
-		Json = mochijson:decode(ReqData),
-		case exe_jsonpatch_merge(ProdId, Etag, Json) of
-			{error, Reason} ->
-				{error, Reason};
-			{ok, Response, LM} ->
-				Etag = etag(LM),
-				Body = mochijson:encode(Response),
-				Headers = [{content_type, "application/json"}, {etag, Etag}],
-				{ok, Headers, Body}
-		end
-	catch
-		_:_ ->
-			{error, 400}
-	end.
-
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
 %% @hidden
 product_catalog() ->
 	Id = {"id", "1"},
@@ -505,586 +415,9 @@ characteristic_product_wlan() ->
 	Char3 = {struct, [Name3, Description3, Type3, Value3]},
 	[Char1, Char2, Char3].
 
--spec product_offering_price(Product) -> Result
-	when
-		Product	:: [tuple()] | #product{},
-		Result	:: [#price{}] | [tuple()] | {error, Status},
-		Status	:: 400.
-%% @doc Encode/decode product offering price.
-%% @private
-product_offering_price([]) ->
-	{error, 400};
-product_offering_price(ObjectMembers) when is_list(ObjectMembers) ->
-	{_, {array, ProductOfferPrice}} = lists:keyfind("productOfferingPrice",
-			1, ObjectMembers),
-	case product_offering_price(ProductOfferPrice, []) of
-		{error, Status} ->
-			{error, Status};
-		Prices ->
-			Prices
-	end;
-product_offering_price(#product{} = Product) ->
-	case product_offering_price(Product#product.price, []) of
-		{error, Status} ->
-			{error, Status};
-		ProductOfferPrice ->
-			{"productOfferingPrice", {array, ProductOfferPrice}}
-	end.
-
--spec product_offering_price(ProductOfPrice, Prices) -> Result
-	when
-		ProductOfPrice	:: [tuple()] | [#price{}],
-		Prices	::	list(),
-		Result	:: [#price{}] | [tuple()] | {error, Status},
-		Status	:: 400 | 500.
-%% @hidden
-product_offering_price([], Prices) ->
-	Prices;
-product_offering_price([{struct, ObjectMembers} | T], Prices) ->
-	try
-		ProdName = prod_price_name(ObjectMembers),
-		ProdDescription = prod_price_description(ObjectMembers),
-		{StartDate, EndDate} = valid_for(ObjectMembers),
-		ProdPriceType = prod_price_type(ObjectMembers),
-		{_, {struct, ProdPriceObj}} = lists:keyfind("price", 1, ObjectMembers),
-		ProdAmount = prod_price_price_amount(ProdPriceObj),
-		CurrencyCode = prod_price_price_c_code(ProdPriceObj),
-		RCPeriod = prod_price_rc_period(ObjectMembers),
-		{ProdUnits, ProdSize} = prod_price_ufm(ObjectMembers),
-		Size = product_size(ProdUnits, octets, ProdSize),
-		Price1 = #price{name = ProdName, description = ProdDescription,
-				start_date = StartDate, end_date = EndDate,
-				type = ProdPriceType, units = ProdUnits, size = Size,
-				currency = CurrencyCode, period = RCPeriod, amount = ProdAmount},
-		case lists:keyfind("productOfferPriceAlteration", 1, ObjectMembers) of
-			false ->
-				product_offering_price(T, [Price1 | Prices]);
-			{_, {struct, ProdAlterObj}} ->
-				case po_alteration(ProdAlterObj) of
-					{error, Status} ->
-						{error, Status};
-					Alteration ->
-						Price2 = Price1#price{alteration = Alteration},
-						product_offering_price(T, [Price2 | Prices])
-				end
-		end
-	catch
-		_:_ ->
-			{error, 400}
-	end;
-product_offering_price([#price{} = Price | T], Prices) ->
-	try
-		Name = prod_price_name(Price),
-		ValidFor = valid_for(Price),
-		PriceType = prod_price_type(Price),
-		Amount = prod_price_price_amount(Price),
-		CurrencyCode = prod_price_price_c_code(Price),
-		PriceObj = {"price", {struct, [Amount, CurrencyCode]}},
-		RCPeriod = prod_price_rc_period(Price),
-		Description = prod_price_description(Price),
-		UOMeasure = prod_price_ufm(Price),
-		if
-			Price#price.alteration == undefined ->
-				Price1 = {struct, [Name, Description, ValidFor,
-					PriceType, PriceObj, UOMeasure, RCPeriod]},
-				product_offering_price(T, [Price1 | Prices]);
-			true ->
-				case po_alteration(Price#price.alteration) of
-					{error, Status} ->
-						{error, Status};
-					Alteration ->
-						Price1 = {struct, [Name, Description, PriceType,
-							ValidFor, PriceObj, UOMeasure, RCPeriod, Alteration]},
-						product_offering_price(T, [Price1 | Prices])
-				end
-		end
-	catch
-		_:_ ->
-			{error, 500}
-	end.
-
--spec po_alteration(Alteration) -> Result
-	when
-		Alteration :: [tuple()] | #alteration{},
-		Result	  :: #alteration{} | {error, Status},
-		Status	  :: 400 | 500.
-%% @private
-po_alteration(Alteration) when is_list(Alteration) ->
-	try
-		Name = prod_price_alter_name(Alteration),
-		Description = prod_price_alter_description(Alteration),
-		{StartDate, EndDate} = valid_for(Alteration),
-		PriceType = prod_price_alter_price_type(Alteration),
-		{_, {struct, Price}} = lists:keyfind("price", 1, Alteration),
-		Amount = prod_price_alter_amount(Price),
-		{Units, UnitSize} = prod_price_alter_ufm(Alteration),
-		Size = product_size(Units, octets, UnitSize),
-		#alteration{name = Name, description = Description,
-			start_date = StartDate, end_date = EndDate,
-			type = PriceType, units = Units,
-			size = Size, amount = Amount}
-	catch
-		_:_ ->
-			{error, 400}
-	end;
-po_alteration(#alteration{} = Alteration) ->
-	try
-		Name = prod_price_alter_name(Alteration),
-		Description = prod_price_alter_description(Alteration),
-		ValidFor = valid_for(Alteration),
-		PriceType = prod_price_alter_price_type(Alteration),
-		UFM  = prod_price_alter_ufm(Alteration),
-		Amount = prod_price_alter_amount(Alteration),
-		Price = {"price", {struct, [Amount]}},
-		{"productOfferPriceAlteration",
-				{struct, [Name, Description, PriceType, ValidFor, UFM, Price]}}
-	catch
-		_:_ ->
-			{error, 500}
-	end.
-
--spec prod_id(Product) -> Result
-	when
-		Product	:: [tuple()] | #product{},
-		Result	:: string() | tuple().
-%% @private
-prod_id(#product{} = Product) ->
-	{"id", Product#product.name}.
-
--spec prod_name(Product) -> Result
-	when
-		Product	:: [tuple()] | #product{},
-		Result	:: string() | tuple().
-%% @private
-prod_name(Product) when is_list(Product) ->
-	{_, Name} = lists:keyfind("name", 1, Product),
-	Name;
-prod_name(#product{} = Product) ->
-	{"name", Product#product.name}.
-
--spec prod_description(Product) -> Result
-	when
-		Product	:: list() | #product{},
-		Result	:: undefined | string() | tuple().
-%% @private
-prod_description(Product) when is_list(Product) ->
-	proplists:get_value("description", Product, undefined);
-prod_description(#product{} = Product) ->
-	case Product#product.description of
-		undefined ->
-			{"description", ""};
-		Des ->
-			{"description", Des}
-	end.
-
--spec prod_href(Product) -> Result
-	when
-		Product	:: [tuple()] | #product{},
-		Result	:: undefined | string() | tuple().
-%% @private
-prod_href(#product{} = Product) ->
-	{"href", "/product/product/" ++ Product#product.name}.
-
--spec prod_isBundle(Product) -> Result
-	when
-		Product	:: [tuple()] | #product{},
-		Result	:: boolean() | tuple().
-%% @private
-prod_isBundle(Product) when is_list(Product) ->
-	case lists:keyfind("isBundle", 1, Product) of
-		{"isBundle", "true"} -> true;
-		{"isBundle", true} -> true;
-		_ -> false
-	end;
-prod_isBundle(#product{} = Product) ->
-	case Product#product.is_bundle of
-		undefined ->
-			{"isBundle", ""};
-		IsBundle ->
-			{"isBundle", IsBundle}
-	end.
-
--spec prod_status(Product) -> Result
-	when
-		Product	:: [tuple()] | #product{},
-		Result	:: string() | tuple().
-%% @private
-prod_status(Product) when is_list(Product) ->
-	case lists:keyfind("lifecycleStatus", 1, Product) of
-		{_, FindStatus} ->
-			product_status(FindStatus);
-		false ->
-			undefined
-	end;
-prod_status(#product{} = Product) ->
-	case Product#product.status of
-		undefined ->
-			{"lifecycleStatus", ""};
-		Status ->
-			{"lifecycleStatus", Status}
-	end.
-
--spec prod_vf(Product) -> Result
-	when
-		Product :: [tuple()] | #product{},
-		Result :: tuple().
-%% @private
-prod_vf(Product) when is_list(Product) ->
-	case lists:keyfind("validFor", 1, Product) of
-		{_, {struct, VFObj}} ->
-			case {proplists:get_value("startDateTime", VFObj), proplists:get_value("endDateTime", VFObj)} of
-				{undefined, undefined} ->
-					{undefined, undefined};
-				{undefined, EDT} ->
-					{undefined, ocs_rest:iso8601(EDT)};
-				{SDT, undefined} ->
-					{ocs_rest:iso8601(SDT), undefined};
-				{SDT, EDT} ->
-					{ocs_rest:iso8601(SDT), ocs_rest:iso8601(EDT)}
-			end;
-		false ->
-			{undefined, undefined}
-	end;
-prod_vf(#product{} = Product) ->
-	case {Product#product.start_date, Product#product.end_date} of
-		{undefined, undefined} ->
-			{"validFor", {struct, []}};
-		{SDateTime, undefined} ->
-			SDT = {"startDateTime", ocs_rest:iso8601(SDateTime)},
-			{"validFor", {struct, [SDT]}};
-		{undefined, EDateTime} ->
-			EDT = {"endDateTime", ocs_rest:iso8601(EDateTime)},
-			{"validFor", {struct, [EDT]}};
-		{SDateTime, EDateTime} ->
-			SDT = {"startDateTime", ocs_rest:iso8601(SDateTime)},
-			EDT = {"endDateTime", ocs_rest:iso8601(EDateTime)},
-			{"validFor", {struct, [SDT, EDT]}}
-	end.
-
--spec prod_price_name(Price) -> Result
-	when
-		Price :: [tuple()] | #price{},
-		Result	:: string() | tuple().
-%% @private
-prod_price_name(Price) when is_list(Price) ->
-	{_, Name} = lists:keyfind("name", 1, Price),
-	Name;
-prod_price_name(#price{} = Price) ->
-	{"name", Price#price.name}.
-
--spec prod_price_description(Price) -> Result
-	when
-		Price :: [tuple()] | #price{},
-		Result	:: undefined | string() | tuple().
-%% @private
-prod_price_description(Price) when is_list(Price) ->
-	proplists:get_value("description", Price, undefined);
-prod_price_description(#price{} = Price) ->
-	case Price#price.description of
-		undefined ->
-			{"description", ""};
-		Des ->
-			{"description", Des}
-	end.
-
--spec valid_for(P) -> Result
-	when
-		P      :: [tuple()] | #price{} | #alteration{},
-		Result :: tuple().
-%% @private
-valid_for(P) when is_list(P) ->
-	case lists:keyfind("validFor", 1, P) of
-		{_,  {struct, VFObj}} ->
-			case {proplists:get_value("startDateTime", VFObj), proplists:get_value("endDateTime", VFObj)} of
-				{undefined, undefined} ->
-					{undefined, undefined};
-				{undefined, EDT} ->
-					{undefined, ocs_rest:iso8601(EDT)};
-				{SDT, undefined} ->
-					{ocs_rest:iso8601(SDT), undefined};
-				{SDT, EDT} ->
-					{ocs_rest:iso8601(SDT), ocs_rest:iso8601(EDT)}
-			end;
-		false ->
-			{undefined, undefined}
-	end;
-valid_for(#price{start_date = undefined, end_date = undefined}) ->
-	{"validFor",{struct, []}};
-valid_for(#price{start_date = undefined, end_date = EndDateTime}) ->
-	EDT = {"endDateTime", ocs_rest:iso8601(EndDateTime)},
-	{"validFor",{struct, [EDT]}};
-valid_for(#price{start_date = StartDateTime, end_date = undefined}) ->
-	SDT = {"startDateTime", ocs_rest:iso8601(StartDateTime)},
-	{"validFor",{struct, [SDT]}};
-valid_for(#price{start_date = StartDateTime, end_date = EndDateTime}) ->
-	SDT = {"startDateTime", ocs_rest:iso8601(StartDateTime)},
-	EDT = {"endDateTime", ocs_rest:iso8601(EndDateTime)},
-	{"validFor", {struct, [SDT, EDT]}};
-valid_for(#alteration{start_date = undefined, end_date = undefined}) ->
-	{"validFor",{struct, []}};
-valid_for(#alteration{start_date = undefined, end_date = EndDateTime}) ->
-	EDT = {"endDateTime", ocs_rest:iso8601(EndDateTime)},
-	{"validFor",{struct, [EDT]}};
-valid_for(#alteration{start_date = StartDateTime, end_date = undefined}) ->
-	SDT = {"startDateTime", ocs_rest:iso8601(StartDateTime)},
-	{"validFor",{struct, [SDT]}};
-valid_for(#alteration{start_date = StartDateTime, end_date = EndDateTime}) ->
-	SDT = {"startDateTime", ocs_rest:iso8601(StartDateTime)},
-	EDT = {"endDateTime", ocs_rest:iso8601(EndDateTime)},
-	{"validFor", {struct, [SDT, EDT]}}.
-
--spec prod_price_type(Price) -> Result
-	when
-		Price :: [tuple()] | #price{},
-		Result	:: atom() | tuple().
-%% @private
-prod_price_type(Price) when is_list(Price) ->
-	{_, ProdPriceTypeS} = lists:keyfind("priceType", 1, Price),
-	price_type(ProdPriceTypeS);
-prod_price_type(#price{} = Price) ->
-	PPT = price_type(Price#price.type),
-	{"priceType", PPT}.
-
--spec prod_price_price_amount(Price) -> Result
-	when
-		Price		:: [tuple()] | #price{},
-		Result	:: integer() | tuple().
-%% @private
-prod_price_price_amount(Price) when is_list(Price)->
-	{_, ProdAmount} = lists:keyfind("taxIncludedAmount", 1, Price),
-	ProdAmount;
-prod_price_price_amount(#price{} = Price) ->
-	case Price#price.amount of
-		undefined ->
-			{"taxIncludedAmount", ""};
-		Amount ->
-			{"taxIncludedAmount", Amount}
-	end.
-
--spec prod_price_price_c_code(Price) -> Result
-	when
-		Price		:: [tuple()] | #price{},
-		Result	:: string() | tuple().
-%% @private
-prod_price_price_c_code(Price) when is_list(Price) ->
-	case lists:keyfind("currencyCode", 1, Price) of
-		{_, CurrencyCode} ->
-			CurrencyCode;
-		false ->
-			undefined
-	end;
-prod_price_price_c_code(#price{} = Price) ->
-	{"currencyCode", Price#price.currency}.
-
--spec prod_price_rc_period(Price) -> Result
-	when
-		Price		:: [tuple()] | #price{},
-		Result	:: undefined | string() | tuple().
-%% @private
-prod_price_rc_period(Price) when is_list(Price) ->
-	case lists:keyfind("recurringChargePeriod", 1, Price) of
-		{_, RCPeriod} ->
-			price_period(RCPeriod);
-		false ->
-			undefined
-	end;
-prod_price_rc_period(#price{} = Price) ->
-	case Price#price.period of
-		undefined ->
-			{"recurringChargePeriod", ""};
-		RCPeriod ->
-			{"recurringChargePeriod", price_period(RCPeriod)}
-	end.
-
--spec prod_price_alter_name(Alteration) -> Result
-	when
-		Alteration :: [tuple()] | #alteration{},
-		Result :: string() | tuple().
-%% @private
-prod_price_alter_name(Alteration) when is_list(Alteration) ->
-	{_, Name} = lists:keyfind("name", 1, Alteration),
-	Name;
-prod_price_alter_name(#alteration{} = Alteration) ->
-	{"name", Alteration#alteration.name}.
-
--spec prod_price_alter_description(Alteration) -> Result
-	when
-		Alteration :: list() | #alteration{},
-		Result :: undefined | string() | tuple().
-%% @private
-prod_price_alter_description(Alteration) when is_list(Alteration) ->
-	proplists:get_value("description", Alteration, undefined);
-prod_price_alter_description(#alteration{} = Alteration) ->
-	case Alteration#alteration.description of
-		undefined ->
-			{"description", ""};
-		Des ->
-			{"description", Des}
-	end.
-
--spec prod_price_alter_price_type(Alteration) -> Result
-	when
-		Alteration :: [tuple()] | #alteration{},
-		Result     :: undefined | atom().
-%% @private
-prod_price_alter_price_type(Alteration) when is_list(Alteration) ->
-	case lists:keyfind("priceType", 1, Alteration) of
-		{_, PriceType} ->
-			price_type(PriceType);
-		false ->
-			undefined
-	end;
-prod_price_alter_price_type(#alteration{} = Alteration) ->
-	case Alteration#alteration.type of
-		undefined ->
-			{"priceType", ""};
-		PT ->
-			{"priceType", price_type(PT)}
-	end.
-
--spec prod_price_alter_amount(Alteration) -> Result
-	when
-		Alteration :: [tuple()] | #alteration{},
-		Result     :: undefined | integer() | tuple().
-%% @private
-prod_price_alter_amount(Alteration) when is_list(Alteration) ->
-	{_, PAlterAmount} = lists:keyfind("taxIncludedAmount", 1,  Alteration),
-	PAlterAmount;
-prod_price_alter_amount(#alteration{} = Alteration) ->
-	case Alteration#alteration.amount of
-		undefined ->
-			{"taxIncludedAmount", ""};
-		Amount ->
-			{"taxIncludedAmount", Amount}
-	end.
-
--spec prod_price_ufm(Price) -> Result
-	when
-		Price		:: [tuple()] | #price{},
-		Result	:: {Units, Size} | string(),
-		Units		:: undefined | unit_of_measure(),
-		Size		:: undefined | pos_integer().
-%% @doc return units type and size of measurement of a product
-%% @private
-prod_price_ufm(Price) when is_list(Price) ->
-	UFM = proplists:get_value("unitOfMeasure", Price, undefined),
-	prod_price_ufm_et(UFM);
-prod_price_ufm(#price{} = Price) ->
-	Size = Price#price.size,
-	Units = Price#price.units,
-	{"unitOfMeasure", prod_price_ufm_json(Units, Size)}.
-
--spec prod_price_alter_ufm(Alteration) -> Result
-	when
-		Alteration :: [tuple()] | #alteration{},
-		Result	  :: {Units, Size} | string(),
-		Units		  :: undefined | unit_of_measure(),
-		Size		  :: undefined | pos_integer().
-%% @doc return units type and size of measurement of a alteration
-%% @private
-prod_price_alter_ufm(Alteration) when is_list(Alteration) ->
-	UFM = proplists:get_value("unitOfMeasure", Alteration),
-	prod_price_ufm_et(UFM);
-prod_price_alter_ufm(#alteration{} = Alteration) ->
-	Units = Alteration#alteration.units,
-	Size = product_size(octets, Units, Alteration#alteration.size),
-	{"unitOfMeasure", prod_price_ufm_json(Units, Size)}.
-
-prod_price_ufm_json(undefined, _) ->
-	"";
-prod_price_ufm_json(Units, undefined) ->
-	Units;
-prod_price_ufm_json(Units, Size) when is_number(Size) ->
-	prod_price_ufm_json(Units, integer_to_list(Size));
-prod_price_ufm_json(octets, Size) when is_list(Size) ->
-	Size ++ "b";
-prod_price_ufm_json(gb, Size) when is_list(Size) ->
-	Size ++ "g";
-prod_price_ufm_json(mb, Size) when is_list(Size) ->
-	Size ++ "m";
-prod_price_ufm_json(cents, Size) when is_list(Size) ->
-	Size ++ "c";
-prod_price_ufm_json(seconds, Size) when is_list(Size) ->
-	Size ++ "s".
-
-prod_price_ufm_et(undefined) ->
-	{undefined, undefined};
-prod_price_ufm_et(UFM) ->
-	LowerUOM = string:to_lower(UFM),
-	prod_price_ufm_et1(LowerUOM).
-%% @hidden
-prod_price_ufm_et1(UFM) ->
-	Suffix = "b",
-	case lists:suffix(Suffix, UFM) of
-		true ->
-			[Size] = string:tokens(UFM, Suffix),
-			{octets, list_to_integer(Size)};
-		false ->
-			prod_price_ufm_et2(UFM)
-	end.
-%% @hidden
-prod_price_ufm_et2(UFM) ->
-	Suffix = "g",
-	case lists:suffix(Suffix, UFM) of
-		true ->
-			[Size] = string:tokens(UFM, Suffix),
-			{gb, list_to_integer(Size)};
-		false ->
-			prod_price_ufm_et3(UFM)
-	end.
-%% @hidden
-prod_price_ufm_et3(UFM) ->
-	Suffix = "m",
-	case lists:suffix(Suffix, UFM) of
-		true ->
-			[Size] = string:tokens(UFM, Suffix),
-			{mb, list_to_integer(Size)};
-		false ->
-			prod_price_ufm_et4(UFM)
-	end.
-%% @hidden
-prod_price_ufm_et4(UFM) ->
-	Suffix = "c",
-	case lists:suffix(Suffix, UFM) of
-		true ->
-			[Size] = string:tokens(UFM, Suffix),
-			{cents, list_to_integer(Size)};
-		false ->
-			prod_price_ufm_et5(UFM)
-	end.
-%% @hidden
-prod_price_ufm_et5(UFM) ->
-	Suffix = "s",
-	case lists:suffix(Suffix, UFM) of
-		true ->
-			[Size] = string:tokens(UFM, Suffix),
-			{seconds, list_to_integer(Size)};
-		false ->
-			prod_price_ufm_et6(UFM)
-	end.
-%% @hidden
-prod_price_ufm_et6(_UFM) ->
-	{undefined, undefined}.
-
--spec product_size(UnitsFrom, UnitsTo, Size) -> Result
-	when
-		UnitsFrom	:: undefined | atom(), % gb | mb | second | cents
-		UnitsTo		:: octets,
-		Size			:: undefined | pos_integer(),
-		Result		:: integer().
-%% @private
-product_size(UnitsFrom, octets, Size) when
-		UnitsFrom == undefined; Size == undefined ->
-	0;
-product_size(gb, octets, Size) -> Size * 1000000000;
-product_size(octets, gb, Size) -> Size div 1000000000;
-product_size(mb, octets, Size) -> Size * 1000000;
-product_size(octets, mb, Size) -> Size div 1000000;
-product_size(_, _, Size) -> Size.
-
 -spec offer_status(Status) -> Status
 	when
-		Status :: offer_status() | string().
+		Status :: atom() | string().
 %% @doc CODEC for life cycle status of Product instance.
 %% @private
 offer_status("In Study") -> in_study;
@@ -1101,11 +434,12 @@ offer_status(in_test) -> "In Test";
 offer_status(active) -> "Active";
 offer_status(rejected) -> "Rejected";
 offer_status(launched) -> "Launched";
-offer_status(retired) -> "Retired".
+offer_status(retired) -> "Retired";
+offer_status(obsolete) -> "Obsolete".
 
 -spec product_status(Status) -> Status
 	when
-		Status :: product_status() | string().
+		Status :: atom() | string().
 %% @doc CODEC for life cycle status of Product Offering.
 %% @private
 product_status("Created") -> created;
@@ -1151,409 +485,15 @@ price_period("weekly") -> weekly;
 price_period("monthly") -> monthly;
 price_period("yearly") -> yearly.
 
--spec exe_jsonpatch_ON(ProductID, Etag, OperationList) -> Result
-	when
-		ProductID		:: string() | binary(),
-		Etag				:: undefined | tuple(),
-		OperationList	:: [tuple()],
-		Result			:: list() | {error, StatusCode},
-		StatusCode		:: 400 | 404 | 422 | 500.
-%% @doc execute object notation json patch
-exe_jsonpatch_ON(ProdID, Etag, OperationList) ->
-	F = fun() ->
-			case mnesia:read(product, ProdID, write) of
-				[Entry] when
-						Entry#product.last_modified == Etag;
-						Etag == undefined ->
-					case ocs_rest:parse(OperationList) of
-						{error, invalid_format} ->
-							throw(malfored_request);
-						Operations ->
-							case lists:foldl(fun do_patch/2, Entry, Operations) of
-								{error, Reason} ->
-									throw(Reason);
-								Updatedentry ->
-									mnesia:delete(product, Entry#product.name, write),
-									TS = erlang:system_time(milli_seconds),
-									N = erlang:unique_integer([positive]),
-									LM = {TS, N},
-									NewEntry = Updatedentry#product{last_modified = LM},
-									ok = mnesia:write(NewEntry),
-									NewEntry
-							end
-					end;
-				[#product{}] ->
-					throw(precondition_failed);
-				[] ->
-					throw(not_found)
-			end
-	end,
-	case mnesia:transaction(F) of
-		{atomic, Product} ->
-			{ok,  Product};
-		{aborted, {throw, malfored_request}} ->
-			{error, 400};
-		{aborted, {throw, not_found}} ->
-			{error, 404};
-		{aborted, {throw, precondition_failed}} ->
-			{error, 412};
-		{aborted, {throw, not_implemented}} ->
-			{error, 422};
-		{aborted, {throw, unprocessable}} ->
-			{error, 422};
-		{aborted, _Reason} ->
-			{error,  500}
-	end.
-
--spec exe_jsonpatch_merge(ProductID, Etag, Patch) -> Result
-	when
-		ProductID		:: string() | binary(),
-		Etag				:: undefined | tuple(),
-		Patch				:: term(),
-		Result			:: list() | {error, StatusCode},
-		StatusCode		:: 400 | 404 | 422 | 500.
-%% @doc execute json merge patch
-exe_jsonpatch_merge(ProdID, Etag, Patch) ->
-	F = fun() ->
-			case mnesia:read(product, ProdID, write) of
-				[Entry] when
-						Entry#product.last_modified == Etag;
-						Etag == undefined ->
-					case offer(Entry) of
-						{error, Status} ->
-							throw(Status);
-						Target ->
-							Patched = ocs_rest:merge_patch(Target, Patch),
-							case offer(Patched) of
-								{error, SC} ->
-									throw(SC);
-								Updatedentry ->
-									mnesia:delete(product, Entry#product.name, write),
-									TS = erlang:system_time(milli_seconds),
-									N = erlang:unique_integer([positive]),
-									LM = {TS, N},
-									NewEntry = Updatedentry#product{last_modified = LM},
-									ok = mnesia:write(NewEntry),
-									{Patched, LM}
-							end
-					end;
-				[#product{}] ->
-					throw(precondition_failed);
-				[] ->
-					throw(not_found)
-			end
-	end,
-	case mnesia:transaction(F) of
-		{atomic, {Product, LM}} ->
-			{ok,  Product, LM};
-		{aborted, {throw, malfored_request}} ->
-			{error, 400};
-		{aborted, {throw, not_found}} ->
-			{error, 404};
-		{aborted, {throw, precondition_failed}} ->
-			{error, 412};
-		{aborted, {throw, not_implemented}} ->
-			{error, 422};
-		{aborted, {throw, unprocessable}} ->
-			{error, 422};
-		{aborted, _Reason} ->
-			{error,  500}
-	end.
-
--spec do_patch(Operation, Product) -> Result
-	when
-		Operation	:: {Op, Path, Value},
-		Product		:: #product{},
-		Op				:: replace | add | remove | move | copy | test,
-		Path			:: list(),
-		Value			:: term(),
-		Result		:: #product{} | {error, Reason},
-		Reason		:: malfored_request | not_implemented | unprocessable.
-%% @doc validate operation and paths for product patch reqeust.
-do_patch({replace, Path, Value}, Product) ->
-	patch_replace(Path, Value, Product);
-do_patch(_, _) ->
-	{error, not_implemented}.
-
-patch_replace(["name"], Value, Product) when is_list(Value) ->
-	Product#product{name = Value};
-patch_replace(["description"], Value, Product) when is_list(Value) ->
-	Product#product{description = Value};
-patch_replace(["isBundle"], Value, Product) when is_boolean(Value) ->
-	Product#product{is_bundle = Value};
-patch_replace(["validFor", "startDateTime"], Value, Product) when is_list(Value) ->
-	Product#product{start_date = ocs_rest:iso8601(Value)};
-patch_replace(["validFor", "endDateTime"], Value, Product) when is_list(Value) ->
-	Product#product{end_date = ocs_rest:iso8601(Value)};
-patch_replace(["validFor"], {struct, Value}, Product) when is_list(Value) ->
-	Product1 = case lists:keyfind("startDateTime", 1, Value) of
-		{_, SDT} ->
-			Product#product{start_date = ocs_rest:iso8601(SDT)};
-		false ->
-			Product
-	end,
-	case lists:keyfind("endDateTime", 1, Value) of
-		{_, EDT} ->
-			Product1#product{end_date = ocs_rest:iso8601(EDT)};
-		false ->
-			Product1
-	end;
-patch_replace(["lifecycleStatus"], Value, Product) when is_list(Value) ->
-	S = product_status(Value),
-	Product#product{status = S};
-patch_replace(["productOfferingPrice" | T], Value, Product) ->
-	case patch_replace1(prod_price, T, Value, Product#product.price) of
-		{error, Reason} ->
-			{error, Reason};
-		Price ->
-			Product#product{price = Price}
-	end;
-patch_replace(_, _, _) ->
-	{error, unprocessable}.
-%% @hidden
-patch_replace1(prod_price, [], {array, Values}, _) ->
-	try
-	F = fun({struct, Obj}, Acc) ->
-			F5 = fun(F5, [{"taxIncludedAmount", A} | T], Alter) when is_integer(A) ->
-							F5(F5, T, Alter#alteration{amount = A});
-						(_, [], Alter) ->
-							Alter;
-						(_, _, _) ->
-							throw(malfored_request)
-			end,
-			F4 = fun(F4, [{"name", V} | T], Alter) when is_list(V) ->
-							NAlter = Alter#alteration{name = V},
-							F4(F4, T, NAlter);
-						(F4, [{"description", V} | T], Alter) when is_list(V) ->
-							NAlter = Alter#alteration{description = V},
-							F4(F4, T, NAlter);
-						(F4, [{"priceType", V} | T], Alter) when is_list(V) ->
-							PT = price_type(V),
-							NAlter = Alter#alteration{type = PT},
-							F4(F4, T, NAlter);
-						(F4, [{"price", {struct, V}} | T], Alter) when is_list(V) ->
-							NAlter = F5(F5, V, Alter),
-							F4(F4, T, NAlter);
-						(F4, [{"unitOfMeasure", V} | T], Alter) when is_list(V) ->
-							{AU, AS} = prod_price_ufm_et(V),
-							S = product_size(AU, octets, AS),
-							NAlter = Alter#alteration{units = AU, size = S},
-							F4(F4, T, NAlter);
-						(_, [], Alter) ->
-							Alter;
-						(_, _, _) ->
-							throw(malfored_request)
-			end,
-			F3 = fun(F3, [{"currencyCode", C} | T], Price) when is_list(C)->
-							F3(F3, T, Price#price{currency = C});
-						(F3, [{"taxIncludedAmount", A} | T], Price) when is_integer(A) ->
-							F3(F3, T, Price#price{amount = A});
-						(_, [], Price) ->
-							Price;
-						(_, _, _) ->
-							throw(malfored_request)
-			end,
-			F2 = fun(F2, [{"name", V} | T], Price) when is_list(V)->
-							F2(F2, T, Price#price{name = V});
-						(F2, [{"description", V} | T], Price) when is_list(V) ->
-							F2(F2, T, Price#price{description = V});
-						(F2, [{"priceType", V} | T], Price) when is_list(V) ->
-							PT = price_type(V),
-							F2(F2, T, Price#price{type = PT});
-						(F2, [{"unitOfMeasure", V} | T], Price) when is_list(V) ->
-							{U, S} = prod_price_ufm_et(V),
-							UP = Price#price{units = U, size = S},
-							F2(F2, T, UP);
-						(F2, [{"recurringChargePeriod", V} | T], Price) when is_list(V) ->
-							RcPeriod = price_period(V),
-							UP = Price#price{period = RcPeriod},
-							F2(F2, T, UP);
-						(F2, [{"price", {struct, V}} | T], Price) when is_list(V) ->
-							UP = F3(F3, V, Price),
-							F2(F2, T, UP);
-						(F2, [{"productOfferPriceAlteration", {struct, V}} | T], Price) when is_list(V) ->
-							Alter = F4(F4, V, #alteration{}),
-							F2(F2, T, Price#price{alteration = Alter});
-						(_, [], Price) ->
-							Price;
-						(_, _, _) ->
-							throw(malfored_request)
-			end,
-			[F2(F2, Obj, #price{}) | Acc]
-	end,
-	lists:foldl(F, [], Values)
-	catch
-		_:_ ->
-			{error, malfored_request}
-	end;
-patch_replace1(prod_price, [$- | T], Values, Prices) when Prices =/= undefined ->
-	try
-		{Hlist, [LastElement]} = lists:split(length(Prices) - 1, Prices),
-		NewValues = case {Values, T} of
-			{{struct, V}, []} ->
-				V;
-			{V, [T1]} when is_list(V) ->
-				[{T1, V}];
-			{V, [T1, T2]} when is_list(V) ->
-				[{T1, {struct, [{T2, V}]}}];
-			{V, [T1, T2, T3]} when is_list(V) ->
-				[{T1, {struct, [{T2, [{struct, [{T3, V}]}]}]}}]
-		end,
-		case patch_replace2(NewValues, LastElement) of
-			{error, Reason} ->
-				{error, Reason};
-			NLastElement ->
-				Hlist ++ [NLastElement]
-		end
-	catch
-		_:_ ->
-			{error, unprocessable}
-	end;
-patch_replace1(prod_price, [Index | T], Values, Prices) when is_integer(Index), Prices =/= undefined  ->
-	try
-	if
-		Index > length(Prices) ->
-			{error, malfored_request};
-		true ->
-			{BNth, _} = lists:split(Index, Prices),
-			Nth = lists:nth(Index + 1, Prices),
-			ANth = lists:nthtail(Index + 1, Prices),
-			NewValues = case {Values, T} of
-				{{struct, V}, []} ->
-					V;
-				{V, [T1]} when is_list(V) ->
-					[{T1, V}];
-				{V, [T1, T2]} when is_list(V) ->
-					[{T1, {struct, [{T2, V}]}}];
-				{V, [T1, T2, T3]} when is_list(V) ->
-					[{T1, {struct, [{T2, [{struct, [{T3, V}]}]}]}}]
-			end,
-			case patch_replace2(NewValues, Nth) of
-				{error, Reason} ->
-					{error, Reason};
-				NewNth ->
-					BNth ++ [NewNth] ++ ANth
-			end
-	end
-	catch
-		_:_ ->
-			{error, unprocessable}
-	end;
-patch_replace1(_, _, _, _) ->
-	{error, unprocessable}.
-%% @hidden
-patch_replace2([], Price) when is_record(Price, price) ->
-	Price;
-patch_replace2([{"name", Value} | T], Price) when is_record(Price, price), is_list(Value) ->
-	patch_replace2(T, Price#price{name = Value});
-patch_replace2([{"description", Value} | T], Price) when is_record(Price, price), is_list(Value) ->
-	patch_replace2(T, Price#price{description = Value});
-patch_replace2([{"priceType", Value} | T], Price) when is_record(Price, price), is_list(Value) ->
-	PT = price_type(Value),
-	patch_replace2(T, Price#price{type = PT});
-patch_replace2([{"recurringChargePeriod", Value} | T], Price) when is_record(Price, price), is_list(Value) ->
-	RCP = price_period(Value),
-	patch_replace2(T, Price#price{period = RCP});
-patch_replace2([{"unitOfMeasure", Value} | T], Price) when is_record(Price, price), is_list(Value) ->
-	{U, S} = prod_price_ufm_et(Value),
-	UPrice = Price#price{units = U, size = S},
-	patch_replace2(T, UPrice);
-patch_replace2([{"price", {struct, Value}} | T], Price) when is_record(Price, price), is_list(Value) ->
-	case patch_replace4(Value, Price) of
-		{error, Reason} ->
-			{error, Reason};
-
-		UPrice ->
-			patch_replace2(T, UPrice)
-	end;
-patch_replace2([{"productOfferPriceAlteration", {struct, Value}} | T], #price{alteration = Alter} = Price)
-		when is_record(Price, price) and is_list(Value) ->
-	case patch_replace3(Value, Alter) of
-		{error, Reason} ->
-			{error, Reason};
-		UAlter ->
-			patch_replace2(T, Price#price{alteration = UAlter})
-	end;
-patch_replace2(_, _) ->
-	{error, unprocessable}.
-%% @hidden
-patch_replace3([], Alter) ->
-	Alter;
-patch_replace3([{"name", Value} | T], Alter) when is_list(Value) ->
-	patch_replace3(T, Alter#alteration{name = Value});
-patch_replace3([{"description", Value} | T], Alter) when is_list(Value) ->
-	patch_replace3(T, Alter#alteration{description = Value});
-patch_replace3([{"priceType", Value} | T], Alter) when is_list(Value) ->
-	PT = price_type(Value),
-	patch_replace3(T, Alter#alteration{type = PT});
-patch_replace3([{"unitOfMeasure", Value} | T], Alter) when is_list(Value) ->
-	{AU, AS} = prod_price_ufm_et(Value),
-	S = product_size(AU, octets, AS),
-	UAlter = Alter#alteration{units = AU, size = S},
-	patch_replace3(T, UAlter);
-patch_replace3([{"price", {struct, Value}} | T], Alter) when is_list(Value) ->
-	case patch_replace4(Value, Alter) of
-		{error, Reason} ->
-			{error, Reason};
-		UAlter ->
-			patch_replace3(T, UAlter)
-	end;
-patch_replace3(_, _) ->
-	{error, unprocessable}.
-%% @hidden
-patch_replace4([], PorA) ->
-	PorA;
-patch_replace4([{"currencyCode", Value} | T], Price) when is_record(Price, price) ->
-	patch_replace4(T, Price#price{currency = Value});
-patch_replace4([{"taxIncludedAmount", Value} | T], Price) when is_record(Price, price), is_integer(Value) ->
-	patch_replace4(T, Price#price{amount = Value});
-patch_replace4([{"taxIncludedAmount", Value} | T], Alter) when is_record(Alter, alteration), is_integer(Value) ->
-	patch_replace4(T, #alteration{amount = Value});
-patch_replace4(_, _) ->
-	{error, unprocessable}.
-
 -spec offer(Product) -> Product
 	when
 		Product :: #product{} | {struct, [tuple()]}.
 %% @doc CODEC for Product Offering.
 %% @private
-offer(#product{} = P) ->
-	offer(record_info(fields, product), P, []);
-offer({struct, ObjectMembers}) ->
+offer(#product{} = Product) ->
+	offer(record_info(fields, product), Product, []);
+offer({struct, ObjectMembers}) when is_list(ObjectMembers) ->
 	offer(ObjectMembers, #product{}).
-%% @hidden
-offer([{"id", _ID} | T], Acc) ->
-	offer(T, Acc);
-offer([{"href", _URI} | T], Acc) ->
-	offer(T, Acc);
-offer([{"name", Name} | T], Acc) when is_list(Name) ->
-	offer(T, Acc#product{name = Name});
-offer([{"description", Description} | T], Acc) when is_list(Description) ->
-	offer(T, Acc#product{description = Description});
-offer([{"validFor", {struct, L}} | T], Acc) ->
-	Acc1 = case lists:keyfind("startDateTime", 1, L) of
-		{_, Start} ->
-			Acc#product{start_date = ocs_rest:iso8601(Start)};
-		undefined ->
-			Acc
-	end,
-	Acc2 = case lists:keyfind("endDateTime", 1, L) of
-		{_, End} ->
-			Acc1#product{end_date = ocs_rest:iso8601(End)};
-		undefined ->
-			Acc
-	end,
-	offer(T, Acc2);
-offer([{"is_bundle", Bundle} | T], Acc) ->
-	offer(T, Acc#product{is_bundle = Bundle});
-offer([{"lifecycleStatus", Status} | T], Acc) ->
-	offer(T, Acc#product{status = offer_status(Status)});
-offer([{"price", Price} | T], Acc) ->
-	offer(T, Acc#product{price = price(Price)});
-offer([{"characteristic", Chars} | T], Acc) when is_list(Chars) ->
-	offer(T, Acc#product{characteristics = characteristics(Chars)});
-offer([{"lastUpdate", Last} | T], Acc) ->
-	offer(T, Acc#product{last_modified = ocs_rest:iso8601(Last)}).
 %% @hidden
 offer([name | T], #product{name = Name} = P, Acc) when is_list(Name) ->
 	offer(T, P, [{"name", Name} | Acc]);
@@ -1582,26 +522,64 @@ offer([status | T], #product{status = Status} = P, Acc)
 		when Status /= undefined ->
 	StatusString = offer_status(Status),
 	offer(T, P, [{"lifecycleStatus", StatusString} | Acc]);
-offer([price | T], #product{price = Price} = P, Acc)
-		when is_integer(Price) ->
-	offer(T, P, [{"price", price(Price)} | Acc]);
+offer([price | T], #product{price = Prices1} = P, Acc)
+		when is_list(Prices1) ->
+	Prices2 = [price(Price) || Price <- Prices1],
+	offer(T, P, [{"price", Prices2} | Acc]);
 offer([characteristics | T],
 		#product{characteristics = Chars} = P, Acc) when is_list(Chars) ->
 	offer(T, P, [{"characteristic", characteristics(Chars)} | Acc]);
-offer([last_modified | T], #product{last_modified = Last} = P, Acc)
+offer([last_modified | T], #product{last_modified = {Last, _}} = P, Acc)
 		when is_integer(Last) ->
 	offer(T, P, [{"lastUpdate", ocs_rest:iso8601(Last)} | Acc]);
-offer([], _P, Acc) ->
-	{struct, lists:reverse(Acc)}.
+offer([_ | T], P, Acc) ->
+	offer(T, P, Acc);
+offer([], #product{name = Name}, Acc) ->
+	H = [{"id", Name}, {"href", ?offerPath ++ Name}],
+	{struct, [H | lists:reverse(Acc)]}.
+%% @hidden
+offer([{"id", ID} | T], Acc) when is_list(ID) ->
+	offer(T, Acc);
+offer([{"href", URI} | T], Acc) when is_list(URI) ->
+	offer(T, Acc);
+offer([{"name", Name} | T], Acc) when is_list(Name) ->
+	offer(T, Acc#product{name = Name});
+offer([{"description", Description} | T], Acc) when is_list(Description) ->
+	offer(T, Acc#product{description = Description});
+offer([{"validFor", {struct, L}} | T], Acc) ->
+	Acc1 = case lists:keyfind("startDateTime", 1, L) of
+		{_, Start} ->
+			Acc#product{start_date = ocs_rest:iso8601(Start)};
+		false ->
+			Acc
+	end,
+	Acc2 = case lists:keyfind("endDateTime", 1, L) of
+		{_, End} ->
+			Acc1#product{end_date = ocs_rest:iso8601(End)};
+		false ->
+			Acc
+	end,
+	offer(T, Acc2);
+offer([{"is_bundle", Bundle} | T], Acc) when is_boolean(Bundle) ->
+	offer(T, Acc#product{is_bundle = Bundle});
+offer([{"lifecycleStatus", Status} | T], Acc) when is_list(Status) ->
+	offer(T, Acc#product{status = offer_status(Status)});
+offer([{"price", {array, Prices1}} | T], Acc) when is_list(Prices1) ->
+	Prices2 = [price(Price) || Price <- Prices1],
+	offer(T, Acc#product{price = Prices2});
+offer([{"characteristic", Chars} | T], Acc) when is_list(Chars) ->
+	offer(T, Acc#product{characteristics = characteristics(Chars)});
+offer([], Acc) ->
+	Acc.
 
 -spec price(Price) -> Price
 	when
-		Price :: #product{} | {struct, [tuple()]}.
+		Price :: #price{} | {struct, list()}.
 %% @doc CODEC for Product Offering Price.
 %% @private
-price(#price{} = P) ->
-	price(record_info(fields, price), P, []);
-price({struct, ObjectMembers}) ->
+price(#price{} = Price) ->
+	price(record_info(fields, price), Price, []);
+price({struct, ObjectMembers}) when is_list(ObjectMembers) ->
 	price(ObjectMembers, #price{}).
 %% @hidden
 price([name| T], #price{name = Name} = P, Acc) when is_list(Name) ->
@@ -1638,9 +616,10 @@ price([type | T], #price{type = usage, units = octets,
 	price(T, P, UsageType ++ Acc);
 price([type | T], #price{type = usage, units = seconds,
 		size = Size} = P, Acc) when is_integer(Size) ->
-	UsageType = [{"priceType", price_type(usage)},
-			{"unitOfMeasure", integer_to_list(Size) ++ "s"}],
-	price(T, P, UsageType ++ Acc);
+%	UsageType = [{"priceType", price_type(usage)},
+%			{"unitOfMeasure", integer_to_list(Size) ++ "s"}],
+%	price(T, P, UsageType ++ Acc);
+	price(T, P, Acc);
 price([period | T], P, Acc) ->
 	price(T, P, Acc);
 price([units | T], P, Acc) ->
@@ -1661,6 +640,8 @@ price([currency | T], P, Acc) ->
 price([alteration | T], #price{alteration = Alteration} = P, Acc)
 		when is_record(Alteration, alteration) ->
 	price(T, P, [{"alteration", alteration(Alteration)} | Acc]);
+price([_ | T], P, Acc) ->
+	price(T, P, Acc);
 price([], _P, Acc) ->
 	{struct, lists:reverse(Acc)}.
 %% @hidden
@@ -1672,23 +653,24 @@ price([{"name", Name} | T], Acc) when is_list(Name) ->
 	price(T, Acc#price{name = Name});
 price([{"description", Description} | T], Acc) when is_list(Description) ->
 	price(T, Acc#price{description = Description});
-price([{"validFor", {struct, L}} | T], Acc) ->
+price([{"validFor", {struct, L}} | T], Acc) when is_list(L) ->
 	Acc1 = case lists:keyfind("startDateTime", 1, L) of
 		{_, Start} ->
 			Acc#price{start_date = ocs_rest:iso8601(Start)};
-		undefined ->
+		false ->
 			Acc
 	end,
 	Acc2 = case lists:keyfind("endDateTime", 1, L) of
 		{_, End} ->
 			Acc1#price{end_date = ocs_rest:iso8601(End)};
-		undefined ->
+		false ->
 			Acc
 	end,
 	price(T, Acc2);
-price([{"priceType", Type} | T], Acc) ->
+price([{"priceType", Type} | T], Acc) when is_list(Type) ->
 	price(T, Acc#price{type = price_type(Type)});
-price([{"unitOfMeasure", UnitOfMeasure} | T], Acc) ->
+price([{"unitOfMeasure", UnitOfMeasure} | T], Acc)
+		when is_list(UnitOfMeasure) ->
 	case lists:last(UnitOfMeasure) of
 		$b ->
 			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
@@ -1699,7 +681,7 @@ price([{"unitOfMeasure", UnitOfMeasure} | T], Acc) ->
 		_ ->
 			price(T, Acc#price{size = list_to_integer(UnitOfMeasure)})
 	end;
-price([{"price", {struct, L}} | T], Acc) ->
+price([{"price", {struct, L}} | T], Acc) when is_list(L) ->
 	Acc1 = case lists:keyfind("taxIncludedAmount", 1, L) of
 		{_, Amount} when is_integer(Amount) ->
 			Acc#price{amount = Amount};
@@ -1713,10 +695,10 @@ price([{"price", {struct, L}} | T], Acc) ->
 			Acc1
 	end,
 	price(T, Acc2);
-price([{"recurringChargePeriod", Period} | T], Acc) ->
+price([{"recurringChargePeriod", Period} | T], Acc) when is_list(Period) ->
 	price(T, Acc#price{period = price_period(Period)});
-price([{"productOfferPriceAlteration", Alteration} | T], Acc)
-		when is_record(Alteration, alteration) ->
+price([{"productOfferPriceAlteration", {struct, L} = Alteration} | T], Acc)
+		when is_list(L) ->
 	price(T, Acc#price{alteration = alteration(Alteration)});
 price([], Acc) ->
 	Acc.
@@ -1728,7 +710,7 @@ price([], Acc) ->
 %% @private
 alteration(#alteration{} = A) ->
 	alteration(record_info(fields, alteration), A, []);
-alteration({struct, ObjectMembers}) ->
+alteration({struct, ObjectMembers}) when is_list(ObjectMembers) ->
 	alteration(ObjectMembers, #alteration{}).
 %% @hidden
 alteration([name| T], #alteration{name = Name} = A, Acc) when is_list(Name) ->
@@ -1785,6 +767,8 @@ alteration([amount | T], #alteration{amount = Amount} = A, Acc)
 	alteration(T, A, [{"price", Price} | Acc]);
 alteration([currency | T], A, Acc) ->
 	alteration(T, A, Acc);
+alteration([_ | T], A, Acc) ->
+	alteration(T, A, Acc);
 alteration([], _A, Acc) ->
 	{struct, lists:reverse(Acc)}.
 %% @hidden
@@ -1800,13 +784,13 @@ alteration([{"validFor", {struct, L}} | T], Acc) ->
 	Acc1 = case lists:keyfind("startDateTime", 1, L) of
 		{_, Start} ->
 			Acc#alteration{start_date = ocs_rest:iso8601(Start)};
-		undefined ->
+		false ->
 			Acc
 	end,
 	Acc2 = case lists:keyfind("endDateTime", 1, L) of
 		{_, End} ->
 			Acc1#alteration{end_date = ocs_rest:iso8601(End)};
-		undefined ->
+		false ->
 			Acc
 	end,
 	alteration(T, Acc2);
@@ -1870,45 +854,46 @@ query_start(Query, Filters, RangeStart, RangeEnd) ->
 			{error, 500}
 	end.
 
+%% @hidden
 query_page(PageServer, Etag, Query, Filters, Start, End) ->
 	case gen_server:call(PageServer, {Start, End}) of
 		{error, Status} ->
 			{error, Status};
-		{Events, ContentRange} ->
+		{Products, ContentRange} ->
 			try
 				case lists:keytake("sort", 1, Query) of
 					{value, {_, "name"}, Q1} ->
-						{lists:keysort(#product.name, Events), Q1};
+						{lists:keysort(#product.name, Products), Q1};
 					{value, {_, "-name"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.name, Events)), Q1};
+						{lists:reverse(lists:keysort(#product.name, Products)), Q1};
 					{value, {_, "description"}, Q1} ->
-						{lists:keysort(#product.description, Events), Q1};
+						{lists:keysort(#product.description, Products), Q1};
 					{value, {_, "-description"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.description, Events)), Q1};
+						{lists:reverse(lists:keysort(#product.description, Products)), Q1};
 					{value, {_, "licecycleStatus"}, Q1} ->
-						{lists:keysort(#product.status, Events), Q1};
+						{lists:keysort(#product.status, Products), Q1};
 					{value, {_, "-lifecycleStatus"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.status, Events)), Q1};
+						{lists:reverse(lists:keysort(#product.status, Products)), Q1};
 					{value, {_, "startDate"}, Q1} ->
-						{lists:keysort(#product.start_date, Events), Q1};
+						{lists:keysort(#product.start_date, Products), Q1};
 					{value, {_, "-startDate"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.start_date, Events)), Q1};
+						{lists:reverse(lists:keysort(#product.start_date, Products)), Q1};
 					{value, {_, "endDate"}, Q1} ->
-						{lists:keysort(#product.end_date, Events), Q1};
+						{lists:keysort(#product.end_date, Products), Q1};
 					{value, {_, "-endDate"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.end_date, Events)), Q1};
+						{lists:reverse(lists:keysort(#product.end_date, Products)), Q1};
 					{value, {_, "price"}, Q1} ->
-						{lists:keysort(#product.price, Events), Q1};
+						{lists:keysort(#product.price, Products), Q1};
 					{value, {_, "-price"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.price, Events)), Q1};
+						{lists:reverse(lists:keysort(#product.price, Products)), Q1};
 					false ->
-						{Events, Query};
+						{Products, Query};
 					_ ->
 						throw(400)
 				end
 			of
-				{SortedEvents, _NewQuery} ->
-					JsonObj = query_page1(lists:map(fun product_json/1, SortedEvents), Filters, []),
+				{SortedProducts, _NewQuery} ->
+					JsonObj = query_page1(lists:map(fun offer/1, SortedProducts), Filters, []),
 					JsonArray = {array, JsonObj},
 					Body = mochijson:encode(JsonArray),
 					Headers = [{content_type, "application/json"},
@@ -1921,42 +906,10 @@ query_page(PageServer, Etag, Query, Filters, Start, End) ->
 			end
 	end.
 %% @hidden
-query_page1([], _, Acc) ->
-	lists:reverse(Acc);
-query_page1(Json, [], Acc) ->
-	lists:reverse(Json ++ Acc);
+query_page1(Json, [], []) ->
+	Json;
 query_page1([H | T], Filters, Acc) ->
-	query_page1(T, Filters, [ocs_rest:filter(Filters, H) | Acc]).
-
-product_json(#product{} = Product) ->
-	ID = prod_id(Product),
-	Href = prod_href(Product),
-	Name = prod_name(Product),
-	Description = prod_description(Product),
-	ValidFor = prod_vf(Product),
-	IsBundle = prod_isBundle(Product),
-	Status = prod_status(Product),
-	case product_offering_price(Product) of
-		{error, StatusCode} ->
-			throw(StatusCode);
-		OfferPrice ->
-			{struct, [ID, Href, Name, Description,
-					ValidFor, IsBundle, Status, OfferPrice]}
-	end.
-
--spec etag(V1) -> V2
-	when
-		V1 :: string() | {N1, N2},
-		V2 :: {N1, N2} | string(),
-		N1 :: integer(),
-		N2 :: integer().
-%% @doc Generate a tuple with 2 integers from Etag string
-%% value or vice versa.
-%% @hidden
-etag(V) when is_list(V) ->
-	[TS, N] = string:tokens(V, "-"),
-	{list_to_integer(TS), list_to_integer(N)};
-etag(V) when is_tuple(V) ->
-	{TS, N} = V,
-	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
+	query_page1(T, Filters, [ocs_rest:filter(Filters, H) | Acc]);
+query_page1([], _, Acc) ->
+	lists:reverse(Acc).
 

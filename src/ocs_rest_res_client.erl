@@ -143,7 +143,7 @@ get_client1(Address, Filters) ->
 		{ok, #client{port = Port, identifier = Identifier,
 				protocol = Protocol, secret = Secret, last_modified = LM}} ->
 			Id = inet:ntoa(Address),
-			Etag = etag(LM),
+			Etag = ocs_rest:etag(LM),
 			RespObj1 = [{"id", Id}, {"href", "/ocs/v1/client/" ++ Id}],
 			RespObj2 = case Identifier == <<>> orelse Filters /= [] 
 					andalso not lists:member("identifier", Filters) of
@@ -214,7 +214,7 @@ post_client(RequestBody) ->
 				{"protocol", string:to_upper(atom_to_list(Protocol))}, {"secret", Secret}],
 		JsonObj  = {struct, RespObj},
 		Body = mochijson:encode(JsonObj),
-		Headers = [{location, Location}, {etag, etag(LM)}],
+		Headers = [{location, Location}, {etag, ocs_rest:etag(LM)}],
 		{ok, Headers, Body}
 	catch
 		_Error ->
@@ -235,7 +235,7 @@ patch_client(Id, undefined, CType, ReqBody) ->
 	patch_client0(Id, undefined, CType, ReqBody);
 patch_client(Id, Etag, CType, ReqBody) ->
 	try
-		Etag1 = etag(Etag), 
+		Etag1 = ocs_rest:etag(Etag), 
 		patch_client0(Id, Etag1, CType, ReqBody)
 	catch
 		_:_ ->
@@ -332,7 +332,7 @@ patch_client3(Id, Port, Protocol, NewPassword, Etag) ->
 		undefined ->
 			[];
 		_ ->
-			[{etag, etag(Etag)}]
+			[{etag, ocs_rest:etag(Etag)}]
 	end,
 	{ok, Headers, RespBody}.
 %% @hidden
@@ -348,7 +348,7 @@ patch_client4(Id, Port, Protocol, Secret, Etag) ->
 		undefined ->
 			[];
 		_ ->
-			[{etag, etag(Etag)}]
+			[{etag, ocs_rest:etag(Etag)}]
 	end,
 	{ok, Headers, RespBody}.
 
@@ -371,22 +371,6 @@ delete_client(Id) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
-
--spec etag(V1) -> V2
-	when
-		V1 :: string() | {N1, N2},
-		V2 :: {N1, N2} | string(),
-		N1 :: integer(),
-		N2 :: integer().
-%% @doc Generate a tuple with 2 integers from Etag string
-%% value or vice versa.
-%% @hidden
-etag(V) when is_list(V) ->
-	[TS, N] = string:tokens(V, "-"),
-	{list_to_integer(TS), list_to_integer(N)};
-etag(V) when is_tuple(V) ->
-	{TS, N} = V,
-	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
 
 %% @hidden
 query_start(Query, Filters, RangeStart, RangeEnd) ->

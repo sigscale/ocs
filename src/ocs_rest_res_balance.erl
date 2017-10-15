@@ -131,7 +131,7 @@ top_up1(Identity, Bucket) ->
 			{error, 404};
 		{atomic, LastMod} ->
 			Location = "/balanceManagement/v1/buckets/" ++ Identity,
-			Headers = [{location, Location}, {etag, etag(LastMod)}],
+			Headers = [{location, Location}, {etag, ocs_rest:etag(LastMod)}],
 			{ok, Headers, []};
 		{aborted, _Reason} ->
 			{error, 500}
@@ -141,22 +141,6 @@ top_up1(Identity, Bucket) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
-
--spec etag(V1) -> V2
-	when
-		V1 :: string() | {N1, N2},
-		V2 :: {N1, N2} | string(),
-		N1 :: integer(),
-		N2 :: integer().
-%% @doc Generate a tuple with 2 integers from Etag string
-%% value or vice versa.
-%% @hidden
-etag(V) when is_list(V) ->
-	[TS, N] = string:tokens(V, "-"),
-	{list_to_integer(TS), list_to_integer(N)};
-etag(V) when is_tuple(V) ->
-	{TS, N} = V,
-	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
 
 -spec accumulated_balance(Buckets) ->	AccumulatedBalance
 	when

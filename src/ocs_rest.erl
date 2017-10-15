@@ -21,7 +21,7 @@
 -module(ocs_rest).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
--export([date/1, iso8601/1]).
+-export([date/1, iso8601/1, etag/1]).
 -export([parse/1, merge_patch/2]).
 -export([parse_query/1, filter/2, range/1]).
 
@@ -40,6 +40,92 @@
 %%----------------------------------------------------------------------
 %%  The ocs_rest public API
 %%----------------------------------------------------------------------
+
+-spec date(DateTimeFormat) -> Result
+	when
+		DateTimeFormat	:: pos_integer() | tuple(),
+		Result			:: calendar:datetime() | non_neg_integer().
+%% @doc Convert iso8610 to date and time or
+%%		date and time to timeStamp.
+date(MilliSeconds) when is_integer(MilliSeconds) ->
+	Seconds = ?EPOCH + (MilliSeconds div 1000),
+	calendar:gregorian_seconds_to_datetime(Seconds);
+date(DateTime) when is_tuple(DateTime) ->
+	Seconds = calendar:datetime_to_gregorian_seconds(DateTime) - ?EPOCH,
+	Seconds * 1000.
+
+-spec iso8601(MilliSeconds) -> Result
+	when
+		MilliSeconds	:: pos_integer() | string(),
+		Result			:: string() | pos_integer().
+%% @doc Convert iso8610 to ISO 8601 format date and time.
+iso8601(MilliSeconds) when is_integer(MilliSeconds) ->
+	{{Year, Month, Day}, {Hour, Minute, Second}} = date(MilliSeconds),
+	DateFormat = "~4.10.0b-~2.10.0b-~2.10.0b",
+	TimeFormat = "T~2.10.0b:~2.10.0b:~2.10.0b.~3.10.0b",
+	Chars = io_lib:fwrite(DateFormat ++ TimeFormat,
+			[Year, Month, Day, Hour, Minute, Second, MilliSeconds rem 1000]),
+	lists:flatten(Chars);
+iso8601(ISODateTime) when is_list(ISODateTime) ->
+	case string:rchr(ISODateTime, $T) of
+		0 ->
+			iso8601(ISODateTime, []);
+		N ->
+			iso8601(lists:sublist(ISODateTime, N - 1),
+				lists:sublist(ISODateTime,  N + 1, length(ISODateTime)))
+	end.
+%% @hidden
+iso8601(Date, Time) when is_list(Date), is_list(Time) ->
+	D = iso8601_date(string:tokens(Date, ",-"), []),
+	{H, Mi, S, Ms} = iso8601_time(string:tokens(Time, ":."), []),
+	date({D, {H, Mi, S}}) + Ms.
+%% @hidden
+iso8601_date([[Y1, Y2, Y3, Y4] | T], _Acc) ->
+	Y = list_to_integer([Y1, Y2, Y3, Y4]),
+	iso8601_date(T, Y);
+iso8601_date([[M1, M2] | T], Y) when is_integer(Y) ->
+	M = list_to_integer([M1, M2]),
+	iso8601_date(T, {Y, M});
+iso8601_date([[D1, D2] | T], {Y, M}) ->
+	D = list_to_integer([D1, D2]),
+	iso8601_date(T, {Y, M, D});
+iso8601_date([], {Y, M}) ->
+	{Y, M, 1};
+iso8601_date([], {Y, M, D}) ->
+	{Y, M, D}.
+%% @hidden
+iso8601_time([H1 | T], []) ->
+	H = list_to_integer(H1),
+	iso8601_time(T, H);
+iso8601_time([M1 | T], H) when is_integer(H) ->
+	Mi = list_to_integer(M1),
+	iso8601_time(T, {H, Mi});
+iso8601_time([S1 | T], {H, Mi}) ->
+	S = list_to_integer(S1),
+	iso8601_time(T, {H, Mi, S});
+iso8601_time([], {H, Mi}) ->
+	{H, Mi, 0, 0};
+iso8601_time([Ms1 | T], {H, Mi, S}) ->
+	Ms = list_to_integer(Ms1),
+	iso8601_time(T, {H, Mi, S, Ms});
+iso8601_time([], {H, Mi, S}) ->
+	{H, Mi, S, 0};
+iso8601_time([], {H, Mi, S, Ms}) ->
+	{H, Mi, S, Ms};
+iso8601_time([], []) ->
+	{0,0,0,0}.
+
+-spec etag(Etag) -> Etag
+	when
+		Etag :: string() | {TS, N},
+		TS :: pos_integer(),
+		N :: pos_integer().
+%% @doc Map unique timestamp and HTTP ETag.
+etag({TS, N} = _Etag) when is_integer(TS), is_integer(N)->
+	integer_to_list(TS) ++ "-" ++ integer_to_list(N);
+etag(Etag) when is_list(Etag) ->
+	[TS, N] = string:tokens(Etag, "-"),
+	{list_to_integer(TS), list_to_integer(N)}.
 
 -spec parse_query(Query) -> Result
 	when
@@ -328,80 +414,6 @@ split([H | T], Acc) ->
 	split(T, [H | Acc]);
 split([], Acc) ->
 	lists:reverse(Acc).
-
--spec date(DateTimeFormat) -> Result
-	when
-		DateTimeFormat	:: pos_integer() | tuple(),
-		Result			:: calendar:datetime() | non_neg_integer().
-%% @doc Convert iso8610 to date and time or
-%%		date and time to timeStamp.
-date(MilliSeconds) when is_integer(MilliSeconds) ->
-	Seconds = ?EPOCH + (MilliSeconds div 1000),
-	calendar:gregorian_seconds_to_datetime(Seconds);
-date(DateTime) when is_tuple(DateTime) ->
-	Seconds = calendar:datetime_to_gregorian_seconds(DateTime) - ?EPOCH,
-	Seconds * 1000.
-
--spec iso8601(MilliSeconds) -> Result
-	when
-		MilliSeconds	:: pos_integer() | string(),
-		Result			:: string() | pos_integer().
-%% @doc Convert iso8610 to ISO 8601 format date and time.
-iso8601(MilliSeconds) when is_integer(MilliSeconds) ->
-	{{Year, Month, Day}, {Hour, Minute, Second}} = date(MilliSeconds),
-	DateFormat = "~4.10.0b-~2.10.0b-~2.10.0b",
-	TimeFormat = "T~2.10.0b:~2.10.0b:~2.10.0b.~3.10.0b",
-	Chars = io_lib:fwrite(DateFormat ++ TimeFormat,
-			[Year, Month, Day, Hour, Minute, Second, MilliSeconds rem 1000]),
-	lists:flatten(Chars);
-iso8601(ISODateTime) when is_list(ISODateTime) ->
-	case string:rchr(ISODateTime, $T) of
-		0 ->
-			iso8601(ISODateTime, []);
-		N ->
-			iso8601(lists:sublist(ISODateTime, N - 1),
-				lists:sublist(ISODateTime,  N + 1, length(ISODateTime)))
-	end.
-%% @hidden
-iso8601(Date, Time) when is_list(Date), is_list(Time) ->
-	D = iso8601_date(string:tokens(Date, ",-"), []),
-	{H, Mi, S, Ms} = iso8601_time(string:tokens(Time, ":."), []),
-	date({D, {H, Mi, S}}) + Ms.
-%% @hidden
-iso8601_date([[Y1, Y2, Y3, Y4] | T], _Acc) ->
-	Y = list_to_integer([Y1, Y2, Y3, Y4]),
-	iso8601_date(T, Y);
-iso8601_date([[M1, M2] | T], Y) when is_integer(Y) ->
-	M = list_to_integer([M1, M2]),
-	iso8601_date(T, {Y, M});
-iso8601_date([[D1, D2] | T], {Y, M}) ->
-	D = list_to_integer([D1, D2]),
-	iso8601_date(T, {Y, M, D});
-iso8601_date([], {Y, M}) ->
-	{Y, M, 1};
-iso8601_date([], {Y, M, D}) ->
-	{Y, M, D}.
-%% @hidden
-iso8601_time([H1 | T], []) ->
-	H = list_to_integer(H1),
-	iso8601_time(T, H);
-iso8601_time([M1 | T], H) when is_integer(H) ->
-	Mi = list_to_integer(M1),
-	iso8601_time(T, {H, Mi});
-iso8601_time([S1 | T], {H, Mi}) ->
-	S = list_to_integer(S1),
-	iso8601_time(T, {H, Mi, S});
-iso8601_time([], {H, Mi}) ->
-	{H, Mi, 0, 0};
-iso8601_time([Ms1 | T], {H, Mi, S}) ->
-	Ms = list_to_integer(Ms1),
-	iso8601_time(T, {H, Mi, S, Ms});
-iso8601_time([], {H, Mi, S}) ->
-	{H, Mi, S, 0};
-iso8601_time([], {H, Mi, S, Ms}) ->
-	{H, Mi, S, Ms};
-iso8601_time([], []) ->
-	{0,0,0,0}.
 
 parse_path(Path) ->
 	lists:map(fun is_integer_then_convert/1, string:tokens(Path, "/")).
