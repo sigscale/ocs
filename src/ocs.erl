@@ -641,21 +641,20 @@ update_attributes(Identity, Buckets, Attributes, EnabledStatus, MultiSession)
 -spec add_product(Product) -> Result
 	when
 		Product :: #product{},
-		Result :: {ok, LastModified} | {error, Reason},
-		LastModified :: {integer(), integer()},
+		Result :: {ok, #product{}} | {error, Reason},
 		Reason :: term().
 %% @doc Add a new entry in product table.
 add_product(Product) ->
 	F = fun() ->
 		TS = erlang:system_time(?MILLISECOND),
 		N = erlang:unique_integer([positive]),
-		Entry = Product#product{last_modified = {TS, N}},
-		mnesia:write(product, Entry, write),
-		{TS, N}
+		Product1 = Product#product{last_modified = {TS, N}},
+		ok = mnesia:write(product, Product1, write),
+		Product1
 	end,
 	case mnesia:transaction(F) of
-		{atomic, LastModified} ->
-			{ok, LastModified};
+		{atomic, Product2} ->
+			{ok, Product2};
 		{aborted, Reason} ->
 			{error, Reason}
 	end.

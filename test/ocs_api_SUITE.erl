@@ -252,7 +252,7 @@ add_product(_Config) ->
 			description = "Medium use residential subscription.",
 			start_date = SD, is_bundle = false,
 			status = active, price = Prices},
-	{ok, _Etag} = ocs:add_product(Product).
+	{ok, _Product1} = ocs:add_product(Product).
 
 find_product() ->
 	[{userdata, [{doc, "Find a product offering."}]}].
@@ -277,7 +277,7 @@ find_product(_Config) ->
 	Product = #product{name = ProductName, description = "PDD1",
 			start_date = SD, end_date = ED, is_bundle = false,
 			status = active, price = Prices},
-	{ok, _Etag} = ocs:add_product(Product),
+	{ok, _Product1} = ocs:add_product(Product),
 	{ok, #product{name = ProductName}} = ocs:find_product(ProductName).
 
 get_products() ->
@@ -298,7 +298,7 @@ get_products(_Config) ->
 		Prices = [Price1, Price2],
 		Product = #product{name = ProductName, is_bundle = false,
 				status = active, price = Prices},
-		{ok, _Etag} =  ocs:add_product(Product),
+		{ok, _Product1} =  ocs:add_product(Product),
 		F(F, N - 1, [ProductName | Acc])
 	end,
 	NewProducts = F1(F1, 3, []),
@@ -317,7 +317,7 @@ delete_product(_Config) ->
 	Product = #product{name = ProductName,
 			description = "Monthly subscription for mobile internet",
 			is_bundle = false, status = active, price = Prices},
-	{ok, _Etag} = ocs:add_product(Product),
+	{ok, _Product1} = ocs:add_product(Product),
 	ok = ocs:delete_product(ProductName),
 	{error, not_found} = ocs:find_product(ProductName).
 
