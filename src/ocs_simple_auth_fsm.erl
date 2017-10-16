@@ -43,6 +43,8 @@
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include("../include/diameter_gen_nas_application_rfc7155.hrl").
 
+-define(CC_APPLICATION_ID, 4).
+
 -record(statedata,
 		{protocol :: radius | diameter,
 		server_address :: undefined | inet:ip_address(),
@@ -56,13 +58,16 @@
 		radius_id :: undefined | byte(),
 		req_auth :: undefined | binary(),
 		req_attr :: undefined | radius_attributes:attributes(),
+		res_attr :: undefined | radius_attributes:attributes(),
 		subscriber :: undefined | string(),
 		multisession :: undefined | boolean(),
 		app_id :: undefined | non_neg_integer(),
 		auth_request_type :: undefined | 1..3,
 		origin_host :: undefined | string(),
 		origin_realm :: undefined | string(),
-		password :: undefined | string(),
+		dest_host :: undefined | string(),
+		dest_realm :: undefined | string(),
+		password :: undefined | string() | binary(),
 		diameter_port_server :: undefined | pid(),
 		request :: undefined | #diameter_nas_app_AAR{}}).
 
@@ -91,7 +96,7 @@
 %% @private
 %%
 init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
-		SessId, AppId, AuthType, OHost, ORealm, Request, Options] = _Args) ->
+		SessId, AppId, AuthType, OHost, ORealm, Request, DHost, DRealm, Options] = _Args) ->
 	[Subscriber, Password] = Options,
 	case global:whereis_name({ocs_diameter_auth, ServerAddress, ServerPort}) of
 		undefined ->
@@ -100,7 +105,8 @@ init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 			process_flag(trap_exit, true),
 			StateData = #statedata{protocol = diameter, session_id = SessId,
 					app_id = AppId, auth_request_type = AuthType, origin_host = OHost,
-					origin_realm = ORealm, subscriber = Subscriber, password = Password,
+					origin_realm = ORealm, dest_host = DHost, dest_realm = DRealm,
+					subscriber = Subscriber, password = Password,
 					server_address = ServerAddress, server_port = ServerPort,
 					client_address = ClientAddress, client_port = ClientPort,
 					diameter_port_server = PortServer, request = Request},
@@ -131,124 +137,167 @@ init([radius, ServerAddress, ServerPort, ClientAddress, ClientPort, RadiusFsm,
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-request(timeout, #statedata{protocol = radius, req_attr = Attributes,
-		session_id = SessionID} = StateData) ->
-	case radius_attributes:find(?UserName, Attributes) of
-		{ok, Subscriber} ->
-			request1(StateData#statedata{subscriber = Subscriber});
-		{error, not_found} ->
+%% @todo handle muliti session for diameter
+request(timeout, #statedata{protocol = radius} = StateData) ->
+	handle_radius(StateData);
+request(timeout, #statedata{protocol = diameter} = StateData) ->
+	handle_diameter(StateData).
+
+%% @hidden
+handle_radius(#statedata{req_attr = Attributes, req_auth = Authenticator,
+		session_id = SessionID, shared_secret = Secret} = StateData) ->
+	try
+		Subscriber = radius_attributes:fetch(?UserName, Attributes),
+		Hidden = radius_attributes:fetch(?UserPassword, Attributes),
+		Password = radius_attributes:unhide(Secret, Authenticator, Hidden),
+		NewStateData = StateData#statedata{subscriber = Subscriber,
+				password = list_to_binary(Password)},
+		handle_radius1(NewStateData)
+	catch
+		_:_ ->
 			response(?AccessReject, [], StateData),
 			{stop, {shutdown, SessionID}, StateData}
+	end.
+%% @hidden
+handle_radius1(#statedata{subscriber = SubscriberId, password = <<>>} = StateData) ->
+	case ocs:authorize(ocs:normalize(SubscriberId), []) of
+		{ok, #subscriber{password = <<>>,
+				attributes = Attributes} = Subscriber} ->
+			NewStateData = StateData#statedata{res_attr = Attributes},
+			handle_radius2(Subscriber, NewStateData);
+		{ok, #subscriber{attributes = Attributes, password = PSK}
+				= Subscriber} when is_binary(PSK) ->
+			VendorSpecific = {?Mikrotik, ?MikrotikWirelessPsk, binary_to_list(PSK)},
+			ResponseAttributes = radius_attributes:store(?VendorSpecific,
+					VendorSpecific, Attributes),
+			NewStateData = StateData#statedata{res_attr = ResponseAttributes},
+			handle_radius2(Subscriber, NewStateData);
+		{error, Reason} ->
+			reject_radius(Reason, StateData)
 	end;
-request(timeout, #statedata{protocol = diameter, session_id = SessionID,
-		server_address = ServerAddress, server_port = ServerPort,
-		subscriber = Subscriber, password = Password, app_id = AppId,
+handle_radius1(#statedata{subscriber = SubscriberId, password = Password} = StateData) ->
+	case ocs:authorize(ocs:normalize(SubscriberId), Password) of
+		{ok, #subscriber{attributes = Attributes} = Subscriber} ->
+			NewStateData = StateData#statedata{res_attr = Attributes},
+			handle_radius2(Subscriber, NewStateData);
+		{error, Reason} ->
+			reject_radius(Reason, StateData)
+	end.
+%% @hidden
+handle_radius2(#subscriber{multisession = true}, StateData) ->
+	NewStateData = StateData#statedata{multisession = true},
+	handle_radius3(NewStateData);
+handle_radius2(#subscriber{session_attributes = [], multisession = MultiSession}, StateData) ->
+	NewStateData = StateData#statedata{multisession = MultiSession},
+	handle_radius3(NewStateData);
+handle_radius2(#subscriber{multisession = false, session_attributes = SessionAttributes}, StateData) ->
+	NewStateData = StateData#statedata{multisession = false},
+	start_disconnect(SessionAttributes, NewStateData),
+	handle_radius3(NewStateData).
+%% @hidden
+handle_radius3(#statedata{subscriber = SubscriberId, multisession = MultiSession,
+		req_attr = RequestAttributes, res_attr = ResponseAttributes,
+		session_id = SessionID} = StateData) ->
+	F = fun() ->
+		case mnesia:read(subscriber, list_to_binary(SubscriberId), write) of
+			[#subscriber{session_attributes = CurrentAttributes} = Subscriber] ->
+				SessionAttributes = extract_session_attributes(RequestAttributes),
+				Entry = case MultiSession of
+					true ->
+						NewSessionAttributes = [SessionAttributes | CurrentAttributes],
+						Subscriber#subscriber{session_attributes = NewSessionAttributes};
+					false ->
+						Subscriber#subscriber{session_attributes = [SessionAttributes]}
+				end,
+				mnesia:write(Entry);
+			[] ->
+				throw(not_found)
+		end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, ok} ->
+			response(?AccessAccept, ResponseAttributes, StateData),
+			{stop, {shutdown, SessionID}, StateData};
+		{aborted, {throw, not_found}} ->
+			reject_radius(not_found, StateData);
+		{aborted, Reason} ->
+			reject_radius(Reason, StateData)
+	end.
+
+%% @hidden
+reject_radius(out_of_credit, #statedata{session_id = SessionID} = StateData) ->
+	RejectAttributes = [{?ReplyMessage, "Out of Credit"}],
+	response(?AccessReject, RejectAttributes, StateData),
+	{stop, {shutdown, SessionID}, StateData};
+reject_radius(disabled, #statedata{session_id = SessionID} = StateData) ->
+	RejectAttributes = [{?ReplyMessage, "Subscriber Disabled"}],
+	response(?AccessReject, RejectAttributes, StateData),
+	{stop, {shutdown, SessionID}, StateData};
+reject_radius(bad_password, #statedata{session_id = SessionID} = StateData) ->
+	RejectAttributes = [{?ReplyMessage, "Bad Password"}],
+	response(?AccessReject, RejectAttributes, StateData),
+	{stop, {shutdown, SessionID}, StateData};
+reject_radius(not_found, #statedata{session_id = SessionID} = StateData) ->
+	RejectAttributes = [{?ReplyMessage, "Unknown Username"}],
+	response(?AccessReject, RejectAttributes, StateData),
+	{stop, {shutdown, SessionID}, StateData};
+reject_radius(_, #statedata{session_id = SessionID} = StateData) ->
+	RejectAttributes = [{?ReplyMessage, "Unable to comply"}],
+	response(?AccessReject, RejectAttributes, StateData),
+	{stop, {shutdown, SessionID}, StateData}.
+
+%% @hidden
+handle_diameter(#statedata{protocol = diameter,
+		subscriber = SubscriberId, password = Password} = StateData) ->
+	case ocs:authorize(SubscriberId, Password) of
+		{ok, Subscriber} ->
+			handle_diameter1(Subscriber, StateData);
+		{error, Reason} ->
+			reject_diameter(Reason, StateData)
+	end.
+%% @hidden
+handle_diameter1(#subscriber{multisession = true}, StateData) ->
+	NewStateData = StateData#statedata{multisession = true},
+	handle_diameter2(NewStateData);
+handle_diameter1(#subscriber{session_attributes = [], multisession = MultiSession}, StateData) ->
+	NewStateData = StateData#statedata{multisession = MultiSession},
+	handle_diameter2(NewStateData);
+handle_diameter1(#subscriber{session_attributes = SessionAttributes,
+		multisession = false}, StateData) ->
+	NewStateData = StateData#statedata{multisession = false},
+	start_disconnect(SessionAttributes, NewStateData),
+	handle_diameter2(NewStateData).
+%% @hidden
+handle_diameter2(#statedata{protocol = diameter, session_id = SessionID,
+		server_address = ServerAddress, server_port = ServerPort, app_id = AppId,
 		auth_request_type = Type, origin_host = OHost, origin_realm = ORealm,
 		diameter_port_server = PortServer, client_address = ClientAddress,
 		client_port = ClientPort, request = Request} = StateData) ->
 	Server = {ServerAddress, ServerPort},
 	Client= {ClientAddress, ClientPort},
-	case ocs:authorize(Subscriber, Password) of
-		{ok, _, _Attr} ->
-			Answer = #diameter_nas_app_AAA{'Session-Id' = SessionID,
-					'Auth-Application-Id' = AppId, 'Auth-Request-Type' = Type,
-					'Origin-Host' = OHost, 'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-					'Origin-Realm' = ORealm },
-			ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
-			gen_server:cast(PortServer, {self(), Answer}),
-			{stop, {shutdown, SessionID}, StateData};
-		{error, _Reason} ->
-			Answer = #diameter_nas_app_AAA{'Session-Id' = SessionID,
-					'Auth-Application-Id' = AppId, 'Auth-Request-Type' = Type,
-					'Origin-Host' = OHost,
-					'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
-					'Origin-Realm' = ORealm },
-			ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
-			gen_server:cast(PortServer, {self(), Answer}),
-			{stop, {shutdown, SessionID}, StateData}
-	end.
+	Answer = #diameter_nas_app_AAA{'Session-Id' = SessionID,
+			'Auth-Application-Id' = AppId, 'Auth-Request-Type' = Type,
+			'Origin-Host' = OHost, 'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Origin-Realm' = ORealm},
+	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
+	gen_server:cast(PortServer, {self(), Answer}),
+	{stop, {shutdown, SessionID}, StateData}.
+
 %% @hidden
-request1(#statedata{req_attr = Attributes, req_auth = Authenticator,
-		shared_secret = Secret, session_id = SessionID} = StateData) ->
-	case radius_attributes:find(?UserPassword, Attributes) of
-		{ok, Hidden} ->
-			Password = radius_attributes:unhide(Secret, Authenticator, Hidden),
-			NewStateData = StateData#statedata{password = Password},
-			request2(NewStateData);
-		{error, not_found} ->
-			response(?AccessReject, [], StateData),
-			{stop, {shutdown, SessionID}, StateData}
-	end.
-%% @hidden
-request2(#statedata{subscriber = Subscriber, password = Password} = StateData) ->
-	case existing_sessions(Subscriber) of
-		false ->
-			request3(list_to_binary(Password), StateData);
-		{true, false, [ExistingSessionAtt]} ->
-			NewStateData = StateData#statedata{multisession = false},
-			case pg2:get_closest_pid(ocs_radius_acct_port_sup) of
-				{error, Reason} ->
-					request5(Reason, NewStateData);
-				DiscFsmSup ->
-					start_disconnect(DiscFsmSup, ExistingSessionAtt, NewStateData)
-			end;
-		{true, true, _ExistingSessionAtt} ->
-			NewStateData = StateData#statedata{multisession = true},
-			request3(list_to_binary(Password), NewStateData);
-		{error, _Reason} ->
-			request5(not_found, StateData)
-	end.
-%% @hidden
-request3(<<>>, #statedata{subscriber = Subscriber} = StateData) ->
-	case ocs:authorize(ocs:normalize(Subscriber), []) of
-		{ok, <<>>, Attributes} ->
-			request4(?AccessAccept, Attributes, StateData);
-		{ok, PSK, Attributes} when is_binary(PSK) ->
-			VendorSpecific = {?Mikrotik, ?MikrotikWirelessPsk, binary_to_list(PSK)},
-			ResponseAttributes = radius_attributes:store(?VendorSpecific,
-					VendorSpecific, Attributes),
-			request4(?AccessAccept, ResponseAttributes, StateData);
-		{error, Reason} ->
-			request5(Reason, StateData)
-	end;
-request3(Password, #statedata{subscriber = Subscriber} = StateData) ->
-	case ocs:authorize(Subscriber, Password) of
-		{ok, _, ResponseAttributes} ->
-			request4(?AccessAccept, ResponseAttributes, StateData);
-		{error, Reason} ->
-			request5(Reason, StateData)
-	end.
-%% @hidden
-request4(RadiusPacketType, ResponseAttributes, #statedata{session_id = SessionID,
-		req_attr = Attributes, subscriber = Subscriber,
-		multisession = MultiSessions} = StateData) ->
-	case add_session_attributes(Subscriber, Attributes, MultiSessions) of
-		ok ->
-			response(RadiusPacketType, ResponseAttributes, StateData),
-			{stop, {shutdown, SessionID}, StateData};
-		{error, Reason} ->
-			request5(Reason, StateData)
-	end.
-%% @hidden
-request5(out_of_credit, #statedata{session_id = SessionID} = StateData) ->
-	RejectAttributes = [{?ReplyMessage, "Out of Credit"}],
-	response(?AccessReject, RejectAttributes, StateData),
-	{stop, {shutdown, SessionID}, StateData};
-request5(disabled, #statedata{session_id = SessionID} = StateData) ->
-	RejectAttributes = [{?ReplyMessage, "Subscriber Disabled"}],
-	response(?AccessReject, RejectAttributes, StateData),
-	{stop, {shutdown, SessionID}, StateData};
-request5(bad_password, #statedata{session_id = SessionID} = StateData) ->
-	RejectAttributes = [{?ReplyMessage, "Bad Password"}],
-	response(?AccessReject, RejectAttributes, StateData),
-	{stop, {shutdown, SessionID}, StateData};
-request5(not_found, #statedata{session_id = SessionID} = StateData) ->
-	RejectAttributes = [{?ReplyMessage, "Unknown Username"}],
-	response(?AccessReject, RejectAttributes, StateData),
-	{stop, {shutdown, SessionID}, StateData};
-request5(_, #statedata{session_id = SessionID} = StateData) ->
-	RejectAttributes = [{?ReplyMessage, "Unable to comply"}],
-	response(?AccessReject, RejectAttributes, StateData),
+reject_diameter(_Reason, #statedata{session_id = SessionID, app_id = AppId,
+		auth_request_type = Type, origin_host = OHost, origin_realm = ORealm,
+		server_address = ServerAddress, server_port = ServerPort,
+		diameter_port_server = PortServer, client_address = ClientAddress,
+		client_port = ClientPort, request = Request} = StateData) ->
+	Server = {ServerAddress, ServerPort},
+	Client= {ClientAddress, ClientPort},
+	Answer = #diameter_nas_app_AAA{'Session-Id' = SessionID,
+			'Auth-Application-Id' = AppId, 'Auth-Request-Type' = Type,
+			'Origin-Host' = OHost,
+			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
+			'Origin-Realm' = ORealm },
+	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
+	gen_server:cast(PortServer, {self(), Answer}),
 	{stop, {shutdown, SessionID}, StateData}.
 
 -spec handle_event(Event, StateName, StateData) -> Result
@@ -309,9 +358,8 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 %% @see //stdlib/gen_fsm:handle_info/3
 %% @private
 %%
-handle_info({'EXIT', _Fsm, {shutdown, _SessionID}}, _StateName,
-		#statedata{password = Password} = StateData) ->
-	request3(list_to_binary(Password), StateData).
+handle_info(_, StateName, StateData) ->
+	{next_state, StateName, StateData}.
 
 -spec terminate(Reason, StateName, StateData) -> any()
 	when
@@ -380,66 +428,6 @@ response(RadiusCode, ResponseAttributes,
 			{ClientAddress, ClientPort}, Type, RequestAttributes, AttributeList2),
 	radius:response(RadiusFsm, {response, ResponsePacket}).
 
--spec existing_sessions(Subscriber) -> Result
-	when
-		Subscriber :: string() | binary(),
-		Result :: boolean() | {boolean(), MultiSessionStatus, SessionAttributes}
-				| {error, Reason},
-		MultiSessionStatus :: boolean(),
-		SessionAttributes :: [radius_attributes:attributes()],
-		Reason :: term().
-%% @doc Checks for `Subscriber's existing sessions on OCS. Only if the
-%% `Subscriber' is authenticatable, returns
-%%  {true, `MultiSessionStatus', `SessionAttributes'}.
-%% @hidden
-existing_sessions(Subscriber) ->
-	case ocs:find_subscriber(Subscriber) of
-		{ok, #subscriber{session_attributes = []}} ->
-			false;
-		{ok, #subscriber{session_attributes = SessionAttr, enabled = true,
-				buckets = Buckets, multisession = MultiSessionStatus}} ->
-			case get_balance(Buckets) of
-				Balance when Balance > 0 ->
-					{true, MultiSessionStatus, SessionAttr};
-				Balance when Balance == 0; Balance < 0 ->
-					{error, out_of_credit}
-			end;
-		{ok, #subscriber{enabled = false}} ->
-			{error, disabled};
-		{error, _Reason} ->
-			{error, not_found}
-	end.
-
--spec add_session_attributes(Subscriber, Attributes, MultiSessionStatus) -> Result
-	when
-		Subscriber :: string() | binary(),
-		Attributes :: radius_attributes:attributes(),
-		MultiSessionStatus :: undefined | boolean(),
-		Result :: ok | {error, term()}.
-%% @doc Extract session related attributes from `Attributes' and append
-%% to `Subscriber's existing session attribute list.
-%% @hidden
-add_session_attributes(Subscriber, Attributes, MultiSessionStatus) ->
-	NewSessionAttrs = extract_session_attributes(Attributes),
-	{ok, #subscriber{session_attributes = CurrentSessionList} = S}
-			= ocs:find_subscriber(Subscriber),
-	NewRecord = case MultiSessionStatus of
-		false ->
-			S#subscriber{session_attributes = [NewSessionAttrs]};
-		_ ->
-			NewSessionList = [NewSessionAttrs | CurrentSessionList],
-			S#subscriber{session_attributes = NewSessionList}
-	end,
-	F = fun() ->
-		mnesia:write(NewRecord)
-	end,
-	case mnesia:transaction(F) of
-		{aborted, Reason} ->
-			{error, Reason};
-		{atomic, _} ->
-			ok
-	end.
-
 -spec extract_session_attributes(Attributes) -> SessionAttributes
 	when
 		Attributes :: radius_attributes:attributes(),
@@ -460,67 +448,77 @@ extract_session_attributes(Attributes) ->
 	end,
 	lists:filter(F, Attributes).
 
--spec start_disconnect(DiscFsmSup, ExistingSessionAtt, StateData) -> Result
-	when
-		DiscFsmSup :: pid(),
-		ExistingSessionAtt :: radius_attributes:attributes(),
-		StateData :: statedata(),
-		Result :: term().
-%% @doc Start a disconnect_fsm worker.
-start_disconnect(DiscFsmSup, ExistingSessionAtt, #statedata{client_address =
-		Address} = StateData) ->
-	try
-			NAS = case {radius_attributes:find(?NasIpAddress, ExistingSessionAtt),
-								radius_attributes:find(?NasIdentifier)} of
-				{{_, IP}, {error, _}} ->
-					IP;
-				{_, {ok, ID}} ->
-					ID
-			end,
-			{ok, #client{port = ListenPort, protocol = radius, secret = Secret}}
-					= ocs:find_client(Address),
-			Subscriber = case radius_attributes:find(?UserName, ExistingSessionAtt) of
-				{ok, Username} ->
-					Username;
-				{error, not_found} ->
-					undefined
-			end,
-			AcctSessionId = case radius_attributes:find(?AcctSessionId, ExistingSessionAtt) of
-				{ok, ActSesId} ->
-					ActSesId;
-				{error, not_found} ->
-					undefined
-			end,
-			DiscArgs = [Address, NAS, Subscriber, AcctSessionId, Secret,
-					ListenPort, ExistingSessionAtt, 1],
-			StartArgs = [DiscArgs, []],
-			case supervisor:start_child(DiscFsmSup, StartArgs) of
-				{ok, DiscFsm} ->
-					link(DiscFsm),
-					{next_state, request, StateData};
-				{error, Reason} ->
-					error_logger:error_report(["Failed to initiate session disconnect function",
-							{module, ?MODULE}, {subscriber, Subscriber}, {nas, NAS},
-							{address, Address}, {session, AcctSessionId}, {error, Reason}]),
-					{next_state, request, StateData}
-			end
-	catch
-		_: Reason1 ->
-			request5(Reason1, StateData)
-	end.
-
--spec get_balance(Buckets) ->
-		Balance when
-	Buckets :: [#bucket{}],
-	Balance :: integer().
-%% get the availabel balance form buckets
-get_balance([]) ->
-	0;
-get_balance(Buckets) ->
-	get_balance1(Buckets, 0).
 %% @hidden
-get_balance1([], Balance) ->
-	Balance;
-get_balance1([#bucket{remain_amount = RemAmnt}
-		| Tail], Balance) ->
-	get_balance1(Tail, RemAmnt + Balance).
+start_disconnect([SessionAttributes], #statedata{protocol = radius,
+		subscriber = SubscriberId, client_address = Address, client_port = ListenPort,
+		shared_secret = Secret, session_id = SessionID}) ->
+	case pg2:get_closest_pid(ocs_radius_acct_port_sup) of
+		{error, Reason} ->
+			error_logger:error_report(["Failed to initiate session disconnect function",
+					{module, ?MODULE}, {subscriber, SubscriberId}, {address, Address},
+					{session, SessionID}, {error, Reason}]);
+		DiscSup ->
+			try
+				NAS = case {radius_attributes:find(?NasIpAddress, SessionAttributes),
+							radius_attributes:find(?NasIdentifier, SessionAttributes)} of
+					{{_, IP}, {error, _}} ->
+						IP;
+					{_, {ok, ID}} ->
+						ID
+				end,
+				AcctSessionID = case radius_attributes:find(?AcctSessionId, SessionAttributes) of
+					{ok, ASI} ->
+						ASI;
+					{error, _} ->
+						undefined
+				end,
+				DiscArgs = [Address, NAS, SubscriberId, AcctSessionID, Secret,
+						ListenPort, SessionAttributes, 1],
+				StartArgs = [DiscArgs, []],
+				case supervisor:start_child(DiscSup, StartArgs) of
+					{ok, _DiscFsm} ->
+						ok;
+					{error, Reason} ->
+						error_logger:error_report(["Failed to initiate session disconnect function",
+								{module, ?MODULE}, {subscriber, SubscriberId}, {nas, NAS},
+								{address, Address}, {session, SessionID}, {error, Reason}])
+				end
+			catch
+				_:R ->
+					error_logger:error_report(["Failed to initiate session disconnect function",
+							{module, ?MODULE}, {subscriber, SubscriberId}, {address, Address},
+							{session, SessionID}, {error, R}])
+			end
+	end;
+start_disconnect(_, #statedata{protocol = diameter, session_id = SessionID,
+		origin_host = OHost, origin_realm = ORealm, dest_host = DHost, dest_realm = DRealm,
+		subscriber = SubscriberId}) ->
+	case pg2:get_closest_pid(ocs_diamter_acct_port_sup) of
+		{error, Reason} ->
+			error_logger:error_report(["Failed to initiate session disconnect function",
+					{module, ?MODULE}, {subscriber, SubscriberId}, {origin_host, OHost},
+					{origin_realm, ORealm}, {session, SessionID}, {error, Reason}]);
+		DiscSup ->
+			try
+				Svc = ocs_diameter_acct_service,
+				Alias = ocs_diameter_base_application,
+				AppId = ?CC_APPLICATION_ID,
+				DiscArgs = [Svc, Alias, SessionID, OHost, DHost, ORealm, DRealm, AppId],
+				StartArgs = [DiscArgs, []],
+				case supervisor:start_child(DiscSup, StartArgs) of
+					{ok, _DiscFsm} ->
+						ok;
+					{error, Reason} ->
+						error_logger:error_report(["Failed to initiate session disconnect function",
+								{module, ?MODULE}, {subscriber, SubscriberId}, {origin_host, OHost},
+								{origin_realm, ORealm}, {session, SessionID}, {error, Reason}])
+				end
+			catch
+				_:R ->
+				error_logger:error_report(["Failed to initiate session disconnect function",
+						{module, ?MODULE}, {subscriber, SubscriberId}, {origin_host, OHost},
+						{origin_realm, ORealm}, {session, SessionID}, {error, R}])
+			end
+	end;
+start_disconnect(_, _) ->
+	ok.

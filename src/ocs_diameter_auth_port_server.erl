@@ -241,22 +241,22 @@ code_change(_OldVsn, State, _Extra) ->
 %% @hidden
 request(Caps, Address, Port, none, Request, CbProc, State)
 		when is_record(Request, diameter_nas_app_AAR) ->
-	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
-	request1(none, Address, Port, OHost, ORealm, Request, CbProc, State);
+	#diameter_caps{origin_host = {OHost,DHost}, origin_realm = {ORealm,DRealm}} = Caps,
+	request1(none, Address, Port, OHost, ORealm, DHost, DRealm, Request, CbProc, State);
 request(Caps, Address, Port, {eap, <<_:32, ?Identity, Identity/binary>>},
 		Request, CbProc, State) when is_record(Request, diameter_eap_app_DER) ->
-	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
-	request1({identity, Identity}, Address, Port, OHost, ORealm, Request,
-			CbProc, State);
+	#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}} = Caps,
+	request1({identity, Identity}, Address, Port, OHost, ORealm, DHost,
+			DRealm, Request, CbProc, State);
 request(Caps, Address, Port, {eap, <<_, EapId, _:16, ?LegacyNak, Data/binary>>},
 		Request, CbProc, State) when is_record(Request, diameter_eap_app_DER) ->
-	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
-	request1({legacy_nak, EapId, Data}, Address, Port, OHost, ORealm, Request,
-			CbProc, State);
+	#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}} = Caps,
+	request1({legacy_nak, EapId, Data}, Address, Port, OHost, ORealm, DHost,
+			DRealm, Request, CbProc, State);
 request(Caps, Address, Port, Eap, Request, CbProc, State)
 		when is_record(Request, diameter_eap_app_DER) ->
-	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
-	request1(Eap, Address, Port, OHost, ORealm, Request, CbProc, State);
+	#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}} = Caps,
+	request1(Eap, Address, Port, OHost, ORealm, DHost, DRealm, Request, CbProc, State);
 request(Caps, _Address, _Port, none, Request, _CbProc, State)
 		when is_record(Request, diameter_nas_app_STR) ->
 	#diameter_caps{origin_host = {OHost,_}, origin_realm = {ORealm,_}} = Caps,
@@ -287,7 +287,7 @@ request(Caps, _Address, _Port, none, Request, _CbProc, State)
 			{reply, Answer, State}
 	end.
 %% @hidden
-request1(EapType, Address, Port, OHost, ORealm, Request, CbProc,
+request1(EapType, Address, Port, OHost, ORealm, DHost, DRealm, Request, CbProc,
 		#state{handlers = Handlers, method_prefer = MethodPrefer,
 		method_order = MethodOrder, cb_fsms = FsmHandler} = State) ->
 	{SessionId, AuthType} = get_attibutes(Request),
@@ -298,7 +298,7 @@ request1(EapType, Address, Port, OHost, ORealm, Request, CbProc,
 					{_, _Identity} when MethodPrefer == pwd ->
 						PwdSup = State#state.pwd_sup,
 						{_Fsm, NewState} = start_fsm(PwdSup, Address, Port, 5, SessionId,
-								AuthType, OHost, ORealm, [], CbProc, Request, State),
+								AuthType, OHost, ORealm, DHost, DRealm, [], CbProc, Request, State),
 						{noreply, NewState};
 					none ->
 						#diameter_nas_app_AAR{'User-Name' = [UserName],
@@ -308,7 +308,7 @@ request1(EapType, Address, Port, OHost, ORealm, Request, CbProc,
 							{UserName, Password} when (UserName /= undefined andalso
 									Password /= undefined) ->
 								{_Fsm, NewState} = start_fsm(SimpleAuthSup, Address, Port, 1,
-										SessionId, AuthType, OHost, ORealm, [UserName, Password],
+										SessionId, AuthType, OHost, ORealm, DHost, DRealm, [UserName, Password],
 										CbProc, Request, State),
 								{noreply, NewState};
 							_ ->
@@ -330,7 +330,7 @@ request1(EapType, Address, Port, OHost, ORealm, Request, CbProc,
 								NewEapMessage = ocs_eap_codec:eap_packet(NewEapPacket),
 								NewRequest = Request#diameter_eap_app_DER{'EAP-Payload' = NewEapMessage},
 								{_NewFsm, NewState} = start_fsm(Sup, Address, Port, 5,
-										SessionId, AuthType, OHost, ORealm, [], CbProc,
+										SessionId, AuthType, OHost, ORealm, DHost, DRealm, [], CbProc,
 										NewRequest, State),
 								{noreply, NewState};
 							{error, none} ->
@@ -366,7 +366,7 @@ request1(EapType, Address, Port, OHost, ORealm, Request, CbProc,
 
 %% @hidden
 -spec start_fsm(AuthSup, ClientAddress, ClientPort, AppId, SessionId,
-		AuthRequestType, OHost, ORealm, Options, CbProc, Request, State) -> Result
+		AuthRequestType, OHost, ORealm, DHost, DRealm, Options, CbProc, Request, State) -> Result
 	when
 		AuthSup :: pid(),
 		ClientAddress :: inet:ip_address(),
@@ -376,6 +376,8 @@ request1(EapType, Address, Port, OHost, ORealm, Request, CbProc,
 		AuthRequestType :: 1..3,
 		OHost :: string(),
 		ORealm :: string(),
+		DHost :: string(),
+		DRealm :: string(),
 		Options :: list(),
 		CbProc :: {pid(), term()},
 		Request :: #diameter_nas_app_AAR{} | #diameter_eap_app_DER{},
@@ -383,17 +385,17 @@ request1(EapType, Address, Port, OHost, ORealm, Request, CbProc,
 		Result :: {AuthFsm, State},
 		AuthFsm :: undefined | pid().
 start_fsm(AuthSup, ClientAddress, ClientPort, AppId, SessId, Type, OHost,
-		ORealm, Options, CbProc, Request, #state{address = ServerAddress,
+		ORealm, DHost, DRealm, Options, CbProc, Request, #state{address = ServerAddress,
 		port = ServerPort, ttls_sup = AuthSup} = State) ->
 	StartArgs = [diameter, ServerAddress, ServerPort, ClientAddress,
-			ClientPort, SessId, AppId, Type, OHost, ORealm, Request, Options],
+			ClientPort, SessId, AppId, Type, OHost, ORealm, DHost, DRealm, Request, Options],
 	ChildSpec = [StartArgs],
 	start_fsm1(AuthSup, ChildSpec, SessId, CbProc, State);
 start_fsm(AuthSup, ClientAddress, ClientPort, AppId, SessId, Type, OHost,
-		ORealm, Options, CbProc, Request, #state{address = ServerAddress,
+		ORealm, DHost, DRealm, Options, CbProc, Request, #state{address = ServerAddress,
 		port = ServerPort} = State) ->
 	StartArgs = [diameter, ServerAddress, ServerPort, ClientAddress,
-			ClientPort, SessId, AppId, Type, OHost, ORealm, Request, Options],
+			ClientPort, SessId, AppId, Type, OHost, ORealm, DHost, DRealm,  Request, Options],
 	ChildSpec = [StartArgs, []],
 	start_fsm1(AuthSup, ChildSpec, SessId, CbProc, State).
 %% @hidden

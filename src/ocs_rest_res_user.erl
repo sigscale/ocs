@@ -25,7 +25,6 @@
 		get_user/2, get_users/2, post_user/1, put_user/3, patch_user/4,
 		delete_user/1]).
 
--include_lib("radius/include/radius.hrl").
 -include_lib("inets/include/mod_auth.hrl").
 -include("ocs.hrl").
 
@@ -150,7 +149,7 @@ get_user(Id, [] = _Query, _Filters) ->
 					{"characteristic", {array, Characteristic2}}]},
 			Headers1 = case lists:keyfind(last_modified, 1, UserData) of
 				{_, LastModified} ->
-					[{etag, etag(LastModified)}];
+					[{etag, ocs_rest:etag(LastModified)}];
 				false ->
 					[]
 			end,
@@ -197,7 +196,7 @@ post_user(RequestBody) ->
 				RespObj = [{"id", ID}, {"href", Location}, {"characteristic", Char}],
 				JsonObj  = {struct, RespObj},
 				Body = mochijson:encode(JsonObj),
-				Headers = [{location, Location}, {etag, etag(LastModified)}],
+				Headers = [{location, Location}, {etag, ocs_rest:etag(LastModified)}],
 				{ok, Headers, Body};
 			{error, _Reason} ->
 				{error, 400}
@@ -240,7 +239,7 @@ put_user(ID, Etag, RequestBody) ->
 	end.
 %% @hidden
 put_user1(Id, Password, Locale, Etag) when is_list(Etag) ->
-	put_user1(Id, Password, Locale, etag(Etag));
+	put_user1(Id, Password, Locale, ocs_rest:etag(Etag));
 put_user1(Id, Password, Locale, Etag) ->
 	try
 		case ocs:get_user(Id) of
@@ -269,7 +268,7 @@ put_user1(Id, Password, Locale, Etag) ->
 	end.
 %% @hidden
 put_user2(ID, Password, Locale, LM) when is_tuple(LM) ->
-	put_user2(ID, Password, Locale, etag(LM));
+	put_user2(ID, Password, Locale, ocs_rest:etag(LM));
 put_user2(ID, Password, Locale, LM) ->
 	try
 		Location = "/partyManagement/v1/individual/" ++ ID,
@@ -301,7 +300,7 @@ patch_user(ID, undefined, CType, ReqBody) ->
 	patch_user1(ID, undefined, CType, ReqBody);
 patch_user(ID, Etag, CType, ReqBody) ->
 	try
-		Etag1 = etag(Etag),
+		Etag1 = ocs_rest:etag(Etag),
 		patch_user1(ID, Etag1, CType, ReqBody)
 	catch
 		_:_Reason ->
@@ -318,7 +317,7 @@ patch_user1(ID, Etag, "application/json-patch+json", ReqBody) ->
 				case ocs:update_user(ID, Password, Locale) of
 					{ok, LastModified} ->
 						Location = "/partyManagement/v1/individual/" ++ ID,
-						Headers = [{location, Location}, {etag, etag(LastModified)}],
+						Headers = [{location, Location}, {etag, ocs_rest:etag(LastModified)}],
 						{ok, Headers, []};
 					{error, _} ->
 						{error, 500}
@@ -365,22 +364,6 @@ get_params() ->
 		false ->
 			exit(not_found)
 	end.
-
--spec etag(V1) -> V2
-	when
-		V1 :: {N1, N2} | string(),
-		V2 :: string() | {N1, N2},
-		N1 :: integer(),
-		N2 :: integer().
-%% @doc Generate a tuple with 2 integers from Etag string
-%% value or vice versa.
-%% @hidden
-etag(V) when is_list(V) ->
-	[TS, N] = string:tokens(V, "-"),
-	{list_to_integer(TS), list_to_integer(N)};
-etag(V) when is_tuple(V) ->
-	{TS, N} = V,
-	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
 
 -spec process_json_patch(Operations, ID) -> Result
 	when

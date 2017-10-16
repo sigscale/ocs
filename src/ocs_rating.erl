@@ -36,9 +36,10 @@
 		Final :: boolean(),
 		UsageSecs :: integer(),
 		UsageOctets :: integer(),
-		Attributes :: [tuple()],
+		Attributes :: [[tuple()]],
 		Return :: {ok, #subscriber{}} | {error, Reason},
 		Reason :: term().
+%% @todo Test cases, handle out of credit
 rating(SubscriberID, Final, UsageSecs, UsageOctets, Attributes) when is_list(SubscriberID) ->
 	rating(list_to_binary(SubscriberID), Final, UsageSecs, UsageOctets, Attributes);
 rating(SubscriberID, Final, UsageSecs, UsageOctets, Attributes) when is_binary(SubscriberID) ->
@@ -53,13 +54,17 @@ rating(SubscriberID, Final, UsageSecs, UsageOctets, Attributes) when is_binary(S
 						[#product{price = Prices}] ->
 							case lists:keyfind(usage, #price.type, Prices) of
 								#price{} = Price ->
-									{Charged, NewBuckets} = rating2(Price,
-											Validity, UsageSecs, UsageOctets, Final, Buckets),
-									NewSessionList = remove_session(SessionList, Attributes),
-									Entry = Subscriber#subscriber{buckets = NewBuckets,
-											session_attributes = NewSessionList},
-									mnesia:write(Entry),
-									Entry;
+									case rating2(Price,
+												Validity, UsageSecs, UsageOctets, Final, Buckets) of
+										{Charged, _} when Charged > 0 ->
+											throw(out_of_credit);
+										{_, NewBuckets} ->
+											NewSessionList = remove_session(SessionList, Attributes),
+											Entry = Subscriber#subscriber{buckets = NewBuckets,
+													session_attributes = NewSessionList},
+											mnesia:write(Entry),
+											Entry
+									end;
 								false ->
 									throw(price_not_found)
 							end;

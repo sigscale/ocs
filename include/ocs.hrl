@@ -85,7 +85,7 @@
 		termination_date :: pos_integer() | undefined,
 		remain_amount = 0 :: integer(),
 		units :: octets | cents | seconds | undefined,
-		last_modified :: tuple() | '_' | undefined}).
+		last_modified :: tuple() | undefined}).
 
 -record(product_instance,
 		{product :: string(),
@@ -93,7 +93,7 @@
 		termination_date :: pos_integer(),
 		status :: product_status(),
 		characteristics = [] :: [tuple()],
-		last_modified :: tuple() | '_' | undefined}).
+		last_modified :: tuple() |  undefined}).
 
 %% define subscriber table entries record
 -record(subscriber,

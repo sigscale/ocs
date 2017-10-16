@@ -641,19 +641,20 @@ update_attributes(Identity, Buckets, Attributes, EnabledStatus, MultiSession)
 -spec add_product(Product) -> Result
 	when
 		Product :: #product{},
-		Result :: ok | {error, Reason},
+		Result :: {ok, #product{}} | {error, Reason},
 		Reason :: term().
 %% @doc Add a new entry in product table.
 add_product(Product) ->
 	F = fun() ->
 		TS = erlang:system_time(?MILLISECOND),
 		N = erlang:unique_integer([positive]),
-		Entry = Product#product{last_modified = {TS, N}},
-		mnesia:write(product, Entry, write)
+		Product1 = Product#product{last_modified = {TS, N}},
+		ok = mnesia:write(product, Product1, write),
+		Product1
 	end,
 	case mnesia:transaction(F) of
-		{atomic, LastModified} ->
-			{ok, LastModified};
+		{atomic, Product2} ->
+			{ok, Product2};
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
@@ -1039,14 +1040,12 @@ charset() ->
 	when
 		Identity :: string() | binary(),
 		Password :: string() | binary(),
-		Result :: {ok, PSK, Attributes} | {error, Reason},
-		PSK :: binary(),
-		Attributes :: radius_attributes:attributes(),
+		Result :: {ok, #subscriber{}} | {error, Reason},
 		Reason :: out_of_credit | disabled | bad_password | not_found | term().
 %% @doc Authorize a subscriber.
 %%
 %% 	If the subscriber `enabled' field is `true' and have sufficient balance
-%%		set `disconnect' field to `false' and return {ok, `PSK', `Attributes'}
+%%		set `disconnect' field to `false' and return {ok, #subscriber{password = `PSK'}}
 %% 	where `PSK' is used for `Mikrotik-Wireless-Psk' and `Attributes' are
 %% 	additional attributes to be returned in an `Access-Accept' response.
 %% @private
@@ -1058,8 +1057,8 @@ authorize(Identity, Password) when is_binary(Identity),
 		is_binary(Password) ->
 	F= fun() ->
 				case mnesia:read(subscriber, Identity, write) of
-					[#subscriber{buckets = Buckets, attributes = Attributes,
-							enabled = Enabled, disconnect = Disconnect} = Entry] ->
+					[#subscriber{buckets = Buckets, enabled = Enabled,
+							disconnect = Disconnect} = Entry] ->
 						F2 = fun(#bucket{remain_amount = Amount}) when Amount > 0 ->
 										true;
 									(_) ->
@@ -1069,21 +1068,21 @@ authorize(Identity, Password) when is_binary(Identity),
 							true ->
 								case {Enabled, Disconnect, Entry#subscriber.password} of
 									{true, false, Password} ->
-										{Password, Attributes};
+										Entry;
 									{true, true, Password} ->
 										NewEntry = Entry#subscriber{disconnect = false},
-										mnesia:write(subscriber, NewEntry, write),
-										{Password, Attributes};
+										ok = mnesia:write(subscriber, NewEntry, write),
+										NewEntry;
 									{true, false, MTPassword} when
 											Password == <<>>,
 											MTPassword =/= Password ->
-										{MTPassword, Attributes};
+										Entry;
 									{true, true, MTPassword} when
 											Password == <<>>,
 											MTPassword =/= Password ->
 										NewEntry = Entry#subscriber{disconnect = false},
-										mnesia:write(subscriber, NewEntry, write),
-										{MTPassword, Attributes};
+										ok = mnesia:write(subscriber, NewEntry, write),
+										NewEntry;
 									{false, _, Password} ->
 										throw(disabled);
 									{_, _, _} ->
@@ -1097,8 +1096,8 @@ authorize(Identity, Password) when is_binary(Identity),
 				end
 	end,
 	case mnesia:transaction(F) of
-		{atomic, {PSK, Attributes}} ->
-			{ok, PSK, Attributes};
+		{atomic, #subscriber{} = S} ->
+			{ok, S};
 		{aborted, {throw, Reason}} ->
 			{error, Reason};
 		{aborted, Reason} ->

@@ -68,7 +68,7 @@ get_subscriber1(Id, Filters) ->
 		{ok, #subscriber{password = PWBin, attributes = Attributes,
 				buckets = Buckets, product = Product, enabled = Enabled,
 				multisession = Multi, last_modified = LM}} ->
-			Etag = etag(LM),
+			Etag = ocs_rest:etag(LM),
 			Att = radius_to_json(Attributes),
 			Att1 = {array, Att},
 			Password = binary_to_list(PWBin),
@@ -327,7 +327,7 @@ post_subscriber(RequestBody) ->
 		end,
 		Enabled = proplists:get_value("enabled", Object),
 		Multi = proplists:get_value("multisession", Object),
-		case ocs:add_subscriber(IdIn, PasswordIn, Product, Buckets, Attributes, Enabled, Multi) of
+		case ocs:add_subscriber(IdIn, PasswordIn, Product, Buckets, [], Attributes, Enabled, Multi) of
 			{ok, #subscriber{name = IdOut, last_modified = LM} = S} ->
 				Id = binary_to_list(IdOut),
 				Location = "/ocs/v1/subscriber/" ++ Id,
@@ -340,7 +340,7 @@ post_subscriber(RequestBody) ->
 						{product, (S#subscriber.product)#product_instance.product}],
 				JsonObj  = {struct, RespObj},
 				Body = mochijson:encode(JsonObj),
-				Headers = [{location, Location}, {etag, etag(LM)}],
+				Headers = [{location, Location}, {etag, ocs_rest:etag(LM)}],
 				{ok, Headers, Body};
 			{error, _} ->
 				{error, 400}
@@ -364,7 +364,7 @@ patch_subscriber(Id, undefined, CType, ReqBody) ->
 	patch_subscriber1(Id, undefined, CType, ReqBody);
 patch_subscriber(Id, Etag, CType, ReqBody) ->
 	try
-		Etag1 = etag(Etag),
+		Etag1 = ocs_rest:etag(Etag),
 		patch_subscriber1(Id, Etag1, CType, ReqBody)
 	catch
 		_:_ ->
@@ -389,7 +389,7 @@ patch_subscriber1(Id, Etag, "application/json-patch+json", ReqBody) ->
 					undefined ->
 						[];
 					_ ->
-						[{etag, etag(Etag)}]
+						[{etag, ocs_rest:etag(Etag)}]
 				end,
 				{ok, Headers, RespBody};
 			{error, Status} ->
@@ -498,22 +498,6 @@ vendor_specific({?VendorSpecific, {VendorID, {VendorType, Value}}}) ->
 				{"vendorType", VendorType},
 				{"value", Value}],
 	{struct, AttrObj}.
-
--spec etag(V1) -> V2
-	when
-		V1 :: string() | {N1, N2},
-		V2 :: {N1, N2} | string(),
-		N1 :: integer(),
-		N2 :: integer().
-%% @doc Generate a tuple with 2 integers from Etag string
-%% value or vice versa.
-%% @hidden
-etag(V) when is_list(V) ->
-	[TS, N] = string:tokens(V, "-"),
-	{list_to_integer(TS), list_to_integer(N)};
-etag(V) when is_tuple(V) ->
-	{TS, N} = V,
-	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
 
 -spec execute_json_patch_operations(Id, Etag, OpList) ->
 		{ok, Subscriber} | {error, Status} when

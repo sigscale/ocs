@@ -92,7 +92,7 @@ add_product() ->
 	Product = #product{name = ProductName,
 			is_bundle = false, status = active, price = Prices},
 	case ocs:add_product(Product) of
-		ok ->
+		{ok, _Product1} ->
 			{ok, ProductName};
 		{error, Reason} ->
 			{error, Reason}
