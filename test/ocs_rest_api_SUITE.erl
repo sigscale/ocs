@@ -63,7 +63,6 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
-	{ok, ProdID} = ocs_test_lib:add_product(),
 	{ok, Services} = application:get_env(inets, services),
 	Fport = fun(F, [{httpd, L} | T]) ->
 				case lists:keyfind(server_name, 1, L) of
@@ -98,7 +97,7 @@ init_per_suite(Config) ->
 	end,
 	Config1 = [{port, Port} | Config],
 	HostUrl = "https://" ++ Host ++ ":" ++ integer_to_list(Port),
-	[{product_id, ProdID}, {host_url, HostUrl} | Config1].
+	[{host_url, HostUrl} | Config1].
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
@@ -2404,6 +2403,7 @@ add_product() ->
 	[{userdata, [{doc,"Create a new product offering."}]}].
 
 add_product(Config) ->
+	CatalogHref = "/catalogManagement/v2",
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
 	ContentType = "application/json",
@@ -2411,13 +2411,167 @@ add_product(Config) ->
 	RestPass = ct:get_config(rest_pass),
 	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	AuthKey = "Basic " ++ Encodekey,
-	Authentication = {"authorization", AuthKey},
-	ProdName = {"name", ocs:generate_password()},
-	ProdDescirption = {"description", "DSL package 150GB"},
+	Authorization = {"authorization", AuthKey},
+	ReqList = product_offer(),
+	ReqBody = lists:flatten(mochijson:encode({struct, ReqList})),
+	Request1 = {HostUrl ++ CatalogHref ++ "/productOffering",
+			[Accept, Authorization], ContentType, ReqBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
+	{_, _Href} = lists:keyfind("location", 1, Headers).
+
+get_product() ->
+	[{userdata, [{doc,"Use HTTP GET to retrieves a product entity"}]}].
+
+get_product(Config) ->
 	CatalogHref = "/catalogManagement/v2",
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	ContentType = "application/json",
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	ReqList = product_offer(),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	ReqBody = lists:flatten(mochijson:encode({struct, ReqList})),
+	Request1 = {HostUrl ++ CatalogHref ++ "/productOffering",
+			[Accept, Authentication], ContentType, ReqBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
+	{_, Href} = lists:keyfind("location", 1, Headers),
+	Request2 = {HostUrl ++ Href, [Accept, Authentication]},
+	{ok, Response} = httpc:request(get, Request2, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers1, RespBody} = Response,
+	{_, ContentType} = lists:keyfind("content-type", 1, Headers1),
+	{struct, RespList} = mochijson:decode(RespBody),
+	true = lists:keymember("id", 1, RespList),
+	true = lists:keymember("href", 1, RespList),
+	true = (lists:keyfind("name", 1, ReqList) == lists:keyfind("name", 1, RespList)),
+	true = (lists:keyfind("version", 1, ReqList) == lists:keyfind("version", 1, RespList)),
+	true = (lists:keyfind("isBundle", 1, ReqList) == lists:keyfind("isBundle", 1, RespList)),
+	true = (lists:keyfind("lifecycleStatus", 1, ReqList) == lists:keyfind("lifecycleStatus", 1, RespList)),
+	case {lists:keyfind("validFor", 1, ReqList), lists:keyfind("validFor", 1, RespList)} of
+		{{_, {struct, ValidFor1}}, {_, {struct, ValidFor2}}} ->
+			true = (lists:keyfind("startDateTime", 1, ValidFor1) == lists:keyfind("startDateTime", 1, ValidFor2)),
+			true = (lists:keyfind("endDateTime", 1, ValidFor1) == lists:keyfind("endDateTime", 1, ValidFor2));
+		{false, false} ->
+			true
+	end,
+	{_, {struct, ProdSpec1}} = lists:keyfind("productSpecification", 1, ReqList),
+	{_, {struct, ProdSpec2}} = lists:keyfind("productSpecification", 1, RespList),
+	true = (lists:keyfind("id", 1, ProdSpec1) == lists:keyfind("id", 1, ProdSpec2)),
+	true = (lists:keyfind("href", 1, ProdSpec1) == lists:keyfind("href", 1, ProdSpec2)),
+	{_, {array, POP1}} = lists:keyfind("productOfferingPrice", 1, ReqList),
+	{_, {array, POP2}} = lists:keyfind("productOfferingPrice", 1, RespList),
+	F1 = fun({{struct, L1}, {struct, L2}}) ->
+		true = (lists:keyfind("name", 1, L1) == lists:keyfind("name", 1 , L2)),
+		true = (lists:keyfind("description", 1, L1) == lists:keyfind("description", 1 , L2)),
+		case {lists:keyfind("validFor", 1, L1), lists:keyfind("validFor", 1, L2)} of
+			{{_, {struct, V1}}, {_, {struct, V2}}} ->
+				true = (lists:keyfind("startDateTime", 1, V1) == lists:keyfind("startDateTime", 1, V2)),
+				true = (lists:keyfind("endDateTime", 1, V1) == lists:keyfind("endDateTime", 1, V2));
+			{false, false} ->
+				true
+		end,
+		case {lists:keyfind("price", 1, L1), lists:keyfind("price", 1, L2)} of
+			{{_, {struct, P1}}, {_, {struct, P2}}} ->
+				true = (lists:keyfind("taxIncludedAmount", 1, P1) == lists:keyfind("taxIncludedAmount", 1, P2)),
+				true = (lists:keyfind("dutyFreeAmount", 1, P1) == lists:keyfind("dutyFreeAmount", 1, P2)),
+				true = (lists:keyfind("taxRate", 1, P1) == lists:keyfind("taxRate", 1, P2)),
+				true = (lists:keyfind("currencyCode", 1, P1) == lists:keyfind("currencyCode", 1, P2));
+			{false, false} ->
+				true
+		end,
+		Fm = fun(U) ->
+				case lists:last(U) of
+					$b ->
+						list_to_integer(lists:sublist(U, length(U) - 1));
+					$k ->
+						list_to_integer(lists:sublist(U, length(U) - 1)) * 1000;
+					$m ->
+						list_to_integer(lists:sublist(U, length(U) - 1)) * 1000000;
+					$g ->
+						list_to_integer(lists:sublist(U, length(U) - 1)) * 1000000000;
+					_ ->
+						list_to_integer(U)
+				end
+		end,
+		case {lists:keyfind("unitOfMeasure", 1, L1), lists:keyfind("unitOfMeasure", 1, L2)} of
+			{{_, UoM}, {_, UoM}} ->
+				true;
+			{{_, UoM1}, {_, UoM2}} ->
+				true = (Fm(UoM1) == Fm(UoM2));
+			{false, false} ->
+				true
+		end,
+		true = (lists:keyfind("recurringChargePeriod", 1, L1) == lists:keyfind("recurringChargePeriod", 1, L2)),
+		case {lists:keyfind("productOfferPriceAlteration", 1, L1), lists:keyfind("productOfferPriceAlteration", 1, L2)} of
+			{{_, {struct, A1}}, {_, {struct, A2}}} ->
+				true = (lists:keyfind("name", 1, A1) == lists:keyfind("name", 1, A2)),
+				true = (lists:keyfind("description", 1, A1) == lists:keyfind("description", 1, A2)),
+				case {lists:keyfind("validFor", 1, A1), lists:keyfind("validFor", 1, A2)} of
+					{{_, {struct, AV1}}, {_, {struct, AV2}}} ->
+						true = (lists:keyfind("startDateTime", 1, AV1) == lists:keyfind("startDateTime", 1, AV2)),
+						true = (lists:keyfind("endDateTime", 1, AV1) == lists:keyfind("endDateTime", 1, AV2));
+					{false, false} ->
+						true
+				end,
+				true = (lists:keyfind("priceType", 1, A1) == lists:keyfind("priceType", 1, A2)),
+				case {lists:keyfind("price", 1, A1), lists:keyfind("price", 1, A2)} of
+					{{_, {struct, AP1}}, {_, {struct, AP2}}} ->
+						true = (lists:keyfind("taxIncludedAmount", 1, AP1) == lists:keyfind("taxIncludedAmount", 1, AP2)),
+						true = (lists:keyfind("dutyFreeAmount", 1, AP1) == lists:keyfind("dutyFreeAmount", 1, AP2)),
+						true = (lists:keyfind("taxRate", 1, AP1) == lists:keyfind("taxRate", 1, AP2)),
+						true = (lists:keyfind("currencyCode", 1, AP1) == lists:keyfind("currencyCode", 1, AP2)),
+						true = (lists:keyfind("percentage", 1, AP1) == lists:keyfind("percentage", 1, AP2));
+					{false, false} ->
+						true
+				end,
+				case {lists:keyfind("unitOfMeasure", 1, A1), lists:keyfind("unitOfMeasure", 1, A2)} of
+					{{_, AUoM}, {_, AUoM}} ->
+						true;
+					{{_, AUoM1}, {_, AUoM2}} ->
+						true = (Fm(AUoM1) == Fm(AUoM2));
+					{false, false} ->
+						true
+				end,
+				true = (lists:keyfind("recurringChargePeriod", 1, A1) == lists:keyfind("recurringChargePeriod", 1, A2));
+			{false, false} ->
+				true
+		end
+	end,
+	true = lists:all(F1, lists:zip(POP1, POP2)).
+
+update_product() ->
+	[{userdata, [{doc,"Use PATCH for update product entity"}]}].
+
+update_product(Config) ->
+	RestPort = ?config(port, Config),
+	ReqList = product_offer(),
+	{_, ProductId1} = lists:keyfind("dutyFreeAmount", 1, ReqList),
+	ProductId2 = ocs:generate_password(),
+	{_, Description1} = lists:keyfind("description", 1, ReqList),
+	Description2 = ocs:generate_password(),
+	SslSock = ssl_socket_open({127,0,0,1}, RestPort),
+	ok = update_product_name(SslSock, RestPort, ProductId1, ProductId2),
+	ok = update_product_description(SslSock, RestPort, ProductId2, Description2),
+	Status2 = "Pending Active",
+	ok = update_product_status(SslSock, RestPort, ProductId2, Status2),
+	ok = update_product_price(SslSock, RestPort, ProductId2),
+	ok = ssl_socket_close(SslSock).
+
+%%---------------------------------------------------------------------
+%%  Internal functions
+%%---------------------------------------------------------------------
+
+product_offer() ->
+	CatalogHref = "/catalogManagement/v2",
+	ProdName = {"name", ocs:generate_password()},
+	ProdDescirption = {"description", ocs:generate_password()},
 	IsBundle = {"isBundle", false},
 	IsCustomerVisible = {"isCustomerVisible", true},
-	Status = {"status", "active"},
+	Status = {"lifecycleStatus", "Active"},
 	StartTime = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
 	EndTime = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
 	ValidFor = {"validFor", {struct, [StartTime, EndTime]}},
@@ -2425,249 +2579,41 @@ add_product(Config) ->
 	ProdSpecHref = {"href", CatalogHref ++ "/productSpecification/1"},
 	ProdSpec = {"productSpecification", {struct, [ProdSpecID, ProdSpecHref]}},
 	POPName1 = {"name", ocs:generate_password()},
-	POPDescription1 = {"description", "One time installation free."},
-	POPStratDateTime1 = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
+	POPDescription1 = {"description", ocs:generate_password()},
+	POPStartDateTime1 = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
 	POPEndDateTime1 = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
-	POPValidFor1 = {"validFor", {struct, [POPStratDateTime1, POPEndDateTime1]}},
-	POPPriceType1 = {"priceType", "one_time"},
-	POPPriceTaxInclude1 = {"taxIncludedAmount", 4990},
-	POPPriceCurrency1 = {"currencyCode", "CAD"},
-	POPPrice1 = {"price", {struct, [POPPriceTaxInclude1, POPPriceCurrency1]}},
-	ProdOfferPrice1 = {struct, [POPName1, POPDescription1, POPValidFor1, POPPriceType1, POPPrice1]},
-	POPName2 = {"name", ocs:generate_password()},
-	POPDescription2 = {"description", "Monthly subscription charge."},
-	POPStratDateTime2 = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
-	POPEndDateTime2 = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
-	POPValidFor2 = {"validFor", {struct, [POPStratDateTime2, POPEndDateTime2]}},
-	POPPriceType2 = {"priceType", "recurring"},
-	POPPriceTaxInclude2 = {"taxIncludedAmount", 2990},
-	POPPriceCurrency2 = {"currencyCode", "CAD"},
-	POPPrice2 = {"price", {struct, [POPPriceTaxInclude2, POPPriceCurrency2]}},
-	ProdAlterName = {"name", ocs:generate_password()},
-	ProdAlterValidFor = {"validFor", {struct, [POPStratDateTime1]}},
-	ProdAlterPriceType = {"priceType", "usage"},
-	ProdAlterUOMeasure = {"unitOfMeasure", "100g"},
-	ProdAlterAmount = {"taxIncludedAmount", 0},
-	ProdAlterPrice = {"price", {struct, [ProdAlterAmount]}},
-	POPAlteration = {"productOfferPriceAlteration", {struct, [ProdAlterName,
-			ProdAlterValidFor, ProdAlterPriceType, ProdAlterUOMeasure, ProdAlterPrice]}},
-	ProdOfferPrice2 = {struct, [POPName2, POPDescription2, POPValidFor2,
-			POPPriceType2, POPPrice2, POPAlteration]},
-	ProdOfferPrice = {"productOfferingPrice", {array, [ProdOfferPrice1, ProdOfferPrice2]}},
-	ReqJson = {struct, [ProdName, ProdDescirption, IsBundle, IsCustomerVisible, 
-			ValidFor, ProdSpec, Status, ProdOfferPrice]},
-	ReqBody = lists:flatten(mochijson:encode(ReqJson)),
-erlang:display({?MODULE, ?LINE, ReqBody}),
-	Authentication = {"authorization", AuthKey},
-	Request = {HostUrl ++ CatalogHref ++ "/productOffering",
-			[Accept, Authentication], ContentType, ReqBody},
-	{ok, Result} = httpc:request(post, Request, [], []),
-	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
-	{_, "application/json"} = lists:keyfind("content-type", 1, Headers).
-
-get_product() ->
-	[{userdata, [{doc,"Use HTTP GET to retrieves a product entity"}]}].
-
-get_product(Config) ->
-	HostUrl = ?config(host_url, Config),
-	Accept = {"accept", "application/json"},
-	ContentType = "application/json",
-	RestUser = ct:get_config(rest_user),
-	RestPass = ct:get_config(rest_pass),
-	CatalogHref = "/catalogManagement/v2",
-	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
-	AuthKey = "Basic " ++ Encodekey,
-	Authentication = {"authorization", AuthKey},
-	Product = "Wi-Fi",
-	ProdName = {"name", Product},
-	ProdDescirption = {"description", "Monthly Family Package"},
-	IsBundle = {"isBundle", false},
-	IsCustomerVisible = {"isCustomerVisible", true},
-	Status = {"status", "active"},
-	StartTime = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
-	EndTime = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
-	ValidFor = {"validFor", {struct, [StartTime, EndTime]}},
-	ProdSpecID = {"id", "1"},
-	ProdSpecHref = {"href", CatalogHref ++ "/productSpecification/1"},
-	ProdSpecName = {"name", "Monthly subscriber Family Pack"},
-	ProdSpec = {"productSpecification", {struct, [ProdSpecID, ProdSpecHref, ProdSpecName]}},
-	POPName1 = {"name", "Family-Pack"},
-	POPDescription1 = {"description", "Monthly package"},
-	POPStratDateTime1 = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
-	POPEndDateTime1 = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
-	POPValidFor1 = {"validFor", {struct, [POPStratDateTime1, POPEndDateTime1]}},
+	POPValidFor1 = {"validFor", {struct, [POPStartDateTime1, POPEndDateTime1]}},
 	POPPriceType1 = {"priceType", "recurring"},
-	POPUOMeasure1 = {"unitOfMeasure", ""},
-	POPPriceTaxInclude1 = {"taxIncludedAmount", 230},
-	POPPriceCurrency1 = {"currencyCode", "MXV"},
+	POPPriceTaxInclude1 = {"taxIncludedAmount", rand:uniform(10000)},
+	POPPriceCurrency1 = {"currencyCode", "USD"},
 	POPPrice1 = {"price", {struct, [POPPriceTaxInclude1, POPPriceCurrency1]}},
 	POPRecChargPeriod1 = {"recurringChargePeriod", "monthly"},
-	ProdOfferPrice1 = {struct, [POPName1, POPDescription1, POPValidFor1, POPPriceType1,
-			POPUOMeasure1, POPPrice1, POPRecChargPeriod1]},
+	ProdOfferPrice1 = {struct, [POPName1, POPDescription1, POPValidFor1,
+			POPPriceType1, POPPrice1, POPRecChargPeriod1]},
 	POPName2 = {"name", "usage"},
-	POPDescription2 = {"description", "Family Pack Alteration"},
+	POPDescription2 = {"description", ocs:generate_password()},
 	POPStratDateTime2 = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
 	POPEndDateTime2 = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
 	POPValidFor2 = {"validFor", {struct, [POPStratDateTime2, POPEndDateTime2]}},
 	POPPriceType2 = {"priceType", "usage"},
-	POPUOMeasure2 = {"unitOfMeasure", "1000b"},
-	POPPriceTaxInclude2 = {"taxIncludedAmount", 5},
-	POPPriceCurrency2 = {"currencyCode", "MXV"},
+	POPUOMeasure2 = {"unitOfMeasure", "1g"},
+	POPPriceTaxInclude2 = {"taxIncludedAmount", rand:uniform(1000)},
+	POPPriceCurrency2 = {"currencyCode", "USD"},
 	POPPrice2 = {"price", {struct, [POPPriceTaxInclude2, POPPriceCurrency2]}},
-	POPRecChargPeriod2 = {"recurringChargePeriod", ""},
-	ProdAlterName = {"name", "usage"},
-	ProdAlterDescription = {"description", ""},
-	ProdAlterValidFor = {"validFor", {struct, [POPStratDateTime1]}},
+	ProdAlterName = {"name", "allowance"},
+	ProdAlterDescription = {"description", ocs:generate_password()},
+	ProdAlterValidFor = {"validFor", {struct, [POPStartDateTime1]}},
 	ProdAlterPriceType = {"priceType", "usage"},
 	ProdAlterUOMeasure = {"unitOfMeasure", "100g"},
 	ProdAlterAmount = {"taxIncludedAmount", 0},
-	ProdAlterPrice = {"price", {struct, [ProdAlterAmount]}},
+	POPPAlterCurrency = {"currencyCode", "USD"},
+	ProdAlterPrice = {"price", {struct, [ProdAlterAmount, POPPAlterCurrency]}},
 	POPAlteration = {"productOfferPriceAlteration", {struct, [ProdAlterName, ProdAlterDescription,
 		ProdAlterValidFor, ProdAlterPriceType, ProdAlterUOMeasure, ProdAlterPrice]}},
 	ProdOfferPrice2 = {struct, [POPName2, POPDescription2, POPValidFor2, POPPriceType2,
-			POPUOMeasure2, POPPrice2, POPRecChargPeriod2, POPAlteration]},
+			POPPrice2, POPUOMeasure2, POPAlteration]},
 	ProdOfferPrice = {"productOfferingPrice", {array, [ProdOfferPrice1, ProdOfferPrice2]}},
-	ReqJson = {struct, [ProdName, ProdDescirption, IsBundle, IsCustomerVisible,
-			ValidFor, ProdSpec, Status, ProdOfferPrice]},
-	ReqBody = lists:flatten(mochijson:encode(ReqJson)),
-	Authentication = {"authorization", AuthKey},
-	Request1 = {HostUrl ++ CatalogHref ++ "/productOffering",
-			[Accept, Authentication], ContentType, ReqBody},
-	{ok, Result} = httpc:request(post, Request1, [], []),
-	{{"HTTP/1.1", 201, _Created}, _Headers, _} = Result,
-	Request2 = {HostUrl ++ CatalogHref ++ "/productOffering/" ++ Product,
-			[Accept, Authentication]},
-	{ok, Response} = httpc:request(get, Request2, [], []),
-	{{"HTTP/1.1", 200, _OK}, Headers1, RespBody} = Response,
-	{_, ContentType} = lists:keyfind("content-type", 1, Headers1),
-	{struct, ProductObj} = mochijson:decode(RespBody),
-	ProdName = lists:keyfind("name", 1, ProductObj),
-	true = lists:keymember("href", 1, ProductObj),
-	IsBundle = lists:keyfind("isBundle", 1, ProductObj),
-	Status = lists:keyfind("status", 1, ProductObj),
-	ValidFor = lists:keyfind("validFor", 1, ProductObj),
-	{_, {struct, ProdSpecObj}} = lists:keyfind("productSpecification", 1, ProductObj),
-	ProdSpecID = lists:keyfind("id", 1, ProdSpecObj),
-	ProdSpecHref = lists:keyfind("href", 1, ProdSpecObj),
-	ProdSpecName = lists:keyfind("name", 1, ProdSpecObj),
-	{_, {array, POPObj}} = lists:keyfind("productOfferingPrice", 1, ProductObj),
-	F1 = fun(POPriceObj) ->
-		POPName1 = lists:keyfind("name", 1 , POPriceObj),
-		POPValidFor1 = lists:keyfind("validFor", 1 , POPriceObj),
-		POPUOMeasure1 = lists:keyfind("unitOfMeasure", 1, POPriceObj),
-		POPPrice1 = lists:keyfind("price", 1 , POPriceObj),
-		POPRecChargPeriod1 = lists:keyfind("recurringChargePeriod", 1 , POPriceObj)
-	end,
-	F2 = fun(POPriceObj) ->
-		POPName2 = lists:keyfind("name", 1 , POPriceObj),
-		POPValidFor2 = lists:keyfind("validFor", 1 , POPriceObj),
-		POPUOMeasure2 = lists:keyfind("unitOfMeasure", 1, POPriceObj),
-		POPPrice2 = lists:keyfind("price", 1 , POPriceObj),
-		POPRecChargPeriod2 = lists:keyfind("recurringChargePeriod", 1 , POPriceObj),
-		{_, {struct, POPAlter}} = lists:keyfind("productOfferPriceAlteration", 1, POPriceObj),
-		ProdAlterName = lists:keyfind("name", 1, POPAlter),
-		ProdAlterValidFor = lists:keyfind("validFor", 1, POPAlter),
-		ProdAlterPriceType = lists:keyfind("priceType", 1, POPAlter),
-		ProdAlterUOMeasure = lists:keyfind("unitOfMeasure", 1, POPAlter),
-		ProdAlterPrice = lists:keyfind("price", 1, POPAlter)
-	end,
-	F3 = fun({struct, POPrice})	->
-		case lists:keyfind("priceType", 1, POPrice) of
-			POPPriceType1 ->
-				F1(POPrice);
-			POPPriceType2 ->
-				F2(POPrice)
-		end
-	end,
-	lists:foreach(F3, POPObj).
-
-update_product() ->
-	[{userdata, [{doc,"Use PATCH for update product entity"}]}].
-
-update_product(Config) ->
-	HostUrl = ?config(host_url, Config),
-	RestPort = ?config(port, Config),
-	Accept = {"accept", "application/json"},
-	ContentType = "application/json",
-	RestUser = ct:get_config(rest_user),
-	RestPass = ct:get_config(rest_pass),
-	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
-	AuthKey = "Basic " ++ Encodekey,
-	Authorization = {"authorization", AuthKey},
-	ProdID = "Wi-Fi",
-	add_product(HostUrl, Accept, ContentType, AuthKey, Authorization, ProdID),
-	NewProdID1 = "Wi-Fi_Ultimate",
-	SslSock = ssl_socket_open({127,0,0,1}, RestPort),
-	ok = update_product_name(SslSock, RestPort, ProdID, NewProdID1),
-	Description1 = "Ultmate Family Package",
-	ok = update_product_description(SslSock, RestPort, NewProdID1, Description1),
-	Status1 = "pending_active",
-	ok = update_product_status(SslSock, RestPort, NewProdID1, Status1),
-	ok = update_product_price(SslSock, RestPort, NewProdID1),
-	ok = ssl_socket_close(SslSock).
-
-%%---------------------------------------------------------------------
-%%  Internal functions
-%%---------------------------------------------------------------------
-
-add_product(HostUrl, Accept, ContentType, AuthKey, Authorization, ProdID) ->
-	ProdName = {"name", ProdID},
-	ProdDescirption = {"description", "Monthly Family Package"},
-	CatalogHref = "/catalogManagement/v2",
-	IsBundle = {"isBundle", false},
-	IsCustomerVisible = {"isCustomerVisible", true},
-	Status = {"status", "active"},
-	StartTime = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
-	EndTime = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
-	ValidFor = {"validFor", {struct, [StartTime, EndTime]}},
-	ProdSpecID = {"id", "1"},
-	ProdSpecHref = {"href", CatalogHref ++ "/productSpecification/1"},
-	ProdSpecName = {"name", "Monthly subscriber Family Pack"},
-	ProdSpec = {"productSpecification", {struct, [ProdSpecID, ProdSpecHref, ProdSpecName]}},
-	POPName1 = {"name", "Family-Pack"},
-	POPDescription1 = {"description", "Monthly package"},
-	POPStratDateTime1 = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
-	POPEndDateTime1 = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
-	POPValidFor1 = {"validFor", {struct, [POPStratDateTime1, POPEndDateTime1]}},
-	POPPriceType1 = {"priceType", "recurring"},
-	POPUOMeasure1 = {"unitOfMeasure", ""},
-	POPPriceTaxInclude1 = {"taxIncludedAmount", 230},
-	POPPriceCurrency1 = {"currencyCode", "MXV"},
-	POPPrice1 = {"price", {struct, [POPPriceTaxInclude1, POPPriceCurrency1]}},
-	POPRecChargPeriod1 = {"recurringChargePeriod", "monthly"},
-	ProdOfferPrice1 = {struct, [POPName1, POPDescription1, POPValidFor1, POPPriceType1,
-			POPUOMeasure1, POPPrice1, POPRecChargPeriod1]},
-	POPName2 = {"name", "usage"},
-	POPDescription2 = {"description", "Family Pack Alteration"},
-	POPStratDateTime2 = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
-	POPEndDateTime2 = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
-	POPValidFor2 = {"validFor", {struct, [POPStratDateTime2, POPEndDateTime2]}},
-	POPPriceType2 = {"priceType", "usage"},
-	POPUOMeasure2 = {"unitOfMeasure", "1000b"},
-	POPPriceTaxInclude2 = {"taxIncludedAmount", 5},
-	POPPriceCurrency2 = {"currencyCode", "MXV"},
-	POPPrice2 = {"price", {struct, [POPPriceTaxInclude2, POPPriceCurrency2]}},
-	POPRecChargPeriod2 = {"recurringChargePeriod", ""},
-	ProdAlterName = {"name", "usage"},
-	ProdAlterDescription = {"description", ""},
-	ProdAlterValidFor = {"validFor", {struct, [POPStratDateTime1]}},
-	ProdAlterPriceType = {"priceType", "usage"},
-	ProdAlterUOMeasure = {"unitOfMeasure", "100g"},
-	ProdAlterAmount = {"taxIncludedAmount", 0},
-	ProdAlterPrice = {"price", {struct, [ProdAlterAmount]}},
-	POPAlteration = {"productOfferPriceAlteration", {struct, [ProdAlterName, ProdAlterDescription,
-		ProdAlterValidFor, ProdAlterPriceType, ProdAlterUOMeasure, ProdAlterPrice]}},
-	ProdOfferPrice2 = {struct, [POPName2, POPDescription2, POPValidFor2, POPPriceType2,
-			POPUOMeasure2, POPPrice2, POPRecChargPeriod2, POPAlteration]},
-	ProdOfferPrice = {"productOfferingPrice", {array, [ProdOfferPrice1, ProdOfferPrice2]}},
-	ReqJson = {struct, [ProdName, ProdDescirption, IsBundle, IsCustomerVisible,
-			ValidFor, ProdSpec, Status, ProdOfferPrice]},
-	ReqBody = lists:flatten(mochijson:encode(ReqJson)),
-	Authorization = {"authorization", AuthKey},
-	Request1 = {HostUrl ++ CatalogHref ++ "/productOffering",
-			[Accept, Authorization], ContentType, ReqBody},
-	{ok, Result} = httpc:request(post, Request1, [], []),
-	{{"HTTP/1.1", 201, _Created}, _Headers, _} = Result.
+	[ProdName, ProdDescirption, IsBundle, IsCustomerVisible, ValidFor, ProdSpec, Status, ProdOfferPrice].
 
 update_product_name(SslSock, RestPort, OldProdID, NewProdID) ->
 	RestUser = ct:get_config(rest_user),

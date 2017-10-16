@@ -32,6 +32,7 @@
 -include("ocs.hrl").
 
 -define(offerPath, "/catalogManagement/v2/productOffering/").
+-define(specPath, "/catalogManagement/v2/productSpecification/").
 
 -spec content_types_accepted() -> ContentTypes
 	when
@@ -72,9 +73,9 @@ add_product_offering(ReqData) ->
 			Headers = [{location, Href}, {etag, Etag}],
 			{ok, Headers, Body}
 	catch
-		throw:_Reason ->
+		throw:_Reason1 ->
 			{error, 500};
-		_:_ ->
+		_:_Reason2 ->
 			{error, 400}
 	end.
 
@@ -111,7 +112,7 @@ get_product_offering(ID) ->
 				ProductOffering;
 			{error, not_found} ->
 				{throw, 404};
-			{error, _} ->
+			{error, _Reason1} ->
 				{throw, 500}
 		end
 	of
@@ -119,10 +120,11 @@ get_product_offering(ID) ->
 			Body = mochijson:encode(offer(Offer)),
 			Etag = ocs_rest:etag(Offer#product.last_modified),
 			Href = ?offerPath ++ Offer#product.name,
-			Headers = [{location, Href}, {etag, Etag}],
+			Headers = [{location, Href}, {etag, Etag},
+					{content_type, "application/json"}],
 			{ok, Headers, Body}
 	catch
-		throw:_Reason ->
+		throw:_Reason2 ->
 			{error, 500};
 		_:_ ->
 			{error, 400}
@@ -277,24 +279,15 @@ get_categories(_Query) ->
 	Status	:: 400 | 404 | 500 .
 %% @doc Respond to `GET /catalogManegment/v2/productSpecification/{id}'.
 %% 	Retrieve a product specification.
-get_product_spec("1", [] = _Query) ->
-	Headers = [{content_type, "application/json"}],
-	Body = mochijson:encode(spec_product_network()),
-	{ok, Headers, Body};
-get_product_spec("2", [] = _Query) ->
-	Headers = [{content_type, "application/json"}],
-	Body = mochijson:encode(spec_product_fixed_quantity_pkg()),
-	{ok, Headers, Body};
-get_product_spec("3", [] = _Query) ->
-	Headers = [{content_type, "application/json"}],
-	Body = mochijson:encode(spec_product_rate_plane()),
-	{ok, Headers, Body};
-get_product_spec("4", [] = _Query) ->
-	Headers = [{content_type, "application/json"}],
-	Body = mochijson:encode(spec_product_wlan()),
-	{ok, Headers, Body};
-get_product_spec(_Id, [] = _Query) ->
-	{error, 404};
+get_product_spec(ID, [] = _Query) ->
+	case product_spec(ID) of
+		{error, StatusCode} ->
+			{error, StatusCode};
+		ProductSpec ->
+			Headers = [{content_type, "application/json"}],
+			Body = mochijson:encode(ProductSpec),
+			{ok, Headers, Body}
+	end;
 get_product_spec(_Id, _Query) ->
 	{error, 400}.
 
@@ -320,6 +313,22 @@ get_product_specs(_Query) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+-spec product_spec(ID) -> Result
+	when
+		ID :: string(),
+		Result :: {struct, [tuple()]} | {error, 404}.
+%% @doc Get Product Specification by ID.
+product_spec("1") ->
+	spec_product_network();
+product_spec("2") ->
+	spec_product_fixed_quantity_pkg();
+product_spec("3") ->
+	spec_product_rate_plane();
+product_spec("4") ->
+	spec_product_wlan();
+product_spec(_) ->
+	{error, 404}.
 
 %% @hidden
 product_catalog() ->
@@ -498,8 +507,20 @@ offer({struct, ObjectMembers}) when is_list(ObjectMembers) ->
 offer([name | T], #product{name = Name} = P, Acc) when is_list(Name) ->
 	offer(T, P, [{"name", Name} | Acc]);
 offer([description | T], #product{description = Description} = P,
-		Acc) when is_list(Description) ->
+	Acc) when is_list(Description) ->
 	offer(T, P, [{"description", Description} | Acc]);
+offer([specification | T],
+		#product{specification = ProdSpecId} = P, Acc) when is_list(ProdSpecId) ->
+	{struct, L} = product_spec(ProdSpecId),
+	{_, Id} = lists:keyfind("id", 1, L),
+	{_, Href} = lists:keyfind("href", 1, L),
+	{_, Name} = lists:keyfind("name", 1, L),
+	Spec = {struct, [{"id", Id}, {"href", Href}, {"name", Name}]},
+	offer(T, P, [{"productSpecification", Spec} | Acc]);
+offer([status | T], #product{status = Status} = P, Acc)
+		when Status /= undefined ->
+	StatusString = offer_status(Status),
+	offer(T, P, [{"lifecycleStatus", StatusString} | Acc]);
 offer([start_date | T], #product{start_date = Start,
 		end_date = undefined} = P, Acc) when is_integer(Start) ->
 	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(Start)}]},
@@ -517,26 +538,22 @@ offer([end_date | T], P, Acc) ->
 	offer(T, P, Acc);
 offer([is_bundle | T], #product{is_bundle = IsBundle} = P, Acc)
 		when is_boolean(IsBundle) ->
-	offer(T, P, [{"isBunde", IsBundle} | Acc]);
-offer([status | T], #product{status = Status} = P, Acc)
-		when Status /= undefined ->
-	StatusString = offer_status(Status),
-	offer(T, P, [{"lifecycleStatus", StatusString} | Acc]);
+	offer(T, P, [{"isBundle", IsBundle} | Acc]);
 offer([price | T], #product{price = Prices1} = P, Acc)
 		when is_list(Prices1) ->
 	Prices2 = [price(Price) || Price <- Prices1],
-	offer(T, P, [{"price", Prices2} | Acc]);
-offer([characteristics | T],
-		#product{characteristics = Chars} = P, Acc) when is_list(Chars) ->
+	offer(T, P, [{"productOfferingPrice", {array, Prices2}} | Acc]);
+offer([characteristics | T], #product{characteristics = Chars} = P,
+		Acc) when length(Chars) > 0 ->
 	offer(T, P, [{"characteristic", characteristics(Chars)} | Acc]);
 offer([last_modified | T], #product{last_modified = {Last, _}} = P, Acc)
 		when is_integer(Last) ->
 	offer(T, P, [{"lastUpdate", ocs_rest:iso8601(Last)} | Acc]);
-offer([_ | T], P, Acc) ->
+offer([_H | T], P, Acc) ->
 	offer(T, P, Acc);
 offer([], #product{name = Name}, Acc) ->
 	H = [{"id", Name}, {"href", ?offerPath ++ Name}],
-	{struct, [H | lists:reverse(Acc)]}.
+	{struct, H ++ lists:reverse(Acc)}.
 %% @hidden
 offer([{"id", ID} | T], Acc) when is_list(ID) ->
 	offer(T, Acc);
@@ -560,11 +577,21 @@ offer([{"validFor", {struct, L}} | T], Acc) ->
 			Acc
 	end,
 	offer(T, Acc2);
-offer([{"is_bundle", Bundle} | T], Acc) when is_boolean(Bundle) ->
+offer([{"isBundle", Bundle} | T], Acc) when is_boolean(Bundle) ->
 	offer(T, Acc#product{is_bundle = Bundle});
 offer([{"lifecycleStatus", Status} | T], Acc) when is_list(Status) ->
 	offer(T, Acc#product{status = offer_status(Status)});
-offer([{"price", {array, Prices1}} | T], Acc) when is_list(Prices1) ->
+offer([{"productSpecification", {struct, L}} | T], Acc) when is_list(L) ->
+	Acc1 = case lists:keyfind("id", 1, L) of
+		{_, ID} when is_list(ID) ->
+			Acc#product{specification = ID};
+		false ->
+			Acc
+	end,
+	offer(T, Acc1);
+offer([{"isCustomerVisible", Visible} | T], Acc) when is_boolean(Visible) ->
+	offer(T, Acc);
+offer([{"productOfferingPrice", {array, Prices1}} | T], Acc) when is_list(Prices1) ->
 	Prices2 = [price(Price) || Price <- Prices1],
 	offer(T, Acc#product{price = Prices2});
 offer([{"characteristic", Chars} | T], Acc) when is_list(Chars) ->
@@ -628,18 +655,18 @@ price([size | T], P, Acc) ->
 	price(T, P, Acc);
 price([amount | T], #price{amount = Amount, currency = Currency} = P, Acc)
 		when is_integer(Amount), is_list(Currency) ->
-	Price = {struct, [{"taxIncludedAmount", integer_to_list(Amount)},
+	Price = {struct, [{"taxIncludedAmount", Amount},
 			{"currencyCode", Currency}]},
 	price(T, P, [{"price", Price} | Acc]);
 price([amount | T], #price{amount = Amount} = P, Acc)
 		when is_integer(Amount) ->
-	Price = {struct, [{"taxIncludedAmount", integer_to_list(Amount)}]},
+	Price = {struct, [{"taxIncludedAmount", Amount}]},
 	price(T, P, [{"price", Price} | Acc]);
 price([currency | T], P, Acc) ->
 	price(T, P, Acc);
 price([alteration | T], #price{alteration = Alteration} = P, Acc)
 		when is_record(Alteration, alteration) ->
-	price(T, P, [{"alteration", alteration(Alteration)} | Acc]);
+	price(T, P, [{"productOfferPriceAlteration", alteration(Alteration)} | Acc]);
 price([_ | T], P, Acc) ->
 	price(T, P, Acc);
 price([], _P, Acc) ->
@@ -668,13 +695,30 @@ price([{"validFor", {struct, L}} | T], Acc) when is_list(L) ->
 	end,
 	price(T, Acc2);
 price([{"priceType", Type} | T], Acc) when is_list(Type) ->
-	price(T, Acc#price{type = price_type(Type)});
+	case price_type(Type) of
+		Type1 when Type1 == one_time; Type1 == recurring ->
+			price(T, Acc#price{type = Type1, units = cents});
+		Type1 ->
+			price(T, Acc#price{type = Type1})
+	end;
 price([{"unitOfMeasure", UnitOfMeasure} | T], Acc)
 		when is_list(UnitOfMeasure) ->
 	case lists:last(UnitOfMeasure) of
 		$b ->
 			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
 			price(T, Acc#price{units = octets, size = list_to_integer(N)});
+		$k ->
+			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+			price(T, Acc#price{units = octets,
+					size = list_to_integer(N) * 1000});
+		$m ->
+			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+			price(T, Acc#price{units = octets,
+					size = list_to_integer(N) * 1000000});
+		$g ->
+			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+			price(T, Acc#price{units = octets,
+					size = list_to_integer(N) * 1000000000});
 		$s ->
 			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
 			price(T, Acc#price{units = seconds, size = list_to_integer(N)});
@@ -688,7 +732,7 @@ price([{"price", {struct, L}} | T], Acc) when is_list(L) ->
 		_ ->
 			Acc
 	end,
-	Acc2 = case lists:keyfind("currency", 1, L) of
+	Acc2 = case lists:keyfind("currencyCode", 1, L) of
 		{_, Currency} when is_list(Currency) ->
 			Acc1#price{currency = Currency};
 		_ ->
@@ -758,12 +802,12 @@ alteration([size | T], A, Acc) ->
 	alteration(T, A, Acc);
 alteration([amount | T], #alteration{amount = Amount, currency = Currency} = A, Acc)
 		when is_integer(Amount), is_list(Currency) ->
-	Price = {struct, [{"taxIncludedAmount", integer_to_list(Amount)},
+	Price = {struct, [{"taxIncludedAmount", Amount},
 			{"currencyCode", Currency}]},
 	alteration(T, A, [{"price", Price} | Acc]);
 alteration([amount | T], #alteration{amount = Amount} = A, Acc)
 		when is_integer(Amount) ->
-	Price = {struct, [{"taxIncludedAmount", integer_to_list(Amount)}]},
+	Price = {struct, [{"taxIncludedAmount", Amount}]},
 	alteration(T, A, [{"price", Price} | Acc]);
 alteration([currency | T], A, Acc) ->
 	alteration(T, A, Acc);
@@ -780,18 +824,18 @@ alteration([{"name", Name} | T], Acc) when is_list(Name) ->
 	alteration(T, Acc#alteration{name = Name});
 alteration([{"description", Description} | T], Acc) when is_list(Description) ->
 	alteration(T, Acc#alteration{description = Description});
-alteration([{"validFor", {struct, L}} | T], Acc) ->
+alteration([{"validFor", {struct, L}} | T], Acc) when is_list(L) ->
 	Acc1 = case lists:keyfind("startDateTime", 1, L) of
-		{_, Start} ->
+		{_, Start} when is_list(Start) ->
 			Acc#alteration{start_date = ocs_rest:iso8601(Start)};
 		false ->
 			Acc
 	end,
 	Acc2 = case lists:keyfind("endDateTime", 1, L) of
-		{_, End} ->
+		{_, End} when is_list(End) ->
 			Acc1#alteration{end_date = ocs_rest:iso8601(End)};
 		false ->
-			Acc
+			Acc1
 	end,
 	alteration(T, Acc2);
 alteration([{"priceType", Type} | T], Acc) ->
@@ -800,28 +844,42 @@ alteration([{"unitOfMeasure", UnitOfMeasure} | T], Acc) ->
 	case lists:last(UnitOfMeasure) of
 		$b ->
 			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
-			alteration(T, Acc#alteration{units = octets, size = list_to_integer(N)});
+			alteration(T, Acc#alteration{units = octets,
+					size = list_to_integer(N)});
+		$k ->
+			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+			alteration(T, Acc#alteration{units = octets,
+					size = list_to_integer(N) * 1000});
+		$m ->
+			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+			alteration(T, Acc#alteration{units = octets,
+					size = list_to_integer(N) * 1000000});
+		$g ->
+			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+			alteration(T, Acc#alteration{units = octets,
+					size = list_to_integer(N) * 1000000000});
 		$s ->
 			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
 			alteration(T, Acc#alteration{units = seconds, size = list_to_integer(N)});
 		_ ->
 			alteration(T, Acc#alteration{size = list_to_integer(UnitOfMeasure)})
 	end;
-alteration([{"alteration", {struct, L}} | T], Acc) ->
+alteration([{"price", {struct, L}} | T], Acc) ->
 	Acc1 = case lists:keyfind("taxIncludedAmount", 1, L) of
 		{_, Amount} when is_integer(Amount) ->
 			Acc#alteration{amount = Amount};
 		_ ->
 			Acc
 	end,
-	Acc2 = case lists:keyfind("currency", 1, L) of
+	Acc2 = case lists:keyfind("currencyCode", 1, L) of
 		{_, Currency} when is_list(Currency) ->
 			Acc1#alteration{currency = Currency};
 		_ ->
 			Acc1
 	end,
 	alteration(T, Acc2);
-alteration([{"recurringChargePeriod", Period} | T], Acc) ->
+alteration([{"recurringChargePeriod", Period} | T], Acc)
+		when is_list(Period) ->
 	alteration(T, Acc#alteration{period = price_period(Period)});
 alteration([], Acc) ->
 	Acc.
