@@ -44,6 +44,9 @@
 -include("../include/diameter_gen_nas_application_rfc7155.hrl").
 
 -define(CC_APPLICATION_ID, 4).
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
 
 -record(statedata,
 		{protocol :: radius | diameter,
@@ -201,7 +204,9 @@ handle_radius3(#statedata{subscriber = SubscriberId, multisession = MultiSession
 	F = fun() ->
 		case mnesia:read(subscriber, list_to_binary(SubscriberId), write) of
 			[#subscriber{session_attributes = CurrentAttributes} = Subscriber] ->
-				SessionAttributes = extract_session_attributes(RequestAttributes),
+				ExtractedSessionAttributes = extract_session_attributes(RequestAttributes),
+				Now = erlang:system_time(?MILLISECOND),
+				SessionAttributes = {Now, ExtractedSessionAttributes},
 				Entry = case MultiSession of
 					true ->
 						NewSessionAttributes = [SessionAttributes | CurrentAttributes],
