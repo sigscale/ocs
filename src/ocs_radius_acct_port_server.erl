@@ -374,7 +374,7 @@ start_disconnect(Subscriber, Id, Authenticator, State, SessionAttributes) ->
 	F = fun() ->
 		start_disconnect(Subscriber, Id, Authenticator, State, SessionAttributes, [])
 	end,
-	mensia:transaction(F).
+	mnesia:transaction(F).
 %% @hidden
 start_disconnect(Subscriber, Id, Authenticator, State, [], Acc) ->
 	start_disconnect1(Subscriber, Id, Authenticator, State, Acc);
@@ -386,7 +386,7 @@ start_disconnect(Subscriber, Id, Authenticator, State, [{_, SessionAttributes} |
 			start_disconnect(Subscriber, Id, Authenticator, State, T, [{Client, SessionAttributes} | Acc]);
 		[] ->
 			NasId = proplists:get_value(?NasIdentifier, SessionAttributes),
-			case mnesia:read_index(client, NasId, #client.identifier) of
+			case mnesia:index_read(client, NasId, #client.identifier) of
 				[ClientIndexMatch] ->
 					start_disconnect(Subscriber, Id, Authenticator,
 							State, T, [{ClientIndexMatch, SessionAttributes} | Acc]);
