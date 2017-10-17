@@ -60,7 +60,7 @@ rating(SubscriberID, Final, UsageSecs, UsageOctets, Attributes) when is_binary(S
 											Entry = Subscriber#subscriber{buckets = NewBuckets,
 													session_attributes = []},
 											mnesia:write(Entry),
-											throw({out_of_credit, SessionList});
+											{out_of_credit, SessionList};
 										{_, NewBuckets} ->
 											NewSessionList = case Final of
 												true ->
@@ -86,7 +86,7 @@ rating(SubscriberID, Final, UsageSecs, UsageOctets, Attributes) when is_binary(S
 	case mnesia:transaction(F) of
 		{atomic, #subscriber{} = Sub} ->
 			{ok, Sub};
-		{aborted, {throw, {out_of_credit, SL}}} ->
+		{aborted, {out_of_credit, SL}} ->
 			{error, out_of_credit, SL};
 		{aborted, {throw, Reason}} ->
 			{error, Reason};
