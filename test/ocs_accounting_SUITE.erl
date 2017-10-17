@@ -292,7 +292,7 @@ radius_multisession(Config) ->
 			PeerID, Secret, NasID1, AcctSessionID, RadID2),
 	{ok, #subscriber{multisession = true, session_attributes = SessionList1}}
 			= ocs:find_subscriber(PeerID),
-	F1 = fun(F1, {_, Session}, [H1 | T1]) ->
+	F1 = fun(F1, Session, [H1 | T1]) ->
 				case lists:member(H1, Session) of
 					true ->
 						F1(F1, Session, T1);
@@ -302,7 +302,7 @@ radius_multisession(Config) ->
 			(_, _, []) ->
 				ok
 	end,
-	F2 = fun(F2, [H | T], A) ->
+	F2 = fun(F2, [{_, H}| T], A) ->
 				case F1(F1, H, A) of
 					ok ->
 						ok;
