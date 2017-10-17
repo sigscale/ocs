@@ -366,7 +366,7 @@ response(Id, RequestAuthenticator, Secret) ->
 		Authenticator :: [byte()],
 		State :: #state{},
 		SessionList :: radius_attributes:attributes(),
-		Result :: {reply, {ok, Response}, NewState},
+		Result :: {reply, {ok, Response}, NewState} | term(),
 		Response :: binary(),
 		NewState :: #state{}.
 %% @doc Start a disconnect_fsm worker.
