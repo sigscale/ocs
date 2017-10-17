@@ -454,77 +454,78 @@ extract_session_attributes(Attributes) ->
 	lists:filter(F, Attributes).
 
 %% @hidden
-start_disconnect([SessionAttributes], #statedata{protocol = radius,
-		subscriber = SubscriberId, client_address = Address, client_port = ListenPort,
-		shared_secret = Secret, session_id = SessionID}) ->
+start_disconnect(SessionList, #statedata{protocol = radius,
+		client_address = Address, subscriber = SubscriberId, session_id = SessionID}
+		= State) ->
 	case pg2:get_closest_pid(ocs_radius_acct_port_sup) of
 		{error, Reason} ->
 			error_logger:error_report(["Failed to initiate session disconnect function",
 					{module, ?MODULE}, {subscriber, SubscriberId}, {address, Address},
 					{session, SessionID}, {error, Reason}]);
 		DiscSup ->
-			try
-				{_TS, RadAttrs} = SessionAttributes,
-				NAS = case {radius_attributes:find(?NasIpAddress, RadAttrs),
-							radius_attributes:find(?NasIdentifier, RadAttrs)} of
-					{{_, IP}, {error, _}} ->
-						IP;
-					{_, {ok, ID}} ->
-						ID
-				end,
-				AcctSessionID = case radius_attributes:find(?AcctSessionId, RadAttrs) of
-					{ok, ASI} ->
-						ASI;
-					{error, _} ->
-						undefined
-				end,
-				DiscArgs = [Address, NAS, SubscriberId, AcctSessionID, Secret,
-						ListenPort, SessionAttributes, 1],
-				StartArgs = [DiscArgs, []],
-				case supervisor:start_child(DiscSup, StartArgs) of
-					{ok, _DiscFsm} ->
-						ok;
-					{error, Reason} ->
-						error_logger:error_report(["Failed to initiate session disconnect function",
-								{module, ?MODULE}, {subscriber, SubscriberId}, {nas, NAS},
-								{address, Address}, {session, SessionID}, {error, Reason}])
-				end
-			catch
-				_:R ->
-					error_logger:error_report(["Failed to initiate session disconnect function",
-							{module, ?MODULE}, {subscriber, SubscriberId}, {address, Address},
-							{session, SessionID}, {error, R}])
-			end
+			start_disconnect1(DiscSup, SessionList, State)
 	end;
-start_disconnect(_, #statedata{protocol = diameter, session_id = SessionID,
-		origin_host = OHost, origin_realm = ORealm, dest_host = DHost, dest_realm = DRealm,
-		subscriber = SubscriberId}) ->
+start_disconnect(SessionList, #statedata{protocol = diameter, session_id = SessionID,
+		origin_host = OHost, origin_realm = ORealm, subscriber = SubscriberId} = State) ->
 	case pg2:get_closest_pid(ocs_diamter_acct_port_sup) of
 		{error, Reason} ->
 			error_logger:error_report(["Failed to initiate session disconnect function",
 					{module, ?MODULE}, {subscriber, SubscriberId}, {origin_host, OHost},
 					{origin_realm, ORealm}, {session, SessionID}, {error, Reason}]);
 		DiscSup ->
-			try
-				Svc = ocs_diameter_acct_service,
-				Alias = ocs_diameter_base_application,
-				AppId = ?CC_APPLICATION_ID,
-				DiscArgs = [Svc, Alias, SessionID, OHost, DHost, ORealm, DRealm, AppId],
-				StartArgs = [DiscArgs, []],
-				case supervisor:start_child(DiscSup, StartArgs) of
-					{ok, _DiscFsm} ->
-						ok;
-					{error, Reason} ->
-						error_logger:error_report(["Failed to initiate session disconnect function",
-								{module, ?MODULE}, {subscriber, SubscriberId}, {origin_host, OHost},
-								{origin_realm, ORealm}, {session, SessionID}, {error, Reason}])
-				end
-			catch
-				_:R ->
-				error_logger:error_report(["Failed to initiate session disconnect function",
-						{module, ?MODULE}, {subscriber, SubscriberId}, {origin_host, OHost},
-						{origin_realm, ORealm}, {session, SessionID}, {error, R}])
+			start_disconnect1(DiscSup, SessionList, State)
+	end.
+%% @hidden
+start_disconnect1(DiscSup, SessionList, #statedata{protocol = radius} = State) ->
+	F = fun() ->
+		start_disconnect2(DiscSup, SessionList,  State, [])
+	end,
+	mnesia:transaction(F);
+start_disconnect1(DiscSup, SessionList, State) ->
+	start_disconnect3(DiscSup, State, SessionList).
+%% @hidden
+start_disconnect2(DiscSup, [{_TS, SessionAttributes} | T], #statedata{protocol = radius} = State, Acc) ->
+	IP = radius_attributes:find(?NasIpAddress, SessionAttributes),
+	NasID = radius_attributes:find(?NasIdentifier, SessionAttributes),
+	case IP of
+		{ok, Address} ->
+			{ok, IpAddr} = inet_parse:address(Address),
+			[Client] =  mnesia:read(client, IpAddr, read), 
+			start_disconnect2(DiscSup, T, State, [{Client, SessionAttributes} | Acc]);
+		{error, _} ->
+			case NasID of
+				{error, not_found} ->
+					start_disconnect2(DiscSup, T, State, Acc);
+				{ok, Nas} ->
+					[Client] = mnesia:index_read(client, Nas, #client.port),
+					start_disconnect2(DiscSup, T, State, [{Client, SessionAttributes} | Acc])
 			end
 	end;
-start_disconnect(_, _) ->
-	ok.
+start_disconnect2(DiscSup, [], State, Acc) ->
+	start_disconnect3(DiscSup, State, Acc).
+%% @hidden
+start_disconnect3(_DiscSup, _State, []) ->
+	ok;
+start_disconnect3(DiscSup, #statedata{protocol = radius, subscriber = SubscriberId} = State,
+		[{#client{address = Address, port = Port, identifier = NAS, secret = Secret},
+		SessionAttributes} | T]) ->
+	AcctSessionID = case radius_attributes:find(?AcctSessionId, SessionAttributes) of
+		{ok, ASI} ->
+			ASI;
+		{error, _} ->
+			undefined
+	end,
+	DiscArgs = [Address, NAS, SubscriberId, AcctSessionID, Secret,
+		Port, SessionAttributes, 1],
+	StartArgs = [DiscArgs, []],
+	supervisor:start_child(DiscSup, StartArgs),
+	start_disconnect3(DiscSup, State, T);
+start_disconnect3(DiscSup, #statedata{protocol = diameter, session_id = SessionID,
+		origin_host = OHost, origin_realm = ORealm, dest_host = DHost, dest_realm = DRealm} = State, [_ | T]) ->
+	Svc = ocs_diameter_acct_service,
+	Alias = ocs_diameter_base_application,
+	AppId = ?CC_APPLICATION_ID,
+	DiscArgs = [Svc, Alias, SessionID, OHost, DHost, ORealm, DRealm, AppId],
+	StartArgs = [DiscArgs, []],
+	supervisor:start_child(DiscSup, StartArgs),
+	start_disconnect3(DiscSup, State, T).
