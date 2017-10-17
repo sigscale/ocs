@@ -108,7 +108,7 @@ init([Address, NasId, Subscriber,
 %% @private
 %%
 send_request(timeout, #statedata{nas_ip = Address, port = Port,
-		id = Id, secret = SharedSecret, attributes = {_, Attributes},
+		id = Id, secret = SharedSecret, attributes = Attributes,
 		retry_time = Retry} = StateData) ->
 	DiscAttrList  = extract_attributes(Attributes),
 	DiscAttr = radius_attributes:codec(DiscAttrList),
