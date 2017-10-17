@@ -464,14 +464,15 @@ start_disconnect([SessionAttributes], #statedata{protocol = radius,
 					{session, SessionID}, {error, Reason}]);
 		DiscSup ->
 			try
-				NAS = case {radius_attributes:find(?NasIpAddress, SessionAttributes),
-							radius_attributes:find(?NasIdentifier, SessionAttributes)} of
+				{_TS, RadAttrs} = SessionAttributes,
+				NAS = case {radius_attributes:find(?NasIpAddress, RadAttrs),
+							radius_attributes:find(?NasIdentifier, RadAttrs)} of
 					{{_, IP}, {error, _}} ->
 						IP;
 					{_, {ok, ID}} ->
 						ID
 				end,
-				AcctSessionID = case radius_attributes:find(?AcctSessionId, SessionAttributes) of
+				AcctSessionID = case radius_attributes:find(?AcctSessionId, RadAttrs) of
 					{ok, ASI} ->
 						ASI;
 					{error, _} ->
