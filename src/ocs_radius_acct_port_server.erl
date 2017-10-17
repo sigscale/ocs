@@ -257,7 +257,7 @@ request1(?AccountingStart, _AcctSessionId, Id,
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, start, Attributes),
 	{reply, {ok, response(Id, Authenticator, Secret)}, State};
 request1(?AccountingStop, AcctSessionId, Id,
-		Authenticator, Secret, NasId, Address, _AccPort, ListenPort, Attributes,
+		Authenticator, Secret, NasId, Address, _AccPort, _ListenPort, Attributes,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
 	InOctets = radius_attributes:find(?AcctInputOctets, Attributes),
 	OutOctets = radius_attributes:find(?AcctOutputOctets, Attributes),
@@ -281,18 +281,8 @@ request1(?AccountingStop, AcctSessionId, Id,
 	A3 = [{?NasIpAddress, NasId}, {?UserName, Subscriber}],
 	Candidates = [A1, A2, A3],
 	case ocs_rating:rating(Subscriber, true, UsageSecs, UsageOctets, Candidates) of
-		{error, out_of_credit}  ->
-			case client_disconnect_supported(Address) of
-				true ->
-					start_disconnect(AcctSessionId, Id, Authenticator, Secret,
-							ListenPort, NasId, Address, Attributes, Subscriber, State);
-				false ->
-					error_logger:warning_report(["Client does not support disconnect mesages",
-							{module, ?MODULE}, {subscriber, Subscriber},
-							{username, UserName}, {nas, NasId}, {address, Address},
-							{session, AcctSessionId}]),
-					{reply, {ok, response(Id, Authenticator, Secret)}, State}
-			end;
+		{error, out_of_credit, SessionList}  ->
+			start_disconnect(Subscriber, Id, Authenticator, State, SessionList);
 		{error, Reason} ->
 			error_logger:warning_report(["Accounting failed",
 					{module, ?MODULE}, {subscriber, Subscriber},
@@ -303,7 +293,7 @@ request1(?AccountingStop, AcctSessionId, Id,
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
 request1(?AccountingInterimUpdate, AcctSessionId, Id,
-		Authenticator, Secret, NasId, Address, _AccPort, ListenPort, Attributes,
+		Authenticator, Secret, NasId, Address, _AccPort, _ListenPort, Attributes,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
 	InOctets = radius_attributes:find(?AcctInputOctets, Attributes),
 	OutOctets = radius_attributes:find(?AcctOutputOctets, Attributes),
@@ -333,22 +323,10 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 					{username, UserName}, {nas, NasId}, {address, Address},
 					{session, AcctSessionId}]),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
-		{error, out_of_credit} ->
-			case client_disconnect_supported(Address) of
-				true ->
-					start_disconnect(AcctSessionId, Id, Authenticator, Secret,
-							ListenPort, NasId, Address, Attributes, Subscriber, State);
-				false ->
-					{reply, {ok, response(Id, Authenticator, Secret)}, State}
-			end;
-		{ok, #subscriber{enabled = Flag}} when Flag == false ->
-			case client_disconnect_supported(Address) of
-				true ->
-					start_disconnect(AcctSessionId, Id, Authenticator, Secret,
-							ListenPort, NasId, Address, Attributes, Subscriber, State);
-				false ->
-					{reply, {ok, response(Id, Authenticator, Secret)}, State}
-			end;
+		{error, out_of_credit, SessionList} ->
+			start_disconnect(Subscriber, Id, Authenticator, State, SessionList);
+		{ok, #subscriber{enabled = false, session_attributes = SessionList}} ->
+			start_disconnect(Subscriber, Id, Authenticator, State, SessionList);
 		{ok, #subscriber{}} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
@@ -381,32 +359,55 @@ response(Id, RequestAuthenticator, Secret) ->
 			authenticator = ResponseAuthenticator, attributes = []},
 	radius:codec(Response).
 
--spec start_disconnect(AcctSessionId, Id, Authenticator, Secret,
-	ListenPort,NasId, Address, Attributes, Subscriber, State) -> Result
+-spec start_disconnect(Subscriber, Id, Authenticator, State, SessionList) -> Result
 	when
-		AcctSessionId :: integer(), 
+		Subscriber :: binary() | list(),
 		Id :: byte(),
-		Authenticator :: [byte()], 
-		Secret :: string(),
-		ListenPort :: non_neg_integer(),
-		NasId :: inet:ip_address() | string(), 
-		Address :: inet:ip_address(),
-		Attributes :: [binary()], 
-		Subscriber :: [byte()], 
+		Authenticator :: [byte()],
 		State :: #state{},
+		SessionList :: radius_attributes:attributes(),
 		Result :: {reply, {ok, Response}, NewState},
 		Response :: binary(),
 		NewState :: #state{}.
 %% @doc Start a disconnect_fsm worker.
-start_disconnect(AcctSessionId, Id, Authenticator, Secret, ListenPort,
-		NasId, Address, Attributes, Subscriber, #state{handlers = Handlers,
-		disc_sup = DiscSup, disc_id = DiscId} = State) ->
+start_disconnect(Subscriber, Id, Authenticator, State, SessionAttributes) ->
+	F = fun() ->
+		start_disconnect(Subscriber, Id, Authenticator, State, SessionAttributes, [])
+	end,
+	mensia:transaction(F).
+%% @hidden
+start_disconnect(Subscriber, Id, Authenticator, State, [], Acc) ->
+	start_disconnect1(Subscriber, Id, Authenticator, State, Acc);
+start_disconnect(Subscriber, Id, Authenticator, State, [{_, SessionAttributes} | T], Acc) ->
+	Address = proplists:get_value(?NasIpAddress, SessionAttributes),
+	{ok, NasIp} = inet_parse:address(Address),
+	case mnesia:read(client, NasIp, read) of
+		[Client] ->
+			start_disconnect(Subscriber, Id, Authenticator, State, T, [{Client, SessionAttributes} | Acc]);
+		[] ->
+			NasId = proplists:get_value(?NasIdentifier, SessionAttributes),
+			case mnesia:read_index(client, NasId) of
+				[ClientIndexMatch] ->
+					start_disconnect(Subscriber, Id, Authenticator,
+							State, T, [{ClientIndexMatch, SessionAttributes} | Acc]);
+				[] ->
+					start_disconnect(Subscriber, Id, Authenticator, State, T, Acc)
+			end
+	end.
+%% @hidden
+start_disconnect1(Subscriber, Id, Authenticator, State, [{#client{port = 0}, _} | T]) ->
+	start_disconnect1(Subscriber, Id, Authenticator, State, T);
+start_disconnect1(Subscriber, Id, Authenticator,
+		#state{handlers = Handlers, disc_sup = DiscSup, disc_id = DiscId} = State,
+		[{#client{address = Address, port = Port, secret = Secret}, SessionAttributes}]) ->
+	NasId = proplists:get_value(?NasIdentifier, SessionAttributes),
+	AcctSessionId = proplists:get_value(?AcctSessionId, SessionAttributes),
 	case gb_trees:lookup({NasId, Subscriber, AcctSessionId}, Handlers) of
 		{value, _DiscPid} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		none ->
 			DiscArgs = [Address, NasId, Subscriber,
-					AcctSessionId, Secret, ListenPort, Attributes, Id],
+					AcctSessionId, Secret, Port, SessionAttributes, Id],
 			StartArgs = [DiscArgs, []],
 			case supervisor:start_child(DiscSup, StartArgs) of
 				{ok, DiscFsm} ->
@@ -423,21 +424,7 @@ start_disconnect(AcctSessionId, Id, Authenticator, Secret, ListenPort,
 							{address, Address}, {session, AcctSessionId}, {error, Reason}]),
 					{reply, {ok, response(Id, Authenticator, Secret)}, State}
 			end
-	end.
-
--spec client_disconnect_supported(Client) -> Result
-	when
-		Client :: inet:ip_address(),
-		Result :: boolean().
-%% @doc Checks whether the client supports receiving RADIUS disconnect messages.
-%% Value of 0 in port field in client table indicates that the client does not
-%% support disconnect messages.
-client_disconnect_supported(Client) ->
-	{ok, #client{port = Port}} = ocs:find_client(Client),
-		case Port of
-			0 ->
-				false;
-			_ ->
-				true
-		end.
+	end;
+start_disconnect1(_Subscriber, _Id, _Authenticator, _State, []) ->
+	ok.
 
