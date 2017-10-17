@@ -168,8 +168,8 @@
     "message": "Identifier"
   },
    "listen": {
-    "description": "Listen Port of Client",
-    "message": "Listen Port"
+    "description": "Listen Port of RADIUS Client",
+    "message": "RADIUS Listen Port"
   },
    "proto": {
     "description": "Protocol of Client",
@@ -182,14 +182,6 @@
 	"ipAddress": {
     "description": "Ip Address for add Client",
     "message": "IP Address"
-  },
-	"radius": {
-    "description": "radius protocol",
-    "message": "RADIUS"
-  },
-  "diameter": {
-    "description": "diameter protocol",
-    "message": "DIAMETER"
   },
 	"ipTooltip": {
     "description": "Tooltip message of Ip address",
@@ -239,14 +231,6 @@
     "description": "Tooltip message for authorization client",
     "message": "Properties of network access server, router or access pointor client."
   },
-	"port": {
-    "description": "port for client",
-    "message": "Port"
-   },
-	"portTool": {
-    "description": "Tooltip message update port",
-    "message": "Port network access server, router or access point listens on"
-   },
 	"protoTool": {
     "description": "Tooltip mesage for update Protocol",
     "message": "Protocol used by network access server, router or access point."
@@ -375,21 +359,17 @@
     "description": "Tooltip message for enable", 
     "message": "Temporarily enable, or disable, authorization for service."
   },
-	"subToastErrorReason": {
-    "description": "Toast message Error reason",
-    "message": "Couldn't add subscriber!"
-  },
-	"subToastErrorReason1": {
-    "description": "Toast message Error reason",
-    "message": "Please recheck the following."
-  },
-	"subToastErrorReason2": {
-    "description": "Toast message Error reason",
-    "message": "Balance must be a postive number"
-  },
-	"subToastSuc": {
+	"subscriberAdded": {
     "description": "Toast message for success",
-    "message": "Subscriber added!"
+    "message": "Subscriber added"
+  },
+	"subscriberUpdated": {
+    "description": "Toast message for success",
+    "message": "Subscriber updated"
+  },
+	"subscriberDeleted": {
+    "description": "Toast message for success",
+    "message": "Subscriber deleted"
   },
 	"identityCol": {
     "description": "Identity label for generate identity",

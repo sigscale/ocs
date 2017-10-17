@@ -177,7 +177,7 @@
   },
   "listen": {
     "description": "Listen Port of Client",
-    "message": "Escuchar Puerto"
+    "message": "RADIUS Escuchar Puerto"
   },
   "proto": {
     "description": "Protocol of Client",
@@ -190,14 +190,6 @@
   "ipAddress": {
     "description": "Ip Address for add Client",
     "message": "Dirección IP"
-  },
-  "radius": {
-    "description": "radius protocol",
-    "message": "RADIUS"
-  },
-  "diameter": {
-    "description": "diameter protocol",
-    "message": "DIÁMETER"
   },
 	"ipTooltip": {
     "description": "Tooltip messagef or Ip address",
@@ -375,21 +367,17 @@
     "description": "Tooltip message for enable",            
     "message": "Activar o desactivar temporalmente la autorización de servicio"
   },
-	"subToastErrorReason": {
-    "description": "Toast message Error reason",
-    "message": "No se pudo agregar el suscriptor!"
-  },
-	"subToastErrorReason1": {
-    "description": "Toast message Error reason",
-    "message": "Vuelva a comprobar lo siguiente."
-  },
-	"subToastErrorReason2": {
-    "description": "Toast message Error reason",
-    "message": "El balance debe ser un número positivo"
-  },
-	"subToastSuc": {
+	"subscriberAdded": {
     "description": "Toast message for success",
-    "message": "Suscriptor añadido!"
+    "message": "Suscriptor añadido"
+  },
+	"subscriberUpdated": {
+    "description": "Toast message for success",
+    "message": "Suscriptor actualizado"
+  },
+	"subscriberDeleted": {
+    "description": "Toast message for success",
+    "message": "Suscriptor eliminado"
   },
 	"identity": {
     "description": "Identity label for generate identity",

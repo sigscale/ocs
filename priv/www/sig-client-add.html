@@ -96,20 +96,6 @@
 			</div>
 			<div>
 				<paper-input
-					id="addClientPort"
-					name="port"
-					label="[[i18n.listen]]"
-					type="number"
-					value=3799>
-				</paper-input>
-				<paper-tooltip>
-					<i18n-msg msgid="listenTooltip">
-						Port network access server, router or access point listens on
-					</i18n-msg>
-				</paper-tooltip>
-			</div>
-			<div>
-				<paper-input
 						id="addClientSecret"
 						class="secret"
 						name="secret"
@@ -148,6 +134,20 @@
 					</paper-item>
 				</paper-listbox>
 			</paper-dropdown-menu>
+			<div>
+				<paper-input
+					id="addClientPort"
+					name="port"
+					label="[[i18n.listen]]"
+					type="number"
+					value=3799>
+				</paper-input>
+				<paper-tooltip>
+					<i18n-msg msgid="listenTooltip">
+						Port network access server, router or access point listens on
+					</i18n-msg>
+				</paper-tooltip>
+			</div>
 			<div class="buttons">
 				<paper-button
 						raised

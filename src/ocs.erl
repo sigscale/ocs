@@ -670,14 +670,16 @@ charset() ->
 	when
 		Identity :: string() | binary(),
 		Password :: string() | binary(),
-		Result :: {ok, Password, Attributes} | {error, Reason},
+		Result :: {ok, PSK, Attributes} | {error, Reason},
+		PSK :: binary(),
 		Attributes :: radius_attributes:attributes(),
 		Reason :: out_of_credit | disabled | bad_password | not_found | term().
 %% @doc Authorize a subscriber based on `enabled' and `balance' fields.
 %%
-%% 	If the subscriber `enabled' field true and have sufficient `balance'
-%%		set disconnect field to false and return `password' and `attributes'
-%%		or return the error reason.
+%% 	If the subscriber `enabled' field is `true' and have sufficient `balance'
+%%		set `disconnect' field to `false' and return {ok, `PSK', `Attributes'}
+%% 	where `PSK' is used for `Mikrotik-Wireless-Psk' and `Attributes' are
+%% 	additional attributes to be returned in an `Access-Accept' response.
 %% @private
 authorize(Identity, Password) when is_list(Identity) ->
 	authorize(list_to_binary(Identity), Password);
@@ -723,8 +725,8 @@ authorize(Identity, Password) when is_binary(Identity),
 				end
 	end,
 	case mnesia:transaction(F) of
-		{atomic, {SubPassword, Attributes}} ->
-			{ok, SubPassword, Attributes};
+		{atomic, {PSK, Attributes}} ->
+			{ok, PSK, Attributes};
 		{aborted, {throw, Reason}} ->
 			{error, Reason};
 		{aborted, Reason} ->

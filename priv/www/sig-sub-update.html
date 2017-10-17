@@ -41,7 +41,7 @@
 		}
 	</style>
 	<template>
-		<paper-dialog id="subUpdateModal" modal>
+		<paper-dialog id="updateSubscriberModal" modal>
 			<paper-toolbar>
 				<paper-tabs selected="{{selected}}">
 					<paper-tab id="authen">
@@ -64,17 +64,17 @@
 			</paper-tooltip>
 			<iron-pages selected="{{selected}}">
 				<div id="edit-password" >
-					<paper-input id="edit-id1"
+					<paper-input id="updateSubscriberId"
 							name="id"
 							label="[[i18n.identity]]"
 							disabled>
 					</paper-input>
-					<paper-input id="edit-pwd"
+					<paper-input id="updateSubscriberPassword"
 							name="password"
 							label="[[i18n.secret]]"
 							disabled>
 					</paper-input>
-					<paper-input id="edit-new-pwd"
+					<paper-input id="updateSubscriberNewPassword"
 							name="newpassword"
 							label="[[i18n.newpass]]"
 							required
@@ -83,7 +83,7 @@
 					</paper-input>
 					<div class="buttons">
 						<paper-button
-								onclick="subUpdateModal.close()"
+								onclick="updateSubscriberModal.close()"
 								class="cancel-btn">
 							<i18n-msg msgid="cancel">
 								Cancel
@@ -92,7 +92,7 @@
 						<paper-button
 								dialog-confirm
 								autofocus
-								on-click="updateSubAuthen"
+								on-click="updateSubscriberAuthentication"
 								class="update-buttons">
 							<i18n-msg msgid="update">
 								Update
@@ -101,7 +101,7 @@
 						<paper-button
 								toggles
 								raised
-								on-click="deleteSub"
+								on-click="deleteSubscriber"
 								class="delete-buttons">
 							<i18n-msg msgid="delete">
 								Delete
@@ -111,7 +111,7 @@
 				</div>
 				<div id="edit-attributes" >
 					<div>
-						<paper-input id="edit-balance"
+						<paper-input id="updateSubscriberBalance"
 								name="balance"
 								type="number"
 								label="[[i18n.balance]]">
@@ -123,7 +123,7 @@
 						</paper-tooltip>
 					</div>
 					<div>
-						<paper-input id="edit-recv-data-rate"
+						<paper-input id="updateSubscriberDataRate"
 								name="ascendDataRate"
 								type="number"
 								label="[[i18n.recieve]]">
@@ -135,7 +135,7 @@
 						</paper-tooltip>
 					</div>
 					<div>
-						<paper-input id="edit-trans-data-rate"
+						<paper-input id="updateSubscriberXmitRate"
 								name="ascendXmitRate"
 								type="number"
 								label="[[i18n.trans]]">
@@ -147,7 +147,7 @@
 						</paper-tooltip>
 					</div>
 					<div>
-						<paper-input id="edit-sess-timeout"
+						<paper-input id="updateSubscriberTimeout"
 								name="sessionTimeout"
 								type="number"
 								label="[[i18n.ses]]">
@@ -159,7 +159,7 @@
 						</paper-tooltip>
 					</div>
 					<div>
-						<paper-input id="edit-update-interval"
+						<paper-input id="updateSubscriberInterval"
 								name="acctInterimInterval"
 								type="number"
 								label="[[i18n.accInt]]">
@@ -171,10 +171,10 @@
 						</paper-tooltip>
 					</div>
 					<div>
-						<paper-input id="edit-class"
+						<paper-input id="updateSubscriberClass"
 								name="class"
 								type="text"
-								label="[[i18n.class]]" >
+								label="[[i18n.class]]">
 						</paper-input>
 					</div>
 					</br>
@@ -183,7 +183,7 @@
 							Enable
 						</i18n-msg>
 						<div style="display:inline-block;">
-							<paper-toggle-button id="edit-enabled">
+							<paper-toggle-button id="updateSubscriberEnabled">
 							</paper-toggle-button>
 							<paper-tooltip>
 								<i18n-msg msgid="intervalTooltip">
@@ -195,13 +195,13 @@
 								Multisession
 							</i18n-msg>
 						<div style="display:inline-block;">
-							<paper-toggle-button id="edit-multi-session">
+							<paper-toggle-button id="updateSubscriberMulti">
 							</paper-toggle-button>
 						</div>
 					</div><br>
 					<div class="buttons">
 						<paper-button
-								onclick="subUpdateModal.close()"
+								onclick="updateSubscriberModal.close()"
 								class="cancel-btn">
 							<i18n-msg msgid="cancel">
 								Cancel
@@ -210,7 +210,7 @@
 						<paper-button
 								dialog-confirm
 								autofocus
-								on-click="updateSubAutho"
+								on-click="updateSubscriberAuthorization"
 								class="update-buttons">
 							<i18n-msg msgid="update">
 								Update
@@ -229,17 +229,18 @@
 				</div>
 			</iron-pages>
 		</paper-dialog>
-		<iron-ajax id="updateSubAuthen"
-				headers='{"Accept": "application/json", "Content-type": "application/json"}'
-				on-response="updateSubAuthenResponse">
+		<iron-ajax id="updateSubscriberAuthenticationAjax"
+				on-response="_updateSubscriberAuthenticationResponse"
+				on-error="_updateSubscriberAuthenticationError">
 		</iron-ajax>
-		<iron-ajax id="updateSubAutho"
-				headers='{"Accept": "application/json", "Content-type": "application/json"}'
-				on-response="updateSubAuthoResponse">
+		<iron-ajax id="updateSubscriberAuthorizationAjax"
+				on-response="_updateSubscriberAuthorizationResponse"
+				on-error="_updateSubscriberAuthorizationError">
 		</iron-ajax>
-		<iron-ajax id="deleteSub"
+		<iron-ajax id="deleteSubscriberAjax"
 				handle-as="json"
-				on-response="deleteSubResponse">
+				on-response="_deleteSubscriberResponse"
+				on-error="_deleteSubscriberError">
 		</iron-ajax>
 	</template>
 	<script>
@@ -252,87 +253,88 @@
 					value: 0
 				}
 			},
-			updateSubAuthen: function(event) {
-				var editAjax =  document.getElementById("updateSubAuthen");
+			updateSubscriberAuthentication: function(event) {
+				var editAjax =  this.$.updateSubscriberAuthenticationAjax;
 				editAjax.method = "PATCH";
 				editAjax.contentType = "application/json";
-				var id = document.getElementById("edit-id1").value;
+				var id = document.getElementById("updateSubscriberId").value;
 				editAjax.url = "/ocs/v1/subscriber/" + id;
 				var sub = new Object();
 				sub.update = "password";
-				sub.newpassword = document.getElementById("edit-new-pwd").value;
+				sub.newpassword = document.getElementById("updateSubscriberNewPassword").value;
 				editAjax.body = sub;
 				editAjax.generateRequest();
 			},
-			updateSubAuthenResponse: function (event) {
-				if(event.detail.succeeded) {
-					document.getElementById("edit-toast").open();
-					document.getElementById("edit-new-pwd").value = "";
-					document.getElementById("subscriberGrid").clearCache();
-				} else {
-					console.log("Not Success");
-				}
+			_updateSubscriberAuthenticationResponse: function (event) {
+				this.$.updateSubscriberNewPassword.value = "";
+				document.getElementById("updateSubscriberToastSuccess").open();
+				document.getElementById("subscriberGrid").clearCache();
 			},
-			updateSubAutho: function(event) {
-				var editAjax =  document.getElementById("updateSubAutho");
+			_updateSubscriberAuthenticationError: function(event) {
+				this.$.updateSubscriberToastError.text = event.detail.request.xhr.statusText;
+				this.$.updateSubscriberToastError.open();
+			},
+			updateSubscriberAuthorization: function(event) {
+				var editAjax =  this.$.updateSubscriberAuthorizationAjax;
 				editAjax.method = "PATCH";
 				editAjax.contentType = "application/json";
-				var id = document.getElementById("edit-id1").value;
-				editAjax.url = "/ocs/v1/subscriber/" + id;
+				editAjax.url = "/ocs/v1/subscriber/" + this.$.updateSubscriberId.value;
 				var sub = new Object();
 				sub.update = "attributes";
-				sub.balance= parseInt(document.getElementById("edit-balance").value);
+				sub.balance= parseInt(this.$.updateSubscriberBalance.value);
 				var attr = new Array();
 				var ascendDataRate = new Object();
 				ascendDataRate.name = "ascendDataRate";
-				ascendDataRate.value = parseInt(document.getElementById("edit-recv-data-rate").value);
+				ascendDataRate.value = parseInt(this.$.updateSubscriberDataRate.value);
 				attr[0] = ascendDataRate;
 				var ascendXmitRate = new Object();
 				ascendXmitRate.name = "ascendXmitRate";
-				ascendXmitRate.value = parseInt(document.getElementById("edit-trans-data-rate").value);
+				ascendXmitRate.value = parseInt(this.$.updateSubscriberXmitRate.value);
 				attr[1] = ascendXmitRate;
 				var sessionTimeout = new Object();
 				sessionTimeout.name = "sessionTimeout";
-				sessionTimeout.value = parseInt(document.getElementById("edit-sess-timeout").value);
+				sessionTimeout.value = parseInt(this.$.updateSubscriberTimeout.value);
 				attr[2] = sessionTimeout;
 				var acctInterimInterval = new Object();
 				acctInterimInterval.name = "acctInterimInterval";
-				acctInterimInterval.value = parseInt(document.getElementById("edit-update-interval").value);
+				acctInterimInterval.value = parseInt(this.$.updateSubscriberInterval.value);
 				attr[3] = acctInterimInterval;
 				var classx = new Object();
 				classx.name = "class";
-				if(document.getElementById("edit-class").value == undefined) {
+				if(this.$.updateSubscriberClass.value == undefined) {
 					classx.value = null;
 				} else {
-					classx.value = document.getElementById("edit-class").value;
+					classx.value = this.$.updateSubscriberClass.value;
 				}
 				attr[4] = classx;
 				sub.attributes = attr;
-				sub.enabled= document.getElementById("edit-enabled").checked;
-				sub.multisession= document.getElementById("edit-multi-session").checked;
+				sub.enabled= this.$.updateSubscriberEnabled.checked;
+				sub.multisession= this.$.updateSubscriberMulti.checked;
 				editAjax.body = sub;
 				editAjax.generateRequest();
 			},
-			updateSubAuthoResponse: function (event) {
-				if(event.detail.succeeded) {
-					document.getElementById("edit-toast").open();
-					document.getElementById("subscriberGrid").clearCache();
-				} else {
-					console.log("Not Success");
-				}
-			},
-			deleteSub: function(event) {
-				var grid = document.getElementById("subscriberGrid");
-				var selection = grid.selectedItems[0];
-				var deleteAjax = document.getElementById("deleteSub");
-				deleteAjax.method = "DELETE";
-				deleteAjax.url = "/ocs/v1/subscriber/" + selection.id;
-				deleteAjax.generateRequest();
-			},
-			deleteSubResponse: function(event) {
-				document.getElementById("subUpdateModal").close();
-				document.getElementById("delete-toast").open();
+			_updateSubscriberAuthorizationResponse: function (event) {
+				document.getElementById("updateSubscriberToastSuccess").open();
 				document.getElementById("subscriberGrid").clearCache();
+			},
+			_updateSubscriberAuthorizationError: function(event) {
+				this.$.updateSubscriberToastError.text = event.detail.request.xhr.statusText;
+				this.$.updateSubscriberToastError.open();
+			},
+			deleteSubscriber: function(event) {
+				this.$.deleteSubscriberAjax.method = "DELETE";
+				this.$.deleteSubscriberAjax.url = "/ocs/v1/subscriber/"
+						+ document.getElementById("subscriberGrid").selectedItems[0].id;
+				this.$.deleteSubscriberAjax.generateRequest();
+			},
+			_deleteSubscriberResponse: function(event) {
+				this.$.updateSubscriberModal.close();
+				document.getElementById("deleteSubscriberToastSuccess").open();
+				document.getElementById("subscriberGrid").clearCache();
+			},
+			_deleteSubscriberError: function(event) {
+				this.$.updateSubscriberToastError.text = event.detail.request.xhr.statusText;
+				this.$.updateSubscriberToastError.open();
 			}
 		});
 	</script>
