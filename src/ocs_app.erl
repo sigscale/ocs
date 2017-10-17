@@ -232,7 +232,8 @@ install2(Nodes) ->
 %% @hidden
 install3(Nodes, Acc) ->
 	case mnesia:create_table(client, [{disc_copies, Nodes},
-			{attributes, record_info(fields, client)}]) of
+			{attributes, record_info(fields, client)},
+			{index, [#client.identifier]}]) of
 		{atomic, ok} ->
 			error_logger:info_msg("Created new client table.~n"),
 			install4(Nodes, [client | Acc]);
