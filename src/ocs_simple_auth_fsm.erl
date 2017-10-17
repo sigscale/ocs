@@ -44,6 +44,9 @@
 -include("../include/diameter_gen_nas_application_rfc7155.hrl").
 
 -define(CC_APPLICATION_ID, 4).
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
 
 -record(statedata,
 		{protocol :: radius | diameter,
@@ -201,7 +204,9 @@ handle_radius3(#statedata{subscriber = SubscriberId, multisession = MultiSession
 	F = fun() ->
 		case mnesia:read(subscriber, list_to_binary(SubscriberId), write) of
 			[#subscriber{session_attributes = CurrentAttributes} = Subscriber] ->
-				SessionAttributes = extract_session_attributes(RequestAttributes),
+				ExtractedSessionAttributes = extract_session_attributes(RequestAttributes),
+				Now = erlang:system_time(?MILLISECOND),
+				SessionAttributes = {Now, ExtractedSessionAttributes},
 				Entry = case MultiSession of
 					true ->
 						NewSessionAttributes = [SessionAttributes | CurrentAttributes],
@@ -459,14 +464,15 @@ start_disconnect([SessionAttributes], #statedata{protocol = radius,
 					{session, SessionID}, {error, Reason}]);
 		DiscSup ->
 			try
-				NAS = case {radius_attributes:find(?NasIpAddress, SessionAttributes),
-							radius_attributes:find(?NasIdentifier, SessionAttributes)} of
+				{_TS, RadAttrs} = SessionAttributes,
+				NAS = case {radius_attributes:find(?NasIpAddress, RadAttrs),
+							radius_attributes:find(?NasIdentifier, RadAttrs)} of
 					{{_, IP}, {error, _}} ->
 						IP;
 					{_, {ok, ID}} ->
 						ID
 				end,
-				AcctSessionID = case radius_attributes:find(?AcctSessionId, SessionAttributes) of
+				AcctSessionID = case radius_attributes:find(?AcctSessionId, RadAttrs) of
 					{ok, ASI} ->
 						ASI;
 					{error, _} ->

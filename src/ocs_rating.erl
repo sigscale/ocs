@@ -37,7 +37,7 @@
 		UsageSecs :: integer(),
 		UsageOctets :: integer(),
 		Attributes :: [[tuple()]],
-		Return :: {ok, #subscriber{}} | {error, Reason},
+		Return :: {ok, #subscriber{}} | {error, Reason} | {error, Reason, list()},
 		Reason :: term().
 %% @todo Test cases, handle out of credit
 rating(SubscriberID, Final, UsageSecs, UsageOctets, Attributes) when is_list(SubscriberID) ->
@@ -56,10 +56,18 @@ rating(SubscriberID, Final, UsageSecs, UsageOctets, Attributes) when is_binary(S
 								#price{} = Price ->
 									case rating2(Price,
 												Validity, UsageSecs, UsageOctets, Final, Buckets) of
-										{Charged, _} when Charged > 0 ->
-											throw(out_of_credit);
+										{Charged, NewBuckets} when Charged > 0 ->
+											Entry = Subscriber#subscriber{buckets = NewBuckets,
+													session_attributes = []},
+											mnesia:write(Entry),
+											throw({out_of_credit, SessionList});
 										{_, NewBuckets} ->
-											NewSessionList = remove_session(SessionList, Attributes),
+											NewSessionList = case Final of
+												true ->
+													remove_session(SessionList, Attributes);
+												false ->
+													SessionList
+											end,
 											Entry = Subscriber#subscriber{buckets = NewBuckets,
 													session_attributes = NewSessionList},
 											mnesia:write(Entry),
@@ -78,6 +86,8 @@ rating(SubscriberID, Final, UsageSecs, UsageOctets, Attributes) when is_binary(S
 	case mnesia:transaction(F) of
 		{atomic, #subscriber{} = Sub} ->
 			{ok, Sub};
+		{aborted, {throw, {out_of_credit, SL}}} ->
+			{error, out_of_credit, SL};
 		{aborted, {throw, Reason}} ->
 			{error, Reason};
 		{aborted, Reason} ->

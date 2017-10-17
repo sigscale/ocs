@@ -235,8 +235,7 @@ radius_multisessions_not_allowed(Config) ->
 	{ok, #subscriber{multisession = false, session_attributes = SessionList1}}
 			= ocs:find_subscriber(PeerID),
 	[SessionAttr1] = SessionList1,
-	true = is_list(SessionAttr1),
-	F = fun(SessionAttributes, Nas) ->
+	F = fun({_, SessionAttributes}, Nas) ->
 		{_, PeerID} = radius_attributes:find(?UserName, SessionAttributes),
 		case radius_attributes:find(?NasIdentifier, SessionAttributes) of
 			{_, Nas} ->
@@ -293,7 +292,7 @@ radius_multisession(Config) ->
 			PeerID, Secret, NasID1, AcctSessionID, RadID2),
 	{ok, #subscriber{multisession = true, session_attributes = SessionList1}}
 			= ocs:find_subscriber(PeerID),
-	F1 = fun(F1, Session, [H1 | T1]) ->
+	F1 = fun(F1, {_, Session}, [H1 | T1]) ->
 				case lists:member(H1, Session) of
 					true ->
 						F1(F1, Session, T1);

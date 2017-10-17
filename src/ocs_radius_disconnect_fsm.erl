@@ -110,10 +110,7 @@ init([Address, NasId, Subscriber,
 send_request(timeout, #statedata{nas_ip = Address, port = Port,
 		id = Id, secret = SharedSecret, attributes = Attributes,
 		retry_time = Retry} = StateData) ->
-	IdAttrs = [?NasIpAddress, ?NasIdentifier, ?UserName, ?NasPort, ?FramedIpAddress,
-			?CallingStationId, ?CalledStationId, ?AcctSessionId, ?AcctMultiSessionId,
-			?NasPortType, ?NasPortId],
-	DiscAttrList  = extract_attributes(IdAttrs, Attributes, radius_attributes:new()),
+	DiscAttrList  = extract_attributes(Attributes),
 	DiscAttr = radius_attributes:codec(DiscAttrList),
 	Length = size(DiscAttr) + 20,
 	RequestAuthenticator = crypto:hash(md5,
@@ -135,6 +132,7 @@ send_request(timeout, #statedata{nas_ip = Address, port = Port,
 		{error, _Reason} ->
 				{next_state, send_request, StateData, ?TIMEOUT}
 	end.
+
 
 -spec receive_response(Event, StateData) -> Result
 	when
@@ -298,23 +296,20 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec extract_attributes(Attributes, AttrList, CurrentAttrList) -> NewAttrList
+-spec extract_attributes(Attributes) -> NewAttrList
 	when
-		Attributes :: [integer()],
-		AttrList :: radius_attributes:attributes(),
-		CurrentAttrList :: radius_attributes:attributes(),
+		Attributes :: radius_attributes:attributes(),
 		NewAttrList :: radius_attributes:attributes().
-%% @doc Appends radius attributes needed for a Disconnect/Request
+%% @doc extract radius attributes needed for a Disconnect/Request
 %% @private
 %%
-extract_attributes([ H | T ] = _Attributes, AttrList, CurrentAttrList) ->
-	NewAttrList = case radius_attributes:find(H, AttrList) of
-		{error, not_found} ->
-			CurrentAttrList;
-		{ok, Value}->
-			radius_attributes:add(H, Value, CurrentAttrList)
+extract_attributes(Attributes) ->
+	F = fun({K, _}) when K == ?NasIdentifier; K == ?NasIpAddress;
+				K == ?UserName; K == ?FramedIpAddress; K == ?NasPort;
+				K == ?NasPortType; K == ?CalledStationId; K == ?CallingStationId;
+				K == ?AcctSessionId; K == ?AcctMultiSessionId; K == ?NasPortId ->
+			true;
+		(_) ->
+			false
 	end,
-	extract_attributes(T, AttrList, NewAttrList);
-extract_attributes([], _AttrList, CurrentAttrList) ->
-	CurrentAttrList.
-
+	lists:filter(F, Attributes).
