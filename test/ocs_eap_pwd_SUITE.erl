@@ -42,6 +42,10 @@
 -define(BASE_APPLICATION_ID, 0).
 -define(EAP_APPLICATION_ID, 5).
 
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
+
 %%---------------------------------------------------------------------
 %%  Test server callback functions
 %%---------------------------------------------------------------------
@@ -351,7 +355,10 @@ pwd_confirm_over_radius(Config) ->
 	PeerId = <<"45678901">>,
 	MAC = "DD-EE-FF-AA-BB-CC",
 	PeerAuth = list_to_binary(ocs:generate_password()),
-	Buckets = [#bucket{remain_amount = 1000, bucket_type = octets}],
+	Now = erlang:system_time(?MILLISECOND),
+	TD = Now + 86400000,
+	Buckets = [#bucket{remain_amount = 1000, bucket_type = octets,
+		termination_date = TD}],
 	{ok, _} = ocs:add_subscriber(PeerId, PeerAuth, ProdID, [], Buckets, []),
 	Socket = ?config(socket, Config),
 	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, radius),
@@ -400,7 +407,10 @@ pwd_confirm_over_diameter(Config) ->
 	ProdID = ?config(product_id, Config),
 	PeerId = <<"72384569">>,
 	PeerAuth = list_to_binary(ocs:generate_password()),
-	Buckets = [#bucket{remain_amount = 100000, bucket_type = octets}],
+	Now = erlang:system_time(?MILLISECOND),
+	TD = Now + 86400000,
+	Buckets = [#bucket{remain_amount = 100000, bucket_type = octets,
+			termination_date = TD}],
 	{ok, _} = ocs:add_subscriber(PeerId, PeerAuth, ProdID, [], Buckets, []),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
