@@ -259,6 +259,7 @@ request1(?AccountingStart, _AcctSessionId, Id,
 request1(?AccountingStop, AcctSessionId, Id,
 		Authenticator, Secret, NasId, Address, _AccPort, _ListenPort, Attributes,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
+
 	InOctets = radius_attributes:find(?AcctInputOctets, Attributes),
 	OutOctets = radius_attributes:find(?AcctOutputOctets, Attributes),
 	UsageOctets = case {InOctets, OutOctets} of
@@ -277,8 +278,8 @@ request1(?AccountingStop, AcctSessionId, Id,
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, stop, Attributes),
 	Subscriber = ocs:normalize(UserName),
 	A1 = [{?AcctSessionId, AcctSessionId}],
-	A2 = [{?NasIdentifier, NasId}, {?UserName, Subscriber}],
-	A3 = [{?NasIpAddress, NasId}, {?UserName, Subscriber}],
+	A2 = [{?NasIdentifier, NasId}],
+	A3 = [{?NasIpAddress, NasId}],
 	Candidates = [A1, A2, A3],
 	case ocs_rating:rating(Subscriber, true, UsageSecs, UsageOctets, Candidates) of
 		{error, out_of_credit, SessionList}  ->
@@ -314,8 +315,8 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, interim, Attributes),
 	Subscriber = ocs:normalize(UserName),
 	A1 = [{?AcctSessionId, AcctSessionId}],
-	A2 = [{?NasIdentifier, NasId}, {?UserName, Subscriber}],
-	A3 = [{?NasIpAddress, NasId}, {?UserName, Subscriber}],
+	A2 = [{?NasIdentifier, NasId}],
+	A3 = [{?NasIpAddress, NasId}],
 	Candidates = [A1, A2, A3],
 	case ocs_rating:rating(Subscriber, false, UsageSecs, UsageOctets, Candidates) of
 		{error, not_found} ->
