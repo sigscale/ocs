@@ -282,7 +282,8 @@ request1(?AccountingStop, AcctSessionId, Id,
 	Candidates = [A1, A2, A3],
 	case ocs_rating:rating(Subscriber, true, UsageSecs, UsageOctets, Candidates) of
 		{error, out_of_credit, SessionList}  ->
-			start_disconnect(Subscriber, Id, Authenticator, State, SessionList);
+			start_disconnect(Subscriber, Id, Authenticator, State, SessionList),
+			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{error, Reason} ->
 			error_logger:warning_report(["Accounting failed",
 					{module, ?MODULE}, {subscriber, Subscriber},
@@ -324,9 +325,11 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 					{session, AcctSessionId}]),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{error, out_of_credit, SessionList} ->
-			start_disconnect(Subscriber, Id, Authenticator, State, SessionList);
+			start_disconnect(Subscriber, Id, Authenticator, State, SessionList),
+			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{ok, #subscriber{enabled = false, session_attributes = SessionList}} ->
-			start_disconnect(Subscriber, Id, Authenticator, State, SessionList);
+			start_disconnect(Subscriber, Id, Authenticator, State, SessionList),
+			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{ok, #subscriber{}} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
@@ -404,32 +407,14 @@ start_disconnect1(Subscriber, Id, Authenticator, State, [{#client{port = 0}, _} 
 	start_disconnect1(Subscriber, Id, Authenticator, State, T);
 start_disconnect1(Subscriber, Id, Authenticator,
 		#state{handlers = Handlers, disc_sup = DiscSup, disc_id = DiscId} = State,
-		[{#client{address = Address, port = Port, secret = Secret}, SessionAttributes}]) ->
+		[{#client{address = Address, port = Port, secret = Secret}, SessionAttributes} | T]) ->
 	NasId = proplists:get_value(?NasIdentifier, SessionAttributes),
 	AcctSessionId = proplists:get_value(?AcctSessionId, SessionAttributes),
-	case gb_trees:lookup({NasId, Subscriber, AcctSessionId}, Handlers) of
-		{value, _DiscPid} ->
-			{reply, {ok, response(Id, Authenticator, Secret)}, State};
-		none ->
-			DiscArgs = [Address, NasId, Subscriber,
-					AcctSessionId, Secret, Port, SessionAttributes, Id],
-			StartArgs = [DiscArgs, []],
-			case supervisor:start_child(DiscSup, StartArgs) of
-				{ok, DiscFsm} ->
-					link(DiscFsm),
-					NewHandlers = gb_trees:insert({NasId, Subscriber, AcctSessionId},
-							DiscFsm, Handlers),
-					NewDiscId = DiscId + 1,
-					NewState = State#state{handlers = NewHandlers,
-							disc_id = NewDiscId},
-					{reply, {ok, response(Id, Authenticator, Secret)}, NewState};
-				{error, Reason} ->
-					error_logger:error_report(["Failed to initiate session disconnect function",
-							{module, ?MODULE}, {subscriber, Subscriber}, {nas, NasId},
-							{address, Address}, {session, AcctSessionId}, {error, Reason}]),
-					{reply, {ok, response(Id, Authenticator, Secret)}, State}
-			end
-	end;
+	DiscArgs = [Address, NasId, Subscriber,
+			AcctSessionId, Secret, Port, SessionAttributes, Id],
+	StartArgs = [DiscArgs, []],
+	supervisor:start_child(DiscSup, StartArgs),
+	start_disconnect1(Subscriber, Id, Authenticator, State, T);
 start_disconnect1(_Subscriber, _Id, _Authenticator, _State, []) ->
 	ok.
 
