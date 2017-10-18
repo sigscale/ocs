@@ -86,7 +86,7 @@ rating(SubscriberID, Final, UsageSecs, UsageOctets, Attributes) when is_binary(S
 	case mnesia:transaction(F) of
 		{atomic, #subscriber{} = Sub} ->
 			{ok, Sub};
-		{aborted, {out_of_credit, SL}} ->
+		{atomic, {out_of_credit, SL}} ->
 			{error, out_of_credit, SL};
 		{aborted, {throw, Reason}} ->
 			{error, Reason};
