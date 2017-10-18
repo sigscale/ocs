@@ -479,7 +479,7 @@ start_disconnect(SessionList, #statedata{protocol = diameter, session_id = Sessi
 start_disconnect1(_DiscSup, [], _State) ->
 	ok;
 start_disconnect1(DiscSup, [H | Tail], #statedata{protocol = radius} = State) ->
-	start_disconnect2(DiscSup, State, H),
+	start_disconnect2(DiscSup, H, State),
 	start_disconnect1(DiscSup, Tail, State);
 start_disconnect1(DiscSup, SessionList, State) ->
 	start_disconnect3(DiscSup, State, SessionList).
