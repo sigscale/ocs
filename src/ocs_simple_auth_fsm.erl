@@ -497,8 +497,13 @@ start_disconnect2(DiscSup, [{_TS, SessionAttributes} | T], #statedata{protocol =
 				{error, not_found} ->
 					start_disconnect2(DiscSup, T, State, Acc);
 				{ok, Nas} ->
-					[Client] = mnesia:index_read(client, Nas, #client.port),
-					start_disconnect2(DiscSup, T, State, [{Client, SessionAttributes} | Acc])
+					NewAcc = case mnesia:index_read(client, list_to_binary(Nas), #client.identifier) of
+						[Client] ->
+							[{Client, SessionAttributes} | Acc];
+						[] ->
+							Acc
+					end,
+					start_disconnect2(DiscSup, T, State, NewAcc)
 			end
 	end;
 start_disconnect2(DiscSup, [], State, Acc) ->
