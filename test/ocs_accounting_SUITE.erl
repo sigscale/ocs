@@ -43,6 +43,10 @@
 -define(NAS_APPLICATION_ID, 1).
 -define(CC_APPLICATION_ID, 4).
 
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
+
 %%---------------------------------------------------------------------
 %%  Test server callback functions
 %%---------------------------------------------------------------------
@@ -108,7 +112,10 @@ init_per_testcase(TestCase, Config) when
 	[{Address, Port, _}] = AuthInstance,
 	Secret = "s3cr3t",
 	InitialAmount = 1000000,
-	Buckets = [#bucket{remain_amount = InitialAmount, bucket_type = octets}],
+	Now = erlang:system_time(?MILLISECOND),
+	TD = Now + 86400000,
+	Buckets = [#bucket{bucket_type = octets,
+			remain_amount = InitialAmount, termination_date = TD}],
 	ok = ocs:add_client(Address, Port, diameter, Secret),
 	{ok, _} = ocs:add_subscriber(UserName, Password, ProdID, [], Buckets, []),
 	[{username, UserName}, {password, Password}, {init_bal, InitialAmount}] ++ Config;
@@ -160,7 +167,10 @@ radius_accounting(Config) ->
 	PeerID = "845652366",
 	Secret = ct:get_config(radius_shared_secret),
 	Password = ocs:generate_password(),
-	Buckets = [#bucket{remain_amount = 1000, bucket_type = octets}],
+	Now = erlang:system_time(?MILLISECOND),
+	TD = Now + 86400000,
+	Buckets = [#bucket{bucket_type = octets,
+			remain_amount = 1000, termination_date = TD}],
 	ProdID = ?config(product_id, Config),
    {ok, _} = ocs:add_subscriber(PeerID, Password, ProdID, [], Buckets, []),
 	ReqAuth = radius:authenticator(),
@@ -189,7 +199,10 @@ radius_disconnect_session(Config) ->
 	PeerID = "458565788",
 	Secret = ct:get_config(radius_shared_secret),
 	Password = ocs:generate_password(),
-	Buckets = [#bucket{remain_amount = 1000, bucket_type = octets}],
+	Now = erlang:system_time(?MILLISECOND),
+	TD = Now + 86400000,
+	Buckets = [#bucket{bucket_type = octets,
+			remain_amount = 1000, termination_date = TD}],
    {ok, _} = ocs:add_subscriber(PeerID, Password, ProdID, [], Buckets, []),
 	ReqAuth = radius:authenticator(),
    HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
@@ -223,7 +236,10 @@ radius_multisessions_not_allowed(Config) ->
 	PeerID = ocs:generate_identity(),
 	Secret = ct:get_config(radius_shared_secret),
 	Password = ocs:generate_password(),
-	Buckets = [#bucket{remain_amount = 1000, bucket_type = octets}],
+	Now = erlang:system_time(?MILLISECOND),
+	TD = Now + 86400000,
+	Buckets = [#bucket{bucket_type = octets,
+			remain_amount = 1000, termination_date = TD}],
 	{ok, _} = ocs:add_subscriber(PeerID, Password, ProdID, [], Buckets, [], true, false),
 	ReqAuth = radius:authenticator(),
 	HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
@@ -280,7 +296,10 @@ radius_multisession(Config) ->
 	PeerID = ocs:generate_identity(),
 	Secret = ct:get_config(radius_shared_secret),
 	Password = ocs:generate_password(),
-	Buckets = [#bucket{remain_amount = 1000, bucket_type = octets}],
+	Now = erlang:system_time(?MILLISECOND),
+	TD = Now + 86400000,
+	Buckets = [#bucket{bucket_type = octets,
+			remain_amount = 1000, termination_date = TD}],
 	{ok, _} = ocs:add_subscriber(PeerID, Password, ProdID, [], Buckets, [], true, true),
 	ReqAuth = radius:authenticator(),
 	HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),

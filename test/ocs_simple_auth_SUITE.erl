@@ -41,6 +41,10 @@
 -define(BASE_APPLICATION_ID, 0).
 -define(NAS_APPLICATION_ID, 1).
 
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
+
 %%---------------------------------------------------------------------
 %%  Test server callback functions
 %%---------------------------------------------------------------------
@@ -96,7 +100,10 @@ init_per_testcase(TestCase, Config) when
 	Secret = "s3cr3t",
 	ok = ocs:add_client(Address, Port, diameter, Secret),
 	Amount = 1000000,
-	Buckets = [#bucket{remain_amount = Amount, bucket_type = octets}],
+	Now = erlang:system_time(?MILLISECOND),
+	TD = Now + 86400000,
+	Buckets = [#bucket{bucket_type = octets,
+			termination_date = TD, remain_amount = Amount}],
 	ProdID = ?config(product_id, Config),
 	{ok, _} = ocs:add_subscriber(UserName, Password, ProdID, [], Buckets, []),
 	[{username, UserName}, {password, Password}] ++ Config;
@@ -158,7 +165,10 @@ simple_authentication_radius(Config) ->
 	PeerID = string:to_lower(lists:append(MACtokens)),
 	PeerPassword = ocs:generate_password(),
 	Amount = 1000000,
-	Buckets = [#bucket{remain_amount = Amount, bucket_type = octets}],
+	Now = erlang:system_time(?MILLISECOND),
+	TD = Now + 86400000,
+	Buckets = [#bucket{bucket_type = octets,
+			termination_date = TD, remain_amount = Amount}],
 	{ok, _} = ocs:add_subscriber(PeerID, PeerPassword, ProdID, [], Buckets, []),
 	Authenticator = radius:authenticator(),
 	SharedSecret = ct:get_config(radius_shared_secret),
@@ -283,7 +293,10 @@ bad_password_radius(Config) ->
 	PeerID = string:to_lower(lists:append(MACtokens)),
 	PeerPassword = ocs:generate_password(),
 	Amount = 1000000,
-	Buckets = [#bucket{remain_amount = Amount, bucket_type = octets}],
+	Now = erlang:system_time(?MILLISECOND),
+	TD = Now + 86400000,
+	Buckets = [#bucket{bucket_type = octets,
+			termination_date = TD, remain_amount = Amount}],
 	{ok, _} = ocs:add_subscriber(PeerID, PeerPassword, ProdID, [], Buckets, []),
 	Authenticator = radius:authenticator(),
 	SharedSecret = ct:get_config(radius_shared_secret),
@@ -347,7 +360,10 @@ unknown_username_radius(Config) ->
 	PeerID = string:to_lower(lists:append(MACtokens)),
 	PeerPassword = ocs:generate_password(),
 	Amount = 1000000,
-	Buckets = [#bucket{remain_amount = Amount, bucket_type = octets}],
+	Now = erlang:system_time(?MILLISECOND),
+	TD = Now + 86400000,
+	Buckets = [#bucket{bucket_type = octets,
+			termination_date = TD, remain_amount = Amount}],
 	{ok, _} = ocs:add_subscriber(PeerID, PeerPassword, ProdID, [], Buckets, []),
 	Authenticator = radius:authenticator(),
 	SharedSecret = ct:get_config(radius_shared_secret),
