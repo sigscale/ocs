@@ -1059,7 +1059,12 @@ authorize(Identity, Password) when is_binary(Identity),
 				case mnesia:read(subscriber, Identity, write) of
 					[#subscriber{buckets = Buckets, enabled = Enabled,
 							disconnect = Disconnect} = Entry] ->
-						F2 = fun(#bucket{remain_amount = Amount}) when Amount > 0 ->
+						Now = erlang:system_time(?MILLISECOND),
+						F2 = fun(#bucket{remain_amount = Amount,
+											termination_date = TD}) when
+													TD =/= undefined,
+													TD > Now,
+													Amount > 0 ->
 										true;
 									(_) ->
 										false
