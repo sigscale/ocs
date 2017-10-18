@@ -84,15 +84,15 @@
 				<template>[[item.password]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="8ex" flex-grow="5">
-            <template class="header">
-                  <vaadin-grid-sorter path="product">
-                     <vaadin-grid-filter aria-label="Product" path="product" value="[[_filterBalance]]">
-                        <input placeholder="Product" value="{{_filterBalance::input}}" focus-target>
-                     </vaadin-grid-filter>
-                  </vaadin-grid-sorter>
-            </template>
-            <template>[[item.product]]</template>
-         </vaadin-grid-column>
+				<template class="header">
+					<vaadin-grid-sorter path="product">
+						<vaadin-grid-filter aria-label="Product" path="product" value="[[_filterBalance]]">
+							<input placeholder="Product" value="{{_filterBalance::input}}" focus-target>
+						</vaadin-grid-filter>
+					</vaadin-grid-sorter>
+				</template>
+			<template>[[item.product]]</template>
+			</vaadin-grid-column>
 			<vaadin-grid-column-group>
 				<template class="header">
 					<div class="grouptitle">Balance</div>
@@ -134,48 +134,6 @@
 					</template>
 				</vaadin-grid-column>
 			</vaadin-grid-column-group>
-			<vaadin-grid-column width="9ex" flex-grow="2">
-				<template class="header">
-					<i18n-msg msgid="asc">
-						<vaadin-grid-sorter path="ascendDataRate">
-							<vaadin-grid-filter aria-label="[[i18n.asc]]" path="ascendDataRate" value="[[_filterDataRate]]">
-								<input placeholder="[[i18n.asc]]" value="{{_filterDataRate::input}}" focus-target>
-							</vaadin-grid-filter>
-						</vaadin-grid-sorter>
-					</i18n-msg>
-				</template>
-				<template>[[item.ascendDataRate]]</template>
-			</vaadin-grid-column>
-			<vaadin-grid-column width="9ex" flex-grow="2">
-				<template class="header">
-					<vaadin-grid-sorter path="ascendXmitRate" direction="desc">
-						<vaadin-grid-filter aria-label="[[i18n.xmit]]" path="ascendXmitRate" value="[[_filterXmitRate]]">
-							<input placeholder="[[i18n.xmit]]" value="{{_filterXmitRate::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
-				</template>
-				<template>[[item.ascendXmitRate]]</template>
-			</vaadin-grid-column>
-			<vaadin-grid-column width="8ex">
-				<template class="header">
-					<vaadin-grid-sorter path="sessionTimeout" direction="desc">
-						<vaadin-grid-filter aria-label="[[i18n.session]]" path="sessionTimeout" value="[[_filterTimeout]]">
-							<input placeholder="[[i18n.session]]" value="{{_filterTimeout::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
-				</template>
-				<template>[[item.sessionTimeout]]</template>
-			</vaadin-grid-column>
-			<vaadin-grid-column width="8ex">
-				<template class="header">
-					<vaadin-grid-sorter path="acctInterimInterval" direction="desc">
-						<vaadin-grid-filter aria-label="[[i18n.int]]" path="acctInterimInterval" value="[[_filterInterval]]">
-							<input placeholder="[[i18n.int]]" value="{{_filterInterval::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
-				</template>
-				<template>[[item.acctInterimInterval]]</template>
-			</vaadin-grid-column>
 			<vaadin-grid-column width="8ex" flex-grow="1">
 				<template class="header">
 					<vaadin-grid-sorter path="enabled">
@@ -214,6 +172,10 @@
 		<paper-toast
 				id="deleteSubscriberToastSuccess"
 				text="[[i18n.subscriberDeleted]]">
+		</paper-toast>
+		<paper-toast
+				id="addSubscriberProductToastError"
+				text="Not Implemented">
 		</paper-toast>
 		<paper-toast id="getSubscriberErrorToast" duration="0">
 			<paper-button
@@ -365,26 +327,28 @@
 					newRecord.id = results[index].id;
 					newRecord.password = results[index].password;
 					newRecord.product = results[index].product;
-					function getBytes(balance) {
-						return balance.units == "octets";
-					}
-					var byteTotal = results[index].totalBalance.find(getBytes);
-					if(byteTotal) {
-						newRecord.totalBalance = byteTotal.amount;
-					}
-					function getCents(balance) {
-						return balance.units == "cents";
-					}
-					var centsTotal = results[index].totalBalance.find(getCents);
-					if(centsTotal) {
-						newRecord.cents = centsTotal.amount;
-					}
-					function getSeconds(balance) {
-						return balance.units == "seconds";
-					}
-					var secondsTotal = results[index].totalBalance.find(getSeconds);
-					if(secondsTotal) {
-						newRecord.seconds = secondsTotal.amount;
+					if(results[index].totalBalance) {
+						function getBytes(balance) {
+							return balance.units == "octets";
+						}
+						var byteTotal = results[index].totalBalance.find(getBytes);
+						if(byteTotal) {
+							newRecord.totalBalance = byteTotal.amount;
+						}
+						function getCents(balance) {
+							return balance.units == "cents";
+						}
+						var centsTotal = results[index].totalBalance.find(getCents);
+						if(centsTotal) {
+							newRecord.cents = centsTotal.amount;
+						}
+						function getSeconds(balance) {
+							return balance.units == "seconds";
+						}
+						var secondsTotal = results[index].totalBalance.find(getSeconds);
+						if(secondsTotal) {
+							newRecord.seconds = secondsTotal.amount;
+						}
 					}
 					results[index].attributes.forEach(
 						function(attrObj) {
@@ -411,8 +375,7 @@
 				}
 			},
 			showAddModal: function(event) {
-				document.getElementById("addSubscriberProductsAjax").generateRequest();
-				document.getElementById("addSubscriberModal").open();
+				document.getElementById("addSubscriberProductAjax").generateRequest();
 			}
 		});
 	</script>
