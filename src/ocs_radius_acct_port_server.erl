@@ -379,14 +379,19 @@ start_disconnect(Subscriber, Id, Authenticator, State, SessionAttributes) ->
 start_disconnect(Subscriber, Id, Authenticator, State, [], Acc) ->
 	start_disconnect1(Subscriber, Id, Authenticator, State, Acc);
 start_disconnect(Subscriber, Id, Authenticator, State, [{_, SessionAttributes} | T], Acc) ->
-	Address = proplists:get_value(?NasIpAddress, SessionAttributes),
-	{ok, NasIp} = inet_parse:address(Address),
-	case mnesia:read(client, NasIp, read) of
+	Address = case {radius_attributes:find(?NasIpAddress, SessionAttributes),
+				radius_attributes:find(?NasIdentifier, SessionAttributes)} of
+		{{ok, Ip}, _} ->
+			{ok, IpAddr} = inet_parse:address(Ip),
+			IpAddr;
+		{{error, _}, {ok, Nas}} ->
+			Nas
+	end,
+	case mnesia:read(client, Address, read) of
 		[Client] ->
 			start_disconnect(Subscriber, Id, Authenticator, State, T, [{Client, SessionAttributes} | Acc]);
 		[] ->
-			NasId = proplists:get_value(?NasIdentifier, SessionAttributes),
-			case mnesia:index_read(client, NasId, #client.identifier) of
+			case mnesia:index_read(client, list_to_binary(Address), #client.identifier) of
 				[ClientIndexMatch] ->
 					start_disconnect(Subscriber, Id, Authenticator,
 							State, T, [{ClientIndexMatch, SessionAttributes} | Acc]);
