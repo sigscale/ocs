@@ -476,57 +476,25 @@ start_disconnect(SessionList, #statedata{protocol = diameter, session_id = Sessi
 			start_disconnect1(DiscSup, SessionList, State)
 	end.
 %% @hidden
-start_disconnect1(DiscSup, SessionList, #statedata{protocol = radius} = State) ->
-	F = fun() ->
-		start_disconnect2(DiscSup, SessionList,  State, [])
-	end,
-	mnesia:transaction(F);
+start_disconnect1(_DiscSup, [], _State) ->
+	ok;
+start_disconnect1(DiscSup, [H | Tail], #statedata{protocol = radius} = State) ->
+	start_disconnect2(DiscSup, State, H),
+	start_disconnect1(DiscSup, Tail, State);
 start_disconnect1(DiscSup, SessionList, State) ->
 	start_disconnect3(DiscSup, State, SessionList).
 %% @hidden
-start_disconnect2(DiscSup, [{_TS, SessionAttributes} | T], #statedata{protocol = radius} = State, Acc) ->
-	IP = radius_attributes:find(?NasIpAddress, SessionAttributes),
-	NasID = radius_attributes:find(?NasIdentifier, SessionAttributes),
-	case IP of
-		{ok, Address} ->
-			{ok, IpAddr} = inet_parse:address(Address),
-			[Client] =  mnesia:read(client, IpAddr, read), 
-			start_disconnect2(DiscSup, T, State, [{Client, SessionAttributes} | Acc]);
-		{error, _} ->
-			case NasID of
-				{error, not_found} ->
-					start_disconnect2(DiscSup, T, State, Acc);
-				{ok, Nas} ->
-					NewAcc = case mnesia:index_read(client, list_to_binary(Nas), #client.identifier) of
-						[Client] ->
-							[{Client, SessionAttributes} | Acc];
-						[] ->
-							Acc
-					end,
-					start_disconnect2(DiscSup, T, State, NewAcc)
-			end
-	end;
-start_disconnect2(DiscSup, [], State, Acc) ->
-	start_disconnect3(DiscSup, State, Acc).
-%% @hidden
-start_disconnect3(_DiscSup, _State, []) ->
-	ok;
-start_disconnect3(DiscSup, #statedata{protocol = radius, subscriber = SubscriberId} = State,
-		[{#client{address = Address, port = Port, identifier = NAS, secret = Secret},
-		SessionAttributes} | T]) ->
-	AcctSessionID = case radius_attributes:find(?AcctSessionId, SessionAttributes) of
-		{ok, ASI} ->
-			ASI;
-		{error, _} ->
-			undefined
-	end,
-	DiscArgs = [Address, NAS, SubscriberId, AcctSessionID, Secret,
-		Port, SessionAttributes, 1],
+start_disconnect2(DiscSup, SessionAttributes, #statedata{protocol = radius,
+		subscriber = Subscriber}) ->
+	DiscArgs = [Subscriber, SessionAttributes],
 	StartArgs = [DiscArgs, []],
-	supervisor:start_child(DiscSup, StartArgs),
-	start_disconnect3(DiscSup, State, T);
+	supervisor:start_child(DiscSup, StartArgs).
+%% @hidden
+start_disconnect3(_DiscSup, #statedata{protocol = diameter}, []) ->
+	ok;
 start_disconnect3(DiscSup, #statedata{protocol = diameter, session_id = SessionID,
-		origin_host = OHost, origin_realm = ORealm, dest_host = DHost, dest_realm = DRealm} = State, [_ | T]) ->
+		origin_host = OHost, origin_realm = ORealm, dest_host = DHost, dest_realm = DRealm}
+		= State, [_ | T]) ->
 	Svc = ocs_diameter_acct_service,
 	Alias = ocs_diameter_base_application,
 	AppId = ?CC_APPLICATION_ID,

@@ -283,7 +283,7 @@ request1(?AccountingStop, AcctSessionId, Id,
 	Candidates = [A1, A2, A3],
 	case ocs_rating:rating(Subscriber, true, UsageSecs, UsageOctets, Candidates) of
 		{error, out_of_credit, SessionList}  ->
-			start_disconnect(Subscriber, Id, Authenticator, State, SessionList),
+			start_disconnect(State, Subscriber, SessionList),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{error, Reason} ->
 			error_logger:warning_report(["Accounting failed",
@@ -326,10 +326,10 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 					{session, AcctSessionId}]),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{error, out_of_credit, SessionList} ->
-			start_disconnect(Subscriber, Id, Authenticator, State, SessionList),
+			start_disconnect(State, Subscriber, SessionList),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{ok, #subscriber{enabled = false, session_attributes = SessionList}} ->
-			start_disconnect(Subscriber, Id, Authenticator, State, SessionList),
+			start_disconnect(State, Subscriber, SessionList),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{ok, #subscriber{}} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
@@ -363,59 +363,17 @@ response(Id, RequestAuthenticator, Secret) ->
 			authenticator = ResponseAuthenticator, attributes = []},
 	radius:codec(Response).
 
--spec start_disconnect(Subscriber, Id, Authenticator, State, SessionList) -> Result
-	when
-		Subscriber :: binary() | list(),
-		Id :: byte(),
-		Authenticator :: [byte()],
-		State :: #state{},
-		SessionList :: radius_attributes:attributes(),
-		Result :: {reply, {ok, Response}, NewState} | term(),
-		Response :: binary(),
-		NewState :: #state{}.
+%% @hidden
 %% @doc Start a disconnect_fsm worker.
-start_disconnect(Subscriber, Id, Authenticator, State, SessionAttributes) ->
-	F = fun() ->
-		start_disconnect(Subscriber, Id, Authenticator, State, SessionAttributes, [])
-	end,
-	mnesia:transaction(F).
-%% @hidden
-start_disconnect(Subscriber, Id, Authenticator, State, [], Acc) ->
-	start_disconnect1(Subscriber, Id, Authenticator, State, Acc);
-start_disconnect(Subscriber, Id, Authenticator, State, [{_, SessionAttributes} | T], Acc) ->
-	Address = case {radius_attributes:find(?NasIpAddress, SessionAttributes),
-				radius_attributes:find(?NasIdentifier, SessionAttributes)} of
-		{{ok, Ip}, _} ->
-			{ok, IpAddr} = inet_parse:address(Ip),
-			IpAddr;
-		{{error, _}, {ok, Nas}} ->
-			Nas
-	end,
-	case mnesia:read(client, Address, read) of
-		[Client] ->
-			start_disconnect(Subscriber, Id, Authenticator, State, T, [{Client, SessionAttributes} | Acc]);
-		[] ->
-			case mnesia:index_read(client, list_to_binary(Address), #client.identifier) of
-				[ClientIndexMatch] ->
-					start_disconnect(Subscriber, Id, Authenticator,
-							State, T, [{ClientIndexMatch, SessionAttributes} | Acc]);
-				[] ->
-					start_disconnect(Subscriber, Id, Authenticator, State, T, Acc)
-			end
-	end.
-%% @hidden
-start_disconnect1(Subscriber, Id, Authenticator, State, [{#client{port = 0}, _} | T]) ->
-	start_disconnect1(Subscriber, Id, Authenticator, State, T);
-start_disconnect1(Subscriber, Id, Authenticator,
-		#state{handlers = Handlers, disc_sup = DiscSup, disc_id = DiscId} = State,
-		[{#client{address = Address, port = Port, secret = Secret}, SessionAttributes} | T]) ->
-	NasId = proplists:get_value(?NasIdentifier, SessionAttributes),
-	AcctSessionId = proplists:get_value(?AcctSessionId, SessionAttributes),
-	DiscArgs = [Address, NasId, Subscriber,
-			AcctSessionId, Secret, Port, SessionAttributes, Id],
-	StartArgs = [DiscArgs, []],
-	supervisor:start_child(DiscSup, StartArgs),
-	start_disconnect1(Subscriber, Id, Authenticator, State, T);
-start_disconnect1(_Subscriber, _Id, _Authenticator, _State, []) ->
+%%
+start_disconnect(#state{disc_sup = DiscSup} = State, Subscriber, [H | Tail]) ->
+	start_disconnect1(DiscSup, Subscriber, H),
+	start_disconnect(State, Subscriber, Tail);
+start_disconnect(_State, _Subscriber, []) ->
 	ok.
+%% @hidden
+start_disconnect1(DiscSup, Subscriber, SessionAttributes) ->
+	DiscArgs = [Subscriber, SessionAttributes],
+	StartArgs = [DiscArgs, []],
+	supervisor:start_child(DiscSup, StartArgs).
 

@@ -80,14 +80,28 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([Address, NasId, Subscriber,
-				AcctSessionId, Secret, Port, Attributes, Id]) ->
+init([Subscriber, {_, SessionAttributes}]) ->
 	process_flag(trap_exit, true),
-	StateData = #statedata{nas_ip = Address, nas_id = NasId,
-			subscriber = Subscriber, acct_session_id = AcctSessionId,
-			secret = Secret, attributes = Attributes, id = Id,
-			port = Port},
-	{ok, send_request, StateData, 0}.
+	Address = proplists:get_value(?NasIpAddress),
+	NasId = proplists:get_value(?NasIdentifier, SessionAttributes),
+	AcctSessionId = proplists:get_value(?AcctSessionId, SessionAttributes),
+	Id = 1,
+	case lookup_client(Address, NasId) of
+		{ok, #client{port = 0}} ->
+			{stop, {shutdown, disconnect_not_supported}};
+		{ok, #client{address = Address, identifier = NasID,
+				secret = Secret, port = Port}} ->
+			StateData = #statedata{nas_ip = Address, 
+					nas_id = list_to_binary(NasID),
+					subscriber = Subscriber, acct_session_id = AcctSessionId,
+					secret = Secret, attributes = SessionAttributes, id = Id,
+					port = Port},
+			{ok, send_request, StateData, 0};
+		{error, not_found} ->
+			{stop, {shutdown, client_not_found}};
+		{error, _Reason} ->
+			{stop, shutdown}
+	end.
 
 -spec send_request(Event, StateData) -> Result
 	when
@@ -313,3 +327,45 @@ extract_attributes(Attributes) ->
 			false
 	end,
 	lists:filter(F, Attributes).
+
+%% @hidden
+lookup_client(NasIp, NasId) when is_list(NasIp)->
+	{ok, Address} = inet_parse:address(NasIp),
+	lookup_client(Address, NasId);
+lookup_client(NasIp, NasId) when is_list(NasId)->
+	lookup_client(NasIp, list_to_binary(NasId));
+lookup_client(undefined, NasId) when is_binary(NasId) ->
+	F = fun() ->
+			case mnesia:index_read(client, NasId, #client.identifier) of
+				[Client] ->
+					Client;
+				[] ->
+					throw(not_found)
+			end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, Client} ->
+			{ok, Client};
+		{aborted, {throw, not_found}} ->
+			{error, not_found};
+		{aborted, Reason} ->
+			{error, Reason}
+	end;
+lookup_client(NasIp, _NasId) when is_binary(NasIp) ->
+	F = fun() ->
+			case mnesia:read(client, NasIp, read) of
+				[Client] ->
+					Client;
+				[] ->
+					throw(not_found)
+			end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, Client} ->
+			{ok, Client};
+		{aborted, {throw, not_found}} ->
+			{error, not_found};
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+
