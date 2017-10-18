@@ -263,19 +263,6 @@
 				</div>
 			<div id=add-divtwo>
 				<div>
-					<paper-dropdown-menu
-							id="addpro10"
-							label="[[i18n.prod]]">
-						<paper-listbox
-								slot="dropdown-content"
-								class="dropdown-content">
-								<template is="dom-repeat" items="[[products]]">
-									<paper-item>
-										{{item}}
-									</paper-item>
-								</template>
-						</paper-listbox>
-					</paper-dropdown-menu>
 					<paper-input id="add8"
 							name="amount"
 							type="number"
@@ -290,18 +277,18 @@
 								selected="0">
 								<paper-item>
 									<i18n-msg msgid="octet">
- 										bytes
-                           </i18n-msg>
+										bytes
+									</i18n-msg>
 								</paper-item>
 								<paper-item>
 									<i18n-msg msgid="cent">
-                              cents
-                           </i18n-msg>
+										cents
+									</i18n-msg>
 								</paper-item>
 								<paper-item>
 									<i18n-msg msgid="second">
-                              seconds
-                           </i18n-msg>
+										seconds
+									</i18n-msg>
 								</paper-item>
 							</paper-listbox>
 					</paper-dropdown-menu>
@@ -374,13 +361,6 @@
 				on-response="_addSubscriberResponse"
 				on-error="_addSubscriberError">
 		</iron-ajax>
-		<iron-ajax
-				id="addSubscriberProductsAjax"
-				url="/catalogManagement/v2/productOffering"
-				method = "GET"
-				on-response="_addSubscriberProductsResponse"
-				on-error="_addSubscriberProductsError">
-		</iron-ajax>
 	</template>
 	<script>
 		Polymer ({
@@ -391,27 +371,9 @@
 					type: Number,
 					value: 0
 				},
-				products: {
-					type: Array,
-					value: function() {
-						return [];
-					}
-				},
-			},
-			_addSubscriberProductsResponse: function(event) {
-				var results = event.detail.xhr.response;
-				for (var index in results) {
-					function checkExist(name) {
-						return name == results[index].name;
-					}
-					if(!this.products.some(checkExist)){
-						this.push('products', results[index].name);
-					}
+				product: {
+					type: String,
 				}
-			},
-			_addSubscriberProductsError: function(event) {
-				this.$.addSubscriberToastError.text = event.detail.request.xhr.statusText;
-				this.$.addSubscriberToastError.open();
 			},
 			_subscriberAddSubmit: function(event) {
 				var subscriber = new Object();
@@ -475,7 +437,7 @@
 							"units": units});
 					subscriber.buckets = buckets;
 				}
-				subscriber.product = document.getElementById("addpro10").value;
+				subscriber.product = this.product;
 				subscriber.enabled = this.$.addSubscriberEnabled.checked;
 				subscriber.multisession = this.$.addSubscriberMulti.checked;
 				var ajax = this.$.addSubscriberAjax;

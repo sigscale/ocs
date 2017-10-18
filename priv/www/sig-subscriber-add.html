@@ -1,0 +1,134 @@
+<!--  vim: set ts=3:  -->
+<link rel="import" href="polymer/polymer.html">
+<link rel="import" href="i18n-msg/i18n-msg.html">
+<link rel="import" href="i18n-msg/i18n-msg-behavior.html">
+<link rel="import" href="paper-dialog/paper-dialog.html">
+<link rel="import" href="paper-toolbar/paper-toolbar.html">
+<link rel="import" href="paper-tabs/paper-tabs.html">
+<link rel="import" href="paper-input/paper-input.html">
+<link rel="import" href="paper-item/paper-icon-item.html">
+<link rel="import" href="paper-item/paper-item-body.html">
+<link rel="import" href="paper-tooltip/paper-tooltip.html">
+<link rel="import" href="paper-button/paper-button.html">
+<link rel="import" href="paper-toggle-button/paper-toggle-button.html" >
+<link rel="import" href="paper-toast/paper-toast.html">
+<link rel="import" href="paper-styles/color.html">
+<link rel="import" href="iron-ajax/iron-ajax.html">
+<link rel="import" href="iron-pages/iron-pages.html">
+<link rel="import" href="paper-checkbox/paper-checkbox.html">
+<link rel="import" href="iron-icons/iron-icons.html">
+<link rel="import" href="iron-icons/communication-icons.html">
+
+<dom-module id="sig-subscriber-add">
+	<template>
+		<style is="custom-style">
+			paper-dialog {
+				overflow: auto;
+			}
+			paper-input {
+				--paper-input-container-focus-color: var(--paper-yellow-900);
+			}
+			paper-toolbar {
+				margin-top: 0px;
+				color: white;
+				background-color: #bc5100;
+			}
+			paper-item-body {
+				--paper-item-body-secondary: {
+					font-weight: bold;
+					font-size: larger;
+				}
+			}
+			paper-toast.error {
+				background-color: var(--paper-red-a400);
+			}
+			paper-toggle-button {
+				--paper-toggle-button-checked-bar-color: #ffb04c;
+				--paper-toggle-button-checked-button-color: var(--paper-yellow-900);
+			}
+			paper-checkbox {
+				--paper-checkbox-checked-color: #ffb04c;
+				--paper-checkbox-checkmark-color: var(--paper-yellow-900);
+			}
+		</style>
+		<paper-dialog id="addSubscriberProductModal" modal>
+			<paper-toolbar>
+				<h2>Subscribed Product</h2>
+			</paper-toolbar>
+			<div>
+				<paper-dropdown-menu
+						id="addproductDrop10"
+						on-selected-item-changed="_productSelected"
+						label="[[i18n.prod]]">
+					<paper-listbox
+							id="addproduct10"
+							slot="dropdown-content"
+							class="dropdown-content">
+						<template is="dom-repeat" items="[[products]]">
+							<paper-item>
+								{{item.name}}
+							</paper-item>
+						</template>
+					</paper-listbox>
+				</paper-dropdown-menu>
+			</div>
+			<div class="buttons">
+				<paper-button
+						dialog-dismiss
+						class="cancel-button"
+						autofocus
+						onclick="addSubscriberModal.close()">
+				<i18n-msg msgid="cancel">
+					Cancel
+				</i18n-msg>
+				</paper-button>
+			</div>
+		</paper-dialog>
+		<iron-ajax
+				id="addSubscriberProductAjax"
+				url="/catalogManagement/v2/productOffering?fields=name,productSpecification.id"
+				method = "GET"
+				on-response="_addSubscriberProductResponse"
+				on-error="_addSubscriberProductError">
+		</iron-ajax>
+	</template>
+	<script>
+		Polymer ({
+			is: 'sig-subscriber-add',
+			behaviors: [i18nMsgBehavior],
+			properties: {
+				products: {
+					type: Array,
+					value: function() {
+						return [];
+					}
+				},
+			},
+			_addSubscriberProductResponse: function(event) {
+				var results = event.detail.xhr.response;
+				this.products = [];
+				for (var index in results) {
+					this.push('products', results[index]);
+				}
+				document.getElementById("addSubscriberProductModal").open();
+			},
+			_addSubscriberProductError: function(event) {
+				this.$.addSubscriberToastError.text = event.detail.request.xhr.statusText;
+				this.$.addSubscriberToastError.open();
+			},
+			_productSelected: function() {
+				var product = this.products[this.$.addproduct10.selected];
+				if(product){
+					if(product.productSpecification.id == "4") {
+						document.getElementById("subscriberAdd").product = product.name;
+						document.getElementById("addSubscriberModal").open();
+						document.getElementById("addSubscriberProductModal").close();
+					} else {
+						document.getElementById("addSubscriberProductToastError").open();
+					}
+					this.$.addproduct10.selected = null;
+				}
+			}
+		})
+	</script>
+</dom-module>
