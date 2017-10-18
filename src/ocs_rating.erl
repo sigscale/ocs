@@ -195,12 +195,12 @@ remove_session1(SessionList, []) ->
 	SessionList.
 %% @hidden
 remove_session2(SessionList, Candidate) ->
-	F = fun({_, IsCandidate}, Acc)  ->
+	F = fun({Ts, IsCandidate}, Acc)  ->
 				case lists:member(Candidate, IsCandidate) of
 					true ->
 						Acc;
 					false ->
-						[IsCandidate | Acc]
+						[{Ts, IsCandidate} | Acc]
 				end;
 		(IsCandidate, Acc)  ->
 				case lists:member(Candidate, IsCandidate) of
