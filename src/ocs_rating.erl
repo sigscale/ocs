@@ -56,7 +56,7 @@ rating(SubscriberID, Final, UsageSecs, UsageOctets, Attributes) when is_binary(S
 								#price{} = Price ->
 									case rating2(Price,
 												Validity, UsageSecs, UsageOctets, Final, Buckets) of
-										{Charged, NewBuckets} when Charged > 0 ->
+										{Charged, NewBuckets} when Charged =< 0 ->
 											Entry = Subscriber#subscriber{buckets = NewBuckets,
 													session_attributes = []},
 											mnesia:write(Entry),
