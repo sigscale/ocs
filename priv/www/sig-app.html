@@ -320,22 +320,30 @@
 			download: function() {
 				var csvObject = new Object();
 				switch (this.$.loadPage.selected) {
+					case 0:
+						var data = document.getElementById("productGrid").items;
+						csvObject.gridData = data;
+						csvObject.headers = "Name,Description,StartDate,EndDate,"
+								+ "Status,Prices \n";
+						csvObject.keys = ["name", "description", "startDate",
+								"endDate", "status", "price"];
+						csvObject.fileName = "product.csv";
+						generateCSVData(csvObject);
+						break;
 					case 1:
 						var data = document.getElementById("subscriberGrid").items;
 						csvObject.gridData = data;
-						csvObject.headers = "Identity,Secret,Balance,Data Rate,"
-								+ "Xmit Rate,Session Timeout,"
-								+ "Accounting Interval,Class,Enabled \n";
-						csvObject.keys = [ "id", "password", "balance",
-								"ascendDataRate", "ascendXmitRate", "sessionTimeout",
-								"acctInterimInterval", "class", "enabled"];
+						csvObject.headers = "Identity,Password,Product,Balance,"
+								+ "Enabled,Multisession \n";
+						csvObject.keys = ["id", "password", "product",
+								"totalBalance", "enabled", "multisession"];
 						csvObject.fileName = "subscribers.csv";
 						generateCSVData(csvObject);
 						break;
 					case 2:
 						var data = document.getElementById("clientGrid").items;
 						csvObject.gridData = data;
-						csvObject.headers = "Address,Identifier,Secret,Listen Port,Protocol\n";
+						csvObject.headers = "Address,Identifier,Secret,ListenPort,Protocol \n";
 						csvObject.keys = ["id", "identifier", "secret", "port", "protocol"];
 						csvObject.fileName = "clients.csv";
 						generateCSVData(csvObject);

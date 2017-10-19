@@ -364,7 +364,10 @@
 					newRecord.multisession = results[index].multisession;
 					vaadinItems[index] = newRecord;
 				}
-				cbSubscriber(vaadinItems);
+				if(vaadinItems[index]) {
+					grid.items = vaadinItems;
+					cbSubscriber(vaadinItems);
+				}
 			},
 			_getSubscriberError: function(event) {
 				this.$.subscriberGrid.size = 0;

@@ -222,7 +222,10 @@
 					newRecord.characteristic = results[index].characteristic;
 					vaadinItems[index] = newRecord;
 				}
-				cbUsers(vaadinItems);
+				if(vaadinItems[index]) {
+					grid.items = vaadinItems;
+					cbUsers(vaadinItems);
+				}
 			},
 			getUserError: function(event) {
 				this.$.userGrid.size = 0;
