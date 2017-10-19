@@ -235,26 +235,8 @@ request(Request, Caps,  _From, State) ->
 			SubscriptionId ->
 				SubscriptionId
 		end,
-		case ocs:find_subscriber(Subscriber) of
-			{ok, #subscriber{password = Password, buckets = Buckets,
-					enabled = true}} ->
-				Balance = get_balance(Buckets),
-				case ocs:authorize(Subscriber, Password) of
-					{ok, _} ->
-						request1(RequestType, Request, SId, RequestNum, Subscriber,
-								Balance, OHost, DHost, ORealm, DRealm, State);
-					{error, _} ->
-						{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
-								Balance, ?'DIAMETER_BASE_RESULT-CODE_AUTHORIZATION_REJECTED',
-								OHost, ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
-						{reply, Reply, NewState}
-				end;
-			{error, _} ->
-				{Reply, NewState} = generate_diameter_error(Request, SId, undefined,
-					undefined, ?'DIAMETER_BASE_RESULT-CODE_AUTHORIZATION_REJECTED',
-					OHost, ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
-				{reply, Reply, NewState}
-		end
+		request1(RequestType, Request, SId, RequestNum,
+				Subscriber, OHost, DHost, ORealm, DRealm, State)
 	catch
 		_:_ ->
 			{Reply1, NewState1} = generate_diameter_error(Request, SId, undefined,
@@ -265,15 +247,17 @@ request(Request, Caps,  _From, State) ->
 
 %% @hidden
 request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
-		Request, SId, RequestNum, Subscriber, Balance, OHost, _DHost, ORealm,
+		Request, SId, RequestNum, Subscriber, OHost, _DHost, ORealm,
 		_DRealm, State) ->
+	Balance = 0, % ??
 	{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 			Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 			?CC_APPLICATION_ID, RequestType, RequestNum, State),
 	{reply, Reply, NewState};
 request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
-		Request, SId, RequestNum, Subscriber, Balance, OHost, DHost, ORealm,
+		Request, SId, RequestNum, Subscriber, OHost, DHost, ORealm,
 		DRealm, State) ->
+	Balance = 0, %% ??
 	try
 		[UsedUnits] = Request#'diameter_cc_app_CCR'.'Used-Service-Unit',
 		#'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = Total,
@@ -320,8 +304,9 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 			{reply, Reply1, NewState0}
 	end;
 request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
-		Request, SId, RequestNum, Subscriber, Balance, OHost, _DHost, ORealm,
+		Request, SId, RequestNum, Subscriber, OHost, _DHost, ORealm,
 		_DRealm, State) ->
+	Balance = 0, % ??
 	F = fun() ->
 		case mnesia:read(subscriber, Subscriber, write) of
 			[#subscriber{disconnect = false} = Entry] ->
