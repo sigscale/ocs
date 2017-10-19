@@ -631,6 +631,14 @@
     "description": "product specification",
     "message": "Especificaciones del producto"
   },
+   "toastErrorSubPro": {
+    "description": "Toast error Message for subscriber product",
+    "message": "No se ha implementado"
+  },
+   "subProduct": {
+    "description": "Subscribed product",
+    "message": "Producto suscrito"
+  },
    "productDeleted": {
     "description": "Success Toast Message",
     "message": "Producto eliminado"
