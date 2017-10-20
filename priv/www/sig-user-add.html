@@ -41,32 +41,53 @@
 			<paper-toolbar>
 				<h2>[[i18n.AddUserTitle]]</h2>
 			</paper-toolbar>
-				<paper-input
-						id="addUserName"
-						name="username"
-						label="[[i18n.userName]]" required>
-				</paper-input>
-				<paper-input
-						id="addUserPassword"
-						name="password"
-						label="[[i18n.password]]">
-				</paper-input>
-				<paper-dropdown-menu
-						name="locale"
-						label="[[i18n.language]]">
-					<paper-listbox
-							id="addUserLocale"
-							slot="dropdown-content"
-							class="dropdown-content"
-							selected="0">
-						<paper-item value="en">
-							[[i18n.eng]]
-						</paper-item>
-						<paper-item value="es">
-							[[i18n.spa]]
-						</paper-item>
-					</paper-listbox>
-				</paper-dropdown-menu>
+				<div>
+					<paper-input
+							id="addUserName"
+							name="username"
+							label="[[i18n.userName]]" required>
+					</paper-input>
+					<paper-tooltip>
+						<i18n-msg msgid="userNameTooltip">
+							Name of user
+						</i18n-msg>
+					</paper-tooltip>
+				</div>
+				<div>
+					<paper-input
+							id="addUserPassword"
+							name="password"
+							label="[[i18n.password]]">
+					</paper-input>
+					<paper-tooltip>
+						<i18n-msg msgid="userPasswordTooltip">
+							Name of user
+						</i18n-msg>
+					</paper-tooltip>
+				</div>
+				<div>
+					<paper-dropdown-menu
+							name="locale"
+							label="[[i18n.language]]">
+						<paper-listbox
+								id="addUserLocale"
+								slot="dropdown-content"
+								class="dropdown-content"
+								selected="0">
+							<paper-item value="en">
+								[[i18n.eng]]
+							</paper-item>
+							<paper-item value="es">
+								[[i18n.spa]]
+							</paper-item>
+						</paper-listbox>
+					</paper-dropdown-menu>
+					<paper-tooltip>
+						<i18n-msg msgid="userLangTooltip">
+							Language of user
+						</i18n-msg>
+					</paper-tooltip>
+				</div>
 				<div class="buttons">
 					<paper-button
 							raised

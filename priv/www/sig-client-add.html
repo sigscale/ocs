@@ -117,25 +117,32 @@
 					</paper-checkbox>
 				</div>
 			</div>
-			<paper-dropdown-menu id="protoDrop"
-					label="[[i18n.proto]]"
-					on-selected-item-changed="checkProto">
-				<paper-listbox id="addClientProtocol"
-						slot="dropdown-content"
-						class="dropdown-content"
-						selected="0">
-					<paper-item>
-						<i18n-msg msgid="radius">
-							RADIUS
-						</i18n-msg>
-					</paper-item>
-					<paper-item>
-						<i18n-msg msgid="diameter">
-							DIAMETER
-						</i18n-msg>
-					</paper-item>
-				</paper-listbox>
-			</paper-dropdown-menu>
+			<div>
+				<paper-dropdown-menu id="protoDrop"
+						label="[[i18n.proto]]"
+						on-selected-item-changed="checkProto">
+					<paper-listbox id="addClientProtocol"
+							slot="dropdown-content"
+							class="dropdown-content"
+							selected="0">
+						<paper-item>
+							<i18n-msg msgid="radius">
+								RADIUS
+							</i18n-msg>
+						</paper-item>
+						<paper-item>
+							<i18n-msg msgid="diameter">
+								DIAMETER
+							</i18n-msg>
+						</paper-item>
+					</paper-listbox>
+				</paper-dropdown-menu>
+				<paper-tooltip>
+					<i18n-msg msgid="addClientProtoTooltip">
+						Select protocol from dropdown menu
+					</i18n-msg>
+				</paper-tooltip>
+			</div>
 			<div>
 				<paper-input
 					id="addClientPort"

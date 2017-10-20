@@ -639,6 +639,58 @@
     "description": "Subscribed product",
     "message": "Producto suscrito"
   },
+   "userNameTooltip": {
+    "description": "Name of username",
+    "message": "Nombre del usuario"
+  },
+   "userPasswordTooltip": {
+    "description": "password of user",
+    "message": "Contraseña del usuario"
+  },
+   "userLangTooltip": {
+    "description": "Language of user",
+    "message": "Idioma del usuario"
+  },
+   "userUpdatePasswordTooltip": {
+    "description": "Update password of user",
+    "message": "Nueva contraseña de usuario"
+  },
+   "userUpdateLangTooltip": {
+    "description": "Updae language of user",
+    "message": "Actualiza el idioma del usuario"
+  },
+   "addClientProtoTooltip": {
+    "description": "protocol of client",
+    "message": "Seleccionar protocolo del menú desplegable"
+  },
+   "addSubAmountTooltip": {
+    "description": "Amount of balance",
+    "message": "Monto del saldo del suscriptor"
+  },
+   "addSubUnitTooltip": {
+    "description": "Unit of balance",
+    "message": "Unidades de saldo de suscriptor"
+  },
+   "addSubProTooltip": {
+    "description": "Product list for subscriber",
+    "message": "Seleccione el producto"
+  },
+   "subPasswordTooltip": {
+    "description": "password of subscriber",
+    "message": "Nueva contraseña de suscriptor"
+  },
+   "updateSubProTooltip": {
+    "description": "Product list for subscriber",
+    "message": "Seleccionar y actualizar el producto"
+  },
+   "updateSubAmountTooltip": {
+    "description": "Amount of balance",
+    "message": "Actualizar el saldo del suscriptor"
+  },
+   "updateSubUnitTooltip": {
+    "description": "Unit of balance",
+    "message": "actualizar unidades de saldo de suscriptor"
+  },
    "productDeleted": {
     "description": "Success Toast Message",
     "message": "Producto eliminado"

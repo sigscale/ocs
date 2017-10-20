@@ -268,6 +268,13 @@
 							type="number"
 							label="[[i18n.amount]]">
 					</paper-input>
+					<paper-tooltip>
+						<i18n-msg msgid="addSubAmountTooltip">
+								Subscriber balance amount.
+						</i18n-msg>
+					</paper-tooltip>
+				</div>
+				<div>
 					<paper-dropdown-menu
 							label="[[i18n.unit]]">
 							<paper-listbox
@@ -292,23 +299,28 @@
 								</paper-item>
 							</paper-listbox>
 					</paper-dropdown-menu>
-					<div class="buttons">
-						<paper-button dialog-confirm
-								raised
-								class="add-button"
-								on-tap="_subscriberAddSubmit">
-							<i18n-msg msgid="submit">
-									Submit
-							</i18n-msg>
-						</paper-button>
-						<paper-button dialog-dismiss
-								class="cancel-button"
-								onclick="addSubscriberModal.close()">
-							<i18n-msg msgid="cancel">
-									Cancel
-							</i18n-msg>
-						</paper-button>
-					</div>
+					<paper-tooltip>
+						<i18n-msg msgid="addSubUnitTooltip">
+								Subscriber balance units.
+						</i18n-msg>
+					</paper-tooltip>
+				</div>
+				<div class="buttons">
+					<paper-button dialog-confirm
+							raised
+							class="add-button"
+							on-tap="_subscriberAddSubmit">
+						<i18n-msg msgid="submit">
+								Submit
+						</i18n-msg>
+					</paper-button>
+					<paper-button dialog-dismiss
+							class="cancel-button"
+							onclick="addSubscriberModal.close()">
+						<i18n-msg msgid="cancel">
+								Cancel
+						</i18n-msg>
+					</paper-button>
 				</div>
 			</div>
 			</iron-pages>

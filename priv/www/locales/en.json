@@ -623,6 +623,58 @@
     "description": "Subscribed product",
     "message": "Subscribed Product"
   },
+   "userNameTooltip": {
+    "description": "Name of user",
+    "message": "Name of user"
+  },
+   "userPasswordTooltip": {
+    "description": "password of user",
+    "message": "Password of user"
+  },
+   "userLangTooltip": {
+    "description": " of user",
+    "message": "Language of user"
+  },
+   "userUpdatePasswordTooltip": {
+    "description": "Update password of user",
+    "message": "New password of user"
+  },
+   "userUpdateLangTooltip": {
+    "description": "Updae language of user",
+    "message": "Update the language of user"
+  },
+   "addClientProtoTooltip": {
+    "description": "protocol of client",
+    "message": "Select protocol from dropdown menu"
+  },
+   "addSubAmountTooltip": {
+    "description": "Amount of balance",
+    "message": "Subscriber balance amount"
+  },
+   "addSubUnitTooltip": {
+    "description": "Unit of balance",
+    "message": "Subscriber balance units"
+  },
+   "addSubProTooltip": {
+    "description": "Product list for subscriber",
+    "message": "Select the product"
+  },
+   "subPasswordTooltip": {
+    "description": "password of subscriber",
+    "message": "New password of subscriber"
+  },
+   "updateSubProTooltip": {
+    "description": "Product list for subscriber",
+    "message": "Select and update the product"
+  },
+   "updateSubAmountTooltip": {
+    "description": "Amount of balance",
+    "message": "Update Subscriber balance amount"
+  },
+   "updateSubUnitTooltip": {
+    "description": "Unit of balance",
+    "message": "update subscriber balance units"
+  },
    "productDeleted": {
     "description": "Success Toast Message",
     "message": "Product deleted"

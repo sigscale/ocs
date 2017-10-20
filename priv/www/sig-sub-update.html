@@ -82,13 +82,20 @@
 							label="[[i18n.secret]]"
 							disabled>
 					</paper-input>
-					<paper-input id="updateSubscriberNewPassword"
-							name="newpassword"
-							label="[[i18n.newpass]]"
-							required
-							auto-validate
-							error-message="[[i18n.newpassError]]">
-					</paper-input>
+					<div>
+						<paper-input id="updateSubscriberNewPassword"
+								name="newpassword"
+								label="[[i18n.newpass]]"
+								required
+								auto-validate
+								error-message="[[i18n.newpassError]]">
+						</paper-input>
+						<paper-tooltip>
+							<i18n-msg msgid="subPasswordTooltip">
+									New password of subscriber.
+							</i18n-msg>
+						</paper-tooltip>
+					</div>
 					<div class="buttons">
 						<paper-button
 								onclick="updateSubscriberModal.close()"
@@ -239,11 +246,25 @@
 									</template>
 							</paper-listbox>
 						</paper-dropdown-menu>
+						<paper-tooltip>
+							<i18n-msg msgid="updateSubProTooltip">
+								Select and update the product.
+							</i18n-msg>
+						</paper-tooltip>
+					</div>
+					<div>
 						<paper-input id="edit-amount"
 								name="amount"
 								type="number"
 								label="[[i18n.amount]]">
 						</paper-input>
+						<paper-tooltip>
+							<i18n-msg msgid="updateSubAmountTooltip">
+								Update Subscriber balance amount.
+							</i18n-msg>
+						</paper-tooltip>
+					</div>
+					<div>
 						<paper-dropdown-menu
 								id="updateUni"
 								label="[[i18n.unit]]">
@@ -268,6 +289,11 @@
 								</paper-item>
 							</paper-listbox>
 						</paper-dropdown-menu>
+						<paper-tooltip>
+							<i18n-msg msgid="updateSubUnitTooltip">
+								update subscriber balance units.
+							</i18n-msg>
+						</paper-tooltip>
 					</div>
 					<div class="buttons">
 						<paper-button dialog-dismiss
@@ -295,7 +321,6 @@
 							</i18n-msg>
 						</paper-button>
 					</div>
-				</div>
 			</iron-pages>
 			<paper-toast
 					id="updateSubscriberToastError">

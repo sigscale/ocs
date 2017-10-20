@@ -55,11 +55,19 @@
 						label="[[i18n.userName]]"
 						disabled>
 				</paper-input>
+				<div>
 				<paper-input
 						id="updateUserPassword"
 						name="password"
 						label="[[i18n.password]]">
 				</paper-input>
+					<paper-tooltip>
+						<i18n-msg msgid="userUpdatePasswordTooltip">
+							"New password of user"
+						</i18n-msg>
+					</paper-tooltip>
+				</div>
+				<div>
 				<paper-dropdown-menu
 						id="updateUserLocale"
 						name="locale"
@@ -81,6 +89,12 @@
 						</paper-item>
 					</paper-listbox>
 				</paper-dropdown-menu>
+					<paper-tooltip>
+						<i18n-msg msgid="userUpdateLangTooltip">
+							"Update the language of user"
+						</i18n-msg>
+					</paper-tooltip>
+				</div>
 				<div class="buttons">
 					<paper-button
 							raised
