@@ -23,12 +23,89 @@
 
 -export([rating/5]).
 -export([remove_session/2]).
+-export([reserve_units/5]).
 
 -include("ocs.hrl").
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
+
+-define(initial, 1).
+-define(update, 2).
+-define(terminate, 3).
+
+reserve_units(SubscriberID, RequestType, UnitType, RequestAmount, MonitoryAmount) when is_list(SubscriberID) ->
+	reserve_units(list_to_binary(SubscriberID), RequestType, UnitType, RequestAmount, MonitoryAmount);
+reserve_units(SubscriberID, RequestType, UnitType, RequestAmount, MonitoryAmount) ->
+	F = fun() ->
+			case mnesia:read(subscriber, SubscriberID, read) of
+				[#subscriber{buckets = Buckets, product =
+						#product_instance{product = ProdID,
+						characteristics = Chars}} = Subscriber] ->
+					Product = mnesia:read(product, ProdID),
+					Validity = proplists:get_value(validity, Chars),
+					case RequestType of
+						?initial ->
+							reserve_units1(?initial, Product, UnitType, false, RequestAmount, MonitoryAmount, Validity, Buckets);
+						_ ->
+							reserve_units1(RequestType, Product, Subscriber, UnitType, true, RequestAmount, MonitoryAmount, Validity, Buckets)
+					end;
+				[] ->
+					throw(subscriber_not_found)
+			end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, out_of_credit} ->
+			{error, out_of_credit};
+		{atomic, {grant, GrantAmount}} ->
+			{ok, GrantAmount};
+		{aborted, {throw, Reason}} ->
+			{error, Reason};
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+reserve_units1(?initial, Product, UnitType, Flag, RequestAmount, _Used, Validity, Buckets) ->
+	case determinate_units(Product, UnitType, Flag, RequestAmount, Validity, Buckets) of
+		{Charged, _NewBuckets} when Charged =< 0 ->
+			out_of_credit;
+		{_Chraged, _NewBuckets} ->
+			{grant, RequestAmount}	
+	end.
+reserve_units1(_, Product, Subscriber, UnitType, Flag, RequestAmount, Used, Validity, Buckets) ->
+	case determinate_units(Product, UnitType, Flag, Used, Validity, Buckets) of
+		{Charged, NewBuckets} when Charged =< 0 andalso Used =/= 0 ->
+			mnesia:write(Subscriber#subscriber{buckets = NewBuckets}),
+			out_of_credit;
+		{_Charged, NewBuckets} ->	
+			mnesia:write(Subscriber#subscriber{buckets = NewBuckets}),
+			case determinate_units(Product, UnitType, Flag, RequestAmount, Validity, Buckets) of
+				{Ch1, _NB1} when Ch1 =< 0 ->
+					out_of_credit;
+				_ ->
+					{grant, RequestAmount}
+			end
+	end.
+%% @hidden
+determinate_units([#product{price = Prices}], Type, Flag, Used, Validity, Buckets) ->
+	case charge(Type, Used, Flag, lists:sort(fun sort_buckets/2, Buckets)) of
+		{Charged, NewBuckets} when Charged < Used ->
+			PriceType = case Type of
+				octets -> usage;
+				seconds -> seconds
+			end,
+			case lists:keyfind(PriceType, #price.type, Prices) of
+				#price{size = Size, amount = Price} ->
+					purchase(Type, Price, Size, Used - Charged, Validity, false, NewBuckets);
+				false ->
+					throw(price_not_found)
+			end;
+		{Charged, NewBuckets} ->
+			{Charged, NewBuckets}
+	end.
+
+
 
 -spec rating(SubscriberID, Final, UsageSecs, UsageOctets, Attributes) -> Return
 	when
