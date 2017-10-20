@@ -81,7 +81,7 @@ reserve_units1(_, Product, Subscriber, UnitType, Flag, RequestAmount, Used, Vali
 		{_Charged, NewBuckets} ->	
 			mnesia:write(Subscriber#subscriber{buckets = NewBuckets}),
 			case determinate_units(Product, UnitType, Flag, RequestAmount, Validity, Buckets) of
-				{Ch1, _NB1} when Ch1 =< 0 ->
+				{Ch1, _NB1} when Ch1 =< 0 andalso RequestAmount =/=0  ->
 					out_of_credit;
 				_ ->
 					{grant, RequestAmount}
