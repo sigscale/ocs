@@ -410,7 +410,7 @@ diameter_disconnect_session() ->
 diameter_disconnect_session(Config) ->
 	Username = ?config(username, Config),
 	Password = ?config(password, Config),
-	InitBalance = ?config(init_bal, Config),
+	OrigBalance = ?config(init_bal, Config),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	Answer = diameter_authentication(SId, Username, Password),
@@ -454,7 +454,7 @@ diameter_disconnect_session(Config) ->
 	#'diameter_cc_app_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = [GrantedUnits2]} = MultiServices_CC2,
 	#'diameter_cc_app_Granted-Service-Unit'{'CC-Total-Octets' = [Balance2]} = GrantedUnits2,
-	Usage3 = Balance2,
+	Usage3 = OrigBalance,
 	RequestNum3 = RequestNum2 + 1,
 	Answer3 = diameter_accounting_interim(SId, Username, RequestNum3, Usage3),
 	#diameter_cc_app_CCA{'Result-Code' = ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
