@@ -111,7 +111,7 @@ init_per_testcase(TestCase, Config) when
 	{ok, [{auth, AuthInstance}, {acct, _}]} = application:get_env(ocs, diameter),
 	[{Address, Port, _}] = AuthInstance,
 	Secret = "s3cr3t",
-	InitialAmount = 1000000,
+	InitialAmount = 1000000000,
 	Now = erlang:system_time(?MILLISECOND),
 	TD = Now + 86400000,
 	Buckets = [#bucket{bucket_type = octets,
