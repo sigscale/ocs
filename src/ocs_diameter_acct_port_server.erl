@@ -232,7 +232,7 @@ request(Request, Caps,  _From, State) ->
 					[] ->
 						throw(no_subscriber_identification_information);
 					NAI ->
-						[_, Username | _] = string:tokens(NAI, [":@"]),%% proto:username@realm
+						[_, Username | _] = string:tokens(NAI, ":@"),%% proto:username@realm
 						Username
 				end
 		end,
