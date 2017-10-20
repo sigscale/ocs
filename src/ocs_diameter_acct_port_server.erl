@@ -286,13 +286,15 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 			throw(multiple_service_credit_control_avp_not_available)
 	end,
 	{ReqUsageType, ReqUsage} = case RSU of
-		#'diameter_cc_app_Requested-Service-Unit'{'CC-Time' = CCTime} when
+		#'diameter_cc_app_Requested-Service-Unit'{'CC-Time' = [CCTime]} when
 				CCTime =/= [] ->
 			{seconds, CCTime};
-		#'diameter_cc_app_Requested-Service-Unit'{'CC-Total-Octets' = CCTotalOctets,
-					'CC-Output-Octets' = CCOutputOctets, 'CC-Input-Octets' = CCInputOctets} when
-				is_integer(CCTotalOctets), is_integer(CCInputOctets), is_integer(CCOutputOctets) ->
+		#'diameter_cc_app_Requested-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets]} ->
 			{octets, CCTotalOctets};
+		#'diameter_cc_app_Requested-Service-Unit'{'CC-Output-Octets' = [CCOutputOctets],
+				'CC-Input-Octets' = [CCInputOctets]} when is_integer(CCInputOctets),
+				is_integer(CCOutputOctets) ->
+			{octets, CCOutputOctets + CCOutputOctets};
 		_ ->
 			throw(unsupported_request_units)
 	end,
@@ -304,10 +306,10 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 			throw(multiple_service_credit_control_avp_not_available)
 	end,
 	{UsedType, UsedUsage} = case USU of
-		#'diameter_cc_app_Used-Service-Unit'{'CC-Time' = UsedCCTime} when UsedCCTime =/= [] ->
+		#'diameter_cc_app_Used-Service-Unit'{'CC-Time' = [UsedCCTime]} when UsedCCTime =/= [] ->
 			{seconds, UsedCCTime};
-		#'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = UsedCCTotalOctets,
-					'CC-Output-Octets' = UsedCCOutputOctets, 'CC-Input-Octets' = UsedCCInputOctets} when
+		#'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = [UsedCCTotalOctets],
+					'CC-Output-Octets' = [UsedCCOutputOctets], 'CC-Input-Octets' = [UsedCCInputOctets]} when
 				is_integer(UsedCCTotalOctets), is_integer(UsedCCInputOctets), is_integer(UsedCCOutputOctets) ->
 			{octets, UsedCCTotalOctets};
 		[] ->
@@ -316,8 +318,8 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 	Balance = 0, %% ??
 	try
 		[UsedUnits] = Request#'diameter_cc_app_CCR'.'Used-Service-Unit',
-		#'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = Total,
-				'CC-Input-Octets' = In, 'CC-Output-Octets' = Out} = UsedUnits,
+		#'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = [Total],
+				'CC-Input-Octets' = [In], 'CC-Output-Octets' = [Out]} = UsedUnits,
 		Usage = case Total of
 			[T] when is_integer(T) ->
 				T;
@@ -372,8 +374,8 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 	{UsedType, UsedUsage} = case USU of
 		#'diameter_cc_app_Used-Service-Unit'{'CC-Time' = CCTime} when CCTime =/= [] ->
 			{seconds, CCTime};
-		#'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = CCTotalOctets,
-					'CC-Output-Octets' = CCOutputOctets, 'CC-Input-Octets' = CCInputOctets} when
+		#'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets],
+					'CC-Output-Octets' = [CCOutputOctets], 'CC-Input-Octets' = [CCInputOctets]} when
 				is_integer(CCTotalOctets), is_integer(CCInputOctets), is_integer(CCOutputOctets) ->
 			{octets, CCTotalOctets};
 		[] ->
