@@ -428,7 +428,7 @@ diameter_disconnect_session(Config) ->
 			'Auth-Application-Id' = ?CC_APPLICATION_ID,
 			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST',
 			'CC-Request-Number' = RequestNum0,
-			'Multiple-Services-Credit-Control' = MultiServices_CC0} = Answer0,
+			'Multiple-Services-Credit-Control' = [MultiServices_CC0]} = Answer0,
 	#'diameter_cc_app_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = [GrantedUnits0]} = MultiServices_CC0,
 	#'diameter_cc_app_Granted-Service-Unit'{'CC-Total-Octets' = [InitBalance]} = GrantedUnits0,
@@ -439,7 +439,7 @@ diameter_disconnect_session(Config) ->
 			'Auth-Application-Id' = ?CC_APPLICATION_ID,
 			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST',
 			'CC-Request-Number' = RequestNum1,
-			'Multiple-Services-Credit-Control' = MultiServices_CC1} = Answer1,
+			'Multiple-Services-Credit-Control' = [MultiServices_CC1]} = Answer1,
 	#'diameter_cc_app_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = [GrantedUnits1]} = MultiServices_CC1,
 	#'diameter_cc_app_Granted-Service-Unit'{'CC-Total-Octets' = [Balance1]} = GrantedUnits1,
@@ -450,7 +450,7 @@ diameter_disconnect_session(Config) ->
 			'Auth-Application-Id' = ?CC_APPLICATION_ID,
 			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST',
 			'CC-Request-Number' = RequestNum2,
-			'Multiple-Services-Credit-Control' = MultiServices_CC2} = Answer2,
+			'Multiple-Services-Credit-Control' = [MultiServices_CC2]} = Answer2,
 	#'diameter_cc_app_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = [GrantedUnits2]} = MultiServices_CC2,
 	#'diameter_cc_app_Granted-Service-Unit'{'CC-Total-Octets' = [Balance2]} = GrantedUnits2,
