@@ -55,12 +55,14 @@
 				url="/ocs/v1/log/ipdr"
 				method = "GET"
 				headers='{"Accept": "application/json"}'
-				on-response="getLogsResponse">
+				on-response="getLogsResponse"
+				on-error="getLogsError">
 		</iron-ajax>
 		<iron-ajax id="getIpdr"
 				headers='{"Accept": "application/json"}'
 				on-loading-changed="_onLoadingChanged"
-				on-response="getLogContentResponse">
+				on-response="getLogContentResponse"
+				on-error="getLogContentError">
 		</iron-ajax>
 	</template>
 	<script>
@@ -87,6 +89,10 @@
 			},
 			getLogsResponse: function(event){
 				this.$.logFiles.items = event.detail.response;
+			},
+			getLogsError: function(event) {
+				this.$.addLogToastError.text = event.detail.request.xhr.statusText;
+				this.$.addLogToastError.open();
 			},
 			_onLoadingChanged: function(event) {
 				if (document.getElementById("getIpdr").loading) {
@@ -262,6 +268,10 @@
 //								"name": "tempUserId"
 //							}
 				];
+			},
+			getLogContentError: function(event) {
+				this.$.addLogContentToastError.text = event.detail.request.xhr.statusText;
+				this.$.addLogContentError.open();
 			}
 		});
 	</script>
