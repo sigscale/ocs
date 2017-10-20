@@ -335,10 +335,12 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		{UsedType, UsedUsage} = case USU of
 			#'diameter_cc_app_Used-Service-Unit'{'CC-Time' = [UsedCCTime]} when UsedCCTime =/= [] ->
 				{seconds, UsedCCTime};
-			#'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = [UsedCCTotalOctets],
-						'CC-Output-Octets' = [UsedCCOutputOctets], 'CC-Input-Octets' = [UsedCCInputOctets]} when
-					is_integer(UsedCCTotalOctets), is_integer(UsedCCInputOctets), is_integer(UsedCCOutputOctets) ->
+			#'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = [UsedCCTotalOctets]} ->
 				{octets, UsedCCTotalOctets};
+			#'diameter_cc_app_Used-Service-Unit'{'CC-Output-Octets' = [UsedCCOutputOctets],
+					'CC-Input-Octets' = [UsedCCInputOctets]} when is_integer(UsedCCInputOctets),
+					is_integer(UsedCCOutputOctets) ->
+				{octets, UsedCCInputOctets + UsedCCOutputOctets};
 			[] ->
 				throw(used_amount_not_available)
 		end,
@@ -394,10 +396,12 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		{UsedType, UsedUsage} = case USU of
 			#'diameter_cc_app_Used-Service-Unit'{'CC-Time' = CCTime} when CCTime =/= [] ->
 				{seconds, CCTime};
-			#'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets],
-						'CC-Output-Octets' = [CCOutputOctets], 'CC-Input-Octets' = [CCInputOctets]} when
-					is_integer(CCTotalOctets), is_integer(CCInputOctets), is_integer(CCOutputOctets) ->
+			#'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets]} ->
 				{octets, CCTotalOctets};
+			#'diameter_cc_app_Used-Service-Unit'{'CC-Output-Octets' = [CCOutputOctets],
+					'CC-Input-Octets' = [CCInputOctets]} when is_integer(CCInputOctets),
+					is_integer(CCOutputOctets) ->
+				{octets, CCInputOctets + CCOutputOctets};
 			[] ->
 				throw(used_amount_not_available)
 		end,
