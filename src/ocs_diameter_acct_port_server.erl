@@ -258,11 +258,11 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 			throw(multiple_service_credit_control_avp_not_available)
 	end,
 	{ReqUsageType, ReqUsage} = case RSU of
-		#'diameter_cc_app_Requested-Service-Unit'{'CC-Time' = CCTime} when
+		#'diameter_cc_app_Requested-Service-Unit'{'CC-Time' = [CCTime]} when
 				CCTime =/= [] ->
 			{seconds, CCTime};
-		#'diameter_cc_app_Requested-Service-Unit'{'CC-Total-Octets' = CCTotalOctets,
-					'CC-Output-Octets' = CCOutputOctets, 'CC-Input-Octets' = CCInputOctets} when
+		#'diameter_cc_app_Requested-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets],
+					'CC-Output-Octets' = [CCOutputOctets], 'CC-Input-Octets' = [CCInputOctets]} when
 				is_integer(CCTotalOctets), is_integer(CCInputOctets), is_integer(CCOutputOctets) ->
 			{octets, CCTotalOctets};
 		_ ->
