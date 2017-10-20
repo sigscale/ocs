@@ -87,10 +87,6 @@
     "description": "Class for adding subscribers",
     "message": "Class"
   },
-  "balance": {
-    "description": "Balance for adding subscribers",
-    "message": "Balance (bytes)"
-  },
   "submit": {
     "description": "Submit button for adding subscribers",
     "message": "Submit"
@@ -477,15 +473,15 @@
   },
 	"octet": {
     "description": "unit types",
-    "message": "bytes"
+    "message": "Bytes"
   },
 	"cent": {
     "description": "unit types",
-    "message": "cents"
+    "message": "Cents"
   },
 	"second": {
     "description": "unit types",
-    "message": "seconds"
+    "message": "Seconds"
   },
 	"prod": {
     "description": "Balance types",
@@ -618,6 +614,14 @@
    "productSpec": {
     "description": "product specification",
     "message": "Product Specification"
+  },
+   "toastErrorSubPro": {
+    "description": "Toast error Message for subscriber product",
+    "message": "Not implemented"
+  },
+   "subProduct": {
+    "description": "Subscribed product",
+    "message": "Subscribed Product"
   },
    "productDeleted": {
     "description": "Success Toast Message",

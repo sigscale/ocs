@@ -86,8 +86,8 @@
 			<vaadin-grid-column width="8ex" flex-grow="5">
 				<template class="header">
 					<vaadin-grid-sorter path="product">
-						<vaadin-grid-filter aria-label="Product" path="product" value="[[_filterBalance]]">
-							<input placeholder="Product" value="{{_filterBalance::input}}" focus-target>
+						<vaadin-grid-filter aria-label="[[i18n.prod]]" path="product" value="[[_filterBalance]]">
+							<input placeholder="[[i18n.prod]]" value="{{_filterBalance::input}}" focus-target>
 						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
@@ -95,13 +95,13 @@
 			</vaadin-grid-column>
 			<vaadin-grid-column-group>
 				<template class="header">
-					<div class="grouptitle">Balance</div>
+					<div class="grouptitle">[[i18n.balance]]</div>
 				</template>
 				<vaadin-grid-column width="12ex" flex-grow="2">
 					<template class="header">
 							<vaadin-grid-sorter path="cents">
-								<vaadin-grid-filter aria-label="Cents" path="cents" value="[[_filterCents]]">
-									<input placeholder="Cents" value="{{_filterCents::input}}" focus-target>
+								<vaadin-grid-filter aria-label="[[i18n.cent]]" path="cents" value="[[_filterCents]]">
+									<input placeholder="[[i18n.cent]]" value="{{_filterCents::input}}" focus-target>
 								</vaadin-grid-filter>
 							</vaadin-grid-sorter>
 					</template>
@@ -124,8 +124,8 @@
 				<vaadin-grid-column width="12ex" flex-grow="2">
 					<template class="header">
 							<vaadin-grid-sorter path="seconds">
-								<vaadin-grid-filter aria-label="Seconds" path="seconds" value="[[_filterSeconds]]">
-									<input placeholder="Seconds" value="{{_filterSeconds::input}}" focus-target>
+								<vaadin-grid-filter aria-label="[[i18n.second]]" path="seconds" value="[[_filterSeconds]]">
+									<input placeholder="[[i18n.second]]" value="{{_filterSeconds::input}}" focus-target>
 								</vaadin-grid-filter>
 							</vaadin-grid-sorter>
 					</template>
@@ -147,8 +147,8 @@
 			<vaadin-grid-column width="8ex" flex-grow="1">
 				<template class="header">
 					<vaadin-grid-sorter path="multisession">
-						<vaadin-grid-filter aria-label="multisession" path="multisession" value="[[_filterMulti]]">
-							<input placeholder="Multisession" value="{{_filterMulti::input}}" focus-target>
+						<vaadin-grid-filter aria-label="[[i18n.multi]]" path="multisession" value="[[_filterMulti]]">
+							<input placeholder="[[i18n.multi]]" value="{{_filterMulti::input}}" focus-target>
 						</vaadin-grid-filter>
 					</vaadin-grid-sorter>
 				</template>
@@ -175,7 +175,7 @@
 		</paper-toast>
 		<paper-toast
 				id="addSubscriberProductToastError"
-				text="Not Implemented">
+				text="[[i18n.toastErrorSubPro]]">
 		</paper-toast>
 		<paper-toast id="getSubscriberErrorToast" duration="0">
 			<paper-button
@@ -364,7 +364,10 @@
 					newRecord.multisession = results[index].multisession;
 					vaadinItems[index] = newRecord;
 				}
-				cbSubscriber(vaadinItems);
+				if(vaadinItems[index]) {
+					grid.items = vaadinItems;
+					cbSubscriber(vaadinItems);
+				}
 			},
 			_getSubscriberError: function(event) {
 				this.$.subscriberGrid.size = 0;

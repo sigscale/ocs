@@ -265,7 +265,10 @@
 					newRecord.protocol = results[index].protocol;
 					vaadinItems[index] = newRecord;
 				}
-				cbClient(vaadinItems);
+				if(vaadinItems[index]) {
+					grid.items = vaadinItems;
+					cbClient(vaadinItems);
+				}
 			},
 			_getClientError: function (event) {
 				this.$.clientGrid.size = 0;
