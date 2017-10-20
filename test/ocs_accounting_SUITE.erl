@@ -612,36 +612,48 @@ diameter_authentication(SId, Username, Password) ->
 
 %% @hidden
 diameter_accounting_start(SId, Username, RequestNum) ->
+	Subscription_Id = #diameter_cc_app_Subscription-Id{
+			'Subscription-Id-Type' = ?'DIAMETER_CC_APP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = "8561083523"},
 	CC_CCR = #diameter_cc_app_CCR{'Session-Id' = SId,
 			'Auth-Application-Id' = ?CC_APPLICATION_ID,
 			'Service-Context-Id' = "nas45@testdomain.com" ,
 			'User-Name' = [Username],
 			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST',
-			'CC-Request-Number' = RequestNum},
+			'CC-Request-Number' = RequestNum,
+			'Subscription-Id' = [Subscription_Id]},
 	{ok, Answer} = diameter:call(?SVC_ACCT, cc_app_test, CC_CCR, []),
 	Answer.
 	
 %% @hidden
 diameter_accounting_stop(SId, Username, RequestNum) ->
+	Subscription_Id = #diameter_cc_app_Subscription-Id{
+			'Subscription-Id-Type' = ?'DIAMETER_CC_APP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = "8561083523"},
 	CC_CCR = #diameter_cc_app_CCR{'Session-Id' = SId,
 			'Auth-Application-Id' = ?CC_APPLICATION_ID,
 			'Service-Context-Id' = "nas45@testdomain.com" ,
 			'User-Name' = [Username],
 			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
-			'CC-Request-Number' = RequestNum},
+			'CC-Request-Number' = RequestNum,
+			'Subscription-Id' = [Subscription_Id]},
 	{ok, Answer} = diameter:call(?SVC_ACCT, cc_app_test, CC_CCR, []),
 	Answer.
 
 %% @hidden
 diameter_accounting_interim(SId, Username, RequestNum, Usage) ->
 	UsedUnits = #'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = [Usage]},
+	Subscription_Id = #diameter_cc_app_Subscription-Id{
+			'Subscription-Id-Type' = ?'DIAMETER_CC_APP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = "8561083523"},
 	CC_CCR = #diameter_cc_app_CCR{'Session-Id' = SId,
 			'Auth-Application-Id' = ?CC_APPLICATION_ID,
 			'Service-Context-Id' = "nas45@testdomain.com" ,
 			'User-Name' = [Username],
 			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST',
 			'CC-Request-Number' = RequestNum,
-			'Used-Service-Unit' = [UsedUnits]},
+			'Used-Service-Unit' = [UsedUnits],
+			'Subscription-Id' = [Subscription_Id]},
 	{ok, Answer} = diameter:call(?SVC_ACCT, cc_app_test, CC_CCR, []),
 	Answer.
 	
