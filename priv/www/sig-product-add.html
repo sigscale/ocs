@@ -728,9 +728,9 @@
 					if(!this.productSpec.some(checkExist)){
 						var newSpec = new Object();
 						newSpec.id = results[index].id;
+						newSpec.href = results[index].href;
 						newSpec.name = results[index].name;
 						newSpec.sName = newSpec.name.replace("ProductSpec", "");
-						newSpec.href = results[index].href;
 						this.push('productSpec', newSpec);
 					}
 				}
