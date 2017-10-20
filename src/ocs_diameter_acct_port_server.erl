@@ -219,21 +219,22 @@ code_change(_OldVsn, State, _Extra) ->
 %% @private
 request(Request, Caps,  _From, State) ->
 	#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}} = Caps,
-	#diameter_cc_app_CCR{'Session-Id' = SId,
+	#diameter_cc_app_CCR{'Session-Id' = SId, 'User-Name' = NAISpecUName,
 			'Auth-Application-Id' = ?CC_APPLICATION_ID,
 			'Service-Context-Id' = _SvcContextId, 'CC-Request-Type' = RequestType,
-			'CC-Request-Number' = RequestNum} = Request,
+			'CC-Request-Number' = RequestNum, 'Subscription-Id' = SubscriptionIds} = Request,
 	try
-		Subscriber = case Request#diameter_cc_app_CCR.'Subscription-Id' of
-			SubscriptionId when SubscriptionId == undefine; SubscriptionId == [] ->
-				case Request#diameter_cc_app_CCR.'User-Name' of
-					[UserName] when UserName == undefined; UserName == [] ->
+		Subscriber = case SubscriptionIds of
+			[#'diameter_cc_app_Subscription-Id'{'Subscription-Id-Data' = Sub} | _] ->
+				Sub;
+			[] ->
+				case NAISpecUName of
+					[] ->
 						throw(no_subscriber_identification_information);
-					[UserName] ->
-						UserName
-				end;
-			SubscriptionId ->
-				SubscriptionId
+					NAI ->
+						[_, Username | _] = string:tokens(NAI, [":@"]),%% proto:username@realm
+						Username
+				end
 		end,
 		request1(RequestType, Request, SId, RequestNum,
 				Subscriber, OHost, DHost, ORealm, DRealm, State)
