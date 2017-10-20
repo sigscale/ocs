@@ -628,7 +628,7 @@ diameter_accounting_start(SId, Username, RequestNum) ->
 			'Subscription-Id-Type' = ?'DIAMETER_CC_APP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
 			'Subscription-Id-Data' = Username},
 	RequestedUnits = #'diameter_cc_app_Requested-Service-Unit' {
-			'CC-Total-Octets' = [1000000000]},
+			'CC-Total-Octets' = 1000000000},
 	MultiServices_CC = #'diameter_cc_app_Multiple-Services-Credit-Control'{
 			'Requested-Service-Unit' = [RequestedUnits]}, 
 	CC_CCR = #diameter_cc_app_CCR{'Session-Id' = SId,
