@@ -248,16 +248,52 @@ request(Request, Caps,  _From, State) ->
 
 %% @hidden
 request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
-		Request, SId, RequestNum, Subscriber, OHost, _DHost, ORealm,
-		_DRealm, State) ->
+		#diameter_cc_app_CCR{'Multiple-Services-Credit-Control' = [MSCC | _]} = Request,
+		SId, RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm, State) ->
+	RSU =  case MSCC of
+		#'diameter_cc_app_Multiple-Services-Credit-Control'{'Requested-Service-Unit' =
+				[RequestedServiceUnits | _]} ->
+			RequestedServiceUnits;
+		_ ->
+			throw(multiple_service_credit_control_avp_not_available)
+	end,
+	{ReqUsageType, ReqUsage} = case RSU of
+		#'diameter_cc_app_Requested-Service-Unit'{'CC-Time' = CCTime} when
+				CCTime =/= [] ->
+			{seconds, CCTime};
+		#'diameter_cc_app_Requested-Service-Unit'{'CC-Total-Octets' = CCTotalOctets,
+					'CC-Output-Octets' = CCOOutputOctets, 'CC-Input-Octets' = CCInputOctets} when
+				CCTotalOctets =/= [], CCInputOctets =/= [], CCOOutputOctets =/= [] ->
+			CCInputOctets + CCOOutputOctets;
+		_ ->
+			throw(unsupported_request_units)
+	end,
 	Balance = 0, % ??
 	{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 			Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 			?CC_APPLICATION_ID, RequestType, RequestNum, State),
 	{reply, Reply, NewState};
 request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
-		Request, SId, RequestNum, Subscriber, OHost, DHost, ORealm,
-		DRealm, State) ->
+		#diameter_cc_app_CCR{'Multiple-Services-Credit-Control' = [MSCC | _]} = Request,
+		SId, RequestNum, Subscriber, OHost, DHost, ORealm, DRealm, State) ->
+	RSU =  case MSCC of
+		#'diameter_cc_app_Multiple-Services-Credit-Control'{'Requested-Service-Unit' =
+				[RequestedServiceUnits | _]} ->
+			RequestedServiceUnits;
+		_ ->
+			throw(multiple_service_credit_control_avp_not_available)
+	end,
+	{ReqUsageType, ReqUsage} = case RSU of
+		#'diameter_cc_app_Requested-Service-Unit'{'CC-Time' = CCTime} when
+				CCTime =/= [] ->
+			{seconds, CCTime};
+		#'diameter_cc_app_Requested-Service-Unit'{'CC-Total-Octets' = CCTotalOctets,
+					'CC-Output-Octets' = CCOOutputOctets, 'CC-Input-Octets' = CCInputOctets} when
+				CCTotalOctets =/= [], CCInputOctets =/= [], CCOOutputOctets =/= [] ->
+			CCInputOctets + CCOOutputOctets;
+		_ ->
+			throw(unsupported_request_units)
+	end,
 	Balance = 0, %% ??
 	try
 		[UsedUnits] = Request#'diameter_cc_app_CCR'.'Used-Service-Unit',
