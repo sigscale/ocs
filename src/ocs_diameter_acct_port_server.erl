@@ -264,7 +264,7 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		#'diameter_cc_app_Requested-Service-Unit'{'CC-Total-Octets' = CCTotalOctets,
 					'CC-Output-Octets' = CCOOutputOctets, 'CC-Input-Octets' = CCInputOctets} when
 				CCTotalOctets =/= [], CCInputOctets =/= [], CCOOutputOctets =/= [] ->
-			CCInputOctets + CCOOutputOctets;
+			{octets, CCInputOctets + CCOOutputOctets};
 		_ ->
 			throw(unsupported_request_units)
 	end,
@@ -290,9 +290,26 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		#'diameter_cc_app_Requested-Service-Unit'{'CC-Total-Octets' = CCTotalOctets,
 					'CC-Output-Octets' = CCOOutputOctets, 'CC-Input-Octets' = CCInputOctets} when
 				CCTotalOctets =/= [], CCInputOctets =/= [], CCOOutputOctets =/= [] ->
-			CCInputOctets + CCOOutputOctets;
+			{octets, CCInputOctets + CCOOutputOctets};
 		_ ->
 			throw(unsupported_request_units)
+	end,
+	USU =  case MSCC of
+		#'diameter_cc_app_Multiple-Services-Credit-Control'{'Used-Service-Unit' =
+				[UsedServiceUnit | _]} ->
+			UsedServiceUnit;
+		_ ->
+			throw(multiple_service_credit_control_avp_not_available)
+	end,
+	{UsedType, UsedUsage} = case USU of
+		#'diameter_cc_app_Used-Service-Unit'{'CC-Time' = UsedCCTime} when UsedCCTime =/= [] ->
+			{seconds, UsedCCTime};
+		#'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = UsedCCTotalOctets,
+					'CC-Output-Octets' = UsedCCOutputOctets, 'CC-Input-Octets' = UsedCCInputOctets}
+				when UsedCCTotalOctets =/= [], UsedCCInputOctets =/= [], UsedCCOutputOctets =/= [] ->
+			{octets, UsedCCInputOctets + UsedCCOutputOctets};
+		[] ->
+			throw(used_amount_not_available)
 	end,
 	Balance = 0, %% ??
 	try
@@ -341,8 +358,25 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 			{reply, Reply1, NewState0}
 	end;
 request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
-		Request, SId, RequestNum, Subscriber, OHost, _DHost, ORealm,
-		_DRealm, State) ->
+		#diameter_cc_app_CCR{'Multiple-Services-Credit-Control' = [MSCC | _]} = Request,
+		SId, RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm, State) ->
+	USU =  case MSCC of
+		#'diameter_cc_app_Multiple-Services-Credit-Control'{'Used-Service-Unit' =
+				[UsedServiceUnit | _]} ->
+			UsedServiceUnit;
+		_ ->
+			throw(multiple_service_credit_control_avp_not_available)
+	end,
+	{UsedType, UsedUsage} = case USU of
+		#'diameter_cc_app_Used-Service-Unit'{'CC-Time' = CCTime} when CCTime =/= [] ->
+			{seconds, CCTime};
+		#'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = CCTotalOctets,
+					'CC-Output-Octets' = CCOutputOctets, 'CC-Input-Octets' = CCInputOctets}
+				when CCTotalOctets =/= [], CCInputOctets =/= [], CCOutputOctets =/= [] ->
+			{octets, CCInputOctets + CCOutputOctets};
+		[] ->
+			throw(used_amount_not_available)
+	end,
 	Balance = 0, % ??
 	F = fun() ->
 		case mnesia:read(subscriber, Subscriber, write) of
