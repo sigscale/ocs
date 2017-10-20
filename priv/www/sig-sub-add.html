@@ -380,8 +380,8 @@
 				if(!this.$.addSubscriberId.disabled) {
 					subscriber.id = this.$.addSubscriberId.value;
 				}
-				if(!document.getElementById("addSubscriberPassword").disabled) {
-					subscriber.password = document.getElementById("addSubscriberPassword").value;
+				if(!this.$.addSubscriberPassword.disabled) {
+					subscriber.password = this.$.addSubscriberPassword.value;
 				}
 				var attributes = new Array();
 				if(parseInt(this.$.addSubscriberDataRate.value)) {
@@ -444,7 +444,7 @@
 				ajax.headers['Content-type'] = "application/json";
 				ajax.body = subscriber;
 				ajax.generateRequest();
-				document.getElementById("add8").value = null;
+				this.$.add8.value = null;
 			},
 			_addSubscriberResponse: function(event) {
 				this.$.addSubscriberModal.close();

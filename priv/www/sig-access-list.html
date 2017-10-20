@@ -175,7 +175,7 @@
 				this.$.accessErrorToast.open();
 			},
 			_onLoadingChanged: function(event) {
-				if (document.getElementById("getAccess").loading) {
+				if (this.$.getAccess.loading) {
 					document.getElementById("progress").disabled = false;
 				} else {
 					document.getElementById("progress").disabled = true;
