@@ -92,7 +92,7 @@ init([Subscriber, {_, SessionAttributes}]) ->
 		{ok, #client{address = Address, identifier = NasID,
 				secret = Secret, port = Port}} ->
 			StateData = #statedata{nas_ip = Address, 
-					nas_id = list_to_binary(NasID),
+					nas_id = binary_to_list(NasID),
 					subscriber = Subscriber, acct_session_id = AcctSessionId,
 					secret = Secret, attributes = SessionAttributes, id = Id,
 					port = Port},
@@ -351,7 +351,7 @@ lookup_client(undefined, NasId) when is_binary(NasId) ->
 		{aborted, Reason} ->
 			{error, Reason}
 	end;
-lookup_client(NasIp, _NasId) when is_binary(NasIp) ->
+lookup_client(NasIp, _NasId) ->
 	F = fun() ->
 			case mnesia:read(client, NasIp, read) of
 				[Client] ->
