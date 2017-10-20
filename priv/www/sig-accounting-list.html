@@ -189,7 +189,7 @@
 				this.$.accountingErrorToast.open();
 			},
 			_onLoadingChanged: function(event) {
-				if (document.getElementById("getAccounting").loading) {
+				if (this.$.getAccounting.loading) {
 					document.getElementById("progress").disabled = false;
 				} else {
 					document.getElementById("progress").disabled = true;
