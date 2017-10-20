@@ -391,9 +391,13 @@ diameter_accounting(Config) ->
 	#diameter_cc_app_CCA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?CC_APPLICATION_ID,
 			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST',
-			'CC-Request-Number' = RequestNum} = Answer0,
+			'CC-Request-Number' = RequestNum,
+			'Multiple-Services-Credit-Control' = MultiServices_CC} = Answer0,
+	#'diameter_cc_app_Multiple-Services-Credit-Control'{
+			'Granted-Service-Unit' = [GrantedUnits]} = MultiServices_CC,
+	#'diameter_cc_app_Granted-Service-Unit'{'CC-Total-Octets' = [TotalOctets]} = GrantedUnits,
 	NewRequestNum = RequestNum + 1,
-	Answer1 = diameter_accounting_stop(SId, Username, NewRequestNum),
+	Answer1 = diameter_accounting_stop(SId, Username, NewRequestNum, TotalOctets),
 	true = is_record(Answer1, diameter_cc_app_CCA),
 	#diameter_cc_app_CCA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?CC_APPLICATION_ID,
@@ -423,7 +427,10 @@ diameter_disconnect_session(Config) ->
 	#diameter_cc_app_CCA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?CC_APPLICATION_ID,
 			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST',
-			'CC-Request-Number' = RequestNum0, 'Granted-Service-Unit' = [GrantedUnits0]} = Answer0,
+			'CC-Request-Number' = RequestNum0,
+			'Multiple-Services-Credit-Control' = MultiServices_CC0} = Answer0,
+	#'diameter_cc_app_Multiple-Services-Credit-Control'{
+			'Granted-Service-Unit' = [GrantedUnits0]} = MultiServices_CC0,
 	#'diameter_cc_app_Granted-Service-Unit'{'CC-Total-Octets' = [InitBalance]} = GrantedUnits0,
 	Usage0 = trunc(InitBalance/10),
 	RequestNum1 = RequestNum0 + 1,
@@ -431,7 +438,10 @@ diameter_disconnect_session(Config) ->
 	#diameter_cc_app_CCA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?CC_APPLICATION_ID,
 			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST',
-			'CC-Request-Number' = RequestNum1, 'Granted-Service-Unit' = [GrantedUnits1]} = Answer1,
+			'CC-Request-Number' = RequestNum1,
+			'Multiple-Services-Credit-Control' = MultiServices_CC1} = Answer1,
+	#'diameter_cc_app_Multiple-Services-Credit-Control'{
+			'Granted-Service-Unit' = [GrantedUnits1]} = MultiServices_CC1,
 	#'diameter_cc_app_Granted-Service-Unit'{'CC-Total-Octets' = [Balance1]} = GrantedUnits1,
 	Usage2 = trunc(Balance1/10),
 	RequestNum2 = RequestNum1 + 1,
@@ -439,7 +449,10 @@ diameter_disconnect_session(Config) ->
 	#diameter_cc_app_CCA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?CC_APPLICATION_ID,
 			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST',
-			'CC-Request-Number' = RequestNum2, 'Granted-Service-Unit' = [GrantedUnits2]} = Answer2,
+			'CC-Request-Number' = RequestNum2,
+			'Multiple-Services-Credit-Control' = MultiServices_CC2} = Answer2,
+	#'diameter_cc_app_Multiple-Services-Credit-Control'{
+			'Granted-Service-Unit' = [GrantedUnits2]} = MultiServices_CC2,
 	#'diameter_cc_app_Granted-Service-Unit'{'CC-Total-Octets' = [Balance2]} = GrantedUnits2,
 	Usage3 = Balance2,
 	RequestNum3 = RequestNum2 + 1,
@@ -447,8 +460,7 @@ diameter_disconnect_session(Config) ->
 	#diameter_cc_app_CCA{'Result-Code' = ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED',
 			'Auth-Application-Id' = ?CC_APPLICATION_ID,
 			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST',
-			'CC-Request-Number' = RequestNum3, 'Granted-Service-Unit' = [GrantedUnits3]} = Answer3,
-	#'diameter_cc_app_Granted-Service-Unit'{'CC-Total-Octets' = _Balance3} = GrantedUnits3.
+			'CC-Request-Number' = RequestNum3} = Answer3.
 
 %%---------------------------------------------------------------------
 %%  Internal functions
@@ -615,44 +627,61 @@ diameter_accounting_start(SId, Username, RequestNum) ->
 	Subscription_Id = #'diameter_cc_app_Subscription-Id'{
 			'Subscription-Id-Type' = ?'DIAMETER_CC_APP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
 			'Subscription-Id-Data' = Username},
+	RequestedUnits = #'diameter_cc_app_Requested-Service-Unit' {
+			'CC-Total-Octets' = [1000000000]},
+	MultiServices_CC = #'diameter_cc_app_Multiple-Services-Credit-Control'{
+			'Requested-Service-Unit' = [RequestedUnits]}, 
 	CC_CCR = #diameter_cc_app_CCR{'Session-Id' = SId,
 			'Auth-Application-Id' = ?CC_APPLICATION_ID,
 			'Service-Context-Id' = "nas45@testdomain.com" ,
 			'User-Name' = [Username],
 			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST',
 			'CC-Request-Number' = RequestNum,
-			'Subscription-Id' = [Subscription_Id]},
+			'Subscription-Id' = [Subscription_Id],
+			'Multiple-Services-Credit-Control' = [MultiServices_CC]},
 	{ok, Answer} = diameter:call(?SVC_ACCT, cc_app_test, CC_CCR, []),
 	Answer.
 	
 %% @hidden
-diameter_accounting_stop(SId, Username, RequestNum) ->
+diameter_accounting_stop(SId, Username, RequestNum, Usage) ->
 	Subscription_Id = #'diameter_cc_app_Subscription-Id'{
 			'Subscription-Id-Type' = ?'DIAMETER_CC_APP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
 			'Subscription-Id-Data' = Username},
+	RequestedUnits = #'diameter_cc_app_Requested-Service-Unit' {
+			'CC-Total-Octets' = [100000000]},
+	UsedUnits = #'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = [Usage]},
+	MultiServices_CC = #'diameter_cc_app_Multiple-Services-Credit-Control'{
+			'Used-Service-Unit' = [UsedUnits],
+			'Requested-Service-Unit' = [RequestedUnits]}, 
 	CC_CCR = #diameter_cc_app_CCR{'Session-Id' = SId,
 			'Auth-Application-Id' = ?CC_APPLICATION_ID,
 			'Service-Context-Id' = "nas45@testdomain.com" ,
 			'User-Name' = [Username],
 			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
 			'CC-Request-Number' = RequestNum,
+			'Multiple-Services-Credit-Control' = [MultiServices_CC],
 			'Subscription-Id' = [Subscription_Id]},
 	{ok, Answer} = diameter:call(?SVC_ACCT, cc_app_test, CC_CCR, []),
 	Answer.
 
 %% @hidden
 diameter_accounting_interim(SId, Username, RequestNum, Usage) ->
-	UsedUnits = #'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = [Usage]},
 	Subscription_Id = #'diameter_cc_app_Subscription-Id'{
 			'Subscription-Id-Type' = ?'DIAMETER_CC_APP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
 			'Subscription-Id-Data' = Username},
+	UsedUnits = #'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = [Usage]},
+	RequestedUnits = #'diameter_cc_app_Requested-Service-Unit' {
+			'CC-Total-Octets' = [100000000]},
+	MultiServices_CC = #'diameter_cc_app_Multiple-Services-Credit-Control'{
+			'Used-Service-Unit' = [UsedUnits],
+			'Requested-Service-Unit' = [RequestedUnits]}, 
 	CC_CCR = #diameter_cc_app_CCR{'Session-Id' = SId,
 			'Auth-Application-Id' = ?CC_APPLICATION_ID,
 			'Service-Context-Id' = "nas45@testdomain.com" ,
 			'User-Name' = [Username],
 			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST',
 			'CC-Request-Number' = RequestNum,
-			'Used-Service-Unit' = [UsedUnits],
+			'Multiple-Services-Credit-Control' = [MultiServices_CC],
 			'Subscription-Id' = [Subscription_Id]},
 	{ok, Answer} = diameter:call(?SVC_ACCT, cc_app_test, CC_CCR, []),
 	Answer.
