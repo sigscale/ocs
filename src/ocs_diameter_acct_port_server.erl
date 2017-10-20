@@ -344,7 +344,7 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 			[] ->
 				throw(used_amount_not_available)
 		end,
-		case ocs_rating:reserve_units(Subscriber, 1, ReqUsageType, ReqUsage, UsedUsage) of
+		case ocs_rating:reserve_units(Subscriber, 2, ReqUsageType, ReqUsage, UsedUsage) of
 			{ok, GrantedAmount} ->
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						GrantedAmount, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
@@ -405,7 +405,7 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 			[] ->
 				throw(used_amount_not_available)
 		end,
-		case ocs_rating:reserve_units(Subscriber, 1, UsedType, 0, UsedUsage) of
+		case ocs_rating:reserve_units(Subscriber, 3, UsedType, 0, UsedUsage) of
 			{ok, GrantedAmount} ->
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						GrantedAmount, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
