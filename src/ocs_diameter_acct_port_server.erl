@@ -249,34 +249,6 @@ request(Request, Caps,  _From, State) ->
 %% @hidden
 request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		#diameter_cc_app_CCR{'Multiple-Services-Credit-Control' = [MSCC | _]} = Request,
-		SId, RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm, State) ->
-	RSU =  case MSCC of
-		#'diameter_cc_app_Multiple-Services-Credit-Control'{'Requested-Service-Unit' =
-				[RequestedServiceUnits | _]} ->
-			RequestedServiceUnits;
-		_ ->
-			throw(multiple_service_credit_control_avp_not_available)
-	end,
-	{ReqUsageType, ReqUsage} = case RSU of
-		#'diameter_cc_app_Requested-Service-Unit'{'CC-Time' = [CCTime]} when
-				CCTime =/= [] ->
-			{seconds, CCTime};
-		#'diameter_cc_app_Requested-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets]} ->
-			{octets, CCTotalOctets};
-		#'diameter_cc_app_Requested-Service-Unit'{'CC-Output-Octets' = [CCOutputOctets],
-				'CC-Input-Octets' = [CCInputOctets]} when is_integer(CCInputOctets),
-				is_integer(CCOutputOctets) ->
-			{octets, CCOutputOctets + CCOutputOctets};
-		_ ->
-			throw(unsupported_request_units)
-	end,
-	Balance = 10000, % ??
-	{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
-			Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
-			?CC_APPLICATION_ID, RequestType, RequestNum, State),
-	{reply, Reply, NewState};
-request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
-		#diameter_cc_app_CCR{'Multiple-Services-Credit-Control' = [MSCC | _]} = Request,
 		SId, RequestNum, Subscriber, OHost, DHost, ORealm, DRealm, State) ->
 	RSU =  case MSCC of
 		#'diameter_cc_app_Multiple-Services-Credit-Control'{'Requested-Service-Unit' =
@@ -298,41 +270,88 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		_ ->
 			throw(unsupported_request_units)
 	end,
-	USU =  case MSCC of
-		#'diameter_cc_app_Multiple-Services-Credit-Control'{'Used-Service-Unit' =
-				[UsedServiceUnit | _]} ->
-			UsedServiceUnit;
-		_ ->
-			throw(multiple_service_credit_control_avp_not_available)
-	end,
-	{UsedType, UsedUsage} = case USU of
-		#'diameter_cc_app_Used-Service-Unit'{'CC-Time' = [UsedCCTime]} when UsedCCTime =/= [] ->
-			{seconds, UsedCCTime};
-		#'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = [UsedCCTotalOctets],
-					'CC-Output-Octets' = [UsedCCOutputOctets], 'CC-Input-Octets' = [UsedCCInputOctets]} when
-				is_integer(UsedCCTotalOctets), is_integer(UsedCCInputOctets), is_integer(UsedCCOutputOctets) ->
-			{octets, UsedCCTotalOctets};
-		[] ->
-			throw(used_amount_not_available)
-	end,
-	Balance = 0, %% ??
+	case ocs_rating:reserve_units(Subscriber, 1, ReqUsageType, ReqUsage, 0) of
+		{ok, GrantedAmount} ->
+			{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
+					GrantedAmount, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
+					?CC_APPLICATION_ID, RequestType, RequestNum, State),
+			{reply, Reply, NewState};
+		{error, out_of_credit} ->
+			error_logger:warning_report(["out of credit",
+					{module, ?MODULE}, {subscriber, Subscriber},
+					{origin_host, OHost}]),
+			{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
+					0, ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
+					ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
+			NewState1 = start_disconnect(ocs_diameter_acct_service,
+					ocs_diameter_base_application, SId, OHost, DHost, ORealm, DRealm,
+					?CC_APPLICATION_ID, NewState),
+			{reply, Reply, NewState1};
+		{error, subscriber_not_found} ->
+			error_logger:warning_report(["diameter accounting subscriber not found",
+					{module, ?MODULE}, {subscriber, Subscriber},
+					{origin_host, OHost}]),
+			{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
+					0, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
+					ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
+			{reply, Reply, NewState};
+		{error, _} ->
+			{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
+					0, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
+					ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
+			{reply, Reply, NewState}
+	end;
+request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
+		#diameter_cc_app_CCR{'Multiple-Services-Credit-Control' = [MSCC | _]} = Request,
+		SId, RequestNum, Subscriber, OHost, DHost, ORealm, DRealm, State) ->
 	try
-		[UsedUnits] = Request#'diameter_cc_app_CCR'.'Used-Service-Unit',
-		#'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = [Total],
-				'CC-Input-Octets' = [In], 'CC-Output-Octets' = [Out]} = UsedUnits,
-		Usage = case Total of
-			[T] when is_integer(T) ->
-				T;
+		RSU =  case MSCC of
+			#'diameter_cc_app_Multiple-Services-Credit-Control'{'Requested-Service-Unit' =
+					[RequestedServiceUnits | _]} ->
+				RequestedServiceUnits;
 			_ ->
-				case {In, Out} of
-					{[I], [O]} when is_integer(I), is_integer(O) ->
-						I + O;
-					_ ->
-						throw(no_diameter_accounting_usage_information)
-				end
+				throw(multiple_service_credit_control_avp_not_available)
 		end,
-		case decrement_balance(Subscriber, Usage) of
-			{ok, OverUsed, false} when OverUsed =< 0 ->
+		{ReqUsageType, ReqUsage} = case RSU of
+			#'diameter_cc_app_Requested-Service-Unit'{'CC-Time' = [CCTime]} when
+					CCTime =/= [] ->
+				{seconds, CCTime};
+			#'diameter_cc_app_Requested-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets]} ->
+				{octets, CCTotalOctets};
+			#'diameter_cc_app_Requested-Service-Unit'{'CC-Output-Octets' = [CCOutputOctets],
+					'CC-Input-Octets' = [CCInputOctets]} when is_integer(CCInputOctets),
+					is_integer(CCOutputOctets) ->
+				{octets, CCOutputOctets + CCOutputOctets};
+			_ ->
+				throw(unsupported_request_units)
+		end,
+		USU =  case MSCC of
+			#'diameter_cc_app_Multiple-Services-Credit-Control'{'Used-Service-Unit' =
+					[UsedServiceUnit | _]} ->
+				UsedServiceUnit;
+			_ ->
+				throw(multiple_service_credit_control_avp_not_available)
+		end,
+		{UsedType, UsedUsage} = case USU of
+			#'diameter_cc_app_Used-Service-Unit'{'CC-Time' = [UsedCCTime]} when UsedCCTime =/= [] ->
+				{seconds, UsedCCTime};
+			#'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = [UsedCCTotalOctets],
+						'CC-Output-Octets' = [UsedCCOutputOctets], 'CC-Input-Octets' = [UsedCCInputOctets]} when
+					is_integer(UsedCCTotalOctets), is_integer(UsedCCInputOctets), is_integer(UsedCCOutputOctets) ->
+				{octets, UsedCCTotalOctets};
+			[] ->
+				throw(used_amount_not_available)
+		end,
+		case ocs_rating:reserve_units(Subscriber, 1, ReqUsageType, ReqUsage, UsedUsage) of
+			{ok, GrantedAmount} ->
+				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
+						GrantedAmount, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
+						?CC_APPLICATION_ID, RequestType, RequestNum, State),
+				{reply, Reply, NewState};
+			{error, out_of_credit} ->
+				error_logger:warning_report(["out of credit",
+						{module, ?MODULE}, {subscriber, Subscriber},
+						{origin_host, OHost}]),
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						0, ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
 						ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
@@ -340,72 +359,85 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 						ocs_diameter_base_application, SId, OHost, DHost, ORealm, DRealm,
 						?CC_APPLICATION_ID, NewState),
 				{reply, Reply, NewState1};
-			{ok, _SufficientBalance, _Flags} ->
-				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
-						Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
-						?CC_APPLICATION_ID, RequestType, RequestNum, State),
-				{reply, Reply, NewState};
-			{error, not_found} ->
+			{error, subscriber_not_found} ->
 				error_logger:warning_report(["diameter accounting subscriber not found",
 						{module, ?MODULE}, {subscriber, Subscriber},
 						{origin_host, OHost}]),
 				{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
-						Balance, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
+						0, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
+						ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
+				{reply, Reply, NewState};
+			{error, _} ->
+				{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
+						0, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
 						ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState}
 		end
 	catch
 		_:_ ->
 			{Reply1, NewState0} = generate_diameter_error(Request, SId, Subscriber,
-					Balance, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
+					0, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
 					ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
 			{reply, Reply1, NewState0}
 	end;
 request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		#diameter_cc_app_CCR{'Multiple-Services-Credit-Control' = [MSCC | _]} = Request,
-		SId, RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm, State) ->
-	USU =  case MSCC of
-		#'diameter_cc_app_Multiple-Services-Credit-Control'{'Used-Service-Unit' =
-				[UsedServiceUnit | _]} ->
-			UsedServiceUnit;
-		_ ->
-			throw(multiple_service_credit_control_avp_not_available)
-	end,
-	{UsedType, UsedUsage} = case USU of
-		#'diameter_cc_app_Used-Service-Unit'{'CC-Time' = CCTime} when CCTime =/= [] ->
-			{seconds, CCTime};
-		#'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets],
-					'CC-Output-Octets' = [CCOutputOctets], 'CC-Input-Octets' = [CCInputOctets]} when
-				is_integer(CCTotalOctets), is_integer(CCInputOctets), is_integer(CCOutputOctets) ->
-			{octets, CCTotalOctets};
-		[] ->
-			throw(used_amount_not_available)
-	end,
-	Balance = 0, % ??
-	F = fun() ->
-		case mnesia:read(subscriber, Subscriber, write) of
-			[#subscriber{disconnect = false} = Entry] ->
-				NewEntry = Entry#subscriber{disconnect = true},
-				mnesia:write(subscriber, NewEntry, write);
-			[#subscriber{disconnect = true}] ->
-				ok
+		SId, RequestNum, Subscriber, OHost, DHost, ORealm, DRealm, State) ->
+	try
+		USU =  case MSCC of
+			#'diameter_cc_app_Multiple-Services-Credit-Control'{'Used-Service-Unit' =
+					[UsedServiceUnit | _]} ->
+				UsedServiceUnit;
+			_ ->
+				throw(multiple_service_credit_control_avp_not_available)
+		end,
+		{UsedType, UsedUsage} = case USU of
+			#'diameter_cc_app_Used-Service-Unit'{'CC-Time' = CCTime} when CCTime =/= [] ->
+				{seconds, CCTime};
+			#'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets],
+						'CC-Output-Octets' = [CCOutputOctets], 'CC-Input-Octets' = [CCInputOctets]} when
+					is_integer(CCTotalOctets), is_integer(CCInputOctets), is_integer(CCOutputOctets) ->
+				{octets, CCTotalOctets};
+			[] ->
+				throw(used_amount_not_available)
+		end,
+		case ocs_rating:reserve_units(Subscriber, 1, UsedType, 0, UsedUsage) of
+			{ok, GrantedAmount} ->
+				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
+						GrantedAmount, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
+						?CC_APPLICATION_ID, RequestType, RequestNum, State),
+				{reply, Reply, NewState};
+			{error, out_of_credit} ->
+				error_logger:warning_report(["out of credit",
+						{module, ?MODULE}, {subscriber, Subscriber},
+						{origin_host, OHost}]),
+				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
+						0, ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
+						ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
+				NewState1 = start_disconnect(ocs_diameter_acct_service,
+						ocs_diameter_base_application, SId, OHost, DHost, ORealm, DRealm,
+						?CC_APPLICATION_ID, NewState),
+				{reply, Reply, NewState1};
+			{error, subscriber_not_found} ->
+				error_logger:warning_report(["diameter accounting subscriber not found",
+						{module, ?MODULE}, {subscriber, Subscriber},
+						{origin_host, OHost}]),
+				{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
+						0, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
+						ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
+				{reply, Reply, NewState};
+			{error, _} ->
+				{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
+						0, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
+						ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
+				{reply, Reply, NewState}
 		end
-	end,
-	case mnesia:transaction(F) of
-		{atomic, ok} ->
-			{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
-					Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
-					?CC_APPLICATION_ID, RequestType, RequestNum, State),
-			{reply, Reply, NewState};
-		{aborted, Reason} ->
-			error_logger:error_report(["Failed to disconnect subscriber",
-					{subscriber, Subscriber}, {origin_host, OHost},
-					{origin_realm, ORealm},{session, SId}, {state, State},
-					{reason, Reason}]),
-			{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
-					Balance, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
+	catch
+		_:_ ->
+			{Reply1, NewState0} = generate_diameter_error(Request, SId, Subscriber,
+					0, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
 					ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
-			{reply, Reply, NewState}
+			{reply, Reply1, NewState0}
 	end.
 
 -spec generate_diameter_answer(Request, SessionId, Subscriber, Balance,
