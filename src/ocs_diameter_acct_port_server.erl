@@ -508,42 +508,6 @@ generate_diameter_error(Request, SId, _Subscriber, _Balance, ResultCode, OHost,
 	ok = ocs_log:acct_log(diameter, Server, accounting_event_type(RequestType), Request),
 	{Reply, State}.
 
--spec decrement_balance(Subscriber, Usage) -> Result
-	when
-		Subscriber :: string() | binary(),
-		Usage :: non_neg_integer(),
-		Result :: {ok, NewBalance, DiscFlag} | {error, Reason },
-		NewBalance :: integer(),
-		DiscFlag :: boolean(),
-		Reason :: not_found | term().
-%% @doc Decrements subscriber's current balance
-decrement_balance(Subscriber, Usage) when is_list(Subscriber) ->
-	decrement_balance(list_to_binary(Subscriber), Usage);
-decrement_balance(Subscriber, Usage) when is_binary(Subscriber),
-		Usage >= 0 ->
-	F = fun() ->
-		case mnesia:read(subscriber, Subscriber, write) of
-			[#subscriber{buckets = Buckets, disconnect = Flag} = Entry] ->
-				UpdatedBuckets = update_buckets(Buckets, Usage),
-				NewEntry = Entry#subscriber{buckets = UpdatedBuckets},
-				mnesia:write(subscriber, NewEntry, write),
-				NewBalance = get_balance(UpdatedBuckets),
-				{NewBalance, Flag};
-			[] ->
-				throw(not_found)
-		end
-	end,
-	case mnesia:transaction(F) of
-		{atomic, {NewBalance, Flag}} ->
-			{ok, NewBalance, Flag};
-		{aborted, {throw, Reason}} ->
-			{error, Reason};
-		{aborted, Reason} ->
-			error_logger:error_report(["Failed to decrement balance",
-					{error, Reason}, {subscriber, Subscriber}]),
-			{error, Reason}
-end.
-
 -spec accounting_event_type(RequestType) -> EventType
 	when
 	RequestType :: 1..4,
@@ -599,37 +563,3 @@ start_disconnect(Svc, Alias, SessionId, OHost, DHost, ORealm, DRealm,
 			end
 	end.
 
--spec get_balance(Buckets) ->
-		Balance when
-	Buckets :: [#bucket{}],
-	Balance :: integer().
-%% get the availabel balance form buckets
-get_balance([]) ->
-	0;
-get_balance(Buckets) ->
-	get_balance1(Buckets, 0).
-%% @hidden
-get_balance1([], Balance) ->
-	Balance;
-get_balance1([#bucket{remain_amount = RemAmnt}
-		| Tail], Balance) ->
-	get_balance1(Tail, RemAmnt + Balance).
-
--spec update_buckets(Buckets, Usage) ->
-		UpdatedBuckets when
-	Buckets :: [#bucket{}],
-	Usage :: integer(),
-	UpdatedBuckets :: [#bucket{}].
-%% @doc Decrement bucket balances and return new available buckets
-update_buckets([], _Usage) ->
-	[];
-update_buckets([#bucket{remain_amount = RemAmount} = Bucket |
-		Tail], Usage) ->
-	RemUsage = RemAmount - Usage,
-	case RemUsage of
-		RU when RU < 0 ->
-			update_buckets(Tail, RU);
-		_ ->
-			UpdatedBucket = Bucket#bucket{remain_amount = RemUsage},
-			[UpdatedBucket | Tail]
-	end.
