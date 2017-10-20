@@ -614,7 +614,7 @@ diameter_authentication(SId, Username, Password) ->
 diameter_accounting_start(SId, Username, RequestNum) ->
 	Subscription_Id = #'diameter_cc_app_Subscription-Id'{
 			'Subscription-Id-Type' = ?'DIAMETER_CC_APP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
-			'Subscription-Id-Data' = "8561083523"},
+			'Subscription-Id-Data' = Username},
 	CC_CCR = #diameter_cc_app_CCR{'Session-Id' = SId,
 			'Auth-Application-Id' = ?CC_APPLICATION_ID,
 			'Service-Context-Id' = "nas45@testdomain.com" ,
@@ -629,7 +629,7 @@ diameter_accounting_start(SId, Username, RequestNum) ->
 diameter_accounting_stop(SId, Username, RequestNum) ->
 	Subscription_Id = #'diameter_cc_app_Subscription-Id'{
 			'Subscription-Id-Type' = ?'DIAMETER_CC_APP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
-			'Subscription-Id-Data' = "8561083523"},
+			'Subscription-Id-Data' = Username},
 	CC_CCR = #diameter_cc_app_CCR{'Session-Id' = SId,
 			'Auth-Application-Id' = ?CC_APPLICATION_ID,
 			'Service-Context-Id' = "nas45@testdomain.com" ,
@@ -645,7 +645,7 @@ diameter_accounting_interim(SId, Username, RequestNum, Usage) ->
 	UsedUnits = #'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = [Usage]},
 	Subscription_Id = #'diameter_cc_app_Subscription-Id'{
 			'Subscription-Id-Type' = ?'DIAMETER_CC_APP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
-			'Subscription-Id-Data' = "8561083523"},
+			'Subscription-Id-Data' = Username},
 	CC_CCR = #diameter_cc_app_CCR{'Session-Id' = SId,
 			'Auth-Application-Id' = ?CC_APPLICATION_ID,
 			'Service-Context-Id' = "nas45@testdomain.com" ,
