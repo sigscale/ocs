@@ -174,7 +174,7 @@
 				this.$.httpErrorToast.open();
 			},
 			_onLoadingChanged: function(event) {
-				if (document.getElementById("getHttp").loading) {
+				if (this.$.getHttp.loading) {
 					document.getElementById("progress").disabled = false;
 				} else {
 					document.getElementById("progress").disabled = true;
