@@ -82,11 +82,11 @@
 %%
 init([Subscriber, {_, SessionAttributes}]) ->
 	process_flag(trap_exit, true),
-	Address = proplists:get_value(?NasIpAddress, SessionAttributes),
+	NasIp = proplists:get_value(?NasIpAddress, SessionAttributes),
 	NasId = proplists:get_value(?NasIdentifier, SessionAttributes),
 	AcctSessionId = proplists:get_value(?AcctSessionId, SessionAttributes),
 	Id = 1,
-	case lookup_client(Address, NasId) of
+	case lookup_client(NasIp, NasId) of
 		{ok, #client{port = 0}} ->
 			{stop, {shutdown, disconnect_not_supported}};
 		{ok, #client{address = Address, identifier = NasID,
