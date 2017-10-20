@@ -76,7 +76,7 @@
 				</paper-icon-item>
 				<paper-icon-item
 						class="menu-trigger menuitem"
-						on-click="helpId">
+						on-tap="helpId">
 					<iron-icon icon="icons:help" item-icon></iron-icon>
 					<i18n-msg msgid="help">
 						Help
@@ -84,7 +84,7 @@
 				</paper-icon-item>
 				<paper-icon-item
 						class="menu-trigger menuitem"
-						on-click="about">
+						on-tap="about">
 					<iron-icon icon="icons:error" item-icon></iron-icon>
 					<i18n-msg msgid="about">
 						About
@@ -98,7 +98,7 @@
 			</paper-toolbar>
 			<paper-icon-item
 					class="icon-style"
-					on-click="product">
+					on-tap="product">
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 				<i18n-msg msgid="prod">
 					Product
@@ -106,7 +106,7 @@
 			</paper-icon-item>
 			<paper-icon-item
 					class="icon-style"
-					on-click="addSubQue">
+					on-tap="addSubQue">
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 				<i18n-msg msgid="subs">
 					Subscribers
@@ -114,7 +114,7 @@
 			</paper-icon-item>
 			<paper-icon-item
 					class="icon-style"
-					on-click="addClientQue">
+					on-tap="addClientQue">
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 				<i18n-msg msgid="clients">
 					Clients
@@ -122,7 +122,7 @@
 			</paper-icon-item>
 			<paper-icon-item
 					class="icon-style"
-					on-click="viewLogQue">
+					on-tap="viewLogQue">
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 				<i18n-msg msgid="logs">
 					Logs
@@ -130,7 +130,7 @@
 			</paper-icon-item>
 			<paper-icon-item
 					class="icon-style"
-					on-click="addUserQue">
+					on-tap="addUserQue">
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 				<i18n-msg msgid="users">
 					Users
@@ -138,7 +138,7 @@
 			</paper-icon-item>
 			<paper-icon-item
 					class="icon-style"
-					on-click="toolQue">
+					on-tap="toolQue">
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 				<i18n-msg msgid="tool">
 					Toolbar
@@ -146,7 +146,7 @@
 			</paper-icon-item>
 			<paper-icon-item
 					class="icon-style"
-					on-click="filter">
+					on-tap="filter">
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 				<i18n-msg msgid="filt">
 					Filtering
@@ -154,7 +154,7 @@
 			</paper-icon-item>
 			<paper-icon-item
 					class="icon-style"
-					on-click="sorting">
+					on-tap="sorting">
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 				<i18n-msg msgid="sort">
 					Sorting
@@ -165,7 +165,7 @@
 			<paper-toolbar>
 				<paper-icon-item
 						class="menu-trigger menuitem"
-						on-click="helpBack">
+						on-tap="helpBack">
 					<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
 				</paper-icon-item>
 				<h2>[[i18n.help]]</h2>
@@ -204,7 +204,7 @@
 			<paper-toolbar>
 				<paper-icon-item
 						class="menu-trigger menuitem"
-						on-click="helpBack">
+						on-tap="helpBack">
 				<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
 				</paper-icon-item>
 				<h2>[[i18n.help]]</h2>
@@ -274,7 +274,7 @@
 			<paper-toolbar>
 				<paper-icon-item
 						class="menu-trigger menuitem"
-						on-click="helpBack">
+						on-tap="helpBack">
 					<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
 				</paper-icon-item>
 				<h2>[[i18n.help]]</h2>
@@ -331,7 +331,7 @@
 			<paper-toolbar>
 				<paper-icon-item
 						class="menu-trigger menuitem"
-						on-click="helpBack">
+						on-tap="helpBack">
 					<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
 				</paper-icon-item>
 				<h2>[[i18n.help]]</h2>
@@ -454,7 +454,7 @@
 			<paper-toolbar>
 				<paper-icon-item
 						class="menu-trigger menuitem"
-						on-click="helpBack">
+						on-tap="helpBack">
 					<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
 				</paper-icon-item>
 				<h2>[[i18n.help]]</h2>
@@ -491,7 +491,7 @@
 			<paper-toolbar>
 				<paper-icon-item
 						class="menu-trigger menuitem"
-						on-click="helpBack">
+						on-tap="helpBack">
 					<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
 				</paper-icon-item>
 				<h2>[[i18n.help]]</h2>
@@ -514,7 +514,7 @@
 			<paper-toolbar>
 				<paper-icon-item
 						class="menu-trigger menuitem"
-						on-click="helpBack">
+						on-tap="helpBack">
 					<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
 				</paper-icon-item>
 				<h2>[[i18n.help]]</h2>
@@ -540,7 +540,7 @@
 			<paper-toolbar>
 				<paper-icon-item
 						class="menu-trigger menuitem"
-						on-click="helpBack">
+						on-tap="helpBack">
 					<iron-icon icon="icons:arrow-back" item-icon></iron-icon>
 				</paper-icon-item>
 				<h2>[[i18n.help]]</h2>
