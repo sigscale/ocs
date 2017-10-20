@@ -392,7 +392,7 @@ diameter_accounting(Config) ->
 			'Auth-Application-Id' = ?CC_APPLICATION_ID,
 			'CC-Request-Type' = ?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST',
 			'CC-Request-Number' = RequestNum,
-			'Multiple-Services-Credit-Control' = MultiServices_CC} = Answer0,
+			'Multiple-Services-Credit-Control' = [MultiServices_CC]} = Answer0,
 	#'diameter_cc_app_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = [GrantedUnits]} = MultiServices_CC,
 	#'diameter_cc_app_Granted-Service-Unit'{'CC-Total-Octets' = [TotalOctets]} = GrantedUnits,
