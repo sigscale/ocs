@@ -262,9 +262,9 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 				CCTime =/= [] ->
 			{seconds, CCTime};
 		#'diameter_cc_app_Requested-Service-Unit'{'CC-Total-Octets' = CCTotalOctets,
-					'CC-Output-Octets' = CCOOutputOctets, 'CC-Input-Octets' = CCInputOctets} when
-				CCTotalOctets =/= [], CCInputOctets =/= [], CCOOutputOctets =/= [] ->
-			{octets, CCInputOctets + CCOOutputOctets};
+					'CC-Output-Octets' = CCOutputOctets, 'CC-Input-Octets' = CCInputOctets} when
+				is_integer(CCTotalOctets), is_integer(CCInputOctets), is_integer(CCOutputOctets) ->
+			{octets, CCTotalOctets};
 		_ ->
 			throw(unsupported_request_units)
 	end,
@@ -288,9 +288,9 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 				CCTime =/= [] ->
 			{seconds, CCTime};
 		#'diameter_cc_app_Requested-Service-Unit'{'CC-Total-Octets' = CCTotalOctets,
-					'CC-Output-Octets' = CCOOutputOctets, 'CC-Input-Octets' = CCInputOctets} when
-				CCTotalOctets =/= [], CCInputOctets =/= [], CCOOutputOctets =/= [] ->
-			{octets, CCInputOctets + CCOOutputOctets};
+					'CC-Output-Octets' = CCOutputOctets, 'CC-Input-Octets' = CCInputOctets} when
+				is_integer(CCTotalOctets), is_integer(CCInputOctets), is_integer(CCOutputOctets) ->
+			{octets, CCTotalOctets};
 		_ ->
 			throw(unsupported_request_units)
 	end,
@@ -305,9 +305,9 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		#'diameter_cc_app_Used-Service-Unit'{'CC-Time' = UsedCCTime} when UsedCCTime =/= [] ->
 			{seconds, UsedCCTime};
 		#'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = UsedCCTotalOctets,
-					'CC-Output-Octets' = UsedCCOutputOctets, 'CC-Input-Octets' = UsedCCInputOctets}
-				when UsedCCTotalOctets =/= [], UsedCCInputOctets =/= [], UsedCCOutputOctets =/= [] ->
-			{octets, UsedCCInputOctets + UsedCCOutputOctets};
+					'CC-Output-Octets' = UsedCCOutputOctets, 'CC-Input-Octets' = UsedCCInputOctets} when
+				is_integer(UsedCCTotalOctets), is_integer(UsedCCInputOctets), is_integer(UsedCCOutputOctets) ->
+			{octets, UsedCCTotalOctets};
 		[] ->
 			throw(used_amount_not_available)
 	end,
@@ -371,9 +371,9 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		#'diameter_cc_app_Used-Service-Unit'{'CC-Time' = CCTime} when CCTime =/= [] ->
 			{seconds, CCTime};
 		#'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = CCTotalOctets,
-					'CC-Output-Octets' = CCOutputOctets, 'CC-Input-Octets' = CCInputOctets}
-				when CCTotalOctets =/= [], CCInputOctets =/= [], CCOutputOctets =/= [] ->
-			{octets, CCInputOctets + CCOutputOctets};
+					'CC-Output-Octets' = CCOutputOctets, 'CC-Input-Octets' = CCInputOctets} when
+				is_integer(CCTotalOctets), is_integer(CCInputOctets), is_integer(CCOutputOctets) ->
+			{octets, CCTotalOctets};
 		[] ->
 			throw(used_amount_not_available)
 	end,
