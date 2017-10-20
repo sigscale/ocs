@@ -219,42 +219,25 @@ code_change(_OldVsn, State, _Extra) ->
 %% @private
 request(Request, Caps,  _From, State) ->
 	#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}} = Caps,
-	#diameter_cc_app_CCR{'Session-Id' = SId,
+	#diameter_cc_app_CCR{'Session-Id' = SId, 'User-Name' = NAISpecUName,
 			'Auth-Application-Id' = ?CC_APPLICATION_ID,
 			'Service-Context-Id' = _SvcContextId, 'CC-Request-Type' = RequestType,
-			'CC-Request-Number' = RequestNum} = Request,
+			'CC-Request-Number' = RequestNum, 'Subscription-Id' = SubscriptionIds} = Request,
 	try
-		Subscriber = case Request#diameter_cc_app_CCR.'Subscription-Id' of
-			SubscriptionId when SubscriptionId == undefine; SubscriptionId == [] ->
-				case Request#diameter_cc_app_CCR.'User-Name' of
-					[UserName] when UserName == undefined; UserName == [] ->
+		Subscriber = case SubscriptionIds of
+			[#'diameter_cc_app_Subscription-Id'{'Subscription-Id-Data' = Sub} | _] ->
+				Sub;
+			[] ->
+				case NAISpecUName of
+					[] ->
 						throw(no_subscriber_identification_information);
-					[UserName] ->
-						UserName
-				end;
-			SubscriptionId ->
-				SubscriptionId
+					NAI ->
+						[_, Username | _] = string:tokens(NAI, ":@"),%% proto:username@realm
+						Username
+				end
 		end,
-		case ocs:find_subscriber(Subscriber) of
-			{ok, #subscriber{password = Password, buckets = Buckets,
-					enabled = true}} ->
-				Balance = get_balance(Buckets),
-				case ocs:authorize(Subscriber, Password) of
-					{ok, _} ->
-						request1(RequestType, Request, SId, RequestNum, Subscriber,
-								Balance, OHost, DHost, ORealm, DRealm, State);
-					{error, _} ->
-						{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
-								Balance, ?'DIAMETER_BASE_RESULT-CODE_AUTHORIZATION_REJECTED',
-								OHost, ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
-						{reply, Reply, NewState}
-				end;
-			{error, _} ->
-				{Reply, NewState} = generate_diameter_error(Request, SId, undefined,
-					undefined, ?'DIAMETER_BASE_RESULT-CODE_AUTHORIZATION_REJECTED',
-					OHost, ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
-				{reply, Reply, NewState}
-		end
+		request1(RequestType, Request, SId, RequestNum,
+				Subscriber, OHost, DHost, ORealm, DRealm, State)
 	catch
 		_:_ ->
 			{Reply1, NewState1} = generate_diameter_error(Request, SId, undefined,
@@ -265,15 +248,70 @@ request(Request, Caps,  _From, State) ->
 
 %% @hidden
 request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
-		Request, SId, RequestNum, Subscriber, Balance, OHost, _DHost, ORealm,
-		_DRealm, State) ->
+		#diameter_cc_app_CCR{'Multiple-Services-Credit-Control' = [MSCC | _]} = Request,
+		SId, RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm, State) ->
+	RSU =  case MSCC of
+		#'diameter_cc_app_Multiple-Services-Credit-Control'{'Requested-Service-Unit' =
+				[RequestedServiceUnits | _]} ->
+			RequestedServiceUnits;
+		_ ->
+			throw(multiple_service_credit_control_avp_not_available)
+	end,
+	{ReqUsageType, ReqUsage} = case RSU of
+		#'diameter_cc_app_Requested-Service-Unit'{'CC-Time' = CCTime} when
+				CCTime =/= [] ->
+			{seconds, CCTime};
+		#'diameter_cc_app_Requested-Service-Unit'{'CC-Total-Octets' = CCTotalOctets,
+					'CC-Output-Octets' = CCOutputOctets, 'CC-Input-Octets' = CCInputOctets} when
+				is_integer(CCTotalOctets), is_integer(CCInputOctets), is_integer(CCOutputOctets) ->
+			{octets, CCTotalOctets};
+		_ ->
+			throw(unsupported_request_units)
+	end,
+	Balance = 0, % ??
 	{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 			Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 			?CC_APPLICATION_ID, RequestType, RequestNum, State),
 	{reply, Reply, NewState};
 request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
-		Request, SId, RequestNum, Subscriber, Balance, OHost, DHost, ORealm,
-		DRealm, State) ->
+		#diameter_cc_app_CCR{'Multiple-Services-Credit-Control' = [MSCC | _]} = Request,
+		SId, RequestNum, Subscriber, OHost, DHost, ORealm, DRealm, State) ->
+	RSU =  case MSCC of
+		#'diameter_cc_app_Multiple-Services-Credit-Control'{'Requested-Service-Unit' =
+				[RequestedServiceUnits | _]} ->
+			RequestedServiceUnits;
+		_ ->
+			throw(multiple_service_credit_control_avp_not_available)
+	end,
+	{ReqUsageType, ReqUsage} = case RSU of
+		#'diameter_cc_app_Requested-Service-Unit'{'CC-Time' = CCTime} when
+				CCTime =/= [] ->
+			{seconds, CCTime};
+		#'diameter_cc_app_Requested-Service-Unit'{'CC-Total-Octets' = CCTotalOctets,
+					'CC-Output-Octets' = CCOutputOctets, 'CC-Input-Octets' = CCInputOctets} when
+				is_integer(CCTotalOctets), is_integer(CCInputOctets), is_integer(CCOutputOctets) ->
+			{octets, CCTotalOctets};
+		_ ->
+			throw(unsupported_request_units)
+	end,
+	USU =  case MSCC of
+		#'diameter_cc_app_Multiple-Services-Credit-Control'{'Used-Service-Unit' =
+				[UsedServiceUnit | _]} ->
+			UsedServiceUnit;
+		_ ->
+			throw(multiple_service_credit_control_avp_not_available)
+	end,
+	{UsedType, UsedUsage} = case USU of
+		#'diameter_cc_app_Used-Service-Unit'{'CC-Time' = UsedCCTime} when UsedCCTime =/= [] ->
+			{seconds, UsedCCTime};
+		#'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = UsedCCTotalOctets,
+					'CC-Output-Octets' = UsedCCOutputOctets, 'CC-Input-Octets' = UsedCCInputOctets} when
+				is_integer(UsedCCTotalOctets), is_integer(UsedCCInputOctets), is_integer(UsedCCOutputOctets) ->
+			{octets, UsedCCTotalOctets};
+		[] ->
+			throw(used_amount_not_available)
+	end,
+	Balance = 0, %% ??
 	try
 		[UsedUnits] = Request#'diameter_cc_app_CCR'.'Used-Service-Unit',
 		#'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = Total,
@@ -320,8 +358,26 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 			{reply, Reply1, NewState0}
 	end;
 request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
-		Request, SId, RequestNum, Subscriber, Balance, OHost, _DHost, ORealm,
-		_DRealm, State) ->
+		#diameter_cc_app_CCR{'Multiple-Services-Credit-Control' = [MSCC | _]} = Request,
+		SId, RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm, State) ->
+	USU =  case MSCC of
+		#'diameter_cc_app_Multiple-Services-Credit-Control'{'Used-Service-Unit' =
+				[UsedServiceUnit | _]} ->
+			UsedServiceUnit;
+		_ ->
+			throw(multiple_service_credit_control_avp_not_available)
+	end,
+	{UsedType, UsedUsage} = case USU of
+		#'diameter_cc_app_Used-Service-Unit'{'CC-Time' = CCTime} when CCTime =/= [] ->
+			{seconds, CCTime};
+		#'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = CCTotalOctets,
+					'CC-Output-Octets' = CCOutputOctets, 'CC-Input-Octets' = CCInputOctets} when
+				is_integer(CCTotalOctets), is_integer(CCInputOctets), is_integer(CCOutputOctets) ->
+			{octets, CCTotalOctets};
+		[] ->
+			throw(used_amount_not_available)
+	end,
+	Balance = 0, % ??
 	F = fun() ->
 		case mnesia:read(subscriber, Subscriber, write) of
 			[#subscriber{disconnect = false} = Entry] ->
