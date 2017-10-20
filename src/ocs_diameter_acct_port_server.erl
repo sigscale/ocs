@@ -261,14 +261,16 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		#'diameter_cc_app_Requested-Service-Unit'{'CC-Time' = [CCTime]} when
 				CCTime =/= [] ->
 			{seconds, CCTime};
-		#'diameter_cc_app_Requested-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets],
-					'CC-Output-Octets' = [CCOutputOctets], 'CC-Input-Octets' = [CCInputOctets]} when
-				is_integer(CCTotalOctets), is_integer(CCInputOctets), is_integer(CCOutputOctets) ->
+		#'diameter_cc_app_Requested-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets]} ->
 			{octets, CCTotalOctets};
+		#'diameter_cc_app_Requested-Service-Unit'{'CC-Output-Octets' = [CCOutputOctets],
+				'CC-Input-Octets' = [CCInputOctets]} when is_integer(CCInputOctets),
+				is_integer(CCOutputOctets) ->
+			{octets, CCOutputOctets + CCOutputOctets};
 		_ ->
 			throw(unsupported_request_units)
 	end,
-	Balance = 0, % ??
+	Balance = 10000, % ??
 	{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 			Balance, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 			?CC_APPLICATION_ID, RequestType, RequestNum, State),
@@ -427,10 +429,13 @@ generate_diameter_answer(Request, SId, _Subscriber, Balance, ResultCode, OHost,
 		ORealm, AuthAppId, RequestType, RequestNum, #state{address = Address,
 		port = Port} = State) ->
 	GrantedUnits = #'diameter_cc_app_Granted-Service-Unit'{'CC-Total-Octets' = [Balance]},
+	MultiServices_CC = #'diameter_cc_app_Multiple-Services-Credit-Control'{
+			'Granted-Service-Unit' = [GrantedUnits]},
 	Reply = #diameter_cc_app_CCA{'Session-Id' = SId, 'Result-Code' = ResultCode,
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Auth-Application-Id' = AuthAppId, 'CC-Request-Type' = RequestType,
-			'CC-Request-Number' = RequestNum, 'Granted-Service-Unit' = [GrantedUnits]},
+			'CC-Request-Number' = RequestNum,
+			'Multiple-Services-Credit-Control' = [MultiServices_CC]},
 	Server = {Address, Port},
 	ok = ocs_log:acct_log(diameter, Server, accounting_event_type(RequestType),
 			Request),
