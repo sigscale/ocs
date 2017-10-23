@@ -256,7 +256,6 @@ request1(?AccountingStart, AcctSessionId, Id,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
 	SessionIdentification = [{?NasIdentifier, NasId}, {?NasIpAddress, Address}],
 	{ok, Subscriber} = radius_attributes:find(?UserName, Attributes),
-erlang:display({?MODULE, ?LINE, ocs:find_subscriber(Subscriber)}),
 	case update_session(Subscriber, AcctSessionId, SessionIdentification) of
 		ok ->
 			ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, start, Attributes),
