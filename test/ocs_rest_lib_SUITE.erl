@@ -76,7 +76,7 @@ sequences() ->
 all() ->
 	[filter_members, filter_array, filter_deep_object, filter_deep_array,
 			filter_match, filter_match_array, filter_match_list, filter_complex,
-			pointer, patch].
+			pointer, patch, patch_array].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -306,6 +306,27 @@ patch(_Config) ->
 							{"g", 5},
 							{"j", 69}]}},
 					{"h",6}]}}]}.
+
+patch_array(_Config) ->
+	ResourceIn = {array,
+			[1,
+			{struct,
+					[{"b", 2},
+					{"c", 3},
+					{"d", {array,
+							[4, 5, 6]}},
+					{"e", 7}]},
+			7]},
+	ResourceOut = ocs_rest:patch([{"replace", "/1/d/1", 42},
+			{"add", "/1/d/-", 69}, {"remove", "/0"}], ResourceIn),
+	ResourceOut = {array,
+			[{struct,
+					[{"b", 2},
+					{"c", 3},
+					{"d", {array,
+							[4, 42, 6, 69]}},
+					{"e", 7}]},
+			7]}.
 
 %%---------------------------------------------------------------------
 %%  Internal functions

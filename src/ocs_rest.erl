@@ -260,39 +260,82 @@ pointer1(T, Acc1, Acc2) ->
 %% @doc Apply a JSON `Patch' (<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>).
 %% 	Modifies the `Resource' by applying the operations listed in `Patch'.
 %% 	`Operation' may be `"add"', `"remove"', or `"replace"'.
-patch(Patch, {struct, L}) when is_list(Patch), is_list(L) ->
-	{struct, patch1(Patch, L)}.
-%patch(Patch, {array, L}) when is_list(Patch), is_list(L) ->
-%	{array, ...}.
 %% @hidden
-patch1([{"add", Path, Value} | T], Acc) ->
-	patch1(T, patch_add(pointer(Path), Value, Acc, []));
-patch1([{"remove", Path} | T], Acc) ->
-	patch1(T, patch_remove(pointer(Path), Acc, []));
-patch1([{"replace", Path, Value} | T], Acc) ->
-	patch1(T, patch_replace(pointer(Path), Value, Acc, []));
-patch1([], Acc) ->
-	Acc.
+patch([{"add", Path, Value} | T] = _Patch, Resource) ->
+	patch(T, patch_add(pointer(Path), Value, Resource));
+patch([{"remove", Path} | T], Resource) ->
+	patch(T, patch_remove(pointer(Path), Resource));
+patch([{"replace", Path, Value} | T], Resource) ->
+	patch(T, patch_replace(pointer(Path), Value, Resource));
+patch([], Resource) ->
+	Resource.
 %% @hidden
-patch_add([Name | T1], Value, [{Name, {struct, L1}} | T2], Acc) ->
-	L2 = patch_add(T1, Value, L1, []),
-	lists:reverse(Acc) ++ [{Name, {struct, L2}} | T2];
+patch_add(Path, Value, {struct, L}) ->
+	{struct, patch_add(Path, Value, L, [])};
+patch_add(["-"], Value, {array, L}) ->
+	{array, L ++ [Value]};
+patch_add([H | T], Value, {array, L}) ->
+	case list_to_integer(H) of
+		N when T == [], N < length(L) ->
+			Left = lists:sublist(L, N),
+			Right = lists:sublist(L, N + 1, length(L)),
+			{array, Left ++ [Value | Right]};
+		N when N < length(L) ->
+			Left = lists:sublist(L, N),
+			Element = patch_add(T, Value, lists:nth(N + 1, L)),
+			Right = lists:sublist(L, N + 2, length(L)),
+			{array, Left ++ [Element | Right]}
+	end.
+%% @hidden
+patch_add([Name | T1], Value1, [{Name, Value2} | T2], Acc) ->
+	Value3 = patch_add(T1, Value1, Value2),
+	lists:reverse(Acc) ++ [{Name, Value3} | T2];
 patch_add(Path, Value, [H | T], Acc) ->
 	patch_add(Path, Value, T, [H | Acc]);
 patch_add([Name], Value, [], Acc) ->
 	lists:reverse([{Name, Value} | Acc]).
 %% @hidden
-patch_remove([Name | T1], [{Name, {struct, L1}} | T2], Acc) ->
-	L2 = patch_remove(T1, L1, []),
-	lists:reverse(Acc) ++ [{Name, {struct, L2}} | T2];
+patch_remove(Path, {struct, L}) ->
+	{struct, patch_remove(Path, L, [])};
+patch_remove([H | T], {array, L}) ->
+	case list_to_integer(H) of
+		N when T == [], N < length(L) ->
+			Left = lists:sublist(L, N),
+			Right = lists:sublist(L, N + 2, length(L)),
+			{array, Left ++ Right};
+		N when N < length(L) ->
+			Left = lists:sublist(L, N),
+			Element = patch_remove(T, lists:nth(N + 1, L)),
+			Right = lists:sublist(L, N + 2, length(L)),
+			{array, Left ++ [Element | Right]}
+	end.
+%% @hidden
+patch_remove([Name | T1], [{Name, Value1} | T2], Acc) ->
+	Value2 = patch_remove(T1, Value1),
+	lists:reverse(Acc) ++ [{Name, Value2} | T2];
 patch_remove([Name], [{Name, _} | T], Acc) ->
 	lists:reverse(Acc) ++ T;
 patch_remove(Path, [H | T], Acc) ->
 	patch_remove(Path, T, [H | Acc]).
 %% @hidden
-patch_replace([Name | T1], Value, [{Name, {struct, L1}} | T2], Acc) ->
-	L2 = patch_replace(T1, Value, L1, []),
-	lists:reverse(Acc) ++ [{Name, {struct, L2}} | T2];
+patch_replace(Path, Value, {struct, L}) ->
+	{struct, patch_replace(Path, Value, L, [])};
+patch_replace([H | T], Value, {array, L}) ->
+	case list_to_integer(H) of
+		N when T == [], N < length(L) ->
+			Left = lists:sublist(L, N),
+			Right = lists:sublist(L, N + 2, length(L)),
+			{array, Left ++ [Value | Right]};
+		N when N < length(L) ->
+			Left = lists:sublist(L, N),
+			Right = lists:sublist(L, N + 2, length(L)),
+			Element = patch_replace(T, Value, lists:nth(N + 1, L)),
+			{array, Left ++ [Element | Right]}
+	end.
+%% @hidden
+patch_replace([Name | T1], Value1, [{Name, Value2} | T2], Acc) ->
+	Value3 = patch_replace(T1, Value1, Value2),
+	lists:reverse(Acc) ++ [{Name, Value3} | T2];
 patch_replace([Name], Value, [{Name, _} | T], Acc) ->
 	lists:reverse(Acc) ++ [{Name, Value} | T];
 patch_replace(Path, Value, [H | T], Acc) ->
