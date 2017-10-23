@@ -31,16 +31,12 @@ www_DATA = favicon.ico \
 	sig-product-update.html \
 	sig-product-add.html
 
-noinst_DATA = bower_components
-
-bower_components: $(srcdir)/bower.json
+install-data-local:	$(srcdir)/bower.json
 	@if [ ! -e $(builddir)/bower.json ]; then \
 		$(LN_S) $(srcdir)/bower.json; \
 	fi
 	bower install
 	@touch $(builddir)/bower_components
-
-install-data-local:
 	$(MKDIR_P) $(DESTDIR)$(wwwdir)
 	cp -R $(abs_builddir)/bower_components/* $(DESTDIR)$(wwwdir)
 	$(MKDIR_P) $(DESTDIR)$(wwwdir)/locales
