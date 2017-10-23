@@ -277,16 +277,34 @@ handle_diameter2(#statedata{protocol = diameter, session_id = SessionID,
 		server_address = ServerAddress, server_port = ServerPort, app_id = AppId,
 		auth_request_type = Type, origin_host = OHost, origin_realm = ORealm,
 		diameter_port_server = PortServer, client_address = ClientAddress,
-		client_port = ClientPort, request = Request} = StateData) ->
+		client_port = ClientPort, request = Request, dest_host = DHost,
+		dest_realm = DRealm, subscriber = SubscriberId} = StateData) ->
 	Server = {ServerAddress, ServerPort},
 	Client= {ClientAddress, ClientPort},
-	Answer = #diameter_nas_app_AAA{'Session-Id' = SessionID,
-			'Auth-Application-Id' = AppId, 'Auth-Request-Type' = Type,
-			'Origin-Host' = OHost, 'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			'Origin-Realm' = ORealm},
-	ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
-	gen_server:cast(PortServer, {self(), Answer}),
-	{stop, {shutdown, SessionID}, StateData}.
+	Now = erlang:system_time(?MILLISECOND),
+	SessionAttributes = {Now, [{'Origin-Host', OHost}, {'Origin-Realm', ORealm},
+			{'Destination-Host', DHost}, {'Destination-Realm', DRealm},
+			{'Session-Id', SessionID}]},
+	F = fun() ->
+		case mnesia:read(subscriber, SubscriberId, write) of
+			[#subscriber{session_attributes = SessionList} = Subscriber] ->
+				mnesia:write(Subscriber#subscriber{session_attributes = [SessionAttributes | SessionList]});
+			[] ->
+				throw(not_found)
+		end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, ok} ->
+			Answer = #diameter_nas_app_AAA{'Session-Id' = SessionID,
+					'Auth-Application-Id' = AppId, 'Auth-Request-Type' = Type,
+					'Origin-Host' = OHost, 'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+					'Origin-Realm' = ORealm},
+			ok = ocs_log:auth_log(diameter, Server, Client, Request, Answer),
+			gen_server:cast(PortServer, {self(), Answer}),
+			{stop, {shutdown, SessionID}, StateData};
+		{aborted, Reason} ->
+			reject_diameter(Reason , StateData)
+	end.
 
 %% @hidden
 reject_diameter(_Reason, #statedata{session_id = SessionID, app_id = AppId,
