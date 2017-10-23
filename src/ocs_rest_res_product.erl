@@ -28,6 +28,7 @@
 -export([get_catalog/2, get_catalogs/1]).
 -export([get_category/2, get_categories/1]).
 -export([get_product_spec/2, get_product_specs/1]).
+-export([delete_product_offering/1]).
 
 -include("ocs.hrl").
 
@@ -369,6 +370,17 @@ patch_product_offering(ProdId, Etag, ReqData) ->
 		_:_ ->
 			{error, 400}
 	end.
+
+-spec delete_product_offering(Id) -> Result
+	when
+		Id :: string(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()} .
+%% @doc Respond to `DELETE /catalogManagement/v1/productOffering/{id}'
+%% 	request to remove a `Product Offering'.
+delete_product_offering(Id) ->
+	ok = ocs:delete_product(Id),
+	{ok, [], []}.
 
 %%----------------------------------------------------------------------
 %%  internal functions

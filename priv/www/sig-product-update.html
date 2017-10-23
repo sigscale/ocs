@@ -637,7 +637,7 @@
 		<iron-ajax
 				id="updateAddProductAjax"
 				url="/catalogManagement/v2/productOffering"
-				method = "POST"
+				method="POST"
 				content-type="application/json"
 				on-loading-changed="_onLoadingChanged"
 				on-response="_addProductResponse"
@@ -655,6 +655,7 @@
 		</iron-ajax>
 		<iron-ajax
 				id="deleteProductAjax"
+				method="DELETE"
 				on-response="_deleteProductResponse"
 				on-error="_deleteProductError">
 		</iron-ajax>
@@ -1272,10 +1273,8 @@
 				}
 			},
 			deleteProduct: function(event) {
-				this.$.deleteProductAjax.method = "DELETE";
-				this.$.deleteProductAjax.contentType = "application/json-patch+json";
 				this.$.deleteProductAjax.url = "/catalogManagement/v2/productOffering/"
-						+ this.$.updateOffName;
+						+ this.$.updateOffName.value;
 				this.$.deleteProductAjax.generateRequest();
 			},
 			_deleteProductResponse: function(event) {
