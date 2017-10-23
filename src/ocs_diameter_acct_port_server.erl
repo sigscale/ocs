@@ -249,7 +249,7 @@ request(Request, Caps,  _From, State) ->
 %% @hidden
 request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		#diameter_cc_app_CCR{'Multiple-Services-Credit-Control' = [MSCC | _]} = Request,
-		SId, RequestNum, Subscriber, OHost, DHost, ORealm, DRealm, State) ->
+		SId, RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm, State) ->
 	RSU =  case MSCC of
 		#'diameter_cc_app_Multiple-Services-Credit-Control'{'Requested-Service-Unit' =
 				[RequestedServiceUnits | _]} ->
@@ -270,23 +270,22 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		_ ->
 			throw(unsupported_request_units)
 	end,
-	case ocs_rating:reserve_units(Subscriber, 1, ReqUsageType, ReqUsage, 0) of
+	SessionIdentification = [{'Origin-Host', OHost}, {'Origin-Realm', ORealm}],
+	case ocs_rating:reserve_units(Subscriber, 1, SId, SessionIdentification, ReqUsageType, ReqUsage, 0) of
 		{ok, GrantedAmount} ->
 			{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 					GrantedAmount, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 					?CC_APPLICATION_ID, RequestType, RequestNum, State),
 			{reply, Reply, NewState};
-		{error, out_of_credit} ->
+		{out_of_credit, SL} ->
 			error_logger:warning_report(["out of credit",
 					{module, ?MODULE}, {subscriber, Subscriber},
 					{origin_host, OHost}]),
+			start_disconnect(SL, State),
 			{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 					0, ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
 					ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
-			NewState1 = start_disconnect(ocs_diameter_acct_service,
-					ocs_diameter_base_application, SId, OHost, DHost, ORealm, DRealm,
-					?CC_APPLICATION_ID, NewState),
-			{reply, Reply, NewState1};
+			{reply, Reply, NewState};
 		{error, subscriber_not_found} ->
 			error_logger:warning_report(["diameter accounting subscriber not found",
 					{module, ?MODULE}, {subscriber, Subscriber},
@@ -303,7 +302,7 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 	end;
 request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		#diameter_cc_app_CCR{'Multiple-Services-Credit-Control' = [MSCC | _]} = Request,
-		SId, RequestNum, Subscriber, OHost, DHost, ORealm, DRealm, State) ->
+		SId, RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm, State) ->
 	try
 		RSU =  case MSCC of
 			#'diameter_cc_app_Multiple-Services-Credit-Control'{'Requested-Service-Unit' =
@@ -344,23 +343,21 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 			[] ->
 				throw(used_amount_not_available)
 		end,
-		case ocs_rating:reserve_units(Subscriber, 2, ReqUsageType, ReqUsage, UsedUsage) of
+		case ocs_rating:reserve_units(Subscriber, 2, [], SId, ReqUsageType, ReqUsage, UsedUsage) of
 			{ok, GrantedAmount} ->
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						GrantedAmount, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 						?CC_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
-			{error, out_of_credit} ->
+			{out_of_credit, SL} ->
 				error_logger:warning_report(["out of credit",
 						{module, ?MODULE}, {subscriber, Subscriber},
 						{origin_host, OHost}]),
+				start_disconnect(SL, State),
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						0, ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
 						ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
-				NewState1 = start_disconnect(ocs_diameter_acct_service,
-						ocs_diameter_base_application, SId, OHost, DHost, ORealm, DRealm,
-						?CC_APPLICATION_ID, NewState),
-				{reply, Reply, NewState1};
+				{reply, Reply, NewState};
 			{error, subscriber_not_found} ->
 				error_logger:warning_report(["diameter accounting subscriber not found",
 						{module, ?MODULE}, {subscriber, Subscriber},
@@ -384,7 +381,7 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 	end;
 request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		#diameter_cc_app_CCR{'Multiple-Services-Credit-Control' = [MSCC | _]} = Request,
-		SId, RequestNum, Subscriber, OHost, DHost, ORealm, DRealm, State) ->
+		SId, RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm, State) ->
 	try
 		USU =  case MSCC of
 			#'diameter_cc_app_Multiple-Services-Credit-Control'{'Used-Service-Unit' =
@@ -405,23 +402,21 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 			[] ->
 				throw(used_amount_not_available)
 		end,
-		case ocs_rating:reserve_units(Subscriber, 3, UsedType, 0, UsedUsage) of
+		case ocs_rating:reserve_units(Subscriber, 3, SId, [], UsedType, 0, UsedUsage) of
 			{ok, GrantedAmount} ->
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						GrantedAmount, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 						?CC_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
-			{error, out_of_credit} ->
+			{out_of_credit, SL} ->
 				error_logger:warning_report(["out of credit",
 						{module, ?MODULE}, {subscriber, Subscriber},
 						{origin_host, OHost}]),
+				start_disconnect(SL, State),
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						0, ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
 						ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
-				NewState1 = start_disconnect(ocs_diameter_acct_service,
-						ocs_diameter_base_application, SId, OHost, DHost, ORealm, DRealm,
-						?CC_APPLICATION_ID, NewState),
-				{reply, Reply, NewState1};
+				{reply, Reply, NewState};
 			{error, subscriber_not_found} ->
 				error_logger:warning_report(["diameter accounting subscriber not found",
 						{module, ?MODULE}, {subscriber, Subscriber},
@@ -525,41 +520,26 @@ accounting_event_type(RequestType) ->
 			event
 	end.
 
--spec start_disconnect(Svc, AppAlias, SessionId, OHost, DHost, ORealm,
-		DRealm, AuthAppId, State) -> NewState
-	when
-		Svc :: term(),
-		AppAlias :: term(),
-		SessionId :: string(),
-		OHost :: string() | binary(),
-		DHost :: string() | binary(),
-		ORealm :: string() | binary(),
-		DRealm :: string() | binary(),
-		AuthAppId :: integer(),
-		State :: #state{},
-		NewState :: #state{}.
-%% @doc Start a disconnect_fsm to send DIAMETER Abort-Session-Request and
-%% store disconnect_fsm pid() in state.
 %% @hidden
-start_disconnect(Svc, Alias, SessionId, OHost, DHost, ORealm, DRealm,
-		AuthAppId, #state{handlers = Handlers , disc_sup = DiscSup} = State) ->
-	case gb_trees:lookup(SessionId,  Handlers) of
-		{value, _DiscPid} ->
-			State;
-		none ->
-			DiscArgs = [Svc, Alias, SessionId, OHost, DHost, ORealm,
-					DRealm, AuthAppId],
-			StartArgs = [DiscArgs, []],
-			case supervisor:start_child(DiscSup, StartArgs) of
-				{ok, DiscFsm} ->
-					link(DiscFsm),
-					NewHandlers = gb_trees:insert(SessionId, DiscFsm, Handlers),
-					State#state{handlers = NewHandlers};
-				{error, Reason} ->
-					error_logger:error_report(["Failed to initiate session disconnect function",
-							{module, ?MODULE}, {session_id, SessionId}, {destion_host, DHost},
-							{error, Reason}]),
-					State
-			end
-	end.
+%% @doc Start a disconnect_fsm to send DIAMETER Abort-Session-Request
+%%
+start_disconnect([], _State) ->
+	ok;
+start_disconnect([{_, SessionAttributes} | T], State) ->
+	start_disconnect1(SessionAttributes, State),
+	start_disconnect(T, State).
+%% @hidden
+start_disconnect1(SessionAttributes, #state{disc_sup = DiscSup}) ->
+	Svc = ocs_diameter_acct_service,
+	Alias = ocs_diameter_base_application,
+	AuthAppId = ?CC_APPLICATION_ID,
+	SessionId = proplists:get_value('Session-ID', SessionAttributes),
+	OHost = proplists:get_value('Origin-Host', SessionAttributes),
+	ORealm = proplists:get_value('Origin-Realm', SessionAttributes),
+	DHost = proplists:get_value('Destination-Host', SessionAttributes),
+	DRealm = proplists:get_value('Destination-Realm', SessionAttributes),
+	DiscArgs = [Svc, Alias, SessionId, OHost, DHost, ORealm,
+			DRealm, AuthAppId],
+	StartArgs = [DiscArgs, []],
+	supervisor:start_child(DiscSup, StartArgs).
 
