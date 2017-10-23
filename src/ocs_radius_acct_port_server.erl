@@ -251,11 +251,18 @@ request(Address, AccPort, Secret,
 			{reply, {error, ignore}, State}
 	end.
 %% @hidden
-request1(?AccountingStart, _AcctSessionId, Id,
-		Authenticator, Secret, _NasId, _Address, _AccPort, _ListenPort, Attributes,
+request1(?AccountingStart, AcctSessionId, Id,
+		Authenticator, Secret, NasId, Address, _AccPort, _ListenPort, Attributes,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
-	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, start, Attributes),
-	{reply, {ok, response(Id, Authenticator, Secret)}, State};
+	SessionIdentification = [{?NasIdentifier, NasId}, {?NasIpAddress, Address}],
+	{ok, Subscriber} = radius_attributes:find(?UserName, Attributes),
+	case update_session(Subscriber, AcctSessionId, SessionIdentification) of
+		ok ->
+			ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, start, Attributes),
+			{reply, {ok, response(Id, Authenticator, Secret)}, State};
+		{error, _Reason} ->
+			{reply, {error, ignore}, State}
+	end;
 request1(?AccountingStop, AcctSessionId, Id,
 		Authenticator, Secret, NasId, Address, _AccPort, _ListenPort, Attributes,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
@@ -376,4 +383,59 @@ start_disconnect1(DiscSup, Subscriber, SessionAttributes) ->
 	DiscArgs = [Subscriber, SessionAttributes],
 	StartArgs = [DiscArgs, []],
 	supervisor:start_child(DiscSup, StartArgs).
+
+update_session(SubscriberId, AcctSessionId, SessionIdentification) when is_list(SubscriberId) ->
+	update_session(list_to_binary(SubscriberId), AcctSessionId, SessionIdentification);
+update_session(SubscriberId, AcctSessionId, SessionIdentification) when is_binary(SubscriberId) ->
+	F = fun() ->
+			case mnesia:read(subscriber, SubscriberId, write) of
+				[#subscriber{session_attributes = SessionAttributes} = Subscriber] ->
+					case update_session1(AcctSessionId, SessionIdentification, SessionAttributes) of
+						SessionAttributes ->
+							ok;
+						NSA ->
+							mnesia:write(Subscriber#subscriber{session_attributes = NSA})
+					end;
+				[] ->
+					throw(not_found)
+			end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, ok} ->
+			ok;
+		{aborted, {throw, Reason}} ->
+			{error, Reason};
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+update_session1(AcctSessionId, SessionIdentification, SessionLists) ->
+	update_session2(AcctSessionId, SessionIdentification, SessionLists, []).
+%% @hidden
+update_session2(_AcctSessionId, _SessionIdentification, [], Acc) ->
+	Acc;
+update_session2(AcctSessionId, SessionIdentification, [{TS, SessionAttributes} = H | T], Acc) ->
+	case update_session3(SessionIdentification, SessionAttributes) of
+		true ->
+			case lists:member({?AcctSessionId, AcctSessionId}, SessionAttributes) of
+				true ->
+					Acc ++ T;
+				false ->
+					Identification = radius_attributes:store(?AcctSessionId,
+							AcctSessionId, SessionAttributes),
+					[{TS, Identification} | Acc]
+			end;
+		false ->
+			update_session2(AcctSessionId, SessionIdentification, T, [H | Acc])
+	end.
+%% @hidden
+update_session3([], _SessionAttributes) ->
+	false;
+update_session3([Identifier | T], SessionAttributes) ->
+	case lists:member(Identifier, SessionAttributes) of
+		true ->
+			true;
+		false ->
+			update_session3(T, SessionAttributes)
+	end.
 
