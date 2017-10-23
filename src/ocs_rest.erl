@@ -230,6 +230,8 @@ range({Start, End}) when is_integer(Start), is_integer(End) ->
 pointer(Pointer) ->
 	pointer(Pointer, [], []).
 %% @hidden
+pointer([$/ | T], [], Acc) ->
+	pointer(T, [], Acc);
 pointer([$/ | T], Acc1, Acc2) ->
 	pointer(T, [], [lists:reverse(Acc1) | Acc2]);
 pointer([$- | T], Acc1, Acc2) ->

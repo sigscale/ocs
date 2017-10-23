@@ -294,8 +294,8 @@ patch(_Config) ->
 							{"g", 5}]}},
 					{"h", 6}]}},
 			{"i", 7}]}.
-	ResourceOut = ocs_rest:patch([{"remove", "i"},
-			{"replace", "b/d/f", 42}, {"add", "b/d/j", 69}], ResourceIn),
+	ResourceOut = ocs_rest:patch([{"remove", "/i"},
+			{"replace", "/b/d/f", 42}, {"add", "/b/d/j", 69}], ResourceIn),
 	ResourceOut = {struct,
 			[{"a", 1},
          {"b", {struct,
