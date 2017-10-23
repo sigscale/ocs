@@ -282,13 +282,13 @@ patch_add([H | T], Value, {array, L}) ->
 			{array, Left ++ [Element | Right]}
 	end.
 %% @hidden
+patch_add([Name | []], Value, [], Acc) ->
+	lists:reverse([{Name, Value} | Acc]);
 patch_add([Name | T1], Value1, [{Name, Value2} | T2], Acc) ->
 	Value3 = patch_add(T1, Value1, Value2),
 	lists:reverse(Acc) ++ [{Name, Value3} | T2];
 patch_add(Path, Value, [H | T], Acc) ->
-	patch_add(Path, Value, T, [H | Acc]);
-patch_add([Name], Value, [], Acc) ->
-	lists:reverse([{Name, Value} | Acc]).
+	patch_add(Path, Value, T, [H | Acc]).
 %% @hidden
 patch_remove(Path, {struct, L}) ->
 	{struct, patch_remove(Path, L, [])};
@@ -305,11 +305,11 @@ patch_remove([H | T], {array, L}) ->
 			{array, Left ++ [Element | Right]}
 	end.
 %% @hidden
+patch_remove([Name | []], [{Name, _} | T], Acc) ->
+	lists:reverse(Acc) ++ T;
 patch_remove([Name | T1], [{Name, Value1} | T2], Acc) ->
 	Value2 = patch_remove(T1, Value1),
 	lists:reverse(Acc) ++ [{Name, Value2} | T2];
-patch_remove([Name], [{Name, _} | T], Acc) ->
-	lists:reverse(Acc) ++ T;
 patch_remove(Path, [H | T], Acc) ->
 	patch_remove(Path, T, [H | Acc]).
 %% @hidden
@@ -328,11 +328,11 @@ patch_replace([H | T], Value, {array, L}) ->
 			{array, Left ++ [Element | Right]}
 	end.
 %% @hidden
+patch_replace([Name | []], Value, [{Name, _} | T], Acc) ->
+	lists:reverse(Acc) ++ [{Name, Value} | T];
 patch_replace([Name | T1], Value1, [{Name, Value2} | T2], Acc) ->
 	Value3 = patch_replace(T1, Value1, Value2),
 	lists:reverse(Acc) ++ [{Name, Value3} | T2];
-patch_replace([Name], Value, [{Name, _} | T], Acc) ->
-	lists:reverse(Acc) ++ [{Name, Value} | T];
 patch_replace(Path, Value, [H | T], Acc) ->
 	patch_replace(Path, Value, T, [H | Acc]).
 
