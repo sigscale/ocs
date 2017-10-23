@@ -287,7 +287,7 @@ radius_multisession() ->
 radius_multisession(Config) ->
 	RadID1 = 11,
 	NasID1 = "axe1@ap-1.org",
-	AcctSessionID = "BAC10355",
+	AcctSessionID1 = "BAC10355",
 	ProdID = ?config(product_id, Config),
 	{ok, [{auth, AuthInstance}, {acct, AcctInstance}]} = application:get_env(ocs, radius),
 	[{AuthAddress, AuthPort, _}] = AuthInstance,
@@ -299,7 +299,7 @@ radius_multisession(Config) ->
 	Now = erlang:system_time(?MILLISECOND),
 	TD = Now + 86400000,
 	Buckets = [#bucket{bucket_type = octets,
-			remain_amount = 1000, termination_date = TD}],
+			remain_amount = 1000000, termination_date = TD}],
 	{ok, _} = ocs:add_subscriber(PeerID, Password, ProdID, [], Buckets, [], true, true),
 	ReqAuth = radius:authenticator(),
 	HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
@@ -308,7 +308,7 @@ radius_multisession(Config) ->
 			HiddenPassword, Secret, NasID1, ReqAuth, RadID1),
 	RadID2 = RadID1 + 1,
 	accounting_start(Socket, AcctAddress, AcctPort,
-			PeerID, Secret, NasID1, AcctSessionID, RadID2),
+			PeerID, Secret, NasID1, AcctSessionID1, RadID2),
 	{ok, #subscriber{multisession = true, session_attributes = SessionList1}}
 			= ocs:find_subscriber(PeerID),
 	F1 = fun(F1, Session, [H1 | T1]) ->
@@ -336,6 +336,7 @@ radius_multisession(Config) ->
 	%% Authenticate session 2
 	Rad2ID1 = 5,
 	NasID2 = "axe2@ap-2.org",
+	AcctSessionID2 = "BAC10356",
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
 			HiddenPassword, Secret, NasID2, ReqAuth, Rad2ID1),
 	ct:sleep(500),
@@ -345,7 +346,7 @@ radius_multisession(Config) ->
 	ok = F2(F2, SessionList2, [{?UserName, PeerID}, {?NasIdentifier, NasID2}]),
 	Rad2ID2 = Rad2ID1 + 1,
 	accounting_start(Socket, AcctAddress, AcctPort, PeerID, Secret, NasID2,
-			AcctSessionID, Rad2ID2),
+			AcctSessionID2, Rad2ID2),
 	%% Authenticate session 3
 	Rad3ID1 = 21,
 	NasID3 = "axe3@ap-3.org",
@@ -357,12 +358,13 @@ radius_multisession(Config) ->
 	3 = length(SessionList3),
 	ok = F2(F2, SessionList3, [{?UserName, PeerID}, {?NasIdentifier, NasID3}]),
 	Rad3ID2 = Rad3ID1 + 1,
+	AcctSessionID3 = "BAC10357",
 	accounting_start(Socket, AcctAddress, AcctPort, PeerID, Secret, NasID3,
-			AcctSessionID, Rad3ID2),
+			AcctSessionID3, Rad3ID2),
 	%% Disconnect session 2
 	Rad2ID3 = Rad2ID2 + 1,
 	accounting_stop(Socket, AcctAddress, AcctPort,
-			PeerID, Secret, NasID2, AcctSessionID, Rad2ID3),
+			PeerID, Secret, NasID2, AcctSessionID2, Rad2ID3),
 	{ok, #subscriber{multisession = true, session_attributes = SessionList4}}
 			= ocs:find_subscriber(PeerID),
 	2 = length(SessionList4),
