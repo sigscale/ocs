@@ -22,13 +22,8 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([date/1, iso8601/1, etag/1]).
--export([parse/1, pointer/1, patch/2]).
+-export([pointer/1, patch/2]).
 -export([parse_query/1, filter/2, range/1]).
-
--record(pob, {op, path, value}).
-
--type op_values() :: string() | integer() | boolean()
-		| {array, [{struct, [tuple()]}]} | {struct, [tuple()]}.
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -341,56 +336,6 @@ patch_replace([Name], Value, [{Name, _} | T], Acc) ->
 patch_replace(Path, Value, [H | T], Acc) ->
 	patch_replace(Path, Value, T, [H | Acc]).
 
--spec parse(Oplists) -> Result
-	when
-		Oplists		:: [{struct, OPLObject}],
-		OPLObject	:: [{Key, Value}],
-		Result		:: [Operations] | {error, invalid_format},
-		Key			:: string(),
-		Value			:: op_values(),
-		Operations	:: {OP, Path, Value},
-		OP				:: replace | add | remove | move | copy | test,
-		Path			:: list().
-parse(Oplists) ->
-	parse1(lists:map(fun decode_operations/1, Oplists), []).
-%% @hidden
-parse1([], Acc) ->
-	Acc;
-parse1([#pob{op = "replace", path = Path, value = Value} | T], Acc) ->
-	parse1(T, [{replace, parse_path(Path), Value} | Acc]);
-parse1([#pob{op = "add", path = Path, value = Value} | T], Acc) ->
-	parse1(T, [{add, parse_path(Path), Value} | Acc]);
-parse1([#pob{op = "remove", path = Path, value = Value} | T], Acc) ->
-	parse1(T, [{remove, parse_path(Path), Value} | Acc]);
-parse1([#pob{op = "move", path = Path, value = Value} | T], Acc) ->
-	parse1(T, [{move, parse_path(Path), Value} | Acc]);
-parse1([#pob{op = "copy", path = Path, value = Value} | T], Acc) ->
-	parse1(T, [{copy, parse_path(Path), Value} | Acc]);
-parse1([#pob{op = "test", path = Path, value = Value} | T], Acc) ->
-	parse1(T, [{test, parse_path(Path), Value} | Acc]);
-parse1(_, _) ->
-	{error, invalid_format}.
-
--spec merge_patch(Target, Patch) -> Result
-	when
-		Target :: {struct, list()},
-		Patch		:: {struct, list()} | {array, list()},
-		Result :: {struct, list()} | {array, list()}.
-%% @doc Psudo code implementation for RFC7386 Section 2
-merge_patch(Target, Patch) ->
-	case is_object(Patch) of
-		true ->
-			Target1 = case is_object(Target) of
-				true ->
-					Target;
-				false ->
-					{struct, []}
-			end,
-			do_merge(get_patch_keys(Patch), Patch, Target1);
-		false ->
-			Patch
-	end.
-
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
@@ -536,61 +481,4 @@ split([H | T], Acc) ->
 	split(T, [H | Acc]);
 split([], Acc) ->
 	lists:reverse(Acc).
-
-parse_path(Path) ->
-	lists:map(fun is_integer_then_convert/1, string:tokens(Path, "/")).
-
-is_integer_then_convert(Token) ->
-	case re:run(Token, ["^[0-9]+$"]) of
-		{match, _} ->
-			list_to_integer(Token);
-		_ ->
-			Token
-	end.
-
-decode_operations({struct, Operation}) ->
-	F = fun({"op", OP}, AccIn) ->
-				AccIn#pob{op = OP};
-		   ({"path", Path}, AccIn) ->
-				AccIn#pob{path = Path};
-		   ({"value", Value}, AccIn) ->
-				AccIn#pob{value = Value}
-	end,
-	lists:foldl(F, #pob{}, Operation).
-
-do_merge([], _, Target) ->
-	Target;
-do_merge([Key | T], Patch, Target) ->
-	Value = get_value(Key, Patch),
-	Target1 = case Value =:= null of
-		true ->
-			delete(Key, Target);
-		false ->
-			set_value(Key, Value, Target)
-	end,
-	do_merge(T, Patch, Target1).
-
-delete(Key, {struct, L}) when is_list(L) ->
-	case lists:keytake(Key, 1, L) of
-		{value, _, Target} ->
-			{struct, Target};
-		false ->
-			{struct, L}
-	end.
-
-get_patch_keys({struct, L}) when is_list(L) -> proplists:get_keys(L);
-get_patch_keys(_) -> [].
-
-get_value(Key, {struct, L}) when is_list(L) ->
-	proplists:get_value(Key, L);
-get_value(_, _) ->
-	throw(not_found).
-
-set_value(Key, Value, {struct, L}) when is_list(L) ->
-	{struct, lists:keyreplace(Key, 1, L, {Key, Value})};
-set_value(_Key, {struct, _}  = Patch, {struct, _} = Target) ->
-	merge_patch(Target, Patch).
-
-is_object({struct, L}) when is_list(L) -> true;
-is_object(_) -> false.
 
