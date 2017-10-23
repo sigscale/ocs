@@ -47,7 +47,7 @@
 		 port :: non_neg_integer(),
 		 subscriber :: string(),
 		 acct_session_id :: string(),
-		 secret :: string(),
+		 secret :: binary(),
 		 socket :: undefined | inet:socket(),
 		 retry_time = 500 :: integer(),
 		 retry_count = 0 :: integer(),
