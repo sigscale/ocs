@@ -35,9 +35,26 @@
 -define(update, 2).
 -define(terminate, 3).
 
-reserve_units(SubscriberID, RequestType, SessionId, SessionIdentification, UnitType, RequestAmount, MonitoryAmount) when is_list(SubscriberID) ->
-	reserve_units(list_to_binary(SubscriberID), RequestType, SessionId, SessionIdentification, UnitType, RequestAmount, MonitoryAmount);
-reserve_units(SubscriberID, RequestType, SessionId, SessionIdentification, UnitType, RequestAmount, MonitoryAmount) ->
+-spec reserve_units(SubscriberID, RequestType, SessionId,
+		SessionIdentification, UnitType, RequestAmount, MonitoryAmount) -> Result
+	when
+		SubscriberID :: string() | binary(),
+		RequestType :: 1..3,
+		SessionId :: string(),
+		SessionIdentification :: [tuple()],
+		UnitType :: octets | seconds,
+		RequestAmount :: integer(),
+		MonitoryAmount :: integer(),
+		Result :: {ok, GrantedAmount} | {out_of_credit, SessionList} | {error, Reason},
+		GrantedAmount :: integer(),
+		SessionList :: [tuple()],
+		Reason :: term().
+reserve_units(SubscriberID, RequestType, SessionId,
+		SessionIdentification, UnitType, RequestAmount, MonitoryAmount) when is_list(SubscriberID) ->
+	reserve_units(list_to_binary(SubscriberID), RequestType,
+			SessionId, SessionIdentification, UnitType, RequestAmount, MonitoryAmount);
+reserve_units(SubscriberID, RequestType, SessionId,
+		SessionIdentification, UnitType, RequestAmount, MonitoryAmount) ->
 	F = fun() ->
 			case mnesia:read(subscriber, SubscriberID, read) of
 				[#subscriber{buckets = Buckets, product =
