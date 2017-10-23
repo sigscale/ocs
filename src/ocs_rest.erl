@@ -22,7 +22,7 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([date/1, iso8601/1, etag/1]).
--export([parse/1, merge_patch/2]).
+-export([parse/1, pointer/1, patch/2]).
 -export([parse_query/1, filter/2, range/1]).
 
 -record(pob, {op, path, value}).
@@ -218,6 +218,83 @@ range(Range) when is_list(Range) ->
 range({Start, End}) when is_integer(Start), is_integer(End) ->
 	{ok, "items=" ++ integer_to_list(Start) ++ "-" ++ integer_to_list(End)}.
 
+-spec pointer(Path) -> Pointer
+	when
+		Path :: string(),
+		Pointer :: [string()].
+%% @doc Decode JSON Pointer.
+%% 	Apply the decoding rules of <a href="http://tools.ietf.org/html/rfc6901">RFC6901</a>. 
+%% 	`Path' is a JSON string as used in the `"path"' member of a
+%% 	JSON Patch ((<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>)
+%% 	operation. `Pointer' is a list of member name strings in a path.
+pointer(Pointer) ->
+	pointer(Pointer, [], []).
+%% @hidden
+pointer([$/ | T], Acc1, Acc2) ->
+	pointer(T, [], [lists:reverse(Acc1) | Acc2]);
+pointer([$- | T], Acc1, Acc2) ->
+	pointer1(T, Acc1, Acc2);
+pointer([H | T], Acc1, Acc2) ->
+	pointer(T, [H | Acc1], Acc2);
+pointer([], Acc1, Acc2) ->
+	lists:reverse([lists:reverse(Acc1) | Acc2]).
+%% @hidden
+pointer1([$1 | T], Acc1, Acc2) ->
+	pointer(T, [$/ | Acc1], Acc2);
+pointer1([$0 | T], Acc1, Acc2) ->
+	pointer(T, [$- | Acc1], Acc2);
+pointer1(T, Acc1, Acc2) ->
+	pointer(T, [$- | Acc1], Acc2).
+
+-spec patch(Patch, Resource) -> Resource
+	when
+		Patch :: [{Operation, Value} | {Operation, Path, Value}],
+		Operation :: string(),
+		Operation :: string(),
+		Path :: string(),
+		Value :: string() | integer() | float() | {struct, list()}
+				| {array, list()} | boolean() | null,
+		Resource :: {struct, list()} | {array, list()}.
+%% @doc Apply a JSON `Patch' (<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>).
+%% 	Modifies the `Resource' by applying the operations listed in `Patch'.
+%% 	`Operation' may be `"add"', `"remove"', or `"replace"'.
+patch(Patch, {struct, L}) when is_list(Patch), is_list(L) ->
+	{struct, patch1(Patch, L)}.
+%patch(Patch, {array, L}) when is_list(Patch), is_list(L) ->
+%	{array, ...}.
+%% @hidden
+patch1([{"add", Path, Value} | T], Acc) ->
+	patch1(T, patch_add(pointer(Path), Value, Acc, []));
+patch1([{"remove", Path} | T], Acc) ->
+	patch1(T, patch_remove(pointer(Path), Acc, []));
+patch1([{"replace", Path, Value} | T], Acc) ->
+	patch1(T, patch_replace(pointer(Path), Value, Acc, []));
+patch1([], Acc) ->
+	Acc.
+%% @hidden
+patch_add([Name | T1], Value, [{Name, {struct, L1}} | T2], Acc) ->
+	L2 = patch_add(T1, Value, L1, []),
+	lists:reverse(Acc) ++ [{Name, {struct, L2}} | T2];
+patch_add(Path, Value, [H | T], Acc) ->
+	patch_add(Path, Value, T, [H | Acc]);
+patch_add([Name], Value, [], Acc) ->
+	lists:reverse([{Name, Value} | Acc]).
+%% @hidden
+patch_remove([Name | T1], [{Name, {struct, L1}} | T2], Acc) ->
+	L2 = patch_remove(T1, L1, []),
+	lists:reverse(Acc) ++ [{Name, {struct, L2}} | T2];
+patch_remove([Name], [{Name, _} | T], Acc) ->
+	lists:reverse(Acc) ++ T;
+patch_remove(Path, [H | T], Acc) ->
+	patch_remove(Path, T, [H | Acc]).
+%% @hidden
+patch_replace([Name | T1], Value, [{Name, {struct, L1}} | T2], Acc) ->
+	L2 = patch_replace(T1, Value, L1, []),
+	lists:reverse(Acc) ++ [{Name, {struct, L2}} | T2];
+patch_replace([Name], Value, [{Name, _} | T], Acc) ->
+	lists:reverse(Acc) ++ [{Name, Value} | T];
+patch_replace(Path, Value, [H | T], Acc) ->
+	patch_replace(Path, Value, T, [H | Acc]).
 
 -spec parse(Oplists) -> Result
 	when
@@ -471,3 +548,4 @@ set_value(_Key, {struct, _}  = Patch, {struct, _} = Target) ->
 
 is_object({struct, L}) when is_list(L) -> true;
 is_object(_) -> false.
+
