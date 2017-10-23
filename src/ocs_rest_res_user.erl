@@ -22,8 +22,8 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0, get_params/0,
-		get_user/2, get_users/2, post_user/1, put_user/3, patch_user/4,
-		delete_user/1]).
+		get_user/2, get_users/2, post_user/1, patch_user/4,
+		delete_user/1, user/1]).
 
 -include_lib("inets/include/mod_auth.hrl").
 -include("ocs.hrl").
@@ -135,18 +135,8 @@ get_user(Id, Query) ->
 %% @hidden
 get_user(Id, [] = _Query, _Filters) ->
 	case ocs:get_user(Id) of
-		{ok, #httpd_user{user_data = UserData}} ->
-			Characteristic1 = case lists:keyfind(locale, 1, UserData) of
-				{_, Lang} ->
-					[{struct, [{"name", "locale"}, {"value", Lang}]}];
-				false ->
-					[{struct, [{"name", "locale"}, {"value", "en"}]}]
-			end,
-			Characteristic2 = [{struct, [{"name", "username"},
-					{"value", Id}]} | Characteristic1],
-			User = {struct, [{"id", Id},
-					{"href", "/partyManagement/v1/individual/" ++ Id},
-					{"characteristic", {array, Characteristic2}}]},
+		{ok, #httpd_user{user_data = UserData} = User} ->
+			User = user(User),
 			Headers1 = case lists:keyfind(last_modified, 1, UserData) of
 				{_, LastModified} ->
 					[{etag, ocs_rest:etag(LastModified)}];
@@ -171,31 +161,17 @@ get_user(_, _, _) ->
 %% resource.
 post_user(RequestBody) ->
 	try
-		{struct, Object} = mochijson:decode(RequestBody),
-		{_, ID} = lists:keyfind("id", 1, Object),
-		{_, {array, Characteristic}} = lists:keyfind("characteristic", 1, Object),
-		Filter = fun(Filter, [{struct, FilterObj} | T], ObjName) ->
-							case lists:keyfind("name", 1, FilterObj) of
-									{_, ObjName} ->
-										proplists:get_value("value", FilterObj);
-									_ ->
-										Filter(Filter, T, ObjName)
-							end;
-						(_, [], _) ->
-							undefined
+		User = user(mochijson:decode(RequestBody)),
+		Locale = case lists:keyfind(locale, 1, User#httpd_user.user_data) of
+			{_, Loc} ->
+				Loc;
+			false ->
+				"en"
 		end,
-		Password = Filter(Filter, Characteristic, "password"),
-		Locale = Filter(Filter, Characteristic, "locale"),
-		case ocs:add_user(ID, Password, Locale) of
+		case ocs:add_user(User#httpd_user.username, User#httpd_user.password, Locale) of
 			{ok, LastModified} ->
-				Location = "/partyManagement/v1/individual/" ++ ID,
-				IDAttr = {struct, [{"name", "username"}, {"value", ID}]},
-				PWDAttr = {struct, [{"name", "password"}, {"value", Password}]},
-				LocaleAttr = {struct, [{"name", "locale"}, {"value", Locale}]},
-				Char = {array, [IDAttr, PWDAttr, LocaleAttr]},
-				RespObj = [{"id", ID}, {"href", Location}, {"characteristic", Char}],
-				JsonObj  = {struct, RespObj},
-				Body = mochijson:encode(JsonObj),
+				Body = mochijson:encode(user(User)),
+				Location = "/partyManagement/v1/individual/" ++ User#httpd_user.username,
 				Headers = [{location, Location}, {etag, ocs_rest:etag(LastModified)}],
 				{ok, Headers, Body};
 			{error, _Reason} ->
@@ -206,127 +182,71 @@ post_user(RequestBody) ->
 			{error, 400}
 	end.
 
--spec put_user(ID, Etag, RequestBody) -> Result
+-spec patch_user(ID, Etag, ContentType, ReqBody) -> Result
 	when
 		ID :: string(),
 		Etag :: undefined | string(),
-		RequestBody :: list(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-			| {error, ErrorCode :: integer()}.
-%% @doc Respond to `PUT /partyManagement/v1/individual' and Update a `User'
-%% resource.
-put_user(ID, Etag, RequestBody) ->
-	try
-		{struct, Object} = mochijson:decode(RequestBody),
-		{_, ID} = lists:keyfind("id", 1, Object),
-		{_, {array, Characteristic}} = lists:keyfind("characteristic", 1, Object),
-		Filter = fun(Filter, [{struct, FilterObj} | T], ObjName) ->
-							case lists:keyfind("name", 1, FilterObj) of
-									{_, ObjName} ->
-										proplists:get_value("value", FilterObj);
-									_ ->
-										Filter(Filter, T, ObjName)
-							end;
-						(_, [], _) ->
-							undefined
-		end,
-		Password = Filter(Filter, Characteristic, "password"),
-		Locale = Filter(Filter, Characteristic, "locale"),
-		put_user1(ID, Password, Locale, Etag)
-	catch
-		_:_ ->
-			{error, 400}
-	end.
-%% @hidden
-put_user1(Id, Password, Locale, Etag) when is_list(Etag) ->
-	put_user1(Id, Password, Locale, ocs_rest:etag(Etag));
-put_user1(Id, Password, Locale, Etag) ->
-	try
-		case ocs:get_user(Id) of
-			{ok, #httpd_user{user_data = UD}} ->
-				case lists:keyfind(last_modified, 1, UD) of
-					{_, LM} when Etag =:= undefined; Etag == LM ->
-						case ocs:update_user(Id, Password, Locale) of
-							{ok, NLM} ->
-								put_user2(Id, Password, Locale, NLM);
-							{error, _} ->
-								{error, 500}
-						end;
-					{_, _} ->
-						{error, 412};
-					false ->
-						{error, 500}
-				end;
-			{error, no_such_user} ->
-				{error, 400};
-			{error, _} ->
-				{error, 500}
-		end
-	catch
-		_:_ ->
-			{error, 400}
-	end.
-%% @hidden
-put_user2(ID, Password, Locale, LM) when is_tuple(LM) ->
-	put_user2(ID, Password, Locale, ocs_rest:etag(LM));
-put_user2(ID, Password, Locale, LM) ->
-	try
-		Location = "/partyManagement/v1/individual/" ++ ID,
-		PwdObj = {struct, [{"name", "password"}, {"value", Password}]},
-		LocaleObj = {struct, [{"name", "locale"}, {"value", Locale}]},
-		Characteristic = {array, [PwdObj, LocaleObj]},
-		RespObj = [{"id", ID}, {"href", Location},
-				{"characteristic", Characteristic}],
-		JsonObj  = {struct, RespObj},
-		Body = mochijson:encode(JsonObj),
-		Headers = [{location, Location}, {etag, LM}],
-		{ok, Headers, Body}
-	catch
-		_:_ ->
-			{error, 500}
-	end.
-
--spec patch_user(ID, Etag, ContenType, ReqBody) -> Result
-	when
-		ID :: string(),
-		Etag :: undefined | list(),
-		ContenType :: string(),
+		ContentType :: string(),
 		ReqBody :: list(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()} .
 %% @doc	Respond to `PATCH /partyManagement/v1/individual/{id}' request and
-%% update an existing `user's characteristics.
-patch_user(ID, undefined, CType, ReqBody) ->
-	patch_user1(ID, undefined, CType, ReqBody);
-patch_user(ID, Etag, CType, ReqBody) ->
+%% update an existing `user''s characteristics.
+patch_user(ID, Etag, "application/json-patch+json", ReqBody) ->
 	try
-		Etag1 = ocs_rest:etag(Etag),
-		patch_user1(ID, Etag1, CType, ReqBody)
+		Etag1 = case Etag of
+			undefined ->
+				undefined;
+			Etag ->
+				ocs_rest:etag(Etag)
+		end,
+		{Etag1, mochijson:decode(ReqBody)}
+	of
+		{Etag2, {array, Operations}} ->
+			{Port, Address, Directory, _Group} = get_params(),
+			Username = {ID, Address, Port, Directory},
+			F = fun() ->
+					case mnesia:read(httpd_user, Username, write) of
+						[#httpd_user{user_data = UserData1} = User1] ->
+							case lists:keyfind(etag, 1, UserData1) of
+								{_, Etag3} when Etag3 == Etag2; Etag3 == undefined ->
+									case catch ocs_rest:patch(Operations, user(User1)) of
+										#httpd_user{user_data = UserData2} = User2 ->
+											TS = erlang:system_time(?MILLISECOND),
+											N = erlang:unique_integer([positive]),
+											UserData3 = [{etag, {TS, N}} | UserData2],
+											User3 = User2#httpd_user{user_data = UserData3},
+											ok = mnesia:write(User3),
+											User3;
+										_Reason ->
+											throw(bad_request)
+									end;
+								_ ->
+									throw(precondition_failed)
+							end;
+						[] ->
+							throw(not_found)
+					end
+			end,
+			case mnesia:transaction(F) of
+				{atomic, #httpd_user{user_data = UserData4}} ->
+					case lists:keyfind(etag, 1, UserData4) of
+						{error, _} ->
+							{error, 500};
+						{_, Etag4} ->
+							Location = "/partyManagement/v1/individual/" ++ ID,
+							Headers = [{location, Location}, {etag, ocs_rest:etag(Etag4)}],
+							{ok, Headers, []}
+					end;
+				{aborted, {throw, bad_request}} ->
+					{error, 400};
+				{aborted, {throw, not_found}} ->
+					{error, 404};
+				{aborted, {throw, precondition_failed}} ->
+					{error, 412}
+			end
 	catch
-		_:_Reason ->
-			{error, 400}
-	end.
-%% @hidden
-patch_user1(ID, Etag, "application/json-patch+json", ReqBody) ->
-	try
-		{array, Ops} = mochijson:decode(ReqBody),
-		case process_json_patch(Ops, ID) of
-			{error, Code} ->
-				{error, Code};
-			{ID, Password, Locale, LM} when Etag == LM; Etag == undefined ->
-				case ocs:update_user(ID, Password, Locale) of
-					{ok, LastModified} ->
-						Location = "/partyManagement/v1/individual/" ++ ID,
-						Headers = [{location, Location}, {etag, ocs_rest:etag(LastModified)}],
-						{ok, Headers, []};
-					{error, _} ->
-						{error, 500}
-				end;
-			{_, _, _, _} ->
-				{error, 412}
-		end
-	catch
-		_:_Reason ->
+		_:_ ->
 			{error, 400}
 	end.
 
@@ -345,12 +265,14 @@ delete_user(Id) ->
 			{error, 400}
 	end.
 
-%%----------------------------------------------------------------------
-%%  internal functions
-%%----------------------------------------------------------------------
-
--spec get_params() -> {Port :: integer(), Address :: string(), Directory :: string(),
-		Group :: string()}.
+-spec get_params() -> Result
+	when
+		Result :: {Port, Address, Directory, Group},
+		Port :: integer(),
+		Address :: string(),
+		Directory :: string(),
+		Group :: string().
+%% @doc Get {@link //inets/httpd. httpd} configuration parameters.
 get_params() ->
 	{_, _, Info} = lists:keyfind(httpd, 1, inets:services_info()),
 	{_, Port} = lists:keyfind(port, 1, Info),
@@ -365,76 +287,62 @@ get_params() ->
 			exit(not_found)
 	end.
 
--spec process_json_patch(Operations, ID) -> Result
+-spec user(User) -> User
 	when
-		Operations :: [{struct, OpObject}],
-		ID :: string(),
-		OpObject :: [{Key, Value}],
-		Key :: term(),
-		Value :: term(),
-		Result :: {Username, Password, Locale, LastModified} | {error, Code},
-		Username :: string(),
-		Password :: string(),
-		Locale :: string(),
-		LastModified :: {integer(), integer()},
-		Code :: integer().
-%% @doc Process a json-patch document and return list of characteristics
-%% for a user .
-%% @hidden
-process_json_patch(Ops, ID) ->
-	process_json_patch1(ocs_rest:parse(Ops), ID, []).
-%% @hidden
-process_json_patch1([{replace, ["characteristic" | _], {struct, Obj}} | T], ID, Acc) ->
-	case lists:keyfind("name", 1, Obj) of
-		{_, "locale"} ->
-			{_, Locale} = lists:keyfind("value", 1, Obj),
-			process_json_patch1(T, ID, [{locale, Locale} | Acc]);
+		User :: #httpd_user{} | {struct, [tuple()]}.
+%% @doc CODEC for HTTP server users.
+user(#httpd_user{username = {ID, _, _, _}, password = Password, user_data = Characteristic}) ->
+	C1 = [{struct, [{"name", "username"}, {"value", ID}]},
+			{struct, [{"name", "password"}, {"value", Password}]}],
+	C2 = case lists:keyfind(locale, 1, Characteristic) of
+		{_, Locale} ->
+			[{struct, [{"name", "locale"}, {"value", Locale}]} | C1];
 		false ->
-			{error, 400}
-	end;
-process_json_patch1([{add, ["characteristic" | _], {struct, Obj}} | T], ID, Acc) ->
-	case lists:keyfind("name", 1, Obj) of
-		{_, "password"} ->
-			{_, Password} = lists:keyfind("value", 1, Obj),
-			process_json_patch1(T, ID, [{password, Password} | Acc]);
-		false ->
-			{error, 400}
-	end;
-process_json_patch1([{_, _, _} | _], _, _) ->
-	{error, 422};
-process_json_patch1([], ID, Acc) ->
-	case ocs:get_user(ID) of
-		{ok, #httpd_user{password = OPassword, user_data = UserData}} ->
-			LastModified = case lists:keyfind(last_modified, 1, UserData) of
-				{_, LM} ->
-					LM;
-				false ->
-					{erlang:system_time(?MILLISECOND), erlang:unique_integer([positive])}
-			end,
-			OLocale = case lists:keyfind(locale, 1, UserData) of
-				{_, Loc} ->
-					Loc;
-				false ->
-					"en"
-			end,
-			Password = case lists:keyfind(password, 1, Acc) of
-				false ->
-					OPassword;
-				{_, NewPassword} ->
-					NewPassword
-			end,
-			Locale = case lists:keyfind(locale, 1, Acc) of
-				false ->
-					OLocale;
-				{_, NewLocale} ->
-					NewLocale
-			end,
-			{ID, Password, Locale, LastModified};
-		{error, no_such_user} ->
-			{error, 404};
-		{error, _Reason} ->
-			{error, 500}
-	end.
+			C1
+	end,
+	{struct, [{"id", ID},
+				{"href", "/partyManagement/v1/individual/" ++ ID},
+				{"characteristic", {array, C2}}]};
+user({struct, L}) when is_list(L) ->
+	user(L, #httpd_user{user_data = []}).
+%% @hidden
+user([{"id", ID} | T], Acc) when is_list(ID) ->
+	{Port, Address, Directory, _Group} = get_params(),
+	Username = {ID, Address, Port, Directory},
+	user(T, Acc#httpd_user{username = Username});
+user([{"href", Href} | T], Acc) when is_list(Href) ->
+	user(T, Acc);
+user([{"characteristic", Chars} | T], Acc) when is_list(Chars) ->
+	user(T, user1(Chars, Acc));
+user([], Acc) ->
+	Acc.
+%% @hidden
+user1([{struct, [{"name", "username"}, {"value", Username}]} | T], Acc)
+		when is_list(Username) ->
+	{Port, Address, Directory, _Group} = get_params(),
+	user1(T, Acc#httpd_user{username = {Username, Address, Port, Directory}});
+user1([{struct, [{"value", Username}, {"name", "username"}]} | T], Acc)
+		when is_list(Username) ->
+	{Port, Address, Directory, _Group} = get_params(),
+	user1(T, Acc#httpd_user{username = {Username, Address, Port, Directory}});
+user1([{struct, [{"name", "password"}, {"value", Password}]} | T], Acc)
+		when is_list(Password) ->
+	user1(T, Acc#httpd_user{password = Password});
+user1([{struct, [{"value", Password}, {"name", "password"}]} | T], Acc)
+		when is_list(Password) ->
+	user1(T, Acc#httpd_user{password = Password});
+user1([{struct, [{"value", Locale}, {"name", "locale"}]} | T],
+		#httpd_user{user_data = Data} = Acc) when is_list(Locale) ->
+	user1(T, Acc#httpd_user{user_data = [{locale, Locale} | Data]});
+user1([{struct, [{"name", "locale"}, {"value", Locale}]} | T],
+		#httpd_user{user_data = Data} = Acc) when is_list(Locale) ->
+	user1(T, Acc#httpd_user{user_data = [{locale, Locale} | Data]});
+user1([], Acc) ->
+	Acc.
+
+%%----------------------------------------------------------------------
+%%  internal functions
+%%----------------------------------------------------------------------
 
 %% @hidden
 query_start(Query, Filters, RangeStart, RangeEnd) ->
@@ -468,7 +376,7 @@ query_page(PageServer, Etag, Query, Filters, Start, End) ->
 				end
 			of
 				{SortedEvents, _NewQuery} ->
-					JsonObj = query_page1(lists:map(fun user_body/1, SortedEvents), Filters, []),
+					JsonObj = query_page1(lists:map(fun user/1, SortedEvents), Filters, []),
 					JsonArray = {array, JsonObj},
 					Body = mochijson:encode(JsonArray),
 					Headers = [{content_type, "application/json"},
@@ -487,17 +395,4 @@ query_page1(Json, [], Acc) ->
 	lists:reverse(Json ++ Acc);
 query_page1([H | T], Filters, Acc) ->
 	query_page1(T, Filters, [ocs_rest:filter(Filters, H) | Acc]).
-
-%% @hidden
-user_body(#httpd_user{username = {User, _, _, _}, user_data = Characteristic}) ->
-	C1 = [{struct, [{"name", "username"}, {"value", User}]}],
-	C2 = case lists:keyfind(locale, 1, Characteristic) of
-		{_, Locale} ->
-			[{struct, [{"name", "locale"}, {"value", Locale}]} | C1];
-		false ->
-			C1
-	end,
-	{struct, [{"id", User},
-				{"href", "/partyManagement/v1/individual/" ++ User},
-				{"characteristic", {array, C2}}]}.
 
