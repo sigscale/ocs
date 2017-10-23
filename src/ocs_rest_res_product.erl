@@ -22,14 +22,18 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0]).
-
 -export([add_product_offering/1, add_product_inventory/1]).
--export([get_product_offering/1, get_product_offerings/2]).
+-export([get_product_offering/1, get_product_offerings/2,
+		patch_product_offering/3]).
 -export([get_catalog/2, get_catalogs/1]).
 -export([get_category/2, get_categories/1]).
 -export([get_product_spec/2, get_product_specs/1]).
 
 -include("ocs.hrl").
+
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
 
 -define(offerPath, "/catalogManagement/v2/productOffering/").
 -define(specPath, "/catalogManagement/v2/productSpecification/").
@@ -309,6 +313,62 @@ get_product_specs([] = _Query) ->
 	{ok, Headers, Body};
 get_product_specs(_Query) ->
 	{error, 400}.
+
+-spec patch_product_offering(ProdId, Etag, ReqData) -> Result
+	when
+		ProdId	:: string(),
+		Etag		:: undefined | list(),
+		ReqData	:: [tuple()],
+		Result	:: {ok, Headers, Body} | {error, Status},
+		Headers	:: [tuple()],
+		Body		:: iolist(),
+		Status	:: 400 | 404 | 412 | 500 .
+%% @doc Respond to `PATCH /catalogManagement/v2/productOffering/{id}'.
+%% 	Update a Product Offering using JSON patch method
+%% 	<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>.
+patch_product_offering(ProdId, Etag, ReqData) ->
+	try
+		mochijson:decode(ReqData)
+	of
+		{array, Operations} ->
+			F = fun() ->
+					case mnesia:read(product, ProdId, write) of
+						[Product1] when
+								Product1#product.last_modified == Etag;
+								Etag == undefined ->
+							case catch ocs_rest:patch(Operations, Product1) of
+								#product{} = Product2 ->
+									TS = erlang:system_time(?MILLISECOND),
+									N = erlang:unique_integer([positive]),
+									LM = {TS, N},
+									Product3 = Product2#product{last_modified = LM},
+									ok = mnesia:write(Product3),
+									Product3;
+								_ ->
+									throw(bad_request)
+							end;
+						[#product{}] ->
+							throw(precondition_failed);
+						[] ->
+							throw(not_found)
+					end
+			end,
+			case mnesia:transaction(F) of
+				{atomic, Product} ->
+					{ok,  Product};
+				{aborted, {throw, bad_request}} ->
+					{error, 400};
+				{aborted, {throw, not_found}} ->
+					{error, 404};
+				{aborted, {throw, precondition_failed}} ->
+					{error, 412};
+				{aborted, _Reason} ->
+					{error, 500}
+			end
+	catch
+		_:_ ->
+			{error, 400}
+	end.
 
 %%----------------------------------------------------------------------
 %%  internal functions
