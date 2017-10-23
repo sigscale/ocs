@@ -2551,7 +2551,7 @@ update_product(Config) ->
 	ReqList = product_offer(),
 	{_, ProductId1} = lists:keyfind("dutyFreeAmount", 1, ReqList),
 	ProductId2 = ocs:generate_password(),
-	{_, Description1} = lists:keyfind("description", 1, ReqList),
+	{_, _Description1} = lists:keyfind("description", 1, ReqList),
 	Description2 = ocs:generate_password(),
 	SslSock = ssl_socket_open({127,0,0,1}, RestPort),
 	ok = update_product_name(SslSock, RestPort, ProductId1, ProductId2),
