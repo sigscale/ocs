@@ -256,6 +256,7 @@ request1(?AccountingStart, AcctSessionId, Id,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
 	SessionIdentification = [{?NasIdentifier, NasId}, {?NasIpAddress, Address}],
 	{ok, Subscriber} = radius_attributes:find(?UserName, Attributes),
+erlang:display({?MODULE, ?LINE, ocs:find_subscriber(Subscriber)}),
 	case update_session(Subscriber, AcctSessionId, SessionIdentification) of
 		ok ->
 			ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, start, Attributes),
@@ -414,16 +415,17 @@ update_session1(AcctSessionId, SessionIdentification, SessionLists) ->
 %% @hidden
 update_session2(_AcctSessionId, _SessionIdentification, [], Acc) ->
 	Acc;
-update_session2(AcctSessionId, SessionIdentification, [{TS, SessionAttributes} = H | T], Acc) ->
+update_session2(AcctSessionId, SessionIdentification, [{TS, SessionAttributes} = H | T] = S, Acc) ->
 	case update_session3(SessionIdentification, SessionAttributes) of
 		true ->
-			case lists:member({?AcctSessionId, AcctSessionId}, SessionAttributes) of
-				true ->
-					Acc ++ T;
+			case lists:keyfind(?AcctSessionId, 1, SessionAttributes) of
+				{_, _} ->
+					S ++ Acc;
 				false ->
 					Identification = radius_attributes:store(?AcctSessionId,
 							AcctSessionId, SessionAttributes),
-					[{TS, Identification} | Acc]
+					NewAcc = [{TS, Identification} | T],
+					NewAcc ++ Acc
 			end;
 		false ->
 			update_session2(AcctSessionId, SessionIdentification, T, [H | Acc])
