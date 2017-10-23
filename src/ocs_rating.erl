@@ -114,7 +114,8 @@ determinate_units([#product{price = Prices}], Type, Flag, Used, Validity, Bucket
 		UsageSecs :: integer(),
 		UsageOctets :: integer(),
 		Attributes :: [[tuple()]],
-		Return :: {ok, #subscriber{}} | {error, Reason} | {error, Reason, list()},
+		Return :: {ok, #subscriber{}} | {out_of_credit, SessionAttributes} | {error, Reason},
+		SessionAttributes :: [tuple()],
 		Reason :: term().
 %% @todo Test cases, handle out of credit
 rating(SubscriberID, Final, UsageSecs, UsageOctets, Attributes) when is_list(SubscriberID) ->
@@ -164,7 +165,7 @@ rating(SubscriberID, Final, UsageSecs, UsageOctets, Attributes) when is_binary(S
 		{atomic, #subscriber{} = Sub} ->
 			{ok, Sub};
 		{atomic, {out_of_credit, SL}} ->
-			{error, out_of_credit, SL};
+			{out_of_credit, SL};
 		{aborted, {throw, Reason}} ->
 			{error, Reason};
 		{aborted, Reason} ->

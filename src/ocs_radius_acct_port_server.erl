@@ -282,7 +282,7 @@ request1(?AccountingStop, AcctSessionId, Id,
 	A3 = [{?NasIpAddress, NasId}],
 	Candidates = [A1, A2, A3],
 	case ocs_rating:rating(Subscriber, true, UsageSecs, UsageOctets, Candidates) of
-		{error, out_of_credit, SessionList}  ->
+		{out_of_credit, SessionList}  ->
 			start_disconnect(State, Subscriber, SessionList),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{error, Reason} ->
@@ -325,7 +325,7 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 					{username, UserName}, {nas, NasId}, {address, Address},
 					{session, AcctSessionId}]),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
-		{error, out_of_credit, SessionList} ->
+		{out_of_credit, SessionList} ->
 			start_disconnect(State, Subscriber, SessionList),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{ok, #subscriber{enabled = false, session_attributes = SessionList}} ->
