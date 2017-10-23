@@ -277,7 +277,7 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 					GrantedAmount, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 					?CC_APPLICATION_ID, RequestType, RequestNum, State),
 			{reply, Reply, NewState};
-		{error, out_of_credit} ->
+		{out_of_credit, SL} ->
 			error_logger:warning_report(["out of credit",
 					{module, ?MODULE}, {subscriber, Subscriber},
 					{origin_host, OHost}]),
@@ -351,7 +351,7 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 						GrantedAmount, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 						?CC_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
-			{error, out_of_credit} ->
+			{out_of_credit, SL} ->
 				error_logger:warning_report(["out of credit",
 						{module, ?MODULE}, {subscriber, Subscriber},
 						{origin_host, OHost}]),
@@ -412,7 +412,7 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 						GrantedAmount, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 						?CC_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
-			{error, out_of_credit} ->
+			{out_of_credit, SL} ->
 				error_logger:warning_report(["out of credit",
 						{module, ?MODULE}, {subscriber, Subscriber},
 						{origin_host, OHost}]),

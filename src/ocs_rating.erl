@@ -42,28 +42,43 @@ reserve_units(SubscriberID, RequestType, SessionId, SessionIdentification, UnitT
 			case mnesia:read(subscriber, SubscriberID, read) of
 				[#subscriber{buckets = Buckets, product =
 						#product_instance{product = ProdID, characteristics = Chars},
-						session_attributes = SessionAttr} = Subscriber] ->
+						session_attributes = SessionAttributes} = Subscriber] ->
 					Product = mnesia:read(product, ProdID),
 					Validity = proplists:get_value(validity, Chars),
 					case RequestType of
 						?initial ->
-							case update_session(SessionId, SessionIdentification, SessionAttr, []) of
-								SessionAttr ->
-									ok;
-								NewAttr ->
-									mnesia:write(Subscriber#subscriber{session_attributes = NewAttr})
+							SA = case update_session(SessionId, SessionIdentification, SessionAttributes, []) of
+								SessionAttributes ->
+									SessionAttributes;
+								NewSessionAttributes ->
+									NewSessionAttributes
 							end,
-							reserve_units1(?initial, Product, UnitType, false, RequestAmount, MonitoryAmount, Validity, Buckets);
+							case reserve_units1(?initial, Product, UnitType,
+									false, RequestAmount, MonitoryAmount, Validity, Buckets) of
+								out_of_credit ->
+									mnesia:write(Subscriber#subscriber{session_attributes = []}),
+									{out_of_credit, SA};
+								Result ->
+									mnesia:write(Subscriber#subscriber{session_attributes = SA}),
+									Result
+							end;
 						_ ->
-							reserve_units1(RequestType, Product, Subscriber, UnitType, true, RequestAmount, MonitoryAmount, Validity, Buckets)
+							case reserve_units1(RequestType, Product, Subscriber,
+									UnitType, true, RequestAmount, MonitoryAmount, Validity, Buckets) of
+								out_of_credit ->
+									mnesia:write(Subscriber#subscriber{session_attributes = []}),
+									{out_of_credit, SessionAttributes};
+								Result ->
+									Result
+							end
 					end;
 				[] ->
 					throw(subscriber_not_found)
 			end
 	end,
 	case mnesia:transaction(F) of
-		{atomic, out_of_credit} ->
-			{error, out_of_credit};
+		{atomic, {out_of_credit, SessionList}} ->
+			{out_of_credit, SessionList};
 		{atomic, {grant, GrantAmount}} ->
 			{ok, GrantAmount};
 		{aborted, {throw, Reason}} ->
