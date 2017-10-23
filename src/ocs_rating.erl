@@ -23,7 +23,7 @@
 
 -export([rating/5]).
 -export([remove_session/2]).
--export([reserve_units/5]).
+-export([reserve_units/7]).
 
 -include("ocs.hrl").
 
@@ -35,18 +35,24 @@
 -define(update, 2).
 -define(terminate, 3).
 
-reserve_units(SubscriberID, RequestType, UnitType, RequestAmount, MonitoryAmount) when is_list(SubscriberID) ->
-	reserve_units(list_to_binary(SubscriberID), RequestType, UnitType, RequestAmount, MonitoryAmount);
-reserve_units(SubscriberID, RequestType, UnitType, RequestAmount, MonitoryAmount) ->
+reserve_units(SubscriberID, RequestType, SessionId, SessionIdentification, UnitType, RequestAmount, MonitoryAmount) when is_list(SubscriberID) ->
+	reserve_units(list_to_binary(SubscriberID), RequestType, SessionId, SessionIdentification, UnitType, RequestAmount, MonitoryAmount);
+reserve_units(SubscriberID, RequestType, SessionId, SessionIdentification, UnitType, RequestAmount, MonitoryAmount) ->
 	F = fun() ->
 			case mnesia:read(subscriber, SubscriberID, read) of
 				[#subscriber{buckets = Buckets, product =
-						#product_instance{product = ProdID,
-						characteristics = Chars}} = Subscriber] ->
+						#product_instance{product = ProdID, characteristics = Chars},
+						session_attributes = SessionAttr} = Subscriber] ->
 					Product = mnesia:read(product, ProdID),
 					Validity = proplists:get_value(validity, Chars),
 					case RequestType of
 						?initial ->
+							case update_session(SessionId, SessionIdentification, SessionAttr, []) of
+								SessionAttr ->
+									ok;
+								NewAttr ->
+									mnesia:write(Subscriber#subscriber{session_attributes = NewAttr})
+							end,
 							reserve_units1(?initial, Product, UnitType, false, RequestAmount, MonitoryAmount, Validity, Buckets);
 						_ ->
 							reserve_units1(RequestType, Product, Subscriber, UnitType, true, RequestAmount, MonitoryAmount, Validity, Buckets)
@@ -289,4 +295,31 @@ remove_session2(SessionList, Candidate) ->
 				end
 	end,
 	lists:foldl(F, [], SessionList).
+
+update_session(_SessionId, _SessionIdentification, [], Acc) ->
+	Acc;
+update_session(SessionId, SessionIdentification, [{TS, SessionAttr} = H | T] = S, Acc) ->
+	case update_session1(SessionIdentification, SessionAttr) of
+		true ->
+			case lists:keyfind('Session-Id', 1, SessionAttr) of
+				{_, _} ->
+					S ++ Acc;
+				false ->
+					NewHead = {TS, [{'Session-Id', SessionId} | SessionAttr]},
+					NewSession = [NewHead | T],
+					NewSession ++ Acc
+			end;
+		false ->
+			update_session(SessionId, SessionIdentification, T, [H | Acc])
+	end.
+%% @hidden
+update_session1([], _Attributes) ->
+	false;
+update_session1([SessionIdentification | T], Attributes) ->
+	case lists:member(SessionIdentification, Attributes) of
+		true ->
+			true;
+		false ->
+			update_session1(T, Attributes)
+	end.
 
