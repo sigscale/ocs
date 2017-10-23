@@ -75,7 +75,8 @@ sequences() ->
 %%
 all() ->
 	[filter_members, filter_array, filter_deep_object, filter_deep_array,
-			filter_match, filter_match_array, filter_match_list, filter_complex].
+			filter_match, filter_match_array, filter_match_list, filter_complex,
+			pointer, patch].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -276,6 +277,35 @@ filter_complex(_Config) ->
 			[{"d", {struct, [{"f", F}, {"e", E}]}},
 			{"x", {array, [V, W]}}]}}]}}]}}, G]},
 	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
+
+pointer(_Config) ->
+	Path = "root/hyphened-0name/slashed-1name/-",
+	Pointer = ["root", "hyphened-name", "slashed/name", "-"],
+	Pointer = ocs_rest:pointer(Path).
+
+patch(_Config) ->
+	ResourceIn = {struct,
+			[{"a", 1},
+			{"b", {struct,
+					[{"c", 2},
+					{"d", {struct,
+							[{"e", 3},
+							{"f", 4},
+							{"g", 5}]}},
+					{"h", 6}]}},
+			{"i", 7}]}.
+	ResourceOut = ocs_rest:patch([{"remove", "/i"},
+			{"replace", "/b/d/f", 42}, {"add", "/b/d/j", 69}], ResourceIn),
+	ResourceOut = {struct,
+			[{"a", 1},
+         {"b", {struct,
+					[{"c", 2},
+					{"d", {struct,
+							[{"e", 3},
+							{"f", 42},
+							{"g", 5},
+							{"j", 69}]}},
+					{"h",6}]}}]}.
 
 %%---------------------------------------------------------------------
 %%  Internal functions
