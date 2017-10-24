@@ -2547,18 +2547,31 @@ update_product() ->
 	[{userdata, [{doc,"Use PATCH for update product entity"}]}].
 
 update_product(Config) ->
-	RestPort = ?config(port, Config),
+	CatalogHref = "/catalogManagement/v2",
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	ContentType = "application/json",
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authorization = {"authorization", AuthKey},
 	ReqList = product_offer(),
-	{_, ProductId1} = lists:keyfind("dutyFreeAmount", 1, ReqList),
-	ProductId2 = ocs:generate_password(),
-	{_, _Description1} = lists:keyfind("description", 1, ReqList),
-	Description2 = ocs:generate_password(),
+	ReqBody = lists:flatten(mochijson:encode({struct, ReqList})),
+	Request1 = {HostUrl ++ CatalogHref ++ "/productOffering",
+			[Accept, Authorization], ContentType, ReqBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, _Href} = lists:keyfind("location", 1, Headers),
+	{struct, Product1} = mochijson:decode(ResponseBody),
+	RestPort = ?config(port, Config),
+	{_, ProductName} = lists:keyfind("name", 1, Product1),
+	Description = ocs:generate_password(),
 	SslSock = ssl_socket_open({127,0,0,1}, RestPort),
-	ok = update_product_name(SslSock, RestPort, ProductId1, ProductId2),
-	ok = update_product_description(SslSock, RestPort, ProductId2, Description2),
-	Status2 = "Pending Active",
-	ok = update_product_status(SslSock, RestPort, ProductId2, Status2),
-	ok = update_product_price(SslSock, RestPort, ProductId2),
+	ok = update_product_description(SslSock, RestPort, ProductName, Description),
+	Status = "Pending Active",
+	ok = update_product_status(SslSock, RestPort, ProductName, Status),
+	ok = update_product_price(SslSock, RestPort, ProductName),
 	ok = ssl_socket_close(SslSock).
 
 %%---------------------------------------------------------------------
@@ -2614,24 +2627,6 @@ product_offer() ->
 			POPPrice2, POPUOMeasure2, POPAlteration]},
 	ProdOfferPrice = {"productOfferingPrice", {array, [ProdOfferPrice1, ProdOfferPrice2]}},
 	[ProdName, ProdDescirption, IsBundle, IsCustomerVisible, ValidFor, ProdSpec, Status, ProdOfferPrice].
-
-update_product_name(SslSock, RestPort, OldProdID, NewProdID) ->
-	RestUser = ct:get_config(rest_user),
-	RestPass = ct:get_config(rest_pass),
-	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
-	AuthKey = "Basic " ++ Encodekey,
-	ContentType = "application/json-patch+json",
-	JSON = {array, [product_name(NewProdID)]},
-	Body = lists:flatten(mochijson:encode(JSON)),
-	{Headers, Response} = patch_request(SslSock, RestPort, ContentType, AuthKey, OldProdID, Body),
-	<<"HTTP/1.1 200", _/binary>> = Headers,
-	{struct, Object} = mochijson:decode(Response),
-	case lists:keyfind("name", 1, Object) of
-		{_, NewProdID} ->
-			ok;
-		_ ->
-			{error, patch_pafiled}
-	end.
 
 update_product_description(SslSock, RestPort, ProdID, Description) ->
 	RestUser = ct:get_config(rest_user),
