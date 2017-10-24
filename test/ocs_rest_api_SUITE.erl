@@ -2718,7 +2718,7 @@ patch_request(SslSock, Port, ContentType, AuthKey, ProdID, ReqBody) when is_list
 patch_request(SslSock, Port, ContentType, AuthKey, ProdID, ReqBody) ->
 	Timeout = 1500,
 	Length = size(ReqBody),
-	CatalogHref = "/catalogManagement",
+	CatalogHref = "/catalogManagement/v2",
 	PatchURI = CatalogHref ++ "/productOffering/" ++ ProdID,
 	Request =
 			["PATCH ", PatchURI, " HTTP/1.1",$\r,$\n,
