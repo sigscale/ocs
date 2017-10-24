@@ -385,7 +385,7 @@
 								on-tap="updateProductPrice"
 								class="update-buttons">
 								<i18n-msg msgid="update">
-									update
+									Update
 								</i18n-msg>
 						</paper-button>
 						<paper-button
@@ -401,7 +401,7 @@
 								class="cancel-button"
 								on-tap="cancelDialog">
 								<i18n-msg msgid="cancel">
-									cancel
+									Cancel
 								</i18n-msg>
 						</paper-button>
 						<paper-button
@@ -790,9 +790,12 @@
 						this.$.updatePricePeriod.selected = null;
 						this.$.addUpdatePriceAlteration.selected = null;
 					} else {
+console.log(this.prices[indexUpdatePrice]);
 						this.$.updatePriceDesc.value = this.prices[indexUpdatePrice].description;
-						this.$.updatePriceStartDate.value = this.prices[indexUpdatePrice].validFor.startDateTime;
-						this.$.updatePriceEndDate.value = this.prices[indexUpdatePrice].validFor.endDateTime;
+						if(this.prices[indexUpdatePrice].startDateTime || this.prices[indexUpdatePrice].endDateTime) {
+							this.$.updatePriceStartDate.value = this.prices[indexUpdatePrice].startDateTime;
+							this.$.updatePriceEndDate.value = this.prices[indexUpdatePrice].endDateTime;
+						}
 						switch(this.prices[indexUpdatePrice].priceType) {
 							case "recurring":
 								this.$.updatePriceType.selected = 0;
@@ -816,8 +819,10 @@
 								this.$.updatePriceUnits.selected = 2;
 								break;
 						}
-						this.$.updatePriceCurrency.value = this.prices[indexUpdatePrice].price.currencyCode;
-						this.$.updatePriceAmount.value = this.prices[indexUpdatePrice].price.taxIncludedAmount;
+						if(this.prices[indexUpdatePrice].currencyCode || this.prices[indexUpdatePrice].taxIncludedAmount) {
+							this.$.updatePriceCurrency.value = this.prices[indexUpdatePrice].currencyCode;
+							this.$.updatePriceAmount.value = this.prices[indexUpdatePrice].taxIncludedAmount;
+						}
 						switch(this.prices[indexUpdatePrice].recurringChargePeriod) {
 							case "daily":
 								this.$.updatePricePeriod.selected = 0;
@@ -861,8 +866,10 @@
 						this.$.updateAltPeriod.selected = null;
 					} else {
 						this.$.updateAltDesc.value = this.alterations[indexAlt].description;
-						this.$.updateAltStartDate.value = this.alterations[indexAlt].validFor.startDateTime;
-						this.$.updateAltEndDate.value = this.alterations[indexAlt].validFor.endDateTime;
+						if(this.alterations[indexAlt].startDateTime || this.alterations[indexAlt].endDateTime) {
+							this.$.updateAltStartDate.value = this.alterations[indexAlt].startDateTime;
+							this.$.updateAltEndDate.value = this.alterations[indexAlt].endDateTime;
+						}
 						switch(this.alterations[indexAlt].priceType) {
 							case "recurring":
 								this.$.updateAltType.selected = 0;
@@ -886,9 +893,11 @@
 								this.$.updateUnitDrop.selected = 2;
 								break;
 						}
-						this.$.updateAltCurr.value = this.alterations[indexAlt].price.currencyCode;
-						this.$.updateAltAmount.value = this.alterations[indexAlt].price.taxIncludedAmount;
-						switch(this.alterations[indexAlt].recurringChargeperiod) {
+						if(this.alterations[indexAlt].currencyCode || this.alterations[indexAlt].taxIncludedAmount) {
+							this.$.updateAltCurr.value = this.alterations[indexAlt].currencyCode;
+							this.$.updateAltAmount.value = this.alterations[indexAlt].taxIncludedAmount;
+						}
+						switch(this.alterations[indexAlt].recurringChargePeriod) {
 							case "daily":
 								this.$.updateAltPeriod.selected = 0;
 								break;
@@ -1129,43 +1138,43 @@
 				}
 				updatePriceNew.name = this.$.updatePriceName.value;
 				updatePriceNew.description = this.$.updatePriceDesc.value;
-				updatePriceNew.start = this.$.updatePriceStartDate.value;
-				updatePriceNew.end = this.$.updatePriceEndDate.value;
+				updatePriceNew.startDateTime = this.$.updatePriceStartDate.value;
+				updatePriceNew.endDateTime = this.$.updatePriceEndDate.value;
 				switch(this.$.updatePriceType.selected) {
 					case 0:
-						updatePriceNew.type = "recurring";
+						updatePriceNew.priceType = "recurring";
 						break;
 					case 1:
-						updatePriceNew.type = "one_time";
+						updatePriceNew.priceType = "one_time";
 						break;
 					case 2:
-						updatePriceNew.type = "usage";
+						updatePriceNew.priceType = "usage";
 				}
 				switch(this.$.updatePriceUnits.selected) {
 					case 0:
-						updatePriceNew.unit = "b";
+						updatePriceNew.units = "b";
 						break;
 					case 1:
-						updatePriceNew.unit = "c";
+						updatePriceNew.units = "c";
 						break;
 					case 2:
-						updatePriceNew.unit = "s";
+						updatePriceNew.units = "s";
 				}
-				updatePriceNew.amount = parseInt(this.$.updatePriceAmount.value);
-				updatePriceNew.size = this.$.updatePriceSize.value;
-				updatePriceNew.currency = this.$.updatePriceCurrency.value;
+				updatePriceNew.taxIncludedAmount = parseInt(this.$.updatePriceAmount.value);
+				updatePriceNew.unitOfMeasure = this.$.updatePriceSize.value;
+				updatePriceNew.currencyCode = this.$.updatePriceCurrency.value;
 				switch(this.$.updatePricePeriod.selected) {
 					case 0:
-						updatePriceNew.period = "daily";
+						updatePriceNew.recurringChargePeriod = "daily";
 						break;
 					case 1:
-						updatePriceNew.period = "weekly";
+						updatePriceNew.recurringChargePeriod = "weekly";
 						break;
 					case 2:
-						updatePriceNew.period = "monthly";
+						updatePriceNew.recurringChargePeriod = "monthly";
 						break
 					case 3:
-						updatePriceNew.period = "yearly";
+						updatePriceNew.recurringChargePeriod = "yearly";
 				}
 				if(this.$.addUpdatePriceDrop.value) {
 					function checkAlt(alts) {
@@ -1178,9 +1187,9 @@
 					return updatePrice.type == updatePriceNew.type
 				}
 				if(updatePriceNew.name
-						&& updatePriceNew.amount 
-						&& updatePriceNew.type
-						&& updatePriceNew.unit) {
+						&& updatePriceNew.taxIncludedAmount 
+						&& updatePriceNew.priceType
+						&& updatePriceNew.units) {
 					if(updateIndexPrice == -1) {
 						this.push('prices', updatePriceNew);
 					}
@@ -1213,17 +1222,17 @@
 				}
 				updateAltNew.name = this.$.updateAltName.value;
 				updateAltNew.description = this.$.updateAltDesc.value;
-				updateAltNew.startdate = this.$.updateAltStartDate.value;
-				updateAltNew.terminationDate = this.$.updateAltEndDate.value;
+				updateAltNew.startDateTime = this.$.updateAltStartDate.value;
+				updateAltNew.endDateTime = this.$.updateAltEndDate.value;
 				switch(this.$.updateAltType.selected) {
 					case 0:
-						updateAltNew.type = "recurring";
+						updateAltNew.priceType = "recurring";
 						break;
 					case 1:
-						updateAltNew.type = "one_time";
+						updateAltNew.priceType = "one_time";
 						break;
 					case 2:
-						updateAltNew.type = "usage";
+						updateAltNew.priceType = "usage";
 				}
 				switch(this.$.updateUnitDrop.selected) {
 					case 0:
@@ -1235,27 +1244,27 @@
 					case 2:
 						updateAltNew.unit = "s";
 				}
-				updateAltNew.size = this.$.updateAltSize.value;
+				updateAltNew.unitOfMeasure = this.$.updateAltSize.value;
 				switch(this.$.updateAltPeriod.selected) {
 					case 0:
-						updateAltNew.period = "daily";
+						updateAltNew.recurringChargePeriod = "daily";
 						break;
 					case 1:
-						updateAltNew.period = "weekly";
+						updateAltNew.recurringChargePeriod = "weekly";
 						break;
 					case 2:
-						updateAltNew.period = "monthly";
+						updateAltNew.recurringChargePeriod = "monthly";
 						break
 					case 3:
-						updateAltNew.period = "yearly";
+						updateAltNew.recurringChargePeriod = "yearly";
 				}
-				updateAltNew.currency = this.$.updateAltCurr.value;
-				updateAltNew.amount= parseInt(this.$.updateAltAmount.value);
+				updateAltNew.currencyCode = this.$.updateAltCurr.value;
+				updateAltNew.taxIncludedAmount= parseInt(this.$.updateAltAmount.value);
 				if(updateAltNew.name
-						&& updateAltNew.type
+						&& updateAltNew.priceType
 						&& updateAltNew.unit
-						&& (updateAltNew.size ||  updateAltNew.unit == "c")
-						&& (updateAltNew.amount || updateAltNew.amount == 0)) {
+						&& (updateAltNew.unitOfMeasure ||  updateAltNew.unit == "c")
+						&& (updateAltNew.taxIncludedAmount || updateAltNew.taxIncludedAmount == 0)) {
 					if(updateIndexAlt == -1) {
 						this.push('alterations', updateAltNew);
 					}
