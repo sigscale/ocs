@@ -1062,8 +1062,7 @@
 					ajax.body = offerNew;
 					ajax.generateRequest();
 				} else {
-					this.$.addProductToastError.text = "Validation failed";
-					this.$.addProductToastError.open();
+					document.getElementById("addProductToastError").open();
 				}
 			},
 			checkPattern: function() {
@@ -1224,8 +1223,7 @@
 					this.$.addPriceAlteration.selected = null;
 					document.getElementById("addProductToastSuccess").open();
 				} else {
-					this.$.addProductToastError.text = "Validation failed";
-					this.$.addProductToastError.open();
+					document.getElementById("addProductToastError").open();
 				}
 			},
 			addAlteration: function() {
@@ -1303,8 +1301,7 @@
 					this.$.addAltPeriod.selected = null;
 					document.getElementById("addProductToastSuccess").open();
 				} else {
-					this.$.addProductToastError.text = "Validation failed";
-					this.$.addProductToastError.open();
+					document.getElementById("addProductToastError").open();
 				}
 			},
 			_onLoadingChanged: function(event) {
@@ -1324,8 +1321,7 @@
 				document.getElementById("productGrid").clearCache();
 			},
 			_addProductError: function(event) {
-				this.$.addProductToastError.text = event.detail.request.xhr.statusText;
-				this.$.addProductToastError.open();
+				document.getElementById("addProductToastError").open();
 			},
 			cancelDialog: function() {
 				this.set('prices', []);

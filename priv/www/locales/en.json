@@ -675,6 +675,10 @@
     "description": "Unit of balance",
     "message": "update subscriber balance units"
   },
+   "validateToastError": {
+    "description": "Toast message for validation error",
+    "message": "Validation Failed"
+  },
    "productDeleted": {
     "description": "Success Toast Message",
     "message": "Product deleted"
