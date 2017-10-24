@@ -489,19 +489,19 @@
   },
 	"octet": {
     "description": "unit types",
-    "message": "octetos"
+    "message": "Octetos"
   },
 	"cent": {
     "description": "unit types",
-    "message": "centavos"
+    "message": "Centavos"
   },
 	"second": {
     "description": "unit types",
-    "message": "segundos"
+    "message": "Segundos"
   },
 	"prod": {
     "description": "Balance types",
-    "message": "producto"
+    "message": "Producto"
   },
 	"add": {
     "description": "Balance add",
