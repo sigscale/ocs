@@ -142,13 +142,15 @@
 				} else if (this.$.addUserLocale.selected == 1) {
 					language.value = "es";
 				}
-				var characteristic = new Array();
-				characteristic.push(username);
-				characteristic.push(password);
-				characteristic.push(language);
-				user.characteristic = characteristic;
-				this.$.addUserAjax.body = user;
-				this.$.addUserAjax.generateRequest();
+				if(this.$.addUserName.value) {
+					var characteristic = new Array();
+					characteristic.push(username);
+					characteristic.push(password);
+					characteristic.push(language);
+					user.characteristic = characteristic;
+					this.$.addUserAjax.body = user;
+					this.$.addUserAjax.generateRequest();
+				}
 			},
 			_addUserResponse: function(event) {
 				this.$.addUserModal.close();
