@@ -163,7 +163,7 @@ handle_radius(#statedata{req_attr = Attributes, req_auth = Authenticator,
 	end.
 %% @hidden
 handle_radius1(#statedata{subscriber = SubscriberId, password = <<>>} = StateData) ->
-	case ocs:authorize(ocs:normalize(SubscriberId), []) of
+	case ocs:authorize(SubscriberId, []) of
 		{ok, #subscriber{password = <<>>,
 				attributes = Attributes} = Subscriber} ->
 			NewStateData = StateData#statedata{res_attr = Attributes},
@@ -179,7 +179,7 @@ handle_radius1(#statedata{subscriber = SubscriberId, password = <<>>} = StateDat
 			reject_radius(Reason, StateData)
 	end;
 handle_radius1(#statedata{subscriber = SubscriberId, password = Password} = StateData) ->
-	case ocs:authorize(ocs:normalize(SubscriberId), Password) of
+	case ocs:authorize(SubscriberId, Password) of
 		{ok, #subscriber{attributes = Attributes} = Subscriber} ->
 			NewStateData = StateData#statedata{res_attr = Attributes},
 			handle_radius2(Subscriber, NewStateData);
@@ -202,7 +202,7 @@ handle_radius3(#statedata{subscriber = SubscriberId, multisession = MultiSession
 		req_attr = RequestAttributes, res_attr = ResponseAttributes,
 		session_id = SessionID} = StateData) ->
 	F = fun() ->
-		Identity = list_to_binary(ocs:normalize(SubscriberId)),
+		Identity = list_to_binary(SubscriberId),
 		case mnesia:read(subscriber, Identity, write) of
 			[#subscriber{session_attributes = CurrentAttributes} = Subscriber] ->
 				ExtractedSessionAttributes = extract_session_attributes(RequestAttributes),

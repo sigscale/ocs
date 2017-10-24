@@ -281,9 +281,8 @@ request1(?AccountingStop, AcctSessionId, Id,
 		{error, not_found} ->
 			0
 	end,
-	{ok, UserName} = radius_attributes:find(?UserName, Attributes),
+	{ok, Subscriber} = radius_attributes:find(?UserName, Attributes),
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, stop, Attributes),
-	Subscriber = ocs:normalize(UserName),
 	A1 = [{?AcctSessionId, AcctSessionId}],
 	A2 = [{?NasIdentifier, NasId}],
 	A3 = [{?NasIpAddress, NasId}],
@@ -295,7 +294,7 @@ request1(?AccountingStop, AcctSessionId, Id,
 		{error, Reason} ->
 			error_logger:warning_report(["Accounting failed",
 					{module, ?MODULE}, {subscriber, Subscriber},
-					{username, UserName}, {nas, NasId}, {address, Address},
+					{username, Subscriber}, {nas, NasId}, {address, Address},
 					{session, AcctSessionId}]),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{ok, _} ->
@@ -318,9 +317,8 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 		{error, not_found} ->
 			0
 	end,
-	{ok, UserName} = radius_attributes:find(?UserName, Attributes),
+	{ok, Subscriber} = radius_attributes:find(?UserName, Attributes),
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, interim, Attributes),
-	Subscriber = ocs:normalize(UserName),
 	A1 = [{?AcctSessionId, AcctSessionId}],
 	A2 = [{?NasIdentifier, NasId}],
 	A3 = [{?NasIpAddress, NasId}],
@@ -329,7 +327,7 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 		{error, not_found} ->
 			error_logger:warning_report(["Accounting subscriber not found",
 					{module, ?MODULE}, {subscriber, Subscriber},
-					{username, UserName}, {nas, NasId}, {address, Address},
+					{username, Subscriber}, {nas, NasId}, {address, Address},
 					{session, AcctSessionId}]),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{out_of_credit, SessionList} ->
