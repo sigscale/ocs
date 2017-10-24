@@ -149,6 +149,8 @@
 					user.characteristic = characteristic;
 					this.$.addUserAjax.body = user;
 					this.$.addUserAjax.generateRequest();
+				} else {
+					document.getElementById('addUserToastErrorForm').open();
 				}
 			},
 			_addUserResponse: function(event) {
