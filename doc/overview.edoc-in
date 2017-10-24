@@ -403,6 +403,7 @@ Content-length: nn
 
 {
  "id":"eacfd73ae10a",
+ "product" : "Wi-Fi",
  "attributes":[
                {"name": "ascendDataRate", "value": 1000000},
                {"name": "ascendXmitRate", "value": 64000},
@@ -410,7 +411,9 @@ Content-length: nn
                {"name": "acctInterimInterval", "value": 300},
                {"name": "class", "value": "skiorgs"}
               ],
- "buckets":[ { "amount": 200, "units": "octets", "product": "Wi-Fi" } ],
+ "buckets":[
+ 				{ "amount": 200, "units": "octets"}
+			],
  "enabled": true,
  "multisession": false
 }
