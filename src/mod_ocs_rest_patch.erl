@@ -56,9 +56,10 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 				undefined ->
 					case proplists:get_value(response, Data) of
 						undefined ->
+							Path = http_uri:decode(Uri),
 							{_, Resource} = lists:keyfind(resource, 1, Data),
 							{_, ContentType} = lists:keyfind(content_type, 1, Data),
-							content_type_available(Headers, ContentType, Body, Uri,
+							content_type_available(Headers, ContentType, Body, Path,
 									Resource, ModData);
 						_Response ->
 							{proceed,  Data}
@@ -109,7 +110,7 @@ do_patch(ContentType, Body, Resource, ModData, Etag,
 			Body));
 do_patch("application/json-patch+json", Body, Resource, ModData, Etag,
 		["catalogManagement", "v2", "productOffering", ProdId]) ->
-	do_response(ModData, Resource:on_patch_product_offering(ProdId, Etag, Body));
+	do_response(ModData, Resource:patch_product_offering(ProdId, Etag, Body));
 do_patch("application/merge-patch+json", Body, Resource, ModData, Etag,
 		["catalogManagement", "v2", "productOffering", ProdId]) ->
 	do_response(ModData, Resource:merge_patch_product_offering(ProdId, Etag, Body));

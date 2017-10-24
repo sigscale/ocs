@@ -60,7 +60,8 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 								false ->
 									{proceed, Data};
 								{_, Resource} ->
-									content_type_available(Headers, Uri, Resource, ModData)
+									Path = http_uri:decode(Uri),
+									content_type_available(Headers, Path, Resource, ModData)
 							end;
 						_Response ->
 							{proceed,  Data}

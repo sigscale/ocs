@@ -58,7 +58,8 @@ do(#mod{request_uri = Uri, data = Data} = ModData) ->
 				User ->
 					case proplists:get_value(response, Data) of
 						undefined ->
-							case string:tokens(Uri, "/") of
+							Path = http_uri:decode(Uri),
+							case string:tokens(Path, "/") of
 								["ocs", "v1" | _] ->
 									{proceed, Data};
 								["usageManagement", "v1" | _] ->
