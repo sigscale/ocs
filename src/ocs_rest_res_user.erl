@@ -162,13 +162,15 @@ get_user(_, _, _) ->
 post_user(RequestBody) ->
 	try
 		User = user(mochijson:decode(RequestBody)),
+		{Username, _, _, _} = User#httpd_user.username,
+		Password = User#httpd_user.password,
 		Locale = case lists:keyfind(locale, 1, User#httpd_user.user_data) of
 			{_, Loc} ->
 				Loc;
 			false ->
 				"en"
 		end,
-		case ocs:add_user(User#httpd_user.username, User#httpd_user.password, Locale) of
+		case ocs:add_user(Username, Password, Locale) of
 			{ok, LastModified} ->
 				Body = mochijson:encode(user(User)),
 				Location = "/partyManagement/v1/individual/" ++ User#httpd_user.username,
