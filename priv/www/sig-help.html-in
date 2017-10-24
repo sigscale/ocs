@@ -258,14 +258,12 @@
 			<h3>Add a Subscriber</h3>
 			<p>Select the floating action button
 			<iron-icon class="iconHelp" icon="add"></iron-icon> at the bottom right
-			of the view. A <b>Product List</b> dropdown menu will appear. Choose one
-			product from the list.If that product implemented product specification
-			it will redirect you to <b>Add Subscriber</b> dialog. Otherwise toast
-			error message will pop up. Enter the details for a new subscriber and
-			select the <b>SUBMIT</b> button. If the <b>Generate</b> check-box is
-			selected for <b>Identity</b> or <b>Password</b> OCS will create unique
-			values which will be provided in a dialog after the request is successful.</p>
-			<h3>Update a Subscriber</h3>
+			of the view. A <b>Product List</b> dropdown menu will appear. When selects
+			the product from the list it will redirect you to <b>Add Subscriber</b> dialog.
+			Enter the details for a new subscriber and select the <b>SUBMIT</b>
+			button. If the <b>Generate</b> check-box is selected for <b>Identity</b>
+			or <b>Password</b> OCS will create unique values which will be provided
+			in a dialog after the request is successful.</p> <h3>Update a Subscriber</h3>
 			<p>Selecting a row in the Subscriber view will open a dialog allowing
 			updating any fields. There are two tabs in the dialog toolbar used to
 			select <b>Authentication</b> or <b>Authorization</b> fields. After
