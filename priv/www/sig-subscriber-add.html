@@ -123,14 +123,15 @@
 			},
 			_productSelected: function() {
 				var product = this.products[this.$.addproduct10.selected];
-				if(product){
-					if(product.productSpecification.id == "4") {
+				if(product) {
+//					if(product.productSpecification.id) {
 						document.getElementById("subscriberAdd").product = product.name;
 						document.getElementById("addSubscriberModal").open();
 						document.getElementById("addSubscriberProductModal").close();
-					} else {
-						document.getElementById("addSubscriberProductToastError").open();
-					}
+//					}
+//					else {
+//						document.getElementById("addSubscriberProductToastError").open();
+//					}
 					this.$.addproduct10.selected = null;
 				}
 			}
