@@ -136,7 +136,7 @@ get_user(Id, Query) ->
 get_user(Id, [] = _Query, _Filters) ->
 	case ocs:get_user(Id) of
 		{ok, #httpd_user{user_data = UserData} = User} ->
-			User = user(User),
+			UserObject = user(User),
 			Headers1 = case lists:keyfind(last_modified, 1, UserData) of
 				{_, LastModified} ->
 					[{etag, ocs_rest:etag(LastModified)}];
@@ -144,7 +144,7 @@ get_user(Id, [] = _Query, _Filters) ->
 					[]
 			end,
 			Headers2 = [{content_type, "application/json"} | Headers1],
-			Body = mochijson:encode(User),
+			Body = mochijson:encode(UserObject),
 			{ok, Headers2, Body};
 		{error, _Reason} ->
 			{error, 404}
