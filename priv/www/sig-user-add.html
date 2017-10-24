@@ -100,8 +100,7 @@
 					<paper-button
 							class="cancel-button"
 							dialog-dismiss
-							autofocus
-							onclick="addUserModal.close()">
+							on-tap="cancelDialog">
 						<i18n-msg msgid="cancel">
 							Cancel
 						</i18n-msg>
@@ -162,6 +161,12 @@
 			_addUserError: function(event) {
 				this.$.addUserToastError.text = event.detail.request.xhr.statusText;
 				this.$.addUserToastError.open();
+			},
+			cancelDialog: function() {
+				this.$.addUserName.value = null;
+				this.$.addUserPassword.value = null;
+				this.$.addUserLocale.selected = null;
+				this.$.addUserModal.close();
 			},
 			_onLoadingChanged: function(event) {
 				if (this.$.addUserAjax.loading) {
