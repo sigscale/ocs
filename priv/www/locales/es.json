@@ -691,6 +691,14 @@
     "description": "Unit of balance",
     "message": "actualizar unidades de saldo de suscriptor"
   },
+   "validateToastError": {
+    "description": "Toast message for validation error",
+    "message": "Validación fallida"
+  },
+	"octets": {
+    "description": "unit types",
+    "message": "Octetos"
+  },
    "productDeleted": {
     "description": "Success Toast Message",
     "message": "Producto eliminado"

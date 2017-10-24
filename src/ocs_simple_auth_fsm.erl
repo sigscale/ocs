@@ -170,7 +170,7 @@ handle_radius1(#statedata{subscriber = SubscriberId, password = <<>>} = StateDat
 			handle_radius2(Subscriber, NewStateData);
 		{ok, #subscriber{attributes = Attributes, password = PSK}
 				= Subscriber} when is_binary(PSK) ->
-			VendorSpecific = {?Mikrotik, ?MikrotikWirelessPsk, binary_to_list(PSK)},
+			VendorSpecific = {?Mikrotik, {?MikrotikWirelessPsk, binary_to_list(PSK)}},
 			ResponseAttributes = radius_attributes:store(?VendorSpecific,
 					VendorSpecific, Attributes),
 			NewStateData = StateData#statedata{res_attr = ResponseAttributes},
@@ -202,7 +202,8 @@ handle_radius3(#statedata{subscriber = SubscriberId, multisession = MultiSession
 		req_attr = RequestAttributes, res_attr = ResponseAttributes,
 		session_id = SessionID} = StateData) ->
 	F = fun() ->
-		case mnesia:read(subscriber, list_to_binary(SubscriberId), write) of
+		Identity = list_to_binary(ocs:normalize(SubscriberId)),
+		case mnesia:read(subscriber, Identity, write) of
 			[#subscriber{session_attributes = CurrentAttributes} = Subscriber] ->
 				ExtractedSessionAttributes = extract_session_attributes(RequestAttributes),
 				Now = erlang:system_time(?MILLISECOND),
