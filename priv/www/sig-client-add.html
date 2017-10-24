@@ -169,8 +169,7 @@
 				<paper-button dialog-dismiss
 						class="cancel-button"
 						dialog-dismiss
-						autofocus
-						onclick="addClientModal.close()">
+						on-tap="cancelDialogClient">
 					<i18n-msg msgid="cancel">
 							Cancel
 					</i18n-msg>
@@ -269,6 +268,12 @@
 					this.$.addClientSecretModal.open();
 				}
 				document.getElementById("clientGrid").clearCache();
+			},
+			cancelDialogClient: function() {
+				this.$.addClientAddress.value = null;	
+				this.$.addClientProtocol.selected = null;
+				this.$.addClientSecret.value = null;
+				this.$.addClientModal.close();
 			},
 			 _addClientError: function(event) {
 				this.$.addClientToastError.text = event.detail.request.xhr.statusText;
