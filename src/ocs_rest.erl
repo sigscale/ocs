@@ -245,24 +245,35 @@ pointer1(T, Acc1, Acc2) ->
 
 -spec patch(Patch, Resource) -> Resource
 	when
-		Patch :: [{Operation, Value} | {Operation, Path, Value}],
-		Operation :: string(),
-		Operation :: string(),
-		Path :: string(),
-		Value :: string() | integer() | float() | {struct, list()}
-				| {array, list()} | boolean() | null,
+		Patch :: {array, [{struct, [tuple()]}]},
 		Resource :: {struct, list()} | {array, list()}.
 %% @doc Apply a JSON `Patch' (<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>).
 %% 	Modifies the `Resource' by applying the operations listed in `Patch'.
 %% 	`Operation' may be `"add"', `"remove"', or `"replace"'.
 %% @hidden
-patch([{"add", Path, Value} | T] = _Patch, Resource) ->
-	patch(T, patch_add(pointer(Path), Value, Resource));
-patch([{"remove", Path} | T], Resource) ->
-	patch(T, patch_remove(pointer(Path), Resource));
-patch([{"replace", Path, Value} | T], Resource) ->
-	patch(T, patch_replace(pointer(Path), Value, Resource));
-patch([], Resource) ->
+patch({array, L} = _Patch, Resource) ->
+	patch1(L, Resource, []).
+%% @hidden
+patch1([{struct, L} | T], Resource, Acc) ->
+	{_, Op} = lists:keyfind("op", 1, L),
+	{_, Path} = lists:keyfind("path", 1, L),
+	Operation = case lists:keyfind("value", 1, L) of
+		{_, Value} ->
+			{Op, Path, Value};
+		false ->
+			{Op, Path}
+	end,
+	patch1(T, Resource, [Operation | Acc]);
+patch1([], Resource, Acc) ->
+	patch2(lists:reverse(Acc), Resource).
+%% @hidden
+patch2([{"add", Path, Value} | T] = _Patch, Resource) ->
+	patch2(T, patch_add(pointer(Path), Value, Resource));
+patch2([{"remove", Path} | T], Resource) ->
+	patch2(T, patch_remove(pointer(Path), Resource));
+patch2([{"replace", Path, Value} | T], Resource) ->
+	patch2(T, patch_replace(pointer(Path), Value, Resource));
+patch2([], Resource) ->
 	Resource.
 %% @hidden
 patch_add(Path, Value, {struct, L}) ->

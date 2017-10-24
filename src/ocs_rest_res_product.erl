@@ -331,13 +331,13 @@ patch_product_offering(ProdId, Etag, ReqData) ->
 	try
 		mochijson:decode(ReqData)
 	of
-		{array, Operations} ->
+		{array, _} = Operations ->
 			F = fun() ->
 					case mnesia:read(product, ProdId, write) of
 						[Product1] when
 								Product1#product.last_modified == Etag;
 								Etag == undefined ->
-							case catch ocs_rest:patch(Operations, Product1) of
+							case catch ocs_rest:patch(Operations, offer(Product1)) of
 								#product{} = Product2 ->
 									TS = erlang:system_time(?MILLISECOND),
 									N = erlang:unique_integer([positive]),
