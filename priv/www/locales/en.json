@@ -679,6 +679,10 @@
     "description": "Toast message for validation error",
     "message": "Validation Failed"
   },
+	"octets": {
+    "description": "unit types",
+    "message": "Octets"
+  },
    "productDeleted": {
     "description": "Success Toast Message",
     "message": "Product deleted"
