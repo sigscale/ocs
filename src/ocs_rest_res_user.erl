@@ -293,7 +293,9 @@ get_params() ->
 	when
 		User :: #httpd_user{} | {struct, [tuple()]}.
 %% @doc CODEC for HTTP server users.
-user(#httpd_user{username = {ID, _, _, _}, password = Password, user_data = Characteristic}) ->
+user(#httpd_user{username = {ID, _, _, _}} = HttpdUser) ->
+	user(HttpdUser#httpd_user{username  = ID});
+user(#httpd_user{username = ID, password = Password, user_data = Characteristic}) ->
 	C1 = [{struct, [{"name", "username"}, {"value", ID}]},
 			{struct, [{"name", "password"}, {"value", Password}]}],
 	C2 = case lists:keyfind(locale, 1, Characteristic) of
