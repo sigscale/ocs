@@ -162,6 +162,7 @@
 			</paper-icon-item>
 		</paper-dialog>
 		<paper-dialog id="helpToolbar">
+			<paper-dialog-scrollable>
 			<paper-toolbar>
 				<paper-icon-item
 						class="menu-trigger menuitem"
@@ -199,6 +200,7 @@
 			bar appears underneath the toolbar to indicate that it is
 			working on loading the page requested:</p>
 			<img alt="screenshot" src="/progress.png" height="96" width="298">
+			</paper-dialog-scrollable>
 		</paper-dialog>
 		<paper-dialog id="helpSubscribers">
 			<paper-toolbar>
@@ -214,6 +216,7 @@
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 				<h2>[[i18n.subs]]</h2>
 			</paper-icon-item>
+			<paper-dialog-scrollable>
 			<p>To access the <b>Subscribers</b> view first open the navigation
 			drawer by selecting it's icon
 			<iron-icon class="iconHelp" icon="menu"></iron-icon>
@@ -255,12 +258,12 @@
 			<h3>Add a Subscriber</h3>
 			<p>Select the floating action button
 			<iron-icon class="iconHelp" icon="add"></iron-icon> at the bottom right
-			of the view. An <b>Add Subscriber</b> dialog will appear. Enter the
-			details for a new subscriber and select the <b>SUBMIT</b> button. If
-			the <b>Generate</b> check-box is selected for <b>Identity</b> or
-			<b>Password</b> OCS will create unique values which will be provided
-			in a dialog after the request is successful.</p>
-			<h3>Update a Subscriber</h3>
+			of the view. A <b>Product List</b> dropdown menu will appear. When selects
+			the product from the list it will redirect you to <b>Add Subscriber</b> dialog.
+			Enter the details for a new subscriber and select the <b>SUBMIT</b>
+			button. If the <b>Generate</b> check-box is selected for <b>Identity</b>
+			or <b>Password</b> OCS will create unique values which will be provided
+			in a dialog after the request is successful.</p> <h3>Update a Subscriber</h3>
 			<p>Selecting a row in the Subscriber view will open a dialog allowing
 			updating any fields. There are two tabs in the dialog toolbar used to
 			select <b>Authentication</b> or <b>Authorization</b> fields. After
@@ -269,6 +272,7 @@
 			<h3>Delete a Subscriber</h3>
 			<p>Selecting a row in the Subscriber view will open a dialog which
 			includes a <b>DELETE</b> button.</p>
+			</paper-dialog-scrollable>
 		</paper-dialog>
 		<paper-dialog id="helpClients">
 			<paper-toolbar>
@@ -284,6 +288,7 @@
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 				<h2>[[i18n.clients]]</h2>
 			</paper-icon-item>
+			<paper-dialog-scrollable>
 			<p>To access the <b>Clients</b> view first open the navigation drawer
 			by selecting it's icon <iron-icon class="iconHelp" icon="menu"></iron-icon>
 			on the left of the toolbar at top. Select the
@@ -326,6 +331,7 @@
 			<h3>Delete a Client</h3>
 			<p>Selecting a row in the Clients view will open a dialog which
 			includes a <b>DELETE</b> button.</p>
+			</paper-dialog-scrollable>
 		</paper-dialog>
 		<paper-dialog id="helpLogs">
 			<paper-toolbar>
@@ -341,6 +347,7 @@
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 				<h2>[[i18n.logs]]</h2>
 			</paper-icon-item>
+			<paper-dialog-scrollable>
 			<p>To access log views first open the navigation drawer
 			by selecting it's icon <iron-icon class="iconHelp" icon="menu"></iron-icon>
 			on the left of the toolbar at top. Select the
@@ -449,6 +456,7 @@
 				<dt><b>Status</b></dt>
 					<dd>response code.</dd>
 			</dl>
+			</paper-dialog-scrollable>
 		</paper-dialog>
 		<paper-dialog id="helpUsers">
 			<paper-toolbar>
@@ -464,6 +472,7 @@
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 				<h2>[[i18n.users]]</h2>
 			</paper-icon-item>
+			<paper-dialog-scrollable>
 			<p>To access the <b>Users</b> view first open the navigation drawer
 			by selecting it's icon <iron-icon class="iconHelp" icon="menu"></iron-icon>
 			on the left of the toolbar at top. Select the
@@ -486,6 +495,7 @@
 			<h3>Delete a User</h3>
 			<p>Selecting a row in the Users view will open a dialog which
 			includes a <b>DELETE</b> button.</p>
+			</paper-dialog-scrollable>
 		</paper-dialog>
 		<paper-dialog id="helpFiltering">
 			<paper-toolbar>
@@ -501,6 +511,7 @@
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 				<h2>[[i18n.filt]]</h2>
 			</paper-icon-item>
+			<paper-dialog-scrollable>
 			<p>Within a grid view (e.g. Subscribers, Clientrs, Logs) the
 			displayed rows may be filtered by selecting column header(s)
 			and entering match values.</p>
@@ -509,6 +520,7 @@
 			<b>NAS Identifier</b> column header of the <b>Clients</b> view
 			resulting in only rows with a matching prefix appearing:</p>
 			<img alt="screenshot" src="/filter.png" height="118" width="320">
+			</paper-dialog-scrollable>
 		</paper-dialog>
 		<paper-dialog id="helpSorting">
 			<paper-toolbar>
@@ -524,6 +536,7 @@
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 				<h2>[[i18n.sort]]</h2>
 			</paper-icon-item>
+			<paper-dialog-scrollable>
 			<p>Within a grid view (e.g. Subscribers, Client, Logs) the
 			displayed rows may be sorted by selecting the arrows in
 			column headers.</p>
@@ -535,6 +548,7 @@
 			<p>In the example below the up arrow is selected resulting
 			in rows being reordered by address in descending order:</p>
 			<img alt="screenshot" src="/sort-descend.png" height="144" width="320">
+			</paper-dialog-scrollable>
 		</paper-dialog>
 		<paper-dialog id="helpProduct">
 			<paper-toolbar>
@@ -550,6 +564,7 @@
 				<iron-icon icon="icons:assignment" item-icon></iron-icon>
 				<h2>[[i18n.prod]]</h2>
 			</paper-icon-item>
+			<paper-dialog-scrollable>
 			<p>To add <b>Product</b> first open the navigation drawer by selecting its icon
 			<iron-icon class="iconHelp" icon="menu"></iron-icon> on the left of the toolbar
 			at top. Select the <iron-icon class="iconHelp" icon="icons:store"></iron-icon>
@@ -577,6 +592,7 @@
 					<dd>When selected <b>Units</b> is cents the <b>Unit Size</b> field
                user should be the number of cents for the price <b>Amount</b>.</dd>
 			</dl></p>
+			</paper-dialog-scrollable>
 		</paper-dialog>
 		<paper-dialog id="aboutHelp">
 			<paper-toolbar>

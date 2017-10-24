@@ -90,6 +90,7 @@
 							</i18n-msg>
 						</paper-tooltip>
 					</div>
+<!--
 					<div>
 						<paper-dropdown-menu
 								label="[[i18n.productSpec]]">
@@ -105,6 +106,7 @@
 							</paper-listbox>
 						</paper-dropdown-menu>
 					</div>
+-->
 					<div>
 						<iron-collapse id="addProductStartDatePickOff">
 							<paper-date-picker id="startOff3" date="{{addProductStartDateOfferPick}}">
@@ -884,11 +886,11 @@
 				if(this.$.addOffDesc.value) {
 					offerNew.description = this.$.addOffDesc.value;
 				}
-				var specIndex = this.$.addOffProductSpecification.selected;
-				if(specIndex) {
-					offerNew.productSpecification = this.productSpec[specIndex];
-					delete offerNew.productSpecification.sName;
-				}
+//				var specIndex = this.$.addOffProductSpecification.selected;
+//				if(specIndex) {
+//					offerNew.productSpecification = this.productSpec[specIndex];
+//					delete offerNew.productSpecification.sName;
+//				}
 				var startDateTime;
 				var endDateTime;
 				if(this.$.addOffStart.value) {
@@ -1055,7 +1057,6 @@
 				}
 				offerNew.productOfferingPrice = this.prices.map(mapPrice);
 				if(offerNew.name
-						&& offerNew.productSpecification
 						&& offerNew.productOfferingPrice.length > 0) {
 					var ajax = this.$.addProductAjax;
 					ajax.body = offerNew;
@@ -1333,7 +1334,7 @@
 				this.addOrUpdateButton = "add";
 				this.$.addOffName.value = null;
 				this.$.addOffDesc.value = null;
-				this.$.addOffProductSpecification.selected = null;
+//				this.$.addOffProductSpecification.selected = null;
 				this.$.addOffStart.value = null;
 				this.$.addOffEnd.value = null;
 				this.$.addProductStartDatePickOff.hide()
