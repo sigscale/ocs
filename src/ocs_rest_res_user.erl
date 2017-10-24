@@ -173,7 +173,7 @@ post_user(RequestBody) ->
 		case ocs:add_user(Username, Password, Locale) of
 			{ok, LastModified} ->
 				Body = mochijson:encode(user(User)),
-				Location = "/partyManagement/v1/individual/" ++ User#httpd_user.username,
+				Location = "/partyManagement/v1/individual/" ++ Username,
 				Headers = [{location, Location}, {etag, ocs_rest:etag(LastModified)}],
 				{ok, Headers, Body};
 			{error, _Reason} ->
@@ -314,7 +314,7 @@ user([{"id", ID} | T], Acc) when is_list(ID) ->
 	user(T, Acc#httpd_user{username = Username});
 user([{"href", Href} | T], Acc) when is_list(Href) ->
 	user(T, Acc);
-user([{"characteristic", Chars} | T], Acc) when is_list(Chars) ->
+user([{"characteristic", {array, Chars}} | T], Acc) when is_list(Chars) ->
 	user(T, user1(Chars, Acc));
 user([], Acc) ->
 	Acc.
