@@ -100,8 +100,7 @@
 					<paper-button
 							class="cancel-button"
 							dialog-dismiss
-							autofocus
-							onclick="addUserModal.close()">
+							on-tap="cancelDialog">
 						<i18n-msg msgid="cancel">
 							Cancel
 						</i18n-msg>
@@ -142,13 +141,17 @@
 				} else if (this.$.addUserLocale.selected == 1) {
 					language.value = "es";
 				}
-				var characteristic = new Array();
-				characteristic.push(username);
-				characteristic.push(password);
-				characteristic.push(language);
-				user.characteristic = characteristic;
-				this.$.addUserAjax.body = user;
-				this.$.addUserAjax.generateRequest();
+				if(this.$.addUserName.value) {
+					var characteristic = new Array();
+					characteristic.push(username);
+					characteristic.push(password);
+					characteristic.push(language);
+					user.characteristic = characteristic;
+					this.$.addUserAjax.body = user;
+					this.$.addUserAjax.generateRequest();
+				} else {
+					document.getElementById('addUserToastErrorForm').open();
+				}
 			},
 			_addUserResponse: function(event) {
 				this.$.addUserModal.close();
@@ -160,6 +163,12 @@
 			_addUserError: function(event) {
 				this.$.addUserToastError.text = event.detail.request.xhr.statusText;
 				this.$.addUserToastError.open();
+			},
+			cancelDialog: function() {
+				this.$.addUserName.value = null;
+				this.$.addUserPassword.value = null;
+				this.$.addUserLocale.selected = null;
+				this.$.addUserModal.close();
 			},
 			_onLoadingChanged: function(event) {
 				if (this.$.addUserAjax.loading) {

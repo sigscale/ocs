@@ -112,8 +112,8 @@
 				<vaadin-grid-column width="12ex" flex-grow="2">
 					<template class="header">
 							<vaadin-grid-sorter path="totalBalance">
-								<vaadin-grid-filter aria-label="Octets" path="totalBalance" value="[[_filterBalance]]">
-									<input placeholder="Octets" value="{{_filterBalance::input}}" focus-target>
+								<vaadin-grid-filter aria-label="[[i18n.octets]]" path="totalBalance" value="[[_filterBalance]]">
+									<input placeholder="[[i18n.octets]]" value="{{_filterBalance::input}}" focus-target>
 								</vaadin-grid-filter>
 							</vaadin-grid-sorter>
 					</template>
