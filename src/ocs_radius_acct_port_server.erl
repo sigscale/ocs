@@ -293,9 +293,9 @@ request1(?AccountingStop, AcctSessionId, Id,
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{error, Reason} ->
 			error_logger:warning_report(["Accounting failed",
-					{module, ?MODULE}, {subscriber, Subscriber},
-					{username, Subscriber}, {nas, NasId}, {address, Address},
-					{session, AcctSessionId}]),
+					{error, Reason}, {module, ?MODULE},
+					{subscriber, Subscriber}, {nas, NasId},
+					{address, Address}, {session, AcctSessionId}]),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{ok, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
