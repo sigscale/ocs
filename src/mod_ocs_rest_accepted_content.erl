@@ -54,7 +54,8 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 		undefined ->
 			case proplists:get_value(response, Data) of
 				undefined ->
-					case string:tokens(Uri, "/?") of
+					Path = http_uri:decode(Uri),
+					case string:tokens(Path, "/?") of
 						["ocs", "v1", "client"] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_client, Data);
 						["ocs", "v1", "client", _Id] ->

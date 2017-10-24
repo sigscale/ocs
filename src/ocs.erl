@@ -1062,7 +1062,7 @@ authorize(Identity, Password) when is_binary(Identity),
 						Now = erlang:system_time(?MILLISECOND),
 						F2 = fun(#bucket{remain_amount = Amount,
 											termination_date = TD}) when
-													TD =/= undefined,
+													TD =/= undefined;
 													TD > Now,
 													Amount > 0 ->
 										true;
