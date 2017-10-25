@@ -78,9 +78,11 @@ add_product_offering(ReqData) ->
 			Headers = [{location, Href}, {etag, Etag}],
 			{ok, Headers, Body}
 	catch
+		throw:validation_failed ->
+			{error, 400};
 		throw:_Reason1 ->
 			{error, 500};
-		_:_Reason2 ->
+		_:_ ->
 			{error, 400}
 	end.
 
