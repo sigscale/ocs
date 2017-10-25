@@ -216,7 +216,7 @@ patch_user(ID, Etag, "application/json-patch+json", ReqBody) ->
 		end,
 		{Etag1, mochijson:decode(ReqBody)}
 	of
-		{Etag2, {array, Operations}} ->
+		{Etag2, Operations} ->
 			{Port, Address, Directory, _Group} = get_params(),
 			Username = {ID, Address, Port, Directory},
 			F = fun() ->
