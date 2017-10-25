@@ -127,7 +127,7 @@ reserve_units1(_, Product, Subscriber, UnitType, Flag, RequestAmount, Used, Vali
 	end.
 %% @hidden
 determinate_units([#product{price = Prices}], Type, Flag, Used, Validity, Buckets) ->
-	case charge(Type, Used, Flag, lists:sort(fun sort_buckets/2, Buckets)) of
+	case charge(Type, Used, Flag, Buckets) of
 		{Charged, NewBuckets} when Charged < Used ->
 			PriceType = case Type of
 				octets -> usage;
@@ -218,7 +218,7 @@ rating2(#price{type = usage, size = Size, units = seconds,
 	rating3(Amount, Size, seconds, Validity, UsageSecs, Final, Buckets).
 %% @hidden
 rating3(Price, Size, Type, Validity, Used, Final, Buckets) ->
-	case charge(Type, Used, Final, lists:sort(fun sort_buckets/2, Buckets)) of
+	case charge(Type, Used, Final, Buckets) of
 		{Charged, NewBuckets} when Charged < Used ->
 			purchase(Type, Price, Size, Used - Charged, Validity, Final, NewBuckets);
 		{Charged, NewBuckets} ->
@@ -238,7 +238,14 @@ rating3(Price, Size, Type, Validity, Used, Final, Buckets) ->
 		Charged :: integer().
 charge(Type, Charge, Final, Buckets) ->
 	Now = erlang:system_time(?MILLISECOND),
-	charge(Type, Charge, Now, Final, Buckets, [], 0).
+	F = fun(#bucket{termination_date = T1},
+				#bucket{termination_date = T2}) when T1 =< T2 ->
+			true;
+		(_, _)->
+			false
+	end,
+	SortedBuckets = lists:sort(F, Buckets),
+	charge(Type, Charge, Now, Final, SortedBuckets, [], 0).
 %% @hidden
 charge(Type, Charge, Now, Final, [#bucket{bucket_type = Type,
 		termination_date = T1} | T], Acc, Charged) when T1 =/= undefined, T1 =< Now->
@@ -303,13 +310,6 @@ purchase(Type, Price, Size, Used, Validity, Final, Buckets) ->
 				start_date = erlang:system_time(?MILLISECOND)},
 			{Charged, [Bucket | NewBuckets]}
 	end.
-
-%% @hidden
-sort_buckets(#bucket{termination_date = T1}, #bucket{termination_date = T2}) when
-		T1 =< T2->
-	true;
-sort_buckets(_, _)->
-	false.
 
 remove_session(SessionList, [H | T]) ->
 	remove_session1(remove_session(SessionList, T), H);
