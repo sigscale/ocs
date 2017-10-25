@@ -36,25 +36,25 @@
 -define(terminate, 3).
 
 -spec reserve_units(SubscriberID, RequestType, SessionId,
-		SessionIdentification, UnitType, RequestAmount, MonitoryAmount) -> Result
+		SessionIdentification, UnitType, ReserveAmount, DebitAmount) -> Result
 	when
 		SubscriberID :: string() | binary(),
 		RequestType :: 1..3,
 		SessionId :: string(),
 		SessionIdentification :: [tuple()],
 		UnitType :: octets | seconds,
-		RequestAmount :: integer(),
-		MonitoryAmount :: integer(),
+		ReserveAmount :: integer(),
+		DebitAmount :: integer(),
 		Result :: {ok, GrantedAmount} | {out_of_credit, SessionList} | {error, Reason},
 		GrantedAmount :: integer(),
 		SessionList :: [tuple()],
 		Reason :: term().
 reserve_units(SubscriberID, RequestType, SessionId,
-		SessionIdentification, UnitType, RequestAmount, MonitoryAmount) when is_list(SubscriberID) ->
+		SessionIdentification, UnitType, ReserveAmount, DebitAmount) when is_list(SubscriberID) ->
 	reserve_units(list_to_binary(SubscriberID), RequestType,
-			SessionId, SessionIdentification, UnitType, RequestAmount, MonitoryAmount);
+			SessionId, SessionIdentification, UnitType, ReserveAmount, DebitAmount);
 reserve_units(SubscriberID, RequestType, SessionId,
-		SessionIdentification, UnitType, RequestAmount, MonitoryAmount) ->
+		SessionIdentification, UnitType, ReserveAmount, DebitAmount) ->
 	F = fun() ->
 			case mnesia:read(subscriber, SubscriberID, read) of
 				[#subscriber{buckets = Buckets, product =
@@ -64,14 +64,9 @@ reserve_units(SubscriberID, RequestType, SessionId,
 					Validity = proplists:get_value(validity, Chars),
 					case RequestType of
 						?initial ->
-							SA = case update_session(SessionId, SessionIdentification, SessionAttributes, []) of
-								SessionAttributes ->
-									SessionAttributes;
-								NewSessionAttributes ->
-									NewSessionAttributes
-							end,
+							SA = update_session(SessionId, SessionIdentification, SessionAttributes, []),
 							case reserve_units1(?initial, Product, UnitType,
-									false, RequestAmount, MonitoryAmount, Validity, Buckets) of
+									false, ReserveAmount, DebitAmount, Validity, Buckets) of
 								out_of_credit ->
 									mnesia:write(Subscriber#subscriber{session_attributes = []}),
 									{out_of_credit, SA};
@@ -81,7 +76,7 @@ reserve_units(SubscriberID, RequestType, SessionId,
 							end;
 						_ ->
 							case reserve_units1(RequestType, Product, Subscriber,
-									UnitType, true, RequestAmount, MonitoryAmount, Validity, Buckets) of
+									UnitType, true, ReserveAmount, DebitAmount, Validity, Buckets) of
 								out_of_credit ->
 									mnesia:write(Subscriber#subscriber{session_attributes = []}),
 									{out_of_credit, SessionAttributes};
@@ -104,38 +99,34 @@ reserve_units(SubscriberID, RequestType, SessionId,
 			{error, Reason}
 	end.
 %% @hidden
-reserve_units1(?initial, Product, UnitType, Flag, RequestAmount, _Used, Validity, Buckets) ->
-	case determinate_units(Product, UnitType, Flag, RequestAmount, Validity, Buckets) of
+reserve_units1(?initial, Product, UnitType, Flag, ReserveAmount, _DebitAmount, Validity, Buckets) ->
+	case determinate_units(Product, UnitType, Flag, ReserveAmount, Validity, Buckets) of
 		{Charged, _NewBuckets} when Charged =< 0 ->
 			out_of_credit;
 		{_Chraged, _NewBuckets} ->
-			{grant, RequestAmount}	
+			{grant, ReserveAmount}
 	end.
-reserve_units1(_, Product, Subscriber, UnitType, Flag, RequestAmount, Used, Validity, Buckets) ->
-	case determinate_units(Product, UnitType, Flag, Used, Validity, Buckets) of
-		{Charged, NewBuckets} when Charged =< 0 andalso Used =/= 0 ->
+reserve_units1(_, Product, Subscriber, UnitType, Flag, ReserveAmount, DebitAmount, Validity, Buckets) ->
+	case determinate_units(Product, UnitType, Flag, DebitAmount, Validity, Buckets) of
+		{Charged, NewBuckets} when Charged =< 0 andalso DebitAmount =/= 0 ->
 			mnesia:write(Subscriber#subscriber{buckets = NewBuckets}),
 			out_of_credit;
 		{_Charged, NewBuckets} ->	
 			mnesia:write(Subscriber#subscriber{buckets = NewBuckets}),
-			case determinate_units(Product, UnitType, Flag, RequestAmount, Validity, Buckets) of
-				{Ch1, _NB1} when Ch1 =< 0 andalso RequestAmount =/=0  ->
+			case determinate_units(Product, UnitType, Flag, ReserveAmount, Validity, Buckets) of
+				{Ch1, _NB1} when Ch1 =< 0 andalso ReserveAmount =/=0  ->
 					out_of_credit;
 				_ ->
-					{grant, RequestAmount}
+					{grant, ReserveAmount}
 			end
 	end.
 %% @hidden
-determinate_units([#product{price = Prices}], Type, Flag, Used, Validity, Buckets) ->
-	case charge(Type, Used, Flag, Buckets) of
-		{Charged, NewBuckets} when Charged < Used ->
-			PriceType = case Type of
-				octets -> usage;
-				seconds -> seconds
-			end,
-			case lists:keyfind(PriceType, #price.type, Prices) of
+determinate_units([#product{price = Prices}], Type, Flag, DebitAmount, Validity, Buckets) ->
+	case charge(Type, DebitAmount, Flag, Buckets) of
+		{Charged, NewBuckets} when Charged < DebitAmount ->
+			case lists:keyfind(Type, #price.type, Prices) of
 				#price{size = Size, amount = Price} ->
-					purchase(Type, Price, Size, Used - Charged, Validity, false, NewBuckets);
+					purchase(Type, Price, Size, DebitAmount - Charged, Validity, false, NewBuckets);
 				false ->
 					throw(price_not_found)
 			end;
