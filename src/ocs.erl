@@ -654,7 +654,8 @@ add_product(#product{price = Prices} = Product) when length(Prices) > 0 ->
 			(#alteration{type = recurring, period = Period,
 					units = undefined, size = undefined, amount = Amount})
 					when ((Period == hourly) or (Period == daily)
-					or (Period == weekly) or (Period == yearly)),
+					or (Period == weekly) or (Period == monthly)
+					or (Period == yearly)),
 					is_integer(Amount), Amount > 0 ->
 				true;
 			(#alteration{type = usage, period = undefined,
@@ -674,7 +675,8 @@ add_product(#product{price = Prices} = Product) when length(Prices) > 0 ->
 					units = undefined, size = undefined,
 					amount = Amount, alteration = Alteration})
 					when ((Period == hourly) or (Period == daily)
-					or (Period == weekly) or (Period == yearly)),
+					or (Period == weekly) or (Period == monthly)
+					or (Period == yearly)),
 					is_integer(Amount), Amount > 0 ->
 				Fvala(Alteration);
 			(#price{type = usage, period = undefined,
