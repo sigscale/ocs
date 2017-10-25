@@ -190,7 +190,7 @@
 											Logs
 										</i18n-msg>
 								</paper-icon-item>
-								<paper-menu class="menu-content sublist">
+								<paper-menu id="logMenu" class="menu-content sublist">
 									<paper-icon-item
 											id="pageAccess"
 											onclick="drawer.toggle()"
@@ -262,15 +262,19 @@
 				switch(event.detail.item.getAttribute('id')) {
 					case 'pageProducts':
 						this.$.loadPage.selected = 0;
+						this.$.logMenu.selected = null;
 						break;
 					case 'pageSubscribers':
 						this.$.loadPage.selected = 1;
+						this.$.logMenu.selected = null;
 						break;
 					case 'pageClients':
 						this.$.loadPage.selected = 2;
+						this.$.logMenu.selected = null;
 						break;
 					case 'pageUsers':
 						this.$.loadPage.selected = 3;
+						this.$.logMenu.selected = null;
 						break;
 					case 'pageAccess':
 						this.$.loadPage.selected = 4;
