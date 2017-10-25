@@ -668,6 +668,8 @@ offer([{"productOfferingPrice", {array, Prices1}} | T], Acc) when is_list(Prices
 	offer(T, Acc#product{price = Prices2});
 offer([{"characteristic", Chars} | T], Acc) when is_list(Chars) ->
 	offer(T, Acc#product{characteristics = characteristics(Chars)});
+offer([{"lastUpdate", LastUpdate} | T], Acc) when is_list(LastUpdate) ->
+	offer(T, Acc);
 offer([], Acc) ->
 	Acc.
 
