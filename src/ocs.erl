@@ -644,15 +644,65 @@ update_attributes(Identity, Buckets, Attributes, EnabledStatus, MultiSession)
 		Result :: {ok, #product{}} | {error, Reason},
 		Reason :: term().
 %% @doc Add a new entry in product table.
-add_product(Product) ->
-	F = fun() ->
+add_product(#product{price = Prices} = Product) when length(Prices) > 0 ->
+	Fvala = fun(undefined) ->
+				true;
+			(#alteration{type = one_time, period = undefined,
+					units = undefined, size = undefined,
+					amount = Amount}) when is_integer(Amount) ->
+				true;
+			(#alteration{type = recurring, period = Period,
+					units = undefined, size = undefined, amount = Amount})
+					when ((Period == hourly) or (Period == daily)
+					or (Period == weekly) or (Period == yearly)),
+					is_integer(Amount), Amount > 0 ->
+				true;
+			(#alteration{type = usage, period = undefined,
+					units = Units, size = Size, amount = Amount})
+					when ((Units == octets) or (Units == seconds)),
+					is_integer(Size), Size > 0, is_integer(Amount)->
+				true;
+			(#alteration{}) ->
+				false
+	end,
+	Fvalp = fun(#price{type = one_time, period = undefined,
+					units = undefined, size = undefined,
+					amount = Amount, alteration = Alteration})
+					when is_integer(Amount), Amount > 0 ->
+				Fvala(Alteration);
+			(#price{type = recurring, period = Period,
+					units = undefined, size = undefined,
+					amount = Amount, alteration = Alteration})
+					when ((Period == hourly) or (Period == daily)
+					or (Period == weekly) or (Period == yearly)),
+					is_integer(Amount), Amount > 0 ->
+				Fvala(Alteration);
+			(#price{type = usage, period = undefined,
+					units = Units, size = Size,
+					amount = Amount, alteration = Alteration})
+					when ((Units == octets) or (Units == seconds)),
+					is_integer(Size), Size > 0,
+					is_integer(Amount), Amount > 0 ->
+				Fvala(Alteration);
+			(#price{}) ->
+				false
+	end,
+	case lists:all(Fvalp, Prices) of
+		true ->
+			add_product1(Product);
+		false ->
+			{error, failed_validation}
+	end.
+%% @hidden
+add_product1(Product) ->
+	Fadd = fun() ->
 		TS = erlang:system_time(?MILLISECOND),
 		N = erlang:unique_integer([positive]),
 		Product1 = Product#product{last_modified = {TS, N}},
 		ok = mnesia:write(product, Product1, write),
 		Product1
 	end,
-	case mnesia:transaction(F) of
+	case mnesia:transaction(Fadd) of
 		{atomic, Product2} ->
 			{ok, Product2};
 		{aborted, Reason} ->
