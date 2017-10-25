@@ -286,7 +286,12 @@ purchase(Type, Price, Size, Used, Validity, Final, Buckets) ->
 		{Charged, NewBuckets} when Charged < Charge ->
 			{Charged, NewBuckets};
 		{Charged, NewBuckets} ->
-			Remain = UnitsNeeded * Size - Used,
+			Remain = case Final of
+				true ->
+					UnitsNeeded * Size - Used;
+				false ->
+					UnitsNeeded * Size
+			end,
 			Bucket = #bucket{bucket_type = Type, remain_amount = Remain,
 				termination_date = Validity,
 				start_date = erlang:system_time(?MILLISECOND)},
