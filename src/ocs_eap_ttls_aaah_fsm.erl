@@ -186,11 +186,11 @@ handle_info({ssl, SslSocket, AVPs}, request,
 	try
 		AvpList = diameter_codec:collect_avps(AVPs),
 		#diameter_avp{data = Password} = lists:keyfind(?UserPassword, #diameter_avp.code, AvpList),
-		#diameter_avp{data = Identity1} = lists:keyfind(?UserName, #diameter_avp.code, AvpList),
-		handle_info1(Identity1, iolist_to_binary(Password))
+		#diameter_avp{data = Identity} = lists:keyfind(?UserName, #diameter_avp.code, AvpList),
+		handle_info1(Identity, iolist_to_binary(Password))
 	of
-		{ok, Identity2} ->
-			gen_fsm:send_event(TtlsFsm, {accept, Identity2, SslSocket}),
+		{ok, Subscriber} ->
+			gen_fsm:send_event(TtlsFsm, {accept, Subscriber, SslSocket}),
 			{next_state, request, StateData};
 		{error, Reason} ->
 			gen_fsm:send_event(TtlsFsm, reject),
@@ -210,10 +210,10 @@ handle_info({ssl_error, SslSocket, Reason}, request, #statedata{ssl_socket = Ssl
 	%gen_fsm:send_event(RadiusFsm, {reject, SslSocket, Reason}),
 	{stop, Reason, StateData}.
 %% @hidden
-handle_info1(Subscriber, Password) ->
+handle_info1(Identity, Password) ->
 	try
-		case ocs:find_subscriber(Subscriber) of
-			{ok, #subscriber{password = UserPassWord}} ->
+		case ocs:find_subscriber(Identity) of
+			{ok, #subscriber{password = UserPassWord} = Subscriber} ->
 				Size = size(UserPassWord),
 				<<UserPassWord:Size/binary, _/binary>> = Password,
 				{ok, Subscriber};
