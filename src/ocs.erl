@@ -642,7 +642,7 @@ update_attributes(Identity, Buckets, Attributes, EnabledStatus, MultiSession)
 	when
 		Product :: #product{},
 		Result :: {ok, #product{}} | {error, Reason},
-		Reason :: term().
+		Reason :: validation_failed | term().
 %% @doc Add a new entry in product table.
 add_product(#product{price = Prices} = Product) when length(Prices) > 0 ->
 	Fvala = fun(undefined) ->
@@ -691,7 +691,7 @@ add_product(#product{price = Prices} = Product) when length(Prices) > 0 ->
 		true ->
 			add_product1(Product);
 		false ->
-			{error, failed_validation}
+			{error, validation_failed}
 	end.
 %% @hidden
 add_product1(Product) ->
