@@ -46,6 +46,10 @@
 		disc_id = 1 :: integer()}).
 -type state() :: #state{}.
 
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
+
 %%----------------------------------------------------------------------
 %%  The ocs_radius_acct_port_server API
 %%----------------------------------------------------------------------
@@ -251,12 +255,13 @@ request(Address, AccPort, Secret,
 			{reply, {error, ignore}, State}
 	end.
 %% @hidden
-request1(?AccountingStart, AcctSessionId, Id,
+request1(?AccountingStart, _AcctSessionId, Id,
 		Authenticator, Secret, NasId, Address, _AccPort, _ListenPort, Attributes,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
+	SessionAttributes = extract_session_attributes(Attributes),
 	SessionIdentification = [{?NasIdentifier, NasId}, {?NasIpAddress, Address}],
 	{ok, Subscriber} = radius_attributes:find(?UserName, Attributes),
-	case update_session(Subscriber, AcctSessionId, SessionIdentification) of
+	case update_session(Subscriber, SessionAttributes, SessionIdentification) of
 		ok ->
 			ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, start, Attributes),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
@@ -382,14 +387,15 @@ start_disconnect1(DiscSup, Subscriber, SessionAttributes) ->
 	StartArgs = [DiscArgs, []],
 	supervisor:start_child(DiscSup, StartArgs).
 
-update_session(SubscriberId, AcctSessionId, SessionIdentification) when is_list(SubscriberId) ->
-	update_session(list_to_binary(SubscriberId), AcctSessionId, SessionIdentification);
-update_session(SubscriberId, AcctSessionId, SessionIdentification) when is_binary(SubscriberId) ->
+update_session(SubscriberId, SessionAttributes, SessionIdentification) when is_list(SubscriberId) ->
+	update_session(list_to_binary(SubscriberId), SessionAttributes, SessionIdentification);
+update_session(SubscriberId, SessionAttributes, SessionIdentification) when is_binary(SubscriberId) ->
 	F = fun() ->
 			case mnesia:read(subscriber, SubscriberId, write) of
-				[#subscriber{session_attributes = SessionAttributes} = Subscriber] ->
-					case update_session1(AcctSessionId, SessionIdentification, SessionAttributes) of
-						SessionAttributes ->
+				[#subscriber{session_attributes = SessionAttrList} = Subscriber] ->
+					case update_session1(SessionAttributes,
+							SessionIdentification, SessionAttrList) of
+						SessionAttrList ->
 							ok;
 						NSA ->
 							mnesia:write(Subscriber#subscriber{session_attributes = NSA})
@@ -407,25 +413,18 @@ update_session(SubscriberId, AcctSessionId, SessionIdentification) when is_binar
 			{error, Reason}
 	end.
 %% @hidden
-update_session1(AcctSessionId, SessionIdentification, SessionLists) ->
-	update_session2(AcctSessionId, SessionIdentification, SessionLists, []).
+update_session1(SessionAttributes, SessionIdentification, SessionLists) ->
+	update_session2(SessionAttributes, SessionIdentification, SessionLists, []).
 %% @hidden
-update_session2(_AcctSessionId, _SessionIdentification, [], Acc) ->
-	Acc;
-update_session2(AcctSessionId, SessionIdentification, [{TS, SessionAttributes} = H | T] = S, Acc) ->
-	case update_session3(SessionIdentification, SessionAttributes) of
+update_session2(SessionAttributes, _SessionIdentification, [], Acc) ->
+	Now = erlang:system_time(?MILLISECOND),
+	[{Now, SessionAttributes} | Acc];
+update_session2(SessionAttributes, SessionIdentification, [{_, Attributes} = H | T] = S, Acc) ->
+	case update_session3(SessionIdentification, Attributes) of
 		true ->
-			case lists:keyfind(?AcctSessionId, 1, SessionAttributes) of
-				{_, _} ->
-					S ++ Acc;
-				false ->
-					Identification = radius_attributes:store(?AcctSessionId,
-							AcctSessionId, SessionAttributes),
-					NewAcc = [{TS, Identification} | T],
-					NewAcc ++ Acc
-			end;
+			S ++ Acc;
 		false ->
-			update_session2(AcctSessionId, SessionIdentification, T, [H | Acc])
+			update_session2(SessionAttributes, SessionIdentification, T, [H | Acc])
 	end.
 %% @hidden
 update_session3([], _SessionAttributes) ->
@@ -438,3 +437,22 @@ update_session3([Identifier | T], SessionAttributes) ->
 			update_session3(T, SessionAttributes)
 	end.
 
+-spec extract_session_attributes(Attributes) -> SessionAttributes
+	when
+		Attributes :: radius_attributes:attributes(),
+		SessionAttributes :: radius_attributes:attributes().
+%% @doc Extract and return RADIUS session related attributes from
+%% `Attributes'.
+%% @hidden
+extract_session_attributes(Attributes) ->
+	F = fun({K, _}) when K == ?NasIdentifier; K == ?NasIpAddress;
+				K == ?UserName; K == ?FramedIpAddress; K == ?NasPort;
+				K == ?NasPortType; K == ?CalledStationId; K == ?CallingStationId;
+				K == ?AcctSessionId; K == ?AcctMultiSessionId; K == ?NasPortId;
+				K == ?OriginatingLineInfo; K == ?FramedInterfaceId;
+				K == ?FramedIPv6Prefix ->
+			true;
+		(_) ->
+			false
+	end,
+	lists:filter(F, Attributes).

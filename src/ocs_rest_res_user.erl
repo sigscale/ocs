@@ -216,13 +216,13 @@ patch_user(ID, Etag, "application/json-patch+json", ReqBody) ->
 		end,
 		{Etag1, mochijson:decode(ReqBody)}
 	of
-		{Etag2, {array, Operations}} ->
+		{Etag2, Operations} ->
 			{Port, Address, Directory, _Group} = get_params(),
 			Username = {ID, Address, Port, Directory},
 			F = fun() ->
 					case mnesia:read(httpd_user, Username, write) of
 						[#httpd_user{user_data = UserData1} = User1] ->
-							case lists:keyfind(etag, 1, UserData1) of
+							case lists:keyfind(last_modified, 1, UserData1) of
 								{_, Etag3} when Etag3 == Etag2; Etag3 == undefined ->
 									case catch ocs_rest:patch(Operations, user(User1)) of
 										#httpd_user{user_data = UserData2} = User2 ->
