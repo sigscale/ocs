@@ -757,19 +757,16 @@ confirm3(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 			<<?PWD, MethodID/binary>>, 128),
 	Salt = crypto:rand_uniform(16#8000, 16#ffff),
 	MsMppeKey = encrypt_key(Secret, RequestAuthenticator, Salt, MSK),
-	Attr0 = radius_attributes:new(),
 	UserName = binary_to_list(PeerID),
-	Attr1 = radius_attributes:add(?UserName, UserName, Attr0),
-	VendorSpecific1 = {?Microsoft, {?MsMppeSendKey, {Salt, MsMppeKey}}},
-	Attr2 = radius_attributes:add(?VendorSpecific, VendorSpecific1, Attr1),
-	VendorSpecific2 = {?Microsoft, {?MsMppeRecvKey, {Salt, MsMppeKey}}},
-	Attr3 = radius_attributes:add(?VendorSpecific, VendorSpecific2, Attr2),
-	Attr4 = radius_attributes:add(?SessionTimeout, 86400, Attr3),
-	Attr5 = radius_attributes:add(?AcctInterimInterval, 300, Attr4),
 	case ocs:authorize(PeerID, Password) of
-		{ok, _}  ->
+		{ok, #subscriber{attributes = Attributes}}  ->
+			Attr1 = radius_attributes:store(?UserName, UserName, Attributes),
+			VendorSpecific1 = {?Microsoft, {?MsMppeSendKey, {Salt, MsMppeKey}}},
+			Attr2 = radius_attributes:store(?VendorSpecific, VendorSpecific1, Attr1),
+			VendorSpecific2 = {?Microsoft, {?MsMppeRecvKey, {Salt, MsMppeKey}}},
+			Attr3 = radius_attributes:store(?VendorSpecific, VendorSpecific2, Attr2),
 			EapPacket = #eap_packet{code = success, identifier = EapID},
-			send_response(EapPacket, ?AccessAccept, Attr5, RadiusID,
+			send_response(EapPacket, ?AccessAccept, Attr3, RadiusID,
 					RequestAuthenticator, RequestAttributes, StateData),
 			{stop, {shutdown, SessionID}, StateData#statedata{mk = MK, msk = MSK}};
 		{error, _Reason} ->
