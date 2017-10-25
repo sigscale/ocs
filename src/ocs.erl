@@ -647,43 +647,47 @@ update_attributes(Identity, Buckets, Attributes, EnabledStatus, MultiSession)
 add_product(#product{price = Prices} = Product) when length(Prices) > 0 ->
 	Fvala = fun(undefined) ->
 				true;
-			(#alteration{type = one_time, period = undefined,
-					units = undefined, size = undefined,
-					amount = Amount}) when is_integer(Amount) ->
+			(#alteration{name = Name, type = one_time,
+					period = undefined, units = undefined,
+					size = undefined, amount = Amount})
+					when length(Name) > 0, is_integer(Amount) ->
 				true;
-			(#alteration{type = recurring, period = Period,
+			(#alteration{name = Name, type = recurring, period = Period,
 					units = undefined, size = undefined, amount = Amount})
-					when ((Period == hourly) or (Period == daily)
-					or (Period == weekly) or (Period == monthly)
-					or (Period == yearly)),
+					when length(Name) > 0, ((Period == hourly)
+					or (Period == daily) or (Period == weekly)
+					or (Period == monthly) or (Period == yearly)),
 					is_integer(Amount), Amount > 0 ->
 				true;
-			(#alteration{type = usage, period = undefined,
+			(#alteration{name = Name, type = usage, period = undefined,
 					units = Units, size = Size, amount = Amount})
-					when ((Units == octets) or (Units == seconds)),
-					is_integer(Size), Size > 0, is_integer(Amount)->
+					when length(Name) > 0, ((Units == octets)
+					or (Units == seconds)), is_integer(Size), Size > 0,
+					is_integer(Amount) ->
 				true;
 			(#alteration{}) ->
 				false
 	end,
-	Fvalp = fun(#price{type = one_time, period = undefined,
-					units = undefined, size = undefined,
-					amount = Amount, alteration = Alteration})
-					when is_integer(Amount), Amount > 0 ->
+	Fvalp = fun(#price{name = Name, type = one_time,
+					period = undefined, units = undefined,
+					size = undefined, amount = Amount,
+					alteration = Alteration})
+					when length(Name) > 0, is_integer(Amount), Amount > 0 ->
 				Fvala(Alteration);
-			(#price{type = recurring, period = Period,
-					units = undefined, size = undefined,
-					amount = Amount, alteration = Alteration})
-					when ((Period == hourly) or (Period == daily)
-					or (Period == weekly) or (Period == monthly)
-					or (Period == yearly)),
+			(#price{name = Name, type = recurring,
+					period = Period, units = undefined,
+					size = undefined, amount = Amount,
+					alteration = Alteration})
+					when length(Name) > 0, ((Period == hourly)
+					or (Period == daily) or (Period == weekly)
+					or (Period == monthly) or (Period == yearly)),
 					is_integer(Amount), Amount > 0 ->
 				Fvala(Alteration);
-			(#price{type = usage, period = undefined,
+			(#price{name = Name, type = usage, period = undefined,
 					units = Units, size = Size,
 					amount = Amount, alteration = Alteration})
-					when ((Units == octets) or (Units == seconds)),
-					is_integer(Size), Size > 0,
+					when length(Name) > 0, ((Units == octets)
+					or (Units == seconds)), is_integer(Size), Size > 0,
 					is_integer(Amount), Amount > 0 ->
 				Fvala(Alteration);
 			(#price{}) ->

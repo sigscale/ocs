@@ -935,7 +935,11 @@
 					if(item.unit && item.size) {
 						var len = item.size.length;
 						var m = item.size.charAt(len - 1);
-						var s = item.size.slice(0, (len - 1));
+						if(isNaN(parseInt(m))) {
+							var s = item.size;
+						} else {
+							var s = item.size.slice(0, (len - 1));
+						}
 						if(item.unit == "b") {
 							if (m == "m") {
 								out.unitOfMeasure = s + "000000b";
@@ -944,20 +948,18 @@
 							} else if(m == "k") {
 								out.unitOfMeasure = s + "000b";
 							} else {
-								out.unitOfMeasure = item.size;
+								out.unitOfMeasure = s + "b";
 							}
-						} else if(item.unit == "c"){
-							out.unitOfMeasure = item.amount + "c";
 						} else if(item.unit == "s") {
 							var n = Number(s);
 							if(m == "m") {
 								n = n * 60;
-								out.unitOfMeasure = n.toString();
+								out.unitOfMeasure = n.toString() + "s";
 							} else if(m == "h") {
 								n = n * 3600;
-								out.unitOfMeasure = n.toString();
+								out.unitOfMeasure = n.toString() + "s";
 							} else {
-								out.unitOfMeasure = item.size;
+								out.unitOfMeasure = n.toString() + "s";
 							}
 						}
 					}
