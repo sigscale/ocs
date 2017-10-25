@@ -95,9 +95,7 @@ init_per_suite(Config) ->
 			{ok, _} = ocs:add_user(RestUser, RestPass, "en"),
 			{"localhost", P2}
 	end,
-	ProductID = "Data Bonanza",
-	Product = #product{name = ProductID},
-	{ok, _} = ocs:add_product(Product),
+	{ok, ProductID} = ocs_test_lib:add_product(),
 	Config1 = [{port, Port}, {product_id, ProductID} | Config],
 	HostUrl = "https://" ++ Host ++ ":" ++ integer_to_list(Port),
 	[{host_url, HostUrl} | Config1].
