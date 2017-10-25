@@ -124,8 +124,8 @@ reserve_units1(_, Product, Subscriber, UnitType, Flag, ReserveAmount, DebitAmoun
 determinate_units([#product{price = Prices}], Type, Flag, DebitAmount, Validity, Buckets) ->
 	case charge(Type, DebitAmount, Flag, Buckets) of
 		{Charged, NewBuckets} when Charged < DebitAmount ->
-			case lists:keyfind(Type, #price.type, Prices) of
-				#price{size = Size, amount = Price} ->
+			case lists:keyfind(usage, #price.type, Prices) of
+				#price{units = Type, size = Size, amount = Price} ->
 					purchase(Type, Price, Size, DebitAmount - Charged, Validity, false, NewBuckets);
 				false ->
 					throw(price_not_found)
