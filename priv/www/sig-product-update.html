@@ -760,7 +760,7 @@
 							var newAlt = new Object();
 							newAlt.name = item.prices[index].productOfferPriceAlteration.name;
 							newAlt.description = item.prices[index].productOfferPriceAlteration.description;
-							if(item.prices[index].validFor){
+							if(item.prices[index].validFor) {
 								newAlt.start = item.prices[index].productOfferPriceAlteration.validFor.startDateTime;
 								newAlt.end = item.prices[index].productOfferPriceAlteration.validFor.endDateTime;
 							}
@@ -772,7 +772,6 @@
 							}
 							newAlt.period = item.prices[index].productOfferPriceAlteration.recurringChargePeriod;
 							this.push('alterations', newAlt);
-							}
 						}
 						newPrice.alteration = this.alterations.findIndex(checkAlt1);
 						this.push('prices', newPrice);
