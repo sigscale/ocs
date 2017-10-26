@@ -98,16 +98,19 @@ rate1(#subscriber{buckets = Buckets, product = #product_instance{characteristics
 		#price{units = Type, size = Size, amount = Price} = lists:keyfind(usage, #price.type, Prices),
 		{Type, Used} = lists:keyfind(Type, 1, DebitAmount),
 		case charge(Type, Used, true, Buckets) of
-			{C1, NB1} when C1 < Used ->
-				{C2, NB2}  = purchase(Type, Price, Size, Used - C1, Validity, true, NB1),
-				{C2, NB2, (Used - C1)};
-			{C1, NB1} ->
-				{C1, NB1, Used}
+			{R1, C1, NB1} when R1 > 0 ->
+				{R2, C2, NB2}  = purchase(Type, Price, Size, Used - C1, Validity, true, NB1),
+				{R2, NB2};
+			{R1, C1, NB1} ->
+				{R1, NB1}
 		end
 	of
-		{Charged, NewBuckets, _UsedRemain}  ->
+		{RemainCharge, NewBuckets}  when RemainCharge > 0 ->
+			rate3(Subscriber#subscriber{buckets = NewBuckets},
+					RemainCharge, Flag, ReserveAmount, SessionIdentification);
+		{RemainCharge, NewBuckets} ->
 			rate2(Subscriber#subscriber{buckets = NewBuckets},
-					Prices, Flag, ReserveAmount, SessionIdentification, Charged)
+					Prices, Flag, ReserveAmount, SessionIdentification, RemainCharge)
 	catch
 		_:_ ->
 			throw(price_not_found)
@@ -122,16 +125,16 @@ rate2(#subscriber{buckets = Buckets, product = #product_instance{characteristics
 		#price{units = Type, size = Size, amount = Price} = lists:keyfind(usage, #price.type, Prices),
 		{Type, Reserve} = lists:keyfind(Type, 1, ReserveAmount),
 		case charge(Type, Reserve, false, Buckets) of
-			{C1, NB1} when C1 < Reserve ->
+			{R1, C1, NB1} when R1 < 0 ->
 				{C2, NB2} = purchase(Type, Price, Size, Reserve - C1, Validity, false, NB1),
-				{C2, NB2, Reserve};
-			{C1, NB1} ->
-				{C1, NB1, Reserve}
+				{R1, NB2, Reserve};
+			{R1, C1, NB1} ->
+				{R1, NB1, Reserve}
 		end
 	of
-		{NewCharged, NewBuckets, Amount} ->
+		{RemainCharge, NewBuckets, Amount} ->
 			rate3(Subscriber#subscriber{buckets = NewBuckets},
-					NewCharged, Flag, Amount, SessionIdentification)
+					RemainCharge, Flag, Amount, SessionIdentification)
 	catch
 		_:_ ->
 			throw(price_not_found)
@@ -139,8 +142,9 @@ rate2(#subscriber{buckets = Buckets, product = #product_instance{characteristics
 %% @hidden
 rate3(#subscriber{session_attributes = SessionList} = Subscriber,
 		Charged, Flag, ReserveAmount, SessionIdentification) ->
+erlang:display({?MODULE, ?LINE, Charged}),
 	case Charged of
-		C1 when C1 == 0 ->
+		C1 when C1 > 0 ->
 			Entry = Subscriber#subscriber{session_attributes = []},
 			ok = mnesia:write(Entry),
 			{out_of_credit, SessionList};
@@ -167,7 +171,8 @@ rate3(#subscriber{session_attributes = SessionList} = Subscriber,
 		Charge :: integer(),
 		Final :: boolean(),
 		Buckets :: [#bucket{}],
-		Result :: {Charged, Buckets},
+		Result :: {RemainCharge, Charged, Buckets},
+		RemainCharge :: integer(),
 		Charged :: integer().
 charge(Type, Charge, Final, Buckets) ->
 	Now = erlang:system_time(?MILLISECOND),
@@ -186,14 +191,14 @@ charge(Type, Charge, Now, Final, [#bucket{bucket_type = Type,
 charge(Type, Charge, _Now, true, [#bucket{bucket_type = Type,
 		remain_amount = R} = B | T], Acc, Charged) when R > Charge ->
 	NewBuckets = [B#bucket{remain_amount = R - Charge} | T],
-	{Charged + Charge, NewBuckets ++ Acc};
+	{Charge, Charged + Charge, NewBuckets ++ Acc};
 charge(cents, Charge, _Now, false, [#bucket{bucket_type = cents,
 		remain_amount = R} = H | T], Acc, Charged) when R > Charge ->
 	NewBuckets = [H#bucket{remain_amount = R - Charge} | T],
-	{Charged + Charge, NewBuckets ++ Acc};
+	{Charge, Charged + Charge, NewBuckets ++ Acc};
 charge(Type, Charge, _Now, false, [#bucket{bucket_type = Type,
 		remain_amount = R} | _] = B, Acc, Charged) when R > Charge ->
-	{Charged + Charge, B ++ Acc};
+	{Charge, Charged + Charge, B ++ Acc};
 charge(Type, Charge, Now, true, [#bucket{bucket_type = Type,
 		remain_amount = R} | T], Acc, Charged) when R =< Charge ->
 	charge(Type, Charge - R, Now, true, T, Acc, Charged + R);
@@ -201,11 +206,11 @@ charge(Type, Charge, Now, false, [#bucket{bucket_type = Type,
 		remain_amount = R}  = B | T], Acc, Charged) when R =< Charge ->
 	charge(Type, Charge - R, Now, false, T, [B | Acc], Charged);
 charge(_Type, 0, _Now, _Final, Buckets, Acc, Charged) ->
-	{Charged, Buckets ++ Acc};
+	{0, Charged, Buckets ++ Acc};
 charge(Type, Charge, Now, Final, [H | T], Acc, Charged) ->
 	charge(Type, Charge, Now, Final, T, [H | Acc], Charged);
-charge(_Type, _Charge, _Now, _Final, [], Acc, Charged) ->
-	{Charged, Acc}.
+charge(_Type, Charge, _Now, _Final, [], Acc, Charged) ->
+	{Charge, Charged, Acc}.
 
 -spec purchase(Type, Price, Size, Used, Validity, Final, Buckets) -> Result
 	when
@@ -227,9 +232,9 @@ purchase(Type, Price, Size, Used, Validity, Final, Buckets) ->
 	end,
 	Charge = UnitsNeeded * Price,
 	case charge(cents, Charge, Final, Buckets) of
-		{Charged, NewBuckets} when Charged < Charge ->
-			{Charged, NewBuckets};
-		{Charged, NewBuckets} ->
+		{RemainCharge, Charged, NewBuckets} when Charged < Charge ->
+			{RemainCharge, Charged, NewBuckets};
+		{RemainCharge, Charged, NewBuckets} when RemainCharge =/= 0 ->
 			Remain = case Final of
 				true ->
 					UnitsNeeded * Size - Used;
@@ -239,7 +244,9 @@ purchase(Type, Price, Size, Used, Validity, Final, Buckets) ->
 			Bucket = #bucket{bucket_type = Type, remain_amount = Remain,
 				termination_date = Validity,
 				start_date = erlang:system_time(?MILLISECOND)},
-			{Charged, [Bucket | NewBuckets]}
+			{RemainCharge, Charged, [Bucket | NewBuckets]};
+		{RemainCharge, Charged, NewBuckets} ->
+			{RemainCharge, Charged, NewBuckets}
 	end.
 
 remove_session(SessionList, [H | T]) ->
