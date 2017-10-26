@@ -125,9 +125,9 @@ rate2(#subscriber{buckets = Buckets, product = #product_instance{characteristics
 		#price{units = Type, size = Size, amount = Price} = lists:keyfind(usage, #price.type, Prices),
 		{Type, Reserve} = lists:keyfind(Type, 1, ReserveAmount),
 		case charge(Type, Reserve, false, Buckets) of
-			{R1, C1, NB1} when R1 < 0 ->
-				{C2, NB2} = purchase(Type, Price, Size, Reserve - C1, Validity, false, NB1),
-				{R1, NB2, Reserve};
+			{R1, C1, NB1} when R1 > 0 ->
+				{R2, C2, NB2} = purchase(Type, Price, Size, Reserve - C1, Validity, false, NB1),
+				{R2, NB2, Reserve};
 			{R1, C1, NB1} ->
 				{R1, NB1, Reserve}
 		end
@@ -140,9 +140,8 @@ rate2(#subscriber{buckets = Buckets, product = #product_instance{characteristics
 			throw(price_not_found)
 	end.
 %% @hidden
-rate3(#subscriber{session_attributes = SessionList} = Subscriber,
+rate3(#subscriber{session_attributes = SessionList, name = Sub} = Subscriber,
 		Charged, Flag, ReserveAmount, SessionIdentification) ->
-erlang:display({?MODULE, ?LINE, Charged}),
 	case Charged of
 		C1 when C1 > 0 ->
 			Entry = Subscriber#subscriber{session_attributes = []},
