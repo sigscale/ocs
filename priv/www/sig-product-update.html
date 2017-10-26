@@ -736,12 +736,49 @@
 				this.$.updateOffStart.value = item.startDate;
 				this.$.updateOffEnd.value = item.endDate;
 				for(var index in item.prices) {
-					this.push('prices', item.prices[index]);
-					if(item.prices[index].productOfferPriceAlteration) {
-						this.push('alterations', item.prices[index].productOfferPriceAlteration);
+					var newPrice = new Object();
+					newPrice.name = item.prices[index].name;
+					newPrice.description = item.prices[index].description;
+					if(item.prices[index].validFor) {
+						newPrice.start = item.prices[index].validFor.startDateTime;
+						newPrice.end = item.prices[index].validFor.endDateTime;
 					}
-				}
-			}, 
+					newPrice.priceType = item.prices[index].priceType;
+					newPrice.size = item.prices[index].unitOfMeasure;
+					if(item.prices[index].price) {
+						newPrice.currency = item.prices[index].price.currencyCode;
+						newPrice.amount = item.prices[index].price.taxIncludedAmount;
+					}
+					newPrice.period = item.prices[index].recurringChargePeriod;
+					if(item.prices[index].productOfferPriceAlteration) {
+						var altName = item.prices[index].productOfferPriceAlteration.name;
+						function checkAlt1(alt) {
+							return alt.name == altName;
+						}
+						var altIndex = this.alterations.findIndex(checkAlt1);
+						if(altIndex == -1) {
+							var newAlt = new Object();
+							newAlt.name = item.prices[index].productOfferPriceAlteration.name;
+							newAlt.description = item.prices[index].productOfferPriceAlteration.description;
+							if(item.prices[index].validFor){
+								newAlt.start = item.prices[index].productOfferPriceAlteration.validFor.startDateTime;
+								newAlt.end = item.prices[index].productOfferPriceAlteration.validFor.endDateTime;
+							}
+							newAlt.priceType = item.prices[index].productOfferPriceAlteration.priceType;
+							newAlt.size = item.prices[index].productOfferPriceAlteration.unitOfMeasure;
+							if(item.prices[index].productOfferPriceAlteration.price) {
+								newAlt.currency = item.prices[index].productOfferPriceAlteration.price.currencyCode;
+								newAlt.amount = item.prices[index].productOfferPriceAlteration.price.taxIncludedAmount;
+							}
+							newAlt.period = item.prices[index].productOfferPriceAlteration.recurringChargePeriod;
+							this.push('alterations', newAlt);
+console.log(newPrice.alteration);
+							}
+						}
+						newPrice.alteration = this.alterations.findIndex(checkAlt1);
+						this.push('prices', newPrice);
+					}
+				}, 
 			_updateProductStartDateOfferPick: function(date) {
 				if (this.$.updateProductStartDatePickUpdateOff.opened) {
 					this.updateProductStartDateOffer = moment(date).format('YYYY-MM-DD');
@@ -791,9 +828,9 @@
 						this.$.addUpdatePriceAlteration.selected = null;
 					} else {
 						this.$.updatePriceDesc.value = this.prices[indexUpdatePrice].description;
-						if(this.prices[indexUpdatePrice].startDateTime || this.prices[indexUpdatePrice].endDateTime) {
-							this.$.updatePriceStartDate.value = this.prices[indexUpdatePrice].startDateTime;
-							this.$.updatePriceEndDate.value = this.prices[indexUpdatePrice].endDateTime;
+						if(this.prices[indexUpdatePrice].start || this.prices[indexUpdatePrice].end) {
+							this.$.updatePriceStartDate.value = this.prices[indexUpdatePrice].start;
+							this.$.updatePriceEndDate.value = this.prices[indexUpdatePrice].end;
 						}
 						switch(this.prices[indexUpdatePrice].priceType) {
 							case "recurring":
@@ -806,8 +843,8 @@
 								this.$.updatePriceType.selected = 2;
 								break;
 						}
-						this.$.updatePriceSize.value = this.prices[indexUpdatePrice].unitOfMeasure;
-						switch(this.prices[indexUpdatePrice].units) {
+						this.$.updatePriceSize.value = this.prices[indexUpdatePrice].size;
+						switch(this.prices[indexUpdatePrice].unit) {
 							case "b":
 								this.$.updatePriceUnits.selected = 0;
 								break;
@@ -818,11 +855,11 @@
 								this.$.updatePriceUnits.selected = 2;
 								break;
 						}
-						if(this.prices[indexUpdatePrice].currencyCode || this.prices[indexUpdatePrice].taxIncludedAmount) {
-							this.$.updatePriceCurrency.value = this.prices[indexUpdatePrice].currencyCode;
-							this.$.updatePriceAmount.value = this.prices[indexUpdatePrice].taxIncludedAmount;
+						if(this.prices[indexUpdatePrice].currency || this.prices[indexUpdatePrice].amount) {
+							this.$.updatePriceCurrency.value = this.prices[indexUpdatePrice].currency;
+							this.$.updatePriceAmount.value = this.prices[indexUpdatePrice].amount;
 						}
-						switch(this.prices[indexUpdatePrice].recurringChargePeriod) {
+						switch(this.prices[indexUpdatePrice].period) {
 							case "daily":
 								this.$.updatePricePeriod.selected = 0;
 								break;
@@ -836,13 +873,10 @@
 								this.$.updatePricePeriod.selected = 3;
 								break;
 						}
-						if(this.prices[indexUpdatePrice].productOfferPriceAlteration &&
-								this.prices[indexUpdatePrice].productOfferPriceAlteration.name) {
-							var altUpdateName = this.prices[indexUpdatePrice].productOfferPriceAlteration.name;
-							function checkAltName(updateAlts) {
-								return updateAlts.name == altUpdateName;
-							}
-							this.$.addUpdatePriceAlteration.selected = this.alterations.findIndex(checkAltName);
+console.log(this.prices[indexUpdatePrice].alteration);
+						if(this.prices[indexUpdatePrice].alteration >= 0) {
+							this.$.addUpdatePriceAlteration.selected = this.prices[indexUpdatePrice].alteration;
+console.log(this.$.addUpdatePriceAlteration.selected);
 						}
 					}
 				}
@@ -865,9 +899,9 @@
 						this.$.updateAltPeriod.selected = null;
 					} else {
 						this.$.updateAltDesc.value = this.alterations[indexAlt].description;
-						if(this.alterations[indexAlt].startDateTime || this.alterations[indexAlt].endDateTime) {
-							this.$.updateAltStartDate.value = this.alterations[indexAlt].startDateTime;
-							this.$.updateAltEndDate.value = this.alterations[indexAlt].endDateTime;
+						if(this.alterations[indexAlt].start || this.alterations[indexAlt].end) {
+							this.$.updateAltStartDate.value = this.alterations[indexAlt].start;
+							this.$.updateAltEndDate.value = this.alterations[indexAlt].end;
 						}
 						switch(this.alterations[indexAlt].priceType) {
 							case "recurring":
@@ -880,7 +914,7 @@
 								this.$.updateAltType.selected = 2;
 								break;
 						}
-						this.$.updateAltSize.value = this.alterations[indexAlt].unitOfMeasure;
+						this.$.updateAltSize.value = this.alterations[indexAlt].size;
 						switch(this.alterations[indexAlt].unit) {
 							case "b":
 								this.$.updateUnitDrop.selected = 0;
@@ -892,11 +926,11 @@
 								this.$.updateUnitDrop.selected = 2;
 								break;
 						}
-						if(this.alterations[indexAlt].currencyCode || this.alterations[indexAlt].taxIncludedAmount) {
-							this.$.updateAltCurr.value = this.alterations[indexAlt].currencyCode;
-							this.$.updateAltAmount.value = this.alterations[indexAlt].taxIncludedAmount;
+						if(this.alterations[indexAlt].currency || this.alterations[indexAlt].amount) {
+							this.$.updateAltCurr.value = this.alterations[indexAlt].currency;
+							this.$.updateAltAmount.value = this.alterations[indexAlt].amount;
 						}
-						switch(this.alterations[indexAlt].recurringChargePeriod) {
+						switch(this.alterations[indexAlt].period) {
 							case "daily":
 								this.$.updateAltPeriod.selected = 0;
 								break;
@@ -975,7 +1009,7 @@
 					priceDesc.value = this.$.updatePriceDesc.value;
 					updatePriceNew.push(priceDesc);
 				}
-				if(this.$.updatePricePerioddrop.value != this.prices[indexPrices].recurringChargePeriod) {
+				if(this.$.updatePricePerioddrop.value != this.prices[indexPrices].period) {
 					var pricePeriod = new Object();
 					pricePeriod.op = "replace";
 					pricePeriod.path = "/productOfferingPrice/0/recurringChargePeriod";
@@ -989,7 +1023,7 @@
 					pricetype.value = this.$.updatePriceTypedrop.value; 
 					updatePriceNew.push(pricetype);
 				}
-				if(this.$.updatePriceSize.value != this.prices[indexPrices].unitOfMeasure) {
+				if(this.$.updatePriceSize.value != this.prices[indexPrices].size) {
 					var priceSize = new Object();
 					priceSize.op = "replace";
 					priceSize.path = "/productOfferingPrice/0/unitOfMeasure";
@@ -1137,8 +1171,8 @@
 				}
 				updatePriceNew.name = this.$.updatePriceName.value;
 				updatePriceNew.description = this.$.updatePriceDesc.value;
-				updatePriceNew.startDateTime = this.$.updatePriceStartDate.value;
-				updatePriceNew.endDateTime = this.$.updatePriceEndDate.value;
+				updatePriceNew.start = this.$.updatePriceStartDate.value;
+				updatePriceNew.end = this.$.updatePriceEndDate.value;
 				switch(this.$.updatePriceType.selected) {
 					case 0:
 						updatePriceNew.priceType = "recurring";
@@ -1151,44 +1185,45 @@
 				}
 				switch(this.$.updatePriceUnits.selected) {
 					case 0:
-						updatePriceNew.units = "b";
+						updatePriceNew.unit = "b";
 						break;
 					case 1:
-						updatePriceNew.units = "c";
+						updatePriceNew.unit = "c";
 						break;
 					case 2:
-						updatePriceNew.units = "s";
+						updatePriceNew.unit = "s";
+						break;
 				}
-				updatePriceNew.taxIncludedAmount = parseInt(this.$.updatePriceAmount.value);
-				updatePriceNew.unitOfMeasure = this.$.updatePriceSize.value;
-				updatePriceNew.currencyCode = this.$.updatePriceCurrency.value;
+				updatePriceNew.amount = parseInt(this.$.updatePriceAmount.value);
+				updatePriceNew.size = this.$.updatePriceSize.value;
+				updatePriceNew.currency = this.$.updatePriceCurrency.value;
 				switch(this.$.updatePricePeriod.selected) {
 					case 0:
-						updatePriceNew.recurringChargePeriod = "daily";
+						updatePriceNew.period = "daily";
 						break;
 					case 1:
-						updatePriceNew.recurringChargePeriod = "weekly";
+						updatePriceNew.period = "weekly";
 						break;
 					case 2:
-						updatePriceNew.recurringChargePeriod = "monthly";
+						updatePriceNew.period = "monthly";
 						break
 					case 3:
-						updatePriceNew.recurringChargePeriod = "yearly";
+						updatePriceNew.period = "yearly";
+						break;
 				}
 				if(this.$.addUpdatePriceDrop.value) {
 					function checkAlt(alts) {
 						return alts.name == this.addUpdatePriceDrop.value; 
 					}
-					var altIndex = this.alterations.findIndex(checkAlt);
-					updatePriceNew.alterations = this.alterations[altIndex];
+					updatePriceNew.alteration = this.alterations.findIndex(checkAlt);
 				}
 				function checkExistType(price) {
 					return updatePrice.type == updatePriceNew.type
 				}
 				if(updatePriceNew.name
-						&& updatePriceNew.taxIncludedAmount 
+						&& updatePriceNew.amount 
 						&& updatePriceNew.priceType
-						&& updatePriceNew.units) {
+						&& updatePriceNew.unit) {
 					if(updateIndexPrice == -1) {
 						this.push('prices', updatePriceNew);
 					}
@@ -1221,8 +1256,8 @@
 				}
 				updateAltNew.name = this.$.updateAltName.value;
 				updateAltNew.description = this.$.updateAltDesc.value;
-				updateAltNew.startDateTime = this.$.updateAltStartDate.value;
-				updateAltNew.endDateTime = this.$.updateAltEndDate.value;
+				updateAltNew.start = this.$.updateAltStartDate.value;
+				updateAltNew.end = this.$.updateAltEndDate.value;
 				switch(this.$.updateAltType.selected) {
 					case 0:
 						updateAltNew.priceType = "recurring";
@@ -1243,27 +1278,26 @@
 					case 2:
 						updateAltNew.unit = "s";
 				}
-				updateAltNew.unitOfMeasure = this.$.updateAltSize.value;
+				updateAltNew.size = this.$.updateAltSize.value;
 				switch(this.$.updateAltPeriod.selected) {
 					case 0:
-						updateAltNew.recurringChargePeriod = "daily";
+						updateAltNew.period = "daily";
 						break;
 					case 1:
-						updateAltNew.recurringChargePeriod = "weekly";
+						updateAltNew.period = "weekly";
 						break;
 					case 2:
-						updateAltNew.recurringChargePeriod = "monthly";
+						updateAltNew.period = "monthly";
 						break
 					case 3:
-						updateAltNew.recurringChargePeriod = "yearly";
+						updateAltNew.period = "yearly";
 				}
-				updateAltNew.currencyCode = this.$.updateAltCurr.value;
-				updateAltNew.taxIncludedAmount= parseInt(this.$.updateAltAmount.value);
+				updateAltNew.currency = this.$.updateAltCurr.value;
+				updateAltNew.amount= parseInt(this.$.updateAltAmount.value);
 				if(updateAltNew.name
 						&& updateAltNew.priceType
 						&& updateAltNew.unit
-						&& (updateAltNew.unitOfMeasure ||  updateAltNew.unit == "c")
-						&& (updateAltNew.taxIncludedAmount || updateAltNew.taxIncludedAmount == 0)) {
+						&& (updateAltNew.amount || updateAltNew.amount == 0)) {
 					if(updateIndexAlt == -1) {
 						this.push('alterations', updateAltNew);
 					}

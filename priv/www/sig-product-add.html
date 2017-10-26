@@ -1010,7 +1010,11 @@
 						if (item.alterations.unit && item.alterations.size) {
 							var len1 = item.alterations.size.length;
 							var m1 = item.alterations.size.charAt(len - 1);
-							var s1 = item.alterations.size.slice(0, (len - 1));
+							if(isNaN(parseInt(m1))) {
+								var s1 = item.alterations.size;
+							} else {
+								var s1 = item.alterations.size.slice(0, (len - 1));
+							}
 							if(item.alterations.unit == "b") {
 								if (m1 == "m") {
 									out.productOfferPriceAlteration.unitOfMeasure = s1 + "000000b";
@@ -1019,20 +1023,18 @@
 								} else if(m1 == "k") {
 									out.productOfferPriceAlteration.unitOfMeasure = s1 + "000b";
 								} else {
-									out.productOfferPriceAlteration.unitOfMeasure = item.alterations.size;
+									out.productOfferPriceAlteration.unitOfMeasure = s1 + "b";
 								}
-							} else if(item.alterations.unit == "c"){
-								out.productOfferPriceAlteration.unitOfMeasure = item.alterations.amount + "c";
 							} else if(item.alterations.unit == "s") {
 								var n1 = Number(s1);
 								if(m1 == "m") {
 									n1 = n1 * 60;
-									out.productOfferPriceAlteration.unitOfMeasure = n1.toString();
+									out.productOfferPriceAlteration.unitOfMeasure = n1.toString() + "s1";
 								} else if(m1 == "h") {
 									n1 = n1 * 3600;
-									out.productOfferPriceAlteration.unitOfMeasure = n1.toString();
+									out.productOfferPriceAlteration.unitOfMeasure = n1.toString() + "s1";
 								} else {
-									out.productOfferPriceAlterationunitOfMeasure = item.alterations.size;
+									out.productOfferPriceAlteration.unitOfMeasure = n1.toString() + "s1"; 
 								}
 							}
 						}
