@@ -76,8 +76,10 @@ start1() ->
 	{ok, DiameterConfig} = application:get_env(diameter),
 	{ok, RotateInterval} = application:get_env(acct_log_rotate),
 	{ok, RotateTime} = application:get_env(acct_log_rotate_time),
-	[{auth, RadAuthInstances}, {acct, RadAcctInstances}] = RadiusConfig,
-	[{auth, DiamAuthInstances}, {acct, DiamAcctInstances}] = DiameterConfig,
+	{auth, RadAuthInstances} = lists:keyfind(auth, 1, RadiusConfig),
+	{acct, RadAcctInstances} = lists:keyfind(acct, 1, RadiusConfig),
+	{auth, DiamAuthInstances} = lists:keyfind(auth, 1, DiameterConfig),
+	{acct, DiamAcctInstances} = lists:keyfind(acct, 1, DiameterConfig),
 	F1 = fun({AcctAddr, AcctPort, Options} = _Instance) ->
 		case ocs:start(radius, acct, AcctAddr, AcctPort, Options) of
 			{ok, _AcctSup} ->
