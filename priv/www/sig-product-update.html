@@ -776,7 +776,8 @@
 						newPrice.alteration = this.alterations.findIndex(checkAlt1);
 						this.push('prices', newPrice);
 					}
-				}, 
+				} 
+			}
 			_updateProductStartDateOfferPick: function(date) {
 				if (this.$.updateProductStartDatePickUpdateOff.opened) {
 					this.updateProductStartDateOffer = moment(date).format('YYYY-MM-DD');
