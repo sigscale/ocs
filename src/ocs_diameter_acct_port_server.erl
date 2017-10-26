@@ -272,8 +272,9 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 	end,
 	SessionAttributes = [{'Origin-Host', OHost}, {'Origin-Realm', ORealm},
 		{'Destination-Host', DHost}, {'Destination-Realm', DRealm}, {'Session-Id', SId}],
-	case ocs_rating:reserve_units(Subscriber, 1, SessionAttributes, ReqUsageType, ReqUsage, 0) of
-		{ok, GrantedAmount} ->
+	ReserveAmount = [{ReqUsageType, ReqUsage}],
+	case ocs_rating:rate(Subscriber, inital, [], ReserveAmount, SessionAttributes) of
+		{ok, _, GrantedAmount} ->
 			{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 					GrantedAmount, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 					?CC_APPLICATION_ID, RequestType, RequestNum, State),
@@ -344,8 +345,10 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 			[] ->
 				throw(used_amount_not_available)
 		end,
-		case ocs_rating:reserve_units(Subscriber, 2, [], ReqUsageType, ReqUsage, UsedUsage) of
-			{ok, GrantedAmount} ->
+		ReserveAmount = [{ReqUsageType, ReqUsage}],
+		DebitAmount = [{UsedType, UsedUsage}],
+		case ocs_rating:rate(Subscriber, interim, DebitAmount, ReserveAmount) of
+			{ok, _, GrantedAmount} ->
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						GrantedAmount, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 						?CC_APPLICATION_ID, RequestType, RequestNum, State),
@@ -403,8 +406,9 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 			[] ->
 				throw(used_amount_not_available)
 		end,
-		case ocs_rating:reserve_units(Subscriber, 3, [], UsedType, 0, UsedUsage) of
-			{ok, GrantedAmount} ->
+		DebitAmount = [{UsedType, UsedUsage}],
+		case ocs_rating:rate(Subscriber, final, DebitAmount, []) of
+			{ok, _, GrantedAmount} ->
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						GrantedAmount, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 						?CC_APPLICATION_ID, RequestType, RequestNum, State),
