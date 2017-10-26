@@ -936,9 +936,9 @@
 						var len = item.size.length;
 						var m = item.size.charAt(len - 1);
 						if(isNaN(parseInt(m))) {
-							var s = item.size;
-						} else {
 							var s = item.size.slice(0, (len - 1));
+						} else {
+							var s = item.size;
 						}
 						if(item.unit == "b") {
 							if (m == "m") {
@@ -1011,9 +1011,9 @@
 							var len1 = item.alterations.size.length;
 							var m1 = item.alterations.size.charAt(len - 1);
 							if(isNaN(parseInt(m1))) {
-								var s1 = item.alterations.size;
-							} else {
 								var s1 = item.alterations.size.slice(0, (len - 1));
+							} else {
+								var s1 = item.alterations.size;
 							}
 							if(item.alterations.unit == "b") {
 								if (m1 == "m") {
@@ -1029,12 +1029,12 @@
 								var n1 = Number(s1);
 								if(m1 == "m") {
 									n1 = n1 * 60;
-									out.productOfferPriceAlteration.unitOfMeasure = n1.toString() + "s1";
+									out.productOfferPriceAlteration.unitOfMeasure = n1.toString() + "s";
 								} else if(m1 == "h") {
 									n1 = n1 * 3600;
-									out.productOfferPriceAlteration.unitOfMeasure = n1.toString() + "s1";
+									out.productOfferPriceAlteration.unitOfMeasure = n1.toString() + "s";
 								} else {
-									out.productOfferPriceAlteration.unitOfMeasure = n1.toString() + "s1"; 
+									out.productOfferPriceAlteration.unitOfMeasure = n1.toString() + "s"; 
 								}
 							}
 						}

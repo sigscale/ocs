@@ -654,7 +654,7 @@ add_product(#product{price = Prices} = Product) when length(Prices) > 0 ->
 					amount = Amount}) when length(Name) > 0, ((Period == hourly)
 					or (Period == daily) or (Period == weekly)
 					or (Period == monthly) or (Period == yearly)),
-					is_integer(Amount), Amount > 0 ->
+					is_integer(Amount) ->
 				true;
 			(#alteration{name = Name, type = usage, period = undefined,
 					units = Units, size = Size, amount = Amount})
