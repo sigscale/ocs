@@ -21,9 +21,8 @@
 -module(ocs_rating).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
--export([rating/5]).
--export([remove_session/2]).
--export([reserve_units/6]).
+-export([rate/4, rate/5]).
+-export([charge/4]).
 
 -include("ocs.hrl").
 
@@ -31,166 +30,57 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
--define(initial, 1).
--define(update, 2).
--define(terminate, 3).
-
--spec reserve_units(SubscriberID, RequestType,
-		Attributes, UnitType, ReserveAmount, DebitAmount) -> Result
+-spec rate(SubscriberID, Flag, DebitAmount, ReserveAmount) -> Result
 	when
 		SubscriberID :: string() | binary(),
-		RequestType :: 1..3,
-		Attributes :: [tuple()],
-		UnitType :: octets | seconds,
-		ReserveAmount :: integer(),
-		DebitAmount :: integer(),
-		Result :: {ok, GrantedAmount} | {out_of_credit, SessionList} | {error, Reason},
-		GrantedAmount :: integer(),
+		Flag :: inital | interim | final,
+		DebitAmount :: [{Type, Amount}],
+		ReserveAmount :: [{Type, Amount}],
+		Type :: octets | seconds,
+		Amount :: integer(),
+		Result :: {ok, Subscriber, GrantAmount} | {out_of_credit, SessionList} | {error, Reason},
+		Subscriber :: #subscriber{},
+		GrantAmount :: integer(),
 		SessionList :: [tuple()],
 		Reason :: term().
-reserve_units(SubscriberID, RequestType, Attributes,
-		UnitType, ReserveAmount, DebitAmount) when is_list(SubscriberID) ->
-	reserve_units(list_to_binary(SubscriberID), RequestType,
-			Attributes, UnitType, ReserveAmount, DebitAmount);
-reserve_units(SubscriberID, RequestType, Attributes,
-		UnitType, ReserveAmount, DebitAmount) ->
-	F = fun() ->
-			case mnesia:read(subscriber, SubscriberID, read) of
-				[#subscriber{buckets = Buckets, product =
-						#product_instance{product = ProdID, characteristics = Chars},
-						session_attributes = SessionAttributes} = Subscriber] ->
-					Product = mnesia:read(product, ProdID),
-					Validity = proplists:get_value(validity, Chars),
-					case RequestType of
-						?initial ->
-							SA = update_session(Attributes, SessionAttributes),
-							case reserve_units1(?initial, Product, Subscriber, UnitType,
-									false, ReserveAmount, DebitAmount, Validity, Buckets) of
-								out_of_credit ->
-									mnesia:write(Subscriber#subscriber{session_attributes = []}),
-									{out_of_credit, SA};
-								Result ->
-									mnesia:write(Subscriber#subscriber{session_attributes = SA}),
-									Result
-							end;
-						_ ->
-							case reserve_units1(RequestType, Product, Subscriber,
-									UnitType, true, ReserveAmount, DebitAmount, Validity, Buckets) of
-								out_of_credit ->
-									mnesia:write(Subscriber#subscriber{session_attributes = []}),
-									{out_of_credit, SessionAttributes};
-								Result ->
-									Result
-							end
-					end;
-				[] ->
-					throw(subscriber_not_found)
-			end
-	end,
-	case mnesia:transaction(F) of
-		{atomic, {out_of_credit, SessionList}} ->
-			{out_of_credit, SessionList};
-		{atomic, {grant, GrantAmount}} ->
-			{ok, GrantAmount};
-		{aborted, {throw, Reason}} ->
-			{error, Reason};
-		{aborted, Reason} ->
-			{error, Reason}
-	end.
-%% @hidden
-reserve_units1(?initial, Product, Subscriber, UnitType, Flag, ReserveAmount, _DebitAmount, Validity, Buckets) ->
-	case debit_units(Subscriber, Product, UnitType, Flag, ReserveAmount, Validity, Buckets) of
-		{Charged, _NewBuckets} when Charged =< 0 ->
-			out_of_credit;
-		{_Chraged, _NewBuckets} ->
-			{grant, ReserveAmount}
-	end;
-reserve_units1(_, Product, Subscriber, UnitType, Flag, ReserveAmount, DebitAmount, Validity, Buckets) ->
-	case debit_units(Subscriber, Product, UnitType, Flag, DebitAmount, Validity, Buckets) of
-		{Charged, NewBuckets} when Charged =< 0 andalso DebitAmount =/= 0 ->
-			out_of_credit;
-		{_Charged, NewBuckets} ->	
-			case debit_units(Subscriber, Product, UnitType, Flag, ReserveAmount, Validity, Buckets) of
-				{Ch1, _NB1} when Ch1 =< 0 andalso ReserveAmount =/=0  ->
-					out_of_credit;
-				_ ->
-					{grant, ReserveAmount}
-			end
-	end.
-%% @hidden
-debit_units(Subscriber, [#product{price = Prices}], Type, Flag, DebitAmount, Validity, Buckets) ->
-	case charge(Type, DebitAmount, Flag, Buckets) of
-		{Charged, NewBuckets} when Charged < DebitAmount ->
-			mnesia:write(Subscriber#subscriber{buckets = NewBuckets}),
-			case lists:keyfind(usage, #price.type, Prices) of
-				#price{units = Type, size = Size, amount = Price} ->
-					purchase(Type, Price, Size, DebitAmount - Charged, Validity, false, NewBuckets);
-				false ->
-					throw(price_not_found)
-			end;
-		{Charged, NewBuckets} ->
-			mnesia:write(Subscriber#subscriber{buckets = NewBuckets}),
-			{Charged, NewBuckets}
-	end.
+%% @equiv rate(SubscriberID, Flag, DebitAmount, ReserveAmount, [])
+rate(SubscriberID, Flag, DebitAmount, ReserveAmount) ->
+	rate(SubscriberID, Flag, DebitAmount, ReserveAmount, []).
 
-
-
--spec rating(SubscriberID, Final, UsageSecs, UsageOctets, Attributes) -> Return
+-spec rate(SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentification) -> Result
 	when
 		SubscriberID :: string() | binary(),
-		Final :: boolean(),
-		UsageSecs :: integer(),
-		UsageOctets :: integer(),
-		Attributes :: [[tuple()]],
-		Return :: {ok, #subscriber{}} | {out_of_credit, SessionAttributes} | {error, Reason},
-		SessionAttributes :: [tuple()],
+		Flag :: inital | interim | final,
+		DebitAmount :: [{Type, Amount}],
+		ReserveAmount :: [{Type, Amount}],
+		SessionIdentification :: [tuple()],
+		Type :: octets | seconds,
+		Amount :: integer(),
+		Result :: {ok, Subscriber, GrantAmount} | {out_of_credit, SessionList} | {error, Reason},
+		Subscriber :: #subscriber{},
+		GrantAmount :: integer(),
+		SessionList :: [tuple()],
 		Reason :: term().
-rating(SubscriberID, Final, UsageSecs, UsageOctets, Attributes) when is_list(SubscriberID) ->
-	rating(list_to_binary(SubscriberID), Final, UsageSecs, UsageOctets, Attributes);
-rating(SubscriberID, Final, UsageSecs, UsageOctets, Attributes) when is_binary(SubscriberID) ->
+%% @doc
+rate(SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentification) when is_list(SubscriberID)->
+	rate(list_to_binary(SubscriberID), Flag, DebitAmount, ReserveAmount, SessionIdentification);
+rate(SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentification) ->
 	F = fun() ->
 			case mnesia:read(subscriber, SubscriberID, write) of
-				[#subscriber{buckets = Buckets,
-						session_attributes = SessionList,
-						product = #product_instance{product = ProdID,
-						characteristics = Chars}} = Subscriber] ->
-					Validity = proplists:get_value(validity, Chars),
+				[#subscriber{product = #product_instance{product = ProdID}} = Subscriber] ->
 					case mnesia:read(product, ProdID, read) of
 						[#product{price = Prices}] ->
-							case lists:keyfind(usage, #price.type, Prices) of
-								#price{} = Price ->
-									case rating2(Price,
-												Validity, UsageSecs, UsageOctets, Final, Buckets) of
-										{Charged, NewBuckets} when Charged =< 0 ->
-											Entry = Subscriber#subscriber{buckets = NewBuckets,
-													session_attributes = []},
-											mnesia:write(Entry),
-											{out_of_credit, SessionList};
-										{_, NewBuckets} ->
-											NewSessionList = case Final of
-												true ->
-													remove_session(SessionList, Attributes);
-												false ->
-													SessionList
-											end,
-											Entry = Subscriber#subscriber{buckets = NewBuckets,
-													session_attributes = NewSessionList},
-											mnesia:write(Entry),
-											Entry
-									end;
-								false ->
-									throw(price_not_found)
-							end;
+							rate1(Subscriber, Prices, Flag, DebitAmount, ReserveAmount, SessionIdentification);
 						[] ->
 							throw(product_not_found)
 					end;
 				[] ->
-					throw(subscriber_not_found)
+					throw(subsriber_not_found)
 			end
 	end,
 	case mnesia:transaction(F) of
-		{atomic, #subscriber{} = Sub} ->
-			{ok, Sub};
+		{atomic, {grant, Sub, GrantAmount}} ->
+			{ok, Sub, GrantAmount};
 		{atomic, {out_of_credit, SL}} ->
 			{out_of_credit, SL};
 		{aborted, {throw, Reason}} ->
@@ -199,19 +89,76 @@ rating(SubscriberID, Final, UsageSecs, UsageOctets, Attributes) when is_binary(S
 			{error, Reason}
 	end.
 %% @hidden
-rating2(#price{type = usage, size = Size, units = octets,
-		amount = Amount}, Validity, _UsageSecs, UsageOctets, Final, Buckets) ->
-	rating3(Amount, Size, octets, Validity, UsageOctets, Final, Buckets);
-rating2(#price{type = usage, size = Size, units = seconds,
-		amount = Amount}, Validity, UsageSecs, _UsageOctets, Final, Buckets) ->
-	rating3(Amount, Size, seconds, Validity, UsageSecs, Final, Buckets).
+rate1(Subscriber, Prices, Flag, [], ReserveAmount, SessionIdentification) ->
+	rate2(Subscriber, Prices, Flag, ReserveAmount, SessionIdentification, 0);
+rate1(#subscriber{buckets = Buckets, product = #product_instance{characteristics = Chars}} =
+		Subscriber, Prices, Flag, DebitAmount, ReserveAmount, SessionIdentification) ->
+	try
+		Validity = proplists:get_value(validity, Chars),
+		#price{units = Type, size = Size, amount = Price} = lists:keyfind(usage, #price.type, Prices),
+		{Type, Used} = lists:keyfind(Type, 1, DebitAmount),
+		case charge(Type, Used, true, Buckets) of
+			{R1, C1, NB1} when R1 > 0 ->
+				{R2, C2, NB2}  = purchase(Type, Price, Size, Used - C1, Validity, true, NB1),
+				{R2, NB2};
+			{R1, C1, NB1} ->
+				{R1, NB1}
+		end
+	of
+		{RemainCharge, NewBuckets}  when RemainCharge > 0 ->
+			rate3(Subscriber#subscriber{buckets = NewBuckets},
+					RemainCharge, Flag, ReserveAmount, SessionIdentification);
+		{RemainCharge, NewBuckets} ->
+			rate2(Subscriber#subscriber{buckets = NewBuckets},
+					Prices, Flag, ReserveAmount, SessionIdentification, RemainCharge)
+	catch
+		_:_ ->
+			throw(price_not_found)
+	end.
 %% @hidden
-rating3(Price, Size, Type, Validity, Used, Final, Buckets) ->
-	case charge(Type, Used, Final, Buckets) of
-		{Charged, NewBuckets} when Charged < Used ->
-			purchase(Type, Price, Size, Used - Charged, Validity, Final, NewBuckets);
-		{Charged, NewBuckets} ->
-			{Charged, NewBuckets}
+rate2(Subscriber, _Prices, Flag, [], SessionIdentification, Charged)  ->
+	rate3(Subscriber, Charged, Flag, 0, SessionIdentification);
+rate2(#subscriber{buckets = Buckets, product = #product_instance{characteristics = Chars}} =
+		Subscriber, Prices, Flag, ReserveAmount, SessionIdentification, _Charged) ->
+	try
+		Validity = proplists:get_value(validity, Chars),
+		#price{units = Type, size = Size, amount = Price} = lists:keyfind(usage, #price.type, Prices),
+		{Type, Reserve} = lists:keyfind(Type, 1, ReserveAmount),
+		case charge(Type, Reserve, false, Buckets) of
+			{R1, C1, NB1} when R1 > 0 ->
+				{R2, C2, NB2} = purchase(Type, Price, Size, Reserve - C1, Validity, false, NB1),
+				{R2, NB2, Reserve};
+			{R1, C1, NB1} ->
+				{R1, NB1, Reserve}
+		end
+	of
+		{RemainCharge, NewBuckets, Amount} ->
+			rate3(Subscriber#subscriber{buckets = NewBuckets},
+					RemainCharge, Flag, Amount, SessionIdentification)
+	catch
+		_:_ ->
+			throw(price_not_found)
+	end.
+%% @hidden
+rate3(#subscriber{session_attributes = SessionList, name = Sub} = Subscriber,
+		Charged, Flag, ReserveAmount, SessionIdentification) ->
+	case Charged of
+		C1 when C1 > 0 ->
+			Entry = Subscriber#subscriber{session_attributes = []},
+			ok = mnesia:write(Entry),
+			{out_of_credit, SessionList};
+		_ ->
+			NewSessionList = case Flag of
+				inital ->
+					update_session(SessionIdentification, SessionList);
+				final ->
+					remove_session(SessionList, SessionIdentification);
+				interim ->
+					SessionList
+			end,
+			Entry = Subscriber#subscriber{session_attributes = NewSessionList},
+			ok = mnesia:write(Entry),
+			{grant, Entry, ReserveAmount}
 	end.
 
 %%----------------------------------------------------------------------
@@ -223,7 +170,8 @@ rating3(Price, Size, Type, Validity, Used, Final, Buckets) ->
 		Charge :: integer(),
 		Final :: boolean(),
 		Buckets :: [#bucket{}],
-		Result :: {Charged, Buckets},
+		Result :: {RemainCharge, Charged, Buckets},
+		RemainCharge :: integer(),
 		Charged :: integer().
 charge(Type, Charge, Final, Buckets) ->
 	Now = erlang:system_time(?MILLISECOND),
@@ -242,14 +190,14 @@ charge(Type, Charge, Now, Final, [#bucket{bucket_type = Type,
 charge(Type, Charge, _Now, true, [#bucket{bucket_type = Type,
 		remain_amount = R} = B | T], Acc, Charged) when R > Charge ->
 	NewBuckets = [B#bucket{remain_amount = R - Charge} | T],
-	{Charged + Charge, NewBuckets ++ Acc};
+	{Charge, Charged + Charge, NewBuckets ++ Acc};
 charge(cents, Charge, _Now, false, [#bucket{bucket_type = cents,
 		remain_amount = R} = H | T], Acc, Charged) when R > Charge ->
 	NewBuckets = [H#bucket{remain_amount = R - Charge} | T],
-	{Charged + Charge, NewBuckets ++ Acc};
+	{Charge, Charged + Charge, NewBuckets ++ Acc};
 charge(Type, Charge, _Now, false, [#bucket{bucket_type = Type,
 		remain_amount = R} | _] = B, Acc, Charged) when R > Charge ->
-	{Charged + Charge, B ++ Acc};
+	{Charge, Charged + Charge, B ++ Acc};
 charge(Type, Charge, Now, true, [#bucket{bucket_type = Type,
 		remain_amount = R} | T], Acc, Charged) when R =< Charge ->
 	charge(Type, Charge - R, Now, true, T, Acc, Charged + R);
@@ -257,11 +205,11 @@ charge(Type, Charge, Now, false, [#bucket{bucket_type = Type,
 		remain_amount = R}  = B | T], Acc, Charged) when R =< Charge ->
 	charge(Type, Charge - R, Now, false, T, [B | Acc], Charged);
 charge(_Type, 0, _Now, _Final, Buckets, Acc, Charged) ->
-	{Charged, Buckets ++ Acc};
+	{0, Charged, Buckets ++ Acc};
 charge(Type, Charge, Now, Final, [H | T], Acc, Charged) ->
 	charge(Type, Charge, Now, Final, T, [H | Acc], Charged);
-charge(_Type, _Charge, _Now, _Final, [], Acc, Charged) ->
-	{Charged, Acc}.
+charge(_Type, Charge, _Now, _Final, [], Acc, Charged) ->
+	{Charge, Charged, Acc}.
 
 -spec purchase(Type, Price, Size, Used, Validity, Final, Buckets) -> Result
 	when
@@ -283,9 +231,9 @@ purchase(Type, Price, Size, Used, Validity, Final, Buckets) ->
 	end,
 	Charge = UnitsNeeded * Price,
 	case charge(cents, Charge, Final, Buckets) of
-		{Charged, NewBuckets} when Charged < Charge ->
-			{Charged, NewBuckets};
-		{Charged, NewBuckets} ->
+		{RemainCharge, Charged, NewBuckets} when Charged < Charge ->
+			{RemainCharge, Charged, NewBuckets};
+		{RemainCharge, Charged, NewBuckets} when RemainCharge =/= 0 ->
 			Remain = case Final of
 				true ->
 					UnitsNeeded * Size - Used;
@@ -295,7 +243,9 @@ purchase(Type, Price, Size, Used, Validity, Final, Buckets) ->
 			Bucket = #bucket{bucket_type = Type, remain_amount = Remain,
 				termination_date = Validity,
 				start_date = erlang:system_time(?MILLISECOND)},
-			{Charged, [Bucket | NewBuckets]}
+			{RemainCharge, Charged, [Bucket | NewBuckets]};
+		{RemainCharge, Charged, NewBuckets} ->
+			{RemainCharge, Charged, NewBuckets}
 	end.
 
 remove_session(SessionList, [H | T]) ->

@@ -292,7 +292,8 @@ request1(?AccountingStop, AcctSessionId, Id,
 	A2 = [{?NasIdentifier, NasId}],
 	A3 = [{?NasIpAddress, NasId}],
 	Candidates = [A1, A2, A3],
-	case ocs_rating:rating(Subscriber, true, UsageSecs, UsageOctets, Candidates) of
+	DebitAmount = [{octets, UsageOctets}, {seconds, UsageSecs}],
+	case ocs_rating:rate(Subscriber, final, DebitAmount, [], Candidates) of
 		{out_of_credit, SessionList}  ->
 			start_disconnect(State, Subscriber, SessionList),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
@@ -302,7 +303,7 @@ request1(?AccountingStop, AcctSessionId, Id,
 					{subscriber, Subscriber}, {nas, NasId},
 					{address, Address}, {session, AcctSessionId}]),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
-		{ok, _} ->
+		{ok, _, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
 request1(?AccountingInterimUpdate, AcctSessionId, Id,
@@ -328,7 +329,8 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 	A2 = [{?NasIdentifier, NasId}],
 	A3 = [{?NasIpAddress, NasId}],
 	Candidates = [A1, A2, A3],
-	case ocs_rating:rating(Subscriber, false, UsageSecs, UsageOctets, Candidates) of
+	ReserveAmount = [{octets, UsageOctets}, {seconds, UsageSecs}],
+	case ocs_rating:rate(Subscriber, interim, [], ReserveAmount, Candidates) of
 		{error, not_found} ->
 			error_logger:warning_report(["Accounting subscriber not found",
 					{module, ?MODULE}, {subscriber, Subscriber},
@@ -338,10 +340,10 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 		{out_of_credit, SessionList} ->
 			start_disconnect(State, Subscriber, SessionList),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
-		{ok, #subscriber{enabled = false, session_attributes = SessionList}} ->
+		{ok, #subscriber{enabled = false, session_attributes = SessionList}, _} ->
 			start_disconnect(State, Subscriber, SessionList),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
-		{ok, #subscriber{}} ->
+		{ok, #subscriber{}, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
 request1(?AccountingON, _AcctSessionId, Id,
