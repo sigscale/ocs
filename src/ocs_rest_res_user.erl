@@ -136,7 +136,19 @@ get_user(Id, Query) ->
 get_user(Id, [] = _Query, _Filters) ->
 	case ocs:get_user(Id) of
 		{ok, #httpd_user{user_data = UserData} = User} ->
-			User = user(User),
+			{struct, UserObjectWithPwd} = user(User),
+			{_, {array, Chars}} = lists:keyfind("characteristic", 1, UserObjectWithPwd),
+			F = fun({struct, Obj2}) ->
+					case lists:keyfind("name", 1, Obj2) of
+						{_, "password"} ->
+							false;
+						_ ->
+							true
+					end
+			end,
+			CharObj = {"characteristic", {array, lists:filter(F, Chars)}},
+			NewChars = lists:keyreplace("characteristic", 1, UserObjectWithPwd, CharObj),
+			UserObject = {struct, NewChars},
 			Headers1 = case lists:keyfind(last_modified, 1, UserData) of
 				{_, LastModified} ->
 					[{etag, ocs_rest:etag(LastModified)}];
@@ -144,7 +156,7 @@ get_user(Id, [] = _Query, _Filters) ->
 					[]
 			end,
 			Headers2 = [{content_type, "application/json"} | Headers1],
-			Body = mochijson:encode(User),
+			Body = mochijson:encode(UserObject),
 			{ok, Headers2, Body};
 		{error, _Reason} ->
 			{error, 404}
@@ -204,13 +216,13 @@ patch_user(ID, Etag, "application/json-patch+json", ReqBody) ->
 		end,
 		{Etag1, mochijson:decode(ReqBody)}
 	of
-		{Etag2, {array, Operations}} ->
+		{Etag2, Operations} ->
 			{Port, Address, Directory, _Group} = get_params(),
 			Username = {ID, Address, Port, Directory},
 			F = fun() ->
 					case mnesia:read(httpd_user, Username, write) of
 						[#httpd_user{user_data = UserData1} = User1] ->
-							case lists:keyfind(etag, 1, UserData1) of
+							case lists:keyfind(last_modified, 1, UserData1) of
 								{_, Etag3} when Etag3 == Etag2; Etag3 == undefined ->
 									case catch ocs_rest:patch(Operations, user(User1)) of
 										#httpd_user{user_data = UserData2} = User2 ->
@@ -293,7 +305,9 @@ get_params() ->
 	when
 		User :: #httpd_user{} | {struct, [tuple()]}.
 %% @doc CODEC for HTTP server users.
-user(#httpd_user{username = {ID, _, _, _}, password = Password, user_data = Characteristic}) ->
+user(#httpd_user{username = {ID, _, _, _}} = HttpdUser) ->
+	user(HttpdUser#httpd_user{username  = ID});
+user(#httpd_user{username = ID, password = Password, user_data = Characteristic}) ->
 	C1 = [{struct, [{"name", "username"}, {"value", ID}]},
 			{struct, [{"name", "password"}, {"value", Password}]}],
 	C2 = case lists:keyfind(locale, 1, Characteristic) of
@@ -391,10 +405,26 @@ query_page(PageServer, Etag, Query, Filters, Start, End) ->
 			end
 	end.
 %% @hidden
-query_page1([], _, Acc) ->
+query_page1([], Filters, Acc) ->
+	query_page2(Acc, Filters, []);
+query_page1([{struct, Object} | T], Filters, Acc) ->
+	{_, {array, Chars}} = lists:keyfind("characteristic", 1, Object),
+	F = fun({struct, Obj}) ->
+			case lists:keyfind("name", 1, Obj) of
+				{_, "password"} ->
+					false;
+				_ ->
+					true
+			end
+	end,
+	CharObj = {"characteristic", {array, lists:filter(F, Chars)}},
+	NewChars = lists:keyreplace("characteristic", 1, Object, CharObj),
+	query_page1(T, Filters, [{struct, NewChars} | Acc]).
+%% @hidden
+query_page2([], _, Acc) ->
 	lists:reverse(Acc);
-query_page1(Json, [], Acc) ->
+query_page2(Json, [], Acc) ->
 	lists:reverse(Json ++ Acc);
-query_page1([H | T], Filters, Acc) ->
-	query_page1(T, Filters, [ocs_rest:filter(Filters, H) | Acc]).
+query_page2([H | T], Filters, Acc) ->
+	query_page2(T, Filters, [ocs_rest:filter(Filters, H) | Acc]).
 

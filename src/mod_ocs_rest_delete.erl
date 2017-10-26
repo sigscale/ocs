@@ -56,7 +56,8 @@ do(#mod{method = Method, request_uri = Uri, data = Data} = ModData) ->
 					case proplists:get_value(response, Data) of
 						undefined ->
 							{_, Resource} = lists:keyfind(resource, 1, Data),
-							do_delete(Resource, ModData, string:tokens(Uri, "/"));
+							Path = http_uri:decode(Uri),
+							do_delete(Resource, ModData, string:tokens(Path, "/"));
 						_Response ->
 							{proceed,  Data}
 					end
