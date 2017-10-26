@@ -271,7 +271,7 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 service_options() ->
 	[{'Origin-Host', "ocs.sigscale.com"},
 		{'Origin-Realm', "sigscale.com"},
-		{'Vendor-Id', 0},
+		{'Vendor-Id', 10415},
 		{'Product-Name', "SigScale DIAMETER Server"},
 		{'Auth-Application-Id', [?BASE_APPLICATION_ID, ?CC_APPLICATION_ID]},
 		{restrict_connections, false},

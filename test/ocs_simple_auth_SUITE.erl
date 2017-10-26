@@ -459,7 +459,7 @@ connect(SvcName, Opts)->
 client_service_opts() ->
 	[{'Origin-Host', "client.testdomain.com"},
 		{'Origin-Realm', "testdomain.com"},
-		{'Vendor-Id', 0},
+		{'Vendor-Id', 10415},
 		{'Product-Name', "Test Client"},
 		{'Auth-Application-Id', [?BASE_APPLICATION_ID,
 														 ?NAS_APPLICATION_ID]},
