@@ -269,7 +269,8 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %% @doc Returns options for a DIAMETER service
 %% @hidden
 service_options() ->
-	[{'Origin-Host', "ocs.sigscale.com"},
+	{ok, Hostname} = inet:gethostname(),
+	[{'Origin-Host', Hostname},
 		{'Origin-Realm', "sigscale.com"},
 		{'Vendor-Id', 10415},
 		{'Product-Name', "SigScale DIAMETER Server"},
