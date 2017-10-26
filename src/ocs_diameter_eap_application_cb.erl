@@ -149,7 +149,11 @@ handle_error(_Reason, _Request, _SvcName, _Peer) ->
 %% @doc Invoked when a request messge is received from the peer. 
 handle_request(#diameter_packet{msg = Req, errors = []},
 		SvcName, {_Peer, Caps}) ->
-	is_client_authorized(SvcName, Caps, Req).
+	is_client_authorized(SvcName, Caps, Req);
+handle_request(#diameter_packet{errors = [{ResultCode, _} | _]}, _, _) ->
+	{answer_message, ResultCode};
+handle_request(#diameter_packet{errors = [ResultCode | _]}, _, _) ->
+	{answer_message, ResultCode}.
 
 %%----------------------------------------------------------------------
 %%  internal functions

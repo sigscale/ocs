@@ -595,9 +595,10 @@ connect(SvcName, Opts)->
 
 %% @hidden
 client_service_opts() ->
-	[{'Origin-Host', "client.testdomain.com"},
+	{ok, Hostname} = inet:gethostname(),
+	[{'Origin-Host', Hostname},
 		{'Origin-Realm', "testdomain.com"},
-		{'Vendor-Id', 0},
+		{'Vendor-Id', 10415},
 		{'Product-Name', "DIAMETER Test Client"},
 		{'Auth-Application-Id', [?BASE_APPLICATION_ID,
 														 ?EAP_APPLICATION_ID]},

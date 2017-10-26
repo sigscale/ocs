@@ -647,14 +647,11 @@ update_attributes(Identity, Buckets, Attributes, EnabledStatus, MultiSession)
 add_product(#product{price = Prices} = Product) when length(Prices) > 0 ->
 	Fvala = fun(undefined) ->
 				true;
-			(#alteration{name = Name, type = one_time,
-					period = undefined, units = undefined,
-					size = undefined, amount = Amount})
-					when length(Name) > 0, is_integer(Amount) ->
+			(#alteration{name = Name, type = one_time, period = undefined,
+					amount = Amount}) when length(Name) > 0, is_integer(Amount) ->
 				true;
 			(#alteration{name = Name, type = recurring, period = Period,
-					units = undefined, size = undefined, amount = Amount})
-					when length(Name) > 0, ((Period == hourly)
+					amount = Amount}) when length(Name) > 0, ((Period == hourly)
 					or (Period == daily) or (Period == weekly)
 					or (Period == monthly) or (Period == yearly)),
 					is_integer(Amount), Amount > 0 ->
@@ -668,16 +665,12 @@ add_product(#product{price = Prices} = Product) when length(Prices) > 0 ->
 			(#alteration{}) ->
 				false
 	end,
-	Fvalp = fun(#price{name = Name, type = one_time,
-					period = undefined, units = undefined,
-					size = undefined, amount = Amount,
-					alteration = Alteration})
+	Fvalp = fun(#price{name = Name, type = one_time, period = undefined,
+					amount = Amount, alteration = Alteration})
 					when length(Name) > 0, is_integer(Amount), Amount > 0 ->
 				Fvala(Alteration);
-			(#price{name = Name, type = recurring,
-					period = Period, units = undefined,
-					size = undefined, amount = Amount,
-					alteration = Alteration})
+			(#price{name = Name, type = recurring, period = Period,
+					amount = Amount, alteration = Alteration})
 					when length(Name) > 0, ((Period == hourly)
 					or (Period == daily) or (Period == weekly)
 					or (Period == monthly) or (Period == yearly)),

@@ -45,7 +45,7 @@ init([Address, Port, Options]) ->
 		supervisor(ocs_simple_auth_fsm_sup, []),
 		supervisor(ocs_eap_pwd_fsm_sup, []),
 		supervisor(ocs_eap_ttls_fsm_sup_sup, []),
-		supervisor(ocs_diameter_auth_service_fsm_sup, [Address, Port])],
+		supervisor(ocs_diameter_auth_service_fsm_sup, [Address, Port, Options])],
 	{ok, {{one_for_one, 10, 3600}, ChildSpecs}}.
 
 %% @hidden

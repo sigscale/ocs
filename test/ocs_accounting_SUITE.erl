@@ -68,26 +68,16 @@ init_per_suite(Config) ->
 	{ok, ProdID} = ocs_test_lib:add_product(),
 	NasID = atom_to_list(node()),
 	Config1 = [{nas_id, NasID} | Config],
-	{ok, [{auth, DiaAuthInstance}, {acct, DiaAcctInstances}]} =
-			application:get_env(ocs, diameter),
-	[{AuthAddress, AuthPort, _}] = DiaAuthInstance,
-	[{AcctAddress, AcctPort, _}] = DiaAcctInstances,
-	true = diameter:subscribe(?SVC_AUTH),
-	ok = diameter:start_service(?SVC_AUTH, client_auth_service_opts()),
-	{ok, _Ref1} = connect(?SVC_AUTH, AuthAddress, AuthPort, diameter_tcp),
+	{ok, EnvList} = application:get_env(ocs, diameter),
+	{acct, [{Address, Port, Options } | _]} = lists:keyfind(acct, 1, EnvList),
+	true = diameter:subscribe(?SVC_ACCT),
+	ok = diameter:start_service(?SVC_ACCT, client_acct_service_opts(Options)),
+	{ok, _Ref2} = connect(?SVC_ACCT, Address, Port, diameter_tcp),
 	receive
-		#diameter_event{service = ?SVC_AUTH, info = start} ->
-			true = diameter:subscribe(?SVC_ACCT),
-			ok = diameter:start_service(?SVC_ACCT, client_acct_service_opts()),
-			{ok, _Ref2} = connect(?SVC_ACCT, AcctAddress, AcctPort, diameter_tcp),
-			receive
-				#diameter_event{service = ?SVC_ACCT, info = start} ->
-					[{product_id, ProdID}, {diameter_auth_client, AuthAddress}] ++ Config1;
-				_ ->
-					{skip, diameter_client_acct_service_not_started}
-			end;
+		#diameter_event{service = ?SVC_ACCT, info = start} ->
+			[{product_id, ProdID}, {diameter_auth_client, Address}] ++ Config1;
 		_ ->
-			{skip, diameter_client_auth_service_not_started}
+			{skip, diameter_client_acct_service_not_started}
 	end.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
@@ -108,15 +98,15 @@ init_per_testcase(TestCase, Config) when
 	UserName = "SlimShady",
 	Password = "TeRcEs",
 	ProdID = ?config(product_id, Config),
-	{ok, [{auth, AuthInstance}, {acct, _}]} = application:get_env(ocs, diameter),
-	[{Address, Port, _}] = AuthInstance,
-	Secret = "s3cr3t",
+	{ok, EnvList} = application:get_env(ocs, diameter),
+	{acct, [{Address, Port, Options } | _]} = lists:keyfind(acct, 1, EnvList),
+	Secret = ocs:generate_password(),
+	ok = ocs:add_client(Address, Port, diameter, Secret),
 	InitialAmount = 1000000000,
 	Now = erlang:system_time(?MILLISECOND),
 	TD = Now + 86400000,
 	Buckets = [#bucket{bucket_type = octets,
 			remain_amount = InitialAmount, termination_date = TD}],
-	ok = ocs:add_client(Address, Port, diameter, Secret),
 	{ok, _} = ocs:add_subscriber(UserName, Password, ProdID, [], Buckets, []),
 	[{username, UserName}, {password, Password}, {init_bal, InitialAmount}] ++ Config;
 init_per_testcase(_TestCase, Config) ->
@@ -379,14 +369,8 @@ diameter_accounting(Config) ->
 	Password = ?config(password, Config),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
-	Answer = diameter_authentication(SId, Username, Password),
-	true = is_record(Answer, diameter_nas_app_AAA),
 	OriginHost = list_to_binary("ocs.sigscale.com"),
 	OriginRealm = list_to_binary("sigscale.com"),
-	#diameter_nas_app_AAA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			'Auth-Application-Id' = ?NAS_APPLICATION_ID,
-			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
-			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm} = Answer,
 	RequestNum = 0,
 	Answer0 = diameter_accounting_start(SId, Username, RequestNum),
 	true = is_record(Answer0, diameter_cc_app_CCA),
@@ -415,14 +399,8 @@ diameter_disconnect_session(Config) ->
 	OrigBalance = ?config(init_bal, Config),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
-	Answer = diameter_authentication(SId, Username, Password),
-	true = is_record(Answer, diameter_nas_app_AAA),
 	OriginHost = list_to_binary("ocs.sigscale.com"),
 	OriginRealm = list_to_binary("sigscale.com"),
-	#diameter_nas_app_AAA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
-			'Auth-Application-Id' = ?NAS_APPLICATION_ID,
-			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
-			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm} = Answer,
 	RequestNum0 = 0,
 	Answer0 = diameter_accounting_start(SId, Username, RequestNum0),
 	true = is_record(Answer0, diameter_cc_app_CCA),
@@ -572,27 +550,12 @@ connect(SvcName, Opts)->
 	diameter:add_transport(SvcName, {connect, Opts}).
 
 %% @hidden
-client_auth_service_opts() ->
-	[{'Origin-Host', "client.testdomain.com"},
+client_acct_service_opts(Options) ->
+	{ok, Hostname} = inet:gethostname(),
+	Options ++ [{'Origin-Host', Hostname},
 		{'Origin-Realm', "testdomain.com"},
-		{'Vendor-Id', 0},
-		{'Product-Name', "Test Client"},
-		{'Auth-Application-Id', [?BASE_APPLICATION_ID, ?NAS_APPLICATION_ID]},
-		{string_decode, false},
-		{restrict_connections, false},
-		{application, [{alias, base_app_test},
-				{dictionary, diameter_gen_base_rfc6733},
-				{module, diameter_test_client_cb}]},
-		{application, [{alias, nas_app_test},
-				{dictionary, diameter_gen_nas_application_rfc7155},
-				{module, diameter_test_client_cb}]}].
-
-%% @hidden
-client_acct_service_opts() ->
-	[{'Origin-Host', "client.testdomain.com"},
-		{'Origin-Realm', "testdomain.com"},
-		{'Vendor-Id', 0},
-		{'Product-Name', "Test Acct Client"},
+		{'Vendor-Id', 10415},
+		{'Product-Name', "SigScale Test Client (Acct)"},
 		{'Auth-Application-Id', [?BASE_APPLICATION_ID, ?CC_APPLICATION_ID]},
 		{string_decode, false},
 		{restrict_connections, false},
@@ -614,15 +577,6 @@ transport_opts1({Trans, LocalAddr, RemAddr, RemPort}) ->
 		{rport, RemPort},
 		{reuseaddr, true}
 		| [{ip, LocalAddr}]]}].
-
-%% @hidden
-diameter_authentication(SId, Username, Password) ->
-	NAS_AAR = #diameter_nas_app_AAR{'Session-Id' = SId,
-			'Auth-Application-Id' = ?NAS_APPLICATION_ID ,
-			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
-			'User-Name' = [Username], 'User-Password' = [Password]},
-	{ok, Answer} = diameter:call(?SVC_AUTH, nas_app_test, NAS_AAR, []),
-	Answer.
 
 %% @hidden
 diameter_accounting_start(SId, Username, RequestNum) ->

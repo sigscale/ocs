@@ -2564,15 +2564,16 @@ update_product(Config) ->
 	{ok, Result} = httpc:request(post, Request1, [], []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, _Href} = lists:keyfind("location", 1, Headers),
+	{_, Etag} = lists:keyfind("etag", 1, Headers),
 	{struct, Product1} = mochijson:decode(ResponseBody),
 	RestPort = ?config(port, Config),
 	{_, ProductName} = lists:keyfind("name", 1, Product1),
 	Description = ocs:generate_password(),
 	SslSock = ssl_socket_open({127,0,0,1}, RestPort),
-	ok = update_product_description(SslSock, RestPort, ProductName, Description),
+	ok = update_product_description(SslSock, RestPort, ProductName, Description, Etag),
 	Status = "Pending Active",
-	ok = update_product_status(SslSock, RestPort, ProductName, Status),
-	ok = update_product_price(SslSock, RestPort, ProductName),
+	ok = update_product_status(SslSock, RestPort, ProductName, Status, Etag),
+	ok = update_product_price(SslSock, RestPort, ProductName, Etag),
 	ok = ssl_socket_close(SslSock).
 
 %%---------------------------------------------------------------------
@@ -2629,7 +2630,7 @@ product_offer() ->
 	ProdOfferPrice = {"productOfferingPrice", {array, [ProdOfferPrice1, ProdOfferPrice2]}},
 	[ProdName, ProdDescirption, IsBundle, IsCustomerVisible, ValidFor, ProdSpec, Status, ProdOfferPrice].
 
-update_product_description(SslSock, RestPort, ProdID, Description) ->
+update_product_description(SslSock, RestPort, ProdID, Description, Etag) ->
 	RestUser = ct:get_config(rest_user),
 	RestPass = ct:get_config(rest_pass),
 	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
@@ -2637,7 +2638,7 @@ update_product_description(SslSock, RestPort, ProdID, Description) ->
 	ContentType = "application/json-patch+json",
 	JSON = {array, [product_description(Description)]},
 	Body = lists:flatten(mochijson:encode(JSON)),
-	{Headers, Response} = patch_request(SslSock, RestPort, ContentType, AuthKey, ProdID, Body),
+	{Headers, Response} = patch_request(SslSock, RestPort, ContentType, Etag, AuthKey, ProdID, Body),
 	<<"HTTP/1.1 200", _/binary>> = Headers,
 	{struct, Object} = mochijson:decode(Response),
 	case lists:keyfind("description", 1, Object) of
@@ -2647,7 +2648,7 @@ update_product_description(SslSock, RestPort, ProdID, Description) ->
 			{error, patch_pafiled}
 	end.
 
-update_product_status(SslSock, RestPort, ProdID, Status) ->
+update_product_status(SslSock, RestPort, ProdID, Status, Etag) ->
 	RestUser = ct:get_config(rest_user),
 	RestPass = ct:get_config(rest_pass),
 	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
@@ -2655,7 +2656,7 @@ update_product_status(SslSock, RestPort, ProdID, Status) ->
 	ContentType = "application/json-patch+json",
 	JSON = {array, [product_status(Status)]},
 	Body = lists:flatten(mochijson:encode(JSON)),
-	{Headers, Response} = patch_request(SslSock, RestPort, ContentType, AuthKey, ProdID, Body),
+	{Headers, Response} = patch_request(SslSock, RestPort, ContentType, Etag, AuthKey, ProdID, Body),
 	<<"HTTP/1.1 200", _/binary>> = Headers,
 	{struct, Object} = mochijson:decode(Response),
 	case lists:keyfind("lifecycleStatus", 1, Object) of
@@ -2665,7 +2666,7 @@ update_product_status(SslSock, RestPort, ProdID, Status) ->
 			{error, patch_pafiled}
 	end.
 
-update_product_price(SslSock, RestPort, ProdID) ->
+update_product_price(SslSock, RestPort, ProdID, Etag) ->
 	RestUser = ct:get_config(rest_user),
 	RestPass = ct:get_config(rest_pass),
 	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
@@ -2691,7 +2692,7 @@ update_product_price(SslSock, RestPort, ProdID) ->
 				pp_alter_type(Index, AltPrT),
 				pp_alter_ufm(Index, AltUFM)]},
 	Body = lists:flatten(mochijson:encode(JSON)),
-	{Headers, Response} = patch_request(SslSock, RestPort, ContentType, AuthKey, ProdID, Body),
+	{Headers, Response} = patch_request(SslSock, RestPort, ContentType, Etag, AuthKey, ProdID, Body),
 	<<"HTTP/1.1 200", _/binary>> = Headers,
 	{struct, Object} = mochijson:decode(Response),
 	{_, {array, Prices}} = lists:keyfind("productOfferingPrice", 1, Object),
@@ -2708,10 +2709,10 @@ update_product_price(SslSock, RestPort, ProdID) ->
 	{_, AltUFM} = lists:keyfind("unitOfMeasure", 1, Alter),
 	ok.
 
-patch_request(SslSock, Port, ContentType, AuthKey, ProdID, ReqBody) when is_list(ReqBody) ->
+patch_request(SslSock, Port, ContentType, Etag, AuthKey, ProdID, ReqBody) when is_list(ReqBody) ->
 	BinBody = list_to_binary(ReqBody),
-	patch_request(SslSock, Port, ContentType, AuthKey, ProdID, BinBody);
-patch_request(SslSock, Port, ContentType, AuthKey, ProdID, ReqBody) ->
+	patch_request(SslSock, Port, ContentType, Etag, AuthKey, ProdID, BinBody);
+patch_request(SslSock, Port, ContentType, Etag, AuthKey, ProdID, ReqBody) ->
 	Timeout = 1500,
 	Length = size(ReqBody),
 	CatalogHref = "/catalogManagement/v2",
@@ -2723,6 +2724,7 @@ patch_request(SslSock, Port, ContentType, AuthKey, ProdID, ReqBody) ->
 			"Authorization:"++ AuthKey,$\r,$\n,
 			"Host:localhost:" ++ integer_to_list(Port),$\r,$\n,
 			"Content-Length:" ++ integer_to_list(Length),$\r,$\n,
+			"If-match:" ++ Etag,$\r,$\n,
 			$\r,$\n,
 			ReqBody],
 	ok = ssl:send(SslSock, Request),

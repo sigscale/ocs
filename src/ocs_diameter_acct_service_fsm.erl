@@ -38,11 +38,13 @@
 			terminate/3, code_change/4]).
 
 -include_lib("diameter/include/diameter.hrl").
+-include_lib("kernel/include/inet.hrl").
 
 -record(statedata,
 		{transport_ref :: undefined | reference(),
-		address = inet:ip_address(),
-		port = inet:port_number()}).
+		address :: inet:ip_address(),
+		port :: inet:port_number(),
+		options :: list()}).
 
 -define(DIAMETER_ACCT_SERVICE(A, P), {ocs_diameter_acct_service, A, P}).
 -define(BASE_APPLICATION, ocs_diameter_base_application).
@@ -75,9 +77,9 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([Address, Port] = _Args) ->
+init([Address, Port, Options] = _Args) ->
 	process_flag(trap_exit, true),
-	SOptions = service_options(),
+	SOptions = service_options(Options),
 	TOptions = transport_options(diameter_tcp, Address, Port),
 	SvcName = ?DIAMETER_ACCT_SERVICE(Address, Port),
 	diameter:subscribe(SvcName),
@@ -86,7 +88,7 @@ init([Address, Port] = _Args) ->
 			case diameter:add_transport(SvcName, TOptions) of
 				{ok, Ref} ->
 					StateData = #statedata{transport_ref = Ref, address = Address,
-							port = Port},
+							port = Port, options = Options},
 					{ok, wait_for_start, StateData, 0};
 				{error, Reason} ->
 					{stop, Reason}
@@ -263,15 +265,22 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec service_options() -> Options
+-spec service_options(Options) -> Options
 	when
 		Options :: list().
 %% @doc Returns options for a DIAMETER service
 %% @hidden
-service_options() ->
-	[{'Origin-Host', "ocs.sigscale.com"},
-		{'Origin-Realm', "sigscale.com"},
-		{'Vendor-Id', 0},
+service_options(Options) ->
+	{ok, Hostname} = inet:gethostname(),
+	Options1 = case lists:keyfind('Origin-Realm', 1, Options) of
+		{_, _} ->
+			Options;
+		false ->
+			{ok, #hostent{h_name = Realm}} = inet:gethostbyname(Hostname),
+			[{'Origin-Realm', Realm} | Options]
+	end,
+	Options1 ++  [{'Origin-Host', Hostname},
+		{'Vendor-Id', 10415},
 		{'Product-Name', "SigScale DIAMETER Server"},
 		{'Auth-Application-Id', [?BASE_APPLICATION_ID, ?CC_APPLICATION_ID]},
 		{restrict_connections, false},
