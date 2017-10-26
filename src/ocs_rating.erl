@@ -145,7 +145,6 @@ debit_units(Subscriber, [#product{price = Prices}], Type, Flag, DebitAmount, Val
 		Return :: {ok, #subscriber{}} | {out_of_credit, SessionAttributes} | {error, Reason},
 		SessionAttributes :: [tuple()],
 		Reason :: term().
-%% @todo Test cases, handle out of credit
 rating(SubscriberID, Final, UsageSecs, UsageOctets, Attributes) when is_list(SubscriberID) ->
 	rating(list_to_binary(SubscriberID), Final, UsageSecs, UsageOctets, Attributes);
 rating(SubscriberID, Final, UsageSecs, UsageOctets, Attributes) when is_binary(SubscriberID) ->
