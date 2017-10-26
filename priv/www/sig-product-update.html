@@ -772,7 +772,6 @@
 							}
 							newAlt.period = item.prices[index].productOfferPriceAlteration.recurringChargePeriod;
 							this.push('alterations', newAlt);
-console.log(newPrice.alteration);
 							}
 						}
 						newPrice.alteration = this.alterations.findIndex(checkAlt1);
@@ -873,10 +872,8 @@ console.log(newPrice.alteration);
 								this.$.updatePricePeriod.selected = 3;
 								break;
 						}
-console.log(this.prices[indexUpdatePrice].alteration);
 						if(this.prices[indexUpdatePrice].alteration >= 0) {
 							this.$.addUpdatePriceAlteration.selected = this.prices[indexUpdatePrice].alteration;
-console.log(this.$.addUpdatePriceAlteration.selected);
 						}
 					}
 				}
