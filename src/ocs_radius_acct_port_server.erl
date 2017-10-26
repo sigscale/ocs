@@ -288,10 +288,7 @@ request1(?AccountingStop, AcctSessionId, Id,
 	end,
 	{ok, Subscriber} = radius_attributes:find(?UserName, Attributes),
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, stop, Attributes),
-	A1 = [{?AcctSessionId, AcctSessionId}],
-	A2 = [{?NasIdentifier, NasId}],
-	A3 = [{?NasIpAddress, NasId}],
-	Candidates = [A1, A2, A3],
+	Candidates = [{?AcctSessionId, AcctSessionId}, {?NasIdentifier, NasId}, {?NasIpAddress, NasId}],
 	DebitAmount = [{octets, UsageOctets}, {seconds, UsageSecs}],
 	case ocs_rating:rate(Subscriber, final, DebitAmount, [], Candidates) of
 		{out_of_credit, SessionList}  ->
@@ -325,10 +322,7 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 	end,
 	{ok, Subscriber} = radius_attributes:find(?UserName, Attributes),
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, interim, Attributes),
-	A1 = [{?AcctSessionId, AcctSessionId}],
-	A2 = [{?NasIdentifier, NasId}],
-	A3 = [{?NasIpAddress, NasId}],
-	Candidates = [A1, A2, A3],
+	Candidates = [{?AcctSessionId, AcctSessionId}, {?NasIdentifier, NasId}, {?NasIpAddress, NasId}],
 	ReserveAmount = [{octets, UsageOctets}, {seconds, UsageSecs}],
 	case ocs_rating:rate(Subscriber, interim, [], ReserveAmount, Candidates) of
 		{error, not_found} ->

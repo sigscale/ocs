@@ -220,7 +220,8 @@ charge(_Type, Charge, _Now, _Final, [], Acc, Charged) ->
 		Validity :: integer(),
 		Final :: boolean(),
 		Buckets :: [#bucket{}],
-		Result :: {Charged, Buckets},
+		Result :: {RemainCharge, Charged, Buckets},
+		RemainCharge :: integer(),
 		Charged :: integer().
 purchase(Type, Price, Size, Used, Validity, Final, Buckets) ->
 	UnitsNeeded = case (Used rem Size) of
