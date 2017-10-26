@@ -249,17 +249,12 @@ purchase(Type, Price, Size, Used, Validity, Final, Buckets) ->
 			{RemainCharge, Charged, NewBuckets}
 	end.
 
-remove_session(SessionList, [H | T]) ->
-	remove_session1(remove_session(SessionList, T), H);
+remove_session(SessionList, [Candidate | T]) ->
+	remove_session(remove_session1(SessionList, Candidate), T);
 remove_session(SessionList, []) ->
 	SessionList.
 %% @hidden
-remove_session1(SessionList, [Candidate | T]) ->
-	remove_session1(remove_session2(SessionList, Candidate), T);
-remove_session1(SessionList, []) ->
-	SessionList.
-%% @hidden
-remove_session2(SessionList, Candidate) ->
+remove_session1(SessionList, Candidate) ->
 	F = fun({Ts, IsCandidate}, Acc)  ->
 				case lists:member(Candidate, IsCandidate) of
 					true ->
