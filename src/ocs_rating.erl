@@ -65,6 +65,7 @@ rate(SubscriberID, Flag, DebitAmount, ReserveAmount) ->
 rate(SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentification) when is_list(SubscriberID)->
 	rate(list_to_binary(SubscriberID), Flag, DebitAmount, ReserveAmount, SessionIdentification);
 rate(SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentification) ->
+erlang:display({?MODULE, ?LINE, DebitAmount, ReserveAmount}),
 	F = fun() ->
 			case mnesia:read(subscriber, SubscriberID, write) of
 				[#subscriber{product = #product_instance{product = ProdID}} = Subscriber] ->
@@ -99,9 +100,9 @@ rate1(#subscriber{buckets = Buckets, product = #product_instance{characteristics
 		{Type, Used} = lists:keyfind(Type, 1, DebitAmount),
 		case charge(Type, Used, true, Buckets) of
 			{R1, C1, NB1} when R1 > 0 ->
-				{R2, C2, NB2}  = purchase(Type, Price, Size, Used - C1, Validity, true, NB1),
+				{R2, _C2, NB2}  = purchase(Type, Price, Size, Used - C1, Validity, true, NB1),
 				{R2, NB2};
-			{R1, C1, NB1} ->
+			{R1, _C1, NB1} ->
 				{R1, NB1}
 		end
 	of
@@ -126,9 +127,9 @@ rate2(#subscriber{buckets = Buckets, product = #product_instance{characteristics
 		{Type, Reserve} = lists:keyfind(Type, 1, ReserveAmount),
 		case charge(Type, Reserve, false, Buckets) of
 			{R1, C1, NB1} when R1 > 0 ->
-				{R2, C2, NB2} = purchase(Type, Price, Size, Reserve - C1, Validity, false, NB1),
+				{R2, _C2, NB2} = purchase(Type, Price, Size, Reserve - C1, Validity, false, NB1),
 				{R2, NB2, Reserve};
-			{R1, C1, NB1} ->
+			{R1, _C1, NB1} ->
 				{R1, NB1, Reserve}
 		end
 	of
@@ -140,7 +141,7 @@ rate2(#subscriber{buckets = Buckets, product = #product_instance{characteristics
 			throw(price_not_found)
 	end.
 %% @hidden
-rate3(#subscriber{session_attributes = SessionList, name = Sub} = Subscriber,
+rate3(#subscriber{session_attributes = SessionList} = Subscriber,
 		Charged, Flag, ReserveAmount, SessionIdentification) ->
 	case Charged of
 		C1 when C1 > 0 ->
@@ -249,17 +250,12 @@ purchase(Type, Price, Size, Used, Validity, Final, Buckets) ->
 			{RemainCharge, Charged, NewBuckets}
 	end.
 
-remove_session(SessionList, [H | T]) ->
-	remove_session1(remove_session(SessionList, T), H);
+remove_session(SessionList, [Candidate | T]) ->
+	remove_session(remove_session1(SessionList, Candidate), T);
 remove_session(SessionList, []) ->
 	SessionList.
 %% @hidden
-remove_session1(SessionList, [Candidate | T]) ->
-	remove_session1(remove_session2(SessionList, Candidate), T);
-remove_session1(SessionList, []) ->
-	SessionList.
-%% @hidden
-remove_session2(SessionList, Candidate) ->
+remove_session1(SessionList, Candidate) ->
 	F = fun({Ts, IsCandidate}, Acc)  ->
 				case lists:member(Candidate, IsCandidate) of
 					true ->
