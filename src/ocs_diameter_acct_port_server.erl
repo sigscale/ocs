@@ -249,7 +249,7 @@ request(Request, Caps,  _From, State) ->
 %% @hidden
 request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		#diameter_cc_app_CCR{'Multiple-Services-Credit-Control' = [MSCC | _]} = Request,
-		SId, RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm, State) ->
+		SId, RequestNum, Subscriber, OHost, DHost, ORealm, DRealm, State) ->
 	RSU =  case MSCC of
 		#'diameter_cc_app_Multiple-Services-Credit-Control'{'Requested-Service-Unit' =
 				[RequestedServiceUnits | _]} ->
@@ -270,8 +270,9 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		_ ->
 			throw(unsupported_request_units)
 	end,
-	SessionIdentification = [{'Origin-Host', OHost}, {'Origin-Realm', ORealm}],
-	case ocs_rating:reserve_units(Subscriber, 1, SId, SessionIdentification, ReqUsageType, ReqUsage, 0) of
+	SessionAttributes = [{'Origin-Host', OHost}, {'Origin-Realm', ORealm},
+		{'Destination-Host', DHost}, {'Destination-Realm', DRealm}, {'Session-Id', SId}],
+	case ocs_rating:reserve_units(Subscriber, 1, SessionAttributes, ReqUsageType, ReqUsage, 0) of
 		{ok, GrantedAmount} ->
 			{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 					GrantedAmount, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
@@ -343,7 +344,7 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 			[] ->
 				throw(used_amount_not_available)
 		end,
-		case ocs_rating:reserve_units(Subscriber, 2, [], SId, ReqUsageType, ReqUsage, UsedUsage) of
+		case ocs_rating:reserve_units(Subscriber, 2, [], ReqUsageType, ReqUsage, UsedUsage) of
 			{ok, GrantedAmount} ->
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						GrantedAmount, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
@@ -402,7 +403,7 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 			[] ->
 				throw(used_amount_not_available)
 		end,
-		case ocs_rating:reserve_units(Subscriber, 3, SId, [], UsedType, 0, UsedUsage) of
+		case ocs_rating:reserve_units(Subscriber, 3, [], UsedType, 0, UsedUsage) of
 			{ok, GrantedAmount} ->
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						GrantedAmount, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,

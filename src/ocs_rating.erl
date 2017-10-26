@@ -23,7 +23,7 @@
 
 -export([rating/5]).
 -export([remove_session/2]).
--export([reserve_units/7]).
+-export([reserve_units/6]).
 
 -include("ocs.hrl").
 
@@ -35,13 +35,12 @@
 -define(update, 2).
 -define(terminate, 3).
 
--spec reserve_units(SubscriberID, RequestType, SessionId,
-		SessionIdentification, UnitType, ReserveAmount, DebitAmount) -> Result
+-spec reserve_units(SubscriberID, RequestType,
+		Attributes, UnitType, ReserveAmount, DebitAmount) -> Result
 	when
 		SubscriberID :: string() | binary(),
 		RequestType :: 1..3,
-		SessionId :: string(),
-		SessionIdentification :: [tuple()],
+		Attributes :: [tuple()],
 		UnitType :: octets | seconds,
 		ReserveAmount :: integer(),
 		DebitAmount :: integer(),
@@ -49,12 +48,12 @@
 		GrantedAmount :: integer(),
 		SessionList :: [tuple()],
 		Reason :: term().
-reserve_units(SubscriberID, RequestType, SessionId,
-		SessionIdentification, UnitType, ReserveAmount, DebitAmount) when is_list(SubscriberID) ->
+reserve_units(SubscriberID, RequestType, Attributes,
+		UnitType, ReserveAmount, DebitAmount) when is_list(SubscriberID) ->
 	reserve_units(list_to_binary(SubscriberID), RequestType,
-			SessionId, SessionIdentification, UnitType, ReserveAmount, DebitAmount);
-reserve_units(SubscriberID, RequestType, SessionId,
-		SessionIdentification, UnitType, ReserveAmount, DebitAmount) ->
+			Attributes, UnitType, ReserveAmount, DebitAmount);
+reserve_units(SubscriberID, RequestType, Attributes,
+		UnitType, ReserveAmount, DebitAmount) ->
 	F = fun() ->
 			case mnesia:read(subscriber, SubscriberID, read) of
 				[#subscriber{buckets = Buckets, product =
@@ -64,7 +63,7 @@ reserve_units(SubscriberID, RequestType, SessionId,
 					Validity = proplists:get_value(validity, Chars),
 					case RequestType of
 						?initial ->
-							SA = update_session(SessionId, SessionIdentification, SessionAttributes, []),
+							SA = update_session(Attributes, SessionAttributes),
 							case reserve_units1(?initial, Product, Subscriber, UnitType,
 									false, ReserveAmount, DebitAmount, Validity, Buckets) of
 								out_of_credit ->
@@ -105,7 +104,7 @@ reserve_units1(?initial, Product, Subscriber, UnitType, Flag, ReserveAmount, _De
 			out_of_credit;
 		{_Chraged, _NewBuckets} ->
 			{grant, ReserveAmount}
-	end.
+	end;
 reserve_units1(_, Product, Subscriber, UnitType, Flag, ReserveAmount, DebitAmount, Validity, Buckets) ->
 	case debit_units(Subscriber, Product, UnitType, Flag, DebitAmount, Validity, Buckets) of
 		{Charged, NewBuckets} when Charged =< 0 andalso DebitAmount =/= 0 ->
@@ -330,30 +329,28 @@ remove_session2(SessionList, Candidate) ->
 	end,
 	lists:foldl(F, [], SessionList).
 
-update_session(_SessionId, _SessionIdentification, [], Acc) ->
-	Acc;
-update_session(SessionId, SessionIdentification, [{TS, SessionAttr} = H | T] = S, Acc) ->
-	case update_session1(SessionIdentification, SessionAttr) of
+
+%% @private
+update_session(SessionIdentification, SessionList) ->
+	update_session(SessionIdentification, SessionList, []).
+%% @hidden
+update_session(SessionIdentification, [], Acc) ->
+	Now = erlang:system_time(?MILLISECOND),
+	[{Now, SessionIdentification} | Acc];
+update_session(SessionIdentification, [{_, Attributes} = H | T] = S, Acc) ->
+	case update_session1(SessionIdentification, Attributes) of
 		true ->
-			case lists:keyfind('Session-Id', 1, SessionAttr) of
-				{_, _} ->
-					S ++ Acc;
-				false ->
-					NewHead = {TS, [{'Session-Id', SessionId} | SessionAttr]},
-					NewSession = [NewHead | T],
-					NewSession ++ Acc
-			end;
+			S ++ Acc;
 		false ->
-			update_session(SessionId, SessionIdentification, T, [H | Acc])
+			update_session(SessionIdentification, T, [H | Acc])
 	end.
 %% @hidden
 update_session1([], _Attributes) ->
 	false;
-update_session1([SessionIdentification | T], Attributes) ->
-	case lists:member(SessionIdentification, Attributes) of
+update_session1([Identifier | T], Attributes) ->
+	case lists:member(Identifier, Attributes) of
 		true ->
 			true;
 		false ->
 			update_session1(T, Attributes)
 	end.
-
