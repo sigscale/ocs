@@ -261,9 +261,7 @@ charge(_Type, 0, _Now, _Final, Buckets, Acc, Charged) ->
 charge(Type, Charge, Now, Final, [H | T], Acc, Charged) ->
 	charge(Type, Charge, Now, Final, T, [H | Acc], Charged);
 charge(_Type, _Charge, _Now, _Final, [], Acc, Charged) ->
-	{Charged, Acc};
-charge(_Type, _Charge, _Now, _Final, Buckets, Acc, Charged) ->
-	{Charged, Buckets ++ Acc}.
+	{Charged, Acc}.
 
 -spec purchase(Type, Price, Size, Used, Validity, Final, Buckets) -> Result
 	when
