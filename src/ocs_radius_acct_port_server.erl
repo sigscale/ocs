@@ -340,10 +340,10 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 		{out_of_credit, SessionList} ->
 			start_disconnect(State, Subscriber, SessionList),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
-		{ok, #subscriber{enabled = false, session_attributes = SessionList}} ->
+		{ok, #subscriber{enabled = false, session_attributes = SessionList}, _} ->
 			start_disconnect(State, Subscriber, SessionList),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
-		{ok, #subscriber{}} ->
+		{ok, #subscriber{}, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
 request1(?AccountingON, _AcctSessionId, Id,
