@@ -41,7 +41,7 @@
 init([Address, Port, Options]) ->
 	ChildSpecs = [server(ocs_diameter_acct_port_server, Address, Port, Options),
 		supervisor(ocs_diameter_disconnect_fsm_sup, []),
-		supervisor(ocs_diameter_acct_service_fsm_sup, [Address, Port])],
+		supervisor(ocs_diameter_acct_service_fsm_sup, [Address, Port, Options])],
 	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
 
 %%----------------------------------------------------------------------

@@ -44,11 +44,13 @@
 			terminate/3, code_change/4]).
 
 -include_lib("diameter/include/diameter.hrl").
+-include_lib("kernel/include/inet.hrl").
 
 -record(statedata,
 		{transport_ref :: undefined | reference(),
 		address :: inet:ip_address(),
-		port :: inet:port_number()}).
+		port :: inet:port_number(),
+		options :: list()}).
 
 -define(DIAMETER_AUTH_SERVICE(A, P), {ocs_diameter_auth_service, A, P}).
 -define(BASE_APPLICATION, ocs_diameter_base_application).
@@ -57,6 +59,9 @@
 -define(NAS_APPLICATION, ocs_diameter_nas_application).
 -define(NAS_APPLICATION_ID, 1).
 -define(NAS_APPLICATION_CALLBACK, ocs_diameter_nas_application_cb).
+-define(CC_APPLICATION, ocs_diameter_cc_application).
+-define(CC_APPLICATION_ID, 4).
+-define(CC_APPLICATION_CALLBACK, ocs_diameter_cc_application_cb).
 -define(EAP_APPLICATION, ocs_diameter_eap_application).
 -define(EAP_APPLICATION_ID, 5).
 -define(EAP_APPLICATION_CALLBACK, ocs_diameter_eap_application_cb).
@@ -84,9 +89,9 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([Address, Port] = _Args) ->
+init([Address, Port, Options] = _Args) ->
 	process_flag(trap_exit, true),
-	SOptions = service_options(),
+	SOptions = service_options(Options),
 	TOptions = transport_options(diameter_tcp, Address, Port),
 	SvcName = ?DIAMETER_AUTH_SERVICE(Address, Port),
 	diameter:subscribe(SvcName),
@@ -95,7 +100,7 @@ init([Address, Port] = _Args) ->
 			case diameter:add_transport(SvcName, TOptions) of
 				{ok, Ref} ->
 					StateData = #statedata{transport_ref = Ref, address = Address,
-							port = Port},
+							port = Port, options = Options},
 					{ok, wait_for_start, StateData, 0};
 				{error, Reason} ->
 					{stop, Reason}
@@ -272,21 +277,28 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec service_options() -> Options
+-spec service_options(Options) -> Options
 	when
 		Options :: list().
 %% @doc Returns options for a DIAMETER service
 %% @hidden
-service_options() ->
+service_options(Options) ->
 	{ok, Hostname} = inet:gethostname(),
-	[{'Origin-Host', Hostname},
-	{'Origin-Realm', "sigscale.com"},
+	Options1 = case lists:keyfind('Origin-Realm', 1, Options) of
+		{_, _} ->
+			Options;
+		false ->
+			{ok, #hostent{h_name = Realm}} = inet:gethostbyname(Hostname),
+			[{'Origin-Realm', Realm} | Options]
+	end,
+	Options1 ++  [{'Origin-Host', Hostname},
 	{'Vendor-Id', 10415},
 	{'Product-Name', "SigScale DIAMETER Server"},
 	{'Auth-Application-Id',
 			[?BASE_APPLICATION_ID,
 			?NAS_APPLICATION_ID,
-			?EAP_APPLICATION_ID]},
+			?EAP_APPLICATION_ID,
+			?CC_APPLICATION_ID]},
 	{restrict_connections, false},
 	{string_decode, false},
 	{application,
@@ -300,7 +312,10 @@ service_options() ->
 	{application,
 			[{alias, ?NAS_APPLICATION},
 			{dictionary, diameter_gen_nas_application_rfc7155},
-			{module, ?NAS_APPLICATION_CALLBACK}]}].
+			{module, ?NAS_APPLICATION_CALLBACK}]},
+	{application, [{alias, ?CC_APPLICATION},
+			{dictionary, diameter_gen_cc_application_rfc4006},
+			{module, ?CC_APPLICATION_CALLBACK}]}].
 
 -spec transport_options(Transport, Address, Port) -> Options
 	when
