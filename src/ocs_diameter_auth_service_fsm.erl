@@ -59,6 +59,9 @@
 -define(NAS_APPLICATION, ocs_diameter_nas_application).
 -define(NAS_APPLICATION_ID, 1).
 -define(NAS_APPLICATION_CALLBACK, ocs_diameter_nas_application_cb).
+-define(CC_APPLICATION, ocs_diameter_cc_application).
+-define(CC_APPLICATION_ID, 4).
+-define(CC_APPLICATION_CALLBACK, ocs_diameter_cc_application_cb).
 -define(EAP_APPLICATION, ocs_diameter_eap_application).
 -define(EAP_APPLICATION_ID, 5).
 -define(EAP_APPLICATION_CALLBACK, ocs_diameter_eap_application_cb).
@@ -294,7 +297,8 @@ service_options(Options) ->
 	{'Auth-Application-Id',
 			[?BASE_APPLICATION_ID,
 			?NAS_APPLICATION_ID,
-			?EAP_APPLICATION_ID]},
+			?EAP_APPLICATION_ID,
+			?CC_APPLICATION_ID]},
 	{restrict_connections, false},
 	{string_decode, false},
 	{application,
@@ -308,7 +312,10 @@ service_options(Options) ->
 	{application,
 			[{alias, ?NAS_APPLICATION},
 			{dictionary, diameter_gen_nas_application_rfc7155},
-			{module, ?NAS_APPLICATION_CALLBACK}]}].
+			{module, ?NAS_APPLICATION_CALLBACK}]},
+	{application, [{alias, ?CC_APPLICATION},
+			{dictionary, diameter_gen_cc_application_rfc4006},
+			{module, ?CC_APPLICATION_CALLBACK}]}].
 
 -spec transport_options(Transport, Address, Port) -> Options
 	when
