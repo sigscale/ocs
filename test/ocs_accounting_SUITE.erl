@@ -206,7 +206,7 @@ radius_disconnect_session(Config) ->
 			PeerID, Secret, NasID, AcctSessionID, RadID3, 700, 300),
 	RadID4 = RadID3 + 1,
 	accounting_stop(Socket, AcctAddress, AcctPort,
-			PeerID, Secret, NasID, AcctSessionID, RadID4),
+			PeerID, Secret, NasID, AcctSessionID, RadID4, 1000, 500),
 	disconnect_request().
 
 radius_multisessions_not_allowed() ->
@@ -466,10 +466,13 @@ accounting_interim(Socket, Address, Port, PeerID,
 			Address, Port, PeerID, Secret, NasID, AcctSessionID, RadID, A1),
 	accounting_response(Socket, Address, Port, Secret, RadID, ReqAuth).
 
+accounting_stop(Socket, Address, Port, PeerID, Secret, NasID, AcctSessionID, RadID) ->
+	accounting_stop(Socket, Address, Port, PeerID,
+			Secret, NasID, AcctSessionID, RadID, 100, 50).
 accounting_stop(Socket, Address, Port, PeerID,
-		Secret, NasID, AcctSessionID, RadID) ->
-	A0 = radius_attributes:store(?AcctInputOctets, 100, []),
-	A1 = radius_attributes:store(?AcctOutputOctets, 50, A0),
+		Secret, NasID, AcctSessionID, RadID, InputOctets, OutputOctets) ->
+	A0 = radius_attributes:store(?AcctInputOctets, InputOctets, []),
+	A1 = radius_attributes:store(?AcctOutputOctets, OutputOctets, A0),
 	ReqAuth = accounting_request(?AccountingStop, Socket,
 			Address, Port, PeerID, Secret, NasID, AcctSessionID, RadID, A1),
 	accounting_response(Socket, Address, Port, Secret, RadID, ReqAuth).
