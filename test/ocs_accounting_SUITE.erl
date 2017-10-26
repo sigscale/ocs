@@ -68,26 +68,16 @@ init_per_suite(Config) ->
 	{ok, ProdID} = ocs_test_lib:add_product(),
 	NasID = atom_to_list(node()),
 	Config1 = [{nas_id, NasID} | Config],
-	{ok, [{auth, DiaAuthInstance}, {acct, DiaAcctInstances}]} =
-			application:get_env(ocs, diameter),
-	[{AuthAddress, AuthPort, _}] = DiaAuthInstance,
-	[{AcctAddress, AcctPort, _}] = DiaAcctInstances,
-	true = diameter:subscribe(?SVC_AUTH),
-	ok = diameter:start_service(?SVC_AUTH, client_auth_service_opts()),
-	{ok, _Ref1} = connect(?SVC_AUTH, AuthAddress, AuthPort, diameter_tcp),
+	{ok, EnvList} = application:get_env(ocs, diameter),
+	{acct, [{Address, Port, Options } | _]} = lists:keyfind(acct, 1, EnvList),
+	true = diameter:subscribe(?SVC_ACCT),
+	ok = diameter:start_service(?SVC_ACCT, client_acct_service_opts(Options)),
+	{ok, _Ref2} = connect(?SVC_ACCT, Address, Port, diameter_tcp),
 	receive
-		#diameter_event{service = ?SVC_AUTH, info = start} ->
-			true = diameter:subscribe(?SVC_ACCT),
-			ok = diameter:start_service(?SVC_ACCT, client_acct_service_opts()),
-			{ok, _Ref2} = connect(?SVC_ACCT, AcctAddress, AcctPort, diameter_tcp),
-			receive
-				#diameter_event{service = ?SVC_ACCT, info = start} ->
-					[{product_id, ProdID}, {diameter_auth_client, AuthAddress}] ++ Config1;
-				_ ->
-					{skip, diameter_client_acct_service_not_started}
-			end;
+		#diameter_event{service = ?SVC_ACCT, info = start} ->
+			[{product_id, ProdID}, {diameter_auth_client, Address}] ++ Config1;
 		_ ->
-			{skip, diameter_client_auth_service_not_started}
+			{skip, diameter_client_acct_service_not_started}
 	end.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
@@ -108,15 +98,15 @@ init_per_testcase(TestCase, Config) when
 	UserName = "SlimShady",
 	Password = "TeRcEs",
 	ProdID = ?config(product_id, Config),
-	{ok, [{auth, AuthInstance}, {acct, _}]} = application:get_env(ocs, diameter),
-	[{Address, Port, _}] = AuthInstance,
-	Secret = "s3cr3t",
+	{ok, EnvList} = application:get_env(ocs, diameter),
+	{acct, [{Address, Port, Options } | _]} = lists:keyfind(acct, 1, EnvList),
+	Secret = ocs:generate_password(),
+	ok = ocs:add_client(Address, Port, diameter, Secret),
 	InitialAmount = 1000000000,
 	Now = erlang:system_time(?MILLISECOND),
 	TD = Now + 86400000,
 	Buckets = [#bucket{bucket_type = octets,
 			remain_amount = InitialAmount, termination_date = TD}],
-	ok = ocs:add_client(Address, Port, diameter, Secret),
 	{ok, _} = ocs:add_subscriber(UserName, Password, ProdID, [], Buckets, []),
 	[{username, UserName}, {password, Password}, {init_bal, InitialAmount}] ++ Config;
 init_per_testcase(_TestCase, Config) ->
