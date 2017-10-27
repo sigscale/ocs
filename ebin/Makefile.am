@@ -67,6 +67,8 @@ beam_DATA = ocs.beam \
 			ocs_rest_res_user.beam \
 			ocs_rest_res_balance.beam \
 			ocs_rest_res_product.beam \
+			diameter_gen_3gpp.beam \
+			diameter_gen_3gpp_ro_application.beam \
 			diameter_gen_nas_application_rfc7155.beam \
 			diameter_gen_cc_application_rfc4006.beam \
 			diameter_gen_eap_application_rfc4072.beam \
@@ -79,10 +81,15 @@ beam_DATA = ocs.beam \
 %.beam:$(top_srcdir)/src/%.erl	$(top_srcdir)/include/ocs.hrl \
 		$(top_srcdir)/include/ocs_log.hrl \
 		$(top_srcdir)/include/ocs_eap_codec.hrl \
+		$(top_builddir)/include/diameter_gen_3gpp_ro_application.hrl \
 		$(top_builddir)/include/diameter_gen_nas_application_rfc7155.hrl \
 		$(top_builddir)/include/diameter_gen_cc_application_rfc4006.hrl \
 		$(top_builddir)/include/diameter_gen_eap_application_rfc4072.hrl
 	$(ERLC) $(ERLCFLAGS) -I $(top_srcdir)/include $<
+
+diameter_gen_3gpp_ro_application.beam:$(top_builddir)/src/diameter_gen_3gpp_ro_application.erl \
+		$(top_builddir)/include/diameter_gen_3gpp_ro_application.hrl
+	$(ERLC) $(ERLCFLAGS) -I $(top_builddir)/include $<
 
 diameter_gen_nas_application_rfc7155.beam:$(top_builddir)/src/diameter_gen_nas_application_rfc7155.erl \
 		$(top_builddir)/include/diameter_gen_nas_application_rfc7155.hrl
