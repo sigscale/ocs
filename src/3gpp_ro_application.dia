@@ -71,7 +71,6 @@
          [ Origin-State-Id ]
         *[ Proxy-Info ]
         *[ Route-Record ]
-         [ CC-Sub-Session-Id ]
          [ G-S-U-Pool-Identifier ]
          [ Service-Identifier ]
          [ Rating-Group ]
