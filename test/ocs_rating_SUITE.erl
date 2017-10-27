@@ -90,7 +90,8 @@ all() ->
 	rate_octets_with_debiting_scenario_7, rate_octets_with_reservation_scenario_1,
 	rate_octets_with_reservation_scenario_2, rate_octets_with_reservation_scenario_3,
 	rate_octets_with_reservation_scenario_4, rate_octets_with_reservation_scenario_5,
-	rate_octets_with_reservation_scenario_6].
+	rate_octets_with_reservation_scenario_6, rate_octets_with_debit_and_reservation_scenario_1,
+	rate_octets_with_debit_and_reservation_scenario_2].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -451,6 +452,65 @@ rate_octets_with_reservation_scenario_6(_Config) ->
 	{ok, _, _} = ocs_rating:rate(SubscriberID, inital, [], [{octets, 100}], SessionAttributes),
 	{ok, #subscriber{session_attributes = SessionList}} = ocs:find_subscriber(SubscriberID),
 	{_, SessionAttributes} = lists:nth(1, SessionList).
+
+rate_octets_with_debit_and_reservation_scenario_1() ->
+	[{userdata, [{doc, "Senario describ doing first debit given usage
+		and check for reservation, Whole senoario base on sufficient amount"}]}].
+
+rate_octets_with_debit_and_reservation_scenario_1(_Config) ->
+	ProdID = ocs:generate_password(),
+	PackagePrice = 100,
+	PackageSize = 1000,
+	Price = #price{name = "overage", type = usage,
+		units = octets, size = PackageSize, amount = PackagePrice},
+	Product = #product{name = ProdID, price = [Price]},
+	{ok, _} = ocs:add_product(Product),
+	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
+	RemAmount = 201,
+	Debit = 1000,
+	Reservation = 100,
+	Buckets = [#bucket{bucket_type = cents, remain_amount = RemAmount,
+		start_date = erlang:system_time(?MILLISECOND),
+		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
+	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
+	{ok, _, _} = ocs_rating:rate(SubscriberID, interim, [{octets, Debit}], [{octets, Reservation}]),
+	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
+	#bucket{remain_amount = 1} = lists:keyfind(cents, #bucket.bucket_type, RatedBuckets),
+	#bucket{remain_amount = PackageSize} = lists:keyfind(octets, #bucket.bucket_type, RatedBuckets).
+
+rate_octets_with_debit_and_reservation_scenario_2() ->
+	[{userdata, [{doc, "Senario describ doing first debit given
+		usage and check for reservation, debit amount is less than package size and
+		reservation amount less than avaliable remain amount, Whole senoario base on
+		sufficient amount"}]}].
+
+rate_octets_with_debit_and_reservation_scenario_2(_Config) ->
+	ProdID = ocs:generate_password(),
+	PackagePrice = 100,
+	PackageSize = 1000,
+	Price = #price{name = "overage", type = usage,
+		units = octets, size = PackageSize, amount = PackagePrice},
+	Product = #product{name = ProdID, price = [Price]},
+	{ok, _} = ocs:add_product(Product),
+	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
+	RemAmount = 201,
+	Debit = 100,
+	Reservation = 100,
+	Buckets = [#bucket{bucket_type = cents, remain_amount = RemAmount,
+		start_date = erlang:system_time(?MILLISECOND),
+		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
+	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
+	{ok, _, _} = ocs_rating:rate(SubscriberID, interim, [{octets, Debit}], [{octets, Reservation}]),
+	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
+	#bucket{remain_amount = CentsRemain} = lists:keyfind(cents, #bucket.bucket_type, RatedBuckets),
+	CentsRemain = RemAmount - PackagePrice,
+	#bucket{remain_amount = OctetsRemain} = lists:keyfind(octets, #bucket.bucket_type, RatedBuckets),
+	OctetsRemain = PackageSize - Debit.
+
 
 %%---------------------------------------------------------------------
 %%  Internal functions
