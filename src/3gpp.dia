@@ -157,7 +157,7 @@
    IMS-Charging-Identifier                                 841  UTF8String       V
    IMS-Communication-Service-Identifier                   1281  UTF8String       V
    ; IMS-Emerency-Indicator                                 2322  Enumerated       V
-   ; IMS-Information                                         876  Grouped          V
+   IMS-Information                                         876  Grouped          V
    IMS-Visited-Network-Identifier                         2713  UTF8String       V
    ; IMSI-Unauthenticated-Flag                              2308  Enumerated       V
    Incoming-Trunk-Group-Id                                 852  UTF8String       V
@@ -407,7 +407,7 @@
    ; Service-Data-Container                                 2040  Grouped          V
    ; Service-Generic-Information                            1256  
    Service-Id                                              855  UTF8String       V
-   ; Service-Information                                     873  Grouped          V
+   Service-Information                                     873  Grouped          V
    Service-Mode                                           2032  Unsigned32       V
    Service-Specific-Data                                   863  UTF8String       V
    ; Service-Specific-Info                                  1249  Grouped          V
@@ -509,4 +509,80 @@
    VLR-Number                                             3420  OctetString      V
    Volume-Quota-Threshold                                  869  Unsigned32       V
    ; WLAN-Link-Layer-Id                                     3821  
+
+@grouped
+   Service-Information ::= < AVP Header: 873 >
+;       * [ Subscription-Id ]
+;         [ AoC-Information ]
+;         [ PS-Information ]
+          [ IMS-Information ]
+;         [ MMS-Information ]
+;         [ LCS-Information ]
+;         [ PoC-Information ]
+;         [ MBMS-Information ]
+;         [ SMS-Information ]
+;         [ VCS-Information ]
+;         [ MMTel-Information ]
+;         [ ProSe-Information ]
+;         [ Service-Generic-Information ]
+;         [ IM-Information ]
+;         [ DCD-Information ]
+;         [ M2M-Information ]
+;         [ CPDT-Information ]
+
+@grouped
+IMS-Information ::= < AVP Header: 876 >
+          { Node-Functionality }
+          [ Event-Type ]
+          [ Role-Of-Node ]
+          [ User-Session-Id ]
+;         [ Outgoing-Session-Id ]
+;         [ Session-Priority ]
+          * [ Calling-Party-Address ]
+          [ Called-Party-Address ]
+;         * [ Called-Asserted-Identity ]
+;         [ Called-Identity-Change ]
+;         [ Number-Portability-Routing-Information ]
+;         [ Carrier-Select-Routing-Information ]
+;         [ Alternate-Charged-Party-Address ]
+;         * [ Requested-Party-Address ]
+;         * [ Associated-URI ]
+          [ Time-Stamps ]
+;         * [ Application-Server-Information ]
+          * [ Inter-Operator-Identifier ]
+;         * [ Transit-IOI-List ]
+          [ IMS-Charging-Identifier ]
+;         * [ SDP-Session-Description ]
+;         * [ SDP-Media-Component ]
+;         [ Served-Party-IP-Address ]
+;         [ Server-Capabilities ]
+;         [ Trunk-Group-ID ]
+;         [ Bearer-Service ]
+;         [ Service-Id ]
+;         * [ Service-Specific-Info ]
+;         * [ Message-Body ]
+;         [ Cause-Code ]
+;         * [ Reason-Header ]
+;         * [ Access-Network-Information ]
+;         [ Cellular-Network-Information ]
+;         * [ Early-Media-Description ]
+;         [ IMS-Communication-Service-Identifier ]
+;         [ IMS-Application-Reference-Identifier ]
+;         [ Online-Charging-Flag ]
+;         [ Real-Time-Tariff-Information ]
+;         [ Account-Expiration ]
+;         [ Initial-IMS-Charging-Identifier ]
+;         * [ NNI-Information ]
+;         [ From-Address ]
+;         [ IMS-Emergency-Indicator ]
+;         [ IMS-Visited-Network-Identifier ]
+;         * [ Access-Network-Info-Change ]
+;         * [ Access-Transfer-Information ]
+;         [ Related-IMS-Charging-Identifier ]
+;         [ Related-IMS-Charging-Identifier-Node ]
+;         [ Route-Header-Received ]
+;         [ Route-Header-Transmitted ]
+;         [ Instance-Id ]
+;         [TAD-Identifier]
+;         [FE-Identifier-List] 
 
