@@ -241,10 +241,15 @@ purchase(Type, Price, Size, Used, Validity, Final, Buckets) ->
 				false ->
 					UnitsNeeded * Size
 			end,
-			Bucket = #bucket{bucket_type = Type, remain_amount = Remain,
-				termination_date = Validity,
-				start_date = erlang:system_time(?MILLISECOND)},
-			{RemainCharge, Charged, [Bucket | NewBuckets]};
+			if
+				Remain == 0 ->
+					{RemainCharge, Charged, NewBuckets};
+				true ->
+					Bucket = #bucket{bucket_type = Type, remain_amount = Remain,
+						termination_date = Validity,
+						start_date = erlang:system_time(?MILLISECOND)},
+					{RemainCharge, Charged, [Bucket | NewBuckets]}
+			end;
 		{RemainCharge, Charged, NewBuckets} ->
 			{RemainCharge, Charged, NewBuckets}
 	end.
