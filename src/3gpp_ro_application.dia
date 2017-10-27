@@ -17,22 +17,22 @@
          { Service-Context-Id }
          { CC-Request-Type }
          { CC-Request-Number }
-         { Destination-Host }
+         [ Destination-Host ]
          [ User-Name ]
          [ Origin-State-Id ]
          [ Event-Timestamp ]
-         *[ Subscription-Id ]
+        *[ Subscription-Id ]
          [ Termination-Cause ]
          [ Requested-Action ]
-;         [ AoC-Request-Type ]
+;        [ AoC-Request-Type ]
          [ Multiple-Services-Indicator ]
-         *[ Multiple-Services-Credit-Control ]
+        *[ Multiple-Services-Credit-Control ]
          [ CC-Correlation-Id ]
          [ User-Equipment-Info ]
-         *[ Proxy-Info ]
-         *[ Route-Record ]
+        *[ Proxy-Info ]
+        *[ Route-Record ]
          [ Service-Information ]
-         *[ AVP ]
+        *[ AVP ]
 
    CCA ::= < Diameter Header: 272, PXY >
          < Session-Id >
@@ -43,22 +43,23 @@
          { CC-Request-Type }
          { CC-Request-Number }
          [ CC-Session-Failover ]
-         *[ Multiple-Services-Credit-Control ]
+        *[ Multiple-Services-Credit-Control ]
          [ Cost-Information]
-;         [ Low-Balance-Indication ]
-;         [ Remaining-Balance]
+;        [ Low-Balance-Indication ]
+;        [ Remaining-Balance ]
          [ Credit-Control-Failure-Handling ]
          [ Direct-Debiting-Failure-Handling ]
-         *[ Redirect-Host]
+        *[ Redirect-Host]
          [ Redirect-Host-Usage ]
          [ Redirect-Max-Cache-Time ]
-         *[ Proxy-Info ]
-         *[ Route-Record ]
-         *[ Failed-AVP ]
+        *[ Proxy-Info ]
+        *[ Route-Record ]
+         [ Failed-AVP ]
          [ Service-Information ]
-         *[ AVP ]
+        *[ AVP ]
 
    RAR ::= < Diameter Header: 258, REQ, PXY >
+
          < Session-Id >
          { Origin-Host }
          { Origin-Realm }
@@ -68,14 +69,16 @@
          { Re-Auth-Request-Type }
          [ User-Name ]
          [ Origin-State-Id ]
-         *[ Proxy-Info ]
-         *[ Route-Record ]
+        *[ Proxy-Info ]
+        *[ Route-Record ]
+         [ CC-Sub-Session-Id ]
          [ G-S-U-Pool-Identifier ]
          [ Service-Identifier ]
          [ Rating-Group ]
-         *[ AVP ]
+        *[ AVP ]
 
    RAA ::= < Diameter Header: 258, PXY >
+
          < Session-Id >
          { Result-Code }
          { Origin-Host }
@@ -85,11 +88,11 @@
          [ Error-Message ]
          [ Error-Reporting-Host ]
          [ Failed-AVP ]
-         *[ Redirect-Host ]
+        *[ Redirect-Host ]
          [ Redirect-Host-Usage ]
-;         [ Redirect-Host-Cache-Time ]
-         *[ Proxy-Info ]
-         *[ AVP ]
+;        [ Redirect-Host-Cache-Time ]
+        *[ Proxy-Info ]
+        *[ AVP ]
 
 @avp_types
 
