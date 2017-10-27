@@ -168,7 +168,7 @@
    Interface-Port                                         2004  UTF8String       V
    Interface-Text                                         2005  UTF8String       V
    ; Interface-Type                                         2006  Enumerated       V
-   ; Inter-Operator-Identifier                               838  Grouped          V
+   Inter-Operator-Identifier                               838  Grouped          V
    ; Inter-UE-Transfer                                      3902  Enumerated       V
    ; IP-Realm-Default-Indication                            2603  Enumerated       V
    ; ISUP-Cause                                             3416  Grouped          V
@@ -380,7 +380,7 @@
    ; Requesting-EPUID                                       3816  
    Requestor-PLMN-Identifier                              3437  UTF8String       V
    ; Required-MBMS-Bearer-Capabilities                       901  
-   ; Role-Of-Node                                            829  Enumerated       V
+   Role-Of-Node                                            829  Enumerated       V
    ; Role-Of-ProSe-Function                                 3438  Enumerated       V
    Route-Header-Received                                  3403  UTF8String       V
    Route-Header-Transmitted                               3404  UTF8String       V
@@ -512,7 +512,7 @@
 
 @grouped
 
-   Event-Type :: = <AVP Header: 823 >
+   Event-Type ::= <AVP Header: 823 >
       [ SIP-Method ]
       [ Event ]
       [ Expires ] 
@@ -523,7 +523,7 @@
       [ SIP-Request-Timestamp-Fraction ]
       [ SIP-Response-Timestamp-Fraction ] 
 
-   Inter-Operator-Identifier :: = < AVP Header: 838 >
+   Inter-Operator-Identifier ::= < AVP Header: 838 >
       [ Originating-IOI ]
       [ Terminating-IOI ] 
 
