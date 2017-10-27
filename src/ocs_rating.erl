@@ -65,7 +65,6 @@ rate(SubscriberID, Flag, DebitAmount, ReserveAmount) ->
 rate(SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentification) when is_list(SubscriberID)->
 	rate(list_to_binary(SubscriberID), Flag, DebitAmount, ReserveAmount, SessionIdentification);
 rate(SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentification) ->
-erlang:display({?MODULE, ?LINE, DebitAmount, ReserveAmount}),
 	F = fun() ->
 			case mnesia:read(subscriber, SubscriberID, write) of
 				[#subscriber{product = #product_instance{product = ProdID}} = Subscriber] ->
