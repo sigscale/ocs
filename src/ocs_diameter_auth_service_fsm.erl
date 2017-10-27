@@ -301,7 +301,7 @@ service_options(Options) ->
 	end,
 	Options1 ++  [{'Origin-Host', Hostname},
 	{'Vendor-Id', 10415},
-	{'Product-Name', "SigScale DIAMETER Server"},
+	{'Product-Name', "SigScale OCS"},
 	{'Auth-Application-Id',
 			[?BASE_APPLICATION_ID,
 			?NAS_APPLICATION_ID,

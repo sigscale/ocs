@@ -825,7 +825,7 @@ client_service_opts() ->
 	[{'Origin-Host', Hostname},
 		{'Origin-Realm', "testdomain.com"},
 		{'Vendor-Id', 10415},
-		{'Product-Name', "DIAMETER Test Client"},
+		{'Product-Name', "SigScale Test Client (auth)"},
 		{'Auth-Application-Id', [?BASE_APPLICATION_ID,
 														 ?EAP_APPLICATION_ID]},
 		{string_decode, false},

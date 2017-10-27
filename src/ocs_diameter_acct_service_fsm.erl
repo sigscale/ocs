@@ -286,7 +286,7 @@ service_options(Options) ->
 	end,
 	Options1 ++  [{'Origin-Host', Hostname},
 		{'Vendor-Id', 10415},
-		{'Product-Name', "SigScale DIAMETER Server"},
+		{'Product-Name', "SigScale OFCS"},
 		{'Auth-Application-Id', [?BASE_APPLICATION_ID, ?RO_APPLICATION_ID]},
 		{restrict_connections, false},
 		{string_decode, false},
