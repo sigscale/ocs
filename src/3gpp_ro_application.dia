@@ -31,7 +31,7 @@
          [ User-Equipment-Info ]
          *[ Proxy-Info ]
          *[ Route-Record ]
-;         [ Service-Information ]
+         [ Service-Information ]
          *[ AVP ]
 
    CCA ::= < Diameter Header: 272, PXY >
@@ -55,7 +55,7 @@
          *[ Proxy-Info ]
          *[ Route-Record ]
          *[ Failed-AVP ]
-;         [ Service-Information ]
+         [ Service-Information ]
          *[ AVP ]
 
    RAR ::= < Diameter Header: 258, REQ, PXY >
