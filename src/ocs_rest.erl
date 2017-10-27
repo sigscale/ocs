@@ -252,11 +252,9 @@ pointer1(T, Acc1, Acc2) ->
 %% 	`Operation' may be `"add"', `"remove"', or `"replace"'.
 %% @hidden
 patch({array, L} = _Patch, Resource) ->
-erlang:display({?MODULE, ?LINE, {array, L}}),
 	patch1(L, Resource, []).
 %% @hidden
 patch1([{struct, L} | T], Resource, Acc) ->
-erlang:display({?MODULE, ?LINE, {struct, L}}),
 	{_, Op} = lists:keyfind("op", 1, L),
 	{_, Path} = lists:keyfind("path", 1, L),
 	Operation = case lists:keyfind("value", 1, L) of
