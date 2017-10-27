@@ -319,7 +319,7 @@ service_options(Options) ->
 			{module, ?EAP_APPLICATION_CALLBACK}]},
 	{application,
 			[{alias, ?NAS_APPLICATION},
-			{dictionary, ?BASE_APPLICATION_DICT},
+			{dictionary, ?NAS_APPLICATION_DICT},
 			{module, ?NAS_APPLICATION_CALLBACK}]},
 	{application,
 			[{alias, ?RO_APPLICATION},
