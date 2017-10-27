@@ -15,6 +15,9 @@ DIAMETERC=$(ERLANG_LIB_DIR_diameter)/bin/diameterc
 $(top_builddir)/ebin/%.beam:$(top_builddir)/src/%.erl
 	$(ERLC) $(ERLCFLAGS) -o $(top_builddir)/ebin $<
 
+$(top_builddir)/src/diameter_gen_3gpp.erl:	$(top_builddir)/src/3gpp.dia
+	$(DIAMETERC) -H -o $(top_builddir)/src $<
+
 $(top_builddir)/src/diameter_gen_nas_application_rfc7155.erl:	$(top_builddir)/src/nas_application_rfc7155.dia
 	$(DIAMETERC) -H -o $(top_builddir)/src $<
 
