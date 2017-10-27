@@ -607,7 +607,7 @@ IMS-Information ::= < AVP Header: 876 >
    FORWARDING_ROLE   2
 
 @enum Node-Functionality
-	S-CSCF          0
+   S-CSCF          0
    P-CSCF          1
    I-CSCF          2
    MRFC            3
