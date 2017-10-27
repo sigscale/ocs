@@ -21,6 +21,7 @@ beam_DATA = ocs.beam \
 			ocs_diameter_nas_application_cb.beam \
 			ocs_diameter_eap_application_cb.beam \
 			ocs_diameter_cc_application_cb.beam \
+			ocs_diameter_3gpp_ro_application_cb.beam \
 			ocs_diameter_disconnect_fsm_sup.beam\
 			ocs_diameter_disconnect_fsm.beam\
 			ocs_radius_acct_port_server.beam \

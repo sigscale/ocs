@@ -32,7 +32,7 @@
 
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
--include("../include/diameter_gen_cc_application_rfc4006.hrl").
+-include("../include/diameter_gen_3gpp_ro_application.hrl").
 -include("ocs.hrl").
 
 -record(state,
@@ -43,7 +43,7 @@
 		handlers = gb_trees:empty() :: gb_trees:tree(Key ::
 				(SessionId :: string()), Value :: (Fsm :: pid()))}).
 
--define(CC_APPLICATION_ID, 4).
+-define(RO_APPLICATION_ID, 4).
 
 -type state() :: #state{}.
 -type capabilities() :: #diameter_caps{}.
@@ -219,13 +219,13 @@ code_change(_OldVsn, State, _Extra) ->
 %% @private
 request(Request, Caps,  _From, State) ->
 	#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}} = Caps,
-	#diameter_cc_app_CCR{'Session-Id' = SId, 'User-Name' = NAISpecUName,
-			'Auth-Application-Id' = ?CC_APPLICATION_ID,
+	#'3gpp_ro_CCR'{'Session-Id' = SId, 'User-Name' = NAISpecUName,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'Service-Context-Id' = _SvcContextId, 'CC-Request-Type' = RequestType,
 			'CC-Request-Number' = RequestNum, 'Subscription-Id' = SubscriptionIds} = Request,
 	try
 		Subscriber = case SubscriptionIds of
-			[#'diameter_cc_app_Subscription-Id'{'Subscription-Id-Data' = Sub} | _] ->
+			[#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = Sub} | _] ->
 				Sub;
 			[] ->
 				case NAISpecUName of
@@ -242,28 +242,28 @@ request(Request, Caps,  _From, State) ->
 		_:_ ->
 			{Reply1, NewState1} = generate_diameter_error(Request, SId, undefined,
 					undefined, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
-					ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
+					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 			{reply, Reply1, NewState1}
 	end.
 
 %% @hidden
-request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
-		#diameter_cc_app_CCR{'Multiple-Services-Credit-Control' = [MSCC | _]} = Request,
+request1(?'3GPP_RO_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
+		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _]} = Request,
 		SId, RequestNum, Subscriber, OHost, DHost, ORealm, DRealm, State) ->
 	RSU =  case MSCC of
-		#'diameter_cc_app_Multiple-Services-Credit-Control'{'Requested-Service-Unit' =
+		#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit' =
 				[RequestedServiceUnits | _]} ->
 			RequestedServiceUnits;
 		_ ->
 			throw(multiple_service_credit_control_avp_not_available)
 	end,
 	{ReqUsageType, ReqUsage} = case RSU of
-		#'diameter_cc_app_Requested-Service-Unit'{'CC-Time' = [CCTime]} when
+		#'3gpp_ro_Requested-Service-Unit'{'CC-Time' = [CCTime]} when
 				CCTime =/= [] ->
 			{seconds, CCTime};
-		#'diameter_cc_app_Requested-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets]} ->
+		#'3gpp_ro_Requested-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets]} ->
 			{octets, CCTotalOctets};
-		#'diameter_cc_app_Requested-Service-Unit'{'CC-Output-Octets' = [CCOutputOctets],
+		#'3gpp_ro_Requested-Service-Unit'{'CC-Output-Octets' = [CCOutputOctets],
 				'CC-Input-Octets' = [CCInputOctets]} when is_integer(CCInputOctets),
 				is_integer(CCOutputOctets) ->
 			{octets, CCOutputOctets + CCOutputOctets};
@@ -277,7 +277,7 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		{ok, _, GrantedAmount} ->
 			{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 					GrantedAmount, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
-					?CC_APPLICATION_ID, RequestType, RequestNum, State),
+					?RO_APPLICATION_ID, RequestType, RequestNum, State),
 			{reply, Reply, NewState};
 		{out_of_credit, SL} ->
 			error_logger:warning_report(["out of credit",
@@ -285,8 +285,8 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 					{origin_host, OHost}]),
 			start_disconnect(SL, State),
 			{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
-					0, ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
-					ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
+					0, ?'3GPP_RO_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
+					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 			{reply, Reply, NewState};
 		{error, subscriber_not_found} ->
 			error_logger:warning_report(["diameter accounting subscriber not found",
@@ -294,32 +294,32 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 					{origin_host, OHost}]),
 			{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
 					0, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
-					ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
+					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 			{reply, Reply, NewState};
 		{error, _} ->
 			{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
 					0, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
-					ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
+					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 			{reply, Reply, NewState}
 	end;
-request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
-		#diameter_cc_app_CCR{'Multiple-Services-Credit-Control' = [MSCC | _]} = Request,
+request1(?'3GPP_RO_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
+		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _]} = Request,
 		SId, RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm, State) ->
 	try
 		RSU =  case MSCC of
-			#'diameter_cc_app_Multiple-Services-Credit-Control'{'Requested-Service-Unit' =
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit' =
 					[RequestedServiceUnits | _]} ->
 				RequestedServiceUnits;
 			_ ->
 				throw(multiple_service_credit_control_avp_not_available)
 		end,
 		{ReqUsageType, ReqUsage} = case RSU of
-			#'diameter_cc_app_Requested-Service-Unit'{'CC-Time' = [CCTime]} when
+			#'3gpp_ro_Requested-Service-Unit'{'CC-Time' = [CCTime]} when
 					CCTime =/= [] ->
 				{seconds, CCTime};
-			#'diameter_cc_app_Requested-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets]} ->
+			#'3gpp_ro_Requested-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets]} ->
 				{octets, CCTotalOctets};
-			#'diameter_cc_app_Requested-Service-Unit'{'CC-Output-Octets' = [CCOutputOctets],
+			#'3gpp_ro_Requested-Service-Unit'{'CC-Output-Octets' = [CCOutputOctets],
 					'CC-Input-Octets' = [CCInputOctets]} when is_integer(CCInputOctets),
 					is_integer(CCOutputOctets) ->
 				{octets, CCOutputOctets + CCOutputOctets};
@@ -327,18 +327,18 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 				throw(unsupported_request_units)
 		end,
 		USU =  case MSCC of
-			#'diameter_cc_app_Multiple-Services-Credit-Control'{'Used-Service-Unit' =
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit' =
 					[UsedServiceUnit | _]} ->
 				UsedServiceUnit;
 			_ ->
 				throw(multiple_service_credit_control_avp_not_available)
 		end,
 		{UsedType, UsedUsage} = case USU of
-			#'diameter_cc_app_Used-Service-Unit'{'CC-Time' = [UsedCCTime]} when UsedCCTime =/= [] ->
+			#'3gpp_ro_Used-Service-Unit'{'CC-Time' = [UsedCCTime]} when UsedCCTime =/= [] ->
 				{seconds, UsedCCTime};
-			#'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = [UsedCCTotalOctets]} ->
+			#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [UsedCCTotalOctets]} ->
 				{octets, UsedCCTotalOctets};
-			#'diameter_cc_app_Used-Service-Unit'{'CC-Output-Octets' = [UsedCCOutputOctets],
+			#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets' = [UsedCCOutputOctets],
 					'CC-Input-Octets' = [UsedCCInputOctets]} when is_integer(UsedCCInputOctets),
 					is_integer(UsedCCOutputOctets) ->
 				{octets, UsedCCInputOctets + UsedCCOutputOctets};
@@ -351,7 +351,7 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 			{ok, _, GrantedAmount} ->
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						GrantedAmount, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
-						?CC_APPLICATION_ID, RequestType, RequestNum, State),
+						?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{out_of_credit, SL} ->
 				error_logger:warning_report(["out of credit",
@@ -359,8 +359,8 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 						{origin_host, OHost}]),
 				start_disconnect(SL, State),
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
-						0, ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
-						ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
+						0, ?'3GPP_RO_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
+						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{error, subscriber_not_found} ->
 				error_logger:warning_report(["diameter accounting subscriber not found",
@@ -368,38 +368,38 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 						{origin_host, OHost}]),
 				{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
 						0, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
-						ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
+						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{error, _} ->
 				{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
 						0, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
-						ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
+						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState}
 		end
 	catch
 		_:_ ->
 			{Reply1, NewState0} = generate_diameter_error(Request, SId, Subscriber,
 					0, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
-					ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
+					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 			{reply, Reply1, NewState0}
 	end;
-request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
-		#diameter_cc_app_CCR{'Multiple-Services-Credit-Control' = [MSCC | _]} = Request,
+request1(?'3GPP_RO_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
+		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _]} = Request,
 		SId, RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm, State) ->
 	try
 		USU =  case MSCC of
-			#'diameter_cc_app_Multiple-Services-Credit-Control'{'Used-Service-Unit' =
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit' =
 					[UsedServiceUnit | _]} ->
 				UsedServiceUnit;
 			_ ->
 				throw(multiple_service_credit_control_avp_not_available)
 		end,
 		{UsedType, UsedUsage} = case USU of
-			#'diameter_cc_app_Used-Service-Unit'{'CC-Time' = CCTime} when CCTime =/= [] ->
+			#'3gpp_ro_Used-Service-Unit'{'CC-Time' = CCTime} when CCTime =/= [] ->
 				{seconds, CCTime};
-			#'diameter_cc_app_Used-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets]} ->
+			#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets]} ->
 				{octets, CCTotalOctets};
-			#'diameter_cc_app_Used-Service-Unit'{'CC-Output-Octets' = [CCOutputOctets],
+			#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets' = [CCOutputOctets],
 					'CC-Input-Octets' = [CCInputOctets]} when is_integer(CCInputOctets),
 					is_integer(CCOutputOctets) ->
 				{octets, CCInputOctets + CCOutputOctets};
@@ -411,7 +411,7 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 			{ok, _, GrantedAmount} ->
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						GrantedAmount, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
-						?CC_APPLICATION_ID, RequestType, RequestNum, State),
+						?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{out_of_credit, SL} ->
 				error_logger:warning_report(["out of credit",
@@ -419,8 +419,8 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 						{origin_host, OHost}]),
 				start_disconnect(SL, State),
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
-						0, ?'DIAMETER_CC_APP_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
-						ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
+						0, ?'3GPP_RO_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
+						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{error, subscriber_not_found} ->
 				error_logger:warning_report(["diameter accounting subscriber not found",
@@ -428,19 +428,19 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 						{origin_host, OHost}]),
 				{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
 						0, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
-						ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
+						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{error, _} ->
 				{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
 						0, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
-						ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
+						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState}
 		end
 	catch
 		_:_ ->
 			{Reply1, NewState0} = generate_diameter_error(Request, SId, Subscriber,
 					0, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
-					ORealm, ?CC_APPLICATION_ID, RequestType, RequestNum, State),
+					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 			{reply, Reply1, NewState0}
 	end.
 
@@ -448,7 +448,7 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		ResultCode, OriginHost, OriginRealm, AuthAppId, RequestType, RequestNum,
 		State) -> Result
 			when
-				Request :: #diameter_cc_app_CCR{},
+				Request :: #'3gpp_ro_CCR'{},
 				SessionId :: string(),
 				Subscriber :: string() | binary(),
 				Balance :: non_neg_integer(),
@@ -460,16 +460,16 @@ request1(?'DIAMETER_CC_APP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 				RequestNum :: integer(),
 				Result :: {Reply, State},
 				State :: state(),
-				Reply :: #diameter_cc_app_CCA{}.
+				Reply :: #'3gpp_ro_CCA'{}.
 %% @doc Send CCA to DIAMETER client indicating a successful operation.
 %% @hidden
 generate_diameter_answer(Request, SId, _Subscriber, Balance, ResultCode, OHost,
 		ORealm, AuthAppId, RequestType, RequestNum, #state{address = Address,
 		port = Port} = State) ->
-	GrantedUnits = #'diameter_cc_app_Granted-Service-Unit'{'CC-Total-Octets' = [Balance]},
-	MultiServices_CC = #'diameter_cc_app_Multiple-Services-Credit-Control'{
+	GrantedUnits = #'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [Balance]},
+	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = [GrantedUnits]},
-	Reply = #diameter_cc_app_CCA{'Session-Id' = SId, 'Result-Code' = ResultCode,
+	Reply = #'3gpp_ro_CCA'{'Session-Id' = SId, 'Result-Code' = ResultCode,
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Auth-Application-Id' = AuthAppId, 'CC-Request-Type' = RequestType,
 			'CC-Request-Number' = RequestNum,
@@ -482,7 +482,7 @@ generate_diameter_answer(Request, SId, _Subscriber, Balance, ResultCode, OHost,
 -spec generate_diameter_error(Request, SessionId, Subscriber, Balance, ResultCode,
 		OriginHost, OriginRealm, AuthAppId, RequestType, RequestNum, State) -> Result
 			when
-				Request ::#diameter_cc_app_CCR{},
+				Request ::#'3gpp_ro_CCR'{},
 				SessionId :: string(),
 				Subscriber :: undefined | string() | binary(),
 				Balance :: undefined | integer(),
@@ -494,13 +494,13 @@ generate_diameter_answer(Request, SId, _Subscriber, Balance, ResultCode, OHost,
 				RequestNum :: integer(),
 				State :: state(),
 				Result :: {Reply, State},
-				Reply :: #diameter_cc_app_CCA{}.
+				Reply :: #'3gpp_ro_CCA'{}.
 %% @doc Send CCA to DIAMETER client indicating a operation faliure.
 %% @hidden
 generate_diameter_error(Request, SId, _Subscriber, _Balance, ResultCode, OHost,
 		ORealm, AuthAppId, RequestType, RequestNum, #state{address = Address,
 		port = Port} = State) ->
-	Reply = #diameter_cc_app_CCA{'Session-Id' = SId, 'Result-Code' = ResultCode,
+	Reply = #'3gpp_ro_CCA'{'Session-Id' = SId, 'Result-Code' = ResultCode,
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Auth-Application-Id' = AuthAppId, 'CC-Request-Type' = RequestType,
 			'CC-Request-Number' = RequestNum},
@@ -537,7 +537,7 @@ start_disconnect([{_, SessionAttributes} | T], State) ->
 start_disconnect1(SessionAttributes, #state{disc_sup = DiscSup}) ->
 	Svc = ocs_diameter_acct_service,
 	Alias = ocs_diameter_base_application,
-	AuthAppId = ?CC_APPLICATION_ID,
+	AuthAppId = ?RO_APPLICATION_ID,
 	SessionId = proplists:get_value('Session-ID', SessionAttributes),
 	OHost = proplists:get_value('Origin-Host', SessionAttributes),
 	ORealm = proplists:get_value('Origin-Realm', SessionAttributes),

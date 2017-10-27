@@ -32,7 +32,7 @@
 -include_lib("common_test/include/ct.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include_lib("../include/diameter_gen_nas_application_rfc7155.hrl").
--include_lib("../include/diameter_gen_cc_application_rfc4006.hrl").
+-include_lib("../include/diameter_gen_3gpp_ro_application.hrl").
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -240,11 +240,11 @@ diameter_log_acct_event(_Config) ->
 	ServerPort = 1813,
 	Server = {ServerAddress, ServerPort},
 	RequestType = start,
-	ok = ocs_log:acct_log(diameter, Server, RequestType, #diameter_cc_app_CCR{}),
+	ok = ocs_log:acct_log(diameter, Server, RequestType, #3gpp_ro_CCR{}),
 	End = erlang:system_time(?MILLISECOND),
 	Fany = fun({TS, _, P, N, S, RType, Attr})
 					when P == Protocol, TS >= Start, TS =< End, N == Node,
-					S == Server, RType == RequestType, is_record(Attr, diameter_cc_app_CCR) ->
+					S == Server, RType == RequestType, is_record(Attr, 3gpp_ro_CCR) ->
 				true;
 			(_) ->
 				false	

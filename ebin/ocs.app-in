@@ -16,6 +16,7 @@
 				ocs_diameter_nas_application_cb,
 				ocs_diameter_eap_application_cb,
 				ocs_diameter_cc_application_cb,
+				ocs_diameter_3gpp_ro_application_cb,
 				ocs_diameter_disconnect_fsm_sup,
 				ocs_diameter_disconnect_fsm,
 				ocs_radius_acct_port_server,

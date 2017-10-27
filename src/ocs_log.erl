@@ -37,7 +37,7 @@
 
 -include("ocs_log.hrl").
 -include_lib("radius/include/radius.hrl").
--include("../include/diameter_gen_cc_application_rfc4006.hrl").
+-include("../include/diameter_gen_3gpp_ro_application.hrl").
 -include("../include/diameter_gen_nas_application_rfc7155.hrl").
 -include("../include/diameter_gen_eap_application_rfc4072.hrl").
 
@@ -105,7 +105,7 @@ acct_open1(Directory) ->
 		Address :: inet:ip_address(),
 		Port :: integer(),
 		Type :: on | off | start | stop | interim | event,
-		Attributes :: radius_attributes:attributes() | #diameter_cc_app_CCR{},
+		Attributes :: radius_attributes:attributes() | #'3gpp_ro_CCR'{},
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Write an event to accounting log.
@@ -1213,7 +1213,7 @@ get_range2(Log, End, {Cont, Chunk}, Acc) ->
 		Address :: inet:ip_address(),
 		Port :: pos_integer(),
 		RequestType :: stop,
-		Attributes :: radius_attributes:attributes() | #diameter_cc_app_CCR{},
+		Attributes :: radius_attributes:attributes() | #'3gpp_ro_CCR'{},
 		IPDR :: #ipdr{}.
 %% @doc Convert `ocs_acct' log entry to IPDR log entry.
 %% @private

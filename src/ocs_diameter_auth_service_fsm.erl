@@ -55,16 +55,24 @@
 -define(DIAMETER_AUTH_SERVICE(A, P), {ocs_diameter_auth_service, A, P}).
 -define(BASE_APPLICATION, ocs_diameter_base_application).
 -define(BASE_APPLICATION_ID, 0).
+-define(BASE_APPLICATION_DICT, diameter_gen_base_rfc6733).
 -define(BASE_APPLICATION_CALLBACK, ocs_diameter_base_application_cb).
 -define(NAS_APPLICATION, ocs_diameter_nas_application).
 -define(NAS_APPLICATION_ID, 1).
+-define(NAS_APPLICATION_DICT, diameter_gen_nas_application_rfc7155).
 -define(NAS_APPLICATION_CALLBACK, ocs_diameter_nas_application_cb).
--define(CC_APPLICATION, ocs_diameter_cc_application).
--define(CC_APPLICATION_ID, 4).
--define(CC_APPLICATION_CALLBACK, ocs_diameter_cc_application_cb).
 -define(EAP_APPLICATION, ocs_diameter_eap_application).
 -define(EAP_APPLICATION_ID, 5).
+-define(EAP_APPLICATION_DICT, diameter_gen_eap_application_rfc4072).
 -define(EAP_APPLICATION_CALLBACK, ocs_diameter_eap_application_cb).
+-define(CC_APPLICATION, ocs_diameter_3gpp_ro_application).
+-define(CC_APPLICATION_ID, 4).
+-define(CC_APPLICATION_DICT, diameter_gen_cc_application_rfc4006).
+-define(CC_APPLICATION_CALLBACK, ocs_diameter_cc_application_cb).
+-define(RO_APPLICATION, ocs_diameter_3gpp_ro_application).
+-define(RO_APPLICATION_ID, 4).
+-define(RO_APPLICATION_DICT, diameter_gen_3gpp_ro_application).
+-define(RO_APPLICATION_CALLBACK, ocs_diameter_3gpp_ro_application_cb).
 
 %%----------------------------------------------------------------------
 %%  The ocs_diameter_auth_service_fsm API
@@ -298,24 +306,24 @@ service_options(Options) ->
 			[?BASE_APPLICATION_ID,
 			?NAS_APPLICATION_ID,
 			?EAP_APPLICATION_ID,
-			?CC_APPLICATION_ID]},
+			?RO_APPLICATION_ID]},
 	{restrict_connections, false},
 	{string_decode, false},
 	{application,
 			[{alias, ?BASE_APPLICATION},
-			{dictionary, diameter_gen_base_rfc6733},
+			{dictionary, ?BASE_APPLICATION_DICT},
 			{module, ?BASE_APPLICATION_CALLBACK}]},
 	{application,
 			[{alias, ?EAP_APPLICATION},
-			{dictionary, diameter_gen_eap_application_rfc4072},
+			{dictionary, ?EAP_APPLICATION_DICT},
 			{module, ?EAP_APPLICATION_CALLBACK}]},
 	{application,
 			[{alias, ?NAS_APPLICATION},
-			{dictionary, diameter_gen_nas_application_rfc7155},
+			{dictionary, ?BASE_APPLICATION_DICT},
 			{module, ?NAS_APPLICATION_CALLBACK}]},
-	{application, [{alias, ?CC_APPLICATION},
-			{dictionary, diameter_gen_cc_application_rfc4006},
-			{module, ?CC_APPLICATION_CALLBACK}]}].
+	{application, [{alias, ?RO_APPLICATION},
+			{dictionary, ?RO_APPLICATION_DICT},
+			{module, ?RO_APPLICATION_CALLBACK}]}].
 
 -spec transport_options(Transport, Address, Port) -> Options
 	when
