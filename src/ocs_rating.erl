@@ -99,6 +99,7 @@ rate1(#subscriber{buckets = Buckets, product = #product_instance{characteristics
 		{Type, Used} = lists:keyfind(Type, 1, DebitAmount),
 		case charge(Type, Used, true, Buckets) of
 			{R1, C1, NB1} when R1 > 0 ->
+
 				{R2, _C2, NB2}  = purchase(Type, Price, Size, Used - C1, Validity, true, NB1),
 				{R2, NB2};
 			{R1, _C1, NB1} ->
@@ -190,11 +191,11 @@ charge(Type, Charge, Now, Final, [#bucket{bucket_type = Type,
 charge(Type, Charge, _Now, true, [#bucket{bucket_type = Type,
 		remain_amount = R} = B | T], Acc, Charged) when R > Charge ->
 	NewBuckets = [B#bucket{remain_amount = R - Charge} | T],
-	{Charge, Charged + Charge, NewBuckets ++ Acc};
+	{0, Charged + Charge, NewBuckets ++ Acc};
 charge(cents, Charge, _Now, false, [#bucket{bucket_type = cents,
 		remain_amount = R} = H | T], Acc, Charged) when R > Charge ->
 	NewBuckets = [H#bucket{remain_amount = R - Charge} | T],
-	{Charge, Charged + Charge, NewBuckets ++ Acc};
+	{0, Charged + Charge, NewBuckets ++ Acc};
 charge(Type, Charge, _Now, false, [#bucket{bucket_type = Type,
 		remain_amount = R} | _] = B, Acc, Charged) when R > Charge ->
 	{Charge, Charged + Charge, B ++ Acc};
