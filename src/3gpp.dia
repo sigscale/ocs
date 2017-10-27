@@ -141,7 +141,7 @@
    ; EPS-Location-Information                               1496  
    Event                                                   825  UTF8String       V
    Event-Charging-TimeStamp                               1258  Time             V
-   ; Event-Type                                              823  Grouped          V
+   Event-Type                                              823  Grouped          V
    Expires                                                 888  Unsigned32       V
    ; External-Identifier                                    3111  
    FE-Identifier-List                                     4413  UTF8String       V
@@ -252,7 +252,7 @@
    ; NIDD-Submission                                        3928  Grouped          VM
    ; NNI-Information                                        2703  Grouped          V
    ; NNI-Type                                               2704  Enumerated       V
-   ; Node-Functionality                                      862  Enumerated       V
+   Node-Functionality                                      862  Enumerated       V
    Node-Id                                                2064  UTF8String       V
    Number-Of-Diversions                                   2034  Unsigned32       V
    Number-Of-Messages-Sent                                2019  Unsigned32       V
@@ -467,7 +467,7 @@
    ; Time-Quota-Mechanism                                   1270  Grouped          V
    Time-Quota-Threshold                                    868  Unsigned32       V
    ; Time-Quota-Type                                        1271  Enumerated       V
-   ; Time-Stamps                                             833  Grouped          V
+   Time-Stamps                                             833  Grouped          V
    Time-Usage                                             2045  Unsigned32       V
    ; Time-Window                                            3818  
    ; TMGI                                                    900  
@@ -509,4 +509,50 @@
    VLR-Number                                             3420  OctetString      V
    Volume-Quota-Threshold                                  869  Unsigned32       V
    ; WLAN-Link-Layer-Id                                     3821  
+
+@grouped
+
+   Event-Type :: = <AVP Header: 823 >
+      [ SIP-Method ]
+      [ Event ]
+      [ Expires ] 
+
+   Time-Stamps ::= < AVP Header: 833 >
+      [ SIP-Request-Timestamp ]
+      [ SIP-Response-Timestamp ]
+      [ SIP-Request-Timestamp-Fraction ]
+      [ SIP-Response-Timestamp-Fraction ] 
+
+   Inter-Operator-Identifier :: = < AVP Header: 838 >
+      [ Originating-IOI ]
+      [ Terminating-IOI ] 
+
+@enum Role-Of-Node
+   ORIGINATING_ROLE  0
+   TERMINATING_ROLE  1
+   FORWARDING_ROLE   2
+
+@enum Node-Functionality
+	S-CSCF          0
+   P-CSCF          1
+   I-CSCF          2
+   MRFC            3
+   MGCF            4
+   BGCF            5
+   AS              6
+   IBCF            7
+   S-GW            8
+   P-GW            9
+   HSGW           10
+   E-CSCF         11
+   MME            12
+   TRF            13
+   TF             14
+   ATCF           15
+   Proxy-Function 16
+   ePDG           17
+   TDF            18
+   TWAG           19
+   SCEF           20
+   IWK-SCEF       21
 
