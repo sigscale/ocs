@@ -65,7 +65,7 @@
 -define(EAP_APPLICATION_ID, 5).
 -define(EAP_APPLICATION_DICT, diameter_gen_eap_application_rfc4072).
 -define(EAP_APPLICATION_CALLBACK, ocs_diameter_eap_application_cb).
--define(CC_APPLICATION, ocs_diameter_3gpp_ro_application).
+-define(CC_APPLICATION, ocs_diameter_cc_application).
 -define(CC_APPLICATION_ID, 4).
 -define(CC_APPLICATION_DICT, diameter_gen_cc_application_rfc4006).
 -define(CC_APPLICATION_CALLBACK, ocs_diameter_cc_application_cb).
@@ -321,7 +321,8 @@ service_options(Options) ->
 			[{alias, ?NAS_APPLICATION},
 			{dictionary, ?BASE_APPLICATION_DICT},
 			{module, ?NAS_APPLICATION_CALLBACK}]},
-	{application, [{alias, ?RO_APPLICATION},
+	{application,
+			[{alias, ?RO_APPLICATION},
 			{dictionary, ?RO_APPLICATION_DICT},
 			{module, ?RO_APPLICATION_CALLBACK}]}].
 
