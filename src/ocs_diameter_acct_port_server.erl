@@ -239,7 +239,7 @@ request(Request, Caps,  _From, State) ->
 		request1(RequestType, Request, SId, RequestNum,
 				Subscriber, OHost, DHost, ORealm, DRealm, State)
 	catch
-		_:_ ->
+		_:_Reason ->
 			{Reply1, NewState1} = generate_diameter_error(Request, SId, undefined,
 					undefined, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
 					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
@@ -293,12 +293,12 @@ request1(?'3GPP_RO_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 					{module, ?MODULE}, {subscriber, Subscriber},
 					{origin_host, OHost}]),
 			{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
-					0, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
+					0, ?'3GPP_RO_RESULT-CODE_USER_UNKNOWN', OHost,
 					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 			{reply, Reply, NewState};
-		{error, _} ->
+		{error, _Reason} ->
 			{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
-					0, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
+					0, ?'3GPP_RO_RESULT-CODE_RATING_FAILED', OHost,
 					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 			{reply, Reply, NewState}
 	end;
@@ -367,17 +367,17 @@ request1(?'3GPP_RO_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 						{module, ?MODULE}, {subscriber, Subscriber},
 						{origin_host, OHost}]),
 				{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
-						0, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
+						0, ?'3GPP_RO_RESULT-CODE_USER_UNKNOWN', OHost,
 						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
-			{error, _} ->
+			{error, _Reason} ->
 				{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
-						0, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
+						0, ?'3GPP_RO_RESULT-CODE_RATING_FAILED', OHost,
 						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState}
 		end
 	catch
-		_:_ ->
+		_:_Reason1 ->
 			{Reply1, NewState0} = generate_diameter_error(Request, SId, Subscriber,
 					0, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
 					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
@@ -427,17 +427,17 @@ request1(?'3GPP_RO_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 						{module, ?MODULE}, {subscriber, Subscriber},
 						{origin_host, OHost}]),
 				{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
-						0, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
+						0, ?'3GPP_RO_RESULT-CODE_USER_UNKNOWN', OHost,
 						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
-			{error, _} ->
+			{error, _Reason} ->
 				{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
-						0, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
+						0, ?'3GPP_RO_RESULT-CODE_RATING_FAILED', OHost,
 						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState}
 		end
 	catch
-		_:_ ->
+		_:_Reason1 ->
 			{Reply1, NewState0} = generate_diameter_error(Request, SId, Subscriber,
 					0, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
 					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
