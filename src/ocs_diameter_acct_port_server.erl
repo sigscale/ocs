@@ -275,8 +275,14 @@ request1(?'3GPP_RO_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 	ReserveAmount = [{ReqUsageType, ReqUsage}],
 	case ocs_rating:rate(Subscriber, inital, [], ReserveAmount, SessionAttributes) of
 		{ok, _, GrantedAmount} ->
+			GrantedUnits = case ReqUsageType of
+				seconds ->
+					#'3gpp_ro_Granted-Service-Unit'{'CC-Time' = [GrantedAmount]};
+				octets ->
+					#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [GrantedAmount]}
+			end,
 			{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
-					GrantedAmount, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
+					GrantedUnits, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 					?RO_APPLICATION_ID, RequestType, RequestNum, State),
 			{reply, Reply, NewState};
 		{out_of_credit, SL} ->
@@ -349,8 +355,14 @@ request1(?'3GPP_RO_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		DebitAmount = [{UsedType, UsedUsage}],
 		case ocs_rating:rate(Subscriber, interim, DebitAmount, ReserveAmount) of
 			{ok, _, GrantedAmount} ->
+				GrantedUnits = case ReqUsageType of
+					seconds ->
+						#'3gpp_ro_Granted-Service-Unit'{'CC-Time' = [GrantedAmount]};
+					octets ->
+						#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [GrantedAmount]}
+				end,
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
-						GrantedAmount, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
+						GrantedUnits, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 						?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{out_of_credit, SL} ->
@@ -409,8 +421,14 @@ request1(?'3GPP_RO_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		DebitAmount = [{UsedType, UsedUsage}],
 		case ocs_rating:rate(Subscriber, final, DebitAmount, []) of
 			{ok, _, GrantedAmount} ->
+				GrantedUnits = case UsedType of
+					seconds ->
+						#'3gpp_ro_Granted-Service-Unit'{'CC-Time' = [GrantedAmount]};
+					octets ->
+						#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [GrantedAmount]}
+				end,
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
-						GrantedAmount, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
+						GrantedUnits, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 						?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{out_of_credit, SL} ->
@@ -444,14 +462,14 @@ request1(?'3GPP_RO_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 			{reply, Reply1, NewState0}
 	end.
 
--spec generate_diameter_answer(Request, SessionId, Subscriber, Balance,
+-spec generate_diameter_answer(Request, SessionId, Subscriber, GrantedUnits,
 		ResultCode, OriginHost, OriginRealm, AuthAppId, RequestType, RequestNum,
 		State) -> Result
 			when
 				Request :: #'3gpp_ro_CCR'{},
 				SessionId :: string(),
 				Subscriber :: string() | binary(),
-				Balance :: non_neg_integer(),
+				GrantedUnits :: #'3gpp_ro_Granted-Service-Unit'{},
 				ResultCode :: integer(),
 				OriginHost :: string(),
 				OriginRealm :: string(),
@@ -463,10 +481,9 @@ request1(?'3GPP_RO_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 				Reply :: #'3gpp_ro_CCA'{}.
 %% @doc Send CCA to DIAMETER client indicating a successful operation.
 %% @hidden
-generate_diameter_answer(Request, SId, _Subscriber, Balance, ResultCode, OHost,
+generate_diameter_answer(Request, SId, _Subscriber, GrantedUnits, ResultCode, OHost,
 		ORealm, AuthAppId, RequestType, RequestNum, #state{address = Address,
 		port = Port} = State) ->
-	GrantedUnits = #'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [Balance]},
 	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = [GrantedUnits]},
 	Reply = #'3gpp_ro_CCA'{'Session-Id' = SId, 'Result-Code' = ResultCode,
