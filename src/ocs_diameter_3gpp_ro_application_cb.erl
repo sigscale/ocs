@@ -155,12 +155,11 @@ handle_error(_Reason, _Request, _SvcName, _Peer) ->
 		Opt :: diameter:call_opt(),
 		PostF :: diameter:evaluable().
 %% @doc Invoked when a request messge is received from the peer. 
-handle_request(#diameter_packet{msg = Req, errors = []},
-		SvcName, {_Peer, Caps}) ->
+handle_request(#diameter_packet{msg = Req, errors = []}, SvcName, {_, Caps}) ->
 	request(SvcName, Caps, Req);
-handle_request(#diameter_packet{errors = [{ResultCode, _} | _]}, _, _) ->
+handle_request(#diameter_packet{errors = [{ResultCode, _} | _]}, _SvcName, _Peer) ->
 	{answer_message, ResultCode};
-handle_request(#diameter_packet{errors = [ResultCode | _]}, _, _) ->
+handle_request(#diameter_packet{errors = [ResultCode | _]}, _SvcName, _Peer) ->
 	{answer_message, ResultCode}.
 
 %%----------------------------------------------------------------------
@@ -191,7 +190,7 @@ request(SvcName, Capabilities, Request) ->
 request({_, Address, Port} = SvcName, Capabilities, Request, [H | T]) ->
 	case ocs:find_client(H) of
 		{ok, #client{protocol = diameter}} ->
-			PortServer = global:whereis_name({ocs_diameter_acct, Address, Port}),
+			PortServer = global:whereis_name({ocs_diameter_auth, Address, Port}),
 			{reply, gen_server:call(PortServer,
 					{diameter_request, Capabilities, Request})};
 		{error, not_found} ->
