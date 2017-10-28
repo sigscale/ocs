@@ -190,7 +190,7 @@ request(SvcName, Capabilities, Request) ->
 request({_, Address, Port} = SvcName, Capabilities, Request, [H | T]) ->
 	case ocs:find_client(H) of
 		{ok, #client{protocol = diameter}} ->
-			PortServer = global:whereis_name({ocs_diameter_auth, Address, Port}),
+			PortServer = global:whereis_name({ocs_diameter_acct, Address, Port}),
 			{reply, gen_server:call(PortServer,
 					{diameter_request, Capabilities, Request})};
 		{error, not_found} ->

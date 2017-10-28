@@ -65,14 +65,6 @@
 -define(EAP_APPLICATION_ID, 5).
 -define(EAP_APPLICATION_DICT, diameter_gen_eap_application_rfc4072).
 -define(EAP_APPLICATION_CALLBACK, ocs_diameter_eap_application_cb).
--define(CC_APPLICATION, ocs_diameter_cc_application).
--define(CC_APPLICATION_ID, 4).
--define(CC_APPLICATION_DICT, diameter_gen_cc_application_rfc4006).
--define(CC_APPLICATION_CALLBACK, ocs_diameter_cc_application_cb).
--define(RO_APPLICATION, ocs_diameter_3gpp_ro_application).
--define(RO_APPLICATION_ID, 4).
--define(RO_APPLICATION_DICT, diameter_gen_3gpp_ro_application).
--define(RO_APPLICATION_CALLBACK, ocs_diameter_3gpp_ro_application_cb).
 
 %%----------------------------------------------------------------------
 %%  The ocs_diameter_auth_service_fsm API
@@ -301,12 +293,11 @@ service_options(Options) ->
 	end,
 	Options1 ++  [{'Origin-Host', Hostname},
 	{'Vendor-Id', 10415},
-	{'Product-Name', "SigScale OCS"},
+	{'Product-Name', "SigScale AAA"},
 	{'Auth-Application-Id',
 			[?BASE_APPLICATION_ID,
 			?NAS_APPLICATION_ID,
-			?EAP_APPLICATION_ID,
-			?RO_APPLICATION_ID]},
+			?EAP_APPLICATION_ID]},
 	{restrict_connections, false},
 	{string_decode, false},
 	{application,
@@ -320,11 +311,7 @@ service_options(Options) ->
 	{application,
 			[{alias, ?NAS_APPLICATION},
 			{dictionary, ?NAS_APPLICATION_DICT},
-			{module, ?NAS_APPLICATION_CALLBACK}]},
-	{application,
-			[{alias, ?RO_APPLICATION},
-			{dictionary, ?RO_APPLICATION_DICT},
-			{module, ?RO_APPLICATION_CALLBACK}]}].
+			{module, ?NAS_APPLICATION_CALLBACK}]}].
 
 -spec transport_options(Transport, Address, Port) -> Options
 	when
