@@ -536,7 +536,7 @@ IMS-Information ::= < AVP Header: 876 >
           [ Event-Type ]
           [ Role-Of-Node ]
           [ User-Session-Id ]
-;         [ Outgoing-Session-Id ]
+          [ Outgoing-Session-Id ]
 ;         [ Session-Priority ]
           * [ Calling-Party-Address ]
           [ Called-Party-Address ]
