@@ -157,7 +157,7 @@ handle_error(_Reason, _Request, _SvcName, _Peer) ->
 %% @doc Invoked when a request messge is received from the peer. 
 handle_request(#diameter_packet{msg = Req, errors = []},
 		SvcName, {_Peer, Caps}) ->
-	is_client_authorized(SvcName, Caps, Req);
+	request(SvcName, Caps, Req);
 handle_request(#diameter_packet{errors = [{ResultCode, _} | _]}, _, _) ->
 	{answer_message, ResultCode};
 handle_request(#diameter_packet{errors = [ResultCode | _]}, _, _) ->
@@ -167,7 +167,7 @@ handle_request(#diameter_packet{errors = [ResultCode | _]}, _, _) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec send_to_port_server(Svc, Caps, Request) -> Action
+-spec request(Svc, Caps, Request) -> Action
 	when
 		Svc :: atom(),
 		Caps :: capabilities(),
@@ -179,56 +179,24 @@ handle_request(#diameter_packet{errors = [ResultCode | _]}, _, _) ->
 			| {protocol_error, 3000..3999},
 		Opt :: diameter:call_opt(),
 		PostF :: diameter:evaluable().
-%% @doc Locate ocs_diameter_acct_port_server process and send it
-%% peer's capabilities and diameter request.
+%% @doc Handle received request.
+%% 	Authorize client then forward capabilities and request
+%% 	to the accounting port server matching the service the
+%% 	request was received on.
 %% @hidden
-send_to_port_server(Svc, Caps, Request) ->
-	[Info] = diameter:service_info(Svc, transport),
-	case lists:keyfind(options, 1, Info) of
-		{options, Options} ->
-			case lists:keyfind(transport_config, 1, Options) of
-				{transport_config, [_, {ip, IP}, {port, Port}]} ->
-					case global:whereis_name({ocs_diameter_acct, IP, Port}) of
-						undefined ->
-							discard;
-						PortServer ->
-							Answer = gen_server:call(PortServer,
-									{diameter_request, Caps, Request}),
-							{reply, Answer}
-					end;
-				false ->
-					discard
-			end;
-		false ->
-			discard
-	end.
-
--spec is_client_authorized(Svc, Caps, Request) -> Action
-	when
-		Svc :: atom(),
-		Caps :: capabilities(),
-		Request :: message(),
-		Action :: Reply | {relay, [Opt]} | discard
-			| {eval|eval_packet, Action, PostF},
-		Reply :: {reply, packet() | message()}
-			| {answer_message, 3000..3999|5000..5999}
-			| {protocol_error, 3000..3999},
-		Opt :: diameter:call_opt(),
-		PostF :: diameter:evaluable().
-%% @doc Checks DIAMETER client's identity present in Host-IP-Address AVP in
-%% CER message against identities in client table.
+request(SvcName, Capabilities, Request) ->
+	#diameter_caps{host_ip_address = {_, HostIpAddresses}} = Capabilities,
+	request(SvcName, Capabilities, Request, HostIpAddresses).
 %% @hidden
-is_client_authorized(SvcName,
-		#diameter_caps{host_ip_address = {_, HostIpAddresses}} = Caps, Req) ->
-	is_client_authorized(SvcName, Caps, Req, HostIpAddresses).
-%% @hidden
-is_client_authorized(SvcName, Caps, Req, [H | T]) ->
+request({_, Address, Port} = SvcName, Capabilities, Request, [H | T]) ->
 	case ocs:find_client(H) of
 		{ok, #client{protocol = diameter}} ->
-			send_to_port_server(SvcName, Caps, Req);
+			PortServer = global:whereis_name({ocs_diameter_acct, Address, Port}),
+			{reply, gen_server:call(PortServer,
+					{diameter_request, Capabilities, Request})};
 		{error, not_found} ->
-			is_client_authorized(SvcName, Caps, Req, T)
+			request(SvcName, Capabilities, Request, T)
 	end;
-is_client_authorized(_, _, _, []) ->
+request(_, _, _, []) ->
 	{answer, 3010}.
 
