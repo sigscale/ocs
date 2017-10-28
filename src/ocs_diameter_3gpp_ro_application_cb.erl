@@ -218,18 +218,17 @@ send_to_port_server(Svc, Caps, Request) ->
 %% @doc Checks DIAMETER client's identity present in Host-IP-Address AVP in
 %% CER message against identities in client table.
 %% @hidden
-is_client_authorized(SvcName, Caps, Req) ->
-	try
-		HostIPAddresses = Caps#diameter_caps.host_ip_address,
-		{ClientIPs, _} = HostIPAddresses,
-		[HostIpAddress | _] = ClientIPs,
-		{ok, #client{protocol = diameter}} = ocs:find_client(HostIpAddress),
-		true
-	of
-		true ->
-			send_to_port_server(SvcName, Caps, Req)
-	catch
-		_ : _ ->
-			{answer, 3010}
-	end.
+is_client_authorized(SvcName,
+		#diameter_caps{host_ip_address = {_, HostIpAddresses}} = Caps, Req) ->
+	is_client_authorized(SvcName, Caps, Req, HostIpAddresses).
+%% @hidden
+is_client_authorized(SvcName, Caps, Req, [H | T]) ->
+	case ocs:find_client(H) of
+		{ok, #client{protocol = diameter}} ->
+			send_to_port_server(SvcName, Caps, Req);
+		{error, not_found} ->
+			is_client_authorized(SvcName, Caps, Req, T)
+	end;
+is_client_authorized(_, _, _, []) ->
+	{answer, 3010}.
 
