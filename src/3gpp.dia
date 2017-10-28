@@ -374,7 +374,7 @@
    ; Remaining-Balance                                      2021  Grouped          V
    Reply-Applic-ID                                        1223  UTF8String       V
    ; Reply-Path-Requested                                   2011  Enumerated       V
-   ; Reporting-Reason                                        872  Enumerated       V
+   Reporting-Reason                                        872  Enumerated       V
    Requested-Party-Address                                1251  UTF8String       V
    Requested-PLMN-Identifier                              3436  UTF8String       V
    ; Requesting-EPUID                                       3816  
@@ -629,4 +629,15 @@ IMS-Information ::= < AVP Header: 876 >
    TWAG           19
    SCEF           20
    IWK-SCEF       21
+
+@enum Node-Functionality
+   THRESHOLD                0
+   QHT                      1
+   FINAL                    2
+   QUOTA_EXHAUSTED          3
+   VALIDITY_TIME            4
+   OTHER_QUOTA_TYPE         5
+   RATING_CONDITION_CHANGE  6
+   FORCED_REAUTHORISATION   7
+   POOL_EXHAUSTED           8
 
