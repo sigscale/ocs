@@ -493,8 +493,8 @@ generate_diameter_answer(Request, SId, _Subscriber, GrantedUnits, ResultCode, OH
 			'CC-Request-Number' = RequestNum,
 			'Multiple-Services-Credit-Control' = [MultiServices_CC]},
 	Server = {Address, Port},
-	ok = ocs_log:acct_log(diameter, Server, accounting_event_type(RequestType),
-			Request),
+	ok = ocs_log:acct_log(diameter, Server,
+			accounting_event_type(RequestType), Request),
 	{Reply, State}.
 
 -spec generate_diameter_error(Request, SessionId, Subscriber, Balance, ResultCode,
@@ -513,17 +513,14 @@ generate_diameter_answer(Request, SId, _Subscriber, GrantedUnits, ResultCode, OH
 				State :: state(),
 				Result :: {Reply, State},
 				Reply :: #'3gpp_ro_CCA'{}.
-%% @doc Send CCA to DIAMETER client indicating a operation faliure.
+%% @doc Send CCA to DIAMETER client indicating an operation failure.
 %% @hidden
-generate_diameter_error(Request, SId, _Subscriber, _Balance, ResultCode, OHost,
-		ORealm, AuthAppId, RequestType, RequestNum, #state{address = Address,
-		port = Port} = State) ->
+generate_diameter_error(_Request, SId, _Subscriber, _Balance, ResultCode, OHost,
+		ORealm, AuthAppId, RequestType, RequestNum, State) ->
 	Reply = #'3gpp_ro_CCA'{'Session-Id' = SId, 'Result-Code' = ResultCode,
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Auth-Application-Id' = AuthAppId, 'CC-Request-Type' = RequestType,
 			'CC-Request-Number' = RequestNum},
-	Server = {Address, Port},
-	ok = ocs_log:acct_log(diameter, Server, accounting_event_type(RequestType), Request),
 	{Reply, State}.
 
 -spec accounting_event_type(RequestType) -> EventType
