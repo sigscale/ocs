@@ -48,31 +48,31 @@
 %%  The DIAMETER application callbacks
 %%----------------------------------------------------------------------
 
--spec peer_up(SvcName, Peer, State) -> NewState
+-spec peer_up(ServiceName, Peer, State) -> NewState
 	when
-		SvcName :: diameter:service_name(),
+		ServiceName :: diameter:service_name(),
 		Peer ::  peer(),
 		State :: state(),
 		NewState :: state().
 %% @doc Invoked when the peer connection is available
-peer_up(_SvcName, _Peer, State) ->
+peer_up(_ServiceName, _Peer, State) ->
     State.
 
--spec peer_down(SvcName, Peer, State) -> NewState
+-spec peer_down(ServiceName, Peer, State) -> NewState
 	when
-		SvcName :: diameter:service_name(),
+		ServiceName :: diameter:service_name(),
 		Peer :: peer(),
 		State :: state(),
 		NewState :: state().
 %% @doc Invoked when the peer connection is not available
-peer_down(_SvcName, _Peer, State) ->
+peer_down(_ServiceName, _Peer, State) ->
     State.
 
--spec pick_peer(LocalCandidates, RemoteCandidates, SvcName, State) -> Result
+-spec pick_peer(LocalCandidates, RemoteCandidates, ServiceName, State) -> Result
 	when
 		LocalCandidates :: [peer()],
 		RemoteCandidates :: [peer()],
-		SvcName :: diameter:service_name(),
+		ServiceName :: diameter:service_name(),
 		State :: state(),
 		NewState :: state(),
 		Selection :: {ok, Peer} | {Peer, NewState},
@@ -80,13 +80,13 @@ peer_down(_SvcName, _Peer, State) ->
 		Result :: Selection | false.
 %% @doc Invoked as a consequence of a call to diameter:call/4 to select
 %% a destination peer for an outgoing request. 
-pick_peer([Peer | _], _, _SvcName, _State) ->
+pick_peer([Peer | _], _, _ServiceName, _State) ->
 	{ok, Peer}.
 
--spec prepare_request(Packet, SvcName, Peer) -> Action
+-spec prepare_request(Packet, ServiceName, Peer) -> Action
 	when
 		Packet :: packet(),
-		SvcName :: diameter:service_name(),
+		ServiceName :: diameter:service_name(),
 		Peer :: peer(),
 		Action :: Send | Discard | {eval_packet, Action, PostF},
 		Send :: {send, packet() | message()},
@@ -104,10 +104,10 @@ prepare_request(#diameter_packet{msg = Record}, _, {_, Caps}) ->
 	'Destination-Host' = DH, 'Destination-Realm' = DR},
 	{send, ASR}.
 
--spec prepare_retransmit(Packet, SvcName, Peer) -> Action
+-spec prepare_retransmit(Packet, ServiceName, Peer) -> Action
 	when
 		Packet :: packet(),
-		SvcName :: diameter:service_name(),
+		ServiceName :: diameter:service_name(),
 		Peer :: peer(),
 		Action :: Send | Discard | {eval_packet, Action, PostF},
 		Send :: {send, packet() | message()},
@@ -116,36 +116,36 @@ prepare_request(#diameter_packet{msg = Record}, _, {_, Caps}) ->
 		PostF :: diameter:evaluable().
 %% @doc Invoked to return a request for encoding and retransmission.
 %% In case of peer connection is lost alternate peer is selected.
-prepare_retransmit(Packet, SvcName, Peer) ->
-	prepare_request(Packet, SvcName, Peer).
+prepare_retransmit(Packet, ServiceName, Peer) ->
+	prepare_request(Packet, ServiceName, Peer).
 
--spec handle_answer(Packet, Request, SvcName, Peer) -> Result
+-spec handle_answer(Packet, Request, ServiceName, Peer) -> Result
 	when
 		Packet :: packet(),
 		Request :: message(),
-		SvcName :: diameter:service_name(),
+		ServiceName :: diameter:service_name(),
 		Peer :: peer(),
 		Result :: term().
 %% @doc Invoked when an answer message is received from a peer.
-handle_answer(_Packet, _Request, _SvcName, _Peer) ->
+handle_answer(_Packet, _Request, _ServiceName, _Peer) ->
     not_implemented.
 
--spec handle_error(Reason, Request, SvcName, Peer) -> Result
+-spec handle_error(Reason, Request, ServiceName, Peer) -> Result
 	when
 		Reason :: timeout | failover | term(),
 		Request :: message(),
-		SvcName :: diameter:service_name(),
+		ServiceName :: diameter:service_name(),
 		Peer :: peer(),
 		Result :: term().
 %% @doc Invoked when an error occurs before an answer message is received
 %% in response to an outgoing request.
-handle_error(_Reason, _Request, _SvcName, _Peer) ->
+handle_error(_Reason, _Request, _ServiceName, _Peer) ->
 	not_implemented.
 
--spec handle_request(Packet, SvcName, Peer) -> Action
+-spec handle_request(Packet, ServiceName, Peer) -> Action
 	when
 		Packet :: packet(),
-		SvcName :: term(),
+		ServiceName :: term(),
 		Peer :: peer(),
 		Action :: Reply | {relay, [Opt]} | discard
 			| {eval|eval_packet, Action, PostF},
@@ -155,21 +155,19 @@ handle_error(_Reason, _Request, _SvcName, _Peer) ->
 		Opt :: diameter:call_opt(),
 		PostF :: diameter:evaluable().
 %% @doc Invoked when a request messge is received from the peer. 
-handle_request(#diameter_packet{msg = Req, errors = []}, SvcName, {_, Caps}) ->
-	request(SvcName, Caps, Req);
-handle_request(#diameter_packet{errors = [{ResultCode, _} | _]}, _SvcName, _Peer) ->
-	{answer_message, ResultCode};
-handle_request(#diameter_packet{errors = [ResultCode | _]}, _SvcName, _Peer) ->
-	{answer_message, ResultCode}.
+handle_request(#diameter_packet{msg = Req, errors = []}, ServiceName, {_, Caps}) ->
+	request(ServiceName, Caps, Req);
+handle_request(#diameter_packet{errors = [{ResultCode, _} | _]}, ServiceName, {_, Caps}) ->
+	errors(ServiceName, Caps, Request, Errors).
 
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec request(Svc, Caps, Request) -> Action
+-spec request(Svc, Capabilities, Request) -> Action
 	when
 		Svc :: atom(),
-		Caps :: capabilities(),
+		Capabilities :: capabilities(),
 		Request :: message(),
 		Action :: Reply | {relay, [Opt]} | discard
 			| {eval|eval_packet, Action, PostF},
@@ -182,20 +180,48 @@ handle_request(#diameter_packet{errors = [ResultCode | _]}, _SvcName, _Peer) ->
 %% 	Authorize client then forward capabilities and request
 %% 	to the accounting port server matching the service the
 %% 	request was received on.
-%% @hidden
-request(SvcName, Capabilities, Request) ->
+%% @private
+request(ServiceName, Capabilities, Request) ->
 	#diameter_caps{host_ip_address = {_, HostIpAddresses}} = Capabilities,
-	request(SvcName, Capabilities, Request, HostIpAddresses).
+	request(ServiceName, Capabilities, Request, HostIpAddresses).
 %% @hidden
-request({_, Address, Port} = SvcName, Capabilities, Request, [H | T]) ->
+request({_, Address, Port} = ServiceName, Capabilities, Request, [H | T]) ->
 	case ocs:find_client(H) of
 		{ok, #client{protocol = diameter}} ->
 			PortServer = global:whereis_name({ocs_diameter_acct, Address, Port}),
 			{reply, gen_server:call(PortServer,
 					{diameter_request, Capabilities, Request})};
 		{error, not_found} ->
-			request(SvcName, Capabilities, Request, T)
+			request(ServiceName, Capabilities, Request, T)
 	end;
 request(_, _, _, []) ->
 	{answer, 3010}.
+
+-spec errors(ServiceName, Capabilities, Request, Errors) -> Action
+	when
+		ServiceName :: atom(),
+		Peer = peer(),
+		Request :: message(),
+		Action :: Reply | {relay, [Opt]} | discard
+			| {eval|eval_packet, Action, PostF},
+		Reply :: {reply, packet() | message()}
+			| {answer_message, 3000..3999|5000..5999}
+			| {protocol_error, 3000..3999},
+		Opt :: diameter:call_opt(),
+		PostF :: diameter:evaluable().
+%% @doc Handle requests received in error.
+%% 	Log 5001 (unrecognized AVP) errors.
+%% @private
+handle_request(ServiceName, Capabilities, Request, [{5001, _} | _] = Errors) ->
+	handle_request1(ServiceName, Capabilities, Request, ResultCode, Errors) ->
+handle_request(ServiceName, Capabilities, Request, [ResultCode | _] = Errors) ->
+	{answer_message, ResultCode};
+handle_request(ServiceName, Capabilities, Request, [{ResultCode, _} | _] = Errors) ->
+	{answer_message, ResultCode}.
+%% @hidden
+handle_request1(ServiceName, Capabilities, Request, ResultCode, Errors) ->
+	error_logger:error_report(["DIAMETER AVP unsupported"}.
+			{service_name, ServiceName}, {capabilities, Capabilities},
+			{errors, Errors}]),
+	{answer_message, ResultCode}.
 
