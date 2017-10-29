@@ -32,6 +32,7 @@
 
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
+-include("../include/diameter_gen_3gpp.hrl").
 -include("../include/diameter_gen_3gpp_ro_application.hrl").
 -include("ocs.hrl").
 
@@ -291,7 +292,7 @@ request1(?'3GPP_RO_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 					{origin_host, OHost}]),
 			start_disconnect(SL, State),
 			{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
-					0, ?'3GPP_RO_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
+					0, ?'3GPP_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
 					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 			{reply, Reply, NewState};
 		{error, subscriber_not_found} ->
@@ -299,12 +300,12 @@ request1(?'3GPP_RO_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 					{module, ?MODULE}, {subscriber, Subscriber},
 					{origin_host, OHost}]),
 			{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
-					0, ?'3GPP_RO_RESULT-CODE_USER_UNKNOWN', OHost,
+					0, ?'3GPP_RESULT-CODE_USER_UNKNOWN', OHost,
 					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 			{reply, Reply, NewState};
 		{error, _Reason} ->
 			{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
-					0, ?'3GPP_RO_RESULT-CODE_RATING_FAILED', OHost,
+					0, ?'3GPP_RESULT-CODE_RATING_FAILED', OHost,
 					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 			{reply, Reply, NewState}
 	end;
@@ -371,7 +372,7 @@ request1(?'3GPP_RO_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 						{origin_host, OHost}]),
 				start_disconnect(SL, State),
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
-						0, ?'3GPP_RO_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
+						0, ?'3GPP_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
 						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{error, subscriber_not_found} ->
@@ -379,12 +380,12 @@ request1(?'3GPP_RO_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 						{module, ?MODULE}, {subscriber, Subscriber},
 						{origin_host, OHost}]),
 				{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
-						0, ?'3GPP_RO_RESULT-CODE_USER_UNKNOWN', OHost,
+						0, ?'3GPP_RESULT-CODE_USER_UNKNOWN', OHost,
 						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{error, _Reason} ->
 				{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
-						0, ?'3GPP_RO_RESULT-CODE_RATING_FAILED', OHost,
+						0, ?'3GPP_RESULT-CODE_RATING_FAILED', OHost,
 						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState}
 		end
@@ -437,7 +438,7 @@ request1(?'3GPP_RO_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 						{origin_host, OHost}]),
 				start_disconnect(SL, State),
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
-						0, ?'3GPP_RO_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
+						0, ?'3GPP_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
 						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{error, subscriber_not_found} ->
@@ -445,12 +446,12 @@ request1(?'3GPP_RO_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 						{module, ?MODULE}, {subscriber, Subscriber},
 						{origin_host, OHost}]),
 				{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
-						0, ?'3GPP_RO_RESULT-CODE_USER_UNKNOWN', OHost,
+						0, ?'3GPP_RESULT-CODE_USER_UNKNOWN', OHost,
 						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{error, _Reason} ->
 				{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
-						0, ?'3GPP_RO_RESULT-CODE_RATING_FAILED', OHost,
+						0, ?'3GPP_RESULT-CODE_RATING_FAILED', OHost,
 						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState}
 		end
