@@ -52,7 +52,7 @@
 ;  AoC-Cost-Information                                   2053  Grouped          V
 ;  AoC-Format                                             2310  Enumerated       V
 ;  AoC-Information                                        2054  Grouped          VM
-;  AoC-Request-Type                                       2055  Enumerated       VM
+   AoC-Request-Type                                       2055  Enumerated       VM
 ;  AoC-Service                                            2311  Grouped          V
 ;  AoC-Service-Obligatory-Type                            2312  Enumerated       V
 ;  AoC-Service-Type                                       2313  Enumerated       V
@@ -528,7 +528,7 @@
 @grouped
 
    Service-Information ::= <AVP Header: 873>
-;    *[ Subscription-Id ]
+;    *[ Subscription-Id ]  ; Rf interface only
 ;     [ AoC-Information ]
 ;     [ PS-Information ]
       [ IMS-Information ]
@@ -1168,4 +1168,10 @@
 @enum Low-Balance-Indication
    NOT-APPLICABLE 0
    YES            1
+
+@enum AoC-Request-Type
+   AoC_NOT_REQUESTED 0
+   AoC_FULL          1
+   AoC_COST_ONLY     2
+   AoC_TARIFF_ONLY   3
 

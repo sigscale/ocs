@@ -50,7 +50,7 @@
         *[ Subscription-Id ]
          [ Termination-Cause ]
          [ Requested-Action ]
-;        [ AoC-Request-Type ]
+         [ AoC-Request-Type ]
          [ Multiple-Services-Indicator ]
         *[ Multiple-Services-Credit-Control ]
          [ CC-Correlation-Id ]
