@@ -3,6 +3,7 @@
 @prefix 3gpp
 @vendor 10415 3GPP
 @inherits diameter_gen_base_rfc6733
+@inherits diameter_gen_ietf
 
 @avp_types
 
@@ -39,12 +40,11 @@
    Address-Domain                                          898  Grouped          V
    Addressee-Type                                         1208  Enumerated       V
    Address-Type                                            899  Enumerated       V
-;  AF-Charging-Identifier                                  505
-;  AF-Correlation-Information                             1276  Grouped          V
-;  Allocation-Retention-Priority                          1034
+   AF-Charging-Identifier                                  505  OctetString      VM
+   AF-Correlation-Information                             1276  Grouped          V
    Alternate-Charged-Party-Address                        1280  UTF8String       VM
    Announcement-Identifier                                3905  Unsigned32       V
-;  Announcement-Information                               3904  Grouped          V
+   Announcement-Information                               3904  Grouped          V
    Announcement-Order                                     3906  Unsigned32       V
    Announcing-PLMN-ID                                     4408  UTF8String       V
    Announcing-UE-HPLMN-Identifier                         3426  UTF8String       VM
@@ -133,9 +133,9 @@
 ;  Dynamic-Address-Flag-Extension                         2068  Enumerated       V
    Early-Media-Description                                1272  Grouped          V
 ;  Enhanced-Diagnostics                                   3901  Grouped          V
-;  Envelope                                               1266  Grouped          V
+   Envelope                                               1266  Grouped          V
    Envelope-End-Time                                      1267  Time             V
-;  Envelope-Reporting                                     1268  Enumerated       V
+   Envelope-Reporting                                     1268  Enumerated       V
    Envelope-Start-Time                                    1269  Time             V
    EPDG-Address                                           3425  Address          V
 ;  EPS-Location-Information                               1496  
@@ -151,7 +151,6 @@
 ;  Forwarding-Pending                                     3415  Enumerated       V
    From-Address                                           2708  UTF8String       V
    GGSN-Address                                            847  Address          V
-;  Guaranteed-Bitrate-UL                                  1026  
 ;  IM-Information                                         2110  
    IMS-Application-Reference-Identifier                   2601  UTF8String       V
    IMS-Charging-Identifier                                 841  UTF8String       V
@@ -199,8 +198,6 @@
 ;  Low-Balance-Indication                                 2020  Enumerated       V
 ;  Low-Priority-Indicator                                 2602  Enumerated       V
    Mandatory-Capability                                    604  Unsigned32       V
-;  Max-Requested-Bandwidth-DL                              515  
-;  Max-Requested-Bandwidth-UL                              516  
 ;  Maximum-Detection-Time                                 3131  
 ;  Maximum-Number-of-Reports                              3128  
 ;  MBMS-2G-3G-Indicator                                    907  
@@ -286,7 +283,7 @@
    PDP-Address                                            1227  Address          V
    PDP-Address-Prefix-Length                              2606  Unsigned32       V
 ;  PDP-Context-Type                                       1247  Enumerated       V
-;  Play-Alternative                                       3913  Enumerated       V
+   Play-Alternative                                       3913  Enumerated       V
 ;  PoC-Change-Condition                                   1261  Enumerated       V
    PoC-Change-Time                                        1262  Time             V
    PoC-Controlling-Address                                 858  UTF8String       V
@@ -308,8 +305,8 @@
 ;  Presence-Reporting-Area-Status                         2823  
 ;  Priority                                               1209  Enumerated       V
 ;  Priority-Indication                                    3006  
-;  Priority-Level                                         1046  
-;  Privacy-Indicator                                      3915  Enumerated       V
+   Priority-Level                                         1046  Unsigned32       V
+   Privacy-Indicator                                      3915  Enumerated       V
    ProSe-3rd-Party-Application-ID                         3440  UTF8String       V
 ;  ProSe-App-Id                                           3811  
 ;  ProSe-Direct-Communication-Reception-Data-Container    3461  Grouped          V
@@ -334,15 +331,14 @@
 ;  Proximity-Alert-Indication                             3454  Enumerated       V
    Proximity-Alert-Timestamp                              3455  Time             V
    Proximity-Cancellation-Timestamp                       3456  Time             V
-;  PS-Append-Free-Format-Data                              867  Enumerated       V
+   PS-Append-Free-Format-Data                              867  Enumerated       V
    PS-Free-Format-Data                                     866  OctetString      V
-;  PS-Furnish-Charging-Information                         865  Grouped          V
+   PS-Furnish-Charging-Information                         865  Grouped          V
 ;  PS-Information                                          874  Grouped          V
-;  QoS-Information                                        1016  
-;  QoS-Class-Identifier                                   1028  
+   QoS-Information                                        1016  Grouped          V
    Quota-Consumption-Time                                  881  Unsigned32       V
    Quota-Holding-Time                                      871  Unsigned32       V
-;  Quota-Indicator                                        3912  Enumerated       V
+   Quota-Indicator                                        3912  Enumerated       V
    Radio-Frequency                                        3462  OctetString      V
 ;  Radio-Parameter-Set-Info                               3463  Grouped          VM
    Radio-Parameter-Set-Values                             3464  OctetString      V
@@ -366,7 +362,7 @@
 ;  Reference-Number                                       3007  
    Refund-Information                                     2022  OctetString      V
 ;  Related-Change-Condition-Information                   3925  Grouped          V
-;  Related-Trigger                                        3926  Grouped          V
+   Related-Trigger                                        3926  Grouped          V
    Related-IMS-Charging-Identifier                        2711  UTF8String       V
    Related-IMS-Charging-Identifier-Node                   2712  Address          V
    Relationship-Mode                                      2706  Enumerated       V
@@ -464,9 +460,9 @@
    Time-First-Usae                                        2043  Time             V
    Time-Indicator                                         3911  Unsigned32       V
    Time-Last-Usae                                         2044  Time             V
-;  Time-Quota-Mechanism                                   1270  Grouped          V
+   Time-Quota-Mechanism                                   1270  Grouped          V
    Time-Quota-Threshold                                    868  Unsigned32       V
-;  Time-Quota-Type                                        1271  Enumerated       V
+   Time-Quota-Type                                        1271  Enumerated       V
    Time-Stamps                                             833  Grouped          V
    Time-Usage                                             2045  Unsigned32       V
 ;  Time-Window                                            3818  
@@ -478,8 +474,8 @@
    Transcoder-Inserted-Indication                         2605  Enumerated       V
    Transit-IOI-List                                       2701  UTF8String       V
 ;  Transmitter-Info                                       3468  Grouped          V
-;  Trigger                                                1264  Grouped          V
-;  Trigger-Type                                            870  Enumerated       V
+   Trigger                                                1264  Grouped          V
+   Trigger-Type                                            870  Enumerated       V
    Trunk-Group-Id                                          851  Grouped          V
    TWAG-Address                                           3903  Address          V
 ;  TWAN-User-Location-Info                                2714  Grouped          V
@@ -499,7 +495,7 @@
    User-Session-Id                                         830  UTF8String       V
 ;  UWAN-User-Location-Info                                3918  Grouped          V
 ;  VAS-Id                                                 1102  
-;  Variable-Part                                          3907  Grouped          V
+   Variable-Part                                          3907  Grouped          V
    Variable-Part-Order                                    3908  Unsigned32       V
    Variable-Part-Type                                     3909  Unsigned32       V
    Variable-Part-Value                                    3910  UTF8String       V
@@ -513,127 +509,23 @@
    Media-Component-Number                                  518  Unsigned32       V
    Flow-Number                                             509  Unsigned32       V
    Access-Network-Charging-Identifier                      502  Grouped          V
-
-   ;; 3GPP TS 29.299 Table 7.1.0.1: Use Of IETF Diameter AVPs
-   Called-Station-Id                                        30  UTF8String       M
-   CC-Correlation-Id                                       411  OctetString      -
-   CC-Input-Octets                                         412  Unsigned64       M
-   CC-Output-Octets                                        414  Unsigned64       M
-   CC-Request-Number                                       415  Unsigned32       M
-   CC-Request-Type                                         416  Enumerated       M
-   CC-Service-Specific-Units                               417  Unsigned64       M
-   CC-Session-Failover                                     418  Enumerated       M
-   CC-Time                                                 420  Unsigned32       M
-   CC-Total-Octets                                         421  Unsigned64       M
-   CC-Unit-Type                                            454  Enumerated       M
-   Cost-Information                                        423  Grouped          M
-   Cost-Unit                                               424  UTF8String       M
-   Credit-Control-Failure-Handling                         427  Enumerated       M
-   Currency-Code                                           425  Unsigned32       M
-   Direct-Debiting-Failure-Handling                        428  Enumerated       M
-   Exponent                                                429  Integer32        M
-   Filter-Id                                                11  UTF8String       M
-   Final-Unit-Action                                       449  Enumerated       M
-   Final-Unit-Indication                                   430  Grouped          M
-   Granted-Service-Unit                                    431  Grouped          M
-   G-S-U-Pool-Identifier                                   453  Unsigned32       M
-   G-S-U-Pool-Reference                                    457  Grouped          M
-   Multiple-Services-Credit-Control                        456  Grouped          M
-   Multiple-Services-Indicator                             455  Enumerated       M
-   Rating-Group                                            432  Unsigned32       M
-   Redirect-Address-Type                                   433  Enumerated       M
-   Redirect-Server                                         434  Grouped          M
-   Redirect-Server-Address                                 435  UTF8String       M
-   Requested-Action                                        436  Enumerated       M
-   Requested-Service-Unit                                  437  Grouped          M
-   Restriction-Filter-Rule                                 438  OctetString      M
-   Service-Context-Id                                      461  UTF8String       M
-   Service-Identifier                                      439  Unsigned32       M
-   Subscription-Id                                         443  Grouped          M
-   Subscription-Id-Data                                    444  UTF8String       M
-   Subscription-Id-Type                                    450  Enumerated       M
-   Tariff-Change-Usage                                     452  Enumerated       M
-   Tariff-Time-Change                                      451  Time             M
-   Unit-Value                                              445  Grouped          M
-   Used-Service-Unit                                       446  Grouped          M
-   User-Equipment-Info                                     458  Grouped          -
-   User-Equipment-Info-Type                                459  Enumerated       -
-   User-Equipment-Info-Value                               460  OctetString      -
-   Value-Digits                                            447  Integer64        M
-   Validity-Time                                           448  Unsigned32       M
+   ;; 3GPP TS 29.212
+   QoS-Class-Identifier                                   1028  Enumerated       V
+   Max-Requested-Bandwidth-DL                              515  Unsigned32       V
+   Max-Requested-Bandwidth-UL                              516  Unsigned32       V
+   Guaranteed-Bitrate-DL                                  1025  Unsigned32       V
+   Guaranteed-Bitrate-UL                                  1026  Unsigned32       V
+   Bearer-Identifier                                      1020  OctetString      V
+   Conditional-APN-Aggregate-Max-Bitrate                  2818  Grouped          V
+   Allocation-Retention-Priority                          1034  Grouped          V
+   APN-Aggregate-Max-Bitrate-DL                           1040  Unsigned32       V
+   APN-Aggregate-Max-Bitrate-UL                           1041  Unsigned32       V
+   IP-CAN-Type                                            1027  Enumerated       V
+   RAT-Type                                               1032  Enumerated       V
+   Pre-emption-Capability                                 1047  Enumerated       V
+   Pre-emption-Vulnerability                              1048  Enumerated       V
 
 @grouped
-
-   Cost-Information ::= < AVP Header: 423 >
-      { Unit-Value }
-      { Currency-Code }
-      [ Cost-Unit ]
-
-   Final-Unit-Indication ::= < AVP Header: 430 >
-      { Final-Unit-Action }
-     *[ Restriction-Filter-Rule ]
-     *[ Filter-Id ]
-      [ Redirect-Server ]
-
-   Granted-Service-Unit ::= < AVP Header: 431 >
-      [ CC-Total-Octets ]
-      [ Tariff-Time-Change ]
-      [ CC-Time ]
-      [ CC-Input-Octets ]
-      [ CC-Output-Octets ]
-      [ CC-Service-Specific-Units ]
-     *[ AVP ]
-
-   Multiple-Services-Credit-Control ::= < AVP Header: 456 >
-      [ Granted-Service-Unit ]
-      [ Requested-Service-Unit ]
-     *[ Used-Service-Unit ]
-      [ Tariff-Change-Usage ]
-     *[ Service-Identifier ]
-      [ Rating-Group ]
-     *[ G-S-U-Pool-Reference ]
-      [ Validity-Time ]
-      [ Result-Code ]
-      [ Final-Unit-Indication ]
-     *[ AVP ]
-
-   G-S-U-Pool-Reference ::= < AVP Header: 457 >
-      { G-S-U-Pool-Identifier }
-      { CC-Unit-Type }
-      { Unit-Value }
-
-   Redirect-Server ::= < AVP Header: 434 >
-      { Redirect-Address-Type }
-      { Redirect-Server-Address }
-
-   Requested-Service-Unit ::= < AVP Header: 437 >
-      [ CC-Time ]
-      [ CC-Total-Octets ]
-      [ CC-Input-Octets ]
-      [ CC-Output-Octets ]
-      [ CC-Service-Specific-Units ]
-     *[ AVP ]
-
-   Subscription-Id ::= < AVP Header: 443 >
-      { Subscription-Id-Type }
-      { Subscription-Id-Data }
-
-   Unit-Value ::= < AVP Header: 445 >
-      { Value-Digits }
-      [ Exponent ]
-
-   Used-Service-Unit ::= < AVP Header: 446 >
-      [ Tariff-Change-Usage ]
-      [ CC-Time ]
-      [ CC-Total-Octets ]
-      [ CC-Input-Octets ]
-      [ CC-Output-Octets ]
-      [ CC-Service-Specific-Units ]
-     *[ AVP ]
-
-   User-Equipment-Info ::= < AVP Header: 458 >
-      { User-Equipment-Info-Type }
-      { User-Equipment-Info-Value }
 
    Service-Information ::= <AVP Header: 873>
 ;    *[ Subscription-Id ]
@@ -707,22 +599,22 @@
       [ Route-Header-Transmitted ]
       [ Instance-Id ]
       [ TAD-Identifier ]
-      [ FE-Identifier-List ] 
+      [ FE-Identifier-List ]
 
    Event-Type ::= <AVP Header: 823>
       [ SIP-Method ]
       [ Event ]
-      [ Expires ] 
+      [ Expires ]
 
    Time-Stamps ::= <AVP Header: 833>
       [ SIP-Request-Timestamp ]
       [ SIP-Response-Timestamp ]
       [ SIP-Request-Timestamp-Fraction ]
-      [ SIP-Response-Timestamp-Fraction ] 
+      [ SIP-Response-Timestamp-Fraction ]
 
    Inter-Operator-Identifier ::= <AVP Header: 838>
       [ Originating-IOI ]
-      [ Terminating-IOI ] 
+      [ Terminating-IOI ]
 
    Called-Identity-Change ::= <AVP Header: 3917>
       [ Called-Identity ]
@@ -853,6 +745,78 @@
    Unit-Cost ::= <AVP Header: 2061>
       { Value-Digits }
       [ Exponent ]
+
+   QoS-Information ::= <AVP Header: 1016>
+      [ QoS-Class-Identifier ]
+      [ Max-Requested-Bandwidth-UL ]
+      [ Max-Requested-Bandwidth-DL ]
+      [ Guaranteed-Bitrate-UL ]
+      [ Guaranteed-Bitrate-DL ]
+      [ Bearer-Identifier ]
+      [ Allocation-Retention-Priority ]
+      [ APN-Aggregate-Max-Bitrate-UL ]
+      [ APN-Aggregate-Max-Bitrate-DL ]
+     *[ Conditional-APN-Aggregate-Max-Bitrate ]
+     *[ AVP ]
+
+   Allocation-Retention-Priority ::= <AVP Header: 1034>
+      { Priority-Level }
+      [ Pre-emption-Capability ]
+      [ Pre-emption-Vulnerability ]
+
+   Conditional-APN-Aggregate-Max-Bitrate ::= <AVP Header: 2818>
+      [ APN-Aggregate-Max-Bitrate-UL ]
+      [ APN-Aggregate-Max-Bitrate-DL ]
+     *[ IP-CAN-Type ]
+     *[ RAT-Type ]
+     *[ AVP ]
+
+   AF-Correlation-Information::= <AVP Header: 1276>
+      { AF-Charging-Identifier }
+     *[ Flows ]
+
+   Related-Trigger ::= <AVP Header: 3926>
+     *[ Trigger-Type ]
+
+   Trigger ::= <AVP Header: 1264>
+     *[ Trigger-Type ]
+
+   Announcement-Information::= <AVP Header: 3904>
+      { Announcement-Identifier }
+     *[ Variable-Part ]
+      [ Time-Indicator ]
+      [ Quota-Indicator ]
+      [ Announcement-Order ]
+      [ Play-Alternative ]
+      [ Privacy-Indicator ]
+      [ Language ]
+
+   Variable-Part ::= <AVP Header: 3907>
+      ;; 3GPP TS 32.299 7.2.242aA specifies:
+      ; [ Variable-Part-Order ]
+      ; { Variable-Part-Type }
+      ; { Variable-Part-Value }
+      ;; however that breaks fixed/required/optional order
+      [ Variable-Part-Order ]
+      [ Variable-Part-Type ]
+      [ Variable-Part-Value ]
+
+   Envelope ::= <AVP Header: 1266>
+      { Envelope-Start-Time }
+      [ Envelope-End-Time ]
+      [ CC-Total-Octets ]
+      [ CC-Input-Octets ]
+      [ CC-Output-Octets ]
+      [ CC-Service-Specific-Units ]
+
+   Time-Quota-Mechanism ::= <AVP Header: 1270>
+      { Time-Quota-Type }
+      { Base-Time-Interval }
+
+   PS-Furnish-Charging-Information ::= <AVP Header: 865>
+      { 3GPP-Charging-Id }
+      { PS-Free-Format-Data }
+      [ PS-Append-Free-Format-Data ]
 
 @enum CC-Request-Type
    INITIAL_REQUEST                  1
@@ -1038,7 +1002,7 @@
 
 @enum NNI-Type
    NON_ROAMING               0
-   ROAMING_WITHOUT_LOOPBACK  1   
+   ROAMING_WITHOUT_LOOPBACK  1
    ROAMING_WITH_LOOPBACK     2
 
 @enum Relationship-Mode
@@ -1080,4 +1044,120 @@
    MOBILE_TERMINATING      2
    APPLICATION_ORIGINATING 3
    APPLICATION_TERMINATION 4
+
+@enum QoS-Class-Identifier
+   QCI_1    1
+   QCI_2    2
+   QCI_3    3
+   QCI_4    4
+   QCI_5    5
+   QCI_6    6
+   QCI_7    7
+   QCI_8    8
+   QCI_9    9
+   QCI_65  65
+   QCI_69  69
+   QCI_70  70
+   QCI_75  75
+   QCI_79  79
+
+@enum IP-CAN-Type
+   3GPP-GPRS     0
+   DOCSIS        1
+   xDSL          2
+   WiMAX         3
+   3GPP2         4
+   3GPP-EPS      5
+   Non-3GPP-EPS  6
+   FBA           7
+
+@enum RAT-Type
+   WLAN              0
+   VIRTUAL           1
+   UTRAN          1000
+   GERAN          1001
+   GAN            1002
+   HSPA_EVOLUTION 1003
+   EUTRAN-NB-IoT  1005
+   CDMA2000_1X    2000
+   HRPD           2001
+   UMB            2002
+   EHRPD          2003
+
+@enum Pre-emption-Capability
+   PRE-EMPTION_CAPABILITY_ENABLED  0
+   PRE-EMPTION_CAPABILITY_DISABLED 1
+
+@enum Pre-emption-Vulnerability
+   PRE-EMPTION_VULNERABILITY_ENABLED  0
+   PRE-EMPTION_VULNERABILITY_DISABLED 1
+
+@enum Trigger-Type
+   HANGE_IN_SGSN_IP_ADDRESS                             1
+   HANGE_IN_QOS                                         2
+   HANGE_IN_LOCATION                                    3
+   HANGE_IN_RAT                                         4
+   HANGE_IN_UE_TIMEZONE                                 5
+   CHANGEINQOS_TRAFFIC_CLASS                           10
+   CHANGEINQOS_RELIABILITY_CLASS                       11
+   CHANGEINQOS_DELAY_CLASS                             12
+   CHANGEINQOS_PEAK_THROUGHPUT                         13
+   CHANGEINQOS_PRECEDENCE_CLASS                        14
+   CHANGEINQOS_MEAN_THROUGHPUT                         15
+   CHANGEINQOS_MAXIMUM_BIT_RATE_FOR_UPLINK             16
+   CHANGEINQOS_MAXIMUM_BIT_RATE_FOR_DOWNLINK           17
+   CHANGEINQOS_RESIDUAL_BER                            18
+   CHANGEINQOS_SDU_ERROR_RATIO                         19
+   CHANGEINQOS_TRANSFER_DELAY                          20
+   CHANGEINQOS_TRAFFIC_HANDLING_PRIORITY               21
+   CHANGEINQOS_GUARANTEED_BIT_RATE_FOR_UPLINK          22
+   CHANGEINQOS_GUARANTEED_BIT_RATE_FOR_DOWNLINK        23
+   CHANGEINQOS_APN_AGGREGATE_MAXIMUM_BIT_RATE          24
+   CHANGEINLOCATION_MCC                                30
+   CHANGEINLOCATION_MNC                                31
+   CHANGEINLOCATION_RAC                                32
+   CHANGEINLOCATION_LAC                                33
+   CHANGEINLOCATION_CellId                             34
+   CHANGEINLOCATION_TAC                                35
+   CHANGEINLOCATION_ECGI                               36
+   CHANGE_IN_MEDIA_COMPOSITION                         40
+   CHANGE_IN_PARTICIPANTS_NMB                          50
+   CHANGE_IN_THRSHLD_OF_PARTICIPANTS_NMB               51
+   CHANGE_IN_USER_PARTICIPATING_TYPE                   52
+   CHANGE_IN_SERVICE_CONDITION                         60
+   CHANGE_IN_SERVING_NODE                              61
+   CHANGE_IN_ACCESS_FOR_A_SERVICE_DATA_FLOW            62
+   CHANGE_IN_USER_CSG_INFORMATION                      70
+   CHANGE_IN_HYBRID_SUBSCRIBED_USER_CSG_INFORMATION    71
+   CHANGE_IN_HYBRID_UNSUBSCRIBED_USER_CSG_INFORMATION  72
+   CHANGE_OF_UE_PRESENCE_IN_PRESENCE_REPORTING_AREA    73
+   CHANGE_IN_APN_RATE_CONTROL                          75
+   CHANGE_IN_3GPP_PS_DATA_OFF                          76
+
+@enum Quota-Indicator
+   QUOTA_IS_NOT_USED_DURING_PLAYBACK  0
+   QUOTA_IS_USED_DURING_PLAYBACK      1
+
+@enum Play-Alternative
+   SERVED_PARTY 0
+   REMOTE_PARTY 1
+
+@enum Privacy-Indicator
+   NOT_PRIVATE  0
+   PRIVATE      1
+
+@enum Envelope-Reporting
+   DO_NOT_REPORT_ENVELOPES                 0
+   REPORT_ENVELOPES                        1
+   REPORT_ENVELOPES_WITH_VOLUME            2
+   REPORT_ENVELOPES_WITH_EVENTS            3
+   REPORT_ENVELOPES_WITH_VOLUME_AND_EVENTS 4
+
+@enum Time-Quota-Type
+   DISCRETE_TIME_PERIOD    0
+   CONTINUOUS_TIME_PERIOD  1
+
+@enum PS-Append-Free-Format-Data
+   APPEND    0
+   OVERWRITE 1
 

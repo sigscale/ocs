@@ -248,7 +248,7 @@ request(Request, Caps,  _From, State) ->
 	end.
 
 %% @hidden
-request1(?'3GPP_RO_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
+request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _]} = Request,
 		SId, RequestNum, Subscriber, OHost, DHost, ORealm, DRealm, State) ->
 	RSU =  case MSCC of
@@ -309,7 +309,7 @@ request1(?'3GPP_RO_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 			{reply, Reply, NewState}
 	end;
-request1(?'3GPP_RO_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
+request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _]} = Request,
 		SId, RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm, State) ->
 	try
@@ -396,7 +396,7 @@ request1(?'3GPP_RO_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 			{reply, Reply1, NewState0}
 	end;
-request1(?'3GPP_RO_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
+request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _]} = Request,
 		SId, RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm, State) ->
 	try

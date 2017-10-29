@@ -5,6 +5,32 @@
 @prefix 3gpp_ro
 @inherits diameter_gen_base_rfc6733
 @inherits diameter_gen_3gpp
+@inherits diameter_gen_ietf
+   CC-Correlation-Id
+   CC-Input-Octets
+   CC-Output-Octets
+   CC-Request-Number
+   CC-Request-Type
+   CC-Service-Specific-Units
+   CC-Session-Failover
+   CC-Time
+   CC-Total-Octets
+   Cost-Information
+   Credit-Control-Failure-Handling
+   Direct-Debiting-Failure-Handling
+   Final-Unit-Indication
+   G-S-U-Pool-Identifier
+   G-S-U-Pool-Reference
+   Multiple-Services-Indicator
+   Rating-Group
+   Requested-Action
+   Service-Context-Id
+   Service-Identifier
+   Subscription-Id
+   Tariff-Change-Usage
+   Tariff-Time-Change
+   User-Equipment-Info
+   Validity-Time
 
 @messages
 
@@ -92,4 +118,68 @@
 ;        [ Redirect-Host-Cache-Time ]
         *[ Proxy-Info ]
         *[ AVP ]
+
+
+;; overide IETF AVPs
+@avp_types
+   Multiple-Services-Credit-Control  456  Grouped          M
+   Granted-Service-Unit              431  Grouped          M
+   Requested-Service-Unit            437  Grouped          M
+   Used-Service-Unit                 446  Grouped          M
+
+@grouped
+
+   Multiple-Services-Credit-Control ::= < AVP Header: 456 >
+      [ Granted-Service-Unit ]
+      [ Requested-Service-Unit ]
+     *[ Used-Service-Unit ]
+     *[ Service-Identifier ]
+      [ Rating-Group ]
+     *[ G-S-U-Pool-Reference ]
+      [ Validity-Time ]
+      [ Result-Code ]
+      [ Final-Unit-Indication ]
+      [ Time-Quota-Threshold ]
+      [ Volume-Quota-Threshold ]
+      [ Unit-Quota-Threshold ]
+      [ Quota-Holding-Time ]
+      [ Quota-Consumption-Time ]
+     *[ Reporting-Reason ]
+      [ Trigger ]
+      [ PS-Furnish-Charging-Information ]
+      [ Refund-Information ]
+     *[ AF-Correlation-Information]
+     *[ Envelope ]
+      [ Envelope-Reporting ]
+      [ Time-Quota-Mechanism ]
+     *[ Service-Specific-Info ]
+      [ QoS-Information ]
+     *[ Announcement-Information ]
+      [ 3GPP-RAT-Type ]
+      [ Related-Trigger ]
+
+   Granted-Service-Unit ::= < AVP Header: 431 >
+      [ Tariff-Time-Change ]
+      [ CC-Time ]
+      [ CC-Total-Octets ]
+      [ CC-Input-Octets ]
+      [ CC-Output-Octets ]
+      [ CC-Service-Specific-Units ]
+
+   Requested-Service-Unit ::= < AVP Header: 437 >
+      [ CC-Time ]
+      [ CC-Total-Octets ]
+      [ CC-Input-Octets ]
+      [ CC-Output-Octets ]
+      [ CC-Service-Specific-Units ]
+
+   Used-Service-Unit ::= < AVP Header: 446 >
+      [ Reporting-Reason ]
+      [ Tariff-Change-Usage ]
+      [ CC-Time ]
+      [ CC-Total-Octets ]
+      [ CC-Input-Octets ]
+      [ CC-Output-Octets ]
+      [ CC-Service-Specific-Units ]
+     *[ Event-Charging-TimeStamp ]
 

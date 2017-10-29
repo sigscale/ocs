@@ -17,11 +17,6 @@ beam_DATA = ocs.beam \
 			ocs_diameter_auth_service_fsm.beam \
 			ocs_diameter_acct_service_fsm.beam \
 			ocs_diameter_auth_sup.beam \
-			ocs_diameter_base_application_cb.beam \
-			ocs_diameter_nas_application_cb.beam \
-			ocs_diameter_eap_application_cb.beam \
-			ocs_diameter_cc_application_cb.beam \
-			ocs_diameter_3gpp_ro_application_cb.beam \
 			ocs_diameter_disconnect_fsm_sup.beam\
 			ocs_diameter_disconnect_fsm.beam\
 			ocs_radius_acct_port_server.beam \
@@ -68,11 +63,17 @@ beam_DATA = ocs.beam \
 			ocs_rest_res_user.beam \
 			ocs_rest_res_balance.beam \
 			ocs_rest_res_product.beam \
+			diameter_gen_ietf.beam \
 			diameter_gen_3gpp.beam \
 			diameter_gen_3gpp_ro_application.beam \
 			diameter_gen_nas_application_rfc7155.beam \
 			diameter_gen_cc_application_rfc4006.beam \
 			diameter_gen_eap_application_rfc4072.beam \
+			ocs_diameter_base_application_cb.beam \
+			ocs_diameter_nas_application_cb.beam \
+			ocs_diameter_eap_application_cb.beam \
+			ocs_diameter_cc_application_cb.beam \
+			ocs_diameter_3gpp_ro_application_cb.beam \
 			ocs_rest_res_access.beam \
 			ocs_rest_res_accounting.beam \
 			ocs_rest_res_http.beam \
@@ -88,6 +89,14 @@ beam_DATA = ocs.beam \
 		$(top_builddir)/include/diameter_gen_eap_application_rfc4072.hrl
 	$(ERLC) $(ERLCFLAGS) -I $(top_srcdir)/include $<
 
+diameter_gen_ietf.beam:$(top_builddir)/src/diameter_gen_ietf.erl \
+		$(top_builddir)/include/diameter_gen_ietf.hrl
+	$(ERLC) $(ERLCFLAGS) -I $(top_builddir)/include $<
+
+diameter_gen_3gpp.beam:$(top_builddir)/src/diameter_gen_3gpp.erl \
+		$(top_builddir)/include/diameter_gen_3gpp.hrl
+	$(ERLC) $(ERLCFLAGS) -I $(top_builddir)/include $<
+
 diameter_gen_3gpp_ro_application.beam:$(top_builddir)/src/diameter_gen_3gpp_ro_application.erl \
 		$(top_builddir)/include/diameter_gen_3gpp_ro_application.hrl
 	$(ERLC) $(ERLCFLAGS) -I $(top_builddir)/include $<
@@ -99,12 +108,12 @@ diameter_gen_nas_application_rfc7155.beam:$(top_builddir)/src/diameter_gen_nas_a
 diameter_gen_cc_application_rfc4006.beam:$(top_builddir)/src/diameter_gen_cc_application_rfc4006.erl \
 		$(top_builddir)/include/diameter_gen_nas_application_rfc7155.hrl \
 		$(top_builddir)/include/diameter_gen_cc_application_rfc4006.hrl
-	$(ERLC) $(ERLCFLAGS) -I $(top_srcdir)/include $<
+	$(ERLC) $(ERLCFLAGS) -I $(top_builddir)/include $<
 
 diameter_gen_eap_application_rfc4072.beam:$(top_builddir)/src/diameter_gen_eap_application_rfc4072.erl \
 		$(top_builddir)/include/diameter_gen_nas_application_rfc7155.hrl \
 		$(top_builddir)/include/diameter_gen_eap_application_rfc4072.hrl
-	$(ERLC) $(ERLCFLAGS) -I $(top_srcdir)/include $<
+	$(ERLC) $(ERLCFLAGS) -I $(top_builddir)/include $<
 
 %.app:   %.app-in
 	sed -e 's/%APP_NAME%/$(PACKAGE_NAME)/' \
