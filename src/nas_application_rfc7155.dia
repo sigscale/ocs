@@ -7,7 +7,7 @@
 
 @avp_types
 
-	NAS-Port							5		Unsigned32		MV 
+	NAS-Port							5		Unsigned32		MV
 	NAS-Port-Id						87		UTF8String		MV
 	NAS-Port-Type					61		Enumerated		MV
 	Called-Station-Id				30		UTF8String		MV
@@ -35,7 +35,7 @@
 	NAS-Filter-Rule				400	IPFilterRule	MV
 	Filter-Id						11		UTF8String		MV
 	Configuration-Token			78		OctetString		MV
-	QoS-Filter-Rule				407	QoSFilterRule	-	
+	QoS-Filter-Rule				407	QoSFilterRule	-
 	Framed-Protocol				7		Enumerated		MV
 	Framed-Routing					10		Enumerated		MV
 	Framed-MTU						12		Unsigned32		MV
@@ -143,7 +143,7 @@
 			* [ Proxy-Info ]
 			* [ Route-Record ]
 			* [ AVP ]
-			
+
 	AAA ::= < Diameter Header: 265, PXY >
 			< Session-Id >
 			{ Auth-Application-Id }
@@ -590,7 +590,7 @@
 	DVS									11
 	IP_IN_IP_TUNNELING				12
 	VLAN									13
-	
+
 @enum Tunnel-Medium-Type
 	IPV4									1
 	IPV6									2
@@ -608,7 +608,7 @@
 	BANYAN_VINES						14
 	E_164_NSAP_FORMAT_SUBADDRESS	15
 
-@enum Accounting-Auth-Method 
+@enum Accounting-Auth-Method
 	PAP									1
 	CHAP									2
 	MS_CHAP_1							3
