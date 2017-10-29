@@ -195,7 +195,7 @@
 ;  Location-Estimate-Type                                 1243  Enumerated       V
 ;  Location-Info                                          3460  Grouped          V
 ;  Location-Type                                          1244  Grouped          V
-;  Low-Balance-Indication                                 2020  Enumerated       V
+   Low-Balance-Indication                                 2020  Enumerated       V
 ;  Low-Priority-Indicator                                 2602  Enumerated       V
    Mandatory-Capability                                    604  Unsigned32       V
 ;  Maximum-Detection-Time                                 3131  
@@ -367,7 +367,7 @@
    Related-IMS-Charging-Identifier-Node                   2712  Address          V
    Relationship-Mode                                      2706  Enumerated       V
    Relay-IP-Address                                       4411  Address          V
-;  Remaining-Balance                                      2021  Grouped          V
+   Remaining-Balance                                      2021  Grouped          V
    Reply-Applic-ID                                        1223  UTF8String       V
 ;  Reply-Path-Requested                                   2011  Enumerated       V
    Reporting-Reason                                        872  Enumerated       V
@@ -745,6 +745,10 @@
    Unit-Cost ::= <AVP Header: 2061>
       { Value-Digits }
       [ Exponent ]
+
+   Remaining-Balance ::= <AVP Header: 2021>
+      { Unit-Value }
+      { Currency-Code }
 
    QoS-Information ::= <AVP Header: 1016>
       [ QoS-Class-Identifier ]
@@ -1160,4 +1164,8 @@
 @enum PS-Append-Free-Format-Data
    APPEND    0
    OVERWRITE 1
+
+@enum Low-Balance-Indication
+   NOT-APPLICABLE 0
+   YES            1
 
