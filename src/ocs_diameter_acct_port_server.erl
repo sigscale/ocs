@@ -494,7 +494,7 @@ generate_diameter_answer(Request, SId, _Subscriber, GrantedUnits, ResultCode, OH
 			'Multiple-Services-Credit-Control' = [MultiServices_CC]},
 	Server = {Address, Port},
 	ok = ocs_log:acct_log(diameter, Server,
-			accounting_event_type(RequestType), Request),
+			accounting_event_type(RequestType), Request, Reply),
 	{Reply, State}.
 
 -spec generate_diameter_error(Request, SessionId, Subscriber, Balance, ResultCode,

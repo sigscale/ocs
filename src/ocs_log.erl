@@ -24,7 +24,7 @@
 -copyright('Copyright (c) 2016-2017 SigScale Global Inc.').
 
 %% export the ocs_log public API
--export([acct_open/0, acct_log/4, acct_close/0,
+-export([acct_open/0, acct_log/4, acct_log/5, acct_close/0,
 		acct_query/5, acct_query/6,
 		auth_open/0, auth_log/5, auth_log/6, auth_close/0,
 		auth_query/6, auth_query/7,
@@ -100,20 +100,37 @@ acct_open1(Directory) ->
 
 -spec acct_log(Protocol, Server, Type, Attributes) -> Result
 	when
-		Protocol :: radius | diameter,
+		Protocol :: radius,
 		Server :: {Address, Port},
 		Address :: inet:ip_address(),
 		Port :: integer(),
 		Type :: on | off | start | stop | interim | event,
-		Attributes :: radius_attributes:attributes() | #'3gpp_ro_CCR'{},
+		Attributes :: radius_attributes:attributes(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Write an event to accounting log.
-acct_log(Protocol, Server, Type, Attributes)
-		when ((Protocol == radius) or (Protocol == diameter)) ->
+%% @doc Write a RADIUS event to accounting log.
+acct_log(radius = Protocol, Server, Type, Attributes) ->
 	TS = erlang:system_time(?MILLISECOND),
 	N = erlang:unique_integer([positive]),
 	Event = {TS, N, Protocol, node(), Server, Type, Attributes},
+	disk_log:log(?ACCTLOG, Event).
+
+-spec acct_log(Protocol, Server, Type, Request, Response) -> Result
+	when
+		Protocol :: diameter,
+		Server :: {Address, Port},
+		Address :: inet:ip_address(),
+		Port :: integer(),
+		Type :: start | stop | update,
+		Request :: #'3gpp_ro_CCR'{} | #'3gpp_ro_RAR'{},
+		Response :: #'3gpp_ro_CCA'{} | #'3gpp_ro_RAA'{},
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Write a DIAMETER event to accounting log.
+acct_log(diameter = Protocol, Server, Type, Request, Response) ->
+	TS = erlang:system_time(?MILLISECOND),
+	N = erlang:unique_integer([positive]),
+	Event = {TS, N, Protocol, node(), Server, Type, Request, Response},
 	disk_log:log(?ACCTLOG, Event).
 
 -spec acct_close() -> Result
@@ -228,23 +245,22 @@ acct_query1(_Start, _End, _Protocol, _Types, _AttrsMatch, eof, Acc) ->
 	{eof, lists:reverse(Acc)};
 acct_query1(_Start, _End, _Protocol, _Types, _AttrsMatch, {error, Reason}, _Acc) ->
 	{error, Reason};
-acct_query1(_, End, _, _, _, {_, [{TS, _, _, _, _, _, _, _} | _]}, Acc)
-		when TS > End ->
+acct_query1(_, End, _, _, _, {_, [Event | _]}, Acc) when element(1, Event) > End ->
 	{eof, lists:reverse(Acc)};
-acct_query1(Start, End, '_', '_', AttrsMatch,
-		{Cont, [{TS, _, _, _, _, _, _} | _] = Chunk}, Acc)
-		when TS >= Start, TS =< End ->
+acct_query1(Start, End, '_', '_', AttrsMatch, {Cont, [Event | _] = Chunk}, Acc)
+		when element(1, Event) >= Start, element(1, Event) =< End ->
 	acct_query2(Start, End, '_', '_', AttrsMatch,
 			{Cont, Chunk}, Acc, AttrsMatch);
-acct_query1(Start, End, Protocol, '_', AttrsMatch,
-		{Cont, [{TS, _, Protocol, _, _, _, _} | _] = Chunk}, Acc)
-		when TS >= Start, TS =< End ->
+acct_query1(Start, End, Protocol, '_', AttrsMatch, {Cont, [Event | _] = Chunk}, Acc)
+		when element(1, Event) >= Start, element(1, Event) =< End,
+		element(3, Event) == Protocol ->
 	acct_query2(Start, End, Protocol, '_', AttrsMatch,
 			{Cont, Chunk}, Acc, AttrsMatch);
 acct_query1(Start, End, Protocol, Types, AttrsMatch,
-		{Cont, [{TS, _, Protocol, _, _, Type, _} | T] = Chunk}, Acc)
-		when TS >= Start, TS =< End ->
-	case lists:member(Type, Types) of
+		{Cont, [Event | T] = Chunk}, Acc)
+		when element(1, Event) >= Start, element(1, Event) =< End,
+		element(3, Event) == Protocol ->
+	case lists:member(element(6, Event), Types) of
 		true ->
 			acct_query2(Start, End, Protocol, Types,
 					AttrsMatch, {Cont, Chunk}, Acc, AttrsMatch);

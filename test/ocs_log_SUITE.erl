@@ -230,7 +230,7 @@ radius_log_acct_event(_Config) ->
 	true = Find(Find, disk_log:chunk(ocs_acct, start)).
 
 diameter_log_acct_event() ->
-   [{userdata, [{doc, "Log a DIAMETER CCR event"}]}].
+   [{userdata, [{doc, "Log a DIAMETER CCR/CCA event"}]}].
 
 diameter_log_acct_event(_Config) ->
 	Start = erlang:system_time(?MILLISECOND),
@@ -240,11 +240,12 @@ diameter_log_acct_event(_Config) ->
 	ServerPort = 1813,
 	Server = {ServerAddress, ServerPort},
 	RequestType = start,
-	ok = ocs_log:acct_log(diameter, Server, RequestType, #3gpp_ro_CCR{}),
+	ok = ocs_log:acct_log(diameter, Server, RequestType, #3gpp_ro_CCR{}, #3gpp_ro_CCA{}),
 	End = erlang:system_time(?MILLISECOND),
-	Fany = fun({TS, _, P, N, S, RType, Attr})
+	Fany = fun({TS, _, P, N, S, RType, Req, Rsp})
 					when P == Protocol, TS >= Start, TS =< End, N == Node,
-					S == Server, RType == RequestType, is_record(Attr, 3gpp_ro_CCR) ->
+					S == Server, RType == RequestType,
+					is_record(Req, 3gpp_ro_CCR), is_record(Req, 3gpp_ro_CCA) ->
 				true;
 			(_) ->
 				false	
