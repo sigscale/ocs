@@ -155,9 +155,11 @@ handle_error(_Reason, _Request, _ServiceName, _Peer) ->
 		Opt :: diameter:call_opt(),
 		PostF :: diameter:evaluable().
 %% @doc Invoked when a request messge is received from the peer. 
-handle_request(#diameter_packet{msg = Req, errors = []}, ServiceName, {_, Caps}) ->
-	request(ServiceName, Caps, Req);
-handle_request(#diameter_packet{errors = [{ResultCode, _} | _]}, ServiceName, {_, Caps}) ->
+handle_request(#diameter_packet{msg = Request, errors = []},
+		ServiceName, {_, Caps}) ->
+	request(ServiceName, Caps, Request);
+handle_request(#diameter_packet{msg = Request, errors = Errors},
+		ServiceName, {_, Caps}) ->
 	errors(ServiceName, Caps, Request, Errors).
 
 %%----------------------------------------------------------------------
@@ -200,8 +202,9 @@ request(_, _, _, []) ->
 -spec errors(ServiceName, Capabilities, Request, Errors) -> Action
 	when
 		ServiceName :: atom(),
-		Peer = peer(),
+		Capabilities :: capabilities(),
 		Request :: message(),
+		Errors :: [{0..4294967295, #diameter_avp{}}],
 		Action :: Reply | {relay, [Opt]} | discard
 			| {eval|eval_packet, Action, PostF},
 		Reply :: {reply, packet() | message()}
@@ -212,15 +215,15 @@ request(_, _, _, []) ->
 %% @doc Handle requests received in error.
 %% 	Log 5001 (unrecognized AVP) errors.
 %% @private
-handle_request(ServiceName, Capabilities, Request, [{5001, _} | _] = Errors) ->
-	handle_request1(ServiceName, Capabilities, Request, ResultCode, Errors) ->
-handle_request(ServiceName, Capabilities, Request, [ResultCode | _] = Errors) ->
+errors(ServiceName, Capabilities, _Request, [{5001, _} | _] = Errors) ->
+	errors1(ServiceName, Capabilities, 5001, Errors);
+errors(_ServiceName, _Capabilities, _Request, [{ResultCode, _} | _]) ->
 	{answer_message, ResultCode};
-handle_request(ServiceName, Capabilities, Request, [{ResultCode, _} | _] = Errors) ->
+errors(_ServiceName, _Capabilities, _Request, [ResultCode | _]) ->
 	{answer_message, ResultCode}.
 %% @hidden
-handle_request1(ServiceName, Capabilities, Request, ResultCode, Errors) ->
-	error_logger:error_report(["DIAMETER AVP unsupported"}.
+errors1(ServiceName, Capabilities, ResultCode, Errors) ->
+	error_logger:error_report(["DIAMETER AVP unsupported",
 			{service_name, ServiceName}, {capabilities, Capabilities},
 			{errors, Errors}]),
 	{answer_message, ResultCode}.
