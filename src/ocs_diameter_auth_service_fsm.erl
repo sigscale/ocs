@@ -283,6 +283,8 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %% @doc Returns options for a DIAMETER service
 %% @hidden
 service_options(Options) ->
+	{ok, Vsn} = application:get_key(vsn),
+	Version = list_to_integer([C || C <- Vsn, C /= $.]),
 	{ok, Hostname} = inet:gethostname(),
 	Options1 = case lists:keyfind('Origin-Realm', 1, Options) of
 		{_, _} ->
@@ -292,8 +294,9 @@ service_options(Options) ->
 			[{'Origin-Realm', Realm} | Options]
 	end,
 	Options1 ++  [{'Origin-Host', Hostname},
-	{'Vendor-Id', 10415},
+	{'Vendor-Id', 50386},
 	{'Product-Name', "SigScale AAA"},
+	{'Firmware-Revision', Version},
 	{'Auth-Application-Id',
 			[?BASE_APPLICATION_ID,
 			?NAS_APPLICATION_ID,

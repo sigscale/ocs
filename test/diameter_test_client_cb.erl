@@ -30,6 +30,7 @@
 -include_lib("../include/diameter_gen_nas_application_rfc7155.hrl").
 -include_lib("../include/diameter_gen_cc_application_rfc4006.hrl").
 -include_lib("../include/diameter_gen_eap_application_rfc4072.hrl").
+-include_lib("../include/diameter_gen_3gpp_ro_application.hrl").
 
 -record(state, {}).
 
@@ -182,8 +183,8 @@ generate_diameter_request(Record, OHost, DHost, ORealm, DRealm)
 	Record#diameter_nas_app_STR{'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Destination-Host' = [DHost], 'Destination-Realm' = DRealm};
 generate_diameter_request(Record, OHost, _DHost, ORealm, DRealm) 
-		when is_record(Record, 3gpp_ro_CCR) ->
-	Record#3gpp_ro_CCR{'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+		when is_record(Record, '3gpp_ro_CCR') ->
+	Record#'3gpp_ro_CCR'{'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Destination-Realm' = DRealm};
 generate_diameter_request(Record, OHost, _DHost, ORealm, _DRealm) 
 		when is_record(Record, diameter_base_ASA) ->

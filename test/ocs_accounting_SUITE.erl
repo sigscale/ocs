@@ -36,6 +36,9 @@
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include_lib("../include/diameter_gen_nas_application_rfc7155.hrl").
 -include_lib("../include/diameter_gen_cc_application_rfc4006.hrl").
+-include_lib("../include/diameter_gen_3gpp_ro_application.hrl").
+-include_lib("../include/diameter_gen_3gpp.hrl").
+-include_lib("../include/diameter_gen_ietf.hrl").
 
 -define(SVC_AUTH, diameter_client_auth_service).
 -define(SVC_ACCT, diameter_client_acct_service).
@@ -373,10 +376,10 @@ diameter_accounting(Config) ->
 	OriginRealm = list_to_binary("sigscale.com"),
 	RequestNum = 0,
 	Answer0 = diameter_accounting_start(SId, Username, RequestNum),
-	true = is_record(Answer0, 3gpp_ro_CCA),
-	#3gpp_ro_CCA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+	true = is_record(Answer0, '3gpp_ro_CCA'),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
-			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
 			'CC-Request-Number' = RequestNum,
 			'Multiple-Services-Credit-Control' = [MultiServices_CC]} = Answer0,
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
@@ -384,10 +387,10 @@ diameter_accounting(Config) ->
 	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [TotalOctets]} = GrantedUnits,
 	NewRequestNum = RequestNum + 1,
 	Answer1 = diameter_accounting_stop(SId, Username, NewRequestNum, TotalOctets),
-	true = is_record(Answer1, 3gpp_ro_CCA),
-	#3gpp_ro_CCA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+	true = is_record(Answer1, '3gpp_ro_CCA'),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
-			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_TERMINATION_REQUEST',
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
 			'CC-Request-Number' = NewRequestNum} = Answer1.
 
 diameter_disconnect_session() ->
@@ -403,10 +406,10 @@ diameter_disconnect_session(Config) ->
 	OriginRealm = list_to_binary("sigscale.com"),
 	RequestNum0 = 0,
 	Answer0 = diameter_accounting_start(SId, Username, RequestNum0),
-	true = is_record(Answer0, 3gpp_ro_CCA),
-	#3gpp_ro_CCA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+	true = is_record(Answer0, '3gpp_ro_CCA'),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
-			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
 			'CC-Request-Number' = RequestNum0,
 			'Multiple-Services-Credit-Control' = [MultiServices_CC0]} = Answer0,
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
@@ -415,9 +418,9 @@ diameter_disconnect_session(Config) ->
 	Usage0 = trunc(InitBalance/10),
 	RequestNum1 = RequestNum0 + 1,
 	Answer1 = diameter_accounting_interim(SId, Username, RequestNum1, Usage0),
-	#3gpp_ro_CCA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
-			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_UPDATE_REQUEST',
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
 			'CC-Request-Number' = RequestNum1,
 			'Multiple-Services-Credit-Control' = [MultiServices_CC1]} = Answer1,
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
@@ -426,9 +429,9 @@ diameter_disconnect_session(Config) ->
 	Usage2 = trunc(Balance1/10),
 	RequestNum2 = RequestNum1 + 1,
 	Answer2 = diameter_accounting_interim(SId, Username, RequestNum2, Usage2),
-	#3gpp_ro_CCA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
-			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_UPDATE_REQUEST',
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
 			'CC-Request-Number' = RequestNum2,
 			'Multiple-Services-Credit-Control' = [MultiServices_CC2]} = Answer2,
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
@@ -437,9 +440,9 @@ diameter_disconnect_session(Config) ->
 	Usage3 = OrigBalance,
 	RequestNum3 = RequestNum2 + 1,
 	Answer3 = diameter_accounting_interim(SId, Username, RequestNum3, Usage3),
-	#3gpp_ro_CCA{'Result-Code' = ?'3GPP_RO_RESULT-CODE_CREDIT_LIMIT_REACHED',
+	#'3gpp_ro_CCA'{'Result-Code' = ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
-			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_UPDATE_REQUEST',
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
 			'CC-Request-Number' = RequestNum3} = Answer3.
 
 %%---------------------------------------------------------------------
@@ -584,17 +587,17 @@ transport_opts1({Trans, LocalAddr, RemAddr, RemPort}) ->
 %% @hidden
 diameter_accounting_start(SId, Username, RequestNum) ->
 	Subscription_Id = #'3gpp_ro_Subscription-Id'{
-			'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
 			'Subscription-Id-Data' = Username},
 	RequestedUnits = #'3gpp_ro_Requested-Service-Unit' {
 			'CC-Total-Octets' = [10000000]},
 	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Requested-Service-Unit' = [RequestedUnits]}, 
-	CC_CCR = #3gpp_ro_CCR{'Session-Id' = SId,
+	CC_CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'Service-Context-Id' = "nas45@testdomain.com" ,
 			'User-Name' = [Username],
-			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
 			'CC-Request-Number' = RequestNum,
 			'Subscription-Id' = [Subscription_Id],
 			'Multiple-Services-Credit-Control' = [MultiServices_CC]},
@@ -604,7 +607,7 @@ diameter_accounting_start(SId, Username, RequestNum) ->
 %% @hidden
 diameter_accounting_stop(SId, Username, RequestNum, Usage) ->
 	Subscription_Id = #'3gpp_ro_Subscription-Id'{
-			'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
 			'Subscription-Id-Data' = Username},
 	RequestedUnits = #'3gpp_ro_Requested-Service-Unit' {
 			'CC-Total-Octets' = [100000000]},
@@ -612,11 +615,11 @@ diameter_accounting_stop(SId, Username, RequestNum, Usage) ->
 	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Used-Service-Unit' = [UsedUnits],
 			'Requested-Service-Unit' = [RequestedUnits]}, 
-	CC_CCR = #3gpp_ro_CCR{'Session-Id' = SId,
+	CC_CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'Service-Context-Id' = "nas45@testdomain.com" ,
 			'User-Name' = [Username],
-			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_TERMINATION_REQUEST',
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
 			'CC-Request-Number' = RequestNum,
 			'Multiple-Services-Credit-Control' = [MultiServices_CC],
 			'Subscription-Id' = [Subscription_Id]},
@@ -626,7 +629,7 @@ diameter_accounting_stop(SId, Username, RequestNum, Usage) ->
 %% @hidden
 diameter_accounting_interim(SId, Username, RequestNum, Usage) ->
 	Subscription_Id = #'3gpp_ro_Subscription-Id'{
-			'Subscription-Id-Type' = ?'3GPP_RO_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
 			'Subscription-Id-Data' = Username},
 	UsedUnits = #'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [Usage]},
 	RequestedUnits = #'3gpp_ro_Requested-Service-Unit' {
@@ -634,11 +637,11 @@ diameter_accounting_interim(SId, Username, RequestNum, Usage) ->
 	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Used-Service-Unit' = [UsedUnits],
 			'Requested-Service-Unit' = [RequestedUnits]}, 
-	CC_CCR = #3gpp_ro_CCR{'Session-Id' = SId,
+	CC_CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'Service-Context-Id' = "nas45@testdomain.com" ,
 			'User-Name' = [Username],
-			'CC-Request-Type' = ?'3GPP_RO_CC-REQUEST-TYPE_UPDATE_REQUEST',
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
 			'CC-Request-Number' = RequestNum,
 			'Multiple-Services-Credit-Control' = [MultiServices_CC],
 			'Subscription-Id' = [Subscription_Id]},
