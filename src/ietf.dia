@@ -60,19 +60,19 @@
       { Unit-Value }
       [ Currency-Code ]
 
-   Cost-Information ::= < AVP Header: 423 >
+   Cost-Information ::= <AVP Header: 423>
       { Unit-Value }
       { Currency-Code }
       [ Cost-Unit ]
 
-   Final-Unit-Indication ::= < AVP Header: 430 >
+   Final-Unit-Indication ::= <AVP Header: 430>
       { Final-Unit-Action }
      *[ Restriction-Filter-Rule ]
      *[ Filter-Id ]
       [ Redirect-Server ]
 
    ;; overidden in 3gpp_ro.dia
-   Granted-Service-Unit ::= < AVP Header: 431 >
+   Granted-Service-Unit ::= <AVP Header: 431>
       [ Tariff-Time-Change ]
       [ CC-Time ]
       [ CC-Money ]
@@ -83,7 +83,7 @@
      *[ AVP ]
 
    ;; overidden in 3gpp_ro.dia
-   Multiple-Services-Credit-Control ::= < AVP Header: 456 >
+   Multiple-Services-Credit-Control ::= <AVP Header: 456>
       [ Granted-Service-Unit ]
       [ Requested-Service-Unit ]
      *[ Used-Service-Unit ]
@@ -96,17 +96,17 @@
       [ Final-Unit-Indication ]
      *[ AVP ]
 
-   G-S-U-Pool-Reference ::= < AVP Header: 457 >
+   G-S-U-Pool-Reference ::= <AVP Header: 457>
       { G-S-U-Pool-Identifier }
       { CC-Unit-Type }
       { Unit-Value }
 
-   Redirect-Server ::= < AVP Header: 434 >
+   Redirect-Server ::= <AVP Header: 434>
       { Redirect-Address-Type }
       { Redirect-Server-Address }
 
    ;; overidden in 3gpp_ro.dia
-   Requested-Service-Unit ::= < AVP Header: 437 >
+   Requested-Service-Unit ::= <AVP Header: 437>
       [ CC-Time ]
       [ CC-Money ]
       [ CC-Total-Octets ]
@@ -115,16 +115,16 @@
       [ CC-Service-Specific-Units ]
      *[ AVP ]
 
-   Subscription-Id ::= < AVP Header: 443 >
+   Subscription-Id ::= <AVP Header: 443>
       { Subscription-Id-Type }
       { Subscription-Id-Data }
 
-   Unit-Value ::= < AVP Header: 445 >
+   Unit-Value ::= <AVP Header: 445>
       { Value-Digits }
       [ Exponent ]
 
    ;; overidden in 3gpp_ro.dia
-   Used-Service-Unit ::= < AVP Header: 446 >
+   Used-Service-Unit ::= <AVP Header: 446>
       [ Tariff-Change-Usage ]
       [ CC-Time ]
       [ CC-Money ]
@@ -134,7 +134,7 @@
       [ CC-Service-Specific-Units ]
      *[ AVP ]
 
-   User-Equipment-Info ::= < AVP Header: 458 >
+   User-Equipment-Info ::= <AVP Header: 458>
       { User-Equipment-Info-Type }
       { User-Equipment-Info-Value }
 
@@ -210,4 +210,28 @@
    CREDIT_LIMIT_REACHED          4012
    USER_UNKNOWN                  5030
    RATING_FAILED                 5031
+
+@enum Termination-Cause
+   USER_REQUEST                     11
+   LOST_CARRIER                     12
+   LOST_SERVICE                     13
+   IDLE_TIMEOUT                     14
+   SESSION_TIMEOUT                  15
+   ADMIN_RESET                      16
+   ADMIN_REBOOT                     17
+   PORT_ERROR                       18
+   NAS_ERROR                        19
+   NAS_REQUEST                      20
+   NAS_REBOOT                       21
+   PORT_UNNEEDED                    22
+   PORT_PREEMPTED                   23
+   PORT_SUSPENDED                   24
+   SERVICE_UNAVAILABLE              25
+   CALLBACK                         26
+   USER_ERROR                       27
+   HOST_REQUEST                     28
+   SUPPLICANT_RESTART               29
+   REAUTHENTICATION_FAILURE         30
+   PORT_REINITIALIZED               31
+   PORT_ADMINISTRATIVELY_DISABLED   32
 
