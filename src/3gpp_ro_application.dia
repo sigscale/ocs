@@ -201,3 +201,27 @@
       [ CC-Service-Specific-Units ]
      *[ Event-Charging-TimeStamp ]
 
+@enum Termination-Cause
+   USER_REQUEST                     11
+   LOST_CARRIER                     12
+   LOST_SERVICE                     13
+   IDLE_TIMEOUT                     14
+   SESSION_TIMEOUT                  15
+   ADMIN_RESET                      16
+   ADMIN_REBOOT                     17
+   PORT_ERROR                       18
+   NAS_ERROR                        19
+   NAS_REQUEST                      20
+   NAS_REBOOT                       21
+   PORT_UNNEEDED                    22
+   PORT_PREEMPTED                   23
+   PORT_SUSPENDED                   24
+   SERVICE_UNAVAILABLE              25
+   CALLBACK                         26
+   USER_ERROR                       27
+   HOST_REQUEST                     28
+   SUPPLICANT_RESTART               29
+   REAUTHENTICATION_FAILURE         30
+   PORT_REINITIALIZED               31
+   PORT_ADMINISTRATIVELY_DISABLED   32
+
