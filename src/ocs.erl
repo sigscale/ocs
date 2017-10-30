@@ -176,7 +176,7 @@ update_client(Address, Port, Protocol) when is_list(Address) ->
 	update_client(AddressTuple, Port, Protocol);
 update_client(Address, Port, Protocol) when is_tuple(Address),
 		(((Protocol == radius) and is_integer(Port))
-		or ((Protocol == diamter) and (Port == undefined))) ->
+		or ((Protocol == diameter) and (Port == undefined))) ->
 	F = fun() ->
 				case mnesia:read(client, Address, write) of
 					[Entry] ->
