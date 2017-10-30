@@ -204,7 +204,7 @@
    EUI64                            2
    MODIFIED_EUI64                   3
 
-@define Result-Code
+@enum Result-Code
    END_USER_SERVICE_DENIED       4010
    CREDIT_CONTROL_NOT_APPLICABLE 4011
    CREDIT_LIMIT_REACHED          4012
