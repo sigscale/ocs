@@ -240,12 +240,12 @@ diameter_log_acct_event(_Config) ->
 	ServerPort = 1813,
 	Server = {ServerAddress, ServerPort},
 	RequestType = start,
-	ok = ocs_log:acct_log(diameter, Server, RequestType, #3gpp_ro_CCR{}, #3gpp_ro_CCA{}),
+	ok = ocs_log:acct_log(diameter, Server, RequestType, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}),
 	End = erlang:system_time(?MILLISECOND),
 	Fany = fun({TS, _, P, N, S, RType, Req, Rsp})
 					when P == Protocol, TS >= Start, TS =< End, N == Node,
 					S == Server, RType == RequestType,
-					is_record(Req, 3gpp_ro_CCR), is_record(Req, 3gpp_ro_CCA) ->
+					is_record(Req, '3gpp_ro_CCR'), is_record(Req, '3gpp_ro_CCA') ->
 				true;
 			(_) ->
 				false	
