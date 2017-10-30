@@ -96,7 +96,7 @@ init_per_testcase(TestCase, Config) when TestCase == eap_identity_over_diameter;
 	{ok, [{auth, DiaAuthInstance}, _]} = application:get_env(ocs, diameter),
 	[{Address, Port, _}] = DiaAuthInstance,
 	Secret = "87dhcbwhc",
-	ok = ocs:add_client(Address, Port, diameter, Secret),
+	{ok, _} = ocs:add_client(Address, Port, diameter, Secret),
 	[{diameter_client, Address}] ++ Config;
 init_per_testcase(_TestCase, Config) ->
 	{ok, [{auth, RadAuthInstance}, {acct, _RadAcctInstance}]} = application:get_env(ocs, radius),

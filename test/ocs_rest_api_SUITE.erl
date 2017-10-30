@@ -767,7 +767,7 @@ get_client_id(Config) ->
 	ID = "10.2.53.19",
 	Identifier = "nas-01-23-45",
 	Secret = "ps5mhybc297m",
-	ok = ocs:add_client(ID, Secret),
+	{ok, _} = ocs:add_client(ID, Secret),
 	{ok, Address} = inet:parse_address(ID),
 	Fun = fun() ->
 				[C1] = mnesia:read(client, Address, write),
@@ -877,7 +877,7 @@ get_client_range(Config) ->
 				Address = {10, rand:uniform(255),
 						rand:uniform(255), rand:uniform(254)},
 				Secret = ocs:generate_password(),
-				ok = ocs:add_client(Address, Secret),
+				{ok, _} = ocs:add_client(Address, Secret),
 				F(F, N - 1)
 	end,
 	NumAdded = (PageSize * 2) + (PageSize div 2) + 17,
@@ -943,7 +943,7 @@ get_clients_filter() ->
 	[{userdata, [{doc,"Get clients with filters"}]}].
 
 get_clients_filter(Config) ->
-	ok = ocs:add_client("10.0.123.100", 3799, radius, "ziggyzaggy"),
+	{ok, _} = ocs:add_client("10.0.123.100", 3799, radius, "ziggyzaggy"),
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
 	RestUser = ct:get_config(rest_user),

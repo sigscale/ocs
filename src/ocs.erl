@@ -67,7 +67,8 @@ add_client(Address, Secret) ->
 		Port :: inet:port_number() | undefined,
 		Protocol :: atom(),
 		Secret :: string() | binary() | undefined,
-		Result :: ok.
+		Result :: {ok, LastModified},
+		LastModified :: tuple().
 %% @doc Create an entry in the client table.
 %%
 add_client(Address, Port, Protocol, Secret) when is_list(Secret) ->
@@ -80,14 +81,16 @@ add_client(Address, Port, radius, Secret) when is_tuple(Address),
 	F = fun() ->
 				TS = erlang:system_time(?MILLISECOND),
 				N = erlang:unique_integer([positive]),
+				LM = {TS, N},
 				R = #client{address = Address, port = Port,
 						protocol = radius, secret = Secret,
-						last_modified = {TS, N}},
-				mnesia:write(R)
+						last_modified = LM},
+				ok = mnesia:write(R),
+				LM
 	end,
 	case mnesia:transaction(F) of
-		{atomic, ok} ->
-			ok;
+		{atomic, LastModified} ->
+			{ok, LastModified};
 		{aborted, Reason} ->
 			exit(Reason)
 	end;
