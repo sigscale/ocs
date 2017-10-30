@@ -49,7 +49,7 @@ init(Args) ->
 %% @private
 %%
 fsm(StartMod, Args) ->
-	StartArgs = [StartMod, Args, [{debug, [trace]}]],
+	StartArgs = [StartMod, Args, []],
 	StartFunc = {gen_fsm, start_link, StartArgs},
 	{StartMod, StartFunc, transient, 4000, worker, [StartMod]}.
 
