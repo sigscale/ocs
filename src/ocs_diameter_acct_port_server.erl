@@ -241,8 +241,8 @@ request(Request, Caps,  _From, State) ->
 				Subscriber, OHost, DHost, ORealm, DRealm, State)
 	catch
 		_:_Reason ->
-			{Reply1, NewState1} = generate_diameter_error(Request, SId, undefined,
-					undefined, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
+			{Reply1, NewState1} = generate_diameter_error(SId,
+					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
 					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 			{reply, Reply1, NewState1}
 	end.
@@ -299,14 +299,12 @@ request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 			error_logger:warning_report(["diameter accounting subscriber not found",
 					{module, ?MODULE}, {subscriber, Subscriber},
 					{origin_host, OHost}]),
-			{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
-					0, ?'3GPP_RESULT-CODE_USER_UNKNOWN', OHost,
-					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
+			{Reply, NewState} = generate_diameter_error(SId, ?'3GPP_RESULT-CODE_USER_UNKNOWN',
+					OHost, ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 			{reply, Reply, NewState};
 		{error, _Reason} ->
-			{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
-					0, ?'3GPP_RESULT-CODE_RATING_FAILED', OHost,
-					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
+			{Reply, NewState} = generate_diameter_error(SId, ?'3GPP_RESULT-CODE_RATING_FAILED',
+					OHost, ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 			{reply, Reply, NewState}
 	end;
 request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
@@ -379,20 +377,18 @@ request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 				error_logger:warning_report(["diameter accounting subscriber not found",
 						{module, ?MODULE}, {subscriber, Subscriber},
 						{origin_host, OHost}]),
-				{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
-						0, ?'3GPP_RESULT-CODE_USER_UNKNOWN', OHost,
-						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
+				{Reply, NewState} = generate_diameter_error(SId, ?'3GPP_RESULT-CODE_USER_UNKNOWN',
+						OHost, ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{error, _Reason} ->
-				{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
-						0, ?'3GPP_RESULT-CODE_RATING_FAILED', OHost,
-						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
+				{Reply, NewState} = generate_diameter_error(SId, ?'3GPP_RESULT-CODE_RATING_FAILED',
+						OHost, ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState}
 		end
 	catch
 		_:_Reason1 ->
-			{Reply1, NewState0} = generate_diameter_error(Request, SId, Subscriber,
-					0, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
+			{Reply1, NewState0} = generate_diameter_error(SId,
+					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
 					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 			{reply, Reply1, NewState0}
 	end;
@@ -445,20 +441,18 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 				error_logger:warning_report(["diameter accounting subscriber not found",
 						{module, ?MODULE}, {subscriber, Subscriber},
 						{origin_host, OHost}]),
-				{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
-						0, ?'3GPP_RESULT-CODE_USER_UNKNOWN', OHost,
-						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
+				{Reply, NewState} = generate_diameter_error(SId, ?'3GPP_RESULT-CODE_USER_UNKNOWN',
+						OHost, ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{error, _Reason} ->
-				{Reply, NewState} = generate_diameter_error(Request, SId, Subscriber,
-						0, ?'3GPP_RESULT-CODE_RATING_FAILED', OHost,
-						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
+				{Reply, NewState} = generate_diameter_error(SId, ?'3GPP_RESULT-CODE_RATING_FAILED',
+						OHost, ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState}
 		end
 	catch
 		_:_Reason1 ->
-			{Reply1, NewState0} = generate_diameter_error(Request, SId, Subscriber,
-					0, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
+			{Reply1, NewState0} = generate_diameter_error(SId,
+					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
 					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 			{reply, Reply1, NewState0}
 	end.
@@ -497,25 +491,22 @@ generate_diameter_answer(Request, SId, _Subscriber, GrantedUnits, ResultCode, OH
 			accounting_event_type(RequestType), Request, Reply),
 	{Reply, State}.
 
--spec generate_diameter_error(Request, SessionId, Subscriber, Balance, ResultCode,
-		OriginHost, OriginRealm, AuthAppId, RequestType, RequestNum, State) -> Result
-			when
-				Request ::#'3gpp_ro_CCR'{},
-				SessionId :: string(),
-				Subscriber :: undefined | string() | binary(),
-				Balance :: undefined | integer(),
-				ResultCode :: integer(),
-				OriginHost :: string(),
-				OriginRealm :: string(),
-				AuthAppId :: integer(),
-				RequestType :: integer(),
-				RequestNum :: integer(),
-				State :: state(),
-				Result :: {Reply, State},
-				Reply :: #'3gpp_ro_CCA'{}.
+-spec generate_diameter_error(SessionId, ResultCode, OriginHost,
+		OriginRealm, AuthAppId, RequestType, RequestNum, State) -> Result
+	when
+		SessionId :: string(),
+		ResultCode :: integer(),
+		OriginHost :: string(),
+		OriginRealm :: string(),
+		AuthAppId :: integer(),
+		RequestType :: integer(),
+		RequestNum :: integer(),
+		State :: state(),
+		Result :: {Reply, State},
+		Reply :: #'3gpp_ro_CCA'{}.
 %% @doc Send CCA to DIAMETER client indicating an operation failure.
 %% @hidden
-generate_diameter_error(_Request, SId, _Subscriber, _Balance, ResultCode, OHost,
+generate_diameter_error(SId, ResultCode, OHost,
 		ORealm, AuthAppId, RequestType, RequestNum, State) ->
 	Reply = #'3gpp_ro_CCA'{'Session-Id' = SId, 'Result-Code' = ResultCode,
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
@@ -528,17 +519,10 @@ generate_diameter_error(_Request, SId, _Subscriber, _Balance, ResultCode, OHost,
 	RequestType :: 1..4,
 	EventType :: start | interim | stop | event.
 %% @doc Converts CC-Request-Type integer value to a readable atom.
-accounting_event_type(RequestType) ->
-	case RequestType of 
-		1 ->
-			start;
-		2 ->
-			interim;
-		3 ->
-			stop;
-		4 ->
-			event
-	end.
+accounting_event_type(1) -> start;
+accounting_event_type(2) -> interim;
+accounting_event_type(3) -> stop;
+accounting_event_type(4) -> event.
 
 %% @hidden
 %% @doc Start a disconnect_fsm to send DIAMETER Abort-Session-Request
