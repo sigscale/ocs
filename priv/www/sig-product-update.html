@@ -773,9 +773,9 @@
 							newAlt.period = item.prices[index].productOfferPriceAlteration.recurringChargePeriod;
 							this.push('alterations', newAlt);
 						}
-						newPrice.alteration = this.alterations.findIndex(checkAlt1);
-						this.push('prices', newPrice);
 					}
+					newPrice.alteration = this.alterations.findIndex(checkAlt1);
+					this.push('prices', newPrice);
 				} 
 			},
 			_updateProductStartDateOfferPick: function(date) {
@@ -992,38 +992,42 @@
                return price.name == document.getElementById("updatePriceName").value;
             }
 				var indexPrices = this.prices.findIndex(checkName);
+				function checkAltPricName(priceAlt) {
+               return priceAlt.name == document.getElementById("addUpdatePriceDrop").value;
+            }
+				var indexPriceAlt = this.alterations.findIndex(checkAltPricName);
 				if(this.$.updateOffName.value != this.prices[indexPrices].name) {
 					var priceName = new Object();
 					priceName.op = "add";
-					priceName.path = "/productOfferingPrice/0/name";
+					priceName.path = "/productOfferingPrice/" + indexPriceAlt + "/name";
 					priceName.value = this.$.updatePriceName.value;
 					updatePriceNew.push(priceName);
 				}
 				if(this.$.updatePriceDesc.value != this.prices[indexPrices].description) {
 					var priceDesc = new Object();
 					priceDesc.op = "add";
-					priceDesc.path = "/productOfferingPrice/0/description";
+					priceDesc.path = "/productOfferingPrice/" + indexPriceAlt + "/description";
 					priceDesc.value = this.$.updatePriceDesc.value;
 					updatePriceNew.push(priceDesc);
 				}
 				if(this.$.updatePricePerioddrop.value != this.prices[indexPrices].period) {
 					var pricePeriod = new Object();
 					pricePeriod.op = "add";
-					pricePeriod.path = "/productOfferingPrice/0/recurringChargePeriod";
+					pricePeriod.path = "/productOfferingPrice/" + indexPriceAlt + "/recurringChargePeriod";
 					pricePeriod.value = this.$.updatePricePerioddrop.value;
 					updatePriceNew.push(pricePeriod);
 				}
 				if(this.$.updatePriceTypedrop.value != this.prices[indexPrices].priceType) {
 					var pricetype = new Object();
 					pricetype.op = "add";
-					pricetype.path = "/productOfferingPrice/0/priceType";
+					pricetype.path = "/productOfferingPrice/" + indexPriceAlt + "/priceType";
 					pricetype.value = this.$.updatePriceTypedrop.value; 
 					updatePriceNew.push(pricetype);
 				}
 				if(this.$.updatePriceSize.value != this.prices[indexPrices].size) {
 					var priceSize = new Object();
 					priceSize.op = "add";
-					priceSize.path = "/productOfferingPrice/0/unitOfMeasure";
+					priceSize.path = "/productOfferingPrice/" + indexPriceAlt + "/unitOfMeasure";
 					priceSize.value = this.$.updatePriceSize.value;
 					updatePriceNew.push(priceSize);
 				}
@@ -1051,28 +1055,28 @@
 				if(this.$.updateAltName.value != this.alterations[indexAlter].name) {
 					var alterationName = new Object();
 					alterationName.op = "add";
-					alterationName.path = "/productOfferingPrice/0/productOfferPriceAlteration/name";
+					alterationName.path = "/productOfferingPrice/" + indexAlter + "/productOfferPriceAlteration/name";
 					alterationName.value = this.$.updateAltName.value;
 					updateAlterationNew.push(alterationName);
 				}
 				if(this.$.updateAltDesc.value != this.alterations[indexAlter].description) {
 					var alterationDesc = new Object();
 					alterationDesc.op = "add";
-					alterationDesc.path = "/productOfferingPrice/0/productOfferPriceAlteration/description";
+					alterationDesc.path = "/productOfferingPrice/" + indexAlter + "/productOfferPriceAlteration/description";
 					alterationDesc.value = this.$.updateAltDesc.value;
 					updateAlterationNew.push(alterationDesc);
 				}
 				if(this.$.updateAltTypedrop.value != this.alterations[indexAlter].priceType) {
 					var alterationType = new Object();
 					alterationType.op = "add";
-					alterationType.path = "/productOfferingPrice/0/productOfferPriceAlteration/priceType";
+					alterationType.path = "/productOfferingPrice/" + indexAlter + "/productOfferPriceAlteration/priceType";
 					alterationType.value = this.$.updateAltTypedrop.value; 
 					updateAlterationNew.push(alterationType);
 				}
 				if(this.$.updateAltSize.value != this.alterations[indexAlter].unitOfMeasure) {
 					var alterationSize = new Object();
 					alterationSize.op = "add";
-					alterationSize.path = "/productOfferingPrice/0/productOfferPriceAlteration/unitOfMeasure";
+					alterationSize.path = "/productOfferingPrice/" + indexAlter + "/productOfferPriceAlteration/unitOfMeasure";
 					alterationSize.value = this.$.updateAltSize.value;
 					updateAlterationNew.push(alterationSize);
 				}

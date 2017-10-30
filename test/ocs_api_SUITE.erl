@@ -32,6 +32,7 @@
 -include("ocs_eap_codec.hrl").
 -include("ocs.hrl").
 -include_lib("common_test/include/ct.hrl").
+-include_lib("inets/include/mod_auth.hrl").
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -93,7 +94,8 @@ sequences() ->
 all() -> 
 	[client, get_all_clients, update_client_password, delete_client,
 	subscriber, update_password, update_attributes, delete_subscriber,
-	add_product, find_product, get_products, delete_product].
+	add_product, find_product, get_products, delete_product, add_user,
+	get_user, delete_user].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -321,7 +323,61 @@ delete_product(_Config) ->
 	ok = ocs:delete_product(ProductName),
 	{error, not_found} = ocs:find_product(ProductName).
 
+add_user() ->
+	[{userdata, [{doc, "Create a new user"}]}].
+
+add_user(_Config) ->
+	User = "staff_billing",
+	Password = ocs:generate_password(),
+	Locale = "en",
+	{ok, {E1, E2}} = ocs:add_user(User, Password, Locale),
+	true = is_integer(E1),
+	true = is_integer(E2),
+	{Port, Address, Dir, _} = get_params(),
+	{ok, #httpd_user{username = User, password = Password,
+	user_data = UserData}} = mod_auth:get_user(User, Address, Port, Dir),
+	{_, Locale} = lists:keyfind(locale, 1, UserData),
+	{_, {E1, E2}} = lists:keyfind(last_modified, 1, UserData).
+
+get_user() ->
+	[{userdata, [{doc, "Look up a user from table"}]}].
+
+get_user(_Config) ->
+	User = "customer_care",
+	Password = ocs:generate_password(),
+	Locale = "en",
+	{ok, LastModified} = ocs:add_user(User, Password, Locale),
+	{ok, #httpd_user{username = User, password = Password,
+			user_data = UserData}} = ocs:get_user(User),
+	{_, Locale} = lists:keyfind(locale, 1, UserData),
+	{_, LastModified} = lists:keyfind(last_modified, 1, UserData).
+
+delete_user() ->
+	[{userdata, [{doc, "Remove user from table"}]}].
+
+delete_user(_Config) ->
+	User = "staff_3",
+	Password = ocs:generate_password(),
+	Locale = "en",
+	{ok, _} = ocs:add_user(User, Password, Locale),
+	{ok, _} = ocs:get_user(User),
+	ok = ocs:delete_user(User),
+	{error, not_found} = ocs:get_user(User).
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
 
+get_params() ->
+	{_, _, Info} = lists:keyfind(httpd, 1, inets:services_info()),
+	{_, Port} = lists:keyfind(port, 1, Info),
+	{_, Address} = lists:keyfind(bind_address, 1, Info),
+	{ok, EnvObj} = application:get_env(inets, services),
+	{httpd, HttpdObj} = lists:keyfind(httpd, 1, EnvObj),
+	{directory, {Directory, AuthObj}} = lists:keyfind(directory, 1, HttpdObj),
+	case lists:keyfind(require_group, 1, AuthObj) of
+		{require_group, [Group | _T]} ->
+			{Port, Address, Directory, Group};
+		false ->
+			exit(not_found)
+	end.

@@ -217,47 +217,31 @@ patch_user(ID, Etag, "application/json-patch+json", ReqBody) ->
 		{Etag1, mochijson:decode(ReqBody)}
 	of
 		{Etag2, Operations} ->
-			{Port, Address, Directory, _Group} = get_params(),
-			Username = {ID, Address, Port, Directory},
-			F = fun() ->
-					case mnesia:read(httpd_user, Username, write) of
-						[#httpd_user{user_data = UserData1} = User1] ->
-							case lists:keyfind(last_modified, 1, UserData1) of
-								{_, Etag3} when Etag3 == Etag2; Etag3 == undefined ->
-									case catch ocs_rest:patch(Operations, user(User1)) of
-										#httpd_user{user_data = UserData2} = User2 ->
-											TS = erlang:system_time(?MILLISECOND),
-											N = erlang:unique_integer([positive]),
-											UserData3 = [{etag, {TS, N}} | UserData2],
-											User3 = User2#httpd_user{user_data = UserData3},
-											ok = mnesia:write(User3),
-											User3;
-										_Reason ->
-											throw(bad_request)
+			case ocs:get_user(ID) of
+				{ok, #httpd_user{user_data = UserData1} = User1} ->
+					case lists:keyfind(last_modified, 1, UserData1) of
+						{_, Etag3} when Etag3 == Etag2; Etag2 == undefined; Etag3 == undefined ->
+							case catch ocs_rest:patch(Operations, user(User1)) of
+								{struct, _} = Result ->
+									#httpd_user{user_data = UserData2,
+										password = Password} = user(Result),
+									{_, Language} = lists:keyfind(locale, 1, UserData2),
+									case catch ocs:update_user(ID, Password, Language) of
+										{ok, Etag4} ->
+											Location = "/partyManagement/v1/individual/" ++ ID,
+											Headers = [{location, Location}, {etag, ocs_rest:etag(Etag4)}],
+											{ok, Headers, []};
+										{error, _} ->
+											{error, 500}
 									end;
 								_ ->
-									throw(precondition_failed)
+									{error, 400}
 							end;
-						[] ->
-							throw(not_found)
-					end
-			end,
-			case mnesia:transaction(F) of
-				{atomic, #httpd_user{user_data = UserData4}} ->
-					case lists:keyfind(etag, 1, UserData4) of
-						{error, _} ->
-							{error, 500};
-						{_, Etag4} ->
-							Location = "/partyManagement/v1/individual/" ++ ID,
-							Headers = [{location, Location}, {etag, ocs_rest:etag(Etag4)}],
-							{ok, Headers, []}
+						_ ->
+							{error, 412}
 					end;
-				{aborted, {throw, bad_request}} ->
-					{error, 400};
-				{aborted, {throw, not_found}} ->
-					{error, 404};
-				{aborted, {throw, precondition_failed}} ->
-					{error, 412}
+				{error, _Reason} ->
+					{error, 400}
 			end
 	catch
 		_:_ ->
@@ -273,7 +257,7 @@ patch_user(ID, Etag, "application/json-patch+json", ReqBody) ->
 %% a `subscriber' resource. If the deletion is succeeded return true.
 delete_user(Id) ->
 	case ocs:delete_user(Id) of
-		true ->
+		ok ->
 			{ok, [], []};
 		{error, _Reason} ->
 			{error, 400}
