@@ -533,8 +533,7 @@ generate_diameter_error(SId, ResultCode, OHost,
 %% @doc Converts CC-Request-Type integer value to a readable atom.
 accounting_event_type(1) -> start;
 accounting_event_type(2) -> interim;
-accounting_event_type(3) -> stop;
-accounting_event_type(4) -> event.
+accounting_event_type(3) -> stop.
 
 %% @hidden
 %% @doc Start a disconnect_fsm to send DIAMETER Abort-Session-Request
