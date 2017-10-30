@@ -485,7 +485,7 @@
   },
 	"prod": {
     "description": "Balance types",
-    "message": "Product"
+    "message": "Products"
   },
 	"add": {
     "description": "Balance add",
