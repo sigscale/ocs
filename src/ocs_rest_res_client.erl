@@ -192,7 +192,7 @@ get_client1(Address, Filters) ->
 			{error, 404}
 	end.
 
--spec post_client(RequestBody) -> Result 
+-spec post_client(RequestBody) -> Result
 	when
 		RequestBody :: list(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
@@ -200,42 +200,16 @@ get_client1(Address, Filters) ->
 %% @doc Respond to `POST /ocs/v1/client' and add a new `client'
 %% resource.
 post_client(RequestBody) ->
-	try 
-		{struct, Object} = mochijson:decode(RequestBody),
-		{_, Id} = lists:keyfind("id", 1, Object),
-		Ip = case inet:parse_address(Id) of
-			{ok, IPAddress} ->
-				IPAddress;
-			{error, einval} ->
-				throw(400)
-		end,
-		Port = proplists:get_value("port", Object, undefined),
-		Protocol = case proplists:get_value("protocol", Object, "radius") of
-			RADIUS when RADIUS =:= "radius"; RADIUS =:= "RADIUS" ->
-				radius;
-			DIAMETER when DIAMETER =:= "diameter"; DIAMETER =:= "DIAMETER" ->
-				diameter
-		end,
-		Secret = case Protocol of
-			radius ->
-				proplists:get_value("secret", Object, ocs:generate_password());
-			diameter ->
-				undefined
-		end,
-		ok = ocs:add_client(Ip, Port, Protocol, Secret),
-		{ok, #client{last_modified = LM}} = ocs:find_client(Ip),
+	try
+		Client = client(mochijson:decode(RequestBody)),
+		#client{address = Address, port = Port, protocol = Protocol,
+				secret = Secret} = Client,
+		{ok, Etag} = ocs:add_client(Address, Port, Protocol, Secret),
+		Id = inet:ntoa(Address),
 		Location = "/ocs/v1/client/" ++ Id,
-		RespObj1 = [{"id", Id}, {"href", Location},
-				{"protocol", string:to_upper(atom_to_list(Protocol))}],
-		RespObj2 = case Protocol of
-			radius ->
-				RespObj1 ++ [{"port", Port}, {"secret", Secret}];
-			diameter ->
-				RespObj1
-		end,
-		JsonObj  = {struct, RespObj2},
+		JsonObj  = client(Client),
 		Body = mochijson:encode(JsonObj),
-		Headers = [{location, Location}, {etag, ocs_rest:etag(LM)}],
+		Headers = [{location, Location}, {etag, ocs_rest:etag(Etag)}],
 		{ok, Headers, Body}
 	catch
 		_Error ->
