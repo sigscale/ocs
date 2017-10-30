@@ -95,7 +95,7 @@ all() ->
 	[client, get_all_clients, update_client_password, delete_client,
 	subscriber, update_password, update_attributes, delete_subscriber,
 	add_product, find_product, get_products, delete_product, add_user,
-	get_user].
+	get_user, delete_user].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -351,6 +351,18 @@ get_user(_Config) ->
 			user_data = UserData}} = ocs:get_user(User),
 	{_, Locale} = lists:keyfind(locale, 1, UserData),
 	{_, LastModified} = lists:keyfind(last_modified, 1, UserData).
+
+delete_user() ->
+	[{userdata, [{doc, "Remove user from table"}]}].
+
+delete_user(_Config) ->
+	User = "staff_3",
+	Password = ocs:generate_password(),
+	Locale = "en",
+	{ok, _} = ocs:add_user(User, Password, Locale),
+	{ok, _} = ocs:get_user(User),
+	ok = ocs:delete_user(User),
+	{error, not_found} = ocs:get_user(User).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
