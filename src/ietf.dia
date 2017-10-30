@@ -1,0 +1,140 @@
+
+@name   diameter_gen_ietf
+@prefix ietf
+@vendor 0 IETF
+@inherits diameter_gen_base_rfc6733
+
+@avp_types
+   ;; RFC4006 DIAMETER Credit Control Application (DCCA)
+   Called-Station-Id                                        30  UTF8String       M
+   CC-Correlation-Id                                       411  OctetString      -
+   CC-Input-Octets                                         412  Unsigned64       M
+   CC-Money                                                413  Grouped          -
+   CC-Output-Octets                                        414  Unsigned64       M
+   CC-Request-Number                                       415  Unsigned32       M
+   CC-Request-Type                                         416  Enumerated       M
+   CC-Service-Specific-Units                               417  Unsigned64       M
+   CC-Session-Failover                                     418  Enumerated       M
+   CC-Time                                                 420  Unsigned32       M
+   CC-Total-Octets                                         421  Unsigned64       M
+   CC-Unit-Type                                            454  Enumerated       M
+   Cost-Information                                        423  Grouped          M
+   Cost-Unit                                               424  UTF8String       M
+   Credit-Control-Failure-Handling                         427  Enumerated       M
+   Currency-Code                                           425  Unsigned32       M
+   Direct-Debiting-Failure-Handling                        428  Enumerated       M
+   Exponent                                                429  Integer32        M
+   Filter-Id                                                11  UTF8String       M
+   Final-Unit-Action                                       449  Enumerated       M
+   Final-Unit-Indication                                   430  Grouped          M
+   Granted-Service-Unit                                    431  Grouped          M
+   G-S-U-Pool-Identifier                                   453  Unsigned32       M
+   G-S-U-Pool-Reference                                    457  Grouped          M
+   Multiple-Services-Credit-Control                        456  Grouped          M
+   Multiple-Services-Indicator                             455  Enumerated       M
+   Rating-Group                                            432  Unsigned32       M
+   Redirect-Address-Type                                   433  Enumerated       M
+   Redirect-Server                                         434  Grouped          M
+   Redirect-Server-Address                                 435  UTF8String       M
+   Requested-Action                                        436  Enumerated       M
+   Requested-Service-Unit                                  437  Grouped          M
+   Restriction-Filter-Rule                                 438  OctetString      M
+   Service-Context-Id                                      461  UTF8String       M
+   Service-Identifier                                      439  Unsigned32       M
+   Subscription-Id                                         443  Grouped          M
+   Subscription-Id-Data                                    444  UTF8String       M
+   Subscription-Id-Type                                    450  Enumerated       M
+   Tariff-Change-Usage                                     452  Enumerated       M
+   Tariff-Time-Change                                      451  Time             M
+   Unit-Value                                              445  Grouped          M
+   Used-Service-Unit                                       446  Grouped          M
+   User-Equipment-Info                                     458  Grouped          -
+   User-Equipment-Info-Type                                459  Enumerated       -
+   User-Equipment-Info-Value                               460  OctetString      -
+   Value-Digits                                            447  Integer64        M
+   Validity-Time                                           448  Unsigned32       M
+
+@grouped
+
+   CC-Money ::= <AVP Header: 413>
+      { Unit-Value }
+      [ Currency-Code ]
+
+   Cost-Information ::= < AVP Header: 423 >
+      { Unit-Value }
+      { Currency-Code }
+      [ Cost-Unit ]
+
+   Final-Unit-Indication ::= < AVP Header: 430 >
+      { Final-Unit-Action }
+     *[ Restriction-Filter-Rule ]
+     *[ Filter-Id ]
+      [ Redirect-Server ]
+
+   ;; overidden in 3gpp_ro.dia
+   Granted-Service-Unit ::= < AVP Header: 431 >
+      [ Tariff-Time-Change ]
+      [ CC-Time ]
+      [ CC-Money ]
+      [ CC-Total-Octets ]
+      [ CC-Input-Octets ]
+      [ CC-Output-Octets ]
+      [ CC-Service-Specific-Units ]
+     *[ AVP ]
+
+   ;; overidden in 3gpp_ro.dia
+   Multiple-Services-Credit-Control ::= < AVP Header: 456 >
+      [ Granted-Service-Unit ]
+      [ Requested-Service-Unit ]
+     *[ Used-Service-Unit ]
+      [ Tariff-Change-Usage ]
+     *[ Service-Identifier ]
+      [ Rating-Group ]
+     *[ G-S-U-Pool-Reference ]
+      [ Validity-Time ]
+      [ Result-Code ]
+      [ Final-Unit-Indication ]
+     *[ AVP ]
+
+   G-S-U-Pool-Reference ::= < AVP Header: 457 >
+      { G-S-U-Pool-Identifier }
+      { CC-Unit-Type }
+      { Unit-Value }
+
+   Redirect-Server ::= < AVP Header: 434 >
+      { Redirect-Address-Type }
+      { Redirect-Server-Address }
+
+   ;; overidden in 3gpp_ro.dia
+   Requested-Service-Unit ::= < AVP Header: 437 >
+      [ CC-Time ]
+      [ CC-Money ]
+      [ CC-Total-Octets ]
+      [ CC-Input-Octets ]
+      [ CC-Output-Octets ]
+      [ CC-Service-Specific-Units ]
+     *[ AVP ]
+
+   Subscription-Id ::= < AVP Header: 443 >
+      { Subscription-Id-Type }
+      { Subscription-Id-Data }
+
+   Unit-Value ::= < AVP Header: 445 >
+      { Value-Digits }
+      [ Exponent ]
+
+   ;; overidden in 3gpp_ro.dia
+   Used-Service-Unit ::= < AVP Header: 446 >
+      [ Tariff-Change-Usage ]
+      [ CC-Time ]
+      [ CC-Money ]
+      [ CC-Total-Octets ]
+      [ CC-Input-Octets ]
+      [ CC-Output-Octets ]
+      [ CC-Service-Specific-Units ]
+     *[ AVP ]
+
+   User-Equipment-Info ::= < AVP Header: 458 >
+      { User-Equipment-Info-Type }
+      { User-Equipment-Info-Value }
+
