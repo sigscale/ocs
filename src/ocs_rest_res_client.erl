@@ -487,3 +487,42 @@ client_json(#client{address = Addr, identifier = Id,
 	end,
 	{struct, Obj5}.
 
+-spec client(Client) -> Result
+	when
+		Client :: #client{} | {struct, list()},
+		Result :: {struct, list()} | #client{}.
+%% @private
+%% Codec function for client
+client(#client{address = Address, secret = Secret,
+		port = Port, protocol = Protocol}) ->
+	Protocol1 = case Protocol of
+		radius ->
+			"RADIUS";
+		diameter ->
+			"DIAMETER"
+	end,
+	Id = inet:ntoa(Address),
+	{struct, [{"id", Id}, {"href","/ocs/v1/client/" ++ Id},
+		{secret, list_to_binary(Secret)}, {port, Port},
+		{protocol, Protocol1}]};
+client({struct, L}) when is_list(L) ->
+	client(L, #client{}).
+%% @hidden
+client([{"id", Id} | T], Acc) ->
+	{ok, Address} = inet_parse:address(Id),
+	client(T, Acc#client{address = Address});
+client([{"href", _} | T], Acc) ->
+	client(T, Acc);
+client([{"port", Port} | T], Acc) ->
+	client(T, Acc#client{port = Port});
+client([{"protocol", "radius"} | T], Acc) ->
+	client(T, Acc#client{protocol = radius});
+client([{"protocol", "RADIUS"} | T], Acc) ->
+	client(T, Acc#client{protocol = radius});
+client([{"protocol", "diameter"} | T], Acc) ->
+	client(T, Acc#client{protocol = diameter});
+client([{"protocol", "DIAMETER"} | T], Acc) ->
+	client(T, Acc#client{protocol = diameter});
+client([{"secret", Secret} | T], Acc) ->
+	client(T, Acc#client{protocol = list_to_binary(Secret)}).
+
