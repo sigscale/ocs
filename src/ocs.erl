@@ -959,14 +959,23 @@ get_user(Username) ->
 -spec delete_user(Username) -> Result
 	when
 		Username :: string(),
-		Result :: true | {error, Reason},
+		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Delete an existing HTTP user.
 delete_user(Username) ->
 	{Port, Address, Dir, GroupName} = get_params(),
 	case mod_auth:delete_user(Username, Address, Port, Dir) of
 		true ->
-			mod_auth:delete_group_member(GroupName, Username, Address, Port, Dir);
+			delete_user1(GroupName, Username, Address, Port, Dir);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+delete_user1(GroupName, Username, Address, Port, Dir) ->
+	case mod_auth:delete_group_member(GroupName,
+			Username, Address, Port, Dir) of
+		true ->
+			ok;
 		{error, Reason} ->
 			{error, Reason}
 	end.
@@ -986,7 +995,7 @@ update_user(Username, Password, Language) ->
 			{error, Reason};
 		{ok, #httpd_user{}} ->
 			case delete_user(Username) of
-				true ->
+				ok ->
 					case add_user(Username, Password, Language) of
 						{ok, LM} ->
 							{ok, LM};

@@ -257,7 +257,7 @@ patch_user(ID, Etag, "application/json-patch+json", ReqBody) ->
 %% a `subscriber' resource. If the deletion is succeeded return true.
 delete_user(Id) ->
 	case ocs:delete_user(Id) of
-		true ->
+		ok ->
 			{ok, [], []};
 		{error, _Reason} ->
 			{error, 400}
