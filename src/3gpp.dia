@@ -8,522 +8,523 @@
 @avp_types
 
    ;; 3GPP TS 29.299 Table 7.2.0.1: 3GPP Specific AVPs
-   3GPP-Charging-Characteristics                            13  UTF8String       V
-   3GPP-Charging-Id                                          2  OctetString      V
-   3GPP-GGSN-MCC-MNC                                         9  UTF8String       V
-   3GPP-IMSI                                                 1  UTF8String       V
-   3GPP-IMSI-MCC-MNC                                         8  UTF8String       V
-   3GPP-MS-TimeZone                                         23  OctetString      V
-   3GPP-NSAPI                                               10  OctetString      V
-   3GPP-PDP-Type                                             3  Enumerated       V
-   3GPP-PS-Data-Off-Status                                4406  Enumerated       V
-   3GPP-RAT-Type                                            21  OctetString      V
-   3GPP-Selection-Mode                                      12  UTF8String       V
-;  3GPP-Session-Stop-Indicator                              11
-   3GPP-SGSN-MCC-MNC                                        18  UTF8String       V
-   3GPP-User-Location-Info                                  22  OctetString      V
-;  Access-Availability-Change-Reason                      2833  Grouped          V
-   Access-Network-Charging-Identifier-Value                503  OctetString      V
-   Access-Network-Info-Change                             4401  Grouped          V
-   Access-Network-Information                             1263  OctetString      V
-   Access-Transfer-Information                            2709  Grouped          V
-   Access-Transfer-Type                                   2710  Enumerated       V
-   Account-Expiration                                     2309  Time             V
-;  Accumulated-Cost                                       2052  Grouped          V
+   3GPP-PS-Data-Off-Status                                4406  Enumerated       VM
+;  Access-Availability-Change-Reason                      2833  Grouped          VM
+   Access-Network-Charging-Identifier-Value                503  OctetString      VM
+   Access-Network-Info-Change                             4401  Grouped          VM
+   Access-Network-Information                             1263  OctetString      VM
+   Access-Transfer-Information                            2709  Grouped          VM
+   Access-Transfer-Type                                   2710  Enumerated       VM
+   Account-Expiration                                     2309  Time             VM
+;  Accumulated-Cost                                       2052  Grouped          VM
 ;  Accuracy                                               3137
-;  Adaptations                                            1217  Enumerated       V
+;  Adaptations                                            1217  Enumerated       VM
 ;  ADC-Rule-Base-Name                                     1095
-;  Additional-Content-Information                         1207  Grouped          V
-;  Additional-Exception-Reports                           3936  Enumerated       V
-   Additional-Type-Information                            1205  UTF8String       V
-   Address-Data                                            897  UTF8String       V
-   Address-Domain                                          898  Grouped          V
-   Addressee-Type                                         1208  Enumerated       V
-   Address-Type                                            899  Enumerated       V
+;  Additional-Content-Information                         1207  Grouped          VM
+;  Additional-Exception-Reports                           3936  Enumerated       VM
+   Additional-Type-Information                            1205  UTF8String       VM
+   Address-Data                                            897  UTF8String       VM
+   Address-Domain                                          898  Grouped          VM
+   Addressee-Type                                         1208  Enumerated       VM
+   Address-Type                                            899  Enumerated       VM
    AF-Charging-Identifier                                  505  OctetString      VM
-   AF-Correlation-Information                             1276  Grouped          V
+   AF-Correlation-Information                             1276  Grouped          VM
    Alternate-Charged-Party-Address                        1280  UTF8String       VM
-   Announcement-Identifier                                3905  Unsigned32       V
-   Announcement-Information                               3904  Grouped          V
-   Announcement-Order                                     3906  Unsigned32       V
-   Announcing-PLMN-ID                                     4408  UTF8String       V
+   Announcement-Identifier                                3905  Unsigned32       VM
+   Announcement-Information                               3904  Grouped          VM
+   Announcement-Order                                     3906  Unsigned32       VM
+   Announcing-PLMN-ID                                     4408  UTF8String       VM
    Announcing-UE-HPLMN-Identifier                         3426  UTF8String       VM
    Announcing-UE-VPLMN-Identifier                         3427  UTF8String       VM
-;  AoC-Cost-Information                                   2053  Grouped          V
-;  AoC-Format                                             2310  Enumerated       V
+;  AoC-Cost-Information                                   2053  Grouped          VM
+;  AoC-Format                                             2310  Enumerated       VM
 ;  AoC-Information                                        2054  Grouped          VM
    AoC-Request-Type                                       2055  Enumerated       VM
-;  AoC-Service                                            2311  Grouped          V
-;  AoC-Service-Obligatory-Type                            2312  Enumerated       V
-;  AoC-Service-Type                                       2313  Enumerated       V
-;  AoC-Subscription-Information                           2314  Grouped          V
-;  APN-Rate-Control                                       3933  Grouped          V
-;  APN-Rate-Control-Downlink                              3934  Grouped          V
-;  APN-Rate-Control-Uplink                                3935  Grouped          V
-   Applic-ID                                              1218  UTF8String       V
+;  AoC-Service                                            2311  Grouped          VM
+;  AoC-Service-Obligatory-Type                            2312  Enumerated       VM
+;  AoC-Service-Type                                       2313  Enumerated       VM
+;  AoC-Subscription-Information                           2314  Grouped          VM
+;  APN-Rate-Control                                       3933  Grouped          VM
+;  APN-Rate-Control-Downlink                              3934  Grouped          VM
+;  APN-Rate-Control-Uplink                                3935  Grouped          VM
+   Applic-ID                                              1218  UTF8String       VM
 ;  Application-Port-Identifer                             3010  
-   Application-Provided-Called-Party-Address               837  UTF8String       V
-   Application-Server                                      836  UTF8String       V
+   Application-Provided-Called-Party-Address               837  UTF8String       VM
+   Application-Server                                      836  UTF8String       VM
 ;  Application-Server-ID                                  2101
 ;  Application-Service-Provider-Identity                   532
-   Application-Server-Information                          850  Grouped          V
+   Application-Server-Information                          850  Grouped          VM
 ;  Application-Service-Type                               2102
 ;  Application-Session-ID                                 2103
-   Application-Specific-Data                              3458  OctetString      V
-   Associated-Party-Address                               2035  UTF8String       V
-   Associated-URI                                          856  UTF8String       V
-   Authorised-QoS                                          849  UTF8String       V
-   Aux-Applic-Info                                        1219  UTF8String       V
-   Base-Time-Interval                                     1265  Unsigned32       V
-;  Basic-Service-Code                                     3411  Grouped          V
-   Bearer-Capability                                      3412  OctetString      V
-   Bearer-Service                                          854  OctetString      V
-   BSSID                                                  2716  UTF8String       V
-   Called-Asserted-Identity                               1250  UTF8String       V
-   Called-Identity                                        3916  UTF8String       V
-   Called-Identity-Change                                 3917  Grouped          V
-   Called-Party-Address                                    832  UTF8String       V
-   Calling-Party-Address                                   831  UTF8String       V
-   Carrier-Select-Routing-Information                     2023  UTF8String       V
-   Cause-Code                                              861  Integer32        V
-   Cellular-Network-Information                           3924  OctetString      V
-   CG-Address                                              846  Address          V
-   Change-Condition                                       2037  Integer32        V
-   Change-Time                                            2038  Time             V
-   Charge-Reason-Code                                     2118  Enumerated       V
-   Charged-Party                                           857  UTF8String       V
-;  Charging-Characteristics-Selection-Mode                2066  Enumerated       V
-;  Charging-Per-IP-CAN-Session-Indicator                  4400  Enumerated       V
+   Application-Specific-Data                              3458  OctetString      VM
+   Associated-Party-Address                               2035  UTF8String       VM
+   Associated-URI                                          856  UTF8String       VM
+   Authorised-QoS                                          849  UTF8String       VM
+   Aux-Applic-Info                                        1219  UTF8String       VM
+   Base-Time-Interval                                     1265  Unsigned32       VM
+;  Basic-Service-Code                                     3411  Grouped          VM
+   Bearer-Capability                                      3412  OctetString      VM
+   Bearer-Service                                          854  OctetString      VM
+   BSSID                                                  2716  UTF8String       VM
+   Called-Asserted-Identity                               1250  UTF8String       VM
+   Called-Identity                                        3916  UTF8String       VM
+   Called-Identity-Change                                 3917  Grouped          VM
+   Called-Party-Address                                    832  UTF8String       VM
+   Calling-Party-Address                                   831  UTF8String       VM
+   Carrier-Select-Routing-Information                     2023  UTF8String       VM
+   Cause-Code                                              861  Integer32        VM
+   Cellular-Network-Information                           3924  OctetString      VM
+   CG-Address                                              846  Address          VM
+   Change-Condition                                       2037  Integer32        VM
+   Change-Time                                            2038  Time             VM
+   Charge-Reason-Code                                     2118  Enumerated       VM
+   Charged-Party                                           857  UTF8String       VM
+;  Charging-Characteristics-Selection-Mode                2066  Enumerated       VM
+;  Charging-Per-IP-CAN-Session-Indicator                  4400  Enumerated       VM
 ;  Charging-Rule-Base-Name                                1004  
-;  Class-Identifier                                       1214  Enumerated       V
-   Client-Address                                         2018  Address          V
+;  Class-Identifier                                       1214  Enumerated       VM
+   Client-Address                                         2018  Address          VM
 ;  CN-IP-Multicast-Distribution                            921  
-;  CN-Operator-Selection-Entity                           3421  Enumerated       V
+;  CN-Operator-Selection-Entity                           3421  Enumerated       VM
 ;  Communication-Failure-Information                      4300  
-;  Content-Class                                          1220  Enumerated       V
-   Content-Disposition                                     828  UTF8String       V
+;  Content-Class                                          1220  Enumerated       VM
+   Content-Disposition                                     828  UTF8String       VM
 ;  Content-ID                                             2116  
 ;  Content-Provider-ID                                    2117  
-   Content-Length                                          827  Unsigned32       V
-   Content-Size                                           1206  Unsigned32       V
-   Content-Type                                            826  UTF8String       V
-;  Coverage-Info                                          3459  Grouped          V
-;  Coverage-Status                                        3428  Enumerated       V
-;  CP-CIoT-EPS-Optimisation-Indicator                     3930  Enumerated       V
-;  CPDT-Information                                       3927  Grouped          V
-;  CSG-Access-Mode                                        2317  Enumerated       V
+   Content-Length                                          827  Unsigned32       VM
+   Content-Size                                           1206  Unsigned32       VM
+   Content-Type                                            826  UTF8String       VM
+;  Coverage-Info                                          3459  Grouped          VM
+;  Coverage-Status                                        3428  Enumerated       VM
+;  CP-CIoT-EPS-Optimisation-Indicator                     3930  Enumerated       VM
+;  CPDT-Information                                       3927  Grouped          VM
+;  CSG-Access-Mode                                        2317  Enumerated       VM
 ;  CSG-Id                                                 1437  
-;  CSG-Membership-Indication                              2318  Enumerated       V
-   CUG-Information                                        2304  OctetString      V
-   Current-Tariff                                         2056  Grouped          V
-   Data-Coding-Scheme                                     2001  Integer32        V
+;  CSG-Membership-Indication                              2318  Enumerated       VM
+   CUG-Information                                        2304  OctetString      VM
+   Current-Tariff                                         2056  Grouped          VM
+   Data-Coding-Scheme                                     2001  Integer32        VM
 ;  DCD-Information                                        2115  
-   Deferred-Location-Event-Type                           1230  UTF8String       V
-;  Delivery-Report-Requested                              1216  Enumerated       V
+   Deferred-Location-Event-Type                           1230  UTF8String       VM
+;  Delivery-Report-Requested                              1216  Enumerated       VM
 ;  Delivery-Status                                        2104  
-;  Destination-Interface                                  2002  Grouped          V
-   Diagnostics                                            2039  Integer32        V
+;  Destination-Interface                                  2002  Grouped          VM
+   Diagnostics                                            2039  Integer32        VM
    Discoveree-UE-HPLMN-Identifier                         4402  UTF8String       VM
    Discoveree-UE-VPLMN-Identifier                         4403  UTF8String       VM
    Discoverer-UE-HPLMN-Identifier                         4404  UTF8String       VM
    Discoverer-UE-VPLMN-Identifier                         4405  UTF8String       VM
-   Domain-Name                                            1200  UTF8String       V
-;  DRM-Content                                            1221  Enumerated       V
-;  Dynamic-Address-Flag                                   2051  Enumerated       V
-;  Dynamic-Address-Flag-Extension                         2068  Enumerated       V
-   Early-Media-Description                                1272  Grouped          V
-;  Enhanced-Diagnostics                                   3901  Grouped          V
-   Envelope                                               1266  Grouped          V
-   Envelope-End-Time                                      1267  Time             V
-   Envelope-Reporting                                     1268  Enumerated       V
-   Envelope-Start-Time                                    1269  Time             V
-   EPDG-Address                                           3425  Address          V
+   Domain-Name                                            1200  UTF8String       VM
+;  DRM-Content                                            1221  Enumerated       VM
+;  Dynamic-Address-Flag                                   2051  Enumerated       VM
+;  Dynamic-Address-Flag-Extension                         2068  Enumerated       VM
+   Early-Media-Description                                1272  Grouped          VM
+;  Enhanced-Diagnostics                                   3901  Grouped          VM
+   Envelope                                               1266  Grouped          VM
+   Envelope-End-Time                                      1267  Time             VM
+   Envelope-Reporting                                     1268  Enumerated       VM
+   Envelope-Start-Time                                    1269  Time             VM
+   EPDG-Address                                           3425  Address          VM
 ;  EPS-Location-Information                               1496  
-   Event                                                   825  UTF8String       V
-   Event-Charging-TimeStamp                               1258  Time             V
-   Event-Type                                              823  Grouped          V
-   Expires                                                 888  Unsigned32       V
+   Event                                                   825  UTF8String       VM
+   Event-Charging-TimeStamp                               1258  Time             VM
+   Event-Type                                              823  Grouped          VM
+   Expires                                                 888  Unsigned32       VM
 ;  External-Identifier                                    3111  
-   FE-Identifier-List                                     4413  UTF8String       V
-;  File-Repair-Supported                                  1224  Enumerated       V
+   FE-Identifier-List                                     4413  UTF8String       VM
+;  File-Repair-Supported                                  1224  Enumerated       VM
 ;  Fixed-User-Location-Info                               2825  
-   Flows                                                   510  Grouped          V
-;  Forwarding-Pending                                     3415  Enumerated       V
-   From-Address                                           2708  UTF8String       V
-   GGSN-Address                                            847  Address          V
+   Flows                                                   510  Grouped          VM
+;  Forwarding-Pending                                     3415  Enumerated       VM
+   From-Address                                           2708  UTF8String       VM
+   GGSN-Address                                            847  Address          VM
 ;  IM-Information                                         2110  
-   IMS-Application-Reference-Identifier                   2601  UTF8String       V
-   IMS-Charging-Identifier                                 841  UTF8String       V
-   IMS-Communication-Service-Identifier                   1281  UTF8String       V
-   IMS-Emergency-Indicator                                2322  Enumerated       V
-   IMS-Information                                         876  Grouped          V
-   IMS-Visited-Network-Identifier                         2713  UTF8String       V
-;  IMSI-Unauthenticated-Flag                              2308  Enumerated       V
-   Incoming-Trunk-Group-Id                                 852  UTF8String       V
-;  Incremental-Cost                                       2062  Grouped          V
-   Initial-IMS-Charging-Identifier                        2321  UTF8String       V
-   Instance-Id                                            3402  UTF8String       V
-   Interface-Id                                           2003  UTF8String       V
-   Interface-Port                                         2004  UTF8String       V
-   Interface-Text                                         2005  UTF8String       V
-   Interface-Type                                         2006  Enumerated       V
-   Inter-Operator-Identifier                               838  Grouped          V
-   Inter-UE-Transfer                                      3902  Enumerated       V
-   IP-Realm-Default-Indication                            2603  Enumerated       V
-;  ISUP-Cause                                             3416  Grouped          V
-   ISUP-Cause-Diagnostics                                 3422  OctetString      V
-   ISUP-Cause-Location                                    3423  Unsigned32       V
-   ISUP-Cause-Value                                       3424  Unsigned32       V
-   ISUP-Location-Number                                   3414  OctetString      V
-   Language                                               3914  UTF8String       V
-   Layer-2-Group-ID                                       3429  OctetString      V
-   LCS-APN                                                1231  UTF8String       V
-   LCS-Client-Dialed-By-MS                                1233  UTF8String       V
-   LCS-Client-External-ID                                 1234  UTF8String       V
-;  LCS-Client-Id                                          1232  Grouped          V
-;  LCS-Client-Name                                        1235  Grouped          V
-;  LCS-Client-Type                                        1241  Enumerated       V
-   LCS-Data-Coding-Scheme                                 1236  UTF8String       V
-;  LCS-Format-Indicator                                   1237  Enumerated       V
-;  LCS-Information                                         878  Grouped          V
-   LCS-Name-String                                        1238  UTF8String       V
-;  LCS-Requestor-ID                                       1239  Grouped          V
-   LCS-Requestor-ID-String                                1240  UTF8String       V
-   Local-GW-Inserted-Indication                           2604  Enumerated       V
-   Local-Sequence-Number                                  2063  Unsigned32       V
-   Location-Estimate                                      1242  OctetString      V
-;  Location-Estimate-Type                                 1243  Enumerated       V
-;  Location-Info                                          3460  Grouped          V
-;  Location-Type                                          1244  Grouped          V
-   Low-Balance-Indication                                 2020  Enumerated       V
-;  Low-Priority-Indicator                                 2602  Enumerated       V
-   Mandatory-Capability                                    604  Unsigned32       V
+   IMS-Application-Reference-Identifier                   2601  UTF8String       VM
+   IMS-Charging-Identifier                                 841  UTF8String       VM
+   IMS-Communication-Service-Identifier                   1281  UTF8String       VM
+   IMS-Emergency-Indicator                                2322  Enumerated       VM
+   IMS-Information                                         876  Grouped          VM
+   IMS-Visited-Network-Identifier                         2713  UTF8String       VM
+;  IMSI-Unauthenticated-Flag                              2308  Enumerated       VM
+   Incoming-Trunk-Group-Id                                 852  UTF8String       VM
+;  Incremental-Cost                                       2062  Grouped          VM
+   Initial-IMS-Charging-Identifier                        2321  UTF8String       VM
+   Instance-Id                                            3402  UTF8String       VM
+   Interface-Id                                           2003  UTF8String       VM
+   Interface-Port                                         2004  UTF8String       VM
+   Interface-Text                                         2005  UTF8String       VM
+   Interface-Type                                         2006  Enumerated       VM
+   Inter-Operator-Identifier                               838  Grouped          VM
+   Inter-UE-Transfer                                      3902  Enumerated       VM
+   IP-Realm-Default-Indication                            2603  Enumerated       VM
+;  ISUP-Cause                                             3416  Grouped          VM
+   ISUP-Cause-Diagnostics                                 3422  OctetString      VM
+   ISUP-Cause-Location                                    3423  Unsigned32       VM
+   ISUP-Cause-Value                                       3424  Unsigned32       VM
+   ISUP-Location-Number                                   3414  OctetString      VM
+   Language                                               3914  UTF8String       VM
+   Layer-2-Group-ID                                       3429  OctetString      VM
+   LCS-APN                                                1231  UTF8String       VM
+   LCS-Client-Dialed-By-MS                                1233  UTF8String       VM
+   LCS-Client-External-ID                                 1234  UTF8String       VM
+;  LCS-Client-Id                                          1232  Grouped          VM
+;  LCS-Client-Name                                        1235  Grouped          VM
+;  LCS-Client-Type                                        1241  Enumerated       VM
+   LCS-Data-Coding-Scheme                                 1236  UTF8String       VM
+;  LCS-Format-Indicator                                   1237  Enumerated       VM
+;  LCS-Information                                         878  Grouped          VM
+   LCS-Name-String                                        1238  UTF8String       VM
+;  LCS-Requestor-ID                                       1239  Grouped          VM
+   LCS-Requestor-ID-String                                1240  UTF8String       VM
+   Local-GW-Inserted-Indication                           2604  Enumerated       VM
+   Local-Sequence-Number                                  2063  Unsigned32       VM
+   Location-Estimate                                      1242  OctetString      VM
+;  Location-Estimate-Type                                 1243  Enumerated       VM
+;  Location-Info                                          3460  Grouped          VM
+;  Location-Type                                          1244  Grouped          VM
+   Low-Balance-Indication                                 2020  Enumerated       VM
+;  Low-Priority-Indicator                                 2602  Enumerated       VM
+   Mandatory-Capability                                    604  Unsigned32       VM
 ;  Maximum-Detection-Time                                 3131  
 ;  Maximum-Number-of-Reports                              3128  
 ;  MBMS-2G-3G-Indicator                                    907  
-;  MBMS-Charged-Party                                     2323  Enumerated       V
+;  MBMS-Charged-Party                                     2323  Enumerated       VM
 ;  MBMS-Data-Transfer-Start                                929  
 ;  MBMS-Data-Transfer-Stop                                 930  
-   MBMS-GW-Address                                        2307  Address          V
-;  MBMS-Information                                        880  Grouped          V
+   MBMS-GW-Address                                        2307  Address          VM
+;  MBMS-Information                                        880  Grouped          VM
 ;  MBMS-Service-Area                                       903  
 ;  MBMS-Service-Type                                       906  
 ;  MBMS-Session-Identity                                   908  
-;  MBMS-User-Service-Type                                 1225  Enumerated       V
-   Media-Initiator-Flag                                    882  Enumerated       V
-   Media-Initiator-Party                                  1288  UTF8String       V
-   Message-Body                                            889  Grouped          V
-;  Message-Class                                          1213  Grouped          V
-   Message-ID                                             1210  UTF8String       V
-   Message-Size                                           1212  Unsigned32       V
-;  Message-Type                                           1211  Enumerated       V
-;  MMBox-Storage-Requested                                1248  Enumerated       V
-;  MM-Content-Type                                        1203  Grouped          V
+;  MBMS-User-Service-Type                                 1225  Enumerated       VM
+   Media-Initiator-Flag                                    882  Enumerated       VM
+   Media-Initiator-Party                                  1288  UTF8String       VM
+   Message-Body                                            889  Grouped          VM
+;  Message-Class                                          1213  Grouped          VM
+   Message-ID                                             1210  UTF8String       VM
+   Message-Size                                           1212  Unsigned32       VM
+;  Message-Type                                           1211  Enumerated       VM
+;  MMBox-Storage-Requested                                1248  Enumerated       VM
+;  MM-Content-Type                                        1203  Grouped          VM
 ;  MME-Name                                               2402  
 ;  MME-Number-for-MT-SMS                                  1645  
 ;  MME-Realm                                              2408  
-;  MMS-Information                                         877  Grouped          V
-;  MMTel-Information                                      2030  Grouped          V
-   MMTel-SService-Type                                    2031  Unsigned32       V
-   Monitored-PLMN-Identifier                              3430  UTF8String       V
+;  MMS-Information                                         877  Grouped          VM
+;  MMTel-Information                                      2030  Grouped          VM
+   MMTel-SService-Type                                    2031  Unsigned32       VM
+   Monitored-PLMN-Identifier                              3430  UTF8String       VM
 ;  Monitoring-Duration                                    3130  
 ;  Monitoring-Event-Config-Status                         3142  
-   Monitoring-Event-Configuration-Activity                3919  Integer32        V
-   Monitoring-Event-Functionality                         3922  Integer32        V
-;  Monitoring-Event-Information                           3921  Grouped          V
-;  Monitoring-Event-Report-Data                           3920  Grouped          V
-   Monitoring-Event-Report-Number                         3923  Unsigned32       V
+   Monitoring-Event-Configuration-Activity                3919  Integer32        VM
+   Monitoring-Event-Functionality                         3922  Integer32        VM
+;  Monitoring-Event-Information                           3921  Grouped          VM
+;  Monitoring-Event-Report-Data                           3920  Grouped          VM
+   Monitoring-Event-Report-Number                         3923  Unsigned32       VM
 ;  Monitoring-Type                                        3127  
-   Monitoring-UE-HPLMN-Identifier                         3431  UTF8String       V
-   Monitoring-UE-Identifier                               3432  UTF8String       V
-   Monitoring-UE-VPLMN-Identifier                         3433  UTF8String       V
+   Monitoring-UE-HPLMN-Identifier                         3431  UTF8String       VM
+   Monitoring-UE-Identifier                               3432  UTF8String       VM
+   Monitoring-UE-VPLMN-Identifier                         3433  UTF8String       VM
 ;  MONTE-Location-Type                                    3136  
-   MSC-Address                                            3417  OctetString      V
+   MSC-Address                                            3417  OctetString      VM
 ;  MSISDN                                                  701  
-   MTC-IWF-Address                                        3406  Address          V
+   MTC-IWF-Address                                        3406  Address          VM
 ;  NBIFOM-Mode                                            2830  
 ;  NBIFOM-Support                                         2831  
-   Neighbour-Node-Address                                 2705  Address          V
-   Network-Call-Reference-Number                          3418  OctetString      V
+   Neighbour-Node-Address                                 2705  Address          VM
+   Network-Call-Reference-Number                          3418  OctetString      VM
    Next-Tariff                                            2057  Grouped          VM
 ;  NIDD-Submission                                        3928  Grouped          VM
-   NNI-Information                                        2703  Grouped          V
-   NNI-Type                                               2704  Enumerated       V
-   Node-Functionality                                      862  Enumerated       V
-   Node-Id                                                2064  UTF8String       V
-   Number-Of-Diversions                                   2034  Unsigned32       V
-   Number-Of-Messages-Sent                                2019  Unsigned32       V
+   NNI-Information                                        2703  Grouped          VM
+   NNI-Type                                               2704  Enumerated       VM
+   Node-Functionality                                      862  Enumerated       VM
+   Node-Id                                                2064  UTF8String       VM
+   Number-Of-Diversions                                   2034  Unsigned32       VM
+   Number-Of-Messages-Sent                                2019  Unsigned32       VM
 ;  Number-Of-Messages-Successfully-Exploded               2111  
 ;  Number-Of-Messages-Successfully-Sent                   2112  
-   Number-Of-Participants                                  885  Unsigned32       V
-   Number-Of-Received-Talk-Bursts                         1282  Unsigned32       V
-   Number-Of-Talk-Bursts                                  1283  Unsigned32       V
+   Number-Of-Participants                                  885  Unsigned32       VM
+   Number-Of-Received-Talk-Bursts                         1282  Unsigned32       VM
+   Number-Of-Talk-Bursts                                  1283  Unsigned32       VM
 ;  Number-Of-UE-Per-Location-Configuration                4306  
 ;  Number-Of-UE-Per-Location-Report                       4307  
-   Number-Portability-Routing-Information                 2024  UTF8String       V
-;  Offline-Charging                                       1278  Grouped          V
-   Online-Charging-Flag                                   2303  Enumerated       V
-   Optional-Capability                                     605  Unsigned32       V
+   Number-Portability-Routing-Information                 2024  UTF8String       VM
+;  Offline-Charging                                       1278  Grouped          VM
+   Online-Charging-Flag                                   2303  Enumerated       VM
+   Optional-Capability                                     605  Unsigned32       VM
 ;  Origin-App-Layer-User-Id                               3600  
-   Originating-IOI                                         839  UTF8String       V
-   Originator                                              864  Enumerated       V
-   Originator-Address                                      886  Grouped          V
-   Originator-Interface                                   2009  Grouped          V
-;  Originator-Received-Address                            2027  Grouped          V
-   Originator-SCCP-Address                                2008  Address          V
-   Outgoing-Session-Id                                    2320  UTF8String       V
-   Outgoing-Trunk-Group-Id                                 853  UTF8String       V
-;  Participant-Access-Priority                            1259  Enumerated       V
-;  Participant-Action-Type                                2049  Enumerated       V
-;  Participant-Group                                      1260  Grouped          V
-   Participants-Involved                                   887  UTF8String       V
-   PC3-Control-Protocol-Cause                             3434  Integer32        V
-   PC3-EPC-Control-Protocol-Cause                         3435  Integer32        V
-   PDN-Connection-Charging-ID                             2050  Unsigned32       V
-   PDP-Address                                            1227  Address          V
-   PDP-Address-Prefix-Length                              2606  Unsigned32       V
-;  PDP-Context-Type                                       1247  Enumerated       V
-   Play-Alternative                                       3913  Enumerated       V
-;  PoC-Change-Condition                                   1261  Enumerated       V
-   PoC-Change-Time                                        1262  Time             V
-   PoC-Controlling-Address                                 858  UTF8String       V
-;  PoC-Event-Type                                         2025  Enumerated       V
-   PoC-Group-Name                                          859  UTF8String       V
-;  PoC-Information                                         879  Grouped          V
-;  PoC-Server-Role                                         883  Enumerated       V
-   PoC-Session-Id                                         1229  UTF8String       V
-;  PoC-Session-Initiation-Type                            1277  Enumerated       V
-;  PoC-Session-Type                                        884  Enumerated       V
-;  PoC-User-Role                                          1252  Grouped          V
-   PoC-User-Role-IDs                                      1253  UTF8String       V
-;  PoC-User-Role-Info-Units                               1254  Enumerated       V
-   Positioning-Data                                       1245  UTF8String       V
-   Preferred-AoC-Currency                                 2315  Unsigned32       V
+   Originating-IOI                                         839  UTF8String       VM
+   Originator                                              864  Enumerated       VM
+   Originator-Address                                      886  Grouped          VM
+   Originator-Interface                                   2009  Grouped          VM
+;  Originator-Received-Address                            2027  Grouped          VM
+   Originator-SCCP-Address                                2008  Address          VM
+   Outgoing-Session-Id                                    2320  UTF8String       VM
+   Outgoing-Trunk-Group-Id                                 853  UTF8String       VM
+;  Participant-Access-Priority                            1259  Enumerated       VM
+;  Participant-Action-Type                                2049  Enumerated       VM
+;  Participant-Group                                      1260  Grouped          VM
+   Participants-Involved                                   887  UTF8String       VM
+   PC3-Control-Protocol-Cause                             3434  Integer32        VM
+   PC3-EPC-Control-Protocol-Cause                         3435  Integer32        VM
+   PDN-Connection-Charging-ID                             2050  Unsigned32       VM
+   PDP-Address                                            1227  Address          VM
+   PDP-Address-Prefix-Length                              2606  Unsigned32       VM
+;  PDP-Context-Type                                       1247  Enumerated       VM
+   Play-Alternative                                       3913  Enumerated       VM
+;  PoC-Change-Condition                                   1261  Enumerated       VM
+   PoC-Change-Time                                        1262  Time             VM
+   PoC-Controlling-Address                                 858  UTF8String       VM
+;  PoC-Event-Type                                         2025  Enumerated       VM
+   PoC-Group-Name                                          859  UTF8String       VM
+;  PoC-Information                                         879  Grouped          VM
+;  PoC-Server-Role                                         883  Enumerated       VM
+   PoC-Session-Id                                         1229  UTF8String       VM
+;  PoC-Session-Initiation-Type                            1277  Enumerated       VM
+;  PoC-Session-Type                                        884  Enumerated       VM
+;  PoC-User-Role                                          1252  Grouped          VM
+   PoC-User-Role-IDs                                      1253  UTF8String       VM
+;  PoC-User-Role-Info-Units                               1254  Enumerated       VM
+   Positioning-Data                                       1245  UTF8String       VM
+   Preferred-AoC-Currency                                 2315  Unsigned32       VM
 ;  Presence-Reporting-Area-Identifier                     2821  
 ;  Presence-Reporting-Area-Information                    2822  
 ;  Presence-Reporting-Area-Elements-List                  2820  
 ;  Presence-Reporting-Area-Status                         2823  
-;  Priority                                               1209  Enumerated       V
+;  Priority                                               1209  Enumerated       VM
 ;  Priority-Indication                                    3006  
-   Priority-Level                                         1046  Unsigned32       V
-   Privacy-Indicator                                      3915  Enumerated       V
-   ProSe-3rd-Party-Application-ID                         3440  UTF8String       V
+   Priority-Level                                         1046  Unsigned32       VM
+   Privacy-Indicator                                      3915  Enumerated       VM
+   ProSe-3rd-Party-Application-ID                         3440  UTF8String       VM
 ;  ProSe-App-Id                                           3811  
-;  ProSe-Direct-Communication-Reception-Data-Container    3461  Grouped          V
-;  ProSe-Direct-Communication-Transmission-Data-Container 3441  Grouped          V
-;  ProSe-Direct-Discovery-Model                           3442  Enumerated       V
-;  ProSe-Event-Type                                       3443  Enumerated       V
+;  ProSe-Direct-Communication-Reception-Data-Container    3461  Grouped          VM
+;  ProSe-Direct-Communication-Transmission-Data-Container 3441  Grouped          VM
+;  ProSe-Direct-Discovery-Model                           3442  Enumerated       VM
+;  ProSe-Event-Type                                       3443  Enumerated       VM
 ;  ProSe-Function-ID                                      3602  
-;  ProSe-Function-IP-Address                              3444  Address          V
-   ProSe-Function-PLMN-Identifier                         3457  UTF8String       V
-;  ProSe-Functionality                                    3445  Enumerated       V
-   ProSe-Group-IP-Multicast-Address                       3446  Address          V
-;  ProSe-Information                                      3447  Grouped          V
-;  ProSe-Range-Class                                      3448  Enumerated       V
-;  ProSe-Reason-For-Cancellation                          3449  Enumerated       V
-   ProSe-Request-Timestamp                                3450  Time             V
-;  ProSe-Role-Of-UE                                       3451  Enumerated       V
-   ProSe-Source-IP-Address                                3452  Address          V
-   ProSe-Target-Layer-2-ID                                4410  OctetString      V
-   ProSe-UE-ID                                            3453  OctetString      V
-   ProSe-UE-to-Network-Relay-UE-ID                        4409  OctetString      V
+;  ProSe-Function-IP-Address                              3444  Address          VM
+   ProSe-Function-PLMN-Identifier                         3457  UTF8String       VM
+;  ProSe-Functionality                                    3445  Enumerated       VM
+   ProSe-Group-IP-Multicast-Address                       3446  Address          VM
+;  ProSe-Information                                      3447  Grouped          VM
+;  ProSe-Range-Class                                      3448  Enumerated       VM
+;  ProSe-Reason-For-Cancellation                          3449  Enumerated       VM
+   ProSe-Request-Timestamp                                3450  Time             VM
+;  ProSe-Role-Of-UE                                       3451  Enumerated       VM
+   ProSe-Source-IP-Address                                3452  Address          VM
+   ProSe-Target-Layer-2-ID                                4410  OctetString      VM
+   ProSe-UE-ID                                            3453  OctetString      VM
+   ProSe-UE-to-Network-Relay-UE-ID                        4409  OctetString      VM
 ;  ProSe-Validity-Timer                                   3815  
-;  Proximity-Alert-Indication                             3454  Enumerated       V
-   Proximity-Alert-Timestamp                              3455  Time             V
-   Proximity-Cancellation-Timestamp                       3456  Time             V
-   PS-Append-Free-Format-Data                              867  Enumerated       V
-   PS-Free-Format-Data                                     866  OctetString      V
-   PS-Furnish-Charging-Information                         865  Grouped          V
-;  PS-Information                                          874  Grouped          V
-   QoS-Information                                        1016  Grouped          V
-   Quota-Consumption-Time                                  881  Unsigned32       V
-   Quota-Holding-Time                                      871  Unsigned32       V
-   Quota-Indicator                                        3912  Enumerated       V
-   Radio-Frequency                                        3462  OctetString      V
+;  Proximity-Alert-Indication                             3454  Enumerated       VM
+   Proximity-Alert-Timestamp                              3455  Time             VM
+   Proximity-Cancellation-Timestamp                       3456  Time             VM
+   PS-Append-Free-Format-Data                              867  Enumerated       VM
+   PS-Free-Format-Data                                     866  OctetString      VM
+   PS-Furnish-Charging-Information                         865  Grouped          VM
+;  PS-Information                                          874  Grouped          VM
+   QoS-Information                                        1016  Grouped          VM
+   Quota-Consumption-Time                                  881  Unsigned32       VM
+   Quota-Holding-Time                                      871  Unsigned32       VM
+   Quota-Indicator                                        3912  Enumerated       VM
+   Radio-Frequency                                        3462  OctetString      VM
 ;  Radio-Parameter-Set-Info                               3463  Grouped          VM
-   Radio-Parameter-Set-Values                             3464  OctetString      V
-   Radio-Resources-Indicator                              3465  Integer32        V
+   Radio-Parameter-Set-Values                             3464  OctetString      VM
+   Radio-Resources-Indicator                              3465  Integer32        VM
 ;  RAI                                                     909  
 ;  RAN-NAS-Release-Cause                                  2819  
-   Rate-Control-Max-Message-Size                          3937  Unsigned32       V
-   Rate-Control-Max-Rate                                  3938  Unsigned32       V
-   Rate-Control-Time-Unit                                 3939  Unsigned32       V
-   Rate-Element                                           2058  Grouped          V
+   Rate-Control-Max-Message-Size                          3937  Unsigned32       VM
+   Rate-Control-Max-Rate                                  3938  Unsigned32       VM
+   Rate-Control-Time-Unit                                 3939  Unsigned32       VM
+   Rate-Element                                           2058  Grouped          VM
 ;  Reachability-Information                               3140  
-;  Read-Reply-Report-Requested                            1222  Enumerated       V
-   Real-Time-Tariff-Information                           2305  Grouped          V
-   Reason-Header                                          3401  UTF8String       V
-   Received-Talk-Burst-Time                               1284  Unsigned32       V
-   Received-Talk-Burst-Volume                             1285  Unsigned32       V
-;  Recipient-Address                                      1201  Grouped          V
-;  Recipient-Info                                         2026  Grouped          V
-;  Recipient-Received-Address                             2028  Grouped          V
-;  Recipient-SCCP-Address                                 2010  Address          V
+;  Read-Reply-Report-Requested                            1222  Enumerated       VM
+   Real-Time-Tariff-Information                           2305  Grouped          VM
+   Reason-Header                                          3401  UTF8String       VM
+   Received-Talk-Burst-Time                               1284  Unsigned32       VM
+   Received-Talk-Burst-Volume                             1285  Unsigned32       VM
+;  Recipient-Address                                      1201  Grouped          VM
+;  Recipient-Info                                         2026  Grouped          VM
+;  Recipient-Received-Address                             2028  Grouped          VM
+;  Recipient-SCCP-Address                                 2010  Address          VM
 ;  Reference-Number                                       3007  
-   Refund-Information                                     2022  OctetString      V
-;  Related-Change-Condition-Information                   3925  Grouped          V
-   Related-Trigger                                        3926  Grouped          V
-   Related-IMS-Charging-Identifier                        2711  UTF8String       V
-   Related-IMS-Charging-Identifier-Node                   2712  Address          V
-   Relationship-Mode                                      2706  Enumerated       V
-   Relay-IP-Address                                       4411  Address          V
-   Remaining-Balance                                      2021  Grouped          V
-   Reply-Applic-ID                                        1223  UTF8String       V
-;  Reply-Path-Requested                                   2011  Enumerated       V
-   Reporting-Reason                                        872  Enumerated       V
-   Requested-Party-Address                                1251  UTF8String       V
-   Requested-PLMN-Identifier                              3436  UTF8String       V
+   Refund-Information                                     2022  OctetString      VM
+;  Related-Change-Condition-Information                   3925  Grouped          VM
+   Related-Trigger                                        3926  Grouped          VM
+   Related-IMS-Charging-Identifier                        2711  UTF8String       VM
+   Related-IMS-Charging-Identifier-Node                   2712  Address          VM
+   Relationship-Mode                                      2706  Enumerated       VM
+   Relay-IP-Address                                       4411  Address          VM
+   Remaining-Balance                                      2021  Grouped          VM
+   Reply-Applic-ID                                        1223  UTF8String       VM
+;  Reply-Path-Requested                                   2011  Enumerated       VM
+   Reporting-Reason                                        872  Enumerated       VM
+   Requested-Party-Address                                1251  UTF8String       VM
+   Requested-PLMN-Identifier                              3436  UTF8String       VM
 ;  Requesting-EPUID                                       3816  
-   Requestor-PLMN-Identifier                              3437  UTF8String       V
+   Requestor-PLMN-Identifier                              3437  UTF8String       VM
 ;  Required-MBMS-Bearer-Capabilities                       901  
-   Role-Of-Node                                            829  Enumerated       V
-;  Role-Of-ProSe-Function                                 3438  Enumerated       V
-   Route-Header-Received                                  3403  UTF8String       V
-   Route-Header-Transmitted                               3404  UTF8String       V
+   Role-Of-Node                                            829  Enumerated       VM
+;  Role-Of-ProSe-Function                                 3438  Enumerated       VM
+   Route-Header-Received                                  3403  UTF8String       VM
+   Route-Header-Transmitted                               3404  UTF8String       VM
 ;  RRC-Cause-Counter                                      4318  
-   Scale-Factor                                           2059  Grouped          V
+   Scale-Factor                                           2059  Grouped          VM
 ;  SCEF-ID                                                3125  
 ;  SCEF-Reference-ID                                      3124  
-   SCS-Address                                            3941  Address          V
-;  SCS-AS-Address                                         3940  Grouped          V
-   SCS-Realm                                              3942  DiameterIdentity V
-   SDP-Answer-Timestamp                                   1275  Time             V
-   SDP-Media-Component                                     843  Grouped          V
-   SDP-Media-Description                                   845  UTF8String       V
-   SDP-Media-Name                                          844  UTF8String       V
-   SDP-Offer-Timestamp                                    1274  Time             V
-   SDP-Session-Description                                 842  UTF8String       V
-   SDP-TimeStamps                                         1273  Grouped          V
-   SDP-Type                                               2036  Enumerated       V
+   SCS-Address                                            3941  Address          VM
+;  SCS-AS-Address                                         3940  Grouped          VM
+   SCS-Realm                                              3942  DiameterIdentity VM
+   SDP-Answer-Timestamp                                   1275  Time             VM
+   SDP-Media-Component                                     843  Grouped          VM
+   SDP-Media-Description                                   845  UTF8String       VM
+   SDP-Media-Name                                          844  UTF8String       VM
+   SDP-Offer-Timestamp                                    1274  Time             VM
+   SDP-Session-Description                                 842  UTF8String       VM
+   SDP-TimeStamps                                         1273  Grouped          VM
+   SDP-Type                                               2036  Enumerated       VM
 ;  Serving-Node                                           2401  
-   Serving-Node-Identity                                  3929  DiameterIdentity V
-   Served-Party-IP-Address                                 848  Address          V
-   Server-Capabilities                                     603  Grouped          V
-   Server-Name                                             602  UTF8String       V
-;  Service-Data-Container                                 2040  Grouped          V
+   Serving-Node-Identity                                  3929  DiameterIdentity VM
+   Served-Party-IP-Address                                 848  Address          VM
+   Server-Capabilities                                     603  Grouped          VM
+   Server-Name                                             602  UTF8String       VM
+;  Service-Data-Container                                 2040  Grouped          VM
 ;  Service-Generic-Information                            1256  
-   Service-Id                                              855  UTF8String       V
-   Service-Information                                     873  Grouped          V
-   Service-Mode                                           2032  Unsigned32       V
-   Service-Specific-Data                                   863  UTF8String       V
-   Service-Specific-Info                                  1249  Grouped          V
-   Service-Specific-Type                                  1257  Unsigned32       V
-;  Serving-Node-Type                                      2047  Enumerated       V
+   Service-Id                                              855  UTF8String       VM
+   Service-Information                                     873  Grouped          VM
+   Service-Mode                                           2032  Unsigned32       VM
+   Service-Specific-Data                                   863  UTF8String       VM
+   Service-Specific-Info                                  1249  Grouped          VM
+   Service-Specific-Type                                  1257  Unsigned32       VM
+;  Serving-Node-Type                                      2047  Enumerated       VM
 ;  Serving-PLMN-Rate-Control                              4310  
-   Session-Direction                                      2707  Enumerated       V
-   Session-Priority                                        650  Enumerated       V
-;  SGi-PtP-Tunnelling-Method                              3931  Enumerated       V
-   SGSN-Address                                           1228  Address          V
-   SGW-Address                                            2067  Address          V
-;  SGW-Change                                             2065  Enumerated       V
-   SIP-Method                                              824  UTF8String       V
-   SIP-Request-Timestamp                                   834  Time             V
-   SIP-Request-Timestamp-Fraction                         2301  Unsigned32       V
-   SIP-Response-Timestamp                                  835  Time             V
-   SIP-Response-Timestamp-Fraction                        2302  Unsigned32       V
-;  SM-Device-Trigger-Indicator                            3407  Enumerated       V
-;  SM-Device-Trigger-Information                          3405  Grouped          V
-   SM-Discharge-Time                                      2012  Time             V
-;  SM-Message-Type                                        2007  Enumerated       V
-   SM-Protocol-ID                                         2013  OctetString      V
-   SM-Sequence-Number                                     3408  Unsigned32       V
-;  SM-Service-Type                                        2029  Enumerated       V
-   SM-Status                                              2014  OctetString      V
-   SM-User-Data-Header                                    2015  OctetString      V
-;  SMS-Information                                        2000  Grouped          V
-;  SMS-Node                                               2016  Enumerated       V
-   SMS-Result                                             3409  Unsigned32       V
-   SMSC-Address                                           2017  Address          V
+   Session-Direction                                      2707  Enumerated       VM
+   Session-Priority                                        650  Enumerated       VM
+;  SGi-PtP-Tunnelling-Method                              3931  Enumerated       VM
+   SGSN-Address                                           1228  Address          VM
+   SGW-Address                                            2067  Address          VM
+;  SGW-Change                                             2065  Enumerated       VM
+   SIP-Method                                              824  UTF8String       VM
+   SIP-Request-Timestamp                                   834  Time             VM
+   SIP-Request-Timestamp-Fraction                         2301  Unsigned32       VM
+   SIP-Response-Timestamp                                  835  Time             VM
+   SIP-Response-Timestamp-Fraction                        2302  Unsigned32       VM
+;  SM-Device-Trigger-Indicator                            3407  Enumerated       VM
+;  SM-Device-Trigger-Information                          3405  Grouped          VM
+   SM-Discharge-Time                                      2012  Time             VM
+;  SM-Message-Type                                        2007  Enumerated       VM
+   SM-Protocol-ID                                         2013  OctetString      VM
+   SM-Sequence-Number                                     3408  Unsigned32       VM
+;  SM-Service-Type                                        2029  Enumerated       VM
+   SM-Status                                              2014  OctetString      VM
+   SM-User-Data-Header                                    2015  OctetString      VM
+;  SMS-Information                                        2000  Grouped          VM
+;  SMS-Node                                               2016  Enumerated       VM
+   SMS-Result                                             3409  Unsigned32       VM
+   SMSC-Address                                           2017  Address          VM
 ;  Sponsor-Identity                                        531  
 ;  SSID                                                   1524  
-   Start-of-Charging                                      3419  Time             V
-   Start-Time                                             2041  Time             V
-   Status-AS-Code                                         2702  Enumerated       V
-   Stop-Time                                              2042  Time             V
-   Submission-Time                                        1202  Time             V
-;  Subscriber-Role                                        2033  Enumerated       V
-;  Supplementary-Service                                  2048  Grouped          V
-   TAD-Identifier                                         2717  Enumerated       V
-;  Talk-Burst-Exchange                                    1255  Grouped          V
-   Talk-Burst-Time                                        1286  Unsigned32       V
-   Talk-Burst-Volume                                      1287  Unsigned32       V
+   Start-of-Charging                                      3419  Time             VM
+   Start-Time                                             2041  Time             VM
+   Status-AS-Code                                         2702  Enumerated       VM
+   Stop-Time                                              2042  Time             VM
+   Submission-Time                                        1202  Time             VM
+;  Subscriber-Role                                        2033  Enumerated       VM
+;  Supplementary-Service                                  2048  Grouped          VM
+   TAD-Identifier                                         2717  Enumerated       VM
+;  Talk-Burst-Exchange                                    1255  Grouped          VM
+   Talk-Burst-Time                                        1286  Unsigned32       VM
+   Talk-Burst-Volume                                      1287  Unsigned32       VM
 ;  Target-App-Layer-User-Id                               3601  
    Target-IP-Address                                      4412  Address          VM
-   Tariff-Information                                     2060  Grouped          V
-   Tariff-XML                                             2306  UTF8String       V
+   Tariff-Information                                     2060  Grouped          VM
+   Tariff-XML                                             2306  UTF8String       VM
 ;  TDF-IP-Address                                         1091  
-   Teleservice                                            3413  OctetString      V
+   Teleservice                                            3413  OctetString      VM
 ;  Terminal-Information                                   1401  
-   Terminating-IOI                                         840  UTF8String       V
-   Time-First-Reception                                   3466  Time             V
-   Time-First-Transmission                                3467  Time             V
-   Time-First-Usae                                        2043  Time             V
-   Time-Indicator                                         3911  Unsigned32       V
-   Time-Last-Usae                                         2044  Time             V
-   Time-Quota-Mechanism                                   1270  Grouped          V
-   Time-Quota-Threshold                                    868  Unsigned32       V
-   Time-Quota-Type                                        1271  Enumerated       V
-   Time-Stamps                                             833  Grouped          V
-   Time-Usage                                             2045  Unsigned32       V
+   Terminating-IOI                                         840  UTF8String       VM
+   Time-First-Reception                                   3466  Time             VM
+   Time-First-Transmission                                3467  Time             VM
+   Time-First-Usae                                        2043  Time             VM
+   Time-Indicator                                         3911  Unsigned32       VM
+   Time-Last-Usae                                         2044  Time             VM
+   Time-Quota-Mechanism                                   1270  Grouped          VM
+   Time-Quota-Threshold                                    868  Unsigned32       VM
+   Time-Quota-Type                                        1271  Enumerated       VM
+   Time-Stamps                                             833  Grouped          VM
+   Time-Usage                                             2045  Unsigned32       VM
 ;  Time-Window                                            3818  
 ;  TMGI                                                    900  
-;  Token-Text                                             1215  UTF8String       V
+;  Token-Text                                             1215  UTF8String       VM
 ;  Total-Number-Of-Messages-Exploded                      2113  
 ;  Total-Number-Of-Messages-Sent                          2114  
-;  Traffic-Data-Volumes                                   2046  Grouped          V
-   Transcoder-Inserted-Indication                         2605  Enumerated       V
-   Transit-IOI-List                                       2701  UTF8String       V
-;  Transmitter-Info                                       3468  Grouped          V
-   Trigger                                                1264  Grouped          V
-   Trigger-Type                                            870  Enumerated       V
-   Trunk-Group-Id                                          851  Grouped          V
-   TWAG-Address                                           3903  Address          V
-;  TWAN-User-Location-Info                                2714  Grouped          V
-;  Type-Number                                            1204  Enumerated       V
+;  Traffic-Data-Volumes                                   2046  Grouped          VM
+   Transcoder-Inserted-Indication                         2605  Enumerated       VM
+   Transit-IOI-List                                       2701  UTF8String       VM
+;  Transmitter-Info                                       3468  Grouped          VM
+   Trigger                                                1264  Grouped          VM
+   Trigger-Type                                            870  Enumerated       VM
+   Trunk-Group-Id                                          851  Grouped          VM
+   TWAG-Address                                           3903  Address          VM
+;  TWAN-User-Location-Info                                2714  Grouped          VM
+;  Type-Number                                            1204  Enumerated       VM
 ;  UDP-Source-Port                                        2806  
 ;  UE-Local-IP-Address                                    2805  
 ;  UE-Reachability-Configuration                          3129  
-;  UNI-PDU-CP-Only-Flag                                   3932  Enumerated       V
-   Unit-Cost                                              2061  Grouped          V
-   Unit-Quota-Threshold                                   1226  Unsigned32       V
-   Unused-Quota-Timer                                      407  Unsigned32       V
-   Usage-Information-Report-Sequence-Number               3439  Integer32        V
-;  User-CSG-Information                                   2319  Grouped          V
+;  UNI-PDU-CP-Only-Flag                                   3932  Enumerated       VM
+   Unit-Cost                                              2061  Grouped          VM
+   Unit-Quota-Threshold                                   1226  Unsigned32       VM
+   Unused-Quota-Timer                                      407  Unsigned32       VM
+   Usage-Information-Report-Sequence-Number               3439  Integer32        VM
+;  User-CSG-Information                                   2319  Grouped          VM
 ;  User-Data                                               606  
 ;  User-Location-Info-Time                                2812  
-;  User-Participating-Type                                1279  Enumerated       V
-   User-Session-Id                                         830  UTF8String       V
-;  UWAN-User-Location-Info                                3918  Grouped          V
+;  User-Participating-Type                                1279  Enumerated       VM
+   User-Session-Id                                         830  UTF8String       VM
+;  UWAN-User-Location-Info                                3918  Grouped          VM
 ;  VAS-Id                                                 1102  
-   Variable-Part                                          3907  Grouped          V
-   Variable-Part-Order                                    3908  Unsigned32       V
-   Variable-Part-Type                                     3909  Unsigned32       V
-   Variable-Part-Value                                    3910  UTF8String       V
+   Variable-Part                                          3907  Grouped          VM
+   Variable-Part-Order                                    3908  Unsigned32       VM
+   Variable-Part-Type                                     3909  Unsigned32       VM
+   Variable-Part-Value                                    3910  UTF8String       VM
 ;  VASP-Id                                                1101  
-;  VCS-Information                                        3410  Grouped          V
+;  VCS-Information                                        3410  Grouped          VM
 ;  Visited-PLMN-Id                                        1407  
-   VLR-Number                                             3420  OctetString      V
-   Volume-Quota-Threshold                                  869  Unsigned32       V
+   VLR-Number                                             3420  OctetString      VM
+   Volume-Quota-Threshold                                  869  Unsigned32       VM
 ;  WLAN-Link-Layer-Id                                     3821  
+   ;;; 3GPP RS  29.061
+   3GPP-Charging-Characteristics                            13  UTF8String       VM
+   3GPP-Charging-Id                                          2  OctetString      VM
+   3GPP-GGSN-MCC-MNC                                         9  UTF8String       VM
+   3GPP-IMSI                                                 1  UTF8String       VM
+   3GPP-IMSI-MCC-MNC                                         8  UTF8String       VM
+   3GPP-MS-TimeZone                                         23  OctetString      VM
+   3GPP-NSAPI                                               10  OctetString      VM
+   3GPP-PDP-Type                                             3  Enumerated       VM
+   3GPP-RAT-Type                                            21  OctetString      VM
+   3GPP-Selection-Mode                                      12  UTF8String       VM
+;  3GPP-Session-Stop-Indicator                              11
+   3GPP-SGSN-MCC-MNC                                        18  UTF8String       VM
+   3GPP-User-Location-Info                                  22  OctetString      VM
    ;; 3GPP TS 29.214
-   Media-Component-Number                                  518  Unsigned32       V
-   Flow-Number                                             509  Unsigned32       V
-   Access-Network-Charging-Identifier                      502  Grouped          V
+   Media-Component-Number                                  518  Unsigned32       VM
+   Flow-Number                                             509  Unsigned32       VM
+   Access-Network-Charging-Identifier                      502  Grouped          VM
    ;; 3GPP TS 29.212
-   QoS-Class-Identifier                                   1028  Enumerated       V
-   Max-Requested-Bandwidth-DL                              515  Unsigned32       V
-   Max-Requested-Bandwidth-UL                              516  Unsigned32       V
-   Guaranteed-Bitrate-DL                                  1025  Unsigned32       V
-   Guaranteed-Bitrate-UL                                  1026  Unsigned32       V
-   Bearer-Identifier                                      1020  OctetString      V
-   Conditional-APN-Aggregate-Max-Bitrate                  2818  Grouped          V
-   Allocation-Retention-Priority                          1034  Grouped          V
-   APN-Aggregate-Max-Bitrate-DL                           1040  Unsigned32       V
-   APN-Aggregate-Max-Bitrate-UL                           1041  Unsigned32       V
-   IP-CAN-Type                                            1027  Enumerated       V
-   RAT-Type                                               1032  Enumerated       V
-   Pre-emption-Capability                                 1047  Enumerated       V
-   Pre-emption-Vulnerability                              1048  Enumerated       V
+   QoS-Class-Identifier                                   1028  Enumerated       VM
+   Max-Requested-Bandwidth-DL                              515  Unsigned32       VM
+   Max-Requested-Bandwidth-UL                              516  Unsigned32       VM
+   Guaranteed-Bitrate-DL                                  1025  Unsigned32       VM
+   Guaranteed-Bitrate-UL                                  1026  Unsigned32       VM
+   Bearer-Identifier                                      1020  OctetString      VM
+   Conditional-APN-Aggregate-Max-Bitrate                  2818  Grouped          VM
+   Allocation-Retention-Priority                          1034  Grouped          VM
+   APN-Aggregate-Max-Bitrate-DL                           1040  Unsigned32       VM
+   APN-Aggregate-Max-Bitrate-UL                           1041  Unsigned32       VM
+   IP-CAN-Type                                            1027  Enumerated       VM
+   RAT-Type                                               1032  Enumerated       VM
+   Pre-emption-Capability                                 1047  Enumerated       VM
+   Pre-emption-Vulnerability                              1048  Enumerated       VM
 
 @grouped
 
