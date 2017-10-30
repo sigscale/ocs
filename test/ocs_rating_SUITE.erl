@@ -355,7 +355,7 @@ rate_octets_with_reservation_scenario_2(_Config) ->
 	#bucket{remain_amount = PackageSize} = lists:keyfind(octets, #bucket.bucket_type, RatedBuckets).
 
 rate_octets_with_reservation_scenario_3() ->
-	[{userdata, [{doc, "This senario describ resercation amount
+	[{userdata, [{doc, "This senario describ reservation amount
 		equal to bucket remain amount and package size"}]}].
 
 rate_octets_with_reservation_scenario_3(_Config) ->
@@ -378,7 +378,7 @@ rate_octets_with_reservation_scenario_3(_Config) ->
 	{ok, _, _} = ocs_rating:rate(SubscriberID, interim, [], [{octets, Reservation}]),
 	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
 	false = lists:keyfind(cents, #bucket.bucket_type, RatedBuckets),
-	#bucket{remain_amount = PackageSize} = lists:keyfind(cents, #bucket.bucket_type, RatedBuckets).
+	#bucket{remain_amount = PackageSize} = lists:keyfind(octets, #bucket.bucket_type, RatedBuckets).
 
 rate_octets_with_reservation_scenario_4() ->
 	[{userdata, [{doc, "This senario describ out of
