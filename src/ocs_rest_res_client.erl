@@ -495,16 +495,16 @@ client_json(#client{address = Addr, identifier = Id,
 %% Codec function for client
 client(#client{address = Address, secret = Secret,
 		port = Port, protocol = Protocol}) ->
-	Protocol1 = case Protocol of
-		radius ->
-			"RADIUS";
-		diameter ->
-			"DIAMETER"
-	end,
 	Id = inet:ntoa(Address),
-	{struct, [{"id", Id}, {"href","/ocs/v1/client/" ++ Id},
-		{secret, list_to_binary(Secret)}, {port, Port},
-		{protocol, Protocol1}]};
+	case Protocol of
+		radius ->
+			{struct, [{"id", Id}, {"href","/ocs/v1/client/" ++ Id},
+				{"secret", binary_to_list(Secret)}, {"port", Port},
+				{"protocol", "RADIUS"}]};
+		diameter ->
+			{struct, [{"id", Id}, {"href","/ocs/v1/client/" ++ Id},
+				{"protocol", "DIAMETER"}]}
+	end;
 client({struct, L}) when is_list(L) ->
 	client(L, #client{}).
 %% @hidden
@@ -524,5 +524,7 @@ client([{"protocol", "diameter"} | T], Acc) ->
 client([{"protocol", "DIAMETER"} | T], Acc) ->
 	client(T, Acc#client{protocol = diameter});
 client([{"secret", Secret} | T], Acc) ->
-	client(T, Acc#client{protocol = list_to_binary(Secret)}).
+	client(T, Acc#client{secret = list_to_binary(Secret)});
+client([], Acc) ->
+	Acc.
 
