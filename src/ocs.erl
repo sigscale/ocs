@@ -926,6 +926,8 @@ add_user(Username, Password, Language) when is_list(Username),
 				{error, Reason} ->
 					{error, Reason}
 			end;
+		{error, Reason} ->
+			{error, Reason};
 		{ok, _} ->
 			{error, user_exists}
 	end.
