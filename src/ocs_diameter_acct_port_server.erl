@@ -519,17 +519,10 @@ generate_diameter_error(SId, ResultCode, OHost,
 	RequestType :: 1..4,
 	EventType :: start | interim | stop | event.
 %% @doc Converts CC-Request-Type integer value to a readable atom.
-accounting_event_type(RequestType) ->
-	case RequestType of 
-		1 ->
-			start;
-		2 ->
-			interim;
-		3 ->
-			stop;
-		4 ->
-			event
-	end.
+accounting_event_type(1) -> start;
+accounting_event_type(2) -> interim;
+accounting_event_type(3) -> stop;
+accounting_event_type(4) -> event.
 
 %% @hidden
 %% @doc Start a disconnect_fsm to send DIAMETER Abort-Session-Request
