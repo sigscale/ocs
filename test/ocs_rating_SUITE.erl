@@ -91,7 +91,8 @@ all() ->
 	rate_octets_with_reservation_scenario_2, rate_octets_with_reservation_scenario_3,
 	rate_octets_with_reservation_scenario_4, rate_octets_with_reservation_scenario_5,
 	rate_octets_with_reservation_scenario_6, rate_octets_with_debit_and_reservation_scenario_1,
-	rate_octets_with_debit_and_reservation_scenario_2].
+	rate_octets_with_debit_and_reservation_scenario_2, rate_octets_with_debit_and_reservation_scenario_3,
+	rate_octets_with_debit_and_reservation_scenario_4, rate_octets_with_debit_and_reservation_scenario_5].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -511,6 +512,87 @@ rate_octets_with_debit_and_reservation_scenario_2(_Config) ->
 	#bucket{remain_amount = OctetsRemain} = lists:keyfind(octets, #bucket.bucket_type, RatedBuckets),
 	OctetsRemain = PackageSize - Debit.
 
+rate_octets_with_debit_and_reservation_scenario_3() ->
+	[{userdata, [{doc, "Senario describ doing first debit given
+		usage and check for reservation, debit amount is equal to the
+		package size and reservation amount grater than avaliable remain amount"}]}].
+
+rate_octets_with_debit_and_reservation_scenario_3(_Config) ->
+	ProdID = ocs:generate_password(),
+	PackagePrice = 100,
+	PackageSize = 1000,
+	Price = #price{name = "overage", type = usage,
+		units = octets, size = PackageSize, amount = PackagePrice},
+	Product = #product{name = ProdID, price = [Price]},
+	{ok, _} = ocs:add_product(Product),
+	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
+	RemAmount = 199,
+	Debit = 1000,
+	Reservation = 1000,
+	Buckets = [#bucket{bucket_type = cents, remain_amount = RemAmount,
+		start_date = erlang:system_time(?MILLISECOND),
+		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
+	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
+	{out_of_credit, _} = ocs_rating:rate(SubscriberID, interim, [{octets, Debit}], [{octets, Reservation}]),
+	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
+	#bucket{remain_amount = CentsRemain} = lists:keyfind(cents, #bucket.bucket_type, RatedBuckets),
+	CentsRemain = RemAmount - PackagePrice,
+	false = lists:keyfind(octets, #bucket.bucket_type, RatedBuckets).
+
+rate_octets_with_debit_and_reservation_scenario_4() ->
+	[{userdata, [{doc, "Senario of suffient amount for dibit the
+		usage but not for the reservation"}]}].
+
+rate_octets_with_debit_and_reservation_scenario_4(_Config) ->
+	ProdID = ocs:generate_password(),
+	PackagePrice = 100,
+	PackageSize = 1000,
+	Price = #price{name = "overage", type = usage,
+		units = octets, size = PackageSize, amount = PackagePrice},
+	Product = #product{name = ProdID, price = [Price]},
+	{ok, _} = ocs:add_product(Product),
+	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
+	RemAmount = 200,
+	Debit = 1500,
+	Reservation = 1000,
+	Buckets = [#bucket{bucket_type = cents, remain_amount = RemAmount,
+		start_date = erlang:system_time(?MILLISECOND),
+		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
+	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
+	{out_of_credit, _} = ocs_rating:rate(SubscriberID, interim, [{octets, Debit}], [{octets, Reservation}]),
+	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
+	#bucket{remain_amount = OctetsRemain} = lists:keyfind(octets, #bucket.bucket_type, RatedBuckets),
+	OctetsRemain = (PackageSize * 2) - Debit,
+	false = lists:keyfind(cents, #bucket.bucket_type, RatedBuckets).
+
+rate_octets_with_debit_and_reservation_scenario_5() ->
+	[{userdata, [{doc, "Senario of insuffient amount for
+			dibit and the reservation"}]}].
+
+rate_octets_with_debit_and_reservation_scenario_5(_Config) ->
+	ProdID = ocs:generate_password(),
+	PackagePrice = 100,
+	PackageSize = 1000,
+	Price = #price{name = "overage", type = usage,
+		units = octets, size = PackageSize, amount = PackagePrice},
+	Product = #product{name = ProdID, price = [Price]},
+	{ok, _} = ocs:add_product(Product),
+	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
+	RemAmount = 50,
+	Debit = 1500,
+	Reservation = 1000,
+	Buckets = [#bucket{bucket_type = cents, remain_amount = RemAmount,
+		start_date = erlang:system_time(?MILLISECOND),
+		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
+	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
+	{out_of_credit, _} = ocs_rating:rate(SubscriberID, interim, [{octets, Debit}], [{octets, Reservation}]),
+	{ok, #subscriber{buckets = []}} = ocs:find_subscriber(SubscriberID).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
