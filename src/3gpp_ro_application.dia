@@ -6,8 +6,10 @@
 @inherits diameter_gen_base_rfc6733
 @inherits diameter_gen_3gpp
 @inherits diameter_gen_ietf
+   Called-Station-Id
    CC-Correlation-Id
    CC-Input-Octets
+   CC-Money
    CC-Output-Octets
    CC-Request-Number
    CC-Request-Type
@@ -15,21 +17,37 @@
    CC-Session-Failover
    CC-Time
    CC-Total-Octets
+   CC-Unit-Type
    Cost-Information
+   Cost-Unit
    Credit-Control-Failure-Handling
+   Currency-Code
    Direct-Debiting-Failure-Handling
+   Exponent
+   Filter-Id
+   Final-Unit-Action
    Final-Unit-Indication
    G-S-U-Pool-Identifier
    G-S-U-Pool-Reference
    Multiple-Services-Indicator
    Rating-Group
+   Redirect-Address-Type
+   Redirect-Server
+   Redirect-Server-Address
    Requested-Action
+   Restriction-Filter-Rule
    Service-Context-Id
    Service-Identifier
    Subscription-Id
+   Subscription-Id-Data
+   Subscription-Id-Type
    Tariff-Change-Usage
    Tariff-Time-Change
+   Unit-Value
    User-Equipment-Info
+   User-Equipment-Info-Type
+   User-Equipment-Info-Value
+   Value-Digits
    Validity-Time
 
 @messages
