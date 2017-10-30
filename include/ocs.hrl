@@ -35,9 +35,9 @@
 -record(client,
 		{address :: inet:ip_address(),
 		identifier = <<>> :: binary(),
-		port :: inet:port_number(),
+		port :: inet:port_number() | undefined,
 		protocol :: radius | diameter,
-		secret :: binary(),
+		secret :: binary() | undefined,
 		last_modified :: tuple()}).
 
 -record(alteration,

@@ -64,26 +64,40 @@ add_client(Address, Secret) ->
 -spec add_client(Address, Port, Protocol, Secret) -> Result
 	when
 		Address :: inet:ip_address(),
-		Port :: inet:port_number(),
+		Port :: inet:port_number() | undefined,
 		Protocol :: atom(),
-		Secret :: string() | binary(),
+		Secret :: string() | binary() | undefined,
 		Result :: ok.
 %% @doc Create an entry in the client table.
 %%
-add_client(Address, Port, Protocol, Secret) when is_list(Secret),
-		is_integer(Port), is_atom(Protocol), Port >= 0 ->
+add_client(Address, Port, Protocol, Secret) when is_list(Secret) ->
 	add_client(Address, Port, Protocol, list_to_binary(Secret));
 add_client(Address, Port, Protocol, Secret) when is_list(Address) ->
 	{ok, AddressTuple} = inet_parse:address(Address),
 	add_client(AddressTuple, Port, Protocol, Secret);
-add_client(Address, Port, Protocol, Secret) when is_tuple(Address),
+add_client(Address, Port, radius, Secret) when is_tuple(Address),
 		is_binary(Secret) ->
 	F = fun() ->
 				TS = erlang:system_time(?MILLISECOND),
 				N = erlang:unique_integer([positive]),
 				R = #client{address = Address, port = Port,
-						protocol = Protocol, secret = Secret,
+						protocol = radius, secret = Secret,
 						last_modified = {TS, N}},
+				mnesia:write(R)
+	end,
+	case mnesia:transaction(F) of
+		{atomic, ok} ->
+			ok;
+		{aborted, Reason} ->
+			exit(Reason)
+	end;
+add_client(Address, undefined, diameter, undefined)
+		when is_tuple(Address) ->
+	F = fun() ->
+				TS = erlang:system_time(?MILLISECOND),
+				N = erlang:unique_integer([positive]),
+				R = #client{address = Address, 
+						protocol = diameter, last_modified = {TS, N}},
 				mnesia:write(R)
 	end,
 	case mnesia:transaction(F) of
@@ -152,7 +166,7 @@ update_client(Address, Password) ->
 -spec update_client(Address, Port, Protocol)-> Result
 	when
 		Address :: string() | inet:ip_address(),
-		Port :: inet:port_number(),
+		Port :: inet:port_number() | undefined,
 		Protocol :: radius | diameter,
 		Result :: ok | {error, Reason},
 		Reason :: not_found | term().
@@ -160,9 +174,9 @@ update_client(Address, Password) ->
 update_client(Address, Port, Protocol) when is_list(Address) ->
 	{ok, AddressTuple} = inet_parse:address(Address),
 	update_client(AddressTuple, Port, Protocol);
-update_client(Address, Port, Protocol)
-		when is_tuple(Address), is_integer(Port),
-		((Protocol == radius) or (Protocol == diameter)) ->
+update_client(Address, Port, Protocol) when is_tuple(Address),
+		(((Protocol == radius) and is_integer(Port))
+		or ((Protocol == diamter) and (Port == undefined))) ->
 	F = fun() ->
 				case mnesia:read(client, Address, write) of
 					[Entry] ->

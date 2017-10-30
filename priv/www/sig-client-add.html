@@ -3,6 +3,7 @@
 <link rel="import" href="i18n-msg/i18n-msg.html">
 <link rel="import" href="i18n-msg/i18n-msg-behavior.html">
 <link rel="import" href="iron-ajax/iron-ajax.html">
+<link rel="import" href="iron-collapse/iron-collapse.html">
 <link rel="import" href="paper-dialog/paper-dialog.html">
 <link rel="import" href="paper-dropdown-menu/paper-dropdown-menu.html">
 <link rel="import" href="paper-listbox/paper-listbox.html">
@@ -96,28 +97,6 @@
 				</paper-tooltip>
 			</div>
 			<div>
-				<paper-input
-						id="addClientSecret"
-						class="secret"
-						name="secret"
-						label="[[i18n.secret]]">
-				</paper-input>
-				<paper-tooltip>
-					<i18n-msg msgid="secretTooltip">
-						Secret shared with the network access server, router or access point.
-					</i18n-msg>
-				</paper-tooltip>
-				<div class="generate">
-					<paper-checkbox
-						id="check"
-						on-change="checkboxchanged">
-						<i18n-msg msgid="gen">
-							Generate
-						</i18n-msg>
-					</paper-checkbox>
-				</div>
-			</div>
-			<div>
 				<paper-dropdown-menu id="protoDrop"
 						label="[[i18n.proto]]"
 						on-selected-item-changed="checkProto">
@@ -143,20 +122,44 @@
 					</i18n-msg>
 				</paper-tooltip>
 			</div>
-			<div>
-				<paper-input
-					id="addClientPort"
-					name="port"
-					label="[[i18n.listen]]"
-					type="number"
-					value=3799>
-				</paper-input>
-				<paper-tooltip>
-					<i18n-msg msgid="listenTooltip">
-						Port network access server, router or access point listens on
-					</i18n-msg>
-				</paper-tooltip>
-			</div>
+			<iron-collapse id="addClientRadiusHide">
+				<div>
+					<paper-input
+							id="addClientSecret"
+							class="secret"
+							name="secret"
+							label="[[i18n.secret]]">
+					</paper-input>
+					<paper-tooltip>
+						<i18n-msg msgid="secretTooltip">
+							Secret shared with the network access server, router or access point.
+						</i18n-msg>
+					</paper-tooltip>
+					<div class="generate">
+						<paper-checkbox
+							id="check"
+							on-change="checkboxchanged">
+							<i18n-msg msgid="gen">
+								Generate
+							</i18n-msg>
+						</paper-checkbox>
+					</div>
+				</div>
+				<div>
+					<paper-input
+						id="addClientPort"
+						name="port"
+						label="[[i18n.listen]]"
+						type="number"
+						value=3799>
+					</paper-input>
+					<paper-tooltip>
+						<i18n-msg msgid="listenTooltip">
+							Port network access server, router or access point listens on
+						</i18n-msg>
+					</paper-tooltip>
+				</div>
+			</iron-collapse>
 			<div class="buttons">
 				<paper-button dialog-confirm
 						raised
@@ -225,25 +228,25 @@
 			_addClientSubmit: function(event) {
 				var client = new Object();
 				client.id = this.$.addClientAddress.value;
-				client.port = parseInt(this.$.addClientPort.value);
 				switch(this.$.addClientProtocol.selected) {
 					case 0:
 						client.protocol = "RADIUS";
+						client.port = parseInt(this.$.addClientPort.value);
+						if (!this.$.addClientSecret.disabled) {
+							client.secret = this.$.addClientSecret.value;
+						}
 						break;
 					case 1:
 						client.protocol = "DIAMETER";
-				}
-				if (!this.$.addClientSecret.disabled) {
-					client.secret = this.$.addClientSecret.value;
 				}
 				this.$.addClientAjax.body = client;
 				this.$.addClientAjax.generateRequest();
 			},
 			checkProto: function(event) {
 				if(this.$.addClientProtocol.selected == 0) {
-					this.$.addClientPort.disabled = false;
+					this.$.addClientRadiusHide.show();
 				} else if(this.$.addClientProtocol.selected == 1) {
-					this.$.addClientPort.disabled = true;
+					this.$.addClientRadiusHide.hide();
 				}
 			},
 			_onLoadingChanged: function(event) {
@@ -263,7 +266,8 @@
 			_addClientResponse: function(event) {
 				document.getElementById("addClientToastSuccess").open();
 				this.$.addClientModal.close();
-				if (this.$.addClientAjax.body.secret == undefined) {
+				if ((this.$.addClientAjax.body.secret == undefined)
+						&& this.$.addClientAjax.lastResponse.secret) {
 					this.secret = this.$.addClientAjax.lastResponse.secret;
 					this.$.addClientSecretModal.open();
 				}

@@ -148,33 +148,43 @@ get_client1(Address, Filters) ->
 			RespObj2 = case Identifier == <<>> orelse Filters /= [] 
 					andalso not lists:member("identifier", Filters) of
 				true ->
-					[];
+					RespObj1;
 				false ->
-					[{"identifier", binary_to_list(Identifier)}]
+					[{"identifier", binary_to_list(Identifier)} | RespObj1]
 			end,
 			RespObj3 = case Filters == []
 					orelse lists:member("port", Filters) of
 				true ->
-					[{"port", Port}];
+					case Port of
+						undefined ->
+							RespObj2;
+						Port ->
+							[{"port", Port} | RespObj2]
+					end;
 				false ->
-					[]
+					RespObj2
 			end,
 			RespObj4 = case Filters == []
 					orelse lists:member("protocol", Filters) of
 				true ->
-					[{"protocol", string:to_upper(atom_to_list(Protocol))}];
+					[{"protocol",
+							string:to_upper(atom_to_list(Protocol))} | RespObj3];
 				false ->
-					[]
+					RespObj3
 			end,
 			RespObj5 = case Filters == []
 					orelse lists:member("secret", Filters) of
 				true ->
-					[{"secret", Secret}];
+					case Secret of
+						undefined ->
+							RespObj4;
+						Secret ->
+							[{"secret", Secret} | RespObj4]
+					end;
 				false ->
-					[]
+					RespObj4
 			end,
-			JsonObj = {struct, RespObj1 ++ RespObj2
-					++ RespObj3 ++ RespObj4 ++ RespObj5},
+			JsonObj = {struct, lists:reverse(RespObj5)},
 			Body = mochijson:encode(JsonObj),
 			Headers = [{content_type, "application/json"}, {etag, Etag}],
 			{ok, Headers, Body};
@@ -199,20 +209,31 @@ post_client(RequestBody) ->
 			{error, einval} ->
 				throw(400)
 		end,
-		Port = proplists:get_value("port", Object, 3799),
+		Port = proplists:get_value("port", Object, undefined),
 		Protocol = case proplists:get_value("protocol", Object, "radius") of
 			RADIUS when RADIUS =:= "radius"; RADIUS =:= "RADIUS" ->
 				radius;
 			DIAMETER when DIAMETER =:= "diameter"; DIAMETER =:= "DIAMETER" ->
 				diameter
 		end,
-		Secret = proplists:get_value("secret", Object, ocs:generate_password()),
+		Secret = case Protocol of
+			radius ->
+				proplists:get_value("secret", Object, ocs:generate_password());
+			diameter ->
+				undefined
+		end,
 		ok = ocs:add_client(Ip, Port, Protocol, Secret),
 		{ok, #client{last_modified = LM}} = ocs:find_client(Ip),
 		Location = "/ocs/v1/client/" ++ Id,
-		RespObj = [{"id", Id}, {"href", Location}, {"port", Port},
-				{"protocol", string:to_upper(atom_to_list(Protocol))}, {"secret", Secret}],
-		JsonObj  = {struct, RespObj},
+		RespObj1 = [{"id", Id}, {"href", Location},
+				{"protocol", string:to_upper(atom_to_list(Protocol))}],
+		RespObj2 = case Protocol of
+			radius ->
+				RespObj1 ++ [{"port", Port}, {"secret", Secret}];
+			diameter ->
+				RespObj1
+		end,
+		JsonObj  = {struct, RespObj2},
 		Body = mochijson:encode(JsonObj),
 		Headers = [{location, Location}, {etag, ocs_rest:etag(LM)}],
 		{ok, Headers, Body}
@@ -447,12 +468,22 @@ client_json(#client{address = Addr, identifier = Id,
 	Obj1 = [{"id", Address}, {"href", "/ocs/v1/client/" ++ Address}],
 	Obj2 = case Id of
 		<<>> ->
-			[];
+			Obj1;
 		_ ->
-			[{"identifier", binary_to_list(Id)}]
+			Obj1 ++ [{"identifier", binary_to_list(Id)}]
 	end,
-	Obj3 = [{"port", Port}],
-	Obj4 = [{"protocol", string:to_upper(atom_to_list(Protocol))}],
-	Obj5 = [{"secret", Secret}],
-	{struct, Obj1 ++ Obj2 ++ Obj3 ++ Obj4 ++ Obj5}.
+	Obj3 = case Port of
+		undefined ->
+			Obj2;
+		Port ->
+			Obj2 ++ [{"port", Port}]
+	end,
+	Obj4 = Obj3 ++ [{"protocol", string:to_upper(atom_to_list(Protocol))}],
+	Obj5 = case Secret of
+		undefined ->
+			Obj4;
+		Secret ->
+			Obj4 ++ [{"secret", Secret}]
+	end,
+	{struct, Obj5}.
 
