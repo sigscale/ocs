@@ -292,7 +292,7 @@ service_options(Options) ->
 			[{'Origin-Realm', Realm} | Options]
 	end,
 	Options1 ++  [{'Origin-Host', Hostname},
-	{'Vendor-Id', 10415},
+	{'Vendor-Id', 50386},
 	{'Product-Name', "SigScale AAA"},
 	{'Auth-Application-Id',
 			[?BASE_APPLICATION_ID,
