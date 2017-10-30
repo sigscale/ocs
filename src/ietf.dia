@@ -138,3 +138,76 @@
       { User-Equipment-Info-Type }
       { User-Equipment-Info-Value }
 
+@enum CC-Request-Type
+   INITIAL_REQUEST                  1
+   UPDATE_REQUEST                   2
+   TERMINATION_REQUEST              3
+   EVENT_REQUEST                    4
+
+@enum CC-Session-Failover
+   FAILOVER_NOT_SUPPORTED           0
+   FAILOVER_SUPPORTED               1
+
+@enum CC-Unit-Type
+   TIME                             0
+   MONEY                            1
+   TOTAL-OCTETS                     2
+   INPUT-OCTETS                     3
+   OUTPUT-OCTETS                    4
+   SERVICE-SPECIFIC-UNITS           5
+
+@enum Credit-Control-Failure-Handling
+   TERMINATE                        0
+   CONTINUE                         1
+   RETRY_AND_TERMINATE              2
+
+@enum Direct-Debiting-Failure-Handling
+   TERMINATE_OR_BUFFER              0
+   CONTINUE                         1
+
+@enum Final-Unit-Action
+   TERMINATE                        0
+   REDIRECT                         1
+   REDIRECT_ACCESS                  2
+
+@enum Multiple-Services-Indicator
+   MULTIPLE_SERVICES_NOT_SUPPORTED  0
+   MULTIPLE_SERVICES_SUPPORTED      1
+
+@enum Redirect-Address-Type
+   IPV4_ADDRESS                     0
+   IPV6_ADDRESS                     1
+   URL                              2
+   SIP_URI                          3
+
+@enum Requested-Action
+   DIRECT_DEBITING                  0
+   REFUND_ACCOUNT                   1
+   CHECK_BALANCE                    2
+   PRICE_ENQUIRY                    3
+
+@enum Subscription-Id-Type
+   END_USER_E164                    0
+   END_USER_IMSI                    1
+   END_USER_SIP_URI                 2
+   END_USER_NAI                     3
+   END_USER_PRIVATE                 4
+
+@enum Tariff-Change-Usage
+   UNIT_BEFORE_TARIFF_CHANGE        0
+   UNIT_AFTER_TARIFF_CHANGE         1
+   UNIT_INDETERMINATE               2
+
+@enum User-Equipment-Info-Type
+   IMEISV                           0
+   MAC                              1
+   EUI64                            2
+   MODIFIED_EUI64                   3
+
+@define Result-Code
+   END_USER_SERVICE_DENIED       4010
+   CREDIT_CONTROL_NOT_APPLICABLE 4011
+   CREDIT_LIMIT_REACHED          4012
+   USER_UNKNOWN                  5030
+   RATING_FAILED                 5031
+
