@@ -1,3 +1,8 @@
+2017-10-30  Kalpa Gunarathna <kalpa@sigscale.org>
+
+	* ocs_diameter_acct_port_server.erl : DIAMETER account logging
+	* ocs_rating.erl : add bucket rating support  
+
 2017-09-22  Prahveen Thiruchelvam <prahveen@sigscale.org>
 
 	* ocs_rest_pagination_server.erl : add REST pagination
