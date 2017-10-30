@@ -216,15 +216,42 @@ request(_, _, _, []) ->
 %% 	Log 5001 (unrecognized AVP) errors.
 %% @private
 errors(ServiceName, Capabilities, _Request, [{5001, _} | _] = Errors) ->
-	errors1(ServiceName, Capabilities, 5001, Errors);
-errors(_ServiceName, _Capabilities, _Request, [{ResultCode, _} | _]) ->
-	{answer_message, ResultCode};
-errors(_ServiceName, _Capabilities, _Request, [ResultCode | _]) ->
-	{answer_message, ResultCode}.
-%% @hidden
-errors1(ServiceName, Capabilities, ResultCode, Errors) ->
 	error_logger:error_report(["DIAMETER AVP unsupported",
 			{service_name, ServiceName}, {capabilities, Capabilities},
 			{errors, Errors}]),
+	{answer_message, 5001};
+errors(ServiceName, Capabilities, _Request, [{5004, _} | _] = Errors) ->
+	error_logger:error_report(["DIAMETER AVP invalid",
+			{service_name, ServiceName}, {capabilities, Capabilities},
+			{errors, Errors}]),
+	{answer_message, 5004};
+errors(ServiceName, Capabilities, _Request, [{5005, _} | _] = Errors) ->
+	error_logger:error_report(["DIAMETER AVP missing",
+			{service_name, ServiceName}, {capabilities, Capabilities},
+			{errors, Errors}]),
+	{answer_message, 5005};
+errors(ServiceName, Capabilities, _Request, [{5007, _} | _] = Errors) ->
+	error_logger:error_report(["DIAMETER AVPs contradicting",
+			{service_name, ServiceName}, {capabilities, Capabilities},
+			{errors, Errors}]),
+	{answer_message, 5007};
+errors(ServiceName, Capabilities, _Request, [{5008, _} | _] = Errors) ->
+	error_logger:error_report(["DIAMETER AVP not allowed",
+			{service_name, ServiceName}, {capabilities, Capabilities},
+			{errors, Errors}]),
+	{answer_message, 5008};
+errors(ServiceName, Capabilities, _Request, [{5009, _} | _] = Errors) ->
+	error_logger:error_report(["DIAMETER AVP too many times",
+			{service_name, ServiceName}, {capabilities, Capabilities},
+			{errors, Errors}]),
+	{answer_message, 5009};
+errors(ServiceName, Capabilities, _Request, [{5014, _} | _] = Errors) ->
+	error_logger:error_report(["DIAMETER AVP invalid length",
+			{service_name, ServiceName}, {capabilities, Capabilities},
+			{errors, Errors}]),
+	{answer_message, 5014};
+errors(_ServiceName, _Capabilities, _Request, [{ResultCode, _} | _]) ->
+	{answer_message, ResultCode};
+errors(_ServiceName, _Capabilities, _Request, [ResultCode | _]) ->
 	{answer_message, ResultCode}.
 

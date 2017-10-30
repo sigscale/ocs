@@ -38,6 +38,7 @@
 -include_lib("../include/diameter_gen_cc_application_rfc4006.hrl").
 -include_lib("../include/diameter_gen_3gpp_ro_application.hrl").
 -include_lib("../include/diameter_gen_3gpp.hrl").
+-include_lib("../include/diameter_gen_ietf.hrl").
 
 -define(SVC_AUTH, diameter_client_auth_service).
 -define(SVC_ACCT, diameter_client_acct_service).
@@ -439,7 +440,7 @@ diameter_disconnect_session(Config) ->
 	Usage3 = OrigBalance,
 	RequestNum3 = RequestNum2 + 1,
 	Answer3 = diameter_accounting_interim(SId, Username, RequestNum3, Usage3),
-	#'3gpp_ro_CCA'{'Result-Code' = ?'3GPP_RESULT-CODE_CREDIT_LIMIT_REACHED',
+	#'3gpp_ro_CCA'{'Result-Code' = ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
 			'CC-Request-Number' = RequestNum3} = Answer3.
