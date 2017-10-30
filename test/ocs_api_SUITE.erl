@@ -94,7 +94,8 @@ sequences() ->
 all() -> 
 	[client, get_all_clients, update_client_password, delete_client,
 	subscriber, update_password, update_attributes, delete_subscriber,
-	add_product, find_product, get_products, delete_product, add_user].
+	add_product, find_product, get_products, delete_product, add_user,
+	get_user].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -337,6 +338,19 @@ add_user(_Config) ->
 	user_data = UserData}} = mod_auth:get_user(User, Address, Port, Dir),
 	{_, Locale} = lists:keyfind(locale, 1, UserData),
 	{_, {E1, E2}} = lists:keyfind(last_modified, 1, UserData).
+
+get_user() ->
+	[{userdata, [{doc, "Look up a user from table"}]}].
+
+get_user(_Config) ->
+	User = "customer_care",
+	Password = ocs:generate_password(),
+	Locale = "en",
+	{ok, LastModified} = ocs:add_user(User, Password, Locale),
+	{ok, #httpd_user{username = User, password = Password,
+			user_data = UserData}} = ocs:get_user(User),
+	{_, Locale} = lists:keyfind(locale, 1, UserData),
+	{_, LastModified} = lists:keyfind(last_modified, 1, UserData).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
