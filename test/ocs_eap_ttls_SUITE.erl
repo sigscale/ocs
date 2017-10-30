@@ -86,7 +86,7 @@ init_per_suite(Config) ->
 	AuthAddress = {127, 0, 0, 1},
 	Protocol = ct:get_config(protocol),
 	SharedSecret = ct:get_config(radius_shared_secret),
-	ok = ocs:add_client(AuthAddress, 3799, Protocol, SharedSecret),
+	{ok, _} = ocs:add_client(AuthAddress, 3799, Protocol, SharedSecret),
 	NasId = atom_to_list(node()),
 	{ok, [{auth, DiaAuthInstance}, {acct, _}]} = application:get_env(ocs, diameter),
 	[{Address, Port, _}] = DiaAuthInstance,
@@ -114,7 +114,7 @@ end_per_suite(Config) ->
 init_per_testcase(TestCase, Config) when TestCase == eap_ttls_authentication_diameter ->
 	Address = {127, 0, 0, 1},
 	Port = 3868,
-	ok = ocs:add_client(Address, Port, diameter, "639cb6g"),
+	{ok, _} = ocs:add_client(Address, Port, diameter, "639cb6g"),
 	[{diameter_client, Address} | Config];
 init_per_testcase(_TestCase, Config) ->
 	AuthAddress = {127, 0, 0, 1},
