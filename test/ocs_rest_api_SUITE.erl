@@ -2372,7 +2372,7 @@ update_user_characteristics_json_patch(Config) ->
 	IndexLocale = F1(F1, Characteristic, "locale", 0),
 	JSON = {array, [
 			{struct, [{op, "add"}, {path, "/characteristic/" ++ IndexPassword}, {value, NewPwdObj}]},
-			{struct, [{op, "add"}, {path, "/characteristic/" ++ IndexLocale}, {value, NewLocaleObj}]}]},
+			{struct, [{op, "replace"}, {path, "/characteristic/" ++ IndexLocale}, {value, NewLocaleObj}]}]},
 	PatchBody = lists:flatten(mochijson:encode(JSON)),
 	PatchBodyLen = size(list_to_binary(PatchBody)),
 	RestPort = ?config(port, Config),
