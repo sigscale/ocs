@@ -293,7 +293,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 					{origin_host, OHost}]),
 			start_disconnect(SL, State),
 			{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
-					0, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
+					undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
 					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 			{reply, Reply, NewState};
 		{error, subscriber_not_found} ->
@@ -371,7 +371,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 						{origin_host, OHost}]),
 				start_disconnect(SL, State),
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
-						0, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
+						undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
 						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{error, subscriber_not_found} ->
@@ -435,7 +435,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 						{origin_host, OHost}]),
 				start_disconnect(SL, State),
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
-						0, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
+						undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
 						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{error, subscriber_not_found} ->
@@ -465,7 +465,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 				Request :: #'3gpp_ro_CCR'{},
 				SessionId :: string(),
 				Subscriber :: string() | binary(),
-				GrantedUnits :: #'3gpp_ro_Granted-Service-Unit'{},
+				GrantedUnits :: undefined | #'3gpp_ro_Granted-Service-Unit'{},
 				ResultCode :: integer(),
 				OriginHost :: string(),
 				OriginRealm :: string(),
@@ -477,6 +477,17 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 				Reply :: #'3gpp_ro_CCA'{}.
 %% @doc Send CCA to DIAMETER client indicating a successful operation.
 %% @hidden
+generate_diameter_answer(Request, SId, _Subscriber, undefined, ResultCode, OHost,
+		ORealm, AuthAppId, RequestType, RequestNum, #state{address = Address,
+		port = Port} = State) ->
+	Reply = #'3gpp_ro_CCA'{'Session-Id' = SId, 'Result-Code' = ResultCode,
+			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+			'Auth-Application-Id' = AuthAppId, 'CC-Request-Type' = RequestType,
+			'CC-Request-Number' = RequestNum},
+	Server = {Address, Port},
+	ok = ocs_log:acct_log(diameter, Server,
+			accounting_event_type(RequestType), Request, Reply),
+	{Reply, State};
 generate_diameter_answer(Request, SId, _Subscriber, GrantedUnits, ResultCode, OHost,
 		ORealm, AuthAppId, RequestType, RequestNum, #state{address = Address,
 		port = Port} = State) ->
