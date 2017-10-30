@@ -285,7 +285,7 @@ service_options(Options) ->
 			[{'Origin-Realm', Realm} | Options]
 	end,
 	Options1 ++  [{'Origin-Host', Hostname},
-		{'Vendor-Id', 10415},
+		{'Vendor-Id', 50386},
 		{'Product-Name', "SigScale OCS"},
 		{'Auth-Application-Id', [?BASE_APPLICATION_ID, ?RO_APPLICATION_ID]},
 		{restrict_connections, false},
