@@ -67,12 +67,18 @@ add_client(Address, Secret) ->
 	when
 		Address :: inet:ip_address(),
 		Port :: inet:port_number() | undefined,
-		Protocol :: atom(),
+		Protocol :: atom() | undefined,
 		Secret :: string() | binary() | undefined,
 		Result :: {ok, LastModified},
 		LastModified :: tuple().
 %% @doc Create an entry in the client table.
 %%
+add_client(Address, Port, Protocol, undefined) ->
+	add_client(Address, Port, Protocol, generate_password());
+add_client(Address, Port, undefined, Secret) ->
+	add_client(Address, Port, radius, Secret);
+add_client(Address, undefined, Protocol, Secret) ->
+	add_client(Address, 3799, Protocol, Secret);
 add_client(Address, Port, Protocol, Secret) when is_list(Secret) ->
 	add_client(Address, Port, Protocol, list_to_binary(Secret));
 add_client(Address, Port, Protocol, Secret) when is_list(Address) ->
