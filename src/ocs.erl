@@ -52,10 +52,12 @@
 %%  The ocs public API
 %%----------------------------------------------------------------------
 
--spec add_client(Address, Secret) -> ok
+-spec add_client(Address, Secret) -> Result
 	when
 		Address :: inet:ip_address(),
-		Secret :: string() | binary().
+		Secret :: string() | binary(),
+		Result :: {ok, LastModified},
+		LastModified :: tuple().
 %% @doc Create an entry in the client table.
 %%
 add_client(Address, Secret) ->
