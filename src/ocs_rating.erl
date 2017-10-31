@@ -217,7 +217,7 @@ charge(Type, Charge, _Now, true, [#bucket{bucket_type = Type,
 	{0, Charged + Charge, lists:reverse(Acc) ++ NewBuckets};
 charge(Type, Charge, _Now, false, [#bucket{bucket_type = Type,
 		remain_amount = R} | _] = B, Acc, Charged) when R > Charge ->
-	{Charge, Charged + Charge, B ++ Acc};
+	{0, Charged + Charge, B ++ Acc};
 charge(Type, Charge, Now, true, [#bucket{bucket_type = Type,
 		remain_amount = R} | T], Acc, Charged) when R =< Charge ->
 	charge(Type, Charge - R, Now, true, T, Acc, Charged + R);
