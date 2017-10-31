@@ -213,11 +213,11 @@ charge(Type, Charge, Now, Final, [#bucket{bucket_type = Type,
 charge(Type, Charge, _Now, true, [#bucket{bucket_type = Type,
 		remain_amount = R} = B | T], Acc, Charged) when R > Charge ->
 	NewBuckets = [B#bucket{remain_amount = R - Charge} | T],
-	{0, Charged + Charge, NewBuckets ++ Acc};
+	{0, Charged + Charge, lists:reverse(Acc) ++ NewBuckets};
 charge(cents, Charge, _Now, false, [#bucket{bucket_type = cents,
 		remain_amount = R} = B | T], Acc, Charged) when R > Charge ->
 	NewBuckets = [B#bucket{remain_amount = R - Charge} | T],
-	{0, Charged + Charge, NewBuckets ++ Acc};
+	{0, Charged + Charge, lists:reverse(Acc) ++ NewBuckets};
 charge(Type, Charge, _Now, false, [#bucket{bucket_type = Type,
 		remain_amount = R} | _] = B, Acc, Charged) when R > Charge ->
 	{Charge, Charged + Charge, B ++ Acc};
@@ -228,11 +228,11 @@ charge(Type, Charge, Now, false, [#bucket{bucket_type = Type,
 		remain_amount = R}  = B | T], Acc, Charged) when R =< Charge ->
 	charge(Type, Charge - R, Now, false, T, [B | Acc], Charged);
 charge(_Type, 0, _Now, _Final, Buckets, Acc, Charged) ->
-	{0, Charged, Buckets ++ Acc};
+	{0, Charged, lists:reverse(Acc) ++ Buckets};
 charge(Type, Charge, Now, Final, [H | T], Acc, Charged) ->
 	charge(Type, Charge, Now, Final, T, [H | Acc], Charged);
 charge(_Type, Charge, _Now, _Final, [], Acc, Charged) ->
-	{Charge, Charged, Acc}.
+	{Charge, Charged, lists:reverse(Acc)}.
 
 -spec purchase(Type, Price, Size, Used, Validity, Final, Buckets) -> Result
 	when
