@@ -148,7 +148,7 @@ get_client1(Address, Filters) ->
 			Json = client(Client),
 			FilteredJson = case Filters of
 				Filters when Filters =/= [], Client =/= #client{} ->
-					ocs_rest:filter(Filters, Json);
+					ocs_rest:filter("id,href," ++ Filters, Json);
 				_ ->
 					Json
 			end,
@@ -397,7 +397,7 @@ query_page1([], _, Acc) ->
 query_page1(Json, [], Acc) ->
 	lists:reverse(Json ++ Acc);
 query_page1([H | T], Filters, Acc) ->
-	query_page1(T, Filters, [ocs_rest:filter(Filters, H) | Acc]).
+	query_page1(T, Filters, [ocs_rest:filter("id,href," ++ Filters, H) | Acc]).
 
 -spec client(Client) -> Result
 	when
