@@ -230,17 +230,21 @@
 				}
 			},
 			updateClientAuth: function(event) {
-				this.$.updateClientAuthAjax.method = "PATCH";
-				this.$.updateClientAuthAjax.contentType = "application/json";
-				this.$.updateClientAuthAjax.url = "/ocs/v1/client/" + this.$.updateClientId.value;
-				var client = new Object();
-				client.secret = this.$.updateClientNewPassword.value;
-				this.$.updateClientAuthAjax.body = client;
-				this.$.updateClientAuthAjax.generateRequest();
+				var ajax = this.$.updateClientAuthAjax;
+				ajax.method = "PATCH";
+				ajax.contentType = "application/json-patch+json";
+				ajax.url = "/ocs/v1/client/" + this.$.updateClientId.value;
+				var clientPass = new Array();
+				var clientSec = new Object();
+				clientSec.op = "replace";
+				clientSec.path = "/secret";
+				clientSec.value = this.$.updateClientNewPassword.value;
+				clientPass.push(clientSec);
+				ajax.body = JSON.stringify(clientPass);;
+            ajax.generateRequest();
 			},
-			_updateClientAuthResponse: function (event) {
+			_updateClientAuthResponse: function(event) {
 				document.getElementById("updateClientToastSuccess").open();
-				this.$.updateClientNewPassword.value = "";
 				document.getElementById("clientGrid").clearCache();
 			},
 			_updateClientAuthError: function(event) {
@@ -248,18 +252,26 @@
 				this.$.updateClientToastError.open();
 			},
 			updateClientProperties: function(event) {
-				this.$.updateClientPropertiesAjax.method = "PATCH";
-				this.$.updateClientPropertiesAjax.contentType = "application/json";
-				this.$.updateClientPropertiesAjax.url = "/ocs/v1/client/" + this.$.updateClientId.value;
-				var client = new Object();
-				client.port = parseInt(this.$.updateClientDisconnectPort.value);
-				client.protocol = this.$.updateClientProtocol.value;
-				this.$.updateClientPropertiesAjax.body = client;
-				this.$.updateClientPropertiesAjax.generateRequest();
+				var editAjax =  this.$.updateClientPropertiesAjax;
+				editAjax.method = "PATCH";
+				editAjax.contentType = "application/json-patch+json";
+				editAjax.url = "/ocs/v1/client/" + this.$.updateClientId.value;
+				var clientArray = new Array();
+				var clientPort = new Object();
+				clientPort.op = "replace";
+				clientPort.path = "/port"
+				clientPort.value = parseInt(this.$.updateClientDisconnectPort.value);
+				clientArray.push(clientPort);
+				var clientPro = new Object();
+				clientPro.op = "replace";
+				clientPro.path = "/protocol";
+				clientPro.value = this.$.updateClientProtocol.value;
+				clientArray.push(clientPro);
+				editAjax.body = JSON.stringify(clientArray);;
+            editAjax.generateRequest();
 			},
 			_updateClientPropertiesResponse: function(event) {
 				document.getElementById("updateClientToastSuccess").open();
-				this.$.updateClientNewPassword.value = "";
 				document.getElementById("clientGrid").clearCache();
 			},
 			_updateClientPropertiesError: function(event) {
@@ -274,6 +286,7 @@
 				}
 			},
 			deleteClient: function(event) {
+console.log("alert1");
 			this.$.deleteClientAjax.method = "DELETE";
 				this.$.deleteClientAjax.url = "/ocs/v1/client/"
 						+ document.getElementById("clientGrid").selectedItems[0].id;
