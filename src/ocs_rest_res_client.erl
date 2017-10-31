@@ -140,53 +140,17 @@ get_client(_Id, _Query, _Filters) ->
 %% @hidden
 get_client1(Address, Filters) ->
 	case ocs:find_client(Address) of
-		{ok, #client{port = Port, identifier = Identifier,
-				protocol = Protocol, secret = Secret, last_modified = LM}} ->
-			Id = inet:ntoa(Address),
-			Etag = ocs_rest:etag(LM),
-			RespObj1 = [{"id", Id}, {"href", "/ocs/v1/client/" ++ Id}],
-			RespObj2 = case Identifier == <<>> orelse Filters /= [] 
-					andalso not lists:member("identifier", Filters) of
-				true ->
-					RespObj1;
-				false ->
-					[{"identifier", binary_to_list(Identifier)} | RespObj1]
+		{ok, #client{last_modified = LM} = Client} ->
+			Json = client(Client),
+			FilteredJson = case Filters of
+				[] ->
+					Json;
+				Filters ->
+					ocs_rest:filter(Filters, Json)
 			end,
-			RespObj3 = case Filters == []
-					orelse lists:member("port", Filters) of
-				true ->
-					case Port of
-						undefined ->
-							RespObj2;
-						Port ->
-							[{"port", Port} | RespObj2]
-					end;
-				false ->
-					RespObj2
-			end,
-			RespObj4 = case Filters == []
-					orelse lists:member("protocol", Filters) of
-				true ->
-					[{"protocol",
-							string:to_upper(atom_to_list(Protocol))} | RespObj3];
-				false ->
-					RespObj3
-			end,
-			RespObj5 = case Filters == []
-					orelse lists:member("secret", Filters) of
-				true ->
-					case Secret of
-						undefined ->
-							RespObj4;
-						Secret ->
-							[{"secret", Secret} | RespObj4]
-					end;
-				false ->
-					RespObj4
-			end,
-			JsonObj = {struct, lists:reverse(RespObj5)},
-			Body = mochijson:encode(JsonObj),
-			Headers = [{content_type, "application/json"}, {etag, Etag}],
+			Body = mochijson:encode(FilteredJson),
+			Headers = [{content_type, "application/json"},
+				{etag, ocs_rest:etag(LM)}],
 			{ok, Headers, Body};
 		{error, not_found} ->
 			{error, 404}
