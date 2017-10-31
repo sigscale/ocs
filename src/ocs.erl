@@ -56,8 +56,7 @@
 	when
 		Address :: inet:ip_address(),
 		Secret :: string() | binary(),
-		Result :: {ok, LastModified},
-		LastModified :: tuple().
+		Result :: {ok, #client{}}.
 %% @doc Create an entry in the client table.
 %%
 add_client(Address, Secret) ->
@@ -94,11 +93,11 @@ add_client(Address, Port, radius, Secret) when is_tuple(Address),
 						protocol = radius, secret = Secret,
 						last_modified = LM},
 				ok = mnesia:write(R),
-				LM
+				R
 	end,
 	case mnesia:transaction(F) of
-		{atomic, LastModified} ->
-			{ok, LastModified};
+		{atomic, Client} ->
+			{ok, Client};
 		{aborted, Reason} ->
 			exit(Reason)
 	end;

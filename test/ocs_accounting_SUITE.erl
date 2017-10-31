@@ -104,7 +104,7 @@ init_per_testcase(TestCase, Config) when
 	{ok, EnvList} = application:get_env(ocs, diameter),
 	{acct, [{Address, Port, Options } | _]} = lists:keyfind(acct, 1, EnvList),
 	Secret = ocs:generate_password(),
-	ok = ocs:add_client(Address, Port, diameter, Secret),
+	{ok, _} = ocs:add_client(Address, Port, diameter, Secret),
 	InitialAmount = 1000000000,
 	Now = erlang:system_time(?MILLISECOND),
 	TD = Now + 86400000,
@@ -114,7 +114,7 @@ init_per_testcase(TestCase, Config) when
 	[{username, UserName}, {password, Password}, {init_bal, InitialAmount}] ++ Config;
 init_per_testcase(_TestCase, Config) ->
 	SharedSecret = ct:get_config(radius_shared_secret),
-	ok = ocs:add_client({127, 0, 0, 1}, 3799, radius, SharedSecret),
+	{ok, _} = ocs:add_client({127, 0, 0, 1}, 3799, radius, SharedSecret),
 	Config.
 
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
