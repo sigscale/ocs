@@ -147,10 +147,10 @@ get_client1(Address, Filters) ->
 		{ok, #client{last_modified = LM} = Client} ->
 			Json = client(Client),
 			FilteredJson = case Filters of
-				[] ->
-					Json;
-				Filters ->
-					ocs_rest:filter(Filters, Json)
+				Filters when Filters =/= [], Client =/= #client{} ->
+					ocs_rest:filter(Filters, Json);
+				_ ->
+					Json
 			end,
 			Body = mochijson:encode(FilteredJson),
 			Headers = [{content_type, "application/json"},
