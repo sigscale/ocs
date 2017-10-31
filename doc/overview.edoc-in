@@ -876,6 +876,7 @@ Etag: mm-m
 {
  "id": "10.2.53.9",
  "href": "/ocs/v1/client/10.2.53.9"
+ "identifier": "Nas_identifier",
  "port": 3799,
  "protocol": "RADIUS",
  "secret": "ksc8c244npqc",
@@ -933,6 +934,7 @@ Content-Length: nn
  {
   "id": "10.2.53.10",
   "href": "/ocs/v1/client/10.2.53.10"
+  "identifier": "Nas_identifier",
   "port": 3799,
   "protocol": "RADIUS",
   "secret": "rzambns7knr4",
