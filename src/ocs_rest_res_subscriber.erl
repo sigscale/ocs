@@ -28,6 +28,10 @@
 -include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
 
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
+
 -spec content_types_accepted() -> ContentTypes
 	when
 		ContentTypes :: list().
@@ -377,7 +381,8 @@ patch_subscriber1(Id, Etag, "application/json-patch+json", ReqBody) ->
 		case execute_json_patch_operations(Id, Etag, OpList) of
 			{ok, #subscriber{password = Password,
 					attributes = RadAttr, buckets = Buckets,
-					enabled = Enabled, multisession = MSession}} ->
+					enabled = Enabled, multisession = MSession,
+					last_modified = Etag1}} ->
 				Attributes = {array, radius_to_json(RadAttr)},
 				TotalBalance = accumulated_balance(Buckets),
 				RespObj =[{id, Id}, {href, "/ocs/v1/subscriber/" ++ Id},
@@ -385,11 +390,11 @@ patch_subscriber1(Id, Etag, "application/json-patch+json", ReqBody) ->
 				{totalBalance, TotalBalance}, {enabled, Enabled}, {multisession, MSession}],
 				JsonObj  = {struct, RespObj},
 				RespBody = mochijson:encode(JsonObj),
-				Headers = case Etag of
+				Headers = case Etag1 of
 					undefined ->
 						[];
 					_ ->
-						[{etag, ocs_rest:etag(Etag)}]
+						[{etag, ocs_rest:etag(Etag1)}]
 				end,
 				{ok, Headers, RespBody};
 			{error, Status} ->
@@ -701,7 +706,10 @@ patch_add(buckets , Value, _Location, OldBuckets, Subscriber) ->
 		Record :: #subscriber{}.
 %% @hidden
 do_write(Record) ->
-	mnesia:write(Record).
+	TS = erlang:system_time(?MILLISECOND),
+	N = erlang:unique_integer([positive]),
+	LM = {TS, N},
+	mnesia:write(Record#subscriber{last_modified = LM}).
 
 -spec accumulated_balance(Buckets) ->	AccumulatedBalance
 	when

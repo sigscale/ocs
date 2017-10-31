@@ -271,7 +271,7 @@ patch_client2(Address, _Etag, "application/json-patch+json", Client, Operations)
 				Body = mochijson:encode(Json),
 				{ok, Headers, Body};
 			{aborted, {throw, not_found}} ->
-				{error, 400};
+				{error, 404};
 			{aborted, _Reason} ->
 				{error, 500}
 		end
@@ -408,23 +408,39 @@ query_page1([H | T], Filters, Acc) ->
 %% Codec function for client
 client(#client{address = Address, secret = Secret,
 		port = Port, protocol = Protocol, identifier = Identifier}) ->
-	Id = inet:ntoa(Address),
-	ResObj1 = case Protocol of
+	ResObj1 = case Address of
+		InetAddress when is_tuple(InetAddress) ->
+			Id = inet:ntoa(Address),
+			[{"id", Id}, {"href","/ocs/v1/client/" ++ Id}];
+		Address ->
+			[{"id", Address}, {"href","/ocs/v1/client/" ++ Address}]
+	end,
+	ResObj2 = case Port of
+		undefined ->
+			[{"port", ""}];
+		Port ->
+			[{"port", Port}]
+	end,
+	ResObj3 = case Protocol of
 		radius ->
-			[{"id", Id}, {"href","/ocs/v1/client/" ++ Id},
-				{"secret", binary_to_list(Secret)}, {"port", Port},
-				{"protocol", "RADIUS"}];
+			[{"protocol", "RADIUS"}];
 		diameter ->
-			[{"id", Id}, {"href","/ocs/v1/client/" ++ Id},
-				{"protocol", "DIAMETER"}]
+			[{"protocol", "DIAMETER"}]
 	end,
-	ResObj2 = case Identifier of
-		Identifier1 when Identifier1 == undefined; Identifier1 == <<>> ->
-			ResObj1;
+	ResObj4 = case Secret of
+		Pwd when Pwd == undefined; Pwd == <<>> ->
+			[{"secret", ""}];
+		Secret ->
+			[{"secret", binary_to_list(Secret)}]
+	end,
+	ResObj5 = case Identifier of
+		Identy when Identy == undefined; Identy == <<>> ->
+			[{"identifier", ""}];
 		Identifier ->
-			[{"identifier", binary_to_list(Identifier)} | ResObj1]
+			[{"identifier", binary_to_list(Identifier)}]
 	end,
-	{struct, ResObj2};
+	ResObj = ResObj1 ++ ResObj2 ++ ResObj3 ++ ResObj4 ++ ResObj5,
+	{struct, ResObj};
 client({struct, L}) when is_list(L) ->
 	client(L, #client{}).
 %% @hidden
@@ -435,6 +451,8 @@ client([{"href", _} | T], Acc) ->
 	client(T, Acc);
 client([{"port", Port} | T], Acc) ->
 	client(T, Acc#client{port = Port});
+client([{"identifier", Identifier} | T], Acc) ->
+	client(T, Acc#client{identifier = list_to_binary(Identifier)});
 client([{"protocol", "radius"} | T], Acc) ->
 	client(T, Acc#client{protocol = radius});
 client([{"protocol", "RADIUS"} | T], Acc) ->

@@ -227,8 +227,7 @@
 				if (item != null){
 					var grid = this.$.clientGrid;
 					grid.selectedItems = item ? [item] : [];
-					var modal = document.getElementById("updateClientModal");
-					modal.open();
+					document.getElementById("updateClientModal").open();
 					document.getElementById("updateClientId").value = item.id;
 					document.getElementById("updateClientPassword").value = item.secret;
 					document.getElementById("updateClientDisconnectPort").value = item.port;
