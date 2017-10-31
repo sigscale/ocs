@@ -405,7 +405,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 				throw(multiple_service_credit_control_avp_not_available)
 		end,
 		{UsedType, UsedUsage} = case USU of
-			#'3gpp_ro_Used-Service-Unit'{'CC-Time' = CCTime} when CCTime =/= [] ->
+			#'3gpp_ro_Used-Service-Unit'{'CC-Time' = [CCTime]} when CCTime =/= [] ->
 				{seconds, CCTime};
 			#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets]} ->
 				{octets, CCTotalOctets};
