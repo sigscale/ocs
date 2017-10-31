@@ -407,17 +407,24 @@ query_page1([H | T], Filters, Acc) ->
 %% @private
 %% Codec function for client
 client(#client{address = Address, secret = Secret,
-		port = Port, protocol = Protocol}) ->
+		port = Port, protocol = Protocol, identifier = Identifier}) ->
 	Id = inet:ntoa(Address),
-	case Protocol of
+	ResObj1 = case Protocol of
 		radius ->
-			{struct, [{"id", Id}, {"href","/ocs/v1/client/" ++ Id},
+			[{"id", Id}, {"href","/ocs/v1/client/" ++ Id},
 				{"secret", binary_to_list(Secret)}, {"port", Port},
-				{"protocol", "RADIUS"}]};
+				{"protocol", "RADIUS"}];
 		diameter ->
-			{struct, [{"id", Id}, {"href","/ocs/v1/client/" ++ Id},
-				{"protocol", "DIAMETER"}]}
-	end;
+			[{"id", Id}, {"href","/ocs/v1/client/" ++ Id},
+				{"protocol", "DIAMETER"}]
+	end,
+	ResObj2 = case Identifier of
+		Identifier1 when Identifier1 == undefined; Identifier1 == <<>> ->
+			ResObj1;
+		Identifier ->
+			[{"identifier", binary_to_list(Identifier)} | ResObj1]
+	end,
+	{struct, ResObj2};
 client({struct, L}) when is_list(L) ->
 	client(L, #client{}).
 %% @hidden
