@@ -257,16 +257,16 @@
 				editAjax.contentType = "application/json-patch+json";
 				editAjax.url = "/ocs/v1/client/" + this.$.updateClientId.value;
 				var clientArray = new Array();
-				var clientPort = new Object();
-				clientPort.op = "replace";
-				clientPort.path = "/port"
-				clientPort.value = parseInt(this.$.updateClientDisconnectPort.value);
-				clientArray.push(clientPort);
 				var clientPro = new Object();
 				clientPro.op = "replace";
 				clientPro.path = "/protocol";
 				clientPro.value = this.$.updateClientProtocol.value;
 				clientArray.push(clientPro);
+				var clientPort = new Object();
+				clientPort.op = "replace";
+				clientPort.path = "/port"
+				clientPort.value = parseInt(this.$.updateClientDisconnectPort.value);
+				clientArray.push(clientPort);
 				editAjax.body = JSON.stringify(clientArray);;
             editAjax.generateRequest();
 			},
@@ -286,7 +286,6 @@
 				}
 			},
 			deleteClient: function(event) {
-console.log("alert1");
 			this.$.deleteClientAjax.method = "DELETE";
 				this.$.deleteClientAjax.url = "/ocs/v1/client/"
 						+ document.getElementById("clientGrid").selectedItems[0].id;
