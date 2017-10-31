@@ -271,7 +271,7 @@ patch_client2(Address, _Etag, "application/json-patch+json", Client, Operations)
 				Body = mochijson:encode(Json),
 				{ok, Headers, Body};
 			{aborted, {throw, not_found}} ->
-				{error, 400};
+				{error, 404};
 			{aborted, _Reason} ->
 				{error, 500}
 		end
