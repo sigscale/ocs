@@ -214,10 +214,6 @@ charge(Type, Charge, _Now, true, [#bucket{bucket_type = Type,
 		remain_amount = R} = B | T], Acc, Charged) when R > Charge ->
 	NewBuckets = [B#bucket{remain_amount = R - Charge} | T],
 	{0, Charged + Charge, lists:reverse(Acc) ++ NewBuckets};
-charge(cents, Charge, _Now, false, [#bucket{bucket_type = cents,
-		remain_amount = R} = B | T], Acc, Charged) when R > Charge ->
-	NewBuckets = [B#bucket{remain_amount = R - Charge} | T],
-	{0, Charged + Charge, lists:reverse(Acc) ++ NewBuckets};
 charge(Type, Charge, _Now, false, [#bucket{bucket_type = Type,
 		remain_amount = R} | _] = B, Acc, Charged) when R > Charge ->
 	{Charge, Charged + Charge, B ++ Acc};
@@ -271,7 +267,7 @@ purchase(Type, Price, Size, Used, Validity, Final, Buckets) ->
 			(Used div Size) + 1
 	end,
 	Charge = UnitsNeeded * Price,
-	case charge(cents, Charge, Final, Buckets) of
+	case charge(cents, Charge, true, Buckets) of
 		{RemainCharge, Charged, NewBuckets} when Charged < Charge ->
 			{RemainCharge, Charged, NewBuckets};
 		{RemainCharge, Charged, NewBuckets} when RemainCharge == 0, Charge == Charged ->
