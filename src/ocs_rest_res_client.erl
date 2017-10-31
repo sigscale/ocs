@@ -451,6 +451,8 @@ client([{"href", _} | T], Acc) ->
 	client(T, Acc);
 client([{"port", Port} | T], Acc) ->
 	client(T, Acc#client{port = Port});
+client([{"identifier", Identifier} | T], Acc) ->
+	client(T, Acc#client{identifier = list_to_binary(Identifier)});
 client([{"protocol", "radius"} | T], Acc) ->
 	client(T, Acc#client{protocol = radius});
 client([{"protocol", "RADIUS"} | T], Acc) ->
