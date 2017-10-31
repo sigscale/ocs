@@ -619,6 +619,14 @@
     "description": "Success Toast Message",
     "message": "Producto añadido"
   },
+   "productPriceAdded": {
+    "description": "Success Toast Message",
+    "message": "Producto precio añadido"
+  },
+   "productAlterationAdded": {
+    "description": "Success Toast Message",
+    "message": "Producto alteración añadido"
+  },
    "productUpdated": {
     "description": "Success Toast Message",
     "message": "Producto actualizado"
