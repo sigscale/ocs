@@ -773,8 +773,8 @@
 							newAlt.period = item.prices[index].productOfferPriceAlteration.recurringChargePeriod;
 							this.push('alterations', newAlt);
 						}
+						newPrice.alteration = this.alterations.findIndex(checkAlt1);
 					}
-					newPrice.alteration = this.alterations.findIndex(checkAlt1);
 					this.push('prices', newPrice);
 				} 
 			},
