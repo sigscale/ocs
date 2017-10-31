@@ -744,7 +744,21 @@
 						newPrice.end = item.prices[index].validFor.endDateTime;
 					}
 					newPrice.priceType = item.prices[index].priceType;
-					newPrice.size = item.prices[index].unitOfMeasure;
+					if (item.prices[index].unitOfMeasure) {
+						var unitOfMeasure = item.prices[index].unitOfMeasure;
+						switch(unitOfMeasure.charAt(unitOfMeasure.length - 1)) {
+							case "b":
+								newPrice.size = unitOfMeasure = parseInt(unitOfMeasure.slice(0, -1));
+								newPrice.unit = "b";
+								break;
+							case "s":
+								newPrice.size = parseInt(unitOfMeasure.slice(0, -1));
+								newPrice.unit = "s";
+								break;
+							default:
+								newPrice.unit = "c";
+						}
+					}
 					if(item.prices[index].price) {
 						newPrice.currency = item.prices[index].price.currencyCode;
 						newPrice.amount = item.prices[index].price.taxIncludedAmount;
