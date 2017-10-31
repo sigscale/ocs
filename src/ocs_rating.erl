@@ -64,7 +64,10 @@ rate(SubscriberID, Flag, DebitAmount, ReserveAmount) ->
 %% @doc
 rate(SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentification) when is_list(SubscriberID)->
 	rate(list_to_binary(SubscriberID), Flag, DebitAmount, ReserveAmount, SessionIdentification);
-rate(SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentification) ->
+rate(SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentification)
+		when is_binary(SubscriberID),
+		((Flag == inital) or (Flag == interim) or (Flag == final)),
+		is_list(DebitAmount), is_list(ReserveAmount), is_list(SessionIdentification) ->
 	F = fun() ->
 			case mnesia:read(subscriber, SubscriberID, write) of
 				[#subscriber{product = #product_instance{product = ProdID}} = Subscriber] ->
