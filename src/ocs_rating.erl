@@ -167,15 +167,35 @@ rate3(#subscriber{session_attributes = SessionList} = Subscriber,
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
 -spec charge(Type, Charge, Final, Buckets) -> Result
 	when
 		Type :: octets | seconds | cents,
 		Charge :: integer(),
 		Final :: boolean(),
 		Buckets :: [#bucket{}],
-		Result :: {RemainCharge, Charged, Buckets},
-		RemainCharge :: integer(),
-		Charged :: integer().
+		Result :: {RemainingCharge, Charged, NewBuckets},
+		RemainingCharge :: integer(),
+		Charged :: integer(),
+		NewBuckets :: [#bucket{}].
+%% @doc Manage balance bucket reservations and debit amounts.
+%%
+%% 	Subscriber credit is kept in a `Buckets' list where
+%% 	each `#bucket{}' has a `Type', an expiration time and
+%% 	a remaining balance value. Charges may be made against
+%% 	the `Buckets' list in any `Type'. The buckets are
+%% 	processed starting with the oldest and expired buckets
+%% 	are ignored and removed. Buckets matching `Type' are
+%% 	are compared with `Charge'. If `Final' is `true' then
+%% 	 `Charge' amount is debited from the buckets. Empty
+%% 	buckets are removed.
+%%
+%% 	Returns `{RemainingCharge, Charged, Buckets}' where
+%% 	`Charge' is the total amount debited from the buckets,
+%% 	`RemainingCharge' is the left over amount not charged
+%% 	and `NewBuckets' is the updated bucket list.
+%%
+%% @private
 charge(Type, Charge, Final, Buckets) ->
 	Now = erlang:system_time(?MILLISECOND),
 	F = fun(#bucket{termination_date = T1},
@@ -195,8 +215,8 @@ charge(Type, Charge, _Now, true, [#bucket{bucket_type = Type,
 	NewBuckets = [B#bucket{remain_amount = R - Charge} | T],
 	{0, Charged + Charge, NewBuckets ++ Acc};
 charge(cents, Charge, _Now, false, [#bucket{bucket_type = cents,
-		remain_amount = R} = H | T], Acc, Charged) when R > Charge ->
-	NewBuckets = [H#bucket{remain_amount = R - Charge} | T],
+		remain_amount = R} = B | T], Acc, Charged) when R > Charge ->
+	NewBuckets = [B#bucket{remain_amount = R - Charge} | T],
 	{0, Charged + Charge, NewBuckets ++ Acc};
 charge(Type, Charge, _Now, false, [#bucket{bucket_type = Type,
 		remain_amount = R} | _] = B, Acc, Charged) when R > Charge ->
@@ -223,9 +243,26 @@ charge(_Type, Charge, _Now, _Final, [], Acc, Charged) ->
 		Validity :: integer(),
 		Final :: boolean(),
 		Buckets :: [#bucket{}],
-		Result :: {RemainCharge, Charged, Buckets},
-		RemainCharge :: integer(),
+		Result :: {RemainingCharge, Charged, Buckets},
+		RemainingCharge :: integer(),
 		Charged :: integer().
+%% @doc Manage usage pricing and debit monetary amount buckets.
+%%
+%% 	Subscribers are charged at a monetary rate of `Price' cents
+%% 	per `Unit' of `Used' service.  The total number of units
+%% 	required and total monetary amount is calculated and 
+%% 	debited from available cents buckets as in {@link charge/4}.
+%%
+%% 	If `Final' is `false' a new `Type' bucket with the total
+%% 	number of units required and expiration of `Validity' is
+%% 	added to `Buckets'.
+%%
+%% 	Returns `{RemainingCharge, Charged, Buckets}' where
+%% 	`Charge' is the total amount debited from the buckets,
+%% 	`RemainingCharge' is the left over amount not charged
+%% 	and `NewBuckets' is the updated bucket list.
+%%
+%% @private
 purchase(Type, Price, Size, Used, Validity, Final, Buckets) ->
 	UnitsNeeded = case (Used rem Size) of
 		0 ->
@@ -257,6 +294,7 @@ purchase(Type, Price, Size, Used, Validity, Final, Buckets) ->
 			{RemainCharge, Charged, NewBuckets}
 	end.
 
+%% @hidden
 remove_session(SessionList, [Candidate | T]) ->
 	remove_session(remove_session1(SessionList, Candidate), T);
 remove_session(SessionList, []) ->
