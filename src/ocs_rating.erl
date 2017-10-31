@@ -88,7 +88,7 @@ rate(SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentification)
 					case mnesia:read(product, ProdID, read) of
 						[#product{price = Prices}] ->
 							Validity = proplists:get_value(validity, Chars),
-							rate1(Subscriber, Validity, Prices, Flag,
+							rate1(Subscriber, Prices, Validity, Flag,
 									DebitAmount, ReserveAmount, SessionIdentification);
 						[] ->
 							throw(product_not_found)
