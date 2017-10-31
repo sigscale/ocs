@@ -165,7 +165,7 @@
   },
    "listen": {
     "description": "Listen Port of RADIUS Client",
-    "message": "RADIUS Listen Port"
+    "message": "Port"
   },
    "proto": {
     "description": "Protocol of Client",
