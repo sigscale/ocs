@@ -380,7 +380,7 @@ query_page(PageServer, Etag, Query, Filters, Start, End) ->
 				end
 			of
 				{SortedEvents, _NewQuery} ->
-					JsonObj = query_page1(lists:map(fun client_json/1, SortedEvents), Filters, []),
+					JsonObj = query_page1(lists:map(fun client/1, SortedEvents), Filters, []),
 					JsonArray = {array, JsonObj},
 					Body = mochijson:encode(JsonArray),
 					Headers = [{content_type, "application/json"},
@@ -399,31 +399,6 @@ query_page1(Json, [], Acc) ->
 	lists:reverse(Json ++ Acc);
 query_page1([H | T], Filters, Acc) ->
 	query_page1(T, Filters, [ocs_rest:filter(Filters, H) | Acc]).
-
-client_json(#client{address = Addr, identifier = Id,
-		port = Port, protocol = Protocol, secret = Secret}) ->
-	Address = inet:ntoa(Addr),
-	Obj1 = [{"id", Address}, {"href", "/ocs/v1/client/" ++ Address}],
-	Obj2 = case Id of
-		<<>> ->
-			Obj1;
-		_ ->
-			Obj1 ++ [{"identifier", binary_to_list(Id)}]
-	end,
-	Obj3 = case Port of
-		undefined ->
-			Obj2;
-		Port ->
-			Obj2 ++ [{"port", Port}]
-	end,
-	Obj4 = Obj3 ++ [{"protocol", string:to_upper(atom_to_list(Protocol))}],
-	Obj5 = case Secret of
-		undefined ->
-			Obj4;
-		Secret ->
-			Obj4 ++ [{"secret", Secret}]
-	end,
-	{struct, Obj5}.
 
 -spec client(Client) -> Result
 	when
