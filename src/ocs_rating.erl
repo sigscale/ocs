@@ -38,9 +38,9 @@
 		ReserveAmount :: [{Type, Amount}],
 		Type :: octets | seconds,
 		Amount :: integer(),
-		Result :: {ok, Subscriber, GrantAmount} | {out_of_credit, SessionList} | {error, Reason},
+		Result :: {ok, Subscriber, GrantedAmount} | {out_of_credit, SessionList} | {error, Reason},
 		Subscriber :: #subscriber{},
-		GrantAmount :: integer(),
+		GrantedAmount :: integer(),
 		SessionList :: [tuple()],
 		Reason :: term().
 %% @equiv rate(SubscriberID, Flag, DebitAmount, ReserveAmount, [])
@@ -56,12 +56,25 @@ rate(SubscriberID, Flag, DebitAmount, ReserveAmount) ->
 		SessionIdentification :: [tuple()],
 		Type :: octets | seconds,
 		Amount :: integer(),
-		Result :: {ok, Subscriber, GrantAmount} | {out_of_credit, SessionList} | {error, Reason},
+		Result :: {ok, Subscriber, GrantedAmount} | {out_of_credit, SessionList} | {error, Reason},
 		Subscriber :: #subscriber{},
-		GrantAmount :: integer(),
+		GrantedAmount :: integer(),
 		SessionList :: [tuple()],
 		Reason :: term().
-%% @doc
+%% @doc Handle rating and balance management for used and reserved unit amounts.
+%%
+%% 	Subscriber balance buckets are permanently reduced by the
+%% 	amount(s) in `DebitAmount' and `Type' buckets are allocated
+%% 	by the amount(s) in `ReserveAmount'. The subscribed product
+%% 	determines the price used to calculate the amount to be
+%% 	permanently debited from available `cents' buckets.
+%%
+%% 	Returns `{ok, Subscriber, GrantedAmount}' if successful or
+%% 	`{out_of_credit, SessionList}' if the subscriber's balance
+%% 	is insufficient to cover the `DebitAmount' and `ReserveAmount'.
+%% 	`SessionList' describes the known avtive sessions which
+%% 	should be disconnected.
+%%
 rate(SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentification) when is_list(SubscriberID)->
 	rate(list_to_binary(SubscriberID), Flag, DebitAmount, ReserveAmount, SessionIdentification);
 rate(SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentification)
@@ -85,8 +98,8 @@ rate(SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentification)
 			end
 	end,
 	case mnesia:transaction(F) of
-		{atomic, {grant, Sub, GrantAmount}} ->
-			{ok, Sub, GrantAmount};
+		{atomic, {grant, Sub, GrantedAmount}} ->
+			{ok, Sub, GrantedAmount};
 		{atomic, {out_of_credit, SL}} ->
 			{out_of_credit, SL};
 		{aborted, {throw, Reason}} ->
