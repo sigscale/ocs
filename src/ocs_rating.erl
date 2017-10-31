@@ -70,10 +70,13 @@ rate(SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentification)
 		is_list(DebitAmount), is_list(ReserveAmount), is_list(SessionIdentification) ->
 	F = fun() ->
 			case mnesia:read(subscriber, SubscriberID, write) of
-				[#subscriber{product = #product_instance{product = ProdID}} = Subscriber] ->
+				[#subscriber{product = #product_instance{product = ProdID,
+						characteristics = Chars}} = Subscriber] ->
 					case mnesia:read(product, ProdID, read) of
 						[#product{price = Prices}] ->
-							rate1(Subscriber, Prices, Flag, DebitAmount, ReserveAmount, SessionIdentification);
+							Validity = proplists:get_value(validity, Chars),
+							rate1(Subscriber, Validity, Prices, Flag,
+									DebitAmount, ReserveAmount, SessionIdentification);
 						[] ->
 							throw(product_not_found)
 					end;
@@ -92,16 +95,15 @@ rate(SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentification)
 			{error, Reason}
 	end.
 %% @hidden
-rate1(Subscriber, Prices, Flag, [], ReserveAmount, SessionIdentification) ->
-	rate2(Subscriber, Prices, Flag, ReserveAmount, SessionIdentification, 0);
-rate1(#subscriber{buckets = Buckets, product = #product_instance{characteristics = Chars}} =
-		Subscriber, Prices, Flag, DebitAmount, ReserveAmount, SessionIdentification) ->
+rate1(Subscriber, Prices, Validity, Flag, [], ReserveAmount, SessionIdentification) ->
+	rate2(Subscriber, Prices, Validity, Flag, ReserveAmount, SessionIdentification, 0);
+rate1(#subscriber{buckets = Buckets} = Subscriber, Prices, Validity, Flag,
+		DebitAmount, ReserveAmount, SessionIdentification) ->
 	try
-		Validity = proplists:get_value(validity, Chars),
 		#price{units = Type, size = Size, amount = Price} = lists:keyfind(usage, #price.type, Prices),
 		{Type, Used} = lists:keyfind(Type, 1, DebitAmount),
 		case charge(Type, Used, true, Buckets) of
-			{R1, C1, NB1} when R1 > 0 ->
+			{R1, _C1, NB1} when R1 > 0 ->
 				{R2, _C2, NB2}  = purchase(Type, Price, Size, R1, Validity, true, NB1),
 				{R2, NB2};
 			{R1, _C1, NB1} ->
@@ -113,22 +115,21 @@ rate1(#subscriber{buckets = Buckets, product = #product_instance{characteristics
 					RemainCharge, Flag, ReserveAmount, SessionIdentification);
 		{RemainCharge, NewBuckets} ->
 			rate2(Subscriber#subscriber{buckets = NewBuckets},
-					Prices, Flag, ReserveAmount, SessionIdentification, RemainCharge)
+					Prices, Validity, Flag, ReserveAmount, SessionIdentification, RemainCharge)
 	catch
 		_:_ ->
 			throw(price_not_found)
 	end.
 %% @hidden
-rate2(Subscriber, _Prices, Flag, [], SessionIdentification, Charged)  ->
+rate2(Subscriber, _Prices, _Validity, Flag, [], SessionIdentification, Charged)  ->
 	rate3(Subscriber, Charged, Flag, 0, SessionIdentification);
-rate2(#subscriber{buckets = Buckets, product = #product_instance{characteristics = Chars}} =
-		Subscriber, Prices, Flag, ReserveAmount, SessionIdentification, _Charged) ->
+rate2(#subscriber{buckets = Buckets} = Subscriber, Prices, Validity, Flag,
+		ReserveAmount, SessionIdentification, _Charged) ->
 	try
-		Validity = proplists:get_value(validity, Chars),
 		#price{units = Type, size = Size, amount = Price} = lists:keyfind(usage, #price.type, Prices),
 		{Type, Reserve} = lists:keyfind(Type, 1, ReserveAmount),
 		case charge(Type, Reserve, false, Buckets) of
-			{R1, C1, NB1} when R1 > 0 ->
+			{R1, _C1, NB1} when R1 > 0 ->
 				{R2, _C2, NB2} = purchase(Type, Price, Size, R1, Validity, false, NB1),
 				{R2, NB2, Reserve};
 			{R1, _C1, NB1} ->
