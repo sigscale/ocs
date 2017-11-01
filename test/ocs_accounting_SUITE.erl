@@ -102,7 +102,7 @@ init_per_testcase(TestCase, Config) when
 	Password = "TeRcEs",
 	ProdID = ?config(product_id, Config),
 	{ok, EnvList} = application:get_env(ocs, diameter),
-	{acct, [{Address, Port, Options } | _]} = lists:keyfind(acct, 1, EnvList),
+	{acct, [{Address, Port, _Options } | _]} = lists:keyfind(acct, 1, EnvList),
 	Secret = ocs:generate_password(),
 	{ok, _} = ocs:add_client(Address, Port, diameter, Secret),
 	InitialAmount = 1000000000,
@@ -369,11 +369,8 @@ diameter_accounting() ->
 
 diameter_accounting(Config) ->
 	Username = ?config(username, Config),
-	Password = ?config(password, Config),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
-	OriginHost = list_to_binary("ocs.sigscale.com"),
-	OriginRealm = list_to_binary("sigscale.com"),
 	RequestNum = 0,
 	Answer0 = diameter_accounting_start(SId, Username, RequestNum),
 	true = is_record(Answer0, '3gpp_ro_CCA'),
@@ -398,12 +395,9 @@ diameter_disconnect_session() ->
 
 diameter_disconnect_session(Config) ->
 	Username = ?config(username, Config),
-	Password = ?config(password, Config),
 	OrigBalance = ?config(init_bal, Config),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
-	OriginHost = list_to_binary("ocs.sigscale.com"),
-	OriginRealm = list_to_binary("sigscale.com"),
 	RequestNum0 = 0,
 	Answer0 = diameter_accounting_start(SId, Username, RequestNum0),
 	true = is_record(Answer0, '3gpp_ro_CCA'),
@@ -436,7 +430,7 @@ diameter_disconnect_session(Config) ->
 			'Multiple-Services-Credit-Control' = [MultiServices_CC2]} = Answer2,
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = [GrantedUnits2]} = MultiServices_CC2,
-	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [Balance2]} = GrantedUnits2,
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [_Balance2]} = GrantedUnits2,
 	Usage3 = OrigBalance,
 	RequestNum3 = RequestNum2 + 1,
 	Answer3 = diameter_accounting_interim(SId, Username, RequestNum3, Usage3),

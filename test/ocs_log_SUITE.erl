@@ -245,7 +245,7 @@ diameter_log_acct_event(_Config) ->
 	Fany = fun({TS, _, P, N, S, RType, Req, Rsp})
 					when P == Protocol, TS >= Start, TS =< End, N == Node,
 					S == Server, RType == RequestType,
-					is_record(Req, '3gpp_ro_CCR'), is_record(Req, '3gpp_ro_CCA') ->
+					is_record(Req, '3gpp_ro_CCR'), is_record(Rsp, '3gpp_ro_CCA') ->
 				true;
 			(_) ->
 				false	
