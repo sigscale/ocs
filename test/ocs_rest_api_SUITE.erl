@@ -2498,6 +2498,7 @@ update_product(Config) ->
 	ContentType = "application/json",
 	RestUser = ct:get_config(rest_user),
 	RestPass = ct:get_config(rest_pass),
+	RestPort = ?config(port, Config),
 	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	AuthKey = "Basic " ++ Encodekey,
 	Authorization = {"authorization", AuthKey},
@@ -2512,12 +2513,17 @@ update_product(Config) ->
 	{struct, Product1} = mochijson:decode(ResponseBody),
 	RestPort = ?config(port, Config),
 	{_, ProductName} = lists:keyfind("name", 1, Product1),
-	Description = ocs:generate_password(),
+	{ok, Product2} = ocs:find_product(ProductName),
 	SslSock = ssl_socket_open({127,0,0,1}, RestPort),
-	ok = update_product_description(SslSock, RestPort, ProductName, Description, Etag),
-	Status = "Pending Active",
-	ok = update_product_status(SslSock, RestPort, ProductName, Status, Etag),
-	ok = update_product_price(SslSock, RestPort, ProductName, Etag),
+	PatchContentType = "application/json-patch+json",
+	Json = {array, [product_description(), product_status(),
+			prod_price_name(), prod_price_description(),
+			prod_price_ufm(), prod_price_type(), pp_alter_description(),
+			pp_alter_type(), pp_alter_ufm(), prod_price_rc_period()]},
+	Body = lists:flatten(mochijson:encode(Json)),
+	{Headers2, Response2} = patch_request(SslSock,
+			RestPort, PatchContentType, Etag, AuthKey, ProductName, Body),
+	<<"HTTP/1.1 200", _/binary>> = Headers2,
 	ok = ssl_socket_close(SslSock).
 
 %%---------------------------------------------------------------------
@@ -2574,85 +2580,6 @@ product_offer() ->
 	ProdOfferPrice = {"productOfferingPrice", {array, [ProdOfferPrice1, ProdOfferPrice2]}},
 	[ProdName, ProdDescirption, IsBundle, IsCustomerVisible, ValidFor, ProdSpec, Status, ProdOfferPrice].
 
-update_product_description(SslSock, RestPort, ProdID, Description, Etag) ->
-	RestUser = ct:get_config(rest_user),
-	RestPass = ct:get_config(rest_pass),
-	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
-	AuthKey = "Basic " ++ Encodekey,
-	ContentType = "application/json-patch+json",
-	JSON = {array, [product_description(Description)]},
-	Body = lists:flatten(mochijson:encode(JSON)),
-	{Headers, Response} = patch_request(SslSock, RestPort, ContentType, Etag, AuthKey, ProdID, Body),
-	<<"HTTP/1.1 200", _/binary>> = Headers,
-	{struct, Object} = mochijson:decode(Response),
-	case lists:keyfind("description", 1, Object) of
-		{_, Description} ->
-			ok;
-		_ ->
-			{error, patch_pafiled}
-	end.
-
-update_product_status(SslSock, RestPort, ProdID, Status, Etag) ->
-	RestUser = ct:get_config(rest_user),
-	RestPass = ct:get_config(rest_pass),
-	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
-	AuthKey = "Basic " ++ Encodekey,
-	ContentType = "application/json-patch+json",
-	JSON = {array, [product_status(Status)]},
-	Body = lists:flatten(mochijson:encode(JSON)),
-	{Headers, Response} = patch_request(SslSock, RestPort, ContentType, Etag, AuthKey, ProdID, Body),
-	<<"HTTP/1.1 200", _/binary>> = Headers,
-	{struct, Object} = mochijson:decode(Response),
-	case lists:keyfind("lifecycleStatus", 1, Object) of
-		{_, Status} ->
-			ok;
-		_ ->
-			{error, patch_pafiled}
-	end.
-
-update_product_price(SslSock, RestPort, ProdID, Etag) ->
-	RestUser = ct:get_config(rest_user),
-	RestPass = ct:get_config(rest_pass),
-	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
-	AuthKey = "Basic " ++ Encodekey,
-	ContentType = "application/json-patch+json",
-	PPN = "FamilyPack Mega",
-	Des = "Update Family pack",
-	RCP = "daily",
-	UFM = "100b",
-	PrT = "one_time",
-	AltDes = "Alter Description Updated",
-	AltNam = "usage123",
-	AltPrT = "one_time",
-	AltUFM = "100m",
-	Index = 0,
-	JSON = {array, [prod_price_name(Index, PPN),
-				prod_price_description(Index, Des),
-				prod_price_rc_period(Index, RCP),
-				prod_price_ufm(Index, UFM),
-				prod_price_type(Index, PrT),
-				pp_alter_description(Index, AltDes),
-				pp_alter_name(Index, AltNam),
-				pp_alter_type(Index, AltPrT),
-				pp_alter_ufm(Index, AltUFM)]},
-	Body = lists:flatten(mochijson:encode(JSON)),
-	{Headers, Response} = patch_request(SslSock, RestPort, ContentType, Etag, AuthKey, ProdID, Body),
-	<<"HTTP/1.1 200", _/binary>> = Headers,
-	{struct, Object} = mochijson:decode(Response),
-	{_, {array, Prices}} = lists:keyfind("productOfferingPrice", 1, Object),
-	{struct, Price} = lists:nth(Index + 1, lists:reverse(Prices)),
-	{_, PPN} = lists:keyfind("name", 1, Price),
-	{_, Des} = lists:keyfind("description", 1, Price),
-	{_, RCP} = lists:keyfind("recurringChargePeriod", 1, Price),
-	{_, UFM} = lists:keyfind("unitOfMeasure", 1, Price),
-	{_, PrT} = lists:keyfind("priceType", 1, Price),
-	{_, {struct, Alter}} = lists:keyfind("productOfferPriceAlteration", 1, Price),
-	{_, AltDes} = lists:keyfind("description", 1, Alter),
-	{_, AltNam} = lists:keyfind("name", 1, Alter),
-	{_, AltPrT} = lists:keyfind("priceType", 1, Alter),
-	{_, AltUFM} = lists:keyfind("unitOfMeasure", 1, Alter),
-	ok.
-
 patch_request(SslSock, Port, ContentType, Etag, AuthKey, ProdID, ReqBody) when is_list(ReqBody) ->
 	BinBody = list_to_binary(ReqBody),
 	patch_request(SslSock, Port, ContentType, Etag, AuthKey, ProdID, BinBody);
@@ -2697,87 +2624,80 @@ product_name(ProdID) ->
 	Value = {"value", ProdID},
 	{struct, [Op, Path, Value]}.
 
-product_description(Description) ->
+product_description() ->
+	Description = ocs:generate_password(),
 	Op = {"op", "replace"},
 	Path = {"path", "/description"},
 	Value = {"value", Description},
 	{struct, [Op, Path, Value]}.
 
-product_status(Status) ->
+product_status() ->
+	Status = "In Design", 
 	Op = {"op", "replace"},
 	Path = {"path", "/lifecycleStatus"},
 	Value = {"value", Status},
 	{struct, [Op, Path, Value]}.
 
-prod_price_name(Index, Name) when is_integer(Index) ->
-	prod_price_name(integer_to_list(Index), Name);
-prod_price_name(Index, Name) when is_list(Index) ->
+prod_price_name() ->
+	Name = ocs:generate_password(),
 	Op = {"op", "replace"},
-	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/name"},
+	Path = {"path", "/productOfferingPrice/1/name"},
 	Value = {"value", Name},
 	{struct, [Op, Path, Value]}.
 
-prod_price_description(Index, Description) when is_integer(Index) ->
-	prod_price_description(integer_to_list(Index), Description);
-prod_price_description(Index, Description) when is_list(Index) ->
+prod_price_description() ->
+	Description = ocs:generate_password(),
 	Op = {"op", "replace"},
-	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/description"},
+	Path = {"path", "/productOfferingPrice/1/description"},
 	Value = {"value", Description},
 	{struct, [Op, Path, Value]}.
 
-prod_price_rc_period(Index, Period) when is_integer(Index) ->
-	prod_price_rc_period(integer_to_list(Index), Period);
-prod_price_rc_period(Index, Period) when is_list(Index) ->
-	Op = {"op", "replace"},
-	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/recurringChargePeriod"},
+prod_price_rc_period() ->
+	Period = "yearly",
+	Op = {"op", "add"},
+	Path = {"path", "/productOfferingPrice/1/recurringChargePeriod"},
 	Value = {"value", Period},
 	{struct, [Op, Path, Value]}.
 
-prod_price_ufm(Index, UFM) when is_integer(Index) ->
-	prod_price_ufm(integer_to_list(Index), UFM);
-prod_price_ufm(Index, UFM) when is_list(Index) ->
+prod_price_ufm() ->
+	UFM = "10000b",
 	Op = {"op", "replace"},
-	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/unitOfMeasure"},
+	Path = {"path", "/productOfferingPrice/1/unitOfMeasure"},
 	Value = {"value", UFM},
 	{struct, [Op, Path, Value]}.
 
-prod_price_type(Index, PT) when is_integer(Index) ->
-	prod_price_type(integer_to_list(Index), PT);
-prod_price_type(Index, PT) when is_list(Index) ->
+prod_price_type() ->
+	PT = "recurring",
 	Op = {"op", "replace"},
-	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/priceType"},
+	Path = {"path", "/productOfferingPrice/1/priceType"},
 	Value = {"value", PT},
 	{struct, [Op, Path, Value]}.
 
-pp_alter_name(Index, Name) when is_integer(Index) ->
-	pp_alter_name(integer_to_list(Index), Name);
-pp_alter_name(Index, Name) when is_list(Index) ->
+pp_alter_name() ->
+	Name = ocs:generate_password(),
 	Op = {"op", "replace"},
-	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/productOfferPriceAlteration/name"},
+	Path = {"path", "/productOfferingPrice/1/productOfferPriceAlteration/name"},
 	Value = {"value", Name},
 	{struct, [Op, Path, Value]}.
 
-pp_alter_description(Index, Des) when is_integer(Index) ->
-	pp_alter_description(integer_to_list(Index), Des);
-pp_alter_description(Index, Des) when is_list(Index) ->
+pp_alter_description() ->
+	Description = ocs:generate_password(),
 	Op = {"op", "replace"},
-	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/productOfferPriceAlteration/description"},
-	Value = {"value", Des},
+	Path = {"path", "/productOfferingPrice/1/productOfferPriceAlteration/description"},
+	Value = {"value", Description},
 	{struct, [Op, Path, Value]}.
 
-pp_alter_type(Index, PT) when is_integer(Index) ->
-	pp_alter_type(integer_to_list(Index), PT);
-pp_alter_type(Index, PT) when is_list(Index) ->
+pp_alter_type() ->
+	PT = "recurring",
 	Op = {"op", "replace"},
-	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/productOfferPriceAlteration/priceType"},
+	Path = {"path", "/productOfferingPrice/1/productOfferPriceAlteration/priceType"},
 	Value = {"value", PT},
 	{struct, [Op, Path, Value]}.
 
-pp_alter_ufm(Index, UFM) when is_integer(Index) ->
-	pp_alter_ufm(integer_to_list(Index), UFM);
-pp_alter_ufm(Index, UFM) when is_list(Index) ->
+pp_alter_ufm() ->
+	UFM = "1000b",
 	Op = {"op", "replace"},
-	Path = {"path", "/productOfferingPrice/" ++ Index ++ "/productOfferPriceAlteration/unitOfMeasure"},
+	Path = {"path", "/productOfferingPrice/1/productOfferPriceAlteration/unitOfMeasure"},
 	Value = {"value", UFM},
 	{struct, [Op, Path, Value]}.
 
