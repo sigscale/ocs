@@ -96,7 +96,7 @@ add_product_offering(ReqData) ->
 %% 	Add a new instance of a Product Offering subscription.
 add_product_inventory(ReqData) ->
 	try
-		{struct, Object} = mochijson:decode(ReqData),
+		{struct, _Object} = mochijson:decode(ReqData),
 		Headers = [{content_type, "application/json"}],
 		{ok, Headers, []}
 	catch
