@@ -94,9 +94,8 @@ init_per_testcase(TestCase, Config) when TestCase == eap_identity_over_diameter;
 		TestCase == pwd_id_over_diameter; TestCase == pwd_commit_over_diameter;
 		TestCase == pwd_confirm_over_diameter ->
 	{ok, [{auth, DiaAuthInstance}, _]} = application:get_env(ocs, diameter),
-	[{Address, Port, _}] = DiaAuthInstance,
-	Secret = "87dhcbwhc",
-	{ok, _} = ocs:add_client(Address, Port, diameter, Secret),
+	[{Address, _Port, _}] = DiaAuthInstance,
+	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined),
 	[{diameter_client, Address}] ++ Config;
 init_per_testcase(_TestCase, Config) ->
 	{ok, [{auth, RadAuthInstance}, {acct, _RadAcctInstance}]} = application:get_env(ocs, radius),
@@ -104,7 +103,7 @@ init_per_testcase(_TestCase, Config) ->
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, RadIP}, binary]),
 	SharedSecret = ct:get_config(radius_shared_secret),
 	Protocol = radius,
-	ok = ocs:add_client(RadIP, RadPort, Protocol, SharedSecret),
+	{ok, _} = ocs:add_client(RadIP, RadPort, Protocol, SharedSecret),
 	NasId = atom_to_list(node()),
 	[{nas_id, NasId}, {socket, Socket}, {radius_client, RadIP}] ++ Config.
 
