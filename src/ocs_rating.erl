@@ -33,7 +33,7 @@
 -spec rate(SubscriberID, Flag, DebitAmount, ReserveAmount) -> Result
 	when
 		SubscriberID :: string() | binary(),
-		Flag :: inital | interim | final,
+		Flag :: initial | interim | final,
 		DebitAmount :: [{Type, Amount}],
 		ReserveAmount :: [{Type, Amount}],
 		Type :: octets | seconds,
@@ -50,7 +50,7 @@ rate(SubscriberID, Flag, DebitAmount, ReserveAmount) ->
 -spec rate(SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentification) -> Result
 	when
 		SubscriberID :: string() | binary(),
-		Flag :: inital | interim | final,
+		Flag :: initial | interim | final,
 		DebitAmount :: [{Type, Amount}],
 		ReserveAmount :: [{Type, Amount}],
 		SessionIdentification :: [tuple()],
@@ -79,7 +79,7 @@ rate(SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentification) when
 	rate(list_to_binary(SubscriberID), Flag, DebitAmount, ReserveAmount, SessionIdentification);
 rate(SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentification)
 		when is_binary(SubscriberID),
-		((Flag == inital) or (Flag == interim) or (Flag == final)),
+		((Flag == initial) or (Flag == interim) or (Flag == final)),
 		is_list(DebitAmount), is_list(ReserveAmount), is_list(SessionIdentification) ->
 	F = fun() ->
 			case mnesia:read(subscriber, SubscriberID, write) of
