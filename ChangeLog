@@ -1,3 +1,7 @@
+2017-11-1  Kalpa Gunarathna <kalpa@sigscale.org>
+
+	* *html : minor bug fixes
+
 2017-10-31  Kalpa Gunarathna <kalpa@sigscale.org>
 
 	* ocs_diameter_acct_port_server.erl : DIAMETER codec fixes
