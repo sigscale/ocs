@@ -331,14 +331,20 @@ get_product_specs(_Query) ->
 %% 	<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>.
 patch_product_offering(ProdId, Etag, ReqData) ->
 	try
-		mochijson:decode(ReqData)
+		Etag1 = case Etag of
+			undefined ->
+				undefined;
+			Etag ->
+				ocs_rest:etag(Etag)
+		end,
+		{Etag1, mochijson:decode(ReqData)}
 	of
-		{array, _} = Operations ->
+		{Etag2, {array, _} = Operations} ->
 			F = fun() ->
 					case mnesia:read(product, ProdId, write) of
 						[Product1] when
-								Product1#product.last_modified == Etag;
-								Etag == undefined ->
+								Product1#product.last_modified == Etag2;
+								Etag2 == undefined ->
 							case catch ocs_rest:patch(Operations, offer(Product1)) of
 								{struct, _} = Product2  ->
 									Product3 = offer(Product2),
@@ -358,9 +364,9 @@ patch_product_offering(ProdId, Etag, ReqData) ->
 					end
 			end,
 			case mnesia:transaction(F) of
-				{atomic, {Product, Etag1}} ->
+				{atomic, {Product, Etag3}} ->
 					Location = "/catalogManagement/v1/productOffering/" ++ ProdId,
-					Headers = [{location, Location}, {etag, ocs_rest:etag(Etag1)}],
+					Headers = [{location, Location}, {etag, ocs_rest:etag(Etag3)}],
 					Body = mochijson:encode(Product),
 					{ok, Headers, Body};
 				{aborted, {throw, bad_request}} ->
