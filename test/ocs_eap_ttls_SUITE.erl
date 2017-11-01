@@ -114,7 +114,7 @@ end_per_suite(Config) ->
 init_per_testcase(TestCase, Config) when TestCase == eap_ttls_authentication_diameter ->
 	Address = {127, 0, 0, 1},
 	Port = 3868,
-	{ok, _} = ocs:add_client(Address, Port, diameter, "639cb6g"),
+	{ok, _} = ocs:add_client(Address, undefind, diameter, undefined),
 	[{diameter_client, Address} | Config];
 init_per_testcase(_TestCase, Config) ->
 	AuthAddress = {127, 0, 0, 1},

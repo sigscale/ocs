@@ -157,11 +157,9 @@ handle_error(_Reason, _Request, _ServiceName, _Peer) ->
 %% @doc Invoked when a request messge is received from the peer. 
 handle_request(#diameter_packet{msg = Request, errors = []} = P,
 		ServiceName, {_, Caps}) ->
-erlang:display({?MODULE, ?LINE, P}),
 	request(ServiceName, Caps, Request);
 handle_request(#diameter_packet{msg = Request, errors = Errors} = P,
 		ServiceName, {_, Caps}) ->
-erlang:display({?MODULE, ?LINE, P}),
 	errors(ServiceName, Caps, Request, Errors).
 
 %%----------------------------------------------------------------------

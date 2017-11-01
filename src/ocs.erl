@@ -68,10 +68,28 @@ add_client(Address, Secret) ->
 		Port :: inet:port_number() | undefined,
 		Protocol :: atom() | undefined,
 		Secret :: string() | binary() | undefined,
-		Result :: {ok, LastModified},
-		LastModified :: tuple().
+		Result :: {ok, #client{}}.
 %% @doc Create an entry in the client table.
 %%
+add_client(Address, Port, Protocol, Secret) when is_list(Address) ->
+	{ok, AddressTuple} = inet_parse:address(Address),
+	add_client(AddressTuple, Port, Protocol, Secret);
+add_client(Address, undefined, diameter, undefined)
+		when is_tuple(Address) ->
+	F = fun() ->
+				TS = erlang:system_time(?MILLISECOND),
+				N = erlang:unique_integer([positive]),
+				R = #client{address = Address,
+						protocol = diameter, last_modified = {TS, N}},
+				mnesia:write(R),
+				R
+	end,
+	case mnesia:transaction(F) of
+		{atomic, Client} ->
+			{ok, Client};
+		{aborted, Reason} ->
+			exit(Reason)
+	end;
 add_client(Address, Port, Protocol, undefined) ->
 	add_client(Address, Port, Protocol, generate_password());
 add_client(Address, Port, undefined, Secret) ->
@@ -80,9 +98,6 @@ add_client(Address, undefined, Protocol, Secret) ->
 	add_client(Address, 3799, Protocol, Secret);
 add_client(Address, Port, Protocol, Secret) when is_list(Secret) ->
 	add_client(Address, Port, Protocol, list_to_binary(Secret));
-add_client(Address, Port, Protocol, Secret) when is_list(Address) ->
-	{ok, AddressTuple} = inet_parse:address(Address),
-	add_client(AddressTuple, Port, Protocol, Secret);
 add_client(Address, Port, radius, Secret) when is_tuple(Address),
 		is_binary(Secret) ->
 	F = fun() ->
@@ -98,21 +113,6 @@ add_client(Address, Port, radius, Secret) when is_tuple(Address),
 	case mnesia:transaction(F) of
 		{atomic, Client} ->
 			{ok, Client};
-		{aborted, Reason} ->
-			exit(Reason)
-	end;
-add_client(Address, undefined, diameter, undefined)
-		when is_tuple(Address) ->
-	F = fun() ->
-				TS = erlang:system_time(?MILLISECOND),
-				N = erlang:unique_integer([positive]),
-				R = #client{address = Address, 
-						protocol = diameter, last_modified = {TS, N}},
-				mnesia:write(R)
-	end,
-	case mnesia:transaction(F) of
-		{atomic, ok} ->
-			ok;
 		{aborted, Reason} ->
 			exit(Reason)
 	end.

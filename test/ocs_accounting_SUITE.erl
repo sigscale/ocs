@@ -102,9 +102,8 @@ init_per_testcase(TestCase, Config) when
 	Password = "TeRcEs",
 	ProdID = ?config(product_id, Config),
 	{ok, EnvList} = application:get_env(ocs, diameter),
-	{acct, [{Address, Port, _Options } | _]} = lists:keyfind(acct, 1, EnvList),
-	Secret = ocs:generate_password(),
-	{ok, _} = ocs:add_client(Address, Port, diameter, Secret),
+	{acct, [{Address, _Port, _Options } | _]} = lists:keyfind(acct, 1, EnvList),
+	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined),
 	InitialAmount = 1000000000,
 	Now = erlang:system_time(?MILLISECOND),
 	TD = Now + 86400000,
@@ -563,7 +562,7 @@ client_acct_service_opts(Options) ->
 				{dictionary, diameter_gen_base_rfc6733},
 				{module, diameter_test_client_cb}]},
 		{application, [{alias, cc_app_test},
-				{dictionary, diameter_gen_cc_application_rfc4006},
+				{dictionary, diameter_gen_3gpp_ro_application},
 				{module, diameter_test_client_cb}]}].
 
 %% @hidden
