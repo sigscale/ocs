@@ -340,13 +340,14 @@ patch_product_offering(ProdId, Etag, ReqData) ->
 								Product1#product.last_modified == Etag;
 								Etag == undefined ->
 							case catch ocs_rest:patch(Operations, offer(Product1)) of
-								#product{} = Product2 ->
+								{struct, _} = Product2  ->
+									Product3 = offer(Product2),
 									TS = erlang:system_time(?MILLISECOND),
 									N = erlang:unique_integer([positive]),
 									LM = {TS, N},
-									Product3 = Product2#product{last_modified = LM},
-									ok = mnesia:write(Product3),
-									Product3;
+									Product4 = Product3#product{last_modified = LM},
+									ok = mnesia:write(Product4),
+									{Product2, LM};
 								_ ->
 									throw(bad_request)
 							end;
