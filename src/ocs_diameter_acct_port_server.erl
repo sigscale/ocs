@@ -275,7 +275,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 	SessionAttributes = [{'Origin-Host', OHost}, {'Origin-Realm', ORealm},
 		{'Destination-Host', DHost}, {'Destination-Realm', DRealm}, {'Session-Id', SId}],
 	ReserveAmount = [{ReqUsageType, ReqUsage}],
-	case ocs_rating:rate(Subscriber, inital, [], ReserveAmount, SessionAttributes) of
+	case ocs_rating:rate(Subscriber, initial, [], ReserveAmount, SessionAttributes) of
 		{ok, _, GrantedAmount} ->
 			GrantedUnits = case ReqUsageType of
 				seconds ->
