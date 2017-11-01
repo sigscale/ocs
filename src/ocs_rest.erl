@@ -295,6 +295,8 @@ patch_add([H | T], Value, {array, L}) ->
 %% @hidden
 patch_add([Name | []], Value, [], Acc) ->
 	lists:reverse([{Name, Value} | Acc]);
+patch_add([Name | []], Value, [{Name, _} | T], Acc) ->
+	lists:reverse(Acc) ++ [{Name, Value} | T];
 patch_add([Name | T1], Value1, [{Name, Value2} | T2], Acc) ->
 	Value3 = patch_add(T1, Value1, Value2),
 	lists:reverse(Acc) ++ [{Name, Value3} | T2];

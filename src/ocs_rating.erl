@@ -148,33 +148,36 @@ rate2(#subscriber{buckets = Buckets} = Subscriber, Prices, Validity, Flag,
 				{R1, C1, NB1}
 		end
 	of
-		{RemainingCharge, ReservedAmount, NewBuckets} ->
+		{0, ReservedAmount, NewBuckets} ->
 			rate3(Subscriber#subscriber{buckets = NewBuckets},
-					RemainingCharge, Flag, ReservedAmount, SessionIdentification)
+					0, Flag, ReservedAmount, SessionIdentification);
+		{RemainingCharge, ReservedAmount, _NewBuckets} ->
+			rate3(Subscriber, RemainingCharge,
+				Flag, ReservedAmount, SessionIdentification)
 	catch
 		_:_ ->
 			throw(price_not_found)
 	end.
 %% @hidden
 rate3(#subscriber{session_attributes = SessionList} = Subscriber,
-		Charged, _Flag, _ReserveAmount, _SessionIdentification)
-		when Charged > 0 ->
+		RemainingCharge, _Flag, _ReserveAmount, _SessionIdentification)
+		when RemainingCharge > 0 ->
 	Entry = Subscriber#subscriber{session_attributes = []},
 	ok = mnesia:write(Entry),
 	{out_of_credit, SessionList};
 rate3(#subscriber{session_attributes = SessionList} = Subscriber,
-		_Charged, initial, ReserveAmount, SessionIdentification) ->
+		_RemainingCharge, initial, ReserveAmount, SessionIdentification) ->
 	NewSessionList = update_session(SessionIdentification, SessionList),
 	Entry = Subscriber#subscriber{session_attributes = NewSessionList},
 	ok = mnesia:write(Entry),
 	{grant, Entry, ReserveAmount};
 rate3(#subscriber{session_attributes = SessionList} = Subscriber,
-		_Charged, final, ReserveAmount, SessionIdentification) ->
+		_RemainingCharge, final, ReserveAmount, SessionIdentification) ->
 	NewSessionList = remove_session(SessionList, SessionIdentification),
 	Entry = Subscriber#subscriber{session_attributes = NewSessionList},
 	ok = mnesia:write(Entry),
 	{grant, Entry, ReserveAmount};
-rate3(Subscriber, _Charged, interim, ReserveAmount, _SessionIdentification) ->
+rate3(Subscriber, _RemainingCharge, interim, ReserveAmount, _SessionIdentification) ->
 	ok = mnesia:write(Subscriber),
 	{grant, Subscriber, ReserveAmount}.
 
@@ -253,9 +256,9 @@ charge(_Type, Charge, _Now, _Final, [], Acc, Charged) ->
 		Validity :: integer(),
 		Final :: boolean(),
 		Buckets :: [#bucket{}],
-		Result :: {RemainingCharge, Charged, NewBuckets},
-		RemainingCharge :: integer(),
-		Charged :: integer(),
+		Result :: {RemainingUnits, UnitsCharged, NewBuckets},
+		RemainingUnits :: integer(),
+		UnitsCharged :: integer(),
 		NewBuckets :: [#bucket{}].
 %% @doc Manage usage pricing and debit monetary amount buckets.
 %%
@@ -268,10 +271,10 @@ charge(_Type, Charge, _Now, _Final, [], Acc, Charged) ->
 %% 	number of units required and expiration of `Validity' is
 %% 	added to `Buckets'.
 %%
-%% 	Returns `{RemainingCharge, Charged, NewBuckets}' where
-%% 	`Charged' is the total amount debited from the buckets,
-%% 	`RemainingCharge' is the left over amount not charged
-%% 	and `NewBuckets' is the updated bucket list.
+%% 	Returns `{RemainingUnits, UnitsCharged, NewBuckets}' where
+%% 	`UnitsCharged' is the total amount of units in the newly
+%%		created usage bucket, `RemainingUnits' is the left over
+%%		amount not charged and `NewBuckets' is the updated bucket list.
 %%
 %% @private
 purchase(Type, Price, Size, Used, Validity, Final, Buckets) ->
@@ -285,21 +288,22 @@ purchase(Type, Price, Size, Used, Validity, Final, Buckets) ->
 	case charge(cents, Charge, true, Buckets) of
 		{0, Charge, NewBuckets} when Final == true,
 				(UnitsNeeded * Size - Used) == 0 ->
-			{0, Charge, NewBuckets};
+			{0, UnitsNeeded * Size, NewBuckets};
 		{0, Charge, NewBuckets} when Final == false ->
 			Bucket = #bucket{bucket_type = Type,
 				remain_amount = UnitsNeeded * Size,
 				termination_date = Validity,
 				start_date = erlang:system_time(?MILLISECOND)},
-			{0, Charge, [Bucket | NewBuckets]};
+			{0, UnitsNeeded * Size, [Bucket | NewBuckets]};
 		{0, Charge, NewBuckets} when Final == true ->
 			Bucket = #bucket{bucket_type = Type,
 				remain_amount = UnitsNeeded * Size - Used,
 				termination_date = Validity,
 				start_date = erlang:system_time(?MILLISECOND)},
-			{0, Charge, [Bucket | NewBuckets]};
-		{RemainingCharge, Charged, NewBuckets} ->
-			{RemainingCharge, Charged, NewBuckets}
+			{0, UnitsNeeded * Size, [Bucket | NewBuckets]};
+		{_RemainingCharge, Charged, NewBuckets} ->
+			UnitsCharged = Charged div Price,
+			{UnitsNeeded - UnitsCharged, UnitsCharged, NewBuckets}
 	end.
 
 %% @hidden
