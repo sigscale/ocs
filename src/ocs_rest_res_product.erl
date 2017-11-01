@@ -358,8 +358,11 @@ patch_product_offering(ProdId, Etag, ReqData) ->
 					end
 			end,
 			case mnesia:transaction(F) of
-				{atomic, Product} ->
-					{ok,  Product};
+				{atomic, {Product, Etag1}} ->
+					Location = "/catalogManagement/v1/productOffering/" ++ ProdId,
+					Headers = [{location, Location}, {etag, ocs_rest:etag(Etag1)}],
+					Body = mochijson:encode(Product),
+					{ok, Headers, Body};
 				{aborted, {throw, bad_request}} ->
 					{error, 400};
 				{aborted, {throw, not_found}} ->
