@@ -177,7 +177,7 @@
   },
   "listen": {
     "description": "Listen Port of Client",
-    "message": "RADIUS Escuchar Puerto"
+    "message": "Puerto"
   },
   "proto": {
     "description": "Protocol of Client",
@@ -234,10 +234,6 @@
 	"authorClientTool": {
     "description": "Tooltip message for authorization client",
     "message": "Propiedades del servidor de acceso a la red, el router o el cliente de puntero de acceso."
-  },
-	"port": {
-    "description": "port for client",
-    "message": "Puerto"
   },
    "protoTool": {
     "description": "Tooltip mesage for update Protocol",
@@ -622,6 +618,14 @@
    "productAdded": {
     "description": "Success Toast Message",
     "message": "Producto añadido"
+  },
+   "productPriceAdded": {
+    "description": "Success Toast Message",
+    "message": "Producto precio añadido"
+  },
+   "productAlterationAdded": {
+    "description": "Success Toast Message",
+    "message": "Producto alteración añadido"
   },
    "productUpdated": {
     "description": "Success Toast Message",
