@@ -97,7 +97,7 @@ init_per_testcase(TestCase, Config) when
 	Password = "53cr37",
 	{ok, [{auth, AuthInstance}, {acct, _}]} = application:get_env(ocs, diameter),
 	[{Address, _Port, _}] = AuthInstance,
-	{ok, _} = ocs:add_client(Address, undefind, diameter, undefined),
+	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined),
 	Amount = 1000000,
 	Now = erlang:system_time(?MILLISECOND),
 	TD = Now + 86400000,
