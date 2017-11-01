@@ -1009,9 +1009,9 @@
 						}
 						if (item.alterations.unit && item.alterations.size) {
 							var len1 = item.alterations.size.length;
-							var m1 = item.alterations.size.charAt(len - 1);
+							var m1 = item.alterations.size.charAt(len1 - 1);
 							if(isNaN(parseInt(m1))) {
-								var s1 = item.alterations.size.slice(0, (len - 1));
+								var s1 = item.alterations.size.slice(0, (len1 - 1));
 							} else {
 								var s1 = item.alterations.size;
 							}
