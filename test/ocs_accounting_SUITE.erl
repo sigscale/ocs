@@ -562,7 +562,7 @@ client_acct_service_opts(Options) ->
 				{dictionary, diameter_gen_base_rfc6733},
 				{module, diameter_test_client_cb}]},
 		{application, [{alias, cc_app_test},
-				{dictionary, diameter_gen_cc_application_rfc4006},
+				{dictionary, diameter_gen_3gpp_ro_application},
 				{module, diameter_test_client_cb}]}].
 
 %% @hidden
