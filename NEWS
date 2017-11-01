@@ -1,7 +1,15 @@
-October 22 2017
+November 1 2017
+----------------
+	- Minor bug fixes
+
+October 31 2017
+----------------
+	- DIAMETER codec fixes
+
+October 30 2017
 ----------------
 	- version 3.0.2
-	- DIAMETER account logging 
+	- DIAMETER account logging
 	- Bucket rating
 
 September 22 2017

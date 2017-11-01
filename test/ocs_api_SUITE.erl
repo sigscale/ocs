@@ -362,7 +362,7 @@ delete_user(_Config) ->
 	{ok, _} = ocs:add_user(User, Password, Locale),
 	{ok, _} = ocs:get_user(User),
 	ok = ocs:delete_user(User),
-	{error, not_found} = ocs:get_user(User).
+	{error, no_such_user} = ocs:get_user(User).
 
 %%---------------------------------------------------------------------
 %%  Internal functions

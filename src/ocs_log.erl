@@ -512,7 +512,7 @@ auth_query1(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
 					RespAttrsMatch, {Cont, T}, Acc)
 	end;
 auth_query1(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
-		{Cont, [H | T]}, Acc) ->
+		{Cont, [_H | T]}, Acc) ->
 	auth_query1(Start, End, Protocol, Types, ReqAttrsMatch,
 			RespAttrsMatch, {Cont, T}, Acc);
 auth_query1(_, _, _, _, _, _, {eof, []}, Acc) ->

@@ -96,7 +96,7 @@ add_product_offering(ReqData) ->
 %% 	Add a new instance of a Product Offering subscription.
 add_product_inventory(ReqData) ->
 	try
-		{struct, Object} = mochijson:decode(ReqData),
+		{struct, _Object} = mochijson:decode(ReqData),
 		Headers = [{content_type, "application/json"}],
 		{ok, Headers, []}
 	catch
@@ -340,13 +340,14 @@ patch_product_offering(ProdId, Etag, ReqData) ->
 								Product1#product.last_modified == Etag;
 								Etag == undefined ->
 							case catch ocs_rest:patch(Operations, offer(Product1)) of
-								#product{} = Product2 ->
+								{struct, _} = Product2  ->
+									Product3 = offer(Product2),
 									TS = erlang:system_time(?MILLISECOND),
 									N = erlang:unique_integer([positive]),
 									LM = {TS, N},
-									Product3 = Product2#product{last_modified = LM},
-									ok = mnesia:write(Product3),
-									Product3;
+									Product4 = Product3#product{last_modified = LM},
+									ok = mnesia:write(Product4),
+									{Product2, LM};
 								_ ->
 									throw(bad_request)
 							end;
@@ -357,8 +358,11 @@ patch_product_offering(ProdId, Etag, ReqData) ->
 					end
 			end,
 			case mnesia:transaction(F) of
-				{atomic, Product} ->
-					{ok,  Product};
+				{atomic, {Product, Etag1}} ->
+					Location = "/catalogManagement/v1/productOffering/" ++ ProdId,
+					Headers = [{location, Location}, {etag, ocs_rest:etag(Etag1)}],
+					Body = mochijson:encode(Product),
+					{ok, Headers, Body};
 				{aborted, {throw, bad_request}} ->
 					{error, 400};
 				{aborted, {throw, not_found}} ->

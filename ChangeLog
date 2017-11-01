@@ -1,7 +1,15 @@
+2017-11-1  Kalpa Gunarathna <kalpa@sigscale.org>
+
+	* *html : minor bug fixes
+
+2017-10-31  Kalpa Gunarathna <kalpa@sigscale.org>
+
+	* ocs_diameter_acct_port_server.erl : DIAMETER codec fixes
+
 2017-10-30  Kalpa Gunarathna <kalpa@sigscale.org>
 
 	* ocs_diameter_acct_port_server.erl : DIAMETER account logging
-	* ocs_rating.erl : add bucket rating support  
+	* ocs_rating.erl : add bucket rating support
 
 2017-09-22  Prahveen Thiruchelvam <prahveen@sigscale.org>
 
@@ -17,18 +25,18 @@
 	* ocs_rest_res_user.erl : add rest user management
 	* ocs_rest_res_balance.erl : add balance management
 
-2017-05-15  Kalpa Gunarathna  <kalpa@sigscale.com>
+2017-05-15  Kalpa Gunarathna  <kalpa@sigscale.org>
 
-	* ocs_diameter*.erl : add DIAMETER protocol support 
+	* ocs_diameter*.erl : add DIAMETER protocol support
 	* ocs_rest_res_http.erl : retrieve http logs via REST API
 	* ocs_rest_res_access.erl : retrieve access logs via REST API
 	* ocs_rest_res_accounting.erl : retrieve accounting logs via REST API
 
-2017-03-14  Kalpa Gunarathna  <kalpa@sigscale.com>
+2017-03-14  Kalpa Gunarathna  <kalpa@sigscale.org>
 
 	* ocs_rest_res*.erl : perform RESTful operations
 	* ocs_log.erl : add IPDR log functionality
 	* mod_ocs_rest*.erl : add custom mods for inets, httpd server
 	* ocs_eap*.erl : add EAP authentication functionality
-	* ocs_radius*.erl : add RADIUS protocol support 
+	* ocs_radius*.erl : add RADIUS protocol support
 

@@ -262,7 +262,7 @@ rate_octets_with_debiting_scenario_6(_Config) ->
 	{ok, #subscriber{session_attributes = [SA2]}} = ocs:find_subscriber(SubscriberID).
 
 rate_octets_with_debiting_scenario_7() ->
-	[{userdata, [{doc, "This senario describ when inital call for the
+	[{userdata, [{doc, "This senario describ when initial call for the
 		rate function include the session attributes"}]}].
 
 rate_octets_with_debiting_scenario_7(_Config) ->
@@ -280,7 +280,7 @@ rate_octets_with_debiting_scenario_7(_Config) ->
 	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
 	SessionAttributes = [{?AcctSessionId, "1020303"}, {?NasIdentifier, "rate@sigscale"},
 		{?NasIpAddress, "10.0.0.1"}],
-	{ok, _, _} = ocs_rating:rate(SubscriberID, inital, [{octets, 100}], [], SessionAttributes),
+	{ok, _, _} = ocs_rating:rate(SubscriberID, initial, [{octets, 100}], [], SessionAttributes),
 	{ok, #subscriber{session_attributes = SessionList}} = ocs:find_subscriber(SubscriberID),
 	{_, SessionAttributes} = lists:nth(1, SessionList).
 
@@ -400,7 +400,7 @@ rate_octets_with_reservation_scenario_4(_Config) ->
 		start_date = erlang:system_time(?MILLISECOND),
 		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
 	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
-	{out_of_credit, []} = ocs_rating:rate(SubscriberID, intrim, [], [{octets, Reservation}]),
+	{out_of_credit, []} = ocs_rating:rate(SubscriberID, interim, [], [{octets, Reservation}]),
 	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = RemAmount} = lists:keyfind(cents, #bucket.bucket_type, RatedBuckets).
 
@@ -432,7 +432,7 @@ rate_octets_with_reservation_scenario_5(_Config) ->
 	{ok, #subscriber{session_attributes = []}} = ocs:find_subscriber(SubscriberID).
 
 rate_octets_with_reservation_scenario_6() ->
-	[{userdata, [{doc, "This senario describ when inital call for the
+	[{userdata, [{doc, "This senario describ when initial call for the
 		rate function include the session attributes"}]}].
 
 rate_octets_with_reservation_scenario_6(_Config) ->
@@ -450,7 +450,7 @@ rate_octets_with_reservation_scenario_6(_Config) ->
 	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
 	SessionAttributes = [{?AcctSessionId, "1020303"}, {?NasIdentifier, "rate@sigscale"},
 		{?NasIpAddress, "10.0.0.1"}],
-	{ok, _, _} = ocs_rating:rate(SubscriberID, inital, [], [{octets, 100}], SessionAttributes),
+	{ok, _, _} = ocs_rating:rate(SubscriberID, initial, [], [{octets, 100}], SessionAttributes),
 	{ok, #subscriber{session_attributes = SessionList}} = ocs:find_subscriber(SubscriberID),
 	{_, SessionAttributes} = lists:nth(1, SessionList).
 
