@@ -63,6 +63,7 @@
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include_lib("../include/diameter_gen_eap_application_rfc4072.hrl").
+-include_lib("kernel/include/inet.hrl").
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
@@ -225,8 +226,10 @@ eap_ttls_authentication_diameter(Config) ->
 			'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH',
 			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm,
 			'EAP-Payload' = [EapMsg]} = DEA1,
-	OriginHost = list_to_binary("ocs.sigscale.com"),
-	OriginRealm = list_to_binary("sigscale.com"),
+	{ok, HostName} = inet:gethostname(),
+	{ok, #hostent{h_name = Realm}} = inet:gethostbyname(HostName),
+	OriginHost = list_to_binary(HostName),
+	OriginRealm = list_to_binary(Realm),
 	#eap_packet{code = request, type = ?PWD, identifier = EapId1,
 			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
 	#eap_pwd{length = false, more = false, pwd_exch = id,
@@ -594,9 +597,10 @@ connect(SvcName, Opts)->
 
 %% @hidden
 client_service_opts() ->
-	{ok, Hostname} = inet:gethostname(),
-	[{'Origin-Host', Hostname},
-		{'Origin-Realm', "testdomain.com"},
+	OriginHost = ocs:generate_password() ++ "@siscale.org",
+	OriginRealm = ocs:generate_password() ++ "@siscale.org",
+	[{'Origin-Host', OriginHost},
+		{'Origin-Realm', OriginRealm},
 		{'Vendor-Id', 10415},
 		{'Product-Name', "SigScale Test Client (auth)"},
 		{'Auth-Application-Id', [?BASE_APPLICATION_ID,

@@ -34,6 +34,7 @@
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include_lib("../include/diameter_gen_nas_application_rfc7155.hrl").
+-include_lib("kernel/include/inet.hrl").
 -include("ocs_eap_codec.hrl").
 -include("ocs.hrl").
 
@@ -206,8 +207,10 @@ simple_authentication_diameter(Config) ->
 			'User-Name' = [Username], 'User-Password' = [Password]},
 	{ok, Answer} = diameter:call(?SVC, nas_app_test, NAS_AAR, []),
 	true = is_record(Answer, diameter_nas_app_AAA),
-	OriginHost = list_to_binary("ocs.sigscale.com"),
-	OriginRealm = list_to_binary("sigscale.com"),
+	{ok, HostName} = inet:gethostname(),
+	{ok, #hostent{h_name = Realm}} = inet:gethostbyname(HostName),
+	OriginHost = list_to_binary(HostName),
+	OriginRealm = list_to_binary(Realm),
 	#diameter_nas_app_AAA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?NAS_APPLICATION_ID,
 			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
@@ -270,8 +273,10 @@ out_of_credit_diameter(Config) ->
 			'User-Name' = [Username], 'User-Password' = [Password]},
 	{ok, Answer} = diameter:call(?SVC, nas_app_test, NAS_AAR, []),
 	true = is_record(Answer, diameter_nas_app_AAA),
-	OriginHost = list_to_binary("ocs.sigscale.com"),
-	OriginRealm = list_to_binary("sigscale.com"),
+	{ok, HostName} = inet:gethostname(),
+	{ok, #hostent{h_name = Realm}} = inet:gethostbyname(HostName),
+	OriginHost = list_to_binary(HostName),
+	OriginRealm = list_to_binary(Realm),
 	#diameter_nas_app_AAA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
 			'Auth-Application-Id' = ?NAS_APPLICATION_ID,
 			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
@@ -337,8 +342,10 @@ bad_password_diameter(Config) ->
 			'User-Name' = [Username], 'User-Password' = [InvalidPassword]},
 	{ok, Answer} = diameter:call(?SVC, nas_app_test, NAS_AAR, []),
 	true = is_record(Answer, diameter_nas_app_AAA),
-	OriginHost = list_to_binary("ocs.sigscale.com"),
-	OriginRealm = list_to_binary("sigscale.com"),
+	{ok, HostName} = inet:gethostname(),
+	{ok, #hostent{h_name = Realm}} = inet:gethostbyname(HostName),
+	OriginHost = list_to_binary(HostName),
+	OriginRealm = list_to_binary(Realm),
 	#diameter_nas_app_AAA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
 			'Auth-Application-Id' = ?NAS_APPLICATION_ID,
 			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
@@ -405,8 +412,10 @@ unknown_username_diameter(Config) ->
 			'User-Name' = [UnknownUsername], 'User-Password' = [Password]},
 	{ok, Answer} = diameter:call(?SVC, nas_app_test, NAS_AAR, []),
 	true = is_record(Answer, diameter_nas_app_AAA),
-	OriginHost = list_to_binary("ocs.sigscale.com"),
-	OriginRealm = list_to_binary("sigscale.com"),
+	{ok, HostName} = inet:gethostname(),
+	{ok, #hostent{h_name = Realm}} = inet:gethostbyname(HostName),
+	OriginHost = list_to_binary(HostName),
+	OriginRealm = list_to_binary(Realm),
 	#diameter_nas_app_AAA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_AUTHENTICATION_REJECTED',
 			'Auth-Application-Id' = ?NAS_APPLICATION_ID,
 			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
@@ -426,8 +435,10 @@ session_termination_diameter(Config) ->
 			'User-Name' = [Username], 'User-Password' = [Password]},
 	{ok, Answer} = diameter:call(?SVC, nas_app_test, NAS_AAR, []),
 	true = is_record(Answer, diameter_nas_app_AAA),
-	OriginHost = list_to_binary("ocs.sigscale.com"),
-	OriginRealm = list_to_binary("sigscale.com"),
+	{ok, HostName} = inet:gethostname(),
+	{ok, #hostent{h_name = Realm}} = inet:gethostbyname(HostName),
+	OriginHost = list_to_binary(HostName),
+	OriginRealm = list_to_binary(Realm),
 	#diameter_nas_app_AAA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?NAS_APPLICATION_ID,
 			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
@@ -436,8 +447,10 @@ session_termination_diameter(Config) ->
 			'Termination-Cause' = ?'DIAMETER_NAS_APP_TERMINATION-CAUSE_LOGOUT', 'User-Name' = [Username]},
 	{ok, Answer1} = diameter:call(?SVC, nas_app_test, NAS_STR, []),
 	true = is_record(Answer1, diameter_nas_app_STA),
-	OriginHost = list_to_binary("ocs.sigscale.com"),
-	OriginRealm = list_to_binary("sigscale.com"),
+	{ok, HostName} = inet:gethostname(),
+	{ok, #hostent{h_name = Realm}} = inet:gethostbyname(HostName),
+	OriginHost = list_to_binary(HostName),
+	OriginRealm = list_to_binary(Realm),
 	#diameter_nas_app_STA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm} = Answer1.
 
@@ -456,9 +469,10 @@ connect(SvcName, Opts)->
 
 %% @hidden
 client_service_opts() ->
-	{ok, Hostname} = inet:gethostname(),
-	[{'Origin-Host', Hostname},
-		{'Origin-Realm', "testdomain.com"},
+	OriginHost = ocs:generate_password() ++ "@siscale.org",
+	OriginRealm = ocs:generate_password() ++ "@siscale.org",
+	[{'Origin-Host', OriginHost},
+		{'Origin-Realm', OriginRealm},
 		{'Vendor-Id', 10415},
 		{'Product-Name', "SigScale Test Client (auth)"},
 		{'Auth-Application-Id', [?BASE_APPLICATION_ID,
