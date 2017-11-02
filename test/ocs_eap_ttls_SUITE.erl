@@ -88,8 +88,8 @@ init_per_suite(Config) ->
 	SharedSecret = ct:get_config(radius_shared_secret),
 	{ok, _} = ocs:add_client(AuthAddress, 3799, Protocol, SharedSecret),
 	NasId = atom_to_list(node()),
-	{ok, [{auth, DiaAuthInstance}, {acct, _}]} = application:get_env(ocs, diameter),
-	[{Address, Port, _}] = DiaAuthInstance,
+	{ok, DiameterConfig} = application:get_env(ocs, diameter),
+	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
 	true = diameter:subscribe(?SVC),
 	ok = diameter:start_service(?SVC, client_service_opts()),
 	{ok, _Ref} = connect(?SVC, Address, Port, diameter_tcp),
@@ -113,8 +113,7 @@ end_per_suite(Config) ->
 %%
 init_per_testcase(TestCase, Config) when TestCase == eap_ttls_authentication_diameter ->
 	Address = {127, 0, 0, 1},
-	Port = 3868,
-	{ok, _} = ocs:add_client(Address, undefind, diameter, undefined),
+	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined),
 	[{diameter_client, Address} | Config];
 init_per_testcase(_TestCase, Config) ->
 	AuthAddress = {127, 0, 0, 1},
@@ -160,8 +159,8 @@ eap_ttls_authentication_radius(Config) ->
 	Buckets = [#bucket{remain_amount = 1000, bucket_type = octets}],
 	{ok, _} = ocs:add_subscriber(Subscriber, PeerAuth, ProdID, [], Buckets, []),
 	Socket = ?config(socket, Config),
-	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, radius),
-	[{Address, Port, _}] = AuthInstance,
+	{ok, RadiusConfig} = application:get_env(ocs, radius),
+	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
 	NasId = ?config(nas_id, Config),
 	UserName = ct:get_config(radius_username),
 	Secret = ct:get_config(radius_shared_secret),
@@ -218,8 +217,8 @@ eap_ttls_authentication_diameter(Config) ->
 	Buckets = [#bucket{remain_amount = 1000, bucket_type = octets}],
 	ProdID = ?config(product_id, Config),
 	{ok, _} = ocs:add_subscriber(Subscriber, PeerAuth, ProdID, [], Buckets, []),
-	{ok, [{auth, DiaAuthInstance}, _]} = application:get_env(ocs, diameter),
-	[{Address, _Port, _}] = DiaAuthInstance,
+	{ok, DiameterConfig} = application:get_env(ocs, diameter),
+	{auth, [{Address, _Port, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
 	DEA1 = send_identity_diameter(SId, AnonymousName, EapId),
 	#diameter_eap_app_DEA{'Session-Id' = SIdbin, 'Auth-Application-Id' = ?EAP_APPLICATION_ID,
 			'Auth-Request-Type' =  ?'DIAMETER_BASE_AUTH-REQUEST-TYPE_AUTHORIZE_AUTHENTICATE',
