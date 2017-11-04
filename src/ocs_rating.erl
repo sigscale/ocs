@@ -305,7 +305,13 @@ purchase(Type, Price, Size, Used, Validity, Final, Buckets) ->
 			{UnitsNeeded - UnitsCharged, UnitsCharged, NewBuckets}
 	end.
 
-%% @hidden
+-spec remove_session(SessionIdentification, SessionList) ->NewSessionList
+	when
+		SessionIdentification :: [tuple()],
+		SessionList :: [tuple()],
+		NewSessionList :: [tuple()].
+%% @doc Remove session identification attributes set from active sessions list.
+%% @private
 remove_session(SessionList, [Candidate | T]) ->
 	remove_session(remove_session1(SessionList, Candidate), T);
 remove_session(SessionList, []) ->
@@ -329,7 +335,12 @@ remove_session1(SessionList, Candidate) ->
 	end,
 	lists:foldl(F, [], SessionList).
 
-
+-spec update_session(SessionIdentification, SessionList) ->NewSessionList
+	when
+		SessionIdentification :: [tuple()],
+		SessionList :: [tuple()],
+		NewSessionList :: [tuple()].
+%% @doc Add new session identification attributes set to active sessions list.
 %% @private
 update_session(SessionIdentification, SessionList) ->
 	update_session(SessionIdentification, SessionList, []).
