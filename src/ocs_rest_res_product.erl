@@ -512,7 +512,28 @@ characteristic_product_wlan() ->
 	Value3 = {"productSpecCharacteristicValue",
 			{array, [Type31, Type32, Type33, Type34, Type35]}},
 	Char3 = {struct, [Name3, Description3, Type3, Value3]},
-	[Char1, Char2, Char3].
+	Name4 = {"name", "radiusReserveTime"},
+	Description4 = {"description",
+		"Number of seconds to reserve on RADIUS Accouning-Start "
+		"and add to reported duration on Accounting-Interim reservation."},
+	Type4 = {"valueType", "integer"},
+	Type41 = {struct, [{"unitOfMeasure", "seconds"}, {"valueType", "integer"}]},
+	Type42 = {struct, [{"unitOfMeasure", "minutes"}, {"valueType", "integer"}]},
+	Value4 = {"productSpecCharacteristicValue", {array, [Type41, Type42]}},
+	Char4 = {struct, [Name4, Description4, Type4, Value4]},
+	Name5 = {"name", "radiusReserveOctets"},
+	Description5 = {"description",
+		"Number of octets to reserve on RADIUS Accouning-Start "
+		"and add to reported octetes used on Accounting-Interim reservation."},
+	Type5 = {"valueType", "integer"},
+	Type51 = {struct, [{"unitOfMeasure", "bytes"}, {"valueType", "integer"}]},
+	Type52 = {struct, [{"unitOfMeasure", "kilobytes"}, {"valueType", "integer"}]},
+	Type53 = {struct, [{"unitOfMeasure", "megabytes"}, {"valueType", "integer"}]},
+	Type54 = {struct, [{"unitOfMeasure", "gigabytes"}, {"valueType", "integer"}]},
+	Value5 = {"productSpecCharacteristicValue",
+			{array, [Type51, Type52, Type53, Type54]}},
+	Char5 = {struct, [Name5, Description5, Type5, Value5]},
+	[Char1, Char2, Char3, Char4, Char5].
 
 -spec offer_status(Status) -> Status
 	when
