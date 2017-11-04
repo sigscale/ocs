@@ -22,7 +22,6 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([rate/4, rate/5]).
--export([charge/4]).
 
 -include("ocs.hrl").
 
