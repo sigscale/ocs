@@ -408,13 +408,8 @@ query_page1([H | T], Filters, Acc) ->
 %% Codec function for client
 client(#client{address = Address, secret = Secret,
 		port = Port, protocol = Protocol, identifier = Identifier}) ->
-	ResObj1 = case Address of
-		InetAddress when is_tuple(InetAddress) ->
-			Id = inet:ntoa(Address),
-			[{"id", Id}, {"href","/ocs/v1/client/" ++ Id}];
-		Address ->
-			[{"id", Address}, {"href","/ocs/v1/client/" ++ Address}]
-	end,
+	Id = inet:ntoa(Address),
+	ResObj1 = [{"id", Id}, {"href","/ocs/v1/client/" ++ Id}],
 	ResObj2 = case Port of
 		undefined ->
 			[{"port", ""}];
