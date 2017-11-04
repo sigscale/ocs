@@ -310,7 +310,7 @@ get_product_specs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
 	Object = {array, [spec_product_network(),
 					spec_product_fixed_quantity_pkg(),
-					spec_product_rate_plane(),
+					spec_product_rate_plan(),
 					spec_product_wlan()]},
 	Body = mochijson:encode(Object),
 	{ok, Headers, Body};
@@ -408,7 +408,7 @@ product_spec("1") ->
 product_spec("2") ->
 	spec_product_fixed_quantity_pkg();
 product_spec("3") ->
-	spec_product_rate_plane();
+	spec_product_rate_plan();
 product_spec("4") ->
 	spec_product_wlan();
 product_spec(_) ->
@@ -461,7 +461,7 @@ spec_product_fixed_quantity_pkg() ->
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status]}.
 
 %% @hidden
-spec_product_rate_plane() ->
+spec_product_rate_plan() ->
 	Id = {"id", "3"},
 	Href = {"href", "/catalogManagement/v2/productSpecification/3"},
 	Name = {"name", "RatedPlanProductSpec"},
