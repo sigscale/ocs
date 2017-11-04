@@ -33,12 +33,12 @@
 
 %% define client table entries record
 -record(client,
-		{address :: inet:ip_address(),
+		{address :: inet:ip_address() | undefined,
 		identifier = <<>> :: binary(),
 		port :: inet:port_number() | undefined,
-		protocol :: radius | diameter,
+		protocol :: radius | diameter | undefined,
 		secret :: binary() | undefined,
-		last_modified :: tuple()}).
+		last_modified :: tuple() | undefined}).
 
 -record(alteration,
 		{name :: string() | undefined,
@@ -106,6 +106,6 @@
 		disconnect  = false :: boolean(),
 		session_attributes = [] :: [{pos_integer(), radius_attributes:attributes()}],
 		multisession = false :: boolean(),
-		last_modified :: tuple()}).
+		last_modified :: tuple() | undefined}).
 
 
