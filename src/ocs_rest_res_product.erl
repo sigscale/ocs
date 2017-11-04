@@ -504,7 +504,7 @@ characteristic_product_wlan() ->
 	Name3 = {"name", "topUpDuration"},
 	Description3 = {"description", "Validity period of each top up."},
 	Type3 = {"valueType", "integer"},
-	Value3 = {"productSpecCharacteristicValue", {array, [{struct, [Type2]}]}},
+	Value3 = {"productSpecCharacteristicValue", {array, [{struct, [Type3]}]}},
 	Char3 = {struct, [Name3, Description3, Type3, Value3]},
 	[Char1, Char2, Char3].
 
