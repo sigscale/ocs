@@ -655,7 +655,7 @@ offer([price | T], #product{price = Prices1} = P, Acc)
 	Prices2 = [price(Price) || Price <- Prices1],
 	offer(T, P, [{"productOfferingPrice", {array, Prices2}} | Acc]);
 offer([char_value_use | T], #product{char_value_use = CharValueUses} = P, Acc) ->
-	offer(T, P, [{"characteristic", char_value_uses(CharValueUses)} | Acc]);
+	offer(T, P, [{"prodSpecCharValueUse", char_value_uses(CharValueUses)} | Acc]);
 offer([last_modified | T], #product{last_modified = {Last, _}} = P, Acc)
 		when is_integer(Last) ->
 	offer(T, P, [{"lastUpdate", ocs_rest:iso8601(Last)} | Acc]);
