@@ -1245,7 +1245,7 @@ char_value([], Acc) ->
 query_start(Query, Filters, RangeStart, RangeEnd) ->
 	Name =  proplists:get_value("name", Query),
 	Des = proplists:get_value("description", Query),
-	Status = case lists:keyfind("licecycleStatus", 1, Query) of
+	Status = case lists:keyfind("lifecycleStatus", 1, Query) of
 		false ->
 			undefined;
 		{_, S} ->
@@ -1278,7 +1278,7 @@ query_page(PageServer, Etag, Query, Filters, Start, End) ->
 						{lists:keysort(#product.description, Products), Q1};
 					{value, {_, "-description"}, Q1} ->
 						{lists:reverse(lists:keysort(#product.description, Products)), Q1};
-					{value, {_, "licecycleStatus"}, Q1} ->
+					{value, {_, "lifecycleStatus"}, Q1} ->
 						{lists:keysort(#product.status, Products), Q1};
 					{value, {_, "-lifecycleStatus"}, Q1} ->
 						{lists:reverse(lists:keysort(#product.status, Products)), Q1};
