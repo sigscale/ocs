@@ -111,17 +111,13 @@ end_per_suite(Config) ->
 %% Initialization before each test case.
 %%
 init_per_testcase(_TestCase, Config) ->
-	{ok, [{auth, AuthInstance}, {acct, _AcctInstance}]} = application:get_env(ocs, radius),
-	[{IP, _Port, _}] = AuthInstance,
-	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, IP}, binary]),
-	[{socket, Socket} | Config].
+	Config.
 
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
 %% Cleanup after each test case.
 %%
-end_per_testcase(_TestCase, Config) ->
-	Socket = ?config(socket, Config),
-	ok =  gen_udp:close(Socket).
+end_per_testcase(_TestCase, _Config) ->
+	ok.
 
 -spec sequences() -> Sequences :: [{SeqName :: atom(), Testcases :: [atom()]}].
 %% Group test cases into a test sequence.
