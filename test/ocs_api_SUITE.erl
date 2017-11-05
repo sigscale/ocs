@@ -69,7 +69,7 @@ end_per_suite(Config) ->
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before each test case.
 %%
-init_per_testcase(_TestCase, _Config) ->
+init_per_testcase(_TestCase, Config) ->
 	Config.
 
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
