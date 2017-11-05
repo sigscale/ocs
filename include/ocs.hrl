@@ -52,6 +52,28 @@
 		amount :: integer() | undefined,
 		currency :: string() | undefined}).
 
+-record(char_value,
+		{default :: boolean() | undefined,
+		units :: string() | undefined,
+		start_date :: pos_integer() | undefined,
+		end_date :: pos_integer() | undefined,
+		value :: term() | undefined,
+		from :: term() | undefined,
+		to :: term() | undefined,
+		type :: string() | undefined, % Number | String | Boolean | DateTime | ...
+		interval :: open | closed | closed_bottom | closed_top | undefined,
+		regex :: {CompiledRegEx :: re:mp(), OriginalRegEx :: string()} | undefined}).
+
+-record(char_value_use,
+		{name :: string() | undefined,
+		description :: string() | undefined,
+		type :: string() | undefined, % Number | String | Boolean | DateTime | ...
+		min :: non_neg_integer() | undefined,
+		max :: pos_integer() | undefined,
+		start_date :: pos_integer() | undefined,
+		end_date :: pos_integer() | undefined,
+		values = [] :: [#char_value{}]}).
+
 -record(price,
 		{name :: string() | undefined,
 		description :: string() | undefined,
@@ -63,6 +85,7 @@
 		size :: integer() | undefined,
 		amount :: integer() | undefined,
 		currency :: string() | undefined,
+		char_value_use = [] :: [#char_value_use{}],
 		alteration :: #alteration{} | undefined}).
 
 -record(product,
@@ -74,7 +97,7 @@
 		status :: offer_status() | '_' | undefined,
 		specification :: '_' | string() | undefined,
 		price :: '_' | [#price{}] | undefined,
-		characteristics = [] :: [tuple()],
+		char_value_use = [] :: [#char_value_use{}],
 		last_modified :: tuple() | '_' | undefined}).
 
 -record(bucket,
@@ -92,7 +115,7 @@
 		start_date :: pos_integer(),
 		termination_date :: pos_integer(),
 		status :: product_status(),
-		characteristics = [] :: [tuple()],
+		characteristics = [] :: [{Name :: string(), Value :: term()}],
 		last_modified :: tuple() |  undefined}).
 
 %% define subscriber table entries record
@@ -107,5 +130,4 @@
 		session_attributes = [] :: [{pos_integer(), radius_attributes:attributes()}],
 		multisession = false :: boolean(),
 		last_modified :: tuple() | undefined}).
-
 

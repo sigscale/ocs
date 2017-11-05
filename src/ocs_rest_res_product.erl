@@ -654,9 +654,8 @@ offer([price | T], #product{price = Prices1} = P, Acc)
 		when is_list(Prices1) ->
 	Prices2 = [price(Price) || Price <- Prices1],
 	offer(T, P, [{"productOfferingPrice", {array, Prices2}} | Acc]);
-offer([characteristics | T], #product{characteristics = Chars} = P,
-		Acc) when length(Chars) > 0 ->
-	offer(T, P, [{"characteristic", characteristics(Chars)} | Acc]);
+offer([char_value_use | T], #product{char_value_use = CharValueUses} = P, Acc) ->
+	offer(T, P, [{"characteristic", char_value_uses(CharValueUses)} | Acc]);
 offer([last_modified | T], #product{last_modified = {Last, _}} = P, Acc)
 		when is_integer(Last) ->
 	offer(T, P, [{"lastUpdate", ocs_rest:iso8601(Last)} | Acc]);
@@ -705,8 +704,8 @@ offer([{"isCustomerVisible", Visible} | T], Acc) when is_boolean(Visible) ->
 offer([{"productOfferingPrice", {array, Prices1}} | T], Acc) when is_list(Prices1) ->
 	Prices2 = [price(Price) || Price <- Prices1],
 	offer(T, Acc#product{price = Prices2});
-offer([{"characteristic", Chars} | T], Acc) when is_list(Chars) ->
-	offer(T, Acc#product{characteristics = characteristics(Chars)});
+offer([{"prodSpecCharValueUse", {array, _} = CharValueUses} | T], Acc) ->
+	offer(T, Acc#product{char_value_use = char_value_uses(CharValueUses)});
 offer([{"lastUpdate", LastUpdate} | T], Acc) when is_list(LastUpdate) ->
 	offer(T, Acc);
 offer([], Acc) ->
@@ -777,6 +776,8 @@ price([amount | T], #price{amount = Amount} = P, Acc)
 	price(T, P, [{"price", Price} | Acc]);
 price([currency | T], P, Acc) ->
 	price(T, P, Acc);
+price([char_value_use | T], #price{char_value_use = CharValueUses} = P, Acc) ->
+	price(T, P, [{"prodSpecCharValueUse", char_value_uses(CharValueUses)} | Acc]);
 price([alteration | T], #price{alteration = Alteration} = P, Acc)
 		when is_record(Alteration, alteration) ->
 	price(T, P, [{"productOfferPriceAlteration", alteration(Alteration)} | Acc]);
@@ -854,6 +855,8 @@ price([{"price", {struct, L}} | T], Acc) when is_list(L) ->
 	price(T, Acc2);
 price([{"recurringChargePeriod", Period} | T], Acc) when is_list(Period) ->
 	price(T, Acc#price{period = price_period(Period)});
+price([{"prodSpecCharValueUse", {array, _} = CharValueUses} | T], Acc) ->
+	price(T, Acc#price{char_value_use = char_value_uses(CharValueUses)});
 price([{"productOfferPriceAlteration", {struct, L} = Alteration} | T], Acc)
 		when is_list(L) ->
 	price(T, Acc#price{alteration = alteration(Alteration)});
@@ -997,12 +1000,246 @@ alteration([{"recurringChargePeriod", Period} | T], Acc)
 alteration([], Acc) ->
 	Acc.
 
--spec characteristics(Characteristics) -> Characteristics
+-spec char_value_uses(CharValueUses) -> CharValueUses
 	when
-		Characteristics :: [tuple()].
-%% @doc CODEC for Product Specification Characteristics.
+		CharValueUses :: [#char_value_use{}] | {array, [tuple()]}.
+%% @doc CODEC for ProductSpecCharValueUses.
 %% @private
-characteristics([]) -> [].
+char_value_uses(CharValueUses) when is_list(CharValueUses) ->
+	{array, char_value_uses(CharValueUses, [])};
+char_value_uses({array, CharValueUses}) when is_list(CharValueUses) ->
+	char_value_uses(CharValueUses, []).
+%% @hidden
+char_value_uses([H | T], Acc) ->
+	char_value_uses(T, [char_value_use(H) | Acc]);
+char_value_uses([], Acc) ->
+	lists:reverse(Acc).
+
+-spec char_value_use(CharValueUse) -> CharValueUse
+	when
+		CharValueUse :: #char_value_use{} | {struct, [tuple()]}.
+%% @doc CODEC for ProductSpecCharValueUse.
+%% @private
+char_value_use(#char_value_use{} = C) ->
+	char_value_use(record_info(fields, char_value_use), C, []);
+char_value_use({struct, ObjectMembers}) when is_list(ObjectMembers) ->
+	char_value_use(ObjectMembers, #char_value_use{}).
+%% @hidden
+char_value_use([name | T], #char_value_use{name = undefined} = C, Acc) ->
+	char_value_use(T, C, Acc);
+char_value_use([name | T], #char_value_use{name = Name} = C, Acc)
+		when is_list(Name) ->
+	char_value_use(T, C, [{"name", Name} | Acc]);
+char_value_use([description | T],
+		#char_value_use{description = undefined} = C, Acc) ->
+	char_value_use(T, C, Acc);
+char_value_use([description | T],
+		#char_value_use{description = Description} = C, Acc)
+		when is_list(Description) ->
+	char_value_use(T, C, [{"description", Description} | Acc]);
+char_value_use([type | T], #char_value_use{type = undefined} = C, Acc) ->
+	char_value_use(T, C, Acc);
+char_value_use([type | T], #char_value_use{type = Type} = C, Acc)
+		when is_list(Type) ->
+	char_value_use(T, C, [{"valueType", Type} | Acc]);
+char_value_use([min | T], #char_value_use{min = undefined} = C, Acc) ->
+	char_value_use(T, C, Acc);
+char_value_use([min | T], #char_value_use{min = Min} = C, Acc)
+		when is_integer(Min) ->
+	char_value_use(T, C, [{"minCardinality", Min} | Acc]);
+char_value_use([max | T], #char_value_use{max = undefined} = C, Acc) ->
+	char_value_use(T, C, Acc);
+char_value_use([max | T], #char_value_use{max = Max} = C, Acc)
+		when is_integer(Max) ->
+	char_value_use(T, C, [{"maxCardinality", Max} | Acc]);
+char_value_use([start_date | T], #char_value_use{start_date = undefined,
+		end_date = undefined} = C, Acc) ->
+	char_value_use(T, C, Acc);
+char_value_use([start_date | T],
+		#char_value_use{start_date = Start, end_date = End} = C, Acc)
+		when is_integer(Start), is_integer(End) ->
+	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(Start)},
+			{"endDateTime", ocs_rest:iso8601(End)}]},
+	char_value_use(T, C, [{"validFor", ValidFor} | Acc]);
+char_value_use([start_date | T], #char_value_use{start_date = Start,
+		end_date = undefined} = C, Acc) when is_integer(Start) ->
+	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(Start)}]},
+	char_value_use(T, C, [{"validFor", ValidFor} | Acc]);
+char_value_use([start_date | T], #char_value_use{start_date = undefined,
+		end_date = End} = C, Acc) when is_integer(End) ->
+	ValidFor = {struct, [{"endDateTime", ocs_rest:iso8601(End)}]},
+	char_value_use(T, C, [{"validFor", ValidFor} | Acc]);
+char_value_use([end_date | T], #char_value_use{} = C, Acc) ->
+	char_value_use(T, C, Acc);
+char_value_use([values | T], #char_value_use{values = []} = C, Acc) ->
+	char_value_use(T, C, Acc);
+char_value_use([values | T], #char_value_use{values = Values} = C, Acc)
+		when is_list(Values) ->
+	char_value_use(T, C, [{"productSpecCharacteristicValue",
+			char_values(Values)} | Acc]);
+char_value_use([], _, Acc) ->
+	{struct, lists:reverse(Acc)}.
+%% @hidden
+char_value_use([{"name", Name} | T], Acc) when is_list(Name) ->
+	char_value_use(T, Acc#char_value_use{name = Name});
+char_value_use([{"description", Description} | T], Acc)
+		when is_list(Description) ->
+	char_value_use(T, Acc#char_value_use{description = Description});
+char_value_use([{"valuetype", ValueType} | T], Acc)
+		when is_list(ValueType) ->
+	char_value_use(T, Acc#char_value_use{type = ValueType});
+char_value_use([{"minCardinality", MinCardinality} | T], Acc)
+		when is_integer(MinCardinality) ->
+	char_value_use(T, Acc#char_value_use{min = MinCardinality});
+char_value_use([{"maxCardinality", MaxCardinality} | T], Acc)
+		when is_integer(MaxCardinality) ->
+	char_value_use(T, Acc#char_value_use{max = MaxCardinality});
+char_value_use([{"validFor", {struct, L}} | T], Acc) when is_list(L) ->
+	NewAcc = case {lists:keyfind("startDateTime", 1, L),
+			lists:keyfind("endDateTime", 1, L)} of
+		{{_, Start}, false} ->
+			Acc#char_value_use{start_date = ocs_rest:iso8601(Start)};
+		{{_, Start}, {_, End}} ->
+			Acc#char_value_use{start_date = ocs_rest:iso8601(Start),
+					end_date = ocs_rest:iso8601(End)};
+		{false, {_, End}} ->
+			Acc#char_value_use{end_date = ocs_rest:iso8601(End)}
+	end,
+	char_value_use(T, NewAcc);
+char_value_use([{"productSpecCharacteristicValue", {array, _} = Values} | T], Acc) ->
+	char_value_use(T, Acc#char_value_use{values = char_values(Values)});
+char_value_use([{"productSpecification", _} | T], Acc) ->
+	char_value_use(T, Acc);
+char_value_use([], Acc) ->
+	Acc.
+
+-spec char_values(CharValues) -> CharValues
+	when
+		CharValues :: [#char_value{}] | {array, [tuple()]}.
+%% @doc CODEC for ProductSpecCharacteristicValues.
+%% @private
+char_values(CharValues) when is_list(CharValues) ->
+	{array, char_values(CharValues, [])};
+char_values({array, CharValues}) when is_list(CharValues) ->
+	char_values(CharValues, []).
+%% @hidden
+char_values([H | T], Acc) ->
+	char_values(T, [char_value(H) | Acc]);
+char_values([], Acc) ->
+	lists:reverse(Acc).
+
+-spec char_value(CharValue) -> CharValue
+	when
+		CharValue :: #char_value{} | {struct, [tuple()]}.
+%% @doc CODEC for ProductSpecCharacteristicValue.
+%% @private
+char_value(#char_value{} = V) ->
+	char_value(record_info(fields, char_value), V, []);
+char_value({struct, ObjectMembers}) when is_list(ObjectMembers) ->
+	char_value(ObjectMembers, #char_value{}).
+%% @hidden
+char_value([default | T], #char_value{default = undefined} = V, Acc) ->
+	char_value(T, V, Acc);
+char_value([default | T], #char_value{default = Default} = V, Acc)
+		when is_boolean(Default) ->
+	char_value(T, V, [{"default", Default} | Acc]);
+char_value([units | T], #char_value{units = undefined} = V, Acc) ->
+	char_value(T, V, Acc);
+char_value([units | T], #char_value{units = Units} = V, Acc)
+		when is_list(Units) ->
+	char_value(T, V, [{"unitOfMeasure", Units} | Acc]);
+char_value([units | T], #char_value{units = undefined} = V, Acc) ->
+	char_value(T, V, Acc);
+char_value([start_date | T], #char_value{start_date = undefined,
+		end_date = undefined} = V, Acc) ->
+	char_value(T, V, Acc);
+char_value([start_date | T],
+		#char_value{start_date = Start, end_date = End} = V, Acc)
+		when is_integer(Start), is_integer(End) ->
+	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(Start)},
+			{"endDateTime", ocs_rest:iso8601(End)}]},
+	char_value(T, V, [{"validFor", ValidFor} | Acc]);
+char_value([start_date | T], #char_value{start_date = Start,
+		end_date = undefined} = V, Acc) when is_integer(Start) ->
+	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(Start)}]},
+	char_value(T, V, [{"validFor", ValidFor} | Acc]);
+char_value([start_date | T], #char_value{start_date = undefined,
+		end_date = End} = V, Acc) when is_integer(End) ->
+	ValidFor = {struct, [{"endDateTime", ocs_rest:iso8601(End)}]},
+	char_value_use(T, V, [{"validFor", ValidFor} | Acc]);
+char_value([end_date | T], #char_value{} = V, Acc) ->
+	char_value_use(T, V, Acc);
+char_value([value | T], #char_value{value = undefined} = V, Acc) ->
+	char_value_use(T, V, Acc);
+char_value([value | T], #char_value{value = Value} = V, Acc) ->
+	char_value(T, V, [{"value", Value} | Acc]);
+char_value([from | T], #char_value{from = undefined} = V, Acc) ->
+	char_value_use(T, V, Acc);
+char_value([from | T], #char_value{from = From} = V, Acc) ->
+	char_value(T, V, [{"valueFrom", From} | Acc]);
+char_value([to | T], #char_value{to = undefined} = V, Acc) ->
+	char_value_use(T, V, Acc);
+char_value([to | T], #char_value{to = To} = V, Acc) ->
+	char_value(T, V, [{"valueTo", To} | Acc]);
+char_value([type | T], #char_value{type = undefined} = V, Acc) ->
+	char_value_use(T, V, Acc);
+char_value([type | T], #char_value{type = Type} = V, Acc)
+		when is_list(Type) ->
+	char_value(T, V, [{"valueType", Type} | Acc]);
+char_value([interval | T], #char_value{interval = undefined} = V, Acc) ->
+	char_value_use(T, V, Acc);
+char_value([interval | T], #char_value{interval = Interval} = V, Acc)
+		when Interval == open; Interval == closed,
+		Interval == closed_bottom; Interval == closed_top ->
+	char_value(T, V, [{"rangeInterval", atom_to_list(Interval)} | Acc]);
+char_value([regex | T], #char_value{regex = undefined} = V, Acc) ->
+	char_value_use(T, V, Acc);
+char_value([regex | T], #char_value{regex = {_, RegEx}} = V, Acc) ->
+	char_value(T, V, [{"regex", RegEx} | Acc]);
+char_value([], _, Acc) ->
+	{struct, lists:reverse(Acc)}.
+%% @hidden
+char_value([{"default", Default} | T], Acc) when is_boolean(Default) ->
+	char_value(T, Acc#char_value{default = Default});
+char_value([{"unitOfMeasure", Units} | T], Acc) when is_list(Units) ->
+	char_value(T, Acc#char_value{units = Units});
+char_value([{"validFor", {struct, L}} | T], Acc) when is_list(L) ->
+	NewAcc = case {lists:keyfind("startDateTime", 1, L),
+			lists:keyfind("endDateTime", 1, L)} of
+		{{_, Start}, false} when is_list(Start) ->
+			Acc#char_value{start_date = ocs_rest:iso8601(Start)};
+		{{_, Start}, {_, End}} when is_list(Start), is_list(End) ->
+			Acc#char_value{start_date = ocs_rest:iso8601(Start),
+					end_date = ocs_rest:iso8601(End)};
+		{false, {_, End}} when is_list(End) ->
+			Acc#char_value{end_date = ocs_rest:iso8601(End)}
+	end,
+	char_value(T, NewAcc);
+char_value([{"value", Value} | T], Acc)
+		when is_integer(Value); is_float(Value);
+		is_list(Value); is_boolean(Value) ->
+	char_value(T, Acc#char_value{value = Value});
+char_value([{"valueFrom", From} | T], Acc)
+		when is_integer(From); is_list(From) ->
+	char_value(T, Acc#char_value{from = From});
+char_value([{"valueTo", To} | T], Acc)
+		when is_integer(To); is_list(To) ->
+	char_value(T, Acc#char_value{to = To});
+char_value([{"valueType", Type} | T], Acc) when is_list(Type) ->
+	char_value(T, Acc#char_value{type = Type});
+char_value([{"rangeInterval", "open"} | T], Acc) ->
+	char_value(T, Acc#char_value{interval = open});
+char_value([{"rangeInterval", "closed"} | T], Acc) ->
+	char_value(T, Acc#char_value{interval = closed});
+char_value([{"rangeInterval", "closedBottom"} | T], Acc) ->
+	char_value(T, Acc#char_value{interval = closed_bottom});
+char_value([{"rangeInterval", "closedTop"} | T], Acc) ->
+	char_value(T, Acc#char_value{interval = closed_top});
+char_value([{"regex", RegEx} | T], Acc) when is_list(RegEx) ->
+	{ok, MP} = re:compile(RegEx),
+	char_value(T, Acc#char_value{regex = {MP, RegEx}});
+char_value([], Acc) ->
+	Acc.
 
 %% @hidden
 query_start(Query, Filters, RangeStart, RangeEnd) ->
