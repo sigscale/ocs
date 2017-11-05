@@ -1838,7 +1838,6 @@ simultaneous_updates_on_subscriber_failure(Config) ->
 	{"multisession", Multi} = lists:keyfind("multisession", 1, Object),
 	Port = ?config(port, Config),
 	{ok, SslSock} = ssl:connect({127,0,0,1}, Port,  [binary, {active, false}], infinity),
-	ok = ssl:ssl_accept(SslSock),
 	Json = {array, [{struct, [{op, "replace"}, {path, "/password"}, {value, "7fy8qhs7hh7n"}]}]},
 	PatchBody = mochijson:encode(Json),
 	PatchBodyLen = size(list_to_binary(PatchBody)),
@@ -1903,7 +1902,6 @@ simultaneous_updates_on_client_failure(Config) ->
 	{_, Secret} = lists:keyfind("secret", 1, Object),
 	RestPort = ?config(port, Config),
 	{ok, SslSock} = ssl:connect({127,0,0,1}, RestPort,  [binary, {active, false}], infinity),
-	ok = ssl:ssl_accept(SslSock),
 	NewSecret = ocs:generate_password(),
 	PatchBody =  "{\"secret\" : \""  ++ NewSecret ++ "\"}",
 	PatchBodyLen = size(list_to_binary(PatchBody)),
@@ -1969,7 +1967,6 @@ update_client_password_json_patch(Config) ->
 	{_, Secret} = lists:keyfind("secret", 1, Object),
 	RestPort = ?config(port, Config),
 	{ok, SslSock} = ssl:connect({127,0,0,1}, RestPort,  [binary, {active, false}], infinity),
-	ok = ssl:ssl_accept(SslSock),
 	NewContentType = "application/json-patch+json",
 	NewSecret = ocs:generate_password(),
 	JSON1 = {array, [{struct, [{op, "replace"}, {path, "/secret"}, {value, NewSecret}]}]},
@@ -2040,7 +2037,6 @@ update_client_attributes_json_patch(Config) ->
 	{_, Secret} = lists:keyfind("secret", 1, Object),
 	RestPort = ?config(port, Config),
 	{ok, SslSock} = ssl:connect({127,0,0,1}, RestPort,  [binary, {active, false}], infinity),
-	ok = ssl:ssl_accept(SslSock),
 	NewContentType = "application/json-patch+json",
 	NewPort = 8745,
 	NewProtocol = "DIAMETER",
@@ -2130,7 +2126,6 @@ update_subscriber_password_json_patch(Config) ->
 	{"multisession", Multi} = lists:keyfind("multisession", 1, Object),
 	RestPort = ?config(port, Config),
 	{ok, SslSock} = ssl:connect({127,0,0,1}, RestPort,  [binary, {active, false}], infinity),
-	ok = ssl:ssl_accept(SslSock),
 	NewContentType = "application/json-patch+json",
 	NewPassword = ocs:generate_password(),
 	JSON1 = {array, [{struct, [{op, "replace"}, {path, "/password"}, {value, NewPassword}]}]},
@@ -2222,7 +2217,6 @@ update_subscriber_attributes_json_patch(Config) ->
 	{"multisession", Multi} = lists:keyfind("multisession", 1, Object),
 	RestPort = ?config(port, Config),
 	{ok, SslSock} = ssl:connect({127,0,0,1}, RestPort,  [binary, {active, false}], infinity),
-	ok = ssl:ssl_accept(SslSock),
 	NewContentType = "application/json-patch+json",
 	NewEnabled = false,
 	NewMulti = false,
@@ -2323,7 +2317,6 @@ update_user_characteristics_json_patch(Config) ->
 			$\r, $\n,
 			PatchBody],
 	{ok, SslSock} = ssl:connect({127,0,0,1}, RestPort,  [binary, {active, false}], infinity),
-	ok = ssl:ssl_accept(SslSock),
 	ok = ssl:send(SslSock, list_to_binary(PatchReq)),
 	Timeout = 1500,
 	F2 = fun(_F, _Sock, {error, timeout}, Acc) ->
@@ -2608,7 +2601,6 @@ patch_request(SslSock, Port, ContentType, Etag, AuthKey, ProdID, ReqBody) ->
 ssl_socket_open(IP, Port) ->
 	{ok, SslSock} = ssl:connect(IP, Port,
 		[binary, {active, false}], infinity),
-	ok = ssl:ssl_accept(SslSock),
 	SslSock.
 
 ssl_socket_close(SslSock) ->
