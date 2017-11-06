@@ -175,6 +175,9 @@ handle_radius1(#statedata{subscriber = SubscriberId, password = <<>>} = StateDat
 					VendorSpecific, Attributes),
 			NewStateData = StateData#statedata{res_attr = ResponseAttributes},
 			handle_radius2(Subscriber, NewStateData);
+		{disabled, SessionAttributes} ->
+			start_disconnect(SessionAttributes, StateData),
+			reject_radius(disabled_subscriber, StateData);
 		{error, Reason} ->
 			reject_radius(Reason, StateData)
 	end;
@@ -183,6 +186,9 @@ handle_radius1(#statedata{subscriber = SubscriberId, password = Password} = Stat
 		{ok, #subscriber{attributes = Attributes} = Subscriber} ->
 			NewStateData = StateData#statedata{res_attr = Attributes},
 			handle_radius2(Subscriber, NewStateData);
+		{disabled, SessionAttributes} ->
+			start_disconnect(SessionAttributes, StateData),
+			reject_radius(disabled_subscriber, StateData);
 		{error, Reason} ->
 			reject_radius(Reason, StateData)
 	end.

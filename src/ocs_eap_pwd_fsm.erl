@@ -40,6 +40,8 @@
 -include("ocs_eap_codec.hrl").
 -include("../include/diameter_gen_eap_application_rfc4072.hrl").
 
+-define(CC_APPLICATION_ID, 4).
+
 -record(statedata,
 		{server_address :: inet:ip_address(),
 		server_port :: pos_integer(),
@@ -769,6 +771,12 @@ confirm3(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 			send_response(EapPacket, ?AccessAccept, Attr3, RadiusID,
 					RequestAuthenticator, RequestAttributes, StateData),
 			{stop, {shutdown, SessionID}, StateData#statedata{mk = MK, msk = MSK}};
+		{disabled, SessionList} ->
+			start_disconnect(radius, SessionList, StateData),
+			EapPacket = #eap_packet{code = failure, identifier = EapID},
+			send_response(EapPacket, ?AccessReject, [], RadiusID,
+					RequestAuthenticator, RequestAttributes, StateData),
+			{stop, {shutdown, SessionID}, StateData};
 		{error, _Reason} ->
 			EapPacket = #eap_packet{code = failure, identifier = EapID},
 			send_response(EapPacket, ?AccessReject, [], RadiusID,
@@ -829,6 +837,13 @@ confirm6(Request, #statedata{eap_id = EapID, ks = Ks, confirm_p = ConfirmP,
 					 ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OH, OR, EapPacket,
 					 PortServer, Request, StateData),
 			{stop, {shutdown, SessionID}, StateData#statedata{mk = MK, msk = MSK}};
+		{disabled, SessionList} ->
+			start_disconnect(diameter, SessionList, StateData),
+			EapPacket = #eap_packet{code = failure, identifier = EapID},
+			send_diameter_response(SessionID, AuthType,
+					 ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR,
+					 EapPacket, PortServer, Request, StateData),
+			{stop, {shutdown, SessionID}, StateData};
 		{error, _Reason} ->
 			EapPacket1 = #eap_packet{code = failure, identifier = EapID},
 			send_diameter_response(SessionID, AuthType,
@@ -1067,3 +1082,47 @@ send_diameter_response(SId, AuthType, ResultCode, OH, OR, EapPacket,
 		gen_server:cast(PortServer, {self(), Answer1})
 	end.
 
+%% @hidden
+start_disconnect(radius, SessionList, #statedata{peer_id = SubscriberId,
+		session_id = SessionID, server_address = Address} = StateData) ->
+	case pg2:get_closest_pid(ocs_radius_acct_port_sup) of
+		{error, Reason} ->
+			error_logger:error_report(["Failed to initiate session disconnect function",
+					{module, ?MODULE}, {subscriber, SubscriberId}, {address, Address},
+					{session, SessionID}, {error, Reason}]);
+		DiscSup ->
+			start_disconnect1(radius, DiscSup, SessionList, StateData)
+	end;
+start_disconnect(diameter, SessionList, #statedata{peer_id = SubscriberId,
+		session_id = SessionID, origin_host = OHost, origin_realm = ORealm} = State) ->
+	case pg2:get_closest_pid(ocs_diamter_acct_port_sup) of
+		{error, Reason} ->
+			error_logger:error_report(["Failed to initiate session disconnect function",
+					{module, ?MODULE}, {subscriber, SubscriberId}, {origin_host, OHost},
+					{origin_realm, ORealm}, {session, SessionID}, {error, Reason}]);
+		DiscSup ->
+			start_disconnect1(diameter, DiscSup, SessionList, State)
+	end.
+%% @hidden
+start_disconnect1(_Protocol, _DiscSup, [], _State) ->
+	ok;
+start_disconnect1(Protocol, DiscSup, [H | Tail], State) ->
+	start_disconnect2(Protocol, DiscSup, H, State),
+	start_disconnect1(Protocol, DiscSup, Tail, State).
+%% @hidden
+start_disconnect2(radius, DiscSup, SessionAttributes, #statedata{peer_id = Subscriber}) ->
+	DiscArgs = [Subscriber, SessionAttributes],
+	StartArgs = [DiscArgs, []],
+	supervisor:start_child(DiscSup, StartArgs);
+start_disconnect2(diameter, DiscSup, {_, SessionAttributes}, #statedata{session_id = SessionID}) ->
+	Svc = ocs_diameter_acct_service,
+	Alias = ocs_diameter_base_application,
+	AppId = ?CC_APPLICATION_ID,
+	SessionID  = proplists:get_value('Session-Id',SessionAttributes),
+	OHost  = proplists:get_value('Origin-Host', SessionAttributes),
+	ORealm  = proplists:get_value('Origin-Realm', SessionAttributes),
+	DHost  = proplists:get_value('Destination-Host', SessionAttributes),
+	DRealm  = proplists:get_value('Destination-Realm', SessionAttributes),
+	DiscArgs = [Svc, Alias, SessionID, OHost, DHost, ORealm, DRealm, AppId],
+	StartArgs = [DiscArgs, []],
+	supervisor:start_child(DiscSup, StartArgs).
