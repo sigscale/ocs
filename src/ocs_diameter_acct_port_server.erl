@@ -276,6 +276,12 @@ request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		{'Destination-Host', DHost}, {'Destination-Realm', DRealm}, {'Session-Id', SId}],
 	ReserveAmount = [{ReqUsageType, ReqUsage}],
 	case ocs_rating:rate(Subscriber, initial, [], ReserveAmount, SessionAttributes) of
+		{ok, #subscriber{enabled = false, session_attributes = SL}, _} ->
+			start_disconnect(SL, State),
+			{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
+					undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
+					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
+			{reply, Reply, NewState};
 		{ok, _, GrantedAmount} ->
 			GrantedUnits = case ReqUsageType of
 				seconds ->
@@ -354,6 +360,12 @@ request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		ReserveAmount = [{ReqUsageType, ReqUsage}],
 		DebitAmount = [{UsedType, UsedUsage}],
 		case ocs_rating:rate(Subscriber, interim, DebitAmount, ReserveAmount) of
+			{ok, #subscriber{enabled = false, session_attributes = SL}, _} ->
+				start_disconnect(SL, State),
+				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
+						undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
+						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
+				{reply, Reply, NewState};
 			{ok, _, GrantedAmount} ->
 				GrantedUnits = case ReqUsageType of
 					seconds ->
@@ -418,6 +430,12 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		end,
 		DebitAmount = [{UsedType, UsedUsage}],
 		case ocs_rating:rate(Subscriber, final, DebitAmount, []) of
+			{ok, #subscriber{enabled = false, session_attributes = SL}, _} ->
+				start_disconnect(SL, State),
+				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
+						undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
+						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
+				{reply, Reply, NewState};
 			{ok, _, GrantedAmount} ->
 				GrantedUnits = case UsedType of
 					seconds ->

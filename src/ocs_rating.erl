@@ -162,9 +162,14 @@ rate3(#subscriber{session_attributes = SessionList} = Subscriber,
 		RemainingCharge, _Flag, _ReserveAmount, _SessionIdentification)
 		when RemainingCharge > 0 ->
 	Entry = Subscriber#subscriber{session_attributes = [],
-		enabled = false, disconnect = true},
+		enabled = false},
 	ok = mnesia:write(Entry),
 	{out_of_credit, SessionList};
+rate3(#subscriber{enabled = false} = Subscriber,
+		_RemainingCharge, _Flag, ReserveAmount, _SessionIdentification) ->
+	Entry = Subscriber#subscriber{session_attributes = []},
+	ok = mnesia:write(Entry),
+	{ok, Subscriber, ReserveAmount};
 rate3(#subscriber{session_attributes = SessionList} = Subscriber,
 		_RemainingCharge, initial, ReserveAmount, SessionIdentification) ->
 	NewSessionList = update_session(SessionIdentification, SessionList),

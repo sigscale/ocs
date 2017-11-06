@@ -300,7 +300,10 @@ request1(?AccountingStop, AcctSessionId, Id,
 					{subscriber, Subscriber}, {nas, NasId},
 					{address, Address}, {session, AcctSessionId}]),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
-		{ok, _, _} ->
+		{ok, #subscriber{enabled = false, session_attributes = SessionList}, _} ->
+			start_disconnect(State, Subscriber, SessionList),
+			{reply, {ok, response(Id, Authenticator, Secret)}, State};
+		{ok, #subscriber{}, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
 request1(?AccountingInterimUpdate, AcctSessionId, Id,
