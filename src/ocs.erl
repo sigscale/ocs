@@ -1124,8 +1124,11 @@ charset() ->
 	when
 		Identity :: string() | binary(),
 		Password :: string() | binary(),
-		Result :: {ok, #subscriber{}} | {error, Reason},
-		Reason :: out_of_credit | disabled | bad_password | not_found | term().
+		Result :: {ok, #subscriber{}} | {disabled, SessionsList} | {error, Reason},
+		SessionsList :: [{TimeStamp, SessionAttributes}],
+		TimeStamp :: integer(),
+		SessionAttributes :: [tuple()],
+		Reason :: out_of_credit | bad_password | not_found | term().
 %% @doc Authorize a subscriber.
 %%
 %% 	If the subscriber `enabled' field is `true' and have sufficient balance
@@ -1173,7 +1176,10 @@ authorize(Identity, Password) when is_binary(Identity),
 										ok = mnesia:write(subscriber, NewEntry, write),
 										NewEntry;
 									{false, _, Password} ->
-										throw(disabled);
+										SessionsList = Entry#subscriber.session_attributes,
+										NewEntry = Entry#subscriber{session_attributes = []},
+										ok = mnesia:write(subscriber, NewEntry, write),
+										{disabled, SessionsList};
 									{_, _, _} ->
 										throw(bad_password)
 								end;
@@ -1187,6 +1193,8 @@ authorize(Identity, Password) when is_binary(Identity),
 	case mnesia:transaction(F) of
 		{atomic, #subscriber{} = S} ->
 			{ok, S};
+		{atomic, SessionAttributes} ->
+			{disabled, SessionAttributes};
 		{aborted, {throw, Reason}} ->
 			{error, Reason};
 		{aborted, Reason} ->
