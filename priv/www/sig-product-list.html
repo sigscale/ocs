@@ -263,6 +263,7 @@
 					var newRecord = new Object();
 					newRecord.name = results[index].name;
 					newRecord.description = results[index].description;
+					newRecord.productSpecification = results[index].productSpecification;
 					if(results[index].validFor && results[index].validFor != "") {
 						if(results[index].validFor.startDateTime
 								&& results[index].validFor.startDateTime != ""){
@@ -294,7 +295,7 @@
 				}
 			},
 			showAddProductModal: function(event) {
-//				document.getElementById("getProductSpecificationAjax").generateRequest();
+				document.getElementById("getProductSpecificationAjax").generateRequest();
 				document.getElementById("addProduct").selected = 0;
 				document.getElementById("addProductModal").open();
 			}

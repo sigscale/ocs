@@ -97,6 +97,12 @@
 						</paper-tooltip>
 					</div>
 					<div>
+						<paper-input id="updateOffSpec"
+								label="[[i18n.productSpec]]"
+								disabled>
+						</paper-input>
+					</div>
+					<div>
 						<iron-collapse id="updateProductStartDatePickUpdateOff">
 							<paper-date-picker id="startOff3" date="{{updateProductStartDateOfferPick}}">
 							</paper-date-picker>
@@ -235,13 +241,13 @@
 									slot="dropdown-content"
 									class="dropdown-content">
 								<paper-item>
-									recurring
+									Recurring
 								</paper-item>
 								<paper-item>
-									one_time
+									One Time
 								</paper-item>
 								<paper-item>
-									usage
+									Usage
 								</paper-item>
 							</paper-listbox>
 						</paper-dropdown-menu>
@@ -733,6 +739,7 @@
 				this.$.updateProductModal.open();
 				this.$.updateOffName.value = item.name;
 				this.$.updateOffDesc.value = item.description;
+				this.$.updateOffSpec.value = item.productSpecification.name.replace("ProductSpec", "");
 				this.$.updateOffStart.value = item.startDate;
 				this.$.updateOffEnd.value = item.endDate;
 				for(var index in item.prices) {
@@ -1026,7 +1033,16 @@
 					var pricetype = new Object();
 					pricetype.op = "add";
 					pricetype.path = "/productOfferingPrice/" + indexPriceAlt + "/priceType";
-					pricetype.value = this.$.updatePriceTypedrop.value; 
+					switch(this.$.updatePriceType.selected) {
+						case 0:
+							pricetype.value = "recurring";
+							break;
+						case 1:
+							pricetype.value = "one_time";
+							break;
+						case 2:
+							pricetype.value = "usage";
+					}
 					updatePriceNew.push(pricetype);
 				} 
 				if(this.$.updatePriceSize.value != this.prices[indexPrices].size) {
@@ -1075,7 +1091,16 @@
 					var alterationType = new Object();
 					alterationType.op = "add";
 					alterationType.path = "/productOfferingPrice/" + indexAlter + "/productOfferPriceAlteration/priceType";
-					alterationType.value = this.$.updateAltTypedrop.value; 
+					switch(this.$.updateAltTypedrop.selected) {
+						case 0:
+							alterationType.value = "recurring";
+							break;
+						case 1:
+							alterationType.value = "one_time";
+							break;
+						case 2:
+							alterationType.value = "usage";
+					}
 					updateAlterationNew.push(alterationType);
 				}
 				if(this.$.updateAltSize.value != this.alterations[indexAlter].unitOfMeasure) {
