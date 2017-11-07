@@ -235,13 +235,13 @@
 									slot="dropdown-content"
 									class="dropdown-content">
 								<paper-item>
-									recurring
+									Recurring
 								</paper-item>
 								<paper-item>
-									one_time
+									One Time
 								</paper-item>
 								<paper-item>
-									usage
+									Usage
 								</paper-item>
 							</paper-listbox>
 						</paper-dropdown-menu>
@@ -744,6 +744,7 @@
 						newPrice.end = item.prices[index].validFor.endDateTime;
 					}
 					newPrice.priceType = item.prices[index].priceType;
+console.log(newPrice.priceType);
 					if (item.prices[index].unitOfMeasure) {
 						var unitOfMeasure = item.prices[index].unitOfMeasure;
 						switch(unitOfMeasure.charAt(unitOfMeasure.length - 1)) {
@@ -1026,7 +1027,16 @@
 					var pricetype = new Object();
 					pricetype.op = "add";
 					pricetype.path = "/productOfferingPrice/" + indexPriceAlt + "/priceType";
-					pricetype.value = this.$.updatePriceTypedrop.value; 
+					switch(this.$.updatePriceType.selected) {
+						case 0:
+							pricetype.value = "recurring";
+							break;
+						case 1:
+							pricetype.value = "one_time";
+							break;
+						case 2:
+							pricetype.value = "usage";
+					}
 					updatePriceNew.push(pricetype);
 				} 
 				if(this.$.updatePriceSize.value != this.prices[indexPrices].size) {
@@ -1075,7 +1085,16 @@
 					var alterationType = new Object();
 					alterationType.op = "add";
 					alterationType.path = "/productOfferingPrice/" + indexAlter + "/productOfferPriceAlteration/priceType";
-					alterationType.value = this.$.updateAltTypedrop.value; 
+					switch(this.$.updateAltTypedrop.selected) {
+						case 0:
+							alterationType.value = "recurring";
+							break;
+						case 1:
+							alterationType.value = "one_time";
+							break;
+						case 2:
+							alterationType.value = "usage";
+					}
 					updateAlterationNew.push(alterationType);
 				}
 				if(this.$.updateAltSize.value != this.alterations[indexAlter].unitOfMeasure) {
