@@ -1278,8 +1278,8 @@ inventory({struct, ObjectMembers}) when is_list(ObjectMembers) ->
 	#subscriber{name = Username, password = Password, product = ProductInstance};
 inventory(#subscriber{name = Username, password = Password,
 		product = #product_instance{characteristics = Chars}  = ProductInstance}) ->
-	F = fun(_, _, undefined) ->
-			undefined;
+	F = fun(CChars, _, undefined) ->
+			CChars;
 		(CChars, Key, Value) ->
 			lists:keystore(Key, 1, CChars, {Key, binary_to_list(Value)})
 	end,
