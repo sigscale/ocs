@@ -551,6 +551,14 @@
     "description": "Offer product period",
     "message": "Período"
   },
+	"reserveTime": {
+    "description": "Time period to reserve on RADIUS start/interim accounting requests",
+    "message": "RADIUS Hora de Reserva"
+  },
+	"reserveBytes": {
+    "description": "Amount of data to reserve on RADIUS start/interim accounting requests",
+    "message": "RADIUS Reserva de Datos"
+  },
 	"subToastSucPro": {
     "description": "Toast message for success for product",
     "message": "Agregado exitosamente"
@@ -610,6 +618,14 @@
    "pricePeriodTool": {
     "description": "product offering price period",
     "message": "Período de precios de oferta de producto"
+  },
+	"priceReserveTimeTool": {
+    "description": "Product offering price RADIUS reserve time",
+    "message": "Número de segundos para reservar en la solicitud de contabilidad RADIUS inicial/provisional".
+  },
+	"priceReserveBytesTool": {
+    "description": "Product offering price RADIUS reserve data",
+    "message": "Cantidad de bytes para reservar en la solicitud de contabilidad RADIUS inicial/provisional".
   },
    "priceAlterTool": {
     "description": "product offering price alteration",

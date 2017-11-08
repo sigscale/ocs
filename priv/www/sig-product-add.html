@@ -15,6 +15,10 @@
 <link rel="import" href="paper-toast/paper-toast.html">
 <link rel="import" href="paper-styles/color.html">
 <link rel="import" href="paper-date-picker/paper-date-picker.html">
+<link rel="import" href="paper-menu-button/paper-menu-button.html" />
+<link rel="import" href="paper-icon-button/paper-icon-button.html">
+<link rel="import" href="iron-icon/iron-icon.html">
+<link rel="import" href="iron-icons/iron-icons.html">
 
 <dom-module id="sig-product-add">
 	<template>
@@ -379,6 +383,43 @@
 							</i18n-msg>
 						</paper-tooltip>
 					</div>
+					<paper-input-container>
+						<label>Characteristics</label>
+						<paper-icon-button
+								id="onClickChars"
+								suffix
+								icon="arrow-drop-down"
+								on-click="_onClickChars">
+						</paper-icon-button>
+					</paper-input-container>
+					<iron-collapse id="addPriceChars">
+						<div>
+							<paper-input
+									id="addPriceCharReserveTime"
+									type="number"
+									label="[[i18n.reserveTime]]"
+									value=0>
+							</paper-input>
+							<paper-tooltip>
+								<i18n-msg msgid="priceReserveTimeTool">
+									Amount of time to reserve on RADIUS initial/interim accounting request
+								</i18n-msg>
+							</paper-tooltip>
+						</div>
+						<div>
+							<paper-input
+									id="addPriceCharReserveBytes"
+									type="number"
+									label="[[i18n.reserveBytes]]"
+									value=0>
+							</paper-input>
+							<paper-tooltip>
+								<i18n-msg msgid="priceReserveBytesTool">
+									Amount of bytes to reserve on RADIUS initial/interim accounting request
+								</i18n-msg>
+							</paper-tooltip>
+						</div>
+					</iron-collapse>
 					<div class="buttons">
 						<paper-button
 								raised
@@ -731,6 +772,7 @@
 						newSpec.href = results[index].href;
 						newSpec.name = results[index].name;
 						newSpec.sName = newSpec.name.replace("ProductSpec", "");
+						newSpec.chars = results[index].productSpecCharacteristic;
 						this.push('productSpec', newSpec);
 					}
 				}
@@ -1072,6 +1114,8 @@
 					this.$.addPriceSize.allowedPattern = "[0-9kmg]";
 					this.$.addPriceSize.pattern = "^[0-9]+[kmg]?$";
 					this.$.addPriceSize.disabled = false;
+					this.$.addPriceCharReserveBytes.disabled = false;
+					this.$.addPriceCharReserveTime.disabled = true;
 				} else if(this.$.addPriceUnits.selected == 1) {
 					this.$.addPriceSize.allowedPattern = "[0-9]";
 					this.$.addPriceSize.pattern = "^[0-9]+$";
@@ -1080,6 +1124,8 @@
 					this.$.addPriceSize.allowedPattern = "[0-9mh]";
 					this.$.addPriceSize.pattern = "^[0-9]+[mh]?$";
 					this.$.addPriceSize.disabled = false;
+					this.$.addPriceCharReserveTime.disabled = false;
+					this.$.addPriceCharReserveBytes.disabled = true;
 				}
 			},
 			checkPatternAlt: function() {
@@ -1226,6 +1272,15 @@
 					document.getElementById("addProductPriceToastSuccess").open();
 				} else {
 					document.getElementById("addProductToastError").open();
+				}
+			},
+			_onClickChars: function() {
+				if(this.$.addPriceChars.opened == false) {
+					this.$.addPriceChars.show();
+					this.$.onClickChars.icon="arrow-drop-up"
+				} else {
+					this.$.addPriceChars.hide();
+					this.$.onClickChars.icon="arrow-drop-down"
 				}
 			},
 			addAlteration: function() {
