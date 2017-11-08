@@ -1017,9 +1017,9 @@
                return price.name == document.getElementById("updatePriceName").value;
             }
 				var indexPrices = this.prices.findIndex(checkName);
-				var indexObj = this.prices[indexPrices].alteration;
+				var indexAlt = this.prices[indexPrices].alteration;
 				function checkAltPriceName(priceAlt) {
-               return priceAlt.name == indexObj;
+               return priceAlt.name == indexAlt;
             }
 				var indexPriceAlt = this.alterations.findIndex(checkAltPriceName);
 				if(this.$.updatePriceDesc.value != this.prices[indexPrices].description) {
@@ -1072,25 +1072,25 @@
 				function checkAlterationName(alts) {
                return alts.name == document.getElementById("updateAltName").value;
             }
-				var indexAlter = this.alterations.findIndex(checkAlterationName);
-				if(this.$.updateAltName.value != this.alterations[indexAlter].name) {
+				var indexAlt = this.alterations.findIndex(checkAlterationName);
+				if(this.$.updateAltName.value != this.alterations[indexAlt].name) {
 					var alterationName = new Object();
 					alterationName.op = "add";
-					alterationName.path = "/productOfferingPrice/" + indexAlter + "/productOfferPriceAlteration/name";
+					alterationName.path = "/productOfferingPrice/" + indexAlt + "/productOfferPriceAlteration/name";
 					alterationName.value = this.$.updateAltName.value;
 					updateAlterationNew.push(alterationName);
 				}
-				if(this.$.updateAltDesc.value != this.alterations[indexAlter].description) {
+				if(this.$.updateAltDesc.value != this.alterations[indexAlt].description) {
 					var alterationDesc = new Object();
 					alterationDesc.op = "add";
-					alterationDesc.path = "/productOfferingPrice/" + indexAlter + "/productOfferPriceAlteration/description";
+					alterationDesc.path = "/productOfferingPrice/" + indexAlt + "/productOfferPriceAlteration/description";
 					alterationDesc.value = this.$.updateAltDesc.value;
 					updateAlterationNew.push(alterationDesc);
 				}
-				if(this.$.updateAltTypedrop.value != this.alterations[indexAlter].priceType) {
+				if(this.$.updateAltTypedrop.value != this.alterations[indexAlt].priceType) {
 					var alterationType = new Object();
 					alterationType.op = "add";
-					alterationType.path = "/productOfferingPrice/" + indexAlter + "/productOfferPriceAlteration/priceType";
+					alterationType.path = "/productOfferingPrice/" + indexAlt + "/productOfferPriceAlteration/priceType";
 					switch(this.$.updateAltTypedrop.selected) {
 						case 0:
 							alterationType.value = "recurring";
@@ -1103,10 +1103,10 @@
 					}
 					updateAlterationNew.push(alterationType);
 				}
-				if(this.$.updateAltSize.value != this.alterations[indexAlter].unitOfMeasure) {
+				if(this.$.updateAltSize.value != this.alterations[indexAlt].unitOfMeasure) {
 					var alterationSize = new Object();
 					alterationSize.op = "add";
-					alterationSize.path = "/productOfferingPrice/" + indexAlter + "/productOfferPriceAlteration/unitOfMeasure";
+					alterationSize.path = "/productOfferingPrice/" + indexAlt + "/productOfferPriceAlteration/unitOfMeasure";
 					alterationSize.value = this.$.updateAltSize.value;
 					updateAlterationNew.push(alterationSize);
 				}
