@@ -1017,22 +1017,17 @@
                return price.name == document.getElementById("updatePriceName").value;
             }
 				var indexPrices = this.prices.findIndex(checkName);
-				var indexAlt = this.prices[indexPrices].alteration;
-				function checkAltPriceName(priceAlt) {
-               return priceAlt.name == indexAlt;
-            }
-				var indexPriceAlt = this.alterations.findIndex(checkAltPriceName);
 				if(this.$.updatePriceDesc.value != this.prices[indexPrices].description) {
 					var priceDesc = new Object();
 					priceDesc.op = "add";
-					priceDesc.path = "/productOfferingPrice/" + indexPriceAlt + "/description";
+					priceDesc.path = "/productOfferingPrice/" + indexPrices + "/description";
 					priceDesc.value = this.$.updatePriceDesc.value;
 					updatePriceNew.push(priceDesc);
 				} 
 				if(this.$.updatePriceTypedrop.value != this.prices[indexPrices].priceType) {
 					var pricetype = new Object();
 					pricetype.op = "add";
-					pricetype.path = "/productOfferingPrice/" + indexPriceAlt + "/priceType";
+					pricetype.path = "/productOfferingPrice/" + indexPrices + "/priceType";
 					switch(this.$.updatePriceType.selected) {
 						case 0:
 							pricetype.value = "recurring";
@@ -1048,7 +1043,7 @@
 				if(this.$.updatePriceSize.value != this.prices[indexPrices].size) {
 					var priceSize = new Object();
 					priceSize.op = "add";
-					priceSize.path = "/productOfferingPrice/" + indexPriceAlt + "/unitOfMeasure";
+					priceSize.path = "/productOfferingPrice/" + indexPrices + "/unitOfMeasure";
 					priceSize.value = this.$.updatePriceSize.value;
 					updatePriceNew.push(priceSize);
 				} 
