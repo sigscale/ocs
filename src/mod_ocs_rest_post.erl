@@ -94,7 +94,7 @@ do_post(Resource, ModData, Body, ["balanceManagement", "v1", Id, "balanceTopups"
 	do_response(ModData, Resource:top_up(Id, Body));
 do_post(Resource, ModData, Body, ["catalogManagement", "v2", "productOffering"]) ->
 	do_response(ModData, Resource:add_product_offering(Body));
-do_post(Resource, ModData, Body, ["productInventoryManagement", "v1", "product"]) ->
+do_post(Resource, ModData, Body, ["productInventoryManagement", "v2", "product"]) ->
 	do_response(ModData, Resource:add_product_inventory(Body)).
 
 %% @hidden

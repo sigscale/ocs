@@ -38,6 +38,7 @@
 
 -define(offerPath, "/catalogManagement/v2/productOffering/").
 -define(specPath, "/catalogManagement/v2/productSpecification/").
+-define(inventoryPath, "/inventoryManagement/v2/productOffering/").
 
 -spec content_types_accepted() -> ContentTypes
 	when
@@ -92,14 +93,31 @@ add_product_offering(ReqData) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 500 .
-%% @doc Respond to `POST /productInventoryManagement/v2/product'.
+%% @doc Respond to `POST /productInventoryManagemen/v2/product'.
 %% 	Add a new instance of a Product Offering subscription.
 add_product_inventory(ReqData) ->
 	try
-		{struct, _Object} = mochijson:decode(ReqData),
-		Headers = [{content_type, "application/json"}],
-		{ok, Headers, []}
+		#subscriber{name = SubscriberID,
+				password = Password, product = #product_instance{product = ProdId,
+				characteristics = Chars}} = inventory(mochijson:decode(ReqData)),
+		case ocs:add_subscriber(SubscriberID, Password, ProdId, Chars) of
+			{ok, Subscriber} ->
+				Subscriber;
+			{error, Reason} ->
+				throw(Reason)
+		end
+	of
+		Subscription ->
+			Body = mochijson:encode(offer(Subscription)),
+			Etag = ocs_rest:etag(Subscription#subscriber.last_modified),
+			Href = ?inventoryPath ++ Subscription#subscriber.name,
+			Headers = [{location, Href}, {etag, Etag}],
+			{ok, Headers, Body}
 	catch
+		throw:validation_failed ->
+			{error, 400};
+		throw:_Reason1 ->
+			{error, 500};
 		_:_ ->
 			{error, 400}
 	end.
@@ -1240,6 +1258,183 @@ char_value([{"regex", RegEx} | T], Acc) when is_list(RegEx) ->
 	char_value(T, Acc#char_value{regex = {MP, RegEx}});
 char_value([], Acc) ->
 	Acc.
+
+-spec inventory(Subscription) -> Subscription
+	when
+		Subscription :: #subscriber{} | {struct, [tuple()]}.
+%% @doc CODEC for Product Inventory.
+inventory({struct, ObjectMembers}) when is_list(ObjectMembers) ->
+	ProductInstance  = instance({struct, ObjectMembers}),
+	F = fun(Key) ->
+			case proplists:get_value(Key, ProductInstance#product_instance.characteristics) of
+				undefined ->
+					undefined;
+				Value ->
+					list_to_binary(Value)
+			end
+	end,
+	Username = F("subscriberIdentity"),
+	Password = F("subscriberPassword"),
+	#subscriber{name = Username, password = Password, product = ProductInstance};
+inventory(#subscriber{name = Username, password = Password,
+		product = #product_instance{characteristics = Chars}  = ProductInstance}) ->
+	F = fun(_, _, undefined) ->
+			undefined;
+		(CChars, Key, Value) ->
+			lists:keystore(Key, 1, CChars, {Key, binary_to_list(Value)})
+	end,
+	Chars1 = F(Chars, "subscriberIdentity", Username),
+	Chars2 = F(Chars1, "subscriberPassword", Password),
+	instance(ProductInstance#product_instance{characteristics = Chars2}).
+
+%% @hidden
+instance({struct, ObjectMembers}) ->
+	instance(ObjectMembers, #product_instance{});
+instance(ProductInstance) ->
+	{struct, instance(record_info(fields, product_instance), ProductInstance, [])}.
+%% @hidden
+instance([{"characteristics", Chars} | T], Acc) ->
+	NewChars = characteristics(Chars),
+	instance(T, Acc#product_instance{characteristics = NewChars});
+instance([{"productOffering", {struct, Offer}} | T], Acc) ->
+	instance(T, Acc#product_instance{product = product({struct, Offer})});
+instance([_ | T], Acc) ->
+	instance(T, Acc);
+instance([], Acc) ->
+	Acc.
+%% @hidden
+instance([product | T], #product_instance{product = ProdID} = ProductInstance, Acc) ->
+	Offer = {"productOffering", product(ProdID)},
+	instance(T, ProductInstance, [Offer | Acc]);
+instance([characteristics | T], #product_instance{characteristics = Chars} = ProductInstance, Acc) ->
+	Characteristics = {"characteristics", characteristics(Chars)},
+	instance(T, ProductInstance, [Characteristics | Acc]);
+instance([_ | T], ProductInstance, Acc) ->
+	instance(T, ProductInstance,  Acc);
+instance([], _ProductInstance, Acc) ->
+	lists:reverse(Acc).
+
+-spec characteristics(Characteristics) -> Characteristics
+	when
+		Characteristics :: {array, list()} | [tuple()].
+%% @doc CODEC for Product Inventory characteristics.
+characteristics({array, Characteristics}) ->
+	characteristics(Characteristics, []);
+characteristics(Characteristics) ->
+	{array, characteristics(Characteristics, [])}.
+%% @hidden
+characteristics([{struct, [{"subscriberIdentity", Identity}]} | T], Acc) ->
+	characteristics(T, [{"subscriberIdentity", Identity} | Acc]);
+characteristics([{struct, [{"subscriberPassword", Password}]} | T], Acc) ->
+	characteristics(T, [{"subscriberPassword", Password} | Acc]);
+characteristics([{struct, [{"balanceTopUpDuration", BalanceTopUpDuration}]} | T], Acc) ->
+	characteristics(T, [{"balanceTopUpDuration", topup_duration(BalanceTopUpDuration)} | Acc]);
+characteristics([{struct, [{"radiusReserveTime", RadiusReserveTime}]} | T], Acc) ->
+	characteristics(T, [{"radiusReserveTime", radius_reserve(RadiusReserveTime)} | Acc]);
+characteristics([{struct, [{"radiusReserveOctets", RadiusReserveOctets}]} | T], Acc) ->
+	characteristics(T, [{"radiusReserveOctets", radius_reserve(RadiusReserveOctets)} | Acc]);
+characteristics([{"subscriberIdentity", Identity} | T], Acc) ->
+	characteristics(T, [{struct, [{"subscriberIdentity", Identity}]} | Acc]);
+characteristics([{"subscriberPassword", Password} | T], Acc) ->
+	characteristics(T, [{struct, [{"subscriberPassword", Password}]} | Acc]);
+characteristics([{"radiusReserveTime", RadiusReserveTime} | T], Acc) ->
+	characteristics(T, [{struct, [{"radiusReserveTime", radius_reserve(RadiusReserveTime)}]} | Acc]);
+characteristics([{"radiusReserveOctets", RadiusReserveOctets} | T], Acc) ->
+	characteristics(T, [{struct, [{"radiusReserveOctets", radius_reserve(RadiusReserveOctets)}]} | Acc]);
+characteristics([{"balanceTopUpDuration", Chars} | T], Acc) ->
+	characteristics(T, [{struct, [{"balanceTopUpDuration", topup_duration(Chars)}]} | Acc]);
+characteristics([], Acc) ->
+	lists:reverse(Acc).
+
+-spec topup_duration(BalanceTopUpDuration) -> BalanceTopUpDuration
+	when
+		BalanceTopUpDuration :: {struct, list()} | [tuple()].
+%% @doc CODEC for top up duration characteristic
+topup_duration({struct, [{"unitOfMeasure", Duration}, {"value", Amount}]}) ->
+	[{unitOfMeasure, duration(Duration)}, {value, Amount}];
+topup_duration({struct, [{"value", Amount}, {"unitOfMeasure", Duration}]}) ->
+	[{unitOfMeasure, duration(Duration)}, {value, Amount}];
+topup_duration([{unitOfMeasure, Duration}, {value, Amount}]) ->
+	{struct, [{"unitOfMeasure", duration(Duration)}, {"value", Amount}]};
+topup_duration([{value, Amount}, {unitOfMeasure, Duration}]) ->
+	{struct, [{"unitOfMeasure", duration(Duration)}, {"value", Amount}]}.
+
+%% @hidden
+product({struct, Offer}) ->
+	{_, ProdId} = lists:keyfind("name", 1, Offer),
+	ProdId;
+product(ProdID) ->
+	ID = {"id", ProdID},
+	Href = {"href", ?offerPath ++ ProdID},
+	Name = {"name", ProdID},
+	{struct, [ID, Href, Name]}.
+
+-spec radius_reserve(RadiusReserve) -> RadiusReserve
+	when
+		RadiusReserve :: {struct, list()} | [tuple()].
+%% @doc CODEC for top up duration characteristic
+radius_reserve({struct, [{"unitOfMeasure", "seconds"}, {"value", Value}]}) ->
+	[{type, seconds}, {value, Value}];
+radius_reserve({struct, [{"value", Value}, {"unitOfMeasure", "seconds"}]}) ->
+	[{type, seconds}, {value, Value}];
+radius_reserve({struct, [{"unitOfMeasure", "minutes"}, {"value", Value}]}) ->
+	[{type, minutes}, {value, Value}];
+radius_reserve({struct, [{"value", Value}, {"unitOfMeasure", "minutes"}]}) ->
+	[{type, minutes}, {value, Value}];
+radius_reserve({struct, [{"unitOfMeasure", "bytes"}, {"value", Value}]}) ->
+	[{type, bytes}, {value, Value}];
+radius_reserve({struct, [{"value", Value}, {"unitOfMeasure", "bytes"}]}) ->
+	[{type, bytes}, {value, Value}];
+radius_reserve({struct, [{"unitOfMeasure", "kilobytes"}, {"value", Value}]}) ->
+	[{type, kilobytes}, {value, Value}];
+radius_reserve({struct, [{"value", Value}, {"unitOfMeasure", "kilobytes"}]}) ->
+	[{type, kilobytes}, {value, Value}];
+radius_reserve({struct, [{"unitOfMeasure", "megabytes"}, {"value", Value}]}) ->
+	[{type, megabytes}, {value, Value}];
+radius_reserve({struct, [{"value", Value}, {"unitOfMeasure", "megabytes"}]}) ->
+	[{type, megabytes}, {value, Value}];
+radius_reserve({struct, [{"unitOfMeasure", "gigabytes"}, {"value", Value}]}) ->
+	[{type, gigabytes}, {value, Value}];
+radius_reserve({struct, [{"value", Value}, {"unitOfMeasure", "gigabytes"}]}) ->
+	[{type, gigabytes}, {value, Value}];
+%% @hidden
+radius_reserve([{type, seconds}, {value, Value}]) ->
+	{struct, [{"unitOfMeasure", "seconds"}, {"value", Value}]};
+radius_reserve([{value, Value}, {type, seconds}]) ->
+	{struct, [{"unitOfMeasure", "seconds"}, {"value", Value}]};
+radius_reserve([{type, minutes}, {value, Value}]) ->
+	{struct, [{"unitOfMeasure", "minutes"}, {"value", Value}]};
+radius_reserve([{value, Value}, {type, minutes}]) ->
+	{struct, [{"unitOfMeasure", "minutes"}, {"value", Value}]};
+radius_reserve([{type, bytes}, {value, Value}]) ->
+	{struct, [{"unitOfMeasure", "bytes"}, {"value", Value}]};
+radius_reserve([{value, Value}, {type, bytes}]) ->
+	{struct, [{"unitOfMeasure", "bytes"}, {"value", Value}]};
+radius_reserve([{type, kilobytes}, {value, Value}]) ->
+	{struct, [{"unitOfMeasure", "kilobytes"}, {"value", Value}]};
+radius_reserve([{value, Value}, {type, kilobytes}]) ->
+	{struct, [{"unitOfMeasure", "kilobytes"}, {"value", Value}]};
+radius_reserve([{type, megabytes}, {value, Value}]) ->
+	{struct, [{"unitOfMeasure", "megabytes"}, {"value", Value}]};
+radius_reserve([{value, Value}, {type, megabytes}]) ->
+	{struct, [{"unitOfMeasure", "megabytes"}, {"value", Value}]};
+radius_reserve([{type, gigabytes}, {value, Value}]) ->
+	{struct, [{"unitOfMeasure", "gigabytes"}, {"value", Value}]};
+radius_reserve([{value, Value}, {type, gigabytes}]) ->
+	{struct, [{"unitOfMeasure", "gigabytes"}, {"value", Value}]}.
+
+%% @hidden
+duration("seconds") -> "seconds";
+duration("minutes") -> "minutes";
+duration("days") -> "days";
+duration("months") -> "months";
+duration("years") -> "years";
+duration(seconds) -> "seconds";
+duration(minutes) -> "minutes";
+duration(days) -> "days";
+duration(months) -> "months";
+duration(years) -> "years".
+
 
 %% @hidden
 query_start(Query, Filters, RangeStart, RangeEnd) ->
