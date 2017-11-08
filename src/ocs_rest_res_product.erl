@@ -1287,7 +1287,10 @@ inventory(#subscriber{name = Username, password = Password,
 	Chars2 = F(Chars1, "subscriberPassword", Password),
 	instance(ProductInstance#product_instance{characteristics = Chars2}).
 
-%% @hidden
+-spec instance(Instance) -> Instance
+	when
+		Instance :: #product_instance{} | {struct, [tuple()]}.
+%% @doc CODEC for Product Inventory.
 instance({struct, ObjectMembers}) ->
 	instance(ObjectMembers, #product_instance{});
 instance(ProductInstance) ->
