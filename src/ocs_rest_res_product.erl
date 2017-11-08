@@ -30,6 +30,8 @@
 -export([get_product_spec/2, get_product_specs/1]).
 -export([delete_product_offering/1]).
 
+-export([inventory/1]).
+
 -include("ocs.hrl").
 
 %% support deprecated_time_unit()
@@ -1278,16 +1280,32 @@ inventory({struct, ObjectMembers}) when is_list(ObjectMembers) ->
 	#subscriber{name = Username, password = Password, product = ProductInstance};
 inventory(#subscriber{name = Username, password = Password,
 		product = #product_instance{characteristics = Chars}  = ProductInstance}) ->
-	F = fun(_, _, undefined) ->
-			undefined;
+	F1 = fun(CChars, _, undefined) ->
+			CChars;
 		(CChars, Key, Value) ->
 			lists:keystore(Key, 1, CChars, {Key, binary_to_list(Value)})
 	end,
-	Chars1 = F(Chars, "subscriberIdentity", Username),
-	Chars2 = F(Chars1, "subscriberPassword", Password),
-	instance(ProductInstance#product_instance{characteristics = Chars2}).
+	Chars1 = F1(Chars, "subscriberIdentity", Username),
+	Chars2 = F1(Chars1, "subscriberPassword", Password),
+	{struct, Json1} = instance(ProductInstance#product_instance{characteristics = Chars2}),
+	F2 = fun(Key) ->
+			case proplists:get_value(Key, ProductInstance#product_instance.characteristics) of
+				undefined ->
+					undefined;
+				Value ->
+					Value
+			end
+	end,
+	Username1 = F2("subscriberIdentity"),
+	Id = {"id", Username1},
+	Href = {"href", "product/product/" ++ Username1},
+	{struct, lists:sort([Id, Href | Json1])}.
 
-%% @hidden
+
+-spec instance(Instance) -> Instance
+	when
+		Instance :: #product_instance{} | {struct, [tuple()]}.
+%% @doc CODEC for Product Inventory.
 instance({struct, ObjectMembers}) ->
 	instance(ObjectMembers, #product_instance{});
 instance(ProductInstance) ->
@@ -1298,6 +1316,12 @@ instance([{"characteristics", Chars} | T], Acc) ->
 	instance(T, Acc#product_instance{characteristics = NewChars});
 instance([{"productOffering", {struct, Offer}} | T], Acc) ->
 	instance(T, Acc#product_instance{product = product({struct, Offer})});
+instance([{"status", Status} | T], Acc) ->
+	instance(T, Acc#product_instance{status = product_status(Status)});
+instance([{"startDate", SDate} | T], Acc) ->
+	instance(T, Acc#product_instance{start_date = ocs_rest:iso8601(SDate)});
+instance([{"terminationDate", TDate} | T], Acc) ->
+	instance(T, Acc#product_instance{termination_date = ocs_rest:iso8601(TDate)});
 instance([_ | T], Acc) ->
 	instance(T, Acc);
 instance([], Acc) ->
@@ -1309,6 +1333,21 @@ instance([product | T], #product_instance{product = ProdID} = ProductInstance, A
 instance([characteristics | T], #product_instance{characteristics = Chars} = ProductInstance, Acc) ->
 	Characteristics = {"characteristics", characteristics(Chars)},
 	instance(T, ProductInstance, [Characteristics | Acc]);
+instance([status | T], #product_instance{status = undefined} = ProductInstance, Acc) ->
+	instance(T, ProductInstance,  Acc);
+instance([status | T], #product_instance{status = Status} = ProductInstance, Acc) ->
+	NewAcc = [{"status", product_status(Status)}  | Acc],
+	instance(T, ProductInstance,  NewAcc);
+instance([start_date | T], #product_instance{start_date = undefined} = ProductInstance, Acc) ->
+	instance(T, ProductInstance,  Acc);
+instance([start_date | T], #product_instance{start_date = SDate} = ProductInstance, Acc) ->
+	NewAcc = [{"startDate", ocs_rest:iso8601(SDate)}  | Acc],
+	instance(T, ProductInstance,  NewAcc);
+instance([termination_date | T], #product_instance{termination_date = undefined} = ProductInstance, Acc) ->
+	instance(T, ProductInstance,  Acc);
+instance([termination_date | T], #product_instance{termination_date = TDate} = ProductInstance, Acc) ->
+	NewAcc = [{"terminationDate", ocs_rest:iso8601(TDate)}  | Acc],
+	instance(T, ProductInstance,  NewAcc);
 instance([_ | T], ProductInstance, Acc) ->
 	instance(T, ProductInstance,  Acc);
 instance([], _ProductInstance, Acc) ->
