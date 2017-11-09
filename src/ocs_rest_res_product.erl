@@ -647,7 +647,7 @@ offer([specification | T],
 	{struct, L} = product_spec(ProdSpecId),
 	{_, Id} = lists:keyfind("id", 1, L),
 	{_, Href} = lists:keyfind("href", 1, L),
-	{_, Name} = lists:keyfind("name", 1, L),
+	Name = proplists:get_value("name", L),
 	Spec = {struct, [{"id", Id}, {"href", Href}, {"name", Name}]},
 	offer(T, P, [{"productSpecification", Spec} | Acc]);
 offer([status | T], #product{status = Status} = P, Acc)
@@ -1107,7 +1107,7 @@ char_value_use([{"name", Name} | T], Acc) when is_list(Name) ->
 char_value_use([{"description", Description} | T], Acc)
 		when is_list(Description) ->
 	char_value_use(T, Acc#char_value_use{description = Description});
-char_value_use([{"valuetype", ValueType} | T], Acc)
+char_value_use([{"valueType", ValueType} | T], Acc)
 		when is_list(ValueType) ->
 	char_value_use(T, Acc#char_value_use{type = ValueType});
 char_value_use([{"minCardinality", MinCardinality} | T], Acc)
@@ -1130,7 +1130,7 @@ char_value_use([{"validFor", {struct, L}} | T], Acc) when is_list(L) ->
 	char_value_use(T, NewAcc);
 char_value_use([{"productSpecCharacteristicValue", {array, _} = Values} | T], Acc) ->
 	char_value_use(T, Acc#char_value_use{values = char_values(Values)});
-char_value_use([{"productSpecification", _} | T], Acc) ->
+char_value_use([{"productSpecification", _Spec} | T], Acc) ->
 	char_value_use(T, Acc);
 char_value_use([], Acc) ->
 	Acc.
@@ -1188,34 +1188,34 @@ char_value([start_date | T], #char_value{start_date = Start,
 char_value([start_date | T], #char_value{start_date = undefined,
 		end_date = End} = V, Acc) when is_integer(End) ->
 	ValidFor = {struct, [{"endDateTime", ocs_rest:iso8601(End)}]},
-	char_value_use(T, V, [{"validFor", ValidFor} | Acc]);
+	char_value(T, V, [{"validFor", ValidFor} | Acc]);
 char_value([end_date | T], #char_value{} = V, Acc) ->
-	char_value_use(T, V, Acc);
+	char_value(T, V, Acc);
 char_value([value | T], #char_value{value = undefined} = V, Acc) ->
-	char_value_use(T, V, Acc);
+	char_value(T, V, Acc);
 char_value([value | T], #char_value{value = Value} = V, Acc) ->
 	char_value(T, V, [{"value", Value} | Acc]);
 char_value([from | T], #char_value{from = undefined} = V, Acc) ->
-	char_value_use(T, V, Acc);
+	char_value(T, V, Acc);
 char_value([from | T], #char_value{from = From} = V, Acc) ->
 	char_value(T, V, [{"valueFrom", From} | Acc]);
 char_value([to | T], #char_value{to = undefined} = V, Acc) ->
-	char_value_use(T, V, Acc);
+	char_value(T, V, Acc);
 char_value([to | T], #char_value{to = To} = V, Acc) ->
 	char_value(T, V, [{"valueTo", To} | Acc]);
 char_value([type | T], #char_value{type = undefined} = V, Acc) ->
-	char_value_use(T, V, Acc);
+	char_value(T, V, Acc);
 char_value([type | T], #char_value{type = Type} = V, Acc)
 		when is_list(Type) ->
 	char_value(T, V, [{"valueType", Type} | Acc]);
 char_value([interval | T], #char_value{interval = undefined} = V, Acc) ->
-	char_value_use(T, V, Acc);
+	char_value(T, V, Acc);
 char_value([interval | T], #char_value{interval = Interval} = V, Acc)
 		when Interval == open; Interval == closed,
 		Interval == closed_bottom; Interval == closed_top ->
 	char_value(T, V, [{"rangeInterval", atom_to_list(Interval)} | Acc]);
 char_value([regex | T], #char_value{regex = undefined} = V, Acc) ->
-	char_value_use(T, V, Acc);
+	char_value(T, V, Acc);
 char_value([regex | T], #char_value{regex = {_, RegEx}} = V, Acc) ->
 	char_value(T, V, [{"regex", RegEx} | Acc]);
 char_value([], _, Acc) ->
