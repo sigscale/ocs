@@ -27,7 +27,8 @@
 -export([add_subscriber/3, add_subscriber/4, add_subscriber/5,
 		add_subscriber/6, add_subscriber/8,
 		find_subscriber/1, delete_subscriber/1, update_password/2,
-		update_attributes/2, update_attributes/5, get_subscribers/0]).
+		update_attributes/2, update_attributes/5, get_subscribers/0,
+		query_subscriber/1]).
 -export([add_user/3, list_users/0, get_user/1, delete_user/1,
 		query_users/3, update_user/3]).
 -export([add_product/1, find_product/1, get_products/0, delete_product/1,
@@ -538,6 +539,31 @@ get_subscribers()->
 			{error, Reason};
 		{atomic, Result} ->
 			Result
+	end.
+
+-spec query_subscriber(Cont) -> Result
+	when
+		Cont :: start | eof | any(),
+		Result :: {Cont, [#product{}]} | {error, Reason},
+		Reason :: term().
+%% @doc Query product inventories
+query_subscriber(start) ->
+	MatchSpec = [{'_', [], ['$_']}],
+	F = fun(F, start, Acc) ->
+				F(F, mnesia:select(subscriber, MatchSpec,
+						?CHUNKSIZE, read), Acc);
+			(_F, '$end_of_table', Acc) ->
+				lists:flatten(lists:reverse(Acc));
+			(_F, {error, Reason}, _Acc) ->
+				{error, Reason};
+			(F,{Subscribers, Cont}, Acc) ->
+				F(F, mnesia:select(Cont), [Subscribers | Acc])
+	end,
+	case mnesia:transaction(F, [F, start, []]) of
+		{aborted, Reason} ->
+			{error, Reason};
+		{atomic, Result} ->
+			{eof, Result}
 	end.
 
 -spec delete_subscriber(Identity) -> ok
