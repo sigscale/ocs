@@ -395,56 +395,6 @@ start_disconnect1(DiscSup, Subscriber, SessionAttributes) ->
 	StartArgs = [DiscArgs, []],
 	supervisor:start_child(DiscSup, StartArgs).
 
-update_session(SubscriberId, SessionAttributes, SessionIdentification) when is_list(SubscriberId) ->
-	update_session(list_to_binary(SubscriberId), SessionAttributes, SessionIdentification);
-update_session(SubscriberId, SessionAttributes, SessionIdentification) when is_binary(SubscriberId) ->
-	F = fun() ->
-			case mnesia:read(subscriber, SubscriberId, write) of
-				[#subscriber{session_attributes = SessionAttrList} = Subscriber] ->
-					case update_session1(SessionAttributes,
-							SessionIdentification, SessionAttrList) of
-						SessionAttrList ->
-							ok;
-						NSA ->
-							mnesia:write(Subscriber#subscriber{session_attributes = NSA})
-					end;
-				[] ->
-					throw(not_found)
-			end
-	end,
-	case mnesia:transaction(F) of
-		{atomic, ok} ->
-			ok;
-		{aborted, {throw, Reason}} ->
-			{error, Reason};
-		{aborted, Reason} ->
-			{error, Reason}
-	end.
-%% @hidden
-update_session1(SessionAttributes, SessionIdentification, SessionLists) ->
-	update_session2(SessionAttributes, SessionIdentification, SessionLists, []).
-%% @hidden
-update_session2(SessionAttributes, _SessionIdentification, [], Acc) ->
-	Now = erlang:system_time(?MILLISECOND),
-	[{Now, SessionAttributes} | Acc];
-update_session2(SessionAttributes, SessionIdentification, [{_, Attributes} = H | T] = S, Acc) ->
-	case update_session3(SessionIdentification, Attributes) of
-		true ->
-			S ++ Acc;
-		false ->
-			update_session2(SessionAttributes, SessionIdentification, T, [H | Acc])
-	end.
-%% @hidden
-update_session3([], _SessionAttributes) ->
-	false;
-update_session3([Identifier | T], SessionAttributes) ->
-	case lists:member(Identifier, SessionAttributes) of
-		true ->
-			true;
-		false ->
-			update_session3(T, SessionAttributes)
-	end.
-
 -spec extract_session_attributes(Attributes) -> SessionAttributes
 	when
 		Attributes :: radius_attributes:attributes(),
