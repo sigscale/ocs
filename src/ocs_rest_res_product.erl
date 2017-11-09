@@ -25,7 +25,7 @@
 -export([add_product_offering/1, add_product_inventory/1]).
 -export([get_product_offering/1, get_product_offerings/2,
 		patch_product_offering/3, get_product_inventory/1,
-		get_product_inventories/2]).
+		get_product_inventories/2, patch_product_inventory/3]).
 -export([get_catalog/2, get_catalogs/1]).
 -export([get_category/2, get_categories/1]).
 -export([get_product_spec/2, get_product_specs/1]).
@@ -390,6 +390,72 @@ patch_product_offering(ProdId, Etag, ReqData) ->
 					Location = "/catalogManagement/v1/productOffering/" ++ ProdId,
 					Headers = [{location, Location}, {etag, ocs_rest:etag(Etag3)}],
 					Body = mochijson:encode(Product),
+					{ok, Headers, Body};
+				{aborted, {throw, bad_request}} ->
+					{error, 400};
+				{aborted, {throw, not_found}} ->
+					{error, 404};
+				{aborted, {throw, precondition_failed}} ->
+					{error, 412};
+				{aborted, _Reason} ->
+					{error, 500}
+			end
+	catch
+		_:_ ->
+			{error, 400}
+	end.
+
+-spec patch_product_inventory(SubId, Etag, ReqData) -> Result
+	when
+		SubId	:: string(),
+		Etag		:: undefined | list(),
+		ReqData	:: [tuple()],
+		Result	:: {ok, Headers, Body} | {error, Status},
+		Headers	:: [tuple()],
+		Body		:: iolist(),
+		Status	:: 400 | 404 | 412 | 500 .
+%% @doc Respond to `PATCH /catalogManagement/v2/productOffering/{id}'.
+%% 	Update a Product Offering using JSON patch method
+%% 	<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>.
+patch_product_inventory(SubId, Etag, ReqData) ->
+	try
+		Etag1 = case Etag of
+			undefined ->
+				undefined;
+			Etag ->
+				ocs_rest:etag(Etag)
+		end,
+		{Etag1, mochijson:decode(ReqData)}
+	of
+		{Etag2, {array, _} = Operations} ->
+			F = fun() ->
+					case mnesia:read(subscriber, SubId, write) of
+						[Subscriber1] when
+								Subscriber1#subscriber.last_modified == Etag2;
+								Etag2 == undefined ->
+							case catch ocs_rest:patch(Operations, offer(Subscriber1)) of
+								{struct, _} = Subscriber2  ->
+									Subscriber3 = offer(Subscriber2),
+									TS = erlang:system_time(?MILLISECOND),
+									N = erlang:unique_integer([positive]),
+									LM = {TS, N},
+									Subscriber4 = Subscriber3#subscriber{last_modified = LM},
+									ok = mnesia:write(Subscriber4),
+									{Subscriber2, LM};
+								_ ->
+									throw(bad_request)
+							end;
+						[#subscriber{}] ->
+							throw(precondition_failed);
+						[] ->
+							throw(not_found)
+					end
+			end,
+			case mnesia:transaction(F) of
+				{atomic, {Subscriber, Etag3}} ->
+					Location = "/productInventoryManagement/v1/product/" ++ SubId,
+					Headers = [{location, Location}, {etag, ocs_rest:etag(Etag3)}],
+					Body = mochijson:encode(Subscriber),
 					{ok, Headers, Body};
 				{aborted, {throw, bad_request}} ->
 					{error, 400};
