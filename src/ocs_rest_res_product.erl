@@ -30,8 +30,6 @@
 -export([get_product_spec/2, get_product_specs/1]).
 -export([delete_product_offering/1]).
 
--export([inventory/1]).
-
 -include("ocs.hrl").
 
 %% support deprecated_time_unit()
