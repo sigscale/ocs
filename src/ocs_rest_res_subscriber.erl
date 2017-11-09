@@ -758,7 +758,7 @@ accumulated_balance3(Key, Units, Amount, AccBalance) ->
 %% @doc CODEC for bucket type.
 bucket_type("octets") -> octets;
 bucket_type("cents") -> cents;
-bucket_type("seconds") -> seconds.
+bucket_type("seconds") -> seconds;
 bucket_type(octets) -> "octets";
 bucket_type(cents) -> "cents";
 bucket_type(seconds) -> "seconds".
