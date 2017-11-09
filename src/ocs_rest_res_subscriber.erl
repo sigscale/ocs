@@ -752,18 +752,14 @@ accumulated_balance3(Key, Units, Amount, AccBalance) ->
 			[{Key, {Units, Amount}} | AccBalance]
 	end.
 
--spec bucket_type(SBucketType) -> BucketType
+-spec bucket_type(Type) -> Type
 	when
-		SBucketType	:: string(),
-		BucketType	:: octets | cents | seconds.
-%% @doc return the bucket type.
-bucket_type(BucketType) ->
-	bucket_type1(string:to_lower(BucketType)).
-%% @hidden
-bucket_type1("octets") ->
-	octets;
-bucket_type1("cents") ->
-	cents;
-bucket_type1("seconds") ->
-	seconds.
+		Type :: string() | atom().
+%% @doc CODEC for bucket type.
+bucket_type("octets") -> octets;
+bucket_type("cents") -> cents;
+bucket_type("seconds") -> seconds.
+bucket_type(octets) -> "octets";
+bucket_type(cents) -> "cents";
+bucket_type(seconds) -> "seconds".
 
