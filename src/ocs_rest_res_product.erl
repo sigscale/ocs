@@ -198,67 +198,22 @@ get_product_inventory(ID) ->
 %% 	Retrieve all Product Offerings.
 %% @todo Filtering
 get_product_offerings(Query, Headers) ->
-	case lists:keytake("fields", 1, Query) of
-		{value, {_, Filters}, NewQuery} ->
-			get_product_offerings1(NewQuery, Filters, Headers);
+	Name =  proplists:get_value("name", Query),
+	Des = proplists:get_value("description", Query),
+	Status = case lists:keyfind("lifecycleStatus", 1, Query) of
 		false ->
-			get_product_offerings1(Query, [], Headers)
-	end.
-%% @hidden
-get_product_offerings1(Query, Filters, Headers) ->
-	case {lists:keyfind("if-match", 1, Headers),
-			lists:keyfind("if-range", 1, Headers),
-			lists:keyfind("range", 1, Headers)} of
-		{{"if-match", Etag}, false, {"range", Range}} ->
-			case global:whereis_name(Etag) of
-				undefined ->
-					{error, 412};
-				PageServer ->
-					case ocs_rest:range(Range) of
-						{error, _} ->
-							{error, 400};
-						{ok, {Start, End}} ->
-							query_page(PageServer, Etag, Query, Filters, Start, End)
-					end
-			end;
-		{{"if-match", Etag}, false, false} ->
-			case global:whereis_name(Etag) of
-				undefined ->
-					{error, 412};
-				PageServer ->
-					query_page(PageServer, Etag, Query, Filters, undefined, undefined)
-			end;
-		{false, {"if-range", Etag}, {"range", Range}} ->
-			case global:whereis_name(Etag) of
-				undefined ->
-					case ocs_rest:range(Range) of
-						{error, _} ->
-							{error, 400};
-						{ok, {Start, End}} ->
-							query_start(Query, Filters, Start, End)
-					end;
-				PageServer ->
-					case ocs_rest:range(Range) of
-						{error, _} ->
-							{error, 400};
-						{ok, {Start, End}} ->
-							query_page(PageServer, Etag, Query, Filters, Start, End)
-					end
-			end;
-		{{"if-match", _}, {"if-range", _}, _} ->
-			{error, 400};
-		{_, {"if-range", _}, false} ->
-			{error, 400};
-		{false, false, {"range", Range}} ->
-			case ocs_rest:range(Range) of
-				{error, _} ->
-					{error, 400};
-				{ok, {Start, End}} ->
-					query_start(Query, Filters, Start, End)
-			end;
-		{false, false, false} ->
-			query_start(Query, Filters, undefined, undefined)
-	end.
+			undefined;
+		{_, S} ->
+			product_status(S)
+	end,
+	SDT = proplists:get_value("startDate", Query),
+	EDT = proplists:get_value("endDate", Query),
+	Price = proplists:get_value("price", Query),
+	M = ocs,
+	F = query_product,
+	A = [Name, Des, Status, SDT, EDT, Price],
+	Codec = fun offer/1,
+	query_filter({M, F, A}, Codec, Query, Headers).
 
 -spec get_product_inventories(Query, Headers) -> Result when
 	Query :: [{Key :: string(), Value :: string()}],
@@ -1525,68 +1480,120 @@ duration(days) -> "days";
 duration(months) -> "months";
 duration(years) -> "years".
 
+%% @hidden
+query_filter(MFA, Codec, Query, Headers) ->
+	case lists:keytake("fields", 1, Query) of
+		{value, {_, Filters}, NewQuery} ->
+			query_filter(MFA, Codec, NewQuery, Filters, Headers);
+		false ->
+			query_filter(MFA, Codec, Query, [], Headers)
+	end.
+%% @hidden
+query_filter(MFA, Codec, Query, Filters, Headers) ->
+	case {lists:keyfind("if-match", 1, Headers),
+			lists:keyfind("if-range", 1, Headers),
+			lists:keyfind("range", 1, Headers)} of
+		{{"if-match", Etag}, false, {"range", Range}} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					{error, 412};
+				PageServer ->
+					case ocs_rest:range(Range) of
+						{error, _} ->
+							{error, 400};
+						{ok, {Start, End}} ->
+							query_page(Codec, PageServer, Etag, Query, Filters, Start, End)
+					end
+			end;
+		{{"if-match", Etag}, false, false} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					{error, 412};
+				PageServer ->
+					query_page(Codec, PageServer, Etag, Query, Filters, undefined, undefined)
+			end;
+		{false, {"if-range", Etag}, {"range", Range}} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					case ocs_rest:range(Range) of
+						{error, _} ->
+							{error, 400};
+						{ok, {Start, End}} ->
+							query_start(MFA, Codec, Query, Filters, Start, End)
+					end;
+				PageServer ->
+					case ocs_rest:range(Range) of
+						{error, _} ->
+							{error, 400};
+						{ok, {Start, End}} ->
+							query_page(Codec, PageServer, Etag, Query, Filters, Start, End)
+					end
+			end;
+		{{"if-match", _}, {"if-range", _}, _} ->
+			{error, 400};
+		{_, {"if-range", _}, false} ->
+			{error, 400};
+		{false, false, {"range", Range}} ->
+			case ocs_rest:range(Range) of
+				{error, _} ->
+					{error, 400};
+				{ok, {Start, End}} ->
+					query_start(MFA, Codec, Query, Filters, Start, End)
+			end;
+		{false, false, false} ->
+			query_start(MFA, Codec, Query, Filters, undefined, undefined)
+	end.
 
 %% @hidden
-query_start(Query, Filters, RangeStart, RangeEnd) ->
-	Name =  proplists:get_value("name", Query),
-	Des = proplists:get_value("description", Query),
-	Status = case lists:keyfind("lifecycleStatus", 1, Query) of
-		false ->
-			undefined;
-		{_, S} ->
-			product_status(S)
-	end,
-	SDT = proplists:get_value("startDate", Query),
-	EDT = proplists:get_value("endDate", Query),
-	Price = proplists:get_value("price", Query),
+query_start({M, F, A}, Codec, Query, Filters, RangeStart, RangeEnd) ->
 	case supervisor:start_child(ocs_rest_pagination_sup,
-				[[ocs, query_product, [Name, Des, Status, SDT, EDT, Price]]]) of
+				[[M, F, A]]) of
 		{ok, PageServer, Etag} ->
-			query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
+			query_page(Codec, PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
 		{error, _Reason} ->
 			{error, 500}
 	end.
 
 %% @hidden
-query_page(PageServer, Etag, Query, Filters, Start, End) ->
+query_page(Codec, PageServer, Etag, Query, Filters, Start, End) ->
 	case gen_server:call(PageServer, {Start, End}) of
 		{error, Status} ->
 			{error, Status};
-		{Products, ContentRange} ->
+		{Result, ContentRange} ->
 			try
 				case lists:keytake("sort", 1, Query) of
 					{value, {_, "name"}, Q1} ->
-						{lists:keysort(#product.name, Products), Q1};
+						{lists:keysort(#product.name, Result), Q1};
 					{value, {_, "-name"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.name, Products)), Q1};
+						{lists:reverse(lists:keysort(#product.name, Result)), Q1};
 					{value, {_, "description"}, Q1} ->
-						{lists:keysort(#product.description, Products), Q1};
+						{lists:keysort(#product.description, Result), Q1};
 					{value, {_, "-description"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.description, Products)), Q1};
+						{lists:reverse(lists:keysort(#product.description, Result)), Q1};
 					{value, {_, "lifecycleStatus"}, Q1} ->
-						{lists:keysort(#product.status, Products), Q1};
+						{lists:keysort(#product.status, Result), Q1};
 					{value, {_, "-lifecycleStatus"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.status, Products)), Q1};
+						{lists:reverse(lists:keysort(#product.status, Result)), Q1};
 					{value, {_, "startDate"}, Q1} ->
-						{lists:keysort(#product.start_date, Products), Q1};
+						{lists:keysort(#product.start_date, Result), Q1};
 					{value, {_, "-startDate"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.start_date, Products)), Q1};
+						{lists:reverse(lists:keysort(#product.start_date, Result)), Q1};
 					{value, {_, "endDate"}, Q1} ->
-						{lists:keysort(#product.end_date, Products), Q1};
+						{lists:keysort(#product.end_date, Result), Q1};
 					{value, {_, "-endDate"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.end_date, Products)), Q1};
+						{lists:reverse(lists:keysort(#product.end_date, Result)), Q1};
 					{value, {_, "price"}, Q1} ->
-						{lists:keysort(#product.price, Products), Q1};
+						{lists:keysort(#product.price, Result), Q1};
 					{value, {_, "-price"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.price, Products)), Q1};
+						{lists:reverse(lists:keysort(#product.price, Result)), Q1};
 					false ->
-						{Products, Query};
+						{Result, Query};
 					_ ->
 						throw(400)
 				end
 			of
-				{SortedProducts, _NewQuery} ->
-					JsonObj = query_page1(lists:map(fun offer/1, SortedProducts), Filters, []),
+				{SortedResult, _NewQuery} ->
+					JsonObj = query_page1(lists:map(Codec, SortedResult), Filters, []),
 					JsonArray = {array, JsonObj},
 					Body = mochijson:encode(JsonArray),
 					Headers = [{content_type, "application/json"},
