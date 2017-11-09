@@ -29,7 +29,7 @@
 -export([get_catalog/2, get_catalogs/1]).
 -export([get_category/2, get_categories/1]).
 -export([get_product_spec/2, get_product_specs/1]).
--export([delete_product_offering/1]).
+-export([delete_product_offering/1, delete_product_inventory/1]).
 
 -include("ocs.hrl").
 
@@ -414,6 +414,17 @@ patch_product_offering(ProdId, Etag, ReqData) ->
 %% 	request to remove a `Product Offering'.
 delete_product_offering(Id) ->
 	ok = ocs:delete_product(Id),
+	{ok, [], []}.
+
+-spec delete_product_inventory(Id) -> Result
+	when
+		Id :: string(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()} .
+%% @doc Respond to `DELETE /productInventoryManagement/v1/product/{id}'
+%% 	request to remove a `Product Invenotry'.
+delete_product_inventory(Id) ->
+	ok = ocs:delete_subscriber(Id),
 	{ok, [], []}.
 
 %%----------------------------------------------------------------------
