@@ -21,7 +21,7 @@
 -module(ocs_rating).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
--export([rate/4, rate/5]).
+-export([rate/5, rate/6]).
 
 -include("ocs.hrl").
 
@@ -29,8 +29,9 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
--spec rate(SubscriberID, Flag, DebitAmount, ReserveAmount) -> Result
+-spec rate(Protocol, SubscriberID, Flag, DebitAmount, ReserveAmount) -> Result
 	when
+		Protocol :: radius | diameter,
 		SubscriberID :: string() | binary(),
 		Flag :: initial | interim | final,
 		DebitAmount :: [{Type, Amount}],
@@ -42,12 +43,13 @@
 		GrantedAmount :: integer(),
 		SessionList :: [tuple()],
 		Reason :: term().
-%% @equiv rate(SubscriberID, Flag, DebitAmount, ReserveAmount, [])
-rate(SubscriberID, Flag, DebitAmount, ReserveAmount) ->
-	rate(SubscriberID, Flag, DebitAmount, ReserveAmount, []).
+%% @equiv rate(Protocol, SubscriberID, Flag, DebitAmount, ReserveAmount, [])
+rate(Protocol, SubscriberID, Flag, DebitAmount, ReserveAmount) ->
+	rate(Protocol, SubscriberID, Flag, DebitAmount, ReserveAmount, []).
 
--spec rate(SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentification) -> Result
+-spec rate(Protocol, SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentification) -> Result
 	when
+		Protocol :: radius | diameter,
 		SubscriberID :: string() | binary(),
 		Flag :: initial | interim | final,
 		DebitAmount :: [{Type, Amount}],
@@ -74,10 +76,10 @@ rate(SubscriberID, Flag, DebitAmount, ReserveAmount) ->
 %% 	`SessionList' describes the known avtive sessions which
 %% 	should be disconnected.
 %%
-rate(SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentification) when is_list(SubscriberID)->
-	rate(list_to_binary(SubscriberID), Flag, DebitAmount, ReserveAmount, SessionIdentification);
-rate(SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentification)
-		when is_binary(SubscriberID),
+rate(Protocol, SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentification) when is_list(SubscriberID)->
+	rate(Protocol, list_to_binary(SubscriberID), Flag, DebitAmount, ReserveAmount, SessionIdentification);
+rate(Protocol, SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentification)
+		when ((Protocol == radius) or (Protocol == diameter)), is_binary(SubscriberID),
 		((Flag == initial) or (Flag == interim) or (Flag == final)),
 		is_list(DebitAmount), is_list(ReserveAmount), is_list(SessionIdentification) ->
 	F = fun() ->
@@ -87,7 +89,7 @@ rate(SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentification)
 					case mnesia:read(product, ProdID, read) of
 						[#product{price = Prices}] ->
 							Validity = proplists:get_value(validity, Chars),
-							rate1(Subscriber, Prices, Validity, Flag,
+							rate1(Protocol, Subscriber, Prices, Validity, Flag,
 									DebitAmount, ReserveAmount, SessionIdentification);
 						[] ->
 							throw(product_not_found)
@@ -107,9 +109,9 @@ rate(SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentification)
 			{error, Reason}
 	end.
 %% @hidden
-rate1(Subscriber, Prices, Validity, Flag, [], ReserveAmount, SessionIdentification) ->
-	rate2(Subscriber, Prices, Validity, Flag, ReserveAmount, SessionIdentification, 0);
-rate1(#subscriber{buckets = Buckets} = Subscriber, Prices, Validity, Flag,
+rate1(Protocol, Subscriber, Prices, Validity, Flag, [], ReserveAmount, SessionIdentification) ->
+	rate2(Protocol, Subscriber, Prices, Validity, Flag, ReserveAmount, SessionIdentification);
+rate1(Protocol, #subscriber{buckets = Buckets} = Subscriber, Prices, Validity, Flag,
 		DebitAmount, ReserveAmount, SessionIdentification) ->
 	try
 		#price{units = Type, size = Size, amount = Price} = lists:keyfind(usage, #price.type, Prices),
@@ -124,22 +126,55 @@ rate1(#subscriber{buckets = Buckets} = Subscriber, Prices, Validity, Flag,
 		{RemainingCharge, _Charged, NewBuckets}  when RemainingCharge > 0 ->
 			rate3(Subscriber#subscriber{buckets = NewBuckets},
 					RemainingCharge, Flag, ReserveAmount, SessionIdentification);
-		{RemainingCharge, _Charged, NewBuckets} ->
-			rate2(Subscriber#subscriber{buckets = NewBuckets}, Prices,
-					Validity, Flag, ReserveAmount, SessionIdentification, RemainingCharge)
+		{_RemainingCharge, _Charged, NewBuckets} ->
+			rate2(Protocol, Subscriber#subscriber{buckets = NewBuckets},
+					Prices, Validity, Flag, ReserveAmount, SessionIdentification)
 	catch
 		_:_ ->
 			throw(price_not_found)
 	end.
 %% @hidden
-rate2(Subscriber, _Prices, _Validity, Flag, [], SessionIdentification, Charged)  ->
-	rate3(Subscriber, Charged, Flag, 0, SessionIdentification);
-rate2(#subscriber{buckets = Buckets} = Subscriber, Prices, Validity, Flag,
-		ReserveAmount, SessionIdentification, _Charged) ->
+rate2(radius, #subscriber{product = #product_instance{characteristics = Chars}} =
+		Subscriber, Prices, Validity, initial = Flag, _ReserveAmount, SessionIdentification)  ->
+	{Key, Price} = case lists:keyfind(usage, #price.type, Prices) of
+		#price{units = seconds} = P ->
+			{"radiusReserveTime", P};
+		#price{units = octets} = P ->
+			{"radiusReserveOctets", P};
+		false ->
+			throw(price_not_found)
+	end,
+	{_, RadiusReserve} = lists:keyfind(Key, 1, Chars),
+	RadiusReserveAmount = reservation_amount(RadiusReserve),
+	#price{units = Type, size = Size, amount = Amount} = Price,
+	rate2_1(Subscriber, Type, Amount, Size, RadiusReserveAmount, Validity, Flag, SessionIdentification);
+rate2(radius, #subscriber{product = #product_instance{characteristics = Chars}} =
+		Subscriber, Prices, Validity, interim = Flag, ReserveAmount, SessionIdentification)  ->
+	{Key, Price} = case lists:keyfind(usage, #price.type, Prices) of
+		#price{units = seconds} = P ->
+			{"radiusReserveTime", P};
+		#price{units = octets} = P ->
+			{"radiusReserveOctets", P};
+		false ->
+			throw(price_not_found)
+	end,
+	{_, RadiusReserve} = lists:keyfind(Key, 1, Chars),
+	RadiusReserveAmount = reservation_amount(RadiusReserve),
+	#price{units = Type, size = Size, amount = Amount} = Price,
+	{Type, Reserve} = lists:keyfind(Type, 1, ReserveAmount),
+	TotalReserveAmount = RadiusReserveAmount + Reserve,
+	rate2_1(Subscriber, Type, Amount, Size, TotalReserveAmount, Validity, Flag, SessionIdentification);
+rate2(_Protocol, Subscriber, _Prices, _Validity, Flag, [], SessionIdentification)  ->
+	rate3(Subscriber, 0, Flag, 0, SessionIdentification);
+rate2(_Protocol, Subscriber, Prices, Validity, Flag, ReserveAmount, SessionIdentification)  ->
+	#price{units = Type, size = Size, amount = Amount} = lists:keyfind(usage, #price.type, Prices),
+	{Type, Reserve} = lists:keyfind(Type, 1, ReserveAmount),
+	rate2_1(Subscriber, Type, Amount, Size, Reserve, Validity, Flag, SessionIdentification).
+%% @hidden
+rate2_1(#subscriber{buckets = Buckets} = Subscriber,
+		Type, Price, Size, ReserveAmount, Validity, Flag, SessionIdentification) ->
 	try
-		#price{units = Type, size = Size, amount = Price} = lists:keyfind(usage, #price.type, Prices),
-		{Type, Reserve} = lists:keyfind(Type, 1, ReserveAmount),
-		case charge(Type, Reserve, false, Buckets) of
+		case charge(Type, ReserveAmount, false, Buckets) of
 			{R1, C1, NB1} when R1 > 0 ->
 				{R2, C2, NB2} = purchase(Type, Price, Size, R1, Validity, false, NB1),
 				{R2, C1 + C2, NB2};
@@ -155,7 +190,7 @@ rate2(#subscriber{buckets = Buckets} = Subscriber, Prices, Validity, Flag,
 				Flag, ReservedAmount, SessionIdentification)
 	catch
 		_:_ ->
-			throw(price_not_found)
+			throw(rating_faild)
 	end.
 %% @hidden
 rate3(#subscriber{session_attributes = SessionList} = Subscriber,
@@ -372,3 +407,16 @@ update_session1([Identifier | T], Attributes) ->
 			update_session1(T, Attributes)
 	end.
 
+%% @hidden
+reservation_amount([{type, seconds}, {value, Value}]) -> Value;
+reservation_amount([{value, Value}, {type, seconds}]) -> Value;
+reservation_amount([{type, minutes}, {value, Value}]) -> Value * 60;
+reservation_amount([{value, Value}, {type, minutes}]) -> Value * 60;
+reservation_amount([{type, bytes}, {value, Value}]) -> Value;
+reservation_amount([{value, Value}, {type, bytes}]) -> Value;
+reservation_amount([{type, kilobytes}, {value, Value}]) -> Value * 1000;
+reservation_amount([{value, Value}, {type, kilobytes}]) -> Value * 1000;
+reservation_amount([{type, megabytes}, {value, Value}]) -> Value * 1000000;
+reservation_amount([{value, Value}, {type, megabytes}]) -> Value * 1000000;
+reservation_amount([{type, gigabytes}, {value, Value}]) -> Value * 1000000000;
+reservation_amount([{value, Value}, {type, gigabytes}]) -> Value * 1000000000.

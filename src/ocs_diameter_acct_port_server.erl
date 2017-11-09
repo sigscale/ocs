@@ -275,7 +275,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 	SessionAttributes = [{'Origin-Host', OHost}, {'Origin-Realm', ORealm},
 		{'Destination-Host', DHost}, {'Destination-Realm', DRealm}, {'Session-Id', SId}],
 	ReserveAmount = [{ReqUsageType, ReqUsage}],
-	case ocs_rating:rate(Subscriber, initial, [], ReserveAmount, SessionAttributes) of
+	case ocs_rating:rate(diameter, Subscriber, initial, [], ReserveAmount, SessionAttributes) of
 		{ok, #subscriber{enabled = false, session_attributes = SL}, _} ->
 			start_disconnect(SL, State),
 			{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
@@ -359,7 +359,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		end,
 		ReserveAmount = [{ReqUsageType, ReqUsage}],
 		DebitAmount = [{UsedType, UsedUsage}],
-		case ocs_rating:rate(Subscriber, interim, DebitAmount, ReserveAmount) of
+		case ocs_rating:rate(diameter, Subscriber, interim, DebitAmount, ReserveAmount) of
 			{ok, #subscriber{enabled = false, session_attributes = SL}, _} ->
 				start_disconnect(SL, State),
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
@@ -429,7 +429,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 				throw(used_amount_not_available)
 		end,
 		DebitAmount = [{UsedType, UsedUsage}],
-		case ocs_rating:rate(Subscriber, final, DebitAmount, []) of
+		case ocs_rating:rate(diameter, Subscriber, final, DebitAmount, []) of
 			{ok, #subscriber{enabled = false, session_attributes = SL}, _} ->
 				start_disconnect(SL, State),
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
