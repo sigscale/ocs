@@ -255,18 +255,27 @@ request(Address, AccPort, Secret,
 			{reply, {error, ignore}, State}
 	end.
 %% @hidden
-request1(?AccountingStart, _AcctSessionId, Id,
+request1(?AccountingStart, AcctSessionId, Id,
 		Authenticator, Secret, NasId, Address, _AccPort, _ListenPort, Attributes,
 		#state{address = ServerAddress, port = ServerPort} = State) ->
 	SessionAttributes = extract_session_attributes(Attributes),
-	SessionIdentification = [{?NasIdentifier, NasId}, {?NasIpAddress, Address}],
 	{ok, Subscriber} = radius_attributes:find(?UserName, Attributes),
-	case update_session(Subscriber, SessionAttributes, SessionIdentification) of
-		ok ->
-			ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, start, Attributes),
+	case ocs_rating:rate(radius, Subscriber, initial, [], [], SessionAttributes) of
+		{out_of_credit, SessionList}  ->
+			start_disconnect(State, Subscriber, SessionList),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
-		{error, _Reason} ->
-			{reply, {error, ignore}, State}
+		{error, Reason} ->
+			error_logger:warning_report(["Accounting failed",
+					{error, Reason}, {module, ?MODULE},
+					{subscriber, Subscriber}, {nas, NasId},
+					{address, Address}, {session, AcctSessionId}]),
+			{reply, {ok, response(Id, Authenticator, Secret)}, State};
+		{ok, #subscriber{enabled = false, session_attributes = SessionList}, _} ->
+			start_disconnect(State, Subscriber, SessionList),
+			{reply, {ok, response(Id, Authenticator, Secret)}, State};
+		{ok, #subscriber{}, _} ->
+			ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, start, Attributes),
+			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
 request1(?AccountingStop, AcctSessionId, Id,
 		Authenticator, Secret, NasId, Address, _AccPort, _ListenPort, Attributes,
@@ -290,7 +299,7 @@ request1(?AccountingStop, AcctSessionId, Id,
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, stop, Attributes),
 	Candidates = [{?AcctSessionId, AcctSessionId}, {?NasIdentifier, NasId}, {?NasIpAddress, NasId}],
 	DebitAmount = [{octets, UsageOctets}, {seconds, UsageSecs}],
-	case ocs_rating:rate(Subscriber, final, DebitAmount, [], Candidates) of
+	case ocs_rating:rate(radius, Subscriber, final, DebitAmount, [], Candidates) of
 		{out_of_credit, SessionList}  ->
 			start_disconnect(State, Subscriber, SessionList),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
@@ -327,7 +336,7 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, interim, Attributes),
 	Candidates = [{?AcctSessionId, AcctSessionId}, {?NasIdentifier, NasId}, {?NasIpAddress, NasId}],
 	ReserveAmount = [{octets, UsageOctets}, {seconds, UsageSecs}],
-	case ocs_rating:rate(Subscriber, interim, [], ReserveAmount, Candidates) of
+	case ocs_rating:rate(radius, Subscriber, interim, [], ReserveAmount, Candidates) of
 		{error, not_found} ->
 			error_logger:warning_report(["Accounting subscriber not found",
 					{module, ?MODULE}, {subscriber, Subscriber},
