@@ -110,7 +110,7 @@ add_product_inventory(ReqData) ->
 		end
 	of
 		Subscription ->
-			Body = mochijson:encode(offer(Subscription)),
+			Body = mochijson:encode(inventory(Subscription)),
 			Etag = ocs_rest:etag(Subscription#subscriber.last_modified),
 			Href = ?inventoryPath ++ Subscription#subscriber.name,
 			Headers = [{location, Href}, {etag, Etag}],
