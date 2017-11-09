@@ -225,15 +225,11 @@ get_product_offerings(Query, Headers) ->
 %% 	Retrieve all Product Inventories.
 %% @todo Filtering
 get_product_inventories(Query, Headers) ->
-	case ocs:get_subscribers() of
-		{error, _} ->
-			{error, 500};
-		Subscribers ->
-			Json = [inventory(Sub) || Sub <- Subscribers],
-			Body = mochijson:encode({array, Json}),
-			Headers = [{content_type, "application/json"}],
-			{ok, Headers, Body}
-	end.
+	M = ocs,
+	F = query_subscriber,
+	A = [],
+	Codec = fun inventory/1,
+	query_filter({M, F, A}, Codec, Query, Headers).
 
 -spec get_catalog(Id, Query) -> Result when
 	Id :: string(),
