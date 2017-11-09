@@ -24,7 +24,8 @@
 -export([content_types_accepted/0, content_types_provided/0]).
 -export([add_product_offering/1, add_product_inventory/1]).
 -export([get_product_offering/1, get_product_offerings/2,
-		patch_product_offering/3, get_product_inventory/1]).
+		patch_product_offering/3, get_product_inventory/1,
+		get_product_inventories/2]).
 -export([get_catalog/2, get_catalogs/1]).
 -export([get_category/2, get_categories/1]).
 -export([get_product_spec/2, get_product_specs/1]).
@@ -257,6 +258,26 @@ get_product_offerings1(Query, Filters, Headers) ->
 			end;
 		{false, false, false} ->
 			query_start(Query, Filters, undefined, undefined)
+	end.
+
+-spec get_product_inventories(Query, Headers) -> Result when
+	Query :: [{Key :: string(), Value :: string()}],
+	Result	:: {ok, Headers, Body} | {error, Status},
+	Headers	:: [tuple()],
+	Body		:: iolist(),
+	Status	:: 400 | 404 | 412 | 500 .
+%% @doc Respond to `GET /productInventoryManagement/v2/productOffering'.
+%% 	Retrieve all Product Inventories.
+%% @todo Filtering
+get_product_inventories(Query, Headers) ->
+	case ocs:get_subscribers() of
+		{error, _} ->
+			{error, 500};
+		Subscribers ->
+			Json = [inventory(Sub) || Sub <- Subscribers],
+			Body = mochijson:encode({array, Json}),
+			Headers = [{content_type, "application/json"}],
+			{ok, Headers, Body}
 	end.
 
 -spec get_catalog(Id, Query) -> Result when

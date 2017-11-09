@@ -154,6 +154,9 @@ erlang:display({?MODULE, ?LINE}),
 	do_response(ModData, Resource:get_product_specs(Query));
 do_get(Resource, ModData, ["productInventoryManagement", "v2", "product", Id], []) ->
 	do_response(ModData, Resource:get_product_inventory(Id));
+do_get(Resource, #mod{parsed_header = Headers} = ModData,
+		["productInventoryManagement", "v2", "product"], Query) ->
+	do_response(ModData, Resource:get_product_inventories(Query, Headers));
 do_get(_, _, _, _) ->
 erlang:display({?MODULE, ?LINE}),
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
