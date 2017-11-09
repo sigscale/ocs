@@ -24,7 +24,7 @@
 -export([content_types_accepted/0, content_types_provided/0]).
 -export([add_product_offering/1, add_product_inventory/1]).
 -export([get_product_offering/1, get_product_offerings/2,
-		patch_product_offering/3]).
+		patch_product_offering/3, get_product_inventory/1]).
 -export([get_catalog/2, get_catalogs/1]).
 -export([get_category/2, get_categories/1]).
 -export([get_product_spec/2, get_product_specs/1]).
@@ -157,6 +157,38 @@ get_product_offering(ID) ->
 			{error, 400}
 	end.
 
+-spec get_product_inventory(ID) -> Result when
+	ID			:: string(),
+	Result	:: {ok, Headers, Body} | {error, Status},
+	Headers	:: [tuple()],
+	Body		:: iolist(),
+	Status	:: 400 | 404 | 500 .
+%% @doc Respond to `GET /productInventoryManagement/v2/product/{id}'.
+%% 	Retrieve a Product Inventory.
+get_product_inventory(ID) ->
+	try
+		case ocs:find_subscriber(ID) of
+			{ok, Subscriber} ->
+				Subscriber;
+			{error, not_found} ->
+				{throw, 404};
+			{error, _Reason1} ->
+				{throw, 500}
+		end
+	of
+		Subscription ->
+			Body = mochijson:encode(inventory(Subscription)),
+			Etag = ocs_rest:etag(Subscription#subscriber.last_modified),
+			Href = ?inventoryPath ++ binary_to_list(Subscription#subscriber.name),
+			Headers = [{location, Href}, {etag, Etag},
+					{content_type, "application/json"}],
+			{ok, Headers, Body}
+	catch
+		throw:_Reason2 ->
+			{error, 500};
+		_:_ ->
+			{error, 400}
+	end.
 -spec get_product_offerings(Query, Headers) -> Result when
 	Query :: [{Key :: string(), Value :: string()}],
 	Result	:: {ok, Headers, Body} | {error, Status},
