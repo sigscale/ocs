@@ -401,8 +401,9 @@ subscriber([attributes | T], #subscriber{attributes = Attributes} = Subscriber, 
 	subscriber(T, Subscriber, [{"attributes", {array, radius_to_json(Attributes)}} | Acc]);
 subscriber([buckets | T], #subscriber{buckets = Buckets} = Subscriber, Acc) ->
 	subscriber(T, Subscriber, [{"totalBalance", accumulated_balance(Buckets)} | Acc]);
-subscriber([product | T], #subscriber{product = Product} = Subscriber, Acc) ->
-	subscriber(T, Subscriber, product(Product) ++ Acc);
+subscriber([product | T], #subscriber{product = #product_instance{} = Product} = Subscriber, Acc) ->
+	{struct, Object} = product(Product),
+	subscriber(T, Subscriber, Object ++ Acc);
 subscriber([enabled | T], #subscriber{enabled = Enabled} = Subscriber, Acc) ->
 	subscriber(T, Subscriber, [{"enabled", Enabled} | Acc]);
 subscriber([disconnect | T], Subscriber, Acc) ->
@@ -439,7 +440,7 @@ product([characteristics | T], #product_instance{characteristics = Chars} = Prod
 product([_ | T], ProdInst, Acc) ->
 	product(T, ProdInst, Acc);
 product([], _ProdInst, Acc) ->
-	Acc.
+	{struct, Acc}.
 
 -spec characteristics(Characteristics) -> Characteristics
 	when
