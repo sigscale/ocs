@@ -435,9 +435,9 @@ patch_product_inventory(SubId, Etag, ReqData) ->
 						[Subscriber1] when
 								Subscriber1#subscriber.last_modified == Etag2;
 								Etag2 == undefined ->
-							case catch ocs_rest:patch(Operations, offer(Subscriber1)) of
+							case catch ocs_rest:patch(Operations, inventory(Subscriber1)) of
 								{struct, _} = Subscriber2  ->
-									Subscriber3 = offer(Subscriber2),
+									Subscriber3 = inventory(Subscriber2),
 									TS = erlang:system_time(?MILLISECOND),
 									N = erlang:unique_integer([positive]),
 									LM = {TS, N},
