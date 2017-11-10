@@ -164,76 +164,6 @@ get_subscriber1(Query, Filters, Headers) ->
 			query_start(Query, Filters, undefined, undefined)
 	end.
 
-%% @hidden
-query_start(Query, Filters, RangeStart, RangeEnd) ->
-	case supervisor:start_child(ocs_rest_pagination_sup,
-				[[ocs, query_subscriber, []]]) of
-		{ok, PageServer, Etag} ->
-			query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
-		{error, _Reason} ->
-			{error, 500}
-	end.
-
-%% @hidden
-query_page(PageServer, Etag, Query, Filters, Start, End) ->
-	case gen_server:call(PageServer, {Start, End}) of
-		{error, Status} ->
-			{error, Status};
-		{Subscribers, ContentRange} ->
-			try
-				case lists:keytake("sort", 1, Query) of
-					{value, {_, "id"}, NewQuery} ->
-						{lists:keysort(#subscriber.name, Subscribers), NewQuery};
-					{value, {_, "-id"}, NewQuery} ->
-						{lists:reverse(lists:keysort(#subscriber.name, Subscribers)), NewQuery};
-					{value, {_, "password"}, NewQuery} ->
-						{lists:keysort(#subscriber.password, Subscribers), NewQuery};
-					{value, {_, "-password"}, NewQuery} ->
-						{lists:reverse(lists:keysort(#subscriber.password, Subscribers)), NewQuery};
-					{value, {_, "totalBalance"}, NewQuery} ->
-						{lists:keysort(#subscriber.buckets, Subscribers), NewQuery};
-					{value, {_, "-totalBalance"}, NewQuery} ->
-						{lists:reverse(lists:keysort(#subscriber.buckets, Subscribers)), NewQuery};
-					{value, {_, "product"}, NewQuery} ->
-						{lists:keysort(#subscriber.product, Subscribers), NewQuery};
-					{value, {_, "-product"}, NewQuery} ->
-						{lists:reverse(lists:keysort(#subscriber.product, Subscribers)), NewQuery};
-					{value, {_, "enabled"}, NewQuery} ->
-						{lists:keysort(#subscriber.enabled, Subscribers), NewQuery};
-					{value, {_, "-enabled"}, NewQuery} ->
-						{lists:reverse(lists:keysort(#subscriber.enabled, Subscribers)), NewQuery};
-					{value, {_, "multisession"}, NewQuery} ->
-						{lists:keysort(#subscriber.multisession, Subscribers), NewQuery};
-					{value, {_, "-multisession"}, NewQuery} ->
-						{lists:reverse(lists:keysort(#subscriber.multisession, Subscribers)), NewQuery};
-					false ->
-						{Subscribers, Query};
-					_ ->
-						throw(400)
-				end
-			of
-				{SortedEvents, _NewQuery} ->
-					JsonObj = query_page1(lists:map(fun subscriber/1, SortedEvents), Filters, []),
-					JsonArray = {array, JsonObj},
-					Body = mochijson:encode(JsonArray),
-					Headers = [{content_type, "application/json"},
-							{etag, Etag}, {accept_ranges, "items"},
-							{content_range, ContentRange}],
-					{ok, Headers, Body}
-			catch
-				throw:{error, Status} ->
-					{error, Status}
-			end
-	end.
-%% @hidden
-query_page1(Json, [], []) ->
-	Json;
-query_page1([H | T], Filters, Acc) ->
-	query_page1(T, Filters, [ocs_rest:filter(Filters, H) | Acc]);
-query_page1([], _, Acc) ->
-	lists:reverse(Acc).
-
-
 -spec post_subscriber(RequestBody) -> Result 
 	when 
 		RequestBody :: list(),
@@ -737,4 +667,73 @@ bucket_type("seconds") -> seconds;
 bucket_type(octets) -> "octets";
 bucket_type(cents) -> "cents";
 bucket_type(seconds) -> "seconds".
+
+%% @hidden
+query_start(Query, Filters, RangeStart, RangeEnd) ->
+	case supervisor:start_child(ocs_rest_pagination_sup,
+				[[ocs, query_subscriber, []]]) of
+		{ok, PageServer, Etag} ->
+			query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
+		{error, _Reason} ->
+			{error, 500}
+	end.
+
+%% @hidden
+query_page(PageServer, Etag, Query, Filters, Start, End) ->
+	case gen_server:call(PageServer, {Start, End}) of
+		{error, Status} ->
+			{error, Status};
+		{Subscribers, ContentRange} ->
+			try
+				case lists:keytake("sort", 1, Query) of
+					{value, {_, "id"}, NewQuery} ->
+						{lists:keysort(#subscriber.name, Subscribers), NewQuery};
+					{value, {_, "-id"}, NewQuery} ->
+						{lists:reverse(lists:keysort(#subscriber.name, Subscribers)), NewQuery};
+					{value, {_, "password"}, NewQuery} ->
+						{lists:keysort(#subscriber.password, Subscribers), NewQuery};
+					{value, {_, "-password"}, NewQuery} ->
+						{lists:reverse(lists:keysort(#subscriber.password, Subscribers)), NewQuery};
+					{value, {_, "totalBalance"}, NewQuery} ->
+						{lists:keysort(#subscriber.buckets, Subscribers), NewQuery};
+					{value, {_, "-totalBalance"}, NewQuery} ->
+						{lists:reverse(lists:keysort(#subscriber.buckets, Subscribers)), NewQuery};
+					{value, {_, "product"}, NewQuery} ->
+						{lists:keysort(#subscriber.product, Subscribers), NewQuery};
+					{value, {_, "-product"}, NewQuery} ->
+						{lists:reverse(lists:keysort(#subscriber.product, Subscribers)), NewQuery};
+					{value, {_, "enabled"}, NewQuery} ->
+						{lists:keysort(#subscriber.enabled, Subscribers), NewQuery};
+					{value, {_, "-enabled"}, NewQuery} ->
+						{lists:reverse(lists:keysort(#subscriber.enabled, Subscribers)), NewQuery};
+					{value, {_, "multisession"}, NewQuery} ->
+						{lists:keysort(#subscriber.multisession, Subscribers), NewQuery};
+					{value, {_, "-multisession"}, NewQuery} ->
+						{lists:reverse(lists:keysort(#subscriber.multisession, Subscribers)), NewQuery};
+					false ->
+						{Subscribers, Query};
+					_ ->
+						throw(400)
+				end
+			of
+				{SortedEvents, _NewQuery} ->
+					JsonObj = query_page1(lists:map(fun subscriber/1, SortedEvents), Filters, []),
+					JsonArray = {array, JsonObj},
+					Body = mochijson:encode(JsonArray),
+					Headers = [{content_type, "application/json"},
+							{etag, Etag}, {accept_ranges, "items"},
+							{content_range, ContentRange}],
+					{ok, Headers, Body}
+			catch
+				throw:{error, Status} ->
+					{error, Status}
+			end
+	end.
+%% @hidden
+query_page1(Json, [], []) ->
+	Json;
+query_page1([H | T], Filters, Acc) ->
+	query_page1(T, Filters, [ocs_rest:filter(Filters, H) | Acc]);
+query_page1([], _, Acc) ->
+	lists:reverse(Acc).
 
