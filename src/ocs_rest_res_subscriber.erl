@@ -426,18 +426,18 @@ subscriber(#subscriber{} = Subscriber) ->
 	{struct, subscriber(record_info(fields, subscriber),
 		Subscriber, [])}.
 %% @hidden
-subscriber([{"name", Name} | T], Acc) ->
+subscriber([{"id", Name} | T], Acc) ->
 	subscriber(T, Acc#subscriber{name = list_to_binary(Name)});
 subscriber([{"password", Password} | T], Acc) ->
 	subscriber(T, Acc#subscriber{password = list_to_binary(Password)});
-subscriber([{"attributes", Attributes} | T], Acc) ->
+subscriber([{"attributes", {array, Attributes}} | T], Acc) ->
 	subscriber(T, Acc#subscriber{attributes = json_to_radius(Attributes)});
 subscriber([{"multisession", Multi} | T], Acc) ->
 	subscriber(T, Acc#subscriber{multisession = Multi});
 subscriber([{"enabled", Enabled} | T], Acc) ->
 	subscriber(T, Acc#subscriber{enabled = Enabled});
 subscriber([{"product", _} = Product | T], #subscriber{product = undefined} = Acc) ->
-	subscriber(T, Acc#subscriber{product = {struct, [Product]}});
+	subscriber(T, Acc#subscriber{product = product({struct, [Product]})});
 subscriber([{"product", _} = Product | T], #subscriber{product = ProdInst} = Acc) ->
 	#product_instance{product = ProdID} = product({struct, [Product]}),
 	NewProdInst = ProdInst#product_instance{product = ProdID},
@@ -451,13 +451,15 @@ subscriber([{"characteristics", _} = Chars | T], #subscriber{product = ProdInst}
 	#product_instance{characteristics = NewChars} = product({struct, [Chars]}),
 	NewProdInst = ProdInst#product_instance{characteristics = NewChars},
 	subscriber(T, Acc#subscriber{product = NewProdInst});
-subscriber([_ | T], Acc) ->
+subscriber([_A | T], Acc) ->
 	subscriber(T, Acc);
 subscriber([], Acc) ->
 	Acc.
 %% @hidden
 subscriber([name | T], #subscriber{name = Name} = Subscriber, Acc) ->
-	subscriber(T, Subscriber, [{"name", binary_to_list(Name)} | Acc]);
+	Id = {"id", binary_to_list(Name)},
+	Href = {"href", ?subscriberPath ++ binary_to_list(Name)},
+	subscriber(T, Subscriber, [Href, Id | Acc]);
 subscriber([password | T], #subscriber{password = Password} = Subscriber, Acc) ->
 	subscriber(T, Subscriber, [{"password", binary_to_list(Password)} | Acc]);
 subscriber([attributes | T], #subscriber{attributes = []} = Subscriber, Acc) ->
@@ -465,7 +467,7 @@ subscriber([attributes | T], #subscriber{attributes = []} = Subscriber, Acc) ->
 subscriber([attributes | T], #subscriber{attributes = undefined} = Subscriber, Acc) ->
 	subscriber(T, Subscriber, Acc);
 subscriber([attributes | T], #subscriber{attributes = Attributes} = Subscriber, Acc) ->
-	subscriber(T, Subscriber, [{"attributes", radius_to_json(Attributes)} | Acc]);
+	subscriber(T, Subscriber, [{"attributes", {array, radius_to_json(Attributes)}} | Acc]);
 subscriber([buckets | T], #subscriber{buckets = Buckets} = Subscriber, Acc) ->
 	subscriber(T, Subscriber, [{"totalBalance", accumulated_balance(Buckets)} | Acc]);
 subscriber([product | T], #subscriber{product = Product} = Subscriber, Acc) ->
@@ -651,7 +653,7 @@ bucket([termination_date | T], #bucket{termination_date = TDate} = Bucket, Acc) 
 	bucket(T, Bucket, [{"terminationDate", ocs_rest:iso8601(TDate)} | Acc]);
 bucket([remain_amount | T], #bucket{remain_amount = Amount} = Bucket, Acc) ->
 	bucket(T, Bucket, [{"remainAmount", Amount} | Acc]);
-bucket([_ | T], Bucket, Acc) ->
+bucket([_A | T], Bucket, Acc) ->
 	bucket(T, Bucket, Acc);
 bucket([], _Bucket, Acc) ->
 	{struct, Acc}.
