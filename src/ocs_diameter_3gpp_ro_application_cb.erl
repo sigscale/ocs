@@ -155,10 +155,10 @@ handle_error(_Reason, _Request, _ServiceName, _Peer) ->
 		Opt :: diameter:call_opt(),
 		PostF :: diameter:evaluable().
 %% @doc Invoked when a request messge is received from the peer. 
-handle_request(#diameter_packet{msg = Request, errors = []} = P,
+handle_request(#diameter_packet{msg = Request, errors = []},
 		ServiceName, {_, Caps}) ->
 	request(ServiceName, Caps, Request);
-handle_request(#diameter_packet{msg = Request, errors = Errors} = P,
+handle_request(#diameter_packet{msg = Request, errors = Errors},
 		ServiceName, {_, Caps}) ->
 	errors(ServiceName, Caps, Request, Errors).
 
