@@ -134,39 +134,46 @@ rate1(Protocol, #subscriber{buckets = Buckets} = Subscriber, Prices, Validity, F
 			throw(price_not_found)
 	end.
 %% @hidden
-rate2(radius, #subscriber{product = #product_instance{characteristics = Chars}} =
-		Subscriber, Prices, Validity, initial = Flag, _ReserveAmount, SessionIdentification)  ->
-	{Key, Price} = case lists:keyfind(usage, #price.type, Prices) of
-		#price{units = seconds} = P ->
-			{"radiusReserveTime", P};
-		#price{units = octets} = P ->
-			{"radiusReserveOctets", P};
+rate2(radius, Subscriber, _Prices, _Validity, final,
+		_ReserveAmount, SessionIdentification) ->
+	rate3(Subscriber, 0, final, 0, SessionIdentification);
+rate2(radius, Subscriber, Prices, Validity, Flag,
+		ReserveAmount, SessionIdentification) ->
+	case lists:keyfind(usage, #price.type, Prices) of
+		#price{units = Units, size = Size,
+				amount = Amount, char_value_use = CharValueUse} ->
+			CharName = case Units of
+				seconds ->
+					"radiusReserveTime";
+				octets ->
+					"radiusReserveBytes"
+			end,
+			Reserve = case lists:keyfind(Units, 1, ReserveAmount) of
+				{_, R} ->
+					R;
+				false ->
+					0
+			end,
+			RadiusReserve = case lists:keyfind(CharName,
+					#char_value_use.name, CharValueUse) of
+				#char_value_use{values = [#char_value{value = Value}]} ->
+					Reserve + Value;
+				false ->
+					Reserve
+			end,
+			case RadiusReserve of
+				0 ->
+					rate3(Subscriber, 0, Flag, 0, SessionIdentification);
+				_ ->
+					rate2_1(Subscriber, Units, Amount, Size, RadiusReserve,
+							Validity, Flag, SessionIdentification)
+			end;
 		false ->
 			throw(price_not_found)
-	end,
-	{_, RadiusReserve} = lists:keyfind(Key, 1, Chars),
-	RadiusReserveAmount = reservation_amount(RadiusReserve),
-	#price{units = Type, size = Size, amount = Amount} = Price,
-	rate2_1(Subscriber, Type, Amount, Size, RadiusReserveAmount, Validity, Flag, SessionIdentification);
-rate2(radius, #subscriber{product = #product_instance{characteristics = Chars}} =
-		Subscriber, Prices, Validity, interim = Flag, ReserveAmount, SessionIdentification)  ->
-	{Key, Price} = case lists:keyfind(usage, #price.type, Prices) of
-		#price{units = seconds} = P ->
-			{"radiusReserveTime", P};
-		#price{units = octets} = P ->
-			{"radiusReserveOctets", P};
-		false ->
-			throw(price_not_found)
-	end,
-	{_, RadiusReserve} = lists:keyfind(Key, 1, Chars),
-	RadiusReserveAmount = reservation_amount(RadiusReserve),
-	#price{units = Type, size = Size, amount = Amount} = Price,
-	{Type, Reserve} = lists:keyfind(Type, 1, ReserveAmount),
-	TotalReserveAmount = RadiusReserveAmount + Reserve,
-	rate2_1(Subscriber, Type, Amount, Size, TotalReserveAmount, Validity, Flag, SessionIdentification);
-rate2(_Protocol, Subscriber, _Prices, _Validity, Flag, [], SessionIdentification)  ->
+	end;
+rate2(diameter, Subscriber, _Prices, _Validity, Flag, [], SessionIdentification) ->
 	rate3(Subscriber, 0, Flag, 0, SessionIdentification);
-rate2(_Protocol, Subscriber, Prices, Validity, Flag, ReserveAmount, SessionIdentification)  ->
+rate2(diameter, Subscriber, Prices, Validity, Flag, ReserveAmount, SessionIdentification) ->
 	#price{units = Type, size = Size, amount = Amount} = lists:keyfind(usage, #price.type, Prices),
 	{Type, Reserve} = lists:keyfind(Type, 1, ReserveAmount),
 	rate2_1(Subscriber, Type, Amount, Size, Reserve, Validity, Flag, SessionIdentification).
@@ -190,7 +197,7 @@ rate2_1(#subscriber{buckets = Buckets} = Subscriber,
 				Flag, ReservedAmount, SessionIdentification)
 	catch
 		_:_ ->
-			throw(rating_faild)
+			throw(rating_failed)
 	end.
 %% @hidden
 rate3(#subscriber{session_attributes = SessionList} = Subscriber,
@@ -407,16 +414,3 @@ update_session1([Identifier | T], Attributes) ->
 			update_session1(T, Attributes)
 	end.
 
-%% @hidden
-reservation_amount([{type, seconds}, {value, Value}]) -> Value;
-reservation_amount([{value, Value}, {type, seconds}]) -> Value;
-reservation_amount([{type, minutes}, {value, Value}]) -> Value * 60;
-reservation_amount([{value, Value}, {type, minutes}]) -> Value * 60;
-reservation_amount([{type, bytes}, {value, Value}]) -> Value;
-reservation_amount([{value, Value}, {type, bytes}]) -> Value;
-reservation_amount([{type, kilobytes}, {value, Value}]) -> Value * 1000;
-reservation_amount([{value, Value}, {type, kilobytes}]) -> Value * 1000;
-reservation_amount([{type, megabytes}, {value, Value}]) -> Value * 1000000;
-reservation_amount([{value, Value}, {type, megabytes}]) -> Value * 1000000;
-reservation_amount([{type, gigabytes}, {value, Value}]) -> Value * 1000000000;
-reservation_amount([{value, Value}, {type, gigabytes}]) -> Value * 1000000000.

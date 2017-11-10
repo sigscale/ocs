@@ -1450,17 +1450,17 @@ characteristics([{struct, [{"subscriberPassword", Password}]} | T], Acc) ->
 characteristics([{struct, [{"balanceTopUpDuration", BalanceTopUpDuration}]} | T], Acc) ->
 	characteristics(T, [{"balanceTopUpDuration", topup_duration(BalanceTopUpDuration)} | Acc]);
 characteristics([{struct, [{"radiusReserveTime", RadiusReserveTime}]} | T], Acc) ->
-	characteristics(T, [{"radiusReserveTime", radius_reserve(RadiusReserveTime)} | Acc]);
+	characteristics(T, [{"radiusReserveTime", radius_reserve_time(RadiusReserveTime)} | Acc]);
 characteristics([{struct, [{"radiusReserveOctets", RadiusReserveOctets}]} | T], Acc) ->
-	characteristics(T, [{"radiusReserveOctets", radius_reserve(RadiusReserveOctets)} | Acc]);
+	characteristics(T, [{"radiusReserveOctets", radius_reserve_octets(RadiusReserveOctets)} | Acc]);
 characteristics([{"subscriberIdentity", Identity} | T], Acc) ->
 	characteristics(T, [{struct, [{"subscriberIdentity", Identity}]} | Acc]);
 characteristics([{"subscriberPassword", Password} | T], Acc) ->
 	characteristics(T, [{struct, [{"subscriberPassword", Password}]} | Acc]);
 characteristics([{"radiusReserveTime", RadiusReserveTime} | T], Acc) ->
-	characteristics(T, [{struct, [{"radiusReserveTime", radius_reserve(RadiusReserveTime)}]} | Acc]);
+	characteristics(T, [{struct, [{"radiusReserveTime", radius_reserve_time(RadiusReserveTime)}]} | Acc]);
 characteristics([{"radiusReserveOctets", RadiusReserveOctets} | T], Acc) ->
-	characteristics(T, [{struct, [{"radiusReserveOctets", radius_reserve(RadiusReserveOctets)}]} | Acc]);
+	characteristics(T, [{struct, [{"radiusReserveOctets", radius_reserve_octets(RadiusReserveOctets)}]} | Acc]);
 characteristics([{"balanceTopUpDuration", Chars} | T], Acc) ->
 	characteristics(T, [{struct, [{"balanceTopUpDuration", topup_duration(Chars)}]} | Acc]);
 characteristics([], Acc) ->
@@ -1470,6 +1470,7 @@ characteristics([], Acc) ->
 	when
 		BalanceTopUpDuration :: {struct, list()} | [tuple()].
 %% @doc CODEC for top up duration characteristic
+%% @private
 topup_duration({struct, [{"unitOfMeasure", Duration}, {"value", Amount}]}) ->
 	[{unitOfMeasure, duration(Duration)}, {value, Amount}];
 topup_duration({struct, [{"value", Amount}, {"unitOfMeasure", Duration}]}) ->
@@ -1489,59 +1490,55 @@ product(ProdID) ->
 	Name = {"name", ProdID},
 	{struct, [ID, Href, Name]}.
 
--spec radius_reserve(RadiusReserve) -> RadiusReserve
+-spec radius_reserve_octets(RadiusReserve) -> RadiusReserve
 	when
-		RadiusReserve :: {struct, list()} | [tuple()].
-%% @doc CODEC for top up duration characteristic
-radius_reserve({struct, [{"unitOfMeasure", "seconds"}, {"value", Value}]}) ->
-	[{type, seconds}, {value, Value}];
-radius_reserve({struct, [{"value", Value}, {"unitOfMeasure", "seconds"}]}) ->
-	[{type, seconds}, {value, Value}];
-radius_reserve({struct, [{"unitOfMeasure", "minutes"}, {"value", Value}]}) ->
-	[{type, minutes}, {value, Value}];
-radius_reserve({struct, [{"value", Value}, {"unitOfMeasure", "minutes"}]}) ->
-	[{type, minutes}, {value, Value}];
-radius_reserve({struct, [{"unitOfMeasure", "bytes"}, {"value", Value}]}) ->
-	[{type, bytes}, {value, Value}];
-radius_reserve({struct, [{"value", Value}, {"unitOfMeasure", "bytes"}]}) ->
-	[{type, bytes}, {value, Value}];
-radius_reserve({struct, [{"unitOfMeasure", "kilobytes"}, {"value", Value}]}) ->
-	[{type, kilobytes}, {value, Value}];
-radius_reserve({struct, [{"value", Value}, {"unitOfMeasure", "kilobytes"}]}) ->
-	[{type, kilobytes}, {value, Value}];
-radius_reserve({struct, [{"unitOfMeasure", "megabytes"}, {"value", Value}]}) ->
-	[{type, megabytes}, {value, Value}];
-radius_reserve({struct, [{"value", Value}, {"unitOfMeasure", "megabytes"}]}) ->
-	[{type, megabytes}, {value, Value}];
-radius_reserve({struct, [{"unitOfMeasure", "gigabytes"}, {"value", Value}]}) ->
-	[{type, gigabytes}, {value, Value}];
-radius_reserve({struct, [{"value", Value}, {"unitOfMeasure", "gigabytes"}]}) ->
-	[{type, gigabytes}, {value, Value}];
+		RadiusReserve :: {struct, list()} | pos_integer().
+%% @doc CODEC for radius reservation octets characteristic.
+%% @private
+radius_reserve_octets({struct, L}) ->
+	radius_reserve_octets(L, undefined, 0);
+radius_reserve_octets(N) when N =/= 0, N rem 1000000000 =:= 0 ->
+	{struct, [{"unitOfMeasure", "gigabytes"}, {"value", N}]};
+radius_reserve_octets(N) when N =/= 0, N rem 1000000 =:= 0 ->
+	{struct, [{"unitOfMeasure", "megabytes"}, {"value", N}]};
+radius_reserve_octets(N) when N =/= 0, N rem 1000 =:= 0 ->
+	{struct, [{"unitOfMeasure", "kilobytes"}, {"value", N}]};
+radius_reserve_octets(N) when N =/= 0 ->
+	{struct, [{"unitOfMeasure", "bytes"}, {"value", N}]}.
 %% @hidden
-radius_reserve([{type, seconds}, {value, Value}]) ->
-	{struct, [{"unitOfMeasure", "seconds"}, {"value", Value}]};
-radius_reserve([{value, Value}, {type, seconds}]) ->
-	{struct, [{"unitOfMeasure", "seconds"}, {"value", Value}]};
-radius_reserve([{type, minutes}, {value, Value}]) ->
-	{struct, [{"unitOfMeasure", "minutes"}, {"value", Value}]};
-radius_reserve([{value, Value}, {type, minutes}]) ->
-	{struct, [{"unitOfMeasure", "minutes"}, {"value", Value}]};
-radius_reserve([{type, bytes}, {value, Value}]) ->
-	{struct, [{"unitOfMeasure", "bytes"}, {"value", Value}]};
-radius_reserve([{value, Value}, {type, bytes}]) ->
-	{struct, [{"unitOfMeasure", "bytes"}, {"value", Value}]};
-radius_reserve([{type, kilobytes}, {value, Value}]) ->
-	{struct, [{"unitOfMeasure", "kilobytes"}, {"value", Value}]};
-radius_reserve([{value, Value}, {type, kilobytes}]) ->
-	{struct, [{"unitOfMeasure", "kilobytes"}, {"value", Value}]};
-radius_reserve([{type, megabytes}, {value, Value}]) ->
-	{struct, [{"unitOfMeasure", "megabytes"}, {"value", Value}]};
-radius_reserve([{value, Value}, {type, megabytes}]) ->
-	{struct, [{"unitOfMeasure", "megabytes"}, {"value", Value}]};
-radius_reserve([{type, gigabytes}, {value, Value}]) ->
-	{struct, [{"unitOfMeasure", "gigabytes"}, {"value", Value}]};
-radius_reserve([{value, Value}, {type, gigabytes}]) ->
-	{struct, [{"unitOfMeasure", "gigabytes"}, {"value", Value}]}.
+radius_reserve_octets([{"unitOfMeasure", Units} | T], undefined, Value) ->
+	radius_reserve_octets(T, Units, Value);
+radius_reserve_octets([{"value", Value} | T], Units, 0) ->
+	radius_reserve_octets(T, Units, Value);
+radius_reserve_octets([], "bytes", Value) ->
+	Value;
+radius_reserve_octets([], "kilobytes", Value) ->
+	Value * 1000;
+radius_reserve_octets([], "megabytes", Value) ->
+	Value * 1000000;
+radius_reserve_octets([], "gigabytes", Value) ->
+	Value * 1000000000.
+
+-spec radius_reserve_time(RadiusReserve) -> RadiusReserve
+	when
+		RadiusReserve :: {struct, list()} | pos_integer().
+%% @doc CODEC for radius reservation time characteristic.
+%% @private
+radius_reserve_time({struct, L}) ->
+	radius_reserve_time(L, undefined, 0);
+radius_reserve_time(N) when N =/= 0, N rem 60 =:= 0 ->
+	{struct, [{"unitOfMeasure", "minutes"}, {"value", N}]};
+radius_reserve_time(N) when N =/= 0 ->
+	{struct, [{"unitOfMeasure", "seconds"}, {"value", N}]}.
+%% @hidden
+radius_reserve_time([{"unitOfMeasure", Units} | T], undefined, Value) ->
+	radius_reserve_time(T, Units, Value);
+radius_reserve_time([{"value", Value} | T], Units, 0) ->
+	radius_reserve_time(T, Units, Value);
+radius_reserve_time([], "seconds", Value) ->
+	Value;
+radius_reserve_time([], "minutes", Value) ->
+	Value * 60.
 
 %% @hidden
 duration("seconds") -> "seconds";
