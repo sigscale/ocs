@@ -37,8 +37,10 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
--define(offerPath, "/catalogManagement/v2/productOffering/").
--define(specPath, "/catalogManagement/v2/productSpecification/").
+-define(catalogPath, "/catalogManagement/v2/catalog/").
+-define(categoryPath, "/catalogManagement/v2/category/").
+-define(specificationPath, "/catalogManagement/v2/productSpecification/").
+-define(offeringPath, "/catalogManagement/v2/productOffering/").
 -define(inventoryPath, "/inventoryManagement/v2/productOffering/").
 
 -spec content_types_accepted() -> ContentTypes
@@ -76,7 +78,7 @@ add_product_offering(ReqData) ->
 		Offer ->
 			Body = mochijson:encode(offer(Offer)),
 			Etag = ocs_rest:etag(Offer#product.last_modified),
-			Href = ?offerPath ++ Offer#product.name,
+			Href = ?offeringPath ++ Offer#product.name,
 			Headers = [{location, Href}, {etag, Etag}],
 			{ok, Headers, Body}
 	catch
@@ -145,7 +147,7 @@ get_product_offering(ID) ->
 		Offer ->
 			Body = mochijson:encode(offer(Offer)),
 			Etag = ocs_rest:etag(Offer#product.last_modified),
-			Href = ?offerPath ++ Offer#product.name,
+			Href = ?offeringPath ++ Offer#product.name,
 			Headers = [{location, Href}, {etag, Etag},
 					{content_type, "application/json"}],
 			{ok, Headers, Body}
@@ -387,7 +389,7 @@ patch_product_offering(ProdId, Etag, ReqData) ->
 			end,
 			case mnesia:transaction(F) of
 				{atomic, {Product, Etag3}} ->
-					Location = "/catalogManagement/v1/productOffering/" ++ ProdId,
+					Location = ?offeringPath ++ ProdId,
 					Headers = [{location, Location}, {etag, ocs_rest:etag(Etag3)}],
 					Body = mochijson:encode(Product),
 					{ok, Headers, Body};
@@ -516,7 +518,7 @@ product_spec(_) ->
 %% @hidden
 product_catalog() ->
 	Id = {"id", "1"},
-	Href = {"href", "/catalogManagement/v2/catalog/1"},
+	Href = {"href", ?catalogPath "1"},
 	Type = {"type", "Product Catalog"},
 	Name = {"name", "SigScale OCS"},
 	Status = {"lifecycleStatus", "Active"},
@@ -528,7 +530,7 @@ product_catalog() ->
 %% @hidden
 prepaid_category() ->
 	Id = {"id", "1"},
-	Href = {"href", "/catalogManagement/v2/category/1"},
+	Href = {"href", ?categoryPath "1"},
 	Name = {"name", "Prepaid"},
 	Description = {"description", "Services provided with realtime credit management"},
 	Version = {"version", "1.0"},
@@ -540,7 +542,7 @@ prepaid_category() ->
 %% @hidden
 spec_product_network() ->
 	Id = {"id", "1"},
-	Href = {"href", "/catalogManagement/v2/productSpecification/1"},
+	Href = {"href", ?specificationPath "1"},
 	Name = {"name", "NetworkProductSpec"},
 	Description = {"description", "Represents the common behaviour and description of an installed network product that will be provisioned in the network and that enables usages."},
 	Version = {"version", "1.0"},
@@ -551,7 +553,7 @@ spec_product_network() ->
 %% @hidden
 spec_product_fixed_quantity_pkg() ->
 	Id = {"id", "2"},
-	Href = {"href", "/catalogManagement/v2/productSpecification/2"},
+	Href = {"href", ?specificationPath "2"},
 	Name = {"name", "FixedQuantityPackageProductSpec"},
 	Description = {"description", "Defines buckets of usage from which Usages will debit the bucket."},
 	Version = {"version", "1.0"},
@@ -562,7 +564,7 @@ spec_product_fixed_quantity_pkg() ->
 %% @hidden
 spec_product_rate_plan() ->
 	Id = {"id", "3"},
-	Href = {"href", "/catalogManagement/v2/productSpecification/3"},
+	Href = {"href", ?specificationPath "3"},
 	Name = {"name", "RatedPlanProductSpec"},
 	Description = {"description", "Defines criteria to be used to gain special usage tariffs like the period (day, evening) or phone number."},
 	Version = {"version", "1.0"},
@@ -573,7 +575,7 @@ spec_product_rate_plan() ->
 %% @hidden
 spec_product_wlan() ->
 	Id = {"id", "4"},
-	Href = {"href", "/catalogManagement/v2/productSpecification/4"},
+	Href = {"href", ?specificationPath "4"},
 	Name = {"name", "WLANProductSpec"},
 	Description = {"description", "Defines characteristics specific to pulic Wi-Fi use."},
 	Version = {"version", "1.0"},
@@ -581,7 +583,7 @@ spec_product_wlan() ->
 	Status = {"lifecycleStatus", "Active"},
 	DepType = {"type", "dependency"},
 	DepId = {"id", "1"},
-	DepHref = {"href", "productCatalogManagement/productSpecification/1"},
+	DepHref = {"href", ?specificationPath "1"},
 	Depend = {struct, [DepId, DepHref, DepType]},
 	Dependency = {"productSpecificationRelationship", {array, [Depend]}},
 	Chars = {"productSpecCharacteristic", {array, characteristic_product_wlan()}},
@@ -761,7 +763,7 @@ offer([last_modified | T], #product{last_modified = {Last, _}} = P, Acc)
 offer([_H | T], P, Acc) ->
 	offer(T, P, Acc);
 offer([], #product{name = Name}, Acc) ->
-	H = [{"id", Name}, {"href", ?offerPath ++ Name}],
+	H = [{"id", Name}, {"href", ?offeringPath ++ Name}],
 	{struct, H ++ lists:reverse(Acc)}.
 %% @hidden
 offer([{"id", ID} | T], Acc) when is_list(ID) ->
@@ -1483,7 +1485,7 @@ product({struct, Offer}) ->
 	ProdId;
 product(ProdID) ->
 	ID = {"id", ProdID},
-	Href = {"href", ?offerPath ++ ProdID},
+	Href = {"href", ?offeringPath ++ ProdID},
 	Name = {"name", ProdID},
 	{struct, [ID, Href, Name]}.
 
