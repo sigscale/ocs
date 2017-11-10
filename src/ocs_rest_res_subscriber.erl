@@ -31,6 +31,7 @@
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
+-define(subscriberPath, "/ocs/v1/subscriber/").
 
 -spec content_types_accepted() -> ContentTypes
 	when
@@ -304,50 +305,22 @@ get_subscribers2(_, _, _, _, _, _, _, _, _) ->
 %% resource.
 post_subscriber(RequestBody) ->
 	try 
-		{struct, Object} = mochijson:decode(RequestBody),
-		IdIn = proplists:get_value("id", Object),
-		PasswordIn = proplists:get_value("password", Object),
-		Product = proplists:get_value("product", Object),
-		Attributes = case lists:keyfind("attributes", 1, Object) of
-			{_, {array, JsonObjList}} ->
-				json_to_radius(JsonObjList);
-			false ->
-				[]
-		end,
-		{Buckets, BucketRef} = case lists:keyfind("buckets", 1, Object) of
-			{"buckets", {array, BktStruct}} ->
-				F = fun({struct, Bucket}, AccIn) ->
-					{_, Amount} = lists:keyfind("amount", 1, Bucket),
-					{_, Units} = lists:keyfind("units", 1, Bucket),
-					BucketType = bucket_type(Units),
-					_Product = proplists:get_value("product", Bucket, ""),
-					BR = #bucket{bucket_type = BucketType, 
-						remain_amount = Amount, units = BucketType},
-					[BR | AccIn]
-				end,
-				{lists:reverse(lists:foldl(F, [], BktStruct)), {array, BktStruct}};
-			false ->
-				undefined
-		end,
-		Enabled = proplists:get_value("enabled", Object),
-		Multi = proplists:get_value("multisession", Object),
-		case ocs:add_subscriber(IdIn, PasswordIn, Product, undefined, Buckets, Attributes, Enabled, Multi) of
-			{ok, #subscriber{name = IdOut, last_modified = LM} = S} ->
-				Id = binary_to_list(IdOut),
-				Location = "/ocs/v1/subscriber/" ++ Id,
-				JAttributes = {array, radius_to_json(S#subscriber.attributes)},
-				RespObj = [{id, Id}, {href, Location},
-						{password, binary_to_list(S#subscriber.password)},
-						{attributes, JAttributes}, {buckets, BucketRef},
-						{enabled, S#subscriber.enabled},
-						{multisession, S#subscriber.multisession},
-						{product, (S#subscriber.product)#product_instance.product}],
-				JsonObj  = {struct, RespObj},
-				Body = mochijson:encode(JsonObj),
+		#subscriber{name = Name, password = Password,
+				attributes = Attributes, enabled = Enabled,
+				multisession = Multi, buckets = Buckets,
+				product = #product_instance{product = ProdID,
+				characteristics = Chars}} =
+					subscriber(mochijson:decode(RequestBody)),
+		case catch ocs:add_subscriber(Name, Password,
+				ProdID, Chars, Buckets, Attributes, Enabled, Multi) of
+			{ok, #subscriber{name = Id, last_modified = LM} = Subscriber} ->
+				Json = subscriber(Subscriber),
+				Body = mochijson:encode(Json),
+				Location = ?subscriberPath ++ binary_to_list(Id),
 				Headers = [{location, Location}, {etag, ocs_rest:etag(LM)}],
 				{ok, Headers, Body};
-			{error, _} ->
-				{error, 400}
+			{error, _Reason} ->
+				{error, 500}
 		end
 	catch
 		_:_ ->
