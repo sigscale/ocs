@@ -57,7 +57,7 @@ content_types_provided() ->
 %% requests.
 get_subscriber(Id, Query) ->
 	case lists:keytake("fields", 1, Query) of
-		{value, {_, Filters}, NewQuery} ->
+		{value, {_, Filters}, _NewQuery} ->
 			get_subscriber1(Id, Filters);
 		false ->
 			get_subscriber1(Id, [])
@@ -306,45 +306,62 @@ post_subscriber(RequestBody) ->
 				| {error, ErrorCode :: integer()} .
 %% @doc	Respond to `PATCH /ocs/v1/subscriber/{id}' request and
 %% Updates a existing `subscriber''s password or attributes. 
-patch_subscriber(Id, undefined, CType, ReqBody) ->
-	patch_subscriber1(Id, undefined, CType, ReqBody);
-patch_subscriber(Id, Etag, CType, ReqBody) ->
+patch_subscriber(Id, Etag, "application/json-patch+json", ReqBody) ->
 	try
-		Etag1 = ocs_rest:etag(Etag),
-		patch_subscriber1(Id, Etag1, CType, ReqBody)
+		Etag1 = case Etag of
+			undefined ->
+				undefined;
+			Etag ->
+				ocs_rest:etag(Etag)
+		end,
+		{Etag1, mochijson:decode(ReqBody)}
+	of
+		{Etag2, Operations} ->
+			case ocs:find_subscriber(Id) of
+				{ok, #subscriber{last_modified = Etag3} = Sub} when
+						Etag3 == Etag2; Etag2 == undefined; Etag3 == undefined ->
+					case catch ocs_rest:patch(Operations, subscriber(Sub)) of
+						{struct, _} = Json ->
+							patch_subscriber1(Id, Json);
+						_ ->
+							{error, 400}
+					end;
+				{ok, _} ->
+					{error, 412};
+				{error, not_found} ->
+					{error, 404};
+				{error, _Reason1} ->
+					{error, 500}
+			end
 	catch
 		_:_ ->
 			{error, 400}
 	end.
 %% @hidden
-patch_subscriber1(Id, Etag, "application/json-patch+json", ReqBody) ->
+patch_subscriber1(Id, Json) ->
 	try
-		{array, OpList} = mochijson:decode(ReqBody),
-		case execute_json_patch_operations(Id, Etag, OpList) of
-			{ok, #subscriber{password = Password,
-					attributes = RadAttr, buckets = Buckets,
-					enabled = Enabled, multisession = MSession,
-					last_modified = Etag1}} ->
-				Attributes = {array, radius_to_json(RadAttr)},
-				TotalBalance = accumulated_balance(Buckets),
-				RespObj =[{id, Id}, {href, "/ocs/v1/subscriber/" ++ Id},
-				{password, Password}, {attributes, Attributes},
-				{totalBalance, TotalBalance}, {enabled, Enabled}, {multisession, MSession}],
-				JsonObj  = {struct, RespObj},
-				RespBody = mochijson:encode(JsonObj),
-				Headers = case Etag1 of
-					undefined ->
-						[];
-					_ ->
-						[{etag, ocs_rest:etag(Etag1)}]
-				end,
-				{ok, Headers, RespBody};
-			{error, Status} ->
-				{error, Status}
+		#subscriber{product = Product} = Subscriber = subscriber(Json),
+		TS = erlang:system_time(?MILLISECOND),
+		N = erlang:unique_integer([positive]),
+		LM = {TS, N},
+		F = fun() ->
+			NewSub = Subscriber#subscriber{last_modified = LM,
+				product = Product#product_instance{last_modified = LM}},
+			mnesia:write(subscriber, NewSub, write)
+		end,
+		case mnesia:transaction(F) of
+			{atomic, ok} ->
+				Body = mochijson:encode(Json),
+				Location = ?subscriberPath ++ Id,
+				Headers = [{location, Location},
+					{etag, ocs_rest:etag(LM)}],
+				{ok, Headers, Body};
+			{aborted, _} ->
+				{error, 500}
 		end
 	catch
 		_:_ ->
-			{error, 400}
+			{error, 500}
 	end.
 
 -spec delete_subscriber(Id) -> Result
@@ -385,6 +402,9 @@ subscriber([{"product", _} = Product | T], #subscriber{product = ProdInst} = Acc
 	NewProdInst = ProdInst#product_instance{product = ProdID},
 	subscriber(T, Acc#subscriber{product = NewProdInst});
 subscriber([{"buckets", {array, Buckets}} | T], Acc) ->
+	Buckets2 = [bucket(Bucket) || Bucket <- Buckets],
+	subscriber(T, Acc#subscriber{buckets = Buckets2});
+subscriber([{"totalBalance", {array, Buckets}} | T], Acc) ->
 	Buckets2 = [bucket(Bucket) || Bucket <- Buckets],
 	subscriber(T, Acc#subscriber{buckets = Buckets2});
 subscriber([{"characteristics", _} = Chars | T], #subscriber{product = undefined} = Acc) ->
