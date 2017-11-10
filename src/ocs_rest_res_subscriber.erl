@@ -57,71 +57,40 @@ content_types_provided() ->
 %% requests.
 get_subscriber(Id, Query) ->
 	case lists:keytake("fields", 1, Query) of
-		{value, {_, L}, NewQuery} ->
-			get_subscriber(Id, NewQuery, string:tokens(L, ","));
+		{value, {_, Filters}, NewQuery} ->
+			get_subscriber1(Id, Filters);
 		false ->
-			get_subscriber(Id, Query, [])
+			get_subscriber1(Id, [])
 	end.
 %% @hidden
-get_subscriber(Id, [] = _Query, Filters) ->
-	get_subscriber1(Id, Filters);
-get_subscriber(_Id, _Query, _Filters) ->
-	{error, 400}.
-%% @hidden
 get_subscriber1(Id, Filters) ->
-	case ocs:find_subscriber(Id) of
-		{ok, #subscriber{password = PWBin, attributes = Attributes,
-				buckets = Buckets, product = Product, enabled = Enabled,
-				multisession = Multi, last_modified = LM}} ->
-			Etag = ocs_rest:etag(LM),
-			Att = radius_to_json(Attributes),
-			Att1 = {array, Att},
-			Password = binary_to_list(PWBin),
-			RespObj1 = [{"id", Id}, {"href", "/ocs/v1/subscriber/" ++ Id}],
-			RespObj2 = [{"attributes", Att1}],
-			RespObj3 = case Filters == []
-				orelse lists:member("password", Filters) of
-					true ->
-						[{"password", Password}];
-					false ->
-						[]
-				end,
-			RespObj4 = case Filters == []
-				orelse lists:member("totalBalance", Filters) of
-					true ->
-						AccBalance = accumulated_balance(Buckets),
-						[{"totalBalance", AccBalance}];
-					false ->
-						[]
-				end,
-			RespObj5 = case Filters == []
-				orelse lists:member("product", Filters) of
-					true ->
-						[{"product", Product#product_instance.product}];
-					false ->
-						[]
-				end,
-			RespObj6 = case Filters == []
-				orelse lists:member("enabled", Filters) of
-					true ->
-						[{"enabled", Enabled}];
-					false ->
-						[]
-				end,
-			RespObj7 = case Filters == []
-				orelse lists:member("multisession", Filters) of
-					true ->
-						[{"multisession", Multi}];
-					false ->
-						[]
-				end,
-			JsonObj  = {struct, RespObj1 ++ RespObj2 ++ RespObj3
-					++ RespObj4 ++ RespObj5 ++ RespObj6 ++ RespObj7},
-			Body = mochijson:encode(JsonObj),
-			Headers = [{content_type, "application/json"}, {etag, Etag}],
-			{ok, Headers, Body};
-		{error, not_found} ->
-			{error, 404}
+	try
+		case ocs:find_subscriber(Id) of
+			{ok, Sub} ->
+				Sub;
+			{error, not_found} ->
+				{error, 404};
+			{error, _Reason1} ->
+				{error, 500}
+		end
+	of
+		#subscriber{last_modified = LM} = Subscriber1 ->
+			Json = subscriber(Subscriber1),
+			FilteredJson = case Filters of
+				[] ->
+					Json;
+				Fileters ->
+					ocs_rest:filter(Filters, Json)
+			end,
+			Body = mochijson:encode(FilteredJson),
+			Headers = [{content_type, "application/json"},
+				{etag, ocs_rest:etag(LM)}],
+			{ok, Headers, Body}
+	catch
+		throw:Status ->
+			{error, Status};
+		_:_ ->
+			{error, 400}
 	end.
 
 -spec get_subscribers(Query) -> Result
