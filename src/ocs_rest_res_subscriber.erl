@@ -69,9 +69,9 @@ get_subscriber1(Id, Filters) ->
 			{ok, Sub} ->
 				Sub;
 			{error, not_found} ->
-				{error, 404};
+				throw(404);
 			{error, _Reason1} ->
-				{error, 500}
+				throw(500)
 		end
 	of
 		#subscriber{last_modified = LM} = Subscriber1 ->
