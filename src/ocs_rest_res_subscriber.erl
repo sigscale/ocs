@@ -632,7 +632,6 @@ duration(days) -> "days";
 duration(months) -> "months";
 duration(years) -> "years".
 
-
 %% @hidden
 json_to_radius(JsonObjList) ->
 	json_to_radius(JsonObjList, []).
