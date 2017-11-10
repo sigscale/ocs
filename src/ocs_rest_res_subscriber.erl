@@ -420,6 +420,255 @@ delete_subscriber(Id) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
+subscriber({struct, ObjectMembers}) ->
+	subscriber(ObjectMembers, #subscriber{});
+subscriber(#subscriber{} = Subscriber) ->
+	{struct, subscriber(record_info(fields, subscriber),
+		Subscriber, [])}.
+%% @hidden
+subscriber([{"name", Name} | T], Acc) ->
+	subscriber(T, Acc#subscriber{name = list_to_binary(Name)});
+subscriber([{"password", Password} | T], Acc) ->
+	subscriber(T, Acc#subscriber{password = list_to_binary(Password)});
+subscriber([{"attributes", Attributes} | T], Acc) ->
+	subscriber(T, Acc#subscriber{attributes = json_to_radius(Attributes)});
+subscriber([{"multisession", Multi} | T], Acc) ->
+	subscriber(T, Acc#subscriber{multisession = Multi});
+subscriber([{"enabled", Enabled} | T], Acc) ->
+	subscriber(T, Acc#subscriber{enabled = Enabled});
+subscriber([{"product", _} = Product | T], #subscriber{product = undefined} = Acc) ->
+	subscriber(T, Acc#subscriber{product = {struct, [Product]}});
+subscriber([{"product", _} = Product | T], #subscriber{product = ProdInst} = Acc) ->
+	#product_instance{product = ProdID} = product({struct, [Product]}),
+	NewProdInst = ProdInst#product_instance{product = ProdID},
+	subscriber(T, Acc#subscriber{product = NewProdInst});
+subscriber([{"buckets", {array, Buckets}} | T], Acc) ->
+	Buckets2 = [bucket(Bucket) || Bucket <- Buckets],
+	subscriber(T, Acc#subscriber{buckets = Buckets2});
+subscriber([{"characteristics", _} = Chars | T], #subscriber{product = undefined} = Acc) ->
+	subscriber(T, Acc#subscriber{product = product({struct, [Chars]})});
+subscriber([{"characteristics", _} = Chars | T], #subscriber{product = ProdInst} = Acc) ->
+	#product_instance{characteristics = NewChars} = product({struct, [Chars]}),
+	NewProdInst = ProdInst#product_instance{characteristics = NewChars},
+	subscriber(T, Acc#subscriber{product = NewProdInst});
+subscriber([_ | T], Acc) ->
+	subscriber(T, Acc);
+subscriber([], Acc) ->
+	Acc.
+%% @hidden
+subscriber([name | T], #subscriber{name = Name} = Subscriber, Acc) ->
+	subscriber(T, Subscriber, [{"name", binary_to_list(Name)} | Acc]);
+subscriber([password | T], #subscriber{password = Password} = Subscriber, Acc) ->
+	subscriber(T, Subscriber, [{"password", binary_to_list(Password)} | Acc]);
+subscriber([attributes | T], #subscriber{attributes = []} = Subscriber, Acc) ->
+	subscriber(T, Subscriber, Acc);
+subscriber([attributes | T], #subscriber{attributes = undefined} = Subscriber, Acc) ->
+	subscriber(T, Subscriber, Acc);
+subscriber([attributes | T], #subscriber{attributes = Attributes} = Subscriber, Acc) ->
+	subscriber(T, Subscriber, [{"attributes", radius_to_json(Attributes)} | Acc]);
+subscriber([buckets | T], #subscriber{buckets = Buckets} = Subscriber, Acc) ->
+	subscriber(T, Subscriber, [{"totalBalance", accumulated_balance(Buckets)} | Acc]);
+subscriber([product | T], #subscriber{product = Product} = Subscriber, Acc) ->
+	subscriber(T, Subscriber, product(Product) ++ Acc);
+subscriber([enabled | T], #subscriber{enabled = Enabled} = Subscriber, Acc) ->
+	subscriber(T, Subscriber, [{"enabled", Enabled} | Acc]);
+subscriber([disconnect | T], Subscriber, Acc) ->
+	subscriber(T, Subscriber, Acc);
+subscriber([session_attributes | T], Subscriber, Acc) ->
+	subscriber(T, Subscriber, Acc);
+subscriber([multisession | T], #subscriber{multisession = Multi} = Subscriber, Acc) ->
+	subscriber(T, Subscriber, [{"multisession", Multi} | Acc]);
+subscriber([_ | T], Subscriber, Acc) ->
+	subscriber(T, Subscriber, Acc);
+subscriber([], _Subscriber, Acc) ->
+	Acc.
+
+-spec product(ProdInst) -> ProdInst
+	when
+		ProdInst :: {struct, list()} | #product_instance{}.
+%% @doc CODEC for product instance.
+product({struct, ProdInst}) ->
+	product(ProdInst, #product_instance{});
+product(#product_instance{} = ProdInst) ->
+	product(record_info(fields, product_instance), ProdInst, []).
+%% @hidden
+product([{"product", ProductID} | T], Acc) ->
+	product(T, Acc#product_instance{product = ProductID});
+product([{"characteristics", Chars} | T], Acc) ->
+	product(T, Acc#product_instance{characteristics = characteristics(Chars)});
+product([], Acc) ->
+	Acc.
+%% @hidden
+product([product | T], #product_instance{product = ProdID} = ProdInst, Acc) ->
+	product(T, ProdInst, [{"product", ProdID} | Acc]);
+product([characteristics | T], #product_instance{characteristics = Chars} = ProdInst, Acc) ->
+	product(T, ProdInst, [{"characteristics", characteristics(Chars)} | Acc]);
+product([_ | T], ProdInst, Acc) ->
+	product(T, ProdInst, Acc);
+product([], _ProdInst, Acc) ->
+	Acc.
+
+-spec characteristics(Characteristics) -> Characteristics
+	when
+		Characteristics :: {array, list()} | [tuple()].
+%% @doc CODEC for Product characteristics.
+characteristics({array, Characteristics}) ->
+	characteristics(Characteristics, []);
+characteristics(Characteristics) ->
+	{array, characteristics(Characteristics, [])}.
+%% @hidden
+characteristics([{struct, [{"subscriberIdentity", Identity}]} | T], Acc) ->
+	characteristics(T, [{"subscriberIdentity", Identity} | Acc]);
+characteristics([{struct, [{"subscriberPassword", Password}]} | T], Acc) ->
+	characteristics(T, [{"subscriberPassword", Password} | Acc]);
+characteristics([{struct, [{"balanceTopUpDuration", BalanceTopUpDuration}]} | T], Acc) ->
+	characteristics(T, [{"balanceTopUpDuration", topup_duration(BalanceTopUpDuration)} | Acc]);
+characteristics([{struct, [{"radiusReserveTime", RadiusReserveTime}]} | T], Acc) ->
+	characteristics(T, [{"radiusReserveTime", radius_reserve(RadiusReserveTime)} | Acc]);
+characteristics([{struct, [{"radiusReserveOctets", RadiusReserveOctets}]} | T], Acc) ->
+	characteristics(T, [{"radiusReserveOctets", radius_reserve(RadiusReserveOctets)} | Acc]);
+characteristics([{"subscriberIdentity", Identity} | T], Acc) ->
+	characteristics(T, [{struct, [{"subscriberIdentity", Identity}]} | Acc]);
+characteristics([{"subscriberPassword", Password} | T], Acc) ->
+	characteristics(T, [{struct, [{"subscriberPassword", Password}]} | Acc]);
+characteristics([{"radiusReserveTime", RadiusReserveTime} | T], Acc) ->
+	characteristics(T, [{struct, [{"radiusReserveTime", radius_reserve(RadiusReserveTime)}]} | Acc]);
+characteristics([{"radiusReserveOctets", RadiusReserveOctets} | T], Acc) ->
+	characteristics(T, [{struct, [{"radiusReserveOctets", radius_reserve(RadiusReserveOctets)}]} | Acc]);
+characteristics([{"balanceTopUpDuration", Chars} | T], Acc) ->
+	characteristics(T, [{struct, [{"balanceTopUpDuration", topup_duration(Chars)}]} | Acc]);
+characteristics([], Acc) ->
+	lists:reverse(Acc).
+
+-spec topup_duration(BalanceTopUpDuration) -> BalanceTopUpDuration
+	when
+		BalanceTopUpDuration :: {struct, list()} | [tuple()].
+%% @doc CODEC for top up duration characteristic
+topup_duration({struct, [{"unitOfMeasure", Duration}, {"value", Amount}]}) ->
+	[{unitOfMeasure, duration(Duration)}, {value, Amount}];
+topup_duration({struct, [{"value", Amount}, {"unitOfMeasure", Duration}]}) ->
+	[{unitOfMeasure, duration(Duration)}, {value, Amount}];
+topup_duration([{unitOfMeasure, Duration}, {value, Amount}]) ->
+	{struct, [{"unitOfMeasure", duration(Duration)}, {"value", Amount}]};
+topup_duration([{value, Amount}, {unitOfMeasure, Duration}]) ->
+	{struct, [{"unitOfMeasure", duration(Duration)}, {"value", Amount}]}.
+
+-spec radius_reserve(RadiusReserve) -> RadiusReserve
+	when
+		RadiusReserve :: {struct, list()} | [tuple()].
+%% @doc CODEC for top up duration characteristic
+radius_reserve({struct, [{"unitOfMeasure", "seconds"}, {"value", Value}]}) ->
+	[{type, seconds}, {value, Value}];
+radius_reserve({struct, [{"value", Value}, {"unitOfMeasure", "seconds"}]}) ->
+	[{type, seconds}, {value, Value}];
+radius_reserve({struct, [{"unitOfMeasure", "minutes"}, {"value", Value}]}) ->
+	[{type, minutes}, {value, Value}];
+radius_reserve({struct, [{"value", Value}, {"unitOfMeasure", "minutes"}]}) ->
+	[{type, minutes}, {value, Value}];
+radius_reserve({struct, [{"unitOfMeasure", "bytes"}, {"value", Value}]}) ->
+	[{type, bytes}, {value, Value}];
+radius_reserve({struct, [{"value", Value}, {"unitOfMeasure", "bytes"}]}) ->
+	[{type, bytes}, {value, Value}];
+radius_reserve({struct, [{"unitOfMeasure", "kilobytes"}, {"value", Value}]}) ->
+	[{type, kilobytes}, {value, Value}];
+radius_reserve({struct, [{"value", Value}, {"unitOfMeasure", "kilobytes"}]}) ->
+	[{type, kilobytes}, {value, Value}];
+radius_reserve({struct, [{"unitOfMeasure", "megabytes"}, {"value", Value}]}) ->
+	[{type, megabytes}, {value, Value}];
+radius_reserve({struct, [{"value", Value}, {"unitOfMeasure", "megabytes"}]}) ->
+	[{type, megabytes}, {value, Value}];
+radius_reserve({struct, [{"unitOfMeasure", "gigabytes"}, {"value", Value}]}) ->
+	[{type, gigabytes}, {value, Value}];
+radius_reserve({struct, [{"value", Value}, {"unitOfMeasure", "gigabytes"}]}) ->
+	[{type, gigabytes}, {value, Value}];
+%% @hidden
+radius_reserve([{type, seconds}, {value, Value}]) ->
+	{struct, [{"unitOfMeasure", "seconds"}, {"value", Value}]};
+radius_reserve([{value, Value}, {type, seconds}]) ->
+	{struct, [{"unitOfMeasure", "seconds"}, {"value", Value}]};
+radius_reserve([{type, minutes}, {value, Value}]) ->
+	{struct, [{"unitOfMeasure", "minutes"}, {"value", Value}]};
+radius_reserve([{value, Value}, {type, minutes}]) ->
+	{struct, [{"unitOfMeasure", "minutes"}, {"value", Value}]};
+radius_reserve([{type, bytes}, {value, Value}]) ->
+	{struct, [{"unitOfMeasure", "bytes"}, {"value", Value}]};
+radius_reserve([{value, Value}, {type, bytes}]) ->
+	{struct, [{"unitOfMeasure", "bytes"}, {"value", Value}]};
+radius_reserve([{type, kilobytes}, {value, Value}]) ->
+	{struct, [{"unitOfMeasure", "kilobytes"}, {"value", Value}]};
+radius_reserve([{value, Value}, {type, kilobytes}]) ->
+	{struct, [{"unitOfMeasure", "kilobytes"}, {"value", Value}]};
+radius_reserve([{type, megabytes}, {value, Value}]) ->
+	{struct, [{"unitOfMeasure", "megabytes"}, {"value", Value}]};
+radius_reserve([{value, Value}, {type, megabytes}]) ->
+	{struct, [{"unitOfMeasure", "megabytes"}, {"value", Value}]};
+radius_reserve([{type, gigabytes}, {value, Value}]) ->
+	{struct, [{"unitOfMeasure", "gigabytes"}, {"value", Value}]};
+radius_reserve([{value, Value}, {type, gigabytes}]) ->
+	{struct, [{"unitOfMeasure", "gigabytes"}, {"value", Value}]}.
+
+-spec bucket(Buckets) -> Buckets
+	when
+		Buckets :: {struct, list()} | #bucket{}.
+%% @doc CODEC for buckets
+bucket({struct, ObjectMembers}) ->
+	bucket(ObjectMembers, #bucket{});
+bucket(#bucket{} = Bucket) ->
+	bucket(record_info(fields, bucket), Bucket, []).
+%% @hidden
+bucket([{"name", Name} | T], Acc) ->
+	bucket(T, Acc#bucket{name = Name});
+bucket([{"id", Id} | T], Acc) ->
+	bucket(T, Acc#bucket{id = Id});
+bucket([{"startDate", SDate} | T], Acc) ->
+	bucket(T, Acc#bucket{id = ocs_rest:iso8601(SDate)});
+bucket([{"terminationDate", TDate} | T], Acc) ->
+	bucket(T, Acc#bucket{id = ocs_rest:iso8601(TDate)});
+bucket([{"units", Type} | T], Acc) ->
+	bucket(T, Acc#bucket{bucket_type = bucket_type(Type)});
+bucket([{"amount", Amount} | T], Acc) ->
+	bucket(T, Acc#bucket{remain_amount = Amount});
+bucket([_ | T], Acc) ->
+	bucket(T, Acc);
+bucket([], Acc) ->
+	Acc.
+%% @hidden
+bucket([id | T], Bucket, Acc) ->
+	bucket(T, Bucket, Acc);
+bucket([name | T], Bucket, Acc) ->
+	bucket(T, Bucket, Acc);
+bucket([units | T], Bucket, Acc) ->
+	bucket(T, Bucket, Acc);
+bucket([bucket_type | T], #bucket{bucket_type = Type} = Bucket, Acc) ->
+	bucket(T, Bucket, [{"units", bucket_type(Type)} | Acc]);
+bucket([start_date | T], #bucket{start_date = undefined} = Bucket, Acc) ->
+	bucket(T, Bucket, Acc);
+bucket([start_date | T], #bucket{start_date = SDate} = Bucket, Acc) ->
+	bucket(T, Bucket, [{"startDate", ocs_rest:iso8601(SDate)} | Acc]);
+bucket([termination_date | T], #bucket{termination_date = undefined} = Bucket, Acc) ->
+	bucket(T, Bucket, Acc);
+bucket([termination_date | T], #bucket{termination_date = TDate} = Bucket, Acc) ->
+	bucket(T, Bucket, [{"terminationDate", ocs_rest:iso8601(TDate)} | Acc]);
+bucket([remain_amount | T], #bucket{remain_amount = Amount} = Bucket, Acc) ->
+	bucket(T, Bucket, [{"remainAmount", Amount} | Acc]);
+bucket([_ | T], Bucket, Acc) ->
+	bucket(T, Bucket, Acc);
+bucket([], _Bucket, Acc) ->
+	{struct, Acc}.
+
+%% @hidden
+duration("seconds") -> "seconds";
+duration("minutes") -> "minutes";
+duration("days") -> "days";
+duration("months") -> "months";
+duration("years") -> "years";
+duration(seconds) -> "seconds";
+duration(minutes) -> "minutes";
+duration(days) -> "days";
+duration(months) -> "months";
+duration(years) -> "years".
+
+
 %% @hidden
 json_to_radius(JsonObjList) ->
 	json_to_radius(JsonObjList, []).
