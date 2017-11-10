@@ -22,7 +22,7 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
-		get_subscribers/1, get_subscriber/2, post_subscriber/1,
+		get_subscribers/2, get_subscriber/2, post_subscriber/1,
 		patch_subscriber/4, delete_subscriber/1]).
 
 -include_lib("radius/include/radius.hrl").
@@ -93,177 +93,146 @@ get_subscriber1(Id, Filters) ->
 			{error, 400}
 	end.
 
--spec get_subscribers(Query) -> Result
+-spec get_subscribers(Query, Headers) -> Result
 	when
 		Query :: [{Key :: string(), Value :: string()}],
+		Headers :: [tuple()],
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/subscriber'
 %% requests.
-get_subscribers(Query) ->
-	case ocs:get_subscribers() of
-		{error, _} ->
-			{error, 404};
-		Subscribers ->
-			case lists:keytake("fields", 1, Query) of
-				{value, {_, L}, NewQuery} ->
-					get_subscribers(Subscribers, NewQuery, string:tokens(L, ","));
-				false ->
-					get_subscribers(Subscribers, Query, [])
+get_subscribers(Query, Headers) ->
+	case lists:keytake("fields", 1, Query) of
+		{value, {_, Filters}, NewQuery} ->
+			get_subscriber1(NewQuery, Filters, Headers);
+		false ->
+			get_subscriber1(Query, [], Headers)
+	end.
+%% @hidden
+get_subscriber1(Query, Filters, Headers) ->
+	case {lists:keyfind("if-match", 1, Headers),
+			lists:keyfind("if-range", 1, Headers),
+			lists:keyfind("range", 1, Headers)} of
+		{{"if-match", Etag}, false, {"range", Range}} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					{error, 412};
+				PageServer ->
+					case ocs_rest:range(Range) of
+						{error, _} ->
+							{error, 400};
+						{ok, {Start, End}} ->
+							query_page(PageServer, Etag, Query, Filters, Start, End)
+					end
+			end;
+		{{"if-match", Etag}, false, false} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					{error, 412};
+				PageServer ->
+					query_page(PageServer, Etag, Query, Filters, undefined, undefined)
+			end;
+		{false, {"if-range", Etag}, {"range", Range}} ->
+			case global:whereis_name(Etag) of
+				undefined ->
+					case ocs_rest:range(Range) of
+						{error, _} ->
+							{error, 400};
+						{ok, {Start, End}} ->
+							query_start(Query, Filters, Start, End)
+					end;
+				PageServer ->
+					case ocs_rest:range(Range) of
+						{error, _} ->
+							{error, 400};
+						{ok, {Start, End}} ->
+							query_page(PageServer, Etag, Query, Filters, Start, End)
+					end
+			end;
+		{{"if-match", _}, {"if-range", _}, _} ->
+			{error, 400};
+		{_, {"if-range", _}, false} ->
+			{error, 400};
+		{false, false, {"range", Range}} ->
+			case ocs_rest:range(Range) of
+				{error, _} ->
+					{error, 400};
+				{ok, {Start, End}} ->
+					query_start(Query, Filters, Start, End)
+			end;
+		{false, false, false} ->
+			query_start(Query, Filters, undefined, undefined)
+	end.
+
+%% @hidden
+query_start(Query, Filters, RangeStart, RangeEnd) ->
+	case supervisor:start_child(ocs_rest_pagination_sup,
+				[[ocs, query_subscriber, []]]) of
+		{ok, PageServer, Etag} ->
+			query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
+		{error, _Reason} ->
+			{error, 500}
+	end.
+
+%% @hidden
+query_page(PageServer, Etag, Query, Filters, Start, End) ->
+	case gen_server:call(PageServer, {Start, End}) of
+		{error, Status} ->
+			{error, Status};
+		{Subscribers, ContentRange} ->
+			try
+				case lists:keytake("sort", 1, Query) of
+					{value, {_, "id"}, NewQuery} ->
+						{lists:keysort(#subscriber.name, Subscribers), NewQuery};
+					{value, {_, "-id"}, NewQuery} ->
+						{lists:reverse(lists:keysort(#subscriber.name, Subscribers)), NewQuery};
+					{value, {_, "password"}, NewQuery} ->
+						{lists:keysort(#subscriber.password, Subscribers), NewQuery};
+					{value, {_, "-password"}, NewQuery} ->
+						{lists:reverse(lists:keysort(#subscriber.password, Subscribers)), NewQuery};
+					{value, {_, "totalBalance"}, NewQuery} ->
+						{lists:keysort(#subscriber.buckets, Subscribers), NewQuery};
+					{value, {_, "-totalBalance"}, NewQuery} ->
+						{lists:reverse(lists:keysort(#subscriber.buckets, Subscribers)), NewQuery};
+					{value, {_, "product"}, NewQuery} ->
+						{lists:keysort(#subscriber.product, Subscribers), NewQuery};
+					{value, {_, "-product"}, NewQuery} ->
+						{lists:reverse(lists:keysort(#subscriber.product, Subscribers)), NewQuery};
+					{value, {_, "enabled"}, NewQuery} ->
+						{lists:keysort(#subscriber.enabled, Subscribers), NewQuery};
+					{value, {_, "-enabled"}, NewQuery} ->
+						{lists:reverse(lists:keysort(#subscriber.enabled, Subscribers)), NewQuery};
+					{value, {_, "multisession"}, NewQuery} ->
+						{lists:keysort(#subscriber.multisession, Subscribers), NewQuery};
+					{value, {_, "-multisession"}, NewQuery} ->
+						{lists:reverse(lists:keysort(#subscriber.multisession, Subscribers)), NewQuery};
+					false ->
+						{Subscribers, Query};
+					_ ->
+						throw(400)
+				end
+			of
+				{SortedEvents, _NewQuery} ->
+					JsonObj = query_page1(lists:map(fun subscriber/1, SortedEvents), Filters, []),
+					JsonArray = {array, JsonObj},
+					Body = mochijson:encode(JsonArray),
+					Headers = [{content_type, "application/json"},
+							{etag, Etag}, {accept_ranges, "items"},
+							{content_range, ContentRange}],
+					{ok, Headers, Body}
+			catch
+				throw:{error, Status} ->
+					{error, Status}
 			end
 	end.
 %% @hidden
-get_subscribers(Subscribers, Query, Filters) ->
-	try
-		case lists:keytake("sort", 1, Query) of
-			{value, {_, "id"}, NewQuery} ->
-				{lists:keysort(#subscriber.name, Subscribers), NewQuery};
-			{value, {_, "-id"}, NewQuery} ->
-				{lists:reverse(lists:keysort(#subscriber.name, Subscribers)), NewQuery};
-			{value, {_, "password"}, NewQuery} ->
-				{lists:keysort(#subscriber.password, Subscribers), NewQuery};
-			{value, {_, "-password"}, NewQuery} ->
-				{lists:reverse(lists:keysort(#subscriber.password, Subscribers)), NewQuery};
-			{value, {_, "totalBalance"}, NewQuery} ->
-				{lists:keysort(#subscriber.buckets, Subscribers), NewQuery};
-			{value, {_, "-totalBalance"}, NewQuery} ->
-				{lists:reverse(lists:keysort(#subscriber.buckets, Subscribers)), NewQuery};
-			{value, {_, "product"}, NewQuery} ->
-				{lists:keysort(#subscriber.product, Subscribers), NewQuery};
-			{value, {_, "-product"}, NewQuery} ->
-				{lists:reverse(lists:keysort(#subscriber.product, Subscribers)), NewQuery};
-			{value, {_, "enabled"}, NewQuery} ->
-				{lists:keysort(#subscriber.enabled, Subscribers), NewQuery};
-			{value, {_, "-enabled"}, NewQuery} ->
-				{lists:reverse(lists:keysort(#subscriber.enabled, Subscribers)), NewQuery};
-			{value, {_, "multisession"}, NewQuery} ->
-				{lists:keysort(#subscriber.multisession, Subscribers), NewQuery};
-			{value, {_, "-multisession"}, NewQuery} ->
-				{lists:reverse(lists:keysort(#subscriber.multisession, Subscribers)), NewQuery};
-			false ->
-				{Subscribers, Query};
-			_ ->
-				throw(400)
-		end
-	of
-		{SortedSubscribers, NextQuery} ->
-			get_subscribers1(SortedSubscribers, NextQuery, Filters)
-	catch
-		throw:400 ->
-			{error, 400}
-	end.
-%% @hidden
-get_subscribers1(Subscribers, Query, Filters) ->
-	{Id, Query1} = case lists:keytake("id", 1, Query) of
-		{value, {_, V1}, Q1} ->
-			{V1, Q1};
-		false ->
-			{[], Query}
-	end,
-	{Password, Query2} = case lists:keytake("password", 1, Query1) of
-		{value, {_, V2}, Q2} ->
-			{V2, Q2};
-		false ->
-			{[], Query1}
-	end,
-	{Balance, Query3} = case lists:keytake("totalBalance", 1, Query2) of
-		{value, {_, V3}, Q3} ->
-			{V3, Q3};
-		false ->
-			{[], Query2}
-	end,
-	{Product, Query4} = case lists:keytake("product", 1, Query3) of
-		{value, {_, V4}, Q4} ->
-			{V4, Q4};
-		false ->
-			{[], Query3}
-	end,
-	{Enabled, Query5} = case lists:keytake("enabled", 1, Query3) of
-		{value, {_, V5}, Q5} ->
-			{V5, Q5};
-		false ->
-			{[], Query4}
-	end,
-	{Multi, Query6} = case lists:keytake("multisession", 1, Query4) of
-		{value, {_, V6}, Q6} ->
-			{V6, Q6};
-		false ->
-			{[], Query5}
-	end,
-	get_subscribers2(Subscribers, Id, Password, Balance, Product, Enabled, Multi, Query6, Filters).
-%% @hidden
-get_subscribers2(Subscribers, Id, Password, Balance, Product, Enabled, Multi, [] = _Query, Filters) ->
-	F = fun(#subscriber{name = Na, password = Pa, attributes = Attributes, 
-			buckets = Bu, product = Prod, enabled = Ena, multisession = Mul}) ->
-		Nalist = binary_to_list(Na),
-		T1 = lists:prefix(Id, Nalist),
-		Palist = binary_to_list(Pa),
-		T2 = lists:prefix(Password, Palist),
-		Att = radius_to_json(Attributes),
-		Att1 = {array, Att},
-		T3 = lists:prefix(Balance, Bu),
-		T4 = lists:prefix(Product, Prod#product_instance.product),
-		T5 = lists:prefix(Enabled, atom_to_list(Ena)),
-		T6 = lists:prefix(Multi, atom_to_list(Mul)),
-		if
-			T1 and T2 and T3 and T4 and T5 and T6 ->
-				RespObj1 = [{"id", Nalist}, {"href", "/ocs/v1/subscriber/" ++ Nalist}],
-				RespObj2 = [{"attributes", Att1}],
-				RespObj3 = case Filters == []
-						orelse lists:member("password", Filters) of
-					true ->
-						[{"password", Palist}];
-					false ->
-						[]
-				end,
-				RespObj4 = case Filters == []
-						orelse lists:member("totalBalance", Filters) of
-					true ->
-						AccBalance = accumulated_balance(Bu),
-						[{"totalBalance", AccBalance}];
-					false ->
-						[]
-				end,
-				RespObj5 = case Filters == []
-						orelse lists:member("product", Filters) of
-					true ->
-						[{"product", Prod#product_instance.product}];
-					false ->
-						[]
-				end,
-				RespObj6 = case Filters == []
-						orelse lists:member("enabled", Filters) of
-					true ->
-						[{"enabled", Ena}];
-					false ->
-						[]
-				end,
-				RespObj7 = case Filters == []
-						orelse lists:member("multisession", Filters) of
-					true ->
-						[{"multisession", Mul}];
-					false ->
-						[]
-				end,
-				{true, {struct, RespObj1 ++ RespObj2 ++ RespObj3
-							++ RespObj4 ++ RespObj5 ++ RespObj6 ++ RespObj7}};
-			true ->
-				false
-		end
-	end,
-	try
-		JsonObj = lists:filtermap(F, Subscribers),
-		Size = integer_to_list(length(JsonObj)),
-		ContentRange = "items 1-" ++ Size ++ "/" ++ Size,
-		Body  = mochijson:encode({array, lists:reverse(JsonObj)}),
-		{ok, [{content_type, "application/json"},
-				{content_range, ContentRange}], Body}
-	catch
-		_:_Reason ->
-			{error, 500}
-	end;
-get_subscribers2(_, _, _, _, _, _, _, _, _) ->
-	{error, 400}.
+query_page1(Json, [], []) ->
+	Json;
+query_page1([H | T], Filters, Acc) ->
+	query_page1(T, Filters, [ocs_rest:filter(Filters, H) | Acc]);
+query_page1([], _, Acc) ->
+	lists:reverse(Acc).
+
 
 -spec post_subscriber(RequestBody) -> Result 
 	when 
