@@ -169,7 +169,7 @@ rate2(radius, Subscriber, Prices, Validity, Flag,
 				0 ->
 					rate3(Subscriber, 0, Flag, 0, SessionIdentification);
 				_ ->
-					rate2_1(Subscriber, Units, Amount, Size, RadiusReserve,
+					rate2(Subscriber, Units, Amount, Size, RadiusReserve,
 							Validity, Flag, SessionIdentification)
 			end;
 		false ->
@@ -180,9 +180,9 @@ rate2(diameter, Subscriber, _Prices, _Validity, Flag, [], SessionIdentification)
 rate2(diameter, Subscriber, Prices, Validity, Flag, ReserveAmount, SessionIdentification) ->
 	#price{units = Type, size = Size, amount = Amount} = lists:keyfind(usage, #price.type, Prices),
 	{Type, Reserve} = lists:keyfind(Type, 1, ReserveAmount),
-	rate2_1(Subscriber, Type, Amount, Size, Reserve, Validity, Flag, SessionIdentification).
+	rate2(Subscriber, Type, Amount, Size, Reserve, Validity, Flag, SessionIdentification).
 %% @hidden
-rate2_1(#subscriber{buckets = Buckets} = Subscriber,
+rate2(#subscriber{buckets = Buckets} = Subscriber,
 		Type, Price, Size, ReserveAmount, Validity, Flag, SessionIdentification) ->
 	try
 		case charge(Type, ReserveAmount, false, Buckets) of
