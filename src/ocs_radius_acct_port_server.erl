@@ -270,7 +270,7 @@ request1(?AccountingStart, AcctSessionId, Id,
 					{subscriber, Subscriber}, {nas, NasId},
 					{address, Address}, {session, AcctSessionId}]),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
-		{ok, #subscriber{enabled = false, session_attributes = SessionList}, _} ->
+		{disabled, SessionList} ->
 			start_disconnect(State, Subscriber, SessionList),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{ok, #subscriber{}, _} ->
@@ -309,7 +309,7 @@ request1(?AccountingStop, AcctSessionId, Id,
 					{subscriber, Subscriber}, {nas, NasId},
 					{address, Address}, {session, AcctSessionId}]),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
-		{ok, #subscriber{enabled = false, session_attributes = SessionList}, _} ->
+		{disabled, SessionList} ->
 			start_disconnect(State, Subscriber, SessionList),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{ok, #subscriber{}, _} ->
@@ -346,7 +346,7 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 		{out_of_credit, SessionList} ->
 			start_disconnect(State, Subscriber, SessionList),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
-		{ok, #subscriber{enabled = false, session_attributes = SessionList}, _} ->
+		{disabled, SessionList} ->
 			start_disconnect(State, Subscriber, SessionList),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{ok, #subscriber{}, _} ->

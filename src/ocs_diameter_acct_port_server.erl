@@ -276,12 +276,6 @@ request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		{'Destination-Host', DHost}, {'Destination-Realm', DRealm}, {'Session-Id', SId}],
 	ReserveAmount = [{ReqUsageType, ReqUsage}],
 	case ocs_rating:rate(diameter, Subscriber, initial, [], ReserveAmount, SessionAttributes) of
-		{ok, #subscriber{enabled = false, session_attributes = SL}, _} ->
-			start_disconnect(SL, State),
-			{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
-					undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
-					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
-			{reply, Reply, NewState};
 		{ok, _, GrantedAmount} ->
 			GrantedUnits = case ReqUsageType of
 				seconds ->
@@ -293,13 +287,19 @@ request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 					GrantedUnits, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 					?RO_APPLICATION_ID, RequestType, RequestNum, State),
 			{reply, Reply, NewState};
-		{out_of_credit, SL} ->
+		{out_of_credit, SessionList} ->
 			error_logger:warning_report(["out of credit",
 					{module, ?MODULE}, {subscriber, Subscriber},
 					{origin_host, OHost}]),
-			start_disconnect(SL, State),
+			start_disconnect(SessionList, State),
 			{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 					undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
+					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
+			{reply, Reply, NewState};
+		{disabled, SessionList} ->
+			start_disconnect(SessionList, State),
+			{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
+					undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
 					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 			{reply, Reply, NewState};
 		{error, subscriber_not_found} ->
@@ -360,12 +360,6 @@ request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		ReserveAmount = [{ReqUsageType, ReqUsage}],
 		DebitAmount = [{UsedType, UsedUsage}],
 		case ocs_rating:rate(diameter, Subscriber, interim, DebitAmount, ReserveAmount) of
-			{ok, #subscriber{enabled = false, session_attributes = SL}, _} ->
-				start_disconnect(SL, State),
-				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
-						undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
-						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
-				{reply, Reply, NewState};
 			{ok, _, GrantedAmount} ->
 				GrantedUnits = case ReqUsageType of
 					seconds ->
@@ -377,13 +371,19 @@ request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 						GrantedUnits, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 						?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
-			{out_of_credit, SL} ->
+			{out_of_credit, SessionList} ->
 				error_logger:warning_report(["out of credit",
 						{module, ?MODULE}, {subscriber, Subscriber},
 						{origin_host, OHost}]),
-				start_disconnect(SL, State),
+				start_disconnect(SessionList, State),
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
+						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
+				{reply, Reply, NewState};
+			{disabled, SessionList} ->
+				start_disconnect(SessionList, State),
+				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
+						undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
 						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{error, subscriber_not_found} ->
@@ -430,12 +430,6 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		end,
 		DebitAmount = [{UsedType, UsedUsage}],
 		case ocs_rating:rate(diameter, Subscriber, final, DebitAmount, []) of
-			{ok, #subscriber{enabled = false, session_attributes = SL}, _} ->
-				start_disconnect(SL, State),
-				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
-						undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
-						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
-				{reply, Reply, NewState};
 			{ok, _, GrantedAmount} ->
 				GrantedUnits = case UsedType of
 					seconds ->
@@ -447,13 +441,19 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 						GrantedUnits, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 						?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
-			{out_of_credit, SL} ->
+			{out_of_credit, SessionList} ->
 				error_logger:warning_report(["out of credit",
 						{module, ?MODULE}, {subscriber, Subscriber},
 						{origin_host, OHost}]),
-				start_disconnect(SL, State),
+				start_disconnect(SessionList, State),
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
+						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
+				{reply, Reply, NewState};
+			{disabled, SessionList} ->
+				start_disconnect(SessionList, State),
+				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
+						undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
 						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{error, subscriber_not_found} ->

@@ -57,7 +57,8 @@ rate(Protocol, SubscriberID, Flag, DebitAmount, ReserveAmount) ->
 		SessionIdentification :: [tuple()],
 		Type :: octets | seconds,
 		Amount :: integer(),
-		Result :: {ok, Subscriber, GrantedAmount} | {out_of_credit, SessionList} | {error, Reason},
+		Result :: {ok, Subscriber, GrantedAmount} | {out_of_credit, SessionList}
+				| {disabled, SessionList} | {error, Reason},
 		Subscriber :: #subscriber{},
 		GrantedAmount :: integer(),
 		SessionList :: [tuple()],
@@ -103,6 +104,8 @@ rate(Protocol, SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentifica
 			{ok, Sub, GrantedAmount};
 		{atomic, {out_of_credit, SL}} ->
 			{out_of_credit, SL};
+		{atomic, {disabled, SL}} ->
+			{disabled, SL};
 		{aborted, {throw, Reason}} ->
 			{error, Reason};
 		{aborted, Reason} ->
@@ -111,8 +114,8 @@ rate(Protocol, SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentifica
 %% @hidden
 rate1(Protocol, Subscriber, Prices, Validity, Flag, [], ReserveAmount, SessionIdentification) ->
 	rate2(Protocol, Subscriber, Prices, Validity, Flag, ReserveAmount, SessionIdentification);
-rate1(Protocol, #subscriber{buckets = Buckets} = Subscriber, Prices, Validity, Flag,
-		DebitAmount, ReserveAmount, SessionIdentification) ->
+rate1(Protocol, #subscriber{buckets = Buckets, enabled = Enabled} = Subscriber,
+		Prices, Validity, Flag, DebitAmount, ReserveAmount, SessionIdentification) ->
 	try
 		#price{units = Type, size = Size, amount = Price} = lists:keyfind(usage, #price.type, Prices),
 		{Type, Used} = lists:keyfind(Type, 1, DebitAmount),
@@ -123,7 +126,8 @@ rate1(Protocol, #subscriber{buckets = Buckets} = Subscriber, Prices, Validity, F
 				{R1, C1, NB1}
 		end
 	of
-		{RemainingCharge, _Charged, NewBuckets}  when RemainingCharge > 0 ->
+		{RemainingCharge, _Charged, NewBuckets}
+				when Enabled == false; RemainingCharge > 0 ->
 			rate3(Subscriber#subscriber{buckets = NewBuckets},
 					RemainingCharge, Flag, ReserveAmount, SessionIdentification);
 		{_RemainingCharge, _Charged, NewBuckets} ->
@@ -207,11 +211,11 @@ rate3(#subscriber{session_attributes = SessionList} = Subscriber,
 		enabled = false},
 	ok = mnesia:write(Entry),
 	{out_of_credit, SessionList};
-rate3(#subscriber{enabled = false} = Subscriber,
-		_RemainingCharge, _Flag, ReserveAmount, _SessionIdentification) ->
-	Entry = Subscriber#subscriber{session_attributes = []},
-	ok = mnesia:write(Entry),
-	{ok, Subscriber, ReserveAmount};
+rate3(#subscriber{enabled = false,
+		session_attributes = SessionList} = Subscriber,
+		_RemainingCharge, _Flag, _ReserveAmount, _SessionIdentification) ->
+	ok = mnesia:write(Subscriber),
+	{disabled, SessionList};
 rate3(#subscriber{session_attributes = SessionList} = Subscriber,
 		_RemainingCharge, initial, ReserveAmount, SessionIdentification) ->
 	NewSessionList = update_session(SessionIdentification, SessionList),
