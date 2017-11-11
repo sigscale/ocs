@@ -207,8 +207,7 @@ rate2_1(#subscriber{buckets = Buckets} = Subscriber,
 rate3(#subscriber{session_attributes = SessionList} = Subscriber,
 		RemainingCharge, _Flag, _ReserveAmount, _SessionIdentification)
 		when RemainingCharge > 0 ->
-	Entry = Subscriber#subscriber{session_attributes = [],
-		enabled = false},
+	Entry = Subscriber#subscriber{session_attributes = []},
 	ok = mnesia:write(Entry),
 	{out_of_credit, SessionList};
 rate3(#subscriber{enabled = false,
