@@ -71,9 +71,12 @@ rate(Protocol, SubscriberID, Flag, DebitAmount, ReserveAmount) ->
 %% 	determines the price used to calculate the amount to be
 %% 	permanently debited from available `cents' buckets.
 %%
-%% 	Returns `{ok, Subscriber, GrantedAmount}' if successful or
-%% 	`{out_of_credit, SessionList}' if the subscriber's balance
-%% 	is insufficient to cover the `DebitAmount' and `ReserveAmount'.
+%% 	Returns `{ok, Subscriber, GrantedAmount}' if successful.
+%%
+%% 	Returns `{out_of_credit, SessionList}' if the subscriber's
+%% 	balance is insufficient to cover the `DebitAmount' and
+%% 	`ReserveAmount' or `{disabled, SessionList}' if the subscriber
+%% 	is not enabled. In both cases subscriber's balance is debited.
 %% 	`SessionList' describes the known active sessions which
 %% 	should be disconnected.
 %%
