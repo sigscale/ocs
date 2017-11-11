@@ -222,8 +222,7 @@ code_change(_OldVsn, State, _Extra) ->
 		NewState :: state().
 %% @doc Handle a received RADIUS Accounting Request packet.
 %% @private
-request(Address, AccPort, Secret,
-				ListenPort, Radius, {_RadiusFsm, _Tag} = _From, State) ->
+request(Address, AccPort, Secret, ListenPort, Radius, From, State) ->
 	try
 		#radius{code = ?AccountingRequest, id = Id, attributes = Attributes,
 				authenticator = Authenticator} = Radius,
@@ -248,22 +247,23 @@ request(Address, AccPort, Secret,
 		{error, not_found} = radius_attributes:find(?ReplyMessage, Attributes),
 		{error, not_found} = radius_attributes:find(?State, Attributes),
 		{ok, AcctSessionId} = radius_attributes:find(?AcctSessionId, Attributes),
-		request1(AcctStatusType, AcctSessionId, Id, Authenticator,
-						 Secret, NasId, Address, AccPort, ListenPort, Attributes, State)
+		request1(AcctStatusType, AcctSessionId, Id, Authenticator, Secret,
+				NasId, Address, AccPort, ListenPort, Attributes, From, State)
 	catch
-		_:_ ->
+		_:_Reason ->
 			{reply, {error, ignore}, State}
 	end.
 %% @hidden
 request1(?AccountingStart, AcctSessionId, Id,
 		Authenticator, Secret, NasId, Address, _AccPort, _ListenPort, Attributes,
-		#state{address = ServerAddress, port = ServerPort} = State) ->
-	SessionAttributes = extract_session_attributes(Attributes),
+		From, #state{address = ServerAddress, port = ServerPort} = State) ->
+	From, SessionAttributes = extract_session_attributes(Attributes),
 	{ok, Subscriber} = radius_attributes:find(?UserName, Attributes),
 	case ocs_rating:rate(radius, Subscriber, initial, [], [], SessionAttributes) of
 		{out_of_credit, SessionList}  ->
+			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
 			start_disconnect(State, Subscriber, SessionList),
-			{reply, {ok, response(Id, Authenticator, Secret)}, State};
+			{noreply, State};
 		{error, Reason} ->
 			error_logger:warning_report(["Accounting failed",
 					{error, Reason}, {module, ?MODULE},
@@ -271,16 +271,16 @@ request1(?AccountingStart, AcctSessionId, Id,
 					{address, Address}, {session, AcctSessionId}]),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{disabled, SessionList} ->
+			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
 			start_disconnect(State, Subscriber, SessionList),
-			{reply, {ok, response(Id, Authenticator, Secret)}, State};
+			{noreply, State};
 		{ok, #subscriber{}, _} ->
 			ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, start, Attributes),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
 request1(?AccountingStop, AcctSessionId, Id,
 		Authenticator, Secret, NasId, Address, _AccPort, _ListenPort, Attributes,
-		#state{address = ServerAddress, port = ServerPort} = State) ->
-
+		From, #state{address = ServerAddress, port = ServerPort} = State) ->
 	InOctets = radius_attributes:find(?AcctInputOctets, Attributes),
 	OutOctets = radius_attributes:find(?AcctOutputOctets, Attributes),
 	UsageOctets = case {InOctets, OutOctets} of
@@ -301,8 +301,9 @@ request1(?AccountingStop, AcctSessionId, Id,
 	DebitAmount = [{octets, UsageOctets}, {seconds, UsageSecs}],
 	case ocs_rating:rate(radius, Subscriber, final, DebitAmount, [], Candidates) of
 		{out_of_credit, SessionList}  ->
+			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
 			start_disconnect(State, Subscriber, SessionList),
-			{reply, {ok, response(Id, Authenticator, Secret)}, State};
+			{noreply, State};
 		{error, Reason} ->
 			error_logger:warning_report(["Accounting failed",
 					{error, Reason}, {module, ?MODULE},
@@ -310,14 +311,15 @@ request1(?AccountingStop, AcctSessionId, Id,
 					{address, Address}, {session, AcctSessionId}]),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{disabled, SessionList} ->
+			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
 			start_disconnect(State, Subscriber, SessionList),
-			{reply, {ok, response(Id, Authenticator, Secret)}, State};
+			{noreply, State};
 		{ok, #subscriber{}, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
 request1(?AccountingInterimUpdate, AcctSessionId, Id,
 		Authenticator, Secret, NasId, Address, _AccPort, _ListenPort, Attributes,
-		#state{address = ServerAddress, port = ServerPort} = State) ->
+		From, #state{address = ServerAddress, port = ServerPort} = State) ->
 	InOctets = radius_attributes:find(?AcctInputOctets, Attributes),
 	OutOctets = radius_attributes:find(?AcctOutputOctets, Attributes),
 	UsageOctets = case {InOctets, OutOctets} of
@@ -344,26 +346,28 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 					{session, AcctSessionId}]),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{out_of_credit, SessionList} ->
+			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
 			start_disconnect(State, Subscriber, SessionList),
-			{reply, {ok, response(Id, Authenticator, Secret)}, State};
+			{noreply, State};
 		{disabled, SessionList} ->
+			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
 			start_disconnect(State, Subscriber, SessionList),
-			{reply, {ok, response(Id, Authenticator, Secret)}, State};
+			{noreply, State};
 		{ok, #subscriber{}, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
 request1(?AccountingON, _AcctSessionId, Id,
 		Authenticator, Secret, _NasId, _Address, _AccPort, _ListenPort, Attributes,
-		#state{address = ServerAddress, port = ServerPort} = State) ->
+		_From, #state{address = ServerAddress, port = ServerPort} = State) ->
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, on, Attributes),
 	{reply, {ok, response(Id, Authenticator, Secret)}, State};
 request1(?AccountingOFF, _AcctSessionId, Id,
 		Authenticator, Secret, _NasId, _Address, _AccPort, _ListenPort, Attributes,
-		#state{address = ServerAddress, port = ServerPort} = State) ->
+		_From, #state{address = ServerAddress, port = ServerPort} = State) ->
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, off, Attributes),
 	{reply, {ok, response(Id, Authenticator, Secret)}, State};
 request1(_AcctStatusType, _AcctSessionId, _Id, _Authenticator,
-		_Secret, _NasId, _Address, _Port, _ListenPort, _Attributes, State) ->
+		_Secret, _NasId, _Address, _Port, _ListenPort, _Attributes, _From, State) ->
 	{reply, {error, ignore}, State}.
 
 -spec response(Id, RequestAuthenticator, Secret) -> AccessAccept
