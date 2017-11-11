@@ -73,7 +73,7 @@ rate(Protocol, SubscriberID, Flag, DebitAmount, ReserveAmount) ->
 %% 	Returns `{ok, Subscriber, GrantedAmount}' if successful or
 %% 	`{out_of_credit, SessionList}' if the subscriber's balance
 %% 	is insufficient to cover the `DebitAmount' and `ReserveAmount'.
-%% 	`SessionList' describes the known avtive sessions which
+%% 	`SessionList' describes the known active sessions which
 %% 	should be disconnected.
 %%
 rate(Protocol, SubscriberID, Flag, DebitAmount, ReserveAmount, SessionIdentification) when is_list(SubscriberID)->
