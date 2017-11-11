@@ -213,7 +213,8 @@ rate3(#subscriber{session_attributes = SessionList} = Subscriber,
 rate3(#subscriber{enabled = false,
 		session_attributes = SessionList} = Subscriber,
 		_RemainingCharge, _Flag, _ReserveAmount, _SessionIdentification) ->
-	ok = mnesia:write(Subscriber),
+	Entry = Subscriber#subscriber{session_attributes = []},
+	ok = mnesia:write(Entry),
 	{disabled, SessionList};
 rate3(#subscriber{session_attributes = SessionList} = Subscriber,
 		_RemainingCharge, initial, ReserveAmount, SessionIdentification) ->
