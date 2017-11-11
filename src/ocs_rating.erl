@@ -279,13 +279,13 @@ charge(Type, Charge, _Now, true, [#bucket{bucket_type = Type,
 	NewBuckets = [B#bucket{remain_amount = R - Charge} | T],
 	{0, Charged + Charge, lists:reverse(Acc) ++ NewBuckets};
 charge(Type, Charge, _Now, false, [#bucket{bucket_type = Type,
-		remain_amount = R} | _] = B, Acc, Charged) when R > Charge ->
-	{0, Charged + Charge, B ++ Acc};
+		remain_amount = R} | _] = L, Acc, Charged) when R > Charge ->
+	{0, Charged + Charge, lists:reverse(Acc) ++ L};
 charge(Type, Charge, Now, true, [#bucket{bucket_type = Type,
 		remain_amount = R} | T], Acc, Charged) when R =< Charge ->
 	charge(Type, Charge - R, Now, true, T, Acc, Charged + R);
 charge(Type, Charge, Now, false, [#bucket{bucket_type = Type,
-		remain_amount = R}  = B | T], Acc, Charged) when R =< Charge ->
+		remain_amount = R} = B | T], Acc, Charged) when R =< Charge ->
 	charge(Type, Charge - R, Now, false, T, [B | Acc], Charged);
 charge(_Type, 0, _Now, _Final, Buckets, Acc, Charged) ->
 	{0, Charged, lists:reverse(Acc) ++ Buckets};
