@@ -257,7 +257,7 @@ request(Address, AccPort, Secret, ListenPort, Radius, From, State) ->
 request1(?AccountingStart, AcctSessionId, Id,
 		Authenticator, Secret, NasId, Address, _AccPort, _ListenPort, Attributes,
 		From, #state{address = ServerAddress, port = ServerPort} = State) ->
-	From, SessionAttributes = extract_session_attributes(Attributes),
+	SessionAttributes = extract_session_attributes(Attributes),
 	{ok, Subscriber} = radius_attributes:find(?UserName, Attributes),
 	case ocs_rating:rate(radius, Subscriber, initial, [], [], SessionAttributes) of
 		{out_of_credit, SessionList}  ->
