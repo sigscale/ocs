@@ -586,6 +586,11 @@ diameter_accounting_start(SId, Username, RequestNum) ->
 			'CC-Total-Octets' = [10000000]},
 	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Requested-Service-Unit' = [RequestedUnits]}, 
+	ServiceInformation = #'3gpp_ro_Service-Information'{'IMS-Information' =
+			[#'3gpp_ro_IMS-Information'{
+					'Node-Functionality' = ?'3GPP_NODE-FUNCTIONALITY_AS',
+					'Calling-Party-Address' = [<<"tel:110493422">>],
+					'Called-Party-Address' = [<<"tel:0110493488">>]}]},
 	CC_CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'Service-Context-Id' = "nas45@testdomain.com" ,
@@ -593,7 +598,8 @@ diameter_accounting_start(SId, Username, RequestNum) ->
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
 			'CC-Request-Number' = RequestNum,
 			'Subscription-Id' = [Subscription_Id],
-			'Multiple-Services-Credit-Control' = [MultiServices_CC]},
+			'Multiple-Services-Credit-Control' = [MultiServices_CC],
+			'Service-Information' = [ServiceInformation]},
 	{ok, Answer} = diameter:call(?SVC_ACCT, cc_app_test, CC_CCR, []),
 	Answer.
 	
@@ -608,6 +614,11 @@ diameter_accounting_stop(SId, Username, RequestNum, Usage) ->
 	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Used-Service-Unit' = [UsedUnits],
 			'Requested-Service-Unit' = [RequestedUnits]}, 
+	ServiceInformation = #'3gpp_ro_Service-Information'{'IMS-Information' =
+			[#'3gpp_ro_IMS-Information'{
+					'Node-Functionality' = ?'3GPP_NODE-FUNCTIONALITY_AS',
+					'Calling-Party-Address' = [<<"tel:110493422">>],
+					'Called-Party-Address' = [<<"tel:0110493488">>]}]},
 	CC_CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'Service-Context-Id' = "nas45@testdomain.com" ,
@@ -615,7 +626,8 @@ diameter_accounting_stop(SId, Username, RequestNum, Usage) ->
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
 			'CC-Request-Number' = RequestNum,
 			'Multiple-Services-Credit-Control' = [MultiServices_CC],
-			'Subscription-Id' = [Subscription_Id]},
+			'Subscription-Id' = [Subscription_Id],
+			'Service-Information' = [ServiceInformation]},
 	{ok, Answer} = diameter:call(?SVC_ACCT, cc_app_test, CC_CCR, []),
 	Answer.
 
@@ -630,6 +642,11 @@ diameter_accounting_interim(SId, Username, RequestNum, Usage) ->
 	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Used-Service-Unit' = [UsedUnits],
 			'Requested-Service-Unit' = [RequestedUnits]}, 
+	ServiceInformation = #'3gpp_ro_Service-Information'{'IMS-Information' =
+			[#'3gpp_ro_IMS-Information'{
+					'Node-Functionality' = ?'3GPP_NODE-FUNCTIONALITY_AS',
+					'Calling-Party-Address' = [<<"tel:110493422">>],
+					'Called-Party-Address' = [<<"tel:0110493488">>]}]},
 	CC_CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'Service-Context-Id' = "nas45@testdomain.com" ,
@@ -637,7 +654,8 @@ diameter_accounting_interim(SId, Username, RequestNum, Usage) ->
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
 			'CC-Request-Number' = RequestNum,
 			'Multiple-Services-Credit-Control' = [MultiServices_CC],
-			'Subscription-Id' = [Subscription_Id]},
+			'Subscription-Id' = [Subscription_Id],
+			'Service-Information' = [ServiceInformation]},
 	{ok, Answer} = diameter:call(?SVC_ACCT, cc_app_test, CC_CCR, []),
 	Answer.
 	

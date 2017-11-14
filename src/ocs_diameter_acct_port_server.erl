@@ -250,7 +250,8 @@ request(Request, Caps,  _From, State) ->
 
 %% @hidden
 request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
-		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _]} = Request,
+		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _],
+		'Service-Information' = ServiceInformation} = Request,
 		SId, RequestNum, Subscriber, OHost, DHost, ORealm, DRealm, State) ->
 	RSU =  case MSCC of
 		#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit' =
@@ -272,10 +273,12 @@ request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		_ ->
 			throw(unsupported_request_units)
 	end,
+	Destination = get_destination(ServiceInformation),
 	SessionAttributes = [{'Origin-Host', OHost}, {'Origin-Realm', ORealm},
 		{'Destination-Host', DHost}, {'Destination-Realm', DRealm}, {'Session-Id', SId}],
 	ReserveAmount = [{ReqUsageType, ReqUsage}],
-	case ocs_rating:rate(diameter, Subscriber, initial, [], ReserveAmount, SessionAttributes) of
+	case ocs_rating:rate(diameter, Subscriber,
+			Destination, initial, [], ReserveAmount, SessionAttributes) of
 		{ok, _, GrantedAmount} ->
 			GrantedUnits = case ReqUsageType of
 				seconds ->
@@ -315,7 +318,8 @@ request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 			{reply, Reply, NewState}
 	end;
 request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
-		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _]} = Request,
+		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _],
+		'Service-Information' = ServiceInformation} = Request,
 		SId, RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm, State) ->
 	try
 		RSU =  case MSCC of
@@ -357,9 +361,11 @@ request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 			[] ->
 				throw(used_amount_not_available)
 		end,
+		Destination = get_destination(ServiceInformation),
 		ReserveAmount = [{ReqUsageType, ReqUsage}],
 		DebitAmount = [{UsedType, UsedUsage}],
-		case ocs_rating:rate(diameter, Subscriber, interim, DebitAmount, ReserveAmount) of
+		case ocs_rating:rate(diameter, Subscriber,
+				Destination, interim, DebitAmount, ReserveAmount) of
 			{ok, _, GrantedAmount} ->
 				GrantedUnits = case ReqUsageType of
 					seconds ->
@@ -406,7 +412,8 @@ request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 			{reply, Reply1, NewState0}
 	end;
 request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
-		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _]} = Request,
+		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _],
+		'Service-Information' = ServiceInformation} = Request,
 		SId, RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm, State) ->
 	try
 		USU =  case MSCC of
@@ -428,8 +435,9 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 			[] ->
 				throw(used_amount_not_available)
 		end,
+		Destination = get_destination(ServiceInformation),
 		DebitAmount = [{UsedType, UsedUsage}],
-		case ocs_rating:rate(diameter, Subscriber, final, DebitAmount, []) of
+		case ocs_rating:rate(diameter, Subscriber, Destination, final, DebitAmount, []) of
 			{ok, _, GrantedAmount} ->
 				GrantedUnits = case UsedType of
 					seconds ->
@@ -575,4 +583,16 @@ start_disconnect1(SessionAttributes, #state{disc_sup = DiscSup}) ->
 			DRealm, AuthAppId],
 	StartArgs = [DiscArgs, []],
 	supervisor:start_child(DiscSup, StartArgs).
+
+%% @hidden
+get_destination([#'3gpp_ro_Service-Information'{'IMS-Information' = ImsInfo}]) ->
+	get_destination(ImsInfo);
+get_destination([#'3gpp_ro_IMS-Information'{'Called-Party-Address' = [CalledParty]}]) ->
+	destination(CalledParty).
+
+%% @hidden
+destination(<<"tel:", Dest/binary>>) ->
+	binary_to_list(Dest);
+destination(Dest) ->
+	binary_to_list(Dest).
 
