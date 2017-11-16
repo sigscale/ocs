@@ -570,7 +570,8 @@ spec_product_rate_plan() ->
 	Version = {"version", "1.0"},
 	LastUpdate = {"lastUpdate", "2017-10-06T12:00:00Z"},
 	Status = {"lifecycleStatus", "Active"},
-	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status]}.
+	Chars = {"productSpecCharacteristic", {array, characteristic_product_rate_plane()}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
 
 %% @hidden
 spec_product_wlan() ->
@@ -579,7 +580,7 @@ spec_product_wlan() ->
 	Name = {"name", "WLANProductSpec"},
 	Description = {"description", "Defines characteristics specific to pulic Wi-Fi use."},
 	Version = {"version", "1.0"},
-	LastUpdate = {"lastUpdate", "2017-10-06T12:00:00Z"},
+	LastUpdate = {"lastUpdate", "2017-11-14T12:00:00Z"},
 	Status = {"lifecycleStatus", "Active"},
 	DepType = {"type", "dependency"},
 	DepId = {"id", "1"},
@@ -640,6 +641,26 @@ characteristic_product_wlan() ->
 			{array, [Type51, Type52, Type53, Type54]}},
 	Char5 = {struct, [Name5, Description5, Config5, Type5, Value5]},
 	[Char1, Char2, Char3, Char4, Char5].
+
+%% @hidden
+characteristic_product_rate_plane() ->
+	Name1 = {"name", "destPrefixPriceTable"},
+	Description1 = {"description", "Table of Prefix, Description, Price Lable"},
+	ValueType1 = {"valueType", "string"},
+	Char1 = {struct, [Name1, Description1, ValueType1]},
+	Name2 = {"name", "destPrefixTariffTable"},
+	Description2 = {"description", "Table of Prefix, Description, Tariff rate"},
+	ValueType2 = {"valueType", "string"},
+	Char2 = {struct, [Name2, Description2, ValueType2]},
+	Name3 = {"name", "timeOfDayRange"},
+	Description3 = {"description", "Time range of the day"},
+	ValueType3 = {"valueType", "string"},
+	Char3 = {struct, [Name3, Description3, ValueType3]},
+	Name4 = {"name", "ratePrice"},
+	Description4 = {"description", ""},
+	ValueType4 = {"valueType", "string"},
+	Char4 = {struct, [Name4, Description4, ValueType4]},
+	[Char1, Char2, Char3, Char4].
 
 -spec offer_status(Status) -> Status
 	when
