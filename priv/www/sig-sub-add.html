@@ -263,6 +263,13 @@
 				</div>
 			<div id=add-divtwo>
 				<div>
+					<paper-input id="AddUpdatePro"
+							name="product"
+							label="[[i18n.prod]]"
+							disabled>
+					</paper-input>
+				</div>
+				<div>
 					<paper-input id="add8"
 							name="amount"
 							type="number"
@@ -373,6 +380,13 @@
 				on-response="_addSubscriberResponse"
 				on-error="_addSubscriberError">
 		</iron-ajax>
+		<iron-ajax
+            id="updateSubscriberProductsAjax1"
+            url="/catalogManagement/v2/productOffering"
+            method = "GET"
+            on-response="_updateSubscriberProductsResponse1"
+            on-error="_updateSubscriberProductsError1">
+      </iron-ajax>
 	</template>
 	<script>
 		Polymer ({
@@ -385,7 +399,7 @@
 				},
 				product: {
 					type: String,
-				}
+				},
 			},
 			_subscriberAddSubmit: function(event) {
 				var subscriber = new Object();
