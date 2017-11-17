@@ -106,10 +106,9 @@ top_up(Identity, RequestBody) ->
 			false ->
 				{undefined, undefined}
 		end,
-		BucketType = bucket_type(Units),
-		Bucket = #bucket{bucket_type = BucketType, remain_amount = Amount,
-				units = BucketType, start_date = StartDate,
-				termination_date = EndDate},
+		BucketType = units(Units),
+		Bucket = #bucket{units = BucketType, remain_amount = Amount,
+				start_date = StartDate, termination_date = EndDate},
 		top_up1(Identity, Bucket)
 	catch
 		_Error ->
@@ -168,11 +167,11 @@ accumulated_balance1([], AccBalance) ->
 accumulated_balance1([Bucket | T], AccBalance) ->
 	accumulated_balance1(T, accumulated_balance2(Bucket, AccBalance)).
 %% @hidden
-accumulated_balance2(#bucket{bucket_type = octets, remain_amount = Amount}, AccBalance) ->
+accumulated_balance2(#bucket{units = octets, remain_amount = Amount}, AccBalance) ->
 	accumulated_balance3(octets, "octets", Amount, AccBalance);
-accumulated_balance2(#bucket{bucket_type = cents, remain_amount = Amount}, AccBalance) -> 
+accumulated_balance2(#bucket{units = cents, remain_amount = Amount}, AccBalance) ->
 	accumulated_balance3(cents, "cents", Amount, AccBalance);
-accumulated_balance2(#bucket{bucket_type = seconds, remain_amount = Amount}, AccBalance) -> 
+accumulated_balance2(#bucket{units = seconds, remain_amount = Amount}, AccBalance) ->
 	accumulated_balance3(seconds, "seconds", Amount, AccBalance).
 %% @hidden
 accumulated_balance3(Key, Units, Amount, AccBalance) ->
@@ -183,20 +182,19 @@ accumulated_balance3(Key, Units, Amount, AccBalance) ->
 			[{Key, {Units, Amount}} | AccBalance]
 	end.
 
--spec bucket_type(SBucketType) -> BucketType
+-spec units(Units) -> Units
 	when
-		SBucketType	:: string() | octets | cents | seconds,
-		BucketType	:: octets | cents | seconds | string().
-%% @doc return the bucket type.
-bucket_type(BucketType) when is_list(BucketType) ->
-	bucket_type1(string:to_lower(BucketType));
-bucket_type(BucketType) when is_atom(BucketType) ->
-	bucket_type1(BucketType).
+		Units :: string() | octets | cents | seconds.
+%% @doc Return the type of units of the bucket.
+units(Units) when is_list(Units) ->
+	units1(string:to_lower(Units));
+units(Units) when is_atom(Units) ->
+	units1(Units).
 %% @hidden
-bucket_type1("octets") -> octets;
-bucket_type1("cents") -> cents;
-bucket_type1("seconds") -> seconds;
-bucket_type1(octets) -> "octets";
-bucket_type1(cents) -> "cents";
-bucket_type1(seconds) -> "seconds".
+units1("octets") -> octets;
+units1("cents") -> cents;
+units1("seconds") -> seconds;
+units1(octets) -> "octets";
+units1(cents) -> "cents";
+units1(seconds) -> "seconds".
 

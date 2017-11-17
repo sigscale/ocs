@@ -341,20 +341,20 @@ charge(Type, Charge, Final, Buckets) ->
 	SortedBuckets = lists:sort(F, Buckets),
 	charge(Type, Charge, Now, Final, SortedBuckets, [], 0).
 %% @hidden
-charge(Type, Charge, Now, Final, [#bucket{bucket_type = Type,
+charge(Type, Charge, Now, Final, [#bucket{units = Type,
 		termination_date = T1} | T], Acc, Charged) when T1 =/= undefined, T1 =< Now->
 	charge(Type, Charge, Now, Final, T, Acc, Charged);
-charge(Type, Charge, _Now, true, [#bucket{bucket_type = Type,
+charge(Type, Charge, _Now, true, [#bucket{units = Type,
 		remain_amount = R} = B | T], Acc, Charged) when R > Charge ->
 	NewBuckets = [B#bucket{remain_amount = R - Charge} | T],
 	{0, Charged + Charge, lists:reverse(Acc) ++ NewBuckets};
-charge(Type, Charge, _Now, false, [#bucket{bucket_type = Type,
+charge(Type, Charge, _Now, false, [#bucket{units = Type,
 		remain_amount = R} | _] = L, Acc, Charged) when R > Charge ->
 	{0, Charged + Charge, lists:reverse(Acc) ++ L};
-charge(Type, Charge, Now, true, [#bucket{bucket_type = Type,
+charge(Type, Charge, Now, true, [#bucket{units = Type,
 		remain_amount = R} | T], Acc, Charged) when R =< Charge ->
 	charge(Type, Charge - R, Now, true, T, Acc, Charged + R);
-charge(Type, Charge, Now, false, [#bucket{bucket_type = Type,
+charge(Type, Charge, Now, false, [#bucket{units = Type,
 		remain_amount = R} = B | T], Acc, Charged) when R =< Charge ->
 	charge(Type, Charge - R, Now, false, T, [B | Acc], Charged);
 charge(_Type, 0, _Now, _Final, Buckets, Acc, Charged) ->
@@ -407,13 +407,13 @@ purchase(Type, Price, Size, Used, Validity, Final, Buckets) ->
 				(UnitsNeeded * Size - Used) == 0 ->
 			{0, UnitsNeeded * Size, NewBuckets};
 		{0, Charge, NewBuckets} when Final == false ->
-			Bucket = #bucket{bucket_type = Type,
+			Bucket = #bucket{units = Type,
 				remain_amount = UnitsNeeded * Size,
 				termination_date = Validity,
 				start_date = erlang:system_time(?MILLISECOND)},
 			{0, UnitsNeeded * Size, [Bucket | NewBuckets]};
 		{0, Charge, NewBuckets} when Final == true ->
-			Bucket = #bucket{bucket_type = Type,
+			Bucket = #bucket{units = Type,
 				remain_amount = UnitsNeeded * Size - Used,
 				termination_date = Validity,
 				start_date = erlang:system_time(?MILLISECOND)},

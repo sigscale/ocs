@@ -103,7 +103,6 @@
 -record(bucket,
 		{id :: string() | undefined,
 		name :: string() | undefined,
-		bucket_type :: octets | cents | seconds,
 		start_date :: pos_integer() | undefined,
 		termination_date :: pos_integer() | undefined,
 		remain_amount = 0 :: integer(),
