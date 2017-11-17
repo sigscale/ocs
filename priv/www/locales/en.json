@@ -707,6 +707,22 @@
     "description": "unit types",
     "message": "Octets"
   },
+	"priceTable": {
+    "description": "Prefix price table",
+    "message": "Prefix Price Table"
+  },
+	"tariffTable": {
+    "description": "Prefix tariff table",
+    "message": "Prefix Tariff Table"
+  },
+	"timeDay": {
+    "description": "time day range",
+    "message": "Time Of Day Range"
+  },
+	"ratePrice": {
+    "description": "ratePrice",
+    "message": "Rated Price"
+  },
    "productDeleted": {
     "description": "Success Toast Message",
     "message": "Product deleted"

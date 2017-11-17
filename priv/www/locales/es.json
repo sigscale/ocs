@@ -719,6 +719,22 @@
     "description": "unit types",
     "message": "Octetos"
   },
+	"priceTable": {
+    "description": "Prefix price table",
+    "message": "Tabla de precios de prefijo"
+  },
+	"tariffTable": {
+    "description": "Prefix tariff table",
+    "message": "Tabla de tarifas de prefijo"
+  },
+	"timeDay": {
+    "description": "time day range",
+    "message": "Rango del tiempo del día"
+  },
+	"ratePrice": {
+    "description": "ratePrice",
+    "message": "Precio nominal"
+  },
    "productDeleted": {
     "description": "Success Toast Message",
     "message": "Producto eliminado"
