@@ -107,6 +107,9 @@
 		start_date :: pos_integer() | undefined,
 		termination_date :: pos_integer() | undefined,
 		remain_amount = 0 :: integer(),
+		reservations = [] :: [{TS :: pos_integer(),
+				Amount :: pos_integer(),
+				SessionId :: string() | binary()}],
 		units :: octets | cents | seconds | undefined,
 		last_modified :: tuple() | undefined}).
 
