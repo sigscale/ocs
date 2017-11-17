@@ -199,8 +199,8 @@ rate4(Protocol, #subscriber{buckets = Buckets, enabled = Enabled} = Subscriber,
 	of
 		{RemainingCharge, _Charged, NewBuckets}
 				when Enabled == false; RemainingCharge > 0 ->
-			rate6(Subscriber#subscriber{buckets = NewBuckets},
-					RemainingCharge, Flag, ReserveAmount, SessionAttributes);
+			rate6(Subscriber#subscriber{buckets = NewBuckets}, Flag,
+					RemainingCharge, ReserveAmount, SessionAttributes);
 		{_RemainingCharge, _Charged, NewBuckets} ->
 			rate5(Protocol, Subscriber#subscriber{buckets = NewBuckets},
 					Price, Validity, Flag, ReserveAmount, SessionAttributes)
@@ -211,7 +211,7 @@ rate4(Protocol, #subscriber{buckets = Buckets, enabled = Enabled} = Subscriber,
 %% @hidden
 rate5(radius, Subscriber, _Price, _Validity, final,
 		_ReserveAmount, SessionAttributes) ->
-	rate6(Subscriber, 0, final, 0, SessionAttributes);
+	rate6(Subscriber, final, 0, 0, SessionAttributes);
 rate5(radius, Subscriber, #price{units = Units, size = Size,
 		amount = Amount, char_value_use = CharValueUse}, Validity, Flag,
 		ReserveAmount, SessionAttributes) ->
@@ -236,13 +236,13 @@ rate5(radius, Subscriber, #price{units = Units, size = Size,
 	end,
 	case RadiusReserve of
 		0 ->
-			rate6(Subscriber, 0, Flag, 0, SessionAttributes);
+			rate6(Subscriber, Flag, 0, 0, SessionAttributes);
 		_ ->
 			rate5(Subscriber, Units, Amount, Size, RadiusReserve,
 					Validity, Flag, SessionAttributes)
 	end;
 rate5(diameter, Subscriber, _Price, _Validity, Flag, [], SessionAttributes) ->
-	rate6(Subscriber, 0, Flag, 0, SessionAttributes);
+	rate6(Subscriber, Flag, 0, 0, SessionAttributes);
 rate5(diameter, Subscriber, #price{units = Type, size = Size, amount = Amount},
 		Validity, Flag, ReserveAmount, SessionAttributes) ->
 	{Type, Reserve} = lists:keyfind(Type, 1, ReserveAmount),
@@ -261,40 +261,40 @@ rate5(#subscriber{buckets = Buckets} = Subscriber,
 	of
 		{0, ReservedAmount, NewBuckets} ->
 			rate6(Subscriber#subscriber{buckets = NewBuckets},
-					0, Flag, ReservedAmount, SessionAttributes);
+					Flag, 0, ReservedAmount, SessionAttributes);
 		{RemainingCharge, ReservedAmount, _NewBuckets} ->
-			rate6(Subscriber, RemainingCharge,
-				Flag, ReservedAmount, SessionAttributes)
+			rate6(Subscriber, Flag, RemainingCharge,
+				ReservedAmount, SessionAttributes)
 	catch
 		_:_ ->
 			throw(rating_failed)
 	end.
 %% @hidden
 rate6(#subscriber{session_attributes = SessionList} = Subscriber,
-		RemainingCharge, _Flag, _ReserveAmount, _SessionAttributes)
+		_Flag, RemainingCharge, _ReserveAmount, _SessionAttributes)
 		when RemainingCharge > 0 ->
 	Entry = Subscriber#subscriber{session_attributes = []},
 	ok = mnesia:write(Entry),
 	{out_of_credit, SessionList};
 rate6(#subscriber{enabled = false,
 		session_attributes = SessionList} = Subscriber,
-		_RemainingCharge, _Flag, _ReserveAmount, _SessionAttributes) ->
+		Flag_, _RemainingCharge, _ReserveAmount, _SessionAttributes) ->
 	Entry = Subscriber#subscriber{session_attributes = []},
 	ok = mnesia:write(Entry),
 	{disabled, SessionList};
 rate6(#subscriber{session_attributes = SessionList} = Subscriber,
-		_RemainingCharge, initial, ReserveAmount, SessionAttributes) ->
+		initial, _RemainingCharge, ReserveAmount, SessionAttributes) ->
 	NewSessionList = update_session(SessionAttributes, SessionList),
 	Entry = Subscriber#subscriber{session_attributes = NewSessionList},
 	ok = mnesia:write(Entry),
 	{grant, Entry, ReserveAmount};
 rate6(#subscriber{session_attributes = SessionList} = Subscriber,
-		_RemainingCharge, final, ReserveAmount, SessionAttributes) ->
+		final, _RemainingCharge, ReserveAmount, SessionAttributes) ->
 	NewSessionList = remove_session(SessionList, SessionAttributes),
 	Entry = Subscriber#subscriber{session_attributes = NewSessionList},
 	ok = mnesia:write(Entry),
 	{grant, Entry, ReserveAmount};
-rate6(Subscriber, _RemainingCharge, interim, ReserveAmount, _SessionAttributes) ->
+rate6(Subscriber, interim, _RemainingCharge, ReserveAmount, _SessionAttributes) ->
 	ok = mnesia:write(Subscriber),
 	{grant, Subscriber, ReserveAmount}.
 
