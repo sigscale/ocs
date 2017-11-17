@@ -719,6 +719,38 @@
     "description": "unit types",
     "message": "Octetos"
   },
+	"priceTable": {
+    "description": "Prefix price table",
+    "message": "Tabla de precios de prefijo"
+  },
+	"tariffTable": {
+    "description": "Prefix tariff table",
+    "message": "Tabla de tarifas de prefijo"
+  },
+	"timeDay": {
+    "description": "time day range",
+    "message": "Rango del tiempo del día"
+  },
+	"ratePrice": {
+    "description": "ratePrice",
+    "message": "Precio nominal"
+  },
+	"priceTableTool": {
+    "description": "Prefix price table tooltip",
+    "message": "Prefijo de tabla de precios de destino"
+  },
+	"tariffTableTool": {
+    "description": "Prefix tariff table tooltip",
+    "message": "Prefijo de tabla de tarifas de destino"
+  },
+	"timeDayTool": {
+    "description": "time day range tooltip",
+    "message": "Rango del día"
+  },
+	"ratePriceiTool": {
+    "description": "rate Price tooltip",
+    "message": "Tasa del precio"
+  },
    "productDeleted": {
     "description": "Success Toast Message",
     "message": "Producto eliminado"

@@ -233,19 +233,11 @@
 				</div>
 				<div id="edit-bal">
 					<div>
-						<paper-dropdown-menu
-								id="updatePro"
-								label="[[i18n.prod]]">
-							<paper-listbox
-									slot="dropdown-content"
-									class="dropdown-content">
-									<template is="dom-repeat" items="[[products]]">
-										<paper-item>
-											{{item}}
-										</paper-item>
-									</template>
-							</paper-listbox>
-						</paper-dropdown-menu>
+						<paper-input id="updatePro"
+								name="product"
+								label="[[i18n.prod]]"
+								disabled>
+						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="updateSubProTooltip">
 								Select and update the product.
@@ -414,7 +406,7 @@
 				sub.path = "/buckets/-";
 				var totalBal = {"amount": parseInt(document.getElementById("edit-amount").value)};
 				totalBal.units = document.getElementById("updateUni").value;
-				totalBal.product = document.getElementById("updatePro").value;
+				//totalBal.product = document.getElementById("updatePro").value;
 				sub.value = totalBal;
 				editAjax.body = JSON.stringify([sub]);
 				editAjax.generateRequest();

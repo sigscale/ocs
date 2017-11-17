@@ -6,6 +6,7 @@
 -export([initialize_db/0, start/0, stop/0]).
 -export([ipv4/0, port/0, mac/0]).
 -export([add_product/0]).
+-export([write_csv/2]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -112,4 +113,18 @@ mac(0, Acc) ->
 	lists:flatten(io_lib:fwrite("~.16B:~.16B:~.16B:~.16B:~.16B:~.16B", Acc));
 mac(N, Acc) ->
 	mac(N - 1, [rand:uniform(256) - 1 | Acc]).
+
+write_csv(File, [H | T]) ->
+	write_csv1(File, H),
+	write_csv(File, T);
+write_csv(File, []) ->
+	ok.
+%% @hidden
+write_csv1(File, Tuple) when is_tuple(Tuple)->
+	write_csv1(File, tuple_to_list(Tuple));
+write_csv1(File, [H | []]) ->
+	file:write_file(File, io_lib:fwrite("~p\n", [H]), [append]);
+write_csv1(File, [H | T]) ->
+	file:write_file(File, io_lib:fwrite("~p,", [H]), [append]),
+	write_csv1(File, T).
 

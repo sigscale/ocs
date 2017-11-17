@@ -125,6 +125,7 @@
 				var product = this.products[this.$.addproduct10.selected];
 				if(product) {
 //					if(product.productSpecification.id) {
+						document.getElementById("AddUpdatePro").value = product.name
 						document.getElementById("subscriberAdd").product = product.name;
 						document.getElementById("addSubscriberModal").open();
 						document.getElementById("addSubscriberProductModal").close();

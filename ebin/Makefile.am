@@ -45,6 +45,7 @@ beam_DATA = ocs.beam \
 			ocs_radius_authentication.beam \
 			ocs_server.beam \
 			ocs_log.beam \
+			ocs_gtt.beam \
 			ocs_log_rotate_server.beam \
 			ocs_eap_pwd.beam \
 			ocs_eap_tls_transport.beam \

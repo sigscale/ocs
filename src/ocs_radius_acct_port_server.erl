@@ -257,9 +257,11 @@ request(Address, AccPort, Secret, ListenPort, Radius, From, State) ->
 request1(?AccountingStart, AcctSessionId, Id,
 		Authenticator, Secret, NasId, Address, _AccPort, _ListenPort, Attributes,
 		From, #state{address = ServerAddress, port = ServerPort} = State) ->
-	From, SessionAttributes = extract_session_attributes(Attributes),
+	SessionAttributes = extract_session_attributes(Attributes),
 	{ok, Subscriber} = radius_attributes:find(?UserName, Attributes),
-	case ocs_rating:rate(radius, Subscriber, initial, [], [], SessionAttributes) of
+	Destination = proplists:get_value(?CalledStationId, Attributes, ""),
+	case ocs_rating:rate(radius, Subscriber,
+			Destination, initial, [], [], SessionAttributes) of
 		{out_of_credit, SessionList}  ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
 			start_disconnect(State, Subscriber, SessionList),
@@ -299,7 +301,9 @@ request1(?AccountingStop, AcctSessionId, Id,
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, stop, Attributes),
 	Candidates = [{?AcctSessionId, AcctSessionId}, {?NasIdentifier, NasId}, {?NasIpAddress, NasId}],
 	DebitAmount = [{octets, UsageOctets}, {seconds, UsageSecs}],
-	case ocs_rating:rate(radius, Subscriber, final, DebitAmount, [], Candidates) of
+	Destination = proplists:get_value(?CalledStationId, Attributes, ""),
+	case ocs_rating:rate(radius, Subscriber,
+			Destination, final, DebitAmount, [], Candidates) of
 		{out_of_credit, SessionList}  ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
 			start_disconnect(State, Subscriber, SessionList),
@@ -338,7 +342,9 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, interim, Attributes),
 	Candidates = [{?AcctSessionId, AcctSessionId}, {?NasIdentifier, NasId}, {?NasIpAddress, NasId}],
 	ReserveAmount = [{octets, UsageOctets}, {seconds, UsageSecs}],
-	case ocs_rating:rate(radius, Subscriber, interim, [], ReserveAmount, Candidates) of
+	Destination = proplists:get_value(?CalledStationId, Attributes, ""),
+	case ocs_rating:rate(radius, Subscriber,
+			Destination, interim, [], ReserveAmount, Candidates) of
 		{error, not_found} ->
 			error_logger:warning_report(["Accounting subscriber not found",
 					{module, ?MODULE}, {subscriber, Subscriber},
