@@ -849,6 +849,10 @@
 						this.$.addPriceAlteration.selected = null;
 						this.$.addPriceCharReserveTime.value = null;
 						this.$.addPriceCharReserveBytes.value = null;
+						this.$.destPrefixPrice.value = null;
+						this.$.destPrefixTariff.value = null;
+						this.$.timeOfDay.value = null;
+						this.$.ratedPrice.value = null;
 					} else {
 						this.addOrUpdateButton = "update";
 						this.$.addPriceDesc.value = this.prices[indexPrice].description;
@@ -1458,6 +1462,10 @@
 					this.$.addPriceAlteration.selected = null;
 					this.$.addPriceCharReserveTime.value = null;
 					this.$.addPriceCharReserveBytes.value = null;
+					this.$.destPrefixPrice.value = null;
+					this.$.destPrefixTariff.value = null;
+					this.$.timeOfDay.value = null;
+					this.$.ratedPrice.value = null;
 					document.getElementById("addProductPriceToastSuccess").open();
 				} else {
 					document.getElementById("addProductToastError").open();
@@ -1607,6 +1615,10 @@
 				this.$.addAltAmount.value = null;
 				this.$.addAltCurrency.value = null;
 				this.$.addAltPeriod.selected = null;
+				this.$.destPrefixPrice.value = null;
+				this.$.destPrefixTariff.value = null;
+				this.$.timeOfDay.value = null;
+				this.$.ratedPrice.value = null;
 				this.$.addProductModal.close();
 			}
 		});
