@@ -720,8 +720,24 @@
     "message": "Time Of Day Range"
   },
 	"ratePrice": {
-    "description": "ratePrice",
+    "description": "rate Price",
     "message": "Rated Price"
+  },
+	"priceTableTool": {
+    "description": "Prefix price table tooltip",
+    "message": "Prefix of Destination Price Table"
+  },
+	"tariffTableTool": {
+    "description": "Prefix tariff table tooltip",
+    "message": "Prefix of Destination Tarrif Table"
+  },
+	"timeDayTool": {
+    "description": "time day range tooltip",
+    "message": "Range of the time day"
+  },
+	"ratePrice": {
+    "description": "rate Price tooltip",
+    "message": "Rate of the price"
   },
    "productDeleted": {
     "description": "Success Toast Message",

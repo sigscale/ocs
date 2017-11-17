@@ -735,6 +735,22 @@
     "description": "ratePrice",
     "message": "Precio nominal"
   },
+	"priceTableTool": {
+    "description": "Prefix price table tooltip",
+    "message": "Prefijo de tabla de precios de destino"
+  },
+	"tariffTableTool": {
+    "description": "Prefix tariff table tooltip",
+    "message": "Prefijo de tabla de tarifas de destino"
+  },
+	"timeDayTool": {
+    "description": "time day range tooltip",
+    "message": "Rango del día"
+  },
+	"ratePriceiTool": {
+    "description": "rate Price tooltip",
+    "message": "Tasa del precio"
+  },
    "productDeleted": {
     "description": "Success Toast Message",
     "message": "Producto eliminado"
