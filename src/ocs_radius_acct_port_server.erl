@@ -257,7 +257,7 @@ request(Address, AccPort, Secret, ListenPort, Radius, From, State) ->
 request1(?AccountingStart, AcctSessionId, Id,
 		Authenticator, Secret, NasId, Address, _AccPort, _ListenPort, Attributes,
 		From, #state{address = ServerAddress, port = ServerPort} = State) ->
-	SessionAttributes = extract_session_attributes(Attributes),
+	SessionAttributes = session_attributes(Attributes),
 	{ok, Subscriber} = radius_attributes:find(?UserName, Attributes),
 	Destination = proplists:get_value(?CalledStationId, Attributes, ""),
 	case ocs_rating:rate(radius, Subscriber,
@@ -299,11 +299,11 @@ request1(?AccountingStop, AcctSessionId, Id,
 	end,
 	{ok, Subscriber} = radius_attributes:find(?UserName, Attributes),
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, stop, Attributes),
-	Candidates = [{?AcctSessionId, AcctSessionId}, {?NasIdentifier, NasId}, {?NasIpAddress, NasId}],
+	SessionAttributes = session_attributes(Attributes),
 	DebitAmount = [{octets, UsageOctets}, {seconds, UsageSecs}],
 	Destination = proplists:get_value(?CalledStationId, Attributes, ""),
 	case ocs_rating:rate(radius, Subscriber,
-			Destination, final, DebitAmount, [], Candidates) of
+			Destination, final, DebitAmount, [], SessionAttributes) of
 		{out_of_credit, SessionList}  ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
 			start_disconnect(State, Subscriber, SessionList),
@@ -340,11 +340,11 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 	end,
 	{ok, Subscriber} = radius_attributes:find(?UserName, Attributes),
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, interim, Attributes),
-	Candidates = [{?AcctSessionId, AcctSessionId}, {?NasIdentifier, NasId}, {?NasIpAddress, NasId}],
+	SessionAttributes = session_attributes(Attributes),
 	ReserveAmount = [{octets, UsageOctets}, {seconds, UsageSecs}],
 	Destination = proplists:get_value(?CalledStationId, Attributes, ""),
 	case ocs_rating:rate(radius, Subscriber,
-			Destination, interim, [], ReserveAmount, Candidates) of
+			Destination, interim, [], ReserveAmount, SessionAttributes) of
 		{error, not_found} ->
 			error_logger:warning_report(["Accounting subscriber not found",
 					{module, ?MODULE}, {subscriber, Subscriber},
@@ -405,22 +405,21 @@ start_disconnect1(DiscSup, Subscriber, SessionAttributes) ->
 	StartArgs = [DiscArgs, []],
 	supervisor:start_child(DiscSup, StartArgs).
 
--spec extract_session_attributes(Attributes) -> SessionAttributes
+-spec session_attributes(Attributes) -> SessionAttributes
 	when
 		Attributes :: radius_attributes:attributes(),
 		SessionAttributes :: radius_attributes:attributes().
-%% @doc Extract and return RADIUS session related attributes from
-%% `Attributes'.
+%% @doc Extract RADIUS session related attributes.
 %% @hidden
-extract_session_attributes(Attributes) ->
-	F = fun({K, _}) when K == ?NasIdentifier; K == ?NasIpAddress;
-				K == ?UserName; K == ?FramedIpAddress; K == ?NasPort;
-				K == ?NasPortType; K == ?CalledStationId; K == ?CallingStationId;
-				K == ?AcctSessionId; K == ?AcctMultiSessionId; K == ?NasPortId;
-				K == ?OriginatingLineInfo; K == ?FramedInterfaceId;
-				K == ?FramedIPv6Prefix ->
-			true;
-		(_) ->
-			false
+session_attributes(Attributes) ->
+	F = fun({?NasIdentifier, _}) ->
+				true;
+			({?NasIpAddress, _}) ->
+				true;
+			({?AcctSessionId, _}) ->
+				true;
+			(_) ->
+				false
 	end,
 	lists:filter(F, Attributes).
+
