@@ -23,7 +23,7 @@
 		| cancelled | active | suspended | pending_terminate | terminated.
 
 %% define price types
--type product_price_type() :: recurring | one_time | usage.
+-type product_price_type() :: recurring | one_time | usage | tariff.
 
 %% define unit of measure
 -type unit_of_measure() :: octets| cents | seconds.
