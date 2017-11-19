@@ -423,35 +423,25 @@ purchase(Type, Price, Size, Used, Validity, Final, Buckets) ->
 			{UnitsNeeded - UnitsCharged, UnitsCharged, NewBuckets}
 	end.
 
--spec remove_session(SessionAttributes, SessionList) ->NewSessionList
+-spec remove_session(SessionAttributes, SessionList) -> NewSessionList
 	when
 		SessionAttributes :: [tuple()],
 		SessionList :: [tuple()],
 		NewSessionList :: [tuple()].
 %% @doc Remove session identification attributes set from active sessions list.
 %% @private
-remove_session(SessionList, [Candidate | T]) ->
-	remove_session(remove_session1(SessionList, Candidate), T);
-remove_session(SessionList, []) ->
-	SessionList.
+remove_session(SessionAttributes, SessionList) ->
+	remove_session(SessionAttributes, SessionList, []).
 %% @hidden
-remove_session1(SessionList, Candidate) ->
-	F = fun({Ts, IsCandidate}, Acc)  ->
-				case lists:member(Candidate, IsCandidate) of
-					true ->
-						Acc;
-					false ->
-						[{Ts, IsCandidate} | Acc]
-				end;
-		(IsCandidate, Acc)  ->
-				case lists:member(Candidate, IsCandidate) of
-					true ->
-						Acc;
-					false ->
-						[IsCandidate | Acc]
-				end
-	end,
-	lists:foldl(F, [], SessionList).
+remove_session(SessionAttributes, [{_, L} = H | T], Acc) ->
+	case L -- SessionAttributes of
+		[] ->
+			lists:reverse(Acc) ++ T;
+		_ ->
+			remove_session(SessionAttributes, T, [H | T])
+	end;
+remove_session(SessionAttributes, [], Acc) ->
+	lists:reverse(Acc).
 
 -spec update_session(SessionAttributes, SessionList) ->NewSessionList
 	when
