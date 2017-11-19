@@ -408,7 +408,7 @@ diameter_disconnect_session(Config) ->
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = [GrantedUnits0]} = MultiServices_CC0,
 	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [InitBalance]} = GrantedUnits0,
-	Usage0 = trunc(InitBalance/10),
+	Usage0 = InitBalance div 10,
 	RequestNum1 = RequestNum0 + 1,
 	Answer1 = diameter_accounting_interim(SId, Username, RequestNum1, Usage0),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
@@ -419,7 +419,7 @@ diameter_disconnect_session(Config) ->
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = [GrantedUnits1]} = MultiServices_CC1,
 	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [Balance1]} = GrantedUnits1,
-	Usage2 = trunc(Balance1/10),
+	Usage2 = Balance1 div 10,
 	RequestNum2 = RequestNum1 + 1,
 	Answer2 = diameter_accounting_interim(SId, Username, RequestNum2, Usage2),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
