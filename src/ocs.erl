@@ -333,7 +333,7 @@ query_clients4(Clients, Address) ->
 	when
 		Identity :: string() | binary(),
 		Password :: string() | binary(),
-		Product :: string(),
+		Product :: string() | undefined,
 		Result :: {ok, #subscriber{}} | {error, Reason},
 		Reason :: term().
 %% @equiv add_subscriber(Identity, Password, Product, [], [], [], true, false)
@@ -344,7 +344,7 @@ add_subscriber(Identity, Password, Product) ->
 	when 
 		Identity :: string() | binary(),
 		Password :: string() | binary(),
-		Product :: string(),
+		Product :: string() | undefined,
 		Characteristics :: [tuple()],
 		Result :: {ok, #subscriber{}} | {error, Reason},
 		Reason :: term().
@@ -356,7 +356,7 @@ add_subscriber(Identity, Password, Product, Characteristics) ->
 	when 
 		Identity :: string() | binary(),
 		Password :: string() | binary(),
-		Product :: string(),
+		Product :: string() | undefined,
 		Characteristics :: [tuple()],
 		Buckets :: [#bucket{}],
 		Result :: {ok, #subscriber{}} | {error, Reason},
@@ -370,7 +370,7 @@ add_subscriber(Identity, Password, Product, Characteristics, Buckets) ->
 	when 
 		Identity :: string() | binary(),
 		Password :: string() | binary(),
-		Product :: string(),
+		Product :: string() | undefined,
 		Characteristics :: [tuple()],
 		Buckets :: [#bucket{}],
 		Attributes :: radius_attributes:attributes() | binary(),
@@ -387,7 +387,7 @@ add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes
 	when
 		Identity :: string() | binary() | undefined,
 		Password :: string() | binary() | undefined,
-		Product :: string(),
+		Product :: string() | undefined,
 		Characteristics :: [tuple()] | undefined,
 		Buckets :: [#bucket{}] | undefined,
 		Attributes :: radius_attributes:attributes() | binary(),
@@ -414,6 +414,8 @@ add_subscriber(Identity, Password, Product, Characteristics, undefined, Attribut
 	add_subscriber(Identity, Password, Product, Characteristics, [], Attributes, EnabledStatus, MultiSession);
 add_subscriber(Identity, Password, Product, undefined, Buckets, Attributes, EnabledStatus, MultiSession) ->
 	add_subscriber(Identity, Password, Product, [], Buckets, Attributes, EnabledStatus, MultiSession);
+add_subscriber(Identity, Password, undefined, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession) ->
+	add_subscriber(Identity, Password, [], Characteristics, Buckets, Attributes, EnabledStatus, MultiSession);
 add_subscriber(Identity, undefined, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession) ->
 	add_subscriber(Identity, ocs:generate_password(),
 			Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession);
@@ -429,7 +431,18 @@ add_subscriber(undefined, Password, Product, Characteristics, Buckets, Attribute
 		when is_binary(Password), is_list(Product), Product /= [], is_list(Buckets), is_list(Attributes),
 		is_boolean(EnabledStatus), is_boolean(MultiSession) ->
 	F2 = fun() ->
-				case mnesia:read(product, Product, read) of
+				ProdId = case Product of
+					[] ->
+						case mnesia:first(product) of
+							'$end_of_table' ->
+								throw(product_not_found);
+							ProId ->
+								ProId
+						end;
+					Product ->
+						Product
+				end,
+				case mnesia:read(product, ProdId, read) of
 					[#product{start_date = SD, end_date = TD, status = Status }] ->
 						F1 = fun(_, _, 0) ->
 									mnesia:abort(retries);
@@ -470,7 +483,18 @@ add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes
 		when is_binary(Identity), is_binary(Password), is_list(Product), Product /= [],
 		is_list(Buckets), is_list(Attributes), is_boolean(EnabledStatus), is_boolean(MultiSession) ->
 	F1 = fun() ->
-				case mnesia:read(product, Product, read) of
+				ProdId = case Product of
+					[] ->
+						case mnesia:first(product) of
+							'$end_of_table' ->
+								throw(product_not_found);
+							ProId ->
+								ProId
+						end;
+					Product ->
+						Product
+				end,
+				case mnesia:read(product, ProdId, read) of
 					[#product{start_date = SD, end_date = TD, status = Status }] ->
 						TS = erlang:system_time(?MILLISECOND),
 						N = erlang:unique_integer([positive]),
