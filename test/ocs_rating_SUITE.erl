@@ -84,25 +84,25 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[rate_octets_with_debiting_scenario_1, rate_octets_with_debiting_scenario_2,
-	rate_octets_with_debiting_scenario_3, rate_octets_with_debiting_scenario_4,
-	rate_octets_with_debiting_scenario_5, rate_octets_with_debiting_scenario_6,
-	rate_octets_with_reservation_scenario_1,
-	rate_octets_with_reservation_scenario_2, rate_octets_with_reservation_scenario_3,
-	rate_octets_with_reservation_scenario_4, rate_octets_with_reservation_scenario_5,
-	rate_octets_with_debit_and_reservation_scenario_1,
-	rate_octets_with_debit_and_reservation_scenario_2, rate_octets_with_debit_and_reservation_scenario_3,
-	rate_octets_with_debit_and_reservation_scenario_4, rate_octets_with_debit_and_reservation_scenario_5].
+	[octets_debiting_scenario_1, octets_debiting_scenario_2,
+	octets_debiting_scenario_3, octets_debiting_scenario_4,
+	octets_debiting_scenario_5, octets_debiting_scenario_6,
+	octets_reservation_scenario_1,
+	octets_reservation_scenario_2, octets_reservation_scenario_3,
+	octets_reservation_scenario_4, octets_reservation_scenario_5,
+	octets_debit_and_reservation_scenario_1,
+	octets_debit_and_reservation_scenario_2, octets_debit_and_reservation_scenario_3,
+	octets_debit_and_reservation_scenario_4, octets_debit_and_reservation_scenario_5].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
-rate_octets_with_debiting_scenario_1() ->
+octets_debiting_scenario_1() ->
 	[{userdata, [{doc, "Rate cents buckets to octets
 		and deduct usage from rated buckets, This senario
 		describ debit amount equal to package size"}]}].
 
-rate_octets_with_debiting_scenario_1(_Config) ->
+octets_debiting_scenario_1(_Config) ->
 	ProdID = ocs:generate_password(),
 	PackagePrice = 100,
 	Price = #price{name = "overage", type = usage,
@@ -127,12 +127,12 @@ rate_octets_with_debiting_scenario_1(_Config) ->
 	CentsRemain = RemAmount - PackagePrice,
 	false = lists:keyfind(octets, #bucket.units, RatedBuckets).
 
-rate_octets_with_debiting_scenario_2() ->
+octets_debiting_scenario_2() ->
 	[{userdata, [{doc, "Rate cents buckets to octets
 		and deduct usage from rated buckets, This senario
 		describ debit amount less than package size"}]}].
 
-rate_octets_with_debiting_scenario_2(_Config) ->
+octets_debiting_scenario_2(_Config) ->
 	ProdID = ocs:generate_password(),
 	PackagePrice = 100,
 	PackageSize = 1000,
@@ -157,13 +157,13 @@ rate_octets_with_debiting_scenario_2(_Config) ->
 	#bucket{remain_amount = CentsRemain} = lists:keyfind(cents, #bucket.units, RatedBuckets),
 	CentsRemain = RemAmount - PackagePrice.
 
-rate_octets_with_debiting_scenario_3() ->
+octets_debiting_scenario_3() ->
 	[{userdata, [{doc, "Rate cents buckets to octets
 		and deduct usage from rated buckets, This senario
 		describ debit amount equal to bucket remain amount and
 		package size"}]}].
 
-rate_octets_with_debiting_scenario_3(_Config) ->
+octets_debiting_scenario_3(_Config) ->
 	ProdID = ocs:generate_password(),
 	PackagePrice = 100,
 	PackageSize = 1000,
@@ -186,12 +186,12 @@ rate_octets_with_debiting_scenario_3(_Config) ->
 	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, final, [{octets, Debit}], [], SessionId),
 	{ok, #subscriber{buckets = []}} = ocs:find_subscriber(SubscriberID).
 
-rate_octets_with_debiting_scenario_4() ->
+octets_debiting_scenario_4() ->
 	[{userdata, [{doc, "Rate cents buckets to octets
 		and deduct usage from rated buckets, This senario
 		describ out of credit"}]}].
 
-rate_octets_with_debiting_scenario_4(_Config) ->
+octets_debiting_scenario_4(_Config) ->
 	ProdID = ocs:generate_password(),
 	Price = #price{name = "overage", type = usage,
 		units = octets, size = 1000, amount = 100},
@@ -212,11 +212,11 @@ rate_octets_with_debiting_scenario_4(_Config) ->
 	{out_of_credit, _} = ocs_rating:rate(diameter, SubscriberID, Destination, final, [{octets, Debit}], [], SessionId),
 	{ok, #subscriber{buckets = []}} = ocs:find_subscriber(SubscriberID).
 
-rate_octets_with_debiting_scenario_5() ->
+octets_debiting_scenario_5() ->
 	[{userdata, [{doc, "This senario describ when out of
 		credit remove session attributes from subscriber record"}]}].
 
-rate_octets_with_debiting_scenario_5(_Config) ->
+octets_debiting_scenario_5(_Config) ->
 	ProdID = ocs:generate_password(),
 	Price = #price{name = "overage", type = usage,
 		units = octets, size = 1000, amount = 100},
@@ -241,11 +241,11 @@ rate_octets_with_debiting_scenario_5(_Config) ->
 	{out_of_credit, _} = ocs_rating:rate(diameter, SubscriberID, Destination, final, [{octets, Debit}], [], SessionId),
 	{ok, #subscriber{session_attributes = []}} = ocs:find_subscriber(SubscriberID).
 
-rate_octets_with_debiting_scenario_6() ->
+octets_debiting_scenario_6() ->
 	[{userdata, [{doc, "This senario describ when final call
 		remove given session attributes from subscriber record"}]}].
 
-rate_octets_with_debiting_scenario_6(_Config) ->
+octets_debiting_scenario_6(_Config) ->
 	ProdID = ocs:generate_password(),
 	Price = #price{name = "overage", type = usage,
 		units = octets, size = 1000, amount = 100},
@@ -273,12 +273,12 @@ rate_octets_with_debiting_scenario_6(_Config) ->
 	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, final, [{octets, Debit}], [], SessionId),
 	{ok, #subscriber{session_attributes = [SA2]}} = ocs:find_subscriber(SubscriberID).
 
-rate_octets_with_reservation_scenario_1() ->
+octets_reservation_scenario_1() ->
 	[{userdata, [{doc, "Rate cents buckets to octets
 		and This senario describ reservation amount equal
 		to package size"}]}].
 
-rate_octets_with_reservation_scenario_1(_Config) ->
+octets_reservation_scenario_1(_Config) ->
 	ProdID = ocs:generate_password(),
 	PackagePrice = 100,
 	PackageSize = 1000,
@@ -303,12 +303,12 @@ rate_octets_with_reservation_scenario_1(_Config) ->
 	CentsRemain = RemAmount - PackagePrice,
 	#bucket{remain_amount = PackageSize} = lists:keyfind(octets, #bucket.units, RatedBuckets).
 
-rate_octets_with_reservation_scenario_2() ->
+octets_reservation_scenario_2() ->
 	[{userdata, [{doc, "Rate cents buckets to octets
 		and This senario describ reservation amount less
 		than the package size"}]}].
 
-rate_octets_with_reservation_scenario_2(_Config) ->
+octets_reservation_scenario_2(_Config) ->
 	ProdID = ocs:generate_password(),
 	PackagePrice = 100,
 	PackageSize = 1000,
@@ -348,11 +348,11 @@ rate_octets_with_reservation_scenario_2(_Config) ->
 	CentsRemain = RemAmount - PackagePrice,
 	#bucket{remain_amount = PackageSize} = lists:keyfind(octets, #bucket.units, RatedBuckets).
 
-rate_octets_with_reservation_scenario_3() ->
+octets_reservation_scenario_3() ->
 	[{userdata, [{doc, "This senario describ reservation amount
 		equal to bucket remain amount and package size"}]}].
 
-rate_octets_with_reservation_scenario_3(_Config) ->
+octets_reservation_scenario_3(_Config) ->
 	ProdID = ocs:generate_password(),
 	PackagePrice = 100,
 	PackageSize = 1000,
@@ -376,11 +376,11 @@ rate_octets_with_reservation_scenario_3(_Config) ->
 	false = lists:keyfind(cents, #bucket.units, RatedBuckets),
 	#bucket{remain_amount = PackageSize} = lists:keyfind(octets, #bucket.units, RatedBuckets).
 
-rate_octets_with_reservation_scenario_4() ->
+octets_reservation_scenario_4() ->
 	[{userdata, [{doc, "This senario describ out of
 		credit situation in reservation"}]}].
 
-rate_octets_with_reservation_scenario_4(_Config) ->
+octets_reservation_scenario_4(_Config) ->
 	ProdID = ocs:generate_password(),
 	Price = #price{name = "overage", type = usage,
 		units = octets, size = 1000, amount = 100},
@@ -401,11 +401,11 @@ rate_octets_with_reservation_scenario_4(_Config) ->
 	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = RemAmount} = lists:keyfind(cents, #bucket.units, RatedBuckets).
 
-rate_octets_with_reservation_scenario_5() ->
+octets_reservation_scenario_5() ->
 	[{userdata, [{doc, "This senario describ when out of
 		credit remove session attributes from subscriber record"}]}].
 
-rate_octets_with_reservation_scenario_5(_Config) ->
+octets_reservation_scenario_5(_Config) ->
 	ProdID = ocs:generate_password(),
 	Price = #price{name = "overage", type = usage,
 		units = octets, size = 1000, amount = 100},
@@ -430,11 +430,11 @@ rate_octets_with_reservation_scenario_5(_Config) ->
 	{out_of_credit, SessionAttributes} = ocs_rating:rate(diameter, SubscriberID, Destination, initial, [], [{octets, Reservation}], SessionId),
 	{ok, #subscriber{session_attributes = []}} = ocs:find_subscriber(SubscriberID).
 
-rate_octets_with_debit_and_reservation_scenario_1() ->
+octets_debit_and_reservation_scenario_1() ->
 	[{userdata, [{doc, "Senario describ doing first debit given usage
 		and check for reservation, Whole senoario base on sufficient amount"}]}].
 
-rate_octets_with_debit_and_reservation_scenario_1(_Config) ->
+octets_debit_and_reservation_scenario_1(_Config) ->
 	ProdID = ocs:generate_password(),
 	PackagePrice = 100,
 	PackageSize = 1000,
@@ -460,13 +460,13 @@ rate_octets_with_debit_and_reservation_scenario_1(_Config) ->
 	#bucket{remain_amount = 1} = lists:keyfind(cents, #bucket.units, RatedBuckets),
 	#bucket{remain_amount = PackageSize} = lists:keyfind(octets, #bucket.units, RatedBuckets).
 
-rate_octets_with_debit_and_reservation_scenario_2() ->
+octets_debit_and_reservation_scenario_2() ->
 	[{userdata, [{doc, "Senario describ doing first debit given
 		usage and check for reservation, debit amount is less than package size and
 		reservation amount less than avaliable remain amount, Whole senoario base on
 		sufficient amount"}]}].
 
-rate_octets_with_debit_and_reservation_scenario_2(_Config) ->
+octets_debit_and_reservation_scenario_2(_Config) ->
 	ProdID = ocs:generate_password(),
 	PackagePrice = 100,
 	PackageSize = 1000,
@@ -494,12 +494,12 @@ rate_octets_with_debit_and_reservation_scenario_2(_Config) ->
 	#bucket{remain_amount = OctetsRemain} = lists:keyfind(octets, #bucket.units, RatedBuckets),
 	OctetsRemain = PackageSize - Debit.
 
-rate_octets_with_debit_and_reservation_scenario_3() ->
+octets_debit_and_reservation_scenario_3() ->
 	[{userdata, [{doc, "Senario describ doing first debit given
 		usage and check for reservation, debit amount is equal to the
 		package size and reservation amount grater than avaliable remain amount"}]}].
 
-rate_octets_with_debit_and_reservation_scenario_3(_Config) ->
+octets_debit_and_reservation_scenario_3(_Config) ->
 	ProdID = ocs:generate_password(),
 	PackagePrice = 100,
 	PackageSize = 1000,
@@ -526,11 +526,11 @@ rate_octets_with_debit_and_reservation_scenario_3(_Config) ->
 	CentsRemain = RemAmount - PackagePrice,
 	false = lists:keyfind(octets, #bucket.units, RatedBuckets).
 
-rate_octets_with_debit_and_reservation_scenario_4() ->
+octets_debit_and_reservation_scenario_4() ->
 	[{userdata, [{doc, "Senario of suffient amount for dibit the
 		usage but not for the reservation"}]}].
 
-rate_octets_with_debit_and_reservation_scenario_4(_Config) ->
+octets_debit_and_reservation_scenario_4(_Config) ->
 	ProdID = ocs:generate_password(),
 	PackagePrice = 100,
 	PackageSize = 1000,
@@ -557,11 +557,11 @@ rate_octets_with_debit_and_reservation_scenario_4(_Config) ->
 	OctetsRemain = (PackageSize * 2) - Debit,
 	false = lists:keyfind(cents, #bucket.units, RatedBuckets).
 
-rate_octets_with_debit_and_reservation_scenario_5() ->
+octets_debit_and_reservation_scenario_5() ->
 	[{userdata, [{doc, "Senario of insuffient amount for
 			dibit and the reservation"}]}].
 
-rate_octets_with_debit_and_reservation_scenario_5(_Config) ->
+octets_debit_and_reservation_scenario_5(_Config) ->
 	ProdID = ocs:generate_password(),
 	PackagePrice = 100,
 	PackageSize = 1000,
