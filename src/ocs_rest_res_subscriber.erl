@@ -176,9 +176,14 @@ post_subscriber(RequestBody) ->
 		#subscriber{name = Name, password = Password,
 				attributes = Attributes, enabled = Enabled,
 				multisession = Multi, buckets = Buckets,
-				product = #product_instance{product = ProdID,
-				characteristics = Chars}} =
+				product = Product, characteristics = Chars}} =
 					subscriber(mochijson:decode(RequestBody)),
+		ProdID = case Product of
+			undefined ->
+				undefined;
+			#product_instance{product = ProdId} ->
+				ProdId
+		end;
 		case catch ocs:add_subscriber(Name, Password,
 				ProdID, Chars, Buckets, Attributes, Enabled, Multi) of
 			{ok, #subscriber{name = Id, last_modified = LM} = Subscriber} ->
