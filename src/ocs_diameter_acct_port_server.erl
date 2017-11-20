@@ -238,7 +238,7 @@ request(Request, Caps,  _From, State) ->
 		_:_Reason ->
 			{Reply1, NewState1} = generate_diameter_error(SId,
 					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
-					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
+					ORealm, RequestType, RequestNum, State),
 			{reply, Reply1, NewState1}
 	end.
 
@@ -280,7 +280,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 			end,
 			{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 					GrantedUnits, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
-					?RO_APPLICATION_ID, RequestType, RequestNum, State),
+					RequestType, RequestNum, State),
 			{reply, Reply, NewState};
 		{out_of_credit, _SessionList} ->
 			error_logger:warning_report(["out of credit",
@@ -288,23 +288,23 @@ request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 					{origin_host, OHost}]),
 			{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 					undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
-					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
+					ORealm, RequestType, RequestNum, State),
 			{reply, Reply, NewState};
 		{disabled, _SessionList} ->
 			{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 					undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
-					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
+					ORealm, RequestType, RequestNum, State),
 			{reply, Reply, NewState};
 		{error, subscriber_not_found} ->
 			error_logger:warning_report(["diameter accounting subscriber not found",
 					{module, ?MODULE}, {subscriber, Subscriber},
 					{origin_host, OHost}]),
 			{Reply, NewState} = generate_diameter_error(SId, ?'IETF_RESULT-CODE_USER_UNKNOWN',
-					OHost, ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
+					OHost, ORealm, RequestType, RequestNum, State),
 			{reply, Reply, NewState};
 		{error, _Reason} ->
 			{Reply, NewState} = generate_diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
-					OHost, ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
+					OHost, ORealm, RequestType, RequestNum, State),
 			{reply, Reply, NewState}
 	end;
 request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
@@ -365,7 +365,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 				end,
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						GrantedUnits, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
-						?RO_APPLICATION_ID, RequestType, RequestNum, State),
+						RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{out_of_credit, _SessionList} ->
 				error_logger:warning_report(["out of credit",
@@ -373,30 +373,30 @@ request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 						{origin_host, OHost}]),
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
-						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
+						ORealm, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{disabled, _SessionList} ->
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
-						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
+						ORealm, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{error, subscriber_not_found} ->
 				error_logger:warning_report(["diameter accounting subscriber not found",
 						{module, ?MODULE}, {subscriber, Subscriber},
 						{origin_host, OHost}]),
 				{Reply, NewState} = generate_diameter_error(SId, ?'IETF_RESULT-CODE_USER_UNKNOWN',
-						OHost, ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
+						OHost, ORealm, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{error, _Reason} ->
 				{Reply, NewState} = generate_diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
-						OHost, ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
+						OHost, ORealm, RequestType, RequestNum, State),
 				{reply, Reply, NewState}
 		end
 	catch
 		_:_Reason1 ->
 			{Reply1, NewState0} = generate_diameter_error(SId,
 					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
-					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
+					ORealm, RequestType, RequestNum, State),
 			{reply, Reply1, NewState0}
 	end;
 request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
@@ -436,7 +436,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 				end,
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						GrantedUnits, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
-						?RO_APPLICATION_ID, RequestType, RequestNum, State),
+						RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{out_of_credit, _SessionList} ->
 				error_logger:warning_report(["out of credit",
@@ -444,35 +444,35 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 						{origin_host, OHost}]),
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
-						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
+						ORealm, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{disabled, _SessionList} ->
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
-						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
+						ORealm, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{error, subscriber_not_found} ->
 				error_logger:warning_report(["diameter accounting subscriber not found",
 						{module, ?MODULE}, {subscriber, Subscriber},
 						{origin_host, OHost}]),
 				{Reply, NewState} = generate_diameter_error(SId, ?'IETF_RESULT-CODE_USER_UNKNOWN',
-						OHost, ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
+						OHost, ORealm, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{error, _Reason} ->
 				{Reply, NewState} = generate_diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
-						OHost, ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
+						OHost, ORealm, RequestType, RequestNum, State),
 				{reply, Reply, NewState}
 		end
 	catch
 		_:_Reason1 ->
 			{Reply1, NewState0} = generate_diameter_error(SId,
 					?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
-					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
+					ORealm, RequestType, RequestNum, State),
 			{reply, Reply1, NewState0}
 	end.
 
 -spec generate_diameter_answer(Request, SessionId, Subscriber, GrantedUnits,
-		ResultCode, OriginHost, OriginRealm, AuthAppId, RequestType, RequestNum,
+		ResultCode, OriginHost, OriginRealm, RequestType, RequestNum,
 		State) -> Result
 			when
 				Request :: #'3gpp_ro_CCR'{},
@@ -482,7 +482,6 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 				ResultCode :: integer(),
 				OriginHost :: string(),
 				OriginRealm :: string(),
-				AuthAppId :: integer(),
 				RequestType :: integer(),
 				RequestNum :: integer(),
 				Result :: {Reply, State},
@@ -491,24 +490,24 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 %% @doc Send CCA to DIAMETER client indicating a successful operation.
 %% @hidden
 generate_diameter_answer(Request, SId, _Subscriber, undefined, ResultCode, OHost,
-		ORealm, AuthAppId, RequestType, RequestNum, #state{address = Address,
+		ORealm, RequestType, RequestNum, #state{address = Address,
 		port = Port} = State) ->
 	Reply = #'3gpp_ro_CCA'{'Session-Id' = SId, 'Result-Code' = ResultCode,
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
-			'Auth-Application-Id' = AuthAppId, 'CC-Request-Type' = RequestType,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID, 'CC-Request-Type' = RequestType,
 			'CC-Request-Number' = RequestNum},
 	Server = {Address, Port},
 	ok = ocs_log:acct_log(diameter, Server,
 			accounting_event_type(RequestType), Request, Reply),
 	{Reply, State};
 generate_diameter_answer(Request, SId, _Subscriber, GrantedUnits, ResultCode, OHost,
-		ORealm, AuthAppId, RequestType, RequestNum, #state{address = Address,
+		ORealm, RequestType, RequestNum, #state{address = Address,
 		port = Port} = State) ->
 	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = [GrantedUnits]},
 	Reply = #'3gpp_ro_CCA'{'Session-Id' = SId, 'Result-Code' = ResultCode,
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
-			'Auth-Application-Id' = AuthAppId, 'CC-Request-Type' = RequestType,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID, 'CC-Request-Type' = RequestType,
 			'CC-Request-Number' = RequestNum,
 			'Multiple-Services-Credit-Control' = [MultiServices_CC]},
 	Server = {Address, Port},
@@ -517,13 +516,12 @@ generate_diameter_answer(Request, SId, _Subscriber, GrantedUnits, ResultCode, OH
 	{Reply, State}.
 
 -spec generate_diameter_error(SessionId, ResultCode, OriginHost,
-		OriginRealm, AuthAppId, RequestType, RequestNum, State) -> Result
+		OriginRealm, RequestType, RequestNum, State) -> Result
 	when
 		SessionId :: string(),
 		ResultCode :: integer(),
 		OriginHost :: string(),
 		OriginRealm :: string(),
-		AuthAppId :: integer(),
 		RequestType :: integer(),
 		RequestNum :: integer(),
 		State :: state(),
@@ -532,10 +530,10 @@ generate_diameter_answer(Request, SId, _Subscriber, GrantedUnits, ResultCode, OH
 %% @doc Send CCA to DIAMETER client indicating an operation failure.
 %% @hidden
 generate_diameter_error(SId, ResultCode, OHost,
-		ORealm, AuthAppId, RequestType, RequestNum, State) ->
+		ORealm, RequestType, RequestNum, State) ->
 	Reply = #'3gpp_ro_CCA'{'Session-Id' = SId, 'Result-Code' = ResultCode,
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
-			'Auth-Application-Id' = AuthAppId, 'CC-Request-Type' = RequestType,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID, 'CC-Request-Type' = RequestType,
 			'CC-Request-Number' = RequestNum},
 	{Reply, State}.
 
