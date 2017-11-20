@@ -428,7 +428,7 @@ add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes
 	add_subscriber(Identity, list_to_binary(Password), Product, Characteristics, Buckets,
 			Attributes, EnabledStatus, MultiSession);
 add_subscriber(undefined, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
-		when is_binary(Password), is_list(Product), Product /= [], is_list(Buckets), is_list(Attributes),
+		when is_binary(Password), is_list(Product), is_list(Buckets), is_list(Attributes),
 		is_boolean(EnabledStatus), is_boolean(MultiSession) ->
 	F2 = fun() ->
 				ProdId = case Product of
@@ -480,7 +480,7 @@ add_subscriber(undefined, Password, Product, Characteristics, Buckets, Attribute
 			{error, Reason}
 	end;
 add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
-		when is_binary(Identity), is_binary(Password), is_list(Product), Product /= [],
+		when is_binary(Identity), is_binary(Password), is_list(Product),
 		is_list(Buckets), is_list(Attributes), is_boolean(EnabledStatus), is_boolean(MultiSession) ->
 	F1 = fun() ->
 				ProdId = case Product of
