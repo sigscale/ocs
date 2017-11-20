@@ -278,7 +278,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 				octets ->
 					#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [GrantedAmount]}
 			end,
-			{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
+			{Reply, NewState} = generate_diameter_answer(Request, SId,
 					GrantedUnits, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 					RequestType, RequestNum, State),
 			{reply, Reply, NewState};
@@ -286,12 +286,12 @@ request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 			error_logger:warning_report(["out of credit",
 					{module, ?MODULE}, {subscriber, Subscriber},
 					{origin_host, OHost}]),
-			{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
+			{Reply, NewState} = generate_diameter_answer(Request, SId,
 					undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
 					ORealm, RequestType, RequestNum, State),
 			{reply, Reply, NewState};
 		{disabled, _SessionList} ->
-			{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
+			{Reply, NewState} = generate_diameter_answer(Request, SId,
 					undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
 					ORealm, RequestType, RequestNum, State),
 			{reply, Reply, NewState};
@@ -363,7 +363,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 					octets ->
 						#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [GrantedAmount]}
 				end,
-				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
+				{Reply, NewState} = generate_diameter_answer(Request, SId,
 						GrantedUnits, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 						RequestType, RequestNum, State),
 				{reply, Reply, NewState};
@@ -371,12 +371,12 @@ request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 				error_logger:warning_report(["out of credit",
 						{module, ?MODULE}, {subscriber, Subscriber},
 						{origin_host, OHost}]),
-				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
+				{Reply, NewState} = generate_diameter_answer(Request, SId,
 						undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
 						ORealm, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{disabled, _SessionList} ->
-				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
+				{Reply, NewState} = generate_diameter_answer(Request, SId,
 						undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
 						ORealm, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
@@ -434,7 +434,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 					octets ->
 						#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [GrantedAmount]}
 				end,
-				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
+				{Reply, NewState} = generate_diameter_answer(Request, SId,
 						GrantedUnits, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 						RequestType, RequestNum, State),
 				{reply, Reply, NewState};
@@ -442,12 +442,12 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 				error_logger:warning_report(["out of credit",
 						{module, ?MODULE}, {subscriber, Subscriber},
 						{origin_host, OHost}]),
-				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
+				{Reply, NewState} = generate_diameter_answer(Request, SId,
 						undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
 						ORealm, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{disabled, _SessionList} ->
-				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
+				{Reply, NewState} = generate_diameter_answer(Request, SId,
 						undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
 						ORealm, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
@@ -471,13 +471,12 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 			{reply, Reply1, NewState0}
 	end.
 
--spec generate_diameter_answer(Request, SessionId, Subscriber, GrantedUnits,
+-spec generate_diameter_answer(Request, SessionId, GrantedUnits,
 		ResultCode, OriginHost, OriginRealm, RequestType, RequestNum,
 		State) -> Result
 			when
 				Request :: #'3gpp_ro_CCR'{},
 				SessionId :: string(),
-				Subscriber :: string() | binary(),
 				GrantedUnits :: undefined | #'3gpp_ro_Granted-Service-Unit'{},
 				ResultCode :: integer(),
 				OriginHost :: string(),
@@ -489,7 +488,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 				Reply :: #'3gpp_ro_CCA'{}.
 %% @doc Send CCA to DIAMETER client indicating a successful operation.
 %% @hidden
-generate_diameter_answer(Request, SId, _Subscriber, undefined, ResultCode, OHost,
+generate_diameter_answer(Request, SId, undefined, ResultCode, OHost,
 		ORealm, RequestType, RequestNum, #state{address = Address,
 		port = Port} = State) ->
 	Reply = #'3gpp_ro_CCA'{'Session-Id' = SId, 'Result-Code' = ResultCode,
@@ -500,7 +499,7 @@ generate_diameter_answer(Request, SId, _Subscriber, undefined, ResultCode, OHost
 	ok = ocs_log:acct_log(diameter, Server,
 			accounting_event_type(RequestType), Request, Reply),
 	{Reply, State};
-generate_diameter_answer(Request, SId, _Subscriber, GrantedUnits, ResultCode, OHost,
+generate_diameter_answer(Request, SId, GrantedUnits, ResultCode, OHost,
 		ORealm, RequestType, RequestNum, #state{address = Address,
 		port = Port} = State) ->
 	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
