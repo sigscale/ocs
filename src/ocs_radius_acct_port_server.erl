@@ -404,6 +404,28 @@ session_attributes(Attributes) ->
 				true;
 			({?AcctSessionId, _}) ->
 				true;
+			({?AcctMultiSessionId, _}) ->
+				true;
+			({?UserName, _}) ->
+				true;
+			({?FramedIpAddress, _}) ->
+				true;
+			({?NasPort, _}) ->
+				true;
+			({?NasPortType, _}) ->
+				true;
+			({?CalledStationId, _}) ->
+				true;
+			({?CallingStationId, _}) ->
+				true;
+			({?NasPortId, _}) ->
+				true;
+			({?OriginatingLineInfo, _}) ->
+				true;
+			({?FramedInterfaceId, _}) ->
+				true;
+			({?FramedIPv6Prefix, _}) ->
+				true;
 			(_) ->
 				false
 	end,
