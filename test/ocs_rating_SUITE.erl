@@ -550,7 +550,7 @@ rate_octets_with_debit_and_reservation_scenario_4(_Config) ->
 	Destination = ocs:generate_identity(),
 	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
-	{out_of_credit, _} = ocs_rating:rate(diameter, SubscriberID, Destination, initial, [], [], SessionId),
+	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, initial, [], [], SessionId),
 	{out_of_credit, _} = ocs_rating:rate(diameter, SubscriberID, Destination, interim, [{octets, Debit}], [{octets, Reservation}], SessionId),
 	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = OctetsRemain} = lists:keyfind(octets, #bucket.units, RatedBuckets),
@@ -581,7 +581,7 @@ rate_octets_with_debit_and_reservation_scenario_5(_Config) ->
 	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
 	Destination = ocs:generate_identity(),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
-	{out_of_credit, _} = ocs_rating:rate(diameter, SubscriberID, Destination, initial, [], [], SessionId),
+	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, initial, [], [], SessionId),
 	{out_of_credit, _} = ocs_rating:rate(diameter, SubscriberID, Destination, interim, [{octets, Debit}], [{octets, Reservation}], SessionId),
 	{ok, #subscriber{buckets = []}} = ocs:find_subscriber(SubscriberID).
 
