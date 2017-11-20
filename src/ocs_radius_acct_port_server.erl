@@ -421,18 +421,25 @@ get_usage(Attributes) ->
 		{error, not_found} ->
 			0;
 		{ok, Gin} ->
-			Gin
+			Gin bsl 32
 	end,
 	GigaOut = case GigaOutWords of
 		{error, not_found} ->
 			0;
 		{ok, Gout} ->
-			Gout
+			Gout bsl 32
 	end,
-	case {InOctets, OutOctets} of
-		{{error, not_found}, {error, not_found}} ->
+	In = case InOctets of
+		{error, not_found} ->
 			0;
-		{{ok, In}, {ok, Out}} ->
-			((GigaIn bsl 32) + In) + ((GigaOut bsl 32) + Out)
-	end.
+		{ok, InOct} ->
+			InOct
+	end,
+	Out = case OutOctets of
+		{error, not_found} ->
+			0;
+		{ok, OutOct} ->
+			OutOct
+	end,
+	In + GigaIn + Out + GigaOut.
 
