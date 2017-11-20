@@ -72,7 +72,7 @@ rate(Protocol, SubscriberID, Destination,
 rate(Protocol, SubscriberID, Destination, Flag, DebitAmounts, ReserveAmounts, SessionAttributes)
 		when ((Protocol == radius) or (Protocol == diameter)), is_binary(SubscriberID),
 		((Flag == initial) or (Flag == interim) or (Flag == final)),
-		is_list(DebitAmounts), is_list(ReserveAmounts), is_list(SessionAttributes) ->
+		is_list(DebitAmounts), is_list(ReserveAmounts), length(SessionAttributes) > 0 ->
 	F = fun() ->
 			case mnesia:read(subscriber, SubscriberID, write) of
 				[#subscriber{product = #product_instance{product = ProdID,
