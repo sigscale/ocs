@@ -39,7 +39,6 @@
 
 -record(state,
 		{acct_sup :: pid(),
-		 disc_sup :: undefined | pid(),
 		address :: inet:ip_address(),
 		port :: non_neg_integer(),
 		handlers = gb_trees:empty() :: gb_trees:tree(Key ::
@@ -78,7 +77,7 @@ init([AcctSup, Address, Port, _Options]) ->
 	case ocs_log:acct_open() of
 		ok ->
 			process_flag(trap_exit, true),	
-			{ok, State, 0};
+			{ok, State};
 		{error, Reason} ->
 			{stop, Reason}
 	end.
@@ -147,11 +146,6 @@ handle_cast(_Request, State) ->
 %% @see //stdlib/gen_server:handle_info/2
 %% @private
 %%
-handle_info(timeout, #state{acct_sup = AcctSup} = State) ->
-	Children = supervisor:which_children(AcctSup),
-	{_, DiscSup, _, _} = lists:keyfind(ocs_diameter_disconnect_fsm_sup,
-			1, Children),
-	{noreply, State#state{disc_sup = DiscSup}};
 handle_info({'EXIT', _Pid, {shutdown, SessionId}},
 		#state{handlers = Handlers} = State) ->
 	NewHandlers = gb_trees:delete(SessionId, Handlers),
@@ -288,17 +282,15 @@ request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 					GrantedUnits, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 					?RO_APPLICATION_ID, RequestType, RequestNum, State),
 			{reply, Reply, NewState};
-		{out_of_credit, SessionList} ->
+		{out_of_credit, _SessionList} ->
 			error_logger:warning_report(["out of credit",
 					{module, ?MODULE}, {subscriber, Subscriber},
 					{origin_host, OHost}]),
-			start_disconnect(SessionList, State),
 			{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 					undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
 					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 			{reply, Reply, NewState};
-		{disabled, SessionList} ->
-			start_disconnect(SessionList, State),
+		{disabled, _SessionList} ->
 			{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 					undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
 					ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
@@ -375,17 +367,15 @@ request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 						GrantedUnits, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 						?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
-			{out_of_credit, SessionList} ->
+			{out_of_credit, _SessionList} ->
 				error_logger:warning_report(["out of credit",
 						{module, ?MODULE}, {subscriber, Subscriber},
 						{origin_host, OHost}]),
-				start_disconnect(SessionList, State),
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
 						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
-			{disabled, SessionList} ->
-				start_disconnect(SessionList, State),
+			{disabled, _SessionList} ->
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
 						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
@@ -448,17 +438,15 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 						GrantedUnits, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 						?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
-			{out_of_credit, SessionList} ->
+			{out_of_credit, _SessionList} ->
 				error_logger:warning_report(["out of credit",
 						{module, ?MODULE}, {subscriber, Subscriber},
 						{origin_host, OHost}]),
-				start_disconnect(SessionList, State),
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
 						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
-			{disabled, SessionList} ->
-				start_disconnect(SessionList, State),
+			{disabled, _SessionList} ->
 				{Reply, NewState} = generate_diameter_answer(Request, SId, Subscriber,
 						undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
 						ORealm, ?RO_APPLICATION_ID, RequestType, RequestNum, State),
@@ -559,29 +547,6 @@ generate_diameter_error(SId, ResultCode, OHost,
 accounting_event_type(1) -> start;
 accounting_event_type(2) -> interim;
 accounting_event_type(3) -> stop.
-
-%% @hidden
-%% @doc Start a disconnect_fsm to send DIAMETER Abort-Session-Request
-%%
-start_disconnect([], _State) ->
-	ok;
-start_disconnect([{_, SessionAttributes} | T], State) ->
-	start_disconnect1(SessionAttributes, State),
-	start_disconnect(T, State).
-%% @hidden
-start_disconnect1(SessionAttributes, #state{disc_sup = DiscSup}) ->
-	Svc = ocs_diameter_acct_service,
-	Alias = ocs_diameter_base_application,
-	AuthAppId = ?RO_APPLICATION_ID,
-	SessionId = proplists:get_value('Session-ID', SessionAttributes),
-	OHost = proplists:get_value('Origin-Host', SessionAttributes),
-	ORealm = proplists:get_value('Origin-Realm', SessionAttributes),
-	DHost = proplists:get_value('Destination-Host', SessionAttributes),
-	DRealm = proplists:get_value('Destination-Realm', SessionAttributes),
-	DiscArgs = [Svc, Alias, SessionId, OHost, DHost, ORealm,
-			DRealm, AuthAppId],
-	StartArgs = [DiscArgs, []],
-	supervisor:start_child(DiscSup, StartArgs).
 
 %% @hidden
 get_destination([#'3gpp_ro_Service-Information'{'IMS-Information' = ImsInfo}]) ->
