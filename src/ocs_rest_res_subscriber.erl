@@ -489,7 +489,7 @@ bucket([{"startDate", SDate} | T], Acc) ->
 bucket([{"terminationDate", TDate} | T], Acc) ->
 	bucket(T, Acc#bucket{id = ocs_rest:iso8601(TDate)});
 bucket([{"units", Type} | T], Acc) ->
-	bucket(T, Acc#bucket{bucket_type = bucket_type(Type)});
+	bucket(T, Acc#bucket{units = units(Type)});
 bucket([{"amount", Amount} | T], Acc) ->
 	bucket(T, Acc#bucket{remain_amount = Amount});
 bucket([_ | T], Acc) ->
@@ -501,10 +501,8 @@ bucket([id | T], Bucket, Acc) ->
 	bucket(T, Bucket, Acc);
 bucket([name | T], Bucket, Acc) ->
 	bucket(T, Bucket, Acc);
-bucket([units | T], Bucket, Acc) ->
-	bucket(T, Bucket, Acc);
-bucket([bucket_type | T], #bucket{bucket_type = Type} = Bucket, Acc) ->
-	bucket(T, Bucket, [{"units", bucket_type(Type)} | Acc]);
+bucket([units | T], #bucket{units = Type} = Bucket, Acc) ->
+	bucket(T, Bucket, [{"units", units(Type)} | Acc]);
 bucket([start_date | T], #bucket{start_date = undefined} = Bucket, Acc) ->
 	bucket(T, Bucket, Acc);
 bucket([start_date | T], #bucket{start_date = SDate} = Bucket, Acc) ->
@@ -642,11 +640,11 @@ accumulated_balance1([], AccBalance) ->
 accumulated_balance1([Bucket | T], AccBalance) ->
 	accumulated_balance1(T, accumulated_balance2(Bucket, AccBalance)).
 %% @hidden
-accumulated_balance2(#bucket{bucket_type = octets, remain_amount = Amount}, AccBalance) ->
+accumulated_balance2(#bucket{units = octets, remain_amount = Amount}, AccBalance) ->
 	accumulated_balance3(octets, "octets", Amount, AccBalance);
-accumulated_balance2(#bucket{bucket_type = cents, remain_amount = Amount}, AccBalance) ->
+accumulated_balance2(#bucket{units = cents, remain_amount = Amount}, AccBalance) ->
 	accumulated_balance3(cents, "cents", Amount, AccBalance);
-accumulated_balance2(#bucket{bucket_type = seconds, remain_amount = Amount}, AccBalance) ->
+accumulated_balance2(#bucket{units = seconds, remain_amount = Amount}, AccBalance) ->
 	accumulated_balance3(seconds, "seconds", Amount, AccBalance).
 %% @hidden
 accumulated_balance3(Key, Units, Amount, AccBalance) ->
@@ -657,16 +655,16 @@ accumulated_balance3(Key, Units, Amount, AccBalance) ->
 			[{Key, {Units, Amount}} | AccBalance]
 	end.
 
--spec bucket_type(Type) -> Type
+-spec units(Units) -> Units
 	when
-		Type :: string() | atom().
+		Units :: string() | atom().
 %% @doc CODEC for bucket type.
-bucket_type("octets") -> octets;
-bucket_type("cents") -> cents;
-bucket_type("seconds") -> seconds;
-bucket_type(octets) -> "octets";
-bucket_type(cents) -> "cents";
-bucket_type(seconds) -> "seconds".
+units("octets") -> octets;
+units("cents") -> cents;
+units("seconds") -> seconds;
+units(octets) -> "octets";
+units(cents) -> "cents";
+units(seconds) -> "seconds".
 
 %% @hidden
 query_start(Query, Filters, RangeStart, RangeEnd) ->

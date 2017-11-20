@@ -252,7 +252,7 @@ request(Request, Caps,  _From, State) ->
 request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _],
 		'Service-Information' = ServiceInformation} = Request,
-		SId, RequestNum, Subscriber, OHost, DHost, ORealm, DRealm, State) ->
+		SId, RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm, State) ->
 	RSU =  case MSCC of
 		#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit' =
 				[RequestedServiceUnits | _]} ->
@@ -274,11 +274,9 @@ request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 			throw(unsupported_request_units)
 	end,
 	Destination = get_destination(ServiceInformation),
-	SessionAttributes = [{'Origin-Host', OHost}, {'Origin-Realm', ORealm},
-		{'Destination-Host', DHost}, {'Destination-Realm', DRealm}, {'Session-Id', SId}],
 	ReserveAmount = [{ReqUsageType, ReqUsage}],
 	case ocs_rating:rate(diameter, Subscriber,
-			Destination, initial, [], ReserveAmount, SessionAttributes) of
+			Destination, initial, [], ReserveAmount, [{'Session-Id', SId}]) of
 		{ok, _, GrantedAmount} ->
 			GrantedUnits = case ReqUsageType of
 				seconds ->
@@ -365,7 +363,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		ReserveAmount = [{ReqUsageType, ReqUsage}],
 		DebitAmount = [{UsedType, UsedUsage}],
 		case ocs_rating:rate(diameter, Subscriber,
-				Destination, interim, DebitAmount, ReserveAmount) of
+				Destination, interim, DebitAmount, ReserveAmount, [{'Session-Id', SId}]) of
 			{ok, _, GrantedAmount} ->
 				GrantedUnits = case ReqUsageType of
 					seconds ->
@@ -437,7 +435,8 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		end,
 		Destination = get_destination(ServiceInformation),
 		DebitAmount = [{UsedType, UsedUsage}],
-		case ocs_rating:rate(diameter, Subscriber, Destination, final, DebitAmount, []) of
+		case ocs_rating:rate(diameter, Subscriber, Destination,
+				final, DebitAmount, [], [{'Session-Id', SId}]) of
 			{ok, _, GrantedAmount} ->
 				GrantedUnits = case UsedType of
 					seconds ->

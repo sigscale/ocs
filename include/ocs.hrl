@@ -23,7 +23,7 @@
 		| cancelled | active | suspended | pending_terminate | terminated.
 
 %% define price types
--type product_price_type() :: recurring | one_time | usage.
+-type product_price_type() :: recurring | one_time | usage | tariff.
 
 %% define unit of measure
 -type unit_of_measure() :: octets| cents | seconds.
@@ -103,10 +103,12 @@
 -record(bucket,
 		{id :: string() | undefined,
 		name :: string() | undefined,
-		bucket_type :: octets | cents | seconds,
 		start_date :: pos_integer() | undefined,
 		termination_date :: pos_integer() | undefined,
 		remain_amount = 0 :: integer(),
+		reservations = [] :: [{TS :: pos_integer(),
+				Amount :: pos_integer(),
+				SessionId :: string() | binary()}],
 		units :: octets | cents | seconds | undefined,
 		last_modified :: tuple() | undefined}).
 
