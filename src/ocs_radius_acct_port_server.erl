@@ -283,14 +283,7 @@ request1(?AccountingStart, AcctSessionId, Id,
 request1(?AccountingStop, AcctSessionId, Id,
 		Authenticator, Secret, NasId, Address, _AccPort, _ListenPort, Attributes,
 		From, #state{address = ServerAddress, port = ServerPort} = State) ->
-	InOctets = radius_attributes:find(?AcctInputOctets, Attributes),
-	OutOctets = radius_attributes:find(?AcctOutputOctets, Attributes),
-	UsageOctets = case {InOctets, OutOctets} of
-		{{error, not_found}, {error, not_found}} ->
-			0;
-		{{ok,In}, {ok,Out}} ->
-			In + Out
-	end,
+	UsageOctets = get_usage(Attributes),
 	UsageSecs = case radius_attributes:find(?AcctSessionTime, Attributes) of
 		{ok, Secs} ->
 			Secs;
@@ -324,14 +317,7 @@ request1(?AccountingStop, AcctSessionId, Id,
 request1(?AccountingInterimUpdate, AcctSessionId, Id,
 		Authenticator, Secret, NasId, Address, _AccPort, _ListenPort, Attributes,
 		From, #state{address = ServerAddress, port = ServerPort} = State) ->
-	InOctets = radius_attributes:find(?AcctInputOctets, Attributes),
-	OutOctets = radius_attributes:find(?AcctOutputOctets, Attributes),
-	UsageOctets = case {InOctets, OutOctets} of
-		{{error, not_found}, {error, not_found}} ->
-			0;
-		{{ok,In}, {ok,Out}} ->
-			In + Out
-	end,
+	UsageOctets = get_usage(Attributes),
 	UsageSecs = case radius_attributes:find(?AcctSessionTime, Attributes) of
 		{ok, Secs} ->
 			Secs;
@@ -422,4 +408,31 @@ session_attributes(Attributes) ->
 				false
 	end,
 	lists:filter(F, Attributes).
+
+%% @hidden
+%% @doc Get used octets from RADIUS attributes.
+%%
+get_usage(Attributes) ->
+	GigaInWords = radius_attributes:find(?AcctInputGigawords, Attributes),
+	GigaOutWords = radius_attributes:find(?AcctOutputGigawords, Attributes),
+	InOctets = radius_attributes:find(?AcctInputOctets, Attributes),
+	OutOctets = radius_attributes:find(?AcctOutputOctets, Attributes),
+	GigaIn = case GigaInWords of
+		{error, not_found} ->
+			0;
+		{ok, Gin} ->
+			Gin
+	end,
+	GigaOut = case GigaOutWords of
+		{error, not_found} ->
+			0;
+		{ok, Gout} ->
+			Gout
+	end,
+	case {InOctets, OutOctets} of
+		{{error, not_found}, {error, not_found}} ->
+			0;
+		{{ok, In}, {ok, Out}} ->
+			((GigaIn bsl 32) + In) + ((GigaOut bsl 32) + Out)
+	end.
 
