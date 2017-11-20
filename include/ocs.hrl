@@ -125,7 +125,7 @@
 		{name :: binary(),
 		password :: binary(),
 		attributes :: radius_attributes:attributes(),
-		buckets :: [#bucket{}],
+		buckets = [] :: [#bucket{}],
 		product :: #product_instance{},
 		enabled = true :: boolean(),
 		disconnect  = false :: boolean(),
