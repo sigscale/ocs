@@ -1,0 +1,148 @@
+# Configuration for GitLab CI/CD
+# # https://gitlab.com/sigscale/ocs
+
+stages:
+  - build
+  - test
+  - deploy
+
+.build:otp: &build_otp
+  stage: build
+  image: erlang
+  script:
+    # Prepare environmental variables
+    - export ERL_LIBS="${CI_PROJECT_DIR}/.build/otp-${OTP_VERSION}/lib"
+    - export ERLANG_INSTALL_LIB_DIR=${ERL_LIBS}
+    - aclocal
+    - autoheader
+    - autoconf
+    - libtoolize --automake
+    - automake --add-missing
+    - rm -rf .build/otp-${OTP_VERSION}
+    - mkdir -p .build/otp-${OTP_VERSION}/{lib,ocs}
+    - cd .build/otp-${OTP_VERSION}/
+    # Install mochiweb
+    - git clone https://github.com/mochi/mochiweb.git
+    - cd mochiweb
+    - make all
+    - MOCHIWEB_VERSION=`grep vsn ebin/mochiweb.app | cut -d"\"" -f 2`
+    - cd ../../
+    - if [ ! -d otp-${OTP_VERSION}/lib/mochiweb-${MOCHIWEB_VERSION} ]; then mv -v otp-${OTP_VERSION}/mochiweb/ otp-${OTP_VERSION}/lib/mochiweb-${MOCHIWEB_VERSION}; fi
+    # Install radierl
+    - git clone https://github.com/sigscale/radierl.git
+    - cd radierl
+    - aclocal
+    - autoheader
+    - autoconf
+    - automake --add-missing
+    - ./configure
+    - make
+    - make install
+    # ocs
+    - cd ${CI_PROJECT_DIR}/.build/otp-${OTP_VERSION}/ocs
+    - ../../../configure
+    - make
+
+build:otp-20:
+  <<: *build_otp
+  image: erlang:latest
+  artifacts:
+    untracked: true
+    paths:
+      - .build/otp-20.*
+
+build:otp-19:
+  <<: *build_otp
+  image: erlang:19
+  artifacts:
+    untracked: true
+    paths:
+      - .build/otp-19.*
+
+build:otp-18:
+  <<: *build_otp
+  image: erlang:18
+  artifacts:
+    untracked: true
+    paths:
+      - .build/otp-18.*
+
+.check:otp: &check_otp
+  stage: test
+  image: erlang
+  script:
+    - export ERL_LIBS="${CI_PROJECT_DIR}/.build/otp-${OTP_VERSION}/lib"
+    - export DIALYZER_PLT="${CI_PROJECT_DIR}/.build/otp-${OTP_VERSION}/.dialyzer_plt"
+    - if ! dialyzer --plt_info; then dialyzer --build_plt --apps erts kernel stdlib crypto compiler public_key diameter inets mnesia ssl mochiweb radius syntax_tools; fi
+    - cd .build/otp-${OTP_VERSION}/ocs
+    - make check
+
+check:otp-20:
+  <<: *check_otp
+  image: erlang:20
+  artifacts:
+    when: always
+    paths:
+      - .build/otp-20.*
+  dependencies:
+    - build:otp-20
+
+check:otp-19:
+  <<: *check_otp
+  image: erlang:19
+  artifacts:
+    when: always
+    paths:
+      - .build/otp-19.*
+  dependencies:
+    - build:otp-19
+
+check:otp-18:
+  <<: *check_otp
+  image: erlang:18
+  artifacts:
+    when: always
+    paths:
+      - .build/otp-18.*
+  dependencies:
+    - build:otp-18
+
+pages:otp-18:
+  stage: deploy
+  script:
+    - mv .build/otp-18.*/ocs/test/log public/
+  artifacts:
+    when: always
+    paths:
+      - public
+  dependencies:
+    - check:otp-18
+  # Temporary option
+  when: always
+
+pages:otp-19:
+  stage: deploy
+  script:
+    - mv .build/otp-19.*/ocs/test/log public/
+  artifacts:
+    when: always
+    paths:
+      - public
+  dependencies:
+    - check:otp-19
+  # Temporary option
+  when: always
+
+pages:otp-20:
+  stage: deploy
+  script:
+    - mv .build/otp-20.*/ocs/test/log public/
+  artifacts:
+    when: always
+    paths:
+      - public
+  dependencies:
+    - check:otp-20
+  # Temporary option
+  when: always
+
