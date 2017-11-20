@@ -1,3 +1,8 @@
+2017-11-20  Kalpa Gunarathna <kalpa@sigscale.org>
+
+	* *html : minor bug fixes
+	* ocs_rating.erl : update rating functionality
+
 2017-11-1  Kalpa Gunarathna <kalpa@sigscale.org>
 
 	* *html : minor bug fixes
