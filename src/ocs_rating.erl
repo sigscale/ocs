@@ -188,11 +188,9 @@ rate3(Protocol, TariffTable, Subscriber, Destination, Prices,
 rate4(_Protocol, #subscriber{enabled = false} = Subscriber, _Price,
 		_Validity, initial, _DebitAmounts, _ReserveAmounts,
 		SessionAttributes) ->
-erlang:display({?MODULE, ?LINE, disabled}),
 	rate6(Subscriber, initial, 0, 0, 0, 0, SessionAttributes);
 rate4(radius, Subscriber, Price, Validity,
 		initial, [], [], SessionAttributes) ->
-erlang:display({?MODULE, ?LINE, SessionAttributes}),
 	rate5(Subscriber, Price, Validity, initial,
 			0, get_reserve(Price), SessionAttributes);
 rate4(radius, Subscriber, #price{units = Units} = Price, Validity,
@@ -219,7 +217,6 @@ rate4(_Protocol, Subscriber, #price{units = Units} = Price, Validity,
 		false ->
 			0
 	end,
-erlang:display({?MODULE, ?LINE, Subscriber, DebitAmount, ReserveAmount, Units}),
 	rate5(Subscriber, Price, Validity, Flag,
 			DebitAmount, ReserveAmount, SessionAttributes).
 %% @hidden
@@ -269,42 +266,34 @@ rate5(#subscriber{enabled = false, buckets = Buckets1} = Subscriber,
 					rate6(Subscriber#subscriber{buckets = Buckets3}, interim,
 							DebitAmount, UnitsCharged + (PriceCharged div UnitPrice),
 							0, 0, SessionAttributes)
-; Other -> erlang:display({?MODULE, ?LINE, Other})
 			end
-; Other -> erlang:display({?MODULE, ?LINE, Other})
 	end;
 rate5(#subscriber{buckets = Buckets1} = Subscriber,
 		#price{units = Units, size = UnitSize, amount = UnitPrice},
 		_Validity, interim, DebitAmount, ReserveAmount, SessionAttributes) ->
 	SessionId = get_session_id(SessionAttributes),
-erlang:display({?MODULE, ?LINE, DebitAmount, ReserveAmount, Units}),
 	case update_session(Units, DebitAmount, ReserveAmount,
 			SessionId, Buckets1) of
 		{DebitAmount, ReserveAmount, Buckets2} ->
-erlang:display({?MODULE, ?LINE, DebitAmount, ReserveAmount, Buckets2}),
 			rate6(Subscriber#subscriber{buckets = Buckets2}, interim,
 					DebitAmount, DebitAmount, ReserveAmount, ReserveAmount,
 					SessionAttributes);
 		{DebitAmount, UnitsReserved, Buckets2} ->
-erlang:display({?MODULE, ?LINE, DebitAmount, UnitsReserved, Buckets2}),
 			PriceReserveUnits = ReserveAmount - UnitsReserved,
 			{UnitReserve, PriceReserve} = price_units(PriceReserveUnits,
 					UnitSize, UnitPrice),
 			case update_session(cents, 0, PriceReserve, SessionId, Buckets2) of
 				{0, PriceReserve, Buckets3} ->
-erlang:display({?MODULE, ?LINE, PriceReserve, Buckets3}),
 					rate6(Subscriber#subscriber{buckets = Buckets3}, interim,
 							DebitAmount, DebitAmount, ReserveAmount,
 							UnitReserve, SessionAttributes);
 				{0, PriceReserved, Buckets3} ->
-erlang:display({?MODULE, ?LINE, PriceReserve, Buckets3}),
 					rate6(Subscriber#subscriber{buckets = Buckets3}, interim,
 							DebitAmount, DebitAmount, ReserveAmount,
 							UnitsReserved + PriceReserved div UnitPrice,
 							SessionAttributes)
 			end;
 		{UnitsCharged, 0, Buckets2} ->
-erlang:display({?MODULE, ?LINE, UnitsCharged, Buckets2}),
 			PriceChargeUnits = DebitAmount - UnitsCharged,
 			{UnitCharge, PriceCharge} = price_units(PriceChargeUnits,
 					UnitSize, UnitPrice),
@@ -313,46 +302,37 @@ erlang:display({?MODULE, ?LINE, UnitsCharged, Buckets2}),
 			case update_session(cents,
 					PriceCharge, PriceReserve, SessionId, Buckets2) of
 				{PriceCharge, PriceReserve, Buckets3} ->
-erlang:display({?MODULE, ?LINE, PriceCharge, PriceReserve, Buckets3}),
 					rate6(Subscriber#subscriber{buckets = Buckets3}, interim,
 							DebitAmount, UnitsCharged + UnitCharge, ReserveAmount,
 							UnitReserve, SessionAttributes);
 				{PriceCharge, PriceReserved, Buckets3} ->
-erlang:display({?MODULE, ?LINE, PriceCharge, PriceReserved, Buckets3}),
 					rate6(Subscriber#subscriber{buckets = Buckets3}, interim,
 							DebitAmount, UnitsCharged + UnitCharge, ReserveAmount,
 							PriceReserved div UnitPrice, SessionAttributes);
 				{PriceCharged, 0, Buckets3} ->
-erlang:display({?MODULE, ?LINE, PriceCharged, Buckets3}),
 					rate6(Subscriber#subscriber{buckets = Buckets3}, interim,
 							DebitAmount, UnitsCharged + (PriceCharged div UnitPrice),
 							ReserveAmount, 0, SessionAttributes)
-; Other -> erlang:display({?MODULE, ?LINE, Other})
 			end
 	end;
 rate5(#subscriber{buckets = Buckets1} = Subscriber,
 		#price{units = Units, size = UnitSize, amount = UnitPrice},
 		_Validity, final, DebitAmount, 0, SessionAttributes) ->
 	SessionId = get_session_id(SessionAttributes),
-erlang:display({?MODULE, ?LINE, DebitAmount, Buckets1}),
 	case charge_session(Units, DebitAmount, SessionId, Buckets1) of
 		{DebitAmount, Buckets2} ->
-erlang:display({?MODULE, ?LINE, DebitAmount, Buckets2}),
 			rate6(Subscriber#subscriber{buckets = Buckets2}, final,
 					DebitAmount, DebitAmount, 0, 0, SessionAttributes);
 		{UnitsCharged, Buckets2} ->
-erlang:display({?MODULE, ?LINE, UnitsCharged, Buckets2}),
 			PriceChargeUnits = DebitAmount - UnitsCharged,
 			{UnitCharge, PriceCharge} = price_units(PriceChargeUnits,
 					UnitSize, UnitPrice),
 			case charge_session(cents, PriceCharge, SessionId, Buckets2) of
 				{PriceCharge, Buckets3} ->
-erlang:display({?MODULE, ?LINE, PriceCharge, Buckets3}),
 					rate6(Subscriber#subscriber{buckets = Buckets3}, final,
 							DebitAmount, UnitsCharged + UnitCharge,
 							0, 0, SessionAttributes);
 				{PriceCharged, Buckets3} ->
-erlang:display({?MODULE, ?LINE, PriceCharged, Buckets3}),
 					rate6(Subscriber#subscriber{buckets = Buckets3}, final,
 					DebitAmount, UnitsCharged + (PriceCharged div UnitPrice),
 					0, 0, SessionAttributes)
@@ -365,38 +345,32 @@ rate6(#subscriber{session_attributes = SessionList} = Subscriber1,
 	NewSessionList = remove_session(SessionAttributes, SessionList),
 	Subscriber2 = Subscriber1#subscriber{session_attributes = NewSessionList},
 	ok = mnesia:write(Subscriber2),
-erlang:display({?MODULE, ?LINE, grant, Subscriber2, Charged}),
 	{grant, Subscriber2, Charged};
 rate6(#subscriber{session_attributes = SessionList} = Subscriber1,
 		final, _Charge, _Charged, 0, 0, _SessionAttributes) ->
 	Subscriber2 = Subscriber1#subscriber{session_attributes = []},
 	ok = mnesia:write(Subscriber2),
-erlang:display({?MODULE, ?LINE, out_of_credit, Subscriber2, SessionList}),
 	{out_of_credit, SessionList};
 rate6(#subscriber{enabled = false,
 		session_attributes = SessionList} = Subscriber1, _Flag,
 		_Charge, _Charged, _Reserve, _Reserved, _SessionAttributes) ->
 	Subscriber2 = Subscriber1#subscriber{session_attributes = []},
 	ok = mnesia:write(Subscriber2),
-erlang:display({?MODULE, ?LINE, disabled, SessionList}),
 	{disabled, SessionList};
 rate6(#subscriber{session_attributes = SessionList} = Subscriber1, _Flag,
 		Charge, Charged, Reserve, Reserved, _SessionAttributes)
 		when Charged < Charge; Reserved <  Reserve ->
 	Subscriber2 = Subscriber1#subscriber{session_attributes = []},
 	ok = mnesia:write(Subscriber2),
-erlang:display({?MODULE, ?LINE, out_of_credit, Subscriber2, SessionList}),
 	{out_of_credit, SessionList};
 rate6(#subscriber{session_attributes = SessionList} = Subscriber1,
 		initial, 0, 0, _Reserve, Reserved, SessionAttributes) ->
 	NewSessionList = add_session(SessionAttributes, SessionList),
 	Subscriber2 = Subscriber1#subscriber{session_attributes = NewSessionList},
 	ok = mnesia:write(Subscriber2),
-erlang:display({?MODULE, ?LINE, grant, Subscriber2, Reserved}),
 	{grant, Subscriber2, Reserved};
 rate6(Subscriber, interim, _Charge, _Charged, _Reserve, Reserved, _SessionAttributes) ->
 	ok = mnesia:write(Subscriber),
-erlang:display({?MODULE, ?LINE, grant, Subscriber, Reserved}),
 	{grant, Subscriber, Reserved}.
 
 %%----------------------------------------------------------------------
@@ -587,7 +561,6 @@ charge_session(Type, Charge, Now, SessionId,
 		[#bucket{units = Type, termination_date = Expires,
 		remain_amount = Remain, reservations = Reservations} = B | T],
 		Charged, Acc) ->
-erlang:display({?MODULE, ?LINE, Acc}),
 	case lists:keytake(SessionId, 3, Reservations) of
 		{value, {_, Amount, _}, NewReservations} when Amount >= Charge,
 				((Expires == undefined) or (Now < Expires)) ->
@@ -686,7 +659,6 @@ remove_session(SessionAttributes, [{_, L} = H | T], Acc) ->
 			remove_session(SessionAttributes, T, [H | T])
 	end;
 remove_session(SessionAttributes, [], Acc) ->
-erlang:display({?MODULE, ?LINE, SessionAttributes, lists:reverse(Acc)}),
 	lists:reverse(Acc).
 
 -spec add_session(SessionAttributes, SessionList) -> SessionList
