@@ -21,7 +21,7 @@
 -module(ocs_rating).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
--export([rate/6, rate/7]).
+-export([rate/7]).
 
 -include("ocs.hrl").
 -include_lib("radius/include/radius.hrl").
@@ -29,26 +29,6 @@
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
-
--spec rate(Protocol, SubscriberID, Destination, Flag, DebitAmounts, ReserveAmounts) -> Result
-	when
-		Protocol :: radius | diameter,
-		SubscriberID :: string() | binary(),
-		Destination :: string(),
-		Flag :: initial | interim | final,
-		DebitAmounts :: [{Type, Amount}],
-		ReserveAmounts :: [{Type, Amount}],
-		Type :: octets | seconds,
-		Amount :: integer(),
-		Result :: {ok, Subscriber, GrantedAmount} | {disabled, SessionList}
-				| {out_of_credit, SessionList} | {error, Reason},
-		Subscriber :: #subscriber{},
-		GrantedAmount :: integer(),
-		SessionList :: [{pos_integer(), [tuple()]}],
-		Reason :: term().
-%% @equiv rate(Protocol, SubscriberID, Destination, Flag, DebitAmounts, ReserveAmounts, [])
-rate(Protocol, SubscriberID, Destination, Flag, DebitAmounts, ReserveAmounts) ->
-	rate(Protocol, SubscriberID, Destination, Flag, DebitAmounts, ReserveAmounts, []).
 
 -spec rate(Protocol, SubscriberID, Destination,
 		Flag, DebitAmounts, ReserveAmounts, SessionAttributes) -> Result
@@ -658,7 +638,7 @@ remove_session(SessionAttributes, [{_, L} = H | T], Acc) ->
 		_ ->
 			remove_session(SessionAttributes, T, [H | T])
 	end;
-remove_session(SessionAttributes, [], Acc) ->
+remove_session(_, [], Acc) ->
 	lists:reverse(Acc).
 
 -spec add_session(SessionAttributes, SessionList) -> SessionList
