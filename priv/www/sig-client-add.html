@@ -228,16 +228,14 @@
 			_addClientSubmit: function(event) {
 				var client = new Object();
 				client.id = this.$.addClientAddress.value;
-				switch(this.$.addClientProtocol.selected) {
-					case 0:
-						client.protocol = "RADIUS";
-						client.port = parseInt(this.$.addClientPort.value);
-						if (!this.$.addClientSecret.disabled) {
-							client.secret = this.$.addClientSecret.value;
-						}
-						break;
-					case 1:
-						client.protocol = "DIAMETER";
+				if (this.$.addClientProtocol.selected == 1) {
+					client.protocol = "DIAMETER";
+				} else {
+					client.protocol = "RADIUS";
+					client.port = parseInt(this.$.addClientPort.value);
+					if (!this.$.addClientSecret.disabled) {
+						client.secret = this.$.addClientSecret.value;
+					}
 				}
 				this.$.addClientAjax.body = client;
 				this.$.addClientAjax.generateRequest();
