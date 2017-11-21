@@ -92,15 +92,6 @@ all() ->
 	octets_reservation_scenario_5, octets_debit_and_reservation_scenario_1,
 	octets_debit_and_reservation_scenario_2, octets_debit_and_reservation_scenario_3,
 	octets_debit_and_reservation_scenario_4, octets_debit_and_reservation_scenario_5].
-	%[octets_debiting_scenario_1, octets_debiting_scenario_2,
-	%octets_debiting_scenario_3, octets_debiting_scenario_4,
-	%octets_debiting_scenario_5, octets_debiting_scenario_6,
-	%octets_reservation_scenario_1,
-	%octets_reservation_scenario_2, octets_reservation_scenario_3,
-	%octets_reservation_scenario_4, octets_reservation_scenario_5,
-	%octets_debit_and_reservation_scenario_1,
-	%octets_debit_and_reservation_scenario_2, octets_debit_and_reservation_scenario_3,
-	%octets_debit_and_reservation_scenario_4, octets_debit_and_reservation_scenario_5].
 
 %%---------------------------------------------------------------------
 %%  Test cases
