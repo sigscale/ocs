@@ -733,11 +733,11 @@
   },
 	"timeDayTool": {
     "description": "time day range tooltip",
-    "message": "Range of the time day"
+    "message": "Time Of Day Range"
   },
-	"ratePrice": {
+	"ratedPrice": {
     "description": "rate Price tooltip",
-    "message": "Rate of the price"
+    "message": "Price name in table"
   },
    "productDeleted": {
     "description": "Success Toast Message",
