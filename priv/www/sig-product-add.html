@@ -1214,6 +1214,7 @@
 							charValue.value = item.prefixPriceTable;
 							var charValues = new Array();
 							charValues.push(charValue);
+							charValueUse.productSpecCharacteristicValue = charValues;
 							var prodSpec = new Object();
 							prodSpec.id = "3";
 							prodSpec.hef = "/catalogManagement/v2/productSpecification/3";
@@ -1232,6 +1233,7 @@
 							charValue.value = item.prefixTariffTable;
 							var charValues = new Array();
 							charValues.push(charValue);
+							charValueUse.productSpecCharacteristicValue = charValues;
 							var prodSpec = new Object();
 							prodSpec.id = "3";
 							prodSpec.hef = "/catalogManagement/v2/productSpecification/3";
@@ -1250,6 +1252,7 @@
 							charValue.value = item.timeOfDayRange;
 							var charValues = new Array();
 							charValues.push(charValue);
+							charValueUse.productSpecCharacteristicValue = charValues;
 							var prodSpec = new Object();
 							prodSpec.id = "3";
 							prodSpec.hef = "/catalogManagement/v2/productSpecification/3";
@@ -1268,6 +1271,7 @@
 							charValue.value = item.ratePrice;
 							var charValues = new Array();
 							charValues.push(charValue);
+							charValueUse.productSpecCharacteristicValue = charValues;
 							var prodSpec = new Object();
 							prodSpec.id = "3";
 							prodSpec.hef = "/catalogManagement/v2/productSpecification/3";
@@ -1432,14 +1436,8 @@
 				priceNew.prefixTariffTable = this.$.destPrefixTariff.value;
 				priceNew.timeOfDayRange = this.$.timeOfDay.value;
 				priceNew.ratePrice = this.$.ratedPrice.value;
-				function checkExistType(price) {
-					if(priceNew.type == "usage") {
-						return price.type == priceNew.type;
-					}
-				}
 				if(priceNew.name
 						&& priceNew.type
-						&& !this.prices.some(checkExistType)
 						&& priceNew.unit
 						&& (priceNew.size || priceNew.unit== "c")
 						&& priceNew.amount) {
