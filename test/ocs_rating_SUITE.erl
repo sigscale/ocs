@@ -87,12 +87,14 @@ all() ->
 	[initial_reservation_available_remain_amount, initial_reservation_out_of_credit,
 	initial_reservation_overhead, initial_reservation_multiple_buckets,
 	initial_reservation_expiry_buckets, initial_reservation_ignore_expired_buckets,
+	initial_reservation_add_session_attributes,
 	octets_debiting_scenario_1, octets_debiting_scenario_2,
 	octets_debiting_scenario_3, octets_debiting_scenario_4,
 	octets_debiting_scenario_5, octets_debiting_scenario_6,
 	interim_reservation_avaialbe_remain_amount,
-	octets_reservation_scenario_2, octets_reservation_scenario_3,
-	octets_reservation_scenario_4, octets_reservation_scenario_5,
+	interim_reservations_within_package_size, interim_reservation_available_remain_amount,
+	interim_reservation_out_of_credit, interim_reservation_remove_session_attributes,
+	interim_reservation_multiple_buckets_with_sufficient_amount,
 	octets_debit_and_reservation_scenario_1, octets_debit_and_reservation_scenario_2,
 	octets_debit_and_reservation_scenario_3, octets_debit_and_reservation_scenario_4,
 	octets_debit_and_reservation_scenario_5].
@@ -150,6 +152,36 @@ initial_reservation_out_of_credit(_Config) ->
 	{out_of_credit, _} = ocs_rating:rate(radius, SubscriberID, Destination, initial, [], [{octets, PackageSize}], SessionId),
 	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = 0} = lists:keyfind(cents, #bucket.units, RatedBuckets).
+
+initial_reservation_add_session_attributes() ->
+	[{userdata, [{doc, "Add session attributes in subscriber record"}]}].
+
+initial_reservation_add_session_attributes(_Config) ->
+	ProdID = ocs:generate_password(),
+	PackagePrice = 100,
+	PackageSize = 1000,
+	Price = #price{name = "overage", type = usage,
+		units = octets, size = PackageSize, amount = PackagePrice},
+	Product = #product{name = ProdID, price = [Price]},
+	{ok, _} = ocs:add_product(Product),
+	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
+	RemAmount = 1000,
+	Buckets = [#bucket{units = cents, remain_amount = RemAmount,
+		start_date = erlang:system_time(?MILLISECOND),
+		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
+	Destination = ocs:generate_identity(),
+	SessionId = [{'AcctSession-Id', list_to_binary(ocs:generate_password())}],
+	NasIp = [{?NasIpAddress, "192.168.1.150"}],
+	NasId = [{?NasIpAddress, ocs:generate_password()}],
+	SessionAttr = SessionId ++ NasIp ++ NasId,
+	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
+	{ok, #subscriber{session_attributes = SessionList}, _} =
+		ocs_rating:rate(radius, SubscriberID, Destination,
+		initial, [], [{octets, PackageSize}], SessionAttr),
+	{ok, #subscriber{session_attributes = SessionList}} = ocs:find_subscriber(SubscriberID),
+	[{_, SessionAttr}] = SessionList.
 
 initial_reservation_overhead() ->
 	[{userdata, [{doc, "Reserved amount grater than requested reservation amount"}]}].
@@ -498,11 +530,11 @@ interim_reservation_avaialbe_remain_amount(_Config) ->
 	end,
 	Reserved = F(Interim_1_Reservation).
 
-octets_reservation_scenario_2() ->
+interim_reservations_within_package_size() ->
 	[{userdata, [{doc, "Reservation amounts less
 		than the package size"}]}].
 
-octets_reservation_scenario_2(_Config) ->
+interim_reservations_within_package_size(_Config) ->
 	ProdID = ocs:generate_password(),
 	PackagePrice = 100,
 	PackageSize = 1000,
@@ -514,42 +546,49 @@ octets_reservation_scenario_2(_Config) ->
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
 	RemAmount = 200,
-	Reservation = 100,
 	Buckets = [#bucket{units = cents, remain_amount = RemAmount,
 		start_date = erlang:system_time(?MILLISECOND),
 		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
 	Destination = ocs:generate_identity(),
 	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	F = fun(Reserve) when (Reserve rem PackageSize) == 0 ->
+			(Reserve div PackageSize) * PackagePrice;
+		(Reserve) ->
+			(Reserve div PackageSize + 1) * PackagePrice
+	end,
 	%% 1st Reservation
-	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, initial, [], [{octets, Reservation}], SessionId),
+	Reservation1 = 100,
+	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, initial, [], [{octets, Reservation1}], SessionId),
 	{ok, #subscriber{buckets = RatedBuckets1}} = ocs:find_subscriber(SubscriberID),
-	#bucket{remain_amount = CentsRemain, reservations = Reservations1} =
+	#bucket{remain_amount = CentsRemain1, reservations = Reservations1} =
 			lists:keyfind(cents, #bucket.units, RatedBuckets1),
-	CentsRemain = RemAmount - PackagePrice,
-	{_, PackagePrice, _} = lists:keyfind(SessionId, 3, Reservations1),
+	CentsRemain1 = RemAmount - F(Reservation1),
+	{_, Reserved1, _} = lists:keyfind(SessionId, 3, Reservations1),
+	Reserved1 = F(Reservation1),
 	%% 2nd Reservation
 	Reservation2 = 300,
 	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, interim, [], [{octets, Reservation2}], SessionId),
 	{ok, #subscriber{buckets = RatedBuckets2}} = ocs:find_subscriber(SubscriberID),
-	#bucket{remain_amount = CentsRemain, reservations = Reservations2} =
+	#bucket{remain_amount = CentsRemain2, reservations = Reservations2} =
 			lists:keyfind(cents, #bucket.units, RatedBuckets2),
-	CentsRemain = RemAmount - PackagePrice,
-	{_, PackagePrice, _} = lists:keyfind(SessionId, 3, Reservations2),
+	CentsRemain2 = RemAmount - F(Reservation2),
+	{_, Reserved2, _} = lists:keyfind(SessionId, 3, Reservations2),
+	Reserved2 = F(Reservation2),
 	%% 3rd Reservation
 	Reservation3 = 700,
 	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, interim, [], [{octets, Reservation3}], SessionId),
 	{ok, #subscriber{buckets = RatedBuckets3}} = ocs:find_subscriber(SubscriberID),
-	#bucket{remain_amount = CentsRemain, reservations = Reservations3} =
+	#bucket{remain_amount = CentsRemain3, reservations = Reservations3} =
 			lists:keyfind(cents, #bucket.units, RatedBuckets3),
-	CentsRemain = RemAmount - PackagePrice,
-	{_, PackagePrice, _} = lists:keyfind(SessionId, 3, Reservations3).
+	CentsRemain3 = RemAmount - F(Reservation3),
+	{_, Reserved3, _} = lists:keyfind(SessionId, 3, Reservations3),
+	Reserved3 = F(Reservation3).
 
-octets_reservation_scenario_3() ->
-	[{userdata, [{doc, "Reservation amount
-		equal to bucket remain amount and package size"}]}].
+interim_reservation_available_remain_amount() ->
+	[{userdata, [{doc, "Reservation amount equal to bucket remain amount and package size"}]}].
 
-octets_reservation_scenario_3(_Config) ->
+interim_reservation_available_remain_amount(_Config) ->
 	ProdID = ocs:generate_password(),
 	PackagePrice = 100,
 	PackageSize = 1000,
@@ -560,22 +599,24 @@ octets_reservation_scenario_3(_Config) ->
 	SubscriberID = list_to_binary(ocs:generate_identity()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
-	Buckets = [#bucket{units = cents, remain_amount = PackagePrice,
+	Buckets = [#bucket{units = cents, remain_amount = 2 * PackagePrice,
 		start_date = erlang:system_time(?MILLISECOND),
 		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
 	Destination = ocs:generate_identity(),
 	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, initial, [], [{octets, PackageSize}], SessionId),
+	{ok, #subscriber{buckets = RatedBuckets1}} = ocs:find_subscriber(SubscriberID),
+	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, interim, [{octets, PackageSize}], [{octets, PackageSize}], SessionId),
 	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = 0, reservations = Reservations} =
 		lists:keyfind(cents, #bucket.units, RatedBuckets),
 	{_, PackagePrice, _} = lists:keyfind(SessionId, 3, Reservations).
 
-octets_reservation_scenario_4() ->
+interim_reservation_out_of_credit() ->
 	[{userdata, [{doc, "Out of credit on reservation"}]}].
 
-octets_reservation_scenario_4(_Config) ->
+interim_reservation_out_of_credit(_Config) ->
 	ProdID = ocs:generate_password(),
 	Price = #price{name = "overage", type = usage,
 		units = octets, size = 1000, amount = 100},
@@ -584,23 +625,24 @@ octets_reservation_scenario_4(_Config) ->
 	SubscriberID = list_to_binary(ocs:generate_identity()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
-	RemAmount = 10,
-	Reservation = 100,
+	RemAmount = 110,
+	Reservation = 1000,
 	Buckets = [#bucket{units = cents, remain_amount = RemAmount,
 		start_date = erlang:system_time(?MILLISECOND),
 		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
 	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	Destination = ocs:generate_identity(),
-	{out_of_credit, []} = ocs_rating:rate(diameter, SubscriberID, Destination, initial, [], [{octets, Reservation}], SessionId),
+	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, initial, [], [{octets, Reservation}], SessionId),
+	{out_of_credit, _} = ocs_rating:rate(diameter, SubscriberID, Destination, interim, [], [{octets, 2 * Reservation}], SessionId),
 	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = 0} = lists:keyfind(cents, #bucket.units, RatedBuckets).
 
-octets_reservation_scenario_5() ->
+interim_reservation_remove_session_attributes() ->
 	[{userdata, [{doc, "Out of credit remove session
 			attributes from subscriber record"}]}].
 
-octets_reservation_scenario_5(_Config) ->
+interim_reservation_remove_session_attributes(_Config) ->
 	ProdID = ocs:generate_password(),
 	Price = #price{name = "overage", type = usage,
 		units = octets, size = 1000, amount = 100},
@@ -609,21 +651,78 @@ octets_reservation_scenario_5(_Config) ->
 	SubscriberID = list_to_binary(ocs:generate_identity()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
-	RemAmount = 10,
-	Reservation = 100,
+	RemAmount = 110,
+	Reservation1 = 100,
 	Buckets = [#bucket{units = cents, remain_amount = RemAmount,
 		start_date = erlang:system_time(?MILLISECOND),
 		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
-	SessionAttributes = [{erlang:system_time(?MILLISECOND), [{?AcctSessionId, "1020303"},
-		{?NasIdentifier, "rate@sigscale"}, {?NasIpAddress, "10.0.0.1"}]}],
 	Subscriber = #subscriber{name = SubscriberID, password = Password,
-			buckets = Buckets, session_attributes = SessionAttributes,
-			product = #product_instance{product = ProdID, characteristics = Chars}},
+			buckets = Buckets, product = #product_instance{product = ProdID, characteristics = Chars}},
+	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	NasIp = [{?NasIpAddress, "10.0.0.1"}],
+	NasId = [{?NasIdentifier, "rate@sigscale"}],
+	SessionAttributes = SessionId ++ NasIp ++ NasId,
 	Destination = ocs:generate_identity(),
 	ok = mnesia:dirty_write(subscriber, Subscriber),
-	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
-	{out_of_credit, SessionAttributes} = ocs_rating:rate(diameter, SubscriberID, Destination, initial, [], [{octets, Reservation}], SessionId),
+	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, initial, [], [{octets, Reservation1}], SessionAttributes),
+	Reservation2 = 1100,
+	{out_of_credit, SessionList} = ocs_rating:rate(diameter, SubscriberID, Destination, initial, [], [{octets, Reservation2}], SessionAttributes),
+	[{_, SessionAttributes}] = SessionList,
 	{ok, #subscriber{session_attributes = []}} = ocs:find_subscriber(SubscriberID).
+
+interim_reservation_multiple_buckets_with_sufficient_amount() ->
+	[{userdata, [{doc, "Reservation with miltiple buckets"}]}].
+
+interim_reservation_multiple_buckets_with_sufficient_amount(_Config) ->
+	ProdID = ocs:generate_password(),
+	PackagePrice = 100,
+	PackageSize = 1000,
+	Price = #price{name = "overage", type = usage,
+		units = octets, size = PackageSize, amount = PackagePrice},
+	Product = #product{name = ProdID, price = [Price]},
+	{ok, _} = ocs:add_product(Product),
+	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
+	RemAmount = 110,
+	Reservation1 = 1000,
+	B1 = #bucket{units = cents, remain_amount = RemAmount,
+		start_date = erlang:system_time(?MILLISECOND),
+		termination_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	B2 = #bucket{units = cents, remain_amount = RemAmount,
+		start_date = erlang:system_time(?MILLISECOND),
+		termination_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	Buckets = [B1, B2],
+	Subscriber = #subscriber{name = SubscriberID, password = Password,
+			buckets = Buckets, product = #product_instance{product = ProdID, characteristics = Chars}},
+	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	NasIp = [{?NasIpAddress, "10.0.0.1"}],
+	NasId = [{?NasIdentifier, ocs:generate_password() ++ "@sigscalelab"}],
+	SessionAttributes = SessionId ++ NasIp ++ NasId,
+	Destination = ocs:generate_identity(),
+	ok = mnesia:dirty_write(subscriber, Subscriber),
+	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, initial, [], [{octets, Reservation1}], SessionAttributes),
+	{ok, #subscriber{buckets = RatedBuckets1}} = ocs:find_subscriber(SubscriberID),
+	F1 = fun(F1, Type, [#bucket{units = Type, reservations = Res} | T], R) when Res =/= [] ->
+			{_, Reserved, _} = lists:keyfind(SessionId, 3, Res),
+			F1(F1, Type, T, Reserved + R);
+		(F1, Type, [_ | T], R) ->
+			F1(F1, Type, T, R);
+		(_, _, [], R) ->
+			R
+	end,
+	F2 = fun(Reserve) when (Reserve rem PackageSize) == 0 ->
+				(Reserve div PackageSize) * PackagePrice;
+			(Reserve) ->
+				(Reserve div PackageSize + 1) * PackagePrice
+	end,
+	Reserved = F1(F1, cents, RatedBuckets1, 0),
+	Reserved = F2(Reservation1),
+	Reservation2 = 1100,
+	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, interim, [], [{octets, Reservation2}], SessionAttributes),
+	{ok, #subscriber{buckets = RatedBuckets2}} = ocs:find_subscriber(SubscriberID),
+	Reserved = F1(F1, cents, RatedBuckets2, 0),
+	Reserved = F2(Reservation2).
 
 octets_debit_and_reservation_scenario_1() ->
 	[{userdata, [{doc, "Debit given usage and check for reservation,
