@@ -166,7 +166,7 @@ init([Sup, diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 					origin_realm = ORealm, port_server = PortServer},
 			process_flag(trap_exit, true),
 			{ok, ssl_start, StateData, 0}
-		end.
+	end.
 
 -spec ssl_start(Event, StateData) -> Result
 	when
