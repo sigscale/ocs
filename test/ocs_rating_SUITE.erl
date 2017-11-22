@@ -92,7 +92,7 @@ all() ->
 	octets_debiting_scenario_5, octets_debiting_scenario_6,
 	interim_reservation_avaialbe_remain_amount,
 	interim_reservations_within_package_size, interim_reservation_available_remain_amount,
-	octets_reservation_scenario_4, octets_reservation_scenario_5,
+	interim_reservation_out_of_credit, octets_reservation_scenario_5,
 	octets_debit_and_reservation_scenario_1, octets_debit_and_reservation_scenario_2,
 	octets_debit_and_reservation_scenario_3, octets_debit_and_reservation_scenario_4,
 	octets_debit_and_reservation_scenario_5].
@@ -581,10 +581,10 @@ interim_reservation_available_remain_amount(_Config) ->
 		lists:keyfind(cents, #bucket.units, RatedBuckets),
 	{_, PackagePrice, _} = lists:keyfind(SessionId, 3, Reservations).
 
-octets_reservation_scenario_4() ->
+interim_reservation_out_of_credit() ->
 	[{userdata, [{doc, "Out of credit on reservation"}]}].
 
-octets_reservation_scenario_4(_Config) ->
+interim_reservation_out_of_credit(_Config) ->
 	ProdID = ocs:generate_password(),
 	Price = #price{name = "overage", type = usage,
 		units = octets, size = 1000, amount = 100},
@@ -593,15 +593,16 @@ octets_reservation_scenario_4(_Config) ->
 	SubscriberID = list_to_binary(ocs:generate_identity()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
-	RemAmount = 10,
-	Reservation = 100,
+	RemAmount = 110,
+	Reservation = 1000,
 	Buckets = [#bucket{units = cents, remain_amount = RemAmount,
 		start_date = erlang:system_time(?MILLISECOND),
 		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
 	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	Destination = ocs:generate_identity(),
-	{out_of_credit, _} = ocs_rating:rate(diameter, SubscriberID, Destination, initial, [], [{octets, Reservation}], SessionId),
+	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, initial, [], [{octets, Reservation}], SessionId),
+	{out_of_credit, _} = ocs_rating:rate(diameter, SubscriberID, Destination, interim, [], [{octets, 2 * Reservation}], SessionId),
 	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = 0} = lists:keyfind(cents, #bucket.units, RatedBuckets).
 
