@@ -91,7 +91,7 @@ all() ->
 	octets_debiting_scenario_3, octets_debiting_scenario_4,
 	octets_debiting_scenario_5, octets_debiting_scenario_6,
 	interim_reservation_avaialbe_remain_amount,
-	interim_reservations_within_package_size, octets_reservation_scenario_3,
+	interim_reservations_within_package_size, interim_reservation_available_remain_amount,
 	octets_reservation_scenario_4, octets_reservation_scenario_5,
 	octets_debit_and_reservation_scenario_1, octets_debit_and_reservation_scenario_2,
 	octets_debit_and_reservation_scenario_3, octets_debit_and_reservation_scenario_4,
@@ -553,11 +553,10 @@ interim_reservations_within_package_size(_Config) ->
 	{_, Reserved3, _} = lists:keyfind(SessionId, 3, Reservations3),
 	Reserved3 = F(Reservation3).
 
-octets_reservation_scenario_3() ->
-	[{userdata, [{doc, "Reservation amount
-		equal to bucket remain amount and package size"}]}].
+interim_reservation_available_remain_amount() ->
+	[{userdata, [{doc, "Reservation amount equal to bucket remain amount and package size"}]}].
 
-octets_reservation_scenario_3(_Config) ->
+interim_reservation_available_remain_amount(_Config) ->
 	ProdID = ocs:generate_password(),
 	PackagePrice = 100,
 	PackageSize = 1000,
@@ -568,13 +567,15 @@ octets_reservation_scenario_3(_Config) ->
 	SubscriberID = list_to_binary(ocs:generate_identity()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
-	Buckets = [#bucket{units = cents, remain_amount = PackagePrice,
+	Buckets = [#bucket{units = cents, remain_amount = 2 * PackagePrice,
 		start_date = erlang:system_time(?MILLISECOND),
 		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
 	Destination = ocs:generate_identity(),
 	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, initial, [], [{octets, PackageSize}], SessionId),
+	{ok, #subscriber{buckets = RatedBuckets1}} = ocs:find_subscriber(SubscriberID),
+	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, interim, [{octets, PackageSize}], [{octets, PackageSize}], SessionId),
 	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = 0, reservations = Reservations} =
 		lists:keyfind(cents, #bucket.units, RatedBuckets),
@@ -600,7 +601,7 @@ octets_reservation_scenario_4(_Config) ->
 	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	Destination = ocs:generate_identity(),
-	{out_of_credit, []} = ocs_rating:rate(diameter, SubscriberID, Destination, initial, [], [{octets, Reservation}], SessionId),
+	{out_of_credit, _} = ocs_rating:rate(diameter, SubscriberID, Destination, initial, [], [{octets, Reservation}], SessionId),
 	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = 0} = lists:keyfind(cents, #bucket.units, RatedBuckets).
 
