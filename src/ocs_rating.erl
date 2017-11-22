@@ -508,8 +508,8 @@ update_session(Type, Charge, Reserve, Now, SessionId,
 	end;
 update_session(Type, Charge, Reserve, Now, SessionId,
 		[H | T], Acc, Charged, Reserved) ->
-update_session(Type, Charge, Reserve, Now, SessionId,
-		T, [H | Acc], Charged, Reserved);
+	update_session(Type, Charge, Reserve, Now, SessionId,
+			T, [H | Acc], Charged, Reserved);
 update_session(_, _, _, _, _, [], Acc, Charged, Reserved) ->
 	{Charged, Reserved, lists:reverse(Acc)}.
 
