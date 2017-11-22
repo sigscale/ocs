@@ -708,7 +708,7 @@ product_status(terminated) -> "Terminated".
 
 -spec price_type(Type) -> Type
 	when
-		Type :: string() | atom().
+		Type :: string() | usage | recurring | one_time.
 %% @doc CODEC for Price Type.
 %% @private
 price_type("usage") -> usage;
@@ -720,13 +720,15 @@ price_type(one_time) -> "one_time".
 
 -spec price_period(Period) -> Period
 	when
-		Period :: string() | atom().
+		Period :: string() | hourly | daily | weekly | monthly | yearly.
 %% @doc CODEC for Recurring Charge Period.
 %% @private
+price_period(hourly) -> "hourly";
 price_period(daily) -> "daily";
 price_period(weekly) -> "weekly";
 price_period(monthly) -> "monthly";
 price_period(yearly) -> "yearly";
+price_period("hourly") -> hourly;
 price_period("daily") -> daily;
 price_period("weekly") -> weekly;
 price_period("monthly") -> monthly;
