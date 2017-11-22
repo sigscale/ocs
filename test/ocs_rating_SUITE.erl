@@ -87,6 +87,7 @@ all() ->
 	[initial_reservation_available_remain_amount, initial_reservation_out_of_credit,
 	initial_reservation_overhead, initial_reservation_multiple_buckets,
 	initial_reservation_expiry_buckets, initial_reservation_ignore_expired_buckets,
+	initial_reservation_add_session_attributes,
 	octets_debiting_scenario_1, octets_debiting_scenario_2,
 	octets_debiting_scenario_3, octets_debiting_scenario_4,
 	octets_debiting_scenario_5, octets_debiting_scenario_6,
@@ -150,6 +151,36 @@ initial_reservation_out_of_credit(_Config) ->
 	{out_of_credit, _} = ocs_rating:rate(radius, SubscriberID, Destination, initial, [], [{octets, PackageSize}], SessionId),
 	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = 0} = lists:keyfind(cents, #bucket.units, RatedBuckets).
+
+initial_reservation_add_session_attributes() ->
+	[{userdata, [{doc, "Add session attributes in subscriber record"}]}].
+
+initial_reservation_add_session_attributes(_Config) ->
+	ProdID = ocs:generate_password(),
+	PackagePrice = 100,
+	PackageSize = 1000,
+	Price = #price{name = "overage", type = usage,
+		units = octets, size = PackageSize, amount = PackagePrice},
+	Product = #product{name = ProdID, price = [Price]},
+	{ok, _} = ocs:add_product(Product),
+	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
+	RemAmount = 1000,
+	Buckets = [#bucket{units = cents, remain_amount = RemAmount,
+		start_date = erlang:system_time(?MILLISECOND),
+		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
+	Destination = ocs:generate_identity(),
+	SessionId = [{'AcctSession-Id', list_to_binary(ocs:generate_password())}],
+	NasIp = [{?NasIpAddress, "192.168.1.150"}],
+	NasId = [{?NasIpAddress, ocs:generate_password()}],
+	SessionAttr = SessionId ++ NasIp ++ NasId,
+	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
+	{ok, #subscriber{session_attributes = SessionList}, _} =
+		ocs_rating:rate(radius, SubscriberID, Destination,
+		initial, [], [{octets, PackageSize}], SessionAttr),
+	{ok, #subscriber{session_attributes = SessionList}} = ocs:find_subscriber(SubscriberID),
+	[{_, SessionAttr}] = SessionList.
 
 initial_reservation_overhead() ->
 	[{userdata, [{doc, "Reserved amount grater than requested reservation amount"}]}].
