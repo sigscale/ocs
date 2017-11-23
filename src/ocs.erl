@@ -45,9 +45,13 @@
 
 -define(LOGNAME, radius_acct).
 -define(CHUNKSIZE, 100).
+
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
+
+% calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
+-define(EPOCH, 62167219200).
 
 %%----------------------------------------------------------------------
 %%  The ocs public API
@@ -430,50 +434,45 @@ add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes
 add_subscriber(undefined, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
 		when is_binary(Password), is_list(Product), is_list(Buckets), is_list(Attributes),
 		is_boolean(EnabledStatus), is_boolean(MultiSession) ->
-	F2 = fun() ->
-				ProdId = case Product of
+	Now = erlang:system_time(?MILLISECOND),
+	F1 = fun() ->
+				ProductId = case Product of
 					[] ->
 						case mnesia:first(product) of
 							'$end_of_table' ->
 								throw(product_not_found);
-							ProId ->
-								ProId
+							ProdId ->
+								ProdId
 						end;
 					Product ->
 						Product
 				end,
-				case mnesia:read(product, ProdId, read) of
-					[#product{start_date = SD, end_date = TD, status = Status }] ->
-						F1 = fun(_, _, 0) ->
+				case mnesia:read(product, ProductId, read) of
+					[#product{} = P] ->
+						N = erlang:unique_integer([positive]),
+						S1 = #subscriber{password = Password,
+						attributes = Attributes, buckets = Buckets,
+						enabled = EnabledStatus, multisession = MultiSession,
+						last_modified = {Now, N}},
+						S2 = subscription(S1, P, Characteristics),
+						F3 = fun(_, _, 0) ->
 									mnesia:abort(retries);
 								(F, Identity, I) ->
 									case mnesia:read(subscriber, Identity, read) of
 										[] ->
-											TS = erlang:system_time(?MILLISECOND),
-											N = erlang:unique_integer([positive]),
-											NewBuckets = [B#bucket{last_modified = {TS, N}}
-													|| B <- Buckets],
-											P = #product_instance{start_date = SD,
-													termination_date = TD, status = Status,
-													product = Product, characteristics = Characteristics,
-													last_modified = {TS, N}},
-											S = #subscriber{name = Identity,
-													password = Password, attributes = Attributes,
-													buckets = NewBuckets, enabled = EnabledStatus,
-													multisession = MultiSession, product = P,
-													last_modified = {TS, N}},
-											ok = mnesia:write(S),
-											S;
+											S3 = S2#subscriber{name = Identity},
+											ok = mnesia:write(S3),
+											S3;
 										[_] ->
 											F(F, list_to_binary(generate_identity()), I - 1)
 									end
 						end,
-						F1(F1, list_to_binary(generate_identity()), 5);
+						F3(F3, list_to_binary(generate_identity()), 5);
 					[] ->
 						throw(product_not_found)
 				end
 	end,
-	case mnesia:transaction(F2) of
+	case mnesia:transaction(F1) of
 		{atomic, Subscriber} ->
 			{ok, Subscriber};
 		{aborted, Reason} ->
@@ -482,33 +481,29 @@ add_subscriber(undefined, Password, Product, Characteristics, Buckets, Attribute
 add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
 		when is_binary(Identity), is_binary(Password), is_list(Product),
 		is_list(Buckets), is_list(Attributes), is_boolean(EnabledStatus), is_boolean(MultiSession) ->
+	Now = erlang:system_time(?MILLISECOND),
 	F1 = fun() ->
-				ProdId = case Product of
+				ProductId = case Product of
 					[] ->
 						case mnesia:first(product) of
 							'$end_of_table' ->
 								throw(product_not_found);
-							ProId ->
-								ProId
+							ProdId ->
+								ProdId
 						end;
 					Product ->
 						Product
 				end,
-				case mnesia:read(product, ProdId, read) of
-					[#product{start_date = SD, end_date = TD, status = Status }] ->
-						TS = erlang:system_time(?MILLISECOND),
+				case mnesia:read(product, ProductId, read) of
+					[#product{} = P] ->
 						N = erlang:unique_integer([positive]),
-						NewBuckets = [B#bucket{last_modified = {TS, N}} || B <- Buckets],
-						P = #product_instance{start_date = SD, termination_date = TD,
-								status = Status, product = Product,
-								characteristics = Characteristics,
-								last_modified = {TS, N}},
-						S = #subscriber{name = Identity, password = Password,
-								attributes = Attributes, buckets = NewBuckets, product = P,
-								enabled = EnabledStatus, multisession = MultiSession,
-								last_modified = {TS, N}},
-						ok = mnesia:write(S),
-						S;
+						S1 = #subscriber{name = Identity, password = Password,
+						attributes = Attributes, buckets = Buckets,
+						enabled = EnabledStatus, multisession = MultiSession,
+						last_modified = {Now, N}},
+						S2 = subscription(S1, P, Characteristics),
+						ok = mnesia:write(S2),
+						S2;
 					[] ->
 						throw(product_not_found)
 				end
@@ -1298,4 +1293,146 @@ get_params() ->
 		false ->
 			exit(not_found)
 	end.
+
+-spec charge(Amount, Buckets) -> Buckets
+	when
+		Amount :: non_neg_integer(),
+		Buckets :: [#bucket{}].
+%% @doc Charge `Amount' to `Buckets'.
+%% @private
+charge(Amount, Buckets) ->
+	charge(Amount, Buckets, []).
+%% @hidden
+charge(0, T, Acc) ->
+	lists:reverse(Acc) ++ T;
+charge(Amount, [#bucket{units = cents,
+		remain_amount = Remain} = B | T], Acc) when Amount < Remain ->
+	lists:reverse(Acc) ++ [B#bucket{remain_amount = Remain - Amount} | T];
+charge(Amount, [#bucket{units = cents,
+		remain_amount = Remain} = B], Acc) ->
+	lists:reverse([B#bucket{remain_amount = Remain - Amount} | Acc]);
+charge(Amount, [#bucket{units = cents,
+		remain_amount = Remain} | T], Acc) ->
+	charge(Amount - Remain, T, Acc);
+charge(Amount, [], Acc) ->
+	lists:reverse([#bucket{units = cents, remain_amount = - Amount} | Acc]).
+
+-spec date(MilliSeconds) -> DateTime
+	when
+		MilliSeconds :: pos_integer(),
+		DateTime :: calendar:datetime().
+%% @doc Convert timestamp to date and time.
+date(MilliSeconds) when is_integer(MilliSeconds) ->
+	Seconds = ?EPOCH + (MilliSeconds div 1000),
+	calendar:gregorian_seconds_to_datetime(Seconds).
+
+-spec end_period(StartTime, Period) -> EndTime
+	when
+		StartTime :: pos_integer(),
+		Period :: hourly | daily | weekly | monthly | yearly,
+		EndTime :: pos_integer().
+%% @doc Calculate end of period.
+end_period(StartTime, Period) when is_integer(StartTime) ->
+	end_period(date(StartTime), Period);
+%% @hidden
+end_period({Date, {23, Minute, Second}}, hourly) ->
+	NextDay = calendar:date_to_gregorian_days(Date) + 1,
+	EndDate = calendar:gregorian_days_to_date(NextDay),
+	EndTime = {0, Minute, Second},
+	calendar:datetime_to_gregorian_seconds({EndDate, EndTime}) * 1000 - 1;
+end_period({Date, {Hour, Minute, Second}}, hourly) ->
+	EndTime = {Hour + 1, Minute, Second},
+	calendar:datetime_to_gregorian_seconds({Date, EndTime}) * 1000 - 1;
+end_period({Date, Time}, daily) ->
+	NextDay = calendar:date_to_gregorian_days(Date) + 1,
+	EndDate = calendar:gregorian_days_to_date(NextDay),
+	calendar:datetime_to_gregorian_seconds({EndDate, Time}) * 1000 - 1;
+end_period({Date, Time}, weekly) ->
+	NextDay = calendar:date_to_gregorian_days(Date) + 7,
+	EndDate = calendar:gregorian_days_to_date(NextDay),
+	calendar:datetime_to_gregorian_seconds({EndDate, Time}) * 1000 - 1;
+end_period({{Year, 1, 31}, Time}, monthly) ->
+	NextDay = calendar:last_day_of_the_month(Year, 2),
+	EndDate = {Year, 2, NextDay},
+	calendar:datetime_to_gregorian_seconds({EndDate, Time}) * 1000 - 1;
+end_period({{Year, 2, Day}, Time}, monthly) when Day < 28 ->
+	EndDate = {Year, 3, Day},
+	calendar:datetime_to_gregorian_seconds({EndDate, Time}) * 1000 - 1;
+end_period({{Year, 2, Day}, Time}, monthly) ->
+	EndDate = case calendar:last_day_of_the_month(Year, 2) of
+		Day ->
+			{Year, 3, 31};
+		_ ->
+			{Year, 3, Day}
+	end,
+	calendar:datetime_to_gregorian_seconds({EndDate, Time}) * 1000 - 1;
+end_period({{Year, 3, 31}, Time}, monthly) ->
+	calendar:datetime_to_gregorian_seconds({{Year, 4, 30}, Time}) * 1000 - 1;
+end_period({{Year, 4, 30}, Time}, monthly) ->
+	calendar:datetime_to_gregorian_seconds({{Year, 5, 31}, Time}) * 1000 - 1;
+end_period({{Year, 5, 31}, Time}, monthly) ->
+	calendar:datetime_to_gregorian_seconds({{Year, 6, 30}, Time}) * 1000 - 1;
+end_period({{Year, 6, 31}, Time}, monthly) ->
+	calendar:datetime_to_gregorian_seconds({{Year, 7, 31}, Time}) * 1000 - 1;
+end_period({{Year, 8, 31}, Time}, monthly) ->
+	calendar:datetime_to_gregorian_seconds({{Year, 9, 30}, Time}) * 1000 - 1;
+end_period({{Year, 9, 30}, Time}, monthly) ->
+	calendar:datetime_to_gregorian_seconds({{Year, 10, 31}, Time}) * 1000 - 1;
+end_period({{Year, 10, 30}, Time}, monthly) ->
+	calendar:datetime_to_gregorian_seconds({{Year, 11, 31}, Time}) * 1000 - 1;
+end_period({{Year, 11, 30}, Time}, monthly) ->
+	calendar:datetime_to_gregorian_seconds({{Year, 12, 31}, Time}) * 1000 - 1;
+end_period({{Year, 12, Day}, Time}, monthly) ->
+	EndDate = {Year + 1, 1, Day},
+	calendar:datetime_to_gregorian_seconds({EndDate, Time}) * 1000 - 1;
+end_period({{Year, Month, Day}, Time}, monthly) ->
+	EndDate = {Year, Month + 1, Day},
+	calendar:datetime_to_gregorian_seconds({EndDate, Time}) * 1000 - 1;
+end_period({{Year, Month, Day}, Time}, yearly) ->
+	EndDate = {Year + 1, Month, Day},
+	calendar:datetime_to_gregorian_seconds({EndDate, Time}) * 1000 - 1.
+
+-spec subscription(Subscriber, Product, Characteristics) ->
+		Subscriber
+	when
+		Subscriber :: #subscriber{},
+		Product :: #product{},
+		Characteristics :: [tuple()] | undefined.
+%% @doc Prepare buckets and add allowances.
+%% @private
+subscription(#subscriber{last_modified = {Now, _}} = Subscriber,
+		#product{name = ProductName, price = Prices} = _Product,
+		Characteristics) ->
+	subscription(Subscriber, ProductName, Characteristics, Now, Prices).
+%% @hidden
+subscription(#subscriber{buckets = Buckets} = Subscriber,
+		ProductName, Characteristics, Now,
+		[#price{type = recurring, period = Period,
+		alteration = #alteration{units = Units, size = Size,
+		amount = Amount}} | T]) when Units == octets; Units == seconds ->
+	NewBuckets = charge(Amount, [#bucket{units = Units,
+			remain_amount = Size,
+			termination_date = end_period(Now, Period)} | Buckets]),
+	subscription(Subscriber#subscriber{buckets = NewBuckets},
+			ProductName, Characteristics, Now, T);
+subscription(#subscriber{buckets = Buckets} = Subscriber,
+		ProductName, Characteristics, Now, [#price{type = usage,
+		alteration = #alteration{type = recurring,
+		period = Period, units = Units, size = Size,
+		amount = Amount}} | T]) when Units == octets; Units == seconds ->
+	NewBuckets = charge(Amount, [#bucket{units = Units,
+			remain_amount = Size,
+			termination_date = end_period(Now, Period)} | Buckets]),
+	subscription(Subscriber#subscriber{buckets = NewBuckets},
+			ProductName, Characteristics, Now, T);
+subscription(Subscriber, ProductName, Characteristics, Now, [_ | T]) ->
+	subscription(Subscriber, ProductName, Characteristics, Now, T);
+subscription(#subscriber{buckets = Buckets} = Subscriber,
+		ProductName, Characteristics, Now, []) ->
+	NewBuckets = [B#bucket{last_modified = {Now,
+			erlang:unique_integer([positive])}} || B <- Buckets],
+	P = #product_instance{start_date = Now,
+			product = ProductName, characteristics = Characteristics,
+			last_modified = {Now, erlang:unique_integer([positive])}},
+	Subscriber#subscriber{buckets = NewBuckets, product = P}.
 
