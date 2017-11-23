@@ -92,7 +92,7 @@ all() ->
 	interim_reservation_out_of_credit, interim_reservation_remove_session_attributes,
 	interim_reservation_multiple_buckets_with_sufficient_amount,
 	interim_reservation_multiple_buckets_out_of_credit,
-	octets_debiting_scenario_1, octets_debiting_scenario_2,
+	interim_debiting_exact_remain_amount, octets_debiting_scenario_2,
 	octets_debiting_scenario_3, octets_debiting_scenario_4,
 	octets_debiting_scenario_5, octets_debiting_scenario_6,
 	octets_debit_and_reservation_scenario_1, octets_debit_and_reservation_scenario_2,
@@ -613,10 +613,10 @@ interim_reservation_multiple_buckets_out_of_credit(_Config) ->
 	F3 = fun(#bucket{remain_amount = R}, Acc) -> R + Acc end,
 	0 = lists:foldl(F3, 0, RatedBuckets2).
 
-octets_debiting_scenario_1() ->
+interim_debiting_exact_remain_amount() ->
 	[{userdata, [{doc, "Debit amount equal to package size"}]}].
 
-octets_debiting_scenario_1(_Config) ->
+interim_debiting_exact_remain_amount(_Config) ->
 	ProdID = ocs:generate_password(),
 	PackagePrice = 100,
 	PackageSize = 1000,
@@ -627,7 +627,7 @@ octets_debiting_scenario_1(_Config) ->
 	SubscriberID = list_to_binary(ocs:generate_identity()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
-	RemAmount = 200,
+	RemAmount = 100,
 	Buckets = [#bucket{units = cents, remain_amount = RemAmount,
 		start_date = erlang:system_time(?MILLISECOND),
 		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
@@ -635,11 +635,9 @@ octets_debiting_scenario_1(_Config) ->
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
 	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, initial, [], [], SessionId),
-	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, final, [{octets, PackageSize}], [], SessionId),
+	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, interim, [{octets, PackageSize}], [], SessionId),
 	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
-	#bucket{remain_amount = CentsRemain, reservations = []} =
-			lists:keyfind(cents, #bucket.units, RatedBuckets),
-	CentsRemain = RemAmount - PackagePrice.
+	#bucket{remain_amount = 0, reservations = []} = lists:keyfind(cents, #bucket.units, RatedBuckets).
 
 octets_debiting_scenario_2() ->
 	[{userdata, [{doc, "Debit amount less than package size"}]}].
