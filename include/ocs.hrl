@@ -113,23 +113,23 @@
 		last_modified :: tuple() | undefined}).
 
 -record(product_instance,
-		{product :: string(),
-		start_date :: pos_integer(),
-		termination_date :: pos_integer(),
-		status :: product_status(),
+		{product :: string() | undefined,
+		start_date :: pos_integer() | undefined,
+		termination_date :: pos_integer() | undefined,
+		status :: product_status() | undefined,
 		characteristics = [] :: [{Name :: string(), Value :: term()}],
-		last_modified :: tuple() |  undefined}).
+		last_modified :: tuple() | undefined}).
 
 %% define subscriber table entries record
 -record(subscriber,
 		{name :: binary(),
 		password :: binary(),
-		attributes :: radius_attributes:attributes(),
+		attributes :: [tuple()],
 		buckets = [] :: [#bucket{}],
 		product :: #product_instance{},
 		enabled = true :: boolean(),
 		disconnect  = false :: boolean(),
-		session_attributes = [] :: [{pos_integer(), radius_attributes:attributes()}],
+		session_attributes = [] :: [{pos_integer(), [tuple()]}],
 		multisession = false :: boolean(),
 		last_modified :: tuple() | undefined}).
 
