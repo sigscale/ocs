@@ -29,7 +29,7 @@
 -type unit_of_measure() :: octets| cents | seconds.
 
 %% define recurring charge period
--type recur_period() :: daily | weekly | monthly | yearly.
+-type recur_period() :: hourly | daily | weekly | monthly | yearly.
 
 %% define client table entries record
 -record(client,
