@@ -525,12 +525,11 @@ client_hello(#diameter_eap_app_DER{} = Request, #statedata{eap_id = EapID,
 %% ProtocolMessage - <<MessageType, Length:24, ClientHelloMessage>>
 %% RFC 5246 Section 7.4.1.2
 %% ClientHelloMessage -
-%% <<ProtocolVersion:16, Gmt_unix_time:32, ClientRand:28/binary,
+%% <<ProtocolVersion:16, Gmt_unix_time:32, RandomBytes:28/binary,
 %%	SessionID, CipherSuite, CompressionMethod, ..>>
 client_hello1(<<?Handshake, _Version:16, _L1:16, ?ClientHello, _L2:24,
 		_ClientVersion:16, ClientRand:32/binary, _/binary>>, StateData) ->
 	StateData#statedata{client_rand = ClientRand}.
-
 
 -spec server_hello(Event, StateData) -> Result
 	when
@@ -554,13 +553,13 @@ server_hello(timeout, #statedata{session_id = SessionID,
 server_hello(timeout, StateData) ->
 	server_hello2([], StateData);
 %% TLS Record - <<ContentType, Version:16, Length:16, ProtocolMessage>>
-%% ProtocolMessage - <<MessageType, Length:24, ServeHelloMessage>>
+%% ProtocolMessage - <<MessageType, Length:24, ServerHelloMessage>>
 %% RFC 5246 Section 7.4.1.3
 %% ServerHelloMessage -
-%% <<ProtocolVersion:16, Gmt_unix_time:32, ServerRand:28/binary,
+%% <<ProtocolVersion:16, Gmt_unix_time:32, RandomBytes:28/binary,
 %% SessionID, CipherSuite, CompressionMethod, ..>>
 server_hello({eap_tls, _SslPid, <<?Handshake, _Version:16, _L1:16,
-		?ServerHello, _ServerVersion:16, ServerRand:32/binary,
+		?ServerHello, _L2:24, _ServerVersion:16, ServerRand:32/binary,
 		_/binary>> = Data}, StateData) ->
 	NewStateData = StateData#statedata{server_rand = ServerRand},
 	server_hello1(Data, NewStateData);
