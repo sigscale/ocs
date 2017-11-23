@@ -351,16 +351,13 @@
 							newRecord.seconds = secondsTotal.amount;
 						}
 					}
-					results[index].attributes.forEach(
-						function(attrObj) {
-							newRecord[attrObj.name] = attrObj.value;
-						}
-					);
-					results[index].attributes.forEach(
-						function(attrObj) {
-							newRecord[attrObj.name] = attrObj.value;
-						}
-					);
+					if(results[index].attributes) {
+						results[index].attributes.forEach(
+							function(attrObj) {
+								newRecord[attrObj.name] = attrObj.value;
+							}
+						);
+					}
 					newRecord.enabled = results[index].enabled;
 					newRecord.multisession = results[index].multisession;
 					vaadinItems[index] = newRecord;
