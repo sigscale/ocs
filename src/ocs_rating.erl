@@ -510,7 +510,46 @@ update_session(Type, Charge, Reserve, Now, SessionId,
 		[H | T], Acc, Charged, Reserved) ->
 	update_session(Type, Charge, Reserve, Now, SessionId,
 			T, [H | Acc], Charged, Reserved);
-update_session(_, _, _, _, _, [], Acc, Charged, Reserved) ->
+update_session(_, 0, Reserved, _, _, [], Acc, Charged, Reserved) ->
+	{Charged, Reserved, lists:reverse(Acc)};
+update_session(Type, Charge, Reserve, Now, SessionId, [], Acc, Charged, Reserved) ->
+	update(Type, Charge, Reserve, Now, SessionId, lists:reverse(Acc), [], Charged, Reserved).
+
+%% @hidden
+update(Type, Charge, Reserve, Now, SessionId,
+		[#bucket{termination_date = Expires, reservations = []} | T],
+		Acc, Charged, Reserved) when Expires /= undefined, Expires =< Now ->
+	update(Type, Charge, Reserve, Now, SessionId, T, Acc, Charged, Reserved);
+update(Type, Charge, Reserve, Now, SessionId, [#bucket{units = Type,
+		remain_amount = Remain, termination_date = Expires,
+		reservations = Reservations} = B | T], Acc, Charged, Reserved)
+		when ((Expires == undefined) or (Now < Expires)), Remain > (Charge + Reserve) ->
+	NewReservation = {Now, Reserve, SessionId},
+	NewBuckets = [B#bucket{remain_amount = Remain - (Charge + Reserve),
+		reservations = [NewReservation | Reservations]} | Acc],
+	{Charged - Charge, Reserved + Reserve, lists:reverse(NewBuckets) ++ T};
+update(Type, Charge, Reserve, Now, SessionId, [#bucket{units = Type,
+		remain_amount = Remain, termination_date = Expires} = B | T],
+		Acc, Charged, Reserved) when ((Expires == undefined) or (Now < Expires)),
+		Remain =< Charge ->
+	NewAcc = [B#bucket{remain_amount = 0} | Acc],
+	update(Type, Charge - Remain, Reserve, Now,
+			SessionId, T, NewAcc, Charged + Remain, Reserved);
+update(Type, Charge, Reserve, Now, SessionId, [#bucket{units = Type,
+		remain_amount = Remain, termination_date = Expires,
+		reservations = Reservations} = B | T], Acc, Charged, Reserved)
+		when ((Expires == undefined) or (Now < Expires)), Remain =< Reserve,
+		Remain > 0 ->
+	NewReservation = {Now, Remain, SessionId},
+	NewAcc = [B#bucket{remain_amount = 0,
+		reservations = [NewReservation | Reservations]} | Acc],
+	update(Type, Charge, Reserve - Remain, Now,
+			SessionId, T, NewAcc, Charged, Reserved + Remain);
+update(_Type, 0, 0, _Now, _SessionId, Buckets, Acc, Charged, Reserved) ->
+	{Charged, Reserved, lists:reverse(Acc) ++ Buckets};
+update(Type, Charge, Reserve, Now, SessionId, [H | T], Acc, Charged, Reserved) ->
+	update(Type, Charge, Reserve, Now, SessionId, T, [H | Acc], Charged, Reserved);
+update(_, _, _,  _, _, [], Acc, Charged, Reserved) ->
 	{Charged, Reserved, lists:reverse(Acc)}.
 
 -spec charge_session(Type, Charge, SessionId, Buckets) -> Result
