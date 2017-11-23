@@ -716,13 +716,13 @@ interim_reservation_multiple_buckets_with_sufficient_amount(_Config) ->
 			(Reserve) ->
 				(Reserve div PackageSize + 1) * PackagePrice
 	end,
-	Reserved = F1(F1, cents, RatedBuckets1, 0),
-	Reserved = F2(Reservation1),
+	Reserved1 = F1(F1, cents, RatedBuckets1, 0),
+	Reserved1 = F2(Reservation1),
 	Reservation2 = 1100,
 	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, interim, [], [{octets, Reservation2}], SessionAttributes),
 	{ok, #subscriber{buckets = RatedBuckets2}} = ocs:find_subscriber(SubscriberID),
-	Reserved = F1(F1, cents, RatedBuckets2, 0),
-	Reserved = F2(Reservation2).
+	Reserved2 = F1(F1, cents, RatedBuckets2, 0),
+	Reserved2 = F2(Reservation2).
 
 octets_debit_and_reservation_scenario_1() ->
 	[{userdata, [{doc, "Debit given usage and check for reservation,
