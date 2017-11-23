@@ -29,7 +29,7 @@
 -type unit_of_measure() :: octets| cents | seconds.
 
 %% define recurring charge period
--type recur_period() :: daily | weekly | monthly | yearly.
+-type recur_period() :: hourly | daily | weekly | monthly | yearly.
 
 %% define client table entries record
 -record(client,
@@ -113,23 +113,23 @@
 		last_modified :: tuple() | undefined}).
 
 -record(product_instance,
-		{product :: string(),
-		start_date :: pos_integer(),
-		termination_date :: pos_integer(),
-		status :: product_status(),
+		{product :: string() | undefined,
+		start_date :: pos_integer() | undefined,
+		termination_date :: pos_integer() | undefined,
+		status :: product_status() | undefined,
 		characteristics = [] :: [{Name :: string(), Value :: term()}],
-		last_modified :: tuple() |  undefined}).
+		last_modified :: tuple() | undefined}).
 
 %% define subscriber table entries record
 -record(subscriber,
-		{name :: binary(),
-		password :: binary(),
-		attributes :: radius_attributes:attributes(),
+		{name :: binary() | undefined,
+		password :: binary() | undefined,
+		attributes :: [tuple()] | undefined,
 		buckets = [] :: [#bucket{}],
-		product :: #product_instance{},
+		product :: #product_instance{} | undefined,
 		enabled = true :: boolean(),
 		disconnect  = false :: boolean(),
-		session_attributes = [] :: [{pos_integer(), radius_attributes:attributes()}],
+		session_attributes = [] :: [{pos_integer(), [tuple()]}],
 		multisession = false :: boolean(),
 		last_modified :: tuple() | undefined}).
 
