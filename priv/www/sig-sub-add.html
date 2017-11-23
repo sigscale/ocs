@@ -448,16 +448,14 @@
 				if(parseInt(document.getElementById("add8").value)
 						&& parseInt(document.getElementById("add8").value) != null) {
 					var units;
-					switch(document.getElementById("adduni9").selected) {
-						case 0:
-							units = "octets";
-							break;
-						case 1:
-							units = "cents";
-							break;
-						case 2:
-							units = "seconds";
-							break;
+					if(document.getElementById("adduni9").selected == 0) {
+						units = "octets";
+					}
+					if(document.getElementById("adduni9").selected == 1) {
+						units = "cents";
+					}
+					if(document.getElementById("adduni9").selected == 2) {
+						units = "seconds";
 					}
 					buckets.push({"amount": parseInt(document.getElementById("add8").value),
 							"units": units});
