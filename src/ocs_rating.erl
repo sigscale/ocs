@@ -527,7 +527,7 @@ update(Type, Charge, Reserve, Now, SessionId, [#bucket{units = Type,
 	NewReservation = {Now, Reserve, SessionId},
 	NewBuckets = [B#bucket{remain_amount = Remain - (Charge + Reserve),
 		reservations = [NewReservation | Reservations]} | Acc],
-	{Charged - Charge, Reserved + Reserve, lists:reverse(NewBuckets) ++ T};
+	{Charged + Charge, Reserved + Reserve, lists:reverse(NewBuckets) ++ T};
 update(Type, Charge, Reserve, Now, SessionId, [#bucket{units = Type,
 		remain_amount = Remain, termination_date = Expires} = B | T],
 		Acc, Charged, Reserved) when ((Expires == undefined) or (Now < Expires)),
