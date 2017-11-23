@@ -122,11 +122,11 @@
 
 %% define subscriber table entries record
 -record(subscriber,
-		{name :: binary(),
-		password :: binary(),
-		attributes :: [tuple()],
+		{name :: binary() | undefined,
+		password :: binary() | undefined,
+		attributes :: [tuple()] | undefined,
 		buckets = [] :: [#bucket{}],
-		product :: #product_instance{},
+		product :: #product_instance{} | undefined,
 		enabled = true :: boolean(),
 		disconnect  = false :: boolean(),
 		session_attributes = [] :: [{pos_integer(), [tuple()]}],
