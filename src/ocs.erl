@@ -1314,6 +1314,8 @@ charge(Amount, [#bucket{units = cents,
 charge(Amount, [#bucket{units = cents,
 		remain_amount = Remain} | T], Acc) ->
 	charge(Amount - Remain, T, Acc);
+charge(Amount, [H | T], Acc) ->
+	charge(Amount, T, [H | Acc]);
 charge(Amount, [], Acc) ->
 	lists:reverse([#bucket{units = cents, remain_amount = - Amount} | Acc]).
 
