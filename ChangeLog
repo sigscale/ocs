@@ -1,3 +1,8 @@
+2017-11-24  Vance Shipley <vances@sigscale.org>
+
+	* ocs.erl : create allowance buckets and charge subscriptions
+			on subscription instantiation
+
 2017-11-20  Kalpa Gunarathna <kalpa@sigscale.org>
 
 	* *html : minor bug fixes
