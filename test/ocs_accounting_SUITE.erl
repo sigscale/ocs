@@ -590,12 +590,9 @@ diameter_accounting_stop(SId, Username, RequestNum, Usage) ->
 	Subscription_Id = #'3gpp_ro_Subscription-Id'{
 			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
 			'Subscription-Id-Data' = Username},
-	RequestedUnits = #'3gpp_ro_Requested-Service-Unit' {
-			'CC-Total-Octets' = [100000000]},
 	UsedUnits = #'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [Usage]},
 	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
-			'Used-Service-Unit' = [UsedUnits],
-			'Requested-Service-Unit' = [RequestedUnits]}, 
+			'Used-Service-Unit' = [UsedUnits]},
 	ServiceInformation = #'3gpp_ro_Service-Information'{'IMS-Information' =
 			[#'3gpp_ro_IMS-Information'{
 					'Node-Functionality' = ?'3GPP_NODE-FUNCTIONALITY_AS',
