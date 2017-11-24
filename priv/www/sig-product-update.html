@@ -904,7 +904,21 @@
 								newAlt.end = item.prices[index].productOfferPriceAlteration.validFor.endDateTime;
 							}
 							newAlt.priceType = item.prices[index].productOfferPriceAlteration.priceType;
-							newAlt.size = item.prices[index].productOfferPriceAlteration.unitOfMeasure;
+							if (item.prices[index].productOfferPriceAlteration.unitOfMeasure) {
+								var unitOfMeasure = item.prices[index].productOfferPriceAlteration.unitOfMeasure;
+								switch(unitOfMeasure.charAt(unitOfMeasure.length - 1)) {
+									case "b":
+										newAlt.size = unitOfMeasure = parseInt(unitOfMeasure.slice(0, -1));
+										newAlt.unit = "b";
+										break;
+									case "s":
+										newAltsize = parseInt(unitOfMeasure.slice(0, -1));
+										newAlt.unit = "s";
+										break;
+									default:
+										newAlt.unit = "c";
+								}
+							}
 							if(item.prices[index].productOfferPriceAlteration.price) {
 								newAlt.currency = item.prices[index].productOfferPriceAlteration.price.currencyCode;
 								newAlt.amount = item.prices[index].productOfferPriceAlteration.price.taxIncludedAmount;
@@ -998,6 +1012,7 @@
 								break;
 						}
 						this.$.updatePriceSize.value = this.prices[indexUpdatePrice].size;
+console.log(this.$.updatePriceSize.value);
 						switch(this.prices[indexUpdatePrice].unit) {
 							case "b":
 								this.$.updatePriceUnits.selected = 0;
@@ -1099,6 +1114,7 @@
 								break;
 						}
 						this.$.updateAltSize.value = this.alterations[indexAlt].size;
+console.log(this.$.updateAltSize.value);
 						switch(this.alterations[indexAlt].unit) {
 							case "b":
 								this.$.updateUnitDrop.selected = 0;
@@ -1179,13 +1195,6 @@
 					return price.name == document.getElementById("updatePriceName").value;
 				}
 				var indexPrices = this.prices.findIndex(checkName);
-				if(this.$.updatePriceName.value) {
-					var priceNameUp = new Object();
-					priceNameUp.op = "add";
-					priceNameUp.path =  "/productOfferingPrice/" + indexPrices + "/name";
-					priceNameUp.value = this.$.updatePriceName.value;
-					updatePriceNew.push(priceNameUp);
-				}
 				if(this.$.updatePriceDesc.value) {
 					var priceDesc = new Object();
 					priceDesc.op = "add";
