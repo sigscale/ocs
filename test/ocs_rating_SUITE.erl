@@ -93,8 +93,7 @@ all() ->
 	interim_reservation_multiple_buckets_with_sufficient_amount,
 	interim_reservation_multiple_buckets_out_of_credit,
 	interim_debiting_exact_remain_amount, interim_debiting_below_package_size,
-	octets_debiting_scenario_3, octets_debiting_scenario_4,
-	octets_debiting_scenario_5, octets_debiting_scenario_6,
+	interim_debiting_out_of_credit, octets_debiting_scenario_5, octets_debiting_scenario_6,
 	octets_debit_and_reservation_scenario_1, octets_debit_and_reservation_scenario_2,
 	octets_debit_and_reservation_scenario_3, octets_debit_and_reservation_scenario_4,
 	octets_debit_and_reservation_scenario_5].
@@ -667,10 +666,10 @@ interim_debiting_below_package_size(_Config) ->
 	#bucket{remain_amount = CentsRemain} = lists:keyfind(cents, #bucket.units, RatedBuckets),
 	CentsRemain = RemAmount - PackagePrice.
 
-octets_debiting_scenario_4() ->
-	[{userdata, [{doc, "Out of credit"}]}].
+interim_debiting_out_of_credit() ->
+	[{userdata, [{doc, "Not sufficient amount to debit"}]}].
 
-octets_debiting_scenario_4(_Config) ->
+interim_debiting_out_of_credit(_Config) ->
 	ProdID = ocs:generate_password(),
 	Price = #price{name = "overage", type = usage,
 		units = octets, size = 1000, amount = 100},
