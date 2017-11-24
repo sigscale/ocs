@@ -319,8 +319,7 @@ initial_reservation_ignore_expired_buckets(_Config) ->
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
 	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, initial, [], [{octets, Reservation}], SessionId),
-	{ok, #subscriber{buckets = [#bucket{remain_amount = CentsRemain,
-			reservations = Reservations}]}} = ocs:find_subscriber(SubscriberID),
+	{ok, #subscriber{buckets = [#bucket{reservations = Reservations}]}} = ocs:find_subscriber(SubscriberID),
 	F = fun(Reserve) when (Reserve rem PackageSize) == 0 ->
 				(Reserve div PackageSize) * PackagePrice;
 		(Reserve) ->
@@ -440,7 +439,6 @@ interim_reservation_available_remain_amount(_Config) ->
 	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, initial, [], [{octets, PackageSize}], SessionId),
-	{ok, #subscriber{buckets = RatedBuckets1}} = ocs:find_subscriber(SubscriberID),
 	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, interim, [{octets, PackageSize}], [{octets, PackageSize}], SessionId),
 	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = 0, reservations = Reservations} =
