@@ -166,8 +166,8 @@ add_subscriber() ->
 add_subscriber(Config) ->
 	ProdID = ?config(product_id, Config),
 	Attribute0 = radius_attributes:new(),
-	Attribute1 = radius_attributes:add(?NasPortId, "wlan0", Attribute0),
-	Attribute2 = radius_attributes:add(?NasPortId, "wlan2", Attribute0),
+	Attribute1 = radius_attributes:add(?SessionTimeout, 3600, Attribute0),
+	Attribute2 = radius_attributes:add(?AcctInterimInterval, 60, Attribute0),
 	Password1 = ocs:generate_password(),
 	Password2 = ocs:generate_password(),
 	{ok, _} = ocs:add_subscriber("tomba", Password1, ProdID, [], [], Attribute1),
@@ -186,7 +186,7 @@ delete_subscriber() ->
 delete_subscriber(Config) ->
 	ProdID = ?config(product_id, Config),
 	Attribute0 = radius_attributes:new(),
-	Attribute = radius_attributes:add(?NasPortId,"wlan0", Attribute0),
+	Attribute = radius_attributes:add(?SessionTimeout, 3600, Attribute0),
 	Subscriber = "deleteandroid",
 	Password = ocs:generate_password(),
 	{ok, _} = ocs:add_subscriber(Subscriber, Password, ProdID, [], [], Attribute),
@@ -200,7 +200,7 @@ update_password() ->
 update_password(Config) ->
 	ProdID = ?config(product_id, Config),
 	Attribute0 = radius_attributes:new(),
-	Attribute = radius_attributes:add(?NasPortId,"wlan0", Attribute0),
+	Attribute = radius_attributes:add(?SessionTimeout, 3600, Attribute0),
 	Subscriber = "android",
 	OldPassword = ocs:generate_password(),
 	{ok, _} = ocs:add_subscriber(Subscriber, OldPassword, ProdID, [], [], Attribute),
@@ -220,10 +220,10 @@ update_attributes(Config) ->
 	Password = ocs:generate_password(),
 	Username = "tomba1",
 	Attribute0 = radius_attributes:new(),
-	Attribute1 = radius_attributes:add(?NasPortId,"wlan0", Attribute0),
+	Attribute1 = radius_attributes:add(?SessionTimeout, 3600, Attribute0),
 	{ok, _} = ocs:add_subscriber(Username, Password, ProdID, [], [], Attribute1),
 	{ok, #subscriber{attributes = Attribute1}} = ocs:find_subscriber(Username),
-	Attribute2 = radius_attributes:add(?NasPortId,"wlan1", Attribute0),
+	Attribute2 = radius_attributes:add(?AcctInterimInterval, 60, Attribute0),
 	ok = ocs:update_attributes(Username, Attribute2),
 	{ok, #subscriber{attributes = Attribute2}} = ocs:find_subscriber(Username).
 
