@@ -89,7 +89,7 @@ sequences() ->
 %%
 all() -> 
 	[client, get_all_clients, update_client_password, delete_client,
-	subscriber, update_password, update_attributes, delete_subscriber,
+	add_subscriber, update_password, update_attributes, delete_subscriber,
 	add_product, find_product, get_products, delete_product, add_user,
 	get_user, delete_user].
 
@@ -160,18 +160,19 @@ delete_client(Config) ->
 	ok = ocs:delete_client(Address),
 	{error, not_found} = ocs:find_client(Address).
 
-subscriber() ->
+add_subscriber() ->
 	[{userdata, [{doc, "Add subscriber to database"}]}].
 
-subscriber(Config) ->
+add_subscriber(Config) ->
 	ProdID = ?config(product_id, Config),
 	Attribute0 = radius_attributes:new(),
-	Attribute1 = radius_attributes:add(?NasPortId, "wlan0", Attribute0),
-	Attribute2 = radius_attributes:add(?NasPortId, "wlan2", Attribute0),
+	Attribute1 = radius_attributes:add(?SessionTimeout, 3600, Attribute0),
+	Attribute2 = radius_attributes:add(?AcctInterimInterval, 60, Attribute0),
 	Password1 = ocs:generate_password(),
 	Password2 = ocs:generate_password(),
-	{ok, _} = ocs:add_subscriber("tomba", Password1, ProdID, [], [], Attribute1),
-	{ok, _} = ocs:add_subscriber("android", Password2, ProdID, [], [], Attribute2),
+	Buckets = [#bucket{units = cents, remain_amount = 3000}],
+	{ok, _} = ocs:add_subscriber("tomba", Password1, ProdID, [], Buckets, Attribute1),
+	{ok, _} = ocs:add_subscriber("android", Password2, ProdID, [], Buckets, Attribute2),
 	{ok, #subscriber{password = BinPassword1, attributes = Attribute1,
 			product = #product_instance{product = ProdID}}} = 
 			ocs:find_subscriber("tomba"),
@@ -186,10 +187,11 @@ delete_subscriber() ->
 delete_subscriber(Config) ->
 	ProdID = ?config(product_id, Config),
 	Attribute0 = radius_attributes:new(),
-	Attribute = radius_attributes:add(?NasPortId,"wlan0", Attribute0),
+	Attribute = radius_attributes:add(?SessionTimeout, 3600, Attribute0),
 	Subscriber = "deleteandroid",
 	Password = ocs:generate_password(),
-	{ok, _} = ocs:add_subscriber(Subscriber, Password, ProdID, [], [], Attribute),
+	Buckets = [#bucket{units = cents, remain_amount = 3000}],
+	{ok, _} = ocs:add_subscriber(Subscriber, Password, ProdID, [], Buckets, Attribute),
 	{ok, _} = ocs:find_subscriber(Subscriber),
 	ok = ocs:delete_subscriber(Subscriber),
 	{error, _} = ocs:find_subscriber(Subscriber).
@@ -200,10 +202,11 @@ update_password() ->
 update_password(Config) ->
 	ProdID = ?config(product_id, Config),
 	Attribute0 = radius_attributes:new(),
-	Attribute = radius_attributes:add(?NasPortId,"wlan0", Attribute0),
+	Attribute = radius_attributes:add(?SessionTimeout, 3600, Attribute0),
 	Subscriber = "android",
 	OldPassword = ocs:generate_password(),
-	{ok, _} = ocs:add_subscriber(Subscriber, OldPassword, ProdID, [], [], Attribute),
+	Buckets = [#bucket{units = cents, remain_amount = 3000}],
+	{ok, _} = ocs:add_subscriber(Subscriber, OldPassword, ProdID, [], Buckets, Attribute),
 	{ok, #subscriber{password = BinOldPassword, attributes = Attribute}} =
 			ocs:find_subscriber(Subscriber),
 	OldPassword = binary_to_list(BinOldPassword),
@@ -220,10 +223,11 @@ update_attributes(Config) ->
 	Password = ocs:generate_password(),
 	Username = "tomba1",
 	Attribute0 = radius_attributes:new(),
-	Attribute1 = radius_attributes:add(?NasPortId,"wlan0", Attribute0),
-	{ok, _} = ocs:add_subscriber(Username, Password, ProdID, [], [], Attribute1),
+	Attribute1 = radius_attributes:add(?SessionTimeout, 3600, Attribute0),
+	Buckets = [#bucket{units = cents, remain_amount = 3000}],
+	{ok, _} = ocs:add_subscriber(Username, Password, ProdID, [], Buckets, Attribute1),
 	{ok, #subscriber{attributes = Attribute1}} = ocs:find_subscriber(Username),
-	Attribute2 = radius_attributes:add(?NasPortId,"wlan1", Attribute0),
+	Attribute2 = radius_attributes:add(?AcctInterimInterval, 60, Attribute0),
 	ok = ocs:update_attributes(Username, Attribute2),
 	{ok, #subscriber{attributes = Attribute2}} = ocs:find_subscriber(Username).
 

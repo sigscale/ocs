@@ -105,10 +105,7 @@ init_per_testcase(TestCase, Config) when
 	{acct, [{Address, _Port, _Options } | _]} = lists:keyfind(acct, 1, EnvList),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined),
 	InitialAmount = 1000000000,
-	Now = erlang:system_time(?MILLISECOND),
-	TD = Now + 86400000,
-	Buckets = [#bucket{units = octets,
-			remain_amount = InitialAmount, termination_date = TD}],
+	Buckets = [#bucket{units = cents, remain_amount = 3000}],
 	{ok, _} = ocs:add_subscriber(UserName, Password, ProdID, [], Buckets, []),
 	[{username, UserName}, {password, Password}, {init_bal, InitialAmount}] ++ Config;
 init_per_testcase(_TestCase, Config) ->
@@ -146,7 +143,7 @@ all() ->
 %%---------------------------------------------------------------------
 
 radius_accounting() ->
-	[{userdata, [{doc, "Initiate and terminate a RADIUS accouting session"}]}].
+	[{userdata, [{doc, "Initiate and terminate a RADIUS accounting session"}]}].
 
 radius_accounting(Config) ->
 	RadID1 = 1,
@@ -159,10 +156,7 @@ radius_accounting(Config) ->
 	PeerID = ocs:generate_identity(),
 	Secret = ct:get_config(radius_shared_secret),
 	Password = ocs:generate_password(),
-	Now = erlang:system_time(?MILLISECOND),
-	TD = Now + 86400000,
-	Buckets = [#bucket{units = octets,
-			remain_amount = 1000, termination_date = TD}],
+	Buckets = [#bucket{units = cents, remain_amount = 3000}],
 	ProdID = ?config(product_id, Config),
    {ok, _} = ocs:add_subscriber(PeerID, Password, ProdID, [], Buckets, []),
 	ReqAuth = radius:authenticator(),
@@ -177,7 +171,7 @@ radius_accounting(Config) ->
 			PeerID, Secret, NasID, AcctSessionID, RadID3).
 
 radius_disconnect_session() ->
-	[{userdata, [{doc, "Disconnect a RADIUS accouting session based on usage"}]}].
+	[{userdata, [{doc, "Disconnect a RADIUS accounting session based on usage"}]}].
 
 radius_disconnect_session(Config) ->
 	RadID1 = 10,
@@ -191,10 +185,7 @@ radius_disconnect_session(Config) ->
 	PeerID = ocs:generate_identity(),
 	Secret = ct:get_config(radius_shared_secret),
 	Password = ocs:generate_password(),
-	Now = erlang:system_time(?MILLISECOND),
-	TD = Now + 86400000,
-	Buckets = [#bucket{units = octets,
-			remain_amount = 1000, termination_date = TD}],
+	Buckets = [#bucket{units = cents, remain_amount = 3000}],
    {ok, _} = ocs:add_subscriber(PeerID, Password, ProdID, [], Buckets, []),
 	ReqAuth = radius:authenticator(),
    HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
@@ -228,10 +219,7 @@ radius_multisessions_not_allowed(Config) ->
 	PeerID = ocs:generate_identity(),
 	Secret = ct:get_config(radius_shared_secret),
 	Password = ocs:generate_password(),
-	Now = erlang:system_time(?MILLISECOND),
-	TD = Now + 86400000,
-	Buckets = [#bucket{units = octets,
-			remain_amount = 1000, termination_date = TD}],
+	Buckets = [#bucket{units = cents, remain_amount = 3000}],
 	{ok, _} = ocs:add_subscriber(PeerID, Password, ProdID, [], Buckets, [], true, false),
 	ReqAuth = radius:authenticator(),
 	HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
@@ -288,10 +276,7 @@ radius_multisession(Config) ->
 	PeerID = ocs:generate_identity(),
 	Secret = ct:get_config(radius_shared_secret),
 	Password = ocs:generate_password(),
-	Now = erlang:system_time(?MILLISECOND),
-	TD = Now + 86400000,
-	Buckets = [#bucket{units = octets,
-			remain_amount = 1000000, termination_date = TD}],
+	Buckets = [#bucket{units = cents, remain_amount = 3000}],
 	{ok, _} = ocs:add_subscriber(PeerID, Password, ProdID, [], Buckets, [], true, true),
 	ReqAuth = radius:authenticator(),
 	HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
@@ -364,7 +349,7 @@ radius_multisession(Config) ->
 	ok = F2(F2, SessionList4, [{?UserName, PeerID}, {?NasIdentifier, NasID3}]).
 
 diameter_accounting() ->
-	[{userdata, [{doc, "Initiate and terminate a DIAMETER accouting session"}]}].
+	[{userdata, [{doc, "Initiate and terminate a DIAMETER accounting session"}]}].
 
 diameter_accounting(Config) ->
 	Username = ?config(username, Config),
@@ -388,7 +373,7 @@ diameter_accounting(Config) ->
 			'CC-Request-Number' = NewRequestNum} = Answer1.
 
 diameter_disconnect_session() ->
-	[{userdata, [{doc, "Disconnect a DIAMETER accouting session based on usage"}]}].
+	[{userdata, [{doc, "Disconnect a DIAMETER accounting session based on usage"}]}].
 
 diameter_disconnect_session(Config) ->
 	Username = ?config(username, Config),
