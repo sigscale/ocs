@@ -273,8 +273,9 @@ send_identity_radius(Socket, Address, Port, NasId, AnonymousName, Secret, MAC,
 			AnonymousName, Secret, MAC, Auth, RadId).
 
 receive_identity(Socket, Address, Port, Secret, Auth, RadId) ->
-	EapMsg = access_challenge(Socket, Address, Port,
+	Radius = access_challenge(Socket, Address, Port,
 			Secret, RadId, Auth),
+	EapMsg = get_eap(Radius),
 	#eap_packet{code = request, type = ?PWD, identifier = EapId,
 			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
 	#eap_pwd{length = false, more = false, pwd_exch = id,
@@ -292,7 +293,8 @@ send_legacy_nak_radius(Socket, Address, Port, NasId, AnonymousName, Secret, MAC,
 			Secret, MAC, Auth, RadId).
 
 receive_ttls_start_radius(Socket, Address, Port, Secret, Auth, RadId) ->
-	EapMsg = access_challenge(Socket, Address, Port, Secret, RadId, Auth),
+	Radius = access_challenge(Socket, Address, Port, Secret, RadId, Auth),
+	EapMsg = get_eap(Radius),
 	#eap_packet{code = request, type = ?TTLS, identifier = EapId,
 			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
 	#eap_ttls{start = true} = ocs_eap_codec:eap_ttls(EapData),
@@ -331,8 +333,9 @@ client_hello_radius1(Chunk, Socket, Address, Port, NasId, UserName,
 
 server_hello_radius(Socket, Address, Port, NasId, UserName, Secret,
 		MAC, Auth, RadId) ->
-	EapMsg = access_challenge(Socket, Address, Port,
+	Radius = access_challenge(Socket, Address, Port,
 			Secret, RadId, Auth),
+	EapMsg = get_eap(Radius),
 	#eap_packet{code = request, identifier = EapId, type = ?TTLS,
 			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
 	TtlsData = ocs_eap_codec:eap_ttls(EapData),
@@ -343,7 +346,8 @@ server_hello_radius1(#eap_ttls{more = true, data = SH}, Socket, Address, Port,
 		NasId, UserName, Secret, MAC, Auth, RadId, EapId, Buf) ->
 	send_ack(Socket, Address, Port, NasId, UserName, Secret,
 			MAC, Auth, RadId, EapId),
-	EapMsg = access_challenge(Socket, Address, Port, Secret, RadId, Auth),
+	Radius = access_challenge(Socket, Address, Port, Secret, RadId, Auth),
+	EapMsg = get_eap(Radius),
 	#eap_packet{code = request, identifier = NewEapId, type = ?TTLS,
 			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
 	TtlsPacket = ocs_eap_codec:eap_ttls(EapData),
@@ -419,8 +423,9 @@ client_cipher_radius3(Chunk, Socket, Address, Port, NasId, UserName,
 
 server_cipher_radius(Socket, Address, Port, NasId, UserName,
 		Secret, MAC, Auth, RadId) ->
-	EapMsg = access_challenge(Socket, Address, Port,
+	Radius = access_challenge(Socket, Address, Port,
 			Secret, RadId, Auth),
+	EapMsg = get_eap(Radius),
 	#eap_packet{code = request, identifier = EapId, type = ?TTLS,
 			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
 	TtlsData = ocs_eap_codec:eap_ttls(EapData),
@@ -431,7 +436,8 @@ server_cipher_radius1(#eap_ttls{more = true, data = SC}, Socket, Address, Port,
 		NasId, UserName, Secret, MAC, Auth, RadId, EapId, Buf) ->
 	send_ack(Socket, Address, Port, NasId, UserName, Secret,
 			MAC, Auth, RadId, EapId),
-	EapMsg = access_challenge(Socket, Address, Port, Secret, RadId, Auth),
+	Radius = access_challenge(Socket, Address, Port, Secret, RadId, Auth),
+	EapMsg = get_eap(Radius),
 	#eap_packet{code = request, identifier = NewEapId, type = ?TTLS,
 			data = EapData} = ocs_eap_codec:eap_packet(EapMsg),
 	TtlsPacket = ocs_eap_codec:eap_ttls(EapData),
@@ -466,8 +472,9 @@ client_passthrough_radius(SslSocket, UserName, Password, Socket, Address, Port,
 
 server_passthrough_radius(Socket, Address, Port, _NasId, _UserName, Secret,
 			_MAC, Auth, RadId) ->
-	EapMsg = access_accept(Socket, Address, Port,
+	Radius = access_accept(Socket, Address, Port,
 			Secret, RadId, Auth),
+	EapMsg = get_eap(Radius),
 	#eap_packet{code = success, identifier = _EapId} = ocs_eap_codec:eap_packet(EapMsg),
 	ok.
 
@@ -535,12 +542,17 @@ receive_radius(Code, Socket, Address, Port, Secret, RadId, ReqAuth) ->
 	Resp3 = Resp2#radius{attributes = RespAttr2},
 	RespPacket3 = radius:codec(Resp3),
 	MsgAuth = crypto:hmac(md5, Secret, RespPacket3),
-	EapMsg = radius_attributes:get_all(?EAPMessage, RespAttr1),
+	Resp1.
+
+get_eap(#radius{attributes = BinAttr}) ->
+	Attr = radius_attributes:codec(BinAttr),
+	EapMsg = radius_attributes:get_all(?EAPMessage, Attr),
 	iolist_to_binary(EapMsg).
 
 receive_ack(Socket, Address, Port, Secret, Auth, RadId) ->
-	EapMsg = access_challenge(Socket, Address, Port,
+	Radius = access_challenge(Socket, Address, Port,
 			Secret, RadId, Auth),
+	EapMsg = get_eap(Radius),
 	#eap_packet{code = request, type = ?TTLS, identifier = EapId,
 			data = TtlsData} = ocs_eap_codec:eap_packet(EapMsg),
 	#eap_ttls{data = <<>>} = ocs_eap_codec:eap_ttls(TtlsData),
