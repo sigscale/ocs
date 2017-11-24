@@ -223,7 +223,7 @@ out_of_credit_radius(Config) ->
 	PeerID = string:to_lower(lists:append(MACtokens)),
 	PeerPassword = ocs:generate_password(),
 	Buckets = [#bucket{units = cents, remain_amount = 2290}], % subscription total price
-	{ok, Subscriber} = ocs:add_subscriber(PeerID, PeerPassword, ProdID, [], Buckets, []),
+	{ok, _} = ocs:add_subscriber(PeerID, PeerPassword, ProdID, [], Buckets, []),
 	Authenticator = radius:authenticator(),
 	SharedSecret = ct:get_config(radius_shared_secret),
 	UserPassword = radius_attributes:hide(SharedSecret, Authenticator, PeerPassword),	
@@ -258,7 +258,7 @@ out_of_credit_diameter(Config) ->
 	Password = "Guns&Roses",
 	ProdID = ?config(product_id, Config),
 	Buckets = [#bucket{units = cents, remain_amount = 2290}], % subscription total price
-	{ok, Subscriber} = ocs:add_subscriber(UserName, Password, ProdID, [], Buckets, []),
+	{ok, _} = ocs:add_subscriber(UserName, Password, ProdID, [], Buckets, []),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	NAS_AAR = #diameter_nas_app_AAR{'Session-Id' = SId,
