@@ -475,13 +475,25 @@
     "description": "unit types",
     "message": "Bytes"
   },
+	"bytes": {
+    "description": "unit types",
+    "message": "octets"
+  },
 	"cent": {
     "description": "unit types",
     "message": "Cents"
   },
+	"cents": {
+    "description": "unit types",
+    "message": "cents"
+  },
 	"second": {
     "description": "unit types",
     "message": "Seconds"
+  },
+	"seconds": {
+    "description": "unit types",
+    "message": "seconds"
   },
 	"prod": {
     "description": "Balance types",

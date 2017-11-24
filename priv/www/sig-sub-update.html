@@ -266,16 +266,16 @@
 									selected="0">
 								<paper-item value="octets">
 									<i18n-msg msgid="bytes">
-											bytes
+											octets
 									</i18n-msg>
 								</paper-item>
 								<paper-item value="cents">
-									<i18n-msg msgid="cent">
+									<i18n-msg msgid="cents">
 										cents
 									</i18n-msg>
 								</paper-item>
 								<paper-item value="seconds">
-									<i18n-msg msgid="second">
+									<i18n-msg msgid="seconds">
 										seconds
 									</i18n-msg>
 								</paper-item>
@@ -404,7 +404,7 @@
 				var sub = new Object();
 				sub.op = "add";
 				sub.path = "/buckets/-";
-				var totalBal = {"amount": parseInt(document.getElementById("edit-amount").value)};
+				var totalBal = {"remainAmount": parseInt(document.getElementById("edit-amount").value)};
 				totalBal.units = document.getElementById("updateUni").value;
 				//totalBal.product = document.getElementById("updatePro").value;
 				sub.value = totalBal;

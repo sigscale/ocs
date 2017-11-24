@@ -336,7 +336,10 @@ subscriber([attributes | T], #subscriber{attributes = undefined} = Subscriber, A
 subscriber([attributes | T], #subscriber{attributes = Attributes} = Subscriber, Acc) ->
 	subscriber(T, Subscriber, [{"attributes", {array, radius_to_json(Attributes)}} | Acc]);
 subscriber([buckets | T], #subscriber{buckets = Buckets} = Subscriber, Acc) ->
-	subscriber(T, Subscriber, [{"totalBalance", accumulated_balance(Buckets)} | Acc]);
+	Buckets1 = [bucket(Bucket) || Bucket <- Buckets],
+	Buckets2 = [{"totalBalance", accumulated_balance(Buckets)},
+		{"buckets", {array, Buckets1}}],
+	subscriber(T, Subscriber, Buckets2 ++ Acc);
 subscriber([product | T], #subscriber{product = #product_instance{} = Product} = Subscriber, Acc) ->
 	{struct, Object} = product(Product),
 	subscriber(T, Subscriber, Object ++ Acc);
@@ -496,7 +499,7 @@ bucket([{"terminationDate", TDate} | T], Acc) ->
 	bucket(T, Acc#bucket{id = ocs_rest:iso8601(TDate)});
 bucket([{"units", Type} | T], Acc) ->
 	bucket(T, Acc#bucket{units = units(Type)});
-bucket([{"amount", Amount} | T], Acc) ->
+bucket([{"remainAmount", Amount} | T], Acc) ->
 	bucket(T, Acc#bucket{remain_amount = Amount});
 bucket([_ | T], Acc) ->
 	bucket(T, Acc);
