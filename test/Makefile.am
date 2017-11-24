@@ -67,7 +67,8 @@ check_DATA = .dialyzer_ok .common_test_ok
 	if [ ! -f ocs_eap_ttls_SUITE_data/CAcert.pem ]; then \
 		cp $(CERT_DIR)/CAcert.pem ocs_eap_ttls_SUITE_data; \
 	fi
-	ct_run -no_auto_compile -pa $(top_builddir)/ebin -logdir log -config ct.cfg -spec test.spec -dir . -erl_args -noshell -config sys -sname $(LOGNAME)-ct
+	NODENAME=`id -un`
+	ct_run -no_auto_compile -pa $(top_builddir)/ebin -logdir log -config ct.cfg -spec test.spec -dir . -erl_args -config sys -sname $(NODENAME)-ct
 
 sys.config:	$(top_srcdir)/test/sys.config-in
 	sed -e 's#%CERT_DIR%#$(abs_top_builddir)/test/$(CERT_DIR)#' \
