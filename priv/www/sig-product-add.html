@@ -431,7 +431,7 @@
 							</paper-input>
 							<paper-tooltip>
 								<i18n-msg msgid="priceTableTool">
-									Prefix of Destination Price Table	
+									Prefix of Destination Price Table
 								</i18n-msg>
 							</paper-tooltip>
 						</div>
@@ -443,7 +443,7 @@
 							</paper-input>
 							<paper-tooltip>
 								<i18n-msg msgid="tariffTableTool">
-									Prefix of Destination Tariff Table	
+									Prefix of Destination Tariff Table
 								</i18n-msg>
 							</paper-tooltip>
 						</div>
@@ -455,7 +455,7 @@
 							</paper-input>
 							<paper-tooltip>
 								<i18n-msg msgid="timeDayTool">
-									Range of the time day	
+									Range of the time day
 								</i18n-msg>
 							</paper-tooltip>
 						</div>
@@ -467,7 +467,7 @@
 							</paper-input>
 							<paper-tooltip>
 								<i18n-msg msgid="ratePriceiTool">
-									Price name in table	
+									Price name in table
 								</i18n-msg>
 							</paper-tooltip>
 						</div>
@@ -1179,7 +1179,7 @@
 								n = n * 60;
 								charValue.value = n.toString();
 							}
-							if(lastChar == "h") {
+							else if(lastChar == "h") {
 								n = n * 3600;
 								charValue.value = n.toString();
 							} else {
@@ -1212,13 +1212,13 @@
 							var s = item.reserveBytes;
 						}
 						if(charValue.unitOfMeasure == "octets") {
-							if(lastChar == "m") {
-								charValue.value = s + "000000";
-							}
 							if(lastChar == "g") {
 								charValue.value = s + "000000000";
 							}
-							if(lastChar == "k") {
+							else if(lastChar == "m") {
+								charValue.value = s + "000000";
+							}
+							else if(lastChar == "k") {
 								charValue.value = s + "000";
 							} else {
 								charValue.value = s;
@@ -1230,9 +1230,9 @@
 						charValueUse.minCardinality = 1;
 						charValueUse.maxCardinality = 1;
 						charValue.default = true;
-						var charValues = new Array();
-						charValues.push(charValue);
-						charValueUse.productSpecCharacteristicValue = charValues;
+						var charValuesByte = new Array();
+						charValuesByte.push(charValue);
+						charValueUse.productSpecCharacteristicValue = charValuesByte;
 						var prodSpec = new Object();
 						prodSpec.id = "4";
 						prodSpec.hef = "/catalogManagement/v2/productSpecification/4";
