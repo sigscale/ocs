@@ -157,7 +157,7 @@ eap_ttls_authentication_radius(Config) ->
 	Subscriber = ocs:generate_identity(),
 	MAC = "DD-EE-FF-AA-BB-CC",
 	PeerAuth = list_to_binary(ocs:generate_password()),
-	Buckets = [#bucket{remain_amount = 1000, units = octets}],
+	Buckets = [#bucket{remain_amount = 1000, units = cents}],
 	{ok, _} = ocs:add_subscriber(Subscriber, PeerAuth, ProdID, [], Buckets, []),
 	Socket = ?config(socket, Config),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
@@ -194,13 +194,13 @@ eap_ttls_authentication_radius(Config) ->
 	peer_tls_transport:deliver(SslPid1, self(), ServerCipher),
 	SslSocket = ssl_handshake(),
 	Seed = prf_seed(ClientHelloMsg, ServerHello),
-	{_MSK, _} = prf(SslSocket, master_secret ,
+	{MSK, _} = prf(SslSocket, master_secret ,
 			<<"ttls keying material">>, Seed, 128),
 	ReqAuth6 = radius:authenticator(),
 	{RadId7, CPAuth} = client_passthrough_radius(SslSocket, Subscriber, PeerAuth,
 			Socket, Address, Port, NasId, Secret, MAC, ReqAuth6, EapId5, RadId7),
 	ok = server_passthrough_radius(Socket, Address, Port, NasId, UserName, Secret,
-			MAC, CPAuth, RadId7),
+			MAC, MSK, CPAuth, RadId7),
 	ok = ssl:close(SslSocket).
 
 eap_ttls_authentication_diameter() ->
@@ -471,9 +471,13 @@ client_passthrough_radius(SslSocket, UserName, Password, Socket, Address, Port,
 	{RadId, Auth}.
 
 server_passthrough_radius(Socket, Address, Port, _NasId, _UserName, Secret,
-			_MAC, Auth, RadId) ->
+			_MAC, MSK, Auth, RadId) ->
 	Radius = access_accept(Socket, Address, Port,
 			Secret, RadId, Auth),
+	Attributes = radius_attributes:codec(Radius#radius.attributes),
+	{ok, {Salt, MsMppeKey}} = radius_attributes:find(?Microsoft, ?MsMppeSendKey, Attributes),
+	{ok, {Salt, MsMppeKey}} = radius_attributes:find(?Microsoft, ?MsMppeRecvKey, Attributes),
+	MsMppeKey = encrypt_key(list_to_binary(Secret), binary_to_list(Auth), Salt, MSK),
 	EapMsg = get_eap(Radius),
 	#eap_packet{code = success, identifier = _EapId} = ocs_eap_codec:eap_packet(EapMsg),
 	ok.
@@ -806,3 +810,21 @@ server_passthrough_diameter(Answer, SId) ->
 	#eap_packet{code = success, identifier = _EapId} = ocs_eap_codec:eap_packet(EapMsg),
 	ok.
 
+encrypt_key(Secret, RequestAuthenticator, Salt, Key)
+	when (Salt bsr 15) == 1 ->
+	KeyLength = size(Key),
+	Plaintext = case (KeyLength + 1) rem 16 of
+		0 ->
+			<<KeyLength, Key/binary>>;
+		N ->
+			PadLength = (16 - N) * 8,
+			<<KeyLength, Key/binary, 0:PadLength>>
+	end,
+	F = fun(P, [H | _] = Acc) ->
+				B = crypto:hash(md5, [Secret, H]),
+				C = crypto:exor(P, B),
+				[C | Acc]
+	end,
+	AccIn = [[RequestAuthenticator, <<Salt:16>>]],
+	AccOut = lists:foldl(F, AccIn, [P || <<P:16/binary>> <= Plaintext]),
+	iolist_to_binary(tl(lists:reverse(AccOut))).
