@@ -1328,9 +1328,9 @@ date(MilliSeconds) when is_integer(MilliSeconds) ->
 
 -spec end_period(StartTime, Period) -> EndTime
 	when
-		StartTime :: pos_integer(),
+		StartTime :: non_neg_integer(),
 		Period :: hourly | daily | weekly | monthly | yearly,
-		EndTime :: pos_integer().
+		EndTime :: non_neg_integer().
 %% @doc Calculate end of period.
 end_period(StartTime, Period) when is_integer(StartTime) ->
 	end_period(date(StartTime), Period);
@@ -1409,7 +1409,8 @@ subscription(#subscriber{buckets = Buckets} = Subscriber,
 		ProductName, Characteristics, Now,
 		[#price{type = recurring, period = Period,
 		alteration = #alteration{units = Units, size = Size,
-		amount = Amount}} | T]) when Units == octets; Units == seconds ->
+		amount = Amount}} | T]) when Period /= undefined,
+		Units == octets; Units == seconds ->
 	NewBuckets = charge(Amount, [#bucket{units = Units,
 			remain_amount = Size,
 			termination_date = end_period(Now, Period)} | Buckets]),
@@ -1419,7 +1420,8 @@ subscription(#subscriber{buckets = Buckets} = Subscriber,
 		ProductName, Characteristics, Now, [#price{type = usage,
 		alteration = #alteration{type = recurring,
 		period = Period, units = Units, size = Size,
-		amount = Amount}} | T]) when Units == octets; Units == seconds ->
+		amount = Amount}} | T]) when Period /= undefined,
+		Units == octets; Units == seconds ->
 	NewBuckets = charge(Amount, [#bucket{units = Units,
 			remain_amount = Size,
 			termination_date = end_period(Now, Period)} | Buckets]),
