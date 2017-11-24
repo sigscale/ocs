@@ -89,7 +89,7 @@ sequences() ->
 %%
 all() -> 
 	[client, get_all_clients, update_client_password, delete_client,
-	subscriber, update_password, update_attributes, delete_subscriber,
+	add_subscriber, update_password, update_attributes, delete_subscriber,
 	add_product, find_product, get_products, delete_product, add_user,
 	get_user, delete_user].
 
@@ -160,10 +160,10 @@ delete_client(Config) ->
 	ok = ocs:delete_client(Address),
 	{error, not_found} = ocs:find_client(Address).
 
-subscriber() ->
+add_subscriber() ->
 	[{userdata, [{doc, "Add subscriber to database"}]}].
 
-subscriber(Config) ->
+add_subscriber(Config) ->
 	ProdID = ?config(product_id, Config),
 	Attribute0 = radius_attributes:new(),
 	Attribute1 = radius_attributes:add(?NasPortId, "wlan0", Attribute0),
