@@ -146,7 +146,7 @@ all() ->
 %%---------------------------------------------------------------------
 
 radius_accounting() ->
-	[{userdata, [{doc, "Initiate and terminate a RADIUS accouting session"}]}].
+	[{userdata, [{doc, "Initiate and terminate a RADIUS accounting session"}]}].
 
 radius_accounting(Config) ->
 	RadID1 = 1,
@@ -177,7 +177,7 @@ radius_accounting(Config) ->
 			PeerID, Secret, NasID, AcctSessionID, RadID3).
 
 radius_disconnect_session() ->
-	[{userdata, [{doc, "Disconnect a RADIUS accouting session based on usage"}]}].
+	[{userdata, [{doc, "Disconnect a RADIUS accounting session based on usage"}]}].
 
 radius_disconnect_session(Config) ->
 	RadID1 = 10,
@@ -364,7 +364,7 @@ radius_multisession(Config) ->
 	ok = F2(F2, SessionList4, [{?UserName, PeerID}, {?NasIdentifier, NasID3}]).
 
 diameter_accounting() ->
-	[{userdata, [{doc, "Initiate and terminate a DIAMETER accouting session"}]}].
+	[{userdata, [{doc, "Initiate and terminate a DIAMETER accounting session"}]}].
 
 diameter_accounting(Config) ->
 	Username = ?config(username, Config),
@@ -388,7 +388,7 @@ diameter_accounting(Config) ->
 			'CC-Request-Number' = NewRequestNum} = Answer1.
 
 diameter_disconnect_session() ->
-	[{userdata, [{doc, "Disconnect a DIAMETER accouting session based on usage"}]}].
+	[{userdata, [{doc, "Disconnect a DIAMETER accounting session based on usage"}]}].
 
 diameter_disconnect_session(Config) ->
 	Username = ?config(username, Config),
