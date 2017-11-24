@@ -104,10 +104,9 @@ init_per_testcase(TestCase, Config) when
 	{ok, EnvList} = application:get_env(ocs, diameter),
 	{acct, [{Address, _Port, _Options } | _]} = lists:keyfind(acct, 1, EnvList),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined),
-	InitialAmount = 1000000000,
-	Buckets = [#bucket{units = cents, remain_amount = 3000}],
+	Buckets = [#bucket{units = cents, remain_amount = 2290}],
 	{ok, _} = ocs:add_subscriber(UserName, Password, ProdID, [], Buckets, []),
-	[{username, UserName}, {password, Password}, {init_bal, InitialAmount}] ++ Config;
+	[{username, UserName}, {password, Password}] ++ Config;
 init_per_testcase(_TestCase, Config) ->
 	SharedSecret = ct:get_config(radius_shared_secret),
 	{ok, _} = ocs:add_client({127, 0, 0, 1}, 3799, radius, SharedSecret),
@@ -185,7 +184,7 @@ radius_disconnect_session(Config) ->
 	PeerID = ocs:generate_identity(),
 	Secret = ct:get_config(radius_shared_secret),
 	Password = ocs:generate_password(),
-	Buckets = [#bucket{units = cents, remain_amount = 3000}],
+	Buckets = [#bucket{units = cents, remain_amount = 2290}],
    {ok, _} = ocs:add_subscriber(PeerID, Password, ProdID, [], Buckets, []),
 	ReqAuth = radius:authenticator(),
    HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
@@ -196,10 +195,10 @@ radius_disconnect_session(Config) ->
 			PeerID, Secret, NasID, AcctSessionID, RadID2),
 	RadID3 = RadID2 + 1,
 	accounting_interim(Socket, AcctAddress, AcctPort,
-			PeerID, Secret, NasID, AcctSessionID, RadID3, 700, 300),
+			PeerID, Secret, NasID, AcctSessionID, RadID3, 750000123, 750000456),
 	RadID4 = RadID3 + 1,
 	accounting_stop(Socket, AcctAddress, AcctPort,
-			PeerID, Secret, NasID, AcctSessionID, RadID4, 1000, 500),
+			PeerID, Secret, NasID, AcctSessionID, RadID4, 1350000987, 1350000654),
 	disconnect_request().
 
 radius_multisessions_not_allowed() ->
@@ -377,7 +376,6 @@ diameter_disconnect_session() ->
 
 diameter_disconnect_session(Config) ->
 	Username = ?config(username, Config),
-	OrigBalance = ?config(init_bal, Config),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	RequestNum0 = 0,
@@ -389,10 +387,9 @@ diameter_disconnect_session(Config) ->
 			'Multiple-Services-Credit-Control' = [MultiServices_CC0]} = Answer0,
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = [GrantedUnits0]} = MultiServices_CC0,
-	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [InitBalance]} = GrantedUnits0,
-	Usage0 = InitBalance div 10,
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [Grant0]} = GrantedUnits0,
 	RequestNum1 = RequestNum0 + 1,
-	Answer1 = diameter_accounting_interim(SId, Username, RequestNum1, Usage0),
+	Answer1 = diameter_accounting_interim(SId, Username, RequestNum1, Grant0 - 123),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
@@ -400,10 +397,9 @@ diameter_disconnect_session(Config) ->
 			'Multiple-Services-Credit-Control' = [MultiServices_CC1]} = Answer1,
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = [GrantedUnits1]} = MultiServices_CC1,
-	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [Balance1]} = GrantedUnits1,
-	Usage2 = Balance1 div 10,
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [Grant1]} = GrantedUnits1,
 	RequestNum2 = RequestNum1 + 1,
-	Answer2 = diameter_accounting_interim(SId, Username, RequestNum2, Usage2),
+	Answer2 = diameter_accounting_interim(SId, Username, RequestNum2, Grant1 + 123),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
@@ -411,10 +407,9 @@ diameter_disconnect_session(Config) ->
 			'Multiple-Services-Credit-Control' = [MultiServices_CC2]} = Answer2,
 	#'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = [GrantedUnits2]} = MultiServices_CC2,
-	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [_Balance2]} = GrantedUnits2,
-	Usage3 = OrigBalance,
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [Grant2]} = GrantedUnits2,
 	RequestNum3 = RequestNum2 + 1,
-	Answer3 = diameter_accounting_interim(SId, Username, RequestNum3, Usage3),
+	Answer3 = diameter_accounting_interim(SId, Username, RequestNum3, Grant2 + 1234567890),
 	#'3gpp_ro_CCA'{'Result-Code' = ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED',
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
@@ -438,10 +433,12 @@ accounting_start(Socket, Address, Port,
 
 accounting_interim(Socket, Address, Port, PeerID,
 		Secret, NasID, AcctSessionID, RadID, InputOctets, OutputOctets) ->
-	A0 = radius_attributes:add(?AcctInputOctets, InputOctets, []),
-	A1 = radius_attributes:add(?AcctOutputOctets, OutputOctets, A0),
+	A0 = radius_attributes:add(?AcctInputOctets, InputOctets rem (1 bsl 32), []),
+	A1 = radius_attributes:add(?AcctOutputOctets, OutputOctets rem (1 bsl 32), A0),
+	A2 = radius_attributes:add(?AcctInputGigawords, InputOctets div (1 bsl 32), A1),
+	A3 = radius_attributes:add(?AcctOutputGigawords, OutputOctets div (1 bsl 32), A2),
 	ReqAuth = accounting_request(?AccountingInterimUpdate, Socket,
-			Address, Port, PeerID, Secret, NasID, AcctSessionID, RadID, A1),
+			Address, Port, PeerID, Secret, NasID, AcctSessionID, RadID, A3),
 	accounting_response(Socket, Address, Port, Secret, RadID, ReqAuth).
 
 accounting_stop(Socket, Address, Port, PeerID, Secret, NasID, AcctSessionID, RadID) ->
@@ -449,10 +446,12 @@ accounting_stop(Socket, Address, Port, PeerID, Secret, NasID, AcctSessionID, Rad
 			Secret, NasID, AcctSessionID, RadID, 100, 50).
 accounting_stop(Socket, Address, Port, PeerID,
 		Secret, NasID, AcctSessionID, RadID, InputOctets, OutputOctets) ->
-	A0 = radius_attributes:store(?AcctInputOctets, InputOctets, []),
-	A1 = radius_attributes:store(?AcctOutputOctets, OutputOctets, A0),
+	A0 = radius_attributes:add(?AcctInputOctets, InputOctets rem (1 bsl 32), []),
+	A1 = radius_attributes:add(?AcctOutputOctets, OutputOctets rem (1 bsl 32), A0),
+	A2 = radius_attributes:add(?AcctInputGigawords, InputOctets div (1 bsl 32), A1),
+	A3 = radius_attributes:add(?AcctOutputGigawords, OutputOctets div (1 bsl 32), A2),
 	ReqAuth = accounting_request(?AccountingStop, Socket,
-			Address, Port, PeerID, Secret, NasID, AcctSessionID, RadID, A1),
+			Address, Port, PeerID, Secret, NasID, AcctSessionID, RadID, A3),
 	accounting_response(Socket, Address, Port, Secret, RadID, ReqAuth).
 
 disconnect_request() ->
@@ -565,7 +564,7 @@ diameter_accounting_start(SId, Username, RequestNum) ->
 			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
 			'Subscription-Id-Data' = Username},
 	RequestedUnits = #'3gpp_ro_Requested-Service-Unit' {
-			'CC-Total-Octets' = [10000000]},
+			'CC-Total-Octets' = [1000000000]},
 	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Requested-Service-Unit' = [RequestedUnits]}, 
 	ServiceInformation = #'3gpp_ro_Service-Information'{'IMS-Information' =
@@ -590,12 +589,9 @@ diameter_accounting_stop(SId, Username, RequestNum, Usage) ->
 	Subscription_Id = #'3gpp_ro_Subscription-Id'{
 			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
 			'Subscription-Id-Data' = Username},
-	RequestedUnits = #'3gpp_ro_Requested-Service-Unit' {
-			'CC-Total-Octets' = [100000000]},
 	UsedUnits = #'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [Usage]},
 	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
-			'Used-Service-Unit' = [UsedUnits],
-			'Requested-Service-Unit' = [RequestedUnits]}, 
+			'Used-Service-Unit' = [UsedUnits]},
 	ServiceInformation = #'3gpp_ro_Service-Information'{'IMS-Information' =
 			[#'3gpp_ro_IMS-Information'{
 					'Node-Functionality' = ?'3GPP_NODE-FUNCTIONALITY_AS',
@@ -620,7 +616,7 @@ diameter_accounting_interim(SId, Username, RequestNum, Usage) ->
 			'Subscription-Id-Data' = Username},
 	UsedUnits = #'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [Usage]},
 	RequestedUnits = #'3gpp_ro_Requested-Service-Unit' {
-			'CC-Total-Octets' = [100000000]},
+			'CC-Total-Octets' = [375123456]},
 	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Used-Service-Unit' = [UsedUnits],
 			'Requested-Service-Unit' = [RequestedUnits]}, 
