@@ -83,17 +83,20 @@ stop() ->
 add_product() ->
 	Price1 = #price{name = ocs:generate_password(),
 			type = recurring, period = monthly,
-			amount = 1230, size = undefined,
+			amount = 1995, size = undefined,
 			units = undefined, alteration =
 					#alteration{name = ocs:generate_password(),
 						type = usage, units = octets,
-						size = 2000000000, amount = 10}},
+						size = 2000000000, amount = 295}},
 	Price2 = #price{name = ocs:generate_password(),
 			type = usage, units = octets, size = 1000000000,
 			amount = 100},
 	Prices = [Price1, Price2],
 	ProductName = ocs:generate_password(),
-	Product = #product{name = ProductName,is_bundle = false, status = active, price = Prices},
+	Product = #product{name = ProductName,
+			is_bundle = false,
+			status = active,
+			price = Prices},
 	case ocs:add_product(Product) of
 		{ok, _Product1} ->
 			{ok, ProductName};
