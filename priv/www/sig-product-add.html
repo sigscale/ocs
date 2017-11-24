@@ -396,7 +396,9 @@
 						<div>
 							<paper-input
 									id="addPriceCharReserveTime"
-									type="number"
+									allowed-pattern="[0-9mh]"
+									pattern="^[0-9]+[mh]?$"
+									auto-validate
 									label="[[i18n.reserveTime]]"
 									value=0>
 							</paper-input>
@@ -409,7 +411,9 @@
 						<div>
 							<paper-input
 									id="addPriceCharReserveBytes"
-									type="number"
+									allowed-pattern="[0-9kmg]"
+									pattern="^[0-9]+[kmg]?$"
+									auto-validate
 									label="[[i18n.reserveBytes]]"
 									value=0>
 							</paper-input>
@@ -1160,48 +1164,80 @@
 					}
 					var prodSpecCharValueUse = new Array();
 					if (item.reserveTime) {
-						var reserveTime = parseInt(item.reserveTime);
-						if (reserveTime > 0) {
-							var charValueUse = new Object();
-							charValueUse.name = "radiusReserveTime";
-							charValueUse.valueType = "Number";
-							charValueUse.minCardinality = 1;
-							charValueUse.maxCardinality = 1;
-							var charValue = new Object();
-							charValue.default = true;
-							charValue.unitOfMeasure = "seconds";
-							charValue.value = reserveTime;
-							var charValues = new Array();
-							charValues.push(charValue);
-							charValueUse.productSpecCharacteristicValue = charValues;
-							var prodSpec = new Object();
-							prodSpec.id = "4";
-							prodSpec.hef = "/catalogManagement/v2/productSpecification/4";
-							charValueUse.productSpecification = prodSpec;
-							prodSpecCharValueUse.push(charValueUse);
+						var charValue = new Object();
+						charValue.unitOfMeasure = "seconds";
+						var charLength = item.reserveTime.length;
+						var lastChar = item.reserveTime.charAt(charLength - 1); //gets last character
+						if(isNaN(parseInt(lastChar))) {
+							var s = item.reserveTime.slice(0, (charLength -1));
+						} else {
+							var s = item.reserveTime;
 						}
+						if(charValue.unitOfMeasure == "seconds") {
+							var n = Number(s); 
+							if(lastChar == "m") {
+								n = n * 60;
+								charValue.value = n.toString();
+							}
+							if(lastChar == "h") {
+								n = n * 3600;
+								charValue.value = n.toString();
+							} else {
+								charValue.value = n.toString();
+							}
+						}
+						var charValueUse = new Object();
+						charValueUse.name = "radiusReserveTime";
+						charValueUse.valueType = "Number";
+						charValueUse.minCardinality = 1;
+						charValueUse.maxCardinality = 1;
+						charValue.default = true;
+						var charValues = new Array();
+						charValues.push(charValue);
+						charValueUse.productSpecCharacteristicValue = charValues;
+						var prodSpec = new Object();
+						prodSpec.id = "4";
+						prodSpec.hef = "/catalogManagement/v2/productSpecification/4";
+						charValueUse.productSpecification = prodSpec;
+						prodSpecCharValueUse.push(charValueUse);
 					}
 					if (item.reserveBytes) {
-						var reserveBytes = parseInt(item.reserveBytes);
-						if (reserveBytes > 0) {
-							var charValueUse = new Object();
-							charValueUse.name = "radiusReserveOctets";
-							charValueUse.valueType = "Number";
-							charValueUse.minCardinality = 1;
-							charValueUse.maxCardinality = 1;
-							var charValue = new Object();
-							charValue.default = true;
-							charValue.unitOfMeasure = "octets";
-							charValue.value = reserveBytes;
-							var charValues = new Array();
-							charValues.push(charValue);
-							charValueUse.productSpecCharacteristicValue = charValues;
-							var prodSpec = new Object();
-							prodSpec.id = "4";
-							prodSpec.hef = "/catalogManagement/v2/productSpecification/4";
-							charValueUse.productSpecification = prodSpec;
-							prodSpecCharValueUse.push(charValueUse);
+						var charValue = new Object();
+						charValue.unitOfMeasure = "octets";
+						var charLength = item.reserveBytes.length;
+						var lastChar = item.reserveBytes.charAt(charLength - 1); //gets last character
+						if(isNaN(parseInt(lastChar))) {
+							var s = item.reserveBytes.slice(0, (charLength -1));
+						} else {
+							var s = item.reserveBytes;
 						}
+						if(charValue.unitOfMeasure == "octets") {
+							if(lastChar == "m") {
+								charValue.value = s + "000000";
+							}
+							if(lastChar == "g") {
+								charValue.value = s + "000000000";
+							}
+							if(lastChar == "k") {
+								charValue.value = s + "000";
+							} else {
+								charValue.value = s;
+							}
+						}
+						var charValueUse = new Object();
+						charValueUse.name = "radiusReserveOctets";
+						charValueUse.valueType = "Number";
+						charValueUse.minCardinality = 1;
+						charValueUse.maxCardinality = 1;
+						charValue.default = true;
+						var charValues = new Array();
+						charValues.push(charValue);
+						charValueUse.productSpecCharacteristicValue = charValues;
+						var prodSpec = new Object();
+						prodSpec.id = "4";
+						prodSpec.hef = "/catalogManagement/v2/productSpecification/4";
+						charValueUse.productSpecification = prodSpec;
+						prodSpecCharValueUse.push(charValueUse);
 					}
 					if (item.prefixPriceTable) {
 						if (item.prefixPriceTable.length > 0) {
@@ -1299,6 +1335,8 @@
 					this.$.addPriceSize.allowedPattern = "[0-9kmg]";
 					this.$.addPriceSize.pattern = "^[0-9]+[kmg]?$";
 					this.$.addPriceSize.disabled = false;
+					this.$.addPriceCharReserveBytes.allowedPattern = "[0-9kmg]";
+					this.$.addPriceCharReserveBytes.pattern = "^[0-9]+[kmg]?$";
 					this.$.addPriceCharReserveBytes.disabled = false;
 					this.$.addPriceCharReserveTime.disabled = true;
 				} else if(this.$.addPriceUnits.selected == 1) {
@@ -1309,6 +1347,8 @@
 					this.$.addPriceSize.allowedPattern = "[0-9mh]";
 					this.$.addPriceSize.pattern = "^[0-9]+[mh]?$";
 					this.$.addPriceSize.disabled = false;
+					this.$.addPriceCharReserveTime.allowedPattern = "[0-9mh]";
+					this.$.addPriceCharReserveTime.pattern = "^[0-9]+[mh]?$";
 					this.$.addPriceCharReserveTime.disabled = false;
 					this.$.addPriceCharReserveBytes.disabled = true;
 				}
