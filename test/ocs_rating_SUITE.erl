@@ -95,7 +95,7 @@ all() ->
 	interim_debiting_exact_remain_amount, interim_debiting_below_package_size,
 	interim_debiting_out_of_credit, interim_debiting_remove_session_attributes,
 	final_call_remove_session_attributes,
-	octets_debit_and_reservation_scenario_1, octets_debit_and_reservation_scenario_2,
+	debit_and_reservation_with_sufficient_amount, octets_debit_and_reservation_scenario_2,
 	octets_debit_and_reservation_scenario_3, octets_debit_and_reservation_scenario_4,
 	octets_debit_and_reservation_scenario_5].
 
@@ -749,11 +749,11 @@ final_call_remove_session_attributes(_Config) ->
 	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, final, [{octets, Debit}], [], [SA2]),
 	{ok, #subscriber{session_attributes = [SA1]}} = ocs:find_subscriber(SubscriberID).
 
-octets_debit_and_reservation_scenario_1() ->
+debit_and_reservation_with_sufficient_amount() ->
 	[{userdata, [{doc, "Debit given usage and check for reservation,
 			Whole senoario base on sufficient amount"}]}].
 
-octets_debit_and_reservation_scenario_1(_Config) ->
+debit_and_reservation_with_sufficient_amount(_Config) ->
 	ProdID = ocs:generate_password(),
 	PackagePrice = 100,
 	PackageSize = 1000,
