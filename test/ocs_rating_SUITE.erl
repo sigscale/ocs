@@ -93,7 +93,8 @@ all() ->
 	interim_reservation_multiple_buckets_with_sufficient_amount,
 	interim_reservation_multiple_buckets_out_of_credit,
 	interim_debiting_exact_remain_amount, interim_debiting_below_package_size,
-	interim_debiting_out_of_credit, interim_debiting_remove_session_attributes, octets_debiting_scenario_6,
+	interim_debiting_out_of_credit, interim_debiting_remove_session_attributes,
+	final_call_remove_session_attributes,
 	octets_debit_and_reservation_scenario_1, octets_debit_and_reservation_scenario_2,
 	octets_debit_and_reservation_scenario_3, octets_debit_and_reservation_scenario_4,
 	octets_debit_and_reservation_scenario_5].
@@ -716,11 +717,11 @@ interim_debiting_remove_session_attributes(_Config) ->
 	{out_of_credit, _} = ocs_rating:rate(diameter, SubscriberID, Destination, interim, [{octets, Debit}], [], SessionId),
 	{ok, #subscriber{session_attributes = []}} = ocs:find_subscriber(SubscriberID).
 
-octets_debiting_scenario_6() ->
+final_call_remove_session_attributes() ->
 	[{userdata, [{doc, "Final call remove given session
 			attributes from subscriber record"}]}].
 
-octets_debiting_scenario_6(_Config) ->
+final_call_remove_session_attributes(_Config) ->
 	ProdID = ocs:generate_password(),
 	Price = #price{name = "overage", type = usage,
 		units = octets, size = 1000, amount = 100},
@@ -736,17 +737,17 @@ octets_debiting_scenario_6(_Config) ->
 		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
 	SA1 = {erlang:system_time(?MILLISECOND), [{?AcctSessionId, "1020303"},
 		{?NasIdentifier, "rate1@sigscale"}, {?NasIpAddress, "10.0.0.1"}]},
-	SA2 = {erlang:system_time(?MILLISECOND), [{?AcctSessionId, "1020304"},
+	SA2 = {erlang:system_time(?MILLISECOND), 
+		[{'Session-Id', list_to_binary(ocs:generate_password())},
 		{?NasIdentifier, "rate2@sigscale"}, {?NasIpAddress, "10.0.0.2"}]},
-	SessionAttributes = [SA1, SA2],
 	Subscriber = #subscriber{name = SubscriberID, password = Password,
-			buckets = Buckets, session_attributes = SessionAttributes,
+			buckets = Buckets, session_attributes = [SA1],
 			product = #product_instance{product = ProdID, characteristics = Chars}},
 	mnesia:dirty_write(subscriber, Subscriber),
 	Destination = ocs:generate_identity(),
-	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
-	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, final, [{octets, Debit}], [], SessionId),
-	{ok, #subscriber{session_attributes = [SA2]}} = ocs:find_subscriber(SubscriberID).
+	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, initial, [], [], [SA2]),
+	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, final, [{octets, Debit}], [], [SA2]),
+	{ok, #subscriber{session_attributes = [SA1]}} = ocs:find_subscriber(SubscriberID).
 
 octets_debit_and_reservation_scenario_1() ->
 	[{userdata, [{doc, "Debit given usage and check for reservation,
