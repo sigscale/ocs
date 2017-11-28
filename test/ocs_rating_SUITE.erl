@@ -93,7 +93,7 @@ all() ->
 	interim_reservation_multiple_buckets_with_sufficient_amount,
 	interim_reservation_multiple_buckets_out_of_credit,
 	interim_debiting_exact_remain_amount, interim_debiting_below_package_size,
-	interim_debiting_out_of_credit, octets_debiting_scenario_5, octets_debiting_scenario_6,
+	interim_debiting_out_of_credit, interim_debiting_remove_session_attributes, octets_debiting_scenario_6,
 	octets_debit_and_reservation_scenario_1, octets_debit_and_reservation_scenario_2,
 	octets_debit_and_reservation_scenario_3, octets_debit_and_reservation_scenario_4,
 	octets_debit_and_reservation_scenario_5].
@@ -688,10 +688,10 @@ interim_debiting_out_of_credit(_Config) ->
 	{out_of_credit, _} = ocs_rating:rate(diameter, SubscriberID, Destination, final, [{octets, Debit}], [], SessionId),
 	{ok, #subscriber{buckets = []}} = ocs:find_subscriber(SubscriberID).
 
-octets_debiting_scenario_5() ->
+interim_debiting_remove_session_attributes() ->
 	[{userdata, [{doc, "Out of credit remove session attributes from subscriber record"}]}].
 
-octets_debiting_scenario_5(_Config) ->
+interim_debiting_remove_session_attributes(_Config) ->
 	ProdID = ocs:generate_password(),
 	Price = #price{name = "overage", type = usage,
 		units = octets, size = 1000, amount = 100},
@@ -713,7 +713,7 @@ octets_debiting_scenario_5(_Config) ->
 	mnesia:dirty_write(subscriber, Subscriber),
 	Destination = ocs:generate_identity(),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
-	{out_of_credit, _} = ocs_rating:rate(diameter, SubscriberID, Destination, final, [{octets, Debit}], [], SessionId),
+	{out_of_credit, _} = ocs_rating:rate(diameter, SubscriberID, Destination, interim, [{octets, Debit}], [], SessionId),
 	{ok, #subscriber{session_attributes = []}} = ocs:find_subscriber(SubscriberID).
 
 octets_debiting_scenario_6() ->
