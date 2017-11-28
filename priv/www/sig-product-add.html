@@ -143,6 +143,41 @@
 							</i18n-msg>
 						</paper-tooltip>
 					</div>
+					<div>
+						<span>Characteristics</span>
+						<paper-icon-button
+								id="onClickOfferChars"
+								suffix
+								icon="arrow-drop-down"
+								on-click="_onClickOfferChars">
+						</paper-icon-button>
+					</div>
+					<iron-collapse id="addOfferChars">
+						<div>
+							<paper-input
+									id="destPrefixPrice"
+									type="string"
+									label="[[i18n.priceTable]]">
+							</paper-input>
+							<paper-tooltip>
+								<i18n-msg msgid="priceTableTool">
+									Prefix of Destination Price Table
+								</i18n-msg>
+							</paper-tooltip>
+						</div>
+						<div>
+							<paper-input
+									id="destPrefixTariff"
+									type="string"
+									label="[[i18n.tariffTable]]">
+							</paper-input>
+							<paper-tooltip>
+								<i18n-msg msgid="tariffTableTool">
+									Prefix of Destination Tariff Table
+								</i18n-msg>
+							</paper-tooltip>
+						</div>
+					</iron-collapse>
 					<div class="buttons">
 						<paper-button
 								raised
@@ -386,10 +421,10 @@
 					<div>
 						<span>Characteristics</span>
 						<paper-icon-button
-								id="onClickChars"
+								id="onClickPriceChars"
 								suffix
 								icon="arrow-drop-down"
-								on-click="_onClickChars">
+								on-click="_onClickPriceChars">
 						</paper-icon-button>
 					</div>
 					<iron-collapse id="addPriceChars">
@@ -420,30 +455,6 @@
 							<paper-tooltip>
 								<i18n-msg msgid="priceReserveBytesTool">
 									Amount of bytes to reserve on RADIUS initial/interim accounting request
-								</i18n-msg>
-							</paper-tooltip>
-						</div>
-						<div>
-							<paper-input
-									id="destPrefixPrice"
-									type="string"
-									label="[[i18n.priceTable]]">
-							</paper-input>
-							<paper-tooltip>
-								<i18n-msg msgid="priceTableTool">
-									Prefix of Destination Price Table
-								</i18n-msg>
-							</paper-tooltip>
-						</div>
-						<div>
-							<paper-input
-									id="destPrefixTariff"
-									type="string"
-									label="[[i18n.tariffTable]]">
-							</paper-input>
-							<paper-tooltip>
-								<i18n-msg msgid="tariffTableTool">
-									Prefix of Destination Tariff Table
 								</i18n-msg>
 							</paper-tooltip>
 						</div>
@@ -911,8 +922,6 @@
 						}
 						this.$.addPriceCharReserveTime.value = this.prices[indexPrice].reserveTime;
 						this.$.addPriceCharReserveBytes.value = this.prices[indexPrice].reserveBytes;
-						this.$.destPrefixPrice.value = this.prices[indexPrice].prefixPriceTable;
-						this.$.destPrefixTariff.value = this.prices[indexPrice].prefixTariffTable;
 						this.$.timeOfDay.value = this.prices[indexPrice].timeOfDayRange;
 						this.$.ratedPrice.value = this.prices[indexPrice].ratePrice;
 					}
@@ -982,6 +991,15 @@
 					}
 				}
 			},
+			_onClickOfferChars: function() {
+				if(this.$.addOfferChars.opened == false) {
+					this.$.addOfferChars.show();
+					this.$.onClickOfferChars.icon="arrow-drop-up"
+				} else {
+					this.$.addOfferChars.hide();
+					this.$.onClickOfferChars.icon="arrow-drop-down"
+				}
+			},
 			addOffer: function() {
 				var offerNew = new Object();
 				if(this.$.addOffName.value) {
@@ -1010,6 +1028,44 @@
 					offerNew.validFor = {startDateTime};
 				} else if(!startDateTime && endDateTime) {
 					offerNew.validFor = {endDateTime};
+				}
+				var prodSpecCharValueUse = new Array();
+				if (this.$.destPrefixPrice.value && this.$.destPrefixPrice.value.length > 0) {
+					var charValueUse = new Object();
+					charValueUse.name = "destPrefixPriceTable";
+					charValueUse.minCardinality = 0;
+					charValueUse.maxCardinality = 1;
+					var charValue = new Object();
+					charValue.default = false;
+					charValue.value = this.$.destPrefixPrice.value;
+					var charValues = new Array();
+					charValues.push(charValue);
+					charValueUse.productSpecCharacteristicValue = charValues;
+					var prodSpec = new Object();
+					prodSpec.id = "3";
+					prodSpec.hef = "/catalogManagement/v2/productSpecification/3";
+					charValueUse.productSpecification = prodSpec;
+					prodSpecCharValueUse.push(charValueUse);
+				}
+				if (this.$.destPrefixTariff.value && this.$.destPrefixTariff.value > 0) {
+					var charValueUse = new Object();
+					charValueUse.name = "destPrefixTariffTable";
+					charValueUse.minCardinality = 0;
+					charValueUse.maxCardinality = 1;
+					var charValue = new Object();
+					charValue.default = false;
+					charValue.value = this.$.destPrefixTariff.value;
+					var charValues = new Array();
+					charValues.push(charValue);
+					charValueUse.productSpecCharacteristicValue = charValues;
+					var prodSpec = new Object();
+					prodSpec.id = "3";
+					prodSpec.hef = "/catalogManagement/v2/productSpecification/3";
+					charValueUse.productSpecification = prodSpec;
+					prodSpecCharValueUse.push(charValueUse);
+				}
+				if (prodSpecCharValueUse.length > 0) {
+					offerNew.prodSpecCharValueUse = prodSpecCharValueUse;
 				}
 				function mapPrice(item) {
 					var out = new Object();
@@ -1239,44 +1295,6 @@
 						charValueUse.productSpecification = prodSpec;
 						prodSpecCharValueUse.push(charValueUse);
 					}
-					if (item.prefixPriceTable) {
-						if (item.prefixPriceTable.length > 0) {
-							var charValueUse = new Object();
-							charValueUse.name = "destPrefixPriceTable";
-							charValueUse.minCardinality = 0;
-							charValueUse.maxCardinality = 1;
-							var charValue = new Object();
-							charValue.default = false;
-							charValue.value = item.prefixPriceTable;
-							var charValues = new Array();
-							charValues.push(charValue);
-							charValueUse.productSpecCharacteristicValue = charValues;
-							var prodSpec = new Object();
-							prodSpec.id = "3";
-							prodSpec.hef = "/catalogManagement/v2/productSpecification/3";
-							charValueUse.productSpecification = prodSpec;
-							prodSpecCharValueUse.push(charValueUse);
-						}
-					}
-					if (item.prefixTariffTable) {
-						if (item.prefixTariffTable.length > 0) {
-							var charValueUse = new Object();
-							charValueUse.name = "destPrefixTariffTable";
-							charValueUse.minCardinality = 0;
-							charValueUse.maxCardinality = 1;
-							var charValue = new Object();
-							charValue.default = false;
-							charValue.value = item.prefixTariffTable;
-							var charValues = new Array();
-							charValues.push(charValue);
-							charValueUse.productSpecCharacteristicValue = charValues;
-							var prodSpec = new Object();
-							prodSpec.id = "3";
-							prodSpec.hef = "/catalogManagement/v2/productSpecification/3";
-							charValueUse.productSpecification = prodSpec;
-							prodSpecCharValueUse.push(charValueUse);
-						}
-					}
 					if (item.timeOfDayRange) {
 						if (item.timeOfDayRange.length > 0) {
 							var charValueUse = new Object();
@@ -1472,8 +1490,6 @@
 				}
 				priceNew.reserveTime = this.$.addPriceCharReserveTime.value;
 				priceNew.reserveBytes = this.$.addPriceCharReserveBytes.value;
-				priceNew.prefixPriceTable = this.$.destPrefixPrice.value;
-				priceNew.prefixTariffTable = this.$.destPrefixTariff.value;
 				priceNew.timeOfDayRange = this.$.timeOfDay.value;
 				priceNew.ratePrice = this.$.ratedPrice.value;
 				if(priceNew.name
@@ -1509,13 +1525,13 @@
 					document.getElementById("addProductToastError").open();
 				}
 			},
-			_onClickChars: function() {
+			_onClickPriceChars: function() {
 				if(this.$.addPriceChars.opened == false) {
 					this.$.addPriceChars.show();
-					this.$.onClickChars.icon="arrow-drop-up"
+					this.$.onClickPriceChars.icon="arrow-drop-up"
 				} else {
 					this.$.addPriceChars.hide();
-					this.$.onClickChars.icon="arrow-drop-down"
+					this.$.onClickPriceChars.icon="arrow-drop-down"
 				}
 			},
 			addAlteration: function() {
@@ -1625,6 +1641,9 @@
 				this.$.addOffProductSpecification.selected = null;
 				this.$.addOffStart.value = null;
 				this.$.addOffEnd.value = null;
+				this.$.addOfferChars.hide()
+				this.$.destPrefixPrice.value = null;
+				this.$.destPrefixTariff.value = null;
 				this.$.addProductStartDatePickOff.hide()
 				this.$.addProductEndDatePickOff.hide()
 				this.$.addProductStartDatePickPrice.hide();
