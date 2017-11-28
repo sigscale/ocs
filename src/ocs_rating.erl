@@ -106,12 +106,12 @@ rate1(Protocol, Subscriber, Destination, #product{specification = "3", char_valu
 		price = Prices}, Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes) ->
 	case lists:keyfind("destPrefixPriceTable", #char_value_use.name, CharValueUse) of
 		#char_value_use{values = [#char_value{value = PriceTable}]} ->
-			rate2(Protocol, PriceTable, Subscriber, Destination, Prices,
+			rate2(Protocol, list_to_existing_atom(PriceTable), Subscriber, Destination, Prices,
 					Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
 		false ->
 			 case lists:keyfind("destPrefixTariffTable", #char_value_use.name, CharValueUse) of
 				#char_value_use{values = [#char_value{value = TariffTable}]} ->
-					rate3(Protocol, TariffTable, Subscriber, Destination, Prices,
+					rate3(Protocol, list_to_existing_atom(TariffTable), Subscriber, Destination, Prices,
 							Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
 				_ ->
 					throw(table_prefix_not_found)
