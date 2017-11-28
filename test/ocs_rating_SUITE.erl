@@ -95,7 +95,7 @@ all() ->
 	interim_debiting_exact_remain_amount, interim_debiting_below_package_size,
 	interim_debiting_out_of_credit, interim_debiting_remove_session_attributes,
 	final_call_remove_session_attributes,
-	debit_and_reservation_with_sufficient_amount, octets_debit_and_reservation_scenario_2,
+	debit_and_reservation_with_sufficient_amount, debit_and_reservation_under_available_amount,
 	octets_debit_and_reservation_scenario_3, octets_debit_and_reservation_scenario_4,
 	octets_debit_and_reservation_scenario_5].
 
@@ -802,12 +802,12 @@ debit_and_reservation_with_sufficient_amount(_Config) ->
 	{_, Reservation2, _} = lists:keyfind(SessionId, 3, Reservations2),
 	Reservation2 = F2(Debit, Reservation, Reservation1).
 
-octets_debit_and_reservation_scenario_2() ->
+debit_and_reservation_under_available_amount() ->
 	[{userdata, [{doc, "Debit amount is less than package size and
 		reservation amount less than avaliable remain amount, Whole senoario base on
 		sufficient amount"}]}].
 
-octets_debit_and_reservation_scenario_2(_Config) ->
+debit_and_reservation_under_available_amount(_Config) ->
 	ProdID = ocs:generate_password(),
 	PackagePrice = 100,
 	PackageSize = 1000,
