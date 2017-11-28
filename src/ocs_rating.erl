@@ -130,20 +130,29 @@ rate1(Protocol, Subscriber, _Destiations, #product{price = Prices}, Validity,
 rate2(Protocol, PriceTable, Subscriber, Destination, Prices,
 		Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes) ->
 	case catch ocs_gtt:lookup_last(PriceTable, Destination) of
-		PriceKey when is_list(PriceKey) ->
-			F = fun(#price{char_value_use = CharValueUse}) ->
-					case lists:keyfind("ratePrice", #char_value_use.name, CharValueUse) of
-						#char_value_use{values = [#char_value{value = PriceKey}]} ->
-							true;
-						false ->
-							false
-					end
+		{_, _Prefix, _Description, RateName} when is_list(RateName) ->
+			F1 = fun(F, [#price{char_value_use = CharValueUse} = H | T]) ->
+						case lists:keyfind("ratePrice", #char_value_use.name, CharValueUse) of
+							#char_value_use{values = [#char_value{value = RateName}]} ->
+								H;
+							false ->
+								F(F, T)
+						end;
+					(_, []) ->
+						F2 = fun(_, [#price{name = Name} = H | _]) when Name == RateName ->
+									H;
+								(F, [_H | T]) ->
+									F(F, T);
+								(_, []) ->
+									false
+						end,
+						F2(F2, Prices)
 			end,
-			case lists:filter(F, Prices) of
-				[Price] ->
+			case F1(F1, Prices) of
+				#price{} = Price ->
 					rate4(Protocol, Subscriber, Price, Validity,
 							Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
-				[] ->
+				false ->
 					throw(price_not_found)
 			end;
 		_ ->
@@ -153,7 +162,7 @@ rate2(Protocol, PriceTable, Subscriber, Destination, Prices,
 rate3(Protocol, TariffTable, Subscriber, Destination, Prices,
 		Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes) ->
 	case catch ocs_gtt:lookup_last(TariffTable, Destination) of
-		Amount when is_integer(Amount) ->
+		{_, _Prefix, _Description, Amount} when is_integer(Amount) ->
 			case lists:keyfind(tariff, #price.type, Prices) of
 				#price{} = Price ->
 					rate4(Protocol, Subscriber, Price#price{amount = Amount}, Validity,
