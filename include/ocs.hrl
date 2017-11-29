@@ -97,7 +97,7 @@
 		status :: offer_status() | '_' | undefined,
 		specification :: '_' | string() | undefined,
 		price :: '_' | [#price{}] | undefined,
-		char_value_use = [] :: [#char_value_use{}],
+		char_value_use = [] :: '_' | [#char_value_use{}],
 		last_modified :: tuple() | '_' | undefined}).
 
 -record(bucket,
