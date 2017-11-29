@@ -60,6 +60,8 @@
 %%  	The `Options' define table definitions used in {@link //mnesia}.
 %% @see //mnesia/mnesia:create_table/2
 %%
+new(Table, []) ->
+	new(Table, [{disc_copies, nodes()}]);
 new(Table, Options) when is_list(Options) ->
 	case mnesia:create_table(Table, Options ++
 			[{attributes, record_info(fields, gtt)},
@@ -86,6 +88,8 @@ new(Table, Options) when is_list(Options) ->
 %%  	The `Options' define table definitions used in {@link //mnesia}.
 %% @see //mnesia/mnesia:create_table/2
 %%
+new(Table, [], Items) ->
+	new(Table, [{disc_copies, nodes()}], Items);
 new(Table, Options, Items) when is_list(Options), is_list(Items) ->
 	mnesia:create_table(Table, Options ++
 			[{attributes, record_info(fields, gtt)},
