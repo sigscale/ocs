@@ -127,7 +127,7 @@ get_usage2(Query, Filters, Headers) ->
 			{error, 400};
 		{false, false, {"range", Range}} ->
 			case ocs_rest:range(Range) of
-				{error, _} ->
+				{error, _Reason} ->
 					{error, 400};
 				{ok, {Start, End}} ->
 					query_start(Query, Filters, Start, End)
@@ -2282,9 +2282,15 @@ char_attr_cause(Attributes, Acc) ->
 query_start(Query, Filters, RangeStart, RangeEnd) ->
 	Now = erlang:system_time(?MILLISECOND),
 	case lists:keytake("type", 1, Query) of
-		{_, {_, "AAAAccessUsage"}, []} ->
+		{_, {_, "AAAAccessUsage"}, Query1} ->
+			Start = case lists:keytake("date", 1, Query1) of
+				{_, {_, DateTime}, []} when length(DateTime) > 3 ->
+					ocs_log:iso8601(DateTime);
+				_ ->
+					1
+			end,
 			case supervisor:start_child(ocs_rest_pagination_sup,
-					[[ocs_log, auth_query, [1, Now, '_', '_', '_', '_']]]) of
+					[[ocs_log, auth_query, [Start, Now, '_', '_', '_', '_']]]) of
 				{ok, PageServer, Etag} ->
 					query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
 				{error, _Reason} ->
@@ -2326,7 +2332,7 @@ query_start(Query, Filters, RangeStart, RangeEnd) ->
 %% @hidden
 query_page(PageServer, Etag, Query, Filters, Start, End) ->
 	case lists:keytake("type", 1, Query) of
-		{_, {_, "AAAAccessUsage"}, []} ->
+		{_, {_, "AAAAccessUsage"}, _Query1} ->
 			query_page1(PageServer, Etag, fun usage_aaa_auth/2, Filters, Start, End);
 		{_, {_, "AAAAccountingUsage"}, []} ->
 			query_page1(PageServer, Etag, fun usage_aaa_acct/2, Filters, Start, End);
