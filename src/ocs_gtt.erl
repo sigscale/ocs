@@ -50,12 +50,12 @@
 %%  The GTT API
 %%----------------------------------------------------------------------
 
-%% @spec (Table, Options) -> ok
-%% 	Table = atom()
-%% 	Options = [{Copies, Nodes}]
-%% 	Copies = disc_copies | disc_only_copies | ram_copies
-%% 	Nodes = [atom()]
-%%
+-spec new(Table, Options) -> ok
+	when
+		Table :: atom(),
+		Options :: [{Copies, Nodes}],
+		Copies :: disc_copies | disc_only_copies | ram_copies,
+		Nodes :: [atom()].
 %% @doc Create a new table.
 %%  	The `Options' define table definitions used in {@link //mnesia}.
 %% @see //mnesia/mnesia:create_table/2
@@ -70,15 +70,15 @@ new(Table, Options) when is_list(Options) ->
 			exit(Reason)
 	end.
 
-%% @spec (Table, Options, Items) -> ok
-%% 	Table = atom()
-%% 	Options = [{Copies, Nodes}]
-%% 	Copies = disc_copies | disc_only_copies | ram_copies
-%% 	Nodes = [atom()]
-%% 	Items = [{Number, Value}]
-%% 	Number = string() | integer()
-%% 	Value = term()
-%%
+-spec new(Table, Options, Items) -> ok
+	when
+		Table :: atom(),
+		Options :: [{Copies, Nodes}],
+		Copies :: disc_copies | disc_only_copies | ram_copies,
+		Nodes :: [atom()],
+		Items :: [{Number, Value}],
+		Number :: string() | integer(),
+		Value :: term().
 %% @doc Create a new table and populate it from the supplied list of items.
 %% 	This is the quickest way to build a new table as it performs
 %% 	all the insertions within one optimized transaction context.
@@ -114,11 +114,11 @@ new(Table, Options, Items) when is_list(Options), is_list(Items) ->
 			mnesia:sync_dirty(Ftran, [Ftran, Items, Threshold])
 	end.
 
-%% @spec (Table, Number, Value) -> ok
-%% 	Table = atom()
-%% 	Number = string() | integer()
-%% 	Value = term()
-%%
+-spec insert(Table, Number, Value) -> ok
+	when
+		Table :: atom(),
+		Number :: string() | integer(),
+		Value :: term().
 %% @doc Insert a table entry.
 %% 
 insert(Table, Number, Value) when is_integer(Number) ->
@@ -134,12 +134,12 @@ insert(Table, Number, Value)
 			exit(Reason)
 	end.
 	
-%% @spec (Table, Items) -> ok
-%% 	Table = atom()
-%% 	Items = [{Number, Value}]
-%% 	Number = string() | integer()
-%% 	Value = term()
-%%
+-spec insert(Table, Items) -> ok
+	when
+		Table :: atom(),
+		Items :: [{Number, Value}],
+		Number :: string() | integer(),
+		Value :: term().
 %% @doc Insert a list of table entries.
 %% 	The entries are inserted as a transaction, either all entries
 %% 	are added to the table or, if an entry insertion fails, none at
@@ -151,23 +151,28 @@ insert(Table, Items) when is_atom(Table), is_list(Items)  ->
 	mnesia:transaction(TransFun),
 	ok.
 
-%% @spec (Table, Number) -> ok
-%% 	Table = atom()
-%% 	Number = string() | integer()
-%%
+-spec delete(Table, Number) -> ok
+	when
+		Table :: atom(),
+	 	Number :: string() | integer().
 %% @doc Delete a table entry.
 %% 
 delete(Table, Number) when is_integer(Number) ->
 	delete(Table, integer_to_list(Number));
 delete(Table, Number) when is_atom(Table), is_list(Number) ->
 	Fun = fun() -> mnesia:delete(Table, Number, write) end,
-	mnesia:transaction(Fun).
+	case mnesia:transaction(Fun) of
+		{atomic, ok} ->
+			ok;
+		{aborted, Reason} ->
+			exit(Reason)
+	end.
 	
-%% @spec (Table, Number) -> Value
-%% 	Table = atom()
-%% 	Number = string() | integer()
-%% 	Value = term()
-%%
+-spec lookup_first(Table, Number) -> Value
+	when
+		Table :: atom(),
+		Number :: string() | integer(),
+		Value :: term().
 %% @doc Lookup the value of the first matching table entry.
 %% 
 lookup_first(Table, Number) when is_integer(Number) ->
@@ -188,11 +193,11 @@ lookup_first(Table, [Digit | Rest]) when is_atom(Table) ->
 			exit(Reason)
 	end.
 
-%% @spec (Table, Number) -> Value
-%% 	Table = atom()
-%% 	Number = string() | integer()
-%% 	Value = term()
-%%
+-spec lookup_last(Table, Number) -> Value
+	when
+		Table :: atom(),
+		Number :: string() | integer(),
+		Value :: term().
 %% @doc Lookup the value of the longest matching table entry.
 %% 
 lookup_last(Table, Number) when is_integer(Number) ->
@@ -217,11 +222,11 @@ lookup_last(Table, Number) when is_atom(Table) ->
 			exit(Reason)
 	end.
 
-%% @spec (Table, Number) -> Value
-%% 	Table = atom()
-%% 	Number = list() | integer()
-%% 	Value = term()
-%%
+-spec lookup_all(Table, Number) -> Value
+	when
+		Table :: atom(),
+		Number :: list() | integer(),
+		Value :: term().
 %% @doc Lookup the values of matching table entries.
 %% 
 lookup_all(Table, Number) when is_integer(Number) ->
@@ -242,10 +247,10 @@ lookup_all(Table, [Digit | Rest]) when is_atom(Table) ->
 			exit(Reason)
 	end.
 
-%% @spec (Tables, File) -> ok
-%% 	Tables = atom() | [atom()]
-%% 	File = string()
-%% 
+-spec backup(Tables, File) -> ok
+	when
+		Tables :: atom() | [atom()],
+		File :: string().
 %% @doc Create a backup of the named table(s) in `File.BUPTMP'.
 %% 
 backup(Table, File) when is_atom(Table) ->
@@ -264,11 +269,11 @@ backup(Tables, File) when is_list(Tables), is_list(File) ->
 			exit(Reason)
 	end.
 
-%% @spec (Tables, File) -> {ok,  RestoredTabs}
-%% 	Tables = atom() | [atom()]
-%% 	File = string()
-%% 	RestoredTabs = [atom()]
-%% 
+-spec restore(Tables, File) -> {ok,  RestoredTabs}
+	when
+		Tables :: atom() | [atom()],
+		File :: string(),
+		RestoredTabs :: [atom()].
 %% @doc Restore the named table(s) from the backup in `File.BUPTMP'.
 %% 
 restore(Table, File) when is_atom(Table) ->
@@ -326,12 +331,13 @@ import(Table, Recordname, [Chunk | Rest], Acc) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
-%% @spec (Table, Acc, Number, Value) -> Writes
-%% 	Table = atom()
-%% 	Acc = list()
-%% 	Number = list() | integer()
-%% 	Value = term()
-%% 	Writes = integer()
+-spec insert(Table, Acc, Number, Value) -> Writes
+	when
+		Table :: atom(),
+		Acc :: list(),
+		Number :: list() | integer(),
+		Value :: term(),
+		Writes :: integer().
 %% @hidden
 %%
 insert(Table, [], Number, Value) when is_integer(Number) ->
