@@ -276,7 +276,7 @@ request1(?AccountingStart, AcctSessionId, Id,
 		{error, Reason} ->
 			error_logger:error_report(["Rating Error",
 					{module, ?MODULE}, {error, Reason},
-					{nas, NasId}, {request_type, start}, {subscriber, Subscriber},
+					{nas, NasId}, {type, initial}, {subscriber, Subscriber},
 					{address, Address}, {session, AcctSessionId}]),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
@@ -310,7 +310,7 @@ request1(?AccountingStop, AcctSessionId, Id,
 		{error, Reason} ->
 			error_logger:error_report(["Rating Error",
 					{module, ?MODULE}, {error, Reason},
-					{nas, NasId}, {request_type, start}, {subscriber, Subscriber},
+					{nas, NasId}, {type, final}, {subscriber, Subscriber},
 					{address, Address}, {used, DebitAmount}, {session, AcctSessionId}]),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
@@ -346,7 +346,7 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 		{error, Reason} ->
 			error_logger:error_report(["Rating Error",
 					{module, ?MODULE}, {error, Reason}, {nas, NasId},
-					{request_type, start}, {subscriber, Subscriber},
+					{type, interim}, {subscriber, Subscriber},
 					{address, Address}, {reserved, ReserveAmount},
 					{session, AcctSessionId}])
 	end;
