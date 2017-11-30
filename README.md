@@ -9,14 +9,14 @@ withdrawn and ongoing session(s) terminated.
 
 SigScale OCS includes a 3GPP AAA server function for authentication,
 authorization and accounting (AAA) of subscribers using DIAMETER or
-RADIUS protocols. TM Forum OpenAPIs for prepay balance management and
+RADIUS protocols. TM Forum Open APIs for prepay balance management and
 product catalog management are supported with a web components front end.
 
 ## Interfaces
 |Interface | Description               |
 |----------|---------------------------|
 |GUI       | Polymer Web Components    |
-|REST      | TM Forum OpenAPIs         |
+|REST      | TM Forum Open APIs        |
 |CLI       | Erlang API                |
 |RADIUS    | AAA NAS Clients           |
 |DIAMETER  | AAA NAS Clients           |
@@ -41,7 +41,7 @@ Systems (OSS/BSS) using a machine-to-machine API.
 Most aspects of provisioning and operations may be performed through
 integration using an HTTP RESTful interface. Where applicable
 [TM Forum](https://www.tmforum.org)
-[open APIs](https://www.tmforum.org/open-apis/) are supported.
+[Open APIs](https://www.tmforum.org/open-apis/) are supported.
 
 #### [Erlang](http://www.erlang.org)
 All aspects of provisioning, operations and maintenance may be performed
