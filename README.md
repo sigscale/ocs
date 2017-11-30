@@ -7,19 +7,21 @@ credit on account and decrements account balance as services are consumed.
 When a subscriber's account balance is depleted authorization may be
 withdrawn and ongoing session(s) terminated.
 
-This release performs authentication, authorization and accounting (AAA)
-for subscribers of wireless local area network (WLAN) services (WiFi).
+SigScale OCS includes a 3GPP AAA server function for authentication,
+authorization and accounting (AAA) of subscribers using DIAMETER or
+RADIUS protocols. TM Forum OpenAPIs for prepay balance management and
+product catalog management are supported with a web components front end.
 
 ## Interfaces
 |Interface | Description               |
 |----------|---------------------------|
-|GUI       | Graphical User Interface  |
-|REST      | HTTP API                  |
+|GUI       | Polymer Web Components    |
+|REST      | TM Forum OpenAPIs         |
 |CLI       | Erlang API                |
 |RADIUS    | AAA NAS Clients           |
 |DIAMETER  | AAA NAS Clients           |
 |EAP-PWD   | Android, Linux            |
-|EAP-TTLS  | iPhone, Microsoft Windows |
+|EAP-TTLS  | Android, iPhone, Windows  |
 |IPDR      | Billing Record Files      |
 
 ### Graphical User Interface (GUI)
@@ -49,12 +51,13 @@ module development.
 
 ### [RADIUS](https://tools.ietf.org/html/rfc2865) & [DIAMETER](https://tools.ietf.org/html/rfc6733)
 The OCS acts as an authentication, authorization and accounting (AAA) server
-for network access servers (NAS) using the Remote Authentication Dial
-In User Service (RADIUS) and DIAMETER protocols.
+for network access servers (NAS) using the RADIUS and DIAMETER protocols.
+The DIAMETER Ro interface (3GPP 32.299) supports Session Charging with
+Unit Reservation (SCUR).
 
 #### Authentication & Authorization
 A wireless local area network (WLAN/Wi-Fi) access
-point (AP) acts as a NAS using RADIUS / DIAMETER protocol to request authentication
+point (AP) acts as a NAS using RADIUS/DIAMETER protocol to request authentication
 from the OCS (AAA server) for subscribers attempting to associate. The OCS
 may authorize access and provide specific service authorization information
 (i.e. data rate, class, session expiry).
