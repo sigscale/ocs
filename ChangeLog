@@ -1,3 +1,9 @@
+2017-11-30  Vance Shipley <vances@sigscale.org>
+
+	* ocs_rating.erl : correct prefix table lookups
+	* ocs_gtt.erl : persist imported prefix tables
+	* ocs_rest_res_usage.erl : handle date query selector
+
 2017-11-24  Vance Shipley <vances@sigscale.org>
 
 	* ocs.erl : create allowance buckets and charge subscriptions
