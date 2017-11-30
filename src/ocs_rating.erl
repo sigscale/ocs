@@ -334,7 +334,7 @@ rate6(#subscriber{session_attributes = SessionList} = Subscriber1,
 	NewSessionList = remove_session(SessionAttributes, SessionList),
 	Subscriber2 = Subscriber1#subscriber{session_attributes = NewSessionList},
 	ok = mnesia:write(Subscriber2),
-	{grant, Subscriber2, Charged};
+	{grant, Subscriber2, 0};
 rate6(#subscriber{session_attributes = SessionList} = Subscriber1,
 		final, _Charge, _Charged, 0, 0, _SessionAttributes) ->
 	Subscriber2 = Subscriber1#subscriber{session_attributes = []},
