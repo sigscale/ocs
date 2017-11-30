@@ -427,15 +427,9 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		DebitAmount = [{UsedType, UsedUsage}],
 		case ocs_rating:rate(diameter, Subscriber, Destination,
 				final, DebitAmount, [], [{'Session-Id', SId}]) of
-			{ok, _, GrantedAmount} ->
-				GrantedUnits = case UsedType of
-					seconds ->
-						#'3gpp_ro_Granted-Service-Unit'{'CC-Time' = [GrantedAmount]};
-					octets ->
-						#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [GrantedAmount]}
-				end,
+			{ok, _, _GrantedAmount} ->
 				{Reply, NewState} = generate_diameter_answer(Request, SId,
-						GrantedUnits, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
+						undefined, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 						RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{out_of_credit, _SessionList} ->
