@@ -1230,16 +1230,14 @@
 							var s = item.reserveTime;
 						}
 						if(charValue.unitOfMeasure == "seconds") {
-							var n = Number(s); 
+							var n = Number(s);
 							if(lastChar == "m") {
-								n = n * 60;
-								charValue.value = n.toString();
+								charValue.value = n * 60;
 							}
 							else if(lastChar == "h") {
-								n = n * 3600;
-								charValue.value = n.toString();
+								charValue.value = n * 3600;
 							} else {
-								charValue.value = n.toString();
+								charValue.value = n;
 							}
 						}
 						var charValueUse = new Object();
@@ -1268,16 +1266,17 @@
 							var s = item.reserveBytes;
 						}
 						if(charValue.unitOfMeasure == "octets") {
+							var n = Number(s);
 							if(lastChar == "g") {
-								charValue.value = s + "000000000";
+								charValue.value = n * 1000000000;
 							}
 							else if(lastChar == "m") {
-								charValue.value = s + "000000";
+								charValue.value = n * 1000000;
 							}
 							else if(lastChar == "k") {
-								charValue.value = s + "000";
+								charValue.value = n * 1000;
 							} else {
-								charValue.value = s;
+								charValue.value = n;
 							}
 						}
 						var charValueUse = new Object();
