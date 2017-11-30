@@ -1758,17 +1758,10 @@ get_subscriber_balance(Config) ->
 	Authentication = {"authorization", AuthKey},
 	Identity = ocs:generate_identity(),
 	Password = ocs:generate_password(),
-	{ok, _} = ocs:add_subscriber(Identity, Password, ProdID),
-	POSTURI = HostUrl ++ "/balanceManagement/v1/" ++ Identity ++ "/balanceTopups",
-	BucketType = {"type", "buckettype"},
-	Channel = {"channel", {struct, [{"name", "POS"}]}},
-	Balance = 10000000,
-	Amount = {"amount", {struct, [{"units", "octets"}, {"amount", Balance}]}},
-	JSON = {struct, [BucketType, Channel, Amount]},
-	RequestBody = lists:flatten(mochijson:encode(JSON)),
-	PostRequest = {POSTURI, [Accept, Authentication], ContentType, RequestBody},
-	{ok, POSTResult} = httpc:request(post, PostRequest, [], []),
-	{{"HTTP/1.1", 201, _Created}, _, _} = POSTResult,
+	Buckets = [#bucket{units = cents, remain_amount = 10000}],
+	{ok, _} = ocs:add_subscriber(Identity, Password, ProdID, [], Buckets, []),
+	{ok, #subscriber{buckets = Buckets1}} = ocs:find_subscriber(Identity),
+	#bucket{remain_amount = Balance} = lists:keyfind(cents, #bucket.units, Buckets1),
 	GETURI = HostUrl ++ "/balanceManagement/v1/" ++ Identity ++ "/buckets",
 	GETRequest = {GETURI, [Accept, Authentication]},
 	{ok, GETResult} = httpc:request(get, GETRequest, [], []),
@@ -1779,9 +1772,17 @@ get_subscriber_balance(Config) ->
 	{_, Identity} = lists:keyfind("id", 1, PrePayBalance),
 	{_, "/balanceManagement/v1/buckets/" ++ Identity} =
 			lists:keyfind("href", 1, PrePayBalance),
-	{_, {array, [{struct, RemAmount}]}} = lists:keyfind("remainedAmount", 1, PrePayBalance),
-	{_, Balance} = lists:keyfind("amount", 1, RemAmount),
-	{_, "octets"} = lists:keyfind("units", 1, RemAmount),
+	{_, {array, Buckets2}} = lists:keyfind("remainedAmount", 1, PrePayBalance),
+	F = fun(F, [{struct, L} | T]) ->
+		case lists:keyfind("units", 1, L) of
+			{_, "cents"} ->
+				{_, A} = lists:keyfind("amount", 1, L),
+				A;
+			false ->
+				F(F, T)
+		end
+	end,
+	Balance = F(F, Buckets2),
 	{_, "active"} = lists:keyfind("status", 1, PrePayBalance).
 
 simultaneous_updates_on_subscriber_failure() ->
