@@ -262,22 +262,22 @@ request1(?AccountingStart, AcctSessionId, Id,
 	Destination = proplists:get_value(?CalledStationId, Attributes, ""),
 	case ocs_rating:rate(radius, Subscriber,
 			Destination, initial, [], [], SessionAttributes) of
+		{ok, #subscriber{}, _} ->
+			ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, start, Attributes),
+			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{out_of_credit, SessionList}  ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
 			start_disconnect(State, Subscriber, SessionList),
 			{noreply, State};
-		{error, Reason} ->
-			error_logger:warning_report(["Accounting failed",
-					{error, Reason}, {module, ?MODULE},
-					{subscriber, Subscriber}, {nas, NasId},
-					{address, Address}, {session, AcctSessionId}]),
-			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{disabled, SessionList} ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
 			start_disconnect(State, Subscriber, SessionList),
 			{noreply, State};
-		{ok, #subscriber{}, _} ->
-			ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, start, Attributes),
+		{error, Reason} ->
+			error_logger:error_report(["Rating Error",
+					{module, ?MODULE}, {error, Reason},
+					{nas, NasId}, {request_type, start}, {subscriber, Subscriber},
+					{address, Address}, {session, AcctSessionId}]),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
 request1(?AccountingStop, AcctSessionId, Id,
@@ -297,21 +297,21 @@ request1(?AccountingStop, AcctSessionId, Id,
 	Destination = proplists:get_value(?CalledStationId, Attributes, ""),
 	case ocs_rating:rate(radius, Subscriber,
 			Destination, final, DebitAmount, [], SessionAttributes) of
+		{ok, #subscriber{}, _} ->
+			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{out_of_credit, SessionList}  ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
 			start_disconnect(State, Subscriber, SessionList),
 			{noreply, State};
-		{error, Reason} ->
-			error_logger:warning_report(["Accounting failed",
-					{error, Reason}, {module, ?MODULE},
-					{subscriber, Subscriber}, {nas, NasId},
-					{address, Address}, {session, AcctSessionId}]),
-			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{disabled, SessionList} ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
 			start_disconnect(State, Subscriber, SessionList),
 			{noreply, State};
-		{ok, #subscriber{}, _} ->
+		{error, Reason} ->
+			error_logger:error_report(["Rating Error",
+					{module, ?MODULE}, {error, Reason},
+					{nas, NasId}, {request_type, start}, {subscriber, Subscriber},
+					{address, Address}, {used, DebitAmount}, {session, AcctSessionId}]),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
 request1(?AccountingInterimUpdate, AcctSessionId, Id,
@@ -331,11 +331,7 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 	Destination = proplists:get_value(?CalledStationId, Attributes, ""),
 	case ocs_rating:rate(radius, Subscriber,
 			Destination, interim, [], ReserveAmount, SessionAttributes) of
-		{error, not_found} ->
-			error_logger:warning_report(["Accounting subscriber not found",
-					{module, ?MODULE}, {subscriber, Subscriber},
-					{username, Subscriber}, {nas, NasId}, {address, Address},
-					{session, AcctSessionId}]),
+		{ok, #subscriber{}, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{out_of_credit, SessionList} ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
@@ -345,8 +341,14 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
 			start_disconnect(State, Subscriber, SessionList),
 			{noreply, State};
-		{ok, #subscriber{}, _} ->
-			{reply, {ok, response(Id, Authenticator, Secret)}, State}
+		{error, not_found} ->
+			{reply, {ok, response(Id, Authenticator, Secret)}, State};
+		{error, Reason} ->
+			error_logger:error_report(["Rating Error",
+					{module, ?MODULE}, {error, Reason}, {nas, NasId},
+					{request_type, start}, {subscriber, Subscriber},
+					{address, Address}, {reserved, ReserveAmount},
+					{session, AcctSessionId}])
 	end;
 request1(?AccountingON, _AcctSessionId, Id,
 		Authenticator, Secret, _NasId, _Address, _AccPort, _ListenPort, Attributes,

@@ -283,9 +283,6 @@ request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 					RequestType, RequestNum, State),
 			{reply, Reply, NewState};
 		{out_of_credit, _SessionList} ->
-			error_logger:warning_report(["out of credit",
-					{module, ?MODULE}, {subscriber, Subscriber},
-					{origin_host, OHost}]),
 			{Reply, NewState} = generate_diameter_answer(Request, SId,
 					undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
 					ORealm, RequestType, RequestNum, State),
@@ -296,13 +293,15 @@ request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 					ORealm, RequestType, RequestNum, State),
 			{reply, Reply, NewState};
 		{error, subscriber_not_found} ->
-			error_logger:warning_report(["diameter accounting subscriber not found",
-					{module, ?MODULE}, {subscriber, Subscriber},
-					{origin_host, OHost}]),
 			{Reply, NewState} = generate_diameter_error(SId, ?'IETF_RESULT-CODE_USER_UNKNOWN',
 					OHost, ORealm, RequestType, RequestNum, State),
 			{reply, Reply, NewState};
-		{error, _Reason} ->
+		{error, Reason} ->
+			error_logger:error_report(["Rating Error",
+					{module, ?MODULE}, {error, Reason},
+					{origin_host, OHost}, {origin_realm},
+					{request_type, RequestType}, {subscriber, Subscriber},
+					{destination, Destination}, {reservation, ReserveAmount}]),
 			{Reply, NewState} = generate_diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
 					OHost, ORealm, RequestType, RequestNum, State),
 			{reply, Reply, NewState}
@@ -368,9 +367,6 @@ request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 						RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{out_of_credit, _SessionList} ->
-				error_logger:warning_report(["out of credit",
-						{module, ?MODULE}, {subscriber, Subscriber},
-						{origin_host, OHost}]),
 				{Reply, NewState} = generate_diameter_answer(Request, SId,
 						undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
 						ORealm, RequestType, RequestNum, State),
@@ -381,13 +377,16 @@ request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 						ORealm, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{error, subscriber_not_found} ->
-				error_logger:warning_report(["diameter accounting subscriber not found",
-						{module, ?MODULE}, {subscriber, Subscriber},
-						{origin_host, OHost}]),
 				{Reply, NewState} = generate_diameter_error(SId, ?'IETF_RESULT-CODE_USER_UNKNOWN',
 						OHost, ORealm, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
-			{error, _Reason} ->
+			{error, Reason} ->
+				error_logger:error_report(["Rating Error",
+						{module, ?MODULE}, {error, Reason},
+						{origin_host, OHost}, {origin_realm},
+						{request_type, RequestType}, {subscriber, Subscriber},
+						{destination, Destination}, {reservation, ReserveAmount},
+						{used, DebitAmount}]),
 				{Reply, NewState} = generate_diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
 						OHost, ORealm, RequestType, RequestNum, State),
 				{reply, Reply, NewState}
@@ -433,9 +432,6 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 						RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{out_of_credit, _SessionList} ->
-				error_logger:warning_report(["out of credit",
-						{module, ?MODULE}, {subscriber, Subscriber},
-						{origin_host, OHost}]),
 				{Reply, NewState} = generate_diameter_answer(Request, SId,
 						undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
 						ORealm, RequestType, RequestNum, State),
@@ -446,13 +442,15 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 						ORealm, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
 			{error, subscriber_not_found} ->
-				error_logger:warning_report(["diameter accounting subscriber not found",
-						{module, ?MODULE}, {subscriber, Subscriber},
-						{origin_host, OHost}]),
 				{Reply, NewState} = generate_diameter_error(SId, ?'IETF_RESULT-CODE_USER_UNKNOWN',
 						OHost, ORealm, RequestType, RequestNum, State),
 				{reply, Reply, NewState};
-			{error, _Reason} ->
+			{error, Reason} ->
+				error_logger:error_report(["Rating Error",
+						{module, ?MODULE}, {error, Reason},
+						{origin_host, OHost}, {origin_realm},
+						{request_type, RequestType}, {subscriber, Subscriber},
+						{destination, Destination}, {used, DebitAmount}]),
 				{Reply, NewState} = generate_diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
 						OHost, ORealm, RequestType, RequestNum, State),
 				{reply, Reply, NewState}
