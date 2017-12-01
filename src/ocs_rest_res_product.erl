@@ -1536,7 +1536,7 @@ radius_reserve_octets(N) when N =/= 0 ->
 %% @hidden
 radius_reserve_octets([{"unitOfMeasure", Units} | T], undefined, Value) ->
 	radius_reserve_octets(T, Units, Value);
-radius_reserve_octets([{"value", Value} | T], Units, 0) ->
+radius_reserve_octets([{"value", Value} | T], Units, 0) when is_integer(Value) ->
 	radius_reserve_octets(T, Units, Value);
 radius_reserve_octets([], "bytes", Value) ->
 	Value;
@@ -1561,7 +1561,7 @@ radius_reserve_time(N) when N =/= 0 ->
 %% @hidden
 radius_reserve_time([{"unitOfMeasure", Units} | T], undefined, Value) ->
 	radius_reserve_time(T, Units, Value);
-radius_reserve_time([{"value", Value} | T], Units, 0) ->
+radius_reserve_time([{"value", Value} | T], Units, 0) when is_integer(Value) ->
 	radius_reserve_time(T, Units, Value);
 radius_reserve_time([], "seconds", Value) ->
 	Value;
