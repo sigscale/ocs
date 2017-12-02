@@ -2283,14 +2283,14 @@ query_start(Query, Filters, RangeStart, RangeEnd) ->
 	Now = erlang:system_time(?MILLISECOND),
 	case lists:keytake("type", 1, Query) of
 		{_, {_, "AAAAccessUsage"}, Query1} ->
-			Start = case lists:keytake("date", 1, Query1) of
+			{Start, End}  = case lists:keytake("date", 1, Query1) of
 				{_, {_, DateTime}, []} when length(DateTime) > 3 ->
-					ocs_log:iso8601(DateTime);
+					range(DateTime);
 				false ->
-					1
+					{1, Now}
 			end,
 			case supervisor:start_child(ocs_rest_pagination_sup,
-					[[ocs_log, auth_query, [Start, Now, '_', '_', '_', '_']]]) of
+					[[ocs_log, auth_query, [Start, End, '_', '_', '_', '_']]]) of
 				{ok, PageServer, Etag} ->
 					query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
 				{error, _Reason} ->
@@ -2406,4 +2406,155 @@ get_last1(Log, Decoder, Filters) ->
 					{error, Status}
 			end
 	end.
+
+%% @hidden
+range([Y1, Y2, Y3, Y4 | T] = DateTime)
+		when Y1 >= $0, Y1 =< $9, Y2 >= $0, Y2 =< $9,
+		Y3 >= $0, Y3 =< $9, Y4 >= $0, Y4 =< $9 ->
+	{ocs_log:iso8601(DateTime), range([Y1, Y2, Y3, Y4], T)}.
+%% @hidden
+range(Year, []) ->
+	EndYear = list_to_integer(Year) + 1,
+	End = lists:flatten(io_lib:fwrite("~4.10.0b", [EndYear])),
+	ocs_log:iso8601(End) - 1;
+range(Year, "-") ->
+	range(Year, []);
+range(Year, "-0") ->
+	ocs_log:iso8601(Year ++ "-10-01") - 1;
+range(Year, "-1") ->
+	EndYear = list_to_integer(Year) + 1,
+	End = lists:flatten(io_lib:fwrite("~4.10.0b", [EndYear])),
+	ocs_log:iso8601(End) - 1;
+range(Year, [$-, $0, N]) when N >= $1, N =< $8 ->
+	ocs_log:iso8601(Year ++ [$-, $0, N + 1]) - 1;
+range(Year, "-09") ->
+	ocs_log:iso8601(Year ++ "-10") - 1;
+range(Year, "-10") ->
+	ocs_log:iso8601(Year ++ "-11") - 1;
+range(Year, "-11") ->
+	ocs_log:iso8601(Year ++ "-12") - 1;
+range(Year, "-12") ->
+	EndYear = list_to_integer(Year) + 1,
+	End = lists:flatten(io_lib:fwrite("~4.10.0b", [EndYear])),
+	ocs_log:iso8601(End) - 1;
+range(Year, [$-, M1, M2, $-]) ->
+	range(Year, [$-, M1, M2]);
+range(Year, [$-, M1, M2, $-, $0]) ->
+	ocs_log:iso8601(Year ++ [$-, M1, M2, $-, $1, $0]) - 1;
+range(Year, [$-, M1, M2, $-, $1]) ->
+	ocs_log:iso8601(Year ++ [$-, M1, M2, $-, $2, $0]) - 1;
+range(Year, "-02-2") ->
+	ocs_log:iso8601(Year ++ "-03") - 1;
+range(Year, [$-, M1, M2, $-, $2]) ->
+	ocs_log:iso8601(Year ++ [$-, M1, M2, $-, $3, $0]) - 1;
+range(Year, "-12-3") ->
+	EndYear = list_to_integer(Year) + 1,
+	End = lists:flatten(io_lib:fwrite("~4.10.0b", [EndYear])),
+	ocs_log:iso8601(End) - 1;
+range(Year, [$-, M1, M2, $-, $3]) ->
+	Month = list_to_integer([M1, M2]) + 1,
+	End = lists:flatten(io_lib:fwrite("-~2.10.0b", [Month])),
+	ocs_log:iso8601(Year ++ End) - 1;
+range(Year, "-02-29") ->
+	ocs_log:iso8601(Year ++ "-03-01") - 1;
+range(Year, "-02-28") ->
+	case calendar:last_day_of_the_month(list_to_integer(Year), 2) of
+		28 ->
+			ocs_log:iso8601(Year ++ "-03-01") - 1;
+		29 ->
+			ocs_log:iso8601(Year ++ "-02-29") - 1
+	end;
+range(Year, [$-, M1, M2, $-, $0, $9]) ->
+	ocs_log:iso8601(Year ++ [$-, M1, M2, $-, $1, $0]) - 1;
+range(Year, [$-, M1, M2, $-, $0, D2]) ->
+	ocs_log:iso8601(Year ++ [$-, M1, M2, $-, $0, D2 + 1]) - 1;
+range(Year, [$-, M1, M2, $-, $1, $9]) ->
+	ocs_log:iso8601(Year ++ [$-, M1, M2, $-, $2, 0]) - 1;
+range(Year, [$-, M1, M2, $-, $1, D2]) ->
+	ocs_log:iso8601(Year ++ [$-, M1, M2, $-, $1, D2 + 1]) - 1;
+range(Year, [$-, M1, M2, $-, $2, $9]) ->
+	ocs_log:iso8601(Year ++ [$-, M1, M2, $-, $3, $0]) - 1;
+range(Year, [$-, $0, $4, $-, $3, $0]) ->
+	ocs_log:iso8601(Year ++ [$-, $0, $5, $-, $0, $1]) - 1;
+range(Year, [$-, $0, $6, $-, $3, $0]) ->
+	ocs_log:iso8601(Year ++ [$-, $0, $7, $-, $0, $1]) - 1;
+range(Year, [$-, $0, $9, $-, $3, $0]) ->
+	ocs_log:iso8601(Year ++ [$-, $1, $0, $-, $0, $1]) - 1;
+range(Year, [$-, $1, $1, $-, $3, $0]) ->
+	ocs_log:iso8601(Year ++ [$-, $1, $2, $-, $0, $1]) - 1;
+range(Year, [$-, $1, $2, $-, $3, $1]) ->
+	EndYear = list_to_integer(Year) + 1,
+	End = lists:flatten(io_lib:fwrite("~4.10.0b", [EndYear])),
+	ocs_log:iso8601(End) - 1;
+range(Year, [$-, M1, M2, $-, $3, $0]) ->
+	ocs_log:iso8601(Year ++ [$-, M1, M2, $-, $3, $1]) - 1;
+range(Year, [$-, M1, M2, $-, D1, D2, $T]) ->
+	range(Year, [$-, M1, M2, $-, D1, D2]);
+range(Year, [$-, M1, M2, $-, D1, D2, $T | T]) ->
+	range(Year, [$-, M1, M2, $-, D1, D2, $T], T).
+%% @hidden
+range(Year, Day, [$0]) ->
+	ocs_log:iso8601(Year ++ Day ++ "10") - 1;
+range(Year, Day, [$1]) ->
+	ocs_log:iso8601(Year ++ Day ++ "20") - 1;
+range(Year, Day, [$2]) ->
+	ocs_log:iso8601(Year ++ Day ++ "24") - 1;
+range(Year, Day, "09") ->
+	ocs_log:iso8601(Year ++ Day ++ "10") - 1;
+range(Year, Day, [$0, N]) ->
+	ocs_log:iso8601(Year ++ Day ++ [$0, N + 1]) - 1;
+range(Year, Day, "19") ->
+	ocs_log:iso8601(Year ++ Day ++ "20") - 1;
+range(Year, Day, [$1, N]) ->
+	ocs_log:iso8601(Year ++ Day ++ [$1, N + 1]) - 1;
+range(Year, Day, [$2, N]) when N >= $0, N =< $3 ->
+	ocs_log:iso8601(Year ++ Day ++ [$1, N + 1]) - 1;
+range(Year, Day, [H1, H2, $:]) ->
+	range(Year, Day, [H1, H2]);
+range(Year, Day, [H1, H2, $:, $5]) ->
+	Hour = list_to_integer([H1, H2]) + 1,
+	End = lists:flatten(io_lib:fwrite("~2.10.0b", [Hour])),
+	ocs_log:iso8601(Year ++ Day ++ End) - 1;
+range(Year, Day, [H1, H2, $:, M]) ->
+	ocs_log:iso8601(Year ++ Day ++ [H1, H2, $:, M + 1]) - 1;
+range(Year, Day, [H1, H2, $:, $5, $9]) ->
+	Hour = list_to_integer([H1, H2]) + 1,
+	End = lists:flatten(io_lib:fwrite("~2.10.0b", [Hour])),
+	ocs_log:iso8601(Year ++ Day ++ End) - 1;
+range(Year, Day, [H1, H2, $:, M, $9]) ->
+	ocs_log:iso8601(Year ++ Day ++ [H1, H2, $:, M + 1, $0]) - 1;
+range(Year, Day, [H1, H2, $:, M1, M2]) ->
+	ocs_log:iso8601(Year ++ Day ++ [H1, H2, $:, M1, M2 + 1]) - 1;
+range(Year, Day, [H1, H2, $:, M1, M2, $:]) ->
+	range(Year, Day, [H1, H2, $:, M1, M2]);
+range(Year, Day, [H1, H2, $:, $5, $9, $:, $5]) ->
+	Hour = list_to_integer([H1, H2]) + 1,
+	End = lists:flatten(io_lib:fwrite("~2.10.0b", [Hour])),
+	ocs_log:iso8601(Year ++ Day ++ End) - 1;
+range(Year, Day, [H1, H2, $:, M1, M2, $:, $5]) ->
+	Minute = list_to_integer([M1, M2]) + 1,
+	End = lists:flatten(io_lib:fwrite("~2.10.0b", [Minute])),
+	ocs_log:iso8601(Year ++ Day ++ [H1, H2, $:] ++ End) - 1;
+range(Year, Day, [H1, H2, $:, M1, M2, $:, N]) ->
+	ocs_log:iso8601(Year ++ Day ++ [H1, H2, $:, M1, M2, $:, N + 1]) - 1;
+range(Year, Day, [H1, H2, $:, $5, $9, $:, $5, $9]) ->
+	Hour = list_to_integer([H1, H2]) + 1,
+	End = lists:flatten(io_lib:fwrite("~2.10.0b", [Hour])),
+	ocs_log:iso8601(Year ++ Day ++ End) - 1;
+range(Year, Day, [H1, H2, $:, M1, M2, $:, $5, $9]) ->
+	Minute = list_to_integer([M1, M2]) + 1,
+	End = lists:flatten(io_lib:fwrite("~2.10.0b", [Minute])),
+	ocs_log:iso8601(Year ++ Day ++ [H1, H2, $:] ++ End) - 1;
+range(Year, Day, [H1, H2, $:, M1, M2, $:, S1, $9]) ->
+	ocs_log:iso8601(Year ++ Day ++ [H1, H2, $:, M1, M2, $:, S1 + 1, $0]) - 1;
+range(Year, Day, [H1, H2, $:, M1, M2, $:, S1, S2]) ->
+	ocs_log:iso8601(Year ++ Day ++ [H1, H2, $:, M1, M2, $:, S1, S2 + 1]) - 1;
+range(Year, Day, [H1, H2, $:, M1, M2, $:, S1, S2, $.]) ->
+	range(Year, Day, [H1, H2, $:, M1, M2, $:, S1, S2]);
+range(Year, Day, [_, _, $:, _, _, $:, _, _, $., _] = S) ->
+	ocs_log:iso8601(Year ++ Day ++ S ++ "99");
+range(Year, Day, [_, _, $:, _, _, $:, _, _, $., _, _] = S) ->
+	ocs_log:iso8601(Year ++ Day ++ S ++ "9");
+range(Year, Day, [_, _, $:, _, _, $:, _, _, $., _, _ | _] = S) ->
+	ocs_log:iso8601(Year ++ Day ++ S).
 
