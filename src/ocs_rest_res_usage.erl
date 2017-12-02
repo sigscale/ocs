@@ -2286,7 +2286,7 @@ query_start(Query, Filters, RangeStart, RangeEnd) ->
 			Start = case lists:keytake("date", 1, Query1) of
 				{_, {_, DateTime}, []} when length(DateTime) > 3 ->
 					ocs_log:iso8601(DateTime);
-				_ ->
+				false ->
 					1
 			end,
 			case supervisor:start_child(ocs_rest_pagination_sup,
