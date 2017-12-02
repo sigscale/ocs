@@ -451,9 +451,11 @@ add_subscriber(undefined, Password, Product, Characteristics, Buckets, Attribute
 					[#product{} = P] ->
 						N = erlang:unique_integer([positive]),
 						S1 = #subscriber{password = Password,
-						attributes = Attributes, buckets = Buckets,
-						enabled = EnabledStatus, multisession = MultiSession,
-						last_modified = {Now, N}},
+								attributes = Attributes,
+								buckets = Buckets,
+								enabled = EnabledStatus,
+								multisession = MultiSession,
+								last_modified = {Now, N}},
 						S2 = subscription(S1, P, Characteristics),
 						F3 = fun(_, _, 0) ->
 									mnesia:abort(retries);
@@ -497,10 +499,13 @@ add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes
 				case mnesia:read(product, ProductId, read) of
 					[#product{} = P] ->
 						N = erlang:unique_integer([positive]),
-						S1 = #subscriber{name = Identity, password = Password,
-						attributes = Attributes, buckets = Buckets,
-						enabled = EnabledStatus, multisession = MultiSession,
-						last_modified = {Now, N}},
+						S1 = #subscriber{name = Identity,
+								password = Password,
+								attributes = Attributes,
+								buckets = Buckets,
+								enabled = EnabledStatus,
+								multisession = MultiSession,
+								last_modified = {Now, N}},
 						S2 = subscription(S1, P, Characteristics),
 						ok = mnesia:write(S2),
 						S2;
