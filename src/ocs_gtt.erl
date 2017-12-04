@@ -349,13 +349,14 @@ import3([], Acc) ->
 %% @hidden
 import4([Key | Value]) ->
 	Tuple = list_to_tuple(lists:reverse(Value)),
-	K = case Key of
-		K1 when is_list(K1) ->
-			list_to_integer(K1);
-		K1 when is_integer(K1) ->
-			K1
-	end,
-	#gtt{num = K, value = Tuple}.
+	case is_key_integer(Key) of
+		true->
+			K = list_to_integer(Key),
+			#gtt{num = K, value = Tuple};
+		false ->
+			exit(invalid_key)
+	end.
+
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
@@ -388,3 +389,28 @@ insert(Table, P, [H | T], Value, N) ->
 			insert(Table, Number, T, Value, N + 1)
 	end.
 
+%% @hidden
+is_key_integer([$0 | T]) ->
+	is_key_integer(T);
+is_key_integer([$1 | T]) ->
+	is_key_integer(T);
+is_key_integer([$2 | T]) ->
+	is_key_integer(T);
+is_key_integer([$3 | T]) ->
+	is_key_integer(T);
+is_key_integer([$4 | T]) ->
+	is_key_integer(T);
+is_key_integer([$5 | T]) ->
+	is_key_integer(T);
+is_key_integer([$6 | T]) ->
+	is_key_integer(T);
+is_key_integer([$7 | T]) ->
+	is_key_integer(T);
+is_key_integer([$8 | T]) ->
+	is_key_integer(T);
+is_key_integer([$9 | T]) ->
+	is_key_integer(T);
+is_key_integer([]) ->
+	true;
+is_key_integer(_) ->
+	false.
