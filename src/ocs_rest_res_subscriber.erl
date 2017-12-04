@@ -520,6 +520,10 @@ bucket([termination_date | T], #bucket{termination_date = TDate} = Bucket, Acc) 
 	bucket(T, Bucket, [{"terminationDate", ocs_rest:iso8601(TDate)} | Acc]);
 bucket([remain_amount | T], #bucket{remain_amount = Amount} = Bucket, Acc) ->
 	bucket(T, Bucket, [{"remainAmount", Amount} | Acc]);
+bucket([reservations | T], Bucket, Acc) ->
+	bucket(T, Bucket, Acc);
+bucket([last_modified | T], Bucket, Acc) ->
+	bucket(T, Bucket, Acc);
 bucket([], _Bucket, Acc) ->
 	{struct, Acc}.
 
