@@ -314,8 +314,12 @@ import(Table, Records) ->
 		{atomic, ok} ->
 			import1(Table, Records);
 		{aborted, {already_exists, Table}} ->
-			mnesia:clear_table(Table),
-			import1(Table, Records);
+			case mnesia:clear_table(Table) of
+				{atomic, ok} ->
+					import1(Table, Records);
+				{aborted, Reason} ->
+					exit(Reason)
+			end;
 		{aborted, Reason} ->
 			exit(Reason)
 	end.
