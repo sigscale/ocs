@@ -413,6 +413,9 @@ reserve_session(Type, Amount, Now, SessionId,
 			reservations = [NewReservation | Reservations]} | T],
 	{Reserved + Amount, NewBuckets};
 reserve_session(Type, Amount, Now, SessionId,
+		[#bucket{remain_amount = 0} = B | T], Acc, Reserved) ->
+	reserve_session(Type, Amount, Now, SessionId, T, [B | Acc], Reserved);
+reserve_session(Type, Amount, Now, SessionId,
 		[#bucket{units = Type, remain_amount = Remain,
 		reservations = Reservations, termination_date = Expires} = B | T],
 		Acc, Reserved) when Remain < Amount,
