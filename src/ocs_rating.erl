@@ -131,15 +131,19 @@ rate2(Protocol, PriceTable, Subscriber, Destination, Prices,
 		Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes) ->
 	case catch ocs_gtt:lookup_last(PriceTable, Destination) of
 		{_Description, RateName} when is_list(RateName) ->
+erlang:display({?MODULE, ?LINE, _Description, RateName}),
 			F1 = fun(F, [#price{char_value_use = CharValueUse} = H | T]) ->
+erlang:display({?MODULE, ?LINE, CharValueUse}),
 						case lists:keyfind("ratePrice", #char_value_use.name, CharValueUse) of
 							#char_value_use{values = [#char_value{value = RateName}]} ->
+erlang:display({?MODULE, ?LINE, RateName}),
 								H;
 							false ->
 								F(F, T)
 						end;
 					(_, []) ->
 						F2 = fun(_, [#price{name = Name} = H | _]) when Name == RateName ->
+erlang:display({?MODULE, ?LINE, RateName}),
 									H;
 								(F, [_H | T]) ->
 									F(F, T);
@@ -153,10 +157,16 @@ rate2(Protocol, PriceTable, Subscriber, Destination, Prices,
 					rate4(Protocol, Subscriber, Price, Validity,
 							Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
 				false ->
+					error_logger:error_report(["Prefix table price name not found",
+							{module, ?MODULE}, {table, PriceTable},
+							{destination, Destination}, {price_name, RateName}]),
 					throw(price_not_found)
 			end;
-		_ ->
-			throw(rating_failed)
+		Other ->
+			error_logger:error_report(["Prefix table price name lookup failed",
+					{module, ?MODULE}, {table, PriceTable},
+					{destination, Destination}, {result, Other}]),
+			throw(table_lookup_failed)
 	end.
 %% @hidden
 rate3(Protocol, TariffTable, Subscriber, Destination, Prices,
@@ -174,10 +184,16 @@ rate3(Protocol, TariffTable, Subscriber, Destination, Prices,
 					rate4(Protocol, Subscriber, Price#price{amount = Amount}, Validity,
 							Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
 				false ->
+					error_logger:error_report(["Prefix table tariff price type not found",
+							{module, ?MODULE}, {table, TariffTable},
+							{destination, Destination}, {tariff_price, Amount}]),
 					throw(price_not_found)
 			end;
-		_ ->
-			throw(rating_failed)
+		Other ->
+			error_logger:error_report(["Prefix table tariff lookup failed",
+					{module, ?MODULE}, {table, TariffTable},
+					{destination, Destination}, {result, Other}]),
+			throw(table_lookup_failed)
 	end.
 %% @hidden
 rate4(_Protocol, #subscriber{enabled = false} = Subscriber, _Price,
