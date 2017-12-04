@@ -350,10 +350,9 @@ import3([], Acc) ->
 %% @hidden
 import4([Key | Value]) ->
 	Tuple = list_to_tuple(Value),
-	case is_key_integer(Key) of
+	case is_key_number(Key) of
 		true->
-			K = list_to_integer(Key),
-			#gtt{num = K, value = Tuple};
+			#gtt{num = Key, value = Tuple};
 		false ->
 			exit(invalid_key)
 	end.
@@ -391,27 +390,28 @@ insert(Table, P, [H | T], Value, N) ->
 	end.
 
 %% @hidden
-is_key_integer([$0 | T]) ->
-	is_key_integer(T);
-is_key_integer([$1 | T]) ->
-	is_key_integer(T);
-is_key_integer([$2 | T]) ->
-	is_key_integer(T);
-is_key_integer([$3 | T]) ->
-	is_key_integer(T);
-is_key_integer([$4 | T]) ->
-	is_key_integer(T);
-is_key_integer([$5 | T]) ->
-	is_key_integer(T);
-is_key_integer([$6 | T]) ->
-	is_key_integer(T);
-is_key_integer([$7 | T]) ->
-	is_key_integer(T);
-is_key_integer([$8 | T]) ->
-	is_key_integer(T);
-is_key_integer([$9 | T]) ->
-	is_key_integer(T);
-is_key_integer([]) ->
+is_key_number([$0 | T]) ->
+	is_key_number(T);
+is_key_number([$1 | T]) ->
+	is_key_number(T);
+is_key_number([$2 | T]) ->
+	is_key_number(T);
+is_key_number([$3 | T]) ->
+	is_key_number(T);
+is_key_number([$4 | T]) ->
+	is_key_number(T);
+is_key_number([$5 | T]) ->
+	is_key_number(T);
+is_key_number([$6 | T]) ->
+	is_key_number(T);
+is_key_number([$7 | T]) ->
+	is_key_number(T);
+is_key_number([$8 | T]) ->
+	is_key_number(T);
+is_key_number([$9 | T]) ->
+	is_key_number(T);
+is_key_number([]) ->
 	true;
-is_key_integer(_) ->
+is_key_number(_) ->
 	false.
+
