@@ -40,9 +40,7 @@
 
 %% export API
 -export([new/2, new/3, insert/2, insert/3, delete/2, lookup_first/2,
-		lookup_last/2, lookup_all/2, backup/2, restore/2]).
-
--export([import_price/1]).
+		lookup_last/2, lookup_all/2, backup/2, restore/2, import/1]).
 
 -record(gtt, {num, value}).
 
@@ -292,44 +290,41 @@ restore(Tables, File) when is_list(Tables), is_list(File) ->
 			exit(Reason)
 	end.
 
-import_price(File) ->
-	import(File, price_t).
-
--spec import(File, Recordname) -> ok
+-spec import(File) -> ok
 	when
-		File :: string(),
-		Recordname :: atom().
+		File :: string().
 %% @doc Import data from csv file and create persist table,
 %% If table is already exsist remove old records form table
-%% and write new data into the table.
-import(File, Recordname) ->
+%% and write new data into the table
+%% First column should be an integer and.
+import(File) ->
 	case file:read_file(File) of
 		{ok, Records} ->
 			Basename = filename:basename(File),
 			Table = list_to_atom( string:sub_string(Basename,
 				1, string:rchr(Basename, $.) - 1)),
-			import(Table, Recordname, Records);
+			import(Table, Records);
 		{error, Reason} ->
 			exit(file:format_error(Reason))
 	end.
 %% @hidden
-import(Table, Recordname, Records) ->
+import(Table, Records) ->
 	case mnesia:create_table(Table,
 			[{disc_copies, [node() | nodes()]},
 			{attributes, record_info(fields, gtt)},
 			{record_name, gtt}]) of
 		{atomic, ok} ->
-			import1(Table, Recordname, Records);
+			import1(Table, Records);
 		{aborted, {already_exists, Table}} ->
 			mnesia:clear_table(Table),
-			import1(Table, Recordname, Records);
+			import1(Table, Records);
 		{aborted, Reason} ->
 			exit(Reason)
 	end.
 %% @hidden
-import1(Table, Recordname, Records) ->
+import1(Table, Records) ->
 	Split = binary:split(Records, [<<"\n">>], [global]),
-	F = fun() -> import2(Table, Recordname, Split,[]) end,
+	F = fun() -> import2(Table, Split, []) end,
 	case mnesia:transaction(F) of
 		{atomic, ok} ->
 			ok;
@@ -337,13 +332,30 @@ import1(Table, Recordname, Records) ->
 			exit(Reason)
 	end.
 %% @hidden
-import2(Table, _, [<<>>], Acc) ->
+import2(Table, [<<>>], Acc) ->
 	F = fun(#gtt{} = G) -> mnesia:write(Table, G, write) end,
 	lists:foreach(F, Acc);
-import2(Table, Recordname, [Chunk | Rest], Acc) ->
-	H = list_to_tuple([Recordname | string:tokens(binary_to_list(Chunk), ",\"\\")]),
-	import2(Table, Recordname, Rest, [#gtt{num = element(2, H), value = H} | Acc]).
-
+import2(Table, [Chunk | Rest], Acc) ->
+	NewAcc = [import3(binary:split(Chunk,
+			[<<",">>], [global]), []) | Acc],
+	import2(Table, Rest, NewAcc).
+%% @hidden
+import3([<<>> | T], Acc) ->
+	import3(T, [undefined, Acc]);
+import3([H | T], Acc) ->
+	import3(T, [binary_to_list(H) | Acc]);
+import3([], Acc) ->
+	import4(lists:reverse(Acc)).
+%% @hidden
+import4([Key | Value]) ->
+	Tuple = list_to_tuple(lists:reverse(Value)),
+	K = case Key of
+		K1 when is_list(K1) ->
+			list_to_integer(K1);
+		K1 when is_integer(K1) ->
+			K1
+	end,
+	#gtt{num = K, value = Tuple}.
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
