@@ -130,7 +130,7 @@ rate1(Protocol, Subscriber, _Destiations, #product{price = Prices}, Validity,
 rate2(Protocol, PriceTable, Subscriber, Destination, Prices,
 		Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes) ->
 	case catch ocs_gtt:lookup_last(PriceTable, Destination) of
-		{_, _Prefix, _Description, RateName} when is_list(RateName) ->
+		{_Description, RateName} when is_list(RateName) ->
 			F1 = fun(F, [#price{char_value_use = CharValueUse} = H | T]) ->
 						case lists:keyfind("ratePrice", #char_value_use.name, CharValueUse) of
 							#char_value_use{values = [#char_value{value = RateName}]} ->
@@ -162,7 +162,13 @@ rate2(Protocol, PriceTable, Subscriber, Destination, Prices,
 rate3(Protocol, TariffTable, Subscriber, Destination, Prices,
 		Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes) ->
 	case catch ocs_gtt:lookup_last(TariffTable, Destination) of
-		{_, _Prefix, _Description, Amount} when is_integer(Amount) ->
+		{_Description, AmountL} ->
+			Amount = case AmountL of
+				A when is_list(A) ->
+					list_to_integer(A);
+				A when is_integer(A) ->
+					A
+			end,
 			case lists:keyfind(tariff, #price.type, Prices) of
 				#price{} = Price ->
 					rate4(Protocol, Subscriber, Price#price{amount = Amount}, Validity,
