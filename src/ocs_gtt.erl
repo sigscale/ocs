@@ -293,16 +293,14 @@ restore(Tables, File) when is_list(Tables), is_list(File) ->
 -spec import(File) -> ok
 	when
 		File :: string().
-%% @doc Import data from csv file and create persist table,
-%% If table is already exsist remove old records form table
-%% and write new data into the table
-%% First column should be an integer and.
+%% @doc Import table from file.
+%% 	Create a new table or overwrite existing table.
 import(File) ->
 	case file:read_file(File) of
 		{ok, Records} ->
 			Basename = filename:basename(File),
-			Table = list_to_atom( string:sub_string(Basename,
-				1, string:rchr(Basename, $.) - 1)),
+			Table = list_to_atom(string:sub_string(Basename,
+					1, string:rchr(Basename, $.) - 1)),
 			import(Table, Records);
 		{error, Reason} ->
 			exit(file:format_error(Reason))
@@ -336,8 +334,7 @@ import2(Table, [<<>>], Acc) ->
 	F = fun(#gtt{} = G) -> mnesia:write(Table, G, write) end,
 	lists:foreach(F, Acc);
 import2(Table, [Chunk | Rest], Acc) ->
-	NewAcc = [import3(binary:split(Chunk,
-			[<<",">>], [global]), []) | Acc],
+	NewAcc = [import3(binary:split(Chunk, [<<",">>], [global]), []) | Acc],
 	import2(Table, Rest, NewAcc).
 %% @hidden
 import3([<<>> | T], Acc) ->
