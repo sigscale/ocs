@@ -349,7 +349,7 @@ import3([], Acc) ->
 	import4(lists:reverse(Acc)).
 %% @hidden
 import4([Key | Value]) ->
-	Tuple = list_to_tuple(lists:reverse(Value)),
+	Tuple = list_to_tuple(Value),
 	case is_key_integer(Key) of
 		true->
 			K = list_to_integer(Key),
