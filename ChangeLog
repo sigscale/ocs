@@ -1,3 +1,7 @@
+2017-12-04  Kalpa Gunarathna <kalpa@sigscale.org>
+
+	* ocs_gtt.erl : fixes for prefix table import
+
 2017-11-30  Vance Shipley <vances@sigscale.org>
 
 	* ocs_rating.erl : correct prefix table lookups
