@@ -85,6 +85,7 @@ sequences() ->
 %%
 all() -> 
 	[initial_reservation_available_remain_amount, initial_reservation_out_of_credit,
+	initial_reservation_multiple_sesion_with_out_of_credit,
 	initial_reservation_overhead, initial_reservation_multiple_buckets,
 	initial_reservation_expiry_buckets, initial_reservation_ignore_expired_buckets,
 	initial_reservation_add_session_attributes, interim_reservation_avaialbe_remain_amount,
@@ -142,7 +143,7 @@ initial_reservation_out_of_credit(_Config) ->
 	SubscriberID = list_to_binary(ocs:generate_identity()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
-	RemAmount = 10,
+	RemAmount = 0,
 	Buckets = [#bucket{units = cents, remain_amount = RemAmount,
 		start_date = erlang:system_time(?MILLISECOND),
 		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
@@ -150,6 +151,35 @@ initial_reservation_out_of_credit(_Config) ->
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
 	{out_of_credit, _} = ocs_rating:rate(radius, SubscriberID, Destination, initial, [], [{octets, PackageSize}], SessionId),
+	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
+	#bucket{remain_amount = 0} = lists:keyfind(cents, #bucket.units, RatedBuckets).
+
+initial_reservation_multiple_sesion_with_out_of_credit() ->
+	[{userdata, [{doc, "Not allow any
+		reservations if there havn't any remaining amount"}]}].
+
+initial_reservation_multiple_sesion_with_out_of_credit(_Config) ->
+	ProdID = ocs:generate_password(),
+	PackagePrice = 100,
+	PackageSize = 1000,
+	Price = #price{name = "overage", type = usage,
+		units = octets, size = PackageSize, amount = PackagePrice},
+	Product = #product{name = ProdID, price = [Price]},
+	{ok, _} = ocs:add_product(Product),
+	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
+	SessionId1 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	Buckets = [#bucket{units = cents, remain_amount = 0,
+		reservations = [{erlang:system_time(?MILLISECOND), 100, SessionId1}],
+		start_date = erlang:system_time(?MILLISECOND),
+		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
+	Destination = ocs:generate_identity(),
+	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
+	{out_of_credit, _} =
+		ocs_rating:rate(radius, SubscriberID, Destination,
+				initial, [], [{octets, PackageSize}], SessionId),
 	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = 0} = lists:keyfind(cents, #bucket.units, RatedBuckets).
 
