@@ -293,16 +293,14 @@ restore(Tables, File) when is_list(Tables), is_list(File) ->
 -spec import(File) -> ok
 	when
 		File :: string().
-%% @doc Import data from csv file and create persist table,
-%% If table is already exsist remove old records form table
-%% and write new data into the table
-%% First column should be an integer and.
+%% @doc Import table from file.
+%% 	Create a new table or overwrite existing table.
 import(File) ->
 	case file:read_file(File) of
 		{ok, Records} ->
 			Basename = filename:basename(File),
-			Table = list_to_atom( string:sub_string(Basename,
-				1, string:rchr(Basename, $.) - 1)),
+			Table = list_to_atom(string:sub_string(Basename,
+					1, string:rchr(Basename, $.) - 1)),
 			import(Table, Records);
 		{error, Reason} ->
 			exit(file:format_error(Reason))
@@ -316,8 +314,12 @@ import(Table, Records) ->
 		{atomic, ok} ->
 			import1(Table, Records);
 		{aborted, {already_exists, Table}} ->
-			mnesia:clear_table(Table),
-			import1(Table, Records);
+			case mnesia:clear_table(Table) of
+				{atomic, ok} ->
+					import1(Table, Records);
+				{aborted, Reason} ->
+					exit(Reason)
+			end;
 		{aborted, Reason} ->
 			exit(Reason)
 	end.
@@ -336,8 +338,7 @@ import2(Table, [<<>>], Acc) ->
 	F = fun(#gtt{} = G) -> mnesia:write(Table, G, write) end,
 	lists:foreach(F, Acc);
 import2(Table, [Chunk | Rest], Acc) ->
-	NewAcc = [import3(binary:split(Chunk,
-			[<<",">>], [global]), []) | Acc],
+	NewAcc = [import3(binary:split(Chunk, [<<",">>], [global]), []) | Acc],
 	import2(Table, Rest, NewAcc).
 %% @hidden
 import3([<<>> | T], Acc) ->
@@ -348,11 +349,10 @@ import3([], Acc) ->
 	import4(lists:reverse(Acc)).
 %% @hidden
 import4([Key | Value]) ->
-	Tuple = list_to_tuple(lists:reverse(Value)),
-	case is_key_integer(Key) of
+	Tuple = list_to_tuple(Value),
+	case is_key_number(Key) of
 		true->
-			K = list_to_integer(Key),
-			#gtt{num = K, value = Tuple};
+			#gtt{num = Key, value = Tuple};
 		false ->
 			exit(invalid_key)
 	end.
@@ -390,27 +390,28 @@ insert(Table, P, [H | T], Value, N) ->
 	end.
 
 %% @hidden
-is_key_integer([$0 | T]) ->
-	is_key_integer(T);
-is_key_integer([$1 | T]) ->
-	is_key_integer(T);
-is_key_integer([$2 | T]) ->
-	is_key_integer(T);
-is_key_integer([$3 | T]) ->
-	is_key_integer(T);
-is_key_integer([$4 | T]) ->
-	is_key_integer(T);
-is_key_integer([$5 | T]) ->
-	is_key_integer(T);
-is_key_integer([$6 | T]) ->
-	is_key_integer(T);
-is_key_integer([$7 | T]) ->
-	is_key_integer(T);
-is_key_integer([$8 | T]) ->
-	is_key_integer(T);
-is_key_integer([$9 | T]) ->
-	is_key_integer(T);
-is_key_integer([]) ->
+is_key_number([$0 | T]) ->
+	is_key_number(T);
+is_key_number([$1 | T]) ->
+	is_key_number(T);
+is_key_number([$2 | T]) ->
+	is_key_number(T);
+is_key_number([$3 | T]) ->
+	is_key_number(T);
+is_key_number([$4 | T]) ->
+	is_key_number(T);
+is_key_number([$5 | T]) ->
+	is_key_number(T);
+is_key_number([$6 | T]) ->
+	is_key_number(T);
+is_key_number([$7 | T]) ->
+	is_key_number(T);
+is_key_number([$8 | T]) ->
+	is_key_number(T);
+is_key_number([$9 | T]) ->
+	is_key_number(T);
+is_key_number([]) ->
 	true;
-is_key_integer(_) ->
+is_key_number(_) ->
 	false.
+

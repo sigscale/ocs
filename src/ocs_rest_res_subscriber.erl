@@ -265,7 +265,7 @@ patch_subscriber1(Id, Json) ->
 				{error, 500}
 		end
 	catch
-		_:_ ->
+		_:_Reason ->
 			{error, 500}
 	end.
 
@@ -309,9 +309,8 @@ subscriber([{"product", _} = Product | T], #subscriber{product = ProdInst} = Acc
 subscriber([{"buckets", {array, Buckets}} | T], Acc) ->
 	Buckets2 = [bucket(Bucket) || Bucket <- Buckets],
 	subscriber(T, Acc#subscriber{buckets = Buckets2});
-subscriber([{"totalBalance", {array, Buckets}} | T], Acc) ->
-	Buckets2 = [bucket(Bucket) || Bucket <- Buckets],
-	subscriber(T, Acc#subscriber{buckets = Buckets2});
+subscriber([{"totalBalance", _} | T], Acc) ->
+	subscriber(T, Acc);
 subscriber([{"characteristics", _} = Chars | T], #subscriber{product = undefined} = Acc) ->
 	subscriber(T, Acc#subscriber{product = product({struct, [Chars]})});
 subscriber([{"characteristics", _} = Chars | T], #subscriber{product = ProdInst} = Acc) ->
