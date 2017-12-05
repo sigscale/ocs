@@ -131,19 +131,15 @@ rate2(Protocol, PriceTable, Subscriber, Destination, Prices,
 		Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes) ->
 	case catch ocs_gtt:lookup_last(PriceTable, Destination) of
 		{_Description, RateName} when is_list(RateName) ->
-erlang:display({?MODULE, ?LINE, _Description, RateName}),
 			F1 = fun(F, [#price{char_value_use = CharValueUse} = H | T]) ->
-erlang:display({?MODULE, ?LINE, CharValueUse}),
 						case lists:keyfind("ratePrice", #char_value_use.name, CharValueUse) of
 							#char_value_use{values = [#char_value{value = RateName}]} ->
-erlang:display({?MODULE, ?LINE, RateName}),
 								H;
 							false ->
 								F(F, T)
 						end;
 					(_, []) ->
 						F2 = fun(_, [#price{name = Name} = H | _]) when Name == RateName ->
-erlang:display({?MODULE, ?LINE, RateName}),
 									H;
 								(F, [_H | T]) ->
 									F(F, T);
@@ -350,11 +346,14 @@ rate5(#subscriber{buckets = Buckets1} = Subscriber,
 			end
 	end.
 %% @hidden
-rate6(#subscriber{session_attributes = SessionList} = Subscriber1,
+rate6(#subscriber{session_attributes = SessionList, buckets  = Buckets} = Subscriber1,
 		final, Charge, Charged, 0, 0, SessionAttributes)
 		when Charged >= Charge ->
+	SessionId = get_session_id(SessionAttributes),
+	NewBuckets = refund(SessionId, Buckets),
 	NewSessionList = remove_session(SessionAttributes, SessionList),
-	Subscriber2 = Subscriber1#subscriber{session_attributes = NewSessionList},
+	Subscriber2 = Subscriber1#subscriber{buckets = NewBuckets,
+			session_attributes = NewSessionList},
 	ok = mnesia:write(Subscriber2),
 	{grant, Subscriber2, 0};
 rate6(#subscriber{session_attributes = SessionList} = Subscriber1,
@@ -809,3 +808,24 @@ get_reserve(#price{units = octets,
 			0
 	end.
 
+-spec refund(SessionId, Buckets) -> Buckets
+	when
+		Buckets :: [#bucket{}],
+		SessionId :: string() | binary().
+%% @doc refund unsed reservations
+%% @hidden
+refund(SessionID, Buckets) ->
+	refund(SessionID, Buckets, []).
+%% @hidden
+refund(SessionID, [#bucket{reservations = Reservations} = B | T], Acc) ->
+	F = fun({_, Amount, SID}, {R, In}) when SID == SessionID ->
+			{R, In + Amount};
+		(Reserve, {R, In}) ->
+			{[Reserve | R], In}
+	end,
+	{NewReservations, NewRemainAmount} = lists:foldl(F, {[], 0}, Reservations),
+	NewAcc = [B#bucket{reservations = NewReservations,
+			remain_amount = NewRemainAmount} | Acc],
+	refund(SessionID, T, NewAcc);
+refund(_SessionID, [], Acc) ->
+	lists:reverse(Acc).
