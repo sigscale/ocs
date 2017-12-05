@@ -131,19 +131,15 @@ rate2(Protocol, PriceTable, Subscriber, Destination, Prices,
 		Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes) ->
 	case catch ocs_gtt:lookup_last(PriceTable, Destination) of
 		{_Description, RateName} when is_list(RateName) ->
-erlang:display({?MODULE, ?LINE, _Description, RateName}),
 			F1 = fun(F, [#price{char_value_use = CharValueUse} = H | T]) ->
-erlang:display({?MODULE, ?LINE, CharValueUse}),
 						case lists:keyfind("ratePrice", #char_value_use.name, CharValueUse) of
 							#char_value_use{values = [#char_value{value = RateName}]} ->
-erlang:display({?MODULE, ?LINE, RateName}),
 								H;
 							false ->
 								F(F, T)
 						end;
 					(_, []) ->
 						F2 = fun(_, [#price{name = Name} = H | _]) when Name == RateName ->
-erlang:display({?MODULE, ?LINE, RateName}),
 									H;
 								(F, [_H | T]) ->
 									F(F, T);
