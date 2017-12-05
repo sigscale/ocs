@@ -98,7 +98,7 @@ all() ->
 	final_call_remove_session_attributes,
 	debit_and_reservation_with_sufficient_amount, debit_and_reservation_under_available_amount,
 	octets_debit_and_reservation_scenario_3, octets_debit_and_reservation_scenario_4,
-	octets_debit_and_reservation_scenario_5].
+	octets_debit_and_reservation_scenario_5, refund_money_back].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1011,6 +1011,40 @@ octets_debit_and_reservation_scenario_5(_Config) ->
 	{ok, _, _} = ocs_rating:rate(radius, SubscriberID, Destination, initial, [], [{octets, Reservation}], SessionId),
 	{out_of_credit, _} = ocs_rating:rate(radius, SubscriberID, Destination, interim, [{octets, Debit}], [{octets, Reservation}], SessionId),
 	{ok, #subscriber{buckets = []}} = ocs:find_subscriber(SubscriberID).
+
+refund_money_back() ->
+	[{userdata, [{doc, "Refund if not uses buckets"}]}].
+
+refund_money_back(_Config) ->
+	ProdID = ocs:generate_password(),
+	PackagePrice = 100,
+	PackageSize = 1000,
+	Price = #price{name = "overage", type = usage,
+		units = octets, size = PackageSize, amount = PackagePrice},
+	Product = #product{name = ProdID, price = [Price]},
+	{ok, _} = ocs:add_product(Product),
+	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
+	RemAmount = 100,
+	Buckets = [#bucket{units = cents, remain_amount = RemAmount,
+		start_date = erlang:system_time(?MILLISECOND),
+		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
+	Destination = ocs:generate_identity(),
+	SessionId1 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
+	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, initial, [], [{octets, PackageSize}], SessionId1),
+	{ok, #subscriber{buckets = RatedBuckets1}} = ocs:find_subscriber(SubscriberID),
+	#bucket{remain_amount = 0, reservations = Reserved1} = lists:keyfind(cents, #bucket.units, RatedBuckets1),
+	[{_, PackagePrice, SessionId1}] = Reserved1,
+	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, final, [{octets, 0}], [], SessionId1),
+	{ok, #subscriber{buckets = RatedBuckets2}} = ocs:find_subscriber(SubscriberID),
+	#bucket{remain_amount = PackagePrice, reservations = []} = lists:keyfind(cents, #bucket.units, RatedBuckets2),
+	SessionId2 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, initial, [], [{octets, PackageSize}], SessionId2),
+	{ok, #subscriber{buckets = RatedBuckets3}} = ocs:find_subscriber(SubscriberID),
+	#bucket{remain_amount = 0, reservations = Reserved2} = lists:keyfind(cents, #bucket.units, RatedBuckets3),
+	[{_, PackagePrice, SessionId2}] = Reserved2.
 
 %%---------------------------------------------------------------------
 %%  Internal functions
