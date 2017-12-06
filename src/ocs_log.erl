@@ -72,6 +72,7 @@ acct_open() ->
 		Protocol :: radius | diameter,
 		Node :: atom(),
 		Server :: {inet:ip_address(), inet:port_number()},
+		Type :: atom(),
 		Attributes :: radius_attributes:attributes()}.
 
 -spec acct_log(Protocol, Server, Type, Attributes) -> Result
@@ -274,6 +275,7 @@ auth_open() ->
 		Node :: atom(),
 		Server :: {inet:ip_address(), inet:port_number()},
 		Client :: {inet:ip_address(), inet:port_number()},
+		Type :: atom(),
 		RequestAttributes :: radius_attributes:attributes(),
 		ResponseAttributes :: radius_attributes:attributes()}.
 
