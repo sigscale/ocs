@@ -1681,3 +1681,68 @@ close_log(Log) ->
 					{log, Log}, {error, Reason}]),
 			{error, Reason}
 	end.
+
+-spec query_log(Continuation, Start, End, Log, MFA) -> Result
+	when
+		Continuation :: start | disk_log:continuation(),
+		Start :: calendar:datetime() | pos_integer(),
+		End :: calendar:datetime() | pos_integer(),
+		MFA :: {Module, Function, Args},
+		Log :: atom(),
+		Module :: atom(),
+		Function :: atom(),
+		Args :: [Arg],
+		Arg :: term(),
+		Result :: {Continuation2, Events} | {error, Reason},
+		Continuation2 :: eof | disk_log:continuation(),
+		Events :: [term()],
+		Reason :: term().
+%% @doc
+query_log(Continuation, {{_, _, _}, {_, _, _}} = Start, End, Log, MFA) ->
+	Seconds = calendar:datetime_to_gregorian_seconds(Start) - ?EPOCH,
+	query_log(Continuation, Seconds * 1000, End, Log, MFA);
+query_log(Continuation, Start, {{_, _, _}, {_, _, _}} = End, Log, MFA) ->
+	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
+	query_log(Continuation, Start, Seconds * 1000 + 999, Log, MFA);
+query_log(start, Start, End, Log, MFA) when is_integer(Start), is_integer(End) ->
+	query_log1(Start, End, Log, MFA, [], disk_log:bchunk(Log, start));
+query_log(Continuation, Start, End, Log, MFA) when is_integer(Start), is_integer(End) ->
+	query_log2(Start, End, MFA, disk_log:chunk(Log, Continuation), []).
+%% @hidden
+query_log1(Start, End, _Log, MFA, PrevChunk, eof) ->
+	Chunk = [binary_to_term(E) || E <- PrevChunk],
+	query_log2(Start, End, MFA, {eof, Chunk}, []);
+query_log1(_Start, _End, _Log, _MFA, _PrevChunk, {error, Reason}) ->
+	{error, Reason};
+query_log1(Start, End, Log, MFA, PrevChunk, {Cont, [H | T] = Chunk}) ->
+	case binary_to_term(H) of
+		Event when element(1, Event) > End ->
+			{eof, []};
+		Event when element(1, Event) >= Start ->
+			NewChunk = [binary_to_term(E) || E <- PrevChunk ++ Chunk],
+			query_log2(Start, End, MFA, {Cont, NewChunk}, []);
+		_Event ->
+			query_log1(Start, End, Log, MFA, T, disk_log:bchunk(Log, Cont))
+	end.
+%% @hidden
+query_log2(_Start, _End, _MFA, eof, Acc) ->
+	{eof, lists:reverse(Acc)};
+query_log2(_Start, _End, _MFA, {error, Reason}, _Acc)->
+	{error, Reason};
+query_log2(_Start, End, _MFA, {_, [Event | _]}, Acc) when element(1, Event) > End ->
+	{eof, lists:reverse(Acc)};
+query_log2(Start, End, {M, F, A} = MFA, {Cont, [Event | T]}, Acc)
+		when element(1, Event) >= Start, element(1, Event) =< End ->
+	case catch apply(M, F, [Event | A])	of
+		{ok, Result} ->
+			query_log2(Start, End, MFA, {Cont, T}, Result ++ Acc);
+		{error, Reason} ->
+			{error, Reason};
+		{'EXIT', Reason} ->
+			{error, Reason}
+	end;
+query_log2(Start, End, MFA, {Cont, [_ | T]}, Acc) ->
+	query_log2(Start, End, MFA, {Cont, T}, Acc);
+query_log2(_Start, _End, _MFA, {Cont, []}, Acc) ->
+	{Cont, lists:reverse(Acc)}.
+
