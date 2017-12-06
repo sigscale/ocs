@@ -1290,7 +1290,22 @@
 					var priceCharge = new Object();
 					priceCharge.op = "add";
 					priceCharge.path = "/productOfferingPrice/" + indexPrices + "/recurringChargePeriod";
-					priceCharge.value = this.$.updatePricePerioddrop.value;
+					switch(this.$.updatePricePeriod.selected) {
+						case 0:
+							priceCharge.value = "hourly";
+							break;
+						case 1:
+							priceCharge.value = "daily";
+							break;
+						case 2:
+							priceCharge.value = "weekly";
+							break;
+						case 3:
+							priceCharge.value = "monthly";
+							break;
+						case 4:
+							priceCharge.value = "yearly";
+					}
 					updatePriceNew.push(priceCharge);
 				} 
 				if(this.$.updateAddPriceCharReserveTime.value) {
