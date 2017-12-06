@@ -62,33 +62,9 @@
 %% @doc Open an accounting event disk log.
 acct_open() ->
 	{ok, Directory} = application:get_env(ocs, acct_log_dir),
-	case file:make_dir(Directory) of
-		ok ->
-			acct_open1(Directory);
-		{error, eexist} ->
-			acct_open1(Directory);
-		{error, Reason} ->
-			{error, Reason}
-	end.
-%% @hidden
-acct_open1(Directory) ->
 	{ok, LogSize} = application:get_env(ocs, acct_log_size),
 	{ok, LogFiles} = application:get_env(ocs, acct_log_files),
-	Log = ?ACCTLOG,
-	FileName = Directory ++ "/" ++ atom_to_list(Log),
-	case disk_log:open([{name, Log}, {file, FileName},
-					{type, wrap}, {size, {LogSize, LogFiles}}]) of
-		{ok, Log} ->
-			ok;
-		{repaired, Log, _Recovered, _Bad} ->
-			ok;
-		{error, Reason} ->
-			Descr = lists:flatten(disk_log:format_error(Reason)),
-			Trunc = lists:sublist(Descr, length(Descr) - 1),
-			error_logger:error_report([Trunc, {module, ?MODULE},
-					{log, Log}, {error, Reason}]),
-			{error, Reason}
-	end.
+	open_log(Directory, ?ACCTLOG, LogSize, LogFiles).
 
 -type acct_event() :: {
 		TS :: pos_integer(), % posix time in milliseconds
@@ -110,10 +86,8 @@ acct_open1(Directory) ->
 		Reason :: term().
 %% @doc Write a RADIUS event to accounting log.
 acct_log(radius = Protocol, Server, Type, Attributes) ->
-	TS = erlang:system_time(?MILLISECOND),
-	N = erlang:unique_integer([positive]),
-	Event = {TS, N, Protocol, node(), Server, Type, Attributes},
-	disk_log:log(?ACCTLOG, Event).
+	Event = [Protocol, node(), Server, Type, Attributes],
+	write_log(?ACCTLOG, Event).
 
 -spec acct_log(Protocol, Server, Type, Request, Response) -> Result
 	when
@@ -128,10 +102,8 @@ acct_log(radius = Protocol, Server, Type, Attributes) ->
 		Reason :: term().
 %% @doc Write a DIAMETER event to accounting log.
 acct_log(diameter = Protocol, Server, Type, Request, Response) ->
-	TS = erlang:system_time(?MILLISECOND),
-	N = erlang:unique_integer([positive]),
-	Event = {TS, N, Protocol, node(), Server, Type, Request, Response},
-	disk_log:log(?ACCTLOG, Event).
+	Event = [Protocol, node(), Server, Type, Request, Response],
+	write_log(?ACCTLOG, Event).
 
 -spec acct_close() -> Result
 	when
@@ -139,16 +111,7 @@ acct_log(diameter = Protocol, Server, Type, Request, Response) ->
 		Reason :: term().
 %% @doc Close accounting disk log.
 acct_close() ->
-	case disk_log:close(?ACCTLOG) of
-		ok ->
-			ok;
-		{error, Reason} ->
-			Descr = lists:flatten(disk_log:format_error(Reason)),
-			Trunc = lists:sublist(Descr, length(Descr) - 1),
-			error_logger:error_report([Trunc, {module, ?MODULE},
-					{log, ?ACCTLOG}, {error, Reason}]),
-			{error, Reason}
-	end.
+	close_log(?ACCTLOG).
 
 -spec acct_query(Continuation, Start, End, Types, AttrsMatch) -> Result
 	when
@@ -300,33 +263,9 @@ acct_query2(Start, End, Protocol, Types, AttrsMatch, {Cont, [H | T]}, Acc, []) -
 %% @doc Open authorization event disk log.
 auth_open() ->
 	{ok, Directory} = application:get_env(ocs, auth_log_dir),
-	case file:make_dir(Directory) of
-		ok ->
-			auth_open1(Directory);
-		{error, eexist} ->
-			auth_open1(Directory);
-		{error, Reason} ->
-			{error, Reason}
-	end.
-%% @hidden
-auth_open1(Directory) ->
 	{ok, LogSize} = application:get_env(ocs, auth_log_size),
 	{ok, LogFiles} = application:get_env(ocs, auth_log_files),
-	Log = ?AUTHLOG,
-	FileName = Directory ++ "/" ++ atom_to_list(Log),
-	case disk_log:open([{name, Log}, {file, FileName},
-					{type, wrap}, {size, {LogSize, LogFiles}}]) of
-		{ok, Log} ->
-			ok;
-		{repaired, Log, _Recovered, _Bad} ->
-			ok;
-		{error, Reason} ->
-			Descr = lists:flatten(disk_log:format_error(Reason)),
-			Trunc = lists:sublist(Descr, length(Descr) - 1),
-			error_logger:error_report([Trunc, {module, ?MODULE},
-					{log, Log}, {error, Reason}]),
-			{error, Reason}
-	end.
+	open_log(Directory, ?AUTHLOG, LogSize, LogFiles).
 
 -type auth_event() :: {
 		TS :: pos_integer(), % posix time in milliseconds
@@ -353,11 +292,9 @@ auth_open1(Directory) ->
 		Reason :: term().
 %% @doc Write a RADIUS event to authorization log.
 auth_log(Protocol, Server, Client, Type, RequestAttributes, ResponseAttributes) ->
-	TS = erlang:system_time(?MILLISECOND),
-	N = erlang:unique_integer([positive]),
-	Event = {TS, N, Protocol, node(), Server, Client, Type,
-			RequestAttributes, ResponseAttributes},
-	disk_log:log(?AUTHLOG, Event).
+	Event = [Protocol, node(), Server, Client, Type,
+			RequestAttributes, ResponseAttributes],
+	write_log(?AUTHLOG, Event).
 
 -spec auth_log(Protocol, Server, Client, Request, Response) -> Result
 	when
@@ -372,10 +309,8 @@ auth_log(Protocol, Server, Client, Type, RequestAttributes, ResponseAttributes) 
 		Reason :: term().
 %% @doc Write a DIAMETER event to authorization log.
 auth_log(Protocol, Server, Client, Request, Response) ->
-	TS = erlang:system_time(?MILLISECOND),
-	N = erlang:unique_integer([positive]),
-	Event = {TS, N, Protocol, node(), Server, Client, Request, Response},
-	disk_log:log(?AUTHLOG, Event).
+	Event = [Protocol, node(), Server, Client, Request, Response],
+	write_log(?AUTHLOG, Event).
 
 -spec auth_query(Continuation, Start, End, Types,
 		ReqAttrsMatch, RespAttrsMatch) -> Result
@@ -572,16 +507,7 @@ auth_query3(Start, End, Protocol, Types, ReqAttrsMatch,
 		Reason :: term().
 %% @doc Close auth disk log.
 auth_close() ->
-	case disk_log:close(?AUTHLOG) of
-		ok ->
-			ok;
-		{error, Reason} ->
-			Descr = lists:flatten(disk_log:format_error(Reason)),
-			Trunc = lists:sublist(Descr, length(Descr) - 1),
-			error_logger:error_report([Trunc, {module, ?MODULE},
-					{log, ?AUTHLOG}, {error, Reason}]),
-			{error, Reason}
-	end.
+	close_log(?AUTHLOG).
 
 -record(event,
 		{host :: string(),
@@ -1688,4 +1614,68 @@ http_parse6(Event, Acc) ->
 	<<Status:Offset/binary, 32, _Rest/binary>> = Event,
 	Acc#event{httpStatus = binary_to_integer(Status)}.
 
+-spec open_log(Directory, Log, LogSize, LogFiles) -> Result
+	when
+		Directory  :: string(),
+		Log :: atom(),
+		LogSize :: integer(),
+		LogFiles :: integer(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc open disk log file
+open_log(Directory, Log, LogSize, LogFiles) ->
+	case file:make_dir(Directory) of
+		ok ->
+			open_log1(Directory, Log, LogSize, LogFiles);
+		{error, eexist} ->
+			open_log1(Directory, Log, LogSize, LogFiles);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+open_log1(Directory, Log, LogSize, LogFiles) ->
+	FileName = Directory ++ "/" ++ atom_to_list(Log),
+	case disk_log:open([{name, Log}, {file, FileName},
+					{type, wrap}, {size, {LogSize, LogFiles}}]) of
+		{ok, Log} ->
+			ok;
+		{repaired, Log, _Recovered, _Bad} ->
+			ok;
+		{error, Reason} ->
+			Descr = lists:flatten(disk_log:format_error(Reason)),
+			Trunc = lists:sublist(Descr, length(Descr) - 1),
+			error_logger:error_report([Trunc, {module, ?MODULE},
+					{log, Log}, {error, Reason}]),
+			{error, Reason}
+	end.
 
+-spec write_log(Log, Event) -> Result
+	when
+		Log :: atom(),
+		Event :: list(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc write event into given log file
+write_log(Log, Event) ->
+	TS = erlang:system_time(?MILLISECOND),
+	N = erlang:unique_integer([positive]),
+	LogEvent = list_to_tuple([TS, N | Event]),
+	disk_log:log(Log, LogEvent).
+
+-spec close_log(Log) -> Result
+	when
+		Log :: atom(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc close log files
+close_log(Log) ->
+	case disk_log:close(Log) of
+		ok ->
+			ok;
+		{error, Reason} ->
+			Descr = lists:flatten(disk_log:format_error(Reason)),
+			Trunc = lists:sublist(Descr, length(Descr) - 1),
+			error_logger:error_report([Trunc, {module, ?MODULE},
+					{log, Log}, {error, Reason}]),
+			{error, Reason}
+	end.
