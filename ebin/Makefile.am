@@ -79,7 +79,8 @@ beam_DATA = ocs.beam \
 			ocs_rest_res_accounting.beam \
 			ocs_rest_res_http.beam \
 			ocs_rest_pagination_sup.beam \
-			ocs_rest_pagination_server.beam
+			ocs_rest_pagination_server.beam \
+			ocs_scheduler.beam
 
 %.beam:$(top_srcdir)/src/%.erl	$(top_srcdir)/include/ocs.hrl \
 		$(top_srcdir)/include/ocs_log.hrl \
