@@ -33,7 +33,7 @@
 		date/1, iso8601/1, http_query/8]).
 
 %% exported the private function
--export([acct_query/4]).
+-export([acct_query/4, auth_query/5]).
 
 %% export the ocs_log event types
 -export_type([auth_event/0, acct_event/0, http_event/0]).
@@ -288,135 +288,9 @@ auth_query(Continuation, Start, End, Types, ReqAttrsMatch, RespAttrsMatch) ->
 %% 	Successive calls use the new `Continuation' to read more events.
 %%
 %%
-auth_query(Continuation, {{_, _, _}, {_, _, _}} = Start, End, Protocol,
-		Types, ReqAttrsMatch, RespAttrsMatch) ->
-	Seconds = calendar:datetime_to_gregorian_seconds(Start) - ?EPOCH,
-	auth_query(Continuation, Seconds * 1000, End, Protocol, Types,
-			ReqAttrsMatch, RespAttrsMatch);
-auth_query(Continuation, Start, {{_, _, _}, {_, _, _}} = End, Protocol,
-		Types, ReqAttrsMatch, RespAttrsMatch) ->
-	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
-	auth_query(Continuation, Start, Seconds * 1000 + 999,
-			Protocol, Types, ReqAttrsMatch, RespAttrsMatch);
-auth_query(start, Start, End, Protocol, Types,
-		ReqAttrsMatch, RespAttrsMatch)
-		when is_integer(Start), is_integer(End) ->
-	auth_query(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
-			[], disk_log:bchunk(?AUTHLOG, start));
-auth_query(Continuation, Start, End, Protocol, Types,
-		ReqAttrsMatch, RespAttrsMatch)
-		when is_integer(Start), is_integer(End) ->
-	auth_query1(Start, End, Protocol, Types, ReqAttrsMatch,
-			RespAttrsMatch, disk_log:chunk(?AUTHLOG, Continuation), []).
-
-%% @hidden
-auth_query(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
-		PrevChunk, eof) ->
-	Chunk = [binary_to_term(E) || E <- PrevChunk],
-	auth_query1(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
-			{eof, Chunk}, []);
-auth_query(_Start, _End, _Protocol, _Types, _ReqAttrsMatch, _RespAttrsMatch,
-		_PrevChunk, {error, Reason}) ->
-	{error, Reason};
-auth_query(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
-		PrevChunk, {Cont, [H | T] = Chunk}) ->
-	case binary_to_term(H) of
-		Event when element(1, Event) > End ->
-			{eof, []};
-		Event when element(1, Event) >= Start ->
-			NewChunk = [binary_to_term(E) || E <- PrevChunk ++ Chunk],
-			auth_query1(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
-					{Cont, NewChunk}, []);
-		_Event ->
-			auth_query(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
-					T, disk_log:bchunk(?ACCTLOG, Cont))
-	end.
-%% @hidden
-auth_query1(_Start, _End, _Protocol, _Types, _ReqAttrsMatch, _RespAttrsMatch,
-		eof, Acc) ->
-	{eof, lists:reverse(Acc)};
-auth_query1(_Start, _End, _Protocol, _Types, _ReqAttrsMatch, _RespAttrsMatch,
-		{error, Reason}, _Acc) ->
-	{error, Reason};
-%% @hidden
-auth_query1(_, End, _, _, _, _, {_, [{TS, _, _, _, _, _, _, _, _} | _]}, Acc)
-		when TS > End ->
-	{eof, lists:reverse(Acc)};
-auth_query1(Start, End, '_', '_', ReqAttrsMatch, RespAttrsMatch,
-		{Cont, [{TS, _, _, _, _, _, _, _, _} | _] = Chunk}, Acc)
-		when TS >= Start, TS =< End ->
-	auth_query2(Start, End, '_', '_', ReqAttrsMatch,
-			RespAttrsMatch, {Cont, Chunk}, Acc, ReqAttrsMatch);
-auth_query1(Start, End, Protocol, '_', ReqAttrsMatch, RespAttrsMatch,
-		{Cont, [{TS, _, Protocol, _, _, _, _, _, _} | _] = Chunk}, Acc)
-		when TS >= Start, TS =< End ->
-	auth_query2(Start, End, Protocol, '_', ReqAttrsMatch,
-			RespAttrsMatch, {Cont, Chunk}, Acc, ReqAttrsMatch);
-auth_query1(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
-		{Cont, [{TS, _, Protocol, _, _, _, Type, _, _} | T] = Chunk}, Acc)
-		when TS >= Start, TS =< End ->
-	case lists:member(Type, Types) of
-		true ->
-			auth_query2(Start, End, Protocol, Types, ReqAttrsMatch,
-					RespAttrsMatch, {Cont, Chunk}, Acc, ReqAttrsMatch);
-		false ->
-			auth_query1(Start, End, Protocol, Types, ReqAttrsMatch,
-					RespAttrsMatch, {Cont, T}, Acc)
-	end;
-auth_query1(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
-		{Cont, [_H | T]}, Acc) ->
-	auth_query1(Start, End, Protocol, Types, ReqAttrsMatch,
-			RespAttrsMatch, {Cont, T}, Acc);
-auth_query1(_, _, _, _, _, _, {eof, []}, Acc) ->
-	{eof, lists:reverse(Acc)};
-auth_query1(_, _, _, _, _, _, {Cont, []}, Acc) ->
-	{Cont, lists:reverse(Acc)}.
-%% @hidden
-auth_query2(Start, End, Protocol, Types, '_', RespAttrsMatch,
-		{Cont, Chunk}, Acc, '_') ->
-	auth_query3(Start, End, Protocol, Types, '_',
-			RespAttrsMatch, {Cont, Chunk}, Acc, RespAttrsMatch);
-auth_query2(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
-		{Cont, [{_, _, _, _, _, _, _, ReqAttrs, _} | T] = Chunk},
-		Acc, [{Attribute, Match} | T1]) ->
-	case lists:keyfind(Attribute, 1, ReqAttrs) of
-		{Attribute, Match} ->
-			auth_query2(Start, End, Protocol, Types, ReqAttrsMatch,
-					RespAttrsMatch, {Cont, Chunk}, Acc, T1);
-		{Attribute, _} when Match == '_' ->
-			auth_query2(Start, End, Protocol, Types, ReqAttrsMatch,
-					RespAttrsMatch, {Cont, Chunk}, Acc, T1);
-		_ ->
-			auth_query1(Start, End, Protocol, Types, ReqAttrsMatch,
-					RespAttrsMatch, {Cont, T}, Acc)
-	end;
-auth_query2(Start, End, Protocol, Types, ReqAttrsMatch,
-		RespAttrsMatch, {Cont, Chunk}, Acc, []) ->
-	auth_query3(Start, End, Protocol, Types, ReqAttrsMatch,
-			RespAttrsMatch, {Cont, Chunk}, Acc, RespAttrsMatch).
-%% @hidden
-auth_query3(Start, End, Protocol, Types, ReqAttrsMatch, '_',
-		{Cont, [H | T]}, Acc, '_') ->
-	auth_query1(Start, End, Protocol, Types, ReqAttrsMatch, '_',
-			{Cont, T}, [H | Acc]);
-auth_query3(Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch,
-		{Cont, [{_, _, _, _, _, _, _, _, RespAttrs} | T] = Chunk},
-		Acc, [{Attribute, Match} | T1]) ->
-	case lists:keyfind(Attribute, 1, RespAttrs) of
-		{Attribute, Match} ->
-			auth_query3(Start, End, Protocol, Types, ReqAttrsMatch,
-					RespAttrsMatch, {Cont, Chunk}, Acc, T1);
-		{Attribute, _} when Match == '_' ->
-			auth_query3(Start, End, Protocol, Types, ReqAttrsMatch,
-					RespAttrsMatch, {Cont, Chunk}, Acc, T1);
-		_ ->
-			auth_query1(Start, End, Protocol, Types, ReqAttrsMatch,
-					RespAttrsMatch, {Cont, T}, Acc)
-	end;
-auth_query3(Start, End, Protocol, Types, ReqAttrsMatch,
-		RespAttrsMatch, {Cont, [H | T]}, Acc, []) ->
-	auth_query1(Start, End, Protocol, Types, ReqAttrsMatch,
-			RespAttrsMatch, {Cont, T}, [H | Acc]).
+auth_query(Continuation, Start, End, Protocol, Types, ReqAttrsMatch, RespAttrsMatch) ->
+	MFA = {?MODULE, auth_query, [Protocol, Types, ReqAttrsMatch, RespAttrsMatch]},
+	query_log(Continuation, Start, End, ?AUTHLOG, MFA).
 
 -spec auth_close() -> Result
 	when
@@ -1705,7 +1579,8 @@ acct_query3([], _AttrsMatch, Acc) ->
 %% @hidden
 acct_query4(Attributes, [{Attribute, Match} | T]) ->
 	case lists:keyfind(Attribute, 1, Attributes) of
-		{Attribute, Match} ->
+		{Attribute, Match1} when
+				(Match1 == Match) or (Match == '_') ->
 			acct_query4(Attributes, T);
 		_ ->
 			false
@@ -1714,3 +1589,89 @@ acct_query4(Attributes, [_ | T]) ->
 	acct_query4(Attributes, T);
 acct_query4(_Attributes, []) ->
 	true.
+
+-spec auth_query(Continuation, Protocol, Types, ReqAttrsMatch, RespAttrsMatch) -> Result
+	when
+		Continuation :: {Continuation2, Events},
+		Protocol :: atom() | '_',
+		Types :: [Type] | '_',
+		Type :: atom(),
+		ReqAttrsMatch :: [tuple()] | '_',
+		RespAttrsMatch :: [tuple()] | '_',
+		Result :: {Continuation2, Events},
+		Continuation2 :: eof | disk_log:continuation(),
+
+		Events :: [acct_event()].
+%% @private
+%% @doc Query accounting log events with filters.
+%%
+auth_query({Cont, Events}, Protocol, Types, ReqAttrsMatch, RespAttrsMatch) ->
+	{Cont, auth_query1(Events, Protocol, Types, ReqAttrsMatch, RespAttrsMatch)}.
+%% @hidden
+auth_query1(Events, Protocol, Types, ReqAttrsMatch, RespAttrsMatch) ->
+	auth_query1(Events, Protocol, Types, ReqAttrsMatch, RespAttrsMatch, []).
+%% @hidden
+auth_query1(Events, Protocol, '_', ReqAttrsMatch, RespAttrsMatch, []) ->
+	auth_query2(Events, Protocol, ReqAttrsMatch, RespAttrsMatch, []);
+auth_query1([{_, _, _, _, _, _, Type, _, _} = H | T],
+		Protocol, Types, ReqAttrsMatch, RespAttrsMatch, Acc) ->
+	case lists:member(Type, Types) of
+		true ->
+			auth_query1(T, Protocol, Types,
+				ReqAttrsMatch, RespAttrsMatch, [H | Acc]);
+		false ->
+			auth_query1(T, Protocol, Types,
+				ReqAttrsMatch, RespAttrsMatch, Acc)
+	end;
+auth_query1([], Protocol, _Types, ReqAttrsMatch, RespAttrsMatch, Acc) ->
+	auth_query2(lists:reverse(Acc), Protocol, ReqAttrsMatch, RespAttrsMatch, []).
+%% @hidden
+auth_query2(Events, '_', ReqAttrsMatch, RespAttrsMatch, []) ->
+	auth_query3(Events, ReqAttrsMatch, RespAttrsMatch, []);
+auth_query2([{_, _, Protocol, _, _, _, _, _, _} = H | T],
+		Protocol, ReqAttrsMatch, RespAttrsMatch, Acc) ->
+	auth_query2(T, Protocol, ReqAttrsMatch, RespAttrsMatch, [H | Acc]);
+auth_query2([_ | T], Protocol, ReqAttrsMatch, RespAttrsMatch, Acc) ->
+	auth_query2(T, Protocol, ReqAttrsMatch, RespAttrsMatch, Acc);
+auth_query2([], _Protocol, ReqAttrsMatch, RespAttrsMatch, Acc) ->
+	auth_query3(lists:reverse(Acc), ReqAttrsMatch, RespAttrsMatch, []).
+%% @hidden
+auth_query3(Events, '_', RespAttrsMatch, []) ->
+	auth_query4(Events, RespAttrsMatch, []);
+auth_query3([{_, _, _, _, _, _, _, ReqAttr, _} = H | T],
+		ReqAttrsMatch, RespAttrsMatch, Acc) ->
+	case auth_query5(ReqAttr, ReqAttrsMatch) of
+		true ->
+			auth_query3(T, ReqAttrsMatch, RespAttrsMatch, [H | Acc]);
+		false ->
+			auth_query3(T, ReqAttrsMatch, RespAttrsMatch, Acc)
+	end;
+auth_query3([], _ReqAttrsMatch, RespAttrsMatch, Acc) ->
+	auth_query4(lists:reverse(Acc), RespAttrsMatch, []).
+%% @hidden
+auth_query4(Events, '_', []) ->
+	lists:reverse(Events);
+auth_query4([{_, _, _, _, _, _, _, _, RespAttr} = H | T],
+		RespAttrsMatch, Acc) ->
+	case auth_query5(RespAttr, RespAttrsMatch) of
+		true ->
+			auth_query4(T, RespAttrsMatch, [H | Acc]);
+		false ->
+			auth_query4(T, RespAttrsMatch, Acc)
+	end;
+auth_query4([], _RespAttrsMatch, Acc) ->
+	lists:reverse(Acc).
+%% @hidden
+auth_query5(Attributes, [{Attribute, Match} | T]) ->
+	case lists:keyfind(Attribute, 1, Attributes) of
+		{Attribute, Match1} when
+				(Match == Match1) or (Match == '_') ->
+			auth_query5(Attributes, T);
+		_ ->
+			false
+	end;
+auth_query5(Attributes, [_ | T]) ->
+	auth_query5(Attributes, T);
+auth_query5(_Attributes, []) ->
+	true.
+
