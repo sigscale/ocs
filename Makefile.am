@@ -15,6 +15,7 @@ release:	$(PACKAGE_NAME).tar.gz
 $(PACKAGE_NAME).tar.gz:
 	ERL_LIBS=$(DESTDIR)/$(ERLANG_INSTALL_LIB_DIR) $(ERL) -s systools make_script $(PACKAGE_NAME) -s init stop -noinput
 	ERL_LIBS=$(DESTDIR)/$(ERLANG_INSTALL_LIB_DIR) $(ERL) -s systools make_tar $(PACKAGE_NAME) -s init stop -noinput
+	ERL_LIBS=$(DESTDIR)/$(ERLANG_INSTALL_LIB_DIR) $(ERL) -s ocs_app make_relup $(PACKAGE_NAME) -s init stop -noinput
 
 install-data-hook: $(PACKAGE_NAME).tar.gz
 	$(MKDIR_P) $(DESTDIR)/$(reldir)

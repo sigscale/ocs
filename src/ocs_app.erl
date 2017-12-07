@@ -27,8 +27,10 @@
 -export([start/2, stop/1, config_change/3]).
 %% optional callbacks for application behaviour
 -export([prep_stop/1, start_phase/3]).
-%% export the ocs private API
+%% export the ocs private API for installation
 -export([install/0, install/1]).
+%% export the ocs private API for release handling
+-export([make_relup/1]).
 
 -include_lib("inets/include/mod_auth.hrl").
 -include("ocs.hrl").
@@ -391,6 +393,29 @@ install9(Tables) ->
 			error_logger:error_report(["Failed to list http users",
 				{error, Reason}]),
 			{error, Reason}
+	end.
+
+-spec make_relup([Name]) -> Result
+when
+Name :: term(),
+Result :: term().
+%% @doc Generates a release upgrade file
+%% @see //sasl/systools:make_relup/3
+%%
+make_relup([Name]) ->
+	UpFrom = [Name],
+	DownTo = [Name],
+	case systools:make_relup(Name, UpFrom, DownTo) of
+		ok ->
+			error_logger:info_report(["Release upgrade file created"]);
+		error ->
+			error_logger:error_report(["Unable to create release upgrade file"]);
+		{ok, Relup, Mod, Warnings} ->
+			error_logger:info_report(["Release upgrade file created with warnings",
+					{relup, Relup}, {warnings, Warnings}]);
+		{error, Mod, Error} ->
+			error_logger:error_report(["Unable to create release upgrade file",
+					{module, Mod}, {error, Error}])
 	end.
 
 -spec start_phase(Phase, StartType, PhaseArgs) -> Result
