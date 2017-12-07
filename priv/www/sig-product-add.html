@@ -864,8 +864,6 @@
 						this.$.addPriceAlteration.selected = null;
 						this.$.addPriceCharReserveTime.value = null;
 						this.$.addPriceCharReserveBytes.value = null;
-						this.$.destPrefixPrice.value = null;
-						this.$.destPrefixTariff.value = null;
 						this.$.timeOfDay.value = null;
 						this.$.ratedPrice.value = null;
 					} else {
@@ -1047,7 +1045,7 @@
 					charValueUse.productSpecification = prodSpec;
 					prodSpecCharValueUse.push(charValueUse);
 				}
-				if (this.$.destPrefixTariff.value && this.$.destPrefixTariff.value > 0) {
+				if (this.$.destPrefixTariff.value && this.$.destPrefixTariff.value.length > 0) {
 					var charValueUse = new Object();
 					charValueUse.name = "destPrefixTariffTable";
 					charValueUse.minCardinality = 0;
@@ -1515,8 +1513,6 @@
 					this.$.addPriceAlteration.selected = null;
 					this.$.addPriceCharReserveTime.value = null;
 					this.$.addPriceCharReserveBytes.value = null;
-					this.$.destPrefixPrice.value = null;
-					this.$.destPrefixTariff.value = null;
 					this.$.timeOfDay.value = null;
 					this.$.ratedPrice.value = null;
 					document.getElementById("addProductPriceToastSuccess").open();
@@ -1671,8 +1667,6 @@
 				this.$.addAltAmount.value = null;
 				this.$.addAltCurrency.value = null;
 				this.$.addAltPeriod.selected = null;
-				this.$.destPrefixPrice.value = null;
-				this.$.destPrefixTariff.value = null;
 				this.$.timeOfDay.value = null;
 				this.$.ratedPrice.value = null;
 				this.$.addProductModal.close();
