@@ -60,6 +60,7 @@
 				ocs_rest_res_http,
 				ocs_rest_pagination_sup,
 				ocs_rest_pagination_server,
+				ocs_scheduler,
 				mod_ocs_rest_lang,
 				mod_ocs_rest_accepted_content,
 				mod_ocs_rest_delete,

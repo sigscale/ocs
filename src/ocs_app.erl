@@ -149,6 +149,7 @@ start1() ->
 		TopSup
 	of
 		Sup ->
+			ok = ocs_scheduler:start(),
 			{ok, Sup}
 	catch
 		Reason ->

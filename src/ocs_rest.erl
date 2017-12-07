@@ -159,7 +159,7 @@ parse_query1(Field, N, Acc) ->
 %%
 %% 	Each filter in `Filters' is the name of a member in the JSON
 %% 	encoded `JsonObject'. A filter may refer to a complex type by
-%% 	use of the "dot" path seperator character (e.g. `"a.b.c"').
+%% 	use of the "dot" path separator character (e.g. `"a.b.c"').
 %% 	Where an intermediate node on a complex path is an array all
 %% 	matching array members will be included. To filter out objects
 %% 	an `=value', suffix may be added which will include only

@@ -884,10 +884,9 @@ price([type | T], #price{type = usage, units = octets,
 	price(T, P, UsageType ++ Acc);
 price([type | T], #price{type = usage, units = seconds,
 		size = Size} = P, Acc) when is_integer(Size) ->
-%	UsageType = [{"priceType", price_type(usage)},
-%			{"unitOfMeasure", integer_to_list(Size) ++ "s"}],
-%	price(T, P, UsageType ++ Acc);
-	price(T, P, Acc);
+	UsageType = [{"priceType", price_type(usage)},
+			{"unitOfMeasure", integer_to_list(Size) ++ "s"}],
+	price(T, P, UsageType ++ Acc);
 price([period | T], P, Acc) ->
 	price(T, P, Acc);
 price([units | T], P, Acc) ->
