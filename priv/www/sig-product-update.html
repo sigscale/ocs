@@ -136,6 +136,41 @@
 							</i18n-msg>
 						</paper-tooltip>
 					</div>
+					<div>
+						<span>Characteristics</span>
+						<paper-icon-button
+								id="updateOnClickOfferChars"
+								suffix
+								icon="arrow-drop-down"
+								on-click="_updateOnClickOfferChars">
+						</paper-icon-button>
+					</div>
+					<iron-collapse id="updateAddPriceOfferChars">
+						<div>
+							<paper-input
+									id="updateDestPrefixPrice"
+									type="string"
+									label="[[i18n.priceTable]]">
+							</paper-input>
+							<paper-tooltip>
+								<i18n-msg msgid="priceTableTool">
+									Prefix of Destination Price Table
+								</i18n-msg>
+							</paper-tooltip>
+						</div>
+						<div>
+							<paper-input
+									id="updateDestPrefixTariff"
+									type="string"
+									label="[[i18n.tariffTable]]">
+							</paper-input>
+							<paper-tooltip>
+								<i18n-msg msgid="tariffTableTool">
+									Prefix of Destination Tariff Table
+								</i18n-msg>
+							</paper-tooltip>
+						</div>
+					</iron-collapse>
 					<div class="buttons">
 						<paper-button
 								autofocus
@@ -265,7 +300,6 @@
 								pattern="^[0-9]+[kmg]?$"
 								label="[[i18n.unitSize]]"
 								auto-validate
-								value=1
 								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.hide();">
 						</paper-input>
 						<paper-tooltip>
@@ -423,30 +457,6 @@
 						</div>
 						<div>
 							<paper-input
-									id="updateDestPrefixPrice"
-									type="string"
-									label="[[i18n.priceTable]]">
-							</paper-input>
-							<paper-tooltip>
-								<i18n-msg msgid="priceTableTool">
-									Prefix of Destination Price Table
-								</i18n-msg>
-							</paper-tooltip>
-						</div>
-						<div>
-							<paper-input
-									id="updateDestPrefixTariff"
-									type="string"
-									label="[[i18n.tariffTable]]">
-							</paper-input>
-							<paper-tooltip>
-								<i18n-msg msgid="tariffTableTool">
-									Prefix of Destination Tariff Table
-								</i18n-msg>
-							</paper-tooltip>
-						</div>
-						<div>
-							<paper-input
 									id="updateTimeOfDay"
 									type="string"
 									label="[[i18n.timeDay]]">
@@ -501,6 +511,7 @@
 						<paper-button
 								toggles
 								raised
+								on-tap="deletePrice"
 								class="delete-buttons">
 								<i18n-msg msgid="delete">
 									Delete
@@ -848,15 +859,17 @@
 						var unitOfMeasure = item.prices[index].unitOfMeasure;
 						switch(unitOfMeasure.charAt(unitOfMeasure.length - 1)) {
 							case "b":
-								newPrice.size = unitOfMeasure = parseInt(unitOfMeasure.slice(0, -1));
+								var conv;
+								conv = unitOfMeasure = parseInt(unitOfMeasure.slice(0, -1));
+								newPrice.size = conv.toString();
 								newPrice.unit = "b";
 								break;
 							case "s":
-								newPrice.size = parseInt(unitOfMeasure.slice(0, -1));
+								var conv1;
+								conv1 = parseInt(unitOfMeasure.slice(0, -1));
+								newPrice.size = conv1.toString();
 								newPrice.unit = "s";
 								break;
-							default:
-								newPrice.unit = "c";
 						}
 					}
 					if(item.prices[index].price) {
@@ -865,25 +878,19 @@
 					}
 					var prodPrice = item.prices[index];
 					if(prodPrice.prodSpecCharValueUse) {
-						var specChar = new Object();
+						var specChar = new Array();
 						for (var indexChar in prodPrice.prodSpecCharValueUse) {
 							if(prodPrice.prodSpecCharValueUse[indexChar].name == "radiusReserveTime") {
-								specChar.priceCharReserveTime = prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value;
+								specChar[indexChar] = {name: "radiusReserveTime", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
 							}
 							if(prodPrice.prodSpecCharValueUse[indexChar].name == "radiusReserveOctets") {
-								specChar.priceCharReserveBytes = prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value;
-							}
-							if(prodPrice.prodSpecCharValueUse[indexChar].name == "destPrefixPriceTable") {
-								specChar.prefixPrice = prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value;
-							}
-							if(prodPrice.prodSpecCharValueUse[indexChar].name == "destPrefixTariffTable") {
-								specChar.prefixTariff = prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value;
+								specChar[indexChar] = {name: "radiusReserveOctets", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
 							}
 							if(prodPrice.prodSpecCharValueUse[indexChar].name == "timeOfDayRange") {
-								specChar.timeOfDay = prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value;
+								specChar[indexChar] = {name: "timeOfDayRange", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
 							}
 							if(prodPrice.prodSpecCharValueUse[indexChar].name == "ratePrice") {
-								specChar.ratedPrice = prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value;
+								specChar[indexChar] = {name: "ratePrice", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
 							}
 						}
 					}
@@ -961,6 +968,15 @@
 					this.updateProductEndDateAlt = moment(date).format('YYYY-MM-DD');
 				}
 			},
+			_updateOnClickOfferChars: function() {
+				if(this.$.updateAddPriceOfferChars.opened == false) {
+					this.$.updateAddPriceOfferChars.show();
+					this.$.updateOnClickOfferChars.icon="arrow-drop-up"
+				} else {
+					this.$.updateAddPriceOfferChars.hide();
+					this.$.updateOnClickOfferChars.icon="arrow-drop-down"
+				}
+			},
 			_updateOnClickChars: function() {
 				if(this.$.updateAddPriceChars.opened == false) {
 					this.$.updateAddPriceChars.show();
@@ -1018,7 +1034,6 @@
 								break;
 						}
 						this.$.updatePriceSize.value = this.prices[indexUpdatePrice].size;
-console.log(this.$.updatePriceSize.value);
 						switch(this.prices[indexUpdatePrice].unit) {
 							case "b":
 								this.$.updatePriceUnits.selected = 0;
@@ -1057,23 +1072,19 @@ console.log(this.$.updatePriceSize.value);
 						}
 						var prodPriceUpdate = this.prices[indexUpdatePrice];
 						if(prodPriceUpdate.prodSpecCharValueUse) {
-							if(prodPriceUpdate.prodSpecCharValueUse.priceCharReserveTime) {
-								this.$.updateAddPriceCharReserveTime.value = prodPriceUpdate.prodSpecCharValueUse.priceCharReserveTime;
-							}
-							if(prodPriceUpdate.prodSpecCharValueUse.priceCharReserveBytes) {
-								this.$.updateAddPriceCharReserveBytes.value = prodPriceUpdate.prodSpecCharValueUse.priceCharReserveBytes;
-							}
-							if(prodPriceUpdate.prodSpecCharValueUse.prefixPrice) {
-								this.$.updateDestPrefixPrice.value = prodPriceUpdate.prodSpecCharValueUse.prefixPrice; 
-							}
-							if(prodPriceUpdate.prodSpecCharValueUse.prefixTariff) {
-								this.$.updateDestPrefixTariff.value = prodPriceUpdate.prodSpecCharValueUse.prefixTariff;
-							}
-							if(prodPriceUpdate.prodSpecCharValueUse.timeOfDay) {
-								this.$.updateTimeOfDay.value = prodPriceUpdate.prodSpecCharValueUse.timeOfDay;
-							}
-							if(prodPriceUpdate.prodSpecCharValueUse.ratedPrice) {
-								this.$.updateRatedPrice.value = prodPriceUpdate.prodSpecCharValueUse.ratedPrice;
+							for (var indexCharVal in prodPriceUpdate.prodSpecCharValueUse) {
+								if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "radiusReserveTime") {
+									this.$.updateAddPriceCharReserveTime.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
+								}
+								if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "radiusReserveOctets") {
+									this.$.updateAddPriceCharReserveBytes.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
+								}
+								if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "timeOfDayRange") {
+									this.$.updateTimeOfDay.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
+								}
+								if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "ratePrice") {
+									this.$.updateRatedPrice.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
+								}
 							}
 						}
 					}
@@ -1120,7 +1131,6 @@ console.log(this.$.updatePriceSize.value);
 								break;
 						}
 						this.$.updateAltSize.value = this.alterations[indexAlt].size;
-console.log(this.$.updateAltSize.value);
 						switch(this.alterations[indexAlt].unit) {
 							case "b":
 								this.$.updateUnitDrop.selected = 0;
@@ -1173,12 +1183,26 @@ console.log(this.$.updateAltSize.value);
 					startDateTimeObject.value = this.$.updateOffStart.value;
 					offerNew.push(startDateTimeObject);
 				}
-				if(this.$.updateOffEnd.value){
+				if(this.$.updateOffEnd.value) {
 					var endDateTimeObject = new Object();
 					endDateTimeObject.op = "add";
 					endDateTimeObject.path = "/validFor/endDateTime";
 					endDateTimeObject.value = this.$.updateOffEnd.value;
 					offerNew.push(endDateTimeObject);
+				}
+				if(this.$.updateDestPrefixPrice.value) {
+					var destPrice = new Object();
+					destPrice.op = "add";
+					destPrice.path = "/destPrefixPriceTable";
+					destPrice.value = this.$.updateDestPrefixPrice.value;
+					offerNew.push(destPrice);
+				}
+				if(this.$.updateDestPrefixTariff.value) {
+					var destTariff = new Object();
+					destTariff.op = "add";
+					destTariff.path = "/destPrefixTariffTable";
+					destPrice.value = this.$.updateDestPrefixTariff.value;
+					offerNew.push(destTariff);
 				}
 				ajax.body = JSON.stringify(offerNew);
 				ajax.generateRequest();
@@ -1207,7 +1231,7 @@ console.log(this.$.updateAltSize.value);
 					priceDesc.path = "/productOfferingPrice/" + indexPrices + "/description";
 					priceDesc.value = this.$.updatePriceDesc.value;
 					updatePriceNew.push(priceDesc);
-				} 
+				}
 				if(this.$.updatePriceTypedrop.value) {
 					var pricetype = new Object();
 					pricetype.op = "add";
@@ -1228,8 +1252,108 @@ console.log(this.$.updateAltSize.value);
 					var priceSize = new Object();
 					priceSize.op = "add";
 					priceSize.path = "/productOfferingPrice/" + indexPrices + "/unitOfMeasure";
-					priceSize.value = this.$.updatePriceSize.value;
-					updatePriceNew.push(priceSize);
+					for(var indexUnit in this.prices) {
+						var unitDrop = this.prices[indexUnit].unit;
+						var sizeVal = this.$.updatePriceSize.value + unitDrop;
+						if(unitDrop && sizeVal) {
+							var len = sizeVal.length;
+							var m = sizeVal.charAt(len - 1);
+							if(isNaN(parseInt(m))) {
+								var s = sizeVal.slice(0, (len - 1));
+							} else {
+								var s = sizeVal.size;
+							}
+							if(unitDrop == "b") {
+								if (m == "m") {
+									priceSize.value = s + "000000b";
+								} else if(m == "g") {
+									priceSize.value = s + "000000000b";
+								} else if(m == "k") {
+									priceSize.value = s + "000b";
+								} else {
+									priceSize.value = s + "b";
+								}
+							} else if(unitDrop == "s") {
+								var n = Number(s);
+								if(m == "m") {
+									n = n * 60;
+									priceSize.value = n.toString() + "s";
+								} else if(m == "h") {
+									n = n * 3600;
+									priceSize.value = n.toString() + "s";
+								} else {
+									priceSize.value = n.toString() + "s";
+								}
+							}
+						}
+						updatePriceNew.push(priceSize);
+					}
+				}
+				if(this.$.updatePricePerioddrop.value) {
+					var priceCharge = new Object();
+					priceCharge.op = "add";
+					priceCharge.path = "/productOfferingPrice/" + indexPrices + "/recurringChargePeriod";
+					switch(this.$.updatePricePeriod.selected) {
+						case 0:
+							priceCharge.value = "hourly";
+							break;
+						case 1:
+							priceCharge.value = "daily";
+							break;
+						case 2:
+							priceCharge.value = "weekly";
+							break;
+						case 3:
+							priceCharge.value = "monthly";
+							break;
+						case 4:
+							priceCharge.value = "yearly";
+					}
+					updatePriceNew.push(priceCharge);
+				} 
+				if(this.$.updateAddPriceCharReserveTime.value) {
+					function checkChar1(charVal) {
+						return charVal.name == "radiusReserveTime";
+					}
+					var indexChar = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
+					var charReserve = new Object();
+					charReserve.op = "add";
+					charReserve.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
+					charReserve.value = this.$.updateAddPriceCharReserveTime.value;
+					updatePriceNew.push(charReserve);
+				}
+				if(this.$.updateAddPriceCharReserveBytes.value) {
+					function checkChar1(charVal) {
+						return charVal.name == "radiusReserveOctets";
+					}
+					var indexChar1 = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
+					var charResBytes = new Object();
+					charResBytes.op = "add";
+					charResBytes.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar1 + "/productSpecCharacteristicValue/0/value";
+					charResBytes.value = this.$.updateAddPriceCharReserveBytes.value;
+					updatePriceNew.push(charResBytes);
+				}
+				if(this.$.updateTimeOfDay.value) {
+					function checkChar1(charVal) {
+						return charVal.name == "timeOfDayRange";
+					}
+					var indexChar2 = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
+					var timeDay = new Object();
+					timeDay.op = "add";
+					timeDay.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value";
+					timeDay.value = this.$.updateTimeOfDay.value;
+					updatePriceNew.push(timeDay);
+				}
+				if(this.$.updateRatedPrice.value) {
+					function checkChar1(charVal) {
+						return charVal.name == "ratePrice";
+					}
+					var indexChar3 = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
+					var priceRate = new Object();
+					priceRate.op = "add";
+					priceRate.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar3 + "/productSpecCharacteristicValue/0/value";
+					priceRate.value = this.$.updateRatedPrice.value; 
+					updatePriceNew.push(priceRate);
 				}
 				ajax.body = JSON.stringify(updatePriceNew);
 				ajax.generateRequest();
@@ -1432,10 +1556,8 @@ console.log(this.$.updateAltSize.value);
 				var charAddObj = new Object();
 				charAddObj.priceCharReserveTime = this.$.updateAddPriceCharReserveTime.value;
 				charAddObj.priceCharReserveBytes = this.$.updateAddPriceCharReserveBytes.value;
-				charAddObj.prefixPrice = this.$.updateDestPrefixPrice.value;
-				charAddObj.prefixTariff = this.$.updateDestPrefixTariff.value;
 				charAddObj.timeOfDay = this.$.updateTimeOfDay.value;
-				charAddObj.ratedPrice = this.$.updateRatedPrice.value;
+				charAddObj.ratePrice = this.$.updateRatedPrice.value;
 				updatePriceNew.prodSpecCharValueUse = charAddObj;
 				if(this.$.addUpdatePriceDrop.value) {
 					function checkAlt(alts) {
@@ -1502,6 +1624,32 @@ console.log(this.$.updateAltSize.value);
 						priceAmount.path = "/productOfferingPrice/" + "-" + "/taxIncludedAmount";
 						priceAmount.value = this.$.updatePriceAmount.value;
 						updatePriceNew1.push(priceAmount);
+					}
+					if(this.$.updateAddPriceCharReserveTime.value) {
+						var charReserve = new Object();
+						charReserve.op = "add";
+						charReserve.path = "/productOfferingPrice/" + indexPrices + "/radiusReserveTime";
+						charReserve.value = this.$.updateAddPriceCharReserveTime.value;
+						updatePriceNew.push(charReserve);
+					}
+					if(this.$.updateAddPriceCharReserveBytes.value) {
+						var charResBytes = new Object();
+						charResBytes.op = "add";
+						charResBytes.path = "/productOfferingPrice/" + indexPrices + "/radiusReserveOctets";
+						charResBytes.value = this.$.updateAddPriceCharReserveBytes.value;
+						updatePriceNew.push(charResBytes);
+					}
+					if(this.$.updateTimeOfDay.value) {
+						var timeDay = new Object();
+						timeDay.op = "add";
+						timeDay.path = "/productOfferingPrice/" + indexPrices + "/timeOfDayRange";
+						timeDay.value = this.$.updateTimeOfDay.value;
+						updatePriceNew.push(timeDay);
+					}
+					if(this.$.updateRatedPrice.value) {
+						var priceRate = new Object();
+						priceRate.op = "add";
+						priceRate.path = "/productOfferingPrice/" + indexPrices + "/ratePrice";
 					}
 					ajax.body = JSON.stringify(updatePriceNew1);
 					ajax.generateRequest();
@@ -1602,6 +1750,17 @@ console.log(this.$.updateAltSize.value);
 				this.$.deleteProductAjax.url = "/catalogManagement/v2/productOffering/"
 						+ this.$.updateOffName.value;
 				this.$.deleteProductAjax.generateRequest();
+			},
+			deletePrice: function(event) {
+				function checkDelPriceName(delPrice) {
+					return delPrice.name == document.getElementById("updatePriceName").value;
+				}
+					var indexDelPrice = this.prices.findIndex(checkDelPriceName);
+					if (indexDelPrice != -1) {
+						this.$.deleteProductAjax.url = "/catalogManagement/v2/productOffering/"
+							+ this.$.updatePriceName.value;
+						this.$.deleteProductAjax.generateRequest();
+				}
 			},
 			_deleteProductResponse: function(event) {
 				this.$.updateProductModal.close();
