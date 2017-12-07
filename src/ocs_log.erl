@@ -1603,7 +1603,7 @@ acct_query4(_Attributes, []) ->
 
 		Events :: [acct_event()].
 %% @private
-%% @doc Query accounting log events with filters.
+%% @doc Query authentication log events with filters.
 %%
 auth_query({Cont, Events}, Protocol, Types, ReqAttrsMatch, RespAttrsMatch) ->
 	{Cont, auth_query1(Events, Protocol, Types, ReqAttrsMatch, RespAttrsMatch)}.
