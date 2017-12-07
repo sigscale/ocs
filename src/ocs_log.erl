@@ -1725,24 +1725,17 @@ query_log1(Start, End, Log, MFA, PrevChunk, {Cont, [H | T] = Chunk}) ->
 			query_log1(Start, End, Log, MFA, T, disk_log:bchunk(Log, Cont))
 	end.
 %% @hidden
-query_log2(_Start, _End, _MFA, eof, Acc) ->
-	{eof, lists:reverse(Acc)};
+query_log2(_Start, _End, {M, F, A}, eof, Acc) ->
+	apply(M, F, [{eof, lists:reverse(Acc)} | A]);
 query_log2(_Start, _End, _MFA, {error, Reason}, _Acc)->
 	{error, Reason};
-query_log2(_Start, End, _MFA, {_, [Event | _]}, Acc) when element(1, Event) > End ->
-	{eof, lists:reverse(Acc)};
-query_log2(Start, End, {M, F, A} = MFA, {Cont, [Event | T]}, Acc)
+query_log2(_Start, End, {M, F, A}, {_, [Event | _]}, Acc) when element(1, Event) > End ->
+	apply(M, F, [{eof, lists:reverse(Acc)} | A]);
+query_log2(Start, End, MFA, {Cont, [Event | T]}, Acc)
 		when element(1, Event) >= Start, element(1, Event) =< End ->
-	case catch apply(M, F, [Event | A])	of
-		{ok, Result} ->
-			query_log2(Start, End, MFA, {Cont, T}, Result ++ Acc);
-		{error, Reason} ->
-			{error, Reason};
-		{'EXIT', Reason} ->
-			{error, Reason}
-	end;
+	query_log2(Start, End, MFA, {Cont, T}, [Event | Acc]);
 query_log2(Start, End, MFA, {Cont, [_ | T]}, Acc) ->
 	query_log2(Start, End, MFA, {Cont, T}, Acc);
-query_log2(_Start, _End, _MFA, {Cont, []}, Acc) ->
-	{Cont, lists:reverse(Acc)}.
+query_log2(_Start, _End, {M, F, A}, {Cont, []}, Acc) ->
+	apply(M, F, [{Cont, lists:reverse(Acc)} | A]).
 
