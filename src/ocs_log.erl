@@ -30,7 +30,8 @@
 		auth_query/6, auth_query/7,
 		ipdr_log/3, ipdr_file/2, get_range/3, last/2,
 		dump_file/2, http_file/2, httpd_logname/1,
-		date/1, iso8601/1, http_query/8]).
+		date/1, iso8601/1, http_query/8,
+		balance_activity_open/0]).
 
 %% exported the private function
 -export([acct_query/4, auth_query/5]).
@@ -46,6 +47,7 @@
 
 -define(ACCTLOG, ocs_acct).
 -define(AUTHLOG, ocs_auth).
+-define(BALANCELOG, ocs_balance_activity).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -893,6 +895,16 @@ uuid() ->
 	Chars = io_lib:fwrite(Format, Values),
 	lists:flatten(Chars).
 
+-spec balance_activity_open() -> Result
+	when
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Open balance activity event disk log.
+balance_activity_open() ->
+	{ok, Directory} = application:get_env(ocs, balance_activitys_log_dir),
+	{ok, LogSize} = application:get_env(ocs, balance_activitys_log_size),
+	{ok, LogFiles} = application:get_env(ocs, balance_activity_log_files),
+	open_log(Directory, ?BALANCELOG, LogSize, LogFiles).
 
 %%----------------------------------------------------------------------
 %%  internal functions
