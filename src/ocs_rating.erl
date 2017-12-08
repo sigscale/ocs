@@ -436,12 +436,11 @@ reserve_session(Type, Amount, Now, SessionId,
 		reservations = Reservations, termination_date = Expires} = B | T],
 		Acc, Reserved) when Remain > 0, Remain < Amount,
 		((Expires == undefined) or (Now < Expires)) ->
-	NewReserve = Amount - Remain,
-	NewReservation = {Now, NewReserve, SessionId},
+	NewReservation = {Now, Remain, SessionId},
 	NewAcc = [B#bucket{remain_amount = 0,
 			reservations = [NewReservation | Reservations]} | Acc],
-	reserve_session(Type, Amount - NewReserve, Now,
-			SessionId, T, NewAcc, Reserved + NewReserve);
+	reserve_session(Type, Amount - Remain, Now,
+			SessionId, T, NewAcc, Reserved + Remain);
 reserve_session(Type, Amount, Now, SessionId, [H | T], Acc, Reserved) ->
 	reserve_session(Type, Amount, Now, SessionId, T, [H | Acc], Reserved);
 reserve_session(_, _, _, _, [], Acc, Reserved) ->
