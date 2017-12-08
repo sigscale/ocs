@@ -26,6 +26,10 @@
 
 -include("ocs.hrl").
 
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
+
 -spec content_types_accepted() -> ContentTypes
 	when
 		ContentTypes :: list().
@@ -107,7 +111,8 @@ top_up(Identity, RequestBody) ->
 				{undefined, undefined}
 		end,
 		BucketType = units(Units),
-		Bucket = #bucket{units = BucketType, remain_amount = Amount,
+		BID = generate_bucket_id(),
+		Bucket = #bucket{id = BID, units = BucketType, remain_amount = Amount,
 				start_date = StartDate, termination_date = EndDate},
 		top_up1(Identity, Bucket)
 	catch
@@ -197,4 +202,10 @@ units1("seconds") -> seconds;
 units1(octets) -> "octets";
 units1(cents) -> "cents";
 units1(seconds) -> "seconds".
+
+%% @hidden
+generate_bucket_id() ->
+	TS = erlang:system_time(?MILLISECOND),
+	N = erlang:unique_integer([positive]),
+	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
 

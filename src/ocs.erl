@@ -1441,9 +1441,14 @@ subscription(Subscriber, ProductName, Characteristics, Now, [_ | T]) ->
 subscription(#subscriber{buckets = Buckets} = Subscriber,
 		ProductName, Characteristics, Now, []) ->
 	NewBuckets = [B#bucket{last_modified = {Now,
-			erlang:unique_integer([positive])}} || B <- Buckets],
+			erlang:unique_integer([positive])}, id = generate_bucket_id()} || B <- Buckets],
 	P = #product_instance{start_date = Now,
 			product = ProductName, characteristics = Characteristics,
 			last_modified = {Now, erlang:unique_integer([positive])}},
 	Subscriber#subscriber{buckets = NewBuckets, product = P}.
 
+%% @hidden
+generate_bucket_id() ->
+	TS = erlang:system_time(?MILLISECOND),
+	N = erlang:unique_integer([positive]),
+	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
