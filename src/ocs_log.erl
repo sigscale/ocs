@@ -25,13 +25,14 @@
 
 %% export the ocs_log public API
 -export([acct_open/0, acct_log/4, acct_log/5, acct_close/0,
-		acct_query/5, acct_query/6,
-		auth_open/0, auth_log/5, auth_log/6, auth_close/0,
-		auth_query/6, auth_query/7,
-		ipdr_log/3, ipdr_file/2, get_range/3, last/2,
-		dump_file/2, http_file/2, httpd_logname/1,
-		date/1, iso8601/1, http_query/8,
-		balance_activity_open/0]).
+			acct_query/5, acct_query/6]).
+-export([auth_open/0, auth_log/5, auth_log/6, auth_close/0,
+			auth_query/6, auth_query/7]).
+-export([ipdr_log/3, ipdr_file/2]).
+-export([balance_activity_open/0]).
+-export([get_range/3, last/2, dump_file/2, httpd_logname/1,
+			http_file/2, date/1, iso8601/1]).
+-export([http_query/8]).
 
 %% exported the private function
 -export([acct_query/4, auth_query/5]).
