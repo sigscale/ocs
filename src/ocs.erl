@@ -1415,11 +1415,19 @@ subscription(#subscriber{last_modified = {Now, _}} = Subscriber,
 %% @hidden
 subscription(#subscriber{buckets = Buckets} = Subscriber,
 		ProductName, Characteristics, Now,
+		[#price{type = recurring, period = Period,
+		amount = SubscriptionAmount, units = undefined,
+		alteration = undefined} | T]) when Period /= undefined ->
+	NewBuckets = charge(SubscriptionAmount, Buckets),
+	subscription(Subscriber#subscriber{buckets = NewBuckets},
+			ProductName, Characteristics, Now, T);
+subscription(#subscriber{buckets = Buckets} = Subscriber,
+		ProductName, Characteristics, Now,
 		[#price{type = recurring,
 		period = Period, amount = SubscriptionAmount,
 		alteration = #alteration{units = Units, size = Size,
 		amount = AllowanceAmount}} | T]) when Period /= undefined,
-		Units == octets; Units == seconds ->
+		Units == octets; Period /= undefined, Units == seconds ->
 	NewBuckets = charge(SubscriptionAmount + AllowanceAmount,
 			[#bucket{units = Units, remain_amount = Size,
 			termination_date = end_period(Now, Period)} | Buckets]),
