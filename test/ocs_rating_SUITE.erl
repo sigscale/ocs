@@ -85,10 +85,10 @@ sequences() ->
 %%
 all() -> 
 	[initial_exact_fit, initial_insufficient,
-	initial_insufficient_multisession,
-	initial_overhead, initial_multiple_buckets,
-	initial_expire_buckets, initial_ignore_expired_buckets,
-	initial_add_session, interim_reservation,
+	initial_insufficient_multisession, initial_overhead,
+	initial_multiple_buckets, initial_expire_buckets,
+	initial_ignore_expired_buckets, initial_add_session,
+	interim_reservation, initial_negative_balance,
 	interim_reservations_within_package_size, interim_reservation_available_remain_amount,
 	interim_reservation_out_of_credit, interim_reservation_remove_session_attributes,
 	interim_reservation_multiple_buckets_with_sufficient_amount,
@@ -340,6 +340,33 @@ initial_ignore_expired_buckets(_Config) ->
 			PackageSize} = ocs_rating:rate(diameter, SubscriberID,
 			Destination, initial, [], [{octets, Reservation}], SessionId2),
 	2 - length(Buckets2).
+
+initial_negative_balance() ->
+	[{userdata, [{doc, "Handle negative balance and ignore"}]}].
+
+initial_negative_balance(_Config) ->
+	ProdID = ocs:generate_password(),
+	PackagePrice = 100,
+	PackageSize = 1000,
+	Price1 = #price{name = "subscription", type = recurring,
+			period = monthly, amount = 2000},
+	Price2 = #price{name = "usage", type = usage,
+			units = octets, size = PackageSize, amount = PackagePrice},
+	Product = #product{name = ProdID, price = [Price1, Price2]},
+	{ok, _} = ocs:add_product(Product),
+	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	Chars = [{validity, erlang:system_time(?MILLISECOND) - 2592000000}],
+	{ok, #subscriber{buckets = Buckets1}} = ocs:add_subscriber(SubscriberID,
+			Password, ProdID, Chars, []),
+	Balance = lists:sum([R || #bucket{remain_amount = R} <- Buckets1]),
+	Destination = ocs:generate_identity(),
+	Reservation = rand:uniform(PackageSize),
+	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	{out_of_credit, _} = ocs_rating:rate(diameter, SubscriberID,
+			Destination, initial, [], [{octets, Reservation}], SessionId),
+	{ok, #subscriber{buckets = Buckets2}} = ocs:find_subscriber(SubscriberID),
+	Balance = lists:sum([R || #bucket{remain_amount = R} <- Buckets2]).
 
 interim_reservation() ->
 	[{userdata, [{doc, "Reservation amount equal to package size"}]}].
