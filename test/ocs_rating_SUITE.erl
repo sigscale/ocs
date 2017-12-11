@@ -222,25 +222,24 @@ initial_overhead(_Config) ->
 	SubscriberID = list_to_binary(ocs:generate_identity()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
-	RemAmount = 200,
-	Reservation = 1500,
-	Buckets = [#bucket{units = cents, remain_amount = RemAmount,
+	RemAmount1 = 233,
+	Reservation = 1555,
+	Buckets = [#bucket{units = cents, remain_amount = RemAmount1,
 			start_date = erlang:system_time(?MILLISECOND),
 			termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
 	Destination = ocs:generate_identity(),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _Subscriber1} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
-	{ok, Subscriber2, _} = ocs_rating:rate(radius, SubscriberID,
+	{ok, #subscriber{buckets = [#bucket{remain_amount = RemAmount2}]},
+			Reserved} = ocs_rating:rate(radius, SubscriberID,
 			Destination, initial, [], [{octets, Reservation}], SessionId),
-	#subscriber{buckets = [#bucket{reservations = [{_, Reserved,
-			SessionId}]}]} = Subscriber2,
 	F = fun(A) when (A rem PackageSize) == 0 ->
 				(A div PackageSize) * PackagePrice;
 			(A) ->
 				(A div PackageSize + 1) * PackagePrice
 	end,
-	Reserved = F(Reservation),
-	true = (Reserved * PackagePrice) > Reservation.
+	RemAmount2 = RemAmount1 - F(Reservation),
+	true = Reserved > Reservation.
 
 initial_reservation_multiple_buckets() ->
 	[{userdata, [{doc, "Reservation with mulitple buckets"}]}].
