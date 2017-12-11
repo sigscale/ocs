@@ -88,7 +88,7 @@ all() ->
 	initial_insufficient_multisession,
 	initial_reservation_overhead, initial_reservation_multiple_buckets,
 	initial_reservation_expiry_buckets, initial_reservation_ignore_expired_buckets,
-	initial_reservation_add_session_attributes, interim_reservation_avaialbe_remain_amount,
+	initial_add_session, interim_reservation_avaialbe_remain_amount,
 	interim_reservations_within_package_size, interim_reservation_available_remain_amount,
 	interim_reservation_out_of_credit, interim_reservation_remove_session_attributes,
 	interim_reservation_multiple_buckets_with_sufficient_amount,
@@ -180,10 +180,10 @@ initial_insufficient_multisession(_Config) ->
 				initial, [], [{octets, PackageSize}], SessionId),
 	{ok, #subscriber{buckets = Buckets}} = ocs:find_subscriber(SubscriberID).
 
-initial_reservation_add_session_attributes() ->
-	[{userdata, [{doc, "Add session attributes in subscriber record"}]}].
+initial_add_session() ->
+	[{userdata, [{doc, "Add a session"}]}].
 
-initial_reservation_add_session_attributes(_Config) ->
+initial_add_session(_Config) ->
 	ProdID = ocs:generate_password(),
 	PackagePrice = 100,
 	PackageSize = 1000,
