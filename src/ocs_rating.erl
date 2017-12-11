@@ -815,20 +815,24 @@ get_reserve(#price{units = octets,
 	when
 		Buckets :: [#bucket{}],
 		SessionId :: string() | binary().
-%% @doc refund unsed reservations
+%% @doc Refund unused reservations.
 %% @hidden
 refund(SessionID, Buckets) ->
 	refund(SessionID, Buckets, []).
 %% @hidden
-refund(SessionID, [#bucket{reservations = Reservations} = B | T], Acc) ->
-	F = fun({_, Amount, SID}, {R, In}) when SID == SessionID ->
-			{R, In + Amount};
-		(Reserve, {R, In}) ->
-			{[Reserve | R], In}
-	end,
-	{NewReservations, NewRemainAmount} = lists:foldl(F, {[], 0}, Reservations),
-	NewAcc = [B#bucket{reservations = NewReservations,
-			remain_amount = NewRemainAmount} | Acc],
-	refund(SessionID, T, NewAcc);
+refund(SessionID, [#bucket{reservations = Reservations} = H | T], Acc) ->
+	refund(SessionID, H, Reservations, T, [], Acc);
 refund(_SessionID, [], Acc) ->
 	lists:reverse(Acc).
+%% @hidden
+refund(SessionID, #bucket{remain_amount = R} = Bucket1,
+		[{_, Amount, SessionID} | T1], T2, Acc1, Acc2) ->
+	Bucket2 = Bucket1#bucket{remain_amount = R + Amount,
+			reservations = lists:reverse(Acc1) ++ T1},
+	refund(SessionID, T2, [Bucket2 | Acc2]);
+refund(SessionID, Bucket, [H | T1], T2, Acc1, Acc2) ->
+	refund(SessionID, Bucket, T1, T2, [H | Acc1], Acc2);
+refund(SessionID, Bucket1, [], T, Acc1, Acc2) ->
+	Bucket2 = Bucket1#bucket{reservations = lists:reverse(Acc1)},
+	refund(SessionID, T, [Bucket2 | Acc2]).
+
