@@ -86,7 +86,7 @@ sequences() ->
 all() -> 
 	[initial_exact_fit, initial_insufficient,
 	initial_insufficient_multisession,
-	initial_overhead, initial_reservation_multiple_buckets,
+	initial_overhead, initial_multiple_buckets,
 	initial_reservation_expiry_buckets, initial_reservation_ignore_expired_buckets,
 	initial_add_session, interim_reservation_avaialbe_remain_amount,
 	interim_reservations_within_package_size, interim_reservation_available_remain_amount,
@@ -241,10 +241,10 @@ initial_overhead(_Config) ->
 	RemAmount2 = RemAmount1 - F(Reservation),
 	true = Reserved > Reservation.
 
-initial_reservation_multiple_buckets() ->
-	[{userdata, [{doc, "Reservation with mulitple buckets"}]}].
+initial_multiple_buckets() ->
+	[{userdata, [{doc, "Reservation over multiple buckets"}]}].
 
-initial_reservation_multiple_buckets(_Config) ->
+initial_multiple_buckets(_Config) ->
 	ProdID = ocs:generate_password(),
 	PackagePrice = 100,
 	PackageSize = 1000,
@@ -255,19 +255,22 @@ initial_reservation_multiple_buckets(_Config) ->
 	SubscriberID = list_to_binary(ocs:generate_identity()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
-	Reservation = 1000,
+	Reservation = 1111,
 	B1 = #bucket{units = cents, remain_amount = 50,
 		start_date = erlang:system_time(?MILLISECOND),
 		termination_date = erlang:system_time(?MILLISECOND) + 2592000000},
 	B2 = #bucket{units = cents, remain_amount = 50,
 		start_date = erlang:system_time(?MILLISECOND),
 		termination_date = erlang:system_time(?MILLISECOND) + 2592000000},
-	Buckets = [B1, B2],
+	B3 = #bucket{units = cents, remain_amount = 50,
+		start_date = erlang:system_time(?MILLISECOND),
+		termination_date = erlang:system_time(?MILLISECOND) + 2592000000},
+	Buckets = [B1, B2, B3],
 	Destination = ocs:generate_identity(),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
-	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
-	{ok, _, Reservation} = ocs_rating:rate(radius, SubscriberID, Destination, initial, [], [{octets, Reservation}], SessionId),
-	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
+	{ok, _Subscriber1} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
+	{ok, #subscriber{buckets = RatedBuckets}, Reserved} = ocs_rating:rate(radius,
+			SubscriberID, Destination, initial, [], [{octets, Reservation}], SessionId),
 	GetAllReservations = fun(Type, Bs) ->
 		F1 = fun(#bucket{units = T, reservations = Res}, R) when T == Type ->
 					Res ++  R;
