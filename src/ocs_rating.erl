@@ -399,7 +399,7 @@ rate6(Subscriber, interim, _Charge, _Charged, _Reserve, Reserved, _SessionAttrib
 %% @doc Perform reservation for a session.
 %%
 %% 	Creates a reservation within bucket(s) of `Type' and
-%% 	decrements remaing balance by the same amount(s).
+%% 	decrements remaining balance by the same amount(s).
 %%
 %% 	Expired buckets are removed when no session
 %% 	reservations remain.
