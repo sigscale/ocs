@@ -246,7 +246,7 @@ rate5(#subscriber{buckets = Buckets1} = Subscriber,
 							initial, 0, 0, ReserveAmount,
 							UnitsReserved + UnitReserve, SessionAttributes);
 				{PriceReserved, Buckets3} ->
-					rate6(Subscriber#subscriber{buckets = Buckets3},
+					rate6(Subscriber#subscriber{buckets = refund(SessionId, Buckets3)},
 							initial, 0, 0, ReserveAmount,
 							UnitsReserved + (PriceReserved div UnitPrice),
 							SessionAttributes)
@@ -270,7 +270,7 @@ rate5(#subscriber{enabled = false, buckets = Buckets1} = Subscriber,
 							DebitAmount, DebitAmount + UnitCharge,
 							0, 0, SessionAttributes);
 				{PriceCharged, 0, Buckets3} ->
-					rate6(Subscriber#subscriber{buckets = Buckets3}, interim,
+					rate6(Subscriber#subscriber{buckets = refund(SessionId, Buckets3)}, interim,
 							DebitAmount, UnitsCharged + (PriceCharged div UnitPrice),
 							0, 0, SessionAttributes)
 			end
