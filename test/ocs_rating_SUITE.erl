@@ -239,10 +239,11 @@ initial_overhead(_Config) ->
 				(A div PackageSize + 1) * PackagePrice
 	end,
 	RemAmount2 = RemAmount1 - F(Reservation),
+	0 = Reserved rem PackageSize,
 	true = Reserved > Reservation.
 
 initial_multiple_buckets() ->
-	[{userdata, [{doc, "Reservation over multiple buckets"}]}].
+	[{userdata, [{doc, "Reservation over multiple cents buckets"}]}].
 
 initial_multiple_buckets(_Config) ->
 	ProdID = ocs:generate_password(),
@@ -259,42 +260,28 @@ initial_multiple_buckets(_Config) ->
 	B1 = #bucket{units = cents, remain_amount = 50,
 		start_date = erlang:system_time(?MILLISECOND),
 		termination_date = erlang:system_time(?MILLISECOND) + 2592000000},
-	B2 = #bucket{units = cents, remain_amount = 50,
+	B2 = #bucket{units = cents, remain_amount = 100,
 		start_date = erlang:system_time(?MILLISECOND),
 		termination_date = erlang:system_time(?MILLISECOND) + 2592000000},
-	B3 = #bucket{units = cents, remain_amount = 50,
+	B3 = #bucket{units = cents, remain_amount = 75,
 		start_date = erlang:system_time(?MILLISECOND),
 		termination_date = erlang:system_time(?MILLISECOND) + 2592000000},
 	Buckets = [B1, B2, B3],
+	Balance1 = lists:sum([R || #bucket{remain_amount = R} <- Buckets]),
 	Destination = ocs:generate_identity(),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _Subscriber1} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
 	{ok, #subscriber{buckets = RatedBuckets}, Reserved} = ocs_rating:rate(radius,
 			SubscriberID, Destination, initial, [], [{octets, Reservation}], SessionId),
-	GetAllReservations = fun(Type, Bs) ->
-		F1 = fun(#bucket{units = T, reservations = Res}, R) when T == Type ->
-					Res ++  R;
-				(_, R) ->
-					R
-		end,
-		lists:foldl(F1, [], Bs)
-	end,
-	GetReservedAmount = fun(Rese) ->
-		F2  = fun(F2, [{_, R, _} | T], Acc) ->
-					F2(F2, T, R + Acc);
-				(_F2, [], Acc) ->
-					Acc
-		end,
-		F2(F2, Rese, 0)
-	end,
-	Reservations = GetAllReservations(cents, RatedBuckets),
-	Reserved = GetReservedAmount(Reservations),
+	Balance2 = lists:sum([R || #bucket{remain_amount = R} <- RatedBuckets]),
 	F = fun(A) when (A rem PackageSize) == 0 ->
 			(A div PackageSize) * PackagePrice;
 		(A) ->
 			(A div PackageSize + 1) * PackagePrice
 	end,
-	Reserved = F(Reservation).
+	Balance2 = Balance1 - F(Reservation),
+	0 = Reserved rem PackageSize,
+	true = Reserved > Reservation.
 
 initial_reservation_expiry_buckets() ->
 	[{userdata, [{doc, "remove expired buckets"}]}].
