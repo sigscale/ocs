@@ -246,7 +246,7 @@ rate5(#subscriber{buckets = Buckets1} = Subscriber,
 							initial, 0, 0, ReserveAmount,
 							UnitsReserved + UnitReserve, SessionAttributes);
 				{PriceReserved, Buckets3} ->
-					rate6(Subscriber#subscriber{buckets = Buckets3},
+					rate6(Subscriber#subscriber{buckets = refund(SessionId, Buckets3)},
 							initial, 0, 0, ReserveAmount,
 							UnitsReserved + (PriceReserved div UnitPrice),
 							SessionAttributes)
@@ -270,7 +270,7 @@ rate5(#subscriber{enabled = false, buckets = Buckets1} = Subscriber,
 							DebitAmount, DebitAmount + UnitCharge,
 							0, 0, SessionAttributes);
 				{PriceCharged, 0, Buckets3} ->
-					rate6(Subscriber#subscriber{buckets = Buckets3}, interim,
+					rate6(Subscriber#subscriber{buckets = refund(SessionId, Buckets3)}, interim,
 							DebitAmount, UnitsCharged + (PriceCharged div UnitPrice),
 							0, 0, SessionAttributes)
 			end
@@ -436,12 +436,11 @@ reserve_session(Type, Amount, Now, SessionId,
 		reservations = Reservations, termination_date = Expires} = B | T],
 		Acc, Reserved) when Remain > 0, Remain < Amount,
 		((Expires == undefined) or (Now < Expires)) ->
-	NewReserve = Amount - Remain,
-	NewReservation = {Now, NewReserve, SessionId},
+	NewReservation = {Now, Remain, SessionId},
 	NewAcc = [B#bucket{remain_amount = 0,
 			reservations = [NewReservation | Reservations]} | Acc],
-	reserve_session(Type, Amount - NewReserve, Now,
-			SessionId, T, NewAcc, Reserved + NewReserve);
+	reserve_session(Type, Amount - Remain, Now,
+			SessionId, T, NewAcc, Reserved + Remain);
 reserve_session(Type, Amount, Now, SessionId, [H | T], Acc, Reserved) ->
 	reserve_session(Type, Amount, Now, SessionId, T, [H | Acc], Reserved);
 reserve_session(_, _, _, _, [], Acc, Reserved) ->

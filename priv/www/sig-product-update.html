@@ -511,6 +511,7 @@
 						<paper-button
 								toggles
 								raised
+								on-tap="deletePrice"
 								class="delete-buttons">
 								<i18n-msg msgid="delete">
 									Delete
@@ -1070,18 +1071,20 @@
 							this.$.addUpdatePriceAlteration.selected = this.alterations.findIndex(checkAlt1);
 						}
 						var prodPriceUpdate = this.prices[indexUpdatePrice];
-						if(prodPriceUpdate.prodSpecCharValueUse[0]) {
-							if(prodPriceUpdate.prodSpecCharValueUse[0].name == "radiusReserveTime") {
-								this.$.updateAddPriceCharReserveTime.value = prodPriceUpdate.prodSpecCharValueUse[0].value;
-							}
-							if(prodPriceUpdate.prodSpecCharValueUse[0].name == "radiusReserveOctets") {
-								this.$.updateAddPriceCharReserveBytes.value = prodPriceUpdate.prodSpecCharValueUse[0].value;
-							}
-							if(prodPriceUpdate.prodSpecCharValueUse[0].name == "timeOfDayRange") {
-								this.$.updateTimeOfDay.value = prodPriceUpdate.prodSpecCharValueUse[0].value;
-							}
-							if(prodPriceUpdate.prodSpecCharValueUse[0].name == "ratePrice") {
-								this.$.updateRatedPrice.value = prodPriceUpdate.prodSpecCharValueUse[0].value;
+						if(prodPriceUpdate.prodSpecCharValueUse) {
+							for (var indexCharVal in prodPriceUpdate.prodSpecCharValueUse) {
+								if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "radiusReserveTime") {
+									this.$.updateAddPriceCharReserveTime.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
+								}
+								if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "radiusReserveOctets") {
+									this.$.updateAddPriceCharReserveBytes.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
+								}
+								if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "timeOfDayRange") {
+									this.$.updateTimeOfDay.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
+								}
+								if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "ratePrice") {
+									this.$.updateRatedPrice.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
+								}
 							}
 						}
 					}
@@ -1554,7 +1557,7 @@
 				charAddObj.priceCharReserveTime = this.$.updateAddPriceCharReserveTime.value;
 				charAddObj.priceCharReserveBytes = this.$.updateAddPriceCharReserveBytes.value;
 				charAddObj.timeOfDay = this.$.updateTimeOfDay.value;
-				charAddObj.ratedPrice = this.$.updateRatedPrice.value;
+				charAddObj.ratePrice = this.$.updateRatedPrice.value;
 				updatePriceNew.prodSpecCharValueUse = charAddObj;
 				if(this.$.addUpdatePriceDrop.value) {
 					function checkAlt(alts) {
@@ -1747,6 +1750,17 @@
 				this.$.deleteProductAjax.url = "/catalogManagement/v2/productOffering/"
 						+ this.$.updateOffName.value;
 				this.$.deleteProductAjax.generateRequest();
+			},
+			deletePrice: function(event) {
+				function checkDelPriceName(delPrice) {
+					return delPrice.name == document.getElementById("updatePriceName").value;
+				}
+					var indexDelPrice = this.prices.findIndex(checkDelPriceName);
+					if (indexDelPrice != -1) {
+						this.$.deleteProductAjax.url = "/catalogManagement/v2/productOffering/"
+							+ this.$.updatePriceName.value;
+						this.$.deleteProductAjax.generateRequest();
+				}
 			},
 			_deleteProductResponse: function(event) {
 				this.$.updateProductModal.close();
