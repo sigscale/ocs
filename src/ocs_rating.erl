@@ -817,22 +817,22 @@ get_reserve(#price{units = octets,
 		SessionId :: string() | binary().
 %% @doc Refund unused reservations.
 %% @hidden
-refund(SessionID, Buckets) ->
-	refund(SessionID, Buckets, []).
+refund(SessionId, Buckets) ->
+	refund(SessionId, Buckets, []).
 %% @hidden
-refund(SessionID, [#bucket{reservations = Reservations} = H | T], Acc) ->
-	refund(SessionID, H, Reservations, T, [], Acc);
-refund(_SessionID, [], Acc) ->
+refund(SessionId, [#bucket{reservations = Reservations} = H | T], Acc) ->
+	refund(SessionId, H, Reservations, T, [], Acc);
+refund(_SessionId, [], Acc) ->
 	lists:reverse(Acc).
 %% @hidden
-refund(SessionID, #bucket{remain_amount = R} = Bucket1,
-		[{_, Amount, SessionID} | T1], T2, Acc1, Acc2) ->
+refund(SessionId, #bucket{remain_amount = R} = Bucket1,
+		[{_, Amount, SessionId} | T1], T2, Acc1, Acc2) ->
 	Bucket2 = Bucket1#bucket{remain_amount = R + Amount,
 			reservations = lists:reverse(Acc1) ++ T1},
-	refund(SessionID, T2, [Bucket2 | Acc2]);
-refund(SessionID, Bucket, [H | T1], T2, Acc1, Acc2) ->
-	refund(SessionID, Bucket, T1, T2, [H | Acc1], Acc2);
-refund(SessionID, Bucket1, [], T, Acc1, Acc2) ->
+	refund(SessionId, T2, [Bucket2 | Acc2]);
+refund(SessionId, Bucket, [H | T1], T2, Acc1, Acc2) ->
+	refund(SessionId, Bucket, T1, T2, [H | Acc1], Acc2);
+refund(SessionId, Bucket1, [], T, Acc1, Acc2) ->
 	Bucket2 = Bucket1#bucket{reservations = lists:reverse(Acc1)},
-	refund(SessionID, T, [Bucket2 | Acc2]).
+	refund(SessionId, T, [Bucket2 | Acc2]).
 
