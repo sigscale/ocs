@@ -142,16 +142,16 @@ initial_insufficient(_Config) ->
 	SubscriberID = list_to_binary(ocs:generate_identity()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
-	RemAmount = 0,
+	RemAmount = 13,
 	Buckets = [#bucket{units = cents, remain_amount = RemAmount,
 		start_date = erlang:system_time(?MILLISECOND),
 		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
 	Destination = ocs:generate_identity(),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
-	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
+	{ok, _Subscriber1} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
 	{out_of_credit, _} = ocs_rating:rate(radius, SubscriberID, Destination, initial, [], [{octets, PackageSize}], SessionId),
-	{ok, #subscriber{buckets = [#bucket{units = cents,
-			remain_amount = 0}]}} = ocs:find_subscriber(SubscriberID).
+	{ok, #subscriber{buckets = [#bucket{units = cents, remain_amount = RemAmount,
+			reservations = []}]}} = ocs:find_subscriber(SubscriberID).
 
 initial_reservation_multiple_sesion_with_out_of_credit() ->
 	[{userdata, [{doc, "Not allow any
