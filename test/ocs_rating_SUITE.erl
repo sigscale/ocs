@@ -86,7 +86,7 @@ sequences() ->
 all() -> 
 	[initial_exact_fit, initial_insufficient,
 	initial_insufficient_multisession,
-	initial_reservation_overhead, initial_reservation_multiple_buckets,
+	initial_overhead, initial_reservation_multiple_buckets,
 	initial_reservation_expiry_buckets, initial_reservation_ignore_expired_buckets,
 	initial_add_session, interim_reservation_avaialbe_remain_amount,
 	interim_reservations_within_package_size, interim_reservation_available_remain_amount,
@@ -208,15 +208,15 @@ initial_add_session(_Config) ->
 	{ok, #subscriber{session_attributes = [{_, SessionAttr}]}, _} = ocs_rating:rate(radius,
 			SubscriberID, Destination, initial, [], [{octets, PackageSize}], SessionAttr).
 
-initial_reservation_overhead() ->
-	[{userdata, [{doc, "Reserved amount grater than requested reservation amount"}]}].
+initial_overhead() ->
+	[{userdata, [{doc, "Reserved amount greater than requested reservation amount"}]}].
 
-initial_reservation_overhead(_Config) ->
+initial_overhead(_Config) ->
 	ProdID = ocs:generate_password(),
 	PackagePrice = 100,
 	PackageSize = 1000,
 	Price = #price{name = "overage", type = usage,
-		units = octets, size = PackageSize, amount = PackagePrice},
+			units = octets, size = PackageSize, amount = PackagePrice},
 	Product = #product{name = ProdID, price = [Price]},
 	{ok, _} = ocs:add_product(Product),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
@@ -225,19 +225,19 @@ initial_reservation_overhead(_Config) ->
 	RemAmount = 200,
 	Reservation = 1500,
 	Buckets = [#bucket{units = cents, remain_amount = RemAmount,
-		start_date = erlang:system_time(?MILLISECOND),
-		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
+			start_date = erlang:system_time(?MILLISECOND),
+			termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
 	Destination = ocs:generate_identity(),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
-	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
-	{ok, _, _} = ocs_rating:rate(radius, SubscriberID, Destination, initial, [], [{octets, Reservation}], SessionId),
-	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
-	#bucket{reservations = Reservations} = lists:keyfind(cents, #bucket.units, RatedBuckets),
-	{_, Reserved, _} = lists:keyfind(SessionId, 3, Reservations),
+	{ok, _Subscriber1} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
+	{ok, Subscriber2, _} = ocs_rating:rate(radius, SubscriberID,
+			Destination, initial, [], [{octets, Reservation}], SessionId),
+	#subscriber{buckets = [#bucket{reservations = [{_, Reserved,
+			SessionId}]}]} = Subscriber2,
 	F = fun(A) when (A rem PackageSize) == 0 ->
-			(A div PackageSize) * PackagePrice;
-		(A) ->
-			(A div PackageSize + 1) * PackagePrice
+				(A div PackageSize) * PackagePrice;
+			(A) ->
+				(A div PackageSize + 1) * PackagePrice
 	end,
 	Reserved = F(Reservation),
 	true = (Reserved * PackagePrice) > Reservation.
