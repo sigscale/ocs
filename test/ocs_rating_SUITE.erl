@@ -85,7 +85,7 @@ sequences() ->
 %%
 all() -> 
 	[initial_exact_fit, initial_insufficient,
-	initial_reservation_multiple_sesion_with_out_of_credit,
+	initial_insufficient_multisession,
 	initial_reservation_overhead, initial_reservation_multiple_buckets,
 	initial_reservation_expiry_buckets, initial_reservation_ignore_expired_buckets,
 	initial_reservation_add_session_attributes, interim_reservation_avaialbe_remain_amount,
@@ -153,11 +153,10 @@ initial_insufficient(_Config) ->
 	{ok, #subscriber{buckets = [#bucket{units = cents, remain_amount = RemAmount,
 			reservations = []}]}} = ocs:find_subscriber(SubscriberID).
 
-initial_reservation_multiple_sesion_with_out_of_credit() ->
-	[{userdata, [{doc, "Not allow any
-		reservations if there havn't any remaining amount"}]}].
+initial_insufficient_multisession() ->
+	[{userdata, [{doc, "Insufficient cents balance on initial reservation of additional session"}]}].
 
-initial_reservation_multiple_sesion_with_out_of_credit(_Config) ->
+initial_insufficient_multisession(_Config) ->
 	ProdID = ocs:generate_password(),
 	PackagePrice = 100,
 	PackageSize = 1000,
@@ -168,18 +167,18 @@ initial_reservation_multiple_sesion_with_out_of_credit(_Config) ->
 	SubscriberID = list_to_binary(ocs:generate_identity()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
+	RemAmount = 13,
 	SessionId1 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
-	Buckets = [#bucket{units = cents, remain_amount = 0,
+	Buckets = [#bucket{units = cents, remain_amount = RemAmount,
 		reservations = [{erlang:system_time(?MILLISECOND), 100, SessionId1}],
 		start_date = erlang:system_time(?MILLISECOND),
 		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
 	Destination = ocs:generate_identity(),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
-	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
+	{ok, _Subscriber1} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
 	{out_of_credit, _} = ocs_rating:rate(radius, SubscriberID, Destination,
 				initial, [], [{octets, PackageSize}], SessionId),
-	{ok, #subscriber{buckets = [#bucket{units = cents,
-			remain_amount = 0}]}} = ocs:find_subscriber(SubscriberID).
+	{ok, #subscriber{buckets = Buckets}} = ocs:find_subscriber(SubscriberID).
 
 initial_reservation_add_session_attributes() ->
 	[{userdata, [{doc, "Add session attributes in subscriber record"}]}].
