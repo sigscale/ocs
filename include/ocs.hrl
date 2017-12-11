@@ -118,7 +118,7 @@
 		termination_date :: pos_integer() | undefined,
 		status :: product_status() | undefined,
 		characteristics = [] :: [{Name :: string(), Value :: term()}],
-		payment :: [{Price :: string(), DueDate :: pos_integer()}],
+		payment = [] :: [{Price :: string(), DueDate :: pos_integer()}],
 		last_modified :: tuple() | undefined}).
 
 %% define subscriber table entries record
