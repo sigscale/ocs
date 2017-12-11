@@ -175,10 +175,11 @@ initial_insufficient_multisession(_Config) ->
 		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
 	Destination = ocs:generate_identity(),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
-	{ok, _Subscriber1} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
+	{ok, #subscriber{buckets = Buckets1}} =
+		ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
 	{out_of_credit, _} = ocs_rating:rate(radius, SubscriberID, Destination,
 				initial, [], [{octets, PackageSize}], SessionId),
-	{ok, #subscriber{buckets = Buckets}} = ocs:find_subscriber(SubscriberID).
+	{ok, #subscriber{buckets = Buckets1}} = ocs:find_subscriber(SubscriberID).
 
 initial_reservation_add_session_attributes() ->
 	[{userdata, [{doc, "Add session attributes in subscriber record"}]}].
