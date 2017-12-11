@@ -87,7 +87,7 @@ all() ->
 	[initial_exact_fit, initial_insufficient,
 	initial_insufficient_multisession,
 	initial_overhead, initial_multiple_buckets,
-	initial_reservation_expiry_buckets, initial_reservation_ignore_expired_buckets,
+	initial_expire_buckets, initial_ignore_expired_buckets,
 	initial_add_session, interim_reservation_avaialbe_remain_amount,
 	interim_reservations_within_package_size, interim_reservation_available_remain_amount,
 	interim_reservation_out_of_credit, interim_reservation_remove_session_attributes,
@@ -283,10 +283,10 @@ initial_multiple_buckets(_Config) ->
 	0 = Reserved rem PackageSize,
 	true = Reserved > Reservation.
 
-initial_reservation_expiry_buckets() ->
+initial_expire_buckets() ->
 	[{userdata, [{doc, "remove expired buckets"}]}].
 
-initial_reservation_expiry_buckets(_Config) ->
+initial_expire_buckets(_Config) ->
 	ProdID = ocs:generate_password(),
 	PackagePrice = 100,
 	PackageSize = 1000,
@@ -307,10 +307,10 @@ initial_reservation_expiry_buckets(_Config) ->
 	{out_of_credit, _} = ocs_rating:rate(diameter, SubscriberID, Destination, initial, [], [{octets, PackageSize}], SessionId),
 	{ok, #subscriber{buckets = []}} = ocs:find_subscriber(SubscriberID).
 
-initial_reservation_ignore_expired_buckets() ->
+initial_ignore_expired_buckets() ->
 	[{userdata, [{doc, "Ignore expired buckets"}]}].
 
-initial_reservation_ignore_expired_buckets(_Config) ->
+initial_ignore_expired_buckets(_Config) ->
 	ProdID = ocs:generate_password(),
 	PackagePrice = 100,
 	PackageSize = 1000,
@@ -321,27 +321,25 @@ initial_reservation_ignore_expired_buckets(_Config) ->
 	SubscriberID = list_to_binary(ocs:generate_identity()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) - 2592000000}],
-	RemAmount = rand:uniform(10000),
-	Reservation = rand:uniform(1000),
-	ExpiredBucket = #bucket{units = cents, remain_amount = RemAmount,
-		start_date = erlang:system_time(?MILLISECOND) -  (2 * 2592000000),
+	SessionId1 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	ExpiredBucket = #bucket{units = cents, remain_amount = 1000,
+		reservations = [{erlang:system_time(?MILLISECOND) - 3666000, 123, SessionId1}],
+		start_date = erlang:system_time(?MILLISECOND) - (2 * 2592000000),
 		termination_date = erlang:system_time(?MILLISECOND) - 2592000000},
-	Bucket = #bucket{units = cents, remain_amount = RemAmount,
+	RemAmount = 565,
+	CurrentBucket = #bucket{units = cents, remain_amount = RemAmount,
 		start_date = erlang:system_time(?MILLISECOND),
 		termination_date = erlang:system_time(?MILLISECOND) + 2592000000},
-	Buckets = [ExpiredBucket, Bucket],
+	Buckets1 = [ExpiredBucket, CurrentBucket],
+	{ok, _Subscriber1} = ocs:add_subscriber(SubscriberID,
+			Password, ProdID, Chars, Buckets1),
 	Destination = ocs:generate_identity(),
-	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
-	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
-	{ok, _, _} = ocs_rating:rate(diameter, SubscriberID, Destination, initial, [], [{octets, Reservation}], SessionId),
-	{ok, #subscriber{buckets = [#bucket{reservations = Reservations}]}} = ocs:find_subscriber(SubscriberID),
-	F = fun(Reserve) when (Reserve rem PackageSize) == 0 ->
-				(Reserve div PackageSize) * PackagePrice;
-		(Reserve) ->
-			(Reserve div PackageSize + 1) * PackagePrice
-	end,
-	{_, Reserved, _} = lists:keyfind(SessionId, 3, Reservations),
-	Reserved = F(Reservation).
+	Reservation = rand:uniform(PackageSize),
+	SessionId2 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	{ok, #subscriber{buckets = Buckets2},
+			PackageSize} = ocs_rating:rate(diameter, SubscriberID,
+			Destination, initial, [], [{octets, Reservation}], SessionId2),
+	2 - length(Buckets2).
 
 interim_reservation_avaialbe_remain_amount() ->
 	[{userdata, [{doc, "Reservation amount equal to package size"}]}].
