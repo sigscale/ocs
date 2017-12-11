@@ -84,7 +84,7 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[initial_reservation_available_remain_amount, initial_reservation_out_of_credit,
+	[initial_exact_fit, initial_insufficient,
 	initial_reservation_multiple_sesion_with_out_of_credit,
 	initial_reservation_overhead, initial_reservation_multiple_buckets,
 	initial_reservation_expiry_buckets, initial_reservation_ignore_expired_buckets,
@@ -103,10 +103,10 @@ all() ->
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
-initial_reservation_available_remain_amount() ->
-	[{userdata, [{doc, "Remaining amount exactly equal to total reservation price"}]}].
+initial_exact_fit() ->
+	[{userdata, [{doc, "Cents balance exactly equal to reservation price"}]}].
 
-initial_reservation_available_remain_amount(_Config) ->
+initial_exact_fit(_Config) ->
 	ProdID = ocs:generate_password(),
 	PackagePrice = 100,
 	PackageSize = 1000,
@@ -128,10 +128,10 @@ initial_reservation_available_remain_amount(_Config) ->
 	#subscriber{buckets = [#bucket{remain_amount = 0,
 			reservations = [{_, PackagePrice, _}]}]} = Subscriber2.
 
-initial_reservation_out_of_credit() ->
-	[{userdata, [{doc, "Insufficient amount for initial reservation"}]}].
+initial_insufficient() ->
+	[{userdata, [{doc, "Insufficient cents balance for initial reservation"}]}].
 
-initial_reservation_out_of_credit(_Config) ->
+initial_insufficient(_Config) ->
 	ProdID = ocs:generate_password(),
 	PackagePrice = 100,
 	PackageSize = 1000,
