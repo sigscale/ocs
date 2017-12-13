@@ -105,8 +105,8 @@
 			_productSelected: function() {
 				var product = this.products[this.$.addproduct10.selected];
 				if(product) {
-					document.getElementById("AddUpdatePro").value = product.name
-					document.getElementById("subscriberAdd").product = product.name;
+					document.getElementById("AddUpdatePro").value = product;
+					document.getElementById("subscriberAdd").product = product;
 					document.getElementById("addSubscriberModal").open();
 					document.getElementById("addSubscriberProductModal").close();
 					this.$.addproduct10.selected = null;
