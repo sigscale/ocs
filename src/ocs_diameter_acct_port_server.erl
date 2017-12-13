@@ -426,7 +426,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		DebitAmount = [{UsedType, UsedUsage}],
 		case ocs_rating:rate(diameter, Subscriber, Destination,
 				final, DebitAmount, [], [{'Session-Id', SId}]) of
-			{ok, _, _GrantedAmount} ->
+			{ok, _, 0} ->
 				{Reply, NewState} = generate_diameter_answer(Request, SId,
 						undefined, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 						RequestType, RequestNum, State),
