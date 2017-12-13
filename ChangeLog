@@ -1,3 +1,8 @@
+2017-12-13  Kalpa Gunarathna <kalpa@sigscale.org>
+
+	* ocs_diameter_acct_port_server.erl : remove Final-Unit-Indication in final CCA 
+	* ocs_rating.erl : correct reservation refund 
+
 2017-12-11  Vance Shipley <vances@sigscale.org>
 
 	* ocs_rating.erl : correct debit on out of credit and partial reservation
