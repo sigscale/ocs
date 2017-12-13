@@ -190,6 +190,7 @@ get_product_inventory(ID) ->
 		_:_ ->
 			{error, 400}
 	end.
+
 -spec get_product_offerings(Query, Headers) -> Result when
 	Query :: [{Key :: string(), Value :: string()}],
 	Result	:: {ok, Headers, Body} | {error, Status},
