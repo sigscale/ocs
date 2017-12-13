@@ -1421,7 +1421,7 @@ subscription(#subscriber{buckets = Buckets} = Subscriber,
 			ProductName, Characteristics, Now, T);
 subscription(#subscriber{buckets = Buckets} = Subscriber,
 		ProductName, Characteristics, Now, [#price{type = one_time,
-		amount = PriceAmount, units = undefined,
+		amount = PriceAmount,
 		alteration = #alteration{units = Units, size = Size,
 		amount = AlterationAmount}} | T]) ->
 	NewBuckets = charge(PriceAmount + AlterationAmount,
