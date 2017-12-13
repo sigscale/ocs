@@ -166,6 +166,14 @@
 			is: 'sig-product-list',
 			behaviors: [i18nMsgBehavior],
 			properties: {
+				products: {
+					type: Array,
+					readOnly: true,
+					notify: true,
+					value: function() {
+						return []
+					}
+				},
 				activePage: {
 					type: Boolean,
 					value: false,
@@ -261,6 +269,12 @@
 				var vaadinItems = new Array();
 				for (var index in results) {
 					var newRecord = new Object();
+					function checkExist(name) {
+						return name == results[index].name;
+					}
+					if(!this.products.some(checkExist)) {
+						this.push('products', results[index].name);
+					}
 					newRecord.name = results[index].name;
 					newRecord.description = results[index].description;
 					newRecord.productSpecification = results[index].productSpecification;
