@@ -135,15 +135,15 @@ specific_bucket_balance4(#subscriber{name = SubID, last_modified = LM}, Bucket) 
 		Identity :: list(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
-%% @doc Body producing function for `GET /balanceManagment/v1/product/{id}/buckets'
+%% @doc Body producing function for `GET /balanceManagment/v1/product/{id}/bucket'
 %% reuqest
 get_balance(Identity) ->
 	try
 		case ocs:find_subscriber(Identity) of
-			{ok, #subscriber{buckets = Buckets, enabled = true}} ->
-				get_balance1(Identity, Buckets, "active");
-			{ok, #subscriber{buckets = Buckets, enabled = false}} ->
-				get_balance1(Identity, Buckets, "disable");
+			{ok, #subscriber{buckets = Buckets}} ->
+				get_balance1(Identity, Buckets);
+			{error, not_found} ->
+				{error, 404};
 			{error, _Reason} ->
 				{error, 500}
 		end
@@ -152,17 +152,23 @@ get_balance(Identity) ->
 			{error, 400}
 	end.
 %% @hidden
-get_balance1(Identity, Buckets, ActStatus) ->
-	Id = {"id", Identity},
-	Href = {"href", "/balanceManagement/v1/buckets/" ++ Identity},
-	BucketType = {bucketType, ""},
-	Balance = accumulated_balance(Buckets),
-	RemAmount = {"remainedAmount", Balance},
-	Status = {"status", ActStatus},
-	Object = [Id, Href, BucketType, RemAmount, Status],
-	Json = {struct, Object},
-	Body  = mochijson:encode(Json),
-	{ok, [{content_type, "application/json"}], Body}.
+get_balance1(Identity, Buckets) ->
+	try
+		F = fun(Bucket) ->
+				{struct, B} = bucket(Bucket),
+				Id = {"id", Identity},
+				Href = {"href", "/productInventoryManagement/v1/product/" ++ Identity},
+				Product = {struct, [Id, Href]},
+				{struct, [{"product", Product}| B]}
+		end,
+		Buckets1 = [F(B) || B <- Buckets],
+		Json = {array, Buckets1},
+		Body  = mochijson:encode(Json),
+		{ok, [{content_type, "application/json"}], Body}
+	catch
+		_:_ ->
+			{error, 500}
+	end.
 
 -spec top_up(Identity, RequestBody) -> Result
 	when
@@ -322,14 +328,20 @@ bucket1([{"validFor", {struct, L}} | T], Bucket) ->
 			Bucket1
 	end,
 	bucket1(T, Bucket2);
-bucket1([{"remain_amount", {struct, L}} | T], Bucket) ->
+bucket1([{"remainedAmount", {struct, L}} | T], Bucket) ->
 	Bucket1 = case lists:keyfind("amount", 1, L) of
 		{_, Amount} ->
 			Bucket#bucket{remain_amount = Amount};
 		false ->
 			Bucket
 	end,
-	bucket1(T, Bucket1);
+	Bucket2 = case lists:keyfind("units", 1, L) of
+		{_, Units} ->
+			Bucket1#bucket{units = units(Units)};
+		false ->
+			Bucket1
+	end,
+	bucket1(T, Bucket2);
 bucket1([_ | T], Bucket) ->
 	bucket1(T, Bucket);
 bucket1([], Bucket) ->
@@ -338,17 +350,36 @@ bucket1([], Bucket) ->
 bucket1([id | T], #bucket{id = undefined} = B, Acc) ->
 	bucket1(T, B, Acc);
 bucket1([id | T], #bucket{id = ID} = B, Acc) ->
-	bucket1(T, B, [{"id", ID} | Acc]);
+	Id = {"id", ID},
+	Href = {"href", "/balancerManagement/v1/bucket/" ++ ID},
+	bucket1(T, B, [Id, Href | Acc]);
 bucket1([name | T], #bucket{name = undefined} = B, Acc) ->
 	bucket1(T, B, Acc);
 bucket1([name | T], #bucket{name = Name} = B, Acc) ->
 	bucket1(T, B, [{"name", Name} | Acc]);
 bucket1([remain_amount | T], #bucket{remain_amount = undefined} = B, Acc) ->
 	bucket1(T, B, Acc);
-bucket1([remain_amount | T], #bucket{remain_amount = RemainAmount} = B, Acc)
-		when is_integer(RemainAmount) ->
-	RM = {"remainAmount", {struct, [{"amount", RemainAmount}]}},
+bucket1([remain_amount | T], #bucket{units = undefined,
+		remain_amount = RemainAmount} = B, Acc) when is_integer(RemainAmount) ->
+	RM = {"remainedAmount", {struct, [{"amount", RemainAmount}]}},
 	bucket1(T, B, [RM | Acc]);
+bucket1([remain_amount | T], #bucket{remain_amount = RemainAmount,
+		units = Units} = B, Acc) when is_integer(RemainAmount) ->
+	RM = {"remainAmount", {struct, [{"amount", RemainAmount},
+			{"units", units(Units)}]}},
+	bucket1(T, B, [RM | Acc]);
+bucket1([reservations | T], #bucket{reservations = []} = B, Acc) ->
+	bucket1(T, B, Acc);
+bucket1([reservations | T], #bucket{units = undefined,
+		reservations = Reservations} = B, Acc) ->
+	Amount = lists:sum([A || {_, A, _} <- Reservations]),
+	Reserved = [{"amount", Amount}],
+	bucket1(T, B, [{"reservedAmount", {struct, Reserved}}| Acc]);
+bucket1([reservations | T], #bucket{reservations = Reservations,
+		units = Units} = B, Acc) ->
+	Amount = lists:sum([A || {_, A, _} <- Reservations]),
+	Reserved = [{"amount", Amount}, {"units", units(Units)}],
+	bucket1(T, B, [{"reservedAmount", {struct, Reserved}}| Acc]);
 bucket1([start_date | T], #bucket{start_date = undefined,
 		termination_date = End} = B, Acc) when is_integer(End) ->
 	ValidFor = {struct, [{"endDateTime", ocs_rest:iso8601(End)}]},
@@ -366,5 +397,5 @@ bucket1([start_date | T], #bucket{start_date = Start,
 bucket1([_ | T], B, Acc) ->
 	bucket1(T, B, Acc);
 bucket1([], _B, Acc) ->
-	{struct, Acc}.
+	{struct, lists:reverse(Acc)}.
 
