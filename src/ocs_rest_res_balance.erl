@@ -238,47 +238,6 @@ top_up1(Identity, Bucket) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec accumulated_balance(Buckets) ->	AccumulatedBalance
-	when
-		Buckets					:: [#bucket{}],
-		AccumulatedBalance	:: tuple().
-%% @doc return accumulated buckets as a json object.
-accumulated_balance([]) ->
-	[];
-accumulated_balance(Buckets) ->
-	accumulated_balance1(Buckets, []).
-%% @hidden
-accumulated_balance1([], AccBalance) ->
-	F = fun({octets, {U1, A1}}, AccIn) ->
-				Obj = {struct, [{"amount", A1}, {"units", U1}]},
-				[Obj | AccIn];
-			({cents, {U2, A2}}, AccIn) ->
-				Obj = {struct, [{"amount", A2}, {"units", U2}]},
-				[Obj | AccIn];
-			({seconds, {U3, A3}}, AccIn) ->
-				Obj = {struct, [{"amount", A3}, {"units", U3}]},
-				[Obj | AccIn]
-	end,
-	JsonArray = lists:reverse(lists:foldl(F, [], AccBalance)),
-	{array, JsonArray};
-accumulated_balance1([Bucket | T], AccBalance) ->
-	accumulated_balance1(T, accumulated_balance2(Bucket, AccBalance)).
-%% @hidden
-accumulated_balance2(#bucket{units = octets, remain_amount = Amount}, AccBalance) ->
-	accumulated_balance3(octets, "octets", Amount, AccBalance);
-accumulated_balance2(#bucket{units = cents, remain_amount = Amount}, AccBalance) ->
-	accumulated_balance3(cents, "cents", Amount, AccBalance);
-accumulated_balance2(#bucket{units = seconds, remain_amount = Amount}, AccBalance) ->
-	accumulated_balance3(seconds, "seconds", Amount, AccBalance).
-%% @hidden
-accumulated_balance3(Key, Units, Amount, AccBalance) ->
-	case lists:keytake(Key, 1, AccBalance) of
-		{value, {Key, {Units, Balance}}, Rest} ->
-			[{Key, {Units, Amount + Balance}} | Rest];
-		false ->
-			[{Key, {Units, Amount}} | AccBalance]
-	end.
-
 -spec units(Units) -> Units
 	when
 		Units :: string() | octets | cents | seconds.
