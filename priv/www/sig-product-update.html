@@ -378,6 +378,9 @@
 									class="dropdown-content"
 									selected="2">
 								<paper-item>
+									Hourly	
+								</paper-item>
+								<paper-item>
 									Daily
 								</paper-item>
 								<paper-item>
@@ -681,6 +684,9 @@
 									slot="dropdown-content"
 									class="dropdown-content"
 									selected="2">
+								<paper-item>
+									Hourly	
+								</paper-item>
 								<paper-item>
 									Daily
 								</paper-item>
@@ -1050,17 +1056,20 @@
 							this.$.updatePriceAmount.value = this.prices[indexUpdatePrice].amount;
 						}
 						switch(this.prices[indexUpdatePrice].period) {
-							case "daily":
+							case "hourly":
 								this.$.updatePricePeriod.selected = 0;
 								break;
-							case "weekly":
+							case "daily":
 								this.$.updatePricePeriod.selected = 1;
 								break;
-							case "monthly":
+							case "weekly":
 								this.$.updatePricePeriod.selected = 2;
 								break;
-							case "yearly":
+							case "monthly":
 								this.$.updatePricePeriod.selected = 3;
+								break;
+							case "yearly":
+								this.$.updatePricePeriod.selected = 4;
 								break;
 						}
 						var Obj = this.prices[indexUpdatePrice].alteration;
@@ -1147,17 +1156,20 @@
 							this.$.updateAltAmount.value = this.alterations[indexAlt].amount;
 						}
 						switch(this.alterations[indexAlt].period) {
-							case "daily":
+							case "hourly":
 								this.$.updateAltPeriod.selected = 0;
 								break;
-							case "weekly":
+							case "daily":
 								this.$.updateAltPeriod.selected = 1;
 								break;
-							case "monthly":
+							case "weekly":
 								this.$.updateAltPeriod.selected = 2;
 								break;
-							case "yearly":
+							case "monthly":
 								this.$.updateAltPeriod.selected = 3;
+								break;
+							case "yearly":
+								this.$.updateAltPeriod.selected = 4;
 								break;
 						}
 					}
@@ -1541,15 +1553,18 @@
 				updatePriceNew.currency = this.$.updatePriceCurrency.value;
 				switch(this.$.updatePricePeriod.selected) {
 					case 0:
-						updatePriceNew.period = "daily";
+						updatePriceNew.period = "hourly";
 						break;
 					case 1:
-						updatePriceNew.period = "weekly";
+						updatePriceNew.period = "daily";
 						break;
 					case 2:
+						updatePriceNew.period = "weekly";
+						break;
+					case 3:
 						updatePriceNew.period = "monthly";
 						break
-					case 3:
+					case 4:
 						updatePriceNew.period = "yearly";
 						break;
 				}
@@ -1713,15 +1728,18 @@
 				updateAltNew.size = this.$.updateAltSize.value;
 				switch(this.$.updateAltPeriod.selected) {
 					case 0:
-						updateAltNew.period = "daily";
+						updateAltNew.period = "hourly";
 						break;
 					case 1:
-						updateAltNew.period = "weekly";
+						updateAltNew.period = "daily";
 						break;
 					case 2:
+						updateAltNew.period = "weekly";
+						break;
+					case 3:
 						updateAltNew.period = "monthly";
 						break
-					case 3:
+					case 4:
 						updateAltNew.period = "yearly";
 				}
 				updateAltNew.currency = this.$.updateAltCurr.value;
