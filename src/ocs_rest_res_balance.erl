@@ -316,8 +316,6 @@ bucket1([name | T], #bucket{name = undefined} = B, Acc) ->
 	bucket1(T, B, Acc);
 bucket1([name | T], #bucket{name = Name} = B, Acc) ->
 	bucket1(T, B, [{"name", Name} | Acc]);
-bucket1([remain_amount | T], #bucket{remain_amount = undefined} = B, Acc) ->
-	bucket1(T, B, Acc);
 bucket1([remain_amount | T], #bucket{units = undefined,
 		remain_amount = RemainAmount} = B, Acc) when is_integer(RemainAmount) ->
 	RM = {"remainedAmount", {struct, [{"amount", RemainAmount}]}},
