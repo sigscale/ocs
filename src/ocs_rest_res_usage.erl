@@ -2469,7 +2469,7 @@ range(Year, [$-, M1, M2, $-, $0, $9]) ->
 range(Year, [$-, M1, M2, $-, $0, D2]) ->
 	ocs_log:iso8601(Year ++ [$-, M1, M2, $-, $0, D2 + 1]) - 1;
 range(Year, [$-, M1, M2, $-, $1, $9]) ->
-	ocs_log:iso8601(Year ++ [$-, M1, M2, $-, $2, 0]) - 1;
+	ocs_log:iso8601(Year ++ [$-, M1, M2, $-, $2, $0]) - 1;
 range(Year, [$-, M1, M2, $-, $1, D2]) ->
 	ocs_log:iso8601(Year ++ [$-, M1, M2, $-, $1, D2 + 1]) - 1;
 range(Year, [$-, M1, M2, $-, $2, $9]) ->

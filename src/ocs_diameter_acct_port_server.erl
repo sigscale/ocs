@@ -426,7 +426,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		DebitAmount = [{UsedType, UsedUsage}],
 		case ocs_rating:rate(diameter, Subscriber, Destination,
 				final, DebitAmount, [], [{'Session-Id', SId}]) of
-			{ok, _, _GrantedAmount} ->
+			{ok, _, 0} ->
 				{Reply, NewState} = generate_diameter_answer(Request, SId,
 						undefined, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 						RequestType, RequestNum, State),
@@ -484,16 +484,11 @@ generate_diameter_answer(Request, SId, undefined,
 		?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
 		ORealm, RequestType, RequestNum, #state{address = Address,
 		port = Port} = State) ->
-	FinalUnitInd = #'3gpp_ro_Final-Unit-Indication'{
-			'Final-Unit-Action' = ?'3GPP_RO_FINAL-UNIT-ACTION_TERMINATE'},
-	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
-			'Final-Unit-Indication' = [FinalUnitInd]},
 	Reply = #'3gpp_ro_CCA'{'Session-Id' = SId,
 			'Result-Code' = ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED',
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID, 'CC-Request-Type' = RequestType,
-			'CC-Request-Number' = RequestNum,
-			'Multiple-Services-Credit-Control' = [MultiServices_CC]},
+			'CC-Request-Number' = RequestNum},
 	Server = {Address, Port},
 	ok = ocs_log:acct_log(diameter, Server,
 			accounting_event_type(RequestType), Request, Reply),

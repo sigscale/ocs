@@ -1347,25 +1347,25 @@ end_period1({Date, {23, Minute, Second}}, hourly) ->
 	NextDay = calendar:date_to_gregorian_days(Date) + 1,
 	EndDate = calendar:gregorian_days_to_date(NextDay),
 	EndTime = {0, Minute, Second},
-	calendar:datetime_to_gregorian_seconds({EndDate, EndTime}) * 1000 - 1;
+	gregorian_datetime_to_system_time({EndDate, EndTime}) - 1;
 end_period1({Date, {Hour, Minute, Second}}, hourly) ->
 	EndTime = {Hour + 1, Minute, Second},
-	calendar:datetime_to_gregorian_seconds({Date, EndTime}) * 1000 - 1;
+	gregorian_datetime_to_system_time({Date, EndTime}) - 1;
 end_period1({Date, Time}, daily) ->
 	NextDay = calendar:date_to_gregorian_days(Date) + 1,
 	EndDate = calendar:gregorian_days_to_date(NextDay),
-	calendar:datetime_to_gregorian_seconds({EndDate, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({EndDate, Time}) - 1;
 end_period1({Date, Time}, weekly) ->
 	NextDay = calendar:date_to_gregorian_days(Date) + 7,
 	EndDate = calendar:gregorian_days_to_date(NextDay),
-	calendar:datetime_to_gregorian_seconds({EndDate, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({EndDate, Time}) - 1;
 end_period1({{Year, 1, 31}, Time}, monthly) ->
 	NextDay = calendar:last_day_of_the_month(Year, 2),
 	EndDate = {Year, 2, NextDay},
-	calendar:datetime_to_gregorian_seconds({EndDate, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({EndDate, Time}) - 1;
 end_period1({{Year, 2, Day}, Time}, monthly) when Day < 28 ->
 	EndDate = {Year, 3, Day},
-	calendar:datetime_to_gregorian_seconds({EndDate, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({EndDate, Time}) - 1;
 end_period1({{Year, 2, Day}, Time}, monthly) ->
 	EndDate = case calendar:last_day_of_the_month(Year, 2) of
 		Day ->
@@ -1373,32 +1373,32 @@ end_period1({{Year, 2, Day}, Time}, monthly) ->
 		_ ->
 			{Year, 3, Day}
 	end,
-	calendar:datetime_to_gregorian_seconds({EndDate, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({EndDate, Time}) - 1;
 end_period1({{Year, 3, 31}, Time}, monthly) ->
-	calendar:datetime_to_gregorian_seconds({{Year, 4, 30}, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({{Year, 4, 30}, Time}) - 1;
 end_period1({{Year, 4, 30}, Time}, monthly) ->
-	calendar:datetime_to_gregorian_seconds({{Year, 5, 31}, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({{Year, 5, 31}, Time}) - 1;
 end_period1({{Year, 5, 31}, Time}, monthly) ->
-	calendar:datetime_to_gregorian_seconds({{Year, 6, 30}, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({{Year, 6, 30}, Time}) - 1;
 end_period1({{Year, 6, 31}, Time}, monthly) ->
-	calendar:datetime_to_gregorian_seconds({{Year, 7, 31}, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({{Year, 7, 31}, Time}) - 1;
 end_period1({{Year, 8, 31}, Time}, monthly) ->
-	calendar:datetime_to_gregorian_seconds({{Year, 9, 30}, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({{Year, 9, 30}, Time}) - 1;
 end_period1({{Year, 9, 30}, Time}, monthly) ->
-	calendar:datetime_to_gregorian_seconds({{Year, 10, 31}, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({{Year, 10, 31}, Time}) - 1;
 end_period1({{Year, 10, 30}, Time}, monthly) ->
-	calendar:datetime_to_gregorian_seconds({{Year, 11, 31}, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({{Year, 11, 30}, Time}) - 1;
 end_period1({{Year, 11, 30}, Time}, monthly) ->
-	calendar:datetime_to_gregorian_seconds({{Year, 12, 31}, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({{Year, 12, 31}, Time}) - 1;
 end_period1({{Year, 12, Day}, Time}, monthly) ->
 	EndDate = {Year + 1, 1, Day},
-	calendar:datetime_to_gregorian_seconds({EndDate, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({EndDate, Time}) - 1;
 end_period1({{Year, Month, Day}, Time}, monthly) ->
 	EndDate = {Year, Month + 1, Day},
-	calendar:datetime_to_gregorian_seconds({EndDate, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({EndDate, Time}) - 1;
 end_period1({{Year, Month, Day}, Time}, yearly) ->
 	EndDate = {Year + 1, Month, Day},
-	calendar:datetime_to_gregorian_seconds({EndDate, Time}) * 1000 - 1.
+	gregorian_datetime_to_system_time({EndDate, Time}) - 1.
 
 -spec subscription(Subscriber, Product, Characteristics) ->
 		Subscriber
@@ -1414,12 +1414,35 @@ subscription(#subscriber{last_modified = {Now, _}} = Subscriber,
 	subscription(Subscriber, ProductName, Characteristics, Now, Prices).
 %% @hidden
 subscription(#subscriber{buckets = Buckets} = Subscriber,
+		ProductName, Characteristics, Now, [#price{type = one_time,
+		amount = Amount, units = undefined, alteration = undefined} | T]) ->
+	NewBuckets = charge(Amount, Buckets),
+	subscription(Subscriber#subscriber{buckets = NewBuckets},
+			ProductName, Characteristics, Now, T);
+subscription(#subscriber{buckets = Buckets} = Subscriber,
+		ProductName, Characteristics, Now, [#price{type = one_time,
+		amount = PriceAmount,
+		alteration = #alteration{units = Units, size = Size,
+		amount = AlterationAmount}} | T]) ->
+	NewBuckets = charge(PriceAmount + AlterationAmount,
+		[#bucket{units = Units, remain_amount = Size} | Buckets]),
+	subscription(Subscriber#subscriber{buckets = NewBuckets},
+			ProductName, Characteristics, Now, T);
+subscription(#subscriber{buckets = Buckets} = Subscriber,
+		ProductName, Characteristics, Now,
+		[#price{type = recurring, period = Period,
+		amount = SubscriptionAmount, units = undefined,
+		alteration = undefined} | T]) when Period /= undefined ->
+	NewBuckets = charge(SubscriptionAmount, Buckets),
+	subscription(Subscriber#subscriber{buckets = NewBuckets},
+			ProductName, Characteristics, Now, T);
+subscription(#subscriber{buckets = Buckets} = Subscriber,
 		ProductName, Characteristics, Now,
 		[#price{type = recurring,
 		period = Period, amount = SubscriptionAmount,
 		alteration = #alteration{units = Units, size = Size,
 		amount = AllowanceAmount}} | T]) when Period /= undefined,
-		Units == octets; Units == seconds ->
+		Units == octets; Period /= undefined, Units == seconds ->
 	NewBuckets = charge(SubscriptionAmount + AllowanceAmount,
 			[#bucket{units = Units, remain_amount = Size,
 			termination_date = end_period(Now, Period)} | Buckets]),
@@ -1446,4 +1469,14 @@ subscription(#subscriber{buckets = Buckets} = Subscriber,
 			product = ProductName, characteristics = Characteristics,
 			last_modified = {Now, erlang:unique_integer([positive])}},
 	Subscriber#subscriber{buckets = NewBuckets, product = P}.
+
+
+-spec gregorian_datetime_to_system_time(DateTime) -> MilliSeconds
+	when
+		DateTime :: tuple(),
+		MilliSeconds :: pos_integer().
+%% @doc Convert gregorian datetime to system time in milliseconds.
+%% @hidden
+gregorian_datetime_to_system_time(DateTime) ->
+	(calendar:datetime_to_gregorian_seconds(DateTime) - ?EPOCH) * 1000.
 
