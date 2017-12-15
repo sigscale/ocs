@@ -88,7 +88,8 @@ sequences() ->
 all() ->
 	[radius_log_auth_event, diameter_log_auth_event,
 			radius_log_acct_event, diameter_log_acct_event,
-			ipdr_log, get_range, get_last, auth_query, acct_query].
+			ipdr_log, get_range, get_last, auth_query, acct_query,
+			balance_acitivty_log_event].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -532,6 +533,46 @@ acct_query(_Config) ->
 	Events = Fget(Fget, ocs_log:acct_query(start, Start, End,
 						[stop], MatchReq), []),
 	3 = length(Events).
+
+balance_acitivty_log_event() ->
+   [{userdata, [{doc, "Log a balance actvity event"}]}].
+
+balance_acitivty_log_event(_Config) ->
+	ok = ocs_log:balance_activity_open(),
+	Start = erlang:system_time(?MILLISECOND),
+	Type = transfer,
+	Date = ocs_log:iso8601(Start),
+	BucketId = integer_to_list(Start) ++ "-"
+				++ integer_to_list(erlang:unique_integer([positive])),
+	CurrentAmount = rand:uniform(100000000),
+	Transfer = rand:uniform(50000),
+	BucketAmount = {octets, Transfer},
+	BeforeAmount = {octets, CurrentAmount},
+	AfterAmount = {octets, CurrentAmount - Transfer},
+	ProdId = ocs:generate_password(),
+	ok = ocs_log:balance_activity_log(Type, Date, BucketId,
+			BucketAmount, BeforeAmount, AfterAmount, ProdId),
+	End = erlang:system_time(?MILLISECOND),
+	Fany = fun({TS, _, T, D, BI, BA, BeA, AA, PI}) when TS >= Start, TS =< End,
+					T == Type, D == Date, BI == BucketId, BA == BucketAmount,
+					BeA == BeforeAmount, AA == AfterAmount, PI == ProdId ->
+				true;
+			(_) ->
+				false
+	end,
+	Find = fun(_F, {error, Reason}) ->
+				ct:fail(Reason);
+			(F, {Cont, Chunk}) ->
+				case lists:any(Fany, Chunk) of
+					false ->
+						F(F, disk_log:chunk(ocs_balance_acivity, Cont));
+					true ->
+						true
+				end;
+			(_F, eof) ->
+				false
+	end,
+	true = Find(Find, disk_log:chunk(ocs_balance_activity, start)).
 
 %% internal functions
 
