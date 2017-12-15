@@ -192,7 +192,6 @@ post_subscriber(RequestBody) ->
 			{ok, #subscriber{name = Id, last_modified = LM} = Subscriber} ->
 				Json = subscriber(Subscriber),
 				Body = mochijson:encode(Json),
-erlang:display({?MODULE, ?LINE, Json}),
 				Location = ?subscriberPath ++ binary_to_list(Id),
 				Headers = [{location, Location}, {etag, ocs_rest:etag(LM)}],
 				{ok, Headers, Body};
@@ -507,10 +506,8 @@ bucket([], Acc) ->
 	Acc.
 %% @hidden
 bucket([id | T], #bucket{id = undefined} = Bucket, Acc) ->
-erlang:display({?MODULE, ?LINE}),
 	bucket(T, Bucket, Acc);
 bucket([id | T], #bucket{id = ID} = Bucket, Acc) ->
-erlang:display({?MODULE, ?LINE}),
 	bucket(T, Bucket, [{"id", ID} | Acc]);
 bucket([name | T], Bucket, Acc) ->
 	bucket(T, Bucket, Acc);
