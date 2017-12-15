@@ -348,7 +348,8 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 					{module, ?MODULE}, {error, Reason}, {nas, NasId},
 					{type, interim}, {subscriber, Subscriber},
 					{address, Address}, {reserved, ReserveAmount},
-					{session, AcctSessionId}])
+					{session, AcctSessionId}]),
+			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
 request1(?AccountingON, _AcctSessionId, Id,
 		Authenticator, Secret, _NasId, _Address, _AccPort, _ListenPort, Attributes,
