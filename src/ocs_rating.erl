@@ -686,11 +686,11 @@ charge(Type, Charge, Now, [#bucket{units = Type,
 charge(Type, Charge, Now, [#bucket{units = Type,
 		remain_amount = R, reservations = [],
 		termination_date = Expires} | T], Acc, Charged)
-		when R =< Charge, ((Expires == undefined) or (Now < Expires)) ->
+		when R =< Charge, 0 =< R, ((Expires == undefined) or (Now < Expires)) ->
 	charge(Type, Charge - R, Now, T, Acc, Charged + R);
 charge(Type, Charge, Now, [#bucket{units = Type,
 		remain_amount = R, termination_date = Expires} = B | T], Acc, Charged)
-		when R =< Charge, ((Expires == undefined) or (Now < Expires)) ->
+		when R =< Charge, 0 =< R, ((Expires == undefined) or (Now < Expires)) ->
 	NewAcc = [B#bucket{remain_amount = 0} | Acc],
 	charge(Type, Charge - R, Now, T, NewAcc, Charged + R);
 charge(_Type, 0, _Now, Buckets, Acc, Charged) ->
