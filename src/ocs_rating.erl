@@ -646,11 +646,11 @@ charge_session(Type, Charge, Now, SessionId,
 			NewAcc = [B#bucket{reservations = NewReservations} | Acc],
 			charge_session(Type, Charged + Charge, Now, SessionId, T, Charge - Amount, NewAcc);
 		{value, {_, Amount, _}, []}
-				when Amount < Charge, Remain > 0, Remain =< (Charge - Amount),
+				when Amount < Charge, Remain >= 0, Remain =< (Charge - Amount),
 				((Expires == undefined) or (Now < Expires)) ->
 			charge_session(Type, Charge - Amount - Remain, Now, SessionId, T, Amount + Remain, Acc);
 		{value, {_, Amount, _}, NewReservations}
-				when Amount < Charge, Remain > 0, Remain =< (Charge - Amount),
+				when Amount < Charge, Remain >= 0, Remain =< (Charge - Amount),
 				((Expires == undefined) or (Now < Expires)) ->
 			NewAcc = [B#bucket{reservations = NewReservations} | Acc],
 			charge_session(Type, Charge - Amount - Remain, Now, SessionId, T, Amount + Remain, NewAcc);
