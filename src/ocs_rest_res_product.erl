@@ -1029,14 +1029,16 @@ alteration([type | T], #alteration{type = recurring, period = Period,
 	Recurring = [{"priceType", price_type(recurring)},
 			{"recurringChargePeriod", price_period(Period)}],
 	alteration(T, A, Recurring ++ Acc);
-alteration([type | T], #alteration{type = usage, units = octets,
-		size = Size} = A, Acc) when is_integer(Size) ->
-	UsageType = [{"priceType", price_type(usage)},
+alteration([type | T], #alteration{type = Type, units = octets,
+		size = Size} = A, Acc) when Type == one_time, is_integer(Size);
+		Type == usage, is_integer(Size) ->
+	UsageType = [{"priceType", price_type(Type)},
 			{"unitOfMeasure", integer_to_list(Size) ++ "b"}],
 	alteration(T, A, UsageType ++ Acc);
-alteration([type | T], #alteration{type = usage, units = seconds,
-		size = Size} = A, Acc) when is_integer(Size) ->
-	UsageType = [{"priceType", price_type(usage)},
+alteration([type | T], #alteration{type = Type, units = seconds,
+		size = Size} = A, Acc) when Type == one_time, is_integer(Size);
+		Type == usage, is_integer(Size) ->
+	UsageType = [{"priceType", price_type(Type)},
 			{"unitOfMeasure", integer_to_list(Size) ++ "s"}],
 	alteration(T, A, UsageType ++ Acc);
 alteration([period | T], A, Acc) ->
