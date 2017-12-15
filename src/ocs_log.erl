@@ -29,13 +29,14 @@
 -export([auth_open/0, auth_log/5, auth_log/6, auth_close/0,
 			auth_query/6, auth_query/7]).
 -export([ipdr_log/3, ipdr_file/2]).
--export([balance_activity_open/0]).
+-export([balance_activity_open/0, balance_activity_log/7,
+			balance_activity_query/4]).
 -export([get_range/3, last/2, dump_file/2, httpd_logname/1,
 			http_file/2, date/1, iso8601/1]).
 -export([http_query/8]).
 
 %% exported the private function
--export([acct_query/4, auth_query/5]).
+-export([acct_query/4, auth_query/5, balance_activity_query/2]).
 
 %% export the ocs_log event types
 -export_type([auth_event/0, acct_event/0, http_event/0]).
@@ -907,6 +908,61 @@ balance_activity_open() ->
 	{ok, LogFiles} = application:get_env(ocs, balance_activity_log_files),
 	open_log(Directory, ?BALANCELOG, LogSize, LogFiles).
 
+-spec balance_activity_log(Type, Date, BucketId,
+		BucketAmount, AmountBefore, AmountAfter, ProdId) -> Result
+	when
+		Type :: transfer | topup | adjustment,
+		Date :: pos_integer() | string(),
+		BucketId :: string(),
+		BucketAmount :: {Units, Amount},
+		AmountBefore :: {Units, Amount},
+		AmountAfter :: {Units, Amount},
+		ProdId :: string(),
+		Units :: term(), %% ?
+		Amount :: integer(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Write a balance activity log
+balance_activity_log(Type, Date, BucketId,
+		BucketAmount, AmountBefore, AmountAfter, ProdId) ->
+	Event = [Type, Date, BucketId,
+			BucketAmount, AmountBefore, AmountAfter, ProdId],
+	write_log(?BALANCELOG, Event).
+
+-spec balance_activity_query(Continuation, Start, End, Match) -> Result
+	when
+		Continuation :: start | disk_log:continuation(),
+		Start :: calendar:datetime() | pos_integer(),
+		End :: calendar:datetime() | pos_integer(),
+		Match :: [MatchSpecs],
+		MatchSpecs :: {types, Types} | {date, Date}
+						| {bucket_id, BucketId}
+						| {bucket_amount, BucketAmount}
+						| {before_amount, BeforeAmount}
+						| {after_amount, AfterAmount}
+						| {prod_id, ProdId},
+		Types :: [Type],
+		Date :: string() | pos_integer(),
+		BucketId :: string(),
+		BucketAmount :: BucketSpecs,
+		BeforeAmount :: BucketSpecs,
+		AfterAmount :: BucketSpecs,
+		BucketSpecs :: [BucketSpec],
+		BucketSpec :: {units, Units} | {amount, Amount},
+		ProdId :: string(),
+		Type :: transfer | topup | adjustment,
+		Units :: [Unit],
+		Unit :: octets | seconds | cents,
+		Amount :: integer(),
+		Result :: {Continuation2, Events} | {error, Reason},
+		Continuation2 :: eof | disk_log:continuation(),
+		Events :: [acct_event()],
+		Reason :: term().
+%% @doc Query balance activity log events with filters.
+balance_activity_query(Continuation, Start, End, MatchSpecs) ->
+	MFA = {?MODULE, balance_activity_query, [MatchSpecs]},
+	query_log(Continuation, Start, End, ?BALANCELOG, MFA).
+
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
@@ -1686,5 +1742,87 @@ auth_query5(Attributes, [{Attribute, Match} | T]) ->
 auth_query5(Attributes, [_ | T]) ->
 	auth_query5(Attributes, T);
 auth_query5(_Attributes, []) ->
+	true.
+
+-spec balance_activity_query({Continuation, Events}, MatchSpecs) -> Result
+	when
+		Continuation :: {Continuation2, Events},
+		Result :: {Continuation2, Events},
+		Continuation2 :: eof | disk_log:continuation(),
+		MatchSpecs :: {types, Types} | {date, Date}
+						| {bucket_id, BucketId}
+						| {bucket_amount, BucketAmount}
+						| {before_amount, BeforeAmount}
+						| {after_amount, AfterAmount}
+						| {prod_id, ProdId},
+		Types :: [Type],
+		Date :: string() | pos_integer(),
+		BucketId :: string(),
+		BucketAmount :: BucketSpecs,
+		BeforeAmount :: BucketSpecs,
+		AfterAmount :: BucketSpecs,
+		BucketSpecs :: [BucketSpec],
+		ProdId :: string(),
+		BucketSpec :: {units, Units} | {amount, Amount},
+		Type :: transfer | topup | adjustment,
+		Units :: [Unit],
+		Unit :: octets | seconds | cents,
+		Amount :: integer(),
+		Events :: [acct_event()].
+%% @private
+%% @doc Query balance activity log events with filters.
+%%
+balance_activity_query({Cont, Events}, MatchSpecs) ->
+	{Cont, balance_activity_query1(Events, MatchSpecs)}.
+%% @hidden
+balance_activity_query1(Events, []) ->
+	lists:reverse(Events);
+balance_activity_query1(Events, [H | T]) ->
+	balance_activity_query1(balance_activity_query2(Events, H), T).
+%% @hidden
+balance_activity_query2(Events, {types, Types}) ->
+	F1 = fun(Event) ->
+		F2 = fun(Type) when Type == element(3, Event) ->
+					true;
+				(_) ->
+					false
+		end,
+		lists:any(F2, Types)
+	end,
+	lists:filter(F1, Events);
+balance_activity_query2(Events, {date, Date}) when is_list(Date) ->
+	F = fun(Event) -> element(4, Event) == ocs_log:iso8601(Date) end,
+	lists:filter(F, Events);
+balance_activity_query2(Events, {date, Date}) when is_integer(Date) ->
+	F = fun(Event) -> element(4, Event) == Date end,
+	lists:filter(F, Events);
+balance_activity_query2(Events, {bucket_id, Id}) ->
+	F = fun(Event) -> element(5, Event) == Id end,
+	lists:filter(F, Events);
+balance_activity_query2(Events, {bucket_amount, BA}) ->
+	F = fun(Event) -> balance_activity_query3(element(6, Event), BA) end,
+	lists:filter(F, Events);
+balance_activity_query2(Events, {before_amount, BA}) ->
+	F = fun(Event) -> balance_activity_query3(element(7, Event), BA) end,
+	lists:filter(F, Events);
+balance_activity_query2(Events, {after_amount, BA}) ->
+	F = fun(Event) -> balance_activity_query3(element(8, Event), BA) end,
+	lists:filter(F, Events);
+balance_activity_query2(Events, {prod_id, Id}) ->
+	F = fun(Event) -> element(9, Event) == Id end,
+	lists:filter(F, Events).
+%% @hidden
+balance_activity_query3({Unit, _} = Target, [{units, Units} | T]) ->
+	case lists:member(Unit, Units) of
+		true ->
+			balance_activity_query3(Target, T);
+		false ->
+			false
+	end;
+balance_activity_query3({_, Amount} = Target, [{amount, Amount} | T]) ->
+	balance_activity_query3(Target, T);
+balance_activity_query3(_Target, [_ | _]) ->
+	false;
+balance_activity_query3(_Target, []) ->
 	true.
 
