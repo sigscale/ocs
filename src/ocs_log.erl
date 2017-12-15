@@ -902,8 +902,8 @@ uuid() ->
 		Reason :: term().
 %% @doc Open balance activity event disk log.
 balance_activity_open() ->
-	{ok, Directory} = application:get_env(ocs, balance_activitys_log_dir),
-	{ok, LogSize} = application:get_env(ocs, balance_activitys_log_size),
+	{ok, Directory} = application:get_env(ocs, balance_activity_log_dir),
+	{ok, LogSize} = application:get_env(ocs, balance_activity_log_size),
 	{ok, LogFiles} = application:get_env(ocs, balance_activity_log_files),
 	open_log(Directory, ?BALANCELOG, LogSize, LogFiles).
 
