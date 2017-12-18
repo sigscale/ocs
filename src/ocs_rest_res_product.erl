@@ -571,7 +571,7 @@ spec_product_rate_plan() ->
 	Version = {"version", "1.0"},
 	LastUpdate = {"lastUpdate", "2017-10-06T12:00:00Z"},
 	Status = {"lifecycleStatus", "Active"},
-	Chars = {"productSpecCharacteristic", {array, characteristic_product_rate_plane()}},
+	Chars = {"productSpecCharacteristic", {array, characteristic_product_rate_plan()}},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
 
 %% @hidden
@@ -644,7 +644,7 @@ characteristic_product_wlan() ->
 	[Char1, Char2, Char3, Char4, Char5].
 
 %% @hidden
-characteristic_product_rate_plane() ->
+characteristic_product_rate_plan() ->
 	Name1 = {"name", "destPrefixPriceTable"},
 	Description1 = {"description", "Table of Prefix, Description, Price Lable"},
 	ValueType1 = {"valueType", "string"},
