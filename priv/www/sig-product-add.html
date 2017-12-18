@@ -15,6 +15,7 @@
 <link rel="import" href="paper-toast/paper-toast.html">
 <link rel="import" href="paper-styles/color.html">
 <link rel="import" href="paper-date-picker/paper-date-picker.html">
+<link rel="import" href="paper-time-picker/paper-time-picker.html">
 <link rel="import" href="paper-menu-button/paper-menu-button.html" />
 <link rel="import" href="paper-icon-button/paper-icon-button.html">
 <link rel="import" href="iron-icon/iron-icon.html">
@@ -209,6 +210,7 @@
 								label="[[i18n.name]]"
 								on-value-changed="addUpdatePriceDialog"
 								onclick="addPriceName.value=null"
+								onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();"
 								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
 						</paper-input>
 						<paper-tooltip>
@@ -222,6 +224,7 @@
 								class="description"
 								name="description"
 								label="[[i18n.des]]"
+								onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();"
 								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
 						</paper-input>
 						<paper-tooltip>
@@ -239,6 +242,7 @@
 								value="[[addProductStartDatePrice]]"
 								name="addProductStartDatePrice"
 								label="[[i18n.start]]"
+								onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();"
 								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.show();">
 						</paper-input>
 						<paper-tooltip>
@@ -256,6 +260,7 @@
 								value="[[addProductEndDatePrice]]"
 								name="addProductEndDatePrice"
 								label="[[i18n.end]]"
+								onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();"
 								onfocus="addProductStartDatePickPrice.hide(); addProductEndDatePickPrice.show();">
 						</paper-input>
 						<paper-tooltip>
@@ -268,6 +273,7 @@
 						<paper-dropdown-menu id="addPriceTypedrop"
 								label="[[i18n.priceType]]"
 								on-selected-item-changed="checkRecure"
+								onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();"
 								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
 							<paper-listbox
 									id="addPriceType"
@@ -299,6 +305,7 @@
 								pattern="^[0-9]+[kmg]?$"
 								label="[[i18n.unitSize]]"
 								auto-validate
+								onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();"
 								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
 						</paper-input>
 						<paper-tooltip>
@@ -311,6 +318,7 @@
 						<paper-dropdown-menu id="addPriceUnitsdrop"
 								label="[[i18n.unit]]"
 								on-selected-item-changed="checkPattern"
+								onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();"
 								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
 							<paper-listbox
 									id="addPriceUnits"
@@ -346,6 +354,7 @@
 								type="number"
 								label="[[i18n.amount]]"
 								value=0
+								onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();"
 								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
 						</paper-input>
 						<paper-tooltip>
@@ -359,6 +368,7 @@
 								class="currency"
 								name="currency"
 								label="[[i18n.currency]]"
+								onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();"
 								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
 						</paper-input>
 						<paper-tooltip>
@@ -370,6 +380,7 @@
 					<div>
 						<paper-dropdown-menu id="addPricePerioddrop"
 								label="[[i18n.period]]"
+								onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();"
 								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
 							<paper-listbox
 									id="addPricePeriod"
@@ -403,6 +414,7 @@
 						<paper-dropdown-menu
 								id="addPriceDrop"
 								label="[[i18n.alter]]"
+								onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();"
 								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
 							<paper-listbox
 									id="addPriceAlteration"
@@ -438,7 +450,8 @@
 									pattern="^[0-9]+[mh]?$"
 									auto-validate
 									label="[[i18n.reserveTime]]"
-									value=0>
+									value=0
+									onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 							</paper-input>
 							<paper-tooltip>
 								<i18n-msg msgid="priceReserveTimeTool">
@@ -453,7 +466,8 @@
 									pattern="^[0-9]+[kmg]?$"
 									auto-validate
 									label="[[i18n.reserveBytes]]"
-									value=0>
+									value=0
+									onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 							</paper-input>
 							<paper-tooltip>
 								<i18n-msg msgid="priceReserveBytesTool">
@@ -462,22 +476,56 @@
 							</paper-tooltip>
 						</div>
 						<div>
-							<paper-input
-									id="timeOfDay"
-									type="string"
-									label="[[i18n.timeDay]]">
-							</paper-input>
-							<paper-tooltip>
-								<i18n-msg msgid="timeDayTool">
-									Range of the time day
-								</i18n-msg>
-							</paper-tooltip>
+							<span>Time of Day Range</span>
+							<paper-icon-button
+                        id="onClickPriceCharsTime"
+                        suffix
+                        icon="arrow-drop-down"
+                        on-click="_onClickPriceCharsTime">
+                  	</paper-icon-button>
 						</div>
+						<iron-collapse id="addPriceCharsTime">
+							<div>
+								<iron-collapse id="addPriceCharsTimeStart">
+									<paper-time-picker id="addTimePickerStart" time="{{startTime}}">
+									</paper-time-picker>
+								</iron-collapse>
+								<paper-input id="timeOfDayStart"
+                        	   value="[[startTime]]"
+                           	name="addProductTimePriceStart"
+                           	label="Start Time"
+										onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.show();">
+                     	</paper-input>
+								<paper-tooltip>
+									<i18n-msg msgid="timeDayTool">
+										Range of the time day
+									</i18n-msg>
+								</paper-tooltip>
+							</div>
+							<div>
+								<iron-collapse id="addPriceCharsTimeEnd">
+									<paper-time-picker id="addTimePickerEnd" time="{{endTime}}">
+									</paper-time-picker>
+								</iron-collapse>
+								<paper-input id="timeOfDayEnd"
+                        	   value="[[endTime]]"
+                           	name="addProductTimePriceEnd"
+                           	label="End Time"
+										onfocus="addPriceCharsTimeEnd.show(); addPriceCharsTimeStart.hide();">
+                     	</paper-input>
+								<paper-tooltip>
+									<i18n-msg msgid="timeDayTool">
+										Range of the time day
+									</i18n-msg>
+								</paper-tooltip>
+							</div>
+						</iron-collapse>
 						<div>
 							<paper-input
 									id="ratedPrice"
 									type="string"
-									label="[[i18n.ratedPrice]]">
+									label="[[i18n.ratedPrice]]"
+									onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 							</paper-input>
 							<paper-tooltip>
 								<i18n-msg msgid="ratePriceiTool">
@@ -870,7 +918,8 @@
 						this.$.addPriceAlteration.selected = null;
 						this.$.addPriceCharReserveTime.value = null;
 						this.$.addPriceCharReserveBytes.value = null;
-						this.$.timeOfDay.value = null;
+						this.$.timeOfDayStart.value = null;
+						this.$.timeOfDayEnd.value = null;
 						this.$.ratedPrice.value = null;
 					} else {
 						this.addOrUpdateButton = "update";
@@ -929,7 +978,8 @@
 						}
 						this.$.addPriceCharReserveTime.value = this.prices[indexPrice].reserveTime;
 						this.$.addPriceCharReserveBytes.value = this.prices[indexPrice].reserveBytes;
-						this.$.timeOfDay.value = this.prices[indexPrice].timeOfDayRange;
+						this.$.timeOfDayStart.value = this.prices[indexPrice].timeOfDayRange;
+						this.$.timeOfDayEnd.value = this.prices[indexPrice].timeOfDayRange;
 						this.$.ratedPrice.value = this.prices[indexPrice].ratePrice;
 					}
 				}
@@ -1308,11 +1358,18 @@
 						if (item.timeOfDayRange.length > 0) {
 							var charValueUse = new Object();
 							charValueUse.name = "timeOfDayRange";
+							charValueUse.valueType = "Range";
 							charValueUse.minCardinality = 0;
 							charValueUse.maxCardinality = 1;
 							var charValue = new Object();
-							charValue.default = false;
-							charValue.value = item.timeOfDayRange;
+							var charValueLower = new Object();
+							charValueLower.amount = this.addTimePickerStart.rawValue;
+							charValueLower.units = "minutes";
+							charValue.lowerValue = charValueLower;
+							var charValueUpper = new Object();
+							charValueUpper.amount = this.addTimePickerEnd.rawValue;
+							charValueUpper.units = "minutes";
+							charValue.upperValue = charValueUpper;
 							var charValues = new Array();
 							charValues.push(charValue);
 							charValueUse.productSpecCharacteristicValue = charValues;
@@ -1502,7 +1559,8 @@
 				}
 				priceNew.reserveTime = this.$.addPriceCharReserveTime.value;
 				priceNew.reserveBytes = this.$.addPriceCharReserveBytes.value;
-				priceNew.timeOfDayRange = this.$.timeOfDay.value;
+				priceNew.timeOfDayRange = this.$.timeOfDayStart.value;
+				priceNew.timeOfDayRange = this.$.timeOfDayEnd.value;
 				priceNew.ratePrice = this.$.ratedPrice.value;
 				if(priceNew.name
 						&& priceNew.type
@@ -1511,6 +1569,7 @@
 						&& priceNew.amount) {
 					if (indexPrice == -1) {
 						this.push('prices', priceNew);
+console.log(this.prices);
 					} else {
 						this.splice('prices', indexPrice, 1, priceNew);
 						this.addOrUpdateButton = "add";
@@ -1528,7 +1587,8 @@
 					this.$.addPriceAlteration.selected = null;
 					this.$.addPriceCharReserveTime.value = null;
 					this.$.addPriceCharReserveBytes.value = null;
-					this.$.timeOfDay.value = null;
+					this.$.timeOfDayStart.value = null;
+					this.$.timeOfDayEnd.value = null;
 					this.$.ratedPrice.value = null;
 					document.getElementById("addProductPriceToastSuccess").open();
 				} else {
@@ -1541,6 +1601,15 @@
 					this.$.onClickPriceChars.icon="arrow-drop-up"
 				} else {
 					this.$.addPriceChars.hide();
+					this.$.onClickPriceChars.icon="arrow-drop-down"
+				}
+			},
+			_onClickPriceCharsTime: function() {
+				if(this.$.addPriceCharsTime.opened == false) {
+					this.$.addPriceCharsTime.show();
+					this.$.onClickPriceCharsTime.icon="arrow-drop-up"
+				} else {
+					this.$.addPriceCharsTime.hide();
 					this.$.onClickPriceChars.icon="arrow-drop-down"
 				}
 			},
@@ -1685,7 +1754,8 @@
 				this.$.addAltAmount.value = null;
 				this.$.addAltCurrency.value = null;
 				this.$.addAltPeriod.selected = null;
-				this.$.timeOfDay.value = null;
+				this.$.timeOfDayStart.value = null;
+				this.$.timeOfDayEnd.value = null;
 				this.$.ratedPrice.value = null;
 				this.$.addProductModal.close();
 			}
