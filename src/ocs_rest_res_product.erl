@@ -646,7 +646,7 @@ characteristic_product_wlan() ->
 %% @hidden
 characteristic_product_rated_plan() ->
 	Name1 = {"name", "destPrefixPriceTable"},
-	Description1 = {"description", "Table of Prefix, Description, Price Lable"},
+	Description1 = {"description", "Table of Prefix, Description, Price Label"},
 	ValueType1 = {"valueType", "String"},
 	Char1 = {struct, [Name1, Description1, ValueType1]},
 	Name2 = {"name", "destPrefixTariffTable"},
