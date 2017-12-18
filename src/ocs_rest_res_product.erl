@@ -335,7 +335,7 @@ get_product_specs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
 	Object = {array, [spec_product_network(),
 					spec_product_fixed_quantity_pkg(),
-					spec_product_rate_plan(),
+					spec_product_rated_plan(),
 					spec_product_wlan()]},
 	Body = mochijson:encode(Object),
 	{ok, Headers, Body};
@@ -510,7 +510,7 @@ product_spec("1") ->
 product_spec("2") ->
 	spec_product_fixed_quantity_pkg();
 product_spec("3") ->
-	spec_product_rate_plan();
+	spec_product_rated_plan();
 product_spec("4") ->
 	spec_product_wlan();
 product_spec(_) ->
@@ -563,7 +563,7 @@ spec_product_fixed_quantity_pkg() ->
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status]}.
 
 %% @hidden
-spec_product_rate_plan() ->
+spec_product_rated_plan() ->
 	Id = {"id", "3"},
 	Href = {"href", ?specificationPath "3"},
 	Name = {"name", "RatedPlanProductSpec"},
@@ -571,7 +571,7 @@ spec_product_rate_plan() ->
 	Version = {"version", "1.0"},
 	LastUpdate = {"lastUpdate", "2017-10-06T12:00:00Z"},
 	Status = {"lifecycleStatus", "Active"},
-	Chars = {"productSpecCharacteristic", {array, characteristic_product_rate_plan()}},
+	Chars = {"productSpecCharacteristic", {array, characteristic_product_rated_plan()}},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
 
 %% @hidden
@@ -644,7 +644,7 @@ characteristic_product_wlan() ->
 	[Char1, Char2, Char3, Char4, Char5].
 
 %% @hidden
-characteristic_product_rate_plan() ->
+characteristic_product_rated_plan() ->
 	Name1 = {"name", "destPrefixPriceTable"},
 	Description1 = {"description", "Table of Prefix, Description, Price Lable"},
 	ValueType1 = {"valueType", "String"},
