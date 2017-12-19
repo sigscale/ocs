@@ -39,7 +39,7 @@
 
 -define(catalogPath, "/catalogManagement/v2/catalog/").
 -define(categoryPath, "/catalogManagement/v2/category/").
--define(specificationPath, "/catalogManagement/v2/productSpecification/").
+-define(productSpecPath, "/catalogManagement/v2/productSpecification/").
 -define(offeringPath, "/catalogManagement/v2/productOffering/").
 -define(inventoryPath, "/inventoryManagement/v2/productOffering/").
 
@@ -543,7 +543,7 @@ prepaid_category() ->
 %% @hidden
 spec_product_network() ->
 	Id = {"id", "1"},
-	Href = {"href", ?specificationPath "1"},
+	Href = {"href", ?productSpecPath "1"},
 	Name = {"name", "NetworkProductSpec"},
 	Description = {"description", "Represents the common behaviour and description of an installed network product that will be provisioned in the network and that enables usages."},
 	Version = {"version", "1.0"},
@@ -554,7 +554,7 @@ spec_product_network() ->
 %% @hidden
 spec_product_fixed_quantity_pkg() ->
 	Id = {"id", "2"},
-	Href = {"href", ?specificationPath "2"},
+	Href = {"href", ?productSpecPath "2"},
 	Name = {"name", "FixedQuantityPackageProductSpec"},
 	Description = {"description", "Defines buckets of usage from which Usages will debit the bucket."},
 	Version = {"version", "1.0"},
@@ -565,7 +565,7 @@ spec_product_fixed_quantity_pkg() ->
 %% @hidden
 spec_product_rated_plan() ->
 	Id = {"id", "3"},
-	Href = {"href", ?specificationPath "3"},
+	Href = {"href", ?productSpecPath "3"},
 	Name = {"name", "RatedPlanProductSpec"},
 	Description = {"description", "Defines criteria to be used to gain special usage tariffs like the period (day, evening) or phone number."},
 	Version = {"version", "1.0"},
@@ -577,7 +577,7 @@ spec_product_rated_plan() ->
 %% @hidden
 spec_product_wlan() ->
 	Id = {"id", "4"},
-	Href = {"href", ?specificationPath "4"},
+	Href = {"href", ?productSpecPath "4"},
 	Name = {"name", "WLANProductSpec"},
 	Description = {"description", "Defines characteristics specific to pulic Wi-Fi use."},
 	Version = {"version", "1.0"},
@@ -585,7 +585,7 @@ spec_product_wlan() ->
 	Status = {"lifecycleStatus", "Active"},
 	DepType = {"type", "dependency"},
 	DepId = {"id", "1"},
-	DepHref = {"href", ?specificationPath "1"},
+	DepHref = {"href", ?productSpecPath "1"},
 	Depend = {struct, [DepId, DepHref, DepType]},
 	Dependency = {"productSpecificationRelationship", {array, [Depend]}},
 	Chars = {"productSpecCharacteristic", {array, characteristic_product_wlan()}},
