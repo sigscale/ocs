@@ -258,7 +258,12 @@ request1(?AccountingStart, AcctSessionId, Id,
 		Authenticator, Secret, NasId, Address, _AccPort, _ListenPort, Attributes,
 		From, #state{address = ServerAddress, port = ServerPort} = State) ->
 	SessionAttributes = session_attributes(Attributes),
-	{ok, Subscriber} = radius_attributes:find(?UserName, Attributes),
+	Subscriber = case radius_attributes:find(?UserName, Attributes) of
+		{ok, Sub} ->
+			Sub;
+		{error, not_found} ->
+			radius_attributes:fetch(?CallingStationId, Attributes)
+	end,
 	Destination = proplists:get_value(?CalledStationId, Attributes, ""),
 	case ocs_rating:rate(radius, Subscriber,
 			Destination, initial, [], [], SessionAttributes) of
@@ -290,7 +295,12 @@ request1(?AccountingStop, AcctSessionId, Id,
 		{error, not_found} ->
 			0
 	end,
-	{ok, Subscriber} = radius_attributes:find(?UserName, Attributes),
+	Subscriber = case radius_attributes:find(?UserName, Attributes) of
+		{ok, Sub} ->
+			Sub;
+		{error, not_found} ->
+			radius_attributes:fetch(?CallingStationId, Attributes)
+	end,
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, stop, Attributes),
 	SessionAttributes = session_attributes(Attributes),
 	DebitAmount = [{octets, UsageOctets}, {seconds, UsageSecs}],
@@ -324,7 +334,12 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 		{error, not_found} ->
 			0
 	end,
-	{ok, Subscriber} = radius_attributes:find(?UserName, Attributes),
+	Subscriber = case radius_attributes:find(?UserName, Attributes) of
+		{ok, Sub} ->
+			Sub;
+		{error, not_found} ->
+			radius_attributes:fetch(?CallingStationId, Attributes)
+	end,
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, interim, Attributes),
 	SessionAttributes = session_attributes(Attributes),
 	ReserveAmount = [{octets, UsageOctets}, {seconds, UsageSecs}],
