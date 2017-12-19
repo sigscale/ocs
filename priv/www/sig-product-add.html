@@ -210,8 +210,7 @@
 								label="[[i18n.name]]"
 								on-value-changed="addUpdatePriceDialog"
 								onclick="addPriceName.value=null"
-								onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();"
-								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="addPriceNameTool">
@@ -224,8 +223,7 @@
 								class="description"
 								name="description"
 								label="[[i18n.des]]"
-								onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();"
-								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="priceDesTool">
@@ -242,8 +240,7 @@
 								value="[[addProductStartDatePrice]]"
 								name="addProductStartDatePrice"
 								label="[[i18n.start]]"
-								onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();"
-								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.show();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.show(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="priceStartTool">
@@ -260,8 +257,7 @@
 								value="[[addProductEndDatePrice]]"
 								name="addProductEndDatePrice"
 								label="[[i18n.end]]"
-								onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();"
-								onfocus="addProductStartDatePickPrice.hide(); addProductEndDatePickPrice.show();">
+								onfocus="addProductStartDatePickPrice.hide(); addProductEndDatePickPrice.show(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="priceEndTool">
@@ -273,8 +269,7 @@
 						<paper-dropdown-menu id="addPriceTypedrop"
 								label="[[i18n.priceType]]"
 								on-selected-item-changed="checkRecure"
-								onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();"
-								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 							<paper-listbox
 									id="addPriceType"
 									slot="dropdown-content"
@@ -305,8 +300,7 @@
 								pattern="^[0-9]+[kmg]?$"
 								label="[[i18n.unitSize]]"
 								auto-validate
-								onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();"
-								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="priceSizeTool">
@@ -318,8 +312,7 @@
 						<paper-dropdown-menu id="addPriceUnitsdrop"
 								label="[[i18n.unit]]"
 								on-selected-item-changed="checkPattern"
-								onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();"
-								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 							<paper-listbox
 									id="addPriceUnits"
 									slot="dropdown-content"
@@ -354,8 +347,7 @@
 								type="number"
 								label="[[i18n.amount]]"
 								value=0
-								onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();"
-								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="priceAmountTool">
@@ -368,8 +360,7 @@
 								class="currency"
 								name="currency"
 								label="[[i18n.currency]]"
-								onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();"
-								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="priceCurrencyTool">
@@ -380,8 +371,7 @@
 					<div>
 						<paper-dropdown-menu id="addPricePerioddrop"
 								label="[[i18n.period]]"
-								onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();"
-								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 							<paper-listbox
 									id="addPricePeriod"
 									slot="dropdown-content"
@@ -414,8 +404,7 @@
 						<paper-dropdown-menu
 								id="addPriceDrop"
 								label="[[i18n.alter]]"
-								onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();"
-								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 							<paper-listbox
 									id="addPriceAlteration"
 									slot="dropdown-content"
@@ -451,7 +440,7 @@
 									auto-validate
 									label="[[i18n.reserveTime]]"
 									value=0
-									onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
+									onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 							</paper-input>
 							<paper-tooltip>
 								<i18n-msg msgid="priceReserveTimeTool">
@@ -467,7 +456,7 @@
 									auto-validate
 									label="[[i18n.reserveBytes]]"
 									value=0
-									onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
+									onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 							</paper-input>
 							<paper-tooltip>
 								<i18n-msg msgid="priceReserveBytesTool">
@@ -478,11 +467,11 @@
 						<div>
 							<span>Time of Day Range</span>
 							<paper-icon-button
-                        id="onClickPriceCharsTime"
-                        suffix
-                        icon="arrow-drop-down"
-                        on-click="_onClickPriceCharsTime">
-                  	</paper-icon-button>
+								id="onClickPriceCharsTime"
+								suffix
+								icon="arrow-drop-down"
+								on-click="_onClickPriceCharsTime">
+							</paper-icon-button>
 						</div>
 						<iron-collapse id="addPriceCharsTime">
 							<div>
@@ -491,11 +480,11 @@
 									</paper-time-picker>
 								</iron-collapse>
 								<paper-input id="timeOfDayStart"
-                        	   value="[[startTime]]"
-                           	name="addProductTimePriceStart"
-                           	label="Start Time"
-										onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.show();">
-                     	</paper-input>
+										value="[[startTime]]"
+										name="addProductTimePriceStart"
+										label="Start Time"
+										onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.show();">
+								</paper-input>
 								<paper-tooltip>
 									<i18n-msg msgid="timeDayTool">
 										Range of the time day
@@ -508,11 +497,11 @@
 									</paper-time-picker>
 								</iron-collapse>
 								<paper-input id="timeOfDayEnd"
-                        	   value="[[endTime]]"
-                           	name="addProductTimePriceEnd"
-                           	label="End Time"
-										onfocus="addPriceCharsTimeEnd.show(); addPriceCharsTimeStart.hide();">
-                     	</paper-input>
+										value="[[endTime]]"
+										name="addProductTimePriceEnd"
+										label="End Time"
+										onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.show(); addPriceCharsTimeStart.hide();">
+								</paper-input>
 								<paper-tooltip>
 									<i18n-msg msgid="timeDayTool">
 										Range of the time day
@@ -525,7 +514,7 @@
 									id="ratedPrice"
 									type="string"
 									label="[[i18n.ratedPrice]]"
-									onfocus="addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
+									onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 							</paper-input>
 							<paper-tooltip>
 								<i18n-msg msgid="ratePriceiTool">
