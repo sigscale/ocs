@@ -29,6 +29,7 @@
 -export([get_catalog/2, get_catalogs/1]).
 -export([get_category/2, get_categories/1]).
 -export([get_product_spec/2, get_product_specs/1]).
+-export([get_pla_spec/2, get_pla_specs/1]).
 -export([delete_product_offering/1, delete_product_inventory/1]).
 
 -include("ocs.hrl").
@@ -41,6 +42,8 @@
 -define(categoryPath, "/catalogManagement/v2/category/").
 -define(productSpecPath, "/catalogManagement/v2/productSpecification/").
 -define(offeringPath, "/catalogManagement/v2/productOffering/").
+-define(plaPath, "/catalogManagement/v2/pla/").
+-define(plaSpecPath, "/catalogManagement/v2/plaSpecification/").
 -define(inventoryPath, "/inventoryManagement/v2/productOffering/").
 
 -spec content_types_accepted() -> ContentTypes
@@ -408,6 +411,45 @@ patch_product_offering(ProdId, Etag, ReqData) ->
 			{error, 400}
 	end.
 
+-spec get_pla_specs(Query) -> Result when
+	Query :: [{Key :: string(), Value :: string()}],
+	Result	:: {ok, Headers, Body} | {error, Status},
+	Headers	:: [tuple()],
+	Body		:: iolist(),
+	Status	:: 400 | 404 | 500.
+%% @doc Respond to `GET /catalogManegment/v2/plaSpecification'.
+%% 	Retrieve all pricing logic algorithm specifications.
+get_pla_specs([] = _Query) ->
+	Headers = [{content_type, "application/json"}],
+	Object = {array, [spec_pla_once(), spec_pla_recurring(),
+			spec_pla_usage(), spec_pla_prefix_price(),
+			spec_pla_prefix_tariff()]},
+	Body = mochijson:encode(Object),
+	{ok, Headers, Body};
+get_pla_specs(_Query) ->
+	{error, 400}.
+
+-spec get_pla_spec(Id, Query) -> Result when
+	Id :: string(),
+	Query :: [{Key :: string(), Value :: string()}],
+	Result	:: {ok, Headers, Body} | {error, Status},
+	Headers	:: [tuple()],
+	Body		:: iolist(),
+	Status	:: 400 | 404 | 500.
+%% @doc Respond to `GET /catalogManegment/v2/plaSpecification/{id}'.
+%% 	Retrieve a pricing logic algorithm specification.
+get_pla_spec(ID, [] = _Query) ->
+	case pla_spec(ID) of
+		{error, StatusCode} ->
+			{error, StatusCode};
+		PLASpec ->
+			Headers = [{content_type, "application/json"}],
+			Body = mochijson:encode(PLASpec),
+			{ok, Headers, Body}
+	end;
+get_pla_spec(_Id, _Query) ->
+	{error, 400}.
+
 -spec patch_product_inventory(SubId, Etag, ReqData) -> Result
 	when
 		SubId	:: string(),
@@ -662,6 +704,82 @@ characteristic_product_rated_plan() ->
 	ValueType4 = {"valueType", "String"},
 	Char4 = {struct, [Name4, Description4, ValueType4]},
 	[Char1, Char2, Char3, Char4].
+
+-spec pla_spec(ID) -> Result
+	when
+		ID :: string(),
+		Result :: {struct, [tuple()]} | {error, 404}.
+%% @doc Get PLA specification by ID.
+pla_spec("1") ->
+	spec_pla_once();
+pla_spec("2") ->
+	spec_pla_recurring();
+pla_spec("3") ->
+	spec_pla_usage();
+pla_spec("4") ->
+	spec_pla_prefix_price();
+pla_spec("5") ->
+	spec_pla_prefix_tariff();
+pla_spec(_) ->
+	{error, 404}.
+
+%% @hidden
+spec_pla_once() ->
+	Id = {"id", "1"},
+	Href = {"href", ?plaSpecPath "1"},
+	Name = {"name", "OneTimePLASpec"},
+	Description = {"description", "Interface specification for a function that rates one time events."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2017-12-19T12:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status]}.
+
+%% @hidden
+spec_pla_recurring() ->
+	Id = {"id", "2"},
+	Href = {"href", ?plaSpecPath "2"},
+	Name = {"name", "RecurringPLASpec"},
+	Description = {"description", "Interface specification for a function that rates recurring events."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2017-12-19T12:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status]}.
+
+%% @hidden
+spec_pla_usage() ->
+	Id = {"id", "3"},
+	Href = {"href", ?plaSpecPath "3"},
+	Name = {"name", "UsagePLASpec"},
+	Description = {"description", "Interface specification for a function that rates usage events."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2017-12-19T12:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	Chars = {"usageSpecCharacteristic", {array, []}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
+
+%% @hidden
+spec_pla_prefix_price() ->
+	Id = {"id", "4"},
+	Href = {"href", ?plaSpecPath "4"},
+	Name = {"name", "PrefixPriceTablePLASpec"},
+	Description = {"description", "Destination prefix table lookup of price name."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2017-12-19T12:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	Chars = {"usageSpecCharacteristic", {array, []}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
+
+%% @hidden
+spec_pla_prefix_tariff() ->
+	Id = {"id", "5"},
+	Href = {"href", ?plaSpecPath "5"},
+	Name = {"name", "PrefixTariffTablePLASpec"},
+	Description = {"description", "Destination prefix table lookup of price amount."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2017-12-19T12:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	Chars = {"usageSpecCharacteristic", {array, []}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
 
 -spec offer_status(Status) -> Status
 	when
