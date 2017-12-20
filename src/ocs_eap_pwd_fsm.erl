@@ -76,7 +76,8 @@
 		auth_req_type :: undefined | integer(),
 		origin_host :: undefined | binary(),
 		origin_realm :: undefined | binary(),
-		diameter_port_server :: undefined | pid()}).
+		diameter_port_server :: undefined | pid(),
+		password_required :: boolean()}).
 -type statedata() :: #statedata{}.
 
 -define(TIMEOUT, 30000).
@@ -103,18 +104,19 @@
 %% @private
 %%
 init([radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
-		RadiusFsm, Secret, SessionID, AccessRequest] = _Args) ->
+		RadiusFsm, Secret, PasswordReq, SessionID, AccessRequest] = _Args) ->
 	{ok, Hostname} = inet:gethostname(),
 	StateData = #statedata{server_address = ServerAddress,
 			server_port = ServerPort, client_address = ClientAddress,
 			client_port = ClientPort, radius_fsm = RadiusFsm,
 			secret = Secret, session_id = SessionID,
-			server_id = list_to_binary(Hostname), start = AccessRequest},
+			server_id = list_to_binary(Hostname), start = AccessRequest,
+			password_required = PasswordReq},
 	process_flag(trap_exit, true),
 	{ok, eap_start, StateData, 0};
 init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
-		SessionId, ApplicationId, AuthType, OHost, ORealm, _DHost, _DRealm,
-		Request, _Options] = _Args) ->
+		PasswordReq, SessionId, ApplicationId, AuthType, OHost, ORealm,
+		_DHost, _DRealm, Request, _Options] = _Args) ->
 	{ok, Hostname} = inet:gethostname(),
 	case global:whereis_name({ocs_diameter_auth, ServerAddress, ServerPort}) of
 		undefined ->
@@ -126,7 +128,7 @@ init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 					server_id = list_to_binary(Hostname), auth_app_id = ApplicationId,
 					auth_req_type = AuthType, origin_host = OHost,
 					origin_realm = ORealm, diameter_port_server = PortServer,
-					start = Request},
+					start = Request, password_required = PasswordReq},
 			process_flag(trap_exit, true),
 			{ok, eap_start, StateData, 0}
 		end.
@@ -355,12 +357,18 @@ id(#diameter_eap_app_DER{} = Request, #statedata{eap_id = EapID,
 id1(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		attributes = RequestAttributes}, PeerID, Token,
 		#statedata{eap_id = EapID, server_id = ServerID,
-		session_id = SessionID} = StateData) ->
+		session_id = SessionID, password_required = PwdReq} = StateData) ->
 	try
 		S_rand = crypto:rand_uniform(1, ?R),
 		NewEapID = (EapID rem 255) + 1,
 		case catch ocs:find_subscriber(PeerID) of
-			{ok, #subscriber{password = Password}} ->
+			{ok, #subscriber{password = Pwd}} ->
+				Password = case PwdReq of
+					false ->
+						<<>>;
+					_ ->
+						Pwd
+				end,
 				PWE = ocs_eap_pwd:compute_pwe(Token, PeerID, ServerID, Password),
 				{ScalarS, ElementS} = ocs_eap_pwd:compute_scalar(<<S_rand:256>>,
 						PWE),
@@ -373,7 +381,7 @@ id1(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 						type = ?PWD, identifier = NewEapID, data = CommitEapData},
 				NewStateData = StateData#statedata{pwe = PWE, s_rand = S_rand,
 					peer_id = PeerID, eap_id = NewEapID, scalar_s = ScalarS,
-					element_s = ElementS, password = Password},
+					element_s = ElementS, password = Pwd},
 				send_response(EapPacket, ?AccessChallenge, [], RadiusID,
 						RequestAuthenticator, RequestAttributes, NewStateData),
 				{next_state, commit, NewStateData, ?TIMEOUT};
@@ -394,12 +402,18 @@ id1(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 id2(#diameter_eap_app_DER{} = Request, PeerID, Token,
 		#statedata{eap_id = EapID, server_id = ServerID, session_id = SessionID,
 		auth_req_type = AuthType, origin_host = OH, origin_realm = OR,
-		diameter_port_server = PortServer} = StateData) ->
+		diameter_port_server = PortServer, password_required = PwdReq} = StateData) ->
 	try
 		S_rand = crypto:rand_uniform(1, ?R),
 		NewEapID = (EapID rem 255) + 1,
 		case catch ocs:find_subscriber(PeerID) of
-			{ok, #subscriber{password = Password}} ->
+			{ok, #subscriber{password = Pwd}} ->
+				Password = case PwdReq of
+					false ->
+						<<>>;
+					_ ->
+						Pwd
+				end,
 				PWE = ocs_eap_pwd:compute_pwe(Token, PeerID, ServerID, Password),
 				{ScalarS, ElementS} = ocs_eap_pwd:compute_scalar(<<S_rand:256>>,
 						PWE),
@@ -412,7 +426,7 @@ id2(#diameter_eap_app_DER{} = Request, PeerID, Token,
 						type = ?PWD, identifier = NewEapID, data = CommitEapData},
 				NewStateData = StateData#statedata{pwe = PWE, s_rand = S_rand,
 					peer_id = PeerID, eap_id = NewEapID, scalar_s = ScalarS,
-					element_s = ElementS, password = Password},
+					element_s = ElementS, password = Pwd},
 				send_diameter_response(SessionID, AuthType,
 						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OH, OR,
 						EapPacket, PortServer, Request, StateData),

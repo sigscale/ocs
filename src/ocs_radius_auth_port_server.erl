@@ -114,9 +114,9 @@ init([AuthPortSup, Address, Port, Options]) ->
 %% @private
 handle_call(shutdown, _From, State) ->
 	{stop, normal, ok, State};
-handle_call({request, Address, Port, Secret,
+handle_call({request, Address, Port, Secret, PasswordReq,
 			#radius{code = ?AccessRequest} = Radius, IsEap}, From, State) ->
-	request(IsEap, Address, Port, Secret, Radius, From, State).
+	request(IsEap, Address, Port, Secret, PasswordReq, Radius, From, State).
 
 -spec handle_cast(Request, State) -> Result
 	when
@@ -220,12 +220,13 @@ code_change(_OldVsn, State, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec request(IsEap, Address, Port, Secret, Radius, From, State) -> Result
+-spec request(IsEap, Address, Port, Secret, PasswordReq, Radius, From, State) -> Result
 	when
 		IsEap :: {eap, binary()} | none,
 		Address :: inet:ip_address(), 
 		Port :: pos_integer(),
 		Secret :: string(), 
+		PasswordReq :: boolean(),
 		Radius :: #radius{},
 		From :: {Pid, Tag}, 
 		Pid :: pid(), 
@@ -236,18 +237,18 @@ code_change(_OldVsn, State, _Extra) ->
 		NewState :: state().
 %% @doc Handle a received RADIUS Access-Request packet.
 %% @private
-request(none, Address, Port, Secret, Radius, From, State) ->
-	request1(none, Address, Port, Secret, Radius, From, State);
+request(none, Address, Port, Secret, PasswordReq, Radius, From, State) ->
+	request1(none, Address, Port, Secret, PasswordReq, Radius, From, State);
 request({eap, <<_:32, ?Identity, Identity/binary>>},
-		Address, Port, Secret, Radius, From, State) ->
-	request1({identity, Identity}, Address, Port, Secret, Radius, From, State);
+		Address, Port, Secret, PasswordReq, Radius, From, State) ->
+	request1({identity, Identity}, Address, Port, Secret, PasswordReq, Radius, From, State);
 request({eap, <<_, EapID, _:16, ?LegacyNak, Data/binary>>},
-		Address, Port, Secret, Radius, From, State) ->
-	request1({legacy_nak, EapID, Data}, Address, Port, Secret, Radius, From, State);
-request(Eap, Address, Port, Secret, Radius, From, State) ->
-	request1(Eap, Address, Port, Secret, Radius, From, State).
+		Address, Port, Secret, PasswordReq, Radius, From, State) ->
+	request1({legacy_nak, EapID, Data}, Address, Port, Secret, PasswordReq, Radius, From, State);
+request(Eap, Address, Port, Secret, PasswordReq, Radius, From, State) ->
+	request1(Eap, Address, Port, Secret, PasswordReq, Radius, From, State).
 %% @hidden
-request1(EapType, Address, Port, Secret,
+request1(EapType, Address, Port, Secret, PasswordReq,
 		#radius{id = RadiusId, authenticator = RequestAuthenticator,
 		attributes = Attributes} = AccessRequest, {RadiusFsm, _Tag} = _From,
 		#state{handlers = Handlers, method_prefer = MethodPrefer,
@@ -280,19 +281,19 @@ request1(EapType, Address, Port, Secret,
 					{_, Identity} when MethodPrefer == pwd ->
 						Sup = State#state.pwd_sup,
 						NewState = start_fsm(AccessRequest, RadiusFsm, Address,
-								Port, Secret, SessionID, Identity, Sup, State),
+								Port, Secret, PasswordReq, SessionID, Identity, Sup, State),
 						{reply, {ok, wait}, NewState};
 					{_, Identity} when MethodPrefer == ttls ->
 						Sup = State#state.ttls_sup,
 						NewState = start_fsm(AccessRequest, RadiusFsm, Address,
-								Port, Secret, SessionID, Identity, Sup, State),
+								Port, Secret, PasswordReq, SessionID, Identity, Sup, State),
 						{reply, {ok, wait}, NewState};
 					none ->
 						{ok, _} = radius_attributes:find(?UserName, Attributes),
 						{ok, _} = radius_attributes:find(?UserPassword, Attributes),
 						Sup = State#state.simple_auth_sup,
 						NewState = start_fsm(AccessRequest, RadiusFsm, Address,
-								Port, Secret, SessionID, <<>>, Sup, State),
+								Port, Secret, PasswordReq, SessionID, <<>>, Sup, State),
 						{reply, {ok, wait}, NewState}
 				end;
 			{value, {Fsm, Identity1}} ->
@@ -308,7 +309,7 @@ request1(EapType, Address, Port, Secret,
 										NewEapMessage, Attributes),
 								NewAccessRequest = AccessRequest#radius{attributes = RequestAttributes},
 								NewState = start_fsm(NewAccessRequest, RadiusFsm,
-										Address, Port, Secret, SessionID, Identity1,
+										Address, Port, Secret, PasswordReq, SessionID, Identity1,
 										Sup, State),
 								{reply, {ok, wait}, NewState};
 							{error, none} ->
@@ -341,14 +342,15 @@ request1(EapType, Address, Port, Secret,
 			{reply, {error, ignore}, State}
 	end.
 
--spec start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret, SessionID, 
-	Identity, Sup, State) -> NewState
+-spec start_fsm(AccessRequest, RadiusFsm, Address, Port, Secret,
+	PasswordReq, SessionID, Identity, Sup, State) -> NewState
 	when
 		AccessRequest :: #radius{}, 
 		RadiusFsm :: pid(),
 		Address :: inet:ip_address(), 
 		Port :: integer(),
 		Secret :: binary(), 
+		PasswordReq :: boolean(),
 		SessionID :: tuple(), 
 		Identity :: binary(),
 		Sup :: pid(), 
@@ -357,18 +359,18 @@ request1(EapType, Address, Port, Secret,
 %% @doc Start a new session handler.
 %% @hidden
 start_fsm(AccessRequest, RadiusFsm, ClientAddress, ClientPort, Secret,
-		SessionID, Identity, Sup, #state{address = ServerAddress,
+		PasswordReq, SessionID, Identity, Sup, #state{address = ServerAddress,
 		port = ServerPort, ttls_sup = Sup} = State) ->
 	StartArgs = [radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
-			RadiusFsm, Secret, SessionID, AccessRequest],
+			RadiusFsm, Secret, PasswordReq, SessionID, AccessRequest],
 	ChildSpec = [StartArgs],
 	start_fsm1(ServerAddress, ServerPort, RadiusFsm, SessionID,
 			Identity, Sup, ChildSpec, State);
 start_fsm(AccessRequest, RadiusFsm, ClientAddress, ClientPort, Secret,
-		SessionID, Identity, Sup,  #state{address = ServerAddress,
+		PasswordReq, SessionID, Identity, Sup,  #state{address = ServerAddress,
 		port = ServerPort} = State) ->
 	StartArgs = [radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
-			RadiusFsm, Secret, SessionID, AccessRequest],
+			RadiusFsm, Secret, PasswordReq, SessionID, AccessRequest],
 	ChildSpec = [StartArgs, []],
 	start_fsm1(ServerAddress, ServerPort, RadiusFsm, SessionID,
 			Identity, Sup, ChildSpec, State).

@@ -38,6 +38,7 @@
 		port :: inet:port_number() | undefined,
 		protocol :: radius | diameter | undefined,
 		secret :: binary() | undefined,
+		password_required  = true :: boolean(),
 		last_modified :: tuple() | undefined}).
 
 -record(alteration,

@@ -70,7 +70,8 @@ request(Address, Port, Packet, #state{port_server = Server} = _State)
 		when is_tuple(Address) ->
 	try
 		{ok, #client{secret = SharedSecret,
-				identifier = ClientID}} = ocs:find_client(Address),
+				identifier = ClientID,
+				password_required = PasswordReq}} = ocs:find_client(Address),
 		Radius = radius:codec(Packet),
 		#radius{code = ?AccessRequest, attributes = AttributeData} = Radius,
 		Attributes = radius_attributes:codec(AttributeData),
@@ -93,11 +94,11 @@ request(Address, Port, Packet, #state{port_server = Server} = _State)
 			{error, not_found} ->
 				ok
 		end,
-		{SharedSecret, Radius#radius{attributes = Attributes}, Eap}
+		{SharedSecret, Radius#radius{attributes = Attributes}, PasswordReq, Eap}
 	of
-		{Secret, AccessRequest, IsEap} ->
+		{Secret, AccessRequest, PasswordRequired, IsEap} ->
 			gen_server:call(Server,
-					{request, Address, Port, Secret, AccessRequest, IsEap})
+					{request, Address, Port, Secret, PasswordRequired, AccessRequest, IsEap})
 	catch
 		_:_R ->
 			{error, ignore}
