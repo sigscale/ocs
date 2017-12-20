@@ -735,7 +735,33 @@ remove_session(_, [], Acc) ->
 %% @doc Add new session identification attributes set to active sessions list.
 %% @private
 add_session(SessionAttributes, SessionList) ->
-	[{erlang:system_time(?MILLISECOND), SessionAttributes} | SessionList].
+	SessionId = get_session_id(SessionAttributes),
+	case add_session1(SessionId, SessionList) of
+		true ->
+			SessionList;
+		false ->
+			[{erlang:system_time(?MILLISECOND), SessionAttributes} | SessionList]
+	end.
+%% @hidden
+add_session1(SessionId, [{_, L} | T]) ->
+	case add_session2(SessionId, L) of
+		true ->
+			true;
+		false ->
+			add_session1(SessionId, T)
+	end;
+add_session1(_SessionId, []) ->
+	false.
+%% @hidden
+add_session2([H | T], SessionAttributes) ->
+	case lists:member(H, SessionAttributes) of
+		true ->
+			true;
+		false ->
+			add_session2(T, SessionAttributes)
+	end;
+add_session2([], _SessionAttributes) ->
+	false.
 
 -spec get_session_id(SessionAttributes) -> SessionId
 	when
