@@ -16,7 +16,7 @@
 <link rel="import" href="paper-styles/color.html">
 <link rel="import" href="paper-date-picker/paper-date-picker.html">
 <link rel="import" href="paper-time-picker/paper-time-picker.html">
-<link rel="import" href="paper-menu-button/paper-menu-button.html" />
+<link rel="import" href="paper-menu-button/paper-menu-button.html">
 <link rel="import" href="paper-icon-button/paper-icon-button.html">
 <link rel="import" href="iron-icon/iron-icon.html">
 <link rel="import" href="iron-icons/iron-icons.html">
@@ -482,7 +482,7 @@
 								<paper-input id="timeOfDayStart"
 										value="[[startTime]]"
 										name="addProductTimePriceStart"
-										label="Start Time"
+										label="[[i18n.startTime]]"
 										onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.show();">
 								</paper-input>
 								<paper-tooltip>
@@ -499,7 +499,7 @@
 								<paper-input id="timeOfDayEnd"
 										value="[[endTime]]"
 										name="addProductTimePriceEnd"
-										label="End Time"
+										label="[[i18n.endTime]]"
 										onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.show(); addPriceCharsTimeStart.hide();">
 								</paper-input>
 								<paper-tooltip>

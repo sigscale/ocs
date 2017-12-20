@@ -22,8 +22,9 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 %% export the ocs public API
--export([add_client/2, add_client/4, find_client/1, update_client/2,
-		update_client/3, get_clients/0, delete_client/1, query_clients/6]).
+-export([add_client/2, add_client/3, add_client/5, find_client/1,
+		update_client/2, update_client/3, get_clients/0, delete_client/1,
+		query_clients/6]).
 -export([add_subscriber/3, add_subscriber/4, add_subscriber/5,
 		add_subscriber/6, add_subscriber/8,
 		find_subscriber/1, delete_subscriber/1, update_password/2,
@@ -62,30 +63,46 @@
 		Address :: inet:ip_address(),
 		Secret :: string() | binary(),
 		Result :: {ok, #client{}}.
+%% @equiv add_client(Address, 3799, radius, Secret, true)
 %% @doc Create an entry in the client table.
 %%
 add_client(Address, Secret) ->
-	add_client(Address, 3799, radius, Secret).
+	add_client(Address, 3799, radius, Secret, true).
 
--spec add_client(Address, Port, Protocol, Secret) -> Result
+-spec add_client(Address, Secret, PasswordRequired) -> Result
+	when
+		Address :: inet:ip_address(),
+		Secret :: string() | binary(),
+		PasswordRequired :: boolean(),
+		Result :: {ok, #client{}}.
+%% @equiv add_client(Address, 3799, radius, Secret, PasswordRequired)
+add_client(Address, Secret, PasswordRequired) ->
+	add_client(Address, 3799, radius, Secret, PasswordRequired).
+
+-spec add_client(Address, Port, Protocol, Secret, PasswordRequired) -> Result
 	when
 		Address :: inet:ip_address(),
 		Port :: inet:port_number() | undefined,
 		Protocol :: atom() | undefined,
 		Secret :: string() | binary() | undefined,
-		Result :: {ok, #client{}}.
+		PasswordRequired :: boolean(),
+		Result :: {ok, # client{}}.
 %% @doc Create an entry in the client table.
 %%
-add_client(Address, Port, Protocol, Secret) when is_list(Address) ->
+add_client(Address, Port, Protocol, Secret, PasswordRequired) when is_list(Address) ->
 	{ok, AddressTuple} = inet_parse:address(Address),
-	add_client(AddressTuple, Port, Protocol, Secret);
-add_client(Address, undefined, diameter, undefined)
-		when is_tuple(Address) ->
+	add_client(AddressTuple, Port, Protocol, Secret, PasswordRequired);
+add_client(Address, Port, Protocol, Secret, undefined) ->
+	add_client(Address, Port, Protocol, Secret, true);
+add_client(Address, undefined, diameter, undefined, PasswordRequired)
+		when is_tuple(Address), is_boolean(PasswordRequired) ->
 	F = fun() ->
 				TS = erlang:system_time(?MILLISECOND),
 				N = erlang:unique_integer([positive]),
-				R = #client{address = Address,
-						protocol = diameter, last_modified = {TS, N}},
+				R = #client{
+						address = Address,
+						protocol = diameter, last_modified = {TS, N},
+						password_required = PasswordRequired},
 				mnesia:write(R),
 				R
 	end,
@@ -95,22 +112,23 @@ add_client(Address, undefined, diameter, undefined)
 		{aborted, Reason} ->
 			exit(Reason)
 	end;
-add_client(Address, Port, Protocol, undefined) ->
-	add_client(Address, Port, Protocol, generate_password());
-add_client(Address, Port, undefined, Secret) ->
-	add_client(Address, Port, radius, Secret);
-add_client(Address, undefined, Protocol, Secret) ->
-	add_client(Address, 3799, Protocol, Secret);
-add_client(Address, Port, Protocol, Secret) when is_list(Secret) ->
-	add_client(Address, Port, Protocol, list_to_binary(Secret));
-add_client(Address, Port, radius, Secret) when is_tuple(Address),
-		is_binary(Secret) ->
+add_client(Address, Port, Protocol, undefined, PasswordRequired) ->
+	add_client(Address, Port, Protocol, generate_password(), PasswordRequired);
+add_client(Address, Port, undefined, Secret, PasswordRequired) ->
+	add_client(Address, Port, radius, Secret, PasswordRequired);
+add_client(Address, undefined, Protocol, Secret, PasswordRequired) ->
+	add_client(Address, 3799, Protocol, Secret, PasswordRequired);
+add_client(Address, Port, Protocol, Secret, PasswordRequired) when is_list(Secret) ->
+	add_client(Address, Port, Protocol, list_to_binary(Secret), PasswordRequired);
+add_client(Address, Port, radius, Secret, PasswordRequired) when
+		is_tuple(Address), is_binary(Secret), is_boolean(PasswordRequired) ->
 	F = fun() ->
 				TS = erlang:system_time(?MILLISECOND),
 				N = erlang:unique_integer([positive]),
 				LM = {TS, N},
 				R = #client{address = Address, port = Port,
 						protocol = radius, secret = Secret,
+						password_required = PasswordRequired,
 						last_modified = LM},
 				ok = mnesia:write(R),
 				R

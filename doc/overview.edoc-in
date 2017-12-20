@@ -814,6 +814,7 @@ Content-length: nn
  "port": 3799,
  "protocol": "RADIUS",
  "secret":"ksc8c244npqc",
+ "passwordRequired":true
 }
 </pre></p>
 <p>Example response:<pre>
@@ -829,6 +830,7 @@ Etag: mm-m
  "port": 3799,
  "protocol": "RADIUS",
  "secret": "ksc8c244npqc",
+ "passwordRequired"true
 }
 </pre></p>
 
@@ -880,6 +882,7 @@ Etag: mm-m
  "port": 3799,
  "protocol": "RADIUS",
  "secret": "ksc8c244npqc",
+ "passwordRequired"true
 }
 </pre></p>
 
@@ -930,6 +933,7 @@ Content-Length: nn
    "port": 3799,
    "protocol": "RADIUS",
    "secret": "2h7csggw35aa",
+	"passwordRequired"true
  },
  {
   "id": "10.2.53.10",
@@ -938,6 +942,7 @@ Content-Length: nn
   "port": 3799,
   "protocol": "RADIUS",
   "secret": "rzambns7knr4",
+  "passwordRequired"false
  }
 ]
 </pre></p>
@@ -1009,6 +1014,7 @@ Etag: mm-m
  "port": 3799,
  "protocol": "RADIUS",
  "secret": "7fy8qhs7hh7n",
+ "passwordRequired"true
 }
 </pre></p>
 
