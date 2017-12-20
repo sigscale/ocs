@@ -17,6 +17,8 @@
 <link rel="import" href="paper-styles/typography.html">
 <link rel="import" href="paper-styles/color.html">
 <link rel="import" href="iron-icons/iron-icons.html">
+<link rel="import" href="iron-icons/maps-icons.html">
+<link rel="import" href="iron-icons/editor-icons.html">
 <link rel="import" href="iron-icons/hardware-icons.html">
 <link rel="import" href="iron-icons/device-icons.html">
 <link rel="import" href="sig-help.html">
@@ -127,7 +129,7 @@
 					id="loadPage"
 					role="main"
 					selected-attribute="active-page">
-				<sig-product-list products="{{products}}"></sig-product-list>
+				<sig-product-list products="{{products}}" tables="{{tables}}"></sig-product-list>
 				<sig-sub-list></sig-sub-list>
 				<sig-client-list></sig-client-list>
 				<sig-user-list></sig-user-list>
@@ -135,6 +137,7 @@
 				<sig-accounting-list></sig-accounting-list>
 				<sig-ipdr-list></sig-ipdr-list>
 				<sig-http-list></sig-http-list>
+				<sig-prefix-list tables="[[tables]]"></sig-prefix-list>
 			</iron-pages>
 			<app-drawer-layout>
 				<app-drawer
@@ -145,15 +148,53 @@
 							class="drawer-list"
 							role="navigation">
 						<paper-menu id="menu">
-							<paper-icon-item
-									id="pageProducts"
-									onclick="drawer.toggle()"
-									class="menuitem">
-								<iron-icon icon ="icons:store" item-icon></iron-icon>
-									<i18n-msg msgid="prod">
-										Products
-									</i18n-msg>
-							</paper-icon-item>
+							<paper-submenu>
+								<paper-icon-item
+										class="menu-trigger menuitem">
+									<iron-icon icon ="icons:store" item-icon></iron-icon>
+										<i18n-msg msgid="prod">
+											Products
+										</i18n-msg>
+								</paper-icon-item>
+								<paper-menu id="productMenu" class="menu-content sublist">
+									<paper-icon-item
+										id="pageOffer"
+										onclick="drawer.toggle()"
+										class="menuitem">
+											Offerings
+										<iron-icon icon ="maps:local-offer" item-icon></iron-icon>
+									</paper-icon-item>
+									<paper-icon-item
+										id="pagePrices"
+										onclick="drawer.toggle()"
+										class="menuitem" hidden>
+											Prices
+										<iron-icon icon ="editor:monetization-on" item-icon></iron-icon>
+									</paper-icon-item>
+									<paper-submenu>
+										<paper-icon-item
+												class="menu-trigger menuitem">
+											<iron-icon icon="icons:folder-open" item-icon></iron-icon>
+												<i18n-msg msgid="table">
+													Tables
+												</i18n-msg>
+										</paper-icon-item>
+										<paper-menu id="tableMenu" class="menu-content sublist">
+											<template is="dom-repeat" items="[[tables]]">
+												<paper-icon-item
+													id="pagePrefix"
+													onclick="drawer.toggle()"
+													class="menuitem">
+													<iron-icon icon ="icons:view-list" item-icon></iron-icon>
+														<paper-item>
+															{{item}}
+														</paper-item>
+												</paper-icon-item>
+											</template>
+										</paper-menu>
+									</paper-submenu>
+								</paper-menu>
+							</paper-submenu>
 							<paper-icon-item
 									id="pageSubscribers"
 									onclick="drawer.toggle()"
@@ -243,6 +284,7 @@
 		<sig-client-update></sig-client-update>
 		<sig-ipdr-log-files></sig-ipdr-log-files>
 		<sig-user-add></sig-user-add>
+		<sig-prefix-add></sig-prefix-add>
 		<sig-user-update></sig-user-update>
 		<sig-product-update id="updateProduct"></sig-product-update>
 	</template>
@@ -254,12 +296,20 @@
 		Polymer ({
 			is: 'sig-app',
 			behaviors: [i18nMsgBehavior],
+			properties: {
+				tables: {
+					type: Array,
+					value: function() {
+						return[];
+					}
+				},
+			},
 			listeners: {
 				'pageSelection.iron-select': 'loadElement'
 			},
 			loadElement: function(event) {
 				switch(event.detail.item.getAttribute('id')) {
-					case 'pageProducts':
+					case 'pageOffer':
 						this.$.loadPage.selected = 0;
 						this.$.logMenu.selected = null;
 						break;
@@ -288,6 +338,10 @@
 					case 'pageHTTP':
 						this.$.loadPage.selected = 7;
 						break;
+					case 'pagePrefix':
+                  this.$.loadPage.selected = 8;
+                  this.$.tableMenu.selected = null;
+                  break;
 				}
 			},
 			help: function(element) {
@@ -321,6 +375,9 @@
 					case 7:
 						document.getElementById('getHttp').generateRequest();
 						break;
+					case 8:
+                  document.getElementById('prefixGrid').generateRequest();
+                  break;
 				}
 			},
 			download: function() {
