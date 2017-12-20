@@ -16,6 +16,8 @@
 <link rel="import" href="paper-toggle-button/paper-toggle-button.html" >
 <link rel="import" href="paper-toast/paper-toast.html">
 <link rel="import" href="paper-styles/color.html">
+<link rel="import" href="paper-time-picker/paper-time-picker.html">
+<link rel="import" href="paper-icon-button/paper-icon-button.html">
 <link rel="import" href="paper-date-picker/paper-date-picker.html">
 
 <dom-module id="sig-product-update">
@@ -211,7 +213,7 @@
 								label="[[i18n.name]]"
 								on-value-changed="updatePriceDialog"
 								onclick="updatePriceName.value=null"
-								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.hide();">
+								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.hide(); updatePriceCharsTimeStart.hide(); updatePriceCharsTimeEnd.hide();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="updatePriceNameTool">
@@ -224,7 +226,7 @@
 								class="description"
 								name="description"
 								label="[[i18n.des]]"
-								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.hide();">
+								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.hide(); updatePriceCharsTimeStart.hide(); updatePriceCharsTimeEnd.hide();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="priceDesTool">
@@ -241,7 +243,7 @@
 								value="[[updateProductStartDatePrice]]"
 								name="updateProductStartDatePrice"
 								label="[[i18n.start]]"
-								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.show();">
+								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.show(); updatePriceCharsTimeStart.hide(); updatePriceCharsTimeEnd.hide();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="priceStartTool">
@@ -258,7 +260,7 @@
 								value="[[updateProductEndDatePrice]]"
 								name="updateProductEndDatePrice"
 								label="[[i18n.end]]"
-								onfocus="updateProductStartDatePickPrice.hide(); updateProductEndDatePickPrice.show();">
+								onfocus="updateProductStartDatePickPrice.hide(); updateProductEndDatePickPrice.show(); updatePriceCharsTimeStart.hide(); updatePriceCharsTimeEnd.hide();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="priceEndTool">
@@ -270,7 +272,7 @@
 						<paper-dropdown-menu id="updatePriceTypedrop"
 								label="[[i18n.priceType]]"
 								on-selected-item-changed="checkRecure"
-								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.hide();">
+								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.hide(); updatePriceCharsTimeStart.hide(); updatePriceCharsTimeEnd.hide();">
 							<paper-listbox
 									id="updatePriceType"
 									slot="dropdown-content"
@@ -300,7 +302,7 @@
 								pattern="^[0-9]+[kmg]?$"
 								label="[[i18n.unitSize]]"
 								auto-validate
-								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.hide();">
+								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.hide(); updatePriceCharsTimeStart.hide(); updatePriceCharsTimeEnd.hide();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="priceSizeTool">
@@ -312,7 +314,7 @@
 						<paper-dropdown-menu id="updatePriceUnitsdrop"
 								label="[[i18n.unit]]"
 								on-selected-item-changed="checkPattern"
-								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.hide();">
+								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.hide(); updatePriceCharsTimeStart.hide(); updatePriceCharsTimeEnd.hide();">
 							<paper-listbox
 									id="updatePriceUnits"
 									slot="dropdown-content"
@@ -347,7 +349,7 @@
 								type="number"
 								label="[[i18n.amount]]"
 								value=0
-								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.hide();">
+								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.hide(); updatePriceCharsTimeStart.hide(); updatePriceCharsTimeEnd.hide();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="priceAmountTool">
@@ -360,7 +362,7 @@
 								class="currency"
 								name="currency"
 								label="[[i18n.currency]]"
-								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.hide();">
+								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.hide(); updatePriceCharsTimeStart.hide(); updatePriceCharsTimeEnd.hide();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="priceCurrencyTool">
@@ -371,7 +373,7 @@
 					<div>
 						<paper-dropdown-menu id="updatePricePerioddrop"
 								label="[[i18n.period]]"
-								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.hide();">
+								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.hide(); updatePriceCharsTimeStart.hide(); updatePriceCharsTimeEnd.hide();">
 							<paper-listbox
 									id="updatePricePeriod"
 									slot="dropdown-content"
@@ -404,7 +406,7 @@
 						<paper-dropdown-menu
 								id="addUpdatePriceDrop"
 								label="[[i18n.alter]]"
-								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.hide();">
+								onfocus="updateProductEndDatePickPrice.hide(); updateProductStartDatePickPrice.hide(); updatePriceCharsTimeStart.hide(); updatePriceCharsTimeEnd.hide();">
 							<paper-listbox
 									id="addUpdatePriceAlteration"
 									slot="dropdown-content"
@@ -437,7 +439,8 @@
 									id="updateAddPriceCharReserveTime"
 									type="number"
 									label="[[i18n.reserveTime]]"
-									value=0>
+									value=0
+									onfocus="updatePriceCharsTimeStart.hide(); updatePriceCharsTimeEnd.hide();">
 							</paper-input>
 							<paper-tooltip>
 								<i18n-msg msgid="priceReserveTimeTool">
@@ -450,7 +453,8 @@
 									id="updateAddPriceCharReserveBytes"
 									type="number"
 									label="[[i18n.reserveBytes]]"
-									value=0>
+									value=0
+									onfocus="updatePriceCharsTimeStart.hide(); updatePriceCharsTimeEnd.hide();">
 							</paper-input>
 							<paper-tooltip>
 								<i18n-msg msgid="updatePriceReserveBytesTool">
@@ -459,22 +463,58 @@
 							</paper-tooltip>
 						</div>
 						<div>
-							<paper-input
-									id="updateTimeOfDay"
-									type="string"
-									label="[[i18n.timeDay]]">
-							</paper-input>
-							<paper-tooltip>
-								<i18n-msg msgid="timeDayTool">
-									Time of day range
-								</i18n-msg>
-							</paper-tooltip>
+							<span>Time of Day Range</span>
+							<paper-icon-button
+								id="updateOnClickCharsTime"
+								suffix
+								icon="arrow-drop-down"
+								on-click="_updateOnClickCharsTime">
+							</paper-icon-button>
 						</div>
+						<iron-collapse id="updatePriceCharsTime">
+							<div>
+								<iron-collapse id="updatePriceCharsTimeStart">
+									<paper-time-picker id="updateTimePickerStart" time="{{startTimeUpdate}}">
+									</paper-time-picker>
+								</iron-collapse>
+								<paper-input
+										id="updateTimeOfDayStart"
+										value="[[startTimeUpdate]]"
+										name="updateProductTimePriceStart"
+										label="Start Time"
+										onfocus="updatePriceCharsTimeStart.show(); updatePriceCharsTimeEnd.hide();">
+								</paper-input>
+								<paper-tooltip>
+									<i18n-msg msgid="timeDayTool">
+										Time of day range
+									</i18n-msg>
+								</paper-tooltip>
+							</div>
+							<div>
+								<iron-collapse id="updatePriceCharsTimeEnd">
+									<paper-time-picker id="updateTimePickerEnd" time="{{endTimeUpdate}}">
+									</paper-time-picker>
+								</iron-collapse>
+								<paper-input
+										id="updateTimeOfDayEnd"
+										value="[[endTimeUpdate]]"
+										name="updateProductTimePriceEnd"
+										label="End Time"
+										onfocus="updatePriceCharsTimeEnd.show(); updatePriceCharsTimeStart.hide();">
+								</paper-input>
+								<paper-tooltip>
+									<i18n-msg msgid="timeDayTool">
+										Time of day range
+									</i18n-msg>
+								</paper-tooltip>
+							</div>
+						</iron-collapse>
 						<div>
 							<paper-input
 									id="updateRatedPrice"
 									type="string"
-									label="[[i18n.ratedPrice]]">
+									label="[[i18n.ratedPrice]]"
+									onfocus="updatePriceCharsTimeStart.hide(); updatePriceCharsTimeEnd.hide();">
 							</paper-input>
 							<paper-tooltip>
 								<i18n-msg msgid="ratePriceiTool">
@@ -992,6 +1032,15 @@
 					this.$.updateOnClickChars.icon="arrow-drop-down"
 				}
 			},
+			_updateOnClickCharsTime: function() {
+				if(this.$.updatePriceCharsTime.opened == false) {
+					this.$.updatePriceCharsTime.show();
+					this.$.updateOnClickCharsTime.icon="arrow-drop-up"
+				} else {
+					this.$.updatePriceCharsTime.hide();	
+					this.$.updateOnClickCharsTime.icon="arrow-drop-down"
+				}
+			},
 			updatePriceDialog: function() {
 				function checkUpdatePriceName(updatePrice) {
 					return updatePrice.name == document.getElementById("updatePriceName").value;
@@ -1019,7 +1068,8 @@
 						this.$.updateAddPriceCharReserveBytes.value = null;
 						this.$.updateDestPrefixPrice.value = null;
 						this.$.updateDestPrefixTariff.value = null;
-						this.$.updateTimeOfDay.value = null;
+						this.$.updateTimeOfDayStart.value = null;
+						this.$.updateTimeOfDayEnd.value = null;
 						this.$.updateRatedPrice.value = null;
 						this.$.addUpdatePriceAlteration.selected = null;
 					} else {
@@ -1089,7 +1139,8 @@
 									this.$.updateAddPriceCharReserveBytes.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
 								}
 								if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "timeOfDayRange") {
-									this.$.updateTimeOfDay.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
+									this.$.updateTimeOfDayStart.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
+									this.$.updateTimeOfDayEnd.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
 								}
 								if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "ratePrice") {
 									this.$.updateRatedPrice.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
@@ -1345,7 +1396,7 @@
 					charResBytes.value = this.$.updateAddPriceCharReserveBytes.value;
 					updatePriceNew.push(charResBytes);
 				}
-				if(this.$.updateTimeOfDay.value) {
+				if(this.$.updateTimeOfDayStart.value) {
 					function checkChar1(charVal) {
 						return charVal.name == "timeOfDayRange";
 					}
@@ -1353,8 +1404,19 @@
 					var timeDay = new Object();
 					timeDay.op = "add";
 					timeDay.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value";
-					timeDay.value = this.$.updateTimeOfDay.value;
+					timeDay.value = this.$.updateTimePickerStart.rawValue;
 					updatePriceNew.push(timeDay);
+				}
+				if(this.$.updateTimeOfDayEnd.value) {
+					function checkChar1(charVal) {
+						return charVal.name == "timeOfDayRange";
+					}
+					var indexChar2 = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
+					var timeDayEnd = new Object();
+					timeDayEnd.op = "add";
+					timeDayEnd.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value";
+					timeDayEnd.value = this.$.updateTimePickerEnd.rawValue;
+					updatePriceNew.push(timeDayEnd);
 				}
 				if(this.$.updateRatedPrice.value) {
 					function checkChar1(charVal) {
@@ -1571,7 +1633,8 @@
 				var charAddObj = new Object();
 				charAddObj.priceCharReserveTime = this.$.updateAddPriceCharReserveTime.value;
 				charAddObj.priceCharReserveBytes = this.$.updateAddPriceCharReserveBytes.value;
-				charAddObj.timeOfDay = this.$.updateTimeOfDay.value;
+				charAddObj.timeOfDayStart = this.$.updateTimeOfDayStart.value;
+				charAddObj.timeOfDayEnd = this.$.updateTimeOfDayEnd.value;
 				charAddObj.ratePrice = this.$.updateRatedPrice.value;
 				updatePriceNew.prodSpecCharValueUse = charAddObj;
 				if(this.$.addUpdatePriceDrop.value) {
@@ -1654,12 +1717,27 @@
 						charResBytes.value = this.$.updateAddPriceCharReserveBytes.value;
 						updatePriceNew.push(charResBytes);
 					}
-					if(this.$.updateTimeOfDay.value) {
+					if(this.$.updateTimeOfDayStart.value) {
+						function checkChar1(charVal) {
+							return charVal.name == "timeOfDayRange";
+						}
+						var indexChar2 = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
 						var timeDay = new Object();
 						timeDay.op = "add";
-						timeDay.path = "/productOfferingPrice/" + indexPrices + "/timeOfDayRange";
-						timeDay.value = this.$.updateTimeOfDay.value;
+						timeDay.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value";
+						timeDay.value = this.$.updateTimePickerStart.rawValue;
 						updatePriceNew.push(timeDay);
+					}
+					if(this.$.updateTimeOfDayEnd.value) {
+						function checkChar1(charVal) {
+							return charVal.name == "timeOfDayRange";
+						}
+						var indexChar2 = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
+						var timeDayEnd = new Object();
+						timeDayEnd.op = "add";
+						timeDayEnd.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value";
+						timeDayEnd.value = this.$.updateTimePickerEnd.rawValue;
+						updatePriceNew.push(timeDayEnd);
 					}
 					if(this.$.updateRatedPrice.value) {
 						var priceRate = new Object();
@@ -1682,7 +1760,8 @@
 					this.$.updateAddPriceCharReserveBytes.value = null;
 					this.$.updateDestPrefixPrice.value = null;
 					this.$.updateDestPrefixTariff.value = null;
-					this.$.updateTimeOfDay.value = null;
+					this.$.updateTimeOfDayStart.value = null;
+					this.$.updateTimeOfDayEnd.value = null;
 					this.$.updateRatedPrice.value = null;
 					this.$.addUpdatePriceAlteration.selected = null;
 					document.getElementById("updateProductToastSuccess").open();
@@ -1815,6 +1894,9 @@
 				this.$.updateProductEndDatePickPrice.hide();
 				this.$.updateProductStartDatePickAlt.hide();
 				this.$.updateProductEndDatePickAlt.hide();
+				this.$.updatePriceCharsTimeStart.hide();
+				this.$.updatePriceCharsTimeEnd.hide();
+				this.$.updateAddPriceChars.hide();
 				this.$.updatePriceName.value = null;
 				this.$.updatePriceDesc.value = null;
 				this.$.updatePriceStartDate.value = null;
@@ -1840,7 +1922,8 @@
 				this.$.updateAddPriceCharReserveBytes.value = null;
 				this.$.updateDestPrefixPrice.value = null;
 				this.$.updateDestPrefixTariff.value = null;
-				this.$.updateTimeOfDay.value = null;
+				this.$.updateTimeOfDayStart.value = null;
+				this.$.updateTimeOfDayEnd.value = null;
 				this.$.updateRatedPrice.value = null;
 				this.$.updateProductModal.close();
 			}
