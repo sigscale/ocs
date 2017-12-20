@@ -102,7 +102,8 @@
 		auth_req_type :: undefined | integer(),
 		origin_host :: undefined | binary(),
 		origin_realm :: undefined | binary(),
-		port_server :: undefined | pid()}).
+		port_server :: undefined | pid(),
+		password_required :: boolean()}).
 
 -type statedata() :: #statedata{}.
 
@@ -133,7 +134,7 @@
 %% @private
 %%
 init([Sup, radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
-		RadiusFsm, Secret, SessionID, AccessRequest] = _Args) ->
+		RadiusFsm, Secret, PasswordReq, SessionID, AccessRequest] = _Args) ->
 	{ok, TLSkey} = application:get_env(ocs, tls_key),
 	{ok, TLScert} = application:get_env(ocs, tls_cert),
 	{ok, TLScacert} = application:get_env(ocs, tls_cacert),
@@ -143,12 +144,12 @@ init([Sup, radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
 			client_port = ClientPort, radius_fsm = RadiusFsm, secret = Secret,
 			session_id = SessionID, server_id = list_to_binary(Hostname),
 			start = AccessRequest, tls_key = TLSkey, tls_cert = TLScert,
-			tls_cacert = TLScacert},
+			tls_cacert = TLScacert, password_required = PasswordReq},
 	process_flag(trap_exit, true),
 	{ok, ssl_start, StateData, 0};
 init([Sup, diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
-		SessionID, AppId, ReqType, OHost, ORealm, _DHost, _DRealm, DiameterRequest,
-		_Options] = _Args) ->
+		PasswordReq, SessionID, AppId, ReqType, OHost, ORealm, _DHost, _DRealm,
+		DiameterRequest, _Options] = _Args) ->
 	{ok, TLSkey} = application:get_env(ocs, tls_key),
 	{ok, TLScert} = application:get_env(ocs, tls_cert),
 	{ok, TLScacert} = application:get_env(ocs, tls_cacert),
@@ -163,7 +164,8 @@ init([Sup, diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 					server_id = list_to_binary(Hostname), start = DiameterRequest,
 					tls_key = TLSkey, tls_cert = TLScert, tls_cacert = TLScacert,
 					app_id = AppId, auth_req_type = ReqType, origin_host = OHost,
-					origin_realm = ORealm, port_server = PortServer},
+					origin_realm = ORealm, port_server = PortServer,
+					password_required = PasswordReq},
 			process_flag(trap_exit, true),
 			{ok, ssl_start, StateData, 0}
 	end.

@@ -103,13 +103,13 @@ init_per_testcase(TestCase, Config) when
 	ProdID = ?config(product_id, Config),
 	{ok, EnvList} = application:get_env(ocs, diameter),
 	{acct, [{Address, _Port, _Options } | _]} = lists:keyfind(acct, 1, EnvList),
-	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined),
+	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	Buckets = [#bucket{units = cents, remain_amount = 2290}],
 	{ok, _} = ocs:add_subscriber(UserName, Password, ProdID, [], Buckets, []),
 	[{username, UserName}, {password, Password}] ++ Config;
 init_per_testcase(_TestCase, Config) ->
 	SharedSecret = ct:get_config(radius_shared_secret),
-	{ok, _} = ocs:add_client({127, 0, 0, 1}, 3799, radius, SharedSecret),
+	{ok, _} = ocs:add_client({127, 0, 0, 1}, 3799, radius, SharedSecret, true),
 	Config.
 
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().

@@ -158,13 +158,14 @@ handle_request(#diameter_packet{errors = [ResultCode | _]}, _, _) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec send_to_port_server(Svc, Caps, ClientAddress, ClientPort,
-		Request) -> Action
+-spec send_to_port_server(Svc, Caps, ClientAddress,
+		ClientPort, PasswordReq, Request) -> Action
 	when
 		Svc :: atom(),
 		Caps :: capabilities(),
 		ClientAddress :: inet:ip_address(),
 		ClientPort :: inet:port_number(),
+		PasswordReq :: boolean(),
 		Request :: message(),
 		Action :: Reply | {relay, [Opt]} | discard
 			| {eval|eval_packet, Action, PostF},
@@ -176,7 +177,7 @@ handle_request(#diameter_packet{errors = [ResultCode | _]}, _, _) ->
 %% @doc Locate ocs_diameter_auth_port_server process and send it
 %% peer's capabilities and diameter request.
 %% @hidden 
-send_to_port_server(Svc, Caps, CAddress, CPort, Request) ->
+send_to_port_server(Svc, Caps, CAddress, CPort, PasswordReq, Request) ->
 	[Info] = diameter:service_info(Svc, transport),
 	case lists:keyfind(options, 1, Info) of
 		{options, Options} ->
@@ -187,7 +188,7 @@ send_to_port_server(Svc, Caps, CAddress, CPort, Request) ->
 							discard;
 						PortServer ->
 							Answer = gen_server:call(PortServer,
-									{diameter_request, Caps, CAddress, CPort, Request, none}),
+									{diameter_request, Caps, CAddress, CPort, PasswordReq, Request, none}),
 							{reply, Answer}
 					end;
 				false ->
@@ -217,8 +218,9 @@ is_client_authorized(SvcName, Caps, Req) ->
 		HostIPAddresses = Caps#diameter_caps.host_ip_address,
 		{ClientIPs, _} = HostIPAddresses,
 		[HostIpAddress | _] = ClientIPs,
-		{ok, #client{protocol = diameter, port = Port}} = ocs:find_client(HostIpAddress),
-		send_to_port_server(SvcName, Caps, HostIpAddress, Port, Req)
+		{ok, #client{protocol = diameter, port = Port,
+			password_required = PasswordReq}} = ocs:find_client(HostIpAddress),
+		send_to_port_server(SvcName, Caps, HostIpAddress, Port, PasswordReq, Req)
 	catch
 		_ : _ ->
 			send_error(Caps, Req, ?'DIAMETER_BASE_RESULT-CODE_UNKNOWN_PEER')

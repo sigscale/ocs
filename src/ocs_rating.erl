@@ -75,12 +75,14 @@ rate(Protocol, SubscriberID, Destination, Flag, DebitAmounts, ReserveAmounts, Se
 		is_list(DebitAmounts), is_list(ReserveAmounts), length(SessionAttributes) > 0 ->
 	F = fun() ->
 			case mnesia:read(subscriber, SubscriberID, write) of
-				[#subscriber{product = #product_instance{product = ProdID,
+				[#subscriber{buckets = Buckets, product =
+						#product_instance{product = ProdID,
 						characteristics = Chars}} = Subscriber] ->
 					case mnesia:read(product, ProdID, read) of
 						[#product{} = Product] ->
 							Validity = proplists:get_value(validity, Chars),
-							rate1(Protocol, Subscriber, Destination, Product, Validity, Flag,
+							Subscriber1 = Subscriber#subscriber{buckets = due(Buckets)},
+							rate1(Protocol, Subscriber1, Destination, Product, Validity, Flag,
 									DebitAmounts, ReserveAmounts, SessionAttributes);
 						[] ->
 							throw(product_not_found)
@@ -270,9 +272,11 @@ rate5(#subscriber{enabled = false, buckets = Buckets1} = Subscriber,
 							DebitAmount, DebitAmount + UnitCharge,
 							0, 0, SessionAttributes);
 				{PriceCharged, 0, Buckets3} ->
-					rate6(Subscriber#subscriber{buckets = refund(SessionId, Buckets3)}, interim,
-							DebitAmount, UnitsCharged + (PriceCharged div UnitPrice),
-							0, 0, SessionAttributes)
+					Bucket4 = [#bucket{remain_amount = PriceCharged - PriceCharge,
+							units = cents} | refund(SessionId, Buckets3)],
+					rate6(Subscriber#subscriber{buckets = Bucket4}, interim, DebitAmount,
+							UnitsCharged + (PriceCharged div UnitPrice), 0, 0,
+							SessionAttributes)
 			end
 	end;
 rate5(#subscriber{buckets = Buckets1} = Subscriber,
@@ -317,7 +321,9 @@ rate5(#subscriber{buckets = Buckets1} = Subscriber,
 							DebitAmount, UnitsCharged + UnitCharge, ReserveAmount,
 							PriceReserved div UnitPrice, SessionAttributes);
 				{PriceCharged, 0, Buckets3} ->
-					rate6(Subscriber#subscriber{buckets = Buckets3}, interim,
+					Buckets4 = [#bucket{remain_amount = PriceCharged - PriceCharge,
+							units = cents} | refund(SessionId, Buckets3)],
+					rate6(Subscriber#subscriber{buckets = Buckets4}, interim,
 							DebitAmount, UnitsCharged + (PriceCharged div UnitPrice),
 							ReserveAmount, 0, SessionAttributes)
 			end
@@ -340,7 +346,9 @@ rate5(#subscriber{buckets = Buckets1} = Subscriber,
 							DebitAmount, UnitsCharged + UnitCharge,
 							0, 0, SessionAttributes);
 				{PriceCharged, Buckets3} ->
-					rate6(Subscriber#subscriber{buckets = Buckets3}, final,
+					Buckets4 = [#bucket{remain_amount = PriceCharged - PriceCharge,
+							units = cents} | refund(SessionId, Buckets3)],
+					rate6(Subscriber#subscriber{buckets = Buckets4}, final,
 					DebitAmount, UnitsCharged + (PriceCharged div UnitPrice),
 					0, 0, SessionAttributes)
 			end
@@ -836,3 +844,38 @@ refund(SessionId, Bucket1, [], T, Acc1, Acc2) ->
 	Bucket2 = Bucket1#bucket{reservations = lists:reverse(Acc1)},
 	refund(SessionId, T, [Bucket2 | Acc2]).
 
+-spec due(Buckets) -> Buckets
+	when
+		Buckets :: [#bucket{}].
+%% @doc Claim if any dues
+%% @hidden
+due(Buckets) ->
+	F = fun(#bucket{remain_amount = R}) when R =< 0 ->
+			true;
+	(_) ->
+			false
+	end,
+	{B1, B2} = lists:splitwith(F, Buckets),
+	due1(B1, B2).
+%% @hidden
+due1([H | T], B2) ->
+	due1(T, due2(H, B2));
+due1([], B2) ->
+	B2.
+%% @hidden
+due2(B1, B2) ->
+	due2(B1, B2, []).
+%% @hidden
+due2(#bucket{units = Units, remain_amount = R1} = B1,
+		[#bucket{units = Units, remain_amount = R2}
+		| T], Acc) when R1 < 0, R1 + R2 < 0 ->
+	due2(B1#bucket{remain_amount = R1 + R2}, T, Acc);
+due2(#bucket{units = Units, remain_amount = R1},
+		[#bucket{units = Units, remain_amount = R2} = B2
+		| T], Acc) when R1 < 0, R1 + R2 >= 0 ->
+	NewAcc = [B2#bucket{remain_amount = R1 + R2} | Acc],
+	lists:reverse(NewAcc) ++ T;
+due2(#bucket{} = B, [H | T], Acc) ->
+	due2(B, T, [H | Acc]);
+due2(#bucket{} = B, [], Acc) ->
+	lists:reverse([B | Acc]).
