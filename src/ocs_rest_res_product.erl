@@ -1,4 +1,4 @@
-%%% ocs_rest_res_product.erl
+%% ocs_rest_res_product.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2017 SigScale Global Inc.
@@ -876,6 +876,10 @@ offer([specification | T],
 	Name = proplists:get_value("name", L),
 	Spec = {struct, [{"id", Id}, {"href", Href}, {"name", Name}]},
 	offer(T, P, [{"productSpecification", Spec} | Acc]);
+offer([bundle | T],
+		#product{bundle = Bundle} = P, Acc) when length(Bundle) > 0 ->
+	Array = [bundled_pop(B) || B <- Bundle],
+	offer(T, P, [{"bundledProductOffering", {array, Array}} | Acc]);
 offer([status | T], #product{status = Status} = P, Acc)
 		when Status /= undefined ->
 	StatusString = offer_status(Status),
@@ -947,6 +951,10 @@ offer([{"productSpecification", {struct, L}} | T], Acc) when is_list(L) ->
 			Acc
 	end,
 	offer(T, Acc1);
+offer([{"bundledProductOffering", {array, Array}} | T], Acc)
+		when is_list(Array) ->
+	Bundle = [bundled_pop(B) || B <- Array],
+	offer(T, Acc#product{bundle = Bundle});
 offer([{"isCustomerVisible", Visible} | T], Acc) when is_boolean(Visible) ->
 	offer(T, Acc);
 offer([{"productOfferingPrice", {array, Prices1}} | T], Acc) when is_list(Prices1) ->
@@ -957,6 +965,67 @@ offer([{"prodSpecCharValueUse", {array, _} = CharValueUses} | T], Acc) ->
 offer([{"lastUpdate", LastUpdate} | T], Acc) when is_list(LastUpdate) ->
 	offer(T, Acc);
 offer([], Acc) ->
+	Acc.
+
+-spec bundled_pop(Bundled) -> Bundled
+	when
+		Bundled :: #bundled_pop{} | {struct, list()}.
+bundled_pop(#bundled_pop{} = B) ->
+	bundled_pop(record_info(fields, bundled_pop), B, []);
+bundled_pop({struct, ObjectMembers}) when is_list(ObjectMembers) ->
+	bundled_pop(ObjectMembers, #bundled_pop{}).
+%% @hidden
+bundled_pop([name | T], #bundled_pop{name = Name} = B, Acc)
+		when is_list(Name) ->
+	Header = [{"href", ?offeringPath ++ Name}, {"name", Name}, {"id", Name}],
+	bundled_pop(T, B, Header ++ Acc);
+bundled_pop([status | T], #bundled_pop{status = Status} = B, Acc) ->
+	bundled_pop(T, B, [{"lifecycleStatus", offer_status(Status)} | Acc]);
+bundled_pop([default | T], #bundled_pop{default = undefined,
+		lower_limit = undefined, upper_limit = undefined} = B, Acc) ->
+	bundled_pop(T, B, Acc);
+bundled_pop([default | T], #bundled_pop{default= N1,
+		upper_limit = N2, lower_limit = N3} = B, Acc) ->
+	O1 = case N1 of
+		undefined ->
+			[];
+		N1 when is_integer(N1) ->
+			[{"numberRelOfferDefault", N1}]
+	end,
+	O2 = case N2 of
+		undefined ->
+			O1;
+		N2 when is_integer(N2) ->
+			[{"numberRelOfferUpperLimit", N2} | O1]
+	end,
+	O3 = case N3 of
+		undefined ->
+			O2;
+		N3 when is_integer(N3) ->
+			[{"numberRelOfferLowerLimit", N3} | O2]
+	end,
+	bundled_pop(T, B, [{"bundledProductOfferingOption", {struct, O3}} | Acc]);
+bundled_pop([_H | T], B, Acc) ->
+	bundled_pop(T, B, Acc);
+bundled_pop([], _, Acc) ->
+	{struct, lists:reverse(Acc)}.
+%% @hidden
+bundled_pop([{"name", Name} | T], Acc) when is_list(Name) ->
+	bundled_pop(T, Acc#bundled_pop{name = Name});
+bundled_pop([{"lifecycleStatus", Status} | T], Acc)
+		when is_list(Status) ->
+	bundled_pop(T, Acc#bundled_pop{status = offer_status(Status)});
+bundled_pop([{"bundledProductOfferingOption", {struct, L}} | T], Acc)
+		when is_list(L) ->
+	LowerLimit = proplists:get_value("numberRelOfferLowerLimit", L),
+	UpperLimit = proplists:get_value("numberRelOfferUpperLimit", L),
+	Default = proplists:get_value("numberRelOfferDefault", L),
+	NewAcc = Acc#bundled_pop{lower_limit = LowerLimit,
+			upper_limit = UpperLimit, default = Default},
+	bundled_pop(T, NewAcc);
+bundled_pop([_H | T], Acc) ->
+	bundled_pop(T, Acc);
+bundled_pop([], Acc) ->
 	Acc.
 
 -spec price(Price) -> Price

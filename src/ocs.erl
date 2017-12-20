@@ -765,7 +765,9 @@ add_product(#product{price = Prices} = Product) when length(Prices) > 0 ->
 			add_product1(Product);
 		false ->
 			{error, validation_failed}
-	end.
+	end;
+add_product(#product{is_bundle = true} = Product) ->
+	add_product1(Product).
 %% @hidden
 add_product1(Product) ->
 	Fadd = fun() ->

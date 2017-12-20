@@ -88,6 +88,13 @@
 		char_value_use = [] :: [#char_value_use{}],
 		alteration :: #alteration{} | undefined}).
 
+-record(bundled_pop,
+		{name :: string() | undefined,
+		status :: offer_status() | undefined,
+		lower_limit :: non_neg_integer() | undefined,
+		upper_limit :: non_neg_integer() | undefined,
+		default :: non_neg_integer() | undefined}).
+
 -record(product,
 		{name :: '_' | string() | undefined,
 		description :: '_' | string() | undefined,
@@ -96,6 +103,7 @@
 		is_bundle = false :: '_' | boolean() | undefined,
 		status :: offer_status() | '_' | undefined,
 		specification :: '_' | string() | undefined,
+		bundle = [] :: '_' | [#bundled_pop{}],
 		price :: '_' | [#price{}] | undefined,
 		char_value_use = [] :: '_' | [#char_value_use{}],
 		last_modified :: tuple() | '_' | undefined}).
