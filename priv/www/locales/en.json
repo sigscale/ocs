@@ -716,7 +716,7 @@
     "message": "Validation Failed"
   },
 	"octets": {
-    "description": "unit types",
+    "description": "Unit types",
     "message": "Octets"
   },
 	"priceTable": {
@@ -728,11 +728,11 @@
     "message": "Prefix Tariff Table"
   },
 	"timeDay": {
-    "description": "time day range",
+    "description": "Time day range",
     "message": "Time Of Day Range"
   },
 	"ratePrice": {
-    "description": "rate Price",
+    "description": "Rate Price",
     "message": "Rated Price"
   },
 	"priceTableTool": {
@@ -744,12 +744,40 @@
     "message": "Prefix of Destination Tarrif Table"
   },
 	"timeDayTool": {
-    "description": "time day range tooltip",
+    "description": "Time day range tooltip",
     "message": "Time Of Day Range"
   },
 	"ratedPrice": {
-    "description": "rate Price tooltip",
+    "description": "Rate Price tooltip",
     "message": "Price name in table"
+  },
+	"table": {
+    "description": "Prefix table",
+    "message": "Tables"
+  },
+	"prefix": {
+    "description": "Prefix table",
+    "message": "Prefix"
+  },
+	"priceName": {
+    "description": "Name of table",
+    "message": "Price Name"
+  },
+	"addPrefix": {
+    "description": "Add prefix toolbar heading",
+    "message": "Add Prefix"
+  },
+	"updatePrefix": {
+    "description": "Update prefix toolbar heading",
+    "message": "Update Prefix"
+  },
+	"startTime": {
+    "description": "Time of Day Range start time",
+    "message": "Start Time"
+  },
+	"endTime": {
+    "description": "Time of Day Range end time",
+    "message": "End Time"
   },
    "productDeleted": {
     "description": "Success Toast Message",
