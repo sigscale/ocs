@@ -96,6 +96,8 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 							check_content_type_header(Headers, Method, ocs_rest_res_product, Data);
 						["catalogManagement", "v2", "productSpecification" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_product, Data);
+						["catalogManagement", "v2", "plaSpecification" | _] ->
+							check_content_type_header(Headers, Method, ocs_rest_res_product, Data);
 						["productInventoryManagement", "v2", "product" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_product, Data);
 						_ ->
