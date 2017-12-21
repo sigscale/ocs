@@ -336,10 +336,12 @@ get_product_spec(_Id, _Query) ->
 %% 	Retrieve all product specifications.
 get_product_specs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
-	Object = {array, [spec_product_network(),
-					spec_product_fixed_quantity_pkg(),
-					spec_product_rated_plan(),
-					spec_product_wlan()]},
+	Object = {array, [spec_prod_network(),
+					spec_prod_fixed_quantity_pkg(),
+					spec_prod_rated_plan(),
+					spec_prod_data(), spec_prod_voice(),
+					spec_prod_prepaid(), spec_prod_postpaid(),
+					spec_prod_prepaid_data(), spec_prod_prepaid_voice()]},
 	Body = mochijson:encode(Object),
 	{ok, Headers, Body};
 get_product_specs(_Query) ->
@@ -548,13 +550,23 @@ delete_product_inventory(Id) ->
 		Result :: {struct, [tuple()]} | {error, 404}.
 %% @doc Get Product Specification by ID.
 product_spec("1") ->
-	spec_product_network();
+	spec_prod_network();
 product_spec("2") ->
-	spec_product_fixed_quantity_pkg();
+	spec_prod_fixed_quantity_pkg();
 product_spec("3") ->
-	spec_product_rated_plan();
+	spec_prod_rated_plan();
 product_spec("4") ->
-	spec_product_wlan();
+	spec_prod_data();
+product_spec("5") ->
+	spec_prod_voice();
+product_spec("6") ->
+	spec_prod_prepaid();
+product_spec("7") ->
+	spec_prod_postpaid();
+product_spec("8") ->
+	spec_prod_prepaid_data();
+product_spec("9") ->
+	spec_prod_prepaid_voice();
 product_spec(_) ->
 	{error, 404}.
 
@@ -583,7 +595,7 @@ prepaid_category() ->
 	{struct, [Id, Href, Name, Description, Version, Status, LastUpdate, IsRoot]}.
 
 %% @hidden
-spec_product_network() ->
+spec_prod_network() ->
 	Id = {"id", "1"},
 	Href = {"href", ?productSpecPath "1"},
 	Name = {"name", "NetworkProductSpec"},
@@ -591,10 +603,11 @@ spec_product_network() ->
 	Version = {"version", "1.0"},
 	LastUpdate = {"lastUpdate", "2017-10-06T12:00:00Z"},
 	Status = {"lifecycleStatus", "Active"},
-	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status]}.
+	Chars = {"productSpecCharacteristic", {array, characteristic_product_network()}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
 
 %% @hidden
-spec_product_fixed_quantity_pkg() ->
+spec_prod_fixed_quantity_pkg() ->
 	Id = {"id", "2"},
 	Href = {"href", ?productSpecPath "2"},
 	Name = {"name", "FixedQuantityPackageProductSpec"},
@@ -605,7 +618,7 @@ spec_product_fixed_quantity_pkg() ->
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status]}.
 
 %% @hidden
-spec_product_rated_plan() ->
+spec_prod_rated_plan() ->
 	Id = {"id", "3"},
 	Href = {"href", ?productSpecPath "3"},
 	Name = {"name", "RatedPlanProductSpec"},
@@ -617,11 +630,11 @@ spec_product_rated_plan() ->
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
 
 %% @hidden
-spec_product_wlan() ->
+spec_prod_data() ->
 	Id = {"id", "4"},
 	Href = {"href", ?productSpecPath "4"},
-	Name = {"name", "WLANProductSpec"},
-	Description = {"description", "Defines characteristics specific to pulic Wi-Fi use."},
+	Name = {"name", "DataProductSpec"},
+	Description = {"description", "Defines characteristics specific to data service."},
 	Version = {"version", "1.0"},
 	LastUpdate = {"lastUpdate", "2017-11-14T12:00:00Z"},
 	Status = {"lifecycleStatus", "Active"},
@@ -630,11 +643,91 @@ spec_product_wlan() ->
 	DepHref = {"href", ?productSpecPath "1"},
 	Depend = {struct, [DepId, DepHref, DepType]},
 	Dependency = {"productSpecificationRelationship", {array, [Depend]}},
-	Chars = {"productSpecCharacteristic", {array, characteristic_product_wlan()}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Dependency]}.
+
+%% @hidden
+spec_prod_voice() ->
+	Id = {"id", "5"},
+	Href = {"href", ?productSpecPath "5"},
+	Name = {"name", "VoiceProductSpec"},
+	Description = {"description", "Defines characteristics specific to voice calling."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2017-12-21T12:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	DepType = {"type", "dependency"},
+	DepId1 = {"id", "1"},
+	DepHref1 = {"href", ?productSpecPath "1"},
+	Depend1 = {struct, [DepId1, DepHref1, DepType]},
+	DepId2 = {"id", "3"},
+	DepHref2 = {"href", ?productSpecPath "3"},
+	Depend2 = {struct, [DepId2, DepHref2, DepType]},
+	Dependency = {"productSpecificationRelationship", {array, [Depend1, Depend2]}},
+	Chars = {"productSpecCharacteristic", {array, characteristic_product_voice()}},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars, Dependency]}.
 
 %% @hidden
-characteristic_product_wlan() ->
+spec_prod_prepaid() ->
+	Id = {"id", "6"},
+	Href = {"href", ?productSpecPath "6"},
+	Name = {"name", "PrepaidProductSpec"},
+	Description = {"description", "Defines characteristics specific to prepaid charging."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2017-12-21T12:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	Chars = {"productSpecCharacteristic", {array, characteristic_product_prepaid()}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
+
+%% @hidden
+spec_prod_postpaid() ->
+	Id = {"id", "7"},
+	Href = {"href", ?productSpecPath "7"},
+	Name = {"name", "PostpaidProductSpec"},
+	Description = {"description", "Defines characteristics specific to postpaid charging."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2017-12-21T12:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status]}.
+
+%% @hidden
+spec_prod_prepaid_data() ->
+	Id = {"id", "8"},
+	Href = {"href", ?productSpecPath "8"},
+	Name = {"name", "PrepaidDataProductSpec"},
+	Description = {"description", "Defines characteristics specific to prepaid data."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2017-12-21T12:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	DepType = {"type", "dependency"},
+	DepId1 = {"id", "4"},
+	DepHref1 = {"href", ?productSpecPath "4"},
+	Depend1 = {struct, [DepId1, DepHref1, DepType]},
+	DepId2 = {"id", "6"},
+	DepHref2 = {"href", ?productSpecPath "6"},
+	Depend2 = {struct, [DepId2, DepHref2, DepType]},
+	Dependency = {"productSpecificationRelationship", {array, [Depend1, Depend2]}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Dependency]}.
+
+%% @hidden
+spec_prod_prepaid_voice() ->
+	Id = {"id", "9"},
+	Href = {"href", ?productSpecPath "9"},
+	Name = {"name", "PrepaidVoiceProductSpec"},
+	Description = {"description", "Defines characteristics specific to prepaid voice."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2017-12-21T12:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	DepType = {"type", "dependency"},
+	DepId1 = {"id", "5"},
+	DepHref1 = {"href", ?productSpecPath "5"},
+	Depend1 = {struct, [DepId1, DepHref1, DepType]},
+	DepId2 = {"id", "6"},
+	DepHref2 = {"href", ?productSpecPath "6"},
+	Depend2 = {struct, [DepId2, DepHref2, DepType]},
+	Dependency = {"productSpecificationRelationship", {array, [Depend1, Depend2]}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Dependency]}.
+
+%% @hidden
+characteristic_product_network() ->
 	Name1 = {"name", "subscriberIdentity"},
 	Description1 = {"description",
 			"Uniquely identifies subscriber (e.g. MSISDN, IMSI, username)."},
@@ -648,45 +741,57 @@ characteristic_product_wlan() ->
 	Type2 = {"valueType", "String"},
 	Value2 = {"productSpecCharacteristicValue", {array, [{struct, [Type2]}]}},
 	Char2 = {struct, [Name2, Description2, Config2, Type2, Value2]},
-	Name3 = {"name", "balanceTopUpDuration"},
-	Description3 = {"description", "Validity period of balance top-ups."},
+	Name3 = {"name", "radiusReserveTime"},
+	Description3 = {"description",
+		"Number of seconds to reserve on RADIUS Accounting-Start "
+		"and add to reported duration on Accounting-Interim reservation."},
 	Config3 = {"configurable", false},
 	Type3 = {"valueType", "Number"},
 	Type31 = {struct, [{"unitOfMeasure", "seconds"}, {"valueType", "Number"}]},
 	Type32 = {struct, [{"unitOfMeasure", "minutes"}, {"valueType", "Number"}]},
-	Type33 = {struct, [{"unitOfMeasure", "days"}, {"valueType", "Number"}]},
-	Type34 = {struct, [{"unitOfMeasure", "months"}, {"valueType", "Number"}]},
-	Type35 = {struct, [{"unitOfMeasure", "years"}, {"valueType", "Number"}]},
-	Value3 = {"productSpecCharacteristicValue",
-			{array, [Type31, Type32, Type33, Type34, Type35]}},
+	Value3 = {"productSpecCharacteristicValue", {array, [Type31, Type32]}},
 	Char3 = {struct, [Name3, Description3, Config3, Type3, Value3]},
-	Name4 = {"name", "radiusReserveTime"},
+	Name4 = {"name", "radiusReserveOctets"},
 	Description4 = {"description",
-		"Number of seconds to reserve on RADIUS Accouning-Start "
-		"and add to reported duration on Accounting-Interim reservation."},
+		"Number of octets to reserve on RADIUS Accounting-Start "
+		"and add to reported octetes used on Accounting-Interim reservation."},
 	Config4 = {"configurable", false},
 	Type4 = {"valueType", "Number"},
-	Type41 = {struct, [{"unitOfMeasure", "seconds"}, {"valueType", "Number"}]},
-	Type42 = {struct, [{"unitOfMeasure", "minutes"}, {"valueType", "Number"}]},
-	Value4 = {"productSpecCharacteristicValue", {array, [Type41, Type42]}},
+	Type41 = {struct, [{"unitOfMeasure", "bytes"}, {"valueType", "Number"}]},
+	Type42 = {struct, [{"unitOfMeasure", "kilobytes"}, {"valueType", "Number"}]},
+	Type43 = {struct, [{"unitOfMeasure", "megabytes"}, {"valueType", "Number"}]},
+	Type44 = {struct, [{"unitOfMeasure", "gigabytes"}, {"valueType", "Number"}]},
+	Value4 = {"productSpecCharacteristicValue",
+			{array, [Type41, Type42, Type43, Type44]}},
 	Char4 = {struct, [Name4, Description4, Config4, Type4, Value4]},
-	Name5 = {"name", "radiusReserveOctets"},
-	Description5 = {"description",
-		"Number of octets to reserve on RADIUS Accouning-Start "
-		"and add to reported octetes used on Accounting-Interim reservation."},
-	Config5 = {"configurable", false},
-	Type5 = {"valueType", "Number"},
-	Type51 = {struct, [{"unitOfMeasure", "bytes"}, {"valueType", "Number"}]},
-	Type52 = {struct, [{"unitOfMeasure", "kilobytes"}, {"valueType", "Number"}]},
-	Type53 = {struct, [{"unitOfMeasure", "megabytes"}, {"valueType", "Number"}]},
-	Type54 = {struct, [{"unitOfMeasure", "gigabytes"}, {"valueType", "Number"}]},
-	Value5 = {"productSpecCharacteristicValue",
-			{array, [Type51, Type52, Type53, Type54]}},
-	Char5 = {struct, [Name5, Description5, Config5, Type5, Value5]},
-	[Char1, Char2, Char3, Char4, Char5].
+	[Char1, Char2, Char3, Char4].
 
 %% @hidden
 characteristic_product_rated_plan() ->
+	Name1 = {"name", "timeOfDayRange"},
+	Description1 = {"description", "Start and End of time of day range"},
+	ValueType1 = {"valueType", "Range"},
+	Char1 = {struct, [Name1, Description1, ValueType1]},
+	[Char1].
+
+%% @hidden
+characteristic_product_prepaid() ->
+	Name1 = {"name", "balanceTopUpDuration"},
+	Description1 = {"description", "Validity period of balance top-ups."},
+	Config1 = {"configurable", false},
+	Type1 = {"valueType", "Number"},
+	Type11 = {struct, [{"unitOfMeasure", "seconds"}, {"valueType", "Number"}]},
+	Type12 = {struct, [{"unitOfMeasure", "minutes"}, {"valueType", "Number"}]},
+	Type13 = {struct, [{"unitOfMeasure", "days"}, {"valueType", "Number"}]},
+	Type14 = {struct, [{"unitOfMeasure", "months"}, {"valueType", "Number"}]},
+	Type15 = {struct, [{"unitOfMeasure", "years"}, {"valueType", "Number"}]},
+	Value1 = {"productSpecCharacteristicValue",
+			{array, [Type11, Type12, Type13, Type14, Type15]}},
+	Char1 = {struct, [Name1, Description1, Config1, Type1, Value1]},
+	[Char1].
+
+%% @hidden
+characteristic_product_voice() ->
 	Name1 = {"name", "destPrefixPriceTable"},
 	Description1 = {"description", "Table of Prefix, Description, Price Label"},
 	ValueType1 = {"valueType", "String"},
@@ -695,15 +800,11 @@ characteristic_product_rated_plan() ->
 	Description2 = {"description", "Table of Prefix, Description, Tariff rate"},
 	ValueType2 = {"valueType", "String"},
 	Char2 = {struct, [Name2, Description2, ValueType2]},
-	Name3 = {"name", "timeOfDayRange"},
-	Description3 = {"description", "Start and End of time of day range"},
-	ValueType3 = {"valueType", "Range"},
+	Name3 = {"name", "ratePrice"},
+	Description3 = {"description", "Price name in prefix table"},
+	ValueType3 = {"valueType", "String"},
 	Char3 = {struct, [Name3, Description3, ValueType3]},
-	Name4 = {"name", "ratePrice"},
-	Description4 = {"description", ""},
-	ValueType4 = {"valueType", "String"},
-	Char4 = {struct, [Name4, Description4, ValueType4]},
-	[Char1, Char2, Char3, Char4].
+	[Char1, Char2, Char3].
 
 -spec pla_spec(ID) -> Result
 	when
