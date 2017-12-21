@@ -1441,11 +1441,11 @@ subscription(#subscriber{buckets = Buckets} = Subscriber,
 			ProductName, Characteristics, Now, T);
 subscription(#subscriber{buckets = Buckets} = Subscriber,
 		ProductName, Characteristics, Now, [#price{type = one_time,
-		amount = PriceAmount,
+		amount = PriceAmount, name = Name,
 		alteration = #alteration{units = Units, size = Size,
 		amount = AlterationAmount}} | T]) ->
 	NewBuckets = charge(PriceAmount + AlterationAmount,
-		[#bucket{units = Units, remain_amount = Size} | Buckets]),
+		[#bucket{units = Units, remain_amount = Size, prices = [Name]} | Buckets]),
 	subscription(Subscriber#subscriber{buckets = NewBuckets},
 			ProductName, Characteristics, Now, T);
 subscription(#subscriber{buckets = Buckets} = Subscriber,
@@ -1458,24 +1458,24 @@ subscription(#subscriber{buckets = Buckets} = Subscriber,
 			ProductName, Characteristics, Now, T);
 subscription(#subscriber{buckets = Buckets} = Subscriber,
 		ProductName, Characteristics, Now,
-		[#price{type = recurring,
+		[#price{type = recurring, name = Name,
 		period = Period, amount = SubscriptionAmount,
 		alteration = #alteration{units = Units, size = Size,
 		amount = AllowanceAmount}} | T]) when Period /= undefined,
 		Units == octets; Period /= undefined, Units == seconds ->
 	NewBuckets = charge(SubscriptionAmount + AllowanceAmount,
-			[#bucket{units = Units, remain_amount = Size,
+			[#bucket{units = Units, remain_amount = Size, name = Name,
 			termination_date = end_period(Now, Period)} | Buckets]),
 	subscription(Subscriber#subscriber{buckets = NewBuckets},
 			ProductName, Characteristics, Now, T);
 subscription(#subscriber{buckets = Buckets} = Subscriber,
 		ProductName, Characteristics, Now, [#price{type = usage,
-		alteration = #alteration{type = recurring,
+		name = Name, alteration = #alteration{type = recurring,
 		period = Period, units = Units, size = Size,
 		amount = Amount}} | T]) when Period /= undefined,
 		Units == octets; Units == seconds ->
 	NewBuckets = charge(Amount, [#bucket{units = Units,
-			remain_amount = Size,
+			remain_amount = Size, prices = [Name],
 			termination_date = end_period(Now, Period)} | Buckets]),
 	subscription(Subscriber#subscriber{buckets = NewBuckets},
 			ProductName, Characteristics, Now, T);

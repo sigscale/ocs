@@ -135,6 +135,7 @@
 				Amount :: pos_integer(),
 				SessionId :: string() | binary()}],
 		units :: octets | cents | seconds | undefined,
+		prices = [] :: list(),
 		last_modified :: tuple() | undefined}).
 
 -record(product_instance,

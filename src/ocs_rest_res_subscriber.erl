@@ -527,6 +527,8 @@ bucket([reservations | T], Bucket, Acc) ->
 	bucket(T, Bucket, Acc);
 bucket([last_modified | T], Bucket, Acc) ->
 	bucket(T, Bucket, Acc);
+bucket([prices | T], Bucket, Acc) ->
+	bucket(T, Bucket, Acc);
 bucket([], _Bucket, Acc) ->
 	{struct, Acc}.
 
