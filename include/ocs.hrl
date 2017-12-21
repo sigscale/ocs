@@ -89,7 +89,7 @@
 		char_value_use = [] :: [#char_value_use{}],
 		alteration :: #alteration{} | undefined}).
 
--record(bundled_pop,
+-record(bundled_po,
 		{name :: string() | undefined,
 		status :: offer_status() | undefined,
 		lower_limit :: non_neg_integer() | undefined,
@@ -104,7 +104,7 @@
 		is_bundle = false :: '_' | boolean() | undefined,
 		status :: offer_status() | '_' | undefined,
 		specification :: '_' | string() | undefined,
-		bundle = [] :: '_' | [#bundled_pop{}],
+		bundle = [] :: '_' | [#bundled_po{}],
 		price :: '_' | [#price{}] | undefined,
 		char_value_use = [] :: '_' | [#char_value_use{}],
 		last_modified :: tuple() | '_' | undefined}).

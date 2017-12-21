@@ -878,7 +878,7 @@ offer([specification | T],
 	offer(T, P, [{"productSpecification", Spec} | Acc]);
 offer([bundle | T],
 		#product{bundle = Bundle} = P, Acc) when length(Bundle) > 0 ->
-	Array = [bundled_pop(B) || B <- Bundle],
+	Array = [bundled_po(B) || B <- Bundle],
 	offer(T, P, [{"bundledProductOffering", {array, Array}} | Acc]);
 offer([status | T], #product{status = Status} = P, Acc)
 		when Status /= undefined ->
@@ -953,7 +953,7 @@ offer([{"productSpecification", {struct, L}} | T], Acc) when is_list(L) ->
 	offer(T, Acc1);
 offer([{"bundledProductOffering", {array, Array}} | T], Acc)
 		when is_list(Array) ->
-	Bundle = [bundled_pop(B) || B <- Array],
+	Bundle = [bundled_po(B) || B <- Array],
 	offer(T, Acc#product{bundle = Bundle});
 offer([{"isCustomerVisible", Visible} | T], Acc) when is_boolean(Visible) ->
 	offer(T, Acc);
@@ -967,24 +967,24 @@ offer([{"lastUpdate", LastUpdate} | T], Acc) when is_list(LastUpdate) ->
 offer([], Acc) ->
 	Acc.
 
--spec bundled_pop(Bundled) -> Bundled
+-spec bundled_po(Bundled) -> Bundled
 	when
-		Bundled :: #bundled_pop{} | {struct, list()}.
-bundled_pop(#bundled_pop{} = B) ->
-	bundled_pop(record_info(fields, bundled_pop), B, []);
-bundled_pop({struct, ObjectMembers}) when is_list(ObjectMembers) ->
-	bundled_pop(ObjectMembers, #bundled_pop{}).
+		Bundled :: #bundled_po{} | {struct, list()}.
+bundled_po(#bundled_po{} = B) ->
+	bundled_po(record_info(fields, bundled_po), B, []);
+bundled_po({struct, ObjectMembers}) when is_list(ObjectMembers) ->
+	bundled_po(ObjectMembers, #bundled_po{}).
 %% @hidden
-bundled_pop([name | T], #bundled_pop{name = Name} = B, Acc)
+bundled_po([name | T], #bundled_po{name = Name} = B, Acc)
 		when is_list(Name) ->
 	Header = [{"href", ?offeringPath ++ Name}, {"name", Name}, {"id", Name}],
-	bundled_pop(T, B, Header ++ Acc);
-bundled_pop([status | T], #bundled_pop{status = Status} = B, Acc) ->
-	bundled_pop(T, B, [{"lifecycleStatus", offer_status(Status)} | Acc]);
-bundled_pop([default | T], #bundled_pop{default = undefined,
+	bundled_po(T, B, Header ++ Acc);
+bundled_po([status | T], #bundled_po{status = Status} = B, Acc) ->
+	bundled_po(T, B, [{"lifecycleStatus", offer_status(Status)} | Acc]);
+bundled_po([default | T], #bundled_po{default = undefined,
 		lower_limit = undefined, upper_limit = undefined} = B, Acc) ->
-	bundled_pop(T, B, Acc);
-bundled_pop([default | T], #bundled_pop{default= N1,
+	bundled_po(T, B, Acc);
+bundled_po([default | T], #bundled_po{default= N1,
 		upper_limit = N2, lower_limit = N3} = B, Acc) ->
 	O1 = case N1 of
 		undefined ->
@@ -1004,28 +1004,28 @@ bundled_pop([default | T], #bundled_pop{default= N1,
 		N3 when is_integer(N3) ->
 			[{"numberRelOfferLowerLimit", N3} | O2]
 	end,
-	bundled_pop(T, B, [{"bundledProductOfferingOption", {struct, O3}} | Acc]);
-bundled_pop([_H | T], B, Acc) ->
-	bundled_pop(T, B, Acc);
-bundled_pop([], _, Acc) ->
+	bundled_po(T, B, [{"bundledProductOfferingOption", {struct, O3}} | Acc]);
+bundled_po([_H | T], B, Acc) ->
+	bundled_po(T, B, Acc);
+bundled_po([], _, Acc) ->
 	{struct, lists:reverse(Acc)}.
 %% @hidden
-bundled_pop([{"name", Name} | T], Acc) when is_list(Name) ->
-	bundled_pop(T, Acc#bundled_pop{name = Name});
-bundled_pop([{"lifecycleStatus", Status} | T], Acc)
+bundled_po([{"name", Name} | T], Acc) when is_list(Name) ->
+	bundled_po(T, Acc#bundled_po{name = Name});
+bundled_po([{"lifecycleStatus", Status} | T], Acc)
 		when is_list(Status) ->
-	bundled_pop(T, Acc#bundled_pop{status = offer_status(Status)});
-bundled_pop([{"bundledProductOfferingOption", {struct, L}} | T], Acc)
+	bundled_po(T, Acc#bundled_po{status = offer_status(Status)});
+bundled_po([{"bundledProductOfferingOption", {struct, L}} | T], Acc)
 		when is_list(L) ->
 	LowerLimit = proplists:get_value("numberRelOfferLowerLimit", L),
 	UpperLimit = proplists:get_value("numberRelOfferUpperLimit", L),
 	Default = proplists:get_value("numberRelOfferDefault", L),
-	NewAcc = Acc#bundled_pop{lower_limit = LowerLimit,
+	NewAcc = Acc#bundled_po{lower_limit = LowerLimit,
 			upper_limit = UpperLimit, default = Default},
-	bundled_pop(T, NewAcc);
-bundled_pop([_H | T], Acc) ->
-	bundled_pop(T, Acc);
-bundled_pop([], Acc) ->
+	bundled_po(T, NewAcc);
+bundled_po([_H | T], Acc) ->
+	bundled_po(T, Acc);
+bundled_po([], Acc) ->
 	Acc.
 
 -spec price(Price) -> Price
