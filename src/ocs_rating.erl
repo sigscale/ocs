@@ -30,6 +30,9 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
+% calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
+-define(EPOCH, 62167219200).
+
 -spec rate(Protocol, SubscriberID, Destination,
 		Flag, DebitAmounts, ReserveAmounts, SessionAttributes) -> Result
 	when
@@ -108,15 +111,16 @@ rate1(Protocol, Subscriber, Destination, #product{specification = ProdSpec,
 		char_value_use = CharValueUse, price = Prices}, Validity, Flag,
 		DebitAmounts, ReserveAmounts, SessionAttributes)
 		when ProdSpec == "5", ProdSpec == "9" ->
+	FilteredPrices = filter_prices(Prices),
 	case lists:keyfind("destPrefixPriceTable", #char_value_use.name, CharValueUse) of
 		#char_value_use{values = [#char_value{value = PriceTable}]} ->
-			rate2(Protocol, list_to_existing_atom(PriceTable), Subscriber, Destination, Prices,
+			rate2(Protocol, list_to_existing_atom(PriceTable), Subscriber, Destination, FilteredPrices,
 					Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
 		false ->
 			 case lists:keyfind("destPrefixTariffTable", #char_value_use.name, CharValueUse) of
 				#char_value_use{values = [#char_value{value = TariffTable}]} ->
-					rate3(Protocol, list_to_existing_atom(TariffTable), Subscriber, Destination, Prices,
-							Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
+					rate3(Protocol, list_to_existing_atom(TariffTable), Subscriber, Destination,
+							FilteredPrices, Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
 				_ ->
 					throw(table_prefix_not_found)
 			end
@@ -907,3 +911,51 @@ due2(#bucket{} = B, [H | T], Acc) ->
 	due2(B, T, [H | Acc]);
 due2(#bucket{} = B, [], Acc) ->
 	lists:reverse([B | Acc]).
+
+-spec filter_prices(Prices) -> Prices
+	when
+		Prices :: [#price{}].
+%% @doc Filter prices with `timeOfDayRange'
+%% @hidden
+filter_prices(Prices) ->
+	filter_prices(Prices, []).
+%% @hidden
+filter_prices([#price{char_value_use = CharValueUse} = P | T], Acc) ->
+	case lists:keyfind("timeOfDayRange", #char_value_use.name, CharValueUse) of
+		#char_value_use{values = [#char_value{value =
+				#range{lower = Start, upper = End}}]} ->
+			case filter_prices1(Start, End) of
+				true ->
+					filter_prices(T, [P | Acc]);
+				false ->
+					filter_prices(T, Acc)
+			end;
+		_ ->
+			filter_prices(T, [P | Acc])
+	end;
+filter_prices([], Acc) ->
+	lists:reverse(Acc).
+%% @hidden
+filter_prices1(#quantity{units = U1, amount = A1},
+		#quantity{units = U2, amount = A2}) ->
+	Seconds = ?EPOCH + (erlang:system_time(?MILLISECOND) div 1000),
+	{_, Time} = calendar:gregorian_seconds_to_datetime(Seconds),
+	filter_prices1(to_seconds(U1, A1), to_seconds(U2, A2),
+			calendar:time_to_seconds(Time)).
+%% @hidden
+filter_prices1(Start, End, Now) when Start < Now, End > Now ->
+	true;
+filter_prices1(_, _, _) ->
+	false.
+
+%% @hidden
+to_seconds("seconds", Seconds) when
+		(Seconds >= 0) and (Seconds < 86400) ->
+	Seconds;
+to_seconds("minutes", Minutes) when
+		(Minutes >= 0) and (Minutes < 1440) ->
+	Minutes * 60;
+to_seconds("hours", Hours) when
+		(Hours >= 0) and ((Hours < 24) orelse (Hours < 12)) ->
+	Hours * 3600.
+
