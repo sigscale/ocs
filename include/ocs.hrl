@@ -31,6 +31,22 @@
 %% define recurring charge period
 -type recur_period() :: hourly | daily | weekly | monthly | yearly.
 
+%% define TMF SID types
+-record(quantity,
+		{amount :: integer(),
+		units :: atom() | string()}).
+-type quantity() :: #quantity{}.
+
+-record(range,
+		{lower :: quantity(),
+		upper :: quantity()}).
+-type range() :: #range{}.
+
+-record(rate,
+		{numerator :: quantity(),
+		denominator :: quantity()}).
+-type rate() :: #rate{}.
+
 %% define client table entries record
 -record(client,
 		{address :: inet:ip_address() | undefined,
@@ -58,7 +74,7 @@
 		units :: string() | undefined,
 		start_date :: pos_integer() | undefined,
 		end_date :: pos_integer() | undefined,
-		value :: term() | undefined,
+		value :: quantity() | range() | rate() | term() | undefined,
 		from :: term() | undefined,
 		to :: term() | undefined,
 		type :: string() | undefined, % Number | String | Boolean | DateTime | ...

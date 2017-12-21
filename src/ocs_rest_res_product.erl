@@ -1591,7 +1591,7 @@ char_value([end_date | T], #char_value{} = V, Acc) ->
 char_value([value | T], #char_value{value = undefined} = V, Acc) ->
 	char_value(T, V, Acc);
 char_value([value | T], #char_value{value = Value} = V, Acc) ->
-	char_value(T, V, [{"value", Value} | Acc]);
+	char_value(T, V, [{"value", char_value_type(Value)} | Acc]);
 char_value([from | T], #char_value{from = undefined} = V, Acc) ->
 	char_value(T, V, Acc);
 char_value([from | T], #char_value{from = From} = V, Acc) ->
@@ -1638,6 +1638,8 @@ char_value([{"value", Value} | T], Acc)
 		when is_integer(Value); is_float(Value);
 		is_list(Value); is_boolean(Value) ->
 	char_value(T, Acc#char_value{value = Value});
+char_value([{"value", {struct, _} = Value} | T], Acc) ->
+	char_value(T, Acc#char_value{value = char_value_type(Value)});
 char_value([{"valueFrom", From} | T], Acc)
 		when is_integer(From); is_list(From) ->
 	char_value(T, Acc#char_value{from = From});
@@ -1660,6 +1662,32 @@ char_value([{"regex", RegEx} | T], Acc) when is_list(RegEx) ->
 char_value([], Acc) ->
 	Acc.
 
+%% @hidden
+char_value_type({struct, [{"lowerValue", {struct, L1}},
+		{"upperValue", {struct, L2}}]}) ->
+	#range{lower = char_value_type(L1), upper = char_value_type(L2)};
+char_value_type({struct, [{"upperValue", {struct, L2}},
+		{"lowerValue", {struct, L1}}]}) ->
+	#range{lower = char_value_type(L1), upper = char_value_type(L2)};
+char_value_type({struct, [{"amount", V1}, {"units", V2}]}) ->
+	#quantity{amount = V1, units = V2};
+char_value_type({struct, [{"units", V2}, {"amount", V1}]}) ->
+	#quantity{amount = V1, units = V2};
+char_value_type({struct, [{"numerator", V1}, {"denominator", V2}]}) ->
+	#rate{numerator = char_value_type(V1), denominator = char_value_type(V2)};
+char_value_type({struct, [{"denominator", V2}, {"numerator", V1}]}) ->
+	#rate{numerator = char_value_type(V1), denominator = char_value_type(V2)};
+char_value_type(#quantity{units = Units, amount = Amount}) ->
+	{struct, [{"units", Units}, {"amount", Amount}]};
+char_value_type(#range{lower = Lower, upper = Upper}) ->
+	{struct, [{"lowerValue", char_value_type(Lower)},
+			{"upperValue", char_value_type(Upper)}]};
+char_value_type(#rate{numerator = Numerator, denominator = Denominator}) ->
+	{struct, [{"numerator", char_value_type(Numerator)},
+			{"denominator", char_value_type(Denominator)}]};
+char_value_type(Value) ->
+	Value.
+	
 -spec inventory(Subscription) -> Subscription
 	when
 		Subscription :: #subscriber{} | {struct, [tuple()]}.
