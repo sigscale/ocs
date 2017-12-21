@@ -104,8 +104,10 @@ rate(Protocol, SubscriberID, Destination, Flag, DebitAmounts, ReserveAmounts, Se
 			{error, Reason}
 	end.
 %% @hidden
-rate1(Protocol, Subscriber, Destination, #product{specification = "3", char_value_use = CharValueUse,
-		price = Prices}, Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes) ->
+rate1(Protocol, Subscriber, Destination, #product{specification = ProdSpec,
+		char_value_use = CharValueUse, price = Prices}, Validity, Flag,
+		DebitAmounts, ReserveAmounts, SessionAttributes)
+		when ProdSpec == "5", ProdSpec == "9" ->
 	case lists:keyfind("destPrefixPriceTable", #char_value_use.name, CharValueUse) of
 		#char_value_use{values = [#char_value{value = PriceTable}]} ->
 			rate2(Protocol, list_to_existing_atom(PriceTable), Subscriber, Destination, Prices,
