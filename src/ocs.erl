@@ -1477,6 +1477,14 @@ subscription(#subscriber{buckets = Buckets} = Subscriber,
 	subscription(Subscriber#subscriber{buckets = NewBuckets},
 			Characteristics, Now, true, T);
 subscription(#subscriber{buckets = Buckets} = Subscriber,
+		Characteristics, Now, true, [#price{type = usage,
+		name = Name, alteration = #alteration{type = one_time,
+		units = Units, size = Size, amount = AlterationAmount}} | T]) ->
+	NewBuckets = charge(AlterationAmount, [#bucket{units = Units,
+		remain_amount = Size, prices = [Name]} | Buckets]),
+	subscription(Subscriber#subscriber{buckets = NewBuckets},
+			Characteristics, Now, true, T);
+subscription(#subscriber{buckets = Buckets} = Subscriber,
 		Characteristics, Now, InitialFlag, [#price{type = recurring,
 		period = Period, amount = SubscriptionAmount, units = undefined,
 		alteration = undefined} | T]) when Period /= undefined ->
