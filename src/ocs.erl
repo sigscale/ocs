@@ -1463,7 +1463,7 @@ subscription(#subscriber{last_modified = {Now, _}} = Subscriber,
 %% @hidden
 subscription(#subscriber{buckets = Buckets} = Subscriber,
 		Characteristics, Now, true, [#price{type = one_time,
-		amount = Amount, units = undefined, alteration = undefined} | T]) ->
+		amount = Amount, units = cents, alteration = undefined} | T]) ->
 	NewBuckets = charge(Amount, Buckets),
 	subscription(Subscriber#subscriber{buckets = NewBuckets},
 			Characteristics, Now, true, T);
