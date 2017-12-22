@@ -1086,7 +1086,8 @@ bundled_po([name | T], #bundled_po{name = Name} = B, Acc)
 		when is_list(Name) ->
 	Header = [{"href", ?offeringPath ++ Name}, {"name", Name}, {"id", Name}],
 	bundled_po(T, B, Header ++ Acc);
-bundled_po([status | T], #bundled_po{status = Status} = B, Acc) ->
+bundled_po([status | T], #bundled_po{status = Status} = B, Acc)
+		when is_list(Status) ->
 	bundled_po(T, B, [{"lifecycleStatus", offer_status(Status)} | Acc]);
 bundled_po([default | T], #bundled_po{default = undefined,
 		lower_limit = undefined, upper_limit = undefined} = B, Acc) ->
