@@ -901,14 +901,12 @@
 			_getProductsResponse: function(event) {
 				var results = event.detail.xhr.response;
 				for (var index in results) {
-console.log(results);
 					var product = new Object();
 					product.id = results[index].id;
 					product.href = results[index].href;
 					product.name = results[index].name;
 					product.checked = false; 
 					this.push('products', product);
-console.log(this.products);
 				}
 			},
 			_getProductsError: function(event) {
