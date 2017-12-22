@@ -998,11 +998,11 @@
 								var unitOfMeasure = item.prices[index].productOfferPriceAlteration.unitOfMeasure;
 								switch(unitOfMeasure.charAt(unitOfMeasure.length - 1)) {
 									case "b":
-										newAlt.size = unitOfMeasure = parseInt(unitOfMeasure.slice(0, -1));
+										newAlt.size = parseInt(unitOfMeasure.slice(0, -1));
 										newAlt.unit = "b";
 										break;
 									case "s":
-										newAltsize = parseInt(unitOfMeasure.slice(0, -1));
+										newAlt.size = parseInt(unitOfMeasure.slice(0, -1));
 										newAlt.unit = "s";
 										break;
 									default:
