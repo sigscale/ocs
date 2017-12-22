@@ -99,10 +99,10 @@ product_charge1(Now,Buckets, Prices, Acc,
 		{0, B1} ->
 			case product_charge2(Price#price.alteration, Now, B1) of
 				{_, B1} ->
-					B3 = product_charge3(Now, Price#price.alteration, B1),
+					B3 = product_charge3(Now, Price#price.name, Price#price.alteration, B1),
 					product_charge1(Now, B3, Prices, Acc, T);
 				{0, B2} ->
-					B3 = product_charge3(Now, Price#price.alteration, B2),
+					B3 = product_charge3(Now, Price#price.name, Price#price.alteration, B2),
 					product_charge1(Now, B3, Prices, Acc, T);
 				{_, B2} ->
 					product_charge1(Now, B2, Prices, [H | Acc], T)
@@ -124,10 +124,10 @@ product_charge2(#alteration{type = recurring,
 product_charge2(_, _, Buckets) ->
 	{0, Buckets}.
 %% @hidden
-product_charge3(_Now, undefined, Buckets) ->
+product_charge3(_Now, _Price, undefined, Buckets) ->
 	Buckets;
-product_charge3(Now, #alteration{units = Type, size = Size}, Buckets) ->
-	[#bucket{remain_amount = Size,
+product_charge3(Now, Price, #alteration{units = Type, size = Size}, Buckets) ->
+	[#bucket{remain_amount = Size, prices = [Price],
 		units = Type, start_date = Now} | Buckets].
 
 %%----------------------------------------------------------------------

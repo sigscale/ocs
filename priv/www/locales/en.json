@@ -779,6 +779,14 @@
     "description": "Time of Day Range end time",
     "message": "End Time"
   },
+	"preData": {
+    "description": "PrepaidData",
+    "message": "Prepaid Data"
+  },
+	"preVoice": {
+    "description": "PrepaidVoice",
+    "message": "Prepaid Voice"
+  },
    "productDeleted": {
     "description": "Success Toast Message",
     "message": "Product deleted"
