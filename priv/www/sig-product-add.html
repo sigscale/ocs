@@ -901,12 +901,17 @@
 			_getProductsResponse: function(event) {
 				var results = event.detail.xhr.response;
 				for (var index in results) {
-					var product = new Object();
-					product.id = results[index].id;
-					product.href = results[index].href;
-					product.name = results[index].name;
-					product.checked = false; 
-					this.push('products', product);
+					function checkExist(spec) {
+						return spec.name == results[index].name;
+					}
+					if(!this.products.some(checkExist)) {
+						var product = new Object();
+						product.id = results[index].id;
+						product.href = results[index].href;
+						product.name = results[index].name;
+						product.checked = false;
+						this.push('products', product);
+					}
 				}
 			},
 			_getProductsError: function(event) {
