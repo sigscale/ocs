@@ -15,6 +15,7 @@
 <link rel="import" href="paper-tooltip/paper-tooltip.html">
 <link rel="import" href="paper-toggle-button/paper-toggle-button.html" >
 <link rel="import" href="paper-toast/paper-toast.html">
+<link rel="import" href="paper-checkbox/paper-checkbox.html">
 <link rel="import" href="paper-styles/color.html">
 <link rel="import" href="paper-time-picker/paper-time-picker.html">
 <link rel="import" href="paper-icon-button/paper-icon-button.html">
@@ -29,6 +30,10 @@
 			paper-item {
 				padding-right: 10px;
 			}
+			paper-checkbox {
+            --paper-checkbox-checked-color: #ffb04c;
+            --paper-checkbox-checkmark-color: var(--paper-yellow-900);
+         }
 			paper-toolbar{
 				margin-top: 0px;
 				background-color: #bc5100;
@@ -98,6 +103,24 @@
 							</i18n-msg>
 						</paper-tooltip>
 					</div>
+					<div>
+						<span>Bundled Products</span>
+							<paper-icon-button
+								id="onClickBundleUpdate"
+								suffix
+								icon="arrow-drop-down"
+								on-click="_onClickBundleUpdate">
+							</paper-icon-button>
+					</div>
+					<iron-collapse id="addBundleUpdate">
+						<template is=dom-repeat items="{{products}}">
+							<div>
+								<paper-checkbox checked="{{item.checked}}">
+									{{item.name}}
+								</paper-checkbox>
+							</div>
+						</template>
+					</iron-collapse>
 					<div>
 						<paper-input id="updateOffSpec"
 								label="[[i18n.productSpec]]"
@@ -818,6 +841,13 @@
 				on-response="_updateProductAlterationResponse"
 				on-error="_updateProductAlterationError">
 		</iron-ajax>
+		<iron-ajax
+         id="getProductUpdateAjax"
+         url="/catalogManagement/v2/productOffering"
+         method="GET"
+         on-response="_getProductUpdateResponse"
+         on-error="_getProductsError">
+      </iron-ajax>
 	</template>
 	<script>
 		Polymer ({
@@ -836,6 +866,12 @@
 						return [];
 					}
 				},
+				products: {
+               type: Array,
+               value: function() {
+                  return [];
+               },
+            },
 				selected: {
 					type: Number,
 					value: 0
@@ -884,6 +920,7 @@
 				}
 			},
 			initialize: function(item) {
+				this.$.getProductUpdateAjax.generateRequest();
 				this.$.updateProductModal.open();
 				this.$.updateOffName.value = item.name;
 				this.$.updateOffDesc.value = item.description;
@@ -984,6 +1021,30 @@
 					this.push('prices', newPrice);
 				} 
 			},
+			_getProductUpdateResponse: function(event) {
+				var results = event.detail.xhr.response;
+				function checkExist(spec) {
+					return spec.name == results[index].name;
+				}
+				for (var index in results) {
+					if(!this.products.some(checkExist)) {
+						var product = new Object();
+						product.id = results[index].id;
+						product.href = results[index].href;
+						product.name = results[index].name;
+						product.checked = false;
+						this.push('products', product);
+					}
+				}
+				var bundle = document.getElementById("productGrid").activeItem.bundledProductOffering;
+				function checkExist1(prod) {
+					return prod.name == bundle[indexBun].name;
+				}
+				for(var indexBun in bundle) {
+					var ind = this.products.findIndex(checkExist1);
+					this.products[ind].checked = true;
+				}
+			},
 			_updateProductStartDateOfferPick: function(date) {
 				if (this.$.updateProductStartDatePickUpdateOff.opened) {
 					this.updateProductStartDateOffer = moment(date).format('YYYY-MM-DD');
@@ -1039,6 +1100,15 @@
 				} else {
 					this.$.updatePriceCharsTime.hide();	
 					this.$.updateOnClickCharsTime.icon="arrow-drop-down"
+				}
+			},
+			_onClickBundleUpdate: function() {
+				if(this.$.addBundleUpdate.opened == false) {
+					this.$.addBundleUpdate.show();
+					this.$.onClickBundleUpdate.icon="arrow-drop-up";
+				} else {
+					this.$.addBundleUpdate.hide();
+					this.$.onClickBundleUpdate.icon="arrow-drop-down";
 				}
 			},
 			updatePriceDialog: function() {
@@ -1897,6 +1967,7 @@
 				this.$.updatePriceCharsTimeStart.hide();
 				this.$.updatePriceCharsTimeEnd.hide();
 				this.$.updateAddPriceChars.hide();
+				this.$.addBundleUpdate.hide();
 				this.$.updatePriceName.value = null;
 				this.$.updatePriceDesc.value = null;
 				this.$.updatePriceStartDate.value = null;
