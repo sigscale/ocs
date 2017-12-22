@@ -304,6 +304,7 @@
 						newRecord.price = results[index].productOfferingPrice.map(getNames).join(", ");
 						newRecord.prices = results[index].productOfferingPrice;
 					}
+					newRecord.bundledProductOffering = results[index].bundledProductOffering;
 					vaadinItems[index] = newRecord;
 					for (var indexCharUse in results[index].prodSpecCharValueUse) {
 						function exist(value){
