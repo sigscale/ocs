@@ -901,10 +901,14 @@
 			_getProductsResponse: function(event) {
 				var results = event.detail.xhr.response;
 				for (var index in results) {
+console.log(results);
 					var product = new Object();
+					product.id = results[index].id;
+					product.href = results[index].href;
 					product.name = results[index].name;
 					product.checked = false; 
 					this.push('products', product);
+console.log(this.products);
 				}
 			},
 			_getProductsError: function(event) {
@@ -1103,6 +1107,24 @@
 				}
 				if(this.$.addOffDesc.value) {
 					offerNew.description = this.$.addOffDesc.value;
+				}
+				if(this.$.addBundle) {
+					var bundled = new Array();
+					for(var index in this.products) {
+						if(this.products[index].checked == true) {
+							var bundleOffer = new Object();
+							bundleOffer.numberRelOfferLowerLimit = 0;
+							bundleOffer.numberRelOfferUpperLimit = 1;
+							bundleOffer.numberRelOfferDefault = 1;
+							var bundleObj = new Object();
+							bundleObj.id = this.products[index].id;
+							bundleObj.href = this.products[index].href;
+							bundleObj.name = this.products[index].name;
+							bundleObj.bundledProductOfferingOption = bundleOffer;
+							bundled.push(bundleObj);
+						}
+					}
+					offerNew.bundledProductOffering = bundled;
 				}
 				var specIndex = this.$.addOffProductSpecification.selected;
 				if(specIndex == 0) {
