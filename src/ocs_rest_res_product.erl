@@ -1233,12 +1233,7 @@ price([{"validFor", {struct, L}} | T], Acc) when is_list(L) ->
 	end,
 	price(T, Acc2);
 price([{"priceType", Type} | T], Acc) when is_list(Type) ->
-	case price_type(Type) of
-		Type1 when Type1 == one_time; Type1 == recurring ->
-			price(T, Acc#price{type = Type1, units = cents});
-		Type1 ->
-			price(T, Acc#price{type = Type1})
-	end;
+	price(T, Acc#price{type = price_type(Type)});
 price([{"unitOfMeasure", UnitOfMeasure} | T], Acc)
 		when is_list(UnitOfMeasure) ->
 	case lists:last(UnitOfMeasure) of
@@ -1334,6 +1329,18 @@ alteration([type | T], #alteration{type = Type, units = seconds,
 		size = Size} = A, Acc) when Type == one_time, is_integer(Size);
 		Type == usage, is_integer(Size) ->
 	UsageType = [{"priceType", price_type(Type)},
+			{"unitOfMeasure", integer_to_list(Size) ++ "s"}],
+	alteration(T, A, UsageType ++ Acc);
+alteration([type | T], #alteration{type = recurring, period = Period,
+		units = octets, size = Size} = A, Acc) when is_integer(Size) ->
+	UsageType = [{"priceType", "recurring"},
+			{"recurringChargePeriod", price_period(Period)},
+			{"unitOfMeasure", integer_to_list(Size) ++ "b"}],
+	alteration(T, A, UsageType ++ Acc);
+alteration([type | T], #alteration{type = recurring, period = Period,
+		units = seconds, size = Size} = A, Acc) when is_integer(Size) ->
+	UsageType = [{"priceType", "recurring"},
+			{"recurringChargePeriod", price_period(Period)},
 			{"unitOfMeasure", integer_to_list(Size) ++ "s"}],
 	alteration(T, A, UsageType ++ Acc);
 alteration([period | T], A, Acc) ->
