@@ -1012,11 +1012,11 @@ offer([last_modified | T], #product{last_modified = {Last, _}} = P, Acc)
 offer([_H | T], P, Acc) ->
 	offer(T, P, Acc);
 offer([], #product{name = Name, bundle = [] ,
-		specification = L}, Acc) when length(L) > 0 ->
+		specification = S}, Acc) when S /= undefined ->
 	H = [{"id", Name}, {"href", ?offeringPath ++ Name}, {"isBundle", false}],
 	{struct, H ++ lists:reverse(Acc)};
 offer([], #product{name = Name, bundle = L,
-		specification = []}, Acc) when length(L) > 0 ->
+		specification = undefined}, Acc) when length(L) > 0 ->
 	H = [{"id", Name}, {"href", ?offeringPath ++ Name}, {"isBundle", true}],
 	{struct, H ++ lists:reverse(Acc)}.
 %% @hidden
@@ -1064,6 +1064,8 @@ offer([{"productOfferingPrice", {array, Prices1}} | T], Acc) when is_list(Prices
 offer([{"prodSpecCharValueUse", {array, _} = CharValueUses} | T], Acc) ->
 	offer(T, Acc#product{char_value_use = char_value_uses(CharValueUses)});
 offer([{"lastUpdate", LastUpdate} | T], Acc) when is_list(LastUpdate) ->
+	offer(T, Acc);
+offer([_ | T], Acc) ->
 	offer(T, Acc);
 offer([], #product{bundle = [], specification = S} = Acc)
 		when S /= undefined ->
