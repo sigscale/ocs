@@ -775,7 +775,7 @@ remove_session(SessionAttributes, [{_, L} = H | T], Acc) ->
 		[] ->
 			lists:reverse(Acc) ++ T;
 		_ ->
-			remove_session(SessionAttributes, T, [H | T])
+			remove_session(SessionAttributes, T, [H | Acc])
 	end;
 remove_session(_, [], Acc) ->
 	lists:reverse(Acc).
