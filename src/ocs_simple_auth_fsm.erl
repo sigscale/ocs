@@ -277,6 +277,9 @@ handle_diameter(#statedata{protocol = diameter,
 	case ocs:authorize(SubscriberId, Password) of
 		{ok, Subscriber} ->
 			handle_diameter1(Subscriber, StateData);
+		{disabled, SessionAttributes} ->
+			start_disconnect(SessionAttributes, StateData),
+			reject_diameter(disabled_subscriber , StateData);
 		{error, Reason} ->
 			reject_diameter(Reason, StateData)
 	end.

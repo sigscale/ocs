@@ -316,14 +316,20 @@
 					case 'pageSubscribers':
 						this.$.loadPage.selected = 0;
 						this.$.loadPage.selected = 1;
+						this.$.productMenu.selected = null;
+                  this.$.tableMenu.selected = null;
 						this.$.logMenu.selected = null;
 						break;
 					case 'pageClients':
 						this.$.loadPage.selected = 2;
+						this.$.productMenu.selected = null;
+                  this.$.tableMenu.selected = null;
 						this.$.logMenu.selected = null;
 						break;
 					case 'pageUsers':
 						this.$.loadPage.selected = 3;
+						this.$.productMenu.selected = null;
+                  this.$.tableMenu.selected = null;
 						this.$.logMenu.selected = null;
 						break;
 					case 'pageAccess':
@@ -340,7 +346,6 @@
 						break;
 					case 'pagePrefix':
                   this.$.loadPage.selected = 8;
-                  this.$.tableMenu.selected = null;
                   break;
 				}
 			},

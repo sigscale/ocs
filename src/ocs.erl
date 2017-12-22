@@ -37,7 +37,7 @@
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
--export([authorize/2, normalize/1]).
+-export([authorize/2, normalize/1, subscription/4]).
 
 -export_type([eap_method/0]).
 
@@ -474,7 +474,7 @@ add_subscriber(undefined, Password, Product, Characteristics, Buckets, Attribute
 								enabled = EnabledStatus,
 								multisession = MultiSession,
 								last_modified = {Now, N}},
-						S2 = subscription(S1, P, Characteristics),
+						S2 = subscription(S1, P, Characteristics, true),
 						F3 = fun(_, _, 0) ->
 									mnesia:abort(retries);
 								(F, Identity, I) ->
@@ -524,7 +524,7 @@ add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes
 								enabled = EnabledStatus,
 								multisession = MultiSession,
 								last_modified = {Now, N}},
-						S2 = subscription(S1, P, Characteristics),
+						S2 = subscription(S1, P, Characteristics, true),
 						ok = mnesia:write(S2),
 						S2;
 					[] ->
@@ -1424,44 +1424,67 @@ end_period1({{Year, Month, Day}, Time}, yearly) ->
 	EndDate = {Year + 1, Month, Day},
 	gregorian_datetime_to_system_time({EndDate, Time}) - 1.
 
--spec subscription(Subscriber, Product, Characteristics) ->
+-spec subscription(Subscriber, Product, Characteristics, InitialFlag) ->
 		Subscriber
 	when
 		Subscriber :: #subscriber{},
 		Product :: #product{},
-		Characteristics :: [tuple()] | undefined.
-%% @doc Prepare buckets and add allowances.
-%% @private
+		Characteristics :: [tuple()] | undefined,
+		InitialFlag :: boolean().
+%% @doc Apply product offering charges.
+%% 	If `InitialFlag' is `true' initial bucket preparation
+%% 	is done and one time prices are charged.
+%% @throws product_not_found
 subscription(#subscriber{last_modified = {Now, _}} = Subscriber,
-		#product{name = ProductName, price = Prices} = _Product,
-		Characteristics) ->
-	subscription(Subscriber, ProductName, Characteristics, Now, Prices).
+		#product{name = ProductName, bundle = [], price = Prices} = _Product,
+		Characteristics, true) ->
+	Subscriber1 = subscription(Subscriber, Characteristics, Now, true, Prices),
+	ProductInstance = #product_instance{start_date = Now,
+			product = ProductName, characteristics = Characteristics,
+			last_modified = {Now, erlang:unique_integer([positive])}},
+	Subscriber1#subscriber{product = ProductInstance};
+subscription(#subscriber{last_modified = {Now, _}} = Subscriber,
+		#product{name = BundleName, bundle = Bundled, price = Prices},
+		Characteristics, true) when length(Bundled) > 0 ->
+	F = fun(#bundled_po{name = P}, S) ->
+				case mnesia:read(product, P, read) of
+					[Product] ->
+						subscription(S, Product, Characteristics, true);
+					[] ->
+						throw(product_not_found)
+				end
+	end,
+	Subscriber1 = lists:foldl(F, Subscriber, Bundled),
+	Subscriber2 = subscription(Subscriber1, Characteristics, Now, true, Prices),
+	ProductInstance = #product_instance{start_date = Now,
+			product = BundleName, characteristics = Characteristics,
+			last_modified = {Now, erlang:unique_integer([positive])}},
+	Subscriber2#subscriber{product = ProductInstance}.
 %% @hidden
 subscription(#subscriber{buckets = Buckets} = Subscriber,
-		ProductName, Characteristics, Now, [#price{type = one_time,
-		amount = Amount, units = undefined, alteration = undefined} | T]) ->
+		Characteristics, Now, true, [#price{type = one_time,
+		amount = Amount, units = cents, alteration = undefined} | T]) ->
 	NewBuckets = charge(Amount, Buckets),
 	subscription(Subscriber#subscriber{buckets = NewBuckets},
-			ProductName, Characteristics, Now, T);
+			Characteristics, Now, true, T);
 subscription(#subscriber{buckets = Buckets} = Subscriber,
-		ProductName, Characteristics, Now, [#price{type = one_time,
+		Characteristics, Now, true, [#price{type = one_time,
 		amount = PriceAmount, name = Name,
 		alteration = #alteration{units = Units, size = Size,
 		amount = AlterationAmount}} | T]) ->
 	NewBuckets = charge(PriceAmount + AlterationAmount,
 		[#bucket{units = Units, remain_amount = Size, prices = [Name]} | Buckets]),
 	subscription(Subscriber#subscriber{buckets = NewBuckets},
-			ProductName, Characteristics, Now, T);
+			Characteristics, Now, true, T);
 subscription(#subscriber{buckets = Buckets} = Subscriber,
-		ProductName, Characteristics, Now,
-		[#price{type = recurring, period = Period,
-		amount = SubscriptionAmount, units = undefined,
+		Characteristics, Now, InitialFlag, [#price{type = recurring,
+		period = Period, amount = SubscriptionAmount, units = undefined,
 		alteration = undefined} | T]) when Period /= undefined ->
 	NewBuckets = charge(SubscriptionAmount, Buckets),
 	subscription(Subscriber#subscriber{buckets = NewBuckets},
-			ProductName, Characteristics, Now, T);
+			Characteristics, Now, InitialFlag, T);
 subscription(#subscriber{buckets = Buckets} = Subscriber,
-		ProductName, Characteristics, Now,
+		Characteristics, Now, InitialFlag,
 		[#price{type = recurring, name = Name,
 		period = Period, amount = SubscriptionAmount,
 		alteration = #alteration{units = Units, size = Size,
@@ -1471,9 +1494,9 @@ subscription(#subscriber{buckets = Buckets} = Subscriber,
 			[#bucket{units = Units, remain_amount = Size, name = Name,
 			termination_date = end_period(Now, Period)} | Buckets]),
 	subscription(Subscriber#subscriber{buckets = NewBuckets},
-			ProductName, Characteristics, Now, T);
+			Characteristics, Now, InitialFlag, T);
 subscription(#subscriber{buckets = Buckets} = Subscriber,
-		ProductName, Characteristics, Now, [#price{type = usage,
+		Characteristics, Now, InitialFlag, [#price{type = usage,
 		name = Name, alteration = #alteration{type = recurring,
 		period = Period, units = Units, size = Size,
 		amount = Amount}} | T]) when Period /= undefined,
@@ -1482,17 +1505,14 @@ subscription(#subscriber{buckets = Buckets} = Subscriber,
 			remain_amount = Size, prices = [Name],
 			termination_date = end_period(Now, Period)} | Buckets]),
 	subscription(Subscriber#subscriber{buckets = NewBuckets},
-			ProductName, Characteristics, Now, T);
-subscription(Subscriber, ProductName, Characteristics, Now, [_ | T]) ->
-	subscription(Subscriber, ProductName, Characteristics, Now, T);
-subscription(#subscriber{buckets = Buckets} = Subscriber,
-		ProductName, Characteristics, Now, []) ->
+			Characteristics, Now, InitialFlag, T);
+subscription(Subscriber, Characteristics, Now, InitialFlag, [_H | T]) ->
+	subscription(Subscriber, Characteristics, Now, InitialFlag, T);
+subscription(#subscriber{buckets = Buckets} = Subscriber, _, Now, _, []) ->
 	NewBuckets = [B#bucket{last_modified = {Now,
-			erlang:unique_integer([positive])}, id = generate_bucket_id()} || B <- Buckets],
-	P = #product_instance{start_date = Now,
-			product = ProductName, characteristics = Characteristics,
-			last_modified = {Now, erlang:unique_integer([positive])}},
-	Subscriber#subscriber{buckets = NewBuckets, product = P}.
+			erlang:unique_integer([positive])},
+			id = generate_bucket_id()} || B <- Buckets],
+	Subscriber#subscriber{buckets = NewBuckets}.
 
 %% @hidden
 generate_bucket_id() ->

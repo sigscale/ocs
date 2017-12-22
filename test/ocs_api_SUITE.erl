@@ -252,8 +252,8 @@ add_product(_Config) ->
 	Prices = [Price1, Price2, Price3],
 	Product = #product{name = "Silver Surfer",
 			description = "Medium use residential subscription.",
-			start_date = SD, is_bundle = false,
-			status = active, price = Prices},
+			start_date = SD, status = active,
+			price = Prices},
 	{ok, _Product1} = ocs:add_product(Product).
 
 find_product() ->
@@ -277,8 +277,8 @@ find_product(_Config) ->
 	Prices = [Price1, Price2],
 	ProductName = "PD1",
 	Product = #product{name = ProductName, description = "PDD1",
-			start_date = SD, end_date = ED, is_bundle = false,
-			status = active, price = Prices},
+			start_date = SD, end_date = ED, status = active,
+			price = Prices},
 	{ok, _Product1} = ocs:add_product(Product),
 	{ok, #product{name = ProductName}} = ocs:find_product(ProductName).
 
@@ -298,7 +298,7 @@ get_products(_Config) ->
 						type = usage, units = octets,
 						size = 150000000, amount = 0}},
 		Prices = [Price1, Price2],
-		Product = #product{name = ProductName, is_bundle = false,
+		Product = #product{name = ProductName,
 				status = active, price = Prices},
 		{ok, _Product1} =  ocs:add_product(Product),
 		F(F, N - 1, [ProductName | Acc])
@@ -318,7 +318,7 @@ delete_product(_Config) ->
 	ProductName = "Mobile-Internet",
 	Product = #product{name = ProductName,
 			description = "Monthly subscription for mobile internet",
-			is_bundle = false, status = active, price = Prices},
+			status = active, price = Prices},
 	{ok, _Product1} = ocs:add_product(Product),
 	ok = ocs:delete_product(ProductName),
 	{error, not_found} = ocs:find_product(ProductName).
