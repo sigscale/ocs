@@ -117,7 +117,6 @@
 		description :: '_' | string() | undefined,
 		start_date :: '_' | pos_integer() | undefined,
 		end_date :: '_' | pos_integer() | undefined,
-		is_bundle = false :: '_' | boolean() | undefined,
 		status :: offer_status() | '_' | undefined,
 		specification :: '_' | string() | undefined,
 		bundle = [] :: '_' | [#bundled_po{}],

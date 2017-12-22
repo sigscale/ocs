@@ -1000,9 +1000,6 @@ offer([start_date | T], #product{start_date = Start,
 	offer(T, P, [{"validFor", ValidFor} | Acc]);
 offer([end_date | T], P, Acc) ->
 	offer(T, P, Acc);
-offer([is_bundle | T], #product{is_bundle = IsBundle} = P, Acc)
-		when is_boolean(IsBundle) ->
-	offer(T, P, [{"isBundle", IsBundle} | Acc]);
 offer([price | T], #product{price = Prices1} = P, Acc)
 		when is_list(Prices1) ->
 	Prices2 = [price(Price) || Price <- Prices1],
@@ -1014,8 +1011,13 @@ offer([last_modified | T], #product{last_modified = {Last, _}} = P, Acc)
 	offer(T, P, [{"lastUpdate", ocs_rest:iso8601(Last)} | Acc]);
 offer([_H | T], P, Acc) ->
 	offer(T, P, Acc);
-offer([], #product{name = Name}, Acc) ->
-	H = [{"id", Name}, {"href", ?offeringPath ++ Name}],
+offer([], #product{name = Name, bundle = [] ,
+		specification = L}, Acc) when length(L) > 0 ->
+	H = [{"id", Name}, {"href", ?offeringPath ++ Name}, {"isBundle", false}],
+	{struct, H ++ lists:reverse(Acc)};
+offer([], #product{name = Name, bundle = L,
+		specification = []}, Acc) when length(L) > 0 ->
+	H = [{"id", Name}, {"href", ?offeringPath ++ Name}, {"isBundle", true}],
 	{struct, H ++ lists:reverse(Acc)}.
 %% @hidden
 offer([{"id", ID} | T], Acc) when is_list(ID) ->
@@ -1040,8 +1042,6 @@ offer([{"validFor", {struct, L}} | T], Acc) ->
 			Acc
 	end,
 	offer(T, Acc2);
-offer([{"isBundle", Bundle} | T], Acc) when is_boolean(Bundle) ->
-	offer(T, Acc#product{is_bundle = Bundle});
 offer([{"lifecycleStatus", Status} | T], Acc) when is_list(Status) ->
 	offer(T, Acc#product{status = offer_status(Status)});
 offer([{"productSpecification", {struct, L}} | T], Acc) when is_list(L) ->
@@ -1065,7 +1065,11 @@ offer([{"prodSpecCharValueUse", {array, _} = CharValueUses} | T], Acc) ->
 	offer(T, Acc#product{char_value_use = char_value_uses(CharValueUses)});
 offer([{"lastUpdate", LastUpdate} | T], Acc) when is_list(LastUpdate) ->
 	offer(T, Acc);
-offer([], Acc) ->
+offer([], #product{bundle = [], specification = S} = Acc)
+		when S /= undefined ->
+	Acc;
+offer([], #product{bundle = L, specification = undefined} = Acc)
+		when length(L) > 0 ->
 	Acc.
 
 -spec bundled_po(Bundled) -> Bundled

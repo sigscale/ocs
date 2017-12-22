@@ -12,6 +12,7 @@
 <link rel="import" href="paper-button/paper-button.html">
 <link rel="import" href="paper-tooltip/paper-tooltip.html">
 <link rel="import" href="paper-toggle-button/paper-toggle-button.html" >
+<link rel="import" href="paper-checkbox/paper-checkbox.html">
 <link rel="import" href="paper-toast/paper-toast.html">
 <link rel="import" href="paper-styles/color.html">
 <link rel="import" href="paper-date-picker/paper-date-picker.html">
@@ -38,6 +39,10 @@
 			paper-toast.error {
 				background-color: var(--paper-red-a400);
 			}
+			paper-checkbox {
+            --paper-checkbox-checked-color: #ffb04c;
+            --paper-checkbox-checkmark-color: var(--paper-yellow-900);
+         }
 			.add-button {
 				background-color: var(--paper-lime-a700);
 				color: black;
@@ -96,17 +101,41 @@
 						</paper-tooltip>
 					</div>
 					<div>
+						<span>Bundled Products</span>
+						<paper-icon-button
+								id="onClickBundle"
+								suffix
+								icon="arrow-drop-down"
+								on-click="_onClickBundle">
+						</paper-icon-button>
+					</div>
+					<iron-collapse id="addBundle">
+						<template is=dom-repeat items="{{products}}">
+							<div>
+								<paper-checkbox checked="{{item.checked}}"> 
+										{{item.name}}
+								</paper-checkbox>
+							</div>
+						</template>
+					</iron-collapse>
+					<div>
 						<paper-dropdown-menu
+								id="addOffProductSpecificationDrop"
 								label="[[i18n.productSpec]]">
 							<paper-listbox
 									id="addOffProductSpecification"
 									slot="dropdown-content"
 									class="dropdown-content">
-								<template is="dom-repeat" items="[[productSpec]]">
-									<paper-item>
-										{{item.sName}}
-									</paper-item>
-								</template>
+								<paper-item>
+									<i18n-msg msgid="preData">
+										Prepaid Data
+									</i18n-msg>
+								</paper-item>
+								<paper-item>
+									<i18n-msg msgid="preVoice">
+										Prepaid Voice
+									</i18n-msg>
+								</paper-item>
 							</paper-listbox>
 						</paper-dropdown-menu>
 					</div>
@@ -378,7 +407,7 @@
 									class="dropdown-content"
 									selected="2">
 								<paper-item>
-									Hourly	
+									Hourly
 								</paper-item>
 								<paper-item>
 									Daily
@@ -701,7 +730,7 @@
 									slot="dropdown-content"
 									class="dropdown-content">
 								<paper-item>
-									Hourly	
+									Hourly
 								</paper-item>
 								<paper-item>
 									Daily
@@ -755,11 +784,11 @@
 				on-error="_addProductError">
 		</iron-ajax>
 		<iron-ajax
-			id="getProductSpecificationAjax"
-			url="/catalogManagement/v2/productSpecification"
+			id="getProductsAjax"
+			url="/catalogManagement/v2/productOffering"
 			method="GET"
-			on-response="_getProductSpecificationResponse"
-			on-error="_getProductSpecificationError">
+			on-response="_getProductsResponse"
+			on-error="_getProductsError">
 		</iron-ajax>
 	</template>
 	<script>
@@ -779,11 +808,11 @@
 						return [];
 					}
 				},
-				productSpec: {
+				products: {
 					type: Array,
 					value: function() {
 						return [];
-					}
+					},
 				},
 				selected: {
 					type: Number,
@@ -836,6 +865,9 @@
 					value: "add"
 				}
 			},
+			observers: [
+				'_bundleCheckboxChanged(products.*)'
+			],
 			_addProductStartDateOfferPick: function(date) {
 				if (this.$.addProductStartDatePickOff.opened) {
 					this.addProductStartDateOffer = moment(date).format('YYYY-MM-DD');
@@ -866,24 +898,16 @@
 					this.addProductEndDateAlt = moment(date).format('YYYY-MM-DD');
 				}
 			},
-			_getProductSpecificationResponse: function(event) {
+			_getProductsResponse: function(event) {
 				var results = event.detail.xhr.response;
 				for (var index in results) {
-					function checkExist(spec) {
-						return spec.name == results[index].name;
-					}
-					if(!this.productSpec.some(checkExist)){
-						var newSpec = new Object();
-						newSpec.id = results[index].id;
-						newSpec.href = results[index].href;
-						newSpec.name = results[index].name;
-						newSpec.sName = newSpec.name.replace("ProductSpec", "");
-						newSpec.chars = results[index].productSpecCharacteristic;
-						this.push('productSpec', newSpec);
-					}
+					var product = new Object();
+					product.name = results[index].name;
+					product.checked = false; 
+					this.push('products', product);
 				}
 			},
-			_getProductSpecificationError: function(event) {
+			_getProductsError: function(event) {
 				this.$.addProductToastError.text = event.detail.request.xhr.statusText;
 				this.$.addProductToastError.open();
 			},
@@ -1040,6 +1064,29 @@
 					}
 				}
 			},
+			_bundleCheckboxChanged: function() {
+				function check(item) {
+					return item.checked;
+				}
+				if(this.products.some(check)) {
+					this.$.addOffProductSpecificationDrop.disabled = true;
+					this.$.destPrefixPrice.disabled = true;
+					this.$.destPrefixTariff.disabled = true;
+				} else {
+					this.$.addOffProductSpecificationDrop.disabled = false;
+					this.$.destPrefixPrice.disabled = false;
+					this.$.destPrefixTariff.disabled = false;
+				}
+			},
+			_onClickBundle: function(event) {
+				if(this.$.addBundle.opened == false) {
+					this.$.addBundle.show();
+					this.$.onClickBundle.icon="arrow-drop-up";
+				} else {
+					this.$.addBundle.hide();
+					this.$.onClickBundle.icon="arrow-drop-down"
+				}
+			},
 			_onClickOfferChars: function() {
 				if(this.$.addOfferChars.opened == false) {
 					this.$.addOfferChars.show();
@@ -1058,10 +1105,16 @@
 					offerNew.description = this.$.addOffDesc.value;
 				}
 				var specIndex = this.$.addOffProductSpecification.selected;
-				if(specIndex) {
-					offerNew.productSpecification = this.productSpec[specIndex];
-					delete offerNew.productSpecification.sName;
-					delete offerNew.productSpecification.chars;
+				if(specIndex == 0) {
+					var prodSpecData = new Object();
+					prodSpecData.id = "8";
+					prodSpecData.href = "/catalogManagement/v2/productSpecification/8";
+					offerNew.productSpecification = prodSpecData;
+				} else if(specIndex == 1) {
+					var prodSpecVoice = new Object();
+					prodSpecVoice.id = "9";
+					prodSpecVoice.href = "/catalogManagement/v2/productSpecification/9";
+					offerNew.productSpecification = prodSpecVoice;
 				}
 				var startDateTime;
 				var endDateTime;
@@ -1558,7 +1611,6 @@
 						&& priceNew.amount) {
 					if (indexPrice == -1) {
 						this.push('prices', priceNew);
-console.log(this.prices);
 					} else {
 						this.splice('prices', indexPrice, 1, priceNew);
 						this.addOrUpdateButton = "add";
@@ -1705,7 +1757,7 @@ console.log(this.prices);
 			cancelDialog: function() {
 				this.set('prices', []);
 				this.set('alterations', []);
-				this.set('productSpec', []);
+				this.set('products', []);
 				this.addOrUpdateButton = "add";
 				this.$.addOffName.value = null;
 				this.$.addOffDesc.value = null;
