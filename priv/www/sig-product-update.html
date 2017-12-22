@@ -1557,14 +1557,14 @@
 			checkRecureAlt: function() {
 				if(this.$.updateAltType.selected == 0) {
 					this.$.addalt5drop.disabled = false;
-					this.$.altBytes.disabled = true;
-					this.$.altSeconds.disabled = true;
+					this.$.altBytes.disabled = false;
+					this.$.altSeconds.disabled = false;
 					this.$.altCents.disabled = false;
 					this.$.updateUnitDrop.selected = 1;
 				} else if(this.$.updateAltType.selected == 1) {
 					this.$.addalt5drop.disabled = true;
-					this.$.altBytes.disabled = true;
-					this.$.altSeconds.disabled = true;
+					this.$.altBytes.disabled = false;
+					this.$.altSeconds.disabled = false;
 					this.$.altCents.disabled = false;
 					this.$.updateUnitDrop.selected = 1;
 				} else if(this.$.updateAltType.selected == 2) {
