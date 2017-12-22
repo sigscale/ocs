@@ -1472,11 +1472,11 @@
 					return out;
 				}
 				offerNew.productOfferingPrice = this.prices.map(mapPrice);
-				if(offerNew.name
-						&& offerNew.productOfferingPrice.length > 0) {
+				if(offerNew.name) {
 					var ajax = this.$.addProductAjax;
 					ajax.body = offerNew;
 					ajax.generateRequest();
+					this.$.addBundle.hide();
 				} else {
 					document.getElementById("addProductToastError").open();
 				}
@@ -1789,7 +1789,8 @@
 				this.$.addOffProductSpecification.selected = null;
 				this.$.addOffStart.value = null;
 				this.$.addOffEnd.value = null;
-				this.$.addOfferChars.hide()
+				this.$.addOfferChars.hide();
+				this.$.addBundle.hide();
 				this.$.destPrefixPrice.value = null;
 				this.$.destPrefixTariff.value = null;
 				this.$.addProductStartDatePickOff.hide()
