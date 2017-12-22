@@ -924,7 +924,7 @@
 				this.$.updateProductModal.open();
 				this.$.updateOffName.value = item.name;
 				this.$.updateOffDesc.value = item.description;
-				if(this.$.updateOffSpec.value) {
+				if(item.productSpecification.name) {
 					this.$.updateOffSpec.value = item.productSpecification.name.replace("ProductSpec", "");
 				}
 				this.$.updateOffStart.value = item.startDate;
@@ -1950,12 +1950,14 @@
 				this.set('prices', []);
 				this.set('alterations', []);
 				document.getElementById("productGrid").clearCache();
+				this.cancelDialog();
 			},
 			cancelDialog: function() {
 				this.set('prices', []);
 				this.set('alterations', []);
 				this.$.updateOffName.value = null;
 				this.$.updateOffDesc.value = null;
+				this.$.updateOffSpec.value = null;
 				this.$.updateOffStart.value = null;
 				this.$.updateOffEnd.value = null;
 				this.$.updateProductStartDatePickUpdateOff.hide()

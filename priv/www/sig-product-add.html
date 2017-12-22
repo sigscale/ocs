@@ -1775,6 +1775,7 @@
 				this.set('prices', []);
 				this.set('alterations', []);
 				document.getElementById("productGrid").clearCache();
+				this.cancelDialog();
 			},
 			_addProductError: function(event) {
 				document.getElementById("addProductToastError").open();
