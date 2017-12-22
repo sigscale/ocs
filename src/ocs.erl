@@ -784,7 +784,11 @@ add_product(#product{price = Prices} = Product) when length(Prices) > 0 ->
 		false ->
 			{error, validation_failed}
 	end;
-add_product(#product{is_bundle = true} = Product) ->
+add_product(#product{specification = [], bundle = L} = Product)
+		when length(L) > 0 ->
+	add_product1(Product);
+add_product(#product{specification = L, bundle = []} = Product)
+		when length(L) > 0 ->
 	add_product1(Product).
 %% @hidden
 add_product1(Product) ->
@@ -899,7 +903,7 @@ query_product(Con, Name, Description, Status, SDT, EDT, Price) when is_list(SDT)
 	query_product(Con, Name, Description, Status, ISOSDT, EDT, Price);
 query_product(start, Name, Description, Status, SDT, EDT, Price) ->
 	MatchHead = #product{name = Name, description = Description,
-			start_date = SDT, end_date = EDT, is_bundle = '_',
+			start_date = SDT, end_date = EDT, bundle = '_',
 			status = Status, specification = '_',
 			char_value_use = '_', price = '_', last_modified = '_'},
 	MatchSpec = MatchSpec = [{MatchHead, [], ['$_']}],
