@@ -784,7 +784,7 @@ add_product(#product{price = Prices} = Product) when length(Prices) > 0 ->
 		false ->
 			{error, validation_failed}
 	end;
-add_product(#product{specification = [], bundle = L} = Product)
+add_product(#product{specification = undefined, bundle = L} = Product)
 		when length(L) > 0 ->
 	add_product1(Product);
 add_product(#product{specification = L, bundle = []} = Product)
