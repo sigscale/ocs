@@ -471,29 +471,17 @@
     "description": "Balance units",
     "message": "Units"
   },
-	"octet": {
+	"bytes": {
     "description": "unit types",
     "message": "Bytes"
   },
-	"bytes": {
-    "description": "unit types",
-    "message": "octets"
-  },
-	"cent": {
+	"cents": {
     "description": "unit types",
     "message": "Cents"
   },
-	"cents": {
-    "description": "unit types",
-    "message": "cents"
-  },
-	"second": {
-    "description": "unit types",
-    "message": "Seconds"
-  },
 	"seconds": {
     "description": "unit types",
-    "message": "seconds"
+    "message": "Seconds"
   },
 	"prod": {
     "description": "Balance types",

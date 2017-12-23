@@ -483,15 +483,15 @@
     "description": "Balance units",
     "message": "Unidades"
   },
-	"octet": {
+	"bytes": {
     "description": "unit types",
-    "message": "Octetos"
+    "message": "Bytes"
   },
-	"cent": {
+	"cents": {
     "description": "unit types",
     "message": "Centavos"
   },
-	"second": {
+	"seconds": {
     "description": "unit types",
     "message": "Segundos"
   },
