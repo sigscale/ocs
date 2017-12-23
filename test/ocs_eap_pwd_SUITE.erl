@@ -96,7 +96,7 @@ init_per_testcase(TestCase, Config) when TestCase == eap_identity_over_diameter;
 		TestCase == pwd_confirm_over_diameter ->
 	{ok, DiameterConfig} = application:get_env(ocs, diameter),
 	{auth, [{Address, _, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
-	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined),
+	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	[{diameter_client, Address}] ++ Config;
 init_per_testcase(_TestCase, Config) ->
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
@@ -104,7 +104,7 @@ init_per_testcase(_TestCase, Config) ->
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, RadIP}, binary]),
 	SharedSecret = ct:get_config(radius_shared_secret),
 	Protocol = radius,
-	{ok, _} = ocs:add_client(RadIP, RadPort, Protocol, SharedSecret),
+	{ok, _} = ocs:add_client(RadIP, RadPort, Protocol, SharedSecret, true),
 	NasId = atom_to_list(node()),
 	[{nas_id, NasId}, {socket, Socket}, {radius_client, RadIP}] ++ Config.
 

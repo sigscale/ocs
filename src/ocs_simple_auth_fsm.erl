@@ -72,7 +72,8 @@
 		dest_realm :: undefined | string(),
 		password :: undefined | string() | binary(),
 		diameter_port_server :: undefined | pid(),
-		request :: undefined | #diameter_nas_app_AAR{}}).
+		request :: undefined | #diameter_nas_app_AAR{},
+		password_required :: boolean()}).
 
 -type statedata() :: #statedata{}.
 
@@ -98,7 +99,7 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
+init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort, PasswordReq,
 		SessId, AppId, AuthType, OHost, ORealm, Request, DHost, DRealm, Options] = _Args) ->
 	[Subscriber, Password] = Options,
 	case global:whereis_name({ocs_diameter_auth, ServerAddress, ServerPort}) of
@@ -112,17 +113,18 @@ init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 					subscriber = Subscriber, password = Password,
 					server_address = ServerAddress, server_port = ServerPort,
 					client_address = ClientAddress, client_port = ClientPort,
-					diameter_port_server = PortServer, request = Request},
+					diameter_port_server = PortServer, request = Request,
+					password_required = PasswordReq},
 			{ok, request, StateData, 0}
 	end;
 init([radius, ServerAddress, ServerPort, ClientAddress, ClientPort, RadiusFsm,
-		Secret, SessionID, #radius{code = ?AccessRequest, id = ID,
+		Secret, PasswordReq, SessionID, #radius{code = ?AccessRequest, id = ID,
 		authenticator = Authenticator, attributes = Attributes}] = _Args) ->
 	StateData = #statedata{protocol = radius, server_address = ServerAddress,
 		server_port = ServerPort, client_address = ClientAddress,
 		client_port = ClientPort, radius_fsm = RadiusFsm, shared_secret = Secret,
 		session_id = SessionID, radius_id = ID, req_auth = Authenticator,
-		req_attr = Attributes},
+		req_attr = Attributes, password_required = PasswordReq},
 	process_flag(trap_exit, true),
 	{ok, request, StateData, 0}.
 
@@ -148,11 +150,17 @@ request(timeout, #statedata{protocol = diameter} = StateData) ->
 
 %% @hidden
 handle_radius(#statedata{req_attr = Attributes, req_auth = Authenticator,
-		session_id = SessionID, shared_secret = Secret} = StateData) ->
+		session_id = SessionID, shared_secret = Secret, password_required =
+		PasswordReq} = StateData) ->
 	try
 		Subscriber = radius_attributes:fetch(?UserName, Attributes),
-		Hidden = radius_attributes:fetch(?UserPassword, Attributes),
-		Password = radius_attributes:unhide(Secret, Authenticator, Hidden),
+		Password = case PasswordReq of
+			true ->
+				Hidden = radius_attributes:fetch(?UserPassword, Attributes),
+				radius_attributes:unhide(Secret, Authenticator, Hidden);
+			false ->
+				[]
+		end,
 		NewStateData = StateData#statedata{subscriber = Subscriber,
 				password = list_to_binary(Password)},
 		handle_radius1(NewStateData)
@@ -162,10 +170,15 @@ handle_radius(#statedata{req_attr = Attributes, req_auth = Authenticator,
 			{stop, {shutdown, SessionID}, StateData}
 	end.
 %% @hidden
-handle_radius1(#statedata{subscriber = SubscriberId, password = <<>>} = StateData) ->
+handle_radius1(#statedata{subscriber = SubscriberId, password = <<>>,
+		password_required = PasswordReq} = StateData) ->
 	case ocs:authorize(SubscriberId, []) of
 		{ok, #subscriber{password = <<>>,
 				attributes = Attributes} = Subscriber} ->
+			NewStateData = StateData#statedata{res_attr = Attributes},
+			handle_radius2(Subscriber, NewStateData);
+		{ok, #subscriber{attributes = Attributes} = Subscriber}
+				when PasswordReq == false ->
 			NewStateData = StateData#statedata{res_attr = Attributes},
 			handle_radius2(Subscriber, NewStateData);
 		{ok, #subscriber{attributes = Attributes, password = PSK}
@@ -264,6 +277,9 @@ handle_diameter(#statedata{protocol = diameter,
 	case ocs:authorize(SubscriberId, Password) of
 		{ok, Subscriber} ->
 			handle_diameter1(Subscriber, StateData);
+		{disabled, SessionAttributes} ->
+			start_disconnect(SessionAttributes, StateData),
+			reject_diameter(disabled_subscriber , StateData);
 		{error, Reason} ->
 			reject_diameter(Reason, StateData)
 	end.

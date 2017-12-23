@@ -938,7 +938,7 @@ get_clients_filter() ->
 	[{userdata, [{doc,"Get clients with filters"}]}].
 
 get_clients_filter(Config) ->
-	{ok, _} = ocs:add_client("10.0.123.100", 3799, radius, "ziggyzaggy"),
+	{ok, _} = ocs:add_client("10.0.123.100", 3799, radius, "ziggyzaggy", true),
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
 	RestUser = ct:get_config(rest_user),

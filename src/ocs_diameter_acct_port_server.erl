@@ -245,7 +245,8 @@ request(Request, Caps,  _From, State) ->
 %% @hidden
 request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _],
-		'Service-Information' = ServiceInformation} = Request,
+		'Service-Information' = ServiceInformation,
+		'Service-Context-Id' = SvcContextId} = Request,
 		SId, RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm, State) ->
 	RSU =  case MSCC of
 		#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit' =
@@ -269,7 +270,8 @@ request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 	end,
 	Destination = get_destination(ServiceInformation),
 	ReserveAmount = [{ReqUsageType, ReqUsage}],
-	case ocs_rating:rate(diameter, Subscriber,
+	ServiceType = lookup_service_type(SvcContextId),
+	case ocs_rating:rate(diameter, ServiceType, Subscriber,
 			Destination, initial, [], ReserveAmount, [{'Session-Id', SId}]) of
 		{ok, _, GrantedAmount} ->
 			GrantedUnits = case ReqUsageType of
@@ -308,7 +310,8 @@ request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 	end;
 request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _],
-		'Service-Information' = ServiceInformation} = Request,
+		'Service-Information' = ServiceInformation,
+		'Service-Context-Id' = SvcContextId} = Request,
 		SId, RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm, State) ->
 	try
 		RSU =  case MSCC of
@@ -353,7 +356,8 @@ request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		Destination = get_destination(ServiceInformation),
 		ReserveAmount = [{ReqUsageType, ReqUsage}],
 		DebitAmount = [{UsedType, UsedUsage}],
-		case ocs_rating:rate(diameter, Subscriber,
+		ServiceType = lookup_service_type(SvcContextId),
+		case ocs_rating:rate(diameter, ServiceType, Subscriber,
 				Destination, interim, DebitAmount, ReserveAmount, [{'Session-Id', SId}]) of
 			{ok, _, GrantedAmount} ->
 				GrantedUnits = case ReqUsageType of
@@ -400,7 +404,8 @@ request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 	end;
 request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _],
-		'Service-Information' = ServiceInformation} = Request,
+		'Service-Information' = ServiceInformation,
+		'Service-Context-Id' = SvcContextId} = Request,
 		SId, RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm, State) ->
 	try
 		USU =  case MSCC of
@@ -424,9 +429,10 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		end,
 		Destination = get_destination(ServiceInformation),
 		DebitAmount = [{UsedType, UsedUsage}],
-		case ocs_rating:rate(diameter, Subscriber, Destination,
+		ServiceType = lookup_service_type(SvcContextId),
+		case ocs_rating:rate(diameter, ServiceType, Subscriber, Destination,
 				final, DebitAmount, [], [{'Session-Id', SId}]) of
-			{ok, _, _GrantedAmount} ->
+			{ok, _, 0} ->
 				{Reply, NewState} = generate_diameter_answer(Request, SId,
 						undefined, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
 						RequestType, RequestNum, State),
@@ -484,16 +490,11 @@ generate_diameter_answer(Request, SId, undefined,
 		?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
 		ORealm, RequestType, RequestNum, #state{address = Address,
 		port = Port} = State) ->
-	FinalUnitInd = #'3gpp_ro_Final-Unit-Indication'{
-			'Final-Unit-Action' = ?'3GPP_RO_FINAL-UNIT-ACTION_TERMINATE'},
-	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
-			'Final-Unit-Indication' = [FinalUnitInd]},
 	Reply = #'3gpp_ro_CCA'{'Session-Id' = SId,
 			'Result-Code' = ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED',
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID, 'CC-Request-Type' = RequestType,
-			'CC-Request-Number' = RequestNum,
-			'Multiple-Services-Credit-Control' = [MultiServices_CC]},
+			'CC-Request-Number' = RequestNum},
 	Server = {Address, Port},
 	ok = ocs_log:acct_log(diameter, Server,
 			accounting_event_type(RequestType), Request, Reply),
@@ -566,4 +567,7 @@ destination(<<"tel:", Dest/binary>>) ->
 	binary_to_list(Dest);
 destination(Dest) ->
 	binary_to_list(Dest).
+
+lookup_service_type(ServiceContextId) ->
+	binary:part(ServiceContextId, byte_size(ServiceContextId), -14).
 

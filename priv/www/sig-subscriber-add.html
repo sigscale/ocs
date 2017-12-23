@@ -66,7 +66,7 @@
 							class="dropdown-content">
 						<template is="dom-repeat" items="[[products]]">
 							<paper-item>
-								{{item.name}}
+								{{item}}
 							</paper-item>
 						</template>
 					</paper-listbox>
@@ -89,13 +89,6 @@
 				</paper-button>
 			</div>
 		</paper-dialog>
-		<iron-ajax
-				id="addSubscriberProductAjax"
-				url="/catalogManagement/v2/productOffering?fields=name,productSpecification.id"
-				method = "GET"
-				on-response="_addSubscriberProductResponse"
-				on-error="_addSubscriberProductError">
-		</iron-ajax>
 	</template>
 	<script>
 		Polymer ({
@@ -105,37 +98,20 @@
 				products: {
 					type: Array,
 					value: function() {
-						return [];
+						return []
 					}
 				},
-			},
-			_addSubscriberProductResponse: function(event) {
-				var results = event.detail.xhr.response;
-				this.products = [];
-				for (var index in results) {
-					this.push('products', results[index]);
-				}
-				document.getElementById("addSubscriberProductModal").open();
-			},
-			_addSubscriberProductError: function(event) {
-				this.$.addSubscriberToastError.text = event.detail.request.xhr.statusText;
-				this.$.addSubscriberToastError.open();
 			},
 			_productSelected: function() {
 				var product = this.products[this.$.addproduct10.selected];
 				if(product) {
-//					if(product.productSpecification.id) {
-						document.getElementById("AddUpdatePro").value = product.name
-						document.getElementById("subscriberAdd").product = product.name;
-						document.getElementById("addSubscriberModal").open();
-						document.getElementById("addSubscriberProductModal").close();
-//					}
-//					else {
-//						document.getElementById("addSubscriberProductToastError").open();
-//					}
+					document.getElementById("AddUpdatePro").value = product;
+					document.getElementById("subscriberAdd").product = product;
+					document.getElementById("addSubscriberModal").open();
+					document.getElementById("addSubscriberProductModal").close();
 					this.$.addproduct10.selected = null;
 				}
 			}
-		})
+		});
 	</script>
 </dom-module>

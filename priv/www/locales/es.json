@@ -621,11 +621,11 @@
   },
 	"priceReserveTimeTool": {
     "description": "Product offering price RADIUS reserve time",
-    "message": "Número de segundos para reservar en la solicitud de contabilidad RADIUS inicial/provisional".
+    "message": "Número de segundos para reservar en la solicitud de contabilidad RADIUS inicial/provisional"
   },
 	"priceReserveBytesTool": {
     "description": "Product offering price RADIUS reserve data",
-    "message": "Cantidad de bytes para reservar en la solicitud de contabilidad RADIUS inicial/provisional".
+    "message": "Cantidad de bytes para reservar en la solicitud de contabilidad RADIUS inicial/provisional"
   },
    "priceAlterTool": {
     "description": "product offering price alteration",
@@ -750,6 +750,42 @@
 	"ratePriceiTool": {
     "description": "rate Price tooltip",
     "message": "Tasa del precio"
+  },
+	"table": {
+    "description": "prefix table",
+    "message": "Mesas"
+  },
+	"prefix": {
+    "description": "Prefix table",
+    "message": "Prefijo"
+  },
+	"priceName": {
+    "description": "Name of table",
+    "message": "Nombre del precio"
+  },
+	"addPrefix": {
+    "description": "Add prefix toolbar heading",
+    "message": "Añadir Prefijo"
+  },
+	"updatePrefix": {
+    "description": "Update prefix toolbar heading",
+    "message": "Prefijo de actualización"
+  },
+	"startTime": {
+    "description": "Time of Day Range start time",
+    "message": "Hora de inicio"
+  },
+	"endTime": {
+    "description": "Time of Day Range end time",
+    "message": "Hora de finalización"
+  },
+	"preData": {
+    "description": "PrepaidData",
+    "message": "Datos prepagos"
+  },
+	"preVoice": {
+    "description": "PrepaidVoice",
+    "message": "Voz prepago"
   },
    "productDeleted": {
     "description": "Success Toast Message",

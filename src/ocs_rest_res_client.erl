@@ -171,9 +171,9 @@ post_client(RequestBody) ->
 	try
 		Client = client(mochijson:decode(RequestBody)),
 		#client{address = Address, port = Port, protocol = Protocol,
-				secret = Secret} = Client,
+				secret = Secret, password_required = PasswordReq} = Client,
 		{ok, #client{last_modified = Etag} = Client1} =
-				ocs:add_client(Address, Port, Protocol, Secret),
+				ocs:add_client(Address, Port, Protocol, Secret, PasswordReq),
 		Id = inet:ntoa(Address),
 		Location = "/ocs/v1/client/" ++ Id,
 		JsonObj  = client(Client1),
@@ -407,7 +407,8 @@ query_page1([H | T], Filters, Acc) ->
 %% @private
 %% Codec function for client
 client(#client{address = Address, secret = Secret,
-		port = Port, protocol = Protocol, identifier = Identifier}) ->
+		port = Port, protocol = Protocol, identifier = Identifier,
+		password_required = PasswordReq}) ->
 	Id = inet:ntoa(Address),
 	ResObj1 = [{"id", Id}, {"href","/ocs/v1/client/" ++ Id}],
 	ResObj2 = case Port of
@@ -434,7 +435,8 @@ client(#client{address = Address, secret = Secret,
 		Identifier ->
 			[{"identifier", binary_to_list(Identifier)}]
 	end,
-	ResObj = ResObj1 ++ ResObj2 ++ ResObj3 ++ ResObj4 ++ ResObj5,
+	ResObj6 = [{"passwordRequired", PasswordReq}],
+	ResObj = ResObj1 ++ ResObj2 ++ ResObj3 ++ ResObj4 ++ ResObj5 ++ ResObj6,
 	{struct, ResObj};
 client({struct, L}) when is_list(L) ->
 	client(L, #client{}).
@@ -458,6 +460,8 @@ client([{"protocol", "DIAMETER"} | T], Acc) ->
 	client(T, Acc#client{protocol = diameter});
 client([{"secret", Secret} | T], Acc) ->
 	client(T, Acc#client{secret = list_to_binary(Secret)});
+client([{"passwordRequired", PwdReq} | T], Acc) ->
+	client(T, Acc#client{password_required = PwdReq});
 client([], Acc) ->
 	Acc.
 

@@ -175,9 +175,11 @@ post_subscriber(RequestBody) ->
 	try 
 		#subscriber{name = Name, password = Password,
 				attributes = Attributes, enabled = Enabled,
-				multisession = Multi, buckets = Buckets,
+				multisession = Multi, buckets = Buckets1,
 				product = Product} =
 					subscriber(mochijson:decode(RequestBody)),
+		Buckets2 =
+			[B#bucket{id = generate_bucket_id()} || B <- Buckets1],
 		{ProdID, Chars} = case Product of
 			undefined ->
 				{undefined, []};
@@ -186,7 +188,7 @@ post_subscriber(RequestBody) ->
 				{ProdId, Characteristics}
 		end,
 		case catch ocs:add_subscriber(Name, Password,
-				ProdID, Chars, Buckets, Attributes, Enabled, Multi) of
+				ProdID, Chars, Buckets2, Attributes, Enabled, Multi) of
 			{ok, #subscriber{name = Id, last_modified = LM} = Subscriber} ->
 				Json = subscriber(Subscriber),
 				Body = mochijson:encode(Json),
@@ -503,8 +505,10 @@ bucket([{"remainAmount", Amount} | T], Acc) ->
 bucket([], Acc) ->
 	Acc.
 %% @hidden
-bucket([id | T], Bucket, Acc) ->
+bucket([id | T], #bucket{id = undefined} = Bucket, Acc) ->
 	bucket(T, Bucket, Acc);
+bucket([id | T], #bucket{id = ID} = Bucket, Acc) ->
+	bucket(T, Bucket, [{"id", ID} | Acc]);
 bucket([name | T], Bucket, Acc) ->
 	bucket(T, Bucket, Acc);
 bucket([units | T], #bucket{units = Type} = Bucket, Acc) ->
@@ -522,6 +526,8 @@ bucket([remain_amount | T], #bucket{remain_amount = Amount} = Bucket, Acc) ->
 bucket([reservations | T], Bucket, Acc) ->
 	bucket(T, Bucket, Acc);
 bucket([last_modified | T], Bucket, Acc) ->
+	bucket(T, Bucket, Acc);
+bucket([prices | T], Bucket, Acc) ->
 	bucket(T, Bucket, Acc);
 bucket([], _Bucket, Acc) ->
 	{struct, Acc}.
@@ -743,3 +749,8 @@ query_page1([H | T], Filters, Acc) ->
 query_page1([], _, Acc) ->
 	lists:reverse(Acc).
 
+%% @hidden
+generate_bucket_id() ->
+	TS = erlang:system_time(?MILLISECOND),
+	N = erlang:unique_integer([positive]),
+	integer_to_list(TS) ++ "-" ++ integer_to_list(N).

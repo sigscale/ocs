@@ -1,4 +1,4 @@
-%%% ocs_rest_res_product.erl
+%% ocs_rest_res_product.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2017 SigScale Global Inc.
@@ -29,6 +29,7 @@
 -export([get_catalog/2, get_catalogs/1]).
 -export([get_category/2, get_categories/1]).
 -export([get_product_spec/2, get_product_specs/1]).
+-export([get_pla_spec/2, get_pla_specs/1]).
 -export([delete_product_offering/1, delete_product_inventory/1]).
 
 -include("ocs.hrl").
@@ -39,8 +40,10 @@
 
 -define(catalogPath, "/catalogManagement/v2/catalog/").
 -define(categoryPath, "/catalogManagement/v2/category/").
--define(specificationPath, "/catalogManagement/v2/productSpecification/").
+-define(productSpecPath, "/catalogManagement/v2/productSpecification/").
 -define(offeringPath, "/catalogManagement/v2/productOffering/").
+-define(plaPath, "/catalogManagement/v2/pla/").
+-define(plaSpecPath, "/catalogManagement/v2/plaSpecification/").
 -define(inventoryPath, "/inventoryManagement/v2/productOffering/").
 
 -spec content_types_accepted() -> ContentTypes
@@ -190,6 +193,7 @@ get_product_inventory(ID) ->
 		_:_ ->
 			{error, 400}
 	end.
+
 -spec get_product_offerings(Query, Headers) -> Result when
 	Query :: [{Key :: string(), Value :: string()}],
 	Result	:: {ok, Headers, Body} | {error, Status},
@@ -332,10 +336,12 @@ get_product_spec(_Id, _Query) ->
 %% 	Retrieve all product specifications.
 get_product_specs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
-	Object = {array, [spec_product_network(),
-					spec_product_fixed_quantity_pkg(),
-					spec_product_rate_plan(),
-					spec_product_wlan()]},
+	Object = {array, [spec_prod_network(),
+					spec_prod_fixed_quantity_pkg(),
+					spec_prod_rated_plan(),
+					spec_prod_data(), spec_prod_voice(),
+					spec_prod_prepaid(), spec_prod_postpaid(),
+					spec_prod_prepaid_data(), spec_prod_prepaid_voice()]},
 	Body = mochijson:encode(Object),
 	{ok, Headers, Body};
 get_product_specs(_Query) ->
@@ -406,6 +412,45 @@ patch_product_offering(ProdId, Etag, ReqData) ->
 		_:_ ->
 			{error, 400}
 	end.
+
+-spec get_pla_specs(Query) -> Result when
+	Query :: [{Key :: string(), Value :: string()}],
+	Result	:: {ok, Headers, Body} | {error, Status},
+	Headers	:: [tuple()],
+	Body		:: iolist(),
+	Status	:: 400 | 404 | 500.
+%% @doc Respond to `GET /catalogManegment/v2/plaSpecification'.
+%% 	Retrieve all pricing logic algorithm specifications.
+get_pla_specs([] = _Query) ->
+	Headers = [{content_type, "application/json"}],
+	Object = {array, [spec_pla_once(), spec_pla_recurring(),
+			spec_pla_usage(), spec_pla_prefix_price(),
+			spec_pla_prefix_tariff()]},
+	Body = mochijson:encode(Object),
+	{ok, Headers, Body};
+get_pla_specs(_Query) ->
+	{error, 400}.
+
+-spec get_pla_spec(Id, Query) -> Result when
+	Id :: string(),
+	Query :: [{Key :: string(), Value :: string()}],
+	Result	:: {ok, Headers, Body} | {error, Status},
+	Headers	:: [tuple()],
+	Body		:: iolist(),
+	Status	:: 400 | 404 | 500.
+%% @doc Respond to `GET /catalogManegment/v2/plaSpecification/{id}'.
+%% 	Retrieve a pricing logic algorithm specification.
+get_pla_spec(ID, [] = _Query) ->
+	case pla_spec(ID) of
+		{error, StatusCode} ->
+			{error, StatusCode};
+		PLASpec ->
+			Headers = [{content_type, "application/json"}],
+			Body = mochijson:encode(PLASpec),
+			{ok, Headers, Body}
+	end;
+get_pla_spec(_Id, _Query) ->
+	{error, 400}.
 
 -spec patch_product_inventory(SubId, Etag, ReqData) -> Result
 	when
@@ -505,13 +550,23 @@ delete_product_inventory(Id) ->
 		Result :: {struct, [tuple()]} | {error, 404}.
 %% @doc Get Product Specification by ID.
 product_spec("1") ->
-	spec_product_network();
+	spec_prod_network();
 product_spec("2") ->
-	spec_product_fixed_quantity_pkg();
+	spec_prod_fixed_quantity_pkg();
 product_spec("3") ->
-	spec_product_rate_plan();
+	spec_prod_rated_plan();
 product_spec("4") ->
-	spec_product_wlan();
+	spec_prod_data();
+product_spec("5") ->
+	spec_prod_voice();
+product_spec("6") ->
+	spec_prod_prepaid();
+product_spec("7") ->
+	spec_prod_postpaid();
+product_spec("8") ->
+	spec_prod_prepaid_data();
+product_spec("9") ->
+	spec_prod_prepaid_voice();
 product_spec(_) ->
 	{error, 404}.
 
@@ -540,20 +595,21 @@ prepaid_category() ->
 	{struct, [Id, Href, Name, Description, Version, Status, LastUpdate, IsRoot]}.
 
 %% @hidden
-spec_product_network() ->
+spec_prod_network() ->
 	Id = {"id", "1"},
-	Href = {"href", ?specificationPath "1"},
+	Href = {"href", ?productSpecPath "1"},
 	Name = {"name", "NetworkProductSpec"},
 	Description = {"description", "Represents the common behaviour and description of an installed network product that will be provisioned in the network and that enables usages."},
 	Version = {"version", "1.0"},
 	LastUpdate = {"lastUpdate", "2017-10-06T12:00:00Z"},
 	Status = {"lifecycleStatus", "Active"},
-	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status]}.
+	Chars = {"productSpecCharacteristic", {array, characteristic_product_network()}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
 
 %% @hidden
-spec_product_fixed_quantity_pkg() ->
+spec_prod_fixed_quantity_pkg() ->
 	Id = {"id", "2"},
-	Href = {"href", ?specificationPath "2"},
+	Href = {"href", ?productSpecPath "2"},
 	Name = {"name", "FixedQuantityPackageProductSpec"},
 	Description = {"description", "Defines buckets of usage from which Usages will debit the bucket."},
 	Version = {"version", "1.0"},
@@ -562,36 +618,116 @@ spec_product_fixed_quantity_pkg() ->
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status]}.
 
 %% @hidden
-spec_product_rate_plan() ->
+spec_prod_rated_plan() ->
 	Id = {"id", "3"},
-	Href = {"href", ?specificationPath "3"},
+	Href = {"href", ?productSpecPath "3"},
 	Name = {"name", "RatedPlanProductSpec"},
 	Description = {"description", "Defines criteria to be used to gain special usage tariffs like the period (day, evening) or phone number."},
 	Version = {"version", "1.0"},
 	LastUpdate = {"lastUpdate", "2017-10-06T12:00:00Z"},
 	Status = {"lifecycleStatus", "Active"},
-	Chars = {"productSpecCharacteristic", {array, characteristic_product_rate_plane()}},
+	Chars = {"productSpecCharacteristic", {array, characteristic_product_rated_plan()}},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
 
 %% @hidden
-spec_product_wlan() ->
+spec_prod_data() ->
 	Id = {"id", "4"},
-	Href = {"href", ?specificationPath "4"},
-	Name = {"name", "WLANProductSpec"},
-	Description = {"description", "Defines characteristics specific to pulic Wi-Fi use."},
+	Href = {"href", ?productSpecPath "4"},
+	Name = {"name", "DataProductSpec"},
+	Description = {"description", "Defines characteristics specific to data service."},
 	Version = {"version", "1.0"},
 	LastUpdate = {"lastUpdate", "2017-11-14T12:00:00Z"},
 	Status = {"lifecycleStatus", "Active"},
 	DepType = {"type", "dependency"},
 	DepId = {"id", "1"},
-	DepHref = {"href", ?specificationPath "1"},
+	DepHref = {"href", ?productSpecPath "1"},
 	Depend = {struct, [DepId, DepHref, DepType]},
 	Dependency = {"productSpecificationRelationship", {array, [Depend]}},
-	Chars = {"productSpecCharacteristic", {array, characteristic_product_wlan()}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Dependency]}.
+
+%% @hidden
+spec_prod_voice() ->
+	Id = {"id", "5"},
+	Href = {"href", ?productSpecPath "5"},
+	Name = {"name", "VoiceProductSpec"},
+	Description = {"description", "Defines characteristics specific to voice calling."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2017-12-21T12:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	DepType = {"type", "dependency"},
+	DepId1 = {"id", "1"},
+	DepHref1 = {"href", ?productSpecPath "1"},
+	Depend1 = {struct, [DepId1, DepHref1, DepType]},
+	DepId2 = {"id", "3"},
+	DepHref2 = {"href", ?productSpecPath "3"},
+	Depend2 = {struct, [DepId2, DepHref2, DepType]},
+	Dependency = {"productSpecificationRelationship", {array, [Depend1, Depend2]}},
+	Chars = {"productSpecCharacteristic", {array, characteristic_product_voice()}},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars, Dependency]}.
 
 %% @hidden
-characteristic_product_wlan() ->
+spec_prod_prepaid() ->
+	Id = {"id", "6"},
+	Href = {"href", ?productSpecPath "6"},
+	Name = {"name", "PrepaidProductSpec"},
+	Description = {"description", "Defines characteristics specific to prepaid charging."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2017-12-21T12:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	Chars = {"productSpecCharacteristic", {array, characteristic_product_prepaid()}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
+
+%% @hidden
+spec_prod_postpaid() ->
+	Id = {"id", "7"},
+	Href = {"href", ?productSpecPath "7"},
+	Name = {"name", "PostpaidProductSpec"},
+	Description = {"description", "Defines characteristics specific to postpaid charging."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2017-12-21T12:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status]}.
+
+%% @hidden
+spec_prod_prepaid_data() ->
+	Id = {"id", "8"},
+	Href = {"href", ?productSpecPath "8"},
+	Name = {"name", "PrepaidDataProductSpec"},
+	Description = {"description", "Defines characteristics specific to prepaid data."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2017-12-21T12:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	DepType = {"type", "dependency"},
+	DepId1 = {"id", "4"},
+	DepHref1 = {"href", ?productSpecPath "4"},
+	Depend1 = {struct, [DepId1, DepHref1, DepType]},
+	DepId2 = {"id", "6"},
+	DepHref2 = {"href", ?productSpecPath "6"},
+	Depend2 = {struct, [DepId2, DepHref2, DepType]},
+	Dependency = {"productSpecificationRelationship", {array, [Depend1, Depend2]}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Dependency]}.
+
+%% @hidden
+spec_prod_prepaid_voice() ->
+	Id = {"id", "9"},
+	Href = {"href", ?productSpecPath "9"},
+	Name = {"name", "PrepaidVoiceProductSpec"},
+	Description = {"description", "Defines characteristics specific to prepaid voice."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2017-12-21T12:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	DepType = {"type", "dependency"},
+	DepId1 = {"id", "5"},
+	DepHref1 = {"href", ?productSpecPath "5"},
+	Depend1 = {struct, [DepId1, DepHref1, DepType]},
+	DepId2 = {"id", "6"},
+	DepHref2 = {"href", ?productSpecPath "6"},
+	Depend2 = {struct, [DepId2, DepHref2, DepType]},
+	Dependency = {"productSpecificationRelationship", {array, [Depend1, Depend2]}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Dependency]}.
+
+%% @hidden
+characteristic_product_network() ->
 	Name1 = {"name", "subscriberIdentity"},
 	Description1 = {"description",
 			"Uniquely identifies subscriber (e.g. MSISDN, IMSI, username)."},
@@ -605,62 +741,146 @@ characteristic_product_wlan() ->
 	Type2 = {"valueType", "String"},
 	Value2 = {"productSpecCharacteristicValue", {array, [{struct, [Type2]}]}},
 	Char2 = {struct, [Name2, Description2, Config2, Type2, Value2]},
-	Name3 = {"name", "balanceTopUpDuration"},
-	Description3 = {"description", "Validity period of balance top-ups."},
+	Name3 = {"name", "radiusReserveTime"},
+	Description3 = {"description",
+		"Number of seconds to reserve on RADIUS Accounting-Start "
+		"and add to reported duration on Accounting-Interim reservation."},
 	Config3 = {"configurable", false},
 	Type3 = {"valueType", "Number"},
-	Type31 = {struct, [{"unitOfMeasure", "seconds"}, {"valueType", "integer"}]},
-	Type32 = {struct, [{"unitOfMeasure", "minutes"}, {"valueType", "integer"}]},
-	Type33 = {struct, [{"unitOfMeasure", "days"}, {"valueType", "integer"}]},
-	Type34 = {struct, [{"unitOfMeasure", "months"}, {"valueType", "integer"}]},
-	Type35 = {struct, [{"unitOfMeasure", "years"}, {"valueType", "integer"}]},
-	Value3 = {"productSpecCharacteristicValue",
-			{array, [Type31, Type32, Type33, Type34, Type35]}},
+	Type31 = {struct, [{"unitOfMeasure", "seconds"}, {"valueType", "Number"}]},
+	Type32 = {struct, [{"unitOfMeasure", "minutes"}, {"valueType", "Number"}]},
+	Value3 = {"productSpecCharacteristicValue", {array, [Type31, Type32]}},
 	Char3 = {struct, [Name3, Description3, Config3, Type3, Value3]},
-	Name4 = {"name", "radiusReserveTime"},
+	Name4 = {"name", "radiusReserveOctets"},
 	Description4 = {"description",
-		"Number of seconds to reserve on RADIUS Accouning-Start "
-		"and add to reported duration on Accounting-Interim reservation."},
+		"Number of octets to reserve on RADIUS Accounting-Start "
+		"and add to reported octetes used on Accounting-Interim reservation."},
 	Config4 = {"configurable", false},
 	Type4 = {"valueType", "Number"},
-	Type41 = {struct, [{"unitOfMeasure", "seconds"}, {"valueType", "integer"}]},
-	Type42 = {struct, [{"unitOfMeasure", "minutes"}, {"valueType", "integer"}]},
-	Value4 = {"productSpecCharacteristicValue", {array, [Type41, Type42]}},
+	Type41 = {struct, [{"unitOfMeasure", "bytes"}, {"valueType", "Number"}]},
+	Type42 = {struct, [{"unitOfMeasure", "kilobytes"}, {"valueType", "Number"}]},
+	Type43 = {struct, [{"unitOfMeasure", "megabytes"}, {"valueType", "Number"}]},
+	Type44 = {struct, [{"unitOfMeasure", "gigabytes"}, {"valueType", "Number"}]},
+	Value4 = {"productSpecCharacteristicValue",
+			{array, [Type41, Type42, Type43, Type44]}},
 	Char4 = {struct, [Name4, Description4, Config4, Type4, Value4]},
-	Name5 = {"name", "radiusReserveOctets"},
-	Description5 = {"description",
-		"Number of octets to reserve on RADIUS Accouning-Start "
-		"and add to reported octetes used on Accounting-Interim reservation."},
-	Config5 = {"configurable", false},
-	Type5 = {"valueType", "Number"},
-	Type51 = {struct, [{"unitOfMeasure", "bytes"}, {"valueType", "integer"}]},
-	Type52 = {struct, [{"unitOfMeasure", "kilobytes"}, {"valueType", "integer"}]},
-	Type53 = {struct, [{"unitOfMeasure", "megabytes"}, {"valueType", "integer"}]},
-	Type54 = {struct, [{"unitOfMeasure", "gigabytes"}, {"valueType", "integer"}]},
-	Value5 = {"productSpecCharacteristicValue",
-			{array, [Type51, Type52, Type53, Type54]}},
-	Char5 = {struct, [Name5, Description5, Config5, Type5, Value5]},
-	[Char1, Char2, Char3, Char4, Char5].
+	[Char1, Char2, Char3, Char4].
 
 %% @hidden
-characteristic_product_rate_plane() ->
+characteristic_product_rated_plan() ->
+	Name1 = {"name", "timeOfDayRange"},
+	Description1 = {"description", "Start and End of time of day range"},
+	ValueType1 = {"valueType", "Range"},
+	Char1 = {struct, [Name1, Description1, ValueType1]},
+	[Char1].
+
+%% @hidden
+characteristic_product_prepaid() ->
+	Name1 = {"name", "balanceTopUpDuration"},
+	Description1 = {"description", "Validity period of balance top-ups."},
+	Config1 = {"configurable", false},
+	Type1 = {"valueType", "Number"},
+	Type11 = {struct, [{"unitOfMeasure", "seconds"}, {"valueType", "Number"}]},
+	Type12 = {struct, [{"unitOfMeasure", "minutes"}, {"valueType", "Number"}]},
+	Type13 = {struct, [{"unitOfMeasure", "days"}, {"valueType", "Number"}]},
+	Type14 = {struct, [{"unitOfMeasure", "months"}, {"valueType", "Number"}]},
+	Type15 = {struct, [{"unitOfMeasure", "years"}, {"valueType", "Number"}]},
+	Value1 = {"productSpecCharacteristicValue",
+			{array, [Type11, Type12, Type13, Type14, Type15]}},
+	Char1 = {struct, [Name1, Description1, Config1, Type1, Value1]},
+	[Char1].
+
+%% @hidden
+characteristic_product_voice() ->
 	Name1 = {"name", "destPrefixPriceTable"},
-	Description1 = {"description", "Table of Prefix, Description, Price Lable"},
-	ValueType1 = {"valueType", "string"},
+	Description1 = {"description", "Table of Prefix, Description, Price Label"},
+	ValueType1 = {"valueType", "String"},
 	Char1 = {struct, [Name1, Description1, ValueType1]},
 	Name2 = {"name", "destPrefixTariffTable"},
 	Description2 = {"description", "Table of Prefix, Description, Tariff rate"},
-	ValueType2 = {"valueType", "string"},
+	ValueType2 = {"valueType", "String"},
 	Char2 = {struct, [Name2, Description2, ValueType2]},
-	Name3 = {"name", "timeOfDayRange"},
-	Description3 = {"description", "Time range of the day"},
-	ValueType3 = {"valueType", "string"},
+	Name3 = {"name", "ratePrice"},
+	Description3 = {"description", "Price name in prefix table"},
+	ValueType3 = {"valueType", "String"},
 	Char3 = {struct, [Name3, Description3, ValueType3]},
-	Name4 = {"name", "ratePrice"},
-	Description4 = {"description", ""},
-	ValueType4 = {"valueType", "string"},
-	Char4 = {struct, [Name4, Description4, ValueType4]},
-	[Char1, Char2, Char3, Char4].
+	[Char1, Char2, Char3].
+
+-spec pla_spec(ID) -> Result
+	when
+		ID :: string(),
+		Result :: {struct, [tuple()]} | {error, 404}.
+%% @doc Get PLA specification by ID.
+pla_spec("1") ->
+	spec_pla_once();
+pla_spec("2") ->
+	spec_pla_recurring();
+pla_spec("3") ->
+	spec_pla_usage();
+pla_spec("4") ->
+	spec_pla_prefix_price();
+pla_spec("5") ->
+	spec_pla_prefix_tariff();
+pla_spec(_) ->
+	{error, 404}.
+
+%% @hidden
+spec_pla_once() ->
+	Id = {"id", "1"},
+	Href = {"href", ?plaSpecPath "1"},
+	Name = {"name", "OneTimePLASpec"},
+	Description = {"description", "Interface specification for a function that rates one time events."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2017-12-19T12:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status]}.
+
+%% @hidden
+spec_pla_recurring() ->
+	Id = {"id", "2"},
+	Href = {"href", ?plaSpecPath "2"},
+	Name = {"name", "RecurringPLASpec"},
+	Description = {"description", "Interface specification for a function that rates recurring events."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2017-12-19T12:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status]}.
+
+%% @hidden
+spec_pla_usage() ->
+	Id = {"id", "3"},
+	Href = {"href", ?plaSpecPath "3"},
+	Name = {"name", "UsagePLASpec"},
+	Description = {"description", "Interface specification for a function that rates usage events."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2017-12-19T12:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	Chars = {"usageSpecCharacteristic", {array, []}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
+
+%% @hidden
+spec_pla_prefix_price() ->
+	Id = {"id", "4"},
+	Href = {"href", ?plaSpecPath "4"},
+	Name = {"name", "PrefixPriceTablePLASpec"},
+	Description = {"description", "Destination prefix table lookup of price name."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2017-12-19T12:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	Chars = {"usageSpecCharacteristic", {array, []}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
+
+%% @hidden
+spec_pla_prefix_tariff() ->
+	Id = {"id", "5"},
+	Href = {"href", ?plaSpecPath "5"},
+	Name = {"name", "PrefixTariffTablePLASpec"},
+	Description = {"description", "Destination prefix table lookup of price amount."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2017-12-19T12:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	Chars = {"usageSpecCharacteristic", {array, []}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
 
 -spec offer_status(Status) -> Status
 	when
@@ -757,6 +977,10 @@ offer([specification | T],
 	Name = proplists:get_value("name", L),
 	Spec = {struct, [{"id", Id}, {"href", Href}, {"name", Name}]},
 	offer(T, P, [{"productSpecification", Spec} | Acc]);
+offer([bundle | T],
+		#product{bundle = Bundle} = P, Acc) when length(Bundle) > 0 ->
+	Array = [bundled_po(B) || B <- Bundle],
+	offer(T, P, [{"bundledProductOffering", {array, Array}} | Acc]);
 offer([status | T], #product{status = Status} = P, Acc)
 		when Status /= undefined ->
 	StatusString = offer_status(Status),
@@ -776,9 +1000,6 @@ offer([start_date | T], #product{start_date = Start,
 	offer(T, P, [{"validFor", ValidFor} | Acc]);
 offer([end_date | T], P, Acc) ->
 	offer(T, P, Acc);
-offer([is_bundle | T], #product{is_bundle = IsBundle} = P, Acc)
-		when is_boolean(IsBundle) ->
-	offer(T, P, [{"isBundle", IsBundle} | Acc]);
 offer([price | T], #product{price = Prices1} = P, Acc)
 		when is_list(Prices1) ->
 	Prices2 = [price(Price) || Price <- Prices1],
@@ -790,8 +1011,13 @@ offer([last_modified | T], #product{last_modified = {Last, _}} = P, Acc)
 	offer(T, P, [{"lastUpdate", ocs_rest:iso8601(Last)} | Acc]);
 offer([_H | T], P, Acc) ->
 	offer(T, P, Acc);
-offer([], #product{name = Name}, Acc) ->
-	H = [{"id", Name}, {"href", ?offeringPath ++ Name}],
+offer([], #product{name = Name, bundle = [] ,
+		specification = S}, Acc) when S /= undefined ->
+	H = [{"id", Name}, {"href", ?offeringPath ++ Name}, {"isBundle", false}],
+	{struct, H ++ lists:reverse(Acc)};
+offer([], #product{name = Name, bundle = L,
+		specification = undefined}, Acc) when length(L) > 0 ->
+	H = [{"id", Name}, {"href", ?offeringPath ++ Name}, {"isBundle", true}],
 	{struct, H ++ lists:reverse(Acc)}.
 %% @hidden
 offer([{"id", ID} | T], Acc) when is_list(ID) ->
@@ -816,8 +1042,6 @@ offer([{"validFor", {struct, L}} | T], Acc) ->
 			Acc
 	end,
 	offer(T, Acc2);
-offer([{"isBundle", Bundle} | T], Acc) when is_boolean(Bundle) ->
-	offer(T, Acc#product{is_bundle = Bundle});
 offer([{"lifecycleStatus", Status} | T], Acc) when is_list(Status) ->
 	offer(T, Acc#product{status = offer_status(Status)});
 offer([{"productSpecification", {struct, L}} | T], Acc) when is_list(L) ->
@@ -828,6 +1052,10 @@ offer([{"productSpecification", {struct, L}} | T], Acc) when is_list(L) ->
 			Acc
 	end,
 	offer(T, Acc1);
+offer([{"bundledProductOffering", {array, Array}} | T], Acc)
+		when is_list(Array) ->
+	Bundle = [bundled_po(B) || B <- Array],
+	offer(T, Acc#product{bundle = Bundle});
 offer([{"isCustomerVisible", Visible} | T], Acc) when is_boolean(Visible) ->
 	offer(T, Acc);
 offer([{"productOfferingPrice", {array, Prices1}} | T], Acc) when is_list(Prices1) ->
@@ -837,7 +1065,75 @@ offer([{"prodSpecCharValueUse", {array, _} = CharValueUses} | T], Acc) ->
 	offer(T, Acc#product{char_value_use = char_value_uses(CharValueUses)});
 offer([{"lastUpdate", LastUpdate} | T], Acc) when is_list(LastUpdate) ->
 	offer(T, Acc);
-offer([], Acc) ->
+offer([_ | T], Acc) ->
+	offer(T, Acc);
+offer([], #product{bundle = [], specification = S} = Acc)
+		when S /= undefined ->
+	Acc;
+offer([], #product{bundle = L, specification = undefined} = Acc)
+		when length(L) > 0 ->
+	Acc.
+
+-spec bundled_po(Bundled) -> Bundled
+	when
+		Bundled :: #bundled_po{} | {struct, list()}.
+bundled_po(#bundled_po{} = B) ->
+	bundled_po(record_info(fields, bundled_po), B, []);
+bundled_po({struct, ObjectMembers}) when is_list(ObjectMembers) ->
+	bundled_po(ObjectMembers, #bundled_po{}).
+%% @hidden
+bundled_po([name | T], #bundled_po{name = Name} = B, Acc)
+		when is_list(Name) ->
+	Header = [{"href", ?offeringPath ++ Name}, {"name", Name}, {"id", Name}],
+	bundled_po(T, B, Header ++ Acc);
+bundled_po([status | T], #bundled_po{status = Status} = B, Acc)
+		when is_list(Status) ->
+	bundled_po(T, B, [{"lifecycleStatus", offer_status(Status)} | Acc]);
+bundled_po([default | T], #bundled_po{default = undefined,
+		lower_limit = undefined, upper_limit = undefined} = B, Acc) ->
+	bundled_po(T, B, Acc);
+bundled_po([default | T], #bundled_po{default= N1,
+		upper_limit = N2, lower_limit = N3} = B, Acc) ->
+	O1 = case N1 of
+		undefined ->
+			[];
+		N1 when is_integer(N1) ->
+			[{"numberRelOfferDefault", N1}]
+	end,
+	O2 = case N2 of
+		undefined ->
+			O1;
+		N2 when is_integer(N2) ->
+			[{"numberRelOfferUpperLimit", N2} | O1]
+	end,
+	O3 = case N3 of
+		undefined ->
+			O2;
+		N3 when is_integer(N3) ->
+			[{"numberRelOfferLowerLimit", N3} | O2]
+	end,
+	bundled_po(T, B, [{"bundledProductOfferingOption", {struct, O3}} | Acc]);
+bundled_po([_H | T], B, Acc) ->
+	bundled_po(T, B, Acc);
+bundled_po([], _, Acc) ->
+	{struct, lists:reverse(Acc)}.
+%% @hidden
+bundled_po([{"name", Name} | T], Acc) when is_list(Name) ->
+	bundled_po(T, Acc#bundled_po{name = Name});
+bundled_po([{"lifecycleStatus", Status} | T], Acc)
+		when is_list(Status) ->
+	bundled_po(T, Acc#bundled_po{status = offer_status(Status)});
+bundled_po([{"bundledProductOfferingOption", {struct, L}} | T], Acc)
+		when is_list(L) ->
+	LowerLimit = proplists:get_value("numberRelOfferLowerLimit", L),
+	UpperLimit = proplists:get_value("numberRelOfferUpperLimit", L),
+	Default = proplists:get_value("numberRelOfferDefault", L),
+	NewAcc = Acc#bundled_po{lower_limit = LowerLimit,
+			upper_limit = UpperLimit, default = Default},
+	bundled_po(T, NewAcc);
+bundled_po([_H | T], Acc) ->
+	bundled_po(T, Acc);
+bundled_po([], Acc) ->
 	Acc.
 
 -spec price(Price) -> Price
@@ -937,12 +1233,7 @@ price([{"validFor", {struct, L}} | T], Acc) when is_list(L) ->
 	end,
 	price(T, Acc2);
 price([{"priceType", Type} | T], Acc) when is_list(Type) ->
-	case price_type(Type) of
-		Type1 when Type1 == one_time; Type1 == recurring ->
-			price(T, Acc#price{type = Type1, units = cents});
-		Type1 ->
-			price(T, Acc#price{type = Type1})
-	end;
+	price(T, Acc#price{type = price_type(Type)});
 price([{"unitOfMeasure", UnitOfMeasure} | T], Acc)
 		when is_list(UnitOfMeasure) ->
 	case lists:last(UnitOfMeasure) of
@@ -1028,14 +1319,28 @@ alteration([type | T], #alteration{type = recurring, period = Period,
 	Recurring = [{"priceType", price_type(recurring)},
 			{"recurringChargePeriod", price_period(Period)}],
 	alteration(T, A, Recurring ++ Acc);
-alteration([type | T], #alteration{type = usage, units = octets,
-		size = Size} = A, Acc) when is_integer(Size) ->
-	UsageType = [{"priceType", price_type(usage)},
+alteration([type | T], #alteration{type = Type, units = octets,
+		size = Size} = A, Acc) when Type == one_time, is_integer(Size);
+		Type == usage, is_integer(Size) ->
+	UsageType = [{"priceType", price_type(Type)},
 			{"unitOfMeasure", integer_to_list(Size) ++ "b"}],
 	alteration(T, A, UsageType ++ Acc);
-alteration([type | T], #alteration{type = usage, units = seconds,
-		size = Size} = A, Acc) when is_integer(Size) ->
-	UsageType = [{"priceType", price_type(usage)},
+alteration([type | T], #alteration{type = Type, units = seconds,
+		size = Size} = A, Acc) when Type == one_time, is_integer(Size);
+		Type == usage, is_integer(Size) ->
+	UsageType = [{"priceType", price_type(Type)},
+			{"unitOfMeasure", integer_to_list(Size) ++ "s"}],
+	alteration(T, A, UsageType ++ Acc);
+alteration([type | T], #alteration{type = recurring, period = Period,
+		units = octets, size = Size} = A, Acc) when is_integer(Size) ->
+	UsageType = [{"priceType", "recurring"},
+			{"recurringChargePeriod", price_period(Period)},
+			{"unitOfMeasure", integer_to_list(Size) ++ "b"}],
+	alteration(T, A, UsageType ++ Acc);
+alteration([type | T], #alteration{type = recurring, period = Period,
+		units = seconds, size = Size} = A, Acc) when is_integer(Size) ->
+	UsageType = [{"priceType", "recurring"},
+			{"recurringChargePeriod", price_period(Period)},
 			{"unitOfMeasure", integer_to_list(Size) ++ "s"}],
 	alteration(T, A, UsageType ++ Acc);
 alteration([period | T], A, Acc) ->
@@ -1300,7 +1605,7 @@ char_value([end_date | T], #char_value{} = V, Acc) ->
 char_value([value | T], #char_value{value = undefined} = V, Acc) ->
 	char_value(T, V, Acc);
 char_value([value | T], #char_value{value = Value} = V, Acc) ->
-	char_value(T, V, [{"value", Value} | Acc]);
+	char_value(T, V, [{"value", char_value_type(Value)} | Acc]);
 char_value([from | T], #char_value{from = undefined} = V, Acc) ->
 	char_value(T, V, Acc);
 char_value([from | T], #char_value{from = From} = V, Acc) ->
@@ -1347,6 +1652,8 @@ char_value([{"value", Value} | T], Acc)
 		when is_integer(Value); is_float(Value);
 		is_list(Value); is_boolean(Value) ->
 	char_value(T, Acc#char_value{value = Value});
+char_value([{"value", {struct, _} = Value} | T], Acc) ->
+	char_value(T, Acc#char_value{value = char_value_type(Value)});
 char_value([{"valueFrom", From} | T], Acc)
 		when is_integer(From); is_list(From) ->
 	char_value(T, Acc#char_value{from = From});
@@ -1369,6 +1676,32 @@ char_value([{"regex", RegEx} | T], Acc) when is_list(RegEx) ->
 char_value([], Acc) ->
 	Acc.
 
+%% @hidden
+char_value_type({struct, [{"lowerValue", {struct, L1}},
+		{"upperValue", {struct, L2}}]}) ->
+	#range{lower = char_value_type(L1), upper = char_value_type(L2)};
+char_value_type({struct, [{"upperValue", {struct, L2}},
+		{"lowerValue", {struct, L1}}]}) ->
+	#range{lower = char_value_type(L1), upper = char_value_type(L2)};
+char_value_type({struct, [{"amount", V1}, {"units", V2}]}) ->
+	#quantity{amount = V1, units = V2};
+char_value_type({struct, [{"units", V2}, {"amount", V1}]}) ->
+	#quantity{amount = V1, units = V2};
+char_value_type({struct, [{"numerator", V1}, {"denominator", V2}]}) ->
+	#rate{numerator = char_value_type(V1), denominator = char_value_type(V2)};
+char_value_type({struct, [{"denominator", V2}, {"numerator", V1}]}) ->
+	#rate{numerator = char_value_type(V1), denominator = char_value_type(V2)};
+char_value_type(#quantity{units = Units, amount = Amount}) ->
+	{struct, [{"units", Units}, {"amount", Amount}]};
+char_value_type(#range{lower = Lower, upper = Upper}) ->
+	{struct, [{"lowerValue", char_value_type(Lower)},
+			{"upperValue", char_value_type(Upper)}]};
+char_value_type(#rate{numerator = Numerator, denominator = Denominator}) ->
+	{struct, [{"numerator", char_value_type(Numerator)},
+			{"denominator", char_value_type(Denominator)}]};
+char_value_type(Value) ->
+	Value.
+	
 -spec inventory(Subscription) -> Subscription
 	when
 		Subscription :: #subscriber{} | {struct, [tuple()]}.

@@ -22,8 +22,9 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 %% export the ocs public API
--export([add_client/2, add_client/4, find_client/1, update_client/2,
-		update_client/3, get_clients/0, delete_client/1, query_clients/6]).
+-export([add_client/2, add_client/3, add_client/5, find_client/1,
+		update_client/2, update_client/3, get_clients/0, delete_client/1,
+		query_clients/6]).
 -export([add_subscriber/3, add_subscriber/4, add_subscriber/5,
 		add_subscriber/6, add_subscriber/8,
 		find_subscriber/1, delete_subscriber/1, update_password/2,
@@ -36,7 +37,7 @@
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
--export([authorize/2, normalize/1]).
+-export([authorize/2, normalize/1, subscription/4]).
 
 -export_type([eap_method/0]).
 
@@ -62,30 +63,46 @@
 		Address :: inet:ip_address(),
 		Secret :: string() | binary(),
 		Result :: {ok, #client{}}.
+%% @equiv add_client(Address, 3799, radius, Secret, true)
 %% @doc Create an entry in the client table.
 %%
 add_client(Address, Secret) ->
-	add_client(Address, 3799, radius, Secret).
+	add_client(Address, 3799, radius, Secret, true).
 
--spec add_client(Address, Port, Protocol, Secret) -> Result
+-spec add_client(Address, Secret, PasswordRequired) -> Result
+	when
+		Address :: inet:ip_address(),
+		Secret :: string() | binary(),
+		PasswordRequired :: boolean(),
+		Result :: {ok, #client{}}.
+%% @equiv add_client(Address, 3799, radius, Secret, PasswordRequired)
+add_client(Address, Secret, PasswordRequired) ->
+	add_client(Address, 3799, radius, Secret, PasswordRequired).
+
+-spec add_client(Address, Port, Protocol, Secret, PasswordRequired) -> Result
 	when
 		Address :: inet:ip_address(),
 		Port :: inet:port_number() | undefined,
 		Protocol :: atom() | undefined,
 		Secret :: string() | binary() | undefined,
-		Result :: {ok, #client{}}.
+		PasswordRequired :: boolean(),
+		Result :: {ok, # client{}}.
 %% @doc Create an entry in the client table.
 %%
-add_client(Address, Port, Protocol, Secret) when is_list(Address) ->
+add_client(Address, Port, Protocol, Secret, PasswordRequired) when is_list(Address) ->
 	{ok, AddressTuple} = inet_parse:address(Address),
-	add_client(AddressTuple, Port, Protocol, Secret);
-add_client(Address, undefined, diameter, undefined)
-		when is_tuple(Address) ->
+	add_client(AddressTuple, Port, Protocol, Secret, PasswordRequired);
+add_client(Address, Port, Protocol, Secret, undefined) ->
+	add_client(Address, Port, Protocol, Secret, true);
+add_client(Address, undefined, diameter, undefined, PasswordRequired)
+		when is_tuple(Address), is_boolean(PasswordRequired) ->
 	F = fun() ->
 				TS = erlang:system_time(?MILLISECOND),
 				N = erlang:unique_integer([positive]),
-				R = #client{address = Address,
-						protocol = diameter, last_modified = {TS, N}},
+				R = #client{
+						address = Address,
+						protocol = diameter, last_modified = {TS, N},
+						password_required = PasswordRequired},
 				mnesia:write(R),
 				R
 	end,
@@ -95,22 +112,23 @@ add_client(Address, undefined, diameter, undefined)
 		{aborted, Reason} ->
 			exit(Reason)
 	end;
-add_client(Address, Port, Protocol, undefined) ->
-	add_client(Address, Port, Protocol, generate_password());
-add_client(Address, Port, undefined, Secret) ->
-	add_client(Address, Port, radius, Secret);
-add_client(Address, undefined, Protocol, Secret) ->
-	add_client(Address, 3799, Protocol, Secret);
-add_client(Address, Port, Protocol, Secret) when is_list(Secret) ->
-	add_client(Address, Port, Protocol, list_to_binary(Secret));
-add_client(Address, Port, radius, Secret) when is_tuple(Address),
-		is_binary(Secret) ->
+add_client(Address, Port, Protocol, undefined, PasswordRequired) ->
+	add_client(Address, Port, Protocol, generate_password(), PasswordRequired);
+add_client(Address, Port, undefined, Secret, PasswordRequired) ->
+	add_client(Address, Port, radius, Secret, PasswordRequired);
+add_client(Address, undefined, Protocol, Secret, PasswordRequired) ->
+	add_client(Address, 3799, Protocol, Secret, PasswordRequired);
+add_client(Address, Port, Protocol, Secret, PasswordRequired) when is_list(Secret) ->
+	add_client(Address, Port, Protocol, list_to_binary(Secret), PasswordRequired);
+add_client(Address, Port, radius, Secret, PasswordRequired) when
+		is_tuple(Address), is_binary(Secret), is_boolean(PasswordRequired) ->
 	F = fun() ->
 				TS = erlang:system_time(?MILLISECOND),
 				N = erlang:unique_integer([positive]),
 				LM = {TS, N},
 				R = #client{address = Address, port = Port,
 						protocol = radius, secret = Secret,
+						password_required = PasswordRequired,
 						last_modified = LM},
 				ok = mnesia:write(R),
 				R
@@ -456,7 +474,7 @@ add_subscriber(undefined, Password, Product, Characteristics, Buckets, Attribute
 								enabled = EnabledStatus,
 								multisession = MultiSession,
 								last_modified = {Now, N}},
-						S2 = subscription(S1, P, Characteristics),
+						S2 = subscription(S1, P, Characteristics, true),
 						F3 = fun(_, _, 0) ->
 									mnesia:abort(retries);
 								(F, Identity, I) ->
@@ -506,7 +524,7 @@ add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes
 								enabled = EnabledStatus,
 								multisession = MultiSession,
 								last_modified = {Now, N}},
-						S2 = subscription(S1, P, Characteristics),
+						S2 = subscription(S1, P, Characteristics, true),
 						ok = mnesia:write(S2),
 						S2;
 					[] ->
@@ -765,7 +783,13 @@ add_product(#product{price = Prices} = Product) when length(Prices) > 0 ->
 			add_product1(Product);
 		false ->
 			{error, validation_failed}
-	end.
+	end;
+add_product(#product{specification = undefined, bundle = L} = Product)
+		when length(L) > 0 ->
+	add_product1(Product);
+add_product(#product{specification = L, bundle = []} = Product)
+		when length(L) > 0 ->
+	add_product1(Product).
 %% @hidden
 add_product1(Product) ->
 	Fadd = fun() ->
@@ -879,7 +903,7 @@ query_product(Con, Name, Description, Status, SDT, EDT, Price) when is_list(SDT)
 	query_product(Con, Name, Description, Status, ISOSDT, EDT, Price);
 query_product(start, Name, Description, Status, SDT, EDT, Price) ->
 	MatchHead = #product{name = Name, description = Description,
-			start_date = SDT, end_date = EDT, is_bundle = '_',
+			start_date = SDT, end_date = EDT, bundle = '_',
 			status = Status, specification = '_',
 			char_value_use = '_', price = '_', last_modified = '_'},
 	MatchSpec = MatchSpec = [{MatchHead, [], ['$_']}],
@@ -1347,25 +1371,25 @@ end_period1({Date, {23, Minute, Second}}, hourly) ->
 	NextDay = calendar:date_to_gregorian_days(Date) + 1,
 	EndDate = calendar:gregorian_days_to_date(NextDay),
 	EndTime = {0, Minute, Second},
-	calendar:datetime_to_gregorian_seconds({EndDate, EndTime}) * 1000 - 1;
+	gregorian_datetime_to_system_time({EndDate, EndTime}) - 1;
 end_period1({Date, {Hour, Minute, Second}}, hourly) ->
 	EndTime = {Hour + 1, Minute, Second},
-	calendar:datetime_to_gregorian_seconds({Date, EndTime}) * 1000 - 1;
+	gregorian_datetime_to_system_time({Date, EndTime}) - 1;
 end_period1({Date, Time}, daily) ->
 	NextDay = calendar:date_to_gregorian_days(Date) + 1,
 	EndDate = calendar:gregorian_days_to_date(NextDay),
-	calendar:datetime_to_gregorian_seconds({EndDate, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({EndDate, Time}) - 1;
 end_period1({Date, Time}, weekly) ->
 	NextDay = calendar:date_to_gregorian_days(Date) + 7,
 	EndDate = calendar:gregorian_days_to_date(NextDay),
-	calendar:datetime_to_gregorian_seconds({EndDate, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({EndDate, Time}) - 1;
 end_period1({{Year, 1, 31}, Time}, monthly) ->
 	NextDay = calendar:last_day_of_the_month(Year, 2),
 	EndDate = {Year, 2, NextDay},
-	calendar:datetime_to_gregorian_seconds({EndDate, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({EndDate, Time}) - 1;
 end_period1({{Year, 2, Day}, Time}, monthly) when Day < 28 ->
 	EndDate = {Year, 3, Day},
-	calendar:datetime_to_gregorian_seconds({EndDate, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({EndDate, Time}) - 1;
 end_period1({{Year, 2, Day}, Time}, monthly) ->
 	EndDate = case calendar:last_day_of_the_month(Year, 2) of
 		Day ->
@@ -1373,100 +1397,143 @@ end_period1({{Year, 2, Day}, Time}, monthly) ->
 		_ ->
 			{Year, 3, Day}
 	end,
-	calendar:datetime_to_gregorian_seconds({EndDate, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({EndDate, Time}) - 1;
 end_period1({{Year, 3, 31}, Time}, monthly) ->
-	calendar:datetime_to_gregorian_seconds({{Year, 4, 30}, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({{Year, 4, 30}, Time}) - 1;
 end_period1({{Year, 4, 30}, Time}, monthly) ->
-	calendar:datetime_to_gregorian_seconds({{Year, 5, 31}, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({{Year, 5, 31}, Time}) - 1;
 end_period1({{Year, 5, 31}, Time}, monthly) ->
-	calendar:datetime_to_gregorian_seconds({{Year, 6, 30}, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({{Year, 6, 30}, Time}) - 1;
 end_period1({{Year, 6, 31}, Time}, monthly) ->
-	calendar:datetime_to_gregorian_seconds({{Year, 7, 31}, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({{Year, 7, 31}, Time}) - 1;
 end_period1({{Year, 8, 31}, Time}, monthly) ->
-	calendar:datetime_to_gregorian_seconds({{Year, 9, 30}, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({{Year, 9, 30}, Time}) - 1;
 end_period1({{Year, 9, 30}, Time}, monthly) ->
-	calendar:datetime_to_gregorian_seconds({{Year, 10, 31}, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({{Year, 10, 31}, Time}) - 1;
 end_period1({{Year, 10, 30}, Time}, monthly) ->
-	calendar:datetime_to_gregorian_seconds({{Year, 11, 31}, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({{Year, 11, 30}, Time}) - 1;
 end_period1({{Year, 11, 30}, Time}, monthly) ->
-	calendar:datetime_to_gregorian_seconds({{Year, 12, 31}, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({{Year, 12, 31}, Time}) - 1;
 end_period1({{Year, 12, Day}, Time}, monthly) ->
 	EndDate = {Year + 1, 1, Day},
-	calendar:datetime_to_gregorian_seconds({EndDate, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({EndDate, Time}) - 1;
 end_period1({{Year, Month, Day}, Time}, monthly) ->
 	EndDate = {Year, Month + 1, Day},
-	calendar:datetime_to_gregorian_seconds({EndDate, Time}) * 1000 - 1;
+	gregorian_datetime_to_system_time({EndDate, Time}) - 1;
 end_period1({{Year, Month, Day}, Time}, yearly) ->
 	EndDate = {Year + 1, Month, Day},
-	calendar:datetime_to_gregorian_seconds({EndDate, Time}) * 1000 - 1.
+	gregorian_datetime_to_system_time({EndDate, Time}) - 1.
 
--spec subscription(Subscriber, Product, Characteristics) ->
+-spec subscription(Subscriber, Product, Characteristics, InitialFlag) ->
 		Subscriber
 	when
 		Subscriber :: #subscriber{},
 		Product :: #product{},
-		Characteristics :: [tuple()] | undefined.
-%% @doc Prepare buckets and add allowances.
-%% @private
+		Characteristics :: [tuple()] | undefined,
+		InitialFlag :: boolean().
+%% @doc Apply product offering charges.
+%% 	If `InitialFlag' is `true' initial bucket preparation
+%% 	is done and one time prices are charged.
+%% @throws product_not_found
 subscription(#subscriber{last_modified = {Now, _}} = Subscriber,
-		#product{name = ProductName, price = Prices} = _Product,
-		Characteristics) ->
-	subscription(Subscriber, ProductName, Characteristics, Now, Prices).
+		#product{name = ProductName, bundle = [], price = Prices} = _Product,
+		Characteristics, true) ->
+	Subscriber1 = subscription(Subscriber, Characteristics, Now, true, Prices),
+	ProductInstance = #product_instance{start_date = Now,
+			product = ProductName, characteristics = Characteristics,
+			last_modified = {Now, erlang:unique_integer([positive])}},
+	Subscriber1#subscriber{product = ProductInstance};
+subscription(#subscriber{last_modified = {Now, _}} = Subscriber,
+		#product{name = BundleName, bundle = Bundled, price = Prices},
+		Characteristics, true) when length(Bundled) > 0 ->
+	F = fun(#bundled_po{name = P}, S) ->
+				case mnesia:read(product, P, read) of
+					[Product] ->
+						subscription(S, Product, Characteristics, true);
+					[] ->
+						throw(product_not_found)
+				end
+	end,
+	Subscriber1 = lists:foldl(F, Subscriber, Bundled),
+	Subscriber2 = subscription(Subscriber1, Characteristics, Now, true, Prices),
+	ProductInstance = #product_instance{start_date = Now,
+			product = BundleName, characteristics = Characteristics,
+			last_modified = {Now, erlang:unique_integer([positive])}},
+	Subscriber2#subscriber{product = ProductInstance}.
 %% @hidden
 subscription(#subscriber{buckets = Buckets} = Subscriber,
-		ProductName, Characteristics, Now, [#price{type = one_time,
-		amount = Amount, units = undefined, alteration = undefined} | T]) ->
+		Characteristics, Now, true, [#price{type = one_time,
+		amount = Amount, units = cents, alteration = undefined} | T]) ->
 	NewBuckets = charge(Amount, Buckets),
 	subscription(Subscriber#subscriber{buckets = NewBuckets},
-			ProductName, Characteristics, Now, T);
+			Characteristics, Now, true, T);
 subscription(#subscriber{buckets = Buckets} = Subscriber,
-		ProductName, Characteristics, Now, [#price{type = one_time,
-		amount = PriceAmount, units = undefined,
+		Characteristics, Now, true, [#price{type = one_time,
+		amount = PriceAmount, name = Name,
 		alteration = #alteration{units = Units, size = Size,
 		amount = AlterationAmount}} | T]) ->
 	NewBuckets = charge(PriceAmount + AlterationAmount,
-		[#bucket{units = Units, remain_amount = Size} | Buckets]),
+		[#bucket{units = Units, remain_amount = Size, prices = [Name]} | Buckets]),
 	subscription(Subscriber#subscriber{buckets = NewBuckets},
-			ProductName, Characteristics, Now, T);
+			Characteristics, Now, true, T);
 subscription(#subscriber{buckets = Buckets} = Subscriber,
-		ProductName, Characteristics, Now,
-		[#price{type = recurring, period = Period,
-		amount = SubscriptionAmount, units = undefined,
+		Characteristics, Now, true, [#price{type = usage,
+		name = Name, alteration = #alteration{type = one_time,
+		units = Units, size = Size, amount = AlterationAmount}} | T]) ->
+	NewBuckets = charge(AlterationAmount, [#bucket{units = Units,
+		remain_amount = Size, prices = [Name]} | Buckets]),
+	subscription(Subscriber#subscriber{buckets = NewBuckets},
+			Characteristics, Now, true, T);
+subscription(#subscriber{buckets = Buckets} = Subscriber,
+		Characteristics, Now, InitialFlag, [#price{type = recurring,
+		period = Period, amount = SubscriptionAmount, units = undefined,
 		alteration = undefined} | T]) when Period /= undefined ->
 	NewBuckets = charge(SubscriptionAmount, Buckets),
 	subscription(Subscriber#subscriber{buckets = NewBuckets},
-			ProductName, Characteristics, Now, T);
+			Characteristics, Now, InitialFlag, T);
 subscription(#subscriber{buckets = Buckets} = Subscriber,
-		ProductName, Characteristics, Now,
-		[#price{type = recurring,
+		Characteristics, Now, InitialFlag,
+		[#price{type = recurring, name = Name,
 		period = Period, amount = SubscriptionAmount,
 		alteration = #alteration{units = Units, size = Size,
 		amount = AllowanceAmount}} | T]) when Period /= undefined,
 		Units == octets; Period /= undefined, Units == seconds ->
 	NewBuckets = charge(SubscriptionAmount + AllowanceAmount,
-			[#bucket{units = Units, remain_amount = Size,
+			[#bucket{units = Units, remain_amount = Size, name = Name,
 			termination_date = end_period(Now, Period)} | Buckets]),
 	subscription(Subscriber#subscriber{buckets = NewBuckets},
-			ProductName, Characteristics, Now, T);
+			Characteristics, Now, InitialFlag, T);
 subscription(#subscriber{buckets = Buckets} = Subscriber,
-		ProductName, Characteristics, Now, [#price{type = usage,
-		alteration = #alteration{type = recurring,
+		Characteristics, Now, InitialFlag, [#price{type = usage,
+		name = Name, alteration = #alteration{type = recurring,
 		period = Period, units = Units, size = Size,
 		amount = Amount}} | T]) when Period /= undefined,
 		Units == octets; Units == seconds ->
 	NewBuckets = charge(Amount, [#bucket{units = Units,
-			remain_amount = Size,
+			remain_amount = Size, prices = [Name],
 			termination_date = end_period(Now, Period)} | Buckets]),
 	subscription(Subscriber#subscriber{buckets = NewBuckets},
-			ProductName, Characteristics, Now, T);
-subscription(Subscriber, ProductName, Characteristics, Now, [_ | T]) ->
-	subscription(Subscriber, ProductName, Characteristics, Now, T);
-subscription(#subscriber{buckets = Buckets} = Subscriber,
-		ProductName, Characteristics, Now, []) ->
+			Characteristics, Now, InitialFlag, T);
+subscription(Subscriber, Characteristics, Now, InitialFlag, [_H | T]) ->
+	subscription(Subscriber, Characteristics, Now, InitialFlag, T);
+subscription(#subscriber{buckets = Buckets} = Subscriber, _, Now, _, []) ->
 	NewBuckets = [B#bucket{last_modified = {Now,
-			erlang:unique_integer([positive])}} || B <- Buckets],
-	P = #product_instance{start_date = Now,
-			product = ProductName, characteristics = Characteristics,
-			last_modified = {Now, erlang:unique_integer([positive])}},
-	Subscriber#subscriber{buckets = NewBuckets, product = P}.
+			erlang:unique_integer([positive])},
+			id = generate_bucket_id()} || B <- Buckets],
+	Subscriber#subscriber{buckets = NewBuckets}.
+
+%% @hidden
+generate_bucket_id() ->
+	TS = erlang:system_time(?MILLISECOND),
+	N = erlang:unique_integer([positive]),
+	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
+
+-spec gregorian_datetime_to_system_time(DateTime) -> MilliSeconds
+	when
+		DateTime :: tuple(),
+		MilliSeconds :: pos_integer().
+%% @doc Convert gregorian datetime to system time in milliseconds.
+%% @hidden
+gregorian_datetime_to_system_time(DateTime) ->
+	(calendar:datetime_to_gregorian_seconds(DateTime) - ?EPOCH) * 1000.
 

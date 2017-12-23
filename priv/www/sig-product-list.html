@@ -166,6 +166,22 @@
 			is: 'sig-product-list',
 			behaviors: [i18nMsgBehavior],
 			properties: {
+				products: {
+					type: Array,
+					readOnly: true,
+					notify: true,
+					value: function() {
+						return []
+					}
+				},
+				tables: {
+					type: Array,
+					readOnly: true,
+					notify: true,
+					value: function() {
+						return []
+					}
+				},
 				activePage: {
 					type: Boolean,
 					value: false,
@@ -261,6 +277,12 @@
 				var vaadinItems = new Array();
 				for (var index in results) {
 					var newRecord = new Object();
+					function checkExist(name) {
+						return name == results[index].name;
+					}
+					if(!this.products.some(checkExist)) {
+						this.push('products', results[index].name);
+					}
 					newRecord.name = results[index].name;
 					newRecord.description = results[index].description;
 					newRecord.productSpecification = results[index].productSpecification;
@@ -282,9 +304,19 @@
 						newRecord.price = results[index].productOfferingPrice.map(getNames).join(", ");
 						newRecord.prices = results[index].productOfferingPrice;
 					}
+					newRecord.bundledProductOffering = results[index].bundledProductOffering;
 					vaadinItems[index] = newRecord;
+					for (var indexCharUse in results[index].prodSpecCharValueUse) {
+						function exist(value){
+							return results[index].prodSpecCharValueUse[indexCharUse].productSpecCharacteristicValue[0].value == value;
+						}
+						if((results[index].prodSpecCharValueUse[indexCharUse].name =="destPrefixPriceTable"								|| results[index].prodSpecCharValueUse[indexCharUse].name ==
+								"destPrefixtarrifTable") && !this.tables.some(exist)) {
+							this.push('tables', results[index].prodSpecCharValueUse[indexCharUse].productSpecCharacteristicValue[0].value);
+						}
+					}
 				}
-					cbProduct(vaadinItems);
+				cbProduct(vaadinItems);
 			},
 			_getProductError: function(event) {
 				this.$.productGrid.size = 0;
@@ -295,7 +327,7 @@
 				}
 			},
 			showAddProductModal: function(event) {
-				document.getElementById("getProductSpecificationAjax").generateRequest();
+				document.getElementById("getProductsAjax").generateRequest();
 				document.getElementById("addProduct").selected = 0;
 				document.getElementById("addProductModal").open();
 			}

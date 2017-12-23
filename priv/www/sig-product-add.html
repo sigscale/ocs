@@ -12,10 +12,12 @@
 <link rel="import" href="paper-button/paper-button.html">
 <link rel="import" href="paper-tooltip/paper-tooltip.html">
 <link rel="import" href="paper-toggle-button/paper-toggle-button.html" >
+<link rel="import" href="paper-checkbox/paper-checkbox.html">
 <link rel="import" href="paper-toast/paper-toast.html">
 <link rel="import" href="paper-styles/color.html">
 <link rel="import" href="paper-date-picker/paper-date-picker.html">
-<link rel="import" href="paper-menu-button/paper-menu-button.html" />
+<link rel="import" href="paper-time-picker/paper-time-picker.html">
+<link rel="import" href="paper-menu-button/paper-menu-button.html">
 <link rel="import" href="paper-icon-button/paper-icon-button.html">
 <link rel="import" href="iron-icon/iron-icon.html">
 <link rel="import" href="iron-icons/iron-icons.html">
@@ -37,6 +39,10 @@
 			paper-toast.error {
 				background-color: var(--paper-red-a400);
 			}
+			paper-checkbox {
+            --paper-checkbox-checked-color: #ffb04c;
+            --paper-checkbox-checkmark-color: var(--paper-yellow-900);
+         }
 			.add-button {
 				background-color: var(--paper-lime-a700);
 				color: black;
@@ -95,17 +101,41 @@
 						</paper-tooltip>
 					</div>
 					<div>
+						<span>Bundled Products</span>
+						<paper-icon-button
+								id="onClickBundle"
+								suffix
+								icon="arrow-drop-down"
+								on-click="_onClickBundle">
+						</paper-icon-button>
+					</div>
+					<iron-collapse id="addBundle">
+						<template is=dom-repeat items="{{products}}">
+							<div>
+								<paper-checkbox checked="{{item.checked}}"> 
+										{{item.name}}
+								</paper-checkbox>
+							</div>
+						</template>
+					</iron-collapse>
+					<div>
 						<paper-dropdown-menu
+								id="addOffProductSpecificationDrop"
 								label="[[i18n.productSpec]]">
 							<paper-listbox
 									id="addOffProductSpecification"
 									slot="dropdown-content"
 									class="dropdown-content">
-								<template is="dom-repeat" items="[[productSpec]]">
-									<paper-item>
-										{{item.sName}}
-									</paper-item>
-								</template>
+								<paper-item>
+									<i18n-msg msgid="preData">
+										Prepaid Data
+									</i18n-msg>
+								</paper-item>
+								<paper-item>
+									<i18n-msg msgid="preVoice">
+										Prepaid Voice
+									</i18n-msg>
+								</paper-item>
 							</paper-listbox>
 						</paper-dropdown-menu>
 					</div>
@@ -209,7 +239,7 @@
 								label="[[i18n.name]]"
 								on-value-changed="addUpdatePriceDialog"
 								onclick="addPriceName.value=null"
-								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="addPriceNameTool">
@@ -222,7 +252,7 @@
 								class="description"
 								name="description"
 								label="[[i18n.des]]"
-								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="priceDesTool">
@@ -239,7 +269,7 @@
 								value="[[addProductStartDatePrice]]"
 								name="addProductStartDatePrice"
 								label="[[i18n.start]]"
-								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.show();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.show(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="priceStartTool">
@@ -256,7 +286,7 @@
 								value="[[addProductEndDatePrice]]"
 								name="addProductEndDatePrice"
 								label="[[i18n.end]]"
-								onfocus="addProductStartDatePickPrice.hide(); addProductEndDatePickPrice.show();">
+								onfocus="addProductStartDatePickPrice.hide(); addProductEndDatePickPrice.show(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="priceEndTool">
@@ -268,7 +298,7 @@
 						<paper-dropdown-menu id="addPriceTypedrop"
 								label="[[i18n.priceType]]"
 								on-selected-item-changed="checkRecure"
-								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 							<paper-listbox
 									id="addPriceType"
 									slot="dropdown-content"
@@ -299,7 +329,7 @@
 								pattern="^[0-9]+[kmg]?$"
 								label="[[i18n.unitSize]]"
 								auto-validate
-								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="priceSizeTool">
@@ -311,7 +341,7 @@
 						<paper-dropdown-menu id="addPriceUnitsdrop"
 								label="[[i18n.unit]]"
 								on-selected-item-changed="checkPattern"
-								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 							<paper-listbox
 									id="addPriceUnits"
 									slot="dropdown-content"
@@ -346,7 +376,7 @@
 								type="number"
 								label="[[i18n.amount]]"
 								value=0
-								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="priceAmountTool">
@@ -359,7 +389,7 @@
 								class="currency"
 								name="currency"
 								label="[[i18n.currency]]"
-								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 						</paper-input>
 						<paper-tooltip>
 							<i18n-msg msgid="priceCurrencyTool">
@@ -370,12 +400,15 @@
 					<div>
 						<paper-dropdown-menu id="addPricePerioddrop"
 								label="[[i18n.period]]"
-								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 							<paper-listbox
 									id="addPricePeriod"
 									slot="dropdown-content"
 									class="dropdown-content"
 									selected="2">
+								<paper-item>
+									Hourly
+								</paper-item>
 								<paper-item>
 									Daily
 								</paper-item>
@@ -400,7 +433,7 @@
 						<paper-dropdown-menu
 								id="addPriceDrop"
 								label="[[i18n.alter]]"
-								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide();">
+								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 							<paper-listbox
 									id="addPriceAlteration"
 									slot="dropdown-content"
@@ -435,7 +468,8 @@
 									pattern="^[0-9]+[mh]?$"
 									auto-validate
 									label="[[i18n.reserveTime]]"
-									value=0>
+									value=0
+									onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 							</paper-input>
 							<paper-tooltip>
 								<i18n-msg msgid="priceReserveTimeTool">
@@ -450,7 +484,8 @@
 									pattern="^[0-9]+[kmg]?$"
 									auto-validate
 									label="[[i18n.reserveBytes]]"
-									value=0>
+									value=0
+									onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 							</paper-input>
 							<paper-tooltip>
 								<i18n-msg msgid="priceReserveBytesTool">
@@ -459,22 +494,56 @@
 							</paper-tooltip>
 						</div>
 						<div>
-							<paper-input
-									id="timeOfDay"
-									type="string"
-									label="[[i18n.timeDay]]">
-							</paper-input>
-							<paper-tooltip>
-								<i18n-msg msgid="timeDayTool">
-									Range of the time day
-								</i18n-msg>
-							</paper-tooltip>
+							<span>Time of Day Range</span>
+							<paper-icon-button
+								id="onClickPriceCharsTime"
+								suffix
+								icon="arrow-drop-down"
+								on-click="_onClickPriceCharsTime">
+							</paper-icon-button>
 						</div>
+						<iron-collapse id="addPriceCharsTime">
+							<div>
+								<iron-collapse id="addPriceCharsTimeStart">
+									<paper-time-picker id="addTimePickerStart" time="{{startTime}}">
+									</paper-time-picker>
+								</iron-collapse>
+								<paper-input id="timeOfDayStart"
+										value="[[startTime]]"
+										name="addProductTimePriceStart"
+										label="[[i18n.startTime]]"
+										onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.show();">
+								</paper-input>
+								<paper-tooltip>
+									<i18n-msg msgid="timeDayTool">
+										Range of the time day
+									</i18n-msg>
+								</paper-tooltip>
+							</div>
+							<div>
+								<iron-collapse id="addPriceCharsTimeEnd">
+									<paper-time-picker id="addTimePickerEnd" time="{{endTime}}">
+									</paper-time-picker>
+								</iron-collapse>
+								<paper-input id="timeOfDayEnd"
+										value="[[endTime]]"
+										name="addProductTimePriceEnd"
+										label="[[i18n.endTime]]"
+										onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.show(); addPriceCharsTimeStart.hide();">
+								</paper-input>
+								<paper-tooltip>
+									<i18n-msg msgid="timeDayTool">
+										Range of the time day
+									</i18n-msg>
+								</paper-tooltip>
+							</div>
+						</iron-collapse>
 						<div>
 							<paper-input
 									id="ratedPrice"
 									type="string"
-									label="[[i18n.ratedPrice]]">
+									label="[[i18n.ratedPrice]]"
+									onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
 							</paper-input>
 							<paper-tooltip>
 								<i18n-msg msgid="ratePriceiTool">
@@ -661,6 +730,9 @@
 									slot="dropdown-content"
 									class="dropdown-content">
 								<paper-item>
+									Hourly
+								</paper-item>
+								<paper-item>
 									Daily
 								</paper-item>
 								<paper-item>
@@ -712,11 +784,11 @@
 				on-error="_addProductError">
 		</iron-ajax>
 		<iron-ajax
-			id="getProductSpecificationAjax"
-			url="/catalogManagement/v2/productSpecification"
+			id="getProductsAjax"
+			url="/catalogManagement/v2/productOffering"
 			method="GET"
-			on-response="_getProductSpecificationResponse"
-			on-error="_getProductSpecificationError">
+			on-response="_getProductsResponse"
+			on-error="_getProductsError">
 		</iron-ajax>
 	</template>
 	<script>
@@ -736,11 +808,11 @@
 						return [];
 					}
 				},
-				productSpec: {
+				products: {
 					type: Array,
 					value: function() {
 						return [];
-					}
+					},
 				},
 				selected: {
 					type: Number,
@@ -793,6 +865,9 @@
 					value: "add"
 				}
 			},
+			observers: [
+				'_bundleCheckboxChanged(products.*)'
+			],
 			_addProductStartDateOfferPick: function(date) {
 				if (this.$.addProductStartDatePickOff.opened) {
 					this.addProductStartDateOffer = moment(date).format('YYYY-MM-DD');
@@ -823,24 +898,23 @@
 					this.addProductEndDateAlt = moment(date).format('YYYY-MM-DD');
 				}
 			},
-			_getProductSpecificationResponse: function(event) {
+			_getProductsResponse: function(event) {
 				var results = event.detail.xhr.response;
 				for (var index in results) {
 					function checkExist(spec) {
 						return spec.name == results[index].name;
 					}
-					if(!this.productSpec.some(checkExist)){
-						var newSpec = new Object();
-						newSpec.id = results[index].id;
-						newSpec.href = results[index].href;
-						newSpec.name = results[index].name;
-						newSpec.sName = newSpec.name.replace("ProductSpec", "");
-						newSpec.chars = results[index].productSpecCharacteristic;
-						this.push('productSpec', newSpec);
+					if(!this.products.some(checkExist)) {
+						var product = new Object();
+						product.id = results[index].id;
+						product.href = results[index].href;
+						product.name = results[index].name;
+						product.checked = false;
+						this.push('products', product);
 					}
 				}
 			},
-			_getProductSpecificationError: function(event) {
+			_getProductsError: function(event) {
 				this.$.addProductToastError.text = event.detail.request.xhr.statusText;
 				this.$.addProductToastError.open();
 			},
@@ -864,7 +938,8 @@
 						this.$.addPriceAlteration.selected = null;
 						this.$.addPriceCharReserveTime.value = null;
 						this.$.addPriceCharReserveBytes.value = null;
-						this.$.timeOfDay.value = null;
+						this.$.timeOfDayStart.value = null;
+						this.$.timeOfDayEnd.value = null;
 						this.$.ratedPrice.value = null;
 					} else {
 						this.addOrUpdateButton = "update";
@@ -897,17 +972,20 @@
 						this.$.addPriceCurrency.value = this.prices[indexPrice].currency;
 						this.$.addPriceAmount.value = this.prices[indexPrice].amount;
 						switch(this.prices[indexPrice].period) {
-							case "daily":
+							case "hourly":
 								this.$.addPricePeriod.selected = 0;
 								break;
-							case "weekly":
+							case "daily":
 								this.$.addPricePeriod.selected = 1;
 								break;
-							case "monthly":
+							case "weekly":
 								this.$.addPricePeriod.selected = 2;
 								break;
-							case "yearly":
+							case "monthly":
 								this.$.addPricePeriod.selected = 3;
+								break;
+							case "yearly":
+								this.$.addPricePeriod.selected = 4;
 								break;
 						}
 						if(this.prices[indexPrice].alterations &&
@@ -920,7 +998,8 @@
 						}
 						this.$.addPriceCharReserveTime.value = this.prices[indexPrice].reserveTime;
 						this.$.addPriceCharReserveBytes.value = this.prices[indexPrice].reserveBytes;
-						this.$.timeOfDay.value = this.prices[indexPrice].timeOfDayRange;
+						this.$.timeOfDayStart.value = this.prices[indexPrice].timeOfDayRange;
+						this.$.timeOfDayEnd.value = this.prices[indexPrice].timeOfDayRange;
 						this.$.ratedPrice.value = this.prices[indexPrice].ratePrice;
 					}
 				}
@@ -973,20 +1052,46 @@
 						this.$.addAltCurrency.value = this.alterations[index].currency;
 						this.$.addAltAmount.value = this.alterations[index].amount;
 						switch(this.alterations[index].period) {
-							case "daily":
+							case "hourly":
 								this.$.addAltPeriod.selected = 0;
 								break;
-							case "weekly":
+							case "daily":
 								this.$.addAltPeriod.selected = 1;
 								break;
-							case "monthly":
+							case "weekly":
 								this.$.addAltPeriod.selected = 2;
 								break;
-							case "yearly":
+							case "monthly":
 								this.$.addAltPeriod.selected = 3;
+								break;
+							case "yearly":
+								this.$.addAltPeriod.selected = 4;
 								break;
 						}
 					}
+				}
+			},
+			_bundleCheckboxChanged: function() {
+				function check(item) {
+					return item.checked;
+				}
+				if(this.products.some(check)) {
+					this.$.addOffProductSpecificationDrop.disabled = true;
+					this.$.destPrefixPrice.disabled = true;
+					this.$.destPrefixTariff.disabled = true;
+				} else {
+					this.$.addOffProductSpecificationDrop.disabled = false;
+					this.$.destPrefixPrice.disabled = false;
+					this.$.destPrefixTariff.disabled = false;
+				}
+			},
+			_onClickBundle: function(event) {
+				if(this.$.addBundle.opened == false) {
+					this.$.addBundle.show();
+					this.$.onClickBundle.icon="arrow-drop-up";
+				} else {
+					this.$.addBundle.hide();
+					this.$.onClickBundle.icon="arrow-drop-down"
 				}
 			},
 			_onClickOfferChars: function() {
@@ -1006,11 +1111,35 @@
 				if(this.$.addOffDesc.value) {
 					offerNew.description = this.$.addOffDesc.value;
 				}
+				if(this.$.addBundle) {
+					var bundled = new Array();
+					for(var index in this.products) {
+						if(this.products[index].checked == true) {
+							var bundleOffer = new Object();
+							bundleOffer.numberRelOfferLowerLimit = 0;
+							bundleOffer.numberRelOfferUpperLimit = 1;
+							bundleOffer.numberRelOfferDefault = 1;
+							var bundleObj = new Object();
+							bundleObj.id = this.products[index].id;
+							bundleObj.href = this.products[index].href;
+							bundleObj.name = this.products[index].name;
+							bundleObj.bundledProductOfferingOption = bundleOffer;
+							bundled.push(bundleObj);
+						}
+					}
+					offerNew.bundledProductOffering = bundled;
+				}
 				var specIndex = this.$.addOffProductSpecification.selected;
-				if(specIndex) {
-					offerNew.productSpecification = this.productSpec[specIndex];
-					delete offerNew.productSpecification.sName;
-					delete offerNew.productSpecification.chars;
+				if(specIndex == 0) {
+					var prodSpecData = new Object();
+					prodSpecData.id = "8";
+					prodSpecData.href = "/catalogManagement/v2/productSpecification/8";
+					offerNew.productSpecification = prodSpecData;
+				} else if(specIndex == 1) {
+					var prodSpecVoice = new Object();
+					prodSpecVoice.id = "9";
+					prodSpecVoice.href = "/catalogManagement/v2/productSpecification/9";
+					offerNew.productSpecification = prodSpecVoice;
 				}
 				var startDateTime;
 				var endDateTime;
@@ -1296,11 +1425,18 @@
 						if (item.timeOfDayRange.length > 0) {
 							var charValueUse = new Object();
 							charValueUse.name = "timeOfDayRange";
+							charValueUse.valueType = "Range";
 							charValueUse.minCardinality = 0;
 							charValueUse.maxCardinality = 1;
 							var charValue = new Object();
-							charValue.default = false;
-							charValue.value = item.timeOfDayRange;
+							var charValueLower = new Object();
+							charValueLower.amount = this.addTimePickerStart.rawValue;
+							charValueLower.units = "minutes";
+							charValue.lowerValue = charValueLower;
+							var charValueUpper = new Object();
+							charValueUpper.amount = this.addTimePickerEnd.rawValue;
+							charValueUpper.units = "minutes";
+							charValue.upperValue = charValueUpper;
 							var charValues = new Array();
 							charValues.push(charValue);
 							charValueUse.productSpecCharacteristicValue = charValues;
@@ -1336,11 +1472,11 @@
 					return out;
 				}
 				offerNew.productOfferingPrice = this.prices.map(mapPrice);
-				if(offerNew.name
-						&& offerNew.productOfferingPrice.length > 0) {
+				if(offerNew.name) {
 					var ajax = this.$.addProductAjax;
 					ajax.body = offerNew;
 					ajax.generateRequest();
+					this.$.addBundle.hide();
 				} else {
 					document.getElementById("addProductToastError").open();
 				}
@@ -1467,15 +1603,18 @@
 				priceNew.currency = this.$.addPriceCurrency.value;
 				switch(this.$.addPricePeriod.selected) {
 					case 0:
+						priceNew.period = "hourly";
+						break
+					case 1:
 						priceNew.period = "daily";
 						break;
-					case 1:
+					case 2:
 						priceNew.period = "weekly";
 						break;
-					case 2:
+					case 3:
 						priceNew.period = "monthly";
 						break
-					case 3:
+					case 4:
 						priceNew.period = "yearly";
 				}
 				if(this.$.addPriceDrop.value) {
@@ -1487,7 +1626,8 @@
 				}
 				priceNew.reserveTime = this.$.addPriceCharReserveTime.value;
 				priceNew.reserveBytes = this.$.addPriceCharReserveBytes.value;
-				priceNew.timeOfDayRange = this.$.timeOfDay.value;
+				priceNew.timeOfDayRange = this.$.timeOfDayStart.value;
+				priceNew.timeOfDayRange = this.$.timeOfDayEnd.value;
 				priceNew.ratePrice = this.$.ratedPrice.value;
 				if(priceNew.name
 						&& priceNew.type
@@ -1513,7 +1653,8 @@
 					this.$.addPriceAlteration.selected = null;
 					this.$.addPriceCharReserveTime.value = null;
 					this.$.addPriceCharReserveBytes.value = null;
-					this.$.timeOfDay.value = null;
+					this.$.timeOfDayStart.value = null;
+					this.$.timeOfDayEnd.value = null;
 					this.$.ratedPrice.value = null;
 					document.getElementById("addProductPriceToastSuccess").open();
 				} else {
@@ -1526,6 +1667,15 @@
 					this.$.onClickPriceChars.icon="arrow-drop-up"
 				} else {
 					this.$.addPriceChars.hide();
+					this.$.onClickPriceChars.icon="arrow-drop-down"
+				}
+			},
+			_onClickPriceCharsTime: function() {
+				if(this.$.addPriceCharsTime.opened == false) {
+					this.$.addPriceCharsTime.show();
+					this.$.onClickPriceCharsTime.icon="arrow-drop-up"
+				} else {
+					this.$.addPriceCharsTime.hide();
 					this.$.onClickPriceChars.icon="arrow-drop-down"
 				}
 			},
@@ -1559,15 +1709,18 @@
 				altNew.currency = this.$.addAltCurrency.value;
 				switch(this.$.addAltPeriod.selected) {
 					case 0:
+						altNew.period = "hourly";
+						break
+					case 1:
 						altNew.period = "daily";
 						break;
-					case 1:
+					case 2:
 						altNew.period = "weekly";
 						break;
-					case 2:
+					case 3:
 						altNew.period = "monthly";
 						break
-					case 3:
+					case 4:
 						altNew.period = "yearly";
 				}
 				switch(this.$.addAltUnitDrop.selected) {
@@ -1622,6 +1775,7 @@
 				this.set('prices', []);
 				this.set('alterations', []);
 				document.getElementById("productGrid").clearCache();
+				this.cancelDialog();
 			},
 			_addProductError: function(event) {
 				document.getElementById("addProductToastError").open();
@@ -1629,14 +1783,15 @@
 			cancelDialog: function() {
 				this.set('prices', []);
 				this.set('alterations', []);
-				this.set('productSpec', []);
+				this.set('products', []);
 				this.addOrUpdateButton = "add";
 				this.$.addOffName.value = null;
 				this.$.addOffDesc.value = null;
 				this.$.addOffProductSpecification.selected = null;
 				this.$.addOffStart.value = null;
 				this.$.addOffEnd.value = null;
-				this.$.addOfferChars.hide()
+				this.$.addOfferChars.hide();
+				this.$.addBundle.hide();
 				this.$.destPrefixPrice.value = null;
 				this.$.destPrefixTariff.value = null;
 				this.$.addProductStartDatePickOff.hide()
@@ -1667,7 +1822,8 @@
 				this.$.addAltAmount.value = null;
 				this.$.addAltCurrency.value = null;
 				this.$.addAltPeriod.selected = null;
-				this.$.timeOfDay.value = null;
+				this.$.timeOfDayStart.value = null;
+				this.$.timeOfDayEnd.value = null;
 				this.$.ratedPrice.value = null;
 				this.$.addProductModal.close();
 			}
