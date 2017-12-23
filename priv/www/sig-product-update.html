@@ -1015,8 +1015,8 @@
 							}
 							newAlt.period = item.prices[index].productOfferPriceAlteration.recurringChargePeriod;
 							this.push('alterations', newAlt);
+							newPrice.alteration = newAlt.name;
 						}
-						newPrice.alteration = newAlt.name;
 					}
 					this.push('prices', newPrice);
 				} 
