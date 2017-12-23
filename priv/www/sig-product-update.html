@@ -1037,12 +1037,14 @@
 					}
 				}
 				var bundle = document.getElementById("productGrid").activeItem.bundledProductOffering;
-				function checkExist1(prod) {
-					return prod.name == bundle[indexBun].name;
-				}
 				for(var indexBun in bundle) {
+					function checkExist1(prod) {
+						return prod.name == bundle[indexBun].name;
+					}
 					var ind = this.products.findIndex(checkExist1);
-					this.products[ind].checked = true;
+					if (ind != -1) {
+						this.products[ind].checked = true;
+					}
 				}
 			},
 			_updateProductStartDateOfferPick: function(date) {
