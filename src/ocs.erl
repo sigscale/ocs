@@ -1465,7 +1465,7 @@ subscription(#subscriber{last_modified = {Now, _}} = Subscriber,
 %% @hidden
 subscription(#subscriber{buckets = Buckets} = Subscriber,
 		Characteristics, Now, true, [#price{type = one_time,
-		amount = Amount, units = cents, alteration = undefined} | T]) ->
+		amount = Amount, alteration = undefined} | T]) ->
 	NewBuckets = charge(Amount, Buckets),
 	subscription(Subscriber#subscriber{buckets = NewBuckets},
 			Characteristics, Now, true, T);
@@ -1488,7 +1488,7 @@ subscription(#subscriber{buckets = Buckets} = Subscriber,
 			Characteristics, Now, true, T);
 subscription(#subscriber{buckets = Buckets} = Subscriber,
 		Characteristics, Now, InitialFlag, [#price{type = recurring,
-		period = Period, amount = SubscriptionAmount, units = undefined,
+		period = Period, amount = SubscriptionAmount,
 		alteration = undefined} | T]) when Period /= undefined ->
 	NewBuckets = charge(SubscriptionAmount, Buckets),
 	subscription(Subscriber#subscriber{buckets = NewBuckets},
