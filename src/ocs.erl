@@ -1437,15 +1437,16 @@ end_period1({{Year, Month, Day}, Time}, yearly) ->
 %% @throws product_not_found
 subscription(#subscriber{last_modified = {Now, _}} = Subscriber,
 		#product{name = ProductName, bundle = [], price = Prices} = _Product,
-		Characteristics, true) ->
-	Subscriber1 = subscription(Subscriber, Characteristics, Now, true, Prices),
+		Characteristics, InitialFlag) ->
+	Subscriber1 = subscription(Subscriber,
+			Characteristics, Now, InitialFlag, Prices),
 	ProductInstance = #product_instance{start_date = Now,
 			product = ProductName, characteristics = Characteristics,
 			last_modified = {Now, erlang:unique_integer([positive])}},
 	Subscriber1#subscriber{product = ProductInstance};
 subscription(#subscriber{last_modified = {Now, _}} = Subscriber,
 		#product{name = BundleName, bundle = Bundled, price = Prices},
-		Characteristics, true) when length(Bundled) > 0 ->
+		Characteristics, InitialFlag) when length(Bundled) > 0 ->
 	F = fun(#bundled_po{name = P}, S) ->
 				case mnesia:read(product, P, read) of
 					[Product] ->
@@ -1455,7 +1456,8 @@ subscription(#subscriber{last_modified = {Now, _}} = Subscriber,
 				end
 	end,
 	Subscriber1 = lists:foldl(F, Subscriber, Bundled),
-	Subscriber2 = subscription(Subscriber1, Characteristics, Now, true, Prices),
+	Subscriber2 = subscription(Subscriber1,
+			Characteristics, Now, InitialFlag, Prices),
 	ProductInstance = #product_instance{start_date = Now,
 			product = BundleName, characteristics = Characteristics,
 			last_modified = {Now, erlang:unique_integer([positive])}},
