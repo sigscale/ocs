@@ -1166,29 +1166,18 @@ price([start_date | T], #price{start_date = Start,
 	price(T, P, [{"validFor", ValidFor} | Acc]);
 price([end_date | T], P, Acc) ->
 	price(T, P, Acc);
-price([type | T], #price{type = one_time, units = cents} = P, Acc) ->
-	price(T, P, [{"priceType", price_type(one_time)} | Acc]);
-price([type | T], #price{type = recurring, period = Period,
-		units = cents} = P, Acc) when Period /= undefined ->
-	Recurring = [{"priceType", price_type(recurring)},
-			{"recurringChargePeriod", price_period(Period)}],
-	price(T, P, Recurring ++ Acc);
-price([type | T], #price{type = usage, units = octets,
-		size = Size} = P, Acc) when is_integer(Size) ->
-	UsageType = [{"priceType", price_type(usage)},
-			{"unitOfMeasure", integer_to_list(Size) ++ "b"}],
-	price(T, P, UsageType ++ Acc);
-price([type | T], #price{type = usage, units = seconds,
-		size = Size} = P, Acc) when is_integer(Size) ->
-	UsageType = [{"priceType", price_type(usage)},
-			{"unitOfMeasure", integer_to_list(Size) ++ "s"}],
-	price(T, P, UsageType ++ Acc);
-price([period | T], P, Acc) ->
-	price(T, P, Acc);
-price([units | T], P, Acc) ->
-	price(T, P, Acc);
-price([size | T], P, Acc) ->
-	price(T, P, Acc);
+price([type | T], #price{type = Type} = P, Acc)
+		when Type /= undefined ->
+	price(T, P, [{"priceType", price_type(Type)} | Acc]);
+price([period | T], #price{period = Period} = P, Acc)
+	when Period /= undefined ->
+	price(T, P, [{"recurringChargePeriod", price_period(Period)} | Acc]);
+price([units | T], #price{units = octets, size = Size} = P, Acc)
+		when is_integer(Size) ->
+	price(T, P, [{"unitOfMeasure", integer_to_list(Size) ++ "b"} | Acc]);
+price([units | T], #price{units = seconds, size = Size} = P, Acc)
+		when is_integer(Size) ->
+	price(T, P, [{"unitOfMeasure", integer_to_list(Size) ++ "s"} | Acc]);
 price([amount | T], #price{amount = Amount, currency = Currency} = P, Acc)
 		when is_integer(Amount), is_list(Currency) ->
 	Price = {struct, [{"taxIncludedAmount", Amount},
@@ -1198,8 +1187,6 @@ price([amount | T], #price{amount = Amount} = P, Acc)
 		when is_integer(Amount) ->
 	Price = {struct, [{"taxIncludedAmount", Amount}]},
 	price(T, P, [{"price", Price} | Acc]);
-price([currency | T], P, Acc) ->
-	price(T, P, Acc);
 price([char_value_use | T], #price{char_value_use = CharValueUses} = P, Acc) ->
 	price(T, P, [{"prodSpecCharValueUse", char_value_uses(CharValueUses)} | Acc]);
 price([alteration | T], #price{alteration = Alteration} = P, Acc)
@@ -1312,43 +1299,18 @@ alteration([start_date | T], #alteration{start_date = Start,
 	alteration(T, A, [{"validFor", ValidFor} | Acc]);
 alteration([end_date | T], A, Acc) ->
 	alteration(T, A, Acc);
-alteration([type | T], #alteration{type = one_time, units = cents} = A, Acc) ->
-	alteration(T, A, [{"priceType", price_type(one_time)} | Acc]);
-alteration([type | T], #alteration{type = recurring, period = Period,
-		units = cents} = A, Acc) when Period /= undefined ->
-	Recurring = [{"priceType", price_type(recurring)},
-			{"recurringChargePeriod", price_period(Period)}],
-	alteration(T, A, Recurring ++ Acc);
-alteration([type | T], #alteration{type = Type, units = octets,
-		size = Size} = A, Acc) when Type == one_time, is_integer(Size);
-		Type == usage, is_integer(Size) ->
-	UsageType = [{"priceType", price_type(Type)},
-			{"unitOfMeasure", integer_to_list(Size) ++ "b"}],
-	alteration(T, A, UsageType ++ Acc);
-alteration([type | T], #alteration{type = Type, units = seconds,
-		size = Size} = A, Acc) when Type == one_time, is_integer(Size);
-		Type == usage, is_integer(Size) ->
-	UsageType = [{"priceType", price_type(Type)},
-			{"unitOfMeasure", integer_to_list(Size) ++ "s"}],
-	alteration(T, A, UsageType ++ Acc);
-alteration([type | T], #alteration{type = recurring, period = Period,
-		units = octets, size = Size} = A, Acc) when is_integer(Size) ->
-	UsageType = [{"priceType", "recurring"},
-			{"recurringChargePeriod", price_period(Period)},
-			{"unitOfMeasure", integer_to_list(Size) ++ "b"}],
-	alteration(T, A, UsageType ++ Acc);
-alteration([type | T], #alteration{type = recurring, period = Period,
-		units = seconds, size = Size} = A, Acc) when is_integer(Size) ->
-	UsageType = [{"priceType", "recurring"},
-			{"recurringChargePeriod", price_period(Period)},
-			{"unitOfMeasure", integer_to_list(Size) ++ "s"}],
-	alteration(T, A, UsageType ++ Acc);
-alteration([period | T], A, Acc) ->
-	alteration(T, A, Acc);
-alteration([units | T], A, Acc) ->
-	alteration(T, A, Acc);
-alteration([size | T], A, Acc) ->
-	alteration(T, A, Acc);
+alteration([type | T], #alteration{type = Type} = A, Acc)
+		when Type /= undefined ->
+	alteration(T, A, [{"priceType", price_type(Type)} | Acc]);
+alteration([period | T], #alteration{period = Period} = A, Acc)
+		when Period /= undefined ->
+	alteration(T, A, [{"recurringChargePeriod", price_period(Period)} | Acc]);
+alteration([units | T], #alteration{units = octets, size = Size} = A, Acc)
+		when is_integer(Size) ->
+	alteration(T, A, [{"unitOfMeasure", integer_to_list(Size) ++ "b"} | Acc]);
+alteration([units | T], #alteration{units = seconds, size = Size} = A, Acc)
+		when is_integer(Size) ->
+	alteration(T, A, [{"unitOfMeasure", integer_to_list(Size) ++ "s"} | Acc]);
 alteration([amount | T], #alteration{amount = Amount, currency = Currency} = A, Acc)
 		when is_integer(Amount), is_list(Currency) ->
 	Price = {struct, [{"taxIncludedAmount", Amount},
@@ -1358,8 +1320,6 @@ alteration([amount | T], #alteration{amount = Amount} = A, Acc)
 		when is_integer(Amount) ->
 	Price = {struct, [{"taxIncludedAmount", Amount}]},
 	alteration(T, A, [{"price", Price} | Acc]);
-alteration([currency | T], A, Acc) ->
-	alteration(T, A, Acc);
 alteration([_ | T], A, Acc) ->
 	alteration(T, A, Acc);
 alteration([], _A, Acc) ->
