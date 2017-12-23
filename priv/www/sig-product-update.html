@@ -924,7 +924,7 @@
 				this.$.updateProductModal.open();
 				this.$.updateOffName.value = item.name;
 				this.$.updateOffDesc.value = item.description;
-				if(item.productSpecification.name) {
+				if(item.productSpecification && item.productSpecification.name) {
 					this.$.updateOffSpec.value = item.productSpecification.name.replace("ProductSpec", "");
 				}
 				this.$.updateOffStart.value = item.startDate;
