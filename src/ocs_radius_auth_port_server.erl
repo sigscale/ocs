@@ -290,7 +290,12 @@ request1(EapType, Address, Port, Secret, PasswordReq,
 						{reply, {ok, wait}, NewState};
 					none ->
 						{ok, _} = radius_attributes:find(?UserName, Attributes),
-						{ok, _} = radius_attributes:find(?UserPassword, Attributes),
+						case PasswordReq of
+							true ->
+								{ok, _} = radius_attributes:find(?UserPassword, Attributes);
+							false ->
+								ok
+						end,
 						Sup = State#state.simple_auth_sup,
 						NewState = start_fsm(AccessRequest, RadiusFsm, Address,
 								Port, Secret, PasswordReq, SessionID, <<>>, Sup, State),
