@@ -95,7 +95,7 @@ add_product() ->
 	ProductName = ocs:generate_password(),
 	Product = #product{name = ProductName,
 			status = active,
-			specification = 4,
+			specification = 8,
 			price = Prices},
 	case ocs:add_product(Product) of
 		{ok, _Product1} ->
