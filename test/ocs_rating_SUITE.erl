@@ -320,7 +320,7 @@ initial_expire_buckets(_Config) ->
 	{ok, #subscriber{buckets = []}} = ocs:find_subscriber(SubscriberID).
 
 initial_ignore_expired_buckets() ->
-	[{userdata, [{doc, "Ignore expired buckets"}]}].
+	[{userdata, [{doc, "Ignore expired buckets with sessions"}]}].
 
 initial_ignore_expired_buckets(_Config) ->
 	ProdID = ocs:generate_password(),
@@ -352,7 +352,7 @@ initial_ignore_expired_buckets(_Config) ->
 	{ok, #subscriber{buckets = Buckets2},
 			PackageSize} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
 			Destination, initial, [], [{octets, Reservation}], SessionId2),
-	2 - length(Buckets2).
+	2 = length(Buckets2).
 
 initial_negative_balance() ->
 	[{userdata, [{doc, "Handle negative balance and ignore"}]}].
