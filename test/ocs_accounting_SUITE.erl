@@ -134,8 +134,9 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[radius_accounting, radius_disconnect_session, radius_multisessions_not_allowed,
-	radius_multisession, diameter_accounting, diameter_disconnect_session].
+	[radius_accounting, radius_disconnect_session,
+	radius_multisession_disallowed, radius_multisession,
+	diameter_accounting, diameter_disconnect_session].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -201,12 +202,12 @@ radius_disconnect_session(Config) ->
 			PeerID, Secret, NasID, AcctSessionID, RadID4, 1350000987, 1350000654),
 	disconnect_request().
 
-radius_multisessions_not_allowed() ->
+radius_multisession_disallowed() ->
 	[{userdata, [{doc, "Start multiple RADIUS sessions for a subscriber when
 			multiple RADIUS sessions are not allowed. Previous sessions should be disconnected
 			allowing the last successfull session to exist."}]}].
 
-radius_multisessions_not_allowed(Config) ->
+radius_multisession_disallowed(Config) ->
 	RadID1 = 8,
 	NasID = ?config(nas_id, Config),
 	ProdID = ?config(product_id, Config),
@@ -242,7 +243,7 @@ radius_multisessions_not_allowed(Config) ->
 	end,
 	ok = F(SessionAttr1, NasID),
 	Rad2ID1 = 5,
-	NasID2 = "vlkf@ubip.net",
+	NasID2 = "vlkf@example.net",
 	authenticate_subscriber1(Socket, AuthAddress, AuthPort, PeerID,
 			HiddenPassword, Secret, NasID2, ReqAuth, Rad2ID1),
 	ct:sleep(500),
