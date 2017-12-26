@@ -8,4 +8,5 @@
 		ocs_codec_eap_SUITE,
 		ocs_eap_ttls_SUITE,
 		ocs_log_SUITE,
-		ocs_rating_SUITE]}.
+		ocs_rating_SUITE,
+		ocs_charging_SUITE]}.
