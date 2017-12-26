@@ -43,6 +43,9 @@
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include("../include/diameter_gen_nas_application_rfc7155.hrl").
 
+%% service types
+-define(DATA, 2).
+-define(VOICE, 12).
 -define(CC_APPLICATION_ID, 4).
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -73,7 +76,8 @@
 		password :: undefined | string() | binary(),
 		diameter_port_server :: undefined | pid(),
 		request :: undefined | #diameter_nas_app_AAR{},
-		password_required :: boolean()}).
+		password_required :: boolean(),
+		service_type :: undefined | integer()}).
 
 -type statedata() :: #statedata{}.
 
@@ -100,13 +104,19 @@
 %% @private
 %%
 init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort, PasswordReq,
-		SessId, AppId, AuthType, OHost, ORealm, Request, DHost, DRealm, Options] = _Args) ->
+		SessId, AppId, AuthType, OHost, ORealm, DHost, DRealm, Request, Options] = _Args) ->
 	[Subscriber, Password] = Options,
 	case global:whereis_name({ocs_diameter_auth, ServerAddress, ServerPort}) of
 		undefined ->
 			{stop, ocs_diameter_auth_port_server_not_found};
 		PortServer ->
 			process_flag(trap_exit, true),
+			ServiceType = case Request of
+				#diameter_nas_app_AAR{'Service-Type' = [ST]} ->
+					ST;
+				_ ->
+					undefined
+			end,
 			StateData = #statedata{protocol = diameter, session_id = SessId,
 					app_id = AppId, auth_request_type = AuthType, origin_host = OHost,
 					origin_realm = ORealm, dest_host = DHost, dest_realm = DRealm,
@@ -114,17 +124,25 @@ init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort, PasswordRe
 					server_address = ServerAddress, server_port = ServerPort,
 					client_address = ClientAddress, client_port = ClientPort,
 					diameter_port_server = PortServer, request = Request,
-					password_required = PasswordReq},
+					password_required = PasswordReq,
+					service_type = ServiceType},
 			{ok, request, StateData, 0}
 	end;
 init([radius, ServerAddress, ServerPort, ClientAddress, ClientPort, RadiusFsm,
 		Secret, PasswordReq, SessionID, #radius{code = ?AccessRequest, id = ID,
 		authenticator = Authenticator, attributes = Attributes}] = _Args) ->
+	ServiceType = case radius_attributes:find(?ServiceType, Attributes) of
+		{error, not_found} ->
+			undefined;
+		{_, ST} ->
+			ST
+	end,
 	StateData = #statedata{protocol = radius, server_address = ServerAddress,
 		server_port = ServerPort, client_address = ClientAddress,
 		client_port = ClientPort, radius_fsm = RadiusFsm, shared_secret = Secret,
 		session_id = SessionID, radius_id = ID, req_auth = Authenticator,
-		req_attr = Attributes, password_required = PasswordReq},
+		req_attr = Attributes, password_required = PasswordReq,
+		service_type = ServiceType},
 	process_flag(trap_exit, true),
 	{ok, request, StateData, 0}.
 
@@ -171,8 +189,8 @@ handle_radius(#statedata{req_attr = Attributes, req_auth = Authenticator,
 	end.
 %% @hidden
 handle_radius1(#statedata{subscriber = SubscriberId, password = <<>>,
-		password_required = PasswordReq} = StateData) ->
-	case ocs:authorize(SubscriberId, []) of
+		password_required = PasswordReq, service_type = ServiceType} = StateData) ->
+	case ocs:authorize(ServiceType, SubscriberId, []) of
 		{ok, #subscriber{password = <<>>,
 				attributes = Attributes} = Subscriber} ->
 			NewStateData = StateData#statedata{res_attr = Attributes},
@@ -194,8 +212,9 @@ handle_radius1(#statedata{subscriber = SubscriberId, password = <<>>,
 		{error, Reason} ->
 			reject_radius(Reason, StateData)
 	end;
-handle_radius1(#statedata{subscriber = SubscriberId, password = Password} = StateData) ->
-	case ocs:authorize(SubscriberId, Password) of
+handle_radius1(#statedata{subscriber = SubscriberId, password = Password,
+		service_type = ServiceType} = StateData) ->
+	case ocs:authorize(ServiceType, SubscriberId, Password) of
 		{ok, #subscriber{attributes = Attributes} = Subscriber} ->
 			NewStateData = StateData#statedata{res_attr = Attributes},
 			handle_radius2(Subscriber, NewStateData);
@@ -273,8 +292,9 @@ reject_radius(_, #statedata{session_id = SessionID} = StateData) ->
 
 %% @hidden
 handle_diameter(#statedata{protocol = diameter,
-		subscriber = SubscriberId, password = Password} = StateData) ->
-	case ocs:authorize(SubscriberId, Password) of
+		subscriber = SubscriberId, password = Password,
+		service_type = ServiceType} = StateData) ->
+	case ocs:authorize(ServiceType, SubscriberId, Password) of
 		{ok, Subscriber} ->
 			handle_diameter1(Subscriber, StateData);
 		{disabled, SessionAttributes} ->
@@ -543,3 +563,4 @@ start_disconnect3(DiscSup, #statedata{protocol = diameter, session_id = SessionI
 	StartArgs = [DiscArgs, []],
 	supervisor:start_child(DiscSup, StartArgs),
 	start_disconnect3(DiscSup, State, T).
+

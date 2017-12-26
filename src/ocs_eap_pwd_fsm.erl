@@ -39,6 +39,7 @@
 -include("ocs.hrl").
 -include("ocs_eap_codec.hrl").
 -include("../include/diameter_gen_eap_application_rfc4072.hrl").
+-include("../include/diameter_gen_nas_application_rfc7155.hrl").
 
 -define(CC_APPLICATION_ID, 4).
 
@@ -77,7 +78,9 @@
 		origin_host :: undefined | binary(),
 		origin_realm :: undefined | binary(),
 		diameter_port_server :: undefined | pid(),
-		password_required :: boolean()}).
+		password_required :: boolean(),
+		service_type :: undefined | integer()}).
+
 -type statedata() :: #statedata{}.
 
 -define(TIMEOUT, 30000).
@@ -122,13 +125,20 @@ init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 		undefined ->
 			{stop, ocs_diameter_auth_port_server_not_found};
 		PortServer ->
+			ServiceType = case Request of
+				#diameter_nas_app_AAR{'Service-Type' = [ST]} ->
+					ST;
+				_ ->
+					undefined
+			end,
 			StateData = #statedata{server_address = ServerAddress,
 					server_port = ServerPort, client_address = ClientAddress,
 					client_port = ClientPort, session_id = SessionId,
 					server_id = list_to_binary(Hostname), auth_app_id = ApplicationId,
 					auth_req_type = AuthType, origin_host = OHost,
 					origin_realm = ORealm, diameter_port_server = PortServer,
-					start = Request, password_required = PasswordReq},
+					start = Request, password_required = PasswordReq,
+					service_type = ServiceType},
 			process_flag(trap_exit, true),
 			{ok, eap_start, StateData, 0}
 		end.
@@ -774,7 +784,13 @@ confirm3(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 	Salt = crypto:rand_uniform(16#8000, 16#ffff),
 	MsMppeKey = encrypt_key(Secret, RequestAuthenticator, Salt, MSK),
 	UserName = binary_to_list(PeerID),
-	case ocs:authorize(PeerID, Password) of
+	ServiceType = case radius_attributes:find(?ServiceType, RequestAttributes) of
+		{error, not_found} ->
+			undefined;
+		{_, ST} ->
+			ST
+	end,
+	case ocs:authorize(ServiceType, PeerID, Password) of
 		{ok, #subscriber{attributes = Attributes}}  ->
 			Attr1 = radius_attributes:store(?UserName, UserName, Attributes),
 			VendorSpecific1 = {?Microsoft, {?MsMppeSendKey, {Salt, MsMppeKey}}},
@@ -838,13 +854,14 @@ confirm6(Request, #statedata{eap_id = EapID, ks = Ks, confirm_p = ConfirmP,
 		group_desc = GroupDesc, rand_func = RandFunc, prf = PRF,
 		session_id = SessionID, peer_id = PeerID, password = Password,
 		auth_req_type = AuthType, origin_host = OH, origin_realm = OR,
-		diameter_port_server = PortServer} = StateData) ->
+		diameter_port_server = PortServer,
+		service_type = ServiceType} = StateData) ->
 	Ciphersuite = <<GroupDesc:16, RandFunc, PRF>>,
 	MK = ocs_eap_pwd:h([Ks, ConfirmP, ConfirmS]),
 	MethodID = ocs_eap_pwd:h([Ciphersuite, ScalarP, ScalarS]),
 	<<MSK:64/binary, _EMSK:64/binary>> = ocs_eap_pwd:kdf(MK,
 			<<?PWD, MethodID/binary>>, 128),
-	case ocs:authorize(PeerID, Password) of
+	case ocs:authorize(ServiceType, PeerID, Password) of
 		{ok, _} ->
 			EapPacket = #eap_packet{code = success, identifier = EapID},
 			send_diameter_response(SessionID, AuthType,
@@ -1140,3 +1157,4 @@ start_disconnect2(diameter, DiscSup, {_, SessionAttributes}, #statedata{session_
 	DiscArgs = [Svc, Alias, SessionID, OHost, DHost, ORealm, DRealm, AppId],
 	StartArgs = [DiscArgs, []],
 	supervisor:start_child(DiscSup, StartArgs).
+

@@ -37,7 +37,7 @@
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
--export([authorize/2, normalize/1, subscription/4]).
+-export([authorize/3, normalize/1, subscription/4]).
 
 -export_type([eap_method/0]).
 
@@ -1195,8 +1195,13 @@ charset() ->
 	C6 = lists:seq($w, $z),
 	lists:append([C1, C2, C3, C4, C5, C6]).
 
--spec authorize(Identity, Password) -> Result
+%% service types
+-define(DATA, 2).
+-define(VOICE, 12).
+
+-spec authorize(ServiceType, Identity, Password) -> Result
 	when
+		ServiceType :: undefined | integer(),
 		Identity :: string() | binary(),
 		Password :: string() | binary(),
 		Result :: {ok, #subscriber{}} | {disabled, SessionsList} | {error, Reason},
@@ -1211,11 +1216,11 @@ charset() ->
 %% 	where `PSK' is used for `Mikrotik-Wireless-Psk' and `Attributes' are
 %% 	additional attributes to be returned in an `Access-Accept' response.
 %% @private
-authorize(Identity, Password) when is_list(Identity) ->
-	authorize(list_to_binary(Identity), Password);
-authorize(Identity, Password) when is_list(Password) ->
-	authorize(Identity, list_to_binary(Password));
-authorize(Identity, Password) when is_binary(Identity),
+authorize(ServiceType, Identity, Password) when is_list(Identity) ->
+	authorize(ServiceType, list_to_binary(Identity), Password);
+authorize(ServiceType, Identity, Password) when is_list(Password) ->
+	authorize(ServiceType, Identity, list_to_binary(Password));
+authorize(ServiceType, Identity, Password) when is_binary(Identity),
 		is_binary(Password) ->
 	F= fun() ->
 				case mnesia:read(subscriber, Identity, write) of
@@ -1223,10 +1228,16 @@ authorize(Identity, Password) when is_binary(Identity),
 							disconnect = Disconnect} = Entry] ->
 						Now = erlang:system_time(?MILLISECOND),
 						F2 = fun(#bucket{remain_amount = Amount,
-											termination_date = TD}) when
-													TD =/= undefined;
-													TD > Now,
-													Amount > 0 ->
+											termination_date = TD, units = Units}) when
+											((TD =/= undefined) orelse (TD > Now))
+											and
+											((ServiceType == undefined) orelse
+											((ServiceType == ?DATA)
+												and ((Units == octets) orelse (Units == cents))) orelse
+											((ServiceType == ?VOICE)
+												and ((Units == seconds) orelse (Units == cents))))
+											and
+											(Amount > 0) ->
 										true;
 									(_) ->
 										false
