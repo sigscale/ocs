@@ -1055,11 +1055,12 @@ interim_debit_and_reserve_insufficient4(_Config) ->
 	Destination = ocs:generate_identity(),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = 2,
-	{ok, _, _} = ocs_rating:rate(radius, ServiceType, SubscriberID,
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
 			Destination, initial, [], [{octets, Reservation}], SessionId),
-	{out_of_credit, _} = ocs_rating:rate(radius, ServiceType, SubscriberID,
+	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
 			Destination, interim, [{octets, Debit}], [{octets, Reservation}], SessionId),
-	{ok, #subscriber{buckets = []}} = ocs:find_subscriber(SubscriberID).
+	{ok, #subscriber{buckets = [#bucket{remain_amount = -150,
+			units = cents}]}} = ocs:find_subscriber(SubscriberID).
 
 final_remove_session() ->
 	[{userdata, [{doc, "Final call remove session attributes from subscriber record"}]}].
