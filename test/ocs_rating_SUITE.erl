@@ -294,7 +294,7 @@ initial_multiple_buckets(_Config) ->
 	true = Reserved > Reservation.
 
 initial_expire_buckets() ->
-	[{userdata, [{doc, "remove expired buckets"}]}].
+	[{userdata, [{doc, "Remove expired buckets"}]}].
 
 initial_expire_buckets(_Config) ->
 	ProdID = ocs:generate_password(),
@@ -424,8 +424,7 @@ interim_reservation(_Config) ->
 	Reserved = F(InterimReservation).
 
 interim_reservations_within_package_size() ->
-	[{userdata, [{doc, "Reservation amounts less
-		than the package size"}]}].
+	[{userdata, [{doc, "Reservation amounts less than package size"}]}].
 
 interim_reservations_within_package_size(_Config) ->
 	ProdID = ocs:generate_password(),
@@ -478,7 +477,7 @@ interim_reservations_within_package_size(_Config) ->
 	Reserved3 = F(Reservation3).
 
 interim_reservation_available_remain_amount() ->
-	[{userdata, [{doc, "Reservation amount equal to bucket remain amount and package size"}]}].
+	[{userdata, [{doc, "Reservation amount equal to balance and package size"}]}].
 
 interim_reservation_available_remain_amount(_Config) ->
 	ProdID = ocs:generate_password(),
@@ -537,8 +536,7 @@ interim_reservation_out_of_credit(_Config) ->
 	#bucket{remain_amount = 0} = lists:keyfind(cents, #bucket.units, RatedBuckets).
 
 interim_reservation_remove_session_attributes() ->
-	[{userdata, [{doc, "Out of credit remove session
-			attributes from subscriber record"}]}].
+	[{userdata, [{doc, "Out of credit remove session attributes from subscriber record"}]}].
 
 interim_reservation_remove_session_attributes(_Config) ->
 	ProdID = ocs:generate_password(),
@@ -573,7 +571,7 @@ interim_reservation_remove_session_attributes(_Config) ->
 	{ok, #subscriber{session_attributes = []}} = ocs:find_subscriber(SubscriberID).
 
 interim_reservation_multiple_buckets_with_sufficient_amount() ->
-	[{userdata, [{doc, "Reservation with miltiple buckets"}]}].
+	[{userdata, [{doc, "Reservation with multiple buckets"}]}].
 
 interim_reservation_multiple_buckets_with_sufficient_amount(_Config) ->
 	ProdID = ocs:generate_password(),
@@ -630,7 +628,7 @@ interim_reservation_multiple_buckets_with_sufficient_amount(_Config) ->
 	Reserved2 = F2(Reservation2).
 
 interim_reservation_multiple_buckets_out_of_credit() ->
-	[{userdata, [{doc, "Out of credit with mulitple cents buckets"}]}].
+	[{userdata, [{doc, "Out of credit with multiple cents buckets"}]}].
 
 interim_reservation_multiple_buckets_out_of_credit(_Config) ->
 	ProdID = ocs:generate_password(),
@@ -811,8 +809,7 @@ interim_debiting_remove_session_attributes(_Config) ->
 	{ok, #subscriber{session_attributes = []}} = ocs:find_subscriber(SubscriberID).
 
 final_call_remove_session_attributes() ->
-	[{userdata, [{doc, "Final call remove given session
-			attributes from subscriber record"}]}].
+	[{userdata, [{doc, "Final call remove session attributes from subscriber record"}]}].
 
 final_call_remove_session_attributes(_Config) ->
 	ProdID = ocs:generate_password(),
@@ -846,8 +843,7 @@ final_call_remove_session_attributes(_Config) ->
 	{ok, #subscriber{session_attributes = [SA1]}} = ocs:find_subscriber(SubscriberID).
 
 debit_and_reservation_with_sufficient_amount() ->
-	[{userdata, [{doc, "Debit given usage and check for reservation,
-			Whole senoario base on sufficient amount"}]}].
+	[{userdata, [{doc, "Debit given usage and check for reservation, sufficient balance exists"}]}].
 
 debit_and_reservation_with_sufficient_amount(_Config) ->
 	ProdID = ocs:generate_password(),
@@ -904,9 +900,8 @@ debit_and_reservation_with_sufficient_amount(_Config) ->
 	Reservation2 = F2(Debit, Reservation, Reservation1).
 
 debit_and_reservation_under_available_amount() ->
-	[{userdata, [{doc, "Debit amount is less than package size and
-		reservation amount less than avaliable remain amount, Whole senoario base on
-		sufficient amount"}]}].
+	[{userdata, [{doc, "Debit amount less than package size and reservation amount
+			less than avaliable balance, sufficient balance exists"}]}].
 
 debit_and_reservation_under_available_amount(_Config) ->
 	ProdID = ocs:generate_password(),
@@ -962,8 +957,7 @@ debit_and_reservation_under_available_amount(_Config) ->
 	Reservation2 = F2(Debit, Reservation, Reservation1).
 
 octets_debit_and_reservation_scenario_3() ->
-	[{userdata, [{doc, "Debit amount is equal to the
-		package size and reservation amount grater than avaliable remain amount"}]}].
+	[{userdata, [{doc, "Debit amount equal to package size and reservation amount greater than avaliable balance"}]}].
 
 octets_debit_and_reservation_scenario_3(_Config) ->
 	ProdID = ocs:generate_password(),
@@ -1016,8 +1010,7 @@ octets_debit_and_reservation_scenario_3(_Config) ->
 	#bucket{remain_amount = 0} = lists:keyfind(cents, #bucket.units, RatedBuckets2).
 
 octets_debit_and_reservation_scenario_4() ->
-	[{userdata, [{doc, "Suffient amount for dibit the
-		usage but not for the reservation"}]}].
+	[{userdata, [{doc, "Suffient balance for debit but not reservation"}]}].
 
 octets_debit_and_reservation_scenario_4(_Config) ->
 	ProdID = ocs:generate_password(),
@@ -1068,7 +1061,7 @@ octets_debit_and_reservation_scenario_4(_Config) ->
 	{ok, #subscriber{buckets = []}} = ocs:find_subscriber(SubscriberID).
 
 octets_debit_and_reservation_scenario_5() ->
-	[{userdata, [{doc, "Insuffient amount for dibit and the reservation"}]}].
+	[{userdata, [{doc, "Insuffient amount for debit and reservation"}]}].
 
 octets_debit_and_reservation_scenario_5(_Config) ->
 	ProdID = ocs:generate_password(),
@@ -1099,7 +1092,7 @@ octets_debit_and_reservation_scenario_5(_Config) ->
 	{ok, #subscriber{buckets = []}} = ocs:find_subscriber(SubscriberID).
 
 refund_money_back() ->
-	[{userdata, [{doc, "Refund if not uses buckets"}]}].
+	[{userdata, [{doc, "Refund unused amount of reservation"}]}].
 
 refund_money_back(_Config) ->
 	ProdID = ocs:generate_password(),
