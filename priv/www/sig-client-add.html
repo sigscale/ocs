@@ -56,6 +56,10 @@
 				display: inline-block;
 				width: 8em;
 			}
+			.passwordless {
+				width: 8em;
+				padding-left: 10px;
+			}
 			.secret {
 				display: inline-block;
 			}
@@ -159,6 +163,11 @@
 						</i18n-msg>
 					</paper-tooltip>
 				</div>
+				Passwordless
+				<paper-checkbox
+					class="passwordless"
+					id="checkPass">
+				</paper-checkbox>
 			</iron-collapse>
 			<div class="buttons">
 				<paper-button dialog-confirm
@@ -236,9 +245,14 @@
 					if (!this.$.addClientSecret.disabled) {
 						client.secret = this.$.addClientSecret.value;
 					}
+					if (this.$.checkPass.checked) {
+						client.passwordRequired = false;
+					}
 				}
 				this.$.addClientAjax.body = client;
-				this.$.addClientAjax.generateRequest();
+				if (this.$.addClientSecret.value || this.$.check.checked) {
+					this.$.addClientAjax.generateRequest();
+				}
 			},
 			checkProto: function(event) {
 				if(this.$.addClientProtocol.selected == 0) {
