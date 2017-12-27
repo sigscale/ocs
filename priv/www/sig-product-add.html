@@ -312,6 +312,9 @@
 								<paper-item>
 									Usage
 								</paper-item>
+								<paper-item>
+									Tariff
+								</paper-item>
 							</paper-listbox>
 						</paper-dropdown-menu>
 						<paper-tooltip>
@@ -956,6 +959,8 @@
 							case "usage":
 								this.$.addPriceType.selected = 2;
 								break;
+							case "tariff":
+								this.$.addPriceType.selected = 3;
 						}
 						this.$.addPriceSize.value = this.prices[indexPrice].size;
 						switch(this.prices[indexPrice].unit) {
@@ -1528,6 +1533,7 @@
 					this.$.addPriceCharReserveTime.disabled = true;
 					this.$.addPriceCharReserveBytes.disabled = true;
 					this.$.addPriceUnits.selected = 1;
+					this.$.addPriceAmount.false= false;
 				} else if(this.$.addPriceType.selected == 1) {
 					this.$.addPricePerioddrop.disabled = true;
 					this.$.priceBytes.disabled = true;
@@ -1536,12 +1542,22 @@
 					this.$.addPriceCharReserveTime.disabled = true;
 					this.$.addPriceCharReserveBytes.disabled = true;
 					this.$.addPriceUnits.selected = 1;
+					this.$.addPriceAmount.false= false;
 				} else if(this.$.addPriceType.selected == 2) {
 					this.$.addPricePerioddrop.disabled = true;
 					this.$.priceCents.disabled = true;
 					this.$.priceBytes.disabled = false;
 					this.$.priceSeconds.disabled = false;
 					this.$.addPriceUnits.selected = 0;
+					this.$.addPriceAmount.disabled = false;
+				} else if(this.$.addPriceType.selected == 3) {
+					this.$.addPricePerioddrop.disabled = true;
+					this.$.priceCents.disabled = true;
+					this.$.priceBytes.disabled = true;
+					this.$.priceSeconds.disabled = false;
+					this.$.addPriceUnits.selected = 2;
+					this.$.addPriceAmount.disabled = true;
+					this.$.addPriceAmount.value = null;
 				}
 			},
 			checkRecureAlt: function() {
@@ -1587,6 +1603,9 @@
 						break;
 					case 2:
 						priceNew.type = "usage";
+						break;
+					case 3:
+						priceNew.type = "tariff";
 				}
 				switch(this.$.addPriceUnits.selected) {
 					case 0:
@@ -1598,7 +1617,9 @@
 					case 2:
 						priceNew.unit = "s";
 				}
-				priceNew.amount = parseInt(this.$.addPriceAmount.value);
+				if (this.$.addPriceAmount.value) {
+					priceNew.amount = parseInt(this.$.addPriceAmount.value);
+				}
 				priceNew.size = this.$.addPriceSize.value;
 				priceNew.currency = this.$.addPriceCurrency.value;
 				switch(this.$.addPricePeriod.selected) {
@@ -1632,8 +1653,8 @@
 				if(priceNew.name
 						&& priceNew.type
 						&& priceNew.unit
-						&& (priceNew.size || priceNew.unit== "c")
-						&& priceNew.amount) {
+						&& (priceNew.size || priceNew.unit == "c")
+						&& (priceNew.amount || priceNew.type == "tariff")) {
 					if (indexPrice == -1) {
 						this.push('prices', priceNew);
 					} else {
