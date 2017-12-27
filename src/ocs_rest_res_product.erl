@@ -928,15 +928,17 @@ product_status(terminated) -> "Terminated".
 
 -spec price_type(Type) -> Type
 	when
-		Type :: string() | usage | recurring | one_time.
+		Type :: string() | usage | recurring | one_time | tariff.
 %% @doc CODEC for Price Type.
 %% @private
 price_type("usage") -> usage;
 price_type("recurring") -> recurring;
 price_type("one_time") -> one_time;
+price_type("tariff") -> tariff;
 price_type(usage) -> "usage";
 price_type(recurring) -> "recurring";
-price_type(one_time) -> "one_time".
+price_type(one_time) -> "one_time";
+price_type(tariff) -> "tariff".
 
 -spec price_period(Period) -> Period
 	when
