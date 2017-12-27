@@ -429,8 +429,8 @@ client([protocol | T], #client{protocol = diameter} = C, Acc) ->
 client([identifier| T], #client{identifier = Identifier} = C, Acc)
 		when is_binary(Identifier) ->
 	client(T, C, [{"identifier", binary_to_list(Identifier)} | Acc]);
-client([password_required | T], #client{password_required = true} = C, Acc) ->
-	client(T, C, [{"passwordRequired", true} | Acc]);
+client([password_required | T], #client{password_required = false} = C, Acc) ->
+	client(T, C, [{"passwordRequired", false} | Acc]);
 client([_ | T], Client, Acc) ->
 	client(T, Client, Acc);
 client([], _, Acc) ->
