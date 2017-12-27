@@ -754,7 +754,7 @@ characteristic_product_network() ->
 	Name4 = {"name", "radiusReserveOctets"},
 	Description4 = {"description",
 		"Number of octets to reserve on RADIUS Accounting-Start "
-		"and add to reported octetes used on Accounting-Interim reservation."},
+		"and add to reported octets used on Accounting-Interim reservation."},
 	Config4 = {"configurable", false},
 	Type4 = {"valueType", "Number"},
 	Type41 = {struct, [{"unitOfMeasure", "bytes"}, {"valueType", "Number"}]},
