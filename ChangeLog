@@ -1,4 +1,17 @@
-2017-12-11  Vance Shipley <vances@sigscale.org>
+2017-12-27  Prahveen Thiruchelvam <prahveen@sigscale.org>
+
+	* ocs_rest_res_product.erl : add tariff price type
+	* ocs.erl : match service type for authorization
+	* ocs_eap_pwd_fsm.erl : match service type for authorization
+	* ocs_simple_auth_fsm.erl : match service type for authorization
+	* ocs_eap_ttls_fsm.erl : match service type for authorization
+	* ocs_charging_SUITE.erl : test suite for charging
+	* ocs_rest_res_product.erl : new product specifications
+	* ocs_rating.erl : handle negative balance
+	* ocs_simple_auth_fsm.erl : passwordless operation option
+	* ocs_eap_pwd_fsm.erl : passwordless operation option
+
+2017-12-22  Vance Shipley <vances@sigscale.org>
 
 	* ocs_rating.erl : rate product bundles, match product service type
 	* ocs.erl : charge one_time / recurring product bundles
