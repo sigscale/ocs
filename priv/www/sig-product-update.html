@@ -31,9 +31,9 @@
 				padding-right: 10px;
 			}
 			paper-checkbox {
-            --paper-checkbox-checked-color: #ffb04c;
-            --paper-checkbox-checkmark-color: var(--paper-yellow-900);
-         }
+				--paper-checkbox-checked-color: #ffb04c;
+				--paper-checkbox-checkmark-color: var(--paper-yellow-900);
+			}
 			paper-toolbar{
 				margin-top: 0px;
 				background-color: #bc5100;
@@ -309,6 +309,9 @@
 								<paper-item>
 									Usage
 								</paper-item>
+								<paper-item>
+									Tariff
+								</paper-item>
 							</paper-listbox>
 						</paper-dropdown-menu>
 						<paper-tooltip>
@@ -403,7 +406,7 @@
 									class="dropdown-content"
 									selected="2">
 								<paper-item>
-									Hourly	
+									Hourly
 								</paper-item>
 								<paper-item>
 									Daily
@@ -842,12 +845,12 @@
 				on-error="_updateProductAlterationError">
 		</iron-ajax>
 		<iron-ajax
-         id="getProductUpdateAjax"
-         url="/catalogManagement/v2/productOffering"
-         method="GET"
-         on-response="_getProductUpdateResponse"
-         on-error="_getProductsError">
-      </iron-ajax>
+			id="getProductUpdateAjax"
+			url="/catalogManagement/v2/productOffering"
+			method="GET"
+			on-response="_getProductUpdateResponse"
+			on-error="_getProductsError">
+		</iron-ajax>
 	</template>
 	<script>
 		Polymer ({
@@ -867,11 +870,11 @@
 					}
 				},
 				products: {
-               type: Array,
-               value: function() {
-                  return [];
-               },
-            },
+					type: Array,
+					value: function() {
+						return [];
+					},
+				},
 				selected: {
 					type: Number,
 					value: 0
@@ -1100,7 +1103,7 @@
 					this.$.updatePriceCharsTime.show();
 					this.$.updateOnClickCharsTime.icon="arrow-drop-up"
 				} else {
-					this.$.updatePriceCharsTime.hide();	
+					this.$.updatePriceCharsTime.hide();
 					this.$.updateOnClickCharsTime.icon="arrow-drop-down"
 				}
 			},
@@ -1159,6 +1162,9 @@
 								break;
 							case "usage":
 								this.$.updatePriceType.selected = 2;
+								break;
+							case "tariff":
+								this.$.updatePriceType.selected = 3;
 								break;
 						}
 						this.$.updatePriceSize.value = this.prices[indexUpdatePrice].size;
@@ -1380,6 +1386,10 @@
 							break;
 						case 2:
 							pricetype.value = "usage";
+							break;
+						case 3:
+							pricetype.value = "tariff";
+							break;
 					}
 					updatePriceNew.push(pricetype);
 				} 
@@ -1388,6 +1398,12 @@
 					priceSize.op = "add";
 					priceSize.path = "/productOfferingPrice/" + indexPrices + "/unitOfMeasure";
 					for(var indexUnit in this.prices) {
+						if(this.$.updatePriceUnitsdrop.value == "Seconds") {
+							this.prices[indexUnit].unit = "s";
+						}
+						if(this.$.updatePriceUnitsdrop.value == "Bytes") {
+							this.prices[indexUnit].unit = "b";
+						}
 						var unitDrop = this.prices[indexUnit].unit;
 						var sizeVal = this.$.updatePriceSize.value + unitDrop;
 						if(unitDrop && sizeVal) {
@@ -1610,6 +1626,7 @@
 					this.$.updateAddPriceCharReserveTime.disabled = true;
 					this.$.updateAddPriceCharReserveBytes.disabled = true;
 					this.$.updatePriceUnits.selected = 1;
+					this.$.updatePriceAmount.disabled = false;
 				} else if(this.$.updatePriceType.selected == 1) {
 					this.$.updatePricePerioddrop.disabled = true;
 					this.$.priceBytes.disabled = true;
@@ -1618,12 +1635,22 @@
 					this.$.updateAddPriceCharReserveTime.disabled = true;
 					this.$.updateAddPriceCharReserveBytes.disabled = true;
 					this.$.updatePriceUnits.selected = 1;
+					this.$.updatePriceAmount.disabled = false;
 				} else if(this.$.updatePriceType.selected == 2) {
 					this.$.updatePricePerioddrop.disabled = true;
 					this.$.priceCents.disabled = true;
 					this.$.priceBytes.disabled = false;
 					this.$.priceSeconds.disabled = false;
 					this.$.updatePriceUnits.selected = 0;
+					this.$.updatePriceAmount.disabled = false;
+				} else if(this.$.updatePriceType.selected == 3) {
+					this.$.updatePricePerioddrop.disabled = true;
+					this.$.priceCents.disabled = true;
+					this.$.priceBytes.disabled = true;
+					this.$.priceSeconds.disabled = false;
+					this.$.updatePriceUnits.selected = 2;
+					this.$.updatePriceAmount.disabled = true;
+					this.$.updatePriceAmount.value = null;
 				}
 			},
 			checkRecureAlt: function() {
@@ -1670,6 +1697,10 @@
 						break;
 					case 2:
 						updatePriceNew.priceType = "usage";
+						break;
+					case 3:
+						updatePriceNew.priceType = "tariff";
+						break;
 				}
 				switch(this.$.updatePriceUnits.selected) {
 					case 0:
@@ -1716,7 +1747,7 @@
 					updatePriceNew.alteration = this.alterations.findIndex(checkAlt);
 				}
 				if(updatePriceNew.name
-						&& updatePriceNew.amount 
+						&& (updatePriceNew.amount || updatePriceNew.updatePriceType == "tariff") 
 						&& updatePriceNew.priceType
 						&& updatePriceNew.unit) {
 					if(updateIndexPrice == -1) {
@@ -1758,6 +1789,10 @@
 								break;
 							case 2:
 								pricetype.value = "usage";
+								break;
+							case 3:
+								pricetype.value = "tariff";
+								break;
 						}
 						updatePriceNew1.push(pricetype);
 					} 
