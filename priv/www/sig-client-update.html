@@ -263,15 +263,16 @@
 				}
 				ajax.body = JSON.stringify(clientPass);
 				ajax.generateRequest();
+				this.$.checkPassUpdate.checked = null;
 			},
 			_updateClientAuthResponse: function(event) {
 				document.getElementById("updateClientToastSuccess").open();
 				document.getElementById("clientGrid").clearCache();
 			},
-//			_updateClientAuthError: function(event) {
-//				this.$.updateClientToastError.text = event.detail.request.xhr.statusText;
-//				this.$.updateClientToastError.open();
-//			},
+			_updateClientAuthError: function(event) {
+				this.$.getClientErrorToast.text = event.detail.request.xhr.statusText;
+				this.$.getClientErrorToast.open();
+			},
 			updateClientProperties: function(event) {
 				var editAjax =  this.$.updateClientPropertiesAjax;
 				editAjax.method = "PATCH";
@@ -296,8 +297,8 @@
 				document.getElementById("clientGrid").clearCache();
 			},
 			_updateClientPropertiesError: function(event) {
-				this.$.updateClientToastError.text = event.detail.request.xhr.statusText;
-				this.$.updateClientToastError.open();
+				this.$.getClientErrorToast.text = event.detail.request.xhr.statusText;
+				this.$.getClientErrorToast.open();
 			},
 			checkProto: function(event) {
 				if(this.$.updateClientProtocolList.selected == 0) {
