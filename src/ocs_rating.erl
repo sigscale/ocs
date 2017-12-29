@@ -156,7 +156,7 @@ rate1(Protocol, _ServiceType, Subscriber, Destination, Product,
 rate2(Protocol, Subscriber, Destination, #product{specification = ProdSpec,
 		char_value_use = CharValueUse, price = Prices}, Validity, Flag,
 		DebitAmounts, ReserveAmounts, SessionAttributes)
-		when ProdSpec == "5", ProdSpec == "9" ->
+		when ProdSpec == "5"; ProdSpec == "9" ->
 	FilteredPrices = filter_prices(Prices),
 	case lists:keyfind("destPrefixPriceTable", #char_value_use.name, CharValueUse) of
 		#char_value_use{values = [#char_value{value = PriceTable}]} ->
