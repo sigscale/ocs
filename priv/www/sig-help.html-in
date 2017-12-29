@@ -10,33 +10,35 @@
 <link rel="import" href="iron-icons/device-icons.html">
 
 <dom-module id="sig-help">
-	<style is="custom-style">
-		paper-dialog {
-			position: fixed;
-			right: 10px;
-			overflow: auto;
-		}
-		paper-dialog > *:first-child {
-			margin-top: 0px;
-		}
-		paper-toolbar {
-			color: white;
-			background-color: #bc5100;
-		}
-		iron-icon {
-			padding-right: 10px;
-		}
-		.icon-style {
-			min-height: 10px;
-		}
-		.iconHelp {
-			padding: 0px;
-		}
-		.sublist paper-icon-item {
-			padding-left: 30px;
-		}
-	</style>
 	<template>
+		<style is="custom-style">
+			paper-dialog {
+				position: fixed;
+				right: -36px;
+				top: 41px;
+				overflow: auto;
+				padding: 0px;
+			}
+			paper-dialog > *:first-child {
+				margin-top: 0px;
+			}
+			paper-toolbar {
+				color: white;
+				background-color: #bc5100;
+			}
+			iron-icon {
+				padding-right: 10px;
+			}
+			.icon-style {
+				min-height: 10px;
+			}
+			.iconHelp {
+				padding: 0px;
+			}
+			.sublist paper-icon-item {
+				padding-left: 30px;
+			}
+		</style>
 		<paper-dialog id="helpDrop">
 			<paper-menu>
 				<paper-submenu>
