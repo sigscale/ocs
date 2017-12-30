@@ -123,19 +123,19 @@ rate1(Protocol, ServiceType, Subscriber, Destination,
 		F = fun(#bundled_po{name = ProdId}, Acc) ->
 				case mnesia:read(product, ProdId, read) of
 					[#product{specification = Spec, status = Status} = P] when
-							(((Status == active) orelse (Status == undefined)
+							((Status == active) orelse (Status == undefined))
 							and
-							(Protocol == radius)
+							(((Protocol == radius)
 								and
 								((ServiceType == ?RADIUSDATA) and ((Spec == 4) orelse (Spec == 8)))
 								orelse
 								((ServiceType == ?RADIUSVOICE) and ((Spec == 5) orelse (Spec == 9))))
 							orelse
-							(Protocol == diameter)
+							((Protocol == diameter)
 								and
 								((ServiceType == ?DIAMETERDATA) and ((Spec == 4) orelse (Spec == 8)))
 								orelse
-								((ServiceType == ?DIAMETERVOICE) and ((Spec == 5) orelse (Spec == 9)))) ->
+								((ServiceType == ?DIAMETERVOICE) and ((Spec == 5) orelse (Spec == 9))))) ->
 						[P | Acc];
 					_ ->
 						Acc
