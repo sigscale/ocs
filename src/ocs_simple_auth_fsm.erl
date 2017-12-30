@@ -201,9 +201,8 @@ handle_radius1(#statedata{subscriber = SubscriberId, password = <<>>,
 			handle_radius2(Subscriber, NewStateData);
 		{ok, #subscriber{attributes = Attributes, password = PSK}
 				= Subscriber} when is_binary(PSK) ->
-			VendorSpecific = {?Mikrotik, {?MikrotikWirelessPsk, binary_to_list(PSK)}},
-			ResponseAttributes = radius_attributes:store(?VendorSpecific,
-					VendorSpecific, Attributes),
+			ResponseAttributes = radius_attributes:store(?Mikrotik,
+					?MikrotikWirelessPsk, binary_to_list(PSK)),
 			NewStateData = StateData#statedata{res_attr = ResponseAttributes},
 			handle_radius2(Subscriber, NewStateData);
 		{disabled, SessionAttributes} ->
