@@ -601,7 +601,7 @@ spec_prod_network() ->
 	Name = {"name", "NetworkProductSpec"},
 	Description = {"description", "Represents the common behaviour and description of an installed network product that will be provisioned in the network and that enables usages."},
 	Version = {"version", "1.0"},
-	LastUpdate = {"lastUpdate", "2017-10-06T12:00:00Z"},
+	LastUpdate = {"lastUpdate", "2018-01-01T12:00:00Z"},
 	Status = {"lifecycleStatus", "Active"},
 	Chars = {"productSpecCharacteristic", {array, characteristic_product_network()}},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
@@ -764,7 +764,13 @@ characteristic_product_network() ->
 	Value4 = {"productSpecCharacteristicValue",
 			{array, [Type41, Type42, Type43, Type44]}},
 	Char4 = {struct, [Name4, Description4, Config4, Type4, Value4]},
-	[Char1, Char2, Char3, Char4].
+	Name5 = {"name", "radiusReserveSessionTime"},
+	Description5 = {"description", "Number of seconds for one session"},
+	Config5 = {"configurable", true},
+	Type5 = {"valueType", "Number"},
+	Value5 = {"productSpecCharacteristicValue", {array, [{struct, [Type5]}]}},
+	Char5 = {struct, [Name5, Description5, Config5, Type5, Value5]},
+	[Char1, Char2, Char3, Char4, Char5].
 
 %% @hidden
 characteristic_product_rated_plan() ->
