@@ -464,7 +464,9 @@ rate7(Subscriber, interim, _Charge, _Charged, _Reserve, Reserved, _SessionAttrib
 		Subscriber :: #subscriber{},
 		Attributes :: [tuple()],
 		ExistingSessionAttributes :: [tuple()],
-		Reason :: term().
+		Reason :: disabled | bad_password | subscriber_not_found
+				| out_of_credit | product_not_found | invalid_bundle_product
+				| price_not_found | table_lookup_failed.
 %% @doc
 %%
 authorize(Protocol, ServiceType, SubscriberId, Password, Destination, SessionAttributes)
