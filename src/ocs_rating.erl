@@ -504,7 +504,7 @@ authorize(Protocol, ServiceType, SubscriberId, Password, Destination, SessionAtt
 		{aborted, {throw, Reason}} ->
 			{unauthorized, Reason, []};
 		{aborted, Reason} ->
-			{error, Reason}
+			{unauthorized, Reason, []}
 	end.
 %% @hidden
 authorize1(radius, ServiceType, #subscriber{attributes = Attributes,
@@ -555,7 +555,7 @@ authorize2(radius = Protocol, ServiceType, #subscriber{attributes = Attributes}
 							(((Protocol == radius)
 								and
 								((ServiceType == ?RADIUSVOICE) and
-								((Spec == "5") orelse (Spec == "9"))))) ->
+								((Spec == 5) orelse (Spec == 9))))) ->
 						[P | Acc];
 					_ ->
 						Acc
@@ -576,7 +576,7 @@ authorize2(radius = Protocol, ServiceType, #subscriber{attributes = Attributes}
 authorize2(radius = Protocol, ServiceType, Subscriber,
 		#product{specification = ProdSpec, price = Prices,
 		char_value_use = CharValueUse}, Destination, SessionAttributes,
-		Reserve) when (Reserve > 0) and ((ProdSpec == "9") orelse (ProdSpec == "5")) ->
+		Reserve) when (Reserve > 0) and ((ProdSpec == 9) orelse (ProdSpec == 5)) ->
 	case lists:keyfind("destPrefixPriceTable", #char_value_use.name, CharValueUse) of
 		#char_value_use{values = [#char_value{value = PriceTable}]} ->
 			authorize3(Protocol, ServiceType, list_to_existing_atom(PriceTable),
