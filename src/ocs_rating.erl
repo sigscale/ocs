@@ -102,7 +102,7 @@ rate(Protocol, ServiceType, SubscriberID, Destination,
 							throw(product_not_found)
 					end;
 				[] ->
-					throw(subsriber_not_found)
+					throw(subscriber_not_found)
 			end
 	end,
 	case mnesia:transaction(F) of
