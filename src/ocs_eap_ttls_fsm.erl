@@ -1055,15 +1055,18 @@ server_passthrough(timeout, #statedata{session_id = SessionID} =
 		StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
 server_passthrough({accept, #subscriber{name = Identity,
-		attributes = Attributes, password = Password},
-		SslSocket}, #statedata{eap_id = EapID,
-		start = #radius{}, session_id = SessionID, secret = Secret,
+		password = Password}, SslSocket}, #statedata{eap_id =
+		EapID, start = #radius{attributes = RequestAttributes},
+		session_id = SessionID, secret = Secret,
 		req_auth = RequestAuthenticator, radius_fsm = RadiusFsm,
 		radius_id = RadiusID, %ssl_socket = SslSocket,
 		client_rand = ClientRandom, server_rand = ServerRandom,
 		service_type = ServiceType} = StateData) ->
-	case ocs:authorize(ServiceType, Identity, Password) of
-		{ok, #subscriber{}} ->
+	Destination = proplists:get_value(?CalledStationId, RequestAttributes, ""),
+	SessionAttributes = extract_session_attributes(RequestAttributes),
+	case ocs_rating:authorize(radius, ServiceType,
+			Identity, Password, Destination, SessionAttributes) of
+		{authorized, _Subscriber, Attributes, _ExistingSessionAttributes} ->
 			Seed = [<<ClientRandom/binary, ServerRandom/binary>>],
 			{MSK, _} = prf(SslSocket, master_secret ,
 					<<"ttls keying material">>, Seed, 128),
@@ -1079,12 +1082,12 @@ server_passthrough({accept, #subscriber{name = Identity,
 			send_response(EapPacket, ?AccessAccept,
 				RadiusID, Attr3, RequestAuthenticator, [], Secret, RadiusFsm, StateData),
 			{stop, {shutdown, SessionID}, StateData};
-		{disabled, _} ->
+		{unauthorized, disabled, _ExistingSessionAttributes} ->
 			EapPacket = #eap_packet{code = failure, identifier = EapID},
 			send_response(EapPacket, ?AccessReject, RadiusID,
 					[], RequestAuthenticator, [], Secret, RadiusFsm, StateData),
 			{stop, {shutdown, SessionID}, StateData};
-		{error, _Reason} ->
+		{unauthorized, _Reason, _ExistingSessionAttributes} ->
 			EapPacket = #eap_packet{code = failure, identifier = EapID},
 			send_response(EapPacket, ?AccessReject, RadiusID,
 					[], RequestAuthenticator, [], Secret, RadiusFsm, StateData),
@@ -1413,3 +1416,22 @@ send_diameter_response(SId, AuthType, ResultCode, OH, OR, EapPacket,
 		gen_server:cast(PortServer, {self(), Answer1})
 	end.
 
+-spec extract_session_attributes(Attributes) -> SessionAttributes
+	when
+		Attributes :: radius_attributes:attributes(),
+		SessionAttributes :: radius_attributes:attributes().
+%% @doc Extract and return RADIUS session related attributes from
+%% `Attributes'.
+%% @hidden
+extract_session_attributes(Attributes) ->
+	F = fun({K, _}) when K == ?NasIdentifier; K == ?NasIpAddress;
+				K == ?UserName; K == ?FramedIpAddress; K == ?NasPort;
+				K == ?NasPortType; K == ?CalledStationId; K == ?CallingStationId;
+				K == ?AcctSessionId; K == ?AcctMultiSessionId; K == ?NasPortId;
+				K == ?OriginatingLineInfo; K == ?FramedInterfaceId;
+				K == ?FramedIPv6Prefix ->
+			true;
+		(_) ->
+			false
+	end,
+	lists:filter(F, Attributes).
