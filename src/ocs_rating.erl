@@ -457,7 +457,7 @@ rate7(Subscriber, interim, _Charge, _Charged, _Reserve, Reserved, _SessionAttrib
 		ServiceType :: binary() | string() | undefined,
 		SubscriberId :: binary() | string(),
 		Password :: binary(),
-		Destination :: string(),
+		Destination :: string() | undefined,
 		SessionAttributes :: [tuple()],
 		Result :: {authorized, Subscriber, Attributes, ExistingSessionAttributes}
 					| {unauthorized, Reason, ExistingSessionAttributes},
