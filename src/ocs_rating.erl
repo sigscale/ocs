@@ -689,7 +689,8 @@ authorize6(#subscriber{buckets = Buckets, attributes= ExistingAttr}
 		= Subscriber, ServiceType, SessionAttributes, Attributes) ->
 	F = fun(#bucket{remain_amount = R, units = U})
 				when
-				((((ServiceType == ?RADIUSDATA) orelse (ServiceType == ?DIAMETERDATA)) and
+				((ServiceType == undefined) orelse
+				(((ServiceType == ?RADIUSDATA) orelse (ServiceType == ?DIAMETERDATA)) and
 				((U == octets) orelse (U == cents))) orelse
 				(((ServiceType == ?RADIUSVOICE) orelse (ServiceType == ?DIAMETERVOICE)) and
 				((U == seconds) orelse (U == cents)))) andalso
@@ -707,20 +708,26 @@ authorize6(#subscriber{buckets = Buckets, attributes= ExistingAttr}
 %% @hidden
 authorize7(#subscriber{multisession = false, session_attributes = []}
 		= Subscriber, SessionAttributes, Attributes) ->
+	NewSessionAttributes = {erlang:system_time(?MILLISECOND),
+			SessionAttributes},
 	Subscriber1 = Subscriber#subscriber{session_attributes =
-		SessionAttributes, disconnect = false},
+		[NewSessionAttributes], disconnect = false},
 	ok = mnesia:write(Subscriber1),
 	{authorized, Subscriber1, Attributes, []};
 authorize7(#subscriber{multisession = false, session_attributes
 		= ExistingAttr} = Subscriber, SessionAttributes, Attributes) ->
+	NewSessionAttributes = {erlang:system_time(?MILLISECOND),
+			SessionAttributes},
 	Subscriber1 = Subscriber#subscriber{session_attributes =
-		SessionAttributes, disconnect = false},
+		[NewSessionAttributes], disconnect = false},
 	ok = mnesia:write(Subscriber1),
 	{authorized, Subscriber1, Attributes, ExistingAttr};
 authorize7(#subscriber{multisession = true, session_attributes
 		= ExistingAttr} = Subscriber, SessionAttributes, Attributes) ->
+	NewSessionAttributes = {erlang:system_time(?MILLISECOND),
+			SessionAttributes},
 	Subscriber1 = Subscriber#subscriber{session_attributes =
-		[SessionAttributes | ExistingAttr], disconnect = false},
+		[NewSessionAttributes | ExistingAttr], disconnect = false},
 	ok = mnesia:write(Subscriber1),
 	{authorized, Subscriber1, Attributes, ExistingAttr}.
 
