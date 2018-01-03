@@ -599,7 +599,7 @@ authorize2(radius = Protocol, ServiceType, #subscriber{attributes = Attributes} 
 					end
 			end
 	end;
-authorize2(Protocol, ServiceType, #subscriber{attributes = Attributes} =
+authorize2(_Protocol, ServiceType, #subscriber{attributes = Attributes} =
 		Subscriber, _Product, _Destination, SessionAttributes, _Reserve) ->
 	authorize6(Subscriber, ServiceType, SessionAttributes, Attributes).
 %% @hidden
