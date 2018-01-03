@@ -787,6 +787,14 @@
     "description": "PrepaidVoice",
     "message": "Voz prepago"
   },
+	"resSession": {
+    "description": "Radius reserve session time",
+    "message": "Tiempo de sesión de reserva RADIUS"
+  },
+	"resSessionTool": {
+    "description": "Radius reserve session time tool tip",
+    "message": "Acceda al importe de la reserva de solicitud en segundos"
+  },
    "productDeleted": {
     "description": "Success Toast Message",
     "message": "Producto eliminado"

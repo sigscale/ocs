@@ -22,6 +22,7 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([rate/8]).
+-export([authorize/6]).
 
 -include("ocs.hrl").
 -include_lib("radius/include/radius.hrl").
@@ -39,6 +40,7 @@
 %% service types for diameter
 -define(DIAMETERDATA, <<"32251@3gpp.org">>).
 -define(DIAMETERVOICE, <<"32260@3gpp.org">>).
+
 
 -spec rate(Protocol, ServiceType, SubscriberID, Destination,
 		Flag, DebitAmounts, ReserveAmounts, SessionAttributes) -> Result
@@ -100,7 +102,7 @@ rate(Protocol, ServiceType, SubscriberID, Destination,
 							throw(product_not_found)
 					end;
 				[] ->
-					throw(subsriber_not_found)
+					throw(subscriber_not_found)
 			end
 	end,
 	case mnesia:transaction(F) of
@@ -448,6 +450,288 @@ rate7(#subscriber{session_attributes = SessionList} = Subscriber1,
 rate7(Subscriber, interim, _Charge, _Charged, _Reserve, Reserved, _SessionAttributes) ->
 	ok = mnesia:write(Subscriber),
 	{grant, Subscriber, Reserved}.
+
+-spec authorize(Protocol, ServiceType, SubscriberId, Password, Destination, SessionAttributes) -> Result
+	when
+		Protocol :: radius | diameter,
+		ServiceType :: binary() | string() | undefined,
+		SubscriberId :: binary() | string(),
+		Password :: binary(),
+		Destination :: string() | undefined,
+		SessionAttributes :: [tuple()],
+		Result :: {authorized, Subscriber, Attributes, ExistingSessionAttributes}
+					| {unauthorized, Reason, ExistingSessionAttributes},
+		Subscriber :: #subscriber{},
+		Attributes :: [tuple()],
+		ExistingSessionAttributes :: [tuple()],
+		Reason :: disabled | bad_password | subscriber_not_found
+				| out_of_credit | product_not_found | invalid_bundle_product
+				| price_not_found | table_lookup_failed.
+%% @doc
+%%
+authorize(Protocol, ServiceType, SubscriberId, Password, Destination, SessionAttributes)
+		when is_list(SubscriberId) ->
+	authorize(Protocol, ServiceType, list_to_binary(SubscriberId),
+			Password, Destination, SessionAttributes);
+authorize(Protocol, ServiceType, SubscriberId, Password, Destination, SessionAttributes)
+		when is_list(Password) ->
+	authorize(Protocol, ServiceType, SubscriberId,
+			list_to_binary(Password), Destination, SessionAttributes);
+authorize(Protocol, ServiceType, SubscriberId, Password, Destination, SessionAttributes)
+		when ((Protocol == radius) or (Protocol == diameter)), is_binary(SubscriberId),
+		length(SessionAttributes) > 0 ->
+	F = fun() ->
+			case mnesia:read(subscriber, SubscriberId) of
+				[#subscriber{enabled = false,
+						session_attributes = ExistingAttr} = S] ->
+					ok = mnesia:write(S#subscriber{session_attributes = []}),
+					{unauthorized, disabled, ExistingAttr};
+				[#subscriber{password = MTPassword} = S] when
+						((Password == <<>>) and (Password =/= MTPassword)) orelse
+						(Password == MTPassword) ->
+					authorize1(Protocol, ServiceType, S, Destination, SessionAttributes);
+				[#subscriber{}] ->
+					throw(bad_password);
+				[] ->
+					throw(subscriber_not_found)
+			end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, {authorized, Sub, Attr, SSA}} ->
+			{authorized, Sub, Attr, SSA};
+		{atomic, {unauthorized, Reason, SSA}} ->
+			{unauthorized, Reason, SSA};
+		{aborted, {throw, Reason}} ->
+			{unauthorized, Reason, []};
+		{aborted, Reason} ->
+			{unauthorized, Reason, []}
+	end.
+%% @hidden
+authorize1(radius, ServiceType, #subscriber{attributes = Attributes,
+		product = #product_instance{product = ProdId, characteristics =
+		Chars}} = Subscriber, Destination, SessionAttributes) ->
+	F = fun({'Session-Id', _}) ->
+			true;
+		({?AcctSessionId, _}) ->
+			true;
+		(_) ->
+			false
+	end,
+	case lists:any(F, get_session_id(SessionAttributes)) of
+		true ->
+			case lists:keyfind("radiusReserveSessionTime", 1, Chars) of
+				{_, RRST} when is_integer(RRST) ->
+					case mnesia:read(product, ProdId, read) of
+						[#product{} = P] ->
+							authorize2(radius, ServiceType, Subscriber,
+									P, Destination, SessionAttributes, RRST);
+						[] ->
+							throw(product_not_found)
+					end;
+				false ->
+					authorize6(Subscriber, ServiceType, SessionAttributes, Attributes)
+			end;
+		false ->
+			authorize6(Subscriber, ServiceType, SessionAttributes, Attributes)
+	end;
+authorize1(diameter, ServiceType, #subscriber{attributes = Attributes}
+		= Subscriber, _Destination, SessionAttributes) ->
+	authorize6(Subscriber, ServiceType, SessionAttributes, Attributes).
+%% @hidden
+authorize2(radius = Protocol, 2 = ServiceType, #subscriber{attributes = Attributes}
+		= Subscriber, _Product, _Destination, SessionAttributes, _Reserve) ->
+	authorize6(Subscriber, ServiceType, SessionAttributes, Attributes);
+authorize2(radius = Protocol, ServiceType, #subscriber{attributes = Attributes}
+		= Subscriber, #product{specification = undefined, bundle = Bundle},
+		Destination, SessionAttributes, Reserve) when Reserve > 0, Bundle /= [] ->
+	try
+%%		((ServiceType == ?RADIUSDATA) and ((Spec == 4) orelse (Spec == 8)))
+%%		orelse
+		F = fun(#bundled_po{name = ProdId}, Acc) ->
+				case mnesia:read(product, ProdId, read) of
+					[#product{specification = Spec, status = Status} = P] when
+							((Status == active) orelse (Status == undefined))
+							and
+							(((Protocol == radius)
+								and
+								((ServiceType == ?RADIUSVOICE) and
+								((Spec == 5) orelse (Spec == 9))))) ->
+						[P | Acc];
+					_ ->
+						Acc
+				end
+		end,
+		case lists:foldl(F, [], Bundle) of
+			[#product{price = Prices} = Product | _] ->
+				Product1 = Product#product{price = filter_prices(Prices)},
+				authorize2(Protocol, ServiceType, Subscriber,
+						Product1, Destination, SessionAttributes, Reserve);
+			[] ->
+				authorize6(Subscriber, ServiceType, SessionAttributes, Attributes)
+		end
+	catch
+		_:_ ->
+			throw(invalid_bundle_product)
+	end;
+authorize2(radius = Protocol, ServiceType, Subscriber,
+		#product{specification = ProdSpec, price = Prices,
+		char_value_use = CharValueUse}, Destination, SessionAttributes,
+		Reserve) when (Reserve > 0) and ((ProdSpec == 9) orelse (ProdSpec == 5)) ->
+	case lists:keyfind("destPrefixPriceTable", #char_value_use.name, CharValueUse) of
+		#char_value_use{values = [#char_value{value = PriceTable}]} ->
+			authorize3(Protocol, ServiceType, list_to_existing_atom(PriceTable),
+					Subscriber, Destination, Prices, SessionAttributes, Reserve);
+		false ->
+			 case lists:keyfind("destPrefixTariffTable", #char_value_use.name, CharValueUse) of
+				#char_value_use{values = [#char_value{value = TariffTable}]} ->
+					authorize4(Protocol, ServiceType, list_to_existing_atom(TariffTable),
+							Subscriber, Destination, Prices, SessionAttributes, Reserve);
+				false ->
+					case lists:keyfind(usage, #price.type, Prices) of
+						#price{} = Price ->
+							authorize5(Protocol, ServiceType, Subscriber,
+									Price, SessionAttributes, Reserve);
+						false ->
+							throw(price_not_found)
+					end
+			end
+	end.
+%% @hidden
+authorize3(Protocol, ServiceType, PriceTable, Subscriber,
+		Destination, Prices, SessionAttributes, Reserve) ->
+	case catch ocs_gtt:lookup_last(PriceTable, Destination) of
+		{_Description, RateName} when is_list(RateName) ->
+			F1 = fun(F, [#price{char_value_use = CharValueUse} = H | T]) ->
+						case lists:keyfind("ratePrice", #char_value_use.name, CharValueUse) of
+							#char_value_use{values = [#char_value{value = RateName}]} ->
+								H;
+							false ->
+								F(F, T)
+						end;
+					(_, []) ->
+						F2 = fun(_, [#price{name = Name} = H | _]) when Name == RateName ->
+									H;
+								(F, [_H | T]) ->
+									F(F, T);
+								(_, []) ->
+									false
+						end,
+						F2(F2, Prices)
+			end,
+			case F1(F1, Prices) of
+				#price{} = Price ->
+					authorize5(Protocol, ServiceType, Subscriber,
+							Price, SessionAttributes, Reserve);
+				false ->
+					error_logger:error_report(["Prefix table price name not found",
+							{module, ?MODULE}, {table, PriceTable},
+							{destination, Destination}, {price_name, RateName}]),
+					throw(price_not_found)
+			end;
+		Other ->
+			error_logger:error_report(["Prefix table price name lookup failed",
+					{module, ?MODULE}, {table, PriceTable},
+					{destination, Destination}, {result, Other}]),
+			throw(table_lookup_failed)
+	end.
+%% @hidden
+authorize4(Protocol, ServiceType, TariffTable, Subscriber,
+		Destination, Prices, SessionAttributes, Reserve) ->
+	case catch ocs_gtt:lookup_last(TariffTable, Destination) of
+		{_Description, Amount} ->
+			case lists:keyfind(tariff, #price.type, Prices) of
+				#price{} = Price ->
+					authorize5(Protocol, ServiceType, Subscriber,
+							Price#price{amount = list_to_integer(Amount)},
+							SessionAttributes, Reserve);
+				false ->
+					error_logger:error_report(["Prefix table tariff price type not found",
+							{module, ?MODULE}, {table, TariffTable},
+							{destination, Destination}, {tariff_price, Amount}]),
+					throw(price_not_found)
+			end;
+		Other ->
+			error_logger:error_report(["Prefix table tariff lookup failed",
+					{module, ?MODULE}, {table, TariffTable},
+					{destination, Destination}, {result, Other}]),
+			throw(table_lookup_failed)
+	end.
+%% @hidden
+authorize5(_Protocol, ServiceType, #subscriber{buckets = Buckets1,
+		session_attributes = ExistingAttr, attributes = Attr} =
+		Subscriber, #price{units = Units, size = UnitSize, amount =
+		UnitPrice}, SessionAttributes, Reserve) ->
+	SessionId = get_session_id(SessionAttributes),
+	case reserve_session(Units, Reserve, SessionId, Buckets1) of
+		{Reserve, Buckets2} ->
+			NewAttr = radius_attributes:store(?SessionTimeout, Reserve, Attr),
+			authorize6(Subscriber#subscriber{buckets = Buckets2},
+					ServiceType, SessionAttributes, NewAttr);
+		{UnitsReserved, Buckets2} ->
+			PriceReserveUnits = (Reserve- UnitsReserved),
+			{UnitReserve, PriceReserve} = price_units(PriceReserveUnits,
+					UnitSize, UnitPrice),
+			case reserve_session(cents, PriceReserve, SessionId, Buckets2) of
+				{0, _Buckets3}  ->
+					{unauthorized, out_of_credit, ExistingAttr};
+				{PriceReserve, Buckets3}  ->
+					SessionTimeout = UnitsReserved + UnitReserve,
+					NewAttr = radius_attributes:store(?SessionTimeout, SessionTimeout, Attr),
+					authorize6(Subscriber#subscriber{buckets = Buckets3},
+							ServiceType, SessionAttributes, NewAttr);
+				{PriceReserved, Buckets3} ->
+					SessionTimeout = UnitsReserved + (PriceReserved div UnitPrice),
+					NewAttr = radius_attributes:store(?SessionTimeout, SessionTimeout, Attr),
+					authorize6(Subscriber#subscriber{buckets = Buckets3},
+							ServiceType, SessionAttributes, NewAttr)
+			end
+	end.
+%% @hidden
+authorize6(#subscriber{buckets = Buckets, attributes= ExistingAttr}
+		= Subscriber, ServiceType, SessionAttributes, Attributes) ->
+	F = fun(#bucket{remain_amount = R, units = U})
+				when
+				((ServiceType == undefined) orelse
+				(((ServiceType == ?RADIUSDATA) orelse (ServiceType == ?DIAMETERDATA)) and
+				((U == octets) orelse (U == cents))) orelse
+				(((ServiceType == ?RADIUSVOICE) orelse (ServiceType == ?DIAMETERVOICE)) and
+				((U == seconds) orelse (U == cents)))) andalso
+				(R > 0) ->
+			true;
+		(_) ->
+			false
+	end,
+	case lists:any(F, Buckets) of
+		true ->
+			authorize7(Subscriber, SessionAttributes, Attributes);
+		false ->
+			{unauthorized, out_of_credit, ExistingAttr}
+	end.
+%% @hidden
+authorize7(#subscriber{multisession = false, session_attributes = []}
+		= Subscriber, SessionAttributes, Attributes) ->
+	NewSessionAttributes = {erlang:system_time(?MILLISECOND),
+			SessionAttributes},
+	Subscriber1 = Subscriber#subscriber{session_attributes =
+		[NewSessionAttributes], disconnect = false},
+	ok = mnesia:write(Subscriber1),
+	{authorized, Subscriber1, Attributes, []};
+authorize7(#subscriber{multisession = false, session_attributes
+		= ExistingAttr} = Subscriber, SessionAttributes, Attributes) ->
+	NewSessionAttributes = {erlang:system_time(?MILLISECOND),
+			SessionAttributes},
+	Subscriber1 = Subscriber#subscriber{session_attributes =
+		[NewSessionAttributes], disconnect = false},
+	ok = mnesia:write(Subscriber1),
+	{authorized, Subscriber1, Attributes, ExistingAttr};
+authorize7(#subscriber{multisession = true, session_attributes
+		= ExistingAttr} = Subscriber, SessionAttributes, Attributes) ->
+	NewSessionAttributes = {erlang:system_time(?MILLISECOND),
+			SessionAttributes},
+	Subscriber1 = Subscriber#subscriber{session_attributes =
+		[NewSessionAttributes | ExistingAttr], disconnect = false},
+	ok = mnesia:write(Subscriber1),
+	{authorized, Subscriber1, Attributes, ExistingAttr}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
