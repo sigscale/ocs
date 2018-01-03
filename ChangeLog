@@ -1,3 +1,8 @@
+2018-01-03  Vance Shipley <vances@sigscale.org>
+
+	* ocs_rating.erl : add authorize/6
+	* ocs_gtt.erl : add list/0
+
 2017-12-27  Prahveen Thiruchelvam <prahveen@sigscale.org>
 
 	* ocs_rest_res_product.erl : add tariff price type
