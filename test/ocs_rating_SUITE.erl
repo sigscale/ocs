@@ -101,7 +101,8 @@ all() ->
 	interim_debit_and_reserve_insufficient2,
 	interim_debit_and_reserve_insufficient3,
 	interim_debit_and_reserve_insufficient4,
-	final_remove_session, final_refund].
+	final_remove_session, final_refund,
+	authorize_voice].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1134,6 +1135,35 @@ final_refund(_Config) ->
 	{ok, #subscriber{buckets = RatedBuckets3}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = 0, reservations = Reserved2} = lists:keyfind(cents, #bucket.units, RatedBuckets3),
 	[{_, PackagePrice, SessionId2}] = Reserved2.
+
+authorize_voice() ->
+	[{userdata, [{doc, "Authorize voice call"}]}].
+
+authorize_voice(_Config) ->
+	ProdID = ocs:generate_password(),
+	PackagePrice = 1,
+	PackageSize = 2,
+	Price = #price{name = "overage", type = usage,
+		units = seconds, size = PackageSize, amount = PackagePrice},
+	Product = #product{name = ProdID, price = [Price],
+		specification = "9"},
+	{ok, _} = ocs:add_product(Product),
+	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	Chars = [{"radiusReserveSessionTime", 60}],
+	RemAmount = 100,
+	Buckets = [#bucket{units = cents, remain_amount = RemAmount,
+		start_date = erlang:system_time(?MILLISECOND),
+		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
+	Destination = ocs:generate_identity(),
+	SessionId = [{?AcctSessionId, list_to_binary(ocs:generate_password())}],
+	ServiceType = 12,
+	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
+	{authorized, _, Attr, _} = ocs_rating:authorize(radius, ServiceType, SubscriberID, Password, Destination, SessionId),
+	{?SessionTimeout, 60} = lists:keyfind(?SessionTimeout, 1, Attr),
+	{ok, #subscriber{buckets = Buckets1}} = ocs:find_subscriber(SubscriberID),
+	#bucket{remain_amount = Amount} = lists:keyfind(cents, #bucket.units, Buckets1),
+	Amount = RemAmount - ((60 div PackageSize) * PackagePrice).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
