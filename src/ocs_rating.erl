@@ -129,15 +129,15 @@ rate1(Protocol, ServiceType, Subscriber, Destination,
 							and
 							(((Protocol == radius)
 								and
-								((ServiceType == ?RADIUSDATA) and ((Spec == 4) orelse (Spec == 8)))
+								((ServiceType == ?RADIUSDATA) and ((Spec == "4") orelse (Spec == "8")))
 								orelse
-								((ServiceType == ?RADIUSVOICE) and ((Spec == 5) orelse (Spec == 9))))
+								((ServiceType == ?RADIUSVOICE) and ((Spec == "5") orelse (Spec == "9"))))
 							orelse
 							((Protocol == diameter)
 								and
-								((ServiceType == ?DIAMETERDATA) and ((Spec == 4) orelse (Spec == 8)))
+								((ServiceType == ?DIAMETERDATA) and ((Spec == "4") orelse (Spec == "8")))
 								orelse
-								((ServiceType == ?DIAMETERVOICE) and ((Spec == 5) orelse (Spec == 9))))) ->
+								((ServiceType == ?DIAMETERVOICE) and ((Spec == "5") orelse (Spec == "9"))))) ->
 						[P | Acc];
 					_ ->
 						Acc
@@ -538,15 +538,10 @@ authorize1(diameter, ServiceType, #subscriber{attributes = Attributes}
 		= Subscriber, _Destination, SessionAttributes) ->
 	authorize6(Subscriber, ServiceType, SessionAttributes, Attributes).
 %% @hidden
-authorize2(radius = Protocol, 2 = ServiceType, #subscriber{attributes = Attributes}
-		= Subscriber, _Product, _Destination, SessionAttributes, _Reserve) ->
-	authorize6(Subscriber, ServiceType, SessionAttributes, Attributes);
 authorize2(radius = Protocol, ServiceType, #subscriber{attributes = Attributes}
 		= Subscriber, #product{specification = undefined, bundle = Bundle},
 		Destination, SessionAttributes, Reserve) when Reserve > 0, Bundle /= [] ->
 	try
-%%		((ServiceType == ?RADIUSDATA) and ((Spec == 4) orelse (Spec == 8)))
-%%		orelse
 		F = fun(#bundled_po{name = ProdId}, Acc) ->
 				case mnesia:read(product, ProdId, read) of
 					[#product{specification = Spec, status = Status} = P] when
@@ -554,8 +549,10 @@ authorize2(radius = Protocol, ServiceType, #subscriber{attributes = Attributes}
 							and
 							(((Protocol == radius)
 								and
-								((ServiceType == ?RADIUSVOICE) and
-								((Spec == 5) orelse (Spec == 9))))) ->
+								(((ServiceType == ?RADIUSVOICE) and
+								((Spec == "5") orelse (Spec == "9"))) orelse
+								((ServiceType == ?RADIUSDATA) and
+								((Spec == "4") orelse (Spec == "8")))))) ->
 						[P | Acc];
 					_ ->
 						Acc
@@ -573,10 +570,11 @@ authorize2(radius = Protocol, ServiceType, #subscriber{attributes = Attributes}
 		_:_ ->
 			throw(invalid_bundle_product)
 	end;
-authorize2(radius = Protocol, ServiceType, Subscriber,
-		#product{specification = ProdSpec, price = Prices,
+authorize2(radius = Protocol, ServiceType, #subscriber{attributes = Attributes} =
+		Subscriber, #product{specification = ProdSpec, price = Prices,
 		char_value_use = CharValueUse}, Destination, SessionAttributes,
-		Reserve) when (Reserve > 0) and ((ProdSpec == 9) orelse (ProdSpec == 5)) ->
+		Reserve) when (Reserve > 0) and ((ProdSpec == "9") orelse (ProdSpec == "5")
+		orelse (ProdSpec == "4") orelse ((ProdSpec == "8"))) ->
 	case lists:keyfind("destPrefixPriceTable", #char_value_use.name, CharValueUse) of
 		#char_value_use{values = [#char_value{value = PriceTable}]} ->
 			authorize3(Protocol, ServiceType, list_to_existing_atom(PriceTable),
@@ -587,15 +585,23 @@ authorize2(radius = Protocol, ServiceType, Subscriber,
 					authorize4(Protocol, ServiceType, list_to_existing_atom(TariffTable),
 							Subscriber, Destination, Prices, SessionAttributes, Reserve);
 				false ->
-					case lists:keyfind(usage, #price.type, Prices) of
-						#price{} = Price ->
+					F = fun(#price{type = usage, units = seconds}) ->
+							true;
+						(_) ->
+							false
+					end,
+					case lists:filter(F, Prices) of
+						[Price | _] ->
 							authorize5(Protocol, ServiceType, Subscriber,
 									Price, SessionAttributes, Reserve);
-						false ->
-							throw(price_not_found)
+						[] ->
+							authorize6(Subscriber, ServiceType, SessionAttributes, Attributes)
 					end
 			end
-	end.
+	end;
+authorize2(_Protocol, ServiceType, #subscriber{attributes = Attributes} =
+		Subscriber, _Product, _Destination, SessionAttributes, _Reserve) ->
+	authorize6(Subscriber, ServiceType, SessionAttributes, Attributes).
 %% @hidden
 authorize3(Protocol, ServiceType, PriceTable, Subscriber,
 		Destination, Prices, SessionAttributes, Reserve) ->
@@ -672,7 +678,7 @@ authorize5(_Protocol, ServiceType, #subscriber{buckets = Buckets1,
 			{UnitReserve, PriceReserve} = price_units(PriceReserveUnits,
 					UnitSize, UnitPrice),
 			case reserve_session(cents, PriceReserve, SessionId, Buckets2) of
-				{0, _Buckets3}  ->
+				{0, _Buckets3}  when UnitsReserved == 0 ->
 					{unauthorized, out_of_credit, ExistingAttr};
 				{PriceReserve, Buckets3}  ->
 					SessionTimeout = UnitsReserved + UnitReserve,
@@ -680,7 +686,7 @@ authorize5(_Protocol, ServiceType, #subscriber{buckets = Buckets1,
 					authorize6(Subscriber#subscriber{buckets = Buckets3},
 							ServiceType, SessionAttributes, NewAttr);
 				{PriceReserved, Buckets3} ->
-					SessionTimeout = UnitsReserved + (PriceReserved div UnitPrice),
+					SessionTimeout = UnitsReserved + ((PriceReserved div UnitPrice) * UnitSize),
 					NewAttr = radius_attributes:store(?SessionTimeout, SessionTimeout, Attr),
 					authorize6(Subscriber#subscriber{buckets = Buckets3},
 							ServiceType, SessionAttributes, NewAttr)
@@ -689,15 +695,28 @@ authorize5(_Protocol, ServiceType, #subscriber{buckets = Buckets1,
 %% @hidden
 authorize6(#subscriber{buckets = Buckets, attributes= ExistingAttr}
 		= Subscriber, ServiceType, SessionAttributes, Attributes) ->
-	F = fun(#bucket{remain_amount = R, units = U})
+	F = fun(#bucket{remain_amount = R, units = U, reservations = Res})
 				when
 				((ServiceType == undefined) orelse
 				(((ServiceType == ?RADIUSDATA) orelse (ServiceType == ?DIAMETERDATA)) and
-				((U == octets) orelse (U == cents))) orelse
+				((U == octets) orelse (U == cents) orelse (U == seconds))) orelse
 				(((ServiceType == ?RADIUSVOICE) orelse (ServiceType == ?DIAMETERVOICE)) and
-				((U == seconds) orelse (U == cents)))) andalso
-				(R > 0) ->
-			true;
+				((U == seconds) orelse (U == cents)))) ->
+			case {Res /= [], R > 0} of
+				{true, true} ->
+					true;
+				{false, true} ->
+					true;
+				{true, false} ->
+					case lists:keyfind(get_session_id(SessionAttributes), 3, Res) of
+						{_, _, _} ->
+							true;
+						_ ->
+							false
+					end;
+				{false, false} ->
+					false
+			end;
 		(_) ->
 			false
 	end,

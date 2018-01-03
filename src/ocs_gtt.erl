@@ -39,8 +39,9 @@
 -author('vances@sigscale.com').
 
 %% export API
--export([new/2, new/3, insert/2, insert/3, delete/2, lookup_first/2,
-		lookup_last/2, lookup_all/2, backup/2, restore/2, import/1]).
+-export([new/2, new/3, insert/2, insert/3, delete/2,
+		lookup_first/2, lookup_last/2, lookup_all/2,
+		list/0, backup/2, restore/2, import/1]).
 
 -record(gtt, {num, value}).
 
@@ -356,6 +357,24 @@ import4([Key | Value]) ->
 		false ->
 			exit(invalid_key)
 	end.
+
+-spec list() -> Tables
+	when
+		Tables :: [Table],
+		Table :: atom().
+%% @doc List all tables.
+list() ->
+	list(mnesia:system_info(tables), []).
+%% @hidden
+list([H | T], Acc) ->
+	case mnesia:table_info(H, record_name) of
+		gtt ->
+			list(T, [H | Acc]);
+		_ ->
+			list(T, Acc)
+	end;
+list([], Acc) ->
+	lists:reverse(Acc).
 
 %%----------------------------------------------------------------------
 %%  internal functions
