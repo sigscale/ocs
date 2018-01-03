@@ -305,16 +305,8 @@
 						newRecord.prices = results[index].productOfferingPrice;
 					}
 					newRecord.bundledProductOffering = results[index].bundledProductOffering;
+					newRecord.prodSpecCharValueUse = results[index].prodSpecCharValueUse;
 					vaadinItems[index] = newRecord;
-					for (var indexCharUse in results[index].prodSpecCharValueUse) {
-						function exist(value){
-							return results[index].prodSpecCharValueUse[indexCharUse].productSpecCharacteristicValue[0].value == value;
-						}
-						if((results[index].prodSpecCharValueUse[indexCharUse].name =="destPrefixPriceTable"								|| results[index].prodSpecCharValueUse[indexCharUse].name ==
-								"destPrefixtarrifTable") && !this.tables.some(exist)) {
-							this.push('tables', results[index].prodSpecCharValueUse[indexCharUse].productSpecCharacteristicValue[0].value);
-						}
-					}
 				}
 				cbProduct(vaadinItems);
 			},

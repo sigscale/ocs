@@ -890,6 +890,9 @@
 						return [];
 					}
 				},
+				characteristics: {
+					type: Array,
+				},
 				selected: {
 					type: Number,
 					value: 0
@@ -947,6 +950,16 @@
 				}
 				this.$.updateOffStart.value = item.startDate;
 				this.$.updateOffEnd.value = item.endDate;
+				this.characteristics = item.prodSpecCharValueUse;
+				for (var indexCha in item.prodSpecCharValueUse) {
+					if(item.prodSpecCharValueUse[indexCha].name == "destPrefixPriceTable") {
+						this.$.updateDestPrefixPrice.value = item.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
+					} else if(item.prodSpecCharValueUse[indexCha].name == "destPrefixTariffTable") {
+						this.$.updateDestPrefixTariff.value = item.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
+					} else if(item.prodSpecCharValueUse[indexCha].name == "radiusReserveSessionTime") {
+						this.$.updateReserveSession.value = item.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
+					}
+				}
 				for(var index in item.prices) {
 					var newPrice = new Object();
 					newPrice.name = item.prices[index].name;
@@ -1348,23 +1361,35 @@
 					offerNew.push(endDateTimeObject);
 				}
 				if(this.$.updateDestPrefixPrice.value) {
+					function checkName(char) {
+						return char.name == "destPrefixPriceTable";
+					}
+					var indexChar = this.characteristics.findIndex(checkName);
 					var destPrice = new Object();
 					destPrice.op = "add";
-					destPrice.path = "/destPrefixPriceTable";
+					destPrice.path = "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
 					destPrice.value = this.$.updateDestPrefixPrice.value;
 					offerNew.push(destPrice);
 				}
 				if(this.$.updateDestPrefixTariff.value) {
+					function checkName(char) {
+						return char.name == "destPrefixTariffTable";
+					}
+					var indexChar = this.characteristics.findIndex(checkName);
 					var destTariff = new Object();
 					destTariff.op = "add";
-					destTariff.path = "/destPrefixTariffTable";
-					destPrice.value = this.$.updateDestPrefixTariff.value;
+					destTariff.path = "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
+					destTariff.value = this.$.updateDestPrefixTariff.value;
 					offerNew.push(destTariff);
 				}
 				if(this.$.updateReserveSession.value) {
+					function checkName(char) {
+						return char.name == "radiusReserveSessionTime";
+					}
+					var indexChar = this.characteristics.findIndex(checkName);
 					var reserveSession = new Object();
 					reserveSession.op = "add";
-					reserveSession.path = "/radiusReserveSessionTime";
+					reserveSession.path = "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
 					reserveSession.value = this.$.updateReserveSession.value;
 					offerNew.push(reserveSession);
 				}
