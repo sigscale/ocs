@@ -11,6 +11,7 @@
 <link rel="import" href="paper-listbox/paper-listbox.html">
 <link rel="import" href="paper-tooltip/paper-tooltip.html">
 <link rel="import" href="paper-styles/color.html">
+<link rel="import" href="paper-checkbox/paper-checkbox.html">
 <link rel="import" href="iron-pages/iron-pages.html">
 <link rel="import" href="iron-selector/iron-selector.html">
 <link rel="import" href="iron-input/iron-input.html">
@@ -28,6 +29,10 @@
 			}
 			paper-input {
 				--paper-input-container-focus-color: var(--paper-yellow-900);
+			}
+			paper-checkbox {
+				--paper-checkbox-checked-color: #ffb04c;
+				--paper-checkbox-checkmark-color: var(--paper-yellow-900);
 			}
 			.update-buttons {
 				background: var(--paper-lime-a700);
@@ -102,6 +107,10 @@
 							</i18n-msg>
 						</paper-tooltip>
 					</div>
+					Passwordless
+					<paper-checkbox
+						id="checkPassUpdate">
+					</paper-checkbox>
 					<div class="buttons">
 						<paper-button
 								dialog-dismiss
@@ -239,17 +248,30 @@
 				clientSec.op = "replace";
 				clientSec.path = "/secret";
 				clientSec.value = this.$.updateClientNewPassword.value;
-				clientPass.push(clientSec);
-				ajax.body = JSON.stringify(clientPass);;
-            ajax.generateRequest();
+				var passwordReq = new Object();
+				passwordReq.op = "add";
+				passwordReq.path = "/passwordRequired";
+				if (this.$.checkPassUpdate.checked) {
+					passwordReq.value = false;
+				} else {
+					passwordReq.value = true;
+				}
+				if (this.$.updateClientNewPassword.value == "") {
+					clientPass.push(passwordReq);
+				} else {
+					clientPass.push(clientSec, passwordReq);
+				}
+				ajax.body = JSON.stringify(clientPass);
+				ajax.generateRequest();
+				this.$.checkPassUpdate.checked = null;
 			},
 			_updateClientAuthResponse: function(event) {
 				document.getElementById("updateClientToastSuccess").open();
 				document.getElementById("clientGrid").clearCache();
 			},
 			_updateClientAuthError: function(event) {
-				this.$.updateClientToastError.text = event.detail.request.xhr.statusText;
-				this.$.updateClientToastError.open();
+				this.$.getClientErrorToast.text = event.detail.request.xhr.statusText;
+				this.$.getClientErrorToast.open();
 			},
 			updateClientProperties: function(event) {
 				var editAjax =  this.$.updateClientPropertiesAjax;
@@ -268,15 +290,15 @@
 				clientPort.value = parseInt(this.$.updateClientDisconnectPort.value);
 				clientArray.push(clientPort);
 				editAjax.body = JSON.stringify(clientArray);;
-            editAjax.generateRequest();
+				editAjax.generateRequest();
 			},
 			_updateClientPropertiesResponse: function(event) {
 				document.getElementById("updateClientToastSuccess").open();
 				document.getElementById("clientGrid").clearCache();
 			},
 			_updateClientPropertiesError: function(event) {
-				this.$.updateClientToastError.text = event.detail.request.xhr.statusText;
-				this.$.updateClientToastError.open();
+				this.$.getClientErrorToast.text = event.detail.request.xhr.statusText;
+				this.$.getClientErrorToast.open();
 			},
 			checkProto: function(event) {
 				if(this.$.updateClientProtocolList.selected == 0) {

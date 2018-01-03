@@ -171,9 +171,9 @@ post_client(RequestBody) ->
 	try
 		Client = client(mochijson:decode(RequestBody)),
 		#client{address = Address, port = Port, protocol = Protocol,
-				secret = Secret} = Client,
+				secret = Secret, password_required = PasswordReq} = Client,
 		{ok, #client{last_modified = Etag} = Client1} =
-				ocs:add_client(Address, Port, Protocol, Secret),
+				ocs:add_client(Address, Port, Protocol, Secret, PasswordReq),
 		Id = inet:ntoa(Address),
 		Location = "/ocs/v1/client/" ++ Id,
 		JsonObj  = client(Client1),
@@ -406,47 +406,46 @@ query_page1([H | T], Filters, Acc) ->
 		Result :: {struct, list()} | #client{}.
 %% @private
 %% Codec function for client
-client(#client{address = Address, secret = Secret,
-		port = Port, protocol = Protocol, identifier = Identifier}) ->
-	Id = inet:ntoa(Address),
-	ResObj1 = [{"id", Id}, {"href","/ocs/v1/client/" ++ Id}],
-	ResObj2 = case Port of
-		undefined ->
-			[{"port", ""}];
-		Port ->
-			[{"port", Port}]
-	end,
-	ResObj3 = case Protocol of
-		radius ->
-			[{"protocol", "RADIUS"}];
-		diameter ->
-			[{"protocol", "DIAMETER"}]
-	end,
-	ResObj4 = case Secret of
-		Pwd when Pwd == undefined; Pwd == <<>> ->
-			[{"secret", ""}];
-		Secret ->
-			[{"secret", binary_to_list(Secret)}]
-	end,
-	ResObj5 = case Identifier of
-		Identy when Identy == undefined; Identy == <<>> ->
-			[{"identifier", ""}];
-		Identifier ->
-			[{"identifier", binary_to_list(Identifier)}]
-	end,
-	ResObj = ResObj1 ++ ResObj2 ++ ResObj3 ++ ResObj4 ++ ResObj5,
-	{struct, ResObj};
-client({struct, L}) when is_list(L) ->
-	client(L, #client{}).
+client(#client{} = Client) ->
+	client(record_info(fields, client), Client, []);
+client({struct, ObjectMembers}) when is_list(ObjectMembers) ->
+	client(ObjectMembers, #client{}).
 %% @hidden
-client([{"id", Id} | T], Acc) ->
+client([address | T], #client{address = Address} = C, Acc)
+		when is_tuple(Address) ->
+	Id = inet:ntoa(Address),
+	Header = [{"href","/ocs/v1/client/" ++ Id}, {"id", Id}],
+	client(T, C, Acc ++ Header);
+client([port | T], #client{port = Port} = C, Acc)
+		when is_integer(Port) ->
+	client(T, C, [{"port", Port} | Acc]);
+client([secret | T], #client{secret = Secret} = C, Acc)
+		when is_binary(Secret) ->
+	client(T, C, [{"secret", binary_to_list(Secret)} | Acc]);
+client([protocol | T], #client{protocol = radius} = C, Acc) ->
+	client(T, C, [{"protocol", "RADIUS"} | Acc]);
+client([protocol | T], #client{protocol = diameter} = C, Acc) ->
+	client(T, C, [{"protocol", "DIAMETER"} | Acc]);
+client([identifier| T], #client{identifier = Identifier} = C, Acc)
+		when is_binary(Identifier) ->
+	client(T, C, [{"identifier", binary_to_list(Identifier)} | Acc]);
+client([password_required | T], #client{password_required = false} = C, Acc) ->
+	client(T, C, [{"passwordRequired", false} | Acc]);
+client([_ | T], Client, Acc) ->
+	client(T, Client, Acc);
+client([], _, Acc) ->
+	{struct, lists:reverse(Acc)}.
+%% @hidden
+client([{"id", Id} | T], Acc) when is_list(Id) ->
 	{ok, Address} = inet_parse:address(Id),
 	client(T, Acc#client{address = Address});
 client([{"href", _} | T], Acc) ->
 	client(T, Acc);
-client([{"port", Port} | T], Acc) ->
+client([{"port", Port} | T], Acc)
+		when is_integer(Port) ->
 	client(T, Acc#client{port = Port});
-client([{"identifier", Identifier} | T], Acc) ->
+client([{"identifier", Identifier} | T], Acc)
+		when is_list(Identifier) ->
 	client(T, Acc#client{identifier = list_to_binary(Identifier)});
 client([{"protocol", "radius"} | T], Acc) ->
 	client(T, Acc#client{protocol = radius});
@@ -456,8 +455,11 @@ client([{"protocol", "diameter"} | T], Acc) ->
 	client(T, Acc#client{protocol = diameter});
 client([{"protocol", "DIAMETER"} | T], Acc) ->
 	client(T, Acc#client{protocol = diameter});
-client([{"secret", Secret} | T], Acc) ->
+client([{"secret", Secret} | T], Acc) when is_list(Secret) ->
 	client(T, Acc#client{secret = list_to_binary(Secret)});
+client([{"passwordRequired", PwdReq} | T], Acc)
+		when is_boolean(PwdReq) ->
+	client(T, Acc#client{password_required = PwdReq});
 client([], Acc) ->
 	Acc.
 

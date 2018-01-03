@@ -98,7 +98,7 @@ init_per_testcase(TestCase, Config) when
 	Password = "53cr37",
 	{ok, DiameterConfig} = application:get_env(ocs, diameter),
 	{auth, [{Address, _, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
-	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined),
+	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	ProdID = ?config(product_id, Config),
 	Buckets = [#bucket{units = cents, remain_amount = 3000}],
 	{ok, _} = ocs:add_subscriber(UserName, Password, ProdID, [], Buckets, []),
@@ -108,7 +108,7 @@ init_per_testcase(_TestCase, Config) ->
 	CalledStationId = "E4-8D-8C-D6-E0-AC:TestSSID",
 	Config1 = [{nas_id, NasId}, {called_id, CalledStationId} | Config],
 	SharedSecret = ct:get_config(radius_shared_secret),
-	{ok, _} = ocs:add_client({127, 0, 0, 1}, 3799, radius, SharedSecret),
+	{ok, _} = ocs:add_client({127, 0, 0, 1}, 3799, radius, SharedSecret, true),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{Address, _, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
 	{ok, Socket} = gen_udp:open(0, [{active, false}, inet, {ip, Address}, binary]),
@@ -139,9 +139,10 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[simple_authentication_radius, out_of_credit_radius, bad_password_radius,
-	unknown_username_radius, simple_authentication_diameter, bad_password_diameter, 
-	unknown_username_diameter, out_of_credit_diameter, session_termination_diameter].
+[out_of_credit_radius, out_of_credit_diameter].
+%	[simple_authentication_radius, out_of_credit_radius, bad_password_radius,
+%	unknown_username_radius, simple_authentication_diameter, bad_password_diameter, 
+%	unknown_username_diameter, out_of_credit_diameter, session_termination_diameter].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -231,7 +232,7 @@ out_of_credit_radius(Config) ->
 	{auth, [{AuthAddress, AuthPort, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
 	Socket = ?config(socket, Config), 
 	A0 = radius_attributes:new(),
-	A1 = radius_attributes:add(?ServiceType, 2, A0),
+	A1 = radius_attributes:add(?ServiceType, 12, A0),
 	A2 = radius_attributes:add(?NasPortId, "wlan1", A1),
 	A3 = radius_attributes:add(?NasPortType, 19, A2),
 	A4 = radius_attributes:add(?UserName, PeerID, A3),
@@ -264,7 +265,8 @@ out_of_credit_diameter(Config) ->
 	NAS_AAR = #diameter_nas_app_AAR{'Session-Id' = SId,
 			'Auth-Application-Id' = ?NAS_APPLICATION_ID ,
 			'Auth-Request-Type' = ?'DIAMETER_NAS_APP_AUTH-REQUEST-TYPE_AUTHENTICATE_ONLY',
-			'User-Name' = [UserName], 'User-Password' = [Password]},
+			'User-Name' = [UserName], 'User-Password' = [Password],
+			'Service-Type' = [11]},
 	{ok, Answer} = diameter:call(?SVC, nas_app_test, NAS_AAR, []),
 	true = is_record(Answer, diameter_nas_app_AAA),
 	{ok, HostName} = inet:gethostname(),

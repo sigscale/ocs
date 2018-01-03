@@ -230,6 +230,9 @@
 					document.getElementById("updateClientModal").open();
 					document.getElementById("updateClientId").value = item.id;
 					document.getElementById("updateClientPassword").value = item.secret;
+					if (item.passwordRequired == false) {
+						document.getElementById("checkPassUpdate").checked = true;
+					}
 					document.getElementById("updateClientDisconnectPort").value = item.port;
 					if (item.protocol == "RADIUS") {
 						document.getElementById("updateClientProtocolList").selected = 0;
@@ -260,6 +263,7 @@
 					newRecord.id = results[index].id;
 					newRecord.identifier = results[index].identifier;
 					newRecord.secret = results[index].secret;
+					newRecord.passwordRequired = results[index].passwordRequired;
 					newRecord.port = results[index].port;
 					newRecord.protocol = results[index].protocol;
 					vaadinItems[index] = newRecord;

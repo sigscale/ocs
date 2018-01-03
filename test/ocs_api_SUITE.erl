@@ -105,7 +105,7 @@ client(Config) ->
 	[{Address, _, _}] = AuthInstance,
 	SharedSecret = ct:get_config(radius_shared_secret, Config),
 	Protocol = ct:get_config(protocol),
-	{ok, _} = ocs:add_client(Address, 3799, Protocol, SharedSecret),
+	{ok, _} = ocs:add_client(Address, 3799, Protocol, SharedSecret, true),
 	{ok, #client{port = 3799, protocol = Protocol,
 			secret = BinSharedSecret}} = ocs:find_client(Address),
 	SharedSecret = binary_to_list(BinSharedSecret).
@@ -121,9 +121,9 @@ get_all_clients(_Config) ->
 	Secret2 = "Enid blyton 2",
 	Secret3 = "Enid blyton 3",
 	Protocol = ct:get_config(protocol),
-	{ok, _} = ocs:add_client(A1, 3799, Protocol, Secret1),
-	{ok, _} = ocs:add_client(A2, 3799, Protocol, Secret2),
-	{ok, _} = ocs:add_client(A3, 13799, Protocol, Secret3),
+	{ok, _} = ocs:add_client(A1, 3799, Protocol, Secret1, true),
+	{ok, _} = ocs:add_client(A2, 3799, Protocol, Secret2, true),
+	{ok, _} = ocs:add_client(A3, 13799, Protocol, Secret3, true),
 	Clients = ocs:get_clients(),
 	F = fun(#client{address = A, port = LP, protocol = P, secret = S} = _R) ->
 		{ok, #client{port = LP, protocol = P, secret = S}} = ocs:find_client(A)
@@ -137,7 +137,7 @@ update_client_password(_Config) ->
 	Address = "192.168.90.23",
 	Password = "gentoo",
 	Protocol = ct:get_config(protocol),
-	{ok, _} = ocs:add_client(Address, 3799, Protocol, Password),
+	{ok, _} = ocs:add_client(Address, 3799, Protocol, Password, true),
 	PasswordBin = list_to_binary(Password),
 	{ok, #client{port = 3799, protocol = Protocol,
 			secret = PasswordBin}} = ocs:find_client(Address),
@@ -156,7 +156,7 @@ delete_client(Config) ->
 	[{Address, _, _}] = AuthInstance,
 	SharedSecret = ct:get_config(radius_shared_secret, Config),
 	Protocol = ct:get_config(protocol),
-	{ok, _} = ocs:add_client(Address, 3799, Protocol, SharedSecret),
+	{ok, _} = ocs:add_client(Address, 3799, Protocol, SharedSecret, true),
 	ok = ocs:delete_client(Address),
 	{error, not_found} = ocs:find_client(Address).
 
@@ -252,8 +252,8 @@ add_product(_Config) ->
 	Prices = [Price1, Price2, Price3],
 	Product = #product{name = "Silver Surfer",
 			description = "Medium use residential subscription.",
-			start_date = SD, is_bundle = false,
-			status = active, price = Prices},
+			start_date = SD, status = active,
+			price = Prices},
 	{ok, _Product1} = ocs:add_product(Product).
 
 find_product() ->
@@ -277,8 +277,8 @@ find_product(_Config) ->
 	Prices = [Price1, Price2],
 	ProductName = "PD1",
 	Product = #product{name = ProductName, description = "PDD1",
-			start_date = SD, end_date = ED, is_bundle = false,
-			status = active, price = Prices},
+			start_date = SD, end_date = ED, status = active,
+			price = Prices},
 	{ok, _Product1} = ocs:add_product(Product),
 	{ok, #product{name = ProductName}} = ocs:find_product(ProductName).
 
@@ -298,7 +298,7 @@ get_products(_Config) ->
 						type = usage, units = octets,
 						size = 150000000, amount = 0}},
 		Prices = [Price1, Price2],
-		Product = #product{name = ProductName, is_bundle = false,
+		Product = #product{name = ProductName,
 				status = active, price = Prices},
 		{ok, _Product1} =  ocs:add_product(Product),
 		F(F, N - 1, [ProductName | Acc])
@@ -318,7 +318,7 @@ delete_product(_Config) ->
 	ProductName = "Mobile-Internet",
 	Product = #product{name = ProductName,
 			description = "Monthly subscription for mobile internet",
-			is_bundle = false, status = active, price = Prices},
+			status = active, price = Prices},
 	{ok, _Product1} = ocs:add_product(Product),
 	ok = ocs:delete_product(ProductName),
 	{error, not_found} = ocs:find_product(ProductName).

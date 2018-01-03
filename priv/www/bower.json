@@ -32,7 +32,8 @@
     "vaadin-grid": "^2.0.0",
     "paper-checkbox": "PolymerElements/paper-checkbox#^1.0.0",
     "i18n-msg": "^1.1.0",
-	 "paper-date-picker": "bendavis78/paper-date-picker"
+	 "paper-date-picker": "bendavis78/paper-date-picker",
+	 "paper-time-picker": "bendavis78/paper-time-picker"
   },
   "resolutions": {
     "font-roboto": "^1.0.0"

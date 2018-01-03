@@ -258,9 +258,15 @@ request1(?AccountingStart, AcctSessionId, Id,
 		Authenticator, Secret, NasId, Address, _AccPort, _ListenPort, Attributes,
 		From, #state{address = ServerAddress, port = ServerPort} = State) ->
 	SessionAttributes = session_attributes(Attributes),
-	{ok, Subscriber} = radius_attributes:find(?UserName, Attributes),
+	Subscriber = case radius_attributes:find(?UserName, Attributes) of
+		{ok, Sub} ->
+			Sub;
+		{error, not_found} ->
+			radius_attributes:fetch(?CallingStationId, Attributes)
+	end,
 	Destination = proplists:get_value(?CalledStationId, Attributes, ""),
-	case ocs_rating:rate(radius, Subscriber,
+	ServiceType = lookup_service_type(Attributes),
+	case ocs_rating:rate(radius, ServiceType, Subscriber,
 			Destination, initial, [], [], SessionAttributes) of
 		{ok, #subscriber{}, _} ->
 			ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, start, Attributes),
@@ -290,12 +296,18 @@ request1(?AccountingStop, AcctSessionId, Id,
 		{error, not_found} ->
 			0
 	end,
-	{ok, Subscriber} = radius_attributes:find(?UserName, Attributes),
+	Subscriber = case radius_attributes:find(?UserName, Attributes) of
+		{ok, Sub} ->
+			Sub;
+		{error, not_found} ->
+			radius_attributes:fetch(?CallingStationId, Attributes)
+	end,
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, stop, Attributes),
 	SessionAttributes = session_attributes(Attributes),
 	DebitAmount = [{octets, UsageOctets}, {seconds, UsageSecs}],
 	Destination = proplists:get_value(?CalledStationId, Attributes, ""),
-	case ocs_rating:rate(radius, Subscriber,
+	ServiceType = lookup_service_type(Attributes),
+	case ocs_rating:rate(radius, ServiceType, Subscriber,
 			Destination, final, DebitAmount, [], SessionAttributes) of
 		{ok, #subscriber{}, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
@@ -324,12 +336,18 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 		{error, not_found} ->
 			0
 	end,
-	{ok, Subscriber} = radius_attributes:find(?UserName, Attributes),
+	Subscriber = case radius_attributes:find(?UserName, Attributes) of
+		{ok, Sub} ->
+			Sub;
+		{error, not_found} ->
+			radius_attributes:fetch(?CallingStationId, Attributes)
+	end,
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, interim, Attributes),
 	SessionAttributes = session_attributes(Attributes),
 	ReserveAmount = [{octets, UsageOctets}, {seconds, UsageSecs}],
 	Destination = proplists:get_value(?CalledStationId, Attributes, ""),
-	case ocs_rating:rate(radius, Subscriber,
+	ServiceType = lookup_service_type(Attributes),
+	case ocs_rating:rate(radius, ServiceType, Subscriber,
 			Destination, interim, [], ReserveAmount, SessionAttributes) of
 		{ok, #subscriber{}, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
@@ -348,7 +366,8 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 					{module, ?MODULE}, {error, Reason}, {nas, NasId},
 					{type, interim}, {subscriber, Subscriber},
 					{address, Address}, {reserved, ReserveAmount},
-					{session, AcctSessionId}])
+					{session, AcctSessionId}]),
+			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
 request1(?AccountingON, _AcctSessionId, Id,
 		Authenticator, Secret, _NasId, _Address, _AccPort, _ListenPort, Attributes,
@@ -467,3 +486,10 @@ get_usage(Attributes) ->
 	end,
 	In + GigaIn + Out + GigaOut.
 
+lookup_service_type(RadiusAttributes) ->
+	case radius_attributes:find(?ServiceType, RadiusAttributes) of
+		{ok, ServiceType} ->
+			ServiceType;
+		{error, not_found} ->
+			undefined
+	end.

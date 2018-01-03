@@ -35,7 +35,7 @@ install-data-local:	$(srcdir)/bower.json
 	@if [ ! -e $(builddir)/bower.json ]; then \
 		$(LN_S) $(srcdir)/bower.json; \
 	fi
-	bower install
+	bower --allow-root install
 	@touch $(builddir)/bower_components
 	$(MKDIR_P) $(DESTDIR)$(wwwdir)
 	cp -R $(abs_builddir)/bower_components/* $(DESTDIR)$(wwwdir)

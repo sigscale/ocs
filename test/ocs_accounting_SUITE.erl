@@ -103,13 +103,13 @@ init_per_testcase(TestCase, Config) when
 	ProdID = ?config(product_id, Config),
 	{ok, EnvList} = application:get_env(ocs, diameter),
 	{acct, [{Address, _Port, _Options } | _]} = lists:keyfind(acct, 1, EnvList),
-	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined),
+	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	Buckets = [#bucket{units = cents, remain_amount = 2290}],
 	{ok, _} = ocs:add_subscriber(UserName, Password, ProdID, [], Buckets, []),
 	[{username, UserName}, {password, Password}] ++ Config;
 init_per_testcase(_TestCase, Config) ->
 	SharedSecret = ct:get_config(radius_shared_secret),
-	{ok, _} = ocs:add_client({127, 0, 0, 1}, 3799, radius, SharedSecret),
+	{ok, _} = ocs:add_client({127, 0, 0, 1}, 3799, radius, SharedSecret, true),
 	Config.
 
 -spec end_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> any().
@@ -134,8 +134,9 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-	[radius_accounting, radius_disconnect_session, radius_multisessions_not_allowed,
-	radius_multisession, diameter_accounting, diameter_disconnect_session].
+	[radius_accounting, radius_disconnect_session,
+	radius_multisession_disallowed, radius_multisession,
+	diameter_accounting, diameter_disconnect_session].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -201,12 +202,12 @@ radius_disconnect_session(Config) ->
 			PeerID, Secret, NasID, AcctSessionID, RadID4, 1350000987, 1350000654),
 	disconnect_request().
 
-radius_multisessions_not_allowed() ->
+radius_multisession_disallowed() ->
 	[{userdata, [{doc, "Start multiple RADIUS sessions for a subscriber when
 			multiple RADIUS sessions are not allowed. Previous sessions should be disconnected
 			allowing the last successfull session to exist."}]}].
 
-radius_multisessions_not_allowed(Config) ->
+radius_multisession_disallowed(Config) ->
 	RadID1 = 8,
 	NasID = ?config(nas_id, Config),
 	ProdID = ?config(product_id, Config),
@@ -242,7 +243,7 @@ radius_multisessions_not_allowed(Config) ->
 	end,
 	ok = F(SessionAttr1, NasID),
 	Rad2ID1 = 5,
-	NasID2 = "vlkf@ubip.net",
+	NasID2 = "vlkf@example.net",
 	authenticate_subscriber1(Socket, AuthAddress, AuthPort, PeerID,
 			HiddenPassword, Secret, NasID2, ReqAuth, Rad2ID1),
 	ct:sleep(500),
@@ -510,7 +511,8 @@ accounting_request(StatusType, Socket, Address, Port,
 	A5 = radius_attributes:add(?CalledStationId,"BA-DF-AD-CA-DD-AD:TestSSID", A4),
 	A6 = radius_attributes:add(?AcctSessionId, AcctSessionID, A5),
 	A7 = radius_attributes:add(?AcctStatusType, StatusType, A6),
-	AccAttributes = radius_attributes:codec(lists:sort(A7)),
+	A8 = radius_attributes:add(?ServiceType, 2, A7),
+	AccAttributes = radius_attributes:codec(lists:sort(A8)),
 	Acc1Length = size(AccAttributes) + 20,
 	AccAuthenticator = crypto:hash(md5, [<<?AccountingRequest, RadID,
 			Acc1Length:16, 0:128>>, AccAttributes, Secret]), 
@@ -574,7 +576,7 @@ diameter_accounting_start(SId, Username, RequestNum) ->
 					'Called-Party-Address' = [<<"tel:0110493488">>]}]},
 	CC_CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
-			'Service-Context-Id' = "nas45@testdomain.com" ,
+			'Service-Context-Id' = "nas45.32251@3gpp.org",
 			'User-Name' = [Username],
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
 			'CC-Request-Number' = RequestNum,
@@ -599,7 +601,7 @@ diameter_accounting_stop(SId, Username, RequestNum, Usage) ->
 					'Called-Party-Address' = [<<"tel:0110493488">>]}]},
 	CC_CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
-			'Service-Context-Id' = "nas45@testdomain.com" ,
+			'Service-Context-Id' = "nas45.32251@3gpp.org" ,
 			'User-Name' = [Username],
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
 			'CC-Request-Number' = RequestNum,
@@ -627,7 +629,7 @@ diameter_accounting_interim(SId, Username, RequestNum, Usage) ->
 					'Called-Party-Address' = [<<"tel:0110493488">>]}]},
 	CC_CCR = #'3gpp_ro_CCR'{'Session-Id' = SId,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
-			'Service-Context-Id' = "nas45@testdomain.com" ,
+			'Service-Context-Id' = "nas45.32251@3gpp.org" ,
 			'User-Name' = [Username],
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
 			'CC-Request-Number' = RequestNum,

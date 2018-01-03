@@ -15,6 +15,7 @@ testmods = ocs_api_SUITE \
 			ocs_accounting_SUITE \
 			ocs_log_SUITE \
 			ocs_rating_SUITE \
+			ocs_charging_SUITE \
 			peer_tls_transport\
 			diameter_test_client_cb \
 			ocs_test_lib

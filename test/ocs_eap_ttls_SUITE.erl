@@ -87,7 +87,7 @@ init_per_suite(Config) ->
 	AuthAddress = {127, 0, 0, 1},
 	Protocol = ct:get_config(protocol),
 	SharedSecret = ct:get_config(radius_shared_secret),
-	{ok, _} = ocs:add_client(AuthAddress, 3799, Protocol, SharedSecret),
+	{ok, _} = ocs:add_client(AuthAddress, 3799, Protocol, SharedSecret, true),
 	NasId = atom_to_list(node()),
 	{ok, DiameterConfig} = application:get_env(ocs, diameter),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, DiameterConfig),
@@ -114,7 +114,7 @@ end_per_suite(Config) ->
 %%
 init_per_testcase(TestCase, Config) when TestCase == eap_ttls_authentication_diameter ->
 	Address = {127, 0, 0, 1},
-	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined),
+	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	[{diameter_client, Address} | Config];
 init_per_testcase(_TestCase, Config) ->
 	AuthAddress = {127, 0, 0, 1},

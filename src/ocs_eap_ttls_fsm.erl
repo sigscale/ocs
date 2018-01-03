@@ -69,6 +69,7 @@
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
 -include("../include/diameter_gen_eap_application_rfc4072.hrl").
+-include("../include/diameter_gen_nas_application_rfc7155.hrl").
 
 -record(statedata,
 		{sup :: pid(),
@@ -102,7 +103,9 @@
 		auth_req_type :: undefined | integer(),
 		origin_host :: undefined | binary(),
 		origin_realm :: undefined | binary(),
-		port_server :: undefined | pid()}).
+		port_server :: undefined | pid(),
+		password_required :: boolean(),
+		service_type :: undefined | integer()}).
 
 -type statedata() :: #statedata{}.
 
@@ -133,22 +136,30 @@
 %% @private
 %%
 init([Sup, radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
-		RadiusFsm, Secret, SessionID, AccessRequest] = _Args) ->
+		RadiusFsm, Secret, PasswordReq, SessionID, #radius{attributes =
+		Attributes} = AccessRequest] = _Args) ->
 	{ok, TLSkey} = application:get_env(ocs, tls_key),
 	{ok, TLScert} = application:get_env(ocs, tls_cert),
 	{ok, TLScacert} = application:get_env(ocs, tls_cacert),
 	{ok, Hostname} = inet:gethostname(),
+	ServiceType = case radius_attributes:find(?ServiceType, Attributes) of
+		{error, not_found} ->
+			undefined;
+		{_, ST} ->
+			ST
+	end,
 	StateData = #statedata{sup = Sup, server_address = ServerAddress,
 			server_port = ServerPort, client_address = ClientAddress,
 			client_port = ClientPort, radius_fsm = RadiusFsm, secret = Secret,
 			session_id = SessionID, server_id = list_to_binary(Hostname),
 			start = AccessRequest, tls_key = TLSkey, tls_cert = TLScert,
-			tls_cacert = TLScacert},
+			tls_cacert = TLScacert, password_required = PasswordReq,
+			service_type = ServiceType},
 	process_flag(trap_exit, true),
 	{ok, ssl_start, StateData, 0};
 init([Sup, diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
-		SessionID, AppId, ReqType, OHost, ORealm, _DHost, _DRealm, DiameterRequest,
-		_Options] = _Args) ->
+		PasswordReq, SessionID, AppId, ReqType, OHost, ORealm, _DHost, _DRealm,
+		DiameterRequest, _Options] = _Args) ->
 	{ok, TLSkey} = application:get_env(ocs, tls_key),
 	{ok, TLScert} = application:get_env(ocs, tls_cert),
 	{ok, TLScacert} = application:get_env(ocs, tls_cacert),
@@ -157,13 +168,20 @@ init([Sup, diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
 		undefined ->
 			{stop, ocs_diameter_auth_port_server_not_found};
 		PortServer ->
+			ServiceType = case DiameterRequest of
+				#diameter_nas_app_AAR{'Service-Type' = [ST]} ->
+					ST;
+				_ ->
+					undefined
+			end,
 			StateData = #statedata{sup = Sup, server_address = ServerAddress,
 					server_port = ServerPort, client_address = ClientAddress,
 					client_port = ClientPort, session_id = SessionID,
 					server_id = list_to_binary(Hostname), start = DiameterRequest,
 					tls_key = TLSkey, tls_cert = TLScert, tls_cacert = TLScacert,
 					app_id = AppId, auth_req_type = ReqType, origin_host = OHost,
-					origin_realm = ORealm, port_server = PortServer},
+					origin_realm = ORealm, port_server = PortServer,
+					password_required = PasswordReq, service_type = ServiceType},
 			process_flag(trap_exit, true),
 			{ok, ssl_start, StateData, 0}
 	end.
@@ -1037,27 +1055,44 @@ server_passthrough(timeout, #statedata{session_id = SessionID} =
 		StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
 server_passthrough({accept, #subscriber{name = Identity,
-		attributes = Attributes}, SslSocket}, #statedata{eap_id = EapID,
-		start = #radius{}, session_id = SessionID, secret = Secret,
+		password = Password}, SslSocket}, #statedata{eap_id =
+		EapID, start = #radius{attributes = RequestAttributes},
+		session_id = SessionID, secret = Secret,
 		req_auth = RequestAuthenticator, radius_fsm = RadiusFsm,
 		radius_id = RadiusID, %ssl_socket = SslSocket,
-		client_rand = ClientRandom, server_rand = ServerRandom}
-		= StateData) ->
-	Seed = [<<ClientRandom/binary, ServerRandom/binary>>],
-	{MSK, _} = prf(SslSocket, master_secret ,
-			<<"ttls keying material">>, Seed, 128),
-	UserName = binary_to_list(Identity),
-	Salt = crypto:rand_uniform(16#8000, 16#ffff),
-	MsMppeKey = encrypt_key(Secret, RequestAuthenticator, Salt, MSK),
-	Attr1 = radius_attributes:store(?UserName, UserName, Attributes),
-	VendorSpecific1 = {?Microsoft, {?MsMppeSendKey, {Salt, MsMppeKey}}},
-	Attr2 = radius_attributes:add(?VendorSpecific, VendorSpecific1, Attr1),
-	VendorSpecific2 = {?Microsoft, {?MsMppeRecvKey, {Salt, MsMppeKey}}},
-	Attr3 = radius_attributes:add(?VendorSpecific, VendorSpecific2, Attr2),
-	EapPacket = #eap_packet{code = success, identifier = EapID},
-	send_response(EapPacket, ?AccessAccept,
-		RadiusID, Attr3, RequestAuthenticator, [], Secret, RadiusFsm, StateData),
-	{stop, {shutdown, SessionID}, StateData};
+		client_rand = ClientRandom, server_rand = ServerRandom,
+		service_type = ServiceType} = StateData) ->
+	Destination = proplists:get_value(?CalledStationId, RequestAttributes, ""),
+	SessionAttributes = extract_session_attributes(RequestAttributes),
+	case ocs_rating:authorize(radius, ServiceType,
+			Identity, Password, Destination, SessionAttributes) of
+		{authorized, _Subscriber, Attributes, _ExistingSessionAttributes} ->
+			Seed = [<<ClientRandom/binary, ServerRandom/binary>>],
+			{MSK, _} = prf(SslSocket, master_secret ,
+					<<"ttls keying material">>, Seed, 128),
+			UserName = binary_to_list(Identity),
+			Salt = crypto:rand_uniform(16#8000, 16#ffff),
+			MsMppeKey = encrypt_key(Secret, RequestAuthenticator, Salt, MSK),
+			Attr1 = radius_attributes:store(?UserName, UserName, Attributes),
+			Attr2 = radius_attributes:store(?Microsoft,
+					?MsMppeSendKey, {Salt, MsMppeKey}, Attr1),
+			Attr3 = radius_attributes:store(?Microsoft,
+					?MsMppeRecvKey, {Salt, MsMppeKey}, Attr2),
+			EapPacket = #eap_packet{code = success, identifier = EapID},
+			send_response(EapPacket, ?AccessAccept,
+				RadiusID, Attr3, RequestAuthenticator, [], Secret, RadiusFsm, StateData),
+			{stop, {shutdown, SessionID}, StateData};
+		{unauthorized, disabled, _ExistingSessionAttributes} ->
+			EapPacket = #eap_packet{code = failure, identifier = EapID},
+			send_response(EapPacket, ?AccessReject, RadiusID,
+					[], RequestAuthenticator, [], Secret, RadiusFsm, StateData),
+			{stop, {shutdown, SessionID}, StateData};
+		{unauthorized, _Reason, _ExistingSessionAttributes} ->
+			EapPacket = #eap_packet{code = failure, identifier = EapID},
+			send_response(EapPacket, ?AccessReject, RadiusID,
+					[], RequestAuthenticator, [], Secret, RadiusFsm, StateData),
+			{stop, {shutdown, SessionID}, StateData}
+	end;
 server_passthrough(reject, #statedata{eap_id = EapID, 
 		session_id = SessionID, secret = Secret, start = #radius{},
 		req_auth = RequestAuthenticator, radius_fsm = RadiusFsm,
@@ -1381,3 +1416,22 @@ send_diameter_response(SId, AuthType, ResultCode, OH, OR, EapPacket,
 		gen_server:cast(PortServer, {self(), Answer1})
 	end.
 
+-spec extract_session_attributes(Attributes) -> SessionAttributes
+	when
+		Attributes :: radius_attributes:attributes(),
+		SessionAttributes :: radius_attributes:attributes().
+%% @doc Extract and return RADIUS session related attributes from
+%% `Attributes'.
+%% @hidden
+extract_session_attributes(Attributes) ->
+	F = fun({K, _}) when K == ?NasIdentifier; K == ?NasIpAddress;
+				K == ?UserName; K == ?FramedIpAddress; K == ?NasPort;
+				K == ?NasPortType; K == ?CalledStationId; K == ?CallingStationId;
+				K == ?AcctSessionId; K == ?AcctMultiSessionId; K == ?NasPortId;
+				K == ?OriginatingLineInfo; K == ?FramedInterfaceId;
+				K == ?FramedIPv6Prefix ->
+			true;
+		(_) ->
+			false
+	end,
+	lists:filter(F, Attributes).

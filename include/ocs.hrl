@@ -31,6 +31,22 @@
 %% define recurring charge period
 -type recur_period() :: hourly | daily | weekly | monthly | yearly.
 
+%% define TMF SID types
+-record(quantity,
+		{amount :: integer(),
+		units :: atom() | string()}).
+-type quantity() :: #quantity{}.
+
+-record(range,
+		{lower :: quantity(),
+		upper :: quantity()}).
+-type range() :: #range{}.
+
+-record(rate,
+		{numerator :: quantity(),
+		denominator :: quantity()}).
+-type rate() :: #rate{}.
+
 %% define client table entries record
 -record(client,
 		{address :: inet:ip_address() | undefined,
@@ -38,6 +54,7 @@
 		port :: inet:port_number() | undefined,
 		protocol :: radius | diameter | undefined,
 		secret :: binary() | undefined,
+		password_required  = true :: boolean(),
 		last_modified :: tuple() | undefined}).
 
 -record(alteration,
@@ -57,7 +74,7 @@
 		units :: string() | undefined,
 		start_date :: pos_integer() | undefined,
 		end_date :: pos_integer() | undefined,
-		value :: term() | undefined,
+		value :: quantity() | range() | rate() | term() | undefined,
 		from :: term() | undefined,
 		to :: term() | undefined,
 		type :: string() | undefined, % Number | String | Boolean | DateTime | ...
@@ -88,14 +105,21 @@
 		char_value_use = [] :: [#char_value_use{}],
 		alteration :: #alteration{} | undefined}).
 
+-record(bundled_po,
+		{name :: string() | undefined,
+		status :: offer_status() | undefined,
+		lower_limit :: non_neg_integer() | undefined,
+		upper_limit :: non_neg_integer() | undefined,
+		default :: non_neg_integer() | undefined}).
+
 -record(product,
 		{name :: '_' | string() | undefined,
 		description :: '_' | string() | undefined,
 		start_date :: '_' | pos_integer() | undefined,
 		end_date :: '_' | pos_integer() | undefined,
-		is_bundle = false :: '_' | boolean() | undefined,
 		status :: offer_status() | '_' | undefined,
 		specification :: '_' | string() | undefined,
+		bundle = [] :: '_' | [#bundled_po{}],
 		price :: '_' | [#price{}] | undefined,
 		char_value_use = [] :: '_' | [#char_value_use{}],
 		last_modified :: tuple() | '_' | undefined}).
@@ -110,6 +134,7 @@
 				Amount :: pos_integer(),
 				SessionId :: string() | binary()}],
 		units :: octets | cents | seconds | undefined,
+		prices = [] :: list(),
 		last_modified :: tuple() | undefined}).
 
 -record(product_instance,

@@ -39,6 +39,7 @@
 -include("ocs.hrl").
 -include("ocs_eap_codec.hrl").
 -include("../include/diameter_gen_eap_application_rfc4072.hrl").
+-include("../include/diameter_gen_nas_application_rfc7155.hrl").
 
 -define(CC_APPLICATION_ID, 4).
 
@@ -76,7 +77,10 @@
 		auth_req_type :: undefined | integer(),
 		origin_host :: undefined | binary(),
 		origin_realm :: undefined | binary(),
-		diameter_port_server :: undefined | pid()}).
+		diameter_port_server :: undefined | pid(),
+		password_required :: boolean(),
+		service_type :: undefined | integer()}).
+
 -type statedata() :: #statedata{}.
 
 -define(TIMEOUT, 30000).
@@ -103,30 +107,38 @@
 %% @private
 %%
 init([radius, ServerAddress, ServerPort, ClientAddress, ClientPort,
-		RadiusFsm, Secret, SessionID, AccessRequest] = _Args) ->
+		RadiusFsm, Secret, PasswordReq, SessionID, AccessRequest] = _Args) ->
 	{ok, Hostname} = inet:gethostname(),
 	StateData = #statedata{server_address = ServerAddress,
 			server_port = ServerPort, client_address = ClientAddress,
 			client_port = ClientPort, radius_fsm = RadiusFsm,
 			secret = Secret, session_id = SessionID,
-			server_id = list_to_binary(Hostname), start = AccessRequest},
+			server_id = list_to_binary(Hostname), start = AccessRequest,
+			password_required = PasswordReq},
 	process_flag(trap_exit, true),
 	{ok, eap_start, StateData, 0};
 init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort,
-		SessionId, ApplicationId, AuthType, OHost, ORealm, _DHost, _DRealm,
-		Request, _Options] = _Args) ->
+		PasswordReq, SessionId, ApplicationId, AuthType, OHost, ORealm,
+		_DHost, _DRealm, Request, _Options] = _Args) ->
 	{ok, Hostname} = inet:gethostname(),
 	case global:whereis_name({ocs_diameter_auth, ServerAddress, ServerPort}) of
 		undefined ->
 			{stop, ocs_diameter_auth_port_server_not_found};
 		PortServer ->
+			ServiceType = case Request of
+				#diameter_nas_app_AAR{'Service-Type' = [ST]} ->
+					ST;
+				_ ->
+					undefined
+			end,
 			StateData = #statedata{server_address = ServerAddress,
 					server_port = ServerPort, client_address = ClientAddress,
 					client_port = ClientPort, session_id = SessionId,
 					server_id = list_to_binary(Hostname), auth_app_id = ApplicationId,
 					auth_req_type = AuthType, origin_host = OHost,
 					origin_realm = ORealm, diameter_port_server = PortServer,
-					start = Request},
+					start = Request, password_required = PasswordReq,
+					service_type = ServiceType},
 			process_flag(trap_exit, true),
 			{ok, eap_start, StateData, 0}
 		end.
@@ -355,12 +367,18 @@ id(#diameter_eap_app_DER{} = Request, #statedata{eap_id = EapID,
 id1(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 		attributes = RequestAttributes}, PeerID, Token,
 		#statedata{eap_id = EapID, server_id = ServerID,
-		session_id = SessionID} = StateData) ->
+		session_id = SessionID, password_required = PwdReq} = StateData) ->
 	try
 		S_rand = crypto:rand_uniform(1, ?R),
 		NewEapID = (EapID rem 255) + 1,
 		case catch ocs:find_subscriber(PeerID) of
-			{ok, #subscriber{password = Password}} ->
+			{ok, #subscriber{password = Pwd}} ->
+				Password = case PwdReq of
+					false ->
+						<<>>;
+					_ ->
+						Pwd
+				end,
 				PWE = ocs_eap_pwd:compute_pwe(Token, PeerID, ServerID, Password),
 				{ScalarS, ElementS} = ocs_eap_pwd:compute_scalar(<<S_rand:256>>,
 						PWE),
@@ -373,7 +391,7 @@ id1(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 						type = ?PWD, identifier = NewEapID, data = CommitEapData},
 				NewStateData = StateData#statedata{pwe = PWE, s_rand = S_rand,
 					peer_id = PeerID, eap_id = NewEapID, scalar_s = ScalarS,
-					element_s = ElementS, password = Password},
+					element_s = ElementS, password = Pwd},
 				send_response(EapPacket, ?AccessChallenge, [], RadiusID,
 						RequestAuthenticator, RequestAttributes, NewStateData),
 				{next_state, commit, NewStateData, ?TIMEOUT};
@@ -394,12 +412,18 @@ id1(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 id2(#diameter_eap_app_DER{} = Request, PeerID, Token,
 		#statedata{eap_id = EapID, server_id = ServerID, session_id = SessionID,
 		auth_req_type = AuthType, origin_host = OH, origin_realm = OR,
-		diameter_port_server = PortServer} = StateData) ->
+		diameter_port_server = PortServer, password_required = PwdReq} = StateData) ->
 	try
 		S_rand = crypto:rand_uniform(1, ?R),
 		NewEapID = (EapID rem 255) + 1,
 		case catch ocs:find_subscriber(PeerID) of
-			{ok, #subscriber{password = Password}} ->
+			{ok, #subscriber{password = Pwd}} ->
+				Password = case PwdReq of
+					false ->
+						<<>>;
+					_ ->
+						Pwd
+				end,
 				PWE = ocs_eap_pwd:compute_pwe(Token, PeerID, ServerID, Password),
 				{ScalarS, ElementS} = ocs_eap_pwd:compute_scalar(<<S_rand:256>>,
 						PWE),
@@ -412,7 +436,7 @@ id2(#diameter_eap_app_DER{} = Request, PeerID, Token,
 						type = ?PWD, identifier = NewEapID, data = CommitEapData},
 				NewStateData = StateData#statedata{pwe = PWE, s_rand = S_rand,
 					peer_id = PeerID, eap_id = NewEapID, scalar_s = ScalarS,
-					element_s = ElementS, password = Password},
+					element_s = ElementS, password = Pwd},
 				send_diameter_response(SessionID, AuthType,
 						?'DIAMETER_BASE_RESULT-CODE_MULTI_ROUND_AUTH', OH, OR,
 						EapPacket, PortServer, Request, StateData),
@@ -760,24 +784,33 @@ confirm3(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 	Salt = crypto:rand_uniform(16#8000, 16#ffff),
 	MsMppeKey = encrypt_key(Secret, RequestAuthenticator, Salt, MSK),
 	UserName = binary_to_list(PeerID),
-	case ocs:authorize(PeerID, Password) of
-		{ok, #subscriber{attributes = Attributes}}  ->
+	ServiceType = case radius_attributes:find(?ServiceType, RequestAttributes) of
+		{error, not_found} ->
+			undefined;
+		{_, ST} ->
+			ST
+	end,
+	Destination = proplists:get_value(?CalledStationId, RequestAttributes, ""),
+	SessionAttributes = extract_session_attributes(RequestAttributes),
+	case ocs_rating:authorize(radius, ServiceType,
+			PeerID, Password, Destination, SessionAttributes) of
+		{authorized, _Subscriber, Attributes, _ExistingSessionAttributes} ->
 			Attr1 = radius_attributes:store(?UserName, UserName, Attributes),
-			VendorSpecific1 = {?Microsoft, {?MsMppeSendKey, {Salt, MsMppeKey}}},
-			Attr2 = radius_attributes:store(?VendorSpecific, VendorSpecific1, Attr1),
-			VendorSpecific2 = {?Microsoft, {?MsMppeRecvKey, {Salt, MsMppeKey}}},
-			Attr3 = radius_attributes:store(?VendorSpecific, VendorSpecific2, Attr2),
+			Attr2 = radius_attributes:store(?Microsoft,
+					?MsMppeSendKey, {Salt, MsMppeKey}, Attr1),
+			Attr3 = radius_attributes:store(?Microsoft,
+					?MsMppeRecvKey, {Salt, MsMppeKey}, Attr2),
 			EapPacket = #eap_packet{code = success, identifier = EapID},
 			send_response(EapPacket, ?AccessAccept, Attr3, RadiusID,
 					RequestAuthenticator, RequestAttributes, StateData),
 			{stop, {shutdown, SessionID}, StateData#statedata{mk = MK, msk = MSK}};
-		{disabled, SessionList} ->
-			start_disconnect(radius, SessionList, StateData),
+		{unauthorized, disabled, ExistingSessionAttributes} ->
+			start_disconnect(radius, ExistingSessionAttributes, StateData),
 			EapPacket = #eap_packet{code = failure, identifier = EapID},
 			send_response(EapPacket, ?AccessReject, [], RadiusID,
 					RequestAuthenticator, RequestAttributes, StateData),
 			{stop, {shutdown, SessionID}, StateData};
-		{error, _Reason} ->
+		{unauthorized, _Reason, _ExistingSessionAttributes} ->
 			EapPacket = #eap_packet{code = failure, identifier = EapID},
 			send_response(EapPacket, ?AccessReject, [], RadiusID,
 					RequestAuthenticator, RequestAttributes, StateData),
@@ -824,27 +857,30 @@ confirm6(Request, #statedata{eap_id = EapID, ks = Ks, confirm_p = ConfirmP,
 		group_desc = GroupDesc, rand_func = RandFunc, prf = PRF,
 		session_id = SessionID, peer_id = PeerID, password = Password,
 		auth_req_type = AuthType, origin_host = OH, origin_realm = OR,
-		diameter_port_server = PortServer} = StateData) ->
+		diameter_port_server = PortServer, service_type = ServiceType} = StateData) ->
 	Ciphersuite = <<GroupDesc:16, RandFunc, PRF>>,
 	MK = ocs_eap_pwd:h([Ks, ConfirmP, ConfirmS]),
 	MethodID = ocs_eap_pwd:h([Ciphersuite, ScalarP, ScalarS]),
 	<<MSK:64/binary, _EMSK:64/binary>> = ocs_eap_pwd:kdf(MK,
 			<<?PWD, MethodID/binary>>, 128),
-	case ocs:authorize(PeerID, Password) of
-		{ok, _} ->
+	SessionAttributes = [{'Origin-Host', OH}, {'Origin-Realm', OR},
+			{'Session-Id', SessionID}],
+	case ocs_rating:authorize(diameter, ServiceType,
+			PeerID, Password, undefined, SessionAttributes) of
+		{authorized, _Subscriber, _Attributes, _ExistingSessionAttributes} ->
 			EapPacket = #eap_packet{code = success, identifier = EapID},
 			send_diameter_response(SessionID, AuthType,
 					 ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OH, OR, EapPacket,
 					 PortServer, Request, StateData),
 			{stop, {shutdown, SessionID}, StateData#statedata{mk = MK, msk = MSK}};
-		{disabled, SessionList} ->
-			start_disconnect(diameter, SessionList, StateData),
+		{unauthorized, disabled, ExistingSessionAttributes} ->
+			start_disconnect(diameter, ExistingSessionAttributes, StateData),
 			EapPacket = #eap_packet{code = failure, identifier = EapID},
 			send_diameter_response(SessionID, AuthType,
 					 ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR,
 					 EapPacket, PortServer, Request, StateData),
 			{stop, {shutdown, SessionID}, StateData};
-		{error, _Reason} ->
+		{unauthorized, _Reason, _ExistingSessionAttributes} ->
 			EapPacket1 = #eap_packet{code = failure, identifier = EapID},
 			send_diameter_response(SessionID, AuthType,
 					 ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OH, OR,
@@ -1126,3 +1162,24 @@ start_disconnect2(diameter, DiscSup, {_, SessionAttributes}, #statedata{session_
 	DiscArgs = [Svc, Alias, SessionID, OHost, DHost, ORealm, DRealm, AppId],
 	StartArgs = [DiscArgs, []],
 	supervisor:start_child(DiscSup, StartArgs).
+
+-spec extract_session_attributes(Attributes) -> SessionAttributes
+	when
+		Attributes :: radius_attributes:attributes(),
+		SessionAttributes :: radius_attributes:attributes().
+%% @doc Extract and return RADIUS session related attributes from
+%% `Attributes'.
+%% @hidden
+extract_session_attributes(Attributes) ->
+	F = fun({K, _}) when K == ?NasIdentifier; K == ?NasIpAddress;
+				K == ?UserName; K == ?FramedIpAddress; K == ?NasPort;
+				K == ?NasPortType; K == ?CalledStationId; K == ?CallingStationId;
+				K == ?AcctSessionId; K == ?AcctMultiSessionId; K == ?NasPortId;
+				K == ?OriginatingLineInfo; K == ?FramedInterfaceId;
+				K == ?FramedIPv6Prefix ->
+			true;
+		(_) ->
+			false
+	end,
+	lists:filter(F, Attributes).
+
