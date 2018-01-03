@@ -207,6 +207,21 @@
 								</i18n-msg>
 							</paper-tooltip>
 						</div>
+						<div>
+							<paper-input
+									id="addOfferCharReserveSession"
+									allowed-pattern="[0-9mh]"
+									pattern="^[0-9]+[mh]?$"
+									auto-validate
+									label="[[i18n.resSession]]"
+									value=0>
+							</paper-input>
+							<paper-tooltip>
+								<i18n-msg msgid="resSessionTool">
+									Access accept session time is reserved seconds	
+								</i18n-msg>
+							</paper-tooltip>
+						</div>
 					</iron-collapse>
 					<div class="buttons">
 						<paper-button
@@ -1084,10 +1099,12 @@
 					this.$.addOffProductSpecificationDrop.disabled = true;
 					this.$.destPrefixPrice.disabled = true;
 					this.$.destPrefixTariff.disabled = true;
+					this.$.addOfferCharReserveSession.disabled = true;
 				} else {
 					this.$.addOffProductSpecificationDrop.disabled = false;
 					this.$.destPrefixPrice.disabled = false;
 					this.$.destPrefixTariff.disabled = false;
+					this.$.addOfferCharReserveSession.disabled = false;
 				}
 			},
 			_onClickBundle: function(event) {
@@ -1193,6 +1210,23 @@
 					var prodSpec = new Object();
 					prodSpec.id = "3";
 					prodSpec.hef = "/catalogManagement/v2/productSpecification/3";
+					charValueUse.productSpecification = prodSpec;
+					prodSpecCharValueUse.push(charValueUse);
+				}
+				if (this.$.addOfferCharReserveSession.value && this.$.addOfferCharReserveSession.value.length > 0) {
+					var charValueUse = new Object();
+					charValueUse.name = "radiusReserveSessionTime";
+					charValueUse.minCardinality = 0;
+					charValueUse.maxCardinality = 1;
+					var charValue = new Object();
+					charValue.default = false;
+					charValue.value = this.$.addOfferCharReserveSession.value;
+					var charValues = new Array();
+					charValues.push(charValue);
+					charValueUse.productSpecCharacteristicValue = charValues;
+					var prodSpec = new Object();
+					prodSpec.id = "1";
+					prodSpec.hef = "/catalogManagement/v2/productSpecification/1";
 					charValueUse.productSpecification = prodSpec;
 					prodSpecCharValueUse.push(charValueUse);
 				}
@@ -1815,6 +1849,7 @@
 				this.$.addBundle.hide();
 				this.$.destPrefixPrice.value = null;
 				this.$.destPrefixTariff.value = null;
+				this.$.addOfferCharReserveSession.value = null;
 				this.$.addProductStartDatePickOff.hide()
 				this.$.addProductEndDatePickOff.hide()
 				this.$.addProductStartDatePickPrice.hide();

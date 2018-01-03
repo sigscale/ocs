@@ -775,6 +775,14 @@
     "description": "PrepaidVoice",
     "message": "Prepaid Voice"
   },
+	"resSession": {
+    "description": "Radius reserve session time",
+    "message": "RADIUS Reserve Session Time"
+  },
+	"resSessionTool": {
+    "description": "Radius reserve session time tool tip",
+    "message": "Access request reservation amount in seconds"
+  },
    "productDeleted": {
     "description": "Success Toast Message",
     "message": "Product deleted"

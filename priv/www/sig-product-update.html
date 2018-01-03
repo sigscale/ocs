@@ -195,6 +195,21 @@
 								</i18n-msg>
 							</paper-tooltip>
 						</div>
+						<div>
+							<paper-input
+									id="updateReserveSession"
+									allowed-pattern="[0-9mh]"
+									pattern="^[0-9]+[mh]?$"
+									auto-validate
+									label="[[i18n.resSession]]"
+									value=0>
+							</paper-input>
+							<paper-tooltip>
+								<i18n-msg msgid="resSessionTool">
+									Access accept session time is reserved seconds	
+								</i18n-msg>
+							</paper-tooltip>
+						</div>
 					</iron-collapse>
 					<div class="buttons">
 						<paper-button
@@ -1142,6 +1157,7 @@
 						this.$.updateAddPriceCharReserveTime.value = null;
 						this.$.updateAddPriceCharReserveBytes.value = null;
 						this.$.updateDestPrefixPrice.value = null;
+						this.$.updateReserveSession.value = null;
 						this.$.updateDestPrefixTariff.value = null;
 						this.$.updateTimeOfDayStart.value = null;
 						this.$.updateTimeOfDayEnd.value = null;
@@ -1344,6 +1360,13 @@
 					destTariff.path = "/destPrefixTariffTable";
 					destPrice.value = this.$.updateDestPrefixTariff.value;
 					offerNew.push(destTariff);
+				}
+				if(this.$.updateReserveSession.value) {
+					var reserveSession = new Object();
+					reserveSession.op = "add";
+					reserveSession.path = "/radiusReserveSessionTime";
+					reserveSession.value = this.$.updateReserveSession.value;
+					offerNew.push(reserveSession);
 				}
 				ajax.body = JSON.stringify(offerNew);
 				ajax.generateRequest();
@@ -1867,6 +1890,7 @@
 					this.$.updateAddPriceCharReserveBytes.value = null;
 					this.$.updateDestPrefixPrice.value = null;
 					this.$.updateDestPrefixTariff.value = null;
+					this.$.updateReserveSession.value = null;
 					this.$.updateTimeOfDayStart.value = null;
 					this.$.updateTimeOfDayEnd.value = null;
 					this.$.updateRatedPrice.value = null;
@@ -2032,6 +2056,7 @@
 				this.$.updateAddPriceCharReserveBytes.value = null;
 				this.$.updateDestPrefixPrice.value = null;
 				this.$.updateDestPrefixTariff.value = null;
+				this.$.updateReserveSession.value = null;
 				this.$.updateTimeOfDayStart.value = null;
 				this.$.updateTimeOfDayEnd.value = null;
 				this.$.updateRatedPrice.value = null;
