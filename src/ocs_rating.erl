@@ -598,7 +598,10 @@ authorize2(radius = Protocol, ServiceType, #subscriber{attributes = Attributes} 
 							authorize6(Subscriber, ServiceType, SessionAttributes, Attributes)
 					end
 			end
-	end.
+	end;
+authorize2(Protocol, ServiceType, #subscriber{attributes = Attributes} =
+		Subscriber, _Product, _Destination, SessionAttributes, _Reserve) ->
+	authorize6(Subscriber, ServiceType, SessionAttributes, Attributes).
 %% @hidden
 authorize3(Protocol, ServiceType, PriceTable, Subscriber,
 		Destination, Prices, SessionAttributes, Reserve) ->
