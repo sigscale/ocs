@@ -459,15 +459,20 @@ rate7(Subscriber, interim, _Charge, _Charged, _Reserve, Reserved, _SessionAttrib
 		Password :: binary(),
 		Destination :: string() | undefined,
 		SessionAttributes :: [tuple()],
-		Result :: {authorized, Subscriber, Attributes, ExistingSessionAttributes}
-					| {unauthorized, Reason, ExistingSessionAttributes},
+		Result :: {authorized, Subscriber, Attributes, SessionList}
+					| {unauthorized, Reason, SessionList},
 		Subscriber :: #subscriber{},
 		Attributes :: [tuple()],
-		ExistingSessionAttributes :: [tuple()],
+		SessionList :: [tuple()],
 		Reason :: disabled | bad_password | subscriber_not_found
 				| out_of_credit | product_not_found | invalid_bundle_product
 				| price_not_found | table_lookup_failed.
-%% @doc
+%% @doc Authorize access request.
+%% 	If authorized returns attributes to be included in `Access-Accept' response.
+%%
+%% 	When subscriber's product instance includes the `radiusReserveSessionTime'
+%% 	characteristic a reservation is attempted for the given value of seconds.
+%% 	A `Session-Timeout' attribute will be included with the actual reservation.
 %%
 authorize(Protocol, ServiceType, SubscriberId, Password, Destination, SessionAttributes)
 		when is_list(SubscriberId) ->
