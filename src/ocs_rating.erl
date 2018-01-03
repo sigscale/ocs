@@ -129,15 +129,15 @@ rate1(Protocol, ServiceType, Subscriber, Destination,
 							and
 							(((Protocol == radius)
 								and
-								((ServiceType == ?RADIUSDATA) and ((Spec == 4) orelse (Spec == 8)))
+								((ServiceType == ?RADIUSDATA) and ((Spec == "4") orelse (Spec == "8")))
 								orelse
-								((ServiceType == ?RADIUSVOICE) and ((Spec == 5) orelse (Spec == 9))))
+								((ServiceType == ?RADIUSVOICE) and ((Spec == "5") orelse (Spec == "9"))))
 							orelse
 							((Protocol == diameter)
 								and
-								((ServiceType == ?DIAMETERDATA) and ((Spec == 4) orelse (Spec == 8)))
+								((ServiceType == ?DIAMETERDATA) and ((Spec == "4") orelse (Spec == "8")))
 								orelse
-								((ServiceType == ?DIAMETERVOICE) and ((Spec == 5) orelse (Spec == 9))))) ->
+								((ServiceType == ?DIAMETERVOICE) and ((Spec == "5") orelse (Spec == "9"))))) ->
 						[P | Acc];
 					_ ->
 						Acc
