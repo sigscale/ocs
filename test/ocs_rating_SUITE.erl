@@ -102,7 +102,9 @@ all() ->
 	interim_debit_and_reserve_insufficient3,
 	interim_debit_and_reserve_insufficient4,
 	final_remove_session, final_refund,
-	authorize_voice].
+	authorize_voice, authorize_voice_with_partial_reservation,
+ 	authorize_data_1, authorize_data_2, authorize_data_with_partial_reservation,
+	unauthorize_bad_password, unauthorize_bad_password].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -1143,7 +1145,7 @@ authorize_voice(_Config) ->
 	ProdID = ocs:generate_password(),
 	PackagePrice = 1,
 	PackageSize = 2,
-	Price = #price{name = "overage", type = usage,
+	Price = #price{name = "Calls", type = usage,
 		units = seconds, size = PackageSize, amount = PackagePrice},
 	Product = #product{name = ProdID, price = [Price],
 		specification = "9"},
@@ -1164,6 +1166,175 @@ authorize_voice(_Config) ->
 	{ok, #subscriber{buckets = Buckets1}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = Amount} = lists:keyfind(cents, #bucket.units, Buckets1),
 	Amount = RemAmount - ((60 div PackageSize) * PackagePrice).
+
+authorize_voice_with_partial_reservation() ->
+	[{userdata, [{doc, "Authorize voice call with partial
+			reservation and set the session time for reserved amount"}]}].
+
+authorize_voice_with_partial_reservation(_Config) ->
+	ProdID = ocs:generate_password(),
+	PackagePrice = 1,
+	PackageSize = 2,
+	Price = #price{name = "Calls", type = usage,
+		units = seconds, size = PackageSize, amount = PackagePrice},
+	Product = #product{name = ProdID, price = [Price],
+		specification = "9"},
+	{ok, _} = ocs:add_product(Product),
+	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	Chars = [{"radiusReserveSessionTime", 60}],
+	RemAmount = 20,
+	Buckets = [#bucket{units = cents, remain_amount = RemAmount,
+		start_date = erlang:system_time(?MILLISECOND),
+		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
+	Destination = ocs:generate_identity(),
+	SessionId = [{?AcctSessionId, list_to_binary(ocs:generate_password())}],
+	ServiceType = 12,
+	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
+	{authorized, _, Attr, _} = ocs_rating:authorize(radius, ServiceType, SubscriberID, Password, Destination, SessionId),
+	{?SessionTimeout, SessionTimeout} = lists:keyfind(?SessionTimeout, 1, Attr),
+	SessionTimeout = RemAmount * PackageSize,
+	{ok, #subscriber{buckets = Buckets1}} = ocs:find_subscriber(SubscriberID),
+	#bucket{remain_amount = 0, reservations = Reserved} = lists:keyfind(cents, #bucket.units, Buckets1),
+	{_, RemAmount, SessionId} = lists:keyfind(SessionId, 3, Reserved).
+
+authorize_data_1() ->
+	[{userdata, [{doc, "Athorize data access when price rated on seconds"}]}].
+
+authorize_data_1(_Config) ->
+	ProdID = ocs:generate_password(),
+	PackagePrice = 1,
+	PackageSize = 2,
+	Price = #price{name = "overage", type = usage,
+		units = seconds, size = PackageSize, amount = PackagePrice},
+	Product = #product{name = ProdID, price = [Price],
+		specification = "4"},
+	{ok, _} = ocs:add_product(Product),
+	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	Chars = [{"radiusReserveSessionTime", 60}],
+	RemAmount = 100,
+	Buckets = [#bucket{units = cents, remain_amount = RemAmount,
+		start_date = erlang:system_time(?MILLISECOND),
+		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
+	Destination = ocs:generate_identity(),
+	SessionId = [{?AcctSessionId, list_to_binary(ocs:generate_password())}],
+	ServiceType = 2,
+	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
+	{authorized, _, Attr, _} = ocs_rating:authorize(radius, ServiceType, SubscriberID, Password, Destination, SessionId),
+	{?SessionTimeout, 60} = lists:keyfind(?SessionTimeout, 1, Attr),
+	{ok, #subscriber{buckets = Buckets1}} = ocs:find_subscriber(SubscriberID),
+	#bucket{remain_amount = Amount} = lists:keyfind(cents, #bucket.units, Buckets1),
+	Amount = RemAmount - ((60 div PackageSize) * PackagePrice).
+
+authorize_data_2() ->
+	[{userdata, [{doc, "Athorize data access when price rated on octets"}]}].
+
+authorize_data_2(_Config) ->
+	ProdID = ocs:generate_password(),
+	PackagePrice = 1,
+	PackageSize = 2,
+	Price = #price{name = "overage", type = usage,
+		units = octets, size = PackageSize, amount = PackagePrice},
+	Product = #product{name = ProdID, price = [Price],
+		specification = "4"},
+	{ok, _} = ocs:add_product(Product),
+	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	Chars = [{"radiusReserveSessionTime", 60}],
+	RemAmount = 100,
+	Buckets = [#bucket{units = cents, remain_amount = RemAmount,
+		start_date = erlang:system_time(?MILLISECOND),
+		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
+	Destination = ocs:generate_identity(),
+	SessionId = [{?AcctSessionId, list_to_binary(ocs:generate_password())}],
+	ServiceType = 2,
+	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
+	{authorized, _, Attr, _} = ocs_rating:authorize(radius, ServiceType, SubscriberID, Password, Destination, SessionId),
+	{ok, #subscriber{buckets = Buckets1}} = ocs:find_subscriber(SubscriberID),
+	#bucket{units = cents, remain_amount = RemAmount} = lists:keyfind(cents, #bucket.units, Buckets1).
+
+authorize_data_with_partial_reservation() ->
+	[{userdata, [{doc, "Athorize data access when price
+			rated on seconds with partial reservation"}]}].
+
+authorize_data_with_partial_reservation(_Config) ->
+	ProdID = ocs:generate_password(),
+	PackagePrice = 1,
+	PackageSize = 2,
+	Price = #price{name = "overage", type = usage,
+		units = seconds, size = PackageSize, amount = PackagePrice},
+	Product = #product{name = ProdID, price = [Price],
+		specification = "4"},
+	{ok, _} = ocs:add_product(Product),
+	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	Chars = [{"radiusReserveSessionTime", 60}],
+	RemAmount = 20,
+	Buckets = [#bucket{units = cents, remain_amount = RemAmount,
+		start_date = erlang:system_time(?MILLISECOND),
+		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
+	Destination = ocs:generate_identity(),
+	SessionId = [{?AcctSessionId, list_to_binary(ocs:generate_password())}],
+	ServiceType = 2,
+	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
+	{authorized, _, Attr, _} = ocs_rating:authorize(radius, ServiceType, SubscriberID, Password, Destination, SessionId),
+	{?SessionTimeout, SessionTimeout} = lists:keyfind(?SessionTimeout, 1, Attr),
+	SessionTimeout = RemAmount * PackageSize,
+	{ok, #subscriber{buckets = Buckets1}} = ocs:find_subscriber(SubscriberID),
+	#bucket{remain_amount = 0, reservations = Reserved} = lists:keyfind(cents, #bucket.units, Buckets1),
+	{_, RemAmount, SessionId} = lists:keyfind(SessionId, 3, Reserved).
+
+unauthorize_bad_password() ->
+	[{userdata, [{doc, "Unauthorize if the passwrod wrong"}]}].
+
+unauthorize_bad_password(_Config) ->
+	ProdID = ocs:generate_password(),
+	PackagePrice = 1,
+	PackageSize = 2,
+	Price = #price{name = "overage", type = usage,
+		units = seconds, size = PackageSize, amount = PackagePrice},
+	Product = #product{name = ProdID, price = [Price],
+		specification = "4"},
+	{ok, _} = ocs:add_product(Product),
+	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	Chars = [{"radiusReserveSessionTime", 60}],
+	RemAmount = 100,
+	Buckets = [#bucket{units = cents, remain_amount = RemAmount,
+		start_date = erlang:system_time(?MILLISECOND),
+		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
+	Destination = ocs:generate_identity(),
+	SessionId = [{?AcctSessionId, list_to_binary(ocs:generate_password())}],
+	ServiceType = 2,
+	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
+	{unauthorized, bad_password, []} = ocs_rating:authorize(radius,
+			ServiceType, SubscriberID, "bogus", Destination, SessionId).
+
+unauthorize_out_of_credit() ->
+	[{userdata, [{doc, "Unauthorize if insufficient balance"}]}].
+
+unauthorize_out_of_credit(_Config) ->
+	ProdID = ocs:generate_password(),
+	PackagePrice = 1,
+	PackageSize = 2,
+	Price = #price{name = "Calls", type = usage,
+		units = seconds, size = PackageSize, amount = PackagePrice},
+	Product = #product{name = ProdID, price = [Price],
+		specification = "9"},
+	{ok, _} = ocs:add_product(Product),
+	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	Chars = [{"radiusReserveSessionTime", 60}],
+	Buckets = [#bucket{units = octets, remain_amount = 100,
+		start_date = erlang:system_time(?MILLISECOND),
+		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
+	Destination = ocs:generate_identity(),
+	SessionId = [{?AcctSessionId, list_to_binary(ocs:generate_password())}],
+	ServiceType = 12,
+	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
+	{unauthorized, out_of_credit, []} = ocs_rating:authorize(radius,
+			ServiceType, SubscriberID, Password, Destination, SessionId).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
