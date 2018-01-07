@@ -171,7 +171,7 @@ rate2(Protocol, Subscriber, Timestamp, Destination, #product{specification = Pro
 					rate4(Protocol, list_to_existing_atom(TariffTable), Subscriber, Destination,
 							FilteredPrices, Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
 				false ->
-					case lists:keyfind(usage, #price.type, Prices) of
+					case lists:keyfind(usage, #price.type, FilteredPrices) of
 						#price{} = Price ->
 							rate5(Protocol, Subscriber, Price, Validity,
 								Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
@@ -183,7 +183,8 @@ rate2(Protocol, Subscriber, Timestamp, Destination, #product{specification = Pro
 rate2(Protocol, Subscriber, _Timestamp, _Destiations,
 		#product{price = Prices}, Validity, Flag,
 		DebitAmounts, ReserveAmounts, SessionAttributes) ->
-	case lists:keyfind(usage, #price.type, Prices) of
+	FilteredPrices = filter_prices(Timestamp, Prices),
+	case lists:keyfind(usage, #price.type, FilteredPrices) of
 		#price{} = Price ->
 			rate5(Protocol, Subscriber, Price, Validity,
 				Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
