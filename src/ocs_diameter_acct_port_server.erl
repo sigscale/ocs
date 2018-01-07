@@ -274,7 +274,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 	ReserveAmount = [{ReqUsageType, ReqUsage}],
 	ServiceType = lookup_service_type(SvcContextId),
 	case ocs_rating:rate(diameter, ServiceType, Subscriber, Timestamp,
-			Destination, initial, [], ReserveAmount, [{'Session-Id', SId}]) of
+			Destination, originate, initial, [], ReserveAmount, [{'Session-Id', SId}]) of
 		{ok, _, GrantedAmount} ->
 			GrantedUnits = case ReqUsageType of
 				seconds ->
@@ -361,7 +361,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		DebitAmount = [{UsedType, UsedUsage}],
 		ServiceType = lookup_service_type(SvcContextId),
 		case ocs_rating:rate(diameter, ServiceType, Subscriber, Timestamp,
-				Destination, interim, DebitAmount, ReserveAmount, [{'Session-Id', SId}]) of
+				Destination, originate, interim, DebitAmount, ReserveAmount, [{'Session-Id', SId}]) of
 			{ok, _, GrantedAmount} ->
 				GrantedUnits = case ReqUsageType of
 					seconds ->
@@ -435,7 +435,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		DebitAmount = [{UsedType, UsedUsage}],
 		ServiceType = lookup_service_type(SvcContextId),
 		case ocs_rating:rate(diameter, ServiceType, Subscriber, Timestamp,
-				Destination, final, DebitAmount, [], [{'Session-Id', SId}]) of
+				Destination, originate, final, DebitAmount, [], [{'Session-Id', SId}]) of
 			{ok, _, 0} ->
 				{Reply, NewState} = generate_diameter_answer(Request, SId,
 						undefined, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,

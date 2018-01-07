@@ -191,10 +191,11 @@ handle_radius(#statedata{req_attr = Attributes, req_auth = Authenticator,
 handle_radius1(#statedata{subscriber = SubscriberId, password = <<>>,
 		password_required = PasswordReq, service_type = ServiceType,
 		req_attr = ReqAttr} = StateData) ->
+	Timestamp = calendar:local_time(),
+	CallAddress = proplists:get_value(?CalledStationId, ReqAttr, ""),
 	SessionAttributes = extract_session_attributes(ReqAttr),
-	Destination = proplists:get_value(?CalledStationId, ReqAttr, ""),
-	case ocs_rating:authorize(radius, ServiceType,
-			SubscriberId, <<>>, Destination, SessionAttributes) of
+	case ocs_rating:authorize(radius, ServiceType, SubscriberId, <<>>,
+			Timestamp, CallAddress, undefined, SessionAttributes) of
 		{authorized, #subscriber{password = <<>>} =
 				Subscriber, Attributes, ExistingSessionAttributes} ->
 			NewStateData = StateData#statedata{res_attr = Attributes},
@@ -218,10 +219,11 @@ handle_radius1(#statedata{subscriber = SubscriberId, password = <<>>,
 	end;
 handle_radius1(#statedata{subscriber = SubscriberId, password = Password,
 		service_type = ServiceType, req_attr = ReqAttr} = StateData) ->
+	Timestamp = calendar:local_time(),
+	CallAddress = proplists:get_value(?CalledStationId, ReqAttr, ""),
 	SessionAttributes = extract_session_attributes(ReqAttr),
-	Destination = proplists:get_value(?CalledStationId, ReqAttr, ""),
-	case ocs_rating:authorize(radius, ServiceType,
-			SubscriberId, Password, Destination, SessionAttributes) of
+	case ocs_rating:authorize(radius, ServiceType, SubscriberId, Password,
+			Timestamp, CallAddress, undefined, SessionAttributes) of
 		{authorized, Subscriber, Attributes, ExistingSessionAttributes} ->
 			NewStateData = StateData#statedata{res_attr = Attributes},
 			handle_radius2(Subscriber, ExistingSessionAttributes, NewStateData);
@@ -276,11 +278,12 @@ handle_diameter(#statedata{protocol = diameter, session_id = SessionID,
 		origin_host = OHost, origin_realm = ORealm, dest_host = DHost,
 		dest_realm = DRealm, subscriber = SubscriberId, password = Password,
 		service_type = ServiceType} = StateData) ->
+	Timestamp = calendar:local_time(),
 	SessionAttributes = [{'Origin-Host', OHost}, {'Origin-Realm', ORealm},
 			{'Destination-Host', DHost}, {'Destination-Realm', DRealm},
 			{'Session-Id', SessionID}],
-	case ocs_rating:authorize(diameter, ServiceType,
-			SubscriberId, Password, undefined, SessionAttributes) of
+	case ocs_rating:authorize(diameter, ServiceType, SubscriberId, Password,
+			Timestamp, undefined, undefined, SessionAttributes) of
 		{authorized, Subscriber, _Attributes, ExistingSessionAttributes} ->
 			handle_diameter1(Subscriber, ExistingSessionAttributes, StateData);
 		{unauthorized, disabled, ExistingSessionAttributes} ->

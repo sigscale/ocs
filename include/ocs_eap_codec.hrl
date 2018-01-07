@@ -38,7 +38,7 @@
 -define(OneTimePassword,   5).
 -define(GenericTokenCard,  6).
 -define(TLS,              13).
--define(Cisco,            17).
+%-define(Cisco,            17).
 -define(SIM,              18).
 -define(TTLS,             21).
 -define(AKA,              23).

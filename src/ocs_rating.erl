@@ -21,8 +21,8 @@
 -module(ocs_rating).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
--export([rate/9]).
--export([authorize/6]).
+-export([rate/10]).
+-export([authorize/8]).
 
 -include("ocs.hrl").
 -include_lib("radius/include/radius.hrl").
@@ -42,14 +42,16 @@
 -define(DIAMETERVOICE, <<"32260@3gpp.org">>).
 
 
--spec rate(Protocol, ServiceType, SubscriberID, Timestamp, Destination,
-		Flag, DebitAmounts, ReserveAmounts, SessionAttributes) -> Result
+-spec rate(Protocol, ServiceType, SubscriberID, Timestamp,
+		Address, Direction, Flag, DebitAmounts, ReserveAmounts,
+		SessionAttributes) -> Result
 	when
 		Protocol :: radius | diameter,
 		ServiceType :: integer() | binary(),
 		SubscriberID :: string() | binary(),
 		Timestamp :: calendar:datetime(),
-		Destination :: string(),
+		Address :: string(),
+		Direction :: answer | originate | undefined,
 		Flag :: initial | interim | final,
 		DebitAmounts :: [{Type, Amount}],
 		ReserveAmounts :: [{Type, Amount}],
@@ -79,11 +81,13 @@
 %% 	`SessionList' describes the known active sessions which
 %% 	should be disconnected.
 %%
-rate(Protocol, ServiceType, SubscriberID, Timestamp, Destination,
-		Flag, DebitAmounts, ReserveAmounts, SessionAttributes) when is_list(SubscriberID)->
-	rate(Protocol, ServiceType, list_to_binary(SubscriberID), Timestamp, Destination,
-		Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
-rate(Protocol, ServiceType, SubscriberID, Timestamp, Destination,
+rate(Protocol, ServiceType, SubscriberID, Timestamp, Address, Direction,
+		Flag, DebitAmounts, ReserveAmounts, SessionAttributes)
+		when is_list(SubscriberID)->
+	rate(Protocol, ServiceType, list_to_binary(SubscriberID), Timestamp,
+		Address, Direction, Flag, DebitAmounts, ReserveAmounts,
+		SessionAttributes);
+rate(Protocol, ServiceType, SubscriberID, Timestamp, Address, Direction,
 		Flag, DebitAmounts, ReserveAmounts, SessionAttributes) when
 		((Protocol == radius) or (Protocol == diameter)), is_binary(SubscriberID),
 		((Flag == initial) or (Flag == interim) or (Flag == final)),
@@ -97,8 +101,9 @@ rate(Protocol, ServiceType, SubscriberID, Timestamp, Destination,
 						[#product{} = Product] ->
 							Validity = proplists:get_value(validity, Chars),
 							Subscriber1 = Subscriber#subscriber{buckets = due(Buckets)},
-							rate1(Protocol, ServiceType, Subscriber1, Timestamp, Destination, Product,
-									Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
+							rate1(Protocol, ServiceType, Subscriber1, Timestamp,
+									Address, Direction, Product, Validity, Flag,
+									DebitAmounts, ReserveAmounts, SessionAttributes);
 						[] ->
 							throw(product_not_found)
 					end;
@@ -119,7 +124,7 @@ rate(Protocol, ServiceType, SubscriberID, Timestamp, Destination,
 			{error, Reason}
 	end.
 %% @hidden
-rate1(Protocol, ServiceType, Subscriber, Timestamp, Destination,
+rate1(Protocol, ServiceType, Subscriber, Timestamp, Address, Direction,
 		#product{specification = undefined, bundle = Bundle},
 		Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes) ->
 	try
@@ -145,33 +150,37 @@ rate1(Protocol, ServiceType, Subscriber, Timestamp, Destination,
 				end
 		end,
 		[#product{} = Product | _] = lists:foldl(F, [], Bundle),
-		rate2(Protocol, Subscriber, Timestamp, Destination, Product, Validity,
-				Flag, DebitAmounts, ReserveAmounts, SessionAttributes)
+		rate2(Protocol, Subscriber, Timestamp, Address, Direction, Product,
+				Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes)
 	catch
 		_:_ ->
 			throw(invalid_bundle_product)
 	end;
-rate1(Protocol, _ServiceType, Subscriber, Timestamp, Destination, Product,
-		Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes) ->
-	rate2(Protocol, Subscriber, Timestamp, Destination, Product, Validity,
-			Flag, DebitAmounts, ReserveAmounts, SessionAttributes).
+rate1(Protocol, _ServiceType, Subscriber, Timestamp, Address, Direction,
+		Product, Validity, Flag, DebitAmounts, ReserveAmounts,
+		SessionAttributes) ->
+	rate2(Protocol, Subscriber, Timestamp, Address, Direction, Product,
+		Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes).
 %% @hidden
-rate2(Protocol, Subscriber, Timestamp, Destination, #product{specification = ProdSpec,
-		char_value_use = CharValueUse, price = Prices}, Validity, Flag,
-		DebitAmounts, ReserveAmounts, SessionAttributes)
-		when ProdSpec == "5"; ProdSpec == "9" ->
-	FilteredPrices = filter_prices(Timestamp, Prices),
+rate2(Protocol, Subscriber, Timestamp, Address, Direction,
+		#product{specification = ProdSpec, char_value_use = CharValueUse,
+		price = Prices}, Validity, Flag, DebitAmounts, ReserveAmounts,
+		SessionAttributes) when ProdSpec == "5"; ProdSpec == "9" ->
+	FilteredPrices1 = filter_prices_tod(Timestamp, Prices),
+	FilteredPrices2 = filter_prices_dir(Direction, FilteredPrices1),
 	case lists:keyfind("destPrefixPriceTable", #char_value_use.name, CharValueUse) of
 		#char_value_use{values = [#char_value{value = PriceTable}]} ->
-			rate3(Protocol, list_to_existing_atom(PriceTable), Subscriber, Destination, FilteredPrices,
-					Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
+			rate3(Protocol, list_to_existing_atom(PriceTable), Subscriber,
+					Address, FilteredPrices2, Validity, Flag, DebitAmounts,
+					ReserveAmounts, SessionAttributes);
 		false ->
 			 case lists:keyfind("destPrefixTariffTable", #char_value_use.name, CharValueUse) of
 				#char_value_use{values = [#char_value{value = TariffTable}]} ->
-					rate4(Protocol, list_to_existing_atom(TariffTable), Subscriber, Destination,
-							FilteredPrices, Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
+					rate4(Protocol, list_to_existing_atom(TariffTable), Subscriber,
+							Address, FilteredPrices2, Validity, Flag, DebitAmounts,
+							ReserveAmounts, SessionAttributes);
 				false ->
-					case lists:keyfind(usage, #price.type, FilteredPrices) of
+					case lists:keyfind(usage, #price.type, FilteredPrices2) of
 						#price{} = Price ->
 							rate5(Protocol, Subscriber, Price, Validity,
 								Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
@@ -180,10 +189,10 @@ rate2(Protocol, Subscriber, Timestamp, Destination, #product{specification = Pro
 					end
 			end
 	end;
-rate2(Protocol, Subscriber, _Timestamp, _Destiations,
+rate2(Protocol, Subscriber, Timestamp, _Address, _Direction,
 		#product{price = Prices}, Validity, Flag,
 		DebitAmounts, ReserveAmounts, SessionAttributes) ->
-	FilteredPrices = filter_prices(Timestamp, Prices),
+	FilteredPrices = filter_prices_tod(Timestamp, Prices),
 	case lists:keyfind(usage, #price.type, FilteredPrices) of
 		#price{} = Price ->
 			rate5(Protocol, Subscriber, Price, Validity,
@@ -192,9 +201,9 @@ rate2(Protocol, Subscriber, _Timestamp, _Destiations,
 			throw(price_not_found)
 	end.
 %% @hidden
-rate3(Protocol, PriceTable, Subscriber, Destination, Prices,
+rate3(Protocol, PriceTable, Subscriber, Address, Prices,
 		Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes) ->
-	case catch ocs_gtt:lookup_last(PriceTable, Destination) of
+	case catch ocs_gtt:lookup_last(PriceTable, Address) of
 		{_Description, RateName} when is_list(RateName) ->
 			F1 = fun(F, [#price{char_value_use = CharValueUse} = H | T]) ->
 						case lists:keyfind("ratePrice", #char_value_use.name, CharValueUse) of
@@ -220,19 +229,19 @@ rate3(Protocol, PriceTable, Subscriber, Destination, Prices,
 				false ->
 					error_logger:error_report(["Prefix table price name not found",
 							{module, ?MODULE}, {table, PriceTable},
-							{destination, Destination}, {price_name, RateName}]),
+							{address, Address}, {price_name, RateName}]),
 					throw(price_not_found)
 			end;
 		Other ->
 			error_logger:error_report(["Prefix table price name lookup failed",
 					{module, ?MODULE}, {table, PriceTable},
-					{destination, Destination}, {result, Other}]),
+					{address, Address}, {result, Other}]),
 			throw(table_lookup_failed)
 	end.
 %% @hidden
-rate4(Protocol, TariffTable, Subscriber, Destination, Prices,
+rate4(Protocol, TariffTable, Subscriber, Address, Prices,
 		Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes) ->
-	case catch ocs_gtt:lookup_last(TariffTable, Destination) of
+	case catch ocs_gtt:lookup_last(TariffTable, Address) of
 		{_Description, AmountL} ->
 			Amount = case AmountL of
 				A when is_list(A) ->
@@ -247,13 +256,13 @@ rate4(Protocol, TariffTable, Subscriber, Destination, Prices,
 				false ->
 					error_logger:error_report(["Prefix table tariff price type not found",
 							{module, ?MODULE}, {table, TariffTable},
-							{destination, Destination}, {tariff_price, Amount}]),
+							{address, Address}, {tariff_price, Amount}]),
 					throw(price_not_found)
 			end;
 		Other ->
 			error_logger:error_report(["Prefix table tariff lookup failed",
 					{module, ?MODULE}, {table, TariffTable},
-					{destination, Destination}, {result, Other}]),
+					{address, Address}, {result, Other}]),
 			throw(table_lookup_failed)
 	end.
 %% @hidden
@@ -454,13 +463,16 @@ rate7(Subscriber, interim, _Charge, _Charged, _Reserve, Reserved, _SessionAttrib
 	ok = mnesia:write(Subscriber),
 	{grant, Subscriber, Reserved}.
 
--spec authorize(Protocol, ServiceType, SubscriberId, Password, Destination, SessionAttributes) -> Result
+-spec authorize(Protocol, ServiceType, SubscriberId, Password,
+		Timestamp, Address, Direction, SessionAttributes) -> Result
 	when
 		Protocol :: radius | diameter,
 		ServiceType :: binary() | string() | undefined,
 		SubscriberId :: binary() | string(),
 		Password :: binary(),
-		Destination :: string() | undefined,
+		Timestamp :: calendar:datetime(),
+		Address :: string() | undefined,
+		Direction :: answer | originate | undefined,
 		SessionAttributes :: [tuple()],
 		Result :: {authorized, Subscriber, Attributes, SessionList}
 					| {unauthorized, Reason, SessionList},
@@ -477,15 +489,16 @@ rate7(Subscriber, interim, _Charge, _Charged, _Reserve, Reserved, _SessionAttrib
 %% 	characteristic a reservation is attempted for the given value of seconds.
 %% 	A `Session-Timeout' attribute will be included with the actual reservation.
 %%
-authorize(Protocol, ServiceType, SubscriberId, Password, Destination, SessionAttributes)
-		when is_list(SubscriberId) ->
+authorize(Protocol, ServiceType, SubscriberId, Password, Timestamp,
+		Address, Direction, SessionAttributes) when is_list(SubscriberId) ->
 	authorize(Protocol, ServiceType, list_to_binary(SubscriberId),
-			Password, Destination, SessionAttributes);
-authorize(Protocol, ServiceType, SubscriberId, Password, Destination, SessionAttributes)
-		when is_list(Password) ->
-	authorize(Protocol, ServiceType, SubscriberId,
-			list_to_binary(Password), Destination, SessionAttributes);
-authorize(Protocol, ServiceType, SubscriberId, Password, Destination, SessionAttributes)
+			Password, Timestamp, Address, Direction, SessionAttributes);
+authorize(Protocol, ServiceType, SubscriberId, Password, Timestamp,
+			Address, Direction, SessionAttributes) when is_list(Password) ->
+	authorize(Protocol, ServiceType, SubscriberId, list_to_binary(Password),
+			Timestamp, Address, Direction, SessionAttributes);
+authorize(Protocol, ServiceType, SubscriberId, Password, Timestamp,
+		Address, Direction, SessionAttributes)
 		when ((Protocol == radius) or (Protocol == diameter)), is_binary(SubscriberId),
 		length(SessionAttributes) > 0 ->
 	F = fun() ->
@@ -497,7 +510,8 @@ authorize(Protocol, ServiceType, SubscriberId, Password, Destination, SessionAtt
 				[#subscriber{password = MTPassword} = S] when
 						((Password == <<>>) and (Password =/= MTPassword)) orelse
 						(Password == MTPassword) ->
-					authorize1(Protocol, ServiceType, S, Destination, SessionAttributes);
+					authorize1(Protocol, ServiceType, S, Timestamp,
+							Address, Direction, SessionAttributes);
 				[#subscriber{}] ->
 					throw(bad_password);
 				[] ->
@@ -515,9 +529,11 @@ authorize(Protocol, ServiceType, SubscriberId, Password, Destination, SessionAtt
 			{unauthorized, Reason, []}
 	end.
 %% @hidden
-authorize1(radius, ServiceType, #subscriber{attributes = Attributes,
-		product = #product_instance{product = ProdId, characteristics =
-		Chars}} = Subscriber, Destination, SessionAttributes) ->
+authorize1(radius, ServiceType,
+		#subscriber{attributes = Attributes,
+		product = #product_instance{product = ProdId,
+		characteristics = Chars}} = Subscriber, Timestamp,
+		Address, Direction, SessionAttributes) ->
 	F = fun({'Session-Id', _}) ->
 			true;
 		({?AcctSessionId, _}) ->
@@ -531,8 +547,8 @@ authorize1(radius, ServiceType, #subscriber{attributes = Attributes,
 				{_, RRST} when is_integer(RRST) ->
 					case mnesia:read(product, ProdId, read) of
 						[#product{} = P] ->
-							authorize2(radius, ServiceType, Subscriber,
-									P, Destination, SessionAttributes, RRST);
+							authorize2(radius, ServiceType, Subscriber, P,
+									Timestamp, Address, Direction, SessionAttributes, RRST);
 						[] ->
 							throw(product_not_found)
 					end;
@@ -542,13 +558,16 @@ authorize1(radius, ServiceType, #subscriber{attributes = Attributes,
 		false ->
 			authorize6(Subscriber, ServiceType, SessionAttributes, Attributes)
 	end;
-authorize1(diameter, ServiceType, #subscriber{attributes = Attributes}
-		= Subscriber, _Destination, SessionAttributes) ->
+authorize1(diameter, ServiceType,
+		#subscriber{attributes = Attributes} = Subscriber,
+		_Timestamp, _Address, _Direction, SessionAttributes) ->
 	authorize6(Subscriber, ServiceType, SessionAttributes, Attributes).
 %% @hidden
-authorize2(radius = Protocol, ServiceType, #subscriber{attributes = Attributes}
-		= Subscriber, #product{specification = undefined, bundle = Bundle},
-		Destination, SessionAttributes, Reserve) when Reserve > 0, Bundle /= [] ->
+authorize2(radius = Protocol, ServiceType,
+		#subscriber{attributes = Attributes} = Subscriber, Timestamp,
+		#product{specification = undefined, bundle = Bundle},
+		Address, Direction, SessionAttributes, Reserve)
+		when Reserve > 0, Bundle /= [] ->
 	try
 		F = fun(#bundled_po{name = ProdId}, Acc) ->
 				case mnesia:read(product, ProdId, read) of
@@ -567,11 +586,9 @@ authorize2(radius = Protocol, ServiceType, #subscriber{attributes = Attributes}
 				end
 		end,
 		case lists:foldl(F, [], Bundle) of
-			[#product{price = Prices} = Product | _] ->
-				Now = calendar:local_time(),
-				Product1 = Product#product{price = filter_prices(Now, Prices)},
-				authorize2(Protocol, ServiceType, Subscriber,
-						Product1, Destination, SessionAttributes, Reserve);
+			[#product{} = Product | _] ->
+				authorize2(Protocol, ServiceType, Subscriber, Product,
+						Timestamp, Address, Direction, SessionAttributes, Reserve);
 			[] ->
 				authorize6(Subscriber, ServiceType, SessionAttributes, Attributes)
 		end
@@ -579,27 +596,31 @@ authorize2(radius = Protocol, ServiceType, #subscriber{attributes = Attributes}
 		_:_ ->
 			throw(invalid_bundle_product)
 	end;
-authorize2(radius = Protocol, ServiceType, #subscriber{attributes = Attributes} =
-		Subscriber, #product{specification = ProdSpec, price = Prices,
-		char_value_use = CharValueUse}, Destination, SessionAttributes,
-		Reserve) when (Reserve > 0) and ((ProdSpec == "9") orelse (ProdSpec == "5")
+authorize2(radius = Protocol, ServiceType,
+		#subscriber{attributes = Attributes} = Subscriber,
+		#product{specification = ProdSpec, price = Prices,
+		char_value_use = CharValueUse}, Timestamp, Address,
+		Direction, SessionAttributes, Reserve)
+		when (Reserve > 0) and ((ProdSpec == "9") orelse (ProdSpec == "5")
 		orelse (ProdSpec == "4") orelse ((ProdSpec == "8"))) ->
+	FilteredPrices1 = filter_prices_tod(Timestamp, Prices),
+	FilteredPrices2 = filter_prices_dir(Direction, FilteredPrices1),
 	case lists:keyfind("destPrefixPriceTable", #char_value_use.name, CharValueUse) of
 		#char_value_use{values = [#char_value{value = PriceTable}]} ->
 			authorize3(Protocol, ServiceType, list_to_existing_atom(PriceTable),
-					Subscriber, Destination, Prices, SessionAttributes, Reserve);
+					Subscriber, Address, FilteredPrices2, SessionAttributes, Reserve);
 		false ->
 			 case lists:keyfind("destPrefixTariffTable", #char_value_use.name, CharValueUse) of
 				#char_value_use{values = [#char_value{value = TariffTable}]} ->
 					authorize4(Protocol, ServiceType, list_to_existing_atom(TariffTable),
-							Subscriber, Destination, Prices, SessionAttributes, Reserve);
+							Subscriber, Address, FilteredPrices2, SessionAttributes, Reserve);
 				false ->
 					F = fun(#price{type = usage, units = seconds}) ->
 							true;
 						(_) ->
 							false
 					end,
-					case lists:filter(F, Prices) of
+					case lists:filter(F, FilteredPrices2) of
 						[Price | _] ->
 							authorize5(Protocol, ServiceType, Subscriber,
 									Price, SessionAttributes, Reserve);
@@ -608,13 +629,14 @@ authorize2(radius = Protocol, ServiceType, #subscriber{attributes = Attributes} 
 					end
 			end
 	end;
-authorize2(_Protocol, ServiceType, #subscriber{attributes = Attributes} =
-		Subscriber, _Product, _Destination, SessionAttributes, _Reserve) ->
+authorize2(_Protocol, ServiceType,
+		#subscriber{attributes = Attributes} = Subscriber, _Product,
+		_Timestamp, _Address, _Direction, SessionAttributes, _Reserve) ->
 	authorize6(Subscriber, ServiceType, SessionAttributes, Attributes).
 %% @hidden
 authorize3(Protocol, ServiceType, PriceTable, Subscriber,
-		Destination, Prices, SessionAttributes, Reserve) ->
-	case catch ocs_gtt:lookup_last(PriceTable, Destination) of
+		Address, Prices, SessionAttributes, Reserve) ->
+	case catch ocs_gtt:lookup_last(PriceTable, Address) of
 		{_Description, RateName} when is_list(RateName) ->
 			F1 = fun(F, [#price{char_value_use = CharValueUse} = H | T]) ->
 						case lists:keyfind("ratePrice", #char_value_use.name, CharValueUse) of
@@ -640,19 +662,19 @@ authorize3(Protocol, ServiceType, PriceTable, Subscriber,
 				false ->
 					error_logger:error_report(["Prefix table price name not found",
 							{module, ?MODULE}, {table, PriceTable},
-							{destination, Destination}, {price_name, RateName}]),
+							{address, Address}, {price_name, RateName}]),
 					throw(price_not_found)
 			end;
 		Other ->
 			error_logger:error_report(["Prefix table price name lookup failed",
 					{module, ?MODULE}, {table, PriceTable},
-					{destination, Destination}, {result, Other}]),
+					{address, Address}, {result, Other}]),
 			throw(table_lookup_failed)
 	end.
 %% @hidden
 authorize4(Protocol, ServiceType, TariffTable, Subscriber,
-		Destination, Prices, SessionAttributes, Reserve) ->
-	case catch ocs_gtt:lookup_last(TariffTable, Destination) of
+		Address, Prices, SessionAttributes, Reserve) ->
+	case catch ocs_gtt:lookup_last(TariffTable, Address) of
 		{_Description, Amount} ->
 			case lists:keyfind(tariff, #price.type, Prices) of
 				#price{} = Price ->
@@ -662,13 +684,13 @@ authorize4(Protocol, ServiceType, TariffTable, Subscriber,
 				false ->
 					error_logger:error_report(["Prefix table tariff price type not found",
 							{module, ?MODULE}, {table, TariffTable},
-							{destination, Destination}, {tariff_price, Amount}]),
+							{address, Address}, {tariff_price, Amount}]),
 					throw(price_not_found)
 			end;
 		Other ->
 			error_logger:error_report(["Prefix table tariff lookup failed",
 					{module, ?MODULE}, {table, TariffTable},
-					{destination, Destination}, {result, Other}]),
+					{address, Address}, {result, Other}]),
 			throw(table_lookup_failed)
 	end.
 %% @hidden
@@ -1276,39 +1298,39 @@ due2(#bucket{} = B, [H | T], Acc) ->
 due2(#bucket{} = B, [], Acc) ->
 	lists:reverse([B | Acc]).
 
--spec filter_prices(Timestamp, Prices) -> Prices
+-spec filter_prices_tod(Timestamp, Prices) -> Prices
 	when
 		Timestamp :: calendar:datetime(),
 		Prices :: [#price{}].
 %% @doc Filter prices with `timeOfDayRange'
 %% @hidden
-filter_prices(Timestamp, Prices) ->
-	filter_prices(Timestamp, Prices, []).
+filter_prices_tod(Timestamp, Prices) ->
+	filter_prices_tod(Timestamp, Prices, []).
 %% @hidden
-filter_prices(Timestamp, [#price{char_value_use = CharValueUse} = P | T], Acc) ->
+filter_prices_tod(Timestamp, [#price{char_value_use = CharValueUse} = P | T], Acc) ->
 	case lists:keyfind("timeOfDayRange", #char_value_use.name, CharValueUse) of
 		#char_value_use{values = [#char_value{value =
 				#range{lower = Start, upper = End}}]} ->
-			case filter_prices1(Timestamp, Start, End) of
+			case filter_prices_tod1(Timestamp, Start, End) of
 				true ->
-					filter_prices(Timestamp, T, [P | Acc]);
+					filter_prices_tod(Timestamp, T, [P | Acc]);
 				false ->
-					filter_prices(Timestamp, T, Acc)
+					filter_prices_tod(Timestamp, T, Acc)
 			end;
 		_ ->
-			filter_prices(Timestamp, T, [P | Acc])
+			filter_prices_tod(Timestamp, T, [P | Acc])
 	end;
-filter_prices(_, [], Acc) ->
+filter_prices_tod(_, [], Acc) ->
 	lists:reverse(Acc).
 %% @hidden
-filter_prices1({_, Time}, #quantity{units = U1, amount = A1},
+filter_prices_tod1({_, Time}, #quantity{units = U1, amount = A1},
 		#quantity{units = U2, amount = A2}) ->
-	filter_prices2(to_seconds(U1, A1), to_seconds(U2, A2),
+	filter_prices_tod2(to_seconds(U1, A1), to_seconds(U2, A2),
 			calendar:time_to_seconds(Time)).
 %% @hidden
-filter_prices2(Start, End, Time) when Start < Time, End > Time ->
+filter_prices_tod2(Start, End, Time) when Start < Time, End > Time ->
 	true;
-filter_prices2(_, _, _) ->
+filter_prices_tod2(_, _, _) ->
 	false.
 
 %% @hidden
@@ -1318,4 +1340,27 @@ to_seconds("minutes", Minutes) when Minutes >= 0, Minutes < 1440 ->
 	Minutes * 60;
 to_seconds("hours", Hours) when Hours >= 0, Hours < 24 ->
 	Hours * 3600.
+
+-spec filter_prices_dir(Direction, Prices) -> Prices
+	when
+		Direction :: answer | originate | undefined,
+		Prices :: [#price{}].
+%% @doc Filter prices with `callDirection'.
+%% @hidden
+filter_prices_dir(undefined, Prices) ->
+	Prices;
+filter_prices_dir(Direction, Prices) when is_atom(Direction) ->
+	filter_prices_dir(atom_to_list(Direction), Prices, []).
+%% @hidden
+filter_prices_dir(Direction, [#price{char_value_use = CharValueUse} = P | T], Acc) ->
+	case lists:keyfind("callDirection", #char_value_use.name, CharValueUse) of
+		#char_value_use{values = [#char_value{value = Direction}]} ->
+			filter_prices_dir(Direction, T, [P | Acc]);
+		#char_value_use{values = [#char_value{}]} ->
+			filter_prices_dir(Direction, T, Acc);
+		_ ->
+			filter_prices_dir(Direction, T, [P | Acc])
+	end;
+filter_prices_dir(_, [], Acc) ->
+	lists:reverse(Acc).
 

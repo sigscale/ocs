@@ -1062,10 +1062,11 @@ server_passthrough({accept, #subscriber{name = Identity,
 		radius_id = RadiusID, %ssl_socket = SslSocket,
 		client_rand = ClientRandom, server_rand = ServerRandom,
 		service_type = ServiceType} = StateData) ->
-	Destination = proplists:get_value(?CalledStationId, RequestAttributes, ""),
+	Timestamp = calendar:local_time(),
+	CallAddress = proplists:get_value(?CalledStationId, RequestAttributes, ""),
 	SessionAttributes = extract_session_attributes(RequestAttributes),
-	case ocs_rating:authorize(radius, ServiceType,
-			Identity, Password, Destination, SessionAttributes) of
+	case ocs_rating:authorize(radius, ServiceType, Identity, Password,
+			Timestamp, CallAddress, undefined, SessionAttributes) of
 		{authorized, _Subscriber, Attributes, _ExistingSessionAttributes} ->
 			Seed = [<<ClientRandom/binary, ServerRandom/binary>>],
 			{MSK, _} = prf(SslSocket, master_secret ,

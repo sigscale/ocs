@@ -69,12 +69,12 @@
 		Reason :: term().
 %% @doc Initialize the {@module} server.
 %% 	Args :: [Sup :: pid(), Module :: atom(), Port :: non_neg_integer(),
-%% 	Address :: inet:ip_address()].
+%% 	IpAddress :: inet:ip_address()].
 %% @see //stdlib/gen_server:init/1
 %% @private
 %%
-init([AcctSup, Address, Port, _Options]) ->
-	State = #state{address = Address, port = Port, acct_sup = AcctSup},
+init([AcctSup, IpAddress, Port, _Options]) ->
+	State = #state{address = IpAddress, port = Port, acct_sup = AcctSup},
 	case ocs_log:acct_open() of
 		ok ->
 			process_flag(trap_exit, true),
@@ -109,9 +109,9 @@ init([AcctSup, Address, Port, _Options]) ->
 %% @private
 handle_call(shutdown, _From, State) ->
 	{stop, normal, ok, State};
-handle_call({request, Address, AccPort, Secret, ListenPort,
+handle_call({request, IpAddress, AccPort, Secret, ListenPort,
 			#radius{code = ?AccountingRequest} = Radius}, From, State) ->
-	request(Address, AccPort, Secret, ListenPort, Radius, From, State).
+	request(IpAddress, AccPort, Secret, ListenPort, Radius, From, State).
 
 -spec handle_cast(Request, State) -> Result
 	when
@@ -206,9 +206,9 @@ code_change(_OldVsn, State, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec request(Address, Port, Secret, ListenPort, Radius, From, State) -> Result
+-spec request(IpAddress, Port, Secret, ListenPort, Radius, From, State) -> Result
 	when
-		Address :: inet:ip_address(), 
+		IpAddress :: inet:ip_address(), 
 		Port :: pos_integer(),
 		Secret :: string(), 
 		ListenPort :: pos_integer(),
@@ -222,7 +222,7 @@ code_change(_OldVsn, State, _Extra) ->
 		NewState :: state().
 %% @doc Handle a received RADIUS Accounting Request packet.
 %% @private
-request(Address, AccPort, Secret, ListenPort, Radius, From, State) ->
+request(IpAddress, AccPort, Secret, ListenPort, Radius, From, State) ->
 	try
 		#radius{code = ?AccountingRequest, id = Id, attributes = Attributes,
 				authenticator = Authenticator} = Radius,
@@ -248,14 +248,14 @@ request(Address, AccPort, Secret, ListenPort, Radius, From, State) ->
 		{error, not_found} = radius_attributes:find(?State, Attributes),
 		{ok, AcctSessionId} = radius_attributes:find(?AcctSessionId, Attributes),
 		request1(AcctStatusType, AcctSessionId, Id, Authenticator, Secret,
-				NasId, Address, AccPort, ListenPort, Attributes, From, State)
+				NasId, IpAddress, AccPort, ListenPort, Attributes, From, State)
 	catch
 		_:_Reason ->
 			{reply, {error, ignore}, State}
 	end.
 %% @hidden
 request1(?AccountingStart, AcctSessionId, Id,
-		Authenticator, Secret, NasId, Address, _AccPort, _ListenPort, Attributes,
+		Authenticator, Secret, NasId, IpAddress, _AccPort, _ListenPort, Attributes,
 		From, #state{address = ServerAddress, port = ServerPort} = State) ->
 	SessionAttributes = session_attributes(Attributes),
 	Subscriber = case radius_attributes:find(?UserName, Attributes) of
@@ -264,8 +264,7 @@ request1(?AccountingStart, AcctSessionId, Id,
 		{error, not_found} ->
 			radius_attributes:fetch(?CallingStationId, Attributes)
 	end,
-	Destination = proplists:get_value(?CalledStationId, Attributes, ""),
-	ServiceType = lookup_service_type(Attributes),
+	{ServiceType, Direction, CallAddress} = get_service_type(Attributes),
 	Timestamp = case radius_attributes:find(?AcctDelayTime, Attributes) of
 		{ok, AcctDelayTime} ->
 			Now = calendar:local_time(),
@@ -275,7 +274,7 @@ request1(?AccountingStart, AcctSessionId, Id,
 			calendar:local_time()
 	end,
 	case ocs_rating:rate(radius, ServiceType, Subscriber, Timestamp,
-			Destination, initial, [], [], SessionAttributes) of
+			CallAddress, Direction, initial, [], [], SessionAttributes) of
 		{ok, #subscriber{}, _} ->
 			ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, start, Attributes),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
@@ -289,13 +288,13 @@ request1(?AccountingStart, AcctSessionId, Id,
 			{noreply, State};
 		{error, Reason} ->
 			error_logger:error_report(["Rating Error",
-					{module, ?MODULE}, {error, Reason},
+					{module, ?MODULE}, {error, Reason}, {ip_address, IpAddress},
 					{nas, NasId}, {type, initial}, {subscriber, Subscriber},
-					{address, Address}, {session, AcctSessionId}]),
+					{call_address, CallAddress}, {session, AcctSessionId}]),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
 request1(?AccountingStop, AcctSessionId, Id,
-		Authenticator, Secret, NasId, Address, _AccPort, _ListenPort, Attributes,
+		Authenticator, Secret, NasId, IpAddress, _AccPort, _ListenPort, Attributes,
 		From, #state{address = ServerAddress, port = ServerPort} = State) ->
 	UsageOctets = get_usage(Attributes),
 	UsageSecs = case radius_attributes:find(?AcctSessionTime, Attributes) of
@@ -313,8 +312,7 @@ request1(?AccountingStop, AcctSessionId, Id,
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, stop, Attributes),
 	SessionAttributes = session_attributes(Attributes),
 	DebitAmount = [{octets, UsageOctets}, {seconds, UsageSecs}],
-	Destination = proplists:get_value(?CalledStationId, Attributes, ""),
-	ServiceType = lookup_service_type(Attributes),
+	{ServiceType, Direction, CallAddress} = get_service_type(Attributes),
 	Timestamp = case radius_attributes:find(?AcctDelayTime, Attributes) of
 		{ok, AcctDelayTime} ->
 			Now = calendar:local_time(),
@@ -324,7 +322,7 @@ request1(?AccountingStop, AcctSessionId, Id,
 			calendar:local_time()
 	end,
 	case ocs_rating:rate(radius, ServiceType, Subscriber, Timestamp,
-			Destination, final, DebitAmount, [], SessionAttributes) of
+			CallAddress, Direction, final, DebitAmount, [], SessionAttributes) of
 		{ok, #subscriber{}, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{out_of_credit, SessionList}  ->
@@ -337,13 +335,13 @@ request1(?AccountingStop, AcctSessionId, Id,
 			{noreply, State};
 		{error, Reason} ->
 			error_logger:error_report(["Rating Error",
-					{module, ?MODULE}, {error, Reason},
+					{module, ?MODULE}, {error, Reason}, {ip_address, IpAddress},
 					{nas, NasId}, {type, final}, {subscriber, Subscriber},
-					{address, Address}, {used, DebitAmount}, {session, AcctSessionId}]),
+					{call_address, CallAddress}, {used, DebitAmount}, {session, AcctSessionId}]),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
 request1(?AccountingInterimUpdate, AcctSessionId, Id,
-		Authenticator, Secret, NasId, Address, _AccPort, _ListenPort, Attributes,
+		Authenticator, Secret, NasId, IpAddress, _AccPort, _ListenPort, Attributes,
 		From, #state{address = ServerAddress, port = ServerPort} = State) ->
 	UsageOctets = get_usage(Attributes),
 	UsageSecs = case radius_attributes:find(?AcctSessionTime, Attributes) of
@@ -361,8 +359,7 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, interim, Attributes),
 	SessionAttributes = session_attributes(Attributes),
 	ReserveAmount = [{octets, UsageOctets}, {seconds, UsageSecs}],
-	Destination = proplists:get_value(?CalledStationId, Attributes, ""),
-	ServiceType = lookup_service_type(Attributes),
+	{ServiceType, Direction, CallAddress} = get_service_type(Attributes),
 	Timestamp = case radius_attributes:find(?AcctDelayTime, Attributes) of
 		{ok, AcctDelayTime} ->
 			Now = calendar:local_time(),
@@ -372,7 +369,7 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 			calendar:local_time()
 	end,
 	case ocs_rating:rate(radius, ServiceType, Subscriber, Timestamp,
-			Destination, interim, [], ReserveAmount, SessionAttributes) of
+			CallAddress, Direction, interim, [], ReserveAmount, SessionAttributes) of
 		{ok, #subscriber{}, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{out_of_credit, SessionList} ->
@@ -387,24 +384,24 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{error, Reason} ->
 			error_logger:error_report(["Rating Error",
-					{module, ?MODULE}, {error, Reason}, {nas, NasId},
-					{type, interim}, {subscriber, Subscriber},
-					{address, Address}, {reserved, ReserveAmount},
+					{module, ?MODULE}, {error, Reason}, {ip_address, IpAddress},
+					{nas, NasId}, {type, interim}, {subscriber, Subscriber},
+					{call_address, CallAddress}, {reserved, ReserveAmount},
 					{session, AcctSessionId}]),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
 request1(?AccountingON, _AcctSessionId, Id,
-		Authenticator, Secret, _NasId, _Address, _AccPort, _ListenPort, Attributes,
+		Authenticator, Secret, _NasId, _IpAddress, _AccPort, _ListenPort, Attributes,
 		_From, #state{address = ServerAddress, port = ServerPort} = State) ->
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, on, Attributes),
 	{reply, {ok, response(Id, Authenticator, Secret)}, State};
 request1(?AccountingOFF, _AcctSessionId, Id,
-		Authenticator, Secret, _NasId, _Address, _AccPort, _ListenPort, Attributes,
+		Authenticator, Secret, _NasId, _IpAddress, _AccPort, _ListenPort, Attributes,
 		_From, #state{address = ServerAddress, port = ServerPort} = State) ->
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, off, Attributes),
 	{reply, {ok, response(Id, Authenticator, Secret)}, State};
 request1(_AcctStatusType, _AcctSessionId, _Id, _Authenticator,
-		_Secret, _NasId, _Address, _Port, _ListenPort, _Attributes, _From, State) ->
+		_Secret, _NasId, _IpAddress, _Port, _ListenPort, _Attributes, _From, State) ->
 	{reply, {error, ignore}, State}.
 
 -spec response(Id, RequestAuthenticator, Secret) -> AccessAccept
@@ -510,10 +507,28 @@ get_usage(Attributes) ->
 	end,
 	In + GigaIn + Out + GigaOut.
 
-lookup_service_type(RadiusAttributes) ->
-	case radius_attributes:find(?ServiceType, RadiusAttributes) of
+get_service_type(Attr) ->
+	case radius_attributes:find(?ServiceType, Attr) of
+		{ok, 12} ->
+			case radius_attributes:find(?Cisco, ?H323CallOrigin, Attr) of
+				{ok, answer} ->
+					case radius_attributes:find(?CallingStationId, Attr) of
+						{ok, Address} ->
+							{12, answer, Address};
+						{error, not_found} ->
+							{12, answer, undefined}
+					end;
+				_Other ->
+					case radius_attributes:find(?CalledStationId, Attr) of
+						{ok, Address} ->
+							{12, originate, Address};
+						{error, not_found} ->
+							{12, originate, undefined}
+					end
+			end;
 		{ok, ServiceType} ->
-			ServiceType;
+			{ServiceType, undefined, undefined};
 		{error, not_found} ->
-			undefined
+			{undefined, undefined, undefined}
 	end.
+
