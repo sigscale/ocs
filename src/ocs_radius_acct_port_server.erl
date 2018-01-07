@@ -266,7 +266,15 @@ request1(?AccountingStart, AcctSessionId, Id,
 	end,
 	Destination = proplists:get_value(?CalledStationId, Attributes, ""),
 	ServiceType = lookup_service_type(Attributes),
-	case ocs_rating:rate(radius, ServiceType, Subscriber,
+	Timestamp = case radius_attributes:find(?AcctDelayTime, Attributes) of
+		{ok, AcctDelayTime} ->
+			Now = calendar:local_time(),
+			Seconds = calendar:datetime_to_gregorian_seconds(Now),
+			calendar:gregorian_seconds_to_datetime(Seconds - AcctDelayTime);
+		{error, not_found} ->
+			calendar:local_time()
+	end,
+	case ocs_rating:rate(radius, ServiceType, Subscriber, Timestamp,
 			Destination, initial, [], [], SessionAttributes) of
 		{ok, #subscriber{}, _} ->
 			ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, start, Attributes),
@@ -307,7 +315,15 @@ request1(?AccountingStop, AcctSessionId, Id,
 	DebitAmount = [{octets, UsageOctets}, {seconds, UsageSecs}],
 	Destination = proplists:get_value(?CalledStationId, Attributes, ""),
 	ServiceType = lookup_service_type(Attributes),
-	case ocs_rating:rate(radius, ServiceType, Subscriber,
+	Timestamp = case radius_attributes:find(?AcctDelayTime, Attributes) of
+		{ok, AcctDelayTime} ->
+			Now = calendar:local_time(),
+			Seconds = calendar:datetime_to_gregorian_seconds(Now),
+			calendar:gregorian_seconds_to_datetime(Seconds - AcctDelayTime);
+		{error, not_found} ->
+			calendar:local_time()
+	end,
+	case ocs_rating:rate(radius, ServiceType, Subscriber, Timestamp,
 			Destination, final, DebitAmount, [], SessionAttributes) of
 		{ok, #subscriber{}, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
@@ -347,7 +363,15 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 	ReserveAmount = [{octets, UsageOctets}, {seconds, UsageSecs}],
 	Destination = proplists:get_value(?CalledStationId, Attributes, ""),
 	ServiceType = lookup_service_type(Attributes),
-	case ocs_rating:rate(radius, ServiceType, Subscriber,
+	Timestamp = case radius_attributes:find(?AcctDelayTime, Attributes) of
+		{ok, AcctDelayTime} ->
+			Now = calendar:local_time(),
+			Seconds = calendar:datetime_to_gregorian_seconds(Now),
+			calendar:gregorian_seconds_to_datetime(Seconds - AcctDelayTime);
+		{error, not_found} ->
+			calendar:local_time()
+	end,
+	case ocs_rating:rate(radius, ServiceType, Subscriber, Timestamp,
 			Destination, interim, [], ReserveAmount, SessionAttributes) of
 		{ok, #subscriber{}, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};

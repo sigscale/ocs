@@ -122,6 +122,7 @@ initial_exact_fit(_Config) ->
 	{ok, _} = ocs:add_product(Product),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
 	Password = ocs:generate_password(),
+	Timestamp = calendar:local_time(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
 	RemAmount = 100,
 	Buckets = [#bucket{units = cents, remain_amount = RemAmount,
@@ -132,7 +133,8 @@ initial_exact_fit(_Config) ->
 	ServiceType = <<"32251@3gpp.org">>,
 	{ok, _Subscriber1} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
 	{ok, Subscriber2, PackageSize} = ocs_rating:rate(diameter, ServiceType,
-			SubscriberID, Destination, initial, [], [{octets, PackageSize}], SessionId),
+			SubscriberID, Timestamp, Destination, initial, [],
+			[{octets, PackageSize}], SessionId),
 	#subscriber{buckets = [#bucket{remain_amount = 0,
 			reservations = [{_, PackagePrice, _}]}]} = Subscriber2.
 
@@ -148,6 +150,7 @@ initial_insufficient(_Config) ->
 	Product = #product{name = ProdID, price = [Price], specification = 4},
 	{ok, _} = ocs:add_product(Product),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Timestamp = calendar:local_time(),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
 	RemAmount = 13,
@@ -158,8 +161,8 @@ initial_insufficient(_Config) ->
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = 2,
 	{ok, _Subscriber1} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
-	{out_of_credit, _} = ocs_rating:rate(radius, ServiceType,
-			SubscriberID, Destination, initial, [], [{octets, PackageSize}], SessionId),
+	{out_of_credit, _} = ocs_rating:rate(radius, ServiceType, SubscriberID,
+			Timestamp, Destination, initial, [], [{octets, PackageSize}], SessionId),
 	{ok, #subscriber{buckets = [#bucket{units = cents, remain_amount = RemAmount,
 			reservations = []}]}} = ocs:find_subscriber(SubscriberID).
 
@@ -175,6 +178,7 @@ initial_insufficient_multisession(_Config) ->
 	Product = #product{name = ProdID, price = [Price], specification = 4},
 	{ok, _} = ocs:add_product(Product),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Timestamp = calendar:local_time(),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
 	RemAmount = 13,
@@ -189,7 +193,7 @@ initial_insufficient_multisession(_Config) ->
 	{ok, #subscriber{buckets = Buckets1}} =
 		ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
 	{out_of_credit, _} = ocs_rating:rate(radius, ServiceType, SubscriberID,
-			Destination, initial, [], [{octets, PackageSize}], SessionId),
+			Timestamp, Destination, initial, [], [{octets, PackageSize}], SessionId),
 	{ok, #subscriber{buckets = Buckets1}} = ocs:find_subscriber(SubscriberID).
 
 initial_add_session() ->
@@ -204,6 +208,7 @@ initial_add_session(_Config) ->
 	Product = #product{name = ProdID, price = [Price], specification = 4},
 	{ok, _} = ocs:add_product(Product),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Timestamp = calendar:local_time(),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
 	RemAmount = 1000,
@@ -219,7 +224,7 @@ initial_add_session(_Config) ->
 	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
 	{ok, #subscriber{session_attributes = [{_, SessionAttr}]},
 			PackageSize} = ocs_rating:rate(radius, ServiceType, SubscriberID,
-			Destination, initial, [], [{octets, PackageSize}], SessionAttr).
+			Timestamp, Destination, initial, [], [{octets, PackageSize}], SessionAttr).
 
 initial_overhead() ->
 	[{userdata, [{doc, "Reserved amount greater than requested reservation amount"}]}].
@@ -233,6 +238,7 @@ initial_overhead(_Config) ->
 	Product = #product{name = ProdID, price = [Price], specification = 4},
 	{ok, _} = ocs:add_product(Product),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Timestamp = calendar:local_time(),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
 	RemAmount1 = 233,
@@ -246,7 +252,7 @@ initial_overhead(_Config) ->
 	{ok, _Subscriber1} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
 	{ok, #subscriber{buckets = [#bucket{remain_amount = RemAmount2}]},
 			Reserved} = ocs_rating:rate(radius, ServiceType, SubscriberID,
-			Destination, initial, [], [{octets, Reservation}], SessionId),
+			Timestamp, Destination, initial, [], [{octets, Reservation}], SessionId),
 	F = fun(A) when (A rem PackageSize) == 0 ->
 				(A div PackageSize) * PackagePrice;
 			(A) ->
@@ -268,6 +274,7 @@ initial_multiple_buckets(_Config) ->
 	Product = #product{name = ProdID, price = [Price], specification = 4},
 	{ok, _} = ocs:add_product(Product),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Timestamp = calendar:local_time(),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
 	Reservation = 1111,
@@ -287,7 +294,7 @@ initial_multiple_buckets(_Config) ->
 	ServiceType = 2,
 	{ok, _Subscriber1} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
 	{ok, #subscriber{buckets = RatedBuckets}, Reserved} =
-			ocs_rating:rate(radius, ServiceType, SubscriberID,
+			ocs_rating:rate(radius, ServiceType, SubscriberID, Timestamp,
 			Destination, initial, [], [{octets, Reservation}], SessionId),
 	Balance2 = lists:sum([R || #bucket{remain_amount = R} <- RatedBuckets]),
 	F = fun(A) when (A rem PackageSize) == 0 ->
@@ -311,6 +318,7 @@ initial_expire_buckets(_Config) ->
 	Product = #product{name = ProdID, price = [Price], specification = 4},
 	{ok, _} = ocs:add_product(Product),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Timestamp = calendar:local_time(),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) - 2592000000}],
 	RemAmount = 100,
@@ -322,7 +330,7 @@ initial_expire_buckets(_Config) ->
 	ServiceType = <<"32251@3gpp.org">>,
 	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
 	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
-			Destination, initial, [], [{octets, PackageSize}], SessionId),
+			Timestamp, Destination, initial, [], [{octets, PackageSize}], SessionId),
 	{ok, #subscriber{buckets = []}} = ocs:find_subscriber(SubscriberID).
 
 initial_ignore_expired_buckets() ->
@@ -337,6 +345,7 @@ initial_ignore_expired_buckets(_Config) ->
 	Product = #product{name = ProdID, price = [Price], specification = 4},
 	{ok, _} = ocs:add_product(Product),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Timestamp = calendar:local_time(),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) - 2592000000}],
 	SessionId1 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
@@ -357,7 +366,7 @@ initial_ignore_expired_buckets(_Config) ->
 	ServiceType = <<"32251@3gpp.org">>,
 	{ok, #subscriber{buckets = Buckets2},
 			PackageSize} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
-			Destination, initial, [], [{octets, Reservation}], SessionId2),
+			Timestamp, Destination, initial, [], [{octets, Reservation}], SessionId2),
 	2 = length(Buckets2).
 
 initial_negative_balance() ->
@@ -375,6 +384,7 @@ initial_negative_balance(_Config) ->
 			specification = 4},
 	{ok, _} = ocs:add_product(Product),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Timestamp = calendar:local_time(),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) - 2592000000}],
 	{ok, #subscriber{buckets = Buckets1}} = ocs:add_subscriber(SubscriberID,
@@ -385,7 +395,7 @@ initial_negative_balance(_Config) ->
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = <<"32251@3gpp.org">>,
 	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
-			Destination, initial, [], [{octets, Reservation}], SessionId),
+			Timestamp, Destination, initial, [], [{octets, Reservation}], SessionId),
 	{ok, #subscriber{buckets = Buckets2}} = ocs:find_subscriber(SubscriberID),
 	Balance = lists:sum([R || #bucket{remain_amount = R} <- Buckets2]).
 
@@ -402,6 +412,7 @@ interim_reserve(_Config) ->
 		specification = 4},
 	{ok, _} = ocs:add_product(Product),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
+	TS = calendar:datetime_to_gregorian_seconds(calendar:local_time()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
 	RemAmount = 200,
@@ -415,13 +426,14 @@ interim_reserve(_Config) ->
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = 2,
 	{ok, _Subscriber2, PackageSize} = ocs_rating:rate(radius, ServiceType,
-			SubscriberID, Destination, initial, [], [{octets, InitialReservation}],
-			SessionId),
+			SubscriberID, TS, Destination, initial, [],
+			[{octets, InitialReservation}], SessionId),
 	InterimReservation = PackageSize + InitialReservation,
 	{ok, #subscriber{buckets = [#bucket{remain_amount = 0,
 			reservations = [{_, Reserved, _}]}]},
 			_Reservation} = ocs_rating:rate(radius, ServiceType, SubscriberID,
-			Destination, interim, [], [{octets, InterimReservation}], SessionId),
+			calendar:gregorian_seconds_to_datetime(TS + 60), Destination,
+			interim, [], [{octets, InterimReservation}], SessionId),
 	F = fun(Reserve) when (Reserve rem PackageSize) == 0 ->
 			(Reserve div PackageSize) * PackagePrice;
 		(Reserve) ->
@@ -442,6 +454,7 @@ interim_reserve_within_unit_size(_Config) ->
 			specification = 4},
 	{ok, _} = ocs:add_product(Product),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
+	TS = calendar:datetime_to_gregorian_seconds(calendar:local_time()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
 	RemAmount = 200,
@@ -461,7 +474,7 @@ interim_reserve_within_unit_size(_Config) ->
 	Reservation1 = 100,
 	{ok, #subscriber{buckets = [#bucket{remain_amount = CentsRemain1,
 			reservations = [{_, Reserved1, _}]}]}, PackageSize}
-			= ocs_rating:rate(diameter, ServiceType, SubscriberID,
+			= ocs_rating:rate(diameter, ServiceType, SubscriberID, TS,
 			Destination, initial, [], [{octets, Reservation1}], SessionId),
 	CentsRemain1 = RemAmount - F(Reservation1),
 	Reserved1 = F(Reservation1),
@@ -470,6 +483,7 @@ interim_reserve_within_unit_size(_Config) ->
 	{ok, #subscriber{buckets = [#bucket{remain_amount = CentsRemain2,
 			reservations = [{_, Reserved2, _}]}]}, PackageSize}
 			= ocs_rating:rate(diameter, ServiceType, SubscriberID,
+			calendar:gregorian_seconds_to_datetime(TS + 60),
 			Destination, interim, [], [{octets, Reservation2}], SessionId),
 	CentsRemain2 = RemAmount - F(Reservation2),
 	Reserved2 = F(Reservation2),
@@ -478,6 +492,7 @@ interim_reserve_within_unit_size(_Config) ->
 	{ok, #subscriber{buckets = [#bucket{remain_amount = CentsRemain3,
 			reservations = [{_, Reserved3, _}]}]}, PackageSize}
 			= ocs_rating:rate(diameter, ServiceType, SubscriberID,
+			calendar:gregorian_seconds_to_datetime(TS + 120),
 			Destination, interim, [], [{octets, Reservation3}], SessionId),
 	CentsRemain3 = RemAmount - F(Reservation3),
 	Reserved3 = F(Reservation3).
@@ -494,6 +509,7 @@ interim_reserve_available(_Config) ->
 	Product = #product{name = ProdID, price = [Price], specification = 4},
 	{ok, _} = ocs:add_product(Product),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
+	TS = calendar:datetime_to_gregorian_seconds(calendar:local_time()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
 	Buckets = [#bucket{units = cents, remain_amount = 2 * PackagePrice,
@@ -505,11 +521,14 @@ interim_reserve_available(_Config) ->
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = <<"32251@3gpp.org">>,
 	{ok, _Subscriber2, PackageSize} = ocs_rating:rate(diameter, ServiceType,
-			SubscriberID, Destination, initial, [], [{octets, PackageSize}], SessionId),
+			SubscriberID, TS, Destination, initial, [],
+			[{octets, PackageSize}], SessionId),
 	{ok, #subscriber{buckets = [#bucket{remain_amount = 0,
 			reservations = [{_, PackagePrice, _}]}]}, PackageSize}
-			= ocs_rating:rate(diameter, ServiceType, SubscriberID, Destination,
-			interim, [{octets, PackageSize}], [{octets, PackageSize}], SessionId).
+			= ocs_rating:rate(diameter, ServiceType, SubscriberID,
+			calendar:gregorian_seconds_to_datetime(TS + 60),
+			Destination, interim, [{octets, PackageSize}],
+			[{octets, PackageSize}], SessionId).
 
 interim_reserve_out_of_credit() ->
 	[{userdata, [{doc, "Out of credit on reservation"}]}].
@@ -523,6 +542,7 @@ interim_reserve_out_of_credit(_Config) ->
 	Product1 = #product{name = ProdID, price = [Price], specification = 4},
 	{ok, _Product2} = ocs:add_product(Product1),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
+	TS = calendar:datetime_to_gregorian_seconds(calendar:local_time()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
 	RemAmount = 110,
@@ -535,9 +555,11 @@ interim_reserve_out_of_credit(_Config) ->
 	Destination = ocs:generate_identity(),
 	ServiceType = <<"32251@3gpp.org">>,
 	{ok, _Subscriber2, PackageSize} = ocs_rating:rate(diameter, ServiceType,
-			SubscriberID, Destination, initial, [], [{octets, PackageSize}], SessionId),
+			SubscriberID, TS, Destination, initial,
+			[], [{octets, PackageSize}], SessionId),
 	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
-			Destination, interim, [], [{octets, 2 * PackageSize}], SessionId),
+			calendar:gregorian_seconds_to_datetime(TS + 60),Destination, interim,
+			[], [{octets, 2 * PackageSize}], SessionId),
 	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = 0} = lists:keyfind(cents, #bucket.units, RatedBuckets).
 
@@ -551,6 +573,7 @@ interim_reserve_remove_session(_Config) ->
 	Product = #product{name = ProdID, price = [Price], specification = 4},
 	{ok, _} = ocs:add_product(Product),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
+	TS = calendar:datetime_to_gregorian_seconds(calendar:local_time()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
 	RemAmount = 110,
@@ -567,12 +590,12 @@ interim_reserve_remove_session(_Config) ->
 	Destination = ocs:generate_identity(),
 	ServiceType = <<"32251@3gpp.org">>,
 	ok = mnesia:dirty_write(subscriber, Subscriber),
-	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID, TS,
 			Destination, initial, [], [{octets, Reservation1}], SessionAttributes),
 	Reservation2 = 1100,
 	{out_of_credit, SessionList} = ocs_rating:rate(diameter, ServiceType,
-			SubscriberID, Destination, initial, [], [{octets, Reservation2}],
-			SessionAttributes),
+			SubscriberID, calendar:gregorian_seconds_to_datetime(TS + 60),
+			Destination, initial, [], [{octets, Reservation2}], SessionAttributes),
 	[{_, SessionAttributes}] = SessionList,
 	{ok, #subscriber{session_attributes = []}} = ocs:find_subscriber(SubscriberID).
 
@@ -588,6 +611,7 @@ interim_reserve_multiple_buckets_available(_Config) ->
 	Product = #product{name = ProdID, price = [Price], specification = 4},
 	{ok, _} = ocs:add_product(Product),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
+	TS = calendar:datetime_to_gregorian_seconds(calendar:local_time()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
 	RemAmount = 110,
@@ -608,7 +632,7 @@ interim_reserve_multiple_buckets_available(_Config) ->
 	Destination = ocs:generate_identity(),
 	ServiceType = <<"32251@3gpp.org">>,
 	ok = mnesia:dirty_write(subscriber, Subscriber),
-	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID, TS,
 			Destination, initial, [], [{octets, Reservation1}], SessionAttributes),
 	{ok, #subscriber{buckets = RatedBuckets1}} = ocs:find_subscriber(SubscriberID),
 	F1 = fun(F1, Type, [#bucket{units = Type, reservations = Res} | T], R) when Res =/= [] ->
@@ -628,7 +652,8 @@ interim_reserve_multiple_buckets_available(_Config) ->
 	Reserved1 = F2(Reservation1),
 	Reservation2 = 1100,
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
-			Destination, interim, [], [{octets, Reservation2}], SessionAttributes),
+			calendar:gregorian_seconds_to_datetime(TS + 60), Destination,
+			interim, [], [{octets, Reservation2}], SessionAttributes),
 	{ok, #subscriber{buckets = RatedBuckets2}} = ocs:find_subscriber(SubscriberID),
 	Reserved2 = F1(F1, cents, RatedBuckets2, 0),
 	Reserved2 = F2(Reservation2).
@@ -645,6 +670,7 @@ interim_reserve_multiple_buckets_out_of_credit(_Config) ->
 	Product = #product{name = ProdID, price = [Price], specification = 4},
 	{ok, _} = ocs:add_product(Product),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
+	TS = calendar:datetime_to_gregorian_seconds(calendar:local_time()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
 	RemAmount = 110,
@@ -665,7 +691,7 @@ interim_reserve_multiple_buckets_out_of_credit(_Config) ->
 	Destination = ocs:generate_identity(),
 	ServiceType = 4,
 	ok = mnesia:dirty_write(subscriber, Subscriber),
-	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID, TS,
 			Destination, initial, [], [{octets, Reservation1}], SessionAttributes),
 	{ok, #subscriber{buckets = RatedBuckets1}} = ocs:find_subscriber(SubscriberID),
 	F1 = fun(F1, Type, [#bucket{units = Type, reservations = Res} | T], R) when Res =/= [] ->
@@ -685,7 +711,8 @@ interim_reserve_multiple_buckets_out_of_credit(_Config) ->
 	Reserved1 = F2(Reservation1),
 	Reservation2 = 2100,
 	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
-			Destination, interim, [], [{octets, Reservation2}], SessionAttributes),
+			calendar:gregorian_seconds_to_datetime(TS + 60), Destination, interim,
+			[], [{octets, Reservation2}], SessionAttributes),
 	{ok, #subscriber{buckets = RatedBuckets2}} = ocs:find_subscriber(SubscriberID),
 	F3 = fun(#bucket{remain_amount = R}, Acc) -> R + Acc end,
 	0 = lists:foldl(F3, 0, RatedBuckets2).
@@ -702,6 +729,7 @@ interim_debit_exact_balance(_Config) ->
 	Product = #product{name = ProdID, price = [Price], specification = 4},
 	{ok, _} = ocs:add_product(Product),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
+	TS = calendar:datetime_to_gregorian_seconds(calendar:local_time()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
 	RemAmount = 100,
@@ -712,9 +740,10 @@ interim_debit_exact_balance(_Config) ->
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = <<"32251@3gpp.org">>,
 	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
-	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
-			SubscriberID, Destination, initial, [], [], SessionId),
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID, TS,
+			Destination, initial, [], [], SessionId),
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
+			calendar:gregorian_seconds_to_datetime(TS + 60),
 			Destination, interim, [{octets, PackageSize}], [], SessionId),
 	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = 0, reservations = []} = lists:keyfind(cents, #bucket.units, RatedBuckets).
@@ -731,6 +760,7 @@ interim_debit_under_unit_size(_Config) ->
 	Product = #product{name = ProdID, price = [Price], specification = 4},
 	{ok, _} = ocs:add_product(Product),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
+	TS = calendar:datetime_to_gregorian_seconds(calendar:local_time()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000001}],
 	RemAmount = 200,
@@ -742,9 +772,10 @@ interim_debit_under_unit_size(_Config) ->
 	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = <<"32251@3gpp.org">>,
-	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
-			SubscriberID, Destination, initial, [], [], SessionId),
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
+			TS, Destination, initial, [], [], SessionId),
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
+			calendar:gregorian_seconds_to_datetime(TS + 60),
 			Destination, interim, [{octets, Debit}], [], SessionId),
 	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = CentsRemain} = lists:keyfind(cents, #bucket.units, RatedBuckets),
@@ -763,6 +794,7 @@ interim_debit_out_of_credit(_Config) ->
 	Product1 = #product{name = ProdID, price = [Price], specification = 4},
 	{ok, _Product2} = ocs:add_product(Product1),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
+	TS = calendar:datetime_to_gregorian_seconds(calendar:local_time()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
 	Buckets = [#bucket{units = cents, remain_amount = AccountAmount,
@@ -774,14 +806,15 @@ interim_debit_out_of_credit(_Config) ->
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = <<"32251@3gpp.org">>,
 	{ok, _Subscriber2, PackageSize} = ocs_rating:rate(diameter, ServiceType,
-			SubscriberID, Destination, initial, [], [{octets, PackageSize}],
-			SessionId),
+			SubscriberID, TS, Destination, initial,
+			[], [{octets, PackageSize}], SessionId),
 	{ok, _Subscriber3, PackageSize} = ocs_rating:rate(diameter, ServiceType,
-			SubscriberID, Destination, interim, [{octets, PackageSize}],
-			[{octets, PackageSize}], SessionId),
+			SubscriberID,
+			calendar:gregorian_seconds_to_datetime(TS + 60), Destination, interim,
+			[{octets, PackageSize}], [{octets, PackageSize}], SessionId),
 	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType,
-			SubscriberID, Destination, interim, [{octets, PackageSize}],
-			[{octets, PackageSize}], SessionId),
+			SubscriberID, calendar:gregorian_seconds_to_datetime(TS + 60),
+			Destination, interim, [{octets, PackageSize}], [{octets, PackageSize}], SessionId),
 	{ok, #subscriber{buckets = []}} = ocs:find_subscriber(SubscriberID).
 
 interim_debit_remove_session() ->
@@ -794,6 +827,7 @@ interim_debit_remove_session(_Config) ->
 	Product = #product{name = ProdID, price = [Price], specification = 4},
 	{ok, _} = ocs:add_product(Product),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Timestamp = calendar:local_time(),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
 	RemAmount = 10,
@@ -810,8 +844,8 @@ interim_debit_remove_session(_Config) ->
 	Destination = ocs:generate_identity(),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = <<"32251@3gpp.org">>,
-	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType,
-			SubscriberID, Destination, interim, [{octets, Debit}], [], SessionId),
+	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
+			Timestamp, Destination, interim, [{octets, Debit}], [], SessionId),
 	{ok, #subscriber{session_attributes = []}} = ocs:find_subscriber(SubscriberID).
 
 interim_debit_and_reserve_available() ->
@@ -826,6 +860,7 @@ interim_debit_and_reserve_available(_Config) ->
 	Product = #product{name = ProdID, price = [Price], specification = 4},
 	{ok, _} = ocs:add_product(Product),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
+	TS = calendar:datetime_to_gregorian_seconds(calendar:local_time()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
 	RemAmount = 300,
@@ -839,7 +874,7 @@ interim_debit_and_reserve_available(_Config) ->
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = <<"32251@3gpp.org">>,
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
-			Destination, initial, [], [{octets, Reservation}], SessionId),
+			TS, Destination, initial, [], [{octets, Reservation}], SessionId),
 	{ok, #subscriber{buckets = RatedBuckets1}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = CentsRemain1, reservations = Reservations1} =
 			lists:keyfind(cents, #bucket.units, RatedBuckets1),
@@ -863,8 +898,8 @@ interim_debit_and_reserve_available(_Config) ->
 	{_, Reservation1, _} = lists:keyfind(SessionId, 3, Reservations1),
 	Reservation1 = F2(0, Reservation, 0),
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
-			Destination, interim, [{octets, Debit}], [{octets, Reservation}],
-			SessionId),
+			calendar:gregorian_seconds_to_datetime(TS + 60), Destination, interim,
+			[{octets, Debit}], [{octets, Reservation}], SessionId),
 	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = CentsRemain2, reservations = Reservations2} = lists:keyfind(cents, #bucket.units, RatedBuckets),
 	CentsRemain2 = CentsRemain1 - F1(Debit),
@@ -884,6 +919,7 @@ interim_debit_and_reserve_insufficient1(_Config) ->
 	Product = #product{name = ProdID, price = [Price], specification = 4},
 	{ok, _} = ocs:add_product(Product),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
+	TS = calendar:datetime_to_gregorian_seconds(calendar:local_time()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
 	RemAmount = 201,
@@ -897,7 +933,7 @@ interim_debit_and_reserve_insufficient1(_Config) ->
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = <<"32251@3gpp.org">>,
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
-			Destination, initial, [], [{octets, Reservation}], SessionId),
+			TS, Destination, initial, [], [{octets, Reservation}], SessionId),
 	{ok, #subscriber{buckets = RatedBuckets1}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = CentsRemain1, reservations = Reservations1} = lists:keyfind(cents, #bucket.units, RatedBuckets1),
 	F1 = fun(A) when (A rem PackageSize) == 0 ->
@@ -920,8 +956,8 @@ interim_debit_and_reserve_insufficient1(_Config) ->
 	{_, Reservation1, _} = lists:keyfind(SessionId, 3, Reservations1),
 	Reservation1 = F2(0, Reservation, 0),
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
-			Destination, interim, [{octets, Debit}], [{octets, Reservation}],
-			SessionId),
+			calendar:gregorian_seconds_to_datetime(TS + 60), Destination, interim,
+			[{octets, Debit}], [{octets, Reservation}], SessionId),
 	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = CentsRemain2, reservations = Reservations2} = lists:keyfind(cents, #bucket.units, RatedBuckets),
 	CentsRemain2 = CentsRemain1 - F1(Debit),
@@ -942,6 +978,7 @@ interim_debit_and_reserve_insufficient2(_Config) ->
 			specification = 4},
 	{ok, _} = ocs:add_product(Product),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
+	TS = calendar:datetime_to_gregorian_seconds(calendar:local_time()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
 	RemAmount = 199,
@@ -955,7 +992,7 @@ interim_debit_and_reserve_insufficient2(_Config) ->
 	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
-			Destination, initial, [], [{octets, Reservation}], SessionId),
+			TS, Destination, initial, [], [{octets, Reservation}], SessionId),
 	{ok, #subscriber{buckets = RatedBuckets1}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = CentsRemain1, reservations = Reservations1} = lists:keyfind(cents, #bucket.units, RatedBuckets1),
 	F1 = fun(A) when (A rem PackageSize) == 0 ->
@@ -978,7 +1015,8 @@ interim_debit_and_reserve_insufficient2(_Config) ->
 	{_, Reservation1, _} = lists:keyfind(SessionId, 3, Reservations1),
 	Reservation1 = F2(0, Reservation, 0),
 	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
-			Destination, interim, [{octets, Debit}], [{octets, Reservation}], SessionId),
+			calendar:gregorian_seconds_to_datetime(TS + 60), Destination, interim,
+			[{octets, Debit}], [{octets, Reservation}], SessionId),
 	{ok, #subscriber{buckets = RatedBuckets2}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = 0} = lists:keyfind(cents, #bucket.units, RatedBuckets2).
 
@@ -994,6 +1032,7 @@ interim_debit_and_reserve_insufficient3(_Config) ->
 	Product = #product{name = ProdID, price = [Price], specification = 4},
 	{ok, _} = ocs:add_product(Product),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
+	TS = calendar:datetime_to_gregorian_seconds(calendar:local_time()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
 	RemAmount = 200,
@@ -1007,7 +1046,7 @@ interim_debit_and_reserve_insufficient3(_Config) ->
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = <<"32251@3gpp.org">>,
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
-			Destination, initial, [], [{octets, Reservation}], SessionId),
+			TS, Destination, initial, [], [{octets, Reservation}], SessionId),
 	{ok, #subscriber{buckets = RatedBuckets1}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = CentsRemain1, reservations = Reservations1} = lists:keyfind(cents, #bucket.units, RatedBuckets1),
 	F1 = fun(A) when (A rem PackageSize) == 0 ->
@@ -1030,7 +1069,8 @@ interim_debit_and_reserve_insufficient3(_Config) ->
 	{_, Reservation1, _} = lists:keyfind(SessionId, 3, Reservations1),
 	Reservation1 = F2(0, Reservation, 0),
 	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
-			Destination, interim, [{octets, Debit}], [{octets, Reservation}], SessionId),
+			calendar:gregorian_seconds_to_datetime(TS + 60), Destination, interim,
+			[{octets, Debit}], [{octets, Reservation}], SessionId),
 	{ok, #subscriber{buckets = []}} = ocs:find_subscriber(SubscriberID).
 
 interim_debit_and_reserve_insufficient4() ->
@@ -1046,6 +1086,7 @@ interim_debit_and_reserve_insufficient4(_Config) ->
 			specification = 4},
 	{ok, _} = ocs:add_product(Product),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
+	TS = calendar:datetime_to_gregorian_seconds(calendar:local_time()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
 	RemAmount = 150,
@@ -1059,9 +1100,10 @@ interim_debit_and_reserve_insufficient4(_Config) ->
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = 2,
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
-			Destination, initial, [], [{octets, Reservation}], SessionId),
+			TS, Destination, initial, [], [{octets, Reservation}], SessionId),
 	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
-			Destination, interim, [{octets, Debit}], [{octets, Reservation}], SessionId),
+			calendar:gregorian_seconds_to_datetime(TS + 60), Destination, interim,
+			[{octets, Debit}], [{octets, Reservation}], SessionId),
 	{ok, #subscriber{buckets = [#bucket{remain_amount = -150,
 			units = cents}]}} = ocs:find_subscriber(SubscriberID).
 
@@ -1075,6 +1117,7 @@ final_remove_session(_Config) ->
 	Product = #product{name = ProdID, price = [Price], specification = 4},
 	{ok, _} = ocs:add_product(Product),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
+	TS = calendar:datetime_to_gregorian_seconds(calendar:local_time()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
 	RemAmount = 1000,
@@ -1093,9 +1136,10 @@ final_remove_session(_Config) ->
 	mnesia:dirty_write(subscriber, Subscriber),
 	Destination = ocs:generate_identity(),
 	ServiceType = <<"32251@3gpp.org">>,
-	{ok, _, _} = ocs_rating:rate(diameter, ServiceType,
-			SubscriberID, Destination, initial, [], [], [SA2]),
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
+			TS, Destination, initial, [], [], [SA2]),
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
+			calendar:gregorian_seconds_to_datetime(TS + 60),
 			Destination, final, [{octets, Debit}], [], [SA2]),
 	{ok, #subscriber{session_attributes = [SA1]}} = ocs:find_subscriber(SubscriberID).
 
@@ -1112,6 +1156,7 @@ final_refund(_Config) ->
 		specification = 4},
 	{ok, _} = ocs:add_product(Product),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
+	TS = calendar:datetime_to_gregorian_seconds(calendar:local_time()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
 	RemAmount = 100,
@@ -1122,17 +1167,19 @@ final_refund(_Config) ->
 	SessionId1 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = <<"32251@3gpp.org">>,
 	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
-	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID, TS,
 			Destination, initial, [], [{octets, PackageSize}], SessionId1),
 	{ok, #subscriber{buckets = RatedBuckets1}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = 0, reservations = Reserved1} = lists:keyfind(cents, #bucket.units, RatedBuckets1),
 	[{_, PackagePrice, SessionId1}] = Reserved1,
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
+			calendar:gregorian_seconds_to_datetime(TS + 60),
 			Destination, final, [{octets, 0}], [], SessionId1),
 	{ok, #subscriber{buckets = RatedBuckets2}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = PackagePrice, reservations = []} = lists:keyfind(cents, #bucket.units, RatedBuckets2),
 	SessionId2 = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
+			calendar:gregorian_seconds_to_datetime(TS + 60),
 			Destination, initial, [], [{octets, PackageSize}], SessionId2),
 	{ok, #subscriber{buckets = RatedBuckets3}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = 0, reservations = Reserved2} = lists:keyfind(cents, #bucket.units, RatedBuckets3),

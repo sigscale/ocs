@@ -21,7 +21,7 @@
 -module(ocs_rating).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
--export([rate/8]).
+-export([rate/9]).
 -export([authorize/6]).
 
 -include("ocs.hrl").
@@ -42,12 +42,13 @@
 -define(DIAMETERVOICE, <<"32260@3gpp.org">>).
 
 
--spec rate(Protocol, ServiceType, SubscriberID, Destination,
+-spec rate(Protocol, ServiceType, SubscriberID, Timestamp, Destination,
 		Flag, DebitAmounts, ReserveAmounts, SessionAttributes) -> Result
 	when
 		Protocol :: radius | diameter,
 		ServiceType :: integer() | binary(),
 		SubscriberID :: string() | binary(),
+		Timestamp :: calendar:datetime(),
 		Destination :: string(),
 		Flag :: initial | interim | final,
 		DebitAmounts :: [{Type, Amount}],
@@ -78,11 +79,11 @@
 %% 	`SessionList' describes the known active sessions which
 %% 	should be disconnected.
 %%
-rate(Protocol, ServiceType, SubscriberID, Destination,
+rate(Protocol, ServiceType, SubscriberID, Timestamp, Destination,
 		Flag, DebitAmounts, ReserveAmounts, SessionAttributes) when is_list(SubscriberID)->
-	rate(Protocol, ServiceType, list_to_binary(SubscriberID), Destination,
+	rate(Protocol, ServiceType, list_to_binary(SubscriberID), Timestamp, Destination,
 		Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
-rate(Protocol, ServiceType, SubscriberID, Destination,
+rate(Protocol, ServiceType, SubscriberID, Timestamp, Destination,
 		Flag, DebitAmounts, ReserveAmounts, SessionAttributes) when
 		((Protocol == radius) or (Protocol == diameter)), is_binary(SubscriberID),
 		((Flag == initial) or (Flag == interim) or (Flag == final)),
@@ -96,7 +97,7 @@ rate(Protocol, ServiceType, SubscriberID, Destination,
 						[#product{} = Product] ->
 							Validity = proplists:get_value(validity, Chars),
 							Subscriber1 = Subscriber#subscriber{buckets = due(Buckets)},
-							rate1(Protocol, ServiceType, Subscriber1, Destination, Product,
+							rate1(Protocol, ServiceType, Subscriber1, Timestamp, Destination, Product,
 									Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
 						[] ->
 							throw(product_not_found)
@@ -118,7 +119,7 @@ rate(Protocol, ServiceType, SubscriberID, Destination,
 			{error, Reason}
 	end.
 %% @hidden
-rate1(Protocol, ServiceType, Subscriber, Destination,
+rate1(Protocol, ServiceType, Subscriber, Timestamp, Destination,
 		#product{specification = undefined, bundle = Bundle},
 		Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes) ->
 	try
@@ -144,22 +145,22 @@ rate1(Protocol, ServiceType, Subscriber, Destination,
 				end
 		end,
 		[#product{} = Product | _] = lists:foldl(F, [], Bundle),
-		rate2(Protocol, Subscriber, Destination, Product, Validity,
+		rate2(Protocol, Subscriber, Timestamp, Destination, Product, Validity,
 				Flag, DebitAmounts, ReserveAmounts, SessionAttributes)
 	catch
 		_:_ ->
 			throw(invalid_bundle_product)
 	end;
-rate1(Protocol, _ServiceType, Subscriber, Destination, Product,
+rate1(Protocol, _ServiceType, Subscriber, Timestamp, Destination, Product,
 		Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes) ->
-	rate2(Protocol, Subscriber, Destination, Product, Validity,
+	rate2(Protocol, Subscriber, Timestamp, Destination, Product, Validity,
 			Flag, DebitAmounts, ReserveAmounts, SessionAttributes).
 %% @hidden
-rate2(Protocol, Subscriber, Destination, #product{specification = ProdSpec,
+rate2(Protocol, Subscriber, Timestamp, Destination, #product{specification = ProdSpec,
 		char_value_use = CharValueUse, price = Prices}, Validity, Flag,
 		DebitAmounts, ReserveAmounts, SessionAttributes)
 		when ProdSpec == "5"; ProdSpec == "9" ->
-	FilteredPrices = filter_prices(Prices),
+	FilteredPrices = filter_prices(Timestamp, Prices),
 	case lists:keyfind("destPrefixPriceTable", #char_value_use.name, CharValueUse) of
 		#char_value_use{values = [#char_value{value = PriceTable}]} ->
 			rate3(Protocol, list_to_existing_atom(PriceTable), Subscriber, Destination, FilteredPrices,
@@ -179,8 +180,9 @@ rate2(Protocol, Subscriber, Destination, #product{specification = ProdSpec,
 					end
 			end
 	end;
-rate2(Protocol, Subscriber, _Destiations, #product{price = Prices}, Validity,
-		Flag, DebitAmounts, ReserveAmounts, SessionAttributes) ->
+rate2(Protocol, Subscriber, _Timestamp, _Destiations,
+		#product{price = Prices}, Validity, Flag,
+		DebitAmounts, ReserveAmounts, SessionAttributes) ->
 	case lists:keyfind(usage, #price.type, Prices) of
 		#price{} = Price ->
 			rate5(Protocol, Subscriber, Price, Validity,
@@ -565,7 +567,8 @@ authorize2(radius = Protocol, ServiceType, #subscriber{attributes = Attributes}
 		end,
 		case lists:foldl(F, [], Bundle) of
 			[#product{price = Prices} = Product | _] ->
-				Product1 = Product#product{price = filter_prices(Prices)},
+				Now = calendar:local_time(),
+				Product1 = Product#product{price = filter_prices(Now, Prices)},
 				authorize2(Protocol, ServiceType, Subscriber,
 						Product1, Destination, SessionAttributes, Reserve);
 			[] ->
@@ -1272,50 +1275,46 @@ due2(#bucket{} = B, [H | T], Acc) ->
 due2(#bucket{} = B, [], Acc) ->
 	lists:reverse([B | Acc]).
 
--spec filter_prices(Prices) -> Prices
+-spec filter_prices(Timestamp, Prices) -> Prices
 	when
+		Timestamp :: calendar:datetime(),
 		Prices :: [#price{}].
 %% @doc Filter prices with `timeOfDayRange'
 %% @hidden
-filter_prices(Prices) ->
-	filter_prices(Prices, []).
+filter_prices(Timestamp, Prices) ->
+	filter_prices(Timestamp, Prices, []).
 %% @hidden
-filter_prices([#price{char_value_use = CharValueUse} = P | T], Acc) ->
+filter_prices(Timestamp, [#price{char_value_use = CharValueUse} = P | T], Acc) ->
 	case lists:keyfind("timeOfDayRange", #char_value_use.name, CharValueUse) of
 		#char_value_use{values = [#char_value{value =
 				#range{lower = Start, upper = End}}]} ->
-			case filter_prices1(Start, End) of
+			case filter_prices1(Timestamp, Start, End) of
 				true ->
-					filter_prices(T, [P | Acc]);
+					filter_prices(Timestamp, T, [P | Acc]);
 				false ->
-					filter_prices(T, Acc)
+					filter_prices(Timestamp, T, Acc)
 			end;
 		_ ->
-			filter_prices(T, [P | Acc])
+			filter_prices(Timestamp, T, [P | Acc])
 	end;
-filter_prices([], Acc) ->
+filter_prices(_, [], Acc) ->
 	lists:reverse(Acc).
 %% @hidden
-filter_prices1(#quantity{units = U1, amount = A1},
+filter_prices1({_, Time}, #quantity{units = U1, amount = A1},
 		#quantity{units = U2, amount = A2}) ->
-	Seconds = ?EPOCH + (erlang:system_time(?MILLISECOND) div 1000),
-	{_, Time} = calendar:gregorian_seconds_to_datetime(Seconds),
-	filter_prices1(to_seconds(U1, A1), to_seconds(U2, A2),
+	filter_prices2(to_seconds(U1, A1), to_seconds(U2, A2),
 			calendar:time_to_seconds(Time)).
 %% @hidden
-filter_prices1(Start, End, Now) when Start < Now, End > Now ->
+filter_prices2(Start, End, Time) when Start < Time, End > Time ->
 	true;
-filter_prices1(_, _, _) ->
+filter_prices2(_, _, _) ->
 	false.
 
 %% @hidden
-to_seconds("seconds", Seconds) when
-		(Seconds >= 0) and (Seconds < 86400) ->
+to_seconds("seconds", Seconds) when Seconds >= 0, Seconds < 86400 ->
 	Seconds;
-to_seconds("minutes", Minutes) when
-		(Minutes >= 0) and (Minutes < 1440) ->
+to_seconds("minutes", Minutes) when Minutes >= 0, Minutes < 1440 ->
 	Minutes * 60;
-to_seconds("hours", Hours) when
-		(Hours >= 0) and ((Hours < 24) orelse (Hours < 12)) ->
+to_seconds("hours", Hours) when Hours >= 0, Hours < 24 ->
 	Hours * 3600.
 

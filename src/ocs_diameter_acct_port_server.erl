@@ -44,6 +44,7 @@
 		handlers = gb_trees:empty() :: gb_trees:tree(Key ::
 				(SessionId :: string()), Value :: (Fsm :: pid()))}).
 
+-define(EPOCH_OFFSET, 2208988800).
 -define(RO_APPLICATION_ID, 4).
 
 -type state() :: #state{}.
@@ -246,7 +247,8 @@ request(Request, Caps,  _From, State) ->
 request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _],
 		'Service-Information' = ServiceInformation,
-		'Service-Context-Id' = SvcContextId} = Request,
+		'Service-Context-Id' = SvcContextId,
+		'Event-Timestamp' = Timestamp} = Request,
 		SId, RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm, State) ->
 	RSU =  case MSCC of
 		#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit' =
@@ -271,7 +273,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 	Destination = get_destination(ServiceInformation),
 	ReserveAmount = [{ReqUsageType, ReqUsage}],
 	ServiceType = lookup_service_type(SvcContextId),
-	case ocs_rating:rate(diameter, ServiceType, Subscriber,
+	case ocs_rating:rate(diameter, ServiceType, Subscriber, Timestamp,
 			Destination, initial, [], ReserveAmount, [{'Session-Id', SId}]) of
 		{ok, _, GrantedAmount} ->
 			GrantedUnits = case ReqUsageType of
@@ -311,7 +313,8 @@ request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _],
 		'Service-Information' = ServiceInformation,
-		'Service-Context-Id' = SvcContextId} = Request,
+		'Service-Context-Id' = SvcContextId,
+		'Event-Timestamp' = Timestamp} = Request,
 		SId, RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm, State) ->
 	try
 		RSU =  case MSCC of
@@ -357,7 +360,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		ReserveAmount = [{ReqUsageType, ReqUsage}],
 		DebitAmount = [{UsedType, UsedUsage}],
 		ServiceType = lookup_service_type(SvcContextId),
-		case ocs_rating:rate(diameter, ServiceType, Subscriber,
+		case ocs_rating:rate(diameter, ServiceType, Subscriber, Timestamp,
 				Destination, interim, DebitAmount, ReserveAmount, [{'Session-Id', SId}]) of
 			{ok, _, GrantedAmount} ->
 				GrantedUnits = case ReqUsageType of
@@ -405,7 +408,8 @@ request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _],
 		'Service-Information' = ServiceInformation,
-		'Service-Context-Id' = SvcContextId} = Request,
+		'Service-Context-Id' = SvcContextId,
+		'Event-Timestamp' = Timestamp} = Request,
 		SId, RequestNum, Subscriber, OHost, _DHost, ORealm, _DRealm, State) ->
 	try
 		USU =  case MSCC of
@@ -430,8 +434,8 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		Destination = get_destination(ServiceInformation),
 		DebitAmount = [{UsedType, UsedUsage}],
 		ServiceType = lookup_service_type(SvcContextId),
-		case ocs_rating:rate(diameter, ServiceType, Subscriber, Destination,
-				final, DebitAmount, [], [{'Session-Id', SId}]) of
+		case ocs_rating:rate(diameter, ServiceType, Subscriber, Timestamp,
+				Destination, final, DebitAmount, [], [{'Session-Id', SId}]) of
 			{ok, _, 0} ->
 				{Reply, NewState} = generate_diameter_answer(Request, SId,
 						undefined, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
