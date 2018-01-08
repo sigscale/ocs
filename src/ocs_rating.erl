@@ -1350,7 +1350,7 @@ to_seconds("hours", Hours) when Hours >= 0, Hours < 24 ->
 filter_prices_dir(undefined, Prices) ->
 	Prices;
 filter_prices_dir(Direction, Prices) when is_atom(Direction) ->
-	filter_prices_dir(atom_to_list(Direction), Prices, []).
+	filter_prices_dir(Direction, Prices, []).
 %% @hidden
 filter_prices_dir(Direction, [#price{char_value_use = CharValueUse} = P | T], Acc) ->
 	case lists:keyfind("callDirection", #char_value_use.name, CharValueUse) of
