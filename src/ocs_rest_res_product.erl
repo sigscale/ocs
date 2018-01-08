@@ -1176,9 +1176,9 @@ pla([start_date | T], #pla{start_date = Start,
 	pla(T, P, [{"validFor", ValidFor} | Acc]);
 pla([end_date | T], P, Acc) ->
 	pla(T, P, Acc);
-pla(["specification" | T], #pla{specification = Spec} = P, Acc) ->
+pla([specification | T], #pla{specification = Spec} = P, Acc) ->
 	pla(T, P, [{"plaSpecId", Spec} | Acc]);
-pla(["characteristics" | T], #pla{characteristics = Chars} = P, Acc) ->
+pla([characteristics | T], #pla{characteristics = Chars} = P, Acc) ->
 	NewChars = characteristics(Chars),
 	pla(T, P, [{"plaSpecCharacteristicValue", NewChars} | Acc]);
 pla([last_modified | T], #pla{last_modified = {Last, _}} = P, Acc)
