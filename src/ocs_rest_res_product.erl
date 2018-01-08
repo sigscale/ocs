@@ -810,7 +810,11 @@ characteristic_product_voice() ->
 	Description3 = {"description", "Price name in prefix table"},
 	ValueType3 = {"valueType", "String"},
 	Char3 = {struct, [Name3, Description3, ValueType3]},
-	[Char1, Char2, Char3].
+	Name4 = {"name", "callDirection"},
+	Description4 = {"description", "Constrain price to incoming or outgoing calls"},
+	ValueType4 = {"valueType", "String"},
+	Char4 = {struct, [Name3, Description3, ValueType3]},
+	[Char1, Char2, Char3, Char4].
 
 -spec pla_spec(ID) -> Result
 	when
