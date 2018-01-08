@@ -121,7 +121,7 @@
 		status :: offer_status() | '_' | undefined,
 		specification :: '_' | string() | undefined,
 		bundle = [] :: '_' | [#bundled_po{}],
-		price :: '_' | [#price{}] | undefined,
+		price = [] :: '_' | [#price{}],
 		char_value_use = [] :: '_' | [#char_value_use{}],
 		last_modified :: tuple() | '_' | undefined}).
 
