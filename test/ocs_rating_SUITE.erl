@@ -102,6 +102,7 @@ all() ->
 	interim_debit_and_reserve_insufficient3,
 	interim_debit_and_reserve_insufficient4,
 	final_remove_session, final_refund,
+	reserve_data, reserve_voice, interim_voice,
 	authorize_voice, authorize_voice_with_partial_reservation,
 	authorize_incoming_voice, authorize_outgoing_voice, authorize_default_voice,
  	authorize_data_1, authorize_data_2, authorize_data_with_partial_reservation,
@@ -1179,6 +1180,250 @@ final_refund(_Config) ->
 	#bucket{remain_amount = 0, reservations = Reserved2} = lists:keyfind(cents, #bucket.units, RatedBuckets3),
 	[{_, PackagePrice, SessionId2}] = Reserved2.
 
+reserve_data() ->
+	[{userdata, [{doc, "Reservation for data session"}]}].
+
+reserve_data(_Config) ->
+	DataProdID = ocs:generate_password(),
+	DataAmount = 2,
+	DataSize = 1000000,
+	ReserveOctets = 1000000000,
+	DataPrice = #price{name = "Data", type = usage,
+			units = octets, size = DataSize, amount = DataAmount,
+			char_value_use = [#char_value_use{name = "radiusReserveOctets",
+			min = 1, max = 1, values = [#char_value{default = true,
+			units = octets, value = ReserveOctets}]}]},
+	DataProduct = #product{name = DataProdID, price = [DataPrice],
+			specification = "8"},
+	{ok, _} = ocs:add_product(DataProduct),
+	VoiceProdID = ocs:generate_password(),
+	VoiceAmount = 2,
+	VoiceSize = 60,
+	ReserveTime = 300,
+	VoicePrice = #price{name = "Calls", type = usage,
+			units = seconds, size = VoiceSize, amount = VoiceAmount,
+			char_value_use = [#char_value_use{name = "radiusReserveTime",
+			min = 1, max = 1, values = [#char_value{default = true,
+			units = seconds, value = ReserveTime}]}]},
+	VoiceProduct = #product{name = VoiceProdID, price = [VoicePrice],
+			specification = "9"},
+	{ok, _} = ocs:add_product(VoiceProduct),
+	BundleProdID = ocs:generate_password(),
+	BundleProduct = #product{name = BundleProdID,
+			bundle = [#bundled_po{name = DataProdID},
+					#bundled_po{name = VoiceProdID}]},
+	{ok, _} = ocs:add_product(BundleProduct),
+	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	StartingAmount = 2579,
+	Buckets = [#bucket{units = cents, remain_amount = StartingAmount,
+			start_date = erlang:system_time(?MILLISECOND),
+			termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
+	{ok, _} = ocs:add_subscriber(SubscriberID,
+			Password, BundleProdID, [], Buckets),
+	ServiceType = 2,
+	Timestamp = calendar:local_time(),
+	SessionId = [{?AcctSessionId, list_to_binary(ocs:generate_password())}],
+	{ok, _, _} = ocs_rating:rate(radius, ServiceType, SubscriberID,
+			Timestamp, undefined, undefined, initial, [], [], SessionId),
+	{ok, #subscriber{buckets = Buckets1}} = ocs:find_subscriber(SubscriberID),
+	#bucket{remain_amount = Amount} = lists:keyfind(cents, #bucket.units, Buckets1),
+	ReservedUnits = case (ReserveOctets rem DataSize) of
+		0 ->
+			ReserveOctets div DataSize;
+		_ ->
+			ReserveOctets div DataSize + 1
+	end,
+	Amount = StartingAmount - ReservedUnits * DataAmount.
+
+reserve_voice() ->
+	[{userdata, [{doc, "Reservation for voice call"}]}].
+
+reserve_voice(_Config) ->
+	DataProdID = ocs:generate_password(),
+	DataAmount = 2,
+	DataSize = 1000000,
+	ReserveOctets = 1000000000,
+	DataPrice = #price{name = "Data", type = usage,
+			units = octets, size = DataSize, amount = DataAmount,
+			char_value_use = [#char_value_use{name = "radiusReserveOctets",
+			min = 1, max = 1, values = [#char_value{default = true,
+			units = octets, value = ReserveOctets}]}]},
+	DataProduct = #product{name = DataProdID, price = [DataPrice],
+			specification = "8"},
+	{ok, _} = ocs:add_product(DataProduct),
+	VoiceProdID = ocs:generate_password(),
+	VoiceAmount = 2,
+	VoiceSize = 60,
+	ReserveTime = 300,
+	VoicePrice = #price{name = "Calls", type = usage,
+			units = seconds, size = VoiceSize, amount = VoiceAmount,
+			char_value_use = [#char_value_use{name = "radiusReserveTime",
+			min = 1, max = 1, values = [#char_value{default = true,
+			units = seconds, value = ReserveTime}]}]},
+	VoiceProduct = #product{name = VoiceProdID, price = [VoicePrice],
+			specification = "9"},
+	{ok, _} = ocs:add_product(VoiceProduct),
+	BundleProdID = ocs:generate_password(),
+	BundleProduct = #product{name = BundleProdID,
+			bundle = [#bundled_po{name = DataProdID},
+					#bundled_po{name = VoiceProdID}]},
+	{ok, _} = ocs:add_product(BundleProduct),
+	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	StartingAmount = 2567,
+	Buckets = [#bucket{units = cents, remain_amount = StartingAmount,
+			start_date = erlang:system_time(?MILLISECOND),
+			termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
+	{ok, _S} = ocs:add_subscriber(SubscriberID,
+			Password, BundleProdID, [], Buckets),
+	ServiceType = 12,
+	Timestamp = calendar:local_time(),
+	CallAddress = ocs:generate_identity(),
+	SessionId = [{?AcctSessionId, list_to_binary(ocs:generate_password())}],
+	{ok, _, _} = ocs_rating:rate(radius, ServiceType, SubscriberID,
+			Timestamp, CallAddress, undefined, initial, [], [], SessionId),
+	{ok, #subscriber{buckets = Buckets1}} = ocs:find_subscriber(SubscriberID),
+	#bucket{remain_amount = Amount} = lists:keyfind(cents, #bucket.units, Buckets1),
+	ReservedUnits = case (ReserveTime rem VoiceSize) of
+		0 ->
+			ReserveTime div VoiceSize;
+		_ ->
+			ReserveTime div VoiceSize + 1
+	end,
+	Amount = StartingAmount - ReservedUnits * VoiceAmount.
+
+reserve_incoming_voice() ->
+	[{userdata, [{doc, "Reservation for incoming voice call"}]}].
+
+reserve_incoming_voice(_Config) ->
+	DataProdID = ocs:generate_password(),
+	DataAmount = 2,
+	DataSize = 1000000,
+	ReserveOctets = 1000000000,
+	DataPrice = #price{name = "Data", type = usage,
+			units = octets, size = DataSize, amount = DataAmount,
+			char_value_use = [#char_value_use{name = "radiusReserveOctets",
+			min = 1, max = 1, values = [#char_value{default = true,
+			units = octets, value = ReserveOctets}]}]},
+	DataProduct = #product{name = DataProdID, price = [DataPrice],
+			specification = "8"},
+	{ok, _} = ocs:add_product(DataProduct),
+	VoiceProdID = ocs:generate_password(),
+	VoiceSize = 60,
+	VoiceAmountOut = 2,
+	ReserveTime = 300,
+	VoicePrice1 = #price{name = "Outgoing Calls", type = usage,
+			units = seconds, size = VoiceSize, amount = VoiceAmountOut,
+			char_value_use = [#char_value_use{name = "radiusReserveTime",
+			min = 1, max = 1, values = [#char_value{default = true,
+			units = seconds, value = ReserveTime}]},
+			#char_value_use{name = "callDirection",
+			min = 1, max = 1, values = [#char_value{default = true,
+			value = originate}]}]},
+	VoiceAmountIn = 1,
+	VoicePrice2 = #price{name = "Incoming Calls", type = usage,
+			units = seconds, size = VoiceSize, amount = VoiceAmountIn,
+			char_value_use = [#char_value_use{name = "radiusReserveTime",
+			min = 1, max = 1, values = [#char_value{default = true,
+			units = seconds, value = ReserveTime}]},
+			#char_value_use{name = "callDirection",
+			min = 1, max = 1, values = [#char_value{default = true,
+			value = answer}]}]},
+	VoiceProduct = #product{name = VoiceProdID,
+			price = [VoicePrice1, VoicePrice2], specification = "9"},
+	{ok, _} = ocs:add_product(VoiceProduct),
+	BundleProdID = ocs:generate_password(),
+	BundleProduct = #product{name = BundleProdID,
+			bundle = [#bundled_po{name = DataProdID},
+					#bundled_po{name = VoiceProdID}]},
+	{ok, _} = ocs:add_product(BundleProduct),
+	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	StartingAmount = 1000,
+	Buckets = [#bucket{units = cents, remain_amount = StartingAmount,
+			start_date = erlang:system_time(?MILLISECOND),
+			termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
+	{ok, _S} = ocs:add_subscriber(SubscriberID,
+			Password, BundleProdID, [], Buckets),
+	ServiceType = 12,
+	Timestamp = calendar:local_time(),
+	CallAddress = ocs:generate_identity(),
+	SessionId = [{?AcctSessionId, list_to_binary(ocs:generate_password())}],
+	{ok, _, _} = ocs_rating:rate(radius, ServiceType, SubscriberID,
+			Timestamp, CallAddress, answer, initial, [], [], SessionId),
+	{ok, #subscriber{buckets = Buckets1}} = ocs:find_subscriber(SubscriberID),
+	#bucket{remain_amount = Amount} = lists:keyfind(cents, #bucket.units, Buckets1),
+	ReservedUnits = case (ReserveTime rem VoiceSize) of
+		0 ->
+			ReserveTime div VoiceSize;
+		_ ->
+			ReserveTime div VoiceSize + 1
+	end,
+	Amount = StartingAmount - ReservedUnits * VoiceAmountIn.
+
+interim_voice() ->
+	[{userdata, [{doc, "Interim reservation for voice call"}]}].
+
+interim_voice(_Config) ->
+	DataProdID = ocs:generate_password(),
+	DataAmount = 2,
+	DataSize = 1000000,
+	ReserveOctets = 1000000000,
+	DataPrice = #price{name = "Data", type = usage,
+			units = octets, size = DataSize, amount = DataAmount,
+			char_value_use = [#char_value_use{name = "radiusReserveOctets",
+			min = 1, max = 1, values = [#char_value{default = true,
+			units = octets, value = ReserveOctets}]}]},
+	DataProduct = #product{name = DataProdID, price = [DataPrice],
+			specification = "8"},
+	{ok, _} = ocs:add_product(DataProduct),
+	VoiceProdID = ocs:generate_password(),
+	VoiceAmount = 2,
+	VoiceSize = 60,
+	ReserveTime = 300,
+	VoicePrice = #price{name = "Calls", type = usage,
+			units = seconds, size = VoiceSize, amount = VoiceAmount,
+			char_value_use = [#char_value_use{name = "radiusReserveTime",
+			min = 1, max = 1, values = [#char_value{default = true,
+			units = seconds, value = ReserveTime}]}]},
+	VoiceProduct = #product{name = VoiceProdID, price = [VoicePrice],
+			specification = "9"},
+	{ok, _} = ocs:add_product(VoiceProduct),
+	BundleProdID = ocs:generate_password(),
+	BundleProduct = #product{name = BundleProdID,
+			bundle = [#bundled_po{name = DataProdID},
+					#bundled_po{name = VoiceProdID}]},
+	{ok, _} = ocs:add_product(BundleProduct),
+	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	StartingAmount = 1000,
+	Buckets = [#bucket{units = cents, remain_amount = StartingAmount,
+			start_date = erlang:system_time(?MILLISECOND),
+			termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
+	{ok, _S} = ocs:add_subscriber(SubscriberID,
+			Password, BundleProdID, [], Buckets),
+	ServiceType = 12,
+	Timestamp = calendar:local_time(),
+	CallAddress = ocs:generate_identity(),
+	SessionId = [{?AcctSessionId, list_to_binary(ocs:generate_password())}],
+	{ok, _, _} = ocs_rating:rate(radius, ServiceType, SubscriberID,
+			Timestamp, CallAddress, undefined, initial, [], [], SessionId),
+	UsedOctets = rand:uniform(ReserveOctets),
+	UsedSeconds = rand:uniform(ReserveTime),
+	{ok, _, _} = ocs_rating:rate(radius, ServiceType, SubscriberID,
+			Timestamp, CallAddress, undefined, interim, [],
+			[{octets, UsedOctets}, {seconds, UsedSeconds}], SessionId),
+	{ok, #subscriber{buckets = Buckets1}} = ocs:find_subscriber(SubscriberID),
+	#bucket{remain_amount = Amount} = lists:keyfind(cents, #bucket.units, Buckets1),
+	ReservedUnits = case ((ReserveTime + UsedSeconds) rem VoiceSize) of
+		0 ->
+			(ReserveTime + UsedSeconds) div VoiceSize;
+		_ ->
+			(ReserveTime + UsedSeconds) div VoiceSize + 1
+	end,
+	Amount = StartingAmount - ReservedUnits * VoiceAmount.
+
 authorize_voice() ->
 	[{userdata, [{doc, "Authorize voice call"}]}].
 
@@ -1419,7 +1664,7 @@ authorize_data_2(_Config) ->
 	SessionId = [{?AcctSessionId, list_to_binary(ocs:generate_password())}],
 	ServiceType = 2,
 	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
-	{authorized, _, Attr, _} = ocs_rating:authorize(radius, ServiceType,
+	{authorized, _, _Attr, _} = ocs_rating:authorize(radius, ServiceType,
 			SubscriberID, Password, Timestamp, undefined, undefined, SessionId),
 	{ok, #subscriber{buckets = Buckets1}} = ocs:find_subscriber(SubscriberID),
 	#bucket{units = cents, remain_amount = RemAmount} = lists:keyfind(cents, #bucket.units, Buckets1).
