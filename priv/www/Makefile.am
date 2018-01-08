@@ -27,10 +27,6 @@ www_DATA = favicon.ico \
 	sig-subscriber-add.html \
 	sig-sub-list.html \
 	sig-sub-update.html \
-	sig-prefix-list.html \
-	sig-prefix-add.html \
-	sig-prefix-update.html \
-	sig-prefix-table-add.html \
 	sig-product-list.html \
 	sig-product-update.html \
 	sig-product-add.html
