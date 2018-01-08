@@ -1,3 +1,10 @@
+2018-01-08  Vance Shipley <vances@sigscale.org>
+
+	* add callDirection product price characteristic
+	* support h323-call-origin radius attribute
+	* support separately rated incoming voice calls
+	* time of day used with any product price
+
 2018-01-03  Vance Shipley <vances@sigscale.org>
 
 	* ocs_rating.erl : add authorize/6

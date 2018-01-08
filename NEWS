@@ -1,3 +1,8 @@
+January 08 2018
+---------------
+	- support seperately priced incoming voice calls
+	- add callDirection product characteristic
+
 January 03 2018
 ---------------
 	- add radiusReserveSessionTime product characteristic
