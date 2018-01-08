@@ -783,6 +783,14 @@
     "description": "Radius reserve session time tool tip",
     "message": "Access request reservation amount in seconds"
   },
+	"addTable": {
+    "description": "Add new table",
+    "message": "Add Table"
+  },
+	"listTable": {
+    "description": "List tables",
+    "message": "List of Tables"
+  },
    "productDeleted": {
     "description": "Success Toast Message",
     "message": "Product deleted"
