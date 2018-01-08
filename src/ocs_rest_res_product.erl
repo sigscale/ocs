@@ -1068,6 +1068,18 @@ spec_pla_prefix_tariff() ->
 	Chars = {"usageSpecCharacteristic", {array, []}},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
 
+-spec pla_chars(Characteristics) -> Characteristics
+	when
+		Characteristics :: {array, list()} | [tuple()].
+%% @doc CODEC for Pricing Logic Algorithm characteristics.
+pla_chars({array, L} = _Characteristics) ->
+	pla_chars(L, []);
+pla_chars(Characteristics) when is_list(Characteristics) ->
+	{array, pla_chars(Characteristics, [])}.
+%% @hidden
+pla_chars([], Acc) ->
+	lists:reverse(Acc).
+
 -spec offer_status(Status) -> Status
 	when
 		Status :: atom() | string().
@@ -1179,14 +1191,13 @@ pla([end_date | T], P, Acc) ->
 pla([specification | T], #pla{specification = Spec} = P, Acc) ->
 	pla(T, P, [{"plaSpecId", Spec} | Acc]);
 pla([characteristics | T], #pla{characteristics = Chars} = P, Acc) ->
-	NewChars = characteristics(Chars),
-	pla(T, P, [{"plaSpecCharacteristicValue", NewChars} | Acc]);
+	pla(T, P, [{"plaSpecCharacteristicValue", pla_chars(Chars)} | Acc]);
 pla([last_modified | T], #pla{last_modified = {Last, _}} = P, Acc)
 		when is_integer(Last) ->
 	pla(T, P, [{"lastUpdate", ocs_rest:iso8601(Last)} | Acc]);
 pla([_H | T], P, Acc) ->
 	pla(T, P, Acc);
-pla([], #pla{name = Name} = P, Acc) ->
+pla([], #pla{name = Name} = _P, Acc) ->
 	{struct, [{"id", Name} | lists:reverse(Acc)]}.
 %% @hidden
 pla([{"name", Name} | T], Acc) when is_list(Name) ->
@@ -1211,9 +1222,9 @@ pla([{"validFor", {struct, L}} | T], Acc) ->
 	pla(T, Acc2);
 pla([{"plaSpecId", Spec} | T], Acc) when is_list(Spec) ->
 	pla(T, Acc#pla{specification = Spec});
-pla([{"plaSpecCharacteristicValue", Chars} | T], Acc) when is_list(Chars)->
-	Characteristics = {"characteristics", characteristics(Chars)},
-	pla(T, Acc#pla{characteristics = Characteristics});
+pla([{"plaSpecCharacteristicValue", {array, Chars}} | T], Acc)
+		when is_list(Chars)->
+	pla(T, Acc#pla{characteristics = pla_chars({array, Chars})});
 pla([{"lastUpdate", LastUpdate} | T], Acc) when is_list(LastUpdate) ->
 	pla(T, Acc);
 pla([_ | T], Acc) ->
@@ -1980,7 +1991,7 @@ instance(ProductInstance) ->
 	{struct, instance(record_info(fields, product_instance), ProductInstance, [])}.
 %% @hidden
 instance([{"characteristics", Chars} | T], Acc) ->
-	NewChars = characteristics(Chars),
+	NewChars = instance_chars(Chars),
 	instance(T, Acc#product_instance{characteristics = NewChars});
 instance([{"productOffering", {struct, Offer}} | T], Acc) ->
 	instance(T, Acc#product_instance{product = product({struct, Offer})});
@@ -1999,7 +2010,7 @@ instance([product | T], #product_instance{product = ProdID} = ProductInstance, A
 	Offer = {"productOffering", product(ProdID)},
 	instance(T, ProductInstance, [Offer | Acc]);
 instance([characteristics | T], #product_instance{characteristics = Chars} = ProductInstance, Acc) ->
-	Characteristics = {"characteristics", characteristics(Chars)},
+	Characteristics = {"characteristics", instance_chars(Chars)},
 	instance(T, ProductInstance, [Characteristics | Acc]);
 instance([status | T], #product_instance{status = undefined} = ProductInstance, Acc) ->
 	instance(T, ProductInstance,  Acc);
@@ -2021,36 +2032,36 @@ instance([_ | T], ProductInstance, Acc) ->
 instance([], _ProductInstance, Acc) ->
 	lists:reverse(Acc).
 
--spec characteristics(Characteristics) -> Characteristics
+-spec instance_chars(Characteristics) -> Characteristics
 	when
 		Characteristics :: {array, list()} | [tuple()].
 %% @doc CODEC for Product Inventory characteristics.
-characteristics({array, Characteristics}) ->
-	characteristics(Characteristics, []);
-characteristics(Characteristics) ->
-	{array, characteristics(Characteristics, [])}.
+instance_chars({array, Characteristics}) ->
+	instance_chars(Characteristics, []);
+instance_chars(Characteristics) ->
+	{array, instance_chars(Characteristics, [])}.
 %% @hidden
-characteristics([{struct, [{"subscriberIdentity", Identity}]} | T], Acc) ->
-	characteristics(T, [{"subscriberIdentity", Identity} | Acc]);
-characteristics([{struct, [{"subscriberPassword", Password}]} | T], Acc) ->
-	characteristics(T, [{"subscriberPassword", Password} | Acc]);
-characteristics([{struct, [{"balanceTopUpDuration", BalanceTopUpDuration}]} | T], Acc) ->
-	characteristics(T, [{"balanceTopUpDuration", topup_duration(BalanceTopUpDuration)} | Acc]);
-characteristics([{struct, [{"radiusReserveTime", RadiusReserveTime}]} | T], Acc) ->
-	characteristics(T, [{"radiusReserveTime", radius_reserve_time(RadiusReserveTime)} | Acc]);
-characteristics([{struct, [{"radiusReserveOctets", RadiusReserveOctets}]} | T], Acc) ->
-	characteristics(T, [{"radiusReserveOctets", radius_reserve_octets(RadiusReserveOctets)} | Acc]);
-characteristics([{"subscriberIdentity", Identity} | T], Acc) ->
-	characteristics(T, [{struct, [{"subscriberIdentity", Identity}]} | Acc]);
-characteristics([{"subscriberPassword", Password} | T], Acc) ->
-	characteristics(T, [{struct, [{"subscriberPassword", Password}]} | Acc]);
-characteristics([{"radiusReserveTime", RadiusReserveTime} | T], Acc) ->
-	characteristics(T, [{struct, [{"radiusReserveTime", radius_reserve_time(RadiusReserveTime)}]} | Acc]);
-characteristics([{"radiusReserveOctets", RadiusReserveOctets} | T], Acc) ->
-	characteristics(T, [{struct, [{"radiusReserveOctets", radius_reserve_octets(RadiusReserveOctets)}]} | Acc]);
-characteristics([{"balanceTopUpDuration", Chars} | T], Acc) ->
-	characteristics(T, [{struct, [{"balanceTopUpDuration", topup_duration(Chars)}]} | Acc]);
-characteristics([], Acc) ->
+instance_chars([{struct, [{"subscriberIdentity", Identity}]} | T], Acc) ->
+	instance_chars(T, [{"subscriberIdentity", Identity} | Acc]);
+instance_chars([{struct, [{"subscriberPassword", Password}]} | T], Acc) ->
+	instance_chars(T, [{"subscriberPassword", Password} | Acc]);
+instance_chars([{struct, [{"balanceTopUpDuration", BalanceTopUpDuration}]} | T], Acc) ->
+	instance_chars(T, [{"balanceTopUpDuration", topup_duration(BalanceTopUpDuration)} | Acc]);
+instance_chars([{struct, [{"radiusReserveTime", RadiusReserveTime}]} | T], Acc) ->
+	instance_chars(T, [{"radiusReserveTime", radius_reserve_time(RadiusReserveTime)} | Acc]);
+instance_chars([{struct, [{"radiusReserveOctets", RadiusReserveOctets}]} | T], Acc) ->
+	instance_chars(T, [{"radiusReserveOctets", radius_reserve_octets(RadiusReserveOctets)} | Acc]);
+instance_chars([{"subscriberIdentity", Identity} | T], Acc) ->
+	instance_chars(T, [{struct, [{"subscriberIdentity", Identity}]} | Acc]);
+instance_chars([{"subscriberPassword", Password} | T], Acc) ->
+	instance_chars(T, [{struct, [{"subscriberPassword", Password}]} | Acc]);
+instance_chars([{"radiusReserveTime", RadiusReserveTime} | T], Acc) ->
+	instance_chars(T, [{struct, [{"radiusReserveTime", radius_reserve_time(RadiusReserveTime)}]} | Acc]);
+instance_chars([{"radiusReserveOctets", RadiusReserveOctets} | T], Acc) ->
+	instance_chars(T, [{struct, [{"radiusReserveOctets", radius_reserve_octets(RadiusReserveOctets)}]} | Acc]);
+instance_chars([{"balanceTopUpDuration", Chars} | T], Acc) ->
+	instance_chars(T, [{struct, [{"balanceTopUpDuration", topup_duration(Chars)}]} | Acc]);
+instance_chars([], Acc) ->
 	lists:reverse(Acc).
 
 -spec topup_duration(BalanceTopUpDuration) -> BalanceTopUpDuration
