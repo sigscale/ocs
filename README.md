@@ -19,29 +19,31 @@ product catalog management are supported with a web components front end.
 |REST      | TM Forum Open APIs        |
 |CLI       | Erlang API                |
 |RADIUS    | AAA NAS Clients           |
-|DIAMETER  | AAA NAS Clients           |
+|DIAMETER  | 3GPP Ro/Gy                |
 |EAP-PWD   | Android, Linux            |
-|EAP-TTLS  | Android, iPhone, Windows  |
+|EAP-TTLS  | " + Apple, Windows        |
 |IPDR      | Billing Record Files      |
 
 ### Graphical User Interface (GUI)
 A web front end built with Google [Polymer](https://www.polymer-project.org)
 web components for
 [material design](https://material.io/guidelines/material-design/introduction.html) 
-provides simple guided management of clients and subscribers. Supports
-provisioning common authorization attributes as well as viewing usage and access logs.
+provides simple guided management of Product Offerings & Prices, Subscribers and
+NAS clients. Supports provisioning common authorization attributes as well
+as viewing usage and access logs. Uses REST APIs exclusively.
 ![screenshot](https://raw.githubusercontent.com/sigscale/ocs/master/doc/ocs-gui.png)
 
 ### Application Programming Interfaces (API)
 The GUI provides a comfortable interface for simple administration however
 for use at scale you'll want to integrate your Operations & Business Support
-Systems (OSS/BSS) using a machine-to-machine API. 
+Systems (OSS/BSS) using a machine-to-machine API.
 
 #### [REST](https://en.wikipedia.org/wiki/Representational_state_transfer)
 Most aspects of provisioning and operations may be performed through
-integration using an HTTP RESTful interface. Where applicable
+integration using an HTTP RESTful interface. Specifically the
 [TM Forum](https://www.tmforum.org)
-[Open APIs](https://www.tmforum.org/open-apis/) are supported.
+[Open APIs](https://www.tmforum.org/open-apis/) are supported including:
+Product Catalog, Product Inventory, Prepay Balance and Usage Management.
 
 #### [Erlang](http://www.erlang.org)
 All aspects of provisioning, operations and maintenance may be performed
@@ -49,16 +51,19 @@ using the Erlang public API, either manually on the command line
 [shell](http://erlang.org/doc/man/shell.html), or through custom Erlang
 module development.
 
-### [RADIUS](https://tools.ietf.org/html/rfc2865) & [DIAMETER](https://tools.ietf.org/html/rfc6733)
+### [DIAMETER](https://tools.ietf.org/html/rfc6733)
+SigScale OCS acts as either or both 3GPP AAA Server and 3GPP OCS.
+The DIAMETER Ro/Gy interface (3GPP 32.299) supports Session Charging with
+Unit Reservation (SCUR). Supports voice and/or data service charging.
+
+### [RADIUS](https://tools.ietf.org/html/rfc2865)
 The OCS acts as an authentication, authorization and accounting (AAA) server
-for network access servers (NAS) using the RADIUS and DIAMETER protocols.
-The DIAMETER Ro interface (3GPP 32.299) supports Session Charging with
-Unit Reservation (SCUR).
+for network access servers (NAS) using the RADIUS protocol.
 
 #### Authentication & Authorization
-A wireless local area network (WLAN/Wi-Fi) access
-point (AP) acts as a NAS using RADIUS/DIAMETER protocol to request authentication
-from the OCS (AAA server) for subscribers attempting to associate. The OCS
+A wireless local area network (WLAN/Wi-Fi) access point (AP) acts as a
+NAS using RADIUS protocol to request authentication from the
+OCS (AAA server) for subscribers attempting to associate. The OCS
 may authorize access and provide specific service authorization information
 (i.e. data rate, class, session expiry).
 
