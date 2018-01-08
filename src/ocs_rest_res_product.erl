@@ -634,7 +634,6 @@ patch_pla(Id, Etag, ReqData) ->
 		{Etag1, mochijson:decode(ReqData)}
 	of
 		{Etag2, {array, _} = Operations} ->
-erlang:display({?MODULE, ?LINE, Operations}),
 			F = fun() ->
 					case mnesia:read(pla, Id, write) of
 						[Pla1] when
@@ -642,14 +641,11 @@ erlang:display({?MODULE, ?LINE, Operations}),
 								Etag2 == undefined ->
 							case catch ocs_rest:patch(Operations, pla(Pla1)) of
 								{struct, _} = Pla2  ->
-erlang:display({?MODULE, ?LINE, Pla2}),
 									Pla3 = pla(Pla2),
-erlang:display({?MODULE, ?LINE, Pla3}),
 									TS = erlang:system_time(?MILLISECOND),
 									N = erlang:unique_integer([positive]),
 									LM = {TS, N},
 									Pla4 = Pla3#pla{last_modified = LM},
-erlang:display({?MODULE, ?LINE, Pla4}),
 									ok = mnesia:write(Pla4),
 									{Pla2, LM};
 								_ ->
@@ -664,10 +660,8 @@ erlang:display({?MODULE, ?LINE, Pla4}),
 			case mnesia:transaction(F) of
 				{atomic, {Pla, Etag3}} ->
 					Location = ?plaPath ++ Id,
-erlang:display({?MODULE, ?LINE, Location}),
 					Headers = [{location, Location}, {etag, ocs_rest:etag(Etag3)}],
 					Body = mochijson:encode(Pla),
-erlang:display({?MODULE, ?LINE, Body}),
 					{ok, Headers, Body};
 				{aborted, {throw, bad_request}} ->
 					{error, 400};
