@@ -1229,7 +1229,7 @@ get_reserve(#price{units = seconds,
 	end;
 get_reserve(#price{units = octets,
 		char_value_use = CharValueUse} = _Price) ->
-	case lists:keyfind("radiusReserveBytes",
+	case lists:keyfind("radiusReserveOctets",
 			#char_value_use.name, CharValueUse) of
 		#char_value_use{values = [#char_value{value = Value}]} ->
 			Value;
