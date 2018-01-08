@@ -795,6 +795,14 @@
     "description": "Radius reserve session time tool tip",
     "message": "Acceda al importe de la reserva de solicitud en segundos"
   },
+	"addTable": {
+    "description": "Add new table",
+    "message": "Agregar tabla"
+  },
+	"listTable": {
+    "description": "List tables",
+    "message": "Lista de mesas"
+  },
    "productDeleted": {
     "description": "Success Toast Message",
     "message": "Producto eliminado"

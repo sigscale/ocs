@@ -29,8 +29,9 @@
 -export([get_catalog/2, get_catalogs/1]).
 -export([get_category/2, get_categories/1]).
 -export([get_product_spec/2, get_product_specs/1]).
+-export([add_pla/1, get_pla/1, get_plas/2, patch_pla/3]).
 -export([get_pla_spec/2, get_pla_specs/1]).
--export([delete_product_offering/1, delete_product_inventory/1]).
+-export([delete_product_offering/1, delete_product_inventory/1, delete_pla/1]).
 
 -include("ocs.hrl").
 
@@ -117,6 +118,38 @@ add_product_inventory(ReqData) ->
 			Body = mochijson:encode(inventory(Subscription)),
 			Etag = ocs_rest:etag(Subscription#subscriber.last_modified),
 			Href = ?inventoryPath ++ binary_to_list(Subscription#subscriber.name),
+			Headers = [{location, Href}, {etag, Etag}],
+			{ok, Headers, Body}
+	catch
+		throw:validation_failed ->
+			{error, 400};
+		throw:_Reason1 ->
+			{error, 500};
+		_:_ ->
+			{error, 400}
+	end.
+
+-spec add_pla(ReqData) -> Result when
+	ReqData :: [tuple()],
+	Result   :: {ok, Headers, Body} | {error, Status},
+	Headers  :: [tuple()],
+	Body     :: iolist(),
+	Status   :: 400 | 500 .
+%% @doc Respond to `POST /catalogManagement/v2/pla'.
+%%    Add a new Product Offering.
+add_pla(ReqData) ->
+	try
+		case ocs:add_pla(pla(mochijson:decode(ReqData))) of
+			{ok, PricingLogic} ->
+				PricingLogic;
+			{error, Reason} ->
+				throw(Reason)
+		end
+	of
+		PriceAlgo ->
+			Body = mochijson:encode(pla(PriceAlgo)),
+			Etag = ocs_rest:etag(PriceAlgo#pla.last_modified),
+			Href = ?plaPath ++ PriceAlgo#pla.name,
 			Headers = [{location, Href}, {etag, Etag}],
 			{ok, Headers, Body}
 	catch
@@ -220,6 +253,67 @@ get_product_offerings(Query, Headers) ->
 	A = [Name, Des, Status, SDT, EDT, Price],
 	Codec = fun offer/1,
 	query_filter({M, F, A}, Codec, Query, Headers).
+
+-spec get_pla(ID) -> Result when
+	ID	:: string(),
+	Result :: {ok, Headers, Body} | {error, Status},
+	Headers :: [tuple()],
+	Body :: iolist(),
+	Status :: 400 | 404 | 500.
+%% @doc Respond to `GET /catalogManagement/v2/pla/{id}'.
+%%    Retrieve a pricing logic algorothm.
+get_pla(ID) ->
+	try
+		case ocs:find_pla(ID) of
+			{ok, PricingLogicAlgorithm} ->
+				PricingLogicAlgorithm;
+			{error, not_found} ->
+				{throw, 404};
+			{error, _Reason} ->
+				{throw, 500}
+		end
+	of
+		LogicAlgo ->
+			Body = mochijson:encode(pla(LogicAlgo)),
+			Headers = [{content_type, "application/json"}],
+			{ok, Headers, Body}
+	catch
+		throw:_Reason1 ->
+			{error, 500};
+		_:_ ->
+			{error, 400}
+	end.
+
+-spec get_plas(Query, Headers) ->Result when
+	Query :: [{Key :: string(), Value :: string()}],
+	Result :: {ok, Headers, Body} | {error, Status},
+	Headers :: [tuple()],
+	Body :: iolist(),
+	Status :: 400 | 404 | 412 | 500 .
+%% @doc Respond to `GET /catalogManagement/v2/pla'.
+%%    Retrieve all pricing logic algorithms.
+get_plas(_Query, _Headers) -> 
+	try
+		case ocs:get_plas() of
+			PricingLogicAlgorithms
+				when is_list(PricingLogicAlgorithms) ->
+				PricingLogicAlgorithms;
+			{error, not_found} ->
+				throw(404);
+			{error, _Reason} ->
+				throw(500)
+		end
+	of
+		Logic ->
+			Body = mochijson:encode({array, [pla(P) || P <- Logic]}),
+			Headers = [{content_type, "application/json"}],
+			{ok, Headers, Body}
+	catch
+		throw:_Reason1 ->
+         {error, 500};
+      _:_ ->
+         {error, 400}
+   end.
 
 -spec get_product_inventories(Query, Headers) -> Result when
 	Query :: [{Key :: string(), Value :: string()}],
@@ -518,6 +612,77 @@ patch_product_inventory(SubId, Etag, ReqData) ->
 			{error, 400}
 	end.
 
+-spec patch_pla(Id, Etag, ReqData) -> Result
+	when
+		Id	:: string(),
+		Etag		:: undefined | list(),
+		ReqData	:: [tuple()],
+		Result	:: {ok, Headers, Body} | {error, Status},
+		Headers	:: [tuple()],
+		Body		:: iolist(),
+		Status	:: 400 | 404 | 412 | 500 .
+%% @doc Respond to `PATCH /catalogManagement/v2/pla/{id}'.
+%% 	Update a pricing logic algorithm using JSON patch method
+patch_pla(Id, Etag, ReqData) ->
+	try
+		Etag1 = case Etag of
+			undefined ->
+				undefined;
+			Etag ->
+				ocs_rest:etag(Etag)
+		end,
+		{Etag1, mochijson:decode(ReqData)}
+	of
+		{Etag2, {array, _} = Operations} ->
+erlang:display({?MODULE, ?LINE, Operations}),
+			F = fun() ->
+					case mnesia:read(pla, Id, write) of
+						[Pla1] when
+								Pla1#pla.last_modified == Etag2;
+								Etag2 == undefined ->
+							case catch ocs_rest:patch(Operations, pla(Pla1)) of
+								{struct, _} = Pla2  ->
+erlang:display({?MODULE, ?LINE, Pla2}),
+									Pla3 = pla(Pla2),
+erlang:display({?MODULE, ?LINE, Pla3}),
+									TS = erlang:system_time(?MILLISECOND),
+									N = erlang:unique_integer([positive]),
+									LM = {TS, N},
+									Pla4 = Pla3#pla{last_modified = LM},
+erlang:display({?MODULE, ?LINE, Pla4}),
+									ok = mnesia:write(Pla4),
+									{Pla2, LM};
+								_ ->
+									throw(bad_request)
+							end;
+						[#pla{}] ->
+							throw(precondition_failed);
+						[] ->
+							throw(not_found)
+					end
+			end,
+			case mnesia:transaction(F) of
+				{atomic, {Pla, Etag3}} ->
+					Location = ?plaPath ++ Id,
+erlang:display({?MODULE, ?LINE, Location}),
+					Headers = [{location, Location}, {etag, ocs_rest:etag(Etag3)}],
+					Body = mochijson:encode(Pla),
+erlang:display({?MODULE, ?LINE, Body}),
+					{ok, Headers, Body};
+				{aborted, {throw, bad_request}} ->
+					{error, 400};
+				{aborted, {throw, not_found}} ->
+					{error, 404};
+				{aborted, {throw, precondition_failed}} ->
+					{error, 412};
+				{aborted, _Reason} ->
+					{error, 500}
+			end
+	catch
+		_:_ ->
+			{error, 400}
+	end.
+
 -spec delete_product_offering(Id) -> Result
 	when
 		Id :: string(),
@@ -538,6 +703,17 @@ delete_product_offering(Id) ->
 %% 	request to remove a `Product Invenotry'.
 delete_product_inventory(Id) ->
 	ok = ocs:delete_subscriber(Id),
+	{ok, [], []}.
+
+-spec delete_pla(Id) -> Result
+	when
+		Id :: string(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()} .
+%% @doc Respond to `DELETE /catalogManagement/v2/pla/{id}'
+%% 	request to remove a `Pla'.
+delete_pla(Id) ->
+	ok = ocs:delete_pla(Id),
 	{ok, [], []}.
 
 %%----------------------------------------------------------------------
@@ -961,6 +1137,85 @@ price_period("daily") -> daily;
 price_period("weekly") -> weekly;
 price_period("monthly") -> monthly;
 price_period("yearly") -> yearly.
+
+-spec pla(Pla) -> Pla
+	when
+		Pla :: #pla{} | {struct, [tuple()]}.
+%% @doc CODEC for Pricing login algorithm.
+%% @private
+pla(#pla{} = Pla) ->
+	pla(record_info(fields,pla), Pla, []);
+pla({struct, ObjectMembers}) when is_list(ObjectMembers) ->
+	pla(ObjectMembers, #pla{}).
+%% @hidden
+pla([name | T], #pla{name = Name} = P, Acc) when is_list(Name) ->
+	pla(T, P, [{"name", Name} | Acc]);
+pla([description | T], #pla{description = Description} = P, Acc)
+		when is_list(Description) ->
+	pla(T, P, [{"description", Description} | Acc]);
+pla([status | T], #pla{status = Status} = P, Acc)
+		when Status /= undefined ->
+	StatusPla = product_status(Status),
+	pla(T, P, [{"status", StatusPla} | Acc]);
+pla([start_date | T], #pla{start_date = Start,
+		end_date = undefined} = P, Acc) when is_integer(Start) ->
+	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(Start)}]},
+	pla(T, P, [{"validFor", ValidFor} | Acc]);
+pla([start_date | T], #pla{start_date = undefined,
+		end_date = End} = P, Acc) when is_integer(End) ->
+	ValidFor = {struct, [{"endDateTime", ocs_rest:iso8601(End)}]},
+	pla(T, P, [{"validFor", ValidFor} | Acc]);
+pla([start_date | T], #pla{start_date = Start,
+		end_date = End} = P, Acc) when is_integer(Start), is_integer(End) ->
+	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(Start)},
+			{"endDateTime", ocs_rest:iso8601(End)}]},
+	pla(T, P, [{"validFor", ValidFor} | Acc]);
+pla([end_date | T], P, Acc) ->
+	pla(T, P, Acc);
+pla(["specification" | T], #pla{specification = Spec} = P, Acc) ->
+	pla(T, P, [{"plaSpecId", Spec} | Acc]);
+pla(["characteristics" | T], #pla{characteristics = Chars} = P, Acc) ->
+	NewChars = characteristics(Chars),
+	pla(T, P, [{"plaSpecCharacteristicValue", NewChars} | Acc]);
+pla([last_modified | T], #pla{last_modified = {Last, _}} = P, Acc)
+		when is_integer(Last) ->
+	pla(T, P, [{"lastUpdate", ocs_rest:iso8601(Last)} | Acc]);
+pla([_H | T], P, Acc) ->
+	pla(T, P, Acc);
+pla([], #pla{name = Name} = P, Acc) ->
+	{struct, [{"id", Name} | lists:reverse(Acc)]}.
+%% @hidden
+pla([{"name", Name} | T], Acc) when is_list(Name) ->
+	pla(T, Acc#pla{name = Name});
+pla([{"description", Description} | T], Acc) when is_list(Description) ->
+	pla(T, Acc#pla{description = Description});
+pla([{"status", Status} | T], Acc) when is_list(Status) ->
+	pla(T, Acc#pla{status = product_status(Status)});
+pla([{"validFor", {struct, L}} | T], Acc) ->
+	Acc1 = case lists:keyfind("startDateTime", 1, L) of
+		{_, Start} ->
+			Acc#pla{start_date = ocs_rest:iso8601(Start)};
+		false -> 
+			Acc
+	end,
+	Acc2 = case lists:keyfind("endDateTime", 1, L) of
+		{_, End} ->
+			Acc1#pla{end_date = ocs_rest:iso8601(End)};
+		false -> 
+			Acc
+	end,
+	pla(T, Acc2);
+pla([{"plaSpecId", Spec} | T], Acc) when is_list(Spec) ->
+	pla(T, Acc#pla{specification = Spec});
+pla([{"plaSpecCharacteristicValue", Chars} | T], Acc) when is_list(Chars)->
+	Characteristics = {"characteristics", characteristics(Chars)},
+	pla(T, Acc#pla{characteristics = Characteristics});
+pla([{"lastUpdate", LastUpdate} | T], Acc) when is_list(LastUpdate) ->
+	pla(T, Acc);
+pla([_ | T], Acc) ->
+	pla(T, Acc);
+pla([], Acc) ->
+	Acc.
 
 -spec offer(Product) -> Product
 	when
