@@ -476,34 +476,6 @@
 					</div>
 					<iron-collapse id="updateAddPriceChars">
 						<div>
-							<paper-input
-									id="updateAddPriceCharReserveTime"
-									type="number"
-									label="[[i18n.reserveTime]]"
-									value=0
-									onfocus="updatePriceCharsTimeStart.hide(); updatePriceCharsTimeEnd.hide();">
-							</paper-input>
-							<paper-tooltip>
-								<i18n-msg msgid="priceReserveTimeTool">
-									Amount of time to reserve on RADIUS initial/interim accounting request
-								</i18n-msg>
-							</paper-tooltip>
-						</div>
-						<div>
-							<paper-input
-									id="updateAddPriceCharReserveBytes"
-									type="number"
-									label="[[i18n.reserveBytes]]"
-									value=0
-									onfocus="updatePriceCharsTimeStart.hide(); updatePriceCharsTimeEnd.hide();">
-							</paper-input>
-							<paper-tooltip>
-								<i18n-msg msgid="updatePriceReserveBytesTool">
-									Amount of bytes to reserve on RADIUS initial/interim accounting request
-								</i18n-msg>
-							</paper-tooltip>
-						</div>
-						<div>
 							<span>Time of Day Range</span>
 							<paper-icon-button
 								id="updateOnClickCharsTime"
@@ -550,6 +522,55 @@
 								</paper-tooltip>
 							</div>
 						</iron-collapse>
+						<div>
+							<span>Called direction</span>
+							<paper-icon-button
+								id="updateOnClickCall"
+								suffix
+								icon="arrow-drop-down"
+								on-click="_updateOnClickCall">
+							</paper-icon-button>
+						</div>
+						<iron-collapse id="updateAddCall">
+							<div>
+								<paper-checkbox id="updateCheckIn">
+									Incoming
+								</paper-checkbox>
+							</div>
+							<div>
+								<paper-checkbox id="updateCheckOut">
+									Outgoing
+								</paper-checkbox>
+							</div>
+						</iron-collapse>
+						<div>
+							<paper-input
+									id="updateAddPriceCharReserveTime"
+									type="number"
+									label="[[i18n.reserveTime]]"
+									value=0
+									onfocus="updatePriceCharsTimeStart.hide(); updatePriceCharsTimeEnd.hide();">
+							</paper-input>
+							<paper-tooltip>
+								<i18n-msg msgid="priceReserveTimeTool">
+									Amount of time to reserve on RADIUS initial/interim accounting request
+								</i18n-msg>
+							</paper-tooltip>
+						</div>
+						<div>
+							<paper-input
+									id="updateAddPriceCharReserveBytes"
+									type="number"
+									label="[[i18n.reserveBytes]]"
+									value=0
+									onfocus="updatePriceCharsTimeStart.hide(); updatePriceCharsTimeEnd.hide();">
+							</paper-input>
+							<paper-tooltip>
+								<i18n-msg msgid="updatePriceReserveBytesTool">
+									Amount of bytes to reserve on RADIUS initial/interim accounting request
+								</i18n-msg>
+							</paper-tooltip>
+						</div>
 						<div>
 							<paper-input
 									id="updateRatedPrice"
@@ -940,6 +961,10 @@
 					observer: '_updateProductEndDateAltPick'
 				}
 			},
+			listeners: {
+				'updateCheckIn.checked-changed': 'updateCheckInChanged',
+				'updateCheckOut.checked-changed': 'updateCheckOutChanged'
+			},
 			initialize: function(item) {
 				this.$.getProductUpdateAjax.generateRequest();
 				this.$.updateProductModal.open();
@@ -1005,6 +1030,9 @@
 							}
 							if(prodPrice.prodSpecCharValueUse[indexChar].name == "ratePrice") {
 								specChar[indexChar] = {name: "ratePrice", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
+							}
+							if(prodPrice.prodSpecCharValueUse[indexChar].name == "callDirection") {
+								specChar[indexChar] = {name: "callDirection", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
 							}
 						}
 					}
@@ -1135,6 +1163,25 @@
 					this.$.updateOnClickCharsTime.icon="arrow-drop-down"
 				}
 			},
+			_updateOnClickCall: function() {
+				if(this.$.updateAddCall.opened == false) {
+					this.$.updateAddCall.show();
+					this.$.updateOnClickCall.icon="arrow-drop-up"
+				} else {
+					this.$.updateAddCall.hide();
+					this.$.updateOnClickCall.icon="arrow-drop-down"
+				}
+			},
+			updateCheckInChanged: function(event) {
+				if(event.detail.value) {
+					this.$.updateCheckOut.checked = false;
+				}
+			},
+			updateCheckOutChanged: function(event) {
+				if(event.detail.value) {
+					this.$.updateCheckIn.checked = false;
+				}
+			},
 			_onClickBundleUpdate: function() {
 				if(this.$.addBundleUpdate.opened == false) {
 					this.$.addBundleUpdate.show();
@@ -1174,6 +1221,8 @@
 						this.$.updateDestPrefixTariff.value = null;
 						this.$.updateTimeOfDayStart.value = null;
 						this.$.updateTimeOfDayEnd.value = null;
+						this.$.updateCheckIn.checked = false;
+						this.$.updateCheckOut.checked = false;
 						this.$.updateRatedPrice.value = null;
 						this.$.addUpdatePriceAlteration.selected = null;
 					} else {
@@ -1248,6 +1297,13 @@
 								if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "timeOfDayRange") {
 									this.$.updateTimeOfDayStart.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
 									this.$.updateTimeOfDayEnd.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
+								}
+								if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "callDirection") {
+									if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value == "originate") {
+										this.$.updateCheckOut.checked = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
+									} else if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value == "answer") {
+										this.$.updateCheckIn.checked = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
+									}
 								}
 								if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "ratePrice") {
 									this.$.updateRatedPrice.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
@@ -1531,6 +1587,21 @@
 					charResBytes.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar1 + "/productSpecCharacteristicValue/0/value";
 					charResBytes.value = this.$.updateAddPriceCharReserveBytes.value;
 					updatePriceNew.push(charResBytes);
+				}
+				if(this.$.updateCheckIn.checked || this.$.updateCheckOut.checked) {
+					function checkCall1(callVal) {
+						return callVal.name == "callDirection";
+					}
+					var indexCall1 = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkCall1);
+					var call = new Object();
+					call.op = "add";
+					call.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCall1 + "/productSpecCharacteristicValue/0/value";
+					if(this.$.updateCheckIn.checked) {
+						call.value = "answer";
+					} else if(this.$.updateCheckOut.checked) {
+						call.value = "originate";
+					}
+					updatePriceNew.push(call);
 				}
 				if(this.$.updateTimeOfDayStart.value) {
 					function checkChar1(charVal) {
@@ -1918,6 +1989,8 @@
 					this.$.updateReserveSession.value = null;
 					this.$.updateTimeOfDayStart.value = null;
 					this.$.updateTimeOfDayEnd.value = null;
+					this.$.updateCheckIn.checked = false;
+					this.$.updateCheckOut.checked = false;
 					this.$.updateRatedPrice.value = null;
 					this.$.addUpdatePriceAlteration.selected = null;
 					document.getElementById("updateProductToastSuccess").open();
@@ -2084,6 +2157,8 @@
 				this.$.updateReserveSession.value = null;
 				this.$.updateTimeOfDayStart.value = null;
 				this.$.updateTimeOfDayEnd.value = null;
+				this.$.updateCheckIn.checked = null;
+				this.$.updateCheckOut.checked = null;
 				this.$.updateRatedPrice.value = null;
 				this.$.updateProductModal.close();
 			}
