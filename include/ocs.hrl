@@ -88,6 +88,7 @@
 		type :: string() | undefined, % Number | String | Boolean | DateTime | ...
 		min :: non_neg_integer() | undefined,
 		max :: pos_integer() | undefined,
+		specification :: '_' | string() | undefined,
 		start_date :: pos_integer() | undefined,
 		end_date :: pos_integer() | undefined,
 		values = [] :: [#char_value{}]}).

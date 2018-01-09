@@ -1717,6 +1717,13 @@ char_value_use([max | T], #char_value_use{max = undefined} = C, Acc) ->
 char_value_use([max | T], #char_value_use{max = Max} = C, Acc)
 		when is_integer(Max) ->
 	char_value_use(T, C, [{"maxCardinality", Max} | Acc]);
+char_value_use([specification | T],
+		#char_value_use{specification = Spec} = P, Acc) when is_list(Spec) ->
+	{struct, L} = product_spec(Spec),
+	{_, Id} = lists:keyfind("id", 1, L),
+	{_, Href} = lists:keyfind("href", 1, L),
+	Spec1 = {struct, [{"id", Id}, {"href", Href}]},
+	char_value_use(T, P, [{"productSpecification", Spec1} | Acc]);
 char_value_use([start_date | T], #char_value_use{start_date = undefined,
 		end_date = undefined} = C, Acc) ->
 	char_value_use(T, C, Acc);
@@ -1759,6 +1766,14 @@ char_value_use([{"minCardinality", MinCardinality} | T], Acc)
 char_value_use([{"maxCardinality", MaxCardinality} | T], Acc)
 		when is_integer(MaxCardinality) ->
 	char_value_use(T, Acc#char_value_use{max = MaxCardinality});
+char_value_use([{"productSpecification", {struct, L}} | T], Acc) when is_list(L) ->
+	Acc1 = case lists:keyfind("id", 1, L) of
+		{_, ID} when is_list(ID) ->
+			Acc#char_value_use{specification = ID};
+		false ->
+			Acc
+	end,
+	char_value_use(T, Acc1);
 char_value_use([{"validFor", {struct, L}} | T], Acc) when is_list(L) ->
 	NewAcc = case {lists:keyfind("startDateTime", 1, L),
 			lists:keyfind("endDateTime", 1, L)} of

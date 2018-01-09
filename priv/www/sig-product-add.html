@@ -40,9 +40,9 @@
 				background-color: var(--paper-red-a400);
 			}
 			paper-checkbox {
-            --paper-checkbox-checked-color: #ffb04c;
-            --paper-checkbox-checkmark-color: var(--paper-yellow-900);
-         }
+				--paper-checkbox-checked-color: #ffb04c;
+				--paper-checkbox-checkmark-color: var(--paper-yellow-900);
+			}
 			.add-button {
 				background-color: var(--paper-lime-a700);
 				color: black;
@@ -480,38 +480,6 @@
 					</div>
 					<iron-collapse id="addPriceChars">
 						<div>
-							<paper-input
-									id="addPriceCharReserveTime"
-									allowed-pattern="[0-9mh]"
-									pattern="^[0-9]+[mh]?$"
-									auto-validate
-									label="[[i18n.reserveTime]]"
-									value=0
-									onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
-							</paper-input>
-							<paper-tooltip>
-								<i18n-msg msgid="priceReserveTimeTool">
-									Amount of time to reserve on RADIUS initial/interim accounting request
-								</i18n-msg>
-							</paper-tooltip>
-						</div>
-						<div>
-							<paper-input
-									id="addPriceCharReserveBytes"
-									allowed-pattern="[0-9kmg]"
-									pattern="^[0-9]+[kmg]?$"
-									auto-validate
-									label="[[i18n.reserveBytes]]"
-									value=0
-									onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
-							</paper-input>
-							<paper-tooltip>
-								<i18n-msg msgid="priceReserveBytesTool">
-									Amount of bytes to reserve on RADIUS initial/interim accounting request
-								</i18n-msg>
-							</paper-tooltip>
-						</div>
-						<div>
 							<span>Time of Day Range</span>
 							<paper-icon-button
 								id="onClickPriceCharsTime"
@@ -556,6 +524,59 @@
 								</paper-tooltip>
 							</div>
 						</iron-collapse>
+						<div>
+							<span>Called direction</span>
+							<paper-icon-button
+								id="onClickCall"
+								suffix
+								icon="arrow-drop-down"
+								on-click="_onClickCall">
+							</paper-icon-button>
+						</div>
+						<iron-collapse id="addCall">
+							<div>
+								<paper-checkbox id="checkIn"> 
+									Incoming
+								</paper-checkbox>
+							</div>
+							<div>
+								<paper-checkbox id="checkOut"> 
+									Outgoing
+								</paper-checkbox>
+							</div>
+						</iron-collapse>
+						<div>
+							<paper-input
+									id="addPriceCharReserveTime"
+									allowed-pattern="[0-9mh]"
+									pattern="^[0-9]+[mh]?$"
+									auto-validate
+									label="[[i18n.reserveTime]]"
+									value=0
+									onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
+							</paper-input>
+							<paper-tooltip>
+								<i18n-msg msgid="priceReserveTimeTool">
+									Amount of time to reserve on RADIUS initial/interim accounting request
+								</i18n-msg>
+							</paper-tooltip>
+						</div>
+						<div>
+							<paper-input
+									id="addPriceCharReserveBytes"
+									allowed-pattern="[0-9kmg]"
+									pattern="^[0-9]+[kmg]?$"
+									auto-validate
+									label="[[i18n.reserveBytes]]"
+									value=0
+									onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
+							</paper-input>
+							<paper-tooltip>
+								<i18n-msg msgid="priceReserveBytesTool">
+									Amount of bytes to reserve on RADIUS initial/interim accounting request
+								</i18n-msg>
+							</paper-tooltip>
+						</div>
 						<div>
 							<paper-input
 									id="ratedPrice"
@@ -883,6 +904,10 @@
 					value: "add"
 				}
 			},
+			listeners: {
+				'checkIn.checked-changed': 'checkInChanged',
+				'checkOut.checked-changed': 'checkOutChanged'
+			}, 
 			observers: [
 				'_bundleCheckboxChanged(products.*)'
 			],
@@ -1020,6 +1045,8 @@
 						this.$.addPriceCharReserveBytes.value = this.prices[indexPrice].reserveBytes;
 						this.$.timeOfDayStart.value = this.prices[indexPrice].timeOfDayRange;
 						this.$.timeOfDayEnd.value = this.prices[indexPrice].timeOfDayRange;
+						this.$.checkIn.value = this.prices[indexPrice].callDirection;
+						this.$.checkOut.value = this.prices[indexPrice].callDirection;
 						this.$.ratedPrice.value = this.prices[indexPrice].ratePrice;
 					}
 				}
@@ -1486,6 +1513,23 @@
 							prodSpecCharValueUse.push(charValueUse);
 						}
 					}
+					if (item.callDirection) {
+						var charValue = new Object();
+						var charValueUse = new Object();
+						charValueUse.name = "callDirection";
+						charValueUse.minCardinality = 1;
+						charValueUse.maxCardinality = 1;
+						charValue.default = true;
+						charValue.value = item.callDirection;	 
+						var charValuesByte = new Array();
+						charValuesByte.push(charValue);
+						charValueUse.productSpecCharacteristicValue = charValuesByte;
+						var prodSpec = new Object();
+						prodSpec.id = "5";
+						prodSpec.href = "/catalogManagement/v2/productSpecification/5";
+						charValueUse.productSpecification = prodSpec;
+						prodSpecCharValueUse.push(charValueUse);
+					}
 					if (item.ratePrice) {
 						if (item.ratePrice.length > 0) {
 							var charValueUse = new Object();
@@ -1683,6 +1727,11 @@
 				priceNew.reserveBytes = this.$.addPriceCharReserveBytes.value;
 				priceNew.timeOfDayRange = this.$.timeOfDayStart.value;
 				priceNew.timeOfDayRange = this.$.timeOfDayEnd.value;
+				if(this.$.checkIn.checked == true) {
+					priceNew.callDirection = "answer";
+				} else if(this.$.checkOut.checked == true) {
+					priceNew.callDirection = "originate";
+				}
 				priceNew.ratePrice = this.$.ratedPrice.value;
 				if(priceNew.name
 						&& priceNew.type
@@ -1732,6 +1781,25 @@
 				} else {
 					this.$.addPriceCharsTime.hide();
 					this.$.onClickPriceChars.icon="arrow-drop-down"
+				}
+			},
+			_onClickCall: function() {
+				if(this.$.addCall.opened == false) {
+					this.$.addCall.show();
+					this.$.onClickCall.icon="arrow-drop-up";
+				} else {
+					this.$.addCall.hide();
+					this.$.onClickCall.icon="arrow-drop-down"
+				}
+			},
+			checkInChanged: function(event) {
+				if(event.detail.value) {
+					this.$.checkOut.checked = false;
+				}
+			},
+			checkOutChanged: function(event) {
+				if(event.detail.value) {
+					this.$.checkIn.checked = false;
 				}
 			},
 			addAlteration: function() {
