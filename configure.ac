@@ -139,5 +139,5 @@ AC_CHECK_FUNC([BN_new], [], [AC_MSG_ERROR([BN_new function not found!])])
 
 AC_OUTPUT([Makefile include/Makefile src/Makefile ebin/Makefile doc/Makefile
 		c_src/Makefile priv/Makefile priv/lib/Makefile
-		priv/www/Makefile test/Makefile ocs.rel sys.config, ebin/ocs.appup])
+		priv/www/Makefile test/Makefile ocs.rel sys.config ebin/ocs.appup])
 
