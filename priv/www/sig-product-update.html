@@ -1544,7 +1544,7 @@
 						updatePriceNew.push(priceSize);
 					}
 				}
-				if(this.$.updatePricePerioddrop.value) {
+				if(this.$.updatePricePerioddrop.value && !this.$.updatePricePerioddrop.disabled) {
 					var priceCharge = new Object();
 					priceCharge.op = "add";
 					priceCharge.path = "/productOfferingPrice/" + indexPrices + "/recurringChargePeriod";
@@ -1571,70 +1571,82 @@
 						return charVal.name == "radiusReserveTime";
 					}
 					var indexChar = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
-					var charReserve = new Object();
-					charReserve.op = "add";
-					charReserve.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
-					charReserve.value = this.$.updateAddPriceCharReserveTime.value;
-					updatePriceNew.push(charReserve);
+					if(indexChar != -1) {
+						var charReserve = new Object();
+						charReserve.op = "add";
+						charReserve.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
+						charReserve.value = this.$.updateAddPriceCharReserveTime.value;
+						updatePriceNew.push(charReserve);
+					}
 				}
 				if(this.$.updateAddPriceCharReserveBytes.value) {
 					function checkChar1(charVal) {
 						return charVal.name == "radiusReserveOctets";
 					}
 					var indexChar1 = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
-					var charResBytes = new Object();
-					charResBytes.op = "add";
-					charResBytes.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar1 + "/productSpecCharacteristicValue/0/value";
-					charResBytes.value = this.$.updateAddPriceCharReserveBytes.value;
-					updatePriceNew.push(charResBytes);
+					if(indexChar1 != -1) {
+						var charResBytes = new Object();
+						charResBytes.op = "add";
+						charResBytes.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar1 + "/productSpecCharacteristicValue/0/value";
+						charResBytes.value = this.$.updateAddPriceCharReserveBytes.value;
+						updatePriceNew.push(charResBytes);
+					}
 				}
 				if(this.$.updateCheckIn.checked || this.$.updateCheckOut.checked) {
 					function checkCall1(callVal) {
 						return callVal.name == "callDirection";
 					}
 					var indexCall1 = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkCall1);
-					var call = new Object();
-					call.op = "add";
-					call.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCall1 + "/productSpecCharacteristicValue/0/value";
-					if(this.$.updateCheckIn.checked) {
-						call.value = "answer";
-					} else if(this.$.updateCheckOut.checked) {
-						call.value = "originate";
+					if(indexCall1 != -1) {
+						var call = new Object();
+						call.op = "add";
+						call.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCall1 + "/productSpecCharacteristicValue/0/value";
+						if(this.$.updateCheckIn.checked) {
+							call.value = "answer";
+						} else if(this.$.updateCheckOut.checked) {
+							call.value = "originate";
+						}
+						updatePriceNew.push(call);
 					}
-					updatePriceNew.push(call);
 				}
 				if(this.$.updateTimeOfDayStart.value) {
 					function checkChar1(charVal) {
 						return charVal.name == "timeOfDayRange";
 					}
 					var indexChar2 = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
-					var timeDay = new Object();
-					timeDay.op = "add";
-					timeDay.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value";
-					timeDay.value = this.$.updateTimePickerStart.rawValue;
-					updatePriceNew.push(timeDay);
+					if(indexChar2 != -1) {
+						var timeDay = new Object();
+						timeDay.op = "add";
+						timeDay.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value";
+						timeDay.value = this.$.updateTimePickerStart.rawValue;
+						updatePriceNew.push(timeDay);
+					}
 				}
 				if(this.$.updateTimeOfDayEnd.value) {
 					function checkChar1(charVal) {
 						return charVal.name == "timeOfDayRange";
 					}
 					var indexChar2 = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
-					var timeDayEnd = new Object();
-					timeDayEnd.op = "add";
-					timeDayEnd.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value";
-					timeDayEnd.value = this.$.updateTimePickerEnd.rawValue;
-					updatePriceNew.push(timeDayEnd);
+					if(indexChar2 != -1) {
+						var timeDayEnd = new Object();
+						timeDayEnd.op = "add";
+						timeDayEnd.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value";
+						timeDayEnd.value = this.$.updateTimePickerEnd.rawValue;
+						updatePriceNew.push(timeDayEnd);
+					}
 				}
 				if(this.$.updateRatedPrice.value) {
 					function checkChar1(charVal) {
 						return charVal.name == "ratePrice";
 					}
 					var indexChar3 = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
-					var priceRate = new Object();
-					priceRate.op = "add";
-					priceRate.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar3 + "/productSpecCharacteristicValue/0/value";
-					priceRate.value = this.$.updateRatedPrice.value; 
-					updatePriceNew.push(priceRate);
+					if(indexChar3 != -1) {
+						var priceRate = new Object();
+						priceRate.op = "add";
+						priceRate.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar3 + "/productSpecCharacteristicValue/0/value";
+						priceRate.value = this.$.updateRatedPrice.value; 
+						updatePriceNew.push(priceRate);
+					}
 				}
 				ajax.body = JSON.stringify(updatePriceNew);
 				ajax.generateRequest();
