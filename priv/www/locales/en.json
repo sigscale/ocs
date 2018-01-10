@@ -717,7 +717,7 @@
   },
 	"timeDay": {
     "description": "Time day range",
-    "message": "Time Of Day Range"
+    "message": "Time of day range"
   },
 	"ratePrice": {
     "description": "Rate Price",
@@ -790,6 +790,50 @@
 	"listTable": {
     "description": "List tables",
     "message": "List of Tables"
+  },
+	"callIncome": {
+    "description": "Call direction characteristics",
+    "message": "Incoming"
+  },
+	"callOutgoing": {
+    "description": "Call direction characteristics",
+    "message": "Outgoing"
+  },
+	"callIncomeTool": {
+    "description": "Call direction characteristics tool tip",
+    "message": "Incoming call direction(answer)"
+  },
+	"callOutgoingTool": {
+    "description": "Call direction characteristics tool tip",
+    "message": "Outgoing call direction(originate)"
+  },
+	"callIncomeUpdateTool": {
+    "description": "Call direction characteristics tool tip",
+    "message": "Update incoming call direction(answer)"
+  },
+	"callOutgoingUpdateTool": {
+    "description": "Call direction characteristics tool tip",
+    "message": "Update outgoing call direction(originate)"
+  },
+	"bundleProducts": {
+    "description": "Bundle products label for iron collapse",
+    "message": "Bundled Products"
+  },
+	"characteristics": {
+    "description": "Characteristics label for iron collapse",
+    "message": "Characteristics"
+  },
+	"callDirection": {
+    "description": "Call direction label for iron collapse",
+    "message": "Called direction"
+  },
+	"ok": {
+    "description": "ok button",
+    "message": "OK"
+  },
+	"offering": {
+    "description": "Product offering tab",
+    "message": "Offerings"
   },
    "productDeleted": {
     "description": "Success Toast Message",

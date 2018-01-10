@@ -104,7 +104,7 @@
 						</paper-tooltip>
 					</div>
 					<div>
-						<span>Bundled Products</span>
+						<span>[[i18n.bundleProducts]]</span>
 							<paper-icon-button
 								id="onClickBundleUpdate"
 								suffix
@@ -162,7 +162,7 @@
 						</paper-tooltip>
 					</div>
 					<div>
-						<span>Characteristics</span>
+						<span>[[i18n.characteristics]]</span>
 						<paper-icon-button
 								id="updateOnClickOfferChars"
 								suffix
@@ -466,7 +466,7 @@
 						</paper-tooltip>
 					</div>
 					<div>
-						<span>Characteristics</span>
+						<span>[[i18n.characteristics]]</span>
 						<paper-icon-button
 								id="updateOnClickChars"
 								suffix
@@ -476,7 +476,7 @@
 					</div>
 					<iron-collapse id="updateAddPriceChars">
 						<div>
-							<span>Time of Day Range</span>
+							<span>[[i18n.timeDay]]</span>
 							<paper-icon-button
 								id="updateOnClickCharsTime"
 								suffix
@@ -523,7 +523,7 @@
 							</div>
 						</iron-collapse>
 						<div>
-							<span>Called direction</span>
+							<span>[[i18n.callDirection]]</span>
 							<paper-icon-button
 								id="updateOnClickCall"
 								suffix
@@ -534,13 +534,27 @@
 						<iron-collapse id="updateAddCall">
 							<div>
 								<paper-checkbox id="updateCheckIn">
-									Incoming
+									<i18n-msg msgid="callIncome">
+										Incoming
+									</i18n-msg>
 								</paper-checkbox>
+								<paper-tooltip>
+									<i18n-msg msgid="callIncomeUpdateTool">
+										Update incoming call direction(answer)
+									</i18n-msg>
+								</paper-tooltip>
 							</div>
 							<div>
 								<paper-checkbox id="updateCheckOut">
-									Outgoing
+									<i18n-msg msgid="callOutgoing">
+										Outgoing
+									</i18n-msg>
 								</paper-checkbox>
+								<paper-tooltip>
+									<i18n-msg msgid="callOutgoingUpdateTool">
+										Update outgoing call direction(originate)
+									</i18n-msg>
+								</paper-tooltip>
 							</div>
 						</iron-collapse>
 						<div>

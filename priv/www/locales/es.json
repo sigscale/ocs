@@ -55,6 +55,10 @@
     "description": "XmitDataRate of subscribers", 
     "message": "Tasa Xmit"
   },
+	"ratedPrice": {
+    "description": "Rate Price tooltip",
+    "message": "Nombre del precio en la tabla"
+  },
   "session": {
     "description": "Timeout of subscribers", 
     "message": "Se Acabó el Tiempo"
@@ -802,6 +806,50 @@
 	"listTable": {
     "description": "List tables",
     "message": "Lista de mesas"
+  },
+	"callIncome": {
+    "description": "Call direction characteristics",
+    "message": "Entrante"
+  },
+	"callOutgoing": {
+    "description": "Call direction characteristics",
+    "message": "Saliente"
+  },
+	"callIncomeTool": {
+    "description": "Call direction characteristics tool tip",
+    "message": "Dirección de llamada entrante (respuesta)"
+  },
+	"callOutgoingTool": {
+    "description": "Call direction characteristics tool tip",
+    "message": "Dirección de la llamada saliente (originar)"
+  },
+	"callIncomeUpdateTool": {
+    "description": "Call direction characteristics tool tip",
+    "message": "Actualizar la dirección de la llamada entrante (respuesta)"
+  },
+	"callOutgoingUpdateTool": {
+    "description": "Call direction characteristics tool tip",
+    "message": "Actualizar la dirección de la llamada saliente (originar)"
+  },
+	"bundleProducts": {
+    "description": "Bundle products label for iron collapse",
+    "message": "Productos empaquetados"
+  },
+	"characteristics": {
+    "description": "Characteristics label for iron collapse",
+    "message": "Características"
+  },
+	"callDirection": {
+    "description": "Call direction label for iron collapse",
+    "message": "Llamada dirección"
+  },
+	"ok": {
+    "description": "ok button",
+    "message": "DE ACUERDO"
+  },
+	"offering": {
+    "description": "Product offering tab",
+    "message": "Ofertas"
   },
    "productDeleted": {
     "description": "Success Toast Message",
