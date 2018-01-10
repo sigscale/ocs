@@ -4,6 +4,8 @@
 
 SUBDIRS = include src ebin doc c_src priv test
 
+beam_DATA = ebin/ocs.appup
+
 if HAVE_SYSTEMD
 systemdsystemunit_DATA = scripts/ocs.service
 env_DATA = scripts/ocs
