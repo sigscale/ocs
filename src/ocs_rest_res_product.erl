@@ -518,8 +518,7 @@ patch_product_offering(ProdId, Etag, ReqData) ->
 get_pla_specs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
 	Object = {array, [spec_pla_once(), spec_pla_recurring(),
-			spec_pla_usage(), spec_pla_prefix_price(),
-			spec_pla_prefix_tariff()]},
+			spec_pla_usage(), spec_pla_tariff()]},
 	Body = mochijson:encode(Object),
 	{ok, Headers, Body};
 get_pla_specs(_Query) ->
@@ -968,23 +967,15 @@ characteristic_product_prepaid() ->
 
 %% @hidden
 characteristic_product_voice() ->
-	Name1 = {"name", "destPrefixPriceTable"},
-	Description1 = {"description", "Table of Prefix, Description, Price Label"},
+	Name1 = {"name", "destPrefixTariffTable"},
+	Description1 = {"description", "Table of Prefix, Description, Tariff rate"},
 	ValueType1 = {"valueType", "String"},
 	Char1 = {struct, [Name1, Description1, ValueType1]},
-	Name2 = {"name", "destPrefixTariffTable"},
-	Description2 = {"description", "Table of Prefix, Description, Tariff rate"},
+	Name2 = {"name", "callDirection"},
+	Description2 = {"description", "Constrain price to incoming or outgoing calls"},
 	ValueType2 = {"valueType", "String"},
 	Char2 = {struct, [Name2, Description2, ValueType2]},
-	Name3 = {"name", "ratePrice"},
-	Description3 = {"description", "Price name in prefix table"},
-	ValueType3 = {"valueType", "String"},
-	Char3 = {struct, [Name3, Description3, ValueType3]},
-	Name4 = {"name", "callDirection"},
-	Description4 = {"description", "Constrain price to incoming or outgoing calls"},
-	ValueType4 = {"valueType", "String"},
-	Char4 = {struct, [Name4, Description4, ValueType4]},
-	[Char1, Char2, Char3, Char4].
+	[Char1, Char2].
 
 -spec pla_spec(ID) -> Result
 	when
@@ -998,9 +989,7 @@ pla_spec("2") ->
 pla_spec("3") ->
 	spec_pla_usage();
 pla_spec("4") ->
-	spec_pla_prefix_price();
-pla_spec("5") ->
-	spec_pla_prefix_tariff();
+	spec_pla_tariff();
 pla_spec(_) ->
 	{error, 404}.
 
@@ -1011,7 +1000,7 @@ spec_pla_once() ->
 	Name = {"name", "OneTimePLASpec"},
 	Description = {"description", "Interface specification for a function that rates one time events."},
 	Version = {"version", "1.0"},
-	LastUpdate = {"lastUpdate", "2017-12-19T12:00:00Z"},
+	LastUpdate = {"lastUpdate", "2018-01-10"},
 	Status = {"lifecycleStatus", "Active"},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status]}.
 
@@ -1022,7 +1011,7 @@ spec_pla_recurring() ->
 	Name = {"name", "RecurringPLASpec"},
 	Description = {"description", "Interface specification for a function that rates recurring events."},
 	Version = {"version", "1.0"},
-	LastUpdate = {"lastUpdate", "2017-12-19T12:00:00Z"},
+	LastUpdate = {"lastUpdate", "2018-01-10"},
 	Status = {"lifecycleStatus", "Active"},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status]}.
 
@@ -1033,31 +1022,19 @@ spec_pla_usage() ->
 	Name = {"name", "UsagePLASpec"},
 	Description = {"description", "Interface specification for a function that rates usage events."},
 	Version = {"version", "1.0"},
-	LastUpdate = {"lastUpdate", "2017-12-19T12:00:00Z"},
+	LastUpdate = {"lastUpdate", "2018-01-10"},
 	Status = {"lifecycleStatus", "Active"},
 	Chars = {"usageSpecCharacteristic", {array, []}},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
 
 %% @hidden
-spec_pla_prefix_price() ->
+spec_pla_tariff() ->
 	Id = {"id", "4"},
 	Href = {"href", ?plaSpecPath "4"},
-	Name = {"name", "PrefixPriceTablePLASpec"},
-	Description = {"description", "Destination prefix table lookup of price name."},
-	Version = {"version", "1.0"},
-	LastUpdate = {"lastUpdate", "2017-12-19T12:00:00Z"},
-	Status = {"lifecycleStatus", "Active"},
-	Chars = {"usageSpecCharacteristic", {array, []}},
-	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
-
-%% @hidden
-spec_pla_prefix_tariff() ->
-	Id = {"id", "5"},
-	Href = {"href", ?plaSpecPath "5"},
 	Name = {"name", "PrefixTariffTablePLASpec"},
-	Description = {"description", "Destination prefix table lookup of price amount."},
+	Description = {"description", "Destination prefix table lookup of tariff amount."},
 	Version = {"version", "1.0"},
-	LastUpdate = {"lastUpdate", "2017-12-19T12:00:00Z"},
+	LastUpdate = {"lastUpdate", "2018-01-10"},
 	Status = {"lifecycleStatus", "Active"},
 	Chars = {"usageSpecCharacteristic", {array, []}},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
