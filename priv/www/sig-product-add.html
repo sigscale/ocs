@@ -185,30 +185,6 @@
 					<iron-collapse id="addOfferChars">
 						<div>
 							<paper-input
-									id="destPrefixPrice"
-									type="string"
-									label="[[i18n.priceTable]]">
-							</paper-input>
-							<paper-tooltip>
-								<i18n-msg msgid="priceTableTool">
-									Prefix of Destination Price Table
-								</i18n-msg>
-							</paper-tooltip>
-						</div>
-						<div>
-							<paper-input
-									id="destPrefixTariff"
-									type="string"
-									label="[[i18n.tariffTable]]">
-							</paper-input>
-							<paper-tooltip>
-								<i18n-msg msgid="tariffTableTool">
-									Prefix of Destination Tariff Table
-								</i18n-msg>
-							</paper-tooltip>
-						</div>
-						<div>
-							<paper-input
 									id="addOfferCharReserveSession"
 									allowed-pattern="[0-9mh]"
 									pattern="^[0-9]+[mh]?$"
@@ -218,7 +194,7 @@
 							</paper-input>
 							<paper-tooltip>
 								<i18n-msg msgid="resSessionTool">
-									Access accept session time is reserved seconds	
+									Access accept session time is reserved seconds
 								</i18n-msg>
 							</paper-tooltip>
 						</div>
@@ -542,7 +518,7 @@
 								</paper-checkbox>
 								<paper-tooltip>
 									<i18n-msg msgid="callIncomeTool">
-										Incoming call direction(answer)	
+										Incoming call direction(answer)
 									<i18n-msg>
 								</paper-tooltip>
 							</div>
@@ -554,7 +530,7 @@
 								</paper-checkbox>
 								<paper-tooltip>
 									<i18n-msg msgid="callOutgoingTool">
-										Outgoing call direction(originate)	
+										Outgoing call direction(originate)
 									</i18n-msg>
 								</paper-tooltip>
 							</div>
@@ -593,14 +569,13 @@
 						</div>
 						<div>
 							<paper-input
-									id="ratedPrice"
+									id="destPrefixTariff"
 									type="string"
-									label="[[i18n.ratedPrice]]"
-									onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
+									label="[[i18n.tariffTable]]">
 							</paper-input>
 							<paper-tooltip>
-								<i18n-msg msgid="ratePriceiTool">
-									Price name in table
+								<i18n-msg msgid="tariffTableTool">
+									Prefix of Destination Tariff Table
 								</i18n-msg>
 							</paper-tooltip>
 						</div>
@@ -997,7 +972,6 @@
 						this.$.addPriceCharReserveBytes.value = null;
 						this.$.timeOfDayStart.value = null;
 						this.$.timeOfDayEnd.value = null;
-						this.$.ratedPrice.value = null;
 					} else {
 						this.addOrUpdateButton = "update";
 						this.$.addPriceDesc.value = this.prices[indexPrice].description;
@@ -1061,7 +1035,7 @@
 						this.$.timeOfDayEnd.value = this.prices[indexPrice].timeOfDayRange;
 						this.$.checkIn.value = this.prices[indexPrice].callDirection;
 						this.$.checkOut.value = this.prices[indexPrice].callDirection;
-						this.$.ratedPrice.value = this.prices[indexPrice].ratePrice;
+						this.$.destPrefixTariff.value = this.prices[indexPrice].prefixTariff;
 					}
 				}
 			},
@@ -1138,13 +1112,9 @@
 				}
 				if(this.products.some(check)) {
 					this.$.addOffProductSpecificationDrop.disabled = true;
-					this.$.destPrefixPrice.disabled = true;
-					this.$.destPrefixTariff.disabled = true;
 					this.$.addOfferCharReserveSession.disabled = true;
 				} else {
 					this.$.addOffProductSpecificationDrop.disabled = false;
-					this.$.destPrefixPrice.disabled = false;
-					this.$.destPrefixTariff.disabled = false;
 					this.$.addOfferCharReserveSession.disabled = false;
 				}
 			},
@@ -1220,40 +1190,6 @@
 					offerNew.validFor = {endDateTime};
 				}
 				var prodSpecCharValueUse = new Array();
-				if (this.$.destPrefixPrice.value && this.$.destPrefixPrice.value.length > 0) {
-					var charValueUse = new Object();
-					charValueUse.name = "destPrefixPriceTable";
-					charValueUse.minCardinality = 0;
-					charValueUse.maxCardinality = 1;
-					var charValue = new Object();
-					charValue.default = false;
-					charValue.value = this.$.destPrefixPrice.value;
-					var charValues = new Array();
-					charValues.push(charValue);
-					charValueUse.productSpecCharacteristicValue = charValues;
-					var prodSpec = new Object();
-					prodSpec.id = "3";
-					prodSpec.hef = "/catalogManagement/v2/productSpecification/3";
-					charValueUse.productSpecification = prodSpec;
-					prodSpecCharValueUse.push(charValueUse);
-				}
-				if (this.$.destPrefixTariff.value && this.$.destPrefixTariff.value.length > 0) {
-					var charValueUse = new Object();
-					charValueUse.name = "destPrefixTariffTable";
-					charValueUse.minCardinality = 0;
-					charValueUse.maxCardinality = 1;
-					var charValue = new Object();
-					charValue.default = false;
-					charValue.value = this.$.destPrefixTariff.value;
-					var charValues = new Array();
-					charValues.push(charValue);
-					charValueUse.productSpecCharacteristicValue = charValues;
-					var prodSpec = new Object();
-					prodSpec.id = "3";
-					prodSpec.hef = "/catalogManagement/v2/productSpecification/3";
-					charValueUse.productSpecification = prodSpec;
-					prodSpecCharValueUse.push(charValueUse);
-				}
 				if (this.$.addOfferCharReserveSession.value && this.$.addOfferCharReserveSession.value.length > 0) {
 					var charValueUse = new Object();
 					charValueUse.name = "radiusReserveSessionTime";
@@ -1426,6 +1362,23 @@
 						}
 					}
 					var prodSpecCharValueUse = new Array();
+					if (item.prefixTariff) {
+						var charValue = new Object();
+						var charValueUse = new Object();
+						charValueUse.name = "destPrefixTariffTable";
+						charValueUse.minCardinality = 0;
+						charValueUse.maxCardinality = 1;
+						charValue.default = false;
+						charValue.value = item.prefixTariff;
+						var charValues = new Array();
+						charValues.push(charValue);
+						charValueUse.productSpecCharacteristicValue = charValues;
+						var prodSpec = new Object();
+						prodSpec.id = "3";
+						prodSpec.hef = "/catalogManagement/v2/productSpecification/3";
+						charValueUse.productSpecification = prodSpec;
+						prodSpecCharValueUse.push(charValueUse);
+					}
 					if (item.reserveTime) {
 						var charValue = new Object();
 						charValue.unitOfMeasure = "seconds";
@@ -1534,7 +1487,7 @@
 						charValueUse.minCardinality = 1;
 						charValueUse.maxCardinality = 1;
 						charValue.default = true;
-						charValue.value = item.callDirection;	 
+						charValue.value = item.callDirection; 
 						var charValuesByte = new Array();
 						charValuesByte.push(charValue);
 						charValueUse.productSpecCharacteristicValue = charValuesByte;
@@ -1543,25 +1496,6 @@
 						prodSpec.href = "/catalogManagement/v2/productSpecification/5";
 						charValueUse.productSpecification = prodSpec;
 						prodSpecCharValueUse.push(charValueUse);
-					}
-					if (item.ratePrice) {
-						if (item.ratePrice.length > 0) {
-							var charValueUse = new Object();
-							charValueUse.name = "ratePrice";
-							charValueUse.minCardinality = 0;
-							charValueUse.maxCardinality = 1;
-							var charValue = new Object();
-							charValue.default = false;
-							charValue.value = item.ratePrice;
-							var charValues = new Array();
-							charValues.push(charValue);
-							charValueUse.productSpecCharacteristicValue = charValues;
-							var prodSpec = new Object();
-							prodSpec.id = "3";
-							prodSpec.hef = "/catalogManagement/v2/productSpecification/3";
-							charValueUse.productSpecification = prodSpec;
-							prodSpecCharValueUse.push(charValueUse);
-						}
 					}
 					if (prodSpecCharValueUse.length > 0) {
 						out.prodSpecCharValueUse = prodSpecCharValueUse;
@@ -1746,7 +1680,7 @@
 				} else if(this.$.checkOut.checked == true) {
 					priceNew.callDirection = "originate";
 				}
-				priceNew.ratePrice = this.$.ratedPrice.value;
+				priceNew.prefixTariff = this.$.destPrefixTariff.value;
 				if(priceNew.name
 						&& priceNew.type
 						&& priceNew.unit
@@ -1771,9 +1705,9 @@
 					this.$.addPriceAlteration.selected = null;
 					this.$.addPriceCharReserveTime.value = null;
 					this.$.addPriceCharReserveBytes.value = null;
+					this.$.destPrefixTariff.value = null;
 					this.$.timeOfDayStart.value = null;
 					this.$.timeOfDayEnd.value = null;
-					this.$.ratedPrice.value = null;
 					document.getElementById("addProductPriceToastSuccess").open();
 				} else {
 					document.getElementById("addProductToastError").open();
@@ -1929,7 +1863,6 @@
 				this.$.addOffEnd.value = null;
 				this.$.addOfferChars.hide();
 				this.$.addBundle.hide();
-				this.$.destPrefixPrice.value = null;
 				this.$.destPrefixTariff.value = null;
 				this.$.addOfferCharReserveSession.value = null;
 				this.$.addProductStartDatePickOff.hide()
@@ -1962,7 +1895,6 @@
 				this.$.addAltPeriod.selected = null;
 				this.$.timeOfDayStart.value = null;
 				this.$.timeOfDayEnd.value = null;
-				this.$.ratedPrice.value = null;
 				this.$.addProductModal.close();
 			}
 		});
