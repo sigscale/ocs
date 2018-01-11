@@ -102,7 +102,7 @@ all() ->
 	interim_debit_and_reserve_insufficient3,
 	interim_debit_and_reserve_insufficient4,
 	final_remove_session, final_refund,
-	reserve_data, reserve_voice, interim_voice,
+	reserve_data, reserve_voice, interim_voice, time_of_day,
 	authorize_voice, authorize_voice_with_partial_reservation,
 	authorize_incoming_voice, authorize_outgoing_voice, authorize_default_voice,
  	authorize_data_1, authorize_data_2, authorize_data_with_partial_reservation,
@@ -1423,6 +1423,74 @@ interim_voice(_Config) ->
 			(ReserveTime + UsedSeconds) div VoiceSize + 1
 	end,
 	Amount = StartingAmount - ReservedUnits * VoiceAmount.
+
+time_of_day() ->
+	[{userdata, [{doc, "Time of day price matching"}]}].
+
+time_of_day(_Config) ->
+	DataProdID = ocs:generate_password(),
+	PeakAmount = 10,
+	OffPeakAmount = 5,
+	DataSize = 1000000,
+	PeakPrice = #price{name = "Peak", type = usage,
+			units = octets, size = DataSize, amount = PeakAmount,
+			char_value_use = [#char_value_use{name = "timeOfDayRange",
+			min = 1, max = 1, values = [#char_value{default = true,
+			value = #range{lower = #quantity{amount = 480, units = "minutes"},
+			upper = #quantity{amount = 1380, units = "minutes"}}}]}]},
+	OffPeakPrice = #price{name = "OffPeak", type = usage,
+			units = octets, size = DataSize, amount = OffPeakAmount,
+			char_value_use = [#char_value_use{name = "timeOfDayRange",
+			min = 1, max = 1, values = [#char_value{default = true,
+			value = #range{lower = #quantity{amount = 1380, units = "minutes"},
+			upper = #quantity{amount = 480, units = "minutes"}}}]}]},
+	DataProduct = #product{name = DataProdID,
+			price = [PeakPrice, OffPeakPrice], specification = "8"},
+	{ok, _} = ocs:add_product(DataProduct),
+	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Password = ocs:generate_password(),
+	StartingAmount = 1000,
+	Buckets = [#bucket{units = cents, remain_amount = StartingAmount,
+			start_date = erlang:system_time(?MILLISECOND),
+			termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
+	{ok, _S} = ocs:add_subscriber(SubscriberID,
+			Password, DataProdID, [], Buckets),
+	ServiceType = 2,
+	{Date, _} = calendar:local_time(),
+	Timestamp1 = {Date, {7, 59, 59}},
+	SessionId1 = [{?AcctSessionId, list_to_binary(ocs:generate_password())}],
+	{ok, _, _} = ocs_rating:rate(radius, ServiceType, SubscriberID,
+			Timestamp1, undefined, undefined, initial, [], [], SessionId1),
+	UsedOctets1 = rand:uniform(DataSize * 6),
+	{ok, _, _} = ocs_rating:rate(radius, ServiceType, SubscriberID,
+			Timestamp1, undefined, undefined, final,
+			[{octets, UsedOctets1}], [], SessionId1),
+	{ok, #subscriber{buckets = Buckets1}} = ocs:find_subscriber(SubscriberID),
+	#bucket{remain_amount = Amount1} = lists:keyfind(cents, #bucket.units, Buckets1),
+	UsedUnits1 = case UsedOctets1 rem DataSize of
+		0 ->
+			UsedOctets1 div DataSize;
+		_ ->
+			UsedOctets1 div DataSize + 1
+	end,
+	Amount1 = StartingAmount - UsedUnits1 * OffPeakAmount,
+	Timestamp2 = {Date, {12, 13, 14}},
+	SessionId2 = [{?AcctSessionId, list_to_binary(ocs:generate_password())}],
+	{ok, _, _} = ocs_rating:rate(radius, ServiceType, SubscriberID,
+			Timestamp2, undefined, undefined, initial, [], [], SessionId2),
+	UsedOctets2 = rand:uniform(DataSize * 6),
+	{ok, _, _} = ocs_rating:rate(radius, ServiceType, SubscriberID,
+			Timestamp2, undefined, undefined, final,
+			[{octets, UsedOctets2}], [], SessionId2),
+	{ok, #subscriber{buckets = Buckets2}} = ocs:find_subscriber(SubscriberID),
+	#bucket{remain_amount = Amount2} = lists:keyfind(cents, #bucket.units, Buckets2),
+	UsedUnits2 = case UsedOctets2 rem DataSize of
+		0 ->
+			UsedOctets2 div DataSize;
+		_ ->
+			UsedOctets2 div DataSize + 1
+	end,
+	Amount2 = Amount1 - UsedUnits2 * PeakAmount.
 
 authorize_voice() ->
 	[{userdata, [{doc, "Authorize voice call"}]}].
