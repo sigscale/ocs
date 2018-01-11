@@ -1545,7 +1545,7 @@
 					function checkName(char) {
 						return char.name == "destPrefixTariffTable";
 					}
-					var indexChar = this.characteristics.findIndex(checkName);
+					var indexChar = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkName);
 					if(indexChar != -1) {
 						var destTariff = new Object();
 						destTariff.op = "add";
