@@ -1612,6 +1612,19 @@
 				}
 				ajax.body = JSON.stringify(updatePriceNew);
 				ajax.generateRequest();
+				this.$.updatePriceDesc.value = null;
+				this.$.updatePriceSize.value = null;
+				this.$.updatePriceTypedrop.value = null;
+				this.$.updatePricePerioddrop.value = null;
+				this.$.updateAddPriceCharReserveTime.value = null;
+				this.$.updateDestPrefixTariff.value = null;
+				this.$.updateAddPriceCharReserveBytes.value = null;
+				this.$.updateCheckIn.checked = false;
+				this.$.updateCheckOut.checked = false;
+				this.$.updateTimeOfDayStart.value = null;
+				this.$.updateTimeOfDayEnd.value = null;
+				this.$.updatePriceAmount.value = null;
+				this.$.updatePriceUnitsdrop.value = null;
 			}, 
 			_updateProductPriceResponse: function(event) {
 				this.$.updateProductModal.close();
