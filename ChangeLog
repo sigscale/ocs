@@ -1,3 +1,10 @@
+2018-01-11  Vance Shipley <vances@sigscale.org>
+
+	* call direction added to Product Offering UI dialogs
+	* prefix price table deprecated
+	* table name characteristics moved to Profuct Offering Price
+	* simplified and corrected price matching
+
 2018-01-08  Vance Shipley <vances@sigscale.org>
 
 	* add callDirection product price characteristic
