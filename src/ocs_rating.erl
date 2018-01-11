@@ -1256,7 +1256,10 @@ filter_prices_tod1({_, Time}, #quantity{units = U1, amount = A1},
 	filter_prices_tod2(to_seconds(U1, A1), to_seconds(U2, A2),
 			calendar:time_to_seconds(Time)).
 %% @hidden
-filter_prices_tod2(Start, End, Time) when Start < Time, End > Time ->
+filter_prices_tod2(Start, End, Time) when Start =< Time, End > Time ->
+	true;
+filter_prices_tod2(Start, End, Time) when End < Start,
+		((Start =< Time) orelse (End > Time)) ->
 	true;
 filter_prices_tod2(_, _, _) ->
 	false.
