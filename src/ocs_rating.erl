@@ -205,10 +205,15 @@ rate3(Protocol, Subscriber, Address,
 	case lists:keyfind("destPrefixTariffTable", #char_value_use.name, CharValueUse) of
 		#char_value_use{values = [#char_value{value = TariffTable}]} ->
 			case catch ocs_gtt:lookup_last(TariffTable, Address) of
-				{_Description, Amount} when is_integer(Amount), Amount >= 0 ->
-					rate4(Protocol, Subscriber, Price#price{amount = Amount},
-							Validity, Flag, DebitAmounts, ReserveAmounts,
-							SessionAttributes);
+				{_Description, Amount} ->
+					case list_to_integer(Amount) of
+						N when N >= 0 ->
+							rate4(Protocol, Subscriber, Price#price{amount = N},
+									Validity, Flag, DebitAmounts, ReserveAmounts,
+									SessionAttributes);
+						_N ->
+							throw(negative_amount)
+					end;
 				Other ->
 					error_logger:error_report(["Prefix table tariff lookup failed",
 							{module, ?MODULE}, {table, TariffTable},
@@ -605,9 +610,14 @@ authorize3(Protocol, ServiceType, Subscriber, Address,
 	case lists:keyfind("destPrefixTariffTable", #char_value_use.name, CharValueUse) of
 		#char_value_use{values = [#char_value{value = TariffTable}]} ->
 			case catch ocs_gtt:lookup_last(TariffTable, Address) of
-				{_Description, Amount} when is_integer(Amount), Amount >= 0 ->
-					authorize4(Protocol, ServiceType, Subscriber,
-							Price#price{amount = Amount}, SessionAttributes, Reserve);
+				{_Description, Amount} ->
+					case list_to_integer(Amount) of
+						N when N >= 0 ->
+							authorize4(Protocol, ServiceType, Subscriber,
+								Price#price{amount = N}, SessionAttributes, Reserve);
+						_N ->
+							throw(negative_amount)
+					end;
 				Other ->
 					error_logger:error_report(["Prefix table tariff lookup failed",
 							{module, ?MODULE}, {table, TariffTable},
