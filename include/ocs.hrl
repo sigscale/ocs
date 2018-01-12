@@ -21,6 +21,7 @@
 		| active | rejected | launched | retired | obsolete.
 -type product_status() :: created | pending_active | aborted
 		| cancelled | active | suspended | pending_terminate | terminated.
+-type pla_status() :: created | active | cancelled | terminated. 
 
 %% define price types
 -type product_price_type() :: recurring | one_time | usage | tariff.
@@ -87,6 +88,7 @@
 		type :: string() | undefined, % Number | String | Boolean | DateTime | ...
 		min :: non_neg_integer() | undefined,
 		max :: pos_integer() | undefined,
+		specification :: '_' | string() | undefined,
 		start_date :: pos_integer() | undefined,
 		end_date :: pos_integer() | undefined,
 		values = [] :: [#char_value{}]}).
@@ -120,7 +122,7 @@
 		status :: offer_status() | '_' | undefined,
 		specification :: '_' | string() | undefined,
 		bundle = [] :: '_' | [#bundled_po{}],
-		price :: '_' | [#price{}] | undefined,
+		price = [] :: '_' | [#price{}],
 		char_value_use = [] :: '_' | [#char_value_use{}],
 		last_modified :: tuple() | '_' | undefined}).
 
@@ -157,5 +159,15 @@
 		disconnect  = false :: boolean(),
 		session_attributes = [] :: [{pos_integer(), [tuple()]}],
 		multisession = false :: boolean(),
+		last_modified :: tuple() | undefined}).
+
+-record(pla,
+		{name :: string(),
+		description :: string(),
+		start_date :: pos_integer() | undefined,
+		end_date :: pos_integer() | undefined,
+		status :: pla_status() | undefined,
+		specification :: '_' | string() | undefined,
+		characteristics = [] :: [{Name :: string(), Value :: term()}],
 		last_modified :: tuple() | undefined}).
 

@@ -45,10 +45,7 @@
 -define(BASE_APPLICATION_ID, 0).
 -define(NAS_APPLICATION_ID, 1).
 -define(RO_APPLICATION_ID, 4).
-
-%% support deprecated_time_unit()
--define(MILLISECOND, milli_seconds).
-%-define(MILLISECOND, millisecond).
+-define(EPOCH_OFFSET, 2208988800).
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
@@ -580,6 +577,7 @@ diameter_accounting_start(SId, Username, RequestNum) ->
 			'User-Name' = [Username],
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
 			'CC-Request-Number' = RequestNum,
+			'Event-Timestamp' = calendar:universal_time(),
 			'Subscription-Id' = [Subscription_Id],
 			'Multiple-Services-Credit-Control' = [MultiServices_CC],
 			'Service-Information' = [ServiceInformation]},
@@ -605,6 +603,7 @@ diameter_accounting_stop(SId, Username, RequestNum, Usage) ->
 			'User-Name' = [Username],
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
 			'CC-Request-Number' = RequestNum,
+			'Event-Timestamp' = calendar:universal_time(),
 			'Multiple-Services-Credit-Control' = [MultiServices_CC],
 			'Subscription-Id' = [Subscription_Id],
 			'Service-Information' = [ServiceInformation]},
@@ -633,6 +632,7 @@ diameter_accounting_interim(SId, Username, RequestNum, Usage) ->
 			'User-Name' = [Username],
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
 			'CC-Request-Number' = RequestNum,
+			'Event-Timestamp' = calendar:universal_time(),
 			'Multiple-Services-Credit-Control' = [MultiServices_CC],
 			'Subscription-Id' = [Subscription_Id],
 			'Service-Information' = [ServiceInformation]},

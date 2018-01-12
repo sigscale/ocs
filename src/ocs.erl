@@ -34,6 +34,7 @@
 		query_users/3, update_user/3]).
 -export([add_product/1, find_product/1, get_products/0, delete_product/1,
 		query_product/7]).
+-export([add_pla/1, find_pla/1, get_plas/0, delete_pla/1]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
@@ -812,6 +813,27 @@ add_product1(Product) ->
 			{error, Reason}
 	end.
 
+-spec add_pla(Pla) -> Result
+	when
+		Pla :: #pla{},
+		Result :: {ok, #pla{}} | {error, Reason},
+		Reason :: validation_failed | term().
+%% @doc Add a new entry in pricing logic algorithm table.
+add_pla(#pla{} = Pla) ->
+	F = fun() ->
+		TS = erlang:system_time(?MILLISECOND),
+		N = erlang:unique_integer([positive]),
+		R = Pla#pla{last_modified = {TS, N}},
+		ok = mnesia:write(pla, R, write),
+		R 
+	end,
+	case mnesia:transaction(F) of
+		{atomic, Pla1} ->
+			{ok, Pla1};
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+
 -spec find_product(ProductID) -> Result
 	when
 		ProductID :: string(),
@@ -935,6 +957,71 @@ query_product1([#product{price = Prices} = Product | T], PriceName, Acc) ->
 			query_product1(T, PriceName, Acc);
 		_ ->
 			query_product1(T, PriceName, [Product | Acc])
+	end.
+
+-spec get_plas() -> Result
+	when
+		Result :: [#pla{}] | {error, Reason},
+		Reason :: term().
+%% @doc Get all entries in the pla table.
+get_plas() ->
+	MatchSpec = [{'_', [], ['$_']}],
+	F = fun(F, start, Acc) ->
+				F(F, mnesia:select(pla, MatchSpec,
+						?CHUNKSIZE, read), Acc);
+			(_F, '$end_of_table', Acc) ->
+				lists:flatten(lists:reverse(Acc));
+			(_F, {error, Reason}, _Acc) ->
+				{error, Reason};
+			(F,{Pla, Cont}, Acc) ->
+				F(F, mnesia:select(Cont), [Pla | Acc])
+	end,
+	case mnesia:transaction(F, [F, start, []]) of
+		{aborted, Reason} ->
+			{error, Reason};
+		{atomic, Result} ->
+			Result
+	end.
+
+-spec find_pla(ID) -> Result
+	when
+		ID :: string(),
+		Result :: {ok, Pla} | {error, Reason},
+		Pla :: #pla{},
+		Reason :: term().
+%% @doc Find pricing logic algorithm by id.
+find_pla(ID) ->
+	F = fun() ->
+		case mnesia:read(pla, ID) of
+			[Entry] ->
+				Entry;
+			[] ->
+				throw(not_found)
+		end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, Pla} ->
+			{ok, Pla};
+		{aborted, {throw, not_found}} ->
+			{error, not_found};
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+
+-spec delete_pla(ID) -> Result
+	when
+		ID :: string(),
+		Result :: ok.
+%% @doc Delete an entry from the pla table.
+delete_pla(ID) ->
+	F = fun() ->
+		mnesia:delete(pla, ID, write)
+	end,
+	case mnesia:transaction(F) of
+		{atomic, _} ->
+			ok;
+		{aborted, Reason} ->
+			exit(Reason)
 	end.
 
 -type password() :: [50..57 | 97..104 | 106..107 | 109..110 | 112..116 | 119..122].

@@ -104,7 +104,7 @@
 						</paper-tooltip>
 					</div>
 					<div>
-						<span>Bundled Products</span>
+						<span>[[i18n.bundleProducts]]</span>
 							<paper-icon-button
 								id="onClickBundleUpdate"
 								suffix
@@ -162,7 +162,7 @@
 						</paper-tooltip>
 					</div>
 					<div>
-						<span>Characteristics</span>
+						<span>[[i18n.characteristics]]</span>
 						<paper-icon-button
 								id="updateOnClickOfferChars"
 								suffix
@@ -173,25 +173,16 @@
 					<iron-collapse id="updateAddPriceOfferChars">
 						<div>
 							<paper-input
-									id="updateDestPrefixPrice"
-									type="string"
-									label="[[i18n.priceTable]]">
+									id="updateReserveSession"
+									allowed-pattern="[0-9mh]"
+									pattern="^[0-9]+[mh]?$"
+									auto-validate
+									label="[[i18n.resSession]]"
+									value=0>
 							</paper-input>
 							<paper-tooltip>
-								<i18n-msg msgid="priceTableTool">
-									Prefix of Destination Price Table
-								</i18n-msg>
-							</paper-tooltip>
-						</div>
-						<div>
-							<paper-input
-									id="updateDestPrefixTariff"
-									type="string"
-									label="[[i18n.tariffTable]]">
-							</paper-input>
-							<paper-tooltip>
-								<i18n-msg msgid="tariffTableTool">
-									Prefix of Destination Tariff Table
+								<i18n-msg msgid="resSessionTool">
+									Access accept session time is reserved seconds
 								</i18n-msg>
 							</paper-tooltip>
 						</div>
@@ -451,7 +442,7 @@
 						</paper-tooltip>
 					</div>
 					<div>
-						<span>Characteristics</span>
+						<span>[[i18n.characteristics]]</span>
 						<paper-icon-button
 								id="updateOnClickChars"
 								suffix
@@ -461,35 +452,7 @@
 					</div>
 					<iron-collapse id="updateAddPriceChars">
 						<div>
-							<paper-input
-									id="updateAddPriceCharReserveTime"
-									type="number"
-									label="[[i18n.reserveTime]]"
-									value=0
-									onfocus="updatePriceCharsTimeStart.hide(); updatePriceCharsTimeEnd.hide();">
-							</paper-input>
-							<paper-tooltip>
-								<i18n-msg msgid="priceReserveTimeTool">
-									Amount of time to reserve on RADIUS initial/interim accounting request
-								</i18n-msg>
-							</paper-tooltip>
-						</div>
-						<div>
-							<paper-input
-									id="updateAddPriceCharReserveBytes"
-									type="number"
-									label="[[i18n.reserveBytes]]"
-									value=0
-									onfocus="updatePriceCharsTimeStart.hide(); updatePriceCharsTimeEnd.hide();">
-							</paper-input>
-							<paper-tooltip>
-								<i18n-msg msgid="updatePriceReserveBytesTool">
-									Amount of bytes to reserve on RADIUS initial/interim accounting request
-								</i18n-msg>
-							</paper-tooltip>
-						</div>
-						<div>
-							<span>Time of Day Range</span>
+							<span>[[i18n.timeDay]]</span>
 							<paper-icon-button
 								id="updateOnClickCharsTime"
 								suffix
@@ -536,15 +499,77 @@
 							</div>
 						</iron-collapse>
 						<div>
+							<span>[[i18n.callDirection]]</span>
+							<paper-icon-button
+								id="updateOnClickCall"
+								suffix
+								icon="arrow-drop-down"
+								on-click="_updateOnClickCall">
+							</paper-icon-button>
+						</div>
+						<iron-collapse id="updateAddCall">
+							<div>
+								<paper-checkbox id="updateCheckIn">
+									<i18n-msg msgid="callIncome">
+										Incoming
+									</i18n-msg>
+								</paper-checkbox>
+								<paper-tooltip>
+									<i18n-msg msgid="callIncomeUpdateTool">
+										Update incoming call direction(answer)
+									</i18n-msg>
+								</paper-tooltip>
+							</div>
+							<div>
+								<paper-checkbox id="updateCheckOut">
+									<i18n-msg msgid="callOutgoing">
+										Outgoing
+									</i18n-msg>
+								</paper-checkbox>
+								<paper-tooltip>
+									<i18n-msg msgid="callOutgoingUpdateTool">
+										Update outgoing call direction(originate)
+									</i18n-msg>
+								</paper-tooltip>
+							</div>
+						</iron-collapse>
+						<div>
 							<paper-input
-									id="updateRatedPrice"
-									type="string"
-									label="[[i18n.ratedPrice]]"
+									id="updateAddPriceCharReserveTime"
+									type="number"
+									label="[[i18n.reserveTime]]"
+									value=0
 									onfocus="updatePriceCharsTimeStart.hide(); updatePriceCharsTimeEnd.hide();">
 							</paper-input>
 							<paper-tooltip>
-								<i18n-msg msgid="ratePriceiTool">
-									Rate of the price
+								<i18n-msg msgid="priceReserveTimeTool">
+									Amount of time to reserve on RADIUS initial/interim accounting request
+								</i18n-msg>
+							</paper-tooltip>
+						</div>
+						<div>
+							<paper-input
+									id="updateAddPriceCharReserveBytes"
+									type="number"
+									label="[[i18n.reserveBytes]]"
+									value=0
+									onfocus="updatePriceCharsTimeStart.hide(); updatePriceCharsTimeEnd.hide();">
+							</paper-input>
+							<paper-tooltip>
+								<i18n-msg msgid="updatePriceReserveBytesTool">
+									Amount of bytes to reserve on RADIUS initial/interim accounting request
+								</i18n-msg>
+							</paper-tooltip>
+						</div>
+						<div>
+							<paper-input
+									id="updateDestPrefixTariff"
+									type="string"
+									label="[[i18n.tariffTable]]">
+							</paper-input>
+							<paper-tooltip>
+								<i18n-msg msgid="tariffTableTool">
+									Prefix of Destination Tariff Table
 								</i18n-msg>
 							</paper-tooltip>
 						</div>
@@ -751,7 +776,7 @@
 									class="dropdown-content"
 									selected="2">
 								<paper-item>
-									Hourly	
+									Hourly
 								</paper-item>
 								<paper-item>
 									Daily
@@ -875,6 +900,9 @@
 						return [];
 					}
 				},
+				characteristics: {
+					type: Array,
+				},
 				selected: {
 					type: Number,
 					value: 0
@@ -922,6 +950,10 @@
 					observer: '_updateProductEndDateAltPick'
 				}
 			},
+			listeners: {
+				'updateCheckIn.checked-changed': 'updateCheckInChanged',
+				'updateCheckOut.checked-changed': 'updateCheckOutChanged'
+			},
 			initialize: function(item) {
 				this.$.getProductUpdateAjax.generateRequest();
 				this.$.updateProductModal.open();
@@ -932,6 +964,12 @@
 				}
 				this.$.updateOffStart.value = item.startDate;
 				this.$.updateOffEnd.value = item.endDate;
+				this.characteristics = item.prodSpecCharValueUse;
+				for (var indexCha in item.prodSpecCharValueUse) {
+					if(item.prodSpecCharValueUse[indexCha].name == "radiusReserveSessionTime") {
+						this.$.updateReserveSession.value = item.prodSpecCharValueUse[indexCha].productSpecCharacteristicValue[0].value;
+					}
+				}
 				for(var index in item.prices) {
 					var newPrice = new Object();
 					newPrice.name = item.prices[index].name;
@@ -975,8 +1013,11 @@
 							if(prodPrice.prodSpecCharValueUse[indexChar].name == "timeOfDayRange") {
 								specChar[indexChar] = {name: "timeOfDayRange", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
 							}
-							if(prodPrice.prodSpecCharValueUse[indexChar].name == "ratePrice") {
-								specChar[indexChar] = {name: "ratePrice", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
+							if(prodPrice.prodSpecCharValueUse[indexChar].name == "callDirection") {
+								specChar[indexChar] = {name: "callDirection", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
+							}
+							if(prodPrice.prodSpecCharValueUse[indexChar].name == "destPrefixTariffTable") {
+								specChar[indexChar] = {name: "destPrefixTariffTable", value: prodPrice.prodSpecCharValueUse[indexChar].productSpecCharacteristicValue[0].value};
 							}
 						}
 					}
@@ -1107,6 +1148,25 @@
 					this.$.updateOnClickCharsTime.icon="arrow-drop-down"
 				}
 			},
+			_updateOnClickCall: function() {
+				if(this.$.updateAddCall.opened == false) {
+					this.$.updateAddCall.show();
+					this.$.updateOnClickCall.icon="arrow-drop-up"
+				} else {
+					this.$.updateAddCall.hide();
+					this.$.updateOnClickCall.icon="arrow-drop-down"
+				}
+			},
+			updateCheckInChanged: function(event) {
+				if(event.detail.value) {
+					this.$.updateCheckOut.checked = false;
+				}
+			},
+			updateCheckOutChanged: function(event) {
+				if(event.detail.value) {
+					this.$.updateCheckIn.checked = false;
+				}
+			},
 			_onClickBundleUpdate: function() {
 				if(this.$.addBundleUpdate.opened == false) {
 					this.$.addBundleUpdate.show();
@@ -1141,11 +1201,13 @@
 						this.$.updatePricePeriod.selected = null;
 						this.$.updateAddPriceCharReserveTime.value = null;
 						this.$.updateAddPriceCharReserveBytes.value = null;
-						this.$.updateDestPrefixPrice.value = null;
+						this.$.updateDestPrefixTariff.value = null;
+						this.$.updateReserveSession.value = null;
 						this.$.updateDestPrefixTariff.value = null;
 						this.$.updateTimeOfDayStart.value = null;
 						this.$.updateTimeOfDayEnd.value = null;
-						this.$.updateRatedPrice.value = null;
+						this.$.updateCheckIn.checked = false;
+						this.$.updateCheckOut.checked = false;
 						this.$.addUpdatePriceAlteration.selected = null;
 					} else {
 						this.$.updatePriceDesc.value = this.prices[indexUpdatePrice].description;
@@ -1210,6 +1272,9 @@
 						var prodPriceUpdate = this.prices[indexUpdatePrice];
 						if(prodPriceUpdate.prodSpecCharValueUse) {
 							for (var indexCharVal in prodPriceUpdate.prodSpecCharValueUse) {
+								if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "destPrefixTariffTable") {
+									this.$.updateDestPrefixTariff.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
+								}
 								if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "radiusReserveTime") {
 									this.$.updateAddPriceCharReserveTime.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
 								}
@@ -1220,8 +1285,12 @@
 									this.$.updateTimeOfDayStart.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
 									this.$.updateTimeOfDayEnd.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
 								}
-								if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "ratePrice") {
-									this.$.updateRatedPrice.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
+								if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "callDirection") {
+									if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value == "originate") {
+										this.$.updateCheckOut.checked = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
+									} else if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value == "answer") {
+										this.$.updateCheckIn.checked = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
+									}
 								}
 							}
 						}
@@ -1331,19 +1400,16 @@
 					endDateTimeObject.value = this.$.updateOffEnd.value;
 					offerNew.push(endDateTimeObject);
 				}
-				if(this.$.updateDestPrefixPrice.value) {
-					var destPrice = new Object();
-					destPrice.op = "add";
-					destPrice.path = "/destPrefixPriceTable";
-					destPrice.value = this.$.updateDestPrefixPrice.value;
-					offerNew.push(destPrice);
-				}
-				if(this.$.updateDestPrefixTariff.value) {
-					var destTariff = new Object();
-					destTariff.op = "add";
-					destTariff.path = "/destPrefixTariffTable";
-					destPrice.value = this.$.updateDestPrefixTariff.value;
-					offerNew.push(destTariff);
+				if(this.$.updateReserveSession.value) {
+					function checkName(char) {
+						return char.name == "radiusReserveSessionTime";
+					}
+					var indexChar = this.characteristics.findIndex(checkName);
+					var reserveSession = new Object();
+					reserveSession.op = "add";
+					reserveSession.path = "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
+					reserveSession.value = this.$.updateReserveSession.value;
+					offerNew.push(reserveSession);
 				}
 				ajax.body = JSON.stringify(offerNew);
 				ajax.generateRequest();
@@ -1440,7 +1506,7 @@
 						updatePriceNew.push(priceSize);
 					}
 				}
-				if(this.$.updatePricePerioddrop.value) {
+				if(this.$.updatePricePerioddrop.value && !this.$.updatePricePerioddrop.disabled) {
 					var priceCharge = new Object();
 					priceCharge.op = "add";
 					priceCharge.path = "/productOfferingPrice/" + indexPrices + "/recurringChargePeriod";
@@ -1467,58 +1533,98 @@
 						return charVal.name == "radiusReserveTime";
 					}
 					var indexChar = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
-					var charReserve = new Object();
-					charReserve.op = "add";
-					charReserve.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
-					charReserve.value = this.$.updateAddPriceCharReserveTime.value;
-					updatePriceNew.push(charReserve);
+					if(indexChar != -1) {
+						var charReserve = new Object();
+						charReserve.op = "add";
+						charReserve.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
+						charReserve.value = this.$.updateAddPriceCharReserveTime.value;
+						updatePriceNew.push(charReserve);
+					}
+				}
+				if(this.$.updateDestPrefixTariff.value) {
+					function checkName(char) {
+						return char.name == "destPrefixTariffTable";
+					}
+					var indexChar = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkName);
+					if(indexChar != -1) {
+						var destTariff = new Object();
+						destTariff.op = "add";
+						destTariff.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
+						destTariff.value = this.$.updateDestPrefixTariff.value;
+						updatePriceNew.push(destTariff);
+					}
 				}
 				if(this.$.updateAddPriceCharReserveBytes.value) {
 					function checkChar1(charVal) {
 						return charVal.name == "radiusReserveOctets";
 					}
 					var indexChar1 = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
-					var charResBytes = new Object();
-					charResBytes.op = "add";
-					charResBytes.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar1 + "/productSpecCharacteristicValue/0/value";
-					charResBytes.value = this.$.updateAddPriceCharReserveBytes.value;
-					updatePriceNew.push(charResBytes);
+					if(indexChar1 != -1) {
+						var charResBytes = new Object();
+						charResBytes.op = "add";
+						charResBytes.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar1 + "/productSpecCharacteristicValue/0/value";
+						charResBytes.value = this.$.updateAddPriceCharReserveBytes.value;
+						updatePriceNew.push(charResBytes);
+					}
+				}
+				if(this.$.updateCheckIn.checked || this.$.updateCheckOut.checked) {
+					function checkCall1(callVal) {
+						return callVal.name == "callDirection";
+					}
+					var indexCall1 = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkCall1);
+					if(indexCall1 != -1) {
+						var call = new Object();
+						call.op = "add";
+						call.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCall1 + "/productSpecCharacteristicValue/0/value";
+						if(this.$.updateCheckIn.checked) {
+							call.value = "answer";
+						} else if(this.$.updateCheckOut.checked) {
+							call.value = "originate";
+						}
+						updatePriceNew.push(call);
+					}
 				}
 				if(this.$.updateTimeOfDayStart.value) {
 					function checkChar1(charVal) {
 						return charVal.name == "timeOfDayRange";
 					}
 					var indexChar2 = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
-					var timeDay = new Object();
-					timeDay.op = "add";
-					timeDay.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value";
-					timeDay.value = this.$.updateTimePickerStart.rawValue;
-					updatePriceNew.push(timeDay);
+					if(indexChar2 != -1) {
+						var timeDay = new Object();
+						timeDay.op = "add";
+						timeDay.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value";
+						timeDay.value = this.$.updateTimePickerStart.rawValue;
+						updatePriceNew.push(timeDay);
+					}
 				}
 				if(this.$.updateTimeOfDayEnd.value) {
 					function checkChar1(charVal) {
 						return charVal.name == "timeOfDayRange";
 					}
 					var indexChar2 = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
-					var timeDayEnd = new Object();
-					timeDayEnd.op = "add";
-					timeDayEnd.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value";
-					timeDayEnd.value = this.$.updateTimePickerEnd.rawValue;
-					updatePriceNew.push(timeDayEnd);
-				}
-				if(this.$.updateRatedPrice.value) {
-					function checkChar1(charVal) {
-						return charVal.name == "ratePrice";
+					if(indexChar2 != -1) {
+						var timeDayEnd = new Object();
+						timeDayEnd.op = "add";
+						timeDayEnd.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value";
+						timeDayEnd.value = this.$.updateTimePickerEnd.rawValue;
+						updatePriceNew.push(timeDayEnd);
 					}
-					var indexChar3 = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
-					var priceRate = new Object();
-					priceRate.op = "add";
-					priceRate.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar3 + "/productSpecCharacteristicValue/0/value";
-					priceRate.value = this.$.updateRatedPrice.value; 
-					updatePriceNew.push(priceRate);
 				}
 				ajax.body = JSON.stringify(updatePriceNew);
 				ajax.generateRequest();
+				this.$.updatePriceDesc.value = null;
+				this.$.updatePriceSize.value = null;
+				this.$.updatePriceTypedrop.value = null;
+				this.$.updatePricePerioddrop.value = null;
+				this.$.updateAddPriceCharReserveTime.value = null;
+				this.$.updateDestPrefixTariff.value = null;
+				this.$.updateAddPriceCharReserveBytes.value = null;
+				this.$.updateCheckIn.checked = false;
+				this.$.updateCheckOut.checked = false;
+				this.$.updateTimeOfDayStart.value = null;
+				this.$.updateTimeOfDayEnd.value = null;
+				this.$.updatePriceAmount.value = null;
+				this.$.updatePriceUnitsdrop.value = null;
 			}, 
 			_updateProductPriceResponse: function(event) {
 				this.$.updateProductModal.close();
@@ -1738,7 +1844,6 @@
 				charAddObj.priceCharReserveBytes = this.$.updateAddPriceCharReserveBytes.value;
 				charAddObj.timeOfDayStart = this.$.updateTimeOfDayStart.value;
 				charAddObj.timeOfDayEnd = this.$.updateTimeOfDayEnd.value;
-				charAddObj.ratePrice = this.$.updateRatedPrice.value;
 				updatePriceNew.prodSpecCharValueUse = charAddObj;
 				if(this.$.addUpdatePriceDrop.value) {
 					function checkAlt(alts) {
@@ -1846,11 +1951,6 @@
 						timeDayEnd.value = this.$.updateTimePickerEnd.rawValue;
 						updatePriceNew.push(timeDayEnd);
 					}
-					if(this.$.updateRatedPrice.value) {
-						var priceRate = new Object();
-						priceRate.op = "add";
-						priceRate.path = "/productOfferingPrice/" + indexPrices + "/ratePrice";
-					}
 					ajax.body = JSON.stringify(updatePriceNew1);
 					ajax.generateRequest();
 					this.$.updatePriceName.value = null;
@@ -1865,11 +1965,12 @@
 					this.$.updatePricePeriod.value = null;
 					this.$.updateAddPriceCharReserveTime.value = null;
 					this.$.updateAddPriceCharReserveBytes.value = null;
-					this.$.updateDestPrefixPrice.value = null;
 					this.$.updateDestPrefixTariff.value = null;
+					this.$.updateReserveSession.value = null;
 					this.$.updateTimeOfDayStart.value = null;
 					this.$.updateTimeOfDayEnd.value = null;
-					this.$.updateRatedPrice.value = null;
+					this.$.updateCheckIn.checked = false;
+					this.$.updateCheckOut.checked = false;
 					this.$.addUpdatePriceAlteration.selected = null;
 					document.getElementById("updateProductToastSuccess").open();
 				} else {
@@ -2030,11 +2131,12 @@
 				this.$.updateUnitDrop.selected = null;
 				this.$.updateAddPriceCharReserveTime.value = null;
 				this.$.updateAddPriceCharReserveBytes.value = null;
-				this.$.updateDestPrefixPrice.value = null;
 				this.$.updateDestPrefixTariff.value = null;
+				this.$.updateReserveSession.value = null;
 				this.$.updateTimeOfDayStart.value = null;
 				this.$.updateTimeOfDayEnd.value = null;
-				this.$.updateRatedPrice.value = null;
+				this.$.updateCheckIn.checked = null;
+				this.$.updateCheckOut.checked = null;
 				this.$.updateProductModal.close();
 			}
 		});

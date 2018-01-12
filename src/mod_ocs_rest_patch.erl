@@ -117,6 +117,9 @@ do_patch("application/merge-patch+json", Body, Resource, ModData, Etag,
 do_patch("application/merge-patch+json", Body, Resource, ModData, Etag,
 		["productInventoryManagement", "v2", "product", SubId]) ->
 	do_response(ModData, Resource:patch_product_inventory(SubId, Etag, Body));
+do_patch("application/json-patch+json", Body, Resource, ModData, Etag,
+		["catalogManagement", "v2", "pla", ProdId]) ->
+	do_response(ModData, Resource:patch_pla(ProdId, Etag, Body));
 do_patch(_, _, _, _, _, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{break, [{response, {404, Response}}]}.

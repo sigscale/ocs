@@ -95,7 +95,9 @@ do_post(Resource, ModData, Body, ["balanceManagement", "v1", Id, "balanceTopups"
 do_post(Resource, ModData, Body, ["catalogManagement", "v2", "productOffering"]) ->
 	do_response(ModData, Resource:add_product_offering(Body));
 do_post(Resource, ModData, Body, ["productInventoryManagement", "v2", "product"]) ->
-	do_response(ModData, Resource:add_product_inventory(Body)).
+	do_response(ModData, Resource:add_product_inventory(Body));
+do_post(Resource, ModData, Body, ["catalogManagement", "v2", "pla"]) ->
+	do_response(ModData, Resource:add_pla(Body)).
 
 %% @hidden
 do_response(#mod{data = Data} = ModData, {ok, Headers, ResponseBody}) ->

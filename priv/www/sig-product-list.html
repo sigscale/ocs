@@ -157,6 +157,10 @@
 			on-response="_getProductResponse"
 			on-error="_getProductError">
 		</iron-ajax>
+		<iron-ajax id="getTableAjax"
+			on-response="_getTableResponse"
+			on-error="_getTableError">
+		</iron-ajax>
 	</template>
 	<script>
 		var etag;
@@ -249,6 +253,9 @@
 							ajax.headers['If-Range'] = etag;
 						}
 						ajax.generateRequest();
+						var ajax1 = document.getElementById('getTableAjax');
+						ajax1.url = "/catalogManagement/v2/pla";
+						ajax1.generateRequest();
 					};
 				}
 			},
@@ -305,20 +312,37 @@
 						newRecord.prices = results[index].productOfferingPrice;
 					}
 					newRecord.bundledProductOffering = results[index].bundledProductOffering;
+					newRecord.prodSpecCharValueUse = results[index].prodSpecCharValueUse;
 					vaadinItems[index] = newRecord;
-					for (var indexCharUse in results[index].prodSpecCharValueUse) {
-						function exist(value){
-							return results[index].prodSpecCharValueUse[indexCharUse].productSpecCharacteristicValue[0].value == value;
-						}
-						if((results[index].prodSpecCharValueUse[indexCharUse].name =="destPrefixPriceTable"								|| results[index].prodSpecCharValueUse[indexCharUse].name ==
-								"destPrefixtarrifTable") && !this.tables.some(exist)) {
-							this.push('tables', results[index].prodSpecCharValueUse[indexCharUse].productSpecCharacteristicValue[0].value);
-						}
-					}
 				}
 				cbProduct(vaadinItems);
 			},
 			_getProductError: function(event) {
+				this.$.productGrid.size = 0;
+				cbProduct([]);
+				if (!lastItem && event.detail.request.xhr.status != 416) {
+					this.$.getProductErrorToast.text = event.detail.request.xhr.statusText;
+					this.$.getProductErrorToast.open();
+				}
+			},
+			_getTableResponse: function(event) {
+				var grid = this.$.productGrid;
+				var results = event.detail.xhr.response;
+				for (var indexTable in results) {
+					function checkExist(tab) {
+						return tab.id == results[indexTable].id;
+					}
+					if(!this.tables.some(checkExist)) {
+						var tableRecord = new Object();
+						tableRecord.id = results[indexTable].id;
+						tableRecord.href = results[indexTable].href;
+						tableRecord.description = results[indexTable].description;
+						tableRecord.plaSpecId = results[indexTable].plaSpecId;
+						this.push('tables', tableRecord);
+					}
+				}
+			},
+			_getTableError: function(event) {
 				this.$.productGrid.size = 0;
 				cbProduct([]);
 				if (!lastItem && event.detail.request.xhr.status != 416) {

@@ -9,6 +9,8 @@
 <link rel="import" href="i18n-msg/i18n-msg-behavior.html">
 <link rel="import" href="iron-pages/iron-pages.html">
 <link rel="import" href="iron-selector/iron-selector.html">
+<link rel="import" href="paper-dialog/paper-dialog.html">
+<link rel="import" href="paper-button/paper-button.html">
 <link rel="import" href="paper-menu/paper-menu.html"/>
 <link rel="import" href="paper-menu/paper-submenu.html" />
 <link rel="import" href="paper-item/paper-icon-item.html">
@@ -40,6 +42,10 @@
 <link rel="import" href="sig-product-list.html">
 <link rel="import" href="sig-product-add.html">
 <link rel="import" href="sig-product-update.html">
+<link rel="import" href="sig-prefix-list.html">
+<link rel="import" href="sig-prefix-add.html">
+<link rel="import" href="sig-prefix-update.html">
+<link rel="import" href="sig-prefix-table-add.html">
 
 <dom-module id="sig-app">
 	<template>
@@ -62,6 +68,14 @@
 				height: 100%;
 				top: 64px;
 			}
+			paper-dialog {
+				overflow: auto;
+			}
+			paper-toolbar{
+				margin-top: 0px;
+				color: white;
+				background-color: #bc5100;
+			}
 			paper-progress {
 				display: block;
 				width: 100%;
@@ -77,12 +91,19 @@
 			.icon-style {
 				min-height: 10px;
 			}
-			.add-button {
+			.add-button{
+				color: black;
+			}
+			.ok-button {
 				background-color: var(--paper-lime-a700);
 				color: black;
 				width: 8em;
 			}
 			.cancel-button {
+				color: black;
+			}
+			.delete-buttons {
+				background: #EF5350;
 				color: black;
 			}
 			.sublist paper-icon-item {
@@ -137,7 +158,7 @@
 				<sig-accounting-list></sig-accounting-list>
 				<sig-ipdr-list></sig-ipdr-list>
 				<sig-http-list></sig-http-list>
-				<sig-prefix-list tables="[[tables]]"></sig-prefix-list>
+				<sig-prefix-list id="pre" table={table1}></sig-prefix-list>
 			</iron-pages>
 			<app-drawer-layout>
 				<app-drawer
@@ -158,43 +179,80 @@
 								</paper-icon-item>
 								<paper-menu id="productMenu" class="menu-content sublist">
 									<paper-icon-item
-										id="pageOffer"
-										onclick="drawer.toggle()"
-										class="menuitem">
+											id="pageOffer"
+											onclick="drawer.toggle()"
+											class="menuitem">
+										<i18n-msg msgid="offering">
 											Offerings
-										<iron-icon icon ="maps:local-offer" item-icon></iron-icon>
+										</i18n-msg>
+									<iron-icon icon ="maps:local-offer" item-icon></iron-icon>
 									</paper-icon-item>
 									<paper-icon-item
-										id="pagePrices"
-										onclick="drawer.toggle()"
-										class="menuitem" hidden>
-											Prices
-										<iron-icon icon ="editor:monetization-on" item-icon></iron-icon>
+											id="pagePrices"
+											onclick="drawer.toggle()"
+											class="menuitem" hidden>
+												Prices
+									<iron-icon icon ="editor:monetization-on" item-icon></iron-icon>
 									</paper-icon-item>
 									<paper-submenu>
 										<paper-icon-item
+												on-tap="disTableList"
 												class="menu-trigger menuitem">
 											<iron-icon icon="icons:folder-open" item-icon></iron-icon>
 												<i18n-msg msgid="table">
 													Tables
 												</i18n-msg>
 										</paper-icon-item>
-										<paper-menu id="tableMenu" class="menu-content sublist">
-											<template is="dom-repeat" items="[[tables]]">
-												<paper-icon-item
-													id="pagePrefix"
-													onclick="drawer.toggle()"
-													class="menuitem">
-													<iron-icon icon ="icons:view-list" item-icon></iron-icon>
-														<paper-item>
-															{{item}}
-														</paper-item>
-												</paper-icon-item>
-											</template>
-										</paper-menu>
 									</paper-submenu>
 								</paper-menu>
 							</paper-submenu>
+							<paper-dialog
+									id="tableList">
+								<paper-toolbar>
+									<h2>[[i18n.listTable]]</h2>
+								</paper-toolbar>
+								<div>
+									<template is="dom-repeat" items="[[tables]]">
+										<paper-icon-item
+												id="pagePrefix"
+												class="menuitem">
+											<iron-icon icon ="icons:view-list" item-icon></iron-icon>
+												{{item.id}}
+										</paper-icon-item>
+									</template>
+								</div>
+								<div class="buttons">
+									<paper-button
+											raised
+											onclick="drawer.toggle()"
+											on-tap="okClick"
+											class="ok-button">
+										<i18n-msg msgid="ok">
+											Ok
+										</i18n-msg>
+									</paper-button>
+									<paper-button
+											dialog-dismiss
+											class="cancel-button">
+										<i18n-msg msgid="cancel">
+											Cancel
+										</i18n-msg>
+									</paper-button>
+									<paper-button
+											raised
+											class="add-button"
+											on-tap="addTableClick">
+										<i18n-msg msgid="add">
+											Add
+										</i18n-msg>
+									</paper-button>
+									<paper-button
+											raised
+											class="delete-buttons">
+										Delete
+									</paper-button>
+								</div>
+							</paper-dialog>
 							<paper-icon-item
 									id="pageSubscribers"
 									onclick="drawer.toggle()"
@@ -287,6 +345,8 @@
 		<sig-prefix-add></sig-prefix-add>
 		<sig-user-update></sig-user-update>
 		<sig-product-update id="updateProduct"></sig-product-update>
+		<sig-prefix-update></sig-prefix-update>
+		<sig-prefix-table-add></sig-prefix-table-add>
 	</template>
 	<script>
 		document.addEventListener('HTMLImportsLoaded', function() {
@@ -296,16 +356,19 @@
 		Polymer ({
 			is: 'sig-app',
 			behaviors: [i18nMsgBehavior],
-			properties: {
-				tables: {
-					type: Array,
-					value: function() {
-						return[];
-					}
-				},
-			},
 			listeners: {
 				'pageSelection.iron-select': 'loadElement'
+			},
+			okClick: function() {
+				this.$.loadPage.selected = 8;
+			},
+			disTableList: function() {
+				this.$.tableList.open();
+				this.$.loadPage.selected = 0;
+			},
+			addTableClick: function() {
+				this.$.tableList.close();
+				document.getElementById("addPrefixTableModal").open();
 			},
 			loadElement: function(event) {
 				switch(event.detail.item.getAttribute('id')) {
@@ -317,19 +380,16 @@
 						this.$.loadPage.selected = 0;
 						this.$.loadPage.selected = 1;
 						this.$.productMenu.selected = null;
-                  this.$.tableMenu.selected = null;
 						this.$.logMenu.selected = null;
 						break;
 					case 'pageClients':
 						this.$.loadPage.selected = 2;
 						this.$.productMenu.selected = null;
-                  this.$.tableMenu.selected = null;
 						this.$.logMenu.selected = null;
 						break;
 					case 'pageUsers':
 						this.$.loadPage.selected = 3;
 						this.$.productMenu.selected = null;
-                  this.$.tableMenu.selected = null;
 						this.$.logMenu.selected = null;
 						break;
 					case 'pageAccess':
@@ -345,8 +405,8 @@
 						this.$.loadPage.selected = 7;
 						break;
 					case 'pagePrefix':
-                  this.$.loadPage.selected = 8;
-                  break;
+						this.$.loadPage.selected = 8;
+						break;
 				}
 			},
 			help: function(element) {
@@ -381,8 +441,8 @@
 						document.getElementById('getHttp').generateRequest();
 						break;
 					case 8:
-                  document.getElementById('prefixGrid').generateRequest();
-                  break;
+						document.getElementById('prefixGrid').generateRequest();
+						break;
 				}
 			},
 			download: function() {

@@ -139,10 +139,10 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() -> 
-[out_of_credit_radius, out_of_credit_diameter].
-%	[simple_authentication_radius, out_of_credit_radius, bad_password_radius,
-%	unknown_username_radius, simple_authentication_diameter, bad_password_diameter, 
-%	unknown_username_diameter, out_of_credit_diameter, session_termination_diameter].
+	[simple_authentication_radius, out_of_credit_radius, bad_password_radius,
+	unknown_username_radius, simple_authentication_diameter, bad_password_diameter,
+	unknown_username_diameter, out_of_credit_diameter, session_termination_diameter,
+	authenticate_voice_call].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -441,6 +441,55 @@ session_termination_diameter(Config) ->
 	OriginRealm = list_to_binary(Realm),
 	#diameter_nas_app_STA{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
 			'Origin-Host' = OriginHost, 'Origin-Realm' = OriginRealm} = Answer1.
+
+authenticate_voice_call() ->
+	[{userdata, [{doc, "Successful
+		authenticate and authorize voice call"}]}].
+
+authenticate_voice_call(Config) ->
+	ProdID = ocs:generate_password(),
+	PackagePrice = 1,
+	PackageSize = 2,
+	Price = #price{name = "voice", type = usage,
+		units = seconds, size = PackageSize, amount = PackagePrice},
+	Product = #product{name = ProdID, price = [Price],
+		specification = "9"},
+	{ok, _} = ocs:add_product(Product),
+	Id = 1,
+	NasId = ?config(nas_id, Config),
+	SharedSecret = ct:get_config(radius_shared_secret),
+	{ok, _} = ocs:add_client({127, 0, 0, 1}, 3799, radius, SharedSecret, false),
+	CallingStationId = "99771234567",
+	CalledStationId = "99771234568",
+	PeerPassword = ocs:generate_password(),
+	Buckets = [#bucket{units = cents, remain_amount = 3000}],
+	RadiusReserveSessionTime = 60,
+	{ok, _} = ocs:add_subscriber(CallingStationId, PeerPassword,
+			ProdID, [{"radiusReserveSessionTime", RadiusReserveSessionTime}],
+			Buckets, []),
+	Authenticator = radius:authenticator(),
+	{ok, RadiusConfig} = application:get_env(ocs, radius),
+	{auth, [{AuthAddress, AuthPort, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
+	Socket = ?config(socket, Config),
+	A0 = radius_attributes:new(),
+	A1 = radius_attributes:add(?ServiceType, 12, A0),
+	A2 = radius_attributes:add(?NasPortId, "wlan1", A1),
+	A3 = radius_attributes:add(?NasPortType, 19, A2),
+	A4 = radius_attributes:add(?UserName, CallingStationId, A3),
+	A5 = radius_attributes:add(?AcctSessionId, "826005e0", A4),
+	A6 = radius_attributes:add(?CallingStationId, CallingStationId, A5),
+	A7 = radius_attributes:add(?CalledStationId, CalledStationId, A6),
+	A8 = radius_attributes:add(?NasIdentifier, NasId, A7),
+	AccessReqest = #radius{code = ?AccessRequest, id = Id,
+			authenticator = Authenticator, attributes = A8},
+	AccessReqestPacket= radius:codec(AccessReqest),
+	ok = gen_udp:send(Socket, AuthAddress, AuthPort, AccessReqestPacket),
+	{ok, {AuthAddress, AuthPort, AccessAcceptPacket}} = gen_udp:recv(Socket, 0),
+	#radius{code = ?AccessAccept, id = Id,
+			attributes = Attributes} = radius:codec(AccessAcceptPacket),
+	RadiusAttributes = radius_attributes:codec(Attributes),
+	RadiusReserveSessionTime = radius_attributes:fetch(?SessionTimeout, RadiusAttributes),
+	{ok, _} = ocs:add_client({127, 0, 0, 1}, 3799, radius, SharedSecret, true).
 
 %%--------------------------------------------------------------------------------------
 %% Internal functions
