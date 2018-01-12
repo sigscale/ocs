@@ -1285,7 +1285,11 @@ filter_prices_dir(Direction, Prices) when is_atom(Direction) ->
 %% @hidden
 filter_prices_dir(Direction, [#price{char_value_use = CharValueUse} = P | T], Acc) ->
 	case lists:keyfind("callDirection", #char_value_use.name, CharValueUse) of
-		#char_value_use{values = [#char_value{value = Direction}]} ->
+		#char_value_use{values = [#char_value{value = "answer"}]}
+				when Direction == answer ->
+			filter_prices_dir(Direction, T, [P | Acc]);
+		#char_value_use{values = [#char_value{value = "originate"}]}
+				when Direction == originate ->
 			filter_prices_dir(Direction, T, [P | Acc]);
 		#char_value_use{values = [#char_value{}]} ->
 			filter_prices_dir(Direction, T, Acc);
