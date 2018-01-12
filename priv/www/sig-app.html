@@ -42,10 +42,6 @@
 <link rel="import" href="sig-product-list.html">
 <link rel="import" href="sig-product-add.html">
 <link rel="import" href="sig-product-update.html">
-<link rel="import" href="sig-prefix-list.html">
-<link rel="import" href="sig-prefix-add.html">
-<link rel="import" href="sig-prefix-update.html">
-<link rel="import" href="sig-prefix-table-add.html">
 
 <dom-module id="sig-app">
 	<template>
@@ -158,7 +154,6 @@
 				<sig-accounting-list></sig-accounting-list>
 				<sig-ipdr-list></sig-ipdr-list>
 				<sig-http-list></sig-http-list>
-				<sig-prefix-list id="pre" table={table1}></sig-prefix-list>
 			</iron-pages>
 			<app-drawer-layout>
 				<app-drawer
@@ -240,8 +235,7 @@
 									</paper-button>
 									<paper-button
 											raised
-											class="add-button"
-											on-tap="addTableClick">
+											class="add-button">
 										<i18n-msg msgid="add">
 											Add
 										</i18n-msg>
@@ -342,11 +336,7 @@
 		<sig-client-update></sig-client-update>
 		<sig-ipdr-log-files></sig-ipdr-log-files>
 		<sig-user-add></sig-user-add>
-		<sig-prefix-add></sig-prefix-add>
-		<sig-user-update></sig-user-update>
 		<sig-product-update id="updateProduct"></sig-product-update>
-		<sig-prefix-update></sig-prefix-update>
-		<sig-prefix-table-add></sig-prefix-table-add>
 	</template>
 	<script>
 		document.addEventListener('HTMLImportsLoaded', function() {
@@ -365,10 +355,6 @@
 			disTableList: function() {
 				this.$.tableList.open();
 				this.$.loadPage.selected = 0;
-			},
-			addTableClick: function() {
-				this.$.tableList.close();
-				document.getElementById("addPrefixTableModal").open();
 			},
 			loadElement: function(event) {
 				switch(event.detail.item.getAttribute('id')) {
@@ -404,9 +390,6 @@
 					case 'pageHTTP':
 						this.$.loadPage.selected = 7;
 						break;
-					case 'pagePrefix':
-						this.$.loadPage.selected = 8;
-						break;
 				}
 			},
 			help: function(element) {
@@ -439,9 +422,6 @@
 						break;
 					case 7:
 						document.getElementById('getHttp').generateRequest();
-						break;
-					case 8:
-						document.getElementById('prefixGrid').generateRequest();
 						break;
 				}
 			},
