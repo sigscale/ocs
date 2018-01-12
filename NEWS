@@ -1,3 +1,17 @@
+January 11 2018
+---------------
+	- update UI for call direction pricing
+	- one destination prefix tariff table type
+
+January 08 2018
+---------------
+	- support seperately priced incoming voice calls
+	- add callDirection product characteristic
+
+January 03 2018
+---------------
+	- add radiusReserveSessionTime product characteristic
+
 December 27 2017
 ----------------
 	- Tariff price type

@@ -401,6 +401,8 @@ characteristics([{struct, [{"radiusReserveTime", RadiusReserveTime}]} | T], Acc)
 	characteristics(T, [{"radiusReserveTime", radius_reserve(RadiusReserveTime)} | Acc]);
 characteristics([{struct, [{"radiusReserveOctets", RadiusReserveOctets}]} | T], Acc) ->
 	characteristics(T, [{"radiusReserveOctets", radius_reserve(RadiusReserveOctets)} | Acc]);
+characteristics([{struct, [{"radiusReserveSessionTime", SessionTime}]} | T], Acc) ->
+	characteristics(T, [{"radiusReserveSessionTime", SessionTime} | Acc]);
 characteristics([{"subscriberIdentity", Identity} | T], Acc) ->
 	characteristics(T, [{struct, [{"subscriberIdentity", Identity}]} | Acc]);
 characteristics([{"subscriberPassword", Password} | T], Acc) ->
@@ -411,6 +413,8 @@ characteristics([{"radiusReserveOctets", RadiusReserveOctets} | T], Acc) ->
 	characteristics(T, [{struct, [{"radiusReserveOctets", radius_reserve(RadiusReserveOctets)}]} | Acc]);
 characteristics([{"balanceTopUpDuration", Chars} | T], Acc) ->
 	characteristics(T, [{struct, [{"balanceTopUpDuration", topup_duration(Chars)}]} | Acc]);
+characteristics([{"radiusReserveSessionTime", SessionTime} | T], Acc) ->
+	characteristics(T, [{struct, [{"radiusReserveSessionTime", SessionTime}]} | Acc]);
 characteristics([], Acc) ->
 	lists:reverse(Acc).
 

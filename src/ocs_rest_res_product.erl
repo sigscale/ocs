@@ -29,8 +29,9 @@
 -export([get_catalog/2, get_catalogs/1]).
 -export([get_category/2, get_categories/1]).
 -export([get_product_spec/2, get_product_specs/1]).
+-export([add_pla/1, get_pla/1, get_plas/2, patch_pla/3]).
 -export([get_pla_spec/2, get_pla_specs/1]).
--export([delete_product_offering/1, delete_product_inventory/1]).
+-export([delete_product_offering/1, delete_product_inventory/1, delete_pla/1]).
 
 -include("ocs.hrl").
 
@@ -117,6 +118,38 @@ add_product_inventory(ReqData) ->
 			Body = mochijson:encode(inventory(Subscription)),
 			Etag = ocs_rest:etag(Subscription#subscriber.last_modified),
 			Href = ?inventoryPath ++ binary_to_list(Subscription#subscriber.name),
+			Headers = [{location, Href}, {etag, Etag}],
+			{ok, Headers, Body}
+	catch
+		throw:validation_failed ->
+			{error, 400};
+		throw:_Reason1 ->
+			{error, 500};
+		_:_ ->
+			{error, 400}
+	end.
+
+-spec add_pla(ReqData) -> Result when
+	ReqData :: [tuple()],
+	Result   :: {ok, Headers, Body} | {error, Status},
+	Headers  :: [tuple()],
+	Body     :: iolist(),
+	Status   :: 400 | 500 .
+%% @doc Respond to `POST /catalogManagement/v2/pla'.
+%%    Add a new Product Offering.
+add_pla(ReqData) ->
+	try
+		case ocs:add_pla(pla(mochijson:decode(ReqData))) of
+			{ok, PricingLogic} ->
+				PricingLogic;
+			{error, Reason} ->
+				throw(Reason)
+		end
+	of
+		PriceAlgo ->
+			Body = mochijson:encode(pla(PriceAlgo)),
+			Etag = ocs_rest:etag(PriceAlgo#pla.last_modified),
+			Href = ?plaPath ++ PriceAlgo#pla.name,
 			Headers = [{location, Href}, {etag, Etag}],
 			{ok, Headers, Body}
 	catch
@@ -220,6 +253,67 @@ get_product_offerings(Query, Headers) ->
 	A = [Name, Des, Status, SDT, EDT, Price],
 	Codec = fun offer/1,
 	query_filter({M, F, A}, Codec, Query, Headers).
+
+-spec get_pla(ID) -> Result when
+	ID	:: string(),
+	Result :: {ok, Headers, Body} | {error, Status},
+	Headers :: [tuple()],
+	Body :: iolist(),
+	Status :: 400 | 404 | 500.
+%% @doc Respond to `GET /catalogManagement/v2/pla/{id}'.
+%%    Retrieve a pricing logic algorothm.
+get_pla(ID) ->
+	try
+		case ocs:find_pla(ID) of
+			{ok, PricingLogicAlgorithm} ->
+				PricingLogicAlgorithm;
+			{error, not_found} ->
+				{throw, 404};
+			{error, _Reason} ->
+				{throw, 500}
+		end
+	of
+		LogicAlgo ->
+			Body = mochijson:encode(pla(LogicAlgo)),
+			Headers = [{content_type, "application/json"}],
+			{ok, Headers, Body}
+	catch
+		throw:_Reason1 ->
+			{error, 500};
+		_:_ ->
+			{error, 400}
+	end.
+
+-spec get_plas(Query, Headers) ->Result when
+	Query :: [{Key :: string(), Value :: string()}],
+	Result :: {ok, Headers, Body} | {error, Status},
+	Headers :: [tuple()],
+	Body :: iolist(),
+	Status :: 400 | 404 | 412 | 500 .
+%% @doc Respond to `GET /catalogManagement/v2/pla'.
+%%    Retrieve all pricing logic algorithms.
+get_plas(_Query, _Headers) -> 
+	try
+		case ocs:get_plas() of
+			PricingLogicAlgorithms
+				when is_list(PricingLogicAlgorithms) ->
+				PricingLogicAlgorithms;
+			{error, not_found} ->
+				throw(404);
+			{error, _Reason} ->
+				throw(500)
+		end
+	of
+		Logic ->
+			Body = mochijson:encode({array, [pla(P) || P <- Logic]}),
+			Headers = [{content_type, "application/json"}],
+			{ok, Headers, Body}
+	catch
+		throw:_Reason1 ->
+         {error, 500};
+      _:_ ->
+         {error, 400}
+   end.
 
 -spec get_product_inventories(Query, Headers) -> Result when
 	Query :: [{Key :: string(), Value :: string()}],
@@ -424,8 +518,7 @@ patch_product_offering(ProdId, Etag, ReqData) ->
 get_pla_specs([] = _Query) ->
 	Headers = [{content_type, "application/json"}],
 	Object = {array, [spec_pla_once(), spec_pla_recurring(),
-			spec_pla_usage(), spec_pla_prefix_price(),
-			spec_pla_prefix_tariff()]},
+			spec_pla_usage(), spec_pla_tariff()]},
 	Body = mochijson:encode(Object),
 	{ok, Headers, Body};
 get_pla_specs(_Query) ->
@@ -518,6 +611,71 @@ patch_product_inventory(SubId, Etag, ReqData) ->
 			{error, 400}
 	end.
 
+-spec patch_pla(Id, Etag, ReqData) -> Result
+	when
+		Id	:: string(),
+		Etag		:: undefined | list(),
+		ReqData	:: [tuple()],
+		Result	:: {ok, Headers, Body} | {error, Status},
+		Headers	:: [tuple()],
+		Body		:: iolist(),
+		Status	:: 400 | 404 | 412 | 500 .
+%% @doc Respond to `PATCH /catalogManagement/v2/pla/{id}'.
+%% 	Update a pricing logic algorithm using JSON patch method
+patch_pla(Id, Etag, ReqData) ->
+	try
+		Etag1 = case Etag of
+			undefined ->
+				undefined;
+			Etag ->
+				ocs_rest:etag(Etag)
+		end,
+		{Etag1, mochijson:decode(ReqData)}
+	of
+		{Etag2, {array, _} = Operations} ->
+			F = fun() ->
+					case mnesia:read(pla, Id, write) of
+						[Pla1] when
+								Pla1#pla.last_modified == Etag2;
+								Etag2 == undefined ->
+							case catch ocs_rest:patch(Operations, pla(Pla1)) of
+								{struct, _} = Pla2  ->
+									Pla3 = pla(Pla2),
+									TS = erlang:system_time(?MILLISECOND),
+									N = erlang:unique_integer([positive]),
+									LM = {TS, N},
+									Pla4 = Pla3#pla{last_modified = LM},
+									ok = mnesia:write(Pla4),
+									{Pla2, LM};
+								_ ->
+									throw(bad_request)
+							end;
+						[#pla{}] ->
+							throw(precondition_failed);
+						[] ->
+							throw(not_found)
+					end
+			end,
+			case mnesia:transaction(F) of
+				{atomic, {Pla, Etag3}} ->
+					Location = ?plaPath ++ Id,
+					Headers = [{location, Location}, {etag, ocs_rest:etag(Etag3)}],
+					Body = mochijson:encode(Pla),
+					{ok, Headers, Body};
+				{aborted, {throw, bad_request}} ->
+					{error, 400};
+				{aborted, {throw, not_found}} ->
+					{error, 404};
+				{aborted, {throw, precondition_failed}} ->
+					{error, 412};
+				{aborted, _Reason} ->
+					{error, 500}
+			end
+	catch
+		_:_ ->
+			{error, 400}
+	end.
+
 -spec delete_product_offering(Id) -> Result
 	when
 		Id :: string(),
@@ -538,6 +696,17 @@ delete_product_offering(Id) ->
 %% 	request to remove a `Product Invenotry'.
 delete_product_inventory(Id) ->
 	ok = ocs:delete_subscriber(Id),
+	{ok, [], []}.
+
+-spec delete_pla(Id) -> Result
+	when
+		Id :: string(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()} .
+%% @doc Respond to `DELETE /catalogManagement/v2/pla/{id}'
+%% 	request to remove a `Pla'.
+delete_pla(Id) ->
+	ok = ocs:delete_pla(Id),
 	{ok, [], []}.
 
 %%----------------------------------------------------------------------
@@ -798,19 +967,15 @@ characteristic_product_prepaid() ->
 
 %% @hidden
 characteristic_product_voice() ->
-	Name1 = {"name", "destPrefixPriceTable"},
-	Description1 = {"description", "Table of Prefix, Description, Price Label"},
+	Name1 = {"name", "destPrefixTariffTable"},
+	Description1 = {"description", "Table of Prefix, Description, Tariff rate"},
 	ValueType1 = {"valueType", "String"},
 	Char1 = {struct, [Name1, Description1, ValueType1]},
-	Name2 = {"name", "destPrefixTariffTable"},
-	Description2 = {"description", "Table of Prefix, Description, Tariff rate"},
+	Name2 = {"name", "callDirection"},
+	Description2 = {"description", "Constrain price to incoming or outgoing calls"},
 	ValueType2 = {"valueType", "String"},
 	Char2 = {struct, [Name2, Description2, ValueType2]},
-	Name3 = {"name", "ratePrice"},
-	Description3 = {"description", "Price name in prefix table"},
-	ValueType3 = {"valueType", "String"},
-	Char3 = {struct, [Name3, Description3, ValueType3]},
-	[Char1, Char2, Char3].
+	[Char1, Char2].
 
 -spec pla_spec(ID) -> Result
 	when
@@ -824,9 +989,7 @@ pla_spec("2") ->
 pla_spec("3") ->
 	spec_pla_usage();
 pla_spec("4") ->
-	spec_pla_prefix_price();
-pla_spec("5") ->
-	spec_pla_prefix_tariff();
+	spec_pla_tariff();
 pla_spec(_) ->
 	{error, 404}.
 
@@ -837,7 +1000,7 @@ spec_pla_once() ->
 	Name = {"name", "OneTimePLASpec"},
 	Description = {"description", "Interface specification for a function that rates one time events."},
 	Version = {"version", "1.0"},
-	LastUpdate = {"lastUpdate", "2017-12-19T12:00:00Z"},
+	LastUpdate = {"lastUpdate", "2018-01-10"},
 	Status = {"lifecycleStatus", "Active"},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status]}.
 
@@ -848,7 +1011,7 @@ spec_pla_recurring() ->
 	Name = {"name", "RecurringPLASpec"},
 	Description = {"description", "Interface specification for a function that rates recurring events."},
 	Version = {"version", "1.0"},
-	LastUpdate = {"lastUpdate", "2017-12-19T12:00:00Z"},
+	LastUpdate = {"lastUpdate", "2018-01-10"},
 	Status = {"lifecycleStatus", "Active"},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status]}.
 
@@ -859,34 +1022,34 @@ spec_pla_usage() ->
 	Name = {"name", "UsagePLASpec"},
 	Description = {"description", "Interface specification for a function that rates usage events."},
 	Version = {"version", "1.0"},
-	LastUpdate = {"lastUpdate", "2017-12-19T12:00:00Z"},
+	LastUpdate = {"lastUpdate", "2018-01-10"},
 	Status = {"lifecycleStatus", "Active"},
 	Chars = {"usageSpecCharacteristic", {array, []}},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
 
 %% @hidden
-spec_pla_prefix_price() ->
+spec_pla_tariff() ->
 	Id = {"id", "4"},
 	Href = {"href", ?plaSpecPath "4"},
-	Name = {"name", "PrefixPriceTablePLASpec"},
-	Description = {"description", "Destination prefix table lookup of price name."},
+	Name = {"name", "PrefixTariffTablePLASpec"},
+	Description = {"description", "Destination prefix table lookup of tariff amount."},
 	Version = {"version", "1.0"},
-	LastUpdate = {"lastUpdate", "2017-12-19T12:00:00Z"},
+	LastUpdate = {"lastUpdate", "2018-01-10"},
 	Status = {"lifecycleStatus", "Active"},
 	Chars = {"usageSpecCharacteristic", {array, []}},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
 
+-spec pla_chars(Characteristics) -> Characteristics
+	when
+		Characteristics :: {array, list()} | [tuple()].
+%% @doc CODEC for Pricing Logic Algorithm characteristics.
+pla_chars({array, L} = _Characteristics) ->
+	pla_chars(L, []);
+pla_chars(Characteristics) when is_list(Characteristics) ->
+	{array, pla_chars(Characteristics, [])}.
 %% @hidden
-spec_pla_prefix_tariff() ->
-	Id = {"id", "5"},
-	Href = {"href", ?plaSpecPath "5"},
-	Name = {"name", "PrefixTariffTablePLASpec"},
-	Description = {"description", "Destination prefix table lookup of price amount."},
-	Version = {"version", "1.0"},
-	LastUpdate = {"lastUpdate", "2017-12-19T12:00:00Z"},
-	Status = {"lifecycleStatus", "Active"},
-	Chars = {"usageSpecCharacteristic", {array, []}},
-	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Chars]}.
+pla_chars([], Acc) ->
+	lists:reverse(Acc).
 
 -spec offer_status(Status) -> Status
 	when
@@ -961,6 +1124,84 @@ price_period("daily") -> daily;
 price_period("weekly") -> weekly;
 price_period("monthly") -> monthly;
 price_period("yearly") -> yearly.
+
+-spec pla(Pla) -> Pla
+	when
+		Pla :: #pla{} | {struct, [tuple()]}.
+%% @doc CODEC for Pricing login algorithm.
+%% @private
+pla(#pla{} = Pla) ->
+	pla(record_info(fields,pla), Pla, []);
+pla({struct, ObjectMembers}) when is_list(ObjectMembers) ->
+	pla(ObjectMembers, #pla{}).
+%% @hidden
+pla([name | T], #pla{name = Name} = P, Acc) when is_list(Name) ->
+	pla(T, P, [{"name", Name} | Acc]);
+pla([description | T], #pla{description = Description} = P, Acc)
+		when is_list(Description) ->
+	pla(T, P, [{"description", Description} | Acc]);
+pla([status | T], #pla{status = Status} = P, Acc)
+		when Status /= undefined ->
+	StatusPla = product_status(Status),
+	pla(T, P, [{"status", StatusPla} | Acc]);
+pla([start_date | T], #pla{start_date = Start,
+		end_date = undefined} = P, Acc) when is_integer(Start) ->
+	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(Start)}]},
+	pla(T, P, [{"validFor", ValidFor} | Acc]);
+pla([start_date | T], #pla{start_date = undefined,
+		end_date = End} = P, Acc) when is_integer(End) ->
+	ValidFor = {struct, [{"endDateTime", ocs_rest:iso8601(End)}]},
+	pla(T, P, [{"validFor", ValidFor} | Acc]);
+pla([start_date | T], #pla{start_date = Start,
+		end_date = End} = P, Acc) when is_integer(Start), is_integer(End) ->
+	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(Start)},
+			{"endDateTime", ocs_rest:iso8601(End)}]},
+	pla(T, P, [{"validFor", ValidFor} | Acc]);
+pla([end_date | T], P, Acc) ->
+	pla(T, P, Acc);
+pla([specification | T], #pla{specification = Spec} = P, Acc) ->
+	pla(T, P, [{"plaSpecId", Spec} | Acc]);
+pla([characteristics | T], #pla{characteristics = Chars} = P, Acc) ->
+	pla(T, P, [{"plaSpecCharacteristicValue", pla_chars(Chars)} | Acc]);
+pla([last_modified | T], #pla{last_modified = {Last, _}} = P, Acc)
+		when is_integer(Last) ->
+	pla(T, P, [{"lastUpdate", ocs_rest:iso8601(Last)} | Acc]);
+pla([_H | T], P, Acc) ->
+	pla(T, P, Acc);
+pla([], #pla{name = Name} = _P, Acc) ->
+	{struct, [{"id", Name} | lists:reverse(Acc)]}.
+%% @hidden
+pla([{"name", Name} | T], Acc) when is_list(Name) ->
+	pla(T, Acc#pla{name = Name});
+pla([{"description", Description} | T], Acc) when is_list(Description) ->
+	pla(T, Acc#pla{description = Description});
+pla([{"status", Status} | T], Acc) when is_list(Status) ->
+	pla(T, Acc#pla{status = product_status(Status)});
+pla([{"validFor", {struct, L}} | T], Acc) ->
+	Acc1 = case lists:keyfind("startDateTime", 1, L) of
+		{_, Start} ->
+			Acc#pla{start_date = ocs_rest:iso8601(Start)};
+		false -> 
+			Acc
+	end,
+	Acc2 = case lists:keyfind("endDateTime", 1, L) of
+		{_, End} ->
+			Acc1#pla{end_date = ocs_rest:iso8601(End)};
+		false -> 
+			Acc
+	end,
+	pla(T, Acc2);
+pla([{"plaSpecId", Spec} | T], Acc) when is_list(Spec) ->
+	pla(T, Acc#pla{specification = Spec});
+pla([{"plaSpecCharacteristicValue", {array, Chars}} | T], Acc)
+		when is_list(Chars)->
+	pla(T, Acc#pla{characteristics = pla_chars({array, Chars})});
+pla([{"lastUpdate", LastUpdate} | T], Acc) when is_list(LastUpdate) ->
+	pla(T, Acc);
+pla([_ | T], Acc) ->
+	pla(T, Acc);
+pla([], Acc) ->
+	Acc.
 
 -spec offer(Product) -> Product
 	when
@@ -1453,6 +1694,13 @@ char_value_use([max | T], #char_value_use{max = undefined} = C, Acc) ->
 char_value_use([max | T], #char_value_use{max = Max} = C, Acc)
 		when is_integer(Max) ->
 	char_value_use(T, C, [{"maxCardinality", Max} | Acc]);
+char_value_use([specification | T],
+		#char_value_use{specification = Spec} = P, Acc) when is_list(Spec) ->
+	{struct, L} = product_spec(Spec),
+	{_, Id} = lists:keyfind("id", 1, L),
+	{_, Href} = lists:keyfind("href", 1, L),
+	Spec1 = {struct, [{"id", Id}, {"href", Href}]},
+	char_value_use(T, P, [{"productSpecification", Spec1} | Acc]);
 char_value_use([start_date | T], #char_value_use{start_date = undefined,
 		end_date = undefined} = C, Acc) ->
 	char_value_use(T, C, Acc);
@@ -1495,6 +1743,14 @@ char_value_use([{"minCardinality", MinCardinality} | T], Acc)
 char_value_use([{"maxCardinality", MaxCardinality} | T], Acc)
 		when is_integer(MaxCardinality) ->
 	char_value_use(T, Acc#char_value_use{max = MaxCardinality});
+char_value_use([{"productSpecification", {struct, L}} | T], Acc) when is_list(L) ->
+	Acc1 = case lists:keyfind("id", 1, L) of
+		{_, ID} when is_list(ID) ->
+			Acc#char_value_use{specification = ID};
+		false ->
+			Acc
+	end,
+	char_value_use(T, Acc1);
 char_value_use([{"validFor", {struct, L}} | T], Acc) when is_list(L) ->
 	NewAcc = case {lists:keyfind("startDateTime", 1, L),
 			lists:keyfind("endDateTime", 1, L)} of
@@ -1721,7 +1977,7 @@ instance(ProductInstance) ->
 	{struct, instance(record_info(fields, product_instance), ProductInstance, [])}.
 %% @hidden
 instance([{"characteristics", Chars} | T], Acc) ->
-	NewChars = characteristics(Chars),
+	NewChars = instance_chars(Chars),
 	instance(T, Acc#product_instance{characteristics = NewChars});
 instance([{"productOffering", {struct, Offer}} | T], Acc) ->
 	instance(T, Acc#product_instance{product = product({struct, Offer})});
@@ -1740,7 +1996,7 @@ instance([product | T], #product_instance{product = ProdID} = ProductInstance, A
 	Offer = {"productOffering", product(ProdID)},
 	instance(T, ProductInstance, [Offer | Acc]);
 instance([characteristics | T], #product_instance{characteristics = Chars} = ProductInstance, Acc) ->
-	Characteristics = {"characteristics", characteristics(Chars)},
+	Characteristics = {"characteristics", instance_chars(Chars)},
 	instance(T, ProductInstance, [Characteristics | Acc]);
 instance([status | T], #product_instance{status = undefined} = ProductInstance, Acc) ->
 	instance(T, ProductInstance,  Acc);
@@ -1762,36 +2018,36 @@ instance([_ | T], ProductInstance, Acc) ->
 instance([], _ProductInstance, Acc) ->
 	lists:reverse(Acc).
 
--spec characteristics(Characteristics) -> Characteristics
+-spec instance_chars(Characteristics) -> Characteristics
 	when
 		Characteristics :: {array, list()} | [tuple()].
 %% @doc CODEC for Product Inventory characteristics.
-characteristics({array, Characteristics}) ->
-	characteristics(Characteristics, []);
-characteristics(Characteristics) ->
-	{array, characteristics(Characteristics, [])}.
+instance_chars({array, Characteristics}) ->
+	instance_chars(Characteristics, []);
+instance_chars(Characteristics) ->
+	{array, instance_chars(Characteristics, [])}.
 %% @hidden
-characteristics([{struct, [{"subscriberIdentity", Identity}]} | T], Acc) ->
-	characteristics(T, [{"subscriberIdentity", Identity} | Acc]);
-characteristics([{struct, [{"subscriberPassword", Password}]} | T], Acc) ->
-	characteristics(T, [{"subscriberPassword", Password} | Acc]);
-characteristics([{struct, [{"balanceTopUpDuration", BalanceTopUpDuration}]} | T], Acc) ->
-	characteristics(T, [{"balanceTopUpDuration", topup_duration(BalanceTopUpDuration)} | Acc]);
-characteristics([{struct, [{"radiusReserveTime", RadiusReserveTime}]} | T], Acc) ->
-	characteristics(T, [{"radiusReserveTime", radius_reserve_time(RadiusReserveTime)} | Acc]);
-characteristics([{struct, [{"radiusReserveOctets", RadiusReserveOctets}]} | T], Acc) ->
-	characteristics(T, [{"radiusReserveOctets", radius_reserve_octets(RadiusReserveOctets)} | Acc]);
-characteristics([{"subscriberIdentity", Identity} | T], Acc) ->
-	characteristics(T, [{struct, [{"subscriberIdentity", Identity}]} | Acc]);
-characteristics([{"subscriberPassword", Password} | T], Acc) ->
-	characteristics(T, [{struct, [{"subscriberPassword", Password}]} | Acc]);
-characteristics([{"radiusReserveTime", RadiusReserveTime} | T], Acc) ->
-	characteristics(T, [{struct, [{"radiusReserveTime", radius_reserve_time(RadiusReserveTime)}]} | Acc]);
-characteristics([{"radiusReserveOctets", RadiusReserveOctets} | T], Acc) ->
-	characteristics(T, [{struct, [{"radiusReserveOctets", radius_reserve_octets(RadiusReserveOctets)}]} | Acc]);
-characteristics([{"balanceTopUpDuration", Chars} | T], Acc) ->
-	characteristics(T, [{struct, [{"balanceTopUpDuration", topup_duration(Chars)}]} | Acc]);
-characteristics([], Acc) ->
+instance_chars([{struct, [{"subscriberIdentity", Identity}]} | T], Acc) ->
+	instance_chars(T, [{"subscriberIdentity", Identity} | Acc]);
+instance_chars([{struct, [{"subscriberPassword", Password}]} | T], Acc) ->
+	instance_chars(T, [{"subscriberPassword", Password} | Acc]);
+instance_chars([{struct, [{"balanceTopUpDuration", BalanceTopUpDuration}]} | T], Acc) ->
+	instance_chars(T, [{"balanceTopUpDuration", topup_duration(BalanceTopUpDuration)} | Acc]);
+instance_chars([{struct, [{"radiusReserveTime", RadiusReserveTime}]} | T], Acc) ->
+	instance_chars(T, [{"radiusReserveTime", radius_reserve_time(RadiusReserveTime)} | Acc]);
+instance_chars([{struct, [{"radiusReserveOctets", RadiusReserveOctets}]} | T], Acc) ->
+	instance_chars(T, [{"radiusReserveOctets", radius_reserve_octets(RadiusReserveOctets)} | Acc]);
+instance_chars([{"subscriberIdentity", Identity} | T], Acc) ->
+	instance_chars(T, [{struct, [{"subscriberIdentity", Identity}]} | Acc]);
+instance_chars([{"subscriberPassword", Password} | T], Acc) ->
+	instance_chars(T, [{struct, [{"subscriberPassword", Password}]} | Acc]);
+instance_chars([{"radiusReserveTime", RadiusReserveTime} | T], Acc) ->
+	instance_chars(T, [{struct, [{"radiusReserveTime", radius_reserve_time(RadiusReserveTime)}]} | Acc]);
+instance_chars([{"radiusReserveOctets", RadiusReserveOctets} | T], Acc) ->
+	instance_chars(T, [{struct, [{"radiusReserveOctets", radius_reserve_octets(RadiusReserveOctets)}]} | Acc]);
+instance_chars([{"balanceTopUpDuration", Chars} | T], Acc) ->
+	instance_chars(T, [{struct, [{"balanceTopUpDuration", topup_duration(Chars)}]} | Acc]);
+instance_chars([], Acc) ->
 	lists:reverse(Acc).
 
 -spec topup_duration(BalanceTopUpDuration) -> BalanceTopUpDuration

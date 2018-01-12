@@ -784,16 +784,11 @@ confirm3(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 	Salt = crypto:rand_uniform(16#8000, 16#ffff),
 	MsMppeKey = encrypt_key(Secret, RequestAuthenticator, Salt, MSK),
 	UserName = binary_to_list(PeerID),
-	ServiceType = case radius_attributes:find(?ServiceType, RequestAttributes) of
-		{error, not_found} ->
-			undefined;
-		{_, ST} ->
-			ST
-	end,
-	Destination = proplists:get_value(?CalledStationId, RequestAttributes, ""),
+	{ServiceType, Direction, CallAddress} = get_service_type(RequestAttributes),
+	Timestamp = calendar:local_time(),
 	SessionAttributes = extract_session_attributes(RequestAttributes),
-	case ocs_rating:authorize(radius, ServiceType,
-			PeerID, Password, Destination, SessionAttributes) of
+	case ocs_rating:authorize(radius, ServiceType, PeerID, Password,
+			Timestamp, CallAddress, Direction, SessionAttributes) of
 		{authorized, _Subscriber, Attributes, _ExistingSessionAttributes} ->
 			Attr1 = radius_attributes:store(?UserName, UserName, Attributes),
 			Attr2 = radius_attributes:store(?Microsoft,
@@ -863,10 +858,11 @@ confirm6(Request, #statedata{eap_id = EapID, ks = Ks, confirm_p = ConfirmP,
 	MethodID = ocs_eap_pwd:h([Ciphersuite, ScalarP, ScalarS]),
 	<<MSK:64/binary, _EMSK:64/binary>> = ocs_eap_pwd:kdf(MK,
 			<<?PWD, MethodID/binary>>, 128),
+	Timestamp = calendar:local_time(),
 	SessionAttributes = [{'Origin-Host', OH}, {'Origin-Realm', OR},
 			{'Session-Id', SessionID}],
-	case ocs_rating:authorize(diameter, ServiceType,
-			PeerID, Password, undefined, SessionAttributes) of
+	case ocs_rating:authorize(diameter, ServiceType, PeerID, Password,
+			Timestamp, undefined, undefined, SessionAttributes) of
 		{authorized, _Subscriber, _Attributes, _ExistingSessionAttributes} ->
 			EapPacket = #eap_packet{code = success, identifier = EapID},
 			send_diameter_response(SessionID, AuthType,
@@ -1182,4 +1178,29 @@ extract_session_attributes(Attributes) ->
 			false
 	end,
 	lists:filter(F, Attributes).
+
+get_service_type(Attr) ->
+	case radius_attributes:find(?ServiceType, Attr) of
+		{ok, 12} ->
+			case radius_attributes:find(?Cisco, ?H323CallOrigin, Attr) of
+				{ok, answer} ->
+					case radius_attributes:find(?CallingStationId, Attr) of
+						{ok, Address} ->
+							{12, answer, Address};
+						{error, not_found} ->
+							{12, answer, undefined}
+					end;
+				_Other ->
+					case radius_attributes:find(?CalledStationId, Attr) of
+						{ok, Address} ->
+							{12, originate, Address};
+						{error, not_found} ->
+							{12, originate, undefined}
+					end
+			end;
+		{ok, ServiceType} ->
+			{ServiceType, undefined, undefined};
+		{error, not_found} ->
+			{undefined, undefined, undefined}
+	end.
 

@@ -5,9 +5,9 @@
 	$ sudo apt install erlang
 
 	Install radierl
-	Download current <VERSION> of sigscale-release suitsbale for your distribution (<DIST>) to install radierl
-	$ wget https://repo.sigscale.org/pool/main/s/sigscale-release/sigscale-release_1.0-<VERSION>+<DIST>_all.deb
-	$ dpkg -i sigscale-release_1.0-<VERSION>+<DIST>_all.deb
+	Download current <VERSION> of sigscale-release suitable for your distribution (<DIST>) to install radierl
+	$ wget https://repo.sigscale.org/pool/main/s/sigscale-release/sigscale-release_1.1-<VERSION>+<DIST>_all.deb
+	$ dpkg -i sigscale-release*.deb
 	$ sudo apt update
 	$ sudo apt install radierl
 

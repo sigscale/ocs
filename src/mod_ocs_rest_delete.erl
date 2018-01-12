@@ -73,6 +73,8 @@ do_delete(Resource, ModData, ["ocs", "v1", "subscriber", Identity]) ->
 	do_response(ModData, Resource:delete_subscriber(Identity));
 do_delete(Resource, ModData, ["catalogManagement", "v2", "productOffering", Identity]) ->
 	do_response(ModData, Resource:delete_product_offering(Identity));
+do_delete(Resource, ModData, ["catalogManagement", "v2", "pla", Identity]) ->
+	do_response(ModData, Resource:delete_pla(Identity));
 do_delete(Resource, ModData, ["partyManagement", "v1", "individual", Identity]) ->
 	do_response(ModData, Resource:delete_user(Identity));
 do_delete(Resource, ModData, ["productInventoryManagement", "v2", "product", Identity]) ->

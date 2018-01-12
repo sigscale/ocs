@@ -256,8 +256,18 @@ handle_info(#diameter_event{service = ?DIAMETER_AUTH_SERVICE(Address, Port),
 %%
 terminate(_Reason, _StateName,  #statedata{transport_ref = TransRef,
 		address = Address, port = Port}= _StateData) ->
-	diameter:remove_transport(?DIAMETER_AUTH_SERVICE(Address, Port), TransRef),
-	ok.
+	SvcName = ?DIAMETER_AUTH_SERVICE(Address, Port),
+	case diameter:remove_transport(SvcName, TransRef) of
+		ok ->
+			case diameter:stop_service(SvcName)	of
+				ok ->
+					ok;
+				{error, Reason} ->
+					{error, Reason}
+			end;
+		{error, Reason} ->
+			{error, Reason}
+	end.
 
 -spec code_change(OldVsn, StateName, StateData, Extra) -> Result
 	when

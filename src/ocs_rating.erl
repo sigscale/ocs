@@ -21,8 +21,8 @@
 -module(ocs_rating).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
--export([rate/8]).
--export([authorize/6]).
+-export([rate/10]).
+-export([authorize/8]).
 
 -include("ocs.hrl").
 -include_lib("radius/include/radius.hrl").
@@ -42,13 +42,16 @@
 -define(DIAMETERVOICE, <<"32260@3gpp.org">>).
 
 
--spec rate(Protocol, ServiceType, SubscriberID, Destination,
-		Flag, DebitAmounts, ReserveAmounts, SessionAttributes) -> Result
+-spec rate(Protocol, ServiceType, SubscriberID, Timestamp,
+		Address, Direction, Flag, DebitAmounts, ReserveAmounts,
+		SessionAttributes) -> Result
 	when
 		Protocol :: radius | diameter,
 		ServiceType :: integer() | binary(),
 		SubscriberID :: string() | binary(),
-		Destination :: string(),
+		Timestamp :: calendar:datetime(),
+		Address :: string(),
+		Direction :: answer | originate | undefined,
 		Flag :: initial | interim | final,
 		DebitAmounts :: [{Type, Amount}],
 		ReserveAmounts :: [{Type, Amount}],
@@ -78,11 +81,13 @@
 %% 	`SessionList' describes the known active sessions which
 %% 	should be disconnected.
 %%
-rate(Protocol, ServiceType, SubscriberID, Destination,
-		Flag, DebitAmounts, ReserveAmounts, SessionAttributes) when is_list(SubscriberID)->
-	rate(Protocol, ServiceType, list_to_binary(SubscriberID), Destination,
-		Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
-rate(Protocol, ServiceType, SubscriberID, Destination,
+rate(Protocol, ServiceType, SubscriberID, Timestamp, Address, Direction,
+		Flag, DebitAmounts, ReserveAmounts, SessionAttributes)
+		when is_list(SubscriberID)->
+	rate(Protocol, ServiceType, list_to_binary(SubscriberID), Timestamp,
+		Address, Direction, Flag, DebitAmounts, ReserveAmounts,
+		SessionAttributes);
+rate(Protocol, ServiceType, SubscriberID, Timestamp, Address, Direction,
 		Flag, DebitAmounts, ReserveAmounts, SessionAttributes) when
 		((Protocol == radius) or (Protocol == diameter)), is_binary(SubscriberID),
 		((Flag == initial) or (Flag == interim) or (Flag == final)),
@@ -96,8 +101,9 @@ rate(Protocol, ServiceType, SubscriberID, Destination,
 						[#product{} = Product] ->
 							Validity = proplists:get_value(validity, Chars),
 							Subscriber1 = Subscriber#subscriber{buckets = due(Buckets)},
-							rate1(Protocol, ServiceType, Subscriber1, Destination, Product,
-									Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
+							rate1(Protocol, ServiceType, Subscriber1, Timestamp,
+									Address, Direction, Product, Validity, Flag,
+									DebitAmounts, ReserveAmounts, SessionAttributes);
 						[] ->
 							throw(product_not_found)
 					end;
@@ -118,7 +124,7 @@ rate(Protocol, ServiceType, SubscriberID, Destination,
 			{error, Reason}
 	end.
 %% @hidden
-rate1(Protocol, ServiceType, Subscriber, Destination,
+rate1(Protocol, ServiceType, Subscriber, Timestamp, Address, Direction,
 		#product{specification = undefined, bundle = Bundle},
 		Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes) ->
 	try
@@ -129,140 +135,103 @@ rate1(Protocol, ServiceType, Subscriber, Destination,
 							and
 							(((Protocol == radius)
 								and
-								((ServiceType == ?RADIUSDATA) and ((Spec == 4) orelse (Spec == 8)))
+								((ServiceType == ?RADIUSDATA) and ((Spec == "4") orelse (Spec == "8")))
 								orelse
-								((ServiceType == ?RADIUSVOICE) and ((Spec == 5) orelse (Spec == 9))))
+								((ServiceType == ?RADIUSVOICE) and ((Spec == "5") orelse (Spec == "9"))))
 							orelse
 							((Protocol == diameter)
 								and
-								((ServiceType == ?DIAMETERDATA) and ((Spec == 4) orelse (Spec == 8)))
+								((ServiceType == ?DIAMETERDATA) and ((Spec == "4") orelse (Spec == "8")))
 								orelse
-								((ServiceType == ?DIAMETERVOICE) and ((Spec == 5) orelse (Spec == 9))))) ->
+								((ServiceType == ?DIAMETERVOICE) and ((Spec == "5") orelse (Spec == "9"))))) ->
 						[P | Acc];
 					_ ->
 						Acc
 				end
 		end,
 		[#product{} = Product | _] = lists:foldl(F, [], Bundle),
-		rate2(Protocol, Subscriber, Destination, Product, Validity,
-				Flag, DebitAmounts, ReserveAmounts, SessionAttributes)
+		rate2(Protocol, Subscriber, Timestamp, Address, Direction, Product,
+				Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes)
 	catch
 		_:_ ->
 			throw(invalid_bundle_product)
 	end;
-rate1(Protocol, _ServiceType, Subscriber, Destination, Product,
-		Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes) ->
-	rate2(Protocol, Subscriber, Destination, Product, Validity,
-			Flag, DebitAmounts, ReserveAmounts, SessionAttributes).
+rate1(Protocol, _ServiceType, Subscriber, Timestamp, Address, Direction,
+		Product, Validity, Flag, DebitAmounts, ReserveAmounts,
+		SessionAttributes) ->
+	rate2(Protocol, Subscriber, Timestamp, Address, Direction, Product,
+		Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes).
 %% @hidden
-rate2(Protocol, Subscriber, Destination, #product{specification = ProdSpec,
-		char_value_use = CharValueUse, price = Prices}, Validity, Flag,
-		DebitAmounts, ReserveAmounts, SessionAttributes)
-		when ProdSpec == "5"; ProdSpec == "9" ->
-	FilteredPrices = filter_prices(Prices),
-	case lists:keyfind("destPrefixPriceTable", #char_value_use.name, CharValueUse) of
-		#char_value_use{values = [#char_value{value = PriceTable}]} ->
-			rate3(Protocol, list_to_existing_atom(PriceTable), Subscriber, Destination, FilteredPrices,
-					Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
-		false ->
-			 case lists:keyfind("destPrefixTariffTable", #char_value_use.name, CharValueUse) of
-				#char_value_use{values = [#char_value{value = TariffTable}]} ->
-					rate4(Protocol, list_to_existing_atom(TariffTable), Subscriber, Destination,
-							FilteredPrices, Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
-				false ->
-					case lists:keyfind(usage, #price.type, Prices) of
-						#price{} = Price ->
-							rate5(Protocol, Subscriber, Price, Validity,
-								Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
-						false ->
-							throw(price_not_found)
-					end
-			end
+rate2(Protocol, Subscriber, Timestamp, Address, Direction,
+		#product{specification = ProdSpec, price = Prices},
+		Validity, Flag, DebitAmounts, ReserveAmounts,
+		SessionAttributes) when ProdSpec == "5"; ProdSpec == "9" ->
+	F = fun(#price{type = tariff, units = seconds}) ->
+				true;
+			(#price{type = usage, units = seconds}) ->
+				true;
+			(_) ->
+				false
+	end,
+	FilteredPrices1 = lists:filter(F, Prices),
+	FilteredPrices2 = filter_prices_tod(Timestamp, FilteredPrices1),
+	case filter_prices_dir(Direction, FilteredPrices2) of
+		[Price | _] ->
+			rate3(Protocol, Subscriber, Address, Price, Validity,
+					Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
+		_ ->
+			throw(price_not_found)
 	end;
-rate2(Protocol, Subscriber, _Destiations, #product{price = Prices}, Validity,
-		Flag, DebitAmounts, ReserveAmounts, SessionAttributes) ->
-	case lists:keyfind(usage, #price.type, Prices) of
-		#price{} = Price ->
-			rate5(Protocol, Subscriber, Price, Validity,
+rate2(Protocol, Subscriber, Timestamp, _Address, _Direction,
+		#product{price = Prices}, Validity, Flag,
+		DebitAmounts, ReserveAmounts, SessionAttributes) ->
+	F = fun(#price{type = usage}) ->
+				true;
+			(_) ->
+				false
+	end,
+	FilteredPrices1 = lists:filter(F, Prices),
+	case filter_prices_tod(Timestamp, FilteredPrices1) of
+		[Price | _] ->
+			rate4(Protocol, Subscriber, Price, Validity,
 				Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
-		false ->
+		_ ->
 			throw(price_not_found)
 	end.
 %% @hidden
-rate3(Protocol, PriceTable, Subscriber, Destination, Prices,
+rate3(Protocol, Subscriber, Address,
+		#price{type = tariff, char_value_use = CharValueUse} = Price,
 		Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes) ->
-	case catch ocs_gtt:lookup_last(PriceTable, Destination) of
-		{_Description, RateName} when is_list(RateName) ->
-			F1 = fun(F, [#price{char_value_use = CharValueUse} = H | T]) ->
-						case lists:keyfind("ratePrice", #char_value_use.name, CharValueUse) of
-							#char_value_use{values = [#char_value{value = RateName}]} ->
-								H;
-							false ->
-								F(F, T)
-						end;
-					(_, []) ->
-						F2 = fun(_, [#price{name = Name} = H | _]) when Name == RateName ->
-									H;
-								(F, [_H | T]) ->
-									F(F, T);
-								(_, []) ->
-									false
-						end,
-						F2(F2, Prices)
-			end,
-			case F1(F1, Prices) of
-				#price{} = Price ->
-					rate5(Protocol, Subscriber, Price, Validity,
-							Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
-				false ->
-					error_logger:error_report(["Prefix table price name not found",
-							{module, ?MODULE}, {table, PriceTable},
-							{destination, Destination}, {price_name, RateName}]),
-					throw(price_not_found)
-			end;
-		Other ->
-			error_logger:error_report(["Prefix table price name lookup failed",
-					{module, ?MODULE}, {table, PriceTable},
-					{destination, Destination}, {result, Other}]),
-			throw(table_lookup_failed)
-	end.
-%% @hidden
-rate4(Protocol, TariffTable, Subscriber, Destination, Prices,
-		Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes) ->
-	case catch ocs_gtt:lookup_last(TariffTable, Destination) of
-		{_Description, AmountL} ->
-			Amount = case AmountL of
-				A when is_list(A) ->
-					list_to_integer(A);
-				A when is_integer(A) ->
-					A
-			end,
-			case lists:keyfind(tariff, #price.type, Prices) of
-				#price{} = Price ->
-					rate5(Protocol, Subscriber, Price#price{amount = Amount}, Validity,
-							Flag, DebitAmounts, ReserveAmounts, SessionAttributes);
-				false ->
-					error_logger:error_report(["Prefix table tariff price type not found",
+	case lists:keyfind("destPrefixTariffTable", #char_value_use.name, CharValueUse) of
+		#char_value_use{values = [#char_value{value = TariffTable}]} ->
+			case catch ocs_gtt:lookup_last(TariffTable, Address) of
+				{_Description, Amount} when is_integer(Amount), Amount >= 0 ->
+					rate4(Protocol, Subscriber, Price#price{amount = Amount},
+							Validity, Flag, DebitAmounts, ReserveAmounts,
+							SessionAttributes);
+				Other ->
+					error_logger:error_report(["Prefix table tariff lookup failed",
 							{module, ?MODULE}, {table, TariffTable},
-							{destination, Destination}, {tariff_price, Amount}]),
-					throw(price_not_found)
+							{address, Address}, {result, Other}]),
+					throw(table_lookup_failed)
 			end;
-		Other ->
-			error_logger:error_report(["Prefix table tariff lookup failed",
-					{module, ?MODULE}, {table, TariffTable},
-					{destination, Destination}, {result, Other}]),
-			throw(table_lookup_failed)
-	end.
+		false ->
+			throw(undefined_tariff)
+	end;
+rate3(Protocol, Subscriber, _Address, Price, Validity, Flag,
+		DebitAmounts, ReserveAmounts, SessionAttributes) ->
+	rate4(Protocol, Subscriber, Price, Validity, Flag,
+			DebitAmounts, ReserveAmounts, SessionAttributes).
 %% @hidden
-rate5(_Protocol, #subscriber{enabled = false} = Subscriber, _Price,
+rate4(_Protocol, #subscriber{enabled = false} = Subscriber, _Price,
 		_Validity, initial, _DebitAmounts, _ReserveAmounts,
 		SessionAttributes) ->
-	rate7(Subscriber, initial, 0, 0, 0, 0, SessionAttributes);
-rate5(radius, Subscriber, Price, Validity,
+	rate6(Subscriber, initial, 0, 0, 0, 0, SessionAttributes);
+rate4(radius, Subscriber, Price, Validity,
 		initial, [], [], SessionAttributes) ->
-	rate6(Subscriber, Price, Validity, initial,
+	rate5(Subscriber, Price, Validity, initial,
 			0, get_reserve(Price), SessionAttributes);
-rate5(radius, Subscriber, #price{units = Units} = Price, Validity,
+rate4(radius, Subscriber, #price{units = Units} = Price, Validity,
 		interim, [], ReserveAmounts, SessionAttributes) ->
 	ReserveAmount = case lists:keyfind(Units, 1, ReserveAmounts) of
 		{_, ReserveUnits} ->
@@ -270,9 +239,9 @@ rate5(radius, Subscriber, #price{units = Units} = Price, Validity,
 		false ->
 			get_reserve(Price)
 	end,
-	rate6(Subscriber, Price, Validity, interim,
+	rate5(Subscriber, Price, Validity, interim,
 			0, ReserveAmount, SessionAttributes);
-rate5(_Protocol, Subscriber, #price{units = Units} = Price, Validity,
+rate4(_Protocol, Subscriber, #price{units = Units} = Price, Validity,
 		Flag, DebitAmounts, ReserveAmounts, SessionAttributes) ->
 	DebitAmount = case lists:keyfind(Units, 1, DebitAmounts) of
 		{_, DebitUnits} ->
@@ -286,16 +255,16 @@ rate5(_Protocol, Subscriber, #price{units = Units} = Price, Validity,
 		false ->
 			0
 	end,
-	rate6(Subscriber, Price, Validity, Flag,
+	rate5(Subscriber, Price, Validity, Flag,
 			DebitAmount, ReserveAmount, SessionAttributes).
 %% @hidden
-rate6(#subscriber{buckets = Buckets1} = Subscriber,
+rate5(#subscriber{buckets = Buckets1} = Subscriber,
 		#price{units = Units, size = UnitSize, amount = UnitPrice},
 		_Validity, initial, 0, ReserveAmount, SessionAttributes) ->
 	SessionId = get_session_id(SessionAttributes),
 	case reserve_session(Units, ReserveAmount, SessionId, Buckets1) of
 		{ReserveAmount, Buckets2} ->
-			rate7(Subscriber#subscriber{buckets = Buckets2},
+			rate6(Subscriber#subscriber{buckets = Buckets2},
 					initial, 0, 0, ReserveAmount, ReserveAmount,
 					SessionAttributes);
 		{UnitsReserved, Buckets2} ->
@@ -304,23 +273,23 @@ rate6(#subscriber{buckets = Buckets1} = Subscriber,
 					UnitSize, UnitPrice),
 			case reserve_session(cents, PriceReserve, SessionId, Buckets2) of
 				{PriceReserve, Buckets3} ->
-					rate7(Subscriber#subscriber{buckets = Buckets3},
+					rate6(Subscriber#subscriber{buckets = Buckets3},
 							initial, 0, 0, ReserveAmount,
 							UnitsReserved + UnitReserve, SessionAttributes);
 				{PriceReserved, Buckets3} ->
-					rate7(Subscriber#subscriber{buckets = refund(SessionId, Buckets3)},
+					rate6(Subscriber#subscriber{buckets = refund(SessionId, Buckets3)},
 							initial, 0, 0, ReserveAmount,
 							UnitsReserved + (PriceReserved div UnitPrice),
 							SessionAttributes)
 			end
 	end;
-rate6(#subscriber{enabled = false, buckets = Buckets1} = Subscriber,
+rate5(#subscriber{enabled = false, buckets = Buckets1} = Subscriber,
 		#price{units = Units, size = UnitSize, amount = UnitPrice},
 		_Validity, interim, DebitAmount, _ReserveAmount, SessionAttributes) ->
 	SessionId = get_session_id(SessionAttributes),
 	case update_session(Units, DebitAmount, 0, SessionId, Buckets1) of
 		{DebitAmount, 0, Buckets2} ->
-			rate7(Subscriber#subscriber{buckets = Buckets2}, interim,
+			rate6(Subscriber#subscriber{buckets = Buckets2}, interim,
 					DebitAmount, DebitAmount, 0, 0, SessionAttributes);
 		{UnitsCharged, 0, Buckets2} ->
 			PriceChargeUnits = DebitAmount - UnitsCharged,
@@ -328,25 +297,25 @@ rate6(#subscriber{enabled = false, buckets = Buckets1} = Subscriber,
 					UnitSize, UnitPrice),
 			case update_session(cents, PriceCharge, 0, SessionId, Buckets2) of
 				{PriceCharge, 0, Buckets3} ->
-					rate7(Subscriber#subscriber{buckets = Buckets3}, interim,
+					rate6(Subscriber#subscriber{buckets = Buckets3}, interim,
 							DebitAmount, DebitAmount + UnitCharge,
 							0, 0, SessionAttributes);
 				{PriceCharged, 0, Buckets3} ->
 					Bucket4 = [#bucket{remain_amount = PriceCharged - PriceCharge,
 							units = cents} | refund(SessionId, Buckets3)],
-					rate7(Subscriber#subscriber{buckets = Bucket4}, interim, DebitAmount,
+					rate6(Subscriber#subscriber{buckets = Bucket4}, interim, DebitAmount,
 							UnitsCharged + (PriceCharged div UnitPrice), 0, 0,
 							SessionAttributes)
 			end
 	end;
-rate6(#subscriber{buckets = Buckets1} = Subscriber,
+rate5(#subscriber{buckets = Buckets1} = Subscriber,
 		#price{units = Units, size = UnitSize, amount = UnitPrice},
 		_Validity, interim, DebitAmount, ReserveAmount, SessionAttributes) ->
 	SessionId = get_session_id(SessionAttributes),
 	case update_session(Units, DebitAmount, ReserveAmount,
 			SessionId, Buckets1) of
 		{DebitAmount, ReserveAmount, Buckets2} ->
-			rate7(Subscriber#subscriber{buckets = Buckets2}, interim,
+			rate6(Subscriber#subscriber{buckets = Buckets2}, interim,
 					DebitAmount, DebitAmount, ReserveAmount, ReserveAmount,
 					SessionAttributes);
 		{DebitAmount, UnitsReserved, Buckets2} ->
@@ -355,11 +324,11 @@ rate6(#subscriber{buckets = Buckets1} = Subscriber,
 					UnitSize, UnitPrice),
 			case update_session(cents, 0, PriceReserve, SessionId, Buckets2) of
 				{0, PriceReserve, Buckets3} ->
-					rate7(Subscriber#subscriber{buckets = Buckets3}, interim,
+					rate6(Subscriber#subscriber{buckets = Buckets3}, interim,
 							DebitAmount, DebitAmount, ReserveAmount,
 							UnitReserve, SessionAttributes);
 				{0, PriceReserved, Buckets3} ->
-					rate7(Subscriber#subscriber{buckets = Buckets3}, interim,
+					rate6(Subscriber#subscriber{buckets = Buckets3}, interim,
 							DebitAmount, DebitAmount, ReserveAmount,
 							UnitsReserved + PriceReserved div UnitPrice,
 							SessionAttributes)
@@ -373,28 +342,28 @@ rate6(#subscriber{buckets = Buckets1} = Subscriber,
 			case update_session(cents,
 					PriceCharge, PriceReserve, SessionId, Buckets2) of
 				{PriceCharge, PriceReserve, Buckets3} ->
-					rate7(Subscriber#subscriber{buckets = Buckets3}, interim,
+					rate6(Subscriber#subscriber{buckets = Buckets3}, interim,
 							DebitAmount, UnitsCharged + UnitCharge, ReserveAmount,
 							UnitReserve, SessionAttributes);
 				{PriceCharge, PriceReserved, Buckets3} ->
-					rate7(Subscriber#subscriber{buckets = Buckets3}, interim,
+					rate6(Subscriber#subscriber{buckets = Buckets3}, interim,
 							DebitAmount, UnitsCharged + UnitCharge, ReserveAmount,
 							PriceReserved div UnitPrice, SessionAttributes);
 				{PriceCharged, 0, Buckets3} ->
 					Buckets4 = [#bucket{remain_amount = PriceCharged - PriceCharge,
 							units = cents} | refund(SessionId, Buckets3)],
-					rate7(Subscriber#subscriber{buckets = Buckets4}, interim,
+					rate6(Subscriber#subscriber{buckets = Buckets4}, interim,
 							DebitAmount, UnitsCharged + (PriceCharged div UnitPrice),
 							ReserveAmount, 0, SessionAttributes)
 			end
 	end;
-rate6(#subscriber{buckets = Buckets1} = Subscriber,
+rate5(#subscriber{buckets = Buckets1} = Subscriber,
 		#price{units = Units, size = UnitSize, amount = UnitPrice},
 		_Validity, final, DebitAmount, 0, SessionAttributes) ->
 	SessionId = get_session_id(SessionAttributes),
 	case charge_session(Units, DebitAmount, SessionId, Buckets1) of
 		{DebitAmount, Buckets2} ->
-			rate7(Subscriber#subscriber{buckets = Buckets2}, final,
+			rate6(Subscriber#subscriber{buckets = Buckets2}, final,
 					DebitAmount, DebitAmount, 0, 0, SessionAttributes);
 		{UnitsCharged, Buckets2} ->
 			PriceChargeUnits = DebitAmount - UnitsCharged,
@@ -402,19 +371,19 @@ rate6(#subscriber{buckets = Buckets1} = Subscriber,
 					UnitSize, UnitPrice),
 			case charge_session(cents, PriceCharge, SessionId, Buckets2) of
 				{PriceCharge, Buckets3} ->
-					rate7(Subscriber#subscriber{buckets = Buckets3}, final,
+					rate6(Subscriber#subscriber{buckets = Buckets3}, final,
 							DebitAmount, UnitsCharged + UnitCharge,
 							0, 0, SessionAttributes);
 				{PriceCharged, Buckets3} ->
 					Buckets4 = [#bucket{remain_amount = PriceCharged - PriceCharge,
 							units = cents} | refund(SessionId, Buckets3)],
-					rate7(Subscriber#subscriber{buckets = Buckets4}, final,
+					rate6(Subscriber#subscriber{buckets = Buckets4}, final,
 					DebitAmount, UnitsCharged + (PriceCharged div UnitPrice),
 					0, 0, SessionAttributes)
 			end
 	end.
 %% @hidden
-rate7(#subscriber{session_attributes = SessionList, buckets  = Buckets} = Subscriber1,
+rate6(#subscriber{session_attributes = SessionList, buckets  = Buckets} = Subscriber1,
 		final, Charge, Charged, 0, 0, SessionAttributes)
 		when Charged >= Charge ->
 	SessionId = get_session_id(SessionAttributes),
@@ -424,60 +393,69 @@ rate7(#subscriber{session_attributes = SessionList, buckets  = Buckets} = Subscr
 			session_attributes = NewSessionList},
 	ok = mnesia:write(Subscriber2),
 	{grant, Subscriber2, 0};
-rate7(#subscriber{session_attributes = SessionList} = Subscriber1,
+rate6(#subscriber{session_attributes = SessionList} = Subscriber1,
 		final, _Charge, _Charged, 0, 0, _SessionAttributes) ->
 	Subscriber2 = Subscriber1#subscriber{session_attributes = []},
 	ok = mnesia:write(Subscriber2),
 	{out_of_credit, SessionList};
-rate7(#subscriber{enabled = false,
+rate6(#subscriber{enabled = false,
 		session_attributes = SessionList} = Subscriber1, _Flag,
 		_Charge, _Charged, _Reserve, _Reserved, _SessionAttributes) ->
 	Subscriber2 = Subscriber1#subscriber{session_attributes = []},
 	ok = mnesia:write(Subscriber2),
 	{disabled, SessionList};
-rate7(#subscriber{session_attributes = SessionList} = Subscriber1, _Flag,
+rate6(#subscriber{session_attributes = SessionList} = Subscriber1, _Flag,
 		Charge, Charged, Reserve, Reserved, _SessionAttributes)
 		when Charged < Charge; Reserved <  Reserve ->
 	Subscriber2 = Subscriber1#subscriber{session_attributes = []},
 	ok = mnesia:write(Subscriber2),
 	{out_of_credit, SessionList};
-rate7(#subscriber{session_attributes = SessionList} = Subscriber1,
+rate6(#subscriber{session_attributes = SessionList} = Subscriber1,
 		initial, 0, 0, _Reserve, Reserved, SessionAttributes) ->
 	NewSessionList = add_session(SessionAttributes, SessionList),
 	Subscriber2 = Subscriber1#subscriber{session_attributes = NewSessionList},
 	ok = mnesia:write(Subscriber2),
 	{grant, Subscriber2, Reserved};
-rate7(Subscriber, interim, _Charge, _Charged, _Reserve, Reserved, _SessionAttributes) ->
+rate6(Subscriber, interim, _Charge, _Charged, _Reserve, Reserved, _SessionAttributes) ->
 	ok = mnesia:write(Subscriber),
 	{grant, Subscriber, Reserved}.
 
--spec authorize(Protocol, ServiceType, SubscriberId, Password, Destination, SessionAttributes) -> Result
+-spec authorize(Protocol, ServiceType, SubscriberId, Password,
+		Timestamp, Address, Direction, SessionAttributes) -> Result
 	when
 		Protocol :: radius | diameter,
 		ServiceType :: binary() | string() | undefined,
 		SubscriberId :: binary() | string(),
 		Password :: binary(),
-		Destination :: string() | undefined,
+		Timestamp :: calendar:datetime(),
+		Address :: string() | undefined,
+		Direction :: answer | originate | undefined,
 		SessionAttributes :: [tuple()],
-		Result :: {authorized, Subscriber, Attributes, ExistingSessionAttributes}
-					| {unauthorized, Reason, ExistingSessionAttributes},
+		Result :: {authorized, Subscriber, Attributes, SessionList}
+					| {unauthorized, Reason, SessionList},
 		Subscriber :: #subscriber{},
 		Attributes :: [tuple()],
-		ExistingSessionAttributes :: [tuple()],
+		SessionList :: [tuple()],
 		Reason :: disabled | bad_password | subscriber_not_found
 				| out_of_credit | product_not_found | invalid_bundle_product
 				| price_not_found | table_lookup_failed.
-%% @doc
+%% @doc Authorize access request.
+%% 	If authorized returns attributes to be included in `Access-Accept' response.
 %%
-authorize(Protocol, ServiceType, SubscriberId, Password, Destination, SessionAttributes)
-		when is_list(SubscriberId) ->
+%% 	When subscriber's product instance includes the `radiusReserveSessionTime'
+%% 	characteristic a reservation is attempted for the given value of seconds.
+%% 	A `Session-Timeout' attribute will be included with the actual reservation.
+%%
+authorize(Protocol, ServiceType, SubscriberId, Password, Timestamp,
+		Address, Direction, SessionAttributes) when is_list(SubscriberId) ->
 	authorize(Protocol, ServiceType, list_to_binary(SubscriberId),
-			Password, Destination, SessionAttributes);
-authorize(Protocol, ServiceType, SubscriberId, Password, Destination, SessionAttributes)
-		when is_list(Password) ->
-	authorize(Protocol, ServiceType, SubscriberId,
-			list_to_binary(Password), Destination, SessionAttributes);
-authorize(Protocol, ServiceType, SubscriberId, Password, Destination, SessionAttributes)
+			Password, Timestamp, Address, Direction, SessionAttributes);
+authorize(Protocol, ServiceType, SubscriberId, Password, Timestamp,
+			Address, Direction, SessionAttributes) when is_list(Password) ->
+	authorize(Protocol, ServiceType, SubscriberId, list_to_binary(Password),
+			Timestamp, Address, Direction, SessionAttributes);
+authorize(Protocol, ServiceType, SubscriberId, Password, Timestamp,
+		Address, Direction, SessionAttributes)
 		when ((Protocol == radius) or (Protocol == diameter)), is_binary(SubscriberId),
 		length(SessionAttributes) > 0 ->
 	F = fun() ->
@@ -489,7 +467,8 @@ authorize(Protocol, ServiceType, SubscriberId, Password, Destination, SessionAtt
 				[#subscriber{password = MTPassword} = S] when
 						((Password == <<>>) and (Password =/= MTPassword)) orelse
 						(Password == MTPassword) ->
-					authorize1(Protocol, ServiceType, S, Destination, SessionAttributes);
+					authorize1(Protocol, ServiceType, S, Timestamp,
+							Address, Direction, SessionAttributes);
 				[#subscriber{}] ->
 					throw(bad_password);
 				[] ->
@@ -507,9 +486,11 @@ authorize(Protocol, ServiceType, SubscriberId, Password, Destination, SessionAtt
 			{unauthorized, Reason, []}
 	end.
 %% @hidden
-authorize1(radius, ServiceType, #subscriber{attributes = Attributes,
-		product = #product_instance{product = ProdId, characteristics =
-		Chars}} = Subscriber, Destination, SessionAttributes) ->
+authorize1(radius, ServiceType,
+		#subscriber{attributes = Attributes,
+		product = #product_instance{product = ProdId,
+		characteristics = Chars}} = Subscriber, Timestamp,
+		Address, Direction, SessionAttributes) ->
 	F = fun({'Session-Id', _}) ->
 			true;
 		({?AcctSessionId, _}) ->
@@ -523,30 +504,28 @@ authorize1(radius, ServiceType, #subscriber{attributes = Attributes,
 				{_, RRST} when is_integer(RRST) ->
 					case mnesia:read(product, ProdId, read) of
 						[#product{} = P] ->
-							authorize2(radius, ServiceType, Subscriber,
-									P, Destination, SessionAttributes, RRST);
+							authorize2(radius, ServiceType, Subscriber, P,
+									Timestamp, Address, Direction, SessionAttributes, RRST);
 						[] ->
 							throw(product_not_found)
 					end;
 				false ->
-					authorize6(Subscriber, ServiceType, SessionAttributes, Attributes)
+					authorize5(Subscriber, ServiceType, SessionAttributes, Attributes)
 			end;
 		false ->
-			authorize6(Subscriber, ServiceType, SessionAttributes, Attributes)
+			authorize5(Subscriber, ServiceType, SessionAttributes, Attributes)
 	end;
-authorize1(diameter, ServiceType, #subscriber{attributes = Attributes}
-		= Subscriber, _Destination, SessionAttributes) ->
-	authorize6(Subscriber, ServiceType, SessionAttributes, Attributes).
+authorize1(diameter, ServiceType,
+		#subscriber{attributes = Attributes} = Subscriber,
+		_Timestamp, _Address, _Direction, SessionAttributes) ->
+	authorize5(Subscriber, ServiceType, SessionAttributes, Attributes).
 %% @hidden
-authorize2(radius = Protocol, 2 = ServiceType, #subscriber{attributes = Attributes}
-		= Subscriber, _Product, _Destination, SessionAttributes, _Reserve) ->
-	authorize6(Subscriber, ServiceType, SessionAttributes, Attributes);
-authorize2(radius = Protocol, ServiceType, #subscriber{attributes = Attributes}
-		= Subscriber, #product{specification = undefined, bundle = Bundle},
-		Destination, SessionAttributes, Reserve) when Reserve > 0, Bundle /= [] ->
+authorize2(radius = Protocol, ServiceType,
+		#subscriber{attributes = Attributes} = Subscriber, Timestamp,
+		#product{specification = undefined, bundle = Bundle},
+		Address, Direction, SessionAttributes, Reserve)
+		when Reserve > 0, Bundle /= [] ->
 	try
-%%		((ServiceType == ?RADIUSDATA) and ((Spec == 4) orelse (Spec == 8)))
-%%		orelse
 		F = fun(#bundled_po{name = ProdId}, Acc) ->
 				case mnesia:read(product, ProdId, read) of
 					[#product{specification = Spec, status = Status} = P] when
@@ -554,110 +533,96 @@ authorize2(radius = Protocol, ServiceType, #subscriber{attributes = Attributes}
 							and
 							(((Protocol == radius)
 								and
-								((ServiceType == ?RADIUSVOICE) and
-								((Spec == 5) orelse (Spec == 9))))) ->
+								(((ServiceType == ?RADIUSVOICE) and
+								((Spec == "5") orelse (Spec == "9"))) orelse
+								((ServiceType == ?RADIUSDATA) and
+								((Spec == "4") orelse (Spec == "8")))))) ->
 						[P | Acc];
 					_ ->
 						Acc
 				end
 		end,
 		case lists:foldl(F, [], Bundle) of
-			[#product{price = Prices} = Product | _] ->
-				Product1 = Product#product{price = filter_prices(Prices)},
-				authorize2(Protocol, ServiceType, Subscriber,
-						Product1, Destination, SessionAttributes, Reserve);
+			[#product{} = Product | _] ->
+				authorize2(Protocol, ServiceType, Subscriber, Product,
+						Timestamp, Address, Direction, SessionAttributes, Reserve);
 			[] ->
-				authorize6(Subscriber, ServiceType, SessionAttributes, Attributes)
+				authorize5(Subscriber, ServiceType, SessionAttributes, Attributes)
 		end
 	catch
 		_:_ ->
 			throw(invalid_bundle_product)
 	end;
-authorize2(radius = Protocol, ServiceType, Subscriber,
-		#product{specification = ProdSpec, price = Prices,
-		char_value_use = CharValueUse}, Destination, SessionAttributes,
-		Reserve) when (Reserve > 0) and ((ProdSpec == 9) orelse (ProdSpec == 5)) ->
-	case lists:keyfind("destPrefixPriceTable", #char_value_use.name, CharValueUse) of
-		#char_value_use{values = [#char_value{value = PriceTable}]} ->
-			authorize3(Protocol, ServiceType, list_to_existing_atom(PriceTable),
-					Subscriber, Destination, Prices, SessionAttributes, Reserve);
-		false ->
-			 case lists:keyfind("destPrefixTariffTable", #char_value_use.name, CharValueUse) of
-				#char_value_use{values = [#char_value{value = TariffTable}]} ->
-					authorize4(Protocol, ServiceType, list_to_existing_atom(TariffTable),
-							Subscriber, Destination, Prices, SessionAttributes, Reserve);
-				false ->
-					case lists:keyfind(usage, #price.type, Prices) of
-						#price{} = Price ->
-							authorize5(Protocol, ServiceType, Subscriber,
-									Price, SessionAttributes, Reserve);
-						false ->
-							throw(price_not_found)
-					end
-			end
-	end.
+authorize2(radius = Protocol, ServiceType,
+		#subscriber{attributes = Attributes} = Subscriber,
+		#product{specification = ProdSpec, price = Prices},
+		Timestamp, Address, Direction, SessionAttributes,
+		Reserve) when (Reserve > 0)
+		and ((ProdSpec == "9") orelse (ProdSpec == "5")) ->
+	F = fun(#price{type = tariff, units = seconds}) ->
+				true;
+			(#price{type = usage, units = seconds}) ->
+				true;
+			(_) ->
+				false
+	end,
+	FilteredPrices1 = lists:filter(F, Prices),
+	FilteredPrices2 = filter_prices_tod(Timestamp, FilteredPrices1),
+	case filter_prices_dir(Direction, FilteredPrices2) of
+		[Price | _] ->
+			authorize3(Protocol, ServiceType, Subscriber, Address,
+					Price, SessionAttributes, Reserve);
+		_ ->
+			authorize5(Subscriber, ServiceType, SessionAttributes, Attributes)
+	end;
+authorize2(radius = Protocol, ServiceType,
+		#subscriber{attributes = Attributes} = Subscriber,
+		#product{specification = ProdSpec, price = Prices},
+		Timestamp, _Address, _Direction, SessionAttributes,
+		Reserve) when (Reserve > 0)
+		and ((ProdSpec == "8") orelse (ProdSpec == "4")) ->
+	F = fun(#price{type = usage, units = seconds}) ->
+				true;
+			(_) ->
+				false
+	end,
+	FilteredPrices1 = lists:filter(F, Prices),
+	case filter_prices_tod(Timestamp, FilteredPrices1) of
+		[Price | _] ->
+			authorize4(Protocol, ServiceType, Subscriber,
+					Price, SessionAttributes, Reserve);
+		_ ->
+			authorize5(Subscriber, ServiceType, SessionAttributes, Attributes)
+	end;
+authorize2(_Protocol, ServiceType,
+		#subscriber{attributes = Attributes} = Subscriber, _Product,
+		_Timestamp, _Address, _Direction, SessionAttributes, _Reserve) ->
+	authorize5(Subscriber, ServiceType, SessionAttributes, Attributes).
 %% @hidden
-authorize3(Protocol, ServiceType, PriceTable, Subscriber,
-		Destination, Prices, SessionAttributes, Reserve) ->
-	case catch ocs_gtt:lookup_last(PriceTable, Destination) of
-		{_Description, RateName} when is_list(RateName) ->
-			F1 = fun(F, [#price{char_value_use = CharValueUse} = H | T]) ->
-						case lists:keyfind("ratePrice", #char_value_use.name, CharValueUse) of
-							#char_value_use{values = [#char_value{value = RateName}]} ->
-								H;
-							false ->
-								F(F, T)
-						end;
-					(_, []) ->
-						F2 = fun(_, [#price{name = Name} = H | _]) when Name == RateName ->
-									H;
-								(F, [_H | T]) ->
-									F(F, T);
-								(_, []) ->
-									false
-						end,
-						F2(F2, Prices)
-			end,
-			case F1(F1, Prices) of
-				#price{} = Price ->
-					authorize5(Protocol, ServiceType, Subscriber,
-							Price, SessionAttributes, Reserve);
-				false ->
-					error_logger:error_report(["Prefix table price name not found",
-							{module, ?MODULE}, {table, PriceTable},
-							{destination, Destination}, {price_name, RateName}]),
-					throw(price_not_found)
-			end;
-		Other ->
-			error_logger:error_report(["Prefix table price name lookup failed",
-					{module, ?MODULE}, {table, PriceTable},
-					{destination, Destination}, {result, Other}]),
-			throw(table_lookup_failed)
-	end.
-%% @hidden
-authorize4(Protocol, ServiceType, TariffTable, Subscriber,
-		Destination, Prices, SessionAttributes, Reserve) ->
-	case catch ocs_gtt:lookup_last(TariffTable, Destination) of
-		{_Description, Amount} ->
-			case lists:keyfind(tariff, #price.type, Prices) of
-				#price{} = Price ->
-					authorize5(Protocol, ServiceType, Subscriber,
-							Price#price{amount = list_to_integer(Amount)},
-							SessionAttributes, Reserve);
-				false ->
-					error_logger:error_report(["Prefix table tariff price type not found",
+authorize3(Protocol, ServiceType, Subscriber, Address,
+		#price{type = tariff, char_value_use = CharValueUse} = Price,
+		SessionAttributes, Reserve) ->
+	case lists:keyfind("destPrefixTariffTable", #char_value_use.name, CharValueUse) of
+		#char_value_use{values = [#char_value{value = TariffTable}]} ->
+			case catch ocs_gtt:lookup_last(TariffTable, Address) of
+				{_Description, Amount} when is_integer(Amount), Amount >= 0 ->
+					authorize4(Protocol, ServiceType, Subscriber,
+							Price#price{amount = Amount}, SessionAttributes, Reserve);
+				Other ->
+					error_logger:error_report(["Prefix table tariff lookup failed",
 							{module, ?MODULE}, {table, TariffTable},
-							{destination, Destination}, {tariff_price, Amount}]),
-					throw(price_not_found)
+							{address, Address}, {result, Other}]),
+					throw(table_lookup_failed)
 			end;
-		Other ->
-			error_logger:error_report(["Prefix table tariff lookup failed",
-					{module, ?MODULE}, {table, TariffTable},
-					{destination, Destination}, {result, Other}]),
-			throw(table_lookup_failed)
-	end.
+		false ->
+			throw(undefined_tariff)
+	end;
+authorize3(Protocol, ServiceType, Subscriber, _Address,
+		Price, SessionAttributes, Reserve) ->
+	authorize4(Protocol, ServiceType, Subscriber,
+			Price, SessionAttributes, Reserve).
 %% @hidden
-authorize5(_Protocol, ServiceType, #subscriber{buckets = Buckets1,
+authorize4(_Protocol, ServiceType, #subscriber{buckets = Buckets1,
 		session_attributes = ExistingAttr, attributes = Attr} =
 		Subscriber, #price{units = Units, size = UnitSize, amount =
 		UnitPrice}, SessionAttributes, Reserve) ->
@@ -665,50 +630,63 @@ authorize5(_Protocol, ServiceType, #subscriber{buckets = Buckets1,
 	case reserve_session(Units, Reserve, SessionId, Buckets1) of
 		{Reserve, Buckets2} ->
 			NewAttr = radius_attributes:store(?SessionTimeout, Reserve, Attr),
-			authorize6(Subscriber#subscriber{buckets = Buckets2},
+			authorize5(Subscriber#subscriber{buckets = Buckets2},
 					ServiceType, SessionAttributes, NewAttr);
 		{UnitsReserved, Buckets2} ->
 			PriceReserveUnits = (Reserve- UnitsReserved),
 			{UnitReserve, PriceReserve} = price_units(PriceReserveUnits,
 					UnitSize, UnitPrice),
 			case reserve_session(cents, PriceReserve, SessionId, Buckets2) of
-				{0, _Buckets3}  ->
+				{0, _Buckets3}  when UnitsReserved == 0 ->
 					{unauthorized, out_of_credit, ExistingAttr};
 				{PriceReserve, Buckets3}  ->
 					SessionTimeout = UnitsReserved + UnitReserve,
 					NewAttr = radius_attributes:store(?SessionTimeout, SessionTimeout, Attr),
-					authorize6(Subscriber#subscriber{buckets = Buckets3},
+					authorize5(Subscriber#subscriber{buckets = Buckets3},
 							ServiceType, SessionAttributes, NewAttr);
 				{PriceReserved, Buckets3} ->
-					SessionTimeout = UnitsReserved + (PriceReserved div UnitPrice),
+					SessionTimeout = UnitsReserved + ((PriceReserved div UnitPrice) * UnitSize),
 					NewAttr = radius_attributes:store(?SessionTimeout, SessionTimeout, Attr),
-					authorize6(Subscriber#subscriber{buckets = Buckets3},
+					authorize5(Subscriber#subscriber{buckets = Buckets3},
 							ServiceType, SessionAttributes, NewAttr)
 			end
 	end.
 %% @hidden
-authorize6(#subscriber{buckets = Buckets, attributes= ExistingAttr}
+authorize5(#subscriber{buckets = Buckets, attributes= ExistingAttr}
 		= Subscriber, ServiceType, SessionAttributes, Attributes) ->
-	F = fun(#bucket{remain_amount = R, units = U})
+	F = fun(#bucket{remain_amount = R, units = U, reservations = Res})
 				when
 				((ServiceType == undefined) orelse
 				(((ServiceType == ?RADIUSDATA) orelse (ServiceType == ?DIAMETERDATA)) and
-				((U == octets) orelse (U == cents))) orelse
+				((U == octets) orelse (U == cents) orelse (U == seconds))) orelse
 				(((ServiceType == ?RADIUSVOICE) orelse (ServiceType == ?DIAMETERVOICE)) and
-				((U == seconds) orelse (U == cents)))) andalso
-				(R > 0) ->
-			true;
+				((U == seconds) orelse (U == cents)))) ->
+			case {Res /= [], R > 0} of
+				{true, true} ->
+					true;
+				{false, true} ->
+					true;
+				{true, false} ->
+					case lists:keyfind(get_session_id(SessionAttributes), 3, Res) of
+						{_, _, _} ->
+							true;
+						_ ->
+							false
+					end;
+				{false, false} ->
+					false
+			end;
 		(_) ->
 			false
 	end,
 	case lists:any(F, Buckets) of
 		true ->
-			authorize7(Subscriber, SessionAttributes, Attributes);
+			authorize6(Subscriber, SessionAttributes, Attributes);
 		false ->
 			{unauthorized, out_of_credit, ExistingAttr}
 	end.
 %% @hidden
-authorize7(#subscriber{multisession = false, session_attributes = []}
+authorize6(#subscriber{multisession = false, session_attributes = []}
 		= Subscriber, SessionAttributes, Attributes) ->
 	NewSessionAttributes = {erlang:system_time(?MILLISECOND),
 			SessionAttributes},
@@ -716,7 +694,7 @@ authorize7(#subscriber{multisession = false, session_attributes = []}
 		[NewSessionAttributes], disconnect = false},
 	ok = mnesia:write(Subscriber1),
 	{authorized, Subscriber1, Attributes, []};
-authorize7(#subscriber{multisession = false, session_attributes
+authorize6(#subscriber{multisession = false, session_attributes
 		= ExistingAttr} = Subscriber, SessionAttributes, Attributes) ->
 	NewSessionAttributes = {erlang:system_time(?MILLISECOND),
 			SessionAttributes},
@@ -724,7 +702,7 @@ authorize7(#subscriber{multisession = false, session_attributes
 		[NewSessionAttributes], disconnect = false},
 	ok = mnesia:write(Subscriber1),
 	{authorized, Subscriber1, Attributes, ExistingAttr};
-authorize7(#subscriber{multisession = true, session_attributes
+authorize6(#subscriber{multisession = true, session_attributes
 		= ExistingAttr} = Subscriber, SessionAttributes, Attributes) ->
 	NewSessionAttributes = {erlang:system_time(?MILLISECOND),
 			SessionAttributes},
@@ -1179,7 +1157,7 @@ get_reserve(#price{units = seconds,
 	end;
 get_reserve(#price{units = octets,
 		char_value_use = CharValueUse} = _Price) ->
-	case lists:keyfind("radiusReserveBytes",
+	case lists:keyfind("radiusReserveOctets",
 			#char_value_use.name, CharValueUse) of
 		#char_value_use{values = [#char_value{value = Value}]} ->
 			Value;
@@ -1248,50 +1226,72 @@ due2(#bucket{} = B, [H | T], Acc) ->
 due2(#bucket{} = B, [], Acc) ->
 	lists:reverse([B | Acc]).
 
--spec filter_prices(Prices) -> Prices
+-spec filter_prices_tod(Timestamp, Prices) -> Prices
 	when
+		Timestamp :: calendar:datetime(),
 		Prices :: [#price{}].
 %% @doc Filter prices with `timeOfDayRange'
 %% @hidden
-filter_prices(Prices) ->
-	filter_prices(Prices, []).
+filter_prices_tod(Timestamp, Prices) ->
+	filter_prices_tod(Timestamp, Prices, []).
 %% @hidden
-filter_prices([#price{char_value_use = CharValueUse} = P | T], Acc) ->
+filter_prices_tod(Timestamp, [#price{char_value_use = CharValueUse} = P | T], Acc) ->
 	case lists:keyfind("timeOfDayRange", #char_value_use.name, CharValueUse) of
 		#char_value_use{values = [#char_value{value =
 				#range{lower = Start, upper = End}}]} ->
-			case filter_prices1(Start, End) of
+			case filter_prices_tod1(Timestamp, Start, End) of
 				true ->
-					filter_prices(T, [P | Acc]);
+					filter_prices_tod(Timestamp, T, [P | Acc]);
 				false ->
-					filter_prices(T, Acc)
+					filter_prices_tod(Timestamp, T, Acc)
 			end;
 		_ ->
-			filter_prices(T, [P | Acc])
+			filter_prices_tod(Timestamp, T, [P | Acc])
 	end;
-filter_prices([], Acc) ->
+filter_prices_tod(_, [], Acc) ->
 	lists:reverse(Acc).
 %% @hidden
-filter_prices1(#quantity{units = U1, amount = A1},
+filter_prices_tod1({_, Time}, #quantity{units = U1, amount = A1},
 		#quantity{units = U2, amount = A2}) ->
-	Seconds = ?EPOCH + (erlang:system_time(?MILLISECOND) div 1000),
-	{_, Time} = calendar:gregorian_seconds_to_datetime(Seconds),
-	filter_prices1(to_seconds(U1, A1), to_seconds(U2, A2),
+	filter_prices_tod2(to_seconds(U1, A1), to_seconds(U2, A2),
 			calendar:time_to_seconds(Time)).
 %% @hidden
-filter_prices1(Start, End, Now) when Start < Now, End > Now ->
+filter_prices_tod2(Start, End, Time) when Start =< Time, End > Time ->
 	true;
-filter_prices1(_, _, _) ->
+filter_prices_tod2(Start, End, Time) when End < Start,
+		((Start =< Time) orelse (End > Time)) ->
+	true;
+filter_prices_tod2(_, _, _) ->
 	false.
 
 %% @hidden
-to_seconds("seconds", Seconds) when
-		(Seconds >= 0) and (Seconds < 86400) ->
+to_seconds("seconds", Seconds) when Seconds >= 0, Seconds < 86400 ->
 	Seconds;
-to_seconds("minutes", Minutes) when
-		(Minutes >= 0) and (Minutes < 1440) ->
+to_seconds("minutes", Minutes) when Minutes >= 0, Minutes < 1440 ->
 	Minutes * 60;
-to_seconds("hours", Hours) when
-		(Hours >= 0) and ((Hours < 24) orelse (Hours < 12)) ->
+to_seconds("hours", Hours) when Hours >= 0, Hours < 24 ->
 	Hours * 3600.
+
+-spec filter_prices_dir(Direction, Prices) -> Prices
+	when
+		Direction :: answer | originate | undefined,
+		Prices :: [#price{}].
+%% @doc Filter prices with `callDirection'.
+%% @hidden
+filter_prices_dir(undefined, Prices) ->
+	Prices;
+filter_prices_dir(Direction, Prices) when is_atom(Direction) ->
+	filter_prices_dir(Direction, Prices, []).
+%% @hidden
+filter_prices_dir(Direction, [#price{char_value_use = CharValueUse} = P | T], Acc) ->
+	case lists:keyfind("callDirection", #char_value_use.name, CharValueUse) of
+		#char_value_use{values = [#char_value{value = Direction}]} ->
+			filter_prices_dir(Direction, T, [P | Acc]);
+		#char_value_use{values = [#char_value{}]} ->
+			filter_prices_dir(Direction, T, Acc);
+		_ ->
+			filter_prices_dir(Direction, T, [P | Acc])
+	end;
+filter_prices_dir(_, [], Acc) ->
+	lists:reverse(Acc).
 
