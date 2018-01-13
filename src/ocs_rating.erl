@@ -611,7 +611,7 @@ authorize3(Protocol, ServiceType, Subscriber, Address,
 	case lists:keyfind("destPrefixTariffTable", #char_value_use.name, CharValueUse) of
 		#char_value_use{values = [#char_value{value = TariffTable}]} ->
 			Table = list_to_existing_atom(TariffTable),
-			case catch ocs_gtt:lookup_last(TariffTable, Address) of
+			case catch ocs_gtt:lookup_last(Table, Address) of
 				{_Description, Amount} ->
 					case list_to_integer(Amount) of
 						N when N >= 0 ->
