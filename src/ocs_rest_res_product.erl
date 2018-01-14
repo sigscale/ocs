@@ -45,7 +45,7 @@
 -define(offeringPath, "/catalogManagement/v2/productOffering/").
 -define(plaPath, "/catalogManagement/v2/pla/").
 -define(plaSpecPath, "/catalogManagement/v2/plaSpecification/").
--define(inventoryPath, "/inventoryManagement/v2/productOffering/").
+-define(inventoryPath, "/productInventoryManagement/v2/product/").
 
 -spec content_types_accepted() -> ContentTypes
 	when
@@ -321,7 +321,7 @@ get_plas(_Query, _Headers) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 412 | 500 .
-%% @doc Respond to `GET /productInventoryManagement/v2/productOffering'.
+%% @doc Respond to `GET /productInventoryManagement/v2/product'.
 %% 	Retrieve all Product Inventories.
 %% @todo Filtering
 get_product_inventories(Query, Headers) ->
@@ -1956,14 +1956,14 @@ inventory(#subscriber{name = Username, password = Password,
 	F2 = fun(Key) ->
 			case proplists:get_value(Key, ProductInstance#product_instance.characteristics) of
 				undefined ->
-					undefined;
+					binary_to_list(Username);
 				Value ->
 					Value
 			end
 	end,
 	Username1 = F2("subscriberIdentity"),
 	Id = {"id", Username1},
-	Href = {"href", "product/product/" ++ Username1},
+	Href = {"href", ?inventoryPath ++ Username1},
 	{struct, lists:sort([Id, Href | Json1])}.
 
 
