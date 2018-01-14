@@ -2045,18 +2045,6 @@ product(ProdID) ->
 	{struct, [ID, Href, Name]}.
 
 %% @hidden
-duration("seconds") -> "seconds";
-duration("minutes") -> "minutes";
-duration("days") -> "days";
-duration("months") -> "months";
-duration("years") -> "years";
-duration(seconds) -> "seconds";
-duration(minutes) -> "minutes";
-duration(days) -> "days";
-duration(months) -> "months";
-duration(years) -> "years".
-
-%% @hidden
 query_filter(MFA, Codec, Query, Headers) ->
 	case lists:keytake("fields", 1, Query) of
 		{value, {_, Filters}, NewQuery} ->
