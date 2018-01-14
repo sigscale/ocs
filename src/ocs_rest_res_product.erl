@@ -1964,8 +1964,8 @@ inventory(#subscriber{name = Username, password = Password,
 	Username1 = F2("subscriberIdentity"),
 	Id = {"id", Username1},
 	Href = {"href", ?inventoryPath ++ Username1},
-	{struct, lists:sort([Id, Href | Json1])}.
-
+	Name = {"name", Username1},
+	{struct, [Id, Href, Name | Json1]}.
 
 -spec instance(Instance) -> Instance
 	when
