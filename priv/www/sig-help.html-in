@@ -14,6 +14,7 @@
 		<style is="custom-style">
 			paper-dialog {
 				position: fixed;
+				width: 20em;
 				right: -36px;
 				top: 41px;
 				overflow: auto;
