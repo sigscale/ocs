@@ -171,3 +171,7 @@
 		characteristics = [] :: [{Name :: string(), Value :: term()}],
 		last_modified :: tuple() | undefined}).
 
+-record(gtt,
+		{num :: string(),
+		value :: {Description :: string(), Rate :: non_neg_integer()}}).
+

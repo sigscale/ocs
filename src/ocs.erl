@@ -467,7 +467,7 @@ add_subscriber(undefined, Password, Product, Characteristics, Buckets, Attribute
 						Product
 				end,
 				case mnesia:read(product, ProductId, read) of
-					[#product{} = P] ->
+					[#product{char_value_use = CharValueUse} = P] ->
 						N = erlang:unique_integer([positive]),
 						S1 = #subscriber{password = Password,
 								attributes = Attributes,
@@ -475,7 +475,8 @@ add_subscriber(undefined, Password, Product, Characteristics, Buckets, Attribute
 								enabled = EnabledStatus,
 								multisession = MultiSession,
 								last_modified = {Now, N}},
-						S2 = subscription(S1, P, Characteristics, true),
+						NewChars = default_chars(CharValueUse, Characteristics),
+						S2 = subscription(S1, P, NewChars, true),
 						F3 = fun(_, _, 0) ->
 									mnesia:abort(retries);
 								(F, Identity, I) ->
@@ -516,7 +517,7 @@ add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes
 						Product
 				end,
 				case mnesia:read(product, ProductId, read) of
-					[#product{} = P] ->
+					[#product{char_value_use = CharValueUse} = P] ->
 						N = erlang:unique_integer([positive]),
 						S1 = #subscriber{name = Identity,
 								password = Password,
@@ -525,7 +526,8 @@ add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes
 								enabled = EnabledStatus,
 								multisession = MultiSession,
 								last_modified = {Now, N}},
-						S2 = subscription(S1, P, Characteristics, true),
+						NewChars = default_chars(CharValueUse, Characteristics),
+						S2 = subscription(S1, P, NewChars, true),
 						ok = mnesia:write(S2),
 						S2;
 					[] ->
@@ -1528,12 +1530,41 @@ end_period1({{Year, Month, Day}, Time}, yearly) ->
 	EndDate = {Year + 1, Month, Day},
 	gregorian_datetime_to_system_time({EndDate, Time}) - 1.
 
+-spec default_chars(CharValueUse, ReqChars) -> NewChars
+	when
+		CharValueUse:: [#char_value_use{}],
+		ReqChars :: [tuple()],
+		NewChars :: [tuple()].
+%% @doc Add default characteristic values.
+%% @hidden
+default_chars([#char_value_use{name = Name, values = Values} | T], Acc) ->
+	case lists:keymember(Name, 1, Acc) of
+		true ->
+			default_chars(T, Acc);
+		false ->
+			case default_chars1(Values) of
+				undefined ->
+					default_chars(T, Acc);
+				Value ->
+					default_chars(T, [{Name, Value} | Acc])
+			end
+	end;
+default_chars([], Acc) ->
+	lists:reverse(Acc).
+%% @hidden
+default_chars1([#char_value{default = true, value = Value} | _]) ->
+	Value;
+default_chars1([_ | T]) ->
+	default_chars1(T);
+default_chars1([]) ->
+	undefined.
+
 -spec subscription(Subscriber, Product, Characteristics, InitialFlag) ->
 		Subscriber
 	when
 		Subscriber :: #subscriber{},
 		Product :: #product{},
-		Characteristics :: [tuple()] | undefined,
+		Characteristics :: [tuple()],
 		InitialFlag :: boolean().
 %% @doc Apply product offering charges.
 %% 	If `InitialFlag' is `true' initial bucket preparation

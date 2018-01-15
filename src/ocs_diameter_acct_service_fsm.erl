@@ -252,12 +252,7 @@ terminate(_Reason, _StateName,  #statedata{transport_ref = TransRef,
 	SvcName = ?DIAMETER_ACCT_SERVICE(Address, Port),
 	case diameter:remove_transport(SvcName, TransRef) of
 		ok ->
-			case diameter:stop_service(SvcName)	of
-				ok ->
-					ok;
-				{error, Reason} ->
-					{error, Reason}
-			end;
+			diameter:stop_service(SvcName);
 		{error, Reason} ->
 			{error, Reason}
 	end.

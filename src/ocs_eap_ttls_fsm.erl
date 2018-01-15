@@ -419,16 +419,15 @@ client_hello({#radius{code = ?AccessRequest, id = RadiusID,
 		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
 				data = TtlsData} = ocs_eap_codec:eap_packet(EapMessage),
 		case ocs_eap_codec:eap_ttls(TtlsData) of
-			#eap_ttls{more = false, message_len = undefined,
-					start = false, data = Data} when RxLength == undefined ->
+			#eap_ttls{more = false, start = false, data = Data}
+					when RxLength == undefined ->
 				CHMsg = <<RxBuf/binary, Data/binary>>,
 				NextStateData = client_hello1(CHMsg, NewStateData),
 				ocs_eap_tls_transport:deliver(SslPid, self(), CHMsg),
 				NextNewStateData = NextStateData#statedata{rx_buf = <<>>,
 						rx_length = undefined},
 				{next_state, server_hello, NextNewStateData, ?TIMEOUT};
-			#eap_ttls{more = false, message_len = undefined,
-					start = false, data = Data} ->
+			#eap_ttls{more = false, start = false, data = Data} ->
 				CHMsg = <<RxBuf/binary, Data/binary>>,
 				RxLength = size(CHMsg),
 				ocs_eap_tls_transport:deliver(SslPid, self(), CHMsg),
@@ -489,16 +488,15 @@ client_hello(#diameter_eap_app_DER{} = Request, #statedata{eap_id = EapID,
 		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
 				data = TtlsData} = ocs_eap_codec:eap_packet(EapMessage),
 		case ocs_eap_codec:eap_ttls(TtlsData) of
-			#eap_ttls{more = false, message_len = undefined,
-					start = false, data = Data} when RxLength == undefined ->
+			#eap_ttls{more = false, start = false, data = Data}
+					when RxLength == undefined ->
 				CHMsg = <<RxBuf/binary, Data/binary>>,
 				NextStateData = client_hello1(CHMsg, NewStateData),
 				ocs_eap_tls_transport:deliver(SslPid, self(), CHMsg),
 				NextNewStateData = NextStateData#statedata{rx_buf = <<>>,
 						rx_length = undefined},
 				{next_state, server_hello, NextNewStateData, ?TIMEOUT};
-			#eap_ttls{more = false, message_len = undefined,
-					start = false, data = Data} ->
+			#eap_ttls{more = false, start = false, data = Data} ->
 				CHMsg = <<RxBuf/binary, Data/binary>>,
 				RxLength = size(CHMsg),
 				ocs_eap_tls_transport:deliver(SslPid, self(), CHMsg),
@@ -604,8 +602,8 @@ server_hello({#radius{code = ?AccessRequest, id = RadiusID,
 	try
 		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
 				data = TtlsData} = ocs_eap_codec:eap_packet(EapMessage),
-		#eap_ttls{more = false, message_len = undefined,
-				start = false, data = <<>>} = ocs_eap_codec:eap_ttls(TtlsData),
+		#eap_ttls{more = false, start = false,
+				data = <<>>} = ocs_eap_codec:eap_ttls(TtlsData),
 		server_hello2(Attributes, NewStateData)
 	catch
 		_:_ ->
@@ -623,8 +621,8 @@ server_hello(#diameter_eap_app_DER{} = Request, #statedata{eap_id = EapID,
 	try
 		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
 				data = TtlsData} = ocs_eap_codec:eap_packet(EapMessage),
-		#eap_ttls{more = false, message_len = undefined,
-				start = false, data = <<>>} = ocs_eap_codec:eap_ttls(TtlsData),
+		#eap_ttls{more = false, start = false,
+				data = <<>>} = ocs_eap_codec:eap_ttls(TtlsData),
 		server_hello2([], StateData)
 	catch
 		_:_ ->
@@ -741,15 +739,14 @@ client_cipher({#radius{code = ?AccessRequest, id = RadiusID,
 		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
 				data = TtlsData} = ocs_eap_codec:eap_packet(EapMessage),
 		case ocs_eap_codec:eap_ttls(TtlsData) of
-			#eap_ttls{more = false, message_len = undefined,
-					start = false, data = Data} when RxLength == undefined ->
+			#eap_ttls{more = false, start = false, data = Data}
+					when RxLength == undefined ->
 				CCMsg = <<RxBuf/binary, Data/binary>>,
 				ocs_eap_tls_transport:deliver(SslPid, self(), CCMsg),
 				NextStateData = NewStateData#statedata{rx_buf = <<>>,
 						rx_length = undefined},
 				{next_state, server_cipher, NextStateData};
-			#eap_ttls{more = false, message_len = undefined,
-					start = false, data = Data} ->
+			#eap_ttls{more = false, start = false, data = Data} ->
 				CCMsg = <<RxBuf/binary, Data/binary>>,
 				RxLength = size(CCMsg),
 				ocs_eap_tls_transport:deliver(SslPid, self(), CCMsg),
@@ -798,15 +795,14 @@ client_cipher(#diameter_eap_app_DER{} = Request, #statedata{eap_id = EapID,
 		#eap_packet{code = response, type = ?TTLS, identifier = EapID,
 				data = TtlsData} = ocs_eap_codec:eap_packet(EapMessage),
 		case ocs_eap_codec:eap_ttls(TtlsData) of
-			#eap_ttls{more = false, message_len = undefined,
-					start = false, data = Data} when RxLength == undefined ->
+			#eap_ttls{more = false, start = false, data = Data}
+					when RxLength == undefined ->
 				CCMsg = <<RxBuf/binary, Data/binary>>,
 				ocs_eap_tls_transport:deliver(SslPid, self(), CCMsg),
 				NextStateData = StateData#statedata{rx_buf = <<>>,
 						rx_length = undefined},
 				{next_state, server_cipher, NextStateData};
-			#eap_ttls{more = false, message_len = undefined,
-					start = false, data = Data} ->
+			#eap_ttls{more = false, start = false, data = Data} ->
 				CCMsg = <<RxBuf/binary, Data/binary>>,
 				RxLength = size(CCMsg),
 				ocs_eap_tls_transport:deliver(SslPid, self(), CCMsg),

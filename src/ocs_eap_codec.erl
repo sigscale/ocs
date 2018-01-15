@@ -205,6 +205,10 @@ eap_ttls(#eap_ttls{message_len = Length, more = true, start = true,
 		version = Version, data = Data})
 		when is_integer(Version), is_integer(Length) ->
 	<<1:1, 1:1, 1:1, 0:2, Version:3, Length:32, Data/binary>>;
+eap_ttls(#eap_ttls{message_len = Length, more = false, start = false,
+		version = Version, data = Data})
+		when is_integer(Version), is_integer(Length) ->
+	<<1:1, 0:1, 0:1, 0:2, Version:3, Length:32, Data/binary>>;
 eap_ttls(<<0:1, 0:1, 0:1, _:2, Version:3, Data/binary>>) ->
 	#eap_ttls{version = Version, data = Data};
 eap_ttls(<<0:1, 0:1, 1:1, _:2, Version:3, Data/binary>>) ->
@@ -213,6 +217,8 @@ eap_ttls(<<0:1, 1:1, 0:1, _:2, Version:3, Data/binary>>) ->
 	#eap_ttls{more = true, version = Version, data = Data};
 eap_ttls(<<0:1, 1:1, 1:1, _:2, Version:3, Data/binary>>) ->
 	#eap_ttls{more = true, start = true, version = Version, data = Data};
+eap_ttls(<<1:1, 0:1, 0:1, _:2, Version:3, Length:32, Data/binary>>) ->
+	#eap_ttls{version = Version, message_len = Length, data = Data};
 eap_ttls(<<1:1, 1:1, 0:1, _:2, Version:3, Length:32, Data/binary>>) ->
 	#eap_ttls{more = true, version = Version, message_len = Length, data = Data};
 eap_ttls(<<1:1, 1:1, 1:1, _:2, Version:3, Length:32, Data/binary>>) ->

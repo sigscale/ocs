@@ -1196,8 +1196,8 @@
 					charValueUse.minCardinality = 0;
 					charValueUse.maxCardinality = 1;
 					var charValue = new Object();
-					charValue.default = false;
-					charValue.value = this.$.addOfferCharReserveSession.value;
+					charValue.default = true;
+					charValue.value = parseInt(this.$.addOfferCharReserveSession.value);
 					var charValues = new Array();
 					charValues.push(charValue);
 					charValueUse.productSpecCharacteristicValue = charValues;
@@ -1368,7 +1368,7 @@
 						charValueUse.name = "destPrefixTariffTable";
 						charValueUse.minCardinality = 0;
 						charValueUse.maxCardinality = 1;
-						charValue.default = false;
+						charValue.default = true;
 						charValue.value = item.prefixTariff;
 						var charValues = new Array();
 						charValues.push(charValue);

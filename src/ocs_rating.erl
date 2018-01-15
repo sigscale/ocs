@@ -204,14 +204,20 @@ rate3(Protocol, Subscriber, Address,
 		Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes) ->
 	case lists:keyfind("destPrefixTariffTable", #char_value_use.name, CharValueUse) of
 		#char_value_use{values = [#char_value{value = TariffTable}]} ->
-			case catch ocs_gtt:lookup_last(TariffTable, Address) of
-				{_Description, Amount} when is_integer(Amount), Amount >= 0 ->
-					rate4(Protocol, Subscriber, Price#price{amount = Amount},
-							Validity, Flag, DebitAmounts, ReserveAmounts,
-							SessionAttributes);
+			Table = list_to_existing_atom(TariffTable),
+			case catch ocs_gtt:lookup_last(Table, Address) of
+				{_Description, Amount} ->
+					case list_to_integer(Amount) of
+						N when N >= 0 ->
+							rate4(Protocol, Subscriber, Price#price{amount = N},
+									Validity, Flag, DebitAmounts, ReserveAmounts,
+									SessionAttributes);
+						_N ->
+							throw(negative_amount)
+					end;
 				Other ->
 					error_logger:error_report(["Prefix table tariff lookup failed",
-							{module, ?MODULE}, {table, TariffTable},
+							{module, ?MODULE}, {table, Table},
 							{address, Address}, {result, Other}]),
 					throw(table_lookup_failed)
 			end;
@@ -604,13 +610,19 @@ authorize3(Protocol, ServiceType, Subscriber, Address,
 		SessionAttributes, Reserve) ->
 	case lists:keyfind("destPrefixTariffTable", #char_value_use.name, CharValueUse) of
 		#char_value_use{values = [#char_value{value = TariffTable}]} ->
-			case catch ocs_gtt:lookup_last(TariffTable, Address) of
-				{_Description, Amount} when is_integer(Amount), Amount >= 0 ->
-					authorize4(Protocol, ServiceType, Subscriber,
-							Price#price{amount = Amount}, SessionAttributes, Reserve);
+			Table = list_to_existing_atom(TariffTable),
+			case catch ocs_gtt:lookup_last(Table, Address) of
+				{_Description, Amount} ->
+					case list_to_integer(Amount) of
+						N when N >= 0 ->
+							authorize4(Protocol, ServiceType, Subscriber,
+								Price#price{amount = N}, SessionAttributes, Reserve);
+						_N ->
+							throw(negative_amount)
+					end;
 				Other ->
 					error_logger:error_report(["Prefix table tariff lookup failed",
-							{module, ?MODULE}, {table, TariffTable},
+							{module, ?MODULE}, {table, Table},
 							{address, Address}, {result, Other}]),
 					throw(table_lookup_failed)
 			end;
@@ -1285,7 +1297,11 @@ filter_prices_dir(Direction, Prices) when is_atom(Direction) ->
 %% @hidden
 filter_prices_dir(Direction, [#price{char_value_use = CharValueUse} = P | T], Acc) ->
 	case lists:keyfind("callDirection", #char_value_use.name, CharValueUse) of
-		#char_value_use{values = [#char_value{value = Direction}]} ->
+		#char_value_use{values = [#char_value{value = "answer"}]}
+				when Direction == answer ->
+			filter_prices_dir(Direction, T, [P | Acc]);
+		#char_value_use{values = [#char_value{value = "originate"}]}
+				when Direction == originate ->
 			filter_prices_dir(Direction, T, [P | Acc]);
 		#char_value_use{values = [#char_value{}]} ->
 			filter_prices_dir(Direction, T, Acc);

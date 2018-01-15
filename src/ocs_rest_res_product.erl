@@ -45,7 +45,7 @@
 -define(offeringPath, "/catalogManagement/v2/productOffering/").
 -define(plaPath, "/catalogManagement/v2/pla/").
 -define(plaSpecPath, "/catalogManagement/v2/plaSpecification/").
--define(inventoryPath, "/inventoryManagement/v2/productOffering/").
+-define(inventoryPath, "/productInventoryManagement/v2/product/").
 
 -spec content_types_accepted() -> ContentTypes
 	when
@@ -125,7 +125,7 @@ add_product_inventory(ReqData) ->
 			{error, 400};
 		throw:_Reason1 ->
 			{error, 500};
-		_:_ ->
+		_:_Reason1 ->
 			{error, 400}
 	end.
 
@@ -321,7 +321,7 @@ get_plas(_Query, _Headers) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 404 | 412 | 500 .
-%% @doc Respond to `GET /productInventoryManagement/v2/productOffering'.
+%% @doc Respond to `GET /productInventoryManagement/v2/product'.
 %% 	Retrieve all Product Inventories.
 %% @todo Filtering
 get_product_inventories(Query, Headers) ->
@@ -1956,16 +1956,16 @@ inventory(#subscriber{name = Username, password = Password,
 	F2 = fun(Key) ->
 			case proplists:get_value(Key, ProductInstance#product_instance.characteristics) of
 				undefined ->
-					undefined;
+					binary_to_list(Username);
 				Value ->
 					Value
 			end
 	end,
 	Username1 = F2("subscriberIdentity"),
 	Id = {"id", Username1},
-	Href = {"href", "product/product/" ++ Username1},
-	{struct, lists:sort([Id, Href | Json1])}.
-
+	Href = {"href", ?inventoryPath ++ Username1},
+	Name = {"name", Username1},
+	{struct, [Id, Href, Name | Json1]}.
 
 -spec instance(Instance) -> Instance
 	when
@@ -1976,7 +1976,7 @@ instance({struct, ObjectMembers}) ->
 instance(ProductInstance) ->
 	{struct, instance(record_info(fields, product_instance), ProductInstance, [])}.
 %% @hidden
-instance([{"characteristics", Chars} | T], Acc) ->
+instance([{"characteristic", Chars} | T], Acc) ->
 	NewChars = instance_chars(Chars),
 	instance(T, Acc#product_instance{characteristics = NewChars});
 instance([{"productOffering", {struct, Offer}} | T], Acc) ->
@@ -1996,7 +1996,7 @@ instance([product | T], #product_instance{product = ProdID} = ProductInstance, A
 	Offer = {"productOffering", product(ProdID)},
 	instance(T, ProductInstance, [Offer | Acc]);
 instance([characteristics | T], #product_instance{characteristics = Chars} = ProductInstance, Acc) ->
-	Characteristics = {"characteristics", instance_chars(Chars)},
+	Characteristics = {"characteristic", instance_chars(Chars)},
 	instance(T, ProductInstance, [Characteristics | Acc]);
 instance([status | T], #product_instance{status = undefined} = ProductInstance, Acc) ->
 	instance(T, ProductInstance,  Acc);
@@ -2027,114 +2027,22 @@ instance_chars({array, Characteristics}) ->
 instance_chars(Characteristics) ->
 	{array, instance_chars(Characteristics, [])}.
 %% @hidden
-instance_chars([{struct, [{"subscriberIdentity", Identity}]} | T], Acc) ->
-	instance_chars(T, [{"subscriberIdentity", Identity} | Acc]);
-instance_chars([{struct, [{"subscriberPassword", Password}]} | T], Acc) ->
-	instance_chars(T, [{"subscriberPassword", Password} | Acc]);
-instance_chars([{struct, [{"balanceTopUpDuration", BalanceTopUpDuration}]} | T], Acc) ->
-	instance_chars(T, [{"balanceTopUpDuration", topup_duration(BalanceTopUpDuration)} | Acc]);
-instance_chars([{struct, [{"radiusReserveTime", RadiusReserveTime}]} | T], Acc) ->
-	instance_chars(T, [{"radiusReserveTime", radius_reserve_time(RadiusReserveTime)} | Acc]);
-instance_chars([{struct, [{"radiusReserveOctets", RadiusReserveOctets}]} | T], Acc) ->
-	instance_chars(T, [{"radiusReserveOctets", radius_reserve_octets(RadiusReserveOctets)} | Acc]);
-instance_chars([{"subscriberIdentity", Identity} | T], Acc) ->
-	instance_chars(T, [{struct, [{"subscriberIdentity", Identity}]} | Acc]);
-instance_chars([{"subscriberPassword", Password} | T], Acc) ->
-	instance_chars(T, [{struct, [{"subscriberPassword", Password}]} | Acc]);
-instance_chars([{"radiusReserveTime", RadiusReserveTime} | T], Acc) ->
-	instance_chars(T, [{struct, [{"radiusReserveTime", radius_reserve_time(RadiusReserveTime)}]} | Acc]);
-instance_chars([{"radiusReserveOctets", RadiusReserveOctets} | T], Acc) ->
-	instance_chars(T, [{struct, [{"radiusReserveOctets", radius_reserve_octets(RadiusReserveOctets)}]} | Acc]);
-instance_chars([{"balanceTopUpDuration", Chars} | T], Acc) ->
-	instance_chars(T, [{struct, [{"balanceTopUpDuration", topup_duration(Chars)}]} | Acc]);
+instance_chars([{struct, [{"name", Name}, {"value", Value}]} | T], Acc) ->
+	instance_chars(T, [{Name, Value} | Acc]);
+instance_chars([{struct, [{"value", Value}, {"name", Name}]} | T], Acc) ->
+	instance_chars(T, [{Name, Value} | Acc]);
 instance_chars([], Acc) ->
 	lists:reverse(Acc).
 
--spec topup_duration(BalanceTopUpDuration) -> BalanceTopUpDuration
-	when
-		BalanceTopUpDuration :: {struct, list()} | [tuple()].
-%% @doc CODEC for top up duration characteristic
-%% @private
-topup_duration({struct, [{"unitOfMeasure", Duration}, {"value", Amount}]}) ->
-	[{unitOfMeasure, duration(Duration)}, {value, Amount}];
-topup_duration({struct, [{"value", Amount}, {"unitOfMeasure", Duration}]}) ->
-	[{unitOfMeasure, duration(Duration)}, {value, Amount}];
-topup_duration([{unitOfMeasure, Duration}, {value, Amount}]) ->
-	{struct, [{"unitOfMeasure", duration(Duration)}, {"value", Amount}]};
-topup_duration([{value, Amount}, {unitOfMeasure, Duration}]) ->
-	{struct, [{"unitOfMeasure", duration(Duration)}, {"value", Amount}]}.
-
 %% @hidden
 product({struct, Offer}) ->
-	{_, ProdId} = lists:keyfind("name", 1, Offer),
+	{_, ProdId} = lists:keyfind("id", 1, Offer),
 	ProdId;
 product(ProdID) ->
 	ID = {"id", ProdID},
 	Href = {"href", ?offeringPath ++ ProdID},
 	Name = {"name", ProdID},
 	{struct, [ID, Href, Name]}.
-
--spec radius_reserve_octets(RadiusReserve) -> RadiusReserve
-	when
-		RadiusReserve :: {struct, list()} | pos_integer().
-%% @doc CODEC for radius reservation octets characteristic.
-%% @private
-radius_reserve_octets({struct, L}) ->
-	radius_reserve_octets(L, undefined, 0);
-radius_reserve_octets(N) when N =/= 0, N rem 1000000000 =:= 0 ->
-	{struct, [{"unitOfMeasure", "gigabytes"}, {"value", N}]};
-radius_reserve_octets(N) when N =/= 0, N rem 1000000 =:= 0 ->
-	{struct, [{"unitOfMeasure", "megabytes"}, {"value", N}]};
-radius_reserve_octets(N) when N =/= 0, N rem 1000 =:= 0 ->
-	{struct, [{"unitOfMeasure", "kilobytes"}, {"value", N}]};
-radius_reserve_octets(N) when N =/= 0 ->
-	{struct, [{"unitOfMeasure", "bytes"}, {"value", N}]}.
-%% @hidden
-radius_reserve_octets([{"unitOfMeasure", Units} | T], undefined, Value) ->
-	radius_reserve_octets(T, Units, Value);
-radius_reserve_octets([{"value", Value} | T], Units, 0) when is_integer(Value) ->
-	radius_reserve_octets(T, Units, Value);
-radius_reserve_octets([], "bytes", Value) ->
-	Value;
-radius_reserve_octets([], "kilobytes", Value) ->
-	Value * 1000;
-radius_reserve_octets([], "megabytes", Value) ->
-	Value * 1000000;
-radius_reserve_octets([], "gigabytes", Value) ->
-	Value * 1000000000.
-
--spec radius_reserve_time(RadiusReserve) -> RadiusReserve
-	when
-		RadiusReserve :: {struct, list()} | pos_integer().
-%% @doc CODEC for radius reservation time characteristic.
-%% @private
-radius_reserve_time({struct, L}) ->
-	radius_reserve_time(L, undefined, 0);
-radius_reserve_time(N) when N =/= 0, N rem 60 =:= 0 ->
-	{struct, [{"unitOfMeasure", "minutes"}, {"value", N}]};
-radius_reserve_time(N) when N =/= 0 ->
-	{struct, [{"unitOfMeasure", "seconds"}, {"value", N}]}.
-%% @hidden
-radius_reserve_time([{"unitOfMeasure", Units} | T], undefined, Value) ->
-	radius_reserve_time(T, Units, Value);
-radius_reserve_time([{"value", Value} | T], Units, 0) when is_integer(Value) ->
-	radius_reserve_time(T, Units, Value);
-radius_reserve_time([], "seconds", Value) ->
-	Value;
-radius_reserve_time([], "minutes", Value) ->
-	Value * 60.
-
-%% @hidden
-duration("seconds") -> "seconds";
-duration("minutes") -> "minutes";
-duration("days") -> "days";
-duration("months") -> "months";
-duration("years") -> "years";
-duration(seconds) -> "seconds";
-duration(minutes) -> "minutes";
-duration(days) -> "days";
-duration(months) -> "months";
-duration(years) -> "years".
 
 %% @hidden
 query_filter(MFA, Codec, Query, Headers) ->
