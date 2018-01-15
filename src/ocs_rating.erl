@@ -230,9 +230,9 @@ rate3(Protocol, Subscriber, _Address, Price, Validity, Flag,
 			DebitAmounts, ReserveAmounts, SessionAttributes).
 %% @hidden
 rate4(_Protocol, #subscriber{enabled = false} = Subscriber, _Price,
-		_Validity, initial, _DebitAmounts, _ReserveAmounts,
-		SessionAttributes) ->
-	rate6(Subscriber, initial, 0, 0, 0, 0, SessionAttributes);
+		_Validity, initial, _DebitAmounts, _ReserveAmounts, SessionAttributes) ->
+	SessionId = get_session_id(SessionAttributes),
+	rate6(Subscriber, initial, 0, 0, 0, 0, SessionId);
 rate4(radius, Subscriber, Price, Validity,
 		initial, [], [], SessionAttributes) ->
 	rate5(Subscriber, Price, Validity, initial,
@@ -271,8 +271,7 @@ rate5(#subscriber{buckets = Buckets1} = Subscriber,
 	case reserve_session(Units, ReserveAmount, SessionId, Buckets1) of
 		{ReserveAmount, Buckets2} ->
 			rate6(Subscriber#subscriber{buckets = Buckets2},
-					initial, 0, 0, ReserveAmount, ReserveAmount,
-					SessionAttributes);
+					initial, 0, 0, ReserveAmount, ReserveAmount, SessionId);
 		{UnitsReserved, Buckets2} ->
 			PriceReserveUnits = (ReserveAmount - UnitsReserved),
 			{UnitReserve, PriceReserve} = price_units(PriceReserveUnits,
@@ -281,12 +280,11 @@ rate5(#subscriber{buckets = Buckets1} = Subscriber,
 				{PriceReserve, Buckets3} ->
 					rate6(Subscriber#subscriber{buckets = Buckets3},
 							initial, 0, 0, ReserveAmount,
-							UnitsReserved + UnitReserve, SessionAttributes);
+							UnitsReserved + UnitReserve, SessionId);
 				{PriceReserved, Buckets3} ->
 					rate6(Subscriber#subscriber{buckets = refund(SessionId, Buckets3)},
 							initial, 0, 0, ReserveAmount,
-							UnitsReserved + (PriceReserved div UnitPrice),
-							SessionAttributes)
+							UnitsReserved + (PriceReserved div UnitPrice), SessionId)
 			end
 	end;
 rate5(#subscriber{enabled = false, buckets = Buckets1} = Subscriber,
@@ -296,7 +294,7 @@ rate5(#subscriber{enabled = false, buckets = Buckets1} = Subscriber,
 	case update_session(Units, DebitAmount, 0, SessionId, Buckets1) of
 		{DebitAmount, 0, Buckets2} ->
 			rate6(Subscriber#subscriber{buckets = Buckets2}, interim,
-					DebitAmount, DebitAmount, 0, 0, SessionAttributes);
+					DebitAmount, DebitAmount, 0, 0, SessionId);
 		{UnitsCharged, 0, Buckets2} ->
 			PriceChargeUnits = DebitAmount - UnitsCharged,
 			{UnitCharge, PriceCharge} = price_units(PriceChargeUnits,
@@ -304,14 +302,12 @@ rate5(#subscriber{enabled = false, buckets = Buckets1} = Subscriber,
 			case update_session(cents, PriceCharge, 0, SessionId, Buckets2) of
 				{PriceCharge, 0, Buckets3} ->
 					rate6(Subscriber#subscriber{buckets = Buckets3}, interim,
-							DebitAmount, DebitAmount + UnitCharge,
-							0, 0, SessionAttributes);
+							DebitAmount, DebitAmount + UnitCharge, 0, 0, SessionId);
 				{PriceCharged, 0, Buckets3} ->
 					Bucket4 = [#bucket{remain_amount = PriceCharged - PriceCharge,
 							units = cents} | refund(SessionId, Buckets3)],
 					rate6(Subscriber#subscriber{buckets = Bucket4}, interim, DebitAmount,
-							UnitsCharged + (PriceCharged div UnitPrice), 0, 0,
-							SessionAttributes)
+							UnitsCharged + (PriceCharged div UnitPrice), 0, 0, SessionId)
 			end
 	end;
 rate5(#subscriber{buckets = Buckets1} = Subscriber,
@@ -322,8 +318,8 @@ rate5(#subscriber{buckets = Buckets1} = Subscriber,
 			SessionId, Buckets1) of
 		{DebitAmount, ReserveAmount, Buckets2} ->
 			rate6(Subscriber#subscriber{buckets = Buckets2}, interim,
-					DebitAmount, DebitAmount, ReserveAmount, ReserveAmount,
-					SessionAttributes);
+					DebitAmount, DebitAmount, ReserveAmount,
+					ReserveAmount, SessionId);
 		{DebitAmount, UnitsReserved, Buckets2} ->
 			PriceReserveUnits = ReserveAmount - UnitsReserved,
 			{UnitReserve, PriceReserve} = price_units(PriceReserveUnits,
@@ -332,12 +328,11 @@ rate5(#subscriber{buckets = Buckets1} = Subscriber,
 				{0, PriceReserve, Buckets3} ->
 					rate6(Subscriber#subscriber{buckets = Buckets3}, interim,
 							DebitAmount, DebitAmount, ReserveAmount,
-							UnitReserve, SessionAttributes);
+							UnitReserve, SessionId);
 				{0, PriceReserved, Buckets3} ->
 					rate6(Subscriber#subscriber{buckets = Buckets3}, interim,
 							DebitAmount, DebitAmount, ReserveAmount,
-							UnitsReserved + PriceReserved div UnitPrice,
-							SessionAttributes)
+							UnitsReserved + PriceReserved div UnitPrice, SessionId)
 			end;
 		{UnitsCharged, 0, Buckets2} ->
 			PriceChargeUnits = DebitAmount - UnitsCharged,
@@ -350,17 +345,17 @@ rate5(#subscriber{buckets = Buckets1} = Subscriber,
 				{PriceCharge, PriceReserve, Buckets3} ->
 					rate6(Subscriber#subscriber{buckets = Buckets3}, interim,
 							DebitAmount, UnitsCharged + UnitCharge, ReserveAmount,
-							UnitReserve, SessionAttributes);
+							UnitReserve, SessionId);
 				{PriceCharge, PriceReserved, Buckets3} ->
 					rate6(Subscriber#subscriber{buckets = Buckets3}, interim,
 							DebitAmount, UnitsCharged + UnitCharge, ReserveAmount,
-							PriceReserved div UnitPrice, SessionAttributes);
+							PriceReserved div UnitPrice, SessionId);
 				{PriceCharged, 0, Buckets3} ->
 					Buckets4 = [#bucket{remain_amount = PriceCharged - PriceCharge,
 							units = cents} | refund(SessionId, Buckets3)],
 					rate6(Subscriber#subscriber{buckets = Buckets4}, interim,
 							DebitAmount, UnitsCharged + (PriceCharged div UnitPrice),
-							ReserveAmount, 0, SessionAttributes)
+							ReserveAmount, 0, SessionId)
 			end
 	end;
 rate5(#subscriber{buckets = Buckets1} = Subscriber,
@@ -370,7 +365,7 @@ rate5(#subscriber{buckets = Buckets1} = Subscriber,
 	case charge_session(Units, DebitAmount, SessionId, Buckets1) of
 		{DebitAmount, Buckets2} ->
 			rate6(Subscriber#subscriber{buckets = Buckets2}, final,
-					DebitAmount, DebitAmount, 0, 0, SessionAttributes);
+					DebitAmount, DebitAmount, 0, 0, SessionId);
 		{UnitsCharged, Buckets2} ->
 			PriceChargeUnits = DebitAmount - UnitsCharged,
 			{UnitCharge, PriceCharge} = price_units(PriceChargeUnits,
@@ -378,51 +373,49 @@ rate5(#subscriber{buckets = Buckets1} = Subscriber,
 			case charge_session(cents, PriceCharge, SessionId, Buckets2) of
 				{PriceCharge, Buckets3} ->
 					rate6(Subscriber#subscriber{buckets = Buckets3}, final,
-							DebitAmount, UnitsCharged + UnitCharge,
-							0, 0, SessionAttributes);
+							DebitAmount, UnitsCharged + UnitCharge, 0, 0, SessionId);
 				{PriceCharged, Buckets3} ->
 					Buckets4 = [#bucket{remain_amount = PriceCharged - PriceCharge,
 							units = cents} | refund(SessionId, Buckets3)],
 					rate6(Subscriber#subscriber{buckets = Buckets4}, final,
 					DebitAmount, UnitsCharged + (PriceCharged div UnitPrice),
-					0, 0, SessionAttributes)
+					0, 0, SessionId)
 			end
 	end.
 %% @hidden
 rate6(#subscriber{session_attributes = SessionList, buckets  = Buckets} = Subscriber1,
-		final, Charge, Charged, 0, 0, SessionAttributes)
+		final, Charge, Charged, 0, 0, SessionId)
 		when Charged >= Charge ->
-	SessionId = get_session_id(SessionAttributes),
 	NewBuckets = refund(SessionId, Buckets),
-	NewSessionList = remove_session(SessionAttributes, SessionList),
+	NewSessionList = remove_session(SessionId, SessionList),
 	Subscriber2 = Subscriber1#subscriber{buckets = NewBuckets,
 			session_attributes = NewSessionList},
 	ok = mnesia:write(Subscriber2),
 	{grant, Subscriber2, 0};
 rate6(#subscriber{session_attributes = SessionList} = Subscriber1,
-		final, _Charge, _Charged, 0, 0, _SessionAttributes) ->
+		final, _Charge, _Charged, 0, 0, _SessionId) ->
 	Subscriber2 = Subscriber1#subscriber{session_attributes = []},
 	ok = mnesia:write(Subscriber2),
 	{out_of_credit, SessionList};
 rate6(#subscriber{enabled = false,
 		session_attributes = SessionList} = Subscriber1, _Flag,
-		_Charge, _Charged, _Reserve, _Reserved, _SessionAttributes) ->
+		_Charge, _Charged, _Reserve, _Reserved, _SessionId) ->
 	Subscriber2 = Subscriber1#subscriber{session_attributes = []},
 	ok = mnesia:write(Subscriber2),
 	{disabled, SessionList};
 rate6(#subscriber{session_attributes = SessionList} = Subscriber1, _Flag,
-		Charge, Charged, Reserve, Reserved, _SessionAttributes)
+		Charge, Charged, Reserve, Reserved, _SessionId)
 		when Charged < Charge; Reserved <  Reserve ->
 	Subscriber2 = Subscriber1#subscriber{session_attributes = []},
 	ok = mnesia:write(Subscriber2),
 	{out_of_credit, SessionList};
 rate6(#subscriber{session_attributes = SessionList} = Subscriber1,
-		initial, 0, 0, _Reserve, Reserved, SessionAttributes) ->
-	NewSessionList = add_session(SessionAttributes, SessionList),
+		initial, 0, 0, _Reserve, Reserved, SessionId) ->
+	NewSessionList = add_session(SessionId, SessionList),
 	Subscriber2 = Subscriber1#subscriber{session_attributes = NewSessionList},
 	ok = mnesia:write(Subscriber2),
 	{grant, Subscriber2, Reserved};
-rate6(Subscriber, interim, _Charge, _Charged, _Reserve, Reserved, _SessionAttributes) ->
+rate6(Subscriber, interim, _Charge, _Charged, _Reserve, Reserved, _SessionId) ->
 	ok = mnesia:write(Subscriber),
 	{grant, Subscriber, Reserved}.
 
@@ -1040,60 +1033,29 @@ charge(Type, Charge, Now, [H | T], Acc, Charged) ->
 charge(_, _, _, [], Acc, Charged) ->
 	{Charged, lists:reverse(Acc)}.
 
--spec remove_session(SessionAttributes, SessionList) -> NewSessionList
+-spec remove_session(SessionId, SessionList) -> NewSessionList
 	when
-		SessionAttributes :: [tuple()],
+		SessionId :: [tuple()],
 		SessionList :: [{pos_integer(), [tuple()]}],
 		NewSessionList :: [{pos_integer(), [tuple()]}].
 %% @doc Remove session identification attributes set from active sessions list.
 %% @private
-remove_session(SessionAttributes, SessionList) ->
-	remove_session(SessionAttributes, SessionList, []).
-%% @hidden
-remove_session(SessionAttributes, [{_, L} = H | T], Acc) ->
-	case L -- SessionAttributes of
-		[] ->
-			lists:reverse(Acc) ++ T;
-		_ ->
-			remove_session(SessionAttributes, T, [H | Acc])
-	end;
-remove_session(_, [], Acc) ->
-	lists:reverse(Acc).
+remove_session(SessionId, SessionList) ->
+	lists:keydelete(SessionId, 2, SessionList).
 
--spec add_session(SessionAttributes, SessionList) -> SessionList
+-spec add_session(SessionId, SessionList) -> SessionList
 	when
-		SessionAttributes :: [tuple()],
+		SessionId:: [tuple()],
 		SessionList :: [{pos_integer(), [tuple()]}].
 %% @doc Add new session identification attributes set to active sessions list.
 %% @private
-add_session(SessionAttributes, SessionList) ->
-	SessionId = get_session_id(SessionAttributes),
-	case add_session1(SessionId, SessionList) of
+add_session(SessionId, SessionList) ->
+	case lists:keymember(SessionId, 2, SessionList) of
 		true ->
 			SessionList;
 		false ->
-			[{erlang:system_time(?MILLISECOND), SessionAttributes} | SessionList]
+			[{erlang:system_time(?MILLISECOND), SessionId} | SessionList]
 	end.
-%% @hidden
-add_session1(SessionId, [{_, L} | T]) ->
-	case add_session2(SessionId, L) of
-		true ->
-			true;
-		false ->
-			add_session1(SessionId, T)
-	end;
-add_session1(_SessionId, []) ->
-	false.
-%% @hidden
-add_session2([H | T], SessionAttributes) ->
-	case lists:member(H, SessionAttributes) of
-		true ->
-			true;
-		false ->
-			add_session2(T, SessionAttributes)
-	end;
-add_session2([], _SessionAttributes) ->
-	false.
 
 -spec get_session_id(SessionAttributes) -> SessionId
 	when
