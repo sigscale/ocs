@@ -1,3 +1,13 @@
+2018-01-15  Vance Shipley <vances@sigscale.org>
+
+	* reservation refund corrections
+	* set default characteristics from product in subscriptions
+	* product inventory api fixes
+	* eap-tls fragmentation fix for apple
+	* corrections for time of day price selection
+	* fix radius reserve session time
+	* fix table name matching
+
 2018-01-11  Vance Shipley <vances@sigscale.org>
 
 	* call direction added to Product Offering UI dialogs
