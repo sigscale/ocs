@@ -531,32 +531,41 @@ interim_reserve_out_of_credit() ->
 
 interim_reserve_out_of_credit(_Config) ->
 	ProdID = ocs:generate_password(),
-	PackagePrice = 100,
-	PackageSize = 1000,
+	UnitPrice = 100,
+	UnitSize = 1000000,
 	Price = #price{name = "overage", type = usage,
-		units = octets, size = PackageSize, amount = PackagePrice},
+		units = octets, size = UnitSize, amount = UnitPrice},
 	Product1 = #product{name = ProdID, price = [Price], specification = 4},
 	{ok, _Product2} = ocs:add_product(Product1),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
 	TS = calendar:datetime_to_gregorian_seconds(calendar:local_time()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
-	RemAmount = 110,
-	Buckets = [#bucket{units = cents, remain_amount = RemAmount,
+	StartingAmount = 110,
+	Buckets = [#bucket{units = cents, remain_amount = StartingAmount,
 		start_date = erlang:system_time(?MILLISECOND),
 		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
 	{ok, _Subscriber1} = ocs:add_subscriber(SubscriberID,
 			Password, ProdID, Chars, Buckets),
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = <<"32251@3gpp.org">>,
-	{ok, _Subscriber2, PackageSize} = ocs_rating:rate(diameter, ServiceType,
+	ReserveSize = UnitSize,
+	{ok, _Subscriber2, _} = ocs_rating:rate(diameter, ServiceType,
 			SubscriberID, TS, undefined, undefined, initial,
-			[], [{octets, PackageSize}], SessionId),
+			[], [{octets, ReserveSize}], SessionId),
+	DebitSize = UnitSize + 1,
 	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
 			calendar:gregorian_seconds_to_datetime(TS + 60), undefined,
-			undefined, interim, [], [{octets, 2 * PackageSize}], SessionId),
+			undefined, interim, [{octets, DebitSize}],
+			[{octets, ReserveSize}], SessionId),
 	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
-	#bucket{remain_amount = 0} = lists:keyfind(cents, #bucket.units, RatedBuckets).
+	RemainAmount = case DebitSize rem UnitSize of
+		0 ->
+			StartingAmount - (DebitSize div UnitSize) * UnitPrice;
+		_ ->
+			StartingAmount - (DebitSize div UnitSize + 1) * UnitPrice
+	end,
+	#bucket{remain_amount = RemainAmount} = lists:keyfind(cents, #bucket.units, RatedBuckets).
 
 interim_reserve_remove_session() ->
 	[{userdata, [{doc, "Out of credit remove session attributes from subscriber record"}]}].
@@ -656,22 +665,23 @@ interim_reserve_multiple_buckets_out_of_credit() ->
 
 interim_reserve_multiple_buckets_out_of_credit(_Config) ->
 	ProdID = ocs:generate_password(),
-	PackagePrice = 100,
-	PackageSize = 1000,
+	UnitPrice = 100,
+	UnitSize = 1000000,
 	Price = #price{name = "overage", type = usage,
-		units = octets, size = PackageSize, amount = PackagePrice},
+		units = octets, size = UnitSize, amount = UnitPrice},
 	Product = #product{name = ProdID, price = [Price], specification = 4},
 	{ok, _} = ocs:add_product(Product),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
 	TS = calendar:datetime_to_gregorian_seconds(calendar:local_time()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
-	RemAmount = 110,
-	Reservation1 = 1000,
-	B1 = #bucket{units = cents, remain_amount = RemAmount,
+	StartAmount1 = 110,
+	StartAmount2 = 50,
+	Reservation1 = UnitSize,
+	B1 = #bucket{units = cents, remain_amount = StartAmount1,
 		start_date = erlang:system_time(?MILLISECOND),
 		termination_date = erlang:system_time(?MILLISECOND) + 2592000000},
-	B2 = #bucket{units = cents, remain_amount = RemAmount,
+	B2 = #bucket{units = cents, remain_amount = StartAmount2,
 		start_date = erlang:system_time(?MILLISECOND),
 		termination_date = erlang:system_time(?MILLISECOND) + 2592000000},
 	Buckets = [B1, B2],
@@ -681,36 +691,27 @@ interim_reserve_multiple_buckets_out_of_credit(_Config) ->
 			characteristics = Chars}},
 	SessionId = {'Session-Id', list_to_binary(ocs:generate_password())},
 	NasIp = {?NasIpAddress, "10.0.0.1"},
-	NasId = {?NasIdentifier, ocs:generate_password() ++ "@sigscalelab"},
+	NasId = {?NasIdentifier, ocs:generate_password()},
 	SessionAttributes = [NasIp, SessionId, NasId],
 	ServiceType = 2,
 	ok = mnesia:dirty_write(subscriber, Subscriber),
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID, TS,
 			undefined, undefined, initial, [], [{octets, Reservation1}], SessionAttributes),
-	{ok, #subscriber{buckets = RatedBuckets1}} = ocs:find_subscriber(SubscriberID),
-	F1 = fun(F1, Type, [#bucket{units = Type, reservations = Res} | T], R) when Res =/= [] ->
-			{_, Reserved, _} = lists:keyfind([SessionId], 3, Res),
-			F1(F1, Type, T, Reserved + R);
-		(F1, Type, [_ | T], R) ->
-			F1(F1, Type, T, R);
-		(_, _, [], R) ->
-			R
-	end,
-	F2 = fun(Reserve) when (Reserve rem PackageSize) == 0 ->
-				(Reserve div PackageSize) * PackagePrice;
-			(Reserve) ->
-				(Reserve div PackageSize + 1) * PackagePrice
-	end,
-	Reserved1 = F1(F1, cents, RatedBuckets1, 0),
-	Reserved1 = F2(Reservation1),
-	Reservation2 = 2100,
+	Reservation2 = UnitSize,
+	DebitAmount = Reservation1,
 	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
 			calendar:gregorian_seconds_to_datetime(TS + 60),
-			undefined, undefined, interim, [],
+			undefined, undefined, interim, [{octets, DebitAmount}],
 			[{octets, Reservation2}], SessionAttributes),
-	{ok, #subscriber{buckets = RatedBuckets2}} = ocs:find_subscriber(SubscriberID),
-	F3 = fun(#bucket{remain_amount = R}, Acc) -> R + Acc end,
-	0 = lists:foldl(F3, 0, RatedBuckets2).
+	{ok, #subscriber{buckets = Buckets2}} = ocs:find_subscriber(SubscriberID),
+	StartAmount3 = StartAmount1 + StartAmount2,
+	RemainAmount = case DebitAmount rem UnitPrice of
+		0 ->
+			StartAmount3 - (DebitAmount div UnitSize) * UnitPrice;
+		_ ->
+			StartAmount3 - (DebitAmount div UnitSize + 1) * UnitPrice
+	end,
+	RemainAmount = lists:foldl(fun(#bucket{remain_amount = A}, Acc) -> A + Acc end, 0, Buckets2).
 
 interim_debit_exact_balance() ->
 	[{userdata, [{doc, "Debit amount equal to package size"}]}].
@@ -962,26 +963,23 @@ interim_debit_and_reserve_insufficient1(_Config) ->
 	Reservation2 = F2(Debit, Reservation, Reservation1).
 
 interim_debit_and_reserve_insufficient2() ->
-	[{userdata, [{doc, "Debit amount equal to package size and
+	[{userdata, [{doc, "Debit amount equal to unit size and
 			reservation amount greater than available balance"}]}].
 
 interim_debit_and_reserve_insufficient2(_Config) ->
 	ProdID = ocs:generate_password(),
-	PackagePrice = 100,
-	PackageSize = 1000,
+	UnitPrice = 100,
+	UnitSize = 1000000,
 	Price = #price{name = "overage", type = usage,
-		units = octets, size = PackageSize, amount = PackagePrice},
-	Product = #product{name = ProdID, price = [Price],
-			specification = 4},
+		units = octets, size = UnitSize, amount = UnitPrice},
+	Product = #product{name = ProdID, price = [Price], specification = 4},
 	{ok, _} = ocs:add_product(Product),
 	SubscriberID = list_to_binary(ocs:generate_identity()),
 	TS = calendar:datetime_to_gregorian_seconds(calendar:local_time()),
 	Password = ocs:generate_password(),
 	Chars = [{validity, erlang:system_time(?MILLISECOND) + 2592000000}],
-	RemAmount = 199,
-	Debit = 1000,
-	Reservation = 1000,
-	Buckets = [#bucket{units = cents, remain_amount = RemAmount,
+	StartAmount = 199,
+	Buckets = [#bucket{units = cents, remain_amount = StartAmount,
 		start_date = erlang:system_time(?MILLISECOND),
 		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
 	ServiceType = <<"32251@3gpp.org">>,
@@ -989,34 +987,14 @@ interim_debit_and_reserve_insufficient2(_Config) ->
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
 			TS, undefined, undefined, initial, [],
-			[{octets, Reservation}], SessionId),
-	{ok, #subscriber{buckets = RatedBuckets1}} = ocs:find_subscriber(SubscriberID),
-	#bucket{remain_amount = CentsRemain1, reservations = Reservations1} = lists:keyfind(cents, #bucket.units, RatedBuckets1),
-	F1 = fun(A) when (A rem PackageSize) == 0 ->
-			(A div PackageSize) * PackagePrice;
-		(A) ->
-			(A div PackageSize + 1) * PackagePrice
-	end,
-	F3 = fun(Deb, Reserve, 0) ->
-				(Deb + Reserve);
-			(Deb, Reserve, Reserved) ->
-				case Deb rem Reserved of
-					0 ->
-						Reserve;
-					_ ->
-						(PackagePrice + Reserve)
-				end
-	end,
-	F2 = fun(Deb, Reserve, Reserved) -> F3(F1(Deb), F1(Reserve), Reserved) end,
-	CentsRemain1 = RemAmount - F1(Reservation),
-	{_, Reservation1, _} = lists:keyfind(SessionId, 3, Reservations1),
-	Reservation1 = F2(0, Reservation, 0),
+			[{octets, UnitSize}], SessionId),
 	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
 			calendar:gregorian_seconds_to_datetime(TS + 60),
 			undefined, undefined, interim,
-			[{octets, Debit}], [{octets, Reservation}], SessionId),
+			[{octets, UnitSize}], [{octets, UnitSize}], SessionId),
 	{ok, #subscriber{buckets = RatedBuckets2}} = ocs:find_subscriber(SubscriberID),
-	#bucket{remain_amount = 0} = lists:keyfind(cents, #bucket.units, RatedBuckets2).
+	RemainAmount = StartAmount - UnitPrice,
+	#bucket{remain_amount = RemainAmount} = lists:keyfind(cents, #bucket.units, RatedBuckets2).
 
 interim_debit_and_reserve_insufficient3() ->
 	[{userdata, [{doc, "Suffient balance for debit but not reservation"}]}].

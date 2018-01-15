@@ -282,7 +282,7 @@ rate5(#subscriber{buckets = Buckets1} = Subscriber,
 							initial, 0, 0, ReserveAmount,
 							UnitsReserved + UnitReserve, SessionId);
 				{PriceReserved, Buckets3} ->
-					rate6(Subscriber#subscriber{buckets = refund(SessionId, Buckets3)},
+					rate6(Subscriber#subscriber{buckets = Buckets3},
 							initial, 0, 0, ReserveAmount,
 							UnitsReserved + (PriceReserved div UnitPrice), SessionId)
 			end
@@ -304,9 +304,9 @@ rate5(#subscriber{enabled = false, buckets = Buckets1} = Subscriber,
 					rate6(Subscriber#subscriber{buckets = Buckets3}, interim,
 							DebitAmount, DebitAmount + UnitCharge, 0, 0, SessionId);
 				{PriceCharged, 0, Buckets3} ->
-					Bucket4 = [#bucket{remain_amount = PriceCharged - PriceCharge,
-							units = cents} | refund(SessionId, Buckets3)],
-					rate6(Subscriber#subscriber{buckets = Bucket4}, interim, DebitAmount,
+					Buckets4 = [#bucket{remain_amount = PriceCharged - PriceCharge,
+							units = cents} | Buckets3],
+					rate6(Subscriber#subscriber{buckets = Buckets4}, interim, DebitAmount,
 							UnitsCharged + (PriceCharged div UnitPrice), 0, 0, SessionId)
 			end
 	end;
@@ -352,7 +352,7 @@ rate5(#subscriber{buckets = Buckets1} = Subscriber,
 							PriceReserved div UnitPrice, SessionId);
 				{PriceCharged, 0, Buckets3} ->
 					Buckets4 = [#bucket{remain_amount = PriceCharged - PriceCharge,
-							units = cents} | refund(SessionId, Buckets3)],
+							units = cents} | Buckets3],
 					rate6(Subscriber#subscriber{buckets = Buckets4}, interim,
 							DebitAmount, UnitsCharged + (PriceCharged div UnitPrice),
 							ReserveAmount, 0, SessionId)
@@ -376,14 +376,15 @@ rate5(#subscriber{buckets = Buckets1} = Subscriber,
 							DebitAmount, UnitsCharged + UnitCharge, 0, 0, SessionId);
 				{PriceCharged, Buckets3} ->
 					Buckets4 = [#bucket{remain_amount = PriceCharged - PriceCharge,
-							units = cents} | refund(SessionId, Buckets3)],
+							units = cents} | Buckets3],
 					rate6(Subscriber#subscriber{buckets = Buckets4}, final,
 					DebitAmount, UnitsCharged + (PriceCharged div UnitPrice),
 					0, 0, SessionId)
 			end
 	end.
 %% @hidden
-rate6(#subscriber{session_attributes = SessionList, buckets  = Buckets} = Subscriber1,
+rate6(#subscriber{session_attributes = SessionList,
+		buckets = Buckets} = Subscriber1,
 		final, Charge, Charged, 0, 0, SessionId)
 		when Charged >= Charge ->
 	NewBuckets = refund(SessionId, Buckets),
@@ -392,21 +393,29 @@ rate6(#subscriber{session_attributes = SessionList, buckets  = Buckets} = Subscr
 			session_attributes = NewSessionList},
 	ok = mnesia:write(Subscriber2),
 	{grant, Subscriber2, 0};
-rate6(#subscriber{session_attributes = SessionList} = Subscriber1,
-		final, _Charge, _Charged, 0, 0, _SessionId) ->
-	Subscriber2 = Subscriber1#subscriber{session_attributes = []},
+rate6(#subscriber{session_attributes = SessionList,
+		buckets = Buckets} = Subscriber1,
+		final, _Charge, _Charged, 0, 0, SessionId) ->
+	NewBuckets = refund(SessionId, Buckets),
+	Subscriber2 = Subscriber1#subscriber{buckets = NewBuckets,
+			session_attributes = []},
 	ok = mnesia:write(Subscriber2),
 	{out_of_credit, SessionList};
-rate6(#subscriber{enabled = false,
+rate6(#subscriber{enabled = false, buckets = Buckets,
 		session_attributes = SessionList} = Subscriber1, _Flag,
-		_Charge, _Charged, _Reserve, _Reserved, _SessionId) ->
-	Subscriber2 = Subscriber1#subscriber{session_attributes = []},
+		_Charge, _Charged, _Reserve, _Reserved, SessionId) ->
+	NewBuckets = refund(SessionId, Buckets),
+	Subscriber2 = Subscriber1#subscriber{buckets = NewBuckets,
+			session_attributes = []},
 	ok = mnesia:write(Subscriber2),
 	{disabled, SessionList};
-rate6(#subscriber{session_attributes = SessionList} = Subscriber1, _Flag,
-		Charge, Charged, Reserve, Reserved, _SessionId)
+rate6(#subscriber{session_attributes = SessionList,
+		buckets = Buckets} = Subscriber1, _Flag,
+		Charge, Charged, Reserve, Reserved, SessionId)
 		when Charged < Charge; Reserved <  Reserve ->
-	Subscriber2 = Subscriber1#subscriber{session_attributes = []},
+	NewBuckets = refund(SessionId, Buckets),
+	Subscriber2 = Subscriber1#subscriber{buckets = NewBuckets,
+			session_attributes = []},
 	ok = mnesia:write(Subscriber2),
 	{out_of_credit, SessionList};
 rate6(#subscriber{session_attributes = SessionList} = Subscriber1,
