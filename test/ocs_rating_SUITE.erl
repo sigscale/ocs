@@ -101,6 +101,7 @@ all() ->
 	interim_debit_and_reserve_insufficient2,
 	interim_debit_and_reserve_insufficient3,
 	interim_debit_and_reserve_insufficient4,
+	interim_out_of_credit_voice,
 	final_remove_session, final_refund,
 	reserve_data, reserve_voice, interim_voice, time_of_day,
 	authorize_voice, authorize_voice_with_partial_reservation,
@@ -1104,6 +1105,49 @@ interim_debit_and_reserve_insufficient4(_Config) ->
 			[{octets, Debit}], [{octets, Reservation}], SessionId),
 	{ok, #subscriber{buckets = [#bucket{remain_amount = -150,
 			units = cents}]}} = ocs:find_subscriber(SubscriberID).
+
+interim_out_of_credit_voice() ->
+	[{userdata, [{doc, "Voice call out of credit during call"}]}].
+
+interim_out_of_credit_voice(_Config) ->
+	ProdID = ocs:generate_password(),
+	UnitPrice = 10,
+	UnitSize = 60,
+	Price = #price{name = "Usage", type = usage,
+		units = seconds, size = UnitSize, amount = UnitPrice},
+	Product = #product{name = ProdID, price = [Price], specification = 9},
+	{ok, _} = ocs:add_product(Product),
+	SubscriberID = list_to_binary(ocs:generate_identity()),
+	TS = calendar:datetime_to_gregorian_seconds(calendar:local_time()),
+	Password = ocs:generate_password(),
+	StartingAmount = 11,
+	ReserveUnits = 60,
+	Buckets = [#bucket{units = cents, remain_amount = StartingAmount,
+		start_date = erlang:system_time(?MILLISECOND),
+		termination_date = erlang:system_time(?MILLISECOND) + 2592000000}],
+	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, [], Buckets),
+	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
+	ServiceType = <<"32260@3gpp.org">>,
+	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
+			TS, undefined, undefined, initial, [],
+			[{seconds, ReserveUnits}], SessionId),
+	{ok, #subscriber{buckets = Buckets1}} = ocs:find_subscriber(SubscriberID),
+	#bucket{remain_amount = Amount1} = lists:keyfind(cents, #bucket.units, Buckets1),
+	ReservedUnits = case (ReserveUnits rem UnitSize) of
+		0 ->
+			ReserveUnits div UnitSize;
+		_ ->
+			ReserveUnits div UnitSize + 1
+	end,
+	Amount1 = StartingAmount - ReservedUnits * UnitPrice,
+	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
+			calendar:gregorian_seconds_to_datetime(TS + 60),
+			undefined, undefined, interim,
+			[{seconds, ReserveUnits}], [{seconds, ReserveUnits}], SessionId),
+	{ok, #subscriber{buckets = Buckets2}} = ocs:find_subscriber(SubscriberID),
+	#bucket{remain_amount = Amount2, reservations = []}
+			= lists:keyfind(cents, #bucket.units, Buckets2),
+	Amount2 = StartingAmount - ReservedUnits * UnitPrice.
 
 final_remove_session() ->
 	[{userdata, [{doc, "Final call remove session attributes from subscriber record"}]}].
