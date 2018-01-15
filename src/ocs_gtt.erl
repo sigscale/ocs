@@ -43,7 +43,7 @@
 		lookup_first/2, lookup_last/2, lookup_all/2,
 		list/0, backup/2, restore/2, import/1]).
 
--record(gtt, {num, value}).
+-include("ocs.hrl").
 
 %%----------------------------------------------------------------------
 %%  The GTT API
