@@ -1,0 +1,3 @@
+{"@VERSION@",
+	[{<<"3\\..*">>, [{restart_application, diameter},{restart_application, inets},{restart_application, ocs}]}],
+	[{<<"3\\..*">>, [{restart_application, diameter},{restart_application, inets},{restart_application, ocs}]}]}.

@@ -27,7 +27,7 @@
 -export([start/2, stop/1, config_change/3]).
 %% optional callbacks for application behaviour
 -export([prep_stop/1, start_phase/3]).
-%% export the ocs private API
+%% export the ocs private API for installation
 -export([install/0, install/1]).
 
 -include_lib("inets/include/mod_auth.hrl").
