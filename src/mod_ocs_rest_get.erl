@@ -162,6 +162,24 @@ do_get(Resource, ModData, ["catalogManagement", "v2", "plaSpecification"], Query
 	do_response(ModData, Resource:get_pla_specs(Query));
 do_get(Resource, ModData, ["catalogManagement", "v2", "pla", Id], []) ->
 	do_response(ModData, Resource:get_pla(Id));
+do_get(Resource, ModData, ["catalogManagement", "v2", "resourceSpecification", Id], []) ->
+	do_response(ModData, Resource:get_resource_spec(Id));
+do_get(Resource, ModData, ["catalogManagement", "v2", "resourceSpecification"], Query) ->
+	do_response(ModData, Resource:get_resource_specs(Query));
+do_get(Resource, ModData, ["catalogManagement", "v2", "resourceCategory", Id], []) ->
+	do_response(ModData, Resource:get_resource_category(Id));
+do_get(Resource, ModData, ["catalogManagement", "v2", "resourceCategory"], Query) ->
+	do_response(ModData, Resource:get_resource_categories(Query));
+do_get(Resource, ModData, ["catalogManagement", "v2", "resourceCandidate", Id], []) ->
+	do_response(ModData, Resource:get_resource_candidate(Id));
+do_get(Resource, ModData, ["catalogManagement", "v2", "resourceCandidate"], Query) ->
+	do_response(ModData, Resource:get_resource_candidates(Query));
+do_get(Resource, ModData, ["catalogManagement", "v2", "resourceCatalog", Id], []) ->
+	do_response(ModData, Resource:get_resource_catalog(Id));
+do_get(Resource, ModData, ["catalogManagement", "v2", "resourceCatalog"], Query) ->
+	do_response(ModData, Resource:get_resource_catalogs(Query));
+do_get(Resource, ModData, ["resourceInventoryManagement", "v1", "logicalResource", Id], Query) ->
+	do_response(ModData, Resource:get_resource_inventory(Id, Query));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["catalogManagement", "v2", "pla"], Query) ->
 	do_response(ModData, Resource:get_plas(Query, Headers));

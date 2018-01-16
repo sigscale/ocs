@@ -78,6 +78,7 @@ beam_DATA = ocs.beam \
 			ocs_rest_res_access.beam \
 			ocs_rest_res_accounting.beam \
 			ocs_rest_res_http.beam \
+			ocs_rest_res_resource.beam \
 			ocs_rest_pagination_sup.beam \
 			ocs_rest_pagination_server.beam \
 			ocs_scheduler.beam
