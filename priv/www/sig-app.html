@@ -201,52 +201,6 @@
 									</paper-submenu>
 								</paper-menu>
 							</paper-submenu>
-							<paper-dialog
-									id="tableList">
-								<paper-toolbar>
-									<h2>[[i18n.listTable]]</h2>
-								</paper-toolbar>
-								<div>
-									<template is="dom-repeat" items="[[tables]]">
-										<paper-icon-item
-												id="pagePrefix"
-												class="menuitem">
-											<iron-icon icon ="icons:view-list" item-icon></iron-icon>
-												{{item.id}}
-										</paper-icon-item>
-									</template>
-								</div>
-								<div class="buttons">
-									<paper-button
-											raised
-											onclick="drawer.toggle()"
-											on-tap="okClick"
-											class="ok-button">
-										<i18n-msg msgid="ok">
-											Ok
-										</i18n-msg>
-									</paper-button>
-									<paper-button
-											dialog-dismiss
-											class="cancel-button">
-										<i18n-msg msgid="cancel">
-											Cancel
-										</i18n-msg>
-									</paper-button>
-									<paper-button
-											raised
-											class="add-button">
-										<i18n-msg msgid="add">
-											Add
-										</i18n-msg>
-									</paper-button>
-									<paper-button
-											raised
-											class="delete-buttons">
-										Delete
-									</paper-button>
-								</div>
-							</paper-dialog>
 							<paper-icon-item
 									id="pageSubscribers"
 									onclick="drawer.toggle()"
@@ -322,6 +276,52 @@
 								</paper-menu>
 							</paper-submenu>
 						</paper-menu>
+						<paper-dialog
+								id="tableList">
+							<paper-toolbar>
+								<h2>[[i18n.listTable]]</h2>
+							</paper-toolbar>
+							<div>
+								<template is="dom-repeat" items="[[tables]]">
+									<paper-icon-item
+											id="pagePrefix"
+											class="menuitem">
+										<iron-icon icon ="icons:view-list" item-icon></iron-icon>
+											{{item.id}}
+									</paper-icon-item>
+								</template>
+							</div>
+							<div class="buttons">
+								<paper-button
+										raised
+										onclick="drawer.toggle()"
+										on-tap="okClick"
+										class="ok-button">
+									<i18n-msg msgid="ok">
+										Ok
+									</i18n-msg>
+								</paper-button>
+								<paper-button
+										dialog-dismiss
+										class="cancel-button">
+									<i18n-msg msgid="cancel">
+										Cancel
+									</i18n-msg>
+								</paper-button>
+								<paper-button
+										raised
+										class="add-button">
+									<i18n-msg msgid="add">
+										Add
+									</i18n-msg>
+								</paper-button>
+								<paper-button
+										raised
+										class="delete-buttons">
+									Delete
+								</paper-button>
+							</div>
+						</paper-dialog>
 					</iron-selector>
 				</app-drawer>
 			</app-drawer-layout>
