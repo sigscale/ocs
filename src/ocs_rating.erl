@@ -432,7 +432,7 @@ rate6(Subscriber, interim, _Charge, _Charged, _Reserve, Reserved, _SessionId) ->
 		Timestamp, Address, Direction, SessionAttributes) -> Result
 	when
 		Protocol :: radius | diameter,
-		ServiceType :: binary() | string() | undefined,
+		ServiceType :: binary() | char() | undefined,
 		SubscriberId :: binary() | string(),
 		Password :: binary(),
 		Timestamp :: calendar:datetime(),
@@ -651,13 +651,13 @@ authorize4(_Protocol, ServiceType, #subscriber{buckets = Buckets1,
 			{UnitReserve, PriceReserve} = price_units(PriceReserveUnits,
 					UnitSize, UnitPrice),
 			case reserve_session(cents, PriceReserve, SessionId, Buckets2) of
-				{0, _Buckets3}  when UnitsReserved == 0 ->
-					{unauthorized, out_of_credit, ExistingAttr};
 				{PriceReserve, Buckets3}  ->
 					SessionTimeout = UnitsReserved + UnitReserve,
 					NewAttr = radius_attributes:store(?SessionTimeout, SessionTimeout, Attr),
 					authorize5(Subscriber#subscriber{buckets = Buckets3},
 							ServiceType, SessionAttributes, NewAttr);
+				{0, _Buckets3}  when UnitsReserved == 0 ->
+					{unauthorized, out_of_credit, ExistingAttr};
 				{PriceReserved, Buckets3} ->
 					SessionTimeout = UnitsReserved + ((PriceReserved div UnitPrice) * UnitSize),
 					NewAttr = radius_attributes:store(?SessionTimeout, SessionTimeout, Attr),
@@ -666,8 +666,8 @@ authorize4(_Protocol, ServiceType, #subscriber{buckets = Buckets1,
 			end
 	end.
 %% @hidden
-authorize5(#subscriber{buckets = Buckets, attributes= ExistingAttr}
-		= Subscriber, ServiceType, SessionAttributes, Attributes) ->
+authorize5(#subscriber{buckets = Buckets, session_attributes = ExistingAttr} = Subscriber,
+		ServiceType, SessionAttributes, Attributes) ->
 	F = fun(#bucket{remain_amount = R, units = U, reservations = Res})
 				when
 				((ServiceType == undefined) orelse
@@ -703,7 +703,7 @@ authorize5(#subscriber{buckets = Buckets, attributes= ExistingAttr}
 authorize6(#subscriber{multisession = false, session_attributes = []}
 		= Subscriber, SessionAttributes, Attributes) ->
 	NewSessionAttributes = {erlang:system_time(?MILLISECOND),
-			SessionAttributes},
+			get_session_id(SessionAttributes)},
 	Subscriber1 = Subscriber#subscriber{session_attributes =
 		[NewSessionAttributes], disconnect = false},
 	ok = mnesia:write(Subscriber1),
@@ -711,7 +711,7 @@ authorize6(#subscriber{multisession = false, session_attributes = []}
 authorize6(#subscriber{multisession = false, session_attributes
 		= ExistingAttr} = Subscriber, SessionAttributes, Attributes) ->
 	NewSessionAttributes = {erlang:system_time(?MILLISECOND),
-			SessionAttributes},
+			get_session_id(SessionAttributes)},
 	Subscriber1 = Subscriber#subscriber{session_attributes =
 		[NewSessionAttributes], disconnect = false},
 	ok = mnesia:write(Subscriber1),
@@ -719,7 +719,7 @@ authorize6(#subscriber{multisession = false, session_attributes
 authorize6(#subscriber{multisession = true, session_attributes
 		= ExistingAttr} = Subscriber, SessionAttributes, Attributes) ->
 	NewSessionAttributes = {erlang:system_time(?MILLISECOND),
-			SessionAttributes},
+			get_session_id(SessionAttributes)},
 	Subscriber1 = Subscriber#subscriber{session_attributes =
 		[NewSessionAttributes | ExistingAttr], disconnect = false},
 	ok = mnesia:write(Subscriber1),
