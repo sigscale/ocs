@@ -432,7 +432,7 @@ rate6(Subscriber, interim, _Charge, _Charged, _Reserve, Reserved, _SessionId) ->
 		Timestamp, Address, Direction, SessionAttributes) -> Result
 	when
 		Protocol :: radius | diameter,
-		ServiceType :: binary() | string() | undefined,
+		ServiceType :: binary() | char() | undefined,
 		SubscriberId :: binary() | string(),
 		Password :: binary(),
 		Timestamp :: calendar:datetime(),
