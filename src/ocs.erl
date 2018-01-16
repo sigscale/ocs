@@ -34,7 +34,8 @@
 		query_users/3, update_user/3]).
 -export([add_product/1, find_product/1, get_products/0, delete_product/1,
 		query_product/7]).
--export([add_pla/1, find_pla/1, get_plas/0, delete_pla/1]).
+-export([add_pla/1, find_pla/1, get_plas/0, delete_pla/1,
+			query_table/5]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
@@ -960,6 +961,42 @@ query_product1([#product{price = Prices} = Product | T], PriceName, Acc) ->
 		_ ->
 			query_product1(T, PriceName, [Product | Acc])
 	end.
+
+-spec query_table(Cont, Name, Prefix, Description, Rate) -> Result
+	when
+		Cont :: start | eof | any(),
+		Name :: undefined | '_' | atom(),
+		Prefix :: undefind | '_' | string(),
+		Description :: undefined | '_' | string(),
+		Rate :: undefined | '_' | string(),
+		Result :: {Cont, [#gtt{}]} | {error, Reason},
+		Reason :: term().
+%% @doc Query pricing logic algorithm entires
+query_table(Cont, Name, Prefix, Description, undefined) ->
+	query_table(Cont, Name, Prefix, Description, '_');
+query_table(Cont, Name, Prefix, undefined, Rate) ->
+	query_table(Cont, Name, Prefix, '_', Rate);
+query_table(Cont, Name, undefined, Description, Rate) ->
+	query_table(Cont, Name, '_', Description, Rate);
+query_table(start, Name, Prefix, Description, Rate) ->
+	MatchHead = #gtt{num = Prefix, value = {Description, Rate}},
+	MatchSpec = MatchSpec = [{MatchHead, [], ['$_']}],
+	F = fun() ->
+		mnesia:select(Name, MatchSpec, read)
+	end,
+	case mnesia:transaction(F) of
+		{atomic, Pla} ->
+			query_table1(Pla, []);
+		{aborted, Reason} ->
+			{error, Reason}
+	end;
+query_table(eof, _Name, _Prefix, _Description, _Rate) ->
+	{eof, []}.
+%% @hidden
+query_table1([], Acc) ->
+	{eof, lists:reverse(Acc)};
+query_table1(Pla, _Acc) ->
+	{eof, Pla}.
 
 -spec get_plas() -> Result
 	when
