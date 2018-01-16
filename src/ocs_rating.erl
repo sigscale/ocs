@@ -703,7 +703,7 @@ authorize5(#subscriber{buckets = Buckets, attributes= ExistingAttr}
 authorize6(#subscriber{multisession = false, session_attributes = []}
 		= Subscriber, SessionAttributes, Attributes) ->
 	NewSessionAttributes = {erlang:system_time(?MILLISECOND),
-			SessionAttributes},
+			get_session_id(SessionAttributes)},
 	Subscriber1 = Subscriber#subscriber{session_attributes =
 		[NewSessionAttributes], disconnect = false},
 	ok = mnesia:write(Subscriber1),
@@ -711,7 +711,7 @@ authorize6(#subscriber{multisession = false, session_attributes = []}
 authorize6(#subscriber{multisession = false, session_attributes
 		= ExistingAttr} = Subscriber, SessionAttributes, Attributes) ->
 	NewSessionAttributes = {erlang:system_time(?MILLISECOND),
-			SessionAttributes},
+			get_session_id(SessionAttributes)},
 	Subscriber1 = Subscriber#subscriber{session_attributes =
 		[NewSessionAttributes], disconnect = false},
 	ok = mnesia:write(Subscriber1),
@@ -719,7 +719,7 @@ authorize6(#subscriber{multisession = false, session_attributes
 authorize6(#subscriber{multisession = true, session_attributes
 		= ExistingAttr} = Subscriber, SessionAttributes, Attributes) ->
 	NewSessionAttributes = {erlang:system_time(?MILLISECOND),
-			SessionAttributes},
+			get_session_id(SessionAttributes)},
 	Subscriber1 = Subscriber#subscriber{session_attributes =
 		[NewSessionAttributes | ExistingAttr], disconnect = false},
 	ok = mnesia:write(Subscriber1),
