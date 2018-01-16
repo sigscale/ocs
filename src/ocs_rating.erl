@@ -651,13 +651,13 @@ authorize4(_Protocol, ServiceType, #subscriber{buckets = Buckets1,
 			{UnitReserve, PriceReserve} = price_units(PriceReserveUnits,
 					UnitSize, UnitPrice),
 			case reserve_session(cents, PriceReserve, SessionId, Buckets2) of
-				{0, _Buckets3}  when UnitsReserved == 0 ->
-					{unauthorized, out_of_credit, ExistingAttr};
 				{PriceReserve, Buckets3}  ->
 					SessionTimeout = UnitsReserved + UnitReserve,
 					NewAttr = radius_attributes:store(?SessionTimeout, SessionTimeout, Attr),
 					authorize5(Subscriber#subscriber{buckets = Buckets3},
 							ServiceType, SessionAttributes, NewAttr);
+				{0, _Buckets3}  when UnitsReserved == 0 ->
+					{unauthorized, out_of_credit, ExistingAttr};
 				{PriceReserved, Buckets3} ->
 					SessionTimeout = UnitsReserved + ((PriceReserved div UnitPrice) * UnitSize),
 					NewAttr = radius_attributes:store(?SessionTimeout, SessionTimeout, Attr),
@@ -666,8 +666,8 @@ authorize4(_Protocol, ServiceType, #subscriber{buckets = Buckets1,
 			end
 	end.
 %% @hidden
-authorize5(#subscriber{buckets = Buckets, attributes= ExistingAttr}
-		= Subscriber, ServiceType, SessionAttributes, Attributes) ->
+authorize5(#subscriber{buckets = Buckets, session_attributes = ExistingAttr} = Subscriber,
+		ServiceType, SessionAttributes, Attributes) ->
 	F = fun(#bucket{remain_amount = R, units = U, reservations = Res})
 				when
 				((ServiceType == undefined) orelse
