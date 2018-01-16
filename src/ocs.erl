@@ -34,7 +34,7 @@
 		query_users/3, update_user/3]).
 -export([add_product/1, find_product/1, get_products/0, delete_product/1,
 		query_product/7]).
--export([add_pla/1, find_pla/1, get_plas/0, delete_pla/1]).
+-export([add_pla/1, add_pla/2, find_pla/1, get_plas/0, delete_pla/1]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
@@ -836,6 +836,24 @@ add_pla(#pla{} = Pla) ->
 			{error, Reason}
 	end.
 
+-spec add_pla(Pla, File) -> Result
+	when
+		Pla :: #pla{},
+		File :: file:filename(),
+		Result :: {ok, #pla{}} | {error, Reason},
+		Reason :: validation_failed | term().
+%% @doc Add a new entry in pricing logic algorithm table.
+%% 	Import table rows from CSV file.
+add_pla(#pla{} = _Pla, File) when is_list(File) ->
+	case catch ocs_gtt:import(File) of
+		ok ->
+			Basename = filename:basename(File),
+			Name = string:sub_string(Basename, 1, string:rchr(Basename, $.) - 1),
+			add_pla(#pla{name = Name});
+		{'EXIT', Reason} ->
+			{error, Reason}
+	end.
+
 -spec find_product(ProductID) -> Result
 	when
 		ProductID :: string(),
@@ -1017,7 +1035,8 @@ find_pla(ID) ->
 %% @doc Delete an entry from the pla table.
 delete_pla(ID) ->
 	F = fun() ->
-		mnesia:delete(pla, ID, write)
+		mnesia:delete(pla, ID, write),
+		mnesia:delete_table(list_to_existing_atom(ID))
 	end,
 	case mnesia:transaction(F) of
 		{atomic, _} ->
