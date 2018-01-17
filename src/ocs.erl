@@ -844,12 +844,12 @@ add_pla(#pla{} = Pla) ->
 		Reason :: validation_failed | term().
 %% @doc Add a new entry in pricing logic algorithm table.
 %% 	Import table rows from CSV file.
-add_pla(#pla{} = _Pla, File) when is_list(File) ->
+add_pla(#pla{} = Pla, File) when is_list(File) ->
 	case catch ocs_gtt:import(File) of
 		ok ->
 			Basename = filename:basename(File),
 			Name = string:sub_string(Basename, 1, string:rchr(Basename, $.) - 1),
-			add_pla(#pla{name = Name});
+			add_pla(Pla#pla{name = Name});
 		{'EXIT', Reason} ->
 			{error, Reason}
 	end.
@@ -1071,12 +1071,11 @@ find_pla(ID) ->
 %% @doc Delete an entry from the pla table.
 delete_pla(ID) ->
 	F = fun() ->
-		mnesia:delete(pla, ID, write),
-		mnesia:delete_table(list_to_existing_atom(ID))
+		mnesia:delete(pla, ID, write)
 	end,
 	case mnesia:transaction(F) of
-		{atomic, _} ->
-			ok;
+		{atomic, ok} ->
+			mnesia:delete_table(list_to_existing_atom(ID));
 		{aborted, Reason} ->
 			exit(Reason)
 	end.

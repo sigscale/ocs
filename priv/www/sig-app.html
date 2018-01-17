@@ -9,6 +9,7 @@
 <link rel="import" href="i18n-msg/i18n-msg-behavior.html">
 <link rel="import" href="iron-pages/iron-pages.html">
 <link rel="import" href="iron-selector/iron-selector.html">
+<link rel="import" href="iron-ajax/iron-ajax.html">
 <link rel="import" href="paper-dialog/paper-dialog.html">
 <link rel="import" href="paper-button/paper-button.html">
 <link rel="import" href="paper-menu/paper-menu.html"/>
@@ -43,6 +44,7 @@
 <link rel="import" href="sig-product-add.html">
 <link rel="import" href="sig-product-update.html">
 <link rel="import" href="sig-prefix-list.html">
+<link rel="import" href="sig-prefix-table-add.html">
 
 <dom-module id="sig-app">
 	<template>
@@ -313,6 +315,7 @@
 								</paper-button>
 								<paper-button
 										raised
+										on-tap="tableAdd"
 										class="add-button">
 									<i18n-msg msgid="add">
 										Add
@@ -320,6 +323,7 @@
 								</paper-button>
 								<paper-button
 										raised
+										on-tap="tableDelete"
 										class="delete-buttons">
 									Delete
 								</paper-button>
@@ -340,6 +344,11 @@
 		<sig-ipdr-log-files></sig-ipdr-log-files>
 		<sig-user-add></sig-user-add>
 		<sig-product-update id="updateProduct"></sig-product-update>
+		<sig-prefix-table-add></sig-prefix-table-add>
+		<iron-ajax id="deleteTableAjax"
+            on-response="_deleteTableResponse"
+            on-error="_deleteTableError">
+      </iron-ajax>
 	</template>
 	<script>
 		document.addEventListener('HTMLImportsLoaded', function() {
@@ -359,10 +368,23 @@
 				this.$.tableList.open();
 				this.$.loadPage.selected = 0;
 			},
+			tableAdd: function() {
+				document.getElementById("addPrefixTableModal").open();
+				this.$.tableList.close();
+			},
 			tableSelection: function(e) {
 				if(e.model.item && e.model.item.id) {
 					this.$.prefixList.table = e.model.item.id;
 				}
+			},
+			tableDelete: function(event) {
+				this.$.deleteTableAjax.method = "DELETE";
+				this.$.deleteTableAjax.url = "/catalogManagement/v2/pla/" + this.$.prefixList.table;
+console.log(this.$.deleteTableAjax.url);
+				this.$.deleteTableAjax.generateRequest();
+			},
+			_deleteTableResponse: function(event) {
+				this.$.tableList.close();
 			},
 			loadElement: function(event) {
 				switch(event.detail.item.getAttribute('id')) {

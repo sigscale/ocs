@@ -705,8 +705,8 @@ delete_product_inventory(Id) ->
 				| {error, ErrorCode :: integer()} .
 %% @doc Respond to `DELETE /catalogManagement/v2/pla/{id}'
 %% 	request to remove a `Pla'.
-delete_pla(Id) ->
-	ok = ocs:delete_pla(Id),
+delete_pla(Id) when is_list(Id) ->
+	{atomic, ok} = ocs:delete_pla(Id),
 	{ok, [], []}.
 
 %%----------------------------------------------------------------------
