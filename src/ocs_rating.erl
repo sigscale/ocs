@@ -35,7 +35,8 @@
 -define(EPOCH, 62167219200).
 
 %% service types for radius
--define(RADIUSDATA, 2).
+-define(RADIUSLOGIN, 1).
+-define(RADIUSFRAMED, 2).
 -define(RADIUSVOICE, 12).
 %% service types for diameter
 -define(DIAMETERDATA, <<"32251@3gpp.org">>).
@@ -135,7 +136,7 @@ rate1(Protocol, ServiceType, Subscriber, Timestamp, Address, Direction,
 							and
 							(((Protocol == radius)
 								and
-								((ServiceType == ?RADIUSDATA) and ((Spec == "4") orelse (Spec == "8")))
+								(((ServiceType == ?RADIUSFRAMED) orelse (ServiceType == ?RADIUSLOGIN)) and ((Spec == "4") orelse (Spec == "8")))
 								orelse
 								((ServiceType == ?RADIUSVOICE) and ((Spec == "5") orelse (Spec == "9"))))
 							orelse
@@ -543,7 +544,7 @@ authorize2(radius = Protocol, ServiceType,
 								and
 								(((ServiceType == ?RADIUSVOICE) and
 								((Spec == "5") orelse (Spec == "9"))) orelse
-								((ServiceType == ?RADIUSDATA) and
+								(((ServiceType == ?RADIUSFRAMED) orelse (ServiceType == ?RADIUSLOGIN)) and
 								((Spec == "4") orelse (Spec == "8")))))) ->
 						[P | Acc];
 					_ ->
@@ -671,7 +672,7 @@ authorize5(#subscriber{buckets = Buckets, session_attributes = ExistingAttr} = S
 	F = fun(#bucket{remain_amount = R, units = U, reservations = Res})
 				when
 				((ServiceType == undefined) orelse
-				(((ServiceType == ?RADIUSDATA) orelse (ServiceType == ?DIAMETERDATA)) and
+				(((ServiceType == ?RADIUSFRAMED) orelse (ServiceType == ?RADIUSLOGIN) orelse (ServiceType == ?DIAMETERDATA)) and
 				((U == octets) orelse (U == cents) orelse (U == seconds))) orelse
 				(((ServiceType == ?RADIUSVOICE) orelse (ServiceType == ?DIAMETERVOICE)) and
 				((U == seconds) orelse (U == cents)))) ->

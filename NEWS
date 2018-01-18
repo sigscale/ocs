@@ -1,3 +1,8 @@
+January 18 2018
+---------------
+	- Add RADIUS Service-Type=1 (Login) as data service
+	- UI view for prefix tables
+
 January 15 2018
 ---------------
 	- EAP-TTLS fix for Apple compatability
