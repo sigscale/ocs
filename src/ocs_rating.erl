@@ -643,54 +643,37 @@ authorize4(_Protocol, ServiceType, #subscriber{buckets = Buckets1,
 		UnitPrice}, SessionAttributes, Reserve) ->
 	SessionId = get_session_id(SessionAttributes),
 	case reserve_session(Units, Reserve, SessionId, Buckets1) of
-		{Reserve, Buckets2} ->
+		{Reserve, _Buckets2} ->
 			NewAttr = radius_attributes:store(?SessionTimeout, Reserve, Attr),
-			authorize5(Subscriber#subscriber{buckets = Buckets2},
-					ServiceType, SessionAttributes, NewAttr);
+			authorize5(Subscriber, ServiceType, SessionAttributes, NewAttr);
 		{UnitsReserved, Buckets2} ->
 			PriceReserveUnits = (Reserve- UnitsReserved),
 			{UnitReserve, PriceReserve} = price_units(PriceReserveUnits,
 					UnitSize, UnitPrice),
 			case reserve_session(cents, PriceReserve, SessionId, Buckets2) of
-				{PriceReserve, Buckets3}  ->
+				{PriceReserve, _Buckets3}  ->
 					SessionTimeout = UnitsReserved + UnitReserve,
 					NewAttr = radius_attributes:store(?SessionTimeout, SessionTimeout, Attr),
-					authorize5(Subscriber#subscriber{buckets = Buckets3},
-							ServiceType, SessionAttributes, NewAttr);
+					authorize5(Subscriber, ServiceType, SessionAttributes, NewAttr);
 				{0, _Buckets3}  when UnitsReserved == 0 ->
 					{unauthorized, out_of_credit, ExistingAttr};
-				{PriceReserved, Buckets3} ->
+				{PriceReserved, _Buckets3} ->
 					SessionTimeout = UnitsReserved + ((PriceReserved div UnitPrice) * UnitSize),
 					NewAttr = radius_attributes:store(?SessionTimeout, SessionTimeout, Attr),
-					authorize5(Subscriber#subscriber{buckets = Buckets3},
-							ServiceType, SessionAttributes, NewAttr)
+					authorize5(Subscriber, ServiceType, SessionAttributes, NewAttr)
 			end
 	end.
 %% @hidden
 authorize5(#subscriber{buckets = Buckets, session_attributes = ExistingAttr} = Subscriber,
 		ServiceType, SessionAttributes, Attributes) ->
-	F = fun(#bucket{remain_amount = R, units = U, reservations = Res})
+	F = fun(#bucket{remain_amount = R, units = U})
 				when
 				((ServiceType == undefined) orelse
 				(((ServiceType == ?RADIUSFRAMED) orelse (ServiceType == ?RADIUSLOGIN) orelse (ServiceType == ?DIAMETERDATA)) and
 				((U == octets) orelse (U == cents) orelse (U == seconds))) orelse
 				(((ServiceType == ?RADIUSVOICE) orelse (ServiceType == ?DIAMETERVOICE)) and
-				((U == seconds) orelse (U == cents)))) ->
-			case {Res /= [], R > 0} of
-				{true, true} ->
-					true;
-				{false, true} ->
-					true;
-				{true, false} ->
-					case lists:keyfind(get_session_id(SessionAttributes), 3, Res) of
-						{_, _, _} ->
-							true;
-						_ ->
-							false
-					end;
-				{false, false} ->
-					false
-			end;
+				((U == seconds) orelse (U == cents)))) and (R > 0) ->
+			true;
 		(_) ->
 			false
 	end,

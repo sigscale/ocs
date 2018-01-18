@@ -1597,12 +1597,11 @@ authorize_voice(_Config) ->
 			SubscriberID, Password, Timestamp, CallAddress, undefined, SessionId),
 	{?SessionTimeout, 60} = lists:keyfind(?SessionTimeout, 1, Attr),
 	{ok, #subscriber{buckets = Buckets1}} = ocs:find_subscriber(SubscriberID),
-	#bucket{remain_amount = Amount} = lists:keyfind(cents, #bucket.units, Buckets1),
-	Amount = RemAmount - ((60 div PackageSize) * PackagePrice).
+	#bucket{remain_amount = RemAmount} = lists:keyfind(cents, #bucket.units, Buckets1).
 
 authorize_voice_with_partial_reservation() ->
-	[{userdata, [{doc, "Authorize voice call with partial
-			reservation and set the session time for reserved amount"}]}].
+	[{userdata, [{doc, "Authorize voice call with and set the
+			session time for available partial reservation amount"}]}].
 
 authorize_voice_with_partial_reservation(_Config) ->
 	ProdID = ocs:generate_password(),
@@ -1630,8 +1629,7 @@ authorize_voice_with_partial_reservation(_Config) ->
 	{?SessionTimeout, SessionTimeout} = lists:keyfind(?SessionTimeout, 1, Attr),
 	SessionTimeout = RemAmount * PackageSize,
 	{ok, #subscriber{buckets = Buckets1}} = ocs:find_subscriber(SubscriberID),
-	#bucket{remain_amount = 0, reservations = Reserved} = lists:keyfind(cents, #bucket.units, Buckets1),
-	{_, RemAmount, SessionId} = lists:keyfind(SessionId, 3, Reserved).
+	#bucket{remain_amount = RemAmount} = lists:keyfind(cents, #bucket.units, Buckets1).
 
 authorize_incoming_voice() ->
 	[{userdata, [{doc, "Authorize incoming voice call"}]}].
@@ -1672,8 +1670,7 @@ authorize_incoming_voice(_Config) ->
 			SubscriberID, Password, Timestamp, CallAddress, answer, SessionId),
 	{?SessionTimeout, ReserveTime} = lists:keyfind(?SessionTimeout, 1, RespAttr),
 	{ok, #subscriber{buckets = Buckets1}} = ocs:find_subscriber(SubscriberID),
-	#bucket{remain_amount = Amount} = lists:keyfind(cents, #bucket.units, Buckets1),
-	Amount = StartingAmount - ((ReserveTime div InSize) * InPrice).
+	#bucket{remain_amount = StartingAmount} = lists:keyfind(cents, #bucket.units, Buckets1).
 
 authorize_outgoing_voice() ->
 	[{userdata, [{doc, "Authorize outgoing voice call"}]}].
@@ -1714,8 +1711,7 @@ authorize_outgoing_voice(_Config) ->
 			SubscriberID, Password, Timestamp, CallAddress, originate, SessionId),
 	{?SessionTimeout, ReserveTime} = lists:keyfind(?SessionTimeout, 1, RespAttr),
 	{ok, #subscriber{buckets = Buckets1}} = ocs:find_subscriber(SubscriberID),
-	#bucket{remain_amount = Amount} = lists:keyfind(cents, #bucket.units, Buckets1),
-	Amount = StartingAmount - ((ReserveTime div OutSize) * OutPrice).
+	#bucket{remain_amount = StartingAmount} = lists:keyfind(cents, #bucket.units, Buckets1).
 
 authorize_default_voice() ->
 	[{userdata, [{doc, "Authorize default outgoing voice call"}]}].
@@ -1753,8 +1749,7 @@ authorize_default_voice(_Config) ->
 			SubscriberID, Password, Timestamp, CallAddress, undefined, SessionId),
 	{?SessionTimeout, ReserveTime} = lists:keyfind(?SessionTimeout, 1, RespAttr),
 	{ok, #subscriber{buckets = Buckets1}} = ocs:find_subscriber(SubscriberID),
-	#bucket{remain_amount = Amount} = lists:keyfind(cents, #bucket.units, Buckets1),
-	Amount = StartingAmount - ((ReserveTime div OutSize) * OutPrice).
+	#bucket{remain_amount = StartingAmount} = lists:keyfind(cents, #bucket.units, Buckets1).
 
 authorize_data_1() ->
 	[{userdata, [{doc, "Athorize data access when price rated on seconds"}]}].
@@ -1783,8 +1778,7 @@ authorize_data_1(_Config) ->
 			SubscriberID, Password, Timestamp, undefined, undefined, SessionId),
 	{?SessionTimeout, 60} = lists:keyfind(?SessionTimeout, 1, Attr),
 	{ok, #subscriber{buckets = Buckets1}} = ocs:find_subscriber(SubscriberID),
-	#bucket{remain_amount = Amount} = lists:keyfind(cents, #bucket.units, Buckets1),
-	Amount = RemAmount - ((60 div PackageSize) * PackagePrice).
+	#bucket{remain_amount = RemAmount} = lists:keyfind(cents, #bucket.units, Buckets1).
 
 authorize_data_2() ->
 	[{userdata, [{doc, "Athorize data access when price rated on octets"}]}].
@@ -1843,8 +1837,7 @@ authorize_data_with_partial_reservation(_Config) ->
 	{?SessionTimeout, SessionTimeout} = lists:keyfind(?SessionTimeout, 1, Attr),
 	SessionTimeout = RemAmount * PackageSize,
 	{ok, #subscriber{buckets = Buckets1}} = ocs:find_subscriber(SubscriberID),
-	#bucket{remain_amount = 0, reservations = Reserved} = lists:keyfind(cents, #bucket.units, Buckets1),
-	{_, RemAmount, SessionId} = lists:keyfind(SessionId, 3, Reserved).
+	#bucket{remain_amount = RemAmount} = lists:keyfind(cents, #bucket.units, Buckets1).
 
 unauthorize_bad_password() ->
 	[{userdata, [{doc, "Unauthorize if the passwrod wrong"}]}].
