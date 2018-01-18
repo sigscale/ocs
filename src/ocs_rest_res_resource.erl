@@ -287,7 +287,7 @@ tariff_table_catalog() ->
 		Gtt :: #gtt{} | {struct, [tuple()]}.
 %% @doc CODEC for gtt.
 %% @private
-gtt(Name, #gtt{num = Prefix, value = {Description, Rate}} = Gtt) ->
+gtt(Name, #gtt{num = Prefix, value = {Description, Rate}} = _Gtt) ->
 	{struct, [{"id", Prefix}, {"href", ?inventoryPath ++ Name ++ "/" ++ Prefix},
 			{"resourceCharacteristic", {array, [{struct, [{"name", "prefix"},
 			{"value", {struct, [{"seqNum", 1}, {"value", Prefix}]}}]},
@@ -295,31 +295,36 @@ gtt(Name, #gtt{num = Prefix, value = {Description, Rate}} = Gtt) ->
 			{"value", {struct, [{"seqNum", 2}, {"value", Description}]}}]},
 			{struct, [{"name", "rate"},
 			{"value", {struct, [{"seqNum", 3}, {"value", Rate}]}}]}]}}]};
-gtt(Name, {struct, ObjectMembers}) when is_list(ObjectMembers) ->
-	gtt(ObjectMembers, undefined, undefined, undefined).
+gtt(_, {struct, ObjectMembers}) when is_list(ObjectMembers) ->
+	gtt1(ObjectMembers, {undefined, [], undefined}).
 %% @hidden
-gtt([{"resourceCharacteristic", {array, L}} | T], Prefix, Desc, Rate) ->
-   gtt(T, gtt1(L, Prefix, Desc, Rate));
-gtt([_ | T], Prefix, Desc, Rate) ->
-	gtt(T, Prefix, Desc, Rate);
-gtt([], Prefix, Desc, Rate) ->
+gtt1([{"resourceCharacteristic", {array, L}} | T], Acc) ->
+   gtt1(T, gtt2(L, Acc));
+gtt1([_ | T], Acc) ->
+	gtt1(T, Acc);
+gtt1([], {Prefix, Desc, Rate} = _Acc)
+		when is_list(Prefix), is_integer(Rate) ->
    #gtt{num = Prefix, value = {Desc, Rate}}.
 %% @hidden
-gtt1([{struct, L} | T], Prefix, Desc, Rate) ->
+gtt2([{struct, L} | T], {Prefix, Desc, Rate} = _Acc) ->
 	case lists:keytake("name", 1, L) of
 		{value, {"name", "prefix"}, L1} ->
 			{_, {struct, L2}} = lists:keyfind("value", 1, L1),
 			{_, Prefix1} = lists:keyfind("value", 1, L2),
-			gtt1(T, Prefix1, Desc, Rate);
+			gtt2(T, {Prefix1, Desc, Rate});
 		{value, {"name", "description"}, L1} ->
 			{_, {struct, L2}} = lists:keyfind("value", 1, L1),
 			{_, Desc1} = lists:keyfind("value", 1, L2),
-			gtt1(T, Prefix, Desc1, Rate);
+			gtt2(T, {Prefix, Desc1, Rate});
 		{value, {"name", "rate"}, L1} ->
 			{_, {struct, L2}} = lists:keyfind("value", 1, L1),
-			{_, Rate1} = lists:keyfind("value", 1, L2),
-			gtt1(T, Prefix, Desc, Rate1)
-	end.
-		
-	
+			case lists:keyfind("value", 1, L2) of
+				{_, Rate1} when is_integer(Rate1) ->
+					gtt2(T, {Prefix, Desc, Rate1});
+				{_, Rate1} when is_list(Rate1) ->
+					gtt2(T, {Prefix, Desc, list_to_integer(Rate1)})
+			end
+	end;
+gtt2([], {Prefix, Desc, Rate} = _Acc) ->
+	{Prefix, Desc, Rate}.
 
