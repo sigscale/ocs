@@ -173,5 +173,5 @@
 
 -record(gtt,
 		{num :: string(),
-		value :: {Description :: string(), Rate :: non_neg_integer()}}).
+		value :: {Description :: string(), Rate :: non_neg_integer()} | undefined}).
 
