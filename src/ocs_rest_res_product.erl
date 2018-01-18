@@ -706,8 +706,13 @@ delete_product_inventory(Id) ->
 %% @doc Respond to `DELETE /catalogManagement/v2/pla/{id}'
 %% 	request to remove a `Pla'.
 delete_pla(Id) when is_list(Id) ->
-	{atomic, ok} = ocs:delete_pla(Id),
-	{ok, [], []}.
+	case catch list_to_existing_atom(Id) of
+		{'EXIT', _Reason} ->
+			{error, 404};
+		TableName when is_atom(TableName) ->
+			ok = ocs:delete_pla(Id),
+			{ok, [], []}
+	end.
 
 %%----------------------------------------------------------------------
 %%  internal functions

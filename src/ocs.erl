@@ -989,7 +989,7 @@ query_product1([#product{price = Prices} = Product | T], PriceName, Acc) ->
 	when
 		Cont :: start | eof | any(),
 		Name :: undefined | '_' | atom(),
-		Prefix :: undefind | '_' | string(),
+		Prefix :: undefined | '_' | string(),
 		Description :: undefined | '_' | string(),
 		Rate :: undefined | '_' | string(),
 		Result :: {Cont, [#gtt{}]} | {error, Reason},
@@ -1081,7 +1081,8 @@ delete_pla(ID) ->
 	end,
 	case mnesia:transaction(F) of
 		{atomic, ok} ->
-			mnesia:delete_table(list_to_existing_atom(ID));
+			{atomic, ok} = mnesia:delete_table(list_to_existing_atom(ID)),
+			ok;
 		{aborted, Reason} ->
 			exit(Reason)
 	end.
