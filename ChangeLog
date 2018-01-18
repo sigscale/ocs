@@ -1,3 +1,8 @@
+2018-01-18  Vance Shipley <vances@sigscale.org>
+
+	* radius service type 1 (login) as data
+	* prefix table view
+
 2018-01-16  Vance Shipley <vances@sigscale.org>
 
 	* session handling fixes
