@@ -830,8 +830,14 @@ add_pla(#pla{} = Pla) ->
 		R 
 	end,
 	case mnesia:transaction(F) of
-		{atomic, Pla1} ->
-			{ok, Pla1};
+		{atomic, #pla{name = Name} = Pla1} ->
+			case catch list_to_existing_atom(Name) of
+				{'EXIT', _Reason} ->
+					ok = ocs_gtt:new(list_to_atom(Name), []),
+					{ok, Pla1};
+				_ ->
+					{ok, Pla1}
+			end;
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
