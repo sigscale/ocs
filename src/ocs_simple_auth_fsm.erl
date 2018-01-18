@@ -189,13 +189,12 @@ handle_radius(#statedata{req_attr = Attributes, req_auth = Authenticator,
 	end.
 %% @hidden
 handle_radius1(#statedata{subscriber = SubscriberId, password = <<>>,
-		password_required = PasswordReq, service_type = ServiceType,
-		req_attr = ReqAttr} = StateData) ->
+		password_required = PasswordReq, req_attr = ReqAttr} = StateData) ->
 	Timestamp = calendar:local_time(),
-	CallAddress = proplists:get_value(?CalledStationId, ReqAttr, ""),
+	{ServiceType, Direction, CallAddress} = get_service_type(ReqAttr),
 	SessionAttributes = extract_session_attributes(ReqAttr),
 	case ocs_rating:authorize(radius, ServiceType, SubscriberId, <<>>,
-			Timestamp, CallAddress, undefined, SessionAttributes) of
+			Timestamp, CallAddress, Direction, SessionAttributes) of
 		{authorized, #subscriber{password = <<>>} =
 				Subscriber, Attributes, ExistingSessionAttributes} ->
 			NewStateData = StateData#statedata{res_attr = Attributes},
@@ -218,12 +217,12 @@ handle_radius1(#statedata{subscriber = SubscriberId, password = <<>>,
 			reject_radius(Reason, StateData)
 	end;
 handle_radius1(#statedata{subscriber = SubscriberId, password = Password,
-		service_type = ServiceType, req_attr = ReqAttr} = StateData) ->
+		req_attr = ReqAttr} = StateData) ->
 	Timestamp = calendar:local_time(),
-	CallAddress = proplists:get_value(?CalledStationId, ReqAttr, ""),
+	{ServiceType, Direction, CallAddress} = get_service_type(ReqAttr),
 	SessionAttributes = extract_session_attributes(ReqAttr),
 	case ocs_rating:authorize(radius, ServiceType, SubscriberId, Password,
-			Timestamp, CallAddress, undefined, SessionAttributes) of
+			Timestamp, CallAddress, Direction, SessionAttributes) of
 		{authorized, Subscriber, Attributes, ExistingSessionAttributes} ->
 			NewStateData = StateData#statedata{res_attr = Attributes},
 			handle_radius2(Subscriber, ExistingSessionAttributes, NewStateData);
@@ -536,4 +535,29 @@ start_disconnect3(DiscSup, #statedata{protocol = diameter, session_id = SessionI
 	StartArgs = [DiscArgs, []],
 	supervisor:start_child(DiscSup, StartArgs),
 	start_disconnect3(DiscSup, State, T).
+
+get_service_type(Attr) ->
+	case radius_attributes:find(?ServiceType, Attr) of
+		{ok, 12} ->
+			case radius_attributes:find(?Cisco, ?H323CallOrigin, Attr) of
+				{ok, answer} ->
+					case radius_attributes:find(?CallingStationId, Attr) of
+						{ok, Address} ->
+							{12, answer, Address};
+						{error, not_found} ->
+							{12, answer, undefined}
+					end;
+				_Other ->
+					case radius_attributes:find(?CalledStationId, Attr) of
+						{ok, Address} ->
+							{12, originate, Address};
+						{error, not_found} ->
+							{12, originate, undefined}
+					end
+			end;
+		{ok, ServiceType} ->
+			{ServiceType, undefined, undefined};
+		{error, not_found} ->
+			{undefined, undefined, undefined}
+	end.
 
