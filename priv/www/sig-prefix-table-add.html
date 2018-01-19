@@ -96,11 +96,15 @@
 				</paper-button>
 				<paper-button
 						dialog-dismiss
+						on-tap="_cancel"
 						class="cancel-button">
 					Cancel
 				</paper-button>
 			</div>
 		</paper-dialog>
+		<paper-toast
+			id="addTableToastError">
+		</paper-toast>
 		<iron-ajax
 			id="addTableAjax"
 			url="/catalogManagement/v2/pla"
@@ -165,9 +169,23 @@
 				var ajax = this.$.addTableAjax;
 				ajax.body = tabName; 
 				ajax.generateRequest();
+				this.$.addTableName.value = null;
+				this.$.addTableDesc.value = null;
+				this.$.addTableStart.value = null;
+				this.$.addTableEnd.value = null;
 			},
 			_addTableResponse: function(event) {
 				this.$.addPrefixTableModal.close();
+			},
+			_addTableError: function(event) {
+				this.$.addTableToastError.text = event.detail.request.xhr.statusText;
+				this.$.addTableToastError.open();
+			},
+			_cancel: function() {
+				this.$.addTableName.value = null;
+				this.$.addTableDesc.value = null;
+				this.$.addTableStart.value = null;
+				this.$.addTableEnd.value = null;
 			},
 			_onLoadingChanged: function(event) {
 				if (this.$.addTableAjax.loading) {

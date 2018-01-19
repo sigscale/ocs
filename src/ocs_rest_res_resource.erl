@@ -26,7 +26,7 @@
 -export([get_resource_category/1, get_resource_categories/1]).
 -export([get_resource_candidate/1, get_resource_candidates/1]).
 -export([get_resource_catalog/1, get_resource_catalogs/1]).
--export([get_resource_inventory/2]).
+-export([get_resource_inventory/2, add_resource_inventory/2]).
 
 -include("ocs.hrl").
 
@@ -204,7 +204,45 @@ get_resource_inventory(Id, [] = _Query) ->
 		error:badarg ->
 			{error, 404};
 		_:_Reason1 ->
-	{error, 400}
+			{error, 400}
+	end.
+
+-spec add_resource_inventory(Table, ReqData) -> Result when
+	Table :: string(),
+	ReqData :: [tuple()],
+	Result   :: {ok, Headers, Body} | {error, Status},
+	Headers  :: [tuple()],
+	Body     :: iolist(),
+	Status   :: 400 | 500 .
+%% @doc Respond to
+%% 	`POST /resourceInventoryManagement/v1/logicalResource/{table}'.
+%%    Add a new row in logical resource inventory management.
+add_resource_inventory(Table, ReqData) ->
+	try
+		Name = list_to_existing_atom(Table),
+		Gtt = gtt(Table, mochijson:decode(ReqData)),
+		case ocs_gtt:insert(Name, Gtt#gtt.num, Gtt#gtt.value) of
+			ok ->
+				Gtt;
+			{error, not_found} ->
+				throw(400);
+			{error, _Reason} ->
+				throw(500)
+		end
+	of
+		Res ->
+			Body = mochijson:encode(gtt(Table, Res)),
+			Headers = [{content_type, "application/json"}],
+			{ok, Headers, Body}
+	catch
+		throw:validation_failed ->
+			{error, 400};
+		throw:_Reason1 ->
+			{error, 500};
+		error:badarg ->
+			{error, 400};
+		_:_ ->
+			{error, 400}
 	end.
 
 %%----------------------------------------------------------------------

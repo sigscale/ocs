@@ -45,6 +45,7 @@
 <link rel="import" href="sig-product-update.html">
 <link rel="import" href="sig-prefix-list.html">
 <link rel="import" href="sig-prefix-table-add.html">
+<link rel="import" href="sig-prefix-add.html">
 
 <dom-module id="sig-app">
 	<template>
@@ -345,10 +346,11 @@
 		<sig-user-add></sig-user-add>
 		<sig-product-update id="updateProduct"></sig-product-update>
 		<sig-prefix-table-add></sig-prefix-table-add>
+		<sig-prefix-add></sig-prefix-add>
 		<iron-ajax id="deleteTableAjax"
-            on-response="_deleteTableResponse"
-            on-error="_deleteTableError">
-      </iron-ajax>
+			on-response="_deleteTableResponse"
+			on-error="_deleteTableError">
+		</iron-ajax>
 	</template>
 	<script>
 		document.addEventListener('HTMLImportsLoaded', function() {
@@ -380,7 +382,6 @@
 			tableDelete: function(event) {
 				this.$.deleteTableAjax.method = "DELETE";
 				this.$.deleteTableAjax.url = "/catalogManagement/v2/pla/" + this.$.prefixList.table;
-console.log(this.$.deleteTableAjax.url);
 				this.$.deleteTableAjax.generateRequest();
 			},
 			_deleteTableResponse: function(event) {
