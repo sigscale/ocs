@@ -250,7 +250,11 @@
 					}
 				}
 				this.$.addClientAjax.body = client;
-				if (this.$.addClientSecret.value || this.$.check.checked) {
+				if(this.$.addClientProtocol.selected == 0) {
+					if (this.$.addClientSecret.value || this.$.check.checked) {
+						this.$.addClientAjax.generateRequest();
+					}
+				} else if(this.$.addClientProtocol.selected == 1) {
 					this.$.addClientAjax.generateRequest();
 				}
 			},
