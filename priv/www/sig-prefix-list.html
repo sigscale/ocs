@@ -137,6 +137,9 @@
 				if(item != null) {
 					this.$.prefixGrid.selectedItems = item ? [item] : [];
 					document.getElementById("updatePrefixModal").open();
+					document.getElementById("updatePrefix").value = item.prefix;
+					document.getElementById("updateDescription").value = item.description;
+					document.getElementById("updateRate").value = item.rate;
 				}
 			},
 			showAddPrefixModal: function() {

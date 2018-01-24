@@ -46,6 +46,7 @@
 <link rel="import" href="sig-prefix-list.html">
 <link rel="import" href="sig-prefix-table-add.html">
 <link rel="import" href="sig-prefix-add.html">
+<link rel="import" href="sig-prefix-update.html">
 
 <dom-module id="sig-app">
 	<template>
@@ -326,7 +327,9 @@
 										raised
 										on-tap="tableDelete"
 										class="delete-buttons">
-									Delete
+									<i18n-msg msgid="delete">
+										Delete
+									</i18n-msg>
 								</paper-button>
 							</div>
 						</paper-dialog>
@@ -347,6 +350,7 @@
 		<sig-product-update id="updateProduct"></sig-product-update>
 		<sig-prefix-table-add></sig-prefix-table-add>
 		<sig-prefix-add></sig-prefix-add>
+		<sig-prefix-update></sig-prefix-update>
 		<iron-ajax id="deleteTableAjax"
 			on-response="_deleteTableResponse"
 			on-error="_deleteTableError">
@@ -456,6 +460,9 @@
 						break;
 					case 7:
 						document.getElementById('getHttp').generateRequest();
+						break;
+					case 8:
+						document.getElementById('prefixGrid').generateRequest();
 						break;
 				}
 			},

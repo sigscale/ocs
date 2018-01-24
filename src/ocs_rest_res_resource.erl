@@ -26,7 +26,7 @@
 -export([get_resource_category/1, get_resource_categories/1]).
 -export([get_resource_candidate/1, get_resource_candidates/1]).
 -export([get_resource_catalog/1, get_resource_catalogs/1]).
--export([get_resource_inventory/2, add_resource_inventory/2]).
+-export([get_resource_inventory/2, add_resource_inventory/2, patch_resource_inventory/4]).
 
 -include("ocs.hrl").
 
@@ -183,7 +183,7 @@ get_resource_catalogs(_Query) ->
 get_resource_inventory(Id, [] = _Query) ->
 	try
 		Name = list_to_existing_atom(Id),
-		case ocs:query_table(start, Name, undefined, undefined, undefined) of
+		case ocs:query_table(start, Name, undefined, undefined, undefined, undefined) of
 			{eof, Logic} ->
 				Logic;
 			{error, not_found} ->
@@ -232,7 +232,9 @@ add_resource_inventory(Table, ReqData) ->
 	of
 		Res ->
 			Body = mochijson:encode(gtt(Table, Res)),
-			Headers = [{content_type, "application/json"}],
+			{_, _, LM} = Res#gtt.value,
+			Etag = ocs_rest:etag(LM),
+			Headers = [{content_type, "application/json"}, {etag, Etag}],
 			{ok, Headers, Body}
 	catch
 		throw:validation_failed ->
@@ -241,6 +243,62 @@ add_resource_inventory(Table, ReqData) ->
 			{error, 500};
 		error:badarg ->
 			{error, 400};
+		_:_ ->
+			{error, 400}
+	end.
+
+-spec patch_resource_inventory(Table, Id, Etag, ReqData) -> Result
+	when
+		Table :: string(),
+		Id	:: string(),
+		Etag	:: undefined | list(),
+		ReqData	:: [tuple()],
+		Result	:: {ok, Headers, Body} | {error, Status},
+		Headers	:: [tuple()],
+		Body		:: iolist(),
+		Status	:: 400 | 404 | 500 .
+%% @doc Respond to `PATCH /resourceInventoryManagement/v1/logicalResource/{table}/{id}'.
+%% 	Update a table row using JSON patch method
+patch_resource_inventory(Table, Id, _Etag, ReqData) ->
+	try
+		Table1 = list_to_existing_atom(Table),
+		{Table1, mochijson:decode(ReqData)}
+	of
+		{Table2, Operations} ->
+			F = fun() ->
+				case mnesia:read(Table2, Id, write) of 
+					[TableObj] ->
+						case catch ocs_rest:patch(Operations, gtt(Table, TableObj)) of
+							{struct, _} = Res2  ->
+								Res3 = gtt(Id, Res2),
+								TS = erlang:system_time(?MILLISECOND),
+								N = erlang:unique_integer([positive]),
+								LM = {TS, N},
+								{Prefix, Desc, _} = Res3#gtt.value,
+								Res4 = Res3#gtt{value = {Prefix, Desc, LM}},
+								ok = mnesia:write(Table2, Res4, write),
+								{Res2, LM};
+							_ ->
+								throw(bad_request)
+						end;
+					[] ->
+						throw(not_found)
+				end
+			end,
+			case mnesia:transaction(F) of
+				{atomic, {Res, Etag2}} ->
+					Location = ?inventoryPath ++ Table ++ Id,
+					Headers = [{location, Location}, {etag, ocs_rest:etag(Etag2)}],
+					Body = mochijson:encode(Res),
+					{ok, Headers, Body};
+				{aborted, {throw, bad_request}} ->
+					{error, 400};
+				{aborted, {throw, not_found}} ->
+					{error, 404};
+				{aborted, _Reason} ->
+					{error, 500}
+			end
+	catch
 		_:_ ->
 			{error, 400}
 	end.
@@ -325,8 +383,9 @@ tariff_table_catalog() ->
 		Gtt :: #gtt{} | {struct, [tuple()]}.
 %% @doc CODEC for gtt.
 %% @private
-gtt(Name, #gtt{num = Prefix, value = {Description, Rate}} = _Gtt) ->
-	{struct, [{"id", Prefix}, {"href", ?inventoryPath ++ Name ++ "/" ++ Prefix},
+gtt(Name, #gtt{num = Prefix, value = {Description, Rate, {LastModified, _}}} = _Gtt) ->
+		{struct, [{"id", Prefix}, {"href", ?inventoryPath ++ Name ++ "/" ++ Prefix},
+			{"lastUpdate", ocs_rest:iso8601(LastModified)},
 			{"resourceCharacteristic", {array, [{struct, [{"name", "prefix"},
 			{"value", {struct, [{"seqNum", 1}, {"value", Prefix}]}}]},
 			{struct, [{"name", "description"},
@@ -342,7 +401,10 @@ gtt1([_ | T], Acc) ->
 	gtt1(T, Acc);
 gtt1([], {Prefix, Desc, Rate} = _Acc)
 		when is_list(Prefix), is_integer(Rate) ->
-   #gtt{num = Prefix, value = {Desc, Rate}}.
+	TS = erlang:system_time(?MILLISECOND),
+	N = erlang:unique_integer([positive]),
+	LM = {TS, N},
+   #gtt{num = Prefix, value = {Desc, Rate, LM}}.
 %% @hidden
 gtt2([{struct, L} | T], {Prefix, Desc, Rate} = _Acc) ->
 	case lists:keytake("name", 1, L) of
@@ -363,6 +425,6 @@ gtt2([{struct, L} | T], {Prefix, Desc, Rate} = _Acc) ->
 					gtt2(T, {Prefix, Desc, list_to_integer(Rate1)})
 			end
 	end;
-gtt2([], {Prefix, Desc, Rate} = _Acc) ->
-	{Prefix, Desc, Rate}.
+gtt2([], Acc) ->
+	Acc.
 
