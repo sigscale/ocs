@@ -835,6 +835,10 @@
     "description": "Product offering tab",
     "message": "Offerings"
   },
+	"rate": {
+    "description": "Resource rating",
+    "message": "Rate"
+  },
    "productDeleted": {
     "description": "Success Toast Message",
     "message": "Product deleted"

@@ -851,6 +851,10 @@
     "description": "Product offering tab",
     "message": "Ofertas"
   },
+	"rate": {
+    "description": "Resource rating",
+    "message": "Tarifa"
+  },
    "productDeleted": {
     "description": "Success Toast Message",
     "message": "Producto eliminado"
