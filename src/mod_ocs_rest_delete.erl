@@ -79,6 +79,8 @@ do_delete(Resource, ModData, ["partyManagement", "v1", "individual", Identity]) 
 	do_response(ModData, Resource:delete_user(Identity));
 do_delete(Resource, ModData, ["productInventoryManagement", "v2", "product", Identity]) ->
 	do_response(ModData, Resource:delete_product_inventory(Identity));
+do_delete(Resource, ModData, ["resourceInventoryManagement", "v1", "logicalResource", Table, Identity]) ->
+	do_response(ModData, Resource:delete_resource_inventory(Table, Identity));
 do_delete(_Resource, _ModData, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{break, [{response, {404, Response}}]}.

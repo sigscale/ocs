@@ -98,10 +98,17 @@
 		<paper-toast
 			id="updateTableRowToastError">
 		</paper-toast>
+		<paper-toast
+			id="deleteTableRowToastError">
+		</paper-toast>
 		<iron-ajax id="updateTableRowAjax"
 			on-response="_updateTableRowResponse"
 			on-error="_updateTableRowError"
 			on-loading-changed="_onLoadingChanged">
+		</iron-ajax>
+		<iron-ajax id="deleteTableRowAjax"
+			on-response="_deleteTableRowResponse"
+			on-error="_deleteTableRowError">
 		</iron-ajax>
 	</template>
 	<script>
@@ -139,6 +146,22 @@
 			_updateTableRowError: function(event) {
 				this.$.updateTableRowToastError.text = event.detail.request.xhr.statusText;
 				this.$.updateTableRowToastError.open();
+			},
+			deleteUpdate: function(event) {
+				var Table = document.getElementById('prefixList').table;
+				var Id = this.$.updatePrefix.value;
+				this.$.deleteTableRowAjax.method = "DELETE";
+				this.$.deleteTableRowAjax.url = "/resourceInventoryManagement/v1/logicalResource/"
+						+ Table + "/" + Id;
+				this.$.deleteTableRowAjax.generateRequest();
+			},
+			_deleteTableRowResponse: function(event) {
+				this.$.updatePrefixModal.close();
+				document.getElementById("prefixGrid").clearCache();
+			},
+			_deleteTableRowError: function(event) {
+				this.$.deleteTableRowToastError.text = event.detail.request.xhr.statusText;
+				this.$.deleteTableRowToastError.open();
 			},
 			cancelUpdate: function() {
 				this.$.updatePrefix.value = null;

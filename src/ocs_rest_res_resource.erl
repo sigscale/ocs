@@ -26,7 +26,8 @@
 -export([get_resource_category/1, get_resource_categories/1]).
 -export([get_resource_candidate/1, get_resource_candidates/1]).
 -export([get_resource_catalog/1, get_resource_catalogs/1]).
--export([get_resource_inventory/2, add_resource_inventory/2, patch_resource_inventory/4]).
+-export([get_resource_inventory/2, add_resource_inventory/2, patch_resource_inventory/4,
+			delete_resource_inventory/2]).
 
 -include("ocs.hrl").
 
@@ -302,6 +303,18 @@ patch_resource_inventory(Table, Id, _Etag, ReqData) ->
 		_:_ ->
 			{error, 400}
 	end.
+
+-spec delete_resource_inventory(Table, Id) -> Result
+   when
+		Table :: string(),
+      Id :: string(),
+      Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+            | {error, ErrorCode :: integer()} .
+%% @doc Respond to `DELETE /resourceInventoryManagement/v1/logicalResource/{table}/{id}''
+%%    request to remove a `Table row'.
+delete_resource_inventory(Table, Id) ->
+	ok = ocs:delete_res(list_to_existing_atom(Table), Id),
+	{ok, [], []}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
