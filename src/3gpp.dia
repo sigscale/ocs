@@ -80,12 +80,12 @@
    Charge-Reason-Code                                     2118  Enumerated       VM
    Charged-Party                                           857  UTF8String       VM
 ;  Charging-Characteristics-Selection-Mode                2066  Enumerated       VM
-;  Charging-Per-IP-CAN-Session-Indicator                  4400  Enumerated       VM
+   Charging-Per-IP-CAN-Session-Indicator                  4400  Enumerated       VM
 ;  Charging-Rule-Base-Name                                1004  
 ;  Class-Identifier                                       1214  Enumerated       VM
    Client-Address                                         2018  Address          VM
 ;  CN-IP-Multicast-Distribution                            921  
-;  CN-Operator-Selection-Entity                           3421  Enumerated       VM
+   CN-Operator-Selection-Entity                           3421  Enumerated       VM
 ;  Communication-Failure-Information                      4300  
 ;  Content-Class                                          1220  Enumerated       VM
    Content-Disposition                                     828  UTF8String       VM
@@ -116,8 +116,8 @@
    Discoverer-UE-VPLMN-Identifier                         4405  UTF8String       VM
    Domain-Name                                            1200  UTF8String       VM
 ;  DRM-Content                                            1221  Enumerated       VM
-;  Dynamic-Address-Flag                                   2051  Enumerated       VM
-;  Dynamic-Address-Flag-Extension                         2068  Enumerated       VM
+   Dynamic-Address-Flag                                   2051  Enumerated       VM
+   Dynamic-Address-Flag-Extension                         2068  Enumerated       VM
    Early-Media-Description                                1272  Grouped          VM
 ;  Enhanced-Diagnostics                                   3901  Grouped          VM
    Envelope                                               1266  Grouped          VM
@@ -145,7 +145,7 @@
    IMS-Emergency-Indicator                                2322  Enumerated       VM
    IMS-Information                                         876  Grouped          VM
    IMS-Visited-Network-Identifier                         2713  UTF8String       VM
-;  IMSI-Unauthenticated-Flag                              2308  Enumerated       VM
+   IMSI-Unauthenticated-Flag                              2308  Enumerated       VM
    Incoming-Trunk-Group-Id                                 852  UTF8String       VM
 ;  Incremental-Cost                                       2062  Grouped          VM
    Initial-IMS-Charging-Identifier                        2321  UTF8String       VM
@@ -183,7 +183,7 @@
 ;  Location-Info                                          3460  Grouped          VM
 ;  Location-Type                                          1244  Grouped          VM
    Low-Balance-Indication                                 2020  Enumerated       VM
-;  Low-Priority-Indicator                                 2602  Enumerated       VM
+   Low-Priority-Indicator                                 2602  Enumerated       VM
    Mandatory-Capability                                    604  Unsigned32       VM
 ;  Maximum-Detection-Time                                 3131  
 ;  Maximum-Number-of-Reports                              3128  
@@ -269,7 +269,7 @@
    PDN-Connection-Charging-ID                             2050  Unsigned32       VM
    PDP-Address                                            1227  Address          VM
    PDP-Address-Prefix-Length                              2606  Unsigned32       VM
-;  PDP-Context-Type                                       1247  Enumerated       VM
+   PDP-Context-Type                                       1247  Enumerated       VM
    Play-Alternative                                       3913  Enumerated       VM
 ;  PoC-Change-Condition                                   1261  Enumerated       VM
    PoC-Change-Time                                        1262  Time             VM
@@ -395,14 +395,14 @@
    Service-Specific-Data                                   863  UTF8String       VM
    Service-Specific-Info                                  1249  Grouped          VM
    Service-Specific-Type                                  1257  Unsigned32       VM
-;  Serving-Node-Type                                      2047  Enumerated       VM
+   Serving-Node-Type                                      2047  Enumerated       VM
 ;  Serving-PLMN-Rate-Control                              4310  
    Session-Direction                                      2707  Enumerated       VM
    Session-Priority                                        650  Enumerated       VM
 ;  SGi-PtP-Tunnelling-Method                              3931  Enumerated       VM
    SGSN-Address                                           1228  Address          VM
    SGW-Address                                            2067  Address          VM
-;  SGW-Change                                             2065  Enumerated       VM
+   SGW-Change                                             2065  Enumerated       VM
    SIP-Method                                              824  UTF8String       VM
    SIP-Request-Timestamp                                   834  Time             VM
    SIP-Request-Timestamp-Fraction                         2301  Unsigned32       VM
@@ -554,28 +554,28 @@
       [ 3GPP-PDP-Type ]
      *[ PDP-Address ]
       [ PDP-Address-Prefix-Length ]
-;     [ Dynamic-Address-Flag ]
-;     [ Dynamic-Address-Flag-Extension ]
-;     [ QoS-Information ]
+      [ Dynamic-Address-Flag ]
+      [ Dynamic-Address-Flag-Extension ]
+      [ QoS-Information ]
      *[ SGSN-Address ]
      *[ GGSN-Address ]
 ;    *[ TDF-IP-Address ]
      *[ SGW-Address ]
-;    *[ ePDG-Address ]
+     *[ EPDG-Address ]
      *[ TWAG-Address ]
       [ CG-Address ]
-;     [ Serving-Node-Type ]
-;     [ SGW-Change ]
+      [ Serving-Node-Type ]
+      [ SGW-Change ]
       [ 3GPP-IMSI-MCC-MNC ]
-;     [ IMSI-Unauthenticated-Flag ]
+      [ IMSI-Unauthenticated-Flag ]
       [ 3GPP-GGSN-MCC-MNC ]
       [ 3GPP-NSAPI ]
-;     [ Called-Station-Id ]
+      [ Called-Station-Id ]
 ;     [ 3GPP-Session-Stop-Indicator ]
       [ 3GPP-Selection-Mode ]
 ;     [ 3GPP-Charging-Characteristics ]
 ;     [ Charging-Characteristics-Selection-Mode ]
-;     [ 3GPP-SGSN-MCC-MNC ]
+      [ 3GPP-SGSN-MCC-MNC ]
       [ 3GPP-MS-TimeZone ]
 ;     [ Charging-Rule-Base-Name ]
 ;     [ ADC-Rule-Base-Name ]
@@ -587,18 +587,18 @@
 ;     [ TWAN-User-Location-Info ]
 ;     [ UWAN-User-Location-Info ]
       [ 3GPP-RAT-Type ]
-;     [ PS-Furnish-Charging-Information ]
-;     [ PDP-Context-Type ]
+      [ PS-Furnish-Charging-Information ]
+      [ PDP-Context-Type ]
 ;     [ Offline-Charging ]
 ;    *[ Traffic-Data-Volumes ]
 ;    *[ Service-Data-Container ]
-;     [ User-Equipment-Info ]
+      [ User-Equipment-Info ]
 ;     [ Terminal-Information ]
-;     [ Start-Time ]
-;     [ Stop-Time ]
+      [ Start-Time ]
+      [ Stop-Time ]
       [ Change-Condition ]
       [ Diagnostics ]
-;     [ Low-Priority-Indicator ]
+      [ Low-Priority-Indicator ]
 ;     [ NBIFOM-Mode ]
 ;     [ NBIFOM-Support ]
 ;     [ MME-Number-for-MT-SMS ]
@@ -607,16 +607,16 @@
 ;     [ Logical-Access-ID ]
 ;     [ Physical-Access-ID ]
 ;     [ Fixed-User-Location-Info ]
-;     [ CN-Operator-Selection-Entity ]
+      [ CN-Operator-Selection-Entity ]
 ;     [ Enhanced-Diagnostics ]
 ;     [ SGi-PtP-Tunnelling-Method ]
 ;     [ CP-CIoT-EPS-Optimisation-Indicator ]
 ;     [ UNI-PDU-CP-Only-Flag ]
 ;     [ Serving-PLMN-Rate-Control ]
 ;     [ APN-Rate-Control ]
-;     [ Charging-Per-IP-CAN-Session-Indicator ]
+      [ Charging-Per-IP-CAN-Session-Indicator ]
 ;     [ RRC-Cause-Counter ]
-;     [ 3GPP-PS-Data-Off-Status ]
+      [ 3GPP-PS-Data-Off-Status ]
 ;     [ SCS-AS-Address ]
       [ Unused-Quota-Timer ]
 
@@ -1349,4 +1349,45 @@
    AoC_FULL          1
    AoC_COST_ONLY     2
    AoC_TARIFF_ONLY   3
+
+@enum Dynamic-Address-Flag
+   STATIC   0
+   DYNAMIC  1
+
+@enum Dynamic-Address-Flag-Extension
+   STATIC   0
+   DYNAMIC  1
+
+@enum Serving-Node-Type
+   SGSN     0
+   PMIPSGW  1
+   GTPSGW   2
+   EPDG     3
+   HSGW     4
+   MME      5
+   TWAN     6
+
+@enum SGW-Change
+   ACR_Start_NOT_due_to_SGW_Change  0
+   ACR_Start_due_to_SGW_Change      1
+
+@enum IMSI-Unauthenticated-Flag
+   AUTHENTICATED    0
+   UNAUTHENTICATED  1
+
+@enum PDP-Context-Type
+   PRIMARY    0
+   SECONDARY  1
+
+@enum Low-Priority-Indicator
+   NO   0
+   YES  1
+
+@enum CN-Operator-Selection-Entity
+   UE       0
+   NETWORK  1
+
+@enum Charging-Per-IP-CAN-Session-Indicator
+   INACTIVE  0
+   ACTIVE    1
 
