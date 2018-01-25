@@ -125,8 +125,8 @@ start1() ->
 				throw(Reason)
 		end
 	end,
-	F4 = fun({AuthAddr, AuthPort, Options} = _Instance) ->
-		case ocs:start(diameter, acct, AuthAddr, AuthPort, Options) of
+	F4 = fun({AcctAddr, AcctPort, Options} = _Instance) ->
+		case ocs:start(diameter, acct, AcctAddr, AcctPort, Options) of
 			{ok, _AcctSup} ->
 				ok;
 			{error, Reason} ->
