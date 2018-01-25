@@ -34,8 +34,7 @@
 		query_users/3, update_user/3]).
 -export([add_product/1, find_product/1, get_products/0, delete_product/1,
 		query_product/7]).
--export([add_pla/1, add_pla/2, find_pla/1, get_plas/0, delete_pla/1, query_table/6,
-			delete_res/2]).
+-export([add_pla/1, add_pla/2, find_pla/1, get_plas/0, delete_pla/1, query_table/6]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
 %% export the ocs private API
@@ -621,22 +620,6 @@ delete_subscriber(Identity) when is_list(Identity) ->
 delete_subscriber(Identity) when is_binary(Identity) ->
 	F = fun() ->
 		mnesia:delete(subscriber, Identity, write)
-	end,
-	case mnesia:transaction(F) of
-		{atomic, _} ->
-			ok;
-		{aborted, Reason} ->
-			exit(Reason)
-	end.
-
--spec delete_res(Table, Id) -> ok
-	when
-		Table :: string(),
-		Id :: string() | binary().
-%% @doc Delete an entry in the resource table row.
-delete_res(Table, Id) ->
-	F = fun() ->
-		mnesia:delete(Table, Id, write)
 	end,
 	case mnesia:transaction(F) of
 		{atomic, _} ->
