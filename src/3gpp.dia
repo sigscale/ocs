@@ -321,7 +321,7 @@
    PS-Append-Free-Format-Data                              867  Enumerated       VM
    PS-Free-Format-Data                                     866  OctetString      VM
    PS-Furnish-Charging-Information                         865  Grouped          VM
-;  PS-Information                                          874  Grouped          VM
+   PS-Information                                          874  Grouped          VM
    QoS-Information                                        1016  Grouped          VM
    Quota-Consumption-Time                                  881  Unsigned32       VM
    Quota-Holding-Time                                      871  Unsigned32       VM
@@ -531,7 +531,7 @@
    Service-Information ::= <AVP Header: 873>
 ;    *[ Subscription-Id ]  ; Rf interface only
 ;     [ AoC-Information ]
-;     [ PS-Information ]
+      [ PS-Information ]
       [ IMS-Information ]
 ;     [ MMS-Information ]
 ;     [ LCS-Information ]
@@ -547,7 +547,7 @@
 ;     [ M2M-Information ]
 ;     [ CPDT-Information ]
 
-;  PS-Information ::= <AVP Header: 874>
+  PS-Information ::= <AVP Header: 874>
 ;     [ 3GPP-Charging-Id ]
 ;     [ PDN-Connection-Charging-ID ]
 ;     [ Node-Id ]
@@ -557,7 +557,7 @@
 ;     [ Dynamic-Address-Flag ]
 ;     [ Dynamic-Address-Flag-Extension ]
 ;     [ QoS-Information ]
-;    *[ SGSN-Address ]
+     *[ SGSN-Address ]
 ;    *[ GGSN-Address ]
 ;    *[ TDF-IP-Address ]
 ;    *[ SGW-Address ]
