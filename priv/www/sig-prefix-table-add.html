@@ -180,6 +180,7 @@
 			},
 			_addTableResponse: function(event) {
 				this.$.addPrefixTableModal.close();
+				document.getElementById('productGrid').clearCache();
 			},
 			_addTableError: function(event) {
 				this.$.addTableToastError.text = event.detail.request.xhr.statusText;

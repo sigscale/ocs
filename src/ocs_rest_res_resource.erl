@@ -222,13 +222,13 @@ add_resource_inventory(Table, ReqData) ->
 	try
 		Name = list_to_existing_atom(Table),
 		Gtt = gtt(Table, mochijson:decode(ReqData)),
-		case ocs_gtt:insert(Name, Gtt#gtt.num, Gtt#gtt.value) of
+		case catch ocs_gtt:insert(Name, Gtt#gtt.num, Gtt#gtt.value) of
 			ok ->
 				Gtt;
-			{error, not_found} ->
-				throw(400);
-			{error, _Reason} ->
-				throw(500)
+			{'EXIT', {no_exists, _}} ->
+				throw(not_found);
+			{'EXIT', Reason} ->
+				throw(Reason)
 		end
 	of
 		Res ->
@@ -238,8 +238,8 @@ add_resource_inventory(Table, ReqData) ->
 			Headers = [{content_type, "application/json"}, {etag, Etag}],
 			{ok, Headers, Body}
 	catch
-		throw:validation_failed ->
-			{error, 400};
+		throw:not_found ->
+			{error, 404};
 		throw:_Reason1 ->
 			{error, 500};
 		error:badarg ->
@@ -300,6 +300,8 @@ patch_resource_inventory(Table, Id, _Etag, ReqData) ->
 					{error, 500}
 			end
 	catch
+		error:badarg ->
+			{error, 404};
 		_:_ ->
 			{error, 400}
 	end.
@@ -313,8 +315,18 @@ patch_resource_inventory(Table, Id, _Etag, ReqData) ->
 %% @doc Respond to `DELETE /resourceInventoryManagement/v1/logicalResource/{table}/{id}''
 %%    request to remove a `Table row'.
 delete_resource_inventory(Table, Id) ->
-	ok = ocs:delete_res(list_to_existing_atom(Table), Id),
-	{ok, [], []}.
+	try
+		Name = list_to_existing_atom(Table),
+		ocs_gtt:delete(Name, Id)
+	of
+		ok ->
+			{ok, [], []}
+	catch
+		error:badarg ->
+			{error, 404};
+		_:_ ->
+			{error, 400}
+	end.
 
 %%----------------------------------------------------------------------
 %%  internal functions
