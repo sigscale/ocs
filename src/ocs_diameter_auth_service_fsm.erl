@@ -291,35 +291,40 @@ service_options(Options) ->
 	{ok, Vsn} = application:get_key(vsn),
 	Version = list_to_integer([C || C <- Vsn, C /= $.]),
 	{ok, Hostname} = inet:gethostname(),
-	Options1 = case lists:keyfind('Origin-Realm', 1, Options) of
+	Options1 = case lists:keyfind('Origin-Host', 1, Options) of
 		{_, _} ->
 			Options;
 		false ->
-			{ok, #hostent{h_name = Realm}} = inet:gethostbyname(Hostname),
-			[{'Origin-Realm', Realm} | Options]
+			[{'Origin-Host', Hostname} | Options]
 	end,
-	Options1 ++  [{'Origin-Host', Hostname},
-	{'Vendor-Id', 50386},
-	{'Product-Name', "SigScale AAA"},
-	{'Firmware-Revision', Version},
-	{'Auth-Application-Id',
-			[?BASE_APPLICATION_ID,
-			?NAS_APPLICATION_ID,
-			?EAP_APPLICATION_ID]},
-	{restrict_connections, false},
-	{string_decode, false},
-	{application,
-			[{alias, ?BASE_APPLICATION},
-			{dictionary, ?BASE_APPLICATION_DICT},
-			{module, ?BASE_APPLICATION_CALLBACK}]},
-	{application,
-			[{alias, ?EAP_APPLICATION},
-			{dictionary, ?EAP_APPLICATION_DICT},
-			{module, ?EAP_APPLICATION_CALLBACK}]},
-	{application,
-			[{alias, ?NAS_APPLICATION},
-			{dictionary, ?NAS_APPLICATION_DICT},
-			{module, ?NAS_APPLICATION_CALLBACK}]}].
+	Options2 = case lists:keyfind('Origin-Realm', 1, Options) of
+		{_, _} ->
+			Options1;
+		false ->
+			{ok, #hostent{h_name = Realm}} = inet:gethostbyname(Hostname),
+			[{'Origin-Realm', Realm} | Options1]
+	end,
+	Options2 ++ [{'Vendor-Id', 50386},
+		{'Product-Name', "SigScale AAA"},
+		{'Firmware-Revision', Version},
+		{'Auth-Application-Id',
+				[?BASE_APPLICATION_ID,
+				?NAS_APPLICATION_ID,
+				?EAP_APPLICATION_ID]},
+		{restrict_connections, false},
+		{string_decode, false},
+		{application,
+				[{alias, ?BASE_APPLICATION},
+				{dictionary, ?BASE_APPLICATION_DICT},
+				{module, ?BASE_APPLICATION_CALLBACK}]},
+		{application,
+				[{alias, ?EAP_APPLICATION},
+				{dictionary, ?EAP_APPLICATION_DICT},
+				{module, ?EAP_APPLICATION_CALLBACK}]},
+		{application,
+				[{alias, ?NAS_APPLICATION},
+				{dictionary, ?NAS_APPLICATION_DICT},
+				{module, ?NAS_APPLICATION_CALLBACK}]}].
 
 -spec transport_options(Transport, Address, Port) -> Options
 	when

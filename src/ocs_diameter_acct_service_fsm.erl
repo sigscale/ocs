@@ -284,15 +284,20 @@ service_options(Options) ->
 	{ok, Vsn} = application:get_key(vsn),
 	Version = list_to_integer([C || C <- Vsn, C /= $.]),
 	{ok, Hostname} = inet:gethostname(),
-	Options1 = case lists:keyfind('Origin-Realm', 1, Options) of
+	Options1 = case lists:keyfind('Origin-Host', 1, Options) of
 		{_, _} ->
 			Options;
 		false ->
-			{ok, #hostent{h_name = Realm}} = inet:gethostbyname(Hostname),
-			[{'Origin-Realm', Realm} | Options]
+			[{'Origin-Host', Hostname} | Options]
 	end,
-	Options1 ++  [{'Origin-Host', Hostname},
-		{'Vendor-Id', 50386},
+	Options2 = case lists:keyfind('Origin-Realm', 1, Options) of
+		{_, _} ->
+			Options1;
+		false ->
+			{ok, #hostent{h_name = Realm}} = inet:gethostbyname(Hostname),
+			[{'Origin-Realm', Realm} | Options1]
+	end,
+	Options2 ++ [{'Vendor-Id', 50386},
 		{'Product-Name', "SigScale OCS"},
 		{'Firmware-Revision', Version},
 		{'Auth-Application-Id', [?BASE_APPLICATION_ID, ?RO_APPLICATION_ID]},
