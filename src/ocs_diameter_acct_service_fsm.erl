@@ -300,7 +300,7 @@ service_options(Options) ->
 	Options2 ++ [{'Vendor-Id', 50386},
 		{'Product-Name', "SigScale OCS"},
 		{'Firmware-Revision', Version},
-		{'Auth-Application-Id', [?BASE_APPLICATION_ID, ?RO_APPLICATION_ID]},
+		{'Auth-Application-Id', [?RO_APPLICATION_ID]},
 		{restrict_connections, false},
 		{string_decode, false},
 		{application, [{alias, ?BASE_APPLICATION},
