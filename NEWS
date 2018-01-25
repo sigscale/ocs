@@ -1,6 +1,13 @@
+January 25 2018
+---------------
+	- DIAMETER supervision fix
+	- DIAMETER capabilities exchange improvements
+
 January 18 2018
 ---------------
 	- Add RADIUS Service-Type=1 (Login) as data service
+	- No reservation in RADIUS Access-Request rated authorization
+	- Fix for incoming call rating in Access-Request rated authorization
 	- UI view for prefix tables
 
 January 15 2018

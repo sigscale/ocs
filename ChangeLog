@@ -1,6 +1,14 @@
+2018-01-25  Vance Shipley <vances@sigscale.org>
+
+	* overide origin-host in dianeter configuration
+	* do not advertise diameter base application
+	* permanent diameter service fsm worker
+
 2018-01-18  Vance Shipley <vances@sigscale.org>
 
 	* radius service type 1 (login) as data
+	* no reservation in rated access-request authorization
+	* fix for incoming call rating in access-request authorization
 	* prefix table view
 
 2018-01-16  Vance Shipley <vances@sigscale.org>
