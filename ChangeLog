@@ -1,5 +1,6 @@
 2018-01-25  Vance Shipley <vances@sigscale.org>
 
+	* diamater ps-information handling
 	* overide origin-host in dianeter configuration
 	* do not advertise diameter base application
 	* permanent diameter service fsm worker
