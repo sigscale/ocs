@@ -1615,11 +1615,20 @@ query_log2(_Start, _End, {M, F, A}, {Cont, []}, Acc) ->
 %% @doc Query accounting log events with filters.
 %%
 acct_query({Cont, Events}, Protocol, Types, AttrsMatch) ->
-	{Cont, acct_query1(Events,  Protocol, Types, AttrsMatch, [])}.
+	{Cont, acct_query1(Events, Protocol, Types, AttrsMatch, [])}.
 %% @hidden
 acct_query1(Events, Protocol, '_',  AttrsMatch, _Acc) ->
 	acct_query2(Events, Protocol, AttrsMatch, []);
-acct_query1([{_, _, _, _, _, Type, _} = H | T], Protocol, Types,  AttrsMatch, Acc) ->
+acct_query1([{_, _, radius, _, _, Type, _} = H | T], Protocol,
+		Types, AttrsMatch, Acc) when Protocol == radius; Protocol == '_' ->
+	case lists:member(Type, Types) of
+		true ->
+			acct_query1(T, Protocol, Types, AttrsMatch, [H | Acc]);
+		false ->
+			acct_query1(T, Protocol, Types, AttrsMatch, Acc)
+	end;
+acct_query1([{_, _, diameter, _, _, Type, _, _} = H | T], Protocol,
+		Types, AttrsMatch, Acc) when Protocol == diameter; Protocol == '_' ->
 	case lists:member(Type, Types) of
 		true ->
 			acct_query1(T, Protocol, Types, AttrsMatch, [H | Acc]);
@@ -1631,8 +1640,10 @@ acct_query1([], Protocol, _Types,  AttrsMatch, Acc) ->
 %% @hidden
 acct_query2(Events, '_', AttrsMatch, _Acc) ->
 	acct_query3(Events, AttrsMatch, []);
-acct_query2([{_, _, Protocol, _, _, _, _} = H | T], Protocol, AttrsMatch, Acc) ->
-	acct_query2(T, Protocol, AttrsMatch, [H |Acc]);
+acct_query2([{_, _, radius, _, _, _, _} = H | T], radius, AttrsMatch, Acc) ->
+	acct_query2(T, radius, AttrsMatch, [H |Acc]);
+acct_query2([{_, _, diameter, _, _, _, _, _} = H | T], diameter, AttrsMatch, Acc) ->
+	acct_query2(T, diameter, AttrsMatch, [H |Acc]);
 acct_query2([_ | T], Protocol, AttrsMatch, Acc) ->
 	acct_query2(T, Protocol, AttrsMatch, Acc);
 acct_query2([], _Protocol, AttrsMatch, Acc) ->
@@ -1640,18 +1651,36 @@ acct_query2([], _Protocol, AttrsMatch, Acc) ->
 %% @hidden
 acct_query3(Events, '_', _Acc) ->
 	Events;
-acct_query3([{_, _, _, _, _, _, Attributes} = H | T], AttrsMatch, Acc) ->
+acct_query3([{_, _, radius, _, _, _, Attributes} = H | T], AttrsMatch, Acc) ->
 	case acct_query4(Attributes, AttrsMatch) of
 		true ->
 			acct_query3(T, AttrsMatch, [H | Acc]);
 		false ->
 			acct_query3(T, AttrsMatch, Acc)
 	end;
+acct_query3([{_, _, diameter, _, _, _, CCR, CCA} = H | T], AttrsMatch, Acc) ->
+	CCRfields = record_info(fields, '3gpp_ro_CCR'),
+	case acct_query5(CCR, CCRfields,
+			length(CCRfields) + 1, AttrsMatch, none) of
+		stop ->
+			acct_query3(T, AttrsMatch, Acc);
+		Result ->
+			CCAfields = record_info(fields, '3gpp_ro_CCA'),
+			case acct_query5(CCA, CCAfields,
+					length(CCAfields) + 1, AttrsMatch, Result) of
+				match ->
+					acct_query3(T, AttrsMatch, [H | Acc]);
+				none ->
+					acct_query3(T, AttrsMatch, Acc);
+				stop ->
+					acct_query3(T, AttrsMatch, Acc)
+			end
+	end;
 acct_query3([], _AttrsMatch, Acc) ->
 	lists:reverse(Acc).
 %% @hidden
 acct_query4(Attributes, [{Attribute, Match} | T]) ->
-	case lists:keyfind(Attribute, 1, Attributes) of
+	case lists:keyfind(Attribute, 2, Attributes) of
 		{Attribute, Match1} when
 				(Match1 == Match) or (Match == '_') ->
 			acct_query4(Attributes, T);
@@ -1662,6 +1691,27 @@ acct_query4(Attributes, [_ | T]) ->
 	acct_query4(Attributes, T);
 acct_query4(_Attributes, []) ->
 	true.
+%% @hidden
+acct_query5(R, Fields, N, [{Attribute, Match} | T], Acc) ->
+	case acct_query6(R, Fields, N, Attribute, Match) of
+		match ->
+			acct_query5(R, Fields, N, T, match);
+		stop ->
+			stop;
+		none ->
+			acct_query5(R, Fields, N, T, Acc)
+	end;
+acct_query5(_, _, _, [], Acc) ->
+	Acc.
+%% @hidden
+acct_query6(R, [Field | _], N, Field, Match) when element(N, R) == Match ->
+	match;
+acct_query6(_, [Field | _], _, Field, _Match) ->
+	stop;
+acct_query6(R, [_ | T], N, Field, Match) ->
+	acct_query5(R, T, N + 1, Field, Match);
+acct_query6(_, [], _, _, _) ->
+	none.
 
 -spec auth_query(Continuation, Protocol, Types, ReqAttrsMatch, RespAttrsMatch) -> Result
 	when
