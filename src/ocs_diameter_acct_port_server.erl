@@ -270,7 +270,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		_ ->
 			throw(unsupported_request_units)
 	end,
-	Destination = get_destination(ServiceInformation),
+	Destination = call_destination(ServiceInformation),
 	ReserveAmount = [{ReqUsageType, ReqUsage}],
 	ServiceType = lookup_service_type(SvcContextId),
 	case ocs_rating:rate(diameter, ServiceType, Subscriber, Timestamp,
@@ -356,7 +356,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 			[] ->
 				throw(used_amount_not_available)
 		end,
-		Destination = get_destination(ServiceInformation),
+		Destination = call_destination(ServiceInformation),
 		ReserveAmount = [{ReqUsageType, ReqUsage}],
 		DebitAmount = [{UsedType, UsedUsage}],
 		ServiceType = lookup_service_type(SvcContextId),
@@ -431,7 +431,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 			[] ->
 				throw(used_amount_not_available)
 		end,
-		Destination = get_destination(ServiceInformation),
+		Destination = call_destination(ServiceInformation),
 		DebitAmount = [{UsedType, UsedUsage}],
 		ServiceType = lookup_service_type(SvcContextId),
 		case ocs_rating:rate(diameter, ServiceType, Subscriber, Timestamp,
@@ -561,10 +561,12 @@ accounting_event_type(2) -> interim;
 accounting_event_type(3) -> stop.
 
 %% @hidden
-get_destination([#'3gpp_ro_Service-Information'{'IMS-Information' = ImsInfo}]) ->
-	get_destination(ImsInfo);
-get_destination([#'3gpp_ro_IMS-Information'{'Called-Party-Address' = [CalledParty]}]) ->
-	destination(CalledParty).
+call_destination([#'3gpp_ro_Service-Information'{'IMS-Information' = ImsInfo}]) ->
+	call_destination(ImsInfo);
+call_destination([#'3gpp_ro_IMS-Information'{'Called-Party-Address' = [CalledParty]}]) ->
+	destination(CalledParty);
+call_destination(_) ->
+	undefined.
 
 %% @hidden
 destination(<<"tel:", Dest/binary>>) ->
