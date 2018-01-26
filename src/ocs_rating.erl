@@ -39,8 +39,8 @@
 -define(RADIUSFRAMED, 2).
 -define(RADIUSVOICE, 12).
 %% service types for diameter
--define(DIAMETERDATA, <<"32251@3gpp.org">>).
--define(DIAMETERVOICE, <<"32260@3gpp.org">>).
+-define(DIAMETERDATA, 32251).
+-define(DIAMETERVOICE, 32260).
 
 
 -spec rate(Protocol, ServiceType, SubscriberID, Timestamp,
