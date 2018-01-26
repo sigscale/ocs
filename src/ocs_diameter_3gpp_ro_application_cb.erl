@@ -80,7 +80,7 @@ peer_down(_ServiceName, _Peer, State) ->
 		Result :: Selection | false.
 %% @doc Invoked as a consequence of a call to diameter:call/4 to select
 %% a destination peer for an outgoing request. 
-pick_peer([Peer | _], _, _ServiceName, _State) ->
+pick_peer([Peer | _] = _LocalCandidates, _RemoteCandidates, _ServiceName, _State) ->
 	{ok, Peer}.
 
 -spec prepare_request(Packet, ServiceName, Peer) -> Action
@@ -94,11 +94,13 @@ pick_peer([Peer | _], _, _ServiceName, _State) ->
 		Reason :: term(),
 		PostF :: diameter:evaluable().
 %% @doc Invoked to return a request for encoding and transport 
-prepare_request(#diameter_packet{msg = ['RAR' = T | Avps]}, _, {_, Caps}) ->
+prepare_request(#diameter_packet{msg = ['RAR' = T | Avps]} = _Packet,
+		_ServiceName, {_, Caps} = _Peer) ->
 	#diameter_caps{origin_host = {OH, DH}, origin_realm = {OR, DR}} = Caps,
 	{send, [T, {'Origin-Host', OH}, {'Origin-Realm', OR},
 			{'Destination-Host', DH}, {'Destination-Realm', DR} | Avps]};
-prepare_request(#diameter_packet{msg = Record}, _, {_, Caps}) ->
+prepare_request(#diameter_packet{msg = Record} = _Packet,
+		_ServiceName, {_, Caps} = _Peer) ->
 	#diameter_caps{origin_host = {OH, DH}, origin_realm = {OR, DR}} = Caps,
 	ASR = Record#diameter_base_ASR{'Origin-Host' = OH, 'Origin-Realm' = OR,
 	'Destination-Host' = DH, 'Destination-Realm' = DR},
@@ -155,11 +157,11 @@ handle_error(_Reason, _Request, _ServiceName, _Peer) ->
 		Opt :: diameter:call_opt(),
 		PostF :: diameter:evaluable().
 %% @doc Invoked when a request messge is received from the peer. 
-handle_request(#diameter_packet{msg = Request, errors = []},
-		ServiceName, {_, Caps}) ->
+handle_request(#diameter_packet{msg = Request, errors = []} = _Packet,
+		ServiceName, {_, Caps} = _Peer) ->
 	request(ServiceName, Caps, Request);
-handle_request(#diameter_packet{msg = Request, errors = Errors},
-		ServiceName, {_, Caps}) ->
+handle_request(#diameter_packet{msg = Request, errors = Errors} = _Packet,
+		ServiceName, {_, Caps} = _Peer) ->
 	errors(ServiceName, Caps, Request, Errors).
 
 %%----------------------------------------------------------------------
