@@ -92,6 +92,16 @@
 				</template>
 				<template>[[item.acctInputoctets]]</template>
 			</vaadin-grid-column>
+			<vaadin-grid-column width="10ex" flex-grow="1">
+				<template class="header">
+					<vaadin-grid-sorter path="acctTotaloctets">
+						<vaadin-grid-filter aria-label="[[i18n.totalo]]" path="acctTotaloctets" value="[[_filtertotal]]">
+							<input placeholder="[[i18n.totalo]]" value="{{_filtertotal::input}}" focus-target>
+						</vaadin-grid-filter>
+					</vaadin-grid-sorter>
+				</template>
+				<template>[[item.acctTotaloctets]]</template>
+			</vaadin-grid-column>
 			<vaadin-grid-column width="18ex" flex-grow="4">
 				<template class="header">
 					<vaadin-grid-sorter path="username">
@@ -154,6 +164,7 @@
 					newRecord.acctSessiontime = results[index].acctSessiontime;
 					newRecord.acctOutputoctets = results[index].acctOutputoctets;
 					newRecord.acctInputoctets = results[index].acctInputoctets;
+					newRecord.acctTotaloctets = results[index].acctTotaloctets;
 					newRecord.username = results[index].username;
 					newRecord.type = results[index].type;
 					vaadinItems[index] = newRecord;
@@ -175,6 +186,9 @@
 					},
 					{
 						name: "acctInputoctets"
+					},
+					{
+						name: "acctTotaloctets"
 					},
 					{
 						name: "username"

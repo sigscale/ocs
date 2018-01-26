@@ -436,12 +436,16 @@
     "message": "Estación llamada"
   },
 	"out": {
-    "description": "out(bytes) for logs",
+    "description": "Out (bytes) for logs",
     "message": "Fuera (bytes)"
   },
 	"in": {
-    "description": "in(bytes) for logs",
+    "description": "In (bytes) for logs",
     "message": "En (bytes)"
+  },
+	"totalo": {
+    "description": "Total (bytes) for logs",
+    "message": "Total (bytes)"
   },
 	"contact": {
     "description": "Contact us option for users help",

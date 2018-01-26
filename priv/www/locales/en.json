@@ -427,6 +427,10 @@
     "description": "In(bytes) for logs",
     "message": "In (bytes)"
   },
+   "totalo": {
+    "description": "Total(bytes) for logs",
+    "message": "Total (bytes)"
+  },
    "contact": {
     "description": "Contact us option for users help",
     "message": "Contact us"
