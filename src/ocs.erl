@@ -501,7 +501,7 @@ add_subscriber(undefined, Password, Product, Characteristics, Buckets, Attribute
 			{error, Reason}
 	end;
 add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
-		when is_binary(Identity), is_binary(Password), is_list(Product),
+		when is_binary(Identity), size(Identity) > 0, is_binary(Password), is_list(Product),
 		is_list(Buckets), is_list(Attributes), is_boolean(EnabledStatus), is_boolean(MultiSession) ->
 	Now = erlang:system_time(?MILLISECOND),
 	F1 = fun() ->
