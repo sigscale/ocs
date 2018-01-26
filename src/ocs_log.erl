@@ -29,7 +29,7 @@
 -export([auth_open/0, auth_log/5, auth_log/6, auth_close/0,
 			auth_query/6, auth_query/7]).
 -export([ipdr_log/3, ipdr_file/2]).
--export([balance_activity_open/0, balance_activity_log/7,
+-export([balance_activity_open/0, balance_activity_log/9,
 			balance_activity_query/4]).
 -export([get_range/3, last/2, dump_file/2, httpd_logname/1,
 			http_file/2, date/1, iso8601/1]).
@@ -908,25 +908,29 @@ balance_activity_open() ->
 	{ok, LogFiles} = application:get_env(ocs, balance_activity_log_files),
 	open_log(Directory, ?BALANCELOG, LogSize, LogFiles).
 
--spec balance_activity_log(Type, Date, BucketId,
-		BucketAmount, AmountBefore, AmountAfter, ProdId) -> Result
+-spec balance_activity_log(Type, Action, Subscriber, Bucket,
+		Units, Amount, AmountBefore, AmountAfter, Product) -> Result
 	when
 		Type :: transfer | topup | adjustment,
-		Date :: pos_integer() | string(),
-		BucketId :: string(),
-		BucketAmount :: {Units, Amount},
-		AmountBefore :: {Units, Amount},
-		AmountAfter :: {Units, Amount},
-		ProdId :: string(),
-		Units :: term(), %% ?
+		Action :: term(),
+		Subscriber :: binary(),
+		Bucket :: string(),
+		Units :: cents | seconds | octets,
 		Amount :: integer(),
+		AmountBefore :: integer(),
+		AmountAfter :: integer(),
+		Product :: string(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Write a balance activity log
-balance_activity_log(Type, Date, BucketId,
-		BucketAmount, AmountBefore, AmountAfter, ProdId) ->
-	Event = [Type, Date, BucketId,
-			BucketAmount, AmountBefore, AmountAfter, ProdId],
+balance_activity_log(Type, Action, Subscriber, Bucket, Units, Amount,
+		AmountBefore, AmountAfter, Product) when ((Type == transfer) orelse
+		(Type == topup) orelse (Type == adjustment)), is_binary(Subscriber),
+		is_list(Bucket), ((Units == cents) orelse (Units == seconds) orelse
+		(Units == octets)), is_integer(AmountBefore), is_integer(AmountAfter),
+		is_list(Product), is_integer(Amount)->
+	Event = [Type, Action, Subscriber, Bucket, Units, Amount,
+			AmountBefore, AmountAfter, Product],
 	write_log(?BALANCELOG, Event).
 
 -spec balance_activity_query(Continuation, Start, End, Match) -> Result
