@@ -125,9 +125,9 @@ events_to_json(Events) ->
 					_ ->
 						Obj0
 				end,
-				Obj2 = case CCR#'3gpp_ro_CCR'.'Service-Context-Id' of
-					{ok, Identifier} ->
-						[{"nasIdentifier", Identifier} | Obj1];
+				Obj2 = case CCR#'3gpp_ro_CCR'.'Origin-Host' of
+					Identifier when is_binary(Identifier) ->
+						[{"nasIdentifier", binary_to_list(Identifier)} | Obj1];
 					_ ->
 						Obj1
 				end,
