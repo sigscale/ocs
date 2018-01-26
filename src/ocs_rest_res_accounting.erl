@@ -131,38 +131,46 @@ events_to_json(Events) ->
 					_ ->
 						Obj1
 				end,
-				Obj5 = case CCR#'3gpp_ro_CCR'.'Multiple-Services-Credit-Control' of
+				Obj6 = case CCR#'3gpp_ro_CCR'.'Multiple-Services-Credit-Control' of
 					[#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit' = USUs}] ->
-						Fusu = fun(#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets' = [N]}, {I, O, T}) ->
-									{I + N, O, T};
-								(#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets' = [N]}, {I, O, T}) ->
-									{I, O + N, T};
-								(#'3gpp_ro_Used-Service-Unit'{'CC-Time' = [N]}, {I, O, T}) ->
-									{I, O, T + N}
+						Fusu = fun(#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [N]}, {To, I, O, Ti}) ->
+									{To + N, I, O, Ti};
+								(#'3gpp_ro_Used-Service-Unit'{'CC-Input-Octets' = [N]}, {To, I, O, Ti}) ->
+									{To, I + N, O, Ti};
+								(#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets' = [N]}, {To, I, O, Ti}) ->
+									{To, I, O + N, Ti};
+								(#'3gpp_ro_Used-Service-Unit'{'CC-Time' = [N]}, {To, I, O, Ti}) ->
+									{To, I, O, Ti + N}
 						end,
-						{InputOctets, OutputOctets, SessionTime} = lists:foldl(Fusu, {0, 0, 0}, USUs),
-						Obj3 = case InputOctets of
+						{TotalOctets, InputOctets, OutputOctets, SessionTime} = lists:foldl(Fusu, {0, 0, 0, 0}, USUs),
+						Obj3 = case TotalOctets of
 							0 ->
 								Obj2;
-							InputOctets ->
-								[{"acctInputoctets", InputOctets} | Obj2]
+							TotalOctets ->
+								[{"acctTotaloctets", TotalOctets} | Obj2]
 						end,
-						Obj4 = case OutputOctets of
+						Obj4 = case InputOctets of
 							0 ->
 								Obj3;
-							OutputOctets ->
-								[{"acctOutputoctets", OutputOctets} | Obj3]
+							InputOctets ->
+								[{"acctInputoctets", InputOctets} | Obj3]
 						end,
-						case OutputOctets of
+						Obj5 = case OutputOctets of
 							0 ->
 								Obj4;
 							OutputOctets ->
-								[{"acctSessiontime", SessionTime} | Obj4]
+								[{"acctOutputoctets", OutputOctets} | Obj4]
+						end,
+						case SessionTime of
+							0 ->
+								Obj5;
+							SessionTime ->
+								[{"acctSessiontime", SessionTime} | Obj5]
 						end;
 					[] ->
 						Obj2
 				end,
-				[{struct, lists:reverse(Obj5)} | Acc]
+				[{struct, lists:reverse(Obj6)} | Acc]
 	end,
 	lists:reverse(lists:foldl(F, [], Events)).
 
