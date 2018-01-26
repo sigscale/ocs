@@ -272,7 +272,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 	end,
 	Destination = call_destination(ServiceInformation),
 	ReserveAmount = [{ReqUsageType, ReqUsage}],
-	ServiceType = lookup_service_type(SvcContextId),
+	ServiceType = service_type(SvcContextId),
 	case ocs_rating:rate(diameter, ServiceType, Subscriber, Timestamp,
 			Destination, originate, initial, [], ReserveAmount, [{'Session-Id', SId}]) of
 		{ok, _, GrantedAmount} ->
@@ -359,7 +359,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		Destination = call_destination(ServiceInformation),
 		ReserveAmount = [{ReqUsageType, ReqUsage}],
 		DebitAmount = [{UsedType, UsedUsage}],
-		ServiceType = lookup_service_type(SvcContextId),
+		ServiceType = service_type(SvcContextId),
 		case ocs_rating:rate(diameter, ServiceType, Subscriber, Timestamp,
 				Destination, originate, interim, DebitAmount, ReserveAmount, [{'Session-Id', SId}]) of
 			{ok, _, GrantedAmount} ->
@@ -433,7 +433,7 @@ request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		end,
 		Destination = call_destination(ServiceInformation),
 		DebitAmount = [{UsedType, UsedUsage}],
-		ServiceType = lookup_service_type(SvcContextId),
+		ServiceType = service_type(SvcContextId),
 		case ocs_rating:rate(diameter, ServiceType, Subscriber, Timestamp,
 				Destination, originate, final, DebitAmount, [], [{'Session-Id', SId}]) of
 			{ok, _, 0} ->
@@ -574,6 +574,19 @@ destination(<<"tel:", Dest/binary>>) ->
 destination(Dest) ->
 	binary_to_list(Dest).
 
-lookup_service_type(ServiceContextId) ->
-	binary:part(ServiceContextId, byte_size(ServiceContextId), -14).
+%% @hidden
+service_type(Id) ->
+	% allow ".3gpp.org" or the proper "@3gpp.org"
+	case binary:part(Id, size(Id), -8) of
+		<<"3gpp.org">> ->
+			ServiceContext = binary:part(Id, byte_size(Id) - 14, 5),
+			case catch binary:decode_unsigned(ServiceContext) of
+				{'EXIT', _} ->
+					undefined;
+				SeviceType ->
+					SeviceType
+			end;
+		_ ->
+			undefined
+	end.
 
