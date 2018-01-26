@@ -103,7 +103,8 @@
 					<paper-input id="addSubscriberId"
 							class="identity"
 							name="subscriber"
-							label="[[i18n.identity]]">
+							label="[[i18n.identity]]"
+							required>
 					</paper-input>
 					<paper-tooltip>
 						<i18n-msg msgid="subTool">
@@ -464,10 +465,12 @@
 				subscriber.product = this.product;
 				subscriber.enabled = this.$.addSubscriberEnabled.checked;
 				subscriber.multisession = this.$.addSubscriberMulti.checked;
-				var ajax = this.$.addSubscriberAjax;
-				ajax.headers['Content-type'] = "application/json";
-				ajax.body = subscriber;
-				ajax.generateRequest();
+				if(subscriber.id != "") {
+					var ajax = this.$.addSubscriberAjax;
+					ajax.headers['Content-type'] = "application/json";
+					ajax.body = subscriber;
+					ajax.generateRequest();
+				}
 				this.$.add8.value = null;
 			},
 			_addSubscriberResponse: function(event) {
