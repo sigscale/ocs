@@ -89,7 +89,7 @@ all() ->
 	[radius_log_auth_event, diameter_log_auth_event,
 			radius_log_acct_event, diameter_log_acct_event,
 			ipdr_log, get_range, get_last, auth_query, acct_query,
-			balance_acitivty_log_event, balance_activity_query].
+			abmf_log_event, abmf_query].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -534,11 +534,11 @@ acct_query(_Config) ->
 						[stop], MatchReq), []),
 	3 = length(Events).
 
-balance_acitivty_log_event() ->
+abmf_log_event() ->
    [{userdata, [{doc, "Log a balance actvity event"}]}].
 
-balance_acitivty_log_event(_Config) ->
-	ok = ocs_log:balance_activity_open(),
+abmf_log_event(_Config) ->
+	ok = ocs_log:abmf_open(),
 	Start = erlang:system_time(?MILLISECOND),
 	Type = transfer,
 	Date = ocs_log:iso8601(Start),
@@ -550,7 +550,7 @@ balance_acitivty_log_event(_Config) ->
 	BeforeAmount = {octets, CurrentAmount},
 	AfterAmount = {octets, CurrentAmount - Transfer},
 	ProdId = ocs:generate_password(),
-	ok = ocs_log:balance_activity_log(Type, Date, BucketId,
+	ok = ocs_log:abmf_log(Type, Date, BucketId,
 			BucketAmount, BeforeAmount, AfterAmount, ProdId),
 	End = erlang:system_time(?MILLISECOND),
 	Fany = fun({TS, _, T, D, BI, BA, BeA, AA, PI}) when TS >= Start, TS =< End,
@@ -565,25 +565,25 @@ balance_acitivty_log_event(_Config) ->
 			(F, {Cont, Chunk}) ->
 				case lists:any(Fany, Chunk) of
 					false ->
-						F(F, disk_log:chunk(ocs_balance_acivity, Cont));
+						F(F, disk_log:chunk(ocs_abmf, Cont));
 					true ->
 						true
 				end;
 			(_F, eof) ->
 				false
 	end,
-	true = Find(Find, disk_log:chunk(ocs_balance_activity, start)).
+	true = Find(Find, disk_log:chunk(ocs_abmf, start)).
 
-balance_activity_query() ->
+abmf_query() ->
    [{userdata, [{doc, "Get matching accounting log events"}]}].
 
-balance_activity_query(_Config) ->
-	ok = ocs_log:balance_activity_open(),
+abmf_query(_Config) ->
+	ok = ocs_log:abmf_open(),
 	BucketId = integer_to_list(erlang:system_time(?MILLISECOND)) ++ "-"
 				++ integer_to_list(erlang:unique_integer([positive])),
 	ProdId = ocs:generate_password(),
-	ok = fill_balance_activity(1000),
-	LogInfo = disk_log:info(ocs_balance_activity),
+	ok = fill_abmf(1000),
+	LogInfo = disk_log:info(ocs_abmf),
 	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
 	{_, CurItems} = lists:keyfind(no_current_items, 1, LogInfo),
 	{_, CurBytes} = lists:keyfind(no_current_bytes, 1, LogInfo),
@@ -591,32 +591,32 @@ balance_activity_query(_Config) ->
 	NumItems = (FileSize div EventSize) * 5,
 	Start = erlang:system_time(?MILLISECOND),
 	Date = ocs_log:iso8601(Start),
-	ok = fill_balance_activity(NumItems),
+	ok = fill_abmf(NumItems),
 	C1= rand:uniform(100000000),
 	Topup = rand:uniform(50000),
 	C2 = C1 + Topup,
-	ok = ocs_log:balance_activity_log(topup, Date, BucketId,
+	ok = ocs_log:abmf_log(topup, Date, BucketId,
 			{cents, Topup}, {cents, C1}, {cents, C2}, ProdId),
-	ok = fill_balance_activity(rand:uniform(2000)),
+	ok = fill_abmf(rand:uniform(2000)),
 	Transfer = rand:uniform(50000),
 	C3 = C2 - Transfer,
-	ok = ocs_log:balance_activity_log(transfer, Date, BucketId,
+	ok = ocs_log:abmf_log(transfer, Date, BucketId,
 			{cents, Transfer}, {cents, C2}, {cents, C3}, ProdId),
-	ok = fill_balance_activity(rand:uniform(2000)),
+	ok = fill_abmf(rand:uniform(2000)),
 	Adjustment = rand:uniform(50000),
-	ok = ocs_log:balance_activity_log(transfer, Date, BucketId,
+	ok = ocs_log:abmf_log(transfer, Date, BucketId,
 			{cents, Adjustment}, {cents, C3}, {cents, C3 - Adjustment}, ProdId),
-	ok = fill_balance_activity(rand:uniform(2000)),
+	ok = fill_abmf(rand:uniform(2000)),
 	End = erlang:system_time(?MILLISECOND),
 	MatchReq = [{types, [topup, transfer, adjustment]},
 			{bucket_amount, [{units, [cents]}]}],
 	Fget = fun(_F, {eof, Events}, Acc) ->
 				lists:flatten(lists:reverse([Events | Acc]));
 			(F, {Cont, Events}, Acc) ->
-				F(F, ocs_log:balance_activity_query(Cont, Start, End,
+				F(F, ocs_log:abmf_query(Cont, Start, End,
 						MatchReq), [Events | Acc])
 	end,
-	Events = Fget(Fget, ocs_log:balance_activity_query(start, Start, End,
+	Events = Fget(Fget, ocs_log:abmf_query(start, Start, End,
 						MatchReq), []),
 	3 = length(Events).
 
@@ -664,9 +664,9 @@ fill_acct(N) ->
 	ok = ocs_log:acct_log(radius, Server, Type, Attrs),
 	fill_acct(N - 1).
 
-fill_balance_activity(0) ->
+fill_abmf(0) ->
 	ok;
-fill_balance_activity(N) ->
+fill_abmf(N) ->
 	Date = ocs_log:iso8601(erlang:system_time(?MILLISECOND)),
 	BucketId = integer_to_list(erlang:system_time(?MILLISECOND)) ++ "-"
 				++ integer_to_list(erlang:unique_integer([positive])),
@@ -683,24 +683,24 @@ fill_balance_activity(N) ->
 			BucketAmount = {Type, Topup},
 			BeforeAmount = {Type, CurrentAmount},
 			AfterAmount = {Type, CurrentAmount + Topup},
-			ok = ocs_log:balance_activity_log(Type, Date, BucketId,
+			ok = ocs_log:abmf_log(Type, Date, BucketId,
 					BucketAmount, BeforeAmount, AfterAmount, ProdId);
 		transfer ->
 			Transfer = rand:uniform(50000),
 			BucketAmount = {Type, Transfer},
 			BeforeAmount = {Type, CurrentAmount},
 			AfterAmount = {Type, CurrentAmount - Transfer},
-			ok = ocs_log:balance_activity_log(Type, Date, BucketId,
+			ok = ocs_log:abmf_log(Type, Date, BucketId,
 					BucketAmount, BeforeAmount, AfterAmount, ProdId);
 		adjustment ->
 			Adjustment = rand:uniform(50000),
 			BucketAmount = {Type, Adjustment},
 			BeforeAmount = {Type, CurrentAmount},
 			AfterAmount = {Type, CurrentAmount - Adjustment},
-			ok = ocs_log:balance_activity_log(Type, Date, BucketId,
+			ok = ocs_log:abmf_log(Type, Date, BucketId,
 					BucketAmount, BeforeAmount, AfterAmount, ProdId)
 	end,
-	fill_balance_activity(N - 1).
+	fill_abmf(N - 1).
 
 resp_attr() ->
 	resp_attr(rand:uniform(100)).

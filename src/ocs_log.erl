@@ -29,14 +29,14 @@
 -export([auth_open/0, auth_log/5, auth_log/6, auth_close/0,
 			auth_query/6, auth_query/7]).
 -export([ipdr_log/3, ipdr_file/2]).
--export([balance_activity_open/0, balance_activity_log/9,
-			balance_activity_query/4]).
+-export([abmf_open/0, abmf_log/9,
+			abmf_query/9]).
 -export([get_range/3, last/2, dump_file/2, httpd_logname/1,
 			http_file/2, date/1, iso8601/1]).
 -export([http_query/8]).
 
 %% exported the private function
--export([acct_query/4, auth_query/5, balance_activity_query/2]).
+-export([acct_query/4, auth_query/5, abmf_query/7]).
 
 %% export the ocs_log event types
 -export_type([auth_event/0, acct_event/0, http_event/0]).
@@ -49,7 +49,7 @@
 
 -define(ACCTLOG, ocs_acct).
 -define(AUTHLOG, ocs_auth).
--define(BALANCELOG, ocs_balance_activity).
+-define(BALANCELOG, ocs_abmf).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -897,18 +897,18 @@ uuid() ->
 	Chars = io_lib:fwrite(Format, Values),
 	lists:flatten(Chars).
 
--spec balance_activity_open() -> Result
+-spec abmf_open() -> Result
 	when
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Open balance activity event disk log.
-balance_activity_open() ->
-	{ok, Directory} = application:get_env(ocs, balance_activity_log_dir),
-	{ok, LogSize} = application:get_env(ocs, balance_activity_log_size),
-	{ok, LogFiles} = application:get_env(ocs, balance_activity_log_files),
+abmf_open() ->
+	{ok, Directory} = application:get_env(ocs, abmf_log_dir),
+	{ok, LogSize} = application:get_env(ocs, abmf_log_size),
+	{ok, LogFiles} = application:get_env(ocs, abmf_log_files),
 	open_log(Directory, ?BALANCELOG, LogSize, LogFiles).
 
--spec balance_activity_log(Type, Action, Subscriber, Bucket,
+-spec abmf_log(Type, Action, Subscriber, Bucket,
 		Units, Amount, AmountBefore, AmountAfter, Product) -> Result
 	when
 		Type :: transfer | topup | adjustment,
@@ -923,7 +923,7 @@ balance_activity_open() ->
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Write a balance activity log
-balance_activity_log(Type, Action, Subscriber, Bucket, Units, Amount,
+abmf_log(Type, Action, Subscriber, Bucket, Units, Amount,
 		AmountBefore, AmountAfter, Product) when ((Type == transfer) orelse
 		(Type == topup) orelse (Type == adjustment)), is_binary(Subscriber),
 		is_list(Bucket), ((Units == cents) orelse (Units == seconds) orelse
@@ -933,38 +933,26 @@ balance_activity_log(Type, Action, Subscriber, Bucket, Units, Amount,
 			AmountBefore, AmountAfter, Product],
 	write_log(?BALANCELOG, Event).
 
--spec balance_activity_query(Continuation, Start, End, Match) -> Result
+-spec abmf_query(Continuation, Start, End, Type, Action, Subscriber,
+		Bucket, Units, Product) -> Result
 	when
 		Continuation :: start | disk_log:continuation(),
 		Start :: calendar:datetime() | pos_integer(),
 		End :: calendar:datetime() | pos_integer(),
-		Match :: [MatchSpecs],
-		MatchSpecs :: {types, Types} | {date, Date}
-						| {bucket_id, BucketId}
-						| {bucket_amount, BucketAmount}
-						| {before_amount, BeforeAmount}
-						| {after_amount, AfterAmount}
-						| {prod_id, ProdId},
-		Types :: [Type],
-		Date :: string() | pos_integer(),
-		BucketId :: string(),
-		BucketAmount :: BucketSpecs,
-		BeforeAmount :: BucketSpecs,
-		AfterAmount :: BucketSpecs,
-		BucketSpecs :: [BucketSpec],
-		BucketSpec :: {units, Units} | {amount, Amount},
-		ProdId :: string(),
-		Type :: transfer | topup | adjustment,
-		Units :: [Unit],
-		Unit :: octets | seconds | cents,
-		Amount :: integer(),
+		Type :: transfer | topup | adjustment | '_',
+		Action :: term() | '_',
+		Subscriber :: binary() | '_',
+		Bucket :: string() | '_',
+		Units :: cents | seconds | octets | '_',
+		Product :: string() | '_',
 		Result :: {Continuation2, Events} | {error, Reason},
 		Continuation2 :: eof | disk_log:continuation(),
 		Events :: [acct_event()],
 		Reason :: term().
 %% @doc Query balance activity log events with filters.
-balance_activity_query(Continuation, Start, End, MatchSpecs) ->
-	MFA = {?MODULE, balance_activity_query, [MatchSpecs]},
+abmf_query(Continuation, Start, End, Type, Action, Subscriber,
+		Bucket, Units, Product) ->
+	MFA = {?MODULE, abmf_query, [Type, Action, Subscriber, Bucket, Units, Product]},
 	query_log(Continuation, Start, End, ?BALANCELOG, MFA).
 
 %%----------------------------------------------------------------------
@@ -1615,20 +1603,11 @@ query_log2(_Start, _End, {M, F, A}, {Cont, []}, Acc) ->
 %% @doc Query accounting log events with filters.
 %%
 acct_query({Cont, Events}, Protocol, Types, AttrsMatch) ->
-	{Cont, acct_query1(Events, Protocol, Types, AttrsMatch, [])}.
+	{Cont, acct_query1(Events,  Protocol, Types, AttrsMatch, [])}.
 %% @hidden
 acct_query1(Events, Protocol, '_',  AttrsMatch, _Acc) ->
 	acct_query2(Events, Protocol, AttrsMatch, []);
-acct_query1([{_, _, radius, _, _, Type, _} = H | T], Protocol,
-		Types, AttrsMatch, Acc) when Protocol == radius; Protocol == '_' ->
-	case lists:member(Type, Types) of
-		true ->
-			acct_query1(T, Protocol, Types, AttrsMatch, [H | Acc]);
-		false ->
-			acct_query1(T, Protocol, Types, AttrsMatch, Acc)
-	end;
-acct_query1([{_, _, diameter, _, _, Type, _, _} = H | T], Protocol,
-		Types, AttrsMatch, Acc) when Protocol == diameter; Protocol == '_' ->
+acct_query1([{_, _, _, _, _, Type, _} = H | T], Protocol, Types,  AttrsMatch, Acc) ->
 	case lists:member(Type, Types) of
 		true ->
 			acct_query1(T, Protocol, Types, AttrsMatch, [H | Acc]);
@@ -1640,10 +1619,8 @@ acct_query1([], Protocol, _Types,  AttrsMatch, Acc) ->
 %% @hidden
 acct_query2(Events, '_', AttrsMatch, _Acc) ->
 	acct_query3(Events, AttrsMatch, []);
-acct_query2([{_, _, radius, _, _, _, _} = H | T], radius, AttrsMatch, Acc) ->
-	acct_query2(T, radius, AttrsMatch, [H |Acc]);
-acct_query2([{_, _, diameter, _, _, _, _, _} = H | T], diameter, AttrsMatch, Acc) ->
-	acct_query2(T, diameter, AttrsMatch, [H |Acc]);
+acct_query2([{_, _, Protocol, _, _, _, _} = H | T], Protocol, AttrsMatch, Acc) ->
+	acct_query2(T, Protocol, AttrsMatch, [H |Acc]);
 acct_query2([_ | T], Protocol, AttrsMatch, Acc) ->
 	acct_query2(T, Protocol, AttrsMatch, Acc);
 acct_query2([], _Protocol, AttrsMatch, Acc) ->
@@ -1651,36 +1628,18 @@ acct_query2([], _Protocol, AttrsMatch, Acc) ->
 %% @hidden
 acct_query3(Events, '_', _Acc) ->
 	Events;
-acct_query3([{_, _, radius, _, _, _, Attributes} = H | T], AttrsMatch, Acc) ->
+acct_query3([{_, _, _, _, _, _, Attributes} = H | T], AttrsMatch, Acc) ->
 	case acct_query4(Attributes, AttrsMatch) of
 		true ->
 			acct_query3(T, AttrsMatch, [H | Acc]);
 		false ->
 			acct_query3(T, AttrsMatch, Acc)
 	end;
-acct_query3([{_, _, diameter, _, _, _, CCR, CCA} = H | T], AttrsMatch, Acc) ->
-	CCRfields = record_info(fields, '3gpp_ro_CCR'),
-	case acct_query5(CCR, CCRfields,
-			length(CCRfields) + 1, AttrsMatch, none) of
-		stop ->
-			acct_query3(T, AttrsMatch, Acc);
-		Result ->
-			CCAfields = record_info(fields, '3gpp_ro_CCA'),
-			case acct_query5(CCA, CCAfields,
-					length(CCAfields) + 1, AttrsMatch, Result) of
-				match ->
-					acct_query3(T, AttrsMatch, [H | Acc]);
-				none ->
-					acct_query3(T, AttrsMatch, Acc);
-				stop ->
-					acct_query3(T, AttrsMatch, Acc)
-			end
-	end;
 acct_query3([], _AttrsMatch, Acc) ->
 	lists:reverse(Acc).
 %% @hidden
 acct_query4(Attributes, [{Attribute, Match} | T]) ->
-	case lists:keyfind(Attribute, 2, Attributes) of
+	case lists:keyfind(Attribute, 1, Attributes) of
 		{Attribute, Match1} when
 				(Match1 == Match) or (Match == '_') ->
 			acct_query4(Attributes, T);
@@ -1691,27 +1650,6 @@ acct_query4(Attributes, [_ | T]) ->
 	acct_query4(Attributes, T);
 acct_query4(_Attributes, []) ->
 	true.
-%% @hidden
-acct_query5(R, Fields, N, [{Attribute, Match} | T], Acc) ->
-	case acct_query6(R, Fields, N, Attribute, Match) of
-		match ->
-			acct_query5(R, Fields, N, T, match);
-		stop ->
-			stop;
-		none ->
-			acct_query5(R, Fields, N, T, Acc)
-	end;
-acct_query5(_, _, _, [], Acc) ->
-	Acc.
-%% @hidden
-acct_query6(R, [Field | _], N, Field, Match) when element(N, R) == Match ->
-	match;
-acct_query6(_, [Field | _], _, Field, _Match) ->
-	stop;
-acct_query6(R, [_ | T], N, Field, Match) ->
-	acct_query5(R, T, N + 1, Field, Match);
-acct_query6(_, [], _, _, _) ->
-	none.
 
 -spec auth_query(Continuation, Protocol, Types, ReqAttrsMatch, RespAttrsMatch) -> Result
 	when
@@ -1798,43 +1736,32 @@ auth_query5(Attributes, [_ | T]) ->
 auth_query5(_Attributes, []) ->
 	true.
 
--spec balance_activity_query({Continuation, Events}, MatchSpecs) -> Result
+-spec abmf_query(Continuation, Type, Action, Subscriber, Bucket,
+		Units, Product) -> Result
 	when
 		Continuation :: {Continuation2, Events},
 		Result :: {Continuation2, Events},
 		Continuation2 :: eof | disk_log:continuation(),
-		MatchSpecs :: {types, Types} | {date, Date}
-						| {bucket_id, BucketId}
-						| {bucket_amount, BucketAmount}
-						| {before_amount, BeforeAmount}
-						| {after_amount, AfterAmount}
-						| {prod_id, ProdId},
-		Types :: [Type],
-		Date :: string() | pos_integer(),
-		BucketId :: string(),
-		BucketAmount :: BucketSpecs,
-		BeforeAmount :: BucketSpecs,
-		AfterAmount :: BucketSpecs,
-		BucketSpecs :: [BucketSpec],
-		ProdId :: string(),
-		BucketSpec :: {units, Units} | {amount, Amount},
-		Type :: transfer | topup | adjustment,
-		Units :: [Unit],
-		Unit :: octets | seconds | cents,
-		Amount :: integer(),
+		Type :: transfer | topup | adjustment | '_',
+		Action :: term() | '_',
+		Subscriber :: binary() | '_',
+		Bucket :: string() | '_',
+		Units :: cents | seconds | octets | '_',
+		Product :: string() | '_',
 		Events :: [acct_event()].
 %% @private
 %% @doc Query balance activity log events with filters.
 %%
-balance_activity_query({Cont, Events}, MatchSpecs) ->
-	{Cont, balance_activity_query1(Events, MatchSpecs)}.
+abmf_query({Cont, Events}, Type, Action, Subscriber, Bucket,
+		 Units, Product) ->
+	{Cont, abmf_query1(Events, [Type, Action, Subscriber, Bucket, Units, Product])}.
 %% @hidden
-balance_activity_query1(Events, []) ->
+abmf_query1(Events, [Type, Action, Subscriber, Bucket, Units, Product]) ->
 	lists:reverse(Events);
-balance_activity_query1(Events, [H | T]) ->
-	balance_activity_query1(balance_activity_query2(Events, H), T).
+abmf_query1(Events, [H | T]) ->
+	abmf_query1(abmf_query2(Events, H), T).
 %% @hidden
-balance_activity_query2(Events, {types, Types}) ->
+abmf_query2(Events, {types, Types}) ->
 	F1 = fun(Event) ->
 		F2 = fun(Type) when Type == element(3, Event) ->
 					true;
@@ -1844,39 +1771,39 @@ balance_activity_query2(Events, {types, Types}) ->
 		lists:any(F2, Types)
 	end,
 	lists:filter(F1, Events);
-balance_activity_query2(Events, {date, Date}) when is_list(Date) ->
+abmf_query2(Events, {date, Date}) when is_list(Date) ->
 	F = fun(Event) -> element(4, Event) == ocs_log:iso8601(Date) end,
 	lists:filter(F, Events);
-balance_activity_query2(Events, {date, Date}) when is_integer(Date) ->
+abmf_query2(Events, {date, Date}) when is_integer(Date) ->
 	F = fun(Event) -> element(4, Event) == Date end,
 	lists:filter(F, Events);
-balance_activity_query2(Events, {bucket_id, Id}) ->
+abmf_query2(Events, {bucket_id, Id}) ->
 	F = fun(Event) -> element(5, Event) == Id end,
 	lists:filter(F, Events);
-balance_activity_query2(Events, {bucket_amount, BA}) ->
-	F = fun(Event) -> balance_activity_query3(element(6, Event), BA) end,
+abmf_query2(Events, {bucket_amount, BA}) ->
+	F = fun(Event) -> abmf_query3(element(6, Event), BA) end,
 	lists:filter(F, Events);
-balance_activity_query2(Events, {before_amount, BA}) ->
-	F = fun(Event) -> balance_activity_query3(element(7, Event), BA) end,
+abmf_query2(Events, {before_amount, BA}) ->
+	F = fun(Event) -> abmf_query3(element(7, Event), BA) end,
 	lists:filter(F, Events);
-balance_activity_query2(Events, {after_amount, BA}) ->
-	F = fun(Event) -> balance_activity_query3(element(8, Event), BA) end,
+abmf_query2(Events, {after_amount, BA}) ->
+	F = fun(Event) -> abmf_query3(element(8, Event), BA) end,
 	lists:filter(F, Events);
-balance_activity_query2(Events, {prod_id, Id}) ->
+abmf_query2(Events, {prod_id, Id}) ->
 	F = fun(Event) -> element(9, Event) == Id end,
 	lists:filter(F, Events).
 %% @hidden
-balance_activity_query3({Unit, _} = Target, [{units, Units} | T]) ->
+abmf_query3({Unit, _} = Target, [{units, Units} | T]) ->
 	case lists:member(Unit, Units) of
 		true ->
-			balance_activity_query3(Target, T);
+			abmf_query3(Target, T);
 		false ->
 			false
 	end;
-balance_activity_query3({_, Amount} = Target, [{amount, Amount} | T]) ->
-	balance_activity_query3(Target, T);
-balance_activity_query3(_Target, [_ | _]) ->
+abmf_query3({_, Amount} = Target, [{amount, Amount} | T]) ->
+	abmf_query3(Target, T);
+abmf_query3(_Target, [_ | _]) ->
 	false;
-balance_activity_query3(_Target, []) ->
+abmf_query3(_Target, []) ->
 	true.
 
