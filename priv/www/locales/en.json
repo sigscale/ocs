@@ -420,16 +420,16 @@
     "message": "Called Station"
   },
    "out": {
-    "description": "Out(bytes) for logs",
-    "message": "Out (bytes)"
+    "description": "Out (bytes) for logs",
+    "message": "Out"
   },
    "in": {
-    "description": "In(bytes) for logs",
-    "message": "In (bytes)"
+    "description": "In (bytes) for logs",
+    "message": "In"
   },
    "totalo": {
-    "description": "Total(bytes) for logs",
-    "message": "Total (bytes)"
+    "description": "Total (bytes) for logs",
+    "message": "Total"
   },
    "contact": {
     "description": "Contact us option for users help",

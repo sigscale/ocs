@@ -437,15 +437,15 @@
   },
 	"out": {
     "description": "Out (bytes) for logs",
-    "message": "Fuera (bytes)"
+    "message": "Fuera"
   },
 	"in": {
     "description": "In (bytes) for logs",
-    "message": "En (bytes)"
+    "message": "En"
   },
 	"totalo": {
     "description": "Total (bytes) for logs",
-    "message": "Total (bytes)"
+    "message": "Total"
   },
 	"contact": {
     "description": "Contact us option for users help",
