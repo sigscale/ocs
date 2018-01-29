@@ -47,7 +47,7 @@
 			}
 		</style>
 		<vaadin-grid id="accountingGrid">
-			<vaadin-grid-column width="24ex">
+			<vaadin-grid-column width="24ex" flex-grow="2">
 				<template class="header">
 					<vaadin-grid-sorter path="timeStamp">
 						<vaadin-grid-filter aria-label="[[i18n.timeStamp]]" path="timeStamp" value="[[_filterTimeStamp]]">
@@ -57,7 +57,7 @@
 				</template>
 				<template>[[item.timeStamp]]</template>
 			</vaadin-grid-column>
-			<vaadin-grid-column width="30ex">
+			<vaadin-grid-column width="8ex" flex-grow="8">
 				<template class="header">
 					<vaadin-grid-sorter path="nasIdentifier">
 						<vaadin-grid-filter aria-label="[[i18n.clientIdentity]]" path="nasIdentifier" value="[[_filterclientIdentity]]">
@@ -117,7 +117,7 @@
 					<template>[[item.acctTotaloctets]]</template>
 				</vaadin-grid-column>
 			</vaadin-grid-column-group>
-			<vaadin-grid-column width="18ex" flex-grow="4">
+			<vaadin-grid-column width="12ex" flex-grow="1">
 				<template class="header">
 					<vaadin-grid-sorter path="username">
 						<vaadin-grid-filter aria-label="[[i18n.userName]]" path="username" value="[[_filterUserName]]">
@@ -127,7 +127,7 @@
 				</template>
 				<template>[[item.username]]</template>
 			</vaadin-grid-column>
-			<vaadin-grid-column width="8ex" flex-grow="0">
+			<vaadin-grid-column width="8ex" flex-grow="2">
 				<template class="header">
 					<vaadin-grid-filter aria-label="[[i18n.type]]" path="type" value="[[_filterType]]">
 						<input placeholder="[[i18n.type]]" value="{{_filterType::input}}" focus-target>
