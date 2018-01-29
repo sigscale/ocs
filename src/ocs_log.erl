@@ -493,7 +493,7 @@ ipdr_log3(IpdrLog, _Start, End, SeqNum, {_Cont, [H | _]})
 		when element(1, H) > End ->
 	ipdr_log4(IpdrLog, SeqNum);
 ipdr_log3(IpdrLog, _Start, End, SeqNum, {Cont, [H | T]})
-		when element(5, H) == stop ->
+		when element(6, H) == stop ->
 	IPDR = ipdr_codec(H),
 	NewSeqNum = SeqNum + 1,
 	case disk_log:log(IpdrLog, IPDR#ipdr{seqNum = NewSeqNum}) of
@@ -1102,9 +1102,10 @@ get_range2(Log, End, {Cont, Chunk}, Acc) ->
 			lists:flatten(lists:reverse([lists:takewhile(Fend, Chunk) | Acc]))
 	end.
 
--spec ipdr_codec({TimeStamp, Protocol, Node, Server, RequestType, Attributes}) -> IPDR
+-spec ipdr_codec({TimeStamp, N, Protocol, Node, Server, RequestType, Attributes}) -> IPDR
 	when
 		TimeStamp :: pos_integer(),
+		N :: pos_integer(),
 		Protocol :: radius | diameter,
 		Node :: node(),
 		Server :: {Address, Port},
@@ -1115,7 +1116,7 @@ get_range2(Log, End, {Cont, Chunk}, Acc) ->
 		IPDR :: #ipdr{}.
 %% @doc Convert `ocs_acct' log entry to IPDR log entry.
 %% @private
-ipdr_codec({TimeStamp, Protocol, _Node, _Server, RequestType, Attributes})
+ipdr_codec({TimeStamp, _N, Protocol, _Node, _Server, RequestType, Attributes})
 		when ((Protocol == radius) or (Protocol == diameter)),
 		((RequestType == stop) or (RequestType == event)) ->
 	IPDR = #ipdr{ipdrCreationTime = iso8601(TimeStamp)},
