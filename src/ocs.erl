@@ -1553,7 +1553,8 @@ end_period1({Date, Time}, weekly) ->
 	NextDay = calendar:date_to_gregorian_days(Date) + 7,
 	EndDate = calendar:gregorian_days_to_date(NextDay),
 	gregorian_datetime_to_system_time({EndDate, Time}) - 1;
-end_period1({{Year, 1, 31}, Time}, monthly) ->
+end_period1({{Year, 1, Day}, Time}, monthly)
+		when Day > 28 ->
 	NextDay = calendar:last_day_of_the_month(Year, 2),
 	EndDate = {Year, 2, NextDay},
 	gregorian_datetime_to_system_time({EndDate, Time}) - 1;
