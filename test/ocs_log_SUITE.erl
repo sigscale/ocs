@@ -310,7 +310,7 @@ ipdr_log(_Config) ->
 				ok = ocs_log:acct_log(radius, Server, Type, Attrs2),
 				F(F, N - 1)
 	end,
-	Fill(Fill, NumItems),
+	ok = Fill(Fill, NumItems),
 	End = erlang:system_time(?MILLISECOND),
 	ok = disk_log:sync(ocs_acct),
 	Range = (End - Start),
@@ -320,7 +320,7 @@ ipdr_log(_Config) ->
 	Filename = IpdrLogDir ++ "/ipdr-" ++ ocs_log:iso8601(erlang:system_time(?MILLISECOND)),
 	ok = ocs_log:ipdr_log(Filename, StartRange, EndRange),
 	GetRangeResult = ocs_log:get_range(ocs_acct, StartRange, EndRange),
-	Fstop = fun(E, Acc) when element(5, E) == stop ->
+	Fstop = fun(E, Acc) when element(6, E) == stop ->
 				Acc + 1;
 			(_, Acc) ->
 				Acc
