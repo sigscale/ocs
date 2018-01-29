@@ -31,6 +31,11 @@
 					background: #ffb04c;
 				};
 			}
+			vaadin-grid .grouptitle {
+				text-align: center;
+				border-bottom-style: solid;
+				border-color: var(--paper-yellow-900);
+			}
 			vaadin-grid input {
 				font-size: inherit;
 				background: #ffb04c;
@@ -42,7 +47,7 @@
 			}
 		</style>
 		<vaadin-grid id="accountingGrid">
-			<vaadin-grid-column width="24ex">
+			<vaadin-grid-column width="24ex" flex-grow="2">
 				<template class="header">
 					<vaadin-grid-sorter path="timeStamp">
 						<vaadin-grid-filter aria-label="[[i18n.timeStamp]]" path="timeStamp" value="[[_filterTimeStamp]]">
@@ -52,7 +57,7 @@
 				</template>
 				<template>[[item.timeStamp]]</template>
 			</vaadin-grid-column>
-			<vaadin-grid-column width="30ex">
+			<vaadin-grid-column width="8ex" flex-grow="8">
 				<template class="header">
 					<vaadin-grid-sorter path="nasIdentifier">
 						<vaadin-grid-filter aria-label="[[i18n.clientIdentity]]" path="nasIdentifier" value="[[_filterclientIdentity]]">
@@ -62,47 +67,57 @@
 				</template>
 				<template>[[item.nasIdentifier]]</template>
 			</vaadin-grid-column>
-			<vaadin-grid-column width="15ex" flex-grow="1">
+			<vaadin-grid-column-group>
 				<template class="header">
-					<vaadin-grid-sorter path="acctSessiontime">
-						<vaadin-grid-filter aria-label="[[i18n.sessionDur]]" path="acctSessiontime" value="[[_filteracctSessiontime]]">
-							<input placeholder="[[i18n.sessionDur]]" value="{{_filteracctSessiontime::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<div class="grouptitle">[[i18n.seconds]]</div>
 				</template>
-				<template>[[item.acctSessiontime]]</template>
-			</vaadin-grid-column>
-			<vaadin-grid-column width="10ex" flex-grow="1">
+				<vaadin-grid-column width="15ex" flex-grow="1">
+					<template class="header">
+						<vaadin-grid-sorter path="acctSessiontime">
+							<vaadin-grid-filter aria-label="[[i18n.sessionDur]]" path="acctSessiontime" value="[[_filteracctSessiontime]]">
+								<input placeholder="[[i18n.sessionDur]]" value="{{_filteracctSessiontime::input}}" focus-target>
+							</vaadin-grid-filter>
+						</vaadin-grid-sorter>
+					</template>
+					<template>[[item.acctSessiontime]]</template>
+				</vaadin-grid-column>
+			</vaadin-grid-column-group>
+			<vaadin-grid-column-group>
 				<template class="header">
-					<vaadin-grid-sorter path="acctOutputoctets">
-						<vaadin-grid-filter aria-label="[[i18n.out]]" path="acctOutputoctets" value="[[_filterout]]">
-							<input placeholder="[[i18n.out]]" value="{{_filterout::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<div class="grouptitle">[[i18n.bytes]]</div>
 				</template>
-				<template>[[item.acctOutputoctets]]</template>
-			</vaadin-grid-column>
-			<vaadin-grid-column width="10ex" flex-grow="1">
-				<template class="header">
-					<vaadin-grid-sorter path="acctInputoctets">
-						<vaadin-grid-filter aria-label="[[i18n.in]]" path="acctInputoctets" value="[[_filterin]]">
-							<input placeholder="[[i18n.in]]" value="{{_filterin::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
-				</template>
-				<template>[[item.acctInputoctets]]</template>
-			</vaadin-grid-column>
-			<vaadin-grid-column width="10ex" flex-grow="1">
-				<template class="header">
-					<vaadin-grid-sorter path="acctTotaloctets">
-						<vaadin-grid-filter aria-label="[[i18n.totalo]]" path="acctTotaloctets" value="[[_filtertotal]]">
-							<input placeholder="[[i18n.totalo]]" value="{{_filtertotal::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
-				</template>
-				<template>[[item.acctTotaloctets]]</template>
-			</vaadin-grid-column>
-			<vaadin-grid-column width="18ex" flex-grow="4">
+				<vaadin-grid-column width="10ex" flex-grow="1">
+					<template class="header">
+						<vaadin-grid-sorter path="acctOutputoctets">
+							<vaadin-grid-filter aria-label="[[i18n.out]]" path="acctOutputoctets" value="[[_filterout]]">
+								<input placeholder="[[i18n.out]]" value="{{_filterout::input}}" focus-target>
+							</vaadin-grid-filter>
+						</vaadin-grid-sorter>
+					</template>
+					<template>[[item.acctOutputoctets]]</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column width="10ex" flex-grow="1">
+					<template class="header">
+						<vaadin-grid-sorter path="acctInputoctets">
+							<vaadin-grid-filter aria-label="[[i18n.in]]" path="acctInputoctets" value="[[_filterin]]">
+								<input placeholder="[[i18n.in]]" value="{{_filterin::input}}" focus-target>
+							</vaadin-grid-filter>
+						</vaadin-grid-sorter>
+					</template>
+					<template>[[item.acctInputoctets]]</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column width="10ex" flex-grow="1">
+					<template class="header">
+						<vaadin-grid-sorter path="acctTotaloctets">
+							<vaadin-grid-filter aria-label="[[i18n.totalo]]" path="acctTotaloctets" value="[[_filtertotal]]">
+								<input placeholder="[[i18n.totalo]]" value="{{_filtertotal::input}}" focus-target>
+							</vaadin-grid-filter>
+						</vaadin-grid-sorter>
+					</template>
+					<template>[[item.acctTotaloctets]]</template>
+				</vaadin-grid-column>
+			</vaadin-grid-column-group>
+			<vaadin-grid-column width="12ex" flex-grow="1">
 				<template class="header">
 					<vaadin-grid-sorter path="username">
 						<vaadin-grid-filter aria-label="[[i18n.userName]]" path="username" value="[[_filterUserName]]">
@@ -112,7 +127,7 @@
 				</template>
 				<template>[[item.username]]</template>
 			</vaadin-grid-column>
-			<vaadin-grid-column width="8ex" flex-grow="0">
+			<vaadin-grid-column width="8ex" flex-grow="2">
 				<template class="header">
 					<vaadin-grid-filter aria-label="[[i18n.type]]" path="type" value="[[_filterType]]">
 						<input placeholder="[[i18n.type]]" value="{{_filterType::input}}" focus-target>
