@@ -162,8 +162,8 @@
 		last_modified :: tuple() | undefined}).
 
 -record(pla,
-		{name :: string(),
-		description :: string(),
+		{name :: string() | undefined,
+		description :: string() | undefined,
 		start_date :: pos_integer() | undefined,
 		end_date :: pos_integer() | undefined,
 		status :: pla_status() | undefined,
