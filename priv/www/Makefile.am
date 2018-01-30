@@ -33,7 +33,8 @@ www_DATA = favicon.ico \
 	sig-prefix-add.html \
 	sig-product-list.html \
 	sig-product-update.html \
-	sig-product-add.html
+	sig-product-add.html \
+	sig-balance-list.html
 
 install-data-local:	$(srcdir)/bower.json
 	@if [ ! -e $(builddir)/bower.json ]; then \

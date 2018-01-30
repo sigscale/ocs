@@ -72,6 +72,8 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 							check_content_type_header(Headers, Method, ocs_rest_res_accounting, Data);
 						["ocs", "v1", "log", "http"] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_http, Data);
+						["ocs", "v1", "log", "balance"] ->
+							check_content_type_header(Headers, Method, ocs_rest_res_balance, Data);
 						["usageManagement", "v1", "usage"] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_usage, Data);
 						["usageManagement", "v1", "usage" | _] ->

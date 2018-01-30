@@ -128,6 +128,8 @@ do_get(Resource, ModData, ["ocs", "v1", "log", "accounting"], []) ->
 	do_response(ModData, Resource:get_accounting());
 do_get(Resource, ModData, ["ocs", "v1", "log", "http"], []) ->
 	do_response(ModData, Resource:get_http());
+do_get(Resource, ModData, ["ocs", "v1", "log", "balance"], []) ->
+	do_response(ModData, Resource:get_balance_log());
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["partyManagement", "v1", "individual"], Query) ->
 	do_response(ModData, Resource:get_users(Query, Headers));

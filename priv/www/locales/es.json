@@ -7,6 +7,10 @@
     "description": "Subscribers menu title",
     "message": "Suscriptores"
   },
+	"subscriber": {
+    "description": "Subscriber identity",
+    "message": "Abonado"
+  },
   "clients": {
     "description": "Clients menu title",
     "message": "Clientela"
@@ -858,6 +862,26 @@
 	"rate": {
     "description": "Resource rating",
     "message": "Tarifa"
+  },
+	"action": {
+    "description": "action",
+    "message": "Acción"
+  },
+	"bucket": {
+    "description": "Bucket balance",
+    "message": "Cangilón"
+  },
+	"amountAfter": {
+    "description": "balance amount after",
+    "message": "Después"
+  },
+	"amountBefore": {
+    "description": "balance amount Before",
+    "message": "Antes"
+  },
+	"amountTransaction": {
+    "description": "Transaction amount",
+    "message": "Cantidad"
   },
    "productDeleted": {
     "description": "Success Toast Message",

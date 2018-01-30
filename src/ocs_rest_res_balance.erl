@@ -22,7 +22,7 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
-		top_up/2, get_balance/1]).
+		top_up/2, get_balance/1, get_balance_log/0]).
 
 -export([specific_bucket_balance/2]).
 
@@ -31,6 +31,10 @@
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
+
+-define(bucketPath, "/balancemanagement/v1/bucket/").
+-define(actionPath, "/balancemanagement/v1/balanceTransfer/").
+-define(productPath, "/productInventory/v1/product/").
 
 -spec content_types_accepted() -> ContentTypes
 	when
@@ -45,6 +49,32 @@ content_types_accepted() ->
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
 	["application/json"].
+
+-spec get_balance_log() -> Result
+	when
+		Result :: {ok, Headers :: [tuple()],
+			Body :: iolist()} | {error, ErrorCode :: integer()}.
+%% @doc Body producing function for `GET /ocs/v1/log/balance'
+%% requests.
+get_balance_log() ->
+	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
+	case ocs_log:abmf_open() of
+		ok ->
+			case ocs_log:last(ocs_abmf, MaxItems) of
+				{error, _} ->
+					{error, 404};
+				{NewCount, Events} ->
+					JsonObj = abmf_json(Events),
+					JsonArray = {array, JsonObj},
+					Body = mochijson:encode(JsonArray),
+					ContentRange = "items 1-" ++ integer_to_list(NewCount) ++ "/*",
+					Headers = [{content_type, "application/json"},
+						{content_range, ContentRange}],
+					{ok, Headers, Body}
+			end;
+		{error, _} ->
+			{error, 404}
+	end.
 
 -spec specific_bucket_balance(SubscriberID, BucketID) -> Result
 	when
@@ -356,3 +386,23 @@ bucket1([_ | T], B, Acc) ->
 bucket1([], _B, Acc) ->
 	{struct, lists:reverse(Acc)}.
 
+% @hidden
+abmf_json(Events) ->
+	F = fun({Timestamp, _N, Type, Subscriber, Bucket, Units,
+		 Amount, AmountBefore, AmountAfter, Product},  Acc) ->
+				Timestamp1 = ocs_log:iso8601(Timestamp),
+				Subscriber1 = {struct,[{"id", Subscriber}]},
+				Bucket1 = {struct, [{"id", Bucket}, {"href", ?bucketPath ++ Bucket}]},
+				Amount1 = {struct, [{"units", Units}, {"amount", Amount}]},
+				AmountBefore1 = {struct, [{"units", Units}, {"amount", AmountBefore}]},
+				AmountAfter1 = {struct, [{"units", Units}, {"amount", AmountAfter}]},
+				Product1 = {struct, [{"id", Product}, {"href", ?productPath ++ Product}]},
+				Obj0 = [{"product", Product1}, {"amountAfter", AmountAfter1}, 
+						{"amountBefore", AmountBefore1}, {"amount", Amount1},
+						{"bucketBalance", Bucket1}, {"subscriber", Subscriber1},
+						{"date", Timestamp1}, {"type", Type}],
+				[{struct, lists:reverse(Obj0)} | Acc];
+		(_, Acc) ->
+				Acc
+	end,
+	lists:reverse(lists:foldl(F, [], Events)).

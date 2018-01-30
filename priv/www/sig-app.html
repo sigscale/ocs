@@ -47,6 +47,7 @@
 <link rel="import" href="sig-prefix-table-add.html">
 <link rel="import" href="sig-prefix-add.html">
 <link rel="import" href="sig-prefix-update.html">
+<link rel="import" href="sig-balance-list.html">
 
 <dom-module id="sig-app">
 	<template>
@@ -160,6 +161,7 @@
 				<sig-ipdr-list></sig-ipdr-list>
 				<sig-http-list></sig-http-list>
 				<sig-prefix-list id="prefixList" table="{{table}}"></sig-prefix-list>
+				<sig-balance-list></sig-balance-list>
 			</iron-pages>
 			<app-drawer-layout>
 				<app-drawer
@@ -279,6 +281,13 @@
 												HTTP
 											</i18n-msg>
 									</paper-icon-item>
+									<paper-icon-item
+											id="pageBalance"
+											onclick="drawer.toggle()"
+											class="menuitem">
+										<iron-icon icon ="device:data-usage" item-icon></iron-icon>
+												Balance
+									</paper-icon-item>
 								</paper-menu>
 							</paper-submenu>
 						</paper-menu>
@@ -390,6 +399,7 @@
 			},
 			_deleteTableResponse: function(event) {
 				this.$.tableList.close();
+				document.getElementById('productGrid').clearCache();
 			},
 			loadElement: function(event) {
 				switch(event.detail.item.getAttribute('id')) {
@@ -427,6 +437,9 @@
 						break;
 					case 'pagePrefix':
 						this.$.loadPage.selected = 8;
+						break;
+					case 'pageBalance':
+						this.$.loadPage.selected = 9;
 						break;
 				}
 			},

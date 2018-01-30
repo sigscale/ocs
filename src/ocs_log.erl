@@ -29,14 +29,14 @@
 -export([auth_open/0, auth_log/5, auth_log/6, auth_close/0,
 			auth_query/6, auth_query/7]).
 -export([ipdr_log/3, ipdr_file/2]).
--export([abmf_open/0, abmf_log/9,
-			abmf_query/9]).
+-export([abmf_open/0, abmf_log/8,
+			abmf_query/8]).
 -export([get_range/3, last/2, dump_file/2, httpd_logname/1,
 			http_file/2, date/1, iso8601/1]).
 -export([http_query/8]).
 
 %% exported the private function
--export([acct_query/4, auth_query/5, abmf_query/7]).
+-export([acct_query/4, auth_query/5, abmf_query/6]).
 
 %% export the ocs_log event types
 -export_type([auth_event/0, acct_event/0, http_event/0]).
@@ -908,11 +908,10 @@ abmf_open() ->
 	{ok, LogFiles} = application:get_env(ocs, abmf_log_files),
 	open_log(Directory, ?BALANCELOG, LogSize, LogFiles).
 
--spec abmf_log(Type, Action, Subscriber, Bucket,
+-spec abmf_log(Type, Subscriber, Bucket,
 		Units, Amount, AmountBefore, AmountAfter, Product) -> Result
 	when
-		Type :: transfer | topup | adjustment,
-		Action :: term(),
+		Type :: deduct | reserve | unreserve | transfer | topup | adjustment,
 		Subscriber :: binary(),
 		Bucket :: string(),
 		Units :: cents | seconds | octets,
@@ -923,24 +922,23 @@ abmf_open() ->
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Write a balance activity log
-abmf_log(Type, Action, Subscriber, Bucket, Units, Amount,
+abmf_log(Type, Subscriber, Bucket, Units, Amount,
 		AmountBefore, AmountAfter, Product) when ((Type == transfer) orelse
 		(Type == topup) orelse (Type == adjustment)), is_binary(Subscriber),
 		is_list(Bucket), ((Units == cents) orelse (Units == seconds) orelse
 		(Units == octets)), is_integer(AmountBefore), is_integer(AmountAfter),
 		is_list(Product), is_integer(Amount)->
-	Event = [Type, Action, Subscriber, Bucket, Units, Amount,
+	Event = [Type, Subscriber, Bucket, Units, Amount,
 			AmountBefore, AmountAfter, Product],
 	write_log(?BALANCELOG, Event).
 
--spec abmf_query(Continuation, Start, End, Type, Action, Subscriber,
+-spec abmf_query(Continuation, Start, End, Type, Subscriber,
 		Bucket, Units, Product) -> Result
 	when
 		Continuation :: start | disk_log:continuation(),
 		Start :: calendar:datetime() | pos_integer(),
 		End :: calendar:datetime() | pos_integer(),
 		Type :: transfer | topup | adjustment | '_',
-		Action :: term() | '_',
 		Subscriber :: binary() | '_',
 		Bucket :: string() | '_',
 		Units :: cents | seconds | octets | '_',
@@ -950,9 +948,9 @@ abmf_log(Type, Action, Subscriber, Bucket, Units, Amount,
 		Events :: [acct_event()],
 		Reason :: term().
 %% @doc Query balance activity log events with filters.
-abmf_query(Continuation, Start, End, Type, Action, Subscriber,
+abmf_query(Continuation, Start, End, Type, Subscriber,
 		Bucket, Units, Product) ->
-	MFA = {?MODULE, abmf_query, [Type, Action, Subscriber, Bucket, Units, Product]},
+	MFA = {?MODULE, abmf_query, [Type, Subscriber, Bucket, Units, Product]},
 	query_log(Continuation, Start, End, ?BALANCELOG, MFA).
 
 %%----------------------------------------------------------------------
@@ -1737,14 +1735,13 @@ auth_query5(Attributes, [_ | T]) ->
 auth_query5(_Attributes, []) ->
 	true.
 
--spec abmf_query(Continuation, Type, Action, Subscriber, Bucket,
+-spec abmf_query(Continuation, Type, Subscriber, Bucket,
 		Units, Product) -> Result
 	when
 		Continuation :: {Continuation2, Events},
 		Result :: {Continuation2, Events},
 		Continuation2 :: eof | disk_log:continuation(),
 		Type :: transfer | topup | adjustment | '_',
-		Action :: term() | '_',
 		Subscriber :: binary() | '_',
 		Bucket :: string() | '_',
 		Units :: cents | seconds | octets | '_',
@@ -1753,11 +1750,11 @@ auth_query5(_Attributes, []) ->
 %% @private
 %% @doc Query balance activity log events with filters.
 %%
-abmf_query({Cont, Events}, Type, Action, Subscriber, Bucket,
+abmf_query({Cont, Events}, Type, Subscriber, Bucket,
 		 Units, Product) ->
-	{Cont, abmf_query1(Events, [Type, Action, Subscriber, Bucket, Units, Product])}.
+	{Cont, abmf_query1(Events, [Type, Subscriber, Bucket, Units, Product])}.
 %% @hidden
-abmf_query1(Events, [Type, Action, Subscriber, Bucket, Units, Product]) ->
+abmf_query1(Events, [Type, Subscriber, Bucket, Units, Product]) ->
 	lists:reverse(Events);
 abmf_query1(Events, [H | T]) ->
 	abmf_query1(abmf_query2(Events, H), T).

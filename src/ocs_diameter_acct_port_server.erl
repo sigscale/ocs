@@ -77,8 +77,13 @@ init([AcctSup, Address, Port, _Options]) ->
 	State = #state{address = Address, port = Port, acct_sup = AcctSup},
 	case ocs_log:acct_open() of
 		ok ->
-			process_flag(trap_exit, true),	
-			{ok, State};
+			case ocs_log:abmf_open() of
+				ok ->
+					process_flag(trap_exit, true),
+					{ok, State, 0};
+				{error, Reason} ->
+					{stop, Reason}
+			end;
 		{error, Reason} ->
 			{stop, Reason}
 	end.

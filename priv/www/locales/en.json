@@ -7,6 +7,10 @@
     "description": "Subscribers menu title",
     "message": "Subscribers"
   },
+	"subscriber": {
+    "description": "Subscriber identity",
+    "message": "Subscriber"
+  },
   "clients": {
     "description": "Clients menu title",
     "message": "Clients"
@@ -832,7 +836,7 @@
     "message": "Called direction"
   },
 	"ok": {
-    "description": "ok button",
+    "description": "Ok button",
     "message": "OK"
   },
 	"offering": {
@@ -842,6 +846,26 @@
 	"rate": {
     "description": "Resource rating",
     "message": "Rate"
+  },
+	"action": {
+    "description": "Action",
+    "message": "Action"
+  },
+	"bucket": {
+    "description": "Bucket balance",
+    "message": "Bucket"
+  },
+	"amountAfter": {
+    "description": "Balance amount after",
+    "message": "After"
+  },
+	"amountBefore": {
+    "description": "Balance amount Before",
+    "message": "Before"
+  },
+	"amountTransaction": {
+    "description": "Transaction amount",
+    "message": "Amount"
   },
    "productDeleted": {
     "description": "Success Toast Message",
