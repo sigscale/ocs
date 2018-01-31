@@ -105,8 +105,9 @@ all() ->
 	final_remove_session, final_refund, final_voice,
 	reserve_data, reserve_voice, interim_voice, time_of_day,
 	authorize_voice, authorize_voice_with_partial_reservation,
-	authorize_incoming_voice, authorize_outgoing_voice, authorize_default_voice,
- 	authorize_data_1, authorize_data_2, authorize_data_with_partial_reservation,
+	authorize_incoming_voice, authorize_outgoing_voice,
+	authorize_default_voice, authorize_data_1, authorize_data_2,
+	authorize_data_with_partial_reservation, authorize_negative_balance,
 	unauthorize_bad_password, unauthorize_bad_password].
 
 %%---------------------------------------------------------------------
@@ -1838,6 +1839,27 @@ authorize_data_with_partial_reservation(_Config) ->
 	SessionTimeout = RemAmount * PackageSize,
 	{ok, #subscriber{buckets = Buckets1}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = RemAmount} = lists:keyfind(cents, #bucket.units, Buckets1).
+
+authorize_negative_balance() ->
+	[{userdata, [{doc, "Handle negative balance and deny"}]}].
+
+authorize_negative_balance(_Config) ->
+	ProdID = ocs:generate_password(),
+	Price = #price{name = "usage", type = usage,
+			units = octets, size = 1000, amount = 1},
+	Product = #product{name = ProdID, price = [Price],
+			specification = 9},
+	{ok, _} = ocs:add_product(Product),
+	SubscriberID = list_to_binary(ocs:generate_identity()),
+	Timestamp = calendar:local_time(),
+	Password = ocs:generate_password(),
+	Buckets = [#bucket{units = cents, remain_amount = -100}],
+	{ok, _Subscriber} = ocs:add_subscriber(SubscriberID,
+			Password, ProdID, [], Buckets),
+	AcctSessionId = {?AcctSessionId, list_to_binary(ocs:generate_password())},
+	{unauthorized, out_of_credit, _} = ocs_rating:authorize(radius, 12,
+			SubscriberID, Password, Timestamp,
+			"5551234", originate, [AcctSessionId]).
 
 unauthorize_bad_password() ->
 	[{userdata, [{doc, "Unauthorize if the passwrod wrong"}]}].
