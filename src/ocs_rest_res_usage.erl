@@ -2280,54 +2280,57 @@ char_attr_cause(Attributes, Acc) ->
 
 %% @hidden
 query_start(Query, Filters, RangeStart, RangeEnd) ->
-	Now = erlang:system_time(?MILLISECOND),
-	case lists:keytake("type", 1, Query) of
-		{_, {_, "AAAAccessUsage"}, Query1} ->
-			{Start, End}  = case lists:keytake("date", 1, Query1) of
-				{_, {_, DateTime}, []} when length(DateTime) > 3 ->
-					range(DateTime);
-				false ->
-					{1, Now}
-			end,
-			case supervisor:start_child(ocs_rest_pagination_sup,
-					[[ocs_log, auth_query, [Start, End, '_', '_', '_', '_']]]) of
-				{ok, PageServer, Etag} ->
-					query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
-				{error, _Reason} ->
-					{error, 500}
-			end;
-		{_, {_, "AAAAccountingUsage"}, []} ->
-			case supervisor:start_child(ocs_rest_pagination_sup,
-					[[ocs_log, acct_query, [1, Now, '_', '_', '_']]]) of
-				{ok, PageServer, Etag} ->
-					query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
-				{error, _Reason} ->
-					{error, 500}
-			end;
-		{_, {_, "PublicWLANAccessUsage"}, []} ->
-			{error, 404}; % todo?
-		{_, {_, "HTTPTransferUsage"}, _} ->
-			DateTime = proplists:get_value("datetime", Query, '_'),
-			Host = proplists:get_value("host", Query, '_'),
-			User = proplists:get_value("user", Query, '_'),
-			URI = proplists:get_value("uri", Query, '_'),
-			Method = proplists:get_value("method", Query, '_'),
-			HTTPStatus = proplists:get_value("httpStatus", Query, '_'),
-			case supervisor:start_child(ocs_rest_pagination_sup,
-					[[ocs_log, http_query,
-					[transfer, DateTime, Host, User, Method, URI, HTTPStatus]]]) of
-				{ok, PageServer, Etag} ->
-					query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
-				{error, _Reason} ->
-					{error, 500}
-			end;
-		{_, {_, _}, []} ->
-			{error, 404};
-		{_, {_, _}, _} ->
-			{error, 400};
+	{DateStart, DateEnd} = case lists:keyfind("date", 1, Query) of
+		{_, DateTime} when length(DateTime) > 3 ->
+			range(DateTime);
 		false ->
-			{error, 400}
-	end.
+			{1, erlang:system_time(?MILLISECOND)}
+	end,
+	query_start1(lists:keyfind("type", 1, Query), Query,
+			Filters, RangeStart, RangeEnd, DateStart, DateEnd).
+%% @hidden
+query_start1({_, "AAAAccessUsage"}, Query,
+		Filters, RangeStart, RangeEnd, DateStart, DateEnd) ->
+	case supervisor:start_child(ocs_rest_pagination_sup,
+			[[ocs_log, auth_query, [DateStart, DateEnd, '_', '_', '_', '_']]]) of
+		{ok, PageServer, Etag} ->
+			query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
+		{error, _Reason} ->
+			{error, 500}
+	end;
+query_start1({_, "AAAAccountingUsage"}, Query,
+		Filters, RangeStart, RangeEnd, DateStart, DateEnd) ->
+	case supervisor:start_child(ocs_rest_pagination_sup,
+			[[ocs_log, acct_query, [DateStart, DateEnd, '_', '_', '_']]]) of
+		{ok, PageServer, Etag} ->
+			query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
+		{error, _Reason} ->
+			{error, 500}
+	end;
+query_start1({_, "PublicWLANAccessUsage"}, _, _, _, _, _, _) ->
+	{error, 404}; % todo?
+query_start1({_, "HTTPTransferUsage"}, Query,
+		Filters, RangeStart, RangeEnd, _, _) ->
+	DateTime = proplists:get_value("datetime", Query, '_'),
+	Host = proplists:get_value("host", Query, '_'),
+	User = proplists:get_value("user", Query, '_'),
+	URI = proplists:get_value("uri", Query, '_'),
+	Method = proplists:get_value("method", Query, '_'),
+	HTTPStatus = proplists:get_value("httpStatus", Query, '_'),
+	case supervisor:start_child(ocs_rest_pagination_sup,
+			[[ocs_log, http_query,
+			[transfer, DateTime, Host, User, Method, URI, HTTPStatus]]]) of
+		{ok, PageServer, Etag} ->
+			query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
+		{error, _Reason} ->
+			{error, 500}
+	end;
+query_start1({_, _}, [], _, _, _, _, _) ->
+	{error, 404};
+query_start1({_, _}, _, _, _, _, _, _) ->
+	{error, 400};
+query_start1(false, _, _, _, _, _, _) ->
+	{error, 400}.
 
 %% @hidden
 query_page(PageServer, Etag, Query, Filters, Start, End) ->
