@@ -80,7 +80,7 @@ init([AcctSup, Address, Port, _Options]) ->
 			case ocs_log:abmf_open() of
 				ok ->
 					process_flag(trap_exit, true),
-					{ok, State, 0};
+					{ok, State};
 				{error, Reason} ->
 					{stop, Reason}
 			end;
