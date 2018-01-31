@@ -489,22 +489,22 @@ radius_reserve([{value, Value}, {type, gigabytes}]) ->
 	when
 		Buckets :: {struct, list()} | #bucket{}.
 %% @doc CODEC for buckets
-bucket({struct, ObjectMembers}) ->
+bucket({struct, ObjectMembers}) when is_list(ObjectMembers) ->
 	bucket(ObjectMembers, #bucket{});
 bucket(#bucket{} = Bucket) ->
 	bucket(record_info(fields, bucket), Bucket, []).
 %% @hidden
-bucket([{"name", Name} | T], Acc) ->
+bucket([{"name", Name} | T], Acc) when is_list(Name) ->
 	bucket(T, Acc#bucket{name = Name});
-bucket([{"id", Id} | T], Acc) ->
+bucket([{"id", Id} | T], Acc) when is_list(Id) ->
 	bucket(T, Acc#bucket{id = Id});
-bucket([{"startDate", SDate} | T], Acc) ->
+bucket([{"startDate", SDate} | T], Acc) when is_list(SDate) ->
 	bucket(T, Acc#bucket{id = ocs_rest:iso8601(SDate)});
-bucket([{"terminationDate", TDate} | T], Acc) ->
+bucket([{"terminationDate", TDate} | T], Acc) when is_list(TDate) ->
 	bucket(T, Acc#bucket{id = ocs_rest:iso8601(TDate)});
-bucket([{"units", Type} | T], Acc) ->
+bucket([{"units", Type} | T], Acc) when is_list(Type) ->
 	bucket(T, Acc#bucket{units = units(Type)});
-bucket([{"remainAmount", Amount} | T], Acc) ->
+bucket([{"remainAmount", Amount} | T], Acc) when is_integer(Amount) ->
 	bucket(T, Acc#bucket{remain_amount = Amount});
 bucket([], Acc) ->
 	Acc.
