@@ -1,0 +1,240 @@
+<!--  vim: set ts=3:  -->
+<link rel="import" href="polymer/polymer.html">
+<link rel="import" href="i18n-msg/i18n-msg-behavior.html">
+<link rel="import" href="vaadin-grid/vaadin-grid.html">
+<link rel="import" href="vaadin-grid/vaadin-grid-sorter.html">
+<link rel="import" href="vaadin-grid/vaadin-grid-filter.html">
+<link rel="import" href="iron-ajax/iron-ajax.html">
+
+<dom-module id="sig-balance-list">
+	<template>
+		<style>
+			::-webkit-input-placeholder { /* Chrome/Opera/Safari */
+				color: initial;
+				font-weight: bold;
+			}
+			::-moz-placeholder { /* Firefox 19+ */
+				color: initial;
+				font-weight: bold;
+			}
+			:-ms-input-placeholder { /* IE 10+ */
+				color: initial;
+				font-weight: bold;
+			}
+			:-moz-placeholder { /* Firefox 18- */
+				color: initial;
+				font-weight: bold;
+			}
+			vaadin-grid col {
+				font-size: 46px
+			}
+			vaadin-grid {
+				height: 100%;
+				--vaadin-grid-header-cell: {
+					background: #ffb04c;
+				};
+			}
+			vaadin-grid .grouptitle {
+				text-align: center;
+				border-bottom-style: solid;
+				border-color: var(--paper-yellow-900);
+			}
+			vaadin-grid input {
+				font-size: inherit;
+				background: #ffb04c;
+				border-style: none;
+			}
+			.yellow-button {
+				text-transform: none;
+				color: #eeff41;
+			}
+		</style>
+		<vaadin-grid id="balanceGrid">
+			<vaadin-grid-column width="24ex">
+				<template class="header">
+					<vaadin-grid-sorter path="timeStamp">
+						<vaadin-grid-filter aria-label="[[i18n.timeStamp]]" path="timeStamp"
+							value="[[_filterTime]]">
+							<input placeholder="[[i18n.timeStamp]]" value="{{_filterTime}}"
+								focus-target>
+						</vaadin-grid-filter>
+					</vaadin-grid-sorter>
+				</template>
+				<template>[[item.timeStamp]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="10ex" flex-grow="2">
+				<template class="header">
+					<vaadin-grid-sorter path="type">
+						<vaadin-grid-filter aria-label="[[i18n.type]]" path="type"
+							value="[[_filterType]]">
+							<input placeholder="[[i18n.type]]" value="{{_filterType}}"
+								focus-target>
+						</vaadin-grid-filter>
+					</vaadin-grid-sorter>
+				</template>
+				<template>[[item.type]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="16ex" flex-grow="4">
+				<template class="header">
+					<vaadin-grid-sorter path="subscriber">
+						<vaadin-grid-filter aria-label="[[i18n.subscriber]]" path="subscriber"
+							value="[[_filterSubscriber]]">
+							<input placeholder="[[i18n.subscriber]]" value="{{_filterSubscriber}}"
+								focus-target>
+						</vaadin-grid-filter>
+					</vaadin-grid-sorter>
+				</template>
+				<template>[[item.subscriber]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="12ex" flex-grow="2">
+				<template class="header">
+					<vaadin-grid-sorter path="bucket">
+						<vaadin-grid-filter aria-label="[[i18n.bucket]]" path="bucket"
+							value="[[_filterBucket]]">
+							<input placeholder="[[i18n.bucket]]" value="{{_filterBucket}}"
+								focus-target>
+						</vaadin-grid-filter>
+					</vaadin-grid-sorter>
+				</template>
+				<template>[[item.bucket]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column width="13ex" flex-grow="2">
+				<template class="header">
+					<vaadin-grid-sorter path="amount">
+						<vaadin-grid-filter aria-label="[[i18n.amountTransaction]]" path="amount"
+							value="[[_filterAmount]]">
+							<input placeholder="[[i18n.amountTransaction]]" value="{{_filterAmount}}"
+								focus-target>
+						</vaadin-grid-filter>
+					</vaadin-grid-sorter>
+				</template>
+				<template>[[item.amount]]</template>
+			</vaadin-grid-column>
+			<vaadin-grid-column-group>
+				<template class="header">
+					<div class="grouptitle">Remain Amount</div>
+				</template>
+				<vaadin-grid-column width="10ex" flex-grow="2">
+					<template class="header">
+						<vaadin-grid-sorter path="amountAfter">
+							<vaadin-grid-filter aria-label="[[i18n.amountAfter]]" path="amountAfter"
+								value="[[_filterAfter]]">
+								<input placeholder="[[i18n.amountAfter]]" value="{{_filterAfter}}"
+									focus-target>
+							</vaadin-grid-filter>
+						</vaadin-grid-sorter>
+					</template>
+					<template>[[item.amountAfter]]</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column width="12ex">
+					<template class="header">
+						<vaadin-grid-sorter path="amountBefore" flex-grow="2">
+							<vaadin-grid-filter aria-label="[[i18n.amountBefore]]" path="amountBefore"
+								value="[[_filterBefore]]">
+								<input placeholder="[[i18n.amountBefore]]" value="{{_filterBefore}}"
+									focus-target>
+							</vaadin-grid-filter>
+						</vaadin-grid-sorter>
+					</template>
+					<template>[[item.amountBefore]]</template>
+				</vaadin-grid-column>
+			</vaadin-grid-column-group>
+			<vaadin-grid-column width="14ex">
+				<template class="header">
+					<vaadin-grid-sorter path="product" flex-grow="2">
+						<vaadin-grid-filter aria-label="[[i18n.prod]]" path="product"
+							value="[[_filterProduct]]">
+							<input placeholder="[[i18n.prod]]" value="{{_filterProduct}}"
+								focus-target>
+						</vaadin-grid-filter>
+					</vaadin-grid-sorter>
+				</template>
+				<template>[[item.product]]</template>
+			</vaadin-grid-column>
+		</vaadinGrid>
+		<paper-toast
+			id="balanceErrorToast">
+		</paper-toast>
+		<iron-ajax id="getBalance"
+			url="/ocs/v1/log/balance"
+			method = "GET"
+			headers='{"Accept": "application/json"}'
+			on-loading-changed="_onLoadingChanged"
+			on-response="getBalanceResponse"
+			on-error="getBalanceError">
+		</iron-ajax>
+	</template>
+	<script>
+		Polymer ({
+			is: 'sig-balance-list',
+			behaviors: [i18nMsgBehavior],
+			properties: {
+				activePage: {
+					type: Boolean,
+					value: false,
+					observer: '_activePageChanged'
+				}
+			},
+			_activePageChanged: function(active) {
+				if(active) {
+					this.$.getBalance.generateRequest();
+				}
+			},
+			getBalanceResponse: function(event) {
+				var grid = this.$.balanceGrid;
+				var results = event.detail.xhr.response;
+				var vaadinItems = new Array();
+				for(var index in results) {
+					var balanceLog = new Object();
+					balanceLog.timeStamp = results[index].date;
+					balanceLog.type = results[index].type;
+					balanceLog.subscriber = results[index].subscriber.id;
+					balanceLog.amount = results[index].amount.amount;
+					balanceLog.bucket = results[index].bucketBalance.id;
+					balanceLog.amountBefore = results[index].amountBefore.amount;
+					balanceLog.amountAfter = results[index].amountAfter.amount;
+					balanceLog.product = results[index].product.id;
+					vaadinItems[index] = balanceLog;
+				}
+				grid.items = vaadinItems;
+				grid.columns = [
+					{
+						name: "timeStamp"
+					},
+					{
+						name: "type"
+					},
+					{
+						name: "subscriber"
+					},
+					{
+						name: "bucket"
+					},
+					{
+						name: "amount"
+					},
+					{
+						name: "amountBefore"
+					},
+					{
+						name: "amountAfter"
+					},
+					{
+						name: "product"
+					}
+				];
+			},
+			getBalanceError: function(event) {
+				this.$.balanceErrorToast.text = event.detail.request.xhr.statusText;
+				this.$.balanceErrorToast.open();
+			},
+			_onLoadingChanged: function(event) {
+				if(this.$.getBalance.loading) {
+					document.getElementById("progress").disabled = false;
+				} else {
+					document.getElementById("progress").disabled = true;
+				}
+			}
+		});
+	</script>
+</dom-module>
