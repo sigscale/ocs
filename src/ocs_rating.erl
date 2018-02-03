@@ -1075,6 +1075,20 @@ get_session_id1([{?NasIdentifier, _} = NasIdentifier | T], Acc) ->
 	get_session_id1(T, [NasIdentifier | Acc]);
 get_session_id1([{?NasIpAddress, _} = NasIpAddress | T], Acc) ->
 	get_session_id1(T, [NasIpAddress | Acc]);
+get_session_id1([{?UserName, _} = UserName | T], Acc) ->
+	get_session_id1(T, [UserName | Acc]);
+get_session_id1([{?NasPort, _} = NasPort | T], Acc) ->
+	get_session_id1(T, [NasPort | Acc]);
+get_session_id1([{?NasPortId, _} = NasPortId | T], Acc) ->
+	get_session_id1(T, [NasPortId | Acc]);
+get_session_id1([{?NasPortType, _} = NasPortType | T], Acc) ->
+	get_session_id1(T, [NasPortType | Acc]);
+get_session_id1([{?FramedIpAddress, _} = FramedIpAddress | T], Acc) ->
+	get_session_id1(T, [FramedIpAddress | Acc]);
+get_session_id1([{?CallingStationId, _} = CallingStationId | T], Acc) ->
+	get_session_id1(T, [CallingStationId | Acc]);
+get_session_id1([{?CalledStationId, _} = CalledStationId | T], Acc) ->
+	get_session_id1(T, [CalledStationId | Acc]);
 get_session_id1([_ | T], Acc) ->
 	get_session_id1(T, Acc).
 
