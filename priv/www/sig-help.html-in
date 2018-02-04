@@ -603,7 +603,7 @@
 			</paper-toolbar>
 			<p>Online Charging System (OCS)<br>
 			Version %VERSION%<br>
-			Copyright 2017 SigScale Global Inc.<br>
+			Copyright 2016-2018 SigScale Global Inc.<br>
 			Apache License Version 2.0<br>
 			<a target="_blank" href="http://www.sigscale.org">www.sigscale.org</a></p>
 		</paper-dialog>
