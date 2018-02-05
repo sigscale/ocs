@@ -23,6 +23,7 @@
 
 -export([rate/10]).
 -export([authorize/8]).
+-export([session_attributes/1]).
 
 -include("ocs.hrl").
 -include_lib("radius/include/radius.hrl").
@@ -708,6 +709,46 @@ authorize6(#subscriber{multisession = true, session_attributes
 		[NewSessionAttributes | ExistingAttr], disconnect = false},
 	ok = mnesia:write(Subscriber1),
 	{authorized, Subscriber1, Attributes, ExistingAttr}.
+
+-spec session_attributes(Attributes) -> SessionAttributes
+	when
+		Attributes :: radius_attributes:attributes(),
+		SessionAttributes :: radius_attributes:attributes().
+%% @doc Extract RADIUS session related attributes.
+session_attributes(Attributes) ->
+	F = fun({?NasIdentifier, _}) ->
+				true;
+			({?NasIpAddress, _}) ->
+				true;
+			({?AcctSessionId, _}) ->
+				true;
+			({?AcctMultiSessionId, _}) ->
+				true;
+			({?UserName, _}) ->
+				true;
+			({?FramedIpAddress, _}) ->
+				true;
+			({?NasPort, _}) ->
+				true;
+			({?NasPortType, _}) ->
+				true;
+			({?CalledStationId, _}) ->
+				true;
+			({?CallingStationId, _}) ->
+				true;
+			({?NasPortId, _}) ->
+				true;
+			({?OriginatingLineInfo, _}) ->
+				true;
+			({?FramedInterfaceId, _}) ->
+				true;
+			({?FramedIPv6Prefix, _}) ->
+				true;
+			(_) ->
+				false
+	end,
+	lists:keysort(1, lists:filter(F, Attributes)).
+
 
 %%----------------------------------------------------------------------
 %%  internal functions
