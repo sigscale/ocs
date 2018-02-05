@@ -192,7 +192,7 @@ handle_radius1(#statedata{subscriber = SubscriberId, password = <<>>,
 		password_required = PasswordReq, req_attr = ReqAttr} = StateData) ->
 	Timestamp = calendar:local_time(),
 	{ServiceType, Direction, CallAddress} = get_service_type(ReqAttr),
-	SessionAttributes = ocs_rating:get_session_id(ReqAttr),
+	SessionAttributes = ocs_rating:session_attributes(ReqAttr),
 	case ocs_rating:authorize(radius, ServiceType, SubscriberId, <<>>,
 			Timestamp, CallAddress, Direction, SessionAttributes) of
 		{authorized, #subscriber{password = <<>>} =
@@ -220,7 +220,7 @@ handle_radius1(#statedata{subscriber = SubscriberId, password = Password,
 		req_attr = ReqAttr} = StateData) ->
 	Timestamp = calendar:local_time(),
 	{ServiceType, Direction, CallAddress} = get_service_type(ReqAttr),
-	SessionAttributes = ocs_rating:get_session_id(ReqAttr),
+	SessionAttributes = ocs_rating:session_attributes(ReqAttr),
 	case ocs_rating:authorize(radius, ServiceType, SubscriberId, Password,
 			Timestamp, CallAddress, Direction, SessionAttributes) of
 		{authorized, Subscriber, Attributes, ExistingSessionAttributes} ->

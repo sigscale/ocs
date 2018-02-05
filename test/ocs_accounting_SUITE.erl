@@ -159,7 +159,7 @@ radius_accounting(Config) ->
 	ReqAuth = radius:authenticator(),
    HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
-			HiddenPassword, Secret, NasID, ReqAuth, RadID1),
+			HiddenPassword, Secret, NasID, ReqAuth, RadID1, AcctSessionID),
 	RadID2 = RadID1 + 1,
 	accounting_start(Socket, AcctAddress, AcctPort,
 			PeerID, Secret, NasID, AcctSessionID, RadID2),
@@ -187,7 +187,7 @@ radius_disconnect_session(Config) ->
 	ReqAuth = radius:authenticator(),
    HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
-			HiddenPassword, Secret, NasID, ReqAuth, RadID1),
+			HiddenPassword, Secret, NasID, ReqAuth, RadID1, AcctSessionID),
 	RadID2 = RadID1 + 1,
 	accounting_start(Socket, AcctAddress, AcctPort,
 			PeerID, Secret, NasID, AcctSessionID, RadID2),
@@ -208,7 +208,7 @@ radius_multisession_disallowed(Config) ->
 	RadID1 = 8,
 	NasID = ?config(nas_id, Config),
 	ProdID = ?config(product_id, Config),
-	AcctSessionID = ocs:generate_identity(),
+	AcctSessionID1 = ocs:generate_identity(),
 	{ok, [{auth, AuthInstance}, {acct, AcctInstance}]} = application:get_env(ocs, radius),
 	[{AuthAddress, AuthPort, _} | _] = AuthInstance,
 	[{AcctAddress, AcctPort, _} | _] = AcctInstance,
@@ -221,10 +221,10 @@ radius_multisession_disallowed(Config) ->
 	ReqAuth = radius:authenticator(),
 	HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
-			HiddenPassword, Secret, NasID, ReqAuth, RadID1),
+			HiddenPassword, Secret, NasID, ReqAuth, RadID1, AcctSessionID1),
 	RadID2 = RadID1 + 1,
 	accounting_start(Socket, AcctAddress, AcctPort,
-			PeerID, Secret, NasID, AcctSessionID, RadID2),
+			PeerID, Secret, NasID, AcctSessionID1, RadID2),
 	{ok, #subscriber{multisession = false, session_attributes = SessionList1}}
 			= ocs:find_subscriber(PeerID),
 	[SessionAttr1] = SessionList1,
@@ -241,8 +241,9 @@ radius_multisession_disallowed(Config) ->
 	ok = F(SessionAttr1, NasID),
 	Rad2ID1 = 5,
 	NasID2 = "vlkf@example.net",
+	AcctSessionID2 = ocs:generate_identity(),
 	authenticate_subscriber1(Socket, AuthAddress, AuthPort, PeerID,
-			HiddenPassword, Secret, NasID2, ReqAuth, Rad2ID1),
+			HiddenPassword, Secret, NasID2, ReqAuth, Rad2ID1, AcctSessionID2),
 	ct:sleep(500),
 	{ok, #subscriber{multisession = false, session_attributes = SessionList2}}
 			= ocs:find_subscriber(PeerID),
@@ -250,10 +251,10 @@ radius_multisession_disallowed(Config) ->
 	ok = F(SessionAttr2, NasID2),
 	Rad2ID2 = Rad2ID1 + 1,
 	accounting_start(Socket, AcctAddress, AcctPort, PeerID, Secret, NasID2,
-			AcctSessionID, Rad2ID2),
+			AcctSessionID2, Rad2ID2),
 	Rad2ID3 = Rad2ID2 + 1,
 	accounting_stop(Socket, AcctAddress, AcctPort,
-			PeerID, Secret, NasID2, AcctSessionID, Rad2ID3),
+			PeerID, Secret, NasID2, AcctSessionID2, Rad2ID3),
 	{ok, #subscriber{multisession = false, session_attributes = []}}
 			= ocs:find_subscriber(PeerID).
 
@@ -279,7 +280,7 @@ radius_multisession(Config) ->
 	HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
 	%% Authenticate session 1
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
-			HiddenPassword, Secret, NasID1, ReqAuth, RadID1),
+			HiddenPassword, Secret, NasID1, ReqAuth, RadID1, AcctSessionID1),
 	RadID2 = RadID1 + 1,
 	accounting_start(Socket, AcctAddress, AcctPort,
 			PeerID, Secret, NasID1, AcctSessionID1, RadID2),
@@ -312,7 +313,7 @@ radius_multisession(Config) ->
 	NasID2 = "axe2@ap-2.org",
 	AcctSessionID2 = ocs:generate_identity(),
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
-			HiddenPassword, Secret, NasID2, ReqAuth, Rad2ID1),
+			HiddenPassword, Secret, NasID2, ReqAuth, Rad2ID1, AcctSessionID2),
 	ct:sleep(500),
 	{ok, #subscriber{multisession = true, session_attributes = SessionList2}}
 			= ocs:find_subscriber(PeerID),
@@ -324,15 +325,15 @@ radius_multisession(Config) ->
 	%% Authenticate session 3
 	Rad3ID1 = 21,
 	NasID3 = "axe3@ap-3.org",
+	AcctSessionID3 = ocs:generate_identity(),
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
-			HiddenPassword, Secret, NasID3, ReqAuth, Rad3ID1),
+			HiddenPassword, Secret, NasID3, ReqAuth, Rad3ID1, AcctSessionID3),
 	ct:sleep(500),
 	{ok, #subscriber{multisession = true, session_attributes = SessionList3}}
 			= ocs:find_subscriber(PeerID),
 	3 = length(SessionList3),
 	ok = F2(F2, SessionList3, [{?UserName, PeerID}, {?NasIdentifier, NasID3}]),
 	Rad3ID2 = Rad3ID1 + 1,
-	AcctSessionID3 = ocs:generate_identity(),
 	accounting_start(Socket, AcctAddress, AcctPort, PeerID, Secret, NasID3,
 			AcctSessionID3, Rad3ID2),
 	%% Disconnect session 2
@@ -417,10 +418,10 @@ diameter_disconnect_session(Config) ->
 %%  Internal functions
 %%---------------------------------------------------------------------
 authenticate_subscriber(Socket, Address,
-		Port, PeerID, Password, Secret, NasID, ReqAuth, RadID) ->
+		Port, PeerID, Password, Secret, NasID, ReqAuth, RadID, AcctSessionID) ->
 	RadAttribute = radius_attributes:add(?UserPassword, Password, []),
-	access_request(Socket, Address,
-		Port, PeerID, Secret, NasID, ReqAuth, RadID, RadAttribute),
+	access_request(Socket, Address, Port, PeerID, Secret,
+			NasID, ReqAuth, RadID, AcctSessionID, RadAttribute),
 	access_accept(Socket, Address, Port, RadID).
 
 accounting_start(Socket, Address, Port,
@@ -483,33 +484,23 @@ receive_radius(Code, Socket, Address, Port, RadID) ->
 	#radius{code = Code, id = RadID} = radius:codec(RespPacket).
 
 access_request(Socket, Address, Port, UserName, Secret,
-		NasID, Auth, RadID, RadAttributes) ->
-	A1 = radius_attributes:add(?UserName, UserName, RadAttributes),
-	A2 = radius_attributes:add(?NasPort, 19, A1),
-	A3 = radius_attributes:add(?NasIdentifier, NasID, A2),
-	A4 = radius_attributes:add(?CallingStationId,"DE-AD-BE-EF-FE-ED", A3),
-	A5 = radius_attributes:add(?CalledStationId,"BA-DF-AD-CA-DD-AD:TestSSID", A4),
-	A6 = radius_attributes:add(?MessageAuthenticator, <<0:128>>, A5),
+		NasID, Auth, RadID, AcctSessionID, RadAttributes) ->
+	A1 = session_attributes(UserName, NasID, AcctSessionID, RadAttributes),
+	A2 = radius_attributes:add(?MessageAuthenticator, <<0:128>>, A1),
 	Request1 = #radius{code = ?AccessRequest, id = RadID,
-		authenticator = Auth, attributes = A6},
+		authenticator = Auth, attributes = A2},
 	ReqPacket1 = radius:codec(Request1),
 	MsgAuth1 = crypto:hmac(md5, Secret, ReqPacket1),
-	A7 = radius_attributes:store(?MessageAuthenticator, MsgAuth1, A6),
-	Request2 = Request1#radius{attributes = A7},
+	A3 = radius_attributes:store(?MessageAuthenticator, MsgAuth1, A2),
+	Request2 = Request1#radius{attributes = A3},
 	ReqPacket2 = radius:codec(Request2),
 	gen_udp:send(Socket, Address, Port, ReqPacket2).
 
 accounting_request(StatusType, Socket, Address, Port,
 		UserName, Secret, NasID, AcctSessionID, RadID, RadAttributes) ->
-	A1 = radius_attributes:add(?UserName, UserName, RadAttributes),
-	A2 = radius_attributes:add(?NasPort, 19, A1),
-	A3 = radius_attributes:add(?NasIdentifier, NasID, A2),
-	A4 = radius_attributes:add(?CallingStationId,"DE-AD-BE-EF-FE-ED", A3),
-	A5 = radius_attributes:add(?CalledStationId,"BA-DF-AD-CA-DD-AD:TestSSID", A4),
-	A6 = radius_attributes:add(?AcctSessionId, AcctSessionID, A5),
-	A7 = radius_attributes:add(?AcctStatusType, StatusType, A6),
-	A8 = radius_attributes:add(?ServiceType, 2, A7),
-	AccAttributes = radius_attributes:codec(lists:sort(A8)),
+	A1 = session_attributes(UserName, NasID, AcctSessionID, RadAttributes),
+	A2 = radius_attributes:add(?AcctStatusType, StatusType, A1),
+	AccAttributes = radius_attributes:codec(A2),
 	Acc1Length = size(AccAttributes) + 20,
 	AccAuthenticator = crypto:hash(md5, [<<?AccountingRequest, RadID,
 			Acc1Length:16, 0:128>>, AccAttributes, Secret]), 
@@ -518,6 +509,15 @@ accounting_request(StatusType, Socket, Address, Port,
 	AccPacket = radius:codec(AccountingRequest),
 	ok = gen_udp:send(Socket, Address, Port, AccPacket),
 	AccAuthenticator.
+
+session_attributes(UserName, NasID, AcctSessionID, RadAttributes) ->
+	A1 = radius_attributes:add(?UserName, UserName, RadAttributes),
+	A2 = radius_attributes:add(?NasPort, 19, A1),
+	A3 = radius_attributes:add(?NasIdentifier, NasID, A2),
+	A4 = radius_attributes:add(?CallingStationId,"DE-AD-BE-EF-FE-ED", A3),
+	A5 = radius_attributes:add(?CalledStationId,"BA-DF-AD-CA-DD-AD:TestSSID", A4),
+	A6 = radius_attributes:add(?AcctSessionId, AcctSessionID, A5),
+	radius_attributes:add(?ServiceType, 2, A6).
 
 %% @doc Add a transport capability to diameter service.
 %% @hidden
@@ -640,10 +640,10 @@ diameter_accounting_interim(SId, Username, RequestNum, Usage) ->
 	Answer.
 	
 authenticate_subscriber1(Socket, Address,
-		Port, PeerID, Password, Secret, NasID, ReqAuth, RadID) ->
+		Port, PeerID, Password, Secret, NasID, ReqAuth, RadID, AcctSessionID) ->
 	RadAttribute = radius_attributes:add(?UserPassword, Password, []),
-	access_request(Socket, Address,
-		Port, PeerID, Secret, NasID, ReqAuth, RadID, RadAttribute),
+	access_request(Socket, Address, Port, PeerID, Secret,
+			NasID, ReqAuth, RadID, AcctSessionID, RadAttribute),
 	disconnect_request(),
 	access_accept(Socket, Address, Port, RadID).
 
