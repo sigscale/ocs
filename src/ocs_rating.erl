@@ -1067,8 +1067,6 @@ get_session_id(SessionAttributes) ->
 %% @hidden
 get_session_id1([], Acc) ->
 	lists:keysort(1, Acc);
-get_session_id1(_, Acc) when length(Acc) =:= 3 ->
-	lists:keysort(1, Acc);
 get_session_id1([{?AcctSessionId, _} = AcctSessionId | T], Acc) ->
 	get_session_id1(T, [AcctSessionId | Acc]);
 get_session_id1([{?NasIdentifier, _} = NasIdentifier | T], Acc) ->
