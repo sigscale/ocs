@@ -1062,7 +1062,12 @@
 							newPrice.alteration = newAlt.name;
 						}
 					}
-					this.push('prices', newPrice);
+					function checkExist(price) {
+                  return price.name == item.prices[index].name;
+               }
+					if(!this.prices.some(checkExist)) {
+						this.push('prices', newPrice);
+					}
 				} 
 			},
 			_getProductUpdateResponse: function(event) {
@@ -1404,12 +1409,36 @@
 					function checkName(char) {
 						return char.name == "radiusReserveSessionTime";
 					}
-					var indexChar = this.characteristics.findIndex(checkName);
-					var reserveSession = new Object();
-					reserveSession.op = "add";
-					reserveSession.path = "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
-					reserveSession.value = this.$.updateReserveSession.value;
-					offerNew.push(reserveSession);
+					var res = this.characteristics.findIndex(checkName);
+					if(res == -1) {
+						indexChar = "-";
+						var reserveSession = new Object();
+						reserveSession.op = "add";
+						reserveSession.path = "/prodSpecCharValueUse/" + indexChar; 
+						var session2Arr = new Array();
+						var session2 = new Object();
+						session2.default = true;
+						session2.value = parseInt(this.$.updateReserveSession.value);
+						session2Arr.push(session2);
+						var session1 = new Object();
+						session1.name = "radiusReserveSessionTime";
+						session1.minCardinality = 0;
+						session1.maxCardinality = 1;
+						session1.productSpecCharacteristicValue = session2Arr;
+						var session2 = new Object();
+						session2.id = "1";
+						session2.href = "/catalogManagement/v2/productSpecification/1";
+						session1.productSpecification = session2;
+						reserveSession.value = session1;
+						offerNew.push(reserveSession);
+					} else {
+						indexChar = res.toString();
+						var reserveSession = new Object();
+						reserveSession.op = "add";
+						reserveSession.path = "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
+						reserveSession.value = parseInt(this.$.updateReserveSession.value);
+						offerNew.push(reserveSession);
+					}
 				}
 				ajax.body = JSON.stringify(offerNew);
 				ajax.generateRequest();
@@ -1532,8 +1561,32 @@
 					function checkChar1(charVal) {
 						return charVal.name == "radiusReserveTime";
 					}
-					var indexChar = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
-					if(indexChar != -1) {
+					var res = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
+					if(res == -1) {
+						indexChar = "-";
+						var charReserve = new Object();
+						charReserve.op = "add";
+						charReserve.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar;
+						var resTime1 = new Object();
+						resTime1.name = "radiusReserveTime";
+						resTime1.valueType = "Number";
+						resTime1.minCardinality = 1;
+						resTime1.maxCardinality = 1;
+						var resTime2Arr = new Array();
+						var resTime2 = new Object();
+						resTime2.unitOfMeasure = "seconds";
+						resTime2.default = true;
+						resTime2.value = this.$.updateAddPriceCharReserveTime.value;
+						resTime2Arr.push(resTime2);
+						resTime1.productSpecCharacteristicValue = resTime2Arr;
+						var resTime3 = new Object();
+						resTime3.id = "4";
+						resTime3.href = "/catalogManagement/v2/productSpecification/4";
+						resTime1.productSpecification = resTime3;
+						charReserve.value = resTime1;
+						updatePriceNew.push(charReserve);
+					} else {
+						indexChar = res.toString();
 						var charReserve = new Object();
 						charReserve.op = "add";
 						charReserve.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
@@ -1545,11 +1598,33 @@
 					function checkName(char) {
 						return char.name == "destPrefixTariffTable";
 					}
-					var indexChar = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkName);
-					if(indexChar != -1) {
+					var res = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkName);
+					if(res == -1) {
+						indexCharPrices = "-";
 						var destTariff = new Object();
 						destTariff.op = "add";
-						destTariff.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar + "/productSpecCharacteristicValue/0/value";
+						destTariff.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharPrices;
+						var tariff1 = new Object();
+						tariff1.name = "destPrefixTariffTable";
+						tariff1.minCardinality = 0;
+						tariff1.maxCardinality = 1;
+						var tariff2Arr = new Array();
+						var tariff2 = new Object();
+						tariff2.default = true;
+						tariff2.value = this.$.updateDestPrefixTariff.value;
+						tariff2Arr.push(tariff2);
+						tariff1.productSpecCharacteristicValue = tariff2Arr;
+						var tariff3 = new Object();
+						tariff3.id = "3";
+						tariff3.href = "/catalogManagement/v2/productSpecification/3";
+						tariff1.productSpecification = tariff3;
+						destTariff.value = tariff1;
+						updatePriceNew.push(destTariff);
+					} else {
+						indexCharPrices = res.toString();
+						var destTariff = new Object();
+						destTariff.op = "add";
+						destTariff.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCharPrices + "/productSpecCharacteristicValue/0/value";
 						destTariff.value = this.$.updateDestPrefixTariff.value;
 						updatePriceNew.push(destTariff);
 					}
@@ -1558,8 +1633,32 @@
 					function checkChar1(charVal) {
 						return charVal.name == "radiusReserveOctets";
 					}
-					var indexChar1 = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
-					if(indexChar1 != -1) {
+					var res = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
+					if(res == -1) {
+						indexChar1 = "-";
+						var charResBytes = new Object();
+						charResBytes.op = "add";
+						charResBytes.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar1;
+						var resByte1 = new Object();
+						resByte1.name = "radiusReserveOctets";
+						resByte1.valueType = "Number";
+						resByte1.minCardinality = 1;
+						resByte1.maxCardinality = 1;
+						var resByte2Arr = new Array();
+						var resByte2 = new Object();
+						resByte2.unitOfMeasure = "octets";
+						resByte2.default = true;
+						resByte2.value = this.$.updateAddPriceCharReserveBytes.value;
+						resByte1.productSpecCharacteristicValue = resByte2Arr;
+						var resByte3 = new Object();
+						resByte3.id = "4";
+						resByte3.href = "/catalogManagement/v2/productSpecification/4";
+						resByte1.productSpecification = resByte3;
+						resByte2Arr.push(resByte2);
+						charResBytes.value = resByte1; 
+						updatePriceNew.push(charResBytes);
+					} else {
+						indexChar1 = res.toString();
 						var charResBytes = new Object();
 						charResBytes.op = "add";
 						charResBytes.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar1 + "/productSpecCharacteristicValue/0/value";
@@ -1571,8 +1670,34 @@
 					function checkCall1(callVal) {
 						return callVal.name == "callDirection";
 					}
-					var indexCall1 = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkCall1);
-					if(indexCall1 != -1) {
+					var res = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkCall1);
+					if(res == -1) {
+						indexCall1 = "-";
+						var call = new Object();
+						call.op = "add";
+						call.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCall1;
+						var callDir1 = new Object();
+						callDir1.name = "callDirection";
+						callDir1.minCardinality = 1;
+						callDir1.maxCardinality = 1;
+						var callDir2Arr = new Array();
+						var callDir2 = new Object();
+						callDir2.default = true;
+						if(this.$.updateCheckIn.checked) {
+							callDir2.value = "answer";
+						} else if(this.$.updateCheckOut.checked) {
+							callDir2.value = "originate";
+						}
+						callDir2Arr.push(callDir2);
+						callDir1.productSpecCharacteristicValue = callDir2Arr;
+						var callDir3 = new Object();
+						callDir3.id = "5";
+						callDir3.href = "/catalogManagement/v2/productSpecification/5";
+						callDir1.productSpecification = callDir3;
+						call.value = callDir1;
+						updatePriceNew.push(call);
+					} else {
+						indexCall1 = res.toString();
 						var call = new Object();
 						call.op = "add";
 						call.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexCall1 + "/productSpecCharacteristicValue/0/value";
