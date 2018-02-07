@@ -1731,6 +1731,8 @@ char_value_use([values | T], #char_value_use{values = Values} = C, Acc)
 		when is_list(Values) ->
 	char_value_use(T, C, [{"productSpecCharacteristicValue",
 			char_values(Values)} | Acc]);
+char_value_use([_ | T], C, Acc) ->
+	char_value_use(T, C, Acc);
 char_value_use([], _, Acc) ->
 	{struct, lists:reverse(Acc)}.
 %% @hidden
@@ -1906,20 +1908,26 @@ char_value([], Acc) ->
 	Acc.
 
 %% @hidden
-char_value_type({struct, [{"lowerValue", {struct, L1}},
-		{"upperValue", {struct, L2}}]}) ->
-	#range{lower = char_value_type(L1), upper = char_value_type(L2)};
-char_value_type({struct, [{"upperValue", {struct, L2}},
-		{"lowerValue", {struct, L1}}]}) ->
-	#range{lower = char_value_type(L1), upper = char_value_type(L2)};
-char_value_type({struct, [{"amount", V1}, {"units", V2}]}) ->
+char_value_type({struct, [{"lowerValue", {struct, _} = LV},
+		{"upperValue", {struct, _} = UV}]}) ->
+	#range{lower = char_value_type(LV), upper = char_value_type(UV)};
+char_value_type({struct, [{"upperValue", {struct, _} = UV},
+		{"lowerValue", {struct, _} = LV}]}) ->
+	#range{lower = char_value_type(LV), upper = char_value_type(UV)};
+char_value_type({struct, [{"amount", V1}, {"units", V2}]})
+		when is_integer(V1), is_list(V2) ->
 	#quantity{amount = V1, units = V2};
-char_value_type({struct, [{"units", V2}, {"amount", V1}]}) ->
+char_value_type({struct, [{"units", V2}, {"amount", V1}]})
+		when is_integer(V1), is_list(V2) ->
 	#quantity{amount = V1, units = V2};
-char_value_type({struct, [{"numerator", V1}, {"denominator", V2}]}) ->
-	#rate{numerator = char_value_type(V1), denominator = char_value_type(V2)};
-char_value_type({struct, [{"denominator", V2}, {"numerator", V1}]}) ->
-	#rate{numerator = char_value_type(V1), denominator = char_value_type(V2)};
+char_value_type({struct, [{"numerator", {struct, _} = NV},
+		{"denominator", {struct, _} = DV}]}) ->
+	#rate{numerator = char_value_type(NV),
+		denominator = char_value_type(DV)};
+char_value_type({struct, [{"denominator", {struct, _} = DV},
+		{"numerator", {struct, _} = NV}]}) ->
+	#rate{numerator = char_value_type(NV),
+		denominator = char_value_type(DV)};
 char_value_type(#quantity{units = Units, amount = Amount}) ->
 	{struct, [{"units", Units}, {"amount", Amount}]};
 char_value_type(#range{lower = Lower, upper = Upper}) ->
@@ -1928,7 +1936,7 @@ char_value_type(#range{lower = Lower, upper = Upper}) ->
 char_value_type(#rate{numerator = Numerator, denominator = Denominator}) ->
 	{struct, [{"numerator", char_value_type(Numerator)},
 			{"denominator", char_value_type(Denominator)}]};
-char_value_type(Value) ->
+char_value_type(Value) when is_integer(Value); is_list(Value) ->
 	Value.
 	
 -spec inventory(Subscription) -> Subscription

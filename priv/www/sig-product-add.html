@@ -1461,6 +1461,7 @@
 							charValueUse.valueType = "Range";
 							charValueUse.minCardinality = 0;
 							charValueUse.maxCardinality = 1;
+							var charValue1 = new Object();
 							var charValue = new Object();
 							var charValueLower = new Object();
 							charValueLower.amount = this.addTimePickerStart.rawValue;
@@ -1470,13 +1471,14 @@
 							charValueUpper.amount = this.addTimePickerEnd.rawValue;
 							charValueUpper.units = "minutes";
 							charValue.upperValue = charValueUpper;
+							charValue1.value = charValue;
 							var charValues = new Array();
-							charValues.push(charValue);
+							charValues.push(charValue1);
+//						var prodSpec = new Object();
+//						prodSpec.id = "3";
+//						prodSpec.hef = "/catalogManagement/v2/productSpecification/3";
+//						charValueUse.productSpecification = prodSpec;
 							charValueUse.productSpecCharacteristicValue = charValues;
-							var prodSpec = new Object();
-							prodSpec.id = "3";
-							prodSpec.hef = "/catalogManagement/v2/productSpecification/3";
-							charValueUse.productSpecification = prodSpec;
 							prodSpecCharValueUse.push(charValueUse);
 						}
 					}
