@@ -95,7 +95,7 @@ filter_members(_Config) ->
 	ObjectIn = {struct, [A, {"b", B}, C]},
 	Filters = "a,b.f,b.h,b.d,c",
 	ObjectOut = {struct, [A, {"b", {struct, [D, F, H]}}, C]},
-	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
+	ObjectOut = ocs_rest:fields(Filters, ObjectIn).
 
 filter_array() ->
 	[{userdata, [{doc, "Filter JSON array"}]}].
@@ -114,7 +114,7 @@ filter_array(_Config) ->
 	Filters = "x,y",
 	ObjectOut = {array, [{struct, [AX, AY]},
 			{struct, [BX, BY]}, {struct, [CX, CY]}]},
-	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
+	ObjectOut = ocs_rest:fields(Filters, ObjectIn).
 
 filter_deep_object() ->
 	[{userdata, [{doc, "Filter deep JSON object"}]}].
@@ -140,7 +140,7 @@ filter_deep_object(_Config) ->
 	O5 = {struct, [{"y", {struct, [A3, C3]}}]},
 	O6 = {struct, [{"x", S3}, {"z", S2}]},
 	ObjectOut = {struct, [{"a", S4}, {"b", O5}, {"c", O6}]},
-	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
+	ObjectOut = ocs_rest:fields(Filters, ObjectIn).
 
 filter_deep_array() ->
 	[{userdata, [{doc, "Filter JSON deep array"}]}].
@@ -192,7 +192,7 @@ filter_deep_array(_Config) ->
 	Do = {array, [Io, Jo, Ko]},
 	Eo = {array, [Lo, Mo, No]},
 	ObjectOut = {struct, [A, {"b", {array, [Co, Do, Eo]}}]},
-	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
+	ObjectOut = ocs_rest:fields(Filters, ObjectIn).
 
 filter_match() ->
 	[{userdata, [{doc, "Filter objects with value matching"}]}].
@@ -210,7 +210,7 @@ filter_match(_Config) ->
 	Filters = "a.x=fred,a.y,b.x=carol,d.x=alice,d.z,b.y",
 	ObjectOut = {struct, [{"b", {struct, [BX, BY]}},
 			{"d", {struct, [DX, DZ]}}]},
-	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
+	ObjectOut = ocs_rest:fields(Filters, ObjectIn).
 
 filter_match_array() ->
 	[{userdata, [{doc, "Filter array with value matching"}]}].
@@ -228,7 +228,7 @@ filter_match_array(_Config) ->
 	Filters = "x=carol,y,x=alice",
 	ObjectOut = {array, [{struct, [BX, BY]},
 			{struct, [DX, DY]}]},
-	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
+	ObjectOut = ocs_rest:fields(Filters, ObjectIn).
 
 filter_match_list() ->
 	[{userdata, [{doc, "Filter match value list syntax"}]}].
@@ -252,7 +252,7 @@ filter_match_list(_Config) ->
 	O2 = {struct, [B2, D2]},
 	O4 = {struct, [B4, D4]},
 	ObjectOut = {struct, [{"g", {array, [O2, O4]}}]},
-	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
+	ObjectOut = ocs_rest:fields(Filters, ObjectIn).
 
 filter_complex() ->
 	[{userdata, [{doc, "Apply filters to a JSON object"}]}].
@@ -276,7 +276,7 @@ filter_complex(_Config) ->
 	ObjectOut = {struct, [{"a", {struct, [{"b", {struct, [{"c", {struct,
 			[{"d", {struct, [{"f", F}, {"e", E}]}},
 			{"x", {array, [V, W]}}]}}]}}]}}, G]},
-	ObjectOut = ocs_rest:filter(Filters, ObjectIn).
+	ObjectOut = ocs_rest:fields(Filters, ObjectIn).
 
 pointer(_Config) ->
 	Path = "root/hyphened-0name/slashed-1name/-",

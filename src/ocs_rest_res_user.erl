@@ -410,5 +410,5 @@ query_page2([], _, Acc) ->
 query_page2(Json, [], Acc) ->
 	lists:reverse(Json ++ Acc);
 query_page2([H | T], Filters, Acc) ->
-	query_page2(T, Filters, [ocs_rest:filter(Filters, H) | Acc]).
+	query_page2(T, Filters, [ocs_rest:fields(Filters, H) | Acc]).
 

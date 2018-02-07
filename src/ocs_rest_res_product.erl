@@ -2178,7 +2178,7 @@ query_page(Codec, PageServer, Etag, Query, Filters, Start, End) ->
 query_page1(Json, [], []) ->
 	Json;
 query_page1([H | T], Filters, Acc) ->
-	query_page1(T, Filters, [ocs_rest:filter(Filters, H) | Acc]);
+	query_page1(T, Filters, [ocs_rest:fields(Filters, H) | Acc]);
 query_page1([], _, Acc) ->
 	lists:reverse(Acc).
 
