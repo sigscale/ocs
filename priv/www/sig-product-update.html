@@ -1274,6 +1274,7 @@
 							}
 							this.$.addUpdatePriceAlteration.selected = this.alterations.findIndex(checkAlt1);
 						}
+console.log(this.prices);
 						var prodPriceUpdate = this.prices[indexUpdatePrice];
 						if(prodPriceUpdate.prodSpecCharValueUse) {
 							for (var indexCharVal in prodPriceUpdate.prodSpecCharValueUse) {
@@ -1287,8 +1288,8 @@
 									this.$.updateAddPriceCharReserveBytes.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
 								}
 								if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "timeOfDayRange") {
-									this.$.updateTimeOfDayStart.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
-									this.$.updateTimeOfDayEnd.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value;
+									this.$.updateTimeOfDayStart.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value.lowerValue.amount;
+									this.$.updateTimeOfDayEnd.value = prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value.upperValue.amount;
 								}
 								if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].name == "callDirection") {
 									if(prodPriceUpdate.prodSpecCharValueUse[indexCharVal].value == "originate") {
