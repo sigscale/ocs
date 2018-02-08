@@ -1710,28 +1710,50 @@ console.log(this.prices);
 						updatePriceNew.push(call);
 					}
 				}
-				if(this.$.updateTimeOfDayStart.value) {
+				if(this.$.updateTimeOfDayStart.value ||
+						this.$.updateTimeOfDayEnd.value ||
+						(this.$.updateTimeOfDayStart.value &&
+						this.$.updateTimeOfDayEnd.value)) {
 					function checkChar1(charVal) {
 						return charVal.name == "timeOfDayRange";
 					}
-					var indexChar2 = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
-					if(indexChar2 != -1) {
+					var res = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
+					if(res == -1) {
+						indexChar2 = "-";
 						var timeDay = new Object();
 						timeDay.op = "add";
-						timeDay.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value";
-						timeDay.value = this.$.updateTimePickerStart.rawValue;
+						timeDay.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2;
+						var timeRange1 = new Object();
+						timeRange1.name = "timeOfDayRange";
+						timeRange1.valueType = "Range";
+						timeRange1.minCardinality = 0;
+						timeRange1.maxCardinality = 1;
+						var timeRangeArr = new Array();
+						var timeRange2 = new Object();
+						var timeRange3 = new Object();
+						var timeRangeLower = new Object();
+						timeRangeLower.amount = this.$.updateTimePickerStart.rawValue;
+						timeRangeLower.units = "minutes";
+						timeRange3.lowerValue = timeRangeLower;
+						var timeRangeUpper = new Object();
+						timeRangeUpper.amount = this.$.updateTimePickerEnd.rawValue;
+						timeRangeUpper.units = "minutes";
+						timeRange3.upperValue = timeRangeUpper;
+						timeRange2.value = timeRange3;
+						timeRange1.productSpecCharacteristicValue = timeRangeArr;
+						timeRangeArr.push(timeRange2);
+						timeDay.value = timeRange1;
 						updatePriceNew.push(timeDay);
-					}
-				}
-				if(this.$.updateTimeOfDayEnd.value) {
-					function checkChar1(charVal) {
-						return charVal.name == "timeOfDayRange";
-					}
-					var indexChar2 = this.prices[indexPrices].prodSpecCharValueUse.findIndex(checkChar1);
-					if(indexChar2 != -1) {
+					} else {
+						indexChar2 = res.toString();
+						var timeDay1 = new Object();
+						timeDay1.op = "add";
+						timeDay1.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value/lowerValue/amount";
+						timeDay1.value = this.$.updateTimePickerStart.rawValue;
+						updatePriceNew.push(timeDay1);
 						var timeDayEnd = new Object();
 						timeDayEnd.op = "add";
-						timeDayEnd.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value";
+						timeDayEnd.path = "/productOfferingPrice/" + indexPrices + "/prodSpecCharValueUse/" + indexChar2 + "/productSpecCharacteristicValue/0/value/upperValue/amount";
 						timeDayEnd.value = this.$.updateTimePickerEnd.rawValue;
 						updatePriceNew.push(timeDayEnd);
 					}
