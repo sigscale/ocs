@@ -23,7 +23,9 @@
 
 -export([date/1, iso8601/1, etag/1]).
 -export([pointer/1, patch/2]).
--export([parse_query/1, fields/2, range/1]).
+-export([parse_query/1, lhs/1, fields/2, range/1]).
+
+-export_type([operator/0]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -189,6 +191,64 @@ fields(Filters, JsonObject) when is_list(Filters) ->
 	Filters3 = [string:tokens(F, ".") || F <- Filters2],
 	Filters4 = lists:usort(Filters3),
 	fields1(Filters4, JsonObject, []).
+
+-type operator() :: exact | notexact | lt | lte | gt | gte | regex
+		| like | notlike | in | notin | contains | notcontain | containsall.
+-spec lhs(String) -> Result
+	when
+		String :: string(),
+		Result :: {LHS, Operator, RHS},
+		LHS :: string(),
+		Operator :: operator(),
+		RHS :: string().
+%% @doc Parse the left hand side of a query paramater.
+lhs(String) ->
+	lhs(String, []).
+%% @hidden
+lhs([$= | T], Acc) ->
+	{lists:reverse(Acc), exact, T};
+lhs([$., $e, $x, $a, $c, $t, $= | T], Acc) ->
+	{lists:reverse(Acc), exact, T};
+lhs([$<, $> | T], Acc) ->
+	{lists:reverse(Acc), notexact, T};
+lhs([$., $n, $o, $t, $e, $x, $a, $c, $t, $= | T], Acc) ->
+	{lists:reverse(Acc), notexact, T};
+lhs([$>, $= | T], Acc) ->
+	{lists:reverse(Acc), gte, T};
+lhs([$., $g, $t, $e, $= | T], Acc) ->
+	{lists:reverse(Acc), gte, T};
+lhs([$> | T], Acc) ->
+	{lists:reverse(Acc), gt, T};
+lhs([$., $g, $t, $= | T], Acc) ->
+	{lists:reverse(Acc), gt, T};
+lhs([$<, $= | T], Acc) ->
+	{lists:reverse(Acc), lte, T};
+lhs([$., $l, $t, $e, $= | T], Acc) ->
+	{lists:reverse(Acc), lte, T};
+lhs([$< | T], Acc) ->
+	{lists:reverse(Acc), lt, T};
+lhs([$., $l, $t, $= | T], Acc) ->
+	{lists:reverse(Acc), lt, T};
+lhs([$*, $= | T], Acc) ->
+	{lists:reverse(Acc), regex, T};
+lhs([$., $r, $e, $g, $e, $x, $= | T], Acc) ->
+	{lists:reverse(Acc), regex, T};
+lhs([$., $l, $i, $k, $e, $= | T], Acc) ->
+	{lists:reverse(Acc), like, T};
+lhs([$., $i, $n, $= | T], Acc) ->
+	{lists:reverse(Acc), in, T};
+lhs([$., $n, $o, $t, $i, $n, $= | T], Acc) ->
+	{lists:reverse(Acc), notin, T};
+lhs([$., $n, $o, $t, $l, $i, $k, $e, $= | T], Acc) ->
+	{lists:reverse(Acc), notlike, T};
+lhs([$., $c, $o, $n, $t, $a, $i, $n, $s, $= | T], Acc) ->
+	{lists:reverse(Acc), contains, T};
+lhs([$., $n, $o, $t, $c, $o, $n, $t, $a, $i, $n, $= | T], Acc) ->
+	{lists:reverse(Acc), notcontain, T};
+lhs([$., $c, $o, $n, $t, $a, $i, $n, $s, $a, $l, $l, $= | T], Acc) ->
+	{lists:reverse(Acc), containsall, T};
+lhs([H | T], Acc) ->
+	lhs(T, [H | Acc]).
 
 -spec range(Range) -> Result
 	when

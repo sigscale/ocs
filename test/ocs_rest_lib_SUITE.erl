@@ -76,7 +76,7 @@ sequences() ->
 all() ->
 	[filter_members, filter_array, filter_deep_object, filter_deep_array,
 			filter_match, filter_match_array, filter_match_list, filter_complex,
-			pointer, patch, patch_array].
+			pointer, patch, patch_array, lhs].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -333,6 +333,31 @@ patch_array(_Config) ->
 							[4, 42, 6, 69]}},
 					{"e", 7}]},
 			7]}.
+
+lhs() ->
+	[{userdata, [{doc, "Parse left hand side of query parameter"}]}].
+
+lhs(_Config) ->
+	{"a.b.c", exact, "42"} = ocs_rest:lhs("a.b.c=42"),
+	{"a.b.c", exact, "42"} = ocs_rest:lhs("a.b.c.exact=42"),
+	{"a.b.c", notexact, "42"} = ocs_rest:lhs("a.b.c<>42"),
+	{"a.b.c", notexact, "42"} = ocs_rest:lhs("a.b.c.notexact=42"),
+	{"a.b.c", gt, "42"} = ocs_rest:lhs("a.b.c>42"),
+	{"a.b.c", gt, "42"} = ocs_rest:lhs("a.b.c.gt=42"),
+	{"a.b.c", gte, "42"} = ocs_rest:lhs("a.b.c>=42"),
+	{"a.b.c", gte, "42"} = ocs_rest:lhs("a.b.c.gte=42"),
+	{"a.b.c", lt, "42"} = ocs_rest:lhs("a.b.c<42"),
+	{"a.b.c", lt, "42"} = ocs_rest:lhs("a.b.c.lt=42"),
+	{"a.b.c", lte, "42"} = ocs_rest:lhs("a.b.c<=42"),
+	{"a.b.c", lte, "42"} = ocs_rest:lhs("a.b.c.lte=42"),
+	{"a.b.c", regex, "a*b"} = ocs_rest:lhs("a.b.c.regex=a*b"),
+	{"a.b.c", like, "[a%b]"} = ocs_rest:lhs("a.b.c.like=[a%b]"),
+	{"a.b.c", notlike, "[a%b]"} = ocs_rest:lhs("a.b.c.notlike=[a%b]"),
+	{"a.b.c", in, "[a,b]"} = ocs_rest:lhs("a.b.c.in=[a,b]"),
+	{"a.b.c", notin, "[a,b]"} = ocs_rest:lhs("a.b.c.notin=[a,b]"),
+	{"a.b.c", contains, "[a;b]"} = ocs_rest:lhs("a.b.c.contains=[a;b]"),
+	{"a.b.c", notcontain, "[a;b]"} = ocs_rest:lhs("a.b.c.notcontain=[a;b]"),
+	{"a.b.c", containsall, "[a,b]"} = ocs_rest:lhs("a.b.c.containsall=[a,b]").
 
 %%---------------------------------------------------------------------
 %%  Internal functions
