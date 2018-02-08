@@ -192,7 +192,7 @@ handle_radius1(#statedata{subscriber = SubscriberId, password = <<>>,
 		password_required = PasswordReq, req_attr = ReqAttr} = StateData) ->
 	Timestamp = calendar:local_time(),
 	{ServiceType, Direction, CallAddress} = get_service_type(ReqAttr),
-	SessionAttributes = extract_session_attributes(ReqAttr),
+	SessionAttributes = ocs_rating:session_attributes(ReqAttr),
 	case ocs_rating:authorize(radius, ServiceType, SubscriberId, <<>>,
 			Timestamp, CallAddress, Direction, SessionAttributes) of
 		{authorized, #subscriber{password = <<>>} =
@@ -220,7 +220,7 @@ handle_radius1(#statedata{subscriber = SubscriberId, password = Password,
 		req_attr = ReqAttr} = StateData) ->
 	Timestamp = calendar:local_time(),
 	{ServiceType, Direction, CallAddress} = get_service_type(ReqAttr),
-	SessionAttributes = extract_session_attributes(ReqAttr),
+	SessionAttributes = ocs_rating:session_attributes(ReqAttr),
 	case ocs_rating:authorize(radius, ServiceType, SubscriberId, Password,
 			Timestamp, CallAddress, Direction, SessionAttributes) of
 		{authorized, Subscriber, Attributes, ExistingSessionAttributes} ->
@@ -465,26 +465,6 @@ response(RadiusCode, ResponseAttributes,
 	ok = ocs_log:auth_log(radius, {ServerAddress, ServerPort},
 			{ClientAddress, ClientPort}, Type, RequestAttributes, AttributeList2),
 	radius:response(RadiusFsm, {response, ResponsePacket}).
-
--spec extract_session_attributes(Attributes) -> SessionAttributes
-	when
-		Attributes :: radius_attributes:attributes(),
-		SessionAttributes :: radius_attributes:attributes().
-%% @doc Extract and return RADIUS session related attributes from
-%% `Attributes'.
-%% @hidden
-extract_session_attributes(Attributes) ->
-	F = fun({K, _}) when K == ?NasIdentifier; K == ?NasIpAddress;
-				K == ?UserName; K == ?FramedIpAddress; K == ?NasPort;
-				K == ?NasPortType; K == ?CalledStationId; K == ?CallingStationId;
-				K == ?AcctSessionId; K == ?AcctMultiSessionId; K == ?NasPortId;
-				K == ?OriginatingLineInfo; K == ?FramedInterfaceId;
-				K == ?FramedIPv6Prefix ->
-			true;
-		(_) ->
-			false
-	end,
-	lists:filter(F, Attributes).
 
 %% @hidden
 start_disconnect(SessionList, #statedata{protocol = radius,

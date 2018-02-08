@@ -554,7 +554,7 @@ usage_aaa_auth({Milliseconds, N, P, Node,
 		[] ->
 			Object;
 		_ ->
-			ocs_rest:filter("id,href," ++ Filters, Object)
+			ocs_rest:fields("id,href," ++ Filters, Object)
 	end;
 usage_aaa_auth(Events, Filters) when is_list(Events) ->
 	usage_aaa_auth(Events, Filters, []).
@@ -597,7 +597,7 @@ usage_aaa_acct({Milliseconds, N, P, Node,
 		[] ->
 			Object;
 		_ ->
-			ocs_rest:filter("id,href," ++ Filters, Object)
+			ocs_rest:fields("id,href," ++ Filters, Object)
 	end;
 usage_aaa_acct(Events, Filters) when is_list(Events) ->
 	usage_aaa_acct(Events, Filters, []).
@@ -625,7 +625,7 @@ usage_http_transfer({Host, User, DateTime, Method, URI, HttpStatus}, Filters) ->
 		Filters =:= [] ->
 			Object;
 		true ->
-			ocs_rest:filter("id,href," ++ Filters, Object)
+			ocs_rest:fields("id,href," ++ Filters, Object)
 	end;
 usage_http_transfer(Events, Filters) when is_list(Events) ->
 	usage_http_transfer(Events, Filters, []).

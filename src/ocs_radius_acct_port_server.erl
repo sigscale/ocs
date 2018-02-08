@@ -262,7 +262,7 @@ request(IpAddress, AccPort, Secret, ListenPort, Radius, From, State) ->
 request1(?AccountingStart, AcctSessionId, Id,
 		Authenticator, Secret, NasId, IpAddress, _AccPort, _ListenPort, Attributes,
 		From, #state{address = ServerAddress, port = ServerPort} = State) ->
-	SessionAttributes = session_attributes(Attributes),
+	SessionAttributes = ocs_rating:session_attributes(Attributes),
 	Subscriber = case radius_attributes:find(?UserName, Attributes) of
 		{ok, Sub} ->
 			Sub;
@@ -315,7 +315,7 @@ request1(?AccountingStop, AcctSessionId, Id,
 			radius_attributes:fetch(?CallingStationId, Attributes)
 	end,
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, stop, Attributes),
-	SessionAttributes = session_attributes(Attributes),
+	SessionAttributes = ocs_rating:session_attributes(Attributes),
 	DebitAmount = [{octets, UsageOctets}, {seconds, UsageSecs}],
 	{ServiceType, Direction, CallAddress} = get_service_type(Attributes),
 	Timestamp = case radius_attributes:find(?AcctDelayTime, Attributes) of
@@ -362,7 +362,7 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 			radius_attributes:fetch(?CallingStationId, Attributes)
 	end,
 	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, interim, Attributes),
-	SessionAttributes = session_attributes(Attributes),
+	SessionAttributes = ocs_rating:session_attributes(Attributes),
 	ReserveAmount = [{octets, UsageOctets}, {seconds, UsageSecs}],
 	{ServiceType, Direction, CallAddress} = get_service_type(Attributes),
 	Timestamp = case radius_attributes:find(?AcctDelayTime, Attributes) of
@@ -437,46 +437,6 @@ start_disconnect1(DiscSup, Subscriber, SessionAttributes) ->
 	DiscArgs = [Subscriber, SessionAttributes],
 	StartArgs = [DiscArgs, []],
 	supervisor:start_child(DiscSup, StartArgs).
-
--spec session_attributes(Attributes) -> SessionAttributes
-	when
-		Attributes :: radius_attributes:attributes(),
-		SessionAttributes :: radius_attributes:attributes().
-%% @doc Extract RADIUS session related attributes.
-%% @hidden
-session_attributes(Attributes) ->
-	F = fun({?NasIdentifier, _}) ->
-				true;
-			({?NasIpAddress, _}) ->
-				true;
-			({?AcctSessionId, _}) ->
-				true;
-			({?AcctMultiSessionId, _}) ->
-				true;
-			({?UserName, _}) ->
-				true;
-			({?FramedIpAddress, _}) ->
-				true;
-			({?NasPort, _}) ->
-				true;
-			({?NasPortType, _}) ->
-				true;
-			({?CalledStationId, _}) ->
-				true;
-			({?CallingStationId, _}) ->
-				true;
-			({?NasPortId, _}) ->
-				true;
-			({?OriginatingLineInfo, _}) ->
-				true;
-			({?FramedInterfaceId, _}) ->
-				true;
-			({?FramedIPv6Prefix, _}) ->
-				true;
-			(_) ->
-				false
-	end,
-	lists:filter(F, Attributes).
 
 %% @hidden
 %% @doc Get used octets from RADIUS attributes.

@@ -786,7 +786,7 @@ confirm3(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 	UserName = binary_to_list(PeerID),
 	{ServiceType, Direction, CallAddress} = get_service_type(RequestAttributes),
 	Timestamp = calendar:local_time(),
-	SessionAttributes = extract_session_attributes(RequestAttributes),
+	SessionAttributes = ocs_rating:session_attributes(RequestAttributes),
 	case ocs_rating:authorize(radius, ServiceType, PeerID, Password,
 			Timestamp, CallAddress, Direction, SessionAttributes) of
 		{authorized, _Subscriber, Attributes, _ExistingSessionAttributes} ->
@@ -1158,26 +1158,6 @@ start_disconnect2(diameter, DiscSup, {_, SessionAttributes}, #statedata{session_
 	DiscArgs = [Svc, Alias, SessionID, OHost, DHost, ORealm, DRealm, AppId],
 	StartArgs = [DiscArgs, []],
 	supervisor:start_child(DiscSup, StartArgs).
-
--spec extract_session_attributes(Attributes) -> SessionAttributes
-	when
-		Attributes :: radius_attributes:attributes(),
-		SessionAttributes :: radius_attributes:attributes().
-%% @doc Extract and return RADIUS session related attributes from
-%% `Attributes'.
-%% @hidden
-extract_session_attributes(Attributes) ->
-	F = fun({K, _}) when K == ?NasIdentifier; K == ?NasIpAddress;
-				K == ?UserName; K == ?FramedIpAddress; K == ?NasPort;
-				K == ?NasPortType; K == ?CalledStationId; K == ?CallingStationId;
-				K == ?AcctSessionId; K == ?AcctMultiSessionId; K == ?NasPortId;
-				K == ?OriginatingLineInfo; K == ?FramedInterfaceId;
-				K == ?FramedIPv6Prefix ->
-			true;
-		(_) ->
-			false
-	end,
-	lists:filter(F, Attributes).
 
 get_service_type(Attr) ->
 	case radius_attributes:find(?ServiceType, Attr) of

@@ -23,7 +23,7 @@
 
 -export([date/1, iso8601/1, etag/1]).
 -export([pointer/1, patch/2]).
--export([parse_query/1, filter/2, range/1]).
+-export([parse_query/1, fields/2, range/1]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -147,7 +147,7 @@ parse_query1(Field, N, Acc) ->
 	Value = lists:sublist(Field, N + 1, length(Field)),
 	[{http_uri:decode(Key), http_uri:decode(Value)} | Acc].
 
--spec filter(Filters, JsonObject) -> Result
+-spec fields(Filters, JsonObject) -> Result
 	when
 		Filters :: string(),
 		JsonObject :: tuple(),
@@ -172,13 +172,13 @@ parse_query1(Field, N, Acc) ->
 %% 	```
 %% 	1> In = {struct,[{"a",{array,[{struct,[{"name","bob"},{"value",6}]},
 %% 	1> {"b",7},{struct,[{"name","sue"},{"value",5},{"other", 8}]}]}},{"b",1}]},
-%% 	1> ocs_rest:filter("b,a.name=sue,a.value", In).
+%% 	1> ocs_rest:fields("b,a.name=sue,a.value", In).
 %% 	{struct, [{"a",{array,[{struct,[{"name","sue"},{"value",5}]}]}},{"b",1}]}
 %% 	'''
 %%
 %% @throws {error, 400}
 %%
-filter(Filters, JsonObject) when is_list(Filters) ->
+fields(Filters, JsonObject) when is_list(Filters) ->
 	Filters1 = case lists:member($(, Filters) of
 		true ->
 			expand(Filters, []);
@@ -188,7 +188,7 @@ filter(Filters, JsonObject) when is_list(Filters) ->
 	Filters2 = string:tokens(Filters1, ","),
 	Filters3 = [string:tokens(F, ".") || F <- Filters2],
 	Filters4 = lists:usort(Filters3),
-	filter1(Filters4, JsonObject, []).
+	fields1(Filters4, JsonObject, []).
 
 -spec range(Range) -> Result
 	when
@@ -354,12 +354,12 @@ patch_replace(Path, Value, [H | T], Acc) ->
 %%----------------------------------------------------------------------
 
 %% @hidden
-filter1(Filters, {array, L}, Acc) ->
-	{array, filter2(Filters, L, Acc)};
-filter1(Filters, {struct, L}, Acc) ->
-	{struct, filter3(Filters, L, false, true, Acc)}.
+fields1(Filters, {array, L}, Acc) ->
+	{array, fields2(Filters, L, Acc)};
+fields1(Filters, {struct, L}, Acc) ->
+	{struct, fields3(Filters, L, false, true, Acc)}.
 
--spec filter2(Filters, Elements, Acc) -> Result
+-spec fields2(Filters, Elements, Acc) -> Result
 	when
 		Filters :: [list(string())],
 		Elements :: [Value],
@@ -370,20 +370,20 @@ filter1(Filters, {struct, L}, Acc) ->
 		Result :: [Value].
 %% @doc Process each array element.
 %% @hidden
-filter2(Filters, [{Type, Value} | T], Acc)
+fields2(Filters, [{Type, Value} | T], Acc)
 		when Type == struct; Type == array ->
-	case filter1(Filters, {Type, Value}, []) of
+	case fields1(Filters, {Type, Value}, []) of
 		{struct, []} ->
-			filter2(Filters, T, Acc);
+			fields2(Filters, T, Acc);
 		Object ->
-			filter2(Filters, T, [Object | Acc])
+			fields2(Filters, T, [Object | Acc])
 	end;
-filter2(Filters, [_ | T], Acc) ->
-	filter2(Filters, T, Acc);
-filter2(_, [], Acc) ->
+fields2(Filters, [_ | T], Acc) ->
+	fields2(Filters, T, Acc);
+fields2(_, [], Acc) ->
 	lists:reverse(Acc).
 
--spec filter3(Filters, Members, IsValueMatch, ValueMatched, Acc) -> Result
+-spec fields3(Filters, Members, IsValueMatch, ValueMatched, Acc) -> Result
 	when
 		Filters :: [list(string())],
 		Members :: [{Key, Value}],
@@ -396,29 +396,29 @@ filter2(_, [], Acc) ->
 		Result :: [{Key, Value}].
 %% @doc Process each object member.
 %% @hidden
-filter3(Filters, [{Key1, Value1} | T], IsValueMatch, ValueMatched, Acc) ->
-	case filter4(Filters, {Key1, Value1}, false) of
+fields3(Filters, [{Key1, Value1} | T], IsValueMatch, ValueMatched, Acc) ->
+	case fields4(Filters, {Key1, Value1}, false) of
 		{false, false} ->
-			filter3(Filters, T, IsValueMatch, ValueMatched, Acc);
+			fields3(Filters, T, IsValueMatch, ValueMatched, Acc);
 		{true, false} when IsValueMatch == false ->
-			filter3(Filters, T, true, false, Acc);
+			fields3(Filters, T, true, false, Acc);
 		{true, false} ->
-			filter3(Filters, T, true, ValueMatched, Acc);
+			fields3(Filters, T, true, ValueMatched, Acc);
 		{false, {_, {_, []}}} ->
-			filter3(Filters, T, IsValueMatch, ValueMatched, Acc);
+			fields3(Filters, T, IsValueMatch, ValueMatched, Acc);
 		{false, {Key2, Value2}} ->
-			filter3(Filters, T, IsValueMatch, ValueMatched, [{Key2, Value2} | Acc]);
+			fields3(Filters, T, IsValueMatch, ValueMatched, [{Key2, Value2} | Acc]);
 		{true, {Key2, Value2}} ->
-			filter3(Filters, T, true, true, [{Key2, Value2} | Acc])
+			fields3(Filters, T, true, true, [{Key2, Value2} | Acc])
 	end;
-filter3(Filters, [_ | T], IsValueMatch, ValueMatched, Acc) ->
-	filter3(Filters, T, IsValueMatch, ValueMatched, Acc);
-filter3(_, [], _, false, _) ->
+fields3(Filters, [_ | T], IsValueMatch, ValueMatched, Acc) ->
+	fields3(Filters, T, IsValueMatch, ValueMatched, Acc);
+fields3(_, [], _, false, _) ->
 	[];
-filter3(_, [], _, true, Acc) ->
+fields3(_, [], _, true, Acc) ->
 	lists:reverse(Acc).
 
--spec filter4(Filters, Member, IsValueMatch) -> Result
+-spec fields4(Filters, Member, IsValueMatch) -> Result
 	when
 		Filters :: [list(string())],
 		Member :: {Key, Value},
@@ -430,18 +430,18 @@ filter3(_, [], _, true, Acc) ->
 		MatchResult :: false | Member.
 %% @doc Apply filters to an object member.
 %% @hidden
-filter4([[Key] | _], {Key, Value}, IsValueMatch) ->
+fields4([[Key] | _], {Key, Value}, IsValueMatch) ->
 	{IsValueMatch, {Key, Value}};
-filter4([[S] | T], {Key, Value}, IsValueMatch) ->
+fields4([[S] | T], {Key, Value}, IsValueMatch) ->
 	case split(S) of
 		{Key, Value} ->
 			{true, {Key, Value}};
 		{Key, _} ->
-			filter4(T, {Key, Value}, true);
+			fields4(T, {Key, Value}, true);
 		_ ->
-			filter4(T, {Key, Value}, IsValueMatch)
+			fields4(T, {Key, Value}, IsValueMatch)
 	end;
-filter4([[Key | _ ] | _] = Filters1, {Key, {Type, L}}, IsValueMatch)
+fields4([[Key | _ ] | _] = Filters1, {Key, {Type, L}}, IsValueMatch)
 		when Type == struct; Type == array ->
 	F1 = fun([K | _]) when K =:= Key ->
 				true;
@@ -451,10 +451,10 @@ filter4([[Key | _ ] | _] = Filters1, {Key, {Type, L}}, IsValueMatch)
 	Filters2 = lists:takewhile(F1, Filters1),
 	F2 = fun([_ | T]) -> T end,
 	Filters3 = lists:map(F2, Filters2),
-	{IsValueMatch, {Key, filter1(Filters3, {Type, L}, [])}};
-filter4([_ | T], {Key, Value}, IsValueMatch) ->
-	filter4(T, {Key, Value}, IsValueMatch);
-filter4([], _, IsValueMatch) ->
+	{IsValueMatch, {Key, fields1(Filters3, {Type, L}, [])}};
+fields4([_ | T], {Key, Value}, IsValueMatch) ->
+	fields4(T, {Key, Value}, IsValueMatch);
+fields4([], _, IsValueMatch) ->
 	{IsValueMatch, false}.
 
 %% @hidden

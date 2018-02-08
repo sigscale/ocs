@@ -80,7 +80,7 @@ get_subscriber1(Id, Filters) ->
 				[] ->
 					Json;
 				Filters ->
-					ocs_rest:filter(Filters, Json)
+					ocs_rest:fields(Filters, Json)
 			end,
 			Body = mochijson:encode(FilteredJson),
 			Headers = [{content_type, "application/json"},
@@ -749,7 +749,7 @@ query_page(PageServer, Etag, Query, Filters, Start, End) ->
 query_page1(Json, [], []) ->
 	Json;
 query_page1([H | T], Filters, Acc) ->
-	query_page1(T, Filters, [ocs_rest:filter(Filters, H) | Acc]);
+	query_page1(T, Filters, [ocs_rest:fields(Filters, H) | Acc]);
 query_page1([], _, Acc) ->
 	lists:reverse(Acc).
 

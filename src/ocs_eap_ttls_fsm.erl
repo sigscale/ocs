@@ -1060,7 +1060,7 @@ server_passthrough({accept, #subscriber{name = Identity,
 		service_type = ServiceType} = StateData) ->
 	Timestamp = calendar:local_time(),
 	CallAddress = proplists:get_value(?CalledStationId, RequestAttributes, ""),
-	SessionAttributes = extract_session_attributes(RequestAttributes),
+	SessionAttributes = ocs_rating:session_attributes(RequestAttributes),
 	case ocs_rating:authorize(radius, ServiceType, Identity, Password,
 			Timestamp, CallAddress, undefined, SessionAttributes) of
 		{authorized, _Subscriber, Attributes, _ExistingSessionAttributes} ->
@@ -1413,22 +1413,3 @@ send_diameter_response(SId, AuthType, ResultCode, OH, OR, EapPacket,
 		gen_server:cast(PortServer, {self(), Answer1})
 	end.
 
--spec extract_session_attributes(Attributes) -> SessionAttributes
-	when
-		Attributes :: radius_attributes:attributes(),
-		SessionAttributes :: radius_attributes:attributes().
-%% @doc Extract and return RADIUS session related attributes from
-%% `Attributes'.
-%% @hidden
-extract_session_attributes(Attributes) ->
-	F = fun({K, _}) when K == ?NasIdentifier; K == ?NasIpAddress;
-				K == ?UserName; K == ?FramedIpAddress; K == ?NasPort;
-				K == ?NasPortType; K == ?CalledStationId; K == ?CallingStationId;
-				K == ?AcctSessionId; K == ?AcctMultiSessionId; K == ?NasPortId;
-				K == ?OriginatingLineInfo; K == ?FramedInterfaceId;
-				K == ?FramedIPv6Prefix ->
-			true;
-		(_) ->
-			false
-	end,
-	lists:filter(F, Attributes).
