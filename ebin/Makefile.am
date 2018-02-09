@@ -81,7 +81,9 @@ beam_DATA = ocs.beam \
 			ocs_rest_res_resource.beam \
 			ocs_rest_pagination_sup.beam \
 			ocs_rest_pagination_server.beam \
-			ocs_scheduler.beam
+			ocs_scheduler.beam \
+			ocs_rest_query_scanner.beam \
+			ocs_rest_query_parser.beam
 
 %.beam:$(top_srcdir)/src/%.erl	$(top_srcdir)/include/ocs.hrl \
 		$(top_srcdir)/include/ocs_log.hrl \
@@ -117,6 +119,12 @@ diameter_gen_eap_application_rfc4072.beam:$(top_builddir)/src/diameter_gen_eap_a
 		$(top_builddir)/include/diameter_gen_nas_application_rfc7155.hrl \
 		$(top_builddir)/include/diameter_gen_eap_application_rfc4072.hrl
 	$(ERLC) $(ERLCFLAGS) -I $(top_builddir)/include $<
+
+ocs_rest_query_scanner.beam:$(top_builddir)/src/ocs_rest_query_scanner.erl
+	$(ERLC) $<
+
+ocs_rest_query_parser.beam:$(top_builddir)/src/ocs_rest_query_parser.erl
+	$(ERLC) $<
 
 %.app:   %.app-in
 	sed -e 's/%APP_NAME%/$(PACKAGE_NAME)/' \

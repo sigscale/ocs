@@ -8,7 +8,9 @@ erl_DATA = diameter_gen_ietf.erl \
 		diameter_gen_3gpp_ro_application.erl \
 		diameter_gen_nas_application_rfc7155.erl \
 		diameter_gen_cc_application_rfc4006.erl \
-		diameter_gen_eap_application_rfc4072.erl
+		diameter_gen_eap_application_rfc4072.erl \
+		ocs_rest_query_scanner.erl \
+		ocs_rest_query_parser.erl
 
 DIAMETERC=$(ERLANG_LIB_DIR_diameter)/bin/diameterc
 
@@ -50,6 +52,12 @@ diameter_gen_eap_application_rfc4072.erl:	eap_application_rfc4072.dia $(top_buil
 
 diameter_gen_eap_application_rfc4072.hrl:	eap_application_rfc4072.dia $(top_builddir)/ebin/diameter_gen_nas_application_rfc7155.beam
 	$(DIAMETERC) -i $(top_builddir)/ebin -E $<
+
+%.erl:%.xrl
+	$(ERLC) $<
+
+%.erl:%.yrl
+	$(ERLC) $<
 
 CLEANFILES = $(erl_DATA)
 
