@@ -90,6 +90,8 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 							check_content_type_header(Headers, Method, ocs_rest_res_balance, Data);
 						["balanceManagement", "v1", "product", _, "bucket" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_balance, Data);
+						["balanceManagement", "v1", "accumulatedBalance", _ | _] ->
+							check_content_type_header(Headers, Method, ocs_rest_res_balance, Data);
 						["catalogManagement", "v2", "productOffering" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_product, Data);
 						["catalogManagement", "v2", "catalog" | _] ->

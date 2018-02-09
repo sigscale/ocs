@@ -34,7 +34,8 @@
 
 -define(bucketPath, "/balancemanagement/v1/bucket/").
 -define(actionPath, "/balancemanagement/v1/balanceTransfer/").
--define(productPath, "/productInventory/v1/product/").
+-define(productPath, "/productInventoryManagement/v1/product/").
+-define(balancePath, "/balancemanagement/v1/accumulatedBalance/").
 
 -spec content_types_accepted() -> ContentTypes
 	when
@@ -165,7 +166,7 @@ specific_bucket_balance4(#subscriber{name = SubID, last_modified = LM}, Bucket) 
 		Identity :: list(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
-%% @doc Body producing function for `GET /balanceManagment/v1/product/{id}/bucket'
+%% @doc Body producing function for `GET /balanceManagment/v1/accumulatedBalance/{id}'
 %% reuqest
 get_balance(Identity) ->
 	try
@@ -184,15 +185,25 @@ get_balance(Identity) ->
 %% @hidden
 get_balance1(Identity, Buckets) ->
 	try
-		F = fun(Bucket) ->
-				{struct, B} = bucket(Bucket),
-				Id = {"id", Identity},
-				Href = {"href", "/productInventoryManagement/v1/product/" ++ Identity},
-				Product = {struct, [Id, Href]},
-				{struct, [{"product", Product}| B]}
+		F1 = fun(#bucket{units = cents}) ->
+					true;
+				(_) ->
+					false
 		end,
-		Buckets1 = [F(B) || B <- Buckets],
-		Json = {array, Buckets1},
+		Buckets1 = lists:filter(F1, Buckets),
+		F2 = fun(#bucket{remain_amount = N}, Acc) ->
+					Acc + N
+		end,
+		TotalAmount = lists:foldl(F2, 0, Buckets1),
+		F3 = fun(#bucket{id = Id}) ->
+					{struct, [{"id", Id}, {"href", ?balancePath ++ Id}]}
+		end,
+		Buckets2 = {"buckets", {array, lists:map(F3, Buckets1)}},
+		Total = {"totalBalance", {struct, [{"amount", TotalAmount}]}},
+		ProdId = {"id", Identity},
+		ProdHref = {"href", ?balancePath ++ Identity},
+		Product = {"product", {struct, [ProdId, ProdHref]}},
+		Json = {struct, [ProdId, ProdHref, Total, Buckets2, Product]},
 		Body  = mochijson:encode(Json),
 		{ok, [{content_type, "application/json"}], Body}
 	catch
@@ -340,7 +351,7 @@ bucket1([id | T], #bucket{id = undefined} = B, Acc) ->
 	bucket1(T, B, Acc);
 bucket1([id | T], #bucket{id = ID} = B, Acc) ->
 	Id = {"id", ID},
-	Href = {"href", "/balancerManagement/v1/bucket/" ++ ID},
+	Href = {"href", "/balanceManagement/v1/bucket/" ++ ID},
 	bucket1(T, B, [Id, Href | Acc]);
 bucket1([name | T], #bucket{name = undefined} = B, Acc) ->
 	bucket1(T, B, Acc);
