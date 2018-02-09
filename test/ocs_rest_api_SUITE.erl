@@ -1758,32 +1758,30 @@ get_subscriber_balance(Config) ->
 	Authentication = {"authorization", AuthKey},
 	Identity = ocs:generate_identity(),
 	Password = ocs:generate_password(),
-	Buckets = [#bucket{units = cents, remain_amount = 10000}],
+	Buckets = [#bucket{units = cents, remain_amount = 10000},
+			#bucket{units = cents, remain_amount = 5}],
 	{ok, _} = ocs:add_subscriber(Identity, Password, ProdID, [], Buckets, []),
 	{ok, #subscriber{buckets = Buckets1}} = ocs:find_subscriber(Identity),
-	#bucket{remain_amount = Balance} = lists:keyfind(cents, #bucket.units, Buckets1),
-	GETURI = HostUrl ++ "/balanceManagement/v1/" ++ Identity ++ "/buckets",
+	F = fun(#bucket{remain_amount = N, units = cents}, Acc) ->
+				N + Acc;
+			(_, Acc) ->
+				Acc
+   end,
+	Balance = lists:foldl(F, 0, Buckets1),
+%%	#bucket{remain_amount = Balance} = lists:keyfind(cents, #bucket.units, Buckets1),
+	GETURI = HostUrl ++ "/balanceManagement/v1/accumulatedBalance/" ++ Identity,
 	GETRequest = {GETURI, [Accept, Authentication]},
 	{ok, GETResult} = httpc:request(get, GETRequest, [], []),
 	{{"HTTP/1.1", 200, _OK}, Headers, Body} = GETResult,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
 	ContentLength = integer_to_list(length(Body)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
 	{struct, PrePayBalance} = mochijson:decode(Body),
 	{_, Identity} = lists:keyfind("id", 1, PrePayBalance),
-	{_, "/balanceManagement/v1/buckets/" ++ Identity} =
+	{_, "/balancemanagement/v1/accumulatedBalance/" ++ Identity} =
 			lists:keyfind("href", 1, PrePayBalance),
-	{_, {array, Buckets2}} = lists:keyfind("remainedAmount", 1, PrePayBalance),
-	F = fun(F, [{struct, L} | T]) ->
-		case lists:keyfind("units", 1, L) of
-			{_, "cents"} ->
-				{_, A} = lists:keyfind("amount", 1, L),
-				A;
-			false ->
-				F(F, T)
-		end
-	end,
-	Balance = F(F, Buckets2),
-	{_, "active"} = lists:keyfind("status", 1, PrePayBalance).
+	{_, {struct, TotalAmount}} = lists:keyfind("totalBalance", 1, PrePayBalance),
+	{_, Balance} = lists:keyfind("amount", 1, TotalAmount).
 
 simultaneous_updates_on_subscriber_failure() ->
 	[{userdata, [{doc,"Simulataneous HTTP PATCH updates on subscriber resource must fail

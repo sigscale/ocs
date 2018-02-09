@@ -135,7 +135,7 @@ do_get(Resource, #mod{parsed_header = Headers} = ModData,
 	do_response(ModData, Resource:get_users(Query, Headers));
 do_get(Resource, ModData, ["partyManagement", "v1", "individual", Id], Query) ->
 	do_response(ModData, Resource:get_user(Id, Query));
-do_get(Resource, ModData, ["balanceManagement", "v1", "product", Id, "bucket"], []) ->
+do_get(Resource, ModData, ["balanceManagement", "v1", "accumulatedBalance", Id], []) ->
 	do_response(ModData, Resource:get_balance(Id));
 do_get(Resource, ModData, ["balanceManagement", "v1", "bucket", Id], []) ->
 	do_response(ModData, Resource:specific_bucket_balance(undefined, Id));
