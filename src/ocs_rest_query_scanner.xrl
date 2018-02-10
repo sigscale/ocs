@@ -50,7 +50,12 @@ Rules.
 = : {token, {exact, TokenLine}}.
 {String} : {token, {string, TokenLine, TokenChars}}.
 {Number} : {token, {number, TokenLine, list_to_integer(TokenChars)}}.
-\. : {token, {dot, TokenLine}}.
+\. : {token, {'.', TokenLine}}.
+\[ : {token, {'[', TokenLine}}.
+\] : {token, {']', TokenLine}}.
+\{ : {token, {'{', TokenLine}}.
+\} : {token, {'}', TokenLine}}.
+\, : {token, {',', TokenLine}}.
 
 Erlang code.
 %%% @doc The lexical scanner.
