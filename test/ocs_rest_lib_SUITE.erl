@@ -76,7 +76,9 @@ sequences() ->
 all() ->
 	[filter_members, filter_array, filter_deep_object, filter_deep_array,
 			filter_match, filter_match_array, filter_match_list, filter_complex,
-			pointer, patch, patch_array, lhs].
+			pointer, patch, patch_array, lhs,
+			parse_query1, parse_query2, parse_query3, parse_query4, parse_query5,
+			parse_query6, parse_query7, parse_query8, parse_query9].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -358,6 +360,141 @@ lhs(_Config) ->
 	{"a.b.c", contains, "[a;b]"} = ocs_rest:lhs("a.b.c.contains=[a;b]"),
 	{"a.b.c", notcontain, "[a;b]"} = ocs_rest:lhs("a.b.c.notcontain=[a;b]"),
 	{"a.b.c", containsall, "[a,b]"} = ocs_rest:lhs("a.b.c.containsall=[a,b]").
+
+parse_query1() ->
+	[{userdata, [{doc, "Query collection using 'contains' complex"}]}].
+
+parse_query1(_Config) ->
+	String = "[{productOffering.category.contains=[{id=residential}]}]",
+	{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
+	{ok, Result} = ocs_rest_query_parser:parse(Tokens),
+	[{array, [Complex1]}] = Result,
+	{complex, [{"productOffering.category",
+			contains, [Complex2]}]} = Complex1,
+	{complex, [{"id", exact, "residential"}]} = Complex2.
+
+parse_query2() ->
+	[{userdata, [{doc, "Query collection using 'exact' "}]}].
+
+parse_query2(_Config) ->
+	String1 = "[productOffering.category.id=residential]",
+	String2 = "[productOffering.category.id.exact=residential]",
+	{ok, Tokens, _} = ocs_rest_query_scanner:string(String1),
+	{ok, Tokens, _} = ocs_rest_query_scanner:string(String2),
+	{ok, Result} = ocs_rest_query_parser:parse(Tokens),
+	[{array, [Exact]}] = Result,
+	{"productOffering.category.id", exact, "residential"} = Exact.
+
+parse_query3() ->
+	[{userdata, [{doc, "Query collection using 'contains' ORing of complex"}]}].
+
+parse_query3(_Config) ->
+	String = "[{productOffering.category.contains=[{id=cat1},{id=cat2}]}]",
+	{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
+	{ok, Result} = ocs_rest_query_parser:parse(Tokens),
+	[{array, [Complex1]}] = Result,
+	{complex, [{"productOffering.category",
+			contains, [Complex2, Complex3]}]} = Complex1,
+	{complex, [{"id", exact, "cat1"}]} = Complex2,
+	{complex, [{"id", exact, "cat2"}]} = Complex3.
+
+parse_query4() ->
+	[{userdata, [{doc, "Query collection using 'in' ANDing"}]}].
+
+parse_query4(_Config) ->
+	String = "[{productOffering.category.id.in=[cat1,cat2]}]",
+	{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
+	{ok, Result} = ocs_rest_query_parser:parse(Tokens),
+	[{array, [Complex]}] = Result,
+	{complex, [{"productOffering.category.id",in, Categories}]} = Complex,
+	["cat1","cat2"] = Categories.
+
+parse_query5() ->
+	[{userdata, [{doc, "Query collection using 'containsall' ANDing of complex"}]}].
+
+parse_query5(_Config) ->
+	String = "[{productOffering.category.containsall=[{id=cat1},{id=cat2}]}]",
+	{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
+	{ok, Result} = ocs_rest_query_parser:parse(Tokens),
+	[{array, [Complex1]}] = Result,
+	{complex, [{"productOffering.category",
+			containsall, [Complex2, Complex3]}]} = Complex1,
+	{complex, [{"id", exact, "cat1"}]} = Complex2,
+	{complex, [{"id", exact, "cat2"}]} = Complex3.
+
+parse_query6() ->
+	[{userdata, [{doc, "Query collection using 'contains' complex ANDing"}]}].
+
+parse_query6(_Config) ->
+	String = "[{productOffering.category.contains=[{id=residential}],"
+			"productOffering.offerType=Device}]",
+	{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
+	{ok, Result} = ocs_rest_query_parser:parse(Tokens),
+	[{array, [Complex1]}] = Result,
+	{complex, [Contains, Exact]} = Complex1,
+	{"productOffering.category", contains, [Complex2]} = Contains,
+	{complex, [{"id", exact, "residential"}]} = Complex2,
+	{"productOffering.offerType", exact, "Device"} = Exact.
+
+parse_query7() ->
+	[{userdata, [{doc, "Query collection using 'contains' complex ANDing"}]}].
+
+parse_query7(_Config) ->
+	String = "[{productOffering.category.contains=[{id=residential}],"
+			"productOffering.productSpecification.id=iPhone}]",
+	{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
+	{ok, Result} = ocs_rest_query_parser:parse(Tokens),
+	[{array, [Complex1]}] = Result,
+	{complex, [Contains, Exact1]} = Complex1,
+	{"productOffering.category", contains, [Exact2]} = Contains,
+	{complex, [{"id", exact, "residential"}]} = Exact2,
+	{"productOffering.productSpecification.id", exact, "iPhone"} = Exact1.
+
+parse_query8() ->
+	[{userdata, [{doc, "Query collection using deep 'containsall' and 'contains'"}]}].
+
+parse_query8(_Config) ->
+	String = "[{productOffering.category.contains=[{id=residential}],"
+			"productOffering.productSpecification.characteristic.containsall="
+			"[{id=color,characteristicValue.contains=[{value.in=[red,blue]}]},"
+			"{id=brand,characteristicValue.contains=[{value=Apple}]}]}]",
+	{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
+	{ok, Result} = ocs_rest_query_parser:parse(Tokens),
+	[{array, [Complex1]}] = Result,
+	{complex, [Contains1, ContainsAll]} = Complex1,
+	{"productOffering.category",
+			contains, [Complex2]} = Contains1,
+	{complex, [{"id", exact, "residential"}]} = Complex2,
+	{"productOffering.productSpecification.characteristic",
+			containsall, [Complex3, Complex4]} = ContainsAll,
+	{complex, [Exact1, Contains2]} = Complex3,
+	{"id", exact, "color"} = Exact1,
+	{"characteristicValue", contains, [Complex5]} = Contains2,
+	{complex, [{"value", in, ["red", "blue"]}]} = Complex5,
+	{complex, [Exact2, Contains3]} = Complex4,
+	{"id", exact, "brand"} = Exact2,
+	{"characteristicValue", contains, [Complex6]} = Contains3,
+	{complex, [{"value", exact, "Apple"}]} = Complex6.
+
+parse_query9() ->
+	[{userdata, [{doc, "Query collection using multiple 'exact' and a 'contains'"}]}].
+
+parse_query9(_Config) ->
+	String = "[{productOffering.offerType=accessory,"
+			"productOffering.offerType=deviceCase,"
+			"productOffering.category.id=mobile,"
+			"productOffering.productOfferingRelationship.contains="
+			"[{target.Id=iphone6S}]}]",
+	{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
+	{ok, Result} = ocs_rest_query_parser:parse(Tokens),
+	[{array, [Complex1]}] = Result,
+	{complex, [Exact1, Exact2, Exact3, Contains]} = Complex1,
+	{"productOffering.offerType", exact, "accessory"} = Exact1,
+	{"productOffering.offerType", exact, "deviceCase"} = Exact2,
+	{"productOffering.category.id",exact,"mobile"} = Exact3,
+	{"productOffering.productOfferingRelationship",
+			contains, [Exact4]} = Contains,
+	{complex, [{"target.Id", exact, "iphone6S"}]} = Exact4.
 
 %%---------------------------------------------------------------------
 %%  Internal functions
