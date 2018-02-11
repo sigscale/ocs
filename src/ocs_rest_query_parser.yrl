@@ -34,7 +34,7 @@ Header
 "%%%    <li><tt>Tokens = [Token] </tt></li>"
 "%%%    <li><tt>Token = {Category, LineNumber, Symbol}"
 "%%%        | {Symbol, LineNumber}</tt></li>"
-"%%%    <li><tt>Category = string | number</tt></li>"
+"%%%    <li><tt>Category = word</tt></li>"
 "%%%    <li><tt>Symbol = '\"' | '[' | ']' | '{' | '}' | '.' | ','"
 "%%%        | Operator</tt></li>"
 "%%%    <li><tt>Result = {ok, Filters}"
@@ -62,7 +62,7 @@ Header
 
 Nonterminals param filters filter array complex field value values simple.
 
-Terminals '"' '[' ']' '{' '}' ',' '.' number string
+Terminals '"' '[' ']' '{' '}' ',' '.' word
 	exact notexact lt lte gt gte regex like notlike
 	in notin contains notcontain containsall.
 
@@ -87,23 +87,9 @@ filter -> complex :
 	'$1'.
 
 simple -> field exact value :
-	case '$3' of
-		"true" ->
-			{'$1', exact, true};
-		"false" ->
-			{'$1', exact, false};
-		Value ->
-			{'$1', exact, Value}
-	end.
+	{'$1', exact, '$3'}.
 simple -> field notexact value :
-	case '$3' of
-		"true" ->
-			{'$1', notexact, true};
-		"false" ->
-			{'$1', notexact, false};
-		Value ->
-			{'$1', notexact, Value}
-	end.
+	{'$1', exact, '$3'}.
 simple -> field lt value :
 	{'$1', lt, '$3'}.
 simple -> field lte value :
@@ -134,14 +120,12 @@ array -> '[' filters ']' :
 complex -> '{' filters '}' :
 	{complex, '$2'}.
 
-field -> string :
+field -> word :
 	element(3, '$1').
-field -> string '.' field :
+field -> word '.' field :
 	element(3, '$1') ++ "." ++ '$3'.
 
-value -> string :
-	element(3, '$1').
-value -> number :
+value -> word :
 	element(3, '$1').
 
 values -> value :

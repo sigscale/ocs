@@ -24,8 +24,7 @@
 %%% (<a href="https://projects.tmforum.org/jira/browse/AP-832">AP-832</a>).
 
 Definitions.
-String = [a-zA-Z]+[a-zA-Z0-9%]*
-Number = [0-9]*
+WORD = [^\.\[\]\{\}\,\"\*=<>]*
 
 Rules.
 \.exact= : {token, {exact, TokenLine}}.
@@ -48,8 +47,7 @@ Rules.
 > : {token, {gt, TokenLine}}.
 <> : {token, {notexact, TokenLine}}.
 = : {token, {exact, TokenLine}}.
-{String} : {token, {string, TokenLine, TokenChars}}.
-{Number} : {token, {number, TokenLine, list_to_integer(TokenChars)}}.
+{WORD} : {token, {word, TokenLine, TokenChars}}.
 \. : {token, {'.', TokenLine}}.
 \[ : {token, {'[', TokenLine}}.
 \] : {token, {']', TokenLine}}.
