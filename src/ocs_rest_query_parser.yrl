@@ -35,7 +35,7 @@ Header
 "%%%    <li><tt>Token = {Category, LineNumber, Symbol}"
 "%%%        | {Symbol, LineNumber}</tt></li>"
 "%%%    <li><tt>Category = string | number</tt></li>"
-"%%%    <li><tt>Symbol = '[' | ']' | '{' | '}' | '.' | ','"
+"%%%    <li><tt>Symbol = '\"' | '[' | ']' | '{' | '}' | '.' | ','"
 "%%%        | Operator</tt></li>"
 "%%%    <li><tt>Result = {ok, Filters}"
 "%%%        | {error, {LineNumber, Module, Message}}</tt></li>"
@@ -60,16 +60,19 @@ Header
 "%%%"
 .
 
-Nonterminals filters filter array complex field value values simple.
+Nonterminals param filters filter array complex field value values simple.
 
-Terminals '[' ']' '{' '}' ',' '.' number string
+Terminals '"' '[' ']' '{' '}' ',' '.' number string
 	exact notexact lt lte gt gte regex like notlike
 	in notin contains notcontain containsall.
 
-Rootsymbol filters.
+Rootsymbol param.
 
 Nonassoc 100 exact notexact lt lte gt gte regex like notlike
 	in notin contains notcontain containsall.
+
+param -> '"' filters '"' :
+	'$2'.
 
 filters -> filter :
 	['$1'].

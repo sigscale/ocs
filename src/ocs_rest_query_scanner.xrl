@@ -24,7 +24,7 @@
 %%% (<a href="https://projects.tmforum.org/jira/browse/AP-832">AP-832</a>).
 
 Definitions.
-String = [a-zA-Z]+[a-zA-Z0-9]*
+String = [a-zA-Z]+[a-zA-Z0-9%]*
 Number = [0-9]*
 
 Rules.
@@ -56,6 +56,7 @@ Rules.
 \{ : {token, {'{', TokenLine}}.
 \} : {token, {'}', TokenLine}}.
 \, : {token, {',', TokenLine}}.
+\" : {token, {'"', TokenLine}}.
 
 Erlang code.
 %%% @doc The lexical scanner.
