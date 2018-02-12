@@ -2595,20 +2595,35 @@ characteristic([{complex, L1} | T], Protocol, Types, ReqAttrs, RespAttrs) ->
 			throw({error, 400})
 	end;
 characteristic([], Protocol, Types, ReqAttrs, RespAttrs) ->
-	F = fun(L) when is_list(L) ->
-				lists:reverse(L);
-			(A) ->
-				A
-	end,
-	{Protocol, F(Types), F(ReqAttrs), F(RespAttrs)}.
+	{Protocol, rev(Types), rev(ReqAttrs), rev(RespAttrs)}.
 %% @hidden
 characteristic({"name", exact, "username"}, {"value", exact, UserName},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) ->
-	ReqAttrs2 = case ReqAttrs1 of
-		'_' ->
-			[{?UserName, UserName}];
-		L when is_list(L) ->
-			[{?UserName, UserName} | L]
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(UserName) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?UserName, {exact, UserName}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "username"}, {"value", like, Like1},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like1) ->
+	F = fun(L) ->
+				case lists:last(L) of
+					$% ->
+						lists:droplast(L);
+					_ ->
+						L
+				end
 	end,
+	Like2 = lists:map(F, Like1),
+	ReqAttrs2 = add_char(ReqAttrs1, {?UserName, {like, Like2}}),
 	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs).
+
+%% @hidden
+add_char('_', AttributeMatch) ->
+	[AttributeMatch];
+add_char(Attributes, AttributeMatch) when is_list(Attributes) ->
+	[AttributeMatch | Attributes].
+
+%% @hidden
+rev('_') ->
+	'_';
+rev(Attributes) when is_list(Attributes) ->
+	lists:reverse(Attributes).
 

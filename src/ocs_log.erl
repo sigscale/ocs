@@ -130,7 +130,12 @@ acct_close() ->
 		Type :: on | off | start | stop | interim | event,
 		AttrsMatch :: [{Attribute, Match}] | '_',
 		Attribute :: byte(),
-		Match :: term() | '_',
+		Match :: {exact, term()} | {notexact, term()}
+				| {lt, term()} | {lte, term()}
+				| {gt, term()} | {gte, term()}
+				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
+				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
+				| {notcontain, [term()]} | {containsall, [term()]} | '_',
 		Result :: {Continuation2, Events} | {error, Reason},
 		Continuation2 :: eof | disk_log:continuation(),
 		Events :: [acct_event()],
@@ -150,7 +155,12 @@ acct_query(Continuation, Start, End, Types, AttrsMatch) ->
 		Type :: on | off | start | stop | interim | event,
 		AttrsMatch :: [{Attribute, Match}] | '_',
 		Attribute :: byte(),
-		Match :: term() | '_',
+		Match :: {exact, term()} | {notexact, term()}
+				| {lt, term()} | {lte, term()}
+				| {gt, term()} | {gte, term()}
+				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
+				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
+				| {notcontain, [term()]} | {containsall, [term()]} | '_',
 		Result :: {Continuation2, Events} | {error, Reason},
 		Continuation2 :: eof | disk_log:continuation(),
 		Events :: [acct_event()],
@@ -163,8 +173,9 @@ acct_query(Continuation, Start, End, Types, AttrsMatch) ->
 %% 	the `Protocol' or one of the `Types', are ignored.
 %%
 %% 	Events which do not include `Attribute' in attributes are ignored.
-%% 	If `Match' is '_' any attribute value will match, otherwise events
-%% 	with attributes having a value not equal to `Match' will be ignored.
+%% 	If `Match' is '_' any attribute value will match or
+%% 	`{Operator, MatchValue}' may be used for more complex queries.
+%%
 %% 	All attribute filters must match or the event will be ignored.
 %%
 %% 	`Protocol', `Types', or `AttrsMatch' may be '_' which matches any value.
@@ -244,7 +255,12 @@ auth_log(Protocol, Server, Client, Request, Response) ->
 		ReqAttrsMatch :: [{Attribute, Match}] | '_',
 		RespAttrsMatch :: [{Attribute, Match}] | '_',
 		Attribute :: byte(),
-		Match :: term() | '_',
+		Match :: {exact, term()} | {notexact, term()}
+				| {lt, term()} | {lte, term()}
+				| {gt, term()} | {gte, term()}
+				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
+				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
+				| {notcontain, [term()]} | {containsall, [term()]} | '_',
 		Result :: {Continuation2, Events} | {error, Reason},
 		Continuation2 :: eof | disk_log:continuation(),
 		Events :: [auth_event()],
@@ -267,7 +283,12 @@ auth_query(Continuation, Start, End, Types, ReqAttrsMatch, RespAttrsMatch) ->
 		ReqAttrsMatch :: [{Attribute, Match}] | '_',
 		RespAttrsMatch :: [{Attribute, Match}] | '_',
 		Attribute :: byte(),
-		Match :: term() | '_',
+		Match :: {exact, term()} | {notexact, term()}
+				| {lt, term()} | {lte, term()}
+				| {gt, term()} | {gte, term()}
+				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
+				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
+				| {notcontain, [term()]} | {containsall, [term()]} | '_',
 		Result :: {Continuation2, Events} | {error, Reason},
 		Continuation2 :: eof | disk_log:continuation(),
 		Events :: [auth_event()],
@@ -277,13 +298,14 @@ auth_query(Continuation, Start, End, Types, ReqAttrsMatch, RespAttrsMatch) ->
 %% 	The first time called `Continuation' should have the value `start'.
 %%
 %% 	Events before `Start' or after `Stop' or which do not match
-%% 	the protocol or one of the `Types' are ignored.
+%% 	`Protocol' or one of the `Types' are ignored.
 %%
 %% 	Events which do not include `Attribute' in request or response
 %% 	attributes are ignored. If `Match' is '_' any attribute value
-%% 	will match, otherwise events with attributes having a value not
-%% 	equal to `Match' will be ignored. All attribute filters must
-%% 	match or the event will be ignored.
+%% 	will match or `{Operator, MatchValue}' may be used for more
+%% 	complex queries.
+%%
+%% 	All attribute filters must match or the event will be ignored.
 %%
 %% 	`Protocol', `Types', `ReqAttrsMatch' `ResAttrsMatch'  may be
 %% 	'_' which matches any value.
@@ -1637,7 +1659,7 @@ acct_query3([{_, _, _, _, _, _, Attributes} = H | T], AttrsMatch, Acc) ->
 acct_query3([], _AttrsMatch, Acc) ->
 	lists:reverse(Acc).
 %% @hidden
-acct_query4(Attributes, [{Attribute, Match} | T]) ->
+acct_query4(Attributes, [{Attribute, {exact, Match}} | T]) ->
 	case lists:keyfind(Attribute, 1, Attributes) of
 		{Attribute, Match1} when
 				(Match1 == Match) or (Match == '_') ->
@@ -1722,7 +1744,7 @@ auth_query4([{_, _, _, _, _, _, _, _, RespAttr} = H | T],
 auth_query4([], _RespAttrsMatch, Acc) ->
 	lists:reverse(Acc).
 %% @hidden
-auth_query5(Attributes, [{Attribute, Match} | T]) ->
+auth_query5(Attributes, [{Attribute, {exact, Match}} | T]) ->
 	case lists:keyfind(Attribute, 1, Attributes) of
 		{Attribute, Match1} when
 				(Match == Match1) or (Match == '_') ->
@@ -1730,7 +1752,21 @@ auth_query5(Attributes, [{Attribute, Match} | T]) ->
 		_ ->
 			false
 	end;
-auth_query5(Attributes, [_ | T]) ->
+auth_query5(Attributes, [{Attribute, {like, [H | T1]}} | T2]) ->
+	case lists:keyfind(Attribute, 1, Attributes) of
+		{Attribute, Value} ->
+			case lists:prefix(H, Value) of
+				true ->
+					auth_query5(Attributes, [{Attribute, {like, T1}} | T2]);
+				false ->
+					false
+			end;
+		_ ->
+			false
+	end;
+auth_query5(Attributes, [{Attribute, {like, []}} | T]) ->
+	auth_query5(Attributes, T);
+auth_query5(Attributes, [_H | T]) ->
 	auth_query5(Attributes, T);
 auth_query5(_Attributes, []) ->
 	true.
