@@ -2291,12 +2291,31 @@ query_start(Query, Filters, RangeStart, RangeEnd) ->
 %% @hidden
 query_start1({_, "AAAAccessUsage"}, Query,
 		Filters, RangeStart, RangeEnd, DateStart, DateEnd) ->
-	case supervisor:start_child(ocs_rest_pagination_sup,
-			[[ocs_log, auth_query, [DateStart, DateEnd, '_', '_', '_', '_']]]) of
-		{ok, PageServer, Etag} ->
-			query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
-		{error, _Reason} ->
-			{error, 500}
+	try
+		case lists:keyfind("filter", 1, Query) of
+			{_, String} ->
+				{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
+				case ocs_rest_query_parser:parse(Tokens) of
+					{ok, [{array, [{complex,
+							[{"usageCharacteristic", contains, Contains}]}]}]} ->
+						characteristic(Contains, '_', '_', '_', '_')
+				end;
+			false ->
+				{'_', '_', '_', '_'}
+		end
+	of
+		{Protocol, Types, ReqAttrs, RespAttrs} ->
+			Args = [DateStart, DateEnd, Protocol, Types, ReqAttrs, RespAttrs],
+			MFA = [ocs_log, auth_query, Args],
+			case supervisor:start_child(ocs_rest_pagination_sup, [MFA]) of
+				{ok, PageServer, Etag} ->
+					query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
+				{error, _Reason} ->
+					{error, 500}
+			end
+	catch
+		_ ->
+			{error, 400}
 	end;
 query_start1({_, "AAAAccountingUsage"}, Query,
 		Filters, RangeStart, RangeEnd, DateStart, DateEnd) ->
@@ -2560,4 +2579,36 @@ range(Year, Day, [_, _, $:, _, _, $:, _, _, $., _, _] = S) ->
 	ocs_log:iso8601(Year ++ Day ++ S ++ "9");
 range(Year, Day, [_, _, $:, _, _, $:, _, _, $., _, _ | _] = S) ->
 	ocs_log:iso8601(Year ++ Day ++ S).
+
+%% @hidden
+characteristic([{complex, L1} | T], Protocol, Types, ReqAttrs, RespAttrs) ->
+	case lists:keytake("name", 1, L1) of
+		{_, Name, L2} ->
+			case lists:keytake("value", 1, L2) of
+				{_, Value, []} ->
+					characteristic(Name, Value, T,
+							Protocol, Types, ReqAttrs, RespAttrs);
+				_ ->
+					throw({error, 400})
+			end;
+		false ->
+			throw({error, 400})
+	end;
+characteristic([], Protocol, Types, ReqAttrs, RespAttrs) ->
+	F = fun(L) when is_list(L) ->
+				lists:reverse(L);
+			(A) ->
+				A
+	end,
+	{Protocol, F(Types), F(ReqAttrs), F(RespAttrs)}.
+%% @hidden
+characteristic({"name", exact, "username"}, {"value", exact, UserName},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) ->
+	ReqAttrs2 = case ReqAttrs1 of
+		'_' ->
+			[{?UserName, UserName}];
+		L when is_list(L) ->
+			[{?UserName, UserName} | L]
+	end,
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs).
 
