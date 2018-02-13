@@ -20,7 +20,6 @@
 				ocs_diameter_disconnect_fsm_sup,
 				ocs_diameter_disconnect_fsm,
 				ocs_radius_acct_port_server,
-				ocs_diameter_acct_port_server,
 				ocs_radius_acct_port_sup,
 				ocs_diameter_acct_port_sup,
 				ocs_radius_acct_top_sup,

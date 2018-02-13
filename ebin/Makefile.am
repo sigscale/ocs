@@ -20,7 +20,6 @@ beam_DATA = ocs.beam \
 			ocs_diameter_disconnect_fsm_sup.beam\
 			ocs_diameter_disconnect_fsm.beam\
 			ocs_radius_acct_port_server.beam \
-			ocs_diameter_acct_port_server.beam \
 			ocs_radius_acct_port_sup.beam \
 			ocs_diameter_acct_port_sup.beam \
 			ocs_diameter_acct_top_sup.beam \
