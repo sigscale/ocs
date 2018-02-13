@@ -387,6 +387,10 @@
     "description": "User menu",
     "message": "Users"
   },
+	"usage": {
+    "description": "Usage",
+    "message": "Usage"
+  },
 	"AddUserTitle": {
     "description": "Title for add User",
     "message": "Add User"
@@ -866,6 +870,10 @@
 	"amountTransaction": {
     "description": "Transaction amount",
     "message": "Amount"
+  },
+	"dateTime": {
+    "description": "Date&Time",
+    "message": "Date & Time"
   },
    "productDeleted": {
     "description": "Success Toast Message",
