@@ -142,6 +142,7 @@
 				document.getElementById('usageSortDate').direction = null;
 				document.getElementById('usageSortUsername').direction = null;
 				delete this.$.getUsageAjax.params['filter'];
+				delete this.$.getUsageAjax.params['date'];
 				this.filterDate = null;
 				this.filterUsername= null;
 				//	this.$.usageGrid.clearCache();
@@ -149,6 +150,9 @@
 			_getUsage: function(params, callback) {
 				var grid = document.getElementById('usageGrid');
 				var ajax = document.getElementById('getUsageAjax');
+				delete ajax.params['date'];
+				delete ajax.params['status'];
+				delete ajax.params['filter'];
 				ajax.params['type'] = "AAAAccessUsage";
 				function checkHead(param) {
 					return param.path == "date" || param.path == "type" || param.path == "status";
@@ -156,33 +160,24 @@
 				var head;
 				params.filters.filter(checkHead).forEach(function(filter) {
 					if (filter.value) {
-						if (head) {
-							head = "," | filter.path + ".like=[" + filter.value + "%]";
-						} else {
-							head = filter.path + ".like=[" + filter.value + "%]";
-						}
+						ajax.params[filter.path] = filter.value;
 					}
 				});
 				function checkChar(param) {
 					return param.path != "date" && param.path != "type" && param.path != "status";
 				}
-				var characteristics;
 				params.filters.filter(checkChar).forEach(function(filter) {
 					if (filter.value) {
-							if (!characteristics) {
-								characteristics = "{usageCharacteristic.contains=[";
+							if (!ajax.params['filter']) {
+								ajax.params['filter'] = "\"[{usageCharacteristic.contains=[";
 							} else {
-								characteristics += ",";
+								ajax.params['filter'] += ",";
 							}
-							characteristics += "{name=" + filter.path + ",value.like=[" + filter.value + "%25]}";
+							ajax.params['filter'] += "{name=" + filter.path + ",value.like=[" + filter.value + "%25]}";
 					}
 				});
-				if (head && !characteristics) {
-					ajax.params['filter'] = "\"[" + head + "]\"";
-				} else if (head && characteristics) {
-					ajax.params['filter'] = "\"[" + head + "," + characteristics + "]}]\"";
-				} else if (!head && characteristics) {
-					ajax.params['filter'] = "\"[" + characteristics + "]}]\"";
+				if (ajax.params['filter']) {
+					ajax.params['filter'] += "]}]\"";
 				}
 				params.sortOrders.forEach(function(sort, index) {
 					var dirsort;
