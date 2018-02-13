@@ -32,11 +32,15 @@
 
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
+-include("../include/diameter_gen_ietf.hrl").
 -include("../include/diameter_gen_3gpp.hrl").
 -include("../include/diameter_gen_3gpp_ro_application.hrl").
 -include("ocs.hrl").
 
 -record(state, {}).
+
+-define(EPOCH_OFFSET, 2208988800).
+-define(RO_APPLICATION_ID, 4).
 
 -type state() :: #state{}.
 -type capabilities() :: #diameter_caps{}.
@@ -192,9 +196,7 @@ request(ServiceName, Capabilities, Request) ->
 request({_, Address, Port} = ServiceName, Capabilities, Request, [H | T]) ->
 	case ocs:find_client(H) of
 		{ok, #client{protocol = diameter}} ->
-			PortServer = global:whereis_name({ocs_diameter_acct, Address, Port}),
-			{reply, gen_server:call(PortServer,
-					{diameter_request, Capabilities, Request})};
+			{reply, process_request(Address, Port, Capabilities, Request)};
 		{error, not_found} ->
 			request(ServiceName, Capabilities, Request, T)
 	end;
@@ -256,4 +258,363 @@ errors(_ServiceName, _Capabilities, _Request, [{ResultCode, _} | _]) ->
 	{answer_message, ResultCode};
 errors(_ServiceName, _Capabilities, _Request, [ResultCode | _]) ->
 	{answer_message, ResultCode}.
+
+
+-spec process_request(Address, Port, Caps, Request) -> Result
+	when
+		Address :: inet:ip_address(),
+		Port :: inet:port_number(),
+		Request :: term(),
+		Caps :: capabilities(),
+		Result :: packet() | message().
+%% @doc Process a received DIAMETER Accounting packet.
+%% @private
+process_request(Address, Port, Caps, Request) ->
+	#diameter_caps{origin_host = {OHost, DHost}, origin_realm = {ORealm, DRealm}} = Caps,
+	#'3gpp_ro_CCR'{'Session-Id' = SId, 'User-Name' = NAISpecUName,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'Service-Context-Id' = _SvcContextId, 'CC-Request-Type' = RequestType,
+			'CC-Request-Number' = RequestNum, 'Subscription-Id' = SubscriptionIds} = Request,
+	try
+		Subscriber = case SubscriptionIds of
+			[#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = Sub} | _] ->
+				Sub;
+			[] ->
+				case NAISpecUName of
+					[] ->
+						throw(no_subscriber_identification_information);
+					NAI ->
+						[_, Username | _] = string:tokens(NAI, ":@"),%% proto:username@realm
+						Username
+				end
+		end,
+		process_request1(RequestType, Request, SId, RequestNum,
+				Subscriber, OHost, DHost, ORealm, DRealm, Address, Port)
+	catch
+		_:_Reason ->
+			generate_diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					OHost, ORealm, RequestType, RequestNum)
+	end.
+
+%% @hidden
+process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
+		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _],
+		'Service-Information' = ServiceInformation,
+		'Service-Context-Id' = SvcContextId,
+		'Event-Timestamp' = Timestamp} = Request, SId, RequestNum, Subscriber,
+		OHost, _DHost, ORealm, _DRealm, Address, Port) ->
+	RSU =  case MSCC of
+		#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit' =
+				[RequestedServiceUnits | _]} ->
+			RequestedServiceUnits;
+		_ ->
+			throw(multiple_service_credit_control_avp_not_available)
+	end,
+	{ReqUsageType, ReqUsage} = case RSU of
+		#'3gpp_ro_Requested-Service-Unit'{'CC-Time' = [CCTime]} when
+				CCTime =/= [] ->
+			{seconds, CCTime};
+		#'3gpp_ro_Requested-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets]} ->
+			{octets, CCTotalOctets};
+		#'3gpp_ro_Requested-Service-Unit'{'CC-Output-Octets' = [CCOutputOctets],
+				'CC-Input-Octets' = [CCInputOctets]} when is_integer(CCInputOctets),
+				is_integer(CCOutputOctets) ->
+			{octets, CCOutputOctets + CCOutputOctets};
+		_ ->
+			throw(unsupported_request_units)
+	end,
+	Destination = call_destination(ServiceInformation),
+	ReserveAmount = [{ReqUsageType, ReqUsage}],
+	ServiceType = service_type(SvcContextId),
+	case ocs_rating:rate(diameter, ServiceType, Subscriber, Timestamp,
+			Destination, originate, initial, [], ReserveAmount, [{'Session-Id', SId}]) of
+		{ok, _, GrantedAmount} ->
+			GrantedUnits = case ReqUsageType of
+				seconds ->
+					#'3gpp_ro_Granted-Service-Unit'{'CC-Time' = [GrantedAmount]};
+				octets ->
+					#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [GrantedAmount]}
+			end,
+			generate_diameter_answer(Request, SId, GrantedUnits,
+					?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
+					RequestType, RequestNum, Address, Port);
+		{out_of_credit, _SessionList} ->
+			generate_diameter_answer(Request, SId, undefined,
+					?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
+					ORealm, RequestType, RequestNum, Address, Port);
+		{disabled, _SessionList} ->
+			generate_diameter_answer(Request, SId,
+					undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
+					ORealm, RequestType, RequestNum, Address, Port);
+		{error, subscriber_not_found} ->
+			generate_diameter_error(SId, ?'IETF_RESULT-CODE_USER_UNKNOWN',
+					OHost, ORealm, RequestType, RequestNum);
+		{error, Reason} ->
+			error_logger:error_report(["Rating Error",
+					{module, ?MODULE}, {error, Reason},
+					{origin_host, OHost}, {origin_realm, ORealm},
+					{type, initial}, {subscriber, Subscriber},
+					{destination, Destination}, {reservation, ReserveAmount}]),
+			generate_diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
+					OHost, ORealm, RequestType, RequestNum)
+	end;
+process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
+		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _],
+		'Service-Information' = ServiceInformation,
+		'Service-Context-Id' = SvcContextId,
+		'Event-Timestamp' = Timestamp} = Request, SId, RequestNum, Subscriber,
+		OHost, _DHost, ORealm, _DRealm, Address, Port) ->
+	try
+		RSU =  case MSCC of
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit' =
+					[RequestedServiceUnits | _]} ->
+				RequestedServiceUnits;
+			_ ->
+				throw(multiple_service_credit_control_avp_not_available)
+		end,
+		{ReqUsageType, ReqUsage} = case RSU of
+			#'3gpp_ro_Requested-Service-Unit'{'CC-Time' = [CCTime]} when
+					CCTime =/= [] ->
+				{seconds, CCTime};
+			#'3gpp_ro_Requested-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets]} ->
+				{octets, CCTotalOctets};
+			#'3gpp_ro_Requested-Service-Unit'{'CC-Output-Octets' = [CCOutputOctets],
+					'CC-Input-Octets' = [CCInputOctets]} when is_integer(CCInputOctets),
+					is_integer(CCOutputOctets) ->
+				{octets, CCOutputOctets + CCOutputOctets};
+			_ ->
+				throw(unsupported_request_units)
+		end,
+		USU =  case MSCC of
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit' =
+					[UsedServiceUnit | _]} ->
+				UsedServiceUnit;
+			_ ->
+				throw(multiple_service_credit_control_avp_not_available)
+		end,
+		{UsedType, UsedUsage} = case USU of
+			#'3gpp_ro_Used-Service-Unit'{'CC-Time' = [UsedCCTime]} when UsedCCTime =/= [] ->
+				{seconds, UsedCCTime};
+			#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [UsedCCTotalOctets]} ->
+				{octets, UsedCCTotalOctets};
+			#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets' = [UsedCCOutputOctets],
+					'CC-Input-Octets' = [UsedCCInputOctets]} when is_integer(UsedCCInputOctets),
+					is_integer(UsedCCOutputOctets) ->
+				{octets, UsedCCInputOctets + UsedCCOutputOctets};
+			[] ->
+				throw(used_amount_not_available)
+		end,
+		Destination = call_destination(ServiceInformation),
+		ReserveAmount = [{ReqUsageType, ReqUsage}],
+		DebitAmount = [{UsedType, UsedUsage}],
+		ServiceType = service_type(SvcContextId),
+		case ocs_rating:rate(diameter, ServiceType, Subscriber, Timestamp,
+				Destination, originate, interim, DebitAmount, ReserveAmount, [{'Session-Id', SId}]) of
+			{ok, _, GrantedAmount} ->
+				GrantedUnits = case ReqUsageType of
+					seconds ->
+						#'3gpp_ro_Granted-Service-Unit'{'CC-Time' = [GrantedAmount]};
+					octets ->
+						#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [GrantedAmount]}
+				end,
+				generate_diameter_answer(Request, SId,
+						GrantedUnits, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
+						RequestType, RequestNum, Address, Port);
+			{out_of_credit, _SessionList} ->
+				generate_diameter_answer(Request, SId,
+						undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
+						ORealm, RequestType, RequestNum, Address, Port);
+			{disabled, _SessionList} ->
+				generate_diameter_answer(Request, SId,
+						undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
+						ORealm, RequestType, RequestNum, Address, Port);
+			{error, subscriber_not_found} ->
+				generate_diameter_error(SId, ?'IETF_RESULT-CODE_USER_UNKNOWN',
+						OHost, ORealm, RequestType, RequestNum);
+			{error, Reason} ->
+				error_logger:error_report(["Rating Error",
+						{module, ?MODULE}, {error, Reason},
+						{origin_host, OHost}, {origin_realm, ORealm},
+						{type, interim}, {subscriber, Subscriber},
+						{destination, Destination}, {reservation, ReserveAmount},
+						{used, DebitAmount}]),
+				generate_diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
+						OHost, ORealm, RequestType, RequestNum)
+		end
+	catch
+		_:_Reason1 ->
+			generate_diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
+					OHost, ORealm, RequestType, RequestNum)
+	end;
+process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
+		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _],
+		'Service-Information' = ServiceInformation,
+		'Service-Context-Id' = SvcContextId,
+		'Event-Timestamp' = Timestamp} = Request, SId, RequestNum, Subscriber,
+		OHost, _DHost, ORealm, _DRealm, Address, Port) ->
+	try
+		USU =  case MSCC of
+			#'3gpp_ro_Multiple-Services-Credit-Control'{'Used-Service-Unit' =
+					[UsedServiceUnit | _]} ->
+				UsedServiceUnit;
+			_ ->
+				throw(multiple_service_credit_control_avp_not_available)
+		end,
+		{UsedType, UsedUsage} = case USU of
+			#'3gpp_ro_Used-Service-Unit'{'CC-Time' = [CCTime]} when CCTime =/= [] ->
+				{seconds, CCTime};
+			#'3gpp_ro_Used-Service-Unit'{'CC-Total-Octets' = [CCTotalOctets]} ->
+				{octets, CCTotalOctets};
+			#'3gpp_ro_Used-Service-Unit'{'CC-Output-Octets' = [CCOutputOctets],
+					'CC-Input-Octets' = [CCInputOctets]} when is_integer(CCInputOctets),
+					is_integer(CCOutputOctets) ->
+				{octets, CCInputOctets + CCOutputOctets};
+			[] ->
+				throw(used_amount_not_available)
+		end,
+		Destination = call_destination(ServiceInformation),
+		DebitAmount = [{UsedType, UsedUsage}],
+		ServiceType = service_type(SvcContextId),
+		case ocs_rating:rate(diameter, ServiceType, Subscriber, Timestamp,
+				Destination, originate, final, DebitAmount, [], [{'Session-Id', SId}]) of
+			{ok, _, 0} ->
+				generate_diameter_answer(Request, SId,
+						undefined, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
+						RequestType, RequestNum, Address, Port);
+			{out_of_credit, _SessionList} ->
+				generate_diameter_answer(Request, SId,
+						undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
+						ORealm, RequestType, RequestNum, Address, Port);
+			{disabled, _SessionList} ->
+				generate_diameter_answer(Request, SId,
+						undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
+						ORealm, RequestType, RequestNum, Address, Port);
+			{error, subscriber_not_found} ->
+				generate_diameter_error(SId, ?'IETF_RESULT-CODE_USER_UNKNOWN',
+						OHost, ORealm, RequestType, RequestNum);
+			{error, Reason} ->
+				error_logger:error_report(["Rating Error",
+						{module, ?MODULE}, {error, Reason},
+						{origin_host, OHost}, {origin_realm, ORealm},
+						{type, final}, {subscriber, Subscriber},
+						{destination, Destination}, {used, DebitAmount}]),
+				generate_diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
+						OHost, ORealm, RequestType, RequestNum)
+		end
+	catch
+		_:_Reason1 ->
+			generate_diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY', OHost,
+					ORealm, RequestType, RequestNum)
+	end.
+
+-spec generate_diameter_answer(Request, SessionId, GrantedUnits,
+		ResultCode, OriginHost, OriginRealm, RequestType, RequestNum,
+		Address, Port) -> Result
+			when
+				Request :: #'3gpp_ro_CCR'{},
+				SessionId :: string(),
+				GrantedUnits :: undefined | #'3gpp_ro_Granted-Service-Unit'{},
+				ResultCode :: integer(),
+				OriginHost :: string(),
+				OriginRealm :: string(),
+				RequestType :: integer(),
+				RequestNum :: integer(),
+				Address :: inet:ip_address(),
+				Port :: inet:port(),
+				Result :: #'3gpp_ro_CCA'{}.
+%% @doc Send CCA to DIAMETER client indicating a successful operation.
+%% @hidden
+generate_diameter_answer(Request, SId, undefined,
+		?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost, ORealm,
+		RequestType, RequestNum, Address, Port) ->
+	Reply = #'3gpp_ro_CCA'{'Session-Id' = SId,
+			'Result-Code' = ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED',
+			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID, 'CC-Request-Type' = RequestType,
+			'CC-Request-Number' = RequestNum},
+	Server = {Address, Port},
+	ok = ocs_log:acct_log(diameter, Server,
+			accounting_event_type(RequestType), Request, Reply),
+	Reply;
+generate_diameter_answer(Request, SId, undefined, ResultCode, OHost,
+		ORealm, RequestType, RequestNum, Address, Port) ->
+	Reply = #'3gpp_ro_CCA'{'Session-Id' = SId, 'Result-Code' = ResultCode,
+			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID, 'CC-Request-Type' = RequestType,
+			'CC-Request-Number' = RequestNum},
+	Server = {Address, Port},
+	ok = ocs_log:acct_log(diameter, Server,
+			accounting_event_type(RequestType), Request, Reply),
+	Reply;
+generate_diameter_answer(Request, SId, GrantedUnits, ResultCode, OHost,
+		ORealm, RequestType, RequestNum, Address, Port) ->
+	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Granted-Service-Unit' = [GrantedUnits]},
+	Reply = #'3gpp_ro_CCA'{'Session-Id' = SId, 'Result-Code' = ResultCode,
+			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID, 'CC-Request-Type' = RequestType,
+			'CC-Request-Number' = RequestNum,
+			'Multiple-Services-Credit-Control' = [MultiServices_CC]},
+	Server = {Address, Port},
+	ok = ocs_log:acct_log(diameter, Server,
+			accounting_event_type(RequestType), Request, Reply),
+	Reply.
+
+-spec generate_diameter_error(SessionId, ResultCode, OriginHost,
+		OriginRealm, RequestType, RequestNum) -> Reply
+	when
+		SessionId :: string(),
+		ResultCode :: integer(),
+		OriginHost :: string(),
+		OriginRealm :: string(),
+		RequestType :: integer(),
+		RequestNum :: integer(),
+		Reply :: #'3gpp_ro_CCA'{}.
+%% @doc Send CCA to DIAMETER client indicating an operation failure.
+%% @hidden
+generate_diameter_error(SId, ResultCode, OHost, ORealm, RequestType, RequestNum) ->
+	Reply = #'3gpp_ro_CCA'{'Session-Id' = SId, 'Result-Code' = ResultCode,
+			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID, 'CC-Request-Type' = RequestType,
+			'CC-Request-Number' = RequestNum},
+	Reply.
+
+-spec accounting_event_type(RequestType) -> EventType
+	when
+	RequestType :: 1..4,
+	EventType :: start | interim | stop | event.
+%% @doc Converts CC-Request-Type integer value to a readable atom.
+accounting_event_type(1) -> start;
+accounting_event_type(2) -> interim;
+accounting_event_type(3) -> stop.
+
+%% @hidden
+call_destination([#'3gpp_ro_Service-Information'{'IMS-Information' = ImsInfo}]) ->
+	call_destination(ImsInfo);
+call_destination([#'3gpp_ro_IMS-Information'{'Called-Party-Address' = [CalledParty]}]) ->
+	destination(CalledParty);
+call_destination(_) ->
+	undefined.
+
+%% @hidden
+destination(<<"tel:", Dest/binary>>) ->
+	binary_to_list(Dest);
+destination(Dest) ->
+	binary_to_list(Dest).
+
+%% @hidden
+service_type(Id) ->
+	% allow ".3gpp.org" or the proper "@3gpp.org"
+	case binary:part(Id, size(Id), -8) of
+		<<"3gpp.org">> ->
+			ServiceContext = binary:part(Id, byte_size(Id) - 14, 5),
+			case catch binary:decode_unsigned(ServiceContext) of
+				{'EXIT', _} ->
+					undefined;
+				SeviceType ->
+					SeviceType
+			end;
+		_ ->
+			undefined
+	end.
 
