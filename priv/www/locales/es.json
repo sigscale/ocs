@@ -331,6 +331,10 @@
     "description": "user for logs",
     "message": "Usuario"
   },
+	"usage": {
+    "description": "Usage",
+    "message": "Uso"
+  },
 	"method": {
     "description": "Method for logs",
     "message": "Método"
@@ -882,6 +886,10 @@
 	"amountTransaction": {
     "description": "Transaction amount",
     "message": "Cantidad"
+  },
+	"dateTime": {
+    "description": "Date&Time",
+    "message": "Fecha y hora"
   },
    "productDeleted": {
     "description": "Success Toast Message",

@@ -39,22 +39,13 @@
 %% @private
 %%
 init([Address, Port, Options]) ->
-	ChildSpecs = [server(ocs_diameter_acct_port_server, Address, Port, Options),
-		supervisor(ocs_diameter_disconnect_fsm_sup, []),
+	ChildSpecs = [supervisor(ocs_diameter_disconnect_fsm_sup, []),
 		supervisor(ocs_diameter_acct_service_fsm_sup, [Address, Port, Options])],
 	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
-
-%% @hidden
-server(StartMod, Address, Port, Options) ->
-	GlobalName = {ocs_diameter_acct, Address, Port},
-	Args = [self(), Address, Port, Options],
-	StartArgs = [{global, GlobalName}, StartMod, Args, []],
-	StartFunc = {gen_server, start_link, StartArgs},
-	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
 
 %% @hidden
 supervisor(StartMod, StartArgs) ->

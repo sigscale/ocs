@@ -94,6 +94,21 @@ init([Address, Port, Options] = _Args) ->
 				{ok, Ref} ->
 					StateData = #statedata{transport_ref = Ref, address = Address,
 							port = Port, options = Options},
+					init1(StateData);
+				{error, Reason} ->
+					{stop, Reason}
+			end;
+		{error, Reason} ->
+			{stop, Reason}
+	end.
+
+%% @hidden
+init1(StateData) ->
+	case ocs_log:acct_open() of
+		ok ->
+			case ocs_log:abmf_open() of
+				ok ->
+					process_flag(trap_exit, true),
 					{ok, wait_for_start, StateData, 0};
 				{error, Reason} ->
 					{stop, Reason}
@@ -252,7 +267,8 @@ terminate(_Reason, _StateName,  #statedata{transport_ref = TransRef,
 	SvcName = ?DIAMETER_ACCT_SERVICE(Address, Port),
 	case diameter:remove_transport(SvcName, TransRef) of
 		ok ->
-			diameter:stop_service(SvcName);
+			diameter:stop_service(SvcName),
+			ocs_log:acct_close();
 		{error, Reason} ->
 			{error, Reason}
 	end.

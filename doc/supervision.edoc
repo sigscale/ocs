@@ -16,6 +16,6 @@ implementing the behaviour.  For supervisors the <tt>sup_flags()</tt> are
 also provided as
 <tt>{RestartStrategy::strategy(), Intensity::integer(), Period::integer()}</tt>.
 
-<a href="https://docs.google.com/a/sigscale.com/drawings/d/1neQqfvP3VJRgrlUHhDYZWJGAqs7dI2OsjCqzETKHIxk/edit?usp=sharing"><img alt="supervision heirachy" src="supervision.png" /></a><br />
+<a href="https://docs.google.com/drawings/d/1neQqfvP3VJRgrlUHhDYZWJGAqs7dI2OsjCqzETKHIxk/edit?usp=sharing"><img alt="supervision heirachy" src="supervision.png" /></a><br />
 <a href="supervision.png">Figure 1-1</a>
 
