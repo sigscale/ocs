@@ -157,9 +157,9 @@
 				params.filters.filter(checkHead).forEach(function(filter) {
 					if (filter.value) {
 						if (head) {
-							head = "," | filter.path + "=" + filter.value;
+							head = "," | filter.path + ".like=[" + filter.value + "%]";
 						} else {
-							head = filter.path + "=" + filter.value;
+							head = filter.path + ".like=[" + filter.value + "%]";
 						}
 					}
 				});
