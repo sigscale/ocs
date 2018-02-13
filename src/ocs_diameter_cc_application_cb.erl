@@ -165,42 +165,6 @@ handle_request(#diameter_packet{errors = [ResultCode | _]}, _, _) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec send_to_port_server(Svc, Caps, Request) -> Action
-	when
-		Svc :: atom(),
-		Caps :: capabilities(),
-		Request :: message(),
-		Action :: Reply | {relay, [Opt]} | discard
-			| {eval|eval_packet, Action, PostF},
-		Reply :: {reply, packet() | message()}
-			| {answer_message, 3000..3999|5000..5999}
-			| {protocol_error, 3000..3999},
-		Opt :: diameter:call_opt(),
-		PostF :: diameter:evaluable().
-%% @doc Locate ocs_diameter_acct_port_server process and send it
-%% peer's capabilities and diameter request.
-%% @hidden
-send_to_port_server(Svc, Caps, Request) ->
-	[Info] = diameter:service_info(Svc, transport),
-	case lists:keyfind(options, 1, Info) of
-		{options, Options} ->
-			case lists:keyfind(transport_config, 1, Options) of
-				{transport_config, [_, {ip, IP}, {port, Port}]} ->
-					case global:whereis_name({ocs_diameter_acct, IP, Port}) of
-						undefined ->
-							discard;
-						PortServer ->
-							Answer = gen_server:call(PortServer,
-									{diameter_request, Caps, Request}),
-							{reply, Answer}
-					end;
-				false ->
-					discard
-			end;
-		false ->
-			discard
-	end.
-
 -spec is_client_authorized(Svc, Caps, Request) -> Action
 	when
 		Svc :: atom(),
@@ -225,7 +189,7 @@ is_client_authorized(SvcName, Caps, Req) ->
 		true
 	of
 		true ->
-			send_to_port_server(SvcName, Caps, Req)
+			{answer_message, 5012}
 	catch
 		_ : _ ->
 			{answer, 3010}
