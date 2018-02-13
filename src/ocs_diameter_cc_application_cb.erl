@@ -180,7 +180,7 @@ handle_request(#diameter_packet{errors = [ResultCode | _]}, _, _) ->
 %% @doc Checks DIAMETER client's identity present in Host-IP-Address AVP in
 %% CER message against identities in client table.
 %% @hidden
-is_client_authorized(SvcName, Caps, Req) ->
+is_client_authorized(_SvcName, Caps, _Req) ->
 	try
 		HostIPAddresses = Caps#diameter_caps.host_ip_address,
 		{ClientIPs, _} = HostIPAddresses,
