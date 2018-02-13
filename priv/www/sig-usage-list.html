@@ -150,24 +150,39 @@
 				var grid = document.getElementById('usageGrid');
 				var ajax = document.getElementById('getUsageAjax');
 				ajax.params['type'] = "AAAAccessUsage";
-				var characteristics;
-				params.filters.forEach(function(filter) {
+				function checkHead(param) {
+					return param.path == "date" || param.path == "type" || param.path == "status";
+				}
+				var head;
+				params.filters.filter(checkHead).forEach(function(filter) {
 					if (filter.value) {
-						if (!characteristics) {
-							characteristics = "\"[{usageCharacteristic.contains=[";
+						if (head) {
+							head = "," | filter.path + "=" + filter.value;
 						} else {
-							characteristics += ",";
+							head = filter.path + "=" + filter.value;
 						}
-						characteristics += "{name=";
-						characteristics += filter.path;
-						characteristics += ",value.like=[";
-						characteristics += filter.value;
-						characteristics += "%25]}";
 					}
 				});
-				if (characteristics) {
-					characteristics += "]}]\"";
-					ajax.params['filter'] = characteristics;
+				function checkChar(param) {
+					return param.path != "date" && param.path != "type" && param.path != "status";
+				}
+				var characteristics;
+				params.filters.filter(checkChar).forEach(function(filter) {
+					if (filter.value) {
+							if (!characteristics) {
+								characteristics = "{usageCharacteristic.contains=[";
+							} else {
+								characteristics += ",";
+							}
+							characteristics += "{name=" + filter.path + ",value.like=[" + filter.value + "%25]}";
+					}
+				});
+				if (head && !characteristics) {
+					ajax.params['filter'] = "\"[" + head + "]\"";
+				} else if (head && characteristics) {
+					ajax.params['filter'] = "\"[" + head + "," + characteristics + "]}]\"";
+				} else if (!head && characteristics) {
+					ajax.params['filter'] = "\"[" + characteristics + "]}]\"";
 				}
 				params.sortOrders.forEach(function(sort, index) {
 					var dirsort;
