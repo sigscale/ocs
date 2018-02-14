@@ -1,3 +1,15 @@
+2018-02-14  Vance Shipley <vances@sigscale.org>
+
+	* extended attribute query syntax for logs
+	* fixed ipdr log rotation and file selection modal
+	* diameter supervision rationalization
+	* scanner/parser for tmf advanced attributes query patterns
+	* correct get accumulated (cents) balance api
+	* corrections for time-of-day prices
+	* refactor session id handling
+	* add balance activity logger and ui view
+	* improvements to accounting log view
+
 2018-01-25  Vance Shipley <vances@sigscale.org>
 
 	* diamater ps-information handling
