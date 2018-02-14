@@ -1354,15 +1354,9 @@ spec_attr_service_type() ->
 	Name = {"name", "serviceType"},
 	Desc = {"description", "Service-Type attribute"},
 	Conf = {"configurable", true},
-	Typ = {"valueType", "String"},
-	Def = {"default", true},
-	Val1 = {"value", "framed"},
-	Value1 = {struct, [Typ, Def, Val1]},
-	Val2 = {"value", "administrative"},
-	Value2 = {struct, [Typ, Def, Val2]},
-	Val3 = {"value", "authenticate-only"},
-	Value3 = {struct, [Typ, Def, Val3]},
-	Value = {"usageSpecCharacteristicValue", {array, [Value1, Value2, Value3]}},
+	Typ = {"valueType", "Number"},
+	Value1 = {struct, [Typ]},
+	Value = {"usageSpecCharacteristicValue", {array, [Value1]}},
 	{struct, [Name, Desc, Conf, Value]}.
 
 %% @hidden
@@ -1404,18 +1398,9 @@ spec_attr_framed_routing() ->
 	Name = {"name", "framedRouting"},
 	Desc = {"description", "Framed-Routing attribute"},
 	Conf = {"configurable", true},
-	Typ = {"valueType", "String"},
-	Def = {"default", true},
-	Val1 = {"value", "none"},
-	Value1 = {struct, [Typ, Def, Val1]},
-	Val2 = {"value", "send-routing-packets"},
-	Value2 = {struct, [Typ, Def, Val2]},
-	Val3 = {"value", "listen-for-routing-packets"},
-	Value3 = {struct, [Typ, Def, Val3]},
-	Val4 = {"value", "send-and-listen"},
-	Value4 = {struct, [Typ, Def, Val4]},
-	Value = {"usageSpecCharacteristicValue",
-			{array, [Value1, Value2, Value3, Value4]}},
+	Typ = {"valueType", "Number"},
+	Value1 = {struct, [Typ]},
+	Value = {"usageSpecCharacteristicValue", {array, [Value1]}},
 	{struct, [Name, Desc, Conf, Value]}.
 
 %% @hidden
@@ -1830,17 +1815,7 @@ char_attr_nas_port(Attributes, Acc) ->
 char_attr_service_type(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?ServiceType, Attributes) of
 		{ok, Value} ->
-			Type = case Value of
-				2 ->
-					"framed";
-				6 ->
-					"administrative";
-				8 ->
-					"authenticate-only";
-				N ->
-					N
-			end,
-			[{struct, [{"name", "serviceType"}, {"value", Type}]} | Acc];
+			[{struct, [{"name", "serviceType"}, {"value", Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1882,19 +1857,7 @@ char_attr_framed_netmask(Attributes, Acc) ->
 char_attr_framed_routing(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?FramedRouting, Attributes) of
 		{ok, Value} ->
-			Routing = case Value of
-				0 ->
-					"none";
-				1 ->
-					"send-routing-packets";
-				2 ->
-					"listen-for-routing-packets";
-				3 ->
-					"send-and-listen";
-				N ->
-					N
-			end,
-			[{struct, [{"name", "framedIpNetmask"}, {"value", Routing}]} | Acc];
+			[{struct, [{"name", "framedIpNetmask"}, {"value", Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
