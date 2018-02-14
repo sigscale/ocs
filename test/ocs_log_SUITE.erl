@@ -479,7 +479,8 @@ auth_query(_Config) ->
 			accept, ReqAttrs, RespAttrs),
 	ok = fill_auth(rand:uniform(2000)),
 	End = erlang:system_time(?MILLISECOND),
-	MatchReq = [{?UserName, Username}, {?NasIdentifier, NasIdentifier}],
+	MatchReq = [{?UserName, {exact, Username}},
+			{?NasIdentifier, {exact, NasIdentifier}}],
 	Fget = fun(_F, {eof, Events}, Acc) ->
 				lists:flatten(lists:reverse([Events | Acc]));
 			(F, {Cont, Events}, Acc) ->
@@ -523,7 +524,8 @@ acct_query(_Config) ->
 	ok = ocs_log:acct_log(radius, Server, stop, Attrs),
 	ok = fill_acct(rand:uniform(2000)),
 	End = erlang:system_time(?MILLISECOND),
-	MatchReq = [{?UserName, Username}, {?NasIdentifier, NasIdentifier}],
+	MatchReq = [{?UserName, {exact, Username}},
+			{?NasIdentifier, {exact, NasIdentifier}}],
 	Fget = fun(_F, {eof, Events}, Acc) ->
 				lists:flatten(lists:reverse([Events | Acc]));
 			(F, {Cont, Events}, Acc) ->
