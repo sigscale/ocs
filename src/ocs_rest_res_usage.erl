@@ -1354,9 +1354,15 @@ spec_attr_service_type() ->
 	Name = {"name", "serviceType"},
 	Desc = {"description", "Service-Type attribute"},
 	Conf = {"configurable", true},
-	Typ = {"valueType", "Number"},
-	Value1 = {struct, [Typ]},
-	Value = {"usageSpecCharacteristicValue", {array, [Value1]}},
+	Typ = {"valueType", "String"},
+	Def = {"default", true},
+	Val1 = {"value", "framed"},
+	Value1 = {struct, [Typ, Def, Val1]},
+	Val2 = {"value", "administrative"},
+	Value2 = {struct, [Typ, Def, Val2]},
+	Val3 = {"value", "authenticate-only"},
+	Value3 = {struct, [Typ, Def, Val3]},
+	Value = {"usageSpecCharacteristicValue", {array, [Value1, Value2, Value3]}},
 	{struct, [Name, Desc, Conf, Value]}.
 
 %% @hidden
@@ -1398,9 +1404,18 @@ spec_attr_framed_routing() ->
 	Name = {"name", "framedRouting"},
 	Desc = {"description", "Framed-Routing attribute"},
 	Conf = {"configurable", true},
-	Typ = {"valueType", "Number"},
-	Value1 = {struct, [Typ]},
-	Value = {"usageSpecCharacteristicValue", {array, [Value1]}},
+	Typ = {"valueType", "String"},
+	Def = {"default", true},
+	Val1 = {"value", "none"},
+	Value1 = {struct, [Typ, Def, Val1]},
+	Val2 = {"value", "send-routing-packets"},
+	Value2 = {struct, [Typ, Def, Val2]},
+	Val3 = {"value", "listen-for-routing-packets"},
+	Value3 = {struct, [Typ, Def, Val3]},
+	Val4 = {"value", "send-and-listen"},
+	Value4 = {struct, [Typ, Def, Val4]},
+	Value = {"usageSpecCharacteristicValue",
+			{array, [Value1, Value2, Value3, Value4]}},
 	{struct, [Name, Desc, Conf, Value]}.
 
 %% @hidden
@@ -1815,7 +1830,17 @@ char_attr_nas_port(Attributes, Acc) ->
 char_attr_service_type(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?ServiceType, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "serviceType"}, {"value", Value}]} | Acc];
+			Type = case Value of
+				2 ->
+					"framed";
+				6 ->
+					"administrative";
+				8 ->
+					"authenticate-only";
+				N ->
+					N
+			end,
+			[{struct, [{"name", "serviceType"}, {"value", Type}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -1857,7 +1882,19 @@ char_attr_framed_netmask(Attributes, Acc) ->
 char_attr_framed_routing(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?FramedRouting, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "framedIpNetmask"}, {"value", Value}]} | Acc];
+			Routing = case Value of
+				0 ->
+					"none";
+				1 ->
+					"send-routing-packets";
+				2 ->
+					"listen-for-routing-packets";
+				3 ->
+					"send-and-listen";
+				N ->
+					N
+			end,
+			[{struct, [{"name", "framedIpNetmask"}, {"value", Routing}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
@@ -2564,19 +2601,246 @@ characteristic({"name", exact, "username"}, {"value", exact, UserName},
 		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(UserName) ->
 	ReqAttrs2 = add_char(ReqAttrs1, {?UserName, {exact, UserName}}),
 	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
-characteristic({"name", exact, "username"}, {"value", like, Like1},
-		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like1) ->
-	F = fun(L) ->
-				case lists:last(L) of
-					$% ->
-						lists:droplast(L);
-					_ ->
-						L
-				end
-	end,
-	Like2 = lists:map(F, Like1),
-	ReqAttrs2 = add_char(ReqAttrs1, {?UserName, {like, Like2}}),
+characteristic({"name", exact, "username"}, {"value", like, Like},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?UserName, {like, like(Like)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "nasIpAddress"}, {"value", exact, NasIp},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(NasIp) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?NasIpAddress, {exact, NasIp}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "nasIpAddress"}, {"value", like, Like},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?NasIpAddress, {like, like(Like)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "nasPort"}, {"value", Op, NasPort},
+		T, Protocol, Types, ReqAttrs1, RespAttrs)
+		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?NasPort, {Op, list_to_integer(NasPort)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "serviceType"}, {"value", Op, ServiceType},
+		T, Protocol, Types, ReqAttrs1, RespAttrs)
+		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?ServiceType, {Op, list_to_integer(ServiceType)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "framedIpAddress"}, {"value", exact, FramedIp},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(FramedIp) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?FramedIpAddress, {exact, FramedIp}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "framedIpAddress"}, {"value", like, Like},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?FramedIpAddress, {like, like(Like)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "framedPool"}, {"value", exact, FramedPool},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(FramedPool) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?FramedPool, {exact, FramedPool}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "framedPool"}, {"value", like, Like},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?FramedPool, {like, like(Like)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "framedIpNetmask"}, {"value", exact, FramedIpNet},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(FramedIpNet) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?FramedIpNetmask, {exact, FramedIpNet}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "framedIpNetmask"}, {"value", like, Like},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?FramedIpNetmask, {like, like(Like)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "framedRouting"}, {"value", exact, FramedRouting},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(FramedRouting) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?FramedRouting, {exact, FramedRouting}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "framedRouting"}, {"value", like, Like},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?FramedRouting, {like, like(Like)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "filterId"}, {"value", exact, FilterId},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(FilterId) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?FilterId, {exact, FilterId}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "filterId"}, {"value", like, Like},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?FilterId, {like, like(Like)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "framedMtu"}, {"value", Op, FramedMtu},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?FramedMtu, {Op, list_to_integer(FramedMtu)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "framedRoute"}, {"value", exact, FramedRoute},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(FramedRoute) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?FramedRoute, {exact, FramedRoute}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "framedRoute"}, {"value", like, Like},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?FramedRoute, {like, like(Like)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "class"}, {"value", exact, Class},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Class) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?Class, {exact, Class}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "class"}, {"value", like, Like},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?Class, {like, like(Like)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "sessionTimeout"}, {"value", Op, SessionTimout},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?SessionTimeout, {Op, list_to_integer(SessionTimout)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "idleTimeout"}, {"value", Op, IdleTimeout},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?IdleTimeout, {Op, list_to_integer(IdleTimeout)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "terminationAction"}, {"value", exact, TerminationAction},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(TerminationAction) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?TerminationAction, {exact, TerminationAction}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "terminationAction"}, {"value", like, Like},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?TerminationAction, {like, like(Like)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "calledStationId"}, {"value", exact, CalledStation},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(CalledStation) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?CalledStationId, {exact, CalledStation}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "calledStationId"}, {"value", like, Like},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?CalledStationId, {like, like(Like)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "callingStationId"}, {"value", exact, CallingStation},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(CallingStation) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?CallingStationId, {exact, CallingStation}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "callingStationId"}, {"value", like, Like},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?CallingStationId, {like, like(Like)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "nasIdentifier"}, {"value", exact, NasId},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(NasId) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?NasIdentifier, {exact, NasId}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "nasIdentifier"}, {"value", like, Like},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?NasIdentifier, {like, like(Like)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "nasPortId"}, {"value", exact, NasPortId},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(NasPortId) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?NasPortId, {exact, NasPortId}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "nasPortId"}, {"value", like, Like},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?NasPortId, {like, like(Like)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "nasPortType"}, {"value", exact, NasPortType},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(NasPortType) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?NasPortType, {exact, NasPortType}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "nasPortType"}, {"value", like, Like},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?NasPortType, {like, like(Like)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "portLimit"}, {"value", Op, PortLimit},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?PortLimit, {Op, list_to_integer(PortLimit)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "acctDelayTime"}, {"value", Op, AcctDelayTime},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?PortLimit, {Op, list_to_integer(AcctDelayTime)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "acctSessionId"}, {"value", exact, AcctSessionId},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(AcctSessionId) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?AcctSessionId, {exact, AcctSessionId}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "acctSessionId"}, {"value", like, Like},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?AcctSessionId, {like, like(Like)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "acctMultiSessionId"}, {"value", exact, AcctMultiSessionId},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(AcctMultiSessionId) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?AcctMultiSessionId, {exact, AcctMultiSessionId}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "acctMultiSessionId"}, {"value", like, Like},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?AcctMultiSessionId, {like, like(Like)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "acctLinkCount"}, {"value", Op, AcctLinkCount},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?AcctLinkCount, {Op, list_to_integer(AcctLinkCount)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "acctAuthentic"}, {"value", exact, AcctAuth},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(AcctAuth) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?AcctAuthentic, {exact, AcctAuth}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "acctAuthentic"}, {"value", like, Like},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) when is_list(Like) ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?AcctAuthentic, {like, like(Like)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "acctSessionTime"}, {"value", Op, AcctSessionTime},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?AcctSessionTime, {Op, list_to_integer(AcctSessionTime)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "acctInputGigawords"}, {"value", Op, InputGiga},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?AcctInputGigawords, {Op, list_to_integer(InputGiga)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "acctOutputGigawords"}, {"value", Op, OutputGiga},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?AcctOutputGigawords, {Op, list_to_integer(OutputGiga)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "acctInputOctets"}, {"value", Op, InputOctets},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?AcctInputPackets, {Op, list_to_integer(InputOctets)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "acctOutputOctets"}, {"value", Op, OutputOctets},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?AcctOutputPackets, {Op, list_to_integer(OutputOctets)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "ascendDataRate"}, {"value", Op, AscendDataRate},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?AscendDataRate, {Op, list_to_integer(AscendDataRate)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "ascendXmitRate"}, {"value", Op, AscendXmitRate},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?AscendXmitRate, {Op, list_to_integer(AscendXmitRate)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "acctInterimInterval"}, {"value", Op, AcctInterimInterval},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?AcctInterimInterval, {Op, list_to_integer(AcctInterimInterval)}}),
+	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs);
+characteristic({"name", exact, "acctTerminateCause"}, {"value", Op, AcctTerminateCause},
+		T, Protocol, Types, ReqAttrs1, RespAttrs) 
+		when Op == exact; Op == lt; Op == lte; Op == gt; Op == gte ->
+	ReqAttrs2 = add_char(ReqAttrs1, {?AcctTerminateCause, {Op, list_to_integer(AcctTerminateCause)}}),
 	characteristic(T, Protocol, Types, ReqAttrs2, RespAttrs).
+
+
+%% @hidden
+like([H | T]) ->
+	like([H | T], []).
+%% @hidden
+like([H | T], Acc) ->
+	case lists:last(H) of
+		$% ->
+			like(T, [lists:droplast(H) | Acc]);
+		_ ->
+			like(T, [H | Acc])
+	end;
+like([], Acc) ->
+	lists:reverse(Acc).
 
 %% @hidden
 add_char('_', AttributeMatch) ->
