@@ -1432,6 +1432,10 @@ price([units | T], #price{units = octets, size = Size} = P, Acc)
 price([units | T], #price{units = seconds, size = Size} = P, Acc)
 		when is_integer(Size) ->
 	price(T, P, [{"unitOfMeasure", integer_to_list(Size) ++ "s"} | Acc]);
+price([amount | T], #price{amount = Amount, units = cents} = P, Acc)
+		when is_integer(Amount)->
+	Price = {struct, [{"taxIncludedAmount", convert(Amount)}]},
+	price(T, P, [{"price", Price} | Acc]);
 price([amount | T], #price{amount = Amount, currency = Currency} = P, Acc)
 		when is_integer(Amount), is_list(Currency) ->
 	Price = {struct, [{"taxIncludedAmount", Amount},
@@ -1565,6 +1569,11 @@ alteration([units | T], #alteration{units = octets, size = Size} = A, Acc)
 alteration([units | T], #alteration{units = seconds, size = Size} = A, Acc)
 		when is_integer(Size) ->
 	alteration(T, A, [{"unitOfMeasure", integer_to_list(Size) ++ "s"} | Acc]);
+alteration([amount | T], #alteration{units = cents, amount = Amount, currency = Currency} = A, Acc)
+		when is_integer(Amount), is_list(Currency) ->
+	Price = {struct, [{"taxIncludedAmount", convert(Amount)},
+			{"currencyCode", Currency}]},
+	alteration(T, A, [{"price", Price} | Acc]);
 alteration([amount | T], #alteration{amount = Amount, currency = Currency} = A, Acc)
 		when is_integer(Amount), is_list(Currency) ->
 	Price = {struct, [{"taxIncludedAmount", Amount},
@@ -2189,4 +2198,11 @@ query_page1([H | T], Filters, Acc) ->
 	query_page1(T, Filters, [ocs_rest:fields(Filters, H) | Acc]);
 query_page1([], _, Acc) ->
 	lists:reverse(Acc).
+
+%% @hidden
+convert(N) when is_integer(N) ->
+	M = N div 1000000,
+	D = N rem 1000000,
+	S = integer_to_list(M) ++ [$.] ++ integer_to_list(D),
+	string:strip(S, right, $0).
 
