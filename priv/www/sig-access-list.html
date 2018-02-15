@@ -44,58 +44,78 @@
 		<vaadin-grid id="accessGrid" >
 			<vaadin-grid-column width="24ex">
 				<template class="header">
-					<vaadin-grid-sorter path="timeStamp">
-						<vaadin-grid-filter aria-label="[[i18n.timeStamp]]" path="timeStamp" value="[[_filterTimeStamp]]">
-							<input placeholder="[[i18n.timeStamp]]" value="{{_filterTimeStamp::input}}" focus-target>
+					<vaadin-grid-filter
+							aria-label="[[i18n.timeStamp]]"
+							path="date"
+							value="[[filterTimeStamp]]">
+						<input
+								placeholder="[[i18n.timeStamp]]"
+								value="{{filterTimeStamp::input}}"
+								focus-target>
 						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
 				</template>
-				<template>[[item.timeStamp]]</template>
+				<template>[[item.date]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="10ex" flex-grow="1">
 				<template class="header">
-					<vaadin-grid-sorter path="clientAddress">
-						<vaadin-grid-filter aria-label="[[i18n.clientAddress]]" path="clientAddress" value="[[_filterClientAddress]]">
-							<input placeholder="[[i18n.clientAddress]]" value="{{_filterClientAddress::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<i18n-msg msgid="clientAddress">
+						ClientAddress
+					</i18n-msg>
 				</template>
 				<template>[[item.clientAddress]]</template>
 			</vaadin-grid-column>
-			<vaadin-grid-column width="20ex" flex-grow="3">
+			<vaadin-grid-column width="1ex" flex-grow="3">
 				<template class="header">
-					<vaadin-grid-sorter path="nasIdentifier">
-						<vaadin-grid-filter aria-label="[[i18n.clientIdentity]]" path="nasIdentifier" value="[[_filterclientIdentity]]">
-							<input placeholder="[[i18n.clientIdentity]]" value="{{_filterclientIdentity::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<vaadin-grid-filter
+							aria-label="[[i18n.clientIdentity]]"
+							path="nasIdentifier"
+							value="[[filterclientIdentity]]">
+						<input
+								placeholder="[[i18n.clientIdentity]]"
+								value="{{filterclientIdentity::input}}"
+								focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.nasIdentifier]]</template>
 			</vaadin-grid-column>
-			<vaadin-grid-column width="16ex">
+			<vaadin-grid-column width="20ex">
 				<template class="header">
-					<vaadin-grid-sorter path="calledStation">
-						<vaadin-grid-filter aria-label="[[i18n.calledStation]]" path="calledStation" value="[[_filtercalledStation]]">
-							<input placeholder="[[i18n.calledStation]]" value="{{_filtercalledStation::input}}" focus-target>
+					<vaadin-grid-filter
+							aria-label="[[i18n.calledStation]]"
+							path="calledStationId"
+							value="[[filtercalledStation]]">
+						<input
+								placeholder="[[i18n.calledStation]]"
+								value="{{filtercalledStation::input}}"
+								focus-target>
 						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
 				</template>
-				<template>[[item.calledStation]]</template>
+				<template>[[item.calledStationId]]</template>
 			</vaadin-grid-column>
-			<vaadin-grid-column width="18ex" flex-grow="4">
+			<vaadin-grid-column width="10ex" flex-grow="4">
 				<template class="header">
-					<vaadin-grid-sorter path="username">
-						<vaadin-grid-filter aria-label="[[i18n.userName]]" path="username" value="[[_filterUserName]]">
-							<input placeholder="[[i18n.userName]]" value="{{_filterUserName::input}}" focus-target>
-						</vaadin-grid-filter>
-					</vaadin-grid-sorter>
+					<vaadin-grid-filter
+							aria-label="[[i18n.userName]]"
+							path="username"
+							value="[[filterUserName]]">
+						<input
+								placeholder="[[i18n.userName]]"
+								value="{{filterUserName::input}}"
+								focus-target>
+					</vaadin-grid-filter>
 				</template>
 				<template>[[item.username]]</template>
 			</vaadin-grid-column>
 			<vaadin-grid-column width="8ex" flex-grow="0">
 				<template class="header">
-					<vaadin-grid-filter aria-label="[[i18n.type]]" path="type" value="[[_filterType]]">
-						<input placeholder="[[i18n.type]]" value="{{_filterType::input}}" focus-target>
+					<vaadin-grid-filter
+							aria-label="[[i18n.type]]"
+							path="type"
+							value="[[filterType]]">
+						<input
+								placeholder="[[i18n.type]]"
+								value="{{filterType::input}}"
+								focus-target>
 					</vaadin-grid-filter>
 				</template>
 				<template>[[item.type]]</template>
@@ -109,12 +129,8 @@
 			</paper-button>
 		</paper-toast>
 		<iron-ajax id="getAccess"
-				url="/ocs/v1/log/access"
-				method = "GET"
-				headers='{"Accept": "application/json"}'
-				on-loading-changed="_onLoadingChanged"
-				on-response="getAccessResponse"
-				on-error="getAccessError">
+				url="/usageManagement/v1/usage"
+				rejectWithRequest>
 		</iron-ajax>
 	</template>
 	<script>
@@ -126,59 +142,223 @@
 					type: Boolean,
 					value: false,
 					observer: '_activePageChanged'
+				},
+				etag: {
+					type: String,
+					value: null
+				},
+				filterTimeStamp: {
+					observer: '_filterTimeStamp'
+				},
+				filterClientAddress: {
+					observer: '_filterClientAddress'
+				},
+				filterclientIdentity: {
+					observer: '_filterclientIdentity'
+				},
+				filtercalledStation: {
+					observer: '_filtercalledStation'
+				},
+				filterUserName: {
+					observer: '_filterUserName'
+				},
+				filterType: {
+					observer: '_filterType'
 				}
 			},
 			_activePageChanged: function(active) {
 				if (active) {
-					this.$.getAccess.generateRequest();
+					var grid = this.$.accessGrid;
+					grid.size = 0;
+					grid.frozenColumns = 2;
+					grid.columns = [
+						{
+							name: "date"
+						},
+						{
+							name: "clientAddress"
+						},
+						{
+							name: "nasIdentifier"
+						},
+						{
+							name: "calledStationId"
+						},
+						{
+							name: "username"
+						},
+						{
+							name: "type"
+						}
+					];
+					grid.dataProvider = this._getAccess;
 				}
 			},
-			getAccessResponse: function(event) {
-				var grid = this.$.accessGrid;
-				var results = event.detail.xhr.response;
-				var vaadinItems = new Array();
-				for (var index in results) {
-					var newRecord = new Object();
-					newRecord.timeStamp = results[index].timeStamp;
-					newRecord.clientAddress = results[index].clientAddress;
-					newRecord.nasIdentifier = results[index].nasIdentifier;
-					newRecord.calledStation = results[index].calledStation;
-					newRecord.username = results[index].username;
-					newRecord.type = results[index].type;
-					vaadinItems[index] = newRecord;
+			_filterTimeStamp: function(filter) {
+				this.etag = null;
+				delete this.$.getAccess.headers['If-Range'];
+				this.$.accessGrid.size = 0;
+			},
+			_filterClientAddress:function(filter) {
+				this.etag = null;
+				delete this.$.getAccess.headers['If-Range'];
+				this.$.accessGrid.size = 0;
+			},
+			_filterclientIdentity: function(filter) {
+				this.etag = null;
+				delete this.$.getAccess.headers['If-Range'];
+				this.$.accessGrid.size = 0;
+			},
+			_filtercalledStation: function(filter) {
+				this.etag = null;
+				delete this.$.getAccess.headers['If-Range'];
+				this.$.accessGrid.size = 0;
+			},
+			_filterUserName: function(filter) {
+				this.etag = null;
+				delete this.$.getAccess.headers['If-Range'];
+				this.$.accessGrid.size = 0;
+			},
+			_filterType: function(filter) {
+				this.etag = null;
+				delete this.$.getAccess.headers['If-Range'];
+				this.$.accessGrid.size = 0;
+			},
+			refreshAccess: function() {
+				this.etag = null;
+				delete this.$.getAccess.headers['If-Range'];
+				delete this.$.getUsageAjax.params['filter'];
+				delete this.$.getUsageAjax.params['date'];
+				this.filterTimeStamp = null;
+				this.filterClientAddress = null;
+				this.filterclientIdentity = null;
+				this.filtercalledStation = null;
+				this.filterUserName = null;
+				this.filterType = null
+			},
+			_getAccess: function(params, callback) {
+				var grid = document.getElementById('accessGrid');
+				var ajax = document.getElementById('getAccess');
+				delete ajax.params['date'];
+				delete ajax.params['clientAddress'];
+				delete ajax.params['nasIdentifier'];
+				delete ajax.params['calledStationId'];
+				delete ajax.params['filter'];
+				ajax.params['type'] = "AAAAccessUsage";
+				function checkHead(param) {
+					return param.path == "date" || param.path == "type" || param.path == "status";
 				}
-				grid.items = vaadinItems;
-				grid.frozenColumns = 2;
-				grid.columns = [
-					{
-						name: "timeStamp"
-					},
-					{
-						name: "clientAddress"
-					},
-					{
-						name: "nasIdentifier"
-					},
-					{
-						name: "calledStation"
-					},
-					{
-						name: "username"
-					},
-					{
-						name: "type"
+				var head;
+				params.filters.filter(checkHead).forEach(function(filter) {
+					if (filter.value) {
+						ajax.params[filter.path] = filter.value;
 					}
-				];
-			},
-			getAccessError: function(event) {
-				this.$.accessErrorToast.text = event.detail.request.xhr.statusText;
-				this.$.accessErrorToast.open();
-			},
-			_onLoadingChanged: function(event) {
-				if (this.$.getAccess.loading) {
-					document.getElementById("progress").disabled = false;
+				});
+				function checkChar(param) {
+					return param.path != "date" && param.path != "type" && param.path != "status";
+				}
+				params.filters.filter(checkChar).forEach(function(filter) {
+					if (filter.value) {
+						if (!ajax.params['filter']) {
+							ajax.params['filter'] = "\"[{usageCharacteristic.contains=[";
+						} else {
+							ajax.params['filter'] += ",";
+						}
+							ajax.params['filter'] += "{name=" + filter.path + ",value.like=[" + filter.value + "%25]}";
+					}
+				});
+				if (ajax.params['filter']) {
+					ajax.params['filter'] += "]}]\"";
+				}
+				params.sortOrders.forEach(function(sort, index) {
+					var dirsort;
+					if(sort.direction == "desc") {
+						dirsort = '-' + sort.path;
+					} else {
+						dirsort = sort.path;
+					}
+					if(index == 0) {
+						ajax.params['sort'] = dirsort;
+					} else {
+						ajax.params['sort'] = ',' + dirsort;
+					}
+				});
+				accessList = document.getElementById('accessList');
+				handleAjaxResponse = function(request) {
+					if (request) {
+						accessList.etag = request.xhr.getResponseHeader('ETag');
+						var range = request.xhr.getResponseHeader('Content-Range');
+						var range1 = range.split("/");
+						var range2 = range1[0].split("-");
+						if (range1[1] != "*") {
+							grid.size = Number(range1[1]);
+						} else {
+							grid.size = Number(range2[1]) + grid.pageSize * 2;
+						}
+						var vaadinItems = new Array();
+						function checkChar(characteristic) {
+							return characteristic.name == "username";
+						}
+						for (var index in request.response) {
+							var newRecord = new Object();
+							newRecord.date = request.response[index].date;
+							function checkChar1(characteristic) {
+								return characteristic.name == "clientAddress";
+							}
+							var index1 = request.response[index].usageCharacteristic.findIndex(checkChar1);
+							newRecord.clientAddress = request.response[index].usageCharacteristic[index1].value;
+							function checkChar2(characteristic) {
+								return characteristic.name == "nasIdentifier";
+							}
+							var index2 = request.response[index].usageCharacteristic.findIndex(checkChar2);
+							newRecord.nasIdentifier = request.response[index].usageCharacteristic[index2].value;
+							function checkChar3(characteristic) {
+								return characteristic.name == "calledStationId";
+							}
+							var index3 = request.response[index].usageCharacteristic.findIndex(checkChar3);
+							newRecord.calledStationId = request.response[index].usageCharacteristic[index3].value;
+							var username1 = request.response[index].usageCharacteristic.find(checkChar);
+							newRecord.type = request.response[index].type;
+							if (username1 != undefined) {
+								newRecord.username = username1.value;
+							}
+						vaadinItems[index] = newRecord;
+						}
+						callback(vaadinItems);
+					} else {
+						grid.size = 0;
+						callback([]);
+					}
+				},
+				handleAjaxError = function(error) {
+					accessList.etag = null;
+					var toast = document.getElementById('usageToastError');
+					toast.text = error;
+					toast.open();
+					callback([]);
+				}
+				if (ajax.loading) {
+					ajax.lastRequest.completes.then(function(request) {
+					StartRange = params.page * params.pageSize + 1;
+					EndRange = StartRange + params.pageSize - 1;
+					ajax.headers['Range'] = "items=" + StartRange + "-" + EndRange;
+					if (accessList.etag && params.page > 0) {
+						ajax.headers['If-Range'] = accessList.etag;
+					} else {
+						delete ajax.headers['If-Range'];
+					}
+						return ajax.generateRequest().completes;
+					}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
 				} else {
-					document.getElementById("progress").disabled = true;
+					StartRange = params.page * params.pageSize + 1;
+					EndRange = StartRange + params.pageSize - 1;
+					ajax.headers['Range'] = "items=" + StartRange + "-" + EndRange;
+					if (accessList.etag && params.page > 0) {
+						ajax.headers['If-Range'] = accessList.etag;
+					} else {
+						delete ajax.headers['If-Range'];
+					}
+					ajax.generateRequest().completes.then(handleAjaxResponse, handleAjaxError);
 				}
 			}
 		});

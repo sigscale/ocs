@@ -1992,7 +1992,7 @@ char_attr_called_id(Attributes, Acc) ->
 char_attr_calling_id(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?CallingStationId, Attributes) of
 		{ok, Value} ->
-			[{struct, [{"name", "calledStationId"}, {"value", Value}]} | Acc];
+			[{struct, [{"name", "callingStationId"}, {"value", Value}]} | Acc];
 		{error, not_found} ->
 			Acc
 	end,
