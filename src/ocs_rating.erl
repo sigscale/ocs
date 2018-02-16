@@ -209,7 +209,7 @@ rate3(Protocol, Subscriber, Address,
 			Table = list_to_existing_atom(TariffTable),
 			case catch ocs_gtt:lookup_last(Table, Address) of
 				{_Description, Amount} ->
-					case list_to_integer(Amount) of
+					case Amount of
 						N when N >= 0 ->
 							rate4(Protocol, Subscriber, Price#price{amount = N},
 									Validity, Flag, DebitAmounts, ReserveAmounts,
@@ -617,7 +617,7 @@ authorize3(Protocol, ServiceType, Subscriber, Address,
 			Table = list_to_existing_atom(TariffTable),
 			case catch ocs_gtt:lookup_last(Table, Address) of
 				{_Description, Amount} ->
-					case list_to_integer(Amount) of
+					case Amount of
 						N when N >= 0 ->
 							authorize4(Protocol, ServiceType, Subscriber,
 								Price#price{amount = N}, SessionAttributes, Reserve);

@@ -341,7 +341,7 @@ import1(Table, Records) ->
 			exit(Reason)
 	end.
 %% @hidden
-import2(Table, [<<>>], LM, Acc) ->
+import2(Table, [<<>>], _LM, Acc) ->
 	F = fun(#gtt{} = G) -> mnesia:write(Table, G, write) end,
 	lists:foreach(F, Acc);
 import2(Table, [Chunk | Rest], LM, Acc) ->
@@ -355,8 +355,8 @@ import3([H | T], LM, Acc) ->
 import3([], LM, Acc) ->
 	import4(lists:reverse(Acc), LM).
 %% @hidden
-import4([Key | Value], LM) ->
-	Tuple = list_to_tuple(Value),
+import4([Key, Desc, Rate], LM) ->
+	Tuple  = {Desc, convert(Rate), LM},
 	case is_key_number(Key) of
 		true->
 			#gtt{num = Key, value = Tuple};
@@ -439,4 +439,14 @@ is_key_number([]) ->
 	true;
 is_key_number(_) ->
 	false.
+
+%% @hidden
+convert(N) when is_list(N) ->
+	case string:tokens(N, [$.]) of
+		[A] ->
+			list_to_integer(A) * 1000000;
+		[A, B] when length(B) =< 6 ->
+			list_to_integer(A)*1000000 +
+					(list_to_integer(B ++ lists:duplicate(6 - length(B), $0)))
+	end.
 
