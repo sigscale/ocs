@@ -396,22 +396,29 @@ list([], Acc) ->
 %% @hidden
 %%
 insert(Table, [], Number, Value) when is_integer(Number) ->
-	insert(Table, [], integer_to_list(Number), Value, 0);
+	insert1(Table, [], integer_to_list(Number), Value, 0);
 insert(Table, [], Number, Value) ->
-	insert(Table, [], Number, Value, 0).
+	insert1(Table, [], Number, Value, 0).
 %% @hidden
-insert(Table, P, [H | []], Value, N) ->
+insert1(Table, P, Number, Value, N) ->
+	TS = erlang:system_time(?MILLISECOND),
+	N = erlang:unique_integer([positive]),
+	LM = {TS, N},
+	Value1 = erlang:insert_element(tuple_size(Value) + 1, Value, LM),
+	insert2(Table, P, Number, Value1, N).
+%% @hidden
+insert2(Table, P, [H | []], Value, N) ->
 	Number =  P ++ [H],
 	mnesia:write(Table, #gtt{num = Number, value = Value}, write),
 	N + 1;
-insert(Table, P, [H | T], Value, N) ->
+insert2(Table, P, [H | T], Value, N) ->
 	Number =  P ++ [H],
 	case mnesia:read(Table, Number, write) of
 		[#gtt{}] ->
-			insert(Table, Number, T, Value, N);
+			insert2(Table, Number, T, Value, N);
 		[] ->
 			mnesia:write(Table, #gtt{num = Number}, write),
-			insert(Table, Number, T, Value, N + 1)
+			insert2(Table, Number, T, Value, N + 1)
 	end.
 
 %% @hidden
