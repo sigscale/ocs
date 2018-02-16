@@ -1505,8 +1505,8 @@ price([{"unitOfMeasure", UnitOfMeasure} | T], Acc)
 	end;
 price([{"price", {struct, L}} | T], Acc) when is_list(L) ->
 	Acc1 = case lists:keyfind("taxIncludedAmount", 1, L) of
-		{_, Amount} when is_integer(Amount) ->
-			Acc#price{amount = Amount};
+		{_, Amount} when is_list(Amount) ->
+			Acc#price{amount = ocs_rating:convert(Amount)};
 		_ ->
 			Acc
 	end,
