@@ -507,7 +507,7 @@ bucket([{"units", Type} | T], Acc) when is_list(Type) ->
 bucket([{"remainAmount", Amount} | T], Acc) ->
 	case lists:keyfind("units", 1, T) of
 			{_, "cents"} when is_list(Amount) ->
-				bucket(T, Acc#bucket{remain_amount = convert(Amount)});
+				bucket(T, Acc#bucket{remain_amount = ocs_rating:convert(Amount)});
 			_ ->
 				bucket(T, Acc#bucket{remain_amount = Amount})
 	end;
@@ -531,7 +531,7 @@ bucket([termination_date | T], #bucket{termination_date = undefined} = Bucket, A
 bucket([termination_date | T], #bucket{termination_date = TDate} = Bucket, Acc) ->
 	bucket(T, Bucket, [{"terminationDate", ocs_rest:iso8601(TDate)} | Acc]);
 bucket([remain_amount | T], #bucket{units = cents, remain_amount = Amount} = Bucket, Acc) ->
-	bucket(T, Bucket, [{"remainAmount", convert(Amount)} | Acc]);
+	bucket(T, Bucket, [{"remainAmount", ocs_rating:convert(Amount)} | Acc]);
 bucket([remain_amount | T], #bucket{remain_amount = Amount} = Bucket, Acc) ->
 	bucket(T, Bucket, [{"remainAmount", Amount} | Acc]);
 bucket([reservations | T], Bucket, Acc) ->
@@ -765,19 +765,4 @@ generate_bucket_id() ->
 	TS = erlang:system_time(?MILLISECOND),
 	N = erlang:unique_integer([positive]),
 	integer_to_list(TS) ++ "-" ++ integer_to_list(N).
-
-%% @hidden
-convert(N) when is_list(N) ->
-	case string:tokens(N, [$.]) of
-		[A] ->
-			list_to_integer(A) * 1000000;
-		[A, B] when length(B) =< 6 ->
-			list_to_integer(A)*1000000 +
-					(list_to_integer(B ++ lists:duplicate(6 - length(B), $0)))
-	end;
-convert(N) when is_integer(N) ->
-	M = N div 1000000,
-	D = N rem 1000000,
-	S = integer_to_list(M) ++ [$.] ++ integer_to_list(D),
-	string:strip(S, right, $0).
 

@@ -199,7 +199,7 @@ get_balance1(Identity, Buckets) ->
 					{struct, [{"id", Id}, {"href", ?balancePath ++ Id}]}
 		end,
 		Buckets2 = {"buckets", {array, lists:map(F3, Buckets1)}},
-		Total = {"totalBalance", {struct, [{"amount", convert(TotalAmount)}]}},
+		Total = {"totalBalance", {struct, [{"amount", ocs_rating:convert(TotalAmount)}]}},
 		ProdId = {"id", Identity},
 		ProdHref = {"href", ?balancePath ++ Identity},
 		Product = {"product", {struct, [ProdId, ProdHref]}},
@@ -245,7 +245,7 @@ top_up(Identity, RequestBody) ->
 		end,
 		BucketType = units(Units),
 		BID = generate_bucket_id(),
-		Bucket = #bucket{id = BID, units = BucketType, remain_amount = convert(Amount),
+		Bucket = #bucket{id = BID, units = BucketType, remain_amount = ocs_rating:convert(Amount),
 				start_date = StartDate, termination_date = EndDate},
 		top_up1(Identity, Bucket)
 	catch
@@ -363,7 +363,7 @@ bucket1([remain_amount | T], #bucket{units = undefined,
 	bucket1(T, B, [RM | Acc]);
 bucket1([remain_amount | T], #bucket{units = cents,
 		remain_amount = RemainAmount} = B, Acc) when is_integer(RemainAmount) ->
-	RM = {"remainedAmount", {struct, [{"amount", convert(RemainAmount)}]}},
+	RM = {"remainedAmount", {struct, [{"amount", ocs_rating:convert(RemainAmount)}]}},
 	bucket1(T, B, [RM | Acc]);
 bucket1([remain_amount | T], #bucket{remain_amount = RemainAmount,
 		units = Units} = B, Acc) when is_integer(RemainAmount) ->
@@ -380,7 +380,7 @@ bucket1([reservations | T], #bucket{units = undefined,
 bucket1([reservations | T], #bucket{reservations = Reservations,
 		units = cents} = B, Acc) ->
 	Amount = lists:sum([A || {_, A, _} <- Reservations]),
-	Reserved = [{"amount", convert(Amount)}, {"units", "cents"}],
+	Reserved = [{"amount", ocs_rating:convert(Amount)}, {"units", "cents"}],
 	bucket1(T, B, [{"reservedAmount", {struct, Reserved}}| Acc]);
 bucket1([reservations | T], #bucket{reservations = Reservations,
 		units = Units} = B, Acc) ->
@@ -426,19 +426,4 @@ abmf_json(Events) ->
 				Acc
 	end,
 	lists:reverse(lists:foldl(F, [], Events)).
-
-%% @hidden
-convert(N) when is_list(N) ->
-	case string:tokens(N, [$.]) of
-		[A] ->
-			list_to_integer(A) * 1000000;
-		[A, B] when length(B) =< 6 ->
-			list_to_integer(A)*1000000 +
-					(list_to_integer(B ++ lists:duplicate(6 - length(B), $0)))
-	end;
-convert(N) when is_integer(N) ->
-	M = N div 1000000,
-	D = N rem 1000000,
-	S = integer_to_list(M) ++ [$.] ++ integer_to_list(D),
-	string:strip(S, right, $0).
 
