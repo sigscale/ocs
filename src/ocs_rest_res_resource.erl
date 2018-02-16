@@ -416,7 +416,7 @@ gtt(Name, #gtt{num = Prefix, value = {Description, Rate, {LastModified, _}}} = _
 			{struct, [{"name", "description"},
 			{"value", {struct, [{"seqNum", 2}, {"value", Description}]}}]},
 			{struct, [{"name", "rate"},
-			{"value", {struct, [{"seqNum", 3}, {"value", Rate}]}}]}]}}]};
+			{"value", {struct, [{"seqNum", 3}, {"value", convert(Rate)}]}}]}]}}]};
 gtt(_, {struct, ObjectMembers}) when is_list(ObjectMembers) ->
 	gtt1(ObjectMembers, {undefined, [], undefined}).
 %% @hidden
@@ -425,11 +425,11 @@ gtt1([{"resourceCharacteristic", {array, L}} | T], Acc) ->
 gtt1([_ | T], Acc) ->
 	gtt1(T, Acc);
 gtt1([], {Prefix, Desc, Rate} = _Acc)
-		when is_list(Prefix), is_integer(Rate) ->
+		when is_list(Prefix), is_list(Rate) ->
 	TS = erlang:system_time(?MILLISECOND),
 	N = erlang:unique_integer([positive]),
 	LM = {TS, N},
-   #gtt{num = Prefix, value = {Desc, Rate, LM}}.
+   #gtt{num = Prefix, value = {Desc, convert(Rate), LM}}.
 %% @hidden
 gtt2([{struct, L} | T], {Prefix, Desc, Rate} = _Acc) ->
 	case lists:keytake("name", 1, L) of
@@ -443,13 +443,24 @@ gtt2([{struct, L} | T], {Prefix, Desc, Rate} = _Acc) ->
 			gtt2(T, {Prefix, Desc1, Rate});
 		{value, {"name", "rate"}, L1} ->
 			{_, {struct, L2}} = lists:keyfind("value", 1, L1),
-			case lists:keyfind("value", 1, L2) of
-				{_, Rate1} when is_integer(Rate1) ->
-					gtt2(T, {Prefix, Desc, Rate1});
-				{_, Rate1} when is_list(Rate1) ->
-					gtt2(T, {Prefix, Desc, list_to_integer(Rate1)})
-			end
+			{_, Rate1} = lists:keyfind("value", 1, L2), 
+			gtt2(T, {Prefix, Desc, convert(Rate1)})
 	end;
 gtt2([], Acc) ->
 	Acc.
+
+%% @hidden
+convert(N) when is_list(N) ->
+	case string:tokens(N, [$.]) of
+		[A] ->
+			list_to_integer(A) * 1000000;
+		[A, B] when length(B) =< 6 ->
+			list_to_integer(A)*1000000 +
+					(list_to_integer(B ++ lists:duplicate(6 - length(B), $0)))
+	end;
+convert(N) when is_integer(N) ->
+	M = N div 1000000,
+	D = N rem 1000000,
+	S = integer_to_list(M) ++ [$.] ++ integer_to_list(D),
+	string:strip(S, right, $0).
 
