@@ -389,17 +389,19 @@ rate6(#subscriber{session_attributes = SessionList,
 		buckets = Buckets} = Subscriber1,
 		final, Charge, Charged, 0, 0, SessionId)
 		when Charged >= Charge ->
-	NewBuckets = refund(SessionId, Buckets),
+	NewBuckets1 = refund(SessionId, Buckets),
+	{Debit, NewBuckets2} = get_debits(SessionId, NewBuckets1),
 	NewSessionList = remove_session(SessionId, SessionList),
-	Subscriber2 = Subscriber1#subscriber{buckets = NewBuckets,
+	Subscriber2 = Subscriber1#subscriber{buckets = NewBuckets2,
 			session_attributes = NewSessionList},
 	ok = mnesia:write(Subscriber2),
 	{grant, Subscriber2, 0};
 rate6(#subscriber{session_attributes = SessionList,
 		buckets = Buckets} = Subscriber1,
 		final, _Charge, _Charged, 0, 0, SessionId) ->
-	NewBuckets = refund(SessionId, Buckets),
-	Subscriber2 = Subscriber1#subscriber{buckets = NewBuckets,
+	NewBuckets1 = refund(SessionId, Buckets),
+	{Debit, NewBuckets2} = get_debits(SessionId, NewBuckets1),
+	Subscriber2 = Subscriber1#subscriber{buckets = NewBuckets2,
 			session_attributes = []},
 	ok = mnesia:write(Subscriber2),
 	{out_of_credit, SessionList};
@@ -790,7 +792,7 @@ reserve_session(Type, Amount, Now, SessionId,
 		reservations = Reservations, termination_date = Expires} = B | T],
 		Acc, Reserved) when Remain >= Amount,
 		((Expires == undefined) or (Now < Expires)) ->
-	NewReservation = {Now, Amount, SessionId},
+	NewReservation = {Now, 0, Amount, SessionId},
 	NewBuckets = lists:reverse(Acc)
 			++ [B#bucket{remain_amount = Remain - Amount,
 			reservations = [NewReservation | Reservations]} | T],
@@ -803,7 +805,7 @@ reserve_session(Type, Amount, Now, SessionId,
 		reservations = Reservations, termination_date = Expires} = B | T],
 		Acc, Reserved) when Remain > 0, Remain < Amount,
 		((Expires == undefined) or (Now < Expires)) ->
-	NewReservation = {Now, Remain, SessionId},
+	NewReservation = {Now, 0, Remain, SessionId},
 	NewAcc = [B#bucket{remain_amount = 0,
 			reservations = [NewReservation | Reservations]} | Acc],
 	reserve_session(Type, Amount - Remain, Now,
@@ -852,50 +854,69 @@ update_session(Type, Charge, Reserve, Now, SessionId,
 		[#bucket{units = Type, remain_amount = Remain,
 		termination_date = Expires, reservations = Reservations} = B | T],
 		Acc, Charged, Reserved) ->
-	case lists:keytake(SessionId, 3, Reservations) of
-		{value, {_, Amount, _}, NewReservations}
-				when Remain > 0, Remain >= (Reserve - (Amount - Charge)),
+	case lists:keytake(SessionId, 4, Reservations) of
+		{value, {_, DebitedAmount, ReservedAmount, _}, NewReservations}
+				when Remain > 0, Remain >= (Reserve - (ReservedAmount - Charge)),
 				((Expires == undefined) or (Now < Expires)) ->
-			NewReservation = {Now, Reserve, SessionId},
+			NewReservation = {Now, DebitedAmount + Charge, Reserve, SessionId},
 			NewBuckets = lists:reverse(Acc)
 					++ [B#bucket{remain_amount = Remain
-					- (Reserve - (Amount - Charge)),
+					- (Reserve - (ReservedAmount - Charge)),
 					reservations = [NewReservation | NewReservations]} | T],
 			{Charged + Charge, Reserved + Reserve, NewBuckets};
-		{value, {_, Amount, _}, []}
-				when Remain >= 0, (Remain + Amount) =< Charge,
+		{value, {_, DebitedAmount, ReservedAmount, _}, []}
+				when Remain >= 0, (Remain + ReservedAmount) =< Charge,
 				((Expires == undefined) or (Now < Expires)) ->
-			update_session(Type, Charge - (Remain + Amount), Reserve,
-					Now, SessionId, T, Acc, Charged + Remain + Amount, Reserved);
-		{value, {_, Amount, _}, []}
-				when Amount >= Charge, Expires /= undefined, Expires =< Now ->
-			update_session(Type, 0, Reserve, Now,
-					SessionId, T, Acc, Charge, Reserved);
-		{value, {_, Amount, _}, NewReservations}
-				when Amount >= Charge, Expires /= undefined, Expires =< Now ->
-			NewAcc = [B#bucket{reservations = NewReservations} | Acc],
+			NewDebitedAmount = DebitedAmount + Remain + ReservedAmount,
+			NewReservation = {Now, NewDebitedAmount, 0, SessionId},
+			NewAcc = [B#bucket{remain_amount = 0,
+					reservations = [NewReservation]} | Acc],
+			update_session(Type, Charge - (Remain + ReservedAmount), Reserve,
+					Now, SessionId, T, NewAcc, Charged + Remain + ReservedAmount, Reserved);
+		{value, {_, DebitedAmount, ReservedAmount, _}, []}
+				when ReservedAmount >= Charge, Expires /= undefined, Expires =< Now ->
+			NewDebitedAmount = DebitedAmount + ReservedAmount,
+			NewReservedAmount = ReservedAmount - Charge,
+			NewReservation = {Now, NewDebitedAmount, NewReservedAmount, SessionId},
+			NewAcc = [B#bucket{reservations = [NewReservation]} | Acc],
 			update_session(Type, 0, Reserve, Now,
 					SessionId, T, NewAcc, Charge, Reserved);
-		{value, {_, Amount, _}, []}
-				when Amount < Charge, Expires /= undefined, Expires =< Now ->
-			update_session(Type, Charge - Amount, Reserve, Now,
-					SessionId, T, Acc, Charge, Reserved);
-		{value, {_, Amount, _}, NewReservations}
-				when Amount < Charge, Expires /= undefined, Expires =< Now ->
-			NewAcc = [B#bucket{reservations = NewReservations} | Acc],
-			update_session(Type, Charge - Amount, Reserve, Now,
+		{value, {_, DebitedAmount, ReservedAmount, _}, NewReservations}
+				when ReservedAmount >= Charge, Expires /= undefined, Expires =< Now ->
+			NewDebitedAmount = DebitedAmount + ReservedAmount,
+			NewReservedAmount = ReservedAmount - Charge,
+			NewReservation = {Now, NewDebitedAmount, NewReservedAmount, SessionId},
+			NewAcc = [B#bucket{reservations = [NewReservation | NewReservations]} | Acc],
+			update_session(Type, 0, Reserve, Now, SessionId, T, NewAcc, Charge, Reserved);
+		{value, {_, DebitedAmount, ReservedAmount, _}, []}
+				when ReservedAmount < Charge, Expires /= undefined, Expires =< Now ->
+			NewDebitedAmount = DebitedAmount + ReservedAmount,
+			NewReservation = {Now, NewDebitedAmount, 0, SessionId},
+			NewAcc = [B#bucket{reservations = [NewReservation]} | Acc],
+			update_session(Type, Charge - ReservedAmount, Reserve, Now,
 					SessionId, T, NewAcc, Charge, Reserved);
-		{value, {_, Amount, _}, NewReservations}
-				when Remain > 0, (Remain + Amount) =< Charge,
+		{value, {_, DebitedAmount, ReservedAmount, _}, NewReservations}
+				when ReservedAmount < Charge, Expires /= undefined, Expires =< Now ->
+			NewDebitedAmount = DebitedAmount + ReservedAmount,
+			NewReservation = {Now, NewDebitedAmount, 0, SessionId},
+			NewAcc = [B#bucket{reservations = [NewReservation | NewReservations]} | Acc],
+			update_session(Type, Charge - ReservedAmount, Reserve, Now,
+					SessionId, T, NewAcc, Charge, Reserved);
+		{value, {_, DebitedAmount, ReservedAmount, _}, NewReservations}
+				when Remain > 0, (Remain + ReservedAmount) =< Charge,
 				((Expires == undefined) or (Now < Expires)) ->
-			NewAcc = [B#bucket{remain_amount = 0, reservations = NewReservations} | Acc],
-			update_session(Type, Charge - (Remain + Amount), Reserve,
-					Now, SessionId, T, NewAcc, Charged + Remain + Amount, Reserved);
-		{value, {_, Amount, _}, NewReservations}
-				when Remain >= (Charge - Amount),
+			NewDebitedAmount = DebitedAmount + (Remain + ReservedAmount),
+			NewReservation = {Now, NewDebitedAmount, 0, SessionId},
+			NewAcc = [B#bucket{remain_amount = 0,
+					reservations = [NewReservation | NewReservations]} | Acc],
+			update_session(Type, Charge - (Remain + ReservedAmount), Reserve,
+					Now, SessionId, T, NewAcc, Charged + Remain + ReservedAmount, Reserved);
+		{value, {_, DebitedAmount, ReservedAmount, _}, NewReservations}
+				when Remain >= (Charge - ReservedAmount),
 				((Expires == undefined) or (Now < Expires)) ->
-			NewReserve = Remain - (Charge - Amount),
-			NewReservation = {Now, NewReserve, SessionId},
+			NewDebitedAmount = DebitedAmount + Charge,
+			NewReserve = Remain - (Charge - ReservedAmount),
+			NewReservation = {Now, NewDebitedAmount, NewReserve, SessionId},
 			NewAcc = [B#bucket{remain_amount = 0,
 					reservations = [NewReservation | NewReservations]} | Acc],
 			update_session(Type, 0, Reserve - NewReserve, Now, SessionId,
@@ -926,15 +947,18 @@ update(Type, Charge, Reserve, Now, SessionId, [#bucket{units = Type,
 		remain_amount = Remain, termination_date = Expires,
 		reservations = Reservations} = B | T], Acc, Charged, Reserved)
 		when ((Expires == undefined) or (Now < Expires)), Remain > (Charge + Reserve) ->
-	NewReservation = {Now, Reserve, SessionId},
+	NewReservation = {Now, Charge, Reserve, SessionId},
 	NewBuckets = [B#bucket{remain_amount = Remain - (Charge + Reserve),
 		reservations = [NewReservation | Reservations]} | Acc],
 	{Charged + Charge, Reserved + Reserve, lists:reverse(NewBuckets) ++ T};
 update(Type, Charge, Reserve, Now, SessionId, [#bucket{units = Type,
-		remain_amount = Remain, termination_date = Expires} = B | T],
-		Acc, Charged, Reserved) when ((Expires == undefined) or (Now < Expires)),
-		Remain >= 0, Remain =< Charge ->
-	NewAcc = [B#bucket{remain_amount = 0} | Acc],
+		remain_amount = Remain, termination_date = Expires,
+		reservations = Reservations} = B | T], Acc, Charged, Reserved)
+		when ((Expires == undefined) or (Now < Expires)),
+		Remain > 0, Remain =< Charge ->
+	NewReservation = {Now, Remain, 0, SessionId},
+	NewAcc = [B#bucket{remain_amount = 0,
+			reservations = [NewReservation | Reservations]} | Acc],
 	update(Type, Charge - Remain, Reserve, Now,
 			SessionId, T, NewAcc, Charged + Remain, Reserved);
 update(Type, Charge, Reserve, Now, SessionId, [#bucket{units = Type,
@@ -942,7 +966,7 @@ update(Type, Charge, Reserve, Now, SessionId, [#bucket{units = Type,
 		reservations = Reservations} = B | T], Acc, Charged, Reserved)
 		when ((Expires == undefined) or (Now < Expires)),
 		Remain =< Reserve, Remain > 0 ->
-	NewReservation = {Now, Remain, SessionId},
+	NewReservation = {Now, 0, Remain, SessionId},
 	NewAcc = [B#bucket{remain_amount = 0,
 		reservations = [NewReservation | Reservations]} | Acc],
 	update(Type, Charge, Reserve - Remain, Now,
@@ -986,45 +1010,76 @@ charge_session(Type, Charge, Now, SessionId,
 		[#bucket{units = Type, termination_date = Expires,
 		remain_amount = Remain, reservations = Reservations} = B | T],
 		Charged, Acc) ->
-	case lists:keytake(SessionId, 3, Reservations) of
-		{value, {_, Amount, _}, NewReservations} when Amount >= Charge,
+	case lists:keytake(SessionId, 4, Reservations) of
+		{value, {_, DebitedAmount, ReservedAmount, _}, NewReservations}
+				when ReservedAmount >= Charge,
 				((Expires == undefined) or (Now < Expires)) ->
-			NewAcc = [B#bucket{remain_amount = Remain + (Amount - Charge),
-					reservations = NewReservations} | Acc],
+			NewDebitedAmount = DebitedAmount + Charge,
+			NewReservation = {Now, NewDebitedAmount, 0, SessionId},
+			NewAcc = [B#bucket{remain_amount = Remain + (ReservedAmount - Charge),
+					reservations = [NewReservation | NewReservations]} | Acc],
 			charge_session(Type, 0, Now, SessionId, T, Charged + Charge, NewAcc);
-		{value, {_, Amount, _}, []} when Amount >= Charge,
+		{value, {_, DebitedAmount, ReservedAmount, _}, []} 
+				when ReservedAmount >= Charge,
 				Expires /= undefined, Expires =< Now ->
-			charge_session(Type, 0, Now, SessionId, T, Charged + Charge, Acc);
-		{value, {_, Amount, _}, NewReservations} when Amount >= Charge,
-				Expires /= undefined, Expires =< Now ->
-			NewAcc = [B#bucket{reservations = NewReservations} | Acc],
+			NewDebitedAmount = DebitedAmount + Charge,
+			NewReservation = {Now, NewDebitedAmount, 0, SessionId},
+			NewAcc = [B#bucket{remain_amount = Remain + (ReservedAmount - Charge),
+					reservations = [NewReservation]} | Acc],
 			charge_session(Type, 0, Now, SessionId, T, Charged + Charge, NewAcc);
-		{value, {_, Amount, _}, NewReservations}
-				when Amount < Charge, Remain > (Charge - Amount),
-				((Expires == undefined) or (Now < Expires)) ->
-			NewAcc = [B#bucket{remain_amount = Remain - (Charge - Amount),
-					reservations = NewReservations} | Acc],
+		{value, {_, DebitedAmount, ReservedAmount, _}, NewReservations}
+				when ReservedAmount >= Charge,
+				Expires /= undefined, Expires =< Now ->
+			NewDebitedAmount = DebitedAmount + Charge,
+			NewReservation = {Now, NewDebitedAmount, 0, SessionId},
+			NewAcc = [B#bucket{reservations = 
+					[NewReservation | NewReservations]} | Acc],
 			charge_session(Type, 0, Now, SessionId, T, Charged + Charge, NewAcc);
-		{value, {_, Amount, _}, []} when Amount < Charge,
-				Expires /= undefined, Expires =< Now ->
-			charge_session(Type, Charge - Amount, Now, SessionId, T, Charged + Charge, Acc);
-		{value, {_, Amount, _}, NewReservations} when Amount < Charge,
-				Expires /= undefined, Expires =< Now ->
-			NewAcc = [B#bucket{reservations = NewReservations} | Acc],
-			charge_session(Type, Charged + Charge, Now, SessionId, T, Charge - Amount, NewAcc);
-		{value, {_, Amount, _}, []}
-				when Amount < Charge, Remain >= 0, Remain =< (Charge - Amount),
+		{value, {_, DebitedAmount, ReservedAmount, _}, NewReservations}
+				when ReservedAmount < Charge, Remain > (Charge - ReservedAmount),
 				((Expires == undefined) or (Now < Expires)) ->
-			charge_session(Type, Charge - Amount - Remain, Now, SessionId, T, Amount + Remain, Acc);
-		{value, {_, Amount, _}, NewReservations}
-				when Amount < Charge, Remain >= 0, Remain =< (Charge - Amount),
+			NewDebitedAmount = DebitedAmount + Charge,
+			NewReservation = {Now, NewDebitedAmount, 0, SessionId},
+			NewAcc = [B#bucket{remain_amount = Remain - (Charge - ReservedAmount),
+					reservations = [NewReservation | NewReservations]} | Acc],
+			charge_session(Type, 0, Now, SessionId, T, Charged + Charge, NewAcc);
+		{value, {_, DebitedAmount, ReservedAmount, _}, []}
+				when ReservedAmount < Charge, Expires /= undefined, Expires =< Now ->
+			NewDebitedAmount = DebitedAmount + ReservedAmount,
+			NewReservation = {Now, NewDebitedAmount, 0, SessionId},
+			NewAcc = [B#bucket{reservations = [NewReservation]} | Acc],
+			charge_session(Type, Charge - ReservedAmount, Now,
+					SessionId, T, Charged + ReservedAmount, NewAcc);
+		{value, {_, DebitedAmount, ReservedAmount, _}, NewReservations}
+				when ReservedAmount < Charge, Expires /= undefined, Expires =< Now ->
+			NewDebitedAmount = DebitedAmount + ReservedAmount,
+			NewReservation = {Now, NewDebitedAmount, 0, SessionId},
+			NewAcc = [B#bucket{reservations = [NewReservation| NewReservations]} | Acc],
+			charge_session(Type, Charged + Charge, Now,
+					SessionId, T, Charge - ReservedAmount, NewAcc);
+		{value, {_, DebitedAmount, ReservedAmount, _}, []}
+				when ReservedAmount < Charge, Remain >= 0,
+				Remain =< (Charge - ReservedAmount),
 				((Expires == undefined) or (Now < Expires)) ->
-			NewAcc = [B#bucket{reservations = NewReservations} | Acc],
-			charge_session(Type, Charge - Amount - Remain, Now, SessionId, T, Amount + Remain, NewAcc);
-		{value, {_, Amount, _}, NewReservations} when Charge =:= 0,
+			NewDebitedAmount = DebitedAmount + (Remain + ReservedAmount),
+			NewReservation = {Now, NewDebitedAmount, 0, SessionId},
+			NewAcc = [B#bucket{remain_amount = 0, reservations = [NewReservation]} | Acc], 
+			charge_session(Type, Charge - ReservedAmount - Remain, Now,
+					SessionId, T, Charged + ReservedAmount + Remain, NewAcc);
+		{value, {_, DebitedAmount, ReservedAmount, _}, NewReservations}
+				when ReservedAmount < Charge, Remain >= 0,
+				Remain =< (Charge - ReservedAmount),
 				((Expires == undefined) or (Now < Expires)) ->
-			NewAcc = [B#bucket{remain_amount = Remain + Amount,
-					reservations = NewReservations} | Acc],
+			NewDebitedAmount = DebitedAmount + (Remain + ReservedAmount),
+			NewReservation = {Now, NewDebitedAmount, 0, SessionId},
+			NewAcc = [B#bucket{reservations = [NewReservation | NewReservations]} | Acc],
+			charge_session(Type, Charge - ReservedAmount - Remain, Now,
+					SessionId, T, Charged + ReservedAmount + Remain, NewAcc);
+		{value, {_, DebitedAmount, ReservedAmount, _}, NewReservations} when Charge =:= 0,
+				((Expires == undefined) or (Now < Expires)) ->
+			NewReservation = {Now, DebitedAmount, 0, SessionId},
+			NewAcc = [B#bucket{remain_amount = Remain + ReservedAmount,
+					reservations = [NewReservation | NewReservations]} | Acc],
 			charge_session(Type, 0, Now, SessionId, T, Charged, NewAcc);
 		_ when Reservations == [], Expires /= undefined, Expires =< Now ->
 			charge_session(Type, Charge, Now, SessionId, T, Charged, Acc);
@@ -1035,36 +1090,45 @@ charge_session(Type, Charge, Now, SessionId, [H | T], Charged, Acc) ->
 	charge_session(Type, Charge, Now, SessionId, T, Charged, [H | Acc]);
 charge_session(_, Charge, _, _, [], Charge, Acc) ->
 	{Charge, lists:reverse(Acc)};
-charge_session(Type, Charge, Now, _, [], Charged, Acc) ->
-	charge(Type, Charge, Now, lists:reverse(Acc), [], Charged).
+charge_session(Type, Charge, Now, SessionId, [], Charged, Acc) ->
+	charge(Type, Charge, Now, SessionId, lists:reverse(Acc), [], Charged).
 
 %% @hidden
-charge(Type, Charge, Now,
+charge(Type, Charge, Now, SessionId,
 		[#bucket{termination_date = Expires, reservations = [],
 		remain_amount = Remain} | T], Acc, Charged)
 		when Expires /= undefined, Expires =< Now, Remain >= 0 ->
-	charge(Type, Charge, Now, T, Acc, Charged);
-charge(Type, Charge, Now, [#bucket{units = Type,
-		remain_amount = R, termination_date = Expires} = B | T],
+	charge(Type, Charge, Now, SessionId, T, Acc, Charged);
+charge(Type, Charge, Now, SessionId, [#bucket{units = Type,
+		remain_amount = R, termination_date = Expires,
+		reservations = Reservations} = B | T],
 		Acc, Charged) when R > Charge,
 		((Expires == undefined) or (Now < Expires)) ->
-	NewBuckets = [B#bucket{remain_amount = R - Charge} | T],
+	NewReservation = {Now, Charge, 0, SessionId},
+	NewBuckets = [B#bucket{remain_amount = R - Charge,
+			reservations = [NewReservation | Reservations]} | T],
 	{Charged + Charge, lists:reverse(Acc) ++ NewBuckets};
-charge(Type, Charge, Now, [#bucket{units = Type,
+charge(Type, Charge, Now, SessionId, [#bucket{units = Type,
 		remain_amount = R, reservations = [],
-		termination_date = Expires} | T], Acc, Charged)
+		termination_date = Expires} = B | T], Acc, Charged)
 		when R =< Charge, 0 =< R, ((Expires == undefined) or (Now < Expires)) ->
-	charge(Type, Charge - R, Now, T, Acc, Charged + R);
-charge(Type, Charge, Now, [#bucket{units = Type,
-		remain_amount = R, termination_date = Expires} = B | T], Acc, Charged)
+	NewReservation = {Now, R, 0, SessionId},
+	NewAcc = [B#bucket{remain_amount = R - Charge,
+			reservations = [NewReservation]} | Acc],
+	charge(Type, Charge - R, Now, SessionId, T, NewAcc, Charged + R);
+charge(Type, Charge, Now, SessionId, [#bucket{units = Type,
+		remain_amount = R, termination_date = Expires,
+		reservations = Reservations} = B | T], Acc, Charged)
 		when R =< Charge, 0 =< R, ((Expires == undefined) or (Now < Expires)) ->
-	NewAcc = [B#bucket{remain_amount = 0} | Acc],
-	charge(Type, Charge - R, Now, T, NewAcc, Charged + R);
-charge(_Type, 0, _Now, Buckets, Acc, Charged) ->
+	NewReservation = {Now, R, 0, SessionId},
+	NewAcc = [B#bucket{remain_amount = 0, 
+			reservations = [NewReservation | Reservations]} | Acc],
+	charge(Type, Charge - R, Now, SessionId, T, NewAcc, Charged + R);
+charge(_Type, 0, _Now, _SessionId, Buckets, Acc, Charged) ->
 	{Charged, lists:reverse(Acc) ++ Buckets};
-charge(Type, Charge, Now, [H | T], Acc, Charged) ->
-	charge(Type, Charge, Now, T, [H | Acc], Charged);
-charge(_, _, _, [], Acc, Charged) ->
+charge(Type, Charge, Now, SessionId, [H | T], Acc, Charged) ->
+	charge(Type, Charge, Now, SessionId, T, [H | Acc], Charged);
+charge(_, _, _, _, [], Acc, Charged) ->
 	{Charged, lists:reverse(Acc)}.
 
 -spec remove_session(SessionId, SessionList) -> NewSessionList
@@ -1200,9 +1264,16 @@ refund(_SessionId, [], Acc) ->
 	lists:reverse(Acc).
 %% @hidden
 refund(SessionId, #bucket{remain_amount = R} = Bucket1,
-		[{_, Amount, SessionId} | T1], T2, Acc1, Acc2) ->
+		[{_, 0, Amount, SessionId} | T1], T2, Acc1, Acc2) ->
 	Bucket2 = Bucket1#bucket{remain_amount = R + Amount,
 			reservations = lists:reverse(Acc1) ++ T1},
+	refund(SessionId, T2, [Bucket2 | Acc2]);
+refund(SessionId, #bucket{remain_amount = R} = Bucket1,
+		[{TS, Debit, Amount, SessionId} | T1], T2, Acc1, Acc2) ->
+	Refuned = {TS, Debit, 0, SessionId},
+	NewReservation = [Refuned | T1],
+	Bucket2 = Bucket1#bucket{remain_amount = R + Amount,
+			reservations = lists:reverse(Acc1) ++ NewReservation},
 	refund(SessionId, T2, [Bucket2 | Acc2]);
 refund(SessionId, Bucket, [H | T1], T2, Acc1, Acc2) ->
 	refund(SessionId, Bucket, T1, T2, [H | Acc1], Acc2);
@@ -1318,4 +1389,47 @@ filter_prices_dir(Direction, [#price{char_value_use = CharValueUse} = P | T], Ac
 	end;
 filter_prices_dir(_, [], Acc) ->
 	lists:reverse(Acc).
+
+-spec get_debits(SessionId, Buckets) -> Result
+	when
+		SessionId :: [tuple()],
+		Buckets :: [#bucket{}],
+		Result :: {Debit, NewBuckets},
+		Debit :: interger(),
+		NewBuckets :: [#bucket{}],
+%% @doc Get the total debited amount and
+%% 	remove all the reservations for currect
+%% 	session
+%% @private
+%% 
+get_debits(SessionId, Buckets) ->
+	Now = erlang:system_time(?MILLISECOND),
+	get_debits(Buckets, SessionId, Now, 0, []).
+%% @hidden
+get_debits([#bucket{remain_amount = 0, reservations = []} | T],
+		SessionId, Now, Debit, Acc) ->
+	get_debits(SessionId, T, Now, Debit, Acc);
+get_debits([#bucket{reservations = [], termination_date = Expires} | T],
+		SessionId, Now, Debit, Acc) when Expires < Now ->
+	get_debits(T, SessionId, Now, Debit, Acc);
+get_debits([#bucket{reservations = []} = B | T], SessionId,
+		Now, Debit, Acc) ->
+	get_debits(T, SessionId, Now, Debit, [B | Acc]);
+get_debits([#bucket{reservations = Reservations} = B | T],
+		SessionId, Now, Debit, Acc) ->
+	{Debited, NewReservations} =
+			get_debits1(SessionId, Reservations, 0, []),
+	get_debits(T, SessionId, Now, Debit + Debited,
+			[B#bucket{reservations = NewReservations} | Acc]);
+get_debits([], _SessionId, _Now, Debited, Acc) ->
+	{Debited, lists:reverse(Acc)}.
+%% @hidden
+get_debits1(SessionId, [{_, Debited, _, SessionId} | T], Debit, Acc) ->
+	NewAcc = lists:reverse(Acc) ++ T,
+	get_debits1(SessionId, T, Debited + Debit, NewAcc);
+get_debits1(SessionId, [H | T], Debit, Acc) ->
+	get_debits1(SessionId, T, Debit, [H | Acc]);
+get_debits1(_SessionId, [], Debit, Acc) ->
+	{Debit, lists:reverse(Acc)}.
+
 

@@ -139,7 +139,7 @@ initial_exact_fit(_Config) ->
 			SubscriberID, Timestamp, undefined, undefined, initial, [],
 			[{octets, PackageSize}], SessionId),
 	#subscriber{buckets = [#bucket{remain_amount = 0,
-			reservations = [{_, PackagePrice, _}]}]} = Subscriber2.
+			reservations = [{_, 0, PackagePrice, _}]}]} = Subscriber2.
 
 initial_insufficient() ->
 	[{userdata, [{doc, "Insufficient cents balance for initial reservation"}]}].
@@ -223,10 +223,11 @@ initial_add_session(_Config) ->
 	SessionId = lists:keysort(1, [AcctSessionId, NasIp, NasId]),
 	SessionAttr = [NasId, NasIp, AcctSessionId, {?ServiceType, ServiceType}],
 	{ok, _} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
-	{ok, #subscriber{session_attributes = [{_, SessionId}]},
+	{ok, #subscriber{session_attributes = [{_, SessionId}], buckets = NewBuckets},
 			PackageSize} = ocs_rating:rate(radius, ServiceType, SubscriberID,
 			Timestamp, undefined, undefined, initial,
-			[], [{octets, PackageSize}], SessionAttr).
+			[], [{octets, PackageSize}], SessionAttr),
+	[#bucket{reservations = [{_, 0, PackagePrice, _}]}] = NewBuckets.
 
 initial_overhead() ->
 	[{userdata, [{doc, "Reserved amount greater than requested reservation amount"}]}].
@@ -251,8 +252,9 @@ initial_overhead(_Config) ->
 	SessionId = [{'Session-Id', list_to_binary(ocs:generate_password())}],
 	ServiceType = 2,
 	{ok, _Subscriber1} = ocs:add_subscriber(SubscriberID, Password, ProdID, Chars, Buckets),
-	{ok, #subscriber{buckets = [#bucket{remain_amount = RemAmount2}]},
-			Reserved} = ocs_rating:rate(radius, ServiceType, SubscriberID,
+	{ok, #subscriber{buckets = [#bucket{remain_amount = RemAmount2,
+			reservations = [CReservation]}]}, Reserved} =
+			ocs_rating:rate(radius, ServiceType, SubscriberID,
 			Timestamp, undefined, undefined, initial,
 			[], [{octets, Reservation}], SessionId),
 	F = fun(A) when (A rem PackageSize) == 0 ->
@@ -262,7 +264,8 @@ initial_overhead(_Config) ->
 	end,
 	RemAmount2 = RemAmount1 - F(Reservation),
 	0 = Reserved rem PackageSize,
-	true = Reserved > Reservation.
+	true = Reserved > Reservation,
+	element(3, CReservation) == F(Reservation).
 
 initial_multiple_buckets() ->
 	[{userdata, [{doc, "Reservation over multiple cents buckets"}]}].
@@ -305,7 +308,10 @@ initial_multiple_buckets(_Config) ->
 	end,
 	Balance2 = Balance1 - F(Reservation),
 	0 = Reserved rem PackageSize,
-	true = Reserved > Reservation.
+	true = Reserved > Reservation,
+	Balance3 = lists:sum([R || #bucket{reservations = [{_, 0, R, SId}]} <- RatedBuckets,
+			SId == SessionId]),
+	Balance3 = F(Reservation).
 
 initial_expire_buckets() ->
 	[{userdata, [{doc, "Remove expired buckets"}]}].
@@ -429,7 +435,7 @@ interim_reserve(_Config) ->
 			[{octets, InitialReservation}], SessionId),
 	InterimReservation = PackageSize + InitialReservation,
 	{ok, #subscriber{buckets = [#bucket{remain_amount = 0,
-			reservations = [{_, Reserved, _}]}]},
+			reservations = [{_, 0, Reserved, _}]}]},
 			_Reservation} = ocs_rating:rate(radius, ServiceType, SubscriberID,
 			calendar:gregorian_seconds_to_datetime(TS + 60), undefined,
 			undefined, interim, [], [{octets, InterimReservation}], SessionId),
@@ -471,7 +477,7 @@ interim_reserve_within_unit_size(_Config) ->
 	%% 1st Reservation
 	Reservation1 = 100,
 	{ok, #subscriber{buckets = [#bucket{remain_amount = CentsRemain1,
-			reservations = [{_, Reserved1, _}]}]}, PackageSize}
+			reservations = [{_, 0, Reserved1, _}]}]}, PackageSize}
 			= ocs_rating:rate(diameter, ServiceType, SubscriberID, TS,
 			undefined, undefined, initial, [], [{octets, Reservation1}], SessionId),
 	CentsRemain1 = RemAmount - F(Reservation1),
@@ -479,7 +485,7 @@ interim_reserve_within_unit_size(_Config) ->
 	%% 2nd Reservation
 	Reservation2 = 300,
 	{ok, #subscriber{buckets = [#bucket{remain_amount = CentsRemain2,
-			reservations = [{_, Reserved2, _}]}]}, PackageSize}
+			reservations = [{_, 0, Reserved2, _}]}]}, PackageSize}
 			= ocs_rating:rate(diameter, ServiceType, SubscriberID,
 			calendar:gregorian_seconds_to_datetime(TS + 60),
 			undefined, undefined, interim, [], [{octets, Reservation2}], SessionId),
@@ -488,7 +494,7 @@ interim_reserve_within_unit_size(_Config) ->
 	%% 3rd Reservation
 	Reservation3 = 700,
 	{ok, #subscriber{buckets = [#bucket{remain_amount = CentsRemain3,
-			reservations = [{_, Reserved3, _}]}]}, PackageSize}
+			reservations = [{_, 0, Reserved3, _}]}]}, PackageSize}
 			= ocs_rating:rate(diameter, ServiceType, SubscriberID,
 			calendar:gregorian_seconds_to_datetime(TS + 120),
 			undefined, undefined, interim, [], [{octets, Reservation3}], SessionId),
@@ -521,7 +527,7 @@ interim_reserve_available(_Config) ->
 			SubscriberID, TS, undefined, undefined, initial, [],
 			[{octets, PackageSize}], SessionId),
 	{ok, #subscriber{buckets = [#bucket{remain_amount = 0,
-			reservations = [{_, PackagePrice, _}]}]}, PackageSize}
+			reservations = [{_, PackagePrice, PackagePrice, _}]}]}, PackageSize}
 			= ocs_rating:rate(diameter, ServiceType, SubscriberID,
 			calendar:gregorian_seconds_to_datetime(TS + 60),
 			undefined, undefined, interim, [{octets, PackageSize}],
@@ -566,7 +572,9 @@ interim_reserve_out_of_credit(_Config) ->
 		_ ->
 			StartingAmount - (DebitSize div UnitSize + 1) * UnitPrice
 	end,
-	#bucket{remain_amount = RemainAmount} = lists:keyfind(cents, #bucket.units, RatedBuckets).
+	RemainAmount = lists:sum([R || #bucket{units = cents, remain_amount = R} <- RatedBuckets]),
+	F = fun(Reservations) -> lists:sum([D || {_, D, _, _} <- Reservations]) end,
+	StartingAmount = lists:sum([F(R) || #bucket{reservations = R} <- RatedBuckets]).
 
 interim_reserve_remove_session() ->
 	[{userdata, [{doc, "Out of credit remove session attributes from subscriber record"}]}].
@@ -639,7 +647,7 @@ interim_reserve_multiple_buckets_available(_Config) ->
 			undefined, undefined, initial, [], [{octets, Reservation1}], SessionAttributes),
 	{ok, #subscriber{buckets = RatedBuckets1}} = ocs:find_subscriber(SubscriberID),
 	F1 = fun(F1, Type, [#bucket{units = Type, reservations = Res} | T], R) when Res =/= [] ->
-			{_, Reserved, _} = lists:keyfind([SessionId], 3, Res),
+			{_, _, Reserved, _} = lists:keyfind([SessionId], 4, Res),
 			F1(F1, Type, T, Reserved + R);
 		(F1, Type, [_ | T], R) ->
 			F1(F1, Type, T, R);
@@ -742,7 +750,14 @@ interim_debit_exact_balance(_Config) ->
 			calendar:gregorian_seconds_to_datetime(TS + 60),
 			undefined, undefined, interim, [{octets, PackageSize}], [], SessionId),
 	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
-	#bucket{remain_amount = 0, reservations = []} = lists:keyfind(cents, #bucket.units, RatedBuckets).
+	#bucket{remain_amount = 0, reservations = Reservations} =
+			lists:keyfind(cents, #bucket.units, RatedBuckets),
+	F = fun(F, [{_, D, _, _} | T], Debit) ->
+				F(F, T, D + Debit);
+			(_F, [], Debit) ->
+				Debit
+	end,
+	PackagePrice = F(F, Reservations, 0).
 
 interim_debit_under_unit_size() ->
 	[{userdata, [{doc, "Debit amount less than package size"}]}].
@@ -810,7 +825,9 @@ interim_debit_out_of_credit(_Config) ->
 			SubscriberID, calendar:gregorian_seconds_to_datetime(TS + 60),
 			undefined, undefined, interim, [{octets, PackageSize}],
 			[{octets, PackageSize}], SessionId),
-	{ok, #subscriber{buckets = []}} = ocs:find_subscriber(SubscriberID).
+	{ok, #subscriber{buckets = [#bucket{reservations = Reservations}]}} =
+			ocs:find_subscriber(SubscriberID),
+	[{_, AccountAmount, 0, _}] = Reservations.
 
 interim_debit_remove_session() ->
 	[{userdata, [{doc, "Out of credit remove session attributes from subscriber record"}]}].
@@ -890,7 +907,7 @@ interim_debit_and_reserve_available(_Config) ->
 	end,
 	F2 = fun(Deb, Reserve, Reserved) -> F3(F1(Deb), F1(Reserve), Reserved) end,
 	CentsRemain1 = RemAmount - F1(Reservation),
-	{_, Reservation1, _} = lists:keyfind(SessionId, 3, Reservations1),
+	{_, 0, Reservation1, _} = lists:keyfind(SessionId, 4, Reservations1),
 	Reservation1 = F2(0, Reservation, 0),
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
 			calendar:gregorian_seconds_to_datetime(TS + 60),
@@ -899,7 +916,8 @@ interim_debit_and_reserve_available(_Config) ->
 	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = CentsRemain2, reservations = Reservations2} = lists:keyfind(cents, #bucket.units, RatedBuckets),
 	CentsRemain2 = CentsRemain1 - F1(Debit),
-	{_, Reservation2, _} = lists:keyfind(SessionId, 3, Reservations2),
+	{_, Debit2, Reservation2, _} = lists:keyfind(SessionId, 4, Reservations2),
+	Debit2 = F1(Debit),
 	Reservation2 = F2(Debit, Reservation, Reservation1).
 
 interim_debit_and_reserve_insufficient1() ->
@@ -951,7 +969,7 @@ interim_debit_and_reserve_insufficient1(_Config) ->
 	end,
 	F2 = fun(Deb, Reserve, Reserved) -> F3(F1(Deb), F1(Reserve), Reserved) end,
 	CentsRemain1 = RemAmount - F1(Reservation),
-	{_, Reservation1, _} = lists:keyfind(SessionId, 3, Reservations1),
+	{_, 0, Reservation1, _} = lists:keyfind(SessionId, 4, Reservations1),
 	Reservation1 = F2(0, Reservation, 0),
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
 			calendar:gregorian_seconds_to_datetime(TS + 60),
@@ -960,7 +978,8 @@ interim_debit_and_reserve_insufficient1(_Config) ->
 	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = CentsRemain2, reservations = Reservations2} = lists:keyfind(cents, #bucket.units, RatedBuckets),
 	CentsRemain2 = CentsRemain1 - F1(Debit),
-	{_, Reservation2, _} = lists:keyfind(SessionId, 3, Reservations2),
+	{_, Debit2, Reservation2, _} = lists:keyfind(SessionId, 4, Reservations2),
+	Debit2 = F1(Debit),
 	Reservation2 = F2(Debit, Reservation, Reservation1).
 
 interim_debit_and_reserve_insufficient2() ->
@@ -1043,13 +1062,15 @@ interim_debit_and_reserve_insufficient3(_Config) ->
 	end,
 	F2 = fun(Deb, Reserve, Reserved) -> F3(F1(Deb), F1(Reserve), Reserved) end,
 	CentsRemain1 = RemAmount - F1(Reservation),
-	{_, Reservation1, _} = lists:keyfind(SessionId, 3, Reservations1),
+	{_, 0, Reservation1, _} = lists:keyfind(SessionId, 4, Reservations1),
 	Reservation1 = F2(0, Reservation, 0),
 	{out_of_credit, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
 			calendar:gregorian_seconds_to_datetime(TS + 60),
 			undefined, undefined, interim,
 			[{octets, Debit}], [{octets, Reservation}], SessionId),
-	{ok, #subscriber{buckets = []}} = ocs:find_subscriber(SubscriberID).
+	{ok, #subscriber{buckets = [#bucket{reservations = [InterimReservation]}]}} =
+			ocs:find_subscriber(SubscriberID),
+	element(2, InterimReservation) == F1(Debit).
 
 interim_debit_and_reserve_insufficient4() ->
 	[{userdata, [{doc, "Insuffient amount for debit and reservation"}]}].
@@ -1082,8 +1103,10 @@ interim_debit_and_reserve_insufficient4(_Config) ->
 			calendar:gregorian_seconds_to_datetime(TS + 60),
 			undefined, undefined, interim,
 			[{octets, Debit}], [{octets, Reservation}], SessionId),
-	{ok, #subscriber{buckets = [#bucket{remain_amount = -150,
-			units = cents}]}} = ocs:find_subscriber(SubscriberID).
+	{ok, #subscriber{buckets = RatedBuckets}} = ocs:find_subscriber(SubscriberID),
+	-150 = lists:sum([R || #bucket{remain_amount = R, units = cents} <- RatedBuckets]),
+	F = fun(Res1) -> lists:sum([D || {_, D, _, _} <- Res1]) end,
+	RemAmount = lists:sum([F(R) || #bucket{reservations = R, units = cents} <- RatedBuckets]).
 
 interim_out_of_credit_voice() ->
 	[{userdata, [{doc, "Voice call out of credit during call"}]}].
@@ -1124,8 +1147,9 @@ interim_out_of_credit_voice(_Config) ->
 			undefined, undefined, interim,
 			[{seconds, ReserveUnits}], [{seconds, ReserveUnits}], SessionId),
 	{ok, #subscriber{buckets = Buckets2}} = ocs:find_subscriber(SubscriberID),
-	#bucket{remain_amount = Amount2, reservations = []}
+	#bucket{remain_amount = Amount2, reservations = [InterimReservation]}
 			= lists:keyfind(cents, #bucket.units, Buckets2),
+	UnitPrice = element(2, InterimReservation),
 	Amount2 = StartingAmount - ReservedUnits * UnitPrice.
 
 final_remove_session() ->
@@ -1192,7 +1216,7 @@ final_refund(_Config) ->
 			undefined, undefined, initial, [], [{octets, UnitSize}], SessionId1),
 	{ok, #subscriber{buckets = RatedBuckets1}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = 0, reservations = Reserved1} = lists:keyfind(cents, #bucket.units, RatedBuckets1),
-	[{_, UnitPrice, SessionId1}] = Reserved1,
+	[{_, _, UnitPrice, SessionId1}] = Reserved1,
 	{ok, _, _} = ocs_rating:rate(diameter, ServiceType, SubscriberID,
 			calendar:gregorian_seconds_to_datetime(TS + 60),
 			undefined, undefined, final, [{octets, 0}], [], SessionId1),
@@ -1204,7 +1228,7 @@ final_refund(_Config) ->
 			undefined, undefined, initial, [], [{octets, UnitSize}], SessionId2),
 	{ok, #subscriber{buckets = RatedBuckets3}} = ocs:find_subscriber(SubscriberID),
 	#bucket{remain_amount = 0, reservations = Reserved2} = lists:keyfind(cents, #bucket.units, RatedBuckets3),
-	[{_, UnitPrice, SessionId2}] = Reserved2.
+	[{_, 0, UnitPrice, SessionId2}] = Reserved2.
 
 final_voice() ->
 	[{userdata, [{doc, "Final RADIUS accounting request for voice call"}]}].
@@ -1914,6 +1938,8 @@ unauthorize_out_of_credit(_Config) ->
 	{unauthorized, out_of_credit, []} = ocs_rating:authorize(radius,
 			ServiceType, SubscriberID, Password, Timestamp,
 			CallAddress, undefined, SessionId).
+
+
 
 %%---------------------------------------------------------------------
 %%  Internal functions

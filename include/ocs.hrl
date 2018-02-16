@@ -133,7 +133,8 @@
 		termination_date :: pos_integer() | undefined,
 		remain_amount = 0 :: integer(),
 		reservations = [] :: [{TS :: pos_integer(),
-				Amount :: pos_integer(),
+				DebitAmount :: pos_integer(),
+				ReservedAmount :: pos_integer(),
 				SessionId :: string() | binary()}],
 		units :: octets | cents | seconds | undefined,
 		prices = [] :: list(),
@@ -157,7 +158,7 @@
 		product :: #product_instance{} | undefined,
 		enabled = true :: boolean(),
 		disconnect  = false :: boolean(),
-		session_attributes = [] :: [{pos_integer(), [tuple()]}],
+		session_attributes = [] :: [{TS :: pos_integer(), Attributes :: [tuple()]}],
 		multisession = false :: boolean(),
 		last_modified :: tuple() | undefined}).
 
