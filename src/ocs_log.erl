@@ -1667,6 +1667,20 @@ acct_query4(Attributes, [{Attribute, {exact, Match}} | T]) ->
 		_ ->
 			false
 	end;
+acct_query4(Attributes, [{Attribute, {like, [H | T1]}} | T2]) ->
+	case lists:keyfind(Attribute, 1, Attributes) of
+		{Attribute, Value} ->
+			case lists:prefix(H, Value) of
+				true ->
+					acct_query4(Attributes, [{Attribute, {like, T1}} | T2]);
+				false ->
+					false
+			end;
+		_ ->
+			false
+	end;
+acct_query4(Attributes, [{Attribute, {like, []}} | T]) ->
+	acct_query4(Attributes, T);
 acct_query4(Attributes, [_ | T]) ->
 	acct_query4(Attributes, T);
 acct_query4(_Attributes, []) ->

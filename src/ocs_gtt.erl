@@ -43,6 +43,10 @@
 		lookup_first/2, lookup_last/2, lookup_all/2,
 		list/0, backup/2, restore/2, import/1]).
 
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
+
 -include("ocs.hrl").
 
 %%----------------------------------------------------------------------
@@ -326,8 +330,10 @@ import(Table, Records) ->
 	end.
 %% @hidden
 import1(Table, Records) ->
+	TS = erlang:system_time(?MILLISECOND),
+	N = erlang:unique_integer([positive]),
 	Split = binary:split(Records, [<<"\n">>], [global]),
-	F = fun() -> import2(Table, Split, []) end,
+	F = fun() -> import2(Table, Split, {TS, N}, []) end,
 	case mnesia:transaction(F) of
 		{atomic, ok} ->
 			ok;
@@ -335,22 +341,22 @@ import1(Table, Records) ->
 			exit(Reason)
 	end.
 %% @hidden
-import2(Table, [<<>>], Acc) ->
+import2(Table, [<<>>], _LM, Acc) ->
 	F = fun(#gtt{} = G) -> mnesia:write(Table, G, write) end,
 	lists:foreach(F, Acc);
-import2(Table, [Chunk | Rest], Acc) ->
-	NewAcc = [import3(binary:split(Chunk, [<<",">>], [global]), []) | Acc],
-	import2(Table, Rest, NewAcc).
+import2(Table, [Chunk | Rest], LM, Acc) ->
+	NewAcc = [import3(binary:split(Chunk, [<<",">>], [global]), LM, []) | Acc],
+	import2(Table, Rest, LM, NewAcc).
 %% @hidden
-import3([<<>> | T], Acc) ->
-	import3(T, [undefined, Acc]);
-import3([H | T], Acc) ->
-	import3(T, [binary_to_list(H) | Acc]);
-import3([], Acc) ->
-	import4(lists:reverse(Acc)).
+import3([<<>> | T], LM, Acc) ->
+	import3(T, LM, [undefined, Acc]);
+import3([H | T], LM, Acc) ->
+	import3(T, LM, [binary_to_list(H) | Acc]);
+import3([], LM, Acc) ->
+	import4(lists:reverse(Acc), LM).
 %% @hidden
-import4([Key | Value]) ->
-	Tuple = list_to_tuple(Value),
+import4([Key, Desc, Rate], LM) ->
+	Tuple  = {Desc, ocs_rating:convert(Rate), LM},
 	case is_key_number(Key) of
 		true->
 			#gtt{num = Key, value = Tuple};
@@ -390,22 +396,29 @@ list([], Acc) ->
 %% @hidden
 %%
 insert(Table, [], Number, Value) when is_integer(Number) ->
-	insert(Table, [], integer_to_list(Number), Value, 0);
+	insert1(Table, [], integer_to_list(Number), Value, 0);
 insert(Table, [], Number, Value) ->
-	insert(Table, [], Number, Value, 0).
+	insert1(Table, [], Number, Value, 0).
 %% @hidden
-insert(Table, P, [H | []], Value, N) ->
+insert1(Table, P, Number, Value, N) ->
+	TS = erlang:system_time(?MILLISECOND),
+	N = erlang:unique_integer([positive]),
+	LM = {TS, N},
+	Value1 = erlang:insert_element(tuple_size(Value) + 1, Value, LM),
+	insert2(Table, P, Number, Value1, N).
+%% @hidden
+insert2(Table, P, [H | []], Value, N) ->
 	Number =  P ++ [H],
 	mnesia:write(Table, #gtt{num = Number, value = Value}, write),
 	N + 1;
-insert(Table, P, [H | T], Value, N) ->
+insert2(Table, P, [H | T], Value, N) ->
 	Number =  P ++ [H],
 	case mnesia:read(Table, Number, write) of
 		[#gtt{}] ->
-			insert(Table, Number, T, Value, N);
+			insert2(Table, Number, T, Value, N);
 		[] ->
 			mnesia:write(Table, #gtt{num = Number}, write),
-			insert(Table, Number, T, Value, N + 1)
+			insert2(Table, Number, T, Value, N + 1)
 	end.
 
 %% @hidden
