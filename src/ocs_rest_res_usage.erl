@@ -2319,12 +2319,31 @@ query_start1({_, "AAAAccessUsage"}, Query,
 	end;
 query_start1({_, "AAAAccountingUsage"}, Query,
 		Filters, RangeStart, RangeEnd, DateStart, DateEnd) ->
-	case supervisor:start_child(ocs_rest_pagination_sup,
-			[[ocs_log, acct_query, [DateStart, DateEnd, '_', '_', '_']]]) of
-		{ok, PageServer, Etag} ->
-			query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
-		{error, _Reason} ->
-			{error, 500}
+	try
+		case lists:keyfind("filter", 1, Query) of
+			{_, String} ->
+				{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
+				case ocs_rest_query_parser:parse(Tokens) of
+					{ok, [{array, [{complex,
+							[{"usageCharacteristic", contains, Contains}]}]}]} ->
+						characteristic(Contains, '_', '_', '_', '_')
+				end;
+			false ->
+				{'_', '_', '_', '_'}
+		end
+	of
+		{Protocol, Types, Attributes, _} ->
+			Args = [DateStart, DateEnd, Protocol, Types, Attributes],
+			MFA = [ocs_log, acct_query, Args],
+			case supervisor:start_child(ocs_rest_pagination_sup, [MFA]) of
+				{ok, PageServer, Etag} ->
+					query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
+				{error, _Reason} ->
+					{error, 500}
+			end
+	catch
+		_ ->
+			{error, 400}
 	end;
 query_start1({_, "PublicWLANAccessUsage"}, _, _, _, _, _, _) ->
 	{error, 404}; % todo?
@@ -2356,7 +2375,7 @@ query_page(PageServer, Etag, Query, Filters, Start, End) ->
 	case lists:keytake("type", 1, Query) of
 		{_, {_, "AAAAccessUsage"}, _Query1} ->
 			query_page1(PageServer, Etag, fun usage_aaa_auth/2, Filters, Start, End);
-		{_, {_, "AAAAccountingUsage"}, []} ->
+		{_, {_, "AAAAccountingUsage"}, _Query1} ->
 			query_page1(PageServer, Etag, fun usage_aaa_acct/2, Filters, Start, End);
 		{_, {_, "PublicWLANAccessUsage"}, []} ->
 			{error, 404}; % todo?

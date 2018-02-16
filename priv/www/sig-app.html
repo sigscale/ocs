@@ -37,6 +37,7 @@
 <link rel="import" href="sig-access-list.html">
 <link rel="import" href="sig-accounting-list.html">
 <link rel="import" href="sig-http-list.html">
+<link rel="import" href="sig-usage-list.html">
 <link rel="import" href="sig-user-add.html">
 <link rel="import" href="sig-user-list.html">
 <link rel="import" href="sig-user-update.html">
@@ -156,8 +157,8 @@
 				<sig-sub-list></sig-sub-list>
 				<sig-client-list></sig-client-list>
 				<sig-user-list></sig-user-list>
-				<sig-access-list></sig-access-list>
-				<sig-accounting-list></sig-accounting-list>
+				<sig-access-list id="accessList"></sig-access-list>
+				<sig-accounting-list id="accountingList"></sig-accounting-list>
 				<sig-ipdr-list></sig-ipdr-list>
 				<sig-http-list></sig-http-list>
 				<sig-prefix-list id="prefixList" table="{{table}}"></sig-prefix-list>
@@ -439,7 +440,7 @@
 						this.$.loadPage.selected = 8;
 						break;
 					case 'pageBalance':
-						this.$.loadPage.selected = 9;
+						this.$.loadPage.selected = 10;
 						break;
 				}
 			},
@@ -463,10 +464,10 @@
 						document.getElementById('userGrid').clearCache();
 						break;
 					case 4:
-						document.getElementById('getAccess').generateRequest();
+						this.$.accessList.refreshAccess();
 						break;
 					case 5:
-						document.getElementById('getAccounting').generateRequest();
+						this.$.accountingList.refreshAccounting();
 						break;
 					case 6:
 						document.getElementById('getIpdr').generateRequest();
