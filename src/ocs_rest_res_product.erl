@@ -1432,18 +1432,14 @@ price([units | T], #price{units = octets, size = Size} = P, Acc)
 price([units | T], #price{units = seconds, size = Size} = P, Acc)
 		when is_integer(Size) ->
 	price(T, P, [{"unitOfMeasure", integer_to_list(Size) ++ "s"} | Acc]);
-price([amount | T], #price{amount = Amount, units = cents} = P, Acc)
-		when is_integer(Amount)->
-	Price = {struct, [{"taxIncludedAmount", ocs_rest:convert(Amount)}]},
-	price(T, P, [{"price", Price} | Acc]);
 price([amount | T], #price{amount = Amount, currency = Currency} = P, Acc)
 		when is_integer(Amount), is_list(Currency) ->
-	Price = {struct, [{"taxIncludedAmount", Amount},
+	Price = {struct, [{"taxIncludedAmount", ocs_rest:convert(Amount)},
 			{"currencyCode", Currency}]},
 	price(T, P, [{"price", Price} | Acc]);
 price([amount | T], #price{amount = Amount} = P, Acc)
 		when is_integer(Amount) ->
-	Price = {struct, [{"taxIncludedAmount", Amount}]},
+	Price = {struct, [{"taxIncludedAmount", ocs_rest:convert(Amount)}]},
 	price(T, P, [{"price", Price} | Acc]);
 price([char_value_use | T], #price{char_value_use = CharValueUses} = P, Acc) ->
 	price(T, P, [{"prodSpecCharValueUse", char_value_uses(CharValueUses)} | Acc]);
