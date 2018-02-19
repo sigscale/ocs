@@ -371,8 +371,8 @@ id1(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 	try
 		S_rand = crypto:rand_uniform(1, ?R),
 		NewEapID = (EapID rem 255) + 1,
-		case catch ocs:find_subscriber(PeerID) of
-			{ok, #subscriber{password = Pwd}} ->
+		case catch ocs:find_service(PeerID) of
+			{ok, #service{password = Pwd}} ->
 				Password = case PwdReq of
 					false ->
 						<<>>;
@@ -416,8 +416,8 @@ id2(#diameter_eap_app_DER{} = Request, PeerID, Token,
 	try
 		S_rand = crypto:rand_uniform(1, ?R),
 		NewEapID = (EapID rem 255) + 1,
-		case catch ocs:find_subscriber(PeerID) of
-			{ok, #subscriber{password = Pwd}} ->
+		case catch ocs:find_service(PeerID) of
+			{ok, #service{password = Pwd}} ->
 				Password = case PwdReq of
 					false ->
 						<<>>;
@@ -789,7 +789,7 @@ confirm3(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 	SessionAttributes = ocs_rating:session_attributes(RequestAttributes),
 	case ocs_rating:authorize(radius, ServiceType, PeerID, Password,
 			Timestamp, CallAddress, Direction, SessionAttributes) of
-		{authorized, _Subscriber, Attributes, _ExistingSessionAttributes} ->
+		{authorized, _Service, Attributes, _ExistingSessionAttributes} ->
 			Attr1 = radius_attributes:store(?UserName, UserName, Attributes),
 			Attr2 = radius_attributes:store(?Microsoft,
 					?MsMppeSendKey, {Salt, MsMppeKey}, Attr1),
@@ -863,7 +863,7 @@ confirm6(Request, #statedata{eap_id = EapID, ks = Ks, confirm_p = ConfirmP,
 			{'Session-Id', SessionID}],
 	case ocs_rating:authorize(diameter, ServiceType, PeerID, Password,
 			Timestamp, undefined, undefined, SessionAttributes) of
-		{authorized, _Subscriber, _Attributes, _ExistingSessionAttributes} ->
+		{authorized, _Service, _Attributes, _ExistingSessionAttributes} ->
 			EapPacket = #eap_packet{code = success, identifier = EapID},
 			send_diameter_response(SessionID, AuthType,
 					 ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OH, OR, EapPacket,
@@ -1115,22 +1115,22 @@ send_diameter_response(SId, AuthType, ResultCode, OH, OR, EapPacket,
 	end.
 
 %% @hidden
-start_disconnect(radius, SessionList, #statedata{peer_id = SubscriberId,
+start_disconnect(radius, SessionList, #statedata{peer_id = ServiceId,
 		session_id = SessionID, server_address = Address} = StateData) ->
 	case pg2:get_closest_pid(ocs_radius_acct_port_sup) of
 		{error, Reason} ->
 			error_logger:error_report(["Failed to initiate session disconnect function",
-					{module, ?MODULE}, {subscriber, SubscriberId}, {address, Address},
+					{module, ?MODULE}, {service, ServiceId}, {address, Address},
 					{session, SessionID}, {error, Reason}]);
 		DiscSup ->
 			start_disconnect1(radius, DiscSup, SessionList, StateData)
 	end;
-start_disconnect(diameter, SessionList, #statedata{peer_id = SubscriberId,
+start_disconnect(diameter, SessionList, #statedata{peer_id = ServiceId,
 		session_id = SessionID, origin_host = OHost, origin_realm = ORealm} = State) ->
 	case pg2:get_closest_pid(ocs_diamter_acct_port_sup) of
 		{error, Reason} ->
 			error_logger:error_report(["Failed to initiate session disconnect function",
-					{module, ?MODULE}, {subscriber, SubscriberId}, {origin_host, OHost},
+					{module, ?MODULE}, {service, ServiceId}, {origin_host, OHost},
 					{origin_realm, ORealm}, {session, SessionID}, {error, Reason}]);
 		DiscSup ->
 			start_disconnect1(diameter, DiscSup, SessionList, State)
@@ -1142,8 +1142,8 @@ start_disconnect1(Protocol, DiscSup, [H | Tail], State) ->
 	start_disconnect2(Protocol, DiscSup, H, State),
 	start_disconnect1(Protocol, DiscSup, Tail, State).
 %% @hidden
-start_disconnect2(radius, DiscSup, SessionAttributes, #statedata{peer_id = Subscriber}) ->
-	DiscArgs = [Subscriber, SessionAttributes],
+start_disconnect2(radius, DiscSup, SessionAttributes, #statedata{peer_id = Service}) ->
+	DiscArgs = [Service, SessionAttributes],
 	StartArgs = [DiscArgs, []],
 	supervisor:start_child(DiscSup, StartArgs);
 start_disconnect2(diameter, DiscSup, {_, SessionAttributes}, #statedata{session_id = SessionID}) ->

@@ -22,8 +22,8 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
-		get_subscribers/2, get_subscriber/2, post_subscriber/1,
-		patch_subscriber/4, delete_subscriber/1]).
+		get_services/2, get_service/2, post_service/1,
+		patch_service/4, delete_service/1]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
@@ -31,7 +31,7 @@
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
--define(subscriberPath, "/ocs/v1/subscriber/").
+-define(servicePath, "/ocs/v1/subscriber/").
 
 -spec content_types_accepted() -> ContentTypes
 	when
@@ -47,25 +47,25 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json"].
 
--spec get_subscriber(Id, Query) -> Result
+-spec get_service(Id, Query) -> Result
 	when
 		Id :: string(),
 		Query :: [{Key :: string(), Value :: string()}],
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
-%% @doc Body producing function for `GET /ocs/v1/subscriber/{id}'
+%% @doc Body producing function for `GET /ocs/v1/service/{id}'
 %% requests.
-get_subscriber(Id, Query) ->
+get_service(Id, Query) ->
 	case lists:keytake("fields", 1, Query) of
 		{value, {_, Filters}, _NewQuery} ->
-			get_subscriber1(Id, Filters);
+			get_service1(Id, Filters);
 		false ->
-			get_subscriber1(Id, [])
+			get_service1(Id, [])
 	end.
 %% @hidden
-get_subscriber1(Id, Filters) ->
+get_service1(Id, Filters) ->
 	try
-		case ocs:find_subscriber(Id) of
+		case ocs:find_service(Id) of
 			{ok, Sub} ->
 				Sub;
 			{error, not_found} ->
@@ -74,8 +74,8 @@ get_subscriber1(Id, Filters) ->
 				throw(500)
 		end
 	of
-		#subscriber{last_modified = LM} = Subscriber1 ->
-			Json = subscriber(Subscriber1),
+		#service{last_modified = LM} = Service1 ->
+			Json = service(Service1),
 			FilteredJson = case Filters of
 				[] ->
 					Json;
@@ -93,23 +93,23 @@ get_subscriber1(Id, Filters) ->
 			{error, 400}
 	end.
 
--spec get_subscribers(Query, Headers) -> Result
+-spec get_services(Query, Headers) -> Result
 	when
 		Query :: [{Key :: string(), Value :: string()}],
 		Headers :: [tuple()],
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
-%% @doc Body producing function for `GET /ocs/v1/subscriber'
+%% @doc Body producing function for `GET /ocs/v1/service'
 %% requests.
-get_subscribers(Query, Headers) ->
+get_services(Query, Headers) ->
 	case lists:keytake("fields", 1, Query) of
 		{value, {_, Filters}, NewQuery} ->
-			get_subscriber1(NewQuery, Filters, Headers);
+			get_service1(NewQuery, Filters, Headers);
 		false ->
-			get_subscriber1(Query, [], Headers)
+			get_service1(Query, [], Headers)
 	end.
 %% @hidden
-get_subscriber1(Query, Filters, Headers) ->
+get_service1(Query, Filters, Headers) ->
 	case {lists:keyfind("if-match", 1, Headers),
 			lists:keyfind("if-range", 1, Headers),
 			lists:keyfind("range", 1, Headers)} of
@@ -164,20 +164,20 @@ get_subscriber1(Query, Filters, Headers) ->
 			query_start(Query, Filters, undefined, undefined)
 	end.
 
--spec post_subscriber(RequestBody) -> Result 
+-spec post_service(RequestBody) -> Result 
 	when 
 		RequestBody :: list(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
-%% @doc Respond to `POST /ocs/v1/subscriber' and add a new `subscriber'
+%% @doc Respond to `POST /ocs/v1/service' and add a new `service'
 %% resource.
-post_subscriber(RequestBody) ->
+post_service(RequestBody) ->
 	try 
-		#subscriber{name = Name, password = Password,
+		#service{name = Name, password = Password,
 				attributes = Attributes, enabled = Enabled,
 				multisession = Multi, buckets = Buckets1,
 				product = Product} =
-					subscriber(mochijson:decode(RequestBody)),
+					service(mochijson:decode(RequestBody)),
 		Buckets2 =
 			[B#bucket{id = generate_bucket_id()} || B <- Buckets1],
 		{ProdID, Chars} = case Product of
@@ -187,12 +187,12 @@ post_subscriber(RequestBody) ->
 					characteristics = Characteristics} ->
 				{ProdId, Characteristics}
 		end,
-		case catch ocs:add_subscriber(Name, Password,
+		case catch ocs:add_service(Name, Password,
 				ProdID, Chars, Buckets2, Attributes, Enabled, Multi) of
-			{ok, #subscriber{name = Id, last_modified = LM} = Subscriber} ->
-				Json = subscriber(Subscriber),
+			{ok, #service{name = Id, last_modified = LM} = Service} ->
+				Json = service(Service),
 				Body = mochijson:encode(Json),
-				Location = ?subscriberPath ++ binary_to_list(Id),
+				Location = ?servicePath ++ binary_to_list(Id),
 				Headers = [{location, Location}, {etag, ocs_rest:etag(LM)}],
 				{ok, Headers, Body};
 			{error, _Reason} ->
@@ -203,7 +203,7 @@ post_subscriber(RequestBody) ->
 			{error, 400}
 	end.
 
--spec patch_subscriber(Id, Etag, ContenType, ReqBody) -> Result
+-spec patch_service(Id, Etag, ContenType, ReqBody) -> Result
 	when
 		Id :: string(),
 		Etag :: undefined | list(),
@@ -211,9 +211,9 @@ post_subscriber(RequestBody) ->
 		ReqBody :: list(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()} .
-%% @doc	Respond to `PATCH /ocs/v1/subscriber/{id}' request and
-%% Updates a existing `subscriber''s password or attributes. 
-patch_subscriber(Id, Etag, "application/json-patch+json", ReqBody) ->
+%% @doc	Respond to `PATCH /ocs/v1/service/{id}' request and
+%% Updates a existing `service''s password or attributes. 
+patch_service(Id, Etag, "application/json-patch+json", ReqBody) ->
 	try
 		Etag1 = case Etag of
 			undefined ->
@@ -224,12 +224,12 @@ patch_subscriber(Id, Etag, "application/json-patch+json", ReqBody) ->
 		{Etag1, mochijson:decode(ReqBody)}
 	of
 		{Etag2, Operations} ->
-			case ocs:find_subscriber(Id) of
-				{ok, #subscriber{last_modified = Etag3} = Sub} when
+			case ocs:find_service(Id) of
+				{ok, #service{last_modified = Etag3} = Sub} when
 						Etag3 == Etag2; Etag2 == undefined; Etag3 == undefined ->
-					case catch ocs_rest:patch(Operations, subscriber(Sub)) of
+					case catch ocs_rest:patch(Operations, service(Sub)) of
 						{struct, _} = Json ->
-							patch_subscriber1(Id, Json);
+							patch_service1(Id, Json);
 						_ ->
 							{error, 400}
 					end;
@@ -245,21 +245,21 @@ patch_subscriber(Id, Etag, "application/json-patch+json", ReqBody) ->
 			{error, 400}
 	end.
 %% @hidden
-patch_subscriber1(Id, Json) ->
+patch_service1(Id, Json) ->
 	try
-		#subscriber{product = Product} = Subscriber = subscriber(Json),
+		#service{product = Product} = Service = service(Json),
 		TS = erlang:system_time(?MILLISECOND),
 		N = erlang:unique_integer([positive]),
 		LM = {TS, N},
 		F = fun() ->
-			NewSub = Subscriber#subscriber{last_modified = LM,
+			NewSub = Service#service{last_modified = LM,
 				product = Product#product_instance{last_modified = LM}},
-			mnesia:write(subscriber, NewSub, write)
+			mnesia:write(service, NewSub, write)
 		end,
 		case mnesia:transaction(F) of
 			{atomic, ok} ->
 				Body = mochijson:encode(Json),
-				Location = ?subscriberPath ++ Id,
+				Location = ?servicePath ++ Id,
 				Headers = [{location, Location},
 					{etag, ocs_rest:etag(LM)}],
 				{ok, Headers, Body};
@@ -271,90 +271,90 @@ patch_subscriber1(Id, Json) ->
 			{error, 500}
 	end.
 
--spec delete_subscriber(Id) -> Result
+-spec delete_service(Id) -> Result
 	when
 		Id :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()} .
-%% @doc Respond to `DELETE /ocs/v1/subscriber/{id}' request and deletes
-%% a `subscriber' resource. If the deletion is succeeded return true.
-delete_subscriber(Id) ->
-	ok = ocs:delete_subscriber(Id),
+%% @doc Respond to `DELETE /ocs/v1/service/{id}' request and deletes
+%% a `service' resource. If the deletion is succeeded return true.
+delete_service(Id) ->
+	ok = ocs:delete_service(Id),
 	{ok, [], []}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
 
-subscriber({struct, ObjectMembers}) ->
-	subscriber(ObjectMembers, #subscriber{});
-subscriber(#subscriber{} = Subscriber) ->
-	{struct, subscriber(record_info(fields, subscriber),
-		Subscriber, [])}.
+service({struct, ObjectMembers}) ->
+	service(ObjectMembers, #service{});
+service(#service{} = Service) ->
+	{struct, service(record_info(fields, service),
+		Service, [])}.
 %% @hidden
-subscriber([{"id", Name} | T], Acc) ->
-	subscriber(T, Acc#subscriber{name = list_to_binary(Name)});
-subscriber([{"password", Password} | T], Acc) ->
-	subscriber(T, Acc#subscriber{password = list_to_binary(Password)});
-subscriber([{"attributes", {array, Attributes}} | T], Acc) ->
-	subscriber(T, Acc#subscriber{attributes = json_to_radius(Attributes)});
-subscriber([{"multisession", Multi} | T], Acc) ->
-	subscriber(T, Acc#subscriber{multisession = Multi});
-subscriber([{"enabled", Enabled} | T], Acc) ->
-	subscriber(T, Acc#subscriber{enabled = Enabled});
-subscriber([{"product", _} = Product | T], #subscriber{product = undefined} = Acc) ->
-	subscriber(T, Acc#subscriber{product = product({struct, [Product]})});
-subscriber([{"product", _} = Product | T], #subscriber{product = ProdInst} = Acc) ->
+service([{"id", Name} | T], Acc) ->
+	service(T, Acc#service{name = list_to_binary(Name)});
+service([{"password", Password} | T], Acc) ->
+	service(T, Acc#service{password = list_to_binary(Password)});
+service([{"attributes", {array, Attributes}} | T], Acc) ->
+	service(T, Acc#service{attributes = json_to_radius(Attributes)});
+service([{"multisession", Multi} | T], Acc) ->
+	service(T, Acc#service{multisession = Multi});
+service([{"enabled", Enabled} | T], Acc) ->
+	service(T, Acc#service{enabled = Enabled});
+service([{"product", _} = Product | T], #service{product = undefined} = Acc) ->
+	service(T, Acc#service{product = product({struct, [Product]})});
+service([{"product", _} = Product | T], #service{product = ProdInst} = Acc) ->
 	#product_instance{product = ProdID} = product({struct, [Product]}),
 	NewProdInst = ProdInst#product_instance{product = ProdID},
-	subscriber(T, Acc#subscriber{product = NewProdInst});
-subscriber([{"buckets", {array, Buckets}} | T], Acc) ->
+	service(T, Acc#service{product = NewProdInst});
+service([{"buckets", {array, Buckets}} | T], Acc) ->
 	Buckets2 = [bucket(Bucket) || Bucket <- Buckets],
-	subscriber(T, Acc#subscriber{buckets = Buckets2});
-subscriber([{"totalBalance", _} | T], Acc) ->
-	subscriber(T, Acc);
-subscriber([{"characteristics", _} = Chars | T], #subscriber{product = undefined} = Acc) ->
-	subscriber(T, Acc#subscriber{product = product({struct, [Chars]})});
-subscriber([{"characteristics", _} = Chars | T], #subscriber{product = ProdInst} = Acc) ->
+	service(T, Acc#service{buckets = Buckets2});
+service([{"totalBalance", _} | T], Acc) ->
+	service(T, Acc);
+service([{"characteristics", _} = Chars | T], #service{product = undefined} = Acc) ->
+	service(T, Acc#service{product = product({struct, [Chars]})});
+service([{"characteristics", _} = Chars | T], #service{product = ProdInst} = Acc) ->
 	#product_instance{characteristics = NewChars} = product({struct, [Chars]}),
 	NewProdInst = ProdInst#product_instance{characteristics = NewChars},
-	subscriber(T, Acc#subscriber{product = NewProdInst});
-subscriber([_A | T], Acc) ->
-	subscriber(T, Acc);
-subscriber([], Acc) ->
+	service(T, Acc#service{product = NewProdInst});
+service([_A | T], Acc) ->
+	service(T, Acc);
+service([], Acc) ->
 	Acc.
 %% @hidden
-subscriber([name | T], #subscriber{name = Name} = Subscriber, Acc) ->
+service([name | T], #service{name = Name} = Service, Acc) ->
 	Id = {"id", binary_to_list(Name)},
-	Href = {"href", ?subscriberPath ++ binary_to_list(Name)},
-	subscriber(T, Subscriber, [Href, Id | Acc]);
-subscriber([password | T], #subscriber{password = Password} = Subscriber, Acc) ->
-	subscriber(T, Subscriber, [{"password", binary_to_list(Password)} | Acc]);
-subscriber([attributes | T], #subscriber{attributes = []} = Subscriber, Acc) ->
-	subscriber(T, Subscriber, Acc);
-subscriber([attributes | T], #subscriber{attributes = undefined} = Subscriber, Acc) ->
-	subscriber(T, Subscriber, Acc);
-subscriber([attributes | T], #subscriber{attributes = Attributes} = Subscriber, Acc) ->
-	subscriber(T, Subscriber, [{"attributes", {array, radius_to_json(Attributes)}} | Acc]);
-subscriber([buckets | T], #subscriber{buckets = Buckets} = Subscriber, Acc) ->
+	Href = {"href", ?servicePath ++ binary_to_list(Name)},
+	service(T, Service, [Href, Id | Acc]);
+service([password | T], #service{password = Password} = Service, Acc) ->
+	service(T, Service, [{"password", binary_to_list(Password)} | Acc]);
+service([attributes | T], #service{attributes = []} = Service, Acc) ->
+	service(T, Service, Acc);
+service([attributes | T], #service{attributes = undefined} = Service, Acc) ->
+	service(T, Service, Acc);
+service([attributes | T], #service{attributes = Attributes} = Service, Acc) ->
+	service(T, Service, [{"attributes", {array, radius_to_json(Attributes)}} | Acc]);
+service([buckets | T], #service{buckets = Buckets} = Service, Acc) ->
 	Buckets1 = [bucket(Bucket) || Bucket <- Buckets],
 	Buckets2 = [{"totalBalance", accumulated_balance(Buckets)},
 		{"buckets", {array, Buckets1}}],
-	subscriber(T, Subscriber, Buckets2 ++ Acc);
-subscriber([product | T], #subscriber{product = #product_instance{} = Product} = Subscriber, Acc) ->
+	service(T, Service, Buckets2 ++ Acc);
+service([product | T], #service{product = #product_instance{} = Product} = Service, Acc) ->
 	{struct, Object} = product(Product),
-	subscriber(T, Subscriber, Object ++ Acc);
-subscriber([enabled | T], #subscriber{enabled = Enabled} = Subscriber, Acc) ->
-	subscriber(T, Subscriber, [{"enabled", Enabled} | Acc]);
-subscriber([disconnect | T], Subscriber, Acc) ->
-	subscriber(T, Subscriber, Acc);
-subscriber([session_attributes | T], Subscriber, Acc) ->
-	subscriber(T, Subscriber, Acc);
-subscriber([multisession | T], #subscriber{multisession = Multi} = Subscriber, Acc) ->
-	subscriber(T, Subscriber, [{"multisession", Multi} | Acc]);
-subscriber([_ | T], Subscriber, Acc) ->
-	subscriber(T, Subscriber, Acc);
-subscriber([], _Subscriber, Acc) ->
+	service(T, Service, Object ++ Acc);
+service([enabled | T], #service{enabled = Enabled} = Service, Acc) ->
+	service(T, Service, [{"enabled", Enabled} | Acc]);
+service([disconnect | T], Service, Acc) ->
+	service(T, Service, Acc);
+service([session_attributes | T], Service, Acc) ->
+	service(T, Service, Acc);
+service([multisession | T], #service{multisession = Multi} = Service, Acc) ->
+	service(T, Service, [{"multisession", Multi} | Acc]);
+service([_ | T], Service, Acc) ->
+	service(T, Service, Acc);
+service([], _Service, Acc) ->
 	Acc.
 
 -spec product(ProdInst) -> ProdInst
@@ -391,10 +391,10 @@ characteristics({array, Characteristics}) ->
 characteristics(Characteristics) ->
 	{array, characteristics(Characteristics, [])}.
 %% @hidden
-characteristics([{struct, [{"subscriberIdentity", Identity}]} | T], Acc) ->
-	characteristics(T, [{"subscriberIdentity", Identity} | Acc]);
-characteristics([{struct, [{"subscriberPassword", Password}]} | T], Acc) ->
-	characteristics(T, [{"subscriberPassword", Password} | Acc]);
+characteristics([{struct, [{"serviceIdentity", Identity}]} | T], Acc) ->
+	characteristics(T, [{"serviceIdentity", Identity} | Acc]);
+characteristics([{struct, [{"servicePassword", Password}]} | T], Acc) ->
+	characteristics(T, [{"servicePassword", Password} | Acc]);
 characteristics([{struct, [{"balanceTopUpDuration", BalanceTopUpDuration}]} | T], Acc) ->
 	characteristics(T, [{"balanceTopUpDuration", topup_duration(BalanceTopUpDuration)} | Acc]);
 characteristics([{struct, [{"radiusReserveTime", RadiusReserveTime}]} | T], Acc) ->
@@ -403,10 +403,10 @@ characteristics([{struct, [{"radiusReserveOctets", RadiusReserveOctets}]} | T], 
 	characteristics(T, [{"radiusReserveOctets", radius_reserve(RadiusReserveOctets)} | Acc]);
 characteristics([{struct, [{"radiusReserveSessionTime", SessionTime}]} | T], Acc) ->
 	characteristics(T, [{"radiusReserveSessionTime", SessionTime} | Acc]);
-characteristics([{"subscriberIdentity", Identity} | T], Acc) ->
-	characteristics(T, [{struct, [{"subscriberIdentity", Identity}]} | Acc]);
-characteristics([{"subscriberPassword", Password} | T], Acc) ->
-	characteristics(T, [{struct, [{"subscriberPassword", Password}]} | Acc]);
+characteristics([{"serviceIdentity", Identity} | T], Acc) ->
+	characteristics(T, [{struct, [{"serviceIdentity", Identity}]} | Acc]);
+characteristics([{"servicePassword", Password} | T], Acc) ->
+	characteristics(T, [{struct, [{"servicePassword", Password}]} | Acc]);
 characteristics([{"radiusReserveTime", RadiusReserveTime} | T], Acc) ->
 	characteristics(T, [{struct, [{"radiusReserveTime", radius_reserve(RadiusReserveTime)}]} | Acc]);
 characteristics([{"radiusReserveOctets", RadiusReserveOctets} | T], Acc) ->
@@ -694,7 +694,7 @@ units(seconds) -> "seconds".
 %% @hidden
 query_start(Query, Filters, RangeStart, RangeEnd) ->
 	case supervisor:start_child(ocs_rest_pagination_sup,
-				[[ocs, query_subscriber, []]]) of
+				[[ocs, query_service, []]]) of
 		{ok, PageServer, Etag} ->
 			query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
 		{error, _Reason} ->
@@ -706,41 +706,41 @@ query_page(PageServer, Etag, Query, Filters, Start, End) ->
 	case gen_server:call(PageServer, {Start, End}) of
 		{error, Status} ->
 			{error, Status};
-		{Subscribers, ContentRange} ->
+		{Services, ContentRange} ->
 			try
 				case lists:keytake("sort", 1, Query) of
 					{value, {_, "id"}, NewQuery} ->
-						{lists:keysort(#subscriber.name, Subscribers), NewQuery};
+						{lists:keysort(#service.name, Services), NewQuery};
 					{value, {_, "-id"}, NewQuery} ->
-						{lists:reverse(lists:keysort(#subscriber.name, Subscribers)), NewQuery};
+						{lists:reverse(lists:keysort(#service.name, Services)), NewQuery};
 					{value, {_, "password"}, NewQuery} ->
-						{lists:keysort(#subscriber.password, Subscribers), NewQuery};
+						{lists:keysort(#service.password, Services), NewQuery};
 					{value, {_, "-password"}, NewQuery} ->
-						{lists:reverse(lists:keysort(#subscriber.password, Subscribers)), NewQuery};
+						{lists:reverse(lists:keysort(#service.password, Services)), NewQuery};
 					{value, {_, "totalBalance"}, NewQuery} ->
-						{lists:keysort(#subscriber.buckets, Subscribers), NewQuery};
+						{lists:keysort(#service.buckets, Services), NewQuery};
 					{value, {_, "-totalBalance"}, NewQuery} ->
-						{lists:reverse(lists:keysort(#subscriber.buckets, Subscribers)), NewQuery};
+						{lists:reverse(lists:keysort(#service.buckets, Services)), NewQuery};
 					{value, {_, "product"}, NewQuery} ->
-						{lists:keysort(#subscriber.product, Subscribers), NewQuery};
+						{lists:keysort(#service.product, Services), NewQuery};
 					{value, {_, "-product"}, NewQuery} ->
-						{lists:reverse(lists:keysort(#subscriber.product, Subscribers)), NewQuery};
+						{lists:reverse(lists:keysort(#service.product, Services)), NewQuery};
 					{value, {_, "enabled"}, NewQuery} ->
-						{lists:keysort(#subscriber.enabled, Subscribers), NewQuery};
+						{lists:keysort(#service.enabled, Services), NewQuery};
 					{value, {_, "-enabled"}, NewQuery} ->
-						{lists:reverse(lists:keysort(#subscriber.enabled, Subscribers)), NewQuery};
+						{lists:reverse(lists:keysort(#service.enabled, Services)), NewQuery};
 					{value, {_, "multisession"}, NewQuery} ->
-						{lists:keysort(#subscriber.multisession, Subscribers), NewQuery};
+						{lists:keysort(#service.multisession, Services), NewQuery};
 					{value, {_, "-multisession"}, NewQuery} ->
-						{lists:reverse(lists:keysort(#subscriber.multisession, Subscribers)), NewQuery};
+						{lists:reverse(lists:keysort(#service.multisession, Services)), NewQuery};
 					false ->
-						{Subscribers, Query};
+						{Services, Query};
 					_ ->
 						throw(400)
 				end
 			of
 				{SortedEvents, _NewQuery} ->
-					JsonObj = query_page1(lists:map(fun subscriber/1, SortedEvents), Filters, []),
+					JsonObj = query_page1(lists:map(fun service/1, SortedEvents), Filters, []),
 					JsonArray = {array, JsonObj},
 					Body = mochijson:encode(JsonArray),
 					Headers = [{content_type, "application/json"},

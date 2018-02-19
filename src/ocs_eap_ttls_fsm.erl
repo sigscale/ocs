@@ -1050,7 +1050,7 @@ client_passthrough(#diameter_eap_app_DER{} = Request,
 server_passthrough(timeout, #statedata{session_id = SessionID} =
 		StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
-server_passthrough({accept, #subscriber{name = Identity,
+server_passthrough({accept, #service{name = Identity,
 		password = Password}, SslSocket}, #statedata{eap_id =
 		EapID, start = #radius{attributes = RequestAttributes},
 		session_id = SessionID, secret = Secret,
@@ -1063,7 +1063,7 @@ server_passthrough({accept, #subscriber{name = Identity,
 	SessionAttributes = ocs_rating:session_attributes(RequestAttributes),
 	case ocs_rating:authorize(radius, ServiceType, Identity, Password,
 			Timestamp, CallAddress, undefined, SessionAttributes) of
-		{authorized, _Subscriber, Attributes, _ExistingSessionAttributes} ->
+		{authorized, _Service, Attributes, _ExistingSessionAttributes} ->
 			Seed = [<<ClientRandom/binary, ServerRandom/binary>>],
 			{MSK, _} = prf(SslSocket, master_secret ,
 					<<"ttls keying material">>, Seed, 128),

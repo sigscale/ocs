@@ -77,18 +77,18 @@ get_balance_log() ->
 			{error, 404}
 	end.
 
--spec specific_bucket_balance(SubscriberID, BucketID) -> Result
+-spec specific_bucket_balance(ServiceID, BucketID) -> Result
 	when
-		SubscriberID :: string() | undefined,
+		ServiceID :: string() | undefined,
 		BucketID :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /balanceManagment/v1/bucket/{id}',
-%% `GET /balanceManagment/v1/product/{subscriber_id}/bucket/{id}'
+%% `GET /balanceManagment/v1/product/{service_id}/bucket/{id}'
 %% reuqests
-specific_bucket_balance(SubscriberID, BucketID) ->
+specific_bucket_balance(ServiceID, BucketID) ->
 	F = fun() ->
-		case specific_bucket_balance1(SubscriberID, BucketID) of
+		case specific_bucket_balance1(ServiceID, BucketID) of
 			{ok, S, Bucket}->
 				{S, Bucket};
 			{error, not_found} ->
@@ -105,13 +105,13 @@ specific_bucket_balance(SubscriberID, BucketID) ->
 	end.
 %% @hidden
 specific_bucket_balance1(undefined, BucketID) ->
-	First = mnesia:first(subscriber),
+	First = mnesia:first(service),
 	specific_bucket_balance2(First, BucketID);
-specific_bucket_balance1(SubscriberID, BucketID) when is_list(SubscriberID) ->
-	specific_bucket_balance1(list_to_binary(SubscriberID), BucketID);
-specific_bucket_balance1(SubscriberID, BucketID) when is_binary(SubscriberID) ->
- case specific_bucket_balance3(SubscriberID, BucketID) of
-	{#subscriber{} = S, #bucket{} = B} ->
+specific_bucket_balance1(ServiceID, BucketID) when is_list(ServiceID) ->
+	specific_bucket_balance1(list_to_binary(ServiceID), BucketID);
+specific_bucket_balance1(ServiceID, BucketID) when is_binary(ServiceID) ->
+ case specific_bucket_balance3(ServiceID, BucketID) of
+	{#service{} = S, #bucket{} = B} ->
 		{ok, S, B};
 	{_, false} ->
 		{error, not_found};
@@ -121,26 +121,26 @@ specific_bucket_balance1(SubscriberID, BucketID) when is_binary(SubscriberID) ->
 %% @hidden
 specific_bucket_balance2('end_of_table', _BucketID) ->
 	{error, not_found};
-specific_bucket_balance2(SubscriberID, BucketID) ->
-	case specific_bucket_balance3(SubscriberID, BucketID) of
-		{#subscriber{} = S, #bucket{} = B} ->
+specific_bucket_balance2(ServiceID, BucketID) ->
+	case specific_bucket_balance3(ServiceID, BucketID) of
+		{#service{} = S, #bucket{} = B} ->
 			{ok, S, B};
 		{_,  false} ->
-			Next = mnesia:next(subscriber, SubscriberID),
+			Next = mnesia:next(service, ServiceID),
 			specific_bucket_balance2(Next, BucketID);
 		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
-specific_bucket_balance3(SubscriberID, BucketID) ->
-	case mnesia:read(subscriber, SubscriberID, read) of
-		[#subscriber{buckets = Buckets} = S] ->
+specific_bucket_balance3(ServiceID, BucketID) ->
+	case mnesia:read(service, ServiceID, read) of
+		[#service{buckets = Buckets} = S] ->
 			{S, lists:keyfind(BucketID, #bucket.id, Buckets)};
 		[] ->
 			{error, not_found}
 	end.
 %% @hidden
-specific_bucket_balance4(#subscriber{name = SubID, last_modified = LM}, Bucket) ->
+specific_bucket_balance4(#service{name = SubID, last_modified = LM}, Bucket) ->
 	try
 		P_ID = {"id", binary_to_list(SubID)},
 		P_Href = {"href", "/productInventory/v1/product/" ++ binary_to_list(SubID)},
@@ -170,8 +170,8 @@ specific_bucket_balance4(#subscriber{name = SubID, last_modified = LM}, Bucket) 
 %% reuqest
 get_balance(Identity) ->
 	try
-		case ocs:find_subscriber(Identity) of
-			{ok, #subscriber{buckets = Buckets}} ->
+		case ocs:find_service(Identity) of
+			{ok, #service{buckets = Buckets}} ->
 				get_balance1(Identity, Buckets);
 			{error, not_found} ->
 				{error, 404};
@@ -218,7 +218,7 @@ get_balance1(Identity, Buckets) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Respond to `POST /balanceManagement/v1/{id}/balanceTopups'
-%% and top up `subscriber' balance resource
+%% and top up `service' balance resource
 top_up(Identity, RequestBody) ->
 	try
 		{struct, Object} = mochijson:decode(RequestBody),
@@ -255,11 +255,11 @@ top_up(Identity, RequestBody) ->
 %% @hidden
 top_up1(Identity, Bucket) ->
 	F = fun()->
-		case mnesia:read(subscriber, list_to_binary(Identity), read) of
+		case mnesia:read(service, list_to_binary(Identity), read) of
 			[] ->
 				not_found;
-			[#subscriber{buckets = CrntBuckets, last_modified = LM} = User] ->
-				mnesia:write(User#subscriber{buckets = CrntBuckets ++ [Bucket]}),
+			[#service{buckets = CrntBuckets, last_modified = LM} = User] ->
+				mnesia:write(User#service{buckets = CrntBuckets ++ [Bucket]}),
 				LM
 		end
 	end,
@@ -408,10 +408,10 @@ bucket1([], _B, Acc) ->
 
 % @hidden
 abmf_json(Events) ->
-	F = fun({Timestamp, _N, Type, Subscriber, Bucket, Units,
+	F = fun({Timestamp, _N, Type, Service, Bucket, Units,
 		 Amount, AmountBefore, AmountAfter, Product},  Acc) ->
 				Timestamp1 = ocs_log:iso8601(Timestamp),
-				Subscriber1 = {struct,[{"id", Subscriber}]},
+				Service1 = {struct,[{"id", Service}]},
 				Bucket1 = {struct, [{"id", Bucket}, {"href", ?bucketPath ++ Bucket}]},
 				Amount1 = {struct, [{"units", Units}, {"amount", Amount}]},
 				AmountBefore1 = {struct, [{"units", Units}, {"amount", AmountBefore}]},
@@ -419,7 +419,7 @@ abmf_json(Events) ->
 				Product1 = {struct, [{"id", Product}, {"href", ?productPath ++ Product}]},
 				Obj0 = [{"product", Product1}, {"amountAfter", AmountAfter1}, 
 						{"amountBefore", AmountBefore1}, {"amount", Amount1},
-						{"bucketBalance", Bucket1}, {"subscriber", Subscriber1},
+						{"bucketBalance", Bucket1}, {"service", Service1},
 						{"date", Timestamp1}, {"type", Type}],
 				[{struct, lists:reverse(Obj0)} | Acc];
 		(_, Acc) ->
