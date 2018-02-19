@@ -65,7 +65,7 @@
 		req_auth :: undefined | binary(),
 		req_attr :: undefined | radius_attributes:attributes(),
 		res_attr :: undefined | radius_attributes:attributes(),
-		subscriber :: undefined | string(),
+		service :: undefined | string(),
 		multisession :: undefined | boolean(),
 		app_id :: undefined | non_neg_integer(),
 		auth_request_type :: undefined | 1..3,
@@ -105,7 +105,7 @@
 %%
 init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort, PasswordReq,
 		SessId, AppId, AuthType, OHost, ORealm, DHost, DRealm, Request, Options] = _Args) ->
-	[Subscriber, Password] = Options,
+	[Service, Password] = Options,
 	case global:whereis_name({ocs_diameter_auth, ServerAddress, ServerPort}) of
 		undefined ->
 			{stop, ocs_diameter_auth_port_server_not_found};
@@ -120,7 +120,7 @@ init([diameter, ServerAddress, ServerPort, ClientAddress, ClientPort, PasswordRe
 			StateData = #statedata{protocol = diameter, session_id = SessId,
 					app_id = AppId, auth_request_type = AuthType, origin_host = OHost,
 					origin_realm = ORealm, dest_host = DHost, dest_realm = DRealm,
-					subscriber = Subscriber, password = Password,
+					service = Service, password = Password,
 					server_address = ServerAddress, server_port = ServerPort,
 					client_address = ClientAddress, client_port = ClientPort,
 					diameter_port_server = PortServer, request = Request,
@@ -171,7 +171,7 @@ handle_radius(#statedata{req_attr = Attributes, req_auth = Authenticator,
 		session_id = SessionID, shared_secret = Secret, password_required =
 		PasswordReq} = StateData) ->
 	try
-		Subscriber = radius_attributes:fetch(?UserName, Attributes),
+		Service = radius_attributes:fetch(?UserName, Attributes),
 		Password = case PasswordReq of
 			true ->
 				Hidden = radius_attributes:fetch(?UserPassword, Attributes),
@@ -179,7 +179,7 @@ handle_radius(#statedata{req_attr = Attributes, req_auth = Authenticator,
 			false ->
 				[]
 		end,
-		NewStateData = StateData#statedata{subscriber = Subscriber,
+		NewStateData = StateData#statedata{service = Service,
 				password = list_to_binary(Password)},
 		handle_radius1(NewStateData)
 	catch
@@ -188,44 +188,44 @@ handle_radius(#statedata{req_attr = Attributes, req_auth = Authenticator,
 			{stop, {shutdown, SessionID}, StateData}
 	end.
 %% @hidden
-handle_radius1(#statedata{subscriber = SubscriberId, password = <<>>,
+handle_radius1(#statedata{service = ServiceId, password = <<>>,
 		password_required = PasswordReq, req_attr = ReqAttr} = StateData) ->
 	Timestamp = calendar:local_time(),
 	{ServiceType, Direction, CallAddress} = get_service_type(ReqAttr),
 	SessionAttributes = ocs_rating:session_attributes(ReqAttr),
-	case ocs_rating:authorize(radius, ServiceType, SubscriberId, <<>>,
+	case ocs_rating:authorize(radius, ServiceType, ServiceId, <<>>,
 			Timestamp, CallAddress, Direction, SessionAttributes) of
-		{authorized, #subscriber{password = <<>>} =
-				Subscriber, Attributes, ExistingSessionAttributes} ->
+		{authorized, #service{password = <<>>} =
+				Service, Attributes, ExistingSessionAttributes} ->
 			NewStateData = StateData#statedata{res_attr = Attributes},
-			handle_radius2(Subscriber, ExistingSessionAttributes, NewStateData);
-		{authorized, Subscriber, Attributes, ExistingSessionAttributes}
+			handle_radius2(Service, ExistingSessionAttributes, NewStateData);
+		{authorized, Service, Attributes, ExistingSessionAttributes}
 				when PasswordReq == false ->
 			NewStateData = StateData#statedata{res_attr = Attributes},
-			handle_radius2(Subscriber, ExistingSessionAttributes, NewStateData);
-		{authorized, #subscriber{password = PSK} =
-				Subscriber, Attributes, ExistingSessionAttributes}
+			handle_radius2(Service, ExistingSessionAttributes, NewStateData);
+		{authorized, #service{password = PSK} =
+				Service, Attributes, ExistingSessionAttributes}
 				when is_binary(PSK) ->
 			ResponseAttributes = radius_attributes:store(?Mikrotik,
 					?MikrotikWirelessPsk, binary_to_list(PSK), Attributes),
 			NewStateData = StateData#statedata{res_attr = ResponseAttributes},
-			handle_radius2(Subscriber, ExistingSessionAttributes, NewStateData);
+			handle_radius2(Service, ExistingSessionAttributes, NewStateData);
 		{unauthorized, disabled, ExistingSessionAttributes} ->
 			start_disconnect(ExistingSessionAttributes, StateData),
 			reject_radius(disabled, StateData);
 		{unauthorized, Reason, _ExistingSessionAttributes} ->
 			reject_radius(Reason, StateData)
 	end;
-handle_radius1(#statedata{subscriber = SubscriberId, password = Password,
+handle_radius1(#statedata{service = ServiceId, password = Password,
 		req_attr = ReqAttr} = StateData) ->
 	Timestamp = calendar:local_time(),
 	{ServiceType, Direction, CallAddress} = get_service_type(ReqAttr),
 	SessionAttributes = ocs_rating:session_attributes(ReqAttr),
-	case ocs_rating:authorize(radius, ServiceType, SubscriberId, Password,
+	case ocs_rating:authorize(radius, ServiceType, ServiceId, Password,
 			Timestamp, CallAddress, Direction, SessionAttributes) of
-		{authorized, Subscriber, Attributes, ExistingSessionAttributes} ->
+		{authorized, Service, Attributes, ExistingSessionAttributes} ->
 			NewStateData = StateData#statedata{res_attr = Attributes},
-			handle_radius2(Subscriber, ExistingSessionAttributes, NewStateData);
+			handle_radius2(Service, ExistingSessionAttributes, NewStateData);
 		{unauthorized, disabled, ExistingSessionAttributes} ->
 			start_disconnect(ExistingSessionAttributes, StateData),
 			reject_radius(disabled, StateData);
@@ -233,13 +233,13 @@ handle_radius1(#statedata{subscriber = SubscriberId, password = Password,
 			reject_radius(Reason, StateData)
 	end.
 %% @hidden
-handle_radius2(#subscriber{multisession = true},
+handle_radius2(#service{multisession = true},
 		_ExistingSessions, StateData) ->
 	handle_radius3(StateData);
-handle_radius2(#subscriber{session_attributes = []},
+handle_radius2(#service{session_attributes = []},
 		_ExistingSessions, StateData) ->
 	handle_radius3(StateData);
-handle_radius2(#subscriber{multisession = false},
+handle_radius2(#service{multisession = false},
 		ExistingSessions,  StateData) ->
 	NewStateData = StateData#statedata{multisession = false},
 	start_disconnect(ExistingSessions, NewStateData),
@@ -256,14 +256,14 @@ reject_radius(out_of_credit, #statedata{session_id = SessionID} = StateData) ->
 	response(?AccessReject, RejectAttributes, StateData),
 	{stop, {shutdown, SessionID}, StateData};
 reject_radius(disabled, #statedata{session_id = SessionID} = StateData) ->
-	RejectAttributes = [{?ReplyMessage, "Subscriber Disabled"}],
+	RejectAttributes = [{?ReplyMessage, "Service Disabled"}],
 	response(?AccessReject, RejectAttributes, StateData),
 	{stop, {shutdown, SessionID}, StateData};
 reject_radius(bad_password, #statedata{session_id = SessionID} = StateData) ->
 	RejectAttributes = [{?ReplyMessage, "Bad Password"}],
 	response(?AccessReject, RejectAttributes, StateData),
 	{stop, {shutdown, SessionID}, StateData};
-reject_radius(subscriber_not_found, #statedata{session_id = SessionID} = StateData) ->
+reject_radius(service_not_found, #statedata{session_id = SessionID} = StateData) ->
 	RejectAttributes = [{?ReplyMessage, "Unknown Username"}],
 	response(?AccessReject, RejectAttributes, StateData),
 	{stop, {shutdown, SessionID}, StateData};
@@ -275,32 +275,32 @@ reject_radius(_, #statedata{session_id = SessionID} = StateData) ->
 %% @hidden
 handle_diameter(#statedata{protocol = diameter, session_id = SessionID,
 		origin_host = OHost, origin_realm = ORealm, dest_host = DHost,
-		dest_realm = DRealm, subscriber = SubscriberId, password = Password,
+		dest_realm = DRealm, service = ServiceId, password = Password,
 		service_type = ServiceType} = StateData) ->
 	Timestamp = calendar:local_time(),
 	SessionAttributes = [{'Origin-Host', OHost}, {'Origin-Realm', ORealm},
 			{'Destination-Host', DHost}, {'Destination-Realm', DRealm},
 			{'Session-Id', SessionID}],
-	case ocs_rating:authorize(diameter, ServiceType, SubscriberId, Password,
+	case ocs_rating:authorize(diameter, ServiceType, ServiceId, Password,
 			Timestamp, undefined, undefined, SessionAttributes) of
-		{authorized, Subscriber, _Attributes, ExistingSessionAttributes} ->
-			handle_diameter1(Subscriber, ExistingSessionAttributes, StateData);
+		{authorized, Service, _Attributes, ExistingSessionAttributes} ->
+			handle_diameter1(Service, ExistingSessionAttributes, StateData);
 		{unauthorized, disabled, ExistingSessionAttributes} ->
 			start_disconnect(ExistingSessionAttributes, StateData),
-			reject_diameter(disabled_subscriber , StateData);
+			reject_diameter(disabled_service , StateData);
 		{unauthorized, Reason, _ExistingSessionAttributes} ->
 			reject_diameter(Reason, StateData)
 	end.
 %% @hidden
-handle_diameter1(#subscriber{multisession = true},
+handle_diameter1(#service{multisession = true},
 		_ExistingSessions, StateData) ->
 	NewStateData = StateData#statedata{multisession = true},
 	handle_diameter2(NewStateData);
-handle_diameter1(#subscriber{session_attributes = [],
+handle_diameter1(#service{session_attributes = [],
 		multisession = MultiSession}, _ExistingSessions, StateData) ->
 	NewStateData = StateData#statedata{multisession = MultiSession},
 	handle_diameter2(NewStateData);
-handle_diameter1(#subscriber{multisession = false},
+handle_diameter1(#service{multisession = false},
 		ExistingSessions, StateData) ->
 	NewStateData = StateData#statedata{multisession = false},
 	start_disconnect(ExistingSessions, NewStateData),
@@ -468,22 +468,22 @@ response(RadiusCode, ResponseAttributes,
 
 %% @hidden
 start_disconnect(SessionList, #statedata{protocol = radius,
-		client_address = Address, subscriber = SubscriberId, session_id = SessionID}
+		client_address = Address, service = ServiceId, session_id = SessionID}
 		= State) ->
 	case pg2:get_closest_pid(ocs_radius_acct_port_sup) of
 		{error, Reason} ->
 			error_logger:error_report(["Failed to initiate session disconnect function",
-					{module, ?MODULE}, {subscriber, SubscriberId}, {address, Address},
+					{module, ?MODULE}, {service, ServiceId}, {address, Address},
 					{session, SessionID}, {error, Reason}]);
 		DiscSup ->
 			start_disconnect1(DiscSup, SessionList, State)
 	end;
 start_disconnect(SessionList, #statedata{protocol = diameter, session_id = SessionID,
-		origin_host = OHost, origin_realm = ORealm, subscriber = SubscriberId} = State) ->
+		origin_host = OHost, origin_realm = ORealm, service = ServiceId} = State) ->
 	case pg2:get_closest_pid(ocs_diamter_acct_port_sup) of
 		{error, Reason} ->
 			error_logger:error_report(["Failed to initiate session disconnect function",
-					{module, ?MODULE}, {subscriber, SubscriberId}, {origin_host, OHost},
+					{module, ?MODULE}, {service, ServiceId}, {origin_host, OHost},
 					{origin_realm, ORealm}, {session, SessionID}, {error, Reason}]);
 		DiscSup ->
 			start_disconnect1(DiscSup, SessionList, State)
@@ -498,8 +498,8 @@ start_disconnect1(DiscSup, SessionList, State) ->
 	start_disconnect3(DiscSup, State, SessionList).
 %% @hidden
 start_disconnect2(DiscSup, SessionAttributes, #statedata{protocol = radius,
-		subscriber = Subscriber}) ->
-	DiscArgs = [Subscriber, SessionAttributes],
+		service = Service}) ->
+	DiscArgs = [Service, SessionAttributes],
 	StartArgs = [DiscArgs, []],
 	supervisor:start_child(DiscSup, StartArgs).
 %% @hidden

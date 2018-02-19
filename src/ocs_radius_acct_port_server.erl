@@ -263,7 +263,7 @@ request1(?AccountingStart, AcctSessionId, Id,
 		Authenticator, Secret, NasId, IpAddress, _AccPort, _ListenPort, Attributes,
 		From, #state{address = ServerAddress, port = ServerPort} = State) ->
 	SessionAttributes = ocs_rating:session_attributes(Attributes),
-	Subscriber = case radius_attributes:find(?UserName, Attributes) of
+	Service = case radius_attributes:find(?UserName, Attributes) of
 		{ok, Sub} ->
 			Sub;
 		{error, not_found} ->
@@ -278,23 +278,23 @@ request1(?AccountingStart, AcctSessionId, Id,
 		{error, not_found} ->
 			calendar:local_time()
 	end,
-	case ocs_rating:rate(radius, ServiceType, Subscriber, Timestamp,
+	case ocs_rating:rate(radius, ServiceType, Service, Timestamp,
 			CallAddress, Direction, initial, [], [], SessionAttributes) of
-		{ok, #subscriber{}, _} ->
+		{ok, #service{}, _} ->
 			ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, start, Attributes),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{out_of_credit, SessionList}  ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
-			start_disconnect(State, Subscriber, SessionList),
+			start_disconnect(State, Service, SessionList),
 			{noreply, State};
 		{disabled, SessionList} ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
-			start_disconnect(State, Subscriber, SessionList),
+			start_disconnect(State, Service, SessionList),
 			{noreply, State};
 		{error, Reason} ->
 			error_logger:error_report(["Rating Error",
 					{module, ?MODULE}, {error, Reason}, {ip_address, IpAddress},
-					{nas, NasId}, {type, initial}, {subscriber, Subscriber},
+					{nas, NasId}, {type, initial}, {service, Service},
 					{call_address, CallAddress}, {session, AcctSessionId}]),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
@@ -308,7 +308,7 @@ request1(?AccountingStop, AcctSessionId, Id,
 		{error, not_found} ->
 			0
 	end,
-	Subscriber = case radius_attributes:find(?UserName, Attributes) of
+	Service = case radius_attributes:find(?UserName, Attributes) of
 		{ok, Sub} ->
 			Sub;
 		{error, not_found} ->
@@ -326,22 +326,22 @@ request1(?AccountingStop, AcctSessionId, Id,
 		{error, not_found} ->
 			calendar:local_time()
 	end,
-	case ocs_rating:rate(radius, ServiceType, Subscriber, Timestamp,
+	case ocs_rating:rate(radius, ServiceType, Service, Timestamp,
 			CallAddress, Direction, final, DebitAmount, [], SessionAttributes) of
-		{ok, #subscriber{}, _} ->
+		{ok, #service{}, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{out_of_credit, SessionList}  ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
-			start_disconnect(State, Subscriber, SessionList),
+			start_disconnect(State, Service, SessionList),
 			{noreply, State};
 		{disabled, SessionList} ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
-			start_disconnect(State, Subscriber, SessionList),
+			start_disconnect(State, Service, SessionList),
 			{noreply, State};
 		{error, Reason} ->
 			error_logger:error_report(["Rating Error",
 					{module, ?MODULE}, {error, Reason}, {ip_address, IpAddress},
-					{nas, NasId}, {type, final}, {subscriber, Subscriber},
+					{nas, NasId}, {type, final}, {service, Service},
 					{call_address, CallAddress}, {used, DebitAmount}, {session, AcctSessionId}]),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
 	end;
@@ -355,7 +355,7 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 		{error, not_found} ->
 			0
 	end,
-	Subscriber = case radius_attributes:find(?UserName, Attributes) of
+	Service = case radius_attributes:find(?UserName, Attributes) of
 		{ok, Sub} ->
 			Sub;
 		{error, not_found} ->
@@ -373,24 +373,24 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 		{error, not_found} ->
 			calendar:local_time()
 	end,
-	case ocs_rating:rate(radius, ServiceType, Subscriber, Timestamp,
+	case ocs_rating:rate(radius, ServiceType, Service, Timestamp,
 			CallAddress, Direction, interim, [], ReserveAmount, SessionAttributes) of
-		{ok, #subscriber{}, _} ->
+		{ok, #service{}, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{out_of_credit, SessionList} ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
-			start_disconnect(State, Subscriber, SessionList),
+			start_disconnect(State, Service, SessionList),
 			{noreply, State};
 		{disabled, SessionList} ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
-			start_disconnect(State, Subscriber, SessionList),
+			start_disconnect(State, Service, SessionList),
 			{noreply, State};
 		{error, not_found} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{error, Reason} ->
 			error_logger:error_report(["Rating Error",
 					{module, ?MODULE}, {error, Reason}, {ip_address, IpAddress},
-					{nas, NasId}, {type, interim}, {subscriber, Subscriber},
+					{nas, NasId}, {type, interim}, {service, Service},
 					{call_address, CallAddress}, {reserved, ReserveAmount},
 					{session, AcctSessionId}]),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State}
@@ -427,14 +427,14 @@ response(Id, RequestAuthenticator, Secret) ->
 %% @hidden
 %% @doc Start a disconnect_fsm worker.
 %%
-start_disconnect(#state{disc_sup = DiscSup} = State, Subscriber, [H | Tail]) ->
-	start_disconnect1(DiscSup, Subscriber, H),
-	start_disconnect(State, Subscriber, Tail);
-start_disconnect(_State, _Subscriber, []) ->
+start_disconnect(#state{disc_sup = DiscSup} = State, Service, [H | Tail]) ->
+	start_disconnect1(DiscSup, Service, H),
+	start_disconnect(State, Service, Tail);
+start_disconnect(_State, _Service, []) ->
 	ok.
 %% @hidden
-start_disconnect1(DiscSup, Subscriber, SessionAttributes) ->
-	DiscArgs = [Subscriber, SessionAttributes],
+start_disconnect1(DiscSup, Service, SessionAttributes) ->
+	DiscArgs = [Service, SessionAttributes],
 	StartArgs = [DiscArgs, []],
 	supervisor:start_child(DiscSup, StartArgs).
 

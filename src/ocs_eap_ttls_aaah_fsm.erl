@@ -189,8 +189,8 @@ handle_info({ssl, SslSocket, AVPs}, request,
 		#diameter_avp{data = Identity} = lists:keyfind(?UserName, #diameter_avp.code, AvpList),
 		handle_info1(Identity, iolist_to_binary(Password))
 	of
-		{ok, Subscriber} ->
-			gen_fsm:send_event(TtlsFsm, {accept, Subscriber, SslSocket}),
+		{ok, Service} ->
+			gen_fsm:send_event(TtlsFsm, {accept, Service, SslSocket}),
 			{next_state, request, StateData};
 		{error, Reason} ->
 			gen_fsm:send_event(TtlsFsm, reject),
@@ -212,11 +212,11 @@ handle_info({ssl_error, SslSocket, Reason}, request, #statedata{ssl_socket = Ssl
 %% @hidden
 handle_info1(Identity, Password) ->
 	try
-		case ocs:find_subscriber(Identity) of
-			{ok, #subscriber{password = UserPassWord} = Subscriber} ->
+		case ocs:find_service(Identity) of
+			{ok, #service{password = UserPassWord} = Service} ->
 				Size = size(UserPassWord),
 				<<UserPassWord:Size/binary, _/binary>> = Password,
-				{ok, Subscriber};
+				{ok, Service};
 			{error, not_found} ->
 				{error, not_found}
 		end

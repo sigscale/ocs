@@ -542,7 +542,7 @@ abmf_log_event() ->
 abmf_log_event(_Config) ->
 	ok = ocs_log:abmf_open(),
 	Start = erlang:system_time(?MILLISECOND),
-	Subscriber = list_to_binary(ocs:generate_identity()),
+	Service = list_to_binary(ocs:generate_identity()),
 	Type = transfer,
 	Date = ocs_log:iso8601(Start),
 	BucketId = integer_to_list(Start) ++ "-"
@@ -553,13 +553,13 @@ abmf_log_event(_Config) ->
 	BeforeAmount = CurrentAmount,
 	AfterAmount = CurrentAmount - Transfer,
 	ProdId = ocs:generate_password(),
-	ok = ocs_log:abmf_log(Type, Subscriber, BucketId, cents,
+	ok = ocs_log:abmf_log(Type, Service, BucketId, cents,
 			ProdId, BucketAmount, BeforeAmount, AfterAmount,
 			undefined, undefined, undefined, undefined, undefined,
 			undefined, undefined),
 	End = erlang:system_time(?MILLISECOND),
 	Fany = fun({TS, _, _, T, Sub, BI, _Un, PI, BA, BeA, AA, _, _, _, _, _, _, _})
-					when TS >= Start, TS =< End, Sub == Subscriber,
+					when TS >= Start, TS =< End, Sub == Service,
 					T == Type, BI == BucketId, BA == BucketAmount,
 					BeA == BeforeAmount, AA == AfterAmount, PI == ProdId ->
 				true;
@@ -586,7 +586,7 @@ abmf_query() ->
 
 abmf_query(_Config) ->
 	ok = ocs_log:abmf_open(),
-	Subscriber = list_to_binary(ocs:generate_identity()),
+	Service = list_to_binary(ocs:generate_identity()),
 	BucketId = integer_to_list(erlang:system_time(?MILLISECOND)) ++ "-"
 				++ integer_to_list(erlang:unique_integer([positive])),
 	ProdId = ocs:generate_password(),
@@ -603,18 +603,18 @@ abmf_query(_Config) ->
 	C1= rand:uniform(100000000),
 	Topup = rand:uniform(50000),
 	C2 = C1 + Topup,
-	ok = ocs_log:abmf_log(topup, Subscriber, BucketId, cents,
+	ok = ocs_log:abmf_log(topup, Service, BucketId, cents,
 			ProdId, Topup, C1, C2, undefined, undefined, undefined,
 			undefined, undefined, undefined, undefined),
 	ok = fill_abmf(rand:uniform(2000)),
 	Transfer = rand:uniform(50000),
 	C3 = C2 - Transfer,
-	ok = ocs_log:abmf_log(transfer, Subscriber, BucketId, cents,
+	ok = ocs_log:abmf_log(transfer, Service, BucketId, cents,
 			ProdId, Transfer, C2, C3, undefined, undefined, undefined,
 			undefined, undefined, undefined, undefined),
 	ok = fill_abmf(rand:uniform(2000)),
 	Adjustment = rand:uniform(50000),
-	ok = ocs_log:abmf_log(adjustment, Subscriber, BucketId, cents,
+	ok = ocs_log:abmf_log(adjustment, Service, BucketId, cents,
 			ProdId, Transfer, C3, C3 - Adjustment, undefined, undefined,
 			undefined, undefined, undefined, undefined, undefined),
 	ok = fill_abmf(rand:uniform(2000)),
@@ -628,9 +628,9 @@ abmf_query(_Config) ->
 		end,
 		F2(F2, ocs_log:abmf_query(start, St, En, Ty, Sub, BI, Un, PI), [])
 	end,
-	E1 =  F1(Start, End, topup, Subscriber, BucketId, cents, ProdId),
-	E2 =  F1(Start, End, transfer, Subscriber, BucketId, cents, ProdId),
-	E3 =  F1(Start, End, adjustment, Subscriber, BucketId, cents, ProdId),
+	E1 =  F1(Start, End, topup, Service, BucketId, cents, ProdId),
+	E2 =  F1(Start, End, transfer, Service, BucketId, cents, ProdId),
+	E3 =  F1(Start, End, adjustment, Service, BucketId, cents, ProdId),
 	Events = E1 ++ E2 ++ E3,
 erlang:display({?MODULE, ?LINE, Events}),
 	3 = length(Events).
@@ -682,7 +682,7 @@ fill_acct(N) ->
 fill_abmf(0) ->
 	ok;
 fill_abmf(N) ->
-	Subscriber = list_to_binary(ocs:generate_identity()),
+	Service = list_to_binary(ocs:generate_identity()),
 	BucketId = integer_to_list(erlang:system_time(?MILLISECOND)) ++ "-"
 				++ integer_to_list(erlang:unique_integer([positive])),
 	Type = case rand:uniform(3) of
@@ -703,7 +703,7 @@ fill_abmf(N) ->
 			BucketAmount = Topup,
 			BeforeAmount = CurrentAmount,
 			AfterAmount = CurrentAmount + Topup,
-			ok = ocs_log:abmf_log(Type, Subscriber, BucketId, Units, ProdId,
+			ok = ocs_log:abmf_log(Type, Service, BucketId, Units, ProdId,
 					BucketAmount, BeforeAmount, AfterAmount, undefined, undefined,
 					undefined, undefined, undefined, undefined, undefined);
 		transfer ->
@@ -711,7 +711,7 @@ fill_abmf(N) ->
 			BucketAmount = Transfer,
 			BeforeAmount = CurrentAmount,
 			AfterAmount = CurrentAmount - Transfer,
-			ok = ocs_log:abmf_log(Type, Subscriber, BucketId, Units, ProdId,
+			ok = ocs_log:abmf_log(Type, Service, BucketId, Units, ProdId,
 					BucketAmount, BeforeAmount, AfterAmount, undefined, undefined,
 					undefined, undefined, undefined, undefined, undefined);
 		adjustment ->
@@ -719,7 +719,7 @@ fill_abmf(N) ->
 			BucketAmount = Adjustment,
 			BeforeAmount = CurrentAmount,
 			AfterAmount = CurrentAmount - Adjustment,
-			ok = ocs_log:abmf_log(Type, Subscriber, BucketId, Units, ProdId,
+			ok = ocs_log:abmf_log(Type, Service, BucketId, Units, ProdId,
 					BucketAmount, BeforeAmount, AfterAmount, undefined, undefined,
 					undefined, undefined, undefined, undefined, undefined)
 	end,
@@ -728,7 +728,7 @@ fill_abmf(N) ->
 resp_attr() ->
 	resp_attr(rand:uniform(100)).
 resp_attr(N) when N < 6 ->
-	{reject, [{?ReplyMessage, "Subscriber Disabled"}]};
+	{reject, [{?ReplyMessage, "Service Disabled"}]};
 resp_attr(N) when N < 10 ->
 	{reject, [{?ReplyMessage,"Out of Credit"}]};
 resp_attr(N) when N < 16 ->

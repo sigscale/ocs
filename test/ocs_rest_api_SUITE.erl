@@ -130,11 +130,11 @@ sequences() ->
 %%
 all() ->
 	[authenticate_user_request, unauthenticate_user_request,
-	authenticate_subscriber_request, unauthenticate_subscriber_request,
+	authenticate_service_request, unauthenticate_service_request,
 	authenticate_client_request, unauthenticate_client_request,
-	add_subscriber, add_subscriber_without_password,
-	get_subscriber, get_subscriber_not_found, get_all_subscriber,
-	get_subscriber_range, delete_subscriber,
+	add_service, add_service_without_password,
+	get_service, get_service_not_found, get_all_service,
+	get_service_range, delete_service,
 	add_client, add_client_without_password, get_client, get_client_id,
 	get_client_bogus, get_client_notfound, get_all_clients,
 	get_client_range, get_clients_filter, delete_client,
@@ -142,14 +142,14 @@ all() ->
 	get_auth_usage, get_auth_usage_id, get_auth_usage_filter,
 	get_auth_usage_range, get_acct_usage, get_acct_usage_id,
 	get_acct_usage_filter, get_acct_usage_range, get_ipdr_usage,
-	top_up_subscriber_balance, get_subscriber_balance,
+	top_up_service_balance, get_service_balance,
 	add_user, get_user, delete_user,
-	simultaneous_updates_on_subscriber_failure,
+	simultaneous_updates_on_service_failure,
 	simultaneous_updates_on_client_failure,
 	update_client_password_json_patch,
 	update_client_attributes_json_patch,
-	update_subscriber_password_json_patch,
-	update_subscriber_attributes_json_patch,
+	update_service_password_json_patch,
+	update_service_attributes_json_patch,
 	update_user_characteristics_json_patch,
 	add_product, get_product, update_product].
 
@@ -185,10 +185,10 @@ unauthenticate_user_request(Config) ->
 	{ok, Result} = httpc:request(get, Request, [], []),
 	{{"HTTP/1.1", 401, _}, _, _} = Result.
 
-authenticate_subscriber_request() ->
-	[{userdata, [{doc, "Authorized subscriber request to the server"}]}].
+authenticate_service_request() ->
+	[{userdata, [{doc, "Authorized service request to the server"}]}].
 
-authenticate_subscriber_request(Config) ->
+authenticate_service_request(Config) ->
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
 	RestUser = ct:get_config(rest_user),
@@ -196,13 +196,13 @@ authenticate_subscriber_request(Config) ->
 	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	AuthKey = "Basic " ++ Encodekey,
 	Authentication = {"authorization", AuthKey},
-	Request = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication]},
+	Request = {HostUrl ++ "/ocs/v1/service", [Accept, Authentication]},
 	{ok, _Result} = httpc:request(get, Request, [], []).
 
-unauthenticate_subscriber_request() ->
-	[{userdata, [{doc, "Unauthorized subscriber request to the server"}]}].
+unauthenticate_service_request() ->
+	[{userdata, [{doc, "Unauthorized service request to the server"}]}].
 
-unauthenticate_subscriber_request(Config) ->
+unauthenticate_service_request(Config) ->
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
 	RestUser = "Love",
@@ -210,7 +210,7 @@ unauthenticate_subscriber_request(Config) ->
 	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	AuthKey = "Basic " ++ Encodekey,
 	Authentication = {"authorization", AuthKey},
-	Request = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication]},
+	Request = {HostUrl ++ "/ocs/v1/service", [Accept, Authentication]},
 	{ok, Result} = httpc:request(get, Request, [], []),
 	{{"HTTP/1.1", 401, _}, _, _} = Result.
 
@@ -229,7 +229,7 @@ authenticate_client_request(Config) ->
 	{ok, _Result} = httpc:request(get, Request, [], []).
 
 unauthenticate_client_request() ->
-	[{userdata, [{doc, "Unauthorized subscriber request to the server"}]}].
+	[{userdata, [{doc, "Unauthorized service request to the server"}]}].
 
 unauthenticate_client_request(Config) ->
 	HostUrl = ?config(host_url, Config),
@@ -243,10 +243,10 @@ unauthenticate_client_request(Config) ->
 	{ok, Result} = httpc:request(get, Request, [], []),
 	{{"HTTP/1.1", 401, _}, _, _} = Result.
 
-add_subscriber() ->
-	[{userdata, [{doc,"Add subscriber in rest interface"}]}].
+add_service() ->
+	[{userdata, [{doc,"Add service in rest interface"}]}].
 
-add_subscriber(Config) ->
+add_service(Config) ->
 	ContentType = "application/json",
 	ID = "eacfd73ae10a",
 	ProdID = ?config(product_id, Config),
@@ -274,14 +274,14 @@ add_subscriber(Config) ->
 	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	AuthKey = "Basic " ++ Encodekey,
 	Authentication = {"authorization", AuthKey},
-	Request = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication], ContentType, RequestBody},
+	Request = {HostUrl ++ "/ocs/v1/service", [Accept, Authentication], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, [], []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
 	ContentLength = integer_to_list(length(ResponseBody)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
 	{_, URI} = lists:keyfind("location", 1, Headers),
-	{"/ocs/v1/subscriber/" ++ ID, _} = httpd_util:split_path(URI),
+	{"/ocs/v1/service/" ++ ID, _} = httpd_util:split_path(URI),
 	{struct, Object} = mochijson:decode(ResponseBody),
 	{"id", ID} = lists:keyfind("id", 1, Object),
 	{_, URI} = lists:keyfind("href", 1, Object),
@@ -294,10 +294,10 @@ add_subscriber(Config) ->
 	{"enabled", Enable} = lists:keyfind("enabled", 1, Object),
 	{"multisession", Multi} = lists:keyfind("multisession", 1, Object).
 
-add_subscriber_without_password() ->
-	[{userdata, [{doc,"Add subscriber with generated password"}]}].
+add_service_without_password() ->
+	[{userdata, [{doc,"Add service with generated password"}]}].
 
-add_subscriber_without_password(Config) ->
+add_service_without_password(Config) ->
 	ContentType = "application/json",
 	ProdID = ?config(product_id, Config),
 	Amount = {"remainAmount", 3000},
@@ -313,17 +313,17 @@ add_subscriber_without_password(Config) ->
 	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	AuthKey = "Basic " ++ Encodekey,
 	Authentication = {"authorization", AuthKey},
-	Request = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication], ContentType, RequestBody},
+	Request = {HostUrl ++ "/ocs/v1/service", [Accept, Authentication], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, [], []),
 	{{"HTTP/1.1", 201, _Created}, _Headers, ResponseBody} = Result,
 	{struct, Object} = mochijson:decode(ResponseBody),
 	{"password", Password} = lists:keyfind("password", 1, Object),
 	12 = length(Password).
 
-get_subscriber() ->
-	[{userdata, [{doc,"get subscriber in rest interface"}]}].
+get_service() ->
+	[{userdata, [{doc,"get service in rest interface"}]}].
 
-get_subscriber(Config) ->
+get_service(Config) ->
 	ContentType = "application/json",
 	AcceptValue = "application/json",
 	ProdID = ?config(product_id, Config),
@@ -352,7 +352,7 @@ get_subscriber(Config) ->
 	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	AuthKey = "Basic " ++ Encodekey,
 	Authentication = {"authorization", AuthKey},
-	Request1 = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication], ContentType, RequestBody},
+	Request1 = {HostUrl ++ "/ocs/v1/service", [Accept, Authentication], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request1, [], []),
 	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
 	{_, URI1} = lists:keyfind("location", 1, Headers),
@@ -374,10 +374,10 @@ get_subscriber(Config) ->
 	{"enabled", Enable} = lists:keyfind("enabled", 1, Object),
 	{"multisession", Multi} = lists:keyfind("multisession", 1, Object).
 
-get_subscriber_not_found() ->
-	[{userdata, [{doc, "get subscriber notfound in rest interface"}]}].
+get_service_not_found() ->
+	[{userdata, [{doc, "get service notfound in rest interface"}]}].
 
-get_subscriber_not_found(Config) ->
+get_service_not_found(Config) ->
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
 	Username = ct:get_config(rest_user),
@@ -386,14 +386,14 @@ get_subscriber_not_found(Config) ->
 	AuthKey = "Basic " ++ Encodekey,
 	Authentication = {"authorization", AuthKey},
 	ID = "beefbeefcafe",
-	Request = {HostUrl ++ "/ocs/v1/subscriber/" ++ ID, [Accept, Authentication]},
+	Request = {HostUrl ++ "/ocs/v1/service/" ++ ID, [Accept, Authentication]},
 	{ok, Result} = httpc:request(get, Request, [], []),
 	{{"HTTP/1.1", 404, _NotFound}, _Headers, _Body} = Result.
 
-get_all_subscriber() ->
-	[{userdata, [{doc,"Get all items in the subscriber collection"}]}].
+get_all_service() ->
+	[{userdata, [{doc,"Get all items in the service collection"}]}].
 
-get_all_subscriber(Config) ->
+get_all_service(Config) ->
 	ContentType = "application/json",
 	AcceptValue = "application/json",
 	ProdID = ?config(product_id, Config),
@@ -422,17 +422,17 @@ get_all_subscriber(Config) ->
 	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	AuthKey = "Basic " ++ Encodekey,
 	Authentication = {"authorization", AuthKey},
-	Request1 = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication], ContentType, RequestBody},
+	Request1 = {HostUrl ++ "/ocs/v1/service", [Accept, Authentication], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request1, [], []),
 	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
 	{_, URI1} = lists:keyfind("location", 1, Headers),
-	Request2 = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication]},
+	Request2 = {HostUrl ++ "/ocs/v1/service", [Accept, Authentication]},
 	{ok, Result1} = httpc:request(get, Request2, [], []),
 	{{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
 	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers1),
 	ContentLength = integer_to_list(length(Body1)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers1),
-	{array, Subscribers} = mochijson:decode(Body1),
+	{array, Services} = mochijson:decode(Body1),
 	Pred = fun({struct, Params}) ->
 		case lists:keyfind("id", 1, Params) of
 			{_, ID} ->
@@ -441,20 +441,20 @@ get_all_subscriber(Config) ->
 				false
 		end
 	end,
-	[{struct, Subscriber}] = lists:filter(Pred, Subscribers),
-	{_, URI1} = lists:keyfind("href", 1, Subscriber),
-	{"password", Password} = lists:keyfind("password", 1, Subscriber),
-	{_, {array, Attributes}} = lists:keyfind("attributes", 1, Subscriber),
+	[{struct, Service}] = lists:filter(Pred, Services),
+	{_, URI1} = lists:keyfind("href", 1, Service),
+	{"password", Password} = lists:keyfind("password", 1, Service),
+	{_, {array, Attributes}} = lists:keyfind("attributes", 1, Service),
 	ExtraAttributes = Attributes -- SortedAttributes,
 	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
-	{"totalBalance", _Buckets1} = lists:keyfind("totalBalance", 1, Subscriber),
-	{"enabled", Enable} = lists:keyfind("enabled", 1, Subscriber),
-	{"multisession", Multi} = lists:keyfind("multisession", 1, Subscriber).
+	{"totalBalance", _Buckets1} = lists:keyfind("totalBalance", 1, Service),
+	{"enabled", Enable} = lists:keyfind("enabled", 1, Service),
+	{"multisession", Multi} = lists:keyfind("multisession", 1, Service).
 
-get_subscriber_range() ->
-	[{userdata, [{doc,"Get range of items in the subscriber collection"}]}].
+get_service_range() ->
+	[{userdata, [{doc,"Get range of items in the service collection"}]}].
 
-get_subscriber_range(Config) ->
+get_service_range(Config) ->
 	{ok, PageSize} = application:get_env(ocs, rest_page_size),
 	{ok, ProductName} = ocs_test_lib:add_product(),
 	Fadd = fun(_F, 0) ->
@@ -462,7 +462,7 @@ get_subscriber_range(Config) ->
 			(F, N) ->
 				Identity = ocs:generate_identity(),
 				Password = ocs:generate_password(),
-				{ok, _} = ocs:add_subscriber(Identity, Password, ProductName),
+				{ok, _} = ocs:add_service(Identity, Password, ProductName),
 				F(F, N - 1)
 	end,
 	NumAdded = (PageSize * 2) + (PageSize div 2) + 17,
@@ -481,7 +481,7 @@ get_subscriber_range(Config) ->
 	Authentication = {"authorization", AuthKey},
 	Accept = {"accept", "application/json"},
 	RequestHeaders1 = [Accept, Authentication],
-	Request1 = {HostUrl ++ "/ocs/v1/subscriber", RequestHeaders1},
+	Request1 = {HostUrl ++ "/ocs/v1/service", RequestHeaders1},
 	{ok, Result1} = httpc:request(get, Request1, [], []),
 	{{"HTTP/1.1", 200, _OK}, ResponseHeaders1, Body1} = Result1,
 	{_, Etag} = lists:keyfind("etag", 1, ResponseHeaders1),
@@ -492,14 +492,14 @@ get_subscriber_range(Config) ->
 	["items", "1", RangeEndS1, "*"] = string:tokens(Range1, " -/"),
 	RequestHeaders2 = RequestHeaders1 ++ [{"if-match", Etag}],
 	PageSize = list_to_integer(RangeEndS1),
-	{array, Subscribers1} = mochijson:decode(Body1),
-	PageSize = length(Subscribers1),
+	{array, Services1} = mochijson:decode(Body1),
+	PageSize = length(Services1),
 	Fget = fun(F, RangeStart2, RangeEnd2) ->
 				RangeHeader = [{"range",
 						"items " ++ integer_to_list(RangeStart2)
 						++ "-" ++ integer_to_list(RangeEnd2)}],
 				RequestHeaders3 = RequestHeaders2 ++ RangeHeader,
-				Request2 = {HostUrl ++ "/ocs/v1/subscriber", RequestHeaders3},
+				Request2 = {HostUrl ++ "/ocs/v1/service", RequestHeaders3},
 				{ok, Result2} = httpc:request(get, Request2, [], []),
 				{{"HTTP/1.1", 200, _OK}, ResponseHeaders2, Body2} = Result2,
 				{_, Etag} = lists:keyfind("etag", 1, ResponseHeaders2),
@@ -512,8 +512,8 @@ get_subscriber_range(Config) ->
 					"*" ->
 						RangeEnd2 = list_to_integer(RangeEndS),
 						RangeSize = (RangeEnd2 - (RangeStart2 - 1)),
-						{array, Subscribers2} = mochijson:decode(Body2),
-						RangeSize = length(Subscribers2),
+						{array, Services2} = mochijson:decode(Body2),
+						RangeSize = length(Services2),
 						NewRangeStart = RangeEnd2 + 1,
 						NewRangeEnd = NewRangeStart + (RangeSize - 1),
 						F(F, NewRangeStart, NewRangeEnd);
@@ -521,13 +521,13 @@ get_subscriber_range(Config) ->
 						list_to_integer(EndS)
 				end
 	end,
-	CollectionSize = length(ocs:get_subscribers()),
+	CollectionSize = length(ocs:get_services()),
 	CollectionSize = Fget(Fget, PageSize + 1, PageSize + RangeSize).
 
-delete_subscriber() ->
-	[{userdata, [{doc,"Delete subscriber in rest interface"}]}].
+delete_service() ->
+	[{userdata, [{doc,"Delete service in rest interface"}]}].
 
-delete_subscriber(Config) ->
+delete_service(Config) ->
 	ContentType = "application/json",
 	ID = "eacfd73ae11d",
 	Password = "ksc8c333npqc",
@@ -554,7 +554,7 @@ delete_subscriber(Config) ->
 	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	AuthKey = "Basic " ++ Encodekey,
 	Authentication = {"authorization", AuthKey},
-	Request1 = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication], ContentType, RequestBody},
+	Request1 = {HostUrl ++ "/ocs/v1/service", [Accept, Authentication], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request1, [], []),
 	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
 	{_, URI1} = lists:keyfind("location", 1, Headers),
@@ -1713,11 +1713,11 @@ get_ipdr_usage(Config) ->
 	end,
 	true = lists:all(F, UsageCharacteristic).
 
-top_up_subscriber_balance() ->
+top_up_service_balance() ->
 	[{userdata, [{doc,"TMF654 Prepay Balance Management API :
-			Top-up balance for subscriber"}]}].
+			Top-up balance for service"}]}].
 
-top_up_subscriber_balance(Config) ->
+top_up_service_balance(Config) ->
 	HostUrl = ?config(host_url, Config),
 	ProdID = ?config(product_id, Config),
 	AcceptValue = "application/json",
@@ -1730,7 +1730,7 @@ top_up_subscriber_balance(Config) ->
 	Authentication = {"authorization", AuthKey},
 	Identity = ocs:generate_identity(),
 	Password = ocs:generate_password(),
-	{ok, _} = ocs:add_subscriber(Identity, Password, ProdID),
+	{ok, _} = ocs:add_service(Identity, Password, ProdID),
 	RequestURI = HostUrl ++ "/balanceManagement/v1/" ++ Identity ++ "/balanceTopups",
 	BucketType = {"type", "buckettype"}, 
 	Channel = {"channel", {struct, [{"name", "POS"}]}},
@@ -1741,11 +1741,11 @@ top_up_subscriber_balance(Config) ->
 	{ok, Result} = httpc:request(post, Request, [], []),
 	{{"HTTP/1.1", 201, _Created}, _, _} = Result.
 
-get_subscriber_balance() ->
+get_service_balance() ->
 	[{userdata, [{doc,"TMF654 Prepay Balance Management API :
-			Query balance for subscriber"}]}].
+			Query balance for service"}]}].
 
-get_subscriber_balance(Config) ->
+get_service_balance(Config) ->
 	HostUrl = ?config(host_url, Config),
 	ProdID = ?config(product_id, Config),
 	AcceptValue = "application/json",
@@ -1760,8 +1760,8 @@ get_subscriber_balance(Config) ->
 	Password = ocs:generate_password(),
 	Buckets = [#bucket{units = cents, remain_amount = 10000},
 			#bucket{units = cents, remain_amount = 5}],
-	{ok, _} = ocs:add_subscriber(Identity, Password, ProdID, [], Buckets, []),
-	{ok, #subscriber{buckets = Buckets1}} = ocs:find_subscriber(Identity),
+	{ok, _} = ocs:add_service(Identity, Password, ProdID, [], Buckets, []),
+	{ok, #service{buckets = Buckets1}} = ocs:find_service(Identity),
 	F = fun(#bucket{remain_amount = N, units = cents}, Acc) ->
 				N + Acc;
 			(_, Acc) ->
@@ -1784,11 +1784,11 @@ get_subscriber_balance(Config) ->
 	{_, Balance1} = lists:keyfind("amount", 1, TotalAmount),
 	Balance1 = ocs_rest:convert(Balance).
 
-simultaneous_updates_on_subscriber_failure() ->
-	[{userdata, [{doc,"Simulataneous HTTP PATCH updates on subscriber resource must fail
+simultaneous_updates_on_service_failure() ->
+	[{userdata, [{doc,"Simulataneous HTTP PATCH updates on service resource must fail
 			if the resource is already being updated by someone else"}]}].
 
-simultaneous_updates_on_subscriber_failure(Config) ->
+simultaneous_updates_on_service_failure(Config) ->
 	ContentType = "application/json",
 	ID = "eacfd73ae10a",
 	Password = "ksc8c244npqc",
@@ -1816,7 +1816,7 @@ simultaneous_updates_on_subscriber_failure(Config) ->
 	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	AuthKey = "Basic " ++ Encodekey,
 	Authentication = {"authorization", AuthKey},
-	Request = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication], ContentType, RequestBody},
+	Request = {HostUrl ++ "/ocs/v1/service", [Accept, Authentication], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, [], []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -1824,7 +1824,7 @@ simultaneous_updates_on_subscriber_failure(Config) ->
 	ContentLength = integer_to_list(length(ResponseBody)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
 	{_, URI} = lists:keyfind("location", 1, Headers),
-	{"/ocs/v1/subscriber/" ++ ID, _} = httpd_util:split_path(URI),
+	{"/ocs/v1/service/" ++ ID, _} = httpd_util:split_path(URI),
 	{struct, Object} = mochijson:decode(ResponseBody),
 	{"id", ID} = lists:keyfind("id", 1, Object),
 	{_, URI} = lists:keyfind("href", 1, Object),
@@ -1840,7 +1840,7 @@ simultaneous_updates_on_subscriber_failure(Config) ->
 	Json = {array, [{struct, [{op, "replace"}, {path, "/password"}, {value, "7fy8qhs7hh7n"}]}]},
 	PatchBody = mochijson:encode(Json),
 	PatchBodyLen = size(list_to_binary(PatchBody)),
-	PatchUri = "/ocs/v1/subscriber/" ++ ID,
+	PatchUri = "/ocs/v1/service/" ++ ID,
 	TS = integer_to_list(erlang:system_time(milli_seconds)),
 	N = integer_to_list(erlang:unique_integer([positive])),
 	NewEtag = TS ++ "-" ++ N,
@@ -2070,11 +2070,11 @@ update_client_attributes_json_patch(Config) ->
 	{_, Secret} = lists:keyfind("secret", 1, Object1),
 	ok = ssl:close(SslSock).
 
-update_subscriber_password_json_patch() ->
-	[{userdata, [{doc,"Use HTTP PATCH to update subscriber's password using
+update_service_password_json_patch() ->
+	[{userdata, [{doc,"Use HTTP PATCH to update service's password using
 			json-patch media type"}]}].
 
-update_subscriber_password_json_patch(Config) ->
+update_service_password_json_patch(Config) ->
 	ContentType = "application/json",
 	ID = ocs:generate_identity(),
 	Password = ocs:generate_password(),
@@ -2102,7 +2102,7 @@ update_subscriber_password_json_patch(Config) ->
 	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	AuthKey = "Basic " ++ Encodekey,
 	Authentication = {"authorization", AuthKey},
-	Request = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication], ContentType, RequestBody},
+	Request = {HostUrl ++ "/ocs/v1/service", [Accept, Authentication], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, [], []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -2111,7 +2111,7 @@ update_subscriber_password_json_patch(Config) ->
 	ContentLength = integer_to_list(length(ResponseBody)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
 	{_, URI} = lists:keyfind("location", 1, Headers),
-	{"/ocs/v1/subscriber/" ++ ID, _} = httpd_util:split_path(URI),
+	{"/ocs/v1/service/" ++ ID, _} = httpd_util:split_path(URI),
 	{struct, Object} = mochijson:decode(ResponseBody),
 	{"id", ID} = lists:keyfind("id", 1, Object),
 	{_, URI} = lists:keyfind("href", 1, Object),
@@ -2129,7 +2129,7 @@ update_subscriber_password_json_patch(Config) ->
 	JSON1 = {array, [{struct, [{op, "replace"}, {path, "/password"}, {value, NewPassword}]}]},
 	PatchBody = lists:flatten(mochijson:encode(JSON1)),
 	PatchBodyLen = size(list_to_binary(PatchBody)),
-	PatchUri = "/ocs/v1/subscriber/" ++ ID,
+	PatchUri = "/ocs/v1/service/" ++ ID,
 	PatchReq = ["PATCH ", PatchUri, " HTTP/1.1",$\r,$\n,
 			"Content-Type:" ++ NewContentType, $\r,$\n, "Accept:application/json",$\r,$\n,
 			"If-match:" ++ Etag,$\r,$\n,"Authorization:"++ AuthKey,$\r,$\n,
@@ -2160,11 +2160,11 @@ update_subscriber_password_json_patch(Config) ->
 	{"multisession", Multi} = lists:keyfind("multisession", 1, Object1),
 	ok = ssl:close(SslSock).
 
-update_subscriber_attributes_json_patch() ->
-	[{userdata, [{doc,"Use HTTP PATCH to update subscriber's attributes using
+update_service_attributes_json_patch() ->
+	[{userdata, [{doc,"Use HTTP PATCH to update service's attributes using
 			json-patch media type"}]}].
 
-update_subscriber_attributes_json_patch(Config) ->
+update_service_attributes_json_patch(Config) ->
 	ContentType = "application/json",
 	ProdID = ?config(product_id, Config),
 	ID = ocs:generate_identity(),
@@ -2192,7 +2192,7 @@ update_subscriber_attributes_json_patch(Config) ->
 	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	AuthKey = "Basic " ++ Encodekey,
 	Authentication = {"authorization", AuthKey},
-	Request = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication], ContentType, RequestBody},
+	Request = {HostUrl ++ "/ocs/v1/service", [Accept, Authentication], ContentType, RequestBody},
 	{ok, Result} = httpc:request(post, Request, [], []),
 	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
 	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
@@ -2201,7 +2201,7 @@ update_subscriber_attributes_json_patch(Config) ->
 	ContentLength = integer_to_list(length(ResponseBody)),
 	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
 	{_, URI} = lists:keyfind("location", 1, Headers),
-	{"/ocs/v1/subscriber/" ++ ID, _} = httpd_util:split_path(URI),
+	{"/ocs/v1/service/" ++ ID, _} = httpd_util:split_path(URI),
 	{struct, Object} = mochijson:decode(ResponseBody),
 	{"id", ID} = lists:keyfind("id", 1, Object),
 	{_, URI} = lists:keyfind("href", 1, Object),
@@ -2226,7 +2226,7 @@ update_subscriber_attributes_json_patch(Config) ->
 			{struct, [{op, "replace"}, {path, "/multisession"}, {value, NewMulti}]}]},
 	PatchBody = lists:flatten(mochijson:encode(JSON1)),
 	PatchBodyLen = size(list_to_binary(PatchBody)),
-	PatchUri = "/ocs/v1/subscriber/" ++ ID,
+	PatchUri = "/ocs/v1/service/" ++ ID,
 	PatchReq = ["PATCH ", PatchUri, " HTTP/1.1",$\r,$\n,
 			"Content-Type:" ++ NewContentType, $\r,$\n, "Accept:application/json",$\r,$\n,
 			"If-match:" ++ Etag,$\r,$\n,"Authorization:"++ AuthKey,$\r,$\n,
