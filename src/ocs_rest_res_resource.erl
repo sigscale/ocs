@@ -416,7 +416,7 @@ gtt(Name, #gtt{num = Prefix, value = {Description, Rate, {LastModified, _}}} = _
 			{struct, [{"name", "description"},
 			{"value", {struct, [{"seqNum", 2}, {"value", Description}]}}]},
 			{struct, [{"name", "rate"},
-			{"value", {struct, [{"seqNum", 3}, {"value", ocs_rating:convert(Rate)}]}}]}]}}]};
+			{"value", {struct, [{"seqNum", 3}, {"value", ocs_rest:convert(Rate)}]}}]}]}}]};
 gtt(_, {struct, ObjectMembers}) when is_list(ObjectMembers) ->
 	gtt1(ObjectMembers, {undefined, [], undefined}).
 %% @hidden
@@ -429,7 +429,7 @@ gtt1([], {Prefix, Desc, Rate} = _Acc)
 	TS = erlang:system_time(?MILLISECOND),
 	N = erlang:unique_integer([positive]),
 	LM = {TS, N},
-   #gtt{num = Prefix, value = {Desc, ocs_rating:convert(Rate), LM}}.
+   #gtt{num = Prefix, value = {Desc, ocs_rest:convert(Rate), LM}}.
 %% @hidden
 gtt2([{struct, L} | T], {Prefix, Desc, Rate} = _Acc) ->
 	case lists:keytake("name", 1, L) of
@@ -444,7 +444,7 @@ gtt2([{struct, L} | T], {Prefix, Desc, Rate} = _Acc) ->
 		{value, {"name", "rate"}, L1} ->
 			{_, {struct, L2}} = lists:keyfind("value", 1, L1),
 			{_, Rate1} = lists:keyfind("value", 1, L2), 
-			gtt2(T, {Prefix, Desc, ocs_rating:convert(Rate1)})
+			gtt2(T, {Prefix, Desc, ocs_rest:convert(Rate1)})
 	end;
 gtt2([], Acc) ->
 	Acc.
