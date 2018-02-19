@@ -1416,8 +1416,8 @@ filter_prices_dir(_, [], Acc) ->
 		SessionId :: [tuple()],
 		Buckets :: [#bucket{}],
 		Result :: {Debit, NewBuckets},
-		Debit :: interger(),
-		NewBuckets :: [#bucket{}],
+		Debit :: integer(),
+		NewBuckets :: [#bucket{}].
 %% @doc Get the total debited amount and
 %% 	remove all the reservations for currect
 %% 	session
