@@ -29,7 +29,7 @@
 -export([auth_open/0, auth_log/5, auth_log/6, auth_close/0,
 			auth_query/6, auth_query/7]).
 -export([ipdr_log/3, ipdr_file/2]).
--export([abmf_open/0, abmf_log/8,
+-export([abmf_open/0, abmf_log/15,
 			abmf_query/8]).
 -export([get_range/3, last/2, dump_file/2, httpd_logname/1,
 			http_file/2, date/1, iso8601/1]).
@@ -930,28 +930,43 @@ abmf_open() ->
 	{ok, LogFiles} = application:get_env(ocs, abmf_log_files),
 	open_log(Directory, ?BALANCELOG, LogSize, LogFiles).
 
--spec abmf_log(Type, Subscriber, Bucket,
-		Units, Amount, AmountBefore, AmountAfter, Product) -> Result
+-spec abmf_log(Type, Subscriber, Bucket, Units, Product, Amount,
+		AmountBefore, AmountAfter, Validity, Channel, Requestor,
+		RelatedParty, PaymentMeans, Action, Status) -> Result
 	when
 		Type :: deduct | reserve | unreserve | transfer | topup | adjustment,
 		Subscriber :: binary(),
-		Bucket :: string(),
+		Bucket :: undefined | string(),
 		Units :: cents | seconds | octets,
+		Product :: string(),
 		Amount :: integer(),
 		AmountBefore :: integer(),
 		AmountAfter :: integer(),
-		Product :: string(),
+		Validity :: undefined | pos_integer(),
+		Channel :: undefined | string(),
+		Requestor :: undefined | [{Id, Role, Name}],
+		RelatedParty :: undefined | [{Id, Role, Name}],
+		PaymentMeans :: undefined | string(),
+		Action :: undefined | string(),
+		Status :: undefined | term(),
+		Id :: string(),
+		Role :: string(),
+		Name :: string(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Write a balance activity log
-abmf_log(Type, Subscriber, Bucket, Units, Amount,
-		AmountBefore, AmountAfter, Product) when ((Type == transfer) orelse
-		(Type == topup) orelse (Type == adjustment)), is_binary(Subscriber),
-		is_list(Bucket), ((Units == cents) orelse (Units == seconds) orelse
-		(Units == octets)), is_integer(AmountBefore), is_integer(AmountAfter),
-		is_list(Product), is_integer(Amount)->
-	Event = [Type, Subscriber, Bucket, Units, Amount,
-			AmountBefore, AmountAfter, Product],
+abmf_log(Type, Subscriber, Bucket, Units, Product, Amount,
+		AmountBefore, AmountAfter, Validity, Channel, Requestor,
+		RelatedParty, PaymentMeans, Action, Status)
+		when ((Type == transfer) orelse (Type == topup) orelse
+		(Type == adjustment) orelse (Type == deduct) orelse (Type == reserve)
+		orelse (Type == unreserve)), is_binary(Subscriber), is_list(Bucket),
+		((Units == cents) orelse (Units == seconds) orelse (Units == octets)),
+		is_integer(AmountBefore), is_integer(AmountAfter), is_list(Product),
+		is_integer(Amount)->
+	Event = [node(), Type, Subscriber, Bucket, Units, Product, Amount,
+			AmountBefore, AmountAfter, Validity, Channel, Requestor,
+			RelatedParty, PaymentMeans, Action, Status],
 	write_log(?BALANCELOG, Event).
 
 -spec abmf_query(Continuation, Start, End, Type, Subscriber,
@@ -960,7 +975,7 @@ abmf_log(Type, Subscriber, Bucket, Units, Amount,
 		Continuation :: start | disk_log:continuation(),
 		Start :: calendar:datetime() | pos_integer(),
 		End :: calendar:datetime() | pos_integer(),
-		Type :: transfer | topup | adjustment | '_',
+		Type :: deduct | reserve | unreserve | transfer | topup | adjustment,
 		Subscriber :: binary() | '_',
 		Bucket :: string() | '_',
 		Units :: cents | seconds | octets | '_',
@@ -1802,56 +1817,35 @@ auth_query5(_Attributes, []) ->
 %%
 abmf_query({Cont, Events}, Type, Subscriber, Bucket,
 		 Units, Product) ->
-	{Cont, abmf_query1(Events, [Type, Subscriber, Bucket, Units, Product])}.
+	{Cont, abmf_query1(Events, Type, Subscriber, Bucket, Units, Product)}.
 %% @hidden
-abmf_query1(Events, [Type, Subscriber, Bucket, Units, Product]) ->
+abmf_query1(Events, '_', Subscriber, Bucket, Units, Product) ->
+	abmf_query2(Events, Subscriber, Bucket, Units, Product);
+abmf_query1(Events, Type, Subscriber, Bucket, Units, Product) ->
+	F = fun(Event) when element(4, Event) == Type -> true; (_) -> false end,
+	abmf_query2(lists:filter(F, Events), Subscriber, Bucket, Units, Product).
+%% @hidden
+abmf_query2(Events, '_', Bucket, Units, Product) ->
+	abmf_query3(Events, Bucket, Units, Product);
+abmf_query2(Events, Subscriber, Bucket, Units, Product) ->
+	F = fun(Event) when element(5, Event) == Subscriber -> true; (_) -> false end,
+	abmf_query3(lists:filter(F, Events), Bucket, Units, Product).
+%% @hidden
+abmf_query3(Events, '_', Units, Product) ->
+	abmf_query4(Events, Units, Product);
+abmf_query3(Events, Bucket, Units, Product) ->
+	F = fun(Event) when element(6, Event) == Bucket -> true; (_) -> false end,
+	abmf_query4(lists:filter(F, Events), Units, Product).
+%% @hidden
+abmf_query4(Events, '_', Product) ->
+	abmf_query5(Events, Product);
+abmf_query4(Events, Units, Product) ->
+	F = fun(Event) when element(7, Event) == Units -> true; (_) -> false end,
+	abmf_query5(lists:filter(F, Events), Product).
+%% @hidden
+abmf_query5(Events, '_') ->
 	lists:reverse(Events);
-abmf_query1(Events, [H | T]) ->
-	abmf_query1(abmf_query2(Events, H), T).
-%% @hidden
-abmf_query2(Events, {types, Types}) ->
-	F1 = fun(Event) ->
-		F2 = fun(Type) when Type == element(3, Event) ->
-					true;
-				(_) ->
-					false
-		end,
-		lists:any(F2, Types)
-	end,
-	lists:filter(F1, Events);
-abmf_query2(Events, {date, Date}) when is_list(Date) ->
-	F = fun(Event) -> element(4, Event) == ocs_log:iso8601(Date) end,
-	lists:filter(F, Events);
-abmf_query2(Events, {date, Date}) when is_integer(Date) ->
-	F = fun(Event) -> element(4, Event) == Date end,
-	lists:filter(F, Events);
-abmf_query2(Events, {bucket_id, Id}) ->
-	F = fun(Event) -> element(5, Event) == Id end,
-	lists:filter(F, Events);
-abmf_query2(Events, {bucket_amount, BA}) ->
-	F = fun(Event) -> abmf_query3(element(6, Event), BA) end,
-	lists:filter(F, Events);
-abmf_query2(Events, {before_amount, BA}) ->
-	F = fun(Event) -> abmf_query3(element(7, Event), BA) end,
-	lists:filter(F, Events);
-abmf_query2(Events, {after_amount, BA}) ->
-	F = fun(Event) -> abmf_query3(element(8, Event), BA) end,
-	lists:filter(F, Events);
-abmf_query2(Events, {prod_id, Id}) ->
-	F = fun(Event) -> element(9, Event) == Id end,
-	lists:filter(F, Events).
-%% @hidden
-abmf_query3({Unit, _} = Target, [{units, Units} | T]) ->
-	case lists:member(Unit, Units) of
-		true ->
-			abmf_query3(Target, T);
-		false ->
-			false
-	end;
-abmf_query3({_, Amount} = Target, [{amount, Amount} | T]) ->
-	abmf_query3(Target, T);
-abmf_query3(_Target, [_ | _]) ->
-	false;
-abmf_query3(_Target, []) ->
-	true.
+abmf_query5(Events, Product) ->
+	F = fun(Event) when element(8, Event) == Product -> true; (_) -> false end,
+	lists:reverse(lists:filter(F, Events)).
 
