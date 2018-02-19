@@ -379,7 +379,7 @@ bucket1([reservations | T], #bucket{units = undefined,
 	bucket1(T, B, [{"reservedAmount", {struct, Reserved}}| Acc]);
 bucket1([reservations | T], #bucket{reservations = Reservations,
 		units = cents} = B, Acc) ->
-	Amount = lists:sum([A || {_, A, _} <- Reservations]),
+	Amount = lists:sum([A || {_, _, A, _} <- Reservations]),
 	Reserved = [{"amount", ocs_rest:convert(Amount)}, {"units", "cents"}],
 	bucket1(T, B, [{"reservedAmount", {struct, Reserved}}| Acc]);
 bucket1([reservations | T], #bucket{reservations = Reservations,
