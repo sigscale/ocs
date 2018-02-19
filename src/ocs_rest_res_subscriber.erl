@@ -507,7 +507,7 @@ bucket([{"units", Type} | T], Acc) when is_list(Type) ->
 bucket([{"remainAmount", Amount} | T], Acc) ->
 	case lists:keyfind("units", 1, T) of
 			{_, "cents"} when is_list(Amount) ->
-				bucket(T, Acc#bucket{remain_amount = ocs_rating:convert(Amount)});
+				bucket(T, Acc#bucket{remain_amount = ocs_rest:convert(Amount)});
 			_ ->
 				bucket(T, Acc#bucket{remain_amount = Amount})
 	end;
@@ -531,7 +531,7 @@ bucket([termination_date | T], #bucket{termination_date = undefined} = Bucket, A
 bucket([termination_date | T], #bucket{termination_date = TDate} = Bucket, Acc) ->
 	bucket(T, Bucket, [{"terminationDate", ocs_rest:iso8601(TDate)} | Acc]);
 bucket([remain_amount | T], #bucket{units = cents, remain_amount = Amount} = Bucket, Acc) ->
-	bucket(T, Bucket, [{"remainAmount", ocs_rating:convert(Amount)} | Acc]);
+	bucket(T, Bucket, [{"remainAmount", ocs_rest:convert(Amount)} | Acc]);
 bucket([remain_amount | T], #bucket{remain_amount = Amount} = Bucket, Acc) ->
 	bucket(T, Bucket, [{"remainAmount", Amount} | Acc]);
 bucket([reservations | T], Bucket, Acc) ->

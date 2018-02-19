@@ -24,7 +24,6 @@
 -export([rate/10]).
 -export([authorize/8]).
 -export([session_attributes/1]).
--export([convert/1]).
 
 -include("ocs.hrl").
 -include_lib("radius/include/radius.hrl").
@@ -751,27 +750,6 @@ session_attributes(Attributes) ->
 				false
 	end,
 	lists:keysort(1, lists:filter(F, Attributes)).
-
--spec convert(N) -> N
-	when
-		N :: string() | integer().
-%% @doc Convert floating numbers within strings (ex: "625.75") to
-%% integer (ex: 625750000) and vice versa. Internal representation of
-%% 1000000 units is considered as 1 cent.
-%%
-convert(N) when is_list(N) ->
-	case string:tokens(N, [$.]) of
-		[A] ->
-			list_to_integer(A) * 1000000;
-		[A, B] when length(B) =< 6 ->
-			list_to_integer(A)*1000000 +
-					(list_to_integer(B ++ lists:duplicate(6 - length(B), $0)))
-	end;
-convert(N) when is_integer(N) ->
-	M = N div 1000000,
-	D = N rem 1000000,
-	S = integer_to_list(M) ++ [$.] ++ integer_to_list(D),
-	string:strip(S, right, $0).
 
 %%----------------------------------------------------------------------
 %%  internal functions

@@ -1782,7 +1782,7 @@ get_subscriber_balance(Config) ->
 			lists:keyfind("href", 1, PrePayBalance),
 	{_, {struct, TotalAmount}} = lists:keyfind("totalBalance", 1, PrePayBalance),
 	{_, Balance1} = lists:keyfind("amount", 1, TotalAmount),
-	Balance1 = ocs_rating:convert(Balance).
+	Balance1 = ocs_rest:convert(Balance).
 
 simultaneous_updates_on_subscriber_failure() ->
 	[{userdata, [{doc,"Simulataneous HTTP PATCH updates on subscriber resource must fail

@@ -24,6 +24,7 @@
 -export([date/1, iso8601/1, etag/1]).
 -export([pointer/1, patch/2]).
 -export([parse_query/1, lhs/1, fields/2, range/1]).
+-export([convert/1]).
 
 -export_type([operator/0]).
 
@@ -408,6 +409,28 @@ patch_replace([Name | T1], Value1, [{Name, Value2} | T2], Acc) ->
 	lists:reverse(Acc) ++ [{Name, Value3} | T2];
 patch_replace(Path, Value, [H | T], Acc) ->
 	patch_replace(Path, Value, T, [H | Acc]).
+
+-spec convert(N) -> N
+	when
+		N :: string() | integer().
+%% @doc Convert floating numbers within strings (ex: "625.75") to
+%% integer (ex: 625750000) and vice versa. Internal representation of
+%% 1000000 units is considered as 1 cent.
+%%
+convert(N) when is_list(N) ->
+	case string:tokens(N, [$.]) of
+		[A] ->
+			list_to_integer(A) * 1000000;
+		[A, B] when length(B) =< 6 ->
+			list_to_integer(A)*1000000 +
+					(list_to_integer(B ++ lists:duplicate(6 - length(B), $0)))
+	end;
+convert(N) when is_integer(N) ->
+	M = N div 1000000,
+	D = N rem 1000000,
+	S = integer_to_list(M) ++ [$.] ++ integer_to_list(D),
+	string:strip(S, right, $0).
+
 
 %%----------------------------------------------------------------------
 %%  internal functions
