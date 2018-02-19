@@ -1535,6 +1535,13 @@
 						updatePriceNew.push(priceSize);
 					}
 				}
+				if(this.$.updatePriceAmount.value) {
+					var priceAmount = new Object();
+					priceAmount.op = "add";
+					priceAmount.path = "/productOfferingPrice/" + indexPrices + "/price/taxIncludedAmount";
+					priceAmount.value = this.$.updatePriceAmount.value;
+					updatePriceNew.push(priceAmount);
+				}
 				if(this.$.updatePricePerioddrop.value && !this.$.updatePricePerioddrop.disabled) {
 					var priceCharge = new Object();
 					priceCharge.op = "add";
@@ -1966,7 +1973,7 @@
 						updatePriceNew.unit = "s";
 						break;
 				}
-				updatePriceNew.amount = parseInt(this.$.updatePriceAmount.value);
+				updatePriceNew.amount = this.$.updatePriceAmount.value;
 				updatePriceNew.size = this.$.updatePriceSize.value;
 				updatePriceNew.currency = this.$.updatePriceCurrency.value;
 				switch(this.$.updatePricePeriod.selected) {
@@ -2177,7 +2184,7 @@
 						updateAltNew.period = "yearly";
 				}
 				updateAltNew.currency = this.$.updateAltCurr.value;
-				updateAltNew.amount= parseInt(this.$.updateAltAmount.value);
+				updateAltNew.amount= this.$.updateAltAmount.value;
 				if(updateAltNew.name
 						&& updateAltNew.priceType
 						&& updateAltNew.unit

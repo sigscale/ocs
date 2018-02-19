@@ -367,7 +367,6 @@
 						<paper-input id="addPriceAmount"
 								class="amount"
 								name="amount"
-								type="number"
 								label="[[i18n.amount]]"
 								value=0
 								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
@@ -1642,7 +1641,7 @@
 						priceNew.unit = "s";
 				}
 				if (this.$.addPriceAmount.value) {
-					priceNew.amount = parseInt(this.$.addPriceAmount.value);
+					priceNew.amount = this.$.addPriceAmount.value;
 				}
 				priceNew.size = this.$.addPriceSize.value;
 				priceNew.currency = this.$.addPriceCurrency.value;
@@ -1774,7 +1773,7 @@
 						altNew.type = "usage";
 				}
 				altNew.size = this.$.addAltSize.value;
-				altNew.amount= parseInt(this.$.addAltAmount.value);
+				altNew.amount= this.$.addAltAmount.value;
 				altNew.currency = this.$.addAltCurrency.value;
 				switch(this.$.addAltPeriod.selected) {
 					case 0:
