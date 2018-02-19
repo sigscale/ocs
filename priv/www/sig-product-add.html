@@ -367,6 +367,10 @@
 						<paper-input id="addPriceAmount"
 								class="amount"
 								name="amount"
+								type="text"
+								allowed-pattern="[0-9.]"
+                        pattern="[0-9]+\.?[0-9]{0,6}$"
+								auto-validate
 								label="[[i18n.amount]]"
 								value=0
 								onfocus="addProductEndDatePickPrice.hide(); addProductStartDatePickPrice.hide(); addPriceCharsTimeEnd.hide(); addPriceCharsTimeStart.hide();">
@@ -729,7 +733,10 @@
 								class="amount"
 								name="amount"
 								label="[[i18n.amount]]"
-								type="number"
+								type="text"
+								allowed-pattern="[0-9.]"
+                        pattern="[0-9]+\.?[0-9]{0,6}$"
+								auto-validate
 								value=0
 								onfocus="addProductEndDatePickAlt.hide(); addProductStartDatePickAlt.hide();">
 						</paper-input>
