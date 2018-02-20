@@ -1407,7 +1407,7 @@ get_debits(SessionId, Buckets) ->
 %% @hidden
 get_debits([#bucket{remain_amount = 0, reservations = []} | T],
 		SessionId, Now, Debit, Acc) ->
-	get_debits(SessionId, T, Now, Debit, Acc);
+	get_debits(T, SessionId, Now, Debit, Acc);
 get_debits([#bucket{reservations = [], termination_date = Expires} | T],
 		SessionId, Now, Debit, Acc) when Expires < Now ->
 	get_debits(T, SessionId, Now, Debit, Acc);
