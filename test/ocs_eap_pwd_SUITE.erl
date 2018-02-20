@@ -187,7 +187,7 @@ pwd_id_over_radius(Config) ->
 	PeerId = <<"23456789">>,
 	MAC = "BB-CC-DD-EE-FF-AA",
 	PeerAuth = list_to_binary(ocs:generate_password()),
-	{ok, _} = ocs:add_service(PeerId, PeerAuth, ProdID),
+	{ok, _} = ocs:add_subscriber(PeerId, PeerAuth, ProdID),
 	Socket = ?config(socket, Config),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
@@ -216,7 +216,7 @@ pwd_id_over_diameter(Config) ->
 	ProdID = ?config(product_id, Config),
 	PeerId = <<"78923456">>,
 	PeerAuth = list_to_binary(ocs:generate_password()),
-	{ok, _} = ocs:add_service(PeerId, PeerAuth, ProdID),
+	{ok, _} = ocs:add_subscriber(PeerId, PeerAuth, ProdID),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	EapId0 = 0,
@@ -252,7 +252,7 @@ pwd_id_over_diameter(Config) ->
 	#eap_pwd_commit{element = Element, scalar = Scalar} = ocs_eap_codec:eap_pwd_commit(EapPwdData1),
 	true = is_binary(Element),
 	true = is_binary(Scalar),
-	ok = ocs:delete_service(PeerId).
+	ok = ocs:delete_subscriber(PeerId).
 
 pwd_commit_over_radius() ->
 	[{userdata, [{doc, "Send an EAP-pwd-Commit/Response using RADIUS to peer"}]}].
@@ -262,7 +262,7 @@ pwd_commit_over_radius(Config) ->
 	PeerId = <<"34567890">>,
 	MAC = "CC-DD-EE-FF-AA-BB",
 	PeerAuth = list_to_binary(ocs:generate_password()),
-	{ok, _} = ocs:add_service(PeerId, PeerAuth, ProdID),
+	{ok, _} = ocs:add_subscriber(PeerId, PeerAuth, ProdID),
 	Socket = ?config(socket, Config),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
@@ -301,7 +301,7 @@ pwd_commit_over_diameter(Config) ->
 	ProdID = ?config(product_id, Config),
 	PeerId = <<"78456923">>,
 	PeerAuth = list_to_binary(ocs:generate_password()),
-	{ok, _} = ocs:add_service(PeerId, PeerAuth, ProdID),
+	{ok, _} = ocs:add_subscriber(PeerId, PeerAuth, ProdID),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	EapId0 = 0,
@@ -351,7 +351,7 @@ pwd_commit_over_diameter(Config) ->
 	EapId2 = EapId1 + 1,
 	#eap_pwd{length = false, more = false, pwd_exch = confirm,
 			data = _EapPwdData2} = ocs_eap_codec:eap_pwd(EapData2),
-	ok = ocs:delete_service(PeerId).
+	ok = ocs:delete_subscriber(PeerId).
 	
 pwd_confirm_over_radius() ->
 	[{userdata, [{doc, "Send an EAP-pwd-Confirm/Response using RADIUS to peer"}]}].
@@ -365,7 +365,7 @@ pwd_confirm_over_radius(Config) ->
 	TD = Now + 86400000,
 	Buckets = [#bucket{remain_amount = 1000, units = octets,
 		termination_date = TD}],
-	{ok, _} = ocs:add_service(PeerId, PeerAuth, ProdID, [], Buckets, []),
+	{ok, _} = ocs:add_subscriber(PeerId, PeerAuth, ProdID, [], Buckets, []),
 	Socket = ?config(socket, Config),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
@@ -417,7 +417,7 @@ pwd_confirm_over_diameter(Config) ->
 	TD = Now + 86400000,
 	Buckets = [#bucket{remain_amount = 100000, units = octets,
 			termination_date = TD}],
-	{ok, _} = ocs:add_service(PeerId, PeerAuth, ProdID, [], Buckets, []),
+	{ok, _} = ocs:add_subscriber(PeerId, PeerAuth, ProdID, [], Buckets, []),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	EapId0 = 0,
@@ -479,7 +479,7 @@ pwd_confirm_over_diameter(Config) ->
 			'EAP-Payload' = [Payload3]} = DEA3,
 	#eap_packet{code = success,
 			identifier = EapId2} = ocs_eap_codec:eap_packet(Payload3),
-	ok = ocs:delete_service(PeerId).
+	ok = ocs:delete_subscriber(PeerId).
 
 message_authentication_over_radius() ->
 	[{userdata, [{doc, "Send corrupt Message-Authenticator using RADIUS"}]}].
@@ -489,7 +489,7 @@ message_authentication_over_radius(Config) ->
 	PeerId = <<"56789012">>,
 	MAC = "EE-FF-AA-BB-CC-DD",
 	PeerAuth = list_to_binary(ocs:generate_password()),
-	{ok, _} = ocs:add_service(PeerId, PeerAuth, ProdID),
+	{ok, _} = ocs:add_subscriber(PeerId, PeerAuth, ProdID),
 	Socket = ?config(socket, Config),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
@@ -536,7 +536,7 @@ validate_pwd_id_cipher_over_radius(Config) ->
 	PeerId = <<"78901234">>,
 	MAC = "AB-CD-EF-FE-DC-BA",
 	PeerAuth = list_to_binary(ocs:generate_password()),
-	{ok, _} = ocs:add_service(PeerId, PeerAuth, ProdID),
+	{ok, _} = ocs:add_subscriber(PeerId, PeerAuth, ProdID),
 	Socket = ?config(socket, Config),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
@@ -571,7 +571,7 @@ validate_pwd_id_prep_over_radius(Config) ->
 	PeerId = <<"89012345">>,
 	MAC = "CD-EF-FE-DC-BA-AB",
 	PeerAuth = list_to_binary(ocs:generate_password()),
-	{ok, _} = ocs:add_service(PeerId, PeerAuth, ProdID),
+	{ok, _} = ocs:add_subscriber(PeerId, PeerAuth, ProdID),
 	Socket = ?config(socket, Config),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
@@ -606,7 +606,7 @@ validate_pwd_id_token_over_radius(Config) ->
 	PeerId = <<"90123456">>,
 	MAC = "EF-FE-DC-BA-AB-CD",
 	PeerAuth = list_to_binary(ocs:generate_password()),
-	{ok, _} = ocs:add_service(PeerId, PeerAuth, ProdID),
+	{ok, _} = ocs:add_subscriber(PeerId, PeerAuth, ProdID),
 	Socket = ?config(socket, Config),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),
@@ -641,7 +641,7 @@ negotiate_method_over_radius(Config) ->
 	PeerId = <<"01234567">>,
 	MAC = "FE-DC-BA-AB-CD-EF",
 	PeerAuth = list_to_binary(ocs:generate_password()),
-	{ok, _} = ocs:add_service(PeerId, PeerAuth, ProdID),
+	{ok, _} = ocs:add_subscriber(PeerId, PeerAuth, ProdID),
 	Socket = ?config(socket, Config),
 	{ok, RadiusConfig} = application:get_env(ocs, radius),
 	{auth, [{Address, Port, _} | _]} = lists:keyfind(auth, 1, RadiusConfig),

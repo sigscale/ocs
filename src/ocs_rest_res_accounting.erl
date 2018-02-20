@@ -120,8 +120,8 @@ events_to_json(Events) ->
 				Obj0 = [{"type", Type}, {"node", Node}, {"serverPort", ServerPort},
 						{"serverAddress", ServerIp}, {"timeStamp", TimeStamp}],
 				Obj1 = case CCR#'3gpp_ro_CCR'.'Subscription-Id' of
-					[#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = ServiceId} | _] ->
-						[{"username", binary_to_list(ServiceId)} | Obj0];
+					[#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = SubscriberId} | _] ->
+						[{"username", binary_to_list(SubscriberId)} | Obj0];
 					_ ->
 						Obj0
 				end,

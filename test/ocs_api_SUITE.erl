@@ -89,7 +89,7 @@ sequences() ->
 %%
 all() -> 
 	[client, get_all_clients, update_client_password, delete_client,
-	add_service, update_password, update_attributes, delete_service,
+	add_subscriber, update_password, update_attributes, delete_subscriber,
 	add_product, find_product, get_products, delete_product, add_user,
 	get_user, delete_user].
 
@@ -160,10 +160,10 @@ delete_client(Config) ->
 	ok = ocs:delete_client(Address),
 	{error, not_found} = ocs:find_client(Address).
 
-add_service() ->
-	[{userdata, [{doc, "Add service to database"}]}].
+add_subscriber() ->
+	[{userdata, [{doc, "Add subscriber to database"}]}].
 
-add_service(Config) ->
+add_subscriber(Config) ->
 	ProdID = ?config(product_id, Config),
 	Attribute0 = radius_attributes:new(),
 	Attribute1 = radius_attributes:add(?SessionTimeout, 3600, Attribute0),
@@ -171,52 +171,52 @@ add_service(Config) ->
 	Password1 = ocs:generate_password(),
 	Password2 = ocs:generate_password(),
 	Buckets = [#bucket{units = cents, remain_amount = 3000}],
-	{ok, _} = ocs:add_service("tomba", Password1, ProdID, [], Buckets, Attribute1),
-	{ok, _} = ocs:add_service("android", Password2, ProdID, [], Buckets, Attribute2),
-	{ok, #service{password = BinPassword1, attributes = Attribute1,
+	{ok, _} = ocs:add_subscriber("tomba", Password1, ProdID, [], Buckets, Attribute1),
+	{ok, _} = ocs:add_subscriber("android", Password2, ProdID, [], Buckets, Attribute2),
+	{ok, #subscriber{password = BinPassword1, attributes = Attribute1,
 			product = #product_instance{product = ProdID}}} = 
-			ocs:find_service("tomba"),
+			ocs:find_subscriber("tomba"),
 	Password1 = binary_to_list(BinPassword1),
-	{ok, #service{password = BinPassword2, attributes = Attribute2,
-			product = #product_instance{product = ProdID}}} = ocs:find_service("android"),
+	{ok, #subscriber{password = BinPassword2, attributes = Attribute2,
+			product = #product_instance{product = ProdID}}} = ocs:find_subscriber("android"),
 	Password2 = binary_to_list(BinPassword2).
 
-delete_service() ->
-	[{userdata, [{doc, "Delete service from the database"}]}].
+delete_subscriber() ->
+	[{userdata, [{doc, "Delete subscriber from the database"}]}].
 
-delete_service(Config) ->
+delete_subscriber(Config) ->
 	ProdID = ?config(product_id, Config),
 	Attribute0 = radius_attributes:new(),
 	Attribute = radius_attributes:add(?SessionTimeout, 3600, Attribute0),
-	Service = "deleteandroid",
+	Subscriber = "deleteandroid",
 	Password = ocs:generate_password(),
 	Buckets = [#bucket{units = cents, remain_amount = 3000}],
-	{ok, _} = ocs:add_service(Service, Password, ProdID, [], Buckets, Attribute),
-	{ok, _} = ocs:find_service(Service),
-	ok = ocs:delete_service(Service),
-	{error, _} = ocs:find_service(Service).
+	{ok, _} = ocs:add_subscriber(Subscriber, Password, ProdID, [], Buckets, Attribute),
+	{ok, _} = ocs:find_subscriber(Subscriber),
+	ok = ocs:delete_subscriber(Subscriber),
+	{error, _} = ocs:find_subscriber(Subscriber).
 
 update_password() ->
-	[{userdata, [{doc, "Update service password to database"}]}].
+	[{userdata, [{doc, "Update subscriber password to database"}]}].
 
 update_password(Config) ->
 	ProdID = ?config(product_id, Config),
 	Attribute0 = radius_attributes:new(),
 	Attribute = radius_attributes:add(?SessionTimeout, 3600, Attribute0),
-	Service = "android",
+	Subscriber = "android",
 	OldPassword = ocs:generate_password(),
 	Buckets = [#bucket{units = cents, remain_amount = 3000}],
-	{ok, _} = ocs:add_service(Service, OldPassword, ProdID, [], Buckets, Attribute),
-	{ok, #service{password = BinOldPassword, attributes = Attribute}} =
-			ocs:find_service(Service),
+	{ok, _} = ocs:add_subscriber(Subscriber, OldPassword, ProdID, [], Buckets, Attribute),
+	{ok, #subscriber{password = BinOldPassword, attributes = Attribute}} =
+			ocs:find_subscriber(Subscriber),
 	OldPassword = binary_to_list(BinOldPassword),
 	NewPassword = ocs:generate_password(),
-	ok = ocs:update_password(Service, NewPassword),
-	{ok, #service{password = BinNewPassword}} = ocs:find_service(Service),
+	ok = ocs:update_password(Subscriber, NewPassword),
+	{ok, #subscriber{password = BinNewPassword}} = ocs:find_subscriber(Subscriber),
 	NewPassword = binary_to_list(BinNewPassword).
 
 update_attributes() ->
-	[{userdata, [{doc, "Update service attributes to database"}]}].
+	[{userdata, [{doc, "Update subscriber attributes to database"}]}].
 
 update_attributes(Config) ->
 	ProdID = ?config(product_id, Config),
@@ -225,11 +225,11 @@ update_attributes(Config) ->
 	Attribute0 = radius_attributes:new(),
 	Attribute1 = radius_attributes:add(?SessionTimeout, 3600, Attribute0),
 	Buckets = [#bucket{units = cents, remain_amount = 3000}],
-	{ok, _} = ocs:add_service(Username, Password, ProdID, [], Buckets, Attribute1),
-	{ok, #service{attributes = Attribute1}} = ocs:find_service(Username),
+	{ok, _} = ocs:add_subscriber(Username, Password, ProdID, [], Buckets, Attribute1),
+	{ok, #subscriber{attributes = Attribute1}} = ocs:find_subscriber(Username),
 	Attribute2 = radius_attributes:add(?AcctInterimInterval, 60, Attribute0),
 	ok = ocs:update_attributes(Username, Attribute2),
-	{ok, #service{attributes = Attribute2}} = ocs:find_service(Username).
+	{ok, #subscriber{attributes = Attribute2}} = ocs:find_subscriber(Username).
 
 add_product() ->
 	[{userdata, [{doc, "Add a product offering."}]}].

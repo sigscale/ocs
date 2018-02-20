@@ -6,12 +6,12 @@
 ==Introduction==
 In a communications service provider (CSP) network an Online
 Charging System (OCS) is used for real-time charging of services.
-The OCS controls service's sessions such that usage is decremented
-from the service's account in real-time and once the balance is
+The OCS controls subscriber's sessions such that usage is decremented
+from the subscriber's account in real-time and once the balance is
 zero all sessions are terminated.
 
 This OCS performs authentication, authorization and accounting (AAA)
-for services of wireless local area network (WLAN) services (WiFi).
+for subscribers of wireless local area network (WLAN) services (WiFi).
 
 ==Installation==
 Before starting the application for the first time, {@link //mnesia/mnesia. mnesia}
@@ -30,7 +30,7 @@ e.g &#058;
 	Created new client table.
 	
 	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
-	Created new service table.
+	Created new subscriber table.
 	
 	=INFO REPORT==== 4-Aug-2017::19:59:41 ===
 	Created new httpd_user table.
@@ -93,8 +93,8 @@ specify the format of
 <a href="http://tools.ietf.org/html/rfc3986">URI</a>s used with the API.
 The actual <a href="http://tools.ietf.org/html/rfc3986">URI</a>, as shown
 in the examples, is expanded using the values of the variables in use.  For
-example a URI specified using the template `/ocs/v1/service/{id}' might be
-formed as `/ocs/v1/service/eacfd73ae10a'.
+example a URI specified using the template `/ocs/v1/subscriber/{id}' might be
+formed as `/ocs/v1/subscriber/eacfd73ae10a'.
 
 ===HTTP Methods===
 The <a href="http://tools.ietf.org/html/rfc2616">HTTP</a> methods used in
@@ -149,8 +149,8 @@ The media types used in this application are described below.
 	</tbody>
 </table></div></p>
 
-<p><div id="service"><table id="mt">
-	<caption id="mt">The <b>Subscriber</b> object respresents a record in the `service' table:</caption>
+<p><div id="subscriber"><table id="mt">
+	<caption id="mt">The <b>Subscriber</b> object respresents a record in the `subscriber' table:</caption>
 	<thead>
 		<tr id="mt">
 			<th id="mt">Field Name</th>
@@ -164,19 +164,19 @@ The media types used in this application are described below.
 			<td id="mt">id</td>
 			<td id="mt">string</td>
 			<td id="mt">O</td>
-			<td id="mt">Identity (username) of the service</td>
+			<td id="mt">Identity (username) of the subscriber</td>
 		</tr>
 		<tr id="mt">
 			<td id="mt">href</td>
 			<td id="mt">string</td>
 			<td id="mt">R</td>
-			<td id="mt">URI of the service resource</td>
+			<td id="mt">URI of the subscriber resource</td>
 		</tr>
 		<tr id="mt">
 			<td id="mt">password</td>
 			<td id="mt">string</td>
 			<td id="mt">O</td>
-			<td id="mt">Password used to authenticate the service</td>
+			<td id="mt">Password used to authenticate the subscriber</td>
 		</tr>
 		<tr id="mt">
 			<td id="mt">attributes</td>
@@ -188,7 +188,7 @@ The media types used in this application are described below.
 			<td id="mt">buckets</td>
 			<td id="mt">array</td>
 			<td id="mt">O</td>
-			<td id="mt">Avaiable data balance of the service</td>
+			<td id="mt">Avaiable data balance of the subscriber</td>
 		</tr>
 		<tr id="mt">
 			<td id="mt">enabled</td>
@@ -205,7 +205,7 @@ The media types used in this application are described below.
 	</tbody>
 </table></div></p>
 <p><div id="attributes"><table id="mt">
-	<caption id="mt">The <b>attributes</b> value in the `service' table
+	<caption id="mt">The <b>attributes</b> value in the `subscriber' table
 		is an array of attributes which will be included in authenticated
 		access requests.</caption>
 	<thead>
@@ -256,7 +256,7 @@ The media types used in this application are described below.
 	</tbody>
 </table></div></p>
 <p><div id="buckets"><table id="mt">
-	<caption id="mt">The <b>buckets</b> value in the `service' table
+	<caption id="mt">The <b>buckets</b> value in the `subscriber' table
 		is an array of attributes which will be included user data balance and 
 		units.</caption>
 	<thead>
@@ -368,7 +368,7 @@ headers may be included in requests and responses and responses.
 	<caption id="op"><b>Add Subscriber</b></caption>
 	<tr id="op">
 		<td id="opl">Resource URI</td>
-		<td id="opr">/ocs/v1/service</td>
+		<td id="opr">/ocs/v1/subscriber</td>
 	</tr>
 	<tr id="op">
 		<td id="opl">Request Methods</td>
@@ -380,7 +380,7 @@ headers may be included in requests and responses and responses.
 	</tr>
 	<tr id="op">
 		<td id="opl">Request Message Body</td>
-		<td id="opr">Representation of a service</td>
+		<td id="opr">Representation of a subscriber</td>
 	</tr>
 	<tr id="op">
 		<td id="opl">Response Headers</td>
@@ -388,7 +388,7 @@ headers may be included in requests and responses and responses.
 	</tr>
 	<tr id="op">
 		<td id="opl">Response Body</td>
-		<td id="opr">Representation of the newly added service</td>
+		<td id="opr">Representation of the newly added subscriber</td>
 	</tr>
 	<tr id="op">
 		<td id="opl">Response Status</td>
@@ -396,7 +396,7 @@ headers may be included in requests and responses and responses.
 	</tr>
 </table>
 <p>Example request:<pre>
-POST /ocs/v1/service HTTP/1.1
+POST /ocs/v1/subscriber HTTP/1.1
 Accept: application/json
 Content-type: application/json
 Content-length: nn
@@ -420,14 +420,14 @@ Content-length: nn
 </pre></p>
 <p>Example response:<pre>
 HTTP/1.1 201 Created
-Location: /ocs/v1/service/eacfd73ae10a
+Location: /ocs/v1/subscriber/eacfd73ae10a
 Content-Type: application/json
 Content-Length: nn
 Etag: mm-m
 
 {
  "id": "eacfd73ae10a",
- "href": "/ocs/v1/service/eacfd73ae10a"
+ "href": "/ocs/v1/subscriber/eacfd73ae10a"
  "password": "ksc8c244npqc",
  "attributes":[
                {"name": "ascendDataRate", "value": 1000000},
@@ -446,7 +446,7 @@ Etag: mm-m
 	<caption id="op"><b>Retrieve a Subscriber</b></caption>
 	<tr id="op">
 		<td id="opl">Resource URI</td>
-		<td id="opr">/ocs/v1/service/{id}</td>
+		<td id="opr">/ocs/v1/subscriber/{id}</td>
 	</tr>
 	<tr id="op">
 		<td id="opl">Request Methods</td>
@@ -466,7 +466,7 @@ Etag: mm-m
 	</tr>
 	<tr id="op">
 		<td id="opl">Response Body</td>
-		<td id="opr">Reprsentation of a service</td>
+		<td id="opr">Reprsentation of a subscriber</td>
 	</tr>
 	<tr id="op">
 		<td id="opl">Response Status</td>
@@ -474,7 +474,7 @@ Etag: mm-m
 	</tr>
 </table>
 <p>Example request:<pre>
-GET /ocs/v1/service/eacfd73ae10a HTTP/1.1
+GET /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
 Accept: application/json
 </pre></p>
 <p>Example response:<pre>
@@ -485,7 +485,7 @@ Etag : mm-m
 
 {
  "id": "ae01b2df60d0",
- "href": "/ocs/v1/service/ae01b2df60d0"
+ "href": "/ocs/v1/subscriber/ae01b2df60d0"
  "password": "rx46qsbf2wn8",
  "attributes":[
                {"name": "ascendDataRate", "value": 64000}
@@ -503,7 +503,7 @@ Etag : mm-m
 <caption id="op"><b>Retrieve All Subscribers</b></caption>
 <tr id="op">
 <td id="opl">Resource URI</td>
-		<td id="opr">/ocs/v1/service</td>
+		<td id="opr">/ocs/v1/subscriber</td>
 	</tr>
 	<tr id="op">
 		<td id="opl">Request Methods</td>
@@ -523,7 +523,7 @@ Etag : mm-m
 	</tr>
 	<tr id="op">
 		<td id="opl">Response Body</td>
-		<td id="opr">Array of service representations</td>
+		<td id="opr">Array of subscriber representations</td>
 	</tr>
 	<tr id="op">
 		<td id="opl">Response Status</td>
@@ -531,7 +531,7 @@ Etag : mm-m
 	</tr>
 </table>
 <p>Example request:<pre>
-GET /ocs/v1/service HTTP/1.1
+GET /ocs/v1/subscriber HTTP/1.1
 Accept: application/json
 </pre></p>
 <p>Example response:<pre>
@@ -542,7 +542,7 @@ Content-Length: nn
 [
  {
    "id": "5557615036fd",
-   "href": "/ocs/v1/service/5557615036fd"
+   "href": "/ocs/v1/subscriber/5557615036fd"
    "password": "2h7csggw35aa",
    "attributes":[
                  {"name": "ascendDataRate", "value": 4000000},
@@ -555,7 +555,7 @@ Content-Length: nn
  },
  {
   "id": "e5b9265c8c0d",
-  "href": "/ocs/v1/service/e5b9265c8c0d"
+  "href": "/ocs/v1/subscriber/e5b9265c8c0d"
   "password": "rzambns7knr4",
    "attributes":[
                  {"name": "sessionTimeout", "value": 3600},
@@ -574,7 +574,7 @@ Content-Length: nn
 <caption id="op"><b>Update Subscriber</b></caption>
 	<tr id="op">
 		<td id="opl">Resource URI</td>
-		<td id="opr">/ocs/v1/service/{id}</td>
+		<td id="opr">/ocs/v1/subscriber/{id}</td>
 	</tr>
 	<tr id="op">
 		<td id="opl">Request Methods</td>
@@ -603,7 +603,7 @@ Content-Length: nn
 </table>
 <p>Update Subscriber Password</p>
 <pre>
-PATCH /ocs/v1/service/eacfd73ae10a HTTP/1.1
+PATCH /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
 Content-type: application/json-patch+json
 Accept: application/json
 
@@ -623,7 +623,7 @@ Etag: mm-m
 
 {
  "id": "eacfd73ae10a",
- "href": "/ocs/v1/service/eacfd73ae10a",
+ "href": "/ocs/v1/subscriber/eacfd73ae10a",
  "password": "7fy8qhs7hh7n",
  "attributes":[
                {"name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
@@ -642,7 +642,7 @@ Etag: mm-m
 
 <p>Update Subscriber Attributes</p>
 <pre>
-PATCH /ocs/v1/service/eacfd73ae10a HTTP/1.1
+PATCH /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
 Content-type: application/json-patch+json
 Accept: application/json
 
@@ -676,7 +676,7 @@ Etag: mm-m
 
 {
  "id": "eacfd73ae10a",
- "href": "/ocs/v1/service/eacfd73ae10a",
+ "href": "/ocs/v1/subscriber/eacfd73ae10a",
  "password": "ksc8c244npqc",
  "attributes":[
                {"name": "ascendDataRate", "value": 1000000},
@@ -692,7 +692,7 @@ Etag: mm-m
 
 <p>Update Subscriber Balance</p>
 <pre>
-PATCH /ocs/v1/service/eacfd73ae10a HTTP/1.1
+PATCH /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
 Content-type: application/json-patch+json
 Accept: application/json
 
@@ -716,7 +716,7 @@ Etag: mm-m
 
 {
  "id": "eacfd73ae10a",
- "href": "/ocs/v1/service/eacfd73ae10a",
+ "href": "/ocs/v1/subscriber/eacfd73ae10a",
  "password": "7fy8qhs7hh7n",
  "attributes":[
                {"name" : "ascendDataRate", "type":26, "vendorId":529, "vendorType":197, "value":1024 },
@@ -737,7 +737,7 @@ Etag: mm-m
 	<caption id="op"><b>Delete a Subscriber</b></caption>
 	<tr id="op">
 		<td id="opl">Resource URI</td>
-		<td id="opr">/ocs/v1/service/{id}</td>
+		<td id="opr">/ocs/v1/subscriber/{id}</td>
 	</tr>
 	<tr id="op">
 		<td id="opl">Request Methods</td>
@@ -765,7 +765,7 @@ Etag: mm-m
 	</tr>
 </table>
 <p>Example request:<pre>
-DELETE /ocs/v1/service/eacfd73ae10a HTTP/1.1
+DELETE /ocs/v1/subscriber/eacfd73ae10a HTTP/1.1
 </pre></p>
 <p>Example response:<pre>
 HTTP/1.1 204 Content
@@ -1902,7 +1902,7 @@ Content-Length: nn
 	</tr>
 </table>
 <p>Example request:<pre>
-GET /ocs/v1/service HTTP/1.1
+GET /ocs/v1/subscriber HTTP/1.1
 Accept: application/json
 </pre></p>
 <p>Example response:<pre>
@@ -1982,7 +1982,7 @@ Content-Length: nn
 			<td id="mt">RADIUS clients</td>
 		</tr>
 		<tr id="mt">
-			<td id="mt">service</td>
+			<td id="mt">subscriber</td>
 			<td id="mt">Subscriber data</td>
 		</tr>
 		<tr id="mt">

@@ -60,9 +60,9 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 							check_content_type_header(Headers, Method, ocs_rest_res_client, Data);
 						["ocs", "v1", "client", _Id] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_client, Data);
-						["ocs", "v1", "service"] ->
+						["ocs", "v1", "subscriber"] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_subscriber, Data);
-						["ocs", "v1", "service", _Id] ->
+						["ocs", "v1", "subscriber", _Id] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_subscriber, Data);
 						["ocs", "v1", "log", "ipdr"] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_usage, Data);

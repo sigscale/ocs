@@ -101,8 +101,8 @@ do_patch(ContentType, Body, Resource, ModData, Etag,
 		["ocs", "v1", "client", Identity]) ->
 	do_response(ModData, Resource:patch_client(Identity, Etag, ContentType, Body));
 do_patch(ContentType, Body, Resource, ModData, Etag,
-		["ocs", "v1", "service", Identity]) ->
-	do_response(ModData, Resource:patch_service(Identity, Etag, ContentType,
+		["ocs", "v1", "subscriber", Identity]) ->
+	do_response(ModData, Resource:patch_subscriber(Identity, Etag, ContentType,
 			Body));
 do_patch(ContentType, Body, Resource, ModData, Etag,
 		["partyManagement", "v1", "individual", Identity]) ->

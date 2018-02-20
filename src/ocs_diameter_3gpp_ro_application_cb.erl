@@ -276,20 +276,20 @@ process_request(Address, Port, Caps, Request) ->
 			'Service-Context-Id' = _SvcContextId, 'CC-Request-Type' = RequestType,
 			'CC-Request-Number' = RequestNum, 'Subscription-Id' = SubscriptionIds} = Request,
 	try
-		Service = case SubscriptionIds of
+		Subscriber = case SubscriptionIds of
 			[#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = Sub} | _] ->
 				Sub;
 			[] ->
 				case NAISpecUName of
 					[] ->
-						throw(no_service_identification_information);
+						throw(no_subscriber_identification_information);
 					NAI ->
 						[_, Username | _] = string:tokens(NAI, ":@"),%% proto:username@realm
 						Username
 				end
 		end,
 		process_request1(RequestType, Request, SId, RequestNum,
-				Service, OHost, DHost, ORealm, DRealm, Address, Port)
+				Subscriber, OHost, DHost, ORealm, DRealm, Address, Port)
 	catch
 		_:_Reason ->
 			generate_diameter_error(SId, ?'DIAMETER_BASE_RESULT-CODE_UNABLE_TO_COMPLY',
@@ -301,7 +301,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _],
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId,
-		'Event-Timestamp' = Timestamp} = Request, SId, RequestNum, Service,
+		'Event-Timestamp' = Timestamp} = Request, SId, RequestNum, Subscriber,
 		OHost, _DHost, ORealm, _DRealm, Address, Port) ->
 	RSU =  case MSCC of
 		#'3gpp_ro_Multiple-Services-Credit-Control'{'Requested-Service-Unit' =
@@ -326,7 +326,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 	Destination = call_destination(ServiceInformation),
 	ReserveAmount = [{ReqUsageType, ReqUsage}],
 	ServiceType = service_type(SvcContextId),
-	case ocs_rating:rate(diameter, ServiceType, Service, Timestamp,
+	case ocs_rating:rate(diameter, ServiceType, Subscriber, Timestamp,
 			Destination, originate, initial, [], ReserveAmount, [{'Session-Id', SId}]) of
 		{ok, _, GrantedAmount} ->
 			GrantedUnits = case ReqUsageType of
@@ -346,14 +346,14 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 			generate_diameter_answer(Request, SId,
 					undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
 					ORealm, RequestType, RequestNum, Address, Port);
-		{error, service_not_found} ->
+		{error, subscriber_not_found} ->
 			generate_diameter_error(SId, ?'IETF_RESULT-CODE_USER_UNKNOWN',
 					OHost, ORealm, RequestType, RequestNum);
 		{error, Reason} ->
 			error_logger:error_report(["Rating Error",
 					{module, ?MODULE}, {error, Reason},
 					{origin_host, OHost}, {origin_realm, ORealm},
-					{type, initial}, {service, Service},
+					{type, initial}, {subscriber, Subscriber},
 					{destination, Destination}, {reservation, ReserveAmount}]),
 			generate_diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
 					OHost, ORealm, RequestType, RequestNum)
@@ -362,7 +362,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _],
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId,
-		'Event-Timestamp' = Timestamp} = Request, SId, RequestNum, Service,
+		'Event-Timestamp' = Timestamp} = Request, SId, RequestNum, Subscriber,
 		OHost, _DHost, ORealm, _DRealm, Address, Port) ->
 	try
 		RSU =  case MSCC of
@@ -408,7 +408,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		ReserveAmount = [{ReqUsageType, ReqUsage}],
 		DebitAmount = [{UsedType, UsedUsage}],
 		ServiceType = service_type(SvcContextId),
-		case ocs_rating:rate(diameter, ServiceType, Service, Timestamp,
+		case ocs_rating:rate(diameter, ServiceType, Subscriber, Timestamp,
 				Destination, originate, interim, DebitAmount, ReserveAmount, [{'Session-Id', SId}]) of
 			{ok, _, GrantedAmount} ->
 				GrantedUnits = case ReqUsageType of
@@ -428,14 +428,14 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 				generate_diameter_answer(Request, SId,
 						undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
 						ORealm, RequestType, RequestNum, Address, Port);
-			{error, service_not_found} ->
+			{error, subscriber_not_found} ->
 				generate_diameter_error(SId, ?'IETF_RESULT-CODE_USER_UNKNOWN',
 						OHost, ORealm, RequestType, RequestNum);
 			{error, Reason} ->
 				error_logger:error_report(["Rating Error",
 						{module, ?MODULE}, {error, Reason},
 						{origin_host, OHost}, {origin_realm, ORealm},
-						{type, interim}, {service, Service},
+						{type, interim}, {subscriber, Subscriber},
 						{destination, Destination}, {reservation, ReserveAmount},
 						{used, DebitAmount}]),
 				generate_diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
@@ -450,7 +450,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _],
 		'Service-Information' = ServiceInformation,
 		'Service-Context-Id' = SvcContextId,
-		'Event-Timestamp' = Timestamp} = Request, SId, RequestNum, Service,
+		'Event-Timestamp' = Timestamp} = Request, SId, RequestNum, Subscriber,
 		OHost, _DHost, ORealm, _DRealm, Address, Port) ->
 	try
 		USU =  case MSCC of
@@ -475,7 +475,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		Destination = call_destination(ServiceInformation),
 		DebitAmount = [{UsedType, UsedUsage}],
 		ServiceType = service_type(SvcContextId),
-		case ocs_rating:rate(diameter, ServiceType, Service, Timestamp,
+		case ocs_rating:rate(diameter, ServiceType, Subscriber, Timestamp,
 				Destination, originate, final, DebitAmount, [], [{'Session-Id', SId}]) of
 			{ok, _, 0} ->
 				generate_diameter_answer(Request, SId,
@@ -489,14 +489,14 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 				generate_diameter_answer(Request, SId,
 						undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
 						ORealm, RequestType, RequestNum, Address, Port);
-			{error, service_not_found} ->
+			{error, subscriber_not_found} ->
 				generate_diameter_error(SId, ?'IETF_RESULT-CODE_USER_UNKNOWN',
 						OHost, ORealm, RequestType, RequestNum);
 			{error, Reason} ->
 				error_logger:error_report(["Rating Error",
 						{module, ?MODULE}, {error, Reason},
 						{origin_host, OHost}, {origin_realm, ORealm},
-						{type, final}, {service, Service},
+						{type, final}, {subscriber, Subscriber},
 						{destination, Destination}, {used, DebitAmount}]),
 				generate_diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
 						OHost, ORealm, RequestType, RequestNum)

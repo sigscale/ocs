@@ -104,20 +104,20 @@ add_product_offering(ReqData) ->
 %% 	Add a new instance of a Product Offering subscription.
 add_product_inventory(ReqData) ->
 	try
-		#service{name = ServiceID,
+		#subscriber{name = SubscriberID,
 				password = Password, product = #product_instance{product = ProdId,
 				characteristics = Chars}} = inventory(mochijson:decode(ReqData)),
-		case ocs:add_service(ServiceID, Password, ProdId, Chars) of
-			{ok, Service} ->
-				Service;
+		case ocs:add_subscriber(SubscriberID, Password, ProdId, Chars) of
+			{ok, Subscriber} ->
+				Subscriber;
 			{error, Reason} ->
 				throw(Reason)
 		end
 	of
 		Subscription ->
 			Body = mochijson:encode(inventory(Subscription)),
-			Etag = ocs_rest:etag(Subscription#service.last_modified),
-			Href = ?inventoryPath ++ binary_to_list(Subscription#service.name),
+			Etag = ocs_rest:etag(Subscription#subscriber.last_modified),
+			Href = ?inventoryPath ++ binary_to_list(Subscription#subscriber.name),
 			Headers = [{location, Href}, {etag, Etag}],
 			{ok, Headers, Body}
 	catch
@@ -204,9 +204,9 @@ get_product_offering(ID) ->
 %% 	Retrieve a Product Inventory.
 get_product_inventory(ID) ->
 	try
-		case ocs:find_service(ID) of
-			{ok, Service} ->
-				Service;
+		case ocs:find_subscriber(ID) of
+			{ok, Subscriber} ->
+				Subscriber;
 			{error, not_found} ->
 				{throw, 404};
 			{error, _Reason1} ->
@@ -215,8 +215,8 @@ get_product_inventory(ID) ->
 	of
 		Subscription ->
 			Body = mochijson:encode(inventory(Subscription)),
-			Etag = ocs_rest:etag(Subscription#service.last_modified),
-			Href = ?inventoryPath ++ binary_to_list(Subscription#service.name),
+			Etag = ocs_rest:etag(Subscription#subscriber.last_modified),
+			Href = ?inventoryPath ++ binary_to_list(Subscription#subscriber.name),
 			Headers = [{location, Href}, {etag, Etag},
 					{content_type, "application/json"}],
 			{ok, Headers, Body}
@@ -326,7 +326,7 @@ get_plas(_Query, _Headers) ->
 %% @todo Filtering
 get_product_inventories(Query, Headers) ->
 	M = ocs,
-	F = query_service,
+	F = query_subscriber,
 	A = [],
 	Codec = fun inventory/1,
 	query_filter({M, F, A}, Codec, Query, Headers).
@@ -569,33 +569,33 @@ patch_product_inventory(SubId, Etag, ReqData) ->
 	of
 		{Etag2, {array, _} = Operations} ->
 			F = fun() ->
-					case mnesia:read(service, SubId, write) of
-						[Service1] when
-								Service1#service.last_modified == Etag2;
+					case mnesia:read(subscriber, SubId, write) of
+						[Subscriber1] when
+								Subscriber1#subscriber.last_modified == Etag2;
 								Etag2 == undefined ->
-							case catch ocs_rest:patch(Operations, inventory(Service1)) of
-								{struct, _} = Service2  ->
-									Service3 = inventory(Service2),
+							case catch ocs_rest:patch(Operations, inventory(Subscriber1)) of
+								{struct, _} = Subscriber2  ->
+									Subscriber3 = inventory(Subscriber2),
 									TS = erlang:system_time(?MILLISECOND),
 									N = erlang:unique_integer([positive]),
 									LM = {TS, N},
-									Service4 = Service3#service{last_modified = LM},
-									ok = mnesia:write(Service4),
-									{Service2, LM};
+									Subscriber4 = Subscriber3#subscriber{last_modified = LM},
+									ok = mnesia:write(Subscriber4),
+									{Subscriber2, LM};
 								_ ->
 									throw(bad_request)
 							end;
-						[#service{}] ->
+						[#subscriber{}] ->
 							throw(precondition_failed);
 						[] ->
 							throw(not_found)
 					end
 			end,
 			case mnesia:transaction(F) of
-				{atomic, {Service, Etag3}} ->
+				{atomic, {Subscriber, Etag3}} ->
 					Location = "/productInventoryManagement/v1/product/" ++ SubId,
 					Headers = [{location, Location}, {etag, ocs_rest:etag(Etag3)}],
-					Body = mochijson:encode(Service),
+					Body = mochijson:encode(Subscriber),
 					{ok, Headers, Body};
 				{aborted, {throw, bad_request}} ->
 					{error, 400};
@@ -695,7 +695,7 @@ delete_product_offering(Id) ->
 %% @doc Respond to `DELETE /productInventoryManagement/v1/product/{id}'
 %% 	request to remove a `Product Invenotry'.
 delete_product_inventory(Id) ->
-	ok = ocs:delete_service(Id),
+	ok = ocs:delete_subscriber(Id),
 	{ok, [], []}.
 
 -spec delete_pla(Id) -> Result
@@ -902,14 +902,14 @@ spec_prod_prepaid_voice() ->
 
 %% @hidden
 characteristic_product_network() ->
-	Name1 = {"name", "serviceIdentity"},
+	Name1 = {"name", "subscriberIdentity"},
 	Description1 = {"description",
-			"Uniquely identifies service (e.g. MSISDN, IMSI, username)."},
+			"Uniquely identifies subscriber (e.g. MSISDN, IMSI, username)."},
 	Config1 = {"configurable", true},
 	Type1 = {"valueType", "String"},
 	Value1 = {"productSpecCharacteristicValue", {array, [{struct, [Type1]}]}},
 	Char1 = {struct, [Name1, Description1, Config1, Type1, Value1]},
-	Name2 = {"name", "servicePassword"},
+	Name2 = {"name", "subscriberPassword"},
 	Description2 = {"description", "Shared secret used in authentication."},
 	Config2 = {"configurable", true},
 	Type2 = {"valueType", "String"},
@@ -1946,7 +1946,7 @@ char_value_type(Value) when is_integer(Value); is_list(Value) ->
 	
 -spec inventory(Subscription) -> Subscription
 	when
-		Subscription :: #service{} | {struct, [tuple()]}.
+		Subscription :: #subscriber{} | {struct, [tuple()]}.
 %% @doc CODEC for Product Inventory.
 inventory({struct, ObjectMembers}) when is_list(ObjectMembers) ->
 	ProductInstance  = instance({struct, ObjectMembers}),
@@ -1958,18 +1958,18 @@ inventory({struct, ObjectMembers}) when is_list(ObjectMembers) ->
 					list_to_binary(Value)
 			end
 	end,
-	Username = F("serviceIdentity"),
-	Password = F("servicePassword"),
-	#service{name = Username, password = Password, product = ProductInstance};
-inventory(#service{name = Username, password = Password,
+	Username = F("subscriberIdentity"),
+	Password = F("subscriberPassword"),
+	#subscriber{name = Username, password = Password, product = ProductInstance};
+inventory(#subscriber{name = Username, password = Password,
 		product = #product_instance{characteristics = Chars}  = ProductInstance}) ->
 	F1 = fun(CChars, _, undefined) ->
 			CChars;
 		(CChars, Key, Value) ->
 			lists:keystore(Key, 1, CChars, {Key, binary_to_list(Value)})
 	end,
-	Chars1 = F1(Chars, "serviceIdentity", Username),
-	Chars2 = F1(Chars1, "servicePassword", Password),
+	Chars1 = F1(Chars, "subscriberIdentity", Username),
+	Chars2 = F1(Chars1, "subscriberPassword", Password),
 	{struct, Json1} = instance(ProductInstance#product_instance{characteristics = Chars2}),
 	F2 = fun(Key) ->
 			case proplists:get_value(Key, ProductInstance#product_instance.characteristics) of
@@ -1979,7 +1979,7 @@ inventory(#service{name = Username, password = Password,
 					Value
 			end
 	end,
-	Username1 = F2("serviceIdentity"),
+	Username1 = F2("subscriberIdentity"),
 	Id = {"id", Username1},
 	Href = {"href", ?inventoryPath ++ Username1},
 	Name = {"name", Username1},

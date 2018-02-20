@@ -149,8 +149,8 @@
 		payment = [] :: [{Price :: string(), DueDate :: pos_integer()}],
 		last_modified :: tuple() | undefined}).
 
-%% define service table entries record
--record(service,
+%% define subscriber table entries record
+-record(subscriber,
 		{name :: binary() | undefined,
 		password :: binary() | undefined,
 		attributes :: [tuple()] | undefined,

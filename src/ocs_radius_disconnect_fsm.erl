@@ -45,7 +45,7 @@
 		 nas_ip :: inet:ip_address(),
 		 nas_id :: undefined | string(),
 		 port :: non_neg_integer(),
-		 service :: string(),
+		 subscriber :: string(),
 		 acct_session_id :: string(),
 		 secret :: binary(),
 		 socket :: undefined | inet:socket(),
@@ -80,7 +80,7 @@
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([Service, {_, SessionAttributes}]) ->
+init([Subscriber, {_, SessionAttributes}]) ->
 	process_flag(trap_exit, true),
 	NasIp = proplists:get_value(?NasIpAddress, SessionAttributes),
 	NasId = proplists:get_value(?NasIdentifier, SessionAttributes),
@@ -93,7 +93,7 @@ init([Service, {_, SessionAttributes}]) ->
 				secret = Secret, port = Port}} ->
 			StateData = #statedata{nas_ip = Address, 
 					nas_id = binary_to_list(NasID),
-					service = Service, acct_session_id = AcctSessionId,
+					subscriber = Subscriber, acct_session_id = AcctSessionId,
 					secret = Secret, attributes = SessionAttributes, id = Id,
 					port = Port},
 			{ok, send_request, StateData, 0};
@@ -167,9 +167,9 @@ send_request(timeout, #statedata{nas_ip = Address, port = Port,
 %% @private
 %%
 receive_response(timeout, #statedata{retry_count = Count,
-		nas_id = NasId, service = Service,
+		nas_id = NasId, subscriber = Subscriber,
 		acct_session_id = AcctSessionId} = StateData) when Count > 5 ->
-	{stop, {shutdown, {NasId, Service, AcctSessionId}}, StateData};
+	{stop, {shutdown, {NasId, Subscriber, AcctSessionId}}, StateData};
 receive_response(timeout, #statedata{socket = Socket, nas_ip = NasIp, port = Port,
 		request =  DisconnectRequest, retry_count = Count, retry_time = Retry} = StateData) ->
 	NewRetry = Retry * 2,
@@ -250,16 +250,16 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 %% @private
 %%
 handle_info({udp, _, NasIp, NasPort, Packet}, _StateName,
-		#statedata{id = Id, nas_id = NasId, service = Service,
+		#statedata{id = Id, nas_id = NasId, subscriber = Subscriber,
 		acct_session_id = AcctSessionId} = StateData) ->
 	case radius:codec(Packet) of
 		#radius{code = ?DisconnectAck, id = Id} ->
 			F = fun() ->
-				case mnesia:read(service, Service, write) of
-					[#service{disconnect = false} = Entry] ->
-						NewEntry = Entry#service{disconnect = true},
-						mnesia:write(service, NewEntry, write);
-					[#service{disconnect = true}] ->
+				case mnesia:read(subscriber, Subscriber, write) of
+					[#subscriber{disconnect = false} = Entry] ->
+						NewEntry = Entry#subscriber{disconnect = true},
+						mnesia:write(subscriber, NewEntry, write);
+					[#subscriber{disconnect = true}] ->
 						ok
 				end
 			end,
@@ -268,15 +268,15 @@ handle_info({udp, _, NasIp, NasPort, Packet}, _StateName,
 			Attr = radius_attributes:codec(Attrbin),
 			case radius_attributes:find(?ErrorCause, Attr) of
 				{ok, ErrorCause} ->
-					error_logger:error_report(["Failed to disconnect service session",
+					error_logger:error_report(["Failed to disconnect subscriber session",
 							{server, NasIp}, {port, NasPort},
 							{error, radius_attributes:error_cause(ErrorCause)}]);
 				{error, not_found} ->
-					error_logger:error_report(["Failed to disconnect service session",
+					error_logger:error_report(["Failed to disconnect subscriber session",
 							{server, NasIp}, {port, NasPort}])
 			end
 	end,
-	{stop, {shutdown, {NasId, Service, AcctSessionId}}, StateData}.
+	{stop, {shutdown, {NasId, Subscriber, AcctSessionId}}, StateData}.
 
 -spec terminate(Reason, StateName, StateData) -> any()
 	when
