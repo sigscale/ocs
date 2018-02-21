@@ -55,7 +55,8 @@
 %% @see //kernel/application:start/2
 %%
 start(normal = _StartType, _Args) ->
-	Tables = [client, service, offer, pla, httpd_user, httpd_group],
+	Tables = [client, service, offer, product,
+			pla, httpd_user, httpd_group],
 	case mnesia:wait_for_tables(Tables, 60000) of
 		ok ->
 			start1();
@@ -351,33 +352,70 @@ install7(Nodes, Acc) ->
 	end.
 %% @hidden
 install8(Nodes, Acc) ->
-	case mnesia:create_table(pla, [{disc_copies, Nodes},
-			{attributes, record_info(fields, pla)}]) of
+	case mnesia:create_table(product, [{disc_copies, Nodes},
+			{attributes, record_info(fields, product)}]) of
 		{atomic, ok} ->
-			error_logger:info_msg("Created new pricing logic algorithm table.~n"),
-			install9(Nodes, [pla | Acc]);
+			error_logger:info_msg("Created new product table.~n"),
+			install9(Nodes, [product | Acc]);
 		{aborted, {not_active, _, Node} = Reason} ->
 			error_logger:error_report(["Mnesia not started on node",
 					{node, Node}]),
 			{error, Reason};
-		{aborted, {already_exists, pla}} ->
-			error_logger:info_msg("Found existing pricing logic algorithm table.~n"),
-			install9(Nodes, [pla | Acc]);
+		{aborted, {already_exists, product}} ->
+			error_logger:info_msg("Found existing product table.~n"),
+			install9(Nodes, [product | Acc]);
+		{aborted, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+				{error, Reason}]),
+			{error, Reason}
+	end.
+install9(Nodes, Acc) ->
+	case mnesia:create_table(bucket, [{disc_copies, Nodes},
+			{attributes, record_info(fields, bucket)}]) of
+		{atomic, ok} ->
+			error_logger:info_msg("Created new bucket table.~n"),
+			install10(Nodes, [bucket | Acc]);
+		{aborted, {not_active, _, Node} = Reason} ->
+			error_logger:error_report(["Mnesia not started on node",
+					{node, Node}]),
+			{error, Reason};
+		{aborted, {already_exists, product}} ->
+			error_logger:info_msg("Found existing bucket table.~n"),
+			install10(Nodes, [bucket | Acc]);
 		{aborted, Reason} ->
 			error_logger:error_report([mnesia:error_description(Reason),
 				{error, Reason}]),
 			{error, Reason}
 	end.
 %% @hidden
-install9(_Nodes, Tables) ->
+install10(Nodes, Acc) ->
+	case mnesia:create_table(pla, [{disc_copies, Nodes},
+			{attributes, record_info(fields, pla)}]) of
+		{atomic, ok} ->
+			error_logger:info_msg("Created new pricing logic algorithm table.~n"),
+			install11(Nodes, [pla | Acc]);
+		{aborted, {not_active, _, Node} = Reason} ->
+			error_logger:error_report(["Mnesia not started on node",
+					{node, Node}]),
+			{error, Reason};
+		{aborted, {already_exists, pla}} ->
+			error_logger:info_msg("Found existing pricing logic algorithm table.~n"),
+			install11(Nodes, [pla | Acc]);
+		{aborted, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+				{error, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+install11(_Nodes, Tables) ->
 	case mnesia:wait_for_tables(Tables, ?WAITFORTABLES) of
 		ok ->
 			case inets:start() of
 				ok ->
 					error_logger:info_msg("Started inets. ~n"),
-					install10(Tables);
+					install12(Tables);
 				{error,{already_started,inets}} ->
-					install10(Tables)
+					install12(Tables)
 			end;
 		{timeout, Tables} ->
 			error_logger:error_report(["Timeout waiting for tables",
@@ -389,7 +427,7 @@ install9(_Nodes, Tables) ->
 			{error, Reason}
 	end.
 %% @hidden
-install10(Tables) ->
+install12(Tables) ->
 	case ocs:list_users() of
 		{ok, []} ->
 			case ocs:add_user("admin", "admin", "en") of

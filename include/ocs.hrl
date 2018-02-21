@@ -140,6 +140,18 @@
 		prices = [] :: list(),
 		last_modified :: tuple() | undefined}).
 
+-record(product,
+		{id :: string() | undefined,
+		name :: string() | undefined,
+		start_date :: pos_integer() | undefined,
+		termination_date :: pos_integer() | undefined,
+		status :: product_status() | undefined,
+		characteristics = [] :: [{Name :: string(), Value :: term()}],
+		payment = [] :: [{Price :: string(), DueDate :: pos_integer()}],
+		balance :: [BucketRef :: term()],
+		service :: [ServiceRef :: binary()],
+		last_modified :: tuple() | undefined}).
+
 -record(product_instance,
 		{product :: string() | undefined,
 		start_date :: pos_integer() | undefined,
@@ -155,7 +167,7 @@
 		password :: binary() | undefined,
 		attributes :: [tuple()] | undefined,
 		buckets = [] :: [#bucket{}],
-		product :: #product_instance{} | undefined,
+		product :: #product_instance{},
 		enabled = true :: boolean(),
 		disconnect  = false :: boolean(),
 		session_attributes = [] :: [{TS :: pos_integer(), Attributes :: [tuple()]}],
