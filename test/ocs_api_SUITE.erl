@@ -89,9 +89,8 @@ sequences() ->
 %%
 all() -> 
 	[client, get_all_clients, update_client_password, delete_client,
-	add_service, update_password, update_attributes, delete_service,
-	add_product, find_product, get_products, delete_product, add_user,
-	get_user, delete_user].
+	add_service, delete_service, add_product, find_product, get_products,
+	delete_product, add_user, get_user, delete_user].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -195,41 +194,6 @@ delete_service(Config) ->
 	{ok, _} = ocs:find_service(Subscriber),
 	ok = ocs:delete_service(Subscriber),
 	{error, _} = ocs:find_service(Subscriber).
-
-update_password() ->
-	[{userdata, [{doc, "Update subscriber password to database"}]}].
-
-update_password(Config) ->
-	ProdID = ?config(product_id, Config),
-	Attribute0 = radius_attributes:new(),
-	Attribute = radius_attributes:add(?SessionTimeout, 3600, Attribute0),
-	Subscriber = "android",
-	OldPassword = ocs:generate_password(),
-	Buckets = [#bucket{units = cents, remain_amount = 3000}],
-	{ok, _} = ocs:add_service(Subscriber, OldPassword, ProdID, [], Buckets, Attribute),
-	{ok, #service{password = BinOldPassword, attributes = Attribute}} =
-			ocs:find_service(Subscriber),
-	OldPassword = binary_to_list(BinOldPassword),
-	NewPassword = ocs:generate_password(),
-	ok = ocs:update_password(Subscriber, NewPassword),
-	{ok, #service{password = BinNewPassword}} = ocs:find_service(Subscriber),
-	NewPassword = binary_to_list(BinNewPassword).
-
-update_attributes() ->
-	[{userdata, [{doc, "Update subscriber attributes to database"}]}].
-
-update_attributes(Config) ->
-	ProdID = ?config(product_id, Config),
-	Password = ocs:generate_password(),
-	Username = "tomba1",
-	Attribute0 = radius_attributes:new(),
-	Attribute1 = radius_attributes:add(?SessionTimeout, 3600, Attribute0),
-	Buckets = [#bucket{units = cents, remain_amount = 3000}],
-	{ok, _} = ocs:add_service(Username, Password, ProdID, [], Buckets, Attribute1),
-	{ok, #service{attributes = Attribute1}} = ocs:find_service(Username),
-	Attribute2 = radius_attributes:add(?AcctInterimInterval, 60, Attribute0),
-	ok = ocs:update_attributes(Username, Attribute2),
-	{ok, #service{attributes = Attribute2}} = ocs:find_service(Username).
 
 add_product() ->
 	[{userdata, [{doc, "Add a product offering."}]}].
