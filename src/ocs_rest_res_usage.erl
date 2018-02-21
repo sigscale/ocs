@@ -28,6 +28,9 @@
 -include_lib("radius/include/radius.hrl").
 -include("ocs_log.hrl").
 
+-define(usageSpecPath, "/usageManagement/v1/usageSpecification/").
+-define(usagePath, "/usageManagement/v1/usage/").
+
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
@@ -350,12 +353,12 @@ ipdr_to_json(Count, Records) ->
 				{N, Acc};
 			(#ipdr{} = Ipdr, {N, Acc}) ->
 				UsageSpecification = {struct, [{"id", 1},
-						{"href", "usageManagement/v1/usageSpecification/1"},
+						{"href", ?usageSpecPath ++ "1"},
 						{"name", "PublicWLANAccessUsageSpec"}]},
 				UsageCharacteristicObjs = ipdr_characteristics(Ipdr),
 				UsageCharacteristic = {array, UsageCharacteristicObjs},
 				RespObj = [{struct, [{"id", N + 1},
-						{"href", "usageManagement/v1/usage/" ++ integer_to_list(N + 1)},
+						{"href", ?usagePath ++ integer_to_list(N + 1)},
 						{"date", "SomeDateTime"}, {"type", "PublicWLANAccessUsage"},
 						{"description", "Description for individual usage content"},
 						{"status", "received"},
@@ -521,13 +524,13 @@ usage_aaa_auth({Milliseconds, N, P, Node,
 		{ServerIP, ServerPort}, {ClientIP, ClientPort}, EventType,
 		RequestAttributes, ResponseAttributes}, Filters) ->
 	UsageSpec = {struct, [{"id", "AAAAccessUsageSpec"},
-			{"href", "/usageManagement/v1/usageSpecification/AAAAccessUsageSpec"},
+			{"href", ?usageSpecPath ++ "AAAAccessUsageSpec"},
 			{"name", "AAAAccessUsageSpec"}]},
 	Type = "AAAAccessUsage",
 	Status = "received",
 	ID = "auth-" ++ integer_to_list(Milliseconds) ++ "-"
 			++ integer_to_list(N),
-	Href = "/usageManagement/v1/usage/" ++ ID,
+	Href = ?usagePath ++ ID,
 	Date = ocs_log:iso8601(Milliseconds),
 	Protocol = case P of
 		radius ->
@@ -568,13 +571,13 @@ usage_aaa_auth([], _Filters, Acc) ->
 usage_aaa_acct({Milliseconds, N, P, Node,
 		{ServerIP, ServerPort}, EventType, Attributes}, Filters) ->
 	UsageSpec = {struct, [{"id", "AAAAccountingUsageSpec"},
-			{"href", "/usageManagement/v1/usageSpecification/AAAAccountingUsageSpec"},
+			{"href", ?usageSpecPath ++ "AAAccountingUsageSpec"},
 			{"name", "AAAAccountingUsageSpec"}]},
 	Type = "AAAAccountingUsage",
 	Status = "received",
 	ID = "acct-" ++ integer_to_list(Milliseconds) ++ "-"
 			++ integer_to_list(N),
-	Href = "/usageManagement/v1/usage/" ++ ID,
+	Href = ?usagePath ++ ID,
 	Date = ocs_log:iso8601(Milliseconds),
 	Protocol = case P of
 		radius ->
@@ -610,7 +613,7 @@ usage_aaa_acct([], _Filters, Acc) ->
 %% @hidden
 usage_http_transfer({Host, User, DateTime, Method, URI, HttpStatus}, Filters) ->
 	UsageSpec = {struct, [{"id", "HTTPTransferUsageSpec"},
-			{"href", "/usageManagement/v1/usageSpecification/HTTPTransferUsageSpec"},
+			{"href", ?usageSpecPath ++ "HTTPTransferUsageSpec"},
 			{"name", "HTTPTransferUsageSpec"}]},
 	Type = "HTTPTransferUsage",
 	UsageChars = [{struct, [{"name", "host"}, {"value", Host}]},
@@ -638,7 +641,7 @@ usage_http_transfer([], _Filters, Acc) ->
 %% @hidden
 spec_aaa_auth() ->
 	ID = {"id", "AAAAccessUsageSpec"},
-	Href = {"href", "/usageManagement/v1/usageSpecification/AAAAccessUsageSpec"},
+	Href = {"href", ?usageSpecPath ++ "AAAAccessUsageSpec"},
 	Name = {"name", "AAAAccessUsageSpec"},
 	Desc = {"description", "Specification for SigScale OCS access requests."},
 	Start = {"startDateTime", "2017-01-01T00:00:00Z"},
@@ -665,7 +668,7 @@ spec_aaa_auth() ->
 %% @hidden
 spec_aaa_acct() ->
 	ID = {"id", "AAAAccountingUsageSpec"},
-	Href = {"href", "/usageManagement/v1/usageSpecification/AAAAccountingUsageSpec"},
+	Href = {"href", ?usageSpecPath ++ "AAAAccountingUsageSpec"},
 	Name = {"name", "AAAAccountingUsageSpec"},
 	Desc = {"description", "Specification for SigScale OCS accounting requests."},
 	Start = {"startDateTime", "2017-01-01T00:00:00Z"},
@@ -696,7 +699,7 @@ spec_aaa_acct() ->
 %% @hidden
 spec_http_transfer() ->
 	ID = {"id", "HTTPTransferUsageSpec"},
-	Href = {"href", "/usageManagement/v1/usageSpecification/HTTPTransferUsageSpec"},
+	Href = {"href", ?usageSpecPath ++ "HTTPTransferUsageSpec"},
 	Name = {"name", "HTTPTransferUsageSpec"},
 	Desc = {"description", "Specification for SigScale OCS http requests."},
 	Start = {"startDateTime", "2017-01-01T00:00:00Z"},
@@ -709,7 +712,7 @@ spec_http_transfer() ->
 %% @hidden
 spec_public_wlan() ->
 	ID = {"id", "PublicWLANAccessUsageSpec"},
-	Href = {"href", "/usageManagement/v1/usageSpecification/PublicWLANAccessUsageSpec"},
+	Href = {"href", ?usageSpecPath ++ "PublicWLANAccessUsageSpec"},
 	Name = {"name", "PublicWLANAccessUsageSpec"},
 	Desc = {"description", "Specification for IPDR Public WLAN Access - WISP Use Case"},
 	Start = {"startDateTime", "2017-01-01T00:00:00Z"},
