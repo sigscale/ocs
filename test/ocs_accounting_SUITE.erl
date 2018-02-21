@@ -85,7 +85,7 @@ end_per_suite(Config) ->
 	ok = diameter:stop_service(?SVC_AUTH),
 	ok = diameter:stop_service(?SVC_ACCT),
 	ok = ocs_test_lib:stop(),
-	ok = ocs:delete_subscriber("25252525"),
+	ok = ocs:delete_service("25252525"),
 	Config.
 
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
@@ -100,7 +100,7 @@ init_per_testcase(TestCase, Config) when
 	{acct, [{Address, _Port, _Options } | _]} = lists:keyfind(acct, 1, EnvList),
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	Buckets = [#bucket{units = cents, remain_amount = 2290}],
-	{ok, _} = ocs:add_subscriber(UserName, Password, ProdID, [], Buckets, []),
+	{ok, _} = ocs:add_service(UserName, Password, ProdID, [], Buckets, []),
 	[{username, UserName}, {password, Password} | Config];
 init_per_testcase(_TestCase, Config) ->
 	NasID = erlang:ref_to_list(make_ref()),
@@ -118,7 +118,7 @@ end_per_testcase(TestCase, Config) when
 	UserName= ?config(username, Config),
 	Client = ?config(diameter_auth_client, Config),
 	ok = ocs:delete_client(Client),
-	ok = ocs:delete_subscriber(UserName);
+	ok = ocs:delete_service(UserName);
 end_per_testcase(_TestCase, _Config) ->
 	ocs:delete_client({127, 0, 0, 1}).
 
@@ -156,7 +156,7 @@ radius_accounting(Config) ->
 	Password = ocs:generate_password(),
 	Buckets = [#bucket{units = cents, remain_amount = 3000}],
 	ProdID = ?config(product_id, Config),
-   {ok, _} = ocs:add_subscriber(PeerID, Password, ProdID, [], Buckets, []),
+   {ok, _} = ocs:add_service(PeerID, Password, ProdID, [], Buckets, []),
 	ReqAuth = radius:authenticator(),
    HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
@@ -184,7 +184,7 @@ radius_disconnect_session(Config) ->
 	Secret = ct:get_config(radius_shared_secret),
 	Password = ocs:generate_password(),
 	Buckets = [#bucket{units = cents, remain_amount = 2290}],
-   {ok, _} = ocs:add_subscriber(PeerID, Password, ProdID, [], Buckets, []),
+   {ok, _} = ocs:add_service(PeerID, Password, ProdID, [], Buckets, []),
 	ReqAuth = radius:authenticator(),
    HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
@@ -219,7 +219,7 @@ radius_multisession_disallowed(Config) ->
 	Secret = ct:get_config(radius_shared_secret),
 	Password = ocs:generate_password(),
 	Buckets = [#bucket{units = cents, remain_amount = 3000}],
-	{ok, _} = ocs:add_subscriber(PeerID, Password, ProdID, [], Buckets, [], true, false),
+	{ok, _} = ocs:add_service(PeerID, Password, ProdID, [], Buckets, [], true, false),
 	ReqAuth = radius:authenticator(),
 	HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
@@ -228,7 +228,7 @@ radius_multisession_disallowed(Config) ->
 	accounting_start(Socket, AcctAddress, AcctPort,
 			PeerID, Secret, NasID, AcctSessionID1, RadID2),
 	{ok, #service{multisession = false, session_attributes = SessionList1}}
-			= ocs:find_subscriber(PeerID),
+			= ocs:find_service(PeerID),
 	[SessionAttr1] = SessionList1,
 	F = fun({_, SessionAttributes}, Nas) ->
 		{_, PeerID} = radius_attributes:find(?UserName, SessionAttributes),
@@ -250,7 +250,7 @@ radius_multisession_disallowed(Config) ->
 			DiscPort, AcctSessionID2),
 	ct:sleep(500),
 	{ok, #service{multisession = false, session_attributes = SessionList2}}
-			= ocs:find_subscriber(PeerID),
+			= ocs:find_service(PeerID),
 	[SessionAttr2] = SessionList2,
 	ok = F(SessionAttr2, NasID2),
 	Rad2ID2 = Rad2ID1 + 1,
@@ -260,7 +260,7 @@ radius_multisession_disallowed(Config) ->
 	accounting_stop(Socket, AcctAddress, AcctPort,
 			PeerID, Secret, NasID2, AcctSessionID2, Rad2ID3),
 	{ok, #service{multisession = false, session_attributes = []}}
-			= ocs:find_subscriber(PeerID).
+			= ocs:find_service(PeerID).
 
 radius_multisession() ->
 	[{userdata, [{doc, "Start multiple RADIUS sessions for a subscriber when
@@ -279,7 +279,7 @@ radius_multisession(Config) ->
 	Secret = ct:get_config(radius_shared_secret),
 	Password = ocs:generate_password(),
 	Buckets = [#bucket{units = cents, remain_amount = 3000}],
-	{ok, _} = ocs:add_subscriber(PeerID, Password, ProdID, [], Buckets, [], true, true),
+	{ok, _} = ocs:add_service(PeerID, Password, ProdID, [], Buckets, [], true, true),
 	ReqAuth = radius:authenticator(),
 	HiddenPassword = radius_attributes:hide(Secret, ReqAuth, Password),
 	%% Authenticate session 1
@@ -289,7 +289,7 @@ radius_multisession(Config) ->
 	accounting_start(Socket, AcctAddress, AcctPort,
 			PeerID, Secret, NasID1, AcctSessionID1, RadID2),
 	{ok, #service{multisession = true, session_attributes = SessionList1}}
-			= ocs:find_subscriber(PeerID),
+			= ocs:find_service(PeerID),
 	F1 = fun(F1, Session, [H1 | T1]) ->
 				case lists:member(H1, Session) of
 					true ->
@@ -320,7 +320,7 @@ radius_multisession(Config) ->
 			HiddenPassword, Secret, NasID2, ReqAuth, Rad2ID1, AcctSessionID2),
 	ct:sleep(500),
 	{ok, #service{multisession = true, session_attributes = SessionList2}}
-			= ocs:find_subscriber(PeerID),
+			= ocs:find_service(PeerID),
 	2 = length(SessionList2),
 	ok = F2(F2, SessionList2, [{?UserName, PeerID}, {?NasIdentifier, NasID2}]),
 	Rad2ID2 = Rad2ID1 + 1,
@@ -334,7 +334,7 @@ radius_multisession(Config) ->
 			HiddenPassword, Secret, NasID3, ReqAuth, Rad3ID1, AcctSessionID3),
 	ct:sleep(500),
 	{ok, #service{multisession = true, session_attributes = SessionList3}}
-			= ocs:find_subscriber(PeerID),
+			= ocs:find_service(PeerID),
 	3 = length(SessionList3),
 	ok = F2(F2, SessionList3, [{?UserName, PeerID}, {?NasIdentifier, NasID3}]),
 	Rad3ID2 = Rad3ID1 + 1,
@@ -345,7 +345,7 @@ radius_multisession(Config) ->
 	accounting_stop(Socket, AcctAddress, AcctPort,
 			PeerID, Secret, NasID2, AcctSessionID2, Rad2ID3),
 	{ok, #service{multisession = true, session_attributes = SessionList4}}
-			= ocs:find_subscriber(PeerID),
+			= ocs:find_service(PeerID),
 	2 = length(SessionList4),
 	ok = F2(F2, SessionList4, [{?UserName, PeerID}, {?NasIdentifier, NasID1}]),
 	ok = F2(F2, SessionList4, [{?UserName, PeerID}, {?NasIdentifier, NasID3}]).

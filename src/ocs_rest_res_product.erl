@@ -107,7 +107,7 @@ add_product_inventory(ReqData) ->
 		#service{name = SubscriberID,
 				password = Password, product = #product_instance{product = ProdId,
 				characteristics = Chars}} = inventory(mochijson:decode(ReqData)),
-		case ocs:add_subscriber(SubscriberID, Password, ProdId, Chars) of
+		case ocs:add_service(SubscriberID, Password, ProdId, Chars) of
 			{ok, Subscriber} ->
 				Subscriber;
 			{error, Reason} ->
@@ -204,7 +204,7 @@ get_product_offering(ID) ->
 %% 	Retrieve a Product Inventory.
 get_product_inventory(ID) ->
 	try
-		case ocs:find_subscriber(ID) of
+		case ocs:find_service(ID) of
 			{ok, Subscriber} ->
 				Subscriber;
 			{error, not_found} ->
@@ -326,7 +326,7 @@ get_plas(_Query, _Headers) ->
 %% @todo Filtering
 get_product_inventories(Query, Headers) ->
 	M = ocs,
-	F = query_subscriber,
+	F = query_service,
 	A = [],
 	Codec = fun inventory/1,
 	query_filter({M, F, A}, Codec, Query, Headers).
@@ -695,7 +695,7 @@ delete_product_offering(Id) ->
 %% @doc Respond to `DELETE /productInventoryManagement/v1/product/{id}'
 %% 	request to remove a `Product Invenotry'.
 delete_product_inventory(Id) ->
-	ok = ocs:delete_subscriber(Id),
+	ok = ocs:delete_service(Id),
 	{ok, [], []}.
 
 -spec delete_pla(Id) -> Result

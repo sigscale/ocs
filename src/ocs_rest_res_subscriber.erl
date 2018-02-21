@@ -22,8 +22,8 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
-		get_subscribers/2, get_subscriber/2, post_subscriber/1,
-		patch_subscriber/4, delete_subscriber/1]).
+		get_services/2, get_subscriber/2, post_subscriber/1,
+		patch_subscriber/4, delete_service/1]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs.hrl").
@@ -65,7 +65,7 @@ get_subscriber(Id, Query) ->
 %% @hidden
 get_subscriber1(Id, Filters) ->
 	try
-		case ocs:find_subscriber(Id) of
+		case ocs:find_service(Id) of
 			{ok, Sub} ->
 				Sub;
 			{error, not_found} ->
@@ -93,7 +93,7 @@ get_subscriber1(Id, Filters) ->
 			{error, 400}
 	end.
 
--spec get_subscribers(Query, Headers) -> Result
+-spec get_services(Query, Headers) -> Result
 	when
 		Query :: [{Key :: string(), Value :: string()}],
 		Headers :: [tuple()],
@@ -101,7 +101,7 @@ get_subscriber1(Id, Filters) ->
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for `GET /ocs/v1/subscriber'
 %% requests.
-get_subscribers(Query, Headers) ->
+get_services(Query, Headers) ->
 	case lists:keytake("fields", 1, Query) of
 		{value, {_, Filters}, NewQuery} ->
 			get_subscriber1(NewQuery, Filters, Headers);
@@ -187,7 +187,7 @@ post_subscriber(RequestBody) ->
 					characteristics = Characteristics} ->
 				{ProdId, Characteristics}
 		end,
-		case catch ocs:add_subscriber(Name, Password,
+		case catch ocs:add_service(Name, Password,
 				ProdID, Chars, Buckets2, Attributes, Enabled, Multi) of
 			{ok, #service{name = Id, last_modified = LM} = Subscriber} ->
 				Json = subscriber(Subscriber),
@@ -224,7 +224,7 @@ patch_subscriber(Id, Etag, "application/json-patch+json", ReqBody) ->
 		{Etag1, mochijson:decode(ReqBody)}
 	of
 		{Etag2, Operations} ->
-			case ocs:find_subscriber(Id) of
+			case ocs:find_service(Id) of
 				{ok, #service{last_modified = Etag3} = Sub} when
 						Etag3 == Etag2; Etag2 == undefined; Etag3 == undefined ->
 					case catch ocs_rest:patch(Operations, subscriber(Sub)) of
@@ -271,15 +271,15 @@ patch_subscriber1(Id, Json) ->
 			{error, 500}
 	end.
 
--spec delete_subscriber(Id) -> Result
+-spec delete_service(Id) -> Result
 	when
 		Id :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()} .
 %% @doc Respond to `DELETE /ocs/v1/subscriber/{id}' request and deletes
 %% a `subscriber' resource. If the deletion is succeeded return true.
-delete_subscriber(Id) ->
-	ok = ocs:delete_subscriber(Id),
+delete_service(Id) ->
+	ok = ocs:delete_service(Id),
 	{ok, [], []}.
 
 %%----------------------------------------------------------------------
@@ -694,7 +694,7 @@ units(seconds) -> "seconds".
 %% @hidden
 query_start(Query, Filters, RangeStart, RangeEnd) ->
 	case supervisor:start_child(ocs_rest_pagination_sup,
-				[[ocs, query_subscriber, []]]) of
+				[[ocs, query_service, []]]) of
 		{ok, PageServer, Etag} ->
 			query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
 		{error, _Reason} ->

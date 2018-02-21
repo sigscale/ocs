@@ -170,7 +170,7 @@ specific_bucket_balance4(#service{name = SubID, last_modified = LM}, Bucket) ->
 %% reuqest
 get_balance(Identity) ->
 	try
-		case ocs:find_subscriber(Identity) of
+		case ocs:find_service(Identity) of
 			{ok, #service{buckets = Buckets}} ->
 				get_balance1(Identity, Buckets);
 			{error, not_found} ->

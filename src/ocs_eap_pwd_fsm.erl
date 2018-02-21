@@ -371,7 +371,7 @@ id1(#radius{id = RadiusID, authenticator = RequestAuthenticator,
 	try
 		S_rand = crypto:rand_uniform(1, ?R),
 		NewEapID = (EapID rem 255) + 1,
-		case catch ocs:find_subscriber(PeerID) of
+		case catch ocs:find_service(PeerID) of
 			{ok, #service{password = Pwd}} ->
 				Password = case PwdReq of
 					false ->
@@ -416,7 +416,7 @@ id2(#diameter_eap_app_DER{} = Request, PeerID, Token,
 	try
 		S_rand = crypto:rand_uniform(1, ?R),
 		NewEapID = (EapID rem 255) + 1,
-		case catch ocs:find_subscriber(PeerID) of
+		case catch ocs:find_service(PeerID) of
 			{ok, #service{password = Pwd}} ->
 				Password = case PwdReq of
 					false ->

@@ -212,7 +212,7 @@ handle_info({ssl_error, SslSocket, Reason}, request, #statedata{ssl_socket = Ssl
 %% @hidden
 handle_info1(Identity, Password) ->
 	try
-		case ocs:find_subscriber(Identity) of
+		case ocs:find_service(Identity) of
 			{ok, #service{password = UserPassWord} = Subscriber} ->
 				Size = size(UserPassWord),
 				<<UserPassWord:Size/binary, _/binary>> = Password,

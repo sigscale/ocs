@@ -132,9 +132,9 @@ all() ->
 	[authenticate_user_request, unauthenticate_user_request,
 	authenticate_subscriber_request, unauthenticate_subscriber_request,
 	authenticate_client_request, unauthenticate_client_request,
-	add_subscriber, add_subscriber_without_password,
+	add_service, add_service_without_password,
 	get_subscriber, get_subscriber_not_found, get_all_subscriber,
-	get_subscriber_range, delete_subscriber,
+	get_subscriber_range, delete_service,
 	add_client, add_client_without_password, get_client, get_client_id,
 	get_client_bogus, get_client_notfound, get_all_clients,
 	get_client_range, get_clients_filter, delete_client,
@@ -243,10 +243,10 @@ unauthenticate_client_request(Config) ->
 	{ok, Result} = httpc:request(get, Request, [], []),
 	{{"HTTP/1.1", 401, _}, _, _} = Result.
 
-add_subscriber() ->
+add_service() ->
 	[{userdata, [{doc,"Add subscriber in rest interface"}]}].
 
-add_subscriber(Config) ->
+add_service(Config) ->
 	ContentType = "application/json",
 	ID = "eacfd73ae10a",
 	ProdID = ?config(product_id, Config),
@@ -294,10 +294,10 @@ add_subscriber(Config) ->
 	{"enabled", Enable} = lists:keyfind("enabled", 1, Object),
 	{"multisession", Multi} = lists:keyfind("multisession", 1, Object).
 
-add_subscriber_without_password() ->
+add_service_without_password() ->
 	[{userdata, [{doc,"Add subscriber with generated password"}]}].
 
-add_subscriber_without_password(Config) ->
+add_service_without_password(Config) ->
 	ContentType = "application/json",
 	ProdID = ?config(product_id, Config),
 	Amount = {"remainAmount", 3000},
@@ -462,7 +462,7 @@ get_subscriber_range(Config) ->
 			(F, N) ->
 				Identity = ocs:generate_identity(),
 				Password = ocs:generate_password(),
-				{ok, _} = ocs:add_subscriber(Identity, Password, ProductName),
+				{ok, _} = ocs:add_service(Identity, Password, ProductName),
 				F(F, N - 1)
 	end,
 	NumAdded = (PageSize * 2) + (PageSize div 2) + 17,
@@ -521,13 +521,13 @@ get_subscriber_range(Config) ->
 						list_to_integer(EndS)
 				end
 	end,
-	CollectionSize = length(ocs:get_subscribers()),
+	CollectionSize = length(ocs:get_services()),
 	CollectionSize = Fget(Fget, PageSize + 1, PageSize + RangeSize).
 
-delete_subscriber() ->
+delete_service() ->
 	[{userdata, [{doc,"Delete subscriber in rest interface"}]}].
 
-delete_subscriber(Config) ->
+delete_service(Config) ->
 	ContentType = "application/json",
 	ID = "eacfd73ae11d",
 	Password = "ksc8c333npqc",
@@ -1730,7 +1730,7 @@ top_up_subscriber_balance(Config) ->
 	Authentication = {"authorization", AuthKey},
 	Identity = ocs:generate_identity(),
 	Password = ocs:generate_password(),
-	{ok, _} = ocs:add_subscriber(Identity, Password, ProdID),
+	{ok, _} = ocs:add_service(Identity, Password, ProdID),
 	RequestURI = HostUrl ++ "/balanceManagement/v1/" ++ Identity ++ "/balanceTopups",
 	BucketType = {"type", "buckettype"}, 
 	Channel = {"channel", {struct, [{"name", "POS"}]}},
@@ -1760,8 +1760,8 @@ get_subscriber_balance(Config) ->
 	Password = ocs:generate_password(),
 	Buckets = [#bucket{units = cents, remain_amount = 10000},
 			#bucket{units = cents, remain_amount = 5}],
-	{ok, _} = ocs:add_subscriber(Identity, Password, ProdID, [], Buckets, []),
-	{ok, #service{buckets = Buckets1}} = ocs:find_subscriber(Identity),
+	{ok, _} = ocs:add_service(Identity, Password, ProdID, [], Buckets, []),
+	{ok, #service{buckets = Buckets1}} = ocs:find_service(Identity),
 	F = fun(#bucket{remain_amount = N, units = cents}, Acc) ->
 				N + Acc;
 			(_, Acc) ->

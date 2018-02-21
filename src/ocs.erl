@@ -25,11 +25,11 @@
 -export([add_client/2, add_client/3, add_client/5, find_client/1,
 		update_client/2, update_client/3, get_clients/0, delete_client/1,
 		query_clients/6]).
--export([add_subscriber/3, add_subscriber/4, add_subscriber/5,
-		add_subscriber/6, add_subscriber/8,
-		find_subscriber/1, delete_subscriber/1, update_password/2,
-		update_attributes/2, update_attributes/5, get_subscribers/0,
-		query_subscriber/1]).
+-export([add_service/3, add_service/4, add_service/5,
+		add_service/6, add_service/8,
+		find_service/1, delete_service/1, update_password/2,
+		update_attributes/2, update_attributes/5, get_services/0,
+		query_service/1]).
 -export([add_user/3, list_users/0, get_user/1, delete_user/1,
 		query_users/3, update_user/3]).
 -export([add_product/1, find_product/1, get_products/0, delete_product/1,
@@ -352,18 +352,18 @@ query_clients4(Clients, Address) ->
 	Fun = fun(#client{address = A}) -> lists:prefix(Address, inet:ntoa(A)) end,
 	{eof, lists:filter(Fun, Clients)}.
 
--spec add_subscriber(Identity, Password, Product) -> Result
+-spec add_service(Identity, Password, Product) -> Result
 	when
 		Identity :: string() | binary(),
 		Password :: string() | binary(),
 		Product :: string() | undefined,
 		Result :: {ok, #service{}} | {error, Reason},
 		Reason :: term().
-%% @equiv add_subscriber(Identity, Password, Product, [], [], [], true, false)
-add_subscriber(Identity, Password, Product) ->
-	add_subscriber(Identity, Password, Product, [], [], [], true, false).
+%% @equiv add_service(Identity, Password, Product, [], [], [], true, false)
+add_service(Identity, Password, Product) ->
+	add_service(Identity, Password, Product, [], [], [], true, false).
 
--spec add_subscriber(Identity, Password, Product, Characteristics) -> Result
+-spec add_service(Identity, Password, Product, Characteristics) -> Result
 	when 
 		Identity :: string() | binary(),
 		Password :: string() | binary(),
@@ -371,11 +371,11 @@ add_subscriber(Identity, Password, Product) ->
 		Characteristics :: [tuple()],
 		Result :: {ok, #service{}} | {error, Reason},
 		Reason :: term().
-%% @equiv add_subscriber(Identity, Password, Product, Characteristics, Buckets, [], true, false)
-add_subscriber(Identity, Password, Product, Characteristics) ->
-	add_subscriber(Identity, Password, Product, Characteristics, [], [], true, false).
+%% @equiv add_service(Identity, Password, Product, Characteristics, Buckets, [], true, false)
+add_service(Identity, Password, Product, Characteristics) ->
+	add_service(Identity, Password, Product, Characteristics, [], [], true, false).
 
--spec add_subscriber(Identity, Password, Product, Characteristics, Buckets) -> Result
+-spec add_service(Identity, Password, Product, Characteristics, Buckets) -> Result
 	when 
 		Identity :: string() | binary(),
 		Password :: string() | binary(),
@@ -384,11 +384,11 @@ add_subscriber(Identity, Password, Product, Characteristics) ->
 		Buckets :: [#bucket{}],
 		Result :: {ok, #service{}} | {error, Reason},
 		Reason :: term().
-%% @equiv add_subscriber(Identity, Password, Product, Characteristics, Buckets, [], true, false)
-add_subscriber(Identity, Password, Product, Characteristics, Buckets) ->
-	add_subscriber(Identity, Password, Product, Characteristics, Buckets, [], true, false).
+%% @equiv add_service(Identity, Password, Product, Characteristics, Buckets, [], true, false)
+add_service(Identity, Password, Product, Characteristics, Buckets) ->
+	add_service(Identity, Password, Product, Characteristics, Buckets, [], true, false).
 
--spec add_subscriber(Identity, Password, Product,
+-spec add_service(Identity, Password, Product,
 		Characteristics, Buckets, Attributes) -> Result
 	when 
 		Identity :: string() | binary(),
@@ -399,13 +399,13 @@ add_subscriber(Identity, Password, Product, Characteristics, Buckets) ->
 		Attributes :: radius_attributes:attributes() | binary(),
 		Result :: {ok, #service{}} | {error, Reason},
 		Reason :: term().
-%% @equiv add_subscriber(Identity, Password, Product,
+%% @equiv add_service(Identity, Password, Product,
 %%		Characteristics, Buckets, Attributes, true, false)
-add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes) ->
-	add_subscriber(Identity, Password, Product,
+add_service(Identity, Password, Product, Characteristics, Buckets, Attributes) ->
+	add_service(Identity, Password, Product,
 			Characteristics, Buckets, Attributes, true, false).
 
--spec add_subscriber(Identity, Password, Product,
+-spec add_service(Identity, Password, Product,
 		Characteristics, Buckets, Attributes, EnabledStatus, MultiSessions) -> Result
 	when
 		Identity :: string() | binary() | undefined,
@@ -427,30 +427,30 @@ add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes
 %% 	An initial account `Bucket', `Product' key for product reference
 %%		`Enabled' status and `MultiSessions' status may be provided.
 %%
-add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, undefined) ->
-	add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, false);
-add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes, undefined, MultiSession) ->
-	add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes, true, MultiSession);
-add_subscriber(Identity, Password, Product, Characteristics, Buckets, undefined, EnabledStatus, MultiSession) ->
-	add_subscriber(Identity, Password, Product, Characteristics, Buckets, [], EnabledStatus, MultiSession);
-add_subscriber(Identity, Password, Product, Characteristics, undefined, Attributes, EnabledStatus, MultiSession) ->
-	add_subscriber(Identity, Password, Product, Characteristics, [], Attributes, EnabledStatus, MultiSession);
-add_subscriber(Identity, Password, Product, undefined, Buckets, Attributes, EnabledStatus, MultiSession) ->
-	add_subscriber(Identity, Password, Product, [], Buckets, Attributes, EnabledStatus, MultiSession);
-add_subscriber(Identity, Password, undefined, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession) ->
-	add_subscriber(Identity, Password, [], Characteristics, Buckets, Attributes, EnabledStatus, MultiSession);
-add_subscriber(Identity, undefined, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession) ->
-	add_subscriber(Identity, ocs:generate_password(),
+add_service(Identity, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, undefined) ->
+	add_service(Identity, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, false);
+add_service(Identity, Password, Product, Characteristics, Buckets, Attributes, undefined, MultiSession) ->
+	add_service(Identity, Password, Product, Characteristics, Buckets, Attributes, true, MultiSession);
+add_service(Identity, Password, Product, Characteristics, Buckets, undefined, EnabledStatus, MultiSession) ->
+	add_service(Identity, Password, Product, Characteristics, Buckets, [], EnabledStatus, MultiSession);
+add_service(Identity, Password, Product, Characteristics, undefined, Attributes, EnabledStatus, MultiSession) ->
+	add_service(Identity, Password, Product, Characteristics, [], Attributes, EnabledStatus, MultiSession);
+add_service(Identity, Password, Product, undefined, Buckets, Attributes, EnabledStatus, MultiSession) ->
+	add_service(Identity, Password, Product, [], Buckets, Attributes, EnabledStatus, MultiSession);
+add_service(Identity, Password, undefined, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession) ->
+	add_service(Identity, Password, [], Characteristics, Buckets, Attributes, EnabledStatus, MultiSession);
+add_service(Identity, undefined, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession) ->
+	add_service(Identity, ocs:generate_password(),
 			Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession);
-add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
+add_service(Identity, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
 		when is_list(Identity) ->
-	add_subscriber(list_to_binary(Identity), Password, Product, Characteristics, Buckets,
+	add_service(list_to_binary(Identity), Password, Product, Characteristics, Buckets,
 			Attributes, EnabledStatus, MultiSession);
-add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
+add_service(Identity, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
 		when is_list(Password) ->
-	add_subscriber(Identity, list_to_binary(Password), Product, Characteristics, Buckets,
+	add_service(Identity, list_to_binary(Password), Product, Characteristics, Buckets,
 			Attributes, EnabledStatus, MultiSession);
-add_subscriber(undefined, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
+add_service(undefined, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
 		when is_binary(Password), is_list(Product), is_list(Buckets), is_list(Attributes),
 		is_boolean(EnabledStatus), is_boolean(MultiSession) ->
 	Now = erlang:system_time(?MILLISECOND),
@@ -500,7 +500,7 @@ add_subscriber(undefined, Password, Product, Characteristics, Buckets, Attribute
 		{aborted, Reason} ->
 			{error, Reason}
 	end;
-add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
+add_service(Identity, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
 		when is_binary(Identity), size(Identity) > 0, is_binary(Password), is_list(Product),
 		is_list(Buckets), is_list(Attributes), is_boolean(EnabledStatus), is_boolean(MultiSession) ->
 	Now = erlang:system_time(?MILLISECOND),
@@ -541,15 +541,15 @@ add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes
 			{error, Reason}
 	end.
 
--spec find_subscriber(Identity) -> Result  
+-spec find_service(Identity) -> Result  
 	when
 		Identity :: string() | binary(),
 		Result :: {ok, #service{}} | {error, Reason},
 		Reason :: not_found | term().
 %% @doc Look up an entry in the subscriber table.
-find_subscriber(Identity) when is_list(Identity) ->
-	find_subscriber(list_to_binary(Identity));
-find_subscriber(Identity) when is_binary(Identity) ->
+find_service(Identity) when is_list(Identity) ->
+	find_service(list_to_binary(Identity));
+find_service(Identity) when is_binary(Identity) ->
 	F = fun() ->
 				mnesia:read(service, Identity, read)
 	end,
@@ -562,12 +562,12 @@ find_subscriber(Identity) when is_binary(Identity) ->
 			{error, Reason}
 	end.
 
--spec get_subscribers() -> Result
+-spec get_services() -> Result
 	when
 		Result :: [#service{}] | {error, Reason},
 		Reason :: term().
 %% @doc Get all entries in the subscriber table.
-get_subscribers()->
+get_services()->
 	MatchSpec = [{'_', [], ['$_']}],
 	F = fun(F, start, Acc) ->
 				F(F, mnesia:select(service, MatchSpec,
@@ -586,13 +586,13 @@ get_subscribers()->
 			Result
 	end.
 
--spec query_subscriber(Cont) -> Result
+-spec query_service(Cont) -> Result
 	when
 		Cont :: start | eof | any(),
 		Result :: {Cont, [#product{}]} | {error, Reason},
 		Reason :: term().
 %% @doc Query product inventories
-query_subscriber(start) ->
+query_service(start) ->
 	MatchSpec = [{'_', [], ['$_']}],
 	F = fun(F, start, Acc) ->
 				F(F, mnesia:select(service, MatchSpec,
@@ -611,13 +611,13 @@ query_subscriber(start) ->
 			{eof, Result}
 	end.
 
--spec delete_subscriber(Identity) -> ok
+-spec delete_service(Identity) -> ok
 	when
 		Identity :: string() | binary().
 %% @doc Delete an entry in the subscriber table.
-delete_subscriber(Identity) when is_list(Identity) ->
-	delete_subscriber(list_to_binary(Identity));
-delete_subscriber(Identity) when is_binary(Identity) ->
+delete_service(Identity) when is_list(Identity) ->
+	delete_service(list_to_binary(Identity));
+delete_service(Identity) when is_binary(Identity) ->
 	F = fun() ->
 		mnesia:delete(service, Identity, write)
 	end,

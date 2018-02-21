@@ -70,7 +70,7 @@ do(#mod{method = Method, request_uri = Uri, data = Data} = ModData) ->
 do_delete(Resource, ModData, ["ocs", "v1", "client", Identity]) ->
 	do_response(ModData, Resource:delete_client(Identity));
 do_delete(Resource, ModData, ["ocs", "v1", "subscriber", Identity]) ->
-	do_response(ModData, Resource:delete_subscriber(Identity));
+	do_response(ModData, Resource:delete_service(Identity));
 do_delete(Resource, ModData, ["catalogManagement", "v2", "productOffering", Identity]) ->
 	do_response(ModData, Resource:delete_product_offering(Identity));
 do_delete(Resource, ModData, ["catalogManagement", "v2", "pla", Identity]) ->
