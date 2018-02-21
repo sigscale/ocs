@@ -104,20 +104,20 @@ add_offer(ReqData) ->
 %% 	Add a new instance of a Product Offering subscription.
 add_inventory(ReqData) ->
 	try
-		#service{name = SubscriberID,
-				password = Password, product = #product_instance{product = ProdId,
-				characteristics = Chars}} = inventory(mochijson:decode(ReqData)),
-		case ocs:add_subscriber(SubscriberID, Password, ProdId, Chars) of
-			{ok, Subscriber} ->
-				Subscriber;
+		#product{start_date = SD, termination_date = TD,
+				characteristics = Chars, product = OfferId} =
+				inventory(mochijson:decode(ReqData)),
+		case ocs:add_service(OfferId, SD, TD, Chars) of
+			{ok, Product} ->
+				Product;
 			{error, Reason} ->
 				throw(Reason)
 		end
 	of
 		Subscription ->
 			Body = mochijson:encode(inventory(Subscription)),
-			Etag = ocs_rest:etag(Subscription#service.last_modified),
-			Href = ?inventoryPath ++ binary_to_list(Subscription#service.name),
+			Etag = ocs_rest:etag(Subscription#product.last_modified),
+			Href = ?inventoryPath ++ binary_to_list(Subscription#product.id),
 			Headers = [{location, Href}, {etag, Etag}],
 			{ok, Headers, Body}
 	catch
@@ -215,8 +215,8 @@ get_inventory(ID) ->
 	of
 		Subscription ->
 			Body = mochijson:encode(inventory(Subscription)),
-			Etag = ocs_rest:etag(Subscription#service.last_modified),
-			Href = ?inventoryPath ++ binary_to_list(Subscription#service.name),
+			Etag = ocs_rest:etag(Subscription#product.last_modified),
+			Href = ?inventoryPath ++ binary_to_list(Subscription#product.name),
 			Headers = [{location, Href}, {etag, Etag},
 					{content_type, "application/json"}],
 			{ok, Headers, Body}
@@ -1944,96 +1944,59 @@ char_value_type(#rate{numerator = Numerator, denominator = Denominator}) ->
 char_value_type(Value) when is_integer(Value); is_list(Value) ->
 	Value.
 	
--spec inventory(Subscription) -> Subscription
+-spec inventory(Instance) -> Instance
 	when
-		Subscription :: #service{} | {struct, [tuple()]}.
+		Instance :: #product{} | {struct, [tuple()]}.
 %% @doc CODEC for Product Inventory.
-inventory({struct, ObjectMembers}) when is_list(ObjectMembers) ->
-	ProductInstance  = instance({struct, ObjectMembers}),
-	F = fun(Key) ->
-			case proplists:get_value(Key, ProductInstance#product_instance.characteristics) of
-				undefined ->
-					undefined;
-				Value ->
-					list_to_binary(Value)
-			end
-	end,
-	Username = F("subscriberIdentity"),
-	Password = F("subscriberPassword"),
-	#service{name = Username, password = Password, product = ProductInstance};
-inventory(#service{name = Username, password = Password,
-		product = #product_instance{characteristics = Chars}  = ProductInstance}) ->
-	F1 = fun(CChars, _, undefined) ->
-			CChars;
-		(CChars, Key, Value) ->
-			lists:keystore(Key, 1, CChars, {Key, binary_to_list(Value)})
-	end,
-	Chars1 = F1(Chars, "subscriberIdentity", Username),
-	Chars2 = F1(Chars1, "subscriberPassword", Password),
-	{struct, Json1} = instance(ProductInstance#product_instance{characteristics = Chars2}),
-	F2 = fun(Key) ->
-			case proplists:get_value(Key, ProductInstance#product_instance.characteristics) of
-				undefined ->
-					binary_to_list(Username);
-				Value ->
-					Value
-			end
-	end,
-	Username1 = F2("subscriberIdentity"),
-	Id = {"id", Username1},
-	Href = {"href", ?inventoryPath ++ Username1},
-	Name = {"name", Username1},
-	{struct, [Id, Href, Name | Json1]}.
-
--spec instance(Instance) -> Instance
-	when
-		Instance :: #product_instance{} | {struct, [tuple()]}.
-%% @doc CODEC for Product Inventory.
-instance({struct, ObjectMembers}) ->
-	instance(ObjectMembers, #product_instance{});
-instance(ProductInstance) ->
-	{struct, instance(record_info(fields, product_instance), ProductInstance, [])}.
+inventory({struct, ObjectMembers}) ->
+	inventory(ObjectMembers, #product{});
+inventory(ProductInstance) ->
+	{struct, inventory(record_info(fields, product), ProductInstance, [])}.
 %% @hidden
-instance([{"characteristic", Chars} | T], Acc) ->
-	NewChars = instance_chars(Chars),
-	instance(T, Acc#product_instance{characteristics = NewChars});
-instance([{"productOffering", {struct, Offer}} | T], Acc) ->
-	instance(T, Acc#product_instance{product = product({struct, Offer})});
-instance([{"status", Status} | T], Acc) ->
-	instance(T, Acc#product_instance{status = product_status(Status)});
-instance([{"startDate", SDate} | T], Acc) ->
-	instance(T, Acc#product_instance{start_date = ocs_rest:iso8601(SDate)});
-instance([{"terminationDate", TDate} | T], Acc) ->
-	instance(T, Acc#product_instance{termination_date = ocs_rest:iso8601(TDate)});
-instance([_ | T], Acc) ->
-	instance(T, Acc);
-instance([], Acc) ->
+inventory([{"characteristic", Chars} | T], Acc) ->
+	inventory(T, Acc#product{characteristics = instance_chars(Chars)});
+inventory([{"productOffering", {struct, Offer}} | T], Acc) ->
+	case lists:keyfind("id", 1, Offer) of
+		{_, OfferId} ->
+			inventory(T, Acc#product{product = OfferId});
+		false ->
+			inventory(T, Acc)
+	end;
+inventory([{"status", Status} | T], Acc) ->
+	inventory(T, Acc#product{status = product_status(Status)});
+inventory([{"startDate", SDate} | T], Acc) ->
+	inventory(T, Acc#product{start_date = ocs_rest:iso8601(SDate)});
+inventory([{"terminationDate", TDate} | T], Acc) ->
+	inventory(T, Acc#product{termination_date = ocs_rest:iso8601(TDate)});
+inventory([_ | T], Acc) ->
+	inventory(T, Acc);
+inventory([], Acc) ->
 	Acc.
 %% @hidden
-instance([product | T], #product_instance{product = ProdID} = ProductInstance, Acc) ->
-	Offer = {"productOffering", product(ProdID)},
-	instance(T, ProductInstance, [Offer | Acc]);
-instance([characteristics | T], #product_instance{characteristics = Chars} = ProductInstance, Acc) ->
+inventory([product | T], #product{product = OfferId} = Product, Acc) ->
+	Id = {"id", OfferId},
+	Href = {"href", ?offeringPath ++ OfferId},
+	Name = {"name", OfferId},
+	Offer = {"productOffering", {struct, [Id, Href, Name]}},
+	inventory(T, Product, [Offer | Acc]);
+inventory([characteristics | T], #product{characteristics = Chars} = Product, Acc) ->
 	Characteristics = {"characteristic", instance_chars(Chars)},
-	instance(T, ProductInstance, [Characteristics | Acc]);
-instance([status | T], #product_instance{status = undefined} = ProductInstance, Acc) ->
-	instance(T, ProductInstance,  Acc);
-instance([status | T], #product_instance{status = Status} = ProductInstance, Acc) ->
-	NewAcc = [{"status", product_status(Status)}  | Acc],
-	instance(T, ProductInstance,  NewAcc);
-instance([start_date | T], #product_instance{start_date = undefined} = ProductInstance, Acc) ->
-	instance(T, ProductInstance,  Acc);
-instance([start_date | T], #product_instance{start_date = SDate} = ProductInstance, Acc) ->
-	NewAcc = [{"startDate", ocs_rest:iso8601(SDate)}  | Acc],
-	instance(T, ProductInstance,  NewAcc);
-instance([termination_date | T], #product_instance{termination_date = undefined} = ProductInstance, Acc) ->
-	instance(T, ProductInstance,  Acc);
-instance([termination_date | T], #product_instance{termination_date = TDate} = ProductInstance, Acc) ->
-	NewAcc = [{"terminationDate", ocs_rest:iso8601(TDate)}  | Acc],
-	instance(T, ProductInstance,  NewAcc);
-instance([_ | T], ProductInstance, Acc) ->
-	instance(T, ProductInstance,  Acc);
-instance([], _ProductInstance, Acc) ->
+	inventory(T, Product, [Characteristics | Acc]);
+inventory([status | T], #product{status = undefined} = Product, Acc) ->
+	inventory(T, Product,  Acc);
+inventory([status | T], #product{status = Status} = Product, Acc) ->
+	inventory(T, Product,  [{"status", product_status(Status)} |Acc]);
+inventory([start_date | T], #product{start_date = undefined} = Product, Acc) ->
+	inventory(T, Product,  Acc);
+inventory([start_date | T], #product{start_date = SDate} = Product, Acc) ->
+	inventory(T, Product,  [{"startDate", ocs_rest:iso8601(SDate)} | Acc]);
+inventory([termination_date | T], #product{termination_date = undefined} = Product, Acc) ->
+	inventory(T, Product,  Acc);
+inventory([termination_date | T], #product{termination_date = TDate} = Product, Acc) ->
+	inventory(T, Product, [{"terminationDate", ocs_rest:iso8601(TDate)}  | Acc]);
+inventory([_ | T], Product, Acc) ->
+	inventory(T, Product,  Acc);
+inventory([], _Product, Acc) ->
 	lists:reverse(Acc).
 
 -spec instance_chars(Characteristics) -> Characteristics
@@ -2051,16 +2014,6 @@ instance_chars([{struct, [{"value", Value}, {"name", Name}]} | T], Acc) ->
 	instance_chars(T, [{Name, Value} | Acc]);
 instance_chars([], Acc) ->
 	lists:reverse(Acc).
-
-%% @hidden
-product({struct, Offer}) ->
-	{_, ProdId} = lists:keyfind("id", 1, Offer),
-	ProdId;
-product(ProdID) ->
-	ID = {"id", ProdID},
-	Href = {"href", ?offeringPath ++ ProdID},
-	Name = {"name", ProdID},
-	{struct, [ID, Href, Name]}.
 
 %% @hidden
 query_filter(MFA, Codec, Query, Headers) ->
