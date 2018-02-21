@@ -930,12 +930,12 @@ abmf_open() ->
 	{ok, LogFiles} = application:get_env(ocs, abmf_log_files),
 	open_log(Directory, ?BALANCELOG, LogSize, LogFiles).
 
--spec abmf_log(Type, Service, Bucket, Units, Product, Amount,
+-spec abmf_log(Type, Subscriber, Bucket, Units, Product, Amount,
 		AmountBefore, AmountAfter, Validity, Channel, Requestor,
 		RelatedParty, PaymentMeans, Action, Status) -> Result
 	when
 		Type :: deduct | reserve | unreserve | transfer | topup | adjustment,
-		Service :: binary(),
+		Subscriber :: binary(),
 		Bucket :: undefined | string(),
 		Units :: cents | seconds | octets,
 		Product :: string(),
@@ -955,28 +955,28 @@ abmf_open() ->
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Write a balance activity log
-abmf_log(Type, Service, Bucket, Units, Product, Amount,
+abmf_log(Type, Subscriber, Bucket, Units, Product, Amount,
 		AmountBefore, AmountAfter, Validity, Channel, Requestor,
 		RelatedParty, PaymentMeans, Action, Status)
 		when ((Type == transfer) orelse (Type == topup) orelse
 		(Type == adjustment) orelse (Type == deduct) orelse (Type == reserve)
-		orelse (Type == unreserve)), is_binary(Service), is_list(Bucket),
+		orelse (Type == unreserve)), is_binary(Subscriber), is_list(Bucket),
 		((Units == cents) orelse (Units == seconds) orelse (Units == octets)),
 		is_integer(AmountBefore), is_integer(AmountAfter), is_list(Product),
 		is_integer(Amount)->
-	Event = [node(), Type, Service, Bucket, Units, Product, Amount,
+	Event = [node(), Type, Subscriber, Bucket, Units, Product, Amount,
 			AmountBefore, AmountAfter, Validity, Channel, Requestor,
 			RelatedParty, PaymentMeans, Action, Status],
 	write_log(?BALANCELOG, Event).
 
--spec abmf_query(Continuation, Start, End, Type, Service,
+-spec abmf_query(Continuation, Start, End, Type, Subscriber,
 		Bucket, Units, Product) -> Result
 	when
 		Continuation :: start | disk_log:continuation(),
 		Start :: calendar:datetime() | pos_integer(),
 		End :: calendar:datetime() | pos_integer(),
 		Type :: deduct | reserve | unreserve | transfer | topup | adjustment,
-		Service :: binary() | '_',
+		Subscriber :: binary() | '_',
 		Bucket :: string() | '_',
 		Units :: cents | seconds | octets | '_',
 		Product :: string() | '_',
@@ -985,9 +985,9 @@ abmf_log(Type, Service, Bucket, Units, Product, Amount,
 		Events :: [acct_event()],
 		Reason :: term().
 %% @doc Query balance activity log events with filters.
-abmf_query(Continuation, Start, End, Type, Service,
+abmf_query(Continuation, Start, End, Type, Subscriber,
 		Bucket, Units, Product) ->
-	MFA = {?MODULE, abmf_query, [Type, Service, Bucket, Units, Product]},
+	MFA = {?MODULE, abmf_query, [Type, Subscriber, Bucket, Units, Product]},
 	query_log(Continuation, Start, End, ?BALANCELOG, MFA).
 
 %%----------------------------------------------------------------------
@@ -1800,14 +1800,14 @@ auth_query5(Attributes, [_H | T]) ->
 auth_query5(_Attributes, []) ->
 	true.
 
--spec abmf_query(Continuation, Type, Service, Bucket,
+-spec abmf_query(Continuation, Type, Subscriber, Bucket,
 		Units, Product) -> Result
 	when
 		Continuation :: {Continuation2, Events},
 		Result :: {Continuation2, Events},
 		Continuation2 :: eof | disk_log:continuation(),
 		Type :: transfer | topup | adjustment | '_',
-		Service :: binary() | '_',
+		Subscriber :: binary() | '_',
 		Bucket :: string() | '_',
 		Units :: cents | seconds | octets | '_',
 		Product :: string() | '_',
@@ -1815,20 +1815,20 @@ auth_query5(_Attributes, []) ->
 %% @private
 %% @doc Query balance activity log events with filters.
 %%
-abmf_query({Cont, Events}, Type, Service, Bucket,
+abmf_query({Cont, Events}, Type, Subscriber, Bucket,
 		 Units, Product) ->
-	{Cont, abmf_query1(Events, Type, Service, Bucket, Units, Product)}.
+	{Cont, abmf_query1(Events, Type, Subscriber, Bucket, Units, Product)}.
 %% @hidden
-abmf_query1(Events, '_', Service, Bucket, Units, Product) ->
-	abmf_query2(Events, Service, Bucket, Units, Product);
-abmf_query1(Events, Type, Service, Bucket, Units, Product) ->
+abmf_query1(Events, '_', Subscriber, Bucket, Units, Product) ->
+	abmf_query2(Events, Subscriber, Bucket, Units, Product);
+abmf_query1(Events, Type, Subscriber, Bucket, Units, Product) ->
 	F = fun(Event) when element(4, Event) == Type -> true; (_) -> false end,
-	abmf_query2(lists:filter(F, Events), Service, Bucket, Units, Product).
+	abmf_query2(lists:filter(F, Events), Subscriber, Bucket, Units, Product).
 %% @hidden
 abmf_query2(Events, '_', Bucket, Units, Product) ->
 	abmf_query3(Events, Bucket, Units, Product);
-abmf_query2(Events, Service, Bucket, Units, Product) ->
-	F = fun(Event) when element(5, Event) == Service -> true; (_) -> false end,
+abmf_query2(Events, Subscriber, Bucket, Units, Product) ->
+	F = fun(Event) when element(5, Event) == Subscriber -> true; (_) -> false end,
 	abmf_query3(lists:filter(F, Events), Bucket, Units, Product).
 %% @hidden
 abmf_query3(Events, '_', Units, Product) ->

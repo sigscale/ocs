@@ -46,7 +46,7 @@ start(Interval) ->
 %% @doc Scheduler update for all the subscriptions.
 product_charge() ->
 	F  = fun() ->
-		product_charge(mnesia:first(service))
+		product_charge(mnesia:first(subscriber))
 	end,
 	mnesia:transaction(F),
 	ok.
@@ -54,25 +54,25 @@ product_charge() ->
 product_charge('$end_of_table') ->
 	ok;
 product_charge(SubscriptionId) ->
-	case mnesia:read(service, SubscriptionId) of
-		[#service{product =
+	case mnesia:read(subscriber, SubscriptionId) of
+		[#subscriber{product =
 				#product_instance{product = ProdId,
-				characteristics = Chars}} = Service]
+				characteristics = Chars}} = Subscriber]
 				when ProdId /= undefined ->
 			Now = erlang:system_time(?MILLISECOND),
 			LM = {Now, erlang:unique_integer([positive])},
 			case mnesia:read(product, ProdId, read) of
 				[Product] ->
-					Service1 = Service#service{last_modified= LM},
-					Service2 = ocs:subscription(Service1, Product, Chars, false),
-					mnesia:write(Service2);
+					Subscriber1 = Subscriber#subscriber{last_modified= LM},
+					Subscriber2 = ocs:subscription(Subscriber1, Product, Chars, false),
+					mnesia:write(Subscriber2);
 				[] ->
 					ok
 			end;
 		[] ->
 			ok
 	end,
-	product_charge(mnesia:next(service, SubscriptionId)).
+	product_charge(mnesia:next(subscriber, SubscriptionId)).
 
 %%----------------------------------------------------------------------
 %%  internal functions

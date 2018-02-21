@@ -101,7 +101,7 @@ init_per_testcase(TestCase, Config) when
 	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
 	ProdID = ?config(product_id, Config),
 	Buckets = [#bucket{units = cents, remain_amount = 3000}],
-	{ok, _} = ocs:add_service(UserName, Password, ProdID, [], Buckets, []),
+	{ok, _} = ocs:add_subscriber(UserName, Password, ProdID, [], Buckets, []),
 	[{username, UserName}, {password, Password}] ++ Config;
 init_per_testcase(_TestCase, Config) ->
 	NasId = atom_to_list(node()),
@@ -124,7 +124,7 @@ end_per_testcase(TestCase, Config) when
 	UserName= ?config(username, Config),
 	Client = ?config(diameter_client, Config),
 	ok = ocs:delete_client(Client),
-	ok = ocs:delete_service(UserName);
+	ok = ocs:delete_subscriber(UserName);
 end_per_testcase(_TestCase, Config) ->
 	Socket = ?config(socket, Config),
 	ok = 	gen_udp:close(Socket).
@@ -162,7 +162,7 @@ simple_authentication_radius(Config) ->
 	PeerID = string:to_lower(lists:append(MACtokens)),
 	PeerPassword = ocs:generate_password(),
 	Buckets = [#bucket{units = cents, remain_amount = 3000}],
-	{ok, _} = ocs:add_service(PeerID, PeerPassword, ProdID, [], Buckets, []),
+	{ok, _} = ocs:add_subscriber(PeerID, PeerPassword, ProdID, [], Buckets, []),
 	Authenticator = radius:authenticator(),
 	SharedSecret = ct:get_config(radius_shared_secret),
 	UserPassword = radius_attributes:hide(SharedSecret, Authenticator, PeerPassword),	
@@ -224,7 +224,7 @@ out_of_credit_radius(Config) ->
 	PeerID = string:to_lower(lists:append(MACtokens)),
 	PeerPassword = ocs:generate_password(),
 	Buckets = [#bucket{units = cents, remain_amount = 2290}], % subscription total price
-	{ok, _} = ocs:add_service(PeerID, PeerPassword, ProdID, [], Buckets, []),
+	{ok, _} = ocs:add_subscriber(PeerID, PeerPassword, ProdID, [], Buckets, []),
 	Authenticator = radius:authenticator(),
 	SharedSecret = ct:get_config(radius_shared_secret),
 	UserPassword = radius_attributes:hide(SharedSecret, Authenticator, PeerPassword),	
@@ -252,14 +252,14 @@ out_of_credit_radius(Config) ->
 	{ok, "Out of Credit"} = radius_attributes:find(?ReplyMessage, AccessReject).
 
 out_of_credit_diameter() ->
-	[{userdata, [{doc, "Diameter authentication failure when service has a balance less than 0"}]}].
+	[{userdata, [{doc, "Diameter authentication failure when subscriber has a balance less than 0"}]}].
 
 out_of_credit_diameter(Config) ->
 	UserName = "Axl Rose",
 	Password = "Guns&Roses",
 	ProdID = ?config(product_id, Config),
 	Buckets = [#bucket{units = cents, remain_amount = 2290}], % subscription total price
-	{ok, _} = ocs:add_service(UserName, Password, ProdID, [], Buckets, []),
+	{ok, _} = ocs:add_subscriber(UserName, Password, ProdID, [], Buckets, []),
 	Ref = erlang:ref_to_list(make_ref()),
 	SId = diameter:session_id(Ref),
 	NAS_AAR = #diameter_nas_app_AAR{'Session-Id' = SId,
@@ -293,7 +293,7 @@ bad_password_radius(Config) ->
 	PeerID = string:to_lower(lists:append(MACtokens)),
 	PeerPassword = ocs:generate_password(),
 	Buckets = [#bucket{units = cents, remain_amount = 3000}],
-	{ok, _} = ocs:add_service(PeerID, PeerPassword, ProdID, [], Buckets, []),
+	{ok, _} = ocs:add_subscriber(PeerID, PeerPassword, ProdID, [], Buckets, []),
 	Authenticator = radius:authenticator(),
 	SharedSecret = ct:get_config(radius_shared_secret),
 	BoguesPassowrd = radius_attributes:hide(SharedSecret, Authenticator, "bogus"),	
@@ -358,7 +358,7 @@ unknown_username_radius(Config) ->
 	PeerID = string:to_lower(lists:append(MACtokens)),
 	PeerPassword = ocs:generate_password(),
 	Buckets = [#bucket{units = cents, remain_amount = 3000}],
-	{ok, _} = ocs:add_service(PeerID, PeerPassword, ProdID, [], Buckets, []),
+	{ok, _} = ocs:add_subscriber(PeerID, PeerPassword, ProdID, [], Buckets, []),
 	Authenticator = radius:authenticator(),
 	SharedSecret = ct:get_config(radius_shared_secret),
 	UserPassword = radius_attributes:hide(SharedSecret, Authenticator, PeerPassword),	
@@ -464,7 +464,7 @@ authenticate_voice_call(Config) ->
 	PeerPassword = ocs:generate_password(),
 	Buckets = [#bucket{units = cents, remain_amount = 3000}],
 	RadiusReserveSessionTime = 60,
-	{ok, _} = ocs:add_service(CallingStationId, PeerPassword,
+	{ok, _} = ocs:add_subscriber(CallingStationId, PeerPassword,
 			ProdID, [{"radiusReserveSessionTime", RadiusReserveSessionTime}],
 			Buckets, []),
 	Authenticator = radius:authenticator(),

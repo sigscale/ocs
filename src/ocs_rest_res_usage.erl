@@ -731,7 +731,7 @@ spec_public_wlan1(Acc) ->
 %% @hidden
 spec_public_wlan2(Acc) ->
 	Name = {"name", "ScIdType"},
-	Desc = {"description", "Type of Service Consumer ID Used when a more specific Identifier of Service Consumer is necessary. For example, IMSI for GSM services."},
+	Desc = {"description", "Type of Service Consumer ID Used when a more specific Identifier of Service Consumer is necessary. For example, IMSI for GSM subscribers."},
 	Conf = {"configurable", true},
 	Typ = {"valueType", "Number"},
 	From = {"valueFrom", 1},
@@ -743,7 +743,7 @@ spec_public_wlan2(Acc) ->
 %% @hidden
 spec_public_wlan3(Acc) ->
 	Name = {"name", "ScId"},
-	Desc = {"description", "The Service Consumer ID when a more specific identifier of the Service Consumer is required. For example, IMSI for GSM/GPRS services."},
+	Desc = {"description", "The Service Consumer ID when a more specific identifier of the Service Consumer is required. For example, IMSI for GSM/GPRS subscribers."},
 	Conf = {"configurable", true},
 	Typ = {"valueType", "String"},
 	Value1 = {struct, [Typ]},
@@ -1320,7 +1320,7 @@ spec_type_accounting() ->
 %% @hidden
 spec_attr_username() ->
 	Name = {"name", "username"},
-	Desc = {"description", "Username/identity of service."},
+	Desc = {"description", "Username/identity of subscriber."},
 	Conf = {"configurable", true},
 	Typ = {"valueType", "String"},
 	Value1 = {struct, [Typ]},

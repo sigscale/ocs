@@ -25,13 +25,13 @@ initialize_db() ->
 					initialize_db()
 			end;
 		yes ->
-			case mnesia:wait_for_tables([client, service, product], 1000) of
+			case mnesia:wait_for_tables([client, subscriber, product], 1000) of
 				{timeout, _} ->
 					ok = application:stop(mnesia),
 					{ok, Tables} = ocs_app:install(),
 					F = fun(T) ->
 						case T of
-							T when T == client; T == service;
+							T when T == client; T == subscriber;
 									T == httpd_user; T == httpd_group;
 									T == product ->
 								true;
