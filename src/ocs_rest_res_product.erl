@@ -1434,12 +1434,12 @@ price([units | T], #price{units = seconds, size = Size} = P, Acc)
 	price(T, P, [{"unitOfMeasure", integer_to_list(Size) ++ "s"} | Acc]);
 price([amount | T], #price{amount = Amount, currency = Currency} = P, Acc)
 		when is_integer(Amount), is_list(Currency) ->
-	Price = {struct, [{"taxIncludedAmount", ocs_rest:convert(Amount)},
+	Price = {struct, [{"taxIncludedAmount", ocs_rest:decimal(Amount)},
 			{"currencyCode", Currency}]},
 	price(T, P, [{"price", Price} | Acc]);
 price([amount | T], #price{amount = Amount} = P, Acc)
 		when is_integer(Amount) ->
-	Price = {struct, [{"taxIncludedAmount", ocs_rest:convert(Amount)}]},
+	Price = {struct, [{"taxIncludedAmount", ocs_rest:decimal(Amount)}]},
 	price(T, P, [{"price", Price} | Acc]);
 price([char_value_use | T], #price{char_value_use = CharValueUses} = P, Acc) ->
 	price(T, P, [{"prodSpecCharValueUse", char_value_uses(CharValueUses)} | Acc]);
@@ -1501,8 +1501,10 @@ price([{"unitOfMeasure", UnitOfMeasure} | T], Acc)
 	end;
 price([{"price", {struct, L}} | T], Acc) when is_list(L) ->
 	Acc1 = case lists:keyfind("taxIncludedAmount", 1, L) of
+		{_, Amount} when is_integer(Amount) ->
+			Acc#price{amount = Amount * 1000000};
 		{_, Amount} when is_list(Amount) ->
-			Acc#price{amount = ocs_rest:convert(Amount)};
+			Acc#price{amount = ocs_rest:decimal(Amount)};
 		_ ->
 			Acc
 	end,
@@ -1567,7 +1569,7 @@ alteration([units | T], #alteration{units = seconds, size = Size} = A, Acc)
 	alteration(T, A, [{"unitOfMeasure", integer_to_list(Size) ++ "s"} | Acc]);
 alteration([amount | T], #alteration{units = cents, amount = Amount, currency = Currency} = A, Acc)
 		when is_integer(Amount), is_list(Currency) ->
-	Price = {struct, [{"taxIncludedAmount", ocs_rest:convert(Amount)},
+	Price = {struct, [{"taxIncludedAmount", ocs_rest:decimal(Amount)},
 			{"currencyCode", Currency}]},
 	alteration(T, A, [{"price", Price} | Acc]);
 alteration([amount | T], #alteration{amount = Amount, currency = Currency} = A, Acc)
@@ -1635,7 +1637,9 @@ alteration([{"unitOfMeasure", UnitOfMeasure} | T], Acc) ->
 alteration([{"price", {struct, L}} | T], Acc) ->
 	Acc1 = case lists:keyfind("taxIncludedAmount", 1, L) of
 		{_, Amount} when is_integer(Amount) ->
-			Acc#alteration{amount = Amount};
+			Acc#alteration{amount = Amount * 1000000};
+		{_, Amount} when is_list(Amount) ->
+			Acc#alteration{amount = ocs_rest:decimal(Amount)};
 		_ ->
 			Acc
 	end,
