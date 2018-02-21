@@ -421,8 +421,8 @@ decimal(N) when is_list(N) ->
 		[M] ->
 			list_to_integer(M) * 1000000;
 		[M, D] when length(D) =< 6 ->
-			list_to_integer(M)*1000000 +
-					(list_to_integer(M ++ lists:duplicate(6 - length(D), $0)))
+			list_to_integer(M) * 1000000 +
+					(list_to_integer(D ++ lists:duplicate(6 - length(D), $0)))
 	end;
 decimal(N) when is_integer(N) ->
 	M = N div 1000000,
