@@ -143,9 +143,9 @@ do_get(Resource, ModData, ["balanceManagement", "v1", "product", SId, "bucket", 
 	do_response(ModData, Resource:specific_bucket_balance(SId, BId));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["catalogManagement", "v2", "productOffering"], Query) ->
-	do_response(ModData, Resource:get_product_offerings(Query, Headers));
+	do_response(ModData, Resource:get_offers(Query, Headers));
 do_get(Resource, ModData, ["catalogManagement", "v2", "productOffering", Id], []) ->
-	do_response(ModData, Resource:get_product_offering(Id));
+	do_response(ModData, Resource:get_offer(Id));
 do_get(Resource, ModData, ["catalogManagement", "v2", "catalog", Id], Query) ->
 	do_response(ModData, Resource:get_catalog(Id, Query));
 do_get(Resource, ModData, ["catalogManagement", "v2", "catalog"], Query) ->
@@ -186,10 +186,10 @@ do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["catalogManagement", "v2", "pla"], Query) ->
 	do_response(ModData, Resource:get_plas(Query, Headers));
 do_get(Resource, ModData, ["productInventoryManagement", "v2", "product", Id], []) ->
-	do_response(ModData, Resource:get_product_inventory(Id));
+	do_response(ModData, Resource:get_inventory(Id));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["productInventoryManagement", "v2", "product"], Query) ->
-	do_response(ModData, Resource:get_product_inventories(Query, Headers));
+	do_response(ModData, Resource:get_inventories(Query, Headers));
 do_get(_, _, _, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{break, [{response, {404, Response}}]}.

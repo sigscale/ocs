@@ -22,16 +22,16 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0]).
--export([add_offer_offering/1, add_offer_inventory/1]).
--export([get_product_offering/1, get_product_offerings/2,
-		patch_product_offering/3, get_product_inventory/1,
-		get_product_inventories/2, patch_product_inventory/3]).
+-export([add_offer/1, add_inventory/1]).
+-export([get_offer/1, get_offers/2,
+		patch_offer/3, get_inventory/1,
+		get_inventories/2, patch_inventory/3]).
 -export([get_catalog/2, get_catalogs/1]).
 -export([get_category/2, get_categories/1]).
 -export([get_product_spec/2, get_product_specs/1]).
 -export([add_pla/1, get_pla/1, get_plas/2, patch_pla/3]).
 -export([get_pla_spec/2, get_pla_specs/1]).
--export([delete_offer_offering/1, delete_offer_inventory/1, delete_pla/1]).
+-export([delete_offer/1, delete_inventory/1, delete_pla/1]).
 
 -include("ocs.hrl").
 
@@ -62,7 +62,7 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json"].
 
--spec add_offer_offering(ReqData) -> Result when
+-spec add_offer(ReqData) -> Result when
 	ReqData	:: [tuple()],
 	Result	:: {ok, Headers, Body} | {error, Status},
 	Headers	:: [tuple()],
@@ -70,7 +70,7 @@ content_types_provided() ->
 	Status	:: 400 | 500 .
 %% @doc Respond to `POST /catalogManagement/v2/productOffering'.
 %% 	Add a new Product Offering.
-add_offer_offering(ReqData) ->
+add_offer(ReqData) ->
 	try
 		case ocs:add_offer(offer(mochijson:decode(ReqData))) of
 			{ok, ProductOffering} ->
@@ -94,7 +94,7 @@ add_offer_offering(ReqData) ->
 			{error, 400}
 	end.
 
--spec add_offer_inventory(ReqData) -> Result when
+-spec add_inventory(ReqData) -> Result when
 	ReqData	:: [tuple()],
 	Result	:: {ok, Headers, Body} | {error, Status},
 	Headers	:: [tuple()],
@@ -102,7 +102,7 @@ add_offer_offering(ReqData) ->
 	Status	:: 400 | 500 .
 %% @doc Respond to `POST /productInventoryManagemen/v2/product'.
 %% 	Add a new instance of a Product Offering subscription.
-add_offer_inventory(ReqData) ->
+add_inventory(ReqData) ->
 	try
 		#service{name = SubscriberID,
 				password = Password, product = #product_instance{product = ProdId,
@@ -161,7 +161,7 @@ add_pla(ReqData) ->
 			{error, 400}
 	end.
 
--spec get_product_offering(ID) -> Result when
+-spec get_offer(ID) -> Result when
 	ID			:: string(),
 	Result	:: {ok, Headers, Body} | {error, Status},
 	Headers	:: [tuple()],
@@ -169,7 +169,7 @@ add_pla(ReqData) ->
 	Status	:: 400 | 404 | 500 .
 %% @doc Respond to `GET /catalogManagement/v2/productOffering/{id}'.
 %% 	Retrieve a Product Offering.
-get_product_offering(ID) ->
+get_offer(ID) ->
 	try
 		case ocs:find_offer(ID) of
 			{ok, ProductOffering} ->
@@ -194,7 +194,7 @@ get_product_offering(ID) ->
 			{error, 400}
 	end.
 
--spec get_product_inventory(ID) -> Result when
+-spec get_inventory(ID) -> Result when
 	ID			:: string(),
 	Result	:: {ok, Headers, Body} | {error, Status},
 	Headers	:: [tuple()],
@@ -202,7 +202,7 @@ get_product_offering(ID) ->
 	Status	:: 400 | 404 | 500 .
 %% @doc Respond to `GET /productInventoryManagement/v2/product/{id}'.
 %% 	Retrieve a Product Inventory.
-get_product_inventory(ID) ->
+get_inventory(ID) ->
 	try
 		case ocs:find_service(ID) of
 			{ok, Subscriber} ->
@@ -227,7 +227,7 @@ get_product_inventory(ID) ->
 			{error, 400}
 	end.
 
--spec get_product_offerings(Query, Headers) -> Result when
+-spec get_offers(Query, Headers) -> Result when
 	Query :: [{Key :: string(), Value :: string()}],
 	Result	:: {ok, Headers, Body} | {error, Status},
 	Headers	:: [tuple()],
@@ -236,7 +236,7 @@ get_product_inventory(ID) ->
 %% @doc Respond to `GET /catalogManagement/v2/productOffering'.
 %% 	Retrieve all Product Offerings.
 %% @todo Filtering
-get_product_offerings(Query, Headers) ->
+get_offers(Query, Headers) ->
 	Name =  proplists:get_value("name", Query),
 	Des = proplists:get_value("description", Query),
 	Status = case lists:keyfind("lifecycleStatus", 1, Query) of
@@ -315,7 +315,7 @@ get_plas(_Query, _Headers) ->
          {error, 400}
    end.
 
--spec get_product_inventories(Query, Headers) -> Result when
+-spec get_inventories(Query, Headers) -> Result when
 	Query :: [{Key :: string(), Value :: string()}],
 	Result	:: {ok, Headers, Body} | {error, Status},
 	Headers	:: [tuple()],
@@ -324,7 +324,7 @@ get_plas(_Query, _Headers) ->
 %% @doc Respond to `GET /productInventoryManagement/v2/product'.
 %% 	Retrieve all Product Inventories.
 %% @todo Filtering
-get_product_inventories(Query, Headers) ->
+get_inventories(Query, Headers) ->
 	M = ocs,
 	F = query_service,
 	A = [],
@@ -441,7 +441,7 @@ get_product_specs([] = _Query) ->
 get_product_specs(_Query) ->
 	{error, 400}.
 
--spec patch_product_offering(ProdId, Etag, ReqData) -> Result
+-spec patch_offer(ProdId, Etag, ReqData) -> Result
 	when
 		ProdId	:: string(),
 		Etag		:: undefined | list(),
@@ -453,7 +453,7 @@ get_product_specs(_Query) ->
 %% @doc Respond to `PATCH /catalogManagement/v2/productOffering/{id}'.
 %% 	Update a Product Offering using JSON patch method
 %% 	<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>.
-patch_product_offering(ProdId, Etag, ReqData) ->
+patch_offer(ProdId, Etag, ReqData) ->
 	try
 		Etag1 = case Etag of
 			undefined ->
@@ -545,7 +545,7 @@ get_pla_spec(ID, [] = _Query) ->
 get_pla_spec(_Id, _Query) ->
 	{error, 400}.
 
--spec patch_product_inventory(SubId, Etag, ReqData) -> Result
+-spec patch_inventory(SubId, Etag, ReqData) -> Result
 	when
 		SubId	:: string(),
 		Etag		:: undefined | list(),
@@ -557,7 +557,7 @@ get_pla_spec(_Id, _Query) ->
 %% @doc Respond to `PATCH /catalogManagement/v2/productOffering/{id}'.
 %% 	Update a Product Offering using JSON patch method
 %% 	<a href="http://tools.ietf.org/html/rfc6902">RFC6902</a>.
-patch_product_inventory(SubId, Etag, ReqData) ->
+patch_inventory(SubId, Etag, ReqData) ->
 	try
 		Etag1 = case Etag of
 			undefined ->
@@ -676,25 +676,25 @@ patch_pla(Id, Etag, ReqData) ->
 			{error, 400}
 	end.
 
--spec delete_offer_offering(Id) -> Result
+-spec delete_offer(Id) -> Result
 	when
 		Id :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()} .
 %% @doc Respond to `DELETE /catalogManagement/v1/productOffering/{id}'
 %% 	request to remove a `Product Offering'.
-delete_offer_offering(Id) ->
+delete_offer(Id) ->
 	ok = ocs:delete_offer(Id),
 	{ok, [], []}.
 
--spec delete_offer_inventory(Id) -> Result
+-spec delete_inventory(Id) -> Result
 	when
 		Id :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()} .
 %% @doc Respond to `DELETE /productInventoryManagement/v1/product/{id}'
 %% 	request to remove a `Product Invenotry'.
-delete_offer_inventory(Id) ->
+delete_inventory(Id) ->
 	ok = ocs:delete_service(Id),
 	{ok, [], []}.
 
