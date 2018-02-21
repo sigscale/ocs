@@ -1567,7 +1567,7 @@ alteration([units | T], #alteration{units = octets, size = Size} = A, Acc)
 alteration([units | T], #alteration{units = seconds, size = Size} = A, Acc)
 		when is_integer(Size) ->
 	alteration(T, A, [{"unitOfMeasure", integer_to_list(Size) ++ "s"} | Acc]);
-alteration([amount | T], #alteration{units = cents, amount = Amount, currency = Currency} = A, Acc)
+alteration([amount | T], #alteration{amount = Amount, currency = Currency} = A, Acc)
 		when is_integer(Amount), is_list(Currency) ->
 	Price = {struct, [{"taxIncludedAmount", ocs_rest:decimal(Amount)},
 			{"currencyCode", Currency}]},
@@ -1575,10 +1575,6 @@ alteration([amount | T], #alteration{units = cents, amount = Amount, currency = 
 alteration([amount | T], #alteration{units = cents, amount = Amount} = A, Acc)
 		when is_integer(Amount) ->
 	Price = {struct, [{"taxIncludedAmount", ocs_rest:decimal(Amount)}]},
-	alteration(T, A, [{"price", Price} | Acc]);
-alteration([amount | T], #alteration{amount = Amount} = A, Acc)
-		when is_integer(Amount) ->
-	Price = {struct, [{"taxIncludedAmount", Amount}]},
 	alteration(T, A, [{"price", Price} | Acc]);
 alteration([_ | T], A, Acc) ->
 	alteration(T, A, Acc);
