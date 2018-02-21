@@ -26,9 +26,8 @@
 		update_client/2, update_client/3, get_clients/0, delete_client/1,
 		query_clients/6]).
 -export([add_service/3, add_service/4, add_service/5,
-		add_service/6, add_service/8,
-		find_service/1, delete_service/1, update_password/2,
-		get_services/0, query_service/1]).
+		add_service/6, add_service/8, find_service/1,
+		delete_service/1, get_services/0, query_service/1]).
 -export([add_user/3, list_users/0, get_user/1, delete_user/1,
 		query_users/3, update_user/3]).
 -export([add_product/1, find_product/1, get_products/0, delete_product/1,
@@ -417,7 +416,7 @@ add_service(Identity, Password, Product, Characteristics, Buckets, Attributes) -
 		MultiSessions :: boolean() | undefined,
 		Result :: {ok, #service{}} | {error, Reason},
 		Reason :: term().
-%% @doc Create an entry in the subscriber table.
+%% @doc Create an entry in the service table.
 %%
 %% 	Authentication will be done using `Password'. An optional list of
 %% 	RADIUS `Attributes', to be returned in an `AccessRequest' response,
@@ -494,8 +493,8 @@ add_service(undefined, Password, Product, Characteristics, Buckets, Attributes, 
 				end
 	end,
 	case mnesia:transaction(F1) of
-		{atomic, Subscriber} ->
-			{ok, Subscriber};
+		{atomic, Service} ->
+			{ok, Service};
 		{aborted, Reason} ->
 			{error, Reason}
 	end;
@@ -534,8 +533,8 @@ add_service(Identity, Password, Product, Characteristics, Buckets, Attributes, E
 				end
 	end,
 	case mnesia:transaction(F1) of
-		{atomic, Subscriber} ->
-			{ok, Subscriber};
+		{atomic, Service} ->
+			{ok, Service};
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
@@ -545,7 +544,7 @@ add_service(Identity, Password, Product, Characteristics, Buckets, Attributes, E
 		Identity :: string() | binary(),
 		Result :: {ok, #service{}} | {error, Reason},
 		Reason :: not_found | term().
-%% @doc Look up an entry in the subscriber table.
+%% @doc Look up an entry in the service table.
 find_service(Identity) when is_list(Identity) ->
 	find_service(list_to_binary(Identity));
 find_service(Identity) when is_binary(Identity) ->
@@ -553,8 +552,8 @@ find_service(Identity) when is_binary(Identity) ->
 				mnesia:read(service, Identity, read)
 	end,
 	case mnesia:transaction(F) of
-		{atomic, [#service{} = Subscriber]} ->
-			{ok, Subscriber};
+		{atomic, [#service{} = Service]} ->
+			{ok, Service};
 		{atomic, []} ->
 			{error, not_found};
 		{aborted, Reason} ->
@@ -565,7 +564,7 @@ find_service(Identity) when is_binary(Identity) ->
 	when
 		Result :: [#service{}] | {error, Reason},
 		Reason :: term().
-%% @doc Get all entries in the subscriber table.
+%% @doc Get all entries in the service table.
 get_services()->
 	MatchSpec = [{'_', [], ['$_']}],
 	F = fun(F, start, Acc) ->
@@ -575,8 +574,8 @@ get_services()->
 				lists:flatten(lists:reverse(Acc));
 			(_F, {error, Reason}, _Acc) ->
 				{error, Reason};
-			(F,{Subscribers, Cont}, Acc) ->
-				F(F, mnesia:select(Cont), [Subscribers | Acc])
+			(F,{Services, Cont}, Acc) ->
+				F(F, mnesia:select(Cont), [Services | Acc])
 	end,
 	case mnesia:transaction(F, [F, start, []]) of
 		{aborted, Reason} ->
@@ -600,8 +599,8 @@ query_service(start) ->
 				lists:flatten(lists:reverse(Acc));
 			(_F, {error, Reason}, _Acc) ->
 				{error, Reason};
-			(F,{Subscribers, Cont}, Acc) ->
-				F(F, mnesia:select(Cont), [Subscribers | Acc])
+			(F,{Services, Cont}, Acc) ->
+				F(F, mnesia:select(Cont), [Services | Acc])
 	end,
 	case mnesia:transaction(F, [F, start, []]) of
 		{aborted, Reason} ->
@@ -613,7 +612,7 @@ query_service(start) ->
 -spec delete_service(Identity) -> ok
 	when
 		Identity :: string() | binary().
-%% @doc Delete an entry in the subscriber table.
+%% @doc Delete an entry in the service table.
 delete_service(Identity) when is_list(Identity) ->
 	delete_service(list_to_binary(Identity));
 delete_service(Identity) when is_binary(Identity) ->
@@ -1262,9 +1261,9 @@ charset() ->
 		TimeStamp :: integer(),
 		SessionAttributes :: [tuple()],
 		Reason :: out_of_credit | bad_password | not_found | term().
-%% @doc Authorize a subscriber.
+%% @doc Authorize a service.
 %%
-%% 	If the subscriber `enabled' field is `true' and have sufficient balance
+%% 	If the service `enabled' field is `true' and have sufficient balance
 %%		set `disconnect' field to `false' and return {ok, #service{password = `PSK'}}
 %% 	where `PSK' is used for `Mikrotik-Wireless-Psk' and `Attributes' are
 %% 	additional attributes to be returned in an `Access-Accept' response.
@@ -1518,10 +1517,10 @@ default_chars1([_ | T]) ->
 default_chars1([]) ->
 	undefined.
 
--spec subscription(Subscriber, Product, Characteristics, InitialFlag) ->
-		Subscriber
+-spec subscription(Service, Product, Characteristics, InitialFlag) ->
+		Service
 	when
-		Subscriber :: #service{},
+		Service :: #service{},
 		Product :: #product{},
 		Characteristics :: [tuple()],
 		InitialFlag :: boolean().
@@ -1529,16 +1528,16 @@ default_chars1([]) ->
 %% 	If `InitialFlag' is `true' initial bucket preparation
 %% 	is done and one time prices are charged.
 %% @throws product_not_found
-subscription(#service{last_modified = {Now, _}} = Subscriber,
+subscription(#service{last_modified = {Now, _}} = Service,
 		#product{name = ProductName, bundle = [], price = Prices} = _Product,
 		Characteristics, InitialFlag) ->
-	Subscriber1 = subscription(Subscriber,
+	Service1 = subscription(Service,
 			Characteristics, Now, InitialFlag, Prices),
 	ProductInstance = #product_instance{start_date = Now,
 			product = ProductName, characteristics = Characteristics,
 			last_modified = {Now, erlang:unique_integer([positive])}},
-	Subscriber1#service{product = ProductInstance};
-subscription(#service{last_modified = {Now, _}} = Subscriber,
+	Service1#service{product = ProductInstance};
+subscription(#service{last_modified = {Now, _}} = Service,
 		#product{name = BundleName, bundle = Bundled, price = Prices},
 		Characteristics, InitialFlag) when length(Bundled) > 0 ->
 	F = fun(#bundled_po{name = P}, S) ->
@@ -1549,45 +1548,45 @@ subscription(#service{last_modified = {Now, _}} = Subscriber,
 						throw(product_not_found)
 				end
 	end,
-	Subscriber1 = lists:foldl(F, Subscriber, Bundled),
-	Subscriber2 = subscription(Subscriber1,
+	Service1 = lists:foldl(F, Service, Bundled),
+	Service2 = subscription(Service1,
 			Characteristics, Now, InitialFlag, Prices),
 	ProductInstance = #product_instance{start_date = Now,
 			product = BundleName, characteristics = Characteristics,
 			last_modified = {Now, erlang:unique_integer([positive])}},
-	Subscriber2#service{product = ProductInstance}.
+	Service2#service{product = ProductInstance}.
 %% @hidden
-subscription(#service{buckets = Buckets} = Subscriber,
+subscription(#service{buckets = Buckets} = Service,
 		Characteristics, Now, true, [#price{type = one_time,
 		amount = Amount, alteration = undefined} | T]) ->
 	NewBuckets = charge(Amount, Buckets),
-	subscription(Subscriber#service{buckets = NewBuckets},
+	subscription(Service#service{buckets = NewBuckets},
 			Characteristics, Now, true, T);
-subscription(#service{buckets = Buckets} = Subscriber,
+subscription(#service{buckets = Buckets} = Service,
 		Characteristics, Now, true, [#price{type = one_time,
 		amount = PriceAmount, name = Name,
 		alteration = #alteration{units = Units, size = Size,
 		amount = AlterationAmount}} | T]) ->
 	NewBuckets = charge(PriceAmount + AlterationAmount,
 		[#bucket{units = Units, remain_amount = Size, prices = [Name]} | Buckets]),
-	subscription(Subscriber#service{buckets = NewBuckets},
+	subscription(Service#service{buckets = NewBuckets},
 			Characteristics, Now, true, T);
-subscription(#service{buckets = Buckets} = Subscriber,
+subscription(#service{buckets = Buckets} = Service,
 		Characteristics, Now, true, [#price{type = usage,
 		name = Name, alteration = #alteration{type = one_time,
 		units = Units, size = Size, amount = AlterationAmount}} | T]) ->
 	NewBuckets = charge(AlterationAmount, [#bucket{units = Units,
 		remain_amount = Size, prices = [Name]} | Buckets]),
-	subscription(Subscriber#service{buckets = NewBuckets},
+	subscription(Service#service{buckets = NewBuckets},
 			Characteristics, Now, true, T);
-subscription(#service{buckets = Buckets} = Subscriber,
+subscription(#service{buckets = Buckets} = Service,
 		Characteristics, Now, InitialFlag, [#price{type = recurring,
 		period = Period, amount = SubscriptionAmount,
 		alteration = undefined} | T]) when Period /= undefined ->
 	NewBuckets = charge(SubscriptionAmount, Buckets),
-	subscription(Subscriber#service{buckets = NewBuckets},
+	subscription(Service#service{buckets = NewBuckets},
 			Characteristics, Now, InitialFlag, T);
-subscription(#service{buckets = Buckets} = Subscriber,
+subscription(#service{buckets = Buckets} = Service,
 		Characteristics, Now, InitialFlag,
 		[#price{type = recurring, name = Name,
 		period = Period, amount = SubscriptionAmount,
@@ -1597,9 +1596,9 @@ subscription(#service{buckets = Buckets} = Subscriber,
 	NewBuckets = charge(SubscriptionAmount + AllowanceAmount,
 			[#bucket{units = Units, remain_amount = Size, name = Name,
 			termination_date = end_period(Now, Period)} | Buckets]),
-	subscription(Subscriber#service{buckets = NewBuckets},
+	subscription(Service#service{buckets = NewBuckets},
 			Characteristics, Now, InitialFlag, T);
-subscription(#service{buckets = Buckets} = Subscriber,
+subscription(#service{buckets = Buckets} = Service,
 		Characteristics, Now, InitialFlag, [#price{type = usage,
 		name = Name, alteration = #alteration{type = recurring,
 		period = Period, units = Units, size = Size,
@@ -1608,15 +1607,15 @@ subscription(#service{buckets = Buckets} = Subscriber,
 	NewBuckets = charge(Amount, [#bucket{units = Units,
 			remain_amount = Size, prices = [Name],
 			termination_date = end_period(Now, Period)} | Buckets]),
-	subscription(Subscriber#service{buckets = NewBuckets},
+	subscription(Service#service{buckets = NewBuckets},
 			Characteristics, Now, InitialFlag, T);
-subscription(Subscriber, Characteristics, Now, InitialFlag, [_H | T]) ->
-	subscription(Subscriber, Characteristics, Now, InitialFlag, T);
-subscription(#service{buckets = Buckets} = Subscriber, _, Now, _, []) ->
+subscription(Service, Characteristics, Now, InitialFlag, [_H | T]) ->
+	subscription(Service, Characteristics, Now, InitialFlag, T);
+subscription(#service{buckets = Buckets} = Service, _, Now, _, []) ->
 	NewBuckets = [B#bucket{last_modified = {Now,
 			erlang:unique_integer([positive])},
 			id = generate_bucket_id()} || B <- Buckets],
-	Subscriber#service{buckets = NewBuckets}.
+	Service#service{buckets = NewBuckets}.
 
 %% @hidden
 generate_bucket_id() ->
