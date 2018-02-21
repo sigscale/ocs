@@ -1187,8 +1187,12 @@ ipdr_codec3(Attributes, radius, stop, Acc) ->
 	end.
 %% @hidden
 ipdr_codec4(Attributes, radius, stop, Acc) ->
-	SessionID = radius_attributes:fetch(?AcctSessionId, Attributes),
-	ipdr_codec5(Attributes, radius, stop, Acc#ipdr{acctSessionId = SessionID}).
+	case radius_attributes:find(?AcctSessionId, Attributes) of
+		{ok, SessionID} ->
+			ipdr_codec5(Attributes, radius, stop, Acc#ipdr{acctSessionId = SessionID});
+		{error, not_found} ->
+			ipdr_codec5(Attributes, radius, stop, Acc)
+	end.
 %% @hidden
 ipdr_codec5(Attributes, radius, stop, Acc) ->
 	case radius_attributes:find(?FramedIpAddress, Attributes) of
@@ -1239,7 +1243,12 @@ ipdr_codec10(Attributes, radius, stop, Acc) ->
 	end.
 %% @hidden
 ipdr_codec11(Attributes, radius, stop, Acc) ->
-	Octets = radius_attributes:fetch(?AcctInputOctets, Attributes),
+	Octets = case radius_attributes:find(?AcctInputOctets, Attributes) of
+		{ok, N} ->
+			N;
+		{error, not_found} ->
+			0
+	end,
 	case radius_attributes:find(?AcctInputGigawords, Attributes) of
 		{ok, GigaWords} ->
 			GigaOctets = (GigaWords * (16#ffffffff + 1)) + Octets,
@@ -1249,7 +1258,12 @@ ipdr_codec11(Attributes, radius, stop, Acc) ->
 	end.
 %% @hidden
 ipdr_codec12(Attributes, radius, stop, Acc) ->
-	Octets = radius_attributes:fetch(?AcctOutputOctets, Attributes),
+	Octets = case radius_attributes:find(?AcctOutputOctets, Attributes) of
+		{ok, N} ->
+			N;
+		{error, not_found} ->
+			0
+	end,
 	case radius_attributes:find(?AcctOutputGigawords, Attributes) of
 		{ok, GigaWords} ->
 			GigaOctets = (GigaWords * (16#ffffffff + 1)) + Octets,
