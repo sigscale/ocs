@@ -105,13 +105,13 @@ specific_bucket_balance(SubscriberID, BucketID) ->
 	end.
 %% @hidden
 specific_bucket_balance1(undefined, BucketID) ->
-	First = mnesia:first(subscriber),
+	First = mnesia:first(service),
 	specific_bucket_balance2(First, BucketID);
 specific_bucket_balance1(SubscriberID, BucketID) when is_list(SubscriberID) ->
 	specific_bucket_balance1(list_to_binary(SubscriberID), BucketID);
 specific_bucket_balance1(SubscriberID, BucketID) when is_binary(SubscriberID) ->
  case specific_bucket_balance3(SubscriberID, BucketID) of
-	{#subscriber{} = S, #bucket{} = B} ->
+	{#service{} = S, #bucket{} = B} ->
 		{ok, S, B};
 	{_, false} ->
 		{error, not_found};
@@ -123,24 +123,24 @@ specific_bucket_balance2('end_of_table', _BucketID) ->
 	{error, not_found};
 specific_bucket_balance2(SubscriberID, BucketID) ->
 	case specific_bucket_balance3(SubscriberID, BucketID) of
-		{#subscriber{} = S, #bucket{} = B} ->
+		{#service{} = S, #bucket{} = B} ->
 			{ok, S, B};
 		{_,  false} ->
-			Next = mnesia:next(subscriber, SubscriberID),
+			Next = mnesia:next(service, SubscriberID),
 			specific_bucket_balance2(Next, BucketID);
 		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
 specific_bucket_balance3(SubscriberID, BucketID) ->
-	case mnesia:read(subscriber, SubscriberID, read) of
-		[#subscriber{buckets = Buckets} = S] ->
+	case mnesia:read(service, SubscriberID, read) of
+		[#service{buckets = Buckets} = S] ->
 			{S, lists:keyfind(BucketID, #bucket.id, Buckets)};
 		[] ->
 			{error, not_found}
 	end.
 %% @hidden
-specific_bucket_balance4(#subscriber{name = SubID, last_modified = LM}, Bucket) ->
+specific_bucket_balance4(#service{name = SubID, last_modified = LM}, Bucket) ->
 	try
 		P_ID = {"id", binary_to_list(SubID)},
 		P_Href = {"href", "/productInventory/v1/product/" ++ binary_to_list(SubID)},
@@ -171,7 +171,7 @@ specific_bucket_balance4(#subscriber{name = SubID, last_modified = LM}, Bucket) 
 get_balance(Identity) ->
 	try
 		case ocs:find_subscriber(Identity) of
-			{ok, #subscriber{buckets = Buckets}} ->
+			{ok, #service{buckets = Buckets}} ->
 				get_balance1(Identity, Buckets);
 			{error, not_found} ->
 				{error, 404};
@@ -255,11 +255,11 @@ top_up(Identity, RequestBody) ->
 %% @hidden
 top_up1(Identity, Bucket) ->
 	F = fun()->
-		case mnesia:read(subscriber, list_to_binary(Identity), read) of
+		case mnesia:read(service, list_to_binary(Identity), read) of
 			[] ->
 				not_found;
-			[#subscriber{buckets = CrntBuckets, last_modified = LM} = User] ->
-				mnesia:write(User#subscriber{buckets = CrntBuckets ++ [Bucket]}),
+			[#service{buckets = CrntBuckets, last_modified = LM} = User] ->
+				mnesia:write(User#service{buckets = CrntBuckets ++ [Bucket]}),
 				LM
 		end
 	end,

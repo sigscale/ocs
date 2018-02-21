@@ -104,7 +104,7 @@ add_product_offering(ReqData) ->
 %% 	Add a new instance of a Product Offering subscription.
 add_product_inventory(ReqData) ->
 	try
-		#subscriber{name = SubscriberID,
+		#service{name = SubscriberID,
 				password = Password, product = #product_instance{product = ProdId,
 				characteristics = Chars}} = inventory(mochijson:decode(ReqData)),
 		case ocs:add_subscriber(SubscriberID, Password, ProdId, Chars) of
@@ -116,8 +116,8 @@ add_product_inventory(ReqData) ->
 	of
 		Subscription ->
 			Body = mochijson:encode(inventory(Subscription)),
-			Etag = ocs_rest:etag(Subscription#subscriber.last_modified),
-			Href = ?inventoryPath ++ binary_to_list(Subscription#subscriber.name),
+			Etag = ocs_rest:etag(Subscription#service.last_modified),
+			Href = ?inventoryPath ++ binary_to_list(Subscription#service.name),
 			Headers = [{location, Href}, {etag, Etag}],
 			{ok, Headers, Body}
 	catch
@@ -215,8 +215,8 @@ get_product_inventory(ID) ->
 	of
 		Subscription ->
 			Body = mochijson:encode(inventory(Subscription)),
-			Etag = ocs_rest:etag(Subscription#subscriber.last_modified),
-			Href = ?inventoryPath ++ binary_to_list(Subscription#subscriber.name),
+			Etag = ocs_rest:etag(Subscription#service.last_modified),
+			Href = ?inventoryPath ++ binary_to_list(Subscription#service.name),
 			Headers = [{location, Href}, {etag, Etag},
 					{content_type, "application/json"}],
 			{ok, Headers, Body}
@@ -569,9 +569,9 @@ patch_product_inventory(SubId, Etag, ReqData) ->
 	of
 		{Etag2, {array, _} = Operations} ->
 			F = fun() ->
-					case mnesia:read(subscriber, SubId, write) of
+					case mnesia:read(service, SubId, write) of
 						[Subscriber1] when
-								Subscriber1#subscriber.last_modified == Etag2;
+								Subscriber1#service.last_modified == Etag2;
 								Etag2 == undefined ->
 							case catch ocs_rest:patch(Operations, inventory(Subscriber1)) of
 								{struct, _} = Subscriber2  ->
@@ -579,13 +579,13 @@ patch_product_inventory(SubId, Etag, ReqData) ->
 									TS = erlang:system_time(?MILLISECOND),
 									N = erlang:unique_integer([positive]),
 									LM = {TS, N},
-									Subscriber4 = Subscriber3#subscriber{last_modified = LM},
+									Subscriber4 = Subscriber3#service{last_modified = LM},
 									ok = mnesia:write(Subscriber4),
 									{Subscriber2, LM};
 								_ ->
 									throw(bad_request)
 							end;
-						[#subscriber{}] ->
+						[#service{}] ->
 							throw(precondition_failed);
 						[] ->
 							throw(not_found)
@@ -1946,7 +1946,7 @@ char_value_type(Value) when is_integer(Value); is_list(Value) ->
 	
 -spec inventory(Subscription) -> Subscription
 	when
-		Subscription :: #subscriber{} | {struct, [tuple()]}.
+		Subscription :: #service{} | {struct, [tuple()]}.
 %% @doc CODEC for Product Inventory.
 inventory({struct, ObjectMembers}) when is_list(ObjectMembers) ->
 	ProductInstance  = instance({struct, ObjectMembers}),
@@ -1960,8 +1960,8 @@ inventory({struct, ObjectMembers}) when is_list(ObjectMembers) ->
 	end,
 	Username = F("subscriberIdentity"),
 	Password = F("subscriberPassword"),
-	#subscriber{name = Username, password = Password, product = ProductInstance};
-inventory(#subscriber{name = Username, password = Password,
+	#service{name = Username, password = Password, product = ProductInstance};
+inventory(#service{name = Username, password = Password,
 		product = #product_instance{characteristics = Chars}  = ProductInstance}) ->
 	F1 = fun(CChars, _, undefined) ->
 			CChars;

@@ -1761,7 +1761,7 @@ get_subscriber_balance(Config) ->
 	Buckets = [#bucket{units = cents, remain_amount = 10000},
 			#bucket{units = cents, remain_amount = 5}],
 	{ok, _} = ocs:add_subscriber(Identity, Password, ProdID, [], Buckets, []),
-	{ok, #subscriber{buckets = Buckets1}} = ocs:find_subscriber(Identity),
+	{ok, #service{buckets = Buckets1}} = ocs:find_subscriber(Identity),
 	F = fun(#bucket{remain_amount = N, units = cents}, Acc) ->
 				N + Acc;
 			(_, Acc) ->

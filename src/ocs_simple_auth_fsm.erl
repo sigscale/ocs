@@ -195,7 +195,7 @@ handle_radius1(#statedata{subscriber = SubscriberId, password = <<>>,
 	SessionAttributes = ocs_rating:session_attributes(ReqAttr),
 	case ocs_rating:authorize(radius, ServiceType, SubscriberId, <<>>,
 			Timestamp, CallAddress, Direction, SessionAttributes) of
-		{authorized, #subscriber{password = <<>>} =
+		{authorized, #service{password = <<>>} =
 				Subscriber, Attributes, ExistingSessionAttributes} ->
 			NewStateData = StateData#statedata{res_attr = Attributes},
 			handle_radius2(Subscriber, ExistingSessionAttributes, NewStateData);
@@ -203,7 +203,7 @@ handle_radius1(#statedata{subscriber = SubscriberId, password = <<>>,
 				when PasswordReq == false ->
 			NewStateData = StateData#statedata{res_attr = Attributes},
 			handle_radius2(Subscriber, ExistingSessionAttributes, NewStateData);
-		{authorized, #subscriber{password = PSK} =
+		{authorized, #service{password = PSK} =
 				Subscriber, Attributes, ExistingSessionAttributes}
 				when is_binary(PSK) ->
 			ResponseAttributes = radius_attributes:store(?Mikrotik,
@@ -233,13 +233,13 @@ handle_radius1(#statedata{subscriber = SubscriberId, password = Password,
 			reject_radius(Reason, StateData)
 	end.
 %% @hidden
-handle_radius2(#subscriber{multisession = true},
+handle_radius2(#service{multisession = true},
 		_ExistingSessions, StateData) ->
 	handle_radius3(StateData);
-handle_radius2(#subscriber{session_attributes = []},
+handle_radius2(#service{session_attributes = []},
 		_ExistingSessions, StateData) ->
 	handle_radius3(StateData);
-handle_radius2(#subscriber{multisession = false},
+handle_radius2(#service{multisession = false},
 		ExistingSessions,  StateData) ->
 	NewStateData = StateData#statedata{multisession = false},
 	start_disconnect(ExistingSessions, NewStateData),
@@ -292,15 +292,15 @@ handle_diameter(#statedata{protocol = diameter, session_id = SessionID,
 			reject_diameter(Reason, StateData)
 	end.
 %% @hidden
-handle_diameter1(#subscriber{multisession = true},
+handle_diameter1(#service{multisession = true},
 		_ExistingSessions, StateData) ->
 	NewStateData = StateData#statedata{multisession = true},
 	handle_diameter2(NewStateData);
-handle_diameter1(#subscriber{session_attributes = [],
+handle_diameter1(#service{session_attributes = [],
 		multisession = MultiSession}, _ExistingSessions, StateData) ->
 	NewStateData = StateData#statedata{multisession = MultiSession},
 	handle_diameter2(NewStateData);
-handle_diameter1(#subscriber{multisession = false},
+handle_diameter1(#service{multisession = false},
 		ExistingSessions, StateData) ->
 	NewStateData = StateData#statedata{multisession = false},
 	start_disconnect(ExistingSessions, NewStateData),

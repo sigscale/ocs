@@ -74,7 +74,7 @@ get_subscriber1(Id, Filters) ->
 				throw(500)
 		end
 	of
-		#subscriber{last_modified = LM} = Subscriber1 ->
+		#service{last_modified = LM} = Subscriber1 ->
 			Json = subscriber(Subscriber1),
 			FilteredJson = case Filters of
 				[] ->
@@ -173,7 +173,7 @@ get_subscriber1(Query, Filters, Headers) ->
 %% resource.
 post_subscriber(RequestBody) ->
 	try 
-		#subscriber{name = Name, password = Password,
+		#service{name = Name, password = Password,
 				attributes = Attributes, enabled = Enabled,
 				multisession = Multi, buckets = Buckets1,
 				product = Product} =
@@ -189,7 +189,7 @@ post_subscriber(RequestBody) ->
 		end,
 		case catch ocs:add_subscriber(Name, Password,
 				ProdID, Chars, Buckets2, Attributes, Enabled, Multi) of
-			{ok, #subscriber{name = Id, last_modified = LM} = Subscriber} ->
+			{ok, #service{name = Id, last_modified = LM} = Subscriber} ->
 				Json = subscriber(Subscriber),
 				Body = mochijson:encode(Json),
 				Location = ?subscriberPath ++ binary_to_list(Id),
@@ -225,7 +225,7 @@ patch_subscriber(Id, Etag, "application/json-patch+json", ReqBody) ->
 	of
 		{Etag2, Operations} ->
 			case ocs:find_subscriber(Id) of
-				{ok, #subscriber{last_modified = Etag3} = Sub} when
+				{ok, #service{last_modified = Etag3} = Sub} when
 						Etag3 == Etag2; Etag2 == undefined; Etag3 == undefined ->
 					case catch ocs_rest:patch(Operations, subscriber(Sub)) of
 						{struct, _} = Json ->
@@ -247,14 +247,14 @@ patch_subscriber(Id, Etag, "application/json-patch+json", ReqBody) ->
 %% @hidden
 patch_subscriber1(Id, Json) ->
 	try
-		#subscriber{product = Product} = Subscriber = subscriber(Json),
+		#service{product = Product} = Subscriber = subscriber(Json),
 		TS = erlang:system_time(?MILLISECOND),
 		N = erlang:unique_integer([positive]),
 		LM = {TS, N},
 		F = fun() ->
-			NewSub = Subscriber#subscriber{last_modified = LM,
+			NewSub = Subscriber#service{last_modified = LM,
 				product = Product#product_instance{last_modified = LM}},
-			mnesia:write(subscriber, NewSub, write)
+			mnesia:write(service, NewSub, write)
 		end,
 		case mnesia:transaction(F) of
 			{atomic, ok} ->
@@ -287,70 +287,70 @@ delete_subscriber(Id) ->
 %%----------------------------------------------------------------------
 
 subscriber({struct, ObjectMembers}) ->
-	subscriber(ObjectMembers, #subscriber{});
-subscriber(#subscriber{} = Subscriber) ->
-	{struct, subscriber(record_info(fields, subscriber),
+	subscriber(ObjectMembers, #service{});
+subscriber(#service{} = Subscriber) ->
+	{struct, subscriber(record_info(fields, service),
 		Subscriber, [])}.
 %% @hidden
 subscriber([{"id", Name} | T], Acc) ->
-	subscriber(T, Acc#subscriber{name = list_to_binary(Name)});
+	subscriber(T, Acc#service{name = list_to_binary(Name)});
 subscriber([{"password", Password} | T], Acc) ->
-	subscriber(T, Acc#subscriber{password = list_to_binary(Password)});
+	subscriber(T, Acc#service{password = list_to_binary(Password)});
 subscriber([{"attributes", {array, Attributes}} | T], Acc) ->
-	subscriber(T, Acc#subscriber{attributes = json_to_radius(Attributes)});
+	subscriber(T, Acc#service{attributes = json_to_radius(Attributes)});
 subscriber([{"multisession", Multi} | T], Acc) ->
-	subscriber(T, Acc#subscriber{multisession = Multi});
+	subscriber(T, Acc#service{multisession = Multi});
 subscriber([{"enabled", Enabled} | T], Acc) ->
-	subscriber(T, Acc#subscriber{enabled = Enabled});
-subscriber([{"product", _} = Product | T], #subscriber{product = undefined} = Acc) ->
-	subscriber(T, Acc#subscriber{product = product({struct, [Product]})});
-subscriber([{"product", _} = Product | T], #subscriber{product = ProdInst} = Acc) ->
+	subscriber(T, Acc#service{enabled = Enabled});
+subscriber([{"product", _} = Product | T], #service{product = undefined} = Acc) ->
+	subscriber(T, Acc#service{product = product({struct, [Product]})});
+subscriber([{"product", _} = Product | T], #service{product = ProdInst} = Acc) ->
 	#product_instance{product = ProdID} = product({struct, [Product]}),
 	NewProdInst = ProdInst#product_instance{product = ProdID},
-	subscriber(T, Acc#subscriber{product = NewProdInst});
+	subscriber(T, Acc#service{product = NewProdInst});
 subscriber([{"buckets", {array, Buckets}} | T], Acc) ->
 	Buckets2 = [bucket(Bucket) || Bucket <- Buckets],
-	subscriber(T, Acc#subscriber{buckets = Buckets2});
+	subscriber(T, Acc#service{buckets = Buckets2});
 subscriber([{"totalBalance", _} | T], Acc) ->
 	subscriber(T, Acc);
-subscriber([{"characteristics", _} = Chars | T], #subscriber{product = undefined} = Acc) ->
-	subscriber(T, Acc#subscriber{product = product({struct, [Chars]})});
-subscriber([{"characteristics", _} = Chars | T], #subscriber{product = ProdInst} = Acc) ->
+subscriber([{"characteristics", _} = Chars | T], #service{product = undefined} = Acc) ->
+	subscriber(T, Acc#service{product = product({struct, [Chars]})});
+subscriber([{"characteristics", _} = Chars | T], #service{product = ProdInst} = Acc) ->
 	#product_instance{characteristics = NewChars} = product({struct, [Chars]}),
 	NewProdInst = ProdInst#product_instance{characteristics = NewChars},
-	subscriber(T, Acc#subscriber{product = NewProdInst});
+	subscriber(T, Acc#service{product = NewProdInst});
 subscriber([_A | T], Acc) ->
 	subscriber(T, Acc);
 subscriber([], Acc) ->
 	Acc.
 %% @hidden
-subscriber([name | T], #subscriber{name = Name} = Subscriber, Acc) ->
+subscriber([name | T], #service{name = Name} = Subscriber, Acc) ->
 	Id = {"id", binary_to_list(Name)},
 	Href = {"href", ?subscriberPath ++ binary_to_list(Name)},
 	subscriber(T, Subscriber, [Href, Id | Acc]);
-subscriber([password | T], #subscriber{password = Password} = Subscriber, Acc) ->
+subscriber([password | T], #service{password = Password} = Subscriber, Acc) ->
 	subscriber(T, Subscriber, [{"password", binary_to_list(Password)} | Acc]);
-subscriber([attributes | T], #subscriber{attributes = []} = Subscriber, Acc) ->
+subscriber([attributes | T], #service{attributes = []} = Subscriber, Acc) ->
 	subscriber(T, Subscriber, Acc);
-subscriber([attributes | T], #subscriber{attributes = undefined} = Subscriber, Acc) ->
+subscriber([attributes | T], #service{attributes = undefined} = Subscriber, Acc) ->
 	subscriber(T, Subscriber, Acc);
-subscriber([attributes | T], #subscriber{attributes = Attributes} = Subscriber, Acc) ->
+subscriber([attributes | T], #service{attributes = Attributes} = Subscriber, Acc) ->
 	subscriber(T, Subscriber, [{"attributes", {array, radius_to_json(Attributes)}} | Acc]);
-subscriber([buckets | T], #subscriber{buckets = Buckets} = Subscriber, Acc) ->
+subscriber([buckets | T], #service{buckets = Buckets} = Subscriber, Acc) ->
 	Buckets1 = [bucket(Bucket) || Bucket <- Buckets],
 	Buckets2 = [{"totalBalance", accumulated_balance(Buckets)},
 		{"buckets", {array, Buckets1}}],
 	subscriber(T, Subscriber, Buckets2 ++ Acc);
-subscriber([product | T], #subscriber{product = #product_instance{} = Product} = Subscriber, Acc) ->
+subscriber([product | T], #service{product = #product_instance{} = Product} = Subscriber, Acc) ->
 	{struct, Object} = product(Product),
 	subscriber(T, Subscriber, Object ++ Acc);
-subscriber([enabled | T], #subscriber{enabled = Enabled} = Subscriber, Acc) ->
+subscriber([enabled | T], #service{enabled = Enabled} = Subscriber, Acc) ->
 	subscriber(T, Subscriber, [{"enabled", Enabled} | Acc]);
 subscriber([disconnect | T], Subscriber, Acc) ->
 	subscriber(T, Subscriber, Acc);
 subscriber([session_attributes | T], Subscriber, Acc) ->
 	subscriber(T, Subscriber, Acc);
-subscriber([multisession | T], #subscriber{multisession = Multi} = Subscriber, Acc) ->
+subscriber([multisession | T], #service{multisession = Multi} = Subscriber, Acc) ->
 	subscriber(T, Subscriber, [{"multisession", Multi} | Acc]);
 subscriber([_ | T], Subscriber, Acc) ->
 	subscriber(T, Subscriber, Acc);
@@ -710,29 +710,29 @@ query_page(PageServer, Etag, Query, Filters, Start, End) ->
 			try
 				case lists:keytake("sort", 1, Query) of
 					{value, {_, "id"}, NewQuery} ->
-						{lists:keysort(#subscriber.name, Subscribers), NewQuery};
+						{lists:keysort(#service.name, Subscribers), NewQuery};
 					{value, {_, "-id"}, NewQuery} ->
-						{lists:reverse(lists:keysort(#subscriber.name, Subscribers)), NewQuery};
+						{lists:reverse(lists:keysort(#service.name, Subscribers)), NewQuery};
 					{value, {_, "password"}, NewQuery} ->
-						{lists:keysort(#subscriber.password, Subscribers), NewQuery};
+						{lists:keysort(#service.password, Subscribers), NewQuery};
 					{value, {_, "-password"}, NewQuery} ->
-						{lists:reverse(lists:keysort(#subscriber.password, Subscribers)), NewQuery};
+						{lists:reverse(lists:keysort(#service.password, Subscribers)), NewQuery};
 					{value, {_, "totalBalance"}, NewQuery} ->
-						{lists:keysort(#subscriber.buckets, Subscribers), NewQuery};
+						{lists:keysort(#service.buckets, Subscribers), NewQuery};
 					{value, {_, "-totalBalance"}, NewQuery} ->
-						{lists:reverse(lists:keysort(#subscriber.buckets, Subscribers)), NewQuery};
+						{lists:reverse(lists:keysort(#service.buckets, Subscribers)), NewQuery};
 					{value, {_, "product"}, NewQuery} ->
-						{lists:keysort(#subscriber.product, Subscribers), NewQuery};
+						{lists:keysort(#service.product, Subscribers), NewQuery};
 					{value, {_, "-product"}, NewQuery} ->
-						{lists:reverse(lists:keysort(#subscriber.product, Subscribers)), NewQuery};
+						{lists:reverse(lists:keysort(#service.product, Subscribers)), NewQuery};
 					{value, {_, "enabled"}, NewQuery} ->
-						{lists:keysort(#subscriber.enabled, Subscribers), NewQuery};
+						{lists:keysort(#service.enabled, Subscribers), NewQuery};
 					{value, {_, "-enabled"}, NewQuery} ->
-						{lists:reverse(lists:keysort(#subscriber.enabled, Subscribers)), NewQuery};
+						{lists:reverse(lists:keysort(#service.enabled, Subscribers)), NewQuery};
 					{value, {_, "multisession"}, NewQuery} ->
-						{lists:keysort(#subscriber.multisession, Subscribers), NewQuery};
+						{lists:keysort(#service.multisession, Subscribers), NewQuery};
 					{value, {_, "-multisession"}, NewQuery} ->
-						{lists:reverse(lists:keysort(#subscriber.multisession, Subscribers)), NewQuery};
+						{lists:reverse(lists:keysort(#service.multisession, Subscribers)), NewQuery};
 					false ->
 						{Subscribers, Query};
 					_ ->

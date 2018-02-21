@@ -1050,7 +1050,7 @@ client_passthrough(#diameter_eap_app_DER{} = Request,
 server_passthrough(timeout, #statedata{session_id = SessionID} =
 		StateData) ->
 	{stop, {shutdown, SessionID}, StateData};
-server_passthrough({accept, #subscriber{name = Identity,
+server_passthrough({accept, #service{name = Identity,
 		password = Password}, SslSocket}, #statedata{eap_id =
 		EapID, start = #radius{attributes = RequestAttributes},
 		session_id = SessionID, secret = Secret,

@@ -255,11 +255,11 @@ handle_info({udp, _, NasIp, NasPort, Packet}, _StateName,
 	case radius:codec(Packet) of
 		#radius{code = ?DisconnectAck, id = Id} ->
 			F = fun() ->
-				case mnesia:read(subscriber, Subscriber, write) of
-					[#subscriber{disconnect = false} = Entry] ->
-						NewEntry = Entry#subscriber{disconnect = true},
-						mnesia:write(subscriber, NewEntry, write);
-					[#subscriber{disconnect = true}] ->
+				case mnesia:read(service, Subscriber, write) of
+					[#service{disconnect = false} = Entry] ->
+						NewEntry = Entry#service{disconnect = true},
+						mnesia:write(service, NewEntry, write);
+					[#service{disconnect = true}] ->
 						ok
 				end
 			end,

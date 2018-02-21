@@ -150,7 +150,7 @@
 		last_modified :: tuple() | undefined}).
 
 %% define subscriber table entries record
--record(subscriber,
+-record(service,
 		{name :: binary() | undefined,
 		password :: binary() | undefined,
 		attributes :: [tuple()] | undefined,

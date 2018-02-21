@@ -227,7 +227,7 @@ radius_multisession_disallowed(Config) ->
 	RadID2 = RadID1 + 1,
 	accounting_start(Socket, AcctAddress, AcctPort,
 			PeerID, Secret, NasID, AcctSessionID1, RadID2),
-	{ok, #subscriber{multisession = false, session_attributes = SessionList1}}
+	{ok, #service{multisession = false, session_attributes = SessionList1}}
 			= ocs:find_subscriber(PeerID),
 	[SessionAttr1] = SessionList1,
 	F = fun({_, SessionAttributes}, Nas) ->
@@ -249,7 +249,7 @@ radius_multisession_disallowed(Config) ->
 			HiddenPassword, Secret, NasID2, ReqAuth, Rad2ID1,
 			DiscPort, AcctSessionID2),
 	ct:sleep(500),
-	{ok, #subscriber{multisession = false, session_attributes = SessionList2}}
+	{ok, #service{multisession = false, session_attributes = SessionList2}}
 			= ocs:find_subscriber(PeerID),
 	[SessionAttr2] = SessionList2,
 	ok = F(SessionAttr2, NasID2),
@@ -259,7 +259,7 @@ radius_multisession_disallowed(Config) ->
 	Rad2ID3 = Rad2ID2 + 1,
 	accounting_stop(Socket, AcctAddress, AcctPort,
 			PeerID, Secret, NasID2, AcctSessionID2, Rad2ID3),
-	{ok, #subscriber{multisession = false, session_attributes = []}}
+	{ok, #service{multisession = false, session_attributes = []}}
 			= ocs:find_subscriber(PeerID).
 
 radius_multisession() ->
@@ -288,7 +288,7 @@ radius_multisession(Config) ->
 	RadID2 = RadID1 + 1,
 	accounting_start(Socket, AcctAddress, AcctPort,
 			PeerID, Secret, NasID1, AcctSessionID1, RadID2),
-	{ok, #subscriber{multisession = true, session_attributes = SessionList1}}
+	{ok, #service{multisession = true, session_attributes = SessionList1}}
 			= ocs:find_subscriber(PeerID),
 	F1 = fun(F1, Session, [H1 | T1]) ->
 				case lists:member(H1, Session) of
@@ -319,7 +319,7 @@ radius_multisession(Config) ->
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
 			HiddenPassword, Secret, NasID2, ReqAuth, Rad2ID1, AcctSessionID2),
 	ct:sleep(500),
-	{ok, #subscriber{multisession = true, session_attributes = SessionList2}}
+	{ok, #service{multisession = true, session_attributes = SessionList2}}
 			= ocs:find_subscriber(PeerID),
 	2 = length(SessionList2),
 	ok = F2(F2, SessionList2, [{?UserName, PeerID}, {?NasIdentifier, NasID2}]),
@@ -333,7 +333,7 @@ radius_multisession(Config) ->
 	authenticate_subscriber(Socket, AuthAddress, AuthPort, PeerID,
 			HiddenPassword, Secret, NasID3, ReqAuth, Rad3ID1, AcctSessionID3),
 	ct:sleep(500),
-	{ok, #subscriber{multisession = true, session_attributes = SessionList3}}
+	{ok, #service{multisession = true, session_attributes = SessionList3}}
 			= ocs:find_subscriber(PeerID),
 	3 = length(SessionList3),
 	ok = F2(F2, SessionList3, [{?UserName, PeerID}, {?NasIdentifier, NasID3}]),
@@ -344,7 +344,7 @@ radius_multisession(Config) ->
 	Rad2ID3 = Rad2ID2 + 1,
 	accounting_stop(Socket, AcctAddress, AcctPort,
 			PeerID, Secret, NasID2, AcctSessionID2, Rad2ID3),
-	{ok, #subscriber{multisession = true, session_attributes = SessionList4}}
+	{ok, #service{multisession = true, session_attributes = SessionList4}}
 			= ocs:find_subscriber(PeerID),
 	2 = length(SessionList4),
 	ok = F2(F2, SessionList4, [{?UserName, PeerID}, {?NasIdentifier, NasID1}]),

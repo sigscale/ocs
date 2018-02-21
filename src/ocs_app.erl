@@ -55,7 +55,7 @@
 %% @see //kernel/application:start/2
 %%
 start(normal = _StartType, _Args) ->
-	Tables = [client, subscriber, product, pla, httpd_user, httpd_group],
+	Tables = [client, service, product, pla, httpd_user, httpd_group],
 	case mnesia:wait_for_tables(Tables, 60000) of
 		ok ->
 			start1();
@@ -275,18 +275,18 @@ install3(Nodes, Acc) ->
 	end.
 %% @hidden
 install4(Nodes, Acc) ->
-	case mnesia:create_table(subscriber, [{disc_copies, Nodes},
-			{attributes, record_info(fields, subscriber)}]) of
+	case mnesia:create_table(service, [{disc_copies, Nodes},
+			{attributes, record_info(fields, service)}]) of
 		{atomic, ok} ->
-			error_logger:info_msg("Created new subscriber table.~n"),
-			install5(Nodes, [subscriber| Acc]);
+			error_logger:info_msg("Created new service table.~n"),
+			install5(Nodes, [service| Acc]);
 		{aborted, {not_active, _, Node} = Reason} ->
 			error_logger:error_report(["Mnesia not started on node",
 					{node, Node}]),
 			{error, Reason};
-		{aborted, {already_exists, subscriber}} ->
-			error_logger:info_msg("Found existing subscriber table.~n"),
-			install5(Nodes, [subscriber| Acc]);
+		{aborted, {already_exists, service}} ->
+			error_logger:info_msg("Found existing service table.~n"),
+			install5(Nodes, [service| Acc]);
 		{aborted, Reason} ->
 			error_logger:error_report([mnesia:error_description(Reason),
 				{error, Reason}]),

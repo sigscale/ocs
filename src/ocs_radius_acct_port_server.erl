@@ -280,7 +280,7 @@ request1(?AccountingStart, AcctSessionId, Id,
 	end,
 	case ocs_rating:rate(radius, ServiceType, Subscriber, Timestamp,
 			CallAddress, Direction, initial, [], [], SessionAttributes) of
-		{ok, #subscriber{}, _} ->
+		{ok, #service{}, _} ->
 			ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, start, Attributes),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{out_of_credit, SessionList}  ->
@@ -328,7 +328,7 @@ request1(?AccountingStop, AcctSessionId, Id,
 	end,
 	case ocs_rating:rate(radius, ServiceType, Subscriber, Timestamp,
 			CallAddress, Direction, final, DebitAmount, [], SessionAttributes) of
-		{ok, #subscriber{}, _} ->
+		{ok, #service{}, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{out_of_credit, SessionList}  ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
@@ -375,7 +375,7 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 	end,
 	case ocs_rating:rate(radius, ServiceType, Subscriber, Timestamp,
 			CallAddress, Direction, interim, [], ReserveAmount, SessionAttributes) of
-		{ok, #subscriber{}, _} ->
+		{ok, #service{}, _} ->
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{out_of_credit, SessionList} ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),

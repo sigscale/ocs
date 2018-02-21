@@ -357,7 +357,7 @@ query_clients4(Clients, Address) ->
 		Identity :: string() | binary(),
 		Password :: string() | binary(),
 		Product :: string() | undefined,
-		Result :: {ok, #subscriber{}} | {error, Reason},
+		Result :: {ok, #service{}} | {error, Reason},
 		Reason :: term().
 %% @equiv add_subscriber(Identity, Password, Product, [], [], [], true, false)
 add_subscriber(Identity, Password, Product) ->
@@ -369,7 +369,7 @@ add_subscriber(Identity, Password, Product) ->
 		Password :: string() | binary(),
 		Product :: string() | undefined,
 		Characteristics :: [tuple()],
-		Result :: {ok, #subscriber{}} | {error, Reason},
+		Result :: {ok, #service{}} | {error, Reason},
 		Reason :: term().
 %% @equiv add_subscriber(Identity, Password, Product, Characteristics, Buckets, [], true, false)
 add_subscriber(Identity, Password, Product, Characteristics) ->
@@ -382,7 +382,7 @@ add_subscriber(Identity, Password, Product, Characteristics) ->
 		Product :: string() | undefined,
 		Characteristics :: [tuple()],
 		Buckets :: [#bucket{}],
-		Result :: {ok, #subscriber{}} | {error, Reason},
+		Result :: {ok, #service{}} | {error, Reason},
 		Reason :: term().
 %% @equiv add_subscriber(Identity, Password, Product, Characteristics, Buckets, [], true, false)
 add_subscriber(Identity, Password, Product, Characteristics, Buckets) ->
@@ -397,7 +397,7 @@ add_subscriber(Identity, Password, Product, Characteristics, Buckets) ->
 		Characteristics :: [tuple()],
 		Buckets :: [#bucket{}],
 		Attributes :: radius_attributes:attributes() | binary(),
-		Result :: {ok, #subscriber{}} | {error, Reason},
+		Result :: {ok, #service{}} | {error, Reason},
 		Reason :: term().
 %% @equiv add_subscriber(Identity, Password, Product,
 %%		Characteristics, Buckets, Attributes, true, false)
@@ -416,7 +416,7 @@ add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes
 		Attributes :: radius_attributes:attributes() | binary(),
 		EnabledStatus :: boolean() | undefined,
 		MultiSessions :: boolean() | undefined,
-		Result :: {ok, #subscriber{}} | {error, Reason},
+		Result :: {ok, #service{}} | {error, Reason},
 		Reason :: term().
 %% @doc Create an entry in the subscriber table.
 %%
@@ -469,7 +469,7 @@ add_subscriber(undefined, Password, Product, Characteristics, Buckets, Attribute
 				case mnesia:read(product, ProductId, read) of
 					[#product{char_value_use = CharValueUse} = P] ->
 						N = erlang:unique_integer([positive]),
-						S1 = #subscriber{password = Password,
+						S1 = #service{password = Password,
 								attributes = Attributes,
 								buckets = Buckets,
 								enabled = EnabledStatus,
@@ -480,9 +480,9 @@ add_subscriber(undefined, Password, Product, Characteristics, Buckets, Attribute
 						F3 = fun(_, _, 0) ->
 									mnesia:abort(retries);
 								(F, Identity, I) ->
-									case mnesia:read(subscriber, Identity, read) of
+									case mnesia:read(service, Identity, read) of
 										[] ->
-											S3 = S2#subscriber{name = Identity},
+											S3 = S2#service{name = Identity},
 											ok = mnesia:write(S3),
 											S3;
 										[_] ->
@@ -519,7 +519,7 @@ add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes
 				case mnesia:read(product, ProductId, read) of
 					[#product{char_value_use = CharValueUse} = P] ->
 						N = erlang:unique_integer([positive]),
-						S1 = #subscriber{name = Identity,
+						S1 = #service{name = Identity,
 								password = Password,
 								attributes = Attributes,
 								buckets = Buckets,
@@ -544,17 +544,17 @@ add_subscriber(Identity, Password, Product, Characteristics, Buckets, Attributes
 -spec find_subscriber(Identity) -> Result  
 	when
 		Identity :: string() | binary(),
-		Result :: {ok, #subscriber{}} | {error, Reason},
+		Result :: {ok, #service{}} | {error, Reason},
 		Reason :: not_found | term().
 %% @doc Look up an entry in the subscriber table.
 find_subscriber(Identity) when is_list(Identity) ->
 	find_subscriber(list_to_binary(Identity));
 find_subscriber(Identity) when is_binary(Identity) ->
 	F = fun() ->
-				mnesia:read(subscriber, Identity, read)
+				mnesia:read(service, Identity, read)
 	end,
 	case mnesia:transaction(F) of
-		{atomic, [#subscriber{} = Subscriber]} ->
+		{atomic, [#service{} = Subscriber]} ->
 			{ok, Subscriber};
 		{atomic, []} ->
 			{error, not_found};
@@ -564,13 +564,13 @@ find_subscriber(Identity) when is_binary(Identity) ->
 
 -spec get_subscribers() -> Result
 	when
-		Result :: [#subscriber{}] | {error, Reason},
+		Result :: [#service{}] | {error, Reason},
 		Reason :: term().
 %% @doc Get all entries in the subscriber table.
 get_subscribers()->
 	MatchSpec = [{'_', [], ['$_']}],
 	F = fun(F, start, Acc) ->
-				F(F, mnesia:select(subscriber, MatchSpec,
+				F(F, mnesia:select(service, MatchSpec,
 						?CHUNKSIZE, read), Acc);
 			(_F, '$end_of_table', Acc) ->
 				lists:flatten(lists:reverse(Acc));
@@ -595,7 +595,7 @@ get_subscribers()->
 query_subscriber(start) ->
 	MatchSpec = [{'_', [], ['$_']}],
 	F = fun(F, start, Acc) ->
-				F(F, mnesia:select(subscriber, MatchSpec,
+				F(F, mnesia:select(service, MatchSpec,
 						?CHUNKSIZE, read), Acc);
 			(_F, '$end_of_table', Acc) ->
 				lists:flatten(lists:reverse(Acc));
@@ -619,7 +619,7 @@ delete_subscriber(Identity) when is_list(Identity) ->
 	delete_subscriber(list_to_binary(Identity));
 delete_subscriber(Identity) when is_binary(Identity) ->
 	F = fun() ->
-		mnesia:delete(subscriber, Identity, write)
+		mnesia:delete(service, Identity, write)
 	end,
 	case mnesia:transaction(F) of
 		{atomic, _} ->
@@ -644,10 +644,10 @@ update_password(Identity, Password)
 	update_password(Identity, list_to_binary(Password));
 update_password(Identity, Password) ->
 	F = fun() ->
-				case mnesia:read(subscriber, Identity, write) of
+				case mnesia:read(service, Identity, write) of
 					[Entry] ->
-						NewEntry = Entry#subscriber{password = Password},
-						mnesia:write(subscriber, NewEntry, write);
+						NewEntry = Entry#service{password = Password},
+						mnesia:write(service, NewEntry, write);
 					[] ->
 						throw(not_found)
 				end
@@ -674,10 +674,10 @@ update_attributes(Identity, Attributes) when is_list(Identity) ->
 update_attributes(Identity, Attributes)
 		when is_binary(Identity), is_list(Attributes) ->
 	F = fun() ->
-				case mnesia:read(subscriber, Identity, write) of
+				case mnesia:read(service, Identity, write) of
 					[Entry] ->
-						NewEntry = Entry#subscriber{attributes = Attributes},
-						mnesia:write(subscriber, NewEntry, write);
+						NewEntry = Entry#service{attributes = Attributes},
+						mnesia:write(service, NewEntry, write);
 					[] ->
 						throw(not_found)
 				end
@@ -711,15 +711,15 @@ update_attributes(Identity, Buckets, Attributes, EnabledStatus, MultiSession)
 update_attributes(Identity, Buckets, Attributes, EnabledStatus, MultiSession)
 		when is_binary(Identity), is_list(Attributes) ->
 	F = fun() ->
-				case mnesia:read(subscriber, Identity, write) of
+				case mnesia:read(service, Identity, write) of
 					[Entry] ->
 						TS = erlang:system_time(?MILLISECOND),
 						N = erlang:unique_integer([positive]),
 						NewBuckets = [B#bucket{last_modified = {TS, N}} || B <- Buckets],
-						NewEntry = Entry#subscriber{attributes = Attributes,
+						NewEntry = Entry#service{attributes = Attributes,
 							buckets = NewBuckets, enabled = EnabledStatus,
 							multisession = MultiSession, last_modified = {TS, N}},
-						mnesia:write(subscriber, NewEntry, write);
+						mnesia:write(service, NewEntry, write);
 					[] ->
 						throw(not_found)
 				end
@@ -1363,7 +1363,7 @@ charset() ->
 		ServiceType :: undefined | integer(),
 		Identity :: string() | binary(),
 		Password :: string() | binary(),
-		Result :: {ok, #subscriber{}} | {disabled, SessionsList} | {error, Reason},
+		Result :: {ok, #service{}} | {disabled, SessionsList} | {error, Reason},
 		SessionsList :: [{TimeStamp, SessionAttributes}],
 		TimeStamp :: integer(),
 		SessionAttributes :: [tuple()],
@@ -1371,7 +1371,7 @@ charset() ->
 %% @doc Authorize a subscriber.
 %%
 %% 	If the subscriber `enabled' field is `true' and have sufficient balance
-%%		set `disconnect' field to `false' and return {ok, #subscriber{password = `PSK'}}
+%%		set `disconnect' field to `false' and return {ok, #service{password = `PSK'}}
 %% 	where `PSK' is used for `Mikrotik-Wireless-Psk' and `Attributes' are
 %% 	additional attributes to be returned in an `Access-Accept' response.
 %% @private
@@ -1382,8 +1382,8 @@ authorize(ServiceType, Identity, Password) when is_list(Password) ->
 authorize(ServiceType, Identity, Password) when is_binary(Identity),
 		is_binary(Password) ->
 	F= fun() ->
-				case mnesia:read(subscriber, Identity, write) of
-					[#subscriber{buckets = Buckets, enabled = Enabled,
+				case mnesia:read(service, Identity, write) of
+					[#service{buckets = Buckets, enabled = Enabled,
 							disconnect = Disconnect} = Entry] ->
 						Now = erlang:system_time(?MILLISECOND),
 						F2 = fun(#bucket{remain_amount = Amount,
@@ -1403,12 +1403,12 @@ authorize(ServiceType, Identity, Password) when is_binary(Identity),
 						end,
 						case lists:any(F2, Buckets) of
 							true ->
-								case {Enabled, Disconnect, Entry#subscriber.password} of
+								case {Enabled, Disconnect, Entry#service.password} of
 									{true, false, Password} ->
 										Entry;
 									{true, true, Password} ->
-										NewEntry = Entry#subscriber{disconnect = false},
-										ok = mnesia:write(subscriber, NewEntry, write),
+										NewEntry = Entry#service{disconnect = false},
+										ok = mnesia:write(service, NewEntry, write),
 										NewEntry;
 									{true, false, MTPassword} when
 											Password == <<>>,
@@ -1417,13 +1417,13 @@ authorize(ServiceType, Identity, Password) when is_binary(Identity),
 									{true, true, MTPassword} when
 											Password == <<>>,
 											MTPassword =/= Password ->
-										NewEntry = Entry#subscriber{disconnect = false},
-										ok = mnesia:write(subscriber, NewEntry, write),
+										NewEntry = Entry#service{disconnect = false},
+										ok = mnesia:write(service, NewEntry, write),
 										NewEntry;
 									{false, _, Password} ->
-										SessionsList = Entry#subscriber.session_attributes,
-										NewEntry = Entry#subscriber{session_attributes = []},
-										ok = mnesia:write(subscriber, NewEntry, write),
+										SessionsList = Entry#service.session_attributes,
+										NewEntry = Entry#service{session_attributes = []},
+										ok = mnesia:write(service, NewEntry, write),
 										{disabled, SessionsList};
 									{_, _, _} ->
 										throw(bad_password)
@@ -1436,7 +1436,7 @@ authorize(ServiceType, Identity, Password) when is_binary(Identity),
 				end
 	end,
 	case mnesia:transaction(F) of
-		{atomic, #subscriber{} = S} ->
+		{atomic, #service{} = S} ->
 			{ok, S};
 		{atomic, SessionAttributes} ->
 			{disabled, SessionAttributes};
@@ -1627,7 +1627,7 @@ default_chars1([]) ->
 -spec subscription(Subscriber, Product, Characteristics, InitialFlag) ->
 		Subscriber
 	when
-		Subscriber :: #subscriber{},
+		Subscriber :: #service{},
 		Product :: #product{},
 		Characteristics :: [tuple()],
 		InitialFlag :: boolean().
@@ -1635,7 +1635,7 @@ default_chars1([]) ->
 %% 	If `InitialFlag' is `true' initial bucket preparation
 %% 	is done and one time prices are charged.
 %% @throws product_not_found
-subscription(#subscriber{last_modified = {Now, _}} = Subscriber,
+subscription(#service{last_modified = {Now, _}} = Subscriber,
 		#product{name = ProductName, bundle = [], price = Prices} = _Product,
 		Characteristics, InitialFlag) ->
 	Subscriber1 = subscription(Subscriber,
@@ -1643,8 +1643,8 @@ subscription(#subscriber{last_modified = {Now, _}} = Subscriber,
 	ProductInstance = #product_instance{start_date = Now,
 			product = ProductName, characteristics = Characteristics,
 			last_modified = {Now, erlang:unique_integer([positive])}},
-	Subscriber1#subscriber{product = ProductInstance};
-subscription(#subscriber{last_modified = {Now, _}} = Subscriber,
+	Subscriber1#service{product = ProductInstance};
+subscription(#service{last_modified = {Now, _}} = Subscriber,
 		#product{name = BundleName, bundle = Bundled, price = Prices},
 		Characteristics, InitialFlag) when length(Bundled) > 0 ->
 	F = fun(#bundled_po{name = P}, S) ->
@@ -1661,39 +1661,39 @@ subscription(#subscriber{last_modified = {Now, _}} = Subscriber,
 	ProductInstance = #product_instance{start_date = Now,
 			product = BundleName, characteristics = Characteristics,
 			last_modified = {Now, erlang:unique_integer([positive])}},
-	Subscriber2#subscriber{product = ProductInstance}.
+	Subscriber2#service{product = ProductInstance}.
 %% @hidden
-subscription(#subscriber{buckets = Buckets} = Subscriber,
+subscription(#service{buckets = Buckets} = Subscriber,
 		Characteristics, Now, true, [#price{type = one_time,
 		amount = Amount, alteration = undefined} | T]) ->
 	NewBuckets = charge(Amount, Buckets),
-	subscription(Subscriber#subscriber{buckets = NewBuckets},
+	subscription(Subscriber#service{buckets = NewBuckets},
 			Characteristics, Now, true, T);
-subscription(#subscriber{buckets = Buckets} = Subscriber,
+subscription(#service{buckets = Buckets} = Subscriber,
 		Characteristics, Now, true, [#price{type = one_time,
 		amount = PriceAmount, name = Name,
 		alteration = #alteration{units = Units, size = Size,
 		amount = AlterationAmount}} | T]) ->
 	NewBuckets = charge(PriceAmount + AlterationAmount,
 		[#bucket{units = Units, remain_amount = Size, prices = [Name]} | Buckets]),
-	subscription(Subscriber#subscriber{buckets = NewBuckets},
+	subscription(Subscriber#service{buckets = NewBuckets},
 			Characteristics, Now, true, T);
-subscription(#subscriber{buckets = Buckets} = Subscriber,
+subscription(#service{buckets = Buckets} = Subscriber,
 		Characteristics, Now, true, [#price{type = usage,
 		name = Name, alteration = #alteration{type = one_time,
 		units = Units, size = Size, amount = AlterationAmount}} | T]) ->
 	NewBuckets = charge(AlterationAmount, [#bucket{units = Units,
 		remain_amount = Size, prices = [Name]} | Buckets]),
-	subscription(Subscriber#subscriber{buckets = NewBuckets},
+	subscription(Subscriber#service{buckets = NewBuckets},
 			Characteristics, Now, true, T);
-subscription(#subscriber{buckets = Buckets} = Subscriber,
+subscription(#service{buckets = Buckets} = Subscriber,
 		Characteristics, Now, InitialFlag, [#price{type = recurring,
 		period = Period, amount = SubscriptionAmount,
 		alteration = undefined} | T]) when Period /= undefined ->
 	NewBuckets = charge(SubscriptionAmount, Buckets),
-	subscription(Subscriber#subscriber{buckets = NewBuckets},
+	subscription(Subscriber#service{buckets = NewBuckets},
 			Characteristics, Now, InitialFlag, T);
-subscription(#subscriber{buckets = Buckets} = Subscriber,
+subscription(#service{buckets = Buckets} = Subscriber,
 		Characteristics, Now, InitialFlag,
 		[#price{type = recurring, name = Name,
 		period = Period, amount = SubscriptionAmount,
@@ -1703,9 +1703,9 @@ subscription(#subscriber{buckets = Buckets} = Subscriber,
 	NewBuckets = charge(SubscriptionAmount + AllowanceAmount,
 			[#bucket{units = Units, remain_amount = Size, name = Name,
 			termination_date = end_period(Now, Period)} | Buckets]),
-	subscription(Subscriber#subscriber{buckets = NewBuckets},
+	subscription(Subscriber#service{buckets = NewBuckets},
 			Characteristics, Now, InitialFlag, T);
-subscription(#subscriber{buckets = Buckets} = Subscriber,
+subscription(#service{buckets = Buckets} = Subscriber,
 		Characteristics, Now, InitialFlag, [#price{type = usage,
 		name = Name, alteration = #alteration{type = recurring,
 		period = Period, units = Units, size = Size,
@@ -1714,15 +1714,15 @@ subscription(#subscriber{buckets = Buckets} = Subscriber,
 	NewBuckets = charge(Amount, [#bucket{units = Units,
 			remain_amount = Size, prices = [Name],
 			termination_date = end_period(Now, Period)} | Buckets]),
-	subscription(Subscriber#subscriber{buckets = NewBuckets},
+	subscription(Subscriber#service{buckets = NewBuckets},
 			Characteristics, Now, InitialFlag, T);
 subscription(Subscriber, Characteristics, Now, InitialFlag, [_H | T]) ->
 	subscription(Subscriber, Characteristics, Now, InitialFlag, T);
-subscription(#subscriber{buckets = Buckets} = Subscriber, _, Now, _, []) ->
+subscription(#service{buckets = Buckets} = Subscriber, _, Now, _, []) ->
 	NewBuckets = [B#bucket{last_modified = {Now,
 			erlang:unique_integer([positive])},
 			id = generate_bucket_id()} || B <- Buckets],
-	Subscriber#subscriber{buckets = NewBuckets}.
+	Subscriber#service{buckets = NewBuckets}.
 
 %% @hidden
 generate_bucket_id() ->

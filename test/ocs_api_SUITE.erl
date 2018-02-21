@@ -173,11 +173,11 @@ add_subscriber(Config) ->
 	Buckets = [#bucket{units = cents, remain_amount = 3000}],
 	{ok, _} = ocs:add_subscriber("tomba", Password1, ProdID, [], Buckets, Attribute1),
 	{ok, _} = ocs:add_subscriber("android", Password2, ProdID, [], Buckets, Attribute2),
-	{ok, #subscriber{password = BinPassword1, attributes = Attribute1,
+	{ok, #service{password = BinPassword1, attributes = Attribute1,
 			product = #product_instance{product = ProdID}}} = 
 			ocs:find_subscriber("tomba"),
 	Password1 = binary_to_list(BinPassword1),
-	{ok, #subscriber{password = BinPassword2, attributes = Attribute2,
+	{ok, #service{password = BinPassword2, attributes = Attribute2,
 			product = #product_instance{product = ProdID}}} = ocs:find_subscriber("android"),
 	Password2 = binary_to_list(BinPassword2).
 
@@ -207,12 +207,12 @@ update_password(Config) ->
 	OldPassword = ocs:generate_password(),
 	Buckets = [#bucket{units = cents, remain_amount = 3000}],
 	{ok, _} = ocs:add_subscriber(Subscriber, OldPassword, ProdID, [], Buckets, Attribute),
-	{ok, #subscriber{password = BinOldPassword, attributes = Attribute}} =
+	{ok, #service{password = BinOldPassword, attributes = Attribute}} =
 			ocs:find_subscriber(Subscriber),
 	OldPassword = binary_to_list(BinOldPassword),
 	NewPassword = ocs:generate_password(),
 	ok = ocs:update_password(Subscriber, NewPassword),
-	{ok, #subscriber{password = BinNewPassword}} = ocs:find_subscriber(Subscriber),
+	{ok, #service{password = BinNewPassword}} = ocs:find_subscriber(Subscriber),
 	NewPassword = binary_to_list(BinNewPassword).
 
 update_attributes() ->
@@ -226,10 +226,10 @@ update_attributes(Config) ->
 	Attribute1 = radius_attributes:add(?SessionTimeout, 3600, Attribute0),
 	Buckets = [#bucket{units = cents, remain_amount = 3000}],
 	{ok, _} = ocs:add_subscriber(Username, Password, ProdID, [], Buckets, Attribute1),
-	{ok, #subscriber{attributes = Attribute1}} = ocs:find_subscriber(Username),
+	{ok, #service{attributes = Attribute1}} = ocs:find_subscriber(Username),
 	Attribute2 = radius_attributes:add(?AcctInterimInterval, 60, Attribute0),
 	ok = ocs:update_attributes(Username, Attribute2),
-	{ok, #subscriber{attributes = Attribute2}} = ocs:find_subscriber(Username).
+	{ok, #service{attributes = Attribute2}} = ocs:find_subscriber(Username).
 
 add_product() ->
 	[{userdata, [{doc, "Add a product offering."}]}].
