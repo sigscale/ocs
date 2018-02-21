@@ -25,6 +25,8 @@
 -export([add_client/2, add_client/3, add_client/5, find_client/1,
 		update_client/2, update_client/3, get_clients/0, delete_client/1,
 		query_clients/6]).
+-export([add_service/3, add_service/4, add_service/6,
+		add_subscription/2, add_subscription/4]).
 -export([add_subscriber/3, add_subscriber/4, add_subscriber/5,
 		add_subscriber/6, add_subscriber/8, find_service/1,
 		delete_service/1, get_services/0, query_service/1]).
@@ -349,6 +351,185 @@ query_clients4(Clients, undefined) ->
 query_clients4(Clients, Address) ->
 	Fun = fun(#client{address = A}) -> lists:prefix(Address, inet:ntoa(A)) end,
 	{eof, lists:filter(Fun, Clients)}.
+
+-spec add_subscription(Offer, Characteristics) -> Result
+	when
+		Offer :: string(),
+		Characteristics :: [tuple()],
+		Result :: {ok, #product{}} | {error, Reason},
+		Reason :: term().
+%% @equiv add_subscription(Offer, undefined, undefined, Characteristics)
+add_subscription(Offer, Characteristics) ->
+	add_subscription(Offer, undefined, undefined, Characteristics).
+
+-spec add_subscription(Offer, StartDate, EndDate, Characteristics) -> Result
+	when
+		Offer :: string(),
+		StartDate :: undefined | pos_integer(),
+		EndDate :: undefined | pos_integer(),
+		Characteristics :: [tuple()],
+		Result :: {ok, #product{}} | {error, Reason},
+		Reason :: term().
+%% @doc Add a product invenotry subscription instance.
+add_subscription(Offer, StartDate, EndDate, Characteristics)
+		when (is_integer(StartDate) orelse (StartDate == undefined)),
+		(is_integer(EndDate) orelse (EndDate == undefined)),
+		is_list(Characteristics), is_list(Offer) ->
+	F = fun() ->
+			case mnesia:read(offer, Offer, read) of
+				[#offer{char_value_use = CharValueUse}] ->
+					TS = erlang:system_time(?MILLISECOND),
+					N = erlang:unique_integer([positive]),
+					LM = {TS, N},
+					Id = ocs_rest:etag(LM),
+					NewChars = default_chars(CharValueUse, Characteristics),
+					Product = #product{id = Id, product = Offer, start_date = StartDate,
+							termination_date = EndDate, characteristics = NewChars,
+							last_modified = LM},
+					ok = mnesia:write(Product),
+					Product;
+				[] ->
+					throw(offer_not_found)
+			end
+	end,
+	case mnesia:transaction(F) of
+		{atomic, Product} ->
+			{ok, Product};
+		{aborted, {throw, Reason}} ->
+			{error, Reason};
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+
+-spec add_service(Identity, Password, ProductRef) -> Result
+	when
+		Identity :: string() | binary(),
+		Password :: string() | binary(),
+		ProductRef :: string() | undefined,
+		Result :: {ok, #service{}} | {error, Reason},
+		Reason :: term().
+%% @equiv add_service(Identity, Password, ProductRef, [], [], true, false)
+add_service(Identity, Password, ProductRef) ->
+	add_service(Identity, Password, ProductRef, [], true, false).
+
+-spec add_service(Identity, Password, ProductRef, Attributes) -> Result
+	when
+		Identity :: string() | binary(),
+		Password :: string() | binary(),
+		ProductRef :: string() | undefined,
+		Attributes :: radius_attributes:attributes() | binary(),
+		Result :: {ok, #service{}} | {error, Reason},
+		Reason :: term().
+%% @equiv add_service(Identity, Password, ProductRef, Attributes, true, false)
+add_service(Identity, Password, ProductRef, Attributes) ->
+	add_service(Identity, Password, ProductRef, Attributes, true, false).
+
+-spec add_service(Identity, Password, ProductRef,
+		Attributes, EnabledStatus, MultiSessions) -> Result
+	when
+		Identity :: string() | binary() | undefined,
+		Password :: string() | binary() | undefined,
+		ProductRef :: string() | undefined,
+		Attributes :: radius_attributes:attributes() | binary(),
+		EnabledStatus :: boolean() | undefined,
+		MultiSessions :: boolean() | undefined,
+		Result :: {ok, #service{}} | {error, Reason},
+		Reason :: term().
+%% @doc Create an entry in the service table.
+%%
+%% 	Authentication will be done using `Password'. An optional list of
+%% 	RADIUS `Attributes', to be returned in an `AccessRequest' response,
+%% 	may be provided.  These attributes will overide any default values.
+%%
+%% 	`ProductRef' key for product invenotry reference,
+%%		`Enabled' status and `MultiSessions' status may be provided.
+%%
+add_service(Identity, Password, ProductRef, Attributes, EnabledStatus, undefined) ->
+	add_service(Identity, Password, ProductRef, Attributes, EnabledStatus, false);
+add_service(Identity, Password, ProductRef, Attributes, undefined, MultiSession) ->
+	add_service(Identity, Password, ProductRef, Attributes, true, MultiSession);
+add_service(Identity, Password, ProductRef, undefined, EnabledStatus, MultiSession) ->
+	add_service(Identity, Password, ProductRef, [], EnabledStatus, MultiSession);
+add_service(Identity, Password, undefined, Attributes, EnabledStatus, MultiSession) ->
+	add_service(Identity, Password, [], Attributes, EnabledStatus, MultiSession);
+add_service(Identity, undefined, ProductRef, Attributes, EnabledStatus, MultiSession) ->
+	add_service(Identity, ocs:generate_password(), ProductRef, Attributes, EnabledStatus, MultiSession);
+add_service(Identity, Password, ProductRef, Attributes, EnabledStatus, MultiSession) when is_list(Identity) ->
+	add_service(list_to_binary(Identity), Password, ProductRef, Attributes, EnabledStatus, MultiSession);
+add_service(Identity, Password, ProductRef, Attributes, EnabledStatus, MultiSession) when is_list(Password) ->
+	add_service(Identity, list_to_binary(Password), ProductRef, Attributes, EnabledStatus, MultiSession);
+add_service(undefined, Password, ProductRef, Attributes, EnabledStatus, MultiSession) when is_binary(Password),
+		is_list(ProductRef), is_list(Attributes), is_boolean(EnabledStatus), is_boolean(MultiSession) ->
+	F1 = fun() ->
+			case mnesia:read(product, ProductRef, write) of
+				[#product{service = ServiceRefs} = P1] ->
+					Now = erlang:system_time(?MILLISECOND),
+					N = erlang:unique_integer([positive]),
+					S1 = #service{password = Password,
+						product = ProductRef,
+						attributes = Attributes,
+						enabled = EnabledStatus,
+						multisession = MultiSession,
+						last_modified = {Now, N}},
+					F3 = fun(_, _, 0) ->
+								mnesia:abort(retries);
+							(F, Identity, I) ->
+								case mnesia:read(service, Identity, read) of
+									[] ->
+										S2 = S1#service{name = Identity},
+										ok = mnesia:write(S2),
+										P2 = P1#product{service = [Identity | ServiceRefs]},
+										ok = mnesia:write(P2),
+										S2;
+									[_] ->
+										F(F, list_to_binary(generate_identity()), I - 1)
+								end
+					end,
+					F3(F3, list_to_binary(generate_identity()), 5);
+				[] ->
+					throw(product_inventory_not_found)
+			end
+	end,
+	case mnesia:transaction(F1) of
+		{atomic, Service} ->
+			{ok, Service};
+		{aborted, Reason} ->
+			{error, Reason}
+	end;
+add_service(Identity, Password, ProductRef, Attributes, EnabledStatus, MultiSession)
+		when is_binary(Identity), size(Identity) > 0, is_binary(Password), is_list(ProductRef),
+		is_list(Attributes), is_boolean(EnabledStatus), is_boolean(MultiSession) ->
+	F1 = fun() ->
+				case mnesia:read(product, ProductRef, read) of
+					[#product{service = ServiceRefs} = P1] ->
+						Now = erlang:system_time(?MILLISECOND),
+						N = erlang:unique_integer([positive]),
+						P2 = P1#product{service = [Identity | ServiceRefs]},
+						ok = mnesia:write(P2),
+						S1 = #service{name = Identity,
+								password = Password,
+								product = ProductRef,
+								attributes = Attributes,
+								enabled = EnabledStatus,
+								multisession = MultiSession,
+								last_modified = {Now, N}},
+						ok = mnesia:write(S1),
+						S1;
+					[] ->
+						throw(offer_not_found)
+				end
+	end,
+	case mnesia:transaction(F1) of
+		{atomic, Service} ->
+			{ok, Service};
+		{aborted, Reason} ->
+			{error, Reason}
+	end.
+
+
+
+
+
 
 -spec add_subscriber(Identity, Password, Offer) -> Result
 	when
