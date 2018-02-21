@@ -56,7 +56,7 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
-	{ok, ProdID} = ocs_test_lib:add_product(),
+	{ok, ProdID} = ocs_test_lib:add_offer(),
 	[{product_id, ProdID} | Config].
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
@@ -89,8 +89,8 @@ sequences() ->
 %%
 all() -> 
 	[client, get_all_clients, update_client_password, delete_client,
-	add_service, delete_service, add_product, find_product, get_products,
-	delete_product, add_user, get_user, delete_user].
+	add_service, delete_service, add_offer, find_offer, get_offers,
+	delete_offer, add_user, get_user, delete_user].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -195,10 +195,10 @@ delete_service(Config) ->
 	ok = ocs:delete_service(Subscriber),
 	{error, _} = ocs:find_service(Subscriber).
 
-add_product() ->
+add_offer() ->
 	[{userdata, [{doc, "Add a product offering."}]}].
 
-add_product(_Config) ->
+add_offer(_Config) ->
 	SD = erlang:system_time(?MILLISECOND),
 	Price1 = #price{name = "Installation",
 			description = "One time installation fee.",
@@ -214,16 +214,16 @@ add_product(_Config) ->
 			start_date = SD, type = usage, size = 1000000000,
 			amount = 100, units = octets},
 	Prices = [Price1, Price2, Price3],
-	Product = #product{name = "Silver Surfer",
+	Product = #offer{name = "Silver Surfer",
 			description = "Medium use residential subscription.",
 			start_date = SD, status = active,
 			price = Prices},
-	{ok, _Product1} = ocs:add_product(Product).
+	{ok, _Product1} = ocs:add_offer(Product).
 
-find_product() ->
+find_offer() ->
 	[{userdata, [{doc, "Find a product offering."}]}].
 
-find_product(_Config) ->
+find_offer(_Config) ->
 	SD = erlang:system_time(?MILLISECOND),
 	ED = SD + 108000000,
 	Price1 = #price{name = "P1", description = "D1",
@@ -240,16 +240,16 @@ find_product(_Config) ->
 					size = 150000000, amount = 0}},
 	Prices = [Price1, Price2],
 	ProductName = "PD1",
-	Product = #product{name = ProductName, description = "PDD1",
+	Product = #offer{name = ProductName, description = "PDD1",
 			start_date = SD, end_date = ED, status = active,
 			price = Prices},
-	{ok, _Product1} = ocs:add_product(Product),
-	{ok, #product{name = ProductName}} = ocs:find_product(ProductName).
+	{ok, _Product1} = ocs:add_offer(Product),
+	{ok, #offer{name = ProductName}} = ocs:find_offer(ProductName).
 
-get_products() ->
+get_offers() ->
 	[{userdata, [{doc, "Get all products from product table database"}]}].
 
-get_products(_Config) ->
+get_offers(_Config) ->
 	F1 = fun(_, 0, Acc) ->
 				Acc;
 			(F, N, Acc) ->
@@ -262,30 +262,30 @@ get_products(_Config) ->
 						type = usage, units = octets,
 						size = 150000000, amount = 0}},
 		Prices = [Price1, Price2],
-		Product = #product{name = ProductName,
+		Product = #offer{name = ProductName,
 				status = active, price = Prices},
-		{ok, _Product1} =  ocs:add_product(Product),
+		{ok, _Product1} =  ocs:add_offer(Product),
 		F(F, N - 1, [ProductName | Acc])
 	end,
 	NewProducts = F1(F1, 3, []),
-	[] = NewProducts -- [Name || #product{name = Name} <- ocs:get_products()].
+	[] = NewProducts -- [Name || #offer{name = Name} <- ocs:get_offers()].
 
-delete_product() ->
+delete_offer() ->
 	[{userdata, [{doc, "Remove a product from product table"}]}].
 
-delete_product(_Config) ->
+delete_offer(_Config) ->
 	Price1 = #price{name = "Daily price",
 			type = recurring, period = daily, amount = 330},
 	Price2 = #price{name = "Monthly price", units = octets,
 			type = usage, size = 1000000, amount = 6},
 	Prices = [Price1, Price2],
 	ProductName = "Mobile-Internet",
-	Product = #product{name = ProductName,
+	Product = #offer{name = ProductName,
 			description = "Monthly subscription for mobile internet",
 			status = active, price = Prices},
-	{ok, _Product1} = ocs:add_product(Product),
-	ok = ocs:delete_product(ProductName),
-	{error, not_found} = ocs:find_product(ProductName).
+	{ok, _Product1} = ocs:add_offer(Product),
+	ok = ocs:delete_offer(ProductName),
+	{error, not_found} = ocs:find_offer(ProductName).
 
 add_user() ->
 	[{userdata, [{doc, "Create a new user"}]}].

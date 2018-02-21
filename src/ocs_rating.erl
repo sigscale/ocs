@@ -99,15 +99,15 @@ rate(Protocol, ServiceType, SubscriberID, Timestamp, Address, Direction,
 				[#service{buckets = Buckets, product =
 						#product_instance{product = ProdID,
 						characteristics = Chars}} = Subscriber] ->
-					case mnesia:read(product, ProdID, read) of
-						[#product{} = Product] ->
+					case mnesia:read(offer, ProdID, read) of
+						[#offer{} = Offer] ->
 							Validity = proplists:get_value(validity, Chars),
 							Subscriber1 = Subscriber#service{buckets = due(Buckets)},
 							rate1(Protocol, ServiceType, Subscriber1, Timestamp,
-									Address, Direction, Product, Validity, Flag,
+									Address, Direction, Offer, Validity, Flag,
 									DebitAmounts, ReserveAmounts, SessionAttributes);
 						[] ->
-							throw(product_not_found)
+							throw(offer_not_found)
 					end;
 				[] ->
 					throw(service_not_found)
@@ -127,12 +127,12 @@ rate(Protocol, ServiceType, SubscriberID, Timestamp, Address, Direction,
 	end.
 %% @hidden
 rate1(Protocol, ServiceType, Subscriber, Timestamp, Address, Direction,
-		#product{specification = undefined, bundle = Bundle},
+		#offer{specification = undefined, bundle = Bundle},
 		Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes) ->
 	try
-		F = fun(#bundled_po{name = ProdId}, Acc) ->
-				case mnesia:read(product, ProdId, read) of
-					[#product{specification = Spec, status = Status} = P] when
+		F = fun(#bundled_po{name = OfferId}, Acc) ->
+				case mnesia:read(offer, OfferId, read) of
+					[#offer{specification = Spec, status = Status} = P] when
 							((Status == active) orelse (Status == undefined))
 							and
 							(((Protocol == radius)
@@ -151,21 +151,21 @@ rate1(Protocol, ServiceType, Subscriber, Timestamp, Address, Direction,
 						Acc
 				end
 		end,
-		[#product{} = Product | _] = lists:foldl(F, [], Bundle),
-		rate2(Protocol, Subscriber, Timestamp, Address, Direction, Product,
+		[#offer{} = Offer | _] = lists:foldl(F, [], Bundle),
+		rate2(Protocol, Subscriber, Timestamp, Address, Direction, Offer,
 				Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes)
 	catch
 		_:_ ->
 			throw(invalid_bundle_product)
 	end;
 rate1(Protocol, _ServiceType, Subscriber, Timestamp, Address, Direction,
-		Product, Validity, Flag, DebitAmounts, ReserveAmounts,
+		Offer, Validity, Flag, DebitAmounts, ReserveAmounts,
 		SessionAttributes) ->
-	rate2(Protocol, Subscriber, Timestamp, Address, Direction, Product,
+	rate2(Protocol, Subscriber, Timestamp, Address, Direction, Offer,
 		Validity, Flag, DebitAmounts, ReserveAmounts, SessionAttributes).
 %% @hidden
 rate2(Protocol, Subscriber, Timestamp, Address, Direction,
-		#product{specification = ProdSpec, price = Prices},
+		#offer{specification = ProdSpec, price = Prices},
 		Validity, Flag, DebitAmounts, ReserveAmounts,
 		SessionAttributes) when ProdSpec == "5"; ProdSpec == "9" ->
 	F = fun(#price{type = tariff, units = seconds}) ->
@@ -185,7 +185,7 @@ rate2(Protocol, Subscriber, Timestamp, Address, Direction,
 			throw(price_not_found)
 	end;
 rate2(Protocol, Subscriber, Timestamp, _Address, _Direction,
-		#product{price = Prices}, Validity, Flag,
+		#offer{price = Prices}, Validity, Flag,
 		DebitAmounts, ReserveAmounts, SessionAttributes) ->
 	F = fun(#price{type = usage}) ->
 				true;
@@ -449,7 +449,7 @@ rate6(Subscriber, interim, _Charge, _Charged, _Reserve, Reserved, _SessionId) ->
 		Attributes :: [tuple()],
 		SessionList :: [tuple()],
 		Reason :: disabled | bad_password | subscriber_not_found
-				| out_of_credit | product_not_found | invalid_bundle_product
+				| out_of_credit | offer_not_found | invalid_bundle_product
 				| price_not_found | table_lookup_failed.
 %% @doc Authorize access request.
 %% 	If authorized returns attributes to be included in `Access-Accept' response.
@@ -500,7 +500,7 @@ authorize(Protocol, ServiceType, SubscriberId, Password, Timestamp,
 %% @hidden
 authorize1(radius, ServiceType,
 		#service{attributes = Attributes,
-		product = #product_instance{product = ProdId,
+		product = #product_instance{product = OfferId,
 		characteristics = Chars}} = Subscriber, Timestamp,
 		Address, Direction, SessionAttributes) ->
 	F = fun({'Session-Id', _}) ->
@@ -514,12 +514,12 @@ authorize1(radius, ServiceType,
 		true ->
 			case lists:keyfind("radiusReserveSessionTime", 1, Chars) of
 				{_, RRST} when is_integer(RRST) ->
-					case mnesia:read(product, ProdId, read) of
-						[#product{} = P] ->
+					case mnesia:read(offer, OfferId, read) of
+						[#offer{} = P] ->
 							authorize2(radius, ServiceType, Subscriber, P,
 									Timestamp, Address, Direction, SessionAttributes, RRST);
 						[] ->
-							throw(product_not_found)
+							throw(offer_not_found)
 					end;
 				false ->
 					authorize5(Subscriber, ServiceType, SessionAttributes, Attributes)
@@ -534,13 +534,13 @@ authorize1(diameter, ServiceType,
 %% @hidden
 authorize2(radius = Protocol, ServiceType,
 		#service{attributes = Attributes} = Subscriber, Timestamp,
-		#product{specification = undefined, bundle = Bundle},
+		#offer{specification = undefined, bundle = Bundle},
 		Address, Direction, SessionAttributes, Reserve)
 		when Reserve > 0, Bundle /= [] ->
 	try
-		F = fun(#bundled_po{name = ProdId}, Acc) ->
-				case mnesia:read(product, ProdId, read) of
-					[#product{specification = Spec, status = Status} = P] when
+		F = fun(#bundled_po{name = OfferId}, Acc) ->
+				case mnesia:read(offer, OfferId, read) of
+					[#offer{specification = Spec, status = Status} = P] when
 							((Status == active) orelse (Status == undefined))
 							and
 							(((Protocol == radius)
@@ -555,8 +555,8 @@ authorize2(radius = Protocol, ServiceType,
 				end
 		end,
 		case lists:foldl(F, [], Bundle) of
-			[#product{} = Product | _] ->
-				authorize2(Protocol, ServiceType, Subscriber, Product,
+			[#offer{} = Offer | _] ->
+				authorize2(Protocol, ServiceType, Subscriber, Offer,
 						Timestamp, Address, Direction, SessionAttributes, Reserve);
 			[] ->
 				authorize5(Subscriber, ServiceType, SessionAttributes, Attributes)
@@ -567,7 +567,7 @@ authorize2(radius = Protocol, ServiceType,
 	end;
 authorize2(radius = Protocol, ServiceType,
 		#service{attributes = Attributes} = Subscriber,
-		#product{specification = ProdSpec, price = Prices},
+		#offer{specification = ProdSpec, price = Prices},
 		Timestamp, Address, Direction, SessionAttributes,
 		Reserve) when (Reserve > 0)
 		and ((ProdSpec == "9") orelse (ProdSpec == "5")) ->
@@ -589,7 +589,7 @@ authorize2(radius = Protocol, ServiceType,
 	end;
 authorize2(radius = Protocol, ServiceType,
 		#service{attributes = Attributes} = Subscriber,
-		#product{specification = ProdSpec, price = Prices},
+		#offer{specification = ProdSpec, price = Prices},
 		Timestamp, _Address, _Direction, SessionAttributes,
 		Reserve) when (Reserve > 0)
 		and ((ProdSpec == "8") orelse (ProdSpec == "4")) ->
@@ -607,7 +607,7 @@ authorize2(radius = Protocol, ServiceType,
 			authorize5(Subscriber, ServiceType, SessionAttributes, Attributes)
 	end;
 authorize2(_Protocol, ServiceType,
-		#service{attributes = Attributes} = Subscriber, _Product,
+		#service{attributes = Attributes} = Subscriber, _Offer,
 		_Timestamp, _Address, _Direction, SessionAttributes, _Reserve) ->
 	authorize5(Subscriber, ServiceType, SessionAttributes, Attributes).
 %% @hidden

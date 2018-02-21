@@ -114,7 +114,7 @@
 		upper_limit :: non_neg_integer() | undefined,
 		default :: non_neg_integer() | undefined}).
 
--record(product,
+-record(offer,
 		{name :: '_' | string() | undefined,
 		description :: '_' | string() | undefined,
 		start_date :: '_' | pos_integer() | undefined,
@@ -149,7 +149,7 @@
 		payment = [] :: [{Price :: string(), DueDate :: pos_integer()}],
 		last_modified :: tuple() | undefined}).
 
-%% define subscriber table entries record
+%% define service table entries record
 -record(service,
 		{name :: binary() | undefined,
 		password :: binary() | undefined,

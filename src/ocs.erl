@@ -30,8 +30,8 @@
 		delete_service/1, get_services/0, query_service/1]).
 -export([add_user/3, list_users/0, get_user/1, delete_user/1,
 		query_users/3, update_user/3]).
--export([add_product/1, find_product/1, get_products/0, delete_product/1,
-		query_product/7]).
+-export([add_offer/1, find_offer/1, get_offers/0, delete_offer/1,
+		query_offer/7]).
 -export([add_pla/1, add_pla/2, find_pla/1, get_plas/0, delete_pla/1, query_table/6]).
 -export([generate_password/0, generate_identity/0]).
 -export([start/4, start/5]).
@@ -350,65 +350,65 @@ query_clients4(Clients, Address) ->
 	Fun = fun(#client{address = A}) -> lists:prefix(Address, inet:ntoa(A)) end,
 	{eof, lists:filter(Fun, Clients)}.
 
--spec add_service(Identity, Password, Product) -> Result
+-spec add_service(Identity, Password, Offer) -> Result
 	when
 		Identity :: string() | binary(),
 		Password :: string() | binary(),
-		Product :: string() | undefined,
+		Offer :: string() | undefined,
 		Result :: {ok, #service{}} | {error, Reason},
 		Reason :: term().
-%% @equiv add_service(Identity, Password, Product, [], [], [], true, false)
-add_service(Identity, Password, Product) ->
-	add_service(Identity, Password, Product, [], [], [], true, false).
+%% @equiv add_service(Identity, Password, Offer, [], [], [], true, false)
+add_service(Identity, Password, Offer) ->
+	add_service(Identity, Password, Offer, [], [], [], true, false).
 
--spec add_service(Identity, Password, Product, Characteristics) -> Result
+-spec add_service(Identity, Password, Offer, Characteristics) -> Result
 	when 
 		Identity :: string() | binary(),
 		Password :: string() | binary(),
-		Product :: string() | undefined,
+		Offer :: string() | undefined,
 		Characteristics :: [tuple()],
 		Result :: {ok, #service{}} | {error, Reason},
 		Reason :: term().
-%% @equiv add_service(Identity, Password, Product, Characteristics, Buckets, [], true, false)
-add_service(Identity, Password, Product, Characteristics) ->
-	add_service(Identity, Password, Product, Characteristics, [], [], true, false).
+%% @equiv add_service(Identity, Password, Offer, Characteristics, Buckets, [], true, false)
+add_service(Identity, Password, Offer, Characteristics) ->
+	add_service(Identity, Password, Offer, Characteristics, [], [], true, false).
 
--spec add_service(Identity, Password, Product, Characteristics, Buckets) -> Result
+-spec add_service(Identity, Password, Offer, Characteristics, Buckets) -> Result
 	when 
 		Identity :: string() | binary(),
 		Password :: string() | binary(),
-		Product :: string() | undefined,
+		Offer :: string() | undefined,
 		Characteristics :: [tuple()],
 		Buckets :: [#bucket{}],
 		Result :: {ok, #service{}} | {error, Reason},
 		Reason :: term().
-%% @equiv add_service(Identity, Password, Product, Characteristics, Buckets, [], true, false)
-add_service(Identity, Password, Product, Characteristics, Buckets) ->
-	add_service(Identity, Password, Product, Characteristics, Buckets, [], true, false).
+%% @equiv add_service(Identity, Password, Offer, Characteristics, Buckets, [], true, false)
+add_service(Identity, Password, Offer, Characteristics, Buckets) ->
+	add_service(Identity, Password, Offer, Characteristics, Buckets, [], true, false).
 
--spec add_service(Identity, Password, Product,
+-spec add_service(Identity, Password, Offer,
 		Characteristics, Buckets, Attributes) -> Result
 	when 
 		Identity :: string() | binary(),
 		Password :: string() | binary(),
-		Product :: string() | undefined,
+		Offer :: string() | undefined,
 		Characteristics :: [tuple()],
 		Buckets :: [#bucket{}],
 		Attributes :: radius_attributes:attributes() | binary(),
 		Result :: {ok, #service{}} | {error, Reason},
 		Reason :: term().
-%% @equiv add_service(Identity, Password, Product,
+%% @equiv add_service(Identity, Password, Offer,
 %%		Characteristics, Buckets, Attributes, true, false)
-add_service(Identity, Password, Product, Characteristics, Buckets, Attributes) ->
-	add_service(Identity, Password, Product,
+add_service(Identity, Password, Offer, Characteristics, Buckets, Attributes) ->
+	add_service(Identity, Password, Offer,
 			Characteristics, Buckets, Attributes, true, false).
 
--spec add_service(Identity, Password, Product,
+-spec add_service(Identity, Password, Offer,
 		Characteristics, Buckets, Attributes, EnabledStatus, MultiSessions) -> Result
 	when
 		Identity :: string() | binary() | undefined,
 		Password :: string() | binary() | undefined,
-		Product :: string() | undefined,
+		Offer :: string() | undefined,
 		Characteristics :: [tuple()] | undefined,
 		Buckets :: [#bucket{}] | undefined,
 		Attributes :: radius_attributes:attributes() | binary(),
@@ -422,50 +422,50 @@ add_service(Identity, Password, Product, Characteristics, Buckets, Attributes) -
 %% 	RADIUS `Attributes', to be returned in an `AccessRequest' response,
 %% 	may be provided.  These attributes will overide any default values.
 %%
-%% 	An initial account `Bucket', `Product' key for product reference
+%% 	An initial account `Bucket', `Offer' key for offer reference
 %%		`Enabled' status and `MultiSessions' status may be provided.
 %%
-add_service(Identity, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, undefined) ->
-	add_service(Identity, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, false);
-add_service(Identity, Password, Product, Characteristics, Buckets, Attributes, undefined, MultiSession) ->
-	add_service(Identity, Password, Product, Characteristics, Buckets, Attributes, true, MultiSession);
-add_service(Identity, Password, Product, Characteristics, Buckets, undefined, EnabledStatus, MultiSession) ->
-	add_service(Identity, Password, Product, Characteristics, Buckets, [], EnabledStatus, MultiSession);
-add_service(Identity, Password, Product, Characteristics, undefined, Attributes, EnabledStatus, MultiSession) ->
-	add_service(Identity, Password, Product, Characteristics, [], Attributes, EnabledStatus, MultiSession);
-add_service(Identity, Password, Product, undefined, Buckets, Attributes, EnabledStatus, MultiSession) ->
-	add_service(Identity, Password, Product, [], Buckets, Attributes, EnabledStatus, MultiSession);
+add_service(Identity, Password, Offer, Characteristics, Buckets, Attributes, EnabledStatus, undefined) ->
+	add_service(Identity, Password, Offer, Characteristics, Buckets, Attributes, EnabledStatus, false);
+add_service(Identity, Password, Offer, Characteristics, Buckets, Attributes, undefined, MultiSession) ->
+	add_service(Identity, Password, Offer, Characteristics, Buckets, Attributes, true, MultiSession);
+add_service(Identity, Password, Offer, Characteristics, Buckets, undefined, EnabledStatus, MultiSession) ->
+	add_service(Identity, Password, Offer, Characteristics, Buckets, [], EnabledStatus, MultiSession);
+add_service(Identity, Password, Offer, Characteristics, undefined, Attributes, EnabledStatus, MultiSession) ->
+	add_service(Identity, Password, Offer, Characteristics, [], Attributes, EnabledStatus, MultiSession);
+add_service(Identity, Password, Offer, undefined, Buckets, Attributes, EnabledStatus, MultiSession) ->
+	add_service(Identity, Password, Offer, [], Buckets, Attributes, EnabledStatus, MultiSession);
 add_service(Identity, Password, undefined, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession) ->
 	add_service(Identity, Password, [], Characteristics, Buckets, Attributes, EnabledStatus, MultiSession);
-add_service(Identity, undefined, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession) ->
+add_service(Identity, undefined, Offer, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession) ->
 	add_service(Identity, ocs:generate_password(),
-			Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession);
-add_service(Identity, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
+			Offer, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession);
+add_service(Identity, Password, Offer, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
 		when is_list(Identity) ->
-	add_service(list_to_binary(Identity), Password, Product, Characteristics, Buckets,
+	add_service(list_to_binary(Identity), Password, Offer, Characteristics, Buckets,
 			Attributes, EnabledStatus, MultiSession);
-add_service(Identity, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
+add_service(Identity, Password, Offer, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
 		when is_list(Password) ->
-	add_service(Identity, list_to_binary(Password), Product, Characteristics, Buckets,
+	add_service(Identity, list_to_binary(Password), Offer, Characteristics, Buckets,
 			Attributes, EnabledStatus, MultiSession);
-add_service(undefined, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
-		when is_binary(Password), is_list(Product), is_list(Buckets), is_list(Attributes),
+add_service(undefined, Password, Offer, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
+		when is_binary(Password), is_list(Offer), is_list(Buckets), is_list(Attributes),
 		is_boolean(EnabledStatus), is_boolean(MultiSession) ->
 	Now = erlang:system_time(?MILLISECOND),
 	F1 = fun() ->
-				ProductId = case Product of
+				OfferId = case Offer of
 					[] ->
-						case mnesia:first(product) of
+						case mnesia:first(offer) of
 							'$end_of_table' ->
-								throw(product_not_found);
+								throw(offer_not_found);
 							ProdId ->
 								ProdId
 						end;
-					Product ->
-						Product
+					Offer ->
+						Offer
 				end,
-				case mnesia:read(product, ProductId, read) of
-					[#product{char_value_use = CharValueUse} = P] ->
+				case mnesia:read(offer, OfferId, read) of
+					[#offer{char_value_use = CharValueUse} = P] ->
 						N = erlang:unique_integer([positive]),
 						S1 = #service{password = Password,
 								attributes = Attributes,
@@ -489,7 +489,7 @@ add_service(undefined, Password, Product, Characteristics, Buckets, Attributes, 
 						end,
 						F3(F3, list_to_binary(generate_identity()), 5);
 					[] ->
-						throw(product_not_found)
+						throw(offer_not_found)
 				end
 	end,
 	case mnesia:transaction(F1) of
@@ -498,24 +498,24 @@ add_service(undefined, Password, Product, Characteristics, Buckets, Attributes, 
 		{aborted, Reason} ->
 			{error, Reason}
 	end;
-add_service(Identity, Password, Product, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
-		when is_binary(Identity), size(Identity) > 0, is_binary(Password), is_list(Product),
+add_service(Identity, Password, Offer, Characteristics, Buckets, Attributes, EnabledStatus, MultiSession)
+		when is_binary(Identity), size(Identity) > 0, is_binary(Password), is_list(Offer),
 		is_list(Buckets), is_list(Attributes), is_boolean(EnabledStatus), is_boolean(MultiSession) ->
 	Now = erlang:system_time(?MILLISECOND),
 	F1 = fun() ->
-				ProductId = case Product of
+				OfferId = case Offer of
 					[] ->
-						case mnesia:first(product) of
+						case mnesia:first(offer) of
 							'$end_of_table' ->
-								throw(product_not_found);
+								throw(offer_not_found);
 							ProdId ->
 								ProdId
 						end;
-					Product ->
-						Product
+					Offer ->
+						Offer
 				end,
-				case mnesia:read(product, ProductId, read) of
-					[#product{char_value_use = CharValueUse} = P] ->
+				case mnesia:read(offer, OfferId, read) of
+					[#offer{char_value_use = CharValueUse} = P] ->
 						N = erlang:unique_integer([positive]),
 						S1 = #service{name = Identity,
 								password = Password,
@@ -529,7 +529,7 @@ add_service(Identity, Password, Product, Characteristics, Buckets, Attributes, E
 						ok = mnesia:write(S2),
 						S2;
 					[] ->
-						throw(product_not_found)
+						throw(offer_not_found)
 				end
 	end,
 	case mnesia:transaction(F1) of
@@ -587,9 +587,9 @@ get_services()->
 -spec query_service(Cont) -> Result
 	when
 		Cont :: start | eof | any(),
-		Result :: {Cont, [#product{}]} | {error, Reason},
+		Result :: {Cont, [#offer{}]} | {error, Reason},
 		Reason :: term().
-%% @doc Query product inventories
+%% @doc Query offer inventories
 query_service(start) ->
 	MatchSpec = [{'_', [], ['$_']}],
 	F = fun(F, start, Acc) ->
@@ -626,13 +626,13 @@ delete_service(Identity) when is_binary(Identity) ->
 			exit(Reason)
 	end.
 
--spec add_product(Product) -> Result
+-spec add_offer(Offer) -> Result
 	when
-		Product :: #product{},
-		Result :: {ok, #product{}} | {error, Reason},
+		Offer :: #offer{},
+		Result :: {ok, #offer{}} | {error, Reason},
 		Reason :: validation_failed | term().
-%% @doc Add a new entry in product table.
-add_product(#product{price = Prices} = Product) when length(Prices) > 0 ->
+%% @doc Add a new entry in offer table.
+add_offer(#offer{price = Prices} = Offer) when length(Prices) > 0 ->
 	Fvala = fun(undefined) ->
 				true;
 			(#alteration{name = Name, type = one_time, period = undefined,
@@ -682,28 +682,28 @@ add_product(#product{price = Prices} = Product) when length(Prices) > 0 ->
 	end,
 	case lists:all(Fvalp, Prices) of
 		true ->
-			add_product1(Product);
+			add_offer1(Offer);
 		false ->
 			{error, validation_failed}
 	end;
-add_product(#product{specification = undefined, bundle = L} = Product)
+add_offer(#offer{specification = undefined, bundle = L} = Offer)
 		when length(L) > 0 ->
-	add_product1(Product);
-add_product(#product{specification = L, bundle = []} = Product)
+	add_offer1(Offer);
+add_offer(#offer{specification = L, bundle = []} = Offer)
 		when length(L) > 0 ->
-	add_product1(Product).
+	add_offer1(Offer).
 %% @hidden
-add_product1(Product) ->
+add_offer1(Offer) ->
 	Fadd = fun() ->
 		TS = erlang:system_time(?MILLISECOND),
 		N = erlang:unique_integer([positive]),
-		Product1 = Product#product{last_modified = {TS, N}},
-		ok = mnesia:write(product, Product1, write),
-		Product1
+		Offer1 = Offer#offer{last_modified = {TS, N}},
+		ok = mnesia:write(offer, Offer1, write),
+		Offer1
 	end,
 	case mnesia:transaction(Fadd) of
-		{atomic, Product2} ->
-			{ok, Product2};
+		{atomic, Offer2} ->
+			{ok, Offer2};
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
@@ -753,16 +753,16 @@ add_pla(#pla{} = Pla, File) when is_list(File) ->
 			{error, Reason}
 	end.
 
--spec find_product(ProductID) -> Result
+-spec find_offer(OfferID) -> Result
 	when
-		ProductID :: string(),
-		Result :: {ok, Product} | {error, Reason},
-		Product :: #product{},
+		OfferID :: string(),
+		Result :: {ok, Offer} | {error, Reason},
+		Offer :: #offer{},
 		Reason :: term().
-%% @doc Find product by product id
-find_product(ProductID) ->
+%% @doc Find offer by product id
+find_offer(OfferID) ->
 	F = fun() ->
-		case mnesia:read(product, ProductID) of
+		case mnesia:read(offer, OfferID) of
 			[Entry] ->
 				Entry;
 			[] ->
@@ -770,30 +770,30 @@ find_product(ProductID) ->
 		end
 	end,
 	case mnesia:transaction(F) of
-		{atomic, Product} ->
-			{ok, Product};
+		{atomic, Offer} ->
+			{ok, Offer};
 		{aborted, {throw, not_found}} ->
 			{error, not_found};
 		{aborted, Reason} ->
 			{error, Reason}
 	end.
 
--spec get_products() -> Result
+-spec get_offers() -> Result
 	when
-		Result :: [#product{}] | {error, Reason},
+		Result :: [#offer{}] | {error, Reason},
 		Reason :: term().
-%% @doc Get all entries in the product table.
-get_products() ->
+%% @doc Get all entries in the offer table.
+get_offers() ->
 	MatchSpec = [{'_', [], ['$_']}],
 	F = fun(F, start, Acc) ->
-				F(F, mnesia:select(product, MatchSpec,
+				F(F, mnesia:select(offer, MatchSpec,
 						?CHUNKSIZE, read), Acc);
 			(_F, '$end_of_table', Acc) ->
 				lists:flatten(lists:reverse(Acc));
 			(_F, {error, Reason}, _Acc) ->
 				{error, Reason};
-			(F,{Product, Cont}, Acc) ->
-				F(F, mnesia:select(Cont), [Product | Acc])
+			(F,{Offer, Cont}, Acc) ->
+				F(F, mnesia:select(Cont), [Offer | Acc])
 	end,
 	case mnesia:transaction(F, [F, start, []]) of
 		{aborted, Reason} ->
@@ -802,14 +802,14 @@ get_products() ->
 			Result
 	end.
 
--spec delete_product(ProductID) -> Result
+-spec delete_offer(OfferID) -> Result
 	when
-		ProductID :: string(),
+		OfferID :: string(),
 		Result :: ok.
-%% @doc Delete an entry from the product table.
-delete_product(ProductID) ->
+%% @doc Delete an entry from the offer table.
+delete_offer(OfferID) ->
 	F = fun() ->
-		mnesia:delete(product, ProductID, write)
+		mnesia:delete(offer, OfferID, write)
 	end,
 	case mnesia:transaction(F) of
 		{atomic, _} ->
@@ -818,7 +818,7 @@ delete_product(ProductID) ->
 			exit(Reason)
 	end.
 
--spec query_product(Cont, Name, Description, Status, SDT, EDT, Price) -> Result
+-spec query_offer(Cont, Name, Description, Status, SDT, EDT, Price) -> Result
 	when
 		Cont :: start | eof | any(),
 		Name :: undefined | '_' | string(),
@@ -827,55 +827,55 @@ delete_product(ProductID) ->
 		SDT :: undefined | '_' | string() | integer(),
 		EDT :: undefined | '_' | string() | integer(),
 		Price :: undefined | '_' | string(),
-		Result :: {Cont, [#product{}]} | {error, Reason},
+		Result :: {Cont, [#offer{}]} | {error, Reason},
 		Reason :: term().
-%% @doc Query product entires
-query_product(Con, Name, Description, Status, STD, EDT, undefined) ->
-	query_product(Con, Name, Description, Status, STD, EDT, '_');
-query_product(Con, Name, Description, Status, STD, undefined, Price) ->
-	query_product(Con, Name, Description, Status, STD, '_', Price);
-query_product(Con, Name, Description, Status, undefined, EDT, Price) ->
-	query_product(Con, Name, Description, Status, '_', EDT, Price);
-query_product(Con, Name, Description, undefined, SDT, EDT, Price) ->
-	query_product(Con, Name, Description, '_', SDT, EDT, Price);
-query_product(Con, Name, undefined, Status, SDT, EDT, Price) ->
-	query_product(Con, Name, '_', Status, SDT, EDT, Price);
-query_product(Con, undefined, Description, Status, SDT, EDT, Price) ->
-	query_product(Con, '_', Description, Status, SDT, EDT, Price);
-query_product(Con, Name, Description, Status, SDT, EDT, Price) when is_list(EDT) ->
+%% @doc Query offer entires
+query_offer(Con, Name, Description, Status, STD, EDT, undefined) ->
+	query_offer(Con, Name, Description, Status, STD, EDT, '_');
+query_offer(Con, Name, Description, Status, STD, undefined, Price) ->
+	query_offer(Con, Name, Description, Status, STD, '_', Price);
+query_offer(Con, Name, Description, Status, undefined, EDT, Price) ->
+	query_offer(Con, Name, Description, Status, '_', EDT, Price);
+query_offer(Con, Name, Description, undefined, SDT, EDT, Price) ->
+	query_offer(Con, Name, Description, '_', SDT, EDT, Price);
+query_offer(Con, Name, undefined, Status, SDT, EDT, Price) ->
+	query_offer(Con, Name, '_', Status, SDT, EDT, Price);
+query_offer(Con, undefined, Description, Status, SDT, EDT, Price) ->
+	query_offer(Con, '_', Description, Status, SDT, EDT, Price);
+query_offer(Con, Name, Description, Status, SDT, EDT, Price) when is_list(EDT) ->
 	ISOEDT = ocs_rest:iso8601(EDT),
-	query_product(Con, Name, Description, Status, SDT, ISOEDT, Price);
-query_product(Con, Name, Description, Status, SDT, EDT, Price) when is_list(SDT) ->
+	query_offer(Con, Name, Description, Status, SDT, ISOEDT, Price);
+query_offer(Con, Name, Description, Status, SDT, EDT, Price) when is_list(SDT) ->
 	ISOSDT = ocs_rest:iso8601(SDT),
-	query_product(Con, Name, Description, Status, ISOSDT, EDT, Price);
-query_product(start, Name, Description, Status, SDT, EDT, Price) ->
-	MatchHead = #product{name = Name, description = Description,
+	query_offer(Con, Name, Description, Status, ISOSDT, EDT, Price);
+query_offer(start, Name, Description, Status, SDT, EDT, Price) ->
+	MatchHead = #offer{name = Name, description = Description,
 			start_date = SDT, end_date = EDT, bundle = '_',
 			status = Status, specification = '_',
 			char_value_use = '_', price = '_', last_modified = '_'},
 	MatchSpec = MatchSpec = [{MatchHead, [], ['$_']}],
 	F = fun() ->
-		mnesia:select(product, MatchSpec, read)
+		mnesia:select(offer, MatchSpec, read)
 	end,
 	case mnesia:transaction(F) of
-		{atomic, Products} ->
-			query_product1(Products, Price, []);
+		{atomic, Offers} ->
+			query_offer1(Offers, Price, []);
 		{aborted, Reason} ->
 			{error, Reason}
 	end;
-query_product(eof, _Name, _Description, _Status, _STD, _EDT, _Price) ->
+query_offer(eof, _Name, _Description, _Status, _STD, _EDT, _Price) ->
 	{eof, []}.
 %% @hidden
-query_product1([], _, Acc) ->
+query_offer1([], _, Acc) ->
 	{eof, lists:reverse(Acc)};
-query_product1(Products, '_', _) ->
-	{eof, Products};
-query_product1([#product{price = Prices} = Product | T], PriceName, Acc) ->
+query_offer1(Offers, '_', _) ->
+	{eof, Offers};
+query_offer1([#offer{price = Prices} = Offer | T], PriceName, Acc) ->
 	case lists:keyfind(PriceName, #price.name, Prices) of
 		false ->
-			query_product1(T, PriceName, Acc);
+			query_offer1(T, PriceName, Acc);
 		_ ->
-			query_product1(T, PriceName, [Product | Acc])
+			query_offer1(T, PriceName, [Offer | Acc])
 	end.
 
 -spec query_table(Cont, Name, Prefix, Description, Rate, LM) -> Result
@@ -1517,35 +1517,35 @@ default_chars1([_ | T]) ->
 default_chars1([]) ->
 	undefined.
 
--spec subscription(Service, Product, Characteristics, InitialFlag) ->
+-spec subscription(Service, Offer, Characteristics, InitialFlag) ->
 		Service
 	when
 		Service :: #service{},
-		Product :: #product{},
+		Offer :: #offer{},
 		Characteristics :: [tuple()],
 		InitialFlag :: boolean().
 %% @doc Apply product offering charges.
 %% 	If `InitialFlag' is `true' initial bucket preparation
 %% 	is done and one time prices are charged.
-%% @throws product_not_found
+%% @throws offer_not_found
 subscription(#service{last_modified = {Now, _}} = Service,
-		#product{name = ProductName, bundle = [], price = Prices} = _Product,
+		#offer{name = OfferName, bundle = [], price = Prices} = _Offer,
 		Characteristics, InitialFlag) ->
 	Service1 = subscription(Service,
 			Characteristics, Now, InitialFlag, Prices),
 	ProductInstance = #product_instance{start_date = Now,
-			product = ProductName, characteristics = Characteristics,
+			product = OfferName, characteristics = Characteristics,
 			last_modified = {Now, erlang:unique_integer([positive])}},
 	Service1#service{product = ProductInstance};
 subscription(#service{last_modified = {Now, _}} = Service,
-		#product{name = BundleName, bundle = Bundled, price = Prices},
+		#offer{name = BundleName, bundle = Bundled, price = Prices},
 		Characteristics, InitialFlag) when length(Bundled) > 0 ->
 	F = fun(#bundled_po{name = P}, S) ->
-				case mnesia:read(product, P, read) of
-					[Product] ->
-						subscription(S, Product, Characteristics, true);
+				case mnesia:read(offer, P, read) of
+					[Offer] ->
+						subscription(S, Offer, Characteristics, true);
 					[] ->
-						throw(product_not_found)
+						throw(offer_not_found)
 				end
 	end,
 	Service1 = lists:foldl(F, Service, Bundled),

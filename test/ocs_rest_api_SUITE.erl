@@ -95,7 +95,7 @@ init_per_suite(Config) ->
 			{ok, _} = ocs:add_user(RestUser, RestPass, "en"),
 			{"localhost", P2}
 	end,
-	{ok, ProductID} = ocs_test_lib:add_product(),
+	{ok, ProductID} = ocs_test_lib:add_offer(),
 	Config1 = [{port, Port}, {product_id, ProductID} | Config],
 	HostUrl = "https://" ++ Host ++ ":" ++ integer_to_list(Port),
 	[{host_url, HostUrl} | Config1].
@@ -151,7 +151,7 @@ all() ->
 	update_subscriber_password_json_patch,
 	update_subscriber_attributes_json_patch,
 	update_user_characteristics_json_patch,
-	add_product, get_product, update_product].
+	add_offer, get_product, update_product].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -456,7 +456,7 @@ get_subscriber_range() ->
 
 get_subscriber_range(Config) ->
 	{ok, PageSize} = application:get_env(ocs, rest_page_size),
-	{ok, ProductName} = ocs_test_lib:add_product(),
+	{ok, ProductName} = ocs_test_lib:add_offer(),
 	Fadd = fun(_F, 0) ->
 				ok;
 			(F, N) ->
@@ -2330,10 +2330,10 @@ update_user_characteristics_json_patch(Config) ->
 			user_data = UserData}} = ocs:get_user(Username),
 	{_, NewLocale} = lists:keyfind(locale, 1, UserData).
 
-add_product() ->
+add_offer() ->
 	[{userdata, [{doc,"Create a new product offering."}]}].
 
-add_product(Config) ->
+add_offer(Config) ->
 	CatalogHref = "/catalogManagement/v2",
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
@@ -2499,7 +2499,7 @@ update_product(Config) ->
 	{struct, Product1} = mochijson:decode(ResponseBody),
 	RestPort = ?config(port, Config),
 	{_, ProductName} = lists:keyfind("name", 1, Product1),
-	{ok, Product2} = ocs:find_product(ProductName),
+	{ok, Product2} = ocs:find_offer(ProductName),
 	SslSock = ssl_socket_open({127,0,0,1}, RestPort),
 	PatchContentType = "application/json-patch+json",
 	Json = {array, [product_description(), product_status(),

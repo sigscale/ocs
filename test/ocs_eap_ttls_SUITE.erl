@@ -83,7 +83,7 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
-	{ok, ProdID} = ocs_test_lib:add_product(),
+	{ok, ProdID} = ocs_test_lib:add_offer(),
 	AuthAddress = {127, 0, 0, 1},
 	Protocol = ct:get_config(protocol),
 	SharedSecret = ct:get_config(radius_shared_secret),

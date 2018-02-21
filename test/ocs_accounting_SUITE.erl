@@ -65,7 +65,7 @@ suite() ->
 init_per_suite(Config) ->
 	ok = ocs_test_lib:initialize_db(),
 	ok = ocs_test_lib:start(),
-	{ok, ProdID} = ocs_test_lib:add_product(),
+	{ok, ProdID} = ocs_test_lib:add_offer(),
 	{ok, EnvList} = application:get_env(ocs, diameter),
 	{acct, [{Address, Port, Options } | _]} = lists:keyfind(acct, 1, EnvList),
 	true = diameter:subscribe(?SVC_ACCT),

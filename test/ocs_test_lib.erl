@@ -5,7 +5,7 @@
 
 -export([initialize_db/0, start/0, stop/0]).
 -export([ipv4/0, port/0, mac/0]).
--export([add_product/0]).
+-export([add_offer/0]).
 -export([write_csv/2]).
 
 %% support deprecated_time_unit()
@@ -25,7 +25,7 @@ initialize_db() ->
 					initialize_db()
 			end;
 		yes ->
-			case mnesia:wait_for_tables([client, service, product], 1000) of
+			case mnesia:wait_for_tables([client, service, offer], 1000) of
 				{timeout, _} ->
 					ok = application:stop(mnesia),
 					{ok, Tables} = ocs_app:install(),
@@ -33,7 +33,7 @@ initialize_db() ->
 						case T of
 							T when T == client; T == service;
 									T == httpd_user; T == httpd_group;
-									T == product ->
+									T == offer ->
 								true;
 							_ ->
 								false
@@ -80,7 +80,7 @@ stop() ->
 			{error, Reason}
 	end.
 
-add_product() ->
+add_offer() ->
 	Price1 = #price{name = ocs:generate_password(),
 			type = recurring, period = monthly,
 			amount = 1995, size = undefined,
@@ -92,14 +92,14 @@ add_product() ->
 			type = usage, units = octets,
 			size = 1000000000, amount = 100},
 	Prices = [Price1, Price2],
-	ProductName = ocs:generate_password(),
-	Product = #product{name = ProductName,
+	OfferName = ocs:generate_password(),
+	Offer = #offer{name = OfferName,
 			status = active,
 			specification = 8,
 			price = Prices},
-	case ocs:add_product(Product) of
-		{ok, _Product1} ->
-			{ok, ProductName};
+	case ocs:add_offer(Offer) of
+		{ok, _Offer1} ->
+			{ok, OfferName};
 		{error, Reason} ->
 			{error, Reason}
 	end.

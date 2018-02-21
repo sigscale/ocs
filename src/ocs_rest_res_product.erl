@@ -22,7 +22,7 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0]).
--export([add_product_offering/1, add_product_inventory/1]).
+-export([add_offer_offering/1, add_offer_inventory/1]).
 -export([get_product_offering/1, get_product_offerings/2,
 		patch_product_offering/3, get_product_inventory/1,
 		get_product_inventories/2, patch_product_inventory/3]).
@@ -31,7 +31,7 @@
 -export([get_product_spec/2, get_product_specs/1]).
 -export([add_pla/1, get_pla/1, get_plas/2, patch_pla/3]).
 -export([get_pla_spec/2, get_pla_specs/1]).
--export([delete_product_offering/1, delete_product_inventory/1, delete_pla/1]).
+-export([delete_offer_offering/1, delete_offer_inventory/1, delete_pla/1]).
 
 -include("ocs.hrl").
 
@@ -62,7 +62,7 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json"].
 
--spec add_product_offering(ReqData) -> Result when
+-spec add_offer_offering(ReqData) -> Result when
 	ReqData	:: [tuple()],
 	Result	:: {ok, Headers, Body} | {error, Status},
 	Headers	:: [tuple()],
@@ -70,9 +70,9 @@ content_types_provided() ->
 	Status	:: 400 | 500 .
 %% @doc Respond to `POST /catalogManagement/v2/productOffering'.
 %% 	Add a new Product Offering.
-add_product_offering(ReqData) ->
+add_offer_offering(ReqData) ->
 	try
-		case ocs:add_product(offer(mochijson:decode(ReqData))) of
+		case ocs:add_offer(offer(mochijson:decode(ReqData))) of
 			{ok, ProductOffering} ->
 				ProductOffering;
 			{error, Reason} ->
@@ -81,8 +81,8 @@ add_product_offering(ReqData) ->
 	of
 		Offer ->
 			Body = mochijson:encode(offer(Offer)),
-			Etag = ocs_rest:etag(Offer#product.last_modified),
-			Href = ?offeringPath ++ Offer#product.name,
+			Etag = ocs_rest:etag(Offer#offer.last_modified),
+			Href = ?offeringPath ++ Offer#offer.name,
 			Headers = [{location, Href}, {etag, Etag}],
 			{ok, Headers, Body}
 	catch
@@ -94,7 +94,7 @@ add_product_offering(ReqData) ->
 			{error, 400}
 	end.
 
--spec add_product_inventory(ReqData) -> Result when
+-spec add_offer_inventory(ReqData) -> Result when
 	ReqData	:: [tuple()],
 	Result	:: {ok, Headers, Body} | {error, Status},
 	Headers	:: [tuple()],
@@ -102,7 +102,7 @@ add_product_offering(ReqData) ->
 	Status	:: 400 | 500 .
 %% @doc Respond to `POST /productInventoryManagemen/v2/product'.
 %% 	Add a new instance of a Product Offering subscription.
-add_product_inventory(ReqData) ->
+add_offer_inventory(ReqData) ->
 	try
 		#service{name = SubscriberID,
 				password = Password, product = #product_instance{product = ProdId,
@@ -171,7 +171,7 @@ add_pla(ReqData) ->
 %% 	Retrieve a Product Offering.
 get_product_offering(ID) ->
 	try
-		case ocs:find_product(ID) of
+		case ocs:find_offer(ID) of
 			{ok, ProductOffering} ->
 				ProductOffering;
 			{error, not_found} ->
@@ -182,8 +182,8 @@ get_product_offering(ID) ->
 	of
 		Offer ->
 			Body = mochijson:encode(offer(Offer)),
-			Etag = ocs_rest:etag(Offer#product.last_modified),
-			Href = ?offeringPath ++ Offer#product.name,
+			Etag = ocs_rest:etag(Offer#offer.last_modified),
+			Href = ?offeringPath ++ Offer#offer.name,
 			Headers = [{location, Href}, {etag, Etag},
 					{content_type, "application/json"}],
 			{ok, Headers, Body}
@@ -249,7 +249,7 @@ get_product_offerings(Query, Headers) ->
 	EDT = proplists:get_value("endDate", Query),
 	Price = proplists:get_value("price", Query),
 	M = ocs,
-	F = query_product,
+	F = query_offer,
 	A = [Name, Des, Status, SDT, EDT, Price],
 	Codec = fun offer/1,
 	query_filter({M, F, A}, Codec, Query, Headers).
@@ -465,9 +465,9 @@ patch_product_offering(ProdId, Etag, ReqData) ->
 	of
 		{Etag2, {array, _} = Operations} ->
 			F = fun() ->
-					case mnesia:read(product, ProdId, write) of
+					case mnesia:read(offer, ProdId, write) of
 						[Product1] when
-								Product1#product.last_modified == Etag2;
+								Product1#offer.last_modified == Etag2;
 								Etag2 == undefined ->
 							case catch ocs_rest:patch(Operations, offer(Product1)) of
 								{struct, _} = Product2  ->
@@ -475,13 +475,13 @@ patch_product_offering(ProdId, Etag, ReqData) ->
 									TS = erlang:system_time(?MILLISECOND),
 									N = erlang:unique_integer([positive]),
 									LM = {TS, N},
-									Product4 = Product3#product{last_modified = LM},
+									Product4 = Product3#offer{last_modified = LM},
 									ok = mnesia:write(Product4),
 									{Product2, LM};
 								_ ->
 									throw(bad_request)
 							end;
-						[#product{}] ->
+						[#offer{}] ->
 							throw(precondition_failed);
 						[] ->
 							throw(not_found)
@@ -676,25 +676,25 @@ patch_pla(Id, Etag, ReqData) ->
 			{error, 400}
 	end.
 
--spec delete_product_offering(Id) -> Result
+-spec delete_offer_offering(Id) -> Result
 	when
 		Id :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()} .
 %% @doc Respond to `DELETE /catalogManagement/v1/productOffering/{id}'
 %% 	request to remove a `Product Offering'.
-delete_product_offering(Id) ->
-	ok = ocs:delete_product(Id),
+delete_offer_offering(Id) ->
+	ok = ocs:delete_offer(Id),
 	{ok, [], []}.
 
--spec delete_product_inventory(Id) -> Result
+-spec delete_offer_inventory(Id) -> Result
 	when
 		Id :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()} .
 %% @doc Respond to `DELETE /productInventoryManagement/v1/product/{id}'
 %% 	request to remove a `Product Invenotry'.
-delete_product_inventory(Id) ->
+delete_offer_inventory(Id) ->
 	ok = ocs:delete_service(Id),
 	{ok, [], []}.
 
@@ -1210,21 +1210,21 @@ pla([], Acc) ->
 
 -spec offer(Product) -> Product
 	when
-		Product :: #product{} | {struct, [tuple()]}.
+		Product :: #offer{} | {struct, [tuple()]}.
 %% @doc CODEC for Product Offering.
 %% @private
-offer(#product{} = Product) ->
-	offer(record_info(fields, product), Product, []);
+offer(#offer{} = Product) ->
+	offer(record_info(fields, offer), Product, []);
 offer({struct, ObjectMembers}) when is_list(ObjectMembers) ->
-	offer(ObjectMembers, #product{}).
+	offer(ObjectMembers, #offer{}).
 %% @hidden
-offer([name | T], #product{name = Name} = P, Acc) when is_list(Name) ->
+offer([name | T], #offer{name = Name} = P, Acc) when is_list(Name) ->
 	offer(T, P, [{"name", Name} | Acc]);
-offer([description | T], #product{description = Description} = P,
+offer([description | T], #offer{description = Description} = P,
 	Acc) when is_list(Description) ->
 	offer(T, P, [{"description", Description} | Acc]);
 offer([specification | T],
-		#product{specification = ProdSpecId} = P, Acc) when is_list(ProdSpecId) ->
+		#offer{specification = ProdSpecId} = P, Acc) when is_list(ProdSpecId) ->
 	{struct, L} = product_spec(ProdSpecId),
 	{_, Id} = lists:keyfind("id", 1, L),
 	{_, Href} = lists:keyfind("href", 1, L),
@@ -1232,44 +1232,44 @@ offer([specification | T],
 	Spec = {struct, [{"id", Id}, {"href", Href}, {"name", Name}]},
 	offer(T, P, [{"productSpecification", Spec} | Acc]);
 offer([bundle | T],
-		#product{bundle = Bundle} = P, Acc) when length(Bundle) > 0 ->
+		#offer{bundle = Bundle} = P, Acc) when length(Bundle) > 0 ->
 	Array = [bundled_po(B) || B <- Bundle],
 	offer(T, P, [{"bundledProductOffering", {array, Array}} | Acc]);
-offer([status | T], #product{status = Status} = P, Acc)
+offer([status | T], #offer{status = Status} = P, Acc)
 		when Status /= undefined ->
 	StatusString = offer_status(Status),
 	offer(T, P, [{"lifecycleStatus", StatusString} | Acc]);
-offer([start_date | T], #product{start_date = Start,
+offer([start_date | T], #offer{start_date = Start,
 		end_date = undefined} = P, Acc) when is_integer(Start) ->
 	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(Start)}]},
 	offer(T, P, [{"validFor", ValidFor} | Acc]);
-offer([start_date | T], #product{start_date = undefined,
+offer([start_date | T], #offer{start_date = undefined,
 		end_date = End} = P, Acc) when is_integer(End) ->
 	ValidFor = {struct, [{"endDateTime", ocs_rest:iso8601(End)}]},
 	offer(T, P, [{"validFor", ValidFor} | Acc]);
-offer([start_date | T], #product{start_date = Start,
+offer([start_date | T], #offer{start_date = Start,
 		end_date = End} = P, Acc) when is_integer(Start), is_integer(End) ->
 	ValidFor = {struct, [{"startDateTime", ocs_rest:iso8601(Start)},
 			{"endDateTime", ocs_rest:iso8601(End)}]},
 	offer(T, P, [{"validFor", ValidFor} | Acc]);
 offer([end_date | T], P, Acc) ->
 	offer(T, P, Acc);
-offer([price | T], #product{price = Prices1} = P, Acc)
+offer([price | T], #offer{price = Prices1} = P, Acc)
 		when is_list(Prices1) ->
 	Prices2 = [price(Price) || Price <- Prices1],
 	offer(T, P, [{"productOfferingPrice", {array, Prices2}} | Acc]);
-offer([char_value_use | T], #product{char_value_use = CharValueUses} = P, Acc) ->
+offer([char_value_use | T], #offer{char_value_use = CharValueUses} = P, Acc) ->
 	offer(T, P, [{"prodSpecCharValueUse", char_value_uses(CharValueUses)} | Acc]);
-offer([last_modified | T], #product{last_modified = {Last, _}} = P, Acc)
+offer([last_modified | T], #offer{last_modified = {Last, _}} = P, Acc)
 		when is_integer(Last) ->
 	offer(T, P, [{"lastUpdate", ocs_rest:iso8601(Last)} | Acc]);
 offer([_H | T], P, Acc) ->
 	offer(T, P, Acc);
-offer([], #product{name = Name, bundle = [] ,
+offer([], #offer{name = Name, bundle = [] ,
 		specification = S}, Acc) when S /= undefined ->
 	H = [{"id", Name}, {"href", ?offeringPath ++ Name}, {"isBundle", false}],
 	{struct, H ++ lists:reverse(Acc)};
-offer([], #product{name = Name, bundle = L,
+offer([], #offer{name = Name, bundle = L,
 		specification = undefined}, Acc) when length(L) > 0 ->
 	H = [{"id", Name}, {"href", ?offeringPath ++ Name}, {"isBundle", true}],
 	{struct, H ++ lists:reverse(Acc)}.
@@ -1279,29 +1279,29 @@ offer([{"id", ID} | T], Acc) when is_list(ID) ->
 offer([{"href", URI} | T], Acc) when is_list(URI) ->
 	offer(T, Acc);
 offer([{"name", Name} | T], Acc) when is_list(Name) ->
-	offer(T, Acc#product{name = Name});
+	offer(T, Acc#offer{name = Name});
 offer([{"description", Description} | T], Acc) when is_list(Description) ->
-	offer(T, Acc#product{description = Description});
+	offer(T, Acc#offer{description = Description});
 offer([{"validFor", {struct, L}} | T], Acc) ->
 	Acc1 = case lists:keyfind("startDateTime", 1, L) of
 		{_, Start} ->
-			Acc#product{start_date = ocs_rest:iso8601(Start)};
+			Acc#offer{start_date = ocs_rest:iso8601(Start)};
 		false ->
 			Acc
 	end,
 	Acc2 = case lists:keyfind("endDateTime", 1, L) of
 		{_, End} ->
-			Acc1#product{end_date = ocs_rest:iso8601(End)};
+			Acc1#offer{end_date = ocs_rest:iso8601(End)};
 		false ->
 			Acc
 	end,
 	offer(T, Acc2);
 offer([{"lifecycleStatus", Status} | T], Acc) when is_list(Status) ->
-	offer(T, Acc#product{status = offer_status(Status)});
+	offer(T, Acc#offer{status = offer_status(Status)});
 offer([{"productSpecification", {struct, L}} | T], Acc) when is_list(L) ->
 	Acc1 = case lists:keyfind("id", 1, L) of
 		{_, ID} when is_list(ID) ->
-			Acc#product{specification = ID};
+			Acc#offer{specification = ID};
 		false ->
 			Acc
 	end,
@@ -1309,22 +1309,22 @@ offer([{"productSpecification", {struct, L}} | T], Acc) when is_list(L) ->
 offer([{"bundledProductOffering", {array, Array}} | T], Acc)
 		when is_list(Array) ->
 	Bundle = [bundled_po(B) || B <- Array],
-	offer(T, Acc#product{bundle = Bundle});
+	offer(T, Acc#offer{bundle = Bundle});
 offer([{"isCustomerVisible", Visible} | T], Acc) when is_boolean(Visible) ->
 	offer(T, Acc);
 offer([{"productOfferingPrice", {array, Prices1}} | T], Acc) when is_list(Prices1) ->
 	Prices2 = [price(Price) || Price <- Prices1],
-	offer(T, Acc#product{price = Prices2});
+	offer(T, Acc#offer{price = Prices2});
 offer([{"prodSpecCharValueUse", {array, _} = CharValueUses} | T], Acc) ->
-	offer(T, Acc#product{char_value_use = char_value_uses(CharValueUses)});
+	offer(T, Acc#offer{char_value_use = char_value_uses(CharValueUses)});
 offer([{"lastUpdate", LastUpdate} | T], Acc) when is_list(LastUpdate) ->
 	offer(T, Acc);
 offer([_ | T], Acc) ->
 	offer(T, Acc);
-offer([], #product{bundle = [], specification = S} = Acc)
+offer([], #offer{bundle = [], specification = S} = Acc)
 		when S /= undefined ->
 	Acc;
-offer([], #product{bundle = L, specification = undefined} = Acc)
+offer([], #offer{bundle = L, specification = undefined} = Acc)
 		when length(L) > 0 ->
 	Acc.
 
@@ -2145,29 +2145,29 @@ query_page(Codec, PageServer, Etag, Query, Filters, Start, End) ->
 			try
 				case lists:keytake("sort", 1, Query) of
 					{value, {_, "name"}, Q1} ->
-						{lists:keysort(#product.name, Result), Q1};
+						{lists:keysort(#offer.name, Result), Q1};
 					{value, {_, "-name"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.name, Result)), Q1};
+						{lists:reverse(lists:keysort(#offer.name, Result)), Q1};
 					{value, {_, "description"}, Q1} ->
-						{lists:keysort(#product.description, Result), Q1};
+						{lists:keysort(#offer.description, Result), Q1};
 					{value, {_, "-description"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.description, Result)), Q1};
+						{lists:reverse(lists:keysort(#offer.description, Result)), Q1};
 					{value, {_, "lifecycleStatus"}, Q1} ->
-						{lists:keysort(#product.status, Result), Q1};
+						{lists:keysort(#offer.status, Result), Q1};
 					{value, {_, "-lifecycleStatus"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.status, Result)), Q1};
+						{lists:reverse(lists:keysort(#offer.status, Result)), Q1};
 					{value, {_, "startDate"}, Q1} ->
-						{lists:keysort(#product.start_date, Result), Q1};
+						{lists:keysort(#offer.start_date, Result), Q1};
 					{value, {_, "-startDate"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.start_date, Result)), Q1};
+						{lists:reverse(lists:keysort(#offer.start_date, Result)), Q1};
 					{value, {_, "endDate"}, Q1} ->
-						{lists:keysort(#product.end_date, Result), Q1};
+						{lists:keysort(#offer.end_date, Result), Q1};
 					{value, {_, "-endDate"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.end_date, Result)), Q1};
+						{lists:reverse(lists:keysort(#offer.end_date, Result)), Q1};
 					{value, {_, "price"}, Q1} ->
-						{lists:keysort(#product.price, Result), Q1};
+						{lists:keysort(#offer.price, Result), Q1};
 					{value, {_, "-price"}, Q1} ->
-						{lists:reverse(lists:keysort(#product.price, Result)), Q1};
+						{lists:reverse(lists:keysort(#offer.price, Result)), Q1};
 					false ->
 						{Result, Query};
 					_ ->

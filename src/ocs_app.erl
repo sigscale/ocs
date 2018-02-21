@@ -55,7 +55,7 @@
 %% @see //kernel/application:start/2
 %%
 start(normal = _StartType, _Args) ->
-	Tables = [client, service, product, pla, httpd_user, httpd_group],
+	Tables = [client, service, offer, pla, httpd_user, httpd_group],
 	case mnesia:wait_for_tables(Tables, 60000) of
 		ok ->
 			start1();
@@ -332,18 +332,18 @@ install6(Nodes, Acc) ->
 	end.
 %% @hidden
 install7(Nodes, Acc) ->
-	case mnesia:create_table(product, [{disc_copies, Nodes},
-			{attributes, record_info(fields, product)}]) of
+	case mnesia:create_table(offer, [{disc_copies, Nodes},
+			{attributes, record_info(fields, offer)}]) of
 		{atomic, ok} ->
-			error_logger:info_msg("Created new product table.~n"),
-			install8(Nodes, [product | Acc]);
+			error_logger:info_msg("Created new offer table.~n"),
+			install8(Nodes, [offer | Acc]);
 		{aborted, {not_active, _, Node} = Reason} ->
 			error_logger:error_report(["Mnesia not started on node",
 					{node, Node}]),
 			{error, Reason};
-		{aborted, {already_exists, product}} ->
-			error_logger:info_msg("Found existing product table.~n"),
-			install8(Nodes, [product | Acc]);
+		{aborted, {already_exists, offer}} ->
+			error_logger:info_msg("Found existing offer table.~n"),
+			install8(Nodes, [offer | Acc]);
 		{aborted, Reason} ->
 			error_logger:error_report([mnesia:error_description(Reason),
 				{error, Reason}]),
