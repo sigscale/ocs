@@ -107,7 +107,7 @@ add_offer_inventory(ReqData) ->
 		#service{name = SubscriberID,
 				password = Password, product = #product_instance{product = ProdId,
 				characteristics = Chars}} = inventory(mochijson:decode(ReqData)),
-		case ocs:add_service(SubscriberID, Password, ProdId, Chars) of
+		case ocs:add_subscriber(SubscriberID, Password, ProdId, Chars) of
 			{ok, Subscriber} ->
 				Subscriber;
 			{error, Reason} ->

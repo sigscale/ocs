@@ -187,7 +187,7 @@ post_subscriber(RequestBody) ->
 					characteristics = Characteristics} ->
 				{ProdId, Characteristics}
 		end,
-		case catch ocs:add_service(Name, Password,
+		case catch ocs:add_subscriber(Name, Password,
 				ProdID, Chars, Buckets2, Attributes, Enabled, Multi) of
 			{ok, #service{name = Id, last_modified = LM} = Subscriber} ->
 				Json = subscriber(Subscriber),
