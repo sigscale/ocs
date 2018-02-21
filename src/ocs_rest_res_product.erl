@@ -1572,10 +1572,9 @@ alteration([amount | T], #alteration{units = cents, amount = Amount, currency = 
 	Price = {struct, [{"taxIncludedAmount", ocs_rest:decimal(Amount)},
 			{"currencyCode", Currency}]},
 	alteration(T, A, [{"price", Price} | Acc]);
-alteration([amount | T], #alteration{amount = Amount, currency = Currency} = A, Acc)
-		when is_integer(Amount), is_list(Currency) ->
-	Price = {struct, [{"taxIncludedAmount", Amount},
-			{"currencyCode", Currency}]},
+alteration([amount | T], #alteration{units = cents, amount = Amount} = A, Acc)
+		when is_integer(Amount) ->
+	Price = {struct, [{"taxIncludedAmount", ocs_rest:decimal(Amount)}]},
 	alteration(T, A, [{"price", Price} | Acc]);
 alteration([amount | T], #alteration{amount = Amount} = A, Acc)
 		when is_integer(Amount) ->
