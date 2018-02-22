@@ -356,7 +356,7 @@ import3([], LM, Acc) ->
 	import4(lists:reverse(Acc), LM).
 %% @hidden
 import4([Key, Desc, Rate], LM) ->
-	Tuple  = {Desc, ocs_rest:convert(Rate), LM},
+	Tuple  = {Desc, ocs_rest:decimal(Rate), LM},
 	case is_key_number(Key) of
 		true->
 			#gtt{num = Key, value = Tuple};

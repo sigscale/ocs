@@ -1782,7 +1782,7 @@ get_subscriber_balance(Config) ->
 			lists:keyfind("href", 1, PrePayBalance),
 	{_, {struct, TotalAmount}} = lists:keyfind("totalBalance", 1, PrePayBalance),
 	{_, Balance1} = lists:keyfind("amount", 1, TotalAmount),
-	Balance1 = ocs_rest:convert(Balance).
+	Balance1 = ocs_rest:decimal(Balance).
 
 simultaneous_updates_on_subscriber_failure() ->
 	[{userdata, [{doc,"Simulataneous HTTP PATCH updates on subscriber resource must fail
@@ -2535,7 +2535,7 @@ product_offer() ->
 	POPEndDateTime1 = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
 	POPValidFor1 = {"validFor", {struct, [POPStartDateTime1, POPEndDateTime1]}},
 	POPPriceType1 = {"priceType", "recurring"},
-	POPPriceTaxInclude1 = {"taxIncludedAmount", rand:uniform(10000)},
+	POPPriceTaxInclude1 = {"taxIncludedAmount", integer_to_list(rand:uniform(10000))},
 	POPPriceCurrency1 = {"currencyCode", "USD"},
 	POPPrice1 = {"price", {struct, [POPPriceTaxInclude1, POPPriceCurrency1]}},
 	POPRecChargPeriod1 = {"recurringChargePeriod", "monthly"},
@@ -2548,7 +2548,8 @@ product_offer() ->
 	POPValidFor2 = {"validFor", {struct, [POPStratDateTime2, POPEndDateTime2]}},
 	POPPriceType2 = {"priceType", "usage"},
 	POPUOMeasure2 = {"unitOfMeasure", "1g"},
-	POPPriceTaxInclude2 = {"taxIncludedAmount", rand:uniform(1000)},
+	POPPriceTaxInclude2 = {"taxIncludedAmount",
+			integer_to_list(rand:uniform(1000)) ++ "." ++ integer_to_list(rand:uniform(999999))},
 	POPPriceCurrency2 = {"currencyCode", "USD"},
 	POPPrice2 = {"price", {struct, [POPPriceTaxInclude2, POPPriceCurrency2]}},
 	ProdAlterName = {"name", "allowance"},
@@ -2556,7 +2557,7 @@ product_offer() ->
 	ProdAlterValidFor = {"validFor", {struct, [POPStartDateTime1]}},
 	ProdAlterPriceType = {"priceType", "usage"},
 	ProdAlterUOMeasure = {"unitOfMeasure", "100g"},
-	ProdAlterAmount = {"taxIncludedAmount", 0},
+	ProdAlterAmount = {"taxIncludedAmount", "0"},
 	POPPAlterCurrency = {"currencyCode", "USD"},
 	ProdAlterPrice = {"price", {struct, [ProdAlterAmount, POPPAlterCurrency]}},
 	POPAlteration = {"productOfferPriceAlteration", {struct, [ProdAlterName, ProdAlterDescription,

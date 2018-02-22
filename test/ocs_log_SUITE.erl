@@ -569,7 +569,6 @@ abmf_log_event(_Config) ->
 	Find = fun(_F, {error, Reason}) ->
 				ct:fail(Reason);
 			(F, {Cont, Chunk}) ->
-erlang:display({?MODULE, ?LINE, Chunk}),
 				case lists:any(Fany, Chunk) of
 					false ->
 						F(F, disk_log:chunk(ocs_abmf, Cont));
@@ -632,7 +631,6 @@ abmf_query(_Config) ->
 	E2 =  F1(Start, End, transfer, Subscriber, BucketId, cents, ProdId),
 	E3 =  F1(Start, End, adjustment, Subscriber, BucketId, cents, ProdId),
 	Events = E1 ++ E2 ++ E3,
-erlang:display({?MODULE, ?LINE, Events}),
 	3 = length(Events).
 
 %% internal functions
