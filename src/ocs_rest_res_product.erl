@@ -117,7 +117,7 @@ add_inventory(ReqData) ->
 		Subscription ->
 			Body = mochijson:encode(inventory(Subscription)),
 			Etag = ocs_rest:etag(Subscription#product.last_modified),
-			Href = ?inventoryPath ++ binary_to_list(Subscription#product.id),
+			Href = ?inventoryPath ++ Subscription#product.id,
 			Headers = [{location, Href}, {etag, Etag}],
 			{ok, Headers, Body}
 	catch
