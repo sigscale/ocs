@@ -151,7 +151,7 @@ all() ->
 	update_subscriber_password_json_patch,
 	update_subscriber_attributes_json_patch,
 	update_user_characteristics_json_patch,
-	add_offer, get_product, update_product].
+	add_offer, add_inventory, get_product, update_product].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -2350,6 +2350,42 @@ add_offer(Config) ->
 	{ok, Result} = httpc:request(post, Request1, [], []),
 	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
 	{_, _Href} = lists:keyfind("location", 1, Headers).
+
+add_inventory() ->
+	[{userdata, [{doc,"Create a new product inventory."}]}].
+
+add_inventory(Config) ->
+	InventoryHref = "/productInventoryManagement/v2",
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	ContentType = "application/json",
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authorization = {"authorization", AuthKey},
+	OfferId = ocs:generate_identity(),
+	P1 = #price{name = "Installation", start_date = erlang:system_time(?MILLISECOND),
+			type = one_time, amount = rand:uniform(1000)},
+	P2 = #price{name = "Overage", start_date = erlang:system_time(?MILLISECOND),
+			type = usage,units = octets, size = rand:uniform(10000000),
+			amount = rand:uniform(500)},
+	Prices = [P1, P2],
+	Offer = #offer{name = OfferId, status = active, price = Prices},
+	{ok, _} = ocs:add_offer(Offer),
+	ProdOffer = {"productOffering", {struct,[{"id", OfferId}, {"name", OfferId},
+			{"href","/catalogManagement/v2/productOffering/" ++ OfferId}]}},
+	StartDate = {"startDate", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
+	EndDate = {"terminationDate", ocs_rest:iso8601(erlang:system_time(?MILLISECOND) + 10000000)},
+	Inventory = {struct, [ProdOffer, StartDate, EndDate]},
+	ReqBody = lists:flatten(mochijson:encode(Inventory)),
+	Request1 = {HostUrl ++ InventoryHref ++ "/product",
+			[Accept, Authorization], ContentType, ReqBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
+	{_, Href} = lists:keyfind("location", 1, Headers),
+	InventoryId = lists:last(string:tokens(Href, "/")),
+	#product{product = OfferId} = mnesia:dirty_read(product, InventoryId).
 
 get_product() ->
 	[{userdata, [{doc,"Use HTTP GET to retrieves a product entity"}]}].
