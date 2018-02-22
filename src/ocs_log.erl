@@ -73,15 +73,6 @@ acct_open() ->
 	{ok, LogFiles} = application:get_env(ocs, acct_log_files),
 	open_log(Directory, ?ACCTLOG, LogSize, LogFiles).
 
--type acct_event() :: {
-		TS :: pos_integer(), % posix time in milliseconds
-		N :: pos_integer(), % unique number
-		Protocol :: radius | diameter,
-		Node :: atom(),
-		Server :: {inet:ip_address(), inet:port_number()},
-		Type :: atom(),
-		Attributes :: radius_attributes:attributes()}.
-
 -spec acct_log(Protocol, Server, Type, Attributes) -> Result
 	when
 		Protocol :: radius,
@@ -197,17 +188,6 @@ auth_open() ->
 	{ok, LogSize} = application:get_env(ocs, auth_log_size),
 	{ok, LogFiles} = application:get_env(ocs, auth_log_files),
 	open_log(Directory, ?AUTHLOG, LogSize, LogFiles).
-
--type auth_event() :: {
-		TS :: pos_integer(), % posix time in milliseconds
-		N :: pos_integer(), % unique number
-		Protocol :: radius | diameter,
-		Node :: atom(),
-		Server :: {inet:ip_address(), inet:port_number()},
-		Client :: {inet:ip_address(), inet:port_number()},
-		Type :: atom(),
-		RequestAttributes :: radius_attributes:attributes(),
-		ResponseAttributes :: radius_attributes:attributes()}.
 
 -spec auth_log(Protocol, Server, Client, Type, RequestAttributes,
 		ResponseAttributes) -> Result
@@ -333,14 +313,6 @@ auth_close() ->
 		method :: string() | undefined,
 		uri :: string() | undefined,
 		httpStatus :: integer() | undefined}).
-
--type http_event() :: {
-			Host :: string(),
-			User :: string(),
-			DateTime :: string(),
-			Method :: string(),
-			URI :: string(),
-			HttpStatus :: string()}.
 
 -spec http_query(Continuation, LogType, DateTime, Host, User, Method, URI, HTTPStatus) -> Result
 	when
@@ -982,7 +954,7 @@ abmf_log(Type, Subscriber, Bucket, Units, Product, Amount,
 		Product :: string() | '_',
 		Result :: {Continuation2, Events} | {error, Reason},
 		Continuation2 :: eof | disk_log:continuation(),
-		Events :: [acct_event()],
+		Events :: [abmf_event()],
 		Reason :: term().
 %% @doc Query balance activity log events with filters.
 abmf_query(Continuation, Start, End, Type, Subscriber,
