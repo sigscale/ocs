@@ -162,6 +162,10 @@ do_get(Resource, ModData, ["catalogManagement", "v2", "plaSpecification", Id], Q
 	do_response(ModData, Resource:get_pla_spec(Id, Query));
 do_get(Resource, ModData, ["catalogManagement", "v2", "plaSpecification"], Query) ->
 	do_response(ModData, Resource:get_pla_specs(Query));
+do_get(Resource, ModData, ["catalogManagement", "v2", "serviceSpecification"], Query) ->
+	do_response(ModData, Resource:get_service_specs(Query));
+do_get(Resource, ModData, ["catalogManagement", "v2", "serviceSpecification", Id], Query) ->
+	do_response(ModData, Resource:get_service_spec(Id, Query));
 do_get(Resource, ModData, ["catalogManagement", "v2", "pla", Id], []) ->
 	do_response(ModData, Resource:get_pla(Id));
 do_get(Resource, ModData, ["catalogManagement", "v2", "resourceSpecification", Id], []) ->

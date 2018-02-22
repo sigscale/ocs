@@ -116,6 +116,10 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 							check_content_type_header(Headers, Method, ocs_rest_res_resource, Data);
 						["resourceInventoryManagement", "v1", "logicalResource" | _] ->
 							check_content_type_header(Headers, Method, ocs_rest_res_resource, Data);
+						["catalogManagement", "v2", "serviceSpecification" | _] ->
+							check_content_type_header(Headers, Method, ocs_rest_res_service, Data);
+						["serviceInventoryManagement", "v2", "service" | _] ->
+							check_content_type_header(Headers, Method, ocs_rest_res_service, Data);
 						_ ->
 							{proceed, Data}
 					end;

@@ -408,7 +408,7 @@ add_subscription(Offer, StartDate, EndDate, Characteristics)
 		ProductRef :: string() | undefined,
 		Result :: {ok, #service{}} | {error, Reason},
 		Reason :: term().
-%% @equiv add_service(Identity, Password, ProductRef, [], [], true, false)
+%% @equiv add_service(Identity, Password, ProductRef, [], true, false)
 add_service(Identity, Password, ProductRef) ->
 	add_service(Identity, Password, ProductRef, [], true, false).
 
