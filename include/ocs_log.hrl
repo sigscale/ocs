@@ -17,6 +17,60 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% 
 
+%% Authorization event
+-type auth_event() :: {
+		Timestamp :: pos_integer(),
+		N :: pos_integer(),
+		Protocol :: radius | diameter,
+		Node :: atom(),
+		Server :: {inet:ip_address(), inet:port_number()},
+		Client :: {inet:ip_address(), inet:port_number()},
+		Type :: atom(),
+		RequestAttributes :: radius_attributes:attributes(),
+		ResponseAttributes :: radius_attributes:attributes()}.
+
+%% Accounting event
+-type acct_event() :: {
+		Timestamp :: pos_integer(),
+		N :: pos_integer(),
+		Protocol :: radius | diameter,
+		Node :: atom(),
+		Server :: {inet:ip_address(), inet:port_number()},
+		Type :: atom(),
+		Attributes :: radius_attributes:attributes()}.
+
+%% REST API event
+-type http_event() :: {
+		Host :: string(),
+		User :: string(),
+		DateTime :: string(),
+		Method :: string(),
+		URI :: string(),
+		HttpStatus :: string()}.
+
+%% Account Balance event
+-type abmf_event() :: {
+		Timestamp :: pos_integer(),
+		N :: pos_integer(),
+		Node :: atom(),
+		Type :: deduct | reserve | unreserve | transfer | topup | adjustment,
+		Subscriber :: binary(),
+		Bucket :: undefined | string(),
+		Units :: cents | seconds | octets,
+		Product :: string(),
+		Amount :: integer(),
+		AmountBefore :: integer(),
+		AmountAfter :: integer(),
+		Validity :: undefined | pos_integer(),
+		Channel :: undefined | string(),
+		Requestor :: undefined | [{Id :: string(),
+				Role :: string(), Name :: string()}],
+		RelatedParty :: undefined | [{Id :: string(),
+				Role :: string(), Name :: string()}],
+		PaymentMeans :: undefined | string(),
+		Action :: undefined | string(),
+		Status :: undefined | term()}.
+
 %% IPDR Document
 -record(ipdrDoc,
 		{docId :: string(),
