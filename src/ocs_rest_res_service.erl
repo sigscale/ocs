@@ -33,9 +33,9 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
--define(servicePath, "serviceInventoryManagement/v2/serivce").
+-define(servicePath, "catalogManagement/v2/serivce").
 -define(serviceSpecPath, "catalogManagement/v2/serviceSpecification").
--define(serviceInventoryPath, "catalogManagement/v2/serviceSpecification").
+-define(serviceInventoryPath, "serviceInventoryManagement/v2/serviceSpecification").
 
 -spec content_types_accepted() -> ContentTypes
 	when
@@ -75,7 +75,7 @@ add_inventory(ReqData) ->
 	of
 		Service ->
 			Body = mochijson:encode(service(Service)),
-			Href = ?servicePath ++ Service#service.name,
+			Href = ?serviceInventoryPath ++ Service#service.name,
 			Etag = ocs_rest:etag(Service#service.last_modified),
 			Headers = [{location, Href}, {etag, Etag}],
 			{ok, Headers, Body}
@@ -236,7 +236,6 @@ service([{"serviceSpecification", _}| T], Acc) ->
 service([{"relatedPary", {array, _}}| T], Acc) ->
 	service(T, Acc);
 service([{"serviceCharacteristic", Characteristics}| T], Acc) ->
-erlang:display({?MODULE, ?LINE, Characteristics}),
 	Chars = service_chars(Characteristics),
 	F = fun(Key, Chars1) ->
 			case lists:keyfind(Key, 1, Chars1) of
