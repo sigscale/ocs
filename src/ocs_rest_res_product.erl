@@ -100,14 +100,14 @@ add_offer(ReqData) ->
 	Headers	:: [tuple()],
 	Body		:: iolist(),
 	Status	:: 400 | 500 .
-%% @doc Respond to `POST /productInventoryManagemen/v2/product'.
+%% @doc Respond to `POST /productInventoryManagement/v2/product'.
 %% 	Add a new instance of a Product Offering subscription.
 add_inventory(ReqData) ->
 	try
 		#product{start_date = SD, termination_date = TD,
 				characteristics = Chars, product = OfferId} =
 				inventory(mochijson:decode(ReqData)),
-		case ocs:add_service(OfferId, SD, TD, Chars) of
+		case ocs:add_subscription(OfferId, SD, TD, Chars) of
 			{ok, Product} ->
 				Product;
 			{error, Reason} ->
