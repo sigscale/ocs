@@ -1680,7 +1680,7 @@ acct_query4(Attributes, [{Attribute, {like, [H | T1]}} | T2]) ->
 		_ ->
 			false
 	end;
-acct_query4(Attributes, [{Attribute, {like, []}} | T]) ->
+acct_query4(Attributes, [{_, {like, []}} | T]) ->
 	acct_query4(Attributes, T);
 acct_query4(Attributes, [_ | T]) ->
 	acct_query4(Attributes, T);
@@ -1779,7 +1779,7 @@ auth_query5(Attributes, [{Attribute, {like, [H | T1]}} | T2]) ->
 		_ ->
 			false
 	end;
-auth_query5(Attributes, [{Attribute, {like, []}} | T]) ->
+auth_query5(Attributes, [{_, {like, []}} | T]) ->
 	auth_query5(Attributes, T);
 auth_query5(Attributes, [_H | T]) ->
 	auth_query5(Attributes, T);
