@@ -194,6 +194,8 @@ do_get(Resource, ModData, ["productInventoryManagement", "v2", "product", Id], [
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["productInventoryManagement", "v2", "product"], Query) ->
 	do_response(ModData, Resource:get_inventories(Query, Headers));
+do_get(Resource, ModData, ["serviceInventoryManagement", "v2", "service", Id], []) ->
+	do_response(ModData, Resource:get_inventory(Id));
 do_get(_, _, _, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{break, [{response, {404, Response}}]}.

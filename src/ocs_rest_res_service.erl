@@ -22,7 +22,7 @@
 -copyright('Copyright (c) 2016 - 2018 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0]).
--export([add_inventory/1]).
+-export([add_inventory/1, get_inventory/1]).
 -export([get_service_specs/1, get_service_spec/2]).
 
 -include("ocs.hrl").
@@ -65,7 +65,7 @@ add_inventory(ReqData) ->
 			attributes = Attributes, product = ProductRef,
 			enabled = Enabled, multisession = MultiSession} =
 			inventory(mochijson:decode(ReqData)),
-		case ocs:add_inventory(Identity, Password,
+		case ocs:add_service(Identity, Password,
 				ProductRef, Attributes, Enabled, MultiSession) of
 			{ok, Service1} ->
 				Service1;
@@ -84,6 +84,37 @@ add_inventory(ReqData) ->
 			{error, 500};
 		_:_ ->
 			{error, 400}
+	end.
+
+-spec get_inventory(Id) -> Result when
+	Id :: string(),
+	Result	:: {ok, Headers, Body} | {error, Status},
+	Headers	:: [tuple()],
+	Body		:: iolist(),
+	Status	:: 400 | 404 | 500 .
+%% @doc Respond to `GET /serviceInventoryManagement/service/{id}'.
+%% 	Retrieve a service inventories.
+get_inventory(Id) ->
+	try
+		case ocs:find_service(Id) of
+			{ok, Service1} ->
+				Service1;
+			{error, Reason} ->
+				throw(Reason)
+		end
+	of
+		Service ->
+			Body = mochijson:encode(inventory(Service)),
+			Etag = ocs_rest:etag(Service#service.last_modified),
+			Href = ?serviceInventoryPath ++ binary_to_list(Service#service.name),
+			Headers = [{location, Href}, {etag, Etag},
+					{content_type, "application/json"}],
+			{ok, Headers, Body}
+	catch
+		throw:not_found ->
+			{error, 404};
+		_:_ ->
+			{error, 500}
 	end.
 
 -spec get_service_specs(Query) -> Result when
