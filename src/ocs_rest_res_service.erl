@@ -25,8 +25,8 @@
 -export([add_inventory/1]).
 -export([get_service_specs/1, get_service_spec/2]).
 
--include_lib("inets/include/mod_auth.hrl").
 -include("ocs.hrl").
+-include_lib("inets/include/mod_auth.hrl").
 -include_lib("radius/include/radius.hrl").
 
 %% support deprecated_time_unit()
@@ -35,7 +35,7 @@
 
 -define(servicePath, "catalogManagement/v2/serivce").
 -define(serviceSpecPath, "catalogManagement/v2/serviceSpecification").
--define(serviceInventoryPath, "serviceInventoryManagement/v2/serviceSpecification").
+-define(serviceInventoryPath, "serviceInventoryManagement/v2/service").
 
 -spec content_types_accepted() -> ContentTypes
 	when
