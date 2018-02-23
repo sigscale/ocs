@@ -243,7 +243,11 @@ handle_info(#diameter_event{service = ?DIAMETER_AUTH_SERVICE(Address, Port),
 handle_info(#diameter_event{service = ?DIAMETER_AUTH_SERVICE(Address, Port),
 	info = Event}, started = StateName, #statedata{address = Address,
 	port = Port} = StateData) ->
-	change_state(StateName, Event, StateData).
+	change_state(StateName, Event, StateData);
+handle_info(Event, StateName, StateData) ->
+	error_logger:warning_report(["Unexpected diameter event",
+			{module, ?MODULE}, {state, StateName}, {event, Event}]),
+	{next_state, StateName, StateData}.
 
 -spec terminate(Reason, StateName, StateData) -> any()
 	when

@@ -24,8 +24,8 @@
 -copyright('Copyright (c) 2016-2017 SigScale Global Inc.').
 
 %% export the ocs_log public API
--export([acct_open/0, acct_log/4, acct_log/5, acct_close/0,
-			acct_query/5, acct_query/6]).
+-export([acct_open/0, acct_log/4, acct_log/5, acct_log/6,
+			acct_close/0, acct_query/5, acct_query/6]).
 -export([auth_open/0, auth_log/5, auth_log/6, auth_close/0,
 			auth_query/6, auth_query/7]).
 -export([ipdr_log/3, ipdr_file/2]).
@@ -102,6 +102,23 @@ acct_log(radius = Protocol, Server, Type, Attributes) ->
 %% @doc Write a DIAMETER event to accounting log.
 acct_log(diameter = Protocol, Server, Type, Request, Response) ->
 	Event = [Protocol, node(), Server, Type, Request, Response],
+	write_log(?ACCTLOG, Event).
+
+-spec acct_log(Protocol, Server, Type, Request, Response, Rated) -> Result
+	when
+		Protocol :: diameter,
+		Server :: {Address, Port},
+		Address :: inet:ip_address(),
+		Port :: integer(),
+		Type :: start | stop | update,
+		Request :: #'3gpp_ro_CCR'{} | #'3gpp_ro_RAR'{},
+		Response :: #'3gpp_ro_CCA'{} | #'3gpp_ro_RAA'{},
+		Rated :: #rated{},
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Write a DIAMETER event to accounting log.
+acct_log(diameter = Protocol, Server, Type, Request, Response, Rated) ->
+	Event = [Protocol, node(), Server, Type, Request, Response, Rated],
 	write_log(?ACCTLOG, Event).
 
 -spec acct_close() -> Result
@@ -1680,7 +1697,7 @@ acct_query4(Attributes, [{Attribute, {like, [H | T1]}} | T2]) ->
 		_ ->
 			false
 	end;
-acct_query4(Attributes, [{Attribute, {like, []}} | T]) ->
+acct_query4(Attributes, [{_, {like, []}} | T]) ->
 	acct_query4(Attributes, T);
 acct_query4(Attributes, [_ | T]) ->
 	acct_query4(Attributes, T);
@@ -1779,7 +1796,7 @@ auth_query5(Attributes, [{Attribute, {like, [H | T1]}} | T2]) ->
 		_ ->
 			false
 	end;
-auth_query5(Attributes, [{Attribute, {like, []}} | T]) ->
+auth_query5(Attributes, [{_, {like, []}} | T]) ->
 	auth_query5(Attributes, T);
 auth_query5(Attributes, [_H | T]) ->
 	auth_query5(Attributes, T);
