@@ -133,7 +133,7 @@ all() ->
 	authenticate_subscriber_request, unauthenticate_subscriber_request,
 	authenticate_client_request, unauthenticate_client_request,
 	add_service, add_service_inventory, add_service_inventory_without_password,
-	get_subscriber, get_subscriber_not_found, get_all_subscriber,
+	get_service_inventory, get_subscriber_not_found, get_all_subscriber,
 	get_subscriber_range, delete_service,
 	add_client, add_client_without_password, get_client, get_client_id,
 	get_client_bogus, get_client_notfound, get_all_clients,
@@ -334,7 +334,7 @@ add_service_inventory(Config) ->
 	{struct, Object} = mochijson:decode(ResponseBody),
 	{"id", ID} = lists:keyfind("id", 1, Object),
 	{_, URI} = lists:keyfind("href", 1, Object),
-	{"product", ProdID} = lists:keyfind("product", 1, Object),
+	{"product", ProdId} = lists:keyfind("product", 1, Object),
 	{_, {array, Chars}} = lists:keyfind("serviceCharacteristic", 1, Object),
 	SortedChars = lists:sort(Chars).
 
@@ -376,7 +376,7 @@ add_service_inventory_without_password(Config) ->
 	{struct, Object} = mochijson:decode(ResponseBody),
 	{"id", ID} = lists:keyfind("id", 1, Object),
 	{_, URI} = lists:keyfind("href", 1, Object),
-	{"product", ProdID} = lists:keyfind("product", 1, Object),
+	{"product", ProdId} = lists:keyfind("product", 1, Object),
 	{_, {array, Chars}} = lists:keyfind("serviceCharacteristic", 1, Object),
 	F = fun({struct, [{"name", "servicePassword"}, {"value", Password}]}) ->
 					12 == length(Password);
@@ -387,31 +387,19 @@ add_service_inventory_without_password(Config) ->
 	end,
 	lists:any(F, Chars).
 
-get_subscriber() ->
-	[{userdata, [{doc,"get subscriber in rest interface"}]}].
+get_service_inventory() ->
+	[{userdata, [{doc,"get service invetory for spefici service id"}]}].
 
-get_subscriber(Config) ->
-	ContentType = "application/json",
-	AcceptValue = "application/json",
-	ProdID = ?config(product_id, Config),
-	ID = "eacfd73ae10a",
-	Password = "ksc8c244npqc",
-	AsendDataRate = {struct, [{"name", "ascendDataRate"}, {"value", 1000000}]},
-	AsendXmitRate = {struct, [{"name", "ascendXmitRate"}, {"value", 64000}]},
-	SessionTimeout = {struct, [{"name", "sessionTimeout"}, {"value", 10864}]},
-	Interval = {struct, [{"name", "acctInterimInterval"}, {"value", 300}]},
-	Class = {struct, [{"name", "class"}, {"value", "skiorgs"}]},
-	SortedAttributes = lists:sort([AsendDataRate, AsendXmitRate, SessionTimeout, Interval, Class]),
-	AttributeArray = {array, SortedAttributes},
-	Amount = {"remainAmount", 3000},
-	Units = {"units", "cents"},
-	Buckets = {array, [{struct, [Amount, Units]}]},
-	Enable = true,
-	Multi = false,
-	JSON1 = {struct, [{"id", ID}, {"password", Password},
-	{"attributes", AttributeArray}, {"buckets", Buckets}, {"enabled", Enable},
-	{"multisession", Multi}, {"product", ProdID}]},
-	RequestBody = lists:flatten(mochijson:encode(JSON1)),
+get_service_inventory(Config) ->
+	OfferId = ?config(product_id, Config),
+	{ok, #product{id = ProdRef}} = ocs:add_subscription(OfferId, []),
+	ID = ocs:generate_identity(),
+	Password = ocs:generate_password(),
+	SessionTimeout = rand:uniform(2500),
+	AcctInterimInterval = rand:uniform(500),
+	Attributes = [{?SessionTimeout, SessionTimeout},
+			{?AcctInterimInterval, AcctInterimInterval}],
+	{ok, #service{}} = ocs:add_service(ID, Password, ProdRef, Attributes, true, false),
 	HostUrl = ?config(host_url, Config),
 	Accept = {"accept", "application/json"},
 	RestUser = ct:get_config(rest_user),
@@ -419,27 +407,50 @@ get_subscriber(Config) ->
 	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	AuthKey = "Basic " ++ Encodekey,
 	Authentication = {"authorization", AuthKey},
-	Request1 = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication], ContentType, RequestBody},
-	{ok, Result} = httpc:request(post, Request1, [], []),
-	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
-	{_, URI1} = lists:keyfind("location", 1, Headers),
-	{URI2, _} = httpd_util:split_path(URI1),
-	Request2 = {HostUrl ++ URI2, [Accept, Authentication ]},
-	{ok, Result1} = httpc:request(get, Request2, [], []),
-	{{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
-	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers1),
-	ContentLength = integer_to_list(length(Body1)),
-	{_, ContentLength} = lists:keyfind("content-length", 1, Headers1),
-	{struct, Object} = mochijson:decode(Body1),
+	Request = {HostUrl ++ "/serviceInventoryManagement/v2/service/" ++ ID,
+			[Accept, Authentication]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	{_, _} = lists:keyfind("etag", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{"serviceInventoryManagement/v2/service/" ++ ID, _} = httpd_util:split_path(URI),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{struct, Object} = mochijson:decode(ResponseBody),
 	{"id", ID} = lists:keyfind("id", 1, Object),
-	{_, URI2} = lists:keyfind("href", 1, Object),
-	{"password", Password} = lists:keyfind("password", 1, Object),
-	{_, {array, Attributes}} = lists:keyfind("attributes", 1, Object),
-	ExtraAttributes = Attributes -- SortedAttributes,
-	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
-	{"totalBalance", _Buckets1} = lists:keyfind("totalBalance", 1, Object),
-	{"enabled", Enable} = lists:keyfind("enabled", 1, Object),
-	{"multisession", Multi} = lists:keyfind("multisession", 1, Object).
+	{_, URI} = lists:keyfind("href", 1, Object),
+	{"product", ProdRef} = lists:keyfind("product", 1, Object),
+	{"isServiceEnabled", true} = lists:keyfind("isServiceEnabled", 1, Object),
+	{_, {array, Chars}} = lists:keyfind("serviceCharacteristic", 1, Object),
+	F = fun({struct, [{"name", "serviceIdentity"}, {"value", ID1}]}) when ID1 == ID ->
+				true;
+			({struct, [{"name", "servicePassword"}, {"value", Password1}]}) when Password1 == Password ->
+				true;
+			({struct, [{"name", "multiSession"}, {"value", false}]}) ->
+				true;
+			({struct, [{"name", "acctSessionInterval"}, {"value", AcctInterimInterval1}]})
+					when AcctInterimInterval1 == AcctInterimInterval ->
+				true;
+			({struct, [{"name", "sessionTimeout"}, {"value", SessionTimeout1}]})
+					when SessionTimeout1 == SessionTimeout ->
+				true;
+			({struct, [{"value", ID1}, {"name", "serviceIdentity"}]}) when ID1 == ID ->
+				true;
+			({struct, [{"value", Password1}, {"name", "servicePassword"}]}) when Password1 == Password ->
+				true;
+			({struct, [{"value", false}, {"name", "multiSession"}]}) ->
+				true;
+			({struct, [{"value", AcctInterimInterval1}, {"name", "acctSessionInterval"}]})
+					when AcctInterimInterval1 == AcctInterimInterval ->
+				true;
+			({struct, [{"value", SessionTimeout1}, {"name", "sessionTimeout"}]})
+					when SessionTimeout1 == SessionTimeout ->
+				true;
+			(_) ->
+				false
+	end,
+	true = lists:all(F, Chars).
 
 get_subscriber_not_found() ->
 	[{userdata, [{doc, "get subscriber notfound in rest interface"}]}].
