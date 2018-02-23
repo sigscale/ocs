@@ -133,7 +133,7 @@ all() ->
 	authenticate_subscriber_request, unauthenticate_subscriber_request,
 	authenticate_client_request, unauthenticate_client_request,
 	add_service, add_service_inventory, add_service_inventory_without_password,
-	get_service_inventory, get_subscriber_not_found, get_all_subscriber,
+	get_service_inventory, get_subscriber_not_found, get_all_service_inventories,
 	get_subscriber_range, delete_service,
 	add_client, add_client_without_password, get_client, get_client_id,
 	get_client_bogus, get_client_notfound, get_all_clients,
@@ -468,66 +468,125 @@ get_subscriber_not_found(Config) ->
 	{ok, Result} = httpc:request(get, Request, [], []),
 	{{"HTTP/1.1", 404, _NotFound}, _Headers, _Body} = Result.
 
-get_all_subscriber() ->
-	[{userdata, [{doc,"Get all items in the subscriber collection"}]}].
+get_all_service_inventories() ->
+	[{userdata, [{doc,"Get all service inventories"}]}].
 
-get_all_subscriber(Config) ->
-	ContentType = "application/json",
-	AcceptValue = "application/json",
-	ProdID = ?config(product_id, Config),
-	Accept = {"accept", AcceptValue},
-	ID = "5557615036fd",
-	Password = "2h7csggw35aa",
-	AsendDataRate = {struct, [{"name", "ascendDataRate"}, {"value", 1000000}]},
-	AsendXmitRate = {struct, [{"name", "ascendXmitRate"}, {"value", 64000}]},
-	SessionTimeout = {struct, [{"name", "sessionTimeout"}, {"value", 10864}]},
-	Interval = {struct, [{"name", "acctInterimInterval"}, {"value", 300}]},
-	Class = {struct, [{"name", "class"}, {"value", "skiorgs"}]},
-	SortedAttributes = lists:sort([AsendDataRate, AsendXmitRate, SessionTimeout, Interval, Class]),
-	AttributeArray = {array, SortedAttributes},
-	Amount = {"remainAmount", 3000},
-	Units = {"units", "cents"},
-	Buckets = {array, [{struct, [Amount, Units]}]},
-	Enable = true,
-	Multi = false,
-	JSON1 = {struct, [{"id", ID}, {"password", Password},
-	{"attributes", AttributeArray}, {"buckets", Buckets}, {"enabled", Enable},
-	{"multisession", Multi}, {"product", ProdID}]},
-	RequestBody = lists:flatten(mochijson:encode(JSON1)),
+get_all_service_inventories(Config) ->
+	OfferId = ?config(product_id, Config),
+	{ok, #product{id = ProdRef1}} = ocs:add_subscription(OfferId, []),
+	{ok, #product{id = ProdRef2}} = ocs:add_subscription(OfferId, []),
+	{ok, #product{id = ProdRef3}} = ocs:add_subscription(OfferId, []),
+	{ok, #product{id = ProdRef4}} = ocs:add_subscription(OfferId, []),
+	{ok, #product{id = ProdRef5}} = ocs:add_subscription(OfferId, []),
+	ID1 = ocs:generate_identity(),
+	ID2 = ocs:generate_identity(),
+	ID3 = ocs:generate_identity(),
+	ID4 = ocs:generate_identity(),
+	ID5 = ocs:generate_identity(),
+	Password1 = ocs:generate_password(),
+	Password2 = ocs:generate_password(),
+	Password3 = ocs:generate_password(),
+	Password4 = ocs:generate_password(),
+	Password5 = ocs:generate_password(),
+	SessionTimeout1 = rand:uniform(2500),
+	SessionTimeout2 = rand:uniform(2500),
+	SessionTimeout3 = rand:uniform(2500),
+	SessionTimeout4 = rand:uniform(2500),
+	SessionTimeout5 = rand:uniform(2500),
+	AcctInterimInterval1 = rand:uniform(500),
+	AcctInterimInterval2 = rand:uniform(500),
+	AcctInterimInterval3 = rand:uniform(500),
+	AcctInterimInterval4 = rand:uniform(500),
+	AcctInterimInterval5 = rand:uniform(500),
+	Attributes1 = [{?SessionTimeout, SessionTimeout1}, {?AcctInterimInterval, AcctInterimInterval1}],
+	Attributes2 = [{?SessionTimeout, SessionTimeout2}, {?AcctInterimInterval, AcctInterimInterval2}],
+	Attributes3 = [{?SessionTimeout, SessionTimeout3}, {?AcctInterimInterval, AcctInterimInterval3}],
+	Attributes4 = [{?SessionTimeout, SessionTimeout4}, {?AcctInterimInterval, AcctInterimInterval4}],
+	Attributes5 = [{?SessionTimeout, SessionTimeout5}, {?AcctInterimInterval, AcctInterimInterval5}],
+	{ok, #service{}} = ocs:add_service(ID1, Password1, ProdRef1, Attributes1, true, false),
+	{ok, #service{}} = ocs:add_service(ID2, Password2, ProdRef2, Attributes2, true, false),
+	{ok, #service{}} = ocs:add_service(ID3, Password3, ProdRef3, Attributes3, true, false),
+	{ok, #service{}} = ocs:add_service(ID4, Password4, ProdRef4, Attributes4, true, false),
+	{ok, #service{}} = ocs:add_service(ID5, Password5, ProdRef5, Attributes5, true, false),
 	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
 	RestUser = ct:get_config(rest_user),
 	RestPass = ct:get_config(rest_pass),
 	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	AuthKey = "Basic " ++ Encodekey,
 	Authentication = {"authorization", AuthKey},
-	Request1 = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication], ContentType, RequestBody},
-	{ok, Result} = httpc:request(post, Request1, [], []),
-	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
-	{_, URI1} = lists:keyfind("location", 1, Headers),
-	Request2 = {HostUrl ++ "/ocs/v1/subscriber", [Accept, Authentication]},
-	{ok, Result1} = httpc:request(get, Request2, [], []),
-	{{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
-	{_, AcceptValue} = lists:keyfind("content-type", 1, Headers1),
-	ContentLength = integer_to_list(length(Body1)),
-	{_, ContentLength} = lists:keyfind("content-length", 1, Headers1),
-	{array, Subscribers} = mochijson:decode(Body1),
-	Pred = fun({struct, Params}) ->
-		case lists:keyfind("id", 1, Params) of
-			{_, ID} ->
-				true;
-			{_, _ID} ->
-				false
-		end
+	Request = {HostUrl ++ "/serviceInventoryManagement/v2/service/", [Accept, Authentication]},
+	{ok, Result} = httpc:request(get, Request, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	{_, _} = lists:keyfind("etag", 1, Headers),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{array, Objects} = mochijson:decode(ResponseBody),
+	F2 = fun(Obj, ID, Password, ProdRef, Attributes) ->
+					{"product", ProdRef} = lists:keyfind("product", 1, Obj),
+					{"isServiceEnabled", true} = lists:keyfind("isServiceEnabled", 1, Obj),
+					{_, {array, Chars}} = lists:keyfind("serviceCharacteristic", 1, Obj),
+						F3 = fun({struct, [{"name", "serviceIdentity"}, {"value", ID6}]}) when ID6 == ID ->
+									true;
+								({struct, [{"name", "servicePassword"}, {"value", Password6}]}) when Password6 == Password ->
+									true;
+								({struct, [{"name", "multiSession"}, {"value", false}]}) ->
+									true;
+								({struct, [{"name", "acctSessionInterval"}, {"value", AcctInterimInterval6}]}) ->
+										case lists:keyfind(?AcctInterimInterval, 1, Attributes) of
+											{_, AcctInterimInterval6} ->
+												true;
+											_ ->
+												false
+										end;
+								({struct, [{"name", "sessionTimeout"}, {"value", SessionTimeout6}]}) ->
+										case lists:keyfind(?SessionTimeout, 1, Attributes) of
+											{_, SessionTimeout6} ->
+												true;
+											_ ->
+												false
+										end;
+								({struct, [{"value", ID6}, {"name", "serviceIdentity"}]}) when ID6 == ID ->
+									true;
+								({struct, [{"value", Password6}, {"name", "servicePassword"}]}) when Password6 == Password ->
+									true;
+								({struct, [{"value", false}, {"name", "multiSession"}]}) ->
+									true;
+								({struct, [{"value", AcctInterimInterval6}, {"name", "acctSessionInterval"}]}) ->
+										case lists:keyfind(?AcctInterimInterval, 1, Attributes) of
+											{_, AcctInterimInterval6} ->
+												true;
+											_ ->
+												false
+										end;
+								({struct, [{"value", SessionTimeout6}, {"name", "sessionTimeout"}]}) ->
+										case lists:keyfind(?SessionTimeout, 1, Attributes) of
+											{_, SessionTimeout6} ->
+												true;
+											_ ->
+												false
+										end;
+								(_) ->
+									false
+						end,
+						true = lists:all(F3, Chars)
 	end,
-	[{struct, Subscriber}] = lists:filter(Pred, Subscribers),
-	{_, URI1} = lists:keyfind("href", 1, Subscriber),
-	{"password", Password} = lists:keyfind("password", 1, Subscriber),
-	{_, {array, Attributes}} = lists:keyfind("attributes", 1, Subscriber),
-	ExtraAttributes = Attributes -- SortedAttributes,
-	SortedAttributes = lists:sort(Attributes -- ExtraAttributes),
-	{"totalBalance", _Buckets1} = lists:keyfind("totalBalance", 1, Subscriber),
-	{"enabled", Enable} = lists:keyfind("enabled", 1, Subscriber),
-	{"multisession", Multi} = lists:keyfind("multisession", 1, Subscriber).
+	F = fun({struct, Object}) ->
+				case lists:keyfind("id", 1, Object) of
+					{_, ID6} when ID6 == ID1 ->
+						F2(Object, ID1, Password1, ProdRef1, Attributes1);
+					{_, ID6} when ID6 == ID2 ->
+						F2(Object, ID2, Password2, ProdRef2, Attributes2);
+					{_, ID6} when ID6 == ID3 ->
+						F2(Object, ID3, Password3, ProdRef3, Attributes3);
+					{_, ID6} when ID6 == ID4 ->
+						F2(Object, ID4, Password4, ProdRef4, Attributes4);
+					{_, ID6} when ID6 == ID5 ->
+						F2(Object, ID5, Password5, ProdRef5, Attributes5)
+				end
+	end,
+	lists:all(F, Objects).
 
 get_subscriber_range() ->
 	[{userdata, [{doc,"Get range of items in the subscriber collection"}]}].
