@@ -289,7 +289,7 @@ service([password | T], #service{password = Password} = Service,
 	service(T, Service, NewChars, [Id, Href | Acc);
 service([password | T], #service{password = Password} = Service,
 		Chars, Acc) when is_list(Password) ->
-	SPwd = {"serviceIdentity", Password},
+	SPwd = {"servicePassword", Password},
 	NewChars = lists:keystore("servicePassword", 1, SPwd, Chars),
 	Id = {"id", binary_to_list(Password)},
 	Href = {"href", ?serviceInventoryPath ++ Password},
