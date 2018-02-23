@@ -586,7 +586,7 @@ get_all_service_inventories(Config) ->
 						F2(Object, ID5, Password5, ProdRef5, Attributes5)
 				end
 	end,
-	lists:all(F, Objects).
+	true = lists:all(F, Objects).
 
 get_subscriber_range() ->
 	[{userdata, [{doc,"Get range of items in the subscriber collection"}]}].
