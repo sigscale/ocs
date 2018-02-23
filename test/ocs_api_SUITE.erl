@@ -160,24 +160,25 @@ delete_client(Config) ->
 	{error, not_found} = ocs:find_client(Address).
 
 add_service() ->
-	[{userdata, [{doc, "Add subscriber to database"}]}].
+	[{userdata, [{doc, "Add service to database"}]}].
 
 add_service(Config) ->
-	ProdID = ?config(product_id, Config),
+	OfferId = ?config(product_id, Config),
+	{ok, #product{id = ProdRef}} = ocs:add_subscription(OfferId, []),
 	Attribute0 = radius_attributes:new(),
 	Attribute1 = radius_attributes:add(?SessionTimeout, 3600, Attribute0),
 	Attribute2 = radius_attributes:add(?AcctInterimInterval, 60, Attribute0),
+	Identity1 = ocs:generate_identity(),
+	Identity2 = ocs:generate_identity(),
 	Password1 = ocs:generate_password(),
 	Password2 = ocs:generate_password(),
-	Buckets = [#bucket{units = cents, remain_amount = 3000}],
-	{ok, _} = ocs:add_service("tomba", Password1, ProdID, [], Buckets, Attribute1),
-	{ok, _} = ocs:add_service("android", Password2, ProdID, [], Buckets, Attribute2),
+	{ok, _} = ocs:add_service(Identity1, Password1, ProdRef, Attribute1),
+	{ok, _} = ocs:add_service(Identity2, Password2, ProdRef, Attribute2),
 	{ok, #service{password = BinPassword1, attributes = Attribute1,
-			product = #product_instance{product = ProdID}}} = 
-			ocs:find_service("tomba"),
+			product = ProdRef }} = ocs:find_service(Identity1),
 	Password1 = binary_to_list(BinPassword1),
 	{ok, #service{password = BinPassword2, attributes = Attribute2,
-			product = #product_instance{product = ProdID}}} = ocs:find_service("android"),
+			product = ProdRef}} = ocs:find_service(Identity2),
 	Password2 = binary_to_list(BinPassword2).
 
 delete_service() ->
