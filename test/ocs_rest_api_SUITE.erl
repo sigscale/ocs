@@ -132,7 +132,7 @@ all() ->
 	[authenticate_user_request, unauthenticate_user_request,
 	authenticate_subscriber_request, unauthenticate_subscriber_request,
 	authenticate_client_request, unauthenticate_client_request,
-	add_service, add_service_without_password,
+	add_service, add_service_inventory, add_service_without_password,
 	get_subscriber, get_subscriber_not_found, get_all_subscriber,
 	get_subscriber_range, delete_service,
 	add_client, add_client_without_password, get_client, get_client_id,
@@ -293,6 +293,50 @@ add_service(Config) ->
 	{"totalBalance", _Buckets1} = lists:keyfind("totalBalance", 1, Object),
 	{"enabled", Enable} = lists:keyfind("enabled", 1, Object),
 	{"multisession", Multi} = lists:keyfind("multisession", 1, Object).
+
+add_service_inventory() ->
+	[{userdata, [{doc,"Add service inventory"}]}].
+
+add_service_inventory(Config) ->
+	OfferId = ?config(product_id, Config),
+	{ok, #product{id = ProdId}} = ocs:add_subscription(OfferId, []),
+	ID = ocs:generate_identity(),
+	Password = ocs:generate_password(),
+	Product = {"product", ProdId},
+	IsServiceEnabled = {"isServiceEnabled", true},
+	Char1= {struct, [{"name", "acctSessionInterval"}, {"value", rand:uniform(500)}]},
+	Char2 = {struct, [{"name", "sessionTimeout"}, {"value", rand:uniform(2500)}]},
+	Char3 = {struct, [{"name", "serviceIdentity"}, {"value", ID}]},
+	Char4 = {struct, [{"name", "servicePassword"}, {"value", Password}]},
+	Char5 = {struct, [{"name", "multiSession"}, {"value", true}]},
+	SortedChars = lists:sort([Char1, Char2, Char3, Char4, Char5]),
+	Characteristics = {"serviceCharacteristic", {array, SortedChars}},
+	JSON = {struct, [Product, IsServiceEnabled, Characteristics]},
+	RequestBody = lists:flatten(mochijson:encode(JSON)),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	ContentType = "application/json",
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authentication = {"authorization", AuthKey},
+	Request = {HostUrl ++ "/serviceInventoryManagement/v2/service",
+			[Accept, Authentication], ContentType, RequestBody},
+	{ok, Result} = httpc:request(post, Request, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, ResponseBody} = Result,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers),
+	{_, _} = lists:keyfind("etag", 1, Headers),
+	{_, URI} = lists:keyfind("location", 1, Headers),
+	{"serviceInventoryManagement/v2/service/" ++ ID, _} = httpd_util:split_path(URI),
+	ContentLength = integer_to_list(length(ResponseBody)),
+	{_, ContentLength} = lists:keyfind("content-length", 1, Headers),
+	{struct, Object} = mochijson:decode(ResponseBody),
+	{"id", ID} = lists:keyfind("id", 1, Object),
+	{_, URI} = lists:keyfind("href", 1, Object),
+	{"product", ProdID} = lists:keyfind("product", 1, Object),
+	{_, {array, Chars}} = lists:keyfind("serviceCharacteristic", 1, Object),
+	SortedChars = lists:sort(Chars).
 
 add_service_without_password() ->
 	[{userdata, [{doc,"Add subscriber with generated password"}]}].
