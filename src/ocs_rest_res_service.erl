@@ -33,9 +33,9 @@
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
 
--define(servicePath, "catalogManagement/v2/serivce").
--define(serviceSpecPath, "catalogManagement/v2/serviceSpecification").
--define(serviceInventoryPath, "serviceInventoryManagement/v2/service").
+-define(servicePath, "catalogManagement/v2/serivce/").
+-define(serviceSpecPath, "catalogManagement/v2/serviceSpecification/").
+-define(serviceInventoryPath, "serviceInventoryManagement/v2/service/").
 
 -spec content_types_accepted() -> ContentTypes
 	when
@@ -75,7 +75,7 @@ add_inventory(ReqData) ->
 	of
 		Service ->
 			Body = mochijson:encode(service(Service)),
-			Href = ?serviceInventoryPath ++ Service#service.name,
+			Href = ?serviceInventoryPath ++ binary_to_list(Service#service.name),
 			Etag = ocs_rest:etag(Service#service.last_modified),
 			Headers = [{location, Href}, {etag, Etag}],
 			{ok, Headers, Body}
@@ -235,6 +235,8 @@ service([{"serviceSpecification", _}| T], Acc) ->
 	service(T, Acc);
 service([{"relatedPary", {array, _}}| T], Acc) ->
 	service(T, Acc);
+service([{"product", ProductRef}| T], Acc) ->
+	service(T, Acc#service{product = ProductRef});
 service([{"serviceCharacteristic", Characteristics}| T], Acc) ->
 	Chars = service_chars(Characteristics),
 	F = fun(Key, Chars1) ->
@@ -271,37 +273,39 @@ service([name | T], #service{name = undefined} = Service, Chars, Acc) ->
 service([name | T], #service{name = Identity} = Service,
 		Chars, Acc) when is_binary(Identity) ->
 	SId = {"serviceIdentity", binary_to_list(Identity)},
-	NewChars = lists:keystore("serviceIdentity", 1, SId, Chars),
-	service(T, Service, NewChars, Acc);
+	Id = {"id", binary_to_list(Identity)},
+	Href = {"href", ?serviceInventoryPath ++ binary_to_list(Identity)},
+	NewChars = lists:keystore("serviceIdentity", 1, Chars, SId),
+	service(T, Service, NewChars, [Id, Href | Acc]);
 service([name | T], #service{name = Identity} = Service,
 		Chars, Acc) when is_list(Identity) ->
+	Id = {"id", Identity},
+	Href = {"href", ?serviceInventoryPath ++ Identity},
 	SId = {"serviceIdentity", Identity},
-	NewChars = lists:keystore("serviceIdentity", 1, SId, Chars),
-	service(T, Service, NewChars, Acc);
-service([password | T], #service{name = undefined} = Service, Chars, Acc) ->
+	NewChars = lists:keystore("serviceIdentity", 1, Chars, SId),
+	service(T, Service, NewChars, [Id, Href | Acc]);
+service([password | T], #service{password = undefined} = Service, Chars, Acc) ->
 	service(T, Service, Chars, Acc);
 service([password | T], #service{password = Password} = Service,
 		Chars, Acc) when is_binary(Password) ->
 	SPwd = {"servicePassword", binary_to_list(Password)},
-	NewChars = lists:keystore("servicePassword", 1, SPwd, Chars),
-	Id = {"id", binary_to_list(Password)},
-	Href = {"href", ?serviceInventoryPath ++ binary_to_list(Password)},
-	service(T, Service, NewChars, [Id, Href | Acc);
+	NewChars = lists:keystore("servicePassword", 1, Chars, SPwd),
+	service(T, Service, NewChars, Acc);
 service([password | T], #service{password = Password} = Service,
 		Chars, Acc) when is_list(Password) ->
 	SPwd = {"servicePassword", Password},
-	NewChars = lists:keystore("servicePassword", 1, SPwd, Chars),
-	Id = {"id", binary_to_list(Password)},
-	Href = {"href", ?serviceInventoryPath ++ Password},
-	service(T, Service, NewChars, [Id, Href | Acc);
-service([product | T], #service{} = Service, Chars, Acc) ->
+	NewChars = lists:keystore("servicePassword", 1, Chars, SPwd),
+	service(T, Service, NewChars, Acc);
+service([product | T], #service{product = undefined} = Service, Chars, Acc) ->
 	service(T, Service, Chars, Acc);
+service([product | T], #service{product = ProductRef} = Service, Chars, Acc) ->
+	service(T, Service, Chars, [{"product", ProductRef} | Acc]);
 service([enabled | T], #service{enabled = Enabled} = Service, Chars, Acc) ->
 	service(T, Service, Chars, [{"isServiceEnabled", Enabled} | Acc]);
 service([multisession | T], #service{multisession = MultiSession} =
 		Service, Chars, Acc) ->
 	MS = {"multiSession", MultiSession},
-	NewChars = lists:keystore("multiSession", 1, MS, Chars),
+	NewChars = lists:keystore("multiSession", 1, Chars, MS),
 	service(T, Service, NewChars, Acc);
 service([attributes | T], #service{attributes = []} = Service, Chars, Acc) ->
 	service(T, Service, Chars, Acc);
@@ -320,6 +324,10 @@ service([attributes | T], #service{attributes = Attributes} = Service, Chars, Ac
 	end,
 	NewChars = C2 ++ Chars,
 	service(T, Service, NewChars, Acc);
+service([_ | T], Service, Chars, Acc) ->
+	service(T, Service, Chars, Acc);
+service([], _Service, [], Acc) ->
+	{struct, lists:reverse(Acc)};
 service([], _Service, Chars, Acc) ->
 	NewAcc = [{"serviceCharacteristic", service_chars(Chars)} | Acc],
 	{struct, lists:reverse(NewAcc)}.
