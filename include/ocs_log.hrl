@@ -29,6 +29,19 @@
 		RequestAttributes :: radius_attributes:attributes(),
 		ResponseAttributes :: radius_attributes:attributes()}.
 
+-record(rated,
+		{bucket_value :: integer(),
+		bucket_type :: cents | octets | seconds,
+		currency :: string(),
+		is_billed = false :: boolean(),
+		is_tax_exempt = false :: boolean(),
+		tariff_type :: atom(),
+		product :: term(),
+		taxed_excluded_amount :: non_neg_integer(),
+		taxed_included_amount :: non_neg_integer(),
+		tax_rate :: integer(),
+		usage_rating_tag :: usage | included | non_included}).
+
 %% Accounting event
 -type acct_event() :: {
 		Timestamp :: pos_integer(),
@@ -37,7 +50,9 @@
 		Node :: atom(),
 		Server :: {inet:ip_address(), inet:port_number()},
 		Type :: atom(),
-		Attributes :: radius_attributes:attributes()}.
+		ReqAttrs :: radius_attributes:attributes(),
+		RespAttrs :: radius_attributes:attributes(),
+		Rated :: #rated{}}.
 
 %% REST API event
 -type http_event() :: {
