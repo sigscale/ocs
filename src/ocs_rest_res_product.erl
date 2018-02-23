@@ -1972,6 +1972,12 @@ inventory([_ | T], Acc) ->
 inventory([], Acc) ->
 	Acc.
 %% @hidden
+inventory([id | T], #product{id = undefined} = Product, Acc) ->
+	inventory(T. Product, Acc);
+inventory([id | T], #product{id = Id} = Product, Acc) ->
+	ID = {"id", Id},
+	Href = {"href", ?inventoryPath ++ Id},
+	inventory(T, [Id, Href | Acc]);
 inventory([product | T], #product{product = OfferId} = Product, Acc) ->
 	Id = {"id", OfferId},
 	Href = {"href", ?offeringPath ++ OfferId},
