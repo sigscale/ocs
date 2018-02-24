@@ -326,6 +326,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 	Destination = call_destination(ServiceInformation),
 	ReserveAmount = [{ReqUsageType, ReqUsage}],
 	ServiceType = service_type(SvcContextId),
+	Server = {Address, Port},
 	case ocs_rating:rate(diameter, ServiceType, Subscriber, Timestamp,
 			Destination, originate, initial, [], ReserveAmount, [{'Session-Id', SId}]) of
 		{ok, _, GrantedAmount} ->
@@ -335,28 +336,43 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 				octets ->
 					#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [GrantedAmount]}
 			end,
-			generate_diameter_answer(Request, SId, GrantedUnits,
+			Reply = generate_diameter_answer(SId, GrantedUnits,
 					?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
-					RequestType, RequestNum, Address, Port);
+					RequestType, RequestNum),
+			ok = ocs_log:acct_log(diameter, Server,
+					accounting_event_type(RequestType), Request, Reply, undefined),
+			Reply;
 		{out_of_credit, _SessionList} ->
-			generate_diameter_answer(Request, SId, undefined,
+			Reply = generate_diameter_answer(SId, undefined,
 					?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
-					ORealm, RequestType, RequestNum, Address, Port);
+					ORealm, RequestType, RequestNum),
+			ok = ocs_log:acct_log(diameter, Server,
+					accounting_event_type(RequestType), Request, Reply, undefined),
+			Reply;
 		{disabled, _SessionList} ->
-			generate_diameter_answer(Request, SId,
+			Reply = generate_diameter_answer(SId,
 					undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
-					ORealm, RequestType, RequestNum, Address, Port);
+					ORealm, RequestType, RequestNum),
+			ok = ocs_log:acct_log(diameter, Server,
+					accounting_event_type(RequestType), Request, Reply, undefined),
+			Reply;
 		{error, subscriber_not_found} ->
-			generate_diameter_error(SId, ?'IETF_RESULT-CODE_USER_UNKNOWN',
-					OHost, ORealm, RequestType, RequestNum);
+			Reply = generate_diameter_error(SId, ?'IETF_RESULT-CODE_USER_UNKNOWN',
+					OHost, ORealm, RequestType, RequestNum),
+			ok = ocs_log:acct_log(diameter, Server,
+					accounting_event_type(RequestType), Request, Reply, undefined),
+			Reply;
 		{error, Reason} ->
 			error_logger:error_report(["Rating Error",
 					{module, ?MODULE}, {error, Reason},
 					{origin_host, OHost}, {origin_realm, ORealm},
 					{type, initial}, {subscriber, Subscriber},
 					{destination, Destination}, {reservation, ReserveAmount}]),
-			generate_diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
-					OHost, ORealm, RequestType, RequestNum)
+			Reply = generate_diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
+					OHost, ORealm, RequestType, RequestNum),
+			ok = ocs_log:acct_log(diameter, Server,
+					accounting_event_type(RequestType), Request, Reply, undefined),
+			Reply
 	end;
 process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [MSCC | _],
@@ -408,6 +424,7 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 		ReserveAmount = [{ReqUsageType, ReqUsage}],
 		DebitAmount = [{UsedType, UsedUsage}],
 		ServiceType = service_type(SvcContextId),
+		Server = {Address, Port},
 		case ocs_rating:rate(diameter, ServiceType, Subscriber, Timestamp,
 				Destination, originate, interim, DebitAmount, ReserveAmount, [{'Session-Id', SId}]) of
 			{ok, _, GrantedAmount} ->
@@ -417,20 +434,32 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 					octets ->
 						#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [GrantedAmount]}
 				end,
-				generate_diameter_answer(Request, SId,
+				Reply = generate_diameter_answer(SId,
 						GrantedUnits, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
-						RequestType, RequestNum, Address, Port);
+						RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply;
 			{out_of_credit, _SessionList} ->
-				generate_diameter_answer(Request, SId,
+				Reply = generate_diameter_answer(SId,
 						undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
-						ORealm, RequestType, RequestNum, Address, Port);
+						ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply;
 			{disabled, _SessionList} ->
-				generate_diameter_answer(Request, SId,
+				Reply = generate_diameter_answer(SId,
 						undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
-						ORealm, RequestType, RequestNum, Address, Port);
+						ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply;
 			{error, subscriber_not_found} ->
-				generate_diameter_error(SId, ?'IETF_RESULT-CODE_USER_UNKNOWN',
-						OHost, ORealm, RequestType, RequestNum);
+				Reply = generate_diameter_error(SId, ?'IETF_RESULT-CODE_USER_UNKNOWN',
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply;
 			{error, Reason} ->
 				error_logger:error_report(["Rating Error",
 						{module, ?MODULE}, {error, Reason},
@@ -438,8 +467,11 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 						{type, interim}, {subscriber, Subscriber},
 						{destination, Destination}, {reservation, ReserveAmount},
 						{used, DebitAmount}]),
-				generate_diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
-						OHost, ORealm, RequestType, RequestNum)
+				Reply = generate_diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply
 		end
 	catch
 		_:_Reason1 ->
@@ -475,31 +507,47 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 		Destination = call_destination(ServiceInformation),
 		DebitAmount = [{UsedType, UsedUsage}],
 		ServiceType = service_type(SvcContextId),
+		Server = {Address, Port},
 		case ocs_rating:rate(diameter, ServiceType, Subscriber, Timestamp,
 				Destination, originate, final, DebitAmount, [], [{'Session-Id', SId}]) of
 			{ok, _, 0} ->
-				generate_diameter_answer(Request, SId,
+				Reply = generate_diameter_answer(SId,
 						undefined, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
-						RequestType, RequestNum, Address, Port);
+						RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply;
 			{out_of_credit, _SessionList} ->
-				generate_diameter_answer(Request, SId,
+				Reply = generate_diameter_answer(SId,
 						undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
-						ORealm, RequestType, RequestNum, Address, Port);
+						ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply;
 			{disabled, _SessionList} ->
-				generate_diameter_answer(Request, SId,
+				Reply = generate_diameter_answer(SId,
 						undefined, ?'IETF_RESULT-CODE_END_USER_SERVICE_DENIED', OHost,
-						ORealm, RequestType, RequestNum, Address, Port);
+						ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply;
 			{error, subscriber_not_found} ->
-				generate_diameter_error(SId, ?'IETF_RESULT-CODE_USER_UNKNOWN',
-						OHost, ORealm, RequestType, RequestNum);
+				Reply = generate_diameter_error(SId, ?'IETF_RESULT-CODE_USER_UNKNOWN',
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply;
 			{error, Reason} ->
 				error_logger:error_report(["Rating Error",
 						{module, ?MODULE}, {error, Reason},
 						{origin_host, OHost}, {origin_realm, ORealm},
 						{type, final}, {subscriber, Subscriber},
 						{destination, Destination}, {used, DebitAmount}]),
-				generate_diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
-						OHost, ORealm, RequestType, RequestNum)
+				Reply = generate_diameter_error(SId, ?'IETF_RESULT-CODE_RATING_FAILED',
+						OHost, ORealm, RequestType, RequestNum),
+				ok = ocs_log:acct_log(diameter, Server,
+						accounting_event_type(RequestType), Request, Reply, undefined),
+				Reply
 		end
 	catch
 		_:_Reason1 ->
@@ -507,11 +555,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 					ORealm, RequestType, RequestNum)
 	end.
 
--spec generate_diameter_answer(Request, SessionId, GrantedUnits,
-		ResultCode, OriginHost, OriginRealm, RequestType, RequestNum,
-		Address, Port) -> Result
+-spec generate_diameter_answer(SessionId, GrantedUnits,
+		ResultCode, OriginHost, OriginRealm, RequestType, RequestNum) -> Result
 			when
-				Request :: #'3gpp_ro_CCR'{},
 				SessionId :: string(),
 				GrantedUnits :: undefined | #'3gpp_ro_Granted-Service-Unit'{},
 				ResultCode :: integer(),
@@ -519,46 +565,32 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 				OriginRealm :: string(),
 				RequestType :: integer(),
 				RequestNum :: integer(),
-				Address :: inet:ip_address(),
-				Port :: inet:port(),
 				Result :: #'3gpp_ro_CCA'{}.
 %% @doc Send CCA to DIAMETER client indicating a successful operation.
 %% @hidden
-generate_diameter_answer(Request, SId, undefined,
+generate_diameter_answer(SId, undefined,
 		?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost, ORealm,
-		RequestType, RequestNum, Address, Port) ->
-	Reply = #'3gpp_ro_CCA'{'Session-Id' = SId,
+		RequestType, RequestNum) ->
+	#'3gpp_ro_CCA'{'Session-Id' = SId,
 			'Result-Code' = ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED',
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID, 'CC-Request-Type' = RequestType,
-			'CC-Request-Number' = RequestNum},
-	Server = {Address, Port},
-	ok = ocs_log:acct_log(diameter, Server,
-			accounting_event_type(RequestType), Request, Reply),
-	Reply;
-generate_diameter_answer(Request, SId, undefined, ResultCode, OHost,
-		ORealm, RequestType, RequestNum, Address, Port) ->
-	Reply = #'3gpp_ro_CCA'{'Session-Id' = SId, 'Result-Code' = ResultCode,
+			'CC-Request-Number' = RequestNum};
+generate_diameter_answer(SId, undefined, ResultCode, OHost,
+		ORealm, RequestType, RequestNum) ->
+	#'3gpp_ro_CCA'{'Session-Id' = SId, 'Result-Code' = ResultCode,
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID, 'CC-Request-Type' = RequestType,
-			'CC-Request-Number' = RequestNum},
-	Server = {Address, Port},
-	ok = ocs_log:acct_log(diameter, Server,
-			accounting_event_type(RequestType), Request, Reply),
-	Reply;
-generate_diameter_answer(Request, SId, GrantedUnits, ResultCode, OHost,
-		ORealm, RequestType, RequestNum, Address, Port) ->
+			'CC-Request-Number' = RequestNum};
+generate_diameter_answer(SId, GrantedUnits, ResultCode, OHost,
+		ORealm, RequestType, RequestNum) ->
 	MultiServices_CC = #'3gpp_ro_Multiple-Services-Credit-Control'{
 			'Granted-Service-Unit' = [GrantedUnits]},
-	Reply = #'3gpp_ro_CCA'{'Session-Id' = SId, 'Result-Code' = ResultCode,
+	#'3gpp_ro_CCA'{'Session-Id' = SId, 'Result-Code' = ResultCode,
 			'Origin-Host' = OHost, 'Origin-Realm' = ORealm,
 			'Auth-Application-Id' = ?RO_APPLICATION_ID, 'CC-Request-Type' = RequestType,
 			'CC-Request-Number' = RequestNum,
-			'Multiple-Services-Credit-Control' = [MultiServices_CC]},
-	Server = {Address, Port},
-	ok = ocs_log:acct_log(diameter, Server,
-			accounting_event_type(RequestType), Request, Reply),
-	Reply.
+			'Multiple-Services-Credit-Control' = [MultiServices_CC]}.
 
 -spec generate_diameter_error(SessionId, ResultCode, OriginHost,
 		OriginRealm, RequestType, RequestNum) -> Reply

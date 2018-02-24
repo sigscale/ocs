@@ -24,8 +24,8 @@
 -copyright('Copyright (c) 2016-2017 SigScale Global Inc.').
 
 %% export the ocs_log public API
--export([acct_open/0, acct_log/4, acct_log/5, acct_log/6,
-			acct_close/0, acct_query/5, acct_query/6]).
+-export([acct_open/0, acct_log/6, acct_close/0,
+		acct_query/5, acct_query/6]).
 -export([auth_open/0, auth_log/5, auth_log/6, auth_close/0,
 			auth_query/6, auth_query/7]).
 -export([ipdr_log/3, ipdr_file/2]).
@@ -73,51 +73,22 @@ acct_open() ->
 	{ok, LogFiles} = application:get_env(ocs, acct_log_files),
 	open_log(Directory, ?ACCTLOG, LogSize, LogFiles).
 
--spec acct_log(Protocol, Server, Type, Attributes) -> Result
-	when
-		Protocol :: radius,
-		Server :: {Address, Port},
-		Address :: inet:ip_address(),
-		Port :: integer(),
-		Type :: on | off | start | stop | interim | event,
-		Attributes :: radius_attributes:attributes(),
-		Result :: ok | {error, Reason},
-		Reason :: term().
-%% @doc Write a RADIUS event to accounting log.
-acct_log(radius = Protocol, Server, Type, Attributes) ->
-	Event = [Protocol, node(), Server, Type, Attributes],
-	write_log(?ACCTLOG, Event).
-
--spec acct_log(Protocol, Server, Type, Request, Response) -> Result
-	when
-		Protocol :: diameter,
-		Server :: {Address, Port},
-		Address :: inet:ip_address(),
-		Port :: integer(),
-		Type :: start | stop | update,
-		Request :: #'3gpp_ro_CCR'{} | #'3gpp_ro_RAR'{},
-		Response :: #'3gpp_ro_CCA'{} | #'3gpp_ro_RAA'{},
-		Result :: ok | {error, Reason},
-		Reason :: term().
-%% @doc Write a DIAMETER event to accounting log.
-acct_log(diameter = Protocol, Server, Type, Request, Response) ->
-	Event = [Protocol, node(), Server, Type, Request, Response],
-	write_log(?ACCTLOG, Event).
-
 -spec acct_log(Protocol, Server, Type, Request, Response, Rated) -> Result
 	when
-		Protocol :: diameter,
+		Protocol :: diameter | radius,
 		Server :: {Address, Port},
 		Address :: inet:ip_address(),
 		Port :: integer(),
-		Type :: start | stop | update,
-		Request :: #'3gpp_ro_CCR'{} | #'3gpp_ro_RAR'{},
-		Response :: #'3gpp_ro_CCA'{} | #'3gpp_ro_RAA'{},
-		Rated :: #rated{},
+		Type :: on | off | start | stop | update | interim | final,
+		Request :: #'3gpp_ro_CCR'{} | #'3gpp_ro_RAR'{}
+				| radius_attributes:attributes(),
+		Response :: #'3gpp_ro_CCA'{} | #'3gpp_ro_RAA'{}
+				| radius_attributes:attributes() | undefined,
+		Rated :: #rated{} | undefined,
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Write a DIAMETER event to accounting log.
-acct_log(diameter = Protocol, Server, Type, Request, Response, Rated) ->
+%% @doc Write an event to accounting log.
+acct_log(Protocol, Server, Type, Request, Response, Rated) ->
 	Event = [Protocol, node(), Server, Type, Request, Response, Rated],
 	write_log(?ACCTLOG, Event).
 
@@ -1140,137 +1111,169 @@ get_range2(Log, End, {Cont, Chunk}, Acc) ->
 		IPDR :: #ipdr{}.
 %% @doc Convert `ocs_acct' log entry to IPDR log entry.
 %% @private
-ipdr_codec({TimeStamp, _N, Protocol, _Node, _Server, RequestType, Attributes})
-		when ((Protocol == radius) or (Protocol == diameter)),
-		((RequestType == stop) or (RequestType == event)) ->
+ipdr_codec(Event) when size(Event) > 6,
+		((element(3, Event) == radius
+		andalso element(6, Event) == stop)
+		orelse (element(3, Event) == diameter
+		andalso element(6, Event) == final)) ->
+	TimeStamp = element(1, Event),
+	Protocol = element(3, Event),
+	RequestType = element(6, Event),
+	ReqAttrs = element(7, Event),
+	RespAttrs = case size(Event) > 7 of
+		true ->
+			element(8, Event);
+		false ->
+			undefined
+	end,
+	Rated = case size(Event) > 8 of
+		true ->
+			element(9, Event);
+		false ->
+			undefined
+	end,
 	IPDR = #ipdr{ipdrCreationTime = iso8601(TimeStamp)},
-	ipdr_codec1(TimeStamp, Protocol, RequestType, Attributes, IPDR).
+	ipdr_codec1(TimeStamp, Protocol,
+			RequestType, ReqAttrs, RespAttrs, Rated, IPDR).
 %% @hidden
-ipdr_codec1(TimeStamp, radius, stop, Attributes, Acc) ->
-	case radius_attributes:find(?AcctDelayTime, Attributes) of
+ipdr_codec1(TimeStamp, radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
+	case radius_attributes:find(?AcctDelayTime, ReqAttrs) of
 		{ok, DelayTime} ->
 			EndTime = TimeStamp - (DelayTime * 1000),
-			ipdr_codec2(EndTime, radius, stop, Attributes,
+			ipdr_codec2(EndTime, radius, stop, ReqAttrs, RespAttrs, Rated,
 					Acc#ipdr{gmtSessionEndDateTime = iso8601(EndTime)});
 		{error, not_found} ->
-			ipdr_codec2(TimeStamp, radius, stop, Attributes,
+			ipdr_codec2(TimeStamp, radius, stop, ReqAttrs, RespAttrs, Rated,
 					Acc#ipdr{gmtSessionEndDateTime = iso8601(TimeStamp)})
 	end.
 %% @hidden
-ipdr_codec2(EndTime, radius, stop, Attributes, Acc) ->
-	case radius_attributes:find(?AcctSessionTime, Attributes) of
+ipdr_codec2(EndTime, radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
+	case radius_attributes:find(?AcctSessionTime, ReqAttrs) of
 		{ok, Duration} ->
 			StartTime = EndTime - (Duration * 1000),
-			ipdr_codec3(Attributes, radius, stop,
+			ipdr_codec3(radius, stop, ReqAttrs, RespAttrs, Rated,
 					Acc#ipdr{gmtSessionStartDateTime = iso8601(StartTime)});
 		{error, not_found} ->
-			ipdr_codec3(Attributes, radius, stop, Acc)
+			ipdr_codec3(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
 	end.
 %% @hidden
-ipdr_codec3(Attributes, radius, stop, Acc) ->
-	case radius_attributes:find(?UserName, Attributes) of
+ipdr_codec3(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
+	case radius_attributes:find(?UserName, ReqAttrs) of
 		{ok, UserName} ->
-			ipdr_codec4(Attributes, radius, stop, Acc#ipdr{username = UserName});
+			ipdr_codec4(radius, stop, ReqAttrs, RespAttrs, Rated,
+					Acc#ipdr{username = UserName});
 		{error, not_found} ->
-			ipdr_codec4(Attributes, radius, stop, Acc)
+			ipdr_codec4(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
 	end.
 %% @hidden
-ipdr_codec4(Attributes, radius, stop, Acc) ->
-	case radius_attributes:find(?AcctSessionId, Attributes) of
+ipdr_codec4(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
+	case radius_attributes:find(?AcctSessionId, ReqAttrs) of
 		{ok, SessionID} ->
-			ipdr_codec5(Attributes, radius, stop, Acc#ipdr{acctSessionId = SessionID});
+			ipdr_codec5(radius, stop, ReqAttrs, RespAttrs, Rated,
+					Acc#ipdr{acctSessionId = SessionID});
 		{error, not_found} ->
-			ipdr_codec5(Attributes, radius, stop, Acc)
+			ipdr_codec5(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
 	end.
 %% @hidden
-ipdr_codec5(Attributes, radius, stop, Acc) ->
-	case radius_attributes:find(?FramedIpAddress, Attributes) of
+ipdr_codec5(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
+	case radius_attributes:find(?FramedIpAddress, ReqAttrs) of
 		{ok, Address} ->
-			ipdr_codec6(Attributes, radius, stop, Acc#ipdr{userIpAddress = inet:ntoa(Address)});
+			ipdr_codec6(radius, stop, ReqAttrs, RespAttrs, Rated,
+					Acc#ipdr{userIpAddress = inet:ntoa(Address)});
 		{error, not_found} ->
-			ipdr_codec6(Attributes, radius, stop, Acc)
+			ipdr_codec6(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
 	end.
 %% @hidden
-ipdr_codec6(Attributes, radius, stop, Acc) ->
-	case radius_attributes:find(?CallingStationId, Attributes) of
+ipdr_codec6(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
+	case radius_attributes:find(?CallingStationId, ReqAttrs) of
 		{ok, StationID} ->
-			ipdr_codec7(Attributes, radius, stop, Acc#ipdr{callingStationId = StationID});
+			ipdr_codec7(radius, stop, ReqAttrs, RespAttrs, Rated,
+					Acc#ipdr{callingStationId = StationID});
 		{error, not_found} ->
-			ipdr_codec7(Attributes, radius, stop, Acc)
+			ipdr_codec7(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
 	end.
 %% @hidden
-ipdr_codec7(Attributes, radius, stop, Acc) ->
-	case radius_attributes:find(?CalledStationId, Attributes) of
+ipdr_codec7(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
+	case radius_attributes:find(?CalledStationId, ReqAttrs) of
 		{ok, StationID} ->
-			ipdr_codec8(Attributes, radius, stop, Acc#ipdr{calledStationId = StationID});
+			ipdr_codec8(radius, stop, ReqAttrs, RespAttrs, Rated,
+					Acc#ipdr{calledStationId = StationID});
 		{error, not_found} ->
-			ipdr_codec8(Attributes, radius, stop, Acc)
+			ipdr_codec8(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
 	end.
 %% @hidden
-ipdr_codec8(Attributes, radius, stop, Acc) ->
-	case radius_attributes:find(?NasIpAddress, Attributes) of
+ipdr_codec8(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
+	case radius_attributes:find(?NasIpAddress, ReqAttrs) of
 		{ok, Address} ->
-			ipdr_codec9(Attributes, radius, stop, Acc#ipdr{nasIpAddress = inet:ntoa(Address)});
+			ipdr_codec9(radius, stop, ReqAttrs, RespAttrs, Rated,
+					Acc#ipdr{nasIpAddress = inet:ntoa(Address)});
 		{error, not_found} ->
-			ipdr_codec9(Attributes, radius, stop, Acc)
+			ipdr_codec9(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
 	end.
 %% @hidden
-ipdr_codec9(Attributes, radius, stop, Acc) ->
-	case radius_attributes:find(?NasIdentifier, Attributes) of
+ipdr_codec9(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
+	case radius_attributes:find(?NasIdentifier, ReqAttrs) of
 		{ok, Identifier} ->
-			ipdr_codec10(Attributes, radius, stop, Acc#ipdr{nasId = Identifier});
+			ipdr_codec10(radius, stop, ReqAttrs, RespAttrs, Rated,
+					Acc#ipdr{nasId = Identifier});
 		{error, not_found} ->
-			ipdr_codec10(Attributes, radius, stop, Acc)
+			ipdr_codec10(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
 	end.
 %% @hidden
-ipdr_codec10(Attributes, radius, stop, Acc) ->
-	case radius_attributes:find(?AcctSessionTime, Attributes) of
+ipdr_codec10(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
+	case radius_attributes:find(?AcctSessionTime, ReqAttrs) of
 		{ok, SessionTime} ->
-			ipdr_codec11(Attributes, radius, stop, Acc#ipdr{sessionDuration = SessionTime});
+			ipdr_codec11(radius, stop, ReqAttrs, RespAttrs, Rated,
+					Acc#ipdr{sessionDuration = SessionTime});
 		{error, not_found} ->
-			ipdr_codec11(Attributes, radius, stop, Acc)
+			ipdr_codec11(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
 	end.
 %% @hidden
-ipdr_codec11(Attributes, radius, stop, Acc) ->
-	Octets = case radius_attributes:find(?AcctInputOctets, Attributes) of
+ipdr_codec11(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
+	Octets = case radius_attributes:find(?AcctInputOctets, ReqAttrs) of
 		{ok, N} ->
 			N;
 		{error, not_found} ->
 			0
 	end,
-	case radius_attributes:find(?AcctInputGigawords, Attributes) of
+	case radius_attributes:find(?AcctInputGigawords, ReqAttrs) of
 		{ok, GigaWords} ->
 			GigaOctets = (GigaWords * (16#ffffffff + 1)) + Octets,
-			ipdr_codec12(Attributes, radius, stop, Acc#ipdr{inputOctets = GigaOctets});
+			ipdr_codec12(radius, stop,ReqAttrs, RespAttrs, Rated,
+					Acc#ipdr{inputOctets = GigaOctets});
 		{error, not_found} ->
-			ipdr_codec12(Attributes, radius, stop, Acc#ipdr{inputOctets = Octets})
+			ipdr_codec12(radius, stop, ReqAttrs, RespAttrs, Rated,
+					Acc#ipdr{inputOctets = Octets})
 	end.
 %% @hidden
-ipdr_codec12(Attributes, radius, stop, Acc) ->
-	Octets = case radius_attributes:find(?AcctOutputOctets, Attributes) of
+ipdr_codec12(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
+	Octets = case radius_attributes:find(?AcctOutputOctets, ReqAttrs) of
 		{ok, N} ->
 			N;
 		{error, not_found} ->
 			0
 	end,
-	case radius_attributes:find(?AcctOutputGigawords, Attributes) of
+	case radius_attributes:find(?AcctOutputGigawords, ReqAttrs) of
 		{ok, GigaWords} ->
 			GigaOctets = (GigaWords * (16#ffffffff + 1)) + Octets,
-			ipdr_codec13(Attributes, radius, stop, Acc#ipdr{outputOctets = GigaOctets});
+			ipdr_codec13(radius, stop, ReqAttrs, RespAttrs, Rated,
+					Acc#ipdr{outputOctets = GigaOctets});
 		{error, not_found} ->
-			ipdr_codec13(Attributes, radius, stop, Acc#ipdr{outputOctets = Octets})
+			ipdr_codec13(radius, stop, ReqAttrs, RespAttrs, Rated,
+					Acc#ipdr{outputOctets = Octets})
 	end.
 %% @hidden
-ipdr_codec13(Attributes, radius, stop, Acc) ->
-	case radius_attributes:find(?Class, Attributes) of
+ipdr_codec13(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
+	case radius_attributes:find(?Class, ReqAttrs) of
 		{ok, Class} ->
-			ipdr_codec14(Attributes, radius, stop, Acc#ipdr{class = Class});
+			ipdr_codec14(radius, stop, ReqAttrs, RespAttrs, Rated,
+					Acc#ipdr{class = Class});
 		{error, not_found} ->
-			ipdr_codec14(Attributes, radius, stop, Acc)
+			ipdr_codec14(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
 	end.
 %% @hidden
-ipdr_codec14(Attributes, radius, stop, Acc) ->
-	case radius_attributes:find(?AcctTerminateCause, Attributes) of
+ipdr_codec14(radius, stop, ReqAttrs, _RespAttrs, _Rated, Acc) ->
+	case radius_attributes:find(?AcctTerminateCause, ReqAttrs) of
 		{ok, Cause} ->
 			Acc#ipdr{sessionTerminateCause = Cause};
 		{error, not_found} ->
@@ -1646,8 +1649,8 @@ acct_query({Cont, Events}, Protocol, Types, AttrsMatch) ->
 %% @hidden
 acct_query1(Events, Protocol, '_',  AttrsMatch, _Acc) ->
 	acct_query2(Events, Protocol, AttrsMatch, []);
-acct_query1([{_, _, _, _, _, Type, _} = H | T], Protocol, Types,  AttrsMatch, Acc) ->
-	case lists:member(Type, Types) of
+acct_query1([H | T], Protocol, Types,  AttrsMatch, Acc) ->
+	case lists:member(element(6, H), Types) of
 		true ->
 			acct_query1(T, Protocol, Types, AttrsMatch, [H | Acc]);
 		false ->
@@ -1658,7 +1661,8 @@ acct_query1([], Protocol, _Types,  AttrsMatch, Acc) ->
 %% @hidden
 acct_query2(Events, '_', AttrsMatch, _Acc) ->
 	acct_query3(Events, AttrsMatch, []);
-acct_query2([{_, _, Protocol, _, _, _, _} = H | T], Protocol, AttrsMatch, Acc) ->
+acct_query2([H | T], Protocol, AttrsMatch, Acc)
+		when element(3, H) == Protocol ->
 	acct_query2(T, Protocol, AttrsMatch, [H |Acc]);
 acct_query2([_ | T], Protocol, AttrsMatch, Acc) ->
 	acct_query2(T, Protocol, AttrsMatch, Acc);
@@ -1667,8 +1671,8 @@ acct_query2([], _Protocol, AttrsMatch, Acc) ->
 %% @hidden
 acct_query3(Events, '_', _Acc) ->
 	Events;
-acct_query3([{_, _, _, _, _, _, Attributes} = H | T], AttrsMatch, Acc) ->
-	case acct_query4(Attributes, AttrsMatch) of
+acct_query3([H | T], AttrsMatch, Acc) ->
+	case acct_query4(element(7, H), AttrsMatch) of
 		true ->
 			acct_query3(T, AttrsMatch, [H | Acc]);
 		false ->

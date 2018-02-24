@@ -281,7 +281,8 @@ request1(?AccountingStart, AcctSessionId, Id,
 	case ocs_rating:rate(radius, ServiceType, Subscriber, Timestamp,
 			CallAddress, Direction, initial, [], [], SessionAttributes) of
 		{ok, #subscriber{}, _} ->
-			ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, start, Attributes),
+			ok = ocs_log:acct_log(radius,
+					{ServerAddress, ServerPort}, start, Attributes, [], undefined),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{out_of_credit, SessionList}  ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
@@ -314,7 +315,8 @@ request1(?AccountingStop, AcctSessionId, Id,
 		{error, not_found} ->
 			radius_attributes:fetch(?CallingStationId, Attributes)
 	end,
-	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, stop, Attributes),
+	ok = ocs_log:acct_log(radius,
+			{ServerAddress, ServerPort}, stop, Attributes, [], undefined),
 	SessionAttributes = ocs_rating:session_attributes(Attributes),
 	DebitAmount = [{octets, UsageOctets}, {seconds, UsageSecs}],
 	{ServiceType, Direction, CallAddress} = get_service_type(Attributes),
@@ -361,7 +363,8 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 		{error, not_found} ->
 			radius_attributes:fetch(?CallingStationId, Attributes)
 	end,
-	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, interim, Attributes),
+	ok = ocs_log:acct_log(radius,
+			{ServerAddress, ServerPort}, interim, Attributes, undefined, undefined),
 	SessionAttributes = ocs_rating:session_attributes(Attributes),
 	ReserveAmount = [{octets, UsageOctets}, {seconds, UsageSecs}],
 	{ServiceType, Direction, CallAddress} = get_service_type(Attributes),
@@ -398,12 +401,14 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 request1(?AccountingON, _AcctSessionId, Id,
 		Authenticator, Secret, _NasId, _IpAddress, _AccPort, _ListenPort, Attributes,
 		_From, #state{address = ServerAddress, port = ServerPort} = State) ->
-	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, on, Attributes),
+	ok = ocs_log:acct_log(radius,
+			{ServerAddress, ServerPort}, on, Attributes, [], undefined),
 	{reply, {ok, response(Id, Authenticator, Secret)}, State};
 request1(?AccountingOFF, _AcctSessionId, Id,
 		Authenticator, Secret, _NasId, _IpAddress, _AccPort, _ListenPort, Attributes,
 		_From, #state{address = ServerAddress, port = ServerPort} = State) ->
-	ok = ocs_log:acct_log(radius, {ServerAddress, ServerPort}, off, Attributes),
+	ok = ocs_log:acct_log(radius,
+			{ServerAddress, ServerPort}, off, Attributes, [], undefined),
 	{reply, {ok, response(Id, Authenticator, Secret)}, State};
 request1(_AcctStatusType, _AcctSessionId, _Id, _Authenticator,
 		_Secret, _NasId, _IpAddress, _Port, _ListenPort, _Attributes, _From, State) ->
