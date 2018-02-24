@@ -1396,9 +1396,7 @@ filter_prices_dir(_, [], Acc) ->
 		Result :: {Debit, NewBuckets},
 		Debit :: integer(),
 		NewBuckets :: [#bucket{}].
-%% @doc Get the total debited amount and
-%% 	remove all the reservations for currect
-%% 	session
+%% @doc Get total debited amount and remove all reservations for session.
 %% @private
 %% 
 get_debits(SessionId, Buckets) ->
@@ -1424,11 +1422,9 @@ get_debits([], _SessionId, _Now, Debited, Acc) ->
 	{Debited, lists:reverse(Acc)}.
 %% @hidden
 get_debits1(SessionId, [{_, Debited, _, SessionId} | T], Debit, Acc) ->
-	NewAcc = lists:reverse(Acc) ++ T,
-	get_debits1(SessionId, T, Debited + Debit, NewAcc);
+	{Debited + Debit, lists:reverse(Acc) ++ T};
 get_debits1(SessionId, [H | T], Debit, Acc) ->
 	get_debits1(SessionId, T, Debit, [H | Acc]);
 get_debits1(_SessionId, [], Debit, Acc) ->
 	{Debit, lists:reverse(Acc)}.
-
 
