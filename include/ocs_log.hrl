@@ -30,16 +30,18 @@
 		ResponseAttributes :: radius_attributes:attributes()}.
 
 -record(rated,
-		{bucket_value :: integer(),
+		{bucket_value = 0 :: integer(),
 		bucket_type :: cents | octets | seconds,
 		currency :: string(),
 		is_billed = false :: boolean(),
 		is_tax_exempt = false :: boolean(),
 		tariff_type :: atom(),
 		product :: term(),
-		taxed_excluded_amount :: non_neg_integer(),
-		taxed_included_amount :: non_neg_integer(),
-		tax_rate :: integer(),
+		price_type :: tariff | usage | event,
+		description :: string(),
+		tax_excluded_amount = 0 :: non_neg_integer(),
+		tax_included_amount = 0 :: non_neg_integer(),
+		tax_rate = 0 :: integer(),
 		usage_rating_tag :: usage | included | non_included}).
 
 %% Accounting event

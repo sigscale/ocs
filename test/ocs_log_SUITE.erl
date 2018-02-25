@@ -208,10 +208,12 @@ radius_log_acct_event(_Config) ->
 			{?CalledStationId, "CA-FE-CA-FE-CA-FE:AP 1"}, {?AcctAuthentic, 1},
 			{?AcctStatusType, 1}, {?NasIdentifier, "ap-1.sigscale.net"},
 			{?AcctDelayTime, 0}, {?NasIpAddress, ClientAddress}],
-	ok = ocs_log:acct_log(radius, Server, Type, ReqAttrs),
+	ok = ocs_log:acct_log(radius, Server, Type, ReqAttrs, undefined, undefined),
 	End = erlang:system_time(?MILLISECOND),
-	Fany = fun({TS, _, radius, N, S, T, A}) when TS >= Start, TS =< End,
-					N == Node, S == Server, T == Type, A == ReqAttrs ->
+	Fany = fun(E) when element(1, E) >= Start, element(1, E) =< End,
+					element(3, E) == radius, element(4, E) == Node,
+					element(5, E) == Server, element(6, E) == Type,
+					element(7, E) == ReqAttrs ->
 				true;
 			(_) ->
 				false	
@@ -241,12 +243,14 @@ diameter_log_acct_event(_Config) ->
 	ServerPort = 1813,
 	Server = {ServerAddress, ServerPort},
 	RequestType = start,
-	ok = ocs_log:acct_log(diameter, Server, RequestType, #'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}),
+	ok = ocs_log:acct_log(diameter, Server, RequestType,
+			#'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, undefined),
 	End = erlang:system_time(?MILLISECOND),
-	Fany = fun({TS, _, P, N, S, RType, Req, Rsp})
-					when P == Protocol, TS >= Start, TS =< End, N == Node,
-					S == Server, RType == RequestType,
-					is_record(Req, '3gpp_ro_CCR'), is_record(Rsp, '3gpp_ro_CCA') ->
+	Fany = fun(E) when element(1, E) >= Start, element(1, E) =< End,
+					element(3, E) == diameter, element(4, E) == Node,
+					element(5, E) == Server, element(6, E) == RequestType,
+					is_record(element(7, E), '3gpp_ro_CCR'),
+					is_record(element(8, E), '3gpp_ro_CCA') ->
 				true;
 			(_) ->
 				false	
@@ -307,7 +311,8 @@ ipdr_log(_Config) ->
 				end,
 				Attrs1 = [{?AcctSessionId, integer_to_list(N)} | Attrs],
 				Attrs2 = [{?AcctStatusType, AcctType} | Attrs1],
-				ok = ocs_log:acct_log(radius, Server, Type, Attrs2),
+				ok = ocs_log:acct_log(radius, Server,
+						Type, Attrs2, undefined, undefined),
 				F(F, N - 1)
 	end,
 	ok = Fill(Fill, NumItems),
@@ -366,7 +371,8 @@ get_range(_Config) ->
 				ok;
 			(F, N) ->
 				ocs_log:acct_log(radius, Server, Type,
-						[{?AcctSessionId, integer_to_list(N)} | Attrs]),
+						[{?AcctSessionId, integer_to_list(N)} | Attrs],
+						undefined, undefined),
 				F(F, N - 1)
 	end,
 	Fill(Fill, NumItems),
@@ -517,11 +523,11 @@ acct_query(_Config) ->
 	NumItems = (FileSize div EventSize) * 5,
 	Start = erlang:system_time(?MILLISECOND),
 	ok = fill_acct(NumItems),
-	ok = ocs_log:acct_log(radius, Server, stop, Attrs),
+	ok = ocs_log:acct_log(radius, Server, stop, Attrs, undefined, undefined),
 	ok = fill_acct(rand:uniform(2000)),
-	ok = ocs_log:acct_log(radius, Server, stop, Attrs),
+	ok = ocs_log:acct_log(radius, Server, stop, Attrs, undefined, undefined),
 	ok = fill_acct(rand:uniform(2000)),
-	ok = ocs_log:acct_log(radius, Server, stop, Attrs),
+	ok = ocs_log:acct_log(radius, Server, stop, Attrs, undefined, undefined),
 	ok = fill_acct(rand:uniform(2000)),
 	End = erlang:system_time(?MILLISECOND),
 	MatchReq = [{?UserName, {exact, Username}},
@@ -674,7 +680,7 @@ fill_acct(N) ->
 			{?AcctSessionTime, rand:uniform(3600) + 100},
 			{?AcctInputOctets, rand:uniform(100000000)},
 			{?AcctOutputOctets, rand:uniform(100000)}],
-	ok = ocs_log:acct_log(radius, Server, Type, Attrs),
+	ok = ocs_log:acct_log(radius, Server, Type, Attrs, undefined, undefined),
 	fill_acct(N - 1).
 
 fill_abmf(0) ->

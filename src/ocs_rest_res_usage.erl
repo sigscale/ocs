@@ -181,6 +181,7 @@ get_usage("acct-" ++ _ = Id, [] = _Query, _Headers) ->
 		N = list_to_integer(Serial),
 		case ocs_log:acct_query(start, TS, TS, '_', '_', '_') of
 			{error, _Reason} ->
+erlang:display({?MODULE, ?LINE, _Reason}),
 				{error, 500};
 			{_Cont, Events} ->
 				case lists:keyfind(N, 2, Events) of
@@ -568,18 +569,19 @@ usage_aaa_auth([], _Filters, Acc) ->
 	lists:reverse(Acc).
 
 %% @hidden
-usage_aaa_acct({Milliseconds, N, P, Node,
-		{ServerIP, ServerPort}, EventType, Attributes}, Filters) ->
+usage_aaa_acct(Event, Filters) when is_tuple(Event), size(Event) > 6 ->
+	Milliseconds = element(1, Event),
+	{ServerIP, ServerPort} = element(5, Event),
 	UsageSpec = {struct, [{"id", "AAAAccountingUsageSpec"},
 			{"href", ?usageSpecPath ++ "AAAccountingUsageSpec"},
 			{"name", "AAAAccountingUsageSpec"}]},
 	Type = "AAAAccountingUsage",
 	Status = "received",
 	ID = "acct-" ++ integer_to_list(Milliseconds) ++ "-"
-			++ integer_to_list(N),
+			++ integer_to_list(element(2, Event)),
 	Href = ?usagePath ++ ID,
 	Date = ocs_log:iso8601(Milliseconds),
-	Protocol = case P of
+	Protocol = case element(3, Event) of
 		radius ->
 			"RADIUS";
 		diameter ->
@@ -587,11 +589,13 @@ usage_aaa_acct({Milliseconds, N, P, Node,
 	end,
 	ServerAddress = inet:ntoa(ServerIP),
 	EventChars = [{struct, [{"name", "protocol"}, {"value", Protocol}]},
-			{struct, [{"name", "node"}, {"value", atom_to_list(Node)}]},
+			{struct, [{"name", "node"},
+					{"value", atom_to_list(element(4, Event))}]},
 			{struct, [{"name", "serverAddress"}, {"value", ServerAddress}]},
 			{struct, [{"name", "serverPort"}, {"value", ServerPort}]},
-			{struct, [{"name", "type"}, {"value", atom_to_list(EventType)}]}],
-	AttributeChars = usage_characteristics(Attributes),
+			{struct, [{"name", "type"},
+					{"value", atom_to_list(element(6, Event))}]}],
+	AttributeChars = usage_characteristics(element(7, Event)),
 	UsageChars = EventChars ++ AttributeChars,
 	Object = {struct, [{"id", ID}, {"href", Href}, {"date", Date}, {"type", Type},
 			{"status", Status}, {"usageSpecification", UsageSpec},
