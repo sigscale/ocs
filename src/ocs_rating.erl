@@ -61,8 +61,12 @@
 		SessionAttributes :: [tuple()],
 		Type :: octets | seconds,
 		Amount :: integer(),
-		Result :: {ok, Subscriber, Rated} | {out_of_credit, SessionList}
-				| {disabled, SessionList} | {error, Reason},
+		Result :: {ok, Subscriber, Amount}
+				| {ok, Subscriber, Amount, Rated}
+				| {out_of_credit, SessionList}
+				| {out_of_credit, SessionList, Rated}
+				| {disabled, SessionList}
+				| {error, Reason},
 		Subscriber :: #subscriber{},
 		Rated :: #rated{},
 		SessionList :: [{pos_integer(), [tuple()]}],
@@ -75,15 +79,15 @@
 %% 	determines the price used to calculate the amount to be
 %% 	permanently debited from available `cents' buckets.
 %%
-%% 	Returns `{ok, Subscriber, Rated}' if successful. The granted
-%% 	amount is found in `Rated#rated.bucket_value'.
+%% 	If successful returns `{ok, Subscriber, Amount}' for interim
+%% 	updates or `{ok, Subscriber, Amount, Rated}' for final.
 %%
-%% 	Returns `{out_of_credit, SessionList}' if the subscriber's
-%% 	balance is insufficient to cover the `DebitAmounts' and
-%% 	`ReserveAmounts' or `{disabled, SessionList}' if the subscriber
-%% 	is not enabled. In both cases subscriber's balance is debited.
-%% 	`SessionList' describes the known active sessions which
-%% 	should be disconnected.
+%% 	If subscriber's balance is insufficient to cover the `DebitAmounts'
+%% 	and `ReserveAmounts' returns `{out_of_credit, SessionList}' for interim
+%% 	updates and `{out_of_credit, SessionList, Rated}' for final or
+%% 	`{disabled, SessionList}' if the subscriber is not enabled. In both
+%% 	 cases subscriber's balance is debited.  `SessionList' describes the
+%% 	known active sessions whichshould be disconnected.
 %%
 rate(Protocol, ServiceType, SubscriberID, Timestamp, Address, Direction,
 		Flag, DebitAmounts, ReserveAmounts, SessionAttributes)
@@ -116,8 +120,12 @@ rate(Protocol, ServiceType, SubscriberID, Timestamp, Address, Direction,
 			end
 	end,
 	case mnesia:transaction(F) of
-		{atomic, {grant, Sub, GrantedAmount}} ->
-			{ok, Sub, #rated{bucket_value = GrantedAmount}};
+		{atomic, {ok, Sub, Granted, Rated}} ->
+			{ok, Sub, Granted, Rated};
+		{atomic, {out_of_credit, SL, Rated}} ->
+			{out_of_credit, SL, Rated};
+		{atomic, {grant, Sub, Granted}} ->
+			{ok, Sub, Granted};
 		{atomic, {out_of_credit, SL}} ->
 			{out_of_credit, SL};
 		{atomic, {disabled, SL}} ->
@@ -410,19 +418,43 @@ rate6(#subscriber{session_attributes = SessionList,
 		final, Charge, Charged, 0, 0, SessionId, Rated)
 		when Charged >= Charge ->
 	NewBuckets1 = refund(SessionId, Buckets),
-	{Debit, NewBuckets2} = get_debits(SessionId, NewBuckets1),
-	Rated1 = Rated#rated{bucket_value = Debit, is_billed = true},
+	{Seconds, Octets, Cents, NewBuckets2} = get_debits(SessionId, NewBuckets1),
+	Rated1 = case {Seconds, Octets, Cents} of
+		{Seconds, 0, 0} when Seconds > 0 ->
+			Rated#rated{bucket_value = Seconds,
+					bucket_type = seconds, is_billed = true};
+		{0, Octets, 0} when Octets > 0 ->
+			Rated#rated{bucket_value = Octets,
+					bucket_type = octets, is_billed = true};
+		{_, _, Cents} when Cents > 0 ->
+			Rated#rated{bucket_type = cents,
+					tax_excluded_amount = Cents, is_billed = true};
+		{0, 0, 0} ->
+			Rated#rated{is_billed = true}
+	end,
 	NewSessionList = remove_session(SessionId, SessionList),
 	Subscriber2 = Subscriber1#subscriber{buckets = NewBuckets2,
 			session_attributes = NewSessionList},
 	ok = mnesia:write(Subscriber2),
-	{final, Subscriber2, Rated1};
+	{ok, Subscriber2, 0, Rated1};
 rate6(#subscriber{session_attributes = SessionList,
 		buckets = Buckets} = Subscriber1,
 		final, _Charge, _Charged, 0, 0, SessionId, Rated) ->
 	NewBuckets1 = refund(SessionId, Buckets),
-	{Debit, NewBuckets2} = get_debits(SessionId, NewBuckets1),
-	Rated1 = Rated#rated{bucket_value = Debit, is_billed = true},
+	{Seconds, Octets, Cents, NewBuckets2} = get_debits(SessionId, NewBuckets1),
+	Rated1 = case {Seconds, Octets, Cents} of
+		{Seconds, 0, 0} when Seconds > 0 ->
+			Rated#rated{bucket_value = Seconds,
+					bucket_type = seconds, is_billed = true};
+		{0, Octets, 0} when Octets > 0 ->
+			Rated#rated{bucket_value = Octets,
+					bucket_type = octets, is_billed = true};
+		{_, _, Cents} when Cents > 0 ->
+			Rated#rated{bucket_type = cents,
+					tax_excluded_amount = Cents, is_billed = true};
+		{0, 0, 0} ->
+			Rated#rated{is_billed = true}
+	end,
 	Subscriber2 = Subscriber1#subscriber{buckets = NewBuckets2,
 			session_attributes = []},
 	ok = mnesia:write(Subscriber2),
@@ -1416,33 +1448,44 @@ filter_prices_dir(_, [], Acc) ->
 	when
 		SessionId :: [tuple()],
 		Buckets :: [#bucket{}],
-		Result :: {Debit, NewBuckets},
-		Debit :: integer(),
+		Result :: {Seconds, Octets, Cents, NewBuckets},
+		Seconds :: integer(),
+		Octets :: integer(),
+		Cents :: integer(),
 		NewBuckets :: [#bucket{}].
 %% @doc Get total debited amount and remove all reservations for session.
 %% @private
 %% 
 get_debits(SessionId, Buckets) ->
 	Now = erlang:system_time(?MILLISECOND),
-	get_debits(Buckets, SessionId, Now, 0, []).
+	get_debits(Buckets, SessionId, Now, 0, 0, 0, []).
 %% @hidden
 get_debits([#bucket{remain_amount = 0, reservations = []} | T],
-		SessionId, Now, Debit, Acc) ->
-	get_debits(T, SessionId, Now, Debit, Acc);
+		SessionId, Now, Seconds, Octets, Cents, Acc) ->
+	get_debits(T, SessionId, Now, Seconds, Octets, Cents, Acc);
 get_debits([#bucket{reservations = [], termination_date = Expires} | T],
-		SessionId, Now, Debit, Acc) when Expires < Now ->
-	get_debits(T, SessionId, Now, Debit, Acc);
-get_debits([#bucket{reservations = []} = B | T], SessionId,
-		Now, Debit, Acc) ->
-	get_debits(T, SessionId, Now, Debit, [B | Acc]);
-get_debits([#bucket{reservations = Reservations} = B | T],
-		SessionId, Now, Debit, Acc) ->
-	{Debited, NewReservations} =
-			get_debits1(SessionId, Reservations, 0, []),
-	get_debits(T, SessionId, Now, Debit + Debited,
+		SessionId, Now, Seconds, Octets, Cents, Acc) when Expires < Now ->
+	get_debits(T, SessionId, Now, Seconds, Octets, Cents, Acc);
+get_debits([#bucket{reservations = []} = B | T],
+		SessionId, Now, Seconds, Octets, Cents, Acc) ->
+	get_debits(T, SessionId, Now, Seconds, Octets, Cents, [B | Acc]);
+get_debits([#bucket{units = seconds, reservations = Reservations} = B | T],
+		SessionId, Now, Seconds, Octets, Cents, Acc) ->
+	{Debit, NewReservations} = get_debits1(SessionId, Reservations, 0, []),
+	get_debits(T, SessionId, Now, Seconds + Debit, Octets, Cents,
 			[B#bucket{reservations = NewReservations} | Acc]);
-get_debits([], _SessionId, _Now, Debited, Acc) ->
-	{Debited, lists:reverse(Acc)}.
+get_debits([#bucket{units = octets, reservations = Reservations} = B | T],
+		SessionId, Now, Seconds, Octets, Cents, Acc) ->
+	{Debit, NewReservations} = get_debits1(SessionId, Reservations, 0, []),
+	get_debits(T, SessionId, Now, Seconds, Octets + Debit, Cents,
+			[B#bucket{reservations = NewReservations} | Acc]);
+get_debits([#bucket{units = cents, reservations = Reservations} = B | T],
+		SessionId, Now, Seconds, Octets, Cents, Acc) ->
+	{Debit, NewReservations} = get_debits1(SessionId, Reservations, 0, []),
+	get_debits(T, SessionId, Now, Seconds, Octets, Cents  + Debit,
+			[B#bucket{reservations = NewReservations} | Acc]);
+get_debits([], _SessionId, _Now, Seconds, Octets, Cents, Acc) ->
+	{Seconds, Octets, Cents, lists:reverse(Acc)}.
 %% @hidden
 get_debits1(SessionId, [{_, Debited, _, SessionId} | T], Debit, Acc) ->
 	{Debited + Debit, lists:reverse(Acc) ++ T};
