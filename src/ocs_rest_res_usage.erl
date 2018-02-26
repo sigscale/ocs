@@ -610,7 +610,7 @@ usage_aaa_acct(Event, Filters) when is_tuple(Event), size(Event) > 6 ->
 	AttributeChars = usage_characteristics(element(7, Event)),
 	UsageChars = EventChars ++ AttributeChars,
 	Frated = fun(#rated{tax_excluded_amount = TaxExcluded}) ->
-				{struct, [{"taxExcludedRatingAmount", TaxExcluded}]}
+				{struct, [{"taxExcludedRatingAmount", ocs_rest:decimal(TaxExcluded)}]}
 	end,
 	RatedUsage = case size(Event) > 8 of
 		true ->
