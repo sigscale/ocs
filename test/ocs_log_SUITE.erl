@@ -243,11 +243,11 @@ diameter_log_acct_event(_Config) ->
 	ServerPort = 1813,
 	Server = {ServerAddress, ServerPort},
 	RequestType = start,
-	ok = ocs_log:acct_log(diameter, Server, RequestType,
+	ok = ocs_log:acct_log(Protocol, Server, RequestType,
 			#'3gpp_ro_CCR'{}, #'3gpp_ro_CCA'{}, undefined),
 	End = erlang:system_time(?MILLISECOND),
 	Fany = fun(E) when element(1, E) >= Start, element(1, E) =< End,
-					element(3, E) == diameter, element(4, E) == Node,
+					element(3, E) == Protocol, element(4, E) == Node,
 					element(5, E) == Server, element(6, E) == RequestType,
 					is_record(element(7, E), '3gpp_ro_CCR'),
 					is_record(element(8, E), '3gpp_ro_CCA') ->
@@ -550,7 +550,6 @@ abmf_log_event(_Config) ->
 	Start = erlang:system_time(?MILLISECOND),
 	Subscriber = list_to_binary(ocs:generate_identity()),
 	Type = transfer,
-	Date = ocs_log:iso8601(Start),
 	BucketId = integer_to_list(Start) ++ "-"
 				++ integer_to_list(erlang:unique_integer([positive])),
 	CurrentAmount = rand:uniform(100000000),
@@ -603,7 +602,6 @@ abmf_query(_Config) ->
 	EventSize = CurBytes div CurItems,
 	NumItems = (FileSize div EventSize) * 5,
 	Start = erlang:system_time(?MILLISECOND),
-	Date = ocs_log:iso8601(Start),
 	ok = fill_abmf(NumItems),
 	C1= rand:uniform(100000000),
 	Topup = rand:uniform(50000),
@@ -625,7 +623,7 @@ abmf_query(_Config) ->
 	ok = fill_abmf(rand:uniform(2000)),
 	End = erlang:system_time(?MILLISECOND),
 	F1 = fun(St, En, Ty, Sub, BI, Un, PI) ->
-		F2 = fun(F2, {eof, Event}, Acc) ->
+		F2 = fun(_F2, {eof, Event}, Acc) ->
 					lists:flatten(lists:reverse([Event | Acc]));
 				(F2, {Cont, Events}, Acc) ->
 					F2(F2, ocs_log:abmf_query(Cont, St, En, Ty, Sub,

@@ -120,7 +120,7 @@ mac(N, Acc) ->
 write_csv(File, [H | T]) ->
 	write_csv1(File, H),
 	write_csv(File, T);
-write_csv(File, []) ->
+write_csv(_, []) ->
 	ok.
 %% @hidden
 write_csv1(File, Tuple) when is_tuple(Tuple)->
