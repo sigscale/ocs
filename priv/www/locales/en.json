@@ -875,6 +875,10 @@
     "description": "Date&Time",
     "message": "Date & Time"
   },
+	"price": {
+    "description": "Price",
+    "message": "Price"
+  },
    "productDeleted": {
     "description": "Success Toast Message",
     "message": "Product deleted"

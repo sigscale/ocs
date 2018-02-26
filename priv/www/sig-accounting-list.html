@@ -126,20 +126,6 @@
 					</template>
 					<template>[[item.acctInputoctets]]</template>
 				</vaadin-grid-column>
-				<vaadin-grid-column width="12ex" flex-grow="1">
-					<template class="header">
-						<vaadin-grid-filter
-								aria-label="[[i18n.prices]]"
-								path="prices"
-								value="[[filterPrices]]">
-							<input
-									placeholder="[[i18n.prices]]"
-									value="{{filterPrices::input}}"
-									focus-target>
-						</vaadin-grid-filter>
-					</template>
-					<template>[[item.prices]]</template>
-				</vaadin-grid-column>
 				<vaadin-grid-column width="10ex" flex-grow="1">
 					<template class="header">
 						<vaadin-grid-filter
@@ -155,6 +141,20 @@
 					<template>[[item.acctTotaloctets]]</template>
 				</vaadin-grid-column>
 			</vaadin-grid-column-group>
+			<vaadin-grid-column width="12ex" flex-grow="1">
+				<template class="header">
+					<vaadin-grid-filter
+							aria-label="[[i18n.price]]"
+							path="prices"
+							value="[[filterPrices]]">
+						<input
+								placeholder="[[i18n.price]]"
+								value="{{filterPrices::input}}"
+								focus-target>
+					</vaadin-grid-filter>
+				</template>
+				<template>[[item.prices]]</template>
+			</vaadin-grid-column>
 			<vaadin-grid-column width="12ex" flex-grow="1">
 				<template class="header">
 					<vaadin-grid-filter
@@ -395,14 +395,15 @@
 						}
 						var vaadinItems = new Array();
 						for (var index in request.response) {
-console.log(request.response[index]);
 							var newRecord = new Object();
 							newRecord.date = request.response[index].date;
 							function checkChar2(characteristic) {
 								return characteristic.name == "nasIdentifier";
 							}
 							var index2 = request.response[index].usageCharacteristic.findIndex(checkChar2);
-							newRecord.nasIdentifier = request.response[index].usageCharacteristic[index2].value;
+							if(index2 != -1) {
+								newRecord.nasIdentifier = request.response[index].usageCharacteristic[index2].value;
+							}
 							function checkChar3(characteristic) {
 								return characteristic.name == "acctSessionTime";
 							}
@@ -443,6 +444,12 @@ console.log(request.response[index]);
 							}
 							var index8 = request.response[index].usageCharacteristic.findIndex(checkChar8);
 							newRecord.type = request.response[index].usageCharacteristic[index8].value;
+							for(var indexTax in request.response[index].ratedProductUsage) {
+								var taxObj = request.response[index].ratedProductUsage[indexTax].taxExcludedRatingAmount;
+								if(taxObj) {
+									newRecord.prices = taxObj;
+								}
+							}
 						vaadinItems[index] = newRecord;
 						}
 						callback(vaadinItems);
