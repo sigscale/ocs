@@ -409,7 +409,11 @@ console.log(request.response[index]);
 								newRecord.acctTotaloctets = results[index].acctTotaloctets;
 							}
 							var username1 = request.response[index].usageCharacteristic.find(checkChar);
-							newRecord.type = request.response[index].type;
+							function checkChar8(characteristic) {
+								return characteristic.name == "type";
+							}
+							var index8 = request.response[index].usageCharacteristic.findIndex(checkChar8);
+							newRecord.type = request.response[index].usageCharacteristic[index8].value;
 							if (username1 != undefined) {
 								newRecord.username = username1.value;
 							}
