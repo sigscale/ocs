@@ -392,7 +392,7 @@ rate5(#service{buckets = Buckets1} = Subscriber,
 	case charge_session(Units, DebitAmount, SessionId, Buckets1) of
 		{DebitAmount, Buckets2} ->
 			Rated3 = Rated2#rated{usage_rating_tag = included},
-			rate6(Subscriber#subscriber{buckets = Buckets2}, final,
+			rate6(Subscriber#service{buckets = Buckets2}, final,
 					DebitAmount, DebitAmount, 0, 0, SessionId, Rated3);
 		{UnitsCharged, Buckets2} ->
 			PriceChargeUnits = DebitAmount - UnitsCharged,
