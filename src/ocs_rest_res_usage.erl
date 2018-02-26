@@ -22,8 +22,8 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
-		get_usage/2, get_usage/3, get_usagespec/1, get_usagespec/2,
-		get_ipdr/1]).
+		get_usages/2, get_usages/3, get_usage/3, get_ipdr/1,
+		get_usagespec/1, get_usagespec/2]).
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs_log.hrl").
@@ -53,38 +53,51 @@ content_types_accepted() ->
 content_types_provided() ->
 	["application/json"].
 
--spec get_usage(Query, Headers) -> Result
+-spec get_usages(Query, Headers) -> Result
 	when
+		Query :: [{Key :: string(), Value :: string()}],
+		Headers :: [tuple()],
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @equiv get_usages(undefined, Query, Headers)
+%% @hidden
+get_usages(Query, Headers) ->
+	get_usages(undefined, Query, Headers).
+
+-spec get_usages(Id, Query, Headers) -> Result
+	when
+		Id :: string() | undefined,
 		Query :: [{Key :: string(), Value :: string()}],
 		Headers :: [tuple()],
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
 %% 	`GET /usageManagement/v1/usage'
+%% 	`GET /usageManagement/v1/usage/ipdr/{Id}'
 %% 	requests.
 %% @hidden
-get_usage(Query, Headers) ->
+get_usages(Id, Query, Headers) ->
 	case lists:keytake("fields", 1, Query) of
 		{value, {_, Filters}, NewQuery} ->
-			get_usage1(NewQuery, Filters, Headers);
+			get_usages1(Id, NewQuery, Filters, Headers);
 		false ->
-			get_usage1(Query, [], Headers)
+			get_usages1(Id, Query, [], Headers)
 	end.
 %% @hidden
-get_usage1(Query, Filters, Headers) ->
+get_usages1(Id, Query, Filters, Headers) ->
 	case lists:keytake("sort", 1, Query) of
 		{value, {_, "-date"}, NewQuery} ->
 			get_last(NewQuery, Filters);
 		{value, {_, Date}, NewQuery}
 				when Date == "date"; Date == "+date" ->
-			get_usage2(NewQuery, Filters, Headers);
+			get_usages2(Id, NewQuery, Filters, Headers);
 		false ->
-			get_usage2(Query, Filters, Headers);
+			get_usages2(Id, Query, Filters, Headers);
 		_ ->
 			{error, 400}
 	end.
 %% @hidden
-get_usage2(Query, Filters, Headers) ->
+get_usages2(Id, Query, Filters, Headers) ->
 	case {lists:keyfind("if-match", 1, Headers),
 			lists:keyfind("if-range", 1, Headers),
 			lists:keyfind("range", 1, Headers)} of
@@ -114,7 +127,7 @@ get_usage2(Query, Filters, Headers) ->
 						{error, _} ->
 							{error, 400};
 						{ok, {Start, End}} ->
-							query_start(Query, Filters, Start, End)
+							query_start(Id, Query, Filters, Start, End)
 					end;
 				PageServer ->
 					case ocs_rest:range(Range) of
@@ -133,10 +146,10 @@ get_usage2(Query, Filters, Headers) ->
 				{error, _Reason} ->
 					{error, 400};
 				{ok, {Start, End}} ->
-					query_start(Query, Filters, Start, End)
+					query_start(Id, Query, Filters, Start, End)
 			end;
 		{false, false, false} ->
-			query_start(Query, Filters, undefined, undefined)
+			query_start(Id, Query, Filters, undefined, undefined)
 	end.
 
 -spec get_usage(Id, Query, Headers) -> Result
@@ -568,18 +581,19 @@ usage_aaa_auth([], _Filters, Acc) ->
 	lists:reverse(Acc).
 
 %% @hidden
-usage_aaa_acct({Milliseconds, N, P, Node,
-		{ServerIP, ServerPort}, EventType, Attributes}, Filters) ->
+usage_aaa_acct(Event, Filters) when is_tuple(Event), size(Event) > 6 ->
+	Milliseconds = element(1, Event),
+	{ServerIP, ServerPort} = element(5, Event),
 	UsageSpec = {struct, [{"id", "AAAAccountingUsageSpec"},
 			{"href", ?usageSpecPath ++ "AAAccountingUsageSpec"},
 			{"name", "AAAAccountingUsageSpec"}]},
 	Type = "AAAAccountingUsage",
 	Status = "received",
 	ID = "acct-" ++ integer_to_list(Milliseconds) ++ "-"
-			++ integer_to_list(N),
+			++ integer_to_list(element(2, Event)),
 	Href = ?usagePath ++ ID,
 	Date = ocs_log:iso8601(Milliseconds),
-	Protocol = case P of
+	Protocol = case element(3, Event) of
 		radius ->
 			"RADIUS";
 		diameter ->
@@ -587,11 +601,13 @@ usage_aaa_acct({Milliseconds, N, P, Node,
 	end,
 	ServerAddress = inet:ntoa(ServerIP),
 	EventChars = [{struct, [{"name", "protocol"}, {"value", Protocol}]},
-			{struct, [{"name", "node"}, {"value", atom_to_list(Node)}]},
+			{struct, [{"name", "node"},
+					{"value", atom_to_list(element(4, Event))}]},
 			{struct, [{"name", "serverAddress"}, {"value", ServerAddress}]},
 			{struct, [{"name", "serverPort"}, {"value", ServerPort}]},
-			{struct, [{"name", "type"}, {"value", atom_to_list(EventType)}]}],
-	AttributeChars = usage_characteristics(Attributes),
+			{struct, [{"name", "type"},
+					{"value", atom_to_list(element(6, Event))}]}],
+	AttributeChars = usage_characteristics(element(7, Event)),
 	UsageChars = EventChars ++ AttributeChars,
 	Object = {struct, [{"id", ID}, {"href", Href}, {"date", Date}, {"type", Type},
 			{"status", Status}, {"usageSpecification", UsageSpec},
@@ -2282,17 +2298,17 @@ char_attr_cause(Attributes, Acc) ->
 	end.
 
 %% @hidden
-query_start(Query, Filters, RangeStart, RangeEnd) ->
+query_start(Id, Query, Filters, RangeStart, RangeEnd) ->
 	{DateStart, DateEnd} = case lists:keyfind("date", 1, Query) of
 		{_, DateTime} when length(DateTime) > 3 ->
 			range(DateTime);
 		false ->
 			{1, erlang:system_time(?MILLISECOND)}
 	end,
-	query_start1(lists:keyfind("type", 1, Query), Query,
+	query_start1(lists:keyfind("type", 1, Query), Id, Query,
 			Filters, RangeStart, RangeEnd, DateStart, DateEnd).
 %% @hidden
-query_start1({_, "AAAAccessUsage"}, Query,
+query_start1({_, "AAAAccessUsage"}, undefined, Query,
 		Filters, RangeStart, RangeEnd, DateStart, DateEnd) ->
 	try
 		case lists:keyfind("filter", 1, Query) of
@@ -2320,7 +2336,7 @@ query_start1({_, "AAAAccessUsage"}, Query,
 		_ ->
 			{error, 400}
 	end;
-query_start1({_, "AAAAccountingUsage"}, Query,
+query_start1({_, "AAAAccountingUsage"}, undefined, Query,
 		Filters, RangeStart, RangeEnd, DateStart, DateEnd) ->
 	try
 		case lists:keyfind("filter", 1, Query) of
@@ -2348,9 +2364,35 @@ query_start1({_, "AAAAccountingUsage"}, Query,
 		_ ->
 			{error, 400}
 	end;
-query_start1({_, "PublicWLANAccessUsage"}, _, _, _, _, _, _) ->
-	{error, 404}; % todo?
-query_start1({_, "HTTPTransferUsage"}, Query,
+query_start1({_, "PublicWLANAccessUsage"}, IpdrFile, Query,
+		Filters, RangeStart, RangeEnd, DateStart, DateEnd) ->
+	try
+		case lists:keyfind("filter", 1, Query) of
+			{_, String} ->
+				{ok, Tokens, _} = ocs_rest_query_scanner:string(String),
+				case ocs_rest_query_parser:parse(Tokens) of
+					{ok, [{array, [{complex,
+							[{"usageCharacteristic", contains, Contains}]}]}]} ->
+						characteristic(Contains, '_', '_', '_', '_')
+				end;
+			false ->
+				{'_', '_', '_'}
+		end
+	of
+		{Protocol, Types, Attrs} ->
+			Args = [IpdrFile, DateStart, DateEnd, Protocol, Types, Attrs],
+			MFA = [ocs_log, ipdr_query, Args],
+			case supervisor:start_child(ocs_rest_pagination_sup, [MFA]) of
+				{ok, PageServer, Etag} ->
+					query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
+				{error, _Reason} ->
+					{error, 500}
+			end
+	catch
+		_ ->
+			{error, 400}
+	end;
+query_start1({_, "HTTPTransferUsage"}, undefined, Query,
 		Filters, RangeStart, RangeEnd, _, _) ->
 	DateTime = proplists:get_value("datetime", Query, '_'),
 	Host = proplists:get_value("host", Query, '_'),
@@ -2366,11 +2408,11 @@ query_start1({_, "HTTPTransferUsage"}, Query,
 		{error, _Reason} ->
 			{error, 500}
 	end;
-query_start1({_, _}, [], _, _, _, _, _) ->
+query_start1({_, _}, _, [], _, _, _, _, _) ->
 	{error, 404};
-query_start1({_, _}, _, _, _, _, _, _) ->
+query_start1({_, _}, _, _, _, _, _, _, _) ->
 	{error, 400};
-query_start1(false, _, _, _, _, _, _) ->
+query_start1(false, _, _, _, _, _, _, _) ->
 	{error, 400}.
 
 %% @hidden

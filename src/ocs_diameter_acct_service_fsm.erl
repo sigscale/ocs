@@ -266,15 +266,16 @@ handle_info(Event, StateName, StateData) ->
 %% @see //stdlib/gen_fsm:terminate/3
 %% @private
 %%
-terminate(_Reason, _StateName,  #statedata{transport_ref = TransRef,
-		address = Address, port = Port}= _StateData) ->
+terminate(_Reason1, _StateName,  #statedata{transport_ref = TransRef,
+		address = Address, port = Port} = _StateData) ->
 	SvcName = ?DIAMETER_ACCT_SERVICE(Address, Port),
 	case diameter:remove_transport(SvcName, TransRef) of
 		ok ->
-			diameter:stop_service(SvcName),
-			ocs_log:acct_close();
-		{error, Reason} ->
-			{error, Reason}
+			ocs_log:acct_close(),
+			diameter:stop_service(SvcName);
+		{error, Reason1} ->
+			error_logger:error_report(["Failed to remove transport",
+					{module, ?MODULE}, {error, Reason1}])
 	end.
 
 -spec code_change(OldVsn, StateName, StateData, Extra) -> Result
@@ -340,9 +341,10 @@ service_options(Options) ->
 %% @hidden
 transport_options(Transport, Address, Port) ->
 	Opts = [{transport_module, Transport},
-							{transport_config, [{reuseaddr, true},
-							{ip, Address},
-							{port, Port}]}],
+			{transport_config, [{reuseaddr, true},
+					{ip, Address},
+					{port, Port}]},
+			{disconnect_cb, fun(_, _, _) -> close end}],
 	{listen, Opts}.
 
 -spec change_state(StateName, Event, StateData) -> Result
