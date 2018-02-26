@@ -419,42 +419,18 @@ rate6(#subscriber{session_attributes = SessionList,
 		when Charged >= Charge ->
 	NewBuckets1 = refund(SessionId, Buckets),
 	{Seconds, Octets, Cents, NewBuckets2} = get_debits(SessionId, NewBuckets1),
-	Rated1 = case {Seconds, Octets, Cents} of
-		{Seconds, 0, 0} when Seconds > 0 ->
-			Rated#rated{bucket_value = Seconds,
-					bucket_type = seconds, is_billed = true};
-		{0, Octets, 0} when Octets > 0 ->
-			Rated#rated{bucket_value = Octets,
-					bucket_type = octets, is_billed = true};
-		{_, _, Cents} when Cents > 0 ->
-			Rated#rated{bucket_type = cents,
-					tax_excluded_amount = Cents, is_billed = true};
-		{0, 0, 0} ->
-			Rated#rated{is_billed = true}
-	end,
+	Rated1 = rated(Seconds, Octets, Cents, Rated),
 	NewSessionList = remove_session(SessionId, SessionList),
 	Subscriber2 = Subscriber1#subscriber{buckets = NewBuckets2,
 			session_attributes = NewSessionList},
 	ok = mnesia:write(Subscriber2),
-	{ok, Subscriber2, 0, [Rated1]};
+	{ok, Subscriber2, 0, Rated1};
 rate6(#subscriber{session_attributes = SessionList,
 		buckets = Buckets} = Subscriber1,
 		final, _Charge, _Charged, 0, 0, SessionId, Rated) ->
 	NewBuckets1 = refund(SessionId, Buckets),
 	{Seconds, Octets, Cents, NewBuckets2} = get_debits(SessionId, NewBuckets1),
-	Rated1 = case {Seconds, Octets, Cents} of
-		{Seconds, 0, 0} when Seconds > 0 ->
-			Rated#rated{bucket_value = Seconds,
-					bucket_type = seconds, is_billed = true};
-		{0, Octets, 0} when Octets > 0 ->
-			Rated#rated{bucket_value = Octets,
-					bucket_type = octets, is_billed = true};
-		{_, _, Cents} when Cents > 0 ->
-			Rated#rated{bucket_type = cents,
-					tax_excluded_amount = Cents, is_billed = true};
-		{0, 0, 0} ->
-			Rated#rated{is_billed = true}
-	end,
+	Rated1 = rated(Seconds, Octets, Cents, Rated),
 	Subscriber2 = Subscriber1#subscriber{buckets = NewBuckets2,
 			session_attributes = []},
 	ok = mnesia:write(Subscriber2),
@@ -1493,4 +1469,35 @@ get_debits1(SessionId, [H | T], Debit, Acc) ->
 	get_debits1(SessionId, T, Debit, [H | Acc]);
 get_debits1(_SessionId, [], Debit, Acc) ->
 	{Debit, lists:reverse(Acc)}.
+
+-spec rated(Seconds, Octets, Cents, Rated) -> Result
+	when
+		Seconds :: non_neg_integer(),
+		Octets :: non_neg_integer(),
+		Cents :: non_neg_integer(),
+		Rated :: #rated{},
+		Result :: [Rated].
+%% @doc Construct rated product usage.
+%% @hidden
+rated(Seconds, 0, 0, Rated) when Seconds > 0 ->
+	[Rated#rated{bucket_value = Seconds,
+			bucket_type = seconds, is_billed = true}];
+rated(0, Octets, 0, Rated) when Octets > 0 ->
+	[Rated#rated{bucket_value = Octets,
+			bucket_type = octets, is_billed = true}];
+rated(0, 0, Cents, Rated) when Cents > 0 ->
+	[Rated#rated{bucket_type = cents,
+			tax_excluded_amount = Cents, is_billed = true}];
+rated(Seconds, 0, Cents, Rated) when Seconds > 0, Cents > 0 ->
+	[Rated#rated{bucket_type = seconds, bucket_value = Seconds,
+			usage_rating_tag = included, is_billed = true},
+			Rated#rated{bucket_type = cents,
+			tax_excluded_amount = Cents, is_billed = true}];
+rated(0, Octets, Cents, Rated) when Octets > 0, Cents > 0 ->
+	[Rated#rated{bucket_type = octets, bucket_value = Octets,
+			usage_rating_tag = included, is_billed = true},
+			Rated#rated{bucket_type = cents,
+			tax_excluded_amount = Cents, is_billed = true}];
+rated(0, 0, 0, Rated) ->
+	[Rated#rated{is_billed = true}].
 
