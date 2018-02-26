@@ -68,7 +68,7 @@
 				| {disabled, SessionList}
 				| {error, Reason},
 		Subscriber :: #subscriber{},
-		Rated :: #rated{},
+		Rated :: [#rated{}],
 		SessionList :: [{pos_integer(), [tuple()]}],
 		Reason :: term().
 %% @doc Handle rating and balance management for used and reserved unit amounts.
@@ -436,7 +436,7 @@ rate6(#subscriber{session_attributes = SessionList,
 	Subscriber2 = Subscriber1#subscriber{buckets = NewBuckets2,
 			session_attributes = NewSessionList},
 	ok = mnesia:write(Subscriber2),
-	{ok, Subscriber2, 0, Rated1};
+	{ok, Subscriber2, 0, [Rated1]};
 rate6(#subscriber{session_attributes = SessionList,
 		buckets = Buckets} = Subscriber1,
 		final, _Charge, _Charged, 0, 0, SessionId, Rated) ->
@@ -458,7 +458,7 @@ rate6(#subscriber{session_attributes = SessionList,
 	Subscriber2 = Subscriber1#subscriber{buckets = NewBuckets2,
 			session_attributes = []},
 	ok = mnesia:write(Subscriber2),
-	{out_of_credit, SessionList, Rated1};
+	{out_of_credit, SessionList, [Rated1]};
 rate6(#subscriber{enabled = false, buckets = Buckets,
 		session_attributes = SessionList} = Subscriber1, _Flag,
 		_Charge, _Charged, _Reserve, _Reserved, SessionId, _Rated) ->

@@ -54,7 +54,7 @@
 		Type :: atom(),
 		ReqAttrs :: radius_attributes:attributes(),
 		RespAttrs :: radius_attributes:attributes(),
-		Rated :: #rated{}}.
+		Rated :: [#rated{}]}.
 
 %% REST API event
 -type http_event() :: {

@@ -609,9 +609,19 @@ usage_aaa_acct(Event, Filters) when is_tuple(Event), size(Event) > 6 ->
 					{"value", atom_to_list(element(6, Event))}]}],
 	AttributeChars = usage_characteristics(element(7, Event)),
 	UsageChars = EventChars ++ AttributeChars,
+	Frated = fun(#rated{tax_excluded_amount = TaxExcluded}) ->
+				{struct, [{"taxExcludedRatingAmount", TaxExcluded}]}
+	end,
+	RatedUsage = case element(8, Event) of
+		Rated when is_list(Rated) ->
+			[{"ratedProductUsage",
+					{array, lists:map(Frated, element(8, Event))}}];
+		undefined ->
+			[]
+	end,
 	Object = {struct, [{"id", ID}, {"href", Href}, {"date", Date}, {"type", Type},
 			{"status", Status}, {"usageSpecification", UsageSpec},
-			{"usageCharacteristic", {array, UsageChars}}]},
+			{"usageCharacteristic", {array, UsageChars}}] ++ RatedUsage},
 	case Filters of
 		[] ->
 			Object;

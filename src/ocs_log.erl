@@ -84,7 +84,7 @@ acct_open() ->
 				| radius_attributes:attributes(),
 		Response :: #'3gpp_ro_CCA'{} | #'3gpp_ro_RAA'{}
 				| radius_attributes:attributes() | undefined,
-		Rated :: #rated{} | undefined,
+		Rated :: [#rated{}] | undefined,
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Write an event to accounting log.
