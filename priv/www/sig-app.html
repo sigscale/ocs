@@ -159,7 +159,6 @@
 				<sig-user-list></sig-user-list>
 				<sig-access-list id="accessList"></sig-access-list>
 				<sig-accounting-list id="accountingList"></sig-accounting-list>
-				<sig-usage-list id="usageList"></sig-usage-list>
 				<sig-ipdr-list></sig-ipdr-list>
 				<sig-http-list></sig-http-list>
 				<sig-prefix-list id="prefixList" table="{{table}}"></sig-prefix-list>
@@ -264,13 +263,6 @@
 											<i18n-msg msgid="accounting">
 												Accounting
 											</i18n-msg>
-									</paper-icon-item>
-									<paper-icon-item
-											id="pageUsage"
-											onclick="drawer.toggle()"
-											class="menuitem">
-										<iron-icon icon ="device:data-usage" item-icon></iron-icon>
-											Usage	
 									</paper-icon-item>
 									<paper-icon-item
 											id="pageIPDR"
@@ -417,7 +409,7 @@
 						this.$.logMenu.selected = null;
 						break;
 					case 'pageSubscribers':
-						this.$.loadPage.selected = 0;
+						this.$.loadPage.selected = 1;
 						this.$.productMenu.selected = null;
 						this.$.logMenu.selected = null;
 						break;
@@ -437,22 +429,19 @@
 					case 'pageAccounting':
 						this.$.loadPage.selected = 5;
 						break;
-					case 'pageUsage':
-						this.$.loadPage.selected = 6;
-						break;
 					case 'pageIPDR':
 						this.$.loadPage.selected = null;
-						this.$.loadPage.selected = 7;
+						this.$.loadPage.selected = 6;
 						this.$.logMenu.selected = null;
 						break;
 					case 'pageHTTP':
-						this.$.loadPage.selected = 8;
+						this.$.loadPage.selected = 7;
 						break;
 					case 'pagePrefix':
-						this.$.loadPage.selected = 9;
+						this.$.loadPage.selected = 8;
 						break;
 					case 'pageBalance':
-						this.$.loadPage.selected = 10;
+						this.$.loadPage.selected = 9;
 						break;
 				}
 			},
@@ -480,9 +469,6 @@
 						break;
 					case 5:
 						this.$.accountingList.refreshAccounting();
-						break;
-					case 6:
-						this.$.usageList.refresh();
 						break;
 					case 6:
 						document.getElementById('getIpdr').generateRequest();
