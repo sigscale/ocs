@@ -67,7 +67,7 @@
 				| {out_of_credit, SessionList, Rated}
 				| {disabled, SessionList}
 				| {error, Reason},
-		Subscriber :: #subscriber{},
+		Subscriber :: #service{},
 		Rated :: #rated{},
 		SessionList :: [{pos_integer(), [tuple()]}],
 		Reason :: term().
