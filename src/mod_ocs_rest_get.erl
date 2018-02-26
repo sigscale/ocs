@@ -110,7 +110,10 @@ do_get(Resource, ModData, ["ocs", "v1", "subscriber", Id], Query) ->
 	do_response(ModData, Resource:get_subscriber(Id, Query));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["usageManagement", "v1", "usage"], Query) ->
-	do_response(ModData, Resource:get_usage(Query, Headers));
+	do_response(ModData, Resource:get_usages(Query, Headers));
+do_get(Resource, #mod{parsed_header = Headers} = ModData,
+		["usageManagement", "v1", "usage", "ipdr", Id], Query) ->
+	do_response(ModData, Resource:get_usages(Id, Query, Headers));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["usageManagement", "v1", "usage", Id], Query) ->
 	do_response(ModData, Resource:get_usage(Id, Query, Headers));
