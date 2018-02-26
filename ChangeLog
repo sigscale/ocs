@@ -1,3 +1,10 @@
+2018-02-26  Vance Shipley <vances@sigscale.org>
+
+	* decimal prices
+	* include rated charge info in accounting log
+	* improved diameter event handling
+	* advanced query filtering in log views
+
 2018-02-14  Vance Shipley <vances@sigscale.org>
 
 	* extended attribute query syntax for logs
