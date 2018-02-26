@@ -296,9 +296,6 @@
 							grid.size = Number(range2[1]) + grid.pageSize * 2;
 						}
 						var vaadinItems = new Array();
-						function checkChar(characteristic) {
-							return characteristic.name == "username";
-						}
 						for (var index in request.response) {
 							var newRecord = new Object();
 							newRecord.date = request.response[index].date;
@@ -317,11 +314,18 @@
 							}
 							var index3 = request.response[index].usageCharacteristic.findIndex(checkChar3);
 							newRecord.calledStationId = request.response[index].usageCharacteristic[index3].value;
-							var username1 = request.response[index].usageCharacteristic.find(checkChar);
-							newRecord.type = request.response[index].type;
+							function checkChar4(characteristic) {
+								return characteristic.name == "username";
+							}
+							var username1 = request.response[index].usageCharacteristic.find(checkChar4);
 							if (username1 != undefined) {
 								newRecord.username = username1.value;
 							}
+							function checkChar5(characteristic) {
+								return characteristic.name == "type";
+							}
+							var index5 = request.response[index].usageCharacteristic.findIndex(checkChar5);
+							newRecord.type = request.response[index].usageCharacteristic[index5].value;
 						vaadinItems[index] = newRecord;
 						}
 						callback(vaadinItems);
