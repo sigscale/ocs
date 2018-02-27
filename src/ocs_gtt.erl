@@ -106,7 +106,7 @@ new(Table, Options, Items) when is_list(Options), is_list(Items) ->
 				mnesia:dump_log(),
 				F(F, L, Threshold); 
 			(F, [{Number, Value} | T], N) ->
-				Writes = insert(Table, [], Number, Value),
+				Writes = insert(Table, Number, Value, []),
 				F(F, T, N - Writes);
 			(_F, [], _N) ->
 				ok
@@ -123,11 +123,12 @@ new(Table, Options, Items) when is_list(Options), is_list(Items) ->
 			mnesia:sync_dirty(Ftran, [Ftran, Items, Threshold])
 	end.
 
--spec insert(Table, Number, Value) -> ok
+-spec insert(Table, Number, Value) -> {ok, Gtt}
 	when
 		Table :: atom(),
 		Number :: string() | integer(),
-		Value :: term().
+		Value :: term(),
+		Gtt:: #gtt{}.
 %% @doc Insert a table entry.
 %% 
 insert(Table, Number, Value) when is_integer(Number) ->
@@ -135,10 +136,10 @@ insert(Table, Number, Value) when is_integer(Number) ->
 insert(Table, Number, Value) 
 		when is_atom(Table),
 		is_list(Number) ->
-	F = fun() -> insert(Table, [], Number, Value) end,
+	F = fun() -> insert(Table, Number, Value, []) end,
 	case mnesia:transaction(F) of
-		{atomic, N} when N > 0 ->
-			ok;
+		{atomic, LM} ->
+			{ok, LM};
 		{aborted, Reason} ->
 			exit(Reason)
 	end.
@@ -155,7 +156,7 @@ insert(Table, Number, Value)
 %% 	all.
 %% 
 insert(Table, Items) when is_atom(Table), is_list(Items)  ->
-	InsFun = fun({Number, Value}) -> insert(Table, [], Number, Value) end,
+	InsFun = fun({Number, Value}) -> insert(Table, Number, Value) end,
 	TransFun = fun() -> lists:foreach(InsFun, Items) end,
 	mnesia:transaction(TransFun),
 	ok.
@@ -386,33 +387,34 @@ list([], Acc) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec insert(Table, Acc, Number, Value) -> Writes
+-spec insert(Table, Number, Value, []) -> LastModified
 	when
 		Table :: atom(),
-		Acc :: list(),
 		Number :: list() | integer(),
 		Value :: term(),
-		Writes :: integer().
+		LastModified :: {Timestamp, N},
+		Timestamp :: pos_integer(),
+		N :: pos_integer().
 %% @hidden
 %%
-insert(Table, [], Number, Value) when is_integer(Number) ->
-	insert1(Table, [], integer_to_list(Number), Value, 0);
-insert(Table, [], Number, Value) ->
-	insert1(Table, [], Number, Value, 0).
+insert(Table, Number, Value, []) when is_integer(Number) ->
+	insert1(Table, integer_to_list(Number), Value, 0, []);
+insert(Table, Number, Value, []) ->
+	insert1(Table, Number, Value, 0, []).
 %% @hidden
-insert1(Table, P, Number, Value, N) ->
-	TS = erlang:system_time(?MILLISECOND),
-	N = erlang:unique_integer([positive]),
-	LM = {TS, N},
-	Value1 = erlang:insert_element(tuple_size(Value) + 1, Value, LM),
-	insert2(Table, P, Number, Value1, N).
+insert1(Table, Number, Value, N, Acc) ->
+	insert2(Table, Number, Value, N, Acc).
 %% @hidden
-insert2(Table, P, [H | []], Value, N) ->
-	Number =  P ++ [H],
-	mnesia:write(Table, #gtt{num = Number, value = Value}, write),
-	N + 1;
-insert2(Table, P, [H | T], Value, N) ->
-	Number =  P ++ [H],
+insert2(Table, [H | []], Value, _N, Acc) ->
+	Number =  Acc ++ [H],
+%%	LM = {erlang:system_time(?MILLISECOND),
+%%			erlang:unique_integer([positive])},
+%%	Value1 = erlang:insert_element(tuple_size(Value) + 1, Value, LM),
+	Gtt = #gtt{num = Number, value = Value},
+	mnesia:write(Table, Gtt, write),
+	Gtt;
+insert2(Table, [H | T], Value, N, Acc) ->
+	Number =  Acc ++ [H],
 	case mnesia:read(Table, Number, write) of
 		[#gtt{}] ->
 			insert2(Table, Number, T, Value, N);
