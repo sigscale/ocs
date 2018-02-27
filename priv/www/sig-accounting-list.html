@@ -443,7 +443,9 @@
 								return characteristic.name == "type";
 							}
 							var index8 = request.response[index].usageCharacteristic.findIndex(checkChar8);
-							newRecord.type = request.response[index].usageCharacteristic[index8].value;
+							if (index8 != -1) {
+								newRecord.type = request.response[index].usageCharacteristic[index8].value;
+							}
 							for(var indexTax in request.response[index].ratedProductUsage) {
 								var taxObj = request.response[index].ratedProductUsage[indexTax].taxExcludedRatingAmount;
 								if(taxObj) {

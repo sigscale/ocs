@@ -303,17 +303,23 @@
 								return characteristic.name == "clientAddress";
 							}
 							var index1 = request.response[index].usageCharacteristic.findIndex(checkChar1);
-							newRecord.clientAddress = request.response[index].usageCharacteristic[index1].value;
+							if (index1 != -1) {
+								newRecord.clientAddress = request.response[index].usageCharacteristic[index1].value;
+							}
 							function checkChar2(characteristic) {
 								return characteristic.name == "nasIdentifier";
 							}
 							var index2 = request.response[index].usageCharacteristic.findIndex(checkChar2);
-							newRecord.nasIdentifier = request.response[index].usageCharacteristic[index2].value;
+							if (index2 != -1) {
+								newRecord.nasIdentifier = request.response[index].usageCharacteristic[index2].value;
+							}
 							function checkChar3(characteristic) {
 								return characteristic.name == "calledStationId";
 							}
 							var index3 = request.response[index].usageCharacteristic.findIndex(checkChar3);
-							newRecord.calledStationId = request.response[index].usageCharacteristic[index3].value;
+							if (index3 != -1) {
+								newRecord.calledStationId = request.response[index].usageCharacteristic[index3].value;
+							}
 							function checkChar4(characteristic) {
 								return characteristic.name == "username";
 							}
@@ -325,7 +331,9 @@
 								return characteristic.name == "type";
 							}
 							var index5 = request.response[index].usageCharacteristic.findIndex(checkChar5);
-							newRecord.type = request.response[index].usageCharacteristic[index5].value;
+							if (index5 != -1) {
+								newRecord.type = request.response[index].usageCharacteristic[index5].value;
+							}
 						vaadinItems[index] = newRecord;
 						}
 						callback(vaadinItems);
