@@ -27,6 +27,7 @@
 
 -include_lib("radius/include/radius.hrl").
 -include("ocs_log.hrl").
+-include("diameter_gen_3gpp_ro_application.hrl").
 
 -define(usageSpecPath, "/usageManagement/v1/usageSpecification/").
 -define(usagePath, "/usageManagement/v1/usage/").
@@ -34,6 +35,9 @@
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
+
+% calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
+-define(EPOCH, 62167219200).
 
 %%----------------------------------------------------------------------
 %%  The ocs_rest_res_usage API
@@ -1830,6 +1834,19 @@ usage_characteristics(Attributes) ->
 	lists:reverse(char_attr_username(Attributes, [])).
 
 %% @hidden
+char_attr_username(#'3gpp_ro_CCR'{'Subscription-Id'
+		= [#'3gpp_ro_Subscription-Id'{'Subscription-Id-Data' = ID}]} = CCR,
+		Acc) when is_binary(ID) ->
+	NewAcc = [{struct, [{"name", "username"},
+			{"value", binary_to_list(ID)}]} | Acc],
+	char_attr_nas_ip(CCR, NewAcc);
+char_attr_username(#'3gpp_ro_CCR'{'User-Name' = [Username]} = CCR, Acc)
+		when is_binary(Username) ->
+	NewAcc = [{struct, [{"name", "username"},
+			{"value", binary_to_list(Username)}]} | Acc],
+	char_attr_nas_ip(CCR, NewAcc);
+char_attr_username(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+	char_attr_nas_ip(CCR, Acc);
 char_attr_username(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?UserName, Attributes) of
 		{ok, Value} ->
@@ -1840,6 +1857,10 @@ char_attr_username(Attributes, Acc) ->
 	char_attr_nas_ip(Attributes, NewAcc).
 
 %% @hidden
+char_attr_nas_ip(#'3gpp_ro_CCR'{'Origin-Host' = Value} = CCR, Acc) ->
+	NewAcc = [{struct, [{"name", "nasIpAddress"},
+			{"value", binary_to_list(Value)}]} | Acc],
+	char_attr_service_type(CCR, NewAcc);
 char_attr_nas_ip(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?NasIpAddress, Attributes) of
 		{ok, Value} ->
@@ -1861,6 +1882,14 @@ char_attr_nas_port(Attributes, Acc) ->
 	char_attr_service_type(Attributes, NewAcc).
 
 %% @hidden
+char_attr_service_type(#'3gpp_ro_CCR'{'Service-Context-Id' = Context} = CCR, Acc) ->
+	NewAcc = case service_type(Context) of
+		undefined ->
+			Acc;
+		Value ->
+			[{struct, [{"name", "serviceType"}, {"value", Value}]} | Acc]
+	end,
+	char_attr_called_id(CCR, NewAcc);
 char_attr_service_type(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?ServiceType, Attributes) of
 		{ok, Value} ->
@@ -2013,6 +2042,15 @@ char_attr_termination_action(Attributes, Acc) ->
 	char_attr_called_id(Attributes, NewAcc).
 
 %% @hidden
+char_attr_called_id(#'3gpp_ro_CCR'{'Service-Information'
+		= [#'3gpp_ro_Service-Information'{'IMS-Information'
+		= [#'3gpp_ro_IMS-Information'{'Called-Party-Address'
+		= [<<"tel:", Called/binary>>]}]}]} = CCR, Acc) ->
+	NewAcc = [{struct, [{"name", "calledStationId"},
+			{"value", binary_to_list(Called)}]} | Acc],
+	char_attr_calling_id(CCR, NewAcc);
+char_attr_called_id(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+	char_attr_calling_id(CCR, Acc);
 char_attr_called_id(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?CalledStationId, Attributes) of
 		{ok, Value} ->
@@ -2023,6 +2061,15 @@ char_attr_called_id(Attributes, Acc) ->
 	char_attr_calling_id(Attributes, NewAcc).
 
 %% @hidden
+char_attr_calling_id(#'3gpp_ro_CCR'{'Service-Information'
+		= [#'3gpp_ro_Service-Information'{'IMS-Information'
+		= [#'3gpp_ro_IMS-Information'{'Calling-Party-Address'
+		= [<<"tel:", Called/binary>>]}]}]} = CCR, Acc) ->
+	NewAcc = [{struct, [{"name", "callingStationId"},
+			{"value", binary_to_list(Called)}]} | Acc],
+	char_attr_nas_id(CCR, NewAcc);
+char_attr_calling_id(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+	char_attr_nas_id(CCR, Acc);
 char_attr_calling_id(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?CallingStationId, Attributes) of
 		{ok, Value} ->
@@ -2033,6 +2080,16 @@ char_attr_calling_id(Attributes, Acc) ->
 	char_attr_nas_id(Attributes, NewAcc).
 
 %% @hidden
+char_attr_nas_id(#'3gpp_ro_CCR'{'Service-Information'
+		= [#'3gpp_ro_Service-Information'{'IMS-Information'
+		= [#'3gpp_ro_IMS-Information'{'Inter-Operator-Identifier'
+		= [#'3gpp_ro_Inter-Operator-Identifier'{'Originating-IOI'
+		= [IOI]}]}]}]} = CCR, Acc) when is_binary(IOI) ->
+	NewAcc = [{struct, [{"name", "nasIdentifier"},
+			{"value", binary_to_list(IOI)}]} | Acc],
+	char_attr_event_timestamp(CCR, NewAcc);
+char_attr_nas_id(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+	char_attr_event_timestamp(CCR, Acc);
 char_attr_nas_id(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?NasIdentifier, Attributes) of
 		{ok, Value} ->
@@ -2103,6 +2160,17 @@ char_attr_delay(Attributes, Acc) ->
 	char_attr_event_timestamp(Attributes, NewAcc).
 
 %% @hidden
+char_attr_event_timestamp(#'3gpp_ro_CCR'{'Service-Information'
+		= [#'3gpp_ro_Service-Information'{'IMS-Information'
+		= [#'3gpp_ro_IMS-Information'{'Time-Stamps'
+		= [#'3gpp_ro_Time-Stamps'{'SIP-Request-Timestamp'
+		= [TimeStamp]}]}]}]} = CCR, Acc) ->
+	Seconds = calendar:datetime_to_gregorian_seconds(TimeStamp) - ?EPOCH,
+	NewAcc = [{struct, [{"name", "eventTimestamp"},
+			{"value", ocs_log:iso8601(Seconds * 1000)}]} | Acc],
+	char_attr_session_id(CCR, NewAcc);
+char_attr_event_timestamp(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+	char_attr_session_id(CCR, Acc);
 char_attr_event_timestamp(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?EventTimestamp, Attributes) of
 		{ok, Value} ->
@@ -2114,6 +2182,13 @@ char_attr_event_timestamp(Attributes, Acc) ->
 	char_attr_session_id(Attributes, NewAcc).
 
 %% @hidden
+char_attr_session_id(#'3gpp_ro_CCR'{'Session-Id' = SessionID} = CCR, Acc)
+		when SessionID /= undefined ->
+	NewAcc = [{struct, [{"name", "acctSessionId"},
+			{"value", binary_to_list(SessionID)}]} | Acc],
+	char_attr_cause(CCR, NewAcc);
+char_attr_session_id(#'3gpp_ro_CCR'{} = CCR, Acc) ->
+	char_attr_cause(CCR, Acc);
 char_attr_session_id(Attributes, Acc) ->
 	NewAcc = case radius_attributes:find(?AcctSessionId, Attributes) of
 		{ok, Value} ->
@@ -2264,6 +2339,14 @@ char_attr_interim_interval(Attributes, Acc) ->
 	char_attr_cause(Attributes, NewAcc).
 
 %% @hidden
+char_attr_cause(#'3gpp_ro_CCR'{'Service-Information'
+		= [#'3gpp_ro_Service-Information'{'IMS-Information'
+		= [#'3gpp_ro_IMS-Information'{'Cause-Code'
+		= [Cause]}]}]}, Acc) ->
+	[{struct, [{"name", "acctTerminateCause"},
+			{"value", integer_to_list(Cause)}]} | Acc];
+char_attr_cause(#'3gpp_ro_CCR'{}, Acc) ->
+	Acc;
 char_attr_cause(Attributes, Acc) ->
 	case radius_attributes:find(?AcctTerminateCause, Attributes) of
 		{ok, Value} ->
@@ -2932,4 +3015,20 @@ rev('_') ->
 	'_';
 rev(Attributes) when is_list(Attributes) ->
 	lists:reverse(Attributes).
+
+%% @hidden
+service_type(Id) ->
+	% allow ".3gpp.org" or the proper "@3gpp.org"
+	case binary:part(Id, size(Id), -8) of
+		<<"3gpp.org">> ->
+			ServiceContext = binary:part(Id, byte_size(Id) - 14, 5),
+			case catch binary:decode_unsigned(ServiceContext) of
+				{'EXIT', _} ->
+					undefined;
+				SeviceType ->
+					SeviceType
+			end;
+		_ ->
+			undefined
+	end.
 
