@@ -91,7 +91,7 @@ beam_DATA = ocs.beam \
 		$(top_builddir)/include/diameter_gen_nas_application_rfc7155.hrl \
 		$(top_builddir)/include/diameter_gen_cc_application_rfc4006.hrl \
 		$(top_builddir)/include/diameter_gen_eap_application_rfc4072.hrl
-	$(ERLC) $(ERLCFLAGS) -I $(top_srcdir)/include $<
+	$(ERLC) $(ERLCFLAGS) -I $(top_srcdir)/include -I $(top_builddir)/include $<
 
 diameter_gen_ietf.beam:$(top_builddir)/src/diameter_gen_ietf.erl \
 		$(top_builddir)/include/diameter_gen_ietf.hrl

@@ -32,9 +32,9 @@
 
 -include_lib("diameter/include/diameter.hrl").
 -include_lib("diameter/include/diameter_gen_base_rfc6733.hrl").
--include("../include/diameter_gen_ietf.hrl").
--include("../include/diameter_gen_3gpp.hrl").
--include("../include/diameter_gen_3gpp_ro_application.hrl").
+-include("diameter_gen_ietf.hrl").
+-include("diameter_gen_3gpp.hrl").
+-include("diameter_gen_3gpp_ro_application.hrl").
 -include("ocs.hrl").
 
 -record(state, {}).

@@ -43,9 +43,9 @@
 
 -include("ocs_log.hrl").
 -include_lib("radius/include/radius.hrl").
--include("../include/diameter_gen_3gpp_ro_application.hrl").
--include("../include/diameter_gen_nas_application_rfc7155.hrl").
--include("../include/diameter_gen_eap_application_rfc4072.hrl").
+-include("diameter_gen_3gpp_ro_application.hrl").
+-include("diameter_gen_nas_application_rfc7155.hrl").
+-include("diameter_gen_eap_application_rfc4072.hrl").
 
 -define(ACCTLOG, ocs_acct).
 -define(AUTHLOG, ocs_auth).
