@@ -220,9 +220,9 @@ get_resource_inventory(Id, [] = _Query) ->
 add_resource_inventory(Table, ReqData) ->
 	try
 		Name = list_to_existing_atom(Table),
-		Gtt = gtt(Table, mochijson:decode(ReqData)),
+		Gtt = gtt(Name, mochijson:decode(ReqData)),
 		case catch ocs_gtt:insert(Name, Gtt#gtt.num, Gtt#gtt.value) of
-			ok ->
+			{ok, Gtt} ->
 				Gtt;
 			{'EXIT', {no_exists, _}} ->
 				throw(not_found);
@@ -443,7 +443,7 @@ gtt2([{struct, L} | T], {Prefix, Desc, Rate} = _Acc) ->
 		{value, {"name", "rate"}, L1} ->
 			{_, {struct, L2}} = lists:keyfind("value", 1, L1),
 			{_, Rate1} = lists:keyfind("value", 1, L2), 
-			gtt2(T, {Prefix, Desc, ocs_rest:decimal(Rate1)})
+			gtt2(T, {Prefix, Desc, Rate1})
 	end;
 gtt2([], Acc) ->
 	Acc.
