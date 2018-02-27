@@ -248,7 +248,7 @@ handle_info(#diameter_event{info = Event, service = Service},
 		StateName, StateData) when element(1, Event) == up;
 		element(1, Event) == down ->
 	{_PeerRef, #diameter_caps{origin_host = {_, Peer}}} = element(3, Event),
-	error_logger:info_report(["DIAMETER event",
+	error_logger:info_report(["DIAMETER peer connection state changed",
 			{service, Service}, {event, element(1, Event)},
 			{peer, binary_to_list(Peer)}]),
 	{next_state, StateName, StateData};
