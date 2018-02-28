@@ -222,8 +222,8 @@ add_resource_inventory(Table, ReqData) ->
 		Name = list_to_existing_atom(Table),
 		Gtt = gtt(Name, mochijson:decode(ReqData)),
 		case catch ocs_gtt:insert(Name, Gtt#gtt.num, Gtt#gtt.value) of
-			{ok, Gtt} ->
-				Gtt;
+			{ok, Gtt1} ->
+				Gtt1;
 			{'EXIT', {no_exists, _}} ->
 				throw(not_found);
 			{'EXIT', Reason} ->
@@ -424,11 +424,8 @@ gtt1([{"resourceCharacteristic", {array, L}} | T], Acc) ->
 gtt1([_ | T], Acc) ->
 	gtt1(T, Acc);
 gtt1([], {Prefix, Desc, Rate} = _Acc)
-		when is_list(Prefix), is_list(Rate) ->
-	TS = erlang:system_time(?MILLISECOND),
-	N = erlang:unique_integer([positive]),
-	LM = {TS, N},
-   #gtt{num = Prefix, value = {Desc, ocs_rest:decimal(Rate), LM}}.
+		when is_list(Prefix)->
+   #gtt{num = Prefix, value = {Desc, ocs_rest:decimal(Rate)}}.
 %% @hidden
 gtt2([{struct, L} | T], {Prefix, Desc, Rate} = _Acc) ->
 	case lists:keytake("name", 1, L) of

@@ -407,10 +407,10 @@ insert1(Table, Number, Value, N, Acc) ->
 %% @hidden
 insert2(Table, [H | []], Value, _N, Acc) ->
 	Number =  Acc ++ [H],
-%%	LM = {erlang:system_time(?MILLISECOND),
-%%			erlang:unique_integer([positive])},
-%%	Value1 = erlang:insert_element(tuple_size(Value) + 1, Value, LM),
-	Gtt = #gtt{num = Number, value = Value},
+	LM = {erlang:system_time(?MILLISECOND),
+			erlang:unique_integer([positive])},
+	Value1 = erlang:insert_element(tuple_size(Value) + 1, Value, LM),
+	Gtt = #gtt{num = Number, value = Value1},
 	mnesia:write(Table, Gtt, write),
 	Gtt;
 insert2(Table, [H | T], Value, N, Acc) ->
