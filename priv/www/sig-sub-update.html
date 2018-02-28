@@ -405,14 +405,17 @@
 				var sub = new Object();
 				sub.op = "add";
 				sub.path = "/buckets/-";
-				var totalBal = {"remainAmount": parseInt(document.getElementById("edit-amount").value)};
+				var totalBal;
 				if(document.getElementById("updateUni1").selected == 0){
+					totalBal = {"remainAmount":parseInt(document.getElementById("edit-amount").value)};
 					totalBal.units = "octets";
 				}
 				if(document.getElementById("updateUni1").selected == 1){
+					totalBal = {"remainAmount":document.getElementById("edit-amount").value};
 					totalBal.units = "cents";
 				}
 				if(document.getElementById("updateUni1").selected == 2){
+					totalBal = {"remainAmount":parseInt(document.getElementById("edit-amount").value)};
 					totalBal.units = "seconds";
 				}
 				//totalBal.product = document.getElementById("updatePro").value;

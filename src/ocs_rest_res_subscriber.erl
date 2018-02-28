@@ -505,12 +505,10 @@ bucket([{"terminationDate", TDate} | T], Acc) when is_list(TDate) ->
 bucket([{"units", Type} | T], Acc) when is_list(Type) ->
 	bucket(T, Acc#bucket{units = units(Type)});
 bucket([{"remainAmount", Amount} | T], Acc) ->
-	case lists:keyfind("units", 1, T) of
-			{_, "cents"} when is_list(Amount) ->
-				bucket(T, Acc#bucket{remain_amount = ocs_rest:decimal(Amount)});
-			_ ->
-				bucket(T, Acc#bucket{remain_amount = Amount})
-	end;
+	bucket(T, Acc#bucket{remain_amount = Amount});
+bucket([], #bucket{units = cents, remain_amount = Amount} = Acc)
+		when is_list(Amount) ->
+	Acc#bucket{remain_amount = ocs_rest:decimal(Amount)};
 bucket([], Acc) ->
 	Acc.
 %% @hidden
@@ -654,7 +652,7 @@ accumulated_balance1([], AccBalance) ->
 				Obj = {struct, [{"amount", A1}, {"units", U1}]},
 				[Obj | AccIn];
 			({cents, {U2, A2}}, AccIn) ->
-				Obj = {struct, [{"amount", A2}, {"units", U2}]},
+				Obj = {struct, [{"amount", ocs_rest:decimal(A2)}, {"units", U2}]},
 				[Obj | AccIn];
 			({seconds, {U3, A3}}, AccIn) ->
 				Obj = {struct, [{"amount", A3}, {"units", U3}]},
