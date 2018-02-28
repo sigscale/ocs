@@ -328,27 +328,27 @@
 					newRecord.id = results[index].id;
 					newRecord.password = results[index].password;
 					newRecord.product = results[index].product;
-					if(results[index].buckets) {
+					if(results[index].totalBalance) {
 						function getBytes(balance) {
 							return balance.units == "octets";
 						}
-						var byteTotal = results[index].buckets.find(getBytes);
+						var byteTotal = results[index].totalBalance.find(getBytes);
 						if(byteTotal) {
-							newRecord.totalBalance = byteTotal.remainAmount;
+							newRecord.totalBalance = byteTotal.amount;
 						}
 						function getCents(balance) {
 							return balance.units == "cents";
 						}
-						var centsTotal = results[index].buckets.find(getCents);
+						var centsTotal = results[index].totalBalance.find(getCents);
 						if(centsTotal) {
-							newRecord.cents = centsTotal.remainAmount;
+							newRecord.cents = centsTotal.amount;
 						}
 						function getSeconds(balance) {
 							return balance.units == "seconds";
 						}
-						var secondsTotal = results[index].buckets.find(getSeconds);
+						var secondsTotal = results[index].totalBalance.find(getSeconds);
 						if(secondsTotal) {
-							newRecord.seconds = secondsTotal.remainAmount;
+							newRecord.seconds = secondsTotal.amount;
 						}
 					}
 					if(results[index].attributes) {
