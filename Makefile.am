@@ -32,5 +32,5 @@ install-data-hook: $(PACKAGE_VERSION).tar.gz
 
 EXTRA_DIST = $(PACKAGE_VERSION).tar.gz
 
-CLEANFILES = $(PACKAGE_NAME).script $(PACKAGE_NAME).boot $(PACKAGE_VERSION).tar.gz
+CLEANFILES = $(PACKAGE_VERSION).script $(PACKAGE_VERSION).boot $(PACKAGE_VERSION).tar.gz
 
