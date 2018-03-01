@@ -219,20 +219,20 @@ get_resource_inventory(Id, [] = _Query) ->
 %%    Add a new row in logical resource inventory management.
 add_resource_inventory(Table, ReqData) ->
 	try
+		{P, D, R} = gtt(Table, mochijson:decode(ReqData)),
 		Name = list_to_existing_atom(Table),
-		Gtt = gtt(Name, mochijson:decode(ReqData)),
-		case catch ocs_gtt:insert(Name, Gtt#gtt.num, Gtt#gtt.value) of
-			{ok, Gtt1} ->
-				Gtt1;
+		case catch ocs_gtt:insert(Name, P, {D, R}) of
+			{ok, #gtt{num = Prefix1, value = Value}} ->
+				{Prefix1, element(1, Value),
+						element(2, Value), element(size(Value), Value)};
 			{'EXIT', {no_exists, _}} ->
 				throw(not_found);
 			{'EXIT', Reason} ->
 				throw(Reason)
 		end
 	of
-		Res ->
-			Body = mochijson:encode(gtt(Table, Res)),
-			{_, _, LM} = Res#gtt.value,
+		{Prefix2, Desc, Rate, LM} ->
+			Body = mochijson:encode(gtt(Table, {Prefix2, Desc, Rate})),
 			Etag = ocs_rest:etag(LM),
 			Headers = [{content_type, "application/json"}, {etag, Etag}],
 			{ok, Headers, Body}
@@ -265,44 +265,31 @@ patch_resource_inventory(Table, Id, _Etag, ReqData) ->
 		{Table1, mochijson:decode(ReqData)}
 	of
 		{Table2, Operations} ->
-			F = fun() ->
-				case mnesia:read(Table2, Id, write) of 
-					[TableObj] ->
-						case catch ocs_rest:patch(Operations, gtt(Table, TableObj)) of
-							{struct, _} = Res2  ->
-								Res3 = gtt(Id, Res2),
-								TS = erlang:system_time(?MILLISECOND),
-								N = erlang:unique_integer([positive]),
-								LM = {TS, N},
-								{Prefix, Desc, _} = Res3#gtt.value,
-								Res4 = Res3#gtt{value = {Prefix, Desc, LM}},
-								ok = mnesia:write(Table2, Res4, write),
-								{Res2, LM};
-							_ ->
-								throw(bad_request)
-						end;
-					[] ->
-						throw(not_found)
-				end
-			end,
-			case mnesia:transaction(F) of
-				{atomic, {Res, Etag2}} ->
-					Location = ?inventoryPath ++ Table ++ Id,
-					Headers = [{location, Location}, {etag, ocs_rest:etag(Etag2)}],
-					Body = mochijson:encode(Res),
-					{ok, Headers, Body};
-				{aborted, {throw, bad_request}} ->
-					{error, 400};
-				{aborted, {throw, not_found}} ->
-					{error, 404};
-				{aborted, _Reason} ->
-					{error, 500}
+			case catch ocs_gtt:lookup_last(Table2, Id) of
+				{'EXIT', _} ->
+					throw(not_found);
+				V1 ->
+					case catch ocs_rest:patch(Operations,
+							gtt(Table, {Id, element(1, V1), element(2, V1)})) of
+						{struct, _} = Res  ->
+							{Id, Description, Rate} = gtt(Id, Res),
+							{ok, #gtt{value = V}} = ocs_gtt:insert(Table2, Id, {Description, Rate}),
+							Location = ?inventoryPath ++ Table ++ Id,
+							Headers = [{location, Location},
+									{etag, ocs_rest:etag(element(size(V), V))}],
+							Body = mochijson:encode(Res),
+							{ok, Headers, Body};
+						_ ->
+							throw(bad_request)
+					end
 			end
 	catch
-		error:badarg ->
+		throw:not_found ->
 			{error, 404};
+		throw:bad_request ->
+			{error, 400};
 		_:_ ->
-			{error, 400}
+			{error, 500}
 	end.
 
 -spec delete_resource_inventory(Table, Id) -> Result
@@ -404,12 +391,14 @@ tariff_table_catalog() ->
 -spec gtt(Name, Gtt) -> Gtt
 	when
 		Name :: string(),
-		Gtt :: #gtt{} | {struct, [tuple()]}.
+		Gtt :: {Prefix, Description, Rate} | {struct, [tuple()]},
+		Prefix :: string(),
+		Description :: string(),
+		Rate :: non_neg_integer().
 %% @doc CODEC for gtt.
 %% @private
-gtt(Name, #gtt{num = Prefix, value = {Description, Rate, {LastModified, _}}} = _Gtt) ->
+gtt(Name, {Prefix, Description, Rate} = _Gtt) ->
 		{struct, [{"id", Prefix}, {"href", ?inventoryPath ++ Name ++ "/" ++ Prefix},
-			{"lastUpdate", ocs_rest:iso8601(LastModified)},
 			{"resourceCharacteristic", {array, [{struct, [{"name", "prefix"},
 			{"value", {struct, [{"seqNum", 1}, {"value", Prefix}]}}]},
 			{struct, [{"name", "description"},
@@ -425,7 +414,7 @@ gtt1([_ | T], Acc) ->
 	gtt1(T, Acc);
 gtt1([], {Prefix, Desc, Rate} = _Acc)
 		when is_list(Prefix)->
-   #gtt{num = Prefix, value = {Desc, ocs_rest:decimal(Rate)}}.
+   {Prefix, Desc, ocs_rest:decimal(Rate)}.
 %% @hidden
 gtt2([{struct, L} | T], {Prefix, Desc, Rate} = _Acc) ->
 	case lists:keytake("name", 1, L) of

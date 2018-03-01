@@ -504,11 +504,16 @@ bucket([{"terminationDate", TDate} | T], Acc) when is_list(TDate) ->
 	bucket(T, Acc#bucket{id = ocs_rest:iso8601(TDate)});
 bucket([{"units", Type} | T], Acc) when is_list(Type) ->
 	bucket(T, Acc#bucket{units = units(Type)});
-bucket([{"remainAmount", Amount} | T], Acc) ->
-	bucket(T, Acc#bucket{remain_amount = Amount});
-bucket([], #bucket{units = cents, remain_amount = Amount} = Acc)
-		when is_list(Amount) ->
-	Acc#bucket{remain_amount = ocs_rest:decimal(Amount)};
+bucket([{"remainAmount", Amount} | T], #bucket{units = cents} = Acc) ->
+	bucket(T, Acc#bucket{remain_amount = ocs_rest:decimal(Amount)});
+bucket([{"remainAmount", Amount} | T1], Acc) ->
+	case lists:keytake("units", 1, T1) of
+		 {value, {"units", "cents"}, T2} ->
+			bucket(T2, Acc#bucket{units = cents,
+					remain_amount = ocs_rest:decimal(Amount)});
+		_ ->
+			bucket(T1, Acc#bucket{remain_amount = Amount})
+	end;
 bucket([], Acc) ->
 	Acc.
 %% @hidden
