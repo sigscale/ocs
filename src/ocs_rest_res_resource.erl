@@ -28,6 +28,7 @@
 -export([get_resource_catalog/1, get_resource_catalogs/1]).
 -export([get_resource_inventory/2, add_resource_inventory/2, patch_resource_inventory/4,
 			delete_resource_inventory/2]).
+-export([gtt/2]).
 
 -include("ocs.hrl").
 
@@ -184,28 +185,27 @@ get_resource_inventory(Id, [] = _Query) ->
 	try
 		Name = list_to_existing_atom(Id),
 		case ocs:query_table(start, Name, undefined, undefined, undefined, undefined) of
-			{eof, Logic} ->
-				Logic;
+			{eof, Page} ->
+				L = get_resource_inventory1(Id, Page, []),
+				Body = mochijson:encode({array, L}),
+				Headers = [{content_type, "application/json"}],
+				{ok, Headers, Body};
 			{error, not_found} ->
-				throw(404);
+				{error, 404};
 			{error, _Reason} ->
-				throw(500)
+				{error, 500}
 		end
-	of
-		Res ->
-			Body = mochijson:encode({array, [gtt(Id, P) || P <- Res]}),
-			Headers = [{content_type, "application/json"}],
-			{ok, Headers, Body}
 	catch
-		throw:validation_failed ->
-			{error, 400};
-		throw:_Reason1 ->
-			{error, 500};
 		error:badarg ->
 			{error, 404};
 		_:_Reason1 ->
-			{error, 400}
+			{error, 500}
 	end.
+get_resource_inventory1(Id, [#gtt{num = Prefix, value = Value} | T], Acc) ->
+		Gtt = gtt(Id, {Prefix, element(1, Value), element(2, Value)}),
+		get_resource_inventory1(Id, T, [Gtt | Acc]);
+get_resource_inventory1(_, [], Acc) ->
+		lists:reverse(Acc).
 
 -spec add_resource_inventory(Table, ReqData) -> Result when
 	Table :: string(),
