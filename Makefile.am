@@ -16,7 +16,7 @@ release:	$(PACKAGE_VERSION).tar.gz
 
 ERLTMP := $(shell mktemp -d)
 
-$(PACKAGE_VERSION).tar.gz:
+$(PACKAGE_VERSION).tar.gz: ocs.rel
 	mkdir -p $(ERLTMP)/lib/$(PACKAGE_NAME)-$(PACKAGE_VERSION)
 	cp -r $(DESTDIR)/$(ERLANG_INSTALL_LIB_DIR)/$(PACKAGE_NAME)-$(PACKAGE_VERSION)/* $(ERLTMP)/lib/$(PACKAGE_NAME)-$(PACKAGE_VERSION)
 	cp ocs.rel $(PACKAGE_VERSION).rel
