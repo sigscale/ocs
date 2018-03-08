@@ -212,6 +212,7 @@
 				document.getElementById("selectLogFileModal").close();
 				var grid = this.$.ipdrGrid;
 				var results = event.detail.response;
+console.log(results);
 				vaadinItems = new Array();
 				for(var index in results) {
 						var newRecord = new Object();
@@ -222,14 +223,15 @@
 							function(attrObj) {
 								if(attrObj.value == "undefined") {
 									attrObj.value = '';
-									newRecord[attrObj.key] = attrObj.value;
+									newRecord[attrObj.name] = attrObj.value;
 								} else {
-									newRecord[attrObj.key] = attrObj.value;
+									newRecord[attrObj.name] = attrObj.value;
 								}
 							}
 						);
 						vaadinItems[index] = newRecord;
 				}
+console.log(vaadinItems);
 				grid.frozenColumns = 1;
 				grid.items = vaadinItems;
 				grid.columns = [

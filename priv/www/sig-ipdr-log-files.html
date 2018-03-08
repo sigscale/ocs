@@ -65,8 +65,8 @@
 			getLogContent: function (event) {
 				var searchAjax = document.getElementById("getIpdr");
 				searchAjax.method = "GET";
-				searchAjax.url = "/usageManagement/v1/usage/ipdr/" + event.model.item;
-				searchAjax.params['type'] = "PublicWLANAccessUsage";
+				searchAjax.url = "/usageManagement/v1/usage/ipdr/" + event.model.item +
+					"?type=PublicWLANAccessUsage";
 				searchAjax.generateRequest();
 			},
 			getLogsResponse: function(event){
