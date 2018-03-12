@@ -368,7 +368,7 @@ read_ipdr2(Log, Count, Acc)->
 ipdr_to_json(Count, Records) ->
 	F = fun(#ipdrDoc{}, {N, Acc}) ->
 				{N, Acc};
-			(#ipdr{} = Ipdr, {N, Acc}) ->
+			(#ipdr_wlan{} = Ipdr, {N, Acc}) ->
 				UsageSpecification = {struct, [{"id", 1},
 						{"href", ?usageSpecPath ++ "1"},
 						{"name", "PublicWLANAccessUsageSpec"}]},
@@ -388,190 +388,190 @@ ipdr_to_json(Count, Records) ->
 	lists:foldl(F, {Count, []}, Records).
 
 %% @hidden
-ipdr_characteristics(#ipdr{} = Ipdr) ->
-	ipdr_characteristics(record_info(fields, ipdr), Ipdr, []).
+ipdr_characteristics(#ipdr_wlan{} = Ipdr) ->
+	ipdr_characteristics(record_info(fields, ipdr_wlan), Ipdr, []).
 
 %% @hidden
-ipdr_characteristics([ipdrCreationTime | T], #ipdr{ipdrCreationTime = IpdrCreationTime} = Ipdr, Acc)
+ipdr_characteristics([ipdrCreationTime | T], #ipdr_wlan{ipdrCreationTime = IpdrCreationTime} = Ipdr, Acc)
 		when is_list(IpdrCreationTime) ->
 	Struct = {struct, [{"name", "ipdrCreationTime"}, {"value", IpdrCreationTime}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([seqNum | T], #ipdr{seqNum = SeqNum} = Ipdr, Acc)
+ipdr_characteristics([seqNum | T], #ipdr_wlan{seqNum = SeqNum} = Ipdr, Acc)
 		when is_integer(SeqNum) ->
 	Struct = {struct, [{"name", "seqNum"}, {"value", SeqNum}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([username | T], #ipdr{username = Username} = Ipdr, Acc)
+ipdr_characteristics([username | T], #ipdr_wlan{username = Username} = Ipdr, Acc)
 		when is_list(Username)->
 	Struct = {struct, [{"name", "username"}, {"value", Username}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([scIdType | T], #ipdr{scIdType = ScIdType} = Ipdr, Acc)
+ipdr_characteristics([scIdType | T], #ipdr_wlan{scIdType = ScIdType} = Ipdr, Acc)
 		when is_integer(ScIdType) ->
 	Struct = {struct, [{"name", "scIdType"}, {"value", ScIdType}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([scId | T], #ipdr{scId = ScId} = Ipdr, Acc)
+ipdr_characteristics([scId | T], #ipdr_wlan{scId = ScId} = Ipdr, Acc)
 		when is_list(ScId) ->
 	Struct = {struct, [{"name", "scId"}, {"value", ScId}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([homeServiceProviderType | T], #ipdr{homeServiceProviderType
+ipdr_characteristics([homeServiceProviderType | T], #ipdr_wlan{homeServiceProviderType
 		= HomeServiceProviderType} = Ipdr, Acc) when is_integer(HomeServiceProviderType) ->
 	Struct = {struct, [{"name", "homeServiceProviderType"}, {"value", HomeServiceProviderType}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([homeServiceProvider | T], #ipdr{homeServiceProvider
+ipdr_characteristics([homeServiceProvider | T], #ipdr_wlan{homeServiceProvider
 		= HomeServiceProvider} = Ipdr, Acc) when is_list(HomeServiceProvider) ->
-	Struct = {struct, [{"name", "homeServiceProvider"}, {"value", Ipdr#ipdr.homeServiceProvider}]},
+	Struct = {struct, [{"name", "homeServiceProvider"}, {"value", Ipdr#ipdr_wlan.homeServiceProvider}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([acctSessionId | T], #ipdr{acctSessionId = AcctSessionId} = Ipdr, Acc)
+ipdr_characteristics([acctSessionId | T], #ipdr_wlan{acctSessionId = AcctSessionId} = Ipdr, Acc)
 		when is_list(AcctSessionId)->
 	Struct = {struct, [{"name", "acctSessionId"}, {"value", AcctSessionId}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([userIpAddress | T], #ipdr{userIpAddress = UserIpAddress} = Ipdr, Acc)
+ipdr_characteristics([userIpAddress | T], #ipdr_wlan{userIpAddress = UserIpAddress} = Ipdr, Acc)
 		when is_list(UserIpAddress)->
 	Struct = {struct, [{"name", "userIpAddress"}, {"value", UserIpAddress}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([callingStationId | T], #ipdr{callingStationId = CallingStationId} = Ipdr,
+ipdr_characteristics([callingStationId | T], #ipdr_wlan{callingStationId = CallingStationId} = Ipdr,
 		Acc) when is_list(CallingStationId) ->
 	Struct = {struct, [{"name", "callingStationId"}, {"value", CallingStationId}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([nasIpAddress | T], #ipdr{nasIpAddress = NasIpAddress} = Ipdr, Acc)
+ipdr_characteristics([nasIpAddress | T], #ipdr_wlan{nasIpAddress = NasIpAddress} = Ipdr, Acc)
 		when is_list(NasIpAddress) ->
 	Struct = {struct, [{"name", "nasIpAddress"}, {"value", NasIpAddress}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([calledStationId | T], #ipdr{calledStationId = CalledStationId} = Ipdr,
+ipdr_characteristics([calledStationId | T], #ipdr_wlan{calledStationId = CalledStationId} = Ipdr,
 		Acc) when is_list(CalledStationId) ->
 	Struct = {struct, [{"name", "calledStationId"}, {"value", CalledStationId}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([nasId | T], #ipdr{nasId = NasId} = Ipdr, Acc) when is_list(NasId) ->
+ipdr_characteristics([nasId | T], #ipdr_wlan{nasId = NasId} = Ipdr, Acc) when is_list(NasId) ->
 	Struct = {struct, [{"name", "nasId"}, {"value", NasId}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([accessProviderType | T], #ipdr{accessProviderType = AccessProviderType}
+ipdr_characteristics([accessProviderType | T], #ipdr_wlan{accessProviderType = AccessProviderType}
 		= Ipdr, Acc) when is_integer(AccessProviderType) ->
 	Struct = {struct, [{"name", "accessProviderType"}, {"value", AccessProviderType}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([accessServiceProvider | T], #ipdr{accessServiceProvider
+ipdr_characteristics([accessServiceProvider | T], #ipdr_wlan{accessServiceProvider
 		= AccessServiceProvider} = Ipdr, Acc) when is_list(AccessServiceProvider) ->
 	Struct = {struct, [{"name", "accessServiceProvider"}, {"value", AccessServiceProvider}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([locationName | T], #ipdr{locationName = LocationName} = Ipdr, Acc)
+ipdr_characteristics([locationName | T], #ipdr_wlan{locationName = LocationName} = Ipdr, Acc)
 		when is_list(LocationName) ->
 	Struct = {struct, [{"name", "locationName"}, {"value", LocationName}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([locationId | T], #ipdr{locationId = LocationId} = Ipdr, Acc)
+ipdr_characteristics([locationId | T], #ipdr_wlan{locationId = LocationId} = Ipdr, Acc)
 		when is_list(LocationId) ->
 	Struct = {struct, [{"name", "locationId"}, {"value", LocationId}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([locationType | T], #ipdr{locationType = LocationType} = Ipdr, Acc) ->
+ipdr_characteristics([locationType | T], #ipdr_wlan{locationType = LocationType} = Ipdr, Acc) ->
 	Struct = {struct, [{"name", "locationType"}, {"value", LocationType}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([locationCountryCode | T], #ipdr{locationCountryCode =
+ipdr_characteristics([locationCountryCode | T], #ipdr_wlan{locationCountryCode =
 		LocationCountryCode} = Ipdr, Acc) when is_list(LocationCountryCode) ->
 	Struct = {struct, [{"name", "locationCountryCode"}, {"value", LocationCountryCode}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([locationStateProvince | T], #ipdr{locationStateProvince =
+ipdr_characteristics([locationStateProvince | T], #ipdr_wlan{locationStateProvince =
 		LocationStateProvince} = Ipdr, Acc) when is_list(LocationStateProvince) ->
 	Struct = {struct, [{"name", "locationStateProvince"}, {"value", LocationStateProvince}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([locationCity | T], #ipdr{locationCity = LocationCity} = Ipdr, Acc)
+ipdr_characteristics([locationCity | T], #ipdr_wlan{locationCity = LocationCity} = Ipdr, Acc)
 		when is_list(LocationCity) ->
 	Struct = {struct, [{"name", "locationCity"}, {"value", LocationCity}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([locationGeocode | T], #ipdr{locationGeocode = LocationGeocode} = Ipdr,
+ipdr_characteristics([locationGeocode | T], #ipdr_wlan{locationGeocode = LocationGeocode} = Ipdr,
 		Acc) when is_list(LocationGeocode) ->
 	Struct = {struct, [{"name", "locationGeocode"}, {"value", LocationGeocode}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([locationGeocodeType | T], #ipdr{locationGeocodeType
+ipdr_characteristics([locationGeocodeType | T], #ipdr_wlan{locationGeocodeType
 		= LocationGeocodeType} = Ipdr, Acc) when is_list(LocationGeocodeType) ->
 	Struct = {struct, [{"name", "locationGeocodeType"}, {"value", LocationGeocodeType}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([nasPortType | T], #ipdr{nasPortType = NasPortType} = Ipdr, Acc)
+ipdr_characteristics([nasPortType | T], #ipdr_wlan{nasPortType = NasPortType} = Ipdr, Acc)
 		when is_integer(NasPortType) ->
 	Struct = {struct, [{"name", "nasPortType"}, {"value", NasPortType}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([paymentType | T], #ipdr{paymentType = PaymentType} = Ipdr, Acc)
+ipdr_characteristics([paymentType | T], #ipdr_wlan{paymentType = PaymentType} = Ipdr, Acc)
 		when is_integer(PaymentType) ->
 	Struct = {struct, [{"name", "paymentType"}, {"value", PaymentType}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([networkConnectionType | T], #ipdr{networkConnectionType
+ipdr_characteristics([networkConnectionType | T], #ipdr_wlan{networkConnectionType
 		= NetworkConnectionType} = Ipdr, Acc) ->
 	Struct = {struct, [{"name", "networkConnectionType"}, {"value", NetworkConnectionType}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([sessionDuration | T], #ipdr{sessionDuration = SessionDuration}
+ipdr_characteristics([sessionDuration | T], #ipdr_wlan{sessionDuration = SessionDuration}
 		= Ipdr, Acc) when is_integer(SessionDuration) ->
 	Struct = {struct, [{"name", "sessionDuration"}, {"value", SessionDuration}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([inputOctets | T], #ipdr{inputOctets = InputOctets} = Ipdr, Acc)
+ipdr_characteristics([inputOctets | T], #ipdr_wlan{inputOctets = InputOctets} = Ipdr, Acc)
 		when is_integer(InputOctets) ->
 	Struct = {struct, [{"name", "inputOctets"}, {"value", InputOctets}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([outputOctets | T], #ipdr{outputOctets = OutputOctets} = Ipdr, Acc)
+ipdr_characteristics([outputOctets | T], #ipdr_wlan{outputOctets = OutputOctets} = Ipdr, Acc)
 		when is_integer(OutputOctets) ->
 	Struct = {struct, [{"name", "outputOctets"}, {"value", OutputOctets}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([class | T], #ipdr{class = Class} = Ipdr, Acc) when is_list(Class) ->
+ipdr_characteristics([class | T], #ipdr_wlan{class = Class} = Ipdr, Acc) when is_list(Class) ->
 	Struct = {struct, [{"name", "class"}, {"value", Class}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([gmtSessionStartDateTime | T], #ipdr{gmtSessionStartDateTime =
+ipdr_characteristics([gmtSessionStartDateTime | T], #ipdr_wlan{gmtSessionStartDateTime =
 		GmtSessionStartDateTime} = Ipdr, Acc) when is_list(GmtSessionStartDateTime) ->
 	Struct = {struct, [{"name", "gmtSessionStartDateTime"}, {"value", GmtSessionStartDateTime}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([gmtSessionEndDateTime | T], #ipdr{gmtSessionEndDateTime =
+ipdr_characteristics([gmtSessionEndDateTime | T], #ipdr_wlan{gmtSessionEndDateTime =
 		GmtSessionEndDateTime} = Ipdr, Acc) when is_list(GmtSessionEndDateTime) ->
 	Struct = {struct, [{"name", "gmtSessionEndDateTime"}, {"value", GmtSessionEndDateTime}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([sessionTerminateCause | T], #ipdr{sessionTerminateCause =
+ipdr_characteristics([sessionTerminateCause | T], #ipdr_wlan{sessionTerminateCause =
 		SessionTerminateCause} = Ipdr, Acc) when is_integer(SessionTerminateCause) ->
 	Struct = {struct, [{"name", "sessionTerminateCause"}, {"value", SessionTerminateCause}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([billingClassOfService | T], #ipdr{billingClassOfService =
+ipdr_characteristics([billingClassOfService | T], #ipdr_wlan{billingClassOfService =
 		BillingClassOfService} = Ipdr, Acc) when is_list(BillingClassOfService) ->
 	Struct = {struct, [{"name", "billingClassOfService"}, {"value", BillingClassOfService}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([unitOfMeasure | T], #ipdr{unitOfMeasure = UnitOfMeasure} = Ipdr, Acc)
+ipdr_characteristics([unitOfMeasure | T], #ipdr_wlan{unitOfMeasure = UnitOfMeasure} = Ipdr, Acc)
 		when is_integer(UnitOfMeasure) ->
 	Struct = {struct, [{"name", "unitOfMeasure"}, {"value", UnitOfMeasure}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([chargeableUnit | T], #ipdr{chargeableUnit = ChargeableUnit} = Ipdr,
+ipdr_characteristics([chargeableUnit | T], #ipdr_wlan{chargeableUnit = ChargeableUnit} = Ipdr,
 		Acc) when is_integer(ChargeableUnit) ->
 	Struct = {struct, [{"name", "chargeableUnit"}, {"value", ChargeableUnit}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([chargeableQuantity | T], #ipdr{chargeableQuantity =
+ipdr_characteristics([chargeableQuantity | T], #ipdr_wlan{chargeableQuantity =
 		ChargeableQuantity} = Ipdr, Acc) ->
 	Struct = {struct, [{"name", "chargeableQuantity"}, {"value", ChargeableQuantity}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([chargeAmount | T], #ipdr{chargeAmount = ChargeAmount} = Ipdr, Acc)
+ipdr_characteristics([chargeAmount | T], #ipdr_wlan{chargeAmount = ChargeAmount} = Ipdr, Acc)
 		when is_integer(ChargeAmount) ->
 	Struct = {struct, [{"name", "chargeAmount"}, {"value", ChargeAmount}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([chargeCurrencyType | T], #ipdr{chargeCurrencyType =
+ipdr_characteristics([chargeCurrencyType | T], #ipdr_wlan{chargeCurrencyType =
 		ChargeCurrencyType} = Ipdr, Acc) when is_list(ChargeCurrencyType)->
 	Struct = {struct, [{"name", "chargeCurrencyType"}, {"value", ChargeCurrencyType}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([otherParty | T], #ipdr{otherParty = OtherParty} = Ipdr, Acc)
+ipdr_characteristics([otherParty | T], #ipdr_wlan{otherParty = OtherParty} = Ipdr, Acc)
 		when is_list(OtherParty) ->
 	Struct = {struct, [{"name", "otherParty"}, {"value", OtherParty}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([taxPercentage | T], #ipdr{taxPercentage = TaxPercentage} = Ipdr, Acc)
+ipdr_characteristics([taxPercentage | T], #ipdr_wlan{taxPercentage = TaxPercentage} = Ipdr, Acc)
 		when is_integer(TaxPercentage) ->
 	Struct = {struct, [{"name", "taxPercentage"}, {"value", TaxPercentage}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([taxAmount | T], #ipdr{taxAmount = TaxAmount} = Ipdr, Acc) ->
+ipdr_characteristics([taxAmount | T], #ipdr_wlan{taxAmount = TaxAmount} = Ipdr, Acc) ->
 	Struct = {struct, [{"name", "taxAmount"}, {"value", TaxAmount}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([taxType | T], #ipdr{taxType = TaxType} = Ipdr, Acc) when is_integer(TaxType) ->
+ipdr_characteristics([taxType | T], #ipdr_wlan{taxType = TaxType} = Ipdr, Acc) when is_integer(TaxType) ->
 	Struct = {struct, [{"name", "taxType"}, {"value", TaxType}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([intermediaryName | T], #ipdr{intermediaryName = IntermediaryName} =
+ipdr_characteristics([intermediaryName | T], #ipdr_wlan{intermediaryName = IntermediaryName} =
 		Ipdr, Acc) when is_list(IntermediaryName) ->
 	Struct = {struct, [{"name", "intermediaryName"}, {"value", IntermediaryName}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([serviceName | T], #ipdr{serviceName = ServiceName} = Ipdr, Acc)
+ipdr_characteristics([serviceName | T], #ipdr_wlan{serviceName = ServiceName} = Ipdr, Acc)
 		when is_integer(ServiceName) ->
 	Struct = {struct, [{"name", "serviceName"}, {"value", ServiceName}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([relatedIpdrIdList | T], #ipdr{relatedIpdrIdList = RelatedIpdrIdList}
+ipdr_characteristics([relatedIpdrIdList | T], #ipdr_wlan{relatedIpdrIdList = RelatedIpdrIdList}
 		= Ipdr, Acc) when is_list(RelatedIpdrIdList) ->
 	Struct = {struct, [{"name", "relatedIpdrIdList"}, {"value", RelatedIpdrIdList}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([tempUserId | T], #ipdr{tempUserId = TempUserId} = Ipdr, Acc)
+ipdr_characteristics([tempUserId | T], #ipdr_wlan{tempUserId = TempUserId} = Ipdr, Acc)
 		when is_list(TempUserId) ->
 	Struct = {struct, [{"name", "tempUserId"}, {"value", TempUserId}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
@@ -629,15 +629,15 @@ usage_aaa_auth([], _Filters, Acc) ->
 	lists:reverse(Acc).
 
 %% @hidden
-usage_aaa_ipdr(Event, Filters) when is_record(Event, ipdr) ->
+usage_aaa_ipdr(Event, Filters) when is_record(Event, ipdr_wlan) ->
 	UsageSpec = {struct, [{"id", "PublicWLANAccessUsageSpec"},
 			{"href", ?usageSpecPath ++ "PublicWLANAccessUsageSpec"},
 			{"name", "PublicWLANAccessUsageSpec"}]},
 	Type = "PublicWLANAccessUsage",
 	Status = "rated",
-	ID = integer_to_list(Event#ipdr.seqNum),
+	ID = integer_to_list(Event#ipdr_wlan.seqNum),
 	Href = ?usagePath ++ ID,
-	Date = Event#ipdr.ipdrCreationTime,
+	Date = Event#ipdr_wlan.ipdrCreationTime,
 	Chars = ipdr_characteristics(Event),
 	Object = {struct, [{"id", ID}, {"href", Href}, {"date", Date}, {"type", Type},
 			{"status", Status}, {"usageSpecification", UsageSpec},

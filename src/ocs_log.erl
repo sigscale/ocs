@@ -418,7 +418,7 @@ ipdr_query(Continuation, Log, Start, End, AttrsMatch) ->
 %%
 %% 	Creates a new {@link //kernel/disk_log:log(). disk_log:log()},
 %% 	or overwrites an existing, with filename `File'. The log starts
-%% 	with a `#ipdrDoc{}' header, is followed by `#ipdr{}' records,
+%% 	with a `#ipdrDoc{}' header, is followed by `#ipdr_wlan{}' records,
 %% 	and ends with a `#ipdrDocEnd{}' trailer.
 %%
 %% 	The `ocs_acct' log is searched for events created between `Start'
@@ -505,7 +505,7 @@ ipdr_log3(IpdrLog, _Start, End, SeqNum, {Cont, [H | T]})
 		when element(6, H) == stop ->
 	IPDR = ipdr_codec(H),
 	NewSeqNum = SeqNum + 1,
-	case disk_log:log(IpdrLog, IPDR#ipdr{seqNum = NewSeqNum}) of
+	case disk_log:log(IpdrLog, IPDR#ipdr_wlan{seqNum = NewSeqNum}) of
 		ok ->
 			ipdr_log3(IpdrLog, _Start, End, NewSeqNum, {Cont, T});
 		{error, Reason} ->
@@ -1135,7 +1135,7 @@ get_range2(Log, End, {Cont, Chunk}, Acc) ->
 		Port :: pos_integer(),
 		RequestType :: stop,
 		Attributes :: radius_attributes:attributes() | #'3gpp_ro_CCR'{},
-		IPDR :: #ipdr{}.
+		IPDR :: #ipdr_wlan{}.
 %% @doc Convert `ocs_acct' log entry to IPDR log entry.
 %% @private
 ipdr_codec(Event) when size(Event) > 6,
@@ -1159,7 +1159,7 @@ ipdr_codec(Event) when size(Event) > 6,
 		false ->
 			undefined
 	end,
-	IPDR = #ipdr{ipdrCreationTime = iso8601(TimeStamp)},
+	IPDR = #ipdr_wlan{ipdrCreationTime = iso8601(TimeStamp)},
 	ipdr_codec1(TimeStamp, Protocol,
 			RequestType, ReqAttrs, RespAttrs, Rated, IPDR).
 %% @hidden
@@ -1168,10 +1168,10 @@ ipdr_codec1(TimeStamp, radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
 		{ok, DelayTime} ->
 			EndTime = TimeStamp - (DelayTime * 1000),
 			ipdr_codec2(EndTime, radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{gmtSessionEndDateTime = iso8601(EndTime)});
+					Acc#ipdr_wlan{gmtSessionEndDateTime = iso8601(EndTime)});
 		{error, not_found} ->
 			ipdr_codec2(TimeStamp, radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{gmtSessionEndDateTime = iso8601(TimeStamp)})
+					Acc#ipdr_wlan{gmtSessionEndDateTime = iso8601(TimeStamp)})
 	end.
 %% @hidden
 ipdr_codec2(EndTime, radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
@@ -1179,7 +1179,7 @@ ipdr_codec2(EndTime, radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
 		{ok, Duration} ->
 			StartTime = EndTime - (Duration * 1000),
 			ipdr_codec3(radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{gmtSessionStartDateTime = iso8601(StartTime)});
+					Acc#ipdr_wlan{gmtSessionStartDateTime = iso8601(StartTime)});
 		{error, not_found} ->
 			ipdr_codec3(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
 	end.
@@ -1188,7 +1188,7 @@ ipdr_codec3(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
 	case radius_attributes:find(?UserName, ReqAttrs) of
 		{ok, UserName} ->
 			ipdr_codec4(radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{username = UserName});
+					Acc#ipdr_wlan{username = UserName});
 		{error, not_found} ->
 			ipdr_codec4(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
 	end.
@@ -1197,7 +1197,7 @@ ipdr_codec4(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
 	case radius_attributes:find(?AcctSessionId, ReqAttrs) of
 		{ok, SessionID} ->
 			ipdr_codec5(radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{acctSessionId = SessionID});
+					Acc#ipdr_wlan{acctSessionId = SessionID});
 		{error, not_found} ->
 			ipdr_codec5(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
 	end.
@@ -1206,7 +1206,7 @@ ipdr_codec5(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
 	case radius_attributes:find(?FramedIpAddress, ReqAttrs) of
 		{ok, Address} ->
 			ipdr_codec6(radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{userIpAddress = inet:ntoa(Address)});
+					Acc#ipdr_wlan{userIpAddress = inet:ntoa(Address)});
 		{error, not_found} ->
 			ipdr_codec6(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
 	end.
@@ -1215,7 +1215,7 @@ ipdr_codec6(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
 	case radius_attributes:find(?CallingStationId, ReqAttrs) of
 		{ok, StationID} ->
 			ipdr_codec7(radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{callingStationId = StationID});
+					Acc#ipdr_wlan{callingStationId = StationID});
 		{error, not_found} ->
 			ipdr_codec7(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
 	end.
@@ -1224,7 +1224,7 @@ ipdr_codec7(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
 	case radius_attributes:find(?CalledStationId, ReqAttrs) of
 		{ok, StationID} ->
 			ipdr_codec8(radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{calledStationId = StationID});
+					Acc#ipdr_wlan{calledStationId = StationID});
 		{error, not_found} ->
 			ipdr_codec8(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
 	end.
@@ -1233,7 +1233,7 @@ ipdr_codec8(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
 	case radius_attributes:find(?NasIpAddress, ReqAttrs) of
 		{ok, Address} ->
 			ipdr_codec9(radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{nasIpAddress = inet:ntoa(Address)});
+					Acc#ipdr_wlan{nasIpAddress = inet:ntoa(Address)});
 		{error, not_found} ->
 			ipdr_codec9(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
 	end.
@@ -1242,7 +1242,7 @@ ipdr_codec9(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
 	case radius_attributes:find(?NasIdentifier, ReqAttrs) of
 		{ok, Identifier} ->
 			ipdr_codec10(radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{nasId = Identifier});
+					Acc#ipdr_wlan{nasId = Identifier});
 		{error, not_found} ->
 			ipdr_codec10(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
 	end.
@@ -1251,7 +1251,7 @@ ipdr_codec10(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
 	case radius_attributes:find(?AcctSessionTime, ReqAttrs) of
 		{ok, SessionTime} ->
 			ipdr_codec11(radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{sessionDuration = SessionTime});
+					Acc#ipdr_wlan{sessionDuration = SessionTime});
 		{error, not_found} ->
 			ipdr_codec11(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
 	end.
@@ -1267,10 +1267,10 @@ ipdr_codec11(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
 		{ok, GigaWords} ->
 			GigaOctets = (GigaWords * (16#ffffffff + 1)) + Octets,
 			ipdr_codec12(radius, stop,ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{inputOctets = GigaOctets});
+					Acc#ipdr_wlan{inputOctets = GigaOctets});
 		{error, not_found} ->
 			ipdr_codec12(radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{inputOctets = Octets})
+					Acc#ipdr_wlan{inputOctets = Octets})
 	end.
 %% @hidden
 ipdr_codec12(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
@@ -1284,17 +1284,17 @@ ipdr_codec12(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
 		{ok, GigaWords} ->
 			GigaOctets = (GigaWords * (16#ffffffff + 1)) + Octets,
 			ipdr_codec13(radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{outputOctets = GigaOctets});
+					Acc#ipdr_wlan{outputOctets = GigaOctets});
 		{error, not_found} ->
 			ipdr_codec13(radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{outputOctets = Octets})
+					Acc#ipdr_wlan{outputOctets = Octets})
 	end.
 %% @hidden
 ipdr_codec13(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
 	case radius_attributes:find(?Class, ReqAttrs) of
 		{ok, Class} ->
 			ipdr_codec14(radius, stop, ReqAttrs, RespAttrs, Rated,
-					Acc#ipdr{class = Class});
+					Acc#ipdr_wlan{class = Class});
 		{error, not_found} ->
 			ipdr_codec14(radius, stop, ReqAttrs, RespAttrs, Rated, Acc)
 	end.
@@ -1302,7 +1302,7 @@ ipdr_codec13(radius, stop, ReqAttrs, RespAttrs, Rated, Acc) ->
 ipdr_codec14(radius, stop, ReqAttrs, _RespAttrs, _Rated, Acc) ->
 	case radius_attributes:find(?AcctTerminateCause, ReqAttrs) of
 		{ok, Cause} ->
-			Acc#ipdr{sessionTerminateCause = Cause};
+			Acc#ipdr_wlan{sessionTerminateCause = Cause};
 		{error, not_found} ->
 			Acc
 	end.
@@ -1320,7 +1320,7 @@ ipdr_xml(Log, IoDevice, {Cont, [#ipdrDoc{} = _I | T]}) ->
 			disk_log:close(Log),
 			{error, Reason}
 	end;
-ipdr_xml(Log, IoDevice, {Cont, [#ipdr{} = _I | T]}) ->
+ipdr_xml(Log, IoDevice, {Cont, [#ipdr_wlan{} = _I | T]}) ->
 	IPDR = <<>>,
 	case file:write(IoDevice, IPDR) of
 		ok ->
@@ -1360,7 +1360,7 @@ ipdr_xdr(Log, IoDevice, {Cont, [#ipdrDoc{} = _I | T]}) ->
 			disk_log:close(Log),
 			{error, Reason}
 	end;
-ipdr_xdr(Log, IoDevice, {Cont, [#ipdr{} = _I | T]}) ->
+ipdr_xdr(Log, IoDevice, {Cont, [#ipdr_wlan{} = _I | T]}) ->
 	IPDR = <<>>,
 	case file:write(IoDevice, IPDR) of
 		ok ->
@@ -1406,76 +1406,76 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdrDoc{} | T]}) ->
 			disk_log:close(Log),
 			{error, Reason}
 	end;
-ipdr_csv(Log, IoDevice, {Cont, [#ipdr{} = I | T]}) ->
-	Time = list_to_binary(I#ipdr.ipdrCreationTime),
-	Seq = integer_to_binary(I#ipdr.seqNum),
-	User = case I#ipdr.username of
+ipdr_csv(Log, IoDevice, {Cont, [#ipdr_wlan{} = I | T]}) ->
+	Time = list_to_binary(I#ipdr_wlan.ipdrCreationTime),
+	Seq = integer_to_binary(I#ipdr_wlan.seqNum),
+	User = case I#ipdr_wlan.username of
 		undefined ->
 			<<>>;
 		US ->
 			list_to_binary(US)
 	end,
-	Sess = case I#ipdr.acctSessionId of
+	Sess = case I#ipdr_wlan.acctSessionId of
 		undefined ->
 			<<>>;
 		SI ->
 			list_to_binary(SI)
 	end,
-	IP = case I#ipdr.userIpAddress of
+	IP = case I#ipdr_wlan.userIpAddress of
 		undefined ->
 			<<>>;
 		IpAddress ->
 			list_to_binary(IpAddress)
 	end,
-	Calling = case I#ipdr.callingStationId of
+	Calling = case I#ipdr_wlan.callingStationId of
 		undefined ->
 			<<>>;
 		CgID ->
 			list_to_binary(CgID)
 	end,
-	Called = case I#ipdr.calledStationId of
+	Called = case I#ipdr_wlan.calledStationId of
 		undefined ->
 			<<>>;
 		CdID ->
 			list_to_binary(CdID)
 	end,
-	NasIP = case I#ipdr.nasIpAddress of
+	NasIP = case I#ipdr_wlan.nasIpAddress of
 		undefined ->
 			<<>>;
 		NIP ->
 			list_to_binary(NIP)
 	end,
-	NasID = case I#ipdr.nasId of
+	NasID = case I#ipdr_wlan.nasId of
 		undefined ->
 			<<>>;
 		NID ->
 			list_to_binary(NID)
 	end,
-	Duration = case I#ipdr.sessionDuration of
+	Duration = case I#ipdr_wlan.sessionDuration of
 		undefined ->
 			<<>>;
 		DU ->
 			integer_to_binary(DU)
 	end,
-	Input = case I#ipdr.inputOctets of
+	Input = case I#ipdr_wlan.inputOctets of
 		undefined ->
 			<<>>;
 		IN ->
 			integer_to_binary(IN)
 	end,
-	Output = case I#ipdr.outputOctets of
+	Output = case I#ipdr_wlan.outputOctets of
 		undefined ->
 			<<>>;
 		OUT ->
 			integer_to_binary(OUT)
 	end,
-	Class = case I#ipdr.class of
+	Class = case I#ipdr_wlan.class of
 		undefined ->
 			<<>>;
 		CLS ->
 			list_to_binary(CLS)
 	end,
-	Cause = case I#ipdr.sessionTerminateCause of
+	Cause = case I#ipdr_wlan.sessionTerminateCause of
 		undefined ->
 			<<>>;
 		CS ->
@@ -1741,7 +1741,7 @@ acct_query4(_Attributes, []) ->
 		MatchSpec :: [tuple()] | '_',
 		Result :: {Continuation2, Events},
 		Continuation2 :: eof | disk_log:continuation(),
-		Events :: [#ipdr{}].
+		Events :: [#ipdr_wlan{}].
 %% @private
 %% @doc Query accounting log events with filters.
 %%

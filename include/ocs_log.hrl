@@ -99,7 +99,7 @@
 		endTime :: string()}).
 
 %% IPDR Public WLAN Access - WISP Use Case
--record(ipdr,
+-record(ipdr_wlan,
 		{ipdrCreationTime :: string() | undefined,
 		seqNum :: non_neg_integer() | undefined,
 		username :: string() | undefined,
