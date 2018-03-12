@@ -397,7 +397,7 @@ ipdr_characteristics([ipdrCreationTime | T], #ipdr{ipdrCreationTime = IpdrCreati
 	Struct = {struct, [{"name", "ipdrCreationTime"}, {"value", IpdrCreationTime}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
 ipdr_characteristics([seqNum | T], #ipdr{seqNum = SeqNum} = Ipdr, Acc)
-		when is_list(SeqNum) ->
+		when is_integer(SeqNum) ->
 	Struct = {struct, [{"name", "seqNum"}, {"value", SeqNum}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
 ipdr_characteristics([username | T], #ipdr{username = Username} = Ipdr, Acc)
@@ -405,7 +405,7 @@ ipdr_characteristics([username | T], #ipdr{username = Username} = Ipdr, Acc)
 	Struct = {struct, [{"name", "username"}, {"value", Username}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
 ipdr_characteristics([scIdType | T], #ipdr{scIdType = ScIdType} = Ipdr, Acc)
-		when is_list(ScIdType) ->
+		when is_integer(ScIdType) ->
 	Struct = {struct, [{"name", "scIdType"}, {"value", ScIdType}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
 ipdr_characteristics([scId | T], #ipdr{scId = ScId} = Ipdr, Acc)
@@ -413,7 +413,7 @@ ipdr_characteristics([scId | T], #ipdr{scId = ScId} = Ipdr, Acc)
 	Struct = {struct, [{"name", "scId"}, {"value", ScId}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
 ipdr_characteristics([homeServiceProviderType | T], #ipdr{homeServiceProviderType
-		= HomeServiceProviderType} = Ipdr, Acc) when is_list(HomeServiceProviderType) ->
+		= HomeServiceProviderType} = Ipdr, Acc) when is_integer(HomeServiceProviderType) ->
 	Struct = {struct, [{"name", "homeServiceProviderType"}, {"value", HomeServiceProviderType}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
 ipdr_characteristics([homeServiceProvider | T], #ipdr{homeServiceProvider
@@ -444,7 +444,7 @@ ipdr_characteristics([nasId | T], #ipdr{nasId = NasId} = Ipdr, Acc) when is_list
 	Struct = {struct, [{"name", "nasId"}, {"value", NasId}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
 ipdr_characteristics([accessProviderType | T], #ipdr{accessProviderType = AccessProviderType}
-		= Ipdr, Acc) when is_list(AccessProviderType) ->
+		= Ipdr, Acc) when is_integer(AccessProviderType) ->
 	Struct = {struct, [{"name", "accessProviderType"}, {"value", AccessProviderType}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
 ipdr_characteristics([accessServiceProvider | T], #ipdr{accessServiceProvider
@@ -483,11 +483,11 @@ ipdr_characteristics([locationGeocodeType | T], #ipdr{locationGeocodeType
 	Struct = {struct, [{"name", "locationGeocodeType"}, {"value", LocationGeocodeType}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
 ipdr_characteristics([nasPortType | T], #ipdr{nasPortType = NasPortType} = Ipdr, Acc)
-		when is_list(NasPortType) ->
+		when is_integer(NasPortType) ->
 	Struct = {struct, [{"name", "nasPortType"}, {"value", NasPortType}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
 ipdr_characteristics([paymentType | T], #ipdr{paymentType = PaymentType} = Ipdr, Acc)
-		when is_list(PaymentType) ->
+		when is_integer(PaymentType) ->
 	Struct = {struct, [{"name", "paymentType"}, {"value", PaymentType}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
 ipdr_characteristics([networkConnectionType | T], #ipdr{networkConnectionType
@@ -495,15 +495,15 @@ ipdr_characteristics([networkConnectionType | T], #ipdr{networkConnectionType
 	Struct = {struct, [{"name", "networkConnectionType"}, {"value", NetworkConnectionType}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
 ipdr_characteristics([sessionDuration | T], #ipdr{sessionDuration = SessionDuration}
-		= Ipdr, Acc) when is_list(SessionDuration) ->
+		= Ipdr, Acc) when is_integer(SessionDuration) ->
 	Struct = {struct, [{"name", "sessionDuration"}, {"value", SessionDuration}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
 ipdr_characteristics([inputOctets | T], #ipdr{inputOctets = InputOctets} = Ipdr, Acc)
-		when is_list(InputOctets) ->
+		when is_integer(InputOctets) ->
 	Struct = {struct, [{"name", "inputOctets"}, {"value", InputOctets}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
 ipdr_characteristics([outputOctets | T], #ipdr{outputOctets = OutputOctets} = Ipdr, Acc)
-		when is_list(OutputOctets) ->
+		when is_integer(OutputOctets) ->
 	Struct = {struct, [{"name", "outputOctets"}, {"value", OutputOctets}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
 ipdr_characteristics([class | T], #ipdr{class = Class} = Ipdr, Acc) when is_list(Class) ->
@@ -518,7 +518,7 @@ ipdr_characteristics([gmtSessionEndDateTime | T], #ipdr{gmtSessionEndDateTime =
 	Struct = {struct, [{"name", "gmtSessionEndDateTime"}, {"value", GmtSessionEndDateTime}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
 ipdr_characteristics([sessionTerminateCause | T], #ipdr{sessionTerminateCause =
-		SessionTerminateCause} = Ipdr, Acc) when is_list(SessionTerminateCause) ->
+		SessionTerminateCause} = Ipdr, Acc) when is_integer(SessionTerminateCause) ->
 	Struct = {struct, [{"name", "sessionTerminateCause"}, {"value", SessionTerminateCause}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
 ipdr_characteristics([billingClassOfService | T], #ipdr{billingClassOfService =
@@ -526,11 +526,11 @@ ipdr_characteristics([billingClassOfService | T], #ipdr{billingClassOfService =
 	Struct = {struct, [{"name", "billingClassOfService"}, {"value", BillingClassOfService}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
 ipdr_characteristics([unitOfMeasure | T], #ipdr{unitOfMeasure = UnitOfMeasure} = Ipdr, Acc)
-		when is_list(UnitOfMeasure) ->
+		when is_integer(UnitOfMeasure) ->
 	Struct = {struct, [{"name", "unitOfMeasure"}, {"value", UnitOfMeasure}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
 ipdr_characteristics([chargeableUnit | T], #ipdr{chargeableUnit = ChargeableUnit} = Ipdr,
-		Acc) when is_list(ChargeableUnit) ->
+		Acc) when is_integer(ChargeableUnit) ->
 	Struct = {struct, [{"name", "chargeableUnit"}, {"value", ChargeableUnit}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
 ipdr_characteristics([chargeableQuantity | T], #ipdr{chargeableQuantity =
@@ -538,7 +538,7 @@ ipdr_characteristics([chargeableQuantity | T], #ipdr{chargeableQuantity =
 	Struct = {struct, [{"name", "chargeableQuantity"}, {"value", ChargeableQuantity}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
 ipdr_characteristics([chargeAmount | T], #ipdr{chargeAmount = ChargeAmount} = Ipdr, Acc)
-		when is_list(ChargeAmount) ->
+		when is_integer(ChargeAmount) ->
 	Struct = {struct, [{"name", "chargeAmount"}, {"value", ChargeAmount}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
 ipdr_characteristics([chargeCurrencyType | T], #ipdr{chargeCurrencyType =
@@ -550,13 +550,13 @@ ipdr_characteristics([otherParty | T], #ipdr{otherParty = OtherParty} = Ipdr, Ac
 	Struct = {struct, [{"name", "otherParty"}, {"value", OtherParty}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
 ipdr_characteristics([taxPercentage | T], #ipdr{taxPercentage = TaxPercentage} = Ipdr, Acc)
-		when is_list(TaxPercentage) ->
+		when is_integer(TaxPercentage) ->
 	Struct = {struct, [{"name", "taxPercentage"}, {"value", TaxPercentage}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
 ipdr_characteristics([taxAmount | T], #ipdr{taxAmount = TaxAmount} = Ipdr, Acc) ->
 	Struct = {struct, [{"name", "taxAmount"}, {"value", TaxAmount}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
-ipdr_characteristics([taxType | T], #ipdr{taxType = TaxType} = Ipdr, Acc) when is_list(TaxType) ->
+ipdr_characteristics([taxType | T], #ipdr{taxType = TaxType} = Ipdr, Acc) when is_integer(TaxType) ->
 	Struct = {struct, [{"name", "taxType"}, {"value", TaxType}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
 ipdr_characteristics([intermediaryName | T], #ipdr{intermediaryName = IntermediaryName} =
@@ -564,7 +564,7 @@ ipdr_characteristics([intermediaryName | T], #ipdr{intermediaryName = Intermedia
 	Struct = {struct, [{"name", "intermediaryName"}, {"value", IntermediaryName}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
 ipdr_characteristics([serviceName | T], #ipdr{serviceName = ServiceName} = Ipdr, Acc)
-		when is_list(ServiceName) ->
+		when is_integer(ServiceName) ->
 	Struct = {struct, [{"name", "serviceName"}, {"value", ServiceName}]},
 	ipdr_characteristics(T, Ipdr, [Struct |Acc]);
 ipdr_characteristics([relatedIpdrIdList | T], #ipdr{relatedIpdrIdList = RelatedIpdrIdList}

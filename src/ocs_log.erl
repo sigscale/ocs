@@ -404,9 +404,7 @@ ipdr_query(Continuation, Log, Start, End, AttrsMatch) ->
 		eof ->
 			{eof, []};
 		{Continuation1, Events} ->
-			{Continuation1, Events};
-		{error, Reason} ->
-			{error, Reason}
+			{Continuation1, Events}
 	end.
 
 -spec ipdr_log(File, Start, End) -> Result
