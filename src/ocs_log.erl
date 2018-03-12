@@ -394,10 +394,9 @@ http_query8(Chunks) ->
 				| {regex, term()} | {like, [term()]} | {notlike, [term()]}
 				| {in, [term()]} | {notin, [term()]} | {contains, [term()]}
 				| {notcontain, [term()]} | {containsall, [term()]} | '_',
-		Result :: {Continuation2, Events} | {error, Reason},
+		Result :: {Continuation2, Events},
 		Continuation2 :: eof | disk_log:continuation(),
-		Events :: [acct_event()],
-		Reason :: term().
+		Events :: [acct_event()].
 %% @doc Ipdr log query.
 ipdr_query(Continuation, Log, Start, End, AttrsMatch) ->
 	case disk_log:chunk(Log, Continuation) of
