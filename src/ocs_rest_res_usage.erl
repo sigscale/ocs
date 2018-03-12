@@ -2723,6 +2723,31 @@ query_start1({_, "PublicWLANAccessUsage"}, IpdrFile, Query,
 	after
 		disk_log:close("log/ipdr/" ++ IpdrFile)
 	end;
+%% @todo filter
+query_start1({_, "VoIPUsage"}, IpdrFile, Query,
+		Filters, RangeStart, RangeEnd, DateStart, DateEnd) ->
+	try
+		Name = {name, {ipdr, erlang:unique_integer([positive])}},
+		FileName = {file, "log/ipdr/" ++ IpdrFile},
+		case disk_log:open([Name, FileName, {mode, read_only}]) of
+			{ok, Log} ->
+				Args = [Log, DateStart, DateEnd, '_'],
+				MFA = [ocs_log, ipdr_query, Args],
+				case supervisor:start_child(ocs_rest_pagination_sup, [MFA]) of
+					{ok, PageServer, Etag} ->
+						query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
+					{error, _Reason} ->
+						{error, 500}
+				end;
+			{error, _Reason} ->
+				{error, 500}
+		end
+	catch
+		_ ->
+			{error, 500}
+	after
+		disk_log:close("log/ipdr/" ++ IpdrFile)
+	end;
 query_start1({_, "HTTPTransferUsage"}, undefined, Query,
 		Filters, RangeStart, RangeEnd, _, _) ->
 	DateTime = proplists:get_value("datetime", Query, '_'),
