@@ -233,7 +233,8 @@ get_usage(Id, [] = _Query, _Headers) ->
 get_usagespec([] = _Query) ->
 	RespHeaders = [{content_type, "application/json"}],
 	Body = mochijson:encode({array, [spec_aaa_auth(),
-			spec_aaa_acct(), spec_public_wlan()]}),
+			spec_aaa_acct(), spec_public_wlan(),
+			spec_voip()]}),
 	{ok, RespHeaders, Body};
 get_usagespec(Query) ->
 	RespHeaders = [{content_type, "application/json"}],
@@ -252,6 +253,11 @@ get_usagespec(Query) ->
 			Body = mochijson:encode({array, [spec_public_wlan()]}),
 			{ok, RespHeaders, Body};
 		{_, {_, "PublicWLANAccessUsageSpec"}, _} ->
+			{error, 400};
+		{_, {_, "VoIPUsageSpec"}, []} ->
+			Body = mochijson:encode({array, [spec_voip()]}),
+			{ok, RespHeaders, Body};
+		{_, {_, "VoIPUsageSpec"}, _} ->
 			{error, 400};
 		{_, {_, "HTTPTransferUsageSpec"}, []} ->
 			Body = mochijson:encode({array, [spec_http_transfer()]}),
@@ -289,6 +295,14 @@ get_usagespec("PublicWLANAccessUsageSpec", [] = _Query) ->
 	Body = mochijson:encode(spec_public_wlan()),
 	{ok, RespHeaders, Body};
 get_usagespec("PublicWLANAccessUsageSpec", _Query) ->
+	{error, 400};
+get_usagespec("VoIPUsageSpec", []) ->
+	RespHeaders = [{content_type, "application/json"}],
+	Body = mochijson:encode(spec_voip()),
+	{ok, RespHeaders, Body};
+get_usagespec("VoIPUsageSpec", _Query) ->
+	{error, 400};
+get_usagespec("qublicWLANAccessUsageSpec", _Query) ->
 	{error, 400};
 get_usagespec("HTTPTransferUsageSpec", [] = _Query) ->
 	RespHeaders = [{content_type, "application/json"}],
@@ -382,10 +396,60 @@ ipdr_to_json(Count, Records) ->
 						{"usageSpecification", UsageSpecification},
 						{"usageCharacteristic", UsageCharacteristic}]}],
 						{N + 1, [RespObj | Acc]};
+			(#ipdr_voip{} = Ipdr, {N, Acc}) ->
+				UsageSpecification = {struct, [{"id", "VoIPUsageSpec"},
+						{"href", ?usageSpecPath ++ "VoIPUsageSpec"},
+						{"name", "VoIPUsageSpec"}]},
+				UsageCharacteristicObjs = ipdr_voip_characteristics(Ipdr),
+				UsageCharacteristic = {array, UsageCharacteristicObjs},
+				RespObj = [{struct, [{"id", N + 1},
+						{"href", ?usagePath ++ integer_to_list(N + 1)},
+						{"date", "SomeDateTime"}, {"type", "VoIPUsage"},
+						{"description", "Description for individual usage content"},
+						{"status", "received"},
+						{"usageSpecification", UsageSpecification},
+						{"usageCharacteristic", UsageCharacteristic}]}],
+						{N + 1, [RespObj | Acc]};
 			(#ipdrDocEnd{}, {N, Acc}) ->
 				{N, Acc}
 	end,
 	lists:foldl(F, {Count, []}, Records).
+
+-spec ipdr_voip_characteristics(IPDRVoIP) -> IPDRVoIP
+	when
+		IPDRVoIP :: #ipdr_voip{} | [{struct, [tuple()]}].
+%% @doc Implements json object for ipdr_voip record
+%% @hidden
+ipdr_voip_characteristics(#ipdr_voip{} = IPDR) ->
+	ipdr_voip_characteristics(record_info(fields, ipdr_voip), IPDR, []).
+%% @hidden
+ipdr_voip_characteristics([callCompletionCode | T],
+		#ipdr_voip{callCompletionCode = CCCode} = IPDR, Acc) ->
+	Obj = {struct, [{"name", "callCompletionCode"}, {"value", CCCode}]},
+	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
+ipdr_voip_characteristics([hostName | T], #ipdr_voip{hostName = Host} = IPDR, Acc) ->
+	Obj = {struct, [{"name", "hostName"}, {"value", Host}]},
+	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
+ipdr_voip_characteristics([subscriberId | T],
+		#ipdr_voip{subscriberId = SubscriberId} = IPDR, Acc) ->
+	Obj = {struct, [{"name", "subscriberId"}, {"value", SubscriberId}]},
+	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
+ipdr_voip_characteristics([uniqueCallID | T],
+		#ipdr_voip{uniqueCallID = UniqueId} = IPDR, Acc) ->
+	Obj = {struct, [{"name", "uniqueCallID"}, {"value", UniqueId}]},
+	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
+ipdr_voip_characteristics([disconnectReason | T],
+		#ipdr_voip{disconnectReason = DiscReason} = IPDR, Acc) ->
+	Obj = {struct, [{"name", "disconnectReason"}, {"value", DiscReason}]},
+	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
+ipdr_voip_characteristics([destinationID | T],
+		#ipdr_voip{destinationID = DistID} = IPDR, Acc) ->
+	Obj = {struct, [{"name", "disconnectReason"}, {"value", DistID}]},
+	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
+ipdr_voip_characteristics([_ | T], IPDR, Acc) ->
+	ipdr_voip_characteristics(T, IPDR, Acc);
+ipdr_voip_characteristics([], _IPDR, Acc) ->
+	lists:reverse(Acc).
 
 %% @hidden
 ipdr_wlan_characteristics(#ipdr_wlan{} = Ipdr) ->
@@ -648,6 +712,22 @@ usage_aaa_ipdr(Event, Filters) when is_record(Event, ipdr_wlan) ->
 		_ ->
 			ocs_rest:fields("id,href," ++ Filters, Object)
 	end;
+usage_aaa_ipdr(Event, Filters) when is_record(Event, ipdr_voip) ->
+	UsageSpec = {struct, [{"id", "VoIPUsageSpec"},
+			{"href", ?usageSpecPath ++ "VoIPUsageSpec"},
+			{"name", "VoIPUsageSpec"}]},
+	Type = "VoIPUsageSpec",
+	Status = "rated",
+	Chars = ipdr_voip_characteristics(Event),
+	Object = {struct, [{"type", Type}, {"status", Status},
+			{"usageSpecification", UsageSpec},
+			{"usageCharacteristic", {array, Chars}}]},
+	case Filters of
+		[] ->
+			Object;
+		_ ->
+			ocs_rest:fields("id,href," ++ Filters, Object)
+	end;
 usage_aaa_ipdr(Event, Filters) when is_list(Event) ->
 	usage_aaa_ipdr(Event, Filters, []).
 %% @hidden
@@ -819,6 +899,77 @@ spec_http_transfer() ->
 	Chars = [{struct, [{"todo", "todo"}]}],
 	Char = {"usageSpecCharacteristic", {array, Chars}},
 	{struct, [ID, Href, Name, Desc, Valid, Char]}.
+
+spec_voip() ->
+	ID = {"id", "VoIPUsageSpec"},
+	Href = {"href", ?usageSpecPath ++ "VoIPUsageSpec"},
+	Name = {"name", "VoIPUsageSpec"},
+	Desc = {"description", ""},
+	Start = {"startDateTime", "2018-03-12T00:00:00Z"},
+	End = {"endDateTime", "2018-12-31T23:59:59Z"},
+	Valid = {"validFor", {struct, [Start, End]}},
+	Chars = lists:reverse(spec_voip1([])),
+	Char = {"usageSpecCharacteristic", {array, Chars}},
+	{struct, [ID, Href, Name, Desc, Valid, Char]}.
+%% @hidden
+spec_voip1(Acc) ->
+	Name = {"name", "callCompletionCode"},
+	Desc = {"description", "Final call completion code for billing use"},
+	Conf = {"configurable", false},
+	Typ = {"valueType", "Number"},
+	Value1 = {struct, [Typ]},
+	Value = {"usageSpecCharacteristicValue", {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_voip2(NewAcc).
+%% @hidden
+spec_voip2(Acc) ->
+	Name = {"name", "hostName"},
+	Desc = {"description", "Name of call management server controlling call processing"},
+	Conf = {"configurable", false},
+	Typ = {"valueType", "String"},
+	Value1 = {struct, [Typ]},
+	Value = {"usageSpecCharacteristicValue", {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_voip3(NewAcc).
+%% @hidden
+spec_voip3(Acc) ->
+	Name = {"name", "subscriberId"},
+	Desc = {"description", "Unique within a service provider network. Tied to a SC or a SE requesting a service"},
+	Conf = {"configurable", false},
+	Typ = {"valueType", "String"},
+	Value1 = {struct, [Typ]},
+	Value = {"usageSpecCharacteristicValue", {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_voip4(NewAcc).
+%% @hidden
+spec_voip4(Acc) ->
+	Name = {"name", "uniqueCallID"},
+	Desc = {"description", "Unique Call ID to identify that different IPDRs generated by different elements are for the same call"},
+	Conf = {"configurable", false},
+	Typ = {"valueType", "String"},
+	Value1 = {struct, [Typ]},
+	Value = {"usageSpecCharacteristicValue", {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_voip5(NewAcc).
+%% @hidden
+spec_voip5(Acc) ->
+	Name = {"name", "disconnectReason"},
+	Desc = {"description", "Reason that call was disconnected based on Call CompletionCode"},
+	Conf = {"configurable", false},
+	Typ = {"valueType", "String"},
+	Value1 = {struct, [Typ]},
+	Value = {"usageSpecCharacteristicValue", {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	spec_voip6(NewAcc).
+spec_voip6(Acc) ->
+	Name = {"name", "destinationID"},
+	Desc = {"description", "ID of called party"},
+	Conf = {"configurable", false},
+	Typ = {"valueType", "String"},
+	Value1 = {struct, [Typ]},
+	Value = {"usageSpecCharacteristicValue", {array, [Value1]}},
+	NewAcc = [{struct, [Name, Desc, Conf, Value]} | Acc],
+	lists:reverse(NewAcc).
 
 %% @hidden
 spec_public_wlan() ->
