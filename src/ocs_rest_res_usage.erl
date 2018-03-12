@@ -2755,6 +2755,8 @@ query_page(PageServer, Etag, Query, Filters, Start, End) ->
 			query_page1(PageServer, Etag, fun usage_aaa_acct/2, Filters, Start, End);
 		{_, {_, "PublicWLANAccessUsage"}, _Query1} ->
 			query_page1(PageServer, Etag, fun usage_aaa_ipdr/2, Filters, Start, End);
+		{_, {_, "VoIPUsage"}, _Query1} ->
+			query_page1(PageServer, Etag, fun usage_aaa_ipdr/2, Filters, Start, End);
 		{_, {_, "HTTPTransferUsage"}, _} ->
 			query_page1(PageServer, Etag, fun usage_http_transfer/2, Filters, Start, End);
 		{_, {_, _}, []} ->
