@@ -446,6 +446,55 @@ ipdr_voip_characteristics([destinationID | T],
 		#ipdr_voip{destinationID = DistID} = IPDR, Acc) ->
 	Obj = {struct, [{"name", "destinationID"}, {"value", DistID}]},
 	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
+ipdr_voip_characteristics([bucketType | T],
+		#ipdr_voip{bucketType = undefined} = IPDR, Acc) ->
+	ipdr_voip_characteristics(T, IPDR, Acc);
+ipdr_voip_characteristics([bucketType | T],
+		#ipdr_voip{bucketType = BType} = IPDR, Acc) ->
+	Obj = {struct, [{"name", "bucketType"}, {"value", BType}]},
+	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
+ipdr_voip_characteristics([bucketValue | T],
+		#ipdr_voip{bucketValue = undefined} = IPDR, Acc) ->
+	ipdr_voip_characteristics(T, IPDR, Acc);
+ipdr_voip_characteristics([bucketValue | T],
+		#ipdr_voip{bucketValue = BValue} = IPDR, Acc) ->
+	Obj = {struct, [{"name", "bucketValue"}, {"value", BValue}]},
+	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
+ipdr_voip_characteristics([tariffType | T],
+		#ipdr_voip{tariffType = undefined} = IPDR, Acc) ->
+	ipdr_voip_characteristics(T, IPDR, Acc);
+ipdr_voip_characteristics([tariffType | T],
+		#ipdr_voip{tariffType = TValue} = IPDR, Acc) ->
+	Obj = {struct, [{"name", "tariffType"}, {"value", TValue}]},
+	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
+ipdr_voip_characteristics([product | T],
+		#ipdr_voip{product = undefined} = IPDR, Acc) ->
+	ipdr_voip_characteristics(T, IPDR, Acc);
+ipdr_voip_characteristics([product | T],
+		#ipdr_voip{product = Prod} = IPDR, Acc) ->
+	Obj = {struct, [{"name", "product"}, {"value", Prod}]},
+	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
+ipdr_voip_characteristics([priceType | T],
+		#ipdr_voip{priceType = undefined} = IPDR, Acc) ->
+	ipdr_voip_characteristics(T, IPDR, Acc);
+ipdr_voip_characteristics([priceType | T],
+		#ipdr_voip{priceType = PType} = IPDR, Acc) ->
+	Obj = {struct, [{"name", "priceType"}, {"value", PType}]},
+	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
+ipdr_voip_characteristics([usageRating | T],
+		#ipdr_voip{usageRating = undefined} = IPDR, Acc) ->
+	ipdr_voip_characteristics(T, IPDR, Acc);
+ipdr_voip_characteristics([usageRating | T],
+		#ipdr_voip{usageRating = URate} = IPDR, Acc) ->
+	Obj = {struct, [{"name", "usageRating"}, {"value", URate}]},
+	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
+ipdr_voip_characteristics([chargeAmount | T],
+		#ipdr_voip{chargeAmount = undefined} = IPDR, Acc) ->
+	ipdr_voip_characteristics(T, IPDR, Acc);
+ipdr_voip_characteristics([chargeAmount | T],
+		#ipdr_voip{chargeAmount = CA} = IPDR, Acc) ->
+	Obj = {struct, [{"name", "chargeAmount"}, {"value", CA}]},
+	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
 ipdr_voip_characteristics([_ | T], IPDR, Acc) ->
 	ipdr_voip_characteristics(T, IPDR, Acc);
 ipdr_voip_characteristics([], _IPDR, Acc) ->

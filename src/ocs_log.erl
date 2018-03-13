@@ -1306,6 +1306,16 @@ ipdr_ims_voip1([destinationID | T], Protocol, TimeStamp, ReqType,
 		_ ->
 			ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, IPDR)
 	end;
+ipdr_ims_voip1([chargeAmount | T], Protocol, TimeStamp, ReqType, Req, Res, undefined, IPDR) ->
+	ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, undefined, IPDR);
+ipdr_ims_voip1([chargeAmount | T], Protocol, TimeStamp, ReqType,
+		Req, Res, [#rated{bucket_value = BValue, bucket_type = BType,
+		tariff_type = TType, tax_excluded_amount = TxExAmount,
+		price_type = PType, usage_rating_tag = URating, product = Product} | _], IPDR) ->
+	NewIPDR = IPDR#ipdr_voip{chargeAmount = TxExAmount, bucketValue = BValue,
+			bucketType = BType, tariffType = TType, priceType = PType,
+			usageRating = URating, product = Product},
+	ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, undefined, NewIPDR);
 ipdr_ims_voip1([_ | T], Protocol, TimeStamp, ReqType, Req, Res, Rated, IPDR) ->
 	ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, IPDR);
 ipdr_ims_voip1([], _Protocol, _TimeStamp, _ReqType, _Req, _Res, _Rated, IPDR) ->
@@ -1606,7 +1616,9 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdrDocWLAN{} | T]}) ->
 	end;
 ipdr_csv(Log, IoDevice, {Cont, [#ipdrDocVoIP{} | T]}) ->
 	Header = [<<"Creation Time;Sequence Number;Subscriber ID;">>,
-			<<"Unique Call ID;Destination ID;Call Completion Code;">>,
+			<<"Unique Call ID;Bucket Type;Bucket Value;Tarrif Type;" >>,
+			<<"Product;Price Type;Usage Rating;Charge Amount;">>,
+			<<"Destination ID;Call Completion Code;">>,
 			<<"Disconnect Reason;Host Name;">>, $\r, $\n],
 	case file:write(IoDevice, Header) of
 		ok ->
@@ -1632,6 +1644,48 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdr_voip{} = I | T]}) ->
 			<<>>;
 		UID ->
 			list_to_binary(UID)
+	end,
+	BType = case I#ipdr_voip.bucketType of
+		undefined ->
+			<<>>;
+		BT ->
+			<<BT>>
+	end,
+	BValue = case I#ipdr_voip.bucketValue of
+		undefined ->
+			<<>>;
+		BV ->
+			integer_to_binary(BV)
+	end,
+	TType = case I#ipdr_voip.tariffType of
+		undefined ->
+			<<>>;
+		TP ->
+			<<TP>>
+	end,
+	Prod = case I#ipdr_voip.product of
+		undefined ->
+			<<>>;
+		P ->
+		 term_to_binary(P)
+	end,
+	PType = case I#ipdr_voip.priceType of
+		undefined ->
+			<<>>;
+		PT ->
+		 <<PT>>
+	end,
+	URating = case I#ipdr_voip.usageRating of
+		undefined ->
+			<<>>;
+		UR ->
+		 <<UR>>
+	end,
+	ChargeA = case I#ipdr_voip.usageRating of
+		undefined ->
+			<<>>;
+		CA ->
+		 integer_to_binary(CA)
 	end,
 	Dest = case I#ipdr_voip.destinationID of
 		undefined ->
@@ -1661,8 +1715,9 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdr_voip{} = I | T]}) ->
 		HN ->
 			list_to_binary(HN)
 	end,
-	IPDR = [Time, $;, Seq, $;, SubId, $;, UniqueId, $;,
-			Dest, $;, CCCode, $;, DiscReason, $;, HostName, $\r, $\n],
+	IPDR = [Time, $;, Seq, $;, SubId, $;, UniqueId, $;, BType, $;,
+			BValue, $;, TType, $;, Prod, $;, PType, $;, URating, $;,
+			ChargeA, $;, Dest, $;, CCCode, $;, DiscReason, $;, HostName, $\r, $\n],
 	case file:write(IoDevice, IPDR) of
 		ok ->
 			ipdr_csv(Log, IoDevice, {Cont, T});
