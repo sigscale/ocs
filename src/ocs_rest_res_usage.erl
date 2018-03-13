@@ -718,9 +718,12 @@ usage_aaa_ipdr(Event, Filters) when is_record(Event, ipdr_voip) ->
 			{"name", "VoIPUsageSpec"}]},
 	Type = "VoIPUsageSpec",
 	Status = "rated",
+	ID = integer_to_list(Event#ipdr_voip.seqNum),
+	Href = ?usagePath ++ ID,
+	Date = Event#ipdr_voip.ipdrCreationTime,
 	Chars = ipdr_voip_characteristics(Event),
-	Object = {struct, [{"type", Type}, {"status", Status},
-			{"usageSpecification", UsageSpec},
+	Object = {struct, [{"id", ID}, {"href", Href}, {"date", Date}, {"type", Type},
+			{"status", Status}, {"usageSpecification", UsageSpec},
 			{"usageCharacteristic", {array, Chars}}]},
 	case Filters of
 		[] ->
