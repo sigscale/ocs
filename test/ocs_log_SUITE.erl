@@ -323,7 +323,7 @@ ipdr_log(_Config) ->
 	EndRange = End - (Range div 3),
 	{ok, IpdrLogDir} = application:get_env(ocs, ipdr_log_dir),
 	Filename = IpdrLogDir ++ "/ipdr-" ++ ocs_log:iso8601(erlang:system_time(?MILLISECOND)),
-	ok = ocs_log:ipdr_log(Filename, StartRange, EndRange),
+	ok = ocs_log:ipdr_log(wlan, Filename, StartRange, EndRange),
 	GetRangeResult = ocs_log:get_range(ocs_acct, StartRange, EndRange),
 	Fstop = fun(E, Acc) when element(6, E) == stop ->
 				Acc + 1;
