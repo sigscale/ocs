@@ -302,8 +302,6 @@ get_usagespec("VoIPUsageSpec", []) ->
 	{ok, RespHeaders, Body};
 get_usagespec("VoIPUsageSpec", _Query) ->
 	{error, 400};
-get_usagespec("qublicWLANAccessUsageSpec", _Query) ->
-	{error, 400};
 get_usagespec("HTTPTransferUsageSpec", [] = _Query) ->
 	RespHeaders = [{content_type, "application/json"}],
 	Body = mochijson:encode(spec_http_transfer()),
