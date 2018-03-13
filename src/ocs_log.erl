@@ -1604,6 +1604,75 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdrDocWLAN{} | T]}) ->
 			disk_log:close(Log),
 			{error, Reason}
 	end;
+ipdr_csv(Log, IoDevice, {Cont, [#ipdrDocVoIP{} | T]}) ->
+	Header = [<<"Creation Time;Sequence Number;Subscriber ID;">>,
+			<<"Unique Call ID;Destination ID;Call Completion Code;">>,
+			<<"Disconnect Reason;Host Name;">>, $\r, $\n],
+	case file:write(IoDevice, Header) of
+		ok ->
+			ipdr_csv(Log, IoDevice, {Cont, T});
+		{error, Reason} ->
+			error_logger:error_report([file:format_error(Reason),
+					{error, Reason}]),
+			file:close(IoDevice),
+			disk_log:close(Log),
+			{error, Reason}
+	end;
+ipdr_csv(Log, IoDevice, {Cont, [#ipdr_voip{} = I | T]}) ->
+	Time = list_to_binary(I#ipdr_voip.ipdrCreationTime),
+	Seq = integer_to_binary(I#ipdr_voip.seqNum),
+	SubId = case I#ipdr_voip.subscriberId of
+		undefined ->
+			<<>>;
+		SID ->
+			list_to_binary(SID)
+	end,
+	UniqueId = case I#ipdr_voip.uniqueCallID of
+		undefined ->
+			<<>>;
+		UID ->
+			list_to_binary(UID)
+	end,
+	Dest = case I#ipdr_voip.destinationID of
+		undefined ->
+			<<>>;
+		DestID ->
+			list_to_binary(DestID)
+	end,
+	CCCode = case I#ipdr_voip.callCompletionCode of
+		undefined ->
+			<<>>;
+		ComCode when is_integer(ComCode) ->
+			integer_to_list(ComCode);
+		ComCode when is_list(ComCode) ->
+			list_to_binary(ComCode)
+	end,
+	DiscReason = case I#ipdr_voip.disconnectReason of
+		undefined ->
+			<<>>;
+		Disc when is_integer(Disc) ->
+			integer_to_binary(Disc);
+		Disc when is_list(Disc) ->
+			list_to_binary(Disc)
+	end,
+	HostName = case I#ipdr_voip.hostName of
+		undefined ->
+			<<>>;
+		HN ->
+			list_to_binary(HN)
+	end,
+	IPDR = [Time, $;, Seq, $;, SubId, $;, UniqueId, $;,
+			Dest, $;, CCCode, $;, DiscReason, $;, HostName, $\r, $\n],
+	case file:write(IoDevice, IPDR) of
+		ok ->
+			ipdr_csv(Log, IoDevice, {Cont, T});
+		{error, Reason} ->
+			error_logger:error_report([file:format_error(Reason),
+					{error, Reason}]),
+			file:close(IoDevice),
+			disk_log:close(Log),
+			{error, Reason}
+	end;
 ipdr_csv(Log, IoDevice, {Cont, [#ipdr_wlan{} = I | T]}) ->
 	Time = list_to_binary(I#ipdr_wlan.ipdrCreationTime),
 	Seq = integer_to_binary(I#ipdr_wlan.seqNum),
