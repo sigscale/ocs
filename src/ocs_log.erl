@@ -28,7 +28,7 @@
 		acct_query/5, acct_query/6]).
 -export([auth_open/0, auth_log/5, auth_log/6, auth_close/0,
 			auth_query/6, auth_query/7]).
--export([ipdr_log/3, ipdr_file/2, ipdr_query/5]).
+-export([ipdr_log/4, ipdr_file/2, ipdr_query/5]).
 -export([abmf_open/0, abmf_log/15,
 			abmf_query/8]).
 -export([get_range/3, last/2, dump_file/2, httpd_logname/1,
@@ -406,8 +406,9 @@ ipdr_query(Continuation, Log, Start, End, AttrsMatch) ->
 			{Continuation1, Events}
 	end.
 
--spec ipdr_log(File, Start, End) -> Result
+-spec ipdr_log(Type, File, Start, End) -> Result
 	when
+		Type :: wlan | voip,
 		File :: file:filename(),
 		Start :: calendar:datetime() | pos_integer(),
 		End :: calendar:datetime() | pos_integer(),
@@ -425,19 +426,26 @@ ipdr_query(Continuation, Log, Start, End, AttrsMatch) ->
 %% 	`{{Year, Month, Day}, {Hour, Minute, Second}}' or the native
 %% 	{@link //erts/erlang:system_time(). erlang:system_time(millisecond)}.
 %%
-ipdr_log(File, {{_, _, _}, {_, _, _}} = Start, End) ->
+ipdr_log(Type, File, {{_, _, _}, {_, _, _}} = Start, End) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(Start) - ?EPOCH,
-	ipdr_log(File, Seconds * 1000, End);
-ipdr_log(File, Start, {{_, _, _}, {_, _, _}} = End) ->
+	ipdr_log(Type, File, Seconds * 1000, End);
+ipdr_log(Type, File, Start, {{_, _, _}, {_, _, _}} = End) ->
 	Seconds = calendar:datetime_to_gregorian_seconds(End) - ?EPOCH,
-	ipdr_log(File, Start, Seconds * 1000 + 999);
-ipdr_log(File, Start, End) when is_list(File),
+	ipdr_log(Type, File, Start, Seconds * 1000 + 999);
+ipdr_log(Type, File, Start, End) when is_list(File),
 		is_integer(Start), is_integer(End) ->
 	case disk_log:open([{name, File}, {file, File}, {repair, truncate}]) of
 		{ok, IpdrLog} ->
-			IpdrDoc = #ipdrDocWLAN{docId = uuid(), version = "3.1",
-					creationTime = iso8601(erlang:system_time(?MILLISECOND)),
-					ipdrRecorderInfo = atom_to_list(node())},
+			IpdrDoc = case Type of
+				wlan ->
+					#ipdrDocWLAN{docId = uuid(), version = "3.1",
+							creationTime = iso8601(erlang:system_time(?MILLISECOND)),
+							ipdrRecorderInfo = atom_to_list(node())};
+				voip ->
+					#ipdrDocVoIP{docId = uuid(), version = "3.1",
+							creationTime = iso8601(erlang:system_time(?MILLISECOND)),
+							ipdrRecorderInfo = atom_to_list(node())}
+			end,
 			case disk_log:log(IpdrLog, IpdrDoc) of
 				ok ->
 					ipdr_log1(IpdrLog, Start, End,

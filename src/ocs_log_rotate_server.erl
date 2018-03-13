@@ -143,7 +143,7 @@ handle_info(timeout, #state{interval = Interval,
 	Time = erlang:system_time(?MILLISECOND),
 	FileName = Directory ++ "/" ++ ocs_log:iso8601(Time),
 	{Start, End} = previous(Interval),
-	case ocs_log:ipdr_log(FileName, Start, End) of
+	case ocs_log:ipdr_log(voip, FileName, Start, End) of
 		ok ->
 			{noreply, State, wait(ScheduledTime, Interval)};
 		{error, Reason} ->

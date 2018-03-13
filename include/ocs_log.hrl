@@ -94,6 +94,11 @@
 		version = "3.1" :: string(),
 		creationTime :: string(),
 		ipdrRecorderInfo :: string()}).
+-record(ipdrDocVoIP,
+		{docId :: string(),
+		version = "3.1" :: string(),
+		creationTime :: string(),
+		ipdrRecorderInfo :: string()}).
 -record(ipdrDocEnd,
 		{count :: non_neg_integer(),
 		endTime :: string()}).
