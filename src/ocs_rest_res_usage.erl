@@ -444,7 +444,7 @@ ipdr_voip_characteristics([disconnectReason | T],
 	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
 ipdr_voip_characteristics([destinationID | T],
 		#ipdr_voip{destinationID = DistID} = IPDR, Acc) ->
-	Obj = {struct, [{"name", "disconnectReason"}, {"value", DistID}]},
+	Obj = {struct, [{"name", "destinationID"}, {"value", DistID}]},
 	ipdr_voip_characteristics(T, IPDR, [Obj |Acc]);
 ipdr_voip_characteristics([_ | T], IPDR, Acc) ->
 	ipdr_voip_characteristics(T, IPDR, Acc);
