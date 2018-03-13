@@ -149,7 +149,9 @@
 		tempUserId :: string() | undefined}).
 
 -record(ipdr_voip,
-		{startTime :: string() | undefined,
+		{ipdrCreationTime :: string() | undefined,
+		seqNum :: non_neg_integer() | undefined,
+		startTime :: string() | undefined,
 		endTime :: string() | undefined,
 		timeZoneOffset :: integer() | undefined,
 		callCompletionCode :: string() | undefined,

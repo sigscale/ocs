@@ -1205,6 +1205,9 @@ ipdr_ims_voip(Protocol, TimeStamp, ReqType, Req, Res, Rated) ->
 	ipdr_ims_voip1(record_info(fields, ipdr_voip), Protocol,
 			TimeStamp, ReqType, Req, Res, Rated, #ipdr_voip{}).
 %% @hidden
+ipdr_ims_voip1([ipdrCreationTime | T], Protocol, TimeStamp, ReqType, Req, Res, Rated, IPDR) ->
+	NewIPDR = IPDR#ipdr_voip{ipdrCreationTime = iso8601(TimeStamp)},
+	ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, NewIPDR);
 ipdr_ims_voip1([callCompletionCode | T], Protocol, TimeStamp, ReqType,
 		#'3gpp_ro_CCR'{'Multiple-Services-Credit-Control' = [ServiceCreditControl]} = Req,
 		Res, Rated, IPDR) ->
