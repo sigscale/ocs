@@ -502,16 +502,29 @@ ipdr_log3(IpdrLog, _Start, End, SeqNum, {_Cont, [H | _]})
 	ipdr_log4(IpdrLog, SeqNum);
 ipdr_log3(IpdrLog, _Start, End, SeqNum, {Cont, [H | T]})
 		when element(6, H) == stop ->
-	IPDR = ipdr_codec(H),
-	NewSeqNum = SeqNum + 1,
-	case disk_log:log(IpdrLog, IPDR#ipdr_wlan{seqNum = NewSeqNum}) of
-		ok ->
-			ipdr_log3(IpdrLog, _Start, End, NewSeqNum, {Cont, T});
-		{error, Reason} ->
-			error_logger:error_report([disk_log:format_error(Reason),
-					{module, ?MODULE}, {log, IpdrLog}, {error, Reason}]),
-			disk_log:close(IpdrLog),
-			{error, Reason}
+	case ipdr_codec(H) of
+		#ipdr_wlan{} = IPDR ->
+			NewSeqNum = SeqNum + 1,
+			case disk_log:log(IpdrLog, IPDR#ipdr_wlan{seqNum = NewSeqNum}) of
+				ok ->
+					ipdr_log3(IpdrLog, _Start, End, NewSeqNum, {Cont, T});
+				{error, Reason} ->
+					error_logger:error_report([disk_log:format_error(Reason),
+							{module, ?MODULE}, {log, IpdrLog}, {error, Reason}]),
+					disk_log:close(IpdrLog),
+					{error, Reason}
+			end;
+		#ipdr_voip{} = IPDR ->
+			NewSeqNum = SeqNum + 1,
+			case disk_log:log(IpdrLog, IPDR#ipdr_voip{seqNum = NewSeqNum}) of
+				ok ->
+					ipdr_log3(IpdrLog, _Start, End, NewSeqNum, {Cont, T});
+				{error, Reason} ->
+					error_logger:error_report([disk_log:format_error(Reason),
+							{module, ?MODULE}, {log, IpdrLog}, {error, Reason}]),
+					disk_log:close(IpdrLog),
+					{error, Reason}
+			end
 	end;
 ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, [_ | T]}) ->
 	ipdr_log3(IpdrLog, Start, End, SeqNum, {Cont, T}).
