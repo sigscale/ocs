@@ -88,8 +88,8 @@
 		Action :: undefined | string(),
 		Status :: undefined | term()}.
 
-%% IPDR Document
--record(ipdrDoc,
+%% IPDR WLAN Document
+-record(ipdrDocWLAN,
 		{docId :: string(),
 		version = "3.1" :: string(),
 		creationTime :: string(),

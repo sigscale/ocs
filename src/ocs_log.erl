@@ -417,7 +417,7 @@ ipdr_query(Continuation, Log, Start, End, AttrsMatch) ->
 %%
 %% 	Creates a new {@link //kernel/disk_log:log(). disk_log:log()},
 %% 	or overwrites an existing, with filename `File'. The log starts
-%% 	with a `#ipdrDoc{}' header, is followed by `#ipdr_wlan{}' records,
+%% 	with a `#ipdrDocWLAN{}' header, is followed by `#ipdr_wlan{}' records,
 %% 	and ends with a `#ipdrDocEnd{}' trailer.
 %%
 %% 	The `ocs_acct' log is searched for events created between `Start'
@@ -435,7 +435,7 @@ ipdr_log(File, Start, End) when is_list(File),
 		is_integer(Start), is_integer(End) ->
 	case disk_log:open([{name, File}, {file, File}, {repair, truncate}]) of
 		{ok, IpdrLog} ->
-			IpdrDoc = #ipdrDoc{docId = uuid(), version = "3.1",
+			IpdrDoc = #ipdrDocWLAN{docId = uuid(), version = "3.1",
 					creationTime = iso8601(erlang:system_time(?MILLISECOND)),
 					ipdrRecorderInfo = atom_to_list(node())},
 			case disk_log:log(IpdrLog, IpdrDoc) of
@@ -1498,7 +1498,7 @@ ipdr_wlan1([], _Protocol, _TimeStamp, _Flag, _Req, _Resp, _Rated, IPDR) ->
 	IPDR.
 
 %% @hidden
-ipdr_xml(Log, IoDevice, {Cont, [#ipdrDoc{} = _I | T]}) ->
+ipdr_xml(Log, IoDevice, {Cont, [#ipdrDocWLAN{} = _I | T]}) ->
 	Header = [],
 	case file:write(IoDevice, Header) of
 		ok ->
@@ -1538,7 +1538,7 @@ ipdr_xml(Log, IoDevice, {Cont, []}) ->
 	ipdr_file3(Log, IoDevice, xml, {Cont, []}).
 
 %% @hidden
-ipdr_xdr(Log, IoDevice, {Cont, [#ipdrDoc{} = _I | T]}) ->
+ipdr_xdr(Log, IoDevice, {Cont, [#ipdrDocWLAN{} = _I | T]}) ->
 	Header = [<<>>],
 	case file:write(IoDevice, Header) of
 		ok ->
@@ -1580,7 +1580,7 @@ ipdr_xdr(Log, IoDevice, {Cont, []}) ->
 	ipdr_file3(Log, IoDevice, xdr, {Cont, []}).
 
 %% @hidden
-ipdr_csv(Log, IoDevice, {Cont, [#ipdrDoc{} | T]}) ->
+ipdr_csv(Log, IoDevice, {Cont, [#ipdrDocWLAN{} | T]}) ->
 	Header = [<<"Creation Time;Sequence Number;Username;">>,
 			<<"Accounting Session ID;User IP Address;Calling Station ID;">>,
 			<<"Called Station ID;NAS IP Address;NAS Identifier;">>,

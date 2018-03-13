@@ -378,7 +378,7 @@ read_ipdr2(Log, Count, Acc)->
 
 %% @hidden
 ipdr_to_json(Count, Records) ->
-	F = fun(#ipdrDoc{}, {N, Acc}) ->
+	F = fun(#ipdrDocWLAN{}, {N, Acc}) ->
 				{N, Acc};
 			(#ipdr_wlan{} = Ipdr, {N, Acc}) ->
 				UsageSpecification = {struct, [{"id", 1},
@@ -732,7 +732,7 @@ usage_aaa_ipdr(Event, Filters) when is_record(Event, ipdr_voip) ->
 usage_aaa_ipdr(Event, Filters) when is_list(Event) ->
 	usage_aaa_ipdr(Event, Filters, []).
 %% @hidden
-usage_aaa_ipdr([#ipdrDoc{} | T], Filters, Acc) ->
+usage_aaa_ipdr([#ipdrDocWLAN{} | T], Filters, Acc) ->
 	usage_aaa_ipdr(T, Filters, Acc);
 usage_aaa_ipdr([#ipdrDocEnd{} | T], Filters, Acc) ->
 	usage_aaa_ipdr(T, Filters, Acc);
