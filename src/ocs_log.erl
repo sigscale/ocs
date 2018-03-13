@@ -1281,8 +1281,17 @@ ipdr_ims_voip1([destinationID | T], Protocol, TimeStamp, ReqType,
 		#'3gpp_ro_Service-Information'{'IMS-Information' = [IMSINFO]} ->
 			case IMSINFO of	
 				#'3gpp_ro_IMS-Information'{'Called-Party-Address' = [CalledParty]} ->
-					NewIPDR = IPDR#ipdr_voip{destinationID = binary_to_list(CalledParty)},
-					ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, NewIPDR);
+					Prefix = "tel:",
+					CParty1 = binary_to_list(CalledParty),
+					case lists:prefix(Prefix, CParty1) of
+						true ->
+							{_, CParty2} = lists:split(4, CParty1),
+							NewIPDR = IPDR#ipdr_voip{destinationID = CParty2},
+							ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, NewIPDR);
+						false ->
+							NewIPDR = IPDR#ipdr_voip{destinationID = CParty1},
+							ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, NewIPDR)
+					end;
 				_ ->
 					ipdr_ims_voip1(T, Protocol, TimeStamp, ReqType, Req, Res, Rated, IPDR)
 			end;
