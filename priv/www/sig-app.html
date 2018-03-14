@@ -159,7 +159,7 @@
 				<sig-user-list></sig-user-list>
 				<sig-access-list id="accessList"></sig-access-list>
 				<sig-accounting-list id="accountingList"></sig-accounting-list>
-				<sig-ipdr-list></sig-ipdr-list>
+				<sig-ipdr-list id="ipdrLogList"></sig-ipdr-list>
 				<sig-http-list></sig-http-list>
 				<sig-prefix-list id="prefixList" table="{{table}}"></sig-prefix-list>
 				<sig-balance-list></sig-balance-list>
@@ -355,9 +355,9 @@
 		<sig-sub-update></sig-sub-update>
 		<sig-client-add></sig-client-add>
 		<sig-client-update></sig-client-update>
-		<sig-ipdr-log-files></sig-ipdr-log-files>
 		<sig-user-add></sig-user-add>
 		<sig-product-update id="updateProduct"></sig-product-update>
+		<sig-ipdr-log-files></sig-ipdr-log-files>
 		<sig-prefix-table-add></sig-prefix-table-add>
 		<sig-prefix-add></sig-prefix-add>
 		<sig-prefix-update></sig-prefix-update>
@@ -471,7 +471,7 @@
 						this.$.accountingList.refreshAccounting();
 						break;
 					case 6:
-						document.getElementById('getIpdr').generateRequest();
+						this.$.ipdrLogList.refreshIpdr();
 						break;
 					case 7:
 						document.getElementById('getHttp').generateRequest();

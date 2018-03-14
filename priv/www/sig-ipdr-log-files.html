@@ -12,7 +12,7 @@
 	<template>
 		<style is="custom-style">
 			paper-dialog {
-				width: 60%;
+				width: 50%;
 				overflow: auto;
 			}
 			paper-toolbar {
@@ -28,9 +28,12 @@
 			.item {
 				cursor: pointer;
 				padding: 5px;
+				width: 150px;
+				height: 50px;
 			}
 		</style>
-		<paper-dialog id="selectLogFileModal" modal>
+		<paper-dialog id="selectLogFileModal"
+			on-iron-overlay-opened="overLay" modal>
 			<paper-toolbar>
 				<h2>Select Log File</h2>
 			</paper-toolbar>
@@ -62,12 +65,8 @@
 	<script>
 		Polymer ({
 			is: 'sig-ipdr-log-files',
-			getLogContent: function (event) {
-				var searchAjax = document.getElementById("getIpdr");
-				searchAjax.method = "GET";
-				searchAjax.url = "/usageManagement/v1/usage/ipdr/" + event.model.item +
-					"?type=PublicWLANAccessUsage";
-				searchAjax.generateRequest();
+			getLogContent: function(event) {
+				document.getElementById("ipdrLogList").intializeGrid(event);
 			},
 			getLogsResponse: function(event){
 				this.$.logFiles.items = event.detail.response;

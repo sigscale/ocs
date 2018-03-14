@@ -170,6 +170,9 @@
 			id="addLogContentToastError"
 			text="Log content error">
 		</paper-toast>
+		<paper-toast
+			id="usageToastError">
+		</paper-toast>
 		<paper-toast id="ipdrErrorToast" duration="0">
 			<paper-button
 					class="yellow-button"
@@ -178,10 +181,7 @@
 			</paper-button>
 		</paper-toast>
 		<iron-ajax id="getIpdr"
-				headers='{"Accept": "application/json"}'
-				on-loading-changed="_onLoadingChanged"
-				on-response="getLogContentResponse"
-				on-error="getLogContentError">
+				rejectWithRequest>
 		</iron-ajax>
 	</template>
 	<script>
@@ -193,6 +193,10 @@
 					type: Boolean,
 					value: false,
 					observer: '_activePageChanged'
+				},
+				etag: {
+					type: String,
+					value: null
 				}
 			},
 			_activePageChanged: function(active) {
@@ -201,186 +205,133 @@
 					document.getElementById("selectLogFileModal").open();
 				}
 			},
-			_onLoadingChanged: function(event) {
-				if (this.$.getIpdr.loading) {
-					document.getElementById("progress").disabled = false;
-				} else {
-					document.getElementById("progress").disabled = true;
-				}
+			intializeGrid: function(event) {
+					var grid = this.$.ipdrGrid;
+					grid.size = 0;
+					grid.columns = [
+						{
+							"name": "ipdrCreationTime"
+						},
+						{
+							"name": "seqNum"
+						},
+						{
+							"name": "username"
+						},
+						{
+							"name": "acctSessionId"
+						},
+						{
+							"name": "callingStationId"
+						},
+						{
+							"name": "calledStationId"
+						},
+						{
+							"name": "nasIpAddress"
+						},
+						{
+							"name": "nasId"
+						},
+						{
+							"name": "sessionDuration"
+						},
+						{
+							"name": "inputOctets"
+						},
+						{
+							"name": "outputOctets"
+						},
+						{
+							"name": "gmtSessionStartDateTime"
+						},
+						{
+							"name": "gmtSessionEndDateTime"
+						},
+						{
+							"name": "sessionTerminateCause"
+						}
+					];
+					var ajax = document.getElementById('getIpdr');
+					ajax.url = "/usageManagement/v1/usage/ipdr/" + event.model.item;
+					ajax.params['type'] = "PublicWLANAccessUsage";
+					grid.dataProvider = this.getLogContentResponse;	
 			},
-			getLogContentResponse: function(event) {
+			refreshIpdr: function() {
+				this.etag = null;
+				delete this.$.getIpdr.params['date'];
+				document.getElementById("getLogsAjax").generateRequest();
+			},
+			getLogContentResponse: function(params, callback) {
 				document.getElementById("selectLogFileModal").close();
-				var grid = this.$.ipdrGrid;
-				var results = event.detail.response;
-console.log(results);
-				vaadinItems = new Array();
-				for(var index in results) {
-						var newRecord = new Object();
-						newRecord.date = results[index].date;
-						newRecord.type = results[index].type;
-						newRecord.usageSpecificationName = results[index].usageSpecification.name;
-						results[index].usageCharacteristic.forEach(
-							function(attrObj) {
-								if(attrObj.value == "undefined") {
-									attrObj.value = '';
-									newRecord[attrObj.name] = attrObj.value;
-								} else {
-									newRecord[attrObj.name] = attrObj.value;
+				var grid = document.getElementById('ipdrGrid');
+				var ajax = document.getElementById('getIpdr');
+				ipdrLogList = document.getElementById('ipdrLogList');
+				handleAjaxResponse = function(request) {
+					if (request) {
+						ipdrLogList.etag = request.xhr.getResponseHeader('ETag');
+						var range = request.xhr.getResponseHeader('Content-Range');
+						var range1 = range.split("/");
+						var range2 = range1[0].split("-");
+						if (range1[1] != "*") {
+							grid.size = Number(range1[1]);
+						} else {
+							grid.size = Number(range2[1]) + grid.pageSize * 2;
+						}
+						var vaadinItems = new Array();
+						for(var index in request.response) {
+							var newRecord = new Object();
+							newRecord.date = request.response[index].date;
+							newRecord.type = request.response[index].type;
+							newRecord.usageSpecificationName = request.response[index].usageSpecification.name;
+							request.response[index].usageCharacteristic.forEach(
+								function(attrObj) {
+									if(attrObj.value == "undefined") {
+										attrObj.value = '';
+										newRecord[attrObj.name] = attrObj.value;
+									} else {
+										newRecord[attrObj.name] = attrObj.value;
+									}
 								}
-							}
-						);
+							);
 						vaadinItems[index] = newRecord;
-				}
-console.log(vaadinItems);
-				grid.frozenColumns = 1;
-				grid.items = vaadinItems;
-				grid.columns = [
-					{
-						"name": "ipdrCreationTime"
-					},
-					{
-						"name": "seqNum"
-					},
-					{
-						"name": "username"
-					},
-//							{
-//								"name": "scIdType"
-//							},
-//							{
-//								"name": "scId"
-//							},
-//							{
-//								"name": "homeServiceProviderType"
-//							},
-//							{
-//								"name": "homeServiceProvider"
-//							},
-					{
-						"name": "acctSessionId"
-					},
-//							{
-//								"name": "userIpAddress"
-//							},
-					{
-						"name": "callingStationId"
-					},
-					{
-						"name": "calledStationId"
-					},
-					{
-						"name": "nasIpAddress"
-					},
-					{
-						"name": "nasId"
-					},
-//							{
-//								"name": "accessProviderType"
-//							},
-//							{
-//								"name": "accessServiceProvider"
-//							},
-//							{
-//								"name": "locationName"
-//							},
-//							{
-//								"name": "locationId"
-//							},
-//							{
-//								"name": "locationType"
-//							},
-//							{
-//								"name": "locationCountryCode"
-//							},
-//							{
-//								"name": "locationStateProvince"
-//							},
-//							{
-//								"name": "locationCity"
-//							},
-//							{
-//								"name": "locationGeocode"
-//							},
-//							{
-//								"name": "locationGeocodeType"
-//							},
-//							{
-//								"name": "nasPortType"
-//							},
-//							{
-//								"name": "paymentType"
-//							},
-//							{
-//								"name": "networkConnectionType"
-//							},
-					{
-						"name": "sessionDuration"
-					},
-					{
-						"name": "inputOctets"
-					},
-					{
-						"name": "outputOctets"
-					},
-//							{
-//								"name": "class"},
-//							},
-					{
-						"name": "gmtSessionStartDateTime"
-					},
-					{
-						"name": "gmtSessionEndDateTime"
-					},
-					{
-						"name": "sessionTerminateCause"
+						}
+					callback(vaadinItems);
+					} else {
+						grid.size = 0;
+						callback([]);
 					}
-//							{
-//								"name": "billingClassOfService"
-//							},
-//							{
-//								"name": "unitOfMeasure"
-//							},
-//							{
-//								"name": "chargeableUnit"
-//							},
-//							{
-//								"name": "chargeableQuantity"
-//							},
-//							{
-//								"name": "chargeAmount"
-//							},
-//							{
-//								"name": "chargeCurrencyType"
-//							},
-//							{
-//								"name": "otherParty"
-//							},
-//							{
-//								"name": "taxPercentage"
-//							},
-//							{
-//								"name": "taxAmount"
-//							},
-//							{
-//								"name": "taxType"
-//							},
-//							{
-//								"name": "intermediaryName"
-//							},
-//							{
-//								"name": "serviceName"
-//							},
-//							{
-//								"name": "relatedIpdrIdList"
-//							},
-//							{
-//								"name": "tempUserId"
-//							}
-				];
-			},
-			getLogContentError: function(event) {
-				this.$.addLogContentToastError.text = event.detail.request.xhr.statusText;
-				this.$.addLogContentToastError.open();
+				},
+				handleAjaxError = function(error) {
+					ipdrLogList.etag = null;
+					var toast = document.getElementById('usageToastError');
+					toast.text = error;
+					toast.open();
+					callback([]);
+				}
+				if (ajax.loading) {
+					ajax.lastRequest.completes.then(function(request) {
+						StartRange = params.page * params.pageSize + 1;
+						EndRange = StartRange + params.pageSize - 1;
+						ajax.headers['Range'] = "items=" + StartRange + "-" + EndRange;
+						if (ipdrLogList.etag && params.page > 0) {
+							ajax.headers['If-Range'] = ipdrLogList.etag;
+						} else {
+							delete ajax.headers['If-Range'];
+						}
+						return ajax.generateRequest().completes;
+					}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
+				} else {
+					StartRange = params.page * params.pageSize + 1;
+					EndRange = StartRange + params.pageSize - 1;
+					ajax.headers['Range'] = "items=" + StartRange + "-" + EndRange;
+					if (ipdrLogList.etag && params.page > 0) {
+						ajax.headers['If-Range'] = ipdrLogList.etag;
+					} else {
+						delete ajax.headers['If-Range'];
+					}
+					ajax.generateRequest().completes.then(handleAjaxResponse, handleAjaxError);
+				}
 			}
 		});
 	</script>
