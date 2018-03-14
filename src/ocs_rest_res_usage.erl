@@ -823,8 +823,11 @@ usage_aaa_acct(Event, Filters) when is_tuple(Event), size(Event) > 6 ->
 					{"value", atom_to_list(element(6, Event))}]}],
 	AttributeChars = usage_characteristics(element(7, Event)),
 	UsageChars = EventChars ++ AttributeChars,
-	Frated = fun(#rated{tax_excluded_amount = TaxExcluded}) ->
-				{struct, [{"taxExcludedRatingAmount", ocs_rest:decimal(TaxExcluded)}]}
+	Frated = fun(#rated{tax_excluded_amount = TaxExcluded})
+					when is_integer(TaxExcluded) ->
+				{struct, [{"taxExcludedRatingAmount", ocs_rest:decimal(TaxExcluded)}]};
+			(_) ->
+				{struct, []}
 	end,
 	RatedUsage = case size(Event) > 8 of
 		true ->
