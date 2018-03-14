@@ -1649,7 +1649,7 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdr_voip{} = I | T]}) ->
 		undefined ->
 			<<>>;
 		BT ->
-			<<BT>>
+			atom_to_binary(BT, latin1)
 	end,
 	BValue = case I#ipdr_voip.bucketValue of
 		undefined ->
@@ -1661,7 +1661,7 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdr_voip{} = I | T]}) ->
 		undefined ->
 			<<>>;
 		TP ->
-			<<TP>>
+			atom_to_binary(TP, latin1)
 	end,
 	Prod = case I#ipdr_voip.product of
 		undefined ->
@@ -1673,15 +1673,15 @@ ipdr_csv(Log, IoDevice, {Cont, [#ipdr_voip{} = I | T]}) ->
 		undefined ->
 			<<>>;
 		PT ->
-		 <<PT>>
+			atom_to_binary(PT, latin1)
 	end,
 	URating = case I#ipdr_voip.usageRating of
 		undefined ->
 			<<>>;
 		UR ->
-		 <<UR>>
+			atom_to_binary(UR, latin1)
 	end,
-	ChargeA = case I#ipdr_voip.usageRating of
+	ChargeA = case I#ipdr_voip.chargeAmount of
 		undefined ->
 			<<>>;
 		CA ->
