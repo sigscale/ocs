@@ -1,6 +1,9 @@
 2018-03-14  Kalpa Gunarathna <kalpa@sigscale.org>
 
-	* support for VOIP IPDR logging
+	* ims profile diamater ro logging
+	* ipdr voip profile logs
+	* ipdr voip profile usage api
+	* ipdr file ui view
 
 2018-03-01  Vance Shipley <vances@sigscale.org>
 
