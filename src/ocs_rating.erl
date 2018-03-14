@@ -221,7 +221,7 @@ rate3(Protocol, Subscriber, Address,
 		#char_value_use{values = [#char_value{value = TariffTable}]} ->
 			Table = list_to_existing_atom(TariffTable),
 			case catch ocs_gtt:lookup_last(Table, Address) of
-				{Description, Amount} ->
+				{Description, Amount, _} ->
 					case Amount of
 						N when N >= 0 ->
 							rate4(Protocol, Subscriber, Price#price{amount = N},
@@ -649,7 +649,7 @@ authorize3(Protocol, ServiceType, Subscriber, Address,
 		#char_value_use{values = [#char_value{value = TariffTable}]} ->
 			Table = list_to_existing_atom(TariffTable),
 			case catch ocs_gtt:lookup_last(Table, Address) of
-				{_Description, Amount} ->
+				{_Description, Amount, _} ->
 					case Amount of
 						N when N >= 0 ->
 							authorize4(Protocol, ServiceType, Subscriber,
