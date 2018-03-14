@@ -28,8 +28,6 @@
 			.item {
 				cursor: pointer;
 				padding: 5px;
-				width: 150px;
-				height: 50px;
 			}
 		</style>
 		<paper-dialog id="selectLogFileModal"
@@ -39,7 +37,7 @@
 			</paper-toolbar>
 			<paper-dialog-scrollable>
 				<iron-list id="logFiles"
-						as="item" grid>
+						as="item">
 					<template>
 						<div class="item" on-tap="getLogContent">
 							<iron-icon icon="assignment"></iron-icon>
