@@ -170,9 +170,11 @@
 				} else if(!startDateTime && !endDateTime) {
 					tabName.validFor = {endDateTime};
 				}
-				var ajax = this.$.addTableAjax;
-				ajax.body = tabName; 
-				ajax.generateRequest();
+				if(tabName.name) {
+					var ajax = this.$.addTableAjax;
+					ajax.body = tabName;
+					ajax.generateRequest();
+				}
 				this.$.addTableName.value = null;
 				this.$.addTableDesc.value = null;
 				this.$.addTableStart.value = null;
