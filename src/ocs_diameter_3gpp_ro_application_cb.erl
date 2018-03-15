@@ -201,7 +201,7 @@ request({_, Address, Port} = ServiceName, Capabilities, Request, [H | T]) ->
 			request(ServiceName, Capabilities, Request, T)
 	end;
 request(_, _, _, []) ->
-	{answer, 3010}.
+	{answer_message, 3010}.
 
 -spec errors(ServiceName, Capabilities, Request, Errors) -> Action
 	when
