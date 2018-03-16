@@ -311,6 +311,8 @@
 							<div class="buttons">
 								<paper-button
 										raised
+										id="tabOkButton"
+										disabled
 										onclick="drawer.toggle()"
 										on-tap="tableOk"
 										class="ok-button">
@@ -391,6 +393,9 @@
 			tableSelection: function(e) {
 				if(e.model.item && e.model.item.id) {
 					this.$.prefixList.table = e.model.item.id;
+					this.$.tabOkButton.disabled = false;
+				} else {
+					this.$.tabOkButton.disabled = true;
 				}
 			},
 			tableDelete: function(event) {
