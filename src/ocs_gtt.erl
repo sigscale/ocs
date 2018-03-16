@@ -346,8 +346,25 @@ import2(Table, [<<>>], _LM, Acc) ->
 	F = fun(#gtt{} = G) -> mnesia:write(Table, G, write) end,
 	lists:foreach(F, Acc);
 import2(Table, [Chunk | Rest], LM, Acc) ->
-	NewAcc = [import3(binary:split(Chunk, [<<",">>], [global]), LM, []) | Acc],
-	import2(Table, Rest, LM, NewAcc).
+	case binary:split(Chunk, [<<"\"">>], [global]) of
+		[Chunk] ->
+			NewAcc = [import3(binary:split(Chunk, [<<",">>], [global]), LM, []) | Acc],
+			import2(Table, Rest, LM, NewAcc);
+		SplitedChunks ->
+			F = fun(<<$, , T/binary>>, AccIn) ->
+						[T | AccIn];
+					(C, AccIn) ->
+						case binary:at(C, size(C) - 1) of
+							$, ->
+								[binary:part(C, 0, size(C) - 1) | AccIn];
+							_ ->
+								[C | AccIn]
+						end
+			end,
+			AccOut = lists:foldl(F, [], SplitedChunks),
+			NewAcc = [import3(lists:reverse(AccOut), LM, []) | Acc],
+			import2(Table, Rest, LM, NewAcc)
+	end.
 %% @hidden
 import3([<<>> | T], LM, Acc) ->
 	import3(T, LM, [undefined, Acc]);
