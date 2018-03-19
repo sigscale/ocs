@@ -148,8 +148,8 @@ rate1(Protocol, ServiceType, Subscriber, Timestamp, Address, Direction,
 							and
 							(((Protocol == radius)
 								and
-								(((ServiceType == ?RADIUSFRAMED) orelse (ServiceType == ?RADIUSLOGIN)) and ((Spec == "4") orelse (Spec == "8")))
-								orelse
+								(((ServiceType == ?RADIUSFRAMED) orelse (ServiceType == ?RADIUSLOGIN))
+								and ((Spec == "4") orelse (Spec == "8"))) orelse
 								((ServiceType == ?RADIUSVOICE) and ((Spec == "5") orelse (Spec == "9"))))
 							orelse
 							((Protocol == diameter)
