@@ -400,7 +400,7 @@
 			},
 			_deleteTableResponse: function(event) {
 				this.$.tableList.close();
-				document.getElementById('productGrid').clearCache();
+				document.getElementById('getTableAjax').generateRequest();
 			},
 			loadElement: function(event) {
 				switch(event.detail.item.getAttribute('id')) {
