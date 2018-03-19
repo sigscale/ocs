@@ -1471,6 +1471,9 @@ price([units | T], #price{units = octets, size = Size} = P, Acc)
 price([units | T], #price{units = seconds, size = Size} = P, Acc)
 		when is_integer(Size) ->
 	price(T, P, [{"unitOfMeasure", integer_to_list(Size) ++ "s"} | Acc]);
+price([units | T], #price{units = messages, size = Size} = P, Acc)
+		when is_integer(Size) ->
+	price(T, P, [{"unitOfMeasure", integer_to_list(Size) ++ "msg"} | Acc]);
 price([amount | T], #price{amount = Amount, currency = Currency} = P, Acc)
 		when is_integer(Amount), is_list(Currency) ->
 	Price = {struct, [{"taxIncludedAmount", ocs_rest:decimal(Amount)},
@@ -1536,7 +1539,13 @@ price([{"unitOfMeasure", UnitOfMeasure} | T], Acc)
 			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
 			price(T, Acc#price{units = seconds, size = list_to_integer(N)});
 		_ ->
-			price(T, Acc#price{size = list_to_integer(UnitOfMeasure)})
+			case lists:suffix("msg", UnitOfMeasure) of
+				true ->
+					N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 3),
+					price(T, Acc#price{units = messages, size = list_to_integer(N)});
+				false ->
+					price(T, Acc#price{size = list_to_integer(UnitOfMeasure)})
+			end
 	end;
 price([{"price", {struct, L}} | T], Acc) when is_list(L) ->
 	Acc1 = case lists:keyfind("taxIncludedAmount", 1, L) of
@@ -1606,6 +1615,9 @@ alteration([units | T], #alteration{units = octets, size = Size} = A, Acc)
 alteration([units | T], #alteration{units = seconds, size = Size} = A, Acc)
 		when is_integer(Size) ->
 	alteration(T, A, [{"unitOfMeasure", integer_to_list(Size) ++ "s"} | Acc]);
+alteration([units | T], #alteration{units = messages, size = Size} = A, Acc)
+		when is_integer(Size) ->
+	alteration(T, A, [{"unitOfMeasure", integer_to_list(Size) ++ "msg"} | Acc]);
 alteration([amount | T], #alteration{amount = Amount, currency = Currency} = A, Acc)
 		when is_integer(Amount), is_list(Currency) ->
 	Price = {struct, [{"taxIncludedAmount", ocs_rest:decimal(Amount)},
@@ -1666,7 +1678,13 @@ alteration([{"unitOfMeasure", UnitOfMeasure} | T], Acc) ->
 			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
 			alteration(T, Acc#alteration{units = seconds, size = list_to_integer(N)});
 		_ ->
-			alteration(T, Acc#alteration{size = list_to_integer(UnitOfMeasure)})
+			case lists:suffix("msg", UnitOfMeasure) of
+				true ->
+					N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 3),
+					alteration(T, Acc#alteration{units = messages, size = list_to_integer(N)});
+				false ->
+					alteration(T, Acc#alteration{size = list_to_integer(UnitOfMeasure)})
+			end
 	end;
 alteration([{"price", {struct, L}} | T], Acc) ->
 	Acc1 = case lists:keyfind("taxIncludedAmount", 1, L) of
