@@ -320,6 +320,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 				'CC-Input-Octets' = [CCInputOctets]} when is_integer(CCInputOctets),
 				is_integer(CCOutputOctets) ->
 			{octets, CCOutputOctets + CCOutputOctets};
+		#'3gpp_ro_Requested-Service-Unit'{'CC-Service-Specific-Units' = [CCSpecUnits]} when
+				is_integer(CCSpecUnits) ->
+			{messages, CCSpecUnits};
 		_ ->
 			throw(unsupported_request_units)
 	end,
@@ -334,7 +337,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST' = RequestType,
 				seconds ->
 					#'3gpp_ro_Granted-Service-Unit'{'CC-Time' = [GrantedAmount]};
 				octets ->
-					#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [GrantedAmount]}
+					#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [GrantedAmount]};
+				messages ->
+					#'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [GrantedAmount]}
 			end,
 			Reply = generate_diameter_answer(SId, GrantedUnits,
 					?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
@@ -398,6 +403,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 					'CC-Input-Octets' = [CCInputOctets]} when is_integer(CCInputOctets),
 					is_integer(CCOutputOctets) ->
 				{octets, CCOutputOctets + CCOutputOctets};
+			#'3gpp_ro_Requested-Service-Unit'{'CC-Service-Specific-Units' = [CCSpecUnits]} when
+					is_integer(CCSpecUnits) ->
+				{messages, CCSpecUnits};
 			_ ->
 				throw(unsupported_request_units)
 		end,
@@ -417,6 +425,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 					'CC-Input-Octets' = [UsedCCInputOctets]} when is_integer(UsedCCInputOctets),
 					is_integer(UsedCCOutputOctets) ->
 				{octets, UsedCCInputOctets + UsedCCOutputOctets};
+			#'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units' = [UsedCCSpecUnits]}
+					when is_integer(UsedCCSpecUnits) ->
+				{messages, UsedCCSpecUnits};
 			[] ->
 				throw(used_amount_not_available)
 		end,
@@ -433,7 +444,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 					seconds ->
 						#'3gpp_ro_Granted-Service-Unit'{'CC-Time' = [GrantedAmount]};
 					octets ->
-						#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [GrantedAmount]}
+						#'3gpp_ro_Granted-Service-Unit'{'CC-Total-Octets' = [GrantedAmount]};
+					messages ->
+						#'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [GrantedAmount]}
 				end,
 				Reply = generate_diameter_answer(SId,
 						GrantedUnits, ?'DIAMETER_BASE_RESULT-CODE_SUCCESS', OHost, ORealm,
@@ -502,6 +515,9 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST' = RequestType,
 					'CC-Input-Octets' = [CCInputOctets]} when is_integer(CCInputOctets),
 					is_integer(CCOutputOctets) ->
 				{octets, CCInputOctets + CCOutputOctets};
+			#'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units' = [CCSpecUnits]}
+					when is_integer(CCSpecUnits) ->
+				{messages, CCSpecUnits};
 			[] ->
 				throw(used_amount_not_available)
 		end,
