@@ -741,6 +741,10 @@ product_spec("8") ->
 	spec_prod_prepaid_data();
 product_spec("9") ->
 	spec_prod_prepaid_voice();
+product_spec("10") ->
+	spec_prod_sms();
+product_spec("11") ->
+	spec_prod_prepaid_sms();
 product_spec(_) ->
 	{error, 404}.
 
@@ -898,6 +902,41 @@ spec_prod_prepaid_voice() ->
 	DepHref2 = {"href", ?productSpecPath "6"},
 	Depend2 = {struct, [DepId2, DepHref2, DepType]},
 	Dependency = {"productSpecificationRelationship", {array, [Depend1, Depend2]}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Dependency]}.
+
+%% @hidden
+spec_prod_sms() ->
+	Id = {"id", "10"},
+	Href = {"href", ?productSpecPath "10"},
+	Name = {"name", "SMSProductSpec"},
+	Description = {"description", "Defines characteristics specific to SMS."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2018-03-18T12:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	DepType = {"type", "dependency"},
+	DepId1 = {"id", "1"},
+	DepHref1 = {"href", ?productSpecPath "1"},
+	Depend1 = {struct, [DepId1, DepHref1, DepType]},
+	DepId2 = {"id", "3"},
+	DepHref2 = {"href", ?productSpecPath "3"},
+	Depend2 = {struct, [DepId2, DepHref2, DepType]},
+	Dependency = {"productSpecificationRelationship", {array, [Depend1, Depend2]}},
+	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Dependency]}.
+
+%% @hidden
+spec_prod_prepaid_sms() ->
+	Id = {"id", "11"},
+	Href = {"href", ?productSpecPath "11"},
+	Name = {"name", "PrepaidSMSProductSpec"},
+	Description = {"description", "Defines characteristics specific to prepaid sms."},
+	Version = {"version", "1.0"},
+	LastUpdate = {"lastUpdate", "2018-03-19T12:00:00Z"},
+	Status = {"lifecycleStatus", "Active"},
+	DepType = {"type", "dependency"},
+	DepId1 = {"id", "10"},
+	DepHref1 = {"href", ?productSpecPath "10"},
+	Depend1 = {struct, [DepId1, DepHref1, DepType]},
+	Dependency = {"productSpecificationRelationship", {array, [Depend1]}},
 	{struct, [Id, Name, Href, Description, Version, LastUpdate, Status, Dependency]}.
 
 %% @hidden
