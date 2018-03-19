@@ -190,10 +190,6 @@
 			<p>To the right of the title is the <b>Refresh</b> icon:
 			<iron-icon class="iconHelp" icon="refresh"></iron-icon>. Selecting
 			this will get new data from OCS for the current view.</p>
-			<p>Next is the <b>Download</b> icon:
-			<iron-icon class="iconHelp" icon="file-download"></iron-icon>.
-			Selecting this in a grid view will download a comma separated
-			values (<b>CSV</b>) file with all rows in the current view.</p>
 			<p>On the far right of the toolbar is the <b>Overflow Menu</b> icon:
 			<iron-icon class="iconHelp" icon="icons:more-vert"></iron-icon>.
 			Selecting this will open a menu providing access to <b>Help</b>
