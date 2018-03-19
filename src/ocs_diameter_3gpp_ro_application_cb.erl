@@ -641,7 +641,7 @@ service_type(Id) ->
 	case binary:part(Id, size(Id), -8) of
 		<<"3gpp.org">> ->
 			ServiceContext = binary:part(Id, byte_size(Id) - 14, 5),
-			case catch binary:decode_unsigned(ServiceContext) of
+			case catch binary_to_integer(ServiceContext) of
 				{'EXIT', _} ->
 					undefined;
 				SeviceType ->
