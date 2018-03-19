@@ -27,7 +27,7 @@
 -type product_price_type() :: recurring | one_time | usage | tariff.
 
 %% define unit of measure
--type unit_of_measure() :: octets| cents | seconds.
+-type unit_of_measure() :: octets| cents | seconds | messages.
 
 %% define recurring charge period
 -type recur_period() :: hourly | daily | weekly | monthly | yearly.
@@ -136,7 +136,7 @@
 				DebitAmount :: non_neg_integer(),
 				ReservedAmount :: non_neg_integer(),
 				SessionId :: string() | binary()}],
-		units :: octets | cents | seconds | undefined,
+		units :: octets | cents | seconds | messages | undefined,
 		prices = [] :: list(),
 		last_modified :: tuple() | undefined}).
 
