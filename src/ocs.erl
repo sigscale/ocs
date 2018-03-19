@@ -754,8 +754,8 @@ add_product(#product{price = Prices} = Product) when length(Prices) > 0 ->
 			(#alteration{name = Name, type = usage, period = undefined,
 					units = Units, size = Size, amount = Amount})
 					when length(Name) > 0, ((Units == octets)
-					or (Units == seconds)), is_integer(Size), Size > 0,
-					is_integer(Amount) ->
+					or (Units == seconds) or (Units == messages)),
+					is_integer(Size), Size > 0, is_integer(Amount) ->
 				true;
 			(#alteration{}) ->
 				false
@@ -771,12 +771,18 @@ add_product(#product{price = Prices} = Product) when length(Prices) > 0 ->
 					or (Period == monthly) or (Period == yearly)),
 					is_integer(Amount), Amount > 0 ->
 				Fvala(Alteration);
+			(#price{name = Name, type = usage, units = Units,
+					size = Size, amount = Amount, alteration = undefined})
+					when length(Name) > 0, Units == messages, is_integer(Size),
+					Size > 0, is_integer(Amount), Amount > 0 ->
+				true;
 			(#price{name = Name, type = usage, period = undefined,
 					units = Units, size = Size,
 					amount = Amount, alteration = Alteration})
 					when length(Name) > 0, ((Units == octets)
-					or (Units == seconds)), is_integer(Size), Size > 0,
-					is_integer(Amount), Amount > 0 ->
+					or (Units == seconds) or (Units == message)),
+					is_integer(Size), Size > 0, is_integer(Amount),
+					Amount > 0 ->
 				Fvala(Alteration);
 			(#price{type = tariff, alteration = undefined,
 					size = Size, units = Units, amount = Amount})
