@@ -765,7 +765,7 @@ usage_aaa_ipdr(Event, Filters) when is_record(Event, ipdr_voip) ->
 	UsageSpec = {struct, [{"id", "VoIPUsageSpec"},
 			{"href", ?usageSpecPath ++ "VoIPUsageSpec"},
 			{"name", "VoIPUsageSpec"}]},
-	Type = "VoIPUsageSpec",
+	Type = "VoIPUsage",
 	Status = "rated",
 	ID = integer_to_list(Event#ipdr_voip.seqNum),
 	Href = ?usagePath ++ ID,

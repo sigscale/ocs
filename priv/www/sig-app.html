@@ -130,11 +130,6 @@
 							icon="refresh"
 							on-tap="refresh">
 					</paper-icon-button>
-					<paper-icon-button
-							id="download"
-							icon="file-download"
-							on-tap="download" >
-					</paper-icon-button>
 					<paper-progress
 							id="progress"
 							value="0"
@@ -405,7 +400,7 @@
 			},
 			_deleteTableResponse: function(event) {
 				this.$.tableList.close();
-				document.getElementById('productGrid').clearCache();
+				document.getElementById('getTableAjax').generateRequest();
 			},
 			loadElement: function(event) {
 				switch(event.detail.item.getAttribute('id')) {
@@ -485,117 +480,7 @@
 						document.getElementById('prefixGrid').generateRequest();
 						break;
 				}
-			},
-			download: function() {
-				var csvObject = new Object();
-				switch (this.$.loadPage.selected) {
-					case 0:
-						var data = document.getElementById("productGrid").items;
-						csvObject.gridData = data;
-						csvObject.headers = "Name,Description,StartDate,EndDate,"
-								+ "Status,Prices \n";
-						csvObject.keys = ["name", "description", "startDate",
-								"endDate", "status", "price"];
-						csvObject.fileName = "product.csv";
-						generateCSVData(csvObject);
-						break;
-					case 1:
-						var data = document.getElementById("subscriberGrid").items;
-						csvObject.gridData = data;
-						csvObject.headers = "Identity,Password,Product,Balance,"
-								+ "Enabled,Multisession \n";
-						csvObject.keys = ["id", "password", "product",
-								"totalBalance", "enabled", "multisession"];
-						csvObject.fileName = "subscribers.csv";
-						generateCSVData(csvObject);
-						break;
-					case 2:
-						var data = document.getElementById("clientGrid").items;
-						csvObject.gridData = data;
-						csvObject.headers = "Address,Identifier,Secret,ListenPort,Protocol \n";
-						csvObject.keys = ["id", "identifier", "secret", "port", "protocol"];
-						csvObject.fileName = "clients.csv";
-						generateCSVData(csvObject);
-						break;
-					case 3:
-						var data = document.getElementById("userGrid").items;
-						csvObject.gridData = data;
-						csvObject.headers = "UserName,Language\n";
-						csvObject.keys = ["id", "language"];
-						csvObject.fileName = "user_list.csv";
-						generateCSVData(csvObject);
-						break;
-					case 4:
-						var data = document.getElementById("accessGrid").items;
-						csvObject.gridData = data;
-						csvObject.headers = "TimeStamp,ClientAddress,ClientIdentity,CalledStation,"
-								+ "UserName,Type\n";
-						csvObject.keys = ["timeStamp", "clientAddress", "nasIdentifier", "calledStation",
-								"username", "type"];
-						csvObject.fileName = "access.csv";
-						generateCSVData(csvObject);
-						break;
-					case 5:
-						var data = document.getElementById("accountingGrid").items;
-						csvObject.gridData = data;
-						csvObject.headers = "TimeStamp,ClientIdentity,Duration,Out(bytes),In(bytes),Username,Type\n";
-						csvObject.keys = ["timeStamp", "nasIdentifier", "acctSessiontime",
-								"acctOutputoctets", "acctInputoctets", "username", "type"];
-						csvObject.fileName = "accounting.csv";
-						generateCSVData(csvObject);
-						break;
-					case 6:
-						var data = document.getElementById("ipdrGrid").items;
-						csvObject.gridData = data;
-						csvObject.headers = "Creation Time,Sequence,Username,Session ID,"
-								+ "Calling Station,Called Station,NAS Address,NAS ID,"
-								+ "Duration,Input Octets,Output Octets,Start Time,"
-								+ "End Time,Cause\n";
-						csvObject.keys = ["ipdrCreationTime", "seqNum", "username",
-								"acctSessionId", "callingStationId", "calledStationId",
-								"nasIpAddress", "nasId", "sessionDuration", "inputOctets",
-								"outputOctets", "gmtSessionStartDateTime",
-								"gmtSessionEndDateTime", "sessionTerminateCause"];
-						csvObject.fileName = "usage_logs.csv";
-						generateCSVData(csvObject);
-						break;
-					case 7:
-						var data = document.getElementById("httpGrid").items;
-						csvObject.gridData = data;
-						csvObject.headers = "DateTime,Host,User,Method,Resource,Status\n";
-						csvObject.keys = ["datetime", "host", "user", "method",
-								"uri", "httpStatus"];
-						csvObject.fileName = "http.csv";
-						generateCSVData(csvObject);
-						break;
-				}
 			}
 		});
-		function generateCSVData(csvObject) {
-			var csvData = "data:text/csv;charset=utf-8,";
-			csvData += csvObject.headers;
-			csvObject.gridData.forEach(
-				function(row, index) {
-					var dataLine = "";
-					csvObject.keys.forEach(
-						function(key, i) {
-							if(row[key] === undefined) {
-								dataLine = ",";
-							} else {
-								dataLine += row[key] + ",";
-							}
-						}
-					);
-					dataLine += "\n";
-					csvData += dataLine;
-				}
-			);
-			var encodedUri = encodeURI(csvData);
-			var link = document.createElement("a");
-			link.setAttribute("href", encodedUri);
-			link.setAttribute("download", csvObject.fileName);
-			document.body.appendChild(link);
-			link.click();
-		}
 	</script>
 </dom-module>
