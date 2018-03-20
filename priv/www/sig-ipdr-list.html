@@ -261,6 +261,7 @@
 				this.etag = null;
 				delete this.$.getIpdr.params['date'];
 				document.getElementById("getLogsAjax").generateRequest();
+				document.getElementById("ipdrGrid").clearCache();
 			},
 			getLogContentResponse: function(params, callback) {
 				document.getElementById("selectLogFileModal").close();
