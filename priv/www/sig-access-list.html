@@ -227,8 +227,6 @@
 			refreshAccess: function() {
 				this.etag = null;
 				delete this.$.getAccess.headers['If-Range'];
-				delete this.$.getUsageAjax.params['filter'];
-				delete this.$.getUsageAjax.params['date'];
 				this.filterTimeStamp = null;
 				this.filterClientAddress = null;
 				this.filterclientIdentity = null;
