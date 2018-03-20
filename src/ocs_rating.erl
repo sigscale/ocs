@@ -84,8 +84,8 @@
 %% 	updates or `{ok, Subscriber, Amount, Rated}' for final.
 %%
 %% 	If subscriber's balance is insufficient to cover the `DebitAmounts'
-%% 	and `ReserveAmounts' returns `{out_of_credit, SessionList}' for interim
-%% 	updates and `{out_of_credit, SessionList, Rated}' for final or
+%% 	and `ReserveAmounts' returns `{out_of_credit, SessionList}' for initial
+%% 	request and `{out_of_credit, SessionList, Rated}' for update or final and
 %% 	`{disabled, SessionList}' if the subscriber is not enabled. In both
 %% 	 cases subscriber's balance is debited.  `SessionList' describes the
 %% 	known active sessions whichshould be disconnected.
@@ -449,8 +449,18 @@ rate6(#subscriber{session_attributes = SessionList,
 	ok = mnesia:write(Subscriber2),
 	{ok, Subscriber2, 0, Rated1};
 rate6(#subscriber{session_attributes = SessionList,
-		buckets = Buckets} = Subscriber1,
-		final, _Charge, _Charged, 0, 0, SessionId, Rated) ->
+		buckets = Buckets} = Subscriber1, initial,
+		Charge, Charged, Reserve, Reserved, SessionId, _Rated)
+		when Charged < Charge; Reserved <  Reserve ->
+	NewBuckets = refund(SessionId, Buckets),
+	Subscriber2 = Subscriber1#subscriber{buckets = NewBuckets,
+			session_attributes = []},
+	ok = mnesia:write(Subscriber2),
+	{out_of_credit, SessionList};
+rate6(#subscriber{session_attributes = SessionList,
+		buckets = Buckets} = Subscriber1, final,
+		Charge, Charged, Reserve, Reserved, SessionId, Rated)
+		when Charged < Charge; Reserved <  Reserve ->
 	NewBuckets1 = refund(SessionId, Buckets),
 	{Seconds, Octets, Cents, Msgs, NewBuckets2} = get_debits(SessionId, NewBuckets1),
 	Rated1 = rated(Seconds, Octets, Cents, Msgs, Rated),
@@ -466,15 +476,6 @@ rate6(#subscriber{enabled = false, buckets = Buckets,
 			session_attributes = []},
 	ok = mnesia:write(Subscriber2),
 	{disabled, SessionList};
-rate6(#subscriber{session_attributes = SessionList,
-		buckets = Buckets} = Subscriber1, _Flag,
-		Charge, Charged, Reserve, Reserved, SessionId, _Rated)
-		when Charged < Charge; Reserved <  Reserve ->
-	NewBuckets = refund(SessionId, Buckets),
-	Subscriber2 = Subscriber1#subscriber{buckets = NewBuckets,
-			session_attributes = []},
-	ok = mnesia:write(Subscriber2),
-	{out_of_credit, SessionList};
 rate6(#subscriber{session_attributes = SessionList} = Subscriber1,
 		initial, 0, 0, _Reserve, Reserved, SessionId, _Rated) ->
 	NewSessionList = add_session(SessionId, SessionList),
