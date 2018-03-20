@@ -944,7 +944,7 @@ abmf_open() ->
 		Type :: deduct | reserve | unreserve | transfer | topup | adjustment,
 		Subscriber :: binary(),
 		Bucket :: undefined | string(),
-		Units :: cents | seconds | octets,
+		Units :: cents | seconds | octets | messages,
 		Product :: string(),
 		Amount :: integer(),
 		AmountBefore :: integer(),
@@ -968,9 +968,9 @@ abmf_log(Type, Subscriber, Bucket, Units, Product, Amount,
 		when ((Type == transfer) orelse (Type == topup) orelse
 		(Type == adjustment) orelse (Type == deduct) orelse (Type == reserve)
 		orelse (Type == unreserve)), is_binary(Subscriber), is_list(Bucket),
-		((Units == cents) orelse (Units == seconds) orelse (Units == octets)),
-		is_integer(AmountBefore), is_integer(AmountAfter), is_list(Product),
-		is_integer(Amount)->
+		((Units == cents) orelse (Units == seconds) orelse (Units == octets)
+		orelse (Units == messages)), is_integer(AmountBefore), is_integer(AmountAfter),
+		is_list(Product), is_integer(Amount)->
 	Event = [node(), Type, Subscriber, Bucket, Units, Product, Amount,
 			AmountBefore, AmountAfter, Validity, Channel, Requestor,
 			RelatedParty, PaymentMeans, Action, Status],
@@ -985,7 +985,7 @@ abmf_log(Type, Subscriber, Bucket, Units, Product, Amount,
 		Type :: deduct | reserve | unreserve | transfer | topup | adjustment,
 		Subscriber :: binary() | '_',
 		Bucket :: string() | '_',
-		Units :: cents | seconds | octets | '_',
+		Units :: cents | seconds | octets | messages | '_',
 		Product :: string() | '_',
 		Result :: {Continuation2, Events} | {error, Reason},
 		Continuation2 :: eof | disk_log:continuation(),
@@ -2217,7 +2217,7 @@ auth_query5(_Attributes, []) ->
 		Type :: transfer | topup | adjustment | '_',
 		Subscriber :: binary() | '_',
 		Bucket :: string() | '_',
-		Units :: cents | seconds | octets | '_',
+		Units :: cents | seconds | octets | messages | '_',
 		Product :: string() | '_',
 		Events :: [acct_event()].
 %% @private

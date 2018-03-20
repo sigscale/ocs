@@ -59,22 +59,27 @@ content_types_provided() ->
 %% requests.
 get_balance_log() ->
 	{ok, MaxItems} = application:get_env(ocs, rest_page_size),
-	case ocs_log:abmf_open() of
-		ok ->
-			case ocs_log:last(ocs_abmf, MaxItems) of
-				{error, _} ->
-					{error, 404};
-				{NewCount, Events} ->
-					JsonObj = abmf_json(Events),
-					JsonArray = {array, JsonObj},
-					Body = mochijson:encode(JsonArray),
-					ContentRange = "items 1-" ++ integer_to_list(NewCount) ++ "/*",
-					Headers = [{content_type, "application/json"},
-						{content_range, ContentRange}],
-					{ok, Headers, Body}
-			end;
-		{error, _} ->
-			{error, 404}
+	try
+		case ocs_log:abmf_open() of
+			ok ->
+				case ocs_log:last(ocs_abmf, MaxItems) of
+					{error, _} ->
+						{error, 404};
+					{NewCount, Events} ->
+						JsonObj = abmf_json(Events),
+						JsonArray = {array, JsonObj},
+						Body = mochijson:encode(JsonArray),
+						ContentRange = "items 1-" ++ integer_to_list(NewCount) ++ "/*",
+						Headers = [{content_type, "application/json"},
+							{content_range, ContentRange}],
+						{ok, Headers, Body}
+				end;
+			{error, _} ->
+				{error, 404}
+		end
+	catch
+		_:_ ->
+			{error, 500}
 	end.
 
 -spec specific_bucket_balance(SubscriberID, BucketID) -> Result
@@ -281,7 +286,7 @@ top_up1(Identity, Bucket) ->
 
 -spec units(Units) -> Units
 	when
-		Units :: string() | octets | cents | seconds.
+		Units :: string() | octets | cents | seconds | messages.
 %% @doc Return the type of units of the bucket.
 units(Units) when is_list(Units) ->
 	units1(string:to_lower(Units));
@@ -291,9 +296,11 @@ units(Units) when is_atom(Units) ->
 units1("octets") -> octets;
 units1("cents") -> cents;
 units1("seconds") -> seconds;
+units1("messages") -> messages;
 units1(octets) -> "octets";
 units1(cents) -> "cents";
-units1(seconds) -> "seconds".
+units1(seconds) -> "seconds";
+units1(messages) -> "messages".
 
 %% @hidden
 generate_bucket_id() ->
@@ -408,22 +415,80 @@ bucket1([], _B, Acc) ->
 
 % @hidden
 abmf_json(Events) ->
-	F = fun({Timestamp, _N, Type, Subscriber, Bucket, Units,
-		 Amount, AmountBefore, AmountAfter, Product},  Acc) ->
-				Timestamp1 = ocs_log:iso8601(Timestamp),
-				Subscriber1 = {struct,[{"id", Subscriber}]},
-				Bucket1 = {struct, [{"id", Bucket}, {"href", ?bucketPath ++ Bucket}]},
-				Amount1 = {struct, [{"units", Units}, {"amount", Amount}]},
-				AmountBefore1 = {struct, [{"units", Units}, {"amount", AmountBefore}]},
-				AmountAfter1 = {struct, [{"units", Units}, {"amount", AmountAfter}]},
-				Product1 = {struct, [{"id", Product}, {"href", ?productPath ++ Product}]},
-				Obj0 = [{"product", Product1}, {"amountAfter", AmountAfter1}, 
-						{"amountBefore", AmountBefore1}, {"amount", Amount1},
-						{"bucketBalance", Bucket1}, {"subscriber", Subscriber1},
-						{"date", Timestamp1}, {"type", Type}],
-				[{struct, lists:reverse(Obj0)} | Acc];
-		(_, Acc) ->
-				Acc
-	end,
-	lists:reverse(lists:foldl(F, [], Events)).
+	lists:map(fun abmf_json0/1, Events).
+% @hidden
+abmf_json0(Event) ->
+	{struct, abmf_json0(Event, [])}.
+%% @hidden
+abmf_json0(Event, Acc) when element(1, Event) /= undefined ->
+	Date = {"date", ocs_log:iso8601(element(1, Event))},
+	abmf_json1(Event, [Date | Acc]);
+abmf_json0(Event, Acc) ->
+	abmf_json1(Event, Acc).
+%% @hidden
+abmf_json1(Event, Acc) when element(4, Event) /= undefined ->
+	Type = {"type", element(4, Event)},
+	abmf_json2(Event, [Type | Acc]);
+abmf_json1(Event, Acc) ->
+	abmf_json2(Event, Acc).
+%% @hidden
+abmf_json2(Event, Acc) when element(5, Event) /= undefined,
+		is_list(element(5, Event)) ->
+	Sub = {"subscriber", {struct,[{"id", element(5, Event)}]}},
+	abmf_json3(Event, [Sub | Acc]);
+abmf_json2(Event, Acc) when element(5, Event) /= undefined ->
+	Sub = {"subscriber",
+			{struct,[{"id", binary_to_list(element(5, Event))}]}},
+	abmf_json3(Event, [Sub | Acc]);
+abmf_json2(Event, Acc) ->
+	abmf_json3(Event, Acc).
+%% @hidden
+abmf_json3(Event, Acc) when element(6, Event) /= undefined ->
+	Bucket = element(6, Event),
+	Bucket1 = {"bucketBalance", {struct, [{"id", Bucket},
+			{"href", ?bucketPath ++ Bucket}]}},
+	abmf_json4(Event, [Bucket1 | Acc]);
+abmf_json3(Event, Acc) ->
+	abmf_json4(Event, Acc).
+%% @hidden
+abmf_json4(Event, Acc) when element(7, Event) /= undefined,
+		is_integer(element(9, Event)) ->
+	Units = element(7, Event),
+	Amount = element(9, Event),
+	Amount1 = {"amount",	{struct,
+			[{"units", units(Units)}, {"amount", Amount}]}},
+	abmf_json5(Event, [Amount1 | Acc]);
+abmf_json4(Event, Acc) ->
+	abmf_json5(Event, Acc).
+%% @hidden
+abmf_json5(Event, Acc) when element(7, Event) /= undefined,
+		is_integer(element(10, Event)) ->
+	Units = element(7, Event),
+	Amount = element(10, Event),
+	AmountBefore1 = {"amountBefore",
+			{struct, [{"units", units(Units)}, {"amount", Amount}]}},
+	abmf_json6(Event, [AmountBefore1 | Acc]);
+abmf_json5(Event, Acc) ->
+	abmf_json6(Event, Acc).
+%% @hidden
+abmf_json6(Event, Acc) when element(7, Event) /= undefined,
+		is_integer(element(10, Event)) ->
+	Units = element(7, Event),
+	Amount = element(11, Event),
+	AmountAfter = {"amountAfter",
+			{struct, [{"units", units(Units)}, {"amount", Amount}]}},
+	abmf_json7(Event, [AmountAfter | Acc]);
+abmf_json6(Event, Acc) ->
+	abmf_json7(Event, Acc).
+%% @hidden
+abmf_json7(Event, Acc) when element(8, Event) /= undefined ->
+	Product = element(8, Event),
+	Product1 = {"product", {struct,
+			[{"id", Product}, {"href", ?productPath ++ Product}]}},
+	abmf_json8(Event, [Product1 | Acc]);
+abmf_json7(Event, Acc) ->
+	abmf_json8(Event, Acc).
+%% @hidden
+abmf_json8(Event, Acc) ->
+	lists:reverse(Acc).
 
