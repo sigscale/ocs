@@ -1519,31 +1519,31 @@ price([{"priceType", Type} | T], Acc) when is_list(Type) ->
 	price(T, Acc#price{type = price_type(Type)});
 price([{"unitOfMeasure", UnitOfMeasure} | T], Acc)
 		when is_list(UnitOfMeasure) ->
-	case lists:last(UnitOfMeasure) of
-		$b ->
-			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
-			price(T, Acc#price{units = octets, size = list_to_integer(N)});
-		$k ->
-			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
-			price(T, Acc#price{units = octets,
-					size = list_to_integer(N) * 1000});
-		$m ->
-			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
-			price(T, Acc#price{units = octets,
-					size = list_to_integer(N) * 1000000});
-		$g ->
-			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
-			price(T, Acc#price{units = octets,
-					size = list_to_integer(N) * 1000000000});
-		$s ->
-			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
-			price(T, Acc#price{units = seconds, size = list_to_integer(N)});
-		_ ->
-			case lists:suffix("msg", UnitOfMeasure) of
-				true ->
-					N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 3),
-					price(T, Acc#price{units = messages, size = list_to_integer(N)});
-				false ->
+	case lists:suffix("msg", UnitOfMeasure) of
+		true ->
+			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 3),
+			price(T, Acc#price{units = messages, size = list_to_integer(N)});
+		false ->
+			case lists:last(UnitOfMeasure) of
+				$b ->
+					N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+					price(T, Acc#price{units = octets, size = list_to_integer(N)});
+				$k ->
+					N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+					price(T, Acc#price{units = octets,
+							size = list_to_integer(N) * 1000});
+				$m ->
+					N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+					price(T, Acc#price{units = octets,
+							size = list_to_integer(N) * 1000000});
+				$g ->
+					N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+					price(T, Acc#price{units = octets,
+							size = list_to_integer(N) * 1000000000});
+				$s ->
+					N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+					price(T, Acc#price{units = seconds, size = list_to_integer(N)});
+				_ ->
 					price(T, Acc#price{size = list_to_integer(UnitOfMeasure)})
 			end
 	end;
@@ -1657,32 +1657,32 @@ alteration([{"validFor", {struct, L}} | T], Acc) when is_list(L) ->
 alteration([{"priceType", Type} | T], Acc) ->
 	alteration(T, Acc#alteration{type = price_type(Type)});
 alteration([{"unitOfMeasure", UnitOfMeasure} | T], Acc) ->
-	case lists:last(UnitOfMeasure) of
-		$b ->
-			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
-			alteration(T, Acc#alteration{units = octets,
-					size = list_to_integer(N)});
-		$k ->
-			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
-			alteration(T, Acc#alteration{units = octets,
-					size = list_to_integer(N) * 1000});
-		$m ->
-			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
-			alteration(T, Acc#alteration{units = octets,
-					size = list_to_integer(N) * 1000000});
-		$g ->
-			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
-			alteration(T, Acc#alteration{units = octets,
-					size = list_to_integer(N) * 1000000000});
-		$s ->
-			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
-			alteration(T, Acc#alteration{units = seconds, size = list_to_integer(N)});
-		_ ->
-			case lists:suffix("msg", UnitOfMeasure) of
-				true ->
-					N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 3),
-					alteration(T, Acc#alteration{units = messages, size = list_to_integer(N)});
-				false ->
+	case lists:suffix("msg", UnitOfMeasure) of
+		true ->
+			N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 3),
+			alteration(T, Acc#alteration{units = messages, size = list_to_integer(N)});
+		false ->
+			case lists:last(UnitOfMeasure) of
+				$b ->
+					N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+					alteration(T, Acc#alteration{units = octets,
+							size = list_to_integer(N)});
+				$k ->
+					N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+					alteration(T, Acc#alteration{units = octets,
+							size = list_to_integer(N) * 1000});
+				$m ->
+					N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+					alteration(T, Acc#alteration{units = octets,
+							size = list_to_integer(N) * 1000000});
+				$g ->
+					N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+					alteration(T, Acc#alteration{units = octets,
+							size = list_to_integer(N) * 1000000000});
+				$s ->
+					N = lists:sublist(UnitOfMeasure, length(UnitOfMeasure) - 1),
+					alteration(T, Acc#alteration{units = seconds, size = list_to_integer(N)});
+				_ ->
 					alteration(T, Acc#alteration{size = list_to_integer(UnitOfMeasure)})
 			end
 	end;
