@@ -151,7 +151,7 @@ all() ->
 	update_subscriber_password_json_patch,
 	update_subscriber_attributes_json_patch,
 	update_user_characteristics_json_patch,
-	add_product, get_product, update_product].
+	add_product, get_product, update_product, add_product_sms].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -2509,6 +2509,50 @@ update_product(Config) ->
 			RestPort, PatchContentType, Etag, AuthKey, ProductName, Body),
 	<<"HTTP/1.1 200", _/binary>> = Headers2,
 	ok = ssl_socket_close(SslSock).
+
+add_product_sms(Config) ->
+	CatalogHref = "/catalogManagement/v2",
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	ContentType = "application/json",
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	ProdId = ocs:generate_identity(),
+	Encodekey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	AuthKey = "Basic " ++ Encodekey,
+	Authorization = {"authorization", AuthKey},
+	ProdName = {"name", ProdId},
+	ProdDescirption = {"description", ocs:generate_password()},
+	IsBundle = {"isBundle", false},
+	IsCustomerVisible = {"isCustomerVisible", true},
+	Status = {"lifecycleStatus", "Active"},
+	StartTime = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
+	EndTime = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
+	ValidFor = {"validFor", {struct, [StartTime, EndTime]}},
+	ProdSpecID = {"id", "11"},
+	ProdSpecHref = {"href", CatalogHref ++ "/productSpecification/11"},
+	ProdSpec = {"productSpecification", {struct, [ProdSpecID, ProdSpecHref]}},
+	POPName = {"name", "usage"},
+	POPDescription = {"description", ocs:generate_password()},
+	POPStratDateTime = {"startDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND))},
+	POPEndDateTime = {"endDateTime", ocs_rest:iso8601(erlang:system_time(?MILLISECOND)  + 2678400000)},
+	POPValidFor = {"validFor", {struct, [POPStratDateTime, POPEndDateTime]}},
+	POPPriceType = {"priceType", "usage"},
+	POPUOMeasure = {"unitOfMeasure", "10msg"},
+	POPPriceTaxInclude = {"taxIncludedAmount",
+			integer_to_list(rand:uniform(1000)) ++ "." ++ integer_to_list(rand:uniform(999999))},
+	POPPriceCurrency = {"currencyCode", "USD"},
+	POPPrice = {"price", {struct, [POPPriceTaxInclude, POPPriceCurrency]}},
+	ProdOfferPrice1 = {struct, [POPName, POPDescription, POPValidFor, POPPriceType,
+			POPPrice, POPUOMeasure]},
+	ProdOfferPrice = {"productOfferingPrice", {array, [ProdOfferPrice1]}},
+	ReqList = [ProdName, ProdDescirption, IsBundle, IsCustomerVisible, ValidFor, ProdSpec, Status, ProdOfferPrice],
+	ReqBody = lists:flatten(mochijson:encode({struct, ReqList})),
+	Request1 = {HostUrl ++ CatalogHref ++ "/productOffering",
+			[Accept, Authorization], ContentType, ReqBody},
+	{ok, Result} = httpc:request(post, Request1, [], []),
+	{{"HTTP/1.1", 201, _Created}, Headers, _} = Result,
+	{_, _Href} = lists:keyfind("location", 1, Headers).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
