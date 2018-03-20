@@ -468,6 +468,17 @@ rate6(#subscriber{session_attributes = SessionList,
 			session_attributes = []},
 	ok = mnesia:write(Subscriber2),
 	{out_of_credit, SessionList, [Rated1]};
+rate6(#subscriber{session_attributes = SessionList,
+		buckets = Buckets} = Subscriber1, interim,
+		Charge, Charged, Reserve, Reserved, SessionId, Rated)
+		when Charged < Charge; Reserved <  Reserve ->
+	NewBuckets = refund(SessionId, Buckets),
+	{Seconds, Octets, Cents, Msgs, _Buckets} = get_debits(SessionId, NewBuckets),
+	Rated1 = rated(Seconds, Octets, Cents, Msgs, Rated),
+	Subscriber2 = Subscriber1#subscriber{buckets = NewBuckets,
+			session_attributes = []},
+	ok = mnesia:write(Subscriber2),
+	{out_of_credit, SessionList, [Rated1]};
 rate6(#subscriber{enabled = false, buckets = Buckets,
 		session_attributes = SessionList} = Subscriber1, _Flag,
 		_Charge, _Charged, _Reserve, _Reserved, SessionId, _Rated) ->
