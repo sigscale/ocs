@@ -1,3 +1,8 @@
+2018-03-20  Prahveen Thiruchelvam <prahveen@sigscale.org>
+
+	* support for event base charging for SMS
+	* introduce new bucket/usage type 'message'
+
 2018-03-14  Kalpa Gunarathna <kalpa@sigscale.org>
 
 	* ims profile diamater ro logging
