@@ -441,12 +441,12 @@ process_request1(?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST' = RequestType,
 				ok = ocs_log:acct_log(diameter, Server,
 						accounting_event_type(RequestType), Request, Reply, undefined),
 				Reply;
-			{out_of_credit, _SessionList} ->
+			{out_of_credit, _SessionList, Rated} ->
 				Reply = generate_diameter_answer(SId,
 						undefined, ?'IETF_RESULT-CODE_CREDIT_LIMIT_REACHED', OHost,
 						ORealm, RequestType, RequestNum),
 				ok = ocs_log:acct_log(diameter, Server,
-						accounting_event_type(RequestType), Request, Reply, undefined),
+						accounting_event_type(RequestType), Request, Reply, Rated),
 				Reply;
 			{disabled, _SessionList} ->
 				Reply = generate_diameter_answer(SId,
