@@ -134,7 +134,8 @@ sequences() ->
 all() ->
 	[radius_accounting, radius_disconnect_session,
 	radius_multisession_disallowed, radius_multisession,
-	diameter_accounting, diameter_disconnect_session].
+	diameter_accounting, diameter_disconnect_session,
+	diameter_sms].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -417,6 +418,81 @@ diameter_disconnect_session(Config) ->
 			'Auth-Application-Id' = ?RO_APPLICATION_ID,
 			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_UPDATE_REQUEST',
 			'CC-Request-Number' = RequestNum3} = Answer3.
+
+diameter_sms() ->
+	[{userdata, [{doc, "DIAMETER accouting for event base usage"}]}].
+
+diameter_sms(_Config) ->
+	ProdID = ocs:generate_password(),
+	PackagePrice = rand:uniform(5),
+	PackageSize = rand:uniform(5),
+	Balance = (rand:uniform(5) * 5) div rand:uniform(5),
+	NumOfEvents = Balance div rand:uniform(5),
+	Price = #price{name = ocs:generate_identity(), type = usage,
+		units = messages, size = PackageSize, amount = PackagePrice},
+	Product = #product{name = ProdID, price = [Price], specification = "11"},
+	{ok, _} = ocs:add_product(Product),
+	CalledParty = ocs:generate_identity(),
+	CallingParty = ocs:generate_identity(),
+	Password = ocs:generate_password(),
+	{ok, EnvList} = application:get_env(ocs, diameter),
+	{acct, [{Address, _Port, _Options } | _]} = lists:keyfind(acct, 1, EnvList),
+	{ok, _} = ocs:add_client(Address, undefined, diameter, undefined, true),
+	Buckets = [#bucket{units = messages, remain_amount = Balance}],
+	{ok, _} = ocs:add_subscriber(CalledParty, Password, ProdID, [], Buckets, []),
+	Ref = erlang:ref_to_list(make_ref()),
+	SId = diameter:session_id(Ref),
+	Subscription_Id = #'3gpp_ro_Subscription-Id'{
+			'Subscription-Id-Type' = ?'3GPP_SUBSCRIPTION-ID-TYPE_END_USER_E164',
+			'Subscription-Id-Data' = CalledParty},
+	RequestedUnits = #'3gpp_ro_Requested-Service-Unit' {
+			'CC-Service-Specific-Units' = [NumOfEvents]},
+	ServiceInformation = #'3gpp_ro_Service-Information'{'IMS-Information' =
+			[#'3gpp_ro_IMS-Information'{
+					'Node-Functionality' = ?'3GPP_NODE-FUNCTIONALITY_AS',
+					'Calling-Party-Address' = [list_to_binary("tel:" ++ CalledParty)],
+					'Called-Party-Address' = [list_to_binary("tel:" ++ CallingParty)]}]},
+	MultiServices_CC0 = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Requested-Service-Unit' = [RequestedUnits]},
+	RequestNum0 = 0,
+	CC_CCR0 = #'3gpp_ro_CCR'{'Session-Id' = SId,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'Service-Context-Id' = "nas45.32274.org",
+			'User-Name' = [CalledParty],
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = RequestNum0,
+			'Event-Timestamp' = [calendar:universal_time()],
+			'Subscription-Id' = [Subscription_Id],
+			'Multiple-Services-Credit-Control' = [MultiServices_CC0],
+			'Service-Information' = [ServiceInformation]},
+	{ok, Answer0} = diameter:call(?SVC_ACCT, cc_app_test, CC_CCR0, []),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_INITIAL_REQUEST',
+			'CC-Request-Number' = RequestNum,
+			'Multiple-Services-Credit-Control' = [MultiServices_CC1]} = Answer0,
+	#'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Granted-Service-Unit' = [GrantedUnits]} = MultiServices_CC1,
+	#'3gpp_ro_Granted-Service-Unit'{'CC-Service-Specific-Units' = [NumOfEvents]} = GrantedUnits,
+	NewRequestNum = RequestNum + 1,
+	UsedUnits = #'3gpp_ro_Used-Service-Unit'{'CC-Service-Specific-Units' = [NumOfEvents]},
+	MultiServices_CC2 = #'3gpp_ro_Multiple-Services-Credit-Control'{
+			'Used-Service-Unit' = [UsedUnits]},
+	CC_CCR1 = #'3gpp_ro_CCR'{'Session-Id' = SId,
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'Service-Context-Id' = "nas45.32251@3gpp.org" ,
+			'User-Name' = [CalledParty],
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
+			'CC-Request-Number' = NewRequestNum,
+			'Event-Timestamp' = [calendar:universal_time()],
+			'Multiple-Services-Credit-Control' = [MultiServices_CC2],
+			'Subscription-Id' = [Subscription_Id],
+			'Service-Information' = [ServiceInformation]},
+	{ok, Answer1} = diameter:call(?SVC_ACCT, cc_app_test, CC_CCR1, []),
+	#'3gpp_ro_CCA'{'Result-Code' = ?'DIAMETER_BASE_RESULT-CODE_SUCCESS',
+			'Auth-Application-Id' = ?RO_APPLICATION_ID,
+			'CC-Request-Type' = ?'3GPP_CC-REQUEST-TYPE_TERMINATION_REQUEST',
+			'CC-Request-Number' = NewRequestNum} = Answer1.
 
 %%---------------------------------------------------------------------
 %%  Internal functions
