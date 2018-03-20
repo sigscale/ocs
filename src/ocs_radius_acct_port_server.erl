@@ -278,11 +278,11 @@ request1(?AccountingStart, AcctSessionId, Id,
 		{error, not_found} ->
 			calendar:local_time()
 	end,
-	ok = ocs_log:acct_log(radius,
-			{ServerAddress, ServerPort}, start, Attributes, undefined, undefined),
 	case ocs_rating:rate(radius, ServiceType, Subscriber, Timestamp,
 			CallAddress, Direction, initial, [], [], SessionAttributes) of
 		{ok, #subscriber{}, _} ->
+			ok = ocs_log:acct_log(radius,
+					{ServerAddress, ServerPort}, start, Attributes, undefined, undefined),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{out_of_credit, SessionList}  ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
@@ -315,6 +315,8 @@ request1(?AccountingStop, AcctSessionId, Id,
 		{error, not_found} ->
 			radius_attributes:fetch(?CallingStationId, Attributes)
 	end,
+	ok = ocs_log:acct_log(radius,
+			{ServerAddress, ServerPort}, stop, Attributes, undefined, undefined),
 	SessionAttributes = ocs_rating:session_attributes(Attributes),
 	DebitAmount = [{octets, UsageOctets}, {seconds, UsageSecs}],
 	{ServiceType, Direction, CallAddress} = get_service_type(Attributes),
@@ -340,13 +342,9 @@ request1(?AccountingStop, AcctSessionId, Id,
 			{noreply, State};
 		{disabled, SessionList} ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
-			ok = ocs_log:acct_log(radius,
-					{ServerAddress, ServerPort}, stop, Attributes, undefined, undefined),
 			start_disconnect(State, Subscriber, SessionList),
 			{noreply, State};
 		{error, Reason} ->
-			ok = ocs_log:acct_log(radius,
-					{ServerAddress, ServerPort}, stop, Attributes, undefined, undefined),
 			error_logger:error_report(["Rating Error",
 					{module, ?MODULE}, {error, Reason}, {ip_address, IpAddress},
 					{nas, NasId}, {type, final}, {subscriber, Subscriber},
@@ -369,6 +367,8 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 		{error, not_found} ->
 			radius_attributes:fetch(?CallingStationId, Attributes)
 	end,
+	ok = ocs_log:acct_log(radius,
+			{ServerAddress, ServerPort}, interim, Attributes, undefined, undefined),
 	SessionAttributes = ocs_rating:session_attributes(Attributes),
 	ReserveAmount = [{octets, UsageOctets}, {seconds, UsageSecs}],
 	{ServiceType, Direction, CallAddress} = get_service_type(Attributes),
@@ -383,28 +383,18 @@ request1(?AccountingInterimUpdate, AcctSessionId, Id,
 	case ocs_rating:rate(radius, ServiceType, Subscriber, Timestamp,
 			CallAddress, Direction, interim, [], ReserveAmount, SessionAttributes) of
 		{ok, #subscriber{}, _} ->
-			ok = ocs_log:acct_log(radius,
-					{ServerAddress, ServerPort}, stop, Attributes, undefined, undefined),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
-		{out_of_credit, SessionList, Rated} ->
+		{out_of_credit, SessionList} ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
-			ok = ocs_log:acct_log(radius,
-					{ServerAddress, ServerPort}, stop, Attributes, undefined, Rated),
 			start_disconnect(State, Subscriber, SessionList),
 			{noreply, State};
 		{disabled, SessionList} ->
 			gen_server:reply(From, {ok, response(Id, Authenticator, Secret)}),
-			ok = ocs_log:acct_log(radius,
-					{ServerAddress, ServerPort}, stop, Attributes, undefined, undefined),
 			start_disconnect(State, Subscriber, SessionList),
 			{noreply, State};
 		{error, not_found} ->
-			ok = ocs_log:acct_log(radius,
-					{ServerAddress, ServerPort}, stop, Attributes, undefined, undefined),
 			{reply, {ok, response(Id, Authenticator, Secret)}, State};
 		{error, Reason} ->
-			ok = ocs_log:acct_log(radius,
-					{ServerAddress, ServerPort}, stop, Attributes, undefined, undefined),
 			error_logger:error_report(["Rating Error",
 					{module, ?MODULE}, {error, Reason}, {ip_address, IpAddress},
 					{nas, NasId}, {type, interim}, {subscriber, Subscriber},
