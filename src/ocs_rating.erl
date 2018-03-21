@@ -200,7 +200,7 @@ rate2(Protocol, Subscriber, Timestamp, Address, Direction,
 			throw(price_not_found)
 	end;
 rate2(Protocol, Subscriber, Timestamp, Address, Direction,
-		#product{specification = ProdSpec, price = Prices},
+		#offer{specification = ProdSpec, price = Prices},
 		Validity, Flag, DebitAmounts, ReserveAmounts,
 		SessionAttributes, Rated) when ProdSpec == "5"; ProdSpec == "9" ->
 	F = fun(#price{type = tariff, units = seconds}) ->
