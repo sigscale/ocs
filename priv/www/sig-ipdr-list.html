@@ -255,6 +255,7 @@
 					var ajax = document.getElementById('getIpdr');
 					ajax.url = "/usageManagement/v1/usage/ipdr/" + event.model.item;
 					ajax.params['type'] = "PublicWLANAccessUsage";
+					document.getElementById("selectLogFileModal").close();
 					grid.dataProvider = this.getLogContentResponse;	
 			},
 			refreshIpdr: function() {
@@ -264,7 +265,6 @@
 				document.getElementById("ipdrGrid").clearCache();
 			},
 			getLogContentResponse: function(params, callback) {
-				document.getElementById("selectLogFileModal").close();
 				var grid = document.getElementById('ipdrGrid');
 				var ajax = document.getElementById('getIpdr');
 				ipdrLogList = document.getElementById('ipdrLogList');
